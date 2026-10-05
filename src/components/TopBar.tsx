@@ -1,5 +1,7 @@
-import { ReactNode } from 'react';
-import { LogOut, Settings } from 'lucide-react';
+import { Fragment, ReactNode } from 'react';
+import { ChevronRight, LogOut, Search } from 'lucide-react';
+import { IconeParametres } from './IconesAtelier';
+import { Bouton } from '../ui';
 
 // Barre SUPÉRIEURE, fixe.
 //
@@ -27,10 +29,12 @@ import { LogOut, Settings } from 'lucide-react';
 export default function TopBar({
   titre,
   icone,
+  fil,
   gauche,
   onDeconnexion,
   parametresActifs,
   onToggleParametres,
+  onRecherche,
   // Bord GAUCHE de la barre : celui de la barre latérale, qu'elle ne recouvre
   // pas. ⚠️ Piloté par l'appelant, qui seul sait si elle est repliée.
   decalage,
@@ -40,6 +44,9 @@ export default function TopBar({
   // a cliquée, la retrouver ici confirme qu'on est au bon endroit. Elle prend
   // l'accent contextuel, comme partout ailleurs.
   icone?: ReactNode;
+  // Fil d'Ariane du BUREAU (groupe › section › sous-section), qui y remplace
+  // `titre` et `icone`. Tiré du menu bureau par l'appelant.
+  fil?: string[];
   gauche?: ReactNode;
   // Efface les données de l'appareil — « Se déconnecter » en attendant que les
   // comptes vivent en base. ⚠️ Bureau seulement (voir plus bas).
@@ -49,6 +56,10 @@ export default function TopBar({
   // vient. Un lien seul n'offrait aucune sortie — on y entrait sans pouvoir en
   // revenir autrement qu'en choisissant une autre destination.
   onToggleParametres: () => void;
+  // Ouvre la palette Ctrl K (lot 13, décision 29). Au TÉLÉPHONE seulement, par
+  // une loupe : sans clavier, c'est son seul accès. Au bureau, le champ de la
+  // barre latérale et Ctrl K suffisent.
+  onRecherche?: () => void;
   decalage: number;
 }) {
   return (
@@ -69,7 +80,8 @@ export default function TopBar({
       // ⚠️ La barre DESCEND sous l'encoche : sa hauteur s'ajoute à
       // `safe-area-inset-top`, et son contenu se décale d'autant. Sans cela,
       // le titre et les boutons passaient sous l'encoche d'un iPhone.
-      className="fixed inset-x-0 top-0 z-20 border-b border-border bg-panel
+      // Fond `bar` : celui des barres de l'application (rebranding, décision 5).
+      className="fixed inset-x-0 top-0 z-20 border-b border-border bg-bar
                  lg:left-[var(--top-left)] lg:right-0 lg:transition-[left] lg:duration-[180ms]"
       style={{
         ['--top-left' as string]: `${decalage}px`,
@@ -86,23 +98,47 @@ export default function TopBar({
           {gauche}
         </div>
 
-        {/* ⚠️ `pointer-events-none` : le titre couvre toute la largeur pour
-            rester centré, et capterait sinon les clics destinés aux boutons
-            qu'il recouvre. */}
-        <span
-          // ⚠️ Marges LATÉRALES sur le titre, pas `inset-x-0` : centré sur toute
-          // la largeur, il passait SOUS le bouton — le ⚙ chevauchait « RTA »
-          // sur mobile. 56 px réservés à droite (la cible de 32 px plus sa
-          // gouttière), 60 px à gauche pour le logo. Au-dessus de `lg` le logo
-          // vit dans la barre latérale : la marge gauche retombe à celle du
-          // conteneur. `truncate` finit le travail sur « Recommandations ».
-          className="pointer-events-none absolute inset-y-0 left-[60px] right-[56px] flex
-                     items-center justify-center gap-2 font-display text-base
-                     tracking-wide text-ink lg:left-3"
-        >
-          {icone && <span className="flex-none text-ctx">{icone}</span>}
-          <span className="truncate">{titre}</span>
-        </span>
+        {/* TÉLÉPHONE — OÙ L'ON EST, à gauche, sur deux lignes (refonte
+            graphique, lot 11a, décision 24, la maquette) : la section en petit
+            (« Jouer · RTA », « Mon compte · Runes »), la page dessous (« Ma
+            prépa », « Liste »). Il était centré, en Cinzel, avec l'icône de la
+            section : il ne disait que la page, pas où elle se range.
+            ⚠️ Tiré du MÊME fil que le bureau (`fil`, construit depuis le menu),
+            jamais ressaisi. Sans fil, le titre seul.
+            ⚠️ `lg:hidden` : sur bureau, c'est le fil d'Ariane ci-dessous. */}
+        {(() => {
+          const chemin = fil && fil.length > 0 ? fil : [titre];
+          const page = chemin[chemin.length - 1];
+          const section = chemin.slice(0, -1).join(' · ');
+          return (
+            <div className="flex min-w-0 flex-col leading-tight lg:hidden">
+              {section && <span className="truncate text-micro text-ink-dimmer">{section}</span>}
+              <span className="truncate text-sm font-semibold text-ink">{page}</span>
+            </div>
+          );
+        })()}
+
+        {/* BUREAU — le FIL D'ARIANE, à gauche, comme dans la maquette : le
+            chemin du menu jusqu'à la page (« Mon compte › Runes › Liste »),
+            en police de texte, sans icône. Relevé par Thomas : le titre
+            centré (Cinzel, icône colorée) « n'est pas raccord avec le menu ».
+            ⚠️ Construit par l'appelant À PARTIR DU MENU lui-même, jamais
+            ressaisi : le fil ne peut pas contredire la barre latérale. */}
+        {fil && fil.length > 0 && (
+          <nav aria-label="Fil d'Ariane" className="hidden min-w-0 items-center gap-1.5 text-sm lg:flex">
+            {fil.map((etape, i) => (
+              <Fragment key={i}>
+                {i > 0 && <ChevronRight size={14} aria-hidden className="flex-none text-ink-dimmer" />}
+                <span
+                  aria-current={i === fil.length - 1 ? 'page' : undefined}
+                  className={`truncate ${i === fil.length - 1 ? 'font-semibold text-ink' : 'text-ink-dim'}`}
+                >
+                  {etape}
+                </span>
+              </Fragment>
+            ))}
+          </nav>
+        )}
 
         {/* ⚠️ **Zone droite : un contenu par format, et strictement un.**
 
@@ -117,17 +153,33 @@ export default function TopBar({
             déconnexion et l'import y descendent, faute de place — trois cibles
             dans 48 px de haut, à côté d'un titre centré, ne laissaient à chacune
             ni la marge d'erreur qu'un doigt réclame. */}
-        <button
-          type="button"
+        {/* Bouton de la librairie (décision 16) : la hauteur commune des
+            boutons de l'app, ton `danger` qui ne rougit qu'au survol. */}
+        <Bouton
           onClick={onDeconnexion}
           title="Effacer mes données de cet appareil"
-          className="relative z-10 ml-auto hidden items-center gap-1.5 rounded-md px-2 py-1.5
-                     text-sm text-ink-dim transition-colors lg:flex
-                     hoverable:bg-panel2 hoverable:text-bad"
-        >
-          <LogOut size={16} className="flex-none" />
-          Se déconnecter
-        </button>
+          ton="danger"
+          fond="vide"
+          trait="aucun"
+          icone={<LogOut size={16} className="flex-none" />}
+          libelle="Se déconnecter"
+          className="relative z-10 ml-auto hidden lg:inline-flex"
+        />
+
+        {/* TÉLÉPHONE — la loupe de la palette Ctrl K (lot 13, décision 29, la
+            maquette), juste avant le ⚙. Même gabarit que lui. */}
+        {onRecherche && (
+          <button
+            type="button"
+            onClick={onRecherche}
+            title="Rechercher une page, un monstre, une action"
+            aria-label="Rechercher"
+            className="relative z-10 ml-auto flex aspect-square h-8 w-8 items-center justify-center rounded-md
+                       text-ink-dim transition-colors hoverable:bg-panel2 hoverable:text-ink lg:hidden"
+          >
+            <Search size={16} />
+          </button>
+        )}
 
         <button
           type="button"
@@ -138,21 +190,21 @@ export default function TopBar({
           // ⚠️ `lg:hidden` : sur bureau, le pied de la barre latérale porte le
           // même accès, à côté du nom du compte. Le garder ici aurait fait deux
           // boutons pour un seul écran.
-          className={`relative z-10 ml-auto flex aspect-square h-8 w-8 items-center justify-center
+          // ⚠️ `ml-auto` seulement sans loupe : avec elle, c'est la loupe qui
+          // pousse la paire à droite ; deux `ml-auto` se partageraient la place.
+          className={`relative z-10 ${onRecherche ? '' : 'ml-auto'} flex aspect-square h-8 w-8 items-center justify-center
                       rounded-md transition-colors lg:hidden ${
                         parametresActifs
                           ? 'bg-ctx-soft text-ctx'
                           : 'text-ink-dim hoverable:bg-panel2 hoverable:text-ink'
                       }`}
         >
-          {/* L'engrenage pivote d'un huitième de tour quand les paramètres sont
-              ouverts : le bouton dit alors qu'il fera l'inverse au prochain
-              clic, sans changer d'icône — une croix aurait fait croire à une
-              fermeture de la page entière. */}
-          <Settings
-            size={16}
-            className={`transition-transform ${parametresActifs ? 'rotate-45' : ''}`}
-          />
+          {/* Les curseurs « Réglages » de la toile (rebranding R4, décision
+              28). L'engrenage pivotait d'un huitième de tour à l'ouverture ;
+              des curseurs tournés ne diraient rien : l'état ouvert se lit au
+              fond (`ctx-soft`) et au libellé (« Fermer les paramètres »). Pas
+              de croix, qui ferait croire à la fermeture de la page entière. */}
+          <IconeParametres size={16} />
         </button>
       </div>
     </header>

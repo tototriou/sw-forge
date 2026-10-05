@@ -23,28 +23,36 @@
       content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover"
     />
 
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="icon" type="image/png" sizes="512x512" href="/favicon.png" />
-    <link rel="apple-touch-icon" href="/favicon.png" />
+    <!-- ⚠️ `?v=2` : le favicon a changé au rebranding (R2 bis) mais pas son
+         adresse, et les navigateurs le gardent en cache à part, même après un
+         rechargement forcé — l'onglet montrait l'ancien. Une adresse neuve
+         force le nouveau. Changer ce numéro à chaque nouveau favicon ; même
+         règle pour l'image de partage plus bas (Discord la garde aussi). -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=2" />
+    <link rel="icon" type="image/png" sizes="512x512" href="/favicon.png?v=2" />
+    <link rel="apple-touch-icon" href="/favicon.png?v=2" />
 
-    <title>SW Forge — Boîte à outils Summoners War</title>
+    <!-- ⚠️ `%NOM_APP%` : remplacé au build par le nom de `src/marque.ts`
+         (plugin de vite.config.ts). Les URLs gardent `sw-forge` : le domaine
+         est hors du rebranding. -->
+    <title>%NOM_APP% — Boîte à outils Summoners War</title>
     <meta name="description" content="Outil Summoners War : RTA, siège, arène — perfectionne ton compte simplement." />
 
     <!-- Open Graph (Discord, Facebook…) -->
     <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="SW Forge" />
-    <meta property="og:title" content="SW Forge — Boîte à outils Summoners War" />
+    <meta property="og:site_name" content="%NOM_APP%" />
+    <meta property="og:title" content="%NOM_APP% — Boîte à outils Summoners War" />
     <meta property="og:description" content="Outil Summoners War : RTA, siège, arène — perfectionne ton compte simplement." />
     <meta property="og:url" content="https://sw-forge.vercel.app/" />
-    <meta property="og:image" content="https://sw-forge.vercel.app/og-image.png" />
+    <meta property="og:image" content="https://sw-forge.vercel.app/og-image.png?v=2" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
 
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="SW Forge — Boîte à outils Summoners War" />
+    <meta name="twitter:title" content="%NOM_APP% — Boîte à outils Summoners War" />
     <meta name="twitter:description" content="Outil Summoners War : RTA, siège, arène — perfectionne ton compte simplement." />
-    <meta name="twitter:image" content="https://sw-forge.vercel.app/og-image.png" />
+    <meta name="twitter:image" content="https://sw-forge.vercel.app/og-image.png?v=2" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <!-- ⚠️ JetBrains Mono remplace Space Mono pour les CHIFFRES : efficiences,
@@ -52,9 +60,12 @@
          illisibles en 11 px — or c'est la taille à laquelle on lit une
          efficience dans une liste de 60 tuiles. JetBrains Mono est dessinée
          pour le petit corps : hauteur d'x haute, zéro barré, 1 à empattement.
+         Source Sans 3 remplace Inter pour le TEXTE (rebranding « SW
+         Blacksmith », R1), aux mêmes graisses. Saira 700 écrit le NOM de
+         l'app dans le logo, et rien d'autre (R2 bis).
          Voir spec/shared/design.md. -->
     <link
-      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Source+Sans+3:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Saira:wght@700&display=swap"
       rel="stylesheet"
     />
     <!-- Thème : posé AVANT la première peinture.
@@ -65,7 +76,9 @@
     <script>
       (function () {
         try {
-          var c = localStorage.getItem('sw-forge-theme-v1');
+          // L'ancienne clé en repli : ce script passe AVANT la migration des
+          // clés (src/lib/migrationStockage.ts), au tout premier lancement.
+          var c = localStorage.getItem('swblacksmith-theme-v1') || localStorage.getItem('sw-forge-theme-v1');
           if (c === 'light' || c === 'dark') document.documentElement.setAttribute('data-theme', c);
         } catch (e) {
           /* stockage indisponible : on suit le navigateur */

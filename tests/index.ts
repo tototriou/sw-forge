@@ -6,6 +6,7 @@
 
 import { bilan } from './outils';
 import testImport from './import.test';
+import testNavigation from './navigation.test';
 import testPersistance from './persistance.test';
 import testMeules, { testGemmeMemeStat, testRegemmeDifferent, testReserveParGrade, testPalier, testRegistre, testSansDowngrade } from './meules.test';
 import testArtefacts from './artefacts.test';
@@ -162,12 +163,43 @@ import testRuneTri from './rune-tri.test';
 import testMonstreTri from './monstre-tri.test';
 import testMonstreFormes from './monstre-formes.test';
 import testStockage from './stockage.test';
+import testMigrationStockage from './migration-stockage.test';
 import testVitesse from './vitesse.test';
 import testSiegeStatut from './siege-statut.test';
+import testSiegePastille from './siege-pastille.test';
+import testSiegeSlotSuivant from './siege-slot-suivant.test';
+import testRecoDefenses from './reco-defenses.test';
+import testSiegePartage from './siege-partage.test';
+import testMarque from './marque.test';
 import testSpeedTune, { testSpeedTuneDeck, testSpeedTuneChaine, testSpeedTuneKit, testSpeedTuneSequence, testSpeedTuneReference, testSpeedTunePassif, testSpeedTuneAuto, testSpeedTuneModele } from './speed-tune.test';
 import testSpecMarkdown from './spec-markdown.test';
 import testSpecToc from './spec-toc.test';
 import testSpecLint, { testSpecLintEnTetes, testSpecLintEnTetesReel, testSpecLintReel } from './spec-lint.test';
+import {
+  testRefonteInventaire,
+  testRefonteInventaireExtraction,
+  testRefonteInventaireComparer,
+  testRefonteCheminsInterdits,
+} from './refonte-inventaire.test';
+import { testRenduSiegeDefense, testRenduSiegeOffense, testRenduSiegeEnTete, testRenduSiegeEdition } from './rendu/siege.test';
+import { testRenduUiBouton, testRenduUiEtats, testRenduUiMenu, testRenduUiNotification, testRenduPalette } from './rendu/ui.test';
+import { testPalette } from './palette.test';
+import { testRenduAppRoutes, testRenduAppNavigation, testRenduAppMobile, testRenduAppFil } from './rendu/app.test';
+import { testRenduAccueil, testRenduAccueilEspace } from './rendu/accueil.test';
+import { testRenduRecosPage, testRenduRecosEnTete, testRenduRecosDeploiement, testRenduRecosEdition, testRenduRecosVueDefense, testRenduRecosTicks, testRenduRecosAnnulerEdition } from './rendu/recos.test';
+import testAnnulerEdition from './annuler-edition.test';
+import { testRenduRunesResume, testRenduRunesListe, testRenduRunesCourbes, testRenduRunesComparaison, testRenduRunesOptimisation, testRenduRunesAVenir, testRenduRunesFiltresLigne, testRenduRunesTriOnglets, testRenduRunesResumeSouris, testRenduRunesListeSouris, testRenduRunesVuesSouris } from './rendu/runes.test';
+import { testRenduCompteMonstres, testRenduCompteArtefactsResume, testRenduCompteArtefactsListe, testRenduCompteSouris, testRenduCompteEffacerFiltres } from './rendu/compte.test';
+import { testRenduSpeedTuneVide, testRenduSpeedTuneCamps, testRenduSpeedTuneAnalyse } from './rendu/speed-tune.test';
+import { testRenduOptimizerVide, testRenduOptimizerMonstre, testRenduOptimizerReglages, testRenduTelephoneOptimizer } from './rendu/optimizer.test';
+import { testRenduBestiaire, testRenduMecaniques, testRenduNouveautes, testRenduParametres, testRenduBientot } from './rendu/ressources.test';
+import { testRenduTelephoneAccueil, testRenduTelephoneRta, testRenduTelephoneRtaAmi, testRenduTelephoneRtaFiltre } from './rendu/telephone-accueil-rta.test';
+import { testRenduTelephoneSiege, testRenduTelephoneRecos } from './rendu/telephone-siege.test';
+import { testRenduTelephoneMonstres, testRenduTelephoneArtefacts, testRenduTelephoneRunes } from './rendu/telephone-compte.test';
+import { testRenduTelephoneOutilsRessources } from './rendu/telephone-outils-ressources.test';
+import { testRenduRtaPrepa, testRenduRtaMenu, testRenduRtaVide, testRenduRtaSauvegarde, testRenduRtaAmi, testRenduRtaIndicateur } from './rendu/rta.test';
+import { testIndicateurSauvegarde } from './indicateur-sauvegarde.test';
+import { testRestauration } from './restauration.test';
 import testSkillAdapters from './skill-adapters.test';
 
 // Chaque vérification sous son NOM, dans l'ordre d'exécution.
@@ -191,14 +223,94 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testSpeedTuneAuto', testSpeedTuneAuto],
   ['testSpeedTuneModele', testSpeedTuneModele],
   ['testSiegeStatut', testSiegeStatut],
+  ['testSiegePastille', testSiegePastille],
+  ['testSiegeSlotSuivant', testSiegeSlotSuivant],
+  ['testRecoDefenses', testRecoDefenses],
+  ['testSiegePartage', testSiegePartage],
+  ['testMarque', testMarque],
   ['testSpecMarkdown', testSpecMarkdown],
   ['testSpecToc', testSpecToc],
   ['testSpecLintEnTetes', testSpecLintEnTetes],
   ['testSpecLintEnTetesReel', testSpecLintEnTetesReel],
   ['testSpecLint', testSpecLint],
   ['testSpecLintReel', testSpecLintReel],
+  ['testRefonteInventaireExtraction', testRefonteInventaireExtraction],
+  ['testRefonteInventaireComparer', testRefonteInventaireComparer],
+  ['testRefonteInventaire', testRefonteInventaire],
+  ['testRefonteCheminsInterdits', testRefonteCheminsInterdits],
+  ['testRenduSiegeDefense', testRenduSiegeDefense],
+  ['testRenduSiegeOffense', testRenduSiegeOffense],
+  ['testRenduSiegeEnTete', testRenduSiegeEnTete],
+  ['testRenduSiegeEdition', testRenduSiegeEdition],
+  ['testRenduRecosPage', testRenduRecosPage],
+  ['testRenduRecosEnTete', testRenduRecosEnTete],
+  ['testRenduRecosDeploiement', testRenduRecosDeploiement],
+  ['testRenduRecosEdition', testRenduRecosEdition],
+  ['testRenduRecosVueDefense', testRenduRecosVueDefense],
+  ['testRenduRecosTicks', testRenduRecosTicks],
+  ['testRenduRecosAnnulerEdition', testRenduRecosAnnulerEdition],
+  ['testAnnulerEdition', testAnnulerEdition],
+  ['testRenduRunesResume', testRenduRunesResume],
+  ['testRenduRunesListe', testRenduRunesListe],
+  ['testRenduRunesCourbes', testRenduRunesCourbes],
+  ['testRenduRunesComparaison', testRenduRunesComparaison],
+  ['testRenduRunesOptimisation', testRenduRunesOptimisation],
+  ['testRenduRunesAVenir', testRenduRunesAVenir],
+  ['testRenduRunesFiltresLigne', testRenduRunesFiltresLigne],
+  ['testRenduRunesTriOnglets', testRenduRunesTriOnglets],
+  ['testRenduRunesResumeSouris', testRenduRunesResumeSouris],
+  ['testRenduRunesListeSouris', testRenduRunesListeSouris],
+  ['testRenduRunesVuesSouris', testRenduRunesVuesSouris],
+  ['testRenduCompteMonstres', testRenduCompteMonstres],
+  ['testRenduCompteArtefactsResume', testRenduCompteArtefactsResume],
+  ['testRenduCompteArtefactsListe', testRenduCompteArtefactsListe],
+  ['testRenduCompteSouris', testRenduCompteSouris],
+  ['testRenduCompteEffacerFiltres', testRenduCompteEffacerFiltres],
+  ['testRenduSpeedTuneVide', testRenduSpeedTuneVide],
+  ['testRenduSpeedTuneCamps', testRenduSpeedTuneCamps],
+  ['testRenduSpeedTuneAnalyse', testRenduSpeedTuneAnalyse],
+  ['testRenduOptimizerVide', testRenduOptimizerVide],
+  ['testRenduOptimizerMonstre', testRenduOptimizerMonstre],
+  ['testRenduOptimizerReglages', testRenduOptimizerReglages],
+  ['testRenduTelephoneOptimizer', testRenduTelephoneOptimizer],
+  ['testRenduBestiaire', testRenduBestiaire],
+  ['testRenduMecaniques', testRenduMecaniques],
+  ['testRenduNouveautes', testRenduNouveautes],
+  ['testRenduParametres', testRenduParametres],
+  ['testRenduBientot', testRenduBientot],
+  ['testRenduTelephoneAccueil', testRenduTelephoneAccueil],
+  ['testRenduTelephoneRta', testRenduTelephoneRta],
+  ['testRenduTelephoneRtaAmi', testRenduTelephoneRtaAmi],
+  ['testRenduTelephoneRtaFiltre', testRenduTelephoneRtaFiltre],
+  ['testRenduTelephoneSiege', testRenduTelephoneSiege],
+  ['testRenduTelephoneRecos', testRenduTelephoneRecos],
+  ['testRenduTelephoneMonstres', testRenduTelephoneMonstres],
+  ['testRenduTelephoneArtefacts', testRenduTelephoneArtefacts],
+  ['testRenduTelephoneRunes', testRenduTelephoneRunes],
+  ['testRenduTelephoneOutilsRessources', testRenduTelephoneOutilsRessources],
+  ['testRenduUiBouton', testRenduUiBouton],
+  ['testRenduUiEtats', testRenduUiEtats],
+  ['testRenduUiMenu', testRenduUiMenu],
+  ['testRenduUiNotification', testRenduUiNotification],
+  ['testRenduPalette', testRenduPalette],
+  ['testPalette', testPalette],
+  ['testRenduAppRoutes', testRenduAppRoutes],
+  ['testRenduAppNavigation', testRenduAppNavigation],
+  ['testRenduAppMobile', testRenduAppMobile],
+  ['testRenduAppFil', testRenduAppFil],
+  ['testRenduAccueil', testRenduAccueil],
+  ['testRenduAccueilEspace', testRenduAccueilEspace],
+  ['testRenduRtaPrepa', testRenduRtaPrepa],
+  ['testRenduRtaMenu', testRenduRtaMenu],
+  ['testRenduRtaVide', testRenduRtaVide],
+  ['testRenduRtaSauvegarde', testRenduRtaSauvegarde],
+  ['testRenduRtaIndicateur', testRenduRtaIndicateur],
+  ['testIndicateurSauvegarde', testIndicateurSauvegarde],
+  ['testRestauration', testRestauration],
+  ['testRenduRtaAmi', testRenduRtaAmi],
   ['testSkillAdapters', testSkillAdapters],
   ['testImport', testImport],
+  ['testNavigation', testNavigation],
   ['testReco', testReco],
   ['testDefensesVisees', testDefensesVisees],
   ['testTrimPartage', testTrimPartage],
@@ -397,6 +509,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRegemmeDifferent', testRegemmeDifferent],
   ['testReserveParGrade', testReserveParGrade],
   ['testPalier', testPalier],
+  ['testMigrationStockage', testMigrationStockage],
   ['testStockage', async () => { await testStockage(); }],
   ['testPersistance', async () => { await testPersistance(); }],
 ];

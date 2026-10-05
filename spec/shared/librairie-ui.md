@@ -58,6 +58,38 @@ Les axes se **choisissent séparément et se combinent** :
 | `forme` | `boite`, `pilule` | Le **rayon des coins** |
 | `taille` | `xs`, `sm`, `md`, `carre` | L'**encombrement** |
 
+> ⚠️ **À la souris, le gabarit des boutons de la maquette** (refonte
+> graphique, décision 16 — « le même rendu que sur la maquette au niveau des
+> boutons ») : `md` = `.btn`, **32 px** de haut, 12 px de côté, 13 px de
+> texte ; `sm` = `.btn-sm`, **28 px**, 10 px, 12 px ; rayon 8 px. Un bouton
+> d'icône est un carré de la même hauteur : `BoutonIcone` = 28 px
+> (`.btn-icon.btn-sm`), le « ⋯ » d'en-tête = 32 px (`.btn-icon`).
+> `Segmented` = `.seg` : cadre de 32 px, crans de 26. `min-h` et non `h` :
+> un libellé qui passe à la ligne agrandit le bouton au lieu de déborder.
+> `xs` et `serre` restent hors échelle — ils vivent DANS un contenant plus
+> petit qu'elle. **Le survol peint le fond** : `panel2` (l'équivalent du
+> `--hover` de la maquette, même écart au panneau dans les deux thèmes) sur
+> un bouton neutre, `bad-soft` sur un `danger` sans fond — et plus le contour
+> d'accent, ni le voile noir propre à `BoutonIcone`. Au doigt, rien ne change
+> (lot 11) : tailles en `lg:`, survol en `hoverable:`.
+
+> ⚠️ **Les états de la toile, sans ses hauteurs** (rebranding, R3a — décisions
+> 17 et 21). Le bouton principal (`accent` + `plein`) prend le **survol**
+> `accent-hover` et l'**appui** `accent-appui` (le filtre `brightness-110`
+> disparaît) ; **désactivé**, il devient un aplat gris (`panel2`, encre
+> `ink-dimmer`) au lieu d'une braise à 40 % d'opacité, boueuse. Tout `Bouton`
+> **descend d'1 px** à l'appui (`data-bouton`, voir design.md § Pression).
+> Les hauteurs restent les nôtres (28 / 32 au bureau, 40 au doigt), pas les
+> 36 / 44 / 52 de la toile : notre densité est gardée.
+> Le **« fantôme »** de la toile est `ton="accent"` + `fond="vide"` : texte en
+> braise lisible, fond braise sombre au survol (R3c). Personne n'employait
+> cette combinaison avant ; elle porte l'action d'une notification.
+> ⚠️ `active:!bg-accent-appui` et `disabled:!bg-panel2` portent un
+> `!important`, à dessein : les variantes du plugin (`hoverable:`) sont émises
+> APRÈS `active:` et `disabled:` dans le CSS construit, et le survol
+> l'emportait à spécificité égale — pas d'appui visible à la souris, une
+> braise qui se rallumait sur un bouton désactivé.
+
 > ⚠️ **`fond` décide aussi de la COULEUR DU CONTENU**, pas seulement du
 > remplissage. Un bouton sans fond prend une icône qui vire à la teinte de son
 > ton au survol — juste sur une surface neutre. Sur un fond peint de cette même
@@ -66,6 +98,13 @@ Les axes se **choisissent séparément et se combinent** :
 > `plein`) et non deux, et d'où un `fond="plein"` **opaque** pour le ton
 > `danger` : c'est le cran des actions posées SUR autre chose, où un fond
 > translucide laisse passer l'image dessous.
+>
+> ⚠️ **`ton="accent"` + `fond="plein"` est le BOUTON PRINCIPAL** : un aplat
+> d'accent, texte `accent-ink` (blanc en Atelier, fond sombre en Forge —
+> mesurés, `design.md` § Accent). **Un seul par écran** : l'action qu'on vient
+> faire. Il valait `accent-soft` comme `doux` jusqu'à la refonte graphique
+> (décision 4 de Thomas, 2026-09-24) — l'app n'avait aucun bouton principal
+> qui ressorte. `BoutonGroupe` suit la même règle.
 >
 > ⚠️ Corollaire : **ne jamais peindre un fond en `className`.** Le composant ne
 > peut pas le savoir, et choisit alors la couleur de contenu du fond nu.
@@ -213,8 +252,65 @@ type est la seule façon de ne plus avoir à y penser.
   serait ni focusable au clavier ni atteignable au doigt — on ne pouvait plus
   retirer un monstre sur téléphone. On joue sur l'**opacité**, et il est visible
   d'office là où il n'y a pas de survol.
+- `libelleALaSouris` — **à la souris, le libellé s'écrit à côté de l'icône** :
+  le carré devient un bouton `sm` à libellé (28 px, 10 px de côté). Au doigt,
+  l'icône seule, inchangée. Né au lot 7b de la refonte (Recommandations) : la
+  maquette écrit « Éditer ce deck » en pied du détail, le téléphone garde le
+  crayon. ⚠️ **Un seul élément, deux dessins** — et non une icône `lg:hidden`
+  plus un bouton `hidden lg:inline-flex` : deux éléments pour un geste, c'est
+  deux cibles au clavier et deux annonces au lecteur d'écran.
+  ⚠️ **À CADRE à la souris** (`.btn-secondary` : fond `panel`, contour
+  `border`, survol `panel2` ; `danger` : contour et texte `bad`, survol
+  `bad-soft`) — un bouton à libellé posé parmi d'autres boutons à libellé
+  doit leur ressembler. Nu, il ne ressortait pas (Thomas, 2026-09-27).
 
 ### Composants à part entière
+
+**`BarreActions`** — les actions d'un EN-TÊTE d'écran : **toutes en boutons
+quand elles tiennent sur la ligne, sinon les actions `toujours` + un `Menu`
+« ⋯ »** pour les `autres`. Les entrées sont les mêmes `ElementMenu` dans les
+deux formes (libellé, icône, désactivation et raison, `danger` rangé en
+dernier derrière un filet) : aucune action n'existe que dans l'une. Demandé par
+Thomas (RTA, lot 6) : « sur PC, afficher ces boutons si on a la place ».
+⚠️ **La place se MESURE** : une copie invisible et `inert` de la rangée complète
+est comparée à la largeur disponible, à chaque redimensionnement. Un point de
+rupture fixe se tromperait — la place dépend aussi de la barre latérale
+(dépliée ou repliée) et du titre de l'écran. ⚠️ En rendu serveur et au premier
+rendu, c'est le **menu** (la forme qui tient partout) ; le basculement se fait
+dans un `useLayoutEffect`, avant la première peinture. Tous ses boutons ont la
+hauteur d'en-tête (`HAUTEUR_EN_TETE`).
+Un axe d'entrée en plus de `danger` (lot 7a, Siège) : **`actif`** — un
+bouton à deux états (`aria-pressed`, fond d'accent enclenché), qui devient une
+entrée à cocher (`menuitemcheckbox`) s'il tombe dans le menu.
+⚠️ **Pas d'axe « principal »** : aucune action n'est mise en avant dans un
+en-tête d'écran. Un aplat d'accent a été essayé sur « Vérifier mes speed » et
+retiré par Thomas (« ça rend pas bien ») — décision 4 précisée.
+
+**`Menu`** — un bouton « ⋯ » (nommé par `libelle`) qui ouvre sous lui,
+ancrée à droite, une liste d'actions (`Flottant`, `role="menu"`).
+⚠️ **Le « ⋯ » a la hauteur des boutons d'EN-TÊTE, 36 px au doigt, 32 px à
+la souris** (`HAUTEUR_EN_TETE`, exportée ; 32 = un bouton `md`, décision 16) — pas les 28 px d'un `BoutonIcone` : posé à côté
+d'un bouton d'action (« Exporter » dans la RTA), il faisait deux hauteurs
+voisines, lues comme deux familles de boutons (relevé par Thomas). Les
+boutons voisins s'y alignent en reprenant la constante. C'est un `Bouton`
+carré dimensionné, pas un `BoutonIcone` dont on écraserait le `h-7` : deux
+hauteurs dans la même classe, l'ordre de la feuille de style trancherait. Chaque entrée : icône, libellé, `disabled` + `title` pour dire
+pourquoi, et `danger` pour un geste qui perd quelque chose — rangé en dernier,
+derrière un filet, en `bad`. Clavier : flèches, Début / Fin, Échap (rend le
+focus au bouton), Tab referme ; un clic dehors aussi.
+⚠️ **Les entrées restent dans le DOM, menu fermé** (`hidden`) : un bouton ne
+quitte jamais le DOM selon l'état de l'écran, et c'est ce qui laisse les tests
+de rendu retrouver chaque action, son état et sa raison.
+⚠️ **Monté à son PREMIER usage** (la RTA, refonte graphique lot 6, décision
+13), contre la règle du deuxième (« Quand ajouter quelque chose ») : l'écrire
+dans l'écran aurait fait un contrôle MAISON — ce que la règle qui gouverne tout
+le reste interdit — et les maquettes en posent un dans plusieurs écrans.
+
+⚠️ **Pas de `Deroulant` (filtre fermé dans un menu)** : ajouté au lot 8a pour
+les filtres des runes (la maquette), puis retiré le même jour, sans autre
+usage — Thomas n'a voulu aucun filtre fermé dans un menu (« sors tout des
+boutons »). Un filtre fermé ne dit pas ce qu'il filtre sans qu'on l'ouvre.
+Voir spec/compte/runes.md § Filtrer par set.
 
 **`Champ`** — saisie texte. ⚠️ `compact:text-base` n'est **pas un choix de
 taille, c'est un correctif** : sous 16 px, iOS **zoome** sur le champ à la mise
@@ -257,7 +353,9 @@ découvrir.
 seule enfoncée. À préférer à une rangée de pastilles quand les options
 **s'excluent** : des pastilles indépendantes se lisent comme des filtres
 cumulables, rien dans leur forme ne dit qu'en activer une désactive les
-autres — le cadre commun le dit sans un mot.
+autres — le cadre commun le dit sans un mot. L'option enfoncée est un
+**aplat de braise**, texte `accent-ink` (rebranding, décision 19 ; fond
+d'accent doux avant).
 
 > ⚠️ **Il se resserre TOUT SEUL** (`dense` laissé à `undefined`, le défaut) :
 > le contrôle mesure la place qu'il reçoit **réellement** et bascule en texte/
@@ -294,9 +392,16 @@ fois.
 > qui n'est pas une pastille de filtre passe par ici ») avant qu'elle existe.
 
 > ⚠️ **Un seul marqueur d'état, deux schémas jamais mêlés dans une rangée.** Sans
-> `couleurs`, l'état actif prend l'**accent** de l'app — c'est le cas de filtres
-> qui n'ont pas de couleur propre (Nat, Doublons, 2A) : un seul style les
+> `couleurs`, l'état actif prend le marqueur de filtre de l'app — c'est le cas de
+> filtres qui n'ont pas de couleur propre (Nat, Doublons, 2A) : un seul style les
 > rassemble, là où trois surbrillances se liraient comme trois natures de filtre.
+> Ce marqueur est la **couleur d'accent teintée** (contour d'accent, fond
+> `accent-soft` — le « braise sombre » de la toile depuis le rebranding,
+> décision 20, sans sa coche ; refonte graphique, décision 9 de Thomas,
+> 2026-09-24 — la couleur inversée, essayée d'abord, a été écartée) et vit dans une constante
+> exportée, `MARQUEUR_FILTRE_ACTIF` : les filtres qui ne passent pas par
+> `Pastille` (sets, emplacements, étoiles du Bestiaire) l'importent, pour porter
+> EXACTEMENT le même.
 > Avec `couleurs`, l'**appelant porte la teinte** (l'élément a la sienne, un
 > token partagé avec le Bestiaire via `elementStyles.ts`), exactement comme la
 > `teinte` d'une `Vignette` : la couleur est une DONNÉE de l'appelant, jamais une
@@ -393,6 +498,15 @@ popup d'édition, formulaire ancré, liste de résultats d'une recherche.
 autour de son ancre : vers la gauche si l'ancre est près du bord droit, vers le
 haut si elle est près du bas. Puis il **borne sa position au viewport**, en
 gardant la surface ancrée à ce qui l'a ouverte.
+
+> ⚠️ **Sans rembourrage par défaut** (`rembourrage="aucun"`), à la différence
+> de `Flottant` : il sert aussi aux LISTES, dont les entrées touchent le bord.
+> Un TEXTE posé dedans demande donc `rembourrage="md"` — la bulle d'aide
+> `HelpPopover` l'oubliait, son texte collait au cadre (lot 8a de la refonte,
+> capture de Thomas). Un texte LONG demande aussi une hauteur bornée avec
+> défilement (`max-h-[…] overflow-y-auto`), sans quoi il sort de l'écran par
+> le bas. `HelpPopover` pose les deux, et détache son titre (13 px, filet
+> dessous) du corps (12 px).
 
 > ⚠️ Pour ce qui est ancré à un élément **dont la position varie** : une tuile
 > dans une grille, une carte de monstre, un badge au bout d'une ligne. Ces ancres
@@ -498,6 +612,14 @@ pas — il remplit trois emplacements :
 
 `croix` est posée partout **sauf sur les confirmations** (`ConfirmDialog`,
 `KeepAccountDialog`).
+
+> ⚠️ **Confirmation DESTRUCTIVE : l'action en aplat rouge, « Annuler » à
+> contour** (`ConfirmDialog` `destructif` ; rebranding, décision 22 — la
+> planche « Retours et fenêtres »). L'action était un `danger` doux et
+> « Annuler » une braise douce. Le focus initial reste sur « Annuler » : le
+> défaut ne perd jamais rien, l'aplat dit seulement ce que l'action coûte.
+> Encre sur l'aplat : `bad-ink`. Une confirmation NON destructive ne change
+> pas (action neutre pleine, « Annuler » en braise douce).
 
 > ⚠️ Sur une confirmation, **« Annuler » EST la sortie**. Une croix à côté ferait
 > deux portes pour un choix qui n'en a qu'une, et l'on hésiterait sur ce qu'elle

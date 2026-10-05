@@ -1,5 +1,6 @@
 import { ReactNode, useEffect, useRef, useState } from 'react';
-import { Settings, Trash2 } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
+import { IconeParametres } from './IconesAtelier';
 import { RUNE_METRICS, setRuneMetric, useRuneMetric } from '../hooks/useRuneMetric';
 import { setPersistence, storageAvailable, usePersistence } from '../hooks/usePersistence';
 import { THEME_CHOICES, setTheme, useTheme } from '../hooks/useTheme';
@@ -7,6 +8,8 @@ import { setOvercapDisplay, useOvercapDisplay } from '../hooks/useOvercapDisplay
 import { setAdversaireReference, useAdversaireReference } from '../hooks/useAdversaireReference';
 import AccountFreshness from './AccountFreshness';
 import Segmented from '../ui/Segmented';
+import Bouton from '../ui/Bouton';
+import Flottant from '../ui/Flottant';
 import Switch from './Switch';
 
 /* --------------------------------------------------------------------------
@@ -44,10 +47,17 @@ export function SettingsList({
   onClearData,
   onKeepAccount,
   accountExportedAt,
+  groupes = false,
 }: {
   onClearData?: () => void;
   onKeepAccount?: () => void;
   accountExportedAt?: number | null;
+  // ⚠️ **La PAGE de réglages, à la SOURIS** (refonte graphique, lot 10, la
+  // maquette) : deux blocs intitulés, « Réglages » puis « Mes données »,
+  // chacun dans sa carte. Même liste, même ordre — seul le rangement change.
+  // Au doigt, les classes ne s'appliquent pas : une seule carte, portée par la
+  // page, comme avant. Le popover ⚙ n'en a pas l'usage.
+  groupes?: boolean;
 }) {
   const metric = useRuneMetric();
   const keep = usePersistence();
@@ -55,8 +65,20 @@ export function SettingsList({
   const theme = useTheme();
   const overcap = useOvercapDisplay();
   const adversaireRef = useAdversaireReference();
+  // ⚠️ Aux DEUX formats depuis le lot 11d (décision 27) : la page de réglages
+  // range ses blocs de la même façon au doigt qu'à la souris.
+  const carteLg = groupes ? 'rounded-xl border border-border bg-panel px-4 py-1' : '';
+  const intitule = (texte: string) =>
+    groupes ? <span className="mb-2 block label">{texte}</span> : null;
   return (
-    <div>
+    <div className={groupes ? 'flex flex-col gap-5' : ''}>
+      <section>
+      {intitule('Réglages')}
+      {/* ⚠️ `border-b` : le filet qui séparait « Adversaire de référence » de
+          « Garder mes données » doit rester (popover ⚙, et la page au doigt) —
+          le dernier réglage du bloc perd le sien (`last:border-0`). À la
+          souris, la carte du bloc le remplace. */}
+      <div className={`border-b border-border/60 ${carteLg}`}>
       {/* Le réglage le plus global de tous : il change l'app entière, il vient
           donc en premier. ⚠️ TROIS options, pas un interrupteur — « Auto » doit
           rester un choix explicite, sinon quelqu'un dont le système bascule le
@@ -91,7 +113,12 @@ export function SettingsList({
           label="Toujours ajouter en face mon monstre le plus rapide"
         />
       </Setting>
+      </div>
+      </section>
 
+      <section>
+      {intitule('Mes données')}
+      <div className={carteLg}>
       <Setting
         title="Garder mes données"
         hint={
@@ -118,17 +145,22 @@ export function SettingsList({
           travers. Dans un menu qu'on ouvre exprès, le geste est délibéré. */}
       {onClearData && (
         <Setting title="Mes données">
-          <button
+          {/* ⚠️ Le `Bouton` de la LIBRAIRIE, ton `danger` (refonte graphique,
+              lot 10) : il était dessiné à la main, et ne disait son danger
+              qu'au survol. */}
+          <Bouton
+            taille="sm"
+            ton="danger"
+            icone={<Trash2 size={12} />}
+            libelle="Tout supprimer"
             onClick={onClearData}
             title="Efface la prépa RTA, les équipes de siège, les recommandations, les monstres perso et le compte importé"
-            className="flex flex-none items-center gap-1.5 rounded-lg border border-border bg-panel2
-                       px-2.5 py-1 text-micro font-semibold text-ink-dim transition
-                       hoverable:border-fire/60 hoverable:text-fire"
-          >
-            <Trash2 size={12} /> Tout supprimer
-          </button>
+            className="flex-none"
+          />
         </Setting>
       )}
+      </div>
+      </section>
     </div>
   );
 }
@@ -178,17 +210,21 @@ export default function SettingsMenu({
         title="Réglages"
         className={`flex items-center justify-center transition ${btnClass}`}
       >
-        <Settings size={16} />
+        {/* Rebranding R4 : les curseurs de Paramètres (décision 28). */}
+        <IconeParametres size={16} />
       </button>
       {open && (
-        <div
-          // Ancré à DROITE de son bouton, donc origine en haut à droite : le
-          // menu sort de l'engrenage, pas de son propre centre.
-          // ⚠️ `max-w-[calc(100vw-2rem)]` : ancré à droite de son bouton, le
-          // popover sortait de l'écran sur un téléphone — les réglages les plus
-          // à gauche devenaient inatteignables. `min-w` seul ne borne rien.
-          className="absolute z-30 right-0 mt-1.5 w-fit min-w-[260px] max-w-[calc(100vw-2rem)] rounded-xl border border-border bg-panel px-3 py-2 shadow-glow shadow-black/60
-                     origin-top-right animate-[popover_150ms_var(--ease-out)]"
+        // ⚠️ Le `Flottant` de la librairie (refonte graphique, lot 8a : les
+        // bulles de l'app ont toutes le même gabarit) : il en était une copie
+        // écrite à la main. Ancré à DROITE de son bouton, donc origine en haut
+        // à droite : le menu sort de l'engrenage, pas de son propre centre.
+        // ⚠️ `max-w-[calc(100vw-2rem)]` : ancré à droite de son bouton, le
+        // popover sortait de l'écran sur un téléphone — les réglages les plus
+        // à gauche devenaient inatteignables. `min-w` seul ne borne rien.
+        <Flottant
+          cote="droite"
+          largeur="w-fit min-w-[260px] max-w-[calc(100vw-2rem)]"
+          rembourrage="md"
         >
           <div className="flex items-baseline gap-3 border-b border-border pb-1.5">
             <span className="label">Réglages</span>
@@ -208,7 +244,7 @@ export default function SettingsMenu({
             onKeepAccount={onKeepAccount}
             accountExportedAt={accountExportedAt}
           />
-        </div>
+        </Flottant>
       )}
     </div>
   );

@@ -1,4 +1,4 @@
-# SW Forge — Spécifications
+# SW Blacksmith — Spécifications
 
 Boîte à outils Summoners War (React + TypeScript + Vite + Tailwind). Ce dossier
 documente **le comportement attendu de chaque page** : ce que l'utilisateur voit,
@@ -184,9 +184,23 @@ Concepts partagés par plusieurs pages, documentés une seule fois :
   2. Rappel que les données restent locales.
   3. Crédit Com2uS / SWARFARM.
 - **Données 100 % locales** : le footer rappelle que toutes les données restent
-  en local. **« Tout supprimer »** efface les clés `localStorage` `sw-forge*` /
-  `sky-arena*` (prépa RTA, équipes de siège, recommandations, catégories,
-  monstres perso) puis recharge. Voir [App.tsx](src/App.tsx).
+  en local. **« Tout supprimer »** efface les clés `localStorage`
+  `swblacksmith-*` (prépa RTA, équipes de siège, recommandations, catégories,
+  monstres perso) — et celles des anciens noms `sw-forge*` / `sky-arena*` qui
+  traîneraient — puis recharge. Voir [App.tsx](src/App.tsx).
+  - **Clés renommées au rebranding, avec migration** (décision 66,
+    [chantiers/rebranding-blacksmith.md](chantiers/rebranding-blacksmith.md)) :
+    au premier lancement, [migrationStockage.ts](src/lib/migrationStockage.ts)
+    — premier import de `main.tsx`, avant tout module qui lit le stockage —
+    recopie chaque `sw-forge-…` / `sky-arena-…` sous `swblacksmith-…`, RELIT la
+    copie, puis efface l'ancienne. Une nouvelle clé déjà présente fait foi.
+    Quota plein : l'ancienne place est libérée avant de réécrire ; en cas
+    d'échec, l'ancienne valeur est remise, intacte, et reprise au lancement
+    suivant. Le script de thème d'`index.html`, qui passe avant, lit l'ancienne
+    clé en repli. ⚠️ Toute nouvelle clé prend le préfixe `swblacksmith-` ; un
+    test refuse un littéral de l'ancien nom hors du module de migration.
+  - ⚠️ Le stockage d'un navigateur est lié à l'**adresse** du site : un
+    changement de domaine ne se migre pas, il passe par les exports.
   - ⚠️ Cette action vit **dans le menu ⚙**, pas à côté du bouton d'import : une
     action destructrice collée au bouton le plus utilisé finit par être cliquée
     de travers. Dans un menu qu'on ouvre exprès, le geste est délibéré.
@@ -270,7 +284,7 @@ Concepts partagés par plusieurs pages, documentés une seule fois :
     recommandations ne sont pas touchées » évite d'annuler par précaution une
     action qu'on voulait faire.
 - **Avertissement petit écran** — [MobileNotice.tsx](src/components/MobileNotice.tsx),
-  au-dessus du contenu, sous la barre de nav. SW Forge manipule des listes de
+  au-dessus du contenu, sous la barre de nav. SW Blacksmith manipule des listes de
   runes, des équipes de trois monstres et des ordres de tour : tout cela demande
   de la largeur. Sans un mot, on croit à un site mal fait plutôt qu'à un site
   consulté dans de mauvaises conditions.
@@ -325,8 +339,12 @@ Concepts partagés par plusieurs pages, documentés une seule fois :
     de l'Optimizer (voir [outils/optimizer.md](outils/optimizer.md)), premier
     endroit de l'app à passer un `min` positif non trivial (tous les usages
     précédents étaient à 0 ou 1, jamais heurtés par ce piège).
-- **Titre de page** : `font-display` en dégradé (`title-gradient`), taille
-  `clamp(28px,4vw,42px)`, suivi d'un paragraphe d'intro `text-ink-dim`.
+- **Titre de page** : `font-display` à l'**encre unie** (`text-ink`). Les
+  pages de lecture (Mécaniques, Nouveautés) gardent le grand titre
+  (`clamp(28px,4vw,42px)`, suivi d'un paragraphe d'intro `text-ink-dim`) ; les
+  écrans d'outil (Siège, RTA, Bestiaire…) un titre `text-xl` dans leur ligne
+  d'en-tête. Le dégradé encre → braise (`title-gradient`) a été retiré au
+  rebranding (décision 57), comme la toile.
 - **Responsive** : nav desktop en pilules ; menu hamburger sur mobile (`< sm`)
   **et dès que la barre ne tient plus sur une ligne** (voir « Shell applicatif »).
   Le drag & drop natif ne fonctionne pas au tactile → chaque zone drag propose
@@ -359,6 +377,17 @@ Concepts partagés par plusieurs pages, documentés une seule fois :
 Le cadre commun (nav, routing par hash, footer) vit dans
 [App.tsx](src/App.tsx) :
 
+- **Pied de page — une rangée, comme la toile** (rebranding R4, Thomas : « le
+  pied de page commence à être vraiment gros ») : au bureau, logo à gauche,
+  mentions au centre (données locales ; © Com2uS, source SWARFARM, projet non
+  officiel), liens à droite, **en colonne** (GitHub, version, Discord ; Thomas :
+  « met sur une colonne le github la version et le discord ») — 79 px de haut,
+  il empilait cinq lignes. Au téléphone, une colonne centrée : logo, liens sur
+  une ligne en libellés courts (« GitHub », « Discord »), mentions. Police du
+  texte, plus la mono. Liens en encre secondaire, braise au survol ; mentions
+  en encre tertiaire (la toile) ; au bureau, la colonne de liens se cale à
+  droite mais ses lignes s'alignent à gauche, pour que les icônes restent
+  dans l'axe.
 - Routing par `window.location.hash` (`routeFromHash()`), pas de router externe.
 - Nav desktop (pilules) + nav repliée (hamburger qui se referme à la navigation),
   avec le bouton d'import global + lien « Supprimer mes données » à droite / dans le menu.
@@ -404,5 +433,8 @@ jamais en entier.
 | --- | --- | --- |
 | [chantiers/orchestration-parallele.md](chantiers/orchestration-parallele.md) — deux agents en parallèle, outil `chantier` | en cours | `forge/orchestration-parallele` |
 | [chantiers/spec-rangement.md](chantiers/spec-rangement.md) — rangement des specs pour lire à la demande | terminé le 2026-09-17 | `forge/spec-rangement` |
+| [chantiers/refonte-graphique.md](chantiers/refonte-graphique.md) — refonte graphique sans régression (navigation, boutons, densité) | en cours | `forge/refonte-graphique` |
+| [chantiers/rebranding-blacksmith.md](chantiers/rebranding-blacksmith.md) — rebranding « SW Blacksmith » (nom, logo, thèmes, écrans), suite de la refonte | en cours | `forge/refonte-graphique` |
+| Speed tuning en mode RTA (1,5 % par tick au lieu de 7 %) — pas encore de cadrage ; ce qu'il devra trancher : [outils/speed-tuning.md](outils/speed-tuning.md) § Mode RTA | à ouvrir | — |
 | `spec/outils/optimizer/chantiers/implementation-relique.md` (privé, `sw-forge-docs`) — la relique dans l'Optimizer, 10 lots ; cadrage fonctionnel dans `spec/outils/optimizer/reliques.md` (décision), plan d'origine archivé | en cours | `forge/implementation-relique` |
 | [chantiers/degats-et-aura.md](chantiers/degats-et-aura.md) — quatre sorts au modèle incomplet, sets d'aura, ergonomie et planchers de conditions ; découpe `spec/outils/degats-reels.md` ; reliquat de l'audit traité en partie, le reste reporté (notes privées, `decisions/reste-a-faire-degats-2026-10.md`) | terminé le 2026-10-04 | `forge/degats-et-aura` |

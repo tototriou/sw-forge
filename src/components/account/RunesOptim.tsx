@@ -1,7 +1,7 @@
 import { memo, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { RotateCw, AlertTriangle, PackageCheck, Swords, Lock, Hammer, Gem, ChevronDown, Tag } from 'lucide-react';
 import { CraftLine, RuneDetail } from '../../types';
-import { formatRuneEffect, RARITY_META, RUNE_EFFECT } from '../../lib/effects';
+import { formatRuneEffect, RUNE_EFFECT } from '../../lib/effects';
 import { runePotential, RunePotential, runePlan, planNeeds } from '../../lib/runeOptim';
 import {
   PERIMETRES_UTILISES,
@@ -17,6 +17,7 @@ import RuneSlotIcon from '../RuneSlotIcon';
 import Pager from './Pager';
 import SetFilter from './SetFilter';
 import SlotFilter from './SlotFilter';
+import FiltresRunes from './FiltresRunes';
 import NumberField from '../../ui/NumberField';
 import Selecteur from '../../ui/Selecteur';
 import Bouton from '../../ui/Bouton';
@@ -82,10 +83,6 @@ const scenarioOf = (s: SortMode): 'hero' | 'legend' =>
 // Gain signé (« +2.3 » / « -1.4 »), à la précision de la mesure (score = entier).
 export const signed = (g: number, metric: 'eff' | 'score') =>
   (g >= 0 ? '+' : '') + (metric === 'eff' ? g.toFixed(1) : String(Math.round(g)));
-
-// Couleur d'une efficience potentielle vs l'actuelle : vert au-dessus, rouge en dessous.
-export const effColor = (e: number, base: number) =>
-  e > base + 0.05 ? 'text-good' : e < base - 0.05 ? 'text-fire' : 'text-ink-dim';
 
 // Valeur de filtre d'une rune SANS marqueur. Les marqueurs du jeu vont de 1 à 8.
 const SANS_MARQUEUR = 0;
@@ -283,6 +280,15 @@ export default function RunesOptim({
   const libelleMarqueur = (k: number) =>
     k === SANS_MARQUEUR ? 'Sans marqueur' : runeMarkerLabels[k] ?? `Marqueur ${k}`;
   const [page, setPage] = useState(0);
+  // Changer un filtre ramène à la première page.
+  const choisirSets = (next: Set<string>) => {
+    setSets(next);
+    setPage(0);
+  };
+  const choisirSlots = (next: Set<number>) => {
+    setSlots(next);
+    setPage(0);
+  };
   const [openId, setOpenId] = useState<number | null>(null);
   const toggleOpen = useCallback((id: number) => setOpenId((c) => (c === id ? null : id)), []);
   const withGem = gemMode === 'gem';
@@ -503,7 +509,30 @@ export default function RunesOptim({
   // posés à deux endroits : en ligne au bureau, dans le panneau « Options » au
   // doigt (comme les filtres de la Liste). `large` élargit les segmentés à toute
   // la largeur du panneau ; en ligne ils restent serrés.
-  const optionsControls = (large: boolean) => (
+  // Le MODE du potentiel — ce qui change toute la liste. ⚠️ Au TÉLÉPHONE, il
+  // n'est plus dans le panneau « Options » mais en tête de la page (lot 11c,
+  // décision 26, la maquette) : on le voit et on le bascule sans ouvrir le
+  // panneau. Au bureau, il reste dans la rangée d'options.
+  const modeControl = (large: boolean) => (
+    <Segmented
+      value={gemMode}
+      onChange={(k) => {
+        setGemMode(k);
+        setPage(0);
+      }}
+      size={large ? 'lg' : undefined}
+      options={[
+        { key: 'gem', label: 'Gemme + meule', hint: 'Potentiel avec la gemme optimale + les meules' },
+        {
+          key: 'grind',
+          label: 'Meule seule',
+          hint: 'Potentiel en gardant les stats actuelles (meules seulement)',
+        },
+      ]}
+    />
+  );
+
+  const optionsControls = (large: boolean, avecMode = true) => (
     <>
       <div className="flex items-center gap-2">
         {/* ⚠️ `data-intitule-conserve` : le panneau « Options » masque les
@@ -528,22 +557,7 @@ export default function RunesOptim({
         <span className="font-mono text-xs text-ink-dim">{metric === 'eff' ? '%' : 'pts'}</span>
       </div>
 
-      <Segmented
-        value={gemMode}
-        onChange={(k) => {
-          setGemMode(k);
-          setPage(0);
-        }}
-        size={large ? 'lg' : undefined}
-        options={[
-          { key: 'gem', label: 'Gemme + meule', hint: 'Potentiel avec la gemme optimale + les meules' },
-          {
-            key: 'grind',
-            label: 'Meule seule',
-            hint: 'Potentiel en gardant les stats actuelles (meules seulement)',
-          },
-        ]}
-      />
+      {avecMode && modeControl(large)}
 
       {/* Grisé en « Meule seule » : sans gemme, il n'y a rien à regemmer. */}
       <Bouton
@@ -695,6 +709,16 @@ export default function RunesOptim({
 
   return (
     <div>
+      {/* ⚠️ **En-tête à la SOURIS** (refonte graphique, lot 8a-3, la maquette) :
+          le titre de la vue et ce qu'elle cherche. Au doigt, la barre du haut
+          dit déjà la vue (lot 11). */}
+      <div className="mb-3 hidden items-baseline gap-3 lg:flex">
+        <h1 className="font-display text-xl tracking-wide text-ink">Optimisation</h1>
+        <span className="text-sm text-ink-dim">
+          Ce que tes meules et gemmes permettent d'améliorer, rune par rune.
+        </span>
+      </div>
+
       <div className="mb-4 flex items-start gap-2 rounded-lg border border-warn/50 bg-warn/10 px-3 py-2 text-xs text-warn">
         <AlertTriangle size={15} className="flex-none mt-0.5" />
         <span>
@@ -705,25 +729,33 @@ export default function RunesOptim({
 
       {/* Contrôles */}
       <div className="flex items-center gap-4 flex-wrap mb-4">
-        <SetFilter
-          runes={runes}
-          value={sets}
-          onChange={(next) => {
-            setSets(next);
-            setPage(0);
-          }}
-        />
-
-        <SlotFilter
-          value={slots}
-          onChange={(next) => {
-            setSlots(next);
-            setPage(0);
-          }}
-        />
+        {/* Au DOIGT : le MODE en tête, sur toute la largeur (décision 26). */}
+        <div className="w-full lg:hidden">{modeControl(true)}</div>
+        {/* Au DOIGT : les rangées d'avant (`contents` : leurs enfants restent
+            des éléments de la rangée), cachées à la souris (lot 11). */}
+        <div className="contents lg:hidden">
+          <SetFilter runes={runes} value={sets} onChange={choisirSets} />
+          <SlotFilter value={slots} onChange={choisirSlots} />
+        </div>
+        {/* À la SOURIS : les menus déroulants (lot 8a, décision 20). Sans
+            « Antiques » : l'Optimisation les range avec « Faisable avec ma
+            réserve », dans ses options, plus loin sur la rangée. */}
+        <div className="hidden lg:block">
+          <FiltresRunes
+            runes={runes}
+            sets={sets}
+            onSets={choisirSets}
+            slots={slots}
+            onSlots={choisirSlots}
+            ancient={ancient}
+            onAncient={setAncient}
+            antiques={false}
+          />
+        </div>
 
         <div className="flex items-center gap-2">
           <span className="label">Trier par</span>
+          {/* Au DOIGT : la liste déroulante (lot 11). */}
           <Selecteur
             value={sort}
             onChange={(e) => {
@@ -731,6 +763,7 @@ export default function RunesOptim({
               setPage(0);
             }}
             pleineLargeur={false}
+            className="lg:hidden"
           >
             {SORTS.map((s) => (
               <option key={s.key} value={s.key}>
@@ -738,6 +771,18 @@ export default function RunesOptim({
               </option>
             ))}
           </Selecteur>
+          {/* À la SOURIS, des onglets (`Segmented`), comme le reste de la
+              page (Thomas, lot 8a). Mêmes entrées, même ordre. */}
+          <div className="hidden lg:block">
+            <Segmented
+              value={sort}
+              onChange={(v) => {
+                setSort(v);
+                setPage(0);
+              }}
+              options={SORTS.map((s) => ({ key: s.key, label: s.label }))}
+            />
+          </div>
           <BoutonSensTri
             sens={sens}
             onChange={(v) => {
@@ -791,10 +836,11 @@ export default function RunesOptim({
               </p>
               <p className="mt-2">
                 <span className="text-ink font-semibold">Gain</span> = potentiel − efficience actuelle : ce
-                que la rune gagnerait. Sur chaque carte, il est affiché en{' '}
-                <span className="text-good">vert</span> si le potentiel est au-dessus de l'actuelle, en{' '}
-                <span className="text-fire">rouge</span> s'il est en dessous (ex. une rune déjà grindée
-                légendaire « perd » en héroïque — ce cas disparaît sous « Faisable avec ma réserve »).
+                que la rune gagnerait. Sur chaque carte, sa ligne garde la couleur de la rareté visée ;
+                dans le détail d'une rune, il est en <span className="text-good">vert</span> s'il est
+                positif, en <span className="text-bad">rouge</span> s'il est négatif (ex. une rune déjà
+                grindée légendaire « perd » en héroïque — ce cas disparaît sous « Faisable avec ma
+                réserve »).
               </p>
               <p className="mt-2">
                 <b className="text-ink">Tri</b> : efficience actuelle, potentiel ou gain. Clique une rune pour
@@ -883,13 +929,14 @@ export default function RunesOptim({
         </div>
       </div>
 
-      {/* AU DOIGT : panneau « Options » (palier, mesure gemme/meule, regemme
-          différent, filtre antique, « Faisable avec ma réserve », « Sans les immémoriaux »,
+      {/* AU DOIGT : panneau « Options » (palier, regemme différent, filtre
+          antique, « Faisable avec ma réserve », « Sans les immémoriaux »,
           « Runes utilisées », « Marqueurs »). Le bouton qui l'ouvre vit dans la
-          barre de nav — voir App.tsx (`pageAPanneau`). Sets, slots, tri et aide
+          barre de nav — voir App.tsx (`pageAPanneau`). Le mode gemme/meule
+          (en tête de page au doigt, lot 11c), sets, slots, tri et aide
           restent dans la page. */}
       <MobileSheet ouvert={menuOuvert} onFermer={onFermerMenu} titre="Options d'optimisation">
-        <div className="flex flex-col gap-3">{optionsControls(true)}</div>
+        <div className="flex flex-col gap-3">{optionsControls(true, false)}</div>
       </MobileSheet>
 
       <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
@@ -996,7 +1043,6 @@ export const OptimTile = memo(function OptimTile({
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const { rune, pot } = row;
-  const meta = RARITY_META[rune.rarity] ?? RARITY_META[1];
   const ancient = rune.rank > 10;
   const metric = useRuneMetric();
   const fmt = (v: number) => formatRuneMetric(v, metric);
@@ -1024,22 +1070,30 @@ export const OptimTile = memo(function OptimTile({
           <div className={`font-bold text-ink leading-tight truncate ${etroit ? 'text-nano' : 'text-xs'}`}>
             {formatRuneEffect(rune.main)}
           </div>
-          <div className={`font-mono text-ink leading-tight ${etroit ? 'text-nano' : 'text-xs'}`}>
-            {/* Texte, donc `meta.ink` — voir RARITY_META. */}
-            actuelle <b style={{ color: meta.ink }}>{fmt(pot.eff)}</b>
+          <div className={`font-mono text-accent leading-tight ${etroit ? 'text-nano' : 'text-xs'}`}>
+            {/* ⚠️ Toute la ligne en BRAISE (`text-accent`, donc la braise
+                lisible), mot compris — une couleur par ligne, comme « Héro » et
+                « Légend ». Choisie par Thomas sur planche (rebranding R8 ;
+                essayés : encre, bleu ciel, vert). Dans la couleur de la rareté
+                (`meta.ink`), la valeur se confondait avec la ligne de même
+                rareté juste dessous — violette comme « Héro » sur une rune
+                héroïque, orange près de l'or de « Légend » sur une légendaire. */}
+            actuelle <b>{fmt(pot.eff)}</b>
           </div>
           <div
             className={`font-mono leading-tight ${etroit ? 'text-nano' : 'text-micro'}`}
             style={{ color: 'rgb(var(--rarity-4))' }}
           >
-            Héro {signed(pot.heroGain, metric)}{' '}
-            <span className={effColor(pot.heroEff, pot.eff)}>→ {fmt(pot.heroEff)}</span>
+            {/* ⚠️ UNE couleur par ligne, celle de sa rareté (Thomas, rebranding
+                R8) : la flèche et la valeur cible suivaient le vert / rouge du
+                gain, et la ligne « Héro » se lisait en deux couleurs. Le signe du
+                gain dit déjà s'il monte ou descend ; le vert / rouge reste dans
+                le plan détaillé (`OptimPlanBox`). */}
+            Héro {signed(pot.heroGain, metric)} → {fmt(pot.heroEff)}
           </div>
           <div className={`font-mono leading-tight font-bold text-star ${etroit ? 'text-nano' : 'text-micro'}`}>
             Légend {signed(pot.legendGain, metric)}{' '}
-            <span className={`font-normal ${effColor(pot.legendEff, pot.eff)}`}>
-              → {fmt(pot.legendEff)}
-            </span>
+            <span className="font-normal">→ {fmt(pot.legendEff)}</span>
           </div>
         </div>
       </button>
@@ -1182,7 +1236,7 @@ export function OptimPlanBox({
         <span className="font-mono text-ink-dim text-micro">
           {formatRuneMetric(plan.eff, metric)} →{' '}
           <b className="text-star">{formatRuneMetric(plan.targetEff, metric)}</b>{' '}
-          <span className={gain >= 0 ? 'text-good' : 'text-fire'}>({signed(gain, metric)})</span>
+          <span className={gain >= 0 ? 'text-good' : 'text-bad'}>({signed(gain, metric)})</span>
         </span>
       </div>
 

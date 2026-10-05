@@ -35,6 +35,16 @@ interface Release {
 }
 ```
 
+⚠️ **À la souris, une version = une rangée à deux colonnes** (refonte
+graphique, lot 10, la maquette) : à gauche le numéro, le statut (« Version
+actuelle », « Pas encore publiée »), la date et « GitHub ↗ » ; à droite le
+titre, les points mis en avant et les changements. Plus de carte : un filet
+sépare les versions, la pastille dit laquelle tourne. Libellés gardés
+(« Nouveau », « Correction » — la maquette écrivait « Correctif »). **Au
+doigt** (lot 11d, décision 27), le même filet entre les versions, plus de
+carte ; la ligne numéro · statut · date reste au-dessus du titre, faute de
+place pour deux colonnes.
+
 ### ⚠️ `version: null` — la version en préparation
 
 Une version se développe **sans savoir** si elle sortira en corrective ou en

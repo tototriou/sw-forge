@@ -128,7 +128,7 @@ export default function testRelicDifferentiel() {
     ok(true, 'orchestrateur non contrôlé : export réel ß☆Enzo-6399149.json absent de la racine');
     return;
   }
-  const out = mkdtempSync(join(tmpdir(), 'sw-forge-relic-diff-'));
+  const out = mkdtempSync(join(tmpdir(), 'swblacksmith-relic-diff-'));
   try {
     const argsPoint = ['--case=6', '--relic-min-upgrade=6', `--export-dir=${racine}`];
     // Le harnais de test tourne sur un bundle (pas sous tsx) : l'orchestrateur

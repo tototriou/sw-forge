@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Plus, Download, Upload, Trash2, Lightbulb, AlertTriangle, XCircle, X, Gauge } from 'lucide-react';
+import { Plus, Download, Upload, Trash2, AlertTriangle, XCircle, X, Gauge } from 'lucide-react';
+import { IconeRecos } from '../IconesAtelier';
 import { Monster, Reco } from '../../types';
 import { UseRecoState } from '../../hooks/useSiegeRecos';
 import { UseSiegeState } from '../../hooks/useSiegeState';
@@ -8,6 +9,7 @@ import { teamSummary, isTeamUsable } from '../../lib/recoFromSiege';
 import { encodeRecosJson, validateRecosImport, ImportReport, slugify } from '../../lib/recoShare';
 import { matchReco, RecoMatch } from '../../lib/recoMatch';
 import { chercheMonstre, RecoHit, RecoSearchMode } from '../../lib/recoSearch';
+import type { VueRecos } from '../../lib/recoDefenses';
 import { ConfirmDialog } from '../../ui/Dialogs';
 import { OwnedBuild, OwnedTeam, indexBuildsByCom2us } from '../../lib/ownedBuilds';
 import { formesJouables } from '../../lib/monsterForms';
@@ -16,7 +18,8 @@ import MobileSheet from '../../ui/MobileSheet';
 import MonsterAvatar from '../MonsterAvatar';
 import MonsterPicker from '../MonsterPicker';
 import RecoCard from './RecoCard';
-import { Bouton, BoutonIcone, Selecteur, ZoneCliquable } from '../../ui';
+import { BarreActions, Bouton, BoutonIcone, Selecteur, ZoneCliquable } from '../../ui';
+import { PREFIXE_FICHIER } from '../../marque';
 
 interface Props {
   recos: UseRecoState;
@@ -42,12 +45,18 @@ function download(filename: string, text: string, mime = 'application/json;chars
   URL.revokeObjectURL(url);
 }
 
-// Filtre d'origine : mes créations vs ce qu'on m'a partagé.
-type OriginFilter = 'all' | 'mine' | 'imported';
-const FILTERS: { key: OriginFilter; label: string }[] = [
-  { key: 'all', label: 'Toutes' },
-  { key: 'mine', label: 'Mes recos' },
-  { key: 'imported', label: 'Importées' },
+// ⚠️ **Deux VUES des mêmes recommandations** (refonte graphique, décision 19 —
+// Thomas : « au lieu du tri Toutes / Mes recos / Importées, mets plutôt un tri
+// attaque / défense ; je veux que les deux affichages soient possibles ») :
+// - Attaque : chaque deck, puis les défenses contre lesquelles il est fort —
+//   l'affichage d'avant, et celui où l'on MODIFIE ;
+// - Défense : chaque défense visée, puis les offenses fortes contre elle —
+//   calculée à partir des decks (lib/recoDefenses.ts), en lecture seule.
+// Le filtre d'origine qu'elle remplace est retiré ([retrait #19]) ; la pastille
+// « Importée » reste sur chaque carte reçue.
+const VUES: { key: VueRecos; label: string; hint: string }[] = [
+  { key: 'attaque', label: 'Attaque', hint: 'Chaque deck, puis les défenses contre lesquelles il est fort' },
+  { key: 'defense', label: 'Défense', hint: 'Chaque défense visée, puis les offenses fortes contre elle' },
 ];
 
 // Où chercher quand on tape un nom de monstre. Le mode FILTRE : ce qui relève
@@ -88,7 +97,10 @@ export default function RecoBoard({
   menuOuvert,
   onFermerMenu,
 }: Props) {
-  const [filter, setFilter] = useStickyState<OriginFilter>('recos.filter', 'all');
+  // Mémorisée comme l'était le filtre qu'elle remplace : on retrouve la vue
+  // qu'on avait choisie. Clé NEUVE — l'ancienne (`recos.filter`) portait une
+  // origine, pas une vue.
+  const [vue, setVue] = useStickyState<VueRecos>('recos.vue', 'attaque');
   // Recherche par monstre : jusqu'à TROIS, autant qu'une composition.
   //
   // ⚠️ Les trois se cumulent en ET (voir recoSearch.ts) : on décrit la défense
@@ -281,7 +293,7 @@ export default function RecoBoard({
     // presse-papier — l'import ne lit que des fichiers, un contenu collé
     // n'aurait nulle part où aller.
     const what = `${usable.length} recommandation(s) · ${decks} deck(s)`;
-    download(`swforge-reco-${slugify(label)}.json`, encodeRecosJson(usable));
+    download(`${PREFIXE_FICHIER}-reco-${slugify(label)}.json`, encodeRecosJson(usable));
     setMsg({ text: `${what} · fichier .json téléchargé.` });
     setExportAConfirmer(null);
   }
@@ -322,25 +334,17 @@ export default function RecoBoard({
     setMsg({
       text: `${n} recommandation(s) · ${rep.counts.decks} deck(s) · ${rep.counts.monstres} monstre(s) importés.`,
     });
-    // Ne pas cacher ce qu'on vient d'importer si le filtre montrait « mes recos ».
-    if (filter === 'mine') setFilter('all');
   }
 
   const all = recos.state.recos;
-  const counts = {
-    all: all.length,
-    mine: all.filter((r) => r.origin === 'mine').length,
-    imported: all.filter((r) => r.origin === 'imported').length,
-  };
-  const parOrigine = filter === 'all' ? all : all.filter((r) => r.origin === filter);
 
   // Recherche par monstre. `null` = aucune recherche en cours (état neutre de la
   // page : rien n'est filtré, rien n'est déplié d'office).
   const hits = useMemo(
-    () => chercheMonstre(parOrigine, queries, searchMode, monsterByCom2us),
-    [parOrigine, queries, searchMode, monsterByCom2us]
+    () => chercheMonstre(all, queries, searchMode, monsterByCom2us),
+    [all, queries, searchMode, monsterByCom2us]
   );
-  const list = hits ? hits.map((h) => h.reco) : parOrigine;
+  const list = hits ? hits.map((h) => h.reco) : all;
   // Où se trouve le monstre, par recommandation — la carte s'en sert pour
   // déplier les bons decks et surligner les bons portraits.
   // ⚠️ Changer de recherche efface les choix d’ouverture : ils valaient pour CES
@@ -369,8 +373,6 @@ export default function RecoBoard({
           const id = recos.addReco();
           setEditingId(id);
           setScrollToLast(true);
-          // La nouvelle est « à moi » : ne pas la créer dans une vue qui la cache.
-          if (filter === 'imported') setFilter('mine');
           // ⚠️ Même geste que « Ajouter une équipe » (SiegeBoard) : le panneau
           // « Options » se referme et la page défile jusqu'à la nouvelle carte.
           // Créer une reco est le geste principal de cet écran, comme composer
@@ -397,69 +399,43 @@ export default function RecoBoard({
           on sait qu'exporter est possible, juste pas encore. Même règle
           partout dans l'app : voir `boutonEffacer` ci-dessous. */}
       <Bouton
-        onClick={() => requestExport(list, filter === 'all' ? 'toutes' : filter)}
+        onClick={() => requestExport(list, 'toutes')}
         disabled={list.length === 0}
         icone={<Upload size={15} />}
-        // ⚠️ Le LIBELLÉ NE CHANGE PAS avec le filtre. Un bouton qui se
-        // renomme sous le curseur se lit comme un autre bouton : on cesse de
-        // le reconnaître d'un écran à l'autre, et on relit une barre
-        // d'actions qu'on connaissait. Ce qui part réellement se dit dans
-        // l'infobulle, et le message de retour le récapitule.
         libelle="Tout exporter"
         libelleCourt="Exporter"
         title={
           list.length === 0
             ? 'Aucune recommandation à exporter'
-            : filter === 'all'
-              ? 'Exporter toutes les recommandations en un seul fichier'
-              : "Exporter les recommandations affichées (celles du filtre actif)"
+            : 'Exporter toutes les recommandations en un seul fichier'
         }
       />
     </>
   );
 
-  // Origine — le VRAI Segmented, pas une copie : deux contrôles à cran dans la
-  // même page doivent avoir le même cadre, le même rayon et la même taille de
-  // texte. Rendu une seule fois, posé à deux endroits selon la largeur (voir
-  // plus bas) — même geste que `actions` et `effacer`.
+  // Vue Attaque / Défense (décision 19) — le VRAI Segmented, pas une copie :
+  // deux contrôles à cran dans la même page doivent avoir le même cadre, le
+  // même rayon et la même taille de texte. Rendu une seule fois, posé à deux
+  // endroits selon la largeur (voir plus bas) — même geste que `actions` et
+  // `effacer`, et même place que le filtre d'origine qu'elle remplace.
   // ⚠️ `pleineLargeur` : au doigt, dans le panneau « Options », le cran prend
   // TOUTE la largeur (`Segmented` en `size="lg"`, intitulé au-dessus plutôt
   // qu'à côté) — c'est le seul contrôle de cette ligne, le laisser à sa
-  // largeur propre le fait flotter dans une bande vide. À la souris, il garde
-  // sa place à côté de son intitulé, dans la rangée des autres filtres.
-  const origineFilter = (pleineLargeur: boolean) => {
+  // largeur propre le fait flotter dans une bande vide.
+  const vueFilter = (pleineLargeur: boolean) => {
     const segmented = (
       <Segmented
-        value={filter}
-        onChange={setFilter}
-        // ⚠️ `md` à la souris, pas `sm` : posé seul sur sa ligne depuis qu'il
-        // est sorti du bloc de filtres, ce contrôle a la place d'être aussi
-        // lisible qu'un réglage structurant — `md` porte le texte et le
-        // rembourrage de `lg` sans forcer sa largeur, contrairement à `lg`
-        // (réservé au panneau, où il n'y a que lui sur la ligne).
+        value={vue}
+        onChange={setVue}
         size={pleineLargeur ? 'lg' : 'md'}
-        options={FILTERS.map((f) => ({
-          key: f.key,
-          label: f.label,
-          // Le compteur vit DANS le cran, APRÈS le libellé, en mono comme tout
-          // ce qui se compare d'une ligne à l'autre. Il reste `ink-dim` posé
-          // comme au repos : c'est une quantité, pas l'état du cran — le fond
-          // dit déjà lequel est choisi (design.md).
-          suffix: <span className="font-mono text-micro text-ink-dim">{counts[f.key]}</span>,
-        }))}
+        options={VUES.map((v) => ({ key: v.key, label: v.label, hint: v.hint }))}
       />
     );
-    // ⚠️ **Pas d'intitulé « Origine » à la SOURIS.** Il avait sa raison d'être
-    // DANS le bloc de filtres, aligné sur « Monstres » et « Rôle » en dessous
-    // (même largeur `w-[76px]`, même grammaire intitulé+contrôle) — mais
-    // Origine est sortie de ce bloc, seule sur sa ligne : les trois crans
-    // (Toutes/Mes recos/Importées) se lisent d'eux-mêmes, rien ne les précède
-    // plus à quoi l'intitulé pourrait s'aligner. Gardé au DOIGT (`mb-1 block`)
-    // où il n'accompagne aucune autre rangée : c'est le seul repère du panneau
-    // pour ce contrôle.
+    // Pas d'intitulé à la SOURIS : les deux crans se lisent d'eux-mêmes, en
+    // tête de la barre d'outils. Gardé au DOIGT, seul repère du panneau.
     return pleineLargeur ? (
       <div className="w-full">
-        <span className="label mb-1 block">Origine</span>
+        <span className="label mb-1 block">Vue</span>
         {segmented}
       </div>
     ) : (
@@ -502,9 +478,68 @@ export default function RecoBoard({
       {/* ⚠️ Sous `lg`, les actions descendent dans le panneau « Options » :
           quatre boutons à libellé complet remplissaient deux rangées avant la
           première recommandation. */}
-      <div className="mt-5 flex flex-wrap items-center gap-3 empty:mt-0">
-        <div className="hidden lg:contents">{actions}</div>
-        <div className="ml-auto hidden lg:contents">{effacer(false)}</div>
+      {/* ---- En-tête BUREAU (refonte graphique, lot 7b) --------------------
+          Comme la RTA et Défense / Offense (décision 13 précisée) : le titre,
+          le compteur, puis les actions — toutes en boutons quand elles
+          tiennent sur la ligne, sinon Importer et « Créer une
+          recommandation » visibles et le reste (Tout exporter, Tout effacer —
+          séparé) dans le menu « ⋯ », comme dans la maquette. Aucune action mise en avant (décision 4 précisée). Les
+          libellés, désactivations et infobulles sont ceux des boutons
+          d'avant. Le téléphone garde son panneau « Options » (lot 11). */}
+      <div className="mt-5 hidden flex-wrap items-center gap-x-3 gap-y-1 lg:flex">
+        <h1 className="font-display text-xl tracking-wide text-ink">Recommandations</h1>
+        <span className="rounded-full border border-border-soft bg-panel2 px-2 py-0.5 font-mono text-micro text-ink-dim">
+          {all.length} recommandation{all.length > 1 ? 's' : ''}
+        </span>
+        <BarreActions
+          libelleMenu="Plus d'actions"
+          // ⚠️ **Importer ET Créer toujours visibles, dans cet ordre** (lot 7b —
+          // Thomas : « l'organisation des boutons comme sur la maquette ») :
+          // la maquette les pose tous deux en boutons, Tout exporter et Tout
+          // effacer derrière le « ⋯ ». Ces deux-là restent en boutons quand la
+          // ligne a la place (décision 13 précisée).
+          toujours={[
+            {
+              cle: 'importer',
+              libelle: 'Importer',
+              icone: <Download size={15} />,
+              title: "Charger un fichier .json reçu d'un ami",
+              onClick: () => fileRef.current?.click(),
+            },
+            {
+              cle: 'creer',
+              libelle: 'Créer une recommandation',
+              icone: <Plus size={15} />,
+              onClick: () => {
+                const id = recos.addReco();
+                setEditingId(id);
+                setScrollToLast(true);
+              },
+            },
+          ]}
+          autres={[
+            {
+              cle: 'exporter',
+              libelle: 'Tout exporter',
+              icone: <Upload size={15} />,
+              disabled: list.length === 0,
+              title:
+                list.length === 0
+                  ? 'Aucune recommandation à exporter'
+                  : 'Exporter toutes les recommandations en un seul fichier',
+              onClick: () => requestExport(list, 'toutes'),
+            },
+            {
+              cle: 'effacer',
+              libelle: 'Tout effacer',
+              icone: <Trash2 size={13} />,
+              danger: true,
+              disabled: all.length === 0,
+              title: all.length === 0 ? 'Aucune recommandation à effacer' : undefined,
+              onClick: () => setEffacementAConfirmer(true),
+            },
+          ]}
+        />
       </div>
 
       <MobileSheet ouvert={menuOuvert} onFermer={onFermerMenu} titre="Actions — recommandations">
@@ -550,16 +585,12 @@ export default function RecoBoard({
           </div>
         </div>
 
-        {/* ⚠️ Origine AU DOIGT : descendue ici plutôt que sur la page, qui garde
-            la carte pour la recherche — voir `origineFilter` plus haut.
-            ⚠️ **Toujours affiché, actif même sans recommandation** — comme
-            « Tout exporter » et « Tout effacer » un peu plus haut, ce n'est
-            pas un bouton d'action qui perd son sens à vide : les trois crans
-            (Toutes/Mes recos/Importées) restent de vrais filtres, juste tous
-            à zéro. Le retirer avait le même défaut que les retirer, eux : il
-            réapparaît une fois la première recommandation créée, sans qu'on
-            comprenne d'où il sort. */}
-        <div className="mt-4 border-t border-border pt-3">{origineFilter(true)}</div>
+        {/* ⚠️ La vue AU DOIGT : dans le panneau plutôt que sur la page, qui
+            garde la carte pour la recherche — voir `vueFilter` plus haut.
+            **Toujours affichée, active même sans recommandation** : un
+            contrôle qui apparaît une fois la première recommandation créée
+            ne s'explique pas. */}
+        <div className="mt-4 border-t border-border pt-3">{vueFilter(true)}</div>
         <div data-zone-destructive className="mt-4 border-t border-border pt-3">
           {effacer(true)}
         </div>
@@ -616,23 +647,28 @@ export default function RecoBoard({
       />
 
       {msg && (
-        <p className={`mt-3 text-sm ${msg.error ? 'text-fire' : 'text-good'}`}>{msg.text}</p>
+        <p className={`mt-3 text-sm ${msg.error ? 'text-bad' : 'text-good'}`}>{msg.text}</p>
       )}
 
       {report && (report.errors.length > 0 || report.warnings.length > 0) && (
         <ValidationReport report={report} onClose={() => setReport(null)} />
       )}
 
-      {/* ⚠️ **Origine, à la SOURIS : SORTIE du bloc de filtres, toujours
-          affichée et active.** Contrairement à la recherche par composition
-          (Monstres/Rôle, plus bas), qui n'a effectivement rien à filtrer sur
-          une liste vide, Origine reste un vrai filtre même à zéro — les trois
-          crans (Toutes/Mes recos/Importées) ont un sens dès qu'on en crée une
-          première. Rendu une seule fois (`origineFilter`), posé aux deux
-          endroits (ici et dans le panneau « Options » au doigt). */}
-      <div className="mt-4 hidden lg:flex flex-wrap items-center gap-2">
-        {origineFilter(false)}
+      {/* ⚠️ **La vue, à la SOURIS : toujours affichée et active**, même sans
+          recommandation — contrairement à la recherche par composition
+          (Monstres/Rôle, plus bas), qui n'a rien à filtrer sur une liste
+          vide. Rendue une seule fois (`vueFilter`), posée aux deux endroits
+          (ici et dans le panneau « Options » au doigt). */}
+      {/* ⚠️ **À la souris, UNE barre d'outils** (lot 7b, la maquette) :
+          Vue · filet · recherche, sur la même ligne ; le « Rôle » passe
+          dessous (`lg:basis-full`). Les deux conteneurs d'origine s'effacent
+          dans celui-ci (`lg:contents`). Au doigt, rien ne change : la vue
+          vit dans le panneau « Options », la recherche reste en colonne. */}
+      <div className="lg:mt-4 lg:flex lg:flex-wrap lg:items-center lg:gap-2">
+      <div className="hidden lg:contents">
+        {vueFilter(false)}
       </div>
+      {all.length > 0 && <span className="mx-1 hidden h-5 w-px flex-none bg-border-soft lg:block" aria-hidden />}
 
       {/* Bloc de filtres — composition cherchée, rôle.
           ⚠️ **Sans cadre ni intitulé « Monstres »** : les trois cases ET le
@@ -649,9 +685,9 @@ export default function RecoBoard({
           bloc quand même laisserait croire qu'on n'a rien trouvé alors qu'il
           n'y a rien. */}
       {all.length > 0 && (
-        <div className="mt-2.5 flex flex-col gap-2.5">
+        <div className="mt-2.5 flex flex-col gap-2.5 lg:contents">
           {/* Composition cherchée. */}
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 lg:flex-1">
             {/* ⚠️ **La recherche à GAUCHE, les portraits à DROITE.** C'est le
                 champ qu'on utilise en premier — le regard commence par lui,
                 pas par des cases encore vides. Les cases suivent CE QU'ON A
@@ -659,9 +695,15 @@ export default function RecoBoard({
                 ⚠️ `min(180px, 100%)` et non `180px` nu : un minimum rigide
                 empêche le champ de se réduire dans un conteneur plus étroit,
                 et c'est toute la page qui gagne un défilement latéral. Même
-                garde que RecoCard et ReleasesPage. */}
+                garde que RecoCard et ReleasesPage.
+                ⚠️ **Sous `lg`, le champ prend TOUTE la place** (plafond de
+                260 px à partir de `lg` seulement) : plafonné dès `sm`, il
+                laissait un grand vide entre lui et les cases, repoussées au
+                bord droit — les cases se lisaient comme un contrôle à part
+                (relevé par Thomas, capture en fenêtre étroite). Désormais
+                champ et cases forment un seul bloc sur toute la largeur. */}
             {!casesPleines ? (
-              <div className="min-w-[min(180px,100%)] flex-1 sm:max-w-[260px]">
+              <div className="min-w-[min(180px,100%)] flex-1 lg:max-w-[260px]">
                 <MonsterPicker
                   monsters={monsters}
                   // ⚠️ Les monstres déjà posés sont retirés des suggestions : le
@@ -684,15 +726,11 @@ export default function RecoBoard({
             {/* TROIS CASES, et non trois champs texte : elles montrent la
                 forme de ce qu'on cherche — une composition de 3 monstres —, et
                 reprennent le langage des slots de deck de la page.
-                ⚠️ **`ml-auto`, sauf à la SOURIS (`lg:ml-0`).** Au doigt, la
-                largeur manque et la rangée passe vite à la ligne : pousser les
-                cases au bord droit les sépare proprement du champ. À la
-                souris, le champ est plafonné à 260 px
-                (`sm:max-w-[260px]` ci-dessus) — sur une page bien plus large,
-                `ml-auto` les envoyait loin de lui, à l'autre bout d'une rangée
-                vide. Sans la marge auto, elles collent au champ dont elles
-                sont le résultat. */}
-            <div className="ml-auto flex items-center gap-1.5 lg:ml-0">
+                ⚠️ **Collées au champ, à toutes les largeurs** — elles sont le
+                résultat de ce qu'on y tape. L'ancien `ml-auto` (sous `lg`) les
+                envoyait au bord droit, loin du champ plafonné. `flex-none` :
+                trois cases de 40 px ne se compriment pas. */}
+            <div className="flex flex-none items-center gap-1.5">
               {queries.map((nom, i) => {
                 // ⚠️ Résolu dans les formes JOUABLES, pas dans la liste
                 // complète : plusieurs entrées portent le même nom (forme
@@ -718,7 +756,7 @@ export default function RecoBoard({
                     onClick={() => retirerMonstre(i)}
                     className="group relative flex h-[40px] w-[40px] flex-none items-center justify-center
                                rounded-lg border border-accent bg-accent/[0.08] transition
-                               hoverable:border-fire"
+                               hoverable:border-bad"
                     title={`Retirer ${nom}`}
                     aria-label={`Retirer ${nom}`}
                   >
@@ -765,7 +803,7 @@ export default function RecoBoard({
               décide combien il en reste, et il n'a ainsi plus besoin d'une
               hauteur de ligne en dur pour se caler sur un contrôle voisin. */}
           {aUneRecherche && (
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2 lg:mt-0.5 lg:basis-full">
               <span className="w-[76px] flex-none label">Rôle</span>
               <Segmented
                 value={searchMode}
@@ -783,11 +821,13 @@ export default function RecoBoard({
           )}
         </div>
       )}
+      </div>
 
       {all.length === 0 ? (
         <div className="mt-8 flex flex-col items-center justify-center text-center rounded-2xl border border-dashed border-border bg-panel/40 py-16 px-6">
           <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-panel2 border border-border mb-4">
-            <Lightbulb size={26} className="text-ink-dim" />
+            {/* L'icône de la section dans la nav (rebranding, décision 44). */}
+            <IconeRecos size={26} className="text-ink-dim" />
           </div>
           <p className="text-ink-dim text-sm max-w-md">
             Aucune recommandation. <b className="text-ink">Crée-en une</b> pour proposer un{' '}
@@ -822,7 +862,7 @@ export default function RecoBoard({
                 <b className="text-ink">{termesPoses[0]}</b> »
               </>
             )}
-            {filter !== 'all' && ' dans ce filtre'}.{' '}
+.{' '}
             {/* ⚠️ Sur un mode restrictif, la porte de sortie utile n'est pas
                 d'effacer mais d'ÉLARGIR : le résultat existe peut-être dans
                 l'autre rôle, et c'est un clic. Effacer reste proposé à côté. */}
@@ -842,18 +882,6 @@ export default function RecoBoard({
               className="text-ink underline transition hoverable:text-star"
             >
               Effacer la recherche
-            </button>
-          </p>
-        </div>
-      ) : list.length === 0 ? (
-        // Il y a des recommandations, mais aucune dans le filtre actif.
-        <div className="mt-6 rounded-xl border border-dashed border-border bg-panel/40 py-8 px-6 text-center">
-          <p className="text-ink-dim text-sm">
-            {filter === 'mine'
-              ? "Tu n'as créé aucune recommandation pour l'instant."
-              : "Tu n'as importé aucune recommandation pour l'instant."}{' '}
-            <button onClick={() => setFilter('all')} className="text-ink underline hoverable:text-star transition">
-              Voir toutes les recommandations
             </button>
           </p>
         </div>
@@ -885,6 +913,7 @@ export default function RecoBoard({
                 onToggleEdit={(id) => setEditingId((cur) => (cur === id ? null : id))}
                 onExport={(r) => requestExport([r], r.name || `reco-${i + 1}`)}
                 recos={recos}
+                vue={vue}
               />
             </div>
           ))}
@@ -901,16 +930,18 @@ function ValidationReport({ report, onClose }: { report: ImportReport; onClose: 
   return (
     <div
       className={`mt-3 rounded-xl border px-3 py-2.5 ${
-        bloque ? 'border-fire bg-fire/20' : 'border-warn bg-warn/35'
+        // Fonds DOUX (lot 7b, voir `AURA` dans RecoCard) : l'aplat saturé à
+        // 20-35 % se lisait mal ; l'icône et le titre portent la couleur.
+        bloque ? 'border-bad/50 bg-bad-soft' : 'border-warn/50 bg-warn-soft'
       }`}
     >
       <div className="flex items-center gap-2 mb-1.5">
         {bloque ? (
-          <XCircle size={15} className="flex-none text-fire" />
+          <XCircle size={15} className="flex-none text-bad" />
         ) : (
           <AlertTriangle size={15} className="flex-none text-warn" />
         )}
-        <span className={`text-xs font-semibold ${bloque ? 'text-fire' : 'text-warn'}`}>
+        <span className={`text-xs font-semibold ${bloque ? 'text-bad' : 'text-warn'}`}>
           {bloque
             ? "Import refusé — le contenu n'est pas valide"
             : `Import effectué avec ${report.warnings.length} correction${report.warnings.length > 1 ? 's' : ''}`}
@@ -925,7 +956,7 @@ function ValidationReport({ report, onClose }: { report: ImportReport; onClose: 
 
       <ul className="space-y-0.5 max-h-[220px] overflow-y-auto">
         {report.errors.map((e, i) => (
-          <li key={`e${i}`} className="text-xs text-fire leading-snug">
+          <li key={`e${i}`} className="text-xs text-bad leading-snug">
             • {e}
           </li>
         ))}

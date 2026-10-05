@@ -6,7 +6,7 @@
 // au rechargement ». Personne ne le signalera, et ce ne sera pas reproductible.
 
 import 'fake-indexeddb/auto';
-import { ACCOUNT_SCHEMA, clearAccount, loadAccount, saveAccount } from '../src/lib/accountStore';
+import { ACCOUNT_SCHEMA, clearAccount, loadAccount, oublierConnexion, saveAccount } from '../src/lib/accountStore';
 import {
   parseAccountBox,
   parseAccountInventory,
@@ -103,7 +103,7 @@ export default async function testStockage() {
 
   const ecrireBrut = (valeur: unknown) =>
     new Promise<void>((res) => {
-      const req = indexedDB.open('sw-forge', 1);
+      const req = indexedDB.open('swblacksmith', 1);
       req.onsuccess = () => {
         const t = req.result.transaction('account', 'readwrite');
         t.objectStore('account').put(valeur, 'current');
@@ -158,6 +158,51 @@ export default async function testStockage() {
   egal(await loadAccount(), null, '7 de la branche reliques (liste plate, sans libellés) → ignoré');
   await ecrireBrut({ ...sansMarqueurs, schema: ACCOUNT_SCHEMA, savedAt: 1 });
   egal(await loadAccount(), null, '7 sans runeMarkerLabels seul → ignoré');
+
+  await clearAccount();
+
+  /* --- Reprise de l'ancienne base `sw-forge` (décision 66) --------------- */
+
+  // ⚠️ La base s'appelait `sw-forge` avant le rebranding. Un utilisateur qui
+  // avait conservé son compte doit le retrouver après la mise à jour, sans
+  // réimport — et l'ancienne base ne doit pas rester sur son disque.
+  titre('Conservation du compte · reprise de l’ancienne base');
+  const creerAncienne = (valeur: unknown) =>
+    new Promise<void>((res) => {
+      const req = indexedDB.open('sw-forge', 1);
+      req.onupgradeneeded = () => req.result.createObjectStore('account');
+      req.onsuccess = () => {
+        const db = req.result;
+        const t = db.transaction('account', 'readwrite');
+        t.objectStore('account').put(valeur, 'current');
+        t.oncomplete = () => {
+          db.close();
+          res();
+        };
+      };
+    });
+  const bases = async () => (await indexedDB.databases()).map((d) => d.name);
+  const enregistrement = (b: typeof box) => ({ ...compte, box: b, schema: ACCOUNT_SCHEMA, savedAt: 1, wizardName: null });
+
+  await oublierConnexion();
+  await creerAncienne(enregistrement(box.slice(0, 2)));
+  const repris = await loadAccount();
+  egal(repris?.box.length, 2, 'le compte de l’ancienne base est retrouvé tel quel');
+  egal(repris?.runes.length, inv.runes.length, '… runes comprises');
+  ok(!(await bases()).includes('sw-forge'), 'l’ancienne base est supprimée une fois recopiée');
+
+  // Un compte enregistré depuis la mise à jour fait foi.
+  await saveAccount({ ...compte, box: box.slice(0, 1) });
+  await oublierConnexion();
+  await creerAncienne(enregistrement(box.slice(0, 2)));
+  egal((await loadAccount())?.box.length, 1, 'nouvelle base déjà remplie → elle fait foi');
+  ok(!(await bases()).includes('sw-forge'), '… et l’ancienne, périmée, est supprimée');
+
+  // ⚠️ `indexedDB.open` crée une base absente : la reprise ne doit pas laisser
+  // une base `sw-forge` vide derrière elle à chaque lancement.
+  await oublierConnexion();
+  await loadAccount();
+  ok(!(await bases()).includes('sw-forge'), 'sans ancienne base, aucune n’est créée');
 
   await clearAccount();
 }

@@ -19,7 +19,7 @@ import { StatKey, CAPPED_STATS } from '../lib/effects';
 // résultats de l'Optimizer, recommandations de siège), pas seulement au
 // prochain montage. Persisté dans localStorage — un réglage d'application
 // doit survivre au rechargement.
-const STORAGE_KEY = 'sw-forge-overcap-display-v1';
+const STORAGE_KEY = 'swblacksmith-overcap-display-v1';
 
 // Défaut = affiché (comportement historique, non bornée) : activer ce
 // réglage ne doit surprendre personne, seul le DÉSACTIVER change quelque

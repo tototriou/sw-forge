@@ -2124,7 +2124,7 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
     (même bouton, même état affiché).
 
 ⚠️ **Rien n'est appliqué au compte.** L'outil est en lecture seule et
-purement indicatif, comme le reste de SW Forge (aucune écriture vers le
+purement indicatif, comme le reste de SW Blacksmith (aucune écriture vers le
 jeu) : c'est au joueur de re-runer dans Summoners War.
 
 ## Listes de travail et réservation de runes

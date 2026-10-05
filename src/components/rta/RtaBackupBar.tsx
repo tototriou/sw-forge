@@ -26,7 +26,9 @@ import {
 } from '../../lib/rtaShare';
 import RtaValidationReport from './RtaValidationReport';
 import { ConfirmDialog, Modale } from '../../ui/Dialogs';
-import { Bouton, Option } from '../../ui';
+import { BarreActions, Bouton, Option } from '../../ui';
+import { PREFIXE_FICHIER } from '../../marque';
+import type { ElementMenu } from '../../ui';
 
 /* --------------------------------------------------------------------------
  * Sauvegarder · Reprendre · Réinitialiser · Exporter · Importer
@@ -69,6 +71,16 @@ interface Props {
     speed: number,
     lead?: CustomLead | null
   ) => Monster;
+  // ⚠️ **Deux dispositions, une seule logique** (refonte graphique, lot 6,
+  // décision 13). `barre` (défaut) : les cinq boutons en rangées — c'est celle
+  // du panneau d'actions MOBILE, inchangée. `menu` : l'en-tête BUREAU —
+  // « Exporter » visible, le reste dans un menu « ⋯ ». Les dialogues, les
+  // messages et le fichier sont les MÊMES : seule la façon de déclencher change.
+  disposition?: 'barre' | 'menu';
+  // En disposition `menu` : les entrées que la PAGE ajoute au menu — les gestes
+  // de construction (« Créer un monstre ») avec les autres, les destructeurs
+  // (« Tout effacer ») séparés en bas, avec « Réinitialiser ».
+  entreesEnPlus?: ElementMenu[];
 }
 
 // Télécharge un texte en fichier (aucun envoi réseau).
@@ -128,7 +140,10 @@ export default function RtaBackupBar({
   backup,
   monsters,
   onCreateMonster,
+  disposition = 'barre',
+  entreesEnPlus = [],
 }: Props) {
+  const enMenu = disposition === 'menu';
   const [msg, setMsg] = useState<{ text: string; error?: boolean } | null>(null);
   // Rapport de validation : NON éphémère, il y a quelque chose à lire.
   const [report, setReport] = useState<ImportReport | null>(null);
@@ -212,7 +227,7 @@ export default function RtaBackupBar({
     const snap = toSnapshot(rta.state, cats.categories, monsterById, { niveau });
     // ⚠️ **Le nom du fichier dit ce qu'il contient.** C'est le seul repère
     // avant de l'ouvrir — et quand on en a plusieurs dans son dossier de
-    // téléchargements, ou qu'on en reçoit un d'un ami, « swforge-prepa-rta.json »
+    // téléchargements, ou qu'on en reçoit un d'un ami, « swblacksmith-prepa-rta.json »
     // ne permet pas de savoir si les runes y sont.
     const suffixe: Record<NiveauPartage, string> = {
       complet: 'complet',
@@ -220,7 +235,7 @@ export default function RtaBackupBar({
       ordre: 'ordre-seul',
     };
     const jour = new Date().toISOString().slice(0, 10); // déjà « 2026-08-11 »
-    const fichier = `swforge-prepa-rta-${suffixe[niveau]}-${jour}.json`;
+    const fichier = `${PREFIXE_FICHIER}-prepa-rta-${suffixe[niveau]}-${jour}.json`;
     download(fichier, encodeSnapshot(snap));
     const dit: Record<NiveauPartage, string> = {
       complet: 'avec les runes et artéfacts',
@@ -288,7 +303,81 @@ export default function RtaBackupBar({
     // ⚠️ `data-passe-grille` : dans le panneau mobile, ce conteneur et celui
     // des deux rangées s'effacent pour que les six boutons deviennent les
     // enfants directs de la grille commune (voir index.css).
-    <div data-passe-grille className="mt-4">
+    // ⚠️ En disposition `menu`, la racine s'EFFACE (`contents`) : ses enfants
+    // deviennent ceux de l'en-tête de page, une rangée qui passe à la ligne. Les
+    // lignes d'état (point de sauvegarde, message, rapport) y prennent toute la
+    // largeur (`basis-full`), sous le titre et les boutons.
+    <div data-passe-grille className={enMenu ? 'contents' : 'mt-4'}>
+      {enMenu ? (
+        // ⚠️ `BarreActions` : toutes les actions en boutons S'IL Y A LA PLACE
+        // sur la ligne de l'en-tête (mesurée), sinon « Exporter » + « ⋯ » —
+        // demandé par Thomas : sur PC, ne pas cacher derrière un clic ce que
+        // l'écran peut montrer.
+        // Les entrées reprennent les boutons de la barre MOT POUR MOT —
+        // libellés, désactivations, infobulles — à une précision près :
+        // « Importer » devient « Importer une prépa », voisin d'autres gestes.
+        <BarreActions
+          libelleMenu="Plus d'actions"
+          toujours={[
+            {
+              cle: 'exporter',
+              libelle: 'Exporter',
+              'aria-label': 'Exporter',
+              icone: <Upload size={14} />,
+              onClick: () => setExportAChoisir(true),
+              disabled: vide,
+              title: 'Télécharger ta prépa en fichier .json, pour la partager ou la garder de côté',
+            },
+          ]}
+          autres={[
+              {
+                cle: 'sauvegarder',
+                libelle: 'Sauvegarder',
+                icone: <Save size={14} />,
+                onClick: () => (backup.backup ? setEcraserAConfirmer(true) : sauvegarder()),
+                disabled: vide,
+                title: vide
+                  ? 'Ajoute des monstres avant de poser un point de sauvegarde'
+                  : 'Fige la prépa actuelle comme point de retour. Ta prépa est déjà conservée automatiquement : ceci sert à pouvoir revenir en arrière après des essais.',
+              },
+              {
+                cle: 'reprendre',
+                libelle: 'Reprendre',
+                icone: <RotateCcw size={14} />,
+                onClick: () => setReprendreAConfirmer(true),
+                disabled: !backup.backup,
+                title: backup.backup
+                  ? `Revenir au point de sauvegarde (${dateBackup})`
+                  : "Aucun point de sauvegarde : clique d'abord sur « Sauvegarder »",
+              },
+              {
+                cle: 'importer',
+                libelle: 'Importer une prépa',
+                icone: <Download size={14} />,
+                onClick: ouvrirFichier,
+                title: "Reprendre une prépa exportée : une archive, ou celle d'un autre navigateur. Elle remplacera la tienne.",
+              },
+              ...entreesEnPlus.filter((e) => !e.danger),
+              // ⚠️ N'apparaît QUE si un compte a été importé — comme dans la barre.
+              ...(backup.importe
+                ? [
+                    {
+                      cle: 'reinitialiser',
+                      libelle: 'Réinitialiser',
+                      icone: <History size={14} />,
+                      onClick: () => setResetAConfirmer(true),
+                      title: `Remettre la prépa dans l'état de ton dernier import de compte (${depuis(
+                        backup.importe.date
+                      )})`,
+                      danger: true,
+                    },
+                  ]
+                : []),
+              ...entreesEnPlus.filter((e) => e.danger),
+            ]}
+          />
+      ) : (
+      <>
       {/* ⚠️ **Une rangée par TYPE d'action**, et non une seule file de six
           boutons. Les trois premiers agissent sur l'état COURANT de la prépa
           (le figer, y revenir) ; les trois suivants échangent un FICHIER avec
@@ -406,6 +495,8 @@ export default function RtaBackupBar({
         />
       </div>
       </div>
+      </>
+      )}
 
       {/* Le point de sauvegarde est ANNONCÉ : sans repère visible, on ne sait
           pas s'il existe ni de quand il date — donc on n'ose pas expérimenter. */}
@@ -416,7 +507,7 @@ export default function RtaBackupBar({
            Elle traverse les trois colonnes par une règle d'index.css — une
            largeur en `w-full` ne suffisait pas, elle remplit la cellule, qui
            fait un tiers. */
-        <p className="mt-1.5 font-mono text-micro text-ink-dim">
+        <p className={`mt-1.5 font-mono text-micro text-ink-dim ${enMenu ? 'basis-full' : ''}`}>
           {/* ⚠️ Le NOMBRE de monstres a disparu de cette ligne. Il ne servait
               à rien qu'on vienne y chercher : ce qu'on veut savoir, c'est
               QUAND le point a été posé, pour décider si l'on peut y revenir
@@ -440,13 +531,19 @@ export default function RtaBackupBar({
       />
 
       {msg && (
-        <p className={`mt-2 text-xs ${msg.error ? 'text-fire' : 'text-good'}`} role="status">
+        <p className={`mt-2 text-xs ${enMenu ? 'basis-full' : ''} ${msg.error ? 'text-bad' : 'text-good'}`} role="status">
           {msg.text}
         </p>
       )}
 
       {report && (report.errors.length > 0 || report.warnings.length > 0) && (
-        <RtaValidationReport report={report} onClose={() => setReport(null)} />
+        enMenu ? (
+          <div className="basis-full">
+            <RtaValidationReport report={report} onClose={() => setReport(null)} />
+          </div>
+        ) : (
+          <RtaValidationReport report={report} onClose={() => setReport(null)} />
+        )
       )}
 
       {/* Écraser un point existant : c'est une perte, donc on confirme. */}

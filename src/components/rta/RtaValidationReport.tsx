@@ -21,16 +21,18 @@ export default function RtaValidationReport({
   return (
     <div
       className={`mt-2 rounded-xl border px-3 py-2.5 ${
-        bloque ? 'border-fire/50 bg-fire/5' : 'border-warn/40 bg-warn/5'
+        // Rouge d'ÉTAT (`bad`), pas celui de l'élément Feu — rebranding,
+        // décision 43.
+        bloque ? 'border-bad/50 bg-bad/5' : 'border-warn/40 bg-warn/5'
       }`}
     >
       <div className="flex items-center gap-2 mb-1.5">
         {bloque ? (
-          <XCircle size={15} className="flex-none text-fire" />
+          <XCircle size={15} className="flex-none text-bad" />
         ) : (
           <AlertTriangle size={15} className="flex-none text-warn" />
         )}
-        <span className={`text-xs font-semibold ${bloque ? 'text-fire' : 'text-warn'}`}>
+        <span className={`text-xs font-semibold ${bloque ? 'text-bad' : 'text-warn'}`}>
           {bloque
             ? "Fichier refusé — le contenu n'est pas valide"
             : `Lu avec ${report.warnings.length} correction${report.warnings.length > 1 ? 's' : ''}`}
@@ -45,7 +47,7 @@ export default function RtaValidationReport({
 
       <ul className="space-y-0.5 max-h-[220px] overflow-y-auto">
         {report.errors.map((e, i) => (
-          <li key={`e${i}`} className="text-xs text-fire leading-snug">
+          <li key={`e${i}`} className="text-xs text-bad leading-snug">
             • {e}
           </li>
         ))}

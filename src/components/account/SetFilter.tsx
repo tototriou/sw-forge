@@ -4,6 +4,8 @@ import { RuneDetail, RUNE_SETS } from '../../types';
 import RuneIcon from '../RuneIcon';
 import { runeSetIconFilter } from '../../lib/effects';
 import { useMediaQuery, COMPACT } from '../../hooks/useMediaQuery';
+import { MARQUEUR_FILTRE_ACTIF } from '../../ui/Pastille';
+import { ACTIF_FILTRE_LG, CADRE_FILTRE_LG, CASE_FILTRE_LG } from './gabaritFiltre';
 
 // Filtre multi-sélection par set de runes, **icônes seules**.
 //
@@ -50,7 +52,10 @@ export default function SetFilter({
       {/* Une SEULE barre continue plutôt que des boutons détachés : les symboles
           se lisent comme une rangée d'icônes du jeu, et l'ensemble tient sur une
           ligne même avec 25 sets. Seul l'état actif porte un cadre. */}
-      <div className="flex flex-wrap items-center gap-0.5 rounded-lg border border-border bg-panel p-1 coarse:gap-1">
+      {/* ⚠️ À la SOURIS, le gabarit du `Segmented` (`CADRE_FILTRE_LG`) : les
+          filtres des runes tiennent sur une ligne à côté des antiques, qui en
+          sont un — Thomas : « que les boutons aient tous la même tête ». */}
+      <div className={`flex flex-wrap items-center gap-0.5 rounded-lg border border-border bg-panel p-1 coarse:gap-1 ${CADRE_FILTRE_LG}`}>
         {/* Bascule TOUT / RIEN, EN TÊTE de la grille et au même gabarit que les
             sets — comme la tuile « Tous » du jeu, pas un bouton à part greffé
             sur le côté. */}
@@ -61,10 +66,10 @@ export default function SetFilter({
             aria-label={toutSelectionne ? 'Tout désélectionner' : 'Tout sélectionner'}
             aria-pressed={toutSelectionne}
             data-cible-fine
-            className={`flex items-center justify-center w-7 h-7 coarse:w-9 coarse:h-9 rounded-md border transition select-none
+            className={`flex items-center justify-center w-7 h-7 coarse:w-9 coarse:h-9 rounded-md border transition select-none ${CASE_FILTRE_LG}
               ${
                 toutSelectionne
-                  ? 'bg-accent-soft border-transparent'
+                  ? `${MARQUEUR_FILTRE_ACTIF} ${ACTIF_FILTRE_LG}`
                   : 'border-transparent opacity-50 hoverable:opacity-100 hoverable:bg-panel2'
               }`}
           >
@@ -90,14 +95,14 @@ export default function SetFilter({
               // l'icône grossit un peu : 28 px se visaient mal du pouce. À la
               // souris elles restent compactes.
               data-cible-fine
-              className={`flex items-center justify-center w-7 h-7 coarse:w-9 coarse:h-9 rounded-md border transition select-none
+              className={`flex items-center justify-center w-7 h-7 coarse:w-9 coarse:h-9 rounded-md border transition select-none ${CASE_FILTRE_LG}
                 ${
                   // ⚠️ Fond seul (voir spec/shared/design.md). La bordure reste
                   // TRANSPARENTE et non `border`, comme au repos : ces pastilles
                   // n'ont pas de contour, en faire apparaître un à la sélection
                   // ajouterait un second marqueur — c'est le fond qui parle.
                   active
-                    ? 'bg-accent-soft border-transparent'
+                    ? `${MARQUEUR_FILTRE_ACTIF} ${ACTIF_FILTRE_LG}`
                     : 'border-transparent opacity-50 hoverable:opacity-100 hoverable:bg-panel2'
                 }`}
             >

@@ -1,4 +1,4 @@
-# SW Forge — consignes
+# SW Blacksmith — consignes
 
 Boîte à outils Summoners War. React + TypeScript + Vite + Tailwind, 100 % local.
 

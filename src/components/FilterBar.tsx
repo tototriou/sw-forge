@@ -1,7 +1,8 @@
 import { ELEMENTS, STAR_OPTIONS, ElementKey } from '../types';
 import ElementIcon from './ElementIcon';
+import Pastille from '../ui/Pastille';
+import Selecteur from '../ui/Selecteur';
 import { ELEMENT_FILTER_STYLES } from './elementStyles';
-
 
 interface Props {
   activeElements: Set<ElementKey>;
@@ -10,8 +11,17 @@ interface Props {
   toggleStar: (n: number) => void;
   sortMode: string;
   setSortMode: (v: string) => void;
+  // Le tri dans la barre (défaut) ou ailleurs : à la SOURIS, la page le pose
+  // sur la ligne de la pagination (`TriInterne`), comme « Ma box ».
+  avecTri?: boolean;
+  className?: string;
 }
 
+// ⚠️ **Les contrôles de la LIBRAIRIE** (refonte graphique, lot 10) — `Pastille`
+// et `Selecteur`, comme les filtres de « Ma box ». Ils étaient dessinés à la
+// main ici (boutons, `<select>` natif) : le même filtre d'élément se
+// présentait autrement d'un écran à l'autre. La teinte de l'élément reste
+// portée par l'appelant (`ELEMENT_FILTER_STYLES`), comme dans la box.
 export default function FilterBar({
   activeElements,
   toggleElement,
@@ -19,78 +29,61 @@ export default function FilterBar({
   toggleStar,
   sortMode,
   setSortMode,
+  avecTri = true,
+  className = 'mt-5 flex flex-col gap-3.5',
 }: Props) {
   return (
-    <div className="flex flex-col gap-3.5 mt-5">
+    <div className={className}>
       <div className="flex flex-wrap items-center gap-2">
-        <span className="label mr-1.5">
-          Élément
-        </span>
-        {ELEMENTS.map((el) => {
-          const active = activeElements.has(el.key);
-          return (
-            <button
-              key={el.key}
-              data-active={active}
-              onClick={() => toggleElement(el.key)}
-              // ⚠️ L'OPACITÉ est le marqueur (70 % → 100 %) : la couleur de
-              // l'élément est déjà là au repos, c'est sa pleine intensité qui
-              // dit « posé ». L'ombre qui s'y ajoutait faisait décoller la
-              // pastille de la page. Voir spec/shared/design.md.
-              className={`flex items-center gap-1.5 rounded-full border bg-panel px-3.5 py-1.5 text-sm font-semibold
-                transition select-none ${ELEMENT_FILTER_STYLES[el.key]}
-                ${active ? '' : 'opacity-70 hoverable:opacity-100'}`}
-            >
-              <ElementIcon element={el.key} size={16} />
-              {el.label}
-            </button>
-          );
-        })}
+        <span className="label mr-1.5">Élément</span>
+        {ELEMENTS.map((el) => (
+          <Pastille
+            key={el.key}
+            actif={activeElements.has(el.key)}
+            couleurs={ELEMENT_FILTER_STYLES[el.key]}
+            onClick={() => toggleElement(el.key)}
+            icone={<ElementIcon element={el.key} size={15} />}
+            libelle={el.label}
+          />
+        ))}
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <span className="label mr-1.5">
-          Étoiles
-        </span>
-        {STAR_OPTIONS.map((s) => {
-          const active = activeStars.has(s);
-          return (
-            <button
-              key={s}
-              onClick={() => toggleStar(s)}
-              className={`rounded-full border px-3.5 py-1.5 text-sm font-mono font-semibold transition select-none
-                ${
-                  // ⚠️ **Contour d'accent + fond très léger**, le marqueur
-                  // d'état unique de l'app (voir spec/shared/design.md). Le
-                  // dégradé doré plein qu'elles portaient criait plus fort que
-                  // le réglage ne le mérite, et faisait deux vocabulaires selon
-                  // l'écran — un filtre actif ne doit pas se lire différemment
-                  // ici et là.
-                  active
-                    ? 'border-accent bg-accent-soft text-ink'
-                    : 'bg-panel border-border text-ink-dim hoverable:text-ink hoverable:border-accent'
-                }`}
-            >
-              {s}★
-            </button>
-          );
-        })}
+        <span className="label mr-1.5">Étoiles</span>
+        {STAR_OPTIONS.map((s) => (
+          <Pastille
+            key={s}
+            actif={activeStars.has(s)}
+            onClick={() => toggleStar(s)}
+            className="font-mono"
+            libelle={`${s}★`}
+          />
+        ))}
       </div>
 
-      <div className="flex items-center gap-2.5">
-        <span className="label">
-          Tri interne
-        </span>
-        <select
-          value={sortMode}
-          onChange={(e) => setSortMode(e.target.value)}
-          className="bg-panel border border-border text-ink rounded-lg px-2.5 py-1.5 text-sm outline-none"
-        >
-          <option value="stars_desc">Étoiles ↓ puis nom</option>
-          <option value="stars_asc">Étoiles ↑ puis nom</option>
-          <option value="name_asc">Nom (A→Z)</option>
-        </select>
-      </div>
+      {avecTri && <TriInterne sortMode={sortMode} setSortMode={setSortMode} />}
     </div>
+  );
+}
+
+// Le tri, avec son intitulé. Posé dans la barre au doigt, sur la ligne de la
+// pagination à la souris.
+export function TriInterne({ sortMode, setSortMode }: Pick<Props, 'sortMode' | 'setSortMode'>) {
+  return (
+    <label className="flex items-center gap-2.5">
+      <span className="label">Tri interne</span>
+      <Selecteur
+        taille="md"
+        pleineLargeur={false}
+        value={sortMode}
+        onChange={(e) => setSortMode(e.target.value)}
+        // 32 px à la souris, comme le tri de la Liste des runes.
+        className="lg:h-8 lg:py-0 lg:text-xs"
+      >
+        <option value="stars_desc">Étoiles ↓ puis nom</option>
+        <option value="stars_asc">Étoiles ↑ puis nom</option>
+        <option value="name_asc">Nom (A→Z)</option>
+      </Selecteur>
+    </label>
   );
 }

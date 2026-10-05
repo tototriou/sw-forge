@@ -94,7 +94,8 @@ const REPOS: Record<TonBouton, Record<FondBouton, string>> = {
   accent: {
     vide: 'border-accent bg-transparent text-ink',
     doux: 'border-accent bg-accent-soft text-ink',
-    plein: 'border-accent bg-accent-soft text-ink',
+    // Même règle que `Bouton` : `plein` est l'aplat du bouton principal.
+    plein: 'border-accent bg-accent text-accent-ink',
   },
   danger: {
     vide: 'border-bad/50 bg-transparent text-ink-dim hoverable:text-bad',

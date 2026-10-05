@@ -8,7 +8,7 @@ Affiche une ligne par vérification et sort en code 1 si l'une échoue.
 
 ## Ce qui est couvert, et pourquoi seulement ça
 
-La plupart des bugs de SW Forge sont **visibles** : une icône manquante, une
+La plupart des bugs de SW Blacksmith sont **visibles** : une icône manquante, une
 carte mal placée, un filtre qui ne filtre pas. On les voit en ouvrant la page, et
 c'est très bien comme ça — il n'y a **aucun test d'interface ici, et il ne faut
 pas en ajouter** sans raison sérieuse.

@@ -60,6 +60,14 @@ Idéale avec beaucoup d'équipes (import offense ~50).
 - Marqué « Leader » (slot 0) ou « Slot », avec un **`MonsterPicker`** :
   recherche par nom (max 25), exclut les monstres déjà utilisés dans l'équipe
   (`usedIds`), affiche **portrait** + nom + SPD. Sélection → remplit le slot.
+- ⚠️ **Puis le curseur passe au slot vide suivant** (refonte graphique,
+  décision 18, étendue ici le 2026-09-27 — Thomas : « ah oui fais ça ») :
+  son champ prend le focus, en bouclant sur ceux d'avant si on a commencé
+  par le milieu ; équipe complète, le focus ne bouge pas. On compose les
+  trois d'affilée au clavier. Même règle que les decks et les défenses
+  visées des recommandations —
+  [slotVideSuivant.ts](../../src/components/siege/slotVideSuivant.ts)
+  (testé : `siege-slot-suivant`), `jetonFocus` de `MonsterPicker`.
 
 ## Slot rempli
 
@@ -70,6 +78,54 @@ Idéale avec beaucoup d'équipes (import offense ~50).
 - Croix de retrait → vide le slot.
 - **Sélecteur de position** (« 1 · Leader / 2 / 3 ») = repli tactile : intervertit
   avec le slot cible.
+
+### ⚠️ Le slot en édition, à la souris — resserré (refonte graphique, lot 7a)
+
+Demandé par Thomas : « revois surtout la partie d'édition ». Deux lignes de
+moins par slot, **rien de retiré** :
+
+- la **position** se règle par **deux flèches ← →**, **en haut du slot**,
+  sur la ligne du monstre, à côté de sa croix (plus de rangée séparée par un
+  filet) — demandé par Thomas : échanger avec le voisin est un geste direct,
+  le sélecteur demandait d'ouvrir une liste pour choisir un numéro. Posées
+  d'abord à côté du champ SPD, elles s'y mêlaient à la saisie (« compact mais
+  confus ») : sur la ligne du monstre, elles disent qu'elles déplacent CE
+  monstre. Aux bords, la flèche reste affichée, **désactivée**, avec
+  sa raison (« Déjà en première position » / « Déjà en dernière position ») ;
+  vers le slot 1, l'infobulle dit que le monstre **devient le leader** ;
+- ⚠️ **L'ordre des lignes : le monstre, ce qu'on SAISIT, la CONCLUSION.**
+  Ligne 2 : le champ SPD puis les ticks visés, côte à côte. Ligne 3, en bas,
+  sans filet (essayé, retiré par Thomas — « pas besoin de séparateur dans la
+  card ») : la vitesse de combat, sa base et l'écart au tick —
+  demandé par Thomas : « la spd et la conclusion en bas, car c'est la
+  conclusion ». Le slot est une grille à deux colonnes (`auto 1fr`) dont les
+  lignes sont celles de la grille des slots ; les éléments y sont PLACÉS,
+  sans duplication ni changement de l'ordre du DOM — le téléphone garde le
+  sien ;
+- l'**écart au tick** (« manque 12 pour 239 », « +3 au-dessus de 286 »,
+  « pile au tick ») se pose **juste après la vitesse de combat** qu'il
+  qualifie. Posé d'abord au bout de la rangée des ticks, il y passait seul à
+  la ligne, calé à droite — relevé par Thomas sur capture (« ce n'est pas
+  aligné ») ;
+- **tout est centré sur sa ligne** : les flèches et la croix sur la ligne du
+  monstre (les flèches étaient collées en haut), la vitesse et le champ SPD
+  l'un sur l'autre (ils étaient calés par le bas, le gros chiffre dépassant
+  au-dessus de « SPD : ») ;
+- la vitesse de combat passe de 26 à 22 px ; plus de hauteur minimale de
+  150 px — la grille aligne déjà les trois slots sur le plus haut ;
+- ⚠️ **les lignes des trois slots sont alignées** (« ce serait bien que les
+  éléments soient alignés dans la card ») : la grille définit trois lignes —
+  le monstre, la vitesse et le SPD, les ticks — que chaque slot reprend
+  (`grid-rows-subgrid`). Chacune prend la hauteur de la plus haute des trois :
+  la pastille de lead sous le nom du leader ne décale plus sa vitesse ni ses
+  ticks. Un slot vide pose son étiquette sur la ligne du monstre et son champ
+  de recherche sur celle de la vitesse.
+
+Au doigt, la disposition ne change pas (écart et position sur leurs propres
+lignes) : chacun est rendu UNE fois et posé à deux endroits selon la largeur
+(`hidden lg:…` / `lg:hidden`). Gardé par `testRenduSiegeEdition`
+([tests/rendu/siege.test.tsx](tests/rendu/siege.test.tsx)) : écrit pendant le
+lot, il passe à l'identique sur l'édition d'avant et sur celle d'après.
 
 ## Leader & pastille de lead
 

@@ -25,10 +25,18 @@ interface Props {
   onCreate: (name: string, element: ElementKey, speed: number, lead: CustomLead | null) => void;
   customMonsters: Monster[];
   onDelete: (id: string) => void;
+  // ⚠️ **Mode PILOTÉ** (refonte graphique, lot 6) : sur bureau, la RTA ouvre
+  // ce formulaire depuis une entrée de son menu « ⋯ » — le composant ne rend
+  // alors PAS son propre bouton (`sansBouton`), et l'ouverture vient de
+  // l'appelant (`ouvert` / `onOuvert`). Sans ces props, il garde son bouton et
+  // son état, comme partout ailleurs (panneau mobile, siège).
+  sansBouton?: boolean;
+  ouvert?: boolean;
+  onOuvert?: (ouvert: boolean) => void;
 }
 
 // Bouton + formulaire pour créer un monstre perso (nom, élément, SPD de base).
-export default function CreateMonster({ onCreate, customMonsters, onDelete }: Props) {
+export default function CreateMonster({ onCreate, customMonsters, onDelete, sansBouton, ouvert, onOuvert }: Props) {
   // ⚠️ La suppression d'un monstre créé à la main demande une CONFIRMATION : il
   // n'existe nulle part ailleurs. Contrairement à un monstre du jeu, qu'on
   // retrouve dans les données, celui-ci part avec son nom, son élément et sa
@@ -36,7 +44,9 @@ export default function CreateMonster({ onCreate, customMonsters, onDelete }: Pr
   const [suppressionAConfirmer, setSuppressionAConfirmer] = useState<
     { id: string; nom: string } | null
   >(null);
-  const [open, setOpen] = useState(false);
+  const [openLocal, setOpenLocal] = useState(false);
+  const open = ouvert ?? openLocal;
+  const setOpen = (v: boolean) => (onOuvert ? onOuvert(v) : setOpenLocal(v));
   const [name, setName] = useState('');
   const [element, setElement] = useState<ElementKey>('fire');
   const [speed, setSpeed] = useState('');
@@ -209,14 +219,16 @@ export default function CreateMonster({ onCreate, customMonsters, onDelete }: Pr
           ⚠️ Deux longueurs : dans le panneau mobile ce bouton occupe une cellule
           d'un tiers de 348 px, où « Créer un monstre » passe à la ligne.
           `aria-label` et l'infobulle portent la phrase entière. */}
-      <Bouton
-        onClick={() => setOpen((o) => !o)}
-        aria-label="Créer un monstre"
-        title="Créer un monstre qui n'existe pas dans les données chargées"
-        icone={<Wand2 size={15} />}
-        libelle="Créer un monstre"
-        libelleCourt="Monstre"
-      />
+      {!sansBouton && (
+        <Bouton
+          onClick={() => setOpen(!open)}
+          aria-label="Créer un monstre"
+          title="Créer un monstre qui n'existe pas dans les données chargées"
+          icone={<Wand2 size={15} />}
+          libelle="Créer un monstre"
+          libelleCourt="Monstre"
+        />
+      )}
 
       {/* ⚠️ **Une MODALE, et la même aux deux formats.** Ce formulaire vivait
           dans deux contenants distincts — un panneau montant au doigt, une popup

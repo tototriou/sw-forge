@@ -12,19 +12,45 @@ export const pct = (n: number, total: number) => (total ? (n / total) * 100 : 0)
 export const fmt = (v: number) => v.toFixed(1);
 
 // Tuile de chiffre clé : libellé mono, grande valeur, sous-titre.
+// ⚠️ `bandeau` (refonte graphique, lot 8a, la maquette `.stats`) : à la
+// SOURIS, le chiffre n'est plus une carte mais une CASE d'un bandeau commun —
+// sans cadre propre, séparée de la précédente par un filet (`premier` : pas de
+// filet à gauche).
+// ⚠️ Au DOIGT (lot 11c, décision 26, la maquette) : une CASE de la carte
+// commune des chiffres clés — ni cadre ni arrondi propres, fond de panneau ;
+// les filets entre cases viennent de l'écart d'1 px du conteneur, posé sur un
+// fond couleur filet (voir `CARTE_CHIFFRES_DOIGT`). Un seul trait entre deux
+// cases, aucun contre le bord de la carte.
+const CASE_BANDEAU =
+  'lg:flex-1 lg:rounded-none lg:border-0 lg:border-l lg:border-border-soft lg:bg-transparent lg:px-4 lg:py-3 ' +
+  'max-lg:rounded-none max-lg:border-0 max-lg:bg-panel';
+
+// Le conteneur des chiffres clés AU DOIGT : une carte, deux colonnes (trois
+// dès `sm`), les cases séparées par l'écart d'1 px sur fond `border-soft`.
+export const CARTE_CHIFFRES_DOIGT =
+  'max-lg:gap-px max-lg:overflow-hidden max-lg:rounded-xl max-lg:border max-lg:border-border-soft max-lg:bg-border-soft';
+
 export function Kpi({
   label,
   value,
   sub,
   tone,
+  bandeau = false,
+  premier = false,
 }: {
   label: string;
   value: string;
   sub?: string;
   tone?: string;
+  bandeau?: boolean;
+  premier?: boolean;
 }) {
   return (
-    <div className="rounded-xl border border-border bg-panel px-3 py-2.5">
+    <div
+      className={`rounded-xl border border-border bg-panel px-3 py-2.5 ${bandeau ? CASE_BANDEAU : ''} ${
+        bandeau && premier ? 'lg:border-l-0' : ''
+      }`}
+    >
       <p className="label">{label}</p>
       <p
         className="mt-0.5 text-[22px] font-bold leading-none tabular-nums"
@@ -38,9 +64,19 @@ export function Kpi({
 }
 
 // Panneau titré.
-export function Panel({ title, children }: { title: string; children: React.ReactNode }) {
+// `className` : la place du panneau dans une grille (ordre, largeur) — le
+// Résumé des runes le range en trois colonnes à la souris (lot 8a).
+export function Panel({
+  title,
+  children,
+  className = '',
+}: {
+  title: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
   return (
-    <section className="rounded-xl border border-border bg-panel p-4">
+    <section className={`rounded-xl border border-border bg-panel p-4 ${className}`}>
       <h3 className="mb-3 label">{title}</h3>
       {children}
     </section>

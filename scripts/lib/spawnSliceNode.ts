@@ -26,7 +26,7 @@ let bundlePath: string | null = null;
 
 export async function ensurePairSliceBundle(): Promise<string> {
   if (bundlePath && existsSync(bundlePath)) return bundlePath;
-  const dir = join(tmpdir(), `sw-forge-pair-slice-${Date.now()}-${process.pid}`);
+  const dir = join(tmpdir(), `swblacksmith-pair-slice-${Date.now()}-${process.pid}`);
   mkdirSync(dir, { recursive: true });
   bundlePath = join(dir, 'pair-slice-worker.cjs');
   await build({

@@ -24,11 +24,13 @@ import { COURBE, GLISSEMENT, SidebarGroupe, SidebarSection } from './Sidebar';
 // un groupe unique ajoute un geste sans rien donner à décider — la même règle
 // qui laisse « Outils » en simple lien dans la barre d'onglets.
 //
-// ⚠️ **Des BOUTONS DÉLIMITÉS, pas du texte posé sur le fond.** Le panneau a
-// d'abord été une liste à filets : trois libellés séparés par des traits, dont
-// on ne voyait pas où commençait la cible. Chaque destination porte donc son
-// cadre — c'est la `Pastille` de l'app, et son marqueur d'état est celui de
-// toute l'app : contour d'accent + fond léger.
+// ⚠️ **Une LISTE, une rangée par entrée** (refonte graphique, lot 11a,
+// décision 24, la maquette). Le panneau a été une liste à filets, puis une
+// grille de cases encadrées parce qu'on ne voyait pas où commençait la cible
+// entre deux traits. Thomas a choisi la liste de la maquette ; ce qui répond
+// à ce défaut d'alors : chaque rangée prend TOUTE la largeur sur 52 px (la
+// cible est la rangée entière, pas le libellé), se surligne au toucher, et
+// l'entrée courante porte le marqueur d'état de l'app (encre, icône teintée).
 //
 // ⚠️ **Il monte du BAS, sous le doigt qui l'a demandé.** Son déclencheur est un
 // onglet de la barre du bas ; un menu qui surgirait en haut de l'écran
@@ -40,27 +42,11 @@ import { COURBE, GLISSEMENT, SidebarGroupe, SidebarSection } from './Sidebar';
 // manque serait passé inaperçu : on ne cherche pas ce dont on ignore
 // l'existence. C'est déjà la règle de `SidebarSearch`.
 
-// ⚠️ **DEUX colonnes quand la largeur le permet, UNE seule sinon — jamais
-// trois.** Les sept vues de Runes tiennent alors sur quatre rangées au lieu de
-// sept, dans un panneau qui n'a que le tiers de l'écran.
-//
-// La borne à deux tient dans le `max()` : le minimum d'une colonne vaut **la
-// moitié de la largeur** (moins la moitié de l'écart), donc trois n'entrent
-// jamais. Un `minmax(140px, 1fr)` seul laissait `auto-fit` en poser trois dès
-// 543 px de panneau — vrai sur une tablette étroite, et les vues y devenaient
-// des vignettes.
-//
-// Et le plancher de 140 px garde le repli : dès que la moitié du panneau passe
-// sous cette largeur (« Optimisation » et « Comparaison » s'y tronquent), plus
-// aucune paire n'entre et la grille retombe **d'elle-même** sur une colonne
-// pleine largeur. Un seul `max()` porte les deux règles — pas de second seuil à
-// écrire, donc rien à maintenir d'accord.
-//
-// ⚠️ Les `_` sont la façon d'écrire une espace dans une valeur arbitraire
-// Tailwind : `calc(50%_-_4px)` produit `calc(50% - 4px)`. Sans eux la classe
-// n'est pas reconnue et **aucune règle n'est émise** — vérifié dans le CSS
-// construit, pas seulement ici.
-const GRILLE = 'grid-cols-[repeat(auto-fit,minmax(max(140px,calc(50%_-_4px)),1fr))]';
+// Une colonne, une rangée par entrée — la maquette. Elle remplace une grille
+// de deux colonnes (`auto-fit`, plancher de 140 px) qui ramassait les sept vues
+// de Runes sur quatre rangées : la liste en prend sept, mais le panneau défile
+// et chaque libellé tient en entier.
+const LISTE = 'flex w-full flex-col';
 
 export default function MobileNavSheet({
   section,
@@ -146,15 +132,12 @@ export default function MobileNavSheet({
             >
               {groupeCourant ? (
                 /* ── Second temps : les vues du groupe choisi ─────────────── */
-                <nav className={`grid w-full gap-2 ${GRILLE}`} aria-label={`Vues de ${groupeCourant.titre}`}>
-                  {/* ⚠️ Le RETOUR est une CELLULE DE LA GRILLE, comme les
-                      autres. Il a d'abord été posé pleine largeur au-dessus,
-                      au motif que c'est une action sur le panneau et non une
-                      destination : le résultat était un bouton deux fois plus
-                      large que ses voisins, dans un panneau qui n'en compte
-                      qu'un seul gabarit. **Toutes les cibles ont la même
-                      taille.** Ce qui le distingue est son encre atténuée et
-                      son chevron vers la gauche, pas son encombrement.
+                <nav className={LISTE} aria-label={`Vues de ${groupeCourant.titre}`}>
+                  {/* ⚠️ Le RETOUR est la PREMIÈRE rangée de la liste, en haut
+                      du panneau (décision 24) — même gabarit que les autres :
+                      **toutes les cibles ont la même taille.** Ce qui le
+                      distingue est son encre atténuée et son chevron vers la
+                      gauche, pas son encombrement.
                       ⚠️ Un `<button>` — il ne va nulle part. */}
                   <Case
                     onClick={() => setGroupeOuvert(null)}
@@ -175,17 +158,12 @@ export default function MobileNavSheet({
                 </nav>
               ) : (
                 /* ── Premier temps ────────────────────────────────────────
-                   ⚠️ **La MÊME grille qu'au second temps**, pas une mise en
+                   ⚠️ **La MÊME liste qu'au second temps**, pas une mise en
                    page à part. Les deux temps se succèdent au même endroit, à
-                   quelques centaines de millisecondes d'intervalle : une
-                   colonne pleine largeur puis deux colonnes, c'était deux
-                   gabarits de cible pour un seul geste, et le panneau changeait
-                   de nature en descendant d'un niveau.
-                   ⚠️ Un nombre IMPAIR de cibles laisse la dernière seule sur sa
-                   rangée, à gauche — trois inventaires, trois vues de Siège.
-                   C'est le comportement d'une grille, et l'étirer sur les deux
-                   colonnes lui donnerait un poids qu'elle n'a pas. */
-                <nav className={`grid w-full gap-2 ${GRILLE}`} aria-label={`Sections de ${section.titre}`}>
+                   quelques centaines de millisecondes d'intervalle : deux
+                   gabarits de cible pour un seul geste, et le panneau
+                   changerait de nature en descendant d'un niveau. */
+                <nav className={LISTE} aria-label={`Sections de ${section.titre}`}>
                   {aDesGroupes
                     ? groupes.map((g) => <EntreeGroupe key={g.titre} groupe={g} onOuvrir={() => setGroupeOuvert(g.titre!)} onFermer={onFermer} />)
                     : groupes.flatMap((g) =>
@@ -287,27 +265,27 @@ function Case({
       // forme, pas un oubli.
       data-hauteur-fixe
       // ⚠️ `w-full` explicite : un `<button>` ne s'étire pas comme un `<a>`.
-      // ⚠️ **44 px de haut EXACTEMENT** (`h-11`), la règle tactile : on vise du
-      // pouce sans regarder. Une hauteur FIXE et non un minimum — c'est ce que
+      // ⚠️ **52 px de haut EXACTEMENT** (`h-[52px]`, la rangée de la maquette,
+      // au-dessus des 44 de la règle tactile) : on vise du pouce sans
+      // regarder. Une hauteur FIXE et non un minimum — c'est ce que
       // `data-hauteur-fixe` ci-dessus déclare, et c'est ce qui garantit que
-      // toutes les cibles du panneau ont la même taille, quelle que soit leur
-      // balise et quel que soit leur contenu.
-      // ⚠️ **Le cadre est PORTÉ PAR LA CIBLE**, pas par une liste qui les
-      // engloberait : c'est lui qui dit où commence le bouton. Un seul contour,
-      // de 1 px — le marqueur d'état ne fait que le teinter, il n'en ajoute pas
-      // un second (spec/shared/design.md).
-      className={`flex h-11 w-full items-center gap-2.5 rounded-lg border px-3
-                  text-left text-sm transition-colors ${
+      // toutes les rangées ont la même taille, quelle que soit leur balise.
+      // ⚠️ **Une rangée de liste, pas une case encadrée** (décision 24) : un
+      // filet SOUS chaque rangée, sauf la dernière — un seul trait entre deux
+      // entrées, jamais deux. La cible est la rangée ENTIÈRE ; le fond qui
+      // s'allume au toucher (`active:`) et au survol le montre.
+      // L'entrée courante : encre pleine, semi-gras, icône teintée de la
+      // couleur de contexte — le marqueur de la barre latérale.
+      className={`flex h-[52px] w-full items-center gap-3 border-b border-border-soft px-1
+                  text-left text-base transition-colors last:border-b-0
+                  active:bg-panel2 hoverable:bg-panel2 ${
                     actif
-                      ? 'border-ctx bg-ctx-soft text-ink'
-                      : `border-border bg-panel2/40 hoverable:border-accent hoverable:text-ink ${
-                          discret ? 'text-ink-dimmer' : 'text-ink-dim'
-                        }`
+                      ? 'font-semibold text-ink'
+                      : `hoverable:text-ink ${discret ? 'text-ink-dimmer' : 'text-ink-dim'}`
                   }`}
     >
       {/* Colonne d'icône à LARGEUR FIXE : sans elle, les libellés se décalaient
-          d'une cible à l'autre au gré de la largeur des symboles — et en grille,
-          les deux colonnes ne s'alignaient plus l'une sur l'autre. */}
+          d'une rangée à l'autre au gré de la largeur des symboles. */}
       <span className={`flex w-[18px] flex-none justify-center ${actif ? 'text-ctx' : ''}`}>
         {icone}
       </span>

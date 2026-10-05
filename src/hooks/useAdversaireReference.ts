@@ -17,7 +17,7 @@ import { useSyncExternalStore } from 'react';
 // Store externe (comme useRuneMetric) : le choix doit se propager EN DIRECT aux
 // écrans montés. Persisté dans localStorage — un réglage d'application doit
 // survivre au rechargement.
-const STORAGE_KEY = 'sw-forge-adversaire-reference-v1';
+const STORAGE_KEY = 'swblacksmith-adversaire-reference-v1';
 
 // Défaut = désactivé : l'activer AJOUTE un monstre en face, et rien ne doit
 // apparaître dans une composition sans qu'on l'ait demandé.

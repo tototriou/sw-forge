@@ -20,7 +20,7 @@ import { saveLocal, usePersistence } from './usePersistence';
 // rechargement) — cet état-ci, à l'inverse, DOIT survivre à un rechargement
 // (un flux de plusieurs dizaines de minutes ne doit pas perdre le travail
 // déjà fait), même statut que la prépa RTA/les équipes de siège.
-const STORAGE_KEY = 'sw-forge-optimizer-lists-v1';
+const STORAGE_KEY = 'swblacksmith-optimizer-lists-v1';
 
 interface StoredState {
   lists: OptimizerList[];

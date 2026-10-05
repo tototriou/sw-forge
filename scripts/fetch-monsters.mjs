@@ -149,7 +149,7 @@ async function fetchLive() {
   while (url && pages < MAX_PAGES) {
     console.log(`Fetch page ${pages + 1}: ${url}`);
     const res = await fetch(url, {
-      headers: { Accept: 'application/json', 'User-Agent': 'sky-arena-bestiary-ci' },
+      headers: { Accept: 'application/json', 'User-Agent': 'swblacksmith-bestiary-ci' },
     });
     if (!res.ok) throw new Error(`HTTP ${res.status} sur ${url}`);
     const json = await res.json();

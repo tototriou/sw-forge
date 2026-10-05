@@ -7,7 +7,7 @@ import {
   artifactSubName,
 } from '../../lib/effects';
 import { artifactScore, artifactEfficiency, maxRolls, isFullStack } from '../../lib/artifacts';
-import { Kpi, Panel, pct, fmt } from './SummaryBits';
+import { Kpi, Panel, pct, fmt, CARTE_CHIFFRES_DOIGT } from './SummaryBits';
 
 interface Props {
   artifacts: ArtifactDetail[];
@@ -165,8 +165,25 @@ export default function ArtifactsSummary({ artifacts }: Props) {
 
   return (
     <div className="flex flex-col gap-4">
+      {/* ⚠️ **En-tête à la SOURIS** (refonte graphique, lot 8b, la maquette ;
+          même gabarit que le Résumé des runes) : « Résumé » et le nombre
+          d'artéfacts. Au doigt, la barre du haut dit déjà la vue (lot 11). */}
+      <div className="hidden items-center gap-2.5 lg:flex">
+        <h1 className="font-display text-xl tracking-wide text-ink">Résumé</h1>
+        <span className="rounded-full border border-border-soft bg-panel2 px-2 py-0.5 font-mono text-micro text-ink-dim">
+          {s.total.toLocaleString('fr-FR')} artéfact{s.total > 1 ? 's' : ''}
+        </span>
+      </div>
+
       {/* ---- Chiffres clés — le compte entier, puis chaque sorte ---------- */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+      {/* ⚠️ À la SOURIS, UN bandeau (`Kpi bandeau`, la maquette `.stats`),
+          comme le Résumé des runes : six cases séparées par un filet. Au
+          DOIGT, une carte sur deux colonnes (lot 11c, décision 26). */}
+      <div
+        className={`grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2
+                   lg:flex lg:gap-0 lg:overflow-hidden lg:rounded-xl lg:border lg:border-border-soft lg:bg-panel
+                   ${CARTE_CHIFFRES_DOIGT}`}
+      >
         <Kpi
           label="Artéfacts"
           value={s.total.toLocaleString('fr-FR')}
@@ -175,30 +192,36 @@ export default function ArtifactsSummary({ artifacts }: Props) {
               ? `${A.total} attribut · ${T.total} type · ${aMonter} à monter`
               : `${A.total} attribut · ${T.total} type`
           }
+          bandeau
+          premier
         />
         <Kpi
           label={`Eff. moy. · Attribut`}
           value={`${fmt(A.topMean)} %`}
           sub={A.topN < TOP_N ? `sur ${A.topN}` : `top ${TOP_N} · méd. ${fmt(A.topMedian)} %`}
           tone={KINDS[0].tone}
+          bandeau
         />
         <Kpi
           label={`Eff. moy. · Type`}
           value={`${fmt(T.topMean)} %`}
           sub={T.topN < TOP_N ? `sur ${T.topN}` : `top ${TOP_N} · méd. ${fmt(T.topMedian)} %`}
           tone={KINDS[1].tone}
+          bandeau
         />
         <Kpi
           label="Meilleur score"
           value={Math.max(A.bestScore, T.bestScore).toLocaleString('fr-FR')}
           sub={`attribut ${A.bestScore} · type ${T.bestScore}`}
           tone="rgb(var(--star))"
+          bandeau
         />
         <Kpi
           label="≥ 90 % d'eff."
           value={(A.over90 + T.over90).toLocaleString('fr-FR')}
           sub={`${A.over90} attribut · ${T.over90} type`}
           tone="rgb(var(--pal-2))"
+          bandeau
         />
         {/* ⚠️ « Quad roll » — le terme du JEU, que tout joueur connaît. Il
             avait été rebaptisé « rolls concentrés », ce qui obligeait à
@@ -208,6 +231,7 @@ export default function ArtifactsSummary({ artifacts }: Props) {
           value={(A.fullStack + T.fullStack).toLocaleString('fr-FR')}
           sub={`${A.fullStack} attribut · ${T.fullStack} type`}
           tone="rgb(var(--star))"
+          bandeau
         />
       </div>
 

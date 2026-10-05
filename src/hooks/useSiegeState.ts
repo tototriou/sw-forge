@@ -5,8 +5,8 @@ import { saveLocal, usePersistence } from './usePersistence';
 // Défense et offense de siège = deux listes d'équipes indépendantes.
 export type SiegeSide = 'offense' | 'defense';
 
-const OLD_STORAGE_KEY = 'sw-forge-siege-v1'; // ancienne clé unique (→ migrée vers défense)
-const storageKey = (side: SiegeSide) => `sw-forge-siege-${side}-v1`;
+const OLD_STORAGE_KEY = 'swblacksmith-siege-v1'; // ancienne clé unique (→ migrée vers défense)
+const storageKey = (side: SiegeSide) => `swblacksmith-siege-${side}-v1`;
 
 function newId(): string {
   const c = globalThis.crypto as Crypto | undefined;
@@ -56,10 +56,21 @@ function load(side: SiegeSide): SiegeState {
   }
 }
 
+// Les équipes après restauration d'une équipe supprimée (« Annuler », lot 13) :
+// à son index d'origine, borné à la liste actuelle — pas au bout. Pure, pour
+// être testée.
+export function equipesApresRestauration(teams: SiegeTeam[], team: SiegeTeam, index: number): SiegeTeam[] {
+  const copie = [...teams];
+  copie.splice(Math.min(Math.max(index, 0), copie.length), 0, team);
+  return copie;
+}
+
 export interface UseSiegeState {
   state: SiegeState;
   addTeam: () => void;
   removeTeam: (teamId: string) => void;
+  // « Annuler » une suppression (lot 13) : remet l'équipe à sa place.
+  restaurerEquipe: (team: SiegeTeam, index: number) => void;
   setSlotMonster: (teamId: string, idx: number, monsterId: string) => void;
   clearSlot: (teamId: string, idx: number) => void;
   setSlotRune: (teamId: string, idx: number, value: number | null) => void;
@@ -70,6 +81,11 @@ export interface UseSiegeState {
   // Remplace toujours les équipes existantes (voir l'implémentation).
   importTeams: (
     teams: { slots: { monsterId: string | null; runeSpeed: number | null; sets?: string[]; tick?: number; gear?: GearSet }[] }[]
+  ) => void;
+  // AJOUTE des équipes à la fin, sans toucher aux existantes — l'import d'un
+  // fichier d'équipes (refonte graphique, décision 14 ; voir lib/siegeShare).
+  appendTeams: (
+    teams: { slots: { monsterId: string | null; runeSpeed: number | null; sets?: string[]; tick?: number }[] }[]
   ) => void;
   clearAll: () => void;
 }
@@ -106,6 +122,15 @@ export function useSiegeState(side: SiegeSide): UseSiegeState {
 
   const removeTeam = useCallback(
     (teamId: string) => setState((s) => ({ ...s, teams: s.teams.filter((t) => t.id !== teamId) })),
+    []
+  );
+
+  // « Annuler » une suppression (refonte graphique, lot 13, décision 29) :
+  // l'équipe revient TELLE QUELLE à sa place d'avant — pas au bout de la liste.
+  // Sans effet si elle est déjà là.
+  const restaurerEquipe = useCallback(
+    (team: SiegeTeam, index: number) =>
+      setState((s) => (s.teams.some((t) => t.id === team.id) ? s : { ...s, teams: equipesApresRestauration(s.teams, team, index) })),
     []
   );
 
@@ -201,10 +226,43 @@ export function useSiegeState(side: SiegeSide): UseSiegeState {
 
   const clearAll = useCallback(() => setState({ teams: [] }), []);
 
+  // ⚠️ **AJOUTE, ne remplace pas** — l'inverse d'`importTeams`. Un fichier
+  // d'équipes reçu s'ajoute à ce qu'on a ; « Tout effacer » existe pour qui
+  // veut repartir de zéro. Les équipes ajoutées sont NOUVELLES : identité
+  // neuve (aucune liste de travail ne les désigne encore), alerte de tick
+  // active. Les existantes gardent tout, validation de tick comprise.
+  const appendTeams = useCallback(
+    (teams: { slots: { monsterId: string | null; runeSpeed: number | null; sets?: string[]; tick?: number }[] }[]) => {
+      setState((s) => ({
+        ...s,
+        teams: [
+          ...s.teams,
+          ...teams.map((t) => ({
+            id: newId(),
+            slots: [0, 1, 2].map((i) => {
+              const sl = t.slots[i];
+              return {
+                monsterId: sl && typeof sl.monsterId === 'string' ? sl.monsterId : null,
+                runeSpeed: sl && typeof sl.runeSpeed === 'number' ? sl.runeSpeed : null,
+                tick: sl && typeof sl.tick === 'number' ? sl.tick : 0,
+                sets: sl && Array.isArray(sl.sets) ? sl.sets : [],
+              };
+            }),
+            lead: 0,
+            tickAlertDismissed: false,
+          })),
+        ],
+      }));
+    },
+    []
+  );
+
   return {
     state,
+    appendTeams,
     addTeam,
     removeTeam,
+    restaurerEquipe,
     setSlotMonster,
     clearSlot,
     setSlotRune,

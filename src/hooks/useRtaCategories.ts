@@ -11,7 +11,7 @@ import { saveLocal, usePersistence } from './usePersistence';
 // runes. Les sections existantes classent par set ; les catégories permettent
 // une seconde lecture, transversale, que chacun définit comme il veut.
 
-const KEY = 'sw-forge-rta-categories-v1';
+const KEY = 'swblacksmith-rta-categories-v1';
 
 // ⚠️ Au-delà de 4, l'anneau devient illisible : les segments sont trop courts
 // pour qu'on distingue les couleurs sur une carte de cette taille. C'est une

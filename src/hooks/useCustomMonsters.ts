@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { ElementKey, Monster } from '../types';
 import { saveLocal, usePersistence } from './usePersistence';
 
-const STORAGE_KEY = 'sw-forge-custom-monsters-v1';
+const STORAGE_KEY = 'swblacksmith-custom-monsters-v1';
 
 function newId(): string {
   const c = globalThis.crypto as Crypto | undefined;

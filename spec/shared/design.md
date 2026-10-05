@@ -36,11 +36,19 @@ profondeur en sombre deviennent des gris sales sur blanc. Forge et Atelier sont
 **deux systèmes cohérents chacun**, qui partagent leur structure de tokens mais
 pas leurs valeurs.
 
-- **Forge** — fond presque noir légèrement violacé, cuivre chaud en accent
-  unique, données chiffrées en mono. Le métal chauffé, pas le feu de l'élément :
-  le cuivre ne doit jamais se confondre avec le rouge de l'élément Feu.
-- **Atelier** — fond clair, encre froide, indigo en accent. Lisible sur blanc,
-  ce que le bleu nuit historique (`#4a52a0`) n'est pas.
+Depuis le rebranding « SW Blacksmith » (lot R1, 2026-09-29,
+[cadrage](../chantiers/rebranding-blacksmith.md)), les deux thèmes sont ceux
+de la toile :
+
+- **Forge** — charbon brun presque noir, **braise** (`#FF7A1A`) en accent
+  unique, laiton pour les étoiles, données chiffrées en mono. La braise reste à
+  distance du rouge de l'élément Feu : ΔE 9,7 (OKLab ×100).
+- **Atelier** — papier chaud, encre de l'atelier, la même braise en aplat, et
+  une **braise foncée** (`#A64F11`) pour tout ce qui se lit ou se trace : la
+  vive tombe sous 2,6 sur fond clair (voir « Deux braises » plus bas).
+
+Avant : Forge bleu nuit et cuivre, Atelier gris neutre et indigo
+([preuve du R1](../chantiers/rebranding-preuves/lot-R1.md)).
 
 ## Tokens
 
@@ -51,29 +59,95 @@ hexadécimal.
 
 ### Surfaces et encre
 
-| Token | Forge (sombre) | Atelier (clair) | Rôle |
-|-------|----------------|-----------------|------|
-| `bg` | `#0c0b0f` | `#eceef3` | Fond de page |
-| `panel` | `#16141b` | `#ffffff` | Carte, panneau |
-| `panel2` | `#1e1b24` | `#f4f6fa` | Surface enfoncée (piste de barre, cadre de `Segmented`) |
-| `border` | `#2e2a37` | `#d3d8e4` | Bordure standard |
-| `border-soft` | `#241f2b` | `#e4e8f0` | Séparateur intérieur, ligne de table |
-| `ink` | `#ede8e4` | `#1a1e2b` | Texte principal |
-| `ink-dim` | `#948c9c` | `#636a80` | Texte secondaire, libellés |
-| `ink-dimmer` | `#6a6373` | `#8c93a6` | Texte tertiaire (rare) |
+⚠️ **Les deux colonnes : valeurs du lot R1 du rebranding** (2026-09-29), les
+jetons de la toile `--bs-*`, relues dans [index.css](../../src/index.css). La
+colonne Forge avait décroché du code avant le rebranding (elle donnait `bg` à
+`#0c0b0f` quand le code valait `#12131c`) : elle est réalignée.
+
+| Token | Forge (sombre) | Atelier (clair) | Toile | Rôle |
+|-------|----------------|-----------------|-------|------|
+| `bg` | `#161514` | `#f6f0e4` | `bg` | Fond de page |
+| `bar` | `#1b1a19` | `#fffdf8` | `bar` | Barres de l'application : latérale, du haut (décision 5) |
+| `panel` | `#232120` | `#fffdf8` | `surface` | Carte, panneau |
+| `panel2` | `#2e2c2a` | `#efe6d5` | `surface-2` | Surface enfoncée (piste de barre, cadre de `Segmented`) |
+| `border` | `#5a544d` | `#cdbc9e` | `border-strong` | Bordure standard — champs, boutons, puces |
+| `border-soft` | `#3a3734` | `#e4d9c6` | `border` | Séparateur intérieur, ligne de table, cadre de carte |
+| `ink` | `#ede3d1` | `#1b1a19` | `text` | Texte principal |
+| `ink-dim` | `#cfc3ae` | `#3f3a34` | `text-2` | Texte secondaire, libellés |
+| `ink-dimmer` | `#a89a86` | `#6b6259` | `text-3` | Texte tertiaire (rare) |
+
+⚠️ **`bar` n'est pas `panel`.** En Forge, la barre est un cran sous la carte
+(1,08) et un cran au-dessus du fond (1,05) : c'est la toile. En Atelier, elle
+vaut `panel` — la toile les confond — et c'est son filet qui la détache du
+fond.
 
 ### Accent et sémantique
 
 | Token | Forge | Atelier | Rôle |
 |-------|-------|---------|------|
-| `accent` | `#d2723a` | `#3f4bb8` | Accent unique : état actif, focus, lien |
-| `accent-soft` | `#d2723a1f` | `#3f4bb812` | Fond d'un élément actif |
-| `good` | `#7fbe7f` | `#2f855a` | Au tick, gain, succès — et **ton camp** |
-| `good-soft` | `#1b2a21` | `#e2f4e9` | Fond doux de `good` |
-| `warn` | `#d9a441` | `#b7791f` | Avertissement |
-| `warn-soft` | `#322a14` | `#ffecb5` | Fond doux de `warn` |
-| `bad` | `#cf5b4e` | `#c53030` | Hors tick, destructif, erreur |
-| `bad-soft` | `#301c20` | `#fae6e6` | Fond doux de `bad` — le pendant d'`accent-soft` |
+| `accent` | `#ff7a1a` | `#ff7a1a` | La braise VIVE : aplats seulement (`bg-accent`, bouton principal) |
+| `accent-lisible` | `#ff7a1a` | `#a64f11` | La braise qui se LIT : texte, contour d'état, focus, trait de graphique |
+| `accent-hover` | `#ff9a4d` | `#e0620a` | Survol de l'APLAT de braise (bouton principal) — R3a |
+| `accent-appui` | `#e0620a` | `#e0620a` | Appui du même aplat ; en Atelier, il ne peut pas foncer plus sans que l'encre passe sous 4,5 (4,90) |
+| `accent-soft` | `#3a2415` | `#ffeddd` | Fond d'un élément actif — en Forge, le « braise sombre » de la toile depuis le R3a (il valait `#3d2c1f`, fondu à 12 %) |
+| `accent-ink` | `#1b1a19` | `#1b1a19` | Texte posé SUR un aplat de braise (bouton principal plein) |
+| `good` | `#73e06b` | `#2f6b36` | Au tick, gain, succès — et **ton camp** |
+| `good-soft` | `#253024` | `#e3f1e3` | Fond doux de `good` |
+| `warn` | `#f2c230` | `#7c630d` | Avertissement — **jaune / ocre** (décision 46 du rebranding) ; il était orange et se confondait avec la braise |
+| `warn-soft` | `#39311b` | `#fbedb7` | Fond doux de `warn` — en Atelier hors construction (voir index.css) |
+| `bad` | `#f27a84` | `#a3303a` | Hors tick, destructif, erreur |
+| `bad-soft` | `#372324` | `#f8e4e3` | Fond doux de `bad` |
+| `bad-ink` | `#1b1a19` | `#ffffff` | Encre SUR un aplat de `bad` (bouton danger plein) — le pendant d'`accent-ink` |
+| `star` | `#c9a227` | `#8c6d0e` | Le laiton : étoiles, maxima d'efficience |
+
+⚠️ **« Orange » dans les specs = `warn`.** Le statut d'avertissement s'appelle
+encore `orange` dans le code (`statutEquipe`, les verdicts) et dans les specs
+écrites avant la décision 46 ; il se DESSINE en jaune / ocre. Lire `warn`, pas
+une teinte. (Ne concerne pas les couleurs du jeu : rareté légendaire, part de
+meule, etc.)
+
+⚠️ **Deux braises, un seul nom de classe** (décisions 4 et 11 du rebranding).
+En Atelier, la braise vive fait **2,11 à 2,57** sur les fonds : illisible comme
+texte, invisible comme contour (seuil 3:1 d'un trait qui porte un état). Elle
+reste l'aplat ; tout ce qui se lit ou se trace prend `accent-lisible` (4,52 à
+5,51). Le partage est fait **dans `tailwind.config.js`** : `textColor`,
+`borderColor`, `ringColor` et `outlineColor` lisent `accent-lisible`, `colors`
+(donc `bg-`, `from-`, `accent-`) lit la vive. Un composant écrit `text-accent`
+ou `border-accent` et reçoit la bonne braise — aucun renommage, et un
+`text-accent` écrit demain sera lisible d'office. Même partage pour `ctx`
+(`--ctx-lisible`), dont la valeur par défaut est l'accent. Ce que Tailwind ne
+voit pas s'écrit à la main : l'anneau `:focus-visible` (index.css), les traits
+SVG des courbes (`rgb(var(--accent-lisible))`). (`.title-gradient`, le dégradé
+des grands titres, a disparu avec la décision 57 du rebranding : les titres
+sont à l'encre unie.)
+
+⚠️ **L'avertissement ressemble à l'accent — assumé** (décision 12). La toile
+donne à `warn` la valeur du survol de la braise : ΔE 6,7 avec l'accent en
+Forge, 3,8 avec la braise lisible en Atelier (29 avant, avec l'indigo). Aucun
+ambre lisible ne s'en éloigne vraiment en clair (ΔE 10 au mieux, un brun
+terne). Un avertissement se lit donc à son **libellé** — une pastille écrite,
+décision 8 de la refonte — jamais à sa seule couleur.
+
+⚠️ **Vert et rouge de Forge : plus saturés que la toile** (décision 13 —
+Thomas : « ça me paraît pâle »). La toile donne `#9fd39a` et `#e5848a`,
+pastel. Même clarté OKLCH et même teinte, chroma relevée à mi-chemin du
+maximum : `#73e06b` et `#f27a84`, contraste inchangé (8,35 et 5,23 au pire).
+Le rouge garde sa teinte rosée : le ramener vers le corail de l'ancien rouge
+le rapprochait de la braise (ΔE 7,7) et du Feu. Atelier garde ceux de la
+toile. Sur l'aplat rouge, le blanc tombait à 2,66 en Forge : d'où `bad-ink`,
+sombre en Forge (6,53), blanc en Atelier (6,91).
+
+**Fonds doux : la vivacité d'avant, dans la teinte de la toile.** Chacun
+prend la plus vive (chroma OKLCH) de deux constructions : la teinte fondue à
+12 % dans `panel`, ou la chroma et l'écart de clarté de l'ancien fond doux
+reportés sur le nouveau `panel`. ⚠️ Le 12 % seul a été posé d'abord, puis
+repris (Thomas, R1 : « ça me paraît pâle », les camps du speed tuning) : la
+sémantique de la toile est pastel, et la fondre dans un fond brun donnait des
+gris à peine teintés — le vert des camps à la moitié de sa chroma d'avant.
+L'encre y fait 9,71 au pire (Forge) et 13,99 (Atelier). L'accent et la
+sémantique restent lisibles sur leur propre fond doux (4,91 au pire,
+`accent-lisible` en Atelier) ; un élément pas toujours (3,92 à 10,85) — ses
+fonds doux portent l'encre, jamais la couleur de l'élément en texte.
 
 ⚠️ **`warn-soft` ferme le trio, il ne l'ouvre pas.** `good-soft` et `bad-soft`
 existaient, l'ambre non : toute surface qui voulait dire « à corriger » devait
@@ -90,13 +164,20 @@ passe par-dessus le tableau qui défile dessous, il lui faut un fond SOLIDE.
 
 ⚠️ **Deux camps, c'est de la SÉMANTIQUE, pas de l'accent.** L'accent dit « ceci
 est actif ou sélectionné » — il ne dit pas à qui appartient une ligne. Et sur le
-thème Forge il est cuivre : « ton équipe » y virait à l'orange, à un cheveu du
+thème Forge il était cuivre (braise depuis le rebranding, orange lui aussi) : « ton équipe » y virait à l'orange, à un cheveu du
 `warn` d'à côté. `good`/`bad` disent l'état de la donnée, et `bad` portait déjà
 « ce qui te coupe » : la paire se referme d'elle-même.
 
 ⚠️ **La sémantique n'est pas l'accent.** `good`/`warn`/`bad` disent un état des
 données ; `accent` dit « ceci est actif ou sélectionné ». Les confondre rend un
 filtre actif indiscernable d'une alerte.
+
+⚠️ **`accent-ink` n'est jamais du blanc.** Sur la braise, le blanc tombe sous
+le seuil ; l'encre sombre de la toile (`#1b1a19`) y fait **6,66**, dans les
+deux thèmes. En Atelier, l'aplat de braise ne se détache du fond qu'à 2,30 —
+sous le 3,0 d'un élément d'interface — mais un bouton plein porte son
+libellé, et c'est lui qui l'identifie. Mesures du R1
+([preuve](../chantiers/rebranding-preuves/lot-R1.md)).
 
 ### Rayon intérieur : `rounded-lg-inner`
 
@@ -106,8 +187,7 @@ carré — c'est visible dès que l'enfant est teinté (bandeau de titre d'une c
 colonne collante d'un tableau).
 
 `rounded-lg-inner` vaut `calc(var(--radius-lg) - 1px)` : le rayon du panneau
-moins son contour. Il suit les deux thèmes tout seul (7 px en Atelier, 6 px en
-Forge).
+moins son contour, 7 px (voir [Rayons](#rayons)).
 
 ⚠️ **`overflow-hidden` sur le parent n'est PAS la solution** : il règle le coin
 mais coupe les menus flottants, qui se placent en `absolute` à l'intérieur du
@@ -127,13 +207,15 @@ filtres sont posés.
 | Support | Marqueur | Pourquoi pas l'autre |
 |---------|----------|----------------------|
 | **Champ de saisie** (`select`, `input`, `textarea`) | `border-accent` | Un fond coloré passe derrière du texte qu'on doit lire, et concurrence le curseur |
-| **Pastille de filtre** (chip, cran de `Segmented`, onglet) | `border-accent bg-accent-soft` | Le marqueur unique de l'app : le contour porte l'état, le fond l'appuie. Un cran dans un cadre commun (`SlotFilter`, `Segmented`) peut n'en garder que le fond, la bordure étant déjà celle du cadre |
+| **Pastille de filtre** (`Pastille`, sets, emplacements, étoiles du Bestiaire) | `MARQUEUR_FILTRE_ACTIF` : `border-accent bg-accent-soft text-ink` | **La couleur de l'app, teintée** (refonte graphique, décision 9, 2026-09-24) : le contour porte l'état, le fond le rend lisible d'un coup d'œil. Depuis le rebranding (décision 20), le fond est le « braise sombre » de la toile (`accent-soft`, `#3a2415` en Forge), au lieu de la braise à 25 % ; **sans la coche ni le gras** de la toile, qui élargissaient la pastille au clic. Contraste mesuré : texte 11,44 (Forge) et 15,23 (Atelier) ; contour, en `accent-lisible`, 5,58 et 4,91. Une couleur inversée (aplat d'encre) a été essayée puis écartée par Thomas : un aplat blanc en thème sombre. Une seule constante, exportée de `Pastille`, importée par les filtres qui ne passent pas par elle. ⚠️ **Exception, à la souris : les filtres de sets et d'emplacements des RUNES** prennent le gabarit et le marqueur du `Segmented` (sans contour ; un aplat de braise depuis la décision 19) — posés sur une ligne à côté du filtre des antiques, qui EST un `Segmented`, deux marqueurs se lisaient comme deux familles de boutons (Thomas : « que les boutons aient tous la même tête », lot 8a ; `gabaritFiltre.ts`) |
+| **Cran de `Segmented`, onglet** | `bg-accent text-accent-ink` (le cadre porte le contour) | Un choix UNIQUE dans un cadre commun, pas un filtre en rangée. **Un APLAT de braise** depuis le rebranding (décision 19, la planche « Actions » de la toile) — il gardait le fond d'accent léger depuis la décision 9. Toujours un seul marqueur. Encre dessus : 6,66 |
 
 ⚠️ **Les pastilles voisines partagent le même marqueur.** Les numéros de
-`SlotFilter`, le bouton « Antiques » et les filtres de Ma box (Nat / Doublons /
-2A) portent tous le **même fond d'accent** — deux marqueurs différents côte à
-côte se liraient comme deux natures de filtre. C'est la brique `Pastille`
-([librairie-ui.md](librairie-ui.md)), qui pose ce marqueur une fois pour toutes.
+`SlotFilter`, les sets de `SetFilter`, les étoiles du Bestiaire et les filtres
+de Ma box (Nat / Doublons / 2A) portent tous **le même fond d'accent teinté** —
+deux marqueurs différents côte à côte se liraient comme deux natures de
+filtre. C'est la brique `Pastille` ([librairie-ui.md](librairie-ui.md)) qui le
+définit, dans `MARQUEUR_FILTRE_ACTIF`, une fois pour toutes.
 
 **Corollaires :**
 
@@ -160,7 +242,10 @@ côte se liraient comme deux natures de filtre. C'est la brique `Pastille`
     `LeadPill`.
 - Le **survol** garde `hoverable:border-accent` sur les contrôles à fond : il
   agit au repos, quand aucun marqueur n'occupe la bordure — il n'y a donc pas de
-  cumul.
+  cumul. ⚠️ **Sauf les BOUTONS** (`Bouton`, `BoutonIcone`, le « ⋯ »), depuis
+  la décision 16 de la refonte graphique : leur survol peint le **fond**
+  (`panel2`, `bad-soft` en danger), comme `.btn-secondary` / `.btn-ghost` de
+  la maquette. Pastilles, champs et cartes cliquables gardent le contour.
 
 **Focus mis à part.** L'anneau `:focus-visible` (voir plus bas) n'est pas un
 marqueur de sélection mais la position du clavier — les deux peuvent coexister
@@ -181,12 +266,16 @@ teinte, luminosité adaptée** :
 
 | Élément | Forge (sombre) | Atelier (clair) | Note |
 |---------|----------------|-----------------|------|
-| Feu | `#E4463A` | `#c23528` | — |
-| Eau | `#2FA0E0` | `#1d7fb8` | — |
-| Vent | `#E7C22E` | `#a8880f` | ⚠️ Ocre profond : le jaune vif est illisible sur blanc |
-| Lumière | `#EAEBF0` | `#8a7f5c` | ⚠️ Doré grisé : le blanc n'existe pas sur blanc |
-| Ténèbres | `#A15FE0` | `#7c3fbd` | — |
-| Inconnu | `#5B6280` | `#767d94` | — |
+| Feu | `#E85C50` | `#C41C10` | — |
+| Eau | `#2FA0E0` | `#006AA6` | — |
+| Vent | `#E7C22E` | `#946F00` | ⚠️ Ocre profond : le jaune vif est illisible sur blanc |
+| Lumière | `#EAEBF0` | `#866718` | ⚠️ Doré : le blanc n'existe pas sur blanc |
+| Ténèbres | `#B076E8` | `#7624BE` | — |
+| Inconnu | `#868DA8` | `#565F7A` | — |
+
+(Tableau réaligné sur [index.css](../../src/index.css) au rebranding R1 : il
+avait décroché du code — Feu donné à `#E4463A` / `#c23528`, etc. Le R1 n'a
+changé AUCUNE couleur d'élément.)
 
 ⚠️ **La teinte est conservée, jamais remplacée.** Le Vent reste jaune-ocre, il ne
 devient pas vert. Un joueur qui repère ses monstres Vent à la volée dans une
@@ -200,8 +289,18 @@ thèmes : ce sont des images du jeu, elles portent leur propre fond.
 | Famille | Police | Rôle | Usages |
 |---------|--------|------|--------|
 | `font-display` | **Cinzel** | Titres et héros | ~26 |
-| `font-body` | **Inter** | Tout le texte, **libellés compris** | défaut |
+| `font-body` | **Source Sans 3** | Tout le texte, **libellés compris** | défaut |
 | `font-mono` | **JetBrains Mono** | **Chiffres uniquement** | ~96 |
+
+Source Sans 3 remplace Inter au rebranding (R1), comme dans la toile ; les
+**tailles** ne bougent pas (décision 7 : le corps de 17 px de la charte vaut
+pour elle, pas pour la densité de nos listes).
+
+⚠️ **Une quatrième police, hors de ce système : `font-marque` (Saira 700)**,
+le NOM de l'app et rien d'autre — dans le logo (`Logo.tsx`, `CLASSE_NOM` :
+capitales espacées) et le héros de l'accueil. Choisie par Thomas avec la
+nouvelle identité de logo (rebranding R2 bis, décision 24). Les titres restent
+en Cinzel : Saira n'est pas une police de titre, c'est la signature.
 
 ⚠️ **La mono ne sert qu'à ce qui s'aligne.** Efficiences, vitesses, ticks,
 compteurs — des colonnes qu'on compare d'une ligne à l'autre. `tabular-nums` est
@@ -218,9 +317,11 @@ hauteur d'x haute, zéro barré, `1` à empattement.
 Le motif `font-mono text-[11px] tracking-[0.1em] uppercase text-ink-dim` était
 répété **55 fois**, à sept tailles différentes. Il devient la classe `.label`.
 
-⚠️ **En Inter, pas en mono.** Une mono en capitales espacées est large et molle
-à 11 px — c'est ce qui donnait cette impression de flou dans les zones denses.
-Inter en demi-gras est plus net et plus compact à taille égale.
+⚠️ **Dans la police du texte, pas en mono.** Une mono en capitales espacées
+est large et molle à 11 px — c'est ce qui donnait cette impression de flou dans
+les zones denses. Une linéale en demi-gras est plus nette et plus compacte à
+taille égale. `.label` lit `theme('fontFamily.body')` : Inter jusqu'au
+rebranding, Source Sans 3 depuis, sans rien réécrire.
 
 ### Échelle typographique — plancher à 11 px
 
@@ -258,12 +359,24 @@ un palier de l'échelle.
 
 ### Rayons
 
-| Token | Forge | Atelier |
-|-------|-------|---------|
-| `radius` | 3 px | 5 px |
-| `radius-lg` | 4 px | 7 px |
+| Token | Classe | Valeur | Rôle |
+|-------|--------|--------|------|
+| `radius` | `rounded` | 6 px | Petit élément : pastille, badge, touche |
+| `radius-lg` | `rounded-lg` | 10 px | Bouton, champ, liste déroulante |
+| `radius-xl` | `rounded-xl` | 14 px | Carte, panneau |
+| `radius-2xl` | `rounded-2xl` | 20 px | Fenêtre : dialogue, panneau mobile |
 
-Forge assume l'angle vif (le métal, la frappe) ; Atelier reste légèrement adouci.
+**Les mêmes dans les deux thèmes** (refonte graphique, décision 2 de Thomas,
+2026-09-24, [cadrage](../chantiers/refonte-graphique.md)). Forge assumait
+jusque-là l'angle vif (4 / 6 px) ; il l'abandonne pour un rendu d'application
+plus doux, commun aux deux thèmes. Les valeurs sont celles de la toile depuis
+le rebranding (R1) ; elles valaient 6 / 8 / 12 / 14.
+
+⚠️ **`rounded-xl` et `rounded-2xl` sont REDÉFINIS** dans `tailwind.config.js`.
+C'étaient les valeurs figées de Tailwind (12 et 16 px), hors tokens : une
+classe qui ne suit pas le système se change partout d'un coup ou nulle part.
+`rounded-md` (6 px) et `rounded-sm` (2 px) restent ceux de Tailwind ;
+`rounded-full` n'a pas de token (un cercle ou une pilule).
 
 ### Mouvement
 
@@ -402,12 +515,27 @@ n'est pas le mot « supprimer » sur le bouton, c'est le coût de l'erreur.
 
 | Geste | Ce qui part |
 |-------|-------------|
-| Retirer un monstre d'une prépa RTA ou d'un slot de siège | Sa vitesse saisie, son tick, son classement |
+| Retirer un monstre d'un slot de siège | Sa vitesse saisie, son tick |
 | Supprimer un monstre créé à la main | Le monstre entier : il n'existe pas dans les données du jeu |
 | Supprimer une section RTA | Le classement — les monstres, eux, reviennent en « Non classé » |
 | Supprimer / vider une catégorie | L'appartenance, cochée un monstre à la fois |
-| Supprimer une équipe, un deck, une recommandation | Leur composition |
+| « Tout effacer » (prépa, équipes, recommandations) | Tout le côté |
 | Effacer les données du compte | Tout |
+
+**Se DÉFAIT au lieu de se confirmer** (refonte graphique, lot 13, décision
+29 de Thomas) — le geste se fait tout de suite, puis une **notification
+« … · Annuler »** le laisse revenir en arrière quelques secondes :
+
+| Geste | Notification |
+|-------|--------------|
+| Retirer un monstre de la prépa RTA | « {Monstre} retiré de ta prépa » |
+| Supprimer une équipe de siège | « Équipe retirée de la défense / de l'offense » |
+| Supprimer un deck | « Deck supprimé » |
+| Supprimer une recommandation | « Recommandation supprimée » |
+
+⚠️ **« Annuler » remet l'élément À SA PLACE, tel quel** — même position dans
+la liste, mêmes vitesses, mêmes sets, même section —, pas une copie ajoutée
+au bout. Voir « Notification « Annuler » » plus bas.
 
 **Ne se confirme PAS** — l'état se repose en un geste :
 
@@ -423,6 +551,28 @@ n'est pas le mot « supprimer » sur le bouton, c'est le coût de l'erreur.
 on valide sans lire — et celle qui compte vraiment passe inaperçue. Deux clics
 pour annuler un filtre useraient la patience qu'on veut garder pour l'effacement
 d'une prépa.
+
+### Notification « Annuler »
+
+`src/ui/Notification.tsx` (refonte graphique, lot 13, décision 29, la
+maquette) — un fournisseur monté une fois par `App.tsx`, et `useNotifier()`
+pour annoncer un geste qui se défait (tableau plus haut).
+
+- **À la souris, en bas à droite** (rebranding, décision 23 — la planche
+  « Retours et fenêtres » ; elle était centrée) ; **au téléphone, en bas,
+  centrée, au-dessus de la barre d'onglets et du bouton « Options »**,
+  jamais dessous. Fond `panel2`, un cran au-dessus des cartes qu'elle
+  survole. `role="status"` : un lecteur d'écran l'annonce sans voler le focus.
+- **Le message, « Annuler », et une croix** pour la fermer. « Annuler » est
+  le « fantôme » de la toile : texte braise, sans cadre. **6 secondes**,
+  puis elle s'en va ; le survol et le focus la retiennent tant qu'on y est.
+- **Une seule à la fois** : la suivante remplace la précédente, dont le
+  geste devient alors définitif — deux notifications empilées se liraient
+  comme deux choses à décider.
+- « Annuler » **restaure l'élément à sa place** (fonctions `restaurer*` des
+  hooks, qui réinsèrent à l'index d'origine) puis ferme la notification.
+- Même gabarit que les flottants de l'app : fond `panel`, contour 1 px,
+  ombre des panneaux.
 
 ### Bloquer le défilement derrière un flottant
 
@@ -636,9 +786,10 @@ premier jet du thème clair « paraissait » correct : à la mesure, `ink-dimmer
 
 | Rôle | Seuil | Tenu par |
 |------|-------|----------|
-| Texte courant | **4,5** | `ink`, `ink-dim`, `ink-dimmer`, `accent`, `good`, `warn`, `bad`, `star` |
-| Couleurs d'élément | **4,5** | les six, sur `bg` **et** `panel` |
-| Bordure porteuse de sens | **3,0** | `accent` (champ actif, sélection) |
+| Texte courant | **4,5** | `ink`, `ink-dim`, `ink-dimmer`, `accent-lisible`, `good`, `warn`, `bad`, `star` |
+| Couleurs d'élément | **4,5** | les six, sur `panel` (voir l'arbitrage plus bas) |
+| Bordure porteuse de sens | **3,0** | `accent-lisible` (champ actif, sélection, focus) |
+| Aplat | *son libellé* | `accent` (bouton plein : `accent-ink` dessus, 6,66) |
 | Bordure décorative | *aucun* | `border`, `border-soft` |
 
 **Les trois surfaces comptent.** Un token doit passer sur `bg`, `panel` **et**
@@ -667,8 +818,15 @@ trahit le second ; il faut saturer, pas seulement foncer.
 clair ; l'assombrir jusqu'à 4,5 sur `bg` le fait virer au kaki, et le joueur ne
 reconnaît plus son élément. On tient donc **4,5 sur `panel`** — la surface des
 cartes et des listes, où ces libellés apparaissent réellement — et on accepte
-~3,6 sur `bg`, qui ne porte quasiment aucun texte d'élément. Ce sont des
-libellés courts et gras, pas du texte courant.
+moins sur `bg`, qui ne porte quasiment aucun texte d'élément : ~3,6 sur
+l'ancien fond, 4,29 au lot 14, **4,08 depuis le rebranding** (fond de papier
+chaud ; 3,74 sur `panel2`). Ce sont des libellés courts et gras, pas du texte
+courant. Même tolérance pour les paliers du résumé de compte et pour le laiton
+(`star`, 4,79 sur `panel`, 3,93 sur `panel2`).
+**Règle gardée au rebranding** (décision 8) : 4,5 sur `panel`, rien de plus.
+Sur les fonds de la toile, elle n'a fait bouger que deux paliers, d'un
+cheveu : `pal-1` en Atelier (4,47 → 4,53) et `pal-6` en Forge (3,35 → 4,52).
+Mesures complètes : [preuve du R1](../chantiers/rebranding-preuves/lot-R1.md).
 
 ### Les trois surfaces se distinguent deux à deux
 
@@ -676,13 +834,22 @@ libellés courts et gras, pas du texte courant.
 barre) et de surface posée sur `bg`. Il lui faut donc un écart perceptible avec
 les deux — ni confondu avec le blanc, ni avec le fond de page.
 
-| Paire | Écart |
-|-------|-------|
-| `panel2` / `panel` | 1,12 |
-| `panel2` / `bg` | 1,15 |
+| Paire | Forge | Atelier |
+|-------|-------|---------|
+| `panel2` / `panel` | 1,15 | 1,22 |
+| `panel2` / `bg` | 1,31 | **1,09** (1,04 au lot 14) |
+| `panel` / `bg` | 1,14 | **1,12** |
+
+(Valeurs du rebranding R1.)
 
 C'est ce qui manquait quand le détail d'une rune « semblait n'avoir aucun fond » :
-`panel2` était à 1,08 de `panel`.
+`panel2` était à 1,08 de `panel` — l'écart `panel2` / `panel` est tenu.
+⚠️ **Arbitrage du lot 14** : avec les fonds neutres et clairs de la maquette,
+`panel2` ne se distingue presque plus de `bg`. Une surface `panel2` posée
+directement sur la page est séparée par sa BORDURE, pas par son fond — le
+choix de la maquette, retenu par Thomas. De même, une carte `panel` ne se
+détache du fond qu'à 1,08 au lot 14 (1,28 avant), 1,12 depuis le rebranding :
+un papier clair sur un papier chaud, avec son contour.
 
 ### Raretés : deux couleurs, deux usages
 
@@ -697,7 +864,11 @@ par rareté, parce qu'elles servent à deux choses :
 ⚠️ Utiliser `color` comme couleur de texte est le bug qu'il faut éviter : le vert
 magique `#7cf0a6` sur fond blanc est illisible.
 
-⚠️ **`border` et `border-soft` sont volontairement sous 3,0** (1,3 à 2,2). Ce
+⚠️ **`border` et `border-soft` sont volontairement sous 3,0** (depuis le
+rebranding, les deux bordures de la toile : en clair `border` 1,50 à 1,83,
+`border-soft` 1,13 à 1,37 ; en sombre 1,86 à 2,44 et 1,18 à 1,54 —
+`border-soft` pour les cadres, `border` un cran plus marquée pour qu'on voie
+où taper). Ce
 seuil vaut pour un contour qui *porte une information* — un champ de saisie, un
 élément sélectionné. Une bordure de carte est décorative : la monter à 3,0
 quadrillerait une interface qui affiche 60 tuiles par écran. Ce qui distingue
@@ -718,7 +889,7 @@ selon la façon dont on l'a activé est un bug indétectable à la lecture.
 
 ### ⚠️ Les tokens sont des TRIPLETS, pas des couleurs
 
-Les variables de couleur valent `43 54 165`, **pas** `#2b36a5` : c'est ce qui
+Les variables de couleur valent `255 122 26`, **pas** `#ff7a1a` : c'est ce qui
 permet à Tailwind d'y appliquer une opacité (`bg-accent/10`). Elles ne sont donc
 utilisables **que** enveloppées :
 
@@ -1010,6 +1181,13 @@ après un tap au tactile : on croit avoir sélectionné quelque chose.
 Tout élément cliquable porte `active:scale-[0.97]` avec
 `transition-transform duration-150`. Un bouton qui ne bouge pas au clic laisse un
 doute d'un dixième de seconde.
+
+⚠️ **Sauf les boutons de la librairie** (rebranding, décision 21 — la
+planche « Actions » de la toile) : un `Bouton` (donc aussi `BoutonIcone`)
+**descend d'1 px**, et le principal fonce (`accent-appui`). La règle vit dans
+`index.css` (`button[data-bouton]`, attribut posé par `Bouton`), plus
+spécifique que celle du rétrécissement ; les cartes, poignées et autres
+surfaces cliquables gardent `scale(0.97)`.
 
 ### Un élément atteignable ne dépend jamais du survol
 

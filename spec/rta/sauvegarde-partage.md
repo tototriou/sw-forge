@@ -1,7 +1,29 @@
 # RTA · Point de sauvegarde & partage de prépa
 
-Cinq boutons sous la barre d'actions de **Ma prépa** : **Sauvegarder ·
-Reprendre · Réinitialiser · Exporter · Importer**.
+Cinq actions de **Ma prépa** : **Sauvegarder · Reprendre · Réinitialiser ·
+Exporter · Importer**.
+
+⚠️ **Deux dispositions, une seule logique** (`RtaBackupBar`, prop
+`disposition`) — refonte graphique, lot 6, décision 13 de Thomas :
+
+- **Bureau — `menu`** : dans l'en-tête de la page (composant `BarreActions`
+  de `src/ui`). **S'il y a la place sur la ligne, toutes les actions y sont en
+  boutons** (Réinitialiser et Tout effacer à droite, derrière un filet) —
+  demandé par Thomas ; la place est mesurée, barre latérale comprise. Sinon :
+  « **Exporter** » visible,
+  les autres dans le menu **« ⋯ » Plus d'actions** (composant `Menu` de
+  `src/ui`) : Sauvegarder, Reprendre, **Importer une prépa**, puis les entrées
+  de la page (Créer un monstre) ; séparés en bas, en `bad` : Réinitialiser et
+  Tout effacer. « Importer » y devient « Importer une prépa » : dans un menu
+  où voisinent d'autres gestes, le mot seul ne dit plus ce qu'on importe.
+  Libellés, désactivations et infobulles sont repris mot pour mot. La ligne
+  « Point de sauvegarde · … », les messages et le rapport de lecture passent
+  sous l'en-tête, pleine largeur.
+- **Téléphone — `barre`** (défaut) : les cinq boutons en rangées, dans le
+  panneau « Options » — inchangé (lot 11).
+
+Les dialogues, les messages et le sélecteur de fichier sont les MÊMES dans les
+deux : seule la façon de déclencher change.
 
 ⚠️ **Consulter la prépa d'un ami n'est plus un de ces boutons** : c'est un
 sous-onglet à part, `#/rta/ami` — voir « La consultation » plus bas et
@@ -30,6 +52,17 @@ l'essai ne donne rien. D'où le vocabulaire — « point de sauvegarde »,
 « Reprendre » — et l'infobulle qui rappelle que la conservation automatique
 existe par ailleurs.
 
+⚠️ **« Sauvegardé il y a … »** (refonte graphique, lot 13, décision 29, la
+maquette) : dans l'en-tête de Ma prépa, aux deux formats, l'heure du
+**dernier changement** de la prépa — c'est-à-dire de son dernier
+enregistrement automatique. Il DIT la conservation automatique au lieu de la
+laisser deviner : c'est l'inverse d'un bouton « enregistrer », qui mentirait.
+Avant tout changement dans la session, il dit **« Enregistré sur cet
+appareil »** : l'heure du dernier enregistrement d'une session précédente
+n'est pas connue, et on ne l'invente pas. Rafraîchi chaque minute (« à
+l'instant », « il y a 1 min », « il y a 2 h »…). À ne pas confondre avec le
+point de sauvegarde, ci-dessous.
+
 Le point est **annoncé sous les boutons** (« Point de sauvegarde : 42 monstres ·
 il y a 3 min »). Sans repère visible, on ne sait pas s'il existe ni de quand il
 date — donc on n'ose pas expérimenter, et la fonctionnalité ne sert à rien.
@@ -45,8 +78,8 @@ rien d'ajouté à la main. C'est ce que fait ce bouton.
 
 | Point | Clé | Posé par | Ramène à |
 |-------|-----|----------|----------|
-| **manuel** | `sw-forge-rta-backup-v1` | « Sauvegarder » | ce qu'on a figé soi-même |
-| **import** | `sw-forge-rta-import-v1` | **automatiquement**, à chaque import de compte | la prépa telle que le fichier l'a produite |
+| **manuel** | `swblacksmith-rta-backup-v1` | « Sauvegarder » | ce qu'on a figé soi-même |
+| **import** | `swblacksmith-rta-import-v1` | **automatiquement**, à chaque import de compte | la prépa telle que le fichier l'a produite |
 
 Les confondre ferait qu'importer un compte effacerait sans un mot le point qu'on
 venait de poser — ou que « Réinitialiser » ramènerait à un classement remanié à
@@ -153,10 +186,10 @@ quel fichier il ouvre, pas comment il est fait.
 
 | Fichier | Reconnu à | Ce qu'on en tire |
 |---|---|---|
-| **Export de prépa** (bouton « Exporter ») | `format: "sw-forge/prepa-rta"` | la prépa telle que son auteur l'a classée, au niveau qu'il a choisi |
+| **Export de prépa** (bouton « Exporter ») | `format: "swblacksmith/prepa-rta"` (ou `"sw-forge/prepa-rta"`, avant le rebranding) | la prépa telle que son auteur l'a classée, au niveau qu'il a choisi |
 | **Export SWEX complet** du compte | son `unit_list` | sa **box RTA**, pré-classée par set — niveau `complet` |
 
-⚠️ **Tout le monde n'a pas SW Forge.** Demander à un ami de l'installer et d'y
+⚠️ **Tout le monde n'a pas SW Blacksmith.** Demander à un ami de l'installer et d'y
 ranger sa prépa pour qu'on puisse la regarder, c'est demander beaucoup ; son
 export SWEX, lui, existe déjà.
 
@@ -303,7 +336,7 @@ dialogue l'explique plutôt que de laisser un bouton inerte.
 
 #### ⚠️ Le nom du fichier dit ce qu'il contient
 
-`swforge-prepa-rta-<niveau>-<AAAA-MM-JJ>.json`, où `<niveau>` vaut `complet`,
+`swblacksmith-prepa-rta-<niveau>-<AAAA-MM-JJ>.json`, où `<niveau>` vaut `complet`,
 `vitesses` ou `ordre-de-tour`.
 
 C'est le **seul repère avant d'ouvrir le fichier** : dans un dossier de
@@ -351,10 +384,14 @@ amont (`categories={visible ? cats : []}`). Une fois masquées, les catégories
 n'arrivaient donc plus au composant et **son propre interrupteur ne pouvait plus
 rien réafficher**. Les catégories lui sont désormais passées entières.
 
-### Format (`format: "sw-forge/prepa-rta"`, `version: 2`)
+### Format (`format: "swblacksmith/prepa-rta"`, `version: 2`)
+
+⚠️ L'identifiant s'écrivait `sw-forge/prepa-rta` avant le rebranding
+(décision 66) : il reste reconnu à l'import, sans avertissement
+([formatsExport.ts](src/lib/formatsExport.ts)).
 
 ```json
-{ "format": "sw-forge/prepa-rta", "version": 2, "exporte_le": "…",
+{ "format": "swblacksmith/prepa-rta", "version": 2, "exporte_le": "…",
   "nom": "", "auteur": "", "niveau": "complet",
   "sections": ["swift", "violent", "other"],
   "monstres": [

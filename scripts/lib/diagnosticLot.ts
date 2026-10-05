@@ -255,7 +255,7 @@ export function resoudreCas(index: number, commun: OptionsLot): { config: Config
     artifactMainByKind: {},
   });
 
-  const chemin = join(tmpdir(), `sw-forge-lot-${process.pid}-${index}.json`);
+  const chemin = join(tmpdir(), `swblacksmith-lot-${process.pid}-${index}.json`);
   const config: ConfigHarnais = {
     source: {
       type: 'recette',

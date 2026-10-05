@@ -14,6 +14,7 @@ import AncientFilter, {
 import Bouton from '../../ui/Bouton';
 import Segmented from '../../ui/Segmented';
 import SlotFilter from './SlotFilter';
+import FiltresRunes from './FiltresRunes';
 import CurveChart, { CurveSeries, OWN_COLOR } from './CurveChart';
 import CurveLegend from './CurveLegend';
 import HelpPopover from '../HelpPopover';
@@ -138,6 +139,16 @@ export default function RunesCurve({ runes }: Props) {
 
   return (
     <div>
+      {/* ⚠️ **En-tête à la SOURIS** (refonte graphique, lot 8a-3, la maquette) :
+          le titre de la vue et ce qu'elle trace. Au doigt, la barre du haut
+          dit déjà la vue (lot 11). */}
+      <div className="mb-3 hidden items-baseline gap-3 lg:flex">
+        <h1 className="font-display text-xl tracking-wide text-ink">Courbes</h1>
+        <span className="text-sm text-ink-dim">
+          {metric === 'eff' ? 'Efficience' : 'Score'} de chaque rune, de la meilleure à la moins bonne.
+        </span>
+      </div>
+
       {/* Filtres de la courbe — DANS LA PAGE, aux deux formats.
           ⚠️ **Pas de panneau « Options » ici**, contrairement à l'onglet Liste.
           Descendus dans le tiroir, ils laissaient un écran qui ne porte plus
@@ -145,7 +156,8 @@ export default function RunesCurve({ runes }: Props) {
           flottant annonce un contenu qu'on ne devine pas. La Liste, elle, a
           3 000 tuiles à montrer — chaque rangée de filtre lui prend un écran de
           résultats, ce qui n'est pas le cas ici. */}
-      <div className="flex flex-col gap-3 mb-4">
+      {/* Au DOIGT : les rangées d'avant (`lg:hidden`, lot 11). */}
+      <div className="flex flex-col gap-3 mb-4 lg:hidden">
         {/* Sets : icônes seules (voir SetFilter) */}
         <SetFilter runes={runes} value={sets} onChange={setSets} />
 
@@ -153,6 +165,19 @@ export default function RunesCurve({ runes }: Props) {
           <SlotFilter value={slots} onChange={setSlots} />
           <AncientFilter value={ancient} onChange={setAncient} />
         </div>
+      </div>
+      {/* À la SOURIS : trois menus déroulants (lot 8a, décision 20), avec les
+          mêmes contrôles dedans. */}
+      <div className="mb-4 hidden lg:block">
+        <FiltresRunes
+          runes={runes}
+          sets={sets}
+          onSets={setSets}
+          slots={slots}
+          onSlots={setSlots}
+          ancient={ancient}
+          onAncient={setAncient}
+        />
       </div>
 
       {/* Mode gemme + nombre de runes */}
@@ -214,6 +239,11 @@ export default function RunesCurve({ runes }: Props) {
           980 px et le bouton d'aide se posait à côté du dessin, pendant que le
           bouton de plein écran restait dans son coin. Les deux commandes doivent
           tomber sur la MÊME verticale. */}
+      {/* ⚠️ **À la SOURIS, le graphe et sa légende côte à côte** (lot 8a-3, la
+          maquette) : la légende passe dans une carte « Séries » à droite, en
+          colonne, au lieu d'une rangée sous le graphe. Au doigt, la rangée
+          d'avant (lot 11). */}
+      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_220px] lg:items-start lg:gap-3">
       <div className="relative mx-auto w-full max-w-[980px]">
         {/* Aide « ? » posée sur le coin du graphe — bulle à la souris, panneau
             montant au doigt (voir HelpPopover). Le wrapper `absolute` la cale sur
@@ -237,11 +267,16 @@ export default function RunesCurve({ runes }: Props) {
           (max, médiane) se lisent au survol du graphe ; répétées ici, elles
           alourdissaient une zone qui ne sert qu'à identifier et masquer. Aucune
           courbe ne se retire ici (potentiels et « Moi » sont calculés). */}
-      <CurveLegend
-        entrees={allSeries.map((s) => ({ name: s.name, color: s.color }))}
-        masquees={hidden}
-        onBascule={toggleHidden}
-      />
+      <aside className="lg:rounded-xl lg:border lg:border-border-soft lg:bg-panel lg:p-3">
+        <p className="mb-2 hidden label lg:block">Séries</p>
+        <CurveLegend
+          entrees={allSeries.map((s) => ({ name: s.name, color: s.color }))}
+          masquees={hidden}
+          onBascule={toggleHidden}
+          className="lg:mt-0 lg:flex-col lg:items-stretch lg:gap-1"
+        />
+      </aside>
+      </div>
     </div>
   );
 }

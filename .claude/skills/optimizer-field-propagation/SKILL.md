@@ -3,7 +3,7 @@ name: optimizer-field-propagation
 description: Checklist à suivre pour tout ajout, renommage ou changement de sémantique/défaut d'un champ TRAVERSANT (OptimizerState, OptimizerRecipe, RealDamageContext, ArtifactDamageProfile…) — l'écran, la recette et les scripts CLI ont chacun leur propre copie de la logique, et la documentation (publique + privée) est éclatée sur 4 fichiers distincts. Un champ OPTIONNEL oublié dans l'un d'eux ne déclenche aucune erreur tsc : le seul signal est un script qui diverge silencieusement de l'écran, ou une doc qui ment.
 ---
 
-# Propagation d'un champ Optimizer (SW Forge)
+# Propagation d'un champ Optimizer (SW Blacksmith)
 
 Née de trois incidents concrets, pas d'une inquiétude théorique :
 

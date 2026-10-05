@@ -1,10 +1,10 @@
-// Pilote SW Forge dans un vrai Chromium (Playwright) pour prouver qu'un
+// Pilote SW Blacksmith dans un vrai Chromium (Playwright) pour prouver qu'un
 // changement d'écran fonctionne réellement, pas seulement `tsc`/`npm test`.
 // Voir SKILL.md dans ce même dossier pour le mode d'emploi complet.
 //
 // Deux usages :
 //
-//   node .claude/skills/run-sw-forge/driver.mjs [compte.json] [monstre] [set]
+//   node .claude/skills/run-swblacksmith/driver.mjs [compte.json] [monstre] [set]
 //     Scénario Optimizer : import, monstre + set, recherche, pagination.
 //     compte.json — export de compte (défaut : le premier export réel trouvé à
 //                   la racine, voir COMPTES_CANDIDATS dans session.mjs).
@@ -12,13 +12,13 @@
 //     set         — libellé du set de runes recherché (voir RUNE_SETS dans
 //                   src/types.ts, ex. "Fatal", "Violent", "Will"). Défaut "Fatal".
 //
-//   node .claude/skills/run-sw-forge/driver.mjs --import-seul [compte.json] [route] [--telephone]
+//   node .claude/skills/run-swblacksmith/driver.mjs --import-seul [compte.json] [route] [--telephone]
 //     Import SEUL, puis la route voulue (hash, ex. "#/compte/runes/optimisation" ;
 //     défaut "#/compte/runes") et une capture `import.png`. Pour aller plus
 //     loin qu'une capture, un script jetable importe `ouvrirSession` de
 //     session.mjs et reprend la main juste après l'import.
 //
-// Écrit ses captures dans .claude/skills/run-sw-forge/screenshots/.
+// Écrit ses captures dans .claude/skills/run-swblacksmith/screenshots/.
 
 import { mkdirSync } from 'fs';
 import path from 'path';

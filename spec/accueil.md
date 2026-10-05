@@ -1,6 +1,6 @@
 # Accueil (`#/`)
 
-Page d'entrée de SW Forge. Rôle : **faire faire le premier geste** (importer son
+Page d'entrée de SW Blacksmith. Rôle : **faire faire le premier geste** (importer son
 compte) et **ramener l'habitué là où il s'était arrêté**.
 
 Fichier : [HomePage.tsx](src/pages/HomePage.tsx)
@@ -16,12 +16,16 @@ quitte jamais. La page répond donc à deux publics, dans cet ordre.
 
 Deux colonnes (`1.1fr / 0.9fr`, empilées sous `lg`).
 
-- **Gauche** : **logo + titre `SW Forge`**, accroche en sous-titre (« La boîte à
-  outils pour Summoners War. »), phrase de promesse, puis les **5 éléments qui
-  flottent**, centrés sous le texte.
-  - ⚠️ **Le logo et le nom du site restent dans le héros.** Sur desktop, la barre
-    de nav **ne porte pas la marque** (elle n'apparaît qu'en version repliée) :
-    sans eux, on ne sait plus sur quel site on est.
+- **Gauche** : **logo + titre `SW Blacksmith`** (rebranding : le symbole de
+  l'identité, le nom en Saira, capitales espacées, `clamp(32px, 5vw, 56px)`,
+  qui passe sur deux lignes quand la colonne est étroite — R2 bis), accroche
+  en sous-titre (« La boîte à outils pour Summoners War. »), phrase de
+  promesse, puis les **5 éléments qui flottent**, centrés sous le texte.
+  - ⚠️ **Le logo et le nom du site restent dans le héros.** C'est la page
+    d'entrée : le nom s'y lit en grand, même si la barre latérale du bureau
+    porte aussi le logo (depuis la refonte — cette spec disait l'inverse,
+    corrigé au rebranding R2 bis) ; au téléphone, la barre du haut ne montre
+    que le symbole.
   - ⚠️ **Aucun bouton dans le héros**, et aucun argument commercial répété
     (« Gratuit · Aucune inscription », « Traitement 100 % local… », « sans créer
     de compte »). La **zone de dépôt est juste à côté** : un bouton « Importer
@@ -69,9 +73,12 @@ Trois **cartes** numérotées `01 · 02 · 03` : exporter avec
 [SW Exporter](https://github.com/Xzandro/sw-exporter), déposer le fichier,
 préparer.
 
-⚠️ **Des cartes, pas des colonnes de texte nu** : un numéro posé au-dessus d'un
-paragraphe se lisait comme une note de bas de page. Le cadre, le numéro en
-pastille et l'icône colorée en font une **séquence qu'on suit du regard**.
+⚠️ **Une carte, pas des colonnes de texte nu** : un numéro posé au-dessus d'un
+paragraphe se lisait comme une note de bas de page. Depuis la refonte
+graphique (lot 5), les trois étapes vivent dans **une seule carte**,
+séparées par des filets (à gauche en colonnes, en haut une fois empilées) :
+une séquence qu'on lit de gauche à droite. Chaque étape : son numéro en
+chiffres de code, sa tuile d'icône, son titre, sa phrase.
 
 ### 5. Fonctionnalités
 
@@ -80,18 +87,80 @@ Grille **4 colonnes** de cartes **compactes** (icône, kicker, titre, une phrase
 ⚠️ Les anciennes `ToolCard` de 260 px de haut repoussaient tout le reste de la
 page hors de l'écran : à 7 entrées, la moitié des sections n'était jamais vue.
 
-| Carte | Route | Accent |
+| Carte | Route | Teinte (`couleursSection.ts`) |
 |-------|-------|--------|
-| Préparation RTA | `#/rta` | `#A15FE0` |
-| Prépa d'un ami | `#/rta/ami` | `#D07FD8` |
-| Défenses et offenses | `#/siege/defense` | `#E4463A` |
-| Recommandations | `#/siege/recommandations` | `#5EDB8F` |
-| Analyse de runes | `#/compte/runes` | `#4AD8D8` |
-| Optimiseur de runes | `#/outils/optimizer` | `#FFA94D` |
-| Bestiaire | `#/bestiary` | `#2FA0E0` |
-| Mécaniques | `#/mecaniques` | `#8890B8` |
-| Nouveautés | `#/releases` | `#C79BFF` |
-| Arène classique | `#/arene` | `#F2C24C` — `soon` |
+| Préparation RTA | `#/rta` | `COULEUR_SECTION.rta` |
+| Prépa d'un ami | `#/rta/ami` | `COULEUR_RTA_SUB.ami` |
+| Défenses et offenses | `#/siege/defense` | `COULEUR_SECTION.siege` |
+| Recommandations | `#/siege/recommandations` | `COULEUR_SIEGE_SUB.recos` |
+| Analyse de runes | `#/compte/runes` | `COULEUR_COMPTE_SUB.runes` |
+| Analyse d'artéfacts | `#/compte/artefacts` | `COULEUR_COMPTE_SUB.artefacts` |
+| Optimiseur de runes | `#/outils/optimizer` | `COULEUR_SECTION.outils` |
+| Speed tuning | `#/outils/speed-tuning` | `COULEUR_SECTION.outils` |
+| Bestiaire | `#/bestiary` | `COULEUR_SECTION.bestiary` |
+| Mécaniques | `#/mecaniques` | `COULEUR_SECTION.mecaniques` |
+| Nouveautés | `#/releases` | `COULEUR_SECTION.releases` |
+| Arène classique | `#/arene` — `soon` | `COULEUR_SECTION.arene` |
+
+(La table avait oublié Analyse d'artéfacts et Speed tuning, présents dans la
+page ; relevé par le test de rendu du lot 5, `tests/rendu/accueil.test.tsx`,
+qui fixe désormais les douze cartes et leur ordre.)
+
+### Rebranding « SW Blacksmith » — lot R5 (2026-09-29)
+
+La planche d'accueil de la toile a été relevée et comparée, point par point ;
+**Thomas garde l'accueil tel quel** (décisions 31 à 36 du
+[cadrage](chantiers/rebranding-blacksmith.md)) : héros (nom en titre, zone
+de dépôt seule, aucun bouton), pas de bandeau de garanties, les douze cartes,
+« Comment ça marche », et au téléphone la décision 24 (même structure,
+resserrée) — la toile proposait « Forgé pour la guilde. », deux boutons et
+une illustration, trois garanties, six cartes, « Trois coups de marteau » et
+un accueil réduit au téléphone. Il reçoit déjà les jetons (R1), le logo et le
+nom en Saira (R2 bis).
+Seul changement (décision 37) : les cartes de **section** — fonctionnalités et
+« Ton espace » — portent les **icônes d'atelier** de la navigation
+([IconesAtelier.tsx](../src/components/IconesAtelier.tsx)) : une section a la
+même icône partout. Les étapes et le titre « Ton espace » gardent lucide.
+
+### Le style — refonte graphique, lot 5
+
+La structure ci-dessus est **gardée** (décision 10 de Thomas) ; seul le
+style change :
+
+- **Cartes de la refonte** : fond de panneau, contour discret
+  (`border-soft`), rayon 12 ; au survol, le fond s'appuie (`panel2`) et le
+  contour se précise. Plus de soulèvement.
+- ⚠️ **Les COULEURS restent** : l'icône de chaque carte est dans une tuile
+  (32 px, rayon 8) **à la teinte de sa section** — icône à la teinte, fond à
+  14 %, contour à 32 % (`color-mix`) — et les cartes de fonctionnalités
+  gardent leur **halo** flouté dans le coin, plus marqué au survol. Les
+  étapes gardent leurs trois couleurs propres (bleu, vert, or), numéro
+  compris. Le premier passage du lot 5 les avait retirées (décision 3 lue
+  comme « neutre partout ») ; Thomas les a fait remettre le 2026-09-25 :
+  « j'aimais bien les couleurs sur la page d'accueil ». **L'accueil est
+  coloré, le menu neutre.**
+- ⚠️ **En thème CLAIR, chaque teinte a sa variante assombrie**
+  (`TEINTE_CLAIRE`, [couleursSection.ts](../src/data/couleursSection.ts) —
+  refonte graphique, lot 14 ; Thomas, sur une capture de l'accueil en clair :
+  « effectivement pas très lisible »). Les couleurs de section sont pensées
+  pour le fond sombre : en clair, l'icône sur sa tuile tombait jusqu'à 1,40:1
+  (arène), neuf sur douze sous 3:1. Chaque variante garde la teinte,
+  assombrie juste assez pour 3,2:1 sur la carte comme au survol. Le sombre
+  est inchangé. Mécanique : la tuile, le halo et le numéro d'étape posent en
+  ligne les deux valeurs (`--teinte-sombre`, `--teinte-clair`), et la règle
+  `.teinte-section` d'index.css choisit selon le thème, avec les deux
+  déclencheurs du sombre. Numéros d'étape : 4,23 à 4,37 sur la carte — des
+  repères de séquence, pas du texte courant.
+- **Le bouton du dernier appel est le `Bouton` principal plein** de la
+  librairie (décision 4).
+- Pastille de version : fond d'accent à 15 %, texte à l'**encre** — l'accent
+  sur ce fond tombait à 4,4:1 en Forge.
+- ⚠️ **Au doigt, la même structure, resserrée** (lot 11a, décision 24 —
+  Thomas a écarté la liste groupée de la maquette téléphone, qui retirait la
+  zone de dépôt, « Comment ça marche », les descriptions, « Prépa d'un ami »,
+  l'Arène et la dernière version) : marges verticales entre blocs réduites
+  (`max-lg:py-6`), zone de dépôt moins haute (170 px au lieu de 260), cartes
+  de fonctionnalités moins rembourrées. Le bureau ne bouge pas.
 
 ### 6. Dernier appel + quoi de neuf
 

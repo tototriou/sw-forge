@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Sparkles, BookOpen } from 'lucide-react';
+import { Search } from 'lucide-react';
+// Le grimoire de l'entrée « Bestiaire » de la nav (rebranding, décision 44).
+import { IconeBestiaire } from '../components/IconesAtelier';
 import SearchBar from '../components/SearchBar';
 import MobileSheet from '../ui/MobileSheet';
-import FilterBar from '../components/FilterBar';
+import Champ from '../ui/Champ';
+import FilterBar, { TriInterne } from '../components/FilterBar';
 import MonsterGrid from '../components/MonsterGrid';
 import { SEUIL_ANIMATION_GRILLE } from '../components/MonsterCard';
 import MonsterDetailDialog from '../components/MonsterDetailDialog';
@@ -151,13 +154,36 @@ export default function BestiaryPage({ monsters, menuOuvert, onFermerMenu }: Pro
 
   return (
     <div>
+      {/* ⚠️ **À la SOURIS, un en-tête** (refonte graphique, lot 10, la
+          maquette) : « Bestiaire » et le nombre de monstres de la base. Au
+          doigt, la barre du haut dit déjà la page (lot 11). */}
+      <div className="mb-4 hidden items-center gap-2.5 lg:flex">
+        <h1 className="font-display text-xl tracking-wide text-ink">Bestiaire</h1>
+        <span className="rounded-full border border-border-soft bg-panel2 px-2 py-0.5 font-mono text-micro text-ink-dim">
+          {totalBase.toLocaleString('fr-FR')} monstres
+        </span>
+      </div>
+
       <div>
         {/* ⚠️ La RECHERCHE reste toujours visible : c'est le geste principal de
             cette page — on vient y chercher un monstre par son nom. Seuls les
             FILTRES passent dans le tiroir sous `lg` : six pastilles d'élément,
             six d'étoiles et un tri, soit trois rangées avant la première carte
-            sur un téléphone. */}
-        <SearchBar value={query} onChange={setQuery} />
+            sur un téléphone.
+            ⚠️ **À la SOURIS, la barre de « Ma box »** (lot 10, repris du lot
+            8b) : la recherche à largeur fixe (champ de la librairie), puis
+            élément et étoiles sur une ligne, puis le tri avec le compte et la
+            pagination. Filtres VISIBLES, jamais en menus (décision 20). */}
+        <div className="lg:hidden">
+          <SearchBar value={query} onChange={setQuery} />
+        </div>
+        <Champ
+          icone={<Search size={15} />}
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Rechercher un monstre par nom…"
+          classNameConteneur="hidden lg:block lg:w-72"
+        />
         <div className="hidden lg:block">
           <FilterBar
             activeElements={activeElements}
@@ -166,6 +192,8 @@ export default function BestiaryPage({ monsters, menuOuvert, onFermerMenu }: Pro
             toggleStar={toggleStar}
             sortMode={sortMode}
             setSortMode={setSortMode}
+            avecTri={false}
+            className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2"
           />
         </div>
       </div>
@@ -185,12 +213,23 @@ export default function BestiaryPage({ monsters, menuOuvert, onFermerMenu }: Pro
           bas de page pour changer de page ferait remonter à chaque fois.
           ⚠️ Le compteur dit « N sur M » quand un filtre coupe : afficher le
           total alors qu'on en voit 60 se lit comme un bug d'affichage. */}
+      {/* ⚠️ À la SOURIS, le TRI ouvre cette ligne, comme dans « Ma box » : les
+          réglages de PRÉSENTATION de la grille, juste au-dessus d'elle. Il
+          reste affiché sans résultat — il ne disparaît pas avec les données. */}
+      {totalShown === 0 && (
+        <div className="mt-4 hidden lg:flex">
+          <TriInterne sortMode={sortMode} setSortMode={setSortMode} />
+        </div>
+      )}
       {totalShown > 0 && (
         <div
           ref={listeRef}
-          className="mt-4 flex flex-wrap items-center justify-between gap-3"
+          className="mt-4 flex flex-wrap items-center justify-between gap-3 lg:justify-start"
         >
-          <p className="font-mono text-xs text-ink-dim">
+          <div className="hidden lg:block">
+            <TriInterne sortMode={sortMode} setSortMode={setSortMode} />
+          </div>
+          <p className="font-mono text-xs text-ink-dim lg:mr-auto">
             {totalShown} monstre{totalShown > 1 ? 's' : ''}
             {totalShown !== totalBase && ` sur ${totalBase}`}
           </p>
@@ -200,7 +239,7 @@ export default function BestiaryPage({ monsters, menuOuvert, onFermerMenu }: Pro
 
       {totalShown === 0 ? (
         <div className="text-center py-16 text-ink-dim">
-          <Sparkles className="mx-auto mb-3 opacity-40" />
+          <IconeBestiaire className="mx-auto mb-3 opacity-40" />
           Aucun monstre ne correspond à ces filtres.
         </div>
       ) : (

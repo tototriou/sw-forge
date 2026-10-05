@@ -23,8 +23,8 @@ export const RUNE_METRICS: { key: RuneMetric; label: string; hint: string }[] = 
 //
 // **Persisté** dans `localStorage` — contrairement aux filtres et tris, qui sont
 // des préférences de vue jetables : un réglage d'application doit survivre au
-// rechargement. Effacé par « Supprimer mes données » (préfixe `sw-forge`).
-const STORAGE_KEY = 'sw-forge-rune-metric-v1';
+// rechargement. Effacé par « Supprimer mes données » (préfixe `swblacksmith-`).
+const STORAGE_KEY = 'swblacksmith-rune-metric-v1';
 
 function load(): RuneMetric {
   try {

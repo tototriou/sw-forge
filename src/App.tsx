@@ -1,22 +1,35 @@
 import { CSSProperties, useEffect, useMemo, useRef, useState } from 'react';
+import { Github, MessageCircle, Upload, Plus, Gauge, SunMoon } from 'lucide-react';
 import {
-  Swords,
-  BookOpen,
-  Home,
-  Castle,
-  Trophy,
-  Calculator,
-  CircleUserRound,
-  Github,
-  MessageCircle,
-  Tag,
-  Sparkles,
-  Shield,
-  Users,
-  Lightbulb,
-  Settings,
-  Timer,
-} from 'lucide-react';
+  IconeAtelier,
+  IconeAccueil,
+  IconeAmi,
+  IconeArene,
+  IconeArtefacts,
+  IconeMonstres,
+  IconeRunes,
+  IconeBestiaire,
+  IconeCompte,
+  IconeDefense,
+  IconeMecaniques,
+  IconeNouveautes,
+  IconeOffense,
+  IconeOptimizer,
+  IconeOutils,
+  IconeParametres,
+  IconeRecos,
+  IconeRta,
+  IconeSiege,
+  IconeSpeedTuning,
+} from './components/IconesAtelier';
+import Palette from './components/Palette';
+import { resultatsPalette } from './components/palette/recherchePalette';
+import SpeedTuneModale from './components/outils/SpeedTuneModale';
+import MonsterDetailDialog from './components/MonsterDetailDialog';
+import { autreForme, jumeauDeCollab } from './lib/monsterForms';
+import { THEME_CHOICES, setTheme } from './hooks/useTheme';
+import { RUNE_METRICS, setRuneMetric } from './hooks/useRuneMetric';
+import type { DeckInitial } from './hooks/useSpeedTune';
 import HomePage from './pages/HomePage';
 import BestiaryPage from './pages/BestiaryPage';
 import RtaPage from './pages/RtaPage';
@@ -39,7 +52,7 @@ import Sidebar, {
 import MobileTabs, { OngletMobile } from './components/MobileTabs';
 import MobileNavSheet from './components/MobileNavSheet';
 import TopBar from './components/TopBar';
-import SidebarCompte from './components/SidebarCompte';
+import SidebarCompte, { SidebarParametres } from './components/SidebarCompte';
 import SidebarSearch, { CibleNav } from './components/SidebarSearch';
 import MobileNotice from './components/MobileNotice';
 import { loadAccount, saveAccount } from './lib/accountStore';
@@ -52,7 +65,7 @@ import {
   storageAvailable,
 } from './hooks/usePersistence';
 import { ConfirmDialog, KeepAccountDialog } from './ui/Dialogs';
-import InventaireIcon, { InventaireIconKey } from './components/InventaireIcon';
+import { FournisseurNotification } from './ui/Notification';
 import {
   COULEUR_SECTION,
   COULEUR_RTA_SUB,
@@ -88,7 +101,9 @@ import {
 import { mapRtaItems, mapSiegeTeams, mapBoxMonsters, BoxItem } from './lib/applyAccount';
 import { reinitialiserSticky } from './hooks/useStickyState';
 import { PREFIXE_SPEED_TUNE } from './hooks/useSpeedTune';
-import { VUES_INVENTAIRE, hashVue, vueValide } from './lib/accountViews';
+import { VUES_INVENTAIRE, hashVue, vueParDefaut, vueValide } from './lib/accountViews';
+import { NOM_APP } from './marque';
+import { CLASSE_NOM, SymboleLogo } from './components/Logo';
 
 const DISCORD_INVITE = 'https://discord.gg/R2Fe4GJZET';
 
@@ -207,60 +222,63 @@ function parseHash(): {
 // chaque point de rendu. Elle ne marque PAS l'état (l'actif reste le contour
 // d'accent, spec/shared/design.md « un seul marqueur ») : elle est constante,
 // actif ou non.
-type NavItem = { key: Route; label: string; icon: typeof BookOpen; hash: string; couleur: string };
+// ⚠️ Icônes « objets d'atelier » (rebranding R4, décisions 9 et 27) : une par
+// section, au contrat de lucide (`size`, `color`) — voir IconesAtelier.tsx.
+type NavItem = { key: Route; label: string; icon: IconeAtelier; hash: string; couleur: string };
 
 // Onglets principaux (outils). Arène est à part (voir ARENE_ITEM) : elle se
 // positionne entre les dropdowns Outils et Ressources, pas dans ce groupe.
 const NAV: NavItem[] = [
-  { key: 'home', label: 'Accueil', icon: Home, hash: '#/', couleur: COULEUR_SECTION.home },
-  { key: 'rta', label: 'RTA', icon: Swords, hash: '#/rta', couleur: COULEUR_SECTION.rta },
-  { key: 'siege', label: 'Siège', icon: Castle, hash: '#/siege/defense', couleur: COULEUR_SECTION.siege },
+  { key: 'home', label: 'Accueil', icon: IconeAccueil, hash: '#/', couleur: COULEUR_SECTION.home },
+  { key: 'rta', label: 'RTA', icon: IconeRta, hash: '#/rta', couleur: COULEUR_SECTION.rta },
+  { key: 'siege', label: 'Siège', icon: IconeSiege, hash: '#/siege/defense', couleur: COULEUR_SECTION.siege },
 ];
 
-const ARENE_ITEM: NavItem = { key: 'arene', label: 'Arène', icon: Trophy, hash: '#/arene', couleur: COULEUR_SECTION.arene };
+const ARENE_ITEM: NavItem = { key: 'arene', label: 'Arène', icon: IconeArene, hash: '#/arene', couleur: COULEUR_SECTION.arene };
 
 // Sous-sections de « RTA » (dropdown de nav).
 // ⚠️ `prepa` porte le hash NU `#/rta` : c'est l'écran historique, et les liens
 // déjà partagés doivent continuer d'y mener. `#/rta/prepa` n'existe donc pas.
-const RTA_SUBS: { sub: RtaSub; label: string; icon: typeof Swords; hash: string; couleur: string }[] = [
-  { sub: 'prepa', label: 'Ma prépa', icon: Swords, hash: '#/rta', couleur: COULEUR_RTA_SUB.prepa },
-  { sub: 'ami', label: 'Ami', icon: Users, hash: '#/rta/ami', couleur: COULEUR_RTA_SUB.ami },
+const RTA_SUBS: { sub: RtaSub; label: string; icon: IconeAtelier; hash: string; couleur: string }[] = [
+  { sub: 'prepa', label: 'Ma prépa', icon: IconeRta, hash: '#/rta', couleur: COULEUR_RTA_SUB.prepa },
+  { sub: 'ami', label: 'Ami', icon: IconeAmi, hash: '#/rta/ami', couleur: COULEUR_RTA_SUB.ami },
 ];
 
 // Sous-sections de « Mon compte » (dropdown de nav).
-// ⚠️ Icônes AU TRAIT dans le style de la librairie (voir InventaireIcon) : les
-// silhouettes du jeu (tête de monstre, rune, médaillon) redessinées au contour
-// monochrome, pour ne pas jurer à côté des icônes lucide de la nav.
+// ⚠️ Icônes AU TRAIT, dans le même style que celles de la nav (voir
+// InventaireIcon) : l'œuf, la pierre runique, le médaillon (rebranding R4).
+// ⚠️ Des icônes de NAVIGATION (`IconesAtelier`), pas `InventaireIcon` : celui-ci
+// garde les silhouettes du jeu (rendu protégé), pour les écrans du compte.
 // ⚠️ Plus de `hash` ici : les liens passent par `hashVue`, qui compose
 // `#/compte/<inventaire>/<vue>`. Deux façons d'écrire la même URL auraient
 // divergé — l'une menant à la vue par défaut, l'autre à la vue courante.
-const ACCOUNT_SUBS: { sub: AccountSub; label: string; icon: InventaireIconKey; couleur: string }[] = [
-  { sub: 'monstres', label: 'Monstres', icon: 'monster', couleur: COULEUR_COMPTE_SUB.monstres },
-  { sub: 'runes', label: 'Runes', icon: 'rune', couleur: COULEUR_COMPTE_SUB.runes },
-  { sub: 'artefacts', label: 'Artéfacts', icon: 'artifact', couleur: COULEUR_COMPTE_SUB.artefacts },
+const ACCOUNT_SUBS: { sub: AccountSub; label: string; icon: IconeAtelier; couleur: string }[] = [
+  { sub: 'monstres', label: 'Monstres', icon: IconeMonstres, couleur: COULEUR_COMPTE_SUB.monstres },
+  { sub: 'runes', label: 'Runes', icon: IconeRunes, couleur: COULEUR_COMPTE_SUB.runes },
+  { sub: 'artefacts', label: 'Artéfacts', icon: IconeArtefacts, couleur: COULEUR_COMPTE_SUB.artefacts },
 ];
 
 // Sous-sections d'« Outils » (dropdown de nav) — un seul outil pour l'instant,
 // structuré pour en accueillir d'autres sans retoucher la nav.
-const OUTILS_SUBS: { sub: ToolSub; label: string; icon: typeof Sparkles; hash: string; couleur: string }[] = [
-  { sub: 'optimizer', label: 'Optimizer', icon: Sparkles, hash: '#/outils/optimizer', couleur: COULEUR_SECTION.outils },
-  { sub: 'speed-tuning', label: 'Speed tuning', icon: Timer, hash: '#/outils/speed-tuning', couleur: COULEUR_SECTION.outils },
+const OUTILS_SUBS: { sub: ToolSub; label: string; icon: IconeAtelier; hash: string; couleur: string }[] = [
+  { sub: 'optimizer', label: 'Optimizer', icon: IconeOptimizer, hash: '#/outils/optimizer', couleur: COULEUR_SECTION.outils },
+  { sub: 'speed-tuning', label: 'Speed tuning', icon: IconeSpeedTuning, hash: '#/outils/speed-tuning', couleur: COULEUR_SECTION.outils },
 ];
 
 // Sous-sections de « Siège ». ⚠️ Remontées ICI depuis SiegePage : elles
 // étaient des onglets posés en haut de la page, et chaque section avait le sien
 // avec son propre rendu. La barre latérale les porte toutes de la même façon.
-const SIEGE_SUBS: { tab: SiegeTab; label: string; icon: typeof Shield; hash: string; couleur: string }[] = [
-  { tab: 'defense', label: 'Défense', icon: Shield, hash: '#/siege/defense', couleur: COULEUR_SIEGE_SUB.defense },
-  { tab: 'offense', label: 'Offense', icon: Swords, hash: '#/siege/offense', couleur: COULEUR_SIEGE_SUB.offense },
-  { tab: 'recos', label: 'Recommandations', icon: Lightbulb, hash: '#/siege/recommandations', couleur: COULEUR_SIEGE_SUB.recos },
+const SIEGE_SUBS: { tab: SiegeTab; label: string; icon: IconeAtelier; hash: string; couleur: string }[] = [
+  { tab: 'defense', label: 'Défense', icon: IconeDefense, hash: '#/siege/defense', couleur: COULEUR_SIEGE_SUB.defense },
+  { tab: 'offense', label: 'Offense', icon: IconeOffense, hash: '#/siege/offense', couleur: COULEUR_SIEGE_SUB.offense },
+  { tab: 'recos', label: 'Recommandations', icon: IconeRecos, hash: '#/siege/recommandations', couleur: COULEUR_SIEGE_SUB.recos },
 ];
 
 // Regroupées sous « Ressources ».
 const RESOURCES: NavItem[] = [
-  { key: 'bestiary', label: 'Bestiaire', icon: BookOpen, hash: '#/bestiary', couleur: COULEUR_SECTION.bestiary },
-  { key: 'mecaniques', label: 'Mécaniques', icon: Calculator, hash: '#/mecaniques', couleur: COULEUR_SECTION.mecaniques },
-  { key: 'releases', label: 'Nouveautés', icon: Tag, hash: '#/releases', couleur: COULEUR_SECTION.releases },
+  { key: 'bestiary', label: 'Bestiaire', icon: IconeBestiaire, hash: '#/bestiary', couleur: COULEUR_SECTION.bestiary },
+  { key: 'mecaniques', label: 'Mécaniques', icon: IconeMecaniques, hash: '#/mecaniques', couleur: COULEUR_SECTION.mecaniques },
+  { key: 'releases', label: 'Nouveautés', icon: IconeNouveautes, hash: '#/releases', couleur: COULEUR_SECTION.releases },
 ];
 
 export default function App() {
@@ -518,6 +536,33 @@ export default function App() {
     for (const mon of allMonsters) if (mon.com2usId != null) m.set(mon.com2usId, mon);
     return m;
   }, [allMonsters]);
+
+  // ---- PALETTE Ctrl K (lot 13, décision 29) --------------------------------
+  // Ouverte par Ctrl/⌘ K de n'importe où, par le champ de la barre latérale, et
+  // au téléphone par la loupe de la barre du haut. Ce qu'elle ouvre (fiche d'un
+  // monstre, speed tuning d'une équipe) se monte ICI : on n'y change pas de
+  // page. Voir spec/shared/navigation.md § Palette Ctrl K.
+  const [paletteOuverte, setPaletteOuverte] = useState(false);
+  const [ficheMonstre, setFicheMonstre] = useState<Monster | null>(null);
+  const [speedTuneEquipe, setSpeedTuneEquipe] = useState<DeckInitial | null>(null);
+  // « Importer mon compte » depuis la palette : le même choix de fichier que
+  // les Paramètres, porté par un champ caché.
+  const fichierCompte = useRef<HTMLInputElement>(null);
+  const monstreParId = useMemo(() => {
+    const m = new Map<string, Monster>();
+    for (const mon of allMonsters) m.set(String(mon.id), mon);
+    return m;
+  }, [allMonsters]);
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setPaletteOuverte(true);
+      }
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   // Relecture du compte conservé, au démarrage.
   //
@@ -856,7 +901,7 @@ export default function App() {
   // niveau (`ouvre`). Deux définitions auraient divergé.
   const sectionSiege: SidebarSection = {
     titre: 'Siège',
-    icon: <Castle size={17} color={COULEUR_SECTION.siege} />,
+    icon: <IconeSiege size={17} color={COULEUR_SECTION.siege} />,
     groupes: [
       {
         liens: SIEGE_SUBS.map((t) => ({
@@ -872,7 +917,7 @@ export default function App() {
 
   const sectionRta: SidebarSection = {
     titre: 'RTA',
-    icon: <Swords size={17} color={COULEUR_SECTION.rta} />,
+    icon: <IconeRta size={17} color={COULEUR_SECTION.rta} />,
     groupes: [
       {
         liens: RTA_SUBS.map((s) => ({
@@ -888,7 +933,7 @@ export default function App() {
 
   const sectionCompte: SidebarSection = {
     titre: 'Mon compte',
-    icon: <CircleUserRound size={17} color={COULEUR_SECTION.compte} />,
+    icon: <IconeCompte size={17} color={COULEUR_SECTION.compte} />,
     // ⚠️ **Un groupe par INVENTAIRE, ses vues en entrées.** Les trois
     // inventaires étaient trois liens, et leurs vues (Résumé, Liste, Courbes…)
     // vivaient dans une rangée d'onglets en haut de page — invisible tant qu'on
@@ -899,7 +944,7 @@ export default function App() {
     groupes: ACCOUNT_SUBS.map((sub) => ({
       titre: sub.label,
       // Pour le panneau mobile, qui fait choisir l'inventaire AVANT sa vue.
-      icone: <InventaireIcon name={sub.icon} size={17} couleur={sub.couleur} />,
+      icone: <sub.icon size={17} color={sub.couleur} />,
       // ⚠️ Les VUES d'un inventaire portent la couleur de leur inventaire :
       // une même famille de teinte pour tout le groupe (Runes → Résumé, Liste,
       // Courbes… toutes en cyan), pas neuf teintes sans lien entre elles.
@@ -915,7 +960,7 @@ export default function App() {
 
   const sectionOutils: SidebarSection = {
     titre: 'Outils',
-    icon: <Sparkles size={17} color={COULEUR_SECTION.outils} />,
+    icon: <IconeOutils size={17} color={COULEUR_SECTION.outils} />,
     groupes: [
       {
         liens: OUTILS_SUBS.map((sub) => ({
@@ -943,49 +988,102 @@ export default function App() {
           ? sectionOutils
           : null;
 
-  // Premier niveau — les sections. ⚠️ Le MÊME ordre d'importance que la nav
-  // précédente (spec/README.md) : Accueil → RTA → Siège → Mon compte → Outils
-  // → Arène, puis les ressources. La refonte change la FORME de la navigation,
-  // pas la hiérarchie, qui elle est le fruit de l'usage.
+  // ---- Barre latérale BUREAU (refonte graphique, lot 4) --------------------
+  //
+  // ⚠️ **Une structure PROPRE au bureau.** Les sections ci-dessus servent aussi
+  // au panneau mobile, à ses onglets et au titre de la barre du haut : le
+  // téléphone a sa propre refonte (lot 11), et une correction destinée à un
+  // format ne touche pas l'autre (CLAUDE.md). Le bureau construit donc les
+  // siennes, à partir des MÊMES constantes (libellés, routes) — seule la
+  // présentation diffère.
+  //
+  // Décisions de Thomas (spec/chantiers/refonte-graphique.md, A.2 bis) :
+  // - 3 : icônes MONOCHROMES — la couleur de section quitte le menu, la couleur
+  //   reste aux données du jeu ;
+  // - 5 : premier niveau regroupé — Jouer (RTA, Siège, Arène), Mon compte
+  //   (Monstres, Runes, Artéfacts en entrées directes), Outils (en entrées
+  //   directes), Ressources. Toutes les destinations restent ;
+  // - 6 : Meules et Gemmes, « Bientôt », hors du menu — [retrait #6]. Leurs
+  //   routes et leur page restent ; elles reviendront au menu une fois
+  //   construites.
+  //
+  // ⚠️ Une entrée à sous-sections les DÉROULE sous elle au lieu de naviguer
+  // (spec/shared/navigation.md), sans aperçu au survol ([retrait #12]). La
+  // section de la route est déroulée d'office — la barre la déduit de
+  // l'entrée active, sans qu'on la lui passe.
+  const VUES_BIENTOT = new Set<AccountView>(['meules', 'gemmes']);
 
-  const groupesNav: SidebarGroupe[] = [
-    {
-      liens: [
-        ...NAV.map((item) => ({
-          key: item.key,
-          label: item.label,
-          icon: <item.icon size={17} color={item.couleur} />,
-          // ⚠️ RTA et Siège OUVRENT leur section au lieu de naviguer : on
-          // choisit sa sous-section avant de charger une page.
-          ...(item.key === 'rta'
-            ? { ouvre: sectionRta }
-            : item.key === 'siege'
-              ? { ouvre: sectionSiege }
-              : { hash: item.hash }),
-          actif: route === item.key,
-        })),
+  const sectionRtaBureau: SidebarSection = {
+    titre: 'RTA',
+    icon: <IconeRta size={16} />,
+    groupes: [{ liens: RTA_SUBS.map((s) => ({ key: s.sub, label: s.label, hash: s.hash, icon: <s.icon size={16} />, actif: route === 'rta' && rtaSub === s.sub })) }],
+  };
+  const sectionSiegeBureau: SidebarSection = {
+    titre: 'Siège',
+    icon: <IconeSiege size={16} />,
+    groupes: [{ liens: SIEGE_SUBS.map((t) => ({ key: t.tab, label: t.label, hash: t.hash, icon: <t.icon size={16} />, actif: route === 'siege' && siegeTab === t.tab })) }],
+  };
+  // Un inventaire à plusieurs vues devient une section à part entière (Runes,
+  // Artéfacts) : ses vues en entrées, sans le niveau « Mon compte » au-dessus.
+  const sectionInventaireBureau = (sub: AccountSub): SidebarSection => {
+    const inv = ACCOUNT_SUBS.find((s) => s.sub === sub)!;
+    return {
+      titre: inv.label,
+      icon: <inv.icon size={18} />,
+      groupes: [
         {
-          key: 'compte',
-          label: 'Mon compte',
-          icon: <CircleUserRound size={17} color={COULEUR_SECTION.compte} />,
-          ouvre: sectionCompte,
-          actif: route === 'compte',
-        },
-        {
-          key: 'outils',
-          label: 'Outils',
-          icon: <Sparkles size={17} color={COULEUR_SECTION.outils} />,
-          ouvre: sectionOutils,
-          actif: route === 'outils',
-        },
-        {
-          key: ARENE_ITEM.key,
-          label: ARENE_ITEM.label,
-          hash: ARENE_ITEM.hash,
-          icon: <ARENE_ITEM.icon size={17} color={ARENE_ITEM.couleur} />,
-          actif: route === 'arene',
+          liens: VUES_INVENTAIRE[sub]
+            .filter((v) => !VUES_BIENTOT.has(v.key))
+            .map((v) => ({
+              key: `${sub}-${v.key}`,
+              label: v.label,
+              hash: hashVue(sub, v.key),
+              icon: <v.icon size={16} />,
+              actif: route === 'compte' && accountSub === sub && accountView === v.key,
+            })),
         },
       ],
+    };
+  };
+  const sectionRunesBureau = sectionInventaireBureau('runes');
+  const sectionArtefactsBureau = sectionInventaireBureau('artefacts');
+
+  // Premier niveau. ⚠️ L'ordre d'importance est gardé — Accueil, puis le jeu
+  // (RTA, Siège, Arène), le compte, les outils, les ressources — mais Arène
+  // rejoint « Jouer », à côté du siège : c'est un mode de jeu.
+  const groupesBureau: SidebarGroupe[] = [
+    { liens: [{ key: 'home', label: 'Accueil', hash: '#/', icon: <IconeAccueil size={16} />, actif: route === 'home' }] },
+    {
+      titre: 'Jouer',
+      liens: [
+        { key: 'rta', label: 'RTA', icon: <IconeRta size={16} />, ouvre: sectionRtaBureau, actif: route === 'rta' },
+        { key: 'siege', label: 'Siège', icon: <IconeSiege size={16} />, ouvre: sectionSiegeBureau, actif: route === 'siege' },
+        { key: ARENE_ITEM.key, label: ARENE_ITEM.label, hash: ARENE_ITEM.hash, icon: <ARENE_ITEM.icon size={16} />, badge: 'Bientôt', actif: route === 'arene' },
+      ],
+    },
+    {
+      titre: 'Mon compte',
+      liens: [
+        {
+          key: 'monstres',
+          label: 'Monstres',
+          hash: hashVue('monstres', vueParDefaut('monstres')),
+          icon: <IconeMonstres size={18} />,
+          actif: route === 'compte' && accountSub === 'monstres',
+        },
+        { key: 'runes', label: 'Runes', icon: <IconeRunes size={18} />, ouvre: sectionRunesBureau, actif: route === 'compte' && accountSub === 'runes' },
+        { key: 'artefacts', label: 'Artéfacts', icon: <IconeArtefacts size={18} />, ouvre: sectionArtefactsBureau, actif: route === 'compte' && accountSub === 'artefacts' },
+      ],
+    },
+    {
+      titre: 'Outils',
+      liens: OUTILS_SUBS.map((sub) => ({
+        key: sub.sub,
+        label: sub.label,
+        hash: sub.hash,
+        icon: <sub.icon size={16} />,
+        actif: route === 'outils' && toolSub === sub.sub,
+      })),
     },
     {
       titre: 'Ressources',
@@ -993,7 +1091,7 @@ export default function App() {
         key: item.key,
         label: item.label,
         hash: item.hash,
-        icon: <item.icon size={17} color={item.couleur} />,
+        icon: <item.icon size={16} />,
         actif: route === item.key,
       })),
     },
@@ -1033,11 +1131,28 @@ export default function App() {
     siegeSub?.label ??
     sectionOuverte?.titre ??
     entreeCourante?.label ??
-    (route === 'parametres' ? 'Paramètres' : 'SW Forge');
-  // ⚠️ Deux branches : l'icône d'inventaire (`InventaireIcon`, au trait comme le
-  // reste) et la vue de siège (lucide) n'ont pas la même API — mais le MÊME style.
+    (route === 'parametres' ? 'Paramètres' : NOM_APP);
+  // Fil d'Ariane de la barre du haut, BUREAU : le chemin du menu bureau jusqu'à
+  // la page — intitulé de groupe, entrée, sous-section (« Jouer › Siège ›
+  // Défense », « Mon compte › Runes › Liste »). ⚠️ Tiré de `groupesBureau`,
+  // jamais ressaisi : il ne peut pas contredire la barre latérale. Une vue
+  // HORS menu (Meules, Gemmes — [retrait #6]) garde son nom par `compteVue`.
+  // Hors menu tout court (Paramètres) : le titre seul.
+  const filBureau: string[] = (() => {
+    for (const g of groupesBureau) {
+      const l = g.liens.find((x) => x.actif);
+      if (!l) continue;
+      const sous =
+        l.ouvre?.groupes.flatMap((x) => x.liens).find((s) => s.actif)?.label ??
+        (l.ouvre && compteVue ? compteVue : undefined);
+      return [g.titre, l.label, sous].filter((x): x is string => !!x);
+    }
+    return [titreSection];
+  })();
+  // Toutes les icônes de section ont la même API depuis le rebranding (R4,
+  // `IconesAtelier`) : `size` et `color`.
   const iconeSection = compteSub ? (
-    <InventaireIcon name={compteSub.icon} size={16} couleur={compteSub.couleur} />
+    <compteSub.icon size={16} color={compteSub.couleur} />
   ) : rtaSubItem ? (
     <rtaSubItem.icon size={16} color={rtaSubItem.couleur} />
   ) : siegeSub ? (
@@ -1045,7 +1160,7 @@ export default function App() {
   ) : (
     sectionOuverte?.icon ??
     (entreeCourante ? <entreeCourante.icon size={16} color={entreeCourante.couleur} /> : null) ??
-    (route === 'parametres' ? <Settings size={16} /> : null)
+    (route === 'parametres' ? <IconeParametres size={16} /> : null)
   );
 
   // TOUTES les destinations pour la recherche de navigation — sections ET
@@ -1058,25 +1173,29 @@ export default function App() {
   //
   // ⚠️ Les sous-sections portent leur SECTION en contexte : « Défense » seul ne
   // dit pas de quel écran il s'agit.
+  //
+  // ⚠️ Icônes NEUTRES, 16 px : la recherche vit dans la barre latérale bureau,
+  // et ses résultats doivent se lire comme les entrées du menu (décision 3 de
+  // la refonte — le menu est neutre).
   const ciblesRecherche: CibleNav[] = [
     ...NAV.map((i) => ({
       key: i.key,
       label: i.label,
       hash: i.hash,
-      icon: <i.icon size={15} color={i.couleur} />,
+      icon: <i.icon size={16} />,
     })),
     ...RTA_SUBS.map((s) => ({
       key: `rta-${s.sub}`,
       label: s.label,
       hash: s.hash,
-      icon: <s.icon size={15} color={s.couleur} />,
+      icon: <s.icon size={16} />,
       contexte: 'RTA',
     })),
     ...SIEGE_SUBS.map((t) => ({
       key: `siege-${t.tab}`,
       label: t.label,
       hash: t.hash,
-      icon: <t.icon size={15} color={t.couleur} />,
+      icon: <t.icon size={16} />,
       contexte: 'Siège',
     })),
     // ⚠️ Chaque VUE de chaque inventaire, pas seulement les trois inventaires :
@@ -1089,7 +1208,7 @@ export default function App() {
         key: `compte-${sub.sub}-${v.key}`,
         label: v.label,
         hash: hashVue(sub.sub, v.key),
-        icon: <v.icon size={15} color={sub.couleur} />,
+        icon: <v.icon size={16} />,
         contexte: sub.label,
       }))
     ),
@@ -1097,29 +1216,81 @@ export default function App() {
       key: `outils-${sub.sub}`,
       label: sub.label,
       hash: sub.hash,
-      icon: <sub.icon size={15} color={sub.couleur} />,
+      icon: <sub.icon size={16} />,
       contexte: 'Outils',
     })),
     {
       key: ARENE_ITEM.key,
       label: ARENE_ITEM.label,
       hash: ARENE_ITEM.hash,
-      icon: <ARENE_ITEM.icon size={15} color={ARENE_ITEM.couleur} />,
+      icon: <ARENE_ITEM.icon size={16} />,
     },
     ...RESOURCES.map((i) => ({
       key: i.key,
       label: i.label,
       hash: i.hash,
-      icon: <i.icon size={15} color={i.couleur} />,
+      icon: <i.icon size={16} />,
       contexte: 'Ressources',
     })),
     {
       key: 'parametres',
       label: 'Paramètres',
       hash: '#/parametres',
-      icon: <Settings size={15} />,
+      icon: <IconeParametres size={16} />,
     },
   ];
+
+  // Ce que la palette propose pour une saisie : les MÊMES pages que la recherche
+  // de la barre (dérivées du menu), puis monstres et actions (décision 29 —
+  // aucune destructrice). Règles de groupe, d'ordre et de plafond : voir
+  // `resultatsPalette`.
+  const groupesPalette = (saisie: string) =>
+    resultatsPalette({
+      saisie,
+      pages: ciblesRecherche.map((c) => ({
+        cle: c.key,
+        libelle: c.label,
+        contexte: c.contexte,
+        icone: c.icon,
+        faire: () => {
+          window.location.hash = c.hash;
+        },
+      })),
+      actions: [
+        { cle: 'a-import', libelle: 'Importer mon compte', icone: <Upload size={16} />, faire: () => fichierCompte.current?.click() },
+        ...THEME_CHOICES.map((t) => ({
+          cle: `a-theme-${t.key}`,
+          libelle: `Thème ${t.label.toLowerCase()}`,
+          contexte: t.hint,
+          icone: <SunMoon size={16} />,
+          faire: () => setTheme(t.key),
+        })),
+        {
+          cle: 'a-reco',
+          libelle: 'Créer une recommandation',
+          icone: <Plus size={16} />,
+          faire: () => {
+            recos.addReco();
+            window.location.hash = '#/siege/recommandations';
+          },
+        },
+        ...RUNE_METRICS.map((m) => ({
+          cle: `a-mesure-${m.key}`,
+          libelle: `Mesure : ${m.label}`,
+          contexte: m.hint,
+          icone: <Gauge size={16} />,
+          faire: () => setRuneMetric(m.key),
+        })),
+      ],
+      monstres: allMonsters,
+      equipes: [
+        ...siegeDef.state.teams.map((team, i) => ({ cote: 'defense' as const, rang: i + 1, team })),
+        ...siegeOff.state.teams.map((team, i) => ({ cote: 'offense' as const, rang: i + 1, team })),
+      ],
+      monsterById: monstreParId,
+      ouvrirFiche: setFicheMonstre,
+      ouvrirSpeedTune: (e) => setSpeedTuneEquipe({ source: e.cote, teamId: e.team.id }),
+    });
 
   // ⚠️ CINQ onglets mobiles au maximum — au-delà, les cibles passent sous 44 px.
   // Les quatre premiers sont les destinations de travail ; « Compte » ouvre la
@@ -1137,11 +1308,11 @@ export default function App() {
   // à l'une d'elles. (Tant qu'il n'y en avait qu'une, il restait un simple lien
   // — un panneau pour un seul choix n'ajoutait qu'un geste.)
   const ongletsMobile: OngletMobile[] = [
-    { key: 'home', label: 'Accueil', hash: '#/', icon: <Home size={17} color={COULEUR_SECTION.home} />, actif: route === 'home' },
-    { key: 'rta', label: 'RTA', ouvre: sectionRta.titre, icon: <Swords size={17} color={COULEUR_SECTION.rta} />, actif: route === 'rta' },
-    { key: 'siege', label: 'Siège', ouvre: sectionSiege.titre, icon: <Castle size={17} color={COULEUR_SECTION.siege} />, actif: route === 'siege' },
-    { key: 'compte', label: 'Compte', ouvre: sectionCompte.titre, icon: <CircleUserRound size={17} color={COULEUR_SECTION.compte} />, actif: route === 'compte' },
-    { key: 'outils', label: 'Outils', ouvre: sectionOutils.titre, icon: <Sparkles size={17} color={COULEUR_SECTION.outils} />, actif: route === 'outils' || route === 'bestiary' || route === 'mecaniques' || route === 'releases' || route === 'arene' },
+    { key: 'home', label: 'Accueil', hash: '#/', icon: <IconeAccueil size={17} color={COULEUR_SECTION.home} />, actif: route === 'home' },
+    { key: 'rta', label: 'RTA', ouvre: sectionRta.titre, icon: <IconeRta size={17} color={COULEUR_SECTION.rta} />, actif: route === 'rta' },
+    { key: 'siege', label: 'Siège', ouvre: sectionSiege.titre, icon: <IconeSiege size={17} color={COULEUR_SECTION.siege} />, actif: route === 'siege' },
+    { key: 'compte', label: 'Compte', ouvre: sectionCompte.titre, icon: <IconeCompte size={17} color={COULEUR_SECTION.compte} />, actif: route === 'compte' },
+    { key: 'outils', label: 'Outils', ouvre: sectionOutils.titre, icon: <IconeOutils size={17} color={COULEUR_SECTION.outils} />, actif: route === 'outils' || route === 'bestiary' || route === 'mecaniques' || route === 'releases' || route === 'arene' },
   ];
 
   // La section dont on choisit la sous-section, sur téléphone.
@@ -1153,10 +1324,13 @@ export default function App() {
     null;
 
   return (
-    // ⚠️ `data-ctx` sur la RACINE : c'est lui qui décide de l'accent contextuel
-    // de tout l'écran (voir index.css). Une page qui parle d'un monstre le
-    // posera à son élément ; partout ailleurs il reste absent, et `--ctx`
-    // retombe sur l'accent de l'app.
+    // ⚠️ La notification « … · Annuler » (lot 13, décision 29) enveloppe
+    // toute l'app : un geste qui se défait peut venir de n'importe quel écran.
+    <FournisseurNotification>
+    {/* ⚠️ `data-ctx` sur la RACINE : c'est lui qui décide de l'accent
+        contextuel de tout l'écran (voir index.css). Une page qui parle d'un
+        monstre le posera à son élément ; partout ailleurs il reste absent, et
+        `--ctx` retombe sur l'accent de l'app. */}
     <div
       // ⚠️ La marge suit le REPLI de la barre, et à la même courbe : sans ça,
       // la barre se replierait sur une colonne de vide. `--pad-nav` n'est posé
@@ -1174,30 +1348,26 @@ export default function App() {
           `position: sticky` aurait suffi visuellement, mais la barre doit
           rester en place quand le contenu défile sur 3 000 monstres. */}
       <Sidebar
-        groupes={groupesNav}
-        section={sectionOuverte}
-        recherche={
-          <SidebarSearch
-            cibles={ciblesRecherche}
+        groupes={groupesBureau}
+        compte={
+          <SidebarCompte
+            nom={accountName}
+            exporteLe={accountExportedAt}
+            nbMonstres={box.length}
             retractee={sidebarRetractee}
-            onDeplier={() => setSidebarRetractee(false)}
+            onImport={importAccount}
           />
+        }
+        recherche={
+          <SidebarSearch retractee={sidebarRetractee} onOuvrir={() => setPaletteOuverte(true)} />
         }
         retractee={sidebarRetractee}
         onToggleRetract={() => setSidebarRetractee((r) => !r)}
         pied={
-          /* ⚠️ Le pied dit QUI est chargé, et porte les deux gestes qui s'y
-             rapportent : changer de compte, régler l'app. Il a d'abord affiché
-             la date du dernier import dans une carte — une information qu'on ne
-             lit qu'une fois, occupant en permanence le bas de l'écran. Elle vit
-             maintenant dans les paramètres, à côté du réglage de conservation,
-             là où on se pose la question. */
-          <SidebarCompte
-            nom={accountName}
+          <SidebarParametres
+            actifs={route === 'parametres'}
             retractee={sidebarRetractee}
-            parametresActifs={route === 'parametres'}
-            onToggleParametres={basculerParametres}
-            onImport={importAccount}
+            onToggle={basculerParametres}
           />
         }
       />
@@ -1229,6 +1399,8 @@ export default function App() {
       <TopBar
         titre={titreSection}
         icone={iconeSection}
+        fil={filBureau}
+        onRecherche={() => setPaletteOuverte(true)}
         decalage={sidebarRetractee ? LARGEUR_SIDEBAR_RETRACTEE : LARGEUR_SIDEBAR}
         // ⚠️ Le burger n'apparaît que sur les pages qui ONT des actions : un
         // bouton qui ouvre un panneau vide est pire que pas de bouton.
@@ -1244,7 +1416,9 @@ export default function App() {
              réglages : trois éléments qui poussaient le titre centré en absolu
              SOUS eux, et le bouton ⚙ chevauchait « RTA ». */
           <a href="#/" className="flex items-center gap-2 lg:hidden">
-            <img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" className="h-6 w-6" />
+            {/* Le symbole en composant (rebranding R2), plus le favicon : ses
+                couleurs suivent le thème, le favicon a un fond fixe. */}
+            <SymboleLogo className="h-6 w-6" />
           </a>
         }
       />
@@ -1350,7 +1524,7 @@ export default function App() {
         ) : route === 'arene' ? (
           <ComingSoon
             title="Arène"
-            icon={Trophy}
+            icon={IconeArene}
             description="Préparation des équipes d'arène classique (offense et défense)."
           />
         ) : route === 'compte' ? (
@@ -1423,25 +1597,67 @@ export default function App() {
           />
         )}
 
-        <footer className="mt-16 text-center font-mono text-xs text-ink-dim space-y-2">
+        {/* ⚠️ **Le pied de page de la toile : UNE rangée** (rebranding R4 —
+            Thomas : « le pied de page commence à être vraiment gros »). Il
+            empilait cinq lignes centrées en police à chasse fixe. Au bureau :
+            logo à gauche, mentions au centre, liens à droite. Au téléphone,
+            une colonne centrée : logo, liens sur UNE ligne (libellés courts
+            « GitHub », « Discord », ceux de la toile — à côté du logo, les
+            libellés longs s'empilaient en trois lignes), mentions dessous
+            (`order-last`). Police du TEXTE, plus étroite que la mono. Aucune
+            phrase ni aucun lien retiré : les libellés longs restent au bureau,
+            et l'infobulle garde partout la phrase entière. */}
+        <footer
+          className="mt-16 grid grid-cols-1 justify-items-center gap-y-3 border-t border-border-soft pt-5
+                     text-xs text-ink-dim lg:grid-cols-[auto_1fr_auto] lg:items-center lg:justify-items-stretch lg:gap-x-6"
+        >
+          {/* Le logo (décision 30), en encre éteinte : une signature, pas un titre. */}
+          <p className="flex items-center gap-2">
+            <SymboleLogo className="h-6 w-6" />
+            <span className={`${CLASSE_NOM} text-xs`}>{NOM_APP}</span>
+          </p>
+          {/* Mentions en encre TERTIAIRE, comme la toile : elles informent, elles
+              ne doivent pas rivaliser avec le contenu (5.26 au pire). */}
+          <div className="space-y-1 text-center text-ink-dimmer max-lg:order-last">
+            <p>Toutes tes données restent en local dans ton navigateur.</p>
+            <p>
+              Données et images © Com2uS · Source :{' '}
+              <a href="https://swarfarm.com" target="_blank" rel="noreferrer" className="text-accent">
+                swarfarm.com
+              </a>
+              {/* Décision 30 : la mention de la toile — l'app montre des images
+                  et des données du jeu, elle dit qu'elle n'est pas officielle. */}
+              <span aria-hidden> · </span>
+              <span>Projet non officiel, sans affiliation avec Com2uS.</span>
+            </p>
+          </div>
           {/* Signature : projet perso, code ouvert, et un contact direct pour les
-              questions ou les demandes particulières. */}
-          <p className="flex items-center justify-center gap-x-4 gap-y-1 flex-wrap">
+              questions ou les demandes particulières.
+              ⚠️ Au bureau, les trois liens EN COLONNE (Thomas : « met sur une
+              colonne le github la version et le discord ») ; au téléphone, sur
+              une ligne, inchangé. Le BLOC se cale à droite (`justify-self-end`),
+              mais ses lignes s'alignent à GAUCHE (`items-start`) : alignées à
+              droite, les icônes se décalaient d'un libellé à l'autre (« revois
+              un peu l'affichage »).
+              ⚠️ En encre secondaire, la braise au survol — comme la toile :
+              trois liens en braise pesaient plus lourd que tout le pied. */}
+          <p className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 lg:flex-col lg:items-start lg:justify-self-end lg:gap-y-0.5">
             <a
               href="https://github.com/tototriou/sw-forge"
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-1.5 text-accent hoverable:text-ink transition"
-              title="Le code de SW Forge sur GitHub"
+              className="inline-flex items-center gap-1.5 text-ink-dim hoverable:text-accent transition"
+              title={`Le code de ${NOM_APP} sur GitHub`}
             >
-              <Github size={13} /> github.com/tototriou
+              <Github size={13} /> <span className="lg:hidden">GitHub</span>
+              <span className="hidden lg:inline">github.com/tototriou</span>
             </a>
             <a
               href="#/releases"
-              className="inline-flex items-center gap-1.5 text-accent hoverable:text-ink transition"
+              className="inline-flex items-center gap-1.5 text-ink-dim hoverable:text-accent transition"
               title="Voir les nouveautés de cette version"
             >
-              <Tag size={13} /> v{__APP_VERSION__}
+              <IconeNouveautes size={13} /> v{__APP_VERSION__}
             </a>
             {/* Lien vers le SERVEUR plutôt qu'un pseudo : un pseudo se recopie
                 à la main et ne mène nulle part au clic. */}
@@ -1449,17 +1665,11 @@ export default function App() {
               href={DISCORD_INVITE}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-1.5 text-accent hoverable:text-ink transition"
-              title="Rejoindre le serveur Discord de SW Forge"
+              className="inline-flex items-center gap-1.5 text-ink-dim hoverable:text-accent transition"
+              title={`Rejoindre le serveur Discord de ${NOM_APP}`}
             >
-              <MessageCircle size={13} /> Rejoindre le Discord
-            </a>
-          </p>
-          <p>Toutes tes données restent en local dans ton navigateur.</p>
-          <p>
-            Données et images © Com2uS · Source :{' '}
-            <a href="https://swarfarm.com" target="_blank" rel="noreferrer" className="text-accent">
-              swarfarm.com
+              <MessageCircle size={13} /> <span className="lg:hidden">Discord</span>
+              <span className="hidden lg:inline">Rejoindre le Discord</span>
             </a>
           </p>
         </footer>
@@ -1509,7 +1719,42 @@ export default function App() {
             onDismiss={() => repondreConservation(null)}
           />
         )}
+
+        {/* ---- Palette Ctrl K et ce qu'elle ouvre (lot 13, décision 29) --- */}
+        {paletteOuverte && (
+          <Palette groupesPour={groupesPalette} onFermer={() => setPaletteOuverte(false)} />
+        )}
+        {ficheMonstre && (
+          <MonsterDetailDialog
+            monster={ficheMonstre}
+            autre={autreForme(ficheMonstre, allMonsters)}
+            jumeau={jumeauDeCollab(ficheMonstre, allMonsters)}
+            onClose={() => setFicheMonstre(null)}
+          />
+        )}
+        {speedTuneEquipe && (
+          <SpeedTuneModale
+            deck={speedTuneEquipe}
+            allMonsters={allMonsters}
+            siegeDefenseTeams={siegeDef.state.teams}
+            siegeOffenseTeams={siegeOff.state.teams}
+            onClose={() => setSpeedTuneEquipe(null)}
+          />
+        )}
+        {/* « Importer mon compte » de la palette : le choix de fichier. */}
+        <input
+          ref={fichierCompte}
+          type="file"
+          accept=".json,application/json"
+          className="hidden"
+          onChange={async (e) => {
+            const f = e.target.files?.[0];
+            e.target.value = '';
+            if (f) importAccount(await f.text());
+          }}
+        />
       </div>
     </div>
+    </FournisseurNotification>
   );
 }

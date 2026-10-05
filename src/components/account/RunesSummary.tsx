@@ -3,7 +3,7 @@ import { RuneDetail, RUNE_SETS } from '../../types';
 import { RARITY_META, RUNE_EFFECT, runeEfficiency } from '../../lib/effects';
 import { runePotential } from '../../lib/runeOptim';
 import RuneIcon from '../RuneIcon';
-import { Kpi, Panel, BarRow, pct, fmt } from './SummaryBits';
+import { Kpi, Panel, BarRow, pct, fmt, CARTE_CHIFFRES_DOIGT } from './SummaryBits';
 
 interface Props {
   runes: RuneDetail[];
@@ -155,19 +155,41 @@ export default function RunesSummary({ runes }: Props) {
 
   const varTotal = s.mains.reduce((x, m) => x + m.n, 0);
 
+  // Par emplacement, à la souris : la hauteur de chaque barre suit l'efficience
+  // moyenne du slot, rapportée à la meilleure des six.
+  const moyMax = Math.max(...s.slots.map(({ agg }) => avg(agg)), 1);
+
   return (
     <div className="flex flex-col gap-4">
+      {/* ⚠️ **En-tête à la SOURIS** (refonte graphique, lot 8a, la maquette) :
+          le titre de la vue et le nombre de runes, comme les en-têtes de la
+          RTA et du Siège. Au doigt, la barre du haut dit déjà la vue (lot 11). */}
+      <div className="hidden items-center gap-2.5 lg:flex">
+        <h1 className="font-display text-xl tracking-wide text-ink">Résumé</h1>
+        <span className="rounded-full border border-border-soft bg-panel2 px-2 py-0.5 font-mono text-micro text-ink-dim">
+          {s.total.toLocaleString('fr-FR')} rune{s.total > 1 ? 's' : ''}
+        </span>
+      </div>
+
       {/* ---- Chiffres clés ---------------------------------------------- */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+      {/* ⚠️ À la SOURIS, UN bandeau (`Kpi bandeau`, la maquette `.stats`) :
+          six cases séparées par un filet, au lieu de six cartes. Au DOIGT,
+          une carte sur deux colonnes (lot 11c, décision 26). */}
+      <div
+        className={`grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2
+                   lg:flex lg:gap-0 lg:overflow-hidden lg:rounded-xl lg:border lg:border-border-soft lg:bg-panel
+                   ${CARTE_CHIFFRES_DOIGT}`}
+      >
         {/* Les tons reprennent la palette du résumé (`--pal-*`), qui suit le
             thème : mêmes teintes qu'avant en sombre, variante assombrie en
             clair. Voir spec/shared/design.md § Dataviz. */}
-        <Kpi label="Runes" value={s.total.toLocaleString('fr-FR')} sub={`${s.maxed} au +15`} />
+        <Kpi label="Runes" value={s.total.toLocaleString('fr-FR')} sub={`${s.maxed} au +15`} bandeau premier />
         <Kpi
           label={s.topN < TOP_N ? 'Eff. moyenne' : `Eff. moyenne · top ${TOP_N}`}
           value={`${fmt(s.topMean)} %`}
           sub={`médiane ${fmt(s.topMedian)} %`}
           tone="rgb(var(--pal-4))"
+          bandeau
         />
         <Kpi
           label="Eff. moyenne · top 100"
@@ -176,29 +198,39 @@ export default function RunesSummary({ runes }: Props) {
              seul nombre, « top 10126.1 % ». */
           sub={`top 10 : ${fmt(s.top10)} %`}
           tone="rgb(var(--pal-3))"
+          bandeau
         />
         <Kpi
           label="Meilleure"
           value={`${fmt(s.best)} %`}
           sub={`${s.over110} rune(s) ≥ 110 %`}
           tone="rgb(var(--star))"
+          bandeau
         />
         <Kpi
           label="≥ 100 %"
           value={s.over100.toLocaleString('fr-FR')}
           sub={`${fmt(pct(s.over100, s.total))} % du stock`}
           tone="rgb(var(--pal-2))"
+          bandeau
         />
         <Kpi
           label="Antiques"
           value={s.ancient.toLocaleString('fr-FR')}
           sub={`${fmt(pct(s.ancient, s.total))} % du stock`}
+          bandeau
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      {/* ⚠️ **À la SOURIS, TROIS colonnes** (la maquette) : Distribution ·
+          Qualité du stock · Marge de progression, puis Par emplacement et Stats
+          principales (sur deux colonnes), puis Par set (toute la largeur, il
+          n'est pas dans la maquette mais reste). L'ORDRE de la souris est posé
+          par `lg:order-*` ; au doigt, une colonne, dans l'ordre du code — celui
+          d'avant (lot 11). */}
+      <div className="flex flex-col gap-4 lg:grid lg:grid-cols-3">
         {/* ---- Distribution d'efficience -------------------------------- */}
-        <Panel title="Distribution d'efficience">
+        <Panel title="Distribution d'efficience" className="lg:order-1">
           <div className="flex flex-col gap-1.5">
             {EFF_BUCKETS.map((b, i) => (
               <BarRow
@@ -214,7 +246,7 @@ export default function RunesSummary({ runes }: Props) {
         </Panel>
 
         {/* ---- Qualité du stock ----------------------------------------- */}
-        <Panel title="Qualité du stock">
+        <Panel title="Qualité du stock" className="lg:order-2">
           <div className="flex flex-col gap-1.5">
             {/* Quatre mesures indépendantes : quatre teintes de la palette,
                 comme avant. Chaque barre porte son libellé et sa valeur, donc
@@ -255,11 +287,11 @@ export default function RunesSummary({ runes }: Props) {
             </div>
           </div>
         </Panel>
-      </div>
 
       {/* ---- Par slot ---------------------------------------------------- */}
-      <Panel title="Par emplacement">
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+      <Panel title="Par emplacement" className="lg:order-4">
+        {/* Au DOIGT : une carte par slot (lot 11). */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 lg:hidden">
           {s.slots.map(({ slot, agg }) => (
             <div key={slot} className="rounded-lg border border-border bg-panel2 px-3 py-2">
               <div className="flex items-baseline justify-between">
@@ -275,11 +307,34 @@ export default function RunesSummary({ runes }: Props) {
             </div>
           ))}
         </div>
+        {/* ⚠️ À la SOURIS, des BARRES VERTICALES (la maquette) : la hauteur
+            suit l'efficience moyenne du slot. Le nombre de runes et le
+            maximum restent écrits sous chaque barre — rien ne se perd. */}
+        <div className="hidden grid-cols-6 items-end gap-2 lg:grid" data-emplacements-barres>
+          {s.slots.map(({ slot, agg }) => (
+            <div key={slot} className="flex min-w-0 flex-col items-center gap-1">
+              <span className="font-mono text-micro text-ink">{fmt(avg(agg))} %</span>
+              {/* Même teinte que les barres des stats principales (`pal-4`),
+                  passée en `style` comme dans `BarRow`. */}
+              <div
+                className="w-full rounded-t"
+                style={{
+                  height: `${Math.max(4, (avg(agg) / moyMax) * 88)}px`,
+                  background: 'rgb(var(--pal-4))',
+                }}
+                aria-hidden
+              />
+              <span className="label">Slot {slot}</span>
+              <span className="text-center font-mono text-micro text-ink-dim">
+                {agg.n} · max <b className="text-star">{fmt(agg.best)} %</b>
+              </span>
+            </div>
+          ))}
+        </div>
       </Panel>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* ---- Stats principales (slots 2/4/6) -------------------------- */}
-        <Panel title="Stats principales (slots 2 · 4 · 6)">
+        <Panel title="Stats principales (slots 2 · 4 · 6)" className="lg:order-5 lg:col-span-2">
           <div className="flex flex-col gap-1.5">
             {s.mains.map((m) => (
               <BarRow
@@ -298,7 +353,7 @@ export default function RunesSummary({ runes }: Props) {
         </Panel>
 
         {/* ---- Marge de progression ------------------------------------- */}
-        <Panel title="Marge de progression">
+        <Panel title="Marge de progression" className="lg:order-3">
           <p className="mb-3 text-xs text-ink-dim leading-relaxed">
             Si chaque rune recevait sa gemme optimale puis sa meule au max, en scénario{' '}
             <b className="text-ink">légendaire</b>. Sur{' '}
@@ -327,10 +382,9 @@ export default function RunesSummary({ runes }: Props) {
             />
           </div>
         </Panel>
-      </div>
 
       {/* ---- Par set ----------------------------------------------------- */}
-      <Panel title={`Par set (${s.sets.length})`}>
+      <Panel title={`Par set (${s.sets.length})`} className="lg:order-6 lg:col-span-3">
         <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,148px),1fr))] gap-2">
           {s.sets.map(({ set, agg }) => (
             <div
@@ -353,6 +407,7 @@ export default function RunesSummary({ runes }: Props) {
           ))}
         </div>
       </Panel>
+      </div>
     </div>
   );
 }

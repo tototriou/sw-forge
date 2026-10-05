@@ -56,7 +56,7 @@ let cheminBundle: string | null = null;
 
 export async function ensureBuildHalfBundle(): Promise<string> {
   if (cheminBundle && existsSync(cheminBundle)) return cheminBundle;
-  const dossier = join(tmpdir(), `sw-forge-build-half-${Date.now()}-${process.pid}`);
+  const dossier = join(tmpdir(), `swblacksmith-build-half-${Date.now()}-${process.pid}`);
   mkdirSync(dossier, { recursive: true });
   cheminBundle = join(dossier, 'build-half-worker.cjs');
   await build({

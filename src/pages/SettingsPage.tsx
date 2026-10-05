@@ -40,6 +40,10 @@ export default function SettingsPage({
   // contrôle.
   return (
     <div className="mx-auto max-w-[620px]">
+      {/* ⚠️ À la SOURIS, le titre de la page (refonte graphique, lot 10, la
+          maquette), au gabarit des autres pages. Au doigt, la barre du haut
+          le dit déjà (lot 11). */}
+      <h1 className="mb-1 hidden font-display text-xl tracking-wide text-ink lg:block">Paramètres</h1>
       <p className="mb-4 text-sm leading-relaxed text-ink-dim">
         Ces réglages valent pour toute l'application et restent sur cet appareil.
       </p>
@@ -65,11 +69,15 @@ export default function SettingsPage({
         )}
         <AccountImportControl onImport={onImport} variant="desktop" />
       </div>
-      <div className="rounded-xl border border-border bg-panel px-4 py-1">
+      {/* ⚠️ Pas de carte ici : la liste pose ses deux blocs intitulés, chacun
+          dans sa carte (`groupes`, la maquette) — à la souris depuis le lot
+          10, au doigt depuis le lot 11d (décision 27). */}
+      <div className="mt-5">
         <SettingsList
           onClearData={onClearData}
           onKeepAccount={onKeepAccount}
           accountExportedAt={accountExportedAt}
+          groupes
         />
       </div>
     </div>

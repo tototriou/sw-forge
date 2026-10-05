@@ -97,7 +97,8 @@ Lib : `rtaShare`, `speed`, `stats`, `gearSync`, `artifacts`, `monsterForms`.
 **Siège** — `siege/SiegeBoard.tsx` (défense/offense), `siege/SiegeTeam.tsx`,
 `siege/RecoBoard.tsx` + `siege/RecoCard.tsx` (recommandations),
 `siege/LeadPill.tsx`. Hooks `useSiegeState`, `useSiegeRecos`. Lib `recoMatch`,
-`recoSearch`, `recoShare`, `recoFromSiege`, `ownedBuilds`, **`siegeStatut`**
+`recoSearch`, `recoShare`, `recoFromSiege`, `recoDefenses` (la vue Défense,
+calculée à partir des decks), `ownedBuilds`, **`siegeStatut`**
 (le statut vert/orange/rouge d'une équipe en mode « Vérifier mes tick ATB » —
 pur et testé, il ne vit pas dans la card).
 
@@ -191,7 +192,7 @@ jeu** (halo, éclat) et en sont exemptés.
 | `useSiegeState`, `useSiegeRecos` | défense/offense, recommandations |
 | `useOptimizerState`, `useBuildOptimSearch` | réglages et recherche de l'Optimiseur |
 | `useOptimizerLists` | Listes de travail + runes validées (Lot 3) — SEUL état de l'Optimiseur qui persiste sur disque, contrairement à `useOptimizerState` |
-| `usePersistence` | **un seul interrupteur** pour toute conservation ; ⚠️ aucun hook n'appelle `localStorage.setItem` directement |
+| `usePersistence` | **un seul interrupteur** pour toute conservation ; ⚠️ aucun hook n'appelle `localStorage.setItem` directement ; clés préfixées `swblacksmith-`, migrées depuis l'ancien nom par `lib/migrationStockage.ts` (premier import de `main.tsx`) |
 | `useStickyState` | état conservé en mémoire à travers la navigation, sans persister |
 | `useRuneMetric`, `useOvercapDisplay`, `useTheme` | réglages globaux (menu ⚙) |
 | `useMediaQuery` | une media query lue depuis React |
@@ -220,8 +221,9 @@ dans un composant.
 | Artéfacts | `artifacts.ts` |
 | Import de compte | `importAccount.ts` (parse SWEX), `applyAccount.ts` (→ états), `accountStore.ts` (IndexedDB), `accountViews.ts` |
 | Monstres | `monsterForms.ts`, `monsterSkills.ts`, `monsterSort.ts`, `collabPairs.ts` |
-| Siège / recos | `recoMatch.ts`, `recoSearch.ts`, `recoShare.ts`, `recoFromSiege.ts`, `ownedBuilds.ts` |
-| Divers | `effects.ts` (codes com2us → libellés), `crafts.ts`, `gearSync.ts`, `detecteurDebordement.ts` (dev seulement) |
+| Siège / recos | `recoMatch.ts`, `recoSearch.ts`, `recoShare.ts`, `recoFromSiege.ts`, `recoDefenses.ts`, `ownedBuilds.ts`, `annulerEdition.ts` (« Annuler les modifications » d'une reco ou d'un deck en édition) |
+| Fichiers exportés | `formatsExport.ts` (identifiant `swblacksmith/<nom>` écrit, l'ancien `sw-forge/<nom>` relu — lu par `rtaShare`, `recoShare`, `siegeShare`, `runeCurveShare`) |
+| Divers | `effects.ts` (codes com2us → libellés), `crafts.ts`, `gearSync.ts`, `detecteurDebordement.ts` (dev seulement), `migrationStockage.ts` (clés de stockage de l'ancien nom) |
 
 ---
 
@@ -268,6 +270,11 @@ Source de vérité du rendu : [`spec/shared/design.md`](spec/shared/design.md).
 - `scripts/fetch-monsters.mjs`, `fetch-skills.mjs`, `link-collabs.mjs` —
   régénèrent les données depuis SWARFARM.
 - `scripts/benchmark-*.mjs` — mesures de l'optimiseur.
+- `scripts/inventaire-ui.mjs` + `scripts/lib/inventaire-comparer.mjs` —
+  inventaire des points d'entrée visibles (textes, libellés, infobulles,
+  routes) comparé à une référence figée ; `scripts/chemins-interdits.mjs` —
+  ce qu'un lot de refonte ne touche pas. Chantier
+  `spec/chantiers/refonte-graphique.md`.
 - `scripts/lib/relicOracle.ts` — oracle de contrôle de la dimension relique : N recherches du moteur réel, une par principale éligible distincte, et point d'entrée CLI pour les mesures du chantier.
 - `src/data/releases.ts` — le journal des versions, lu par l'accueil **et** la
   page Nouveautés.
@@ -282,3 +289,14 @@ tris, optimiseur (dont un test différentiel).
 
 ⚠️ **Aucun test d'interface** — elle se vérifie à l'œil ; des tests d'affichage
 ne feraient que figer le rendu du jour.
+
+Une exception, qui ne fige PAS le rendu : `refonte-inventaire` refuse qu'une
+entrée visible (texte, libellé, infobulle, route) **disparaisse** sans
+déplacement déclaré ni décision écrite — la forme et la place restent libres.
+Référence et déplacements : `spec/chantiers/refonte-graphique-preuves/`.
+
+Même esprit pour les **tests de rendu** (`tests/rendu/`) : un vrai composant
+affiché avec `react-dom/server` et des données d'exemple, interrogé sur le
+SENS (texte, `aria-label`, `title`, `disabled`), jamais sur les classes ou la
+disposition — ils vérifient qu'une fonctionnalité est là, pas à quoi elle
+ressemble.

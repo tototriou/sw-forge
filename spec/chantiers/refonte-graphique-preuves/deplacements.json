@@ -1,0 +1,338 @@
+{
+  "src/App.tsx :: prop:label:Mon compte": {
+    "de": "src/App.tsx",
+    "vers": "src/App.tsx",
+    "devient": "prop:titre:Mon compte",
+    "pourquoi": "Lot 4, décision 5 : l'entrée « Mon compte » du premier niveau de la barre bureau devient le TITRE du groupe Mon compte, dont Monstres, Runes et Artéfacts sont des entrées directes."
+  },
+  "src/components/Sidebar.tsx :: attr:aria-label:Replier la navigation": {
+    "de": "src/components/Sidebar.tsx",
+    "vers": "src/components/Sidebar.tsx",
+    "devient": "attr:libelle:Replier la navigation",
+    "pourquoi": "Lot 4, décision 11 : le bouton de repli devient un BoutonIcone en tête de barre ; son libellé donne aria-label ET title."
+  },
+  "src/components/Sidebar.tsx :: attr:title:Replier la navigation": {
+    "de": "src/components/Sidebar.tsx",
+    "vers": "src/components/Sidebar.tsx",
+    "devient": "attr:libelle:Replier la navigation",
+    "pourquoi": "Lot 4, décision 11 : voir aria-label."
+  },
+  "src/components/Sidebar.tsx :: attr:aria-label:Déplier la navigation": {
+    "de": "src/components/Sidebar.tsx",
+    "vers": "src/components/Sidebar.tsx",
+    "devient": "attr:libelle:Déplier la navigation",
+    "pourquoi": "Lot 4, décision 11 : voir « Replier la navigation »."
+  },
+  "src/components/Sidebar.tsx :: attr:title:Déplier la navigation": {
+    "de": "src/components/Sidebar.tsx",
+    "vers": "src/components/Sidebar.tsx",
+    "devient": "attr:libelle:Déplier la navigation",
+    "pourquoi": "Lot 4, décision 11 : voir « Replier la navigation »."
+  },
+  "src/components/Sidebar.tsx :: texte:Replier": {
+    "de": "src/components/Sidebar.tsx",
+    "vers": "src/components/Sidebar.tsx",
+    "devient": "attr:libelle:Replier la navigation",
+    "pourquoi": "Lot 4, décision 11 : le repli passe en tête, en icône seule comme dans la maquette ; son nom reste dans l'infobulle et l'aria-label."
+  },
+  "src/components/Sidebar.tsx :: texte:Déplier": {
+    "de": "src/components/Sidebar.tsx",
+    "vers": "src/components/Sidebar.tsx",
+    "devient": "attr:libelle:Déplier la navigation",
+    "pourquoi": "Lot 4, décision 11 : voir « Replier »."
+  },
+  "src/components/Sidebar.tsx :: attr:title:{…} — revenir à toutes les sections": {
+    "de": "src/components/Sidebar.tsx",
+    "retrait": "A.2 bis #11",
+    "pourquoi": "Les sous-sections se déroulent sous leur entrée : plus de second niveau à remonter."
+  },
+  "src/components/Sidebar.tsx :: attr:aria-label:{…} — sous-sections": {
+    "de": "src/components/Sidebar.tsx",
+    "retrait": "A.2 bis #12",
+    "pourquoi": "Aperçu au survol à côté de la barre retiré : les sous-sections se déroulent sous leur entrée."
+  },
+  "src/pages/HomePage.tsx :: texte:Importer mon compte": {
+    "de": "src/pages/HomePage.tsx",
+    "vers": "src/pages/HomePage.tsx",
+    "devient": "attr:libelle:Importer mon compte",
+    "pourquoi": "Lot 5, décision 4 : le bouton du dernier appel devient le Bouton principal plein de la librairie ; son texte passe par `libelle`."
+  },
+  "src/components/SidebarCompte.tsx :: attr:title:Importer un export de compte SWEX": {
+    "de": "src/components/SidebarCompte.tsx",
+    "vers": "src/components/SidebarCompte.tsx",
+    "devient": "attr:title:Importer un export de compte SWEX (traité localement, rien n'est envoyé)",
+    "pourquoi": "Lot 4, décision 11 : une seule carte d'import, repliée ou non ; elle garde l'infobulle la plus complète des deux."
+  },
+  "src/components/siege/RecoCard.tsx :: attr:aria-label:Éditer la recommandation": {
+    "de": "src/components/siege/RecoCard.tsx",
+    "vers": "src/components/siege/RecoCard.tsx",
+    "devient": "attr:libelle:Éditer la recommandation",
+    "pourquoi": "Lot 7b, boutons de la page : le crayon de la recommandation, un <button> redessiné, devient un BoutonIcone de la librairie ; son libellé donne aria-label ET title."
+  },
+  "src/components/siege/RecoCard.tsx :: attr:title:Éditer la recommandation": {
+    "de": "src/components/siege/RecoCard.tsx",
+    "vers": "src/components/siege/RecoCard.tsx",
+    "devient": "attr:libelle:Éditer la recommandation",
+    "pourquoi": "Lot 7b, boutons de la page : voir aria-label."
+  },
+  "src/components/siege/RecoCard.tsx :: attr:aria-label:Terminer l'édition": {
+    "de": "src/components/siege/RecoCard.tsx",
+    "vers": "src/components/siege/RecoCard.tsx",
+    "devient": "attr:libelle:Terminer l'édition",
+    "pourquoi": "Lot 7b, boutons de la page : voir title."
+  },
+  "src/components/siege/RecoCard.tsx :: attr:aria-label:Terminer l'édition de ce deck": {
+    "de": "src/components/siege/RecoCard.tsx",
+    "vers": "src/components/siege/RecoCard.tsx",
+    "devient": "attr:libelle:Terminer l'édition de ce deck",
+    "pourquoi": "Lot 7b, boutons de la page : voir title."
+  },
+  "src/components/account/Pager.tsx :: attr:aria-label:Page précédente": {
+    "de": "src/components/account/Pager.tsx",
+    "vers": "src/components/account/Pager.tsx",
+    "devient": "attr:libelle:Page précédente",
+    "pourquoi": "Lot 8a (décision 16) : la flèche, un <button> redessiné, devient un BoutonIcone de la librairie ; son libellé donne aria-label ET title."
+  },
+  "src/components/account/Pager.tsx :: attr:title:Page précédente": {
+    "de": "src/components/account/Pager.tsx",
+    "vers": "src/components/account/Pager.tsx",
+    "devient": "attr:libelle:Page précédente",
+    "pourquoi": "Lot 8a : voir aria-label."
+  },
+  "src/components/siege/SiegeBoard.tsx :: attr:libelleCourt:Speed": {
+    "de": "src/components/siege/SiegeBoard.tsx",
+    "vers": "src/components/siege/SiegeBoard.tsx",
+    "devient": "attr:libelle:Vérifier mes speed",
+    "pourquoi": "Lot 11b (décision 25) : la forme courte ne servait qu'au bouton du panneau, en grille de trois ; l'interrupteur sur la page (l'Interrupteur de la librairie depuis le lot 13) porte le libellé entier."
+  },
+  "src/components/rta/RtaCard.tsx :: attr:titre:Retirer {…} de ta prépa ?": {
+    "de": "src/components/rta/RtaCard.tsx",
+    "retrait": "A.2 bis #29",
+    "pourquoi": "Lot 13 : le retrait d'un monstre de la prépa se défait (« … retiré de ta prépa · Annuler ») au lieu de se confirmer."
+  },
+  "src/components/rta/RtaCard.tsx :: texte:Sa vitesse saisie et son classement partent avec lui. Les autres monstres ne sont pas touchés.": {
+    "de": "src/components/rta/RtaCard.tsx",
+    "retrait": "A.2 bis #29",
+    "pourquoi": "Lot 13 : message du dialogue de confirmation retiré ; « Annuler » remet le monstre avec sa vitesse et son classement."
+  },
+  "src/components/siege/RecoCard.tsx :: attr:titre:Supprimer ce deck ?": {
+    "de": "src/components/siege/RecoCard.tsx",
+    "retrait": "A.2 bis #29",
+    "pourquoi": "Lot 13 : la suppression d'un deck se défait (« Deck supprimé · Annuler ») au lieu de se confirmer."
+  },
+  "src/components/siege/RecoCard.tsx :: attr:titre:Supprimer cette recommandation ?": {
+    "de": "src/components/siege/RecoCard.tsx",
+    "retrait": "A.2 bis #29",
+    "pourquoi": "Lot 13 : la suppression d'une recommandation se défait (« Recommandation supprimée · Annuler ») au lieu de se confirmer."
+  },
+  "src/components/siege/SiegeTeam.tsx :: attr:titre:Supprimer l'équipe {…} ?": {
+    "de": "src/components/siege/SiegeTeam.tsx",
+    "retrait": "A.2 bis #29",
+    "pourquoi": "Lot 13 : la suppression d'une équipe se défait (« Équipe retirée … · Annuler ») au lieu de se confirmer."
+  },
+  "src/components/SidebarSearch.tsx :: attr:placeholder:Aller à…": {
+    "de": "src/components/SidebarSearch.tsx",
+    "vers": "src/components/SidebarSearch.tsx",
+    "devient": "texte:Aller à…",
+    "pourquoi": "Lot 13 (décision 29) : le champ de la barre ouvre la palette Ctrl K ; il devient un bouton à l'aspect de champ, dont « Aller à… » est le texte."
+  },
+  "src/components/SidebarSearch.tsx :: texte:Aucune page": {
+    "de": "src/components/SidebarSearch.tsx",
+    "vers": "src/components/Palette.tsx",
+    "devient": "texte:Aucun résultat pour «",
+    "pourquoi": "Lot 13 (décision 29) : la recherche de pages vit dans la palette, qui cherche aussi monstres et actions ; son message vide couvre les trois natures."
+  },
+  "src/components/SettingsMenu.tsx :: texte:Tout supprimer": {
+    "de": "src/components/SettingsMenu.tsx",
+    "vers": "src/components/SettingsMenu.tsx",
+    "devient": "attr:libelle:Tout supprimer",
+    "pourquoi": "Lot 10 : le bouton, dessiné à la main, devient un Bouton de la librairie (ton danger) ; même texte affiché, même infobulle."
+  },
+  "src/components/account/Pager.tsx :: attr:aria-label:Page suivante": {
+    "de": "src/components/account/Pager.tsx",
+    "vers": "src/components/account/Pager.tsx",
+    "devient": "attr:libelle:Page suivante",
+    "pourquoi": "Lot 8a (décision 16) : la flèche, un <button> redessiné, devient un BoutonIcone de la librairie ; son libellé donne aria-label ET title."
+  },
+  "src/components/account/Pager.tsx :: attr:title:Page suivante": {
+    "de": "src/components/account/Pager.tsx",
+    "vers": "src/components/account/Pager.tsx",
+    "devient": "attr:libelle:Page suivante",
+    "pourquoi": "Lot 8a : voir aria-label."
+  },
+  "src/components/account/RunesList.tsx :: texte:Choisis une propriété ci-dessus pour trier dessus.": {
+    "de": "src/components/account/RunesList.tsx",
+    "vers": "src/components/account/RunesList.tsx",
+    "devient": "texte:Choisis une propriété ci-dessous pour trier dessus.",
+    "pourquoi": "Lot 8a : « Trier par » passe AU-DESSUS de la propriété secondaire (demande de Thomas) ; l'avertissement du tri, posé dans son bloc, désigne donc la propriété « ci-dessous ». Au doigt, le tri était déjà remonté en tête du panneau : « ci-dessus » y était déjà faux."
+  },
+  "src/components/siege/RecoBoard.tsx :: prop:label:Toutes": {
+    "de": "src/components/siege/RecoBoard.tsx",
+    "retrait": "A.2 bis #19",
+    "pourquoi": "Le filtre d'origine (Toutes / Mes recos / Importées) est remplacé par la vue Attaque / Défense, à la demande de Thomas. La pastille « Importée » reste sur chaque carte reçue."
+  },
+  "src/components/siege/RecoBoard.tsx :: prop:label:Mes recos": {
+    "de": "src/components/siege/RecoBoard.tsx",
+    "retrait": "A.2 bis #19",
+    "pourquoi": "Filtre d'origine remplacé par la vue Attaque / Défense : voir « Toutes »."
+  },
+  "src/components/siege/RecoBoard.tsx :: prop:label:Importées": {
+    "de": "src/components/siege/RecoBoard.tsx",
+    "retrait": "A.2 bis #19",
+    "pourquoi": "Filtre d'origine remplacé par la vue Attaque / Défense : voir « Toutes »."
+  },
+  "src/components/siege/RecoBoard.tsx :: texte:Origine": {
+    "de": "src/components/siege/RecoBoard.tsx",
+    "retrait": "A.2 bis #19",
+    "pourquoi": "L'intitulé du filtre d'origine dans le panneau « Options » : le contrôle devient la vue, intitulée « Vue »."
+  },
+  "src/components/siege/RecoBoard.tsx :: message:mine": {
+    "de": "src/components/siege/RecoBoard.tsx",
+    "retrait": "A.2 bis #19",
+    "pourquoi": "Bascule du filtre sur « mes recos » à la création ou à l'import : plus de filtre d'origine, plus rien à rebasculer."
+  },
+  "src/components/siege/RecoBoard.tsx :: attr:title:Exporter les recommandations affichées (celles du filtre actif)": {
+    "de": "src/components/siege/RecoBoard.tsx",
+    "retrait": "A.2 bis #19",
+    "pourquoi": "Infobulle de « Tout exporter » sous un filtre d'origine actif : plus de filtre d'origine, l'infobulle est toujours « Exporter toutes les recommandations en un seul fichier »."
+  },
+  "src/components/siege/RecoBoard.tsx :: texte:dans ce filtre": {
+    "de": "src/components/siege/RecoBoard.tsx",
+    "retrait": "A.2 bis #19",
+    "pourquoi": "Fin du message « aucun résultat » sous un filtre d'origine actif : plus de filtre d'origine."
+  },
+  "src/components/siege/RecoBoard.tsx :: texte:Tu n'as créé aucune recommandation pour l'instant.": {
+    "de": "src/components/siege/RecoBoard.tsx",
+    "retrait": "A.2 bis #19",
+    "pourquoi": "État vide du filtre « Mes recos » : plus de filtre d'origine, cet état n'existe plus (sans recommandation, l'état vide général de la page reste)."
+  },
+  "src/components/siege/RecoBoard.tsx :: texte:Tu n'as importé aucune recommandation pour l'instant.": {
+    "de": "src/components/siege/RecoBoard.tsx",
+    "retrait": "A.2 bis #19",
+    "pourquoi": "État vide du filtre « Importées » : voir « Tu n'as créé aucune recommandation »."
+  },
+  "src/components/siege/RecoBoard.tsx :: texte:Voir toutes les recommandations": {
+    "de": "src/components/siege/RecoBoard.tsx",
+    "retrait": "A.2 bis #19",
+    "pourquoi": "Lien de sortie des états vides du filtre d'origine : ces états n'existent plus."
+  },
+  "src/components/siege/RecoCard.tsx :: attr:libelle:Réanalyser mes decks": {
+    "de": "src/components/siege/RecoCard.tsx",
+    "retrait": "A.2 bis #17",
+    "pourquoi": "« Analyser mes decks » devient un bouton à deux états : une fois l'analyse affichée, le clic la masque. Relancer se fait en deux clics."
+  },
+  "src/components/TopBar.tsx :: texte:Se déconnecter": {
+    "de": "src/components/TopBar.tsx",
+    "vers": "src/components/TopBar.tsx",
+    "devient": "attr:libelle:Se déconnecter",
+    "pourquoi": "Décision 16, boutons unifiés : « Se déconnecter » de la barre du haut, un <button> redessiné, devient un Bouton de la librairie ; son texte passe par `libelle`."
+  },
+  "src/components/siege/RecoCard.tsx :: attr:aria-label:Terminer": {
+    "de": "src/components/siege/RecoCard.tsx",
+    "vers": "src/components/siege/RecoCard.tsx",
+    "devient": "attr:libelle:Terminer",
+    "pourquoi": "Lot 7b, boutons de la page : le ✓ « Terminer » d'une défense visée, un <button> redessiné, devient un BoutonIcone de la librairie ; son libellé donne aria-label ET title."
+  },
+  "src/components/siege/RecoCard.tsx :: attr:title:Terminer": {
+    "de": "src/components/siege/RecoCard.tsx",
+    "vers": "src/components/siege/RecoCard.tsx",
+    "devient": "attr:libelle:Terminer",
+    "pourquoi": "Lot 7b, boutons de la page : voir aria-label."
+  },
+  "src/components/siege/RecoCard.tsx :: attr:title:Terminer l'édition": {
+    "de": "src/components/siege/RecoCard.tsx",
+    "vers": "src/components/siege/RecoCard.tsx",
+    "devient": "attr:libelle:Terminer l'édition",
+    "pourquoi": "Lot 7b, boutons de la page : l'état « en édition » du même crayon, même passage par `libelle` (aria-label ET title)."
+  },
+  "src/components/siege/RecoCard.tsx :: attr:aria-label:Éditer ce deck": {
+    "de": "src/components/siege/RecoCard.tsx",
+    "vers": "src/components/siege/RecoCard.tsx",
+    "devient": "attr:libelle:Éditer ce deck",
+    "pourquoi": "Lot 7b, boutons de la page : le crayon du deck, un <button> redessiné, devient un BoutonIcone de la librairie ; son libellé donne aria-label ET title."
+  },
+  "src/components/siege/RecoCard.tsx :: attr:title:Éditer ce deck": {
+    "de": "src/components/siege/RecoCard.tsx",
+    "vers": "src/components/siege/RecoCard.tsx",
+    "devient": "attr:libelle:Éditer ce deck",
+    "pourquoi": "Lot 7b, boutons de la page : voir aria-label."
+  },
+  "src/components/siege/RecoCard.tsx :: attr:title:Terminer l'édition de ce deck": {
+    "de": "src/components/siege/RecoCard.tsx",
+    "vers": "src/components/siege/RecoCard.tsx",
+    "devient": "attr:libelle:Terminer l'édition de ce deck",
+    "pourquoi": "Lot 7b, boutons de la page : l'état « en édition » du même crayon, même passage par `libelle` (aria-label ET title)."
+  },
+  "src/App.tsx :: attr:title:Le code de SW Forge sur GitHub": {
+    "de": "src/App.tsx",
+    "vers": "src/App.tsx",
+    "devient": "attr:title:Le code de SW Blacksmith sur GitHub",
+    "pourquoi": "Rebranding « SW Blacksmith », R2, décision 2 : le nom de l'app, lu dans src/marque.ts."
+  },
+  "src/App.tsx :: attr:title:Rejoindre le serveur Discord de SW Forge": {
+    "de": "src/App.tsx",
+    "vers": "src/App.tsx",
+    "devient": "attr:title:Rejoindre le serveur Discord de SW Blacksmith",
+    "pourquoi": "Rebranding R2, décision 15 : l'infobulle Discord dit SW Blacksmith ; le lien d'invitation ne change pas."
+  },
+  "src/components/Sidebar.tsx :: texte:SW Forge": {
+    "de": "src/components/Sidebar.tsx",
+    "vers": "src/components/Logo.tsx",
+    "devient": "texte:SW Blacksmith",
+    "pourquoi": "Rebranding R2 : le logo de la barre latérale devient le composant Logo (symbole de la charte et nom), qui porte le texte."
+  },
+  "src/pages/HomePage.tsx :: texte:SW Forge": {
+    "de": "src/pages/HomePage.tsx",
+    "vers": "src/pages/HomePage.tsx",
+    "devient": "texte:SW Blacksmith",
+    "pourquoi": "Rebranding R2, décision 2 : le titre du héros est le nom de l'app."
+  },
+  "src/pages/MechanicsPage.tsx :: texte:Ces effets ne sont pas modélisés dans SW Forge (qui se concentre sur la vitesse, les ticks et les runes).": {
+    "de": "src/pages/MechanicsPage.tsx",
+    "vers": "src/pages/MechanicsPage.tsx",
+    "devient": "texte:Ces effets ne sont pas modélisés dans SW Blacksmith (qui se concentre sur la vitesse, les ticks et les runes).",
+    "pourquoi": "Rebranding R2, décision 2 : le nom de l'app."
+  },
+  "src/pages/ReleasesPage.tsx :: texte:Ce qui a changé à chaque version de SW Forge. La version en cours est rappelée en bas de chaque page.": {
+    "de": "src/pages/ReleasesPage.tsx",
+    "vers": "src/pages/ReleasesPage.tsx",
+    "devient": "texte:Ce qui a changé à chaque version de SW Blacksmith. La version en cours est rappelée en bas de chaque page.",
+    "pourquoi": "Rebranding R2, décision 2 : le nom de l'app. L'historique des versions (data/releases.ts), lui, garde « SW Forge »."
+  },
+  "src/components/siege/RecoCard.tsx :: prop:texte:text-fire": {
+    "de": "src/components/siege/RecoCard.tsx",
+    "vers": "src/components/siege/RecoCard.tsx",
+    "devient": "prop:texte:text-bad",
+    "pourquoi": "Rebranding R6, décision 43 : les verdicts « À revoir » et « Monstre manquant » passent du rouge de l'élément Feu au rouge d'état."
+  },
+  "src/components/siege/SiegeBoard.tsx :: attr:titre:Effacer toutes les équipes d'{…} ?": {
+    "de": "src/components/siege/SiegeBoard.tsx",
+    "vers": "src/components/siege/SiegeBoard.tsx",
+    "devient": "attr:titre:Effacer toutes les équipes {…} ?",
+    "pourquoi": "Faute corrigée (V0 du rebranding, Thomas) : « équipes d'défense » ; l'élision vient désormais avec le mot (« de défense » / « d'attaque »)."
+  },
+  "src/components/siege/SiegeBoard.tsx :: texte:Aucune équipe d'": {
+    "de": "src/components/siege/SiegeBoard.tsx",
+    "vers": "src/components/siege/SiegeBoard.tsx",
+    "devient": "texte:Aucune équipe",
+    "pourquoi": "Faute corrigée (V0 du rebranding, Thomas) : « Aucune équipe d'défense » ; l'élision vient désormais avec le mot."
+  },
+  "src/components/account/RunesOptim.tsx :: texte:= potentiel − efficience actuelle : ce que la rune gagnerait. Sur chaque carte, il est affiché en": {
+    "de": "src/components/account/RunesOptim.tsx",
+    "vers": "src/components/account/RunesOptim.tsx",
+    "devient": "texte:= potentiel − efficience actuelle : ce que la rune gagnerait. Sur chaque carte, sa ligne garde la couleur de la rareté visée ; dans le détail d'une rune, il est en",
+    "pourquoi": "Rebranding R8 (Thomas) : sur les tuiles de l'Optimisation, une couleur par ligne, celle de la rareté ; le vert / rouge du gain ne vit plus que dans le plan détaillé. L'aide le dit."
+  },
+  "src/components/account/RunesOptim.tsx :: texte:si le potentiel est au-dessus de l'actuelle, en": {
+    "de": "src/components/account/RunesOptim.tsx",
+    "vers": "src/components/account/RunesOptim.tsx",
+    "devient": "texte:s'il est positif, en",
+    "pourquoi": "Rebranding R8 (Thomas) : même reformulation de l'aide, le vert / rouge décrit le gain du plan détaillé."
+  },
+  "src/components/account/RunesOptim.tsx :: texte:s'il est en dessous (ex. une rune déjà grindée légendaire « perd » en héroïque — ce cas disparaît sous « Faisable avec ma réserve »).": {
+    "de": "src/components/account/RunesOptim.tsx",
+    "vers": "src/components/account/RunesOptim.tsx",
+    "devient": "texte:s'il est négatif (ex. une rune déjà grindée légendaire « perd » en héroïque — ce cas disparaît sous « Faisable avec ma réserve »).",
+    "pourquoi": "Rebranding R8 (Thomas) : même reformulation de l'aide."
+  }
+}

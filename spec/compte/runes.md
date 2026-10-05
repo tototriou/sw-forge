@@ -38,7 +38,7 @@ Formules et écart entre les deux : [calcul-runes.md §3 et §3 bis](calcul-rune
 - ⚠️ **C'est un RÉGLAGE GLOBAL de l'application**, pas un filtre de page : il se
   pose **une fois** dans le menu **⚙** (tout à droite de la barre de nav, voir
   [../README.md](../README.md)). Aucun sélecteur n'est répété dans les pages.
-- **Persisté** dans `localStorage` (`sw-forge-rune-metric-v1`) : un réglage
+- **Persisté** dans `localStorage` (`swblacksmith-rune-metric-v1`) : un réglage
   d'application survit au rechargement, contrairement aux filtres et tris qui
   sont des préférences de vue jetables. Effacé par « Supprimer mes données ».
 - Implémenté par un **store externe** (`useSyncExternalStore`,
@@ -83,6 +83,31 @@ pagination** (rien n'est rendu par rune → un seul passage mémoïsé sur l'inv
 fluide à ~2000 runes). Fichier :
 [RunesSummary.tsx](src/components/account/RunesSummary.tsx).
 
+⚠️ **À la SOURIS, la disposition de la maquette** (refonte graphique, lot
+8a-2), sans rien retirer ni ajouter :
+- un **en-tête** : « Résumé » et le nombre de runes ;
+- les six chiffres clés dans **un bandeau** (`Kpi bandeau`) : des cases
+  séparées par un filet, au lieu de six cartes ;
+- **trois colonnes** : Distribution · Qualité du stock · Marge de
+  progression, puis Par emplacement et Stats principales (sur deux
+  colonnes), puis Par set sur toute la largeur. La maquette n'a pas Par
+  set, mais il reste ;
+- **Par emplacement** en barres verticales : la hauteur suit l'efficience
+  moyenne ; le nombre de runes et le maximum sont écrits sous chaque barre.
+
+L'ordre de la souris est posé par `lg:order-*`. Au doigt, une colonne dans
+l'ordre d'avant, et les cartes par slot. ⚠️ **Au doigt, les six chiffres clés
+dans UNE carte** (lot 11c, décision 26, la maquette — qui n'en montrait que
+quatre ; les six restent) : deux colonnes (trois dès `sm`), les cases séparées
+par un filet d'1 px venu de l'écart de la grille sur fond `border-soft`
+(`CARTE_CHIFFRES_DOIGT`, `SummaryBits.tsx`) — un seul trait entre deux cases,
+aucun contre le bord. Même traitement au Résumé des artéfacts. Non repris de la
+maquette, et gardés pour le lot 13 (décision 20) :
+- le tableau des stats principales slot par slot (une information
+  nouvelle) ;
+- le lien « Voir l'optimisation » ;
+- le choix de la mesure dans la page, qui reste un réglage du ⚙.
+
 Blocs, dans l'ordre :
 
 1. **Chiffres clés** (6 tuiles) : nombre de runes (+ nb au **+15**) ·
@@ -126,6 +151,13 @@ Blocs, dans l'ordre :
    la couleur du set), effectif, efficience moyenne et max, **triée par volume**.
 
 ## Onglet Liste — `RunesList`
+
+⚠️ **À la SOURIS, un en-tête** (refonte graphique, lot 8a-2, la maquette) :
+« Liste » et le nombre de runes de l'INVENTAIRE ; le compte FILTRÉ reste
+au-dessus des tuiles. La **pagination** (`Pager`, partagé par toutes les
+pages qui paginent) a ses flèches en `BoutonIcone` de la librairie : même
+carré de 28 px à cadre, même zone tactile de 44 px (décision 16). La
+pagination numérotée de la maquette est repoussée au lot 13 (décision 20).
 
 ### ⚠️ La tuile EST la carte du jeu
 
@@ -269,6 +301,30 @@ déroulante (règle de vocabulaire du [README](../README.md)). Calcul pur dans
 [runeSort.ts](src/lib/runeSort.ts), testé par
 [rune-tri.test.ts](tests/rune-tri.test.ts).
 
+⚠️ **Le tri de la Liste reste une LISTE DÉROULANTE**, à la hauteur des
+filtres de la ligne à la souris (32 px) — refonte graphique, lot 8a. Des
+onglets (`Segmented`) ont été essayés à la demande de Thomas (« le tri des
+runes ne peut pas être un segmented button comme le reste ? »), puis défaits :
+neuf entrées font ~920 px (« ça fait peut-être un peu gros »). Le tri de
+l'**Optimisation**, cinq entrées (~640 px), est en onglets à la souris ; au
+doigt, les deux restent des listes déroulantes (lot 11).
+
+⚠️ **« Trier par » est AU-DESSUS de la propriété secondaire**, aux deux
+formats (Thomas, lot 8a : « mets le Trier par au-dessus de la propriété ») —
+trier vient avant filtrer, comme dans le panneau mobile, où le bloc de tri
+remontait déjà en tête. L'avertissement des deux tris « propriété » dit donc
+« Choisis une propriété **ci-dessous** pour trier dessus » (il disait
+« ci-dessus », faux au doigt depuis que le tri y était remonté).
+
+⚠️ **Le panneau « Filtrer mes runes » (téléphone) est rangé en deux blocs
+intitulés** (refonte graphique, lot 11c, décision 26, la maquette) :
+**« Trier »** (le sélecteur et le sens ; l'intitulé « Trier par » y est masqué,
+redondant), puis **« Filtrer »** (sets, emplacement, antiques, propriété
+secondaire), puis **« Effacer les filtres »** — le même bouton qu'au bout de la
+ligne de filtres à la souris (`EffacerFiltres`, décision 20). Le tri reste en
+tête, par l'ORDRE DU DOM ; la maquette mettait « Filtrer » d'abord. La règle
+d'`index.css` qui le remontait (`order: -1`) est retirée.
+
 | Entrée | Clé de tri |
 |--------|-----------|
 | **Grade** | rareté, puis étoiles |
@@ -277,12 +333,19 @@ déroulante (règle de vocabulaire du [README](../README.md)). Calcul pur dans
 | **Nv. d'amélioration** | le `+X` |
 | **Obtenu** | les plus récentes d'abord |
 | **Total des sous-prop.** | somme des quatre propriétés |
-| **Score** | le score du jeu (défaut) |
-| *Efficience* | notre mesure (%) |
+| **Score** *ou* *Efficience* | la mesure choisie dans le menu ⚙ (défaut) |
 | *Slot* | du 1 au 6 |
 
-Les deux dernières n'existent pas dans le jeu et **ferment** la liste :
-l'efficience est notre mesure, le slot sert au repérage.
+⚠️ **Une seule entrée de mesure, celle du menu ⚙** (refonte graphique,
+décision 21, [retrait #21] — Thomas : « il y a Score et Efficience mais
+c'est la même chose ») : « Score » (le score du jeu) quand le ⚙ est sur
+Score SW, « Efficience » (notre mesure, %) quand il est sur Efficience. Les
+deux entrées côte à côte classaient aussi par la mesure qu'on ne voit pas sur
+les tuiles, pour un classement presque identique. Un tri mémorisé sur l'autre
+mesure suit le ⚙ (et un tri inconnu retombe sur la mesure active).
+
+« Efficience » et « Slot » n'existent pas dans le jeu et **ferment** la
+liste : l'efficience est notre mesure, le slot sert au repérage.
 
 - ⚠️ **« Avant meule » DÉDUIT la meule**, il ne l'ignore pas : deux runes à
   20 % ne se valent pas si l'une y est arrivée seule et l'autre à coups de
@@ -415,6 +478,27 @@ Deux pièces, reprises telles quelles :
   partagée avec la roue de [MonsterGear.tsx](src/components/MonsterGear.tsx).
 
 ## Onglet Courbes — `RunesCurve`
+
+⚠️ **À la SOURIS** (refonte graphique, lot 8a-3, la maquette) :
+- un en-tête : « Courbes », puis ce qu'elles tracent (« Efficience de chaque
+  rune, de la meilleure à la moins bonne. », ou « Score », selon le ⚙) ;
+- le graphe et sa légende côte à côte : la légende (`CurveLegend`, en
+  colonne) passe dans une carte « Séries » à droite du graphe.
+
+Au doigt, la rangée sous le graphe d'avant (lot 11). « Ajouter un set » et
+« Voir en tableau » de la maquette sont repoussés au lot 13 (décision 20).
+
+⚠️ **L'infobulle de survol est du HTML posé sur le graphe** (lot 8a — Thomas :
+« revois un peu les infobulles pour que ça rende mieux ») : le gabarit des
+panneaux flottants de l'app (fond `panel`, contour, ombre, texte 12 px ; la
+maquette `.tt`), qui suit le thème. Dessinée en SVG, c'était une boîte aux
+couleurs écrites en dur, sombre même en thème clair, et les noms étaient
+coupés à 16 caractères ; ils sont maintenant tronqués à la largeur réelle.
+Mêmes informations, même place : le rang (« N runes »), puis une ligne par
+courbe, point de couleur, nom, valeur alignée à droite. La grille, les
+graduations, les titres d'axes et le liseré des points passent eux aussi aux
+tokens (`border-soft`, encres atténuées, `panel`). Vaut aussi pour la
+Comparaison, qui partage `CurveChart`.
 
 Trois courbes, chacune **triée par valeur décroissante** (ordonnée = la **mesure
 choisie** — efficience % ou score SW, l'axe et l'infobulle s'adaptent ; abscisse =
@@ -637,6 +721,14 @@ un écran de résultats, et la place libérée profite immédiatement.
 
 Se comparer entre amis en superposant plusieurs courbes.
 
+⚠️ **À la SOURIS** (refonte graphique, lot 8a-3, la maquette) :
+- le titre « Comparaison » en tête de la rangée des sous-onglets ;
+- dans les deux sous-onglets, le graphe et sa légende côte à côte, la
+  légende dans une carte « Séries », comme l'onglet Courbes.
+
+Au doigt, rien ne change (lot 11). Le tableau chiffré entre comptes et le
+« Retirer » par ligne de la maquette sont repoussés au lot 13 (décision 20).
+
 ### ⚠️ DEUX sous-onglets, parce que les deux formats ne portent pas la même chose
 
 | Sous-onglet | Ce qu'il AFFICHE | Filtres disponibles |
@@ -668,9 +760,11 @@ sinon on la prend pour un oubli.
 ### Courbes partagées
 
 - **Exporter** (icône **Upload ↑**) : demande un nom, produit un **JSON lisible**
-  (`format: "sw-forge/courbe-runes"`, **version 2**, voir
-  [runeCurveShare.ts](src/lib/runeCurveShare.ts)) — **téléchargé** en
-  `swforge-runes-<nom>.json` **et copié** au presse-papier.
+  (`format: "swblacksmith/courbe-runes"`, **version 2**, voir
+  [runeCurveShare.ts](src/lib/runeCurveShare.ts) ; `sw-forge/courbe-runes`
+  avant le rebranding, toujours relu — la lecture reconnaît le contenu, pas
+  l'identifiant) — **téléchargé** en `swblacksmith-runes-<nom>.json` **et
+  copié** au presse-papier.
   - ⚠️ Le fichier porte **LES DEUX séries** : `efficiences` **et** `scores`.
     Celui qui l'importe la lit donc dans **sa** mesure, sans dépendre du réglage
     de l'expéditeur.
@@ -778,6 +872,37 @@ sous-onglet : c'est ce qui permet un bouton unique qui les vide toutes les deux.
 [SetFilter.tsx](src/components/account/SetFilter.tsx), partagé par **Liste**,
 **Courbes** et **Optimisation**.
 
+⚠️ **À la SOURIS, les filtres tiennent sur UNE ligne, tous VISIBLES**
+(refonte graphique, lot 8a, décision 20 précisée) —
+[FiltresRunes.tsx](../../src/components/account/FiltresRunes.tsx) : sets ·
+emplacements · antiques, les MÊMES contrôles qu'avant (`SetFilter`,
+`SlotFilter`, `AncientFilter`, inchangés), puis **« Effacer les filtres »**.
+Ils prenaient trois rangées.
+- ⚠️ **Aucun menu déroulant** : la maquette en posait trois (« Set ▾ »,
+  « Emplacement ▾ », « Antiques ▾ »). Essayés, puis défaits par Thomas, pour
+  les sets d'abord (« pas très fan d'avoir des drop-down pour un set filtre
+  dedans »), puis pour le reste (« sors tout des boutons »). Un filtre fermé
+  dans un menu ne dit pas ce qu'il filtre sans qu'on l'ouvre.
+- ⚠️ **Tous au même gabarit, celui du `Segmented`** (Thomas : « ce serait
+  bien que les boutons aient tous la même tête ») : à la souris, les barres
+  de sets et d'emplacements prennent le cadre `panel2` de 32 px, des cases de
+  26 px et le marqueur du `Segmented` (sans contour ; un aplat de braise
+  depuis le rebranding, décision 19 — fond d'accent doux avant),
+  comme le filtre des antiques voisin —
+  [gabaritFiltre.ts](../../src/components/account/gabaritFiltre.ts).
+  « Effacer les filtres » est à la même hauteur (32 px), et les antiques
+  reçoivent l'intitulé « Runes », comme leurs voisins « Sets » et « Slot »
+  (c'est celui que leur donne déjà l'Optimisation). Avant, trois gabarits
+  cohabitaient : barres de 38 px au fond `panel` et cases cerclées d'accent,
+  `Segmented` de 32 px, bouton de 28 px.
+- « Effacer les filtres » remet tous les sets, tous les emplacements et
+  toutes les runes. Il est **toujours affiché**, désactivé quand rien n'est
+  filtré (« Aucun filtre posé »).
+- L'Optimisation n'a que Set et Emplacement : ses antiques vivent dans ses
+  options, avec « Faisable avec ma réserve ».
+- **Au doigt, rien ne change** (lot 11) : la Liste garde ses rangées dans le
+  panneau « Options » ; les Courbes et l'Optimisation, dans la page.
+
 ⚠️ **Règle d'interface : un filtre de set affiche l'icône du jeu, SANS le nom.**
 Partout dans l'appli. Les icônes sont reconnues d'un coup d'œil par n'importe
 quel joueur, alors qu'une rangée de libellés fait un mur de texte et réduit le
@@ -840,6 +965,12 @@ largeur de leur contenu.
 
 ## Onglet Optimisation — `RunesOptim`
 
+⚠️ **À la SOURIS, un en-tête** (refonte graphique, lot 8a-3, la maquette) :
+« Optimisation », puis « Ce que tes meules et gemmes permettent d'améliorer,
+rune par rune. ». Les tuiles et leur plan, qui s'ouvre au clic, ne changent
+pas. La maquette écrit le plan DANS chaque carte, toujours visible : c'est un
+changement de comportement, à décider avec Thomas, pas fait ici.
+
 Calcule, pour chaque rune, son **potentiel maximal** et **ce qu'il faut faire**
 pour l'atteindre. Calcul pur & linéaire dans [runeOptim.ts](src/lib/runeOptim.ts)
 (`runePotential`, `runePlan`) — réutilisable dans un Web Worker.
@@ -900,7 +1031,8 @@ classiques/antiques, héro/légend) et l'**algorithme complet** `best()` sont da
 
 ### Affichage & interactions
 
-- **Tri** (dropdown) : Efficience actuelle (défaut) · Potentiel héroïque ·
+- **Tri** (onglets à la souris, liste déroulante au doigt — voir § Tri de la
+  Liste) : Efficience actuelle (défaut) · Potentiel héroïque ·
   Potentiel légendaire · Gain héroïque · Gain légendaire. **Gain** = potentiel −
   efficience actuelle.
 - **Palier** : champ % — n'affiche que les runes dont l'efficience actuelle ≥ palier
@@ -935,8 +1067,21 @@ classiques/antiques, héro/légend) et l'**algorithme complet** `best()` sont da
     (« hors antiques » / « antiques seules »), pour qu'un résultat vide ne passe
     pas pour une absence de runes.
 - **Tuiles** : efficience **actuelle**, puis **Héro** et **Légend** avec leur gain
-  et l'efficience cible colorée **vert** (au-dessus de l'actuelle) / **rouge** (en
-  dessous — seulement hors filtre de réserve, voir `noDowngrade`).
+  et l'efficience cible.
+  - ⚠️ **Une couleur par ligne, celle de sa rareté** (Thomas, rebranding R8,
+    2026-09-30) : « Héro −7,1 → 133,0 % » tout en violet (`rarity-4`),
+    « Légend » tout en or (`star`). La cible était colorée **vert** / **rouge** selon
+    qu'elle passait au-dessus ou en dessous de l'actuelle, et la ligne se
+    lisait en deux couleurs. Le signe du gain porte le sens ; le vert / rouge
+    ne vit plus que dans le plan détaillé d'une rune (`OptimPlanBox`), un gain
+    négatif n'existant d'ailleurs que hors filtre de réserve (`noDowngrade`).
+  - ⚠️ **La ligne « actuelle » en braise**, mot compris, la valeur en gras
+    (`text-accent`, la braise lisible ; Thomas, même jour, sur planche :
+    encre, braise, bleu ciel, vert) — une couleur par ligne, comme les deux
+    autres.
+    Dans la couleur de la rareté de la rune, elle se confondait avec la ligne
+    de même rareté (violette comme « Héro » sur une héroïque, orange près de
+    l'or de « Légend » sur une légendaire).
   Pagination 60/page.
   - ⚠️ **DEUX grilles, une par format** (même patron que l'onglet Liste) : sous
     `lg`, **deux colonnes fixes** ; à partir de `lg`, l'`auto-fill` à 230 px. Sur
@@ -966,10 +1111,17 @@ classiques/antiques, héro/légend) et l'**algorithme complet** `best()` sont da
 Comme la Liste, l'Optimisation gagne le bouton « Options » de la barre de nav sur
 téléphone (`pageAPanneau` dans [App.tsx](src/App.tsx) — les vues qui étalent une
 **grille de tuiles** y ont droit, pas le résumé ni les courbes). Mais **seuls
-huit** contrôles y descendent : **palier**, **gemme + meule / meule seule**,
-**« Autoriser un regemme différent »**, **filtre antique**, **« Faisable avec ma réserve »**, **« Sans les
-immémoriaux »**, **« Runes utilisées »** et **« Marqueurs »**. **Sets, slot, tri
-et l'aide restent dans la page**, à tous les formats.
+sept** contrôles y descendent : **palier**, **« Autoriser un regemme
+différent »**, **filtre antique**, **« Faisable avec ma réserve »**, **« Sans
+les immémoriaux »**, **« Runes utilisées »** et **« Marqueurs »**. **Sets,
+slot, tri et l'aide restent dans la page**, à tous les formats.
+
+⚠️ **« Gemme + meule / Meule seule » est en TÊTE DE LA PAGE au téléphone**
+(refonte graphique, lot 11c, décision 26, la maquette), sur toute la largeur,
+avant les filtres : c'est ce qui change toute la liste — on le voit et on le
+bascule sans ouvrir le panneau. Il était le deuxième contrôle du panneau. Au
+bureau, il reste dans la rangée d'options (`modeControl`, écrit une fois,
+posé aux deux endroits).
 
 - ⚠️ **Au bureau, le groupe en ligne passe à la ligne tout seul**
   (`lg:flex-wrap`). Il est **un seul élément** de la rangée de filtres : sans
@@ -977,9 +1129,10 @@ et l'aide restent dans la page**, à tous les formats.
   de ses contrôles, et c'est la **page** qui déborde par la droite — la
   rangée parente, elle, ne voit qu'un bloc et n'a rien à replier. Constaté au
   sixième contrôle, sur un écran de bureau ordinaire.
-- Les huit sont écrits **une fois** (`optionsControls`) et posés à deux
-  endroits : **en ligne au bureau** (`hidden lg:flex`), **dans le panneau au
-  doigt** (`MobileSheet`). L'argument `large` élargit les segmentés à toute la
+- Les contrôles sont écrits **une fois** (`optionsControls`) et posés à deux
+  endroits : **en ligne au bureau** (`hidden lg:flex`, les huit, mode
+  compris), **dans le panneau au doigt** (`MobileSheet`, sans le mode :
+  `avecMode` faux). L'argument `large` élargit les segmentés à toute la
   largeur du panneau (`size="lg"`) ; en ligne ils restent serrés.
 - ⚠️ **Dans le panneau, tout occupe la largeur — les cinq boutons aussi.**
   Les segmentés sont pleins (`size="lg"`) ; « Autoriser un regemme différent »,

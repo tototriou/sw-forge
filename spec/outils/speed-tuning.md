@@ -41,6 +41,33 @@ vitesse_combat = base + runes + ⌈ base × (15 + lead) / 100 ⌉
   `⌈ 10000 / (7n) ⌉` (`speedForTick`) : 130 au tick 11, **239 au tick 6**
   (« Lent » en siège), **286 au tick 5** (« Rapide »), 477 au tick 3.
 
+### ⚠️ Mode RTA — non modélisé, chantier à ouvrir
+
+**Les 7 % par tick sont ceux du siège** (et de l'arène, de la guerre de
+guilde). **La RTA remplit la barre de 1,5 % de la vitesse par tick**, les
+raids de 4,5 % :
+
+> « In most areas of the game the tick size is 7%, the only exceptions are
+> in Raids (4.5%) and RTA (1.5%) » —
+> [Ellia's Wiki](https://elliabot.neocities.org/game_mechanics/attack_bar/),
+> même chose sur le [wiki Fandom](https://summonerswar.fandom.com/wiki/Attack_Bar).
+
+L'outil ne connaît que le siège : un réglage validé ici ne vaut pas pour la
+RTA dès qu'un boost de barre ou un buff de vitesse entre en jeu (sans
+modificateur, l'ordre est le même : tout le monde est ralenti dans la même
+proportion). Demandé par Thomas le 2026-09-28 — **chantier à part**, pas la
+refonte graphique (il touche `src/lib/`). Ce qu'il devra trancher :
+
+- un réglage **Siège / RTA** de l'outil, qui change la constante du moteur
+  (`speedTune.ts`), le seuil par tick (`speedForTick`) et le repère des ticks
+  (239 / 286 n'existent qu'en siège) ;
+- la **longueur des tableaux** : à 1,5 %, un monstre à 300 de vitesse joue
+  vers le 23ᵉ tick — les 40 colonnes ne montreraient que son premier tour ;
+- le **totem +15 %**, compté partout aujourd'hui (voir plus haut), y
+  compris dans l'ordre de tour de la RTA : les bâtiments comptent-ils en
+  RTA ? **Non établi** — à citer ou à mesurer en jeu avant de coder (skill
+  `game-data-curation`, §6 ter : pas de déduction par ressemblance).
+
 Deux **modificateurs par tick** (saisis dans les grilles, voir plus bas) entrent
 dans la simulation. ⚠️ **Une valeur saisie REMPLACE ce que les compétences
 posent** pour ce monstre et ce tick — **0 annule** l'effet du sort, une case
@@ -1185,8 +1212,13 @@ De haut en bas :
    (tick NATUREL = `⌈10000/(7×combat)⌉`, sans la règle « un par tick » : le repère
    lit la VITESSE, pas l'ordre final). Un adversaire porte un contour `bad` — on
    repère d'un coup d'œil un ennemi qui tombe au même tick que soi.
-2. **Deux camps** côte à côte (flex-wrap, pas de breakpoint de largeur) : **Ton
-   équipe** et **En face**. Chacun a son **lead** (`Selecteur`), sa liste de
+2. **Deux camps** côte à côte (flex-wrap, qui suit la place réelle — page ou
+   modale) : **Ton équipe** et **En face**. ⚠️ **Au TÉLÉPHONE, toujours
+   empilés** (`max-lg:flex-col`, refonte graphique, lot 11d) : dès 560 px,
+   deux camps de 280 px tenaient côte à côte et chacun devenait trop étroit —
+   le lead débordait de l'en-tête, les réglages de chaque monstre
+   s'empilaient (relevé par Thomas en mode appareil). L'en-tête du camp passe
+   à la ligne au lieu de déborder. Chacun a son **lead** (`Selecteur`), sa liste de
    monstres (portrait, **SPD de base seule**, champ vitesse de runes, vitesse de
    combat) et sa **barre de recherche** d'ajout (combobox `Champ` + `Flottant`,
    même grammaire que RtaSearch — voir
@@ -1201,7 +1233,14 @@ De haut en bas :
    corriger là où il est. Un même monstre peut
    figurer des DEUX côtés (`uid = camp:id`), pas deux fois dans le même camp.
    **Chaque camp** porte sous sa barre de recherche un bouton **« Importer un
-   deck de siège »** (voir plus bas). Chaque monstre est une **card** avec, en **haut à droite** (convention app),
+   deck de siège »** (voir plus bas). ⚠️ **À la souris**, ce bouton passe dans
+   l'**en-tête de la carte du camp**, à côté du lead, en taille compacte, sa
+   liste calée à droite (refonte graphique, décision 22 : on voit sans lire
+   quel camp il remplace). Au doigt, il reste sous la recherche.
+   L'en-tête est alors sur **deux lignes dans les deux camps** : le titre, puis
+   lead et import calés à droite. Laissé au hasard de la largeur, « Ton
+   équipe » passait à la ligne et pas « En face » — Thomas : « il faut que le
+   rendu soit le même ». Chaque monstre est une **card** avec, en **haut à droite** (convention app),
    les **flèches** (monter / descendre dans l'équipe), l'**œil** (masquer /
    afficher) et la **croix** de suppression. Un monstre **masqué** reste dans son
    camp (grisé) mais quitte les calculs et les trois tableaux — pour tester une
@@ -1407,7 +1446,13 @@ De haut en bas :
    Comme pour le boost, une case vide laisse la **compétence** décider (valeur en
    repère), une valeur saisie la remplace et `0` l'annule.
 8. **Ordre de tour** — jetons entrelaçant les deux camps, chacun avec son rang et
-   son tick.
+   son tick. ⚠️ **À la souris, il remonte sous l'ordre des sorts et l'analyse**,
+   avant les trois tableaux (refonte graphique, décision 22) : c'est la
+   conclusion qu'on vient lire. Au doigt, il reste tout en bas (lot 11).
+
+⚠️ **En-tête à la souris** (refonte graphique, lot 9b) : le titre au gabarit
+des autres pages (police d'affichage), sans la pastille d'icône, la règle des
+ticks dessous. En modale, pas d'en-tête : la modale porte titre et règle.
 
 Les trois tableaux **partagent les mêmes colonnes de ticks** (1 → au moins 12,
 étendu jusqu'au dernier tick d'action) : on peut donc poser un modificateur sur

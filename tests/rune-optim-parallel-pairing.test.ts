@@ -86,7 +86,7 @@ let workerBundleDir: string | null = null;
 async function ensureWorkerBundle(): Promise<string> {
   if (workerBundlePath && existsSync(workerBundlePath)) return workerBundlePath;
   const runId = `${Date.now()}-${process.pid}`;
-  workerBundleDir = join(tmpdir(), `sw-forge-tests-pairing-quota-${runId}`);
+  workerBundleDir = join(tmpdir(), `swblacksmith-tests-pairing-quota-${runId}`);
   mkdirSync(workerBundleDir, { recursive: true });
   workerBundlePath = join(workerBundleDir, 'pairing-quota-worker.cjs');
   await build({ entryPoints: ['scripts/lib/pairing-quota-worker.ts'], bundle: true, platform: 'node', format: 'cjs', outfile: workerBundlePath, logLevel: 'error' });

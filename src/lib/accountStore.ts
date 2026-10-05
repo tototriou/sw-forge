@@ -9,7 +9,7 @@
 //     en UTF-16 (2 octets par caractère). Le modèle utile d'un gros compte pèse
 //     2,2 Mo (box 0,73 + runes 0,91 + artéfacts 0,53), soit ~4,4 Mo de quota :
 //     à la limite. L'export brut, lui, fait 5 à 8 Mo — impossible.
-//  2. Tout SW Forge partage ce même budget de 5 Mo : prépa RTA, équipes de
+//  2. Toute l'app partage ce même budget de 5 Mo : prépa RTA, équipes de
 //     siège, recommandations, catégories, monstres perso. Ces données-là sont
 //     **écrites à la main** par le joueur, il ne peut pas les régénérer. Le
 //     compte, lui, se réimporte en deux secondes. Mettre le gros consommable
@@ -99,7 +99,10 @@ export interface StoredAccount {
 // retombait sur les artéfacts réellement portés, sans le moindre signal.
 export const ACCOUNT_SCHEMA = 7;
 
-const DB_NAME = 'sw-forge';
+// Renommée au rebranding (décision 66) : la base s'appelait `sw-forge`. Elle
+// est reprise une fois, à la première ouverture — voir `reprendreAncienneBase`.
+const DB_NAME = 'swblacksmith';
+const ANCIENNE_BASE = 'sw-forge';
 const DB_VERSION = 1;
 const STORE = 'account';
 const KEY = 'current'; // ⚠️ clé FIXE : un seul compte, celui du joueur.
@@ -138,13 +141,118 @@ function openDb(): Promise<IDBDatabase | null> {
       const db = req.result;
       if (!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE);
     };
-    req.onsuccess = () => resolve(req.result);
+    // ⚠️ La reprise de l'ancienne base passe AVANT toute opération : la file
+    // ne voit la connexion qu'une fois le compte recopié, sinon la première
+    // lecture rendrait « aucun compte » à un utilisateur qui en a un.
+    req.onsuccess = () => {
+      const db = req.result;
+      reprendreAncienneBase(db).then(
+        () => resolve(db),
+        () => resolve(db)
+      );
+    };
     req.onerror = () => resolve(null);
     // Un autre onglet garde une version antérieure ouverte : on n'insiste pas,
     // on repart en mémoire plutôt que d'attendre indéfiniment.
     req.onblocked = () => resolve(null);
   });
   return dbPromise;
+}
+
+/* --------------------------------------------------------------------------
+ * Reprise de l'ancienne base `sw-forge` (rebranding, décision 66)
+ * ----------------------------------------------------------------------- */
+
+// Ouvre l'ancienne base SI elle existe. ⚠️ `indexedDB.open` CRÉE une base
+// absente : on l'en empêche en annulant la création (`oldVersion === 0`), sans
+// quoi chaque lancement laisserait une base `sw-forge` vide derrière lui.
+function ouvrirAncienneBase(): Promise<IDBDatabase | null> {
+  return new Promise((resolve) => {
+    let req: IDBOpenDBRequest;
+    try {
+      req = indexedDB.open(ANCIENNE_BASE);
+    } catch {
+      resolve(null);
+      return;
+    }
+    req.onupgradeneeded = (e) => {
+      if (e.oldVersion === 0) req.transaction?.abort();
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => resolve(null); // y compris la création annulée
+    req.onblocked = () => resolve(null);
+  });
+}
+
+function lireBrut(db: IDBDatabase): Promise<unknown> {
+  return new Promise((resolve) => {
+    try {
+      const req = db.transaction(STORE, 'readonly').objectStore(STORE).get(KEY);
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => resolve(undefined);
+    } catch {
+      resolve(undefined);
+    }
+  });
+}
+
+function ecrireBrut(db: IDBDatabase, valeur: unknown): Promise<boolean> {
+  return new Promise((resolve) => {
+    try {
+      const t = db.transaction(STORE, 'readwrite');
+      t.objectStore(STORE).put(valeur, KEY);
+      t.oncomplete = () => resolve(true);
+      t.onabort = () => resolve(false); // quota
+      t.onerror = () => resolve(false);
+    } catch {
+      resolve(false);
+    }
+  });
+}
+
+function supprimerBase(nom: string): Promise<void> {
+  return new Promise((resolve) => {
+    try {
+      const req = indexedDB.deleteDatabase(nom);
+      req.onsuccess = () => resolve();
+      req.onerror = () => resolve();
+      // Un onglet resté sur l'ancienne version tient la base ouverte : la
+      // suppression aura lieu quand il se fermera, on n'attend pas.
+      req.onblocked = () => resolve();
+    } catch {
+      resolve();
+    }
+  });
+}
+
+// Recopie le compte de l'ancienne base dans la nouvelle, puis supprime
+// l'ancienne. ⚠️ **Jamais de perte** : l'ancienne n'est supprimée qu'une fois
+// la copie RELUE dans la nouvelle ; sinon elle reste, et la reprise
+// recommencera au lancement suivant. Un compte déjà présent dans la nouvelle
+// base fait foi (enregistré depuis la mise à jour) — l'ancien n'est alors
+// qu'un doublon périmé.
+export async function reprendreAncienneBase(db: IDBDatabase): Promise<void> {
+  const vieille = await ouvrirAncienneBase();
+  if (!vieille) return;
+  try {
+    if (vieille.objectStoreNames.contains(STORE)) {
+      const ancien = await lireBrut(vieille);
+      if (ancien !== undefined && (await lireBrut(db)) === undefined) {
+        if (!(await ecrireBrut(db, ancien)) || (await lireBrut(db)) === undefined) return;
+      }
+    }
+  } finally {
+    vieille.close();
+  }
+  await supprimerBase(ANCIENNE_BASE);
+}
+
+// Ferme la connexion et l'oublie : la prochaine opération rouvre la base, et
+// refait donc la reprise. Réservé aux tests — l'app garde une connexion unique.
+export function oublierConnexion(): Promise<void> {
+  const p = dbPromise;
+  dbPromise = null;
+  return (p ?? Promise.resolve(null)).then((db) => db?.close());
 }
 
 function tx<T>(mode: IDBTransactionMode, run: (store: IDBObjectStore) => IDBRequest): Promise<T | null> {

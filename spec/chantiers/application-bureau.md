@@ -119,7 +119,7 @@ Q1 → 7 (les données dépendent du choix de Thomas)
 | Lot | Cat. | Statut | Commit / date |
 |-----|------|--------|---------------|
 | 1 coquille Electron | J | **fait** — protocole `app://`, mode preuve, 19 tests | `dbcc1db0`, 2026-10-05 |
-| 1 bis habillage de la fenêtre (décision 7) | J | à faire — arrêt avant commit | |
+| 1 bis habillage de la fenêtre (décision 7) | J | **validé par Thomas** (« oui tu peux commit ») — barre intégrée, état mémorisé, sans menu | `274cda58`, 2026-10-05 |
 | 2 le web dans la coquille (liens, téléchargements, audience, `estBureau`) | J | à faire | |
 | 3 empaquetage Windows (NSIS) et Linux (AppImage) | M | à faire | |
 | 4 action GitHub au tag | J | à faire | |
@@ -261,6 +261,20 @@ bureau` : 19 passées ; mutation du pilote (garde « hors racine » retirée) :
 (`npm run bureau:local`) — déplacer, agrandir, changer de thème, rouvrir.
 
 **Ne fait pas** : liens externes, téléchargements (lot 2).
+
+**Résultat (2026-10-05)** — `274cda58`, validé par Thomas après relecture
+de l'arrêt, preuve [lot-1bis.md](application-bureau-preuves/lot-1bis.md).
+Contrôles de l'intérieur : `data-bureau`, barre `drag`, boutons `no-drag`,
+137 px réservés aux boutons de Windows, aucun menu, 1440 × 900 au premier
+lancement ; captures de la fenêtre entière (Forge, Atelier). Tests : bureau
+38 passées, rendus + inventaire 977 passées ; mutation du pilote (garde
+« hors écran » neutralisée) : 3 échecs — restaurée. Écarts :
+- zone des boutons à **47 px**, pas 48 : à 48 elle recouvrait le filet du bas
+  de la barre ;
+- `estBureau()` et `src/lib/bureau.ts`, prévus au lot 2, sont faits ici ;
+- un premier lancement s'est ouvert agrandi, non reproduit ensuite — cause
+  non établie, à surveiller à la séance d'écran ;
+- le mode preuve vit désormais dans ses propres données (`<dossier>/donnees`).
 
 ### Lot 2 — le web dans la coquille · J
 

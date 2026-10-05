@@ -94,6 +94,7 @@ export const RELEASES: Release[] = [
       { kind: 'fix', scope: 'Runes', text: 'Le tri n’a plus qu’une mesure, celle choisie dans ⚙.' },
       { kind: 'fix', scope: 'Siège', text: '« Aucune équipe de défense » : la faute de « d’défense » est corrigée.' },
       { kind: 'fix', scope: 'Fichiers', text: 'Les fichiers téléchargés commencent par « swblacksmith- » ; les anciens se relisent.' },
+      { kind: 'fix', scope: 'Confidentialité', text: 'Plus aucune mesure d’audience : rien ne quitte ton navigateur.' },
     ],
   },
   {

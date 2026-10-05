@@ -140,11 +140,12 @@ Concepts partagés par plusieurs pages, documentés une seule fois :
   - ⚠️ **Utilisateur déjà installé** : des données déjà présentes sur le disque
     valent **consentement**. Sans cette reprise, la mise à jour retirerait en
     silence une conservation dont il dispose depuis toujours.
-- **Statistiques de fréquentation** : **Vercel Web Analytics**
-  ([Analytics.tsx](src/components/Analytics.tsx)), sans cookie, limité aux pages
-  visitées. ⚠️ Le routage étant **par hash**, un `beforeSend` réécrit l'URL pour
-  que la route devienne le chemin — sinon toutes les visites seraient comptées
-  sur « / ».
+- **Aucune statistique de fréquentation.** La mesure d'audience Vercel Web
+  Analytics a été **retirée, du site comme de l'application de bureau**
+  (Thomas, 2026-10-05 — décision 6 du chantier
+  [application-bureau.md](chantiers/application-bureau.md)) : rien ne quitte
+  le navigateur, ce que dit le « 100 % local ». ⚠️ Ne pas la réintroduire sans
+  décision : elle n'aurait de toute façon aucun sens dans l'app de bureau.
 - **Vérifications automatiques** — `npm test`
   ([tests/README.md](tests/README.md)). Volontairement limitées aux endroits où
   une erreur serait **grave et invisible** : vitesse de combat, lecture d'un

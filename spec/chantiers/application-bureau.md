@@ -136,8 +136,10 @@ Q1 → 7 (les données dépendent du choix de Thomas)
    passe par le gestionnaire de paquets). macOS hors périmètre.
 4. **Q4 → plus tard** : l'import automatique du dossier SWEX est un chantier
    à part, hors 2.0.0.
+5. **Q5 → l'accueil** : « Télécharger pour Windows / Linux » sur la page
+   d'accueil seulement (ni barre latérale, ni Nouveautés).
 
-Restent ouvertes **Q5** (lot 6) et **Q6** (lot 2) ci-dessous.
+Reste ouverte **Q6** (lot 2) ci-dessous.
 
 Les lots 1 à 3 n'en dépendent pas ; chacune bloque le lot indiqué.
 

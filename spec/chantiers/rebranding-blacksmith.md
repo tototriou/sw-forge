@@ -41,6 +41,9 @@ suit la structure, dans les limites des décisions de Thomas.
 - les **clés de stockage** `sw-forge-*`, `sky-arena-*` et les formats de
   fichiers exportés — les renommer ferait perdre à chacun sa prépa, ses
   équipes et son compte. Le nom ne vit que dans des TEXTES ;
+  ⚠️ **Levé par la décision 66 (2026-10-05)** : renommés, mais AVEC
+  migration du stockage et relecture des anciens fichiers — la raison
+  (ne rien perdre) tient toujours, c'est le moyen qui change ;
 - les **rendus du jeu** (roue de runes, cadres, fiches, portraits, icônes
   d'élément et de set) — la charte le dit elle-même : « Monstres, éléments,
   runes, objets : visuels du jeu, repris tels quels » ;
@@ -116,18 +119,19 @@ Les lots R1 à R6 ont été commités avant d'être vus : c'est l'objet du V0.
 | R1 jetons : deux thèmes, police de texte, arrondis | J | **validé par Thomas** (« continues », après les décisions 11 à 13) | 2026-09-29, [lot-R1.md](rebranding-preuves/lot-R1.md) |
 | R2 nom et logo | J | **validé par Thomas** (« continues », image de partage comprise) | 2026-09-29, [lot-R2.md](rebranding-preuves/lot-R2.md) |
 | R2 bis le logo de la nouvelle identité (décisions 24 à 26) | J | **validé par Thomas** (« ok continues ») | 2026-09-29, [lot-R2bis.md](rebranding-preuves/lot-R2bis.md) |
-| R3 `src/ui/` aux planches « Composants » | J | **fait** — relevé `dc9bee00`, R3a `012f7baa`, R3b `766258e1`, R3c `39a4c0af` ; relecture de Thomas en attente | 2026-09-29, [lot-R3.md](rebranding-preuves/lot-R3.md) § 5 à 7 |
-| R4 coquille : barre latérale, barre du haut, icônes de nav (décision 9) | J | fait — relecture de Thomas en attente | 2026-09-29, [lot-R4.md](rebranding-preuves/lot-R4.md) |
+| R3 `src/ui/` aux planches « Composants » | J | **validé par Thomas au V0** — relevé `dc9bee00`, R3a `012f7baa`, R3b `766258e1`, R3c `39a4c0af` | 2026-09-29, [lot-R3.md](rebranding-preuves/lot-R3.md) § 5 à 7 |
+| R4 coquille : barre latérale, barre du haut, icônes de nav (décision 9) | J | **validé par Thomas au V0** | 2026-09-29, [lot-R4.md](rebranding-preuves/lot-R4.md) |
 | R5 Accueil (bureau et téléphone) | J | fait — accueil gardé (décisions 31 à 36) ; icônes d'atelier sur les cartes (37) | 2026-09-29, [lot-R5.md](rebranding-preuves/lot-R5.md) |
-| R6 Siège et Recommandations | J | fait — écrans gardés (38 à 40, 42, 45) ; couleurs d'état `a329378c`, icônes `f3198798`, carte d'ajout `fb770b5c` ; relecture de Thomas en attente | 2026-09-29, [lot-R6.md](rebranding-preuves/lot-R6.md) |
-| V0 relecture par Thomas de R3, R4, R6 et de la décision 46 (commités sans avoir été vus) | — | **validé par Thomas** (« tout est ok », sur une liste de 16 points) ; faute « équipe d'défense » à corriger | 2026-09-30 |
+| R6 Siège et Recommandations | J | fait — écrans gardés (38 à 40, 42, 45) ; couleurs d'état `a329378c`, icônes `f3198798`, carte d'ajout `fb770b5c` ; **validé par Thomas au V0** | 2026-09-29, [lot-R6.md](rebranding-preuves/lot-R6.md) |
+| V0 relecture par Thomas de R3, R4, R6 et de la décision 46 (commités sans avoir été vus) | — | **validé par Thomas** (« tout est ok », sur une liste de 16 points) ; faute « équipe d'défense » corrigée depuis (`SiegeBoard.tsx`, `deNoun`) | 2026-09-30 |
 | R7 RTA (Ma prépa, Ami) — affichage seulement, **pas de classement** (47) | J | **validé par Thomas** — écran gardé (48 à 50) ; rouge d'état et icône « Ami » `2f4fc0c5` | 2026-09-30, [lot-R7.md](rebranding-preuves/lot-R7.md) |
 | R8 Mon compte (Monstres, Runes, Artéfacts) | J | **validé par Thomas** — écrans gardés (51 à 53) ; rouges d'état `999a4c25`, tuiles d'Optimisation (54) `d52c438e` | 2026-09-30, [lot-R8.md](rebranding-preuves/lot-R8.md) |
 | R9a Bestiaire | J | **validé par Thomas** (« ok ») — écran gardé (55, 56) ; grimoire sur « aucun monstre » `d3218f56` | 2026-09-30, [lot-R9a.md](rebranding-preuves/lot-R9a.md) |
 | R9b Mécaniques, Nouveautés | J | **validé par Thomas** (« ok ») — pages gardées (58, 59) ; titres à l'encre unie (57) `e8e65c92` | 2026-09-30, [lot-R9b.md](rebranding-preuves/lot-R9b.md) |
 | R10 Outils : Speed tuning, page Arène — sans planche : couleurs d'état (43), icônes (44), librairie | J | **validé par Thomas** (« ok ») — chronomètre dans l'en-tête du Speed tuning `f1870822` ; rien d'autre à faire | 2026-09-30, [lot-R10.md](rebranding-preuves/lot-R10.md) |
 | Refonte 9a / 11e — Optimizer, `swforge-optimizer` compris ; **et** l'écran vide des Outils (`OutilsPage.tsx`, clé à molette → tenailles, décision 60) | J | **validé par Thomas** — revenu dans la branche (64), **sans changement de rendu** (65) : tests de rendu `c3910f40`, export `swblacksmith-optimizer` `98d50547` ; décision 60 abandonnée | 2026-10-03, [lot-9a.md](refonte-graphique-preuves/lot-9a.md) |
-| Refonte 12 — `npm test` complet, note de version 2.0.0, PR vers `main` (décisions 62, 63) | M | 12a refait après l'Optimizer : `tsc` 0, `npm test` **4 602 passées**, 0 échec, inventaire sans perte, chemins interdits intacts, spec-lint et build verts ; **12b** relecture générale de Thomas en attente | 2026-10-03 |
+| Rebranding total (décision 66) — stockage et base IndexedDB migrés, formats `swblacksmith/…` (anciens relus), passe de texte | J | **fait** — `a677e670`, `160fab0e`, `3f52eb4e`, `83ef308e`, `65498d7f` ; état des lieux du 2026-10-05 : plus d'ancien nom hors historique, URLs et relecture de l'ancien | 2026-10-05 |
+| Refonte 12 — `npm test` complet, note de version 2.0.0, PR vers `main` (décisions 62, 63) | M | 12a fait le 2026-10-03 (`npm test` 4 602 passées), **à refaire** : la branche a reçu depuis la fusion de la v1.14.0 (`94548113`) et la décision 66 — `npm test` y passe (13 933, 0 échec) mais 12a se refait sur l'état final ; **12b** relecture générale de Thomas en attente | 2026-10-03 |
 
 ### A.8 Décisions prises en cours de chantier
 

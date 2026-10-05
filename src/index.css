@@ -1371,3 +1371,30 @@ button[data-bouton]:not(:disabled):not([draggable]):not([role='switch']):active 
 [data-tiroir] [data-filtres-runes] [data-filtre-slots] > div > button {
   flex: 1 1 0;
 }
+
+/* ==========================================================================
+   Application de bureau — la barre du haut EST la barre de la fenêtre
+   ==========================================================================
+   Chantier application-bureau, lot 1 bis (décision 7). `html[data-bureau]`
+   n'est posé que dans l'app de bureau (src/lib/bureau.ts) : sur le site, rien
+   de ce bloc ne s'applique.
+
+   - La barre du haut et la rangée du logo se SAISISSENT pour déplacer la
+     fenêtre (double-clic : agrandir), comme une barre de titre.
+   - ⚠️ Tout ce qui se clique y reste cliquable (`no-drag`) : sans cela, une
+     zone de déplacement avale les clics de ses boutons.
+   - Les boutons réduire / agrandir / fermer de Windows sont dessinés
+     PAR-DESSUS la barre, à droite : sa marge droite prend leur largeur, lue
+     dans `env(titlebar-area-*)` (Window Controls Overlay), pour qu'ils ne
+     couvrent jamais « Se déconnecter ». */
+html[data-bureau] [data-barre-fenetre] {
+  -webkit-app-region: drag;
+  app-region: drag;
+}
+html[data-bureau] header[data-barre-fenetre] {
+  padding-right: max(0px, calc(100vw - env(titlebar-area-x, 0px) - env(titlebar-area-width, 100vw)));
+}
+html[data-bureau] [data-barre-fenetre] :is(a, button, input, select, textarea, [role='button'], [tabindex]) {
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}

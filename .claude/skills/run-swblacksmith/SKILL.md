@@ -1,13 +1,13 @@
 ---
-name: run-sw-forge
-description: Compile, démarre et pilote SW Forge (app web React/Vite) via un Chromium headless Playwright. RÉSERVÉ au remote-access (utilisateur sans le serveur de dev sous les yeux) ET seulement sur demande explicite — jamais le réflexe par défaut pour vérifier un changement d'UI. Demander l'autorisation avant de lancer le driver si l'agent pense en avoir besoin.
+name: run-swblacksmith
+description: Compile, démarre et pilote SW Blacksmith (app web React/Vite) via un Chromium headless Playwright. RÉSERVÉ au remote-access (utilisateur sans le serveur de dev sous les yeux) ET seulement sur demande explicite — jamais le réflexe par défaut pour vérifier un changement d'UI. Demander l'autorisation avant de lancer le driver si l'agent pense en avoir besoin.
 ---
 
-SW Forge est une app web Vite/React à un seul binaire (pas de backend séparé).
+SW Blacksmith est une app web Vite/React à un seul binaire (pas de backend séparé).
 Un agent en conteneur ne peut pas ouvrir de fenêtre de navigateur — piloter
 l'app veut dire : démarrer le serveur de dev, piloter un Chromium headless
 (Playwright) contre lui, et produire une VRAIE capture d'écran. Le
-driver vit dans `.claude/skills/run-sw-forge/driver.mjs`, à côté de ce
+driver vit dans `.claude/skills/run-swblacksmith/driver.mjs`, à côté de ce
 fichier. Tous les chemins ci-dessous sont relatifs à la racine du dépôt.
 
 ⚠️ **Ne PAS piloter Chromium par défaut à chaque changement d'UI.**
@@ -60,7 +60,7 @@ Stop-Process -Id <pid> -Force
 ## Run (chemin agent)
 
 ```bash
-node .claude/skills/run-sw-forge/driver.mjs [compte.json] [monstre] [set]
+node .claude/skills/run-swblacksmith/driver.mjs [compte.json] [monstre] [set]
 ```
 
 Sans argument, le driver cherche un export de compte réel à la racine
@@ -70,7 +70,7 @@ lance une recherche, et pilote la pagination des résultats (page
 suivante, puis saisie directe d'un numéro de page). Capture à chaque étape
 clé.
 
-Captures écrites dans `.claude/skills/run-sw-forge/screenshots/` :
+Captures écrites dans `.claude/skills/run-swblacksmith/screenshots/` :
 
 | fichier | contenu |
 |---|---|
@@ -85,7 +85,7 @@ Pour un autre monstre/set (adapter la démonstration à un changement
 précis) :
 
 ```bash
-node .claude/skills/run-sw-forge/driver.mjs tototriou-12889591.json Veromos Violent
+node .claude/skills/run-swblacksmith/driver.mjs tototriou-12889591.json Veromos Violent
 ```
 
 ## Import seul — puis n'importe où
@@ -97,7 +97,7 @@ Gotchas) : il vit dans [session.mjs](session.mjs), à côté du driver.
 **Une capture d'un écran après import** — sans script :
 
 ```bash
-node .claude/skills/run-sw-forge/driver.mjs --import-seul [compte.json] [route] [--telephone]
+node .claude/skills/run-swblacksmith/driver.mjs --import-seul [compte.json] [route] [--telephone]
 # ex. : --import-seul tests/fixtures/compte-miniature.json '#/compte/runes/optimisation'
 ```
 
@@ -108,7 +108,7 @@ Route par défaut `#/compte/runes`, capture `screenshots/import.png` (échelle
 `ouvrirSession` et reprend la main juste après l'import :
 
 ```js
-import { ouvrirSession, DEV_URL } from '/chemin/absolu/du/depot/.claude/skills/run-sw-forge/session.mjs';
+import { ouvrirSession, DEV_URL } from '/chemin/absolu/du/depot/.claude/skills/run-swblacksmith/session.mjs';
 const { browser, page } = await ouvrirSession({ compte, format: 'bureau', echelle: 2 });
 await page.goto(`${DEV_URL}/#/compte/runes/courbes`, { waitUntil: 'networkidle' });
 // … le parcours voulu
@@ -191,7 +191,7 @@ npx tsx scripts/optimizer-search.ts <export.json> <recette.json>
 
 Voir les skills `algo-verify`/`optimizer-perf-testing` pour la discipline
 de vérification de CE chemin-là (référence brute-force, test différentiel,
-budget réaliste…) — ce skill-ci (`run-sw-forge`) couvre la couche ÉCRAN,
+budget réaliste…) — ce skill-ci (`run-swblacksmith`) couvre la couche ÉCRAN,
 pas l'algorithme.
 
 ## Run (chemin humain)

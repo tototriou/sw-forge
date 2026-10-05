@@ -65,7 +65,7 @@ const repeats = Number(process.argv.find((a) => a.startsWith('--repeats='))?.spl
 
 const MAIN_DIR = process.cwd();
 const SAFE_REF = ref.replace(/[^a-zA-Z0-9_.-]/g, '_');
-const WORKTREE_DIR = join(tmpdir(), `sw-forge-compare-${SAFE_REF}-${process.pid}`);
+const WORKTREE_DIR = join(tmpdir(), `swblacksmith-compare-${SAFE_REF}-${process.pid}`);
 
 // ⚠️ Liste EXPLICITE, jamais un motif — voir le piège n°2 en tête de
 // fichier. Alignée sur .gitignore (`tototriou-*.json`, `*Enzo-*.json`) et

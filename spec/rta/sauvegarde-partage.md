@@ -189,7 +189,7 @@ quel fichier il ouvre, pas comment il est fait.
 | **Export de prépa** (bouton « Exporter ») | `format: "swblacksmith/prepa-rta"` (ou `"sw-forge/prepa-rta"`, avant le rebranding) | la prépa telle que son auteur l'a classée, au niveau qu'il a choisi |
 | **Export SWEX complet** du compte | son `unit_list` | sa **box RTA**, pré-classée par set — niveau `complet` |
 
-⚠️ **Tout le monde n'a pas SW Forge.** Demander à un ami de l'installer et d'y
+⚠️ **Tout le monde n'a pas SW Blacksmith.** Demander à un ami de l'installer et d'y
 ranger sa prépa pour qu'on puisse la regarder, c'est demander beaucoup ; son
 export SWEX, lui, existe déjà.
 

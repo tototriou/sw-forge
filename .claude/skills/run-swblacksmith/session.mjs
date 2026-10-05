@@ -1,9 +1,9 @@
-// Brique commune aux pilotages de SW Forge : ouvrir Chromium, importer un
+// Brique commune aux pilotages de SW Blacksmith : ouvrir Chromium, importer un
 // compte, puis rendre la main — on va ENSUITE où l'on veut. Utilisée par
 // driver.mjs (scénario Optimizer, ou `--import-seul`) et par tout script
 // jetable de démonstration.
 //
-//   import { ouvrirSession, DEV_URL } from '<dépôt>/.claude/skills/run-sw-forge/session.mjs';
+//   import { ouvrirSession, DEV_URL } from '<dépôt>/.claude/skills/run-swblacksmith/session.mjs';
 //   const { browser, page } = await ouvrirSession({ compte, format: 'telephone' });
 //   await page.goto(`${DEV_URL}/#/compte/runes/optimisation`);
 //
@@ -19,7 +19,8 @@ import { fileURLToPath } from 'url';
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(HERE, '../../..');
 
-export const DEV_URL = process.env.SW_FORGE_URL ?? 'http://localhost:5173';
+// `SW_FORGE_URL`, l'ancien nom de la variable, reste lu en repli.
+export const DEV_URL = process.env.SWBLACKSMITH_URL ?? process.env.SW_FORGE_URL ?? 'http://localhost:5173';
 
 // ⚠️ Aucun de ces fichiers n'est commité (gitignorés — voir .gitignore,
 // `tototriou-*.json`/`*Enzo-*.json`/`*account*.json`) : ce sont de VRAIS

@@ -1,4 +1,6 @@
-// Journal des versions de SW Forge, affiché sur `#/releases`.
+// Journal des versions de SW Blacksmith (SW Forge avant la 2.0.0), affiché sur
+// `#/releases`. ⚠️ Les notes des versions passées gardent l'ancien nom : elles
+// racontent ce qui s'est passé à l'époque (décision 66 c du rebranding).
 //
 // ⚠️ **Source de vérité du contenu des releases.** Il est tenu À LA MAIN, et
 // non dérivé de l'API GitHub : le site est statique et doit rester lisible hors

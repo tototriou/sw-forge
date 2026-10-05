@@ -1,4 +1,4 @@
-# Instructions Codex — SW Forge
+# Instructions Codex — SW Blacksmith
 
 Avant toute action dans ce dépôt, lire intégralement [`CLAUDE.md`](CLAUDE.md)
 à la racine, puis appliquer ses consignes au même titre que celles de ce

@@ -1,7 +1,7 @@
 import { Monitor, X } from 'lucide-react';
 import { useStickyState } from '../hooks/useStickyState';
 
-// Avertissement affiché **sur petit écran uniquement** : SW Forge manipule des
+// Avertissement affiché **sur petit écran uniquement** : l'app manipule des
 // listes de runes, des équipes de trois monstres et des ordres de tour — tout
 // cela demande de la largeur. Sans un mot, on croit à un site mal fait plutôt
 // qu'à un site consulté dans de mauvaises conditions.

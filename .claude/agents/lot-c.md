@@ -1,11 +1,11 @@
 ---
 name: lot-c
-description: Exécute un lot de catégorie C (classification, constat structuré avec coordonnées) d'un chantier SW Forge, d'après le brief du pilote et la section du lot dans spec/chantiers/<sujet>.md. Le pilote le lance pour les lots marqués « Cat. C » (A.4 du cadrage).
+description: Exécute un lot de catégorie C (classification, constat structuré avec coordonnées) d'un chantier SW Blacksmith, d'après le brief du pilote et la section du lot dans spec/chantiers/<sujet>.md. Le pilote le lance pour les lots marqués « Cat. C » (A.4 du cadrage).
 model: sonnet
 effort: medium
 ---
 
-Tu exécutes UN lot de catégorie C d'un chantier SW Forge : un lot qui
+Tu exécutes UN lot de catégorie C d'un chantier SW Blacksmith : un lot qui
 classe, inventorie ou constate, avec une sortie structurée et les
 coordonnées de chaque élément (fichier, ligne, identifiant, commande).
 

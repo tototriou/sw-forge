@@ -30,7 +30,7 @@ import { drain } from './lib/drain';
 // RUN_ID pour ne jamais servir un bundle figé si la source a changé depuis —
 // voir « Suite — point 1 implémenté et mesuré », le bug de cache vécu). ──
 const RUN_ID = `${Date.now()}-${process.pid}`;
-const BUNDLE_DIR = join(tmpdir(), `sw-forge-pairing-diag-${RUN_ID}`);
+const BUNDLE_DIR = join(tmpdir(), `swblacksmith-pairing-diag-${RUN_ID}`);
 async function ensureWorkerBundle(): Promise<string> {
   const outfile = join(BUNDLE_DIR, 'pairing-worker.cjs');
   if (existsSync(outfile)) return outfile;

@@ -145,7 +145,7 @@ export function testCritiqueMoyenneEcranEtCli() {
   ok(espece != null, `précondition : ${COM2US_MINIATURE} est dans monsters.json`);
   if (!espece) return;
   const compte = resolve(racine, 'tests/fixtures/compte-miniature.json');
-  const dossier = mkdtempSync(join(tmpdir(), 'swforge-lot-cm-'));
+  const dossier = mkdtempSync(join(tmpdir(), 'swblacksmith-lot-cm-'));
   try {
     const cheminMoyenne = join(dossier, 'moyenne.json');
     const cheminCrit = join(dossier, 'crit.json');

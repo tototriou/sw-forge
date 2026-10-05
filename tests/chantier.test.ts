@@ -40,7 +40,7 @@ const NOTES = 'spec/outils/optimizer';
 
 export function testHooksCodex() {
   titre('Hooks Codex — événements réels et isolation des sessions');
-  const bac = mkdtempSync(join(tmpdir(), 'sw-forge-hooks-'));
+  const bac = mkdtempSync(join(tmpdir(), 'swblacksmith-hooks-'));
   const code = join(bac, 'code');
   const doc = join(bac, 'doc');
   try {
@@ -175,7 +175,7 @@ export function testChantierDeuxChantiers() {
     return;
   }
 
-  const bac = mkdtempSync(join(tmpdir(), 'sw-forge-chantiers2-'));
+  const bac = mkdtempSync(join(tmpdir(), 'swblacksmith-chantiers2-'));
   const codeA = join(bac, 'code-a');
   const codeB = join(bac, 'code-b');
   const docDir = join(bac, 'docs');
@@ -371,7 +371,7 @@ export function testChantierRafraichir() {
     return;
   }
 
-  const bac = mkdtempSync(join(tmpdir(), 'sw-forge-chantier-raf-'));
+  const bac = mkdtempSync(join(tmpdir(), 'swblacksmith-chantier-raf-'));
   const codeA = join(bac, 'code-a');
   const codeB = join(bac, 'code-b');
   const docDir = join(bac, 'docs');
@@ -579,7 +579,7 @@ export function testChantierLintNotes() {
     return;
   }
 
-  const bac = mkdtempSync(join(tmpdir(), 'sw-forge-chantier-lint-'));
+  const bac = mkdtempSync(join(tmpdir(), 'swblacksmith-chantier-lint-'));
   const codeDir = join(bac, 'code');
   const docDir = join(bac, 'docs');
 
@@ -631,7 +631,7 @@ export default function testChantier() {
     return;
   }
 
-  const bac = mkdtempSync(join(tmpdir(), 'sw-forge-chantier-'));
+  const bac = mkdtempSync(join(tmpdir(), 'swblacksmith-chantier-'));
   const codeDir = join(bac, 'code');
   const docDir = join(bac, 'docs');
 
@@ -1022,7 +1022,7 @@ function worktreeCode(code: string, nom: string): string {
 export function testChantierIncidentNotesEnRetard() {
   titre('Chantier — incident du 2026-09-23 : des notes en retard ne passent plus');
   if (!gitDisponible('incident des notes en retard')) return;
-  const { bac, docDir, code } = bacChantier('sw-forge-chantier-incident-');
+  const { bac, docDir, code } = bacChantier('swblacksmith-chantier-incident-');
   try {
     const ancien: Notes = { 'invariants.md': 'invariants\n', 'pistes.md': 'pistes\n' };
     const revAncienne = commitNotes(docDir, ancien, 'notes initiales\n');
@@ -1069,7 +1069,7 @@ export function testChantierIncidentNotesEnRetard() {
 export function testChantierOuvrirCas() {
   titre('Chantier — ouvrir : notes absentes, identiques, en retard, inconnues');
   if (!gitDisponible('ouvrir compare les notes à la base')) return;
-  const { bac, docDir, code } = bacChantier('sw-forge-chantier-ouvrir-');
+  const { bac, docDir, code } = bacChantier('swblacksmith-chantier-ouvrir-');
   try {
     const R0: Notes = { 'n1.md': 'un\n', 'n2.md': 'deux\n', 'dir/n3.md': 'trois\n' };
     const r0 = commitNotes(docDir, R0, 'r0\n');
@@ -1172,7 +1172,7 @@ export function testChantierOuvrirCas() {
 export function testChantierLivrerGarde() {
   titre('Chantier — livrer : garde sur la base synchronisée, delta légitime');
   if (!gitDisponible('garde de livrer')) return;
-  const { bac, docDir, code } = bacChantier('sw-forge-chantier-garde-');
+  const { bac, docDir, code } = bacChantier('swblacksmith-chantier-garde-');
   try {
     commitNotes(docDir, { 'a.md': 'a\n', 'b.md': 'b\n', 'c.md': 'c\n', 'd.md': 'd\n' }, 'r0\n');
     ajouterDistant(bac, docDir);
@@ -1255,7 +1255,7 @@ export function testChantierLivrerGarde() {
 export function testChantierReprises() {
   titre('Chantier — reprises vérifiées après une coupure');
   if (!gitDisponible('reprises après coupure')) return;
-  const { bac, docDir, code } = bacChantier('sw-forge-chantier-reprises-');
+  const { bac, docDir, code } = bacChantier('swblacksmith-chantier-reprises-');
   const arret = (cwd: string, point: string, ...args: string[]) =>
     chantierAvecEnv(cwd, { CHANTIER_ARRET_TEST: point }, ...args);
   try {
@@ -1381,7 +1381,7 @@ export function testChantierReprises() {
 export function testChantierMigration() {
   titre('Chantier — migration des chantiers ouverts sans base');
   if (!gitDisponible('migration sans base')) return;
-  const { bac, docDir, code } = bacChantier('sw-forge-chantier-migration-');
+  const { bac, docDir, code } = bacChantier('swblacksmith-chantier-migration-');
   const sansBase = (nom: string) => modifierRegistre(code, nom, (reg) => { delete reg.base; });
   try {
     commitNotes(docDir, { 'a.md': 'a\n', 'b.md': 'b\n' }, 'r0\n');

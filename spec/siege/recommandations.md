@@ -994,7 +994,7 @@ artéfacts les séparent.
 
 `localStorage` `swblacksmith-siege-recos-v1` — contrairement à la box (en mémoire),
 ce sont des données **créées par l'utilisateur ou reçues d'un ami** : elles
-survivent au reload. Effacées par « Supprimer mes données » (préfixe `sw-forge`).
+survivent au reload. Effacées par « Supprimer mes données » (préfixe `swblacksmith-`).
 
 ## Partage — un seul format : le JSON
 

@@ -1,11 +1,11 @@
 ---
 name: lot-m
-description: Exécute un lot de catégorie M (mécanique : déplacement, mise à jour de ledgers, clôture) d'un chantier SW Forge, d'après le brief du pilote et la section du lot dans spec/chantiers/<sujet>.md. Le pilote le lance pour les lots marqués « Cat. M » (A.4 du cadrage).
+description: Exécute un lot de catégorie M (mécanique : déplacement, mise à jour de ledgers, clôture) d'un chantier SW Blacksmith, d'après le brief du pilote et la section du lot dans spec/chantiers/<sujet>.md. Le pilote le lance pour les lots marqués « Cat. M » (A.4 du cadrage).
 model: sonnet
 effort: low
 ---
 
-Tu exécutes UN lot de catégorie M d'un chantier SW Forge : un lot
+Tu exécutes UN lot de catégorie M d'un chantier SW Blacksmith : un lot
 mécanique, dont la preuve est un diff relu ou une recherche vide.
 
 - Le brief du pilote dit où lire : `CLAUDE.md`, la Partie A du cadrage (plage

@@ -3,7 +3,7 @@ name: cadrage-chantier
 description: Comment produire un document de cadrage de chantier (un fichier, jamais un plan dans la conversation) pour tout travail de plus d'une session ou confié à des sessions fraîches, et comment le faire vivre pendant le chantier — gabarit Partie A / Partie B, règles apprises sur spec-rangement avec leur incident, forme fixe du brief d'un lot, boucle de validation côté pilote, emplacement dans spec/chantiers/, et le mode où le pilote lance lui-même les lots (sous-agents lot-m/lot-c/lot-j, chaque lot dans un worktree de lot, aucun dans celui du chantier, intégration par le pilote). Modèle : spec/chantiers/spec-rangement.md.
 ---
 
-# Cadrage d'un chantier (SW Forge)
+# Cadrage d'un chantier (SW Blacksmith)
 
 ## A. Déclencheur
 
@@ -279,7 +279,7 @@ valent pour tout chantier piloté ainsi.
   validation.
 - **Deux ou trois worktrees de lot durables, réutilisés**, créés par le
   pilote (pas par `isolation: "worktree"`, pour en fixer le nom, la
-  branche, les dépendances et les comptes) : `sw-forge-lot-1`, `-2`, `-3`,
+  branche, les dépendances et les comptes) : `swblacksmith-lot-1`, `-2`, `-3`,
   chacun avec un `npm ci` (worktree de chantier, jamais de jonction
   `node_modules`) et les comptes réels en liens physiques, en lecture
   seule. À chaque lancement : arbre propre, puis `git switch -C
@@ -287,7 +287,7 @@ valent pour tout chantier piloté ainsi.
   branche partie de la tête actuelle du chantier ; nouveau `npm ci`
   seulement si `package-lock.json` a changé depuis le précédent.
 - **Notes privées** : l'agent les lit dans le worktree du chantier sans y
-  écrire, et dépose ses modifications dans `sw-forge-lot-<n>-notes\base`
+  écrire, et dépose ses modifications dans `swblacksmith-lot-<n>-notes\base`
   (la version qu'il a lue) et `\notes` (la sienne), avec sa preuve. Le
   pilote peut modifier les notes entre-temps : la fusion à trois part de
   `base`. Le brief remplace D.6 : commits sur la branche du lot, notes au

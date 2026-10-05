@@ -37,7 +37,7 @@ import Bouton from '../../ui/Bouton';
  *   | export de prépa (bouton « Exporter ») | la prépa telle que son auteur l'a classée |
  *   | export **SWEX complet** du compte | sa box RTA, pré-classée par set comme le ferait son propre import |
  *
- * Tout le monde n'a pas SW Forge : demander à un ami de l'installer et d'y
+ * Tout le monde n'a pas SW Blacksmith : demander à un ami de l'installer et d'y
  * ranger sa prépa pour qu'on puisse la regarder, c'est demander beaucoup. Son
  * export SWEX, lui, existe déjà. On le reconnaît à son `unit_list`, un champ
  * qu'un fichier de prépa ne porte pas.

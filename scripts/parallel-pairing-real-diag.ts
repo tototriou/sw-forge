@@ -30,7 +30,7 @@ import { drain } from './lib/drain';
 const WORKER_COUNT = 4;
 
 const RUN_ID = `${Date.now()}-${process.pid}`;
-const BUNDLE_DIR = join(tmpdir(), `sw-forge-pairing-quota-diag-${RUN_ID}`);
+const BUNDLE_DIR = join(tmpdir(), `swblacksmith-pairing-quota-diag-${RUN_ID}`);
 async function ensureWorkerBundle(): Promise<string> {
   const outfile = join(BUNDLE_DIR, 'pairing-quota-worker.cjs');
   if (existsSync(outfile)) return outfile;

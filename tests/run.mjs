@@ -18,7 +18,7 @@ import { join } from 'path';
 // les `node_modules` ANCÊTRES du fichier qui appelle `require`, ce qui
 // n'inclut jamais un dossier temporaire hors du dépôt. `node_modules/`
 // est déjà gitignoré et déjà l'ancêtre direct de `node_modules/esbuild`.
-const dossier = mkdtempSync(join('node_modules', 'sw-forge-tests-'));
+const dossier = mkdtempSync(join('node_modules', 'swblacksmith-tests-'));
 const sortie = join(dossier, 'tests.cjs');
 
 try {

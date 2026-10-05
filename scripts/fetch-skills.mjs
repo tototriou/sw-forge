@@ -86,7 +86,7 @@ async function fetchAllSkills() {
   while (url && pages < MAX_PAGES) {
     process.stdout.write(`\rCompétences — page ${pages + 1}…`);
     const res = await fetch(url, {
-      headers: { Accept: 'application/json', 'User-Agent': 'sw-forge-ci' },
+      headers: { Accept: 'application/json', 'User-Agent': 'swblacksmith-ci' },
     });
     if (!res.ok) throw new Error(`HTTP ${res.status} sur ${url}`);
     const json = await res.json();
@@ -109,7 +109,7 @@ async function fetchMonsterSkillIds() {
   while (url && pages < MAX_PAGES) {
     process.stdout.write(`\rMonstres — page ${pages + 1}…`);
     const res = await fetch(url, {
-      headers: { Accept: 'application/json', 'User-Agent': 'sw-forge-ci' },
+      headers: { Accept: 'application/json', 'User-Agent': 'swblacksmith-ci' },
     });
     if (!res.ok) throw new Error(`HTTP ${res.status} sur ${url}`);
     const json = await res.json();

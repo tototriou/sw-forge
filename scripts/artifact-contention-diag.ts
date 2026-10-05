@@ -48,7 +48,7 @@ import { computeStats } from '../src/lib/stats';
 import type { ArtifactDetail } from '../src/types';
 
 const RUN_ID = `${Date.now()}-${process.pid}`;
-const BUNDLE_DIR = join(tmpdir(), `sw-forge-artifact-contention-${RUN_ID}`);
+const BUNDLE_DIR = join(tmpdir(), `swblacksmith-artifact-contention-${RUN_ID}`);
 async function ensureWorkerBundle(): Promise<string> {
   const outfile = join(BUNDLE_DIR, 'pairing-worker.cjs');
   if (existsSync(outfile)) return outfile;

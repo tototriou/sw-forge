@@ -1,4 +1,4 @@
-# SW Forge — Spécifications
+# SW Blacksmith — Spécifications
 
 Boîte à outils Summoners War (React + TypeScript + Vite + Tailwind). Ce dossier
 documente **le comportement attendu de chaque page** : ce que l'utilisateur voit,
@@ -284,7 +284,7 @@ Concepts partagés par plusieurs pages, documentés une seule fois :
     recommandations ne sont pas touchées » évite d'annuler par précaution une
     action qu'on voulait faire.
 - **Avertissement petit écran** — [MobileNotice.tsx](src/components/MobileNotice.tsx),
-  au-dessus du contenu, sous la barre de nav. SW Forge manipule des listes de
+  au-dessus du contenu, sous la barre de nav. SW Blacksmith manipule des listes de
   runes, des équipes de trois monstres et des ordres de tour : tout cela demande
   de la largeur. Sans un mot, on croit à un site mal fait plutôt qu'à un site
   consulté dans de mauvaises conditions.

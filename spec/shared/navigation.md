@@ -81,7 +81,7 @@ fois où l'on est et tout ce qu'on peut atteindre. Le retour a disparu avec le
 niveau qu'il remontait — [retrait #11] du cadrage.
 
 ```
-[logo] SW Forge                    [repli]
+[logo] SW Blacksmith                    [repli]
 ┌─────────────────────────────────────┐
 │ T  Tototriou                      ⇕ │   carte du compte = import
 │    Export du 9 août · 342 monstres  │

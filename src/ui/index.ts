@@ -1,4 +1,4 @@
-// Librairie UI de SW Forge — le vocabulaire visuel commun à toute l'app.
+// Librairie UI de SW Blacksmith — le vocabulaire visuel commun à toute l'app.
 //
 // ⚠️ **Un composant dessiné ici ne se redessine nulle part ailleurs.** C'est la
 // raison d'être de ce dossier : un changement demandé sur un bouton mobile doit

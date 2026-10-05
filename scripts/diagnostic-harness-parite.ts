@@ -163,7 +163,7 @@ async function comparerCas(index: number): Promise<boolean> {
     ignoreArtifacts: false,
     artifactMainByKind: {},
   });
-  const chemin = join(tmpdir(), `sw-forge-parite-${process.pid}-${index}.json`);
+  const chemin = join(tmpdir(), `swblacksmith-parite-${process.pid}-${index}.json`);
   writeFileSync(chemin, JSON.stringify(recette), 'utf8');
 
   const config: ConfigHarnais = {

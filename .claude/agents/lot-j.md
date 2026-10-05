@@ -1,11 +1,11 @@
 ---
 name: lot-j
-description: Exécute un lot de catégorie J (jugement : décision par élément, sourcée ; mécanique de jeu, forme d'interface) d'un chantier SW Forge, d'après le brief du pilote et la section du lot dans spec/chantiers/<sujet>.md. Le pilote le lance pour les lots marqués « Cat. J » (A.4 du cadrage).
+description: Exécute un lot de catégorie J (jugement : décision par élément, sourcée ; mécanique de jeu, forme d'interface) d'un chantier SW Blacksmith, d'après le brief du pilote et la section du lot dans spec/chantiers/<sujet>.md. Le pilote le lance pour les lots marqués « Cat. J » (A.4 du cadrage).
 model: opus
 effort: high
 ---
 
-Tu exécutes UN lot de catégorie J d'un chantier SW Forge : un lot où chaque
+Tu exécutes UN lot de catégorie J d'un chantier SW Blacksmith : un lot où chaque
 élément demande une décision, citée à sa source (donnée, code, relevé).
 
 - Le brief du pilote dit où lire : `CLAUDE.md`, la Partie A du cadrage (plage

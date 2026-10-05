@@ -1746,12 +1746,12 @@ function installerHooksCodex(chemin, installation) {
     if (groupes.some(g => g.hooks?.some(h => h.command === commande))) continue;
     groupes.push({ ...(evenement === 'PreToolUse' ? { matcher: 'Bash|apply_patch|Edit|Write' } : {}),
       hooks: [{ type: 'command', command: commande, timeout: 60,
-        statusMessage: 'SW Forge : contrôle du chantier' }] });
+        statusMessage: 'SW Blacksmith : contrôle du chantier' }] });
     config.hooks[evenement] = groupes;
   }
   mkdirSync(dirname(chemin), { recursive: true });
   // Préserver les hooks existants et une copie avant le changement.
-  if (existsSync(chemin)) copyFileSync(chemin, `${chemin}.avant-sw-forge`);
+  if (existsSync(chemin)) copyFileSync(chemin, `${chemin}.avant-swblacksmith`);
   writeFileSync(chemin, JSON.stringify(config, null, 2) + '\n');
   dire(`Hooks Codex configurés : ${chemin}. Les approuver dans /hooks avant utilisation.`);
 }

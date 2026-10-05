@@ -10,7 +10,7 @@ tuiles, filtres, fiche d'équipement, recommandations de siège.
 
 `element` / `archetype` restent les **clés des données com2us** (`type` 1 / 2) et
 ne doivent jamais remonter à l'écran : un joueur qui lit « Archétype » dans
-SW Forge et « Type » dans son jeu ne fait pas le rapprochement.
+SW Blacksmith et « Type » dans son jeu ne fait pas le rapprochement.
 
 Table de correspondance unique : `ARTIFACT_KINDS` dans [types.ts](src/types.ts) —
 les libellés ne sont pas réécrits dans chaque écran.

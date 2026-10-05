@@ -215,7 +215,7 @@ interface CaseOutcome {
 // variable — observé : +2.6s sur Sonia d14 entre deux baselines au code
 // strictement identique.
 // ⚠️ **Bug corrigé** : une première version utilisait un chemin FIXE
-// (`sw-forge-perf-buildhalf-cache`, sans le PID), invalidé seulement si
+// (`swblacksmith-perf-buildhalf-cache`, sans le PID), invalidé seulement si
 // `build-half-worker.ts` LUI-MÊME avait changé — jamais si un fichier qu'il
 // IMPORTE (`runeBuildOptim.ts`, bundlé DEDANS par esbuild) changeait. Deux
 // mesures dos-à-dos prises pour chiffrer une optimisation de
@@ -229,7 +229,7 @@ interface CaseOutcome {
 // (~1 s) plutôt que jamais — un coût négligeable face au risque de mesures
 // silencieusement fausses.
 const RUN_ID = process.argv.find((a) => a.startsWith('--bundle-dir='))?.slice('--bundle-dir='.length) ?? String(process.pid);
-const BUNDLE_DIR = join(tmpdir(), `sw-forge-perf-bundle-${RUN_ID}`);
+const BUNDLE_DIR = join(tmpdir(), `swblacksmith-perf-bundle-${RUN_ID}`);
 async function ensureWorkerBundle(entrySrc: string, outname: string): Promise<string> {
   const outfile = join(BUNDLE_DIR, outname);
   if (existsSync(outfile)) return outfile;

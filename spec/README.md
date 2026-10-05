@@ -429,11 +429,11 @@ Le cadre commun (nav, routing par hash, footer) vit dans
 Un chantier (travail de plus d'une session, exécuté par lots dans des
 sessions fraîches) a un **document de cadrage** : Partie A relue par chaque
 lot, Partie B un contrat par lot, résultats ajoutés au fil des lots.
-Il est **privé par défaut**, dans les notes privées
-(`spec/outils/optimizer/chantiers/`) ; public, dans [chantiers/](chantiers/), seulement sur décision de
-l'utilisateur. Le tableau ci-dessous n'a de ligne que pour un cadrage
-public, ou pour la fiche publique d'un journal archivé dans les notes
-privées.
+L'écrire : skill `cadrage-chantier`. Il est public, dans
+[chantiers/](chantiers/), ou privé, dans les notes privées
+(`spec/outils/optimizer/chantiers/`), au choix du responsable du chantier.
+Le tableau ci-dessous n'a de ligne que pour un cadrage public, ou pour la
+fiche publique d'un journal archivé dans les notes privées.
 Chaque cadrage commence par un H1 et une ligne `**Statut :**` que
 `node scripts/spec-toc.mjs <fichier>` résume ; on l'ouvre par section,
 jamais en entier.

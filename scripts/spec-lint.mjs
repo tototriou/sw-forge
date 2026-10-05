@@ -1,5 +1,5 @@
-// Vérifie les documents de `spec/` contre le contrat de rangement — B.4 de
-// `spec/chantiers/spec-rangement.md`. Deux régimes : documents actifs (bloc
+// Vérifie les documents de `spec/` contre le contrat de rangement — ex-B.4 de
+// `spec/outillage/spec.md`. Deux régimes : documents actifs (bloc
 // terminal ≤ 100 lignes, fichier ≤ 500 hors exception, en-tête avec Statut
 // reconnu, slugs uniques, références `fichier § section` résolues) et
 // `archive/` (seule la présence de `**Statut :** ARCHIVE` est exigée).

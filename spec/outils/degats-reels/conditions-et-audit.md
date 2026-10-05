@@ -374,8 +374,9 @@ ces six sorts dans le corpus. Le total par défaut de ces six sorts monte donc
 de 3 à 4 coups (×1,3333), contrairement aux plages, qui retombent sur leur
 minimum.
 
-Hors périmètre, voir le cadrage : Stormfist de Mayasura (18306…, la règle
-selon l'ATQ est une valeur à fournir), Crow Hunt (R9), Lala, Coco, Stella,
+Stormfist de Mayasura (18306…) : coups selon l'ATQ, valeur de
+l'utilisateur dans [valeurs-de-jeu-curees.md](valeurs-de-jeu-curees.md).
+Hors périmètre, journal archivé du chantier : Crow Hunt (R9), Lala, Coco, Stella,
 Cleave, les coups tirés au hasard (P5b). Test : `testDegatsCoupsSaisis`
 (`node tests/run.mjs coupssaisis`).
 

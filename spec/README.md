@@ -90,6 +90,13 @@ Concepts partagés par plusieurs pages, documentés une seule fois :
   **onglets mobiles**, et l'**accent contextuel** (`--ctx`) qui prend la couleur
   de l'élément du monstre consulté.
 
+Outillage du dépôt (pas une page de l'app) :
+
+- [outillage/spec.md](outillage/spec.md) — natures des specs, `spec-markdown`,
+  `spec-toc`, contrat de `spec-lint`, en-têtes, critère des invariants, niveaux
+  d'application, hook `Read` et installation des garde-fous (hook
+  `pre-commit`, garde-fou Codex).
+
 ## Conventions communes (toutes les pages)
 
 - ⚠️ **Un texte saisi est TRIMÉ à la sortie du champ**, jamais à la frappe.
@@ -393,16 +400,16 @@ Le cadre commun (nav, routing par hash, footer) vit dans
 Un chantier (travail de plus d'une session, exécuté par lots dans des
 sessions fraîches) a un **document de cadrage** : Partie A relue par chaque
 lot, Partie B un contrat par lot, résultats ajoutés au fil des lots.
-Comment l'écrire et le faire vivre : skill `cadrage-chantier`. Il vit dans
-[chantiers/](chantiers/) — ou, si son contenu est privé, dans
-`spec/outils/optimizer/chantiers/` (notes livrées par `chantier livrer`).
+Il est **privé par défaut**, dans les notes privées
+(`spec/outils/optimizer/chantiers/`) ; public, dans [chantiers/](chantiers/), seulement sur décision de
+l'utilisateur. Le tableau ci-dessous n'a de ligne que pour un cadrage
+public, ou pour la fiche publique d'un journal archivé dans les notes
+privées.
 Chaque cadrage commence par un H1 et une ligne `**Statut :**` que
 `node scripts/spec-toc.mjs <fichier>` résume ; on l'ouvre par section,
 jamais en entier.
 
 | Cadrage | Statut | Branche |
 | --- | --- | --- |
-| [chantiers/orchestration-parallele.md](chantiers/orchestration-parallele.md) — deux agents en parallèle, outil `chantier` | en cours | `forge/orchestration-parallele` |
-| [chantiers/spec-rangement.md](chantiers/spec-rangement.md) — rangement des specs pour lire à la demande | terminé le 2026-09-17 | `forge/spec-rangement` |
-| `spec/outils/optimizer/chantiers/implementation-relique.md` (privé, `sw-forge-docs`) — la relique dans l'Optimizer, 10 lots ; cadrage fonctionnel dans `spec/outils/optimizer/reliques.md` (décision), plan d'origine archivé | en cours | `forge/implementation-relique` |
-| [chantiers/degats-et-aura.md](chantiers/degats-et-aura.md) — quatre sorts au modèle incomplet, sets d'aura, ergonomie et planchers de conditions ; découpe `spec/outils/degats-reels.md` ; reliquat de l'audit traité en partie, le reste reporté (notes privées, `decisions/reste-a-faire-degats-2026-10.md`) | terminé le 2026-10-04 | `forge/degats-et-aura` |
+| [chantiers/spec-rangement.md](chantiers/spec-rangement.md) — rangement des specs pour lire à la demande ; fiche, journal archivé | terminé le 2026-09-17 | `forge/spec-rangement` |
+| [chantiers/degats-et-aura.md](chantiers/degats-et-aura.md) — quatre sorts au modèle incomplet, sets d'aura, ergonomie et planchers de conditions ; découpe `spec/outils/degats-reels.md` ; reliquat de l'audit traité en partie, le reste reporté (notes privées, `decisions/reste-a-faire-degats-2026-10.md`) ; fiche, journal archivé ; valeurs de jeu curées : [outils/degats-reels/valeurs-de-jeu-curees.md](outils/degats-reels/valeurs-de-jeu-curees.md) | terminé le 2026-10-04 | `forge/degats-et-aura` |

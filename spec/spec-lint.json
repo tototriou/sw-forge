@@ -1,5 +1,5 @@
 {
-  "perimetre": ["spec/outils/**", "spec/chantiers/**"],
+  "perimetre": ["spec/outils/**", "spec/chantiers/**", "spec/outillage/**"],
   "exceptions": [
     {
       "fichier": "spec/outils/optimizer/harnais-diagnostic-extensions.md",

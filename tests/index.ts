@@ -49,18 +49,9 @@ import testReco, {
   testFormesJouables,
 } from './reco.test';
 import testRtaPartage from './rta-partage.test';
-import testChantier, {
-  testChantierDeuxChantiers,
-  testHooksCodex,
-  testChantierLintNotes,
-  testChantierRafraichir,
-  testChantierIncidentNotesEnRetard,
-  testChantierOuvrirCas,
-  testChantierLivrerGarde,
-  testChantierReprises,
-  testChantierMigration,
-} from './chantier.test';
+import { testInstallerHooks, testHooksCodexGardeFous } from './installer-hooks.test';
 import testHookRefuseSedI from './hook-refuse-sed-i.test';
+import testHookRefuseCommitM from './hook-refuse-commit-m.test';
 import testCouleursCourbes from './courbe-couleurs.test';
 import testRechargement from './rechargement.test';
 import testCollabPaires from './collab-paires.test';
@@ -324,17 +315,10 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testDecksMontables', testDecksMontables],
   ['testFormesJouables', testFormesJouables],
   ['testRtaPartage', testRtaPartage],
-  ['testChantier', testChantier],
-  ['testChantierDeuxChantiers', testChantierDeuxChantiers],
-  ['testHooksCodex', testHooksCodex],
   ['testHookRefuseSedI', testHookRefuseSedI],
-  ['testChantierLintNotes', testChantierLintNotes],
-  ['testChantierRafraichir', testChantierRafraichir],
-  ['testChantierIncidentNotesEnRetard', testChantierIncidentNotesEnRetard],
-  ['testChantierOuvrirCas', testChantierOuvrirCas],
-  ['testChantierLivrerGarde', testChantierLivrerGarde],
-  ['testChantierReprises', testChantierReprises],
-  ['testChantierMigration', testChantierMigration],
+  ['testHookRefuseCommitM', testHookRefuseCommitM],
+  ['testInstallerHooks', testInstallerHooks],
+  ['testHooksCodexGardeFous', testHooksCodexGardeFous],
   ['testSetsIntangible', testSetsIntangible],
   ['testRuneTri', testRuneTri],
   ['testMonstreTri', testMonstreTri],

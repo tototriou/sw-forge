@@ -6,23 +6,32 @@
 // reconstruction manuelle sujette aux mêmes erreurs de fidélité que celles
 // rencontrées cette session-là (voir le skill algo-verify).
 //
-// Usage : optimizer-search.ts <export.json> <recipe.json> [--rta] [--siege=<deckId>[:defense]]
+// Usage : optimizer-search.ts <export.json> <recipe.json> [--rta] [--siege=<deckId>[:defense]] [--resoudre-tout]
 //   --rta   : charge le monstre depuis son preset RTA (favoris/runé RTA) au
 //             lieu de son build « Mon compte » (défaut).
 //   --siege : charge le monstre depuis un deck de siège précis — offense par
 //             défaut, `--siege=15:defense` pour un deck de défense.
+//   --resoudre-tout : résout l'équipement (paire d'artéfacts, relique) de
+//             TOUS les candidats collectés, au lieu de faire comme la file de
+//             l'écran (l'ordre de base jusqu'à 300 combinaisons confirmées en
+//             mode relique « recherche », 100 sinon, et lignes imprimées).
+//             Exhaustif, mais jusqu'à des dizaines de minutes avec des
+//             artéfacts « Libre » (degats-et-aura 6bis-b5c).
 // Un seul mode à la fois : sans `--rta` ni `--siege`, box (« Mon compte »).
 
 import { printMonsterSummary } from './lib/loadMonster';
-import { resolveArtifacts } from './lib/recipeToSearchParams';
+import { resolveArtifacts, toutVerifierDeLaRecette } from './lib/recipeToSearchParams';
 import { chargerRecette } from './lib/chargerRecette';
-import { artifactSubName } from '../src/lib/effects';
+import { activeSets, artifactSubName } from '../src/lib/effects';
 import { loadMonsterSkills } from './lib/skillsData';
 import { loadMonstersList } from './lib/monstersData';
 import {
+  CIBLE_DEGATS_LABELS,
   DEFAULT_DAMAGE_SETUP,
   bonusDegatsConditionnelActif,
   bonusPassifActif,
+  cibleDegatsRetenue,
+  cibleSecondairePriseEnCharge,
   damageRelevantStats,
   monsterBonusDegatsConditionnel,
   monsterBonusDegatsSelonCr,
@@ -44,25 +53,33 @@ import {
   monsterCombatStatProfiles,
   monsterDamageSkills,
   monsterOffensivePassives,
-  passifActif,
+  passifCompte,
+  passifPeutSuivre,
   resolveDamageSkill,
   resolvedBuffsPropresCount,
+  coupsAffichesDuSort,
   resolvedHits,
   resolvedLeaderSkill,
   resolvedStackPct,
   resolvedStackTrigger,
+  resumeIgnoreDefRetenu,
+  resumeSequenceDeCoups,
   artifactDamageProfile,
 } from '../src/lib/damage';
 import { runSearchToCompletion } from './lib/runSearch';
 import { buildRealDamageContext } from './lib/realDamageCli';
-import { NearMiss, candidateMetricTotal, sortCandidates } from '../src/lib/runeBuildOptim';
+import { NearMiss, RechercheRefusee, candidateMetricTotal, scoreDuCandidat } from '../src/lib/runeBuildOptim';
+import { etatReliqueDuBuild } from '../src/lib/relicQueue';
+import { cleBuild } from '../src/lib/artifactQueue';
+import { LIGNES_IMPRIMEES, classerCommeLEcran } from './lib/classementCli';
 import { autoExcludedRuneIds, resolveExcludedRuneIds } from '../src/lib/optimizerExclusion';
 
 const [exportPath, recipePath] = process.argv.slice(2).filter((a) => !a.startsWith('--'));
 const rtaMode = process.argv.includes('--rta');
 const siegeArg = process.argv.find((a) => a.startsWith('--siege='))?.slice('--siege='.length);
+const toutResoudre = process.argv.includes('--resoudre-tout');
 if (!exportPath || !recipePath) {
-  console.error('Usage: optimizer-search.ts <export.json> <recipe.json> [--rta] [--siege=<deckId>[:defense]]');
+  console.error('Usage: optimizer-search.ts <export.json> <recipe.json> [--rta] [--siege=<deckId>[:defense]] [--resoudre-tout]');
   process.exit(1);
 }
 if (rtaMode && siegeArg != null) {
@@ -107,9 +124,14 @@ console.log(
     `métrique ${recipe.metric} — préfiltrage ${recipe.slotFilterPreset} — ` +
     `piste B ${recipe.adaptiveTrancheWeighting ? 'ON' : 'off'} — exclure les runes déjà utilisées ${
       recipe.excludeUsedRunes ? `ON (${recipe.excludeUsedScope})` : 'off'
-    }`
+    } — vérifier toutes les combinaisons trouvées ${toutVerifierDeLaRecette(recipe) ? 'ON' : 'off'}`
 );
 console.log(`minStats : ${JSON.stringify(recipe.requirement.minStats)}`);
+console.log(
+  `Auras externes (autres monstres) : ${JSON.stringify(recipe.damageSetup?.setsAuraExternes ?? [])} ; ` +
+    `activations propres du build : comptées dans le combat et le score ; ` +
+    `RES/PRE (externes + propres) dans les conditions : ${recipe.compterAurasResPre ?? true}`
+);
 if (recipe.requirement.maxStats && Object.keys(recipe.requirement.maxStats).length > 0) {
   console.log(`maxStats : ${JSON.stringify(recipe.requirement.maxStats)}`);
 }
@@ -180,12 +202,28 @@ if (recipe.objective === 'degats_reels') {
     const bonusAtqSeuil = monsterBonusSiAtqSeuil(detail);
     const critInterdit = monsterCritInterdit(detail);
     const scenarioEntreCoups = s.scenariosEffetsEntreCoups?.[profile.skillCom2usId];
+    // Blade Dancers (degats-et-aura 10b) : le cran d'ignore DEF RETENU par le
+    // calcul, dans la MÊME phrase que le résumé du sort à l'écran.
+    const ignoreDefRetenu = resumeIgnoreDefRetenu(profile, s);
+    // Séquence curée (Blade Surge) : la séquence ENTIÈRE et la cible calculée,
+    // avec les textes mêmes de l'écran (`resumeSequenceDeCoups`,
+    // `CIBLE_DEGATS_LABELS`) — `resolvedHits` et `aoe` ne décrivent que la
+    // donnée, jamais la séquence (degats-et-aura 8b).
+    const sequence = profile.sequenceDeCoups;
+    const cibleCalculee = cibleSecondairePriseEnCharge(profile.skillCom2usId)
+      ? CIBLE_DEGATS_LABELS.find((c) => c.key === cibleDegatsRetenue(profile, s))?.label
+      : undefined;
+    // Même règle que le résumé de l'écran (`coupsAffichesDuSort`, P5a3) : sans build
+    // ici, un coup en plus déduit de l'ATQ du build s'annonce en plage.
+    const coupsAffiches = coupsAffichesDuSort(profile, s);
     console.log(
-      `Dégâts réels : sort « ${profile.nom} » (S${profile.slot}, ${resolvedHits(profile, s)} coup(s)` +
-        `${profile.hitsRange ? ` [variable ${profile.hitsRange.min}-${profile.hitsRange.max}]` : ''}` +
-        `${profile.aoe ? ', zone' : ''}${profile.ignoreDef ? ', ignore la DEF' : ''}` +
+      `Dégâts réels : sort « ${profile.nom} » (S${profile.slot}, ${sequence ? resumeSequenceDeCoups(sequence) : `${coupsAffiches.dependDuBuild ? `${coupsAffiches.hits} à ${coupsAffiches.max}` : coupsAffiches.hits} coup(s)`}` +
+        `${profile.hitsRange ? ` [variable ${profile.hitsRange.min}-${profile.hitsRange.max}${coupsAffiches.dependDuBuild ? ', selon l\'ATQ du build' : ''}]` : ''}` +
+        `${!sequence && profile.aoe ? ', zone' : ''}${profile.ignoreDef ? ', ignore la DEF' : ''}` +
+        `${ignoreDefRetenu ? `, ${ignoreDefRetenu.charAt(0).toLowerCase()}${ignoreDefRetenu.slice(1)}` : ''}` +
         `${profile.ignoreDefSelonVit ? `, ignore la DEF selon l'écart de VIT (100 % à ${profile.ignoreDefSelonVit.ecartMax}+ pts)` : ''}` +
         `${profile.skillupDamagePct ? `, +${profile.skillupDamagePct} % d'améliorations` : ''}) — ` +
+        `${cibleCalculee ? `${cibleCalculee} — ` : ''}` +
         `cible ${s.enemyHp} PV / ${s.enemyDef} DEF` +
         `${profile.variables.some((v) => v === 'Relative SPD' || v === 'Target SPD') ? ` / ${s.enemySpd ?? DEFAULT_DAMAGE_SETUP.enemySpd} VIT` : ''} — ${critInterdit ? 'critique impossible' : `crit ${s.critMode}`}` +
         `${s.atkBuff ? ' — buff ATQ' : ''}${s.defBuff ? ' — buff DEF' : ''}${s.spdBuff ? ' — buff VIT' : ''}` +
@@ -315,18 +353,28 @@ if (recipe.objective === 'degats_reels') {
       const detailPassifs = passifs
         .map((p) => {
           const coups = ` [${resolvedHits(p.profile, s)} coup(s)]`;
+          // L'état affiché est celui du CALCUL, `passifCompte` avec le sort
+          // RETENU (degats-et-aura 9b) — jamais `passifActif` seul, qui ignore
+          // le sort. Un passif qui ne peut pas suivre ce sort dit pourquoi,
+          // plutôt qu'un « désactivé » trompeur : lui-même choisi comme sort
+          // (Tempest seul), ou slots déclencheurs curés qui l'excluent.
+          if (!passifPeutSuivre(p, profile)) {
+            return p.skillCom2usId === profile.skillCom2usId
+              ? `${p.nom} (choisi comme sort : compté une seule fois)${coups}`
+              : `${p.nom} (ne suit pas un S${profile.slot})${coups}`;
+          }
           switch (p.categorie.type) {
             case 'toujours':
               return `${p.nom} (toujours actif)${coups}`;
             // Déclenchement DÉDUIT des deux réglages de réduction de défense —
             // aucun bouton, d'où l'état résolu affiché plutôt qu'un réglage.
             case 'defBreak':
-              return `${p.nom} (def break : ${passifActif(p, s) ? 'DÉCLENCHÉ' : 'non déclenché'})${coups}`;
+              return `${p.nom} (def break : ${passifCompte(p, profile, s) ? 'DÉCLENCHÉ' : 'non déclenché'})${coups}`;
             // La base compte toujours ; le bouton ne porte que le surplus.
             case 'bonus':
               return `${p.nom} (base comptée, +${p.categorie.pct} % ${bonusPassifActif(p, s) ? 'ACTIVÉ' : 'désactivé par défaut'})${coups}`;
             default:
-              return `${p.nom} (conditionnel, ${passifActif(p, s) ? 'activé' : 'désactivé par défaut'})${coups}`;
+              return `${p.nom} (conditionnel, ${passifCompte(p, profile, s) ? 'activé' : 'désactivé par défaut'})${coups}`;
           }
         })
         .join(', ');
@@ -365,8 +413,34 @@ if (recipe.objective === 'degats_reels') {
 
 
 
+// Le contexte relique (lot 5a, garantie G) — la même ligne que le harnais
+// (`diagnosticConfig.ts`) : en mode `recherche` les bornes sont RELÂCHÉES
+// et les candidats sortent SANS relique ; la relique de chaque build est
+// résolue après la recherche, comme la file de l'écran (6bis-b5c).
+{
+  const rc = params.relicContext;
+  if (rc) {
+    console.log(
+      `Relique : mode ${rc.mode} (principale ${String(rc.principale)}, type ${String(rc.type)}, seuil +${rc.seuil}) — ` +
+        `${rc.eligibles.length} éligible(s)${rc.vide ? `, pool vide (${rc.vide})` : ''}` +
+        (rc.mode === 'recherche' ? ' — bornes relâchées, candidats collectés sans relique, relique résolue par build après la recherche' : '')
+    );
+  }
+}
+
 console.log('\nRecherche en cours (chemin de prod complet, séquentiel — peut prendre plusieurs minutes)…');
-const result = runSearchToCompletion(params);
+let result: ReturnType<typeof runSearchToCompletion>;
+try {
+  result = runSearchToCompletion(params);
+} catch (e) {
+  // Refus NOMMÉ du moteur (pool de reliques vide en mode recherche, D1) :
+  // imprimé tel quel, jamais présenté comme « 0 build ».
+  if (e instanceof RechercheRefusee) {
+    console.error(`\n${e.message}`);
+    process.exit(2);
+  }
+  throw e;
+}
 
 console.log(
   `\n${result.candidates.length} build(s) trouvé(s) — tronqué : ${result.truncated} — ` +
@@ -384,16 +458,80 @@ const realDamage = buildRealDamageContext(recipe, loaded.com2usId, params.artifa
 if (recipe.objective === 'degats_reels' && !realDamage) {
   console.warn(`⚠️ Aucun sort calculable pour ${loaded.monsterName} — le classement reste dans l'ordre de collecte.`);
 }
-const classes = sortCandidates(result.candidates, recipe.objective, {
+const runeByIdPool = new Map(params.pool.map((r) => [r.id, r]));
+// ⚠️ Les producteurs MÊMES de l'écran (6bis-b5a, 6bis-b5c), assemblés dans
+// `classerCommeLEcran` (scripts/lib/classementCli.ts) : l'ordre de base
+// (`optionsDeClassement`), puis — là où l'écran a une file, optimisation
+// d'artéfacts active (`ignoreArtifacts` faux) — la résolution de
+// l'équipement et le classement de l'écran (`classementResolu`). Par défaut
+// comme la file de l'écran (`kDeLaFile` : l'ordre de base jusqu'à 300
+// combinaisons confirmées en mode relique « recherche », 100 sinon — 6bis-b18
+// —, et lignes imprimées, jusqu'au point fixe) ; tous les candidats avec
+// `--resoudre-tout`. Mode `recherche` : couple artéfacts/relique résolu
+// ensemble, couples infaisables rejetés ; sinon la paire seule, avec la
+// relique de la fiche.
+const { classes, options: optionsAffichees, resolu } = classerCommeLEcran({
+  recipe,
+  loaded,
+  params,
+  candidates: result.candidates,
   realDamage,
-  runeById: new Map(params.pool.map((r) => [r.id, r])),
-  metric: recipe.metric,
+  toutResoudre,
 });
-console.log(`\nLes 20 meilleurs pour l'objectif « ${recipe.objective} » :`);
-for (const c of classes.slice(0, 20)) {
-  console.log(`  runes [${c.runeIds.join(',')}]`);
+if (resolu) {
+  console.log(
+    resolu.mode === 'tout'
+      ? `Équipement résolu pour TOUS les candidats (--resoudre-tout) : ${resolu.parBuild.size} build(s), ` +
+          `${resolu.rejetes} rejeté(s) faute de couple artéfacts/relique faisable — ${resolu.ms.toFixed(0)}ms`
+      : `Équipement résolu comme la file de l'écran : ${resolu.parBuild.size} build(s) sur ${result.candidates.length} — ` +
+          (Number.isFinite(resolu.K)
+            ? `l'ordre de base jusqu'à ${resolu.K} combinaisons confirmées (ou jusqu'au dernier build trouvé)`
+            : `toutes les combinaisons trouvées (« Vérifier toutes les combinaisons trouvées » dans la recette)`) +
+          ` et les ${LIGNES_IMPRIMEES} lignes imprimées, jusqu'au point fixe ` +
+          `(${resolu.lots} lot(s)) — ${resolu.parBuild.size - resolu.rejetes} confirmée(s), ${resolu.rejetes} rejeté(s) faute de couple artéfacts/relique faisable — ${resolu.ms.toFixed(0)}ms. ` +
+          `Les autres candidats restent classés dans l'ordre de base, non résolus ; --resoudre-tout pour tout résoudre.`
+  );
+  if (result.truncated) {
+    console.log(`⚠️ Recherche tronquée : le classement résolu ne porte que sur les ${result.candidates.length} candidat(s) collecté(s).`);
+  }
+  if (classes.length === 0 && result.candidates.length > 0) {
+    console.log('⚠️ Aucun build ne reste : chaque candidat collecté est rejeté faute de couple artéfacts/relique faisable.');
+  }
+} else if (toutResoudre) {
+  console.log('--resoudre-tout sans effet : aucune résolution ici (optimisation d’artéfacts coupée, comme l’écran sans file).');
 }
-if (classes.length > 20) console.log(`  … et ${classes.length - 20} de plus.`);
+{
+  const etat = etatReliqueDuBuild(undefined, params.relicContext, params.relic);
+  console.log(
+    etat.etat === 'fixe'
+      ? `Effet unique de relique dans le tri : ${etat.relique ? 'compté (relique de la fiche)' : 'aucune relique'}`
+      : resolu
+        ? `Effet unique de relique dans le tri : compté (relique retenue par build résolu${resolu.mode === 'file' ? ' ; neutre pour un build non résolu' : ''})`
+        : 'Effet unique de relique dans le tri : neutre (mode recherche sans résolution — espèce introuvable)'
+  );
+}
+console.log(`\nLes ${LIGNES_IMPRIMEES} meilleurs pour l'objectif « ${recipe.objective} » :`);
+// ⚠️ Le score affiché est `scoreDuCandidat` avec les options MÊMES du
+// classement (6bis-b4) : la valeur qui classe, jamais une formule recopiée.
+// Les sets actifs viennent d'`activeSets` et les activations d'aura propres
+// du même `aurasPropresDe` que le score — ce qui permet de lire, sur un vrai
+// compte, combien de sets d'aura CE build ajoute aux auras externes. Après
+// résolution, la relique et les artéfacts RETENUS pour ce build.
+for (const c of classes.slice(0, LIGNES_IMPRIMEES)) {
+  const score = scoreDuCandidat(c, recipe.objective, optionsAffichees);
+  const sets = activeSets(c.runeIds.map((id) => runeByIdPool.get(id)?.set ?? ''));
+  const propres = Object.entries(optionsAffichees.aurasPropresDe(c)).filter(([, n]) => n > 0).map(([set, n]) => `${set} ${n}`);
+  const joker = c.runeIds.some((id) => runeByIdPool.get(id)?.set === 'intangible');
+  const r = resolu?.parBuild.get(cleBuild(c));
+  const equipement = r
+    ? ` — relique ${r.relique?.id ?? params.relic?.id ?? 'aucune'}${r.relique ? '' : ' (fiche)'} — artéfacts [${r.artefacts.map((a) => a.id).join(',')}]`
+    : '';
+  console.log(
+    `  runes [${c.runeIds.join(',')}] — score ${score == null ? '—' : score.toFixed(1)} — ` +
+      `sets [${sets.join('+') || 'aucun'}]${joker ? ' (Intangible)' : ''} — auras propres ${propres.join(', ') || 'aucune'}${equipement}`
+  );
+}
+if (classes.length > LIGNES_IMPRIMEES) console.log(`  … et ${classes.length - LIGNES_IMPRIMEES} de plus.`);
 
 // ⚠️ Sous-produit GRATUIT de `pairBuckets` (voir spec/outils/optimizer/
 // near-miss-appariement.md) — jamais recalculé, seulement mis en forme.

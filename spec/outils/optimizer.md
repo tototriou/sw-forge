@@ -317,7 +317,14 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
    et se resserre tout seul (voir
    [shared/librairie-ui.md](../shared/librairie-ui.md)), comportement commun
    à TOUS les sélecteurs de l'app. **Une puce grisée** signale que l'espèce
-   choisie n'a aucun exemplaire dans cette source.
+   choisie n'a aucun exemplaire dans cette source. **Une puce dit le nombre
+   dès deux exemplaires** (degats-et-aura lot EX, décision de l'utilisateur
+   du 2026-10-04) : `{source} · {n}` (« Box · 2 »), même règle pour les
+   quatre sources ; à zéro ou un exemplaire, la puce garde son libellé.
+   C'est le seul signe qu'un clic sur la puce, même déjà allumée, ouvre la
+   zone D. Le compte ne dépend que de l'espèce, jamais d'un clic, et les
+   puces se partagent la largeur à égalité : rien ne bouge
+   (`libellePuceSource`, optimizerExclusion.ts).
    ⚠️ **Choisir une espèce résout automatiquement le PREMIER exemplaire
    Box** dès qu'il y en a au moins un (demande explicite : éviter de rouvrir
    la désambiguïsation pour tout monstre possédé en double) — la fiche
@@ -343,8 +350,11 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
    imposée, objectif, artéfacts, conditions min/max, tri, pagination) — des
    critères posés pour l'ancien monstre n'ont pas de raison de valoir pour
    le nouveau. Re-choisir le même exemplaire, ou un AUTRE exemplaire de la
-   MÊME espèce, n'efface rien (seuls les critères propres à l'équipement
-   changent, pas ceux propres à l'espèce). Les **réglages avancés**
+   MÊME espèce, conserve les critères de recherche, le sort et ses réglages :
+   aucun nouveau sort n'est à choisir pour cette espèce. Depuis
+   degats-et-aura 6bis-b19, un autre exemplaire choisi par un membre de la
+   liste de travail efface en revanche les **résultats affichés**, faits
+   pour l'ancien (voir la table ci-dessous). Les **réglages avancés**
    (préfiltrage, exclusions, recherche exhaustive…) ne sont jamais
    concernés : préférences générales, pas critères propres à un monstre.
    **Importer un nouveau compte** déclenche la réinitialisation complète,
@@ -364,7 +374,54 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
    ⚠️ **La description du combat, elle, SURVIT** : défense, PV et élément de
    l'adversaire, buffs, lead ne sont pas propres au monstre, et ce sont les
    plus longs à ressaisir. Recliquer « Dégâts réels » rouvre la fenêtre avec
-   le combat déjà décrit. Seuls les deux **sélecteurs** retombent au défaut.
+   le combat déjà décrit. Les sélecteurs et réglages propres au sort ne
+   retombent au défaut que lorsque l'espèce optimisée change ou qu'un nouveau
+   compte est importé, selon la table ci-dessous.
+
+   **Classement exhaustif de `DamageSetup` (lot 5).** « Contexte » désigne
+   l'adversaire, l'équipe ou l'état de combat réutilisable ; « sort » désigne
+   un choix lié au monstre, au sort ou à son passif. Un champ de compatibilité
+   suit le champ auquel il est associé. Toute nouvelle clé doit être classée
+   dans cette table et dans `DAMAGE_SETUP_CLASSIFICATION` avant usage.
+
+    | Sens | Champs actuels | Changement de monstre |
+    | --- | --- | --- |
+    | Contexte partagé | `enemyDef`, `enemyHp`, `enemyHpPct`, `enemySpd`, `enemyAtk`, `enemyElement`, `enemyHpNotDestroyed`, `aliveEnemies`, `ownHpPct`, `livingAlliesPct`, `velaskaPvPerduPct`, `atkBuff`, `defBuff`, `spdBuff`, `atkDebuff`, `defDebuff`, `spdDebuff`, `defBreak`, `brand`, `critMode`, `summonerSkills`, `leaderSkill`, `euldongActif`, `mirinaeActif`, `deborahActif`, `miriamActif`, `transmissionActif`, `velaskaActif` | Conservés |
+    | Propre au monstre, sort ou passif | `skillCom2usId`, `defBreakParLeSort`, `sacrificeReservePct`, `passifsOffensifs`, `statsCombatActives`, `coupsPersonnalises`, `cibleDegatsParSort`, `premierCoupIgnoreDefParSort`, `stackPersonnalise`, `effetsCibleCount`, `buffsCibleCount`, `buffsPropresCount`, `buffsAlliesCount`, `compteurPersonnalise`, `effetsPropresCount`, `scenariosEffetsEntreCoups`, `pvActuelsAvantSacrificePct` | Défauts |
+    | Compatibilité associée au contexte | `enemyDestroyedHpPct` (ancien champ de destruction des PV adverses, désormais ignoré), `leaderSpeedPct` (ancien lead VIT) | Conservés avec le contexte |
+    | Marqueurs de sémantique associés aux compteurs par sort | `effetsCibleCountAutres`, `buffsPropresCountAutres` | Défauts avec leur compteur |
+
+    | Événement | Contexte partagé et legacy associé | Sort, passifs et marqueurs associés | Autres critères de recherche |
+    | --- | --- | --- | --- |
+    | Espèce différente | Conservés | Défauts | `resetSearch` habituel |
+    | Autre exemplaire de la même espèce, y compris après une nouvelle recherche bestiaire | Conservés | Conservés | Conservés |
+    | Navigation entre listes, création ou suppression de la liste active sans choisir un autre monstre | Conservés | Conservés | Conservés |
+    | Choix d'un membre de liste d'une espèce différente | Conservés | Défauts | `resetSearch` habituel |
+    | Choix d'un membre de liste de la même espèce | Conservés | Conservés | Conservés |
+    | Import de recette | Valeurs de la recette | Valeurs de la recette | Valeurs de la recette |
+    | Import de compte | Défauts | Défauts | `resetSearch` habituel |
+
+   Cliquer un autre membre de la liste garde les autres effets de `resetSearch`
+   quand son espèce change. **Quand il désigne un autre exemplaire de la même
+   espèce** (degats-et-aura 6bis-b19, décision de l'utilisateur du
+   2026-10-02), les résultats affichés, faits pour l'ancien exemplaire, sont
+   effacés comme au changement d'espèce et par la même fonction
+   (`effacerResultats`, useOptimizerState.ts, la partie « résultats » de
+   `resetSearch` : résultat et progression, page, arrêt manuel, détail
+   ouvert). Critères, tri et combat décrit restent, comme le dit la table, et
+   rien n'est relancé : l'utilisateur relance lui-même. Recliquer
+   l'exemplaire déjà affiché n'efface rien. Le bouton « Ajouter un autre
+   exemplaire de … » de la zone C (lot EX, voir « Zone C ») change
+   d'exemplaire par le **même chemin** (`choisirExemplaire`,
+   OptimizerSection.tsx) : résultats affichés effacés, critères gardés,
+   sans rappel des auras externes, qui reste au seul clic d'un membre. Naviguer entre listes sans
+   choisir un autre monstre ne change pas le monstre optimisé ; la simple
+   re-sélection de la même espèce dans le bestiaire, ou d'un exemplaire par
+   les puces de source et la zone D, ne vide rien, et n'efface pas non plus
+   les résultats affichés. L'import de
+   recette écrit directement ses valeurs après validation ; aucun effet
+   différé de changement d'espèce ne les écrase.
+
 ### Meilleurs artéfacts offensifs pour ce build
 2 bis. **« Meilleurs artéfacts offensifs pour ce build »** — dans la carte
    **Artéfacts**, juste sous les **sous-propriétés verrouillées** : le
@@ -481,6 +538,36 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
    ⚠️ Si **aucun sort du monstre n'est calculable**, le cran retombe sur les
    dégâts supplémentaires **en le disant** — jamais un bloc vide ni un chiffre
    brut sous un libellé « Dégâts réels ».
+
+   **Relique de la fiche (6bis-b5b).** Les deux crans comptent son effet
+   unique, recalculé pour chaque paire essayée, dans la valeur et dans
+   l'écart à la paire portée. Les points de Bravoure, Éternité et Origine
+   augmentent les statistiques lues par les lignes 218–221 ; Conquête
+   n'augmente jamais ces dégâts supplémentaires. En dégâts réels, Conquête
+   entre dans le terme DMG% ; Ténacité reste sans effet sur les dégâts
+   infligés. La principale n'est jamais comptée deux fois, les conditions
+   min/max restent hors combat et aucun arrondi de points n'est ajouté.
+   La paire représentative utilisée pour lancer la recherche compte aussi
+   l'effet unique en dégâts réels, comme elle le faisait en PV effectifs.
+   Les bornes explicites de faisabilité restent indépendantes de cette note ;
+   sans elles, le repli fige toujours les principales de la représentative.
+   Le script CLI note sa représentative par le même producteur
+   (`evaluateursArtefactsFiche`, via `artefactsDuCli`, degats-et-aura
+   6bis-b5c) : il ne comptait l'effet unique qu'en PV effectifs, et pouvait
+   donc lancer la recherche avec une autre paire que l'écran. Son repli
+   reste inchangé : sans sort calculable en « Dégâts réels », il garde la
+   paire portée au lieu de noter en régime « aucun » comme l'écran.
+   Les paramètres de choix des paires (inventaire, pièces portées,
+   principales, verrous, amplifications de buff, maximums actifs) viennent
+   eux aussi d'un seul producteur, `parametresArtefactsFiche`
+   (degats-et-aura 6bis-b6), que l'écran appelle dans le même mémo
+   qu'avant, le script CLI et le différentiel relique aussi. Le script
+   neutralise donc les verrous de sous-propriété comme l'écran quand les
+   deux emplacements sont sur « Garder l'artéfact équipé » : il cherchait
+   jusque-là une paire qui les tienne, n'en trouvait aucune et rejetait
+   chaque build d'une recette que l'écran résolvait. Seul écart : le script
+   n'a pas de liste de travail, donc aucun artéfact réservé n'est retiré de
+   son inventaire.
 
 #### Affichage et emplacement de la proposition
    **Chaque artéfact proposé s'affiche comme dans le jeu** : sa statistique
@@ -648,7 +735,11 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
    - **Efficience** (par défaut) — pas de biais particulier, la mesure
      choisie globalement (Efficience ou Score SW, voir
      [compte/runes.md](../compte/runes.md)).
-   - **PV effectifs** — considère PV et DEF ensemble.
+   - **PV effectifs** — considère PV et DEF ensemble. Les auras Enhance et
+     Determination apportent chacune 8 % de leur base au score, à son tri et
+     à sa comparaison, sans ajouter les autres bonus de début de combat —
+     celles des autres monstres comme celles que forment les runes de chaque
+     build, dans un seul arrondi.
    - **Vitesse** — VIT seule.
    - **Dégâts réels** — la **vraie formule d'un sort précis** contre un
      adversaire configuré, pas une espérance générique. Modèle de calcul
@@ -683,6 +774,15 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
        qui n'en tient aucun compte, signalé à l'usage. Les deux lectures
        viennent désormais d'un seul prédicat (`champsDuCombat`,
        [damage.ts](src/lib/damage.ts)) : deux copies avaient déjà divergé.
+     - **La cible calculée de Blade Surge, quand ce n'est pas la cible
+       visée.** Le cran « Dégâts sur les autres ennemis » ajoute un bout
+       juste après le sort : `S1 Blade Surge · autres ennemis · élément
+       ignoré · PV 30 000 · DEF 1 000 · Critique`. Comme pour le sort, c'est
+       la cible que RETIENT le calcul pour le sort résolu
+       (`resumeCibleDegatsRetenue`, qui lit `cibleDegatsRetenue`), jamais
+       la valeur stockée : rien pour la cible visée (le défaut), rien pour
+       un autre sort, même sous une clé posée à la main. Le texte est la fin
+       du libellé du cran, écrit une seule fois (degats-et-aura 8c).
      - **Pas de buffs dans ce résumé** : ils ne sont plus dans la fenêtre
        qu'il rouvre, et ont leurs propres contrôles toujours visibles dans
        « État de mon monstre ».
@@ -698,28 +798,71 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
        accompagné de ce que ses données disent déjà (« 3 coups · Zone ·
        Ignore la DEF · +30 % (compétence maxée) »). ⚠️ **Rien de tout cela
        ne se saisit** : coefficient, coups, portée, ignore défense, dégâts
-       fixes et bonus des améliorations sont lus dans la fiche du sort. Par
-       défaut, le dernier slot calculable (S3 avant S2 avant S1). Un sort
+       fixes et bonus des améliorations sont lus dans la fiche du sort. Un
+       sort dont les coups n'ont pas tous la même formule ni la même portée
+       (Blade Surge) affiche sa séquence curée (« 0.5 × ATQ puis 3.0 × ATQ ·
+       2 coups · Cible unique, puis 1 coup · Zone »). ⚠️ **Seule exception,
+       un choix et non un paramètre** : pour un sort dont la séquence curée
+       porte un coup de zone (`cibleSecondairePriseEnCharge`, Blade Surge
+       seulement), un `Segmented` à deux crans apparaît sous la liste des
+       sorts, au même endroit que le champ des coups variables — « Dégâts
+       sur la cible visée » (défaut, les trois coups) et « Dégâts sur les
+       autres ennemis » (le coup de zone seul, sur UN autre ennemi). Les
+       champs de l'adversaire décrivent alors cet autre ennemi ; aucun champ
+       nouveau. Le résumé des sorts ne lit pas le cran : basculer ne fait
+       bouger ni le texte au-dessus, ni le contrôle (degats-et-aura 8b,
+       réglage `cibleDegatsParSort`) ; la ligne de résumé sous l'objectif,
+       elle, dit « autres ennemis » quand ce cran est retenu (8c, voir
+       « Les quatre objectifs disponibles » ; détail :
+       [degats-reels/sequences-de-coups.md](degats-reels/sequences-de-coups.md)). Par
+       défaut, le dernier slot calculable parmi les sorts actifs (S3 avant
+       S2 avant S1). Un passif curé « sélectionnable comme sort » figure
+       aussi dans la liste, calculé seul et une seule fois — Tempest (S3) de
+       Teshar, nom du jeu « Tempest (Passive) » —, mais n'est jamais le sort
+       par défaut : Teshar reste sur S2 (degats-et-aura 9b, réponse n° 9 de
+       l'utilisateur du 2026-10-02 ; détail
+       [degats-reels/attaque-apres-un-sort.md](degats-reels/attaque-apres-un-sort.md)). Un sort
        dont la formule sort du modèle reste **affiché, grisé, avec son
-       motif** — jamais absent sans explication. Le survol de chaque sort,
-       même grisé, montre sa description du jeu. Les conditions « buff
+       motif** — jamais absent sans explication. ⚠️ **La description du jeu
+       de chaque sort, même grisé, s'ouvre au CLIC** sur un « ? » posé
+       juste à droite de son nom — bulle à la souris, panneau montant au
+       doigt (`HelpPopover`) —, plus au survol : un `title` natif ne
+       s'ouvre jamais au doigt, elle restait invisible sur téléphone
+       (degats-et-aura 11bis, demande de l'utilisateur du 2026-10-02). Le
+       « ? » vit dans la case mais HORS de son bouton (axe `actionTitre`
+       d'`Option`, [librairie-ui.md](../shared/librairie-ui.md)) : le
+       toucher ne choisit pas le sort, et la case ne bouge pas. Un sort
+       sans description n'a pas de « ? » ; elle reste annoncée aux
+       lecteurs d'écran par le bouton de la case (`aria-description`). Les conditions « buff
        adverse présent/absent » sont des interrupteurs, contrairement aux
        bonus proportionnels au nombre de buffs. ⚠️ **Coups variables** (« 2
        à 3 fois », Sia — Great Friends ; « 3 à 5 fois », Okeanos S3) : un
        champ numérique borné apparaît sous le sort choisi (ou sous le passif
        concerné) pour choisir la valeur réellement utilisée par le calcul —
        `Competence.coups` ne porte qu'un seul nombre en donnée, pas fiable
-       pour ces sorts-là. Détail : [degats-reels.md](degats-reels.md),
+       pour ces sorts-là. Détail : [degats-reels/passifs-offensifs.md#coups-variables--un-sortpassif-qui-frappe-un-nombre-de-fois-qui-change-en-jeu](degats-reels/passifs-offensifs.md#coups-variables--un-sortpassif-qui-frappe-un-nombre-de-fois-qui-change-en-jeu),
        « Coups variables ». Un champ **Attaques reçues avant ce sort**
        (0 par défaut) n'apparaît que pour l'unique sort connu dont le
        coefficient dépend d'un compteur de combat (Crawler/Frankenstein —
-       « Hammer Punch »). Détail : [degats-reels.md](degats-reels.md),
-       « formule bespoke selon un compteur ».
+       « Hammer Punch »). Détail : [degats-reels/catalogue-des-passifs.md#quatrième-vague--point-25--formule-bespoke-selon-un-compteur-crawler](degats-reels/catalogue-des-passifs.md#quatrième-vague--point-25--formule-bespoke-selon-un-compteur-crawler),
+       « formule bespoke selon un compteur ». ⚠️ **L'ignore DEF des six
+       sorts Blade Dancers se choisit** : ils n'ignorent la DEF qu'une fois
+       la jauge d'attaque de la cible à 0, que l'app ne modélise pas. Pour
+       eux seulement, un sélecteur **« Ignore la DEF (jauge de la cible à
+       0) »** apparaît sous la liste : « Aucun » (défaut), « Dès le 2ᵉ
+       coup », « Dès le 3ᵉ coup » pour les sorts à 3 coups ; « Dès le 2ᵉ
+       coup » à « Dès le 6ᵉ coup », puis « 7ᵉ coup seul » (défaut) pour les
+       sorts à 7 coups. Le résumé du sort dit le cran retenu sur une ligne à
+       lui, d'une ligne de haut quel que soit le cran — en changer ne
+       déplace pas le sélecteur —, et la DEF de la cible reste affichée dans
+       tous les crans (degats-et-aura 10b). Détail :
+       [degats-reels/formules-et-combat.md](degats-reels/formules-et-combat.md),
+       « Ignore DEF à partir d'un coup choisi ».
      - **Passifs offensifs** — n'apparaît que si le monstre en a un
        (Feng Yan, Sia, Roid, Dominic, Ciri, Sonia, Momo, Chun-Li, Lizardman,
        Jin Kazama…) : des dégâts **en plus** du sort choisi ci-dessus, OU un
        modificateur sur l'ensemble de ses dégâts, via un passif reconnu
-       (liste à la main, voir [degats-reels.md](degats-reels.md)). Un passif
+       (liste à la main, voir [degats-reels/passifs-offensifs.md#passifs-offensifs--dégâts-supplémentaires-au-delà-du-sort-choisi](degats-reels/passifs-offensifs.md#passifs-offensifs--dégâts-supplémentaires-au-delà-du-sort-choisi)). Un passif
        **toujours actif** (le texte du jeu ne pose aucune condition)
        apparaît en jeton simple, sans bouton — y compris un modificateur
        sans formule propre (crit garanti si plus rapide, bonus continu
@@ -740,7 +883,16 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
        aucun réglage existant ne peut trancher ça à sa place) — la condition
        et le texte du jeu (`Competence.description`) sont affichés **en
        clair sous chaque passif**, pas seulement au survol, pour que le
-       joueur juge lui-même.
+       joueur juge lui-même. Pour un passif qui frappe **après certains
+       sorts** (Tempest), la condition EST le libellé de l'interrupteur :
+       « **Tempest (S3) se déclenche après ce sort** », désactivé par défaut
+       (réponse n° 11 de l'utilisateur du 2026-10-02), à la place de la
+       phrase « Se déclenche si … », et **sans survol** (`title`) : un
+       survol n'existe pas au doigt (décision du 2026-10-02, degats-et-aura
+       9d) ; le texte du jeu reste sous l'interrupteur. Un passif
+       n'apparaît que s'il peut suivre le sort choisi : l'interrupteur de
+       Tempest est **masqué**
+       quand Tempest est lui-même la compétence choisie (réponse n° 10).
 #### Dégâts réels — adversaire, effets actifs et coup critique
      - **Adversaire** — PV et DEF. ⚠️ Les **PV ne classent rien** : ils ne
        servent qu'à lire le résultat (« 42 % des PV », « tue la cible »).
@@ -749,7 +901,7 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
        cible** (0 par défaut) n'apparaît que pour les rares sorts dont les
        dégâts augmentent par effet présent sur l'adversaire (Julie, Melissa)
        — l'app ne simule aucun effet réel sur la cible. Détail :
-       [degats-reels.md](degats-reels.md), « bonus selon les effets sur la
+       [degats-reels/catalogue-des-passifs.md#troisième-vague--points-4-et-5--bonus-selon-les-effets-sur-la-cible](degats-reels/catalogue-des-passifs.md#troisième-vague--points-4-et-5--bonus-selon-les-effets-sur-la-cible), « bonus selon les effets sur la
        CIBLE ». ⚠️ **VIT adversaire** +
        **leader skill VIT** : apparaissent pour un sort/passif qui dépend de
        l'écart de vitesse (`{Relative SPD}`, ignore-DEF proportionnel à
@@ -758,7 +910,7 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
        lit pas cette variable, ex. n'importe quel sort de Sonia) ; un
        artéfact « Effet aug. VIT » équipé et un éventuel critique/bonus de
        dégâts garanti sont, eux, **déduits et affichés**, jamais redemandés.
-       Détail : [degats-reels.md](degats-reels.md), « VIT de l'adversaire ».
+       Détail : [degats-reels/passifs-offensifs.md#vit-de-ladversaire--relative-spd-et-lignore-def-proportionnel](degats-reels/passifs-offensifs.md#vit-de-ladversaire--relative-spd-et-lignore-def-proportionnel), « VIT de l'adversaire ».
      - **Effets actifs** — effets subis par la cible (réduction de défense
        ×0,3, marque +25 %, « ce sort pose le def break » — distingue
        « attaque une cible déjà réduite » de « réduit puis frappe », les
@@ -769,13 +921,23 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
        activée** — l'état se lit sur l'icône elle-même, sans avoir à cliquer
        pour comprendre la légende (au repos, tout est grisé : rien n'est
        encore choisi). Le survol décrit l'effet complet, pas seulement son
-       nom. **Six effets d'ÉQUIPE** (Euldong, Mirinae, Deborah,
+       nom. ⚠️ **L'infobulle « ? » de la rangée regroupe ces MÊMES
+       descriptions**, pour les seuls effets affichés pour le sort choisi :
+       une seule liste (`effetsActifs`,
+       [DamageSetupCard.tsx](../../src/components/outils/DamageSetupCard.tsx))
+       rend les vignettes et l'infobulle, jamais un texte écrit à côté —
+       celui d'avant citait encore les buffs ATQ/DEF/VIT partis dans « État
+       de mon monstre ». Au doigt, où le survol n'existe pas, c'est elle
+       qui donne les descriptions ; à la souris, le survol de chaque
+       vignette reste en complément (degats-et-aura 11bis, décision de
+       l'utilisateur du 2026-10-02 : une seule infobulle, pas une par
+       effet). **Six effets d'ÉQUIPE** (Euldong, Mirinae, Deborah,
        Miriam, Dr. Matteo, Velaska — un AUTRE monstre que celui optimisé),
        même contrôle mais **portrait du monstre** en icône plutôt qu'une
        icône de buff générique. ⚠️ Velaska porte en plus un **champ
        numérique** (% de PV perdus, 0 par défaut) qui n'apparaît que si son
        effet est activé. Détail des mécaniques :
-       [degats-reels.md](degats-reels.md), « Effets d'équipe ».
+       [degats-reels/effets-equipe-et-leaders.md#effets-déquipe-euldong-mirinae-deborah-miriam-dr-matteo-velaska](degats-reels/effets-equipe-et-leaders.md#effets-déquipe-euldong-mirinae-deborah-miriam-dr-matteo-velaska), « Effets d'équipe ».
 
        ⚠️ **Les buffs ATQ/DEF/VIT et le leader skill n'y sont plus** — voir
        « État de mon monstre » ci-dessous.
@@ -790,17 +952,13 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
        qui portait ce cran est normalisée vers **Combat** à l'import.
        La compétence « Puis. d'att. de <élément> » suit l'élément du
        monstre, sans rien demander. Détail des valeurs :
-       [degats-reels.md](degats-reels.md).
+       [degats-reels/effets-equipe-et-leaders.md#leader-skill-déquipe](degats-reels/effets-equipe-et-leaders.md#leader-skill-déquipe).
      - **Coup critique** — Critique (défaut, le plafond d'un coup isolé) /
-       Non critique (le plancher) / Moyenne (espérance sur le Taux Crit
-       réellement atteint — le seul mode où le Taux Crit pèse sur le
-       classement), rangée volontairement tout à droite. ⚠️ Sous
-       **Moyenne** uniquement, un avertissement rappelle que la valeur
-       affichée est une ESPÉRANCE théorique, pas ce qu'un combat réel (tour
-       par tour) produit coup après coup — absent des deux autres modes,
-       qui sont déjà des bornes littérales. Si le sort garantit son critique,
-       ou si le réglage actif remplit sa condition de critique garanti, les
-       crans Non critique et Moyenne sont grisés et non sélectionnables.
+       Non critique (le plancher). Si le sort garantit son critique, ou si
+       le réglage actif remplit sa condition de critique garanti, le cran
+       Non critique est grisé et non sélectionnable. L'ancien mode
+       « Moyenne » (espérance sur le Taux Crit) est supprimé (degats-et-aura,
+       lot CM).
      ⚠️ **On n'affiche que ce que le sort CONSOMME** : un sort qui ignore la
      défense ne montre ni la DEF ennemie ni la réduction de défense ; un
      sort qui ne dépend pas de la VIT ne montre pas le buff de vitesse. Un
@@ -846,7 +1004,10 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
    recommandations de siège, qui proposent plusieurs possibilités au choix) :
    grille d'icônes de sets, jamais un menu déroulant (`SetComboPicker.tsx`,
    même comportement que le picker de `RecoCard.tsx` réécrit en plus simple).
-   Compteur `N/6 runes`, sets qui ne rentrent plus grisés.
+   Compteur `N/6 runes`, sets qui ne rentrent plus grisés. Y choisir
+   **Accuracy** ou **Tolerance** guide vers l'interrupteur des auras RES/PRE
+   des réglages avancés, sans toucher aux auras externes (degats-et-aura 7b,
+   ouverture guidée : voir « État de mon monstre »).
 
    ⚠️ **L'Intangible ne figure PAS dans la grille.** C'est un **joker à une
    pièce** qui complète n'importe quel set : on ne le vise jamais pour
@@ -989,6 +1150,84 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
    pour lire UNE ligne verrouillée, pire que le repli de texte qu'elle
    corrigeait.
 
+   La **relique** vit dans un **bloc séparé de cette même carte**, renommée
+   **« Artéfacts et reliques »** (implementation-relique, lot 5c quater —
+   voir « Relique » ci-dessous) : elle a d'abord vécu ici même (deux
+   listes, lot 5c), puis dans sa propre carte (lot 5c bis) — écartée à la
+   vue du rendu (T9 re-tranché une seconde fois) au profit d'un bloc à
+   droite de la rangée Attribut / Type (lot 5c ter), lui-même écarté à son
+   tour (T9 re-tranché une troisième fois) au profit du bloc qui **ferme la
+   carte**, sous « Meilleurs artéfacts offensifs pour ce build » (lot 5c
+   quater). L'interrupteur ci-dessus, renommé **« Activer l'optimisation
+   d'artéfacts et reliques »**, masque d'un seul geste les deux listes
+   d'artéfacts ET le bloc Relique.
+
+   ⚠️ **Largeur fixe et commune** aux quatre listes déroulantes de la carte
+   (Attribut, Type, Principale relique, Propriété unique relique,
+   implementation-relique lot 5c quater) : sans elle, un `<select>` natif
+   prend la largeur de sa plus longue option — « Soins et boucliers
+   accordés en fonction des PV » imposait une case énorme pour « Propriété
+   unique », y compris quand « Libre » y était affiché. La valeur
+   **fermée** se tronque par « … » (`truncate`) ; la liste **ouverte**
+   garde le texte complet, comportement natif du `<select>`.
+
+### Relique
+6 ter. **Relique** (implementation-relique, lot 5c quater) — **bloc
+   séparé** de la carte « Artéfacts et reliques », PAS une carte propre :
+   ferme la carte, sous « Meilleurs artéfacts offensifs pour ce build »,
+   séparé par un **trait horizontal** de 1 px (`border-border-soft`, un
+   seul contour) — même JSX pour les deux formats, ordinateur et
+   téléphone (une carte propre au lot 5c bis faisait double emploi avec la
+   carte Artéfacts juste au-dessus et décalait toute la grille de la
+   colonne ; un bloc à droite de la rangée Attribut / Type, trait vertical,
+   au lot 5c ter, désalignait les listes relique de celles d'artéfacts —
+   écarté au lot 5c quater, plus de variante `xl:border-l`).
+
+   ⚠️ **Pas d'interrupteur propre** (T2 confirmé) : coupé avec « Activer
+   l'optimisation d'artéfacts et reliques » (même carte, juste au-dessus),
+   le bloc se masque avec le reste de la carte (mêmes deux listes
+   d'artéfacts) — plus de carte séparée à expliquer, donc plus de texte
+   « Coupée avec… » (existait au lot 5c bis).
+
+   Trois réglages, **grammaire des artéfacts à la valeur près qui n'existe
+   que pour la relique** (le type) :
+   - **Principale** : **« Garder la relique équipée »** (pièce entière,
+     rien n'est cherché), **Principale ATQ %**, **Principale DEF %**,
+     **Principale PV %**, **« Libre »** (cherche parmi toutes les reliques
+     éligibles). **Défaut : « Garder la relique équipée » si le monstre
+     choisi porte une relique, « Libre » sinon** — calculé au choix du
+     monstre, comme pour l'artéfact, par **tous** les chemins qui en
+     désignent un : bestiaire, recette importée, membre de la liste de
+     travail, « un autre exemplaire », puce de source, zone D et réimport
+     du compte. Entre deux exemplaires de la **même espèce**, le choix de
+     l'utilisateur est conservé, sauf « Garder la relique équipée » sur un
+     exemplaire qui n'en porte pas, qui redevient « Libre »
+     (`relicMainChoiceApresChangementExemplaire`) : ce mode ne refuse pas la
+     recherche, il la ferait tourner sans relique, sans le dire. Une puce
+     qui ouvre la zone D (plusieurs exemplaires) ne change rien tant
+     qu'aucun n'est choisi.
+   - **Propriété unique** : **« Libre »** (défaut) ou l'un des 16 types
+     (`RELIC_UNIQUE`, `lib/effects.ts`), avec le libellé **« `<effet>` en
+     fonction `<stat>` »** (`relicUniqueEffectLabel`, DÉRIVÉ de
+     `RELIC_UNIQUE` — effet et stat sont chacun des mots du jeu, jamais une
+     table séparée) — **désactivée et sans effet** avec « Garder la relique
+     équipée » (la pièce est fixée), le bloc le dit. Même libellé sur la
+     carte candidat (voir « Résultats » plus bas).
+   - **Niveau minimum** (`NumberField`, +0 à +15, +6 par défaut,
+     `relicMinUpgrade`) : filtre d'ENTRÉE sur le pool cherché, jamais un
+     critère de classement.
+   - `libre` et le type n'ont d'effet qu'avec la recherche (bornes du lot
+     5a, résolution exacte du lot 5b) ; les sélecteurs ne se conditionnent
+     pas aux reliques possédées, comme pour l'artéfact.
+   - **Pool vide → refus nommé**, à la place du lancement : un texte par
+     raison (seuil trop haut, aucune relique de cette principale/ce type,
+     aucune relique dans l'inventaire — réimporter le compte ou couper
+     l'interrupteur).
+   - **Recette** : « Garder la relique équipée » ne se partage pas —
+     importée d'un autre joueur, elle bascule sur « Libre » et le message
+     d'import le dit (mêmes trois règles que l'artéfact) ; le script CLI ne
+     bascule jamais.
+
 ### État de mon monstre
 6 bis. **État de mon monstre** — ⚠️ **une carte à part**, colonne 2 rangée 3,
    juste sous « Artéfacts ». Elle a d'abord vécu en bas de cette carte, séparée
@@ -997,11 +1236,37 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
    Le trait ne suffisait pas à dire « autre métier » — une carte, si.
    Contenu : **buff ATQ**, **buff DEF**, **buff
    VIT**, **leader skill** d'équipe (type puis valeur, icône officielle du
-   jeu) et **compétences d'invocateur**. Ce qui rend le monstre plus fort,
-   quel que soit l'adversaire.
+   jeu), **compétences d'invocateur** et, depuis degats-et-aura 7a, les
+   **sets d'aura des autres monstres** de l'équipe. Ce qui rend le monstre
+   plus fort, quel que soit l'adversaire.
    Si un buff actif est amplifié par une ligne d'artéfact, le pourcentage
    apparaît sous ces contrôles, auprès du buff correspondant (ATQ, DEF ou
    VIT), jamais sous la VIT de l'adversaire.
+
+   **Rappel des buffs posés par un passif** (degats-et-aura P2, décision de
+   l'utilisateur D1 : rappel à l'écran, réglage manuel conservé) — quand le
+   monstre choisi porte un passif qui se pose un buff standard, une ligne
+   s'affiche sous la rangée des trois groupes, avant les lignes
+   d'amplification et dans la même grammaire (texte `xs` atténué) : le
+   passif nommé comme dans « Stats acquises en combat » (`Jeton` en lecture
+   seule, icône et nom du jeu sans « (Passive) »), puis « pose Buff ATQ —
+   « when you attack on your turn » ». La condition est un **extrait
+   littéral** de la prose du jeu, jamais reformulé ; plusieurs buffs se
+   joignent par « et », ou par « ou » quand le jeu en tire un seul (« grants
+   one of the following », Caffeine et Mind and Body Rest). Le Taux Crit de
+   Transcendence (Antares) est nommé, bien qu'aucune vignette ne le règle.
+   **Un rappel, jamais un réglage** : aucun buff ne s'allume d'office, et
+   aucun calcul ne lit la table — elle n'est importée que par l'écran et la
+   carte. La table est curée **par identifiant de compétence**
+   (`BUFFS_POSES_PAR_PASSIF_CONNUS`, `src/lib/buffsDePassif.ts`) : les 24
+   passifs « buff standard » du tri du lot 13b, chacun relu dans sa prose ;
+   un passif absent de la table n'a pas de rappel, et les buffs qu'un sort
+   actif se pose lui-même n'en ont pas non plus (P12a). Le rappel dépend du
+   monstre, jamais d'un clic dans la carte : il paraît au choix du monstre,
+   dont le sélecteur et la liste vivent dans la carte du haut — rien de ce
+   qu'on vient de cliquer ne bouge. Il lit la fiche du monstre **choisi**
+   (garde d'identité : la fiche précédente, encore en mémoire pendant le
+   chargement, n'en donne aucun).
 
    Les trois groupes tiennent sur **une seule rangée** (demande explicite) :
    empilés, ils donnaient à la carte une hauteur sans rapport avec le peu
@@ -1033,6 +1298,105 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
    se déduit donc du plus large des deux — aucune valeur en dur à tenir à jour
    quand un libellé change.
 
+   **Sets d'aura des autres monstres** (degats-et-aura 7a) — une quatrième
+   boîte, **sous** la rangée des trois groupes et **en dernier** dans la
+   carte, qui saisit `DamageSetup.setsAuraExternes` : les sets Fight,
+   Determination, Enhance, Accuracy et Tolerance portés par les **autres**
+   monstres de l'équipe (voir
+   [effets d'équipe](degats-reels/effets-equipe-et-leaders.md)). En tête,
+   le libellé « Sets d'aura des autres monstres », son aide — les sets du
+   monstre optimisé sont comptés automatiquement sur chaque build, même
+   s'ils ne sont pas recherchés — et le total « X / 15 ». Dessous, le bouton
+   pointillé **« Ajouter un set d'aura »**, **fixe** : les lignes s'ajoutent
+   SOUS lui (demande explicite), avec le premier set absent et le nombre 1 ;
+   ajouter ne pousse donc que vers le bas. Une ligne = le set (`Selecteur` :
+   le sien et ceux qu'aucune autre ligne ne porte — une seule ligne par
+   set), le nombre (`NumberField`) et une corbeille (`BoutonIcone`) ; sous
+   ces contrôles, le libellé explicite « Nombre de sets Fight des autres
+   monstres de l'équipe », même patron pour les cinq sets. ⚠️ **Dessous et
+   non dessus** : il change de longueur avec le set et peut passer à la
+   ligne — au-dessus, il ferait descendre le menu qu'on vient de cliquer.
+   Le menu occupe la colonne restante de sa ligne : sa largeur vient de la
+   boîte, jamais de l'option choisie. Même disposition aux deux formats.
+
+   ⚠️ **Les bornes sont celles de la fonction pure d'écriture**
+   (`src/lib/aurasExternes.ts`), pas seulement du contrôle, qui ne borne
+   qu'à la sortie du champ et à ses boutons : le nombre va de 1 à
+   `15 − somme des autres lignes`, et une frappe au-delà est ramenée au
+   maximum, jamais écrite. À somme 15, ou quand les cinq sets ont leur
+   ligne, le bouton d'ajout se désactive (raison en infobulle) sans toucher
+   aux lignes existantes. Un champ du nombre **vidé revient à 1** à la
+   sortie du champ ; **seule la corbeille retire une ligne**. Toute liste
+   écrite passe la validation de la recette — la même fonction,
+   `erreurAurasExternes`. Choisir, changer ou retirer un set recherché ne
+   crée, ne relève et ne supprime aucune aura externe : les deux sources
+   sont indépendantes.
+
+   **Rappel au changement de monstre** (degats-et-aura 7b) — choisir un
+   autre monstre **depuis la liste de travail** (voir « Zone C — Monstres
+   de la liste ») — autre espèce, ou autre exemplaire de la même espèce —
+   alors que des auras externes sont renseignées passe leur boîte au token
+   d'attention : contour `warn` et fond `warn-soft` à la place de ses
+   couleurs, toujours un seul contour de 1 px, et l'en-tête de la boîte
+   laisse la place à « Pense à vérifier les sets d'aura externes. »,
+   **effacé après 3 s** (réponse de l'utilisateur). Un rappel, jamais un
+   blocage : les nombres restent ceux saisis — conservés au changement de
+   monstre comme le contexte du lot 5 —, l'app ne les réécrit pas : c'est
+   l'identité du monstre optimisé qui change ce qui est « externe ».
+   ⚠️ **Sa place est réservée** : le message occupe la même case de grille
+   que l'en-tête (libellé, aide, total), invisible le reste du temps ; la
+   case a donc déjà la hauteur du plus haut des deux et rien ne bouge quand
+   il paraît. ⚠️ **Aucune autre voie** : ni le bestiaire, ni une puce de
+   source ou la zone D (la règle de 6bis-b19 reste limitée à la liste de
+   travail), ni l'import d'une recette ou d'un compte, ni un simple rendu ;
+   recliquer l'exemplaire affiché ne rappelle rien. La décision est la
+   fonction pure `doitRappeler` (`src/lib/aurasExternes.ts`), appelée dans
+   le seul `onClick` d'un membre de la zone C — jamais dans `resetSearch`
+   ni dans un effet sur le monstre sélectionné, que l'import pose aussi.
+   Le même message paraît aussi sous la liste de la zone C, du même état et
+   pour la même durée (degats-et-aura 7c, voir « Zone C — Monstres de la
+   liste »).
+
+   **Ouverture guidée vers l'interrupteur des auras RES/PRE**
+   (degats-et-aura 7b) — ajouter **Accuracy** ou **Tolerance** aux auras
+   externes (nouvelle ligne, ou ligne passée à ce set), ou le choisir comme
+   **set recherché** (sans toucher aux auras externes), guide vers « Compter
+   les effets d'auras Tolerance et Précision dans les conditions » (voir
+   « Réglages avancés », point 9). Fight, Determination et Enhance n'ouvrent
+   rien : leurs auras n'entrent dans aucune condition, aucun réglage ne leur
+   est associé. Un nombre changé sur une ligne déjà présente, une seconde
+   activation du même set ou un retrait ne guident pas non plus ; le
+   guidage n'est jamais rejoué à l'import d'une recette ou d'un compte, ni
+   au changement de monstre. La décision est la fonction pure
+   `guideVersResPre` (`src/lib/aurasExternes.ts`), appelée au seul geste :
+   l'écriture des auras externes (`ecrire`, point de passage de tous les
+   contrôles de leur boîte) et le choix d'un set recherché. Deux formes,
+   une par format, choisies par `SOUS_LG` comme le panneau lui-même :
+   - **À la souris** — la page défile jusqu'à la carte « Réglages avancés »,
+     l'ancre du flottant (même défilement que « Set de runes recherché » :
+     doux, centré), **puis** le flottant s'ouvre : il choisit son côté en
+     mesurant l'ancre à l'ouverture, ouvert pendant le défilement il
+     mesurerait une position périmée. Ancre déjà entièrement visible : pas
+     de défilement, ouverture directe. Le défilement peut déplacer la carte
+     cliquée et le flottant se referme au clic suivant hors de lui — deux
+     effets acceptés par l'utilisateur. Si le bas du flottant dépasse de
+     l'écran, la page défile encore du strict nécessaire pour montrer
+     l'interrupteur.
+   - **Au doigt** — le panneau « Options de recherche » s'ouvre par-dessus
+     la carte ; il reste piloté par la barre de navigation, l'écran le
+     demande par la prop `onOuvrirMenu` (`App.tsx`, relayée par
+     `OutilsPage.tsx`). Son contenu défile jusqu'à l'interrupteur, dernier
+     réglage du panneau, sous « Exclusion de runes ».
+
+   Dans les deux cas, l'interrupteur est surligné **3 s**, au même token que
+   le rappel (contour `warn`, fond `warn-soft`). ⚠️ Il reste toujours rendu
+   dans sa surface (`reglagesAvancesInner`, commun aux deux formats) :
+   guider ne le monte jamais sous condition et ne le masque jamais ensuite.
+   Son cadre de surlignage existe en permanence, transparent hors guidage,
+   et se pose À L'INTÉRIEUR de la rangée, dont le trait du haut sépare les
+   réglages : posé sur la rangée elle-même, il ferait deux contours
+   superposés.
+
    ⚠️ **Ces cinq réglages vivaient dans la fenêtre « Dégâts réels »**, donc
    atteignables sous ce seul objectif — alors qu'ils changent les
    statistiques du monstre, donc les **dégâts supplémentaires** que lui
@@ -1046,7 +1410,12 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
    monstre ; ce qui reste (cible, sort, critique, réduction de DEF, marque,
    effets d'alliés) n'y touche pas. Test : changer un réglage d'« État de
    mon monstre » DOIT faire bouger le « +X / coup ». Mesuré sur Lushen —
-   buff ATQ activé : **+737 → +1 068 / coup**.
+   buff ATQ activé : **+737 → +1 068 / coup**. ⚠️ **Sauf les auras
+   Accuracy et Tolerance** (degats-et-aura 7a) : elles modifient bien des
+   statistiques propres du monstre, la Précision et la RES, mais aucune
+   n'entre dans les dégâts bruts — pour elles, ce qui bouge est la
+   condition RES/PRE (minimum ou maximum), quand `compterAurasResPre` est
+   activé.
 
    ⚠️ **Rendus sans condition**, contrairement à leur ancienne place où ils
    n'apparaissaient que si la formule du sort lisait la statistique. C'était
@@ -1057,7 +1426,12 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
    dans son sous-titre — jamais les contrôles eux-mêmes, qui feraient deux
    exemplaires vivants du même interrupteur visibles en même temps. Qui
    ouvre la fenêtre voit sous quelles hypothèses il travaille ; pour les
-   changer, il ferme.
+   changer, il ferme. Depuis degats-et-aura 7a, l'écho **nomme les auras
+   externes** par set, avec leur nombre (« auras externes : 2 sets Fight,
+   1 set Accuracy »), ou « aucune aura externe », et dit que les sets
+   d'aura du build s'y ajoutent sur chaque résultat — **sans nombre** : la
+   fenêtre ne connaît aucun candidat, ces activations se résolvent par
+   build (`echoAurasExternes`, `src/lib/aurasExternes.ts`).
 
    ⚠️ **Le sélecteur FILTRE l'inventaire, il n'hypothèque pas.** Choisir
    « ATQ +100 » restreint la recherche aux artéfacts qu'on POSSÈDE portant
@@ -1182,13 +1556,25 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
      base nue dans la conversion, seul le PLANCHER ci-dessous change selon
      les artéfacts comptés). Sans monstre sélectionné, la base vaut 0 : les
      deux lectures coïncident.
-   - ⚠️ **Aucun champ ne descend sous ce qu'on a déjà GARANTI sans la moindre
-     rune** — le plancher, pas la valeur de conversion ci-dessus : en lecture
-     Total, la base nue du monstre **plus** les artéfacts effectivement
-     comptés (0 si aucun artéfact choisi sur cette stat) ; en lecture
-     « bonus », les artéfacts effectivement comptés SEULS — cohérent avec le
-     fait qu'en bonus, la base nue est déjà soustraite par la conversion.
-     Affiché en `placeholder` tant que rien n'est saisi.
+   - ⚠️ **Aucun champ ne descend sous ce qui est garanti sans la moindre
+     rune** — le plancher, pas la valeur de conversion ci-dessus. La
+     contribution d'artéfact se calcule séparément par emplacement :
+     l'artéfact réellement porté si le choix est « Garder l'artéfact
+     équipé », la principale imposée si elle est choisie, et zéro si le
+     choix est « Libre ». Pour la relique, seule une pièce réellement portée
+     avec le choix « Garder la relique équipée » garantit sa principale en
+     PV %, ATQ % ou DEF % : `ceil(base × valeur / 100)`, comme dans
+     `computeStats`. Une principale forcée, « Libre » ou l'absence de relique
+     garantit zéro. La contribution de relique ne modifie jamais Taux Crit,
+     Dmg Crit, RES ou Précision. L'optimisation coupée conserve les deux
+     artéfacts portés. En lecture Total, le plancher ajoute ces contributions
+     à la base nue ; en lecture « bonus », il garde seulement ces
+     contributions. Les choix « Libre » ne garantissent donc aucun bonus
+     d'artéfact ni de relique, même si une paire représentative en montre.
+     « Stats de base
+     exclues » ne s'applique qu'à PV/ATQ/DEF/VIT : Taux Crit, Dmg Crit, RES
+     et Précision restent toujours des totaux. Affiché en `placeholder`
+     tant que rien n'est saisi.
    - **Grille en `w-fit`**, un seul triplet (libellé/Min/Max) par rangée,
      même au-delà de `2xl` — un passage à DEUX stats par rangée a été tenté
      puis **explicitement écarté** : le triplet Min/Max reste la lecture
@@ -1200,6 +1586,26 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
      seulement — la recherche elle-même ne doit surtout pas exclure un build
      dont la somme brute dépasse 100 % (une marge de sécurité contre la
      précision/résistance adverse reste un résultat légitime).
+   - Le modèle des auras accepte les auras des **autres** monstres de
+     l'équipe dans `DamageSetup.setsAuraExternes`, 15 sets au plus (voir
+     [effets d'équipe](degats-reels/effets-equipe-et-leaders.md)) ; une
+     recette portant l'ancien total d'équipe `setsAura` non vide est refusée.
+     Les activations propres des runes de chaque build s'y ajoutent dans le
+     combat et le score (dégâts, PV effectifs, exclusives de relique, choix
+     des artéfacts et de la relique, tri et comparaison).
+     `compterAurasResPre`, activé par défaut, ajoute les points d'aura RES
+     et PRE aux **minimums et maximums** : part externe et activations
+     Tolerance/Accuracy propres du build, testées sur leur valeur réelle par
+     les contrôles exacts (filtre final de l'appariement, filtres de paire et
+     de relique) ; désactivé, aucune aura n'y compte, et il ne change pas les
+     dégâts ni les PV effectifs. Les élagages sûrs de la recherche en
+     tiennent compte (lot 6bis-b3b) : potentiel favorable pour un minimum,
+     seul l'inévitable pour un maximum, sans jamais écarter un build valide ;
+     le pré-filtrage et la rétention restent heuristiques et ne valorisent
+     pas l'aura propre. Les auras PV/ATQ/DEF ne comptent dans aucune
+     condition. Les auras externes se saisissent dans « État de mon
+     monstre » (voir plus haut) ; `compterAurasResPre` se règle dans
+     « Réglages avancés » (point 9 ci-dessous).
    - **« Réinitialiser les conditions »** vide les 16 champs sans toucher aux
      autres réglages de l'écran.
 8. **« Utiliser tout l'inventaire »** — case à cocher, **cochée par défaut**
@@ -1260,6 +1666,47 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
      peut retrouver un build qu'une recherche normale rate, au prix d'une
      recherche plus longue. Fait partie des réglages exportés/importés dans
      une recette (voir plus bas).
+   - **« Vérifier toutes les combinaisons trouvées »**, décoché par défaut
+     (degats-et-aura 6bis-b18, libellé proposé par le pilote, retenu par
+     l'utilisateur le 2026-10-02) : la file de résolution vérifie tous les
+     builds trouvés au lieu de s'arrêter à 100 combinaisons confirmées (300
+     en mode relique « recherche », voir « Le choix des artéfacts ») — le
+     compte des confirmées devient complet, au prix de plusieurs minutes
+     possibles ; son aide le dit. ⚠️ **Lu EN DIRECT par la file**, jamais par
+     « Rechercher » : il ne change pas la recherche de runes, seulement
+     jusqu'où la file vérifie ; l'activer après une recherche vérifie le
+     reste sans la relancer, le couper ne perd rien de déjà vérifié.
+     ⚠️ **Masqué quand l'optimisation d'artéfacts est désactivée** : sans
+     file, rien n'est vérifié — même règle que « Adapter les artéfacts et
+     reliques au tri ». Fait partie des réglages exportés/importés dans une
+     recette, champ optionnel `verifierToutesLesCombinaisons` (une recette
+     exportée avant le relit désactivé), et le CLI le respecte (voir
+     « Résultats »).
+   - **« Compter les effets d'auras Tolerance et Précision dans les
+     conditions »**, activé par défaut (degats-et-aura 7a, libellé de
+     l'utilisateur) : le contrôle de `compterAurasResPre` (point 7
+     ci-dessus) — activé, chaque set Tolerance ou Accuracy, externe ou
+     propre au build, ajoute 8 points aux minimums ET aux maximums de RES
+     et de Précision ; désactivé, ces deux conditions ignorent les auras,
+     sans rien retirer des dégâts ni des PV effectifs. Son aide le dit.
+     Lu au clic sur « Rechercher », comme les autres réglages de la
+     recherche, et déjà porté par la recette. ⚠️ **Rendu sans condition**,
+     en dernier de la colonne, même sans aucune aura RES/PRE saisie : les
+     activations propres d'un build comptent aussi, et un réglage qui
+     apparaîtrait avec la saisie d'une autre carte ne se retrouverait pas.
+     Contenu commun aux deux formats (`reglagesAvancesInner`) : flottant au
+     bureau, panneau « Options » au doigt. Fermés, ni l'un ni l'autre ne
+     montre rien ; « toujours visible » porte sur leur contenu. Ajouter
+     Accuracy ou Tolerance aux auras externes, ou le choisir comme set
+     recherché, ouvre la surface du format et surligne cet interrupteur 3 s
+     (degats-et-aura 7b, ouverture guidée : voir « État de mon monstre »).
+
+   ⚠️ **Le seuil de niveau minimum de la relique N'EST PAS ICI** —
+   contrairement à ce que le lot 5c avait prévu : il vit dans le bloc
+   « Relique » de la carte « Artéfacts et reliques » (« Niveau minimum »,
+   voir plus haut), avec les deux autres réglages relique, pas dans
+   « Réglages avancés » (implementation-relique, T9 re-tranché deux fois,
+   lot 5c ter).
 ### Lancer la recherche
 10. **Estimation du pool retenu** — dès qu'un monstre et un set sont choisis,
     une ligne affiche le nombre **exact** de runes gardées après
@@ -1288,7 +1735,21 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
     `com2usId` ne correspond à AUCUN monstre des données chargées (cas
     limite, ex. monstre retiré du jeu). Aucune confirmation à l'import :
     remplacer la saisie en cours n'est pas plus destructeur que la modifier
-    à la main.
+    à la main. Une recette qui porte l'ancien mode critique « Moyenne »
+    (`damageSetup.critMode: "moyenne"`, supprimé au lot CM de
+    degats-et-aura) est **convertie en « Critique »**, jamais refusée : le
+    parseur commun (`parseOptimizerRecipe`) rend un avertissement nommé
+    (chemin du champ, ancienne et nouvelle valeur), que l'écran ajoute au
+    message d'import et que le CLI imprime (`chargerRecette`) ; toute autre
+    valeur inconnue reste refusée, et l'export n'écrit jamais « moyenne ».
+    Le message d'import qui porte un tel avertissement prend le token
+    d'avertissement (`warn`, jamais `good`) et **ne s'efface pas tout
+    seul** : il reste jusqu'au prochain import de recette, réussi ou
+    refusé, qui le remplace (décision de l'utilisateur du 2026-10-02). Le
+    message ordinaire (succès sans avertissement) s'efface après 5 s, le
+    refus après 9 s (`messageImport.ts`). Le message vit dans le flux, sous
+    la barre Rechercher / Exporter / Importer : le bouton cliqué, au-dessus,
+    ne bouge pas.
 12. **Barre de progression** — se remplit progressivement (pas une roue qui
     tourne), avec le nombre de combinaisons déjà examinées et déjà trouvées,
     suivi d'un message **en gras, couleur dorée** (même que le rang `#X`
@@ -1321,6 +1782,18 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
     un écran large. La bascule base+bonus ↔ total ne déplace jamais les
     artéfacts, la roue ou la relique voisins : `StatPanel` a une **largeur
     fixe** (`w-[200px]`, voir [rta/sections-runes.md](rta/sections-runes.md)).
+    ⚠️ **À la souris, la relique est toujours SOUS LA ROUE** (degats-et-aura
+    6bis-b15, décision de l'utilisateur, carte de résultat seulement —
+    `MonsterGear` garde la sienne à droite) : fiche, artéfacts et roue font
+    332 px à l'échelle 0,45, ce que la carte au plancher contient tout
+    juste, et la relique à droite de la roue débordait des deux côtés. Le
+    groupe artéfacts / roue est une grille à deux colonnes : la relique
+    occupe la case sous la roue, centrée, et les artéfacts restent centrés
+    sur la roue. La colonne vaut la largeur de la roue (`min-content`) : la
+    relique et ses marques s'y replient en entier, sans l'élargir — aucun
+    libellé raccourci — et la relique ne change jamais de place quand la
+    file la résout. Au doigt (`COMPACT`, pointeur seul), rendu inchangé : la
+    relique reste à droite de la roue — passe responsive.
     ⚠️ **Détail à la souris vs au doigt — même bascule que « Équipement
     actuel »/RTA/Siège** (voir `MonsterGear.tsx`) : à la souris, un flottant
     ancré à la pièce ; au doigt, le détail s'affiche **en ligne sous la
@@ -1371,6 +1844,112 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
       s'il existe au moins un tel résultat parmi ce que la recherche a
       réellement exploré — un near-miss encore plus proche, jamais atteint
       avant l'arrêt de la recherche, resterait invisible.
+    Ces trois encadrés ne portent que sur un **moteur vide**
+    (`result.candidates.length === 0`) : leurs chiffres viennent des bornes
+    du moteur, pas de la résolution exacte.
+    ⚠️ **La ligne de progression compte les trouvées** (degats-et-aura
+    6bis-b10, décisions de l'utilisateur du 2026-10-01) : trouvés par le
+    moteur — `result.candidates.length` à la fin, `progress.found` pendant
+    l'appariement — moins ceux que la résolution exacte a écartés faute de
+    couple artéfacts/relique faisable (`conforme: false`). Les écartés se
+    mesurent comme candidats reçus (`fullSortedCandidates`) moins
+    affichables (`affichees`), jamais en comptant les entrées
+    `conforme: false` du cache de la file : il n'est vidé qu'au changement
+    de signature, et une recherche relancée aux mêmes réglages garderait
+    les rejets de la précédente. Une seule fonction pure,
+    `compteAffichable` (artifactQueue.ts), alimente la ligne de progression
+    (« X / Y combinaisons examinées · Z trouvée(s) ») et la ligne de raison
+    ci-dessous. Le compte suit chaque publication du cache de la file
+    (400 ms), en pleine recherche comme après sa fin ; un build pas encore
+    résolu reste compté : c'est une borne optimiste, qui baisse à mesure que
+    la vérification écarte des builds. Sans optimisation d'artéfacts, pas de
+    file : rien ne change. Depuis 6bis-b18, l'en-tête des résultats et le
+    nombre de pages ne lisent plus ce compte, mais celui des confirmées
+    (ci-dessous). **Sous « Aucune combinaison ne répond à ces critères »**
+    (tout vérifié, aucune confirmée), une ligne de raison : « 1 combinaison
+    trouvée par la recherche a été écartée : aucune paire d'artéfacts ni
+    relique réelles ne tient toutes les conditions. » (pluriel : « N
+    combinaisons trouvées par la recherche ont été écartées »). Hors relique
+    « recherche » de la recherche lancée, la relique est celle de la fiche
+    et la ligne ne parle que de la paire (« aucune paire d'artéfacts réelle
+    ne tient toutes les conditions. »). Les trois encadrés ci-dessus ne
+    s'affichent pas sous un tel zéro.
+    ⚠️ **L'en-tête compte les combinaisons confirmées** (degats-et-aura
+    6bis-b18, décisions de l'utilisateur du 2026-10-02, après l'essai de
+    6bis-b16 : « stabiliser le nombre de combinaisons trouvées, et ne compter
+    qu'après vérification »). Pendant la recherche, « XX combinaison(s)
+    confirmée(s) pour l'instant — recherche en cours… », puis « XX
+    combinaison(s) confirmée(s) » : seulement les builds de cette recherche
+    vérifiés (résolus ET conformes), lus dans le cache publié de la file. Le
+    compte **ne baisse jamais pendant une recherche** : le cache ne fait que
+    grandir, l'aperçu des reçus aussi ; seul un changement de signature (un
+    réglage qui change la note d'une paire, dont un tri qui change de régime
+    avec « Adapter les artéfacts et reliques au tri ») vide le cache et fait
+    recommencer la vérification, donc le compte. Une petite infobulle
+    (« Combinaisons confirmées », à droite de l'en-tête, quand une file
+    vérifie) dit la différence avec les trouvées de la ligne de progression :
+    une combinaison confirmée tient vraiment toutes les conditions avec les
+    pièces de l'inventaire ; « trouvée(s) » est une estimation optimiste,
+    retenue stat par stat, dont une partie est écartée à la vérification ;
+    la vérification s'arrête à 100 confirmées (300 quand la relique est
+    cherchée), et « Vérifier toutes les combinaisons trouvées » (Réglages
+    avancés) va jusqu'au bout.
+    **« Aucune combinaison ne répond à ces critères »** ne s'affiche qu'une
+    fois la recherche finie et tout vérifié sans aucune confirmée — la file
+    va jusqu'au dernier build trouvé faute de K confirmées (voir « Le choix
+    des artéfacts ») ; alors seulement « Trier par » et « Adapter les
+    artéfacts et reliques au tri » se masquent, comme sur un moteur vide.
+    **Les pages suivent les confirmées** : les pages des confirmées, plus
+    une tant qu'il reste des builds non vérifiés qui n'ont pas de place sur
+    la dernière — ses places « Vérification… » se résolvent quand on
+    l'ouvre (ci-dessous) —, soit `min(⌈(confirmées + non vérifiés) / 20⌉,
+    ⌈confirmées / 20⌉ + 1)`, au moins 1 : jamais une page vide. En
+    « Dégâts réels » de référence (5 100 trouvées, 300 confirmées), 16 pages
+    au lieu de 255. Si le nombre de pages diminue (la page au-delà des
+    confirmées perd ses derniers non vérifiés, ou la vérification
+    recommence), la page courante revient sur la dernière. Une seule
+    fonction pure, `compteConfirme` (artifactQueue.ts), donne le compte, les
+    non vérifiés, les pages et l'état « Aucune combinaison… », à partir des
+    reçus et du cache publié. Sans optimisation d'artéfacts, pas de file :
+    l'équipement est celui de la fiche, déjà jugé exactement par le moteur —
+    les confirmées sont les trouvées, les pages celles des reçus, comme
+    avant, et l'infobulle ne s'affiche pas.
+    ⚠️ **Une carte n'apparaît qu'une fois vérifiée** (degats-et-aura
+    6bis-b16, décision de l'utilisateur du 2026-10-02, après l'essai du
+    Worker : les cartes qui apparaissaient puis se retiraient étaient
+    « insupportables »). Dès qu'une file tourne (optimisation d'artéfacts
+    active), la page ne montre que des builds dont l'équipement est résolu
+    (paire, relique) ET conforme, pendant la recherche comme après : un
+    build reçu de la recherche ne s'affiche plus avec sa paire supposée, et
+    un build écarté à la résolution n'est jamais montré. Les cartes de la
+    page N sont les vérifiés de rang 20 × (N − 1) + 1 à 20 × N parmi les
+    vérifiés, dans l'ordre du classement réel ; un build vérifié plus tard
+    prend sa place dans ce classement — une carte peut descendre sous un
+    meilleur build vérifié, comme avant le Worker, jamais disparaître faute
+    de conformité. Les places que la page attend encore (comptées sur la
+    liste paginée, au plus 20) suivent les cartes, marquées
+    « Vérification… » : un emplacement en pointillé avec son rang, à la
+    hauteur d'une carte — la plus petite carte mesurée à l'écran, ou, avant
+    la première, une hauteur de repli relevée au navigateur sur une carte
+    « Dégâts réels » (388 px à l'ordinateur, 458 px au téléphone) — pour que
+    la grille et la pagination ne sautent pas quand la carte arrive. La file
+    résout d'abord les builds qui rempliront ces places (les premiers non
+    résolus du classement, au plus une page à la fois), puis l'avance de
+    fond, qui vise K combinaisons **confirmées** (6bis-b18, voir « Le choix
+    des artéfacts »). Une page au-delà des vérifiés (au-delà des K
+    confirmées, après la recherche) montre ses places et se résout quand on
+    l'ouvre — au prix de
+    tous les builds non résolus classés avant elle, puisque le rang d'un
+    vérifié dépend de tous ceux du dessus. Ni l'ordre de base, ni K, ni la
+    résolution ne changent. Une seule fonction pure, `compositionDePage`
+    (artifactQueue.ts), donne les cartes, les places et les builds à
+    vérifier, à partir du classement affiché et du cache publié de la file.
+    Les comptes gardent leur règle (ci-dessus) ; une ligne sous l'en-tête dit
+    combien la file doit encore vérifier (« N combinaison(s) en
+    vérification… » : le reste de la file, places en attente puis avance de
+    fond), sa place réservée tant que la file tourne. Sans optimisation
+    d'artéfacts, pas de file : la page est la tranche du classement, comme
+    avant.
     Un sélecteur **« Trier par »** re-trie **côté
     client, instantanément**, sans relancer la recherche : le moteur a déjà
     calculé les stats complètes de chaque combinaison retenue. Deux groupes
@@ -1378,15 +1957,19 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
     (« Dégâts réels » n'y figure que si un sort est réellement calculable
     pour ce monstre).
 
-    ⚠️ **Interrupteur « Adapter les artéfacts au tri »**, collé à GAUCHE de ce
-    sélecteur, **activé par défaut**. Le tri est une **vue**, l’optimisation
-    d’artéfacts une **décision** : les coupler d’office imposait un arbitrage.
-    - **Activé** — chaque build reçoit les artéfacts qui maximisent le critère
-      affiché : « les meilleurs artéfacts pour ce que je regarde ».
+    ⚠️ **Interrupteur « Adapter les artéfacts et reliques au tri »**
+    (implementation-relique, lot 5c : le libellé s'étend à la relique, D7 —
+    aucun contrôle nouveau, le bouton gouverne l'équipement complet d'un
+    seul geste), collé à GAUCHE de ce sélecteur, **activé par défaut**. Le
+    tri est une **vue**, l’optimisation une **décision** : les coupler
+    d’office imposait un arbitrage.
+    - **Activé** — chaque build reçoit les artéfacts ET la relique qui
+      maximisent le critère affiché : « le meilleur équipement pour ce que je
+      regarde ».
     - **Désactivé** — ils restent ceux qui servent l’**objectif de la
-      recherche**, quel que soit le tri : « les meilleurs artéfacts pour ce que
+      recherche**, quel que soit le tri : « le meilleur équipement pour ce que
       j’ai cherché ». Utile pour parcourir les résultats classés autrement sans
-      que la paire bouge — par exemple garder celle qui maximise les PV
+      que l'équipement bouge — par exemple garder celui qui maximise les PV
       effectifs tout en regardant les builds triés par une stat.
 
     ⚠️ **Désactivé ne veut PAS dire « pas d’optimisation »** — c’est
@@ -1414,10 +1997,131 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
     fonction que celle qui classe** — extraite d'`objectiveScore` pour ça,
     plutôt que recopiée côté écran où elle aurait divergé au premier
     ajustement du facteur de défense.
+    ⚠️ **Les deux chiffres passent par `scoreDuCandidat`** (degats-et-aura
+    6bis-b4), avec les options mêmes du classement affiché : auras externes
+    et activations propres du build, profil d'artéfacts de SA paire, apport
+    de SA relique retenue (Conquête pour les dégâts ; Ténacité et points
+    Bravoure/Éternité/Origine pour les PV effectifs). La carte recopiait
+    `computeTotalDamage` puis `pvEffectifs` sans cet apport : en mode
+    relique `recherche`, un build classé premier par sa Conquête affichait un
+    chiffre inférieur à celui du suivant. L'écart « Comparer » note la fiche
+    de la même façon, avec SA paire et SA relique : voir « Comparer, valider
+    sans recherche et persistance ».
+    ⚠️ **L'effet unique compte dans les trois modes de relique**
+    (degats-et-aura 6bis-b5a) — la relique est celle que la carte affiche
+    (`etatReliqueDuBuild`, une seule expression pour la case et le score) :
+    interrupteur coupé ou « Garder la relique équipée », **la relique de la
+    fiche**, dès la collecte, sans attendre la file — ordre de BASE compris,
+    celui que la file lit et qui s'affiche tel quel tant qu'elle n'a rien
+    résolu, donc toujours quand l'optimisation d'artéfacts est coupée
+    (sans cache de la file : aucune boucle) ; mode `recherche`, **la
+    relique retenue** pour ce build, et un apport **neutre** tant que la file
+    ne l'a pas résolu — jamais un repli sur la relique portée ; aucune
+    relique, neutre. Hors `recherche`, le tri et les cartes ignoraient
+    l'effet unique de la relique portée, que la file comptait pourtant pour
+    choisir la paire. Les options viennent d'`optionsDeClassement`
+    (runeBuildOptim.ts), le producteur même que les tests appellent — et
+    le script CLI (`optimizer-search.ts`).
+    ⚠️ **Le CLI classe comme l'écran, équipement résolu compris**
+    (degats-et-aura 6bis-b5c). Dès que l'optimisation d'artéfacts est active
+    (là où l'écran a une file), il résout l'équipement par les producteurs
+    mêmes de la file : `entreeResolutionDuBuild` puis
+    `resoudreEquipementDuBuild` — la paire seule avec la relique de la fiche
+    en `equipped`, le couple paire/relique en `recherche`, un build sans
+    couple faisable étant rejeté. Il classe ensuite par `classementResolu`,
+    le producteur d'`affichees`, avec l'effet unique de la relique retenue.
+    **Par défaut, il résout COMME LA FILE DE L'ÉCRAN** : l'ordre de base
+    jusqu'à K combinaisons confirmées (ou jusqu'au dernier build trouvé) et
+    ses 20 lignes imprimées (sa « page »), choisis par `prochainsATraiter`,
+    par lots, jusqu'à ce que toutes les lignes imprimées soient résolues ;
+    les autres candidats restent dans l'ordre de base.
+    K vaut **300 en mode relique `recherche`, 100 sinon** : `kDeLaFile`
+    (artifactQueue.ts), la fonction même de l'écran, lue sur le contexte
+    relique de la recherche lancée (`params.relicContext`) —
+    degats-et-aura 6bis-b8 ; des confirmées, plus des rangs, depuis 6bis-b18.
+    Avec « Vérifier toutes les combinaisons trouvées » dans la recette
+    (`verifierToutesLesCombinaisons`, lu par `toutVerifierDeLaRecette`,
+    recipeToSearchParams.ts, repli `?? false` comme l'écran), la cible est
+    infinie (`cibleDeLaFile`, la fonction de l'écran) : le CLI résout tous
+    les candidats, comme la file de l'écran avec l'interrupteur, et son
+    classement est alors celui de `--resoudre-tout` ; sa console le dit.
+    `--resoudre-tout` résout TOUS les candidats collectés. Décision
+    utilisateur du 2026-10-01 (option 2), après mesure : avec des artéfacts
+    « Libre » — le défaut de l'écran —, la résolution complète coûtait
+    environ 20 fois la recherche (6,7 min pour 5 100 builds × 4 reliques).
+    ⚠️ Comme celui de l'écran, ce classement n'est pas exhaustif : en mode
+    `recherche`, l'ordre de base ignore la relique, et un build au-delà de
+    la K-ième confirmée peut remonter très haut une fois résolu sans que la
+    file le résolve. Sur le vrai compte, en PV effectifs, K = 100 laissait
+    manquer les rangs exhaustifs 16, 17 et 19 (rangs de base 107 à 117) ;
+    K = 300 les rattrape. Sur une fixture construite pour cela, 9 des 20
+    premiers exhaustifs manquaient encore aux 300 premiers (rangs de base
+    305 à 399) ; depuis 6bis-b18, la file y continue au-delà des 112
+    écartés jusqu'à 300 confirmées (rang 412) et n'en manque plus aucun. Le
+    top affiché en mode `recherche` reste une approximation, dite ici et dans
+    les notes internes, jamais à l'écran (décision utilisateur du
+    2026-10-01). `--resoudre-tout` reste la référence exacte. Sa console imprime le mode, le nombre de builds
+    résolus et rejetés, la durée de la résolution, la relique et les
+    artéfacts retenus de chaque ligne, la troncature éventuelle de la
+    recherche, et quelle relique compte (« Effet unique de relique dans le
+    tri : … »). Interrupteur coupé (mode `off`) : ni l'écran ni le CLI ne
+    résolvent rien.
+    ⚠️ **Un tri par PV, ATQ ou DEF classe sur la FICHE** (degats-et-aura
+    6bis-b9, option (a) de l'utilisateur, 2026-10-01) : la stat que la
+    carte affiche (`candidate.stats`, le panneau de stats) et que jugent les
+    conditions minimum et maximum — sans les points Bravoure, Éternité ni
+    Origine, acquis au début du combat comme les auras, le lead et
+    l'invocateur, qu'il ne comptait pas non plus. Jusque-là, le tri ajoutait
+    ces seuls points et la carte ne les montrait pas : la valeur affichée
+    n'était pas celle qui classait. La même valeur note la paire
+    d'artéfacts dans ces régimes (voir « Recherche des runes —
+    meet-in-the-middle et élagages »). Les tris « Dégâts réels » et « PV
+    effectifs » gardent l'effet unique, comme ci-dessus.
     ⚠️ **« Valider ce build »**, sur chaque carte — réserve les 6 runes de CE
     résultat (elles n'apparaissent plus dans les recherches suivantes de la
     même liste de travail), jusqu'à libération explicite : voir « Listes de
     travail et réservation de runes ».
+
+    ⚠️ **Relique, un emplacement, quatre états** (implementation-relique,
+    lot 5c, écran refait au lot 5c bis) — un emplacement « Relique », À
+    DROITE DE LA ROUE, même modèle que celui de la fiche d'équipement
+    (`MonsterGear.tsx`) : composant partagé `RelicSlot`, jamais une copie.
+    Hors mode `recherche` (interrupteur coupé, « Garder la relique
+    équipée »), rien de nouveau : la relique portée, comme avant ce lot, ou
+    la case grisée « aucune » sans relique. En mode `recherche`,
+    `etatReliqueDuBuild` (seule source) pilote la case :
+    - **en attente** — la file n'a pas encore traité ce build : **la même
+      case**, grisée, « en attente » — rien ne bouge à l'écran quand la file
+      résout, seul le contenu de la case change. Cet état ne se voit plus
+      sur une carte de résultat depuis 6bis-b16 : quand une file tourne, un
+      build non résolu n'est pas affiché, sa place dit « Vérification… » ;
+    - **rejeté** — aucune relique éligible ne rend le build faisable :
+      jamais affiché, le classement l'a déjà écarté ;
+    - **résolue** — la relique retenue (principale dans la case ; le détail
+      complet — propriété unique, le libellé « `<effet>` en fonction
+      `<stat>` » compris — au clic, comme un artéfact : flottant ancré à la
+      souris, ligne sous la carte au doigt), avec deux marques possibles
+      sous la case : « relique sans effet sur ce tri » (régime `aucun` —
+      Efficience, Vitesse…) et « relique équipée exclue par le filtre » (la
+      relique portée ne passe pas le seuil/la principale/le type demandés,
+      la meilleure admissible peut alors noter moins qu'elle).
+    ⚠️ **Le compte `n / 150`** (occupation de la relique sur le compte, D3)
+    a quitté la case au lot 5c bis — trop de détail pour une case au format
+    artéfact/rune — et est revenu au lot 5c ter dans le **détail** de la
+    relique (`RelicDetailBox`, une ligne, « Équipée sur n exemplaires /
+    150 » — pas un libellé relevé en jeu), visible depuis la carte candidat
+    ET depuis l'exemplaire (fiche d'équipement de l'Optimizer, même
+    composant) ; `relicUsageById` redescend jusqu'aux deux appelants de
+    `RelicSlot` pour ça.
+    Le classement n'affiche **jamais** de gain contre la relique équipée
+    (T9 tranché : non — exigerait une seconde évaluation par build dans la
+    file, hors périmètre de ce lot).
+
+    ⚠️ **Refus nommé** — pool de reliques vide en mode `recherche` (seuil
+    trop haut, aucune relique de la principale/du type demandés, ou aucune
+    relique dans l'inventaire importé) : le refus s'affiche à la place du
+    lancement, un texte par raison, traité comme une recherche en échec
+    (même bouton, même état affiché).
 
 ⚠️ **Rien n'est appliqué au compte.** L'outil est en lecture seule et
 purement indicatif, comme le reste de SW Forge (aucune écriture vers le
@@ -1474,10 +2178,10 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   passe dans un troisième état, actif, qui met à jour la seule paire sans
   toucher aux runes. Sans lui, la carte disait « Validé » et n'offrait plus
   rien alors que ce qu'elle montrait n'était pas ce qui était réservé.
-  Le cas se présente dès que « Adapter les artéfacts au tri » est activé (le
-  défaut) : la paire suit alors le critère affiché, donc changer de tri peut
-  la changer à runes identiques. Interrupteur désactivé, elle reste stable et
-  ce bouton n’apparaît plus au fil de l’exploration.
+  Le cas se présente dès que « Adapter les artéfacts et reliques au tri »
+  est activé (le défaut) : la paire suit alors le critère affiché, donc
+  changer de tri peut la changer à runes identiques. Interrupteur désactivé,
+  elle reste stable et ce bouton n’apparaît plus au fil de l’exploration.
 
   Sans cette mémorisation, la fiche d'un build validé rejouait la paire portée
   AUJOURD'HUI plutôt que celle retenue par la recherche. ⚠️ Les builds validés
@@ -1502,17 +2206,58 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
 - **Zone C, « Monstres de la liste »** — juste sous les puces de source
   dans « Monstre & équipement » : chaque monstre de la liste active, son
   statut (« Validé » + bouton libérer, ou « pas encore validé »), cliquable
-  pour rappeler son exemplaire dans la recherche. **Corbeille** à droite de
+  pour rappeler son exemplaire dans la recherche — un autre exemplaire de
+  l'espèce déjà choisie efface les résultats affichés, sans toucher aux
+  critères (6bis-b19, voir « Recherche du monstre à optimiser »). Avec des
+  auras externes renseignées, choisir ici une autre espèce ou un autre
+  exemplaire les rappelle 3 s dans « État de mon monstre » (degats-et-aura
+  7b, voir cette section) **et sous la liste** (7c, voir plus bas) : c'est
+  la seule voie qui le fasse. **Corbeille** à droite de
   chaque ligne pour retirer un monstre de la liste — sans confirmation s'il
   n'est pas encore validé (rien à perdre), avec confirmation s'il l'est (le
   retrait libère aussi ses runes). Bouton **« Ajouter à la liste »**, dont
   le libellé change selon le contexte (aucun monstre choisi → désactivé ;
-  déjà dans la liste active → désactivé ; sinon → « Ajouter <monstre> à
+  déjà dans la liste active → voir ci-dessous ; sinon → « Ajouter <monstre> à
   « <liste> » », suffixé « (non possédé) » pour une espèce sans exemplaire
   réel, voir plus bas). Sans liste active, l'ajout crée une liste (prompt
-  du nom) ET y ajoute le monstre dans le même geste. Bouton **« Libérer
+  du nom) ET y ajoute le monstre dans le même geste.
+  ⚠️ **Plusieurs exemplaires Box d'une même espèce** (degats-et-aura lot
+  EX, décision de l'utilisateur du 2026-10-04) : les membres sont repérés
+  par exemplaire (`exclusionSelectorKey`, Box = `box:<unitKey>`), deux
+  exemplaires peuvent donc entrer dans la même liste. Quand l'exemplaire
+  affiché **vient de la Box**, est déjà membre et qu'un autre exemplaire
+  Box de l'espèce ne l'est pas, le bouton reste **actif** : « Ajouter un
+  autre exemplaire de
+  <monstre> à « <liste> » ». Un clic choisit le **premier exemplaire Box,
+  dans l'ordre de la zone D, absent de la liste**, l'affiche (règles de
+  6bis-b19 : résultats affichés effacés, critères gardés, aucun rappel des
+  auras externes — voir « Recherche du monstre à optimiser ») puis
+  l'ajoute ; un clic, un exemplaire. Tous les exemplaires Box déjà
+  membres : « Déjà dans « <liste> » », désactivé. Exemplaire affiché
+  venu de RTA ou du siège, déjà membre : « Déjà dans », désactivé, sans
+  exemplaire suivant (lot EX2, décision du 2026-10-04) — l'exemplaire Box
+  proposé pouvait être le même monstre physique. Aucun numéro
+  d'exemplaire n'est affiché (non retenu) ; RTA garde un exemplaire par
+  espèce (règle du jeu) ; le sélecteur « non possédé » reste repéré par
+  espèce. Décision pure : `etatAjoutListe` et `exemplaireBoxHorsListe`
+  (optimizerExclusion.ts), test `testListeExemplaires`. Bouton **« Libérer
   toutes les runes de cette liste »** (visible dès qu'au moins un build y
   est validé), avec sa propre confirmation dédiée.
+
+  ⚠️ **Le rappel des auras s'affiche aussi sous la liste** (degats-et-aura
+  7c, décision de l'utilisateur du 2026-10-02) — là où l'on vient de
+  cliquer : « État de mon monstre » est souvent hors de l'écran à ce
+  moment, toujours au téléphone. Même message (« Pense à vérifier les sets
+  d'aura externes. »), même token (contour `warn` de 1 px, fond
+  `warn-soft`, texte `warn`), même durée (`DUREE_ATTENTION_MS`, 3 s), même
+  déclencheur : **un seul état du rappel pour les deux rendus**, celui que
+  pose `doitRappeler` dans le `onClick` d'un membre — jamais un second
+  minuteur ni une seconde condition. Sa place est réservée sous la liste :
+  rendu avec elle, invisible hors rappel, rien ne bouge quand il paraît ni
+  quand il s'efface. Le même rendu sert les deux formats ; au téléphone, il
+  vit dans le dépliement de la zone C, ouvert au moment du clic. La boîte
+  des auras garde son surlignage ; elle seule annonce le message aux
+  lecteurs d'écran (`aria-live`), pour qu'il ne soit pas lu deux fois.
 
   ⚠️ **DEUX libérations, pas une.** Chaque ligne de monstre validé porte :
   - **« Libérer ce build »** — rend les 6 runes ET la paire d’artéfacts.
@@ -1520,7 +2265,10 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   - **« Libérer les artéfacts »** — rend la seule paire, le runage restant
     réservé. Un artéfact physique ne se porte que sur un monstre à la fois :
     on veut souvent le récupérer pour un autre sans renoncer au runage déjà
-    planifié. Affiché seulement s’il y a une paire à rendre.
+    planifié. Affiché seulement s’il y a une paire à rendre. Les paires
+    déjà calculées pour le monstre recherché se refont alors avec
+    l’inventaire libéré (degats-et-aura 6bis-b17, voir « Le choix des
+    artéfacts »).
 
   ⚠️ **Pas de « libérer les runes seules », et c’est délibéré.** Un build
   validé porte TOUJOURS 6 runes : sans elles il n’y a plus de build à qui
@@ -1603,6 +2351,17 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
     comparaison qui compte.
   - ⚠️ L'écart de **dégâts** est recalculé contre les stats ET la paire
     d'artéfacts de la référence, jamais contre le total d'un autre candidat.
+  - ⚠️ **Les écarts de dégâts et de PV effectifs notent la fiche comme un
+    candidat** (degats-et-aura 6bis-b5a, `scoreDeReference`,
+    runeBuildOptim.ts) : ses stats, les activations d'aura de ses runes, le
+    profil de SA paire d'artéfacts et l'effet unique de SA relique
+    (Conquête ; Ténacité et points Bravoure/Éternité/Origine), par la même
+    fonction de score que les cartes, avec des options propres à la
+    référence — jamais celles du cache des résultats. Tout se déduit de la
+    fiche : aucun appelant ne peut mêler deux équipements. Auparavant, les
+    stats de la fiche étaient notées avec le profil de la paire de la
+    RECHERCHE (`searchArtifacts`), et sans l'effet unique : l'écart pouvait
+    être faux dans les deux sens. À équipement identique, l'écart vaut 0.
   - ⚠️ Les écarts **nuls sont affichés**, en gris. Ne montrer que les stats
     qui changent ferait une liste de longueur variable d'une carte à l'autre,
     et laisserait croire qu'une stat absente n'a pas été comparée.
@@ -1817,6 +2576,21 @@ Les cas de troncature se distinguent dans le message affiché : un arrêt
 manuel dit « voici le meilleur trouvé jusque-là » (un choix assumé), un
 plafond atteint dit « resserre tes critères » (une limite subie).
 
+⚠️ **Sur une grosse recherche (appariement parallèle, au-delà de 100 M de
+combinaisons), le plafond de candidats est partagé en quatre** : chaque
+tranche en reçoit le quart et s'arrête quand elle l'a rempli. Depuis
+degats-et-aura 6bis-b7 (2026-10-01), une tranche arrêtée ainsi alors qu'il
+restait des combinaisons à examiner rend la recherche **tronquée**, même si
+le total reste sous le plafond : l'écran affiche alors « Recherche
+interrompue après examen de N combinaisons — resserre tes critères pour un
+résultat exhaustif. » (`OptimizerSection.tsx`), là où il présentait jusque-là
+le résultat comme complet. Seul le message change : la recherche n'examine
+rien de plus, et le partage du plafond est inchangé. Une tranche qui remplit
+son quart sur sa toute dernière combinaison ne laisse rien de côté et ne
+déclenche pas le message. Le moteur transmet le motif (`motifTroncature` :
+temps, plafond global ou quota de tranche) ; l'écran ne l'affiche pas, il
+n'en lit que le booléen `truncated`.
+
 ### Barre de progression
 
 Poste des messages de progression **entre** les points de passage internes,
@@ -1863,17 +2637,70 @@ différent, coopératif (voir « Interruption »).
 - **Statistique principale imposée (slots 2/4/6)** : appliquée avant tout le
   reste, dans la construction même du pool par slot.
 - **Élagages SÛRS, ensuite — jamais un faux rejet**, avant même le
-  pré-filtrage heuristique qui suit :
+  pré-filtrage heuristique qui suit, auras **propres** au build, Intangible,
+  effet unique de la relique et lignes d'artéfact 218–221 compris : un
+  oracle exhaustif indépendant le vérifie depuis le lot 6bis-b3b, noté
+  depuis le lot 6bis-b3c par la note de production de l'équipement complet,
+  paire d'artéfacts comprise depuis le lot 6bis-b3d-1 (voir
+  [effets d'équipe](degats-reels/effets-equipe-et-leaders.md)) :
   - **Dominance** : une rune strictement moins bonne qu'une autre du MÊME
     slot (sur toutes les stats suivies, avantage strict quelque part) ne
-    sert jamais à rien. Comparaison limitée aux runes de même set (ou toutes
-    deux hors du combo demandé). ⚠️ Sur une stat PLAFONNÉE (un maximum est
+    sert jamais à rien. Deux runes du même set se comparent toujours ; un set
+    demandé ou l'Intangible ne se compare qu'à lui-même. Hors combo, la
+    comparaison reste générique, sauf pour un set qui pourrait changer ce
+    qui compte pour la recherche (lot 6bis-b3b) : un set à bonus ou une aura
+    qui peut réellement se **former** (assez d'emplacements distincts qui
+    le portent, une Intangible comprise, dans la limite des emplacements
+    libres) **et dont la stat est utile** — une condition minimum ou
+    maximum (pour une aura, seulement RES/PRE avec l'interrupteur activé),
+    une stat de l'objectif, ou une stat dont dépend l'effet unique d'une
+    relique que la recherche peut équiper — sa stat de référence (« tous les
+    X pts de … », lue au début du combat) ou la stat qu'il améliore
+    (Bravoure, Éternité, Origine) ; la relique portée, ou toutes les
+    reliques éligibles quand la relique est cherchée (lot 6bis-b3c). Ainsi,
+    en « PV effectifs » avec une relique Ténacité sur l'ATQ, un Fight reste :
+    son aura peut faire franchir une tranche. En « Dégâts réels », une stat
+    que lit une ligne d'artéfact 218–221 (dégâts supplémentaires en
+    proportion des PV, de l'ATQ, de la DEF ou de la VIT) est utile au même
+    titre : celles de la paire supposée par la recherche, et, en « Libre »,
+    de tout artéfact éligible que le choix de la paire peut retenir —
+    moins ceux qu'une autre liste réserve, à l'écran (lot 6bis-b3d-1). Ainsi,
+    un Energy reste face à un Will dès qu'un artéfact éligible porte la
+    ligne 218, même si les PV ne sont pas une stat du sort. Ces lignes ne
+    changent ni le pré-filtrage ni la rétention : un artéfact récolte les
+    stats que le build possède déjà, il n'en fait pas chercher d'autres
+    (voir [dégâts supplémentaires](degats-reels/artefacts-et-degats-bruts.md)).
+    « Efficience » maximise toutes les stats.
+    Le Taux Crit ne compte que sous un minimum de Taux Crit, jamais par
+    l'objectif (décision du 2026-09-29 ; sa réserve « même en mode
+    Moyenne » est sans objet depuis la suppression de ce mode, lot CM de
+    degats-et-aura). S'y ajoute, dès qu'une Intangible est disponible, tout set
+    qui peut être complet avec ses seules vraies runes, puisque le joker ne
+    complète un set que s'il est le seul incomplet. Ainsi, en « Dégâts
+    réels » avec des minimums ATQ, Taux Crit et Dgts Crit, une Blade dominée
+    reste et un Focus dominé part ; en « Efficience », Endure ou Blade
+    formables restent, Violent ou Revenge partent. ⚠️ L'optimum n'est
+    garanti que pour les conditions, l'objectif (effet unique de la relique
+    et lignes 218–221 compris) et
+    l'efficience : un tri après coup sur une autre stat peut manquer un
+    build qu'un bonus de set inutile à la recherche aurait porté.
+    ⚠️ Sur une stat PLAFONNÉE (un maximum est
     demandé dessus), le sens s'inverse — seule l'égalité stricte y est sûre
     à comparer.
   - **Faisabilité** : une rune ne peut jamais entrer dans un build valide si,
     même avec le meilleur trouvé dans le pool réellement possédé de chacun
     des 5 autres emplacements, un minimum demandé reste hors de portée — ou
     si elle dépasse déjà, à elle seule, un maximum demandé.
+    ⚠️ **Côté minimum, la borne compte aussi ce que les sets pourraient
+    encore ajouter** sur les emplacements libres : le bonus d'un set non
+    demandé, ou d'une activation de plus d'un set demandé, et, interrupteur
+    RES/PRE activé, 8 points par activation Tolerance/Accuracy **propre**
+    possible — une Intangible pouvant, dans les deux cas, en compléter la
+    dernière pièce (lot 6bis-b3b). Le compte porte sur tout le pool,
+    plafonné aux emplacements libres : une borne volontairement large,
+    jamais trop basse. Côté maximum, seul l'inévitable compte : aucune de ces
+    activations n'y est supposée. Les bornes rapides de l'appariement et le
+    diagnostic de faisabilité reprennent les mêmes bornes.
     ⚠️ **L'apport des artéfacts y compte pour ce que l'INVENTAIRE peut
     donner, jamais pour ce qu'une paire choisie d'avance apporte.** Deux
     bornes distinctes : le meilleur apport atteignable pour juger d'un
@@ -1891,8 +2718,9 @@ différent, coopératif (voir « Interruption »).
     réellement équipables lui fait tenir *toutes* ses conditions à la fois.
     Un résultat affiché respecte donc toujours les conditions demandées.
   - **La meilleure paire d'artéfacts d'un build suit le critère de
-    classement**, et l’interrupteur « Adapter les artéfacts au tri » décide
-    duquel : le **tri affiché** (défaut) ou l’**objectif de la recherche**.
+    classement**, et l’interrupteur « Adapter les artéfacts et reliques au
+    tri » décide duquel : le **tri affiché** (défaut) ou l’**objectif de la
+    recherche**.
     Trier par PV effectifs ne retient pas les mêmes pièces que trier par
     Dégâts réels — deux réponses différentes pour le même build, et c’est
     normal : un artéfact change les statistiques du monstre, donc le meilleur
@@ -1903,7 +2731,18 @@ différent, coopératif (voir « Interruption »).
     - **PV, ATQ ou DEF** — la paire maximise CETTE stat. Auparavant elle
       maximisait la somme des principales : trier par ATQ classait donc sur
       une ATQ qu’une autre paire aurait dépassée (PV+1500 × 2 vaut 3000 en
-      somme, ATQ+100 × 2 seulement 200).
+      somme, ATQ+100 × 2 seulement 200). La stat est celle de la **fiche**,
+      sans les points Bravoure, Éternité ni Origine — la valeur que la carte
+      affiche et qui classe (degats-et-aura 6bis-b9). ⚠️ Conséquence voulue :
+      « Adapter les artéfacts et reliques au tri » étant activé par défaut,
+      le régime de l'équipement suit le tri ; en relique « recherche », trier
+      par une stat ne fait donc plus préférer une Bravoure, une Éternité ou
+      une Origine pour ses points, et la relique et la paire affichées
+      peuvent changer par rapport à avant ce lot. Deux reliques de même
+      principale y sont alors souvent **ex æquo** : la relique **portée**
+      l'emporte si elle est parmi les meilleures, sinon la plus petite `id`
+      (décision de l'utilisateur du 2026-10-01). Ce départage ne choisit que
+      la relique affichée ; les autres régimes gardent la plus petite `id`.
     - **PV effectifs** et **Dégâts réels** — la paire maximise l’objectif.
     - **Efficience, Vitesse, Taux CRIT, Dgts CRIT, Résistance, Précision** —
       aucun artéfact n’entre dans ces classements : rien à y maximiser, seule
@@ -2008,26 +2847,270 @@ donc aucune heuristique à valider — voir
 noter les candidats, avant qu'aucun build n'existe : elle en **suppose** une
 (la meilleure pour l'équipement affiché, sous les mêmes contraintes). Puis,
 **pendant que la recherche tourne**, les meilleurs builds reçoivent chacun
-leur vraie paire, sur le temps d'inactivité — l'ordre d'appariement étant
+leur vraie paire, hors du fil de l'écran, dans un Worker dédié — la page
+affichée d'abord, puis les autres ; sur le fil principal seulement en repli
+(voir plus bas) — l'ordre d'appariement étant
 piloté par l'objectif, les bons builds sortent en quelques secondes là où la
 recherche s'écoule sur plusieurs minutes.
 
-⚠️ **Ce travail concurrent ne ralentit pas la recherche** — mesuré, pas
-supposé : +0,3 % sur une recherche de 25 secondes et −1,6 % sur une de 8, les
+⚠️ **Ce travail concurrent ne ralentissait pas la recherche** à la première
+mesure — mesuré, pas supposé, mais voir la réserve de 6bis-b8 ci-dessous : +0,3 % sur une recherche de 25 secondes et −1,6 % sur une de 8, les
 deux sous le plancher de bruit de la mesure. Seule une recherche d'environ une
 seconde montre ~3 %, dont une charge de calcul *pure* explique la
 quasi-totalité : c'est du partage de cœurs, pas un coût propre à ce calcul.
+⚠️ Cette mesure date d'une file de cent builds, avec une charge sans fin
+(`chercherPaires` en boucle) et l'appariement seul chronométré. En mode
+relique « recherche », la file en traite trois cents depuis degats-et-aura
+6bis-b8 (voir le paragraphe suivant). Mesuré alors sur une recette réelle
+(mode « recherche », 4 reliques éligibles, artéfacts « Libre », appariement
+parallèle), la vraie boucle de la file et sa vraie résolution, six
+répétitions à ordre tourné : **trois cents contre cent ne se distingue pas
+du bruit** (+2,3 % au minimum, +1,3 % en médiane, dispersion 7,5 %). En
+revanche, **la file elle-même — cent comme trois cents — allonge la
+recherche d'environ 8 à 10 %** par rapport à une recherche sans file, dans
+toutes les répétitions de deux campagnes. Ce montage Node est pessimiste
+(la file n'y cède jamais la main comme `requestIdleCallback`, et le
+coordinateur de la recherche partage son fil) ; l'écart n'a pas été
+vérifié au navigateur, et reste une piste ouverte. Au navigateur, depuis le
+Worker de résolution (6bis-b13bis-b, plus bas) : ~+3,6 % en « Dégâts
+réels », systématique mais sous la dispersion des séries.
 
-**La page que vous consultez passe en premier.** Les cent meilleurs builds sont
-traités en avance de fond, mais c'est la page affichée qui est servie d'abord —
-sans quoi aucune page au-delà de la centième position n'aurait jamais sa paire.
+**La page que vous consultez passe en premier.** L'avance de fond vise cent
+combinaisons **confirmées** — **trois cents en mode relique « recherche »** —,
+mais c'est la page affichée qui est servie d'abord — sans quoi aucune page
+au-delà de ces positions n'aurait jamais sa paire. **Des confirmées, plus des
+rangs** (degats-et-aura 6bis-b18, décision de l'utilisateur du 2026-10-02) :
+l'avance de fond parcourt l'ordre de base et continue au-delà des builds
+écartés à la résolution, jusqu'à ce nombre de builds résolus ET conformes, ou
+jusqu'au dernier build trouvé. Sans écarté, c'est exactement « les cent (trois
+cents) premiers », la règle d'avant ; sur une recherche aux minimums serrés
+(Kinki : 100 conformes sur 1 112 trouvées, mesuré au navigateur en 6bis-b18),
+la file vérifie tout — dès la fin de la recherche sur cette recette. Une
+seule fonction pure, `prochainsATraiter`, en décide, sur le cache lui-même
+(la conformité de chaque résultat), à l'écran comme au CLI. L'interrupteur
+« Vérifier toutes les combinaisons trouvées » (Réglages avancés, désactivé
+par défaut) rend la cible infinie — `cibleDeLaFile`, lu en direct : tous les
+builds trouvés sont vérifiés. La cible de la
+file (`kDeLaFile`, artifactQueue.ts) est fixée dès le lancement par le contexte
+relique de la recherche LANCÉE, jamais par les réglages courants : les
+changer après coup ne la modifie pas. Pourquoi trois cents : en mode
+« recherche », l'ordre de base note sans relique, et un build classé au-delà
+du centième peut remonter dans la première page une fois sa relique
+résolue (constaté sur le vrai compte, en PV effectifs). Trois cents réduit
+ce manque sans l'annuler ; « Équipée » garde cent, inchangé, et sans
+optimisation d'artéfacts il n'y a pas de file.
 Changer de page ou de tri repriorise immédiatement, sans rien recalculer de ce
-qui est déjà connu.
+qui est déjà connu. Depuis 6bis-b16, la « page » que la file sert d'abord est
+l'ensemble des builds qui rempliront ses places « Vérification… » (voir
+« Résultats ») : vide quand elle est complète.
 
-Une carte dont la paire n'est pas encore calculée le **dit** (« artéfacts pas
-encore optimisés ») plutôt que de laisser croire à un résultat définitif. ⚠️ La
-place de cette mention est réservée d'avance : sans ça, chaque paire trouvée
-changeait la hauteur d'une carte et réorganisait toute la grille.
+**Ce qui est déjà calculé se refait quand la paire peut changer.** Le cache
+de la file (paires et reliques déjà résolues) se vide à chaque changement de
+la signature des réglages (`signatureArtefacts`, artifactQueue.ts) : monstre,
+réglage de dégâts entier, régime effectif, optimisation coupée ou non,
+principales et lignes verrouillées, relique portée, taille de l'inventaire,
+contexte relique de la recherche lancée, conditions — et, depuis
+degats-et-aura 6bis-b17, les **artéfacts réservés** par les autres builds
+validés de la liste active, lus comme un ensemble (l'ordre de la liste est
+sans effet ; sans réservation, la signature est celle d'avant). « Libérer les
+artéfacts » sur la ligne d'un autre monstre de la liste, ou changer de liste
+active, refait donc les paires déjà calculées : jusque-là, elles gardaient
+l'ancien inventaire, même après une nouvelle recherche aux mêmes réglages. De
+même pour la **pièce d'un emplacement figé** sur « Garder l'artéfact équipé »,
+seul candidat de cet emplacement : valider un build du monstre recherché,
+« Voir le runage réellement porté » ou changer d'exemplaire de la même espèce
+la remplacent, et les paires déjà calculées se refont. La pièce portée d'un
+emplacement libre, jamais lue, n'y entre pas. Enfin, depuis 6bis-b19,
+l'**identité de l'import du compte** (`importDuCompte`, useOptimizerState.ts)
+y entre : son numéro dans la session, avancé par chaque
+`resetSearch('compte')` — donc par chaque import réel, jamais par la
+relecture du compte conservé ; 0 avant tout import (composant omis,
+signature d'avant). Le cache est indexé par les identifiants de runes et ne
+voyait de l'inventaire que le nombre d'artéfacts : un réimport qui changeait
+le contenu d'une rune ou d'un artéfact à nombre et identifiants égaux
+gardait les paires de l'ancien compte. C'est une identité, pas une empreinte
+du contenu : tout réimport vide le cache, même celui d'un fichier identique.
+Le Worker de résolution reçoit alors le nouveau contexte (voir plus bas).
+
+**La page affichée n'attend pas l'inactivité** (degats-et-aura 6bis-b11).
+Pendant une recherche, l'écran reçoit la progression toutes les 150 ms et
+retrie l'aperçu : il est rarement inactif, et chaque build de la page
+pouvait attendre jusqu'à une seconde son créneau. La file a donc deux voies,
+décidées par une seule fonction pure, `voieDeLaFile` (artifactQueue.ts), à
+partir de la page affichée et du cache : tant que la page contient un build
+non résolu, la tranche suivante part par une tâche immédiate
+(`MessageChannel`, jamais `requestIdleCallback`) ; sinon, l'avance de fond
+attend l'inactivité, comme avant ; rien à traiter, rien n'est programmé.
+Toujours un seul build par tâche, la main rendue au navigateur entre deux,
+et une seule tâche en attente à la fois : si une tranche de fond attend son
+créneau quand la page acquiert des builds non résolus (changement de page,
+nouveaux candidats), elle est annulée et replanifiée en voie prioritaire.
+La voie ne change ni les builds traités ni leur ordre (`prochainsATraiter`) :
+le travail total est le même, la voie prioritaire est bornée à la page. Les
+résultats se publient toujours au plus toutes les 400 ms, et tout de suite
+quand le dernier build non résolu de la page vient de l'être. La recherche
+elle-même tourne dans des Workers ; sur ce chemin, la file reste sur le fil
+principal, où la voie de la page accepte le coût de ses tranches pour une
+page au plus. Mesuré au navigateur depuis (6bis-b12, puis 6bis-b13) : la
+résolution y saturait le fil de l'écran — chaque build une tâche de 35 à
+100 ms. **Ces deux voies sont devenues le chemin de REPLI** du Worker de
+résolution (paragraphe suivant), inchangées.
+
+**La résolution tourne hors du fil de l'écran** (degats-et-aura
+6bis-b13bis-b, décision de l'utilisateur du 2026-10-02 : « Dégâts réels »
+restait trop lent après 6bis-b13). La file confie chaque build à un Worker
+dédié (`resolution.worker.ts`, corps `CorpsResolution`), qui exécute la
+MÊME résolution (`entreeResolutionDuBuild` puis
+`resoudreEquipementDuBuild`) ; le fil de l'écran ne résout plus rien.
+
+- **La priorité reste sur le fil de l'écran** : la file choisit toujours le
+  build suivant par `prochainsATraiter` (page affichée d'abord, puis les K
+  premiers) et n'envoie au Worker qu'**au plus deux demandes sans
+  réponse** ; le Worker les traite dans l'ordre reçu, une à la fois. Un
+  changement de page **annule** les demandes pas encore commencées (jamais
+  la plus ancienne en vol, sans doute commencée, dont le résultat reste bon
+  à prendre). Ni les builds traités, ni leur ordre, ni K, ni le compte
+  affiché ne changent.
+- **Le contexte** (fiche, inventaire d'artéfacts et réglages de paires sans
+  leur fonction de note, régime, contexte de dégâts, assiette des effets
+  uniques, conditions, contexte relique de la recherche lancée) part à
+  chaque nouvelle IDENTITÉ de ses entrées (l'objet mémoïsé par l'écran),
+  donc au moins une fois par recherche — le contexte relique de la
+  recherche lancée en fait partie —, et à chaque changement de la
+  signature des réglages ; seulement quand il y a des builds à résoudre :
+  changer un réglage sans recherche n'envoie rien. Il est construit par
+  `entreesSerialisables`, à partir des mêmes arguments que la résolution du
+  fil de l'écran. Chaque demande porte les runes de son build, produites par
+  `runesDuBuild` (relicQueue.ts), le producteur que la résolution du fil de
+  l'écran appelle aussi : jamais une seconde expression (6bis-b13bis-c).
+  Un nouveau contexte ne vide pas le cache de la file : seul un changement
+  de signature le vide, comme sur le chemin direct.
+- **Une réponse périmée n'est jamais écrite dans le cache** : celle d'un
+  contexte remplacé — reconnue à son identifiant de contexte, et, entre le
+  rendu qui change un réglage et le renvoi du contexte, à l'identité des
+  entrées et de la signature — ou d'une demande annulée. Elle libère
+  seulement sa place en vol.
+- **Publication** : même cadence que le chemin direct (au plus toutes les
+  400 ms, tout de suite quand le dernier build non résolu de la page ou de
+  la file vient de l'être). **Rien d'écrit ne reste hors de l'écran**
+  (6bis-b13bis-c) : une écriture que la cadence a retenue est publiée de
+  force quand la file se vide sans nouvelle écriture (réponse ignorée,
+  changement de page, nouvelle recherche) et au repli — une publication de
+  plus par file, au plus.
+- **Repli** : un Worker impossible à créer, qui lève, dont une réponse est
+  illisible, ou dont la résolution a levé, est journalisé dans la console
+  (jamais en silence ; une résolution qui a levé l'est avec son nom, son
+  message et, pour un pool de reliques vide, son motif `vide` —
+  6bis-b13bis-c), terminé, et la file reprend sur le fil principal par
+  les deux voies ci-dessus, avec le cache tel qu'il est — rien de déjà
+  résolu n'est perdu. Le repli dure jusqu'au démontage de l'écran.
+- **Un seul Worker pour la vie de l'écran Optimizer**, créé au premier
+  besoin et terminé au démontage — jamais un par recherche ni par rendu.
+
+Toute cette logique du côté de l'écran (quoi envoyer, annuler, ignorer,
+quand renoncer, quand publier) vit dans un module pur testé en Node,
+`ResolutionDistante` (resolutionDistante.ts) ; le hook de la file ne fait
+que le brancher. Preuve : une file simulée — ce module, le corps derrière
+`structuredClone`, des entrelacements aléatoires de messages, de pages, de
+candidats et de contextes — remplit un cache identique à la résolution
+directe, sur les fixtures (`tests/resolution-distante.test.ts`) et sur
+trois recettes gelées (preuve du lot), dont une seule exerce une vraie
+résolution : « Dégâts réels » ; en « PV effectifs », les artéfacts gardés
+équipés laissent une paire par relique, et la troisième n'a qu'un
+candidat ; depuis
+6bis-b13bis-c, elle suit aussi la publication, avec la cadence du hook :
+sur toute file vide et à la fin, l'écran a reçu le cache entier. Elle
+couvre un repli en cours de route (réponse d'erreur, envoi qui lève, repli
+du hook : cache intact, plus rien d'envoyé ni d'écrit ensuite) et des
+entrées changées à signature égale (nouveau contexte, cache gardé). Le
+branchement du hook (refs relues au rendu, gestionnaire des messages,
+rebranchement par effet, réveil, port de repli) et les runes envoyées par
+l'écran, qu'aucun test d'exécution n'exerce, sont gardés par des contrôles
+de source précis : chacune des cinq mutations relevées par la revue du
+Worker en fait échouer au moins un.
+
+**Mesuré au navigateur** (6bis-b13bis-b ; version construite, Chromium
+sans affichage, 8 cœurs, passages entrelacés ; A-après contre A-avant —
+le code de 6bis-b13 — et C, sans optimisation d'artéfacts) :
+
+- **Le fil de l'écran se libère** en « Dégâts réels » : tâches longues
+  4 % du fil pendant la recherche (médiane, contre 28 % avant, 2 % sans
+  file), plus longue tâche 82 ms (101), page 1 résolue en 1,3 s (1,9 s),
+  page 2 en 0,9 s (1,6 s). En « PV effectifs » (artéfacts gardés équipés,
+  résolution déjà légère), rien de lisible : 4 % de part dans les deux cas.
+- **La recherche ralentit en « Dégâts réels »**, d'après deux campagnes :
+  celle du lot, plus lente dans 11 passages appariés sur 12, médiane des
+  écarts +3,6 % (test du signe, p = 0,006), sous la dispersion des séries
+  (6,6 et 8,4 %) ; celle du pilote (6 paires), +7,2 % (6 sur 6,
+  p = 0,031), sans cause identifiée à l'écart entre les deux — soit +4 à
+  +7 %, 0,35 à 0,6 s sur une recherche de 9 s. Hypothèse, non isolée : le
+  Worker calcule à plein pendant la recherche, sur une machine dont la
+  recherche occupe déjà cinq fils. En « PV effectifs », +2,0 % sur 4
+  paires, non concluant.
+- **Le résultat complet arrive plus tôt** (campagne du pilote : recherche
+  finie ET 300 premiers résolus, « Dégâts réels ») : 15,2 s contre 20,7 s,
+  −27 % (6 paires sur 6). Le Worker résout 162 builds pendant la recherche
+  (85 avant) ; le chemin direct finissait l'essentiel APRÈS elle, sur le
+  fil de l'écran, par tranches d'environ 36 ms.
+- **Écart accepté par l'utilisateur** (décision du 2026-10-02) : la
+  garantie du lot était « la recherche ne ralentit pas » ; le Worker est
+  gardé, ce ralentissement contre un résultat complet plus tôt et un fil de
+  l'écran libéré.
+- **Processeur bridé ×4** (fil de l'écran seulement, la recherche dans ses
+  Workers ne l'est pas) : en « Dégâts réels », page 1 en 3,4 s contre
+  10,4 s, et avant cela elle n'était jamais résolue avant la fin de la
+  recherche ; résultat complet 24,5 s contre 113,5 s (−80 %, pilote,
+  3 paires) ; durée de la recherche bridée NON CONCLUANTE (−1,3 % dans la
+  campagne du lot, −11 % dans celle du pilote, où seul le passage bridé
+  sans Worker diffère ; n = 3). Le fil reste occupé à 70 % en tâches
+  longues (76 % avant) ; hypothèse, non mesurée tâche par tâche : par la
+  publication, le reclassement et le rendu, la résolution n'y tournant
+  plus. En « PV effectifs » (29 367 builds), 70 % contre 61 %, plus longue
+  tâche ~1,2 s dans les deux cas ; hypothèse, non vérifiée : le Worker
+  résout plus vite, donc publie plus souvent.
+- **L'envoi du contexte** coûte 4 ms sur le fil de l'écran (médiane ;
+  ~19 ms bridé ×4) pour ~800 Ko (2 518 artéfacts), une fois par
+  recherche.
+
+**Les builds d'une file partagent ce qui ne dépend pas d'eux**
+(degats-et-aura 6bis-b13). Mesuré sur la recette « Dégâts réels » de
+référence : résoudre un build essaie ~7 800 paires pour chacune des quatre
+reliques éligibles, mais 300 builds ne parcourent en tout que 7 727 paires
+distinctes. Trois mémoires et un tri différé, sans changer aucun résultat :
+
+- le **profil de dégâts d'une paire** ne lit que ses deux pièces : il se
+  calcule une fois par paire (`CacheProfilsParPaire`, clé = identifiants des
+  pièces dans l'ordre reçu, emplacement vide compris ; une pièce
+  d'identifiant ≤ 0 n'est pas une pièce et n'y entre jamais) ;
+- les **candidats élagués de chaque sorte** se recalculent seulement si
+  leurs entrées changent (`MemoPreFiltre`) : la pertinence reste sondée
+  contre le vrai calcul à chaque build et à chaque relique, et la liste
+  n'est réutilisée que pour la même pertinence, le même inventaire et les
+  mêmes réglages de paires ;
+- les **stats d'une paire** ne dépendent que de la somme de ses
+  principales : `statsParPaire` rend le même tableau aux paires de mêmes
+  principales, et l'effet unique de la relique essayée n'est calculé qu'une
+  fois par tableau ;
+- la résolution ne lit, d'ordinaire, que la **meilleure paire** (la
+  première conforme, le premier couple faisable) : `pairesParScore` la
+  trouve par un seul parcours — plus grand score, premier dans l'ordre de
+  l'inventaire en cas d'égalité, comme le tri stable — et ne trie toutes les
+  paires que si l'on lit plus loin (ou si un score vaut NaN). L'ordre rendu
+  est exactement celui de `chercherPaires`.
+
+Chaque mémoire est bornée (16 384 profils, 64 listes, 256 tableaux, 64
+apports) et se vide d'un coup à sa borne. Leur durée de vie est celle d'une
+file : l'écran les recrée avec la signature des réglages et les paramètres
+de paires (donc l'inventaire), le Worker de résolution à chaque contexte
+reçu, le CLI une fois par recette — jamais un état
+global qu'un nouvel inventaire laisserait périmé. Ce qu'elles rendent est
+partagé : à lire, jamais à modifier.
+
+Une carte n'est affichée qu'une fois sa paire calculée (6bis-b16, voir
+« Résultats ») : avant, sa place dit « Vérification… », à la hauteur d'une
+carte, plutôt que de montrer un résultat provisoire. La mention « artéfacts pas
+encore optimisés », qui disait jusque-là qu'une carte affichée attendait encore
+sa paire, a disparu avec la carte provisoire, et sa rangée réservée avec elle.
 
 ⚠️ **Un build optimisé peut alors passer devant dans le classement**, et la
 boucle « trier → optimiser → retrier » ne s'emballe pas : optimiser un build ne
@@ -2107,7 +3190,8 @@ plusieurs milliers de runes.
   à la liste », voir « Listes de travail et réservation de runes ») —
   l'import en masse depuis un deck de siège/une prépa RTA entière n'est pas
   construit, ni un workflow qui enchaîne automatiquement au monstre suivant
-  après validation.
+  après validation. « Ajouter un autre exemplaire de … » (lot EX, voir
+  « Zone C ») n'y change rien : chaque clic ajoute un seul exemplaire.
 - Le preset de pré-filtrage par emplacement et le filet de temps (« Réglages
   avancés ») sont réglables ; le plafond de candidats collectés reste un
   paramètre interne du moteur, non exposé dans l'UI — **« Rechercher
@@ -2131,4 +3215,4 @@ plusieurs milliers de runes.
   lignes de dégâts d'artéfact, réductions autres que la marque, mécaniques
   propres à certains monstres. Environ **200 sorts du corpus** (sur ~6 000)
   ont une formule hors modèle et sont refusés explicitement plutôt que
-  calculés de travers — détail dans [degats-reels.md](degats-reels.md).
+  calculés de travers — détail dans [degats-reels/formules-et-combat.md#lecture-des-formules--tout-ou-rien](degats-reels/formules-et-combat.md#lecture-des-formules--tout-ou-rien).

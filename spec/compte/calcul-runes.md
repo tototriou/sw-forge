@@ -310,14 +310,20 @@ Total d'une stat gemmée = **`gemMax + grindMax`** (même code).
    du max cible est **ramenée** au max (delta négatif possible en héroïque).
 2. Si mode **« Meule seule »** → renvoyer cette efficience (pas de gemme).
 3. **Gemme** :
-   - Rune **déjà gemmée** (un substat a `enchant`) : la stat est **figée** (on ne
-     peut pas en gemmer une autre). Seule option = **proc max** : base du gemmé =
+   - Rune **déjà gemmée** (un substat a `enchant`) : la stat est **figée** —
+     **choix produit** : le jeu autoriserait de la regemmer vers une autre stat
+     absente de la rune, voir [runes.md](runes.md) ; l'option `regemLibre`
+     (« Autoriser un regemme différent ») lève ce choix : la **ligne gemmée seule**
+     est alors traitée comme le *slot* d'une rune non gemmée ci-dessous (toute stat
+     `Y` candidate, base `max(base, gemMax)` si `Y` = sa stat). Sans l'option, seule option = **proc max** : base du gemmé =
      `max(base actuelle, gemMax[code])`, puis grind. On garde si l'efficience
      augmente ; **si la gemme est déjà à sa base max, aucun gain gemme** (on reste
      sur le grind seul).
    - Rune **non gemmée** : pour chaque substat *slot* et chaque stat candidate `Y` :
-     - exclure `Y` déjà présente (principale, innée, autres substats) et `Y` = stat
-       du slot (la gemme **remplace** par une autre stat) ;
+     - exclure `Y` déjà présente sur la principale, l'innée ou un **autre**
+       substat. `Y` = stat du slot lui-même **reste candidate** (règle du jeu :
+       une rune vierge peut gemmer une stat par elle-même) — elle ne gagne que
+       si `gemMax[Y]` dépasse la base actuelle ;
      - **contraintes d'emplacement** : **slot 1 → pas de DEF (5/6)**, **slot 3 →
        pas d'ATQ (3/4)** ;
      - construire la rune avec slot ← `Y` à `gemMax[Y] + grindMax[Y]`, les autres
@@ -333,7 +339,7 @@ rune déjà grindée légendaire, en scénario héroïque).
 
 À partir du choix gagnant : pour chaque substat, valeur actuelle vs cible
 (base + grind). Le substat gemmé prend `code = Y`, `base = gemMax` (ou
-`max(base, gemMax)` pour un re-proc de la même stat). Affichage : seul **ce qui
+`max(base, gemMax)` pour une gemme de la même stat, re-proc ou rune vierge). Affichage : seul **ce qui
 change** est mis en évidence (grind posé ou gemme).
 
 ## 5. Stats totales d'un monstre

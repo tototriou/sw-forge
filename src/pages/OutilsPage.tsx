@@ -1,5 +1,5 @@
 import { Wrench } from 'lucide-react';
-import { ArtifactDetail, RuneDetail, Monster, RtaEntry, SiegeTeam } from '../types';
+import { ArtifactDetail, RelicDetail, RuneDetail, Monster, RtaEntry, SiegeTeam } from '../types';
 import { BoxItem } from '../lib/applyAccount';
 import { LoadState } from '../hooks/useMonsters';
 import { OptimizerState } from '../hooks/useOptimizerState';
@@ -15,6 +15,13 @@ interface Props {
   // Inventaire COMPLET d'artéfacts — l'Optimizer y cherche la meilleure paire
   // pour un build, il ne se contente plus de ceux que le monstre porte.
   artifacts: ArtifactDetail[];
+  // Inventaire COMPLET de reliques (implementation-relique, B.5c) — même
+  // rôle qu'`artifacts` ci-dessus pour la dimension relique de la recherche.
+  relics: RelicDetail[];
+  // Occupation par `rid` (nombre d'exemplaires du compte qui la portent),
+  // affichée `n / 150` dans le détail d'une relique (implementation-relique,
+  // D3, B.5c ter) — jamais bloquante.
+  relicUsageById: Record<number, number>;
   loadState: LoadState;
   hydrating?: boolean;
   optimizer: OptimizerState;
@@ -32,12 +39,16 @@ interface Props {
   // contenu, seul l'outil actif (Optimizer aujourd'hui) le remplit.
   menuOuvert: boolean;
   onFermerMenu: () => void;
+  // Ouvre ce même panneau à la demande de l'outil — l'ouverture guidée au
+  // doigt de l'Optimizer (degats-et-aura 7b). Simple relais, comme les deux
+  // props ci-dessus.
+  onOuvrirMenu: () => void;
 }
 
 // Shell fin, miroir d'AccountPage.tsx : un seul outil aujourd'hui
 // (Optimizer), structuré pour en accueillir d'autres sans retoucher la nav
 // ni ce fichier (ajouter une branche = ajouter un outil).
-export default function OutilsPage({ sub, box, runes, artifacts, loadState, hydrating, optimizer, allMonsters, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, lists, accountName, menuOuvert, onFermerMenu }: Props) {
+export default function OutilsPage({ sub, box, runes, artifacts, relics, relicUsageById, loadState, hydrating, optimizer, allMonsters, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, lists, accountName, menuOuvert, onFermerMenu, onOuvrirMenu }: Props) {
   // Speed tuning ne dépend PAS d'un compte importé : on ajoute n'importe quel
   // monstre du bestiaire et on saisit sa vitesse de runes à la main. Il passe
   // donc AVANT la garde « aucune donnée de compte » (propre à l'Optimizer).
@@ -83,6 +94,8 @@ export default function OutilsPage({ sub, box, runes, artifacts, loadState, hydr
           box={box}
           runes={runes}
           artifacts={artifacts}
+          relics={relics}
+          relicUsageById={relicUsageById}
           optimizer={optimizer}
           allMonsters={allMonsters}
           rtaEntries={rtaEntries}
@@ -92,6 +105,7 @@ export default function OutilsPage({ sub, box, runes, artifacts, loadState, hydr
           accountName={accountName}
           menuOuvert={menuOuvert}
           onFermerMenu={onFermerMenu}
+          onOuvrirMenu={onOuvrirMenu}
         />
       )}
     </div>

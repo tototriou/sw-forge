@@ -244,6 +244,46 @@ notes. Cette initialisation est le marqueur qui distingue *dossier absent* de
 silencieusement une autre version commune : un câblage préexistant est préservé
 ou signalé.
 
+⚠️ **Verrou du lot O** (cadrage degats-et-aura, incident du 2026-09-23). Des
+notes locales en retard, gardées avec un simple avertissement puis reportées
+en miroir par le premier `livrer`, ont retiré 529 fichiers du `main`
+documentaire. `ouvrir` compare désormais l'arbre ENTIER des notes locales à
+la base — `--base` si elle est donnée, sinon `HEAD` du dépôt documentaire —,
+octets tels que ce dépôt les archive :
+
+| Notes locales | Effet |
+|---|---|
+| absentes | copie de la base |
+| identiques à la base | rien ; une différence de casse seule est réalignée sur la base |
+| identiques à une révision **ancêtre** de la base | en retard : sauvegarde, puis remplacement par la base, avec la liste de ce qui change |
+| inédites, vides, partielles, ou égales à une révision qui n'est **pas** ancêtre de la base (`--base` plus ancienne que les notes) | **refus**, avant tout effet : ni branche, ni worktree, ni registre |
+
+- **Recherche de l'ancêtre** : parmi `git rev-list --full-history <base> --
+  spec/outils/optimizer`, par identifiant d'arbre Git du sous-chemin — un
+  calcul pour l'arbre local, un seul `cat-file --batch-check` pour toutes les
+  révisions —, puis `merge-base --is-ancestor` exigé.
+- **Refus** : diagnostic par fichier (identiques à la base, versions
+  antérieures connues de son historique, inédits, absents localement) et
+  marche à suivre. `--adopter` garde les notes et les enregistre comme base :
+  le premier `livrer` refusera tant que la branche porte un contenu qu'elles
+  n'ont pas reçu. `ouvrir` ne fait jamais de retour arrière ; un retour voulu
+  se fait après l'ouverture, par une livraison.
+- **Sauvegarde** des notes remplacées :
+  `.git/forge/sauvegardes/<chantier>/<horodatage>/`, sous le répertoire Git
+  commun du dépôt de code, hors des notes, jamais livrée. `fermer` ne la
+  supprime jamais et signale son chemin : la retirer est un geste manuel.
+- **Fins de ligne** : aucune normalisation. Le `.gitattributes` du dépôt
+  documentaire (`* -text`) désactive toute conversion, quel que soit
+  `core.autocrlf` : une différence CRLF/LF entre deux révisions est réelle
+  (`artefacts.md` en CRLF à `bcbb49a`, en LF à `6559ecc`).
+- **Casse sous Windows** : la correspondance des CHEMINS est insensible à la
+  casse, comme dans `controlerIdentite` ; les contenus ne sont jamais
+  normalisés. Deux chemins Git distincts de même clé Windows sont refusés.
+- **Base synchronisée** : `ouvrir` enregistre dans le registre la révision,
+  les chemins et les identifiants de blob de la base ; `livrer` (après son
+  commit) et `rafraichir` (après sa copie) la tiennent à jour. Un journal
+  précède toute copie : une ouverture coupée se termine en relançant `ouvrir`.
+
 ### `livrer`
 
 - vérifie l'identité du chantier, sa branche, son **worktree** documentaire ;
@@ -268,6 +308,71 @@ ou signalé.
 >
 > Le reçu vit **hors du contenu dont on calcule l'empreinte**, pour éviter la
 > référence circulaire.
+
+#### Garde de la base synchronisée (lot O)
+
+Le miroir de l'incident du 2026-09-23 reportait fidèlement des notes qui
+n'avaient jamais **reçu** ce qu'il effaçait. `livrer` suit désormais cet
+ordre :
+
+1. **Reprise vérifiée** de toute opération interrompue — livraison,
+   rafraîchissement, ouverture — jusqu'à l'état attendu de son journal. Un
+   « différent » laissé par une coupure n'est jamais pris pour un contenu non
+   reçu.
+2. **Garde**, sur deux égalités :
+   - le sous-arbre `spec/outils/optimizer/` de la **tête** de la branche
+     documentaire est la base synchronisée (le sous-arbre, pas le commit : la
+     tête est souvent un reçu) ;
+   - l'inventaire **physique** des notes du worktree documentaire, fichiers
+     ignorés compris, est cette tête : `git status` ne voit pas un fichier
+     exclu par `.git/info/exclude`, que le miroir effacerait. Le disque est
+     listé, le worktree doit être propre et aucun fichier masqué à `status`
+     (`skip-worktree`, `assume-unchanged`) ; les contenus suivis sont alors
+     ceux de la tête, sans hacher le disque une fois de plus.
+
+   Si l'une échoue : refus nommé, chemins listés, marche à suivre —
+   `rafraichir`, ou fusion à la main puis `livrer --adopter` si les notes ont
+   été adoptées.
+3. **Miroir** : `copierMiroir` reste. Derrière la garde, il ne copie que le
+   delta base → notes locales : suppressions, modifications et renommages
+   légitimes. Un renommage de **pure casse** passe par une suppression puis un
+   ajout explicites dans l'index, que `git add -A` ne ferait pas sous Windows ;
+   l'index doit ensuite porter exactement les chemins des notes locales.
+4. **Nouvelle base** enregistrée après le commit.
+
+`--adopter` lève la garde sur l'arbre, **pas** celle sur le worktree :
+l'utilisateur déclare avoir fusionné à la main, dans les notes locales, ce que
+la branche porte ; la sortie liste ce qui sera retiré ou remplacé. ⚠️ C'est
+une décision de l'**utilisateur**, jamais d'un agent : un agent qui reçoit
+ce refus s'arrête, lance `livrer --simulation` et montre la liste de ce qui
+serait retiré (décision du pilote de degats-et-aura, 2026-10-01). Un chantier
+ouvert avant le lot O n'a pas de base : elle se reconstruit depuis le plus
+récent du dernier reçu (qui prouve l'égalité des notes avec l'état livré) et
+du dernier rafraîchissement. Sans l'un ni l'autre, `livrer` refuse par
+défaut ; `--adopter` enregistre l'état local courant.
+
+**Journal de reprise.** Chaque opération qui écrit des notes enregistre, avant
+d'écrire, d'où elle part et l'état exact que les notes doivent atteindre
+(identifiants de blob par chemin). Une coupure se reconnaît fichier par
+fichier — chaque chemin à son état de départ ou à son état attendu —, sinon
+refus. L'ancien marqueur `livraisonEnCours` ne gardait que la révision de
+départ : une coupure après le commit du reçu échouait à la reprise, et une
+livraison qui ne changeait que le reçu n'en avait aucun.
+
+`livrer --simulation` parcourt le même chemin jusqu'à la garde sans RIEN
+écrire — ni registre, ni fichier, ni index — puis affiche la base, le verdict
+et le delta du miroir.
+
+**Limite écrite** : la garde ne protège pas d'un écrivain concurrent entre son
+contrôle et le miroir. Hors interventions externes, les notes documentaires ne
+changent que par une livraison ou un rafraîchissement, y compris la
+résolution manuelle de ses conflits ; leur synchronisation est achevée ou
+reprise avant la garde.
+
+**`integrer` n'a pas changé.** Une fusion ne propage que ce que la branche a
+changé, et la garde de `livrer` empêche désormais la branche de perdre un
+contenu jamais reçu. Elle ne touche pas la branche du chantier : aucun faux
+refus possible de ce côté.
 
 ### `verifier` — l'état réel, pas une case « terminé »
 
@@ -354,7 +459,9 @@ supprimés, hash documentaire avant → après.
 - **notes locales différentes des notes reportées ⇒ « livrer d'abord »**. La
   copie miroir finale supprime ce que la source n'a pas : sur des notes non
   livrées, ce serait une perte irréversible. Rien d'inédit n'est jamais
-  écrasé — c'est le refus qui fait la valeur de la commande ;
+  écrasé — c'est le refus qui fait la valeur de la commande. Seule exception
+  (lot O) : des notes locales égales à la base synchronisée, quand celle-ci est
+  un état documentaire (voir plus bas) ;
 - `main` documentaire local en retard sur `origin/main` après `fetch` ⇒ avancé
   en avance rapide seule ; s'il a **divergé**, refus. Distant injoignable ⇒
   refus : sans `fetch`, on ne sait pas si la référence est à jour, et
@@ -413,6 +520,26 @@ cette base et actualise le reçu.
 modification du code, pas de push. Et rien ne le déclenche : c'est à l'agent
 de le lancer — voir § 8.
 
+#### Base, journal et reprise (lot O)
+
+- **La base synchronisée n'avance qu'après la copie** complète vers le code et
+  son contrôle d'égalité, la révision attendue avec elle. La reconnaissance
+  d'une fusion résolue à la main n'écrit plus rien : une coupure avant la fin
+  de la copie laisse la fusion reconnaissable au lancement suivant.
+- **Un journal précède la copie** : état de départ et état attendu des notes
+  locales. Une coupure se reprend au lancement suivant de `rafraichir` — ou de
+  `livrer`, qui termine d'abord la copie interrompue.
+- **Rien d'inédit n'est écrasé à la reprise d'une fusion résolue à la main** :
+  les notes locales doivent être celles du premier parent de la fusion, la
+  dernière synchronisation. Sinon, refus.
+- **Deux états d'entrée sûrs** : notes locales = notes reportées (le cas
+  courant), ou notes locales = base synchronisée quand la branche a avancé
+  par une fusion qu'elles n'ont pas reçue — l'état que laissait l'ancien
+  outil, qui avançait la révision attendue dès la reconnaissance. Une branche
+  qui contient déjà `main` est alors recopiée sans nouvelle fusion, au lieu de
+  répondre « déjà à jour ». Une base **adoptée** n'est pas un état
+  documentaire : elle ne compte pas.
+
 ### `fermer` — « livré » ne veut pas dire « intégré »
 
 Refuse le nettoyage tant que :
@@ -451,7 +578,8 @@ enregistré et les notes privées ne sont pas copiées. Une première version de
 cette séquence s'arrêtait à `npm ci` — elle était incomplète.
 
 ```powershell
-git worktree add ../sw-forge-codex -b forge/<sujet> forge/orchestration-parallele
+git fetch origin
+git worktree add ../sw-forge-codex -b forge/<sujet> origin/main
 Set-Location ../sw-forge-codex
 npm ci
 
@@ -463,15 +591,54 @@ node $outil ouvrir --chantier <sujet>
 Puis ouvrir la session de l'agent **dans ce dossier**, attribuer un chantier
 distinct à chacun, et désigner l'intégrateur.
 
-> ⚠️ **Prérequis à valider pour Codex : les droits sur les dépôts hors
-> workspace.** Un appel réel à `verifier` depuis la sandbox Codex a échoué sur
-> `dubious ownership` — le dépôt documentaire appartient à l'utilisateur, tandis
-> que l'exécution se fait sous un autre compte. **Ce n'est pas un reçu invalide,
-> c'est un blocage git**, et la distinction compte : un outil qui échoue pour une
-> raison d'environnement ne dit rien sur la validité de la livraison. À traiter
-> par un `safe.directory` explicite pour le dépôt documentaire et ses worktrees,
-> plus les droits d'écriture correspondants. **Non fait** : c'est un réglage de
-> l'environnement de l'utilisateur, pas du dépôt.
+Si le dossier de notes existe déjà, `ouvrir` le situe par rapport à la base
+(§ 4, `ouvrir`) : en retard, il est remplacé après sauvegarde ; inconnu, vide
+ou partiel, c'est un refus qui ne crée rien. Trancher alors — livrer ces notes
+depuis le chantier qui les a produites, écarter le dossier, ou `--adopter` en
+connaissance de cause —, puis relancer. ⚠️ Ces verrous n'existent dans l'outil
+installé qu'après `installer` d'une version qui les porte.
+
+> ⚠️ **Codex sur Windows : identité sandbox distincte.** Sur cette machine,
+> `git -C <worktree documentaire> status` échoue dans la sandbox avec
+> `dubious ownership` (`CodexSandboxOffline` contre le propriétaire `Enzo`),
+> mais réussit sous l'identité Windows de l'utilisateur. Un refus de créer
+> `.git/index.lock` ou l'erreur esbuild `Cannot read directory ...: Access is
+> denied` peut relever de la même frontière. **Ce n'est ni un reçu invalide
+> ni un test rouge** tant que la commande n'a pas réellement pu s'exécuter.
+>
+> Pour poursuivre dans Codex, demander l'approbation **sur la commande
+> concernée** avec `sandbox_permissions: "require_escalated"` et une
+> justification explicite, puis relancer cette même commande sous l'identité
+> Windows. Employer ce chemin pour les vérifications bloquées et, au besoin,
+> pour `git add`/`commit`, `chantier livrer`/`verifier`/`integrer`/`rafraichir`
+> et `hooks-codex pause`. Le chemin de `chantier.mjs` reste calculé depuis
+> `git rev-parse --git-common-dir` (§ 2.4), jamais codé en dur. **Ne pas**
+> ajouter de `safe.directory` global, assouplir les ACL ou désactiver la
+> sandbox pour toute la session : `safe.directory` ne confère aucun droit
+> d'écriture. Si l'approbation est refusée ou indisponible, arrêter le lot
+> et nommer l'opération non exécutée ; ne prétendre ni que la livraison est
+> vérifiée ni que la pause est enregistrée. Voir aussi la
+> [documentation officielle de la sandbox Windows](https://learn.chatgpt.com/docs/windows/windows-sandbox).
+
+Après validation du lot, la séquence reste celle-ci, depuis le worktree de
+code et avec l'identité ayant accès au dépôt documentaire :
+
+```powershell
+$gitCommun = git rev-parse --path-format=absolute --git-common-dir
+$outil = Join-Path $gitCommun 'forge/installation/scripts/chantier.mjs'
+node $outil livrer --chantier <sujet>
+node $outil verifier --chantier <sujet>
+node $outil integrer --chantier <sujet> # seulement après validation des notes ; pousse le main documentaire
+```
+
+Un `livrer` refusé par la garde de la base synchronisée ne se contourne pas
+par réflexe : `node $outil livrer --chantier <sujet> --simulation` montre, sans
+rien écrire, la base, le verdict et ce que le miroir reporterait.
+
+Les skills canoniques du dépôt sont sous `.claude/skills/` ; Codex découvre
+leurs adaptateurs sous `.agents/skills/`. Chaque dossier canonique doit avoir
+son adaptateur homonyme. `node tests/run.mjs skill-adapters` vérifie cette
+correspondance, sans accéder au dépôt documentaire privé.
 
 | | Claude Code | Codex |
 |---|---|---|

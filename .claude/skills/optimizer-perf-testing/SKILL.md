@@ -61,7 +61,8 @@ c'est-à-dire rater :
   conversation ne peut plus se faire passer pour du comportement de prod ;
 - le **régime** d'appariement choisi comme la production le choisirait
   (seuil contre `totalPairCount`), jamais un séquentiel implicite ;
-- la **complétude** avec son motif (`maxMs` ou `maxCollected`) et
+- la **complétude** avec son motif (`maxMs`, `maxCollected`, ou
+  `quotaTranche` en régime parallèle depuis degats-et-aura 6bis-b7) et
   l'autodiagnostic `explored` contre `totalPairs` ;
 - la distinction **élagage sûr / rétention heuristique** — `filterSlot` est
   MIXTE, une disparition n'y est pas un verdict ;

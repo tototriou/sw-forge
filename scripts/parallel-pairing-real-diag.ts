@@ -106,7 +106,8 @@ async function main() {
     console.error('Usage: parallel-pairing-real-diag.ts <export.json> <recipe.json>');
     process.exit(1);
   }
-  const { recipe, error } = parseOptimizerRecipe(readFileSync(recipePath, 'utf8'));
+  const { recipe, error, avertissements } = parseOptimizerRecipe(readFileSync(recipePath, 'utf8'));
+  for (const a of avertissements ?? []) console.warn(`⚠️ ${a}`);
   if (!recipe) { console.error(error); process.exit(1); }
 
   const loaded = loadBoxMonster(exportPath, recipe.monsterName);

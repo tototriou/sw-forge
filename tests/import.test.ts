@@ -11,11 +11,14 @@ import {
   parseAccountSource,
   parseSiegeDefense,
   parseSiegeOffense,
+  parseRuneMarkerLabels,
   parseUsedRuneIds,
+  parseUsedRuneIdsParPerimetre,
   parseWizardId,
+  unionRunesUtilisees,
 } from '../src/lib/importAccount';
 import { formatRelicUnique } from '../src/lib/effects';
-import { egal, exportReel, exportSynthetique, ignore, ok, titre } from './outils';
+import { egal, exportReel, exportReliquesD4, exportSynthetique, ignore, ok, titre } from './outils';
 
 export default function testImport() {
   titre('Import de compte');
@@ -126,6 +129,45 @@ export default function testImport() {
   egal(inv.runes.length, 8, 'inventaire : runes équipées ET en réserve, dédupliquées');
   egal(inv.artifacts.length, 3, 'inventaire : artéfacts équipés ET en réserve');
 
+  /* --- Inventaire de reliques (B.1) ------------------------------------- */
+
+  // data.relics porte 4 pièces, dont 7001 (équipée par l'unité 101, présente
+  // AUSSI dans unit.relics[0]) : le dédoublonnage par rid ne doit pas la
+  // compter deux fois.
+  egal(inv.relics.length, 4, 'inventaire : reliques dédupliquées entre data.relics et unit.relics[0]');
+  const parId = new Map(inv.relics.map((r) => [r.id, r]));
+  egal(
+    parId.get(7001),
+    { id: 7001, upgrade: 8, main: { code: 100, value: 11 }, unique: { type: 12, tranche: 27000, percent: 2 } },
+    'relique 7001 : id et upgrade portés par le type, en plus de main/unique'
+  );
+  // 7002 : sec_effect à deux éléments seulement → `percent` ABSENT, jamais 0.
+  egal(
+    parId.get(7002),
+    { id: 7002, upgrade: 5, main: { code: 101, value: 8 }, unique: { type: 7, tranche: 250 } },
+    'relique 7002 : pourcentage illisible → percent absent, pas 0'
+  );
+  // 7004 : aucun sec_effect → propriété unique illisible, la pièce reste dans
+  // l'inventaire (l'import ne la rejette pas).
+  egal(
+    parId.get(7004),
+    { id: 7004, upgrade: 0, main: { code: 100, value: 3 } },
+    'relique 7004 : propriété unique illisible → pièce conservée, unique absent'
+  );
+
+  // 7003 : upgrade_curr = 3 (donc pri_effect[1] attendu 6), mais le fichier
+  // porte 99 — écart compté, jamais reconstruit (`game-data-curation`).
+  egal(inv.relicUpgradeMismatches, 1, 'inventaire : un seul écart upgrade + 3 sur les 4 pièces');
+  egal(
+    parId.get(7003)?.main,
+    { code: 102, value: 99 },
+    'relique 7003 : la valeur de la principale reste celle DE `pri_effect`, jamais recalculée'
+  );
+
+  // Occupation : uniquement l'unité 101 porte 7001 ; jamais déduite de
+  // `data.relics.length` (les trois autres pièces sont en inventaire seul).
+  egal(inv.relicUsageById, { 7001: 1 }, 'inventaire : occupation comptée sur les unités, pas sur data.relics');
+
   const rta = parseAccountJson(objet);
   egal(rta.units!.length, 2, 'RTA : les favoris, et eux seuls');
 
@@ -158,6 +200,59 @@ export default function testImport() {
   // ⚠️ Une rune de l'INVENTAIRE peut jouer : les presets RTA/siège ne
   // déplacent rien en jeu. S'en tenir à `occupied_id` aurait raté ce cas.
   ok(utilisees.includes(9002), 'runes utilisées : une rune de réserve montée en RTA compte');
+
+  // Par périmètre — chaque source dans le sien, avec la même règle « preset,
+  // sinon ce que l'unité porte ». Le fichier d'exemple ajoute :
+  //  - défense d'arène (`defense_deck_info`, unité 102 sans preset) ;
+  //  - défense d'arène de serveur (unité 101, preset 1004, ids en objets) ;
+  //  - un deck de type 3 (ni siège ni arène) → « autres ».
+  const parPerimetre = parseUsedRuneIdsParPerimetre(objet);
+  egal(parPerimetre.rta, [1001, 1002, 1003, 2001, 2002, 9002], 'périmètre RTA : les presets RTA');
+  egal(parPerimetre['siege-defense'], [1001, 1002, 1003, 2001, 2002], 'périmètre siège — défense');
+  egal(parPerimetre['siege-attaque'], [1001, 1004, 2001], 'périmètre siège — attaque : deck_type 22');
+  egal(
+    parPerimetre['arene-attaque'],
+    [1001, 1002, 1003, 1004],
+    'périmètre arène — attaque : deck_type 1, sans preset → runes portées'
+  );
+  egal(
+    parPerimetre['arene-defense'],
+    [1004, 2001, 2002],
+    'périmètre arène — défense : les deux défenses, ids nus et en objets'
+  );
+  egal(parPerimetre.autres, [2001, 2002], 'périmètre autres : tout autre deck_type');
+  egal(unionRunesUtilisees(parPerimetre), utilisees, 'l’union des périmètres = les runes utilisées');
+  egal(
+    unionRunesUtilisees(parPerimetre, ['siege-attaque', 'arene-defense']),
+    [1001, 1004, 2001, 2002],
+    'union restreinte aux périmètres choisis'
+  );
+  egal(parseUsedRuneIdsParPerimetre('{oops').rta, [], 'fichier illisible → périmètres vides');
+
+  /* --- Marqueurs de runes (rune_lock_list + markers) -------------------- */
+
+  // ⚠️ Le marqueur n'est PAS dans l'objet rune : il vient de `rune_lock_list`.
+  // Une rune absente de la liste n'a pas de marqueur — le champ reste absent.
+  const inventaire = parseAccountInventory(objet).runes;
+  const marqueDe = (id: number) => inventaire.find((r) => r.id === id)?.marker;
+  egal(marqueDe(1002), 1, 'marqueur : rune équipée marquée');
+  egal(marqueDe(9001), 3, 'marqueur : rune d’inventaire marquée');
+  egal(marqueDe(2001), 7, 'marqueur : numéro sans libellé conservé');
+  ok(
+    !('marker' in inventaire.find((r) => r.id === 1001)!),
+    'marqueur : absent de la liste → champ absent, jamais 0'
+  );
+  // Même donnée sur l'équipement des monstres de la box : une rune ne change
+  // pas de marqueur selon l'endroit où on la regarde.
+  const rune1002Box = box.monsters[0].gear?.runes.find((r) => r.id === 1002);
+  egal(rune1002Box?.marker, 1, 'marqueur : aussi sur l’équipement de la box');
+
+  egal(
+    parseRuneMarkerLabels(objet),
+    { 1: 'Target reap', 3: 'meule' },
+    'libellés : type 1 seulement, espaces retirés, libellé vide absent'
+  );
+  egal(parseRuneMarkerLabels('{oops'), {}, 'libellés : fichier illisible → aucun');
   egal(parseUsedRuneIds('{oops'), [], 'fichier illisible → aucune rune utilisée');
 
   /* --- Texte et objet : strictement équivalents ------------------------ */
@@ -208,6 +303,32 @@ export default function testImport() {
   egal(parseWizardId('{"wizard_id":0}'), null, 'wizard_id à zéro → rejeté (jamais un vrai compte)');
   egal(parseWizardId('{"wizard_id":"abc"}'), null, 'wizard_id non numérique → rejeté');
 
+  /* --- D4 : l'exemplaire, pas l'espèce ---------------------------------- */
+
+  // Deux unit_id du MÊME com2usId (15105) portent des reliques différentes.
+  // Box, RTA et défense de siège doivent chacun retrouver la BONNE relique
+  // pour le BON unit_id — jamais celle de l'autre exemplaire, jamais celle
+  // « du » com2usId (il n'y en a pas une seule).
+  const d4 = parseAccountSource(exportReliquesD4())!;
+
+  const boxD4 = parseAccountBox(d4).monsters;
+  egal(boxD4.length, 2, 'D4 : deux exemplaires 6★ du même com2usId, tous deux retenus');
+  const gearParUnitId = new Map(boxD4.map((m) => [m.unitId, m.gear]));
+  egal(gearParUnitId.get(201)?.relic?.id, 9101, 'D4 (Box) : unit_id 201 → sa propre relique');
+  egal(gearParUnitId.get(202)?.relic?.id, 9102, 'D4 (Box) : unit_id 202 → sa propre relique, pas celle de 201');
+
+  const rtaD4 = parseAccountJson(d4);
+  egal(rtaD4.units?.length, 1, 'D4 (RTA) : seul le favori (unit_id 201) est retenu');
+  egal(rtaD4.units?.[0]?.gear?.relic?.id, 9101, 'D4 (RTA) : même relique que la Box pour ce unit_id');
+
+  // Défense de siège : le deck place 201 puis 202 (guildsiege_defense_deck_unit_list) —
+  // l'ordre des slots reflète l'ordre du preset, chaque slot garde SA relique.
+  const siegeD4 = parseSiegeDefense(d4).decks!;
+  egal(siegeD4.length, 1, 'D4 (siège) : un deck configuré');
+  const slotsD4 = siegeD4[0]?.slots ?? [];
+  egal(slotsD4[0]?.gear?.relic?.id, 9101, 'D4 (siège) : premier slot (unit_id 201) → sa relique');
+  egal(slotsD4[1]?.gear?.relic?.id, 9102, 'D4 (siège) : second slot (unit_id 202) → sa relique, pas celle du premier');
+
   /* --- Sur l'export réel, quand il est là ------------------------------ */
 
   const reel = exportReel();
@@ -230,4 +351,16 @@ export default function testImport() {
     utiliseesReelles.length > 0 && utiliseesReelles.length < totalRunes,
     `export réel : ${utiliseesReelles.length} runes utilisées sur ${totalRunes}`
   );
+  const parPerimetreReel = parseUsedRuneIdsParPerimetre(reelObjet);
+  egal(
+    unionRunesUtilisees(parPerimetreReel),
+    utiliseesReelles,
+    'export réel : l’union des périmètres = les runes utilisées'
+  );
+  ok(
+    parPerimetreReel['arene-attaque'].length > 0 && parPerimetreReel['siege-attaque'].length > 0,
+    `export réel : arène — attaque ${parPerimetreReel['arene-attaque'].length}, siège — attaque ${parPerimetreReel['siege-attaque'].length}`
+  );
+  const marquees = parseAccountInventory(reelObjet).runes.filter((r) => r.marker !== undefined).length;
+  ok(marquees > 0, `export réel : ${marquees} runes marquées`);
 }

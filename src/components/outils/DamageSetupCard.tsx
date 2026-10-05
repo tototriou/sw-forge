@@ -9,6 +9,8 @@ import {
   CombatStatProfile,
   ConditionMonstreProfile,
   BonusSacrificeProfile,
+  CIBLE_DEGATS_LABELS,
+  CibleDegats,
   CRIT_MODE_LABELS,
   CritMode,
   DamageSetup,
@@ -29,10 +31,20 @@ import {
   autresBuffsPropresDepuisTotal,
   bonusConditionnelPropreActif,
   bonusDegatsConditionnelActif,
+  cibleDegatsRetenue,
+  cibleSecondairePriseEnCharge,
   estPrisEnCharge,
+  calculPartielDuSort,
   conditionCritiqueGarantiParReglage,
+  coupsAffichesDuSort,
+  coupsEnPlusAncienneRecetteActif,
+  coupsEnPlusDeCondition,
   critiqueGarantiParReglage,
-  passifActif,
+  cranIgnoreDefRetenu,
+  cransIgnoreDefAPartirDuCoup,
+  resumeIgnoreDefRetenu,
+  passifCompte,
+  passifPeutSuivre,
   resolvedBuffsPropresCount,
   resolvedBuffCiblePresent,
   resolvedEffetsPropresCount,
@@ -43,8 +55,10 @@ import {
   resolvedPvActuelsAvantSacrificePctMonstre,
   resolvedStackPct,
   resolvedStackTrigger,
+  resumeSequenceDeCoups,
 } from '../../lib/damage';
 import { formuleLisible } from '../../lib/monsterSkills';
+import { clesProseDejaRendue, renduStatsCombat } from '../../lib/proseStatsCombat';
 import EffetVignette from './EffetVignette';
 import Interrupteur from '../../ui/Interrupteur';
 import Jeton from '../../ui/Jeton';
@@ -85,8 +99,9 @@ interface Props {
   // calculable pour ce monstre.
   resolved: SkillDamageProfile | null;
   // Passifs offensifs de ce monstre reconnus (`monsterOffensivePassives`,
-  // damage.ts) — indépendants du sort choisi, voir la section dédiée
-  // plus bas. Vide = rien à afficher (la plupart des monstres).
+  // damage.ts) — affichés s'ils peuvent suivre le sort choisi
+  // (`passifPeutSuivre`), voir la section dédiée plus bas. Vide = rien à
+  // afficher (la plupart des monstres).
   passifs: PassifOffensifProfile[];
   // Modificateurs monstre-wide liés à la VIT SANS formule propre
   // (`monsterModificateursVit`, damage.ts — Ciri Eau, Rigna, Sonia…),
@@ -179,7 +194,32 @@ function libelleSourceEffet(source: 'buffs' | 'debuffs' | 'buffsEtDebuffs'): str
   }
 }
 
+// Ce que la condition accorde, lu sur l'entrée elle-même — jamais supposé
+// d'après son type : une même comparaison sert un ignore DEF (Copper, Guard
+// Crush, Triss) ou un critique garanti (Jaara, Varus, Yuji et Rick),
+// degats-et-aura 15d.
+function effetCondition(condition: ConditionMonstreProfile['condition']): string {
+  if (condition.coupsEnPlus) return libelleCoupsEnPlus(condition.coupsEnPlus);
+  if (condition.critiqueGaranti) return 'critique garanti';
+  if (condition.ignoreDefPct != null) {
+    return condition.ignoreDefPct >= 100 ? 'ignore DEF' : `ignore ${condition.ignoreDefPct} % de la DEF`;
+  }
+  if (condition.pct) return `+${condition.pct} %`;
+  return 'condition active';
+}
+
+// « +2 coups » : l'effet d'une condition qui ajoute des coups (lot P5a2).
+function libelleCoupsEnPlus(n: number): string {
+  return `+${n} coup${n > 1 ? 's' : ''}`;
+}
+
 function resumeCondition(condition: ConditionMonstreProfile['condition']): string {
+  if (condition.coupsEnPlus && condition.type === 'atkCibleSousAtkPropre') {
+    return `${libelleCoupsEnPlus(condition.coupsEnPlus)} si ton ATQ dépasse l’ATQ adverse`;
+  }
+  if (condition.coupsEnPlus && condition.type === 'manuel') {
+    return `${condition.libelle} (${libelleCoupsEnPlus(condition.coupsEnPlus)})`;
+  }
   switch (condition.type) {
     case 'buffCiblePresent':
       return `+${condition.pct ?? 0} % si la cible a un buff`;
@@ -201,16 +241,18 @@ function resumeCondition(condition: ConditionMonstreProfile['condition']): strin
       return `+${condition.pct ?? 0} % si les PV actuels de la cible dépassent ${condition.ratio}× les tiens`;
     case 'atkCibleSousAtkPropre':
       return `condition d’ATQ cible ${condition.inclusif ? '≤' : '<'} ${condition.ratio}× ton ATQ`;
+    case 'atkParTranche':
+      return `+1 coup par tranche de ${condition.tranchePct} % de l’ATQ de base dans ton ATQ (${condition.coupsEnPlus ?? 0} au plus)`;
     case 'defCibleSousDefPropre':
-      return `ignore DEF si la DEF cible ≤ ${condition.ratio}× ta DEF`;
+      return `${effetCondition(condition)} si la DEF cible ${condition.inclusif ? '≤' : '<'} ${condition.ratio}× ta DEF`;
     case 'defCibleSousAtkPropre':
-      return `ignore DEF si la DEF cible ≤ ${condition.ratio}× ton ATQ`;
+      return `${effetCondition(condition)} si la DEF cible ${condition.inclusif ? '≤' : '<'} ${condition.ratio}× ton ATQ`;
     case 'vitPropreSuperieure':
       return 'critique garanti si ta VIT dépasse celle de la cible';
     case 'aucunPvCibleDetruit':
       return `+${condition.pct ?? 0} % si les PV de la cible n'ont pas été détruits`;
     case 'debuffCiblePresent':
-      return 'ignore DEF si la cible a un débuff';
+      return `${effetCondition(condition)} si la cible a un débuff`;
     case 'defBreakPresent':
       return 'critique garanti sous Brise DEF';
     case 'manuel':
@@ -222,10 +264,38 @@ function resumeCondition(condition: ConditionMonstreProfile['condition']): strin
   }
 }
 
-function resumeSort(p: SkillDamageProfile, setup: DamageSetup, hitsOverride?: number): { ratio: string | null; reste: string } {
-  const hits = hitsOverride ?? resolvedHits(p, setup);
-  const bouts: string[] = [`${hits} coup${hits > 1 ? 's' : ''}${p.hitsRange && hitsOverride == null ? ' (variable)' : ''}`];
-  bouts.push(p.aoe ? 'Zone' : 'Cible unique');
+// Le résumé d'un sort (voir le commentaire « Ce que le sort … nous apprend »
+// plus haut). ⚠️ Séquence curée (Blade Surge, `p.sequenceDeCoups`) : chaque groupe avec
+// SES coups, SA portée et SA formule — `hits`, `aoe` et `formule` du profil ne
+// décrivent que la donnée, jamais la séquence (« 2 coups · Cible unique »
+// était faux pour Blade Surge ; Head Press compte ses deux phases en `coups`). Ne lit JAMAIS la cible choisie (`cibleDegatsParSort`) : le
+// texte au-dessus des deux crans ne change pas quand on bascule, voir
+// `champCibleDegats` (degats-et-aura 8b).
+//
+// ⚠️ `ignoreDef` n'est PAS une entrée de `reste` : c'est le cran d'ignore DEF
+// d'un Blade Dancer (degats-et-aura 10b), qui change avec le sélecteur posé
+// SOUS la liste des sorts. Glissé dans le fil du résumé, une phrase qui
+// s'allonge pourrait gagner une ligne et déplacer ce sélecteur à l'instant où
+// on vient de s'en servir. Il a donc sa ligne à lui, d'une seule ligne de haut
+// quel que soit le cran (voir la liste des sorts).
+function resumeSort(
+  p: SkillDamageProfile,
+  setup: DamageSetup,
+  hitsOverride?: number
+): { ratio: string | null; reste: string; ignoreDef: string | null } {
+  // Le nombre annoncé vient de la même règle que le calcul (`coupsAffichesDuSort`) ;
+  // sans build ici, un coup en plus déduit de l'ATQ du build s'annonce en plage.
+  const affiches = coupsAffichesDuSort(p, setup);
+  const hits = hitsOverride ?? affiches.hits;
+  const sequence = p.sequenceDeCoups;
+  const bouts: string[] = sequence
+    ? [resumeSequenceDeCoups(sequence)]
+    : [
+        hitsOverride == null && affiches.dependDuBuild
+          ? `${hits} à ${affiches.max} coups (selon l’ATQ du build)`
+          : `${hits} coup${hits > 1 ? 's' : ''}${p.hitsRange && hitsOverride == null ? ' (variable)' : ''}`,
+        p.aoe ? 'Zone' : 'Cible unique',
+      ];
   if (p.ignoreDef) bouts.push('Ignore la DEF');
   if (p.ignoreDefSelonVit) bouts.push(`Ignore la DEF selon l'écart de VIT (100 % à ${p.ignoreDefSelonVit.ecartMax}+ pts)`);
   if (p.fixed) bouts.push('Dégâts fixes');
@@ -242,17 +312,33 @@ function resumeSort(p: SkillDamageProfile, setup: DamageSetup, hitsOverride?: nu
   if (p.critDamagePoints) bouts.push(`+${p.critDamagePoints} pts de Dgts Crit`);
   for (const condition of p.conditionsCombat ?? []) bouts.push(resumeCondition(condition));
   if (p.bonusStackPropre) bouts.push(`jusqu’à +${p.bonusStackPropre.pctMax} % par charges`);
-  const ratio = p.composanteFixeAdditionnelle
-    ? `${formuleLisible(p.formule)} + ${formuleLisible(p.composanteFixeAdditionnelle.formule)} (fixe)`
-    : formuleLisible(p.formule);
-  return { ratio, reste: bouts.join(' · ') };
+  const ratio = sequence
+    ? sequence.map((g) => formuleLisible(g.formule)).join(' puis ')
+    : p.composanteFixeAdditionnelle
+      ? `${formuleLisible(p.formule)} + ${formuleLisible(p.composanteFixeAdditionnelle.formule)} (fixe)`
+      : formuleLisible(p.formule);
+  return { ratio, reste: bouts.join(' · '), ignoreDef: resumeIgnoreDefRetenu(p, setup) };
+}
+
+// Un effet de la rangée « Effets actifs ». Sa `description` est la SEULE
+// écrite : sa vignette la montre au survol, l'infobulle de la rangée la
+// regroupe avec les autres (degats-et-aura 11bis).
+interface EffetActif {
+  cle: string;
+  icone: string;
+  libelle: string;
+  description: string;
+  actif: boolean;
+  basculer: () => void;
 }
 
 // Champ « nombre de coups » d'un sort/passif à coups VARIABLES en jeu (Sia,
 // Okeanos S3…) — absent si `profile.hitsRange` ne l'autorise pas. Partagé
 // entre le sort actif et un passif : même mécanisme, même champ.
 function champCoupsVariables(profile: SkillDamageProfile, setup: DamageSetup, maj: (patch: Partial<DamageSetup>) => void) {
-  if (!profile.hitsRange) return null;
+  // Un coup en plus qui ne dépend que d'une condition se règle par son
+  // interrupteur (lot P5a2), jamais par un compteur.
+  if (!profile.hitsRange || coupsEnPlusDeCondition(profile)) return null;
   return (
     <div className="mt-1 flex items-center gap-2">
       <span className="text-xs text-ink-dim">
@@ -266,6 +352,33 @@ function champCoupsVariables(profile: SkillDamageProfile, setup: DamageSetup, ma
         }
         min={profile.hitsRange.min}
         max={profile.hitsRange.max}
+      />
+    </div>
+  );
+}
+
+// Cible calculée d'un sort dont la séquence curée porte un coup de zone
+// (Blade Surge, `cibleSecondairePriseEnCharge`) : deux crans, libellés retenus
+// par l'utilisateur (degats-et-aura 8b, réponse n° 8). Absent pour tout autre
+// sort : la MÊME table de capacité borne la recette (`optimizerRecipe.ts`),
+// jamais un cran posé sur un sort qui ne le connaît pas. Les champs de
+// l'adversaire décrivent alors l'autre ennemi : aucun champ nouveau.
+//
+// ⚠️ **Posé sous la liste des sorts, comme le champ des coups variables, et
+// rien de ce qui le précède ne lit le cran** (`resumeSort` ne lit pas la
+// cible) : choisir Blade Surge le fait apparaître EN DESSOUS de la case
+// cliquée, et basculer ne change la hauteur de rien au-dessus de lui — il ne
+// bouge jamais sous le pointeur (spec/shared/design.md, « Un clic ne déplace
+// JAMAIS ce qu'on vient de cliquer »).
+function champCibleDegats(profile: SkillDamageProfile, setup: DamageSetup, maj: (patch: Partial<DamageSetup>) => void) {
+  if (!cibleSecondairePriseEnCharge(profile.skillCom2usId)) return null;
+  return (
+    <div className="mt-2">
+      <Segmented<CibleDegats>
+        options={CIBLE_DEGATS_LABELS}
+        value={cibleDegatsRetenue(profile, setup)}
+        onChange={(v) => maj({ cibleDegatsParSort: { ...(setup.cibleDegatsParSort ?? {}), [profile.skillCom2usId]: v } })}
+        size="lg"
       />
     </div>
   );
@@ -320,6 +433,9 @@ export default function DamageSetupCard({
 
   // Ce que le sort choisi consomme réellement — pilote l'affichage.
   const utilise = (v: DamageVariable) => resolved.variables.includes(v);
+  // Crans d'ignore DEF du sort choisi — `null` hors des six sorts Blade
+  // Dancers, et alors aucun sélecteur (degats-et-aura 10b).
+  const cransIgnoreDef = cransIgnoreDefAPartirDuCoup(resolved);
   // ⚠️ Via `champsDuCombat` (damage.ts) et non recalculés ici : la ligne de
   // résumé qui rouvre cette fenêtre doit dire EXACTEMENT ce qu'elle contient.
   // Deux copies de ces prédicats ont déjà divergé — « DEF 1000 » s'affichait
@@ -361,15 +477,155 @@ export default function DamageSetupCard({
     ...conditionsManuelles.map(({ key }) => key),
     ...(bonusDegatsConditionnel ? [bonusDegatsConditionnel.skillCom2usId] : []),
   ]);
+  // Les passifs qui PEUVENT frapper après le sort choisi (`passifPeutSuivre`,
+  // la porte de `passifCompte`) — les seuls affichés. Un passif choisi
+  // lui-même comme sort (Tempest seul) n'est jamais ajouté à lui-même : son
+  // interrupteur est MASQUÉ (réponse n° 10 de l'utilisateur, 2026-10-02,
+  // degats-et-aura 9b) ; de même pour un passif dont les slots déclencheurs
+  // excluent le sort choisi — un bouton sans effet possible n'est jamais
+  // montré (principe 2 ci-dessus).
+  const passifsSuivants = passifs.filter((p) => passifPeutSuivre(p, resolved));
+  // ⚠️ **La prose d'une compétence n'est rendue qu'UNE fois dans la carte**
+  // (degats-et-aura 11). Les huit blocs ci-dessous, sous « Passifs offensifs »,
+  // la rendent déjà pour leurs compétences : « Stats acquises en combat » ne
+  // la répète pas, et n'en rend qu'une par passif (`renduStatsCombat`). Un
+  // bloc qui se met à rendre une prose rejoint cette liste. Pour les passifs
+  // offensifs, c'est ce que leur bloc rend VRAIMENT, `passifsSuivants` : un
+  // passif masqué qui porte aussi des stats de combat garde sa prose ici
+  // (degats-et-aura 9c ; jusque-là `...passifs` la perdait des deux côtés).
+  const renduCombat = renduStatsCombat(
+    combatStats,
+    clesProseDejaRendue([
+      ...conditionsCombatMonstre,
+      ...modificateursVit,
+      bonusDegatsStack,
+      bonusDegatsConditionnel,
+      bonusParEffetCibleMonstre,
+      bonusParEffetPropre,
+      bonusSacrifice,
+      ...passifsSuivants,
+    ])
+  );
   // Le réglage « ce sort pose le def break » ne change QUE ce qui frappe
-  // après le sort — inutile d'encombrer l'écran si le monstre n'a aucun
-  // passif, ou si le sort ne pose pas de réduction de défense.
-  const montreDefBreakParLeSort = resolved.appliqueDefBreak && passifs.length > 0;
+  // après le sort — inutile d'encombrer l'écran si aucun passif ne peut le
+  // suivre, ou si le sort ne pose pas de réduction de défense.
+  const montreDefBreakParLeSort = resolved.appliqueDefBreak && passifsSuivants.length > 0;
   const critiqueForceParReglage =
     critiqueGarantiParReglage(resolved, setup, elementAttaquant) ||
     conditionsCombatMonstre.some((p) =>
       conditionCritiqueGarantiParReglage(p.condition, p.skillCom2usId, setup, elementAttaquant)
     );
+
+  // ⚠️ **UNE SEULE SOURCE pour la rangée « Effets actifs » ET son infobulle**
+  // (degats-et-aura 11bis, décision de l'utilisateur du 2026-10-02 : une seule
+  // infobulle, pas une par effet). Chaque effet que ce sort affiche porte ici
+  // sa description : sa vignette la montre au survol, l'infobulle de la rangée
+  // les regroupe toutes — seulement les effets présents. Écrite à la main,
+  // l'infobulle avait dérivé : elle citait encore les buffs ATQ/DEF/VIT,
+  // partis dans « État de mon monstre ».
+  const effetsActifs: EffetActif[] = [];
+  if (montreDefEnnemie) {
+    effetsActifs.push({
+      cle: 'defBreak',
+      icone: DEF_BREAK_ICON,
+      libelle: montreDefBreakParLeSort ? 'Def break avant' : 'Def break',
+      description: 'Réduit de 70 % la Défense de la cible avant que le sort ne frappe.',
+      actif: setup.defBreak,
+      basculer: () => maj({ defBreak: !setup.defBreak }),
+    });
+  }
+  // ⚠️ N'apparaît QUE si le sort choisi pose lui-même une réduction de défense
+  // (effet `Decrease DEF`, lu dans les données) ET que ce monstre a un passif —
+  // sinon ce réglage ne changerait rien : la réduction atterrit APRÈS le coup du
+  // sort lui-même, elle ne peut profiter qu'à ce qui frappe ensuite. C'est ce qui
+  // distingue « Roid attaque une cible déjà réduite » de « Roid réduit puis son
+  // passif frappe » — deux passifs différents, deux mitigations différentes.
+  if (montreDefBreakParLeSort) {
+    effetsActifs.push({
+      cle: 'defBreakParLeSort',
+      icone: DEF_BREAK_ICON,
+      libelle: 'Ce sort pose le def break',
+      description: 'Le sort pose une réduction de Défense ; elle profite aux coups ou passifs qui frappent ensuite.',
+      actif: setup.defBreakParLeSort ?? false,
+      basculer: () => maj({ defBreakParLeSort: !(setup.defBreakParLeSort ?? false) }),
+    });
+  }
+  effetsActifs.push({
+    cle: 'brand',
+    icone: BRAND_ICON,
+    libelle: 'Marque',
+    description: 'La cible reçoit 25 % de dégâts supplémentaires.',
+    actif: setup.brand,
+    basculer: () => maj({ brand: !setup.brand }),
+  });
+  // Effets portés par un AUTRE monstre que celui optimisé (demande explicite de
+  // l'utilisateur) — portrait du monstre en icône plutôt qu'une icône de buff
+  // générique, mais le même contrôle « Vignette » que les effets ci-dessus : un
+  // monstre dans l'équipe reste un choix de l'utilisateur, pas une donnée
+  // déduite du monstre optimisé lui-même. Voir les constantes
+  // `EULDONG_CD_POINTS`/`MIRINAE_BONUS_PCT`/`DEBORAH_AMPLIFY`/
+  // `MIRIAM_AMPLIFY_PCT` (damage.ts) pour le détail des mécaniques.
+  if (montreCrit) {
+    effetsActifs.push({
+      cle: 'euldong',
+      icone: EULDONG_ICON,
+      libelle: 'Euldong',
+      description: 'Triumph Over Evil ajoute 100 points de Dégâts Critiques aux attaques alliées.',
+      actif: setup.euldongActif ?? false,
+      basculer: () => maj({ euldongActif: !setup.euldongActif }),
+    });
+  }
+  effetsActifs.push({
+    cle: 'mirinae',
+    icone: MIRINAE_ICON,
+    libelle: 'Mirinae',
+    description: 'Cursed Music augmente de 30 % les dégâts compatibles jusqu’au prochain tour de Mirinae.',
+    actif: setup.mirinaeActif ?? false,
+    basculer: () => maj({ mirinaeActif: !setup.mirinaeActif }),
+  });
+  if (montreDefEnnemie) {
+    effetsActifs.push({
+      cle: 'deborah',
+      icone: DEBORAH_ICON,
+      libelle: 'Deborah',
+      description: 'Blacksmith’s Discernment amplifie de 30 % une réduction d’ATQ, de DEF ou de VIT déjà active.',
+      actif: setup.deborahActif ?? false,
+      basculer: () => maj({ deborahActif: !setup.deborahActif }),
+    });
+  }
+  if (
+    utilise('ATK') ||
+    utilise('DEF') ||
+    utilise('SPD') ||
+    utilise('Relative SPD') ||
+    critSiPlusRapide ||
+    bonusDegatsSelonVit
+  ) {
+    effetsActifs.push({
+      cle: 'miriam',
+      icone: MIRIAM_ICON,
+      libelle: 'Miriam',
+      description: 'Blacksmith’s Technique amplifie de 35 % les buffs d’ATQ, de DEF et de VIT déjà actifs.',
+      actif: setup.miriamActif ?? false,
+      basculer: () => maj({ miriamActif: !setup.miriamActif }),
+    });
+  }
+  effetsActifs.push({
+    cle: 'transmission',
+    icone: TRANSMISSION_ICON,
+    libelle: 'Dr. Matteo',
+    description: 'Transmission augmente de 20 % les dégâts infligés tant que Dr. Matteo est sous incapacité.',
+    actif: setup.transmissionActif ?? false,
+    basculer: () => maj({ transmissionActif: !setup.transmissionActif }),
+  });
+  effetsActifs.push({
+    cle: 'velaska',
+    icone: VELASKA_ICON,
+    libelle: 'Velaska',
+    description: 'Price of Pain augmente les dégâts compatibles de 0,5 % par 1 % de PV perdu par l’allié attaquant.',
+    actif: setup.velaskaActif ?? false,
+    basculer: () => maj({ velaskaActif: !setup.velaskaActif }),
+  });
 
   return (
     <div className="space-y-3 rounded-lg border border-border bg-panel2 p-3">
@@ -380,54 +636,100 @@ export default function DamageSetupCard({
             Le coefficient, le nombre de coups, la portée, l&apos;ignore défense et le bonus des
             améliorations sont <b className="text-ink">lus dans les données du sort</b> — jamais à saisir.
             Une compétence est toujours supposée <b className="text-ink">maxée</b>, comme partout ailleurs
-            dans l&apos;app.
+            dans l&apos;app. Pour un sort qui frappe sa cible puis tous les ennemis (Blade Surge), tu
+            choisis seulement la cible calculée : <b className="text-ink">Dégâts sur la cible visée</b> (tous
+            ses coups) ou <b className="text-ink">Dégâts sur les autres ennemis</b> (le coup de zone seul, sur
+            un autre ennemi) — les champs de l&apos;adversaire décrivent alors cet autre ennemi.
           </HelpPopover>
         </div>
         <div className="flex flex-col gap-1.5">
           {skills.map((s) => {
             const pris = estPrisEnCharge(s);
+            const partiel = calculPartielDuSort(s);
             return (
-              <div key={s.skillCom2usId} title={s.description ?? undefined}>
-                <Option
-                  actif={pris && s.skillCom2usId === resolved.skillCom2usId}
-                  disabled={!pris}
-                  aria-description={s.description ?? undefined}
-                  onClick={() => pris && maj({ skillCom2usId: s.skillCom2usId })}
-                  icone={
-                    pris && s.icone ? (
-                      <img src={s.icone} alt="" className="h-7 w-7 rounded" loading="lazy" />
-                    ) : undefined
-                  }
-                  titre={
-                    <>
-                      <span className="font-mono text-micro text-ink-dim">S{s.slot}</span>
-                      {s.nom}
-                    </>
-                  }
-                  // Un sort refusé affiche POURQUOI plutôt que de disparaître :
-                  // sans ça, l'absence du sort n°2 passerait pour un oubli.
-                  description={
-                    pris ? (
-                      (() => {
-                        const { ratio, reste } = resumeSort(s, setup);
-                        return (
-                          <>
-                            {ratio && <span className="font-mono text-ink">{ratio}</span>}
-                            {ratio && ' · '}
-                            {reste}
-                          </>
-                        );
-                      })()
-                    ) : (
-                      s.raison
-                    )
-                  }
-                />
-              </div>
+              <Option
+                key={s.skillCom2usId}
+                actif={pris && s.skillCom2usId === resolved.skillCom2usId}
+                disabled={!pris}
+                // La prose reste ANNONCÉE au lecteur d'écran, sur le bouton de
+                // la case, en plus du « ? » qui l'affiche.
+                aria-description={s.description ?? undefined}
+                onClick={() => pris && maj({ skillCom2usId: s.skillCom2usId })}
+                icone={
+                  pris && s.icone ? (
+                    <img src={s.icone} alt="" className="h-7 w-7 rounded" loading="lazy" />
+                  ) : undefined
+                }
+                titre={
+                  <>
+                    <span className="font-mono text-micro text-ink-dim">S{s.slot}</span>
+                    {s.nom}
+                  </>
+                }
+                // ⚠️ **La prose du sort au CLIC, plus au survol** (degats-et-aura
+                // 11bis, demande de l'utilisateur du 2026-10-02) : un `title`
+                // natif ne s'ouvre jamais au doigt, la prose restait donc
+                // invisible sur téléphone. Le « ? » juste à droite du nom ouvre
+                // une bulle à la souris et un panneau montant au doigt
+                // (`HelpPopover`). Il vit HORS du bouton de la case (axe
+                // `actionTitre` d'`Option`) : le toucher ne choisit pas le sort.
+                // Un sort sans prose n'a pas de « ? » ; un sort refusé garde le
+                // sien.
+                // ⚠️ **« Calcul partiel »** (degats-et-aura P3, forme décidée par
+                // l'utilisateur le 2026-10-04) : un sort calculé dont le total
+                // omet une part connue (`calculPartielDuSort`) porte une
+                // étiquette après le « ? » de sa prose, et SON « ? » dit ce qui
+                // n'est pas compté. Elle dépend du seul sort, jamais du choix :
+                // présente dès le premier rendu, elle ne naît ni ne disparaît
+                // au clic — rien ne bouge. Hors du bouton de la case, comme le
+                // « ? » de la prose : la toucher ne choisit pas le sort.
+                actionTitre={
+                  s.description || partiel ? (
+                    <div className="flex items-center gap-1.5">
+                      {s.description && (
+                        <HelpPopover title={s.nom} ariaLabel={`Description de ${s.nom}`}>
+                          {s.description}
+                        </HelpPopover>
+                      )}
+                      {partiel && (
+                        <>
+                          <Jeton libelle="Calcul partiel" />
+                          <HelpPopover title="Calcul partiel" ariaLabel={`Ce que le calcul de ${s.nom} ne compte pas`}>
+                            {partiel}
+                          </HelpPopover>
+                        </>
+                      )}
+                    </div>
+                  ) : undefined
+                }
+                // Un sort refusé affiche POURQUOI plutôt que de disparaître :
+                // sans ça, l'absence du sort n°2 passerait pour un oubli.
+                description={
+                  pris ? (
+                    (() => {
+                      const { ratio, reste, ignoreDef } = resumeSort(s, setup);
+                      return (
+                        <>
+                          {ratio && <span className="font-mono text-ink">{ratio}</span>}
+                          {ratio && ' · '}
+                          {reste}
+                          {/* Une ligne à elle, jamais plus haute qu'une ligne
+                              (`truncate`) : le cran peut changer sans que la
+                              case grandisse — voir `resumeSort`. */}
+                          {ignoreDef && <span className="block truncate">{ignoreDef}</span>}
+                        </>
+                      );
+                    })()
+                  ) : (
+                    s.raison
+                  )
+                }
+              />
             );
           })}
         </div>
         {champCoupsVariables(resolved, setup, maj)}
+        {champCibleDegats(resolved, setup, maj)}
         {/* Crawler/Frankenstein (« Rage Charge ») : le compteur d'attaques
             reçues n'est pas un état que l'app simule — saisi ici, à côté
             du sort dont il modifie directement la formule. */}
@@ -472,15 +774,50 @@ export default function DamageSetupCard({
             />
           </label>
         )}
+        {/* Blade Dancers (degats-et-aura 10b) : la DEF n'y est ignorée qu'une
+            fois la jauge d'attaque de la cible à 0, que l'app ne modélise pas
+            — le premier coup qui l'ignore est donc un CHOIX. Crans et
+            libellés DÉRIVÉS de la règle curée du sort
+            (`cransIgnoreDefAPartirDuCoup`, damage.ts), absents pour tout
+            autre sort ; la valeur montrée est le cran que le calcul RETIENT,
+            jamais la valeur stockée. Le résumé du sort, au-dessus, dit ce
+            cran sur une ligne à lui, d'une seule ligne quel que soit le cran :
+            en changer ne déplace jamais ce sélecteur. */}
+        {cransIgnoreDef && (
+          <label className="mt-1 flex items-center gap-2">
+            <span className="text-xs text-ink-dim">Ignore la DEF (jauge de la cible à 0)</span>
+            <Selecteur
+              taille="sm"
+              pleineLargeur={false}
+              value={cranIgnoreDefRetenu(resolved, setup)?.rang ?? ''}
+              onChange={(e) =>
+                maj({
+                  premierCoupIgnoreDefParSort: {
+                    ...(setup.premierCoupIgnoreDefParSort ?? {}),
+                    [resolved.skillCom2usId]: e.target.value === '' ? null : Number(e.target.value),
+                  },
+                })
+              }
+            >
+              {cransIgnoreDef.map((c) => (
+                <option key={c.rang ?? 'aucun'} value={c.rang ?? ''}>
+                  {c.libelle}
+                </option>
+              ))}
+            </Selecteur>
+          </label>
+        )}
       </div>
 
-      {/* ⚠️ **Indépendant du sort choisi ci-dessus** — un passif s'applique
-          quel que soit S1/S2/S3 en cours d'optimisation, voir
-          spec/outils/degats-reels.md. Absent (la grande majorité des
-          monstres) : rien ne s'affiche, pas même un « aucun passif connu »
-          — un panneau qui parle d'une absence à chaque monstre serait plus
-          bruyant qu'utile. */}
-      {(passifs.length > 0 ||
+      {/* ⚠️ **Presque toujours indépendant du sort choisi ci-dessus** — un
+          passif s'applique quel que soit S1/S2/S3 en cours d'optimisation,
+          voir spec/outils/degats-reels.md, sauf s'il ne peut pas suivre ce
+          sort (`passifsSuivants` : lui-même choisi comme sort, ou slots
+          déclencheurs curés qui l'excluent — Tempest). Absent (la grande
+          majorité des monstres) : rien ne s'affiche, pas même un « aucun
+          passif connu » — un panneau qui parle d'une absence à chaque monstre
+          serait plus bruyant qu'utile. */}
+      {(passifsSuivants.length > 0 ||
         modificateursVit.length > 0 ||
         bonusDegatsStack ||
         bonusDegatsConditionnel ||
@@ -790,7 +1127,7 @@ export default function DamageSetupCard({
                 </label>
               </div>
             )}
-            {passifs.map((p) => {
+            {passifsSuivants.map((p) => {
               const nom = p.nom.replace(/\s*\(Passive\)\s*$/i, '');
               const icone = p.profile.icone ? (
                 <img src={p.profile.icone} alt="" className="h-4 w-4 rounded" loading="lazy" />
@@ -817,7 +1154,8 @@ export default function DamageSetupCard({
               // (`toujours`) : pas de bouton, on montre juste l'état courant et
               // POURQUOI, pour que le joueur puisse le contredire s'il le faut.
               if (p.categorie.type === 'toujours' || p.categorie.type === 'defBreak') {
-                const declenche = passifActif(p, setup);
+                // Même porte que le calcul (`passifCompte`, avec le sort choisi).
+                const declenche = passifCompte(p, resolved, setup);
                 return (
                   <div key={p.skillCom2usId} className={declenche ? '' : 'opacity-50'}>
                     <Jeton
@@ -847,7 +1185,24 @@ export default function DamageSetupCard({
               // il porte le passif entier.
               const actif = setup.passifsOffensifs?.[p.skillCom2usId] ?? false;
               const cat = p.categorie;
-              const libelle = cat.type === 'bonus' ? `${nom} (+${cat.pct} %)` : nom;
+              // Un passif qui frappe APRÈS certains sorts (`slotsDeclencheurs`
+              // curés — Tempest) : l'interrupteur dit lui-même ce que
+              // l'utilisateur suppose pour le calcul, « Tempest (S3) se
+              // déclenche après ce sort » (réponse n° 11 de l'utilisateur,
+              // 2026-10-02, degats-et-aura 9b), à la place de la phrase « Se
+              // déclenche si … », qui n'en dirait pas plus. ⚠️ **Pas de survol
+              // (`title`) sur cet interrupteur-là** (décision de l'utilisateur
+              // du 2026-10-02, degats-et-aura 9d) : un survol n'existe pas au
+              // doigt. La condition du jeu reste lisible dans la prose du
+              // passif, sous l'interrupteur et au « ? » de sa case dans
+              // « Compétence utilisée » (11bis). Les autres interrupteurs de
+              // passif gardent le leur.
+              const apresSort = cat.type === 'conditionnel' && p.slotsDeclencheurs != null;
+              const libelle = apresSort
+                ? `${nom} (S${p.profile.slot}) se déclenche après ce sort`
+                : cat.type === 'bonus'
+                  ? `${nom} (+${cat.pct} %)`
+                  : nom;
               const condition = `${cat.condition[0].toUpperCase()}${cat.condition.slice(1)}`;
               // ⚠️ `dejaInclus` (Dominic) : le ratio affiché ci-dessus EST déjà
               // le cas majoré — décocher ne l'ajoute pas, il le RETIRE (voir
@@ -870,10 +1225,10 @@ export default function DamageSetupCard({
                     onChange={(v) => maj({ passifsOffensifs: { ...(setup.passifsOffensifs ?? {}), [p.skillCom2usId]: v } })}
                     icone={icone}
                     libelle={libelle}
-                    title={`${condition}${actif ? ' (activé)' : ' — désactivé par défaut'}`}
+                    title={apresSort ? undefined : `${condition}${actif ? ' (activé)' : ' — désactivé par défaut'}`}
                   />
                   {resume}
-                  <p className="mt-1 text-xs leading-snug text-ink-dim">{texteCondition}</p>
+                  {!apresSort && <p className="mt-1 text-xs leading-snug text-ink-dim">{texteCondition}</p>}
                   {texteJeu}
                   {champCoupsVariables(p.profile, setup, maj)}
                 </div>
@@ -973,68 +1328,89 @@ export default function DamageSetupCard({
               const icone = profile.icone ? (
                 <img src={profile.icone} alt="" className="h-4 w-4 rounded" loading="lazy" />
               ) : undefined;
+              const nom = profile.nom.replace(/\s*\(Passive\)\s*$/i, '');
+              // ⚠️ **La prose du jeu, une fois par passif** (degats-et-aura 11) :
+              // sous ce qui NOMME le passif, avant son réglage — jamais répétée
+              // pour le second compteur d'Elsharion ou de Crane, jamais quand un
+              // bloc des passifs offensifs la rend déjà (`renduStatsCombat`).
+              const { ouvre, prose } = renduCombat[index];
+              // Un compteur ou un interrupteur d'état ne nomme pas son passif :
+              // l'icône et le nom se posent au-dessus du réglage qui l'ouvre
+              // (décision de l'utilisateur n° 15, patron des passifs offensifs).
+              const nomDuPassif = ouvre ? <Jeton icone={icone} libelle={nom} /> : null;
+              let nomme: ReactNode = null;
+              let reglage: ReactNode = null;
               if (profile.source === 'debuffsInverses') {
-                return (
-                  <div key={key} className="space-y-1.5">
-                    <Jeton icone={icone} libelle={profile.nom.replace(/\s*\(Passive\)\s*$/i, '')} detail={profile.label} />
-                    <div className="flex flex-wrap gap-2">
-                      <Interrupteur actif={setup.atkDebuff ?? false} onChange={(v) => maj({ atkDebuff: v })} libelle="Malus ATQ subi" />
-                      <Interrupteur actif={setup.defDebuff ?? false} onChange={(v) => maj({ defDebuff: v })} libelle="Malus DEF subi" />
-                      <Interrupteur actif={setup.spdDebuff ?? false} onChange={(v) => maj({ spdDebuff: v })} libelle="Malus VIT subi" />
-                    </div>
+                nomme = <Jeton icone={icone} libelle={nom} detail={profile.label} />;
+                reglage = (
+                  <div className="mt-1.5 flex flex-wrap gap-2">
+                    <Interrupteur actif={setup.atkDebuff ?? false} onChange={(v) => maj({ atkDebuff: v })} libelle="Malus ATQ subi" />
+                    <Interrupteur actif={setup.defDebuff ?? false} onChange={(v) => maj({ defDebuff: v })} libelle="Malus DEF subi" />
+                    <Interrupteur actif={setup.spdDebuff ?? false} onChange={(v) => maj({ spdDebuff: v })} libelle="Malus VIT subi" />
                   </div>
                 );
-              }
-              if (profile.source === 'toujours') {
-                return <Jeton key={key} icone={icone} libelle={profile.nom.replace(/\s*\(Passive\)\s*$/i, '')} detail={`${profile.label} — toujours actif`} />;
-              }
-              if (profile.source === 'toggle') {
-                return profile.togglePartageCondition && clesToggleDejaAffichees.has(profile.skillCom2usId) ? (
-                  <Jeton key={key} icone={icone} libelle={profile.nom.replace(/\s*\(Passive\)\s*$/i, '')} detail={`${profile.label} — piloté par le bouton du passif`} />
-                ) : (
-                  <PassifInterrupteur
-                    key={key}
-                    actif={setup.statsCombatActives?.[profile.skillCom2usId] ?? false}
-                    onChange={(v) => maj({ statsCombatActives: { ...(setup.statsCombatActives ?? {}), [profile.skillCom2usId]: v } })}
-                    icone={icone}
-                    libelle={profile.label}
-                    title={`${profile.label}${setup.statsCombatActives?.[profile.skillCom2usId] ? ' (activé)' : ' — désactivé par défaut'}`}
-                  />
+              } else if (profile.source === 'toujours') {
+                nomme = <Jeton icone={icone} libelle={nom} detail={`${profile.label} — toujours actif`} />;
+              } else if (profile.source === 'toggle') {
+                if (profile.togglePartageCondition && clesToggleDejaAffichees.has(profile.skillCom2usId)) {
+                  nomme = <Jeton icone={icone} libelle={nom} detail={`${profile.label} — piloté par le bouton du passif`} />;
+                } else {
+                  nomme = nomDuPassif;
+                  reglage = (
+                    <div className={nomDuPassif ? 'mt-1' : undefined}>
+                      <PassifInterrupteur
+                        actif={setup.statsCombatActives?.[profile.skillCom2usId] ?? false}
+                        onChange={(v) => maj({ statsCombatActives: { ...(setup.statsCombatActives ?? {}), [profile.skillCom2usId]: v } })}
+                        icone={nomDuPassif ? undefined : icone}
+                        libelle={profile.label}
+                        title={`${profile.label}${setup.statsCombatActives?.[profile.skillCom2usId] ? ' (activé)' : ' — désactivé par défaut'}`}
+                      />
+                    </div>
+                  );
+                }
+              } else {
+                const record = profile.source === 'buffsPropres'
+                  ? setup.buffsPropresCount
+                  : profile.source === 'buffsAllies'
+                    ? setup.buffsAlliesCount
+                    : profile.source === 'debuffsPropres'
+                      ? setup.effetsPropresCount
+                      : setup.stackPersonnalise;
+                const patcher = (value: number) => {
+                  if (profile.source === 'buffsPropres') {
+                    majBuffsPropres(profile.skillCom2usId, value);
+                  } else if (profile.source === 'buffsAllies') {
+                    maj({ buffsAlliesCount: { ...(setup.buffsAlliesCount ?? {}), [profile.skillCom2usId]: value } });
+                  } else if (profile.source === 'debuffsPropres') {
+                    maj({ effetsPropresCount: { ...(setup.effetsPropresCount ?? {}), [profile.skillCom2usId]: value } });
+                  } else {
+                    maj({ stackPersonnalise: { ...(setup.stackPersonnalise ?? {}), [profile.skillCom2usId]: value } });
+                  }
+                };
+                nomme = nomDuPassif;
+                reglage = (
+                  <label className={`${nomDuPassif ? 'mt-1 ' : ''}flex flex-wrap items-center gap-2`}>
+                    <span className="text-xs text-ink-dim">{profile.label}</span>
+                    <NumberField
+                      value={profile.source === 'buffsPropres'
+                        ? Math.min(profile.max ?? 10, resolvedBuffsPropresCount(profile.skillCom2usId, setup))
+                        : record?.[profile.skillCom2usId] ?? 0}
+                      onChange={(v) => patcher(v ?? 0)}
+                      min={0}
+                      max={profile.source === 'buffsPropres' ? Math.min(10, profile.max ?? 10) : profile.max}
+                      step={1}
+                      boxWidth="w-24"
+                      ariaLabel={profile.label}
+                    />
+                  </label>
                 );
               }
-              const record = profile.source === 'buffsPropres'
-                ? setup.buffsPropresCount
-                : profile.source === 'buffsAllies'
-                  ? setup.buffsAlliesCount
-                  : profile.source === 'debuffsPropres'
-                    ? setup.effetsPropresCount
-                    : setup.stackPersonnalise;
-              const patcher = (value: number) => {
-                if (profile.source === 'buffsPropres') {
-                  majBuffsPropres(profile.skillCom2usId, value);
-                } else if (profile.source === 'buffsAllies') {
-                  maj({ buffsAlliesCount: { ...(setup.buffsAlliesCount ?? {}), [profile.skillCom2usId]: value } });
-                } else if (profile.source === 'debuffsPropres') {
-                  maj({ effetsPropresCount: { ...(setup.effetsPropresCount ?? {}), [profile.skillCom2usId]: value } });
-                } else {
-                  maj({ stackPersonnalise: { ...(setup.stackPersonnalise ?? {}), [profile.skillCom2usId]: value } });
-                }
-              };
               return (
-                <label key={key} className="flex flex-wrap items-center gap-2">
-                  <span className="text-xs text-ink-dim">{profile.label}</span>
-                  <NumberField
-                    value={profile.source === 'buffsPropres'
-                      ? Math.min(profile.max ?? 10, resolvedBuffsPropresCount(profile.skillCom2usId, setup))
-                      : record?.[profile.skillCom2usId] ?? 0}
-                    onChange={(v) => patcher(v ?? 0)}
-                    min={0}
-                    max={profile.source === 'buffsPropres' ? Math.min(10, profile.max ?? 10) : profile.max}
-                    step={1}
-                    boxWidth="w-24"
-                    ariaLabel={profile.label}
-                  />
-                </label>
+                <div key={key}>
+                  {nomme}
+                  {prose && <p className="mt-1 text-xs leading-snug text-ink-dim">{prose}</p>}
+                  {reglage}
+                </div>
               );
             })}
           </div>
@@ -1114,7 +1490,7 @@ export default function DamageSetupCard({
               (« dégâts proportionnels aux PV perdus ») — mais AUSSI quand un
               passif porte un seuil de PV (Final Strike : +20 % sous 30 %),
               puisque les coups du sort creusent la cible avant qu'il frappe. */}
-          {(utilise('Target Current HP %') || passifs.some((p) => p.bonusPvCible) || demandePvCible) && (
+          {(utilise('Target Current HP %') || passifsSuivants.some((p) => p.bonusPvCible) || demandePvCible) && (
             <label className="flex items-center gap-2">
               <span className="text-xs text-ink-dim">PV restants</span>
               <NumberField
@@ -1363,14 +1739,17 @@ export default function DamageSetupCard({
             .filter(({ condition }) => condition.type === 'debuffCiblePresent')
             .map(({ condition, key, nom, icone }) => {
               if (condition.type !== 'debuffCiblePresent') return null;
-              const actif = resolvedDebuffCiblePresent(key, setup);
+              const actif = resolvedDebuffCiblePresent(key, setup) ||
+                (!!condition.coupsEnPlus && coupsEnPlusAncienneRecetteActif(resolved, setup));
               return (
                 <PassifInterrupteur
                   key={`condition-debuff-cible-${key}`}
                   actif={actif}
                   onChange={(v) => maj({ passifsOffensifs: { ...(setup.passifsOffensifs ?? {}), [key]: v } })}
                   icone={icone ? <img src={icone} alt="" className="h-4 w-4 rounded" loading="lazy" /> : undefined}
-                  libelle={`${nom}${condition.pct ? ` (+${condition.pct} %)` : condition.ignoreDefPct ? ` (ignore ${condition.ignoreDefPct} % DEF)` : ''}`}
+                  libelle={condition.coupsEnPlus
+                    ? `La cible porte un effet nocif (${libelleCoupsEnPlus(condition.coupsEnPlus)})`
+                    : `${nom}${condition.critiqueGaranti ? ' (critique garanti)' : condition.pct ? ` (+${condition.pct} %)` : condition.ignoreDefPct ? ` (ignore ${condition.ignoreDefPct} % DEF)` : ''}`}
                   title={actif && (setup.defBreak || setup.brand)
                     ? 'Activé automatiquement par Brise DEF ou Marque'
                     : 'Effets néfastes présents sur la cible'}
@@ -1381,8 +1760,11 @@ export default function DamageSetupCard({
             .filter(({ condition }) => condition.type === 'manuel')
             .map(({ condition, key, nom, icone }) => {
               if (condition.type !== 'manuel') return null;
-              const actif = setup.passifsOffensifs?.[key] ?? false;
-              const effet = condition.critiqueGaranti
+              const actif = (setup.passifsOffensifs?.[key] ?? false) ||
+                (!!condition.coupsEnPlus && coupsEnPlusAncienneRecetteActif(resolved, setup));
+              const effet = condition.coupsEnPlus
+                ? libelleCoupsEnPlus(condition.coupsEnPlus)
+                : condition.critiqueGaranti
                 ? 'critique garanti'
                 : condition.ignoreDefPct
                   ? `ignore ${condition.ignoreDefPct} % de la DEF`
@@ -1405,7 +1787,7 @@ export default function DamageSetupCard({
                     actif={actif}
                     onChange={(v) => maj({ passifsOffensifs: { ...(setup.passifsOffensifs ?? {}), [key]: v } })}
                     icone={icone ? <img src={icone} alt="" className="h-4 w-4 rounded" loading="lazy" /> : undefined}
-                    libelle={`${nom} (${effet})`}
+                    libelle={condition.coupsEnPlus ? `${condition.libelle} (${effet})` : `${nom} (${effet})`}
                     title={`${condition.libelle}${actif ? ' (activé)' : ' — désactivé par défaut'}`}
                   />
                   {(condition.chanceParBuffPropre || condition.chanceParDebuffCible) && (
@@ -1502,23 +1884,19 @@ export default function DamageSetupCard({
       <div>
         <div className="mb-2 flex items-center gap-1.5">
           <p className="label">Effets actifs</p>
+          {/* ⚠️ Construite à partir de `effetsActifs`, la liste qui rend les
+              vignettes juste en dessous : mêmes effets, mêmes descriptions,
+              seulement ceux que ce sort affiche. Jamais un texte écrit à côté
+              (voir `effetsActifs`). */}
           <HelpPopover title="Effets actifs">
-            Buffs sur le monstre (<b className="text-ink">ATQ +50 %</b>, <b className="text-ink">DEF +70 %</b>,{' '}
-            <b className="text-ink">VIT +30 %</b>) et effets subis par la cible (
-            <b className="text-ink">réduction de défense ×0,3</b>, <b className="text-ink">marque +25 %</b>,{' '}
-            <b className="text-ink">ce sort pose le def break</b> — distingue « attaque une cible déjà réduite » de
-            « réduit puis frappe », les deux mitigations ne sont pas identiques). Seuls ceux qui changent
-            quelque chose pour ce sort sont proposés.
-            <br />
-            <br />
-            Effets d&apos;ÉQUIPE (un autre monstre que celui optimisé, présent ou non) :{' '}
-            <b className="text-ink">Euldong</b> (+100 pts de Dégâts Critiques),{' '}
-            <b className="text-ink">Mirinae</b> (+30 % de dégâts infligés, cumulable avec la marque),{' '}
-            <b className="text-ink">Deborah</b> (amplifie ×1,3 la réduction de défense active),{' '}
-            <b className="text-ink">Miriam</b> (+35 % sur les stats qui comptent pour ce sort),{' '}
-            <b className="text-ink">Dr. Matteo</b> (+20 % de dégâts infligés tant qu'il est sous
-            incapacité) et <b className="text-ink">Velaska</b> (multiplie les dégâts selon le % de PV
-            perdus par le monstre optimisé — champ dédié juste en dessous).
+            <p>Seuls les effets qui changent quelque chose pour ce sort sont proposés.</p>
+            <ul className="mt-1.5 space-y-1">
+              {effetsActifs.map((e) => (
+                <li key={e.cle}>
+                  <b className="text-ink">{e.libelle}</b> — {e.description}
+                </li>
+              ))}
+            </ul>
           </HelpPopover>
         </div>
         {/* ⚠️ L'ICÔNE est le contrôle — pas une icône décorative à côté
@@ -1545,109 +1923,17 @@ export default function DamageSetupCard({
             d'alliés sont des multiplicateurs de dégâts (voir 7798557 et
             e26118c). La coupe se vérifie donc, elle ne s'interprète pas. */}
         <div className="flex flex-wrap gap-1.5">
-          {montreDefEnnemie && (
+          {effetsActifs.map((e) => (
             <EffetVignette
-              icone={DEF_BREAK_ICON}
-              libelle={montreDefBreakParLeSort ? 'Def break avant' : 'Def break'}
-              description="Réduit de 70 % la Défense de la cible avant que le sort ne frappe."
-              onClick={() => maj({ defBreak: !setup.defBreak })}
-              actif={setup.defBreak}
+              key={e.cle}
+              icone={e.icone}
+              libelle={e.libelle}
+              description={e.description}
+              onClick={e.basculer}
+              actif={e.actif}
               etroit={etroit}
             />
-          )}
-          {/* ⚠️ N'apparaît QUE si le sort choisi pose lui-même une réduction
-              de défense (effet `Decrease DEF`, lu dans les données) ET que ce
-              monstre a un passif — sinon ce réglage ne changerait rien : la
-              réduction atterrit APRÈS le coup du sort lui-même, elle ne peut
-              profiter qu'à ce qui frappe ensuite. C'est ce qui distingue
-              « Roid attaque une cible déjà réduite » de « Roid réduit puis son
-              passif frappe » — deux passifs différents, deux mitigations
-              différentes. */}
-          {montreDefBreakParLeSort && (
-            <EffetVignette
-              icone={DEF_BREAK_ICON}
-              libelle="Ce sort pose le def break"
-              description="Le sort pose une réduction de Défense ; elle profite aux coups ou passifs qui frappent ensuite."
-              onClick={() => maj({ defBreakParLeSort: !(setup.defBreakParLeSort ?? false) })}
-              actif={setup.defBreakParLeSort ?? false}
-              etroit={etroit}
-            />
-          )}
-          <EffetVignette
-            icone={BRAND_ICON}
-            libelle="Marque"
-            description="La cible reçoit 25 % de dégâts supplémentaires."
-            onClick={() => maj({ brand: !setup.brand })}
-            actif={setup.brand}
-            etroit={etroit}
-          />
-          {/* Quatre effets portés par un AUTRE monstre que celui optimisé
-              (demande explicite de l'utilisateur) — portrait du monstre en
-              icône plutôt qu'une icône de buff générique, mais le même
-              contrôle « Vignette » que les effets ci-dessus : un monstre
-              dans l'équipe reste un choix de l'utilisateur, pas une donnée
-              déduite du monstre optimisé lui-même. Voir les constantes
-              `EULDONG_CD_POINTS`/`MIRINAE_BONUS_PCT`/`DEBORAH_AMPLIFY`/
-              `MIRIAM_AMPLIFY_PCT` (damage.ts) pour le détail des mécaniques. */}
-          {montreCrit && (
-            <EffetVignette
-              icone={EULDONG_ICON}
-              libelle="Euldong"
-              description="Triumph Over Evil ajoute 100 points de Dégâts Critiques aux attaques alliées."
-              onClick={() => maj({ euldongActif: !setup.euldongActif })}
-              actif={setup.euldongActif ?? false}
-              etroit={etroit}
-            />
-          )}
-          <EffetVignette
-            icone={MIRINAE_ICON}
-            libelle="Mirinae"
-            description="Cursed Music augmente de 30 % les dégâts compatibles jusqu’au prochain tour de Mirinae."
-            onClick={() => maj({ mirinaeActif: !setup.mirinaeActif })}
-            actif={setup.mirinaeActif ?? false}
-            etroit={etroit}
-          />
-          {montreDefEnnemie && (
-            <EffetVignette
-              icone={DEBORAH_ICON}
-              libelle="Deborah"
-              description="Blacksmith’s Discernment amplifie de 30 % une réduction d’ATQ, de DEF ou de VIT déjà active."
-              onClick={() => maj({ deborahActif: !setup.deborahActif })}
-              actif={setup.deborahActif ?? false}
-              etroit={etroit}
-            />
-          )}
-          {(utilise('ATK') ||
-            utilise('DEF') ||
-            utilise('SPD') ||
-            utilise('Relative SPD') ||
-            critSiPlusRapide ||
-            bonusDegatsSelonVit) && (
-            <EffetVignette
-              icone={MIRIAM_ICON}
-              libelle="Miriam"
-              description="Blacksmith’s Technique amplifie de 35 % les buffs d’ATQ, de DEF et de VIT déjà actifs."
-              onClick={() => maj({ miriamActif: !setup.miriamActif })}
-              actif={setup.miriamActif ?? false}
-              etroit={etroit}
-            />
-          )}
-          <EffetVignette
-            icone={TRANSMISSION_ICON}
-            libelle="Dr. Matteo"
-            description="Transmission augmente de 20 % les dégâts infligés tant que Dr. Matteo est sous incapacité."
-            onClick={() => maj({ transmissionActif: !setup.transmissionActif })}
-            actif={setup.transmissionActif ?? false}
-            etroit={etroit}
-          />
-          <EffetVignette
-            icone={VELASKA_ICON}
-            libelle="Velaska"
-            description="Price of Pain augmente les dégâts compatibles de 0,5 % par 1 % de PV perdu par l’allié attaquant."
-            onClick={() => maj({ velaskaActif: !setup.velaskaActif })}
-            actif={setup.velaskaActif ?? false}
-            etroit={etroit}
-          />
+          ))}
         </div>
         {/* Velaska (« Price of Pain ») a besoin d'une VALEUR en plus du
             toggle — l'app ne simule pas les PV réellement perdus par le
@@ -1697,9 +1983,7 @@ export default function DamageSetupCard({
           <div className="mb-2 flex items-center gap-1.5">
             <p className="label">Coup critique</p>
             <HelpPopover title="Coup critique">
-              <b className="text-ink">Moyenne</b> pondère par le Taux Crit réellement atteint — c&apos;est ce
-              qu&apos;on observe sur beaucoup de coups, et le seul mode où le Taux Crit pèse sur le
-              classement. <b className="text-ink">Critique</b> et <b className="text-ink">Non critique</b>{' '}
+              <b className="text-ink">Critique</b> et <b className="text-ink">Non critique</b>{' '}
               donnent le plafond et le plancher d&apos;un coup isolé.
             </HelpPopover>
           </div>
@@ -1717,17 +2001,10 @@ export default function DamageSetupCard({
               Ce sort inflige forcément un coup critique dans l’état sélectionné.
             </p>
           )}
-          {/* « Moyenne » est une ESPÉRANCE (pondérée par le Taux Crit) —
-              jamais ce qu'un combat réel, tour par tour, produit coup après
-              coup. Demande explicite de l'utilisateur : le dire, UNIQUEMENT
-              sous ce mode (Critique/Non critique sont déjà des bornes
-              littérales, pas une moyenne, rien à nuancer). */}
-          {setup.critMode === 'moyenne' && (
-            <p className="mt-1.5 text-xs text-warn">
-              Attention, la valeur affichée est purement théorique et ne correspond pas à la réalité d&apos;un jeu au
-              tour par tour.
-            </p>
-          )}
+          {/* L'ancien mode « Moyenne » et son avertissement « purement
+              théorique » sont supprimés (degats-et-aura, lot CM) : une recette
+              qui le porte est convertie en « Critique » à l'import, et le
+              message d'import le dit. */}
         </div>
       )}
       {critInterdit && (

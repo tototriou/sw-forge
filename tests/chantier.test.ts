@@ -16,7 +16,19 @@
 // `node`, et se déclare `ignore()` si `git` manque plutôt que d'échouer.
 
 import { execFileSync } from 'child_process';
-import { chmodSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs';
+import {
+  appendFileSync,
+  chmodSync,
+  cpSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  writeFileSync,
+} from 'fs';
 import { tmpdir } from 'os';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
@@ -888,6 +900,542 @@ export default function testChantier() {
   } finally {
     // Le worktree documentaire est VERROUILLÉ par `ouvrir` : `rmSync` suffit
     // pour du jetable, git n'a pas son mot à dire sur un dossier temporaire.
+    rmSync(bac, { recursive: true, force: true });
+  }
+}
+
+/* ==========================================================================
+ * Lot O (cadrage degats-et-aura) — verrous de `ouvrir` et `livrer`
+ *
+ * ⚠️ Les dépôts documentaires jetables portent `* -text`, comme le vrai
+ * (`sw-forge-docs/.gitattributes`) : sans lui, `core.autocrlf` réécrirait les
+ * fins de ligne à chaque checkout, et les octets comparés ne seraient plus
+ * ceux que le dépôt archive. Les contenus se comparent donc BRUTS, sans
+ * `lire()`.
+ * ======================================================================== */
+
+type Notes = Record<string, string | null>;
+
+function gitDisponible(libelle: string): boolean {
+  try {
+    execFileSync('git', ['--version'], { stdio: 'ignore' });
+    return true;
+  } catch {
+    ignore(libelle, 'git introuvable');
+    return false;
+  }
+}
+
+// `null` supprime le fichier.
+function ecrireNotes(dossier: string, notes: Notes) {
+  for (const [rel, contenu] of Object.entries(notes)) {
+    const chemin = join(dossier, ...rel.split('/'));
+    if (contenu === null) rmSync(chemin, { force: true });
+    else {
+      mkdirSync(dirname(chemin), { recursive: true });
+      writeFileSync(chemin, contenu);
+    }
+  }
+}
+
+// Contenus BRUTS, fins de ligne comprises.
+function lireNotes(dossier: string, prefixe = ''): Record<string, string> {
+  const r: Record<string, string> = {};
+  if (!existsSync(join(dossier, prefixe))) return r;
+  for (const e of readdirSync(join(dossier, prefixe), { withFileTypes: true })) {
+    const rel = prefixe ? `${prefixe}/${e.name}` : e.name;
+    if (e.isDirectory()) Object.assign(r, lireNotes(dossier, rel));
+    else r[rel] = readFileSync(join(dossier, rel), 'utf8');
+  }
+  return r;
+}
+
+function memesNotes(a: Notes, b: Notes): boolean {
+  const trie = (o: Notes) =>
+    JSON.stringify(Object.entries(o).filter(([, v]) => v !== null).sort(([x], [y]) => (x < y ? -1 : 1)));
+  return trie(a) === trie(b);
+}
+
+function commitNotes(docDir: string, notes: Notes, message: string): string {
+  ecrireNotes(join(docDir, NOTES), notes);
+  commiter(docDir, message);
+  return git(docDir, 'rev-parse', 'HEAD');
+}
+
+// Chemins EXACTS, casse comprise, du sous-arbre des notes à une révision.
+function sousArbre(depot: string, rev: string): string[] {
+  return git(depot, 'ls-tree', '-r', '-z', '--name-only', rev, '--', NOTES)
+    .split('\0')
+    .filter(Boolean)
+    .map((c) => c.slice(NOTES.length + 1));
+}
+
+function cheminRegistre(code: string, nom: string): string {
+  return join(code, '.git', 'forge', 'etat', 'chantiers', `${nom}.json`);
+}
+
+function registre(code: string, nom: string) {
+  return JSON.parse(readFileSync(cheminRegistre(code, nom), 'utf8'));
+}
+
+function modifierRegistre(code: string, nom: string, f: (r: Record<string, unknown>) => void) {
+  const r = registre(code, nom);
+  f(r);
+  writeFileSync(cheminRegistre(code, nom), JSON.stringify(r, null, 2) + '\n');
+}
+
+function bacChantier(prefixe: string) {
+  const bac = mkdtempSync(join(tmpdir(), prefixe));
+  const docDir = join(bac, 'docs');
+  const code = join(bac, 'code');
+  mkdirSync(docDir, { recursive: true });
+  writeFileSync(join(docDir, '.gitattributes'), '* -text\n');
+  depotJetable(docDir);
+  mkdirSync(code, { recursive: true });
+  writeFileSync(join(code, '.gitignore'), `${NOTES}/\n`);
+  writeFileSync(join(code, 'x.txt'), 'x\n');
+  depotJetable(code);
+  commiter(code, 'code initial\n');
+  git(code, 'checkout', '-b', 'forge/essai');
+  return { bac, docDir, code };
+}
+
+function ajouterDistant(bac: string, docDir: string) {
+  const distant = join(bac, 'docs-distant.git');
+  execFileSync('git', ['init', '--bare', '-b', 'main', distant], { encoding: 'utf8' });
+  git(docDir, 'remote', 'add', 'origin', distant);
+  git(docDir, 'push', '-u', 'origin', 'main');
+}
+
+// Un autre chantier : un worktree du dépôt de code, sur sa propre branche.
+function worktreeCode(code: string, nom: string): string {
+  const wt = join(dirname(code), `code-${nom}`);
+  git(code, 'worktree', 'add', '-b', `forge/${nom}`, wt, 'main');
+  return wt;
+}
+
+// L'incident du 2026-09-23, rejoué. Des notes locales restées à un état ANCIEN
+// du `main` documentaire ; `main` a reçu depuis le travail d'un autre chantier
+// (ici `relique/`). L'ancien `ouvrir` les gardait avec un simple
+// avertissement, et le premier `livrer` les recopiait en miroir : tout ce
+// qu'elles n'avaient pas reçu quittait la branche, puis `main` à l'intégration.
+export function testChantierIncidentNotesEnRetard() {
+  titre('Chantier — incident du 2026-09-23 : des notes en retard ne passent plus');
+  if (!gitDisponible('incident des notes en retard')) return;
+  const { bac, docDir, code } = bacChantier('sw-forge-chantier-incident-');
+  try {
+    const ancien: Notes = { 'invariants.md': 'invariants\n', 'pistes.md': 'pistes\n' };
+    const revAncienne = commitNotes(docDir, ancien, 'notes initiales\n');
+    const actuel: Notes = {
+      ...ancien,
+      'invariants.md': 'invariants\n## Reliques\n',
+      'relique/a.md': 'relique a\n',
+      'relique/b.md': 'relique b\n',
+    };
+    commitNotes(docDir, actuel, 'intégration du chantier relique\n');
+
+    // Premier temps : `ouvrir` sur des notes en retard les REMPLACE.
+    ecrireNotes(join(code, NOTES), ancien);
+    let r = chantier(code, 'ouvrir', '--chantier', 'incident', '--depot-doc', docDir);
+    ok(r.code === 0, 'ouvrir réussit sur des notes en retard');
+    ok(memesNotes(lireNotes(join(code, NOTES)), actuel), 'et les REMPLACE par la base : le travail relique est là');
+    ok(/EN RETARD/.test(r.sortie) && r.sortie.includes(revAncienne.slice(0, 7)),
+      'en nommant la révision où elles étaient restées');
+    const sauvegardes = join(code, '.git', 'forge', 'sauvegardes', 'incident');
+    const horodatages = existsSync(sauvegardes) ? readdirSync(sauvegardes) : [];
+    ok(horodatages.length === 1 && memesNotes(lireNotes(join(sauvegardes, horodatages[0] ?? '')), ancien),
+      'les notes remplacées sont sauvegardées sous le répertoire Git commun');
+
+    // Second temps : les mêmes notes, ADOPTÉES explicitement, ne peuvent plus
+    // effacer ce qu'elles n'ont pas reçu.
+    const code2 = worktreeCode(code, 'incident2');
+    ecrireNotes(join(code2, NOTES), ancien);
+    r = chantier(code2, 'ouvrir', '--chantier', 'incident2', '--adopter');
+    ok(r.code === 0 && memesNotes(lireNotes(join(code2, NOTES)), ancien), 'ouvrir --adopter garde les notes telles quelles');
+    const wt2 = registre(code, 'incident2').worktreeDoc as string;
+    const teteAvant = git(wt2, 'rev-parse', 'HEAD');
+    r = chantier(code2, 'livrer', '--chantier', 'incident2');
+    ok(r.code !== 0, 'livrer REFUSE : la branche porte un contenu que ces notes n’ont pas reçu');
+    ok(/relique\/a\.md/.test(r.sortie) && /--adopter/.test(r.sortie), 'en nommant ce qui serait effacé, et la marche à suivre');
+    ok(git(wt2, 'rev-parse', 'HEAD') === teteAvant && sousArbre(wt2, 'HEAD').includes('relique/a.md'),
+      'rien n’a quitté la branche documentaire');
+  } finally {
+    rmSync(bac, { recursive: true, force: true });
+  }
+}
+
+// `ouvrir` compare l'arbre ENTIER des notes locales à la base, octets tels que
+// le dépôt documentaire les archive. Chaque cas sur son propre worktree.
+export function testChantierOuvrirCas() {
+  titre('Chantier — ouvrir : notes absentes, identiques, en retard, inconnues');
+  if (!gitDisponible('ouvrir compare les notes à la base')) return;
+  const { bac, docDir, code } = bacChantier('sw-forge-chantier-ouvrir-');
+  try {
+    const R0: Notes = { 'n1.md': 'un\n', 'n2.md': 'deux\n', 'dir/n3.md': 'trois\n' };
+    const r0 = commitNotes(docDir, R0, 'r0\n');
+    const R1: Notes = { ...R0, 'n1.md': 'un v2\n', 'n4.md': 'quatre\n' };
+    const r1 = commitNotes(docDir, R1, 'r1\n');
+    // Fins de ligne : `n5.md` archivé en CRLF à r2, en LF à r3 — seule différence.
+    const R2: Notes = { ...R1, 'n2.md': 'deux v2\n', 'n5.md': 'cinq\r\n' };
+    const r2 = commitNotes(docDir, R2, 'r2\n');
+    const R3: Notes = { ...R2, 'n5.md': 'cinq\n' };
+    const r3 = commitNotes(docDir, R3, 'r3\n');
+
+    let n = 0;
+    const essai = (notes: Notes | 'vide' | null, ...args: string[]) => {
+      const nom = `cas${++n}`;
+      const wt = n === 1 ? code : worktreeCode(code, nom);
+      if (notes === 'vide') mkdirSync(join(wt, NOTES), { recursive: true });
+      else if (notes) ecrireNotes(join(wt, NOTES), notes);
+      const r = chantier(wt, 'ouvrir', '--chantier', nom, ...(n === 1 ? ['--depot-doc', docDir] : []), ...args);
+      return { r, wt, nom, notes: lireNotes(join(wt, NOTES)) };
+    };
+    // Un refus ne laisse ni registre, ni worktree, ni branche documentaire.
+    const sansTrace = (nom: string) =>
+      !existsSync(cheminRegistre(code, nom)) &&
+      !existsSync(join(bac, 'docs-chantiers', nom)) &&
+      git(docDir, 'branch', '--list', `chantier/${nom}`) === '';
+
+    let e = essai(null);
+    ok(e.r.code === 0 && memesNotes(e.notes, R3), 'absentes : copie de la base');
+    ok(registre(code, e.nom).base?.revision === r3, 'et la base synchronisée est enregistrée');
+
+    e = essai(R3);
+    ok(e.r.code === 0 && /identiques/.test(e.r.sortie) && memesNotes(e.notes, R3), 'identiques à la base : rien à faire');
+    ok(!existsSync(join(code, '.git', 'forge', 'sauvegardes', e.nom)), 'et aucune sauvegarde');
+
+    e = essai(R0);
+    ok(e.r.code === 0 && memesNotes(e.notes, R3), 'en retard (ancêtre de la base) : remplacées par la base');
+    ok(e.r.sortie.includes(r0.slice(0, 7)) && /ajoutés\s+: 2/.test(e.r.sortie) && /modifiés\s+: 2/.test(e.r.sortie),
+      'avec la liste de ce qui change');
+    ok(existsSync(join(code, '.git', 'forge', 'sauvegardes', e.nom)), 'et une sauvegarde des notes remplacées');
+
+    e = essai(R2);
+    ok(e.r.code === 0 && e.r.sortie.includes(r2.slice(0, 7)) && e.notes['n5.md'] === 'cinq\n',
+      'fins de ligne : r2 et r3 ne diffèrent que par CRLF/LF, la différence archivée est détectée');
+    e = essai({ ...R3, 'n2.md': 'deux v2\r\n' });
+    ok(e.r.code !== 0 && /1 inédits.*n2\.md/.test(e.r.sortie) && sansTrace(e.nom),
+      'un CRLF local sur un fichier archivé en LF est un contenu différent : refus');
+
+    e = essai({ ...R3, 'n1.md': 'travail inédit\n' });
+    ok(e.r.code !== 0 && /1 inédits.*n1\.md/.test(e.r.sortie), 'inédites : refus, diagnostic par fichier');
+    ok(sansTrace(e.nom) && e.notes['n1.md'] === 'travail inédit\n', 'sans branche, ni worktree, ni registre ; notes intactes');
+
+    e = essai('vide');
+    ok(e.r.code !== 0 && /VIDE/.test(e.r.sortie) && sansTrace(e.nom), 'dossier vide : refus');
+    ok(existsSync(join(e.wt, NOTES)), 'et le dossier vide reste en place');
+
+    e = essai({ ...R3, 'n2.md': null });
+    ok(e.r.code !== 0 && /1 absents localement : n2\.md/.test(e.r.sortie) && sansTrace(e.nom),
+      'partielles : refus, fichiers absents nommés');
+
+    e = essai({ ...R3, 'n1.md': 'un\n' });
+    ok(e.r.code !== 0 && /1 versions antérieures.*n1\.md/.test(e.r.sortie),
+      'une version antérieure est distinguée d’un contenu inédit');
+
+    e = essai(R3, '--base', r1);
+    ok(e.r.code !== 0 && /n'est PAS un ancêtre/.test(e.r.sortie) && e.r.sortie.includes(r3.slice(0, 7)),
+      '--base plus ancienne que les notes : refus nommé');
+    ok(memesNotes(e.notes, R3) && sansTrace(e.nom), 'et jamais de retour arrière');
+
+    e = essai({ ...R3, 'n1.md': 'travail inédit\n' }, '--adopter');
+    const adoptee = e.r.code === 0 ? registre(code, e.nom).base : null;
+    ok(adoptee?.origine === 'adoption' && e.notes['n1.md'] === 'travail inédit\n',
+      '--adopter garde les notes et les enregistre comme base');
+
+    if (process.platform === 'win32') {
+      // Deux chemins Git distincts, une seule clé Windows : écrits par la
+      // plomberie, sans passer par un disque insensible à la casse.
+      const env = { ...process.env, GIT_INDEX_FILE: join(bac, 'index-collision') };
+      const blob = execFileSync('git', ['-C', docDir, 'hash-object', '-w', '--stdin'], { input: 'autre\n', encoding: 'utf8' }).trim();
+      execFileSync('git', ['-C', docDir, 'read-tree', r3], { env });
+      execFileSync('git', ['-C', docDir, 'update-index', '--add', '--cacheinfo', `100644,${blob},${NOTES}/N1.md`], { env });
+      const arbre = execFileSync('git', ['-C', docDir, 'write-tree'], { env, encoding: 'utf8' }).trim();
+      const collision = execFileSync('git', ['-C', docDir, 'commit-tree', arbre, '-p', r3], {
+        input: 'collision\n',
+        encoding: 'utf8',
+      }).trim();
+      e = essai(null, '--base', collision);
+      ok(e.r.code !== 0 && /collision de casse/.test(e.r.sortie) && /N1\.md/.test(e.r.sortie) && sansTrace(e.nom),
+        'collision de casse dans la base : refus, rien créé');
+    } else {
+      ignore('collision de casse dans la base', 'propre à Windows');
+    }
+  } finally {
+    rmSync(bac, { recursive: true, force: true });
+  }
+}
+
+// La garde de `livrer` : la branche documentaire ET son worktree doivent être
+// la base synchronisée. Derrière elle, le miroir ne copie que le delta
+// légitime base → notes locales.
+export function testChantierLivrerGarde() {
+  titre('Chantier — livrer : garde sur la base synchronisée, delta légitime');
+  if (!gitDisponible('garde de livrer')) return;
+  const { bac, docDir, code } = bacChantier('sw-forge-chantier-garde-');
+  try {
+    commitNotes(docDir, { 'a.md': 'a\n', 'b.md': 'b\n', 'c.md': 'c\n', 'd.md': 'd\n' }, 'r0\n');
+    ajouterDistant(bac, docDir);
+    ok(chantier(code, 'ouvrir', '--chantier', 'g', '--depot-doc', docDir).code === 0, 'ouvrir');
+    const wt = registre(code, 'g').worktreeDoc as string;
+    const notes = join(code, NOTES);
+
+    ecrireNotes(notes, { 'a.md': 'a modifiée\n', 'b.md': null, 'e.md': 'e\n' });
+    let r = chantier(code, 'livrer', '--chantier', 'g');
+    ok(r.code === 0 && JSON.stringify(sousArbre(wt, 'HEAD')) === JSON.stringify(['a.md', 'c.md', 'd.md', 'e.md']),
+      'suppression, modification et ajout légitimes passent');
+
+    mkdirSync(join(notes, 'sous'));
+    renameSync(join(notes, 'c.md'), join(notes, 'sous', 'c2.md'));
+    r = chantier(code, 'livrer', '--chantier', 'g');
+    ok(r.code === 0 && sousArbre(wt, 'HEAD').includes('sous/c2.md') && !sousArbre(wt, 'HEAD').includes('c.md'),
+      'un renommage passe');
+
+    // Renommage de CASSE seule : sous Windows, `git add -A` ne le verrait pas.
+    renameSync(join(notes, 'd.md'), join(notes, 'D.md'));
+    r = chantier(code, 'livrer', '--chantier', 'g');
+    ok(r.code === 0 && sousArbre(wt, 'HEAD').includes('D.md') && !sousArbre(wt, 'HEAD').includes('d.md'),
+      'un renommage de casse est enregistré dans la branche');
+    ok(chantier(code, 'verifier', '--chantier', 'g').code === 0, 'et le reçu est valide');
+
+    // Fichier exclu dans le worktree documentaire : invisible à `git status`,
+    // mais la copie miroir l'effacerait.
+    appendFileSync(join(docDir, '.git', 'info', 'exclude'), `${NOTES}/prive.md\n`);
+    writeFileSync(join(wt, NOTES, 'prive.md'), 'jamais livré\n');
+    ecrireNotes(notes, { 'a.md': 'a encore\n' });
+    ok(git(wt, 'status', '--porcelain') === '', 'le fichier exclu est invisible à git status');
+    const teteAvant = git(wt, 'rev-parse', 'HEAD');
+    r = chantier(code, 'livrer', '--chantier', 'g');
+    ok(r.code !== 0 && /hors de la branche/.test(r.sortie) && /prive\.md/.test(r.sortie), 'livrer refuse, fichier nommé');
+    ok(existsSync(join(wt, NOTES, 'prive.md')) && git(wt, 'rev-parse', 'HEAD') === teteAvant, 'rien n’est effacé ni commité');
+    r = chantier(code, 'livrer', '--chantier', 'g', '--adopter');
+    ok(r.code !== 0 && existsSync(join(wt, NOTES, 'prive.md')), '--adopter ne lève pas ce refus');
+    rmSync(join(wt, NOTES, 'prive.md'));
+    ok(chantier(code, 'livrer', '--chantier', 'g').code === 0, 'le fichier écarté, livrer passe');
+
+    // Branche en avance sur la base : l'état que laissait l'ANCIEN outil, qui
+    // avançait la révision attendue dès la reconnaissance d'une fusion résolue
+    // à la main, avant la copie vers le code.
+    const codeH = worktreeCode(code, 'h');
+    ok(chantier(codeH, 'ouvrir', '--chantier', 'h').code === 0, 'un second chantier');
+    ecrireNotes(join(codeH, NOTES), { 'h.md': 'travail de h\n' });
+    ok(chantier(codeH, 'livrer', '--chantier', 'h').code === 0 && chantier(codeH, 'integrer', '--chantier', 'h').code === 0,
+      'il intègre h.md');
+    git(wt, 'merge', '--no-edit', 'main');
+    const fusion = git(wt, 'rev-parse', 'HEAD');
+    modifierRegistre(code, 'g', (reg) => { reg.revisionDocAttendue = fusion; });
+    r = chantier(code, 'livrer', '--chantier', 'g');
+    ok(r.code !== 0 && /n’ont pas reçu/.test(r.sortie) && /h\.md/.test(r.sortie) && /rafraichir/.test(r.sortie),
+      'livrer refuse une branche en avance sur la base, nomme h.md et la marche à suivre');
+    ok(!existsSync(join(notes, 'h.md')) && sousArbre(wt, 'HEAD').includes('h.md'), 'rien n’est effacé');
+    r = chantier(code, 'rafraichir', '--chantier', 'g');
+    ok(r.code === 0 && lireNotes(notes)['h.md'] === 'travail de h\n', 'rafraichir recopie ce que la branche porte');
+    ok(chantier(code, 'livrer', '--chantier', 'g').code === 0 && chantier(code, 'verifier', '--chantier', 'g').code === 0,
+      'puis livrer et verifier passent');
+
+    // Notes adoptées : refus, fusion À LA MAIN, puis `livrer --adopter`.
+    const codeK = worktreeCode(code, 'k');
+    ecrireNotes(join(codeK, NOTES), { 'a.md': 'a\n', 'k.md': 'travail de k\n' });
+    ok(chantier(codeK, 'ouvrir', '--chantier', 'k', '--adopter').code === 0, 'k adopte ses notes');
+    ok(chantier(codeK, 'livrer', '--chantier', 'k').code !== 0, 'livrer refuse d’abord');
+    const wtK = registre(code, 'k').worktreeDoc as string;
+    ecrireNotes(join(codeK, NOTES), { ...lireNotes(join(wtK, NOTES)), 'k.md': 'travail de k\n' });
+    r = chantier(codeK, 'livrer', '--chantier', 'k', '--adopter');
+    ok(r.code === 0 && /Adoption/.test(r.sortie), 'après fusion à la main, livrer --adopter reporte les notes');
+    ok(registre(code, 'k').base?.origine === 'livrer' && chantier(codeK, 'verifier', '--chantier', 'k').code === 0,
+      'la base redevient un état documentaire, le reçu est valide');
+    ok(sousArbre(wtK, 'HEAD').includes('k.md') && sousArbre(wtK, 'HEAD').includes('h.md'), 'rien de la branche n’est perdu');
+  } finally {
+    rmSync(bac, { recursive: true, force: true });
+  }
+}
+
+// Chaque coupure mène, au lancement suivant, à l'état attendu : sans faux
+// refus, et sans rien reprendre qui ne s'explique pas par la coupure.
+export function testChantierReprises() {
+  titre('Chantier — reprises vérifiées après une coupure');
+  if (!gitDisponible('reprises après coupure')) return;
+  const { bac, docDir, code } = bacChantier('sw-forge-chantier-reprises-');
+  const arret = (cwd: string, point: string, ...args: string[]) =>
+    chantierAvecEnv(cwd, { CHANTIER_ARRET_TEST: point }, ...args);
+  try {
+    commitNotes(docDir, { 'a.md': 'a\n', 'b.md': 'b\n', 'c.md': 'c\n', 'd.md': 'd\n' }, 'r0\n');
+    ajouterDistant(bac, docDir);
+    ok(chantier(code, 'ouvrir', '--chantier', 'p', '--depot-doc', docDir).code === 0, 'ouvrir');
+    const wt = registre(code, 'p').worktreeDoc as string;
+    const notes = join(code, NOTES);
+    const identiques = () => memesNotes(lireNotes(join(wt, NOTES)), lireNotes(notes));
+
+    /* ------------------------------------------------ pendant le miroir */
+    ecrireNotes(notes, { 'a.md': 'a2\n', 'b.md': null, 'e.md': 'e\n', 'f.md': 'f\n', 'g.md': 'g\n' });
+    let r = arret(code, 'pendant-miroir', 'livrer', '--chantier', 'p');
+    ok(r.code === 70 && git(wt, 'status', '--porcelain') !== '', 'coupure pendant le miroir : worktree documentaire entamé');
+    ok(registre(code, 'p').journal?.operation === 'livrer', 'le journal de la livraison est en place');
+    writeFileSync(join(wt, NOTES, 'c.md'), 'intrus\n');
+    r = chantier(code, 'livrer', '--chantier', 'p');
+    ok(r.code !== 0 && /ne s'explique pas/.test(r.sortie) && /c\.md/.test(r.sortie),
+      'un écart étranger à la coupure est refusé, nommé');
+    ok(readFileSync(join(wt, NOTES, 'c.md'), 'utf8') === 'intrus\n', 'et rien n’est écrasé');
+    git(wt, 'checkout', '--', `${NOTES}/c.md`);
+    ecrireNotes(notes, { 'g.md': 'g modifié après la coupure\n' });
+    r = chantier(code, 'livrer', '--chantier', 'p');
+    ok(r.code === 0 && /[Rr]eprise/.test(r.sortie) && identiques(), 'la reprise refait le miroir depuis les notes ACTUELLES');
+    ok(chantier(code, 'verifier', '--chantier', 'p').code === 0, 'reçu valide');
+
+    /* ------------------------- après le commit des notes, avant le registre */
+    ecrireNotes(notes, { 'a.md': 'a3\n' });
+    r = arret(code, 'apres-commit-notes', 'livrer', '--chantier', 'p');
+    ok(r.code === 70, 'coupure après le commit des notes');
+    r = chantier(code, 'livrer', '--chantier', 'p');
+    const reg = registre(code, 'p');
+    ok(r.code === 0 && /[Rr]eprise/.test(r.sortie) && !reg.journal, 'reprise sans faux refus');
+    ok(reg.base?.revision === git(wt, 'log', '-1', '--format=%H', '--', NOTES), 'la base avance avec la reprise');
+
+    /* ------------------------ après le commit du reçu : la faiblesse L352 */
+    ecrireNotes(notes, { 'a.md': 'a4\n' });
+    r = arret(code, 'apres-commit-recu', 'livrer', '--chantier', 'p');
+    const pendant = registre(code, 'p');
+    ok(r.code === 70 && pendant.revisionDocAttendue !== pendant.journal?.depuis,
+      'coupure après le commit du reçu : révision attendue ≠ départ du journal, l’état qui bloquait');
+    const teteCoupure = git(wt, 'rev-parse', 'HEAD');
+    r = chantier(code, 'livrer', '--chantier', 'p');
+    ok(r.code === 0 && /[Rr]eprise/.test(r.sortie) && git(wt, 'rev-parse', 'HEAD') === teteCoupure,
+      'reprise, sans nouveau commit');
+    ok(chantier(code, 'verifier', '--chantier', 'p').code === 0, 'reçu valide');
+
+    /* ------------------------------ une livraison qui ne change QUE le reçu */
+    writeFileSync(join(code, 'x.txt'), 'x2\n');
+    commiter(code, 'code seul\n');
+    r = arret(code, 'apres-commit-recu', 'livrer', '--chantier', 'p');
+    ok(r.code === 70 && registre(code, 'p').journal?.operation === 'livrer',
+      'coupure d’une livraison qui ne change que le reçu : journal présent');
+    r = chantier(code, 'livrer', '--chantier', 'p');
+    ok(r.code === 0 && /[Rr]eprise/.test(r.sortie) && chantier(code, 'verifier', '--chantier', 'p').code === 0,
+      'reprise, reçu valide');
+
+    /* -------------------------------------- pendant la copie de rafraichir */
+    const codeQ = worktreeCode(code, 'q');
+    ok(chantier(codeQ, 'ouvrir', '--chantier', 'q').code === 0, 'un second chantier');
+    ecrireNotes(join(codeQ, NOTES), { 'aa.md': 'aa\n', 'zz.md': 'zz\n' });
+    ok(chantier(codeQ, 'livrer', '--chantier', 'q').code === 0 && chantier(codeQ, 'integrer', '--chantier', 'q').code === 0,
+      'il livre et intègre');
+    const attendueAvantRaf = registre(code, 'p').revisionDocAttendue;
+    r = arret(code, 'pendant-copie-rafraichir', 'rafraichir', '--chantier', 'p');
+    const coupe = registre(code, 'p');
+    ok(r.code === 70 && coupe.journal?.operation === 'rafraichir' && coupe.revisionDocAttendue === attendueAvantRaf,
+      'coupure pendant la copie de rafraichir : journal en place, rien n’a avancé');
+    r = chantier(code, 'livrer', '--chantier', 'p');
+    ok(r.code === 0 && /[Rr]eprise d'un rafraîchissement/.test(r.sortie) && 'zz.md' in lireNotes(notes),
+      'livrer termine d’abord la copie interrompue, puis livre');
+    ok(chantier(code, 'verifier', '--chantier', 'p').code === 0, 'reçu valide');
+
+    /* --------- conflit, résolution à la main, coupure pendant sa copie */
+    ecrireNotes(join(codeQ, NOTES), { 'a.md': 'a par q\n' });
+    ok(chantier(codeQ, 'livrer', '--chantier', 'q').code === 0 && chantier(codeQ, 'integrer', '--chantier', 'q').code === 0,
+      'q modifie a.md et intègre');
+    ecrireNotes(notes, { 'a.md': 'a par p\n' });
+    ok(chantier(code, 'livrer', '--chantier', 'p').code === 0, 'p modifie le même passage et livre');
+    r = chantier(code, 'rafraichir', '--chantier', 'p');
+    ok(r.code !== 0 && /CONFLIT/.test(r.sortie), 'rafraichir : conflit');
+    try {
+      git(wt, 'merge', 'main');
+    } catch {
+      // Conflit attendu : il se résout à la main.
+    }
+    writeFileSync(join(wt, NOTES, 'a.md'), 'a résolu\n');
+    git(wt, 'add', '-A');
+    execFileSync('git', ['-C', wt, 'commit', '--no-edit'], { encoding: 'utf8' });
+    const attendueAvantReprise = registre(code, 'p').revisionDocAttendue;
+    r = arret(code, 'pendant-copie-rafraichir', 'rafraichir', '--chantier', 'p');
+    const pendantFusion = registre(code, 'p');
+    ok(r.code === 70 && /Fusion résolue à la main reprise/.test(r.sortie) &&
+      pendantFusion.revisionDocAttendue === attendueAvantReprise && pendantFusion.base?.revision !== git(wt, 'rev-parse', 'HEAD'),
+      'coupure entre la reconnaissance de la fusion et la fin de sa copie : ni base ni révision attendue n’ont avancé');
+    r = chantier(code, 'rafraichir', '--chantier', 'p');
+    ok(r.code === 0 && /[Rr]eprise/.test(r.sortie) && lireNotes(notes)['a.md'] === 'a résolu\n',
+      'rafraichir relancé termine la copie de la résolution');
+    ok(/Déjà à jour/.test(r.sortie), 'puis constate que tout est à jour');
+    ok(chantier(code, 'livrer', '--chantier', 'p').code === 0 && chantier(code, 'verifier', '--chantier', 'p').code === 0,
+      'et livrer va au bout : conflit → résolution → reprise → livrer');
+
+    /* -------------------------------------------- pendant la copie d'ouvrir */
+    const codeZ = worktreeCode(code, 'z');
+    ecrireNotes(join(codeZ, NOTES), { 'a.md': 'a\n', 'b.md': 'b\n', 'c.md': 'c\n', 'd.md': 'd\n' });
+    r = arret(codeZ, 'pendant-copie-ouvrir', 'ouvrir', '--chantier', 'z');
+    ok(r.code === 70 && registre(code, 'z').journal?.operation === 'ouvrir', 'coupure pendant la copie d’ouvrir : journal en place');
+    r = chantier(codeZ, 'ouvrir', '--chantier', 'z');
+    const wtZ = registre(code, 'z').worktreeDoc as string;
+    ok(r.code === 0 && /[Rr]eprise/.test(r.sortie) && memesNotes(lireNotes(join(codeZ, NOTES)), lireNotes(join(wtZ, NOTES))),
+      'relancer ouvrir termine la copie');
+    ok(chantier(codeZ, 'livrer', '--chantier', 'z').code === 0, 'et le chantier livre');
+  } finally {
+    rmSync(bac, { recursive: true, force: true });
+  }
+}
+
+// Registres ouverts avant le lot O : aucune base enregistrée. Elle se
+// reconstruit depuis le plus récent du dernier reçu et du dernier
+// rafraîchissement ; sans l'un ni l'autre, `livrer` refuse par défaut.
+// ⚠️ Le registre « ancien » s'obtient en retirant le champ `base` : c'est
+// exactement la différence de format entre l'ancien outil et le nouveau.
+export function testChantierMigration() {
+  titre('Chantier — migration des chantiers ouverts sans base');
+  if (!gitDisponible('migration sans base')) return;
+  const { bac, docDir, code } = bacChantier('sw-forge-chantier-migration-');
+  const sansBase = (nom: string) => modifierRegistre(code, nom, (reg) => { delete reg.base; });
+  try {
+    commitNotes(docDir, { 'a.md': 'a\n', 'b.md': 'b\n' }, 'r0\n');
+    ajouterDistant(bac, docDir);
+    const notes = join(code, NOTES);
+
+    /* ----------------------------------------------------------- reçu seul */
+    ok(chantier(code, 'ouvrir', '--chantier', 'm1', '--depot-doc', docDir).code === 0, 'ouvrir');
+    ecrireNotes(notes, { 'a.md': 'a1\n' });
+    ok(chantier(code, 'livrer', '--chantier', 'm1').code === 0, 'livrer');
+    const commitDoc = registre(code, 'm1').dernierRecu.commitDoc as string;
+    sansBase('m1');
+    let r = chantier(code, 'verifier', '--chantier', 'm1');
+    ok(r.code === 0 && /reconstruite/.test(r.sortie) && /migration \(reçu\)/.test(r.sortie),
+      'verifier affiche la base reconstruite depuis le reçu');
+    // Une avance locale jamais livrée : la garde la laisse passer.
+    ecrireNotes(notes, { 'b.md': 'b1\n' });
+    const texteAvant = readFileSync(cheminRegistre(code, 'm1'), 'utf8');
+    const wt1 = registre(code, 'm1').worktreeDoc as string;
+    const teteAvant = git(wt1, 'rev-parse', 'HEAD');
+    r = chantier(code, 'livrer', '--chantier', 'm1', '--simulation');
+    ok(r.code === 0 && /passerait/.test(r.sortie) && r.sortie.includes(`migration (reçu) @ ${commitDoc.slice(0, 7)}`) &&
+      /~1/.test(r.sortie), 'simulation : base reconstruite du reçu, garde passerait, une note à reporter');
+    ok(readFileSync(cheminRegistre(code, 'm1'), 'utf8') === texteAvant && git(wt1, 'rev-parse', 'HEAD') === teteAvant &&
+      git(wt1, 'status', '--porcelain') === '', 'et la simulation n’a rien écrit');
+    r = chantier(code, 'livrer', '--chantier', 'm1');
+    ok(r.code === 0 && registre(code, 'm1').base?.origine === 'livrer', 'livrer passe et enregistre la base');
+    ok(chantier(code, 'integrer', '--chantier', 'm1').code === 0, 'intégré');
+
+    /* ---------------------------------- rafraîchissement plus récent que le reçu */
+    const code2 = worktreeCode(code, 'm2');
+    ok(chantier(code2, 'ouvrir', '--chantier', 'm2').code === 0 && chantier(code2, 'livrer', '--chantier', 'm2').code === 0,
+      'un second chantier s’ouvre et livre');
+    ecrireNotes(notes, { 'c.md': 'c\n' });
+    ok(chantier(code, 'livrer', '--chantier', 'm1').code === 0 && chantier(code, 'integrer', '--chantier', 'm1').code === 0,
+      'le premier intègre encore');
+    ok(chantier(code2, 'rafraichir', '--chantier', 'm2').code === 0, 'le second se rafraîchit');
+    const apres = registre(code, 'm2').dernierRafraichissement.apres as string;
+    sansBase('m2');
+    r = chantier(code2, 'livrer', '--chantier', 'm2', '--simulation');
+    ok(r.code === 0 && r.sortie.includes(`migration (rafraîchissement) @ ${apres.slice(0, 7)}`),
+      'le rafraîchissement, plus récent que le reçu, fait la base');
+    ok(chantier(code2, 'livrer', '--chantier', 'm2').code === 0, 'livrer passe');
+
+    /* ------------------------------------------- ni reçu ni rafraîchissement */
+    const code3 = worktreeCode(code, 'm3');
+    ok(chantier(code3, 'ouvrir', '--chantier', 'm3').code === 0, 'un chantier jamais livré');
+    sansBase('m3');
+    r = chantier(code3, 'livrer', '--chantier', 'm3');
+    ok(r.code !== 0 && /aucune base synchronisée/.test(r.sortie), 'sans reçu ni rafraîchissement : livrer refuse par défaut');
+    r = chantier(code3, 'livrer', '--chantier', 'm3', '--adopter');
+    ok(r.code === 0 && registre(code, 'm3').base?.origine === 'livrer' && chantier(code3, 'verifier', '--chantier', 'm3').code === 0,
+      '--adopter enregistre l’état local courant et livre');
+  } finally {
     rmSync(bac, { recursive: true, force: true });
   }
 }

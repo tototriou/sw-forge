@@ -1,5 +1,6 @@
 import { Hammer, Gem } from 'lucide-react';
 import { CraftLine, RuneDetail } from '../../types';
+import type { RunesUtilisees } from '../../lib/importAccount';
 import type { AccountView } from '../../App';
 import RunesSummary from './RunesSummary';
 import RunesList from './RunesList';
@@ -11,9 +12,11 @@ import ComingSoon from '../../pages/ComingSoon';
 interface Props {
   runes: RuneDetail[];
   crafts: CraftLine[];
-  // Runes UTILISÉES (`rune_id`) — voir `parseUsedRuneIds`. Seule
-  // l'Optimisation s'en sert pour l'instant.
-  usedRuneIds: number[];
+  // Runes UTILISÉES (`rune_id`) par périmètre — voir
+  // `parseUsedRuneIdsParPerimetre`. Seule l'Optimisation s'en sert pour
+  // l'instant, comme des libellés de marqueurs ci-dessous.
+  usedRuneIds: RunesUtilisees;
+  runeMarkerLabels: Record<number, string>;
   // Vue courante. ⚠️ Elle vient de l'URL et de la barre latérale — les onglets
   // internes qui vivaient ici ont disparu : sept vues cachées derrière une
   // rangée d'onglets qu'on ne voyait qu'une fois sur la page.
@@ -27,6 +30,7 @@ export default function RunesSection({
   runes,
   crafts,
   usedRuneIds,
+  runeMarkerLabels,
   vue: view,
   menuOuvert,
   onFermerMenu,
@@ -44,6 +48,7 @@ export default function RunesSection({
           runes={runes}
           crafts={crafts}
           usedRuneIds={usedRuneIds}
+          runeMarkerLabels={runeMarkerLabels}
           menuOuvert={menuOuvert}
           onFermerMenu={onFermerMenu}
         />

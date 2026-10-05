@@ -25,6 +25,13 @@ Chromium tourne headless nativement sous Windows sans display virtuel. Sur
 Linux, `npx playwright install --with-deps chromium` couvre l'équivalent
 (dépendances système + navigateur en une commande).
 
+⚠️ **Conteneur Linux de claude.ai/code** (constaté le 2026-09-30) : NE PAS
+lancer `npx playwright install`. Chromium y est préinstallé dans
+`/opt/pw-browsers`, mais pour une autre version de Playwright que celle du
+dépôt : `chromium.launch()` échoue en réclamant l'installation. Le driver
+retombe alors tout seul sur `executablePath: '/opt/pw-browsers/chromium'` ;
+un script jetable doit faire de même.
+
 ## Prérequis
 
 ```bash
@@ -58,7 +65,7 @@ node .claude/skills/run-sw-forge/driver.mjs [compte.json] [monstre] [set]
 
 Sans argument, le driver cherche un export de compte réel à la racine
 (`tototriou-12889591.json`, `ß☆Enzo-6399149.json` — voir « Comptes réels »
-ci-dessous), sélectionne **Lora** et le set **Fatal** dans l'Optimizer,
+ci-dessous), sélectionne **Lushen** et le set **Fatal** dans l'Optimizer,
 lance une recherche, et pilote la pagination des résultats (page
 suivante, puis saisie directe d'un numéro de page). Capture à chaque étape
 clé.
@@ -80,6 +87,39 @@ précis) :
 ```bash
 node .claude/skills/run-sw-forge/driver.mjs tototriou-12889591.json Veromos Violent
 ```
+
+## Import seul — puis n'importe où
+
+Le scénario ci-dessus ne sert que l'Optimizer. Pour tout autre écran, on ne
+réécrit PAS l'import (c'est lui qui a piégé la session du 2026-09-30, voir
+Gotchas) : il vit dans [session.mjs](session.mjs), à côté du driver.
+
+**Une capture d'un écran après import** — sans script :
+
+```bash
+node .claude/skills/run-sw-forge/driver.mjs --import-seul [compte.json] [route] [--telephone]
+# ex. : --import-seul tests/fixtures/compte-miniature.json '#/compte/runes/optimisation'
+```
+
+Route par défaut `#/compte/runes`, capture `screenshots/import.png` (échelle
+×2). `--telephone` = fenêtre de 390 px, import par l'input du pied.
+
+**Un parcours (cliquer, basculer, ouvrir…)** — script jetable qui importe
+`ouvrirSession` et reprend la main juste après l'import :
+
+```js
+import { ouvrirSession, DEV_URL } from '/chemin/absolu/du/depot/.claude/skills/run-sw-forge/session.mjs';
+const { browser, page } = await ouvrirSession({ compte, format: 'bureau', echelle: 2 });
+await page.goto(`${DEV_URL}/#/compte/runes/courbes`, { waitUntil: 'networkidle' });
+// … le parcours voulu
+await browser.close();
+```
+
+Ce script peut vivre dans le **scratchpad** : c'est `session.mjs`, dans le
+dépôt, qui importe `playwright` (voir Troubleshooting, « Cannot find
+package »). `ouvrirSession` gère aussi le repli Chromium du conteneur Linux,
+la boîte de consentement, et **lève une erreur si l'import est refusé** —
+au lieu de laisser capturer un écran vide.
 
 ## Cadrer une capture sur un bloc précis
 
@@ -188,6 +228,25 @@ ici : le lire dans la sortie de `npm test` du jour.
   uniquement sur les machines des développeurs) est nécessaire pour une
   démonstration réaliste — sans lui, le driver s'arrête avec un message
   explicite plutôt que d'échouer en silence.
+- ⚠️ **Le premier `input[type=file]` de l'accueil n'importe PAS le compte.**
+  C'est l'import RTA : `setInputFiles` dessus ne lève aucune erreur, affiche
+  en rouge « Aucun monstre favori RTA ni preset de runes RTA trouvé… », et
+  l'écran reste sur « Aucune donnée de compte chargée ». `importerCompte`
+  ([session.mjs](session.mjs)) passe par le bouton **« Importer un compte »** de la barre latérale
+  (`SidebarCompte.tsx`), en interceptant `filechooser` — barre qui n'existe
+  qu'au format bureau. Au téléphone (barre repliée), viser l'input du pied :
+  `input[type="file"][accept*="json"]` en `.last()` (constaté à 390 px).
+- ⚠️ **Un compte factice doit porter les listes RTA.** Un export réduit à
+  `wizard_info` + `unit_list: []` + `runes` a été refusé avec le même message
+  rouge, même par le bon bouton. Pour une démo sur des runes choisies à la
+  main, partir de `tests/fixtures/compte-miniature.json` et AJOUTER les runes
+  voulues à son tableau `runes` (fichier fusionné dans le scratchpad, jamais
+  committé). Format d'une substat : `[stat, valeur, gemmée 0/1, meule]`.
+- **Palier de l'Optimisation à 100 % par défaut** : des runes de démo modestes
+  n'y apparaissent pas (« 0 rune ≥ 100% »). Le baisser d'abord —
+  `getByLabel('Palier')` filtré `visible` (au téléphone, il vit dans le
+  panneau « Options », qu'on ouvre par `getByText('Options', { exact: true })`
+  — `getByRole('button', { name: /Options/ })` ne l'a pas trouvé).
 - **Boîte de dialogue « Garder tes données sur cet appareil ? »** apparaît
   après le TOUT PREMIER import de la session navigateur (persistance
   IndexedDB, voir `usePersistence`). Le driver clique « Garder mes données »
@@ -266,13 +325,13 @@ ici : le lire dans la sortie de `npm test` du jour.
 
 ## Troubleshooting
 
-- **`Cannot find package 'playwright'` en lançant le driver** : le script
-  a été exécuté depuis un répertoire hors du dépôt (ex. un scratchpad
-  temporaire) — la résolution de module Node remonte les répertoires
-  parents à la recherche de `node_modules`, qui n'existe que sous la
-  racine du dépôt. Lancer `node .claude/skills/run-sw-forge/driver.mjs`
-  depuis la racine (ou tout sous-dossier du dépôt), jamais depuis un
-  chemin extérieur.
+- **`Cannot find package 'playwright'`** : un script situé HORS du dépôt
+  (ex. un scratchpad temporaire) importe `playwright` lui-même — Node
+  résout un import depuis l'emplacement du FICHIER qui l'écrit, en
+  remontant vers un `node_modules` qui n'existe que sous la racine du
+  dépôt. Remède : ne pas importer `playwright` dans le script jetable,
+  mais `session.mjs` par son chemin absolu (voir « Import seul ») — c'est
+  lui qui importe Playwright, depuis le dépôt.
 - **`locator.click: Timeout … element is not enabled`** sur un bouton de
   set dans `SetComboPicker` : très probablement le piège « un clic = tout
   le set » ci-dessus (clic répété sur un set déjà complet).

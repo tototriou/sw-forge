@@ -420,6 +420,33 @@ rendu par rapport à l'état actuel de la page ».
     maquette (titre, bouton en aplat, objectif, replis au téléphone) ne
     sont pas faits.
 
+#### 66 — le rebranding devient total (Thomas, 2026-10-05)
+
+« Fais une passe sur tout le dépôt pour ne plus laisser traîner de SW Forge,
+je veux que le rebranding soit total. » Relevé : 297 mentions, classées par
+nature ; questions posées avant le code. **Revient sur A.2 (« Intouchable »)
+et R2 (« ne bougent pas »)** pour le stockage et les formats :
+
+66. a. **Clés de stockage renommées, avec migration** : `sw-forge-*` et
+       `sky-arena-*` deviennent `swblacksmith-*`, la base IndexedDB
+       `sw-forge` devient `swblacksmith`. Au premier lancement, l'app
+       recopie l'ancien sous le nouveau nom, puis efface l'ancien — jamais
+       l'inverse, et jamais sans avoir relu la copie.
+    b. **Identifiants de format** : les exports écrivent `swblacksmith/…` ;
+       l'import relit TOUS les anciens fichiers (`sw-forge/…`, toutes
+       versions de format). Accepté : une version de l'app antérieure à ce
+       changement refuserait un nouveau fichier de prépa RTA ou de siège.
+    c. **L'historique reste tel quel** : notes des versions passées, journaux
+       et preuves des chantiers — ils racontent ce qui s'est passé sous
+       l'ancien nom.
+    d. **Dépôt GitHub, URL Vercel, dossier local : gardés pour l'instant.**
+       Thomas annoncera le changement d'URL et invitera chacun à exporter
+       son travail — le stockage d'un navigateur est lié à l'ADRESSE du
+       site, aucune migration ne le fait passer d'un domaine à l'autre.
+       Le nom du paquet npm, lui, change.
+    e. Tout le reste (commentaires, docs, specs d'état actuel, skills,
+       agents, messages des scripts et des tests) prend le nouveau nom.
+
 ## Partie B — les lots
 
 ### R0 — relevé · C

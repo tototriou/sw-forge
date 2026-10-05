@@ -23,6 +23,14 @@ export type OptimMetric = 'eff' | 'score';
 // disparaître un chantier qu'il pouvait parfaitement mener.
 export type CraftDispo = (kind: 'grind' | 'gem', stat: number) => boolean;
 
+// Une `CraftDispo` PAR scénario, pour `runePotential` qui calcule les deux :
+// chaque chiffre se vérifie contre la réserve de SON grade (voir
+// `dispoReserve` dans crafts.ts). Un scénario absent = sans contrainte.
+export interface DispoParScenario {
+  hero?: CraftDispo;
+  legend?: CraftDispo;
+}
+
 type Tbl = Record<number, number>;
 
 // Grind max (valeur ajoutée) par code de substat. RES/Préci/TC/DCC non grindables.
@@ -105,6 +113,9 @@ interface Best {
 //
 // La seconde est celle du filtre « Faisable avec ma réserve » : on y regarde ce
 // qu'on va **réellement poser**, et on ne pose jamais une meule qui dégrade.
+//
+// `regemLibre` : une rune DÉJÀ gemmée peut voir sa ligne gemmée passer à une
+// autre stat (bouton « Autoriser un regemme différent », éteint par défaut).
 function best(
   rune: RuneDetail,
   G: Tbl,
@@ -112,7 +123,8 @@ function best(
   withGem: boolean,
   metric: OptimMetric,
   noDowngrade = false,
-  dispo?: CraftDispo
+  dispo?: CraftDispo,
+  regemLibre = false
 ): Best {
   const subs = rune.subs.map((s) => ({
     code: s.code,
@@ -143,32 +155,20 @@ function best(
 
   const gemmedIdx = subs.findIndex((s) => s.enchant);
 
-  // Rune DÉJÀ gemmée : la stat gemmée est FIXE (on ne peut pas en gemmer une autre).
-  // Seul gain possible : « procker au max » — porter sa base au max de gemme si elle
-  // n'y est pas déjà — puis grind. (Rien à faire si le proc est déjà au max.)
-  if (gemmedIdx >= 0) {
-    const code = subs[gemmedIdx].code;
-    const gmax = M[code];
-    if (gmax != null && (!dispo || dispo('gem', code))) {
-      const newBase = Math.max(subs[gemmedIdx].base, gmax); // jamais de downgrade
-      const newSubs = subs.map((s, j) =>
-        j === gemmedIdx
-          ? // Le slot regemmé repart d'une meule à zéro : pas de `max` ici, la
-            // meule précédente est perdue avec l'ancienne valeur.
-            { code, total: newBase + gGem(code) }
-          : { code: s.code, total: gtotal(s.code, s.base, s.grind) }
-      );
-      const e = valueOf(rune.main, rune.innate, newSubs, metric);
-      if (e > bestEff) {
-        bestEff = e;
-        bestSlot = gemmedIdx;
-        bestCode = code;
-      }
-    }
-    return { eff: bestEff, gemSlot: bestSlot, gemCode: bestCode };
-  }
+  // Règles du jeu (relevées par l'utilisateur) : UNE seule ligne gemmée par
+  // rune ; une rune vierge peut gemmer n'importe quelle ligne, une rune déjà
+  // gemmée ne peut regemmer QUE sa ligne gemmée. Dans les deux cas, la gemme
+  // prend une stat absente du reste de la rune — **y compris la propre stat de
+  // la ligne** (ATQ% à 7 → gemme ATQ% à 13, ou « proc max » d'une gemme en
+  // place). Retenu seulement si la valeur augmente.
+  //
+  // ⚠️ Rune DÉJÀ gemmée, par défaut : la stat gemmée reste FIXE. C'est un CHOIX
+  // PRODUIT, pas une règle du jeu : le joueur a peut-être gemmé pour autre chose
+  // que l'efficience, et on ne remet pas sa décision en cause. `regemLibre`
+  // (« Autoriser un regemme différent ») lève ce choix.
+  const lignes = gemmedIdx >= 0 ? [gemmedIdx] : subs.map((_, j) => j);
+  const figee = gemmedIdx >= 0 && !regemLibre;
 
-  // Rune NON gemmée : on peut gemmer n'importe quel substat vers une AUTRE stat.
   // Stats interdites selon l'emplacement : slot 1 → pas de DEF (5/6), slot 3 → pas d'ATQ (3/4).
   const forbidden = new Set<number>();
   if (rune.slot === 1) {
@@ -179,12 +179,12 @@ function best(
     forbidden.add(4);
   }
 
-  for (let slot = 0; slot < subs.length; slot++) {
+  for (const slot of lignes) {
     for (const Y of GEM_STATS) {
       if (M[Y] == null) continue;
+      if (figee && Y !== subs[slot].code) continue; // stat gemmée conservée
       if (dispo && !dispo('gem', Y)) continue; // gemme absente de la réserve
       if (forbidden.has(Y)) continue; // interdit sur cet emplacement
-      if (Y === subs[slot].code) continue; // gemme = remplacer par une AUTRE stat
       if (Y === rune.main.code) continue;
       if (rune.innate && Y === rune.innate.code) continue;
       let dup = false;
@@ -196,9 +196,13 @@ function best(
       }
       if (dup) continue;
 
+      // Même stat → jamais sous la base actuelle (un proc déjà au max reste au
+      // max) ; autre stat → base max de gemme. Le slot regemmé repart d'une
+      // meule à zéro : la meule précédente est perdue avec l'ancienne valeur.
+      const base = Y === subs[slot].code ? Math.max(subs[slot].base, M[Y]) : M[Y];
       const newSubs = subs.map((s, j) =>
         j === slot
-          ? { code: Y, total: M[Y] + gGem(Y) } // gemme (base max) + grind max
+          ? { code: Y, total: base + gGem(Y) } // gemme + grind max
           : { code: s.code, total: gtotal(s.code, s.base, s.grind) }
       );
       const e = valueOf(rune.main, rune.innate, newSubs, metric);
@@ -217,7 +221,8 @@ export function runePotential(
   withGem = true,
   metric: OptimMetric = 'eff',
   noDowngrade = false,
-  dispo?: CraftDispo
+  dispo?: DispoParScenario,
+  regemLibre = false
 ): RunePotential {
   const anc = rune.rank > 10;
   const eff = metric === 'eff' ? runeEfficiency(rune) : runeScore(rune);
@@ -228,7 +233,8 @@ export function runePotential(
     withGem,
     metric,
     noDowngrade,
-    dispo
+    dispo?.hero,
+    regemLibre
   );
   const l = best(
     rune,
@@ -237,7 +243,8 @@ export function runePotential(
     withGem,
     metric,
     noDowngrade,
-    dispo
+    dispo?.legend,
+    regemLibre
   );
   // Arrondi en sortie, puis gains calculés SUR LES VALEURS ARRONDIES : le gain
   // affiché est ainsi toujours exactement « potentiel − actuel » à l'écran.
@@ -285,7 +292,8 @@ export function runePlan(
   withGem = true,
   metric: OptimMetric = 'eff',
   noDowngrade = false,
-  dispo?: CraftDispo
+  dispo?: CraftDispo,
+  regemLibre = false
 ): RunePlan {
   const anc = rune.rank > 10;
   const G =
@@ -293,14 +301,15 @@ export function runePlan(
   const M = scenario === 'hero' ? (anc ? GEM_HERO_ANC : GEM_HERO) : anc ? GEM_LEGEND_ANC : GEM_LEGEND;
 
   const gGemPlan = (code: number) => (dispo && !dispo('grind', code) ? 0 : G[code] ?? 0);
-  const b = best(rune, G, M, withGem, metric, noDowngrade, dispo);
+  const b = best(rune, G, M, withGem, metric, noDowngrade, dispo, regemLibre);
   const subs: PlanSub[] = rune.subs.map((s, j) => {
     const curGrind = s.grind ?? 0;
     const curBase = s.value - curGrind;
     if (j === b.gemSlot && b.gemCode != null) {
       const gmax = M[b.gemCode] ?? 0;
-      // Re-proc de la MÊME stat (rune déjà gemmée) → base = max(base actuelle, gemMax) ;
-      // nouvelle gemme (stat différente) → base = gemMax.
+      // Gemme de la MÊME stat (re-proc d'une rune gemmée, ou gemme de sa propre
+      // stat sur une rune vierge) → base = max(base actuelle, gemMax) — `best` ne
+      // la choisit que si gemMax l'emporte ; autre stat → base = gemMax.
       const base = b.gemCode === s.code ? Math.max(curBase, gmax) : gmax;
       const grind = gGemPlan(b.gemCode);
       return {

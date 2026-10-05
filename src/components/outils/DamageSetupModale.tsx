@@ -28,13 +28,18 @@ export default function DamageSetupModale({
   /**
    * ⚠️ Un ÉCHO en lecture seule de « État de mon monstre », pas des contrôles.
    * Les buffs, le lead et les compétences d'invocateur ont quitté cette
-   * fenêtre pour la carte Artéfacts (voir EtatMonstre.tsx) : les rendre aussi
+   * fenêtre pour leur propre carte, « État de mon monstre » (voir
+   * EtatMonstre.tsx), qui saisit aussi les auras externes : les rendre aussi
    * ici ferait deux exemplaires VIVANTS du même interrupteur, visibles en même
    * temps. Mais qui ouvre cette fenêtre pour décrire un combat doit savoir
    * sous quelles hypothèses il travaille — d'où cette phrase, posée dans le
    * `sousTitre`, l'emplacement que `SpeedTuneModale` utilise déjà pour sa
    * règle des ticks. Pour les changer : fermer, ils sont juste derrière et
    * toujours visibles.
+   *
+   * ⚠️ Elle nomme les auras externes par set et dit que les sets d'aura du
+   * build s'y ajoutent sur chaque résultat, SANS nombre : cette fenêtre ne
+   * connaît aucun candidat (`echoAurasExternes`, aurasExternes.ts).
    */
   echoEtatMonstre: string;
 } & ComponentProps<typeof DamageSetupCard>) {

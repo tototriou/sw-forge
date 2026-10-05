@@ -39,6 +39,8 @@ function Banc({ etat, menuOuvert }: { etat: Record<string, unknown>; menuOuvert:
       box={BOX}
       runes={INVENTAIRE.runes}
       artifacts={INVENTAIRE.artifacts}
+      relics={INVENTAIRE.relics}
+      relicUsageById={INVENTAIRE.relicUsageById}
       optimizer={optimizer}
       allMonsters={MONSTRES}
       rtaEntries={{}}
@@ -48,6 +50,7 @@ function Banc({ etat, menuOuvert }: { etat: Record<string, unknown>; menuOuvert:
       accountName="Testeur"
       menuOuvert={menuOuvert}
       onFermerMenu={() => {}}
+      onOuvrirMenu={() => {}}
     />
   );
 }
@@ -76,6 +79,8 @@ export function testRenduOptimizerVide() {
         box={[]}
         runes={[]}
         artifacts={[]}
+        relics={[]}
+        relicUsageById={{}}
         loadState="live"
         optimizer={{} as never}
         allMonsters={MONSTRES}
@@ -86,6 +91,7 @@ export function testRenduOptimizerVide() {
         accountName={null}
         menuOuvert={false}
         onFermerMenu={() => {}}
+        onOuvrirMenu={() => {}}
       />,
     ),
   );
@@ -131,7 +137,10 @@ export function testRenduOptimizerMonstre() {
     `un minimum et un maximum pour chacune des huit stats (${STATS_CONDITIONS.join(', ')})`,
   );
   ok(!!bouton(html, 'Réinitialiser les conditions'), 'réinitialiser les conditions');
-  ok(t.includes("Artéfacts Activer l'optimisation d'artéfacts Attribut Garder l'artéfact équipé Libre Principale ATQ +100 Principale DEF +100 Principale PV +1500 Type"), 'les deux artéfacts : garder, libre, ou une principale');
+  // ⚠️ La v1.14.0 (fusionnée le 2026-10-05) a fait entrer la relique dans ce
+  // bloc : « Artéfacts » est devenu « Artéfacts et reliques », et son
+  // interrupteur aussi. Le reste du bloc est inchangé.
+  ok(t.includes("Artéfacts et reliques Activer l'optimisation d'artéfacts et reliques Attribut Garder l'artéfact équipé Libre Principale ATQ +100 Principale DEF +100 Principale PV +1500 Type"), 'les deux artéfacts : garder, libre, ou une principale');
   ok(t.includes('Sous-propriétés verrouillées 0 / 8 + Sous-propriété…'), 'les sous-propriétés verrouillées, compteur sur 8');
   ok(t.includes('Meilleurs artéfacts offensifs pour ce build') && b.find((x) => x.texte === 'Dégâts supplémentaires')?.presse === true, 'les meilleurs artéfacts offensifs, en dégâts supplémentaires');
   ok(b.find((x) => x.ariaLabel === 'Buff ATQ — inactif')?.title === 'Augmente l’ATQ du monstre de 50 %.', 'l\'état du monstre : buffs, et ce qu\'ils font');

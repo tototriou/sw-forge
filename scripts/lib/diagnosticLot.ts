@@ -243,6 +243,7 @@ export function resoudreCas(index: number, commun: OptionsLot): { config: Config
     requirement,
     objective: c.objective ?? 'efficience',
     damageSetup: DEFAULT_DAMAGE_SETUP,
+    compterAurasResPre: true,
     metric: 'eff',
     slotFilterPreset: PRESET_LOT,
     adaptiveTrancheWeighting: false,

@@ -11,6 +11,7 @@ import type { AccountView } from '../../src/App';
 import type { BoxItem } from '../../src/lib/applyAccount';
 import type { ArtifactDetail, EffectLine, Monster } from '../../src/types';
 import { egal, faussLocalStorage, monstersJson, ok, titre } from '../outils';
+import { runesUtiliseesVides } from '../../src/lib/importAccount';
 import { boutons, rendre, texteVisible, valeurs } from './outils-rendu';
 
 const MONSTRES = monstersJson() as Monster[];
@@ -64,7 +65,8 @@ export function rendreCompte(sub: 'monstres' | 'artefacts', vue: AccountView): s
       runes={[]}
       artifacts={ARTEFACTS}
       crafts={[]}
-      usedRuneIds={[]}
+      usedRuneIds={runesUtiliseesVides()}
+      runeMarkerLabels={{}}
       loadState="live"
       hydrating={false}
       allMonsters={MONSTRES}

@@ -49,6 +49,8 @@ import {
   relevance,
   runeContribution,
   satisfiesSets,
+  aurasPropresParRunes,
+  optionsDeClassement,
   sortCandidates,
   totalPairCount,
   trancheReallocation,
@@ -63,6 +65,10 @@ import { PARALLEL_PAIRING_THRESHOLD } from '../../src/workers/parallelPairing';
 import { driveParallelPairing } from '../../src/workers/parallelPairing';
 import { RuneDetail } from '../../src/types';
 import { drain } from './drain';
+import { buildRealDamageContext } from './realDamageCli';
+import { loadMonstersList } from './monstersData';
+import { DEFAULT_DAMAGE_SETUP } from '../../src/lib/damage';
+import { etatReliqueDuBuild } from '../../src/lib/relicQueue';
 import { ConfigResolue, resoudreConfig } from './diagnosticConfig';
 import { ensurePairSliceBundle, makeSpawnSliceNode } from './spawnSliceNode';
 import { construireMoitiesEnParallele, ensureBuildHalfBundle } from './buildHalvesNode';
@@ -372,6 +378,9 @@ async function deroulerHarnais(
   if (arretApres === 'demi-builds') return resultat;
 
   resultat.completude = evaluerCompletude(dernier.resultat!, dernier.totalPairs!, resolue.params);
+  if (dernier.resultat!.traceur) resultat.traceCandidat = dernier.resultat!.traceur;
+  // Le résultat brut, entier — voir `ResultatHarnais.brut` (lot 6 bis).
+  resultat.brut = dernier.resultat;
 
   // ⚠️ Le classement complet n'est payé que s'il sert : un `--arret=appariement`
   // sans build cible n'a rien à classer.
@@ -985,7 +994,10 @@ async function unPassage(
   /** §5.6 — les SIX identifiants du build cible, ou `null` : sans cible, rien à découvrir. */
   cibleComplete: number[] | null = null
 ): Promise<Passage> {
-  const params = resolue.params;
+  // ⚠️ Le traceur (lot 5a) est un instrument de diagnostic posé sur une COPIE
+  // des paramètres — la recette reste la vérité prod ; sans cible complète,
+  // `resolue.params` passe tel quel.
+  const params: SearchParams = cibleComplete ? { ...resolue.params, traceur: { runeIds: cibleComplete } } : resolue.params;
   const t0 = performance.now();
 
   // ── Phase A : préparation, observée étage par étage.
@@ -1047,7 +1059,7 @@ async function unPassage(
   const observateur = cibleComplete ? new ObservateurDecouverte(cibleComplete, totalPairs) : null;
   const resultat =
     regime === 'parallele'
-      ? await apparierEnParallele(params, prepared, bucketsA, bucketsB, cheminBundleTranches!, observateur)
+      ? await apparierEnParallele(params, prepared, bucketsA, bucketsB, totalPairs, cheminBundleTranches!, observateur)
       : observateur
         ? drainEnObservant(pairBuckets(prepared, bucketsA, bucketsB), observateur)
         : drain(pairBuckets(prepared, bucketsA, bucketsB));
@@ -1073,6 +1085,7 @@ async function apparierEnParallele(
   prepared: PreparedSearch,
   bucketsA: Bucket[],
   bucketsB: Bucket[],
+  totalPairs: number,
   cheminBundle: string,
   observateur: ObservateurDecouverte | null
 ): Promise<SearchResult> {
@@ -1093,6 +1106,9 @@ async function apparierEnParallele(
     prepared,
     bucketsA,
     bucketsB,
+    // Le même `totalPairs` que celui qui a choisi le régime : la fusion en
+    // déduit qu'une tranche arrêtée sur son quota a laissé des paires.
+    totalPairs,
     (explored, found, newCandidates) => {
       cumul = found;
       observateur?.observer(explored, newCandidates, cumul);
@@ -1430,7 +1446,7 @@ function appariementBuildCible(
   const bA = bucketsA[placeA.compartiment];
   const bB = bucketsB[placeB.compartiment];
   const comboA = bA.combos[placeA.combo];
-  const { distinctKeys, requirement, minEntries, maxEntries, guaranteed, guaranteedMin, relPct, artFlatMax, artFlatMin, totalOf } = prepared;
+  const { distinctKeys, requirement, minEntries, maxEntries, guaranteed, guaranteedMin, relPctMax, relPctMin, artFlatMax, artFlatMin, totalOf } = prepared;
 
   if (!satisfiesSets(bA.counts, bA.jokers, bB.counts, bB.jokers, distinctKeys, requirement)) {
     return {
@@ -1451,7 +1467,7 @@ function appariementBuildCible(
         'sertissable par monstre. ⚠️ Élagage SÛR — ce build n’est pas équipable en jeu.',
     };
   }
-  if (!bucketPairFeasibleMin(bA, bB, minEntries, guaranteedMin, relPct, artFlatMax, totalOf)) {
+  if (!bucketPairFeasibleMin(bA, bB, minEntries, guaranteedMin, relPctMax, artFlatMax, totalOf)) {
     return {
       ...commun,
       arreteA: 'borne-compartiment',
@@ -1461,7 +1477,7 @@ function appariementBuildCible(
         'demi-build en particulier.',
     };
   }
-  if (!comboAFeasible(comboA, bB, minEntries, maxEntries, guaranteed, guaranteedMin, relPct, artFlatMax, totalOf, artFlatMin)) {
+  if (!comboAFeasible(comboA, bB, minEntries, maxEntries, guaranteed, guaranteedMin, relPctMax, artFlatMax, totalOf, artFlatMin, relPctMin)) {
     return {
       ...commun,
       arreteA: 'borne-comboA',
@@ -1608,7 +1624,10 @@ function etatCompletude(completude: Completude | null): string {
   if (completude.incoherence) {
     return `⚠️ Run INCOHÉRENT (${compte}) — annoncé complet sans avoir parcouru tout l’espace, motif NON déductible.`;
   }
-  if (!completude.complet) return `⚠️ Run TRONQUÉ (motif : ${completude.motif}, ${compte}).`;
+  if (!completude.complet) {
+    const glose = completude.motif === 'quotaTranche' ? ' — une tranche parallèle a atteint sa part du plafond de candidats' : '';
+    return `⚠️ Run TRONQUÉ (motif : ${completude.motif}${glose}, ${compte}).`;
+  }
   return `✅ Run COMPLET (${compte}) : tout l’espace a été parcouru.`;
 }
 
@@ -1798,13 +1817,19 @@ function divergence(
  * ----------------------------------------------------------------------- */
 
 /**
- * ⚠️ **`SearchResult` ne porte pas le motif de troncature**, juste un
- * booléen. On le déduit SANS toucher au moteur, par la règle déjà prouvée et
- * documentée dans `combineParallelPairingResults` : `pairBuckets` teste le
+ * ⚠️ **Le motif se LIT quand le résultat le porte** (`motifTroncature`,
+ * depuis degats-et-aura 6bis-b7) : c'est le cas du résultat fusionné du
+ * régime parallèle, le seul qui puisse être tronqué par le quota d'UNE
+ * tranche (`quotaTranche`) avec moins de candidats que le plafond global. Le
+ * déduire ici rendait « maxMs » — faux.
+ *
+ * Sinon (régime séquentiel, `pairBuckets` nu) il se DÉDUIT, par la règle
+ * prouvée dans `combineParallelPairingResults` : `pairBuckets` teste le
  * budget-TEMPS *avant* de pousser un candidat et ne tronque par quota
  * qu'*après* un push. Donc au moment où `truncated` sort vrai, le nombre de
  * candidats vaut exactement le plafond si la cause est le quota, et
- * strictement moins si c'est le temps.
+ * strictement moins si c'est le temps. Exacte en séquentiel, où le plafond
+ * de `pairBuckets` EST le plafond global.
  */
 export function evaluerCompletude(resultat: SearchResult, totalPairs: number, params: SearchParams): Completude {
   const plafond = params.maxCollected!;
@@ -1826,7 +1851,9 @@ export function evaluerCompletude(resultat: SearchResult, totalPairs: number, pa
     // recherche n'est pas complète ; on ne sait PAS pourquoi — la déduction
     // quota/temps ne vaut que quand `truncated` sort vrai, et il est faux
     // ici. Inventer `maxMs` par défaut serait un diagnostic inventé.
-    motif: annonceComplet ? undefined : resultat.candidates.length >= plafond ? 'maxCollected' : 'maxMs',
+    motif: annonceComplet
+      ? undefined
+      : resultat.motifTroncature ?? (resultat.candidates.length >= plafond ? 'maxCollected' : 'maxMs'),
     explored: resultat.explored,
     totalPairs,
   };
@@ -1979,14 +2006,40 @@ export const TAILLE_TOP_RENDU = 20;
  * candidats collectés, un build au rang 250 lu dans un top-20 déjà coupé
  * serait indistinguable d'un build ABSENT. La troncature à `TAILLE_TOP_RENDU`
  * est le fait de l'AFFICHAGE, pas du classement.
+ *
+ * ⚠️ **« Dégâts réels » exige son contexte** (sort, passifs, adversaire),
+ * construit comme le CLI (`buildRealDamageContext`, `optimizer-search.ts`).
+ * Il manquait ici jusqu'à degats-et-aura 6bis-b4 : `sortCandidates` laisse
+ * alors l'ordre de COLLECTE, sans lever — et la sortie annonçait « classés
+ * par sortCandidates » un top 20 qui n'était pas classé.
  */
-function classer(
+export function classer(
   candidats: BuildCandidate[],
   resolue: ConfigResolue
 ): { classes: BuildCandidate[]; total: (c: BuildCandidate) => number } {
   const runeById = new Map(resolue.poolInitial.map((r) => [r.id, r]));
   const objectif = resolue.recette?.objective ?? resolue.params.objective ?? 'efficience';
-  const classes = sortCandidates(candidats, objectif, { runeById, metric: resolue.params.metric });
+  const realDamage =
+    resolue.recette && resolue.monstre
+      ? buildRealDamageContext(resolue.recette, resolue.monstre.com2usId, resolue.params.artifacts)
+      : null;
+  // ⚠️ Le producteur MÊME du CLI et de l'écran (`optionsDeClassement`,
+  // 6bis-b5a), avec les mêmes choix que le CLI : paire de `params.artifacts`
+  // pour tous, relique de la fiche (`params.relic`) en `off`/`equipped`,
+  // neutre en `recherche` (aucune résolution par build ici non plus).
+  const setup = resolue.recette?.damageSetup ?? DEFAULT_DAMAGE_SETUP;
+  const element = resolue.monstre ? (loadMonstersList().find((m) => m.com2usId === resolue.monstre!.com2usId)?.element ?? null) : null;
+  const classes = sortCandidates(candidats, objectif, optionsDeClassement({
+    realDamage,
+    runeById,
+    metric: resolue.params.metric,
+    damageSetup: setup,
+    // Auras propres des six runes de chaque candidat (6bis-b2), comme l'écran.
+    aurasPropresDe: aurasPropresParRunes(runeById),
+    artefactsDuBuild: () => null,
+    etatReliqueDe: () => etatReliqueDuBuild(undefined, resolue.params.relicContext, resolue.params.relic),
+    contexteExclusive: { setup, element },
+  }));
   // ⚠️ `candidateMetricTotal` recalcule depuis les VRAIES runes dans la
   // mesure courante — jamais `effTotal`, figé au moment de la recherche. Il
   // est appliqué à la DEMANDE, pas à toute la liste : le classement peut

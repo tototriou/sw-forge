@@ -314,6 +314,83 @@ export interface OptimizerListMember {
 }
 
 /* --------------------------------------------------------------------------
+ * Plusieurs exemplaires Box d'une même espèce dans une liste (lot EX de
+ * degats-et-aura, décision de l'utilisateur du 2026-10-04). Les membres sont
+ * repérés par EXEMPLAIRE depuis le lot 3 (`exclusionSelectorKey`, Box =
+ * `box:<unitKey>`) : rien n'empêchait deux exemplaires dans la même liste,
+ * c'est le chemin à l'écran qui manquait. Choisir l'espèce prend le premier
+ * exemplaire Box, le bouton affichait « Déjà dans », désactivé, et rien ne
+ * disait qu'un autre exemplaire existait. Fonctions pures, testées par
+ * tests/liste-exemplaires.test.ts ; l'écran ne fait que les brancher.
+ * ----------------------------------------------------------------------- */
+
+// Le premier exemplaire Box, dans l'ordre de `candidatsBox` (celui de la zone
+// D), qu'aucun membre de `membresListe` ne désigne. ⚠️ `membresListe` = les
+// membres de la SEULE liste visée : un exemplaire présent dans une autre liste
+// reste ajoutable ici.
+export function exemplaireBoxHorsListe(
+  candidatsBox: readonly ExclusionCandidate[],
+  membresListe: readonly OptimizerListMember[]
+): ExclusionCandidate | null {
+  const pris = new Set(membresListe.map((m) => exclusionSelectorKey(m.selector)));
+  return candidatsBox.find((c) => !pris.has(exclusionSelectorKey(c.selector))) ?? null;
+}
+
+export interface EtatAjoutListe {
+  libelle: string;
+  actif: boolean;
+  // Non nul seulement quand l'exemplaire affiché est déjà membre et qu'un
+  // autre exemplaire Box de l'espèce ne l'est pas : le clic affiche CET
+  // exemplaire puis l'ajoute, au lieu de l'exemplaire affiché.
+  exemplaireSuivant: ExclusionCandidate | null;
+}
+
+// État du bouton « Ajouter à la liste » de la zone C. Les libellés existants
+// sont repris tels quels ; seul le cas « déjà membre, un autre exemplaire Box
+// absent » est nouveau (contrat A du lot EX).
+export function etatAjoutListe(p: {
+  // Nom de l'espèce affichée ; `null` : aucun monstre choisi.
+  monstre: string | null;
+  // Exemplaire affiché ; `null` : aucun, ou pas encore désambiguïsé (zone D).
+  selecteur: ExclusionSelector | null;
+  listeActiveId: string | null;
+  nomListe: string;
+  // Membres de TOUTES les listes : le filtre sur la liste active est ici.
+  membres: readonly OptimizerListMember[];
+  // Exemplaires Box de l'espèce affichée, dans l'ordre de la zone D.
+  candidatsBox: readonly ExclusionCandidate[];
+}): EtatAjoutListe {
+  if (p.monstre == null || p.selecteur == null) return { libelle: 'Ajouter à la liste', actif: false, exemplaireSuivant: null };
+  const membresListe = p.listeActiveId == null ? [] : p.membres.filter((m) => m.listId === p.listeActiveId);
+  const cle = exclusionSelectorKey(p.selecteur);
+  if (membresListe.some((m) => exclusionSelectorKey(m.selector) === cle)) {
+    // ⚠️ « Un autre exemplaire » seulement si l'exemplaire AFFICHÉ vient de la
+    // Box (lot EX2, décision du 2026-10-04) : affiché depuis RTA ou le siège,
+    // l'exemplaire Box proposé pouvait être le même monstre physique, et
+    // « un autre exemplaire » aurait été faux.
+    const suivant = p.selecteur.source === 'box' ? exemplaireBoxHorsListe(p.candidatsBox, membresListe) : null;
+    return suivant
+      ? { libelle: `Ajouter un autre exemplaire de ${p.monstre} à « ${p.nomListe} »`, actif: true, exemplaireSuivant: suivant }
+      : { libelle: `Déjà dans « ${p.nomListe} »`, actif: false, exemplaireSuivant: null };
+  }
+  const suffixe = p.selecteur.source === 'unowned' ? ' (non possédé)' : '';
+  return {
+    libelle: p.listeActiveId != null
+      ? `Ajouter ${p.monstre}${suffixe} à « ${p.nomListe} »`
+      : `Créer une liste et y ajouter ${p.monstre}${suffixe}`,
+    actif: true,
+    exemplaireSuivant: null,
+  };
+}
+
+// Libellé d'une puce de source (Box, RTA, Défenses siège, Offenses siège) :
+// `{source} · {n}` dès deux exemplaires de l'espèce dans cette source (contrat
+// B du lot EX) ; zéro ou un, le libellé reste celui de la source.
+export function libellePuceSource(libelle: string, nombre: number): string {
+  return nombre >= 2 ? `${libelle} · ${nombre}` : libelle;
+}
+
+/* --------------------------------------------------------------------------
  * Runes VALIDÉES — « Monstres déjà runés » (fusionné dans la zone C d'une
  * liste, Lot 3). 3ᵉ mécanisme d'exclusion, distinct des deux ci-dessus : ni
  * un périmètre entier (AUTO), ni une entrée du compte lue dynamiquement

@@ -560,6 +560,15 @@ quand 11 commence, le téléphone de l'Optimizer attend 9a, le reste avance.
    `#/…`. Sortie JSON triée, déterministe (deux exécutions = même octet).
 2. `spec/chantiers/refonte-graphique-preuves/inventaire-reference.json` —
    l'inventaire de `6110609`, figé.
+   *Fusion de la v1.14.0 (2026-10-05)* : la livraison arrivée sur `main`
+   pendant la refonte a changé l'interface de son côté (reliques sorties de
+   `MonsterGear` dans `RelicSlot`, carte des dégâts refaite, réglages
+   d'artéfacts de l'Optimizer…). Son **delta exact** — inventaire de la base
+   commune `838641e8` → `main` `a1a5ecda` — est reporté dans la référence :
+   61 entrées retirées, 142 ajoutées, rien d'autre. Ce ne sont pas des
+   retraits de la refonte (A.2 bis), mais les décisions de la livraison ; les
+   ajouts deviennent protégés comme le reste. Contrôlé à la fusion : aucune
+   entrée présente dans `main` n'est absente de l'arbre fusionné.
 3. `spec/chantiers/refonte-graphique-preuves/deplacements.json` — vide au
    départ : `{ "<entrée>": { "de": "<fichier>", "vers": "<fichier>" } }`,
    ou `{ "de": "<fichier>", "retrait": "A.2 bis #<n>" }` quand Thomas a

@@ -162,7 +162,7 @@ Spec : [`spec/shared/librairie-ui.md`](spec/shared/librairie-ui.md).
 | `Champ.tsx` / `NumberField.tsx` | saisie texte / numérique (⚠️ jamais `type="number"`) |
 | `Selecteur.tsx` | liste déroulante |
 | `Case.tsx` / `Interrupteur.tsx` | à cocher / à glissière |
-| `Option.tsx` | choix riche : icône + titre + explication |
+| `Option.tsx` | choix riche : icône + titre + explication ; action optionnelle juste à droite du titre (`actionTitre`, hors du bouton principal : le « ? » d'une prose de sort) |
 | `Dialogs.tsx` | `Modale` (portalisée), `ConfirmDialog`, `PromptDialog`, `KeepAccountDialog` |
 | `PiedDeDialogue.tsx` | la rangée d'actions d'un dialogue |
 | `Flottant.tsx` / `FlottantAuto.tsx` | surface ancrée ; la variante **mesure et choisit son côté avant peinture** |
@@ -216,6 +216,7 @@ dans un composant.
 | Vitesse & stats | `speed.ts` (source de vérité), `stats.ts` |
 | Speed tuning | `speedTune.ts` (moteur de ticks), `speedTuneLignes.ts` (modèle de l'écran), `speedTuneAuto.ts` (analyse partagée outil/siège), `speedTuneKit.ts` + `speedTunePassif.ts` (lecture des kits), `speedTuneDeck.ts` (import d'un deck), `siegeStatut.ts` (statut d'une équipe de siège) |
 | Runes | `runeOptim.ts`, `runeBuildOptim.ts`, `runeSort.ts`, `runeCurveShare.ts` |
+| Reliques | `relicOptim.ts` (choix de la meilleure relique pour un build, pertinence et dominance structurelle — `forge/implementation-relique`, lot 3) ; `relicQueue.ts` (résolution EXACTE de l'équipement d'un build — paire d'artéfacts ET relique, ensemble — la partie pure de la file `useArtifactOptimQueue`, et l'état de la relique d'un candidat pour l'écran — lot 5b) |
 | Tri | `tri.ts` (le SENS d'un tri, partagé par toutes les listes) |
 | Artéfacts | `artifacts.ts` |
 | Import de compte | `importAccount.ts` (parse SWEX), `applyAccount.ts` (→ états), `accountStore.ts` (IndexedDB), `accountViews.ts` |
@@ -273,6 +274,7 @@ Source de vérité du rendu : [`spec/shared/design.md`](spec/shared/design.md).
   routes) comparé à une référence figée ; `scripts/chemins-interdits.mjs` —
   ce qu'un lot de refonte ne touche pas. Chantier
   `spec/chantiers/refonte-graphique.md`.
+- `scripts/lib/relicOracle.ts` — oracle de contrôle de la dimension relique : N recherches du moteur réel, une par principale éligible distincte, et point d'entrée CLI pour les mesures du chantier.
 - `src/data/releases.ts` — le journal des versions, lu par l'accueil **et** la
   page Nouveautés.
 

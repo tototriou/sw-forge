@@ -122,9 +122,9 @@ Claude Code et Codex peuvent travailler en même temps, chacun dans **son
 worktree** et sur **sa branche** `forge/<sujet>`. Cadrage complet :
 [spec/chantiers/orchestration-parallele.md](spec/chantiers/orchestration-parallele.md).
 
-⚠️ **Toute nouvelle branche part d'une branche qui porte ce dispositif.**
-Sinon `chantier`, le hook source et cette section-ci n'existent pas dans
-l'arbre de travail, et un agent qui démarre ne sait rien de ce qui suit.
+⚠️ **Toute nouvelle branche part de main**
+(`git fetch origin && git switch -c forge/<sujet> origin/main`) — main
+porte le dispositif depuis la v1.13.0 ; on n'y travaille jamais, on en part.
 
 ⚠️ **Deux sortes de worktree, deux règles opposées sur `node_modules`** — un
 worktree de **chantier** (durable, on y travaille) prend un `npm ci` ; un
@@ -155,6 +155,31 @@ changerait ce qu'on mesure. Détail : cadrage §2.1.
   node "$(git rev-parse --git-common-dir)/forge/installation/scripts/chantier.mjs" \
     verifier --chantier <sujet>
   ```
+  Verrous (lot O, incident du 2026-09-23) : `ouvrir` remplace des notes
+  locales en retard sur la base, après sauvegarde, et refuse celles qu'il ne
+  sait pas situer ; `livrer` refuse tant que la branche documentaire porte un
+  contenu que les notes locales n'ont pas reçu. `livrer --simulation` montre
+  le verdict sans rien écrire.
+  ⚠️ **Un agent ne lance JAMAIS `--adopter` de lui-même**, même si le message
+  de refus le propose : `livrer --adopter` retire de la branche documentaire
+  ce que les notes locales n'ont pas, exactement comme l'incident. Face à un
+  refus : s'arrêter, lancer `livrer --simulation`, montrer à l'utilisateur la
+  liste de ce qui serait retiré, et n'adopter que sur sa décision explicite,
+  une fois la fusion manuelle faite.
+- **Codex sur Windows : un refus de la sandbox n'est pas un échec du chantier.**
+  Si Git signale `dubious ownership` sur le worktree documentaire ou refuse
+  `.git/index.lock`, ou si esbuild échoue sur `Cannot read directory ...:
+  Access is denied` avant les tests, relever l'erreur puis relancer **la seule
+  commande concernée** hors sandbox sous l'identité Windows propriétaire,
+  avec l'approbation ponctuelle de l'outil Codex
+  (`sandbox_permissions: "require_escalated"`). Cela vaut aussi pour
+  `chantier livrer`/`verifier`/`integrer` et `hooks-codex pause` lorsqu'ils
+  rencontrent ce refus. Ne pas modifier `safe.directory` globalement, élargir
+  les ACL ni désactiver la sandbox pour toute la session : l'exception Git ne
+  donnerait d'ailleurs pas les droits d'écriture. Si l'approbation échoue ou
+  n'est pas disponible, s'arrêter et signaler exactement ce qui reste non
+  exécuté (reçu périmé, pause non inscrite, test non lancé). Procédure :
+  [orchestration-parallele.md § 5](spec/chantiers/orchestration-parallele.md).
 - **`integrer` fait avancer la référence des notes**, et il ne dépend PAS du
   sort du code : `chantier integrer --chantier <sujet>` fusionne la branche du
   chantier dans le `main` documentaire dès que le reçu passe, puis pousse. À
@@ -250,8 +275,11 @@ ce piège s'est reproduit alors qu'il était déjà connu. D'où deux défauts
   … message, backticks compris …
   FIN
   ```
-  `<<'FIN'` entre apostrophes = aucune expansion. En PowerShell, l'équivalent
-  est le here-string `@'…'@` (voir la description de l'outil PowerShell).
+  `<<'FIN'` entre apostrophes = aucune expansion. **En PowerShell, pas de
+  here-string** : envoyé par un tube (`@'…'@ | git commit -F -`), il a déjà
+  glissé un BOM en tête d'un message, et passé en argument, git le prend
+  pour un chemin. Écrire le message dans un fichier (UTF-8 sans BOM, par
+  l'outil `Write`), puis `git commit -F <fichier>`.
 - **Un script ne se lance jamais en ligne** (`node -e "…"`) : il s'écrit dans
   un fichier du scratchpad et se lance par son chemin. Vaut aussi pour un
   fichier du dépôt à modifier — passer par l'outil `Edit`, pas par un `sed`
@@ -267,9 +295,21 @@ l'action ne dépend d'aucune vigilance.
 ⚠️ Le script est suivi par git, son **câblage** est dans `.claude/settings.json`
 (ignoré, propre à chaque machine) : à recopier pour en bénéficier.
 ⚠️ Portée **étroite et assumée** : ni `node -e` (ses usages sans backtick sont
-sûrs et fréquents), ni `gh pr create --body`, ni `sed -i`. Couvrir la classe
+sûrs et fréquents), ni `gh pr create --body`. Couvrir la classe
 entière demanderait une analyse de quoting bash aux faux positifs permanents,
 `$(…)` étant une construction légitime.
+
+⚠️ **La seconde puce est appliquée pour `sed -i`** par un second hook,
+`PreToolUse` sur `Bash` **et** `PowerShell` :
+[.claude/hooks/refuse-sed-i.mjs](.claude/hooks/refuse-sed-i.mjs) refuse `sed`
+lancé avec une option en place (`-i`, `-i.bak`, `-Ei`, `--in-place`, derrière
+`find -exec` ou `xargs` compris), jamais le texte « sed -i » cité ni un corps
+de heredoc. Raison d'être : trois sous-agents de suite l'ont lancé malgré le
+brief (chantier degats-et-aura, octobre 2026), et un `sed -i` raté ne signale
+rien — décision de l'utilisateur du 2026-10-04. Test :
+`node tests/run.mjs hookrefusesedi`. Câblage dans `.claude/settings.json`
+(deux entrées : `Bash`, `PowerShell`), à recopier comme le premier. Côté
+Codex, non couvert.
 
 ### Un `Read` sans offset sur une grosse spec est refusé
 

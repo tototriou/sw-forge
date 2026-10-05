@@ -8,7 +8,7 @@ import { bilan } from './outils';
 import testImport from './import.test';
 import testNavigation from './navigation.test';
 import testPersistance from './persistance.test';
-import testMeules, { testPalier, testRegistre, testSansDowngrade } from './meules.test';
+import testMeules, { testGemmeMemeStat, testRegemmeDifferent, testReserveParGrade, testPalier, testRegistre, testSansDowngrade } from './meules.test';
 import testArtefacts from './artefacts.test';
 import testArtefactOptim, {
   testRecettePartagee,
@@ -17,7 +17,28 @@ import testArtefactOptim, {
   testAmpliMaxAtteignable,
 } from './artefact-optim.test';
 import testArtefactFile from './artefact-file.test';
-import testArtifactEvaluation, { testArtifactPaireReelleEhp } from './artifact-evaluation.test';
+import testArtifactEvaluation, { testArtifactPaireReelleEhp, testArtifactPaireReelleDegatsEffetUnique } from './artifact-evaluation.test';
+import { testResolutionProducteurPartage, testClassementResolu } from './resolution-partagee.test';
+import { testResolutionCaches } from './resolution-caches.test';
+import { testResolutionWorker } from './resolution-worker.test';
+import { testResolutionDistante } from './resolution-distante.test';
+import { testCliClassementParMode } from './cli-classement.test';
+import { testKDeLaFile } from './file-k.test';
+import { testCompteAffichable } from './compte-affichable.test';
+import { testVoieDeLaFile } from './file-voie.test';
+import { testCompositionDePage } from './composition-page.test';
+import { testFileConfirmees } from './file-confirmees.test';
+import { testCompteConfirme } from './compte-confirme.test';
+import { testVerifierToutes } from './verifier-toutes.test';
+import { testProsesSortAuClic, testEffetsActifsInfobulle } from './proses-sort.test';
+import { testProseStatsCombat, testProseStatsCombatCarte, testProseStatsCombatPassifMasque } from './prose-stats-combat.test';
+import { testBuffsDePassifTable, testBuffsDePassifRappel, testBuffsDePassifEcran } from './buffs-de-passif.test';
+import { testCalculPartielTable, testCalculPartielAffichage, testCalculPartielEcran } from './calcul-partiel.test';
+import testArtifactConditionFloor from './artifact-condition-floor.test';
+import { testArtefactsFichePoints, testArtefactsFicheConqueteTenacite, testArtefactsFicheCache } from './artifact-fiche.test';
+import { testArtefactsFicheDifferentiel } from './artifact-fiche-recherche.test';
+import { testArtefactsFicheParamsEcran, testArtefactsFicheParamsCliVerrous, testArtefactsFicheParamsDifferentiel } from './artifact-params-fiche.test';
+import testArtifactRelicConditionFloor from './artifact-relic-condition-floor.test';
 import testReco, {
   testTrimPartage,
   testDefensesVisees,
@@ -27,17 +48,69 @@ import testReco, {
   testFormesJouables,
 } from './reco.test';
 import testRtaPartage from './rta-partage.test';
-import testChantier, { testChantierDeuxChantiers, testHooksCodex, testChantierLintNotes, testChantierRafraichir } from './chantier.test';
+import testChantier, {
+  testChantierDeuxChantiers,
+  testHooksCodex,
+  testChantierLintNotes,
+  testChantierRafraichir,
+  testChantierIncidentNotesEnRetard,
+  testChantierOuvrirCas,
+  testChantierLivrerGarde,
+  testChantierReprises,
+  testChantierMigration,
+} from './chantier.test';
+import testHookRefuseSedI from './hook-refuse-sed-i.test';
 import testCouleursCourbes from './courbe-couleurs.test';
 import testRechargement from './rechargement.test';
 import testCollabPaires from './collab-paires.test';
 import testDegats, { testFormesEquivalentes } from './degats.test';
 import testAuditDegatsConditionnels from './audit-degats-conditionnels.test';
+import { testCritiqueMoyenneImport, testCritiqueMoyenneEcranEtCli, testCritiqueMoyenneMessageImport } from './critique-moyenne-supprime.test';
+import {
+  testDegatsTempestFormule,
+  testDegatsTempestDeclenchement,
+  testDegatsTempestCommeSort,
+  testDegatsTempestRecette,
+  testDegatsTempestEcran,
+} from './degats-tempest.test';
+import testDegatsBladeSurge from './degats-blade-surge.test';
+import { testDegatsSequencesApi, testDegatsFormulesApi, testDegatsPorteesParLaProse } from './degats-valeurs-api.test';
+import testDegatsSortsSansAttaque from './degats-sorts-sans-attaque.test';
+import { testDegatsCoupsSaisis } from './degats-coups-saisis.test';
+import {
+  testBornesStrictesDef,
+  testResumeConditionDef,
+  testGarantieByungchul,
+  testGarantieYujiRick,
+  testResumeConditionDebuff,
+} from './degats-garanties-bornes.test';
+import { testVitCiriBirgitta, testTheoniaAtqCible } from './degats-vit-atq-cible.test';
+import { testCouvertureGarantiesCritique, testCouvertureBonusCritique, testCouvertureIgnoreDefIdentifiants, testCouvertureVariablesFormule, testCouvertureConditionsSort, testCouvertureStatsCombat } from './degats-couverture-livraisons.test';
+import {
+  testBladeSurgeRecette,
+  testBladeSurgeEcran,
+  testBladeSurgePariteEcranCli,
+  testBladeSurgeResumeObjectif,
+  testBladeSurgeLigneArtifactSearch,
+} from './blade-surge-propagation.test';
+import { testRecetteClesIdentifiant } from './recette-cles-identifiant.test';
+import testBladeDancersIgnoreDef,{ testBladeDancersRecette, testBladeDancersEcranEtCli } from './blade-dancers.test';
+import {
+  testLot12SequenceDeCoups,
+  testLot12AttaqueDeclenchee,
+  testLot12IgnoreDefDepuisUnCoup,
+  testLot12PassifMasqueEtStatsDeCombat,
+} from './degats-lot12.test';
+import {
+  testAttaqueAppeleeApprovisionnement,
+  testAttaqueAppeleeCouverture,
+  testAttaqueAppeleeEspaceDeCles,
+} from './degats-attaque-appelee.test';
 import testRuneOptim from './rune-optim.test';
 import testRuneOptimDifferential from './rune-optim-differential.test';
 import testRuneOptimOnStage from './rune-optim-onstage.test';
 import testRandomPool from './random-pool.test';
-import testDiagnosticHarness from './diagnostic-harness.test';
+import testDiagnosticHarness, { testDiagnosticHarnessClassementDegatsReels } from './diagnostic-harness.test';
 import testDiagnosticProfils from './diagnostic-profils.test';
 import testDiagnosticDifferentiel from './diagnostic-differentiel.test';
 import testDiagnosticDecouverte from './diagnostic-decouverte.test';
@@ -48,7 +121,43 @@ import testRuneOptimNearMiss from './rune-optim-near-miss.test';
 import testRuneOptimDeadHalfPruning from './rune-optim-dead-half-pruning.test';
 import testFilterSlotTopK from './rune-optim-filterslot-topk.test';
 import testOptimizerExclusion from './optimizer-exclusion.test';
+import { testListeExemplaires } from './liste-exemplaires.test';
 import testOptimizerRecipeImportSelection from './optimizer-recipe-import-selection.test';
+import testOptimizerDamageTransitions from './optimizer-damage-transitions.test';
+import { testAurasRecette, testAurasCombatEtExclusive, testAurasArrondiCommunLeadInvocateur, testAurasChoixEffectifReliqueEhp, testAurasPassifEtAdditionnel, testAurasEhpEtConditions, testAurasReliqueFinaleEtDiagnostics, testAurasPariteEcranCliEtCache, testAurasRechercheDifferentielle, testAurasPropresResolution, testAurasPropresCombatEtScore, testAurasPvEffectifsCeilUnique, testAurasPropresNoteDesCouples, testAurasConditionsPropresFonctions, testAurasConditionsPropresResolution, testAurasConditionsPropresPairBuckets, testAurasCarteEgaleTri, testAurasPariteRegimes } from './auras-modele.test';
+import { testAurasEcranBornes, testAurasEcranEcriture, testAurasEcranValidationPartagee, testAurasEcranEcho, testAurasEcranInterrupteur, testAurasEcranRappel, testAurasEcranGuidage } from './auras-ecran.test';
+import {
+  testRuneOptimAurasCoupesMinimum,
+  testRuneOptimAurasCoupesDiagnostics,
+  testRuneOptimAurasCoupesRetention,
+  testRuneOptimAurasCoupesBladeIntangible,
+  testRuneOptimAurasCoupesDifferentiel,
+  testRuneOptimAurasCoupesDominance,
+} from './rune-optim-auras-coupes.test';
+import {
+  testDominanceReliqueCasMinimal,
+  testDominanceReliqueCouverture,
+  testDominanceReliqueRecherche,
+  testDominanceReliqueTemoins,
+  testDominanceReliqueWorkers,
+  testDominanceReliqueDifferentiel,
+  testDominanceReliqueDifferentielCible,
+} from './rune-optim-dominance-relique.test';
+import {
+  testDominanceLignesQuatrePorteurs,
+  testDominanceLignesJoker,
+  testDominanceLignesLibre,
+  testDominanceLignesProducteurs,
+  testDominanceLignesWorkers,
+} from './rune-optim-dominance-lignes.test';
+import testRelicOptim from './relic-optim.test';
+import testRelicOracle, { testRelicOracleGroupesEffetUnique, testRelicOracleOptimumParScore } from './relic-oracle.test';
+import testRelicSearch from './relic-search.test';
+import testRelicQueue from './relic-queue.test';
+import testPerfRelicOptions from './perf-relic-options.test';
+import testRelicDifferentiel from './relic-differentiel.test';
+import testRelicUniqueLabel from './relic-unique-label.test';
+import testRelicExclusive, { testDepartageReliquePortee, testRelicClassementParMode, testRelicReferenceComparer, testTriParStatSurLaFiche } from './relic-exclusive.test';
 import testSetsIntangible from './sets-intangible.test';
 import testRuneTri from './rune-tri.test';
 import testMonstreTri from './monstre-tri.test';
@@ -89,6 +198,7 @@ import { testRenduTelephoneOutilsRessources } from './rendu/telephone-outils-res
 import { testRenduRtaPrepa, testRenduRtaMenu, testRenduRtaVide, testRenduRtaSauvegarde, testRenduRtaAmi, testRenduRtaIndicateur } from './rendu/rta.test';
 import { testIndicateurSauvegarde } from './indicateur-sauvegarde.test';
 import { testRestauration } from './restauration.test';
+import testSkillAdapters from './skill-adapters.test';
 
 // Chaque vérification sous son NOM, dans l'ordre d'exécution.
 //
@@ -194,6 +304,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testIndicateurSauvegarde', testIndicateurSauvegarde],
   ['testRestauration', testRestauration],
   ['testRenduRtaAmi', testRenduRtaAmi],
+  ['testSkillAdapters', testSkillAdapters],
   ['testImport', testImport],
   ['testNavigation', testNavigation],
   ['testReco', testReco],
@@ -207,8 +318,14 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testChantier', testChantier],
   ['testChantierDeuxChantiers', testChantierDeuxChantiers],
   ['testHooksCodex', testHooksCodex],
+  ['testHookRefuseSedI', testHookRefuseSedI],
   ['testChantierLintNotes', testChantierLintNotes],
   ['testChantierRafraichir', testChantierRafraichir],
+  ['testChantierIncidentNotesEnRetard', testChantierIncidentNotesEnRetard],
+  ['testChantierOuvrirCas', testChantierOuvrirCas],
+  ['testChantierLivrerGarde', testChantierLivrerGarde],
+  ['testChantierReprises', testChantierReprises],
+  ['testChantierMigration', testChantierMigration],
   ['testSetsIntangible', testSetsIntangible],
   ['testRuneTri', testRuneTri],
   ['testMonstreTri', testMonstreTri],
@@ -218,12 +335,56 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testCollabPaires', testCollabPaires],
   ['testDegats', testDegats],
   ['testAuditDegatsConditionnels', testAuditDegatsConditionnels],
+  ['testCritiqueMoyenneImport', testCritiqueMoyenneImport],
+  ['testCritiqueMoyenneEcranEtCli', testCritiqueMoyenneEcranEtCli],
+  ['testCritiqueMoyenneMessageImport', testCritiqueMoyenneMessageImport],
+  ['testDegatsBladeSurge', testDegatsBladeSurge],
+  ['testDegatsSequencesApi', testDegatsSequencesApi],
+  ['testDegatsFormulesApi', testDegatsFormulesApi],
+  ['testDegatsPorteesParLaProse', testDegatsPorteesParLaProse],
+  ['testDegatsSortsSansAttaque', testDegatsSortsSansAttaque],
+  ['testDegatsCoupsSaisis', testDegatsCoupsSaisis],
+  ['testBornesStrictesDef', testBornesStrictesDef],
+  ['testResumeConditionDef', testResumeConditionDef],
+  ['testGarantieByungchul', testGarantieByungchul],
+  ['testGarantieYujiRick', testGarantieYujiRick],
+  ['testResumeConditionDebuff', testResumeConditionDebuff],
+  ['testVitCiriBirgitta', testVitCiriBirgitta],
+  ['testTheoniaAtqCible', testTheoniaAtqCible],
+  ['testCouvertureGarantiesCritique', testCouvertureGarantiesCritique],
+  ['testCouvertureBonusCritique', testCouvertureBonusCritique],
+  ['testCouvertureIgnoreDefIdentifiants', testCouvertureIgnoreDefIdentifiants],
+  ['testCouvertureVariablesFormule', testCouvertureVariablesFormule],
+  ['testCouvertureConditionsSort', testCouvertureConditionsSort],
+  ['testCouvertureStatsCombat', testCouvertureStatsCombat],
+  ['testBladeSurgeRecette', testBladeSurgeRecette],
+  ['testBladeSurgeEcran', testBladeSurgeEcran],
+  ['testBladeSurgePariteEcranCli', testBladeSurgePariteEcranCli],
+  ['testBladeSurgeResumeObjectif', testBladeSurgeResumeObjectif],
+  ['testBladeSurgeLigneArtifactSearch', testBladeSurgeLigneArtifactSearch],
+  ['testBladeDancersIgnoreDef', testBladeDancersIgnoreDef],
+  ['testBladeDancersRecette', testBladeDancersRecette],
+  ['testBladeDancersEcranEtCli', testBladeDancersEcranEtCli],
+  ['testLot12SequenceDeCoups', testLot12SequenceDeCoups],
+  ['testLot12AttaqueDeclenchee', testLot12AttaqueDeclenchee],
+  ['testLot12IgnoreDefDepuisUnCoup', testLot12IgnoreDefDepuisUnCoup],
+  ['testLot12PassifMasqueEtStatsDeCombat', testLot12PassifMasqueEtStatsDeCombat],
+  ['testAttaqueAppeleeApprovisionnement', testAttaqueAppeleeApprovisionnement],
+  ['testAttaqueAppeleeCouverture', testAttaqueAppeleeCouverture],
+  ['testAttaqueAppeleeEspaceDeCles', testAttaqueAppeleeEspaceDeCles],
+  ['testRecetteClesIdentifiant', testRecetteClesIdentifiant],
   ['testFormesEquivalentes', testFormesEquivalentes],
+  ['testDegatsTempestFormule', testDegatsTempestFormule],
+  ['testDegatsTempestDeclenchement', testDegatsTempestDeclenchement],
+  ['testDegatsTempestCommeSort', testDegatsTempestCommeSort],
+  ['testDegatsTempestRecette', testDegatsTempestRecette],
+  ['testDegatsTempestEcran', testDegatsTempestEcran],
   ['testRuneOptim', testRuneOptim],
   ['testRuneOptimDifferential', testRuneOptimDifferential],
   ['testRuneOptimOnStage', testRuneOptimOnStage],
   ['testRandomPool', testRandomPool],
   ['testDiagnosticHarness', async () => { await testDiagnosticHarness(); }],
+  ['testDiagnosticHarnessClassementDegatsReels', testDiagnosticHarnessClassementDegatsReels],
   ['testDiagnosticProfils', async () => { await testDiagnosticProfils(); }],
   ['testDiagnosticDifferentiel', async () => { await testDiagnosticDifferentiel(); }],
   ['testDiagnosticDecouverte', async () => { await testDiagnosticDecouverte(); }],
@@ -234,7 +395,97 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRuneOptimDeadHalfPruning', testRuneOptimDeadHalfPruning],
   ['testFilterSlotTopK', testFilterSlotTopK],
   ['testOptimizerExclusion', testOptimizerExclusion],
+  ['testListeExemplaires', testListeExemplaires],
   ['testOptimizerRecipeImportSelection', testOptimizerRecipeImportSelection],
+  ['testOptimizerDamageTransitions', testOptimizerDamageTransitions],
+  ['testAurasRecette', testAurasRecette],
+  ['testAurasCombatEtExclusive', testAurasCombatEtExclusive],
+  ['testAurasArrondiCommunLeadInvocateur', testAurasArrondiCommunLeadInvocateur],
+  ['testAurasChoixEffectifReliqueEhp', testAurasChoixEffectifReliqueEhp],
+  ['testAurasPassifEtAdditionnel', testAurasPassifEtAdditionnel],
+  ['testAurasEhpEtConditions', testAurasEhpEtConditions],
+  ['testAurasReliqueFinaleEtDiagnostics', testAurasReliqueFinaleEtDiagnostics],
+  ['testAurasPariteEcranCliEtCache', testAurasPariteEcranCliEtCache],
+  ['testAurasRechercheDifferentielle', testAurasRechercheDifferentielle],
+  ['testAurasPropresResolution', testAurasPropresResolution],
+  ['testAurasPropresCombatEtScore', testAurasPropresCombatEtScore],
+  ['testAurasPvEffectifsCeilUnique', testAurasPvEffectifsCeilUnique],
+  ['testAurasPropresNoteDesCouples', testAurasPropresNoteDesCouples],
+  ['testAurasConditionsPropresFonctions', testAurasConditionsPropresFonctions],
+  ['testAurasConditionsPropresResolution', testAurasConditionsPropresResolution],
+  ['testAurasConditionsPropresPairBuckets', testAurasConditionsPropresPairBuckets],
+  ['testAurasCarteEgaleTri', testAurasCarteEgaleTri],
+  ['testAurasPariteRegimes', async () => { await testAurasPariteRegimes(); }],
+  ['testAurasEcranBornes', testAurasEcranBornes],
+  ['testAurasEcranEcriture', testAurasEcranEcriture],
+  ['testAurasEcranValidationPartagee', testAurasEcranValidationPartagee],
+  ['testAurasEcranEcho', testAurasEcranEcho],
+  ['testAurasEcranInterrupteur', testAurasEcranInterrupteur],
+  ['testAurasEcranRappel', testAurasEcranRappel],
+  ['testAurasEcranGuidage', testAurasEcranGuidage],
+  ['testRuneOptimAurasCoupesMinimum', testRuneOptimAurasCoupesMinimum],
+  ['testRuneOptimAurasCoupesDiagnostics', testRuneOptimAurasCoupesDiagnostics],
+  ['testRuneOptimAurasCoupesRetention', testRuneOptimAurasCoupesRetention],
+  ['testRuneOptimAurasCoupesBladeIntangible', testRuneOptimAurasCoupesBladeIntangible],
+  ['testRuneOptimAurasCoupesDifferentiel', testRuneOptimAurasCoupesDifferentiel],
+  ['testRuneOptimAurasCoupesDominance', testRuneOptimAurasCoupesDominance],
+  ['testDominanceReliqueCasMinimal', testDominanceReliqueCasMinimal],
+  ['testDominanceReliqueCouverture', testDominanceReliqueCouverture],
+  ['testDominanceReliqueRecherche', testDominanceReliqueRecherche],
+  ['testDominanceReliqueTemoins', testDominanceReliqueTemoins],
+  ['testDominanceReliqueWorkers', testDominanceReliqueWorkers],
+  ['testDominanceReliqueDifferentiel', testDominanceReliqueDifferentiel],
+  ['testDominanceReliqueDifferentielCible', testDominanceReliqueDifferentielCible],
+  ['testDominanceLignesQuatrePorteurs', testDominanceLignesQuatrePorteurs],
+  ['testDominanceLignesJoker', testDominanceLignesJoker],
+  ['testDominanceLignesLibre', testDominanceLignesLibre],
+  ['testDominanceLignesProducteurs', testDominanceLignesProducteurs],
+  ['testDominanceLignesWorkers', testDominanceLignesWorkers],
+  ['testRelicOptim', testRelicOptim],
+  ['testRelicOracle', testRelicOracle],
+  ['testRelicOracleGroupesEffetUnique', testRelicOracleGroupesEffetUnique],
+  ['testRelicOracleOptimumParScore', testRelicOracleOptimumParScore],
+  ['testRelicSearch', testRelicSearch],
+  ['testRelicQueue', testRelicQueue],
+  ['testPerfRelicOptions', testPerfRelicOptions],
+  ['testRelicDifferentiel', testRelicDifferentiel],
+  ['testRelicUniqueLabel', testRelicUniqueLabel],
+  ['testRelicExclusive', testRelicExclusive],
+  ['testRelicClassementParMode', testRelicClassementParMode],
+  ['testRelicReferenceComparer', testRelicReferenceComparer],
+  ['testTriParStatSurLaFiche', testTriParStatSurLaFiche],
+  ['testDepartageReliquePortee', testDepartageReliquePortee],
+  ['testArtefactsFichePoints', testArtefactsFichePoints],
+  ['testArtefactsFicheConqueteTenacite', testArtefactsFicheConqueteTenacite],
+  ['testArtefactsFicheCache', testArtefactsFicheCache],
+  ['testArtefactsFicheDifferentiel', testArtefactsFicheDifferentiel],
+  ['testArtefactsFicheParamsEcran', testArtefactsFicheParamsEcran],
+  ['testArtefactsFicheParamsCliVerrous', testArtefactsFicheParamsCliVerrous],
+  ['testArtefactsFicheParamsDifferentiel', testArtefactsFicheParamsDifferentiel],
+  ['testResolutionProducteurPartage', testResolutionProducteurPartage],
+  ['testClassementResolu', testClassementResolu],
+  ['testResolutionCaches', testResolutionCaches],
+  ['testResolutionWorker', testResolutionWorker],
+  ['testResolutionDistante', testResolutionDistante],
+  ['testCliClassementParMode', testCliClassementParMode],
+  ['testKDeLaFile', testKDeLaFile],
+  ['testCompteAffichable', testCompteAffichable],
+  ['testVoieDeLaFile', testVoieDeLaFile],
+  ['testCompositionDePage', testCompositionDePage],
+  ['testFileConfirmees', testFileConfirmees],
+  ['testCompteConfirme', testCompteConfirme],
+  ['testVerifierToutes', testVerifierToutes],
+  ['testProsesSortAuClic', testProsesSortAuClic],
+  ['testEffetsActifsInfobulle', testEffetsActifsInfobulle],
+  ['testProseStatsCombat', testProseStatsCombat],
+  ['testProseStatsCombatCarte', testProseStatsCombatCarte],
+  ['testProseStatsCombatPassifMasque', testProseStatsCombatPassifMasque],
+  ['testBuffsDePassifTable', testBuffsDePassifTable],
+  ['testBuffsDePassifRappel', testBuffsDePassifRappel],
+  ['testBuffsDePassifEcran', testBuffsDePassifEcran],
+  ['testCalculPartielTable', testCalculPartielTable],
+  ['testCalculPartielAffichage', testCalculPartielAffichage],
+  ['testCalculPartielEcran', testCalculPartielEcran],
   ['testMeules', testMeules],
   ['testArtefacts', testArtefacts],
   ['testArtefactOptim', testArtefactOptim],
@@ -245,8 +496,14 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testArtefactFile', testArtefactFile],
   ['testArtifactEvaluation', testArtifactEvaluation],
   ['testArtifactPaireReelleEhp', testArtifactPaireReelleEhp],
+  ['testArtifactPaireReelleDegatsEffetUnique', testArtifactPaireReelleDegatsEffetUnique],
+  ['testArtifactConditionFloor', testArtifactConditionFloor],
+  ['testArtifactRelicConditionFloor', testArtifactRelicConditionFloor],
   ['testRegistre', testRegistre],
   ['testSansDowngrade', testSansDowngrade],
+  ['testGemmeMemeStat', testGemmeMemeStat],
+  ['testRegemmeDifferent', testRegemmeDifferent],
+  ['testReserveParGrade', testReserveParGrade],
   ['testPalier', testPalier],
   ['testStockage', async () => { await testStockage(); }],
   ['testPersistance', async () => { await testPersistance(); }],

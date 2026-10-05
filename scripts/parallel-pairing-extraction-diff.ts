@@ -95,6 +95,7 @@ async function main(): Promise<void> {
       prepared,
       bucketsA,
       bucketsB,
+      totalPairs,
       () => {},
       Date.now()
     );

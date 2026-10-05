@@ -10,7 +10,7 @@
 // écarté quoi, quel régime s'est appliqué, pourquoi la recherche s'est
 // arrêtée), jamais un état que le moteur ne produirait pas lui-même.
 
-import { PrepareStage } from '../../src/lib/runeBuildOptim';
+import { MotifTroncature, PrepareStage, SearchResult, TraceCandidat } from '../../src/lib/runeBuildOptim';
 import { ModeChargement } from './chargerRecette';
 
 /* --------------------------------------------------------------------------
@@ -217,10 +217,13 @@ export interface Fidelite {
  * ----------------------------------------------------------------------- */
 
 /**
- * ⚠️ **DEUX motifs, et deux seulement** depuis la piste 8 : le budget de
- * paires n'existe plus.
+ * ⚠️ **TROIS motifs, et trois seulement** : le budget de paires n'existe plus
+ * depuis la piste 8, et `quotaTranche` (une tranche parallèle arrêtée sur sa
+ * part du plafond avec des paires restantes) s'ajoute en degats-et-aura
+ * 6bis-b7. Le type vit dans le moteur, qui le transmet sur le résultat
+ * fusionné : une seule définition.
  */
-export type MotifTroncature = 'maxMs' | 'maxCollected';
+export type { MotifTroncature };
 
 export interface Completude {
   /**
@@ -1160,8 +1163,35 @@ export interface ResultatHarnais {
    * donne `NON_OBSERVABLE`, jamais une cause plausible.
    */
   verdictBuildCible?: VerdictBuildCible;
+  /**
+   * La trace du candidat traceur PRODUITE DANS LE MOTEUR (lot 5a,
+   * `SearchParams.traceur`) : verdict de chaque prédicat de faisabilité
+   * traversé, présence dans chaque structure bornée, compteurs. Présente dès
+   * que six identifiants sont suivis et que l'appariement a eu lieu.
+   * ⚠️ `moities.*.tranches` n'est pas observable ici : le harnais construit
+   * les moitiés dans deux fils (`buildHalvesNode`) qui ne portent pas le
+   * traceur — le reste de la trace est complété par `pairBuckets` depuis les
+   * compartiments reçus.
+   */
+  traceCandidat?: TraceCandidat;
   regime?: { applique: RegimeAppariement; totalPairs: number; seuil: number; force: boolean; explication: string };
   completude?: Completude;
+  /**
+   * Le résultat BRUT de l'appariement du dernier passage (`SearchResult` :
+   * tous les candidats dans l'ordre de collecte, `explored`, `truncated`,
+   * `traceur`) — pour un consommateur qui a besoin de la liste ENTIÈRE, pas
+   * du top coupé `meilleurs` (implementation-relique, lot 6 bis : le
+   * différentiel de fidélité fusionne les N runs de l'oracle et résout TOUS
+   * les candidats relâchés de A ; il passe par le harnais pour hériter du
+   * régime d'appariement décidé comme la production — 4 workers au-delà du
+   * seuil — au lieu du `searchBuilds` toujours séquentiel).
+   *
+   * ⚠️ Ordre de COLLECTE, jamais un classement (`candidates[0]` n'est pas
+   * le meilleur) ; en régime parallèle cet ordre dépend de l'arrivée des
+   * fils. Absent si l'arrêt a eu lieu avant l'appariement, ou si le
+   * pré-filtrage a vidé le pool.
+   */
+  brut?: SearchResult;
   /**
    * ⚠️ **Toujours classés par `sortCandidates`**, jamais `candidates[0]` :
    * l'ordre de collecte de l'appariement n'est PAS celui de l'objectif. Un

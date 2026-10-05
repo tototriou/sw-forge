@@ -124,6 +124,10 @@ export interface RuneDetail {
   main: EffectLine;
   innate?: EffectLine; // stat innée (prefix)
   subs: EffectLine[]; // substats
+  // Marqueur posé en jeu (1..8, `lock_type` de `rune_lock_list`) — ABSENT si
+  // la rune n'en porte aucun. Le libellé, renommable en jeu, vit au niveau du
+  // compte (`parseRuneMarkerLabels`), jamais recopié ici.
+  marker?: number;
 }
 
 /* --------------------------------------------------------------------------
@@ -222,6 +226,8 @@ export interface RelicUnique {
 }
 
 export interface RelicDetail {
+  id: number; // `rid` com2us : identifie la pièce, la déduplique, compte son occupation
+  upgrade: number; // `upgrade_curr` : sert au filtre de niveau et à l'affichage — jamais à la valeur de `main`
   main: EffectLine; // code 100/101/102 → PV%/ATQ%/DEF%
   unique?: RelicUnique;
 }

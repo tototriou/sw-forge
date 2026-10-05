@@ -14,8 +14,14 @@
 // avec l'autorité d'un diagnostic.
 
 import { egal, ok, titre } from './outils';
-import { admissibiliteBuild, executerHarnais, evaluerCompletude, serie, suivrePiece } from '../scripts/lib/diagnosticHarness';
-import { resoudreConfig } from '../scripts/lib/diagnosticConfig';
+import { admissibiliteBuild, classer, executerHarnais, evaluerCompletude, serie, suivrePiece } from '../scripts/lib/diagnosticHarness';
+import { ConfigResolue, resoudreConfig } from '../scripts/lib/diagnosticConfig';
+import { buildRealDamageContext } from '../scripts/lib/realDamageCli';
+import { buildOptimizerRecipe } from '../src/lib/optimizerRecipe';
+import { DEFAULT_DAMAGE_SETUP } from '../src/lib/damage';
+import { computeStats } from '../src/lib/stats';
+import { RuneDetail } from '../src/types';
+import { rune } from './relic-search.test';
 import { ConfigHarnais, EtagePopulation } from '../scripts/lib/diagnosticTypes';
 import { SETS_JOKER, mulberry32, randomPool } from '../scripts/lib/randomPool';
 import {
@@ -365,7 +371,10 @@ export default async function testDiagnosticHarness() {
 
   /* ── §6.2 : jamais un « 0 candidat » nu ────────────────────────────── */
   const c = complet.completude!;
-  ok(c.complet ? c.motif == null : c.motif === 'maxMs' || c.motif === 'maxCollected', 'la complétude porte un motif, et seulement DEUX sont possibles');
+  ok(
+    c.complet ? c.motif == null : c.motif === 'maxMs' || c.motif === 'maxCollected' || c.motif === 'quotaTranche',
+    'la complétude porte un motif, et seulement TROIS sont possibles (quotaTranche : régime parallèle seulement)'
+  );
   ok(
     !c.complet || c.explored === c.totalPairs || c.incoherence != null,
     'un run annoncé complet dont explored < totalPairs est SIGNALÉ, jamais laissé à déduire'
@@ -394,42 +403,57 @@ export default async function testDiagnosticHarness() {
     'sans motif FABRIQUÉ : `truncated` est faux, donc la déduction quota/temps ne s’applique pas — on ne sait pas pourquoi'
   );
 
-  /* ── §3.5 : le quota LOCAL d'un worker n'est pas une troncature ─────
+  // Le motif transmis par le résultat est LU, jamais redéduit : un résultat
+  // fusionné du régime parallèle qui porte « quota de tranche » avec moins de
+  // candidats que le plafond global ne devient pas « maxMs » (6bis-b7).
+  const parQuotaTranche: SearchResult = { ...parTemps, motifTroncature: 'quotaTranche' };
+  egal(evaluerCompletude(parQuotaTranche, 1000, paramsFictifs).motif, 'quotaTranche', 'motif porté par le résultat ⇒ lu tel quel, la déduction ne s’applique pas');
+
+  /* ── §3.5 : le quota LOCAL d'un worker, et la composition avec le harnais ─
    *
-   * ⚠️ **Ce cas verrouille une réfutation que DEUX revues externes
-   * consécutives ont attaquée, par deux raisonnements différents** (§9.2 et
-   * §9.3 de harnais-diagnostic-extensions.md) : « le motif de troncature
-   * serait faux en régime parallèle ». Il est correct, parce que
-   * `combineParallelPairingResults` exclut du budget épuisé tout worker dont
-   * `candidates.length === perWorkerMaxCollected`.
+   * ⚠️ **INVERSÉ le 2026-10-01 (degats-et-aura 6bis-b7, constat C2 de la
+   * revue technique).** Ce cas verrouillait la réfutation de deux revues
+   * externes (§9.2 et §9.3 de harnais-diagnostic-extensions.md), sur un
+   * scénario où `explored` égalait l'espace. Or une tranche qui remplit son
+   * quota s'ARRÊTE (`pairBuckets`, `break outer`) : en général, le reste de
+   * sa tranche n'est jamais visité, et la recherche était annoncée complète
+   * à tort — le « INCOHÉRENT » du cas réel ATQ 3000 / DC 220 de b4. Les deux
+   * revues avaient raison sur la conclusion (« la recherche n'est pas
+   * complète ») ; la défense avait raison sur le motif (ce n'est pas le
+   * temps). Le motif « quota de tranche » est maintenant transmis par
+   * `combineParallelPairingResults`, et `evaluerCompletude` le lit.
    *
-   * ⚠️ Ce qui est épinglé ici, c'est la **COMPOSITION** — le maillon que les
-   * deux revues visaient. `rune-optim-parallel-truncated.test.ts` (cas 1)
-   * couvre déjà `combineParallelPairingResults` seule ; ce qu'aucun test ne
-   * couvrait, c'est que le résultat fusionné, passé à `evaluerCompletude`,
-   * ne fabrique AUCUN motif `maxMs`. C'est là que la revue plaçait le bug. */
+   * ⚠️ Ce qui reste épinglé ici, c'est la **COMPOSITION** : le résultat
+   * fusionné, passé à `evaluerCompletude`, ne fabrique AUCUN motif `maxMs`. */
   {
     const PAR_WORKER = 25_000;
     const GLOBAL = 100_000;
     const candidats = (n: number) => new Array(n).fill({ runeIds: [], stats: [], effTotal: 0 });
     const parWorker: SearchResult[] = [
       // Le worker « riche » : quota LOCAL rempli PILE — `pairBuckets` sort
-      // toujours `truncated: true` dans ce cas, ce n'est pas un signe de
-      // recherche globalement incomplète.
+      // toujours `truncated: true` dans ce cas, et s'arrête.
       { candidates: candidats(PAR_WORKER), explored: 500_000, truncated: true, nearMissByCondition: [], globalNearMiss: null },
       { candidates: candidats(5_000), explored: 400_000, truncated: false, nearMissByCondition: [], globalNearMiss: null },
       { candidates: candidats(5_000), explored: 400_000, truncated: false, nearMissByCondition: [], globalNearMiss: null },
       { candidates: candidats(5_000), explored: 400_000, truncated: false, nearMissByCondition: [], globalNearMiss: null },
     ];
-    const fusionne = combineParallelPairingResults(parWorker, PAR_WORKER, GLOBAL);
+    // L'espace réel : 2 000 000 de paires, dont 300 000 de la tranche riche
+    // jamais visitées.
+    const fusionne = combineParallelPairingResults(parWorker, PAR_WORKER, GLOBAL, 2_000_000);
     egal(fusionne.candidates.length, 40_000, 'le total (40 000) reste très en-deçà du plafond GLOBAL (100 000)');
-    egal(fusionne.truncated, false, 'un worker qui remplit son quota LOCAL ne rend pas la recherche globale tronquée');
+    egal(fusionne.truncated, true, 'un worker arrêté sur son quota LOCAL avec des paires non visitées rend la recherche tronquée');
 
-    // `explored` égale l'espace : la recherche a tout parcouru.
-    const verdict = evaluerCompletude(fusionne, fusionne.explored, { maxCollected: GLOBAL } as SearchParams);
-    ok(verdict.complet, 'et le harnais la déclare COMPLÈTE — c’est le scénario que deux revues ont cru faux');
-    egal(verdict.motif, undefined, 'AUCUN motif n’est fabriqué : ni maxMs (l’erreur annoncée par la revue), ni maxCollected');
-    ok(verdict.incoherence == null, 'et aucune incohérence : explored couvre tout l’espace');
+    const verdict = evaluerCompletude(fusionne, 2_000_000, { maxCollected: GLOBAL } as SearchParams);
+    ok(!verdict.complet, 'et le harnais la déclare TRONQUÉE');
+    egal(verdict.motif, 'quotaTranche', 'avec le motif transmis : quota de tranche — ni maxMs (le temps), ni maxCollected (le plafond global)');
+    ok(verdict.incoherence == null, 'et plus aucune incohérence : le résultat le dit lui-même');
+
+    // Le quota tombe sur la dernière paire de la tranche : rien n'est laissé.
+    const derniere = combineParallelPairingResults(parWorker, PAR_WORKER, GLOBAL, 1_700_000);
+    const verdictDerniere = evaluerCompletude(derniere, 1_700_000, { maxCollected: GLOBAL } as SearchParams);
+    ok(!derniere.truncated && verdictDerniere.complet, 'quota atteint sur la dernière paire : explored = totalPairs, recherche COMPLÈTE');
+    egal(verdictDerniere.motif, undefined, 'AUCUN motif n’est fabriqué sur une recherche complète');
+    ok(verdictDerniere.incoherence == null, 'et aucune incohérence : explored couvre tout l’espace');
   }
 
   /* ── §6.1 : suivi d'une rune, et ce qu'une disparition SIGNIFIE ────── */
@@ -1004,4 +1028,42 @@ export default async function testDiagnosticHarness() {
     !recap.includes('perf-battery-compare.ts.\n') || !recap.includes(complet.temps!.avertissementComparaison),
     'le récapitulatif ne REMPLACE pas cet avertissement par le sien — les deux répondent à des questions différentes'
   );
+}
+
+/**
+ * degats-et-aura 6bis-b4 — `classer` en « Dégâts réels » reçoit le contexte
+ * de dégâts construit comme le CLI (`buildRealDamageContext`). Sans lui,
+ * `sortCandidates` rendait l'ordre de COLLECTE en silence, sous un titre
+ * « classés par sortCandidates ».
+ */
+export function testDiagnosticHarnessClassementDegatsReels() {
+  titre('Harnais · classement « Dégâts réels » avec le contexte du CLI');
+  const base = { hp: 9225, atk: 900, def: 461, spd: 103, cr: 15, cd: 50, res: 15, acc: 0 };
+  // Mêmes emplacements ; seul le « fort » porte une principale ATQ +63 %.
+  const faible = [1, 2, 3, 4, 5, 6].map((slot) => rune(9100 + slot, slot, [8, 0]));
+  const fort = [1, 2, 3, 4, 5, 6].map((slot) => rune(9200 + slot, slot, slot === 2 ? [4, 63] : [8, 0]));
+  const candidat = (runes: RuneDetail[]) => ({ runeIds: runes.map((r) => r.id), stats: computeStats({ base, runes, artifacts: [] }), effTotal: 0 });
+  const cFaible = candidat(faible);
+  const cFort = candidat(fort);
+  const recette = buildOptimizerRecipe({
+    monsterCom2usId: 13413, monsterName: 'Lushen',
+    requirement: { sets: [], minStats: {} }, objective: 'degats_reels', damageSetup: DEFAULT_DAMAGE_SETUP,
+    compterAurasResPre: true, metric: 'eff', slotFilterPreset: 'bas',
+    adaptiveTrancheWeighting: false, exhaustiveSearch: false,
+    excludeUsedRunes: false, excludeUsedScope: 'box', excludedSelectors: [],
+    ignoreArtifacts: true, artifactMainByKind: {},
+  });
+  ok(buildRealDamageContext(recette, 13413, []) !== null, 'Lushen : un sort calculable, donc un contexte de dégâts');
+  const resolue = {
+    recette, monstre: { com2usId: 13413 }, poolInitial: [...faible, ...fort],
+    params: { artifacts: [], metric: 'eff', objective: 'degats_reels' },
+  } as unknown as ConfigResolue;
+  egal(classer([cFaible, cFort], resolue).classes.map((c) => c.runeIds), [cFort.runeIds, cFaible.runeIds],
+    'recette « Dégâts réels » : le build à l’ATQ +63 % passe devant, quel que soit l’ordre de collecte');
+  egal(classer([cFort, cFaible], resolue).classes.map((c) => c.runeIds), [cFort.runeIds, cFaible.runeIds],
+    'ordre d’entrée inversé : même classement');
+  // Témoin : sans monstre chargé (source synthétique), pas de contexte — l'ordre
+  // de collecte reste, comme `sortCandidates` le documente.
+  egal(classer([cFaible, cFort], { ...resolue, monstre: undefined } as ConfigResolue).classes.map((c) => c.runeIds),
+    [cFaible.runeIds, cFort.runeIds], 'témoin sans contexte : ordre de collecte conservé');
 }

@@ -119,6 +119,18 @@ export const RELIC_MAIN: Record<number, { label: string; stat: StatKey }> = {
   102: { label: 'DEF', stat: 'def' },
 };
 
+// Options du sélecteur « Relique — principale » (implementation-relique,
+// B.5c) — qualifiées comme les entrées d'artéfact qui FILTRENT réellement
+// par stat principale (`ARTIFACT_MAIN_OPTIONS`, runeBuildOptim.ts) : « Comme
+// équipé » lu au milieu de trois statistiques se lisait « la principale,
+// comme équipé » (incident artéfacts). Le « % » distingue la relique de
+// l'artéfact (plat) — même stat, sémantique différente (A.1).
+export const RELIC_MAIN_OPTIONS: { code: 100 | 101 | 102; label: string }[] = [
+  { code: 101, label: 'Principale ATQ %' },
+  { code: 102, label: 'Principale DEF %' },
+  { code: 100, label: 'Principale PV %' },
+];
+
 // Rareté → libellé + couleur de texte + fond de bannière (dégradé sombre),
 // façon bannière du jeu (ex. Légendaire = orange sur bordeaux).
 //
@@ -232,8 +244,11 @@ export const SET_BONUS: Record<string, { pieces: number; label: string }> = {
   fight: { pieces: 2, label: 'ATQ alliés +8%' },
   determination: { pieces: 2, label: 'DEF alliés +8%' },
   enhance: { pieces: 2, label: 'PV alliés +8%' },
-  accuracy: { pieces: 2, label: 'Précision alliés +10%' },
-  tolerance: { pieces: 2, label: 'Résistance alliés +10%' },
+  // ⚠️ +8 points, comme le calcul (`pointsAuraResPre`, damage.ts) : valeur
+  // curée par l'utilisateur, cadrage degats-et-aura A.2 ter. Le libellé
+  // affichait +10 % jusqu'au lot 7a.
+  accuracy: { pieces: 2, label: 'Précision alliés +8%' },
+  tolerance: { pieces: 2, label: 'Résistance alliés +8%' },
   seal: { pieces: 2, label: "Réduit les PV max de l'ennemi vaincu" },
   intangible: { pieces: 1, label: 'Joker (complète un set)' },
 };
@@ -585,6 +600,21 @@ export function formatRelicMain(e: EffectLine): string {
   return def ? `${def.label} +${e.value}%` : `#${e.code} +${e.value}`;
 }
 
+// Limite de poses simultanées d'une relique sur le compte (D3,
+// ../outils/optimizer/reliques.md § 7 — AFFICHÉE, jamais opposée). Valeur de
+// jeu susceptible de rebouger (elle a déjà changé une fois) : une seule
+// constante nommée, à son seul point d'usage (`RelicDetailBox`,
+// implementation-relique B.5c ter).
+export const RELIC_MAX_INSTANCES = 150;
+
+// Ligne de compteur affichée dans le détail d'une relique. Aucun libellé
+// relevé en jeu pour cette mécanique (reliques.md § 7 ne cite qu'un exemple
+// d'affichage, « 96 / 150 ») : phrase choisie par le lot, comme les textes
+// de refus (B.5c) et les libellés propres à l'écran (B.5c bis).
+export function formatRelicUsage(count: number): string {
+  return `Équipée sur ${count} exemplaire${count > 1 ? 's' : ''} / ${RELIC_MAX_INSTANCES}`;
+}
+
 /* --------------------------------------------------------------------------
  * Propriétés uniques de relique — les 16 types
  * -----------------------------------------------------------------------
@@ -626,6 +656,7 @@ const R_PV = { phrase: 'du max des PV', court: 'PV' };
 const R_VIT = { phrase: 'de VIT', court: 'VIT' };
 
 type RelicGroupe = (percent: number, tranche: string, stat: string) => string;
+export type RelicGroupeNom = 'conquete' | 'tenacite' | 'bravoure' | 'eternite' | 'origine' | 'regeneration';
 
 // Les six groupes, dans la formulation de la FICHE D'OBJET — relevée sur des
 // pièces réelles pour Conquête, Ténacité, Bravoure et Origine ; Éternité et
@@ -641,23 +672,23 @@ const ORIGINE: RelicGroupe = (p, t, s) => `[Max des PV +${p}% tous les ${t} pts 
 const REGENERATION: RelicGroupe = (p, t, s) =>
   `[Soins et boucliers accordés +${p}% tous les ${t} pts ${s}] au début du combat`;
 
-export const RELIC_UNIQUE: Record<number, { effet: RelicGroupe; stat: { phrase: string; court: string } }> = {
-  1: { effet: CONQUETE, stat: R_ATQ },
-  2: { effet: CONQUETE, stat: R_DEF },
-  3: { effet: CONQUETE, stat: R_PV },
-  4: { effet: TENACITE, stat: R_ATQ },
-  5: { effet: TENACITE, stat: R_DEF },
-  6: { effet: TENACITE, stat: R_PV },
-  7: { effet: BRAVOURE, stat: R_VIT },
-  8: { effet: BRAVOURE, stat: R_DEF },
-  9: { effet: BRAVOURE, stat: R_PV },
-  10: { effet: ETERNITE, stat: R_ATQ },
-  11: { effet: ETERNITE, stat: R_VIT },
-  12: { effet: ETERNITE, stat: R_PV },
-  13: { effet: ORIGINE, stat: R_ATQ },
-  14: { effet: ORIGINE, stat: R_VIT },
-  15: { effet: ORIGINE, stat: R_DEF },
-  16: { effet: REGENERATION, stat: R_PV },
+export const RELIC_UNIQUE: Record<number, { effet: RelicGroupe; groupe: RelicGroupeNom; stat: { phrase: string; court: string } }> = {
+  1: { effet: CONQUETE, groupe: 'conquete', stat: R_ATQ },
+  2: { effet: CONQUETE, groupe: 'conquete', stat: R_DEF },
+  3: { effet: CONQUETE, groupe: 'conquete', stat: R_PV },
+  4: { effet: TENACITE, groupe: 'tenacite', stat: R_ATQ },
+  5: { effet: TENACITE, groupe: 'tenacite', stat: R_DEF },
+  6: { effet: TENACITE, groupe: 'tenacite', stat: R_PV },
+  7: { effet: BRAVOURE, groupe: 'bravoure', stat: R_VIT },
+  8: { effet: BRAVOURE, groupe: 'bravoure', stat: R_DEF },
+  9: { effet: BRAVOURE, groupe: 'bravoure', stat: R_PV },
+  10: { effet: ETERNITE, groupe: 'eternite', stat: R_ATQ },
+  11: { effet: ETERNITE, groupe: 'eternite', stat: R_VIT },
+  12: { effet: ETERNITE, groupe: 'eternite', stat: R_PV },
+  13: { effet: ORIGINE, groupe: 'origine', stat: R_ATQ },
+  14: { effet: ORIGINE, groupe: 'origine', stat: R_VIT },
+  15: { effet: ORIGINE, groupe: 'origine', stat: R_DEF },
+  16: { effet: REGENERATION, groupe: 'regeneration', stat: R_PV },
 };
 
 // Propriété unique d'une relique : la FORMULE, jamais un libellé d'effet.
@@ -672,6 +703,32 @@ export const RELIC_UNIQUE: Record<number, { effet: RelicGroupe; stat: { phrase: 
 // ⚠️ Le pourcentage peut manquer (fichier de prépa exporté par une version
 // antérieure, qui ne transportait que le type et la tranche) : on annonce alors
 // la tranche seule, plutôt qu'un « +0 % » qui serait faux.
+// Mot du jeu qui ouvre la phrase d'un groupe — CONQUETE/TENACITE/BRAVOURE/
+// ETERNITE/ORIGINE/REGENERATION ci-dessus, recopié à l'identique. UN PAR
+// GROUPE (six entrées), jamais un par type (seize) : une mise à jour de la
+// phrase d'un groupe n'a qu'un seul endroit à corriger ici aussi. Sert
+// UNIQUEMENT à `relicUniqueEffectLabel` ci-dessous — jamais une table
+// déconnectée de RELIC_UNIQUE (game-data-curation) : si un mot change dans
+// une des six phrases au-dessus, celui-ci doit changer avec.
+const RELIC_GROUPE_EFFET: Record<RelicGroupeNom, string> = {
+  conquete: 'DGTS infligés',
+  tenacite: 'DGTS reçus',
+  bravoure: 'ATQ',
+  eternite: 'DEF',
+  origine: 'Max des PV',
+  regeneration: 'Soins et boucliers accordés',
+};
+
+// Libellé de propriété unique « <effet> en fonction <stat> » (implementation-
+// relique, B.5c bis) — sélecteur « Relique — propriété unique » et carte
+// candidat, MÊME libellé aux deux endroits. DÉRIVÉ de `RELIC_UNIQUE` : les
+// deux moitiés (`RELIC_GROUPE_EFFET`, `stat.phrase`) sont des mots du jeu,
+// l'assemblage lui-même (« en fonction ») est le nôtre.
+export function relicUniqueEffectLabel(type: number): string | undefined {
+  const def = RELIC_UNIQUE[type];
+  return def ? `${RELIC_GROUPE_EFFET[def.groupe]} en fonction ${def.stat.phrase}` : undefined;
+}
+
 export function formatRelicUnique(u: RelicUnique): string {
   const nombre = u.tranche.toLocaleString('fr-FR');
   const def = RELIC_UNIQUE[u.type];

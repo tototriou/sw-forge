@@ -11,7 +11,8 @@ import {
   parseAccountBox,
   parseAccountInventory,
   parseAccountSource,
-  parseUsedRuneIds,
+  parseRuneMarkerLabels,
+  parseUsedRuneIdsParPerimetre,
 } from '../src/lib/importAccount';
 import { egal, exportSynthetique, ok, titre } from './outils';
 
@@ -25,8 +26,11 @@ export default async function testStockage() {
     box,
     runes: inv.runes,
     artifacts: inv.artifacts,
+    relics: inv.relics,
     crafts: inv.crafts,
-    usedRuneIds: parseUsedRuneIds(data),
+    usedRuneIds: parseUsedRuneIdsParPerimetre(data),
+    relicUsageById: inv.relicUsageById,
+    runeMarkerLabels: parseRuneMarkerLabels(data),
     exportedAt: 1786261890000,
   };
 
@@ -39,12 +43,28 @@ export default async function testStockage() {
   ok(relu !== null, 'relecture non nulle');
   egal(relu.box, box, 'box identique après aller-retour');
   egal(relu.runes.length, inv.runes.length, 'runes identiques');
+  egal(relu.relics, inv.relics, 'reliques identiques après aller-retour');
+  egal(relu.relicUsageById, inv.relicUsageById, "occupation par rid conservée");
+  // ⚠️ Le point précis du rév. 6 de implementation-relique : une pièce sans
+  // `sec_effect[2]` (percent illisible) doit rester SANS `percent` après le
+  // structured clone d'IndexedDB — jamais un 0 apparu au passage.
+  const relique7002 = relu.relics.find((r) => r.id === 7002);
+  ok(!!relique7002?.unique && !('percent' in relique7002.unique), 'relique sans percent : toujours absent après relecture');
   egal(relu.exportedAt, 1786261890000, "date d'export conservée");
   egal(relu.schema, ACCOUNT_SCHEMA, 'schéma estampillé');
   // ⚠️ Les decks ne vivent QUE dans l'export brut, jamais conservé : sans cette
   // liste au stockage, le filtre « Runes utilisées » s'éteindrait à chaque
   // rechargement d'un compte conservé.
-  egal(relu.usedRuneIds, compte.usedRuneIds, 'runes utilisées conservées');
+  egal(relu.usedRuneIds, compte.usedRuneIds, 'runes utilisées conservées, par périmètre');
+  // Même raison pour les marqueurs : `rune_lock_list` et `markers` ne vivent
+  // que dans l'export brut.
+  egal(relu.runeMarkerLabels, compte.runeMarkerLabels, 'libellés des marqueurs conservés');
+  egal(
+    relu.runes.filter((r) => r.marker !== undefined).map((r) => [r.id, r.marker]),
+    inv.runes.filter((r) => r.marker !== undefined).map((r) => [r.id, r.marker]),
+    'marqueurs des runes conservés'
+  );
+  ok(inv.runes.some((r) => r.marker !== undefined), 'le fichier d’exemple porte bien des runes marquées');
 
   // ⚠️ Le structured clone doit rendre des objets INDÉPENDANTS : muter ce qu'on
   // relit ne doit pas contaminer ce qui est en mémoire ailleurs dans l'app.
@@ -97,8 +117,47 @@ export default async function testStockage() {
   await ecrireBrut({ schema: 99, savedAt: 1, exportedAt: null, box: [], runes: [], artifacts: [], crafts: [] });
   egal(await loadAccount(), null, 'schéma périmé → ignoré');
 
+  // ⚠️ D10 : le schéma précédent (6, sans reliques) doit être rejeté comme tout
+  // autre schéma périmé — jamais l'apparence d'un inventaire complet quand
+  // `relics`/`relicUsageById` manquent.
+  await ecrireBrut({
+    schema: 6,
+    savedAt: 1,
+    exportedAt: null,
+    box: [],
+    runes: [],
+    artifacts: [],
+    crafts: [],
+    usedRuneIds: [],
+  });
+  egal(await loadAccount(), null, 'ancien schéma 6 (sans reliques) → rejeté, réimport demandé');
+
   await ecrireBrut({ schema: ACCOUNT_SCHEMA, savedAt: 1, box: 'pas un tableau' });
   egal(await loadAccount(), null, 'enregistrement corrompu → ignoré, sans exception');
+
+  // ⚠️ Schéma 6 : runes sans `marker` et `usedRuneIds` en liste plate. Relu,
+  // chaque rune passerait pour « sans marqueur » — il doit être ignoré.
+  await ecrireBrut({ ...compte, schema: 6, savedAt: 1, usedRuneIds: [1001], runeMarkerLabels: undefined });
+  egal(await loadAccount(), null, 'schéma 6 (runes utilisées en liste plate) → ignoré');
+
+  // Même au BON schéma, une liste plate n'est pas une liste par périmètre.
+  await ecrireBrut({ ...compte, schema: ACCOUNT_SCHEMA, savedAt: 1, usedRuneIds: [1001] });
+  egal(await loadAccount(), null, 'runes utilisées en liste plate → ignorées, sans exception');
+
+  // ⚠️ Le schéma 7 réunit deux chantiers (reliques ; marqueurs et runes
+  // utilisées par périmètre) qui avaient chacun pris le 7 pour leur seule
+  // moitié. Un navigateur qui a fait tourner l'une des deux branches garde un
+  // « 7 » incomplet : la validation, et non le numéro, doit le rejeter.
+  const { relics: _relics, relicUsageById: _usage, ...sansReliques } = compte;
+  await ecrireBrut({ ...sansReliques, schema: ACCOUNT_SCHEMA, savedAt: 1 });
+  egal(await loadAccount(), null, '7 de la branche runes (sans reliques) → ignoré');
+  await ecrireBrut({ ...compte, schema: ACCOUNT_SCHEMA, savedAt: 1, relicUsageById: undefined });
+  egal(await loadAccount(), null, '7 sans relicUsageById seul → ignoré');
+  const { runeMarkerLabels: _labels, ...sansMarqueurs } = compte;
+  await ecrireBrut({ ...sansMarqueurs, schema: ACCOUNT_SCHEMA, savedAt: 1, usedRuneIds: [1001] });
+  egal(await loadAccount(), null, '7 de la branche reliques (liste plate, sans libellés) → ignoré');
+  await ecrireBrut({ ...sansMarqueurs, schema: ACCOUNT_SCHEMA, savedAt: 1 });
+  egal(await loadAccount(), null, '7 sans runeMarkerLabels seul → ignoré');
 
   await clearAccount();
 }

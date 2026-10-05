@@ -14,12 +14,6 @@
       "chantier_responsable": "découpage-optimizer"
     },
     {
-      "fichier": "spec/outils/degats-reels.md",
-      "raison": "fichier > 500 lignes, préexistant au lint (1 877 lignes mesurées le 2026-09-16)",
-      "condition_de_suppression": "prochain chantier dégâts",
-      "chantier_responsable": "degats"
-    },
-    {
       "fichier": "spec/outils/optimizer/artefacts.md",
       "raison": "fichier > 500 lignes, préexistant au lint (1 700 lignes mesurées le 2026-09-16)",
       "condition_de_suppression": "prochain chantier artéfacts",

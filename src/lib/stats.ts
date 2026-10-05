@@ -167,9 +167,19 @@ export function monsterBaseStats(monster: Monster): BaseStats {
  * ⚠️ Sans apport, le MÊME tableau est rendu (aucune allocation). Il est donc
  * partagé entre appels : à lire, jamais à muter — comme tout ce que rend
  * `computeStats`.
+ *
+ * ⚠️ **Même apport, même tableau** (degats-et-aura 6bis-b13) : les stats ne
+ * dépendent que des trois sommes de principales, un tableau déjà construit
+ * pour les mêmes sommes est rendu tel quel — des milliers de paires n'en ont
+ * qu'une poignée. L'évaluateur de paire s'en sert pour ne calculer l'effet
+ * unique de la relique qu'une fois par tableau (`evaluerPourRegime`). Au plus
+ * `BORNE_STATS_PAR_APPORT` tableaux retenus ; atteinte, la mémoire se vide.
  */
+export const BORNE_STATS_PAR_APPORT = 256;
+
 export function statsParPaire(gear: GearSet): (artefacts: ArtifactDetail[]) => StatRow[] {
   const sans = computeStats({ ...gear, artifacts: [] });
+  const parApport = new Map<string, StatRow[]>();
   return (artefacts) => {
     let dHp = 0;
     let dAtk = 0;
@@ -181,9 +191,15 @@ export function statsParPaire(gear: GearSet): (artefacts: ArtifactDetail[]) => S
       else if (def?.stat === 'def') dDef += a.main.value;
     }
     if (dHp === 0 && dAtk === 0 && dDef === 0) return sans;
-    return sans.map((r) => {
+    const cle = `${dHp}|${dAtk}|${dDef}`;
+    const connu = parApport.get(cle);
+    if (connu) return connu;
+    const avec = sans.map((r) => {
       const d = r.key === 'hp' ? dHp : r.key === 'atk' ? dAtk : r.key === 'def' ? dDef : 0;
       return d === 0 ? r : { ...r, bonus: r.bonus + d, total: r.total + d };
     });
+    if (parApport.size >= BORNE_STATS_PAR_APPORT) parApport.clear();
+    parApport.set(cle, avec);
+    return avec;
   };
 }

@@ -21,8 +21,8 @@
 // pourcentage du disque, et **structured clone** — on stocke les objets tels
 // quels, sans `JSON.stringify` à l'écriture ni re-parse à la lecture.
 
-import { ArtifactDetail, CraftLine, RuneDetail } from '../types';
-import { BoxMonster } from './importAccount';
+import { ArtifactDetail, CraftLine, RelicDetail, RuneDetail } from '../types';
+import { BoxMonster, PERIMETRES_UTILISES, RunesUtilisees } from './importAccount';
 
 /* --------------------------------------------------------------------------
  * Ce qu'on stocke
@@ -52,14 +52,24 @@ export interface StoredAccount {
   box: BoxMonster[];
   runes: RuneDetail[];
   artifacts: ArtifactDetail[];
+  relics: RelicDetail[];
   crafts: CraftLine[]; // meules & gemmes en réserve
-  // Identifiants (`rune_id`) des runes UTILISÉES : posées sur un monstre d'un
-  // deck (tous contenus) ou en RTA — voir `parseUsedRuneIds`.
+  // Identifiants (`rune_id`) des runes UTILISÉES, PAR PÉRIMÈTRE (RTA, siège,
+  // arène, autres decks) — voir `parseUsedRuneIdsParPerimetre`.
   //
   // ⚠️ Stocké, et pas recalculé au démarrage : les decks vivent dans l'export
   // brut, qu'on ne conserve jamais (5 à 8 Mo). Sans cette liste, le filtre
   // « Runes utilisées » se serait éteint à chaque rechargement.
-  usedRuneIds: number[];
+  usedRuneIds: RunesUtilisees;
+  // Occupation par rid de relique (nombre d'unités dont `relics[0].rid` vaut
+  // ce rid) — calculée à l'import, jamais déduite de `relics.length` (une
+  // relique n'est pas exclusive, reliques.md § 1.2/§ 7). Même raison de
+  // stockage que `usedRuneIds` : l'export brut n'est jamais conservé.
+  relicUsageById: Record<number, number>;
+  // Libellés des marqueurs de runes, numéro → texte saisi en jeu — voir
+  // `parseRuneMarkerLabels`. Au niveau du compte, pas recopié dans chaque rune :
+  // un marqueur sans libellé en est absent, l'écran affiche alors son numéro.
+  runeMarkerLabels: Record<number, string>;
 }
 
 // À incrémenter dès qu'un extracteur produit un champ de plus — ou en produit
@@ -67,9 +77,18 @@ export interface StoredAccount {
 // mal lu, et donnerait des chiffres faux en silence. (5 : la propriété unique
 // des reliques, qui remplace un `relic.sub` mal modélisé. 6 :
 // `ArtifactDetail.id`, le `rid` com2us que `artifactToDetail` lisait sans le
-// conserver.) À la lecture, un schéma différent est **ignoré** — l'app
-// retombe sur « aucun compte » et invite à réimporter, comme pour les vieux
-// fichiers de recommandation.
+// conserver. 7 : `relics` et `relicUsageById` — l'inventaire de reliques,
+// absent jusque-là ; `RuneDetail.marker` — une rune stockée sans ce champ
+// serait lue à tort « sans marqueur » —, les libellés `runeMarkerLabels`, et
+// `usedRuneIds` rangé par périmètre au lieu d'une liste plate.) À la lecture,
+// un schéma différent est **ignoré** — l'app retombe sur « aucun compte » et
+// invite à réimporter, comme pour les vieux fichiers de recommandation.
+//
+// ⚠️ **Le 7 réunit deux chantiers développés en parallèle** (reliques et
+// marqueurs), qui avaient chacun pris le numéro 7 pour leur seule moitié.
+// Aucune version publiée n'a porté l'une sans l'autre (la v1.13.0 est au 6),
+// d'où un seul numéro. Un enregistrement 7 issu d'une seule des deux branches
+// est rejeté par `loadAccount`, qui exige les champs des deux.
 //
 // ⚠️ **Le compte est stocké DÉJÀ PARSÉ**, et l'export brut n'est jamais
 // conservé (5 à 8 Mo) : un champ ajouté à l'extraction ne peut donc PAS être
@@ -78,7 +97,7 @@ export interface StoredAccount {
 // silencieux. Vécu avec `ArtifactDetail.id` : les artéfacts stockés n'avaient
 // pas d'identifiant, donc un build validé ne mémorisait aucune paire et
 // retombait sur les artéfacts réellement portés, sans le moindre signal.
-export const ACCOUNT_SCHEMA = 6;
+export const ACCOUNT_SCHEMA = 7;
 
 const DB_NAME = 'sw-forge';
 const DB_VERSION = 1;
@@ -183,8 +202,14 @@ export function loadAccount(): Promise<StoredAccount | null> {
     if (!rec || typeof rec !== 'object') return null;
     if (rec.schema !== ACCOUNT_SCHEMA) return null;
     if (!Array.isArray(rec.box) || !Array.isArray(rec.runes) || !Array.isArray(rec.artifacts)) return null;
+    if (!Array.isArray(rec.relics)) return null;
     if (!Array.isArray(rec.crafts)) return null;
-    if (!Array.isArray(rec.usedRuneIds)) return null;
+    // Un tableau PAR périmètre — une liste plate (schéma 6) n'en est pas un.
+    const used = rec.usedRuneIds as unknown;
+    if (!used || typeof used !== 'object' || Array.isArray(used)) return null;
+    if (!PERIMETRES_UTILISES.every((p) => Array.isArray((used as RunesUtilisees)[p.key]))) return null;
+    if (!rec.relicUsageById || typeof rec.relicUsageById !== 'object') return null;
+    if (!rec.runeMarkerLabels || typeof rec.runeMarkerLabels !== 'object') return null;
     return rec;
   });
 }
@@ -194,7 +219,16 @@ export function loadAccount(): Promise<StoredAccount | null> {
 export function saveAccount(
   data: Pick<
     StoredAccount,
-    'box' | 'runes' | 'artifacts' | 'crafts' | 'usedRuneIds' | 'exportedAt' | 'wizardName'
+    | 'box'
+    | 'runes'
+    | 'artifacts'
+    | 'relics'
+    | 'crafts'
+    | 'usedRuneIds'
+    | 'relicUsageById'
+    | 'runeMarkerLabels'
+    | 'exportedAt'
+    | 'wizardName'
   >
 ): Promise<boolean> {
   return enqueue(async () => {
@@ -206,8 +240,11 @@ export function saveAccount(
       box: data.box,
       runes: data.runes,
       artifacts: data.artifacts,
+      relics: data.relics,
       crafts: data.crafts,
       usedRuneIds: data.usedRuneIds,
+      relicUsageById: data.relicUsageById,
+      runeMarkerLabels: data.runeMarkerLabels,
     };
     // `put` sur une clé fixe : un nouvel import remplace, il ne s'ajoute pas.
     const res = await tx<IDBValidKey>('readwrite', (s) => s.put(rec, KEY));

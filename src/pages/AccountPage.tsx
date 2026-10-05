@@ -13,6 +13,7 @@ import {
   CraftLine,
 } from '../types';
 import { LoadState } from '../hooks/useMonsters';
+import type { RunesUtilisees } from '../lib/importAccount';
 import ElementIcon from '../components/ElementIcon';
 import MonsterCard, { SEUIL_ANIMATION_GRILLE } from '../components/MonsterCard';
 import Pager from '../components/account/Pager';
@@ -47,9 +48,11 @@ interface Props {
   runes: RuneDetail[];
   artifacts: ArtifactDetail[];
   crafts: CraftLine[];
-  // Runes UTILISÉES (`rune_id`) : posées sur un monstre d'un deck, tous
-  // contenus confondus, ou en RTA. Filtre de l'onglet Optimisation.
-  usedRuneIds: number[];
+  // Runes UTILISÉES (`rune_id`) par périmètre : posées sur un monstre d'un
+  // deck, tous contenus confondus, ou en RTA. Filtre de l'onglet Optimisation.
+  usedRuneIds: RunesUtilisees;
+  // Libellés des marqueurs de runes (numéro → texte saisi en jeu).
+  runeMarkerLabels: Record<number, string>;
   loadState: LoadState;
   // Relecture du compte conservé en cours : on n'annonce pas « aucune donnée »
   // tant qu'on n'a pas fini de regarder.
@@ -457,6 +460,7 @@ export default function AccountPage({
   artifacts,
   crafts,
   usedRuneIds,
+  runeMarkerLabels,
   loadState,
   hydrating,
   allMonsters,
@@ -521,6 +525,7 @@ export default function AccountPage({
           runes={runes}
           crafts={crafts}
           usedRuneIds={usedRuneIds}
+          runeMarkerLabels={runeMarkerLabels}
           vue={vue}
           menuOuvert={menuOuvert}
           onFermerMenu={onFermerMenu}

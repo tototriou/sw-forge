@@ -12,6 +12,7 @@ import RunesSection from '../../src/components/account/RunesSection';
 import type { AccountView } from '../../src/App';
 import type { CraftLine, EffectLine, RuneDetail } from '../../src/types';
 import { egal, faussLocalStorage, ok, titre } from '../outils';
+import { runesUtiliseesVides } from '../../src/lib/importAccount';
 import { boutons, rendre, texteVisible, valeurs } from './outils-rendu';
 
 // Une réserve courte mais variée : six slots, six sets, une antique, une rune
@@ -51,7 +52,7 @@ const CRAFTS: CraftLine[] = [
 export function rendreVue(vue: AccountView): string {
   faussLocalStorage({});
   return rendre(
-    <RunesSection runes={RUNES} crafts={CRAFTS} usedRuneIds={[1, 2]} vue={vue} menuOuvert={false} onFermerMenu={() => {}} />,
+    <RunesSection runes={RUNES} crafts={CRAFTS} usedRuneIds={{ ...runesUtiliseesVides(), rta: [1, 2] }} runeMarkerLabels={{}} vue={vue} menuOuvert={false} onFermerMenu={() => {}} />,
   );
 }
 

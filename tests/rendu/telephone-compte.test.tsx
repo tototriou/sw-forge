@@ -9,6 +9,7 @@ import RunesSection from '../../src/components/account/RunesSection';
 import type { AccountView } from '../../src/App';
 import type { Monster } from '../../src/types';
 import { egal, faussLocalStorage, monstersJson, ok, titre } from '../outils';
+import { runesUtiliseesVides } from '../../src/lib/importAccount';
 import { auTelephone, boutons, rendre, texteVisible, valeurs } from './outils-rendu';
 import { ARTEFACTS, BOX } from './compte.test';
 import { RUNES } from './runes.test';
@@ -26,7 +27,8 @@ const rendreCompte = (sub: 'monstres' | 'artefacts', vue: AccountView, menuOuver
         runes={[]}
         artifacts={ARTEFACTS}
         crafts={[]}
-        usedRuneIds={[]}
+        usedRuneIds={runesUtiliseesVides()}
+        runeMarkerLabels={{}}
         loadState="live"
         hydrating={false}
         allMonsters={MONSTRES}
@@ -39,7 +41,7 @@ const rendreCompte = (sub: 'monstres' | 'artefacts', vue: AccountView, menuOuver
 const rendreRunes = (vue: AccountView, menuOuvert: boolean) =>
   auTelephone(() => {
     faussLocalStorage({});
-    return rendre(<RunesSection runes={RUNES} crafts={[]} usedRuneIds={[1, 2]} vue={vue} menuOuvert={menuOuvert} onFermerMenu={() => {}} />);
+    return rendre(<RunesSection runes={RUNES} crafts={[]} usedRuneIds={{ ...runesUtiliseesVides(), rta: [1, 2] }} runeMarkerLabels={{}} vue={vue} menuOuvert={menuOuvert} onFermerMenu={() => {}} />);
   });
 
 const dialogues = (html: string) => (html.match(/role="dialog"/g) ?? []).length;
@@ -94,7 +96,10 @@ export function testRenduTelephoneRunes() {
   egal(dialogues(optim), 1, 'Optimisation : un panneau');
   // ⚠️ Lot 11c (décision 26) : « Gemme + meule / Meule seule » a quitté le
   // panneau pour la tête de la page (vérifié juste après).
-  ok(to.includes('Options d\'optimisation Palier % Runes') && to.includes('Faisable avec ma réserve Sans les immémoriaux Runes utilisées'), 'Optimisation : palier, antiques, options');
+  // La v1.14.0 (fusionnée le 2026-10-05) ajoute « Autoriser un regemme
+  // différent » juste après le palier ; « Marqueurs » ne s'affiche que si le
+  // compte en porte, ce qui n'est pas le cas de ces données.
+  ok(to.includes('Options d\'optimisation Palier % Autoriser un regemme différent Runes') && to.includes('Faisable avec ma réserve Sans les immémoriaux Runes utilisées'), 'Optimisation : palier, antiques, options');
   ok(to.includes('Gemme + meule Meule seule Sets'), 'Optimisation : le mode du potentiel en tête de la page, avant les filtres');
 
   const comparaison = texteVisible(rendreRunes('comparaison', true));

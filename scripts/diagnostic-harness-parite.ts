@@ -34,19 +34,25 @@ import { StatKey } from '../src/lib/effects';
 import {
   BuildRequirement,
   artifactFlatBonus,
+  avecAurasConditions,
+  contexteDominance,
   eliminateInfeasible,
   filterSlot,
   guaranteedSetBonus,
   mainStatFilteredBySlot,
   pruneDominated,
   relicPctBonus,
+  reliquesEquipables,
+  statsLuesParLesLignes,
 } from '../src/lib/runeBuildOptim';
 import { DEFAULT_DAMAGE_SETUP } from '../src/lib/damage';
 import { buildOptimizerRecipe } from '../src/lib/optimizerRecipe';
-import { BaseStats, RuneDetail } from '../src/types';
+import { BaseStats, RelicDetail, RuneDetail } from '../src/types';
 import { CASES, loadCase } from './lib/perfShared';
 import { loadDeckMonster } from './lib/deckMonster';
-import { executerHarnais } from './lib/diagnosticHarness';
+import { executerHarnaisResolu } from './lib/diagnosticHarness';
+import { resoudreConfig } from './lib/diagnosticConfig';
+import type { ConfigHarnais } from './lib/diagnosticTypes';
 import { resoudreSelectionCas, verifierComptesDisponibles } from './lib/diagnosticLot';
 
 /* --------------------------------------------------------------------------
@@ -73,16 +79,25 @@ function pipelineHistorique(
   // pour orienter son top-K par stat. Le figer faisait apparaître un écart
   // d'une rune sur le cas Ciri (objectif `ehp`) qui ne venait PAS de la
   // correction mesurée — un faux positif produit par l'oracle lui-même.
-  objective: Parameters<typeof filterSlot>[5]
+  objective: Parameters<typeof filterSlot>[5],
+  // Les reliques équipables de la recherche du HARNAIS (6bis-b3c) : la
+  // dominance protège l'effet unique de chacune.
+  reliques: readonly RelicDetail[],
+  // Les stats des lignes 218–221 de la recherche du HARNAIS (6bis-b3d-1),
+  // même provenance que `reliques`.
+  lignes: ReadonlySet<StatKey>
 ): EtatsHistoriques {
   const step1 = mainStatFilteredBySlot(pool, requirement);
 
-  const requiredKeys = new Set(requirement.sets);
   const maxEntries = statKeys
     .map((k) => ({ k, max: requirement.maxStats?.[k] }))
     .filter((e): e is { k: StatKey; max: number } => e.max != null && e.max > 0);
   const maxKeys = new Set(maxEntries.map((e) => e.k));
-  const step2 = step1.map((list) => pruneDominated(list, requiredKeys, maxKeys));
+  // La dominance de production, avec le contexte que la recette du harnais
+  // lui donne (toggle RES/PRE actif, objectif du cas, reliques équipables,
+  // lignes 218–221) : cet étage doit rester IDENTIQUE entre les deux chemins.
+  const dominance = contexteDominance(avecAurasConditions(requirement, DEFAULT_DAMAGE_SETUP, true), step1.flat(), objective, undefined, reliques, lignes);
+  const step2 = step1.map((list) => pruneDominated(list, maxKeys, dominance));
 
   const minEntries = statKeys
     .map((k) => ({ k, min: requirement.minStats[k] }))
@@ -123,8 +138,6 @@ async function comparerCas(index: number): Promise<boolean> {
   console.log(`Cas ${index} — ${c.label}`);
   console.log(`  pool ${allRunes.length} runes · sets ${requirement.sets.join('+')} · minStats ${JSON.stringify(requirement.minStats)}`);
 
-  const ancien = pipelineHistorique(allRunes, gear.base, requirement, statKeys, gear.artifacts, gear.relic, cap, c.objective);
-
   // Le harnais passe par une RECETTE — la source de vérité de l'écran. Elle
   // est fabriquée par `buildOptimizerRecipe`, donc réimportable telle quelle
   // dans l'interface (§4.1 du cadrage).
@@ -139,6 +152,7 @@ async function comparerCas(index: number): Promise<boolean> {
     requirement,
     objective: c.objective ?? 'efficience',
     damageSetup: DEFAULT_DAMAGE_SETUP,
+    compterAurasResPre: true,
     metric: 'eff',
     slotFilterPreset: 'bas',
     adaptiveTrancheWeighting: false,
@@ -152,14 +166,26 @@ async function comparerCas(index: number): Promise<boolean> {
   const chemin = join(tmpdir(), `sw-forge-parite-${process.pid}-${index}.json`);
   writeFileSync(chemin, JSON.stringify(recette), 'utf8');
 
+  const config: ConfigHarnais = {
+    source: { type: 'recette', cheminCompte: c.exportPath, cheminRecette: chemin, mode: { type: 'siege', deckId: c.deckId, defense: c.defense } },
+    arretApres: 'filterslot',
+    suivre: gear.runes.map((r) => r.id),
+    overrides: { slotFilterCap: cap },
+  };
+  let ancien;
   let nouveau;
   try {
-    nouveau = await executerHarnais({
-      source: { type: 'recette', cheminCompte: c.exportPath, cheminRecette: chemin, mode: { type: 'siege', deckId: c.deckId, defense: c.defense } },
-      arretApres: 'filterslot',
-      suivre: gear.runes.map((r) => r.id),
-      overrides: { slotFilterCap: cap },
-    });
+    // ⚠️ Les reliques équipables viennent de la configuration que le harnais
+    // RÉSOUT (recette → `recipeToSearchParams` : `equipped` si le monstre
+    // porte une relique, sinon `recherche` sur l'inventaire) — la même
+    // résolution que celle qu'il exécute, sinon l'étage `dominance` diverge
+    // entre les deux chemins (6bis-b3c). `executerHarnais` = cette résolution
+    // puis `executerHarnaisResolu`.
+    const resolue = resoudreConfig(config);
+    ancien = pipelineHistorique(allRunes, gear.base, requirement, statKeys, gear.artifacts, gear.relic, cap, c.objective,
+      reliquesEquipables(resolue.params.relic, resolue.params.relicContext),
+      statsLuesParLesLignes(resolue.params.objective, resolue.params.artifacts, resolue.params.statsLignesArtefactsEquipables));
+    nouveau = await executerHarnaisResolu(resolue, config);
   } finally {
     unlinkSync(chemin);
   }

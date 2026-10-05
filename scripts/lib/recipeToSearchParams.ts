@@ -6,11 +6,14 @@
 // runeBuildOptim.ts, pas d'une copie locale) pour qu'un script ne puisse
 // plus diverger silencieusement de l'écran comme c'est arrivé cette session.
 
-import { SearchParams, SlotFilterPresetKey, SLOT_FILTER_PRESETS, ARTIFACT_MAIN_VALUE } from '../../src/lib/runeBuildOptim';
+import { BuildCandidate, SearchParams, SlotFilterPresetKey, SLOT_FILTER_PRESETS, ARTIFACT_MAIN_VALUE, avecAurasConditions } from '../../src/lib/runeBuildOptim';
 import { ExclusionSourceData, autoExcludedRuneIds, resolveExcludedRuneIds } from '../../src/lib/optimizerExclusion';
 import { OptimizerRecipe } from '../../src/lib/optimizerRecipe';
+import { DEFAULT_RELIC_MIN_UPGRADE, RelicIntent, defaultRelicMainChoice } from '../../src/hooks/useOptimizerState';
+import { resoudreContexteRelique } from '../../src/lib/relicOptim';
 import {
   DEFAULT_DAMAGE_SETUP,
+  aurasPropresDesRunes,
   damageRelevantStats,
   monsterBonusDegatsSelonCr,
   monsterBonusDegatsSelonDef,
@@ -29,14 +32,16 @@ import {
   monsterOffensivePassives,
   resolveDamageSkill,
 } from '../../src/lib/damage';
-import { computeStats, statsParPaire } from '../../src/lib/stats';
-import { codesAmplificationActifs } from '../../src/lib/damage';
-import { bornesArtefacts, paireRepresentative, type BornesArtefacts, type ChoixPrincipale } from '../../src/lib/artifactOptim';
-import { evaluerPourRegime, regimeArtefacts } from '../../src/lib/artifactEvaluation';
+import { computeStats } from '../../src/lib/stats';
+import { bornesArtefacts, paireRepresentative, type ArtifactSearchParams, type BornesArtefacts } from '../../src/lib/artifactOptim';
+import { regimeArtefacts, regimeEquipementDe, type DegatsContext } from '../../src/lib/artifactEvaluation';
+import { AUCUN_ARTEFACT_RESERVE, evaluateursArtefactsFiche, parametresArtefactsFiche, statsLignesArtefactsEquipables } from '../../src/lib/artifactFiche';
+import { entreeResolutionDuBuild, nouveauxCachesResolution, resoudreEquipementDuBuild } from '../../src/lib/relicQueue';
+import type { ResultatArtefacts } from '../../src/lib/artifactQueue';
 import { buildRealDamageContext } from './realDamageCli';
 import { loadMonstersList } from './monstersData';
 import { StatKey } from '../../src/lib/effects';
-import { ArtifactDetail, ArtifactKind, RuneDetail } from '../../src/types';
+import { ArtifactDetail, ArtifactKind, ElementKey, RuneDetail } from '../../src/types';
 import { PorteurArtefact } from '../../src/lib/artifacts';
 import { LoadedMonster } from './loadMonster';
 import { loadMonsterSkills } from './skillsData';
@@ -128,6 +133,32 @@ export function resolveArtifacts(recipe: OptimizerRecipe, loaded: LoadedMonster)
 }
 
 /**
+ * Construit l'intention de recherche de relique (`RelicIntent`) depuis une
+ * recette — le second des deux constructeurs prévus par le lot 2 (le
+ * premier, depuis `OptimizerState`, est du lot 5c : les listes de l'écran
+ * n'existent pas encore). **Un seul point de lecture** (garantie G) : ni ce
+ * fichier ni l'écran ne relisent `relicMainChoice`/`relicUniqueChoice`/
+ * `relicMinUpgrade` séparément une fois cette fonction posée.
+ *
+ * ⚠️ `mode: 'off'` suit `ignoreArtifacts` (D1 : l'interrupteur « Activer
+ * l'optimisation d'artéfacts » s'étend aux reliques, aucun interrupteur
+ * propre — T2). Sans `relicMainChoice` (recette antérieure au lot 2, ou
+ * écran qui ne l'a pas encore posé), le défaut se CALCULE contre la relique
+ * réellement portée par `loaded` (`defaultRelicMainChoice`), jamais une
+ * constante — même règle que l'écran au lot 5c, pour que les deux
+ * convergent sur la même valeur à recette égale.
+ */
+export function recipeToRelicIntent(recipe: OptimizerRecipe, loaded: LoadedMonster): RelicIntent {
+  const principale = recipe.relicMainChoice ?? defaultRelicMainChoice(loaded.gear.relic);
+  return {
+    mode: recipe.ignoreArtifacts ? 'off' : principale === 'equipped' ? 'equipped' : 'recherche',
+    principale,
+    type: recipe.relicUniqueChoice ?? 'libre',
+    seuil: recipe.relicMinUpgrade ?? DEFAULT_RELIC_MIN_UPGRADE,
+  };
+}
+
+/**
  * La paire réelle que le Mode A choisirait pour l'ÉQUIPEMENT ACTUEL.
  *
  * ⚠️ **Évaluée sur le build courant, faute de mieux** : au moment où ces
@@ -144,39 +175,124 @@ export function resolveArtifacts(recipe: OptimizerRecipe, loaded: LoadedMonster)
  * l'hypothèque.
  */
 function paireReelle(recipe: OptimizerRecipe, loaded: LoadedMonster): ArtifactDetail[] | null {
+  const a = artefactsDuCli(recipe, loaded);
+  if (!a) return null;
+  // Sort non calculable : on ne sait pas noter une paire. Repli sur
+  // l'ancien comportement (voir `resolveArtifacts`) plutôt qu'une paire
+  // arbitraire — comportement inchangé, `paireReelle` bail out ENTIÈREMENT
+  // plutôt que de rabattre le régime sur `'aucun'` comme le fait l'écran.
+  if (regimeArtefacts(recipe.objective) === 'degats_reels' && !a.degats) return null;
+  return paireRepresentative(a.params);
+}
+
+/**
+ * Le pendant CLI d'`artifactParams` (OptimizerSection.tsx) : le contexte de
+ * choix des paires, dont l'`evaluer` note la paire REPRÉSENTATIVE, et le
+ * contexte de dégâts sans profil d'artéfacts (`contexteDegatsArtefacts` de
+ * l'écran). La paire supposée (`paireReelle`) et la résolution par build
+ * (`resoudreEquipementCli`) en partent toutes deux, comme `searchArtifacts` et
+ * la file de l'écran partent d'`artifactParams`.
+ *
+ * ⚠️ La note de la représentative vient du producteur de l'écran
+ * (`evaluateursArtefactsFiche`, 6bis-b5b), jamais d'un `evaluerPourRegime`
+ * assemblé ici : jusqu'à 6bis-b5c, le CLI ne comptait l'effet unique de la
+ * relique de la fiche qu'en PV effectifs, l'écran aussi en « Dégâts réels ».
+ * `null` : espèce introuvable.
+ */
+export function artefactsDuCli(
+  recipe: OptimizerRecipe,
+  loaded: LoadedMonster
+): { params: ArtifactSearchParams; degats: DegatsContext | null; element: ElementKey } | null {
   const espece = loadMonstersList().find((m) => m.com2usId === loaded.com2usId);
   if (!espece) return null;
-
-  // ⚠️ Un seul `computeStats` pour toutes les paires — voir `statsParPaire`.
-  const statsAvec = statsParPaire(loaded.gear);
-  // ⚠️ Le score dépend du RÉGIME, pas juste de « Dégâts réels » vs le reste :
-  // `pvEffectifs` (PV effectifs) n'est PAS une somme des deux principales,
-  // contrairement à l'efficience/la VIT. `evaluerPourRegime`
-  // (`src/lib/artifactEvaluation.ts`) centralise ce contrat, partagé avec
-  // les deux sites de OptimizerSection.tsx (spec/outils/optimizer/
-  // decisions/cadrage-score-artefacts-ehp.md).
-  const regime = regimeArtefacts(recipe.objective);
-
-  let evaluer: (arts: ArtifactDetail[]) => number;
-  if (regime === 'degats_reels') {
-    // ⚠️ Contexte construit avec l'équipement PORTÉ, uniquement pour obtenir le
-    // profil de sort et les passifs — `artefacts` est recalculé par paire dans
-    // `evaluer`, donc la valeur passée ici n'influence pas le choix.
-    const ctx = buildRealDamageContext(recipe, loaded.com2usId, loaded.gear.artifacts);
-    // Sort non calculable : on ne sait pas noter une paire. Repli sur
-    // l'ancien comportement (voir `resolveArtifacts`) plutôt qu'une paire
-    // arbitraire — comportement inchangé, `paireReelle` bail out ENTIÈREMENT
-    // plutôt que de rabattre le régime sur `'aucun'` comme le fait l'écran.
-    if (!ctx) return null;
-    const { artefacts: _artefacts, ...contexteSansArtefacts } = ctx;
-    evaluer = evaluerPourRegime(regime, statsAvec, contexteSansArtefacts);
-  } else {
-    evaluer = evaluerPourRegime(regime, statsAvec);
-  }
-
-  return paireRepresentative(
-    paramsArtefacts(recipe, loaded, { element: espece.element, archetype: espece.archetype }, evaluer)
+  // ⚠️ Contexte construit avec l'équipement PORTÉ, uniquement pour obtenir le
+  // profil de sort et les passifs — `artefacts` est recalculé par paire dans
+  // `evaluer`, donc la valeur passée ici n'influence pas le choix. `null` hors
+  // « Dégâts réels » ou sans sort calculable (`buildRealDamageContext`).
+  const ctx = buildRealDamageContext(recipe, loaded.com2usId, loaded.gear.artifacts);
+  const degats = ctx ? (({ artefacts: _artefacts, ...sansArtefacts }) => sansArtefacts)(ctx) : null;
+  // Les auras propres (6bis-b2) des runes PORTÉES — comme l'écran
+  // (`aurasPropresFiche`).
+  const propres = aurasPropresDesRunes(loaded.gear.runes);
+  const { representatif } = evaluateursArtefactsFiche(
+    loaded.gear,
+    recipe.objective,
+    propres,
+    degats,
+    { setup: recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP, element: espece.element },
+    ctx?.monsterWide.combatStats
   );
+  return {
+    params: paramsArtefacts(recipe, loaded, { element: espece.element, archetype: espece.archetype }, representatif),
+    degats,
+    element: espece.element,
+  };
+}
+
+/**
+ * « Vérifier toutes les combinaisons trouvées » lu dans la recette, pour la
+ * file du CLI (`classerApresResolution`, classementCli.ts) — le pendant de
+ * l'interrupteur de l'écran (degats-et-aura 6bis-b18).
+ *
+ * ⚠️ **Le seul point de lecture du champ côté CLI**, avec le repli de l'écran
+ * (`?? false`) : une recette exportée avant ce champ ne le porte pas. Il
+ * n'entre pas dans `SearchParams` — le moteur de runes l'ignore, seule la file
+ * le lit (`cibleDeLaFile`) —, d'où cette fonction plutôt qu'un champ de
+ * `recipeToSearchParams`.
+ */
+export function toutVerifierDeLaRecette(recipe: OptimizerRecipe): boolean {
+  return recipe.verifierToutesLesCombinaisons ?? false;
+}
+
+/**
+ * La résolution de l'équipement par build du CLI — celle de la file de
+ * l'écran (`resoudreEquipement`, OptimizerSection.tsx), par le même
+ * producteur (`entreeResolutionDuBuild`, relicQueue.ts) et la même partie
+ * pure (`resoudreEquipementDuBuild`) : paire ET relique ensemble en mode
+ * `recherche` (rejet des couples infaisables, stats recalculées avec le
+ * couple retenu), paire seule avec la relique de la fiche sinon
+ * (degats-et-aura 6bis-b5c).
+ *
+ * Entrées, chacune le pendant de celle de l'écran : la fiche
+ * (`loaded.gear` ↔ `selected.gear`), le contexte de paires (`artefactsDuCli`
+ * ↔ `artifactParams`), le régime effectif (`regimeEquipementDe`, critère =
+ * l'objectif : le CLI trie par l'objectif), les conditions avec auras et le
+ * contexte relique de la recherche lancée (`params.requirement`,
+ * `params.relicContext`).
+ *
+ * `null` là où l'écran n'a pas de file : optimisation d'artéfacts coupée
+ * (`ignoreArtifacts`, qui met aussi la relique en mode `off`), ou espèce
+ * introuvable.
+ */
+export function resoudreEquipementCli(
+  recipe: OptimizerRecipe,
+  loaded: LoadedMonster,
+  params: SearchParams
+): ((c: BuildCandidate) => ResultatArtefacts) | null {
+  if (recipe.ignoreArtifacts) return null;
+  const a = artefactsDuCli(recipe, loaded);
+  if (!a) return null;
+  const regime = regimeEquipementDe(regimeArtefacts(recipe.objective), a.degats != null);
+  const runeById = new Map(params.pool.map((r) => [r.id, r]));
+  const exclusive = { setup: recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP, element: a.element };
+  // Les caches de la file de l'écran (6bis-b13) : un jeu pour toute la
+  // résolution de cette recette, comme l'écran pour une signature.
+  const caches = nouveauxCachesResolution();
+  return (c) =>
+    resoudreEquipementDuBuild(
+      entreeResolutionDuBuild({
+        fiche: loaded.gear,
+        // Une rune absente du pool est ignorée, comme à l'écran.
+        runes: c.runeIds.map((id) => runeById.get(id)!).filter(Boolean),
+        artifactParams: a.params,
+        regime,
+        degats: a.degats,
+        exclusive,
+        requirement: params.requirement,
+        relicContext: params.relicContext,
+        caches,
+      })
+    );
 }
 
 /**
@@ -184,10 +300,13 @@ function paireReelle(recipe: OptimizerRecipe, loaded: LoadedMonster): ArtifactDe
  * (`paireReelle`) et les bornes de faisabilité (`resolveArtifactBounds`)
  * partent EXACTEMENT du même contexte.
  *
- * ⚠️ **Second constructeur d'`ArtifactSearchParams`** (l'autre est
- * `artifactParams`, OptimizerSection.tsx). Un champ ajouté là-bas doit l'être
- * ici — `tsc` ne le dira pas tant qu'il reste optionnel (voir CLAUDE.md,
- * « un type partagé a PLUSIEURS constructeurs »).
+ * ⚠️ **Le producteur de l'écran** (`parametresArtefactsFiche`,
+ * artifactFiche.ts, 6bis-b6), jamais un assemblage local : jusque-là, ce
+ * second constructeur ne neutralisait pas les verrous quand les deux
+ * emplacements sont figés, et rejetait chaque build d'une recette que
+ * l'écran résolvait (constat C5 de la revue technique 6bis-b). Seul écart
+ * documenté : le CLI n'a pas de liste de travail, donc aucun artéfact
+ * réservé (`AUCUN_ARTEFACT_RESERVE`).
  */
 function paramsArtefacts(
   recipe: OptimizerRecipe,
@@ -196,23 +315,20 @@ function paramsArtefacts(
   evaluer: (arts: ArtifactDetail[]) => number
 ): Parameters<typeof paireRepresentative>[0] {
   return {
-    porteur,
-    inventaire: loaded.allArtifacts,
-    equipes: loaded.gear.artifacts,
-    principaleParSorte: recipe.artifactMainByKind as Partial<Record<ArtifactKind, ChoixPrincipale>>,
-    // ⚠️ `?? []` : une recette exportée AVANT ce champ ne le porte pas.
-    //
-    // ⚠️ Les verrous s'appliquent DÈS ICI, sur la paire supposée : chaque
-    // ligne verrouillée mange un emplacement de sous-propriété qui aurait pu
-    // porter une ligne de dégâts. Une paire supposée qui les ignorerait
-    // noterait tous les candidats sur un potentiel que la paire finale ne
-    // pourra pas atteindre.
-    lignesVerrouillees: recipe.lignesVerrouillees ?? [],
-    // ⚠️ Sans cette ligne, le CLI élaguerait des artéfacts que l'écran garde,
-    // et ne reproduirait donc pas la même paire supposée. Une amplification de
-    // buff est invisible à la sonde de pertinence — voir
-    // `codesAmplificationActifs` (damage.ts).
-    codesAmplification: codesAmplificationActifs(recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP),
+    ...parametresArtefactsFiche({
+      porteur,
+      inventaire: loaded.allArtifacts,
+      reserves: AUCUN_ARTEFACT_RESERVE,
+      equipes: loaded.gear.artifacts,
+      // Toujours vrai ici (les appelants s'arrêtent sur `ignoreArtifacts`),
+      // dit pour que le producteur décide comme à l'écran.
+      optimiserArtefacts: !recipe.ignoreArtifacts,
+      principaleParSorte: recipe.artifactMainByKind,
+      // ⚠️ `?? []` : une recette exportée AVANT ce champ ne le porte pas.
+      lignesVerrouillees: recipe.lignesVerrouillees ?? [],
+      damageSetup: recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP,
+      maxStats: recipe.requirement.maxStats ?? {},
+    }),
     evaluer,
   };
 }
@@ -257,6 +373,26 @@ export function resolveArtifactBounds(
     (arts) => arts.reduce((n, a) => n + a.main.value, 0)
   );
   return bornesArtefacts(params, avecMinimum, avecMaximum);
+}
+
+/**
+ * Les stats lues par les lignes 218–221 des artéfacts que la résolution peut
+ * équiper — `SearchParams.statsLignesArtefactsEquipables`, par le producteur
+ * de l'écran (`statsLignesArtefactsEquipables`, artifactFiche.ts,
+ * degats-et-aura 6bis-b3d-1), sur le même contexte de paires
+ * (`artefactsDuCli`).
+ *
+ * ⚠️ Écart documenté : sans liste de travail, aucun artéfact réservé — l'union
+ * du CLI peut être plus large que celle de l'écran, jamais plus étroite.
+ *
+ * `undefined` sous `ignoreArtifacts` : la paire est FIGÉE sur les pièces
+ * portées (`resolveArtifacts`), que le moteur lit déjà dans
+ * `SearchParams.artifacts` ; et quand l'espèce est introuvable.
+ */
+export function resolveStatsLignesArtefacts(recipe: OptimizerRecipe, loaded: LoadedMonster): StatKey[] | undefined {
+  if (recipe.ignoreArtifacts) return undefined;
+  const a = artefactsDuCli(recipe, loaded);
+  return a ? statsLignesArtefactsEquipables(a.params) : undefined;
 }
 
 // Même logique que `pool` (OptimizerSection.tsx) : `excludeUsedRunes` coché
@@ -362,9 +498,18 @@ export function recipeToSearchParams(
     // d'artéfact avant la recherche là où l'écran ne le fige plus — il
     // rejouerait donc un moteur qui n'existe plus, en silence.
     artifactBounds: resolveArtifactBounds(recipe, loaded),
+    // Le pendant de l'écran (`handleSearch`) : les lignes 218–221 que la
+    // dominance protège au-delà de la paire représentative (6bis-b3d-1).
+    statsLignesArtefactsEquipables: resolveStatsLignesArtefacts(recipe, loaded),
     relic: loaded.gear.relic,
+    // ⚠️ **Deuxième des trois producteurs de `relicContext`** (lot 5a — les
+    // autres : `buildCaseSearchParams` de perfShared.ts, et l'écran au lot
+    // 5c). L'intention vient d'UN seul point de lecture (`recipeToRelicIntent`,
+    // garantie G), résolue contre la relique portée et l'inventaire du
+    // compte — exactement ce que `relicOracleCli` fait pour l'oracle.
+    relicContext: resoudreContexteRelique(recipeToRelicIntent(recipe, loaded), loaded.gear.relic, loaded.allRelics),
     pool: resolvePool(recipe, loaded, exclusionData),
-    requirement: recipe.requirement,
+    requirement: avecAurasConditions(recipe.requirement, recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP, recipe.compterAurasResPre ?? true),
     metric: recipe.metric,
     objective: recipe.objective,
     objectiveStats: resolveObjectiveStats(recipe, loaded),

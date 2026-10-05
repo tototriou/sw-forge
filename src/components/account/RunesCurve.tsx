@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { Gem } from 'lucide-react';
 import { RuneDetail } from '../../types';
 import { runePotential } from '../../lib/runeOptim';
 import { useRuneMetric } from '../../hooks/useRuneMetric';
@@ -36,6 +37,9 @@ export default function RunesCurve({ runes }: Props) {
   const [limit, setLimit] = useStickyState('runesCurve.limit', DEFAULT_LIMIT);
   const [hidden, setHidden] = useStickyState<Set<string>>('runesCurve.hidden', new Set());
   const [gemMode, setGemMode] = useStickyState<'gem' | 'grind'>('runesCurve.gemMode', 'gem');
+  // « Autoriser un regemme différent » — même réglage que l'onglet Optimisation,
+  // mémorisé à part comme le mode gemme/meule. Éteint par défaut.
+  const [regemLibre, setRegemLibre] = useStickyState('runesCurve.regemLibre', false);
   const metric = useRuneMetric(); // réglage global : efficience ou score SW
   const withGem = gemMode === 'gem';
 
@@ -60,7 +64,7 @@ export default function RunesCurve({ runes }: Props) {
       if (!keepAncient(r, ancient)) return false;
       return true;
     });
-    const pots = filtered.map((r) => ({ rune: r, p: runePotential(r, withGem, metric) }));
+    const pots = filtered.map((r) => ({ rune: r, p: runePotential(r, withGem, metric, false, undefined, regemLibre) }));
     // Trie sur une valeur donnée et renvoie valeurs + runes alignées.
     const classe = (val: (p: ReturnType<typeof runePotential>) => number) => {
       const tri = [...pots].sort((a, b) => val(b.p) - val(a.p));
@@ -71,7 +75,7 @@ export default function RunesCurve({ runes }: Props) {
       hero: classe((p) => p.heroEff),
       legend: classe((p) => p.legendEff),
     };
-  }, [runes, sets, slots, ancient, withGem, metric]);
+  }, [runes, sets, slots, ancient, withGem, metric, regemLibre]);
 
   const total = cur.effs.length;
   const cap = Math.max(1, limit);
@@ -123,7 +127,8 @@ export default function RunesCurve({ runes }: Props) {
           Le sélecteur <b className="text-ink">Gemme + meule / Meule seule</b> change les courbes de
           potentiel : <b className="text-ink">Gemme + meule</b> = gemme optimale puis meules au max ;{' '}
           <b className="text-ink">Meule seule</b> = on garde les stats actuelles, seules les meules sont
-          poussées.
+          poussées. Une rune déjà gemmée garde sa stat gemmée, sauf avec{' '}
+          <b className="text-ink">Autoriser un regemme différent</b>.
         </p>
         <p className="mt-2">
           👉 Va dans l'onglet <b className="text-ink">Optimisation</b> pour voir{' '}
@@ -177,7 +182,7 @@ export default function RunesCurve({ runes }: Props) {
 
       {/* Mode gemme + nombre de runes */}
       <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Segmented
             value={gemMode}
             onChange={setGemMode}
@@ -193,6 +198,20 @@ export default function RunesCurve({ runes }: Props) {
                 hint: 'Potentiel en gardant les stats actuelles (meules seulement)',
               },
             ]}
+          />
+          {/* Grisé en « Meule seule » : sans gemme, il n'y a rien à regemmer. */}
+          <Bouton
+            onClick={() => setRegemLibre((v) => !v)}
+            disabled={!withGem}
+            actif={regemLibre}
+            taille="sm"
+            title={
+              withGem
+                ? 'Rune déjà gemmée : compter aussi le regemme de sa ligne gemmée avec une autre stat, absente de la rune'
+                : 'Sans objet en « Meule seule » : aucune gemme n’est comptée'
+            }
+            icone={<Gem size={14} />}
+            libelle="Autoriser un regemme différent"
           />
           <span className="font-mono text-xs text-ink-dim">
             top {Math.min(cap, total)}

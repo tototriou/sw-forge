@@ -465,6 +465,23 @@ function rendreResultat(r: ResultatHarnais): string {
     l.push(`  ${v.avertissementTroncature}`);
   }
 
+  // ── Lot 5a : la trace PRODUITE DANS LE MOTEUR pour le build cible —
+  // verdict de chaque prédicat traversé, présence dans chaque structure
+  // bornée. Rendue brute (JSON) : c'est un relevé, pas une interprétation.
+  if (r.traceCandidat) {
+    const t = r.traceCandidat;
+    l.push('', 'TRACEUR — verdicts produits dans le moteur (lot 5a)', '─'.repeat(72));
+    for (const e of t.preparation) l.push(`  ${e.etage.padEnd(11)} présentes : ${e.presentes.map((p) => (p ? '✓' : '✗')).join(' ')}`);
+    for (const h of ['A', 'B'] as const) {
+      const m = t.moities[h];
+      if (!m) { l.push(`  moitié ${h} : non observée`); continue; }
+      l.push(`  moitié ${h} : ${m.generee ? `générée (compartiment ${m.compartiment}, ${m.retenue ? `retenue rang ${m.rang}/${m.population}` : `ÉVINCÉE, population ${m.population}`})` : `coupée avant tout compartiment : ${m.coupee}`}`);
+      if (m.tranches) for (const tr of m.tranches) l.push(`    tranche ${tr.nom.padEnd(12)} ${tr.retenue ? 'retenue' : 'évincée'} (${tr.taille}/${tr.cap})`);
+    }
+    l.push(`  appariement : ${JSON.stringify(t.appariement)}`);
+    l.push(`  budget : ${JSON.stringify(t.budget)} — compteurs : ${JSON.stringify(t.compteurs)}`);
+  }
+
   // ── §5.7 : la DISPERSION PAR TRANCHE, telle que le moteur la calcule.
   if (r.dispersionTranches && r.dispersionTranches.length > 0) {
     l.push('', 'Rétention — DISPERSION PAR TRANCHE (le CV du moteur, piste B)', '─'.repeat(72));

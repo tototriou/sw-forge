@@ -89,9 +89,13 @@ export type SpawnSlice = (
 // dédoublonnage nécessaire, les tranches de bucketsA sont disjointes : un
 // candidat donné ne peut exister que dans LA tranche qui contient son
 // comboA) mais PAS un simple OR pour `truncated` : voir le commentaire de
-// `combineParallelPairingResults` (runeBuildOptim.ts) — un worker sur une
-// tranche riche qui remplit SON PROPRE quota n'est pas forcément le signe
-// d'une recherche globalement incomplète.
+// `combineParallelPairingResults` (runeBuildOptim.ts) — un worker qui
+// remplit SON PROPRE quota s'arrête, et la recherche est tronquée (motif
+// `quotaTranche`) tant qu'il reste des paires non visitées.
+//
+// `totalPairs` : l'espace EXACT (`totalPairCount`) que l'appelant a déjà
+// calculé pour choisir le régime — transmis à la fusion, jamais recalculé
+// (degats-et-aura 6bis-b7 : aucun coût ajouté à la recherche).
 //
 // Répartition GLOUTONNE par charge réelle (LPT) — voir `partitionBucketsALPT`
 // dans runeBuildOptim.ts (déplacée là pour être testable en Node, voir
@@ -107,6 +111,7 @@ export async function driveParallelPairing(
   prepared: PreparedSearch,
   bucketsA: Bucket[],
   bucketsB: Bucket[],
+  totalPairs: number,
   postProgress: (explored: number, found: number, newCandidates: BuildCandidate[]) => void,
   startedAt: number,
   onHandles?: (handles: SliceHandle[]) => void
@@ -148,5 +153,5 @@ export async function driveParallelPairing(
   for (const h of handles) h.terminate();
   onHandles?.([]);
 
-  return combineParallelPairingResults(results, perWorkerMaxCollected, prepared.maxCollected);
+  return combineParallelPairingResults(results, perWorkerMaxCollected, prepared.maxCollected, totalPairs);
 }

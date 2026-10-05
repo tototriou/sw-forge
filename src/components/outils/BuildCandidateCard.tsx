@@ -1,11 +1,14 @@
+import { RefObject, useLayoutEffect, useState } from 'react';
 import { ArrowLeftRight, CheckCircle2 } from 'lucide-react';
-import { ArtifactDetail, RuneDetail, RUNE_SETS } from '../../types';
+import { ArtifactDetail, RelicDetail, RuneDetail, RUNE_SETS } from '../../types';
 import { BuildCandidate, candidateMetricTotal } from '../../lib/runeBuildOptim';
 import { activeSets } from '../../lib/effects';
+import { EtatRelique } from '../../lib/relicQueue';
 import { RuneMetric, formatRuneMetric } from '../../hooks/useRuneMetric';
 import { ArtifactDetailBox, RuneDetailBox } from '../PieceDetail';
 import RuneWheel from '../RuneWheel';
 import ArtifactSlots from '../ArtifactSlots';
+import RelicSlot, { RelicDetailBox } from '../RelicSlot';
 import StatPanel from '../StatPanel';
 import { COMPACT, useMediaQuery } from '../../hooks/useMediaQuery';
 import { Bouton, FlottantAuto } from '../../ui';
@@ -22,9 +25,21 @@ interface Props {
   // pièces-là qui ont servi à calculer `candidate.stats` — montrer autre chose
   // afficherait des stats et un équipement qui ne vont pas ensemble.
   artifacts: ArtifactDetail[];
-  // La paire de CE build n'a pas encore été calculée : celle affichée est la
-  // paire supposée, commune. Dit explicitement plutôt que laissé croire.
-  paireProvisoire?: boolean;
+  /**
+   * L'état de la relique de CE build (implementation-relique, B.5c/5c bis),
+   * `etatReliqueDuBuild` (relicQueue.ts) — SEULE source, jamais recalculé
+   * ici. `undefined` : aucune dimension relique dans cette recherche (hors
+   * mode `recherche`, chemin d'avant ce lot) — traité comme `fixe` sans
+   * relique, la case reste affichée, grisée « aucune ».
+   */
+  etatRelique?: EtatRelique;
+  // Occupation par `rid` (`n / 150`, D3), affichée dans le détail de la
+  // relique — nécessaire seulement quand `etatRelique.etat === 'resolue'` ou
+  // `'fixe'` avec une relique (implementation-relique, B.5c ter).
+  relicUsageById?: Record<number, number>;
+  // ⚠️ Plus de `paireProvisoire` (degats-et-aura 6bis-b16) : une carte n'est
+  // affichée qu'une fois son équipement résolu — avant, sa place dit
+  // « Vérification… » (`PlaceEnVerification`, plus bas).
   metric: RuneMetric;
   // Identité de la pièce actuellement ouverte, PARTAGÉE entre tous les
   // résultats affichés — voir OptimizerSection.tsx / useOptimizerState.ts.
@@ -140,11 +155,12 @@ export default function BuildCandidateCard({
   candidate,
   runeById,
   artifacts,
+  etatRelique,
+  relicUsageById,
   metric,
   openDetailKey,
   onToggleDetail,
   degatsReels,
-  paireProvisoire,
   onValidate,
   conflit,
   validated,
@@ -172,11 +188,14 @@ export default function BuildCandidateCard({
   // couvrait de toute façon pas le cas rune↔artéfact, ouvert dès l'origine :
   // deux états distincts laissaient les DEUX popovers affichés.
   //
-  // ⚠️ Les deux sortes partagent donc une clé, préfixée pour rester
-  // distinguables : `a<kind>` pour un artéfact, `r<slot>` pour une rune. Sans
-  // préfixe, l'ancien format `<candidateKey>-<slot>` ne se relisait pas.
+  // ⚠️ Les trois sortes partagent donc une clé, préfixée pour rester
+  // distinguables : `a<kind>` pour un artéfact, `r<slot>` pour une rune,
+  // `relic` (fixe, un seul emplacement) pour la relique (implementation-
+  // relique, B.5c bis). Sans préfixe, l'ancien format `<candidateKey>-<slot>`
+  // ne se relisait pas.
   const cleArtefact = (kind: string) => `${candidateKey}-a${kind}`;
   const cleRune = (slot: number) => `${candidateKey}-r${slot}`;
+  const cleRelique = `${candidateKey}-relic`;
   const detailOuvertIci = openDetailKey?.startsWith(`${candidateKey}-`) ?? false;
 
   // ⚠️ Même bascule flottant (souris) / en ligne (doigt) que MonsterGear.tsx —
@@ -185,8 +204,71 @@ export default function BuildCandidateCard({
   const auDoigt = useMediaQuery(COMPACT);
   const suffixe = detailOuvertIci ? openDetailKey!.slice(candidateKey.length + 1) : null;
   const openArtifact = suffixe?.startsWith('a') ? artifacts.find((a) => a.kind === suffixe.slice(1)) : undefined;
-  const openRuneSlot = suffixe?.startsWith('r') ? Number(suffixe.slice(1)) : null;
+  const openRelique = suffixe === 'relic';
+  // ⚠️ `suffixe !== 'relic'` D'ABORD : `'relic'` commence lui aussi par `r`,
+  // sans quoi `Number('elic')` (NaN) serait silencieusement comparé plus bas —
+  // inoffensif (NaN ne matche jamais un slot réel) mais faux par construction.
+  const openRuneSlot = suffixe && suffixe !== 'relic' && suffixe.startsWith('r') ? Number(suffixe.slice(1)) : null;
   const openRune = openRuneSlot !== null ? runes.find((r) => r.slot === openRuneSlot) : undefined;
+
+  // ⚠️ **Seule source** : `etatRelique` vient d'`etatReliqueDuBuild`
+  // (relicQueue.ts), jamais recalculé ici. `undefined` (aucune dimension
+  // relique dans cette recherche) se traite comme `fixe` sans relique — la
+  // case reste affichée, grisée « aucune », comme `MonsterGear`.
+  const relicSlot: { relic: RelicDetail | undefined; enAttente: boolean; marques: string[] } =
+    !etatRelique || etatRelique.etat === 'fixe'
+      ? { relic: etatRelique?.relique, enAttente: false, marques: [] }
+      : etatRelique.etat === 'en attente'
+        ? { relic: undefined, enAttente: true, marques: [] }
+        : etatRelique.etat === 'rejete'
+          ? // Jamais affiché en pratique (le classement l'a déjà écarté, B.5b) —
+            // repli sûr si ce chemin était emprunté quand même.
+            { relic: undefined, enAttente: false, marques: [] }
+          : {
+              relic: etatRelique.relique,
+              enAttente: false,
+              marques: [
+                ...(etatRelique.sansEffetSurLeTri ? ['relique sans effet sur ce tri'] : []),
+                ...(etatRelique.equipeeExclue ? ['relique équipée exclue par le filtre'] : []),
+              ],
+            };
+
+  // Relique — même composant partagé que l'emplacement de `MonsterGear.tsx`
+  // (`RelicSlot`, implementation-relique, B.5c bis), jamais une copie. `small` :
+  // case resserrée à l'échelle 0,45 de cette carte. Un seul élément, posé à
+  // l'un de deux endroits selon le pointeur : à droite de la roue au doigt,
+  // SOUS la roue à la souris (voir la ligne fiche/artéfacts/roue).
+  const relique = (
+    <RelicSlot
+      relic={relicSlot.relic}
+      enAttente={relicSlot.enAttente}
+      marques={relicSlot.marques}
+      small
+      selected={openDetailKey === cleRelique}
+      onToggle={() => onToggleDetail(cleRelique)}
+      renderOverlay={
+        auDoigt
+          ? undefined
+          : (anchorRef) => (
+              <FlottantAuto
+                ouvert={openDetailKey === cleRelique}
+                ancre={anchorRef}
+                largeur={220}
+                hauteur={120}
+                rembourrage="md"
+              >
+                {/* Non-null : `RelicSlot` n'invoque `renderOverlay` que
+                    dans sa branche « relique présente ». */}
+                <RelicDetailBox
+                  relic={relicSlot.relic!}
+                  count={relicUsageById?.[relicSlot.relic!.id]}
+                  encadre={false}
+                />
+              </FlottantAuto>
+            )
+      }
+    />
+  );
 
   return (
     <div
@@ -199,6 +281,9 @@ export default function BuildCandidateCard({
       className={`rounded-xl border border-border bg-panel p-2.5 ${
         detailOuvertIci ? 'relative z-10' : ''
       }`}
+      // Lu par `useHauteurDesCartes` : les places « Vérification… » prennent
+      // la hauteur d'une carte réelle (degats-et-aura 6bis-b16).
+      data-carte-resultat=""
     >
       <div className="flex items-start justify-between mb-2">
         <span className="font-mono text-xs font-bold text-star">#{rank}</span>
@@ -246,14 +331,14 @@ export default function BuildCandidateCard({
             </span>
             {degatsReels.delta != null && <Delta valeur={degatsReels.delta} />}
           </span>
-          {/* ⚠️ **Rangée TOUJOURS présente** — la place est réservée d’avance
-              (spec/shared/design.md). Rendue conditionnellement, elle faisait
-              varier la hauteur de la carte, et comme la file sert les builds au
-              fil de l’eau, TOUTE la grille se réorganisait à chaque paire
-              trouvée. L’espace insécable tient la hauteur quand il n’y a rien à
-              dire — un espace ordinaire s’effondrerait.
+          {/* ⚠️ **Il y avait ici une rangée réservée « artéfacts pas encore
+              optimisés »**, toujours présente pour que la hauteur de la carte
+              ne change pas quand la file trouvait sa paire. Retirée avec la
+              carte provisoire elle-même (degats-et-aura 6bis-b16) : une carte
+              n'apparaît plus qu'une fois résolue, la mention ne pouvait plus
+              s'afficher.
 
-              ⚠️ **Il y avait ici un « +X % grâce aux artéfacts ». RETIRÉ, et
+              ⚠️ **Il y avait aussi un « +X % grâce aux artéfacts ». RETIRÉ, et
               pas réparé.** Il comparait la paire retenue à la paire SUPPOSÉE —
               celle que le moteur postule pendant qu’il classe les builds. C’est
               un détail d’implémentation : personne n’a de raison de savoir
@@ -268,9 +353,6 @@ export default function BuildCandidateCard({
               build » (OptimizerSection.tsx), où les deux termes partagent le
               même build. Ici, le total affiché inclut DÉJÀ la paire retenue, et
               cette paire est montrée juste à côté : la carte se suffit. */}
-          <span className="w-full text-right text-micro text-ink-dimmer">
-            {paireProvisoire ? 'artéfacts pas encore optimisés' : ' '}
-          </span>
         </p>
       )}
 
@@ -292,7 +374,26 @@ export default function BuildCandidateCard({
           Empilés, chacun garde sa taille de lecture. */}
       <div className="flex flex-col items-center justify-center gap-2 sm:flex-row">
         <StatPanel stats={candidate.stats} />
-        <div className="flex flex-none items-center gap-1">
+        {/* ⚠️ À LA SOURIS, la relique est TOUJOURS SOUS LA ROUE (degats-et-aura
+            6bis-b15, décision de l'utilisateur, carte de résultat seulement) :
+            fiche 200 px + artéfacts 26 px + roue 94 px (échelle 0,45) et leurs
+            écarts font 332 px, ce qu'une carte de 360 px contient tout juste —
+            la relique à droite de la roue débordait des deux côtés. Grille à
+            deux colonnes : artéfacts | roue, puis la relique dans la case sous
+            la roue, centrée. Les artéfacts restent centrés sur la ROUE (la
+            rangée du haut), pas sur roue + relique. La colonne vaut
+            `min-content`, soit la largeur fixe de la roue : la relique et ses
+            marques s'y replient sans l'élargir, en entier — et la relique ne
+            change jamais de place quand la file la résout.
+            Au doigt, rendu inchangé (à droite de la roue) : il relève de la
+            passe responsive. */}
+        <div
+          className={
+            auDoigt
+              ? 'flex flex-none items-center gap-1'
+              : 'grid flex-none grid-cols-[auto_min-content] items-center gap-1'
+          }
+        >
           <ArtifactSlots
             artifacts={artifacts}
             scale={ARTIFACT_SCALE}
@@ -340,16 +441,20 @@ export default function BuildCandidateCard({
                   )
             }
           />
+          {auDoigt ? relique : <div className="col-start-2 flex justify-center">{relique}</div>}
         </div>
       </div>
 
-      {/* Au DOIGT : le détail sur sa propre ligne, sous artéfacts/roue — voir
-          MonsterGear.tsx. Artéfact et rune peuvent être ouverts en même temps
-          (états indépendants) : les deux s'empilent plutôt que de s'exclure. */}
-      {auDoigt && (openArtifact || openRune) && (
+      {/* Au DOIGT : le détail sur sa propre ligne, sous artéfacts/roue/relique
+          — voir MonsterGear.tsx. Les trois peuvent être ouverts en même temps
+          (états indépendants) : ils s'empilent plutôt que de s'exclure. */}
+      {auDoigt && (openArtifact || openRune || (openRelique && relicSlot.relic)) && (
         <div className="mx-auto mt-2 w-full max-w-[280px] space-y-2">
           {openArtifact && <ArtifactDetailBox artifact={openArtifact} />}
           {openRune && <RuneDetailBox rune={openRune} />}
+          {openRelique && relicSlot.relic && (
+            <RelicDetailBox relic={relicSlot.relic} count={relicUsageById?.[relicSlot.relic.id]} />
+          )}
         </div>
       )}
 
@@ -444,4 +549,71 @@ export default function BuildCandidateCard({
       )}
     </div>
   );
+}
+
+/**
+ * Une place de la page de résultats PAS ENCORE VÉRIFIÉE (degats-et-aura
+ * 6bis-b16) : un build la remplira une fois son équipement résolu et conforme
+ * — jamais avant (`compositionDePage`, artifactQueue.ts).
+ *
+ * ⚠️ **Sa hauteur est réservée**, celle d'une carte : sans ça, chaque carte
+ * qui arrive changerait la hauteur de sa rangée et ferait sauter la grille et
+ * la pagination. Dans une rangée qui contient déjà une carte, la grille l'étire
+ * à sa hauteur ; seule, elle prend `hauteur`, la plus petite carte mesurée à
+ * l'écran (`useHauteurDesCartes`) — et, tant qu'aucune carte n'a été vue, une
+ * hauteur de repli relevée au navigateur sur une carte « Dégâts réels », par
+ * format : empilée au téléphone, en ligne à partir de `sm`.
+ *
+ * Le pointillé et le fond atténué sont ceux des emplacements vides de l'app ;
+ * rien ne s'anime (une liste de résultats se voit cent fois).
+ */
+export function PlaceEnVerification({ rank, hauteur }: { rank: number; hauteur: number | null }) {
+  return (
+    <div
+      aria-busy="true"
+      className={`flex flex-col rounded-xl border border-dashed border-border bg-panel/40 p-2.5 ${
+        hauteur == null ? 'min-h-[458px] sm:min-h-[388px]' : ''
+      }`}
+      style={hauteur == null ? undefined : { minHeight: hauteur }}
+    >
+      <span className="font-mono text-xs font-bold text-ink-dimmer">#{rank}</span>
+      <span className="flex flex-1 items-center justify-center text-xs text-ink-dim">Vérification…</span>
+    </div>
+  );
+}
+
+/**
+ * La hauteur NATURELLE de la plus petite carte de résultat de la grille — ce
+ * que prennent les places « Vérification… » seules sur leur rangée.
+ *
+ * ⚠️ **Naturelle, pas celle de la boîte** : la grille étire une carte à la
+ * hauteur de sa rangée, et une place réservée l'étirerait à son tour — la
+ * mesure se nourrirait d'elle-même. On mesure donc jusqu'au bas du dernier
+ * enfant, plus le rembourrage et le trait du bas. La plus PETITE : une carte
+ * au détail ouvert (au doigt) ou en comparaison ne gonfle pas les places.
+ *
+ * Relue après chaque rendu, avant la peinture (`useLayoutEffect`) : la carte qui
+ * arrive et les places qui s'ajustent apparaissent dans la même image. `null`
+ * tant qu'aucune carte n'a été mesurée ; la dernière mesure est gardée quand
+ * la page n'en a plus.
+ */
+export function useHauteurDesCartes(grille: RefObject<HTMLElement | null>): number | null {
+  const [hauteur, setHauteur] = useState<number | null>(null);
+  useLayoutEffect(() => {
+    const cartes = grille.current?.querySelectorAll<HTMLElement>(':scope > [data-carte-resultat]');
+    if (!cartes || cartes.length === 0) return;
+    const style = getComputedStyle(cartes[0]!);
+    const pied = parseFloat(style.paddingBottom) + parseFloat(style.borderBottomWidth);
+    let min = Number.POSITIVE_INFINITY;
+    cartes.forEach((carte) => {
+      const dernier = carte.lastElementChild;
+      if (dernier) min = Math.min(min, dernier.getBoundingClientRect().bottom - carte.getBoundingClientRect().top + pied);
+    });
+    if (!Number.isFinite(min)) return;
+    // Au centième de pixel, jamais arrondie vers le haut : une place plus haute
+    // que la carte d'une fraction de pixel ferait encore bouger sa rangée.
+    const h = Math.round(min * 100) / 100;
+    setHauteur((avant) => (avant === h ? avant : h));
+  });
+  return hauteur;
 }

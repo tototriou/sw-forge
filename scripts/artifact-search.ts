@@ -20,7 +20,9 @@
 //                        absent = « ignorer l'élément », les lignes 300-304
 //                        comptent 0
 //   --def=<n>            DEF de l'adversaire (défaut : celle de l'écran)
-//   --crit=<mode>        moyenne|crit|normal (défaut : moyenne)
+//   --crit=<mode>        crit|normal (défaut : crit, celui de l'écran) ;
+//                        l'ancien « moyenne » (mode supprimé, lot CM de
+//                        degats-et-aura) devient « crit » avec un avertissement
 //   --attribut=<choix>   equipped|none|libre|100|101|102 (défaut : libre)
 //   --type=<choix>       idem pour l'artéfact de type
 //   --top=<n>            nombre de paires à afficher (défaut : 5)
@@ -29,7 +31,7 @@ import { loadBoxMonster, printMonsterSummary } from './lib/loadMonster';
 import { loadMonsterSkills } from './lib/skillsData';
 import { loadMonstersList } from './lib/monstersData';
 import { meilleuresPairesArtefacts, nombreDePaires, type ArtifactSearchParams, type ChoixPrincipale } from '../src/lib/artifactOptim';
-import { artifactDamageProfile, computeTotalDamage, monsterDamageSkills, monsterOffensivePassives, DEFAULT_DAMAGE_SETUP, type DamageSetup, type SkillDamageProfile } from '../src/lib/damage';
+import { artifactDamageProfile, aurasPropresDesRunes, computeTotalDamage, defaultDamageSkill, monsterDamageSkills, monsterOffensivePassives, resumeSequenceDeCoups, DEFAULT_DAMAGE_SETUP, type DamageSetup, type SkillDamageProfile } from '../src/lib/damage';
 import { computeStats } from '../src/lib/stats';
 import { artifactSubName } from '../src/lib/effects';
 import { ARTIFACT_KINDS, type ArtifactDetail, type ArtifactKind, type ElementKey } from '../src/types';
@@ -39,7 +41,7 @@ const [exportPath, monsterName] = libres;
 const opt = (nom: string) => process.argv.find((a) => a.startsWith(`--${nom}=`))?.slice(nom.length + 3);
 
 if (!exportPath || !monsterName) {
-  console.error('Usage: artifact-search.ts <export.json> <monstre> [--sort=N] [--element=fire] [--def=N] [--crit=moyenne] [--attribut=libre] [--type=libre] [--top=5]');
+  console.error('Usage: artifact-search.ts <export.json> <monstre> [--sort=N] [--element=fire] [--def=N] [--crit=crit|normal] [--attribut=libre] [--type=libre] [--top=5]');
   process.exit(1);
 }
 
@@ -59,14 +61,33 @@ if (!porteur.archetype) {
 }
 
 const sorts = monsterDamageSkills(fiche).filter((s): s is SkillDamageProfile => 'noeud' in s);
-if (sorts.length === 0) throw new Error(`Aucun sort calculable pour ${monsterName}.`);
+// Sans `--sort`, le sort par défaut de l'écran (`defaultDamageSkill`, source
+// unique) : jamais le dernier de la liste, qui peut être un passif
+// sélectionnable (Tempest au slot 3, degats-et-aura 9b). `--sort 3` le choisit.
+const sortParDefaut = defaultDamageSkill(sorts);
+if (!sortParDefaut) throw new Error(`Aucun sort calculable pour ${monsterName}.`);
 const slotVoulu = opt('sort') ? Number(opt('sort')) : null;
-const sort = (slotVoulu != null ? sorts.find((s) => s.slot === slotVoulu) : null) ?? sorts[sorts.length - 1]!;
+const sort = (slotVoulu != null ? sorts.find((s) => s.slot === slotVoulu) : null) ?? sortParDefaut;
+
+// Deux modes seulement (lot CM) : « moyenne », l'ancien mode supprimé, se
+// convertit en « crit » comme dans une recette, en le disant ; toute autre
+// valeur arrête le script plutôt que d'être lue en silence.
+const critDemande = opt('crit');
+let critMode: DamageSetup['critMode'] | undefined;
+if (critDemande === 'moyenne') {
+  console.warn("⚠️  --crit=moyenne : le mode critique « Moyenne » n'existe plus, calcul en « crit » (Critique).");
+  critMode = 'crit';
+} else if (critDemande === 'crit' || critDemande === 'normal') {
+  critMode = critDemande;
+} else if (critDemande !== undefined) {
+  console.error(`--crit=${critDemande} : mode de critique inconnu (crit ou normal).`);
+  process.exit(1);
+}
 
 const setup: DamageSetup = {
   ...DEFAULT_DAMAGE_SETUP,
   ...(opt('def') ? { enemyDef: Number(opt('def')) } : {}),
-  ...(opt('crit') ? { critMode: opt('crit') as DamageSetup['critMode'] } : {}),
+  ...(critMode ? { critMode } : {}),
   enemyElement: (opt('element') as ElementKey | undefined) ?? null,
 };
 
@@ -78,9 +99,12 @@ const passifs = monsterOffensivePassives(fiche);
 // ⚠️ Les stats sont RECALCULÉES pour chaque paire : la stat principale d'un
 // artéfact entre dans les stats du monstre. Un score qui réutiliserait les
 // stats du build actuel comparerait des paires sur des stats fausses.
+// Les auras propres (6bis-b2) sont celles des runes PORTÉES, les mêmes pour
+// toutes les paires : aucun artéfact ne porte de set.
+const propres = aurasPropresDesRunes(loaded.gear.runes);
 const evaluer = (artefacts: ArtifactDetail[]) => {
   const stats = computeStats({ ...loaded.gear, artifacts: artefacts });
-  return computeTotalDamage(sort, passifs, stats, setup, espece.element, artifactDamageProfile(artefacts));
+  return computeTotalDamage(sort, passifs, stats, setup, propres, espece.element, artifactDamageProfile(artefacts));
 };
 
 const params: ArtifactSearchParams = {
@@ -95,7 +119,14 @@ const parSorte = ARTIFACT_KINDS.map(({ key, label }) => {
   const n = loaded.allArtifacts.filter((a) => a.kind === key).length;
   return `${label} : ${n} en inventaire`;
 }).join(' · ');
-console.log(`\nSort : ${sort.nom} (slot ${sort.slot}, ${sort.hits} coup(s)${sort.aoe ? ', zone' : ''}${sort.bombe ? ', BOMBE' : ''})`);
+// Séquence curée (Blade Surge) : la séquence ENTIÈRE, par la fonction du
+// résumé de l'écran et de la ligne du CLI (`resumeSequenceDeCoups`) — `hits`
+// et `aoe` ne décrivent que la donnée, jamais la séquence (degats-et-aura 8c).
+const sequence = sort.sequenceDeCoups;
+console.log(
+  `\nSort : ${sort.nom} (slot ${sort.slot}, ${sequence ? resumeSequenceDeCoups(sequence) : `${sort.hits} coup(s)`}` +
+    `${!sequence && sort.aoe ? ', zone' : ''}${sort.bombe ? ', BOMBE' : ''})`
+);
 console.log(`Cible : ${setup.enemyDef} DEF · élément visé : ${setup.enemyElement ?? 'ignoré'} · critique : ${setup.critMode}`);
 console.log(`Inventaire — ${parSorte}`);
 console.log(`Paires réellement parcourues (éligibilité + contrainte d'intangible) : ${nombreDePaires(params)}`);

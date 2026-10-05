@@ -4,7 +4,7 @@ import { saveLocal, usePersistence } from './usePersistence';
 
 const RUNE_SET_KEYS = new Set(RUNE_SETS.map((s) => s.key));
 
-const STORAGE_KEY = 'sky-arena-rta-v1';
+const STORAGE_KEY = 'swblacksmith-rta-v1';
 
 function defaultState(): RtaState {
   return { sections: [...RTA_DEFAULT_SECTIONS], entries: {} };

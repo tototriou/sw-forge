@@ -90,7 +90,7 @@ function Page() {
 }
 
 export function rendreRecos(etat: object = RECOS): string {
-  faussLocalStorage({ 'sw-forge-siege-recos-v1': JSON.stringify(etat) });
+  faussLocalStorage({ 'swblacksmith-siege-recos-v1': JSON.stringify(etat) });
   return rendre(<Page />);
 }
 
@@ -129,7 +129,7 @@ function Carte({ ouverte, edition, cherche, vue }: { ouverte: boolean; edition: 
 }
 
 export function rendreCarte(ouverte: boolean, edition = false, cherche?: string, vue?: VueRecos): string {
-  faussLocalStorage({ 'sw-forge-siege-recos-v1': JSON.stringify(RECOS) });
+  faussLocalStorage({ 'swblacksmith-siege-recos-v1': JSON.stringify(RECOS) });
   return rendre(<Carte ouverte={ouverte} edition={edition} cherche={cherche} vue={vue} />);
 }
 

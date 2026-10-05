@@ -46,7 +46,7 @@ function Page({ sub, menuOuvert }: { sub: RtaSub; menuOuvert: boolean }) {
 
 const rendreRta = (sub: RtaSub, menuOuvert: boolean) =>
   auTelephone(() => {
-    faussLocalStorage({ 'sky-arena-rta-v1': JSON.stringify(PREPA) });
+    faussLocalStorage({ 'swblacksmith-rta-v1': JSON.stringify(PREPA) });
     return rendre(<Page sub={sub} menuOuvert={menuOuvert} />);
   });
 

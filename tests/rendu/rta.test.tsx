@@ -61,7 +61,7 @@ function rendrePrepa(stockage: Record<string, unknown>, sub: RtaSub = 'prepa'): 
 export function testRenduRtaPrepa() {
   titre('rendu · RTA · Ma prépa — une prépa de trois monstres');
 
-  const html = rendrePrepa({ 'sky-arena-rta-v1': PREPA, 'sw-forge-rta-categories-v1': CATEGORIES });
+  const html = rendrePrepa({ 'swblacksmith-rta-v1': PREPA, 'swblacksmith-rta-categories-v1': CATEGORIES });
   const t = texteVisible(html);
 
   // Ajout d'un monstre : le champ de recherche.
@@ -123,9 +123,9 @@ export function testRenduRtaMenu() {
   titre('rendu · RTA · Ma prépa — l\'en-tête bureau et son menu « ⋯ »');
 
   const html = rendrePrepa({
-    'sky-arena-rta-v1': PREPA,
-    'sw-forge-rta-backup-v1': { date: '2026-09-01T10:00:00.000Z', state: PREPA, categories: [] },
-    'sw-forge-rta-import-v1': { date: '2026-09-01T10:00:00.000Z', state: PREPA, categories: [] },
+    'swblacksmith-rta-v1': PREPA,
+    'swblacksmith-rta-backup-v1': { date: '2026-09-01T10:00:00.000Z', state: PREPA, categories: [] },
+    'swblacksmith-rta-import-v1': { date: '2026-09-01T10:00:00.000Z', state: PREPA, categories: [] },
   });
   ok(texteVisible(html).includes('Ma prépa 3 monstres en prépa'), 'en-tête : « Ma prépa », puis le compteur');
   ok(!!bouton(html, "Plus d'actions"), 'bouton « Plus d\'actions »');
@@ -153,9 +153,9 @@ export function testRenduRtaSauvegarde() {
 
   const point = { date: '2026-09-01T10:00:00.000Z', state: PREPA, categories: [] };
   const html = rendrePrepa({
-    'sky-arena-rta-v1': PREPA,
-    'sw-forge-rta-backup-v1': point,
-    'sw-forge-rta-import-v1': point,
+    'swblacksmith-rta-v1': PREPA,
+    'swblacksmith-rta-backup-v1': point,
+    'swblacksmith-rta-import-v1': point,
   });
   const t = texteVisible(html);
   const reprendre = bouton(html, 'Reprendre');
@@ -169,7 +169,7 @@ export function testRenduRtaSauvegarde() {
 // changement dans la session, il dit la conservation sans inventer d'heure.
 export function testRenduRtaIndicateur() {
   titre('rendu · RTA · Ma prépa — « Enregistré sur cet appareil »');
-  const t = texteVisible(rendrePrepa({ 'sky-arena-rta-v1': PREPA }));
+  const t = texteVisible(rendrePrepa({ 'swblacksmith-rta-v1': PREPA }));
   egal((t.match(/Enregistré sur cet appareil/g) ?? []).length, 2, 'l\'indicateur, à chaque format (en-tête bureau, ligne téléphone)');
   ok(t.includes('Ma prépa 3 monstres en prépa Enregistré sur cet appareil'), 'à la souris, juste après le compteur');
 }

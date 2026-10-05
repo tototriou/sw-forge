@@ -44,7 +44,7 @@ const equipe = (noms: [string, string][], vit: (number | null)[], lead: number) 
 // Deux équipes : une complète avec lead, une avec un emplacement vide.
 function rendreCamp(side: SiegeSide): string {
   faussLocalStorage({
-    [`sw-forge-siege-${side}-v1`]: JSON.stringify({
+    [`swblacksmith-siege-${side}-v1`]: JSON.stringify({
       teams: [
         equipe([['Lushen', 'wind'], ['Veromos', 'dark'], ['Chasun', 'wind']], [120, 130, 140], 24),
         equipe([['Galleon', 'water'], ['Belladeon', 'light'], ['', '']], [110, null, null], 0),

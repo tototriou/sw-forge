@@ -76,7 +76,9 @@
     <script>
       (function () {
         try {
-          var c = localStorage.getItem('sw-forge-theme-v1');
+          // L'ancienne clé en repli : ce script passe AVANT la migration des
+          // clés (src/lib/migrationStockage.ts), au tout premier lancement.
+          var c = localStorage.getItem('swblacksmith-theme-v1') || localStorage.getItem('sw-forge-theme-v1');
           if (c === 'light' || c === 'dark') document.documentElement.setAttribute('data-theme', c);
         } catch (e) {
           /* stockage indisponible : on suit le navigateur */

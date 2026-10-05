@@ -21,7 +21,7 @@ export const THEME_CHOICES: { key: ThemeChoice; label: string; hint: string }[] 
 // un RÉGLAGE, pas une donnée de l'utilisateur — au même titre que la mesure de
 // score ou le choix de conservation lui-même. Un thème oublié à chaque visite
 // serait un bug, pas une protection. Voir spec/README.md § Persistance.
-const STORAGE_KEY = 'sw-forge-theme-v1';
+const STORAGE_KEY = 'swblacksmith-theme-v1';
 
 function load(): ThemeChoice {
   try {

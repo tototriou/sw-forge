@@ -5,7 +5,7 @@ par set de runes, saisir la vitesse de leurs runes, et lire l'**ordre de tour**
 recalculé selon les leads de vitesse.
 
 Fichier racine : [RtaPage.tsx](src/pages/RtaPage.tsx) · État :
-[useRtaState.ts](src/hooks/useRtaState.ts) (`localStorage` `sky-arena-rta-v1`).
+[useRtaState.ts](src/hooks/useRtaState.ts) (`localStorage` `swblacksmith-rta-v1`).
 
 ## Deux sous-sections
 
@@ -81,8 +81,8 @@ interface RtaState { sections: string[]; entries: Record<string, RtaEntry> }
   — **automatiquement**, sans geste de l'utilisateur. Le bouton « Sauvegarder »
   ne sert donc pas à enregistrer mais à poser un **point de retour** ; voir
   [sauvegarde-partage.md](sauvegarde-partage.md).
-- Clés : `sky-arena-rta-v1` (la prépa), `sw-forge-rta-categories-v1` (les
-  catégories), `sw-forge-rta-backup-v1` (le point de sauvegarde).
+- Clés : `swblacksmith-rta-v1` (la prépa), `swblacksmith-rta-categories-v1` (les
+  catégories), `swblacksmith-rta-backup-v1` (le point de sauvegarde).
 - Au chargement, l'état est validé/réparé (types, garantie de « Autre »).
 - Un monstre présent dans `entries` mais **absent des données chargées** est
   simplement ignoré à l'affichage (pas d'erreur).

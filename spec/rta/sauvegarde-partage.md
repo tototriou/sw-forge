@@ -78,8 +78,8 @@ rien d'ajouté à la main. C'est ce que fait ce bouton.
 
 | Point | Clé | Posé par | Ramène à |
 |-------|-----|----------|----------|
-| **manuel** | `sw-forge-rta-backup-v1` | « Sauvegarder » | ce qu'on a figé soi-même |
-| **import** | `sw-forge-rta-import-v1` | **automatiquement**, à chaque import de compte | la prépa telle que le fichier l'a produite |
+| **manuel** | `swblacksmith-rta-backup-v1` | « Sauvegarder » | ce qu'on a figé soi-même |
+| **import** | `swblacksmith-rta-import-v1` | **automatiquement**, à chaque import de compte | la prépa telle que le fichier l'a produite |
 
 Les confondre ferait qu'importer un compte effacerait sans un mot le point qu'on
 venait de poser — ou que « Réinitialiser » ramènerait à un classement remanié à

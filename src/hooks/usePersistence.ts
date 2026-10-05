@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from 'react';
 import { clearAccount, isAvailable, requestPersistence } from '../lib/accountStore';
+import { PREFIXE_STOCKAGE } from '../lib/migrationStockage';
 
 // **Conservation des données entre deux sessions** — un seul interrupteur pour
 // TOUTE l'application : prépa RTA, équipes de siège, recommandations, catégories,
@@ -16,16 +17,20 @@ import { clearAccount, isAvailable, requestPersistence } from '../lib/accountSto
 // posée à la fin du premier import (`KeepAccountDialog`), au moment où elle a un
 // sens — pas dans un menu que personne n'ouvre.
 
-const STORAGE_KEY = 'sw-forge-persist-v1';
-const ANCIENNE_CLE = 'sw-forge-keep-account-v1'; // réglage limité au compte
+const STORAGE_KEY = 'swblacksmith-persist-v1';
+const ANCIENNE_CLE = 'swblacksmith-keep-account-v1'; // réglage limité au compte
 
 // ⚠️ Ces clés-là restent écrites même quand la conservation est refusée : ce sont
 // des **réglages**, pas le travail de l'utilisateur. Refuser la conservation doit
 // justement être mémorisé, sinon on repose la question à chaque import.
-const CLES_DE_REGLAGE = new Set([STORAGE_KEY, ANCIENNE_CLE, 'sw-forge-rune-metric-v1']);
+const CLES_DE_REGLAGE = new Set([STORAGE_KEY, ANCIENNE_CLE, 'swblacksmith-rune-metric-v1']);
 
+// ⚠️ Les anciens préfixes restent reconnus (décision 66 du rebranding) : une
+// clé que la migration n'a pas pu renommer (quota) reste une donnée de
+// l'utilisateur — « Supprimer mes données » doit l'effacer aussi.
+const PREFIXES_DE_DONNEES = [PREFIXE_STOCKAGE, 'sw-forge', 'sky-arena'];
 const estUneCleDeDonnees = (k: string) =>
-  (k.startsWith('sw-forge') || k.startsWith('sky-arena')) && !CLES_DE_REGLAGE.has(k);
+  PREFIXES_DE_DONNEES.some((p) => k.startsWith(p)) && !CLES_DE_REGLAGE.has(k);
 
 function clesDeDonnees(): string[] {
   try {

@@ -45,7 +45,7 @@ const SET_KEYS = new Set(RUNE_SETS.map((s) => s.key));
 // Recommandations de decks de siège. Contrairement à la box (en mémoire), ce
 // sont des données CRÉÉES par l'utilisateur ou reçues d'un ami : elles sont
 // persistées dans localStorage, comme les équipes de siège.
-const STORAGE_KEY = 'sw-forge-siege-recos-v1';
+const STORAGE_KEY = 'swblacksmith-siege-recos-v1';
 
 function newId(): string {
   const c = globalThis.crypto as Crypto | undefined;

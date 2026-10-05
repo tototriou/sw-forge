@@ -1,3 +1,6 @@
+// ⚠️ EN PREMIER : renomme les clés de stockage de l'ancien nom (SW Forge)
+// avant que le moindre module de l'app ne les lise (voir le module).
+import './lib/migrationStockage';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { MotionConfig } from 'framer-motion';

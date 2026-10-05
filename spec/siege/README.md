@@ -13,8 +13,8 @@ Fichiers :
   paramétré par `side` ('defense' | 'offense'). Monté avec `key={side}` pour
   réinitialiser au changement d'onglet.
 - État : [useSiegeState.ts](src/hooks/useSiegeState.ts) — **une liste d'équipes
-  par côté**, `localStorage` `sw-forge-siege-defense-v1` / `sw-forge-siege-offense-v1`
-  (migration : l'ancienne clé unique `sw-forge-siege-v1` → défense).
+  par côté**, `localStorage` `swblacksmith-siege-defense-v1` / `swblacksmith-siege-offense-v1`
+  (migration : l'ancienne clé unique `swblacksmith-siege-v1` → défense).
 
 Les deux côtés **jouables** (défense/offense) partagent **exactement la même
 mécanique** (composition, lead auto, ticks) — voir [equipes.md](equipes.md) et

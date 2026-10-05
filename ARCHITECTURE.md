@@ -192,7 +192,7 @@ jeu** (halo, éclat) et en sont exemptés.
 | `useSiegeState`, `useSiegeRecos` | défense/offense, recommandations |
 | `useOptimizerState`, `useBuildOptimSearch` | réglages et recherche de l'Optimiseur |
 | `useOptimizerLists` | Listes de travail + runes validées (Lot 3) — SEUL état de l'Optimiseur qui persiste sur disque, contrairement à `useOptimizerState` |
-| `usePersistence` | **un seul interrupteur** pour toute conservation ; ⚠️ aucun hook n'appelle `localStorage.setItem` directement |
+| `usePersistence` | **un seul interrupteur** pour toute conservation ; ⚠️ aucun hook n'appelle `localStorage.setItem` directement ; clés préfixées `swblacksmith-`, migrées depuis l'ancien nom par `lib/migrationStockage.ts` (premier import de `main.tsx`) |
 | `useStickyState` | état conservé en mémoire à travers la navigation, sans persister |
 | `useRuneMetric`, `useOvercapDisplay`, `useTheme` | réglages globaux (menu ⚙) |
 | `useMediaQuery` | une media query lue depuis React |

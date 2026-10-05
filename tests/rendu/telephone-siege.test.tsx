@@ -46,7 +46,7 @@ const equipe = (noms: [string, string][], vit: (number | null)[], lead: number) 
 const rendreCamp = (side: SiegeSide, menuOuvert: boolean) =>
   auTelephone(() => {
     faussLocalStorage({
-      [`sw-forge-siege-${side}-v1`]: JSON.stringify({
+      [`swblacksmith-siege-${side}-v1`]: JSON.stringify({
         teams: [
           equipe([['Lushen', 'wind'], ['Veromos', 'dark'], ['Chasun', 'wind']], [120, 130, 140], 24),
           equipe([['Galleon', 'water'], ['Belladeon', 'light'], ['', '']], [110, null, null], 0),
@@ -65,7 +65,7 @@ function Recos({ menuOuvert }: { menuOuvert: boolean }) {
 }
 const rendreRecos = (menuOuvert: boolean) =>
   auTelephone(() => {
-    faussLocalStorage({ 'sw-forge-siege-recos-v1': JSON.stringify(RECOS) });
+    faussLocalStorage({ 'swblacksmith-siege-recos-v1': JSON.stringify(RECOS) });
     return rendre(<Recos menuOuvert={menuOuvert} />);
   });
 

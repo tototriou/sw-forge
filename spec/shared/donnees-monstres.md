@@ -141,7 +141,7 @@ Les tout derniers monstres sortis peuvent manquer dans SWARFARM. L'utilisateur
 peut donc **créer un monstre** utilisable comme les autres, en **RTA et en Siège**.
 
 - Hook : [useCustomMonsters.ts](src/hooks/useCustomMonsters.ts) — persiste dans
-  `localStorage` (`sw-forge-custom-monsters-v1`), fusionné aux monstres officiels
+  `localStorage` (`swblacksmith-custom-monsters-v1`), fusionné aux monstres officiels
   dans [App.tsx](src/App.tsx) (`allMonsters`).
 - Formulaire : [CreateMonster.tsx](src/components/CreateMonster.tsx). Son bouton
   déclencheur suit le **gabarit commun** des boutons d'action (`px-3.5 py-2`,

@@ -184,9 +184,23 @@ Concepts partagés par plusieurs pages, documentés une seule fois :
   2. Rappel que les données restent locales.
   3. Crédit Com2uS / SWARFARM.
 - **Données 100 % locales** : le footer rappelle que toutes les données restent
-  en local. **« Tout supprimer »** efface les clés `localStorage` `sw-forge*` /
-  `sky-arena*` (prépa RTA, équipes de siège, recommandations, catégories,
-  monstres perso) puis recharge. Voir [App.tsx](src/App.tsx).
+  en local. **« Tout supprimer »** efface les clés `localStorage`
+  `swblacksmith-*` (prépa RTA, équipes de siège, recommandations, catégories,
+  monstres perso) — et celles des anciens noms `sw-forge*` / `sky-arena*` qui
+  traîneraient — puis recharge. Voir [App.tsx](src/App.tsx).
+  - **Clés renommées au rebranding, avec migration** (décision 66,
+    [chantiers/rebranding-blacksmith.md](chantiers/rebranding-blacksmith.md)) :
+    au premier lancement, [migrationStockage.ts](src/lib/migrationStockage.ts)
+    — premier import de `main.tsx`, avant tout module qui lit le stockage —
+    recopie chaque `sw-forge-…` / `sky-arena-…` sous `swblacksmith-…`, RELIT la
+    copie, puis efface l'ancienne. Une nouvelle clé déjà présente fait foi.
+    Quota plein : l'ancienne place est libérée avant de réécrire ; en cas
+    d'échec, l'ancienne valeur est remise, intacte, et reprise au lancement
+    suivant. Le script de thème d'`index.html`, qui passe avant, lit l'ancienne
+    clé en repli. ⚠️ Toute nouvelle clé prend le préfixe `swblacksmith-` ; un
+    test refuse un littéral de l'ancien nom hors du module de migration.
+  - ⚠️ Le stockage d'un navigateur est lié à l'**adresse** du site : un
+    changement de domaine ne se migre pas, il passe par les exports.
   - ⚠️ Cette action vit **dans le menu ⚙**, pas à côté du bouton d'import : une
     action destructrice collée au bouton le plus utilisé finit par être cliquée
     de travers. Dans un menu qu'on ouvre exprès, le geste est délibéré.

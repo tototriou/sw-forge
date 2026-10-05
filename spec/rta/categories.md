@@ -128,7 +128,7 @@ interface RtaCategory { id: string; label: string; color: string; members: strin
 ```
 
 - `members` = **`monsterId`** (id local), la même clé que les entrées RTA.
-- Persistance `localStorage` sous `sw-forge-rta-categories-v1` :
+- Persistance `localStorage` sous `swblacksmith-rta-categories-v1` :
   `{ categories, seeded, visible }`, relue en **validant** (couleur `#rrggbb`,
   libellé non vide) — un enregistrement bricolé à la main ne doit pas casser la
   page. L'ancienne forme (un simple tableau) est encore lue.

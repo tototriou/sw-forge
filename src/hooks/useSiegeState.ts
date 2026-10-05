@@ -5,8 +5,8 @@ import { saveLocal, usePersistence } from './usePersistence';
 // Défense et offense de siège = deux listes d'équipes indépendantes.
 export type SiegeSide = 'offense' | 'defense';
 
-const OLD_STORAGE_KEY = 'sw-forge-siege-v1'; // ancienne clé unique (→ migrée vers défense)
-const storageKey = (side: SiegeSide) => `sw-forge-siege-${side}-v1`;
+const OLD_STORAGE_KEY = 'swblacksmith-siege-v1'; // ancienne clé unique (→ migrée vers défense)
+const storageKey = (side: SiegeSide) => `swblacksmith-siege-${side}-v1`;
 
 function newId(): string {
   const c = globalThis.crypto as Crypto | undefined;

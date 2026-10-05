@@ -38,7 +38,7 @@ Formules et écart entre les deux : [calcul-runes.md §3 et §3 bis](calcul-rune
 - ⚠️ **C'est un RÉGLAGE GLOBAL de l'application**, pas un filtre de page : il se
   pose **une fois** dans le menu **⚙** (tout à droite de la barre de nav, voir
   [../README.md](../README.md)). Aucun sélecteur n'est répété dans les pages.
-- **Persisté** dans `localStorage` (`sw-forge-rune-metric-v1`) : un réglage
+- **Persisté** dans `localStorage` (`swblacksmith-rune-metric-v1`) : un réglage
   d'application survit au rechargement, contrairement aux filtres et tris qui
   sont des préférences de vue jetables. Effacé par « Supprimer mes données ».
 - Implémenté par un **store externe** (`useSyncExternalStore`,

@@ -163,6 +163,7 @@ import testRuneTri from './rune-tri.test';
 import testMonstreTri from './monstre-tri.test';
 import testMonstreFormes from './monstre-formes.test';
 import testStockage from './stockage.test';
+import testMigrationStockage from './migration-stockage.test';
 import testVitesse from './vitesse.test';
 import testSiegeStatut from './siege-statut.test';
 import testSiegePastille from './siege-pastille.test';
@@ -505,6 +506,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRegemmeDifferent', testRegemmeDifferent],
   ['testReserveParGrade', testReserveParGrade],
   ['testPalier', testPalier],
+  ['testMigrationStockage', testMigrationStockage],
   ['testStockage', async () => { await testStockage(); }],
   ['testPersistance', async () => { await testPersistance(); }],
 ];

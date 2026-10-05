@@ -119,6 +119,7 @@ Q1 → 7 (les données dépendent du choix de Thomas)
 | Lot | Cat. | Statut | Commit / date |
 |-----|------|--------|---------------|
 | 1 coquille Electron | J | **fait** — protocole `app://`, mode preuve, 19 tests | `dbcc1db0`, 2026-10-05 |
+| 1 bis habillage de la fenêtre (décision 7) | J | à faire — arrêt avant commit | |
 | 2 le web dans la coquille (liens, téléchargements, audience, `estBureau`) | J | à faire | |
 | 3 empaquetage Windows (NSIS) et Linux (AppImage) | M | à faire | |
 | 4 action GitHub au tag | J | à faire | |
@@ -148,6 +149,17 @@ Q1 → 7 (les données dépendent du choix de Thomas)
    l'app — composant `Analytics.tsx`, dépendance `@vercel/analytics`, spec.
    Fait avant le lot 1, en son propre commit ; exception assumée à
    « le site ne change pas » (A.2).
+
+7. **L'habillage de la fenêtre** (« est-ce qu'on peut mettre un peu en
+   forme l'interface Electron pour que ça soit plus joli ») :
+   - **barre de titre intégrée** — plus de barre de Windows ; la barre du
+     haut de l'app (48 px) devient celle de la fenêtre, les boutons
+     réduire / agrandir / fermer y sont dessinés aux couleurs du thème
+     (fond `bar`, symboles `ink`) et le suivent (Forge / Atelier / Auto) ;
+   - **taille et position mémorisées** (agrandie ou non) ;
+   - **pas de menu** Fichier / Édition (celui d'Electron, en anglais) ;
+   - **fond au thème dès l'ouverture**, sans éclair.
+   Non retenu : « une seule fenêtre ». → lot 1 bis.
 
 Toutes les questions sont tranchées.
 
@@ -220,6 +232,35 @@ bureau` : 19 passées ; mutation du pilote (garde « hors racine » retirée) :
   preuve rejouable par chaque lot suivant.
 - Non prouvé : une recherche complète de l'Optimizer (il faut un compte) et
   `npm run bureau` (dev) — à la séance de vérification à l'écran.
+
+### Lot 1 bis — l'habillage de la fenêtre · J
+
+**Intrant** : décision 7, `bureau/`, `src/components/TopBar.tsx` (l'en-tête,
+`h-12`), la barre latérale (sa rangée du logo), `src/index.css` (jetons
+`--bg`, `--bar`, `--ink`), `src/hooks/useTheme.ts`.
+
+**Sortie** :
+- `titleBarStyle: 'hidden'` + `titleBarOverlay` (48 px) ; couleurs envoyées
+  par la page au chargement et à chaque changement de thème
+  (`setTitleBarOverlay`, `setBackgroundColor`) ;
+- `src/lib/bureau.ts` : `estBureau()` (avancé du lot 2), et le suivi des
+  couleurs du thème ; `html[data-bureau]` posé dans l'app seulement ;
+- `index.css` : sous `html[data-bureau]`, la barre du haut et la rangée du
+  logo sont la zone de déplacement (`-webkit-app-region`), les contrôles
+  non ; marge à droite = largeur des boutons de Windows
+  (`env(titlebar-area-*)`) ;
+- largeur minimale 1024 px (`lg`) : jamais le format téléphone dans l'app ;
+- `bureau/fenetre.ts` (pur, testé) : état mémorisé (taille, position,
+  agrandie, couleurs) validé contre les écrans présents — une fenêtre
+  mémorisée sur un écran débranché revient sur l'écran principal ;
+- `Menu.setApplicationMenu(null)`.
+
+**Preuve** : `lot-1bis.md` — capture de la FENÊTRE ENTIÈRE (cadre compris,
+`desktopCapturer`) dans les deux thèmes ; tests purs ; le site inchangé
+(rendus, inventaire). Arrêt **avant commit** : Thomas regarde l'app
+(`npm run bureau:local`) — déplacer, agrandir, changer de thème, rouvrir.
+
+**Ne fait pas** : liens externes, téléchargements (lot 2).
 
 ### Lot 2 — le web dans la coquille · J
 

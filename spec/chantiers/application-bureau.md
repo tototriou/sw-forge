@@ -33,7 +33,7 @@ Mesuré le 2026-10-05 sur `release/v2.0.0` (`79b8063b`) :
 | Workers | 4 `new Worker(new URL(…, import.meta.url))` | l'origine doit autoriser les workers module |
 | Liens externes | 6 (`target="_blank"`, `window.open`) | à ouvrir dans le navigateur du système |
 | Téléchargements | 5 (`download=` / `.download =`) | comportement Electron à vérifier |
-| Mesure d'audience | `@vercel/analytics` dans `Analytics.tsx` | n'a pas de sens hors du site |
+| Mesure d'audience | `@vercel/analytics` dans `Analytics.tsx` | n'a pas de sens hors du site — **retirée partout** (décision 6) |
 | Build | `dist` 19 Mo, dont `public/data` 16 Mo, 3 074 fichiers | taille de l'installeur |
 | Versions | electron 44.5.1, electron-builder 26.15.3, electron-updater 6.8.9 (`npm view`) | à figer au lot 1 |
 | Stockage | origine du site ≠ origine de l'app | données séparées : on passe par les exports |
@@ -77,8 +77,9 @@ Branche `forge/application-bureau`, **partie de `release/v2.0.0`**
 (`79b8063b`) et refusionnée dedans à la fin : la 2.0.0 se publie avec le
 bureau. Fichiers transverses portés par ce chantier : `package.json`,
 `package-lock.json`, `.gitignore`, `tsconfig.json`, `vite.config.ts`,
-`.github/workflows/`, `ARCHITECTURE.md`, `CLAUDE.md`, `src/main.tsx`,
-`src/components/Analytics.tsx`. Aucun autre chantier ouvert ne les porte.
+`.github/workflows/`, `ARCHITECTURE.md`, `CLAUDE.md`, `src/main.tsx`
+(`src/components/Analytics.tsx` supprimé, décision 6). Aucun autre chantier
+ouvert ne les porte.
 
 Code du bureau dans **`bureau/`** (processus principal, préchargement), à la
 racine, hors de `src/` : il tourne dans Node, pas dans la page. Sorties
@@ -138,8 +139,13 @@ Q1 → 7 (les données dépendent du choix de Thomas)
    à part, hors 2.0.0.
 5. **Q5 → l'accueil** : « Télécharger pour Windows / Linux » sur la page
    d'accueil seulement (ni barre latérale, ni Nouveautés).
+6. **Q6 → retirée PARTOUT** : « tu peux la couper et supprimer tout le code
+   en rapport avec ça ». La mesure d'audience Vercel quitte le site comme
+   l'app — composant `Analytics.tsx`, dépendance `@vercel/analytics`, spec.
+   Fait avant le lot 1, en son propre commit ; exception assumée à
+   « le site ne change pas » (A.2).
 
-Reste ouverte **Q6** (lot 2) ci-dessous.
+Toutes les questions sont tranchées.
 
 Les lots 1 à 3 n'en dépendent pas ; chacune bloque le lot indiqué.
 
@@ -156,9 +162,10 @@ Les lots 1 à 3 n'en dépendent pas ; chacune bloque le lot indiqué.
 - **Q4 → hors lot. Import automatique du dossier SWEX** : dans ce chantier
   (un lot 9) ou plus tard.
 - **Q5 → lot 6. Où vit le bouton** : accueil seulement, ou aussi barre
-  latérale / Nouveautés.
+  latérale / Nouveautés. *Tranchée : décision 5.*
 - **Q6 → lot 2. Mesure d'audience dans l'app** : coupée (recommandé : elle
-  n'a de sens que pour le site, et « 100 % local »), ou gardée.
+  n'a de sens que pour le site, et « 100 % local »), ou gardée. *Tranchée :
+  décision 6, retirée partout.*
 
 ## Partie B — les lots
 
@@ -195,13 +202,13 @@ cas `app://swblacksmith/../package.json` refusé.
 ### Lot 2 — le web dans la coquille · J
 
 **Intrant** : A, `bureau/`, les 6 liens externes et les 5 téléchargements
-relevés par `git grep` (A.1), `src/components/Analytics.tsx`.
+relevés par `git grep` (A.1). (La mesure d'audience n'existe plus :
+décision 6.)
 
 **Sortie** : `estBureau()` (`src/lib/bureau.ts`, lit l'objet du
 préchargement, `false` sur le site) ; liens externes ouverts dans le
 navigateur du système (`setWindowOpenHandler`, `will-navigate` hors
-`app://`) ; téléchargements avec boîte « Enregistrer sous » ; audience
-selon Q6.
+`app://`) ; téléchargements avec boîte « Enregistrer sous ».
 
 **Preuve** : `lot-2.md` — chacun des 6 liens et 5 téléchargements essayé
 dans l'app, un par ligne, avec le résultat ; import d'un compte SWEX par le

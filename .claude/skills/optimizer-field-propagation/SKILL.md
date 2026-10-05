@@ -1,36 +1,9 @@
 ---
 name: optimizer-field-propagation
-description: Checklist à suivre pour tout ajout, renommage ou changement de sémantique/défaut d'un champ TRAVERSANT (OptimizerState, OptimizerRecipe, RealDamageContext, ArtifactDamageProfile…) — l'écran, la recette et les scripts CLI ont chacun leur propre copie de la logique, et la documentation (publique + privée) est éclatée sur 4 fichiers distincts. Un champ OPTIONNEL oublié dans l'un d'eux ne déclenche aucune erreur tsc : le seul signal est un script qui diverge silencieusement de l'écran, ou une doc qui ment.
+description: "Checklist à suivre pour tout ajout, renommage ou changement de sémantique/défaut d'un champ TRAVERSANT (OptimizerState, OptimizerRecipe, RealDamageContext, ArtifactDamageProfile…) — l'écran, la recette et les scripts CLI ont chacun leur propre copie de la logique, et la documentation (publique + privée) est éclatée sur 4 fichiers distincts. Un champ OPTIONNEL oublié dans l'un d'eux ne déclenche aucune erreur tsc : le seul signal est un script qui diverge silencieusement de l'écran, ou une doc qui ment."
 ---
 
 # Propagation d'un champ Optimizer (SW Forge)
-
-Née de trois incidents concrets, pas d'une inquiétude théorique :
-
-1. `exhaustiveSearch` branché dans `OptimizerSection.tsx` (l'écran) mais
-   oublié dans `recipeToSearchParams.ts` — repéré seulement parce que
-   l'utilisateur a posé la question, jamais par `tsc` (le champ manquant
-   reste un accès optionnel valide en TypeScript).
-2. La spec **privée** détaillée (`spec/outils/optimizer/README.md`) restée
-   sur « prévu, pas construit » pour l'exclusion manuelle de runes, alors
-   que la spec **publique** (`spec/outils/optimizer.md`) avait déjà été mise
-   à jour — trouvé uniquement via un audit explicite demandé par
-   l'utilisateur (« vérifie que tu as bien documenté toute la session »).
-3. Le renommage/inversion `exploreAll` → `excludeUsedRunes` +
-   `excludeUsedScope` : ~9 emplacements de code à toucher à la main (repérés
-   par grep, pas par une liste préétablie) plus 4 fichiers de doc — refait
-   au jugé alors qu'une checklist aurait évité de devoir grep après coup
-   pour vérifier qu'aucun n'avait été oublié.
-4. `RealDamageContext.ampliVitPct` (un `number`) devenu
-   `RealDamageContext.artefacts` (un objet) : les 6 emplacements de PRODUCTION
-   ont été mis à jour, mais une vingtaine d'appels de `tests/` passaient
-   toujours `0`. **Un argument de mauvais TYPE a survécu à un commit
-   entier** — `(0).ampliVitPct` vaut `undefined`, qui retombait sur le
-   défaut, donc la suite est restée verte. Découvert seulement au commit
-   SUIVANT, quand l'objet a gagné des champs dont `undefined / 100` donne
-   `NaN` : 42 vérifications rouges d'un coup. Cause racine :
-   `tsconfig.json` faisait `include: ["src"]` — corrigé depuis (voir
-   ci-dessous).
 
 ## Quand ce skill s'applique
 
@@ -45,7 +18,7 @@ Née de trois incidents concrets, pas d'une inquiétude théorique :
   tests) plutôt qu'en un seul. `RealDamageContext` (runeBuildOptim.ts) et
   `ArtifactDamageProfile` (damage.ts) en sont : ils vivent hors
   d'`OptimizerState`/`OptimizerRecipe` mais traversent les mêmes six
-  emplacements, avec exactement le même risque (incident 4).
+  emplacements, avec exactement le même risque.
 
 **Le critère n'est donc PAS « ce champ est-il dans OptimizerState ? »** mais
 **« combien d'endroits INDÉPENDANTS construisent cette valeur ? »**. Un seul
@@ -95,11 +68,11 @@ compile » :
       APRÈS le renommage, pas seulement sur `src/`/`scripts/`).
       ⚠️ **Les tests CONSTRUISENT eux aussi ces valeurs** — ce ne sont pas
       de simples lecteurs. Un test qui fabrique un contexte à la main est un
-      constructeur de plus, à traiter comme les autres (incident 4).
+      constructeur de plus, à traiter comme les autres.
 
 ## Ce que `tsc` attrape, et ce qu'il n'attrape toujours pas
 
-⚠️ **Corrigé depuis l'incident 4** : `tsconfig.json` couvre désormais
+⚠️ `tsconfig.json` couvre désormais
 `["src", "scripts", "tests"]`, plus seulement `src`. `npx tsc --noEmit`
 type-vérifie donc tout le dépôt.
 
@@ -130,7 +103,7 @@ porte PAS le nouveau champ (`undefined`). Deux cas :
 - **Renommage/inversion d'un champ EXISTANT** : ne pas se contenter d'un
   défaut générique — traduire explicitement l'ANCIEN champ vers le
   nouveau, pour qu'une recette déjà exportée continue de se comporter
-  EXACTEMENT pareil après réimport. Exemple vécu (`exploreAll` booléen,
+  EXACTEMENT pareil après réimport. Exemple (`exploreAll` booléen,
   cochée par défaut, portée uniquement box → `excludeUsedRunes` +
   `excludeUsedScope`, décochée par défaut, 3 périmètres) :
   ```ts

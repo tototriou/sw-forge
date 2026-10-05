@@ -5,12 +5,11 @@ description: Boîte à outils et pièges déjà rencontrés pour TESTER/MESURER 
 
 # Tester le moteur de recherche de runes (SW Forge)
 
-Née d'une investigation où chaque phase de test prenait plusieurs minutes à
-plusieurs dizaines de minutes, répétée à chaque itération — et où le même
-genre de piège (contention, chemins gitignorés, spawn Windows) a failli être
-re-découvert plusieurs fois faute d'un endroit où le retrouver vite. Ce
-skill est une RÉFÉRENCE, pas un récit : pour l'historique complet de chaque
-décision, voir
+Une phase de test sur ce moteur peut prendre plusieurs minutes à plusieurs
+dizaines de minutes, répétée à chaque itération, et un même genre de piège
+(contention, chemins gitignorés, spawn Windows) se redécouvre faute d'un
+endroit où le retrouver vite. Ce skill est une RÉFÉRENCE, pas un récit :
+pour l'historique complet de chaque décision, voir
 `spec/outils/optimizer/archive/historique/historique-acceleration-et-outillage.md` (sections
 « Suite — mode --quick et parallélisation… », « Suite —
 perf-battery-compare.ts… », « leçons retenues sur la méthodologie de
@@ -105,9 +104,9 @@ confondre** — elles n'ont ni la même fidélité ni le même usage :
 | `scripts/lib/pairing-worker.ts` | Un PROTOTYPE de mesure de débit brut — **budget figé, aucune escalade**, son en-tête le dit | Rien de fidèle : ne jamais en tirer une conclusion sur la prod |
 
 ⚠️ **`--quick` n'est PAS une preuve de justesse.** Ses 2 cas canari (voir
-`scripts/perf-battery.ts`) sont les plus LÉGERS de la batterie — ils
-n'auraient rien pu détecter du bug `BUCKET_CAP` qui a motivé toute cette
-investigation. C'est un test de fumée pour l'itération, jamais un
+`scripts/perf-battery.ts`) sont les plus LÉGERS de la batterie — ils ne
+peuvent rien détecter d'un bug de rétention comme `BUCKET_CAP`, qui
+n'apparaît qu'au volume. C'est un test de fumée pour l'itération, jamais un
 remplaçant de `--monotonicity` ni de la batterie complète avant de committer.
 
 ## Avant de mesurer : le coût est-il SUBI, ou choisi par l'implémentation ?
@@ -117,11 +116,10 @@ répond à aucune question utile.** Avant de lancer quoi que ce soit, se
 demander si le coût redouté est intrinsèque au changement, ou seulement à la
 première façon de l'écrire.
 
-**Incident vécu** (artéfacts, lignes 222/223 « Dgts CRIT selon les PV de la
-cible ») : le plan validé avec l'utilisateur était « mesurer le coût de
-RECALCULER `horsCoup` à chaque coup », ces lignes rendant les Dgts CRIT
-dépendants des PV de la cible, qui baissent pendant le sort. Une lecture du
-code AVANT de mesurer a montré que `cr`, `cd` et `partCrit` sont tous
+**Exemple** (artéfacts, lignes 222/223 « Dgts CRIT selon les PV de la
+cible ») : ces lignes rendent les Dgts CRIT dépendants des PV de la cible,
+qui baissent pendant le sort, ce qui semble imposer de RECALCULER
+`horsCoup` à chaque coup. Or `cr`, `cd` et `partCrit` sont tous
 calculés une seule fois — seul `pvPct` varie. Le terme est donc **affine** en
 `pvPct` :
 
@@ -131,8 +129,8 @@ horsCoup(pvPct) = horsCoup_base + partCrit × [a·pvPct + b·(1−pvPct)] × K
 
 `K` (mitigation × réductions × facteurs) étant constant, il n'y a **rien à
 recalculer** : deux constantes précalculées, puis deux multiplications-
-additions par coup. La mesure prévue aurait chiffré le coût d'un code qui
-n'allait jamais exister.
+additions par coup. Mesurer le recalcul chiffrerait le coût d'un code qui
+n'a pas à exister.
 
 **Règle** : quand un changement semble imposer de refaire un calcul dans une
 boucle chaude, chercher d'abord la **décomposition** (quelle partie est
@@ -199,7 +197,7 @@ simultanée. Il faut deux répertoires distincts (voir
    glob — vérifier `git -C <worktree> ls-files --error-unmatch <fichier>`
    AVANT de lier (exit 0 = suivi = refuser et prévenir, jamais écraser).
 3. **Symlink de FICHIER refusé par Windows sans privilège élevé** (`EPERM`
-   sans droits admin/Mode développeur — rencontré directement). Repli
+   sans droits admin/Mode développeur). Repli
    automatique sur un lien PHYSIQUE (`fs.linkSync`, même volume — toujours
    le cas sous le même profil utilisateur), qui fonctionne pour un usage en
    LECTURE SEULE sans élévation.
@@ -226,13 +224,12 @@ numérique, jamais une entrée utilisateur brute).
 Un test qui simule plusieurs workers indépendants en les appelant l'un après
 l'autre dans le même thread (au lieu de vrais `worker_threads`/Web Workers)
 doit reconstruire son état de préparation (`prepareSearch(params)`) À
-CHAQUE appel, jamais le partager entre « workers » simulés. Vécu en
-construisant `tests/rune-optim-parallel-pairing.test.ts` : un `prepared0`
-unique fermé sur toutes les slices faisait que `overBudget()` (qui compare
-`Date.now()` à `prepared.startedAt`, figé à la construction) considérait les
-slices traitées plus tard comme déjà hors budget — pertes énormes et
-fausses (jusqu'à -565 candidats sur un scénario) qui ressemblaient
-EXACTEMENT à un vrai bug de parallélisation. Chaque vrai Worker de prod
+CHAQUE appel, jamais le partager entre « workers » simulés, parce que
+`overBudget()` compare `Date.now()` à `prepared.startedAt`, figé à la
+construction : un `prepared` unique fermé sur toutes les slices fait passer
+les slices traitées plus tard pour déjà hors budget — des pertes énormes et
+fausses qui ressemblent EXACTEMENT à un vrai bug de parallélisation.
+Chaque vrai Worker de prod
 appelle `prepareSearch` indépendamment ; un test qui simule cette
 indépendance doit faire pareil.
 
@@ -246,21 +243,12 @@ générateur à la fois dans un seul thread) a une latence de coordination
 voir avec un vrai `postMessage` entre threads/Workers concurrents, qui
 passe par la boucle d'événements et arrive avec un délai réel, non nul.
 
-**Incident vécu** (Chantier D, quota partagé en pairing parallèle,
-2026-08-19) : un prototype de correction (chaque worker rapporte sa
-progression, le parent lui envoie `'stop'` une fois le total cumulé
-global atteint) mesuré par simulation séquentielle donnait un résultat
-propre et rassurant — 100,2 % du total attendu, récupération quasi
-parfaite. **Le même prototype, rejoué avec de VRAIS `worker_threads`
-concurrents, dépassait le plafond de 23 %** : le worker le plus productif
-atteignait son propre plafond individuel AVANT que le signal `'stop'`
-envoyé par le parent n'ait eu le temps de lui parvenir — la simulation
-séquentielle, à latence nulle, ne pouvait tout simplement PAS révéler ce
-mode de défaillance. Détecté seulement parce que l'utilisateur a
-explicitement objecté à la méthode (« il est inacceptable de tester le
-comportement d'un processus parallélisé en le mettant en séquentiel »)
-plutôt que par une vérification de routine — signal que ce piège n'était
-pas encore identifié comme systématique avant cet incident.
+Exemple de défaillance que seule la vraie latence révèle : chaque worker
+rapporte sa progression, le parent lui envoie `'stop'` une fois le total
+cumulé global atteint ; le worker le plus productif peut atteindre son
+propre plafond individuel AVANT que le signal `'stop'` lui parvienne, et
+le plafond global est dépassé. La simulation séquentielle, à latence
+nulle, ne peut PAS révéler ce mode de défaillance.
 
 **Règle de décision, à appliquer AVANT d'écrire un test/script de
 mesure** : la CORRECTION du mécanisme testé dépend-elle du TIMING/de la
@@ -272,10 +260,7 @@ aucun message ne doit changer son comportement en cours de route) ?
 - **Allocation figée à l'avance** (ex. le mécanisme ACTUEL de prod :
   `perWorkerMaxCollected` calculé une fois, donné à chaque worker au
   démarrage, aucune coordination en cours d'exécution) : une simulation
-  séquentielle reste un verdict de justesse VALIDE — confirmé cette même
-  session, `tests/rune-optim-parallel-pairing.test.ts` (séquentiel) donne
-  exactement le même total que les vrais `worker_threads` sur le cas réel
-  Camilla (75 000/100 000 dans les deux cas).
+  séquentielle reste un verdict de justesse VALIDE.
 - **Coordination EN DIRECT** (ex. tout prototype de quota PARTAGÉ, arrêt
   anticipé signalé, ou plus généralement tout protocole où un worker doit
   RECEVOIR un message pendant qu'il tourne pour changer de comportement) :
@@ -286,15 +271,14 @@ aucun message ne doit changer son comportement en cours de route) ?
   `worker_threads`/Web Workers, sans exception, dès que la question posée
   porte sur la coordination elle-même.
 
-**Portée de l'incident** : à vérifier au cas par cas avant de faire
+**Portée** : à vérifier au cas par cas avant de faire
 confiance à une mesure PASSÉE, jamais présumer un verdict global. Les
 autres mécanismes « parallèles » de ce dépôt mesurés par simulation
 séquentielle jusqu'ici (construction des 2 moitiés en Workers,
 `--monotonicity`) sont des ALLOCATIONS FIGÉES à l'avance (aucun message
 ne change leur comportement en cours de route) — la règle ci-dessus les
-classe du côté valide, pas suspect. Seul un mécanisme de coordination
-EN DIRECT, encore jamais mesuré avant le Chantier D, était concerné.
-Détail complet de l'incident :
+classe du côté valide, pas suspect.
+Détail complet :
 `spec/outils/optimizer/archive/historique/historique-acceleration-et-outillage.md`, section
 « Suite — revérifié sous VRAIE concurrence : la simulation séquentielle
 était trompeuse sur le quota partagé ».
@@ -312,9 +296,8 @@ explicitement.
 
 ### Protocole en BLOCS — un biais qui se REPRODUIT, donc qui passe pour un signal
 
-⚠️ **Le piège le plus coûteux de la série artéfacts** : trois conclusions
-successives, toutes fausses, avant d'obtenir la bonne. Les données n'étaient
-jamais en cause — le protocole l'était à chaque fois.
+⚠️ **Un protocole biaisé produit des conclusions fausses sur des données
+justes** : c'est le protocole qui est en cause, pas les données.
 
 **Le protocole fautif**, qui paraît pourtant rigoureux :
 
@@ -325,15 +308,12 @@ jamais en cause — le protocole l'était à chaque fois.
 Le second témoin est censé attraper une dérive de la machine. Il n'attrape
 qu'une dérive **LENTE** : une perturbation transitoire tombée pendant l'essai
 chargé passe entière dans le résultat, et les deux témoins la ratent
-complètement. Mesuré : « +20,1 % de ralentissement, 0,2 % de dérive entre
-témoins » — donc apparemment un signal net — puis **−2,5 %** à la reprise du
-même cas.
+complètement : un faible écart entre témoins ne garantit pas un signal net.
 
 ⚠️⚠️ **ET LE BIAIS SE REPRODUIT.** L'essai chargé occupe TOUJOURS la même
 position dans la séquence : tout effet lié à cette position (échauffement
 thermique, état du GC, montée en fréquence) revient identique à chaque
-exécution. Un cas a ainsi donné **+4,8 % deux fois de suite** — ce que j'ai pris
-pour une preuve de reproductibilité. Au protocole entrelacé : **+0,3 %**.
+exécution.
 
 **C'est la leçon principale : une lecture répétée sous un protocole biaisé
 n'est PAS une reproductibilité.** Elle en a l'apparence exacte, et elle est
@@ -360,7 +340,7 @@ condition entière.
   montrer plutôt que le laisser deviner.
 
 ⚠️ Corollaire : **ne jamais conclure sur un écart plus petit que la dispersion
-observée**. Un essai chargé « plus rapide que le témoin » (vu : −1,6 %) n'est
+observée**. Un essai chargé « plus rapide que le témoin » n'est
 pas un résultat, c'est la preuve qu'on mesure sous le plancher.
 
 Exemple complet : `scripts/artifact-contention-diag.ts`.
@@ -370,16 +350,16 @@ Exemple complet : `scripts/artifact-contention-diag.ts`.
 ⚠️ Distinct de la fidélité de l'ALGORITHME (voir `algo-verify`) : ici c'est la
 **charge** opposée au système mesuré qui diverge de la production.
 
-Vécu sur `artifact-contention-diag.ts`. La charge devait rejouer
-`chercherPaires` pendant que l'appariement tourne. Son évaluateur sommait les
-stats — donc ne lisait **aucune sous-propriété d'artéfact**. Cascade :
-`analyserPertinence` n'a trouvé aucune ligne croissante → la dominance n'a plus
-comparé que les trois stats principales → l'inventaire s'est effondré à ~3
-candidats par côté → la « charge » coûtait **0,4 ms au lieu de 86 ms**.
+Exemple : une charge qui rejoue `chercherPaires` pendant que l'appariement
+tourne, avec un évaluateur qui somme les stats, ne lit **aucune
+sous-propriété d'artéfact**. Cascade : `analyserPertinence` ne trouve aucune
+ligne croissante → la dominance ne compare plus que les trois stats
+principales → l'inventaire s'effondre à une poignée de candidats par côté →
+la « charge » ne coûte presque plus rien.
 
-La mesure a alors annoncé « aucun ralentissement » — ce qui était vrai, et
-totalement dénué de sens : il n'y avait **aucune charge**. Seul le compteur de
-builds l'a trahi, et seulement parce qu'il figurait dans la sortie.
+La mesure annonce alors « aucun ralentissement » — vrai, et totalement
+dénué de sens : il n'y a **aucune charge**. Seul un compteur la trahit, et
+seulement s'il figure dans la sortie.
 
 **Contre-mesure : faire dire au script sa PROPRE fidélité, avant de mesurer.**
 
@@ -391,7 +371,7 @@ Charge par build : 86 ms sur 12 315 paires parcourues.
 Deux nombres, affichés AVANT les résultats, avec leur fourchette attendue. Une
 charge effondrée se voit alors à la première ligne au lieu de se déduire après
 coup. ⚠️ La fourchette doit venir d'une mesure INDÉPENDANTE et citer le bon
-régime : « ~340 ms » (espace NON élagué) aurait été un repère faux, la
+régime : un repère pris sur l'espace NON élagué est faux, la
 production élaguant aussi.
 
 ⚠️ Et pour une charge de calcul pur : accumuler le résultat dans un puits que

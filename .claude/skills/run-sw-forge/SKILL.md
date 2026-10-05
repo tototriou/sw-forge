@@ -91,8 +91,8 @@ node .claude/skills/run-sw-forge/driver.mjs tototriou-12889591.json Veromos Viol
 ## Import seul — puis n'importe où
 
 Le scénario ci-dessus ne sert que l'Optimizer. Pour tout autre écran, on ne
-réécrit PAS l'import (c'est lui qui a piégé la session du 2026-09-30, voir
-Gotchas) : il vit dans [session.mjs](session.mjs), à côté du driver.
+réécrit PAS l'import (voir Gotchas) : il vit dans [session.mjs](session.mjs),
+à côté du driver.
 
 **Une capture d'un écran après import** — sans script :
 
@@ -151,10 +151,8 @@ const bloc = page
 await bloc.screenshot({ path: shot('mode-a.png') });
 ```
 
-⚠️ **4. Un bloc VIDE ne démontre rien** — et il sort sans erreur. Première
-capture des « Sous-propriétés verrouillées » livrée à `0 / 8` : le
-`selectOption({ label: /regex/ })` n'avait rien matché et l'échec était
-avalé. Deux réflexes :
+⚠️ **4. Un bloc VIDE ne démontre rien** — et il sort sans erreur. Deux
+réflexes :
 
 - `selectOption` veut un libellé **exact**. Lire d'abord les options
   réelles, choisir dedans, et **dire** si rien ne matche plutôt que de
@@ -211,10 +209,9 @@ npx tsc --noEmit && npm test && npm run build
 
 ⚠️ Voir `CLAUDE.md` à la racine : pendant le travail on ne lance QUE la zone
 touchée (`node tests/run.mjs <filtre>`), la suite complète uniquement avant
-une fusion sur `main`. Ce skill portait un compte de vérifications figé
-(« 855 ») périmé depuis longtemps — un tel nombre se démode à chaque
-commit et a déjà produit des messages de commit faux. Ne pas le recopier
-ici : le lire dans la sortie de `npm test` du jour.
+une fusion sur `main`. Un compte de vérifications figé se démode à chaque
+commit : ne pas le recopier ici, le lire dans la sortie de `npm test` du
+jour.
 
 ---
 
@@ -263,11 +260,10 @@ ici : le lire dans la sortie de `npm test` du jour.
   base exclues » est coché par défaut (voir `OptimizerSection.tsx`) : un
   nombre saisi dans un champ Min/Max est un **bonus au-dessus de la base**
   du monstre, pas un total — `250` tapé dans VIT minimum pour Lora (base
-  120) devient en réalité un minimum TOTAL de 370 une fois converti. Piège
-  vécu en construisant ce driver (recherche jugée « impossible » alors que
-  la vraie intention était atteignable). Pour viser un TOTAL précis,
-  décocher d'abord « Stats de base exclues », ou calculer le bonus
-  attendu = total voulu − base du monstre (visible sur sa fiche stats).
+  120) devient en réalité un minimum TOTAL de 370 une fois converti. Pour
+  viser un TOTAL précis, décocher d'abord « Stats de base exclues », ou
+  calculer le bonus attendu = total voulu − base du monstre (visible sur
+  sa fiche stats).
 - **Placeholder avec un vrai caractère ellipse (`…`), pas trois points.**
   `getByPlaceholder('Rechercher un monstre...')` (trois points ASCII) ne
   matche RIEN — le composant utilise `'Rechercher un monstre…'` (U+2026).
@@ -287,16 +283,11 @@ ici : le lire dans la sortie de `npm test` du jour.
     change RIEN : c'est deux fois le même littéral, pas un préfixe commun.
   - ⚠️ Ce n'est **PAS** un conflit avec le picker d'exclusion de runes, qui
     porte toujours un placeholder distinct (« Rechercher un monstre à
-    exclure… », `RuneExclusionPicker.tsx` l. 103 — vérifié par grep le
-    2026-09-01). Deux versions successives de cette gotcha ont attribué le
-    doublon à l'exclusion : la première envoyait vers un remède qui ne
-    marche pas (`exact: true`), la seconde donnait le bon remède pour une
-    mauvaise raison — donc inapplicable au cas suivant, puisque la vraie
-    règle (« tout est en double ») ne s'en déduisait pas.
+    exclure… », `RuneExclusionPicker.tsx` l. 103).
   - **`.first()`, jamais `.last()`** : la copie bureau vient en premier dans
     le DOM. `.last()` vise l'INVISIBLE — `fill`/`click` partent alors en
     timeout, et une capture d'élément sort vide ou tronquée **sans lever
-    d'erreur**. Piège vécu sur les captures cadrées ci-dessus.
+    d'erreur**.
   - ⚠️ **Un grep du libellé ne révèle PAS le doublon.** Les blocs partagés
     sont écrits une seule fois dans une variable JSX, puis interpolés dans
     les DEUX branches de disposition — `blocArtefactsSeuls` est déclaré en

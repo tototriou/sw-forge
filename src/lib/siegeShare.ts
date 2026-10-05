@@ -12,10 +12,12 @@
 
 import type { Monster, SiegeTeam } from '../types';
 import { NOM_APP, PREFIXE_FICHIER } from '../marque';
+import { formatExport, formatReconnu } from './formatsExport';
 
-// ⚠️ Un IDENTIFIANT de format, pas le nom de l'app : il garde `sw-forge` après
-// le rebranding, sans quoi les fichiers déjà exportés seraient refusés.
-export const FORMAT_SIEGE = 'sw-forge/siege-equipes';
+// ⚠️ Un IDENTIFIANT de format, pas le nom de l'app. Il s'écrivait
+// `sw-forge/siege-equipes` : cet ancien identifiant reste relu, sans quoi les
+// fichiers déjà exportés seraient refusés (décision 66, formatsExport.ts).
+export const FORMAT_SIEGE = formatExport('siege-equipes');
 export const VERSION_SIEGE = 1;
 
 export type CoteSiege = 'defense' | 'offense';
@@ -29,7 +31,7 @@ interface MonstreExporte {
 }
 
 export interface FichierSiege {
-  format: typeof FORMAT_SIEGE;
+  format: string;
   version: number;
   cote: CoteSiege;
   equipes: { monstres: MonstreExporte[] }[];
@@ -93,7 +95,7 @@ export function lireEquipes(texte: string, monsters: Monster[]): LectureSiege {
     return { ok: false, erreur: "Ce fichier n'est pas du JSON." };
   }
   const o = brut as Partial<FichierSiege> | null;
-  if (!o || typeof o !== 'object' || o.format !== FORMAT_SIEGE) {
+  if (!o || typeof o !== 'object' || !formatReconnu(o.format, 'siege-equipes')) {
     return { ok: false, erreur: `Ce fichier n'est pas un export d'équipes de siège ${NOM_APP}.` };
   }
   if (typeof o.version !== 'number' || o.version > VERSION_SIEGE) {

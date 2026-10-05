@@ -27,6 +27,7 @@ import {
 } from '../types';
 import { RtaCategory } from '../hooks/useRtaCategories';
 import { NOM_APP } from '../marque';
+import { formatExport, formatReconnu } from './formatsExport';
 
 const SET_KEYS = new Set<string>(RUNE_SETS.map((s) => s.key));
 // Sections acceptées : les sets de runes + les deux sections spéciales.
@@ -774,7 +775,8 @@ function cleanCategory(raw: unknown, ctx: Issues, where: string): RtaShareCatego
  * Format JSON — celui des FICHIERS échangés
  * ----------------------------------------------------------------------- */
 
-export const JSON_FORMAT = 'sw-forge/prepa-rta';
+// `sw-forge/prepa-rta` avant le rebranding : toujours relu (formatsExport.ts).
+export const JSON_FORMAT = formatExport('prepa-rta');
 // v2 : l'**équipement** (runes, artéfacts, relique) peut accompagner chaque
 // monstre — c'est ce qu'on vient voir dans la prépa d'un ami. Il reste
 // facultatif : l'auteur choisit à l'export. Un fichier v1 se lit sans perte, il
@@ -864,7 +866,7 @@ export function validateRtaImport(text: string): ImportReport {
     return { ...vide, ...ctx };
   }
 
-  if (typeof obj.format === 'string' && obj.format !== JSON_FORMAT) {
+  if (typeof obj.format === 'string' && !formatReconnu(obj.format, 'prepa-rta')) {
     // Erreur BLOQUANTE et non simple avertissement : importer une prépa
     // REMPLACE la prépa en cours. Se tromper de fichier (une recommandation de
     // siège, par exemple) coûterait le classement en place.

@@ -1006,10 +1006,14 @@ base64 (`SWF-RECO-1:`) a coexisté un temps ; il a été **retiré** — deux fo
 pour la même chose, c'est deux fois plus de surface à valider, pour un contenu
 que personne ne peut relire ni corriger.
 
-### Fichier JSON (`format: "sw-forge/recommandations"`, `version: 5`)
+### Fichier JSON (`format: "swblacksmith/recommandations"`, `version: 5`)
+
+⚠️ L'identifiant s'écrivait `sw-forge/recommandations` avant le rebranding
+(décision 66) : il reste reconnu à l'import, sans avertissement
+([formatsExport.ts](src/lib/formatsExport.ts)).
 
 ```json
-{ "format": "sw-forge/recommandations", "version": 5, "exporte_le": "…",
+{ "format": "swblacksmith/recommandations", "version": 5, "exporte_le": "…",
   "recommandations": [
     { "nom": "…", "auteur": "…", "consignes": "…",
       "decks": [ { "nom": "Def 1", "consignes": "…",

@@ -222,7 +222,8 @@ dans un composant.
 | Import de compte | `importAccount.ts` (parse SWEX), `applyAccount.ts` (→ états), `accountStore.ts` (IndexedDB), `accountViews.ts` |
 | Monstres | `monsterForms.ts`, `monsterSkills.ts`, `monsterSort.ts`, `collabPairs.ts` |
 | Siège / recos | `recoMatch.ts`, `recoSearch.ts`, `recoShare.ts`, `recoFromSiege.ts`, `recoDefenses.ts`, `ownedBuilds.ts` |
-| Divers | `effects.ts` (codes com2us → libellés), `crafts.ts`, `gearSync.ts`, `detecteurDebordement.ts` (dev seulement) |
+| Fichiers exportés | `formatsExport.ts` (identifiant `swblacksmith/<nom>` écrit, l'ancien `sw-forge/<nom>` relu — lu par `rtaShare`, `recoShare`, `siegeShare`, `runeCurveShare`) |
+| Divers | `effects.ts` (codes com2us → libellés), `crafts.ts`, `gearSync.ts`, `detecteurDebordement.ts` (dev seulement), `migrationStockage.ts` (clés de stockage de l'ancien nom) |
 
 ---
 

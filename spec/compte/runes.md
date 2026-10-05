@@ -760,9 +760,11 @@ sinon on la prend pour un oubli.
 ### Courbes partagées
 
 - **Exporter** (icône **Upload ↑**) : demande un nom, produit un **JSON lisible**
-  (`format: "sw-forge/courbe-runes"`, **version 2**, voir
-  [runeCurveShare.ts](src/lib/runeCurveShare.ts)) — **téléchargé** en
-  `swforge-runes-<nom>.json` **et copié** au presse-papier.
+  (`format: "swblacksmith/courbe-runes"`, **version 2**, voir
+  [runeCurveShare.ts](src/lib/runeCurveShare.ts) ; `sw-forge/courbe-runes`
+  avant le rebranding, toujours relu — la lecture reconnaît le contenu, pas
+  l'identifiant) — **téléchargé** en `swblacksmith-runes-<nom>.json` **et
+  copié** au presse-papier.
   - ⚠️ Le fichier porte **LES DEUX séries** : `efficiences` **et** `scores`.
     Celui qui l'importe la lit donc dans **sa** mesure, sans dépendre du réglage
     de l'expéditeur.

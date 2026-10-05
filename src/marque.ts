@@ -5,7 +5,7 @@
 //
 // ⚠️ **Ce qui NE lit PAS ce fichier, et ne doit jamais le lire** : les clés de
 // stockage (`swblacksmith-*`, voir lib/migrationStockage.ts), la base IndexedDB
-// et les identifiants de format des exports (`sw-forge/prepa-rta`…). Ce sont
+// et les identifiants de format des exports (lib/formatsExport.ts). Ce sont
 // des ADRESSES, pas des textes : un changement de nom affiché ne doit pas les
 // déplacer. Quand elles changent (décision 66), c'est avec une migration, et
 // l'ancienne adresse reste relue.

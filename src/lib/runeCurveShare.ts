@@ -5,6 +5,8 @@
 // convention que les recommandations de siège (voir recoShare.ts). L'ancien code
 // compact `SWF-RUNES-1:` n'est plus ni produit ni lu.
 
+import { formatExport } from './formatsExport';
+
 // Une courbe partagée porte LES DEUX mesures : celui qui l'importe la lit dans
 // celle qu'il a choisie, sans dépendre du réglage de l'expéditeur.
 export interface CurvePayload {
@@ -13,7 +15,9 @@ export interface CurvePayload {
   scores: number[]; // scores SW, triés décroissant
 }
 
-export const CURVE_FORMAT = 'sw-forge/courbe-runes';
+// `sw-forge/courbe-runes` avant le rebranding. La lecture ne regarde pas
+// l'identifiant (elle reconnaît le contenu) : un ancien fichier passe tel quel.
+export const CURVE_FORMAT = formatExport('courbe-runes');
 export const CURVE_VERSION = 2; // v2 : porte les deux mesures
 
 // Efficiences normalisées : nombres finis, au dixième, triés décroissant.

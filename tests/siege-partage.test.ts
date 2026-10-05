@@ -36,7 +36,7 @@ export default function testSiegePartage() {
   egal(equipes, 1, 'une équipe exportée');
   egal(nbPerso, 1, 'le monstre perso est compté (son emplacement part vide)');
   const fichier = JSON.parse(texte);
-  egal(fichier.format, FORMAT_SIEGE, 'format sw-forge/siege-equipes');
+  egal(fichier.format, FORMAT_SIEGE, 'format swblacksmith/siege-equipes');
   egal(fichier.equipes[0].monstres[0], { com2usId: lushen.com2usId, nom: 'Lushen', vitesseRunes: 120, tick: 286, sets: ['swift'] }, 'le leader part avec son com2usId, sa vitesse, son tick et ses sets');
   egal(fichier.equipes[0].monstres[2].com2usId, null, 'le monstre perso part vide');
   ok(!texte.includes('gear'), 'le détail des runes ne part pas');
@@ -67,7 +67,8 @@ export default function testSiegePartage() {
   refus(JSON.stringify({ format: FORMAT_SIEGE, version: 1 }), 'aucune liste', 'pas de liste d\'équipes');
 
   // Préfixe `swblacksmith-` depuis le rebranding (R2, décision 14) ; le
-  // FORMAT, lui, reste `sw-forge/siege-equipes` (figé par marque.test.ts).
+  // FORMAT est `swblacksmith/siege-equipes`, l'ancien `sw-forge/siege-equipes`
+  // restant relu (décision 66, figé par marque.test.ts).
   egal(nomFichierSiege('defense', new Date('2026-09-26T12:00:00Z')), 'swblacksmith-siege-defense-2026-09-26.json', 'le nom du fichier dit le côté et la date');
 
   // Recherche d'équipe par monstre (même décision 14).

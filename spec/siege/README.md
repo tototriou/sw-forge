@@ -84,8 +84,9 @@ Ajout décidé par Thomas le 2026-09-26 (décision 14). Logique :
 
 - **« Exporter »** télécharge les équipes **affichées** — toutes, ou celles
   du filtre actif : l'infobulle le dit — dans un fichier
-  `swforge-siege-<defense|offense>-AAAA-MM-JJ.json`.
-- Format `sw-forge/siege-equipes`, version 1, clés en français :
+  `swblacksmith-siege-<defense|offense>-AAAA-MM-JJ.json`.
+- Format `swblacksmith/siege-equipes` (`sw-forge/siege-equipes` avant le
+  rebranding, toujours relu — décision 66), version 1, clés en français :
   `{ format, version, cote, equipes: [{ monstres: [{ com2usId, nom,
   vitesseRunes, tick, sets }] × 3 }] }`. Le **slot 0 est le leader**, comme
   dans l'app.

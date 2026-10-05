@@ -186,7 +186,7 @@ quel fichier il ouvre, pas comment il est fait.
 
 | Fichier | Reconnu à | Ce qu'on en tire |
 |---|---|---|
-| **Export de prépa** (bouton « Exporter ») | `format: "sw-forge/prepa-rta"` | la prépa telle que son auteur l'a classée, au niveau qu'il a choisi |
+| **Export de prépa** (bouton « Exporter ») | `format: "swblacksmith/prepa-rta"` (ou `"sw-forge/prepa-rta"`, avant le rebranding) | la prépa telle que son auteur l'a classée, au niveau qu'il a choisi |
 | **Export SWEX complet** du compte | son `unit_list` | sa **box RTA**, pré-classée par set — niveau `complet` |
 
 ⚠️ **Tout le monde n'a pas SW Forge.** Demander à un ami de l'installer et d'y
@@ -336,7 +336,7 @@ dialogue l'explique plutôt que de laisser un bouton inerte.
 
 #### ⚠️ Le nom du fichier dit ce qu'il contient
 
-`swforge-prepa-rta-<niveau>-<AAAA-MM-JJ>.json`, où `<niveau>` vaut `complet`,
+`swblacksmith-prepa-rta-<niveau>-<AAAA-MM-JJ>.json`, où `<niveau>` vaut `complet`,
 `vitesses` ou `ordre-de-tour`.
 
 C'est le **seul repère avant d'ouvrir le fichier** : dans un dossier de
@@ -384,10 +384,14 @@ amont (`categories={visible ? cats : []}`). Une fois masquées, les catégories
 n'arrivaient donc plus au composant et **son propre interrupteur ne pouvait plus
 rien réafficher**. Les catégories lui sont désormais passées entières.
 
-### Format (`format: "sw-forge/prepa-rta"`, `version: 2`)
+### Format (`format: "swblacksmith/prepa-rta"`, `version: 2`)
+
+⚠️ L'identifiant s'écrivait `sw-forge/prepa-rta` avant le rebranding
+(décision 66) : il reste reconnu à l'import, sans avertissement
+([formatsExport.ts](src/lib/formatsExport.ts)).
 
 ```json
-{ "format": "sw-forge/prepa-rta", "version": 2, "exporte_le": "…",
+{ "format": "swblacksmith/prepa-rta", "version": 2, "exporte_le": "…",
   "nom": "", "auteur": "", "niveau": "complet",
   "sections": ["swift", "violent", "other"],
   "monstres": [

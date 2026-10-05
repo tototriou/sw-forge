@@ -115,14 +115,29 @@ Q1 → 7 (les données dépendent du choix de Thomas)
 |-----|------|--------|---------------|
 | 1 coquille Electron | J | à faire | |
 | 2 le web dans la coquille (liens, téléchargements, audience, `estBureau`) | J | à faire | |
-| 3 empaquetage Windows (installeur NSIS) | M | à faire | |
+| 3 empaquetage Windows (NSIS) et Linux (AppImage) | M | à faire | |
 | 4 action GitHub au tag | J | à faire | |
 | 5 mise à jour automatique | J | à faire | |
 | 6 « Télécharger pour Windows » sur le site | J | à faire | |
-| 7 données du jeu (selon Q1) | J | à faire | |
+| 7 données du jeu — dans l'installeur (décision 1), une phrase de spec | M | à faire | |
 | 8 clôture : spec d'état actuel, docs, `npm test`, fusion dans `release/v2.0.0` | M | à faire | |
 
 ### A.8 Questions ouvertes et décisions
+
+**Décisions de Thomas (2026-10-05)** :
+
+1. **Q1 → (a)** : les données du jeu sont **dans l'installeur** et se mettent
+   à jour avec l'app. Le lot 7 se réduit à le dire dans la spec.
+2. **Q2 → (a)** : **pas de signature** ; une phrase d'explication à côté du
+   bouton (« Informations complémentaires → Exécuter quand même »). Signer
+   plus tard ne change rien d'autre.
+3. **Q3 → Windows + Linux** : installeur NSIS pour Windows, **AppImage** pour
+   Linux — seul format Linux que `electron-updater` met à jour (un `.deb`
+   passe par le gestionnaire de paquets). macOS hors périmètre.
+4. **Q4 → plus tard** : l'import automatique du dossier SWEX est un chantier
+   à part, hors 2.0.0.
+
+Restent ouvertes **Q5** (lot 6) et **Q6** (lot 2) ci-dessous.
 
 Les lots 1 à 3 n'en dépendent pas ; chacune bloque le lot indiqué.
 
@@ -193,17 +208,19 @@ bouton et par glisser-déposer ; `npm test` sur la zone ; le site inchangé
 
 **Ne fait pas** : le bouton de téléchargement du site (lot 6).
 
-### Lot 3 — l'empaquetage Windows · M
+### Lot 3 — l'empaquetage Windows et Linux · M
 
-**Intrant** : A, Q3, la doc `electron-builder` (cible `nsis`).
+**Intrant** : A, décision 3, la doc `electron-builder` (cibles `nsis`,
+`AppImage`).
 
-**Sortie** : configuration `electron-builder` (dans `package.json` ou
-`electron-builder.yml`) : `appId`, `productName` SW Blacksmith, icône,
-cible NSIS, fichiers = `dist/` + `dist-bureau/`, sortie `paquets/` ; script
-`bureau:paquet`.
+**Sortie** : configuration `electron-builder` (`electron-builder.yml`) :
+`appId`, `productName` SW Blacksmith, icône, cibles **NSIS** (Windows) et
+**AppImage** (Linux), fichiers = `dist/` + `dist-bureau/`, sortie
+`paquets/` ; scripts `bureau:paquet` (plateforme courante).
 
-**Preuve** : `lot-3.md` — installeur produit, taille mesurée, installation
-puis lancement sur cette machine, désinstallation propre.
+**Preuve** : `lot-3.md` — installeur Windows produit sur cette machine,
+taille mesurée, installation, lancement, désinstallation propre. L'AppImage
+se construit sous Linux : sa preuve vient du lot 4 (CI).
 
 **Ne fait pas** : signature (Q2), publication.
 
@@ -213,9 +230,9 @@ puis lancement sur cette machine, désinstallation propre.
 rédaction), le lot 3.
 
 **Sortie** : `.github/workflows/bureau.yml` : au tag `v*` (et
-`workflow_dispatch` pour un essai), sur `windows-latest`, `npm ci`, build,
-`bureau:paquet --publish always` vers la release du tag, `latest.yml`
-compris.
+`workflow_dispatch` pour un essai), une matrice **`windows-latest`** +
+**`ubuntu-latest`** : `npm ci`, build, `bureau:paquet --publish always` vers
+la release du tag, `latest.yml` et `latest-linux.yml` compris.
 
 **Preuve** : `lot-4.md` — un essai sur un tag de test (`v0.0.0-essai`, release
 en **brouillon**, supprimée ensuite) : journal de l'action, fichiers
@@ -244,9 +261,10 @@ seule ; journal de l'updater.
 **Intrant** : A, Q2, Q5, `src/pages/HomePage.tsx`, `spec/accueil.md`
 (`spec-toc` puis la section utile), règle « accueil miroir de l'app ».
 
-**Sortie** : le bouton, vers `…/releases/latest` ; absent dans l'app
-(`estBureau()`) ; phrase SmartScreen selon Q2 ; tests de rendu (bouton sur
-le site, pas dans l'app).
+**Sortie** : « Télécharger pour Windows » et « … pour Linux », vers
+`…/releases/latest` ; absents dans l'app (`estBureau()`) ; la phrase
+SmartScreen de la décision 2 ; tests de rendu (boutons sur le site, pas
+dans l'app).
 
 **Preuve** : `lot-6.md` — captures bureau et téléphone ; tests.
 
@@ -254,9 +272,11 @@ le site, pas dans l'app).
 
 **Intrant** : Q1, `update-data.yml`, `useMonsters.ts`, `monsterSkills.ts`.
 
-**Sortie** : selon Q1. (a) : rien à coder, une phrase dans la spec et la
-CI publie l'app à chaque version ; (b) : récupération au lancement, repli
-hors ligne, tests.
+**Sortie** : décision 1 (a) — rien à coder : la spec d'état actuel dit que
+les données du jeu sont celles de l'installeur, rafraîchies à chaque
+version publiée. ⚠️ Conséquence à écrire : une PR de données
+(`update-data.yml`) n'atteint l'app qu'à la version suivante. Fusionnable
+avec le lot 8.
 
 ### Lot 8 — clôture · M
 

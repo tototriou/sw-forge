@@ -1,278 +1,297 @@
 # Outillage des specs — natures, `spec-toc`, `spec-lint`
 
-**Statut :** ÉTAT ACTUEL — décrit les natures de documents de `spec/`, le parseur `spec-markdown`, `spec-toc`, le contrat de `spec-lint`, les en-têtes, le critère des invariants et les niveaux d'application (hook `Read` et installation des garde-fous compris)
-**Lire si :** on modifie `scripts/spec-lint.mjs`, `scripts/spec-toc.mjs`, `scripts/lib/spec-markdown.mjs`, `spec/spec-lint.json`, le hook `Read`, le hook `pre-commit`, `scripts/installer-hooks.mjs` ou le skill `spec-hygiene` ; on crée, déplace ou découpe une spec
+**Statut :** ÉTAT ACTUEL — décrit la frontière entre public et privé, les natures de documents de `spec/`, le parseur `spec-markdown`, `spec-toc`, le contrat de `spec-lint`, les en-têtes, le critère des invariants et les niveaux d'application (hook `Read`, `pre-commit` et installation des garde-fous compris)
+**Lire si :** on modifie `scripts/spec-lint.mjs`, `scripts/spec-toc.mjs`, `scripts/lib/spec-markdown.mjs`, `spec/spec-lint.json`, le hook `Read`, le hook `pre-commit`, `scripts/installer-hooks.mjs` ou le skill `spec-hygiene` ; on crée, déplace, archive ou découpe une spec ; on se demande si un texte a sa place dans le dépôt public
 **Ne pas lire si :** on ouvre une spec pour son contenu — `node scripts/spec-toc.mjs <fichier>` suffit
-**Voir aussi :** `spec/chantiers/spec-rangement.md` (fiche du chantier qui a posé ces règles), skill `spec-hygiene`
+**Voir aussi :** `spec/outillage/renvois.md` (garde-fou des renvois), skills `spec-hygiene` et `cadrage-chantier`
 
-Contrats repris du journal du chantier `spec-rangement`, archivé dans les
-notes privées. Chaque titre garde l'identifiant de sa section d'origine
-(« ex-B.4 ») : un identifiant nu cité par le code, les tests, les skills ou
-le texte ci-dessous (« B.4 ») désigne la section de même identifiant ; les
-autres (A.3, A.5, A.6, A.7, identifiants de lot) se résolvent par la table
-de la fiche `spec/chantiers/spec-rangement.md`. « Ce lot », « le lot n » :
-le lot de ce chantier qui a posé la règle.
+Ce fichier décrit les règles qui s'appliquent aux documents de `spec/` et les
+outils qui les vérifient. Le code fait foi : quand une règle ci-dessous et
+`scripts/spec-lint.mjs` divergent, c'est le script qui dit ce qui est refusé.
 
-## Natures de documents et règles de forme (ex-A.2)
+## Public et privé
 
-Trois natures de documents, séparées physiquement :
+Le dépôt est public : tout fichier suivi par Git l'est, et **tout `spec/`
+l'est**. Un texte y a sa place quand il **décrit l'actuel** (comportement,
+règle, contrat d'un outil) **ou explique comment le modifier** (recette,
+conduite à tenir, écueil connu).
+
+Le reste vit dans les **notes privées du projet**, un dépôt séparé, non
+publié : méthode de travail et outillage d'orchestration, cadrages pilotés
+avec cet outillage, preuves, archives, historique et récits, mesures,
+délibération des décisions, exports de compte.
+
+- **Le public ne renvoie jamais au privé** : ni lien, ni chemin, ni nom de
+  note. Une information utile au public y est réécrite ; sinon elle reste
+  privée sans être citée. Vérifié par `tests/renvois.test.ts`
+  (`spec/outillage/renvois.md`) et, dans le dossier de l'Optimizer, par le
+  `pre-commit` (« Refus du `pre-commit` »).
+- **Règles d'écriture du public** : aucune date de décision (une date qui a
+  un sens dans le jeu reste) ; aucun cheminement, sauf l'écueil qu'un
+  contributeur réessaierait, en une ligne avec sa raison ; aucun identifiant
+  de lot ; jamais « décision de l'utilisateur ». La provenance d'une valeur
+  de jeu (relevé en jeu, déduction) reste. Ces règles se vérifient en revue :
+  seul le `pre-commit` refuse un identifiant de lot, et seulement dans le
+  dossier de l'Optimizer.
+- Un passage retiré du public pour ces raisons est rangé dans les notes
+  privées s'il doit être gardé ; l'historique Git garde de toute façon le
+  texte retiré.
+
+## Natures de documents et règles de forme
+
+Quatre natures, que `spec-lint` reconnaît au champ `Statut :` de l'en-tête :
 
 | Nature | Rôle | Lu quand | Où |
 | --- | --- | --- | --- |
 | **État actuel** | normatif, à jour | au démarrage, **par section** | racine de la zone |
-| **Décision** | conclusion **encore en vigueur** qu'un chantier peut devoir rouvrir (cadrage exécuté, synthèse décisionnelle) | quand on touche ce qui a été décidé | `decisions/` |
-| **Archive** | document daté qui **n'est plus une source de vérité active** : sa conclusion est absorbée ailleurs, ou explicitement laissée comme historique à consulter si besoin (historique, discussions, analyses, audits clos) ; **et les artefacts de preuve** d'un chantier (contrôles, décisions bloc par bloc), dont la valeur est justement leur contenu brut | jamais par défaut | `archive/` |
+| **Décision** | conclusion **encore en vigueur** qu'un chantier peut devoir rouvrir, avec sa raison ; la délibération qui y a mené reste privée | quand on touche ce qui a été décidé | dossier `decisions` de la zone |
+| **Chantier** | cadrage ou fiche publique d'un chantier, « en cours » puis « terminé » | par section, selon le lot | sous un dossier `chantiers/` |
+| **Archive** | document qui n'est plus une source de vérité active | jamais par défaut | dossier `archive` |
 
-Le critère de rangement d'un nouveau document est la deuxième colonne, pas
-son genre : une analyse dont la conclusion vit dans une synthèse est une
+Le critère de rangement d'un document est la deuxième colonne, pas son
+genre : une analyse dont la conclusion vit dans une synthèse est une
 archive ; une synthèse dont la conclusion est encore appliquée est une
-décision. Une archive dont on ne sait pas encore *où* la conclusion a été
-reprise reste une archive (`conclusion reprise dans : À préciser`) : ce
-qu'on affirme en la classant, c'est qu'elle **n'est plus active**, pas
-qu'on a fini de la cartographier.
+décision.
 
-Règles de forme — **deux régimes**, celui qu'implémente le lint (B.4) :
+La nature **Archive** n'a plus de place dans le public : historique,
+preuves et récits sont privés. Archiver, c'est **retirer le document du
+public et le ranger dans les notes privées**. `spec-lint` garde un régime
+pour un dossier `archive` qui subsisterait sous `spec/` (seul l'en-tête
+`ARCHIVE` exigé) ; un tel dossier est à vider, pas à remplir.
 
-- **Documents actifs** (état actuel, décisions, README, index) :
-  1. **bloc terminal ≤ 80 lignes** (objectif rédactionnel ; refus au-delà
-     de **100**) — définition exacte en B.4 ;
-  2. **en-tête selon la nature** (modèles en B.5) ; un `head -12` suffit à
-     décider de lire ou non ;
-  3. **fichier ≤ 500 lignes** hors exceptions déclarées (B.4). Un fichier
-     trop long se découpe **quand un chantier doit modifier son contenu
-     normatif** — pas pour une faute, un lien ou un en-tête ;
+Règles de forme — **deux régimes**, ceux qu'implémente `spec-lint` :
+
+- **Documents actifs** (état actuel, décisions, chantiers, README, index) :
+  1. **bloc terminal ≤ 80 lignes**, objectif de rédaction ; refus au-delà
+     de **100** (définition dans « Contrat de `spec-lint` ») ;
+  2. **en-tête selon la nature** (« En-têtes par nature, slugs uniques ») ;
+     les douze premières lignes suffisent à décider de lire ou non ;
+  3. **fichier ≤ 500 lignes**, hors exceptions déclarées et hors dossier
+     `chantiers/`. Un fichier trop long se découpe **quand un chantier doit
+     modifier son contenu normatif** — pas pour une faute, un lien ou un
+     en-tête ;
   4. **slugs de titres uniques** dans le fichier, pour que `fichier §
      section` désigne une seule chose.
-- **`archive/`** : seul l'en-tête `Statut : ARCHIVE` est exigé. Aucune
-  contrainte de longueur ni d'unicité — une archive ne se découpe pas.
-  **Tout `.md` créé sous `archive/`** (README, fichier de preuve, note)
-  reçoit cet en-tête **au moment de sa création**, pas après.
+- **Dossier `archive`** : seul l'en-tête `**Statut :** ARCHIVE` est exigé ; ni
+  longueur, ni unicité — une archive ne se découpe pas.
 
-## Déplacer vers `archive/` ou `decisions/` (ex-B.1)
+## Déplacer, archiver ou découper un document
 
-Déplacements **sans lecture du corps** (`git mv` côté `sw-forge-docs`,
-copie dans le worktree) :
+Le contrat ; les recettes pas à pas sont dans le skill `spec-hygiene`.
 
-- **Un dossier daté part en bloc**, sauf un fichier qui porte des décisions
-  encore en vigueur. Détection **mécanique, sans lire le corps** : nom du
-  fichier + ses 12 premières lignes + son sommaire (`grep -n '^#'`), à la
-  recherche de titres — **H1 compris** — du type
-  « Décision », « Règle », « Retenu », « À faire ». S'il en porte
-  clairement, il est **déplacé** (pas copié) vers
-  `decisions/` avec un lien retour dans le `README.md` du dossier archivé ;
-  **s'il est ambigu, il reste en archive** et gagne une ligne de pointeur
-  dans `archive/README.md` (« peut contenir des décisions actives : … »)
-  — A.6, on ne perd rien, on rend visible. Candidat connu :
-  `audit-…/decisions-revue.md`.
-- **En-tête ARCHIVE minimal posé mécaniquement** sur chaque `.md` déplacé
-  (le lint 4 l'exige, et le lot 5 ne repasse pas sur `archive/`) :
-  `**Statut :** ARCHIVE — déplacé le <date> depuis <ancien chemin> ;
-  conclusion reprise dans : À préciser`. Le champ « À préciser » se
-  complète le jour où quelqu'un ouvre le fichier pour de bon ; il n'est
-  pas une erreur de lint.
-- Repointage : même procédé que `416a242`. Motif = **nom de fichier complet
-  avec extension** (`analyse-swcalc-rune-optimizer.md`, jamais
-  `analyse-swcalc`). Script dans le scratchpad, **mode aperçu d'abord**,
-  puis réécriture ; `git grep` sur `src/ scripts/ tests/ spec/ .claude/`.
-  Le `git diff` complet est **relu hunk par hunk avant le commit** : chaque
-  hunk ne change qu'un chemin.
-- `archive/README.md` (10 lignes), **créé avec l'en-tête ARCHIVE** (A.2 :
-  tout `.md` créé sous `archive/`) : « ne pas lire pour démarrer ;
-  chercher ici par `grep` pour comprendre *pourquoi* ».
+- **Déplacer** entre natures : `git mv` (l'historique suit le fichier),
+  en-tête de la nature cible, puis repointage des renvois.
+- **Archiver** : copier le document dans les notes privées, puis le retirer
+  du dépôt ; chaque renvoi public qui le visait est réécrit ou supprimé,
+  jamais laissé vers un fichier absent (`tests/renvois.test.ts` le refuse).
+- **Repointer** : le motif cherché est le **nom de fichier complet avec
+  extension** (`ancien-nom.md`, jamais un préfixe), sur `src/`, `scripts/`,
+  `tests/`, `spec/`, `.claude/` et `.agents/`. Un script liste d'abord les
+  occurrences **sans écrire** ; la réécriture vient ensuite, et le diff est
+  relu hunk par hunk avant le commit : chaque hunk ne change qu'un chemin.
+- **Découper** un fichier en exception : le jour où un chantier doit changer
+  son contenu normatif, avant tout ajout (« Périmètre et exceptions »).
 
-## Sous-titrer un fichier, parseur `spec-markdown` (ex-B.2)
+## Sous-titrer un fichier, parseur `spec-markdown`
 
-Lire une fois la section « Écran (de haut en bas) » (l. 268–1246) et y
-poser des H3/H4 tous les 40–80 lignes ; même chose, plus légère, sur les
-autres H2. Les titres reprennent les libellés du jeu / de l'écran.
-
-Consignes strictes :
+Un bloc terminal trop long se résorbe d'abord en posant des sous-titres :
 
 - **n'ajouter que des lignes commençant par `#`** ; aucun mot modifié,
   déplacé ou supprimé ;
 - hiérarchie propre : **aucun saut de niveau** (pas de H4 directement sous
-  un H2), chaque H4 sous le H3 qui précède, chaque titre décrit le bloc
-  jusqu'au prochain titre de niveau égal ou supérieur ;
-- aucune **ancre** dupliquée : contrôle par le slug GitHub, pas seulement
-  par le texte du titre.
+  un H2), chaque titre décrit le bloc jusqu'au prochain titre de niveau
+  égal ou supérieur ; les titres reprennent les libellés du jeu ou de
+  l'écran ;
+- aucune **ancre** dupliquée : contrôle par le slug, pas seulement par le
+  texte du titre.
 
-**Ce lot crée `scripts/lib/spec-markdown.mjs`** — première version du
-parseur partagé que le lot 3 étendra : `titres(texte)` (lignes `^#{1,6}`
-suivi d'une espace, hors bloc de code clôturé) et `slug(titre)` selon l'algorithme de
-`github-slugger` (minuscules ; suppression des caractères qui ne sont ni
-lettre Unicode, ni chiffre, ni espace, ni `-` — les accents sont
-**conservés** ; espaces → `-` ; doublons suffixés `-1`, `-2` dans l'ordre
-du fichier). **Une seule implémentation dans le dépôt** : ni script
-scratch, ni copie dans un hook — tout contrôle de slug l'importe. Testée
-dans `tests/fixtures/spec-markdown/` contre des titres réels du dépôt
-(accents, ponctuation, backticks, doublons).
+Le parseur partagé vit dans `scripts/lib/spec-markdown.mjs`. **Une seule
+implémentation dans le dépôt** : `spec-toc`, `spec-lint` et le
+`pre-commit` (via `spec-lint`) l'importent ; aucun script ni hook n'en
+garde une copie. Toute fonction ajoutée au `.mjs` est déclarée dans le
+sidecar `spec-markdown.d.mts`, pour `tsc`, dans le même commit.
 
-## `spec-toc` (ex-B.3)
+- `titres(texte)` : lignes `^#{1,6}` suivies d'une espace, **hors bloc de
+  code clôturé** (```` ``` ```` ou `~~~`).
+- `slug(titre, compteurs)` : l'algorithme de `github-slugger` —
+  minuscules ; suppression de tout caractère qui n'est ni lettre Unicode, ni
+  chiffre, ni espace, ni `-` (les accents sont **conservés**) ; espaces →
+  `-` ; doublons suffixés `-1`, `-2` dans l'ordre du fichier. La `Map` des
+  compteurs est **fournie par l'appelant**, une neuve **par fichier** :
+  partagée, elle ferait fuir les suffixes d'un fichier à l'autre.
+- `sections`, `enTete` : voir « `spec-toc` » ; `blocsTerminaux`,
+  `referencesSection` : voir « Contrat de `spec-lint` ».
+- `fichiersMarkdown(chemin)` : un fichier, ou tous les `.md` d'un dossier,
+  récursivement, hors `node_modules/` et `.git/`, triés.
+
+Tests : `tests/spec-markdown.test.ts` (`node tests/run.mjs specmarkdown`),
+contre des titres réels du dépôt (`tests/fixtures/spec-markdown/` : accents,
+ponctuation, backticks, doublons).
+
+## `spec-toc`
 
 `node scripts/spec-toc.mjs <fichier|dossier> [--json]` imprime, par
 fichier : l'en-tête (statut, lire si), puis chaque titre avec **niveau,
-plage de lignes, première phrase**. ≤ 60 lignes pour un fichier de 2 000.
+plage de lignes, première phrase**. C'est la façon d'ouvrir une spec
+(`CLAUDE.md`, « La spec avant le code ») : le sommaire, puis la section
+utile.
 
-Définitions exactes :
-
-- **titre** : ligne `^#{1,6}` suivi d'une espace, hors bloc de code clôturé (```` ``` ```` ou
-  `~~~`) ;
+- **titre** : celui de `titres()` ;
 - **plage** : du titre inclus à la ligne précédant le prochain titre de
-  niveau **≤** au sien ;
-- **première phrase** : premier paragraphe de prose de la section, hors
-  titres, blocs de code, tableaux et lignes vides ; un item de liste compte
-  comme prose et **forme à lui seul son paragraphe** (marqueur `-`/`1.`
-  conservé ; sans ça une liste sans ligne vide interne deviendrait la
-  « phrase » entière — arbitrage du lot 3) ; tronqué à 120 caractères ;
-  `—` si la section n'a pas de prose avant son premier sous-titre ;
+  niveau **≤** au sien, ou la fin du fichier ;
+- **première phrase** : premier paragraphe de prose de la section, avant son
+  premier sous-titre, hors lignes vides, blocs de code et tableaux ; un item
+  de liste compte comme prose et **forme à lui seul son paragraphe**
+  (marqueur `-`/`1.` conservé), sinon une liste sans ligne vide interne
+  deviendrait la « phrase » entière ; tronquée à 120 caractères ; `—` si la
+  section n'a pas de prose avant son premier sous-titre ;
 - **en-tête** : les lignes `**Champ :** valeur` entre le H1 et la première
-  ligne qui n'en est pas une, **les lignes vides étant transparentes**
-  (tous les en-têtes réels du dépôt ont une ligne vide entre le H1 et
-  `**Statut :**` ; sans ça aucun ne serait lu — arbitrage du lot 3, qui
-  vaut pour le lint du lot 4 et les modèles du lot 5) ; `statut` = la
-  valeur du champ `Statut :` si présent ;
-- **mode dossier** : parcours **récursif** de tous les `.md`, hors
-  `node_modules/` et `.git/`. Écrit au lot 3 sans test ; **le lot 4, qui
-  s'en sert pour son inventaire, ajoute la fixture** (dossier avec
-  sous-dossier et un `.md` à ignorer). **Bootstrap** : le lot 3 s'exécute avant le lot 5, donc un
-  en-tête absent ou ancien (prose, ⚠️ libre) **n'est pas une erreur** :
-  `statut: null`, `lireSi: null`, et le sommaire est produit normalement.
-  C'est `spec-lint` (4) qui juge l'en-tête, pas `spec-toc` ;
+  ligne qui n'en est pas une, **les lignes vides étant transparentes** (une
+  ligne vide sépare toujours le H1 du premier champ) ; `statut` et `lireSi`
+  valent les champs `Statut :` et `Lire si :`, ou `null` ;
+- **en-tête absent** : pas une erreur pour `spec-toc` (`statut: null`, le
+  sommaire est produit normalement) ; c'est `spec-lint` qui juge l'en-tête ;
+- **mode dossier** : tous les `.md` du dossier (`fichiersMarkdown`) ;
 - `--json` : `[{fichier, statut, lireSi, sections: [{niveau, titre, slug,
   debut, fin, premierePhrase}]}]`.
 
-Le **parseur Markdown** vit dans `scripts/lib/spec-markdown.mjs`, **créé
-au lot 2** (titres, slug) et **étendu ici** (plages, en-tête, première
-phrase), puis partagé avec `spec-lint` (4) : une seule définition de
-« titre », de « section » et de « slug » dans le dépôt. Deux contraintes
-héritées du lot 2 : `slug(titre, compteurs)` prend une `Map` **fournie par
-l'appelant** — une `Map` neuve **par fichier**, sinon les suffixes `-1`
-fuient d'un fichier à l'autre ; et le module a un sidecar
-`spec-markdown.d.mts` pour `tsc` — toute fonction ajoutée au `.mjs` est
-déclarée dans le `.d.mts`, dans le même commit. `≤ 60 lignes`
-est un objectif de compacité (A.3) : **tous les titres sont toujours
-imprimés**, quel que soit leur nombre.
+Tous les titres sont toujours imprimés, quel que soit leur nombre ; viser
+un sommaire d'au plus 60 lignes pour un fichier de 2 000 est un objectif de
+compacité pour qui écrit la spec, jamais une troncature de l'outil.
 
-Enregistré dans `tests/index.ts` (`spec-toc`) avec des **fixtures
-synthétiques** dans `tests/fixtures/spec-toc/` : titres imbriqués, fichier
+Tests : `tests/spec-toc.test.ts` (`node tests/run.mjs spectoc`), fixtures
+synthétiques dans `tests/fixtures/spec-toc/` — titres imbriqués, fichier
 sans H2, bloc de code contenant `#`, section vide, dernier titre du
-fichier, accents et ponctuation Markdown dans les titres, texte avant le
-premier titre, **fichier sans en-tête normalisé** (statut `null`). Plus un test sur `spec/outils/optimizer.md` réel : chaque H2
-présent, `--json` parse et porte les mêmes sections. Mentionné dans
-`CLAUDE.md` § Vérifier comme la façon d'ouvrir une spec.
+fichier, en-tête, tableau, liste, troncature, fichier sans en-tête
+normalisé, mode dossier avec sous-dossier et `node_modules/` ignoré — plus
+`spec/outils/optimizer.md` réel : ses H2, et `--json` qui porte les mêmes
+sections que `sections()`.
 
-## Contrat de `spec-lint` (ex-B.4)
+## Contrat de `spec-lint`
 
-Livre `spec-lint` et ses tests sur fixtures ; les lots 5, 6b et 7b s'en
-servent comme preuve. L'enforcement (`pre-commit`, hook `Read`, skill,
-`CLAUDE.md`) est le lot 9, dernier : scinder évite d'écrire
-deux fois la même logique en scripts scratch temporaires.
+`node scripts/spec-lint.mjs [--json] [--en-tetes]` vérifie les fichiers du
+périmètre et sort en code 1 s'il trouve une erreur. `--en-tetes` limite le
+contrôle aux en-têtes, aux slugs et aux références ; `--json` imprime les
+erreurs (`fichier`, `ligne`, `regle`, `message`). Le script exporte aussi
+`verifier(racine, config, options)`, que le `pre-commit` et les tests
+appellent.
 
-Construit sur `scripts/lib/spec-markdown.mjs` (le parseur du lot 3 : même
-définition de titre, de section, d'en-tête, de slug).
-
-### Bloc terminal, refus et cibles de test
+### Bloc terminal et refus
 
 - **Bloc terminal** : les lignes entre un titre (exclu) et le prochain titre
   de **n'importe quel niveau** (exclu), ou la fin du fichier ; le texte
-  avant le premier titre est un bloc terminal (le préambule). Un titre = ligne
-  `^#{1,6}` suivi d'une espace, **hors bloc de code clôturé**. Lignes vides comptées, tableaux
-  et listes comptés (un tableau de 120 lignes est un bloc à découper ou à
-  sortir en fichier `.csv`/`.md` dédié). Pas de frontmatter dans ce dépôt ;
-  s'il en apparaît, il est exclu.
-- **Refus (hors `archive/`)** : bloc terminal > **100** lignes ; fichier
-  > **500** lignes ; en-tête absent ou sans champ `Statut :` reconnu (B.5) ;
-  **deux titres du même fichier avec le même slug** (sinon `fichier §
-  section` est ambigu — GitHub suffixe `-1`, `-2`, une référence textuelle
-  ne le dit pas) ; `Source : fichier § section` ou lien `fichier §
-  section` qui ne résout pas vers un titre existant (slug GitHub, unique
-  par construction).
-- **`archive/` : seule la présence d'une ligne `**Statut :** ARCHIVE` est
-  exigée.** Ni longueur, ni unicité, ni autres champs : une archive ne se
-  découpe pas (c'est sa définition), et `historique/` seul ferait échouer
-  tout lint de longueur. `À préciser` dans un en-tête n'est jamais une
-  erreur.
-- Pas de contrôle de saut de niveau (un H2 → H4 est un défaut de forme, pas
-  de lisibilité) ; il reste au lot 2 et à la review.
-- **Deux cibles distinctes dans `tests/index.ts`, au sens fixe** — une
-  commande de preuve signifie la même chose quel que soit le moment :
-  - `spec-lint-en-tetes` : en-têtes, unicité des slugs, résolution des
-    `§`. Enregistrée sur le corpus réel **au lot 5** ;
-  - `spec-lint` : tout ce qui précède **plus** les longueurs et les
-    exceptions. Enregistrée sur le corpus réel **au lot 9** (avant, elle
-    ne peut pas passer : les longueurs ne sont tenables qu'après 7b). Un
-    filtre qui ne correspond à rien échoue en listant ce qui existe — pas
-    de faux vert possible.
-  - **Au lot 4, les deux cibles ne tournent que sur les fixtures.** Le
-    corpus réel n'a pas encore ses en-têtes (lot 5) ; d'où « 4 ne dépend
-    pas de 1 » dans A.7.
+  avant le premier titre (préambule) est un bloc. Lignes vides, tableaux et
+  listes comptent : un tableau de 120 lignes est un bloc à découper ou à
+  sortir dans un fichier dédié.
+- **Refus hors d'un dossier `archive`**, par règle :
+  - `entete` : en-tête absent, ou `Statut :` qui ne commence par aucune
+    nature reconnue (`ÉTAT ACTUEL`, `DÉCISION`, `ARCHIVE`, casse ignorée) ;
+    pour la nature Chantier, voir « La nature CHANTIER » ;
+  - `slug-duplique` : deux titres du même fichier au même slug — GitHub
+    suffixe `-1`, `-2`, une référence textuelle ne le dit pas ;
+  - `reference-cassee` : une référence « fichier § section » vers un `.md`
+    (champ `Source :`, mention en ligne ou texte d'un lien) qui ne résout
+    pas vers un titre existant ;
+  - `fichier-trop-long` : plus de 500 lignes, hors exception et hors
+    `chantiers/` ;
+  - `bloc-trop-long` : un bloc terminal de plus de 100 lignes, hors
+    exception ;
+  - `exception-perimee` : un fichier en exception qui ne dépasse plus aucun
+    seuil.
+- **Dossier `archive`** (`statut-archive`) : seule la présence d'un `Statut :` qui
+  commence par `ARCHIVE` est exigée. `À préciser` dans un en-tête n'est
+  jamais une erreur.
+- **Résolution d'une référence** : le chemin cité se cherche relativement au
+  fichier qui le porte, puis à la racine du dépôt, puis à `spec/` ; le
+  premier qui existe gagne. La section se compare **par slug** aux titres de
+  la cible.
 
-### Périmètre, exceptions et inventaire des longueurs
+### Périmètre et exceptions
 
-- **Périmètre et exceptions** : un seul fichier `spec/spec-lint.json` :
-  `{ perimetre: ["spec/outils/**"], exceptions: [{ fichier, raison,
-  condition_de_suppression, chantier_responsable }] }`. Le périmètre est
-  la liste des zones qui ont reçu leurs en-têtes ; une zone s'y ajoute par
-  un lot M dédié (A.2). Une exception exempte un fichier **des deux règles
-  de longueur** (bloc et fichier), pas des en-têtes ni des slugs. Deux
-  règles techniques : une entrée dont le fichier repasse **sous** les
-  seuils fait **échouer** le lint (l'entrée doit être retirée — la liste
-  ne peut que décroître silencieusement, jamais stagner) ; une entrée
-  ajoutée est visible dans la review parce qu'elle vit dans un fichier
-  dédié, et `spec/README.md` dit qu'on n'en ajoute que pour un fichier
-  **préexistant au lint**, jamais pour un nouveau.
+`spec/spec-lint.json` est la **seule source de vérité** du périmètre :
+`{ perimetre: [motifs], exceptions: [{ fichier, raison,
+condition_de_suppression, chantier_responsable }] }`. Un motif `zone/**`
+couvre la zone et tout ce qu'elle contient ; un fichier hors périmètre est
+ignoré, pas même compté. Périmètre actuel : `spec/outils/**`,
+`spec/chantiers/**`, `spec/outillage/**`. Une zone y entre quand tous ses
+fichiers ont leur en-tête.
 
-- **Inventaire non bloquant des blocs > 100** — dès que le parseur
-  existe, donc **au lot 4**, pas au dernier lot : sur le périmètre réel,
-  par fichier actif, nombre de blocs > 100 et taille du plus grand, écrit
-  dans le fichier de preuve `inventaire-longueurs-4.md`. Le lint n'a pas
-  à passer à ce stade ; le but est de connaître la dette avant les lots
-  de transformation restants (5–8), et de savoir si « 9 reste
-  mécanique » tient. Règle de traitement
-  (appliquée en 9, décidée ici) : un fichier actif hors exception qui
-  n'échoue **que** sur un ou deux blocs reçoit des sous-titres à la manière
-  du lot 2 (lignes `#` seulement, mêmes preuves) ; au-delà, il entre en
-  exception **avec le schéma complet** — `raison`,
-  `condition_de_suppression` opérationnelle (« prochain chantier
-  &lt;domaine&gt;, avant première modification normative »),
-  `chantier_responsable` — jamais un `{ fichier, raison: "trop de
-  blocs" }`, et jamais de refonte de contenu au lot 9.
+- Une exception exempte un fichier **des deux règles de longueur** (bloc et
+  fichier), jamais des en-têtes, des slugs ni des références.
+- Une exception dont le fichier repasse sous les deux seuils fait échouer
+  le lint (`exception-perimee`) : la liste ne peut que décroître.
+- On n'ajoute une exception que pour un fichier **préexistant** qui entre
+  dans le périmètre, jamais pour un nouveau. Un tel fichier qui n'échoue
+  que sur un ou deux blocs reçoit plutôt des sous-titres (« Sous-titrer un
+  fichier ») ; au-delà, il entre en exception avec **le schéma complet** :
+  `raison`, `condition_de_suppression` opérationnelle (« prochain chantier
+  &lt;domaine&gt;, avant toute modification normative »),
+  `chantier_responsable`. Jamais une refonte de contenu pour passer le lint.
+- Le jour où un chantier doit modifier le contenu normatif d'un fichier en
+  exception, il le **découpe d'abord** (skill `spec-hygiene`).
 
-### Amendement C6 — la nature CHANTIER
+### La nature CHANTIER
 
-**Amendement C6 (2026-09-17)** — un document de cadrage (tout `.md` sous
-un dossier `chantiers/`, à toute profondeur, dont `spec/chantiers/**`)
-est une **quatrième nature**, ni
-état actuel, ni décision, ni archive (A.2) : il est « en cours » puis
-« terminé ». Deux formes de `Statut :` **seules** reconnues, par une
-regex stricte — pas un préfixe libre comme pour les trois autres
-natures : `CHANTIER en cours` et `CHANTIER terminé le AAAA-MM-JJ` (date
-calendaire valide) ; les deux tolèrent un suffixe `— <texte>`. La nature
-CHANTIER est refusée hors d'un dossier `chantiers/`, et toute autre
-nature y est refusée : seul CHANTIER y est reconnu. **Seule exemption au
-plafond fichier de 500 lignes** (règle 3 de A.2), codée dans
-`scripts/spec-lint.mjs`, pas déclarée dans `spec/spec-lint.json` — ce
-n'est pas une dette à résorber, c'est la nature du document, qui grossit
-avec les résultats de ses lots. Le bloc terminal ≤ 100 lignes, les slugs
-uniques et la résolution des références restent exigés comme partout.
-Périmètre étendu : `spec/spec-lint.json` déclare aussi
-`spec/chantiers/**`.
+Tout `.md` sous un dossier `chantiers/`, à toute profondeur, est de nature
+Chantier ; le dossier fait foi, pas le périmètre déclaré. Deux formes de
+`Statut :` **seules** reconnues, par une expression stricte, casse
+ignorée : `CHANTIER en cours` et `CHANTIER terminé le AAAA-MM-JJ` (date
+calendaire valide), chacune avec un suffixe `— <texte>` facultatif. La
+nature est refusée hors d'un dossier `chantiers/`, et toute autre nature y
+est refusée.
 
-## En-têtes par nature, slugs uniques (ex-B.5)
+Un cadrage grossit avec les résultats de ses lots : la limite de 500 lignes
+par fichier ne s'applique pas sous `chantiers/`. Cette exemption est codée
+dans `scripts/spec-lint.mjs`, pas déclarée dans `spec/spec-lint.json` ; le
+bloc terminal ≤ 100, les slugs uniques et la résolution des références
+restent exigés.
 
-Sur chaque fichier du périmètre hors `archive/` (11 privés à la racine,
-3 dans `decisions/`, 5 publics dans `spec/outils/`) — `archive/` a reçu
-son en-tête minimal au lot 1 et n'est pas repassé. `reliques.md` reçoit
-**son en-tête et rien d'autre** (A.5). Une ligne vide entre le H1 et le
-premier champ, comme partout dans le dépôt (le parseur la tolère, B.3). Intrants : les 12 premières lignes, `node
-scripts/spec-toc.mjs <fichier>`, et les **liens entrants** (`git grep -l
-<nom-de-fichier>`), qui disent *qui* consulte ce fichier et pour quoi.
+### Références `§` vers un titre à lien ou parenthèse
 
-Trois modèles, un par nature — un champ qui serait artificiel pour la
-nature du fichier n'existe pas dans son modèle. Aucune date « de dernier
-commit » : Git la connaît déjà, et un tel champ serait faux au premier
-oubli. `Vérifié le` est optionnel et signifie « dernière relecture
-explicite », rien d'autre.
+`referencesSection` repère, hors bloc de code, chaque nom de fichier en
+`.md` suivi de `§`, puis lit la section jusqu'à la fin de la ligne, un
+`;`, ou un `)` ou `]` **sans ouvrant correspondant depuis le début de la
+référence** — celui qui enveloppe toute la référence ou ferme le texte d'un
+lien. Un titre qui
+contient un lien Markdown, des parenthèses ou des backticks se cite donc tel
+quel : la comparaison par slug neutralise la ponctuation. Une fixture
+couvre chacun des trois cas. Seul un bloc de code clôturé est exclu : un
+exemple écrit en ligne, même entre accents graves, est lu comme une
+référence et doit résoudre.
+
+### Cibles de test
+
+Quatre vérifications, au sens fixe, dans `tests/spec-lint.test.ts`
+(`node tests/run.mjs speclint`) :
+
+| Vérification | Ce qu'elle lance |
+| --- | --- |
+| `testSpecLintEnTetes` | en-têtes, slugs et références, sur les fixtures de `tests/fixtures/spec-lint/` |
+| `testSpecLint` | tout ce qui précède **plus** les longueurs et les exceptions, sur les mêmes fixtures |
+| `testSpecLintEnTetesReel` | en-têtes, slugs et références sur `spec/outils/**` réel, archives comprises |
+| `testSpecLintReel` | le lint complet sur le corpus réel, avec `spec/spec-lint.json` |
+
+### Ce que le lint ne voit pas
+
+- **Un défaut de rendu** : un texte en retrait de quatre espaces, que le
+  Markdown affiche comme un bloc de code, ou une balise HTML écrite nue
+  (`<liste>` sans accents graves), que le rendu avale. Ni `spec-lint` ni
+  aucun test enregistré ne le relève : la relecture du rendu reste à
+  faire à la main.
+- **Un saut de niveau** de titre (H2 suivi d'un H4) : défaut de forme laissé
+  à la revue.
+- **Une exception dont le fichier n'existe pas** : `verifier` ne parcourt
+  que les fichiers présents, une entrée orpheline de `spec/spec-lint.json`
+  ne déclenche rien.
+- Les champs d'en-tête autres que `Statut :` : leur présence se vérifie en
+  revue.
+
+## En-têtes par nature, slugs uniques
+
+Un modèle par nature ; un champ qui serait artificiel pour la nature n'y
+figure pas. Aucune date « de dernier commit » : Git la connaît, et un tel
+champ serait faux au premier oubli. Une ligne vide sépare le H1 du premier
+champ.
 
 ```markdown
 # <Titre>                                   ← ÉTAT ACTUEL
@@ -280,192 +299,179 @@ explicite », rien d'autre.
 **Lire si :** …
 **Ne pas lire si :** …
 **Voir aussi :** <fichier § section>, …
-**Vérifié le :** AAAA-MM-JJ                 (optionnel)
+**Vérifié le :** AAAA-MM-JJ                 (optionnel : dernière relecture explicite)
 
 # <Titre>                                   ← DÉCISION
 **Statut :** DÉCISION <date> — <la décision en une phrase>
 **Remplace / remplacé par :** … (ou « — »)
-**Exécution :** commit <sha> — vérifiée par <observation>   (si exécutée ; posée par le lot 0, conservée ici)
+**Exécution :** commit <sha> — vérifiée par <observation>   (si exécutée)
 **Lire si :** …
 
-# <Titre>                                   ← ARCHIVE (posé au lot 1, complété à l'usage)
-**Statut :** ARCHIVE — déplacé le <date> depuis <ancien chemin> ; conclusion reprise dans <fichier § section | À préciser>
-**Chercher ici pour :** …                   (optionnel)
+# <Titre>                                   ← CHANTIER
+**Statut :** CHANTIER en cours — branche forge/<sujet>
+(ou CHANTIER terminé le AAAA-MM-JJ — branche forge/<sujet> ; autres champs facultatifs)
+
+# <Titre>                                   ← ARCHIVE (régime du lint)
+**Statut :** ARCHIVE — <provenance> ; conclusion reprise dans <fichier § section | À préciser>
 ```
 
-**Règle de non-invention** : si « lire si / ne pas lire si » ne se déduit
-pas avec confiance de ces intrants, écrire `À préciser` — jamais une
-formule plausible. Un `À préciser` vaut une ligne dans `pistes.md`.
+Pour écrire un en-tête : les douze premières lignes du fichier,
+`node scripts/spec-toc.mjs <fichier>`, et ses **liens entrants**
+(`git grep -l <nom-de-fichier>`), qui disent qui le consulte et pour quoi.
+Si « lire si / ne pas lire si » ne se déduit pas avec confiance de ces
+intrants, écrire `À préciser` — jamais une formule plausible.
 
-**Slugs dupliqués** (la part C du lot) : renommer les titres dont le slug
-est en double dans un fichier actif (A.2 règle 4) en ajoutant le contexte
-au titre (« Vérification » → « Vérification — artéfacts »), jamais en
-supprimant un titre. **Renommer un titre est une migration de référence**,
-pas une retouche, et elle porte sur les **ancres effectives**, pas sur les
-seuls titres renommés : trois « Vérification » donnent `#verification`,
-`#verification-1`, `#verification-2` ; renommer le deuxième fait glisser
-le troisième vers `#verification-1` sans qu'on l'ait touché. Donc, pour
-chaque fichier modifié, `spec-toc --json` **avant** et **après** donne la
-table complète `occurrence → slug effectif` ; la différence des deux
-tables (tout slug qui change, renuméroté ou renommé) est écrite dans le
-fichier de preuve `renommages-5.md` ; puis `git grep` de **chaque** ancien
-slug effectif (`#ancien-slug`) et de l'ancien intitulé (`fichier § Ancien
-titre`) sur `src/ scripts/ tests/ spec/ .claude/` ; repointage des
-références non ambiguës, diff relu ; une référence ambiguë est laissée
-telle quelle **et** listée dans `renommages-5.md` avec la raison.
+**Renommer un titre est une migration de référence**, et elle porte sur les
+**ancres effectives**, pas sur les seuls titres renommés : trois
+« Vérification » donnent `#verification`, `#verification-1`,
+`#verification-2` ; renommer la deuxième fait glisser la troisième vers
+`#verification-1` sans qu'on l'ait touchée. Pour un slug dupliqué, ajouter
+le contexte au titre (« Vérification » → « Vérification — artéfacts »),
+jamais supprimer un titre. Puis :
 
-Ce lot **resserre le lint** : `Statut :` reconnu = valeur qui **commence
-par** `ÉTAT ACTUEL`, `DÉCISION` ou `ARCHIVE` — plus seulement « présent et
-non vide » ; fixture négative `Statut : n'importe quoi` refusée. Puis il
-**enregistre `spec-lint-en-tetes` dans `tests/index.ts`** sur le périmètre
-réel (`spec/outils/**`, archives comprises) : c'est la première fois que le
-lint en mode en-têtes peut passer, puisque les en-têtes viennent d'être
-posés.
+1. `spec-toc --json` **avant** et **après** donne, pour chaque fichier
+   modifié, la table `occurrence → slug effectif` ; leur différence liste
+   tout slug qui change, renuméroté ou renommé ;
+2. `git grep` de **chaque** ancien slug (`#ancien-slug`) et de l'ancien
+   intitulé (`fichier § Ancien titre`) sur `src/`, `scripts/`, `tests/`,
+   `spec/`, `.claude/` et `.agents/` ;
+3. repointage des références non ambiguës, diff relu ; une référence
+   ambiguë reste telle quelle et se signale dans la revue.
 
-**Amendement C6 (2026-09-17)** — la quatrième nature CHANTIER (B.4) n'a
-pas les trois champs d'en-tête ci-dessus (Lire si, Ne pas lire si, Voir
-aussi) : ils restent **facultatifs** pour elle, à la différence des trois
-natures modélisées ici. Son en-tête est fixé par `spec-lint` (Statut
-`CHANTIER en cours` ou `CHANTIER terminé le AAAA-MM-JJ`, B.4), pas par ce
-modèle.
+## `invariants.md` et critère des invariants
 
-## `invariants.md` et critère des invariants (ex-B.6)
+### Statut du fichier
 
-### Statut du fichier (fixé ici, pas rediscuté)
-
-`invariants.md` est un **index de contraintes critiques**, pas une source
-normative. Chaque entrée : une phrase impérative + **`Source : fichier §
-section`** (référence durable ; `fichier:ligne` ne sert qu'au contrôle,
-dans les fichiers de preuve). Le fichier fait ≤ 250 lignes, groupé par sujet (stats et
-slots, algorithme, artéfacts, workers, harnais, UI), et **se lit en entier
-au démarrage d'un chantier Optimizer** — c'est le seul fichier pour lequel
-on assume cette lecture intégrale, et son plafond existe pour ça.
+`spec/outils/optimizer/invariants.md` est un **index de contraintes
+critiques**, pas une source normative. Chaque entrée : une phrase
+impérative suivie de **`Source : fichier § section`** (référence durable ; un `fichier:ligne`
+ne sert qu'au contrôle ponctuel). Le fichier est groupé par sujet et **se
+lit en entier au démarrage d'un chantier Optimizer** : c'est le seul
+fichier pour lequel cette lecture intégrale est assumée (le hook `Read` l'en
+exempte). Il est tenu compact pour ça ; sa longueur est un objectif de
+compacité, **jamais une consigne de coupe** : une règle qui répond au
+critère y figure, quitte à en resserrer la formulation.
 
 Maintenance : **une règle normative modifiée se modifie dans sa source ET
-dans `invariants.md`, dans le même commit** (même principe que ledger ↔
-source). `spec-lint` (4) vérifie que chaque `Source : fichier § section`
-résout vers un titre existant — une source disparue fait échouer le lint.
+dans `invariants.md`, dans le même commit**. `spec-lint` vérifie que chaque
+`Source : fichier § section` résout vers un titre existant : une source
+disparue ou renommée fait échouer le lint.
 
-### Extraction (ex-6a)
+### Critère des invariants
 
-Sources : `README.md` privé, `algorithme.md`, `limites-connues.md`,
-`artefacts.md`, `near-miss-appariement.md`, `parallelisation-partagee.md`,
-`harnais-diagnostic.md` ; côté public `optimizer.md`, `degats-reels.md`.
-**Pas `decisions/vitesse-finale.md`** : cadrage invalidé (DÉCISION « ne
-pas faire »), ses règles sont précisément celles qu'il déclare fausses.
-Plus généralement, **aucun fichier de `decisions/`** n'est une source
-d'invariants — une décision se cite, elle ne se réextrait pas. Commencer par `spec-toc`, lire
-**toutes** les sections d'état actuel (pas seulement les « candidates » —
-A.3 : un invariant est souvent une phrase perdue dans une description),
-sauter les sections marquées historiques ou envisagées. Sortie :
-`invariants-<source>.md`, objectif ≤ 40 lignes — **chaque règle qui
-répond au critère y figure, quel qu'en soit le nombre** (A.3 : scinder en
-`-1.md`, `-2.md` plutôt que fusionner ou omettre) ; chaque règle = phrase
-impérative + `fichier:ligne` + `fichier § section`. Critère : « un
-chantier qui l'ignore casse quelque chose » — pas les descriptions, pas
-les raisons.
+Entre dans `invariants.md` une règle qu'**un chantier qui l'ignore casse**
+— pas une description, pas une raison. Le critère se précise par trois
+familles, souvent formulées en description et non en impératif, qu'une
+relecture des sections d'état actuel cherche explicitement :
 
-### Consolidation (ex-6b)
+- **dérivé de** : une valeur se déduit d'autre chose, jamais saisie ni
+  listée à la main ;
+- **ordre fixe** : une séquence d'étapes dont l'ordre change le résultat ;
+- **constante** : un seuil ou une valeur qui ne découle d'aucune règle plus
+  générale et casserait silencieusement si on la changeait ailleurs.
 
-Intrant : les extraits (≈ 300 lignes) + les mémoires agent existantes
-(règles de stats, arithmétique joker/pièces, fidélité des scripts). **Les
-mémoires ne prouvent jamais un invariant** : elles servent à suggérer des
-candidats ou à détecter une omission. Une règle issue d'une mémoire
-n'entre dans `invariants.md` que si elle est **retrouvée dans une source
-normative du dépôt** et reçoit son `Source : fichier § section` ; sinon
-elle devient une piste dans `pistes.md` (« règle connue de l'agent, non
-retrouvée dans la spec »), pas un invariant. Sortie : `invariants.md`,
-plus `controle-6b.md` dans le dossier de preuves (A.6).
+Conduite :
 
-### Critère précisé (ex-6c)
+- Se lisent **toutes** les sections d'état actuel touchées, pas seulement
+  celles qui semblent candidates : un invariant est souvent une phrase
+  perdue dans une description.
+- **Aucun fichier d'un dossier `decisions`** n'est une source d'invariants : une
+  décision se cite, elle ne se réextrait pas.
+- Une règle connue d'un agent (mémoire, habitude) ne **prouve** jamais un
+  invariant : elle n'entre que si elle est retrouvée dans une source
+  normative du dépôt, avec son `Source : fichier § section`.
+- Une règle ajoutée se compare à `invariants.md` existant, pour n'écrire
+  que les absentes.
 
-Le critère est **précisé** pour les règles de forme « X est dérivé de Y,
-jamais listé à la main » et « ordre fixe d'un pipeline », que le critère
-« casse quelque chose » laisse passer parce qu'elles sont formulées en
-description, pas en impératif : une relecture des sections d'état actuel
-les cherche explicitement, et n'écrit que les règles **absentes**
-d'`invariants.md` (diff contre lui, pas contre les extraits).
+La recette pas à pas est dans le skill `spec-hygiene`, (c).
 
-## Niveaux d'application et hook `Read` (ex-B.9)
+## Niveaux d'application et garde-fous
 
-Une règle écrite s'érode. Chaque règle reçoit un
-vecteur, et le cadrage dit **quel niveau de garantie** chacun offre :
+Une règle écrite s'érode. Chaque règle reçoit un vecteur, et chaque vecteur
+offre un **niveau de garantie** :
 
 | Niveau | Vecteur | Garantie |
 | --- | --- | --- |
-| 1 — invariant dépôt | `spec-lint` dans `tests/index.ts`, `pre-commit` | refus mécanique, Claude ou Codex |
-| 2 — garde-fou outil | hook `PreToolUse` sur `Read` (Claude), `hooks-codex-garde-fous.mjs` (Codex) | refuse le chemin **le plus courant** ; ne couvre ni `cat` ni Bash — **garde-fou ergonomique**, pas invariant |
+| 1 — invariant dépôt | `spec-lint` dans `tests/index.ts`, `pre-commit` | refus mécanique, quel que soit l'agent |
+| 2 — garde-fou outil | hook `PreToolUse` sur `Read` (Claude Code), `hooks-codex-garde-fous.mjs` (Codex) | refuse le chemin **le plus courant** ; ne couvre ni `cat` ni un autre outil — **garde-fou ergonomique**, pas invariant |
 | 3 — convention agent | `CLAUDE.md`, skill `spec-hygiene` | lue au démarrage, s'érode |
-| 4 — jugement | review du diff de spec | humaine |
+| 4 — jugement | revue du diff de spec | humaine |
 
 **Le périmètre a une seule source de vérité, `spec/spec-lint.json`, et
-c'est `spec-lint` qui l'applique** — pas ses appelants. Le hook
-`pre-commit` (source `.githooks/`, installé par `node
-scripts/installer-hooks.mjs`, ci-dessous) collecte les `spec/**.md` de
-l'index et les passe au lint, qui **ignore** ceux hors périmètre — coût
-nul si aucun, et un commit sur `spec/shared/design.md` n'est pas refusé
-pour une zone qui n'a pas encore ses en-têtes. Même principe pour
-`npm test` (`spec-lint` complet enregistré sur le corpus réel dans
-`tests/index.ts`).
-
-### Références `§` vers un titre à lien ou parenthèse
-
-`referencesSection` résout une référence vers un titre qui contient un
-lien Markdown, des parenthèses ou des backticks : la référence `fichier §
-Titre` est comparée **par slug** au titre cible (le slug neutralise lien et
-ponctuation), et une fixture couvre un titre avec lien, un avec
-parenthèses, un avec backticks.
+c'est `spec-lint` qui l'applique** — pas ses appelants. Quand l'index porte
+un `spec/**.md`, le `pre-commit` lance `verifier` sur le dépôt et ne garde
+que les erreurs des `spec/**.md` de l'index : un fichier hors périmètre
+n'est jamais refusé. `npm test` lance le lint complet sur le corpus réel
+(`testSpecLintReel`).
 
 ### Hook `Read`
 
-Même patron que `.claude/hooks/refuse-commit-m.mjs` : chemin `spec/**.md`,
-aucun `offset`/`limit`, fichier > 300 lignes → refus avec le rappel
-`node scripts/spec-toc.mjs <fichier>`. Exception : `invariants.md`.
-Câblage dans `.claude/settings.json` (par machine, à recopier). Équivalent
-Codex : `scripts/hooks-codex-garde-fous.mjs`, hook autonome actif dans ce
-dépôt avec ou sans chantier, posé dans le `hooks.json` personnel par
-`installer-hooks.mjs --codex-hooks <hooks.json>` (entrée `PreToolUse` à
-lui, distincte de tout autre hook Codex personnel).
+`.claude/hooks/refuse-read-spec-entier.mjs`, même protocole que
+`.claude/hooks/refuse-commit-m.mjs` (JSON de l'outil sur l'entrée standard,
+code 2 pour refuser) : chemin `spec/**.md` relatif au dossier de travail,
+aucun `offset`/`limit`, fichier de plus de 300 lignes → refus avec le
+rappel `node scripts/spec-toc.mjs <fichier>`. Exception :
+`spec/outils/optimizer/invariants.md`. Une entrée illisible ou un fichier
+absent laissent passer. Câblage dans `.claude/settings.json` (par machine, à
+recopier).
+
+Équivalent Codex : `scripts/hooks-codex-garde-fous.mjs`, autonome, actif
+dans ce dépôt avec ou sans chantier, et seulement depuis son installation.
+Codex lisant par le shell, il refuse `cat`, `type` ou `Get-Content` suivi du
+seul chemin d'un `spec/**.md` de plus de 300 lignes, en début de commande
+ou après `&&`, `||`, `;`. Il se pose dans le `hooks.json` personnel par
+`node scripts/installer-hooks.mjs --codex-hooks <hooks.json>` (entrée
+`PreToolUse` à lui, distincte de tout autre hook Codex personnel) ; une
+erreur interne ne bloque jamais l'outil.
 
 ### Refus du `pre-commit`
 
 Sur les chemins ajoutés, copiés, modifiés ou renommés de l'index : un
-commit sur `main` ; un chemin sous `.history/` ou `.vscode/` ; un fichier
-de plus de 5 Mo ; un `spec/**.md` du périmètre que refuse `spec-lint`.
-Sous `spec/outils/optimizer/` (casse ignorée), un fichier absent de
-`.githooks/optimizer-publics.txt` (lue dans l'index ; un chemin par ligne
-depuis la racine, `#` en commentaire ; absente = vide), ou dont la
-version de l'index est illisible ou porte une marque de note privée :
-renvoi résolu dans `archive/`, `chantiers/` ou `decisions/` de ce dossier
-(le dossier lui-même compris), renvoi vers `a-publier`, identifiant de
-lot. Un fichier publié et sa ligne de liste vont dans le même commit.
-Limite assumée : une note privée sans aucune de ces marques, sous un nom
-de la liste, passe. Test : `node tests/run.mjs precommit`.
+commit sur `main` (ou `master`) ; un chemin sous `.history/` ou `.vscode/` ;
+un fichier de plus de 5 Mo ; un `spec/**.md` du périmètre que refuse
+`spec-lint`. Une branche hors `forge/<sujet>` reçoit un avertissement, pas
+un refus.
+
+Dans le dossier de l'Optimizer (`optimizer` sous `spec/outils/`, casse
+ignorée), un fichier absent de `.githooks/optimizer-publics.txt` (lue dans
+l'index ; un chemin par ligne depuis la racine, `#` en commentaire ;
+absente = vide), ou dont la version de l'index est illisible ou porte une
+marque de note privée : renvoi résolu dans les dossiers `archive`,
+`chantiers` ou `decisions` de ce dossier (le dossier lui-même compris),
+renvoi vers `a-publier`, identifiant de lot. Un fichier
+publié et sa ligne de liste vont dans le même commit. Limite assumée : une
+note privée sans aucune de ces marques, sous un nom de la liste, passe.
+
+Limite : le lint du `pre-commit` lit les fichiers de l'**arbre de
+travail**, pas leur version de l'index ; un fichier corrigé sur le disque
+mais pas réindexé passe. Test : `node tests/run.mjs precommit`.
 
 ### Installation des garde-fous
 
 Trois objets distincts, et les deux premiers ne se confondent pas :
 
 | Objet | Où | Versionné ? |
-|---|---|---|
-| Les **sources** (`.githooks/pre-commit`, `scripts/spec-lint.mjs`, `scripts/lib/spec-markdown.mjs`, `scripts/hooks-codex-garde-fous.mjs`) | dans le dépôt | ✅ relus en revue |
+| --- | --- | --- |
+| Les **sources** (`.githooks/pre-commit`, `scripts/spec-lint.mjs`, `scripts/lib/spec-markdown.mjs`, `scripts/hooks-codex-garde-fous.mjs`) | dans le dépôt | ✅ relues en revue |
 | **L'installation** | `<git commun>/forge/installation/` | ❌ propre à la machine |
-| Le **câblage** | `core.hooksPath` → chemin absolu vers l'installation | ❌ |
+| Le **câblage** | `core.hooksPath` → `<installation>/hooks` | ❌ |
 
 - Un `core.hooksPath` **relatif** se résout à l'exécution : chaque worktree
   prendrait **son** `.githooks`, tel que checkouté sur sa branche. Un
   chemin absolu vers le `.githooks` du worktree principal ne résout rien
   non plus : son contenu dépend encore de la branche qui y est checkoutée.
+- `node scripts/installer-hooks.mjs` copie les sources dans l'installation
+  (`.githooks/<nom>` sous `hooks/<nom>`, le reste à l'identique) et câble
+  `core.hooksPath`. Options : `--simulation` (affiche sans écrire),
+  `--sans-cablage`, `--codex-hooks <hooks.json>`. Un câblage préexistant
+  différent est signalé, jamais écrasé.
 - **L'installation porte sa propre version de référence** : un manifeste
-  (`manifeste.json`) des empreintes des octets **installés**. Sa mise à jour
-  est une opération explicite, jamais silencieuse : `node
-  scripts/installer-hooks.mjs` (`--simulation`, `--sans-cablage`,
-  `--codex-hooks <hooks.json>`).
-- **Manifeste v2, par entrée** : `fichiers {chemin: empreinte}` et
-  `commitSource`, plus `entrees {chemin: {proprietaire, source, commit,
-  date}}` et `version: 2`. L'installateur ne réécrit **que ses chemins** et
-  garde toute autre entrée telle quelle (`source` est informatif) ; un v1
-  (`fichiers` seul) se lit en mémoire, empreintes gardées.
+  (`manifeste.json`) des empreintes des octets **installés**, mis à jour
+  par cette seule commande. Manifeste v2 : `fichiers {chemin: empreinte}`,
+  `entrees {chemin: {proprietaire, source, commit, date}}`, `commitSource`,
+  `brancheSource`, `installeLe`, `version: 2`. L'installateur ne réécrit
+  **que ses chemins** et garde toute autre entrée telle quelle ; un
+  manifeste v1 (`fichiers` seul) se lit en mémoire, empreintes gardées.
 - Le chemin de l'installation se calcule depuis le répertoire Git commun
   (`git rev-parse --git-common-dir`) : dans un worktree secondaire, `.git`
   est un fichier, pas un dossier.
@@ -473,22 +479,13 @@ Trois objets distincts, et les deux premiers ne se confondent pas :
 Portée du hook, assumée : ce n'est pas une exclusion mutuelle, il se
 contourne (`--no-verify`). Il n'est jamais requis : un clone neuf n'a ni
 installation ni câblage, et développe, teste et commite normalement. Pas de
-commit automatique dans `pre-commit`.
+commit automatique dans `pre-commit`. Test : `node tests/run.mjs
+installerhooks`.
 
 ### Skill `.claude/skills/spec-hygiene/`
 
-La recette de B.1 (déplacer, repointer par script en aperçu, relire le
-diff, vérifier) et celle du découpage d'un fichier en exception (livré →
-état actuel par sections ≤ 500 lignes, envisagé → `pistes.md` +
-`decisions/`, en-têtes B.5, retrait de l'exception). **Déclencheur
-opérationnel** : un chantier qui doit **modifier le contenu normatif** d'un
-fichier listé dans `spec/spec-lint.json` (exceptions) — ajouter ou changer une
-règle ou un comportement. Faute, lien, en-tête, statut : pas de
-déclenchement. Le skill porte aussi **la recette d'extraction
-d'invariants du 6a avec le critère précisé au 6c** (B.6 § 6c : règles
-« X est dérivé de Y, jamais listé à la main », « ordre fixe d'un
-pipeline », « constante », formulées en description et non en
-impératif — le critère « casse quelque chose » seul les laisse passer,
-`controle-6b.md` § 7) : c'est ce qu'un chantier applique quand il ajoute
-une section d'état actuel et doit décider ce qui entre dans
-`invariants.md`.
+Les recettes de « Déplacer, archiver ou découper un document » et de
+« Critère des invariants ». **Déclencheur opérationnel** : modifier le
+contenu normatif d'un fichier en exception dans `spec/spec-lint.json`, ou
+ajouter ou modifier une section d'état actuel. Faute, lien, en-tête,
+statut : pas de déclenchement.

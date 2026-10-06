@@ -705,18 +705,6 @@
     },
     {
       "fichier": "spec/chantiers/spec-rangement.md",
-      "renvoi": "archive/",
-      "occurrences": 1,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": "spec/chantiers/spec-rangement.md",
-      "renvoi": "decisions/",
-      "occurrences": 1,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": "spec/chantiers/spec-rangement.md",
       "renvoi": "spec/outils/optimizer/archive/chantiers/spec-rangement.md",
       "occurrences": 1,
       "proprietaire": "a-publier"
@@ -732,42 +720,6 @@
       "renvoi": "artifacts/",
       "occurrences": 1,
       "proprietaire": "hors-perimetre"
-    },
-    {
-      "fichier": "spec/outillage/spec.md",
-      "renvoi": "archive/",
-      "occurrences": 11,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": "spec/outillage/spec.md",
-      "renvoi": "archive/README.md",
-      "occurrences": 2,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": "spec/outillage/spec.md",
-      "renvoi": "decisions/",
-      "occurrences": 7,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": "spec/outillage/spec.md",
-      "renvoi": "decisions/vitesse-finale.md",
-      "occurrences": 1,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": "spec/outillage/spec.md",
-      "renvoi": "historique/",
-      "occurrences": 1,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": "spec/outillage/spec.md",
-      "renvoi": "spec/outils/optimizer/",
-      "occurrences": 1,
-      "proprietaire": "a-publier"
     },
     {
       "fichier": "spec/outils/degats-reels.md",

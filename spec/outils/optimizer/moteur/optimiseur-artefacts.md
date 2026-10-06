@@ -297,8 +297,11 @@ Côté moteur :
   dégâts sans aucune ligne d'effet quand « Garder l'artéfact équipé » les
   compte. Vide si aucune paire ne tient les verrous ; l'écran affiche alors
   le diagnostic de `meilleurCumulParLigne`.
-- `respecteMinimums(stats, minStats)` revérifie les minimums avec la paire
-  finale, qui peut porter une autre principale que la paire supposée.
+- La paire finale, qui peut porter une autre principale que la paire
+  supposée, est revérifiée par le filtre final de la file
+  (`respecteConditionsPaireFixe`, `respecteConditionsAvecRelique`) :
+  [artefacts.md](artefacts.md). `respecteMinimums`, qui ne juge que les
+  minimums, n'a plus d'appelant hors des tests.
 - `ampliVitMaxAtteignable` : la plus forte amplification de VIT (206) que la
   paire puisse atteindre, par `chercherPaires` avec un évaluateur qui somme
   le 206 des deux pièces — toutes les règles de la paire héritées

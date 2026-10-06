@@ -161,6 +161,16 @@ Q1 → 7 (les données dépendent du choix de Thomas)
    - **fond au thème dès l'ouverture**, sans éclair.
    Non retenu : « une seule fenêtre ». → lot 1 bis.
 
+8. **L'installeur Windows** (2026-10-06, relevé du lot 3) :
+   - **en un clic**, installé dans le profil de l'utilisateur, sans droits
+     administrateur — la mise à jour automatique passe sans confirmation ;
+   - **données supprimées à la désinstallation** (`%APPDATA%\SW Blacksmith`)
+     — mais **jamais par une mise à jour**, qui passe aussi par l'ancien
+     désinstalleur : à prouver au lot 3 ;
+   - **`appId` `com.swblacksmith.app`**, définitif (Windows et l'updater
+     s'y fient), indépendant du dépôt et de l'URL.
+   → lot 3.
+
 Toutes les questions sont tranchées.
 
 Les lots 1 à 3 n'en dépendent pas ; chacune bloque le lot indiqué.

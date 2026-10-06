@@ -13,6 +13,7 @@ import {
   IconeDefense,
   IconeMecaniques,
   IconeNouveautes,
+  IconeTelecharger,
   IconeOffense,
   IconeOptimizer,
   IconeOutils,
@@ -36,6 +37,7 @@ import RtaPage from './pages/RtaPage';
 import SiegePage, { SiegeTab } from './pages/SiegePage';
 import MechanicsPage from './pages/MechanicsPage';
 import ReleasesPage from './pages/ReleasesPage';
+import TelechargerPage from './pages/TelechargerPage';
 import AccountPage from './pages/AccountPage';
 import OutilsPage from './pages/OutilsPage';
 import ComingSoon from './pages/ComingSoon';
@@ -67,6 +69,7 @@ import {
 import { ConfirmDialog, KeepAccountDialog } from './ui/Dialogs';
 import { FournisseurNotification } from './ui/Notification';
 import MiseAJourBureau from './components/MiseAJourBureau';
+import { estBureau } from './lib/bureau';
 import {
   COULEUR_SECTION,
   COULEUR_RTA_SUB,
@@ -132,6 +135,7 @@ type Route =
   | 'compte'
   | 'outils'
   | 'releases'
+  | 'telecharger'
   | 'parametres';
 export type AccountSub = 'monstres' | 'runes' | 'artefacts';
 
@@ -209,6 +213,9 @@ export function parseHash(hash: string = window.location.hash): {
   }
   if (h === 'mecaniques') return { route: 'mecaniques', ...base };
   if (h === 'releases') return { route: 'releases', ...base };
+  // Site seulement (application de bureau, décision 14) : dans l'app, on a
+  // déjà l'app — l'adresse retombe sur l'accueil.
+  if (h === 'telecharger' && !estBureau()) return { route: 'telecharger', ...base };
   if (h === 'parametres') return { route: 'parametres', ...base };
   if (h === 'siege' || h.startsWith('siege/')) {
     const siegeTab: SiegeTab =
@@ -278,10 +285,18 @@ const SIEGE_SUBS: { tab: SiegeTab; label: string; icon: IconeAtelier; hash: stri
 ];
 
 // Regroupées sous « Ressources ».
+// ⚠️ « Télécharger » (application de bureau, décision 14) : sous
+// « Nouveautés », sur le SITE seulement — `estBureau()` se lit au chargement
+// du module, le préchargement de l'app ayant posé son objet avant la page.
+// Barre latérale, panneau mobile, palette et titre dérivent tous de cette
+// liste : l'entrée y apparaît (ou non) partout d'un coup.
 const RESOURCES: NavItem[] = [
   { key: 'bestiary', label: 'Bestiaire', icon: IconeBestiaire, hash: '#/bestiary', couleur: COULEUR_SECTION.bestiary },
   { key: 'mecaniques', label: 'Mécaniques', icon: IconeMecaniques, hash: '#/mecaniques', couleur: COULEUR_SECTION.mecaniques },
   { key: 'releases', label: 'Nouveautés', icon: IconeNouveautes, hash: '#/releases', couleur: COULEUR_SECTION.releases },
+  ...(estBureau()
+    ? []
+    : [{ key: 'telecharger' as const, label: 'Télécharger', icon: IconeTelecharger, hash: '#/telecharger', couleur: COULEUR_SECTION.telecharger }]),
 ];
 
 export default function App() {
@@ -1315,7 +1330,7 @@ export default function App() {
     { key: 'rta', label: 'RTA', ouvre: sectionRta.titre, icon: <IconeRta size={17} color={COULEUR_SECTION.rta} />, actif: route === 'rta' },
     { key: 'siege', label: 'Siège', ouvre: sectionSiege.titre, icon: <IconeSiege size={17} color={COULEUR_SECTION.siege} />, actif: route === 'siege' },
     { key: 'compte', label: 'Compte', ouvre: sectionCompte.titre, icon: <IconeCompte size={17} color={COULEUR_SECTION.compte} />, actif: route === 'compte' },
-    { key: 'outils', label: 'Outils', ouvre: sectionOutils.titre, icon: <IconeOutils size={17} color={COULEUR_SECTION.outils} />, actif: route === 'outils' || route === 'bestiary' || route === 'mecaniques' || route === 'releases' || route === 'arene' },
+    { key: 'outils', label: 'Outils', ouvre: sectionOutils.titre, icon: <IconeOutils size={17} color={COULEUR_SECTION.outils} />, actif: route === 'outils' || route === 'bestiary' || route === 'mecaniques' || route === 'releases' || route === 'telecharger' || route === 'arene' },
   ];
 
   // La section dont on choisit la sous-section, sur téléphone.
@@ -1578,6 +1593,8 @@ export default function App() {
           />
         ) : route === 'releases' ? (
           <ReleasesPage />
+        ) : route === 'telecharger' ? (
+          <TelechargerPage />
         ) : route === 'mecaniques' ? (
           <MechanicsPage />
         ) : route === 'parametres' ? (

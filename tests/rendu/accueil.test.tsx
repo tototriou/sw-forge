@@ -76,6 +76,8 @@ export function testRenduAccueil() {
     ['#/bestiary', 'Données', 'Bestiaire', 'Recherche et filtres par élément et étoiles naturelles, stats de base à portée de main.'],
     ['#/mecaniques', 'Doc', 'Mécaniques', "Vitesse de combat, barre d'action, équation des dégâts et facteur de défense."],
     ['#/releases', 'Suivi', 'Nouveautés', 'Ce qui change à chaque version : ajouts, corrections et calculs revus.'],
+    // Application de bureau, décision 14 : site seulement (voir plus bas).
+    ['#/telecharger', 'Application', 'Application de bureau', 'SW Blacksmith dans sa propre fenêtre, pour Windows et Linux, avec la mise à jour proposée à chaque version.'],
     ['#/arene', 'Arène · bientôt', 'Arène classique', "Préparation des équipes d'offense et de défense."],
   ];
   const tous = liens(html);
@@ -95,6 +97,37 @@ export function testRenduAccueil() {
   const derniere = RELEASES.find((r) => r.version !== null) ?? RELEASES[0];
   const bandeau = tous.find((l) => l.href === '#/releases' && l.texte.includes('Voir les nouveautés'));
   ok(!!bandeau && bandeau.texte === `${libelleVersion(derniere.version)} ${derniere.title} Voir les nouveautés`, `bandeau « ${libelleVersion(derniere.version)} · ${derniere.title} » → #/releases`);
+}
+
+// Application de bureau, lot 6 (décisions 13 et 14) : le lien du héros vers
+// la page « Télécharger » — sur le SITE ; dans l'app, rien.
+export function testRenduAccueilBureau() {
+  titre('rendu · Accueil — le lien vers « Télécharger »');
+  const html = rendreAccueil(VIDE);
+  const t = texteVisible(html);
+  const tous = liens(html);
+  const bouton = tous.find((l) => l.texte === "Télécharger l'application");
+  ok(bouton?.href === '#/telecharger' && !bouton.nouvelOnglet, "« Télécharger l'application » : un lien vers #/telecharger");
+  const contenu = [...html.matchAll(/<a\b[^>]*href="#\/telecharger"[^>]*>([\s\S]*?)<\/a>/g)]
+    .map((m) => m[1])
+    .find((c) => texteVisible(c) === "Télécharger l'application") ?? '';
+  ok(contenu.indexOf('data-logo="windows"') >= 0 && contenu.indexOf('data-logo="windows"') < contenu.indexOf('data-logo="linux"'), 'ses logos : Windows puis Linux');
+  const ligne = tous.find((l) => l.texte === 'Existe aussi en application pour Windows et Linux.');
+  ok(ligne?.href === '#/telecharger', 'au téléphone : la ligne d\'information, en lien vers la page');
+  // Dans le héros, sous la promesse, avant la zone de dépôt.
+  ok(t.indexOf('dans ton navigateur') < t.indexOf("Télécharger l'application") && t.indexOf("Télécharger l'application") < t.indexOf('Dépose ton fichier'), 'sous la promesse, avant la zone de dépôt');
+  ok(!t.includes('Télécharger pour Windows'), 'les téléchargements eux-mêmes sont sur la page, pas sur l\'accueil');
+
+  const pont = globalThis as { swblacksmithBureau?: unknown };
+  pont.swblacksmithBureau = { bureau: true, plateforme: 'win32' };
+  try {
+    const appHtml = rendreAccueil(VIDE);
+    const app = texteVisible(appHtml);
+    ok(!app.includes("Télécharger l'application") && !app.includes('Existe aussi en application'), 'dans l\'app de bureau : ni bouton ni ligne');
+    ok(!liens(appHtml).some((l) => l.href === '#/telecharger'), 'dans l\'app de bureau : pas de carte « Application de bureau »');
+  } finally {
+    delete pont.swblacksmithBureau;
+  }
 }
 
 export function testRenduAccueilEspace() {

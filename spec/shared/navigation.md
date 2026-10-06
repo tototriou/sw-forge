@@ -43,8 +43,13 @@ Accueil
 JOUER        RTA ›  Siège ›  Arène
 MON COMPTE   Monstres  Runes ›  Artéfacts ›
 OUTILS       Optimizer  Speed tuning
-RESSOURCES   Bestiaire  Mécaniques  Nouveautés
+RESSOURCES   Bestiaire  Mécaniques  Nouveautés  Télécharger
 ```
+
+« Télécharger » (application de bureau, décision 14) n'existe que sur le
+**site** : `RESOURCES` d'App.tsx l'omet dans l'app de bureau (`estBureau()`),
+et la barre latérale, le panneau mobile, la palette et le titre, qui en
+dérivent tous, le perdent d'un coup. Voir [telecharger.md](../telecharger.md).
 
 L'ordre est gardé, à une exception près : **Arène rejoint « Jouer »**, à côté
 du siège — c'est un mode de jeu. Les inventaires et les outils deviennent des
@@ -67,6 +72,7 @@ l'adresse et en déduit la page et ses sous-niveaux.
 | `#/compte/<inventaire>/<vue>` | Mon compte — vues de [accountViews.ts](src/lib/accountViews.ts) |
 | `#/outils/optimizer`, `/speed-tuning` | Outils |
 | `#/arene`, `#/bestiary`, `#/mecaniques`, `#/releases`, `#/parametres` | une page chacune |
+| `#/telecharger` | Télécharger — **site seulement** ; dans l'app de bureau, l'accueil |
 
 - ⚠️ **Une adresse tronquée mène au défaut de sa section**, jamais à un écran
   vide : `#/siege` → Défense, `#/compte` → Monstres, `#/compte/runes` →
@@ -838,12 +844,14 @@ contenu était centré sous une barre elle-même centrée. Avec une barre latér
 la page commence à son bord droit et va jusqu'au bout — les grilles de monstres,
 les tableaux de runes et l'optimiseur y gagnent une à deux colonnes.
 
-**Trois exceptions**, bornées volontairement :
+**Des exceptions**, bornées volontairement (le tableau les tient toutes ;
+il en annonçait « trois » quand il en comptait déjà six) :
 
 | Page | Largeur | Pourquoi |
 |------|---------|----------|
 | Mécaniques | 1100 px | Texte suivi — une ligne de 2 000 px se lit mal, l'œil perd le début de la suivante |
 | Nouveautés | 900 px | Liste de textes courts lus de haut en bas |
+| Télécharger | 760 px | Trois cartes et deux boutons : étalés, les boutons s'isolaient loin de leur explication |
 | Paramètres | 620 px | Lignes « intitulé / contrôle » |
 | Optimiseur | 768 px | Suite de réglages lus de haut en bas — étalée, chaque ligne « libellé … champ » devenait un aller-retour du regard |
 | Roue de runes | ×0,72 sous `sm` | ⚠️ C'est un DESSIN calculé en pixels (cadres, icônes de set, décalages) : il ne se réduit pas seul comme une image. À 208 px il occupait plus de la moitié des 348 px utiles. En dessous de 0,72 les icônes de set passent sous 14 px et le set ne se reconnaît plus |

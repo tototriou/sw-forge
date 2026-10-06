@@ -70,10 +70,16 @@ nsis:
   installerLanguages: [fr_FR]
   language: "1036"
   shortcutName: SW Blacksmith
-  artifactName: SW-Blacksmith-Setup-${version}.${ext}
+  # ⚠️ SANS numéro de version (décision 13) : l'accueil du site télécharge
+  # `…/releases/latest/download/SW-Blacksmith-Setup.exe`, la seule adresse
+  # fixe — src/lib/bureau.ts (TELECHARGEMENTS), vérifié par
+  # tests/bureau-mise-a-jour.test.ts. La mise à jour n'en souffre pas : elle
+  # retrouve l'ancien `.blockmap` par le tag (`v2.0.0`) dans le chemin.
+  artifactName: SW-Blacksmith-Setup.${ext}
 
 linux:
   target: AppImage
   icon: public/favicon.png
   category: Game
-  artifactName: SW-Blacksmith-${version}.${ext}
+  # Sans version, comme l'installeur Windows (voir plus haut).
+  artifactName: SW-Blacksmith.${ext}

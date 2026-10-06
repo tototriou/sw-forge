@@ -15,6 +15,7 @@ import {
   IconeMecaniques,
   IconeNouveautes,
   IconeOffense,
+  IconeTelecharger,
   IconeOptimizer,
   IconeRecos,
   IconeRta,
@@ -30,6 +31,8 @@ import { ElementKey } from '../types';
 import { RELEASES, libelleVersion } from '../data/releases';
 import { Bouton } from '../ui';
 import { NOM_APP } from '../marque';
+import { estBureau } from '../lib/bureau';
+import { LogoLinux, LogoWindows } from '../components/IconesSystemes';
 import { CLASSE_NOM, SymboleLogo } from '../components/Logo';
 import {
   COULEUR_SECTION,
@@ -146,6 +149,10 @@ export default function HomePage({ stats, onImport }: Props) {
             <b className="text-ink">dans ton navigateur</b>.
           </p>
 
+          {/* L'application de bureau (application-bureau, lot 6, décisions 13
+              et 14) : sur le SITE seulement — dans l'app, on l'a déjà. */}
+          {!estBureau() && <LienApplication />}
+
           {/* Vague d'éléments centrée sous le texte : alignée à gauche, elle
               pendait sous le dernier paragraphe sans rien équilibrer.
               ⚠️ Les icônes d'élément sont des RENDUS DU JEU : leur couleur
@@ -235,6 +242,11 @@ export default function HomePage({ stats, onImport }: Props) {
           <Feature href="#/bestiary" icon={IconeBestiaire} accent={COULEUR_SECTION.bestiary} kicker="Données" title="Bestiaire" body="Recherche et filtres par élément et étoiles naturelles, stats de base à portée de main." />
           <Feature href="#/mecaniques" icon={IconeMecaniques} accent={COULEUR_SECTION.mecaniques} kicker="Doc" title="Mécaniques" body="Vitesse de combat, barre d'action, équation des dégâts et facteur de défense." />
           <Feature href="#/releases" icon={IconeNouveautes} accent={COULEUR_SECTION.releases} kicker="Suivi" title="Nouveautés" body="Ce qui change à chaque version : ajouts, corrections et calculs revus." />
+          {/* Site seulement (application de bureau, décision 14) : comme
+              l'entrée de la navigation, dans l'ordre de la navigation. */}
+          {!estBureau() && (
+            <Feature href="#/telecharger" icon={IconeTelecharger} accent={COULEUR_SECTION.telecharger} kicker="Application" title="Application de bureau" body={`${NOM_APP} dans sa propre fenêtre, pour Windows et Linux, avec la mise à jour proposée à chaque version.`} />
+          )}
           <Feature href="#/arene" icon={IconeArene} accent={COULEUR_SECTION.arene} kicker="Arène" title="Arène classique" body="Préparation des équipes d'offense et de défense." soon />
         </div>
       </motion.section>
@@ -296,6 +308,39 @@ export default function HomePage({ stats, onImport }: Props) {
 }
 
 /* ---- Briques -------------------------------------------------------------- */
+
+// « Télécharger l'application » — application de bureau, lot 6, décisions
+// 13 et 14 de Thomas : le lien du héros vers la page « Télécharger ».
+//
+// ⚠️ **Un bouton DANS le héros**, sous la promesse : la règle « aucun bouton
+// dans le héros » (spec/accueil.md) est levée pour lui seul. SECONDAIRE
+// (neutre, petit) : « Importer mon compte » reste le bouton principal, et la
+// zone de dépôt le premier geste. Les deux téléchargements, la phrase
+// SmartScreen et la version vivent sur la page.
+// ⚠️ **Au téléphone, une ligne d'information** (en lien vers la page) : rien
+// ne s'installe sur un téléphone. Deux formats, deux contenus (`lg:`).
+function LienApplication() {
+  return (
+    <>
+      <div className="mt-5 hidden lg:block">
+        <Bouton
+          taille="sm"
+          href="#/telecharger"
+          icone={
+            <span className="inline-flex items-center gap-1">
+              <LogoWindows size={13} />
+              <LogoLinux size={13} />
+            </span>
+          }
+          libelle="Télécharger l'application"
+        />
+      </div>
+      <a href="#/telecharger" className="mt-3 inline-block text-sm text-accent hoverable:text-ink transition lg:hidden">
+        Existe aussi en application pour Windows et Linux.
+      </a>
+    </>
+  );
+}
 
 // Zone de dépôt du fichier de compte, dans le héros.
 //

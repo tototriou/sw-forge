@@ -76,6 +76,7 @@ fait apparaître les 16 dans n'importe quelle analyse de dépendances.
 | Paramètres | `#/parametres` | `pages/SettingsPage.tsx` | `SettingsMenu`, `AccountImportControl` | `spec/shared/navigation.md` |
 | Mécaniques | `#/mecaniques` | `pages/MechanicsPage.tsx` | — (page statique) | `spec/mecaniques.md` |
 | Nouveautés | `#/releases` | `pages/ReleasesPage.tsx` | `data/releases.ts` | `spec/releases.md` |
+| Télécharger (site seulement) | `#/telecharger` | `pages/TelechargerPage.tsx` | `lib/bureau.ts` (`TELECHARGEMENTS`), `components/IconesSystemes.tsx` | `spec/telecharger.md` |
 | Arène | `#/arene` | `pages/ComingSoon.tsx` | — | `spec/arene.md` |
 
 ### Détail des écrans denses

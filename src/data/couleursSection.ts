@@ -31,6 +31,8 @@ export const COULEUR_SECTION = {
   bestiary: '#2FA0E0',
   mecaniques: '#8890B8',
   releases: '#C79BFF',
+  // Application de bureau, lot 6 (décision 14) — site seulement.
+  telecharger: '#7FD15B',
 } as const;
 
 // Sous-sections de RTA, indexées par `RtaSub`.

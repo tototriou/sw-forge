@@ -33,6 +33,16 @@ function pont(): PontBureau | null {
 
 export const estBureau = (): boolean => pont() !== null;
 
+// Les installeurs de la dernière version publiée, que l'accueil du SITE
+// propose (lot 6, décision 13). ⚠️ Les noms suivent `artifactName` de
+// electron-builder.yml — sans numéro de version, seule adresse fixe ;
+// tests/bureau-mise-a-jour.test.ts vérifie qu'ils concordent.
+export const DEPOT = 'https://github.com/tototriou/sw-forge';
+export const TELECHARGEMENTS = {
+  windows: `${DEPOT}/releases/latest/download/SW-Blacksmith-Setup.exe`,
+  linux: `${DEPOT}/releases/latest/download/SW-Blacksmith.AppImage`,
+} as const;
+
 // `rappel` reçoit l'état de la mise à jour — celui qui existe déjà au
 // chargement de la page, puis chaque changement. Rend de quoi se désabonner.
 // Sur le site : rien.

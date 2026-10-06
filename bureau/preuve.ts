@@ -110,6 +110,12 @@ export async function lancerPreuve(fenetre: BrowserWindow, dossier: string, raci
       `getComputedStyle(document.querySelector('header[data-barre-fenetre]')).paddingRight`
     );
     resultats.tailleFenetre = fenetre.getBounds();
+    // Lot 6 (décision 14) : l'APP ne propose pas de télécharger l'app — ni
+    // entrée « Télécharger » dans la navigation, ni lien ou carte sur
+    // l'accueil.
+    resultats.accueilSansTelechargement = await js(
+      `!document.querySelector('a[href="#/telecharger"]') && !document.body.innerText.includes('Existe aussi en application')`
+    );
     resultats.menu = fenetre.isMenuBarVisible() ? 'visible' : 'aucun';
 
     await capturerPage(fenetre, join(dossier, 'accueil.png'));

@@ -933,12 +933,6 @@
     },
     {
       "fichier": "spec/shared/import-compte.md",
-      "renvoi": "../outils/optimizer/reliques.md",
-      "occurrences": 2,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": "spec/shared/import-compte.md",
       "renvoi": "src/hooks/useKeepAccount.ts",
       "occurrences": 1,
       "proprietaire": "hors-perimetre"

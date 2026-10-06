@@ -96,13 +96,12 @@ export default function testSpecToc() {
   const optimizerSections = sections(optimizerTexte);
   const h2 = optimizerSections.filter((s) => s.niveau === 2).map((s) => s.titre);
   egal(h2, [
-    'Écran (de haut en bas)',
-    'Listes de travail et réservation de runes',
-    'Exclusion des runes déjà portées ailleurs',
-    'Interruption — filet de temps, pré-filtrage et arrêt manuel',
-    'Algorithme (résumé fonctionnel)',
-    'Limites connues',
-  ], 'les six H2 attendus (A.1) sont tous présents dans le sommaire');
+    "Ordre d'usage et grille",
+    'Panneaux repliables',
+    'Placement et adaptation à la largeur',
+    "Survie à un changement d'onglet",
+    'Où vit le reste de la spec',
+  ], 'les cinq H2 de la page d\'entrée sont tous présents dans le sommaire');
 
   const sortieJson = execFileSync(process.execPath, [SCRIPT, 'spec/outils/optimizer.md', '--json'], {
     cwd: RACINE,

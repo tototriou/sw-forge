@@ -842,24 +842,6 @@
       "proprietaire": "a-corriger"
     },
     {
-      "fichier": "spec/outils/optimizer.md",
-      "renvoi": "lib/effects.ts",
-      "occurrences": 2,
-      "proprietaire": "a-corriger"
-    },
-    {
-      "fichier": "spec/outils/optimizer/README.md",
-      "renvoi": "ecran/README.md",
-      "occurrences": 3,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": "spec/outils/optimizer/README.md",
-      "renvoi": "exclusion.md",
-      "occurrences": 2,
-      "proprietaire": "a-publier"
-    },
-    {
       "fichier": "spec/outils/optimizer/README.md",
       "renvoi": "harnais.md",
       "occurrences": 3,
@@ -867,37 +849,7 @@
     },
     {
       "fichier": "spec/outils/optimizer/README.md",
-      "renvoi": "interruption.md",
-      "occurrences": 2,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": "spec/outils/optimizer/README.md",
-      "renvoi": "limites-connues.md",
-      "occurrences": 3,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": "spec/outils/optimizer/README.md",
-      "renvoi": "listes-et-reservation.md",
-      "occurrences": 2,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": "spec/outils/optimizer/README.md",
-      "renvoi": "moteur/artefacts.md",
-      "occurrences": 2,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": "spec/outils/optimizer/README.md",
       "renvoi": "moteur/diagnostics.md",
-      "occurrences": 2,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": "spec/outils/optimizer/README.md",
-      "renvoi": "moteur/elagages.md",
       "occurrences": 2,
       "proprietaire": "a-publier"
     },
@@ -926,16 +878,16 @@
       "proprietaire": "a-publier"
     },
     {
-      "fichier": "spec/outils/optimizer/README.md",
-      "renvoi": "verification.md",
-      "occurrences": 2,
-      "proprietaire": "a-publier"
+      "fichier": "spec/outils/optimizer/ecran/relique.md",
+      "renvoi": "lib/effects.ts",
+      "occurrences": 1,
+      "proprietaire": "a-corriger"
     },
     {
-      "fichier": "spec/outils/optimizer/invariants.md",
-      "renvoi": "ecran/README.md",
-      "occurrences": 4,
-      "proprietaire": "a-publier"
+      "fichier": "spec/outils/optimizer/exclusion.md",
+      "renvoi": "lib/effects.ts",
+      "occurrences": 1,
+      "proprietaire": "a-corriger"
     },
     {
       "fichier": "spec/outils/optimizer/invariants.md",
@@ -945,26 +897,8 @@
     },
     {
       "fichier": "spec/outils/optimizer/invariants.md",
-      "renvoi": "limites-connues.md",
-      "occurrences": 3,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": "spec/outils/optimizer/invariants.md",
-      "renvoi": "moteur/artefacts.md",
-      "occurrences": 19,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": "spec/outils/optimizer/invariants.md",
       "renvoi": "moteur/diagnostics.md",
       "occurrences": 6,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": "spec/outils/optimizer/invariants.md",
-      "renvoi": "moteur/elagages.md",
-      "occurrences": 17,
       "proprietaire": "a-publier"
     },
     {
@@ -1288,12 +1222,6 @@
     {
       "fichier": "src/lib/artifactEvaluation.ts",
       "renvoi": "spec/outils/optimizer/decisions/cadrage-score-artefacts-ehp.md",
-      "occurrences": 1,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": "src/lib/artifactQueue.ts",
-      "renvoi": "limites-connues.md",
       "occurrences": 1,
       "proprietaire": "a-publier"
     },

@@ -4,3 +4,23 @@
 # commit. Lignes vides et lignes en # ignorées.
 spec/outils/optimizer/invariants.md
 spec/outils/optimizer/README.md
+spec/outils/optimizer/ecran/README.md
+spec/outils/optimizer/ecran/recherche-du-monstre.md
+spec/outils/optimizer/ecran/meilleurs-artefacts-offensifs.md
+spec/outils/optimizer/ecran/equipement-actuel.md
+spec/outils/optimizer/ecran/objectif-de-recherche.md
+spec/outils/optimizer/ecran/set-et-principale.md
+spec/outils/optimizer/ecran/artefacts.md
+spec/outils/optimizer/ecran/relique.md
+spec/outils/optimizer/ecran/etat-de-mon-monstre.md
+spec/outils/optimizer/ecran/sous-proprietes-verrouillees.md
+spec/outils/optimizer/ecran/conditions-et-reglages.md
+spec/outils/optimizer/ecran/lancer-la-recherche.md
+spec/outils/optimizer/ecran/resultats.md
+spec/outils/optimizer/listes-et-reservation.md
+spec/outils/optimizer/exclusion.md
+spec/outils/optimizer/interruption.md
+spec/outils/optimizer/moteur/elagages.md
+spec/outils/optimizer/moteur/artefacts.md
+spec/outils/optimizer/verification.md
+spec/outils/optimizer/limites-connues.md

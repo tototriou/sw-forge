@@ -27,7 +27,7 @@
 
 import { execFileSync } from 'child_process';
 import { existsSync, readFileSync } from 'fs';
-import { dirname, join, resolve } from 'path';
+import { dirname, join, posix, resolve } from 'path';
 import { fileURLToPath } from 'url';
 
 const ROUGE = '\x1b[31m';
@@ -39,14 +39,40 @@ const FIN = '\x1b[0m';
 // de marge. Un export de compte SW pèse ~9,5 Mo : c'est la cible.
 const TAILLE_MAX = 5 * 1024 * 1024;
 
-// ⚠️ `spec/outils/optimizer/` AVEC la barre finale : `spec/outils/optimizer.md`
-// est la spec PRODUIT, suivie et publique. Le dossier homonyme est le journal
-// privé. Un motif sans la barre interdirait de committer la spec publique.
 const CHEMINS_PRIVES = [
-  { motif: /(^|\/)spec\/outils\/optimizer\//, quoi: 'journal privé de l’Optimiseur' },
   { motif: /(^|\/)\.history\//, quoi: 'révisions locales de l’éditeur' },
   { motif: /(^|\/)\.vscode\//, quoi: 'réglages VS Code propres à la machine' },
 ];
+
+// Sous `spec/outils/optimizer/` (AVEC la barre finale : `optimizer.md` est
+// une autre spec), un fichier n'entre que s'il est nommé dans
+// `.githooks/optimizer-publics.txt`, lue dans l'INDEX — un fichier publié et
+// sa ligne vont dans le même commit ; liste absente = vide —, et si son
+// contenu ne porte aucune marque de note privée : renvoi vers les
+// sous-dossiers de notes de ce dossier, renvoi vers `a-publier/` où qu'il
+// soit, identifiant de lot.
+// ⚠️ Un ancien outillage peut encore recopier des notes privées dans ce
+// dossier, sous le nom d'un fichier publié : la liste seule ne suffit pas.
+// Limite assumée : une note privée sans aucune de ces marques passe.
+const DOSSIER_OPTIMIZER = 'spec/outils/optimizer/';
+const LISTE_PUBLICS = '.githooks/optimizer-publics.txt';
+// Un dossier de notes, ou ce qu'il contient ; `(\/|$)` couvre le lien vers
+// le dossier lui-même.
+const NOTES_SOUS_OPTIMIZER = /(^|\/)spec\/outils\/optimizer\/(archive|chantiers|decisions)(\/|$)/i;
+const SEGMENT_NOTES = /(^|\/)(archive|chantiers|decisions|a-publier)(\/|$)/i;
+const SEGMENT_A_PUBLIER = /(^|\/)a-publier(\/|$)/i;
+const DELIMITEURS = /[\s()[\]<>`'"|,;:=*«»]+/;
+// Destination d'un lien en ligne, ou d'une définition de lien par
+// référence (`[nom]: cible`). Un lien éclaté sur plusieurs lignes n'est pas lu.
+const LIEN = /\]\(\s*<?([^)\s>]+)/g;
+const DEFINITION_LIEN = /^\s{0,3}\[[^\]]+\]:\s*<?([^\s>]+)/;
+// Identifiant de lot : le mot « lot » ou « lots » (toute casse usuelle, pas
+// « slot », « pilote » ni « îlot »), au plus deux espaces (insécables
+// comprises) ou tirets, puis un numéro (lettre, « bis » ou plage en
+// suffixe), une étiquette lettres et chiffres, ou une étiquette CM/EX ; ou
+// la clé de données `lot:` suivie d'un numéro entre guillemets. Le mot seul
+// (« un lot de runes ») ne correspond pas.
+const MOTIF_LOT = /(?<![\p{L}\p{N}_])(?:[Ll]ots?|LOTS?)[\t \u00A0\u202F-]{0,2}(?:[0-9]+(?:[a-z][0-9]?)?(?:bis|[-–][0-9a-z]+)?|[A-Z]{1,2}[0-9]+[a-z0-9]*|CM\b|EX[0-9]?\b)|(?<![\p{L}\p{N}_])lot: ?['"][0-9][0-9a-z]*['"]/u;
 
 function git(...args) {
   return execFileSync('git', args, { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }).trim();
@@ -87,10 +113,11 @@ if (branche === 'main' || branche === 'master') {
 
 /* -------------------------------------- 2. aucun chemin privé dans l'index */
 
+// `-z` : sans lui, Git cite un chemin non ASCII entre guillemets, avec ses
+// octets échappés, et aucun motif ancré ne le reconnaît plus.
 let stagés = [];
 try {
-  const sortie = git('diff', '--cached', '--name-only', '--diff-filter=ACMR');
-  stagés = sortie ? sortie.split('\n').filter(Boolean) : [];
+  stagés = git('diff', '--cached', '--name-only', '-z', '--diff-filter=ACMR').split('\0').filter(Boolean);
 } catch {
   process.exit(0);
 }
@@ -103,10 +130,101 @@ for (const chemin of stagés) {
         details: [
           `Nature : ${quoi}.`,
           '',
-          "Ces fichiers sont gitignorés pour une raison — protection compétitive",
-          "pour le journal de l'Optimiseur, machine locale pour le reste. Les",
-          "committer les enverrait vers un dépôt PUBLIC.",
+          'Ces fichiers sont gitignorés : ils sont propres à la machine. Les',
+          'committer les enverrait vers un dépôt PUBLIC.',
           '',
+          `  git restore --staged "${chemin}"`,
+        ],
+      });
+    }
+  }
+}
+
+/* ------------------- 2 bis. sous spec/outils/optimizer/, le publié seul */
+
+// Version de l'index, jamais l'arbre de travail : c'est elle qui part.
+function lireIndex(chemin) {
+  try {
+    return execFileSync('git', ['show', `:${chemin}`],
+      { maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe'] });
+  } catch {
+    return null;
+  }
+}
+
+// UTF-16 à BOM décodé comme tel, sinon UTF-8 sans NUL (UTF-16 sans BOM) ;
+// puis NFC, pour qu'un caractère composé ou décomposé se lise pareil.
+function texte(octets) {
+  const corps = octets.subarray(2, 2 + ((octets.length - 2) & ~1));
+  if (octets[0] === 0xff && octets[1] === 0xfe) return corps.toString('utf16le').normalize('NFC');
+  if (octets[0] === 0xfe && octets[1] === 0xff) return Buffer.from(corps).swap16().toString('utf16le').normalize('NFC');
+  return octets.toString('utf8').replace(/\0/g, '').normalize('NFC');
+}
+
+// Un renvoi qui aboutit dans les sous-dossiers de notes, après
+// normalisation, résolu depuis la racine (forme `spec/…`, ou adresse qui
+// contient ce chemin) ou depuis le dossier du fichier (forme relative) ; un
+// `a-publier` est refusé où qu'il soit. Un renvoi public homonyme
+// (`spec/chantiers/…`, `../degats-reels/decisions/…`) passe. Hors d'une
+// destination de lien, un jeton sans `/` est un mot, pas un renvoi.
+function renvoiAuxNotes(fichier, jeton, lien = false) {
+  const chemin = jeton.replace(/\\/g, '/').replace(/[#?].*$/, '');
+  if (!lien && !chemin.includes('/')) return false;
+  if (!SEGMENT_NOTES.test(chemin)) return false;
+  if (SEGMENT_A_PUBLIER.test(chemin)) return true;
+  if (NOTES_SOUS_OPTIMIZER.test(posix.normalize(chemin))) return true;
+  if (/^spec\//i.test(chemin)) return false;
+  return NOTES_SOUS_OPTIMIZER.test(posix.normalize(posix.join(posix.dirname(fichier), chemin)));
+}
+
+// Casse ignorée pour la détection, exacte pour la liste : un `Optimizer/`
+// se confond avec le dossier sur un disque Windows.
+const optimizer = stagés.filter((c) => c.toLowerCase().startsWith(DOSSIER_OPTIMIZER));
+if (optimizer.length > 0) {
+  const publies = new Set((lireIndex(LISTE_PUBLICS)?.toString('utf8') ?? '').split(/\r?\n/)
+    .map((l) => l.trim()).filter((l) => l && !l.startsWith('#')));
+  for (const chemin of optimizer) {
+    if (!publies.has(chemin)) {
+      refus.push({
+        titre: `fichier non publié sous ${DOSSIER_OPTIMIZER} : ${chemin}`,
+        details: [
+          `Seuls les fichiers nommés dans ${LISTE_PUBLICS} (version de l’index) y entrent.`,
+          'Fichier publié volontairement : ajouter sa ligne à la liste, dans le même commit.',
+          'Sinon :',
+          `  git restore --staged "${chemin}"`,
+        ],
+      });
+      continue;
+    }
+    const contenu = lireIndex(chemin);
+    if (contenu === null) {
+      refus.push({
+        titre: `contenu illisible dans l’index : ${chemin}`,
+        details: ['Son contenu ne se vérifie pas : il ne part pas.', `  git restore --staged "${chemin}"`],
+      });
+      continue;
+    }
+    const marques = [];
+    texte(contenu).split(/\r?\n/).forEach((ligne, i) => {
+      const liens = [...ligne.matchAll(LIEN)].map((m) => m[1]);
+      const definition = ligne.match(DEFINITION_LIEN);
+      if (definition) liens.push(definition[1]);
+      if (ligne.split(DELIMITEURS).some((jeton) => renvoiAuxNotes(chemin, jeton))
+        || liens.some((cible) => renvoiAuxNotes(chemin, cible, true))) {
+        marques.push(`l. ${i + 1}, renvoi aux notes : ${ligne.trim()}`);
+      }
+      if (MOTIF_LOT.test(ligne)) marques.push(`l. ${i + 1}, identifiant de lot : ${ligne.trim()}`);
+    });
+    if (marques.length > 0) {
+      refus.push({
+        titre: `marque de note privée dans ${chemin}`,
+        details: [
+          ...marques.slice(0, 10),
+          ...(marques.length > 10 ? [`… (+${marques.length - 10})`] : []),
+          '',
+          'Une spec publiée ne renvoie pas aux notes et ne porte pas d’identifiant de lot.',
+          'Un mot suivi d’une barre (« archive/… ») se lit comme un renvoi : le reformuler',
+          's’il n’en est pas un. Si ce contenu est une copie de note privée :',
           `  git restore --staged "${chemin}"`,
         ],
       });

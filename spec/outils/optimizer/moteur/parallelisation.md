@@ -48,6 +48,10 @@ dans deux Workers, quelle que soit la taille du cas
   une zone où il gagne, sans mesure fine entre les deux ; il a été calibré
   en recherche exhaustive, jamais recalibré pour une recherche que le filet
   de temps ou le plafond de candidats arrêtent avant la fin.
+- Ne pas porter l'appariement sur GPU : sa chaîne de filtres à sortie
+  anticipée fait diverger les fils, il faudrait des tableaux typés à
+  disposition fixe qui n'existent pas, et WebGPU n'aurait aucun repli dans
+  une application sans serveur ; le CPU suffit aux plus gros cas mesurés.
 
 ## Répartition et partage du plafond
 
@@ -61,6 +65,14 @@ dans deux Workers, quelle que soit la taille du cas
   d'origine de `bucketsA`, par potentiel décroissant : chaque fil parcourt
   ses meilleurs compartiments d'abord. La fonction vit dans
   `runeBuildOptim.ts` pour être testable en Node.
+  - Ne pas la remplacer par une assignation gloutonne en ordre de
+    potentiel : à performance égale sur les cas mesurés, elle n'a aucune
+    borne prouvée du pire déséquilibre, que LPT a.
+  - Ne pas distribuer les compartiments par une file dynamique, un
+    aller-retour de messages par compartiment ou par lot : à l'échelle
+    réelle (quelques dizaines de compartiments), le coût des messages
+    dépasse le gain, et un lot traité d'un bloc par un seul fil peut
+    fortement retarder le premier candidat.
 - Chaque tranche reçoit une `PairSliceRequest` : les paramètres de la
   recherche tels quels, sauf `maxCollected`, remplacé par
   `perWorkerMaxCollected = Math.max(1, Math.ceil(prepared.maxCollected / workerCount))` ;
@@ -100,7 +112,11 @@ exécute une tranche et rend son résultat (`PairSliceResultMessage`) ;
    transporte pas. Sur les mêmes paramètres, la préparation de la tranche
    retrouve le pool du Worker principal ; seul `maxCollected` diffère. Si
    `prepareSearch` rend `null`, la tranche rend un résultat vide, non
-   tronqué.
+   tronqué. Ne pas transmettre aux tranches le pool que le Worker principal
+   a préparé pour leur épargner ce travail : son coût est faible depuis que
+   la dominance précalcule la contribution des runes
+   (`runeContributionAllKeys`), et ce champ de plus devrait suivre tous les
+   constructeurs de la requête (skill `optimizer-field-propagation`).
 2. Il remplace `prepared.startedAt`, que sa propre préparation vient de
    poser, par l'instant de départ global, AVANT tout usage du filet de
    temps : le test du temps de `pairBuckets` lit `prepared.startedAt`. Sans

@@ -6,12 +6,6 @@
       "raison": "fichier > 500 lignes, préexistant au lint",
       "condition_de_suppression": "prochain chantier speed tuning",
       "chantier_responsable": "speed-tuning"
-    },
-    {
-      "fichier": "spec/outils/optimizer/pistes.md",
-      "raison": "fichier > 500 lignes, préexistant au lint",
-      "condition_de_suppression": "archivage des entrées closes (lot ultérieur)",
-      "chantier_responsable": "pistes-archivage"
     }
   ]
 }

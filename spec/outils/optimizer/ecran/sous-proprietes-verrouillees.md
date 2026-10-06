@@ -23,15 +23,15 @@
      avec la raison et la conduite à tenir ; sa **croix reste active**, parce
      que la retirer est le seul geste qui serve encore.
 
-   ⚠️ **Le minimum vaut 1 % à la pose, et ne peut pas descendre à 0**
-   (demande explicite). Un verrou à 0 est **inerte** — `paireRespecteLignes`
-   passe les lignes à `min <= 0` : la ligne s'affichait donc comme une
-   contrainte tout en n'en étant pas une, et occupait pour rien l'un des 8
+   ⚠️ **Le minimum vaut 1 % à la pose, et ne peut pas descendre à 0**.
+   Un verrou à 0 est **inerte** — `paireRespecteLignes`
+   passe les lignes à `min <= 0` : la ligne s'afficherait donc comme une
+   contrainte tout en n'en étant pas une, et occuperait pour rien l'un des 8
    emplacements de l'écran. Pour retirer une exigence, on retire la ligne —
    la croix est là pour ça.
 
-   Vocabulaire de cette section, **aligné sur celui du jeu** (demande
-   explicite) : on parle d'**artéfact**, jamais de « pièce », et de
+   Vocabulaire de cette section, **aligné sur celui du jeu** :
+   on parle d'**artéfact**, jamais de « pièce », et de
    **sous-propriété**, jamais de « ligne » ni d'« emplacement » — d'où
    « + Sous-propriété… » pour ajouter (**au singulier** : le menu en ajoute
    une à la fois), un compteur préfixé `sous-propriétés :`, et le même mot

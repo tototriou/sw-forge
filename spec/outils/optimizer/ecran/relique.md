@@ -8,17 +8,15 @@
    ferme la carte, sous « Meilleurs artéfacts offensifs pour ce build »,
    séparé par un **trait horizontal** de 1 px (`border-border-soft`, un
    seul contour) — même JSX pour les deux formats, ordinateur et
-   téléphone (une carte propre faisait double emploi avec la
-   carte Artéfacts juste au-dessus et décalait toute la grille de la
-   colonne ; un bloc à droite de la rangée Attribut / Type, trait vertical,
-   désalignait les listes relique de celles d'artéfacts —
-   écarté, plus de variante `xl:border-l`).
+   téléphone. Ni carte propre (elle ferait double emploi avec la
+   carte Artéfacts juste au-dessus et décalerait toute la grille de la
+   colonne), ni bloc à droite de la rangée Attribut / Type, trait vertical
+   (il désalignerait les listes relique de celles d'artéfacts).
 
-   ⚠️ **Pas d'interrupteur propre** (T2 confirmé) : coupé avec « Activer
+   ⚠️ **Pas d'interrupteur propre** : coupé avec « Activer
    l'optimisation d'artéfacts et reliques » (même carte, juste au-dessus),
    le bloc se masque avec le reste de la carte (mêmes deux listes
-   d'artéfacts) — plus de carte séparée à expliquer, donc plus de texte
-   « Coupée avec… ».
+   d'artéfacts).
 
    Trois réglages, **grammaire des artéfacts à la valeur près qui n'existe
    que pour la relique** (le type) :
@@ -42,8 +40,10 @@
      fonction `<stat>` »** (`relicUniqueEffectLabel`, DÉRIVÉ de
      `RELIC_UNIQUE` — effet et stat sont chacun des mots du jeu, jamais une
      table séparée) — **désactivée et sans effet** avec « Garder la relique
-     équipée » (la pièce est fixée), le bloc le dit. Même libellé sur la
-     carte candidat (voir « Résultats » plus bas).
+     équipée » (la pièce est fixée), le bloc le dit. La carte candidat, elle,
+     donne la phrase complète de la fiche d'objet (`formatRelicUnique`,
+     `RelicSlot.tsx`), trop longue pour un sélecteur (voir
+     resultats.md § Validation d'un build et relique).
    - **Niveau minimum** (`NumberField`, +0 à +15, +6 par défaut,
      `relicMinUpgrade`) : filtre d'ENTRÉE sur le pool cherché, jamais un
      critère de classement.

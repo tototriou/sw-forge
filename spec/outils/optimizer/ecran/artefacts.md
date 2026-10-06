@@ -3,15 +3,16 @@
 **Statut :** ÉTAT ACTUEL — décrit la carte « Artéfacts » de l'écran
 **Lire si :** on modifie l'interrupteur d'optimisation d'artéfacts ou ses réglages à l'écran
 
-6. **Artéfacts** — interrupteur **« Activer l'optimisation d'artéfacts »**,
+6. **Artéfacts** — carte « Artéfacts et reliques », interrupteur
+   **« Activer l'optimisation d'artéfacts et reliques »**,
    **ACTIVÉ par défaut**.
 
    ⚠️ **Désactivé ne veut PAS dire « sans artéfact ».** Le monstre garde les
-   pièces qu'il porte réellement, statistiques comprises : on cesse simplement
-   d'en chercher d'autres. Sert à composer un runage autour des artéfacts déjà
-   en place. Le réglage retirait auparavant TOUTE contribution d'artéfact, ce
-   que son libellé ne disait pas et qui rendait les conditions minimales plus
-   dures à franchir sans raison.
+   artéfacts et la relique qu'il porte réellement, statistiques comprises :
+   on cesse simplement
+   d'en chercher d'autres. Sert à composer un runage autour des pièces déjà
+   en place. Retirer toute contribution d'artéfact rendrait les conditions
+   minimales plus dures à franchir sans raison.
 
    Activé, deux listes déroulantes (Attribut, Type) proposent :
    **« Libre »** (**défaut** — cherche le meilleur artéfact parmi TOUS les
@@ -19,23 +20,32 @@
    ATQ +100**, **Principale DEF +100**, **Principale PV +1500** (les trois
    statistiques principales d'artéfact du jeu).
 
-   ⚠️ **Le défaut affiché était FAUX** : la liste montrait « Garder l'artéfact
-   équipé » tant qu'aucun choix n'avait été fait, pendant que la recherche
-   cherchait librement — le moteur traite une absence de choix comme
-   « Libre ». L'écran annonçait donc le contraire de ce qui se passait, et
-   tout ce qui se fiait à cet affichage (les emplacements considérés comme
-   figés, donc l'éditeur de sous-propriétés verrouillées) raisonnait sur un
-   état faux. Le comportement n'a pas changé — seul l'affichage a été mis
-   d'accord avec lui.
+   ⚠️ **Le sélecteur FILTRE l'inventaire, il n'hypothèque pas.** Choisir
+   « ATQ +100 » restreint la recherche aux artéfacts qu'on POSSÈDE portant
+   cette principale, avec leurs sous-propriétés. Sans aucun, l'emplacement
+   reste vide — on ne peut pas équiper ce qu'on n'a pas. Ne pas fabriquer de
+   pièce fictive (« et si j'avais un artéfact PV+1500 ? ») : sans aucune
+   sous-propriété, elle ferait calculer les « Dégâts réels » sans aucune
+   ligne d'effet, quand « Garder l'artéfact équipé » les compte — deux
+   réglages voisins, deux modèles de dégâts, sans que rien ne le signale.
 
-   ⚠️ **Il n'y a PAS de cran « Aucun »** — il a existé, il a été retiré.
+   ⚠️ **Sans choix, la liste affiche « Libre »**, parce que le moteur traite
+   une absence de choix comme « Libre » (`candidatsParSorte`,
+   artifactOptim.ts). Afficher « Garder l'artéfact équipé » annoncerait le
+   contraire de ce qui se passe, et
+   tout ce qui se fie à cet affichage (les emplacements considérés comme
+   figés, donc l'éditeur de sous-propriétés verrouillées) raisonnerait sur un
+   état faux.
+
+   ⚠️ **Il n'y a PAS de cran « Aucun »**.
    Imposer l'emplacement vide pour UNE sorte pendant que l'autre cherche ne
    correspond à rien en jeu : un monstre porte deux artéfacts, ou n'en porte
    pas. Ne pas les compter est une décision **globale**, et l'interrupteur la
    prend d'un seul geste pour les deux emplacements. L'emplacement peut
    toujours rester **vide** si la recherche n'a rien de mieux à y mettre —
-   c'est l'imposer par sorte qui n'avait pas de sens. Une recette exportée
-   avant ce retrait voit son « Aucun » ramené sur **« Libre »** à l'import.
+   c'est l'imposer par sorte qui n'aurait pas de sens. Une recette qui porte
+   encore « Aucun » le voit ramené sur **« Libre »** à l'import
+   (`mainsPourCeCompte`, optimizerRecipe.ts).
 
    ⚠️ **« Garder l'artéfact équipé » conserve la PIÈCE ENTIÈRE**, ses quatre
    sous-propriétés comprises : le pool de cet emplacement tombe à **un seul
@@ -49,7 +59,7 @@
    autre joueur il ne transporte aucune intention, il impose une pièce
    arbitraire, parfois sans rapport avec la recherche décrite. Tout le reste
    d'une recette se re-résout contre le compte du lecteur (le monstre par son
-   `com2usId`, les runes par la recherche elle-même) ; celui-ci était le seul
+   `com2usId`, les runes par la recherche elle-même) ; celui-ci serait le seul
    à transporter en douce une hypothèse locale. « Libre » est l'intention la
    plus proche : cherche le meilleur artéfact **parmi les tiens**.
    - La comparaison se fait sur le **nom du joueur** (`wizard_name`), écrit
@@ -63,46 +73,38 @@
      rejouer un cas signalé avec l'export de celui qui l'a signalé. Basculer
      rendrait la reproduction moins fidèle.
 
-   ⚠️ Ce choix s'appelait **« Comme équipé »**, et le mot « principale »
-   n'apparaissait nulle part. Posé au milieu de trois statistiques
-   principales, il se lisait « la principale, comme équipé » — une liste se
-   lit comme homogène. Signalé à l'usage. Le qualificatif a donc été ajouté
-   aux entrées qui filtrent **réellement** par stat principale, et le choix
-   qui garde la pièce dit maintenant qu'il la garde.
+   ⚠️ **« Garder l'artéfact équipé », jamais « Comme équipé »** : posé au
+   milieu de trois statistiques principales, « Comme équipé » se lirait « la
+   principale, comme équipé » — une liste se lit comme homogène. D'où
+   « Principale » sur les entrées qui filtrent **réellement** par stat
+   principale, et un choix qui garde la pièce et le dit.
 
 ## Place de la carte à l'écran
 
-   ⚠️ **Carte à part**, colonne 2 rangée 2 — sous « Exemplaire », plus dans
+   ⚠️ **Carte à part**, colonne 2 rangée 2 — sous « Exemplaire », pas dans
    la colonne droite de « Critères de recherche ». L'interrupteur
-   « Activer l'optimisation d'artéfacts » masque d'un coup les deux listes ET les
-   lignes verrouillées : tant que le bloc vivait en tête de cette colonne,
-   ce clic faisait REMONTER « Conditions », soit un clic qui déplace ce qui
-   le suit ([shared/design.md](shared/design.md)). Le trait qui séparait
-   Artéfacts de Conditions a disparu avec lui — un trait en tête de colonne
-   ne sépare plus rien.
+   masque d'un coup les deux listes ET les
+   lignes verrouillées : en tête de cette colonne,
+   ce clic ferait REMONTER « Conditions », soit un clic qui déplace ce qui
+   le suit ([shared/design.md](../../../shared/design.md)).
 
-   ⚠️ **Pas en pleine largeur** : essayé et rejeté sur capture. La pleine
+   ⚠️ **Pas en pleine largeur** : la pleine
    largeur projette la puce de sorte, le champ de minimum et la croix à
    ~1 400 px de leur libellé — une saccade d'un bout à l'autre de l'écran
    pour lire UNE ligne verrouillée, pire que le repli de texte qu'elle
-   corrigeait.
+   corrigerait.
 
-   La **relique** vit dans un **bloc séparé de cette même carte**, renommée
-   **« Artéfacts et reliques »** (voir « Relique » ci-dessous) : elle a d'abord vécu ici même (deux
-   listes), puis dans sa propre carte — écartée à la
-   vue du rendu (T9 re-tranché une seconde fois) au profit d'un bloc à
-   droite de la rangée Attribut / Type, lui-même écarté à son
-   tour (T9 re-tranché une troisième fois) au profit du bloc qui **ferme la
-   carte**, sous « Meilleurs artéfacts offensifs pour ce build ».
-   L'interrupteur ci-dessus, renommé **« Activer l'optimisation
-   d'artéfacts et reliques »**, masque d'un seul geste les deux listes
+   La **relique** vit dans un **bloc séparé de cette même carte**, le bloc
+   qui **ferme la carte**, sous « Meilleurs artéfacts offensifs pour ce
+   build » (voir relique.md § Relique).
+   L'interrupteur ci-dessus masque d'un seul geste les deux listes
    d'artéfacts ET le bloc Relique.
 
    ⚠️ **Largeur fixe et commune** aux quatre listes déroulantes de la carte
    (Attribut, Type, Principale relique, Propriété unique relique) : sans elle, un `<select>` natif
    prend la largeur de sa plus longue option — « Soins et boucliers
-   accordés en fonction des PV » imposait une case énorme pour « Propriété
-   unique », y compris quand « Libre » y était affiché. La valeur
+   accordés en fonction des PV » imposerait une case énorme pour « Propriété
+   unique », y compris quand « Libre » y est affiché. La valeur
    **fermée** se tronque par « … » (`truncate`) ; la liste **ouverte**
    garde le texte complet, comportement natif du `<select>`.
 

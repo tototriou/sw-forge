@@ -4,21 +4,21 @@
 **Lire si :** on modifie les effets, auras et états saisis pour le monstre à optimiser
 
 6 bis. **État de mon monstre** — ⚠️ **une carte à part**, colonne 2 rangée 3,
-   juste sous « Artéfacts ». Elle a d'abord vécu en bas de cette carte, séparée
-   par un simple trait : ça laissait croire que ces réglages servaient les
+   juste sous « Artéfacts et reliques ». Pas en bas de cette carte, séparée
+   par un simple trait : ça laisserait croire que ces réglages servent les
    artéfacts, alors qu'ils décrivent le **monstre** et valent pour tout calcul.
-   Le trait ne suffisait pas à dire « autre métier » — une carte, si.
+   Le trait ne suffit pas à dire « autre métier » — une carte, si.
    Contenu : **buff ATQ**, **buff DEF**, **buff
    VIT**, **leader skill** d'équipe (type puis valeur, icône officielle du
-   jeu), **compétences d'invocateur** et, depuis degats-et-aura 7a, les
+   jeu), **compétences d'invocateur** et les
    **sets d'aura des autres monstres** de l'équipe. Ce qui rend le monstre
    plus fort, quel que soit l'adversaire.
    Si un buff actif est amplifié par une ligne d'artéfact, le pourcentage
    apparaît sous ces contrôles, auprès du buff correspondant (ATQ, DEF ou
    VIT), jamais sous la VIT de l'adversaire.
 
-   **Rappel des buffs posés par un passif** (degats-et-aura P2, décision de
-   l'utilisateur D1 : rappel à l'écran, réglage manuel conservé) — quand le
+   **Rappel des buffs posés par un passif** (rappel à l'écran, réglage manuel
+   conservé) — quand le
    monstre choisi porte un passif qui se pose un buff standard, une ligne
    s'affiche sous la rangée des trois groupes, avant les lignes
    d'amplification et dans la même grammaire (texte `xs` atténué) : le
@@ -32,37 +32,37 @@
    **Un rappel, jamais un réglage** : aucun buff ne s'allume d'office, et
    aucun calcul ne lit la table — elle n'est importée que par l'écran et la
    carte. La table est curée **par identifiant de compétence**
-   (`BUFFS_POSES_PAR_PASSIF_CONNUS`, `src/lib/buffsDePassif.ts`) : les 24
-   passifs « buff standard » du tri, chacun relu dans sa prose ;
+   (`BUFFS_POSES_PAR_PASSIF_CONNUS`, `src/lib/buffsDePassif.ts`) : 21
+   passifs « buff standard », chacun relu dans sa prose ;
    un passif absent de la table n'a pas de rappel, et les buffs qu'un sort
-   actif se pose lui-même n'en ont pas non plus (P12a). Le rappel dépend du
+   actif se pose lui-même n'en ont pas non plus. Le rappel dépend du
    monstre, jamais d'un clic dans la carte : il paraît au choix du monstre,
    dont le sélecteur et la liste vivent dans la carte du haut — rien de ce
    qu'on vient de cliquer ne bouge. Il lit la fiche du monstre **choisi**
    (garde d'identité : la fiche précédente, encore en mémoire pendant le
    chargement, n'en donne aucun).
 
-   Les trois groupes tiennent sur **une seule rangée** (demande explicite) :
-   empilés, ils donnaient à la carte une hauteur sans rapport avec le peu
+   Les trois groupes tiennent sur **une seule rangée** :
+   empilés, ils donneraient à la carte une hauteur sans rapport avec le peu
    qu'elle contient. ⚠️ En `flex-wrap`, pas en rangée rigide — au doigt ou
    dans une colonne étroite, ils repassent à la ligne plutôt que de comprimer
    les contrôles sous leur taille de cible.
 
    Dans le groupe **Invocateur**, le libellé et son aide sont **au-dessus**
-   des deux crans, pas à leur gauche (demande explicite) : côte à côte, ils
-   formaient le groupe le plus large des trois et faisaient replier la rangée
+   des deux crans, pas à leur gauche : côte à côte, ils
+   formeraient le groupe le plus large des trois et feraient replier la rangée
    plus tôt. ⚠️ **Sans changer la hauteur de la carte** — le groupe passe à
    deux rangées, mais « Lead » en fait déjà deux et `items-stretch` aligne les
    trois boîtes sur la plus haute : l'invocateur ne fait que remplir une place
    qui existait déjà.
 
-   Chacun porte son **contour** (demande explicite : « barres verticales ou
-   contours »). ⚠️ **Des boîtes et non des barres**, alors qu'une barre aurait
-   été plus légère et que c'est le patron des deux colonnes de « Critères de
+   Chacun porte son **contour**. ⚠️ **Des boîtes et non des barres**, alors
+   qu'une barre serait
+   plus légère et que c'est le patron des deux colonnes de « Critères de
    recherche » : ces groupes-ci peuvent passer à la ligne, et une barre
    verticale se retrouverait alors à pendre dans le vide au bout d'une rangée.
    Un contour ferme le groupe où qu'il aille. Un **seul** contour, jamais deux
-   superposés ([shared/design.md](shared/design.md)) — ces boîtes vivent à
+   superposés ([shared/design.md](../../../shared/design.md)) — ces boîtes vivent à
    l'intérieur de la carte, elles ne longent pas son bord. `items-stretch` les
    met à la hauteur de la plus haute, sinon une boîte d'une rangée flotterait
    au milieu d'une boîte de deux et l'œil lirait un décalage.
@@ -74,7 +74,7 @@
 
 ## Sets d'aura des autres monstres
 
-   **Sets d'aura des autres monstres** (degats-et-aura 7a) — une quatrième
+   **Sets d'aura des autres monstres** — une quatrième
    boîte, **sous** la rangée des trois groupes et **en dernier** dans la
    carte, qui saisit `DamageSetup.setsAuraExternes` : les sets Fight,
    Determination, Enhance, Accuracy et Tolerance portés par les **autres**
@@ -84,7 +84,7 @@
    monstre optimisé sont comptés automatiquement sur chaque build, même
    s'ils ne sont pas recherchés — et le total « X / 15 ». Dessous, le bouton
    pointillé **« Ajouter un set d'aura »**, **fixe** : les lignes s'ajoutent
-   SOUS lui (demande explicite), avec le premier set absent et le nombre 1 ;
+   SOUS lui, avec le premier set absent et le nombre 1 ;
    ajouter ne pousse donc que vers le bas. Une ligne = le set (`Selecteur` :
    le sien et ceux qu'aucune autre ligne ne porte — une seule ligne par
    set), le nombre (`NumberField`) et une corbeille (`BoutonIcone`) ; sous
@@ -108,14 +108,14 @@
    crée, ne relève et ne supprime aucune aura externe : les deux sources
    sont indépendantes.
 
-   **Rappel au changement de monstre** (degats-et-aura 7b) — choisir un
-   autre monstre **depuis la liste de travail** (voir « Zone C — Monstres
-   de la liste ») — autre espèce, ou autre exemplaire de la même espèce —
+   **Rappel au changement de monstre** — choisir un
+   autre monstre **depuis la liste de travail** (voir
+   ../listes-et-reservation.md § Zone C — Monstres de la liste) — autre espèce, ou autre exemplaire de la même espèce —
    alors que des auras externes sont renseignées passe leur boîte au token
    d'attention : contour `warn` et fond `warn-soft` à la place de ses
    couleurs, toujours un seul contour de 1 px, et l'en-tête de la boîte
    laisse la place à « Pense à vérifier les sets d'aura externes. »,
-   **effacé après 3 s** (réponse de l'utilisateur). Un rappel, jamais un
+   **effacé après 3 s**. Un rappel, jamais un
    blocage : les nombres restent ceux saisis — conservés au changement de
    monstre comme le contexte —, l'app ne les réécrit pas : c'est
    l'identité du monstre optimisé qui change ce qui est « externe ».
@@ -123,24 +123,24 @@
    que l'en-tête (libellé, aide, total), invisible le reste du temps ; la
    case a donc déjà la hauteur du plus haut des deux et rien ne bouge quand
    il paraît. ⚠️ **Aucune autre voie** : ni le bestiaire, ni une puce de
-   source ou la zone D (la règle de 6bis-b19 reste limitée à la liste de
+   source ou la zone D (le rappel reste limité à la liste de
    travail), ni l'import d'une recette ou d'un compte, ni un simple rendu ;
    recliquer l'exemplaire affiché ne rappelle rien. La décision est la
    fonction pure `doitRappeler` (`src/lib/aurasExternes.ts`), appelée dans
    le seul `onClick` d'un membre de la zone C — jamais dans `resetSearch`
    ni dans un effet sur le monstre sélectionné, que l'import pose aussi.
    Le même message paraît aussi sous la liste de la zone C, du même état et
-   pour la même durée (degats-et-aura 7c, voir « Zone C — Monstres de la
-   liste »).
+   pour la même durée (voir
+   ../listes-et-reservation.md § Zone C — Monstres de la liste).
 
 ## Ouverture guidée vers l'interrupteur des auras RES/PRE
 
    **Ouverture guidée vers l'interrupteur des auras RES/PRE**
-   (degats-et-aura 7b) — ajouter **Accuracy** ou **Tolerance** aux auras
+   — ajouter **Accuracy** ou **Tolerance** aux auras
    externes (nouvelle ligne, ou ligne passée à ce set), ou le choisir comme
    **set recherché** (sans toucher aux auras externes), guide vers « Compter
-   les effets d'auras Tolerance et Précision dans les conditions » (voir
-   « Réglages avancés », point 9). Fight, Determination et Enhance n'ouvrent
+   les effets d'auras Tolerance et Précision dans les conditions » (point 9,
+   voir conditions-et-reglages.md § Réglages avancés). Fight, Determination et Enhance n'ouvrent
    rien : leurs auras n'entrent dans aucune condition, aucun réglage ne leur
    est associé. Un nombre changé sur une ligne déjà présente, une seconde
    activation du même set ou un retrait ne guident pas non plus ; le
@@ -157,7 +157,7 @@
      mesurerait une position périmée. Ancre déjà entièrement visible : pas
      de défilement, ouverture directe. Le défilement peut déplacer la carte
      cliquée et le flottant se referme au clic suivant hors de lui — deux
-     effets acceptés par l'utilisateur. Si le bas du flottant dépasse de
+     effets admis. Si le bas du flottant dépasse de
      l'écran, la page défile encore du strict nécessaire pour montrer
      l'interrupteur.
    - **Au doigt** — le panneau « Options de recherche » s'ouvre par-dessus
@@ -175,52 +175,38 @@
    réglages : posé sur la rangée elle-même, il ferait deux contours
    superposés.
 
-   ⚠️ **Ces cinq réglages vivaient dans la fenêtre « Dégâts réels »**, donc
-   atteignables sous ce seul objectif — alors qu'ils changent les
+   ⚠️ **Ces cinq réglages ne vivent pas dans la fenêtre « Dégâts réels »** :
+   ils n'y seraient atteignables que sous ce seul objectif — alors qu'ils
+   changent les
    statistiques du monstre, donc les **dégâts supplémentaires** que lui
    apportent les artéfacts proportionnels aux PV/ATQ/DEF/VIT, affichés quel
-   que soit l'objectif. Qui optimisait l'efficience les subissait sans
+   que soit l'objectif. Qui optimise l'efficience les subirait sans
    pouvoir ni les voir ni les régler. Aucun réglage n'est dupliqué : c'est
    le même état, montré à un endroit toujours visible.
 
-   ⚠️ **La coupe se vérifie, elle ne s'interprète pas.** Sortent de la
+   ⚠️ **La coupe se vérifie, elle ne s'interprète pas.** Restent hors de la
    fenêtre EXACTEMENT les réglages qui modifient les statistiques propres du
-   monstre ; ce qui reste (cible, sort, critique, réduction de DEF, marque,
+   monstre ; ce qui y reste (cible, sort, critique, réduction de DEF, marque,
    effets d'alliés) n'y touche pas. Test : changer un réglage d'« État de
    mon monstre » DOIT faire bouger le « +X / coup ». Mesuré sur Lushen —
    buff ATQ activé : **+737 → +1 068 / coup**. ⚠️ **Sauf les auras
-   Accuracy et Tolerance** (degats-et-aura 7a) : elles modifient bien des
+   Accuracy et Tolerance** : elles modifient bien des
    statistiques propres du monstre, la Précision et la RES, mais aucune
    n'entre dans les dégâts bruts — pour elles, ce qui bouge est la
    condition RES/PRE (minimum ou maximum), quand `compterAurasResPre` est
    activé.
 
-   ⚠️ **Rendus sans condition**, contrairement à leur ancienne place où ils
-   n'apparaissaient que si la formule du sort lisait la statistique. C'était
-   la bonne question tant qu'ils décrivaient un coup ; un buff change les
-   stats du monstre même sans sort du tout.
+   ⚠️ **Rendus sans condition**, même quand la formule du sort ne lit pas la
+   statistique : un buff change les stats du monstre même sans sort du tout.
 
    ⚠️ **La fenêtre « Dégâts réels » en garde un écho en lecture seule**,
    dans son sous-titre — jamais les contrôles eux-mêmes, qui feraient deux
    exemplaires vivants du même interrupteur visibles en même temps. Qui
    ouvre la fenêtre voit sous quelles hypothèses il travaille ; pour les
-   changer, il ferme. Depuis degats-et-aura 7a, l'écho **nomme les auras
+   changer, il ferme. L'écho **nomme les auras
    externes** par set, avec leur nombre (« auras externes : 2 sets Fight,
    1 set Accuracy »), ou « aucune aura externe », et dit que les sets
    d'aura du build s'y ajoutent sur chaque résultat — **sans nombre** : la
    fenêtre ne connaît aucun candidat, ces activations se résolvent par
    build (`echoAurasExternes`, `src/lib/aurasExternes.ts`).
-
-   ⚠️ **Le sélecteur FILTRE l'inventaire, il n'hypothèque pas.** Choisir
-   « ATQ +100 » restreint la recherche aux artéfacts qu'on POSSÈDE portant
-   cette principale, avec leurs sous-propriétés. Sans aucun, l'emplacement
-   reste vide — on ne peut pas équiper ce qu'on n'a pas.
-
-   Ce réglage servait à l'origine de « et si j'avais un artéfact PV+1500 ? »
-   et fabriquait pour cela une pièce sans aucune sous-propriété. En
-   « Dégâts réels », cette pièce faisait calculer les dégâts SANS aucune ligne
-   d'effet — ni renforcement d'ATQ, ni dégâts additionnels, ni points de
-   Dgts Crit conditionnels — quand « Comme équipé » les comptait : deux
-   réglages voisins, deux modèles de dégâts, sans que rien ne le signale. Le
-   « et si… » est donc perdu, en connaissance de cause.
 

@@ -122,7 +122,7 @@ Q1 → 7 (les données dépendent du choix de Thomas)
 | 1 bis habillage de la fenêtre (décision 7) | J | **validé par Thomas** (« oui tu peux commit ») — barre intégrée, état mémorisé, sans menu | `274cda58`, 2026-10-05 |
 | 2 le web dans la coquille (liens, téléchargements, audience, `estBureau`) | J | **validé par Thomas** (« c'est tout bon ») — liens au navigateur, navigations bloquées, « Enregistrer sous » | `f21e54ee`, 2026-10-06 |
 | 3 empaquetage Windows (NSIS) et Linux (AppImage) | M | **validé par Thomas** (« ok ») — assistant d'installation, icône, désinstallation sans reste ; AppImage au lot 4 | `6286cfb6`, 2026-10-06 |
-| 4 action GitHub au tag | J | à faire | |
+| 4 action GitHub au tag | J | **validé par Thomas** (« ok ») — écrite et relue ; première exécution au tag `v2.0.0` (décision 9) | `3838aaa4`, 2026-10-06 |
 | 5 mise à jour automatique | J | à faire | |
 | 6 « Télécharger pour Windows » sur le site | J | à faire | |
 | 7 données du jeu — dans l'installeur (décision 1), une phrase de spec | M | à faire | |
@@ -395,6 +395,20 @@ paquet local) ; la preuve réelle est l'exécution du tag `v2.0.0`, ajoutée
 à `lot-4.md` à la publication.
 
 **Ne fait pas** : le tag `v2.0.0` (posé à la publication, avec Thomas).
+
+**Résultat (2026-10-06)** — `3838aaa4`, validé par Thomas, preuve
+[lot-4.md](application-bureau-preuves/lot-4.md). `actionlint` 1.7.12 sans
+remarque ; motifs Windows confrontés au paquet du lot 3 (trois fichiers,
+rien d'autre). Mutation du pilote (motif `latest-win.yml`) : `latest.yml`
+n'est plus pris — détectée, restaurée. Écarts :
+- décision 9 : aucune exécution avant `v2.0.0`, et `gh` au lieu de
+  `--publish always` (relevé : electron-builder ignore sans échouer une
+  release publiée depuis plus de 2 heures) ;
+- la moitié Linux n'a jamais été construite (ni Docker ni WSL sur la
+  machine) ; son échec ferait échouer `publier`, Windows compris — choix
+  laissé tel quel par Thomas ;
+- ⚠️ **à la publication** : compléter `lot-4.md` avec le journal de
+  l'exécution du tag `v2.0.0` et les fichiers attachés.
 
 ### Lot 5 — la mise à jour automatique · J
 

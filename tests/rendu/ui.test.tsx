@@ -125,6 +125,27 @@ export function testRenduUiMenu() {
   // L'entrée destructrice vient APRÈS les autres, derrière un filet.
   const ordre = boutons(html).filter((b) => ['Sauvegarder', 'Reprendre', 'Tout effacer'].includes(b.texte)).map((b) => b.texte);
   egal(ordre, ['Sauvegarder', 'Reprendre', 'Tout effacer'], 'l\'entrée destructrice est rangée en dernier');
+
+  // Application de bureau, lot 9 : un déclencheur fourni (la carte du compte)
+  // et l'ancrage à gauche.
+  const carte = rendre(
+    <Menu
+      libelle="Changer de compte"
+      cote="gauche"
+      declencheur={(p) => (
+        <button type="button" {...p} aria-label="Changer de compte">
+          Tototriou
+        </button>
+      )}
+      elements={[
+        { cle: 'a', libelle: 'tototriou', onClick: () => {}, actif: true },
+        { cle: 'b', libelle: 'Importer un fichier…', onClick: () => {} },
+      ]}
+    />
+  );
+  ok(!bouton(carte, 'Plus d\'actions') && !/aria-label="Changer de compte"[^>]*>\s*<svg/.test(carte), 'déclencheur fourni : pas de « ⋯ »');
+  ok(/<button[^>]*aria-haspopup="menu"[^>]*>Tototriou<\/button>|<button[^>]*aria-expanded="false"[^>]*>Tototriou/.test(carte), 'le déclencheur fourni reçoit l’ARIA du menu');
+  ok(/role="menuitemcheckbox"[^>]*aria-checked="true"/.test(carte), 'l’entrée suivie est cochée (aria-checked)');
 }
 
 // Lot 13 (décision 29) : la palette Ctrl K — ajoutée avec elle. La Modale passe

@@ -311,6 +311,14 @@ de rendu retrouver chaque action, son état et sa raison.
 13), contre la règle du deuxième (« Quand ajouter quelque chose ») : l'écrire
 dans l'écran aurait fait un contrôle MAISON — ce que la règle qui gouverne tout
 le reste interdit — et les maquettes en posent un dans plusieurs écrans.
+**Deux axes** nés de la carte du compte (application de bureau, lot 9 : le
+choix de l'invocateur « au niveau du menu principal ») : `declencheur` — le
+bouton qui ouvre le menu, quand ce n'est pas le « ⋯ » ; il reçoit ce qu'il doit
+poser sur son bouton (`ref`, `aria-haspopup`, `aria-expanded`,
+`aria-controls`, `onClick`), et le menu prend alors toute la largeur ; `cote`
+— le bord auquel la liste s'aligne (droite par défaut ; gauche pour la carte
+en tête de barre latérale). Une entrée `actif` (`menuitemcheckbox`) ne se
+dessine pas cochée d'elle-même : l'appelant met la coche en icône.
 
 ⚠️ **Pas de `Deroulant` (filtre fermé dans un menu)** : ajouté au lot 8a pour
 les filtres des runes (la maquette), puis retiré le même jour, sans autre

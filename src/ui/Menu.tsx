@@ -51,15 +51,33 @@ export interface ElementMenu {
   // en-tête d'écran (décision 4 précisée — essayé, retiré par Thomas).
 }
 
+// Ce que le déclencheur doit poser sur SON bouton (axe `declencheur`).
+export interface PropsDeclencheur {
+  ref: React.Ref<HTMLButtonElement>;
+  'aria-haspopup': 'menu';
+  'aria-expanded': boolean;
+  'aria-controls': string;
+  onClick: () => void;
+}
+
 export interface MenuProps {
   // Nom du bouton qui ouvre le menu (aria-label et infobulle).
   libelle: string;
   elements: ElementMenu[];
   // Largeur de la liste. Défaut : 15 rem, la maquette.
   largeur?: string;
+  // ⚠️ Deux axes nés de la carte du compte (application de bureau, lot 9 :
+  // « le choix de l'invocateur au niveau du menu principal ») :
+  //  - `declencheur` : le bouton qui ouvre le menu, quand ce n'est pas le
+  //    « ⋯ » — il reçoit ce qu'il doit poser sur son bouton (`ref`, ARIA,
+  //    `onClick`) ; la carte occupe alors toute la largeur (`w-full`) ;
+  //  - `cote` : le bord auquel la liste s'aligne (droite par défaut, le
+  //    « ⋯ » des en-têtes ; gauche pour la carte en tête de barre latérale).
+  declencheur?: (p: PropsDeclencheur) => ReactNode;
+  cote?: 'gauche' | 'droite';
 }
 
-export default function Menu({ libelle, elements, largeur = 'w-60' }: MenuProps) {
+export default function Menu({ libelle, elements, largeur = 'w-60', declencheur: rendreDeclencheur, cote = 'droite' }: MenuProps) {
   const [ouvert, setOuvert] = useState(false);
   const racine = useRef<HTMLDivElement>(null);
   const declencheur = useRef<HTMLButtonElement>(null);
@@ -111,32 +129,42 @@ export default function Menu({ libelle, elements, largeur = 'w-60' }: MenuProps)
   const destructeurs = elements.filter((el) => el.danger);
 
   return (
-    <div ref={racine} className="relative flex-none">
-      {/* ⚠️ **La HAUTEUR des boutons d'en-tête (36 px, `HAUTEUR_EN_TETE`)**, pas
-          celle d'un `BoutonIcone` (28 px) : le « ⋯ » se pose à côté des
-          boutons d'action d'un en-tête (« Exporter » dans la RTA), et deux
-          hauteurs côte à côte se lisaient comme deux familles de boutons —
-          relevé par Thomas. Un `Bouton` carré dimensionné ici, et non un
-          `BoutonIcone` dont on écraserait le `h-7` : deux hauteurs dans la
-          même classe, c'est l'ordre de la feuille de style qui trancherait. */}
-      <Bouton
-        ref={declencheur}
-        taille="carre"
-        aria-label={libelle}
-        title={libelle}
-        icone={<MoreHorizontal size={16} />}
-        aria-haspopup="menu"
-        aria-expanded={ouvert}
-        aria-controls={id}
-        onClick={() => setOuvert((o) => !o)}
-        className={`${HAUTEUR_EN_TETE} w-9 lg:w-8`}
-      />
+    <div ref={racine} className={`relative ${rendreDeclencheur ? 'w-full' : 'flex-none'}`}>
+      {rendreDeclencheur ? (
+        rendreDeclencheur({
+          ref: declencheur,
+          'aria-haspopup': 'menu',
+          'aria-expanded': ouvert,
+          'aria-controls': id,
+          onClick: () => setOuvert((o) => !o),
+        })
+      ) : (
+        // ⚠️ **La HAUTEUR des boutons d'en-tête (36 px, `HAUTEUR_EN_TETE`)**,
+        // pas celle d'un `BoutonIcone` (28 px) : le « ⋯ » se pose à côté des
+        // boutons d'action d'un en-tête (« Exporter » dans la RTA), et deux
+        // hauteurs côte à côte se lisaient comme deux familles de boutons —
+        // relevé par Thomas. Un `Bouton` carré dimensionné ici, et non un
+        // `BoutonIcone` dont on écraserait le `h-7` : deux hauteurs dans la
+        // même classe, c'est l'ordre de la feuille de style qui trancherait.
+        <Bouton
+          ref={declencheur}
+          taille="carre"
+          aria-label={libelle}
+          title={libelle}
+          icone={<MoreHorizontal size={16} />}
+          aria-haspopup="menu"
+          aria-expanded={ouvert}
+          aria-controls={id}
+          onClick={() => setOuvert((o) => !o)}
+          className={`${HAUTEUR_EN_TETE} w-9 lg:w-8`}
+        />
+      )}
       {/* ⚠️ Toujours rendu, masqué fermé : voir l'en-tête. */}
       <Flottant
         ref={liste}
         rembourrage="aucun"
         largeur={largeur}
-        cote="droite"
+        cote={cote}
         role="menu"
         aria-label={libelle}
         className={`p-1 ${ouvert ? '' : 'hidden'}`}

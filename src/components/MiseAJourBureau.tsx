@@ -5,10 +5,18 @@ import { Annonce, useNotifier } from '../ui/Notification';
 // La mise à jour automatique, dite par la notification — application de
 // bureau, lot 5 (bureau/miseAJour.ts). ⚠️ **L'utilisateur décide** : rien ne
 // se télécharge sans « Mettre à jour », et la question RESTE jusqu'à sa
-// réponse (la croix la ferme ; elle revient au lancement suivant). Sur le
-// site : inerte.
-function annonce({ phase, version }: EtatMiseAJour): Annonce {
+// réponse (la croix la ferme ; le bloc « Application » des Réglages la
+// garde à portée, src/components/BlocApplication.tsx). Sur le site : inerte.
+//
+// Les phases d'une RECHERCHE (`aucune`, `recherche`, `a-jour`,
+// `injoignable`) ne notifient rien : elles se lisent dans les Réglages.
+function annonce({ phase, version }: EtatMiseAJour): Annonce | null {
   switch (phase) {
+    case 'aucune':
+    case 'recherche':
+    case 'a-jour':
+    case 'injoignable':
+      return null;
     case 'disponible':
       return {
         message: `Nouvelle version ${version} disponible`,
@@ -33,6 +41,13 @@ function annonce({ phase, version }: EtatMiseAJour): Annonce {
 
 export default function MiseAJourBureau() {
   const notifier = useNotifier();
-  useEffect(() => suivreMiseAJour((etat) => notifier(annonce(etat))), [notifier]);
+  useEffect(
+    () =>
+      suivreMiseAJour((etat) => {
+        const a = annonce(etat);
+        if (a) notifier(a);
+      }),
+    [notifier]
+  );
   return null;
 }

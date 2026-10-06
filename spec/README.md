@@ -260,6 +260,12 @@ Concepts partagés par plusieurs pages, documentés une seule fois :
       alors contre soi-même. Sans lui, la copie n'est posée que si personne n'est
       en face. Voir [outils/speed-tuning.md](outils/speed-tuning.md).
     - **Mes données** → « Tout supprimer ».
+    - **Application** — dans l'**application de bureau seulement** (absent du
+      site) : la version installée et UN bouton qui suit la mise à jour
+      (« Rechercher », « Mettre à jour », « Redémarrer »… — toujours
+      affiché, désactivé quand il n'y a rien à faire). Une mise à jour remise
+      à plus tard s'y fait quand on veut. Voir
+      [le cadrage](chantiers/application-bureau.md), lot 5, décision 12.
 - **Import de compte global** : un seul bouton invariant « Importer mon compte »
   dans la barre de nav remplit RTA + siège défense + offense **+ « Mon compte »**
   (box 6★ et inventaire runes/artéfacts) d'un coup. Chaque import remplace le

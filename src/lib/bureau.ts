@@ -13,6 +13,7 @@ interface PontBureau {
   miseAJour: {
     etat: () => Promise<EtatMiseAJour | null>;
     surChangement: (rappel: (etat: EtatMiseAJour) => void) => () => void;
+    rechercher: () => void;
     telecharger: () => void;
     redemarrer: () => void;
   };
@@ -21,7 +22,7 @@ interface PontBureau {
 // La mise à jour automatique (lot 5), phase par phase — voir
 // bureau/miseAJour.ts. Rien ne se télécharge sans « Mettre à jour ».
 export interface EtatMiseAJour {
-  phase: 'disponible' | 'telechargement' | 'prete' | 'echec';
+  phase: 'aucune' | 'recherche' | 'a-jour' | 'injoignable' | 'disponible' | 'telechargement' | 'prete' | 'echec';
   version: string;
 }
 
@@ -47,6 +48,11 @@ export function suivreMiseAJour(rappel: (etat: EtatMiseAJour) => void): () => vo
     actif = false;
     desabonner();
   };
+}
+
+// « Rechercher » (Réglages) : cherche une nouvelle version maintenant.
+export function rechercherMiseAJour() {
+  pont()?.miseAJour.rechercher();
 }
 
 // « Mettre à jour » : télécharge la version proposée (en fond).

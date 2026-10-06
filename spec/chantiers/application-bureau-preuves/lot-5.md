@@ -94,12 +94,59 @@ deux derniers écouteurs sont désormais muets — une ligne.
 - `electron-updater` est dans `main.cjs` (esbuild) : aucun `require` restant,
   `app.asar` sans `node_modules` (14,7 Mo).
 
+## Preuve 4 — « plus tard » : le bloc « Application » (décision 12)
+
+Demande de Thomas après le commit du lot : la mise à jour remise à plus
+tard doit rester faisable. Construit : `src/components/BlocApplication.tsx`
+dans les Réglages (menu ⚙ et page, `estBureau()` seulement) — la version
+et UN bouton qui suit la phase ; `presentationMiseAJour` pure ; trois
+phases de recherche de plus dans `bureau/miseAJour.ts` (`recherche`,
+`a-jour`, `injoignable`, plus `aucune` : la recherche du lancement a
+échoué en silence) et `bureau:rechercher`. La recherche du lancement passe
+elle aussi par `recherche` ; une recherche qui échoue n'est dite que si
+elle a été demandée.
+
+Mode preuve, sur `#/parametres` :
+
+```json
+"blocAvant": "APPLICATION Version 1.14.0 Rechercher Les nouvelles versions sont cherchées au lancement.",
+"blocRecherche": "… Recherche… Recherche d'une nouvelle version… [désactivé]",
+"blocAJour": "… Rechercher Tu as la dernière version.",
+"recherches": 1,
+"blocDisponible": "… Mettre à jour Nouvelle version 9.9.9 disponible.",
+"apresCroix": "aucune",
+"blocApresCroix": "… Mettre à jour Nouvelle version 9.9.9 disponible.",
+"telechargementsSansAccord": 0,
+"blocPendant": "… Téléchargement… Téléchargement de la version 9.9.9… [désactivé]",
+"telechargements": 1,
+"blocPrete": "… Redémarrer Version 9.9.9 prête : installée au redémarrage, ou à la fermeture de l'app."
+```
+
+La question fermée par la croix, rien n'est téléchargé, le bloc garde
+« Mettre à jour » ; son bouton lance le téléchargement. Capture :
+[lot-5-reglages.png](lot-5-reglages.png). Tests :
+`tests/bureau-mise-a-jour.test.ts` — chaque phase (libellé, actif ou
+désactivé mais affiché, une ligne d'explication : hauteur constante), et
+seules `disponible` et `echec` mènent à un téléchargement.
+`node tests/run.mjs bureau notification refonteinventaire` → **125
+passées** ; build sans erreur ; app installée : même journal, une ligne.
+
+Trouvé en préparant la séance d'écran : lancée par `npm run bureau:local`
+(pas installée), « Rechercher » restait sur « Recherche… » —
+`electron-updater` ignore la recherche sans répondre. Hors app installée,
+elle répond désormais « à jour » tout de suite.
+
+Une exécution sur trois du mode preuve a fini sur `UnknownVizError` à la
+capture du Bestiaire (dernière étape, tous les contrôles déjà passés) ;
+non reproduite ensuite.
+
 ## Ce qui n'est pas prouvé (décision 10)
 
 - **Le passage réel N → N+1** : question, téléchargement, installation au
   redémarrage ou à la fermeture, données gardées. À constater à la
   première version publiée après la v2.0.0, avec `mise-a-jour.log`.
-- **La phase `echec`** (« Réessayer ») : jamais provoquée.
+- **La phase `echec`** (« Réessayer ») et **`injoignable`** (recherche
+  demandée hors ligne) : jamais provoquées.
 - **Sous Linux** (AppImage), la mise à jour ne marche que lancée depuis
   l'AppImage elle-même : jamais essayée.
 - **Une installation « tous les utilisateurs »** : la mise à jour y demande

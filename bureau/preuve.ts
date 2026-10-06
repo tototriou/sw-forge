@@ -185,20 +185,49 @@ export async function lancerPreuve(fenetre: BrowserWindow, dossier: string, raci
         b.click();
         return 'cliqué';
       })()`);
+    // Le bloc « Application » des Réglages (décision 12) : la mise à jour
+    // remise à plus tard s'y fait quand il veut.
+    const bloc = () =>
+      js(`(() => {
+        const s = document.querySelector('[data-bloc-application]');
+        if (!s) return 'aucun bloc';
+        const b = s.querySelector('button');
+        return s.innerText.replace(/\\s+/g, ' ').trim() + (b?.disabled ? ' [désactivé]' : '');
+      })()`);
+    const cliquerBloc = () => js(`document.querySelector('[data-bloc-application] button')?.click() ?? 'pas de bouton'`);
     const ma: Record<string, unknown> = {};
+    await js(`location.hash = '#/parametres'`);
+    await attendre(1200);
     ma.avant = await notification();
+    ma.blocAvant = await bloc();
+    await cliquerBloc();
+    await attendre(100);
+    ma.blocRecherche = await bloc();
+    await attendre(600);
+    ma.blocAJour = await bloc();
+    ma.recherches = temoins.miseAJour.recherches;
     temoins.miseAJour.simuler?.('9.9.9');
     await attendre(800);
     ma.disponible = await notification();
+    ma.blocDisponible = await bloc();
     await attendre(7000);
     ma.disponibleApres7s = await notification();
+    // « Plus tard » : la croix. Rien ne se télécharge, le bloc garde l'offre.
+    await js(`document.querySelector('[aria-label="Fermer la notification"]')?.click()`);
+    await attendre(300);
+    ma.apresCroix = await notification();
+    ma.blocApresCroix = await bloc();
     ma.telechargementsSansAccord = temoins.miseAJour.telechargements;
-    ma.clicMettreAJour = await cliquer('Mettre à jour');
+    // … puis « Mettre à jour » depuis les Réglages.
+    await cliquerBloc();
     await attendre(100);
     ma.pendant = await notification();
+    ma.blocPendant = await bloc();
     await attendre(1000);
     ma.telechargements = temoins.miseAJour.telechargements;
     ma.prete = await notification();
+    ma.blocPrete = await bloc();
+    await capturerPage(fenetre, join(dossier, 'parametres.png'));
     ma.clicRedemarrer = await cliquer('Redémarrer');
     await attendre(500);
     ma.redemarrages = temoins.miseAJour.redemarrages;

@@ -17,8 +17,8 @@ contextBridge.exposeInMainWorld(
     // processus principal les vérifie avant de s'en servir.
     couleurs: (c: { fond: string; barre: string; symboles: string }) => ipcRenderer.send('bureau:couleurs', c),
     // La mise à jour automatique (lot 5, voir bureau/miseAJour.ts) : l'état
-    // courant, ses changements (rend de quoi se désabonner), « Mettre à
-    // jour » et « Redémarrer ».
+    // courant, ses changements (rend de quoi se désabonner), « Rechercher »,
+    // « Mettre à jour » et « Redémarrer ».
     miseAJour: Object.freeze({
       etat: (): Promise<{ phase: string; version: string } | null> => ipcRenderer.invoke('bureau:mise-a-jour'),
       surChangement: (rappel: (etat: { phase: string; version: string }) => void) => {
@@ -28,6 +28,7 @@ contextBridge.exposeInMainWorld(
           ipcRenderer.removeListener('bureau:mise-a-jour', ecouteur);
         };
       },
+      rechercher: () => ipcRenderer.send('bureau:rechercher'),
       telecharger: () => ipcRenderer.send('bureau:telecharger'),
       redemarrer: () => ipcRenderer.send('bureau:redemarrer'),
     }),

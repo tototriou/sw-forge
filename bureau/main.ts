@@ -148,7 +148,7 @@ void app.whenReady().then(() => {
   // Mode preuve : les liens sont notés, les téléchargements rangés dans son
   // dossier — puis contrôles, captures, et on quitte.
   const preuve: TemoinsPreuve | undefined = DOSSIER_PREUVE
-    ? { liensOuverts: [], dossierTelechargements: join(DOSSIER_PREUVE, 'telechargements'), miseAJour: { telechargements: 0, redemarrages: 0 } }
+    ? { liensOuverts: [], dossierTelechargements: join(DOSSIER_PREUVE, 'telechargements'), miseAJour: { recherches: 0, telechargements: 0, redemarrages: 0 } }
     : undefined;
   const fenetre = creerFenetre(preuve);
   if (DOSSIER_PREUVE && preuve) void lancerPreuve(fenetre, DOSSIER_PREUVE, RACINE, preuve);

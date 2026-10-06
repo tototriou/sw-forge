@@ -7,6 +7,8 @@ import { THEME_CHOICES, setTheme, useTheme } from '../hooks/useTheme';
 import { setOvercapDisplay, useOvercapDisplay } from '../hooks/useOvercapDisplay';
 import { setAdversaireReference, useAdversaireReference } from '../hooks/useAdversaireReference';
 import AccountFreshness from './AccountFreshness';
+import BlocApplication from './BlocApplication';
+import { estBureau } from '../lib/bureau';
 import Segmented from '../ui/Segmented';
 import Bouton from '../ui/Bouton';
 import Flottant from '../ui/Flottant';
@@ -161,6 +163,17 @@ export function SettingsList({
       )}
       </div>
       </section>
+
+      {/* Application de bureau seulement (lot 5) : la version, et la mise à
+          jour à portée quand elle a été remise à plus tard. Sur le site, le
+          bloc n'existe pas — ce n'est pas un état des données, c'est une
+          autre app. */}
+      {estBureau() && (
+        <BlocApplication
+          intitule={intitule('Application')}
+          classeCarte={groupes ? carteLg : 'border-t border-border/60'}
+        />
+      )}
     </div>
   );
 }

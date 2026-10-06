@@ -156,9 +156,10 @@ endroit — quels candidats entrent dans la boucle.
   éligible ne produirait aucune paire.
 
 Il n'existe pas de choix « laisser vide » : imposer le vide pour une sorte
-pendant que l'autre cherche ne correspond à rien en jeu, et ne pas compter
-les artéfacts est une décision globale de l'appelant, qui n'appelle alors pas
-le moteur. Le sélecteur de l'écran (`ArtifactMainChoice`, mêmes valeurs) :
+pendant que l'autre cherche ne correspond à rien en jeu. Désactiver
+l'optimisation d'artéfacts ne veut pas dire « sans artéfact » : le monstre
+garde les pièces qu'il porte (`'equipped'` des deux côtés, ci-dessous), et
+seule la recherche de paires est sautée. Le sélecteur de l'écran (`ArtifactMainChoice`, mêmes valeurs) :
 [../ecran/artefacts.md § Artéfacts](../ecran/artefacts.md).
 
 `parametresArtefactsFiche` (artifactFiche.ts) construit ces paramètres pour
@@ -172,8 +173,10 @@ possible, qu'un verrou écarterait sans rechange) ; il fournit
 
 `ArtifactDetail.id` porte l'identifiant com2us de la pièce : c'est ce qui
 rend une paire mémorisable dans un build validé et ses pièces réservables.
-Un identifiant nul ou négatif désigne une pièce synthétique (la sonde de
-pertinence) qu'aucune réservation ne doit croire possédée.
+Une pièce synthétique (la sonde de pertinence, la pièce supposée d'un
+repli) porte l'identifiant `0`, que l'import donne aussi à une pièce sans
+`rid` ; toute réservation ignore un identifiant non strictement positif,
+pour ne jamais croire possédée une pièce qui ne l'est pas.
 
 ### Pré-filtrage exact — pertinence, obligation, dominance
 

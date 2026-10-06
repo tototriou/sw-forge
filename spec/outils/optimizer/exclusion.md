@@ -7,21 +7,21 @@
 EN TÊTE — avant « Réglages avancés » (voir item 9 ci-dessus) : fonctionnalité
 vedette, mise en avant côté bureau par sa carte à bordure accentuée.
 
-**« Exclure les runes déjà utilisées »**, DÉCOCHÉE par défaut, porte la
-recherche sur l'**inventaire entier** — y compris des runes qu'il faudrait
+**« Exclure les runes déjà utilisées »**, interrupteur DÉSACTIVÉ par
+défaut : la recherche porte alors sur l'**inventaire entier** — y compris des runes qu'il faudrait
 retirer d'un autre monstre pour composer le build proposé. ⚠️ **Icône** : la
 roue de runes (le fond derrière les runes des cartes de résultat, voir
 `RuneWheel.tsx`), barrée du symbole « interdit » — même traitement que les
 deux autres icônes de cette section.
 
-Cochée, la recherche **exclut** les runes déjà portées ailleurs, dans **un
+Activé, la recherche **exclut** les runes déjà portées ailleurs, dans **un
 seul périmètre au choix** (jamais plusieurs à la fois) : **RTA** (défaut),
 **Défenses siège** ou **Box**. Elle ne propose alors que des combinaisons
 réellement montables sans déruner quelqu'un dans ce périmètre. Les runes
 déjà portées par le monstre **choisi** lui-même (même espèce, n'importe
 lequel de ses exemplaires) restent TOUJOURS disponibles quel que soit ce
 réglage — jamais exclu de ses propres runes. Le sélecteur de périmètre est
-grisé et non cliquable tant que la case n'est pas cochée.
+grisé et non cliquable tant que l'interrupteur est désactivé.
 
 ⚠️ **Le moteur est générique**, pas couplé à un périmètre précis :
 `searchBuilds` ne connaît qu'un `pool` de runes déjà filtré.
@@ -41,8 +41,8 @@ en ligne de commande — contrairement aux sélecteurs manuels siège (voir
 
 ⚠️ **Repli de compatibilité à l'import d'une recette** exportée avant le
 renommage de la case (ancien champ `exploreAll`, coché = tout
-l'inventaire) : `exploreAll` absent ou `true` → case décochée
-(comportement identique) ; `exploreAll: false` → case cochée, périmètre
+l'inventaire) : `exploreAll` absent ou `true` → interrupteur désactivé
+(comportement identique) ; `exploreAll: false` → interrupteur activé, périmètre
 **Box** (le seul que l'ancienne case connaissait). Une recette déjà
 exportée se comporte donc EXACTEMENT pareil après réimport — jamais un
 champ manquant ignoré en silence.

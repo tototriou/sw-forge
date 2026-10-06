@@ -230,7 +230,7 @@ d’office imposait un arbitrage.
   effectifs tout en regardant les builds triés par une stat.
 
 ⚠️ **Désactivé ne veut PAS dire « pas d’optimisation »** — c’est
-« Activer l’optimisation d’artéfacts » qui le fait. Sans référence de
+« Activer l’optimisation d’artéfacts et reliques » qui le fait. Sans référence de
 repli définie, « ne pas recalculer » ne voudrait rien dire : il faut savoir
 par rapport à quoi, d’où l’objectif de recherche, seule référence stable.
 
@@ -345,8 +345,9 @@ résultat (elles n'apparaissent plus dans les recherches suivantes de la
 même liste de travail), jusqu'à libération explicite : voir « Listes de
 travail et réservation de runes ».
 
-⚠️ **Relique, un emplacement, quatre états** — un emplacement « Relique », À
-DROITE DE LA ROUE, même modèle que celui de la fiche d'équipement
+⚠️ **Relique, un emplacement, quatre états** — un emplacement « Relique »,
+sous la roue à la souris, à sa droite au doigt (voir plus haut), même
+modèle que celui de la fiche d'équipement
 (`MonsterGear.tsx`) : composant partagé `RelicSlot`, jamais une copie.
 Hors mode `recherche` (interrupteur coupé, « Garder la relique
 équipée »), rien de nouveau : la relique portée, comme avant ce lot, ou
@@ -360,8 +361,10 @@ la case grisée « aucune » sans relique. En mode `recherche`,
 - **rejeté** — aucune relique éligible ne rend le build faisable :
   jamais affiché, le classement l'a déjà écarté ;
 - **résolue** — la relique retenue (principale dans la case ; le détail
-  complet — propriété unique, le libellé « `<effet>` en fonction
-  `<stat>` » compris — au clic, comme un artéfact : flottant ancré à la
+  complet — `RelicDetailBox` : principale et phrase de la propriété unique,
+  `formatRelicUnique`, celle de la fiche d'objet, jamais le libellé court
+  « `<effet>` en fonction `<stat>` » du sélecteur — au clic, comme un
+  artéfact : flottant ancré à la
   souris, ligne sous la carte au doigt), avec deux marques possibles
   sous la case : « relique sans effet sur ce tri » (régime `aucun` —
   Efficience, Vitesse…) et « relique équipée exclue par le filtre » (la

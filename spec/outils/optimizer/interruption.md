@@ -23,9 +23,12 @@ plus du plafond de candidats collectés :
   Bas était le défaut d'origine, trop juste sur un vrai gros compte ; 300
   est la valeur mesurée nécessaire pour y retrouver un build réel.
 - **Bouton « Arrêter »** — l'utilisateur reprend la main quand il l'estime
-  suffisant. L'arrêt est **coopératif** : le moteur rend la main
-  régulièrement pendant la recherche et renvoie le **meilleur trouvé
-  jusque-là** plutôt que de tout jeter.
+  suffisant. Pendant l'appariement, l'arrêt est **coopératif** : le
+  moteur rend la main régulièrement et renvoie le **meilleur trouvé
+  jusque-là** plutôt que de tout jeter. Pendant la construction des
+  moitiés, avant qu'aucune paire n'ait été évaluée, il n'y a rien à
+  rendre : les Workers enfants sont terminés et le résultat est vide,
+  tronqué (voir moteur/pipeline.md § Interruption).
 
 Les cas de troncature se distinguent dans le message affiché : un arrêt
 manuel dit « voici le meilleur trouvé jusque-là » (un choix assumé), un

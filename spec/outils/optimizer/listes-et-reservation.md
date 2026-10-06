@@ -37,8 +37,8 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   pour un monstre déjà validé **remplace** l'ancien (les runes de l'ancien
   se libèrent automatiquement). ⚠️ **Jamais de perte silencieuse** :
   libérer un build déjà validé demande toujours confirmation (« Ces 6 runes
-  redeviendront disponibles pour les recherches des autres monstres de
-  cette liste »).
+  ET la paire d’artéfacts redeviendront disponibles pour les autres
+  monstres de cette liste. »).
 
   ⚠️ **Les ARTÉFACTS du build sont réservés eux aussi**, et mémorisés avec
   lui. Un artéfact physique ne se porte que sur UN monstre à la fois,
@@ -96,8 +96,9 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   le libellé change selon le contexte (aucun monstre choisi → désactivé ;
   déjà dans la liste active → voir ci-dessous ; sinon → « Ajouter `<monstre>` à
   « `<liste>` » », suffixé « (non possédé) » pour une espèce sans exemplaire
-  réel, voir plus bas). Sans liste active, l'ajout crée une liste (prompt
-  du nom) ET y ajoute le monstre dans le même geste.
+  réel, voir plus bas). Sans liste active, « Créer une liste et y ajouter
+  `<monstre>` » crée une liste (prompt du nom) ET y ajoute le monstre dans
+  le même geste.
   ⚠️ **Plusieurs exemplaires Box d'une même espèce** (degats-et-aura lot
   EX, décision de l'utilisateur du 2026-10-04) : les membres sont repérés
   par exemplaire (`exclusionSelectorKey`, Box = `box:<unitKey>`), deux
@@ -118,7 +119,7 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   espèce (règle du jeu) ; le sélecteur « non possédé » reste repéré par
   espèce. Décision pure : `etatAjoutListe` et `exemplaireBoxHorsListe`
   (optimizerExclusion.ts), test `testListeExemplaires`. Bouton **« Libérer
-  toutes les runes de cette liste »** (visible dès qu'au moins un build y
+  toutes les runes de « `<liste>` » »** (visible dès qu'au moins un build y
   est validé), avec sa propre confirmation dédiée.
 
   ⚠️ **Le rappel des auras s'affiche aussi sous la liste** (degats-et-aura
@@ -139,10 +140,11 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
 ### Libération des runes réservées
 
   ⚠️ **DEUX libérations, pas une.** Chaque ligne de monstre validé porte :
-  - **« Libérer ce build »** — rend les 6 runes ET la paire d’artéfacts.
+  - **« Libérer ce build (runes et artéfacts) »** — rend les 6 runes ET la
+    paire d’artéfacts.
     C’est un tout : la réservation existe POUR ce runage.
-  - **« Libérer les artéfacts »** — rend la seule paire, le runage restant
-    réservé. Un artéfact physique ne se porte que sur un monstre à la fois :
+  - **« Libérer les artéfacts (le runage reste réservé) »** — rend la
+    seule paire. Un artéfact physique ne se porte que sur un monstre à la fois :
     on veut souvent le récupérer pour un autre sans renoncer au runage déjà
     planifié. Affiché seulement s’il y a une paire à rendre. Les paires
     déjà calculées pour le monstre recherché se refont alors avec

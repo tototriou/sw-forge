@@ -174,7 +174,11 @@ Outillage du dépôt (pas une page de l'app) :
   le navigateur, ce que dit le « 100 % local ». ⚠️ Ne pas la réintroduire sans
   décision : elle n'aurait de toute façon aucun sens dans l'app de bureau.
 - **Vérifications automatiques** — `npm test`
-  ([tests/README.md](tests/README.md)). Volontairement limitées aux endroits où
+  ([tests/README.md](tests/README.md)). À chaque pull request vers `main`
+  ou une branche `release/*`, l'action `.github/workflows/tests.yml` lance
+  sous Windows les types (`npx tsc --noEmit`), la suite complète et le build ;
+  les tests qui lisent un export de compte réel, non suivi, y sont ignorés.
+  Volontairement limitées aux endroits où
   une erreur serait **grave et invisible** : vitesse de combat, lecture d'un
   export, stockage du compte, conservation des données. ⚠️ **Pas de test
   d'interface** : elle se vérifie à l'œil, et des tests d'affichage se

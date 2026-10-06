@@ -50,6 +50,7 @@ import testReco, {
 } from './reco.test';
 import testRtaPartage from './rta-partage.test';
 import { testInstallerHooks, testHooksCodexGardeFous } from './installer-hooks.test';
+import { testPreCommit } from './pre-commit.test';
 import testHookRefuseSedI from './hook-refuse-sed-i.test';
 import testHookRefuseCommitM from './hook-refuse-commit-m.test';
 import testCouleursCourbes from './courbe-couleurs.test';
@@ -319,6 +320,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testHookRefuseCommitM', testHookRefuseCommitM],
   ['testInstallerHooks', testInstallerHooks],
   ['testHooksCodexGardeFous', testHooksCodexGardeFous],
+  ['testPreCommit', testPreCommit],
   ['testSetsIntangible', testSetsIntangible],
   ['testRuneTri', testRuneTri],
   ['testMonstreTri', testMonstreTri],

@@ -87,10 +87,11 @@ if (branche === 'main' || branche === 'master') {
 
 /* -------------------------------------- 2. aucun chemin privé dans l'index */
 
+// `-z` : sans lui, Git cite un chemin non ASCII entre guillemets, avec ses
+// octets échappés, et aucun motif ancré ne le reconnaît plus.
 let stagés = [];
 try {
-  const sortie = git('diff', '--cached', '--name-only', '--diff-filter=ACMR');
-  stagés = sortie ? sortie.split('\n').filter(Boolean) : [];
+  stagés = git('diff', '--cached', '--name-only', '-z', '--diff-filter=ACMR').split('\0').filter(Boolean);
 } catch {
   process.exit(0);
 }

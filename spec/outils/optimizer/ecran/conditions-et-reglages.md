@@ -60,6 +60,16 @@
      `grid` en BLOC prend toute la largeur de son parent, et des colonnes
      `auto` (Min/Max) sans aucune piste en `fr` **se partagent l'espace libre
      restant** — la phase « maximize tracks » de CSS Grid, pas un bug.
+   - **Largeur des champs alignée pixel pour pixel** entre les 8 stats, via
+     `NumberField`, prop `boxWidth` (`w-24` sur les 16 champs de la grille) :
+     la largeur **totale** du contrôle (boutons + champ + suffixe compris)
+     est fixée d'avance, et c'est le champ texte lui-même qui devient
+     flexible (`flex-1`) pour absorber la différence quand un suffixe `%`
+     est présent. ⚠️ Réduire seulement la largeur du champ texte ne suffit
+     **pas** : le suffixe prend de la place
+     EN PLUS dans le contrôle, donc à largeur de texte égale un champ avec
+     `%` reste toujours plus large qu'un champ sans — seule une largeur
+     totale fixée en amont garantit l'alignement.
    - Taux Crit, RES et Précision sont plafonnés à 100 % **sur la saisie**
      seulement — la recherche elle-même ne doit surtout pas exclure un build
      dont la somme brute dépasse 100 % (une marge de sécurité contre la
@@ -98,8 +108,11 @@
      monstre » (voir etat-de-mon-monstre.md § Sets d'aura des autres monstres) ;
      `compterAurasResPre` se règle dans
      « Réglages avancés » (point 9 ci-dessous).
-   - **« Réinitialiser les conditions »** vide les 16 champs sans toucher aux
-     autres réglages de l'écran.
+   - **« Réinitialiser les conditions »**, en bas à droite de la grille, vide
+     en un clic les 16 champs (les 8 minimums et les 8 maximums), sans
+     toucher à « Stats de base exclues » ni aux autres réglages de l'écran
+     (set, statistique principale, objectif…) — seules les VALEURS saisies
+     sont concernées.
 
 ## Inventaire
 

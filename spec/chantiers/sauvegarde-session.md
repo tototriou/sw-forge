@@ -103,7 +103,7 @@ commandes, sorties, captures `lot-<n>-*.png`.
 
 | Lot | Cat. | Statut | Commit / date |
 |-----|------|--------|---------------|
-| 1 le format de session : ce qu'il contient, le lire, l'écrire | J | à faire | |
+| 1 le format de session : ce qu'il contient, le lire, l'écrire | J | **validé par Thomas** (« ok ») — `swblacksmith/session` v1, 40 tests, 2,68 Mo avec un vrai compte | `38d32f05`, 2026-10-06 |
 | 2 sauvegarder (site et app) | J | à faire | |
 | 3 charger : « Sauvegarder d'abord / Charger / Annuler » | J | à faire | |
 | 4 l'app de bureau : Ctrl+S, « Sauvegarder sous… », session ouverte | J | à faire | |
@@ -165,6 +165,18 @@ version ultérieure, champ inconnu ignoré ; taille mesurée avec un vrai
 compte.
 
 **Ne fait pas** : aucun bouton, aucune écriture dans l'app.
+
+**Résultat (2026-10-06)** — `38d32f05`, validé par Thomas, preuve
+[lot-1.md](sauvegarde-session-preuves/lot-1.md) ; spec d'état actuel
+[shared/sauvegarde-session.md](../shared/sauvegarde-session.md). 40 tests ;
+aller-retour identique avec le vrai compte du développeur, 2,68 Mo.
+Mutation du pilote (version plus récente acceptée) : 1 échec sur 40 —
+restaurée. Écarts :
+- les quatre réglages ne sont pas du JSON (`dark`, `score`, `0`/`1`) :
+  validation par clé (`valeurStockageValide`), découvert avant les tests ;
+- `compteValide` extraite de `loadAccount` (pure, partagée) ; `stockage`
+  59 passées ;
+- la photo de la mémoire et sa restauration restent aux lots 2 et 3.
 
 ### Lot 2 — sauvegarder · J
 

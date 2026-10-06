@@ -65,14 +65,17 @@ export const RELEASES: Release[] = [
   {
     version: null,
     date: '2026-10-05',
-    title: 'SW Forge devient SW Blacksmith',
+    title: 'SW Forge devient SW Blacksmith, et s’installe sur ton ordinateur',
     highlights: [
       'Nouveau nom, nouveau logo, nouvelle interface — tes données restent, rien à réimporter',
+      'SW Blacksmith existe en application pour Windows et Linux',
       'Ctrl K pour aller partout, et « Annuler » après une suppression',
-      'Siège : cherche une équipe par monstre, exporte et importe tes équipes',
     ],
     changes: [
       { kind: 'feat', scope: 'Identité', text: 'SW Forge s’appelle SW Blacksmith : nouveau nom, nouveau logo, nouvelle interface.' },
+      { kind: 'feat', scope: 'Application', text: 'SW Blacksmith existe en application de bureau pour Windows et Linux.' },
+      { kind: 'feat', scope: 'Application', text: 'Une page « Télécharger » propose l’installeur de la dernière version.' },
+      { kind: 'feat', scope: 'Application', text: 'Chaque nouvelle version t’est proposée ; tu choisis quand l’installer.' },
       { kind: 'feat', scope: 'Thèmes', text: 'Les thèmes Forge et Atelier prennent les couleurs de la braise.' },
       { kind: 'feat', scope: 'Navigation', text: 'Ctrl K ouvre une palette : pages, monstres et actions.' },
       { kind: 'feat', scope: 'Navigation', text: 'Supprimer une équipe, un deck ou une recommandation se défait avec « Annuler ».' },

@@ -945,24 +945,6 @@
     },
     {
       "fichier": "spec/spec-lint.json",
-      "renvoi": "spec/outils/optimizer/artefacts.md",
-      "occurrences": 1,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": "spec/spec-lint.json",
-      "renvoi": "spec/outils/optimizer/harnais-diagnostic-extensions.md",
-      "occurrences": 1,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": "spec/spec-lint.json",
-      "renvoi": "spec/outils/optimizer/harnais-diagnostic.md",
-      "occurrences": 1,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": "spec/spec-lint.json",
       "renvoi": "spec/outils/optimizer/pistes.md",
       "occurrences": 1,
       "proprietaire": "a-publier"

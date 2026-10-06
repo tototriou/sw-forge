@@ -16,19 +16,21 @@
     ne relance rien automatiquement : il faut recliquer. Un bouton
     **« Arrêter »** apparaît pendant le calcul — il interrompt la recherche
     et garde le **meilleur trouvé jusque-là**, plutôt que de tout perdre
-    (voir « Interruption »). ⚠️ **« Exporter les paramètres » / « Importer
-    les paramètres »**, juste à côté : télécharge/relit un fichier `.json`
+    (voir « Interruption »). ⚠️ **« Exporter les paramètres de recherche » / « Importer
+    les paramètres de recherche »** (« Exporter » / « Importer » quand la
+    place manque), juste à côté : télécharge/relit un fichier `.json`
     contenant la RECETTE de cette recherche (set, minimums, objectif,
-    préréglage, exploration de tout l'inventaire, choix d'artéfacts) —
+    préréglage, exclusion des runes déjà utilisées, choix d'artéfacts) —
     **jamais le pool de runes ni le compte**, ce qui la rend partageable
     entre joueurs. L'import remplit tous les réglages et sélectionne
     automatiquement le monstre par son `com2usId` — **résolu dans TOUT le
     bestiaire**, plus seulement les monstres possédés : importer la recette
     de quelqu'un d'autre pour un monstre qu'on ne possède pas reste
-    utilisable (repli sur ses stats de base) au lieu d'échouer avec « ce
-    monstre n'est pas dans ta box » ; ce message ne survient plus que si le
+    utilisable (repli sur ses stats de base) au lieu d'échouer. Si le
     `com2usId` ne correspond à AUCUN monstre des données chargées (cas
-    limite, ex. monstre retiré du jeu). Aucune confirmation à l'import :
+    limite, ex. monstre retiré du jeu), les réglages sont importés et le
+    message dit « ce monstre est introuvable dans les données actuelles —
+    choisis-en un manuellement ». Aucune confirmation à l'import :
     remplacer la saisie en cours n'est pas plus destructeur que la modifier
     à la main. Une recette qui porte l'ancien mode critique « Moyenne »
     (`damageSetup.critMode: "moyenne"`, supprimé) est **convertie en « Critique »**, jamais refusée : le

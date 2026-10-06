@@ -42,8 +42,9 @@
      fonction `<stat>` »** (`relicUniqueEffectLabel`, DÉRIVÉ de
      `RELIC_UNIQUE` — effet et stat sont chacun des mots du jeu, jamais une
      table séparée) — **désactivée et sans effet** avec « Garder la relique
-     équipée » (la pièce est fixée), le bloc le dit. Même libellé sur la
-     carte candidat (voir « Résultats » plus bas).
+     équipée » (la pièce est fixée), le bloc le dit. La carte candidat, elle,
+     donne la phrase complète de la fiche d'objet (`formatRelicUnique`,
+     `RelicSlot.tsx`), trop longue pour un sélecteur (voir « Résultats » plus bas).
    - **Niveau minimum** (`NumberField`, +0 à +15, +6 par défaut,
      `relicMinUpgrade`) : filtre d'ENTRÉE sur le pool cherché, jamais un
      critère de classement.

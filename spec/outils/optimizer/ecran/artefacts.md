@@ -3,12 +3,14 @@
 **Statut :** ÉTAT ACTUEL — décrit la carte « Artéfacts » de l'écran
 **Lire si :** on modifie l'interrupteur d'optimisation d'artéfacts ou ses réglages à l'écran
 
-6. **Artéfacts** — interrupteur **« Activer l'optimisation d'artéfacts »**,
+6. **Artéfacts** — carte « Artéfacts et reliques », interrupteur
+   **« Activer l'optimisation d'artéfacts et reliques »**,
    **ACTIVÉ par défaut**.
 
    ⚠️ **Désactivé ne veut PAS dire « sans artéfact ».** Le monstre garde les
-   pièces qu'il porte réellement, statistiques comprises : on cesse simplement
-   d'en chercher d'autres. Sert à composer un runage autour des artéfacts déjà
+   artéfacts et la relique qu'il porte réellement, statistiques comprises :
+   on cesse simplement
+   d'en chercher d'autres. Sert à composer un runage autour des pièces déjà
    en place. Le réglage retirait auparavant TOUTE contribution d'artéfact, ce
    que son libellé ne disait pas et qui rendait les conditions minimales plus
    dures à franchir sans raison.
@@ -74,7 +76,7 @@
 
    ⚠️ **Carte à part**, colonne 2 rangée 2 — sous « Exemplaire », plus dans
    la colonne droite de « Critères de recherche ». L'interrupteur
-   « Activer l'optimisation d'artéfacts » masque d'un coup les deux listes ET les
+   « Activer l'optimisation d'artéfacts et reliques » masque d'un coup les deux listes ET les
    lignes verrouillées : tant que le bloc vivait en tête de cette colonne,
    ce clic faisait REMONTER « Conditions », soit un clic qui déplace ce qui
    le suit ([shared/design.md](shared/design.md)). Le trait qui séparait

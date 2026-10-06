@@ -5,8 +5,9 @@
 
 7. **Conditions** — les 8 stats (PV, ATQ, DEF, VIT, Taux Crit, Dmg Crit, RES,
    Précision). Chaque stat porte **deux champs, minimum et maximum**, tous
-   deux facultatifs — champ vide = pas de contrainte. **Colonne DROITE**,
-   sous Artéfacts.
+   deux facultatifs — champ vide = pas de contrainte. **Colonne DROITE** de
+   « Critères de recherche », qu'elle occupe seule : « Artéfacts et
+   reliques » est une carte à part (voir artefacts.md § Place de la carte à l'écran).
    - **Interrupteur « Stats de base exclues »**, activé par défaut : n'affecte
      que PV, ATQ, DEF et VIT — ces 4 stats ont une base qui grandit avec le
      niveau/l'éveil ; activé, le champ porte sur ce que l'**équipement**
@@ -82,8 +83,9 @@
      « Réglages avancés » (point 9 ci-dessous).
    - **« Réinitialiser les conditions »** vide les 16 champs sans toucher aux
      autres réglages de l'écran.
-8. **« Utiliser tout l'inventaire »** — case à cocher, **cochée par défaut**
-   (voir « Exclusion des runes » ci-dessous).
+8. **« Exclure les runes déjà utilisées »** — interrupteur, **désactivé par
+   défaut** : la recherche porte alors sur tout l'inventaire. Il vit dans
+   « Exclusion de runes » (voir ../exclusion.md § Exclusion des runes déjà portées ailleurs).
 ## Réglages avancés
 
 9. **« Réglages avancés »** (repliés par défaut). ⚠️ **Au bureau, un

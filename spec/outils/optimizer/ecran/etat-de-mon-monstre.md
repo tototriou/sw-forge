@@ -4,7 +4,7 @@
 **Lire si :** on modifie les effets, auras et états saisis pour le monstre à optimiser
 
 6 bis. **État de mon monstre** — ⚠️ **une carte à part**, colonne 2 rangée 3,
-   juste sous « Artéfacts ». Elle a d'abord vécu en bas de cette carte, séparée
+   juste sous « Artéfacts et reliques ». Elle a d'abord vécu en bas de cette carte, séparée
    par un simple trait : ça laissait croire que ces réglages servaient les
    artéfacts, alors qu'ils décrivent le **monstre** et valent pour tout calcul.
    Le trait ne suffisait pas à dire « autre métier » — une carte, si.
@@ -32,8 +32,8 @@
    **Un rappel, jamais un réglage** : aucun buff ne s'allume d'office, et
    aucun calcul ne lit la table — elle n'est importée que par l'écran et la
    carte. La table est curée **par identifiant de compétence**
-   (`BUFFS_POSES_PAR_PASSIF_CONNUS`, `src/lib/buffsDePassif.ts`) : les 24
-   passifs « buff standard » du tri, chacun relu dans sa prose ;
+   (`BUFFS_POSES_PAR_PASSIF_CONNUS`, `src/lib/buffsDePassif.ts`) : 21
+   passifs « buff standard », chacun relu dans sa prose ;
    un passif absent de la table n'a pas de rappel, et les buffs qu'un sort
    actif se pose lui-même n'en ont pas non plus (P12a). Le rappel dépend du
    monstre, jamais d'un clic dans la carte : il paraît au choix du monstre,

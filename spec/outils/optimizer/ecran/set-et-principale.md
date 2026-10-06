@@ -25,17 +25,11 @@
 
    ⚠️ **Obligatoire** :
    tenter de lancer une recherche sans set sélectionné met cette zone en
-   **surbrillance rouge marquée** au lieu de silencieusement ne rien faire —
+   **surbrillance** — contour et fond teinté au jeton `bad` (`border-bad
+   bg-bad/15`), avec le message « Sélectionne au moins un set avant de lancer
+   la recherche. » — au lieu de silencieusement ne rien faire :
    on montre OÙ agir. Repasse normale dès qu'un set est ajouté. **Colonne
    GAUCHE** de la carte (demande explicite), avec le point suivant.
-   ⚠️ **Rouge Tailwind `red-500` littéral, pas le jeton sémantique `bad`** du
-   thème — exception assumée à « aucune couleur Tailwind native »
-   (CLAUDE.md) : `bad` (voir [shared/design.md](shared/design.md)) est
-   volontairement une teinte corail douce en thème sombre, pensée pour un
-   état des DONNÉES — trop proche du fond du contrôle pour se voir comme un
-   vrai signal d'alerte. Ce cas précis en avait besoin, demandé explicitement
-   après deux essais d'intensification du jeton `bad` jugés encore
-   insuffisants (bordure épaisse + fond teinté + halo large).
    ⚠️ **Densité** (demandes explicites, « plus compact » / « resserré ») :
    `max-w-md` sur le conteneur de « Set de runes recherché » ; **Set principal
    (4 pièces) sur DEUX LIGNES en permanence** (`SetComboPicker.tsx`, `grid

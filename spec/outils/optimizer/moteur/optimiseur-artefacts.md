@@ -310,6 +310,12 @@ Côté moteur :
   (`vitTotalePourVitesseFinale`, damage.ts). Ne pas la recalculer par une
   boucle à côté : prendre le meilleur 206 de chaque sorte indépendamment
   ignore l'intangible et les verrous, et affiche un minimum trop bas.
+  Ni elle ni `vitTotalePourVitesseFinale` n'ont d'appelant en production,
+  seulement des tests : l'écran n'offre aucune condition de vitesse finale.
+  Ne pas en réintroduire une, parce que la vitesse finale ne décide pas de
+  l'ordre des tours, qui se joue tick par tick sur la vitesse de combat
+  ([../../speed-tuning.md § Formule (modèle partagé)](../../speed-tuning.md)) :
+  viser une vitesse finale ne garantit aucun speed tune.
 - Les bornes d'apport par stat (`bornesArtefacts`) et le choix de la paire
   par build : [artefacts.md](artefacts.md).
 

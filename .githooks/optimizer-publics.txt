@@ -32,3 +32,4 @@ spec/outils/optimizer/limites-connues.md
 spec/outils/optimizer/harnais.md
 spec/outils/optimizer/harnais-extensions.md
 spec/outils/optimizer/harnais-scripts.md
+spec/outils/optimizer/pistes.md

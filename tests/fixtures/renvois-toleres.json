@@ -20,18 +20,6 @@
       "proprietaire": "hors-perimetre"
     },
     {
-      "fichier": ".claude/skills/optimizer-field-propagation/SKILL.md",
-      "renvoi": "spec/outils/optimizer/pistes.md",
-      "occurrences": 1,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": ".claude/skills/optimizer-perf-testing/SKILL.md",
-      "renvoi": "spec/outils/optimizer/pistes.md",
-      "occurrences": 1,
-      "proprietaire": "a-publier"
-    },
-    {
       "fichier": "ARCHITECTURE.md",
       "renvoi": "../ui",
       "occurrences": 1,
@@ -362,12 +350,6 @@
       "proprietaire": "a-publier"
     },
     {
-      "fichier": "scripts/filterslot-topk-diag.ts",
-      "renvoi": "spec/outils/optimizer/pistes.md",
-      "occurrences": 1,
-      "proprietaire": "a-publier"
-    },
-    {
       "fichier": "scripts/lib/build-half-worker.ts",
       "renvoi": "harnais-diagnostic-extensions.md",
       "occurrences": 1,
@@ -434,12 +416,6 @@
       "proprietaire": "a-publier"
     },
     {
-      "fichier": "scripts/lib/runSearch.ts",
-      "renvoi": "pistes.md",
-      "occurrences": 1,
-      "proprietaire": "a-publier"
-    },
-    {
       "fichier": "scripts/lib/spawnSliceNode.ts",
       "renvoi": "spec/outils/optimizer/near-miss-appariement.md",
       "occurrences": 1,
@@ -489,18 +465,6 @@
     },
     {
       "fichier": "scripts/optimum-retention-rate.ts",
-      "renvoi": "pistes.md",
-      "occurrences": 1,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": "scripts/optimum-retention-rate.ts",
-      "renvoi": "spec/outils/optimizer/",
-      "occurrences": 1,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": "scripts/optimum-retention-rate.ts",
       "renvoi": "spec/outils/optimizer/archive/historique/historique-dimensionnement.md",
       "occurrences": 2,
       "proprietaire": "a-publier"
@@ -518,32 +482,8 @@
       "proprietaire": "a-publier"
     },
     {
-      "fichier": "scripts/pair-bound-diag.ts",
-      "renvoi": "spec/outils/optimizer/pistes.md",
-      "occurrences": 1,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": "scripts/pairing-parallel-diag.ts",
-      "renvoi": "pistes.md",
-      "occurrences": 1,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": "scripts/pairing-parallel-diag.ts",
-      "renvoi": "spec/outils/optimizer/pistes.md",
-      "occurrences": 1,
-      "proprietaire": "a-publier"
-    },
-    {
       "fichier": "scripts/parallel-pairing-extraction-diff.ts",
       "renvoi": "spec/outils/optimizer/parallelisation-partagee.md",
-      "occurrences": 1,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": "scripts/parallel-pairing-quota-diag.ts",
-      "renvoi": "spec/outils/optimizer/pistes.md",
       "occurrences": 1,
       "proprietaire": "a-publier"
     },
@@ -686,12 +626,6 @@
       "proprietaire": "a-publier"
     },
     {
-      "fichier": "spec/outils/degats-reels/conditions-et-audit.md",
-      "renvoi": "spec/outils/optimizer/pistes.md",
-      "occurrences": 1,
-      "proprietaire": "a-publier"
-    },
-    {
       "fichier": "spec/outils/degats-reels/effets-equipe-et-leaders.md",
       "renvoi": "siege/LeadPill.tsx",
       "occurrences": 1,
@@ -722,12 +656,6 @@
       "proprietaire": "a-corriger"
     },
     {
-      "fichier": "spec/outils/optimizer/README.md",
-      "renvoi": "pistes.md",
-      "occurrences": 3,
-      "proprietaire": "a-publier"
-    },
-    {
       "fichier": "spec/outils/optimizer/ecran/relique.md",
       "renvoi": "lib/effects.ts",
       "occurrences": 1,
@@ -738,12 +666,6 @@
       "renvoi": "lib/effects.ts",
       "occurrences": 1,
       "proprietaire": "a-corriger"
-    },
-    {
-      "fichier": "spec/outils/optimizer/invariants.md",
-      "renvoi": "pistes.md",
-      "occurrences": 2,
-      "proprietaire": "a-publier"
     },
     {
       "fichier": "spec/outils/passifs-vitesse.md",
@@ -804,12 +726,6 @@
       "renvoi": "src/components/Segmented.tsx",
       "occurrences": 1,
       "proprietaire": "hors-perimetre"
-    },
-    {
-      "fichier": "spec/spec-lint.json",
-      "renvoi": "spec/outils/optimizer/pistes.md",
-      "occurrences": 1,
-      "proprietaire": "a-publier"
     },
     {
       "fichier": "src/components/ArtifactIcon.tsx",
@@ -904,12 +820,6 @@
     {
       "fichier": "src/components/outils/OptimizerSection.tsx",
       "renvoi": "spec/outils/optimizer/historique-",
-      "occurrences": 1,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": "src/components/outils/OptimizerSection.tsx",
-      "renvoi": "spec/outils/optimizer/pistes.md",
       "occurrences": 1,
       "proprietaire": "a-publier"
     },
@@ -1083,12 +993,6 @@
     },
     {
       "fichier": "src/lib/runeBuildOptim.ts",
-      "renvoi": "pistes.md",
-      "occurrences": 1,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": "src/lib/runeBuildOptim.ts",
       "renvoi": "scripts/monster-search-skyline-diag.ts",
       "occurrences": 2,
       "proprietaire": "a-corriger"
@@ -1096,7 +1000,7 @@
     {
       "fichier": "src/lib/runeBuildOptim.ts",
       "renvoi": "spec/outils/optimizer/",
-      "occurrences": 32,
+      "occurrences": 31,
       "proprietaire": "a-publier"
     },
     {
@@ -1127,12 +1031,6 @@
       "fichier": "src/lib/runeBuildOptim.ts",
       "renvoi": "spec/outils/optimizer/near-miss-appariement.md",
       "occurrences": 2,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": "src/lib/runeBuildOptim.ts",
-      "renvoi": "spec/outils/optimizer/pistes.md",
-      "occurrences": 6,
       "proprietaire": "a-publier"
     },
     {
@@ -1173,19 +1071,7 @@
     },
     {
       "fichier": "src/workers/pairSlice.worker.ts",
-      "renvoi": "pistes.md",
-      "occurrences": 1,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": "src/workers/pairSlice.worker.ts",
       "renvoi": "spec/outils/optimizer/parallelisation-partagee.md",
-      "occurrences": 1,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": "src/workers/pairSlice.worker.ts",
-      "renvoi": "spec/outils/optimizer/pistes.md",
       "occurrences": 1,
       "proprietaire": "a-publier"
     },
@@ -1202,12 +1088,6 @@
       "proprietaire": "a-publier"
     },
     {
-      "fichier": "src/workers/pairSliceBody.ts",
-      "renvoi": "spec/outils/optimizer/pistes.md",
-      "occurrences": 1,
-      "proprietaire": "a-publier"
-    },
-    {
       "fichier": "src/workers/pairingDriver.ts",
       "renvoi": "near-miss-appariement.md",
       "occurrences": 1,
@@ -1216,12 +1096,6 @@
     {
       "fichier": "src/workers/pairingDriver.ts",
       "renvoi": "spec/outils/optimizer/",
-      "occurrences": 1,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": "src/workers/parallelPairing.ts",
-      "renvoi": "pistes.md",
       "occurrences": 1,
       "proprietaire": "a-publier"
     },
@@ -1245,14 +1119,8 @@
     },
     {
       "fichier": "src/workers/runeBuildOptim.worker.ts",
-      "renvoi": "pistes.md",
-      "occurrences": 1,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": "src/workers/runeBuildOptim.worker.ts",
       "renvoi": "spec/outils/optimizer/",
-      "occurrences": 4,
+      "occurrences": 3,
       "proprietaire": "a-publier"
     },
     {
@@ -1322,12 +1190,6 @@
       "proprietaire": "a-publier"
     },
     {
-      "fichier": "tests/optimizer-recipe-import-selection.test.ts",
-      "renvoi": "spec/outils/optimizer/pistes.md",
-      "occurrences": 1,
-      "proprietaire": "a-publier"
-    },
-    {
       "fichier": "tests/relic-unique-label.test.ts",
       "renvoi": "../spec/outils/optimizer/reliques.md",
       "occurrences": 1,
@@ -1352,20 +1214,8 @@
       "proprietaire": "a-publier"
     },
     {
-      "fichier": "tests/rune-optim-differential.test.ts",
-      "renvoi": "spec/outils/optimizer/pistes.md",
-      "occurrences": 1,
-      "proprietaire": "a-publier"
-    },
-    {
       "fichier": "tests/rune-optim-filterslot-topk.test.ts",
       "renvoi": "spec/outils/optimizer/archive/historique/historique-dimensionnement.md",
-      "occurrences": 1,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": "tests/rune-optim-filterslot-topk.test.ts",
-      "renvoi": "spec/outils/optimizer/pistes.md",
       "occurrences": 1,
       "proprietaire": "a-publier"
     },
@@ -1389,32 +1239,14 @@
     },
     {
       "fichier": "tests/rune-optim-parallel-pairing.test.ts",
-      "renvoi": "pistes.md",
-      "occurrences": 5,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": "tests/rune-optim-parallel-pairing.test.ts",
       "renvoi": "scripts/pairing-parallel-diag.ts/parallel-pairing-real-diag.ts",
       "occurrences": 1,
       "proprietaire": "a-corriger"
     },
     {
       "fichier": "tests/rune-optim-parallel-pairing.test.ts",
-      "renvoi": "spec/outils/optimizer/",
-      "occurrences": 1,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": "tests/rune-optim-parallel-pairing.test.ts",
       "renvoi": "spec/outils/optimizer/archive/historique/historique-acceleration-et-outillage.md",
       "occurrences": 1,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": "tests/rune-optim-parallel-pairing.test.ts",
-      "renvoi": "spec/outils/optimizer/pistes.md",
-      "occurrences": 2,
       "proprietaire": "a-publier"
     },
     {
@@ -1426,12 +1258,6 @@
     {
       "fichier": "tests/rune-optim-scale-monotonicity.test.ts",
       "renvoi": "spec/outils/optimizer/",
-      "occurrences": 1,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": "tests/rune-optim.test.ts",
-      "renvoi": "spec/outils/optimizer/pistes.md",
       "occurrences": 1,
       "proprietaire": "a-publier"
     }

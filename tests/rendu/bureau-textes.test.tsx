@@ -15,7 +15,7 @@ const rien = () => {};
 function textes(): { accueil: string; reglages: string; question: string; theme: string } {
   return {
     accueil: texteVisible(rendre(<HomePage stats={{ rta: 0, defense: 0, offense: 0, recos: 0 }} onImport={rien} />)),
-    reglages: texteVisible(rendre(<SettingsList onClearData={rien} onKeepAccount={rien} accountExportedAt={null} />)),
+    reglages: texteVisible(rendre(<SettingsList onClearData={rien} onSauvegarderSession={rien} onKeepAccount={rien} accountExportedAt={null} />)),
     // La `Modale` passe par un portail : `auTelephone` le pose en place.
     question: texteVisible(auTelephone(() => rendre(<KeepAccountDialog onChoose={rien} onDismiss={rien} />))),
     theme: THEME_CHOICES.find((c) => c.key === 'auto')!.hint,
@@ -41,6 +41,7 @@ export function testRenduBureauTextes() {
     ok(!app.accueil.includes('navigateur'), 'accueil : plus un mot de « navigateur »');
     ok(app.reglages.includes('tout est perdu en fermant l’application') && app.reglages.includes('Tout reste sur cette machine'), 'Garder mes données : « l’application », « cette machine »');
     ok(!/navigateur|onglet/.test(app.reglages), 'Réglages : ni « navigateur » ni « onglet »');
+    ok(app.reglages.includes('Tout l’état de l’app dans un fichier, enregistré où tu veux'), 'Session : « enregistré où tu veux »');
     ok(app.question.includes("à la prochaine ouverture de l'application") && app.question.includes("en fermant l'application"), 'question du premier import : « ouverture », « application »');
     ok(app.theme === 'Suit le thème de ton système', 'thème Auto : « ton système »');
   } finally {

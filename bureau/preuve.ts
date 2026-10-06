@@ -10,7 +10,7 @@
 // (voir main.ts) : une preuve ne touche jamais celles de l'utilisateur.
 
 import { app, BrowserWindow } from 'electron';
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { PreuveMiseAJour } from './miseAJour';
 import type { PreuveSwex } from './swex';
@@ -47,6 +47,7 @@ async function cliquerQuandPret(fenetre: BrowserWindow, libelle: string, delai =
   }
   return `pas de bouton « ${libelle} »`;
 }
+
 
 // ── Lot 8 : les données survivent à la fermeture de l'app ───────────────
 // Deux lancements sur le MÊME dossier de données (`npm run bureau:preuve --
@@ -200,6 +201,88 @@ export async function lancerPreuveSwex(fenetre: BrowserWindow, dossier: string, 
     resultats.erreur = String(e);
   } finally {
     writeFileSync(join(dossier, 'resultats-swex.json'), JSON.stringify(resultats, null, 2));
+    app.quit();
+  }
+}
+
+// ── Sauvegarde de session ──────────────────────────────────────────────
+// `npm run bureau:preuve -- --session` : un compte importé en REFUSANT la
+// conservation (rien n'est alors sur le disque : c'est le cas où la session
+// doit lire l'app, pas le stockage), deux écrans visités, puis « Sauvegarder »
+// des Paramètres et « Sauvegarder la session » de la palette. Les fichiers
+// produits sont gardés dans `<dossier>/sessions` ; le script les relit par
+// `lireSession`.
+export async function lancerPreuveSession(fenetre: BrowserWindow, dossier: string, compte: string, telechargements: string) {
+  mkdirSync(join(dossier, 'sessions'), { recursive: true });
+  const resultats: Record<string, unknown> = {};
+  const js = (code: string) => fenetre.webContents.executeJavaScript(code, true);
+  // Le fichier de session téléchargé, déplacé sous `nom` (le suivant porte
+  // le même nom daté, à la minute près).
+  const recuperer = async (nom: string): Promise<string> => {
+    const fin = Date.now() + 10_000;
+    while (Date.now() < fin) {
+      const f = existsSync(telechargements) ? readdirSync(telechargements).find((n) => /^swblacksmith-session-.*\.json$/.test(n)) : undefined;
+      if (f) {
+        await attendre(500); // écriture terminée
+        const texte = readFileSync(join(telechargements, f), 'utf8');
+        writeFileSync(join(dossier, 'sessions', nom), texte);
+        rmSync(join(telechargements, f));
+        return f;
+      }
+      await attendre(250);
+    }
+    return 'aucun fichier';
+  };
+  try {
+    if (fenetre.webContents.isLoading()) {
+      await new Promise<void>((r) => fenetre.webContents.once('did-finish-load', () => r()));
+    }
+    await attendre(2500);
+    resultats.import = await js(`(() => {
+      const champ = document.querySelector('input[type="file"][accept*="json"]');
+      if (!champ) return 'pas de champ fichier';
+      const dt = new DataTransfer();
+      dt.items.add(new File([${JSON.stringify(compte)}], 'compte-miniature.json', { type: 'application/json' }));
+      champ.files = dt.files;
+      champ.dispatchEvent(new Event('change', { bubbles: true }));
+      return 'déposé';
+    })()`);
+    resultats.refus = await cliquerQuandPret(fenetre, 'Non, ne rien garder de mes informations');
+    await attendre(1500);
+    // Conservation refusée : le travail n'est PAS sur le disque.
+    resultats.disque = await js(`({
+      conservation: localStorage.getItem('swblacksmith-persist-v1'),
+      prepaRta: localStorage.getItem('swblacksmith-rta-v1'),
+      siegeDefense: localStorage.getItem('swblacksmith-siege-defense-v1'),
+    })`);
+    for (const ecran of ['#/siege/defense', '#/outils/optimizer']) {
+      await js(`location.hash = '${ecran}'`);
+      await attendre(1500);
+    }
+    // 1. « Sauvegarder », ligne « Session » des Paramètres.
+    await js(`location.hash = '#/parametres'`);
+    await attendre(1200);
+    resultats.ligneSession = await js(`(() => {
+      const b = [...document.querySelectorAll('button')].find((x) => x.textContent.trim() === 'Sauvegarder');
+      if (!b) return 'pas de bouton';
+      return b.closest('.py-2\\\\.5')?.innerText.replace(/\\s+/g, ' ').trim() ?? 'ligne introuvable';
+    })()`);
+    resultats.clicReglages = await cliquerQuandPret(fenetre, 'Sauvegarder');
+    resultats.fichierReglages = await recuperer('depuis-reglages.json');
+    // 2. Ctrl K, puis l'action « Sauvegarder la session ».
+    await js(`document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true }))`);
+    await attendre(800);
+    resultats.clicPalette = await js(`(() => {
+      const o = [...document.querySelectorAll('[role="option"]')].find((x) => x.textContent.includes('Sauvegarder la session'));
+      if (!o) return 'pas d’action';
+      o.click();
+      return 'cliqué';
+    })()`);
+    resultats.fichierPalette = await recuperer('depuis-palette.json');
+  } catch (e) {
+    resultats.erreur = String(e);
+  } finally {
+    writeFileSync(join(dossier, 'resultats-session.json'), JSON.stringify(resultats, null, 2));
     app.quit();
   }
 }

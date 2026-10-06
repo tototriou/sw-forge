@@ -33,6 +33,12 @@ export default async function testPersistance() {
   egal(mem.get('swblacksmith-rta-v1'), undefined, 'refus → la prépa RTA n’est pas écrite');
   egal(mem.get('swblacksmith-siege-defense-v1'), undefined, 'refus → le siège n’est pas écrit');
   egal(mem.get('swblacksmith-persist-v1'), '0', 'le choix lui-même reste mémorisé');
+  // La sauvegarde de session lit le travail dans le miroir : refusé, il
+  // n'est que là.
+  egal(P.lireTravail('swblacksmith-rta-v1'), '{"entries":{}}', 'refus → la session lit quand même la prépa RTA (miroir)');
+  egal(P.lireTravail('swblacksmith-recos-inconnues-v1'), null, 'une clé jamais écrite → rien');
+  P.oublierLocal('swblacksmith-siege-defense-v1');
+  egal(P.lireTravail('swblacksmith-siege-defense-v1'), null, 'oublierLocal vide aussi le miroir');
 
   /* --- Acceptation ------------------------------------------------------ */
 

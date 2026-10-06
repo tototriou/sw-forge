@@ -1,5 +1,5 @@
-// La sauvegarde de session — le format (chantier sauvegarde-session, lot 1 ;
-// src/lib/session.ts).
+// La sauvegarde de session — le format (src/lib/session.ts,
+// spec/shared/sauvegarde-session.md).
 //
 // ⚠️ Ce que le format promet : un aller-retour composer → écrire → relire
 // rend EXACTEMENT ce qui a été sauvegardé (le compte, le travail, les
@@ -8,7 +8,7 @@
 // session à moitié lue. ⚠️ `egal` compare en JSON, qui écrit un `Set` comme
 // `{}` : les `Set` se comparent ici en tableaux, et leur type se vérifie à part.
 
-import { ACCOUNT_SCHEMA, StoredAccount } from '../src/lib/accountStore';
+import { ACCOUNT_SCHEMA, compteValide, StoredAccount } from '../src/lib/accountStore';
 import {
   parseAccountBox,
   parseAccountExportDate,
@@ -18,10 +18,12 @@ import {
   parseRuneMarkerLabels,
   parseUsedRuneIdsParPerimetre,
 } from '../src/lib/importAccount';
-import { buildOptimizerRecipe, parseOptimizerRecipe } from '../src/lib/optimizerRecipe';
 import { DEFAULT_DAMAGE_SETUP } from '../src/lib/damage';
+import { CHAMPS_OPTIMIZER_HORS_SESSION, CHAMPS_OPTIMIZER_SESSION, photoOptimizer } from '../src/lib/sessionOptimizer';
+import type { OptimizerState } from '../src/hooks/useOptimizerState';
 import {
   CLES_SESSION,
+  compteDeSession,
   composerSession,
   decoder,
   ecrireSession,
@@ -53,24 +55,21 @@ function compteDe(texte: string): StoredAccount {
   };
 }
 
-const recette = () =>
-  buildOptimizerRecipe({
-    monsterCom2usId: 14013,
-    monsterName: 'Lushen (test)',
-    requirement: { sets: ['violent'], minStats: { spd: 180 } },
-    objective: 'degats_reels',
-    damageSetup: DEFAULT_DAMAGE_SETUP,
-    metric: 'eff',
-    slotFilterPreset: 'bas',
-    adaptiveTrancheWeighting: false,
-    exhaustiveSearch: false,
-    excludeUsedRunes: false,
-    excludeUsedScope: 'rta',
-    excludedSelectors: [],
-    ignoreArtifacts: false,
-    artifactMainByKind: { element: 'libre', archetype: 'libre' },
-    relicMainChoice: 'equipped',
-  });
+// La photo de l'Optimizer (`photoOptimizer`) : quelques champs de la
+// session, et deux qui n'en sont pas (à écarter).
+const photo = (): Record<string, unknown> => ({
+  selectedId: 'box-14013',
+  comboSets: ['Violent'],
+  minStats: { spd: 180 },
+  lockedRunes: { 2: 98765 },
+  objective: 'degats_reels',
+  damageSetup: DEFAULT_DAMAGE_SETUP,
+  excludedSelectors: [],
+  sortBy: 'efficience',
+  // Hors session : interface, et un champ inconnu.
+  showAdvanced: true,
+  futurChamp: 1,
+});
 
 function sources(): SourcesSession {
   return {
@@ -100,7 +99,7 @@ function sources(): SourcesSession {
       'sidebar.retractee': true,
       'mobileNotice.ferme': true,
     },
-    optimizer: recette(),
+    optimizer: photo(),
   };
 }
 
@@ -129,7 +128,8 @@ export default function testSession() {
   const map = s.outils.memoire['recos.parId'];
   ok(map instanceof Map && JSON.stringify([...map]) === JSON.stringify([['r1', { ouvert: true }]]), 'outils : une Map revient en Map');
   ok(!('sidebar.retractee' in s.outils.memoire) && !('mobileNotice.ferme' in s.outils.memoire), 'hors session : les préférences d’interface');
-  egal(s.outils.optimizer, parseOptimizerRecipe(JSON.stringify(recette())).recipe, 'outils : la recette de l’Optimizer');
+  const { showAdvanced: _i, futurChamp: _f, ...attendue } = photo();
+  egal(s.outils.optimizer, attendue, 'outils : la photo de l’Optimizer, champs de la session seulement');
 
   titre('session · Set et Map dans du JSON');
   const imbrique = { a: new Set([1, 2]), b: [new Set(['x'])], c: new Map([[1, new Set([3])]]) };
@@ -156,12 +156,39 @@ export default function testSession() {
   titre('session · lue malgré une partie périmée, et dit');
   const perime = lireSession(JSON.stringify({ ...base, compte: { ...base.compte, schema: 6 } }));
   ok(perime.ok && perime.session.compte === null && perime.avertissements.some((a) => a.includes('réimporte')), 'compte d’un schéma périmé : laissé, et dit');
-  const recetteAbimee = lireSession(JSON.stringify({ ...base, outils: { ...base.outils, optimizer: { version: 99 } } }));
-  ok(recetteAbimee.ok && recetteAbimee.session.outils.optimizer === null && recetteAbimee.avertissements.some((a) => a.includes('Optimizer')), 'recette de l’Optimizer illisible : ignorée, et dit');
+  const optimizerAbime = lireSession(JSON.stringify({ ...base, outils: { ...base.outils, optimizer: [1, 2] } }));
+  ok(optimizerAbime.ok && optimizerAbime.session.outils.optimizer === null && optimizerAbime.avertissements.some((a) => a.includes('Optimizer')), 'Optimizer illisible : ignoré, et dit');
+  const horsChamps = lireSession(JSON.stringify({ ...base, outils: { ...base.outils, optimizer: { sortBy: 'vitesse', search: { resultats: [] } } } }));
+  egal(horsChamps.ok ? horsChamps.session.outils.optimizer : 'refusée', { sortBy: 'vitesse' }, 'Optimizer : un champ hors session (les résultats) écarté à la relecture');
   const inconnu = lireSession(JSON.stringify({ ...base, futurChamp: { x: 1 }, stockage: { ...base.stockage, 'swblacksmith-futur-v1': '1' } }));
   ok(inconnu.ok && !('swblacksmith-futur-v1' in inconnu.session.stockage), 'un champ ou une clé inconnus : ignorés');
   const sansCompte = lireSession(JSON.stringify({ ...base, compte: null }));
   ok(sansCompte.ok && sansCompte.session.compte === null && sansCompte.avertissements.length === 0, 'une session sans compte : lue, sans avertissement');
+
+  titre('session · le compte en mémoire');
+  const { schema: _s, savedAt: _d, ...enMemoire } = compteDe(exportSynthetique());
+  const vide = { ...enMemoire, box: [], runes: [], artifacts: [] };
+  egal(compteDeSession(vide, new Date(0)), null, 'ni box, ni rune, ni artéfact : pas de compte');
+  const compte = compteDeSession(enMemoire, new Date(1_790_000_000_000));
+  ok(compte?.schema === ACCOUNT_SCHEMA && compte.savedAt === 1_790_000_000_000, 'au schéma courant, daté du clic');
+  egal(compteValide(compte), compte, 'relu par la même validation qu’IndexedDB');
+
+  titre('session · la photo de l’Optimizer');
+  const dedans = new Set<string>(CHAMPS_OPTIMIZER_SESSION);
+  ok(CHAMPS_OPTIMIZER_HORS_SESSION.every((c) => !dedans.has(c)), 'un champ est dans la session OU hors session, jamais les deux');
+  ok(dedans.has('gearSource') && dedans.has('sourceSelector'), 'l’exemplaire (source et entrée) est dans la session');
+  ok(!dedans.has('search'), 'la recherche et ses résultats n’y sont pas');
+  // Un faux état : chaque champ classé porte une valeur reconnaissable, plus
+  // une fonction ; la photo ne garde que les champs de la session, tels quels.
+  const valeurs = new Map<string, object>();
+  const etat: Record<string, unknown> = { setSortBy: () => {} };
+  for (const c of [...CHAMPS_OPTIMIZER_SESSION, ...CHAMPS_OPTIMIZER_HORS_SESSION]) {
+    valeurs.set(c, { champ: c });
+    etat[c] = valeurs.get(c);
+  }
+  const photoPrise = photoOptimizer(etat as unknown as OptimizerState);
+  egal(Object.keys(photoPrise).sort(), [...CHAMPS_OPTIMIZER_SESSION].sort(), 'la photo : les champs de la session, et eux seuls');
+  ok(CHAMPS_OPTIMIZER_SESSION.every((c) => photoPrise[c] === valeurs.get(c)), 'chaque valeur telle quelle (même objet)');
 
   titre('session · le nom du fichier');
   egal(nomFichierSession(new Date(2026, 9, 6, 15, 42)), 'swblacksmith-session-2026-10-06-15h42.json', 'daté à l’heure locale');

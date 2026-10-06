@@ -15,12 +15,14 @@ import AccountImportControl from '../components/AccountImportControl';
 // aperçu puisqu'on n'ouvre jamais les deux à la fois.
 export default function SettingsPage({
   onClearData,
+  onSauvegarderSession,
   onKeepAccount,
   onImport,
   accountExportedAt,
   accountName,
 }: {
   onClearData?: () => void;
+  onSauvegarderSession?: () => void;
   onKeepAccount?: () => void;
   accountExportedAt?: number | null;
   // Nom du joueur dont le compte est chargé. ⚠️ Répété ici parce que la barre
@@ -75,6 +77,7 @@ export default function SettingsPage({
       <div className="mt-5">
         <SettingsList
           onClearData={onClearData}
+          onSauvegarderSession={onSauvegarderSession}
           onKeepAccount={onKeepAccount}
           accountExportedAt={accountExportedAt}
           groupes

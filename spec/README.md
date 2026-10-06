@@ -286,7 +286,9 @@ Outillage du dépôt (pas une page de l'app) :
       rapide de l'équipe** (même lead, vitesse de runes, set et passif) : on tune
       alors contre soi-même. Sans lui, la copie n'est posée que si personne n'est
       en face. Voir [outils/speed-tuning.md](outils/speed-tuning.md).
-    - **Mes données** → « Tout supprimer ».
+    - **Session** → « Sauvegarder » : tout l'état de l'app dans un fichier
+      (voir [shared/sauvegarde-session.md](shared/sauvegarde-session.md)) ;
+    - **Mes données** → « Tout supprimer », toujours la dernière ligne du bloc.
     - **Application** — dans l'**application de bureau seulement** (absent du
       site) : la version installée et UN bouton qui suit la mise à jour
       (« Rechercher », « Mettre à jour », « Redémarrer »… — toujours

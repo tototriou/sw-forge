@@ -1,29 +1,29 @@
-// La sauvegarde de session — le format (chantier sauvegarde-session, lot 1).
+// La sauvegarde de session — le format. Voir spec/shared/sauvegarde-session.md.
 //
 // Tout l'état de l'app à un instant donné, dans UN fichier que l'utilisateur
-// place où il veut et recharge plus tard, comme une sauvegarde de jeu
-// (décision 2) : le travail et les réglages (le stockage local), le compte
-// importé (IndexedDB), l'état des outils (mémoire : `useStickyState`, et la
-// recette de l'Optimizer). Ce module est PUR : il compose, écrit et relit ;
-// il ne lit ni n'écrit rien dans l'app (lots 2 et 3).
+// place où il veut et recharge plus tard, comme une sauvegarde de jeu : le
+// travail et les réglages (le stockage local), le compte importé, l'état des
+// outils (mémoire : `useStickyState`, et la photo de l'Optimizer,
+// sessionOptimizer.ts). Ce module est PUR : il compose, écrit et relit ; il
+// ne lit ni n'écrit rien dans l'app.
 //
 // ⚠️ **Un fichier se relit entier, puis se valide, avant que l'app n'y
-// touche** (A.6 du cadrage) : `lireSession` rend une session valide ou une
-// erreur dite, jamais une session à moitié lue.
-// ⚠️ **Relisible par les versions suivantes** (A.3) : un champ inconnu est
+// touche** : `lireSession` rend une session valide ou une erreur dite,
+// jamais une session à moitié lue.
+// ⚠️ **Relisible par les versions suivantes** : un champ inconnu est
 // ignoré ; une version PLUS RÉCENTE que celle-ci est refusée, avec un
 // message, plutôt que lue de travers.
 
-import { compteValide, StoredAccount } from './accountStore';
+import { ACCOUNT_SCHEMA, compteValide, StoredAccount } from './accountStore';
 import { formatExport, formatReconnu } from './formatsExport';
-import { OptimizerRecipe, parseOptimizerRecipe } from './optimizerRecipe';
+import { CHAMPS_OPTIMIZER_SESSION } from './sessionOptimizer';
 import { PREFIXE_FICHIER } from '../marque';
 
 export const FORMAT_SESSION = formatExport('session');
 export const VERSION_SESSION = 1;
 
 // Le travail et les réglages : les clés du stockage local qui entrent dans
-// une session (décision 2), et elles seules — à la relecture, une clé hors de
+// une session, et elles seules — à la relecture, une clé hors de
 // cette liste est ignorée. Hors liste, à dessein : « Garder mes données »
 // (`-persist-v1`), propre à l'appareil, et les anciennes clés déjà migrées.
 export const CLES_SESSION = [
@@ -67,7 +67,7 @@ export function valeurStockageValide(cle: (typeof CLES_SESSION)[number], valeur:
 }
 
 // L'état des outils en mémoire (`useStickyState`) : tout, sauf les
-// préférences d'interface propres à l'appareil (décision 5).
+// préférences d'interface propres à l'appareil.
 export const STICKY_HORS_SESSION = ['sidebar.retractee', 'mobileNotice.ferme'] as const;
 
 export interface Session {
@@ -83,8 +83,9 @@ export interface Session {
   outils: {
     // Clé `useStickyState` → valeur ; `Set` et `Map` encodés (`encoder`).
     memoire: Record<string, unknown>;
-    // La recette de l'Optimizer : ses critères ; `null` sans monstre choisi.
-    optimizer: OptimizerRecipe | null;
+    // L'Optimizer : la photo de ses champs de données (`photoOptimizer`) —
+    // sélection, critères, tri ; encodée comme la mémoire.
+    optimizer: Record<string, unknown> | null;
   };
 }
 
@@ -94,7 +95,7 @@ export interface SourcesSession {
   stockage: Record<string, string | null | undefined>;
   compte: StoredAccount | null;
   memoire: Record<string, unknown>;
-  optimizer: OptimizerRecipe | null;
+  optimizer: Record<string, unknown> | null;
 }
 
 // ── `Set` et `Map` en JSON ──────────────────────────────────────────────
@@ -134,7 +135,21 @@ export function decoder(valeur: unknown): unknown {
   return valeur;
 }
 
+// Les champs de l'Optimizer qui voyagent (sessionOptimizer.ts), et eux seuls.
+function garderChampsOptimizer(o: Record<string, unknown>): Record<string, unknown> {
+  const garde: Record<string, unknown> = {};
+  for (const champ of CHAMPS_OPTIMIZER_SESSION) if (champ in o) garde[champ] = o[champ];
+  return garde;
+}
+
 // ── Composer, écrire ────────────────────────────────────────────────────
+
+// Le compte de la session : celui EN MÉMOIRE dans l'app (le dernier import),
+// au schéma courant ; `null` sans compte (ni box, ni rune, ni artéfact).
+export function compteDeSession(compte: Omit<StoredAccount, 'schema' | 'savedAt'>, maintenant: Date): StoredAccount | null {
+  if (compte.box.length === 0 && compte.runes.length === 0 && compte.artifacts.length === 0) return null;
+  return { schema: ACCOUNT_SCHEMA, savedAt: maintenant.getTime(), ...compte };
+}
 
 export function composerSession(s: SourcesSession): Session {
   const stockage: Session['stockage'] = {};
@@ -153,14 +168,14 @@ export function composerSession(s: SourcesSession): Session {
     versionApp: s.versionApp,
     stockage,
     compte: s.compte,
-    outils: { memoire, optimizer: s.optimizer },
+    outils: { memoire, optimizer: s.optimizer ? (encoder(garderChampsOptimizer(s.optimizer)) as Record<string, unknown>) : null },
   };
 }
 
 // Compact : le compte pèse quelques Mo, l'indentation les doublerait.
 export const ecrireSession = (session: Session): string => JSON.stringify(session);
 
-// `swblacksmith-session-2026-10-06-15h42.json` (décision 6), à l'heure locale.
+// `swblacksmith-session-2026-10-06-15h42.json`, à l'heure locale.
 export function nomFichierSession(d: Date): string {
   const n = (x: number) => String(x).padStart(2, '0');
   return `${PREFIXE_FICHIER}-session-${d.getFullYear()}-${n(d.getMonth() + 1)}-${n(d.getDate())}-${n(d.getHours())}h${n(d.getMinutes())}.json`;
@@ -229,11 +244,13 @@ export function lireSession(texte: string): LectureSession {
       if (!(STICKY_HORS_SESSION as readonly string[]).includes(cle)) memoire[cle] = decoder(v);
     }
   }
-  let optimizer: OptimizerRecipe | null = null;
+  // L'Optimizer : les champs connus, et eux seuls. Leur FORME se vérifie au
+  // chargement, contre l'état de l'écran — ici, seulement un objet.
+  let optimizer: Record<string, unknown> | null = null;
   if (out.optimizer !== undefined && out.optimizer !== null) {
-    const r = parseOptimizerRecipe(JSON.stringify(out.optimizer));
-    if (r.recipe) optimizer = r.recipe;
-    else avertissements.push(`Les critères de l’Optimizer de cette sauvegarde sont ignorés : ${r.error}`);
+    if (typeof out.optimizer === 'object' && !Array.isArray(out.optimizer)) {
+      optimizer = decoder(garderChampsOptimizer(out.optimizer as Record<string, unknown>)) as Record<string, unknown>;
+    } else avertissements.push('Les critères de l’Optimizer de cette sauvegarde sont illisibles : ignorés.');
   }
 
   return {

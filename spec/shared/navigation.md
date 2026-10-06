@@ -405,7 +405,9 @@ Refonte graphique, lot 13, décision 29 de Thomas, la maquette (planche
   avant, dérivées des mêmes constantes), **Monstres** (le bestiaire ; choisir
   ouvre la **fiche** du monstre, sans changer de page), **Actions**.
 - **Actions** (décision 29) — aucune destructrice : **Importer mon compte**
-  (le choix de fichier des Paramètres) ; **Thème auto / clair / sombre** ;
+  (le choix de fichier des Paramètres) ; **Sauvegarder la session** (le
+  bouton des Paramètres, [sauvegarde-session.md](sauvegarde-session.md)) ;
+  **Thème auto / clair / sombre** ;
   **Créer une recommandation** (ouvre les Recommandations et en crée une) ;
   **Mesure : efficience / score SW** (le réglage du menu ⚙) ; **Speed tuning
   d'une équipe** (les équipes de siège dont un monstre correspond à la

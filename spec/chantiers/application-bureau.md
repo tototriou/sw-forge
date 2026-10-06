@@ -121,7 +121,7 @@ Q1 → 7 (les données dépendent du choix de Thomas)
 | 1 coquille Electron | J | **fait** — protocole `app://`, mode preuve, 19 tests | `dbcc1db0`, 2026-10-05 |
 | 1 bis habillage de la fenêtre (décision 7) | J | **validé par Thomas** (« oui tu peux commit ») — barre intégrée, état mémorisé, sans menu | `274cda58`, 2026-10-05 |
 | 2 le web dans la coquille (liens, téléchargements, audience, `estBureau`) | J | **validé par Thomas** (« c'est tout bon ») — liens au navigateur, navigations bloquées, « Enregistrer sous » | `f21e54ee`, 2026-10-06 |
-| 3 empaquetage Windows (NSIS) et Linux (AppImage) | M | à faire | |
+| 3 empaquetage Windows (NSIS) et Linux (AppImage) | M | **validé par Thomas** (« ok ») — assistant d'installation, icône, désinstallation sans reste ; AppImage au lot 4 | `6286cfb6`, 2026-10-06 |
 | 4 action GitHub au tag | J | à faire | |
 | 5 mise à jour automatique | J | à faire | |
 | 6 « Télécharger pour Windows » sur le site | J | à faire | |
@@ -344,6 +344,26 @@ taille mesurée, installation, lancement, désinstallation propre. L'AppImage
 se construit sous Linux : sa preuve vient du lot 4 (CI).
 
 **Ne fait pas** : signature (Q2), publication.
+
+**Résultat (2026-10-06)** — `6286cfb6`, validé par Thomas après deux
+séances d'écran, preuve [lot-3.md](application-bureau-preuves/lot-3.md).
+Installeur 112,9 Mo, non signé ; `app.asar` 14,1 Mo, `dist/` et deux
+`.cjs`, aucun `node_modules`. Tous les contrôles des lots 1 à 2 passent
+dans l'app installée. Réinstallation par-dessus : données gardées ;
+désinstallation : rien ne reste. Mutation du pilote (icône convertie par
+electron-builder) : 7 tailles PNG relues dans l'exécutable — détectée,
+restaurée. Écarts :
+- décision 8 amendée après la première séance : un assistant au lieu d'un
+  clic, et l'icône, absente (`bureau/icone.ico`, BMP + PNG 256) ;
+- trouvés par la preuve : dossier de preuve embarqué, `productName` absent
+  du package.json embarqué, 113 Mo laissés par la désinstallation
+  (`bureau/installeur.nsh`) ;
+- la désinstallation efface aussi `%APPDATA%\swblacksmith`, les données de
+  `bureau:local` (nom npm) : machine de développement seulement ;
+- deux lancements de preuve ouverts réduits, cause non établie ; la preuve
+  le note (`ouverteReduite`) ;
+- non prouvés : mise à jour N → N+1 (lot 5), installation « tous les
+  utilisateurs », SmartScreen (installeur publié, lot 4), AppImage (lot 4).
 
 ### Lot 4 — l'action GitHub au tag · J
 

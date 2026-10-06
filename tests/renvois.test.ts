@@ -80,9 +80,11 @@ const RACINES = ['spec', 'src', 'scripts', 'tests', '.claude', '.agents'];
 const C = '\\p{L}\\p{M}\\p{N}_.\\-/@+';
 const RE_NU = new RegExp(`(?<![${C}\\\\~])(?:${RACINES.map((r) => r.replace('.', '\\.')).join('|')})/[${C}<>*{}$]*`, 'gu');
 const RE_REL = new RegExp(`(?<![${C}\\\\])\\.\\./[${C}<>*{}$]*`, 'gu');
-// Destination entre chevrons (espaces admis) ou sans espace ; titre entre
-// "…", '…' ou (…). Une parenthèse dans le chemin n'est pas traitée.
-const RE_LIEN = /!?\[[^\]]*\]\(\s*(?:<([^>\n]*)>|([^)\s]*))(?:\s+(?:"[^"]*"|'[^']*'|\([^)]*\)))?\s*\)/g;
+// Destination entre chevrons (espaces admis) ou nue, sans espace et qui ne
+// commence pas comme un titre ; titre entre "…", '…' ou (…). Une destination
+// nue qui contient `(` n'est pas vérifiée.
+const RE_LIEN = /!?\[[^\]]*\]\(\s*(?:<([^>\n]*)>|([^)\s"'(][^)\s]*))?(?:\s+(?:"[^"]*"|'[^']*'|\([^)]*\)))?\s*\)/g;
+const RE_CLOTURE = /^\s{0,3}(`{3,}|~{3,})/;
 const RE_DEF = /^\s{0,3}\[[^\]]+\]:\s*(?:<([^>\n]*)>|(\S+))/;
 const RE_BACK = /`([^`\n]+)`/g;
 const RE_SUITE = new RegExp(`^[${C}]+`, 'u');
@@ -241,6 +243,7 @@ export function releverFichier(
     occ.push({ fichier, ligne: n + 1, forme, renvoi, statut: res.statut, candidats: res.candidats });
   };
 
+  let fence: string | null = null;
   for (let n = 0; n < lignes.length; n++) {
     // Spécificateurs de module masqués hors des commentaires seulement.
     const L = type === 'code'
@@ -248,27 +251,42 @@ export function releverFichier(
       : lignes[n];
     const couverts: [number, number][] = [];
     const couvert = (a: number, b: number) => couverts.some(([x, y]) => a < y && b > x);
-    // 1. lien Markdown relatif, toujours relevé hors schéma, ancre seule et
-    // destination vide ; définition de lien par référence, Markdown seulement
-    for (const m of L.matchAll(RE_LIEN)) {
-      if (!texteOuComm(n, m.index!)) continue;
+    // Bloc de code clôturé (Markdown) : ni lien ni définition de lien.
+    const cloture = type === 'markdown' ? L.match(RE_CLOTURE) : null;
+    if (cloture) {
+      if (!fence) fence = cloture[1];
+      else if (cloture[1][0] === fence[0] && cloture[1].length >= fence.length) fence = null;
+    }
+    const dansBloc = !!cloture || fence !== null;
+    // Code en ligne : un lien écrit entre backticks est un exemple, pas un lien.
+    const codeEnLigne = [...L.matchAll(RE_BACK)].map((m) => [m.index!, m.index! + m[0].length] as [number, number]);
+    const dansCodeEnLigne = (a: number) => codeEnLigne.some(([d, f]) => a > d && a < f);
+    const exclue = (cible: string) => !cible || RE_SCHEMA.test(cible) || cible.startsWith('//') || cible.startsWith('#');
+    // 1. lien Markdown relatif, toujours relevé hors schéma, URL en `//`, ancre
+    // seule et destination vide ; définition de lien par référence, Markdown seulement
+    for (const m of dansBloc ? [] : [...L.matchAll(RE_LIEN)]) {
+      if (!texteOuComm(n, m.index!) || dansCodeEnLigne(m.index!)) continue;
       const cible = (m[1] ?? m[2] ?? '').trim();
       couverts.push([m.index!, m.index! + m[0].length]);
-      if (!cible || RE_SCHEMA.test(cible) || cible.startsWith('#')) continue;
+      if (exclue(cible)) continue;
+      if (m[2] !== undefined && cible.includes('(')) {
+        occ.push({ fichier, ligne: n + 1, forme: 'lien Markdown', renvoi: cible, statut: 'non verifie', candidats: [] });
+        continue;
+      }
       ajouter(n, m.index!, 'lien Markdown', cible);
     }
-    const def = L.match(RE_DEF);
+    const def = dansBloc ? null : L.match(RE_DEF);
     if (def && type === 'markdown') {
       couverts.push([0, L.length]);
       const cible = (def[1] ?? def[2] ?? '').trim();
-      if (cible && !RE_SCHEMA.test(cible) && !cible.startsWith('#')) ajouter(n, 0, 'lien Markdown', cible);
+      if (!exclue(cible)) ajouter(n, 0, 'lien Markdown', cible);
     }
-    // 2. chemin entre backticks
+    // 2. chemin entre backticks, nettoyé avant ses filtres
     for (const m of L.matchAll(RE_BACK)) {
       if (!texteOuComm(n, m.index!) || couvert(m.index!, m.index! + m[0].length)) continue;
-      const c = m[1].trim().replace(/:\d[\d\-–]*$/, '');
-      if (/\s/.test(c) || !c.includes('/') || RE_SCHEMA.test(c) || /^[-@]/.test(c) || !RE_TOUT_CHEMIN.test(c)) continue;
-      if (!formeDeChemin(c.replace(/#.*$/, ''))) continue;
+      const c = nettoyer(m[1].trim());
+      if (!c || /\s/.test(c) || !c.includes('/') || RE_SCHEMA.test(c) || /^[-@]/.test(c) || !RE_TOUT_CHEMIN.test(c)) continue;
+      if (!formeDeChemin(c)) continue;
       couverts.push([m.index!, m.index! + m[0].length]);
       ajouter(n, m.index! + 1, 'backticks', c);
     }
@@ -396,6 +414,21 @@ export function testRenvoisFormes() {
     () => releverFichier('spec/outils/optimizer.md', ['[o](optimizer/)'], ordre, []).map((o) => o.statut), ['mort']);
   cas('`.` et `..` préservés, la racine est un dossier',
     () => morts('spec/probe.md', `Voir ../ et ${O}/..`), []);
+  cas('backticks : `:ligne`, `#ancre` et `?requête` retirés avant les filtres',
+    () => morts('spec/c.md', 'Voir `archive/absent.md:12#titre` et `archive/absent.md?raw=1`.'),
+    ['backticks:archive/absent.md', 'backticks:archive/absent.md']);
+  cas('lien vers une URL en `//` : exclu comme un schéma',
+    () => morts('spec/c.md', '[CDN](//example.org/image.svg)'), []);
+  cas('lien à destination vide suivie d’un titre : exclu',
+    () => morts('spec/c.md', `[a]( "Titre") [b]( 'Titre') [c]( (Titre))`), []);
+  const parentheses = construireResolveur([...suivis, 'spec/archive/note(1).md']);
+  cas('destination nue avec `(` : non vérifiée ; entre chevrons : résolue',
+    () => releverFichier('spec/c.md', ['[n](archive/note(1).md) [m](<archive/note(1).md>)'], parentheses, []).map((o) => o.statut),
+    ['non verifie', 'fichier']);
+  cas('lien dans du code en ligne ou un bloc clôturé : un exemple, pas un lien',
+    () => [morts('spec/c.md', 'Exemple : `[texte](url)`.\n```\n[x](absent.md)\n```\n~~~md\n[y](autre.md)\n~~~\n[z](mort.md)'),
+      morts('src/lib/x.ts', '// un lien `[t](archive/absent.md)` en exemple')],
+    [['lien Markdown:mort.md'], []]);
   cas('fichier suivi illisible relevé ; seule l’absence de `.git` est « pas de dépôt », un `.git` invalide lève', () => {
     const bac = mkdtempSync(join(tmpdir(), 'swblacksmith-renvois-'));
     try {

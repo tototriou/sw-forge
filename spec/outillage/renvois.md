@@ -14,15 +14,22 @@ rebranding, qui ne sont pas lues.
 
 - **Lien Markdown relatif**, dans le Markdown et dans les commentaires du
   code, quelle que soit la forme de sa destination : seuls en sont exclus un
-  schéma (`https:`, `mailto:`…), une ancre seule et une destination vide.
-  Destination entre chevrons (espaces admis), titre entre guillemets,
-  apostrophes ou parenthèses ; une parenthèse dans le chemin n'est pas
-  traitée. La définition de lien par référence n'est relevée que dans le
-  Markdown.
-- **Chemin entre backticks**, dans le Markdown et les commentaires : un texte
-  sans espace qui contient `/` et qui a la forme d'un chemin (extension
-  connue, `/` final, racine du dépôt ou `../` en tête). Une version
-  (`release/x.y.z`), une adresse (`/api/v2/`) ou un nom d'hôte n'en sont pas.
+  schéma (`https:`, `mailto:`…), une URL qui commence par `//`, une ancre
+  seule et une destination vide, titre seul compris. Destination entre
+  chevrons (espaces admis), titre entre guillemets, apostrophes ou
+  parenthèses. Une destination nue qui contient `(` n'est pas vérifiée ;
+  entre chevrons, elle est résolue. La définition de lien par référence
+  n'est relevée que dans le Markdown. Un lien écrit en code en ligne (entre
+  backticks), dans le Markdown comme dans un commentaire, ou dans un bloc de
+  code clôturé par trois backticks ou trois tildes, est un exemple : il n'est
+  pas relevé comme lien. Non reconnus : un libellé à crochets imbriqués, une
+  destination sur plusieurs lignes, une définition de lien dont la cible est
+  à la ligne suivante.
+- **Chemin entre backticks**, dans le Markdown et les commentaires : le texte,
+  sans `#ancre`, `?requête` ni `:ligne`, sans espace, qui contient `/` et qui
+  a la forme d'un chemin (extension connue, `/` final, racine du dépôt ou
+  `../` en tête). Une version (`release/x.y.z`), une adresse (`/api/v2/`) ou
+  un nom d'hôte n'en sont pas. Ce contrôle vaut aussi dans un bloc de code.
 - **Chemin nu** qui commence par `spec/`, `src/`, `scripts/`, `tests/`,
   `.claude/` ou `.agents/`, partout : texte, commentaires et chaînes.
 - **Forme relative `../`**, dans le Markdown et les commentaires seulement.
@@ -78,7 +85,9 @@ avec le nombre exact d'occurrences et un propriétaire.
 
 - `a-publier` : renvoi vers les notes de l'Optimizer (une note, ou leur
   dossier), pas encore publiées ; l'entrée disparaît à la publication, ou
-  quand le renvoi est corrigé.
+  quand le renvoi est corrigé. Une mention du dossier lui-même ne disparaît
+  pas à la publication : elle se remplace par le fichier publié qu'elle
+  vise, puis l'entrée se retire.
 - `a-corriger` : renvoi mort déjà pris en charge, à corriger.
 - `thomas` : renvoi qui appartient aux chantiers de refonte graphique et de
   rebranding ; on n'y touche pas.

@@ -23,11 +23,21 @@ ici.
   `relevance` additionne une contribution par minimum posé : une rune utile
   à une partie seulement des conditions se classe d'autant plus bas qu'elles
   sont nombreuses, même si le build final en a besoin. Au-delà de 4
-  minimums, les tranches de `filterSlot` s'élargissent de 20 runes par
-  condition (`FILTER_SLOT_WIDENING_THRESHOLD`,
-  `FILTER_SLOT_WIDENING_PER_CONDITION`) ; c'est une atténuation, pas une
-  garantie : un build réel peut rester introuvable sur une recherche à
-  beaucoup de conditions simultanées.
+  minimums (un minimum de RES ou de PRE couvert par l'aura externe ne
+  compte pas), les tranches de `filterSlot` classées par `relevance`
+  s'élargissent de 20 runes par condition, pas la tranche par stat
+  (`FILTER_SLOT_WIDENING_THRESHOLD`, `FILTER_SLOT_WIDENING_PER_CONDITION`) ;
+  c'est une atténuation, pas une garantie : un build réel peut rester
+  introuvable sur une recherche à beaucoup de conditions simultanées.
+- **Le joker n'est pas crédité de ce qu'il complète, avant la rétention.**
+  Au pré-filtrage, une rune Intangible entre dans la tranche des sets
+  demandés, classée par `relevance` sans valeur de complétion, et jamais
+  dans la tranche hors set : une Intangible aux stats faibles peut y être
+  écartée. L'ordre d'exploration des compartiments ne la crédite pas non
+  plus, ce qui ne joue que si le temps ou le plafond interrompt la
+  recherche. La rétention, elle, n'est pas concernée : deux demi-builds en
+  concurrence pour une place ont les mêmes comptes et le même nombre de
+  jokers (`bucketKeyOf`).
 - **L'ordre d'exploration est une heuristique.** Les compartiments sont
   triés par potentiel, les paires de compartiments visitées par potentiel
   combiné (`orderedCompartmentPairs`), les demi-builds d'un compartiment
@@ -62,8 +72,9 @@ ici.
 ## L'objectif de recherche oriente, il ne garantit pas
 
 - **La pertinence ne lit jamais l'objectif.** `relevance`, qui classe les
-  runes des deux premières tranches de `filterSlot` et alimente la tranche
-  générique de `buildBuckets`, ne dépend que des minimums posés.
+  runes des tranches de `filterSlot` hors tranche par stat, ne dépend que
+  des minimums posés. La tranche générique de `buildBuckets` se classe,
+  elle, par l'efficience des trois runes (`relevanceScore`).
 - **L'objectif agit à trois endroits, tous heuristiques** : il élargit la
   tranche par stat de `filterSlot` pour ses stats (`PER_STAT_KEEP_OBJECTIVE`,
   24 runes au lieu de 6) ; il ajoute à chaque compartiment une tranche de
@@ -175,11 +186,13 @@ et [harnais-extensions.md § Le différentiel : l'oracle](harnais-extensions.md)
 - le harnais ne rend que le haut du classement (`TAILLE_TOP_RENDU`) et, avec
   un build cible seulement, le nombre de candidats collectés : le
   différentiel compare ce haut et ce nombre, jamais l'ensemble ;
-- sous `maxMs`, le verdict, la population, le classement et le quasi-succès
-  d'un différentiel ne se comparent pas entre bras dont le nombre de paires
-  explorées diffère au-delà de leur dispersion ; et un quota
-  (`maxCollected`) que la recherche n'atteint pas ne tronque rien
-  (`scripts/lib/diagnosticDifferentiel.ts`) ;
+- entre deux bras tronqués, le verdict, la population, le classement et le
+  quasi-succès d'un différentiel ne se comparent pas quand le nombre de
+  paires explorées diffère au-delà de leur dispersion
+  (`scripts/lib/diagnosticDifferentiel.ts`) ; un plafond de candidats
+  (`maxCollected`) que la recherche n'atteint pas ne tronque pas une
+  recherche séquentielle, mais en appariement parallèle une tranche tronque
+  dès qu'elle atteint sa part (motif `quotaTranche`) ;
 - en appariement parallèle, l'instant de découverte d'un build cible est
   relevé à intervalle de temps, non reproductible : comparer deux
   configurations sur cette grandeur demande le régime séquentiel.

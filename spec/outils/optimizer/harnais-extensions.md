@@ -459,11 +459,11 @@ sensible à aucun axe (`scripts/lib/diagnosticProfils.ts:141-158`).
 est un champ de la surface d'override (`AxeDifferentiel`,
 `scripts/lib/diagnosticDifferentiel.ts:73-85`), chaque valeur lue avec la
 sévérité de l'option homonyme (`LECTEURS_AXE`, `scripts/diagnostic-harness.ts:238-284`).
-Refusés avant tout run (`scripts/diagnostic-harness.ts:954-1005`) : un
-différentiel sans `--profil`, ou avec `--cas`, `--synthetique`,
-`--compte`/`--recette` — un lot fait varier le cas, un différentiel la
-condition ; deux valeurs égales ; `--suivre` ; l'axe `combosOrderMode` sur un
-profil sans `objective`, soit aujourd'hui sur les trois.
+Deux valeurs égales sont refusées dès la lecture (même plage). Refusés avant
+tout run (`scripts/diagnostic-harness.ts:954-1005`) : un différentiel sans
+`--profil`, ou avec `--cas`, `--synthetique`, `--compte`/`--recette` — un lot
+fait varier le cas, un différentiel la condition ; `--suivre` ; l'axe
+`combosOrderMode` sur un profil sans `objective`, soit aujourd'hui les trois.
 
 Chaque bras est résolu une fois, avant la boucle, qui relaie
 `executerHarnaisResolu` sans appeler le moteur ; `--repetitions` est consommé

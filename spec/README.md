@@ -106,6 +106,9 @@ Outillage du dépôt (pas une page de l'app) :
 - [outillage/renvois.md](outillage/renvois.md) — garde-fou des renvois :
   formes relevées, résolution dans les fichiers suivis, exemptions, liste
   tolérée.
+- [outils/optimizer/harnais.md](outils/optimizer/harnais.md) — harnais de
+  diagnostic de l'Optimizer : mode d'emploi des scripts et ce qu'ils
+  garantissent.
 
 ## Conventions communes (toutes les pages)
 

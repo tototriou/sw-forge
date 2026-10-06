@@ -18,6 +18,8 @@ Publiés :
 - [invariants.md](invariants.md) — les contraintes critiques, chacune avec sa
   source.
 - [README.md](README.md) — ce routage.
+- [harnais.md](harnais.md) — mode d'emploi du harnais de diagnostic et ce
+  qu'il garantit.
 
 Annoncés : un lien vers l'un d'eux désigne sa place avant qu'il paraisse ;
 d'ici là, la section de [../optimizer.md](../optimizer.md) citée dans la
@@ -47,8 +49,6 @@ même ligne du tableau décrit le sujet.
   benchmarks.
 - [limites-connues.md](limites-connues.md) — ce que le moteur ne garantit
   pas.
-- [harnais.md](harnais.md) — mode d'emploi du harnais de diagnostic et ce
-  qu'il garantit.
 - [pistes.md](pistes.md) — les pistes futures.
 
 ## Je touche…

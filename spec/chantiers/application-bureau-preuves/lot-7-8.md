@@ -81,10 +81,26 @@ ok  mêmes bases IndexedDB
   rendurta` → **568 passées** ; `tsc`, `npm run build` sans erreur.
 - `npm run bureau:preuve` : tous les contrôles des lots 1 à 6 passent.
 
+## Mutation du pilote (après commit) — refuser
+
+La preuve répond « Non, ne rien garder de mes informations » au lieu de
+« Garder » : code de sortie 1 —
+
+```text
+ok  import puis « Garder »            (le clic a eu lieu, sur l'autre bouton)
+ok  compte affiché après import
+KO  compte affiché après réouverture
+KO  conservation activée, et retenue
+KO  mêmes clés de stockage, même taille
+ok  mêmes bases IndexedDB             (la base existe, sans le compte)
+```
+
+La preuve attrape la perte ; et le cas inverse est prouvé du même coup :
+refuser, c'est retrouver une app vide à la réouverture. Restaurée
+(`git checkout --`).
+
 ## Ce qui n'est pas prouvé
 
-- **Refuser « Garder mes données »** puis rouvrir : rien ne devrait
-  rester — pas lancé (mutation prévue après commit).
 - La conservation dans l'app **installée** (`--exe`) : lancée sur le build
   seulement.
 - Les variantes de texte **à l'écran dans l'app** : prouvées par le rendu

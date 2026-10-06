@@ -26,6 +26,14 @@ ouvrir. Ne pas explorer `src/` à l'aveugle.
   invariants d'une section d'état actuel nouvelle/modifiée : skill
   `spec-hygiene` (déplacer, découper, extraire — pas pour une faute, un lien
   ou un en-tête).
+- **Public et privé.** Le dépôt est public : tout `spec/` l'est, et rien de
+  public ne renvoie aux notes privées du projet (ni chemin, ni nom de
+  dossier de notes). Restent privés le pilotage des chantiers, les
+  preuves, l'historique, les délibérations et les mesures sur des cas
+  réels. Dans le public : ni date hors date du jeu, ni identifiant de lot
+  ou de décision privée, ni « décision de l'utilisateur », ni récit ; la
+  règle et sa raison suffisent. Détail : spec/outillage/spec.md § Public
+  et privé.
 - **Pendant le travail, on ne lance QUE les vérifications de la zone touchée** :
   `node tests/run.mjs <filtre>` (ex. `node tests/run.mjs speed-tune`, plusieurs
   filtres possibles). La **suite complète** (`npm test`) est obligatoire **avant
@@ -131,7 +139,7 @@ travaille jamais, on en part.
   (une spec publiée y ajoute sa ligne dans le même commit), un fichier de
   plus de 5 Mo (un export de compte), et un `spec/**.md` du périmètre de
   `spec/spec-lint.json` qui ne passe pas `spec-lint` (niveau 1, invariant
-  dépôt — spec/outillage/spec.md, ex-B.9, « Refus du `pre-commit` »).
+  dépôt — spec/outillage/spec.md § Refus du `pre-commit`).
   Il est **installé par machine**, donc actif quelle que soit la branche —
   mais jamais requis : un clone neuf n'en a pas et commite normalement.
   Il s'installe par `node scripts/installer-hooks.mjs` (`--simulation` pour
@@ -232,7 +240,7 @@ positifs permanents, `$(…)` étant une construction légitime. Test :
 lancé avec une option en place (`-i`, `-i.bak`, `-Ei`, `--in-place`, derrière
 `find -exec` ou `xargs` compris), jamais le texte « sed -i » cité ni un corps
 de heredoc. Raison d'être : un `sed -i` raté ne signale
-rien — décision de l'utilisateur du 2026-10-04. Test :
+rien. Test :
 `node tests/run.mjs hookrefusesedi`. Câblage dans `.claude/settings.json`
 (deux entrées : `Bash`, `PowerShell`), à recopier comme le premier. Côté
 Codex, non couvert.
@@ -246,7 +254,8 @@ Codex, non couvert.
 d'être : même logique que `refuse-commit-m` — une consigne écrite (« jamais
 un fichier entier de plus de 300 lignes ») s'érode à l'usage, un refus au
 moment de l'action non. Portée **étroite et assumée** (niveau 2, garde-fou
-outil, pas invariant, spec/outillage/spec.md ex-B.9) : ne couvre ni `cat`
+outil, pas invariant, spec/outillage/spec.md § Niveaux d'application et
+garde-fous) : ne couvre ni `cat`
 ni un autre outil de lecture, seulement le chemin `Read` de Claude Code.
 Équivalent Codex dans `scripts/hooks-codex-garde-fous.mjs`, actif avec
 ou sans chantier (`node scripts/installer-hooks.mjs --codex-hooks

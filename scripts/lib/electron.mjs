@@ -23,7 +23,8 @@ export function lancerElectron(supplement = {}) {
   return spawn(executable, ['.'], { stdio: 'inherit', env: environnement(supplement) });
 }
 
-// Lance l'app et attend sa fin.
-export function lancerElectronEtAttendre(supplement = {}, delai = 120_000) {
-  return spawnSync(executable, ['.'], { stdio: 'inherit', env: environnement(supplement), timeout: delai });
+// Lance l'app et attend sa fin. `exe` : une app INSTALLÉE (lot 3), lancée
+// telle quelle — elle aussi est un Electron, la variable la concerne aussi.
+export function lancerElectronEtAttendre(supplement = {}, delai = 120_000, exe) {
+  return spawnSync(exe ?? executable, exe ? [] : ['.'], { stdio: 'inherit', env: environnement(supplement), timeout: delai });
 }

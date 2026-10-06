@@ -49,6 +49,21 @@ export async function lancerPreuve(fenetre: BrowserWindow, dossier: string, raci
     }
     await attendre(2500);
 
+    // ── Lot 3 : l'app installée ──────────────────────────────────────────
+    // Empaquetée, elle porte le nom de electron-builder.yml (`SW Blacksmith`,
+    // dossier des données) ; lancée par `bureau:local`, celui de package.json.
+    resultats.empaquetee = app.isPackaged;
+    resultats.nomApp = app.getName();
+    // ⚠️ Windows impose au PREMIER affichage l'état demandé par le processus
+    // qui lance l'app (STARTUPINFO) : lancée depuis un shell caché, elle
+    // s'ouvre réduite — sans boutons de fenêtre ni capture possible. Un
+    // double-clic l'ouvre normalement. La preuve la rouvre et le note.
+    resultats.ouverteReduite = fenetre.isMinimized();
+    if (fenetre.isMinimized()) {
+      fenetre.restore();
+      await attendre(1000);
+    }
+
     // ── Lot 1 : la coquille ──────────────────────────────────────────────
     resultats.origine = await js('location.origin');
     resultats.titre = fenetre.getTitle();

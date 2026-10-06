@@ -17,7 +17,7 @@ disent ce que contient chaque brique. Le comportement attendu, lui, est dans
 | Node | ≥ 24 |
 | Calcul lourd | 2 Web Workers (`src/workers/`) |
 | Stockage | `localStorage` (prépa, équipes, réglages) + **IndexedDB** (compte importé) |
-| Application de bureau | Electron, code dans **`bureau/`** (hors de `src/` : il tourne dans Node) — `main.ts` (fenêtre, protocole `app://swblacksmith/`), `protocole.ts` (règles pures, testées : fichier servi, adresse interne, lien ouvrable dehors), `navigation.ts` (liens vers le navigateur, navigations bloquées, « Enregistrer sous »), `fenetre.ts` (état mémorisé, pur), `preload.ts`, `preuve.ts` ; côté page `src/lib/bureau.ts` (`estBureau()`, couleurs du thème) ; compilé par `scripts/construire-bureau.mjs` vers `dist-bureau/`. Chantier [spec/chantiers/application-bureau.md](spec/chantiers/application-bureau.md) |
+| Application de bureau | Electron, code dans **`bureau/`** (hors de `src/` : il tourne dans Node) — `main.ts` (fenêtre, protocole `app://swblacksmith/`), `protocole.ts` (règles pures, testées : fichier servi, adresse interne, lien ouvrable dehors), `navigation.ts` (liens vers le navigateur, navigations bloquées, « Enregistrer sous »), `fenetre.ts` (état mémorisé, pur), `preload.ts`, `preuve.ts`, `installeur.nsh` (désinstalleur Windows), `icone.ico` (générée par `scripts/generer-icone-bureau.mjs`) ; empaqueté par `electron-builder.yml` ; côté page `src/lib/bureau.ts` (`estBureau()`, couleurs du thème) ; compilé par `scripts/construire-bureau.mjs` vers `dist-bureau/`. Chantier [spec/chantiers/application-bureau.md](spec/chantiers/application-bureau.md) |
 
 ⚠️ **Pas de librairie de composants.** Tout `src/ui/` est écrit à la main.
 Radix UI a été **validé mais jamais installé** — chantier en attente.
@@ -30,7 +30,8 @@ npm run fetch-data     # régénère les données monstres/skills depuis SWARFAR
 npm run benchmark:optim
 npm run bureau         # l'application de bureau sur le serveur de dev
 npm run bureau:local   # l'application de bureau sur le build (comme installée)
-npm run bureau:preuve  # l'app se contrôle elle-même, captures + resultats.json
+npm run bureau:preuve  # l'app se contrôle elle-même, captures + resultats.json (--exe : l'app installée)
+npm run bureau:paquet  # l'installeur de la plateforme courante dans paquets/ (electron-builder.yml)
 ```
 
 ---

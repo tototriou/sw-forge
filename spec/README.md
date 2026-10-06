@@ -32,6 +32,13 @@ ce qu'il peut faire, et les règles de calcul appliquées.
 | Nouveautés | `#/releases` | Live | [releases.md](releases.md) |
 | Télécharger (site seulement) | `#/telecharger` | Live | [telecharger.md](telecharger.md) |
 
+Points d'entrée de l'Optimizer, avant un chantier qui le touche :
+
+- [outils/optimizer/invariants.md](outils/optimizer/invariants.md) — les
+  contraintes critiques, chacune avec sa source ; se lit en entier.
+- [outils/optimizer/README.md](outils/optimizer/README.md) — routage par
+  tâche : quelle spec lire selon ce qu'on touche.
+
 Ordre d'importance (nav & cartes d'accueil) : **Accueil → RTA → Siège → Mon
 compte → Outils → Arène**. Arène se positionne dans la barre entre le
 dropdown Outils et le dropdown Ressources — pas dans le groupe des onglets
@@ -102,6 +109,9 @@ Outillage du dépôt (pas une page de l'app) :
   `spec-toc`, contrat de `spec-lint`, en-têtes, critère des invariants, niveaux
   d'application, hook `Read` et installation des garde-fous (hook
   `pre-commit`, garde-fou Codex).
+- [outillage/renvois.md](outillage/renvois.md) — garde-fou des renvois :
+  formes relevées, résolution dans les fichiers suivis, exemptions, liste
+  tolérée.
 
 ## Conventions communes (toutes les pages)
 

@@ -240,9 +240,9 @@ définition de titre, de section, d'en-tête, de slug).
 
 ### Amendement C6 — la nature CHANTIER
 
-**Amendement C6 (2026-09-17)** — un document de cadrage (dossier
-`chantiers/`, public `spec/chantiers/**` ou privé
-`spec/outils/optimizer/chantiers/**`) est une **quatrième nature**, ni
+**Amendement C6 (2026-09-17)** — un document de cadrage (tout `.md` sous
+un dossier `chantiers/`, à toute profondeur, dont `spec/chantiers/**`)
+est une **quatrième nature**, ni
 état actuel, ni décision, ni archive (A.2) : il est « en cours » puis
 « terminé ». Deux formes de `Statut :` **seules** reconnues, par une
 regex stricte — pas un préfixe libre comme pour les trois autres
@@ -426,6 +426,21 @@ Codex : `scripts/hooks-codex-garde-fous.mjs`, hook autonome actif dans ce
 dépôt avec ou sans chantier, posé dans le `hooks.json` personnel par
 `installer-hooks.mjs --codex-hooks <hooks.json>` (entrée `PreToolUse` à
 lui, distincte de tout autre hook Codex personnel).
+
+### Refus du `pre-commit`
+
+Sur les chemins ajoutés, copiés, modifiés ou renommés de l'index : un
+commit sur `main` ; un chemin sous `.history/` ou `.vscode/` ; un fichier
+de plus de 5 Mo ; un `spec/**.md` du périmètre que refuse `spec-lint`.
+Sous `spec/outils/optimizer/` (casse ignorée), un fichier absent de
+`.githooks/optimizer-publics.txt` (lue dans l'index ; un chemin par ligne
+depuis la racine, `#` en commentaire ; absente = vide), ou dont la
+version de l'index est illisible ou porte une marque de note privée :
+renvoi résolu dans `archive/`, `chantiers/` ou `decisions/` de ce dossier
+(le dossier lui-même compris), renvoi vers `a-publier`, identifiant de
+lot. Un fichier publié et sa ligne de liste vont dans le même commit.
+Limite assumée : une note privée sans aucune de ces marques, sous un nom
+de la liste, passe. Test : `node tests/run.mjs precommit`.
 
 ### Installation des garde-fous
 

@@ -29,8 +29,8 @@ function estArchive(relatif) {
   return /(^|\/)archive\//.test(relatif);
 }
 
-// B.4 amendement C6 : un cadrage — public `spec/chantiers/**` ou privé
-// `spec/outils/optimizer/chantiers/**` — n'est ni un état actuel, ni une
+// B.4 amendement C6 : un cadrage — tout `.md` sous un dossier `chantiers/`,
+// à toute profondeur (`spec/chantiers/**`) — n'est ni un état actuel, ni une
 // décision, ni une archive : il est « en cours » puis « terminé ». Le
 // dossier `chantiers/` fait foi, pas le périmètre déclaré.
 function estChantier(relatif) {

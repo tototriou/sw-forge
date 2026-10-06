@@ -124,11 +124,14 @@ recette pour demander un relevé en jeu exploitable.
 (`git fetch origin && git switch -c forge/<sujet> origin/main`) ; on n'y
 travaille jamais, on en part.
 
-- **Un hook `pre-commit` refuse quatre choses** : un commit sur `main`, un
-  chemin privé dans l'index (`spec/outils/optimizer/`, `.history/`,
-  `.vscode/`), un fichier de plus de 5 Mo (un export de compte), et un
-  `spec/**.md` du périmètre de `spec/spec-lint.json` qui ne passe pas
-  `spec-lint` (niveau 1, invariant dépôt — spec/outillage/spec.md, ex-B.9).
+- **Un hook `pre-commit` refuse cinq choses** : un commit sur `main`, un
+  chemin privé dans l'index (`.history/`, `.vscode/`), sous
+  `spec/outils/optimizer/` un fichier absent de
+  `.githooks/optimizer-publics.txt` ou qui porte une marque de note privée
+  (une spec publiée y ajoute sa ligne dans le même commit), un fichier de
+  plus de 5 Mo (un export de compte), et un `spec/**.md` du périmètre de
+  `spec/spec-lint.json` qui ne passe pas `spec-lint` (niveau 1, invariant
+  dépôt — spec/outillage/spec.md, ex-B.9, « Refus du `pre-commit` »).
   Il est **installé par machine**, donc actif quelle que soit la branche —
   mais jamais requis : un clone neuf n'en a pas et commite normalement.
   Il s'installe par `node scripts/installer-hooks.mjs` (`--simulation` pour

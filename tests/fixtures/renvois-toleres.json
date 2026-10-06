@@ -1,0 +1,1757 @@
+{
+  "_lisezmoi": [
+    "Renvois morts tolérés par tests/renvois.test.ts : une entrée par (fichier, renvoi), avec son nombre exact d’occurrences.",
+    "Une entrée qui ne fait plus échouer fait échouer le test : on la retire, ou on la décompte, dans le commit qui corrige le renvoi.",
+    "Propriétaires : a-publier (renvoi vers les notes de l’Optimizer (une note, ou leur dossier), pas encore publiées ; l’entrée disparaît à la publication, ou quand le renvoi est corrigé), a-corriger (renvoi mort déjà pris en charge, à corriger ; aucune entrée nouvelle), thomas (chantiers de Thomas), hors-perimetre (renvoi mort connu, sans correction prévue ; qui touche le fichier le corrige et retire l’entrée).",
+    "Les règles d’admission se vérifient en revue ; le test ne les contrôle pas.",
+    "Contrat : spec/outillage/renvois.md."
+  ],
+  "entrees": [
+    {
+      "fichier": ".agents/skills/design-taste-frontend/SKILL.md",
+      "renvoi": "feature/bento-grid--material.md",
+      "occurrences": 1,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": ".claude/skills/algo-verify/SKILL.md",
+      "renvoi": "archive/historique/historique-diagnostics-et-robustesse.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": ".claude/skills/algo-verify/SKILL.md",
+      "renvoi": "spec/outils/optimizer/pistes.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": ".claude/skills/design-taste-frontend/SKILL.md",
+      "renvoi": "feature/bento-grid--material.md",
+      "occurrences": 1,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": ".claude/skills/optimizer-field-propagation/SKILL.md",
+      "renvoi": "spec/outils/optimizer/pistes.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": ".claude/skills/optimizer-perf-testing/SKILL.md",
+      "renvoi": "spec/outils/optimizer/archive/historique/historique-acceleration-et-outillage.md",
+      "occurrences": 2,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": ".claude/skills/optimizer-perf-testing/SKILL.md",
+      "renvoi": "spec/outils/optimizer/parallelisation-partagee.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": ".claude/skills/optimizer-perf-testing/SKILL.md",
+      "renvoi": "spec/outils/optimizer/pistes.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": ".claude/skills/spec-hygiene/SKILL.md",
+      "renvoi": "archive/",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": ".claude/skills/spec-hygiene/SKILL.md",
+      "renvoi": "decisions/",
+      "occurrences": 2,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": ".claude/skills/spec-hygiene/SKILL.md",
+      "renvoi": "pistes.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": ".claude/skills/spec-hygiene/SKILL.md",
+      "renvoi": "spec/outils/optimizer/archive/controles-rangement-2026-09/",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "ARCHITECTURE.md",
+      "renvoi": "../ui",
+      "occurrences": 1,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "ARCHITECTURE.md",
+      "renvoi": "account/ArtifactsSection.tsx",
+      "occurrences": 1,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "ARCHITECTURE.md",
+      "renvoi": "account/RunesSection.tsx",
+      "occurrences": 1,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "ARCHITECTURE.md",
+      "renvoi": "components/account/",
+      "occurrences": 1,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "ARCHITECTURE.md",
+      "renvoi": "components/outils/",
+      "occurrences": 1,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "ARCHITECTURE.md",
+      "renvoi": "components/rta/",
+      "occurrences": 1,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "ARCHITECTURE.md",
+      "renvoi": "components/siege/",
+      "occurrences": 1,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "ARCHITECTURE.md",
+      "renvoi": "data/releases.ts",
+      "occurrences": 1,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "ARCHITECTURE.md",
+      "renvoi": "hooks/useSpeedTune.ts",
+      "occurrences": 1,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "ARCHITECTURE.md",
+      "renvoi": "lib/migrationStockage.ts",
+      "occurrences": 1,
+      "proprietaire": "thomas"
+    },
+    {
+      "fichier": "ARCHITECTURE.md",
+      "renvoi": "lib/speed.ts",
+      "occurrences": 1,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "ARCHITECTURE.md",
+      "renvoi": "lib/speedTune.ts",
+      "occurrences": 1,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "ARCHITECTURE.md",
+      "renvoi": "lib/speedTuneDeck.ts",
+      "occurrences": 1,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "ARCHITECTURE.md",
+      "renvoi": "lib/speedTuneKit.ts",
+      "occurrences": 1,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "ARCHITECTURE.md",
+      "renvoi": "lib/speedTuneLignes.ts",
+      "occurrences": 1,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "ARCHITECTURE.md",
+      "renvoi": "outils/OptimizerSection.tsx",
+      "occurrences": 1,
+      "proprietaire": "a-corriger"
+    },
+    {
+      "fichier": "ARCHITECTURE.md",
+      "renvoi": "outils/SpeedTuneModale.tsx",
+      "occurrences": 1,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "ARCHITECTURE.md",
+      "renvoi": "outils/SpeedTuningSection.tsx",
+      "occurrences": 1,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "ARCHITECTURE.md",
+      "renvoi": "pages/AccountPage.tsx",
+      "occurrences": 1,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "ARCHITECTURE.md",
+      "renvoi": "pages/BestiaryPage.tsx",
+      "occurrences": 1,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "ARCHITECTURE.md",
+      "renvoi": "pages/ComingSoon.tsx",
+      "occurrences": 1,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "ARCHITECTURE.md",
+      "renvoi": "pages/HomePage.tsx",
+      "occurrences": 1,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "ARCHITECTURE.md",
+      "renvoi": "pages/MechanicsPage.tsx",
+      "occurrences": 1,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "ARCHITECTURE.md",
+      "renvoi": "pages/OutilsPage.tsx",
+      "occurrences": 1,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "ARCHITECTURE.md",
+      "renvoi": "pages/ReleasesPage.tsx",
+      "occurrences": 1,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "ARCHITECTURE.md",
+      "renvoi": "pages/RtaPage.tsx",
+      "occurrences": 2,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "ARCHITECTURE.md",
+      "renvoi": "pages/SettingsPage.tsx",
+      "occurrences": 1,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "ARCHITECTURE.md",
+      "renvoi": "pages/SiegePage.tsx",
+      "occurrences": 1,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "ARCHITECTURE.md",
+      "renvoi": "rta/CategoryBar.tsx",
+      "occurrences": 1,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "ARCHITECTURE.md",
+      "renvoi": "rta/CategoryRing.tsx",
+      "occurrences": 1,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "ARCHITECTURE.md",
+      "renvoi": "rta/DesyncBadge.tsx",
+      "occurrences": 1,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "ARCHITECTURE.md",
+      "renvoi": "rta/RtaAmiSection.tsx",
+      "occurrences": 1,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "ARCHITECTURE.md",
+      "renvoi": "rta/RtaBackupBar.tsx",
+      "occurrences": 1,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "ARCHITECTURE.md",
+      "renvoi": "rta/RtaCard.tsx",
+      "occurrences": 1,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "ARCHITECTURE.md",
+      "renvoi": "rta/RtaFriendView.tsx",
+      "occurrences": 1,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "ARCHITECTURE.md",
+      "renvoi": "rta/RtaSearch.tsx",
+      "occurrences": 1,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "ARCHITECTURE.md",
+      "renvoi": "rta/RtaSection.tsx",
+      "occurrences": 1,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "ARCHITECTURE.md",
+      "renvoi": "rta/RtaValidationReport.tsx",
+      "occurrences": 1,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "ARCHITECTURE.md",
+      "renvoi": "rta/TurnOrder.tsx",
+      "occurrences": 1,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "ARCHITECTURE.md",
+      "renvoi": "siege/LeadPill.tsx",
+      "occurrences": 1,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "ARCHITECTURE.md",
+      "renvoi": "siege/RecoBoard.tsx",
+      "occurrences": 1,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "ARCHITECTURE.md",
+      "renvoi": "siege/RecoCard.tsx",
+      "occurrences": 1,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "ARCHITECTURE.md",
+      "renvoi": "siege/SiegeBoard.tsx",
+      "occurrences": 2,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "ARCHITECTURE.md",
+      "renvoi": "siege/SiegeTeam.tsx",
+      "occurrences": 1,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "ARCHITECTURE.md",
+      "renvoi": "src/App",
+      "occurrences": 1,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "ARCHITECTURE.md",
+      "renvoi": "workers/buildHalf.worker.ts",
+      "occurrences": 1,
+      "proprietaire": "a-corriger"
+    },
+    {
+      "fichier": "ARCHITECTURE.md",
+      "renvoi": "workers/runeBuildOptim.worker.ts",
+      "occurrences": 1,
+      "proprietaire": "a-corriger"
+    },
+    {
+      "fichier": "CLAUDE.md",
+      "renvoi": "spec/outils/optimizer/",
+      "occurrences": 2,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "scripts/audit-degats-aura-corpus.mjs",
+      "renvoi": "spec/outils/optimizer/archive/audit-degats-conditionnels-2026-09-08/inventaire.csv",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "scripts/audit-degats-aura-corpus.mjs",
+      "renvoi": "spec/outils/optimizer/archive/controles-degats-aura-2026-09/corpus-lot-1.json",
+      "occurrences": 2,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "scripts/benchmark-search-budget.ts",
+      "renvoi": "spec/outils/optimizer/",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "scripts/combos-order-mode-real-account-diag.ts",
+      "renvoi": "spec/outils/optimizer/historique-",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "scripts/construction-time-diag.ts",
+      "renvoi": "spec/outils/optimizer/archive/historique/historique-acceleration-et-outillage.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "scripts/construction-time-diag.ts",
+      "renvoi": "spec/outils/optimizer/harnais-diagnostic.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "scripts/diagnostic-harness-parite.ts",
+      "renvoi": "spec/outils/optimizer/harnais-diagnostic.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "scripts/filterslot-topk-diag.ts",
+      "renvoi": "spec/outils/optimizer/pistes.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "scripts/lib/build-half-worker.ts",
+      "renvoi": "harnais-diagnostic-extensions.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "scripts/lib/build-half-worker.ts",
+      "renvoi": "spec/outils/optimizer/",
+      "occurrences": 2,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "scripts/lib/chargerRecette.ts",
+      "renvoi": "spec/outils/optimizer/harnais-diagnostic.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "scripts/lib/diagnosticHarness.ts",
+      "renvoi": "near-miss-appariement.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "scripts/lib/diagnosticHarness.ts",
+      "renvoi": "spec/outils/optimizer/",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "scripts/lib/diagnosticTypes.ts",
+      "renvoi": "near-miss-appariement.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "scripts/lib/diagnosticTypes.ts",
+      "renvoi": "spec/outils/optimizer/",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "scripts/lib/diagnosticTypes.ts",
+      "renvoi": "spec/outils/optimizer/harnais-diagnostic.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "scripts/lib/pair-slice-worker.ts",
+      "renvoi": "spec/outils/optimizer/parallelisation-partagee.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "scripts/lib/perfShared.ts",
+      "renvoi": "spec/outils/optimizer/",
+      "occurrences": 2,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "scripts/lib/recipeToSearchParams.ts",
+      "renvoi": "spec/outils/optimizer/decisions/cadrage-score-artefacts-ehp.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "scripts/lib/runSearch.ts",
+      "renvoi": "pistes.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "scripts/lib/spawnSliceNode.ts",
+      "renvoi": "spec/outils/optimizer/near-miss-appariement.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "scripts/lib/spawnSliceNode.ts",
+      "renvoi": "spec/outils/optimizer/parallelisation-partagee.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "scripts/lib/spec-markdown.mjs",
+      "renvoi": "url",
+      "occurrences": 1,
+      "proprietaire": "a-corriger"
+    },
+    {
+      "fichier": "scripts/monster-search-cap-sweep.ts",
+      "renvoi": "spec/outils/optimizer/",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "scripts/monster-search-rank-diag.ts",
+      "renvoi": "spec/outils/optimizer/harnais-diagnostic.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "scripts/monster-search-validate.ts",
+      "renvoi": "spec/outils/optimizer/",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "scripts/optimizer-search.ts",
+      "renvoi": "near-miss-appariement.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "scripts/optimizer-search.ts",
+      "renvoi": "spec/outils/optimizer/",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "scripts/optimum-retention-rate.ts",
+      "renvoi": "pistes.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "scripts/optimum-retention-rate.ts",
+      "renvoi": "spec/outils/optimizer/",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "scripts/optimum-retention-rate.ts",
+      "renvoi": "spec/outils/optimizer/archive/historique/historique-dimensionnement.md",
+      "occurrences": 2,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "scripts/optimum-speed-diag.ts",
+      "renvoi": "spec/outils/optimizer/",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "scripts/optimum-speed-targets.ts",
+      "renvoi": "spec/outils/optimizer/",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "scripts/pair-bound-diag.ts",
+      "renvoi": "spec/outils/optimizer/pistes.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "scripts/pairing-parallel-diag.ts",
+      "renvoi": "pistes.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "scripts/pairing-parallel-diag.ts",
+      "renvoi": "spec/outils/optimizer/pistes.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "scripts/parallel-pairing-extraction-diff.ts",
+      "renvoi": "spec/outils/optimizer/parallelisation-partagee.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "scripts/parallel-pairing-quota-diag.ts",
+      "renvoi": "spec/outils/optimizer/pistes.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "scripts/passifs-vitesse.ts",
+      "renvoi": "scripts/passifs-vitesse.mjs",
+      "occurrences": 2,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "scripts/patches/README.md",
+      "renvoi": "../../spec/outils/optimizer/archive/historique/historique-ponderation-adaptative.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "scripts/patches/piste-a-tranche-weighting.patch",
+      "renvoi": "spec/outils/optimizer/",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "scripts/patches/piste-b-tranche-weighting.patch",
+      "renvoi": "spec/outils/optimizer/",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "scripts/perf-battery-compare.ts",
+      "renvoi": "spec/outils/optimizer/",
+      "occurrences": 4,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "scripts/perf-battery.ts",
+      "renvoi": "spec/outils/optimizer/",
+      "occurrences": 3,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "scripts/projeter-degats-aura-lot-1.mjs",
+      "renvoi": "spec/outils/optimizer/archive/controles-degats-aura-2026-09",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "scripts/projeter-degats-aura-lot-1.mjs",
+      "renvoi": "spec/outils/optimizer/archive/controles-degats-aura-2026-09/corpus-lot-1.json",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "scripts/retention-dispersion-diag.ts",
+      "renvoi": "spec/outils/optimizer/",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "scripts/spec-lint.mjs",
+      "renvoi": "archive/",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "spec/README.md",
+      "renvoi": "archive/",
+      "occurrences": 2,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "spec/README.md",
+      "renvoi": "decisions/",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "spec/README.md",
+      "renvoi": "decisions/reste-a-faire-degats-2026-10.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "spec/README.md",
+      "renvoi": "spec/outils/optimizer/chantiers/",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "spec/README.md",
+      "renvoi": "src/components/Segmented.tsx",
+      "occurrences": 1,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "spec/bestiaire.md",
+      "renvoi": "components/",
+      "occurrences": 1,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "spec/bestiaire.md",
+      "renvoi": "components/account/",
+      "occurrences": 1,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "spec/chantiers/degats-et-aura.md",
+      "renvoi": "spec/outils/optimizer/archive/chantiers/degats-et-aura.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "spec/chantiers/spec-rangement.md",
+      "renvoi": "archive/",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "spec/chantiers/spec-rangement.md",
+      "renvoi": "decisions/",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "spec/chantiers/spec-rangement.md",
+      "renvoi": "spec/outils/optimizer/archive/chantiers/spec-rangement.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "spec/compte/artefacts.md",
+      "renvoi": "src/components/account/DetailPopover.tsx",
+      "occurrences": 1,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "spec/compte/calcul-artefacts.md",
+      "renvoi": "artifacts/",
+      "occurrences": 1,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "spec/outillage/spec.md",
+      "renvoi": "archive/",
+      "occurrences": 11,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "spec/outillage/spec.md",
+      "renvoi": "archive/README.md",
+      "occurrences": 2,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "spec/outillage/spec.md",
+      "renvoi": "decisions/",
+      "occurrences": 7,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "spec/outillage/spec.md",
+      "renvoi": "decisions/vitesse-finale.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "spec/outillage/spec.md",
+      "renvoi": "historique/",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "spec/outillage/spec.md",
+      "renvoi": "spec/outils/optimizer/",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "spec/outils/degats-reels.md",
+      "renvoi": "spec/outils/artefacts.md",
+      "occurrences": 1,
+      "proprietaire": "a-corriger"
+    },
+    {
+      "fichier": "spec/outils/degats-reels/artefacts-critique-et-element.md",
+      "renvoi": "spec/outils/artefacts.md",
+      "occurrences": 1,
+      "proprietaire": "a-corriger"
+    },
+    {
+      "fichier": "spec/outils/degats-reels/artefacts-et-degats-bruts.md",
+      "renvoi": "spec/outils/artefacts.md",
+      "occurrences": 1,
+      "proprietaire": "a-corriger"
+    },
+    {
+      "fichier": "spec/outils/degats-reels/conditions-et-audit.md",
+      "renvoi": "../optimizer/archive/audit-degats-conditionnels-2026-09-08/partie-2.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "spec/outils/degats-reels/conditions-et-audit.md",
+      "renvoi": "../optimizer/archive/audit-degats-conditionnels-2026-09-08/suivi-implementation.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "spec/outils/degats-reels/conditions-et-audit.md",
+      "renvoi": "spec/outils/optimizer/archive/audit-degats-conditionnels-2026-09-08/",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "spec/outils/degats-reels/conditions-et-audit.md",
+      "renvoi": "spec/outils/optimizer/pistes.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "spec/outils/degats-reels/effets-equipe-et-leaders.md",
+      "renvoi": "siege/LeadPill.tsx",
+      "occurrences": 1,
+      "proprietaire": "a-corriger"
+    },
+    {
+      "fichier": "spec/outils/degats-reels/formules-et-combat.md",
+      "renvoi": "spec/outils/mecaniques.md",
+      "occurrences": 1,
+      "proprietaire": "a-corriger"
+    },
+    {
+      "fichier": "spec/outils/degats-reels/valeurs-de-jeu-curees.md",
+      "renvoi": "decisions/reste-a-faire-degats-2026-10.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "spec/outils/degats-reels/valeurs-de-jeu-curees.md",
+      "renvoi": "degats-reels/",
+      "occurrences": 1,
+      "proprietaire": "a-corriger"
+    },
+    {
+      "fichier": "spec/outils/degats-reels/valeurs-de-jeu-curees.md",
+      "renvoi": "degats-reels/artefacts-et-degats-bruts.md",
+      "occurrences": 1,
+      "proprietaire": "a-corriger"
+    },
+    {
+      "fichier": "spec/outils/optimizer.md",
+      "renvoi": "lib/effects.ts",
+      "occurrences": 2,
+      "proprietaire": "a-corriger"
+    },
+    {
+      "fichier": "spec/outils/optimizer.md",
+      "renvoi": "optimizer/archive/audit-degats-conditionnels-2026-09-08/suivi-implementation.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "spec/outils/optimizer/README.md",
+      "renvoi": "ecran/README.md",
+      "occurrences": 3,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "spec/outils/optimizer/README.md",
+      "renvoi": "exclusion.md",
+      "occurrences": 2,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "spec/outils/optimizer/README.md",
+      "renvoi": "harnais.md",
+      "occurrences": 3,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "spec/outils/optimizer/README.md",
+      "renvoi": "interruption.md",
+      "occurrences": 2,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "spec/outils/optimizer/README.md",
+      "renvoi": "limites-connues.md",
+      "occurrences": 3,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "spec/outils/optimizer/README.md",
+      "renvoi": "listes-et-reservation.md",
+      "occurrences": 2,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "spec/outils/optimizer/README.md",
+      "renvoi": "moteur/artefacts.md",
+      "occurrences": 2,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "spec/outils/optimizer/README.md",
+      "renvoi": "moteur/diagnostics.md",
+      "occurrences": 2,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "spec/outils/optimizer/README.md",
+      "renvoi": "moteur/elagages.md",
+      "occurrences": 2,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "spec/outils/optimizer/README.md",
+      "renvoi": "moteur/parallelisation.md",
+      "occurrences": 3,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "spec/outils/optimizer/README.md",
+      "renvoi": "moteur/pipeline.md",
+      "occurrences": 3,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "spec/outils/optimizer/README.md",
+      "renvoi": "moteur/reliques.md",
+      "occurrences": 2,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "spec/outils/optimizer/README.md",
+      "renvoi": "pistes.md",
+      "occurrences": 3,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "spec/outils/optimizer/README.md",
+      "renvoi": "verification.md",
+      "occurrences": 2,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "spec/outils/optimizer/invariants.md",
+      "renvoi": "ecran/README.md",
+      "occurrences": 4,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "spec/outils/optimizer/invariants.md",
+      "renvoi": "harnais.md",
+      "occurrences": 23,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "spec/outils/optimizer/invariants.md",
+      "renvoi": "limites-connues.md",
+      "occurrences": 3,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "spec/outils/optimizer/invariants.md",
+      "renvoi": "moteur/artefacts.md",
+      "occurrences": 19,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "spec/outils/optimizer/invariants.md",
+      "renvoi": "moteur/diagnostics.md",
+      "occurrences": 6,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "spec/outils/optimizer/invariants.md",
+      "renvoi": "moteur/elagages.md",
+      "occurrences": 17,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "spec/outils/optimizer/invariants.md",
+      "renvoi": "moteur/parallelisation.md",
+      "occurrences": 10,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "spec/outils/optimizer/invariants.md",
+      "renvoi": "moteur/reliques.md",
+      "occurrences": 23,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "spec/outils/optimizer/invariants.md",
+      "renvoi": "pistes.md",
+      "occurrences": 2,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "spec/outils/passifs-vitesse.md",
+      "renvoi": "scripts/passifs-vitesse.mjs",
+      "occurrences": 1,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "spec/outils/speed-tuning.md",
+      "renvoi": "hooks/useSpeedTune.ts",
+      "occurrences": 1,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "spec/outils/speed-tuning.md",
+      "renvoi": "lib/speedTune.ts",
+      "occurrences": 1,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "spec/outils/speed-tuning.md",
+      "renvoi": "lib/speedTuneLignes.ts",
+      "occurrences": 1,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "spec/outils/speed-tuning.md",
+      "renvoi": "scripts/passifs-vitesse.mjs",
+      "occurrences": 1,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "spec/rta/sections-runes.md",
+      "renvoi": "src/components/account/DetailPopover.tsx",
+      "occurrences": 1,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "spec/shared/import-compte.md",
+      "renvoi": "../outils/optimizer/reliques.md",
+      "occurrences": 2,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "spec/shared/import-compte.md",
+      "renvoi": "src/hooks/useKeepAccount.ts",
+      "occurrences": 1,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "spec/shared/recherche-clavier.md",
+      "renvoi": "../../src/components/Segmented.tsx",
+      "occurrences": 1,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "spec/siege/recommandations.md",
+      "renvoi": "../../src/components/Segmented.tsx",
+      "occurrences": 1,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "spec/siege/recommandations.md",
+      "renvoi": "src/components/Segmented.tsx",
+      "occurrences": 1,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "spec/spec-lint.json",
+      "renvoi": "spec/outils/optimizer/artefacts.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "spec/spec-lint.json",
+      "renvoi": "spec/outils/optimizer/harnais-diagnostic-extensions.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "spec/spec-lint.json",
+      "renvoi": "spec/outils/optimizer/harnais-diagnostic.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "spec/spec-lint.json",
+      "renvoi": "spec/outils/optimizer/pistes.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "src/components/ArtifactIcon.tsx",
+      "renvoi": "artifacts/",
+      "occurrences": 1,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "src/components/account/ArtifactsSection.tsx",
+      "renvoi": "lib/accountViews.ts",
+      "occurrences": 1,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "src/components/account/SetFilter.tsx",
+      "renvoi": "../../spec/compte/runes.md",
+      "occurrences": 1,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "src/components/buttonStyles.ts",
+      "renvoi": "Dialogs.tsx",
+      "occurrences": 1,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "src/components/outils/BuildCandidateCard.tsx",
+      "renvoi": "spec/outils/optimizer/archive/historique/historique-import-monstres-a-optimiser.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "src/components/outils/EtatMonstre.tsx",
+      "renvoi": "siege/LeadPill.tsx",
+      "occurrences": 1,
+      "proprietaire": "a-corriger"
+    },
+    {
+      "fichier": "src/components/outils/MonsterSourcePicker.tsx",
+      "renvoi": "spec/outils/optimizer/",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "src/components/outils/OptimizerListPicker.tsx",
+      "renvoi": "spec/outils/optimizer/",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "src/components/outils/OptimizerSection.tsx",
+      "renvoi": "cadrage-score-artefacts-ehp.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "src/components/outils/OptimizerSection.tsx",
+      "renvoi": "near-miss-appariement.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "src/components/outils/OptimizerSection.tsx",
+      "renvoi": "spec/outils/optimizer/",
+      "occurrences": 7,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "src/components/outils/OptimizerSection.tsx",
+      "renvoi": "spec/outils/optimizer/.",
+      "occurrences": 2,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "src/components/outils/OptimizerSection.tsx",
+      "renvoi": "spec/outils/optimizer/archive/historique/historique-import-monstres-a-optimiser.md",
+      "occurrences": 3,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "src/components/outils/OptimizerSection.tsx",
+      "renvoi": "spec/outils/optimizer/artefacts.md",
+      "occurrences": 3,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "src/components/outils/OptimizerSection.tsx",
+      "renvoi": "spec/outils/optimizer/decisions/cadrage-score-artefacts-ehp.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "src/components/outils/OptimizerSection.tsx",
+      "renvoi": "spec/outils/optimizer/historique-",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "src/components/outils/OptimizerSection.tsx",
+      "renvoi": "spec/outils/optimizer/pistes.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "src/components/rta/CategoryBar.tsx",
+      "renvoi": "../../spec/rta/categories.md",
+      "occurrences": 1,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "src/components/rta/RtaBackupBar.tsx",
+      "renvoi": "../Dialogs.tsx",
+      "occurrences": 1,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "src/components/rta/TurnOrder.tsx",
+      "renvoi": "../../spec/rta/categories.md",
+      "occurrences": 2,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "src/components/siege/LeadPill.tsx",
+      "renvoi": "../../spec/shared/calcul-vitesse.md",
+      "occurrences": 1,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "src/components/siege/LeadPill.tsx",
+      "renvoi": "../../spec/shared/donnees-monstres.md",
+      "occurrences": 1,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "src/components/siege/LeadPill.tsx",
+      "renvoi": "../../spec/siege/equipes.md",
+      "occurrences": 1,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "src/components/siege/RecoCard.tsx",
+      "renvoi": "../../spec/siege/recommandations.md",
+      "occurrences": 1,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "src/components/siege/RecoCard.tsx",
+      "renvoi": "../shared/donnees-monstres.md",
+      "occurrences": 1,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "src/components/siege/RecoCard.tsx",
+      "renvoi": "outils/SetComboPicker.tsx",
+      "occurrences": 1,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "src/components/siege/SiegeTeam.tsx",
+      "renvoi": "lib/siegeStatut.ts",
+      "occurrences": 1,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "src/hooks/useBuildOptimSearch.ts",
+      "renvoi": "spec/outils/optimizer/",
+      "occurrences": 2,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "src/hooks/useOptimizerLists.ts",
+      "renvoi": "spec/outils/optimizer/",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "src/hooks/useOptimizerState.ts",
+      "renvoi": "spec/outils/optimizer/",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "src/hooks/useOptimizerState.ts",
+      "renvoi": "spec/outils/optimizer/.",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "src/hooks/useOptimizerState.ts",
+      "renvoi": "spec/outils/optimizer/chantiers/implementation-relique.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "src/hooks/useOvercapDisplay.ts",
+      "renvoi": "spec/outils/optimizer/",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "src/lib/accountStore.ts",
+      "renvoi": "reliques.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "src/lib/artifactEvaluation.ts",
+      "renvoi": "spec/outils/optimizer/artefacts.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "src/lib/artifactEvaluation.ts",
+      "renvoi": "spec/outils/optimizer/decisions/cadrage-score-artefacts-ehp.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "src/lib/artifactQueue.ts",
+      "renvoi": "limites-connues.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "src/lib/artifactQueue.ts",
+      "renvoi": "spec/outils/optimizer/artefacts.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "src/lib/damage.ts",
+      "renvoi": "spec/outils/optimizer/reliques.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "src/lib/effects.ts",
+      "renvoi": "../outils/optimizer/reliques.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "src/lib/effects.ts",
+      "renvoi": "reliques.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "src/lib/importAccount.ts",
+      "renvoi": "reliques.md",
+      "occurrences": 2,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "src/lib/importAccount.ts",
+      "renvoi": "spec/outils/optimizer/chantiers/implementation-relique.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "src/lib/importAccount.ts",
+      "renvoi": "spec/outils/optimizer/reliques.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "src/lib/optimizerExclusion.ts",
+      "renvoi": "spec/outils/optimizer/",
+      "occurrences": 2,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "src/lib/optimizerExclusion.ts",
+      "renvoi": "spec/outils/optimizer/archive/historique/historique-import-monstres-a-optimiser.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "src/lib/relicExclusive.ts",
+      "renvoi": "reliques.md",
+      "occurrences": 3,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "src/lib/relicOptim.ts",
+      "renvoi": "../invariants.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "src/lib/relicOptim.ts",
+      "renvoi": "reliques.md",
+      "occurrences": 3,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "src/lib/relicOptim.ts",
+      "renvoi": "spec/outils/optimizer/chantiers/implementation-relique.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "src/lib/runeBuildOptim.ts",
+      "renvoi": "near-miss-appariement.md",
+      "occurrences": 2,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "src/lib/runeBuildOptim.ts",
+      "renvoi": "pistes.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "src/lib/runeBuildOptim.ts",
+      "renvoi": "scripts/monster-search-skyline-diag.ts",
+      "occurrences": 2,
+      "proprietaire": "a-corriger"
+    },
+    {
+      "fichier": "src/lib/runeBuildOptim.ts",
+      "renvoi": "spec/outils/optimizer/",
+      "occurrences": 32,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "src/lib/runeBuildOptim.ts",
+      "renvoi": "spec/outils/optimizer/.",
+      "occurrences": 3,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "src/lib/runeBuildOptim.ts",
+      "renvoi": "spec/outils/optimizer/archive/historique/historique-dimensionnement.md",
+      "occurrences": 4,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "src/lib/runeBuildOptim.ts",
+      "renvoi": "spec/outils/optimizer/artefacts.md",
+      "occurrences": 2,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "src/lib/runeBuildOptim.ts",
+      "renvoi": "spec/outils/optimizer/harnais-diagnostic.md",
+      "occurrences": 4,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "src/lib/runeBuildOptim.ts",
+      "renvoi": "spec/outils/optimizer/near-miss-appariement.md",
+      "occurrences": 2,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "src/lib/runeBuildOptim.ts",
+      "renvoi": "spec/outils/optimizer/pistes.md",
+      "occurrences": 6,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "src/lib/runeBuildOptim.ts",
+      "renvoi": "tests/le",
+      "occurrences": 1,
+      "proprietaire": "a-corriger"
+    },
+    {
+      "fichier": "src/lib/stats.ts",
+      "renvoi": "spec/outils/optimizer/",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "src/ui/Segmented.tsx",
+      "renvoi": "components/",
+      "occurrences": 1,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "src/ui/index.ts",
+      "renvoi": "components/",
+      "occurrences": 3,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "src/workers/buildHalf.worker.ts",
+      "renvoi": "spec/outils/optimizer/",
+      "occurrences": 2,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "src/workers/buildHalf.worker.ts",
+      "renvoi": "spec/outils/optimizer/archive/historique/historique-dimensionnement.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "src/workers/pairSlice.worker.ts",
+      "renvoi": "pistes.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "src/workers/pairSlice.worker.ts",
+      "renvoi": "spec/outils/optimizer/parallelisation-partagee.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "src/workers/pairSlice.worker.ts",
+      "renvoi": "spec/outils/optimizer/pistes.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "src/workers/pairSliceBody.ts",
+      "renvoi": "spec/outils/optimizer/archive/historique/historique-dimensionnement.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "src/workers/pairSliceBody.ts",
+      "renvoi": "spec/outils/optimizer/parallelisation-partagee.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "src/workers/pairSliceBody.ts",
+      "renvoi": "spec/outils/optimizer/pistes.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "src/workers/pairingDriver.ts",
+      "renvoi": "near-miss-appariement.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "src/workers/pairingDriver.ts",
+      "renvoi": "spec/outils/optimizer/",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "src/workers/parallelPairing.ts",
+      "renvoi": "pistes.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "src/workers/parallelPairing.ts",
+      "renvoi": "spec/outils/optimizer/parallelisation-partagee.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "src/workers/resolutionBody.ts",
+      "renvoi": "parallelisation-partagee.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "src/workers/resolutionBody.ts",
+      "renvoi": "spec/outils/optimizer/",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "src/workers/runeBuildOptim.worker.ts",
+      "renvoi": "pistes.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "src/workers/runeBuildOptim.worker.ts",
+      "renvoi": "spec/outils/optimizer/",
+      "occurrences": 4,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "src/workers/runeBuildOptim.worker.ts",
+      "renvoi": "spec/outils/optimizer/.",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "src/workers/runeBuildOptim.worker.ts",
+      "renvoi": "spec/outils/optimizer/near-miss-appariement.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "tests/README.md",
+      "renvoi": "fixtures/export-synthetique.json",
+      "occurrences": 1,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "tests/artefact-optim.test.ts",
+      "renvoi": "spec/outils/optimizer/artefacts.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "tests/artifact-evaluation.test.ts",
+      "renvoi": "spec/outils/optimizer/",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "tests/artifact-evaluation.test.ts",
+      "renvoi": "spec/outils/optimizer/artefacts.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "tests/artifact-evaluation.test.ts",
+      "renvoi": "spec/outils/optimizer/decisions/cadrage-score-artefacts-ehp.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "tests/degats-couverture-livraisons.test.ts",
+      "renvoi": "tests/audit-degats-conditionnels",
+      "occurrences": 2,
+      "proprietaire": "a-corriger"
+    },
+    {
+      "fichier": "tests/degats-lot12.test.ts",
+      "renvoi": "spec/outils/optimizer/archive/controles-degats-aura-2026-09/controle-12.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "tests/diagnostic-harness.test.ts",
+      "renvoi": "harnais-diagnostic-extensions.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "tests/optimizer-recipe-import-selection.test.ts",
+      "renvoi": "spec/outils/optimizer/chantiers/implementation-relique.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "tests/optimizer-recipe-import-selection.test.ts",
+      "renvoi": "spec/outils/optimizer/pistes.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "tests/relic-exclusive.test.ts",
+      "renvoi": "reliques.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "tests/relic-optim.test.ts",
+      "renvoi": "reliques.md",
+      "occurrences": 3,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "tests/relic-unique-label.test.ts",
+      "renvoi": "../spec/outils/optimizer/reliques.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "tests/rendu/ressources.test.tsx",
+      "renvoi": "data/releases.ts",
+      "occurrences": 1,
+      "proprietaire": "thomas"
+    },
+    {
+      "fichier": "tests/rune-optim-dead-half-pruning.test.ts",
+      "renvoi": "spec/outils/optimizer/archive/historique/historique-acceleration-et-outillage.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "tests/rune-optim-differential.test.ts",
+      "renvoi": "spec/outils/optimizer/",
+      "occurrences": 4,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "tests/rune-optim-differential.test.ts",
+      "renvoi": "spec/outils/optimizer/pistes.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "tests/rune-optim-filterslot-topk.test.ts",
+      "renvoi": "spec/outils/optimizer/archive/historique/historique-dimensionnement.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "tests/rune-optim-filterslot-topk.test.ts",
+      "renvoi": "spec/outils/optimizer/pistes.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "tests/rune-optim-near-miss.test.ts",
+      "renvoi": "near-miss-appariement.md",
+      "occurrences": 2,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "tests/rune-optim-near-miss.test.ts",
+      "renvoi": "spec/outils/optimizer/",
+      "occurrences": 2,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "tests/rune-optim-onstage.test.ts",
+      "renvoi": "spec/outils/optimizer/harnais-diagnostic.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "tests/rune-optim-parallel-pairing.test.ts",
+      "renvoi": "pistes.md",
+      "occurrences": 5,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "tests/rune-optim-parallel-pairing.test.ts",
+      "renvoi": "scripts/pairing-parallel-diag.ts/parallel-pairing-real-diag.ts",
+      "occurrences": 1,
+      "proprietaire": "a-corriger"
+    },
+    {
+      "fichier": "tests/rune-optim-parallel-pairing.test.ts",
+      "renvoi": "spec/outils/optimizer/",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "tests/rune-optim-parallel-pairing.test.ts",
+      "renvoi": "spec/outils/optimizer/archive/historique/historique-acceleration-et-outillage.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "tests/rune-optim-parallel-pairing.test.ts",
+      "renvoi": "spec/outils/optimizer/pistes.md",
+      "occurrences": 2,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "tests/rune-optim-parallel-truncated.test.ts",
+      "renvoi": "spec/outils/optimizer/near-miss-appariement.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "tests/rune-optim-scale-monotonicity.test.ts",
+      "renvoi": "spec/outils/optimizer/",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "tests/rune-optim.test.ts",
+      "renvoi": "spec/outils/optimizer/pistes.md",
+      "occurrences": 1,
+      "proprietaire": "a-publier"
+    }
+  ]
+}

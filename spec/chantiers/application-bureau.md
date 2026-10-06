@@ -282,7 +282,12 @@ Q1 → 7 (les données dépendent du choix de Thomas)
       Exporter » ; le bloc montre la date du dernier export lu ;
     - le dossier et l'invocateur sont un **réglage**, retenus même sans
       « Garder mes données » ; le compte, lui, suit ce réglage (et se relit
-      du dossier au lancement).
+      du dossier au lancement) ;
+    - précisé pendant le lot (« le choix de l'invocateur tu peux le faire
+      au niveau du menu principal non ? avec un drop down ? ») : **la carte
+      du compte**, en tête de la barre latérale, devient un menu — les
+      invocateurs du dossier, puis « Importer un fichier… » ; le sélecteur
+      des Réglages reste (un réglage, deux accès).
     → lot 9.
 
 #### Les questions d'origine (toutes tranchées)

@@ -27,8 +27,8 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
 
 - **Aucune liste fixe** — l'utilisateur en crée, renomme et supprime
   librement (`OptimizerListPicker.tsx`, menu déroulant : crayon de
-  renommage, corbeille de suppression par ligne, « + Nouvelle liste » en
-  bas). Supprimer une liste efface son appartenance et ses runes
+  renommage, corbeille de suppression par ligne, « Nouvelle liste… »
+  précédé d'un signe plus, en bas). Supprimer une liste efface son appartenance et ses runes
   validées — **jamais les runes elles-mêmes**, toujours réelles dans le
   compte. Navigable à tout moment ; changer de liste active change
   instantanément les runes réservées vues par la recherche.
@@ -184,11 +184,14 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   désambiguïsation normale (zone D / puces) garde toujours la main, jamais
   masquée par ce sélecteur. Aucune puce ne s'allume pour ce cas (comme un
   build validé, voir l'auto-exemption ci-dessous). ⚠️ Revérification au réimport (comme tout
-  le reste de cette section) : un build validé sur un monstre non possédé
-  reste valable tant que ses runes existent encore QUELQUE PART dans le
-  compte réimporté (pas nécessairement encore équipées sur un exemplaire
-  précis, puisqu'il n'y en a pas) — vérification plus faible que pour un
-  exemplaire réel, limite assumée.
+  le reste de cette section) : un build validé reste valable tant que ses
+  runes existent encore QUELQUE PART dans le compte réimporté, équipées
+  ou non (`revalidateBuilds`) — même règle pour un exemplaire réel, dont
+  le build validé n'est justement pas porté en jeu. Seule différence : un
+  exemplaire réel doit encore se retrouver dans Box, RTA ou défenses de
+  siège ; pour un monstre non possédé, l'espèce au bestiaire suffit.
+  Limite assumée, pour les deux : une rune passée depuis sur un autre
+  monstre n'est pas détectée.
 - **Auto-exemption de la liste ACTIVE** — chercher à nouveau le même
   monstre dans la MÊME liste exempte automatiquement SES PROPRES runes déjà
   validées (sans quoi la recherche se trouverait bloquée par ses propres
@@ -257,15 +260,16 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
     valeurs jamais affichées.
 
 - **« Valider ce build » sous la fiche**, sans passer par une recherche
-  — un second bouton, identique à celui d'une carte de
+  — un second bouton, au même rôle que celui d'une carte de
   résultat, juste sous la fiche stats/artéfacts/runes/relique : valide
   directement les runes ACTUELLEMENT affichées sur l'exemplaire (un runage
   déjà composé en jeu, ou déjà planifié). Exige exactement 6 runes
   affichées (comme un build trouvé par la recherche) — désactivé sur un
   exemplaire partiellement runé ou nu. Affiche « Validé » (désactivé,
   coche) si c'est déjà EXACTEMENT le build validé de cet exemplaire. Sans
-  liste active, ouvre le même prompt de création que « Ajouter à la
-  liste » (crée la liste ET valide dans le même geste). ⚠️ **Bloqué si UNE
+  liste active, ouvre le même dialogue « Nouvelle liste » que l'ajout à
+  la liste, avec l'action « Créer et valider » (crée la liste ET valide
+  dans le même geste). ⚠️ **Bloqué si UNE
   SEULE des 6 runes affichées est déjà réservée pour un AUTRE monstre de la
   MÊME liste** — contrairement à un résultat de
   recherche (dont le pool exclut déjà les runes réservées ailleurs dans la

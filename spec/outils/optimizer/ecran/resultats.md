@@ -64,11 +64,12 @@
     plus loin dans le DOM (grille de résultats, ligne suivante d'un
     `AccordionGrid` en RTA/Siège). Sont donc promus, UNIQUEMENT tant
     qu'un popover y est ouvert, le wrapper de la pièce concernée (`z-10`,
-    dans `RuneWheel.tsx`/`ArtifactSlots.tsx`/`MonsterGear.tsx` pour la
-    relique) **et** la carte ou fiche entière qui le contient (`relative
-    z-10`, `BuildCandidateCard.tsx` et `MonsterGear.tsx`) — deux niveaux,
-    parce qu'un popover doit gagner à la fois contre ses voisins immédiats et
-    contre les autres cartes de la grille.
+    dans `RuneWheel.tsx`/`ArtifactSlots.tsx`/`RelicSlot.tsx`) **et** la
+    carte entière qui le contient (`relative z-10`,
+    `BuildCandidateCard.tsx`) — deux niveaux, parce qu'un popover doit
+    gagner à la fois contre ses voisins immédiats et contre les autres
+    cartes de la grille. La fiche d'équipement (`MonsterGear.tsx`) n'a pas
+    ce second niveau.
 
 ## Diagnostic sur 0 résultat
 
@@ -239,7 +240,7 @@ le tri, ce qui rend prévisible une action qui réserve des pièces.
 
 ⚠️ **Objectif « Dégâts réels »** : chaque carte affiche en tête le
 **nombre de dégâts** qui a servi à la classer, et la part des PV de la
-cible qu'il emporte (« tue la cible » au-delà de 100 %). Visible dès que
+cible qu'il emporte (« tue la cible » à partir de 100 %). Visible dès que
 ce critère ordonne la liste — que ce soit l'objectif de la recherche ou
 un tri choisi après coup.
 ⚠️ **Objectif « PV effectifs »** : même traitement, et pour la même
@@ -339,7 +340,8 @@ sous la roue à la souris, à sa droite au doigt (voir plus haut), même
 modèle que celui de la fiche d'équipement
 (`MonsterGear.tsx`) : composant partagé `RelicSlot`, jamais une copie.
 Hors mode `recherche` (interrupteur coupé, « Garder la relique
-équipée »), la relique portée, ou la case grisée « aucune » sans relique. En mode `recherche`,
+équipée »), la relique portée ; sans relique, la case grisée « Relique »
+barrée d'une icône, infobulle « Aucune relique équipée ». En mode `recherche`,
 `etatReliqueDuBuild` (seule source) pilote la case :
 - **en attente** — la file n'a pas encore traité ce build : **la même
   case**, grisée, « en attente » — rien ne bouge à l'écran quand la file

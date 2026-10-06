@@ -21,6 +21,8 @@ Publiés :
 - [README.md](README.md) — ce routage.
 - [moteur/pipeline.md](moteur/pipeline.md) — de la recherche lancée au
   résultat affiché : préparation, moitiés, appariement, résolution, file.
+- [harnais.md](harnais.md) — mode d'emploi du harnais de diagnostic et ce
+  qu'il garantit.
 - [ecran/README.md](ecran/README.md) — l'écran, de haut en bas, et le
   routage vers un fichier par bloc de l'écran.
 - [listes-et-reservation.md](listes-et-reservation.md) — listes de travail,
@@ -48,8 +50,6 @@ décrit le sujet.
   parallèle, navigateur et Node, et le Worker de résolution.
 - [moteur/diagnostics.md](moteur/diagnostics.md) — faisabilité, conditions
   bloquantes, quasi-succès (« near-miss »).
-- [harnais.md](harnais.md) — mode d'emploi du harnais de diagnostic et ce
-  qu'il garantit.
 - [pistes.md](pistes.md) — les pistes futures.
 
 ## Je touche…

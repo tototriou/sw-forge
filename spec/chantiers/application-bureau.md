@@ -191,6 +191,14 @@ Q1 → 7 (les données dépendent du choix de Thomas)
    n'a plus de terrain avant la v2.0.0 — à trancher au lot 5.
    → lot 4.
 
+10. **La mise à jour automatique se prouve à la version suivante**
+    (2026-10-06 : « mets en place la mise à jour automatique mais on
+    testera quand on fera une nouvelle version effectivement »). Le lot 5
+    la code et prouve ce qui se prouve sans release (tests, mode preuve) ;
+    le passage réel N → N+1 se constate à la première version publiée
+    après la v2.0.0, et s'ajoute alors à `lot-5.md`.
+    → lot 5.
+
 Toutes les questions sont tranchées.
 
 Les lots 1 à 3 n'en dépendent pas ; chacune bloque le lot indiqué.

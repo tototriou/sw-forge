@@ -72,7 +72,9 @@ posée (`key`, `kind`, `requested`, `threshold`, `delta`,
 impact.
 
 - **La mesure** (`poolMinSlotSafe`) : la taille du plus petit des six
-  emplacements après statistique principale imposée, dominance
+  emplacements après statistique principale imposée et runes imposées
+  (`mainStatFilteredBySlot` : un emplacement verrouillé n'a plus qu'une
+  rune, et la mesure vaut alors au plus 1), dominance
   (`pruneDominated`, contexte `contexteDominance`) et faisabilité
   (`eliminateInfeasible`), jamais `filterSlot`, les compartiments ni
   l'appariement. `baselineMinSlot` est cette mesure aux conditions

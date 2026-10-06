@@ -307,14 +307,11 @@ les candidats, comme la file de l'écran avec l'interrupteur, et son
 classement est alors celui de `--resoudre-tout` ; sa console le dit.
 `--resoudre-tout` résout TOUS les candidats collectés. Ce n'est pas le
 défaut parce qu'avec des artéfacts « Libre » — le défaut de l'écran —, la
-résolution complète coûte environ 20 fois la recherche (mesuré : 6,7 min
-pour 5 100 builds × 4 reliques).
+résolution complète coûte environ 20 fois la recherche.
 ⚠️ Comme celui de l'écran, ce classement n'est pas exhaustif : en mode
 `recherche`, l'ordre de base ignore la relique, et un build au-delà de
 la K-ième confirmée peut remonter très haut une fois résolu sans que la
-file le résolve. Relevé sur un vrai compte, en PV effectifs : K = 100
-laisse manquer les rangs exhaustifs 16, 17 et 19 (rangs de base 107 à
-117), que K = 300 rattrape. Sur la fixture de `testCliClassementParMode`
+file le résolve. Sur la fixture de `testCliClassementParMode`
 (tests/cli-classement.test.ts), construite pour cela, les 300 premiers
 de l'ordre de base laissent manquer 9 des 20 premiers exhaustifs (rangs
 de base 305 à 399) ; la file, qui continue au-delà des 112 écartés

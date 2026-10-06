@@ -188,8 +188,7 @@
    fenêtre EXACTEMENT les réglages qui modifient les statistiques propres du
    monstre ; ce qui y reste (cible, sort, critique, réduction de DEF, marque,
    effets d'alliés) n'y touche pas. Test : changer un réglage d'« État de
-   mon monstre » DOIT faire bouger le « +X / coup ». Mesuré sur Lushen —
-   buff ATQ activé : **+737 → +1 068 / coup**. ⚠️ **Sauf les auras
+   mon monstre » DOIT faire bouger le « +X / coup ». ⚠️ **Sauf les auras
    Accuracy et Tolerance** : elles modifient bien des
    statistiques propres du monstre, la Précision et la RES, mais aucune
    n'entre dans les dégâts bruts — pour elles, ce qui bouge est la

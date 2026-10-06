@@ -18,6 +18,8 @@ Publiés :
 - [invariants.md](invariants.md) — les contraintes critiques, chacune avec sa
   source.
 - [README.md](README.md) — ce routage.
+- [moteur/pipeline.md](moteur/pipeline.md) — de la recherche lancée à la fin
+  de l'appariement : préparation, moitiés, appariement.
 - [ecran/README.md](ecran/README.md) — l'écran, de haut en bas, et le
   routage vers un fichier par bloc de l'écran.
 - [listes-et-reservation.md](listes-et-reservation.md) — listes de travail,
@@ -39,8 +41,6 @@ Annoncés : un lien vers l'un d'eux désigne sa place avant qu'il paraisse ;
 d'ici là, la section de [../optimizer.md](../optimizer.md) ou du fichier
 publié citée dans la même ligne du tableau décrit le sujet.
 
-- [moteur/pipeline.md](moteur/pipeline.md) — de la recherche lancée au
-  résultat affiché : préparation, moitiés, appariement, résolution, file.
 - [moteur/reliques.md](moteur/reliques.md) — la dimension relique : contexte,
   bornes, résolution exacte, oracle.
 - [moteur/parallelisation.md](moteur/parallelisation.md) — l'appariement

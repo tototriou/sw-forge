@@ -1,6 +1,6 @@
 // `npm run bureau:preuve [dossier] [--exe <chemin>] [--conservation]` — lance
 // l'application de bureau sur le BUILD en mode preuve (voir bureau/preuve.ts) :
-// contrôles, captures, `resultats.json`, puis l'app se ferme d'elle-même.
+// contrôles, `resultats.json`, puis l'app se ferme d'elle-même.
 // Chantier application-bureau.
 //
 // Dossier par défaut : `preuve` dans `dist-bureau` (gitignoré). Le build
@@ -69,7 +69,6 @@ if (swex) {
   const r = lancerElectronEtAttendre({ SWBLACKSMITH_PREUVE: dossier }, 120_000, exe);
   if (r.error) throw r.error;
   console.log(readFileSync(resolve(dossier, 'resultats.json'), 'utf8'));
-  console.log(`captures : ${dossier}`);
 } else {
   const dossier = resolve(args[0] ?? 'dist-bureau/preuve-conservation');
   rmSync(dossier, { recursive: true, force: true }); // données neuves

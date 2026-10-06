@@ -1,15 +1,15 @@
 // Mode preuve de l'application de bureau — `SWBLACKSMITH_PREUVE=<dossier>`.
 //
 // L'app se contrôle elle-même DE L'INTÉRIEUR (origine, stockage, données,
-// worker, cloisonnement, habillage de la fenêtre), prend des captures, écrit
-// `resultats.json`, puis se ferme. C'est la preuve rejouable des lots du
-// chantier application-bureau (`npm run bureau:preuve`) : on n'affirme pas
-// « ça marche », on le relit. Sans la variable, ce module ne fait rien.
+// worker, cloisonnement, habillage de la fenêtre), écrit ses résultats en
+// JSON, puis se ferme (`npm run bureau:preuve`) : on n'affirme pas « ça
+// marche », on le relit. Jamais de capture d'écran. Sans la variable, ce
+// module ne fait rien.
 //
 // ⚠️ Ses données (stockage, état de la fenêtre) vivent dans `<dossier>/donnees`
 // (voir main.ts) : une preuve ne touche jamais celles de l'utilisateur.
 
-import { app, BrowserWindow, desktopCapturer } from 'electron';
+import { app, BrowserWindow } from 'electron';
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { PreuveMiseAJour } from './miseAJour';
@@ -46,23 +46,6 @@ async function cliquerQuandPret(fenetre: BrowserWindow, libelle: string, delai =
     await attendre(250);
   }
   return `pas de bouton « ${libelle} »`;
-}
-
-// La PAGE seule (sans le cadre de la fenêtre).
-async function capturerPage(fenetre: BrowserWindow, fichier: string) {
-  const image = await fenetre.webContents.capturePage();
-  writeFileSync(fichier, image.toPNG());
-}
-
-// La FENÊTRE entière, cadre et boutons de Windows compris (lot 1 bis) : ce
-// que voit l'utilisateur, et que `capturePage` ne montre pas.
-async function capturerFenetre(fenetre: BrowserWindow, fichier: string): Promise<string> {
-  const { width, height } = fenetre.getBounds();
-  const sources = await desktopCapturer.getSources({ types: ['window'], thumbnailSize: { width, height } });
-  const source = sources.find((s) => s.id === fenetre.getMediaSourceId());
-  if (!source) return 'fenêtre introuvable parmi les sources';
-  writeFileSync(fichier, source.thumbnail.toPNG());
-  return 'ok';
 }
 
 // ── Lot 8 : les données survivent à la fermeture de l'app ───────────────
@@ -181,7 +164,6 @@ export async function lancerPreuveSwex(fenetre: BrowserWindow, dossier: string, 
         .map((e) => e.textContent.trim() + (e.getAttribute('aria-checked') === 'true' ? ' ✓' : ''));
     })()`);
     await attendre(300);
-    await capturerPage(fenetre, join(dossier, 'menu-compte.png'));
     resultats.choisirInvocateur = await js(`(() => {
       const e = [...document.querySelectorAll('aside [role="menuitemcheckbox"]')].find((x) => x.textContent.trim() === 'Autre');
       if (!e) return 'pas d’entrée « Autre »';
@@ -214,9 +196,6 @@ export async function lancerPreuveSwex(fenetre: BrowserWindow, dossier: string, 
     resultats.apresLive = { notification: await notification() };
 
     resultats.reglageRetenu = JSON.parse(readFileSync(join(dossier, 'donnees', 'swex.json'), 'utf8'));
-    await js(`document.querySelector('[data-bloc-application]')?.scrollIntoView({ block: 'center' })`);
-    await attendre(500);
-    await capturerPage(fenetre, join(dossier, 'reglages-swex.png'));
   } catch (e) {
     resultats.erreur = String(e);
   } finally {
@@ -242,8 +221,8 @@ export async function lancerPreuve(fenetre: BrowserWindow, dossier: string, raci
     resultats.nomApp = app.getName();
     // ⚠️ Windows impose au PREMIER affichage l'état demandé par le processus
     // qui lance l'app (STARTUPINFO) : lancée depuis un shell caché, elle
-    // s'ouvre réduite — sans boutons de fenêtre ni capture possible. Un
-    // double-clic l'ouvre normalement. La preuve la rouvre et le note.
+    // s'ouvre réduite. Un double-clic l'ouvre normalement. La preuve la
+    // rouvre et le note.
     resultats.ouverteReduite = fenetre.isMinimized();
     if (fenetre.isMinimized()) {
       fenetre.restore();
@@ -301,11 +280,12 @@ export async function lancerPreuve(fenetre: BrowserWindow, dossier: string, raci
     );
     resultats.menu = fenetre.isMenuBarVisible() ? 'visible' : 'aucun';
 
-    await capturerPage(fenetre, join(dossier, 'accueil.png'));
+    // La fenêtre suit le thème : la couleur de fond qu'elle a reçue de la
+    // page, par thème.
     for (const theme of ['dark', 'light'] as const) {
       await js(`document.documentElement.setAttribute('data-theme', '${theme}')`);
       await attendre(800);
-      resultats[`fenetre-${theme}`] = await capturerFenetre(fenetre, join(dossier, `fenetre-${theme}.png`));
+      resultats[`fond-${theme}`] = fenetre.getBackgroundColor();
     }
     await js(`document.documentElement.removeAttribute('data-theme')`);
 
@@ -416,7 +396,6 @@ export async function lancerPreuve(fenetre: BrowserWindow, dossier: string, raci
     ma.telechargements = temoins.miseAJour.telechargements;
     ma.prete = await notification();
     ma.blocPrete = await bloc();
-    await capturerPage(fenetre, join(dossier, 'parametres.png'));
     ma.clicRedemarrer = await cliquer('Redémarrer');
     await attendre(500);
     ma.redemarrages = temoins.miseAJour.redemarrages;
@@ -430,7 +409,6 @@ export async function lancerPreuve(fenetre: BrowserWindow, dossier: string, raci
     await attendre(2500);
     // Le compteur du Bestiaire (« 2 859 monstres ») : les données sont lues.
     resultats.bestiaire = await js(`document.body.innerText.match(/[0-9][0-9\\s\\u202f\\u00a0]* monstres/)?.[0] ?? 'aucun compteur'`);
-    await capturerPage(fenetre, join(dossier, 'bestiaire.png'));
   } catch (e) {
     resultats.erreur = String(e);
   } finally {

@@ -221,6 +221,23 @@ Q1 → 7 (les données dépendent du choix de Thomas)
     pastille dans la barre latérale, ou les deux.
     → lot 5 (complément).
 
+13. **Les boutons de téléchargement de l'accueil** (2026-10-06, relevé du
+    lot 6) :
+    - **dans le héros**, sous la phrase de promesse, avant les éléments qui
+      flottent (proposition de Thomas) ; **deux boutons secondaires**
+      « Télécharger pour Windows » / « Télécharger pour Linux », puis la
+      phrase SmartScreen en petit. La règle « aucun bouton dans le héros »
+      (spec/accueil.md) est levée pour eux — « Importer mon compte » reste
+      le bouton principal. Non retenus : une ligne de liens, un bloc à lui
+      plus bas ;
+    - **le fichier directement** : un clic télécharge l'installeur de la
+      dernière version (`…/releases/latest/download/<nom>`) — noms de
+      fichiers **sans numéro de version**, seule adresse fixe ;
+    - **au téléphone, une ligne d'information** sans bouton (« existe aussi
+      en application pour Windows et Linux ») ;
+    - absents dans l'app (`estBureau()`).
+    → lot 6.
+
 #### Les questions d'origine (toutes tranchées)
 
 Toutes les questions sont tranchées.

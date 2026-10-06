@@ -307,10 +307,11 @@ module pur, décide quoi envoyer ; le hook de la file ne fait que le brancher.
 `recevoir` libère toujours la place en vol, mais n'écrit dans le cache que le
 résultat d'une demande non annulée du contexte courant : une réponse périmée
 n'est jamais écrite. Une réponse `erreur` ou un envoi qui lève (`pomper`),
-une erreur du Worker, une réponse illisible ou un Worker impossible à créer
-font renoncer (`renoncer`) : le Worker est terminé, l'erreur journalisée
-(`console.error`), et la file repasse sur le fil de l'écran avec le cache tel
-qu'il est. Détail : [parallelisation.md](parallelisation.md) et
+une erreur du Worker ou une réponse illisible font renoncer (`renoncer`) :
+le Worker est terminé, l'erreur journalisée (`console.error`), et la file
+repasse sur le fil de l'écran avec le cache tel qu'il est. Un Worker
+impossible à créer ne fait que basculer la file sur le fil de l'écran
+(`setEnRepli`) : il n'y a rien à terminer. Détail : [parallelisation.md](parallelisation.md) et
 [artefacts.md § Résolution hors du fil de l'écran](artefacts.md).
 
 ## File de résolution

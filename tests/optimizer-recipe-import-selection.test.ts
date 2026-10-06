@@ -3,18 +3,19 @@
 // sélectionne aucun exemplaire dès qu'on en possède PLUSIEURS ».
 //
 // ⚠️ Le dépôt ne teste pas les composants React (voir le commentaire de
-// `testOptimizerExclusion` sur `useSiegeState.ts`) : `sourceSelector` est un
-// état LOCAL d'`OptimizerSection`, sa résolution n'est pas une fonction pure
-// exportée. Même patron ici — contrôle de SOURCE, seule façon de voir la
-// régression revenir si un site retombe sur l'ancienne règle divergente.
+// `testOptimizerExclusion` sur `useSiegeState.ts`) : `sourceSelector` vit
+// dans `useOptimizerState`, mais sa résolution reste dans `OptimizerSection`,
+// pas une fonction pure exportée. Même patron ici — contrôle de SOURCE, seule
+// façon de voir la régression revenir si un site retombe sur l'ancienne règle
+// divergente.
 //
 // Le bug : le picker (`pickSpecies`) prend TOUJOURS `boxCandidates[0]`, avec
 // repli sur `unownedSelectorIfNoneOwned` seulement si la box n'a AUCUN
 // candidat. L'import de recette, lui, ne prenait `boxCandidates[0]` QUE si un
 // SEUL exemplaire existait — dès 2, repli sur « non possédé », donc des
 // stats de base 6★ sans runes silencieusement fausses. Un troisième site
-// (l'initialisation paresseuse de `sourceSelector` au montage) portait la
-// même faute. Décision (2026-09-04) : aligner tous les sites sur la règle du
+// (la résolution de `sourceSelector` au montage, aujourd'hui sa
+// revérification) portait la même faute. Décision (2026-09-04) : aligner tous les sites sur la règle du
 // picker, aucun cas spécial sur la longueur du tableau.
 
 import { readFileSync } from 'fs';
@@ -40,9 +41,9 @@ export default function testOptimizerRecipeImportSelection() {
   ok(!REGLE_FAUTIVE.test(source), "aucun site ne retombe sur « non possédé » à cause d'un test de longueur (== 1)");
 
   const occurrences = source.split(REGLE_PICKER).length - 1;
-  // Les 3 sites concernés : le picker (`pickSpecies`), l'initialisation
-  // paresseuse de `sourceSelector` au montage, et l'import de recette.
-  egal(occurrences, 3, 'les 3 sites de résolution (picker, init paresseuse, import de recette) partagent la MÊME règle');
+  // Les 3 sites concernés : le picker (`pickSpecies`), la revérification de
+  // `sourceSelector` au montage, et l'import de recette.
+  egal(occurrences, 3, 'les 3 sites de résolution (picker, revérification au montage, import de recette) partagent la MÊME règle');
 
   const debutImportRecipe = source.indexOf('function importRecipe');
   ok(debutImportRecipe !== -1, "la fonction importRecipe existe toujours (sinon ce test contrôle la mauvaise fonction)");

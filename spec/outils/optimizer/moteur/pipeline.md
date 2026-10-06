@@ -210,5 +210,8 @@ Le Worker poste le résultat (`type: 'result'`) ; le hook l'enregistre
 
 Le même enchaînement existe hors Worker : `searchBuildsSteps` appelle
 `prepareSearch`, `buildBuckets` pour A puis pour B dans le même fil, puis
-`pairBuckets` ; `searchBuilds` le draine en un appel. C'est l'entrée des
-tests et des scripts : ni Worker, ni appariement parallèle.
+`pairBuckets` ; `searchBuilds` le draine en un appel, sans Worker ni
+appariement parallèle. Des tests et des scripts l'utilisent ; d'autres
+pilotent l'appariement parallèle sous Node (`driveParallelPairing` avec
+`makeSpawnSliceNode`, `worker_threads`), ou appellent `prepareSearch` et
+`pairBuckets` directement.

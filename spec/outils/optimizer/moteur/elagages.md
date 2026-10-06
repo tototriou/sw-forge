@@ -98,8 +98,10 @@ en garder le résultat passe par un canal différent, coopératif :
   - **Les reliques que la recherche peut équiper** se dérivent du contexte
     relique (`reliquesEquipables`) : la relique fixe (`SearchParams.relic`)
     hors mode `recherche`, tout `relicContext.eligibles` en mode
-    `recherche`, pris avant la dominance des reliques — un sur-ensemble sûr
-    de celle que la résolution retiendra.
+    `recherche` — les candidates mêmes que la résolution parcourt
+    (`resoudreEquipementDuBuild`), donc un sur-ensemble sûr de celle
+    qu'elle retiendra. Aucune dominance de reliques ne les réduit avant :
+    `relicDominates` n'est appelée que par les tests.
   - **Le Taux Crit** n'est pas une stat de l'objectif « Dégâts réels »
     (`damageRelevantStats`, `src/lib/damage.ts`), sauf pour un passif dont
     les dégâts en dépendent (`bonusDegatsSelonCr`) : il est plafonné à

@@ -123,7 +123,7 @@ Q1 → 7 (les données dépendent du choix de Thomas)
 | 2 le web dans la coquille (liens, téléchargements, audience, `estBureau`) | J | **validé par Thomas** (« c'est tout bon ») — liens au navigateur, navigations bloquées, « Enregistrer sous » | `f21e54ee`, 2026-10-06 |
 | 3 empaquetage Windows (NSIS) et Linux (AppImage) | M | **validé par Thomas** (« ok ») — assistant d'installation, icône, désinstallation sans reste ; AppImage au lot 4 | `6286cfb6`, 2026-10-06 |
 | 4 action GitHub au tag | J | **validé par Thomas** (« ok ») — écrite et relue ; première exécution au tag `v2.0.0` (décision 9) | `3838aaa4`, 2026-10-06 |
-| 5 mise à jour automatique | J | **validé par Thomas** (« ok ») — l'utilisateur décide (décision 11) ; N → N+1 après la v2.0.0 (décision 10) | `e1562b23`, `648ef329`, 2026-10-06 |
+| 5 mise à jour automatique | J | **validé par Thomas** (« ok ») — l'utilisateur décide (décision 11) ; N → N+1 après la v2.0.0 (décision 10) | `e1562b23`, `648ef329`, `0c808472` (bloc « Application », décision 12), 2026-10-06 |
 | 6 « Télécharger pour Windows » sur le site | J | à faire | |
 | 7 données du jeu — dans l'installeur (décision 1), une phrase de spec | M | à faire | |
 | 8 clôture : spec d'état actuel, docs, `npm test`, fusion dans `release/v2.0.0` | M | à faire | |
@@ -475,6 +475,17 @@ introuvable — détectée, restaurée. Écarts :
 - non prouvés : N → N+1 (décision 10), phase `echec`, AppImage,
   installation « tous les utilisateurs » ; recherche au lancement seulement.
 
+**Complément (2026-10-06)** — `0c808472`, décision 12, validé par Thomas
+à l'écran : le bloc « Application » des Réglages garde la mise à jour
+remise à plus tard, et permet une recherche manuelle (ce qui lève la
+limite « recherche au lancement seulement »). Preuve 4 de `lot-5.md` :
+le parcours « plus tard » sur `#/parametres` ; 125 vérifications. Trouvé
+en préparant la séance d'écran : hors app installée, « Rechercher »
+restait bloqué — corrigé. Mutation du pilote (bouton actif pendant une
+recherche) : 1 échec sur 30 — restaurée. Reportés au lot 8 : deux textes
+du site faux dans l'app (pied de page « dans ton navigateur », « Garder
+mes données » « en fermant l'onglet »).
+
 ### Lot 6 — « Télécharger pour Windows » sur le site · J
 
 **Intrant** : A, Q2, Q5, `src/pages/HomePage.tsx`, `spec/accueil.md`
@@ -504,3 +515,9 @@ avec le lot 8.
 bureau:local` après un changement du bureau), notes de la 2.0.0, ligne du
 README des specs passée à « terminé », `npm test` complet, fusion
 `--no-ff` dans `release/v2.0.0`.
+
+**Reporté ici par le lot 5** (2026-10-06) : deux textes écrits pour le
+site, faux dans l'app de bureau — le pied de page « Toutes tes données
+restent en local dans ton navigateur » et l'explication de « Garder mes
+données » (« tout est perdu en fermant l'onglet »). Proposer à Thomas une
+formulation pour l'app (derrière `estBureau()`), le site ne change pas.

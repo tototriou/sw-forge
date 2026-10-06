@@ -32,30 +32,6 @@
       "proprietaire": "a-publier"
     },
     {
-      "fichier": ".claude/skills/spec-hygiene/SKILL.md",
-      "renvoi": "archive/",
-      "occurrences": 1,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": ".claude/skills/spec-hygiene/SKILL.md",
-      "renvoi": "decisions/",
-      "occurrences": 2,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": ".claude/skills/spec-hygiene/SKILL.md",
-      "renvoi": "pistes.md",
-      "occurrences": 1,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": ".claude/skills/spec-hygiene/SKILL.md",
-      "renvoi": "spec/outils/optimizer/archive/controles-rangement-2026-09/",
-      "occurrences": 1,
-      "proprietaire": "a-publier"
-    },
-    {
       "fichier": "ARCHITECTURE.md",
       "renvoi": "../ui",
       "occurrences": 1,
@@ -633,30 +609,6 @@
     },
     {
       "fichier": "spec/README.md",
-      "renvoi": "archive/",
-      "occurrences": 2,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": "spec/README.md",
-      "renvoi": "decisions/",
-      "occurrences": 1,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": "spec/README.md",
-      "renvoi": "decisions/reste-a-faire-degats-2026-10.md",
-      "occurrences": 1,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": "spec/README.md",
-      "renvoi": "spec/outils/optimizer/chantiers/",
-      "occurrences": 1,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": "spec/README.md",
       "renvoi": "src/components/Segmented.tsx",
       "occurrences": 1,
       "proprietaire": "hors-perimetre"
@@ -681,18 +633,6 @@
     },
     {
       "fichier": "spec/chantiers/spec-rangement.md",
-      "renvoi": "archive/",
-      "occurrences": 1,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": "spec/chantiers/spec-rangement.md",
-      "renvoi": "decisions/",
-      "occurrences": 1,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": "spec/chantiers/spec-rangement.md",
       "renvoi": "spec/outils/optimizer/archive/chantiers/spec-rangement.md",
       "occurrences": 1,
       "proprietaire": "a-publier"
@@ -708,42 +648,6 @@
       "renvoi": "artifacts/",
       "occurrences": 1,
       "proprietaire": "hors-perimetre"
-    },
-    {
-      "fichier": "spec/outillage/spec.md",
-      "renvoi": "archive/",
-      "occurrences": 11,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": "spec/outillage/spec.md",
-      "renvoi": "archive/README.md",
-      "occurrences": 2,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": "spec/outillage/spec.md",
-      "renvoi": "decisions/",
-      "occurrences": 7,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": "spec/outillage/spec.md",
-      "renvoi": "decisions/vitesse-finale.md",
-      "occurrences": 1,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": "spec/outillage/spec.md",
-      "renvoi": "historique/",
-      "occurrences": 1,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": "spec/outillage/spec.md",
-      "renvoi": "spec/outils/optimizer/",
-      "occurrences": 1,
-      "proprietaire": "a-publier"
     },
     {
       "fichier": "spec/outils/degats-reels.md",
@@ -900,24 +804,6 @@
       "renvoi": "src/components/Segmented.tsx",
       "occurrences": 1,
       "proprietaire": "hors-perimetre"
-    },
-    {
-      "fichier": "spec/spec-lint.json",
-      "renvoi": "spec/outils/optimizer/artefacts.md",
-      "occurrences": 1,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": "spec/spec-lint.json",
-      "renvoi": "spec/outils/optimizer/harnais-diagnostic-extensions.md",
-      "occurrences": 1,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": "spec/spec-lint.json",
-      "renvoi": "spec/outils/optimizer/harnais-diagnostic.md",
-      "occurrences": 1,
-      "proprietaire": "a-publier"
     },
     {
       "fichier": "spec/spec-lint.json",

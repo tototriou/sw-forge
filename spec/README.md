@@ -374,20 +374,21 @@ Outillage du dépôt (pas une page de l'app) :
     locales seraient à défaire.
 - **Langue** : interface 100 % française.
 - **Rétention.** Une mise à jour de spec **remplace** la section obsolète,
-  elle n'ajoute pas un paragraphe « depuis la v… » — l'ancien texte part
-  dans `archive/`, daté. Le raisonnement encore utile à une décision en
-  vigueur va dans `decisions/`. `archive/` reçoit les documents datés qui
-  ne sont plus une source de vérité active — conclusion déjà reprise
-  ailleurs, ou conservés comme historique — et les artefacts de preuve
-  d'un chantier ; une archive n'a qu'un en-tête `ARCHIVE`, aucune
-  contrainte de taille. Pour les documents actifs : aucun bloc terminal de
-  plus de 80 lignes (le lint refuse à 100) ; aucun fichier de plus de 500
-  lignes hors exceptions déclarées ; slugs de titres uniques. Un
-  fichier en exception se découpe **avant** qu'un chantier modifie son
-  contenu normatif — pas pour une faute, un lien ou un en-tête. Chaque
-  fichier commence par l'en-tête de sa nature (état actuel / décision /
-  archive). `invariants.md` est un index : une règle modifiée se modifie
-  dans sa source ET dans l'index, dans le même commit.
+  elle n'ajoute pas un paragraphe « depuis la v… ». Tout `spec/` est
+  public, et ne renvoie jamais aux notes privées du projet : l'ancien
+  texte, l'historique, les preuves et les récits quittent le public, et
+  vont dans ces notes s'il faut les garder ; l'historique Git garde de
+  toute façon le texte remplacé. Une conclusion encore en vigueur qu'un
+  chantier peut devoir rouvrir va dans le dossier `decisions` de sa zone,
+  avec sa raison. Pour les documents actifs : aucun bloc terminal de plus
+  de 80 lignes (le lint refuse à 100) ; aucun fichier de plus de 500
+  lignes hors exceptions déclarées et hors dossiers `chantiers` ; slugs de
+  titres uniques. Un fichier en exception se découpe **avant** qu'un chantier
+  modifie son contenu normatif — pas pour une faute, un lien ou un
+  en-tête. Chaque fichier commence par l'en-tête de sa nature (état
+  actuel / décision / chantier). `invariants.md` est un index : une règle
+  modifiée se modifie dans sa source ET dans l'index, dans le même commit.
+  Contrat : [outillage/spec.md](outillage/spec.md).
 
 ## Shell applicatif
 
@@ -440,10 +441,10 @@ Un chantier (travail de plus d'une session, exécuté par lots dans des
 sessions fraîches) a un **document de cadrage** : Partie A relue par chaque
 lot, Partie B un contrat par lot, résultats ajoutés au fil des lots.
 L'écrire : skill `cadrage-chantier`. Il est public, dans
-[chantiers/](chantiers/), ou privé, dans les notes privées
-(`spec/outils/optimizer/chantiers/`), au choix du responsable du chantier.
-Le tableau ci-dessous n'a de ligne que pour un cadrage public, ou pour la
-fiche publique d'un journal archivé dans les notes privées.
+[chantiers/](chantiers/), ou privé, dans les notes privées du projet, hors
+de ce dépôt, au choix du responsable du chantier. Le tableau ci-dessous
+n'a de ligne que pour un cadrage public, ou pour la fiche publique d'un
+journal archivé dans les notes privées.
 Chaque cadrage commence par un H1 et une ligne `**Statut :**` que
 `node scripts/spec-toc.mjs <fichier>` résume ; on l'ouvre par section,
 jamais en entier.
@@ -454,4 +455,4 @@ jamais en entier.
 | [chantiers/refonte-graphique.md](chantiers/refonte-graphique.md) — refonte graphique sans régression (navigation, boutons, densité) | en cours | `forge/refonte-graphique` |
 | [chantiers/rebranding-blacksmith.md](chantiers/rebranding-blacksmith.md) — rebranding « SW Blacksmith » (nom, logo, thèmes, écrans), suite de la refonte | en cours | `forge/refonte-graphique` |
 | Speed tuning en mode RTA (1,5 % par tick au lieu de 7 %) — pas encore de cadrage ; ce qu'il devra trancher : [outils/speed-tuning.md](outils/speed-tuning.md) § Mode RTA | à ouvrir | — |
-| [chantiers/degats-et-aura.md](chantiers/degats-et-aura.md) — quatre sorts au modèle incomplet, sets d'aura, ergonomie et planchers de conditions ; découpe `spec/outils/degats-reels.md` ; reliquat de l'audit traité en partie, le reste reporté (notes privées, `decisions/reste-a-faire-degats-2026-10.md`) ; fiche, journal archivé ; valeurs de jeu curées : [outils/degats-reels/valeurs-de-jeu-curees.md](outils/degats-reels/valeurs-de-jeu-curees.md) | terminé le 2026-10-04 | `forge/degats-et-aura` |
+| [chantiers/degats-et-aura.md](chantiers/degats-et-aura.md) — quatre sorts au modèle incomplet, sets d'aura, ergonomie et planchers de conditions ; découpe `spec/outils/degats-reels.md` ; reliquat de l'audit traité en partie, le reste reporté ; fiche, journal archivé ; valeurs de jeu curées : [outils/degats-reels/valeurs-de-jeu-curees.md](outils/degats-reels/valeurs-de-jeu-curees.md) | terminé le 2026-10-04 | `forge/degats-et-aura` |

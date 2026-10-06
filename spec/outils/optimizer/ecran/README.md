@@ -54,10 +54,13 @@ profite directement de la largeur (davantage de cartes par ligne).
 « Critères de recherche » : il se choisit avant même de composer le set, ce
 n'est pas un critère de plus parmi d'autres ; 3) composer les **Critères de
 recherche** ; puis, optionnellement et en dernier, **Exclusion de runes**
-(Runes imposées y compris, voir plus bas) et **Réglages avancés**. La grille
-suit cet ordre pour le monstre, les critères et les deux cartes
-optionnelles ; l'objectif, lui, vit dans la carte du bouton Rechercher, sous
-la grille (voir objectif-de-recherche.md § Objectif de recherche).
+(Runes imposées y compris, voir plus bas) et **Réglages avancés**. Depuis
+`xl`, la grille suit cet ordre pour le monstre, les critères et les deux
+cartes optionnelles. Entre `lg` et `xl`, la grille n'a qu'une colonne et
+les cartes s'empilent dans l'ordre du DOM, qui place « Réglages avancés »
+avant « Exclusion de runes » : l'inverse de l'ordre d'usage. L'objectif,
+lui, vit dans la carte du bouton Rechercher, sous la grille (voir
+objectif-de-recherche.md § Objectif de recherche).
 
 Depuis `xl`, **une seule grille** (deux colonnes, six rangées) porte tout
 l'écran de réglages, en placement EXPLICITE (`col-start`/`row-start`/

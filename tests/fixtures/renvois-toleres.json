@@ -56,30 +56,6 @@
       "proprietaire": "a-publier"
     },
     {
-      "fichier": ".claude/skills/spec-hygiene/SKILL.md",
-      "renvoi": "archive/",
-      "occurrences": 1,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": ".claude/skills/spec-hygiene/SKILL.md",
-      "renvoi": "decisions/",
-      "occurrences": 2,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": ".claude/skills/spec-hygiene/SKILL.md",
-      "renvoi": "pistes.md",
-      "occurrences": 1,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": ".claude/skills/spec-hygiene/SKILL.md",
-      "renvoi": "spec/outils/optimizer/archive/controles-rangement-2026-09/",
-      "occurrences": 1,
-      "proprietaire": "a-publier"
-    },
-    {
       "fichier": "ARCHITECTURE.md",
       "renvoi": "../ui",
       "occurrences": 1,

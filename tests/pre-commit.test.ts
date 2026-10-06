@@ -79,6 +79,9 @@ export function testPreCommit() {
     const propre = '# Invariants\n\nUne règle publique.\n';
 
     /* ------------------------------------------------------ liste absente */
+    // En premier : une fois le dossier indexé, un disque insensible à la
+    // casse ramène `Optimizer/` à la casse du dossier existant.
+    ok(refuse(cas({ 'spec/outils/Optimizer/x.md': propre })), 'casse différente du dossier : refus');
     let r = cas({ [`${O}/invariants.md`]: propre });
     ok(refuse(r) && /fichier non publié/.test(r.sortie),
       'ancienne branche (liste absente de l’index) : un fichier propre est refusé');
@@ -99,7 +102,6 @@ export function testPreCommit() {
     r = cas({ [`${O}/autre.md`]: propre });
     ok(refuse(r) && /autre\.md/.test(r.sortie), 'nom absent de la liste : refus');
     ok(refuse(cas({ [`${O}/résumé.md`]: propre })), 'nom non ASCII absent de la liste : refus (chemin non cité)');
-    ok(refuse(cas({ 'spec/outils/Optimizer/x.md': propre })), 'casse différente du dossier : refus');
     ok(refuse(cas({ '.history/é.md': propre })), '`.history/` sous un nom non ASCII : refus');
 
     /* ----------------------- ancien outil : note privée sous un nom autorisé */

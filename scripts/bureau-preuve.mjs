@@ -11,8 +11,10 @@
 // le premier importe `tests/fixtures/compte-miniature.json` et répond
 // « Garder mes données », le second relit — puis compare ; code de sortie 1
 // si quelque chose s'est perdu.
+// `--swex` (lot 9) : le dossier SW Exporter sur des fixtures — choix, export
+// réécrit, rechargement, `live/` ; prépa RTA et siège jamais touchés.
 
-import { readFileSync, rmSync } from 'node:fs';
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { lancerElectronEtAttendre } from './lib/electron.mjs';
 
@@ -21,8 +23,46 @@ const iExe = args.indexOf('--exe');
 const exe = iExe >= 0 ? args.splice(iExe, 2)[1] : undefined;
 const iConservation = args.indexOf('--conservation');
 const conservation = iConservation >= 0 && args.splice(iConservation, 1).length > 0;
+const iSwex = args.indexOf('--swex');
+const swex = iSwex >= 0 && args.splice(iSwex, 1).length > 0;
 
-if (!conservation) {
+if (swex) {
+  // Lot 9 : un dossier SW Exporter de fixtures — deux invocateurs à la racine
+  // (`Testeur-1.json`, `Autre-2.json`, tirés de compte-miniature.json) et un
+  // `live/` à ignorer.
+  const dossier = resolve(args[0] ?? 'dist-bureau/preuve-swex');
+  rmSync(dossier, { recursive: true, force: true });
+  const fixtures = resolve(dossier, 'swex-fixtures');
+  mkdirSync(resolve(fixtures, 'live'), { recursive: true });
+  const source = resolve('tests/fixtures/compte-miniature.json');
+  const compte = JSON.parse(readFileSync(source, 'utf8'));
+  writeFileSync(resolve(fixtures, 'Testeur-1.json'), JSON.stringify(compte));
+  writeFileSync(resolve(fixtures, 'Autre-2.json'), JSON.stringify({ ...compte, wizard_info: { ...compte.wizard_info, wizard_id: 2, wizard_name: 'Autre' } }));
+  const r = lancerElectronEtAttendre(
+    { SWBLACKSMITH_PREUVE: dossier, SWBLACKSMITH_PREUVE_SWEX: fixtures, SWBLACKSMITH_PREUVE_COMPTE: source },
+    90_000,
+    exe
+  );
+  if (r.error) throw r.error;
+  const res = JSON.parse(readFileSync(resolve(dossier, 'resultats-swex.json'), 'utf8'));
+  console.log(JSON.stringify(res, null, 2));
+  const verdicts = {
+    'import manuel : prépa RTA et siège remplis': res.travailRempli === true,
+    'deux invocateurs proposés, live/ ignoré': JSON.stringify(res.options) === JSON.stringify(['Choisir…', 'Autre', 'Testeur']),
+    'carte du compte : menu des invocateurs, puis l’import': JSON.stringify(res.menuCompte) === JSON.stringify(['Autre', 'Testeur', 'Importer un fichier…']),
+    'invocateur choisi au menu : son compte, annoncé': res.choisirInvocateur === 'cliqué' && res.apresChoix?.compte === 'Autre' && res.apresChoix?.notification === 'Compte de Autre mis à jour depuis SW Exporter',
+    'les Réglages suivent le même choix': res.selecteurReglages === 'Autre-2.json',
+    'export réécrit : relu, annoncé': res.apresReecriture?.compte === 'Autre-bis' && res.apresReecriture?.notification === 'Compte de Autre-bis mis à jour depuis SW Exporter',
+    'rechargement : rien de réannoncé, compte gardé': res.apresRechargement?.notification === 'aucune' && res.apresRechargement?.compte === 'Autre-bis',
+    'écriture dans live/ : ignorée': res.apresLive?.notification === 'aucune',
+    'prépa RTA et siège INCHANGÉS à chaque étape':
+      res.apresChoix?.travailInchange === true && res.apresReecriture?.travailInchange === true && res.apresRechargement?.travailInchange === true,
+    'réglage retenu (dossier, invocateur, dernier lu)': res.reglageRetenu?.fichier === 'Autre-2.json' && typeof res.reglageRetenu?.dernierLu === 'number',
+    'aucune erreur': !res.erreur,
+  };
+  for (const [quoi, bon] of Object.entries(verdicts)) console.log(`${bon ? 'ok' : 'KO'}  ${quoi}`);
+  if (Object.values(verdicts).some((v) => !v)) process.exit(1);
+} else if (!conservation) {
   const dossier = resolve(args[0] ?? 'dist-bureau/preuve');
   const r = lancerElectronEtAttendre({ SWBLACKSMITH_PREUVE: dossier }, 120_000, exe);
   if (r.error) throw r.error;

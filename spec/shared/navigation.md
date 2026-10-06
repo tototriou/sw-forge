@@ -131,6 +131,13 @@ MON COMPTE · OUTILS · RESSOURCES …
 ⚙  Paramètres
 ```
 
+**Dans l'app de bureau, avec un dossier SW Exporter choisi** (lot 9,
+décision 15 du chantier [application-bureau](../chantiers/application-bureau.md)),
+la carte du compte ouvre un **menu** (`Menu`, axe `declencheur`) au lieu du
+sélecteur de fichier : les invocateurs du dossier (celui suivi, coché), puis
+« Importer un fichier… ». Choisir un invocateur ne change que « Mon compte ».
+Sans dossier, et sur le site : la carte importe, comme ci-dessus.
+
 ### Le gabarit d'une entrée
 
 **32 px de haut**, icône **16** (18 pour les icônes d'inventaire du jeu),

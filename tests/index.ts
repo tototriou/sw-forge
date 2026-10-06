@@ -168,6 +168,7 @@ import testMigrationStockage from './migration-stockage.test';
 import testBureauProtocole from './bureau-protocole.test';
 import testBureauFenetre from './bureau-fenetre.test';
 import testBureauMiseAJour from './bureau-mise-a-jour.test';
+import testBureauSwex from './bureau-swex.test';
 import testVitesse from './vitesse.test';
 import testSiegeStatut from './siege-statut.test';
 import testSiegePastille from './siege-pastille.test';
@@ -526,6 +527,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testBureauProtocole', testBureauProtocole],
   ['testBureauFenetre', testBureauFenetre],
   ['testBureauMiseAJour', testBureauMiseAJour],
+  ['testBureauSwex', testBureauSwex],
   ['testStockage', async () => { await testStockage(); }],
   ['testPersistance', async () => { await testPersistance(); }],
 ];

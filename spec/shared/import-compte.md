@@ -68,6 +68,31 @@ unique : **pas d'écran d'attente**, il n'aurait fait que clignoter.
 Message global récapitulatif **éphémère** (disparaît seul ~5 s ; ~9 s pour une
 erreur) : « Import : N monstres 6★ · N monstres RTA · N défenses · N attaques ».
 
+### Le dossier SW Exporter — l'app de bureau seulement
+
+Dans l'**application de bureau** (chantier application-bureau, décision 15),
+le bloc « Application » des Réglages laisse choisir le **dossier SW
+Exporter** et l'**invocateur** à suivre (ses exports `<nom>-<id>.json` à la
+racine) — l'invocateur aussi depuis la **carte du compte** de la barre
+latérale, qui devient alors un menu. Chaque nouvel export de cet invocateur — au lancement s'il est plus
+récent que le dernier lu, puis à chaque écriture tant que l'app est ouverte —
+met à jour **« Mon compte » seulement** (box 6★, inventaire, reliques, runes
+utilisées, marqueurs), annoncé par « Compte de <invocateur> mis à jour depuis
+SW Exporter ».
+
+- ⚠️ **Jamais la prépa RTA ni le siège.** L'import complet les REMPLACE
+  (classement RTA, leads et ticks remis à zéro) : le faire à chaque
+  connexion au jeu effacerait le travail de l'utilisateur. Ils restent à
+  importer à la main, comme ci-dessus.
+- **Un seul chemin** : `appliquerCompte` (App.tsx) est la moitié « Mon
+  compte » de l'import manuel, appelée par les deux — même extraction, même
+  enregistrement (selon « Garder mes données »), même remise à zéro de
+  l'exclusion de runes et du speed tuning quand l'invocateur CHANGE
+  (`wizard_id`).
+- Pas de question de conservation : le dossier est un réglage, posé une fois.
+- Détail (surveillance, réglage retenu, export illisible) :
+  [application-bureau.md](application-bureau.md) § « Le dossier SW Exporter ».
+
 Helpers partagés par les deux parseurs : `runeSpeed` (SPD d'une rune : mainstat +
 prefix + substats avec meule), `indexRunes` (index rune_id → rune, inventaire +
 runes des unités), `indexUnits` (unit_id → unité), `speedFromRuneIds` (SPD plate

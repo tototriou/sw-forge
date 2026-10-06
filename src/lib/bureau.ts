@@ -17,6 +17,38 @@ interface PontBureau {
     telecharger: () => void;
     redemarrer: () => void;
   };
+  swex: {
+    etat: () => Promise<EtatSwex | null>;
+    choisirDossier: () => Promise<EtatSwex | null>;
+    choisirInvocateur: (fichier: string) => Promise<EtatSwex | null>;
+    oublier: () => Promise<EtatSwex | null>;
+    surEtat: (rappel: (etat: EtatSwex) => void) => () => void;
+    surExport: (rappel: (exp: ExportSwex) => void) => () => void;
+    pret: (pageSansCompte: boolean) => void;
+    lu: (modifie: number) => void;
+  };
+}
+
+// Le dossier SW Exporter (lot 9, décision 15 — voir bureau/swex.ts).
+export interface EtatSwex {
+  dossier: string | null;
+  fichier: string | null;
+  exports: { fichier: string; nom: string; id: string; modifie: number }[];
+  dernierLu: number | null;
+  introuvable: boolean;
+}
+// Un export donné à la page : son texte, sa date, et s'il est NOUVEAU (à
+// annoncer) ou seulement relu (page sans compte, au lancement).
+export interface ExportSwex {
+  texte: string;
+  modifie: number;
+  nouveau: boolean;
+  fichier: string;
+}
+
+// Le pont du dossier SW Exporter, ou `null` sur le site.
+export function swex(): PontBureau['swex'] | null {
+  return pont()?.swex ?? null;
 }
 
 // La mise à jour automatique (lot 5), phase par phase — voir

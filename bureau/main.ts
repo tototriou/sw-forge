@@ -13,8 +13,9 @@ import { NOM_APP } from '../src/marque';
 import { CouleursFenetre, couleursValides, EtatFenetre, HAUTEUR_BARRE, lireEtat, MINIMUM } from './fenetre';
 import { brancherMiseAJour } from './miseAJour';
 import { brancherNavigation } from './navigation';
+import { brancherSwex } from './swex';
 import { SCHEMA, URL_ACCUEIL, cheminDuFichier } from './protocole';
-import { lancerPreuve, lancerPreuveConservation, TemoinsPreuve } from './preuve';
+import { lancerPreuve, lancerPreuveConservation, lancerPreuveSwex, TemoinsPreuve } from './preuve';
 
 // Les couleurs des deux thèmes, LUES dans `src/index.css` à la compilation
 // (scripts/construire-bureau.mjs) — jamais recopiées ici. Elles habillent la
@@ -131,6 +132,8 @@ function creerFenetre(preuve: TemoinsPreuve | undefined): BrowserWindow {
   // Mise à jour automatique (lot 5) : app installée seulement ; en mode
   // preuve, simulée.
   brancherMiseAJour(fenetre, preuve?.miseAJour);
+  // Le dossier SW Exporter (lot 9) : « Mon compte » suit les exports.
+  brancherSwex(fenetre, preuve?.swex);
 
   void fenetre.loadURL(URL_DEV ?? URL_ACCUEIL);
   return fenetre;
@@ -148,7 +151,14 @@ void app.whenReady().then(() => {
   // Mode preuve : les liens sont notés, les téléchargements rangés dans son
   // dossier — puis contrôles, captures, et on quitte.
   const preuve: TemoinsPreuve | undefined = DOSSIER_PREUVE
-    ? { liensOuverts: [], dossierTelechargements: join(DOSSIER_PREUVE, 'telechargements'), miseAJour: { recherches: 0, telechargements: 0, redemarrages: 0 } }
+    ? {
+        liensOuverts: [],
+        dossierTelechargements: join(DOSSIER_PREUVE, 'telechargements'),
+        miseAJour: { recherches: 0, telechargements: 0, redemarrages: 0 },
+        // Lot 9 : le dossier « choisi » sans boîte de dialogue (fixtures de
+        // `npm run bureau:preuve -- --swex`).
+        swex: process.env.SWBLACKSMITH_PREUVE_SWEX ? { dossier: process.env.SWBLACKSMITH_PREUVE_SWEX } : undefined,
+      }
     : undefined;
   const fenetre = creerFenetre(preuve);
   // Lot 8 : la preuve de conservation (deux lancements, `ecrire` puis
@@ -157,6 +167,10 @@ void app.whenReady().then(() => {
   if (DOSSIER_PREUVE && (conservation === 'ecrire' || conservation === 'relire')) {
     const compte = conservation === 'ecrire' ? readFileSync(process.env.SWBLACKSMITH_PREUVE_COMPTE ?? '', 'utf8') : '';
     void lancerPreuveConservation(fenetre, DOSSIER_PREUVE, conservation, compte);
+  } else if (DOSSIER_PREUVE && process.env.SWBLACKSMITH_PREUVE_SWEX) {
+    // Lot 9 : la preuve du dossier SW Exporter.
+    const compte = readFileSync(process.env.SWBLACKSMITH_PREUVE_COMPTE ?? '', 'utf8');
+    void lancerPreuveSwex(fenetre, DOSSIER_PREUVE, process.env.SWBLACKSMITH_PREUVE_SWEX, compte);
   } else if (DOSSIER_PREUVE && preuve) void lancerPreuve(fenetre, DOSSIER_PREUVE, RACINE, preuve);
 });
 

@@ -1,7 +1,10 @@
 import { ChangeEvent, useRef } from 'react';
-import { ChevronsUpDown, Import } from 'lucide-react';
+import { Check, ChevronsUpDown, Import } from 'lucide-react';
 import { IconeParametres } from './IconesAtelier';
 import { dateCourte } from './AccountFreshness';
+import { presentationSwex } from './BlocApplication';
+import { useEtatSwex } from '../hooks/useEtatSwex';
+import Menu from '../ui/Menu';
 
 // Carte du compte, en tête de la barre latérale (bureau) : QUI est chargé, et
 // le geste qui s'y rapporte — en charger un autre.
@@ -51,45 +54,94 @@ export default function SidebarCompte({
         .join(' · ')
     : 'Importer un export SWEX';
 
+  // ⚠️ **App de bureau, dossier SW Exporter choisi (lot 9)** : la carte ouvre
+  // un MENU — les invocateurs du dossier (celui suivi, coché), puis l'import
+  // d'un fichier. Choisir un invocateur ne change que « Mon compte »
+  // (décision 15). Sans dossier, et sur le site : la carte importe, comme
+  // avant.
+  const { etat, agir } = useEtatSwex();
+  const invocateurs = etat?.dossier && !etat.introuvable ? presentationSwex(etat).options : [];
+
+  const classeCarte = `flex w-full items-center rounded-xl border border-border-soft bg-panel text-left
+                    transition-colors hoverable:bg-panel2 ${
+                      retractee ? 'justify-center p-1.5' : 'gap-2.5 p-2'
+                    }`;
+  const contenu = (
+    <>
+      {/* Repliée, seul l'avatar tient : c'est la seule chose de la carte qui
+          reste identifiable à cette taille. */}
+      <span
+        aria-hidden
+        className="flex h-8 w-8 flex-none items-center justify-center rounded-lg bg-ctx-soft
+                   text-sm font-bold uppercase text-ctx"
+      >
+        {nom ? nom.trim().charAt(0) : <Import size={16} />}
+      </span>
+      {!retractee && (
+        <>
+          <span className="flex min-w-0 flex-1 flex-col">
+            <span className={`truncate text-sm font-semibold ${nom ? 'text-ink' : 'text-ink-dim'}`}>
+              {nom ?? 'Aucun compte'}
+            </span>
+            <span className="truncate text-xs text-ink-dimmer">{detail}</span>
+          </span>
+          <ChevronsUpDown size={16} aria-hidden className="flex-none text-ink-dimmer" />
+        </>
+      )}
+    </>
+  );
+
+  const champ = (
+    <input ref={fichier} type="file" accept=".json,application/json" onChange={choisir} className="hidden" />
+  );
+
+  if (invocateurs.length > 0) {
+    return (
+      <>
+        {champ}
+        <Menu
+          libelle="Changer de compte"
+          cote="gauche"
+          largeur={retractee ? 'w-56' : 'w-full'}
+          declencheur={(p) => (
+            <button type="button" {...p} aria-label="Changer de compte" title="Changer de compte" className={classeCarte}>
+              {contenu}
+            </button>
+          )}
+          elements={[
+            ...invocateurs.map((o) => ({
+              cle: o.valeur,
+              libelle: o.libelle,
+              actif: o.valeur === etat?.fichier,
+              // La coche dit lequel est suivi ; une place vide aux autres
+              // garde les noms alignés.
+              icone: o.valeur === etat?.fichier ? <Check size={14} /> : <span className="w-[14px]" />,
+              onClick: () => void agir((s) => s.choisirInvocateur(o.valeur)),
+            })),
+            {
+              cle: 'importer',
+              libelle: 'Importer un fichier…',
+              icone: <Import size={14} />,
+              title: "Importer un export de compte SWEX (traité localement, rien n'est envoyé)",
+              onClick: () => fichier.current?.click(),
+            },
+          ]}
+        />
+      </>
+    );
+  }
+
   return (
     <>
-      <input
-        ref={fichier}
-        type="file"
-        accept=".json,application/json"
-        onChange={choisir}
-        className="hidden"
-      />
+      {champ}
       <button
         type="button"
         onClick={() => fichier.current?.click()}
         aria-label="Importer un compte"
         title="Importer un export de compte SWEX (traité localement, rien n'est envoyé)"
-        className={`flex w-full items-center rounded-xl border border-border-soft bg-panel text-left
-                    transition-colors hoverable:bg-panel2 ${
-                      retractee ? 'justify-center p-1.5' : 'gap-2.5 p-2'
-                    }`}
+        className={classeCarte}
       >
-        {/* Repliée, seul l'avatar tient : c'est la seule chose de la carte qui
-            reste identifiable à cette taille. */}
-        <span
-          aria-hidden
-          className="flex h-8 w-8 flex-none items-center justify-center rounded-lg bg-ctx-soft
-                     text-sm font-bold uppercase text-ctx"
-        >
-          {nom ? nom.trim().charAt(0) : <Import size={16} />}
-        </span>
-        {!retractee && (
-          <>
-            <span className="flex min-w-0 flex-1 flex-col">
-              <span className={`truncate text-sm font-semibold ${nom ? 'text-ink' : 'text-ink-dim'}`}>
-                {nom ?? 'Aucun compte'}
-              </span>
-              <span className="truncate text-xs text-ink-dimmer">{detail}</span>
-            </span>
-            <ChevronsUpDown size={16} aria-hidden className="flex-none text-ink-dimmer" />
-          </>
-        )}
+        {contenu}
       </button>
     </>
   );

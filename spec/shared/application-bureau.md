@@ -20,7 +20,7 @@ change pas. Ce qui en dépend aujourd'hui :
 | Sur le site | Dans l'app |
 |-------------|-----------|
 | Page « Télécharger », son entrée sous Ressources, le bouton et la carte de l'accueil ([telecharger.md](../telecharger.md)) | absents ; `#/telecharger` mène à l'accueil |
-| — | bloc « Application » des Réglages : version et mise à jour |
+| — | bloc « Application » des Réglages : version, mise à jour, dossier SW Exporter |
 | Textes qui parlent du navigateur (« dans ton navigateur », « en fermant l'onglet », « ta prochaine visite », thème « Auto », « un autre navigateur ») | leur variante : « sur ta machine », « en fermant l'application »… (`selonSupport(site, app)`) |
 
 ## La coquille
@@ -57,6 +57,39 @@ change pas. Ce qui en dépend aujourd'hui :
   nom npm) : il ne touche jamais celles de l'app installée.
 - **Données du jeu** : celles de l'installeur, rafraîchies à chaque version
   ([donnees-monstres.md](donnees-monstres.md), « Chargement côté app »).
+
+## Le dossier SW Exporter
+
+`bureau/swex.ts` (disque, surveillance), `bureau/swexPur.ts` (pur, testé),
+`src/components/SuiviSwex.tsx` (page), bloc « Application » des Réglages
+(décision 15).
+
+- **L'invocateur se choisit aussi depuis la carte du compte**, en tête de
+  la barre latérale (Thomas : « au niveau du menu principal, avec un drop
+  down ») : avec un dossier choisi, la carte ouvre un menu — les
+  invocateurs (celui suivi, coché), puis « Importer un fichier… ». Un seul
+  réglage, deux accès (`useEtatSwex`) ; le processus principal DIFFUSE
+  l'état après chaque choix, sans quoi l'accès qui n'a pas choisi restait
+  sur l'ancien.
+- **Le réglage** : « Dossier SW Exporter » (« Choisir… » ouvre la boîte du
+  système ; « Retirer ») et « Invocateur » (les exports `<nom>-<id>.json` à
+  la **racine** ; `live/`, `plugins/`, `cert/` ignorés ; un seul export →
+  choisi d'office ; deux homonymes → l'identifiant les sépare). Retenu dans
+  `swex.json` (dossier des données de l'app) **même sans « Garder mes
+  données »** : c'est un réglage. Relu avec méfiance — un nom de fichier,
+  jamais un chemin.
+- **Ce qui est mis à jour : « Mon compte » seulement** — jamais la prépa RTA
+  ni le siège (voir [import-compte.md](import-compte.md), § « Le dossier SW
+  Exporter »).
+- **Quand** : au chargement de la page, si l'export est plus récent que le
+  dernier appliqué (annoncé), ou si la page n'a pas de compte (conservation
+  refusée : relu en silence) ; puis à chaque changement du dossier, **1,5 s
+  après la dernière écriture** (SW Exporter écrit plusieurs Mo).
+- ⚠️ **La page confirme ce qu'elle a appliqué** : un export illisible (à
+  moitié écrit) ne passe pas « lu » et sera redonné au prochain changement.
+- ⚠️ La page ne se déclare prête qu'**après** le chargement des monstres et
+  la relecture du compte conservé : plus tôt, la box serait vide, ou écrasée
+  par un compte plus ancien.
 
 ## L'installeur
 
@@ -108,6 +141,7 @@ se télécharge** sans « Mettre à jour ».
 ```
 npm run bureau:preuve                  # l'app se contrôle elle-même (resultats.json)
 npm run bureau:preuve -- --conservation  # les données survivent à la fermeture
+npm run bureau:preuve -- --swex        # le dossier SW Exporter, sur des fixtures
 npm run bureau:preuve -- <dossier> --exe "<app installée>"  # la même chose, sur l'app installée
 npm run bureau:local                   # la regarder
 node tests/run.mjs bureau              # protocole, fenêtre, mise à jour, noms de fichiers

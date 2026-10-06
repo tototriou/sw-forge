@@ -13,6 +13,7 @@ import { app, BrowserWindow, desktopCapturer } from 'electron';
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { PreuveMiseAJour } from './miseAJour';
+import type { PreuveSwex } from './swex';
 
 // Ce que les branchements enregistrent en mode preuve : la navigation
 // (navigation.ts) au lieu d'ouvrir le navigateur ou une boîte de dialogue, la
@@ -21,9 +22,31 @@ export interface TemoinsPreuve {
   liensOuverts: string[];
   dossierTelechargements: string;
   miseAJour: PreuveMiseAJour;
+  swex?: PreuveSwex;
 }
 
 const attendre = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+// Clique le bouton de ce libellé dès qu'il apparaît (au plus `delai` ms) :
+// un délai FIXE après un import a manqué la question « Garder mes données »
+// une fois sur deux (lot 9).
+async function cliquerQuandPret(fenetre: BrowserWindow, libelle: string, delai = 10_000): Promise<string> {
+  const fin = Date.now() + delai;
+  while (Date.now() < fin) {
+    const fait = await fenetre.webContents.executeJavaScript(
+      `(() => {
+        const b = [...document.querySelectorAll('button')].find((x) => x.textContent.trim() === ${JSON.stringify(libelle)});
+        if (!b) return false;
+        b.click();
+        return true;
+      })()`,
+      true
+    );
+    if (fait) return 'cliqué';
+    await attendre(250);
+  }
+  return `pas de bouton « ${libelle} »`;
+}
 
 // La PAGE seule (sans le cadre de la fenêtre).
 async function capturerPage(fenetre: BrowserWindow, fichier: string) {
@@ -66,13 +89,7 @@ export async function lancerPreuveConservation(fenetre: BrowserWindow, dossier: 
         champ.dispatchEvent(new Event('change', { bubbles: true }));
         return 'déposé';
       })()`);
-      await attendre(2500);
-      resultats.garder = await js(`(() => {
-        const b = [...document.querySelectorAll('button')].find((x) => x.textContent.trim() === 'Garder mes données (recommandé)');
-        if (!b) return 'pas de question « Garder mes données »';
-        b.click();
-        return 'cliqué';
-      })()`);
+      resultats.garder = await cliquerQuandPret(fenetre, 'Garder mes données (recommandé)');
       await attendre(2500);
     } else {
       await attendre(1500); // le compte se relit d'IndexedDB, après la page
@@ -93,6 +110,118 @@ export async function lancerPreuveConservation(fenetre: BrowserWindow, dossier: 
     // Fermeture ORDINAIRE (comme l'utilisateur) : le stockage s'écrit sur le
     // disque à la sortie de Chromium.
     fenetre.close();
+  }
+}
+
+// ── Lot 9 : le dossier SW Exporter ─────────────────────────────────────
+// `npm run bureau:preuve -- --swex` : un dossier de fixtures (deux
+// invocateurs, un `live/`), « choisi » sans boîte de dialogue (main.ts). Un
+// import MANUEL d'abord (prépa RTA et siège remplis), puis, depuis les
+// Réglages, le dossier et l'invocateur ; l'export réécrit pendant que l'app
+// tourne ; un rechargement ; une écriture dans `live/`. À chaque étape : le
+// compte affiché, la notification, et la prépa RTA et le siège INCHANGÉS.
+export async function lancerPreuveSwex(fenetre: BrowserWindow, dossier: string, fixtures: string, compte: string) {
+  mkdirSync(dossier, { recursive: true });
+  const resultats: Record<string, unknown> = {};
+  const js = (code: string) => fenetre.webContents.executeJavaScript(code, true);
+  const travail = () =>
+    js(`JSON.stringify(['swblacksmith-rta-v1', 'swblacksmith-siege-defense-v1', 'swblacksmith-siege-offense-v1'].map((k) => localStorage.getItem(k)))`);
+  const notification = () =>
+    js(`document.querySelector('[aria-label="Fermer la notification"]')?.closest('[role="status"]')?.innerText.replace(/\\s+/g, ' ').trim() ?? 'aucune'`);
+  const fermerNotification = () => js(`document.querySelector('[aria-label="Fermer la notification"]')?.click()`);
+  // Le nom porté par la CARTE du compte — pas n'importe où dans la barre :
+  // le menu des invocateurs y garde ses entrées, même fermé.
+  const compteAffiche = () =>
+    js(`document.querySelector('aside button[aria-label="Changer de compte"], aside button[aria-label="Importer un compte"]')?.querySelector('.font-semibold')?.textContent.trim() ?? 'aucun'`);
+  const reglage = () => js(`document.querySelector('[data-reglage-swex]')?.innerText.replace(/\\s+/g, ' ').trim() ?? 'aucun bloc'`);
+  const cliquer = (libelle: string) =>
+    js(`(() => {
+      const b = [...document.querySelectorAll('button')].find((x) => x.textContent.trim() === ${JSON.stringify(libelle)});
+      if (!b) return 'pas de bouton « ${libelle} »';
+      b.click();
+      return 'cliqué';
+    })()`);
+  try {
+    if (fenetre.webContents.isLoading()) {
+      await new Promise<void>((r) => fenetre.webContents.once('did-finish-load', () => r()));
+    }
+    await attendre(2500);
+
+    // 1. Import manuel : la prépa RTA et le siège se remplissent.
+    resultats.importManuel = await js(`(() => {
+      const champ = document.querySelector('input[type="file"][accept*="json"]');
+      const dt = new DataTransfer();
+      dt.items.add(new File([${JSON.stringify(compte)}], 'compte.json', { type: 'application/json' }));
+      champ.files = dt.files;
+      champ.dispatchEvent(new Event('change', { bubbles: true }));
+      return 'déposé';
+    })()`);
+    resultats.garder = await cliquerQuandPret(fenetre, 'Garder mes données (recommandé)');
+    await attendre(1500);
+    const avant = await travail();
+    resultats.travailRempli = JSON.parse(avant).every((v: string | null) => v !== null && v.length > 50);
+    resultats.compteApresImport = await compteAffiche();
+
+    // 2. Les Réglages : choisir le dossier, puis l'invocateur « Autre ».
+    await js(`location.hash = '#/parametres'`);
+    await attendre(1200);
+    resultats.reglageAvant = await reglage();
+    resultats.choisirDossier = await cliquer('Choisir…');
+    await attendre(1200);
+    resultats.reglageDossier = await reglage();
+    resultats.options = await js(`[...document.querySelectorAll('[data-reglage-swex] select option')].map((o) => o.textContent)`);
+    await fermerNotification();
+    // L'invocateur se choisit depuis la CARTE DU COMPTE (Thomas : « au niveau
+    // du menu principal, avec un drop down ») : la carte ouvre le menu.
+    resultats.menuCompte = await js(`(() => {
+      const carte = document.querySelector('aside button[aria-label="Changer de compte"]');
+      if (!carte) return 'pas de menu sur la carte du compte';
+      carte.click();
+      return [...document.querySelectorAll('aside [role="menuitemcheckbox"], aside [role="menuitem"]')]
+        .map((e) => e.textContent.trim() + (e.getAttribute('aria-checked') === 'true' ? ' ✓' : ''));
+    })()`);
+    await attendre(300);
+    await capturerPage(fenetre, join(dossier, 'menu-compte.png'));
+    resultats.choisirInvocateur = await js(`(() => {
+      const e = [...document.querySelectorAll('aside [role="menuitemcheckbox"]')].find((x) => x.textContent.trim() === 'Autre');
+      if (!e) return 'pas d’entrée « Autre »';
+      e.click();
+      return 'cliqué';
+    })()`);
+    await attendre(2500);
+    resultats.selecteurReglages = await js(`document.querySelector('[data-reglage-swex] select')?.value`);
+    resultats.apresChoix = { compte: await compteAffiche(), notification: await notification(), reglage: await reglage(), travailInchange: (await travail()) === avant };
+
+    // 3. SW Exporter réécrit l'export pendant que l'app tourne.
+    await fermerNotification();
+    const autre = JSON.parse(compte);
+    autre.wizard_info = { ...autre.wizard_info, wizard_id: 2, wizard_name: 'Autre-bis' };
+    writeFileSync(join(fixtures, 'Autre-2.json'), JSON.stringify(autre));
+    await attendre(4500);
+    resultats.apresReecriture = { compte: await compteAffiche(), notification: await notification(), travailInchange: (await travail()) === avant };
+
+    // 4. Un rechargement (comme un relancement, compte conservé) : rien de
+    // nouveau, rien d'annoncé.
+    await fermerNotification();
+    fenetre.webContents.reload();
+    await new Promise<void>((r) => fenetre.webContents.once('did-finish-load', () => r()));
+    await attendre(3500);
+    resultats.apresRechargement = { compte: await compteAffiche(), notification: await notification(), travailInchange: (await travail()) === avant };
+
+    // 5. Une écriture dans `live/` (SW Exporter en partie) : ignorée.
+    writeFileSync(join(fixtures, 'live', 'partie.json'), '{}');
+    await attendre(3500);
+    resultats.apresLive = { notification: await notification() };
+
+    resultats.reglageRetenu = JSON.parse(readFileSync(join(dossier, 'donnees', 'swex.json'), 'utf8'));
+    await js(`document.querySelector('[data-bloc-application]')?.scrollIntoView({ block: 'center' })`);
+    await attendre(500);
+    await capturerPage(fenetre, join(dossier, 'reglages-swex.png'));
+  } catch (e) {
+    resultats.erreur = String(e);
+  } finally {
+    writeFileSync(join(dossier, 'resultats-swex.json'), JSON.stringify(resultats, null, 2));
+    app.quit();
   }
 }
 

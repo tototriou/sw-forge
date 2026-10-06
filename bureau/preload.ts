@@ -32,5 +32,31 @@ contextBridge.exposeInMainWorld(
       telecharger: () => ipcRenderer.send('bureau:telecharger'),
       redemarrer: () => ipcRenderer.send('bureau:redemarrer'),
     }),
+    // Le dossier SW Exporter (lot 9, voir bureau/swex.ts) : le réglage et ses
+    // changements, les choix (dossier par la boîte du système, invocateur
+    // parmi les exports trouvés), les exports donnés à la page, et ses
+    // réponses — prête, export appliqué.
+    swex: Object.freeze({
+      etat: () => ipcRenderer.invoke('bureau:swex-etat'),
+      choisirDossier: () => ipcRenderer.invoke('bureau:swex-choisir-dossier'),
+      choisirInvocateur: (fichier: string) => ipcRenderer.invoke('bureau:swex-choisir-invocateur', fichier),
+      oublier: () => ipcRenderer.invoke('bureau:swex-oublier'),
+      surEtat: (rappel: (etat: unknown) => void) => {
+        const ecouteur = (_e: unknown, etat: unknown) => rappel(etat);
+        ipcRenderer.on('bureau:swex-etat', ecouteur);
+        return () => {
+          ipcRenderer.removeListener('bureau:swex-etat', ecouteur);
+        };
+      },
+      surExport: (rappel: (exp: unknown) => void) => {
+        const ecouteur = (_e: unknown, exp: unknown) => rappel(exp);
+        ipcRenderer.on('bureau:swex-export', ecouteur);
+        return () => {
+          ipcRenderer.removeListener('bureau:swex-export', ecouteur);
+        };
+      },
+      pret: (pageSansCompte: boolean) => ipcRenderer.send('bureau:swex-pret', pageSansCompte),
+      lu: (modifie: number) => ipcRenderer.send('bureau:swex-lu', modifie),
+    }),
   })
 );

@@ -67,14 +67,26 @@
    pour la même raison (autre box, autre pool de runes possible) — même en
    étant sur un autre onglet au moment de l'import.
 
-   ⚠️ **Changer d'espèce ramène l'objectif à « Efficience » et le cran des
-   artéfacts à « Dégâts supplémentaires »**, et vide le sort choisi. Un sort
-   appartient à un monstre : après un changement, le calcul retomberait
-   silencieusement sur le sort par défaut du nouveau ; derrière la fenêtre
-   fermée du combat, ce repli serait invisible et l'on croirait
-   calculer sur un sort qu'on a choisi. Remettre les deux sélecteurs au défaut
-   rend ce repli **impossible** plutôt que visible — réoptimiser en dégâts
-   demande de recliquer « Dégâts réels » et de rechoisir le sort.
+   ⚠️ **Changer d'espèce ramène l'objectif à « Efficience »** et vide le
+   sort choisi ; **choisie dans le bestiaire**, l'espèce ramène aussi le cran
+   des artéfacts à « Dégâts supplémentaires ». Un sort appartient à un
+   monstre : après un changement, le calcul retomberait silencieusement sur
+   le sort par défaut du nouveau ; le résumé sous l'objectif le nommerait,
+   mais rien ne signalerait le changement, et l'on croirait calculer sur un
+   sort qu'on a choisi. Remettre l'objectif (et, depuis le bestiaire, le
+   cran) au défaut rend ce repli **impossible** plutôt que visible —
+   réoptimiser en dégâts demande de recliquer « Dégâts réels », dont la
+   fenêtre présélectionne le sort par défaut du nouveau monstre.
+   - L'objectif et le sort retombent dans `resetSearch`, donc pour toute
+     espèce différente, bestiaire ou membre de liste ; le cran des artéfacts
+     retombe dans `pickSpecies` seulement. Un membre de liste d'une autre
+     espèce (`choisirExemplaire`) laisse le cran tel quel ; sur « Dégâts
+     réels », la légende du bloc, dès qu'il propose une paire, nomme alors
+     le sort par défaut du nouveau monstre (voir meilleurs-artefacts-offensifs.md § Deux crans : dégâts supplémentaires ou dégâts réels).
+   - Ces remises à zéro vivent dans les gestionnaires du geste, jamais dans
+     un effet sur le monstre sélectionné : `importRecipe` pose le monstre et
+     l'objectif sans passer par eux, et un effet, déclenché après l'import,
+     écraserait l'objectif de la recette qu'on vient de charger.
 
    ⚠️ **La description du combat, elle, SURVIT** : défense, PV et élément de
    l'adversaire, buffs, lead ne sont pas propres au monstre, et ce sont les

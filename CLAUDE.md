@@ -182,13 +182,17 @@ qui exige de repérer le danger échoue précisément quand on ne le repère pas
 D'où deux défauts
 **mécaniques**, à appliquer sans examiner le contenu :
 
-- **Un message de commit passe toujours par un heredoc**, jamais par `-m` :
+- **Un message de commit ou d'étiquette passe toujours par un heredoc**,
+  jamais par `-m` :
   ```bash
   git commit -F - <<'FIN'
   … message, backticks compris …
   FIN
   ```
-  `<<'FIN'` entre apostrophes = aucune expansion. **En PowerShell, pas de
+  (de même `git tag -a <nom> -F -`). `<<'FIN'` entre apostrophes = aucune
+  expansion. **Une fusion** prend `git merge --no-edit` (message par
+  défaut), ou `git merge -F <fichier>` écrit par l'outil `Write` :
+  `git merge -F -` ne lit pas l'entrée standard. **En PowerShell, pas de
   here-string** : envoyé par un tube (`@'…'@ | git commit -F -`), il
   glisse un BOM en tête du message, et passé en argument, git le prend
   pour un chemin. Écrire le message dans un fichier (UTF-8 sans BOM, par
@@ -201,7 +205,10 @@ D'où deux défauts
 ⚠️ **La première puce, et la forme dangereuse de la seconde, sont
 appliquées par un hook**, `PreToolUse` sur `Bash` :
 [.claude/hooks/refuse-commit-m.mjs](.claude/hooks/refuse-commit-m.mjs) refuse
-`git commit -m`/`--amend -m` et rappelle la forme heredoc, et refuse
+un message en ligne de `git commit`, `git merge` et `git tag` (`-m`, collé
+ou dans une grappe d'options courtes, `--message` ou son abréviation),
+derrière toute option globale de git, et rappelle la forme sûre de
+chacune, et refuse
 `node -e "…"` dont la chaîne contient un backtick ou un `$`. Raison d'être :
 après des dizaines d'exemples réussis de la forme interdite,
 l'exemple pèse plus lourd qu'une règle lue au démarrage. Un refus au MOMENT de

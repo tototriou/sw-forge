@@ -1,7 +1,9 @@
-// Refuse `git commit -m` et `git commit --amend -m`, et `node -e`/`--eval`/
-// `-p`/`--print` dont l'argument est une chaîne entre guillemets doubles
-// contenant un backtick ou un `$` — voir CLAUDE.md, « Jamais de code entre
-// guillemets doubles dans une commande shell ».
+// Refuse `git commit`, `git merge` et `git tag` avec un message en ligne
+// (`-m`, forme collée `-m"…"` comprise, grappe `-am`, `--message` et ses
+// abréviations acceptées par git), derrière toute option globale, et
+// `node -e`/`--eval`/`-p`/`--print` dont l'argument est une chaîne entre
+// guillemets doubles contenant un backtick ou un `$` — voir CLAUDE.md,
+// « Jamais de code entre guillemets doubles dans une commande shell ».
 //
 // ⚠️ **Pourquoi un hook et pas seulement la consigne écrite** : la consigne
 // existe, elle est lue au démarrage de session, et elle a quand même été
@@ -74,38 +76,84 @@ const segments = sansHeredocs(commande)
   .map((s) => s.trim())
   .filter(Boolean);
 
+// Sous-commandes surveillées, et leurs options courtes qui prennent une valeur
+// (`git <commande> -h`, git 2.55) : dans une grappe, ce qui suit une de ces
+// lettres est sa valeur — `-Fmsg.txt` lit le fichier `msg.txt`, `-smxyz` nomme
+// une stratégie ; aucun des deux n'est un message.
+const OPTIONS_COURTES_A_VALEUR = { commit: 'FmcCtSUu', merge: 'sXmFS', tag: 'nmFu' };
+
+// Plus courte abréviation de `--message` que git accepte (git 2.55) : pour
+// `tag`, `--m` et `--me` sont ambiguës avec `--merged` et git les refuse.
+const ABREVIATION_MINIMALE_DE_MESSAGE = { commit: 1, merge: 1, tag: 3 };
+
+// Options globales de git qui acceptent leur valeur dans le jeton suivant
+// (git 2.55) : celles de `git -h` plus `--attr-source`, absente de `git -h`.
+// Git n'abrège pas les options globales ; `--exec-path` ne prend sa valeur
+// qu'avec `=`.
+const OPTIONS_GLOBALES_A_VALEUR = new Set(['-C', '-c', '--git-dir', '--work-tree', '--namespace', '--config-env', '--attr-source']);
+
 /**
- * Ce segment appelle-t-il `git commit` ?
+ * Sous-commande surveillée appelée par ce segment, et ses arguments.
  *
  * ⚠️ Tokenisé, pas deviné par expression régulière : un premier essai en
  * `git\s+(?:-\S+\s+)*commit` laissait passer `git -C . commit -m`, parce que
- * la VALEUR d'une option globale (`.`) n'est pas un `-…`. Les seules options
- * globales de git qui prennent une valeur séparée sont `-C` et `-c` ; les
- * autres (`--git-dir=`, `--work-tree=`…) sont des jetons uniques.
+ * la VALEUR d'une option globale (`.`) n'est pas un `-…`.
  */
-function estUnCommit(segment) {
+function sousCommandeGit(segment) {
   const jetons = segment.split(/\s+/).filter(Boolean);
   let i = 0;
   while (i < jetons.length && /^[A-Za-z_][A-Za-z0-9_]*=/.test(jetons[i])) i++; // FOO=bar git …
-  if (jetons[i] !== 'git') return false;
+  if (jetons[i] !== 'git') return null;
   i++;
   while (i < jetons.length) {
-    if (jetons[i] === '-C' || jetons[i] === '-c') { i += 2; continue; }
+    if (OPTIONS_GLOBALES_A_VALEUR.has(jetons[i])) { i += 2; continue; }
     if (jetons[i].startsWith('-')) { i++; continue; }
-    return jetons[i] === 'commit';
+    if (!Object.hasOwn(OPTIONS_COURTES_A_VALEUR, jetons[i])) return null;
+    return { nom: jetons[i], args: jetons.slice(i + 1) };
+  }
+  return null;
+}
+
+function porteUnMessage({ nom, args }) {
+  for (const jeton of args) {
+    // `--message`, `--message=…` et leurs abréviations acceptées (`--mes`, `--mess=…`).
+    const long = /^--([a-z]+)(=|$)/.exec(jeton)?.[1];
+    if (long && long.length >= ABREVIATION_MINIMALE_DE_MESSAGE[nom] && 'message'.startsWith(long)) return true;
+    // Un seul tiret, sinon `--allow-empty-message` serait pris pour un message.
+    if (!/^-[^-]/.test(jeton)) continue;
+    // Grappe d'options courtes lue lettre à lettre, comme git : `-m`, `-am`,
+    // forme collée `-m"…"`/`-mtexte` ; la première option à valeur prend le
+    // reste du jeton.
+    for (const lettre of jeton.slice(1)) {
+      if (lettre === 'm') return true;
+      if (!/[A-Za-z]/.test(lettre) || OPTIONS_COURTES_A_VALEUR[nom].includes(lettre)) break;
+    }
   }
   return false;
 }
 
-function porteUnMessage(segment) {
-  for (const jeton of segment.split(/\s+/)) {
-    if (jeton === '--message' || jeton.startsWith('--message=')) return true;
-    // Grappe d'options courtes : `-m`, mais aussi `-am`, `-sm`. Un seul tiret,
-    // sinon `--allow-empty-message` serait pris pour un message.
-    if (/^-[A-Za-z]*m[A-Za-z]*$/.test(jeton) && !jeton.startsWith('--')) return true;
-  }
-  return false;
-}
+// Forme sûre propre à chaque commande. `git merge -F -` ne lit pas l'entrée
+// standard (« could not read file '-' ») : pas de heredoc pour merge.
+const FORMES_SURES = {
+  commit:
+    `Utilise le heredoc, sans examiner le contenu du message :\n\n` +
+    `  git commit -F - <<'FIN'\n` +
+    `  titre du commit\n` +
+    `\n` +
+    `  corps, backticks compris.\n` +
+    `  FIN\n\n` +
+    `(\`<<'FIN'\` entre apostrophes = aucune expansion. En PowerShell : message écrit dans un fichier par l'outil Write, puis git commit -F <fichier>.)\n`,
+  tag:
+    `Utilise le heredoc, sans examiner le contenu du message :\n\n` +
+    `  git tag -a <nom> -F - <<'FIN'\n` +
+    `  message de l'étiquette, backticks compris.\n` +
+    `  FIN\n\n` +
+    `(\`<<'FIN'\` entre apostrophes = aucune expansion. En PowerShell : message écrit dans un fichier par l'outil Write, puis git tag -a <nom> -F <fichier>.)\n`,
+  merge:
+    `git merge -F - ne lit PAS l'entrée standard : pas de heredoc ici. Au choix :\n\n` +
+    `  git merge --no-edit <branche>       message par défaut de git\n` +
+    `  git merge -F <fichier> <branche>    message écrit dans un fichier par l'outil Write\n`,
+};
 
 /**
  * Découpe en segments de commande et en mots, SANS couper une chaîne citée.
@@ -227,21 +275,22 @@ if (nodeFautif) {
   process.exit(2);
 }
 
-const fautif = segments.find((s) => estUnCommit(s) && porteUnMessage(s));
+let fautif = null;
+for (const segment of segments) {
+  const appel = sousCommandeGit(segment);
+  if (appel && porteUnMessage(appel)) {
+    fautif = { segment, nom: appel.nom };
+    break;
+  }
+}
 if (!fautif) process.exit(0);
 
 process.stderr.write(
-  `REFUSÉ — « git commit -m » est interdit sur ce dépôt (CLAUDE.md).\n\n` +
+  `REFUSÉ — « git ${fautif.nom} -m » est interdit sur ce dépôt (CLAUDE.md).\n\n` +
     `Bash EXÉCUTE un backtick dans une chaîne à guillemets doubles, et les messages\n` +
     `de ce dépôt citent du code : un « -m » contenant \`label\` lance la commande\n` +
     `label de Windows, qui attend une saisie jusqu'au délai d'attente.\n\n` +
-    `Utilise le heredoc, sans examiner le contenu du message :\n\n` +
-    `  git commit -F - <<'FIN'\n` +
-    `  titre du commit\n` +
-    `\n` +
-    `  corps, backticks compris.\n` +
-    `  FIN\n\n` +
-    `(\`<<'FIN'\` entre apostrophes = aucune expansion. En PowerShell : message écrit dans un fichier par l'outil Write, puis git commit -F <fichier>.)\n\n` +
-    `Segment refusé : ${fautif.slice(0, 200)}\n`
+    FORMES_SURES[fautif.nom] +
+    `\nSegment refusé : ${fautif.segment.slice(0, 200)}\n`
 );
 process.exit(2);

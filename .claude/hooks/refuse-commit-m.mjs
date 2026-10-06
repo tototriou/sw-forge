@@ -26,6 +26,8 @@
 // dire). Même échappé, et quel que soit ce qui suit la barre : la règle est
 // mécanique, elle n'examine pas l'échappement. Entre apostrophes ou sans ces
 // trois caractères, il passe : ces usages sont sûrs et fréquents.
+// Un commentaire bash (`#` en début de mot, hors guillemets et hors heredoc,
+// jusqu'à la fin de la ligne) n'est pas analysé : bash ne l'exécute pas.
 //
 // Protocole : lit le JSON de l'outil sur stdin, sort en 2 pour REFUSER (le
 // texte de stderr est rendu à l'agent). Toute autre sortie laisse passer.
@@ -45,35 +47,88 @@ try {
 }
 
 /**
- * Retire le CORPS des heredocs avant toute analyse.
+ * Retire le CORPS des heredocs et les commentaires avant toute analyse.
  *
  * ⚠️ **Indispensable, pas défensif** : les messages de commit de ce dépôt
  * PARLENT de la règle — « un message de commit passe par un heredoc, jamais
  * par -m » contient littéralement `-m`. Sans ce nettoyage, le hook refuserait
- * précisément la forme correcte qu'il existe pour imposer.
+ * précisément la forme correcte qu'il existe pour imposer. Un commentaire
+ * n'est pas exécuté par bash : `echo ok # exemple ; node -e "$x"` ne lance
+ * pas node, et son texte n'ouvre pas de position de commande.
  */
-function sansHeredocs(texte) {
+function sansHeredocsNiCommentaires(texte) {
   const lignes = texte.split(/\r?\n/);
   const sortie = [];
   let tagOuvert = null;
+  const lecture = { guillemet: null, debutDeMot: true };
   for (const ligne of lignes) {
     if (tagOuvert != null) {
       if (ligne.trim() === tagOuvert) tagOuvert = null;
       continue; // corps du heredoc : jamais analysé
     }
+    // Le commentaire est retiré AVANT de chercher une ouverture : un `<<FIN`
+    // cité dans un commentaire n'ouvre rien, et les lignes suivantes restent
+    // analysées.
+    const gardee = sansCommentaire(ligne, lecture);
     // `<<TAG`, `<<'TAG'`, `<<"TAG"`, `<<-TAG` — on prend le DERNIER ouvert sur
     // la ligne, le corps commençant à la ligne suivante dans tous les cas.
-    const ouvertures = [...ligne.matchAll(/<<-?\s*(['"]?)([A-Za-z_][A-Za-z0-9_]*)\1/g)];
+    const ouvertures = [...gardee.matchAll(/<<-?\s*(['"]?)([A-Za-z_][A-Za-z0-9_]*)\1/g)];
     if (ouvertures.length > 0) tagOuvert = ouvertures[ouvertures.length - 1][2];
-    sortie.push(ligne);
+    sortie.push(gardee);
   }
   return sortie.join('\n');
+}
+
+/**
+ * La ligne privée de son commentaire : un `#` en début de mot, hors
+ * guillemets, ouvre un commentaire jusqu'à la fin de la ligne, que bash ne
+ * lit pas. Collé à un mot (`a#b`, `$#`, `${#x}`), il n'en ouvre pas.
+ *
+ * ⚠️ `lecture` porte l'état d'une ligne à la suivante : une chaîne citée peut
+ * s'étendre sur plusieurs lignes (`#` y reste littéral), et après une
+ * continuation (`\` en fin de ligne) la ligne suivante prolonge le mot.
+ * `$'…'` est lu comme bash : `\'` n'y ferme pas la chaîne.
+ */
+function sansCommentaire(ligne, lecture) {
+  let debutDeMot = lecture.guillemet == null && lecture.debutDeMot;
+  lecture.debutDeMot = true;
+  for (let i = 0; i < ligne.length; i++) {
+    const c = ligne[i];
+    if (lecture.guillemet != null) {
+      if (c === '\\' && lecture.guillemet !== "'") i++; // `"…"` et `$'…'` : caractère suivant échappé
+      else if (c === (lecture.guillemet === '"' ? '"' : "'")) lecture.guillemet = null;
+      continue;
+    }
+    if (c === '#' && debutDeMot) return ligne.slice(0, i);
+    if (c === '\\') {
+      // Continuation : bash retire `\` et la fin de ligne, la ligne suivante
+      // est en début de mot si et seulement si la barre l'était.
+      if (i + 1 === ligne.length) lecture.debutDeMot = debutDeMot;
+      i++;
+      debutDeMot = false;
+      continue;
+    }
+    if (c === '$' && ligne[i + 1] === "'") {
+      lecture.guillemet = "$'";
+      i++;
+      debutDeMot = false;
+      continue;
+    }
+    if (c === "'" || c === '"') {
+      lecture.guillemet = c;
+      debutDeMot = false;
+      continue;
+    }
+    debutDeMot = /[\s;&|()<>]/.test(c);
+  }
+  return ligne;
 }
 
 // ⚠️ Découpage en POSITION DE COMMANDE, jamais en sous-chaîne : sans ça,
 // `grep -rn "git commit -m" spec/` serait refusé — exactement le genre d'audit
 // de documentation qu'on lance sur ce dépôt.
-const segments = sansHeredocs(commande)
+const analysable = sansHeredocsNiCommentaires(commande);
+const segments = analysable
   .split(/\n|&&|\|\||;|(?<!\|)\|(?!\|)/)
   .map((s) => s.trim())
   .filter(Boolean);
@@ -265,7 +320,7 @@ function evalueUneChaineDouble(mots) {
   return false;
 }
 
-const nodeFautif = segmentsHorsGuillemets(sansHeredocs(commande)).find(evalueUneChaineDouble);
+const nodeFautif = segmentsHorsGuillemets(analysable).find(evalueUneChaineDouble);
 if (nodeFautif) {
   process.stderr.write(
     `REFUSÉ — « node -e "…" » avec un backtick, un $ ou une barre oblique inverse est interdit sur ce dépôt (CLAUDE.md).\n\n` +

@@ -5,7 +5,7 @@
 // `-p`/`--print` dont l'argument est une chaîne entre guillemets doubles
 // contenant un backtick, un `$` ou une barre oblique inverse. Tout le reste
 // passe — en particulier le
-// texte cité par `grep`/`echo` et le corps d'un heredoc.
+// texte cité par `grep`/`echo`, le corps d'un heredoc et un commentaire bash.
 //
 // Le hook est lancé tel que Claude Code le lance : un processus `node`, le JSON
 // de l'outil sur stdin, sortie 2 = refus, toute autre sortie = passage. Les
@@ -214,6 +214,11 @@ export default function testHookRefuseCommitM(): void {
     ['forme collée -m\'…\'', `git commit -m'titre'`],
     ['forme collée -mtexte', `git commit -mtitre`],
     ['grappe collée -am"…"', `git commit -am"titre"`],
+    ['# collé à un mot (a#b), commit après', `echo a#b ; git commit -m "titre"`],
+    ['# entre guillemets, commit après', `echo "# x" ; git commit -m "titre"`],
+    ['commentaire en ligne 1, commit en ligne 2', `echo ok # x\ngit commit -m "titre"`],
+    // Prouvé par git : le lexeur de `node -e` ne lit pas `$'…'` (limite antérieure).
+    ['# dans $\'…\' (\\\' ne la ferme pas), commit après', `echo $'a\\'b # c' ; git commit -m "titre"`],
   ];
   for (const [nom, commande] of commitsRefuses) {
     egal(sortie(bash(commande)), 2, `git, refusé : ${nom}`);
@@ -227,6 +232,7 @@ export default function testHookRefuseCommitM(): void {
     ['--amend --no-edit', `git commit --amend --no-edit`],
     ['grep qui cite la forme', `grep -rn "git commit -m" spec/`],
     ['git log -m', `git log -m --oneline`],
+    ['commentaire qui cite git commit -m', `echo ok # exemple ; git commit -m "titre"`],
   ];
   for (const [nom, commande] of commitsPassent) {
     egal(sortie(bash(commande)), 0, `git, passe : ${nom}`);
@@ -318,6 +324,17 @@ export default function testHookRefuseCommitM(): void {
     ['--eval= avec \\\\', `node --eval="\\\\d"`],
     ['-e avec \\" échappé', `node -e "console.log(\\"x\\")"`],
     ['-e avec \\n seul (règle mécanique)', `node -e "a\\nb"`],
+    // `#` qui n'ouvre PAS de commentaire : collé à un mot, entre guillemets.
+    ['# collé à un mot (a#b), node après', `echo a#b ; node -e "$y"`],
+    ['# entre apostrophes, node après', `echo '# x' ; node -e "$y"`],
+    ['# entre guillemets doubles, node après', `echo "# x" ; node -e "$y"`],
+    ['# dans la chaîne de node', `node -e "a #b $x"`],
+    ['# en tête de ligne dans une chaîne sur plusieurs lignes', `node -e "\n# x\nconsole.log($y)\n"`],
+    // Le commentaire s'arrête à la fin de sa ligne.
+    ['commentaire en ligne 1, node en ligne 2', `# commentaire\nnode -e "$x"`],
+    ['<<FIN dans un commentaire n’ouvre pas de heredoc', `echo x # voir <<FIN\nnode -e "$y"`],
+    ['apostrophe dans un commentaire n’ouvre pas de chaîne', `echo ok # l'apostrophe\nnode -e "$y"`],
+    ['# après une continuation, collé au mot', `echo a\\\n#b ; node -e "$y"`],
   ];
   for (const [nom, commande] of nodeRefuses) {
     egal(sortie(bash(commande)), 2, `node, refusé : ${nom}`);
@@ -338,6 +355,12 @@ export default function testHookRefuseCommitM(): void {
     ['\\\\ entre apostrophes', `node -e 'a\\\\b'`],
     ['\\\\ dans le chemin cité de node, pas dans la chaîne', `"C:\\Program Files\\nodejs\\node.exe" -e "console.log(1)"`],
     ['\\\\ dans un -e passé au script', `node scripts/x.mjs -e "a\\\\b"`],
+    // `#` en début de mot, hors guillemets et hors heredoc : commentaire
+    // jusqu'à la fin de la ligne, jamais analysé (bash ne l'exécute pas).
+    ['commentaire après echo', `echo ok # exemple ; node -e "$x"`],
+    ['commentaire collé à ;', `echo ok;#x ; node -e "$y"`],
+    ['commentaire en début de commande', `# node -e "$x"`],
+    ['commentaire sur la ligne d’ouverture d’un heredoc', `cat <<'EOF' > diag.mjs # node -e "$x"\nnode -e "$y"\nEOF`],
   ];
   for (const [nom, commande] of nodePassent) {
     egal(sortie(bash(commande)), 0, `node, passe : ${nom}`);

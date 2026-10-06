@@ -129,7 +129,7 @@ Q1 → 7 (les données dépendent du choix de Thomas)
 | 6 « Télécharger pour Windows » sur le site | J | **validé par Thomas** (« ok ») — page « Télécharger » (décision 14), lien et carte sur l'accueil | `e7128fae`, `22b881f5`, 2026-10-06 |
 | 7 données du jeu — dans l'installeur (décision 1), une phrase de spec | M | **fait** — `spec/shared/donnees-monstres.md` | `1a5fbbda`, 2026-10-06 |
 | 8 clôture : spec d'état actuel, docs, `npm test`, fusion dans `release/v2.0.0` | M | **première partie faite** (avec le lot 7) ; clôture après le lot 9 | `ca30733d` … `2061592e`, 2026-10-06 |
-| 9 le dossier SW Exporter (décision 15) | J | à faire | |
+| 9 le dossier SW Exporter (décision 15) | J | **validé par Thomas** (« ok ») — « Mon compte » suit les exports ; invocateur aux Réglages et à la carte du compte | `cdcad9fa`, `96a8a375`, 2026-10-06 |
 
 ### A.8 Questions ouvertes et décisions
 
@@ -613,6 +613,24 @@ Arrêt avant commit : Thomas, avec son vrai dossier.
 
 **Ne fait pas** : l'import complet automatique (RTA, siège) ; rien sur le
 site.
+
+**Résultat (2026-10-06)** — `cdcad9fa` (axes `declencheur` et `cote` de
+`Menu`) et `96a8a375` (le dossier), validés par Thomas, preuve
+[lot-9.md](application-bureau-preuves/lot-9.md). `--swex` : 11 contrôles,
+prépa RTA et siège identiques à l'octet à chaque étape ; 28 tests purs ;
+592 vérifications. Mutation du pilote (`rta.clearAll()` dans
+`rafraichirCompte`) : « prépa RTA et siège INCHANGÉS » en échec — restaurée
+(la même exécution a aussi relevé `UnknownVizError` à une capture, déjà vu
+au lot 5, sans rapport). Écarts :
+- la carte du compte devenue menu (précision de Thomas pendant le lot) ;
+- l'import découpé (`appliquerCompte`) pour que les deux chemins
+  partagent la même lecture du compte ;
+- ⚠️ un `sed -i` lancé pendant le lot (interdit par `CLAUDE.md`) : sans
+  effet, vérifié au diff ; le hook `refuse-sed-i` ne l'a pas refusé —
+  câblage `.claude/settings.json` de la machine à vérifier ;
+- non prouvés : le vrai dossier de Thomas pendant une connexion au jeu, la
+  vraie boîte de choix de dossier, un dossier débranché, un export à
+  moitié écrit.
 
 ### Lot 8 — clôture · M
 

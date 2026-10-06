@@ -157,6 +157,23 @@ raison. Celles du moteur de recherche des runes :
   conditions (harnais, arrêt après les demi-builds), puis la borner.
 - **Bloque** : non remesuré sur le code actuel, et jamais retouché.
 
+### Le joker au pré-filtrage
+
+- **Constat** : `filterSlot` (`src/lib/runeBuildOptim.ts`) classe une
+  Intangible dans la tranche des sets demandés par `relevance`, sans valeur
+  pour le set qu'elle complète, et ne l'admet jamais dans la tranche hors
+  set (`offSet`) ; l'ordre des compartiments ne la crédite pas non plus
+  ([limites-connues.md § Recherche des runes — le meilleur trouvé, pas l'optimum prouvé](limites-connues.md)).
+  Une Intangible aux stats faibles peut donc être écartée avant la
+  rétention, qui n'est pas en cause (écart au classement :
+  [moteur/elagages.md § Variantes écartées ou gardées en réserve](moteur/elagages.md)).
+- **Idée** : lui réserver une place au pré-filtrage, ou lui créditer ce
+  qu'elle complète quand un set demandé ne se complète pas sans elle.
+- **Bloque** : aucune perte relevée sur un cas réel ; ce qu'elle complète
+  dépend des autres emplacements, inconnus à l'étage d'un emplacement. Un oracle
+  sur un pool où seule une Intangible complète le set (skill `algo-verify`)
+  dirait si la perte existe.
+
 ### Optimalité prouvée : Branch & Bound sur les paires, statuts du résultat
 
 - **Constat** : le résultat est « le meilleur trouvé parmi le pool retenu »
@@ -395,6 +412,43 @@ raison. Celles du moteur de recherche des runes :
 - **Bloque** : une décision de produit : c'est un mode d'affichage, pas un
   paramètre de recherche. S'il y entre, la checklist du skill
   `optimizer-field-propagation` s'applique.
+
+### Le cran des artéfacts au choix d'un membre de liste
+
+- **Constat** : choisir dans le bestiaire une autre espèce remet le cran
+  des artéfacts à « Dégâts supplémentaires » (`pickSpecies`) ; choisir un
+  membre de liste d'une autre espèce (`choisirExemplaire`) le laisse tel
+  quel. Sur « Dégâts réels », la légende nomme alors le sort par défaut du
+  nouveau monstre : le repli est visible, pas empêché
+  ([ecran/recherche-du-monstre.md § Recherche du monstre à optimiser](ecran/recherche-du-monstre.md)).
+- **Idée** : remettre aussi le cran au défaut dans `choisirExemplaire`.
+- **Bloque** : une décision de produit.
+
+### Diagnostics de l'écran avec les paramètres de la recherche
+
+- **Constat** : l'écran appelle `diagnoseFeasibility` et
+  `rankBlockingConditions` sans `relicContext`, sans objectif et sans
+  `statsLignesArtefactsEquipables` : en mode relique « recherche », la
+  preuve d'impossibilité porte sur la relique portée
+  ([moteur/diagnostics.md § Paramètres reçus par les diagnostics de l'écran](moteur/diagnostics.md)).
+  Le harnais leur passe les paramètres complets.
+- **Idée** : leur passer les `SearchParams` de la recherche, comme le
+  harnais.
+- **Bloque** : un changement de code, jamais fait.
+
+### Fiche du quasi-succès
+
+- **Constat** : `NearMiss.stats` est la fiche calculée avec la paire
+  figée, sans relique en mode « recherche », alors que les écarts viennent
+  de l'apport essayé
+  ([moteur/diagnostics.md § Ce que le quasi-succès retient](moteur/diagnostics.md)) ;
+  l'écran en tire les « PV effectifs » qu'il affiche quand c'est
+  l'objectif.
+- **Idée** : une fiche qui tienne compte de l'apport essayé.
+- **Bloque** : un apport essayé n'est qu'une valeur par stat
+  (`artPossibles`), sans la paire qui le produit ; la fiche demanderait de
+  garder cette paire, et, en mode « recherche », la relique. Jamais
+  construit.
 
 ### Viser un ordre de tours plutôt qu'une VIT runée
 

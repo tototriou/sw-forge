@@ -180,9 +180,8 @@ suit s'applique intégralement.
 incomplet.
 
 ⚠️⚠️ Le moteur n'a plus de budget de paires ni d'escalade (voir
-`spec/outils/optimizer/pistes.md`, piste 8, et
-`archive/historique/historique-diagnostics-et-robustesse.md`, « Suite — suppression du budget de
-nœuds ») : `pairBuckets(prepared, bucketsA, bucketsB)` prend TROIS arguments,
+[spec/outils/optimizer/verification.md § Benchmarks](../../../spec/outils/optimizer/verification.md),
+qui en donne les seules bornes) : `pairBuckets(prepared, bucketsA, bucketsB)` prend TROIS arguments,
 et un appel nu explore exactement ce
 que la production explore. Ne pas chercher à « reproduire l'escalade » dans un
 script neuf — un script qui la reproduirait aujourd'hui serait lui-même
@@ -296,7 +295,7 @@ ordre ». En particulier vérifier :
 - Les VALEURS de chaque paramètre transmis (caps, objectif, metric, pool,
   exclusions…), pas seulement leur présence — un défaut d'écran qui a changé
   depuis la dernière fois (ex. l'exclusion automatique de runes, renommée ET
-  son défaut INVERSÉ entre deux sessions — « Utiliser tout l'inventaire »
+  son défaut INVERSÉ — « Utiliser tout l'inventaire »
   cochée par défaut devenue « Exclure les runes déjà utilisées » décochée
   par défaut, voir `excludeUsedRunes`/`autoExcludedRuneIds`) invalide
   silencieusement un script écrit avant ce changement.

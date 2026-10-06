@@ -124,7 +124,7 @@ Q1 → 7 (les données dépendent du choix de Thomas)
 | 3 empaquetage Windows (NSIS) et Linux (AppImage) | M | **validé par Thomas** (« ok ») — assistant d'installation, icône, désinstallation sans reste ; AppImage au lot 4 | `6286cfb6`, 2026-10-06 |
 | 4 action GitHub au tag | J | **validé par Thomas** (« ok ») — écrite et relue ; première exécution au tag `v2.0.0` (décision 9) | `3838aaa4`, 2026-10-06 |
 | 5 mise à jour automatique | J | **validé par Thomas** (« ok ») — l'utilisateur décide (décision 11) ; N → N+1 après la v2.0.0 (décision 10) | `e1562b23`, `648ef329`, `0c808472` (bloc « Application », décision 12), 2026-10-06 |
-| 6 « Télécharger pour Windows » sur le site | J | à faire | |
+| 6 « Télécharger pour Windows » sur le site | J | **validé par Thomas** (« ok ») — page « Télécharger » (décision 14), lien et carte sur l'accueil | `e7128fae`, `22b881f5`, 2026-10-06 |
 | 7 données du jeu — dans l'installeur (décision 1), une phrase de spec | M | à faire | |
 | 8 clôture : spec d'état actuel, docs, `npm test`, fusion dans `release/v2.0.0` | M | à faire | |
 
@@ -535,6 +535,21 @@ SmartScreen de la décision 2 ; tests de rendu (boutons sur le site, pas
 dans l'app).
 
 **Preuve** : `lot-6.md` — captures bureau et téléphone ; tests.
+
+**Résultat (2026-10-06)** — `e7128fae` (axe `href` de `Bouton`) et
+`22b881f5` (la page et l'accueil), validés par Thomas, preuve
+[lot-6.md](application-bureau-preuves/lot-6.md). Captures ordinateur et
+téléphone, Forge et Atelier ; 493 + 19 vérifications ; dans l'app, aucun
+lien vers `#/telecharger`. Mutation du pilote (carte de l'accueil sans
+`!estBureau()`) : 1 échec sur 7 — restaurée. Écarts :
+- la sortie a changé deux fois à l'arrêt avant commit : boutons dans le
+  héros (décision 13), puis une **page** (décision 14) — elle amende la
+  décision 5 (« accueil seulement ») ; logos Windows et Linux au lieu de
+  l'icône de téléchargement ;
+- fichiers sans numéro de version (lien direct, décision 13) ;
+- `App.tsx` touché (route, `RESOURCES`), hors des fichiers transverses
+  de A.5 ; icône et couleur de section choisies sans planche ;
+- non prouvé : un vrai téléchargement (404 jusqu'à la v2.0.0).
 
 ### Lot 7 — les données du jeu · J
 

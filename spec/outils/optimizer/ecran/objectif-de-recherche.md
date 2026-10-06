@@ -190,12 +190,17 @@ Ce que contient ce réglage :
   — l'app ne simule aucun effet réel sur la cible. Détail :
   [degats-reels/catalogue-des-passifs.md#troisième-vague--points-4-et-5--bonus-selon-les-effets-sur-la-cible](../../degats-reels/catalogue-des-passifs.md#troisième-vague--points-4-et-5--bonus-selon-les-effets-sur-la-cible), « bonus selon les effets sur la
   CIBLE ». ⚠️ **VIT adversaire** : apparaît pour un sort/passif qui dépend de
-  l'écart de vitesse (`{Relative SPD}`, ignore-DEF proportionnel à
-  l'écart, un monstre qui force le critique s'il est plus rapide, ou
-  majore tous ses dégâts selon cet écart — même quand le sort CHOISI ne
-  lit pas cette variable, ex. n'importe quel sort de Sonia) ; un
-  artéfact « Effet aug. VIT » équipé et un éventuel critique/bonus de
-  dégâts garanti sont, eux, **déduits et affichés**, jamais redemandés.
+  la vitesse de la cible (variable Relative SPD ou Target SPD d'une
+  formule, ignore-DEF proportionnel à l'écart, un monstre qui force le
+  critique s'il est plus rapide, majore tous ses dégâts selon cet écart,
+  ou pose une condition de vitesse propre supérieure à celle de la
+  cible — même quand le sort CHOISI ne lit pas
+  cette variable, ex. n'importe quel sort de Sonia). Un éventuel
+  critique/bonus de dégâts garanti est, lui, **déduit et affiché**,
+  jamais redemandé. L'amplification d'un artéfact « Effet aug. VIT » est
+  lue sur la paire que la recherche suppose (les pièces portées seulement
+  sans optimisation d'artéfacts), et s'affiche dans « État de mon
+  monstre » quand le buff VIT est actif.
   Détail : [degats-reels/passifs-offensifs.md#vit-de-ladversaire--relative-spd-et-lignore-def-proportionnel](../../degats-reels/passifs-offensifs.md#vit-de-ladversaire--relative-spd-et-lignore-def-proportionnel), « VIT de l'adversaire ».
 - **Effets actifs** — effets subis par la cible (réduction de défense
   ×0,3, marque +25 %, « ce sort pose le def break » — distingue

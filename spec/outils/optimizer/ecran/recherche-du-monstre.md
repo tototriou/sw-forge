@@ -71,11 +71,12 @@
    sort choisi ; **choisie dans le bestiaire**, l'espèce ramène aussi le cran
    des artéfacts à « Dégâts supplémentaires ». Un sort appartient à un
    monstre : après un changement, le calcul retomberait silencieusement sur
-   le sort par défaut du nouveau ; derrière la fenêtre fermée du combat, ce
-   repli serait invisible et l'on croirait calculer sur un sort qu'on a
-   choisi. Remettre les deux sélecteurs au défaut rend ce repli
-   **impossible** plutôt que visible — réoptimiser en dégâts demande de
-   recliquer « Dégâts réels » et de rechoisir le sort.
+   le sort par défaut du nouveau ; le résumé sous l'objectif le nommerait,
+   mais rien ne signalerait le changement, et l'on croirait calculer sur un
+   sort qu'on a choisi. Remettre l'objectif (et, depuis le bestiaire, le
+   cran) au défaut rend ce repli **impossible** plutôt que visible —
+   réoptimiser en dégâts demande de recliquer « Dégâts réels », dont la
+   fenêtre présélectionne le sort par défaut du nouveau monstre.
    - L'objectif et le sort retombent dans `resetSearch`, donc pour toute
      espèce différente, bestiaire ou membre de liste ; le cran des artéfacts
      retombe dans `pickSpecies` seulement. Un membre de liste d'une autre

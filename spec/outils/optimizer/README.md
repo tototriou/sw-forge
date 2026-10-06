@@ -23,6 +23,8 @@ Publiés :
   résultat affiché : préparation, moitiés, appariement, résolution, file.
 - [harnais.md](harnais.md) — mode d'emploi du harnais de diagnostic et ce
   qu'il garantit.
+- [harnais-extensions.md](harnais-extensions.md) — le harnais au-delà de son
+  mode d'emploi : construction observée, build cible, différentiel.
 - [ecran/README.md](ecran/README.md) — l'écran, de haut en bas, et le
   routage vers un fichier par bloc de l'écran.
 - [listes-et-reservation.md](listes-et-reservation.md) — listes de travail,
@@ -72,7 +74,7 @@ décrit le sujet.
 | l'interruption, la barre de progression, le cycle de vie du Worker | [interruption.md § Interruption — filet de temps, pré-filtrage et arrêt manuel](interruption.md) ; [interruption.md § Barre de progression](interruption.md) ; [invariants.md § Workers](invariants.md) | [interruption.md](interruption.md) ; [moteur/pipeline.md](moteur/pipeline.md) ; [moteur/parallelisation.md](moteur/parallelisation.md) si l'appariement parallèle est concerné |
 | la parallélisation de l'appariement (navigateur/Node), le Worker de résolution | [invariants.md § Workers](invariants.md) ; [invariants.md § Algorithme](invariants.md) | [moteur/parallelisation.md](moteur/parallelisation.md) |
 | le diagnostic « 0 résultat », le quasi-succès (« near-miss ») | [ecran/resultats.md § Résultats](ecran/resultats.md) ; [invariants.md § Algorithme](invariants.md) | [moteur/diagnostics.md](moteur/diagnostics.md) ; [harnais.md](harnais.md) si l'instrumentation est concernée |
-| le harnais de diagnostic | [invariants.md § Harnais](invariants.md) | [harnais.md](harnais.md) ; skill `optimizer-perf-testing` |
+| le harnais de diagnostic | [invariants.md § Harnais](invariants.md) | [harnais.md](harnais.md) ; [harnais-extensions.md](harnais-extensions.md) ; skill `optimizer-perf-testing` |
 | la recette (export/import, un champ d'`OptimizerState`/`OptimizerRecipe`) | [ecran/lancer-la-recherche.md § Lancer la recherche](ecran/lancer-la-recherche.md) ; skill `optimizer-field-propagation` (plusieurs constructeurs) | [exclusion.md § Exclusion des runes déjà portées ailleurs](exclusion.md) (repli de compatibilité `exploreAll`) |
 | les cartes de résultat (tri, moyenne par rune, popover de rune) | [ecran/resultats.md § Résultats](ecran/resultats.md) ; [invariants.md § UI](invariants.md) | [../../rta/sections-runes.md](../../rta/sections-runes.md) pour `StatPanel`/`RuneWheel`/`ArtifactSlots` partagés |
 | une piste de perf ou une idée « nouvelle » | [pistes.md](pistes.md) | la spec du mécanisme concerné, qui dit une piste écartée avec sa raison |

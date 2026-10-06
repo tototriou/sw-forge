@@ -30,3 +30,4 @@ spec/outils/optimizer/moteur/parallelisation.md
 spec/outils/optimizer/verification.md
 spec/outils/optimizer/limites-connues.md
 spec/outils/optimizer/harnais.md
+spec/outils/optimizer/harnais-extensions.md

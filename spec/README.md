@@ -91,6 +91,10 @@ Concepts partagés par plusieurs pages, documentés une seule fois :
 - [shared/navigation.md](shared/navigation.md) — la **barre latérale** et les
   **onglets mobiles**, et l'**accent contextuel** (`--ctx`) qui prend la couleur
   de l'élément du monstre consulté.
+- [shared/application-bureau.md](shared/application-bureau.md) — l'**application
+  de bureau** (Electron, Windows et Linux) : ce qui diffère du site, la fenêtre,
+  l'installeur, la publication au tag, la mise à jour, les données — et comment
+  la vérifier (`bureau:preuve`).
 
 ## Conventions communes (toutes les pages)
 

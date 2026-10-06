@@ -93,6 +93,12 @@ node tests/run.mjs <filtre>       # SEULEMENT la zone touchée (ex. speed-tune)
 npm run build                     # Tailwind n'émet que ce qu'il trouve dans le SOURCE
 ```
 
+Après un changement de `bureau/` (application de bureau) ou de ce que la page
+lui demande (`src/lib/bureau.ts`) : `npm run bureau:preuve`, qui lance l'app
+sur le build et la fait se contrôler elle-même (`resultats.json`), puis
+`npm run bureau:local` pour la regarder. Détail :
+[spec/shared/application-bureau.md](spec/shared/application-bureau.md).
+
 ⚠️ **La suite complète ne se lance qu'avant une fusion sur `main`** :
 
 ```

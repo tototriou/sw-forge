@@ -14,14 +14,11 @@ plus du plafond de candidats collectés :
   combinaisons à examiner (ou du plafond de candidats collectés, voir
   ci-dessous), sans limite de temps automatique.
 - **Pré-filtrage par emplacement** — les presets « Réglages avancés »
-  (voir ecran/conditions-et-reglages.md § Réglages avancés), calibrés par mesure sur des comptes réels : plus le preset est
+  (voir ecran/conditions-et-reglages.md § Réglages avancés) : plus le preset est
   large, plus le pool considéré par emplacement grandit, et plus la
-  recherche peut prendre de temps (jusqu'à plusieurs dizaines de secondes au
-  preset le plus large sur un très gros compte). Valeurs
+  recherche peut prendre de temps. Valeurs
   (`SLOT_FILTER_PRESETS`, `runeBuildOptim.ts` — runes gardées par
   emplacement) : **Bas 40 · Moyen 80 (défaut) · Haut 150 · Extrême 300**.
-  Bas est trop juste sur un vrai gros compte ; 300 est la valeur mesurée
-  nécessaire pour y retrouver un build réel.
 - **Bouton « Arrêter »** — l'utilisateur reprend la main quand il l'estime
   suffisant. Pendant l'appariement, l'arrêt est **coopératif** : le
   moteur rend la main régulièrement et renvoie le **meilleur trouvé

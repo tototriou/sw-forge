@@ -109,9 +109,7 @@ liste.
 - **Dégâts réels** — les dégâts **totaux** du sort visé contre l'adversaire
   décrit. ⚠️ **Le moteur choisit une AUTRE paire**, il ne réaffiche pas la
   même autrement : une paire chargée en Dgts CRIT bat une paire chargée en
-  218-221 sur le total, et perd sur le brut. Mesuré sur Lushen :
-  +737 / coup en brut, **+1 831 dégâts** en réel, avec **deux paires
-  différentes**. Affiché `+X dégâts`.
+  218-221 sur le total, et perd sur le brut. Affiché `+X dégâts`.
 
 ⚠️ **Choisir « Dégâts réels » ouvre la fenêtre du combat**, comme le cran
 homonyme de l'objectif de recherche. C'est ce qui rend ce cran légitime :

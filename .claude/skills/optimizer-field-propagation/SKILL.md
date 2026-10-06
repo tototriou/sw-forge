@@ -1,6 +1,6 @@
 ---
 name: optimizer-field-propagation
-description: "Checklist à suivre pour tout ajout, renommage ou changement de sémantique/défaut d'un champ TRAVERSANT (OptimizerState, OptimizerRecipe, RealDamageContext, ArtifactDamageProfile…) — l'écran, la recette et les scripts CLI ont chacun leur propre copie de la logique, et la documentation (publique + privée) est éclatée sur 4 fichiers distincts. Un champ OPTIONNEL oublié dans l'un d'eux ne déclenche aucune erreur tsc : le seul signal est un script qui diverge silencieusement de l'écran, ou une doc qui ment."
+description: "Checklist à suivre pour tout ajout, renommage ou changement de sémantique/défaut d'un champ TRAVERSANT (OptimizerState, OptimizerRecipe, RealDamageContext, ArtifactDamageProfile…) — l'écran, la recette et les scripts CLI ont chacun leur propre copie de la logique, et la documentation est éclatée sur plusieurs fichiers distincts. Un champ OPTIONNEL oublié dans l'un d'eux ne déclenche aucune erreur tsc : le seul signal est un script qui diverge silencieusement de l'écran, ou une doc qui ment."
 ---
 
 # Propagation d'un champ Optimizer (SW Blacksmith)
@@ -114,27 +114,34 @@ porte PAS le nouveau champ (`undefined`). Deux cas :
 
 ## La checklist — documentation
 
-**Quatre fichiers**, pas un seul, décrivent le même écran — un changement
+**Plusieurs fichiers**, pas un seul, décrivent le même écran — un changement
 qui n'en touche qu'un a de bonnes chances d'en avoir oublié un autre :
 
-- [ ] **`spec/outils/optimizer.md`** (PUBLIQUE, suivie par git) — description
-      current-state, haut niveau, destinée à un lecteur externe.
-- [ ] **`spec/outils/optimizer/README.md`** (PRIVÉE, gitignorée —
-      `.gitignore`) — ⚠️ **PAS juste un index malgré son nom** : c'est une
-      doc détaillée écran-par-écran, current-state comme la publique mais
-      avec les détails d'implémentation (fichiers, fonctions, décisions
-      actées). Mettre à jour la section correspondante EN MÊME TEMPS que la
-      publique, jamais après coup.
-- [ ] **`spec/outils/optimizer/pistes.md`** (PRIVÉE) — table de suivi des
-      pistes ; ajouter/mettre à jour la ligne « Implémentées » avec un
-      pointeur vers la section « Suite — » du fichier historique
-      correspondant.
-- [ ] **`spec/outils/optimizer/archive/historique/historique-*.md`** (PRIVÉE, plusieurs
-      fichiers thématiques) — narration chronologique complète : append une
-      section `## Suite — <titre>` au fichier historique le plus proche du
-      sujet (ne PAS créer un nouveau fichier historique sauf si aucun
-      existant ne convient), avec le POURQUOI (signalement, incident,
-      décision de l'utilisateur), pas seulement le QUOI.
+- [ ] **`spec/outils/optimizer.md`** — page d'entrée : objet de l'outil,
+      fichiers de code, renvoi par sujet ; à revoir si le champ change ce
+      qu'elle résume.
+- [ ] **La page de la carte qui porte le contrôle**, une par carte dans le
+      dossier `ecran` de l'Optimizer (liste dans
+      `spec/outils/optimizer/ecran/README.md`) — current-state détaillé, avec
+      les détails d'implémentation (fichiers, fonctions). La recette
+      (export, import, repli d'une recette plus ancienne) :
+      [spec/outils/optimizer/ecran/lancer-la-recherche.md § Lancer la recherche](../../../spec/outils/optimizer/ecran/lancer-la-recherche.md).
+      Si le champ change ce que fait le moteur, la spec de ce mécanisme
+      (routage : `spec/outils/optimizer/README.md`). Mettre à jour la section
+      correspondante dans le même commit que le code, jamais après coup.
+- [ ] **`spec/outils/optimizer/pistes.md`** — les pistes futures seulement :
+      un champ qui réalise une piste l'en retire ; une variante écartée
+      s'écrit en une ligne « ne pas… parce que… » dans la spec du
+      mécanisme.
+- [ ] **Les notes privées du responsable du chantier**, s'il en tient
+      (jamais un fichier du dépôt, jamais un chemin cité ici) : la piste
+      réalisée rejoint leur archive des pistes, avec un pointeur vers la
+      section « Suite — » de l'historique ; l'historique, narration
+      chronologique en plusieurs fichiers thématiques, reçoit une section
+      `## Suite — <titre>` dans le fichier le plus proche du sujet (ne PAS
+      en créer un nouveau sauf si aucun existant ne convient), avec le
+      POURQUOI (signalement, problème rencontré, arbitrage), pas seulement
+      le QUOI.
 
 ## Vérification
 

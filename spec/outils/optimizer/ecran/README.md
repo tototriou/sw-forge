@@ -18,9 +18,9 @@ monstre », « Exclusion de runes », « Réglages avancés » ; en dernier, ple
 largeur, la ligne d'estimation. ⚠️ `items-start` sur la grille : sans lui,
 chaque bloc s'étire à la hauteur de sa rangée et les cartes courtes se
 retrouvent avec un grand vide bordé. ⚠️ **Colonne 1 en `fr`, jamais en
-pixels** : bornée à `minmax(480px,560px)`, elle était trop étroite pour la
+pixels** : bornée à `minmax(480px,560px)`, elle serait trop étroite pour la
 rangée d'équipement à taille pleine (≈ 800 px : la roue puis la relique
-passaient à la ligne, cette dernière hors du cadre visible) ; en `fr`, elle
+passeraient à la ligne, cette dernière hors du cadre visible) ; en `fr`, elle
 suit la largeur réelle de l'écran au lieu d'un plafond deviné. La barre
 d'actions, la progression et les résultats restent **pleine largeur, hors de
 cette grille** — la grille de cartes de résultat profite directement de la
@@ -74,7 +74,7 @@ l'écran de réglages, en placement EXPLICITE (`col-start`/`row-start`/
    visuellement avec celle des deux colonnes principales, une rangée plus
    bas. ⚠️ **Artéfacts, roue et relique forment un groupe INSÉCABLE** : la
    roue se lit collée à la droite des emplacements d'artéfacts, la relique
-   juste après — séparés, ils passaient à la ligne dans une colonne
+   juste après — séparés, ils passeraient à la ligne dans une colonne
    étroite. Un **sélecteur de source** (Box / RTA / Défenses siège /
    Offenses siège, même contrôle qu'« Exclure les runes d'un monstre »,
    voir ../exclusion.md § Exclusion manuelle — un monstre précis, dans n'importe quelle source) apparaît entre le libellé « Monstre à optimiser » et son champ de

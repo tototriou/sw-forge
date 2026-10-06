@@ -22,6 +22,7 @@ spec/outils/optimizer/exclusion.md
 spec/outils/optimizer/interruption.md
 spec/outils/optimizer/moteur/elagages.md
 spec/outils/optimizer/moteur/artefacts.md
+spec/outils/optimizer/moteur/optimiseur-artefacts.md
 spec/outils/optimizer/moteur/pipeline.md
 spec/outils/optimizer/verification.md
 spec/outils/optimizer/limites-connues.md

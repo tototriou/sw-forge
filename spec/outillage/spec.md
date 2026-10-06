@@ -240,9 +240,9 @@ définition de titre, de section, d'en-tête, de slug).
 
 ### Amendement C6 — la nature CHANTIER
 
-**Amendement C6 (2026-09-17)** — un document de cadrage (dossier
-`chantiers/`, public `spec/chantiers/**` ou privé
-`spec/outils/optimizer/chantiers/**`) est une **quatrième nature**, ni
+**Amendement C6 (2026-09-17)** — un document de cadrage (tout `.md` sous
+un dossier `chantiers/`, à toute profondeur, dont `spec/chantiers/**`)
+est une **quatrième nature**, ni
 état actuel, ni décision, ni archive (A.2) : il est « en cours » puis
 « terminé ». Deux formes de `Statut :` **seules** reconnues, par une
 regex stricte — pas un préfixe libre comme pour les trois autres

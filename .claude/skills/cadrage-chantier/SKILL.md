@@ -147,7 +147,7 @@ dit pourquoi elle existe.
   aussi) sont facultatifs pour cette nature. Le hook `Read` s'applique à
   un cadrage public comme à toute spec : au-delà de 300 lignes, `spec-toc`
   puis la section utile.
-- **Quand le chantier finit**, son statut passe à « terminé le <date> ».
+- **Quand le chantier finit**, son statut passe à « `terminé le <date>` ».
   Un cadrage public reste en place, ou, si son responsable le décide, est
   archivé dans les notes privées et remplacé, au même chemin, par une
   fiche publique : ce que le chantier a livré, et une table « section

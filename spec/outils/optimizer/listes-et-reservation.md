@@ -3,9 +3,11 @@
 **Statut :** ÉTAT ACTUEL — décrit les listes de travail et la réservation de runes
 **Lire si :** on modifie les listes de monstres, la validation d'un build ou la réservation de runes
 
-Un 3ᵉ mécanisme d'exclusion, distinct des deux ci-dessous : ni
-l'automatique (« Exclure les runes déjà utilisées ») ni le manuel
-(« Exclure les runes d'un monstre ») ne savent exclure les runes d'un build
+Un 3ᵉ mécanisme d'exclusion, distinct des deux d'exclusion.md : ni
+l'automatique (« Exclure les runes déjà utilisées », voir
+exclusion.md § Exclusion des runes déjà portées ailleurs) ni le manuel
+(« Exclure les runes d'un monstre », voir
+exclusion.md § Exclusion manuelle — un monstre précis, dans n'importe quelle source) ne savent exclure les runes d'un build
 qui n'existe **pas encore** dans le compte — le résultat d'une recherche.
 Résout un vrai problème de rareté : optimiser plusieurs monstres d'affilée
 sans que chaque nouvelle recherche re-propose les runes déjà attribuées au
@@ -51,26 +53,26 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   s'afficher avec les runes déjà réservées mais une AUTRE paire d'artéfacts :
   ses statistiques ne sont alors pas celles qui sont réservées. Le bouton
   passe dans un troisième état, actif, qui met à jour la seule paire sans
-  toucher aux runes. Sans lui, la carte disait « Validé » et n'offrait plus
-  rien alors que ce qu'elle montrait n'était pas ce qui était réservé.
+  toucher aux runes. Sans lui, la carte dirait « Validé » et n'offrirait plus
+  rien alors que ce qu'elle montre n'est pas ce qui est réservé.
   Le cas se présente dès que « Adapter les artéfacts et reliques au tri »
   est activé (le défaut) : la paire suit alors le critère affiché, donc
   changer de tri peut la changer à runes identiques. Interrupteur désactivé,
   elle reste stable et ce bouton n’apparaît plus au fil de l’exploration.
 
-  Sans cette mémorisation, la fiche d'un build validé rejouait la paire portée
-  AUJOURD'HUI plutôt que celle retenue par la recherche. ⚠️ Les builds validés
-  avant que les artéfacts aient un identifiant n'en portent pas : ils retombent
-  sur les artéfacts réels, et il faut les revalider. Les jeter aurait été une
+  Sans cette mémorisation, la fiche d'un build validé rejouerait la paire portée
+  AUJOURD'HUI plutôt que celle retenue par la recherche. ⚠️ Un build validé
+  sans identifiant d'artéfact (enregistré avant qu'ils en aient un) retombe
+  sur les artéfacts réels ; il faut le revalider. Le jeter serait une
   perte de données pour un simple affichage.
 
-  ⚠️⚠️ **LA GARDE ANTI-DOUBLE-RÉSERVATION EST SUR LES DEUX CHEMINS.** Elle
-  n'existait que sous la **fiche** (`displayedRuneConflicts`) ; la carte de
-  résultat, elle, ne vérifiait rien — au motif que le pool de recherche exclut
-  déjà les runes réservées. C'est vrai **au moment de la recherche seulement** :
-  des résultats affichés avant un changement de liste active, ou avant qu'un
-  autre monstre ne réserve, permettaient de réserver **deux fois la même rune**
-  dans une même liste. **La garde va là où l'on valide, pas là où l'on
+  ⚠️⚠️ **LA GARDE ANTI-DOUBLE-RÉSERVATION EST SUR LES DEUX CHEMINS** : sous
+  la **fiche** (`displayedRuneConflicts`) et sur la carte de résultat. Ne
+  pas vérifier la carte, au motif que le pool de recherche exclut déjà les
+  runes réservées, ne suffit pas : c'est vrai **au moment de la recherche
+  seulement** — des résultats affichés avant un changement de liste active,
+  ou avant qu'un autre monstre ne réserve, permettraient de réserver **deux
+  fois la même rune** dans une même liste. **La garde va là où l'on valide, pas là où l'on
   cherche** — un seul calcul (`conflitsDeRunes`), utilisé par les deux.
 
   ⚠️ Le bouton reste **affiché et désactivé**, libellé « Rune déjà réservée » et
@@ -85,10 +87,10 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   statut (« Validé » + bouton libérer, ou « pas encore validé »), cliquable
   pour rappeler son exemplaire dans la recherche — un autre exemplaire de
   l'espèce déjà choisie efface les résultats affichés, sans toucher aux
-  critères (6bis-b19, voir « Recherche du monstre à optimiser »). Avec des
+  critères (voir ecran/recherche-du-monstre.md § Recherche du monstre à optimiser). Avec des
   auras externes renseignées, choisir ici une autre espèce ou un autre
-  exemplaire les rappelle 3 s dans « État de mon monstre » (degats-et-aura
-  7b, voir cette section) **et sous la liste** (7c, voir plus bas) : c'est
+  exemplaire les rappelle 3 s dans « État de mon monstre » (voir
+  ecran/etat-de-mon-monstre.md § Sets d'aura des autres monstres) **et sous la liste** (voir plus bas) : c'est
   la seule voie qui le fasse. **Corbeille** à droite de
   chaque ligne pour retirer un monstre de la liste — sans confirmation s'il
   n'est pas encore validé (rien à perdre), avec confirmation s'il l'est (le
@@ -99,31 +101,29 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   réel, voir plus bas). Sans liste active, « Créer une liste et y ajouter
   `<monstre>` » crée une liste (prompt du nom) ET y ajoute le monstre dans
   le même geste.
-  ⚠️ **Plusieurs exemplaires Box d'une même espèce** (degats-et-aura lot
-  EX, décision de l'utilisateur du 2026-10-04) : les membres sont repérés
+  ⚠️ **Plusieurs exemplaires Box d'une même espèce** : les membres sont repérés
   par exemplaire (`exclusionSelectorKey`, Box = `box:<unitKey>`), deux
   exemplaires peuvent donc entrer dans la même liste. Quand l'exemplaire
   affiché **vient de la Box**, est déjà membre et qu'un autre exemplaire
   Box de l'espèce ne l'est pas, le bouton reste **actif** : « Ajouter un
   autre exemplaire de
   `<monstre>` à « `<liste>` » ». Un clic choisit le **premier exemplaire Box,
-  dans l'ordre de la zone D, absent de la liste**, l'affiche (règles de
-  6bis-b19 : résultats affichés effacés, critères gardés, aucun rappel des
-  auras externes — voir « Recherche du monstre à optimiser ») puis
+  dans l'ordre de la zone D, absent de la liste**, l'affiche (résultats
+  affichés effacés, critères gardés, aucun rappel des auras externes —
+  voir ecran/recherche-du-monstre.md § Recherche du monstre à optimiser) puis
   l'ajoute ; un clic, un exemplaire. Tous les exemplaires Box déjà
   membres : « Déjà dans « `<liste>` » », désactivé. Exemplaire affiché
   venu de RTA ou du siège, déjà membre : « Déjà dans », désactivé, sans
-  exemplaire suivant (décision du 2026-10-04) — l'exemplaire Box
-  proposé pouvait être le même monstre physique. Aucun numéro
-  d'exemplaire n'est affiché (non retenu) ; RTA garde un exemplaire par
+  exemplaire suivant — l'exemplaire Box
+  proposé pourrait être le même monstre physique. Aucun numéro
+  d'exemplaire n'est affiché ; RTA garde un exemplaire par
   espèce (règle du jeu) ; le sélecteur « non possédé » reste repéré par
   espèce. Décision pure : `etatAjoutListe` et `exemplaireBoxHorsListe`
   (optimizerExclusion.ts), test `testListeExemplaires`. Bouton **« Libérer
   toutes les runes de « `<liste>` » »** (visible dès qu'au moins un build y
   est validé), avec sa propre confirmation dédiée.
 
-  ⚠️ **Le rappel des auras s'affiche aussi sous la liste** (degats-et-aura
-  7c, décision de l'utilisateur du 2026-10-02) — là où l'on vient de
+  ⚠️ **Le rappel des auras s'affiche aussi sous la liste** — là où l'on vient de
   cliquer : « État de mon monstre » est souvent hors de l'écran à ce
   moment, toujours au téléphone. Même message (« Pense à vérifier les sets
   d'aura externes. »), même token (contour `warn` de 1 px, fond
@@ -148,8 +148,8 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
     on veut souvent le récupérer pour un autre sans renoncer au runage déjà
     planifié. Affiché seulement s’il y a une paire à rendre. Les paires
     déjà calculées pour le monstre recherché se refont alors avec
-    l’inventaire libéré (degats-et-aura 6bis-b17, voir « Le choix des
-    artéfacts »).
+    l’inventaire libéré (voir
+    moteur/artefacts.md § Recalcul quand la paire peut changer).
 
   ⚠️ **Pas de « libérer les runes seules », et c’est délibéré.** Un build
   validé porte TOUJOURS 6 runes : sans elles il n’y a plus de build à qui
@@ -157,19 +157,19 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   « 6 runes » par tout le reste (badge « Validé », exclusion, revalidation
   après réimport). L’asymétrie est donc dans le modèle, pas un oubli.
 
-  ⚠️ **Les icônes disaient le contraire de l’action.** Le bouton de
-  libération portait la coche de validation — le même pictogramme que le
-  badge « Validé » posé juste à sa gauche. Il porte désormais la **roue
+  ⚠️ **L’icône dit l’action.** Le bouton de libération porte la **roue
   barrée d’une interdiction**, celle d’« Exclure les runes déjà utilisées » :
-  du point de vue du monstre, libérer, c’est lui retirer ses runes. Le second
-  bouton reprend le même montage avec l’icône d’**artéfact**.
+  du point de vue du monstre, libérer, c’est lui retirer ses runes. La coche
+  de validation, pictogramme du badge « Validé » posé juste à sa gauche,
+  dirait le contraire. Le second bouton reprend le même montage avec
+  l’icône d’**artéfact**.
 
 ### Monstre non possédé et auto-exemption
 
-- ⚠️ **Ajouter un monstre qu'on ne possède PAS** — demande explicite : « le
-  joueur a obtenu le monstre et veut essayer des runages de teams sans
-  avoir mis à jour son json ». Une ESPÈCE choisie via la recherche
-  bestiaire (voir « Écran », étape 1) mais absente des 4 sources du compte
+- ⚠️ **Ajouter un monstre qu'on ne possède PAS** — pour le joueur qui a
+  obtenu le monstre et veut essayer des runages d'équipe sans avoir mis à
+  jour son export. Une ESPÈCE choisie via la recherche
+  bestiaire (voir ecran/recherche-du-monstre.md § Recherche du monstre à optimiser) mais absente des 4 sources du compte
   reste ajoutable à une liste ET « validable » exactement comme un
   exemplaire réel — un sélecteur `unowned` (`ExclusionSelector`, distinct
   des 4 sources réelles) porte cette entrée, sur ses stats de base 6★
@@ -183,7 +183,7 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   — possédée ne serait-ce que quelque part (même ambiguë), la
   désambiguïsation normale (zone D / puces) garde toujours la main, jamais
   masquée par ce sélecteur. Aucune puce ne s'allume pour ce cas (comme un
-  build validé, voir plus haut). ⚠️ Revérification au réimport (comme tout
+  build validé, voir l'auto-exemption ci-dessous). ⚠️ Revérification au réimport (comme tout
   le reste de cette section) : un build validé sur un monstre non possédé
   reste valable tant que ses runes existent encore QUELQUE PART dans le
   compte réimporté (pas nécessairement encore équipées sur un exemplaire
@@ -197,14 +197,14 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   Offenses siège ne s'allume quand la fiche affiche un build VALIDÉ plutôt
   que le runage réellement équipé d'une source réelle — un build validé
   n'est ni du Box ni du RTA tel qu'actuellement équipé, juste une
-  réservation. ⚠️ **Signal explicite en plus des puces grisées** (demande
-  explicite) : un bandeau dans la fiche elle-même (« Build validé affiché —
-  pas l'équipement réellement porté ») s'affiche dans ce cas, pour ne
+  réservation. ⚠️ **Signal explicite en plus des puces grisées** : un
+  bandeau dans la fiche elle-même (« Build validé affiché — pas
+  l'équipement réellement porté ») s'affiche dans ce cas, pour ne
   jamais laisser croire que ce qui est montré est réellement équipé en jeu.
-  ⚠️ **Bascule vers l'équipement réel, sans quitter la liste** (demande
-  explicite : « on ne peut plus voir à quoi ressemblait le runage précédent
-  tant qu'on est dans la liste ») — une icône dans ce même bandeau («
-  Voir le runage réellement porté ») affiche l'équipement RÉEL de
+  ⚠️ **Bascule vers l'équipement réel, sans quitter la liste** — sans
+  elle, on ne verrait plus le runage réellement porté tant qu'on est dans
+  la liste. Une icône dans ce même bandeau (« Voir le runage réellement
+  porté ») affiche l'équipement RÉEL de
   l'exemplaire à la place du build validé, sans changer d'exemplaire ni
   quitter la liste ; le bandeau change alors de message (« Équipement
   réellement porté affiché ») et une puce s'allume normalement si ce
@@ -215,39 +215,38 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
 ## Comparer, valider sans recherche et persistance
 
 - **« Comparer », à côté de « Valider ce build »** sur chaque carte de
-  résultat (demande explicite) : les deux boutons **se partagent la largeur**
+  résultat : les deux boutons **se partagent la largeur**
   de la carte, plutôt que d'être empilés — une rangée de plus par carte se
   paierait sur toute la grille de résultats. Au clic, l'**écart statistique
   par statistique** entre ce build et la référence apparaît **sous** les
   boutons, donc sans rien déplacer de ce qui précède.
   - ⚠️ **La référence est la fiche affichée**, ce qui couvre les deux cas
-    demandés *sans les distinguer* : « le build validé s'il y en a un, sinon
-    le build actuel ». `selected.gear` **est** déjà le build validé quand il
+    *sans les distinguer* : le build validé s'il y en a un, sinon le build
+    actuel. `selected.gear` **est** déjà le build validé quand il
     en existe un — runes ET artéfacts substitués — et l'équipement réel
-    sinon. Refaire cette résolution côté comparaison l'aurait dupliquée, et
-    aurait raté « Voir le runage réellement porté », qui la désactive exprès.
+    sinon. Refaire cette résolution côté comparaison la dupliquerait, et
+    raterait « Voir le runage réellement porté », qui la désactive exprès.
   - Un seul build comparé à la fois : ils partagent la même référence, deux
     comparaisons ouvertes ne diraient rien de plus.
   - ⚠️ **L'écart porte aussi sur la valeur de TÊTE**, pas seulement sur les
-    huit statistiques (demande explicite) : dégâts, PV effectifs et
+    huit statistiques : dégâts, PV effectifs et
     efficience/score selon ce qui est affiché. Il se pose **sous** la valeur
     qu'il qualifie, jamais à côté, où il se lirait comme une seconde mesure.
-    Un seul composant les rend tous les trois — trois rendus séparés auraient
-    divergé de couleur ou de format, alors que c'est précisément leur
+    Un seul composant les rend tous les trois — trois rendus séparés
+    divergeraient de couleur ou de format, alors que c'est précisément leur
     comparaison qui compte.
   - ⚠️ L'écart de **dégâts** est recalculé contre les stats ET la paire
     d'artéfacts de la référence, jamais contre le total d'un autre candidat.
   - ⚠️ **Les écarts de dégâts et de PV effectifs notent la fiche comme un
-    candidat** (degats-et-aura 6bis-b5a, `scoreDeReference`,
-    runeBuildOptim.ts) : ses stats, les activations d'aura de ses runes, le
+    candidat** (`scoreDeReference`, runeBuildOptim.ts) : ses stats, les activations d'aura de ses runes, le
     profil de SA paire d'artéfacts et l'effet unique de SA relique
     (Conquête ; Ténacité et points Bravoure/Éternité/Origine), par la même
     fonction de score que les cartes, avec des options propres à la
     référence — jamais celles du cache des résultats. Tout se déduit de la
-    fiche : aucun appelant ne peut mêler deux équipements. Auparavant, les
-    stats de la fiche étaient notées avec le profil de la paire de la
-    RECHERCHE (`searchArtifacts`), et sans l'effet unique : l'écart pouvait
-    être faux dans les deux sens. À équipement identique, l'écart vaut 0.
+    fiche : aucun appelant ne peut mêler deux équipements. Noter les stats
+    de la fiche avec le profil de la paire de la RECHERCHE
+    (`searchArtifacts`), ou sans l'effet unique, fausserait l'écart dans
+    les deux sens. À équipement identique, l'écart vaut 0.
   - ⚠️ Les écarts **nuls sont affichés**, en gris. Ne montrer que les stats
     qui changent ferait une liste de longueur variable d'une carte à l'autre,
     et laisserait croire qu'une stat absente n'a pas été comparée.
@@ -258,7 +257,7 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
     valeurs jamais affichées.
 
 - **« Valider ce build » sous la fiche**, sans passer par une recherche
-  (demande explicite) — un second bouton, identique à celui d'une carte de
+  — un second bouton, identique à celui d'une carte de
   résultat, juste sous la fiche stats/artéfacts/runes/relique : valide
   directement les runes ACTUELLEMENT affichées sur l'exemplaire (un runage
   déjà composé en jeu, ou déjà planifié). Exige exactement 6 runes
@@ -268,7 +267,7 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   liste active, ouvre le même prompt de création que « Ajouter à la
   liste » (crée la liste ET valide dans le même geste). ⚠️ **Bloqué si UNE
   SEULE des 6 runes affichées est déjà réservée pour un AUTRE monstre de la
-  MÊME liste** (demande explicite) — contrairement à un résultat de
+  MÊME liste** — contrairement à un résultat de
   recherche (dont le pool exclut déjà les runes réservées ailleurs dans la
   liste), les runes affichées ici viennent de l'équipement RÉEL de
   l'exemplaire : rien n'empêche structurellement qu'elles chevauchent une
@@ -277,8 +276,8 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   liste : emplacement 2 (Camilla) », accordé en nombre — « Runes déjà
   réservées » dès qu'il y en a plusieurs), pas juste un bouton désactivé
   sans explication.
-- **Persisté**, contrairement au reste de la saisie de l'écran (voir plus
-  haut, « Survit à un changement d'onglet ») — un flux de plusieurs
+- **Persisté**, contrairement au reste de la saisie de l'écran (voir
+  ecran/README.md § Survie à un changement d'onglet) — un flux de plusieurs
   dizaines de minutes à travers toute une liste ne doit pas perdre le
   travail déjà fait à un simple rechargement de page. Même statut que la
   prépa RTA et les équipes de siège (voir

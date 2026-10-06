@@ -4,7 +4,8 @@
 **Lire si :** on modifie le panneau « Options » : exclusion automatique, exclusion manuelle ou runes imposées
 
 ⚠️ **Au doigt, dans le panneau « Options »** (bouton de la barre de nav),
-EN TÊTE — avant « Réglages avancés » (voir item 9 ci-dessus) : fonctionnalité
+EN TÊTE — avant « Réglages avancés » (voir
+ecran/conditions-et-reglages.md § Réglages avancés) : fonctionnalité
 vedette, mise en avant côté bureau par sa carte à bordure accentuée.
 
 **« Exclure les runes déjà utilisées »**, interrupteur DÉSACTIVÉ par
@@ -29,9 +30,8 @@ grisé et non cliquable tant que l'interrupteur est désactivé.
 [optimizerExclusion.ts](src/lib/optimizerExclusion.ts)) est la fonction qui
 construit cet ensemble d'exclusion pour le périmètre choisi — sa branche
 « Box » réutilise `excludedRuneIds`
-([runeBuildOptim.ts](src/lib/runeBuildOptim.ts)), seule fonction restée
-spécifique à la box (comportement historique de l'outil, avant l'ajout des
-deux autres périmètres). Ses branches RTA et Défenses siège comparent par
+([runeBuildOptim.ts](src/lib/runeBuildOptim.ts)), seule fonction
+spécifique à la box. Ses branches RTA et Défenses siège comparent par
 **`com2usId`** (l'espèce), jamais par entrée précise — c'est ce qui garantit
 qu'un monstre recherché présent en RTA ne s'exclut jamais lui-même ; et le
 périmètre Défenses siège ne dépend que de `monsterId` (stable), jamais de
@@ -96,9 +96,8 @@ l'équipement montré, entre le nom et le compte de runes — pas un simple
 comptage des sets présents parmi les runes portées : `activeSets`
 (`lib/effects.ts`), la SEULE source de vérité de l'app pour « quels sets
 sont actifs » (un set 4 pièces à 3 runes n'est pas actif, une rune
-Intangible peut compléter le set incomplet le plus proche — recompter à
-côté a déjà fait diverger un affichage sur un cas réel, voir
-`swiftActive`). Même fonction que celle qui alimente les icônes de set
+Intangible peut compléter le set incomplet le plus proche — un recomptage
+à côté diverge de l'affichage, voir `swiftActive`, importAccount.ts). Même fonction que celle qui alimente les icônes de set
 affichées sur les cartes de « Mon compte » → RTA.
 
 Fait partie des réglages exportés/importés dans une recette : ce qui est

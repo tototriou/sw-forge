@@ -569,6 +569,14 @@ bureau:local` après un changement du bureau), notes de la 2.0.0, ligne du
 README des specs passée à « terminé », `npm test` complet, fusion
 `--no-ff` dans `release/v2.0.0`.
 
+⚠️ **Clôture en attente** (Thomas, 2026-10-06 : « j'aurai d'autres
+travaux à proposer avant de conclure et fusionner ») : la première partie
+du lot 8 est faite avec le lot 7 (textes, notes, conservation, spec d'état
+actuel, `CLAUDE.md` — preuve [lot-7-8.md](application-bureau-preuves/lot-7-8.md)) ;
+restent, APRÈS les travaux que Thomas proposera : `npm test` complet,
+cadrage « terminé », ligne du README des specs, fusion `--no-ff` dans
+`release/v2.0.0`.
+
 **Reporté ici par le lot 5** (2026-10-06) : deux textes écrits pour le
 site, faux dans l'app de bureau — le pied de page « Toutes tes données
 restent en local dans ton navigateur » et l'explication de « Garder mes

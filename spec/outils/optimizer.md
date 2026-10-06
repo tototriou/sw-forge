@@ -31,8 +31,7 @@ de runes ») ·
 [BuildCandidateCard.tsx](src/components/outils/BuildCandidateCard.tsx) ·
 [DamageSetupCard.tsx](src/components/outils/DamageSetupCard.tsx) +
 [damage.ts](src/lib/damage.ts) (objectif « Dégâts réels », voir
-[degats-reels.md](degats-reels.md) et le
-[suivi de l’audit conditionnel](optimizer/archive/audit-degats-conditionnels-2026-09-08/suivi-implementation.md)) ·
+[degats-reels.md](degats-reels.md)) ·
 [StatPanel.tsx](src/components/StatPanel.tsx) ·
 [ArtifactSlots.tsx](src/components/ArtifactSlots.tsx) ·
 [RuneWheel.tsx](src/components/RuneWheel.tsx) — ces trois derniers
@@ -318,7 +317,7 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
    [shared/librairie-ui.md](../shared/librairie-ui.md)), comportement commun
    à TOUS les sélecteurs de l'app. **Une puce grisée** signale que l'espèce
    choisie n'a aucun exemplaire dans cette source. **Une puce dit le nombre
-   dès deux exemplaires** (degats-et-aura lot EX, décision de l'utilisateur
+   dès deux exemplaires** (décision de l'utilisateur
    du 2026-10-04) : `{source} · {n}` (« Box · 2 »), même règle pour les
    quatre sources ; à zéro ou un exemplaire, la puce garde son libellé.
    C'est le seul signe qu'un clic sur la puce, même déjà allumée, ouvre la
@@ -378,7 +377,7 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
    retombent au défaut que lorsque l'espèce optimisée change ou qu'un nouveau
    compte est importé, selon la table ci-dessous.
 
-   **Classement exhaustif de `DamageSetup` (lot 5).** « Contexte » désigne
+   **Classement exhaustif de `DamageSetup`.** « Contexte » désigne
    l'adversaire, l'équipe ou l'état de combat réutilisable ; « sort » désigne
    un choix lié au monstre, au sort ou à son passif. Un champ de compatibilité
    suit le champ auquel il est associé. Toute nouvelle clé doit être classée
@@ -411,7 +410,7 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
    ouvert). Critères, tri et combat décrit restent, comme le dit la table, et
    rien n'est relancé : l'utilisateur relance lui-même. Recliquer
    l'exemplaire déjà affiché n'efface rien. Le bouton « Ajouter un autre
-   exemplaire de … » de la zone C (lot EX, voir « Zone C ») change
+   exemplaire de … » de la zone C (voir « Zone C ») change
    d'exemplaire par le **même chemin** (`choisirExemplaire`,
    OptimizerSection.tsx) : résultats affichés effacés, critères gardés,
    sans rappel des auras externes, qui reste au seul clic d'un membre. Naviguer entre listes sans
@@ -957,8 +956,7 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
        Non critique (le plancher). Si le sort garantit son critique, ou si
        le réglage actif remplit sa condition de critique garanti, le cran
        Non critique est grisé et non sélectionnable. L'ancien mode
-       « Moyenne » (espérance sur le Taux Crit) est supprimé (degats-et-aura,
-       lot CM).
+       « Moyenne » (espérance sur le Taux Crit) est supprimé.
      ⚠️ **On n'affiche que ce que le sort CONSOMME** : un sort qui ignore la
      défense ne montre ni la DEF ennemie ni la réduction de défense ; un
      sort qui ne dépend pas de la VIT ne montre pas le buff de vitesse. Un
@@ -1151,20 +1149,18 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
    corrigeait.
 
    La **relique** vit dans un **bloc séparé de cette même carte**, renommée
-   **« Artéfacts et reliques »** (implementation-relique, lot 5c quater —
-   voir « Relique » ci-dessous) : elle a d'abord vécu ici même (deux
-   listes, lot 5c), puis dans sa propre carte (lot 5c bis) — écartée à la
+   **« Artéfacts et reliques »** (voir « Relique » ci-dessous) : elle a d'abord vécu ici même (deux
+   listes), puis dans sa propre carte — écartée à la
    vue du rendu (T9 re-tranché une seconde fois) au profit d'un bloc à
-   droite de la rangée Attribut / Type (lot 5c ter), lui-même écarté à son
+   droite de la rangée Attribut / Type, lui-même écarté à son
    tour (T9 re-tranché une troisième fois) au profit du bloc qui **ferme la
-   carte**, sous « Meilleurs artéfacts offensifs pour ce build » (lot 5c
-   quater). L'interrupteur ci-dessus, renommé **« Activer l'optimisation
+   carte**, sous « Meilleurs artéfacts offensifs pour ce build ».
+   L'interrupteur ci-dessus, renommé **« Activer l'optimisation
    d'artéfacts et reliques »**, masque d'un seul geste les deux listes
    d'artéfacts ET le bloc Relique.
 
    ⚠️ **Largeur fixe et commune** aux quatre listes déroulantes de la carte
-   (Attribut, Type, Principale relique, Propriété unique relique,
-   implementation-relique lot 5c quater) : sans elle, un `<select>` natif
+   (Attribut, Type, Principale relique, Propriété unique relique) : sans elle, un `<select>` natif
    prend la largeur de sa plus longue option — « Soins et boucliers
    accordés en fonction des PV » imposait une case énorme pour « Propriété
    unique », y compris quand « Libre » y était affiché. La valeur
@@ -1172,22 +1168,22 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
    garde le texte complet, comportement natif du `<select>`.
 
 ### Relique
-6 ter. **Relique** (implementation-relique, lot 5c quater) — **bloc
+6 ter. **Relique** — **bloc
    séparé** de la carte « Artéfacts et reliques », PAS une carte propre :
    ferme la carte, sous « Meilleurs artéfacts offensifs pour ce build »,
    séparé par un **trait horizontal** de 1 px (`border-border-soft`, un
    seul contour) — même JSX pour les deux formats, ordinateur et
-   téléphone (une carte propre au lot 5c bis faisait double emploi avec la
+   téléphone (une carte propre faisait double emploi avec la
    carte Artéfacts juste au-dessus et décalait toute la grille de la
    colonne ; un bloc à droite de la rangée Attribut / Type, trait vertical,
-   au lot 5c ter, désalignait les listes relique de celles d'artéfacts —
-   écarté au lot 5c quater, plus de variante `xl:border-l`).
+   désalignait les listes relique de celles d'artéfacts —
+   écarté, plus de variante `xl:border-l`).
 
    ⚠️ **Pas d'interrupteur propre** (T2 confirmé) : coupé avec « Activer
    l'optimisation d'artéfacts et reliques » (même carte, juste au-dessus),
    le bloc se masque avec le reste de la carte (mêmes deux listes
    d'artéfacts) — plus de carte séparée à expliquer, donc plus de texte
-   « Coupée avec… » (existait au lot 5c bis).
+   « Coupée avec… ».
 
    Trois réglages, **grammaire des artéfacts à la valeur près qui n'existe
    que pour la relique** (le type) :
@@ -1216,8 +1212,8 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
    - **Niveau minimum** (`NumberField`, +0 à +15, +6 par défaut,
      `relicMinUpgrade`) : filtre d'ENTRÉE sur le pool cherché, jamais un
      critère de classement.
-   - `libre` et le type n'ont d'effet qu'avec la recherche (bornes du lot
-     5a, résolution exacte du lot 5b) ; les sélecteurs ne se conditionnent
+   - `libre` et le type n'ont d'effet qu'avec la recherche (bornes,
+     résolution exacte) ; les sélecteurs ne se conditionnent
      pas aux reliques possédées, comme pour l'artéfact.
    - **Pool vide → refus nommé**, à la place du lancement : un texte par
      raison (seuil trop haut, aucune relique de cette principale/ce type,
@@ -1259,7 +1255,7 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
    aucun calcul ne lit la table — elle n'est importée que par l'écran et la
    carte. La table est curée **par identifiant de compétence**
    (`BUFFS_POSES_PAR_PASSIF_CONNUS`, `src/lib/buffsDePassif.ts`) : les 24
-   passifs « buff standard » du tri du lot 13b, chacun relu dans sa prose ;
+   passifs « buff standard » du tri, chacun relu dans sa prose ;
    un passif absent de la table n'a pas de rappel, et les buffs qu'un sort
    actif se pose lui-même n'en ont pas non plus (P12a). Le rappel dépend du
    monstre, jamais d'un clic dans la carte : il paraît au choix du monstre,
@@ -1341,7 +1337,7 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
    laisse la place à « Pense à vérifier les sets d'aura externes. »,
    **effacé après 3 s** (réponse de l'utilisateur). Un rappel, jamais un
    blocage : les nombres restent ceux saisis — conservés au changement de
-   monstre comme le contexte du lot 5 —, l'app ne les réécrit pas : c'est
+   monstre comme le contexte —, l'app ne les réécrit pas : c'est
    l'identité du monstre optimisé qui change ce qui est « externe ».
    ⚠️ **Sa place est réservée** : le message occupe la même case de grille
    que l'en-tête (libellé, aide, total), invisible le reste du temps ; la
@@ -1599,7 +1595,7 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
      les contrôles exacts (filtre final de l'appariement, filtres de paire et
      de relique) ; désactivé, aucune aura n'y compte, et il ne change pas les
      dégâts ni les PV effectifs. Les élagages sûrs de la recherche en
-     tiennent compte (lot 6bis-b3b) : potentiel favorable pour un minimum,
+     tiennent compte : potentiel favorable pour un minimum,
      seul l'inévitable pour un maximum, sans jamais écarter un build valide ;
      le pré-filtrage et la rétention restent heuristiques et ne valorisent
      pas l'aura propre. Les auras PV/ATQ/DEF ne comptent dans aucune
@@ -1702,11 +1698,10 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
      (degats-et-aura 7b, ouverture guidée : voir « État de mon monstre »).
 
    ⚠️ **Le seuil de niveau minimum de la relique N'EST PAS ICI** —
-   contrairement à ce que le lot 5c avait prévu : il vit dans le bloc
+   contrairement à ce qui était prévu : il vit dans le bloc
    « Relique » de la carte « Artéfacts et reliques » (« Niveau minimum »,
    voir plus haut), avec les deux autres réglages relique, pas dans
-   « Réglages avancés » (implementation-relique, T9 re-tranché deux fois,
-   lot 5c ter).
+   « Réglages avancés » (T9 re-tranché deux fois).
 ### Lancer la recherche
 10. **Estimation du pool retenu** — dès qu'un monstre et un set sont choisis,
     une ligne affiche le nombre **exact** de runes gardées après
@@ -1736,8 +1731,7 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
     limite, ex. monstre retiré du jeu). Aucune confirmation à l'import :
     remplacer la saisie en cours n'est pas plus destructeur que la modifier
     à la main. Une recette qui porte l'ancien mode critique « Moyenne »
-    (`damageSetup.critMode: "moyenne"`, supprimé au lot CM de
-    degats-et-aura) est **convertie en « Critique »**, jamais refusée : le
+    (`damageSetup.critMode: "moyenne"`, supprimé) est **convertie en « Critique »**, jamais refusée : le
     parseur commun (`parseOptimizerRecipe`) rend un avertissement nommé
     (chemin du champ, ancienne et nouvelle valeur), que l'écran ajoute au
     message d'import et que le CLI imprime (`chargerRecette`) ; toute autre
@@ -1958,7 +1952,7 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
     pour ce monstre).
 
     ⚠️ **Interrupteur « Adapter les artéfacts et reliques au tri »**
-    (implementation-relique, lot 5c : le libellé s'étend à la relique, D7 —
+    (le libellé s'étend à la relique, D7 —
     aucun contrôle nouveau, le bouton gouverne l'équipement complet d'un
     seul geste), collé à GAUCHE de ce sélecteur, **activé par défaut**. Le
     tri est une **vue**, l’optimisation une **décision** : les coupler
@@ -2082,8 +2076,7 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
     même liste de travail), jusqu'à libération explicite : voir « Listes de
     travail et réservation de runes ».
 
-    ⚠️ **Relique, un emplacement, quatre états** (implementation-relique,
-    lot 5c, écran refait au lot 5c bis) — un emplacement « Relique », À
+    ⚠️ **Relique, un emplacement, quatre états** — un emplacement « Relique », À
     DROITE DE LA ROUE, même modèle que celui de la fiche d'équipement
     (`MonsterGear.tsx`) : composant partagé `RelicSlot`, jamais une copie.
     Hors mode `recherche` (interrupteur coupé, « Garder la relique
@@ -2106,8 +2099,8 @@ largeur gagnée (`auto-fill`, voir « Résultats »).
       relique portée ne passe pas le seuil/la principale/le type demandés,
       la meilleure admissible peut alors noter moins qu'elle).
     ⚠️ **Le compte `n / 150`** (occupation de la relique sur le compte, D3)
-    a quitté la case au lot 5c bis — trop de détail pour une case au format
-    artéfact/rune — et est revenu au lot 5c ter dans le **détail** de la
+    a quitté la case — trop de détail pour une case au format
+    artéfact/rune — et est revenu dans le **détail** de la
     relique (`RelicDetailBox`, une ligne, « Équipée sur n exemplaires /
     150 » — pas un libellé relevé en jeu), visible depuis la carte candidat
     ET depuis l'exemplaire (fiche d'équipement de l'Optimizer, même
@@ -2235,7 +2228,7 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   l'ajoute ; un clic, un exemplaire. Tous les exemplaires Box déjà
   membres : « Déjà dans « <liste> » », désactivé. Exemplaire affiché
   venu de RTA ou du siège, déjà membre : « Déjà dans », désactivé, sans
-  exemplaire suivant (lot EX2, décision du 2026-10-04) — l'exemplaire Box
+  exemplaire suivant (décision du 2026-10-04) — l'exemplaire Box
   proposé pouvait être le même monstre physique. Aucun numéro
   d'exemplaire n'est affiché (non retenu) ; RTA garde un exemplaire par
   espèce (règle du jeu) ; le sélecteur « non possédé » reste repéré par
@@ -2639,16 +2632,16 @@ différent, coopératif (voir « Interruption »).
 - **Élagages SÛRS, ensuite — jamais un faux rejet**, avant même le
   pré-filtrage heuristique qui suit, auras **propres** au build, Intangible,
   effet unique de la relique et lignes d'artéfact 218–221 compris : un
-  oracle exhaustif indépendant le vérifie depuis le lot 6bis-b3b, noté
-  depuis le lot 6bis-b3c par la note de production de l'équipement complet,
-  paire d'artéfacts comprise depuis le lot 6bis-b3d-1 (voir
+  oracle exhaustif indépendant le vérifie, noté
+  par la note de production de l'équipement complet,
+  paire d'artéfacts comprise (voir
   [effets d'équipe](degats-reels/effets-equipe-et-leaders.md)) :
   - **Dominance** : une rune strictement moins bonne qu'une autre du MÊME
     slot (sur toutes les stats suivies, avantage strict quelque part) ne
     sert jamais à rien. Deux runes du même set se comparent toujours ; un set
     demandé ou l'Intangible ne se compare qu'à lui-même. Hors combo, la
     comparaison reste générique, sauf pour un set qui pourrait changer ce
-    qui compte pour la recherche (lot 6bis-b3b) : un set à bonus ou une aura
+    qui compte pour la recherche : un set à bonus ou une aura
     qui peut réellement se **former** (assez d'emplacements distincts qui
     le portent, une Intangible comprise, dans la limite des emplacements
     libres) **et dont la stat est utile** — une condition minimum ou
@@ -2657,14 +2650,14 @@ différent, coopératif (voir « Interruption »).
     relique que la recherche peut équiper — sa stat de référence (« tous les
     X pts de … », lue au début du combat) ou la stat qu'il améliore
     (Bravoure, Éternité, Origine) ; la relique portée, ou toutes les
-    reliques éligibles quand la relique est cherchée (lot 6bis-b3c). Ainsi,
+    reliques éligibles quand la relique est cherchée. Ainsi,
     en « PV effectifs » avec une relique Ténacité sur l'ATQ, un Fight reste :
     son aura peut faire franchir une tranche. En « Dégâts réels », une stat
     que lit une ligne d'artéfact 218–221 (dégâts supplémentaires en
     proportion des PV, de l'ATQ, de la DEF ou de la VIT) est utile au même
     titre : celles de la paire supposée par la recherche, et, en « Libre »,
     de tout artéfact éligible que le choix de la paire peut retenir —
-    moins ceux qu'une autre liste réserve, à l'écran (lot 6bis-b3d-1). Ainsi,
+    moins ceux qu'une autre liste réserve, à l'écran. Ainsi,
     un Energy reste face à un Will dès qu'un artéfact éligible porte la
     ligne 218, même si les PV ne sont pas une stat du sort. Ces lignes ne
     changent ni le pré-filtrage ni la rétention : un artéfact récolte les
@@ -2673,8 +2666,7 @@ différent, coopératif (voir « Interruption »).
     « Efficience » maximise toutes les stats.
     Le Taux Crit ne compte que sous un minimum de Taux Crit, jamais par
     l'objectif (décision du 2026-09-29 ; sa réserve « même en mode
-    Moyenne » est sans objet depuis la suppression de ce mode, lot CM de
-    degats-et-aura). S'y ajoute, dès qu'une Intangible est disponible, tout set
+    Moyenne » est sans objet depuis la suppression de ce mode). S'y ajoute, dès qu'une Intangible est disponible, tout set
     qui peut être complet avec ses seules vraies runes, puisque le joker ne
     complète un set que s'il est le seul incomplet. Ainsi, en « Dégâts
     réels » avec des minimums ATQ, Taux Crit et Dgts Crit, une Blade dominée
@@ -2696,7 +2688,7 @@ différent, coopératif (voir « Interruption »).
     demandé, ou d'une activation de plus d'un set demandé, et, interrupteur
     RES/PRE activé, 8 points par activation Tolerance/Accuracy **propre**
     possible — une Intangible pouvant, dans les deux cas, en compléter la
-    dernière pièce (lot 6bis-b3b). Le compte porte sur tout le pool,
+    dernière pièce. Le compte porte sur tout le pool,
     plafonné aux emplacements libres : une borne volontairement large,
     jamais trop basse. Côté maximum, seul l'inévitable compte : aucune de ces
     activations n'y est supposée. Les bornes rapides de l'appariement et le
@@ -3190,7 +3182,7 @@ plusieurs milliers de runes.
   à la liste », voir « Listes de travail et réservation de runes ») —
   l'import en masse depuis un deck de siège/une prépa RTA entière n'est pas
   construit, ni un workflow qui enchaîne automatiquement au monstre suivant
-  après validation. « Ajouter un autre exemplaire de … » (lot EX, voir
+  après validation. « Ajouter un autre exemplaire de … » (voir
   « Zone C ») n'y change rien : chaque clic ajoute un seul exemplaire.
 - Le preset de pré-filtrage par emplacement et le filet de temps (« Réglages
   avancés ») sont réglables ; le plafond de candidats collectés reste un

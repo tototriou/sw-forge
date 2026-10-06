@@ -1,5 +1,6 @@
 // Refuse `git commit`, `git merge` et `git tag` avec un message en ligne
-// (`-m`, forme collée `-m"…"` comprise, grappe `-am`, `--message`), et
+// (`-m`, forme collée `-m"…"` comprise, grappe `-am`, `--message` et ses
+// abréviations acceptées par git), derrière toute option globale, et
 // `node -e`/`--eval`/`-p`/`--print` dont l'argument est une chaîne entre
 // guillemets doubles contenant un backtick ou un `$` — voir CLAUDE.md,
 // « Jamais de code entre guillemets doubles dans une commande shell ».
@@ -81,14 +82,22 @@ const segments = sansHeredocs(commande)
 // une stratégie ; aucun des deux n'est un message.
 const OPTIONS_COURTES_A_VALEUR = { commit: 'FmcCtSUu', merge: 'sXmFS', tag: 'nmFu' };
 
+// Plus courte abréviation de `--message` que git accepte (git 2.55) : pour
+// `tag`, `--m` et `--me` sont ambiguës avec `--merged` et git les refuse.
+const ABREVIATION_MINIMALE_DE_MESSAGE = { commit: 1, merge: 1, tag: 3 };
+
+// Options globales de git qui acceptent leur valeur dans le jeton suivant
+// (git 2.55) : celles de `git -h` plus `--attr-source`, absente de `git -h`.
+// Git n'abrège pas les options globales ; `--exec-path` ne prend sa valeur
+// qu'avec `=`.
+const OPTIONS_GLOBALES_A_VALEUR = new Set(['-C', '-c', '--git-dir', '--work-tree', '--namespace', '--config-env', '--attr-source']);
+
 /**
  * Sous-commande surveillée appelée par ce segment, et ses arguments.
  *
  * ⚠️ Tokenisé, pas deviné par expression régulière : un premier essai en
  * `git\s+(?:-\S+\s+)*commit` laissait passer `git -C . commit -m`, parce que
- * la VALEUR d'une option globale (`.`) n'est pas un `-…`. Les seules options
- * globales de git qui prennent une valeur séparée sont `-C` et `-c` ; les
- * autres (`--git-dir=`, `--work-tree=`…) sont des jetons uniques.
+ * la VALEUR d'une option globale (`.`) n'est pas un `-…`.
  */
 function sousCommandeGit(segment) {
   const jetons = segment.split(/\s+/).filter(Boolean);
@@ -97,7 +106,7 @@ function sousCommandeGit(segment) {
   if (jetons[i] !== 'git') return null;
   i++;
   while (i < jetons.length) {
-    if (jetons[i] === '-C' || jetons[i] === '-c') { i += 2; continue; }
+    if (OPTIONS_GLOBALES_A_VALEUR.has(jetons[i])) { i += 2; continue; }
     if (jetons[i].startsWith('-')) { i++; continue; }
     if (!Object.hasOwn(OPTIONS_COURTES_A_VALEUR, jetons[i])) return null;
     return { nom: jetons[i], args: jetons.slice(i + 1) };
@@ -107,7 +116,9 @@ function sousCommandeGit(segment) {
 
 function porteUnMessage({ nom, args }) {
   for (const jeton of args) {
-    if (jeton === '--message' || jeton.startsWith('--message=')) return true;
+    // `--message`, `--message=…` et leurs abréviations acceptées (`--mes`, `--mess=…`).
+    const long = /^--([a-z]+)(=|$)/.exec(jeton)?.[1];
+    if (long && long.length >= ABREVIATION_MINIMALE_DE_MESSAGE[nom] && 'message'.startsWith(long)) return true;
     // Un seul tiret, sinon `--allow-empty-message` serait pris pour un message.
     if (!/^-[^-]/.test(jeton)) continue;
     // Grappe d'options courtes lue lettre à lettre, comme git : `-m`, `-am`,

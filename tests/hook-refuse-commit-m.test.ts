@@ -131,6 +131,64 @@ function confronterAGit(): void {
         egal(sortie(bash(`git ${c.args.join(' ')}`)), 0, `hook = git : ${c.nom} passe`);
       }
     }
+
+    // --- options globales à valeur séparée --------------------------------
+    // Celles de `git -h` (git 2.55) plus `--attr-source`, que git accepte
+    // aussi sous cette forme.
+    const globales: [string, string][] = [
+      ['--git-dir', '.git'], ['--work-tree', '.'], ['--namespace', 'ns'],
+      ['--config-env', 'user.name=HOME'], ['--attr-source', 'HEAD'],
+    ];
+    for (const [option, valeur] of globales) {
+      const texte = `globale${option.replace(/-/g, '')}`;
+      git([option, valeur, 'commit', '-q', '--allow-empty', '-m', texte]);
+      egal(dernierMessage(), texte, `git : ${option} <valeur> commit -m porte le message`);
+      egal(sortie(bash(`git ${option} ${valeur} commit -m ${texte}`)), 2, `hook = git : ${option} <valeur> commit -m refusé`);
+    }
+    const cheminExec = git(['--exec-path', 'x', 'commit', '-q', '--allow-empty', '-m', 'exec-path']);
+    ok(dernierMessage() !== 'exec-path' && /git-core/.test(cheminExec.sortie),
+      'git : --exec-path ne prend pas le jeton suivant (affiche son chemin, aucun commit)');
+    egal(sortie(bash(`git --exec-path x commit -m exec-path`)), 0, 'hook = git : --exec-path x commit -m passe');
+    ok(git(['--git-d', '.git', 'status']).code !== 0, 'git : une option globale ne s’abrège pas (--git-d refusée)');
+
+    // --- abréviations de --message, commande par commande -----------------
+    // Chaque préfixe de `message`, forme `=` ; forme séparée pour `--mes`.
+    // Le hook refuse exactement ce que git retient comme message.
+    const acceptees: Record<string, string[]> = { commit: [], merge: [], tag: [] };
+    let numero = 0;
+    for (const nom of ['commit', 'merge', 'tag']) {
+      for (let l = 1; l <= 'message'.length; l++) {
+        const p = 'message'.slice(0, l);
+        for (const separee of l === 3 ? [false, true] : [false]) {
+          const texte = `abr-${nom}-${p}${separee ? '-sep' : ''}`;
+          const option = separee ? [`--${p}`, texte] : [`--${p}=${texte}`];
+          let args: string[];
+          let lu: string;
+          if (nom === 'commit') {
+            args = ['commit', '--allow-empty', ...option];
+            git(['commit', '-q', '--allow-empty', ...option]);
+            lu = dernierMessage();
+          } else if (nom === 'merge') {
+            args = ['merge', ...option, 'b1'];
+            lu = fusion(option).message;
+          } else {
+            const etiquette = `abr${++numero}`;
+            args = ['tag', '-a', etiquette, ...option];
+            git(args);
+            lu = messageEtiquette(etiquette);
+          }
+          const retenu = lu === texte;
+          if (retenu && !separee) acceptees[nom].push(p);
+          egal(sortie(bash(`git ${args.join(' ')}`)), retenu ? 2 : 0,
+            `hook = git : ${nom} --${p}${separee ? ' <texte>' : '=<texte>'} ${retenu ? 'refusé' : 'passe'}`);
+        }
+      }
+    }
+    egal(acceptees, {
+      commit: ['m', 'me', 'mes', 'mess', 'messa', 'messag', 'message'],
+      merge: ['m', 'me', 'mes', 'mess', 'messa', 'messag', 'message'],
+      tag: ['mes', 'mess', 'messa', 'messag', 'message'],
+    }, 'git : abréviations de --message acceptées (tag : --m et --me ambiguës avec --merged)');
   } finally {
     // bac provient exclusivement de mkdtempSync sous tmpdir.
     rmSync(bac, { recursive: true, force: true });
@@ -194,6 +252,17 @@ export default function testHookRefuseCommitM(): void {
     ['tag forme collée -m\'…\'', `git tag -a v1 -m'version'`],
     ['tag forme collée -mtexte', `git tag -a v1 -mversion`],
     ['git -C . tag -m', `git -C . tag -a v1 -m "version"`],
+    ['git --git-dir <d> commit -m', `git --git-dir .git commit -m "titre"`],
+    ['git --work-tree <d> merge -m', `git --work-tree . merge -m "fusion" forge/x`],
+    ['git --namespace <n> tag -m', `git --namespace ns tag -a v1 -m "version"`],
+    ['git --config-env <n>=<v> commit -m', `git --config-env user.name=HOME commit -m "titre"`],
+    ['git --attr-source <t> merge -m', `git --attr-source HEAD merge -m "fusion" forge/x`],
+    ['commit --m=', `git commit --m="titre"`],
+    ['commit --mes séparé', `git commit --mes "titre"`],
+    ['merge --me séparé', `git merge --me "fusion" forge/x`],
+    ['merge --mess=', `git merge --mess="fusion" forge/x`],
+    ['tag --mes séparé', `git tag -a v1 --mes "version"`],
+    ['tag --messag=', `git tag -a v1 --messag="version"`],
   ];
   for (const [nom, commande] of mergeTagRefuses) {
     egal(sortie(bash(commande)), 2, `git, refusé : ${nom}`);
@@ -208,6 +277,9 @@ export default function testHookRefuseCommitM(): void {
     ['tag heredoc qui parle de -m', `git tag -a v1 -F - <<'FIN'\nversion\n\njamais git tag -m\nFIN`],
     ['tag -l', `git tag -l`],
     ['tag --merged', `git tag --merged main`],
+    ['tag --m= (ambiguë, git la refuse)', `git tag -a v1 --m="version"`],
+    ['tag --me séparé (ambiguë, git la refuse)', `git tag -a v1 --me "version"`],
+    ['--exec-path ne prend pas le jeton suivant', `git --exec-path x commit -m "titre"`],
     ['tag -n5', `git tag -n5`],
     ['tag -u collé à une clé en m', `git tag -umacle -F C:/scratch/tag.txt v1`],
     ['grep qui cite merge -m', `grep -rn "git merge -m" spec/`],

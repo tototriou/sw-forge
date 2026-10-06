@@ -14,18 +14,6 @@
       "proprietaire": "hors-perimetre"
     },
     {
-      "fichier": ".claude/skills/algo-verify/SKILL.md",
-      "renvoi": "archive/historique/historique-diagnostics-et-robustesse.md",
-      "occurrences": 1,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": ".claude/skills/algo-verify/SKILL.md",
-      "renvoi": "spec/outils/optimizer/pistes.md",
-      "occurrences": 1,
-      "proprietaire": "a-publier"
-    },
-    {
       "fichier": ".claude/skills/design-taste-frontend/SKILL.md",
       "renvoi": "feature/bento-grid--material.md",
       "occurrences": 1,
@@ -34,18 +22,6 @@
     {
       "fichier": ".claude/skills/optimizer-field-propagation/SKILL.md",
       "renvoi": "spec/outils/optimizer/pistes.md",
-      "occurrences": 1,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": ".claude/skills/optimizer-perf-testing/SKILL.md",
-      "renvoi": "spec/outils/optimizer/archive/historique/historique-acceleration-et-outillage.md",
-      "occurrences": 2,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": ".claude/skills/optimizer-perf-testing/SKILL.md",
-      "renvoi": "spec/outils/optimizer/parallelisation-partagee.md",
       "occurrences": 1,
       "proprietaire": "a-publier"
     },

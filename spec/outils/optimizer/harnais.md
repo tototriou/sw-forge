@@ -300,7 +300,8 @@ Après l'appariement, `evaluerCompletude`
   à `explored` sans troncature, vérifié par `tests/rune-optim-differential.test.ts`).
   Le harnais affiche toujours `explored / totalPairs` ; un run annoncé complet
   qui n'a pas tout exploré sort INCOHÉRENT, sans motif inventé — jamais
-  `complet` avec une incohérence.
+  `complet` avec une incohérence. Ne pas remplacer `complet` par un statut
+  à plusieurs valeurs : l'API testée changerait de type pour ce que dit déjà `incoherence`.
 - **Une configuration invalide n'est pas un verdict.** Un emplacement vide
   fait rendre `null` à `prepareSearch` : le harnais dit « préparation
   impossible » et nomme la cause lue dans le verrou et le pool

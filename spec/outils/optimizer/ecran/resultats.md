@@ -260,6 +260,14 @@ en mode relique `recherche`, à un build classé premier par sa Conquête un
 chiffre inférieur à celui du suivant. L'écart « Comparer » note la fiche
 de la même façon, avec SA paire et SA relique : voir
 ../listes-et-reservation.md § Comparer, valider sans recherche et persistance.
+⚠️ **Aucun écart « grâce aux artéfacts » sur une carte.** Ne pas en
+afficher un qui compare la paire retenue à la paire supposée par la
+recherche : cette référence est un détail interne que rien ne nomme, et le
+chiffre, même exact, resterait illisible. Une comparaison n'a de sens que si
+sa référence se nomme ; celle qui se nomme, contre les artéfacts que le
+monstre porte, vit dans « Meilleurs artéfacts offensifs pour ce build »
+(voir meilleurs-artefacts-offensifs.md § Deux crans : dégâts supplémentaires ou dégâts réels). La carte, elle, se suffit : ses
+statistiques et son chiffre comptent déjà la paire retenue, affichée à côté.
 ⚠️ **L'effet unique compte dans les trois modes de relique** — la
 relique est celle que la carte affiche
 (`etatReliqueDuBuild`, une seule expression pour la case et le score) :

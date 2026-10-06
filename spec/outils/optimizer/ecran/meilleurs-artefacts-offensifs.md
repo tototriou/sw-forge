@@ -102,6 +102,10 @@ liste.
     — jamais quand la paire proposée est celle déjà portée.
   - La phrase qui NOMME le chiffre suit la même règle : présente dès qu'un
     nombre l'est — un nombre sans sa légende ne dit pas ce qu'il mesure.
+    En dégâts réels, elle nomme le sort que le calcul a RÉELLEMENT retenu
+    (`resolvedSkill`, issu de `resolveDamageSkill`), jamais l'identifiant
+    stocké : « Dégâts totaux de « … » contre l’adversaire décrit », comme
+    le résumé sous l'objectif (voir objectif-de-recherche.md § Les quatre objectifs disponibles).
 - **Dégâts réels** — les dégâts **totaux** du sort visé contre l'adversaire
   décrit. ⚠️ **Le moteur choisit une AUTRE paire**, il ne réaffiche pas la
   même autrement : une paire chargée en Dgts CRIT bat une paire chargée en
@@ -165,6 +169,12 @@ PORTE, la carte Artéfacts ce qu'on DEVRAIT porter, et elles se touchent.
 Le bloc est ainsi avec les réglages qui le pilotent, au lieu d'en être
 séparé par une carte entière.
 
+⚠️ **Encadré à part dans la carte** (contour atténué, fond `panel2`),
+sous les sous-propriétés verrouillées : la carte porte deux métiers.
+Attribut, Type et les verrous au-dessus sont des critères de la
+recherche de runes, appliqués à tous les builds qu'elle examine ; le bloc
+ne parle que du build affiché.
+
 Quand la paire portée est déjà la meilleure, l'écran le **dit** au lieu
 d'afficher « +0,0 % » — un zéro ressemble à une panne, la phrase est une
 réponse. Et si des lignes sont verrouillées, ce qu'elles coûtent est chiffré
@@ -181,9 +191,12 @@ proportion de… » convertissent en dégâts. Son build de runes est déjà fig
 par un autre objectif, et les artéfacts se posent par-dessus sans y toucher.
 C'est exactement la situation que cette fonctionnalité vise.
 
-Le libellé le dit alors : « Artéfacts les plus **offensifs** pour ce build »
+Le titre le dit alors : « Meilleurs artéfacts **offensifs** pour ce build »
 — sur une recherche d'efficience, « meilleurs artéfacts » tout court
-laisserait croire qu'ils servent cet objectif-là.
+laisserait croire qu'ils servent cet objectif-là. Ne pas l'intituler
+« Optimiser mon build actuel » : les runes ne bougent pas, et sur un écran
+qui optimise des runes ce titre se lirait « lance la recherche à partir de
+ce que je porte ».
 
 ⚠️ La paire proposée n'est donc PAS celle que la recherche de runes suppose :
 celle-là maximise l'objectif de recherche, celle-ci maximise les dégâts. Les

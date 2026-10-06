@@ -124,14 +124,20 @@ commandes, sorties, captures `lot-<n>-*.png`.
    fichier de la session chargée ou déjà sauvée, sans redemander ;
    « Sauvegarder sous… » demande où. Le site demande toujours.
 
+**Décisions du relevé du lot 1 (2026-10-06)** :
+
+5. **Q1 → l'état des outils, tout sauf l'interface** : speed tuning, critères
+   de l'Optimizer (sa recette, `buildOptimizerRecipe` /
+   `parseOptimizerRecipe`), filtres et vues des écrans du compte, recherche
+   des recos, leads de l'ordre de tour, prépa d'un ami chargée. Pas la barre
+   latérale repliée ni l'avertissement mobile fermé (propres à l'appareil) ;
+   pas les résultats de l'Optimizer (ils se recalculent). Relevé : une
+   cinquantaine de clés `useStickyState`, dont une quinzaine de `Set`.
+6. **Q2 → un `.json` daté** : `swblacksmith-session-AAAA-MM-JJ-HHhMM.json`,
+   format `swblacksmith/session` dans le fichier, comme les autres exports.
+
 **Questions ouvertes** (à trancher au relevé du lot indiqué) :
 
-- **Q1 → lot 1.** L'état des outils en mémoire : lesquels des 17 états
-  `useStickyState` et de `useOptimizerState` en font partie (un filtre de la
-  box, oui ? la barre latérale repliée ?) ; un état non sérialisable
-  (`Set`, fonction) et sa forme dans le fichier.
-- **Q2 → lot 1.** Nom et extension du fichier (`.json` lisible, ou une
-  extension propre), et le nom proposé (`swblacksmith-session-<date>`).
 - **Q3 → lot 2.** Où vivent les boutons : Réglages « Mes données », la
   palette Ctrl K, la carte du compte.
 - **Q4 → lot 3.** Charger quand « Garder mes données » est refusé : la

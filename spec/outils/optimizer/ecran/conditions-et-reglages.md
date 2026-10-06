@@ -50,6 +50,9 @@
      exclues » ne s'applique qu'à PV/ATQ/DEF/VIT : Taux Crit, Dmg Crit, RES
      et Précision restent toujours des totaux. Affiché en `placeholder`
      tant que rien n'est saisi.
+
+## Grille des conditions
+
    - **Grille en `w-fit`**, un seul triplet (libellé/Min/Max) par rangée,
      même au-delà de `2xl` — **jamais DEUX stats par rangée** : le triplet
      Min/Max reste la lecture
@@ -61,6 +64,19 @@
      seulement — la recherche elle-même ne doit surtout pas exclure un build
      dont la somme brute dépasse 100 % (une marge de sécurité contre la
      précision/résistance adverse reste un résultat légitime).
+   - ⚠️ **Un maximum saisi SOUS le minimum retombe au défaut de la case** :
+     la condition serait insatisfaisable par construction,
+     et la recherche renverrait « 0 build » sans que rien ne dise pourquoi.
+     - À la **sortie du champ**, jamais à la frappe : on ne saurait pas
+       distinguer un « 5 » définitif d'un « 50 » en cours d'écriture. C'est le
+       même piège que celui que `NumberField` documente déjà pour le bornage par
+       `min` — d'où un axe `onBlur` ajouté au composant, réservé aux règles qui
+       lient DEUX champs (borner celui-ci reste le travail de `min`/`max`).
+     - Le champ est **effacé**, pas remonté à la valeur du minimum : il retrouve
+       ainsi son placeholder, donc son défaut (le plafond pour une stat bornée à
+       100, « aucun maximum » sinon). Le corriger en « max = min » poserait une
+       contrainte que personne n'a demandée, et qui ne laisse passer qu'une
+       seule valeur.
    - Le modèle des auras accepte les auras des **autres** monstres de
      l'équipe dans `DamageSetup.setsAuraExternes`, 15 sets au plus (voir
      [effets d'équipe](../../degats-reels/effets-equipe-et-leaders.md)) ; une
@@ -84,9 +100,13 @@
      « Réglages avancés » (point 9 ci-dessous).
    - **« Réinitialiser les conditions »** vide les 16 champs sans toucher aux
      autres réglages de l'écran.
+
+## Inventaire
+
 8. **« Exclure les runes déjà utilisées »** — interrupteur, **désactivé par
    défaut** : la recherche porte alors sur tout l'inventaire. Il vit dans
    « Exclusion de runes » (voir ../exclusion.md § Exclusion des runes déjà portées ailleurs).
+
 ## Réglages avancés
 
 9. **« Réglages avancés »** (repliés par défaut). ⚠️ **Au bureau, un

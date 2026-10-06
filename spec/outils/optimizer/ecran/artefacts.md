@@ -20,6 +20,15 @@
    ATQ +100**, **Principale DEF +100**, **Principale PV +1500** (les trois
    statistiques principales d'artéfact du jeu).
 
+   ⚠️ **Le sélecteur FILTRE l'inventaire, il n'hypothèque pas.** Choisir
+   « ATQ +100 » restreint la recherche aux artéfacts qu'on POSSÈDE portant
+   cette principale, avec leurs sous-propriétés. Sans aucun, l'emplacement
+   reste vide — on ne peut pas équiper ce qu'on n'a pas. Ne pas fabriquer de
+   pièce fictive (« et si j'avais un artéfact PV+1500 ? ») : sans aucune
+   sous-propriété, elle ferait calculer les « Dégâts réels » sans aucune
+   ligne d'effet, quand « Garder l'artéfact équipé » les compte — deux
+   réglages voisins, deux modèles de dégâts, sans que rien ne le signale.
+
    ⚠️ **Sans choix, la liste affiche « Libre »**, parce que le moteur traite
    une absence de choix comme « Libre » (`candidatsParSorte`,
    artifactOptim.ts). Afficher « Garder l'artéfact équipé » annoncerait le

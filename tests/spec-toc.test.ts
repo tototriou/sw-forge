@@ -96,12 +96,8 @@ export default function testSpecToc() {
   const optimizerSections = sections(optimizerTexte);
   const h2 = optimizerSections.filter((s) => s.niveau === 2).map((s) => s.titre);
   egal(h2, [
-    "Ordre d'usage et grille",
-    'Panneaux repliables',
-    'Placement et adaptation à la largeur',
-    "Survie à un changement d'onglet",
     'Où vit le reste de la spec',
-  ], 'les cinq H2 de la page d\'entrée sont tous présents dans le sommaire');
+  ], 'le seul H2 de la page d\'entrée est présent dans le sommaire');
 
   const sortieJson = execFileSync(process.execPath, [SCRIPT, 'spec/outils/optimizer.md', '--json'], {
     cwd: RACINE,

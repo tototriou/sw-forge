@@ -843,12 +843,6 @@
     },
     {
       "fichier": "spec/outils/optimizer/README.md",
-      "renvoi": "moteur/diagnostics.md",
-      "occurrences": 2,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": "spec/outils/optimizer/README.md",
       "renvoi": "moteur/parallelisation.md",
       "occurrences": 3,
       "proprietaire": "a-publier"
@@ -870,12 +864,6 @@
       "renvoi": "lib/effects.ts",
       "occurrences": 1,
       "proprietaire": "a-corriger"
-    },
-    {
-      "fichier": "spec/outils/optimizer/invariants.md",
-      "renvoi": "moteur/diagnostics.md",
-      "occurrences": 6,
-      "proprietaire": "a-publier"
     },
     {
       "fichier": "spec/outils/optimizer/invariants.md",

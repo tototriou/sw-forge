@@ -27,7 +27,7 @@ function git(depot: string, ...args: string[]): string {
   return execFileSync('git', ['-C', depot, ...args], { encoding: 'utf8' }).trim();
 }
 
-function ecrire(depot: string, rel: string, contenu: string) {
+function ecrire(depot: string, rel: string, contenu: string | Buffer) {
   mkdirSync(dirname(join(depot, rel)), { recursive: true });
   writeFileSync(join(depot, rel), contenu);
 }
@@ -64,31 +64,39 @@ export function testPreCommit() {
     execFileSync('git', ['-C', depot, 'commit', '-q', '-F', '-'], { input: 'Base\n' });
     git(depot, 'switch', '-q', '-c', 'forge/essai');
 
-    // Un cas : fichiers écrits, chemins nommés indexés, hook lancé, dépôt
-    // remis à la tête.
-    const cas = (fichiers: Record<string, string>, indexes: string[] = Object.keys(fichiers)) => {
+    // Un cas : fichiers écrits, chemins nommés indexés, puis, si demandé,
+    // l'arbre de travail réécrit SANS réindexer ; hook lancé, dépôt remis à
+    // la tête.
+    type Fichiers = Record<string, string | Buffer>;
+    const cas = (fichiers: Fichiers, indexes: string[] = Object.keys(fichiers), apres: Fichiers = {}) => {
       for (const [rel, contenu] of Object.entries(fichiers)) ecrire(depot, rel, contenu);
       git(depot, 'add', '--', ...indexes);
+      for (const [rel, contenu] of Object.entries(apres)) ecrire(depot, rel, contenu);
       const r = lancer(depot);
       git(depot, 'reset', '-q', '--hard', 'HEAD');
       git(depot, 'clean', '-q', '-fd');
       return r;
     };
-    const refuse = (r: { code: number }) => r.code === 1;
+    // Un refus se reconnaît à son diagnostic, pas au seul code de sortie :
+    // un hook qui plante sort aussi en 1.
+    const refuse = (r: { code: number; sortie: string }, motif: RegExp) =>
+      r.code === 1 && /REFUSÉ — /.test(r.sortie) && motif.test(r.sortie);
     const passe = (r: { code: number }) => r.code === 0;
+    const NON_PUBLIE = /REFUSÉ — fichier non publié/;
+    const RENVOI = /REFUSÉ — marque de note privée[\s\S]*renvoi aux notes/;
+    const IDENTIFIANT = /REFUSÉ — marque de note privée[\s\S]*identifiant de lot/;
     const propre = '# Invariants\n\nUne règle publique.\n';
 
     /* ------------------------------------------------------ liste absente */
     // En premier : une fois le dossier indexé, un disque insensible à la
     // casse ramène `Optimizer/` à la casse du dossier existant.
-    ok(refuse(cas({ 'spec/outils/Optimizer/x.md': propre })), 'casse différente du dossier : refus');
-    let r = cas({ [`${O}/invariants.md`]: propre });
-    ok(refuse(r) && /fichier non publié/.test(r.sortie),
+    ok(refuse(cas({ 'spec/outils/Optimizer/x.md': propre }), NON_PUBLIE), 'casse différente du dossier : refus');
+    ok(refuse(cas({ [`${O}/invariants.md`]: propre }), NON_PUBLIE),
       'ancienne branche (liste absente de l’index) : un fichier propre est refusé');
-    r = cas({ [LISTE]: `${O}/invariants.md\n`, [`${O}/invariants.md`]: propre }, [`${O}/invariants.md`]);
-    ok(refuse(r), 'liste écrite mais non indexée : ignorée, refus');
-    r = cas({ [LISTE]: `# en-tête\n\n  ${O}/invariants.md  \n`, [`${O}/invariants.md`]: propre });
-    ok(passe(r), 'fichier et sa ligne de liste dans le même commit : accepté (commentaire, blancs)');
+    ok(refuse(cas({ [LISTE]: `${O}/invariants.md\n`, [`${O}/invariants.md`]: propre }, [`${O}/invariants.md`]), NON_PUBLIE),
+      'liste écrite mais non indexée : ignorée, refus');
+    ok(passe(cas({ [LISTE]: `# en-tête\n\n  ${O}/invariants.md  \n`, [`${O}/invariants.md`]: propre })),
+      'fichier et sa ligne de liste dans le même commit : accepté (commentaire, blancs)');
     ok(passe(cas({ 'spec/outils/optimizer.md': `Résultat du ${LOT} 7b, voir archive/a.md.\n` })),
       '`optimizer.md`, hors du dossier : non concerné');
 
@@ -99,24 +107,49 @@ export function testPreCommit() {
     execFileSync('git', ['-C', depot, 'commit', '-q', '-F', '-'], { input: 'Liste\n' });
 
     /* ---------------------------------------------- nom absent de la liste */
-    r = cas({ [`${O}/autre.md`]: propre });
-    ok(refuse(r) && /autre\.md/.test(r.sortie), 'nom absent de la liste : refus');
-    ok(refuse(cas({ [`${O}/résumé.md`]: propre })), 'nom non ASCII absent de la liste : refus (chemin non cité)');
-    ok(refuse(cas({ '.history/é.md': propre })), '`.history/` sous un nom non ASCII : refus');
+    let r = cas({ [`${O}/autre.md`]: propre });
+    ok(refuse(r, NON_PUBLIE) && /autre\.md/.test(r.sortie), 'nom absent de la liste : refus');
+    ok(refuse(cas({ [`${O}/résumé.md`]: propre }), NON_PUBLIE), 'nom non ASCII absent de la liste : refus (chemin non cité)');
+    ok(refuse(cas({ '.history/é.md': propre }), /REFUSÉ — chemin privé/), '`.history/` sous un nom non ASCII : refus');
+
+    /* ------------------------------------------- renommage vers le dossier */
+    const renommer = (vers: string) => {
+      mkdirSync(dirname(join(depot, vers)), { recursive: true });
+      git(depot, 'mv', 'README.md', vers);
+      const resultat = lancer(depot);
+      git(depot, 'reset', '-q', '--hard', 'HEAD');
+      git(depot, 'clean', '-q', '-fd');
+      return resultat;
+    };
+    ok(refuse(renommer(`${O}/lu.md`), NON_PUBLIE), 'renommage vers un nom absent de la liste : refus');
+    ok(passe(renommer(`${O}/sous/note.md`)), 'renommage vers un nom de la liste, contenu propre : accepté');
 
     /* ----------------------- ancien outil : note privée sous un nom autorisé */
-    const marque = (contenu: string) => cas({ [`${O}/invariants.md`]: contenu });
+    const marque = (contenu: string | Buffer) => cas({ [`${O}/invariants.md`]: contenu });
     r = marque('# Invariants\n\nDétail : [historique](archive/historique/h.md).\n');
-    ok(refuse(r) && /l\. 3, renvoi aux notes/.test(r.sortie),
+    ok(refuse(r, RENVOI) && /l\. 3, renvoi aux notes/.test(r.sortie),
       'ancien outil, nom déjà autorisé, renvoi aux notes : refus, ligne citée');
-    r = marque(`# Invariants\n\nRésultat du ${LOT} 7b : règle vérifiée.\n`);
-    ok(refuse(r) && /identifiant de lot/.test(r.sortie), 'note privée sans lien privé mais avec un identifiant de lot : refus');
-    ok(refuse(marque(`Source : ${LOT}s 3a–3c.\n`)), 'identifiant de lot : pluriel et plage');
-    ok(refuse(marque(`${LOT.toUpperCase()} 12 : fait.\n`)), 'identifiant de lot : capitales');
-    ok(refuse(marque(`Le ${LOT}-6bis.\n`)), 'identifiant de lot : tiret et « bis »');
-    ok(refuse(marque(`Étape du ${LOT} P5a2.\n`)), 'identifiant de lot : étiquette lettres et chiffres');
-    ok(refuse(marque(`{ ${LOT}: '1a2' }\n`)), 'identifiant de lot : clé de données');
-    ok(passe(marque(`Un ${LOT} de runes, le s${LOT} 4, le pi${LOT}e 2.\n`)), 'mot « lot » seul, « slot », « pilote » : acceptés');
+    ok(refuse(marque(`# Invariants\n\nRésultat du ${LOT} 7b : règle vérifiée.\n`), IDENTIFIANT),
+      'note privée sans lien privé mais avec un identifiant de lot : refus');
+    ok(refuse(cas({ [`${O}/invariants.md`]: 'Voir archive/h.md.\n' }, undefined, { [`${O}/invariants.md`]: propre }), RENVOI),
+      'note privée indexée, disque propre : le contenu de l’index fait foi, refus');
+    ok(passe(cas({ [`${O}/invariants.md`]: propre }, undefined, { [`${O}/invariants.md`]: 'Voir archive/h.md.\n' })),
+      'index propre, disque privé : accepté');
+    ok(refuse(marque(Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(`Voir archive/h.md, ${LOT} 7b.\r\n`, 'utf16le')])), RENVOI),
+      'note en UTF-16 : refus');
+
+    const identifiants: [string, string][] = [
+      [`Source : ${LOT}s 3a–3c.`, 'pluriel et plage'],
+      [`${LOT.toUpperCase()} 12 : fait.`, 'capitales'],
+      [`Le ${LOT}-6bis.`, 'tiret et « bis »'],
+      [`Étape du ${LOT} P5a2.`, 'étiquette lettres et chiffres'],
+      [`{ ${LOT}: '1a2' }`, 'clé de données'],
+      [`Résultat du ${LOT} 7b.`, 'espace insécable'],
+      [`Résultat du ${LOT}\t7b.`, 'tabulation'],
+    ];
+    for (const [ligne, libelle] of identifiants) ok(refuse(marque(`${ligne}\n`), IDENTIFIANT), `identifiant de lot, ${libelle} : refus`);
+    ok(passe(marque(`Un ${LOT} de runes, le s${LOT} 4, le pi${LOT}e 2, un î${LOT} 7.\n`)),
+      'mot « lot » seul, « slot », « pilote », « îlot » : acceptés');
 
     /* --------------------------------------------- formes du renvoi aux notes */
     const renvois: [string, string][] = [
@@ -124,14 +157,23 @@ export function testPreCommit() {
       ['decisions/d.md § Titre', 'référence § vers les décisions'],
       ['[a](./archive/a.md)', 'lien en ./'],
       [`[a](${O}/archive/a.md)`, 'chemin depuis la racine'],
+      ['[h](Spec/Outils/Optimizer/./archive/h.md)', 'depuis la racine, casse différente'],
       ['https://exemple.org/blob/main/spec/outils/optimizer/decisions/d.md', 'adresse qui contient le chemin'],
       ['[a](../a-publier/a.md)', 'renvoi vers a-publier/'],
       ['« Archive/A.md »', 'casse différente, entre guillemets français'],
+      ['[historique](archive)', 'lien vers le dossier lui-même'],
+      ['[notes](../a-publier)', 'lien vers a-publier lui-même'],
+      ['Source=archive/h.md, Source:decisions/d.md', 'collé à = ou :'],
+      ['archive\\historique\\h.md', 'séparateurs Windows'],
     ];
-    for (const [ligne, libelle] of renvois) ok(refuse(marque(`${ligne}\n`)), `renvoi aux notes, ${libelle} : refus`);
-    ok(refuse(cas({ [`${O}/sous/note.md`]: '[h](../archive/h.md)\n' })), 'depuis un sous-dossier publié, `../archive/` : refus');
-    ok(passe(marque('[a](../../chantiers/c.md), spec/chantiers/c.md, [d](../degats-reels/decisions/d.md)\n')),
-      'renvois publics homonymes (spec/chantiers/, degats-reels/decisions/) : acceptés');
+    for (const [ligne, libelle] of renvois) ok(refuse(marque(`${ligne}\n`), RENVOI), `renvoi aux notes, ${libelle} : refus`);
+    ok(refuse(cas({ [`${O}/sous/note.md`]: '[h](../archive/h.md)\n' }), RENVOI), 'depuis un sous-dossier publié, `../archive/` : refus');
+    ok(passe(marque([
+      '[a](../../chantiers/c.md), spec/chantiers/c.md, [d](../degats-reels/decisions/d.md)',
+      `[d](${O}/archive/../../degats-reels/decisions/d.md)`,
+      'Une archive, des chantiers : [voir](#archive).',
+    ].join('\n') + '\n')),
+      'renvois publics homonymes, chemin normalisé hors des notes, mots et ancres : acceptés');
   } finally {
     // bac provient exclusivement de mkdtempSync sous tmpdir.
     rmSync(bac, { recursive: true, force: true });

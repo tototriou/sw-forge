@@ -435,12 +435,12 @@ de plus de 5 Mo ; un `spec/**.md` du périmètre que refuse `spec-lint`.
 Sous `spec/outils/optimizer/` (casse ignorée), un fichier absent de
 `.githooks/optimizer-publics.txt` (lue dans l'index ; un chemin par ligne
 depuis la racine, `#` en commentaire ; absente = vide), ou dont la
-version de l'index porte une marque de note privée : renvoi résolu dans
-`archive/`, `chantiers/` ou `decisions/` de ce dossier, renvoi vers
-`a-publier/`, identifiant de lot. Un fichier publié et sa ligne de liste
-vont dans le même commit. Limite assumée : une note privée sans aucune de
-ces marques, sous un nom de la liste, passe. Test : `node tests/run.mjs
-precommit`.
+version de l'index est illisible ou porte une marque de note privée :
+renvoi résolu dans `archive/`, `chantiers/` ou `decisions/` de ce dossier
+(le dossier lui-même compris), renvoi vers `a-publier`, identifiant de
+lot. Un fichier publié et sa ligne de liste vont dans le même commit.
+Limite assumée : une note privée sans aucune de ces marques, sous un nom
+de la liste, passe. Test : `node tests/run.mjs precommit`.
 
 ### Installation des garde-fous
 

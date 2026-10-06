@@ -198,7 +198,8 @@ paire qui viole ses conditions, ce qui est pire qu'un build manquant.
   les paires par score décroissant (`pairesParScore`) et retient la
   première qui tient `respecteConditionsPaireFixe` — les minimums, plus les
   seuls maximums de RES et de PRE ; aucune ne les tient : la meilleure au
-  score, avec `conforme: false`. Sans minimum ni maximum RES/PRE posé
+  score, avec `conforme: false` ; aucune paire du tout (les verrous n'en
+  laissent pas) : pas de paire. Sans minimum ni maximum RES/PRE posé
   (`conditionsPaireFixePosees`), toute paire convient.
 - **Mode `recherche`** : chaque couple (paire, relique) est jugé par
   `respecteConditionsAvecRelique`, minimums et maximums avec la relique
@@ -390,10 +391,11 @@ rendent est partagé : à lire, jamais à modifier.
   le fichier de l'écran entre deux passages. Ne relâcher qu'une condition à
   la fois : plusieurs relâchées ensemble donnent un cas dont on ne sait plus
   quelle stat agit.
-- Les cas de `scripts/perf-battery.ts` se cherchent en `efficience` avec
-  `objectiveStats` (`scripts/lib/perfShared.ts`) : leurs temps ne reflètent
-  pas une recherche en « Dégâts réels ». La batterie mesure la justesse — le
-  build cible est-il trouvé —, pas la vitesse ressentie.
+- Les cas de `scripts/perf-battery.ts` (`scripts/lib/perfShared.ts`) se
+  cherchent en `efficience` avec `objectiveStats`, un seul en `ehp` : leurs
+  temps, que la batterie suit contre une référence, ne reflètent pas une
+  recherche en « Dégâts réels ». Elle dit aussi si le build cible est
+  trouvé ; son mode `--monotonicity` ne compare que la justesse.
 - `scripts/monster-search-rank-diag.ts` construit encore son apport
   d'artéfact à la main, depuis la paire portée : il mesure le repli, un
   moteur plus contraint que la production. `scripts/diagnostic-harness-parite.ts`

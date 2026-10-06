@@ -236,6 +236,27 @@ Q1 → 7 (les données dépendent du choix de Thomas)
     - **au téléphone, une ligne d'information** sans bouton (« existe aussi
       en application pour Windows et Linux ») ;
     - absents dans l'app (`estBureau()`).
+    → lot 6. ⚠️ **Remplacée en partie par la décision 14** (le même jour,
+    avant commit) : les deux boutons quittent le héros pour une page.
+
+14. **Une page « Télécharger »** (2026-10-06, à l'arrêt avant commit du
+    lot 6 : « une page dédiée au download pour la page web en dessous de
+    Nouveautés et un lien dans la page d'accueil qui redirige sur cette
+    page ») — **amende la décision 5** (accueil seulement) :
+    - `#/telecharger`, dans la barre latérale **sous « Nouveautés »**
+      (Ressources), et partout où la navigation se décline (téléphone,
+      palette) ; **site seulement** — dans l'app, ni entrée ni lien ;
+    - la page : ce que l'app apporte (sa fenêtre, la mise à jour proposée,
+      100 % local), les deux boutons **aux logos Windows et Linux** (le
+      fichier directement, décision 13), la phrase SmartScreen, la version
+      proposée et « Toutes les versions sur GitHub ». **Au téléphone,
+      sans boutons** : « à installer depuis un ordinateur Windows ou
+      Linux ». Non retenus : la séparation des données site / app, l'aide
+      Linux ;
+    - l'accueil : dans le héros, à la place des deux boutons, **un** bouton
+      secondaire « Télécharger l'application » vers la page (au téléphone,
+      la ligne d'information, en lien vers la page) ; et sa **carte** dans
+      « Fonctionnalités » (accueil miroir de l'app).
     → lot 6.
 
 #### Les questions d'origine (toutes tranchées)

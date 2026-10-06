@@ -189,8 +189,7 @@ Ce que contient ce réglage :
   dégâts augmentent par effet présent sur l'adversaire (Julie, Melissa)
   — l'app ne simule aucun effet réel sur la cible. Détail :
   [degats-reels/catalogue-des-passifs.md#troisième-vague--points-4-et-5--bonus-selon-les-effets-sur-la-cible](../../degats-reels/catalogue-des-passifs.md#troisième-vague--points-4-et-5--bonus-selon-les-effets-sur-la-cible), « bonus selon les effets sur la
-  CIBLE ». ⚠️ **VIT adversaire** +
-  **leader skill VIT** : apparaissent pour un sort/passif qui dépend de
+  CIBLE ». ⚠️ **VIT adversaire** : apparaît pour un sort/passif qui dépend de
   l'écart de vitesse (`{Relative SPD}`, ignore-DEF proportionnel à
   l'écart, un monstre qui force le critique s'il est plus rapide, ou
   majore tous ses dégâts selon cet écart — même quand le sort CHOISI ne

@@ -5,10 +5,11 @@
 **Ne pas lire si :** on sait déjà quel fichier ouvrir — y aller directement, `node scripts/spec-toc.mjs <fichier>` d'abord
 **Voir aussi :** invariants.md (se lit en entier), ../optimizer.md
 
-Le comportement de l'écran et du moteur, tel que l'utilisateur le voit, est
-décrit dans [../optimizer.md](../optimizer.md) ; les contraintes critiques
-dans [invariants.md](invariants.md), le seul fichier de ce dossier qui se lit
-en entier. Tout le reste se lit **par section**, après
+[../optimizer.md](../optimizer.md) présente l'Optimizer et ses fichiers de
+code ; le comportement de l'écran et du moteur est décrit dans les fichiers
+de ce dossier, listés ci-dessous ; les contraintes critiques dans
+[invariants.md](invariants.md), le seul fichier de ce dossier qui se lit en
+entier. Tout le reste se lit **par section**, après
 `node scripts/spec-toc.mjs <fichier>`.
 
 ## Fichiers de ce dossier
@@ -38,8 +39,8 @@ Publiés :
   pas.
 
 Annoncés : un lien vers l'un d'eux désigne sa place avant qu'il paraisse ;
-d'ici là, la section de [../optimizer.md](../optimizer.md) ou du fichier
-publié citée dans la même ligne du tableau décrit le sujet.
+d'ici là, la section du fichier publié citée dans la même ligne du tableau
+décrit le sujet.
 
 - [moteur/reliques.md](moteur/reliques.md) — la dimension relique : contexte,
   bornes, résolution exacte, oracle.

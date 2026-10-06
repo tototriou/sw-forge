@@ -58,5 +58,5 @@ Chaque sujet vit dans son fichier, dans le dossier optimizer à côté de cette 
 - [Listes de travail et réservation de runes](optimizer/listes-et-reservation.md)
 - [Exclusion des runes déjà portées ailleurs](optimizer/exclusion.md)
 - [Interruption — filet de temps, pré-filtrage et arrêt manuel](optimizer/interruption.md)
-- **Algorithme** — [Algorithme (résumé fonctionnel)](optimizer/moteur/elagages.md) · [Le choix des artéfacts](optimizer/moteur/artefacts.md) · [Vérification](optimizer/verification.md)
+- **Algorithme** — [Le chemin d'une recherche](optimizer/moteur/pipeline.md) · [Algorithme (résumé fonctionnel)](optimizer/moteur/elagages.md) · [Le choix des artéfacts](optimizer/moteur/artefacts.md) · [Vérification](optimizer/verification.md)
 - [Limites connues](optimizer/limites-connues.md)

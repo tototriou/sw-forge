@@ -10,7 +10,12 @@
    « Critères de recherche » — l'objectif se choisit avant même de composer
    le set, ce n'est pas un critère de plus parmi d'autres. **Un bouton à
    choix unique** (`<Segmented
-   size="lg">`), choisi **avant** de lancer la recherche, pas seulement un tri
+   size="lg">`, [Segmented.tsx](src/ui/Segmented.tsx)) sur une seule ligne,
+   chaque option se partageant la largeur à égalité, séparées par un
+   **liseré vertical constant** entre deux options voisines, y compris
+   quand l'une des deux est sélectionnée — un `<span>` à part, sans rayon :
+   un `border-l` posé sur un bouton arrondi se courberait aux coins au lieu
+   de rester droit. Choisi **avant** de lancer la recherche, pas seulement un tri
    après coup :
 
 ## Les quatre objectifs disponibles

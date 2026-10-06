@@ -32,7 +32,12 @@
    n'en porte qu'un seul ou aucun — un emplacement vide est montré grisé
    plutôt que simplement absent. ⚠️ **Relique : emplacement TOUJOURS affiché
    de la même façon**, même absente — grisé plutôt que simplement absent,
-   comportement partagé avec RTA et Siège. ⚠️ **L'encadré de stats bascule base+bonus
+   comportement partagé avec RTA et Siège. ⚠️ **Artéfacts, roue et relique
+   forment UN SEUL groupe insécable** dans `MonsterGear` (`flex-none`,
+   aucun `flex-wrap` à l'intérieur) : trois items indépendants du
+   conteneur `flex-wrap` parent laisseraient, dans une colonne étroite, la
+   roue puis la relique passer seules à la ligne, la relique finissant hors
+   du cadre visible. Groupés, ils se déplacent ensemble ou pas du tout. ⚠️ **L'encadré de stats bascule base+bonus
    ↔ total au clic**, comportement propre à `MonsterGear`, partagé avec RTA
    et Siège (voir [rta/sections-runes.md](../../../rta/sections-runes.md)).
    ⚠️ **Affiché dans la carte « Monstre & équipement », SOUS les puces

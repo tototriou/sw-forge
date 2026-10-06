@@ -33,3 +33,4 @@ spec/outils/optimizer/harnais.md
 spec/outils/optimizer/harnais-extensions.md
 spec/outils/optimizer/harnais-scripts.md
 spec/outils/optimizer/pistes.md
+spec/outils/optimizer/pistes-vitesse-et-verification.md

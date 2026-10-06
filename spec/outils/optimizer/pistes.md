@@ -3,7 +3,7 @@
 **Statut :** ÉTAT ACTUEL — liste les pistes futures de l'Optimizer, chacune avec son constat, l'idée et ce qui la bloque
 **Lire si :** on envisage une amélioration du moteur, des artéfacts, des reliques ou de l'écran de l'Optimizer, avant de la proposer comme nouvelle
 **Ne pas lire si :** on cherche ce qui est fait, ou pourquoi une variante a été écartée : la spec du mécanisme le dit (README.md dit laquelle)
-**Voir aussi :** README.md, invariants.md, limites-connues.md
+**Voir aussi :** README.md, invariants.md, limites-connues.md, pistes-vitesse-et-verification.md
 
 Une piste est ce qui n'est pas fait. Chaque entrée donne le **constat** (ce
 que le code fait aujourd'hui, avec sa coordonnée), l'**idée** et ce qui la
@@ -14,6 +14,9 @@ est fait se lit dans la spec du mécanisme, que le
 une ligne « ne pas… parce que… », pour qu'on ne la réessaie pas sans sa
 raison. Celles du moteur de recherche des runes :
 [moteur/elagages.md § Variantes écartées ou gardées en réserve](moteur/elagages.md).
+Les pistes qui accéléreraient la recherche sans changer ce qu'elle cherche,
+et celles des tests, du harnais et des scripts de mesure :
+[pistes-vitesse-et-verification.md](pistes-vitesse-et-verification.md).
 
 ## Moteur de recherche des runes
 

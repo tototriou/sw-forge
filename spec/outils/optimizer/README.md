@@ -54,6 +54,9 @@ Publiés :
   bloquantes, quasi-succès (« near-miss »).
 - [pistes.md](pistes.md) — les pistes futures : constat, idée, ce qui les
   bloque.
+- [pistes-vitesse-et-verification.md](pistes-vitesse-et-verification.md) —
+  les pistes qui accéléreraient la recherche sans changer ce qu'elle
+  cherche, et celles des tests, du harnais et des scripts de mesure.
 
 ## Je touche…
 
@@ -75,7 +78,7 @@ Publiés :
 | le harnais de diagnostic | [invariants.md § Harnais](invariants.md) | [harnais.md](harnais.md) ; [harnais-extensions.md](harnais-extensions.md) ; [harnais-scripts.md](harnais-scripts.md) ; skill `optimizer-perf-testing` |
 | la recette (export/import, un champ d'`OptimizerState`/`OptimizerRecipe`) | [ecran/lancer-la-recherche.md § Lancer la recherche](ecran/lancer-la-recherche.md) ; skill `optimizer-field-propagation` (plusieurs constructeurs) | [exclusion.md § Exclusion des runes déjà portées ailleurs](exclusion.md) (repli de compatibilité `exploreAll`) |
 | les cartes de résultat (tri, moyenne par rune, popover de rune) | [ecran/resultats.md § Résultats](ecran/resultats.md) ; [invariants.md § UI](invariants.md) | [../../rta/sections-runes.md](../../rta/sections-runes.md) pour `StatPanel`/`RuneWheel`/`ArtifactSlots` partagés |
-| une piste de perf ou une idée « nouvelle » | [pistes.md](pistes.md) | la spec du mécanisme concerné, qui dit une piste écartée avec sa raison |
+| une piste de perf ou une idée « nouvelle » | [pistes.md](pistes.md) ; [pistes-vitesse-et-verification.md](pistes-vitesse-et-verification.md) | la spec du mécanisme concerné, qui dit une piste écartée avec sa raison |
 | la vitesse (speed tune, ordre des tours) | [../speed-tuning.md](../speed-tuning.md) (le modèle réel) | — |
 | une spec de ce dossier (en-têtes, lint, publication) | [../../outillage/spec.md](../../outillage/spec.md) ; `node scripts/spec-lint.mjs` | [../../outillage/renvois.md](../../outillage/renvois.md) ; un fichier publié ici a sa ligne dans `.githooks/optimizer-publics.txt`, dans le même commit |
 

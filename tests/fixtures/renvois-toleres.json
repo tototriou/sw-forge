@@ -843,12 +843,6 @@
     },
     {
       "fichier": "spec/outils/optimizer/README.md",
-      "renvoi": "moteur/parallelisation.md",
-      "occurrences": 3,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": "spec/outils/optimizer/README.md",
       "renvoi": "pistes.md",
       "occurrences": 3,
       "proprietaire": "a-publier"
@@ -867,20 +861,8 @@
     },
     {
       "fichier": "spec/outils/optimizer/invariants.md",
-      "renvoi": "moteur/parallelisation.md",
-      "occurrences": 10,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": "spec/outils/optimizer/invariants.md",
       "renvoi": "pistes.md",
       "occurrences": 2,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": "spec/outils/optimizer/moteur/pipeline.md",
-      "renvoi": "parallelisation.md",
-      "occurrences": 6,
       "proprietaire": "a-publier"
     },
     {

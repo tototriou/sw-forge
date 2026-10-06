@@ -148,7 +148,7 @@ Ce total sert de dénominateur à la progression et décide du régime : sous
 `PARALLEL_PAIRING_THRESHOLD` (`src/workers/parallelPairing.ts`), appariement
 séquentiel dans ce Worker ; à partir du seuil, appariement parallèle. Le
 seuil est le seul critère. Détail du régime parallèle :
-[parallelisation.md](parallelisation.md).
+[parallelisation.md § Choix du régime](parallelisation.md).
 
 ## Appariement séquentiel
 
@@ -215,7 +215,9 @@ Les progressions des tranches s'additionnent ; les résultats se fusionnent
 par `combineParallelPairingResults`, qui reçoit `totalPairs`. Un arrêt poste
 `{ stop: true }` à chaque tranche ; les Workers sont terminés une fois les
 résultats reçus. Une erreur d'une tranche est rattrapée : Workers terminés,
-résultat vide tronqué. Détail : [parallelisation.md](parallelisation.md).
+résultat vide tronqué. Détail : [parallelisation.md § Répartition et partage du plafond](parallelisation.md),
+[parallelisation.md § Fusion des résultats](parallelisation.md) et
+[parallelisation.md § Arrêt, erreur et nettoyage](parallelisation.md).
 
 ## Fin de l'appariement
 
@@ -313,7 +315,7 @@ une erreur du Worker ou une réponse illisible font renoncer (`renoncer`) :
 le Worker est terminé, l'erreur journalisée (`console.error`), et la file
 repasse sur le fil de l'écran avec le cache tel qu'il est. Un Worker
 impossible à créer bascule la file de la même façon (`basculerEnRepli`),
-l'erreur journalisée, mais sans demande à abandonner ni Worker à terminer. Détail : [parallelisation.md](parallelisation.md) et
+l'erreur journalisée, mais sans demande à abandonner ni Worker à terminer. Détail : [parallelisation.md § Worker de résolution](parallelisation.md) et
 [artefacts.md § Résolution hors du fil de l'écran](artefacts.md).
 
 ## File de résolution

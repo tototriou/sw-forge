@@ -26,6 +26,7 @@ spec/outils/optimizer/moteur/optimiseur-artefacts.md
 spec/outils/optimizer/moteur/pipeline.md
 spec/outils/optimizer/moteur/reliques.md
 spec/outils/optimizer/moteur/diagnostics.md
+spec/outils/optimizer/moteur/parallelisation.md
 spec/outils/optimizer/verification.md
 spec/outils/optimizer/limites-connues.md
 spec/outils/optimizer/harnais.md

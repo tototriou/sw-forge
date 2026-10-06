@@ -2,6 +2,7 @@ import { ReactNode, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { AlertTriangle, HardDriveDownload, ShieldCheck, X } from 'lucide-react';
 import { useScrollBloque } from '../hooks/useScrollBloque';
+import { selonSupport } from '../lib/bureau';
 import { Bouton, BoutonIcone, Case, Champ, PiedDeDialogue } from '../ui';
 
 /* --------------------------------------------------------------------------
@@ -644,10 +645,15 @@ export function KeepAccountDialog({
       titre="Garder tes données sur cet appareil ?"
       sousTitre={
         <>
-          Ton compte, ta prépa RTA, tes équipes de siège et tes recommandations seront encore là à
-          ta prochaine visite, sans rien redéposer.
+          {selonSupport(
+            'Ton compte, ta prépa RTA, tes équipes de siège et tes recommandations seront encore là à ta prochaine visite, sans rien redéposer.',
+            "Ton compte, ta prépa RTA, tes équipes de siège et tes recommandations seront encore là à la prochaine ouverture de l'application, sans rien redéposer."
+          )}
           <span className="mt-2 block font-semibold text-star">
-            Recommandé : sans ça, tu perds tout ton travail en fermant l'onglet.
+            {selonSupport(
+              "Recommandé : sans ça, tu perds tout ton travail en fermant l'onglet.",
+              "Recommandé : sans ça, tu perds tout ton travail en fermant l'application."
+            )}
           </span>
         </>
       }

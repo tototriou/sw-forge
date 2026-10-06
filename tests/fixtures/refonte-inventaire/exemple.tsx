@@ -3,6 +3,7 @@
 // Jamais compilée par l'app (hors de src/).
 
 import { NOM_APP } from '../../../src/marque';
+import { selonSupport } from '../../../src/lib/bureau';
 
 export function Exemple({ route, ouvert, setMessage }: { route: string; ouvert: boolean; setMessage: (m: string) => void }) {
   const onglets = [{ key: 'a', label: 'Ma prépa', hash: '#/rta' }]; // VU prop:label, route
@@ -24,6 +25,7 @@ export function Exemple({ route, ouvert, setMessage }: { route: string; ouvert: 
       <span className={classe}>12</span>
       <h1>{NOM_APP}</h1>{/* VU texte:<nom de l'app> — une constante de marque se lit par sa valeur */}
       <a title={`Le code de ${NOM_APP}`}>code</a>{/* VU attr:title:Le code de <nom de l'app> */}
+      <p>{selonSupport('Sur le site', "Dans l'app")}</p>{/* VU les DEUX : une branche, comme un ternaire */}
     </div>
   );
 }

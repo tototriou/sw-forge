@@ -33,6 +33,14 @@ function pont(): PontBureau | null {
 
 export const estBureau = (): boolean => pont() !== null;
 
+// Un texte qui parle du NAVIGATEUR (« dans ton navigateur », « en fermant
+// l'onglet ») est faux dans l'app de bureau (lot 8) : `site` partout, `app`
+// dans l'app. ⚠️ Le site ne change pas (A.2 du cadrage) — on ne réécrit
+// jamais le texte du site pour qu'il convienne aux deux.
+export function selonSupport<T>(site: T, app: T): T {
+  return estBureau() ? app : site;
+}
+
 // Les installeurs de la dernière version publiée, que l'accueil du SITE
 // propose (lot 6, décision 13). ⚠️ Les noms suivent `artifactName` de
 // electron-builder.yml — sans numéro de version, seule adresse fixe ;

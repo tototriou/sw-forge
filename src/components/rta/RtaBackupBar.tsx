@@ -28,6 +28,7 @@ import RtaValidationReport from './RtaValidationReport';
 import { ConfirmDialog, Modale } from '../../ui/Dialogs';
 import { BarreActions, Bouton, Option } from '../../ui';
 import { PREFIXE_FICHIER } from '../../marque';
+import { selonSupport } from '../../lib/bureau';
 import type { ElementMenu } from '../../ui';
 
 /* --------------------------------------------------------------------------
@@ -355,7 +356,11 @@ export default function RtaBackupBar({
                 libelle: 'Importer une prépa',
                 icone: <Download size={14} />,
                 onClick: ouvrirFichier,
-                title: "Reprendre une prépa exportée : une archive, ou celle d'un autre navigateur. Elle remplacera la tienne.",
+                // Dans l'app de bureau, la prépa vient d'un autre APPAREIL (lot 8).
+                title: selonSupport(
+                  "Reprendre une prépa exportée : une archive, ou celle d'un autre navigateur. Elle remplacera la tienne.",
+                  "Reprendre une prépa exportée : une archive, ou celle d'un autre appareil. Elle remplacera la tienne."
+                ),
               },
               ...entreesEnPlus.filter((e) => !e.danger),
               // ⚠️ N'apparaît QUE si un compte a été importé — comme dans la barre.
@@ -491,7 +496,10 @@ export default function RtaBackupBar({
           aria-label="Importer"
           icone={<Download size={14} />}
           libelle="Importer"
-          title="Reprendre une prépa exportée : une archive, ou celle d'un autre navigateur. Elle remplacera la tienne."
+          title={selonSupport(
+            "Reprendre une prépa exportée : une archive, ou celle d'un autre navigateur. Elle remplacera la tienne.",
+            "Reprendre une prépa exportée : une archive, ou celle d'un autre appareil. Elle remplacera la tienne."
+          )}
         />
       </div>
       </div>

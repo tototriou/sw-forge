@@ -191,6 +191,7 @@ import { testPalette } from './palette.test';
 import { testRenduAppRoutes, testRenduAppNavigation, testRenduAppMobile, testRenduAppFil, testRenduAppLiensMorts } from './rendu/app.test';
 import { testRenduAccueil, testRenduAccueilBureau, testRenduAccueilEspace } from './rendu/accueil.test';
 import { testRenduTelecharger } from './rendu/telecharger.test';
+import { testRenduBureauTextes } from './rendu/bureau-textes.test';
 import { testRenduRecosPage, testRenduRecosEnTete, testRenduRecosDeploiement, testRenduRecosEdition, testRenduRecosVueDefense, testRenduRecosTicks, testRenduRecosAnnulerEdition } from './rendu/recos.test';
 import testAnnulerEdition from './annuler-edition.test';
 import { testRenduRunesResume, testRenduRunesListe, testRenduRunesCourbes, testRenduRunesComparaison, testRenduRunesOptimisation, testRenduRunesAVenir, testRenduRunesFiltresLigne, testRenduRunesTriOnglets, testRenduRunesResumeSouris, testRenduRunesListeSouris, testRenduRunesVuesSouris } from './rendu/runes.test';
@@ -308,6 +309,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRenduAccueilEspace', testRenduAccueilEspace],
   ['testRenduAccueilBureau', testRenduAccueilBureau],
   ['testRenduTelecharger', testRenduTelecharger],
+  ['testRenduBureauTextes', testRenduBureauTextes],
   ['testRenduRtaPrepa', testRenduRtaPrepa],
   ['testRenduRtaMenu', testRenduRtaMenu],
   ['testRenduRtaVide', testRenduRtaVide],

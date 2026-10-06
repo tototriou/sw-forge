@@ -31,7 +31,7 @@ import { ElementKey } from '../types';
 import { RELEASES, libelleVersion } from '../data/releases';
 import { Bouton } from '../ui';
 import { NOM_APP } from '../marque';
-import { estBureau } from '../lib/bureau';
+import { estBureau, selonSupport } from '../lib/bureau';
 import { LogoLinux, LogoWindows } from '../components/IconesSystemes';
 import { CLASSE_NOM, SymboleLogo } from '../components/Logo';
 import {
@@ -146,7 +146,7 @@ export default function HomePage({ stats, onImport }: Props) {
 
           <p className="mt-3 max-w-lg text-base leading-relaxed text-ink-dim">
             Runes, RTA, siège, analyse de compte. Importe ton export SWEX et tout est calculé{' '}
-            <b className="text-ink">dans ton navigateur</b>.
+            <b className="text-ink">{selonSupport('dans ton navigateur', 'sur ta machine')}</b>.
           </p>
 
           {/* L'application de bureau (application-bureau, lot 6, décisions 13
@@ -213,7 +213,10 @@ export default function HomePage({ stats, onImport }: Props) {
             icon={Upload}
             accent="#5EDB8F"
             title="Dépose le fichier"
-            desc="Ici même, en haut de page. Rien n'est envoyé : tout se calcule dans ton navigateur."
+            desc={selonSupport(
+              "Ici même, en haut de page. Rien n'est envoyé : tout se calcule dans ton navigateur.",
+              "Ici même, en haut de page. Rien n'est envoyé : tout se calcule sur ta machine."
+            )}
           />
           <Etape
             n="03"

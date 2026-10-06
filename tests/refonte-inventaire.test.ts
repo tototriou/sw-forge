@@ -59,6 +59,9 @@ export function testRefonteInventaireExtraction() {
     // posée seule ou dans un gabarit (une variable ordinaire reste « {…} »).
     `texte:${NOM_APP}`,
     `attr:title:Le code de ${NOM_APP}`,
+    // Application de bureau, lot 8 : `selonSupport(site, app)` est une branche.
+    'texte:Sur le site',
+    "texte:Dans l'app",
   ]) {
     ok(e.includes(vu), `relevé : ${vu}`);
   }

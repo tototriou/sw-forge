@@ -69,7 +69,7 @@ import {
 import { ConfirmDialog, KeepAccountDialog } from './ui/Dialogs';
 import { FournisseurNotification } from './ui/Notification';
 import MiseAJourBureau from './components/MiseAJourBureau';
-import { estBureau } from './lib/bureau';
+import { estBureau, selonSupport } from './lib/bureau';
 import {
   COULEUR_SECTION,
   COULEUR_RTA_SUB,
@@ -1641,7 +1641,12 @@ export default function App() {
           {/* Mentions en encre TERTIAIRE, comme la toile : elles informent, elles
               ne doivent pas rivaliser avec le contenu (5.26 au pire). */}
           <div className="space-y-1 text-center text-ink-dimmer max-lg:order-last">
-            <p>Toutes tes données restent en local dans ton navigateur.</p>
+            <p>
+              {selonSupport(
+                'Toutes tes données restent en local dans ton navigateur.',
+                'Toutes tes données restent en local, sur ta machine.'
+              )}
+            </p>
             <p>
               Données et images © Com2uS · Source :{' '}
               <a href="https://swarfarm.com" target="_blank" rel="noreferrer" className="text-accent">

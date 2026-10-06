@@ -152,10 +152,14 @@ export function testRenduPalette() {
 export function testRenduUiNotification() {
   titre('rendu · Notification « … · Annuler »');
   const rien = () => {};
-  const avec = rendre(<BandeauNotification annonce={{ message: 'Deck supprimé', annuler: rien }} onFermer={rien} />);
+  const avec = rendre(<BandeauNotification annonce={{ message: 'Deck supprimé', action: rien }} onFermer={rien} />);
   ok(/role="status"/.test(avec), 'annoncée sans voler le focus (role="status")');
-  ok(texteVisible(avec).startsWith('Deck supprimé Annuler'), 'le message, puis « Annuler »');
+  ok(texteVisible(avec).startsWith('Deck supprimé Annuler'), 'le message, puis « Annuler » (libellé par défaut)');
   ok(!!bouton(avec, 'Annuler') && !!bouton(avec, 'Fermer la notification'), '« Annuler » et la croix');
   const sans = rendre(<BandeauNotification annonce={{ message: 'Compte importé' }} onFermer={rien} />);
   ok(!bouton(sans, 'Annuler') && !!bouton(sans, 'Fermer la notification'), 'sans retour possible : pas de « Annuler », la croix reste');
+  // Application de bureau, lot 5 : le libellé de l'action est un axe.
+  const maj = rendre(<BandeauNotification annonce={{ message: 'Mise à jour prête', action: rien, libelleAction: 'Redémarrer' }} onFermer={rien} />);
+  ok(texteVisible(maj).startsWith('Mise à jour prête Redémarrer'), 'libellé donné : « Redémarrer »');
+  ok(!!bouton(maj, 'Redémarrer') && !bouton(maj, 'Annuler'), '« Redémarrer » remplace « Annuler », pas les deux');
 }

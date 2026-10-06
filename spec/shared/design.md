@@ -571,6 +571,18 @@ pour annoncer un geste qui se défait (tableau plus haut).
   comme deux choses à décider.
 - « Annuler » **restaure l'élément à sa place** (fonctions `restaurer*` des
   hooks, qui réinsèrent à l'index d'origine) puis ferme la notification.
+- **Deux axes nés de l'application de bureau** (voir
+  [le cadrage](../chantiers/application-bureau.md), lot 5) :
+  - **le libellé de l'action** (`libelleAction`, « Annuler » par défaut ; le
+    rappel s'appelle `action`) — « Nouvelle version 2.0.1 disponible ·
+    **Mettre à jour** », « Mise à jour prête · **Redémarrer** ». Une seule
+    action, jamais « Annuler » et une autre côte à côte ;
+  - **la durée** (`persistante`) : une **question** reste jusqu'à l'action
+    ou la croix, au lieu de 6 secondes — elle ne s'efface pas avant qu'on
+    l'ait lue. Défaut : 6 secondes, comme les gestes qui se défont.
+- ⚠️ « Une seule à la fois » vaut aussi pour elle : un geste qui se défait
+  pendant qu'une question est affichée la remplace (pour la mise à jour,
+  elle revient au lancement suivant).
 - Même gabarit que les flottants de l'app : fond `panel`, contour 1 px,
   ombre des panneaux.
 

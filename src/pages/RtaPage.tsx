@@ -177,7 +177,7 @@ export default function RtaPage({
     const entree = rta.state.entries[id];
     const nom = monsterById.get(id)?.name ?? 'Monstre';
     rta.removeMonster(id);
-    if (entree) notifier({ message: `${nom} retiré de ta prépa`, annuler: () => rta.restaurerMonstre(entree) });
+    if (entree) notifier({ message: `${nom} retiré de ta prépa`, action: () => rta.restaurerMonstre(entree) });
   }
 
   function renderCards(items: TurnItem[]) {

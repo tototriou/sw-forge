@@ -77,7 +77,7 @@ export default function SiegeBoard({
     siege.removeTeam(teamId);
     notifier({
       message: `Équipe retirée ${side === 'defense' ? 'de la défense' : "de l'offense"}`,
-      annuler: () => siege.restaurerEquipe(equipe, index),
+      action: () => siege.restaurerEquipe(equipe, index),
     });
   }
 

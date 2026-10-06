@@ -123,7 +123,7 @@ Q1 → 7 (les données dépendent du choix de Thomas)
 | 2 le web dans la coquille (liens, téléchargements, audience, `estBureau`) | J | **validé par Thomas** (« c'est tout bon ») — liens au navigateur, navigations bloquées, « Enregistrer sous » | `f21e54ee`, 2026-10-06 |
 | 3 empaquetage Windows (NSIS) et Linux (AppImage) | M | **validé par Thomas** (« ok ») — assistant d'installation, icône, désinstallation sans reste ; AppImage au lot 4 | `6286cfb6`, 2026-10-06 |
 | 4 action GitHub au tag | J | **validé par Thomas** (« ok ») — écrite et relue ; première exécution au tag `v2.0.0` (décision 9) | `3838aaa4`, 2026-10-06 |
-| 5 mise à jour automatique | J | à faire | |
+| 5 mise à jour automatique | J | **validé par Thomas** (« ok ») — l'utilisateur décide (décision 11) ; N → N+1 après la v2.0.0 (décision 10) | `e1562b23`, `648ef329`, 2026-10-06 |
 | 6 « Télécharger pour Windows » sur le site | J | à faire | |
 | 7 données du jeu — dans l'installeur (décision 1), une phrase de spec | M | à faire | |
 | 8 clôture : spec d'état actuel, docs, `npm test`, fusion dans `release/v2.0.0` | M | à faire | |
@@ -446,6 +446,23 @@ publiés en pré-version, puis supprimées) : l'app installée en N passe à N+1
 seule ; journal de l'updater.
 
 **Ne fait pas** : rien sur le site.
+
+**Résultat (2026-10-06)** — `e1562b23` (les deux axes de la notification)
+et `648ef329` (la mise à jour), validés par Thomas, preuve
+[lot-5.md](application-bureau-preuves/lot-5.md). Parcours simulé dans
+l'app : question toujours là après 7 s, aucun téléchargement sans
+« Mettre à jour », puis « Prête · Redémarrer », état retrouvé après
+rechargement. App installée : vrai appel à GitHub, 404 sur le
+`latest.yml` de v1.14.0 en une ligne de journal, l'app reste ouverte.
+Tests : 95 passées (bureau, notification, inventaire). Mutation du pilote
+(persistance retirée) : la question disparaît, « Mettre à jour »
+introuvable — détectée, restaurée. Écarts :
+- refait à l'arrêt avant commit : la première version téléchargeait
+  d'elle-même (décision 11) ; deux axes à la notification au lieu d'un ;
+- ajouté sans demande : « Réessayer » si le téléchargement demandé échoue ;
+- `App.tsx` touché (une ligne), hors des fichiers transverses de A.5 ;
+- non prouvés : N → N+1 (décision 10), phase `echec`, AppImage,
+  installation « tous les utilisateurs » ; recherche au lancement seulement.
 
 ### Lot 6 — « Télécharger pour Windows » sur le site · J
 

@@ -1,6 +1,6 @@
 // `npm run bureau:preuve [dossier] [--exe <chemin>] [--conservation]` — lance
 // l'application de bureau sur le BUILD en mode preuve (voir bureau/preuve.ts) :
-// contrôles, captures, `resultats.json`, puis l'app se ferme d'elle-même.
+// contrôles, `resultats.json`, puis l'app se ferme d'elle-même.
 // Chantier application-bureau.
 //
 // Dossier par défaut : `preuve` dans `dist-bureau` (gitignoré). Le build
@@ -15,8 +15,11 @@
 // `--swex` (lot 9) : le dossier SW Exporter sur des fixtures — choix, export
 // réécrit, rechargement, sous-dossier `live` ; prépa RTA et siège jamais
 // touchés.
+// `--session` (spec/shared/sauvegarde-session.md) : « Sauvegarder » depuis
+// les Paramètres et depuis Ctrl K, conservation refusée ; chaque fichier relu
+// par `lireSession`.
 
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { lancerElectronEtAttendre } from './lib/electron.mjs';
 
@@ -27,8 +30,66 @@ const iConservation = args.indexOf('--conservation');
 const conservation = iConservation >= 0 && args.splice(iConservation, 1).length > 0;
 const iSwex = args.indexOf('--swex');
 const swex = iSwex >= 0 && args.splice(iSwex, 1).length > 0;
+const iSession = args.indexOf('--session');
+const session = iSession >= 0 && args.splice(iSession, 1).length > 0;
 
-if (swex) {
+// Un module TypeScript de l'app, empaqueté par esbuild (comme tests/run.mjs)
+// et chargé tel quel.
+async function chargerModule(entree) {
+  const { build } = await import('esbuild');
+  const r = await build({ entryPoints: [entree], bundle: true, platform: 'node', format: 'esm', write: false, logLevel: 'error' });
+  return import('data:text/javascript;base64,' + Buffer.from(r.outputFiles[0].text).toString('base64'));
+}
+
+if (session) {
+  // La sauvegarde de session : compte importé, conservation REFUSÉE,
+  // puis « Sauvegarder » (Paramètres) et « Sauvegarder la session » (Ctrl K).
+  // Chaque fichier est relu par le vrai `lireSession`.
+  const dossier = resolve(args[0] ?? 'dist-bureau/preuve-session');
+  rmSync(dossier, { recursive: true, force: true }); // données neuves
+  const r = lancerElectronEtAttendre(
+    { SWBLACKSMITH_PREUVE: dossier, SWBLACKSMITH_PREUVE_SESSION: '1', SWBLACKSMITH_PREUVE_COMPTE: resolve('tests/fixtures/compte-miniature.json') },
+    90_000,
+    exe
+  );
+  if (r.error) throw r.error;
+  const res = JSON.parse(readFileSync(resolve(dossier, 'resultats-session.json'), 'utf8'));
+  const { lireSession } = await chargerModule('src/lib/session.ts');
+  const relire = (nom) => {
+    const chemin = resolve(dossier, 'sessions', nom);
+    if (!existsSync(chemin)) return { ok: false, erreur: 'absent' };
+    const texte = readFileSync(chemin, 'utf8');
+    const lu = lireSession(texte);
+    if (!lu.ok) return lu;
+    const s = lu.session;
+    return {
+      ok: true,
+      taille: texte.length,
+      avertissements: lu.avertissements,
+      cles: Object.keys(s.stockage),
+      compte: s.compte ? { invocateur: s.compte.wizardName, monstres: s.compte.box.length, runes: s.compte.runes.length } : null,
+      memoire: Object.keys(s.outils.memoire),
+      optimizer: s.outils.optimizer ? Object.keys(s.outils.optimizer).length : null,
+    };
+  };
+  const reglages = relire('depuis-reglages.json');
+  const palette = relire('depuis-palette.json');
+  console.log(JSON.stringify({ res, reglages, palette }, null, 2));
+  const verdicts = {
+    'import, conservation refusée': res.import === 'déposé' && res.refus === 'cliqué' && res.disque?.conservation === '0',
+    'refusée : prépa RTA et siège absents du disque': res.disque?.prepaRta === null && res.disque?.siegeDefense === null,
+    'ligne « Session » des Paramètres': typeof res.ligneSession === 'string' && res.ligneSession.startsWith('Session'),
+    'Paramètres : un fichier, relu par lireSession, sans avertissement': res.fichierReglages !== 'aucun fichier' && reglages.ok && reglages.avertissements.length === 0,
+    'le travail y est, bien qu’absent du disque': reglages.ok && reglages.cles.includes('swblacksmith-rta-v1') && reglages.cles.includes('swblacksmith-siege-defense-v1'),
+    'le compte en mémoire y est': reglages.ok && reglages.compte?.invocateur === 'Testeur' && reglages.compte.monstres > 0,
+    'la mémoire des écrans, sans les préférences d’interface': reglages.ok && reglages.memoire.includes('siege.checkTicks.defense') && !reglages.memoire.includes('sidebar.retractee'),
+    'la photo de l’Optimizer (27 champs, exemplaire compris)': reglages.ok && reglages.optimizer === 27,
+    'Ctrl K : un fichier, relu par lireSession': res.clicPalette === 'cliqué' && palette.ok && palette.avertissements.length === 0,
+    'aucune erreur': !res.erreur,
+  };
+  for (const [quoi, bon] of Object.entries(verdicts)) console.log(`${bon ? 'ok' : 'KO'}  ${quoi}`);
+  if (Object.values(verdicts).some((v) => !v)) process.exit(1);
+} else if (swex) {
   // Lot 9 : un dossier SW Exporter de fixtures — deux invocateurs à la racine
   // (`Testeur-1.json`, `Autre-2.json`, tirés de compte-miniature.json) et un
   // sous-dossier `live` à ignorer.
@@ -69,7 +130,6 @@ if (swex) {
   const r = lancerElectronEtAttendre({ SWBLACKSMITH_PREUVE: dossier }, 120_000, exe);
   if (r.error) throw r.error;
   console.log(readFileSync(resolve(dossier, 'resultats.json'), 'utf8'));
-  console.log(`captures : ${dossier}`);
 } else {
   const dossier = resolve(args[0] ?? 'dist-bureau/preuve-conservation');
   rmSync(dossier, { recursive: true, force: true }); // données neuves

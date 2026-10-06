@@ -1,5 +1,5 @@
 import { CSSProperties, useEffect, useMemo, useRef, useState } from 'react';
-import { Github, MessageCircle, Upload, Plus, Gauge, SunMoon } from 'lucide-react';
+import { Github, MessageCircle, Upload, Plus, Gauge, Save, SunMoon } from 'lucide-react';
 import {
   IconeAtelier,
   IconeAccueil,
@@ -58,8 +58,12 @@ import SidebarCompte, { SidebarParametres } from './components/SidebarCompte';
 import SidebarSearch, { CibleNav } from './components/SidebarSearch';
 import MobileNotice from './components/MobileNotice';
 import { loadAccount, saveAccount } from './lib/accountStore';
+import { CLES_SESSION, compteDeSession, composerSession, ecrireSession, nomFichierSession } from './lib/session';
+import { photoOptimizer } from './lib/sessionOptimizer';
+import { telechargerTexte } from './lib/telechargement';
 import {
   dialogueMasque,
+  lireTravail,
   persistenceEnabled,
   purgeDonneesConservees,
   setDialogueMasque,
@@ -104,7 +108,7 @@ import {
   runesUtiliseesVides,
 } from './lib/importAccount';
 import { mapRtaItems, mapSiegeTeams, mapBoxMonsters, BoxItem } from './lib/applyAccount';
-import { reinitialiserSticky } from './hooks/useStickyState';
+import { photographierMemoire, reinitialiserSticky } from './hooks/useStickyState';
 import { PREFIXE_SPEED_TUNE } from './hooks/useSpeedTune';
 import { VUES_INVENTAIRE, hashVue, vueParDefaut, vueValide } from './lib/accountViews';
 import { NOM_APP } from './marque';
@@ -896,6 +900,36 @@ export default function App() {
     });
   }
 
+  // « Sauvegarder la session » (spec/shared/sauvegarde-session.md) : tout
+  // l'état de l'app dans un fichier. Le compte est celui EN MÉMOIRE, pas celui
+  // d'IndexedDB — conservation refusée, il n'est que là.
+  function sauvegarderSession() {
+    const maintenant = new Date();
+    const session = composerSession({
+      maintenant,
+      versionApp: __APP_VERSION__,
+      stockage: Object.fromEntries(CLES_SESSION.map((cle) => [cle, lireTravail(cle)])),
+      compte: compteDeSession(
+        {
+          exportedAt: accountExportedAt,
+          wizardName: accountName,
+          box: rawBoxRef.current,
+          runes,
+          artifacts,
+          relics,
+          crafts,
+          usedRuneIds,
+          relicUsageById,
+          runeMarkerLabels,
+        },
+        maintenant
+      ),
+      memoire: photographierMemoire(),
+      optimizer: photoOptimizer(optimizer),
+    });
+    telechargerTexte(nomFichierSession(maintenant), ecrireSession(session));
+  }
+
   // ⚠️ **Le ⚙ BASCULE, il ne navigue pas** : il ouvre les paramètres, puis
   // ramène à l'écran d'où l'on vient. Écrit UNE fois et branché aux DEUX
   // boutons — celui de la barre supérieure (téléphone) et celui du pied de la
@@ -1310,6 +1344,7 @@ export default function App() {
       })),
       actions: [
         { cle: 'a-import', libelle: 'Importer mon compte', icone: <Upload size={16} />, faire: () => fichierCompte.current?.click() },
+        { cle: 'a-session-sauver', libelle: 'Sauvegarder la session', contexte: 'Tout l’état de l’app dans un fichier', icone: <Save size={16} />, faire: sauvegarderSession },
         ...THEME_CHOICES.map((t) => ({
           cle: `a-theme-${t.key}`,
           libelle: `Thème ${t.label.toLowerCase()}`,
@@ -1641,6 +1676,7 @@ export default function App() {
         ) : route === 'parametres' ? (
           <SettingsPage
             onClearData={() => setPurgeGlobale(true)}
+            onSauvegarderSession={sauvegarderSession}
             onKeepAccount={persistCurrentAccount}
             onImport={importAccount}
             accountExportedAt={accountExportedAt}

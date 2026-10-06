@@ -3,7 +3,7 @@ import { StatKey } from '../lib/effects';
 import { Objective, SlotFilterPresetKey } from '../lib/runeBuildOptim';
 import { DamageSetup, DEFAULT_DAMAGE_SETUP } from '../lib/damage';
 import { damageSetupApresChangementMonstre } from '../lib/damageSetupTransition';
-import { AutoExclusionScope, ExclusionSelector } from '../lib/optimizerExclusion';
+import { AutoExclusionScope, ExclusionSelector, ExclusionSource } from '../lib/optimizerExclusion';
 import { ArtifactKind, RelicDetail } from '../types';
 import { LigneVerrouillee } from '../lib/artifactOptim';
 import { useBuildOptimSearch } from './useBuildOptimSearch';
@@ -142,6 +142,22 @@ export function relicIntentDepuisEtat(
 export interface OptimizerState {
   selectedId: string | null;
   setSelectedId: Dispatch<SetStateAction<string | null>>;
+  /**
+   * L'EXEMPLAIRE de l'espèce choisie (`selectedId`) : la source dont la puce
+   * est active, et l'entrée précise (le Lushen de la box, du deck RTA, d'une
+   * équipe de siège). Ici, et non dans l'écran, pour survivre au changement
+   * de page — l'écran se démonte, ce hook non — et entrer dans la sauvegarde
+   * de session (spec/shared/sauvegarde-session.md).
+   *
+   * ⚠️ Au remontage, l'écran revérifie l'entrée contre le compte affiché
+   * (réimport, équipe supprimée entre-temps) : introuvable, elle retombe sur
+   * le premier exemplaire de la box, la règle du choix d'une espèce.
+   * ⚠️ Jamais dans `OptimizerRecipe` : une recette ne porte que l'espèce.
+   */
+  gearSource: ExclusionSource;
+  setGearSource: Dispatch<SetStateAction<ExclusionSource>>;
+  sourceSelector: ExclusionSelector | null;
+  setSourceSelector: Dispatch<SetStateAction<ExclusionSelector | null>>;
   comboSets: string[];
   setComboSets: Dispatch<SetStateAction<string[]>>;
   setPickerInvalid: boolean;
@@ -408,6 +424,8 @@ export interface OptimizerState {
 
 export function useOptimizerState(): OptimizerState {
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [gearSource, setGearSource] = useState<ExclusionSource>('box');
+  const [sourceSelector, setSourceSelector] = useState<ExclusionSelector | null>(null);
   const [comboSets, setComboSets] = useState<string[]>([]);
   const [setPickerInvalid, setSetPickerInvalid] = useState(false);
   const [minStats, setMinStats] = useState<Partial<Record<StatKey, number>>>({});
@@ -509,6 +527,10 @@ export function useOptimizerState(): OptimizerState {
   return {
     selectedId,
     setSelectedId,
+    gearSource,
+    setGearSource,
+    sourceSelector,
+    setSourceSelector,
     comboSets,
     setComboSets,
     setPickerInvalid,

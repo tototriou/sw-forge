@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useMemo, useRef, useState, useEffect } from 'react';
+import { Fragment, useCallback, useLayoutEffect, useMemo, useRef, useState, useEffect } from 'react';
 import {
   Search,
   Square,
@@ -307,6 +307,24 @@ function unownedSelectorIfNoneOwned(monster: Monster, box: BoxItem[], exclusionD
   return possedeQuelquePart ? null : { source: 'unowned', monsterId: String(monster.id) };
 }
 
+// L'exemplaire au montage de l'écran, d'après celui mémorisé
+// (`useOptimizerState`) : `undefined` = le garder, il se résout encore contre
+// le compte et désigne bien l'espèce choisie ; sinon son remplaçant, par la
+// règle du choix d'une espèce — premier exemplaire Box, `unowned` si
+// l'espèce n'est possédée nulle part, `null` si elle l'est ailleurs qu'en Box
+// (à désambiguïser par une puce).
+export function exemplaireAuMontage(
+  species: Monster,
+  memorise: ExclusionSelector | null,
+  box: BoxItem[],
+  exclusionData: ExclusionSourceData
+): ExclusionSelector | null | undefined {
+  const resolu = memorise ? resolveExclusionEntry(memorise, exclusionData) : null;
+  if (resolu && resolu.monster.com2usId === species.com2usId) return undefined;
+  const boxCandidates = speciesCandidatesBySource(species.com2usId, box, exclusionData).box;
+  return boxCandidates[0]?.selector ?? unownedSelectorIfNoneOwned(species, box, exclusionData);
+}
+
 // Deux builds portent-ils EXACTEMENT le même jeu de 6 runes (peu importe
 // l'ordre) ? Sert à repérer, parmi les candidats affichés, celui qui EST le
 // build déjà validé pour ce monstre (Lot 2) — un simple `===` sur les
@@ -436,6 +454,10 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
   const {
     selectedId,
     setSelectedId,
+    gearSource: gearSourceMemorise,
+    setGearSource,
+    sourceSelector: selecteurMemorise,
+    setSourceSelector,
     comboSets,
     setComboSets,
     setPickerInvalid,
@@ -945,28 +967,42 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
   // deck de siège. ⚠️ Ne filtre plus la RECHERCHE (rôle 1, supprimé — voir
   // Question 1 du cadrage) : une fois l'ESPÈCE choisie par la recherche
   // bestiaire (`speciesMonster`), les puces choisissent seulement quel
-  // EXEMPLAIRE de cette espèce afficher/optimiser. État LOCAL (pas dans
-  // `useOptimizerState`) : même statut que `resultsPage` (voir son
-  // commentaire dans useOptimizerState.ts), donc hors recette exportée/
-  // scripts CLI pour l'instant (limite connue, voir spec).
-  const [gearSource, setGearSource] = useState<ExclusionSource>('box');
+  // EXEMPLAIRE de cette espèce afficher/optimiser. `gearSource` et
+  // `sourceSelector` vivent dans `useOptimizerState` : ils survivent au
+  // changement de page et entrent dans la sauvegarde de session ; jamais
+  // dans la recette exportée ni les scripts CLI (une recette ne porte que
+  // l'espèce).
+  //
   // ⚠️ Choix EXPLICITE de l'utilisateur (via `pickSource`, plus bas) pour
   // changer d'exemplaire ensuite ; l'exemplaire affiché au départ est le
   // premier de la box (`boxCandidates[0]`, PAS un « meilleur » deviné —
   // voir Question 1 du cadrage : le retour explicite qui a fait supprimer
   // l'ancien `ownGearForSource` à la 5ᵉ révision reste valable ici), même
   // règle que `pickSpecies` plus bas — repli sur `unowned` seulement si la
-  // box n'en compte AUCUN. Initialisé PARESSEUSEMENT pour la continuité au
-  // montage (retour sur l'onglet Optimizer après un aller-retour ailleurs —
-  // cet état LOCAL ne survit pas au démontage) : résout la même règle pour
-  // l'espèce déjà persistée (`selectedId`).
-  const [sourceSelector, setSourceSelector] = useState<ExclusionSelector | null>(() => {
-    if (!selectedId) return null;
-    const species = monsterById.get(selectedId);
-    if (!species) return null;
-    const boxCandidates = speciesCandidatesBySource(species.com2usId, box, exclusionData).box;
-    return boxCandidates[0]?.selector ?? unownedSelectorIfNoneOwned(species, box, exclusionData);
+  // box n'en compte AUCUN.
+  //
+  // ⚠️ Revérifié au MONTAGE (retour sur l'onglet, session chargée) : le
+  // compte a pu changer entre-temps (réimport, équipe de siège supprimée).
+  // Un exemplaire qui ne se résout plus, ou d'une autre espèce, retombe sur
+  // la même règle, source Box. Le remplaçant vaut DÈS le premier rendu, puis
+  // l'effet l'enregistre dans `useOptimizerState` : la fiche ne montre jamais
+  // l'exemplaire périmé. Au montage seulement : pendant que l'écran est
+  // affiché, les gestes de l'utilisateur (zone D en attente d'un choix, qui
+  // laisse `sourceSelector` à `null`) et les imports suivent leurs chemins.
+  const [remplacantAuMontage] = useState(() => {
+    const species = selectedId ? monsterById.get(selectedId) : undefined;
+    return species ? exemplaireAuMontage(species, selecteurMemorise, box, exclusionData) : undefined;
   });
+  const montageEnregistre = useRef(false);
+  useLayoutEffect(() => {
+    montageEnregistre.current = true;
+    if (remplacantAuMontage === undefined) return;
+    setGearSource('box');
+    setSourceSelector(remplacantAuMontage);
+  }, []);
+  const avantEnregistrement = !montageEnregistre.current && remplacantAuMontage !== undefined;
+  const gearSource: ExclusionSource = avantEnregistrement ? 'box' : gearSourceMemorise;
+  const sourceSelector: ExclusionSelector | null = avantEnregistrement ? remplacantAuMontage : selecteurMemorise;
   // Zone D — désambiguïsation d'exemplaire (plusieurs candidats dans la
   // source active pour l'espèce choisie, ex. 2 équipes de siège) : un
   // `Flottant` ouvert EXPLICITEMENT par un clic sur une puce (`pickSource`),
@@ -1118,7 +1154,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
   const [addListPromptOpen, setAddListPromptOpen] = useState<'add' | 'validate' | null>(null);
 
   // L'exemplaire RÉELLEMENT optimisé — l'entrée choisie explicitement (ou
-  // résolue sans ambiguïté, voir `pickSource`/l'initialisation paresseuse
+  // résolue sans ambiguïté, voir `pickSource`/la revérification au montage
   // ci-dessus) via `sourceSelector`. ⚠️ Repli sur l'ESPÈCE SEULE (stats de
   // base 6★ niveau max, `monsterBaseStats`, sans rune ni artéfact) — deux
   // chemins DISTINCTS y mènent : `sourceSelector` porte un sélecteur

@@ -15,7 +15,7 @@ import { brancherMiseAJour } from './miseAJour';
 import { brancherNavigation } from './navigation';
 import { brancherSwex } from './swex';
 import { SCHEMA, URL_ACCUEIL, cheminDuFichier } from './protocole';
-import { lancerPreuve, lancerPreuveConservation, lancerPreuveSwex, TemoinsPreuve } from './preuve';
+import { lancerPreuve, lancerPreuveConservation, lancerPreuveSession, lancerPreuveSwex, TemoinsPreuve } from './preuve';
 
 // Les couleurs des deux thèmes, LUES dans `src/index.css` à la compilation
 // (scripts/construire-bureau.mjs) — jamais recopiées ici. Elles habillent la
@@ -168,6 +168,10 @@ void app.whenReady().then(() => {
   if (DOSSIER_PREUVE && (conservation === 'ecrire' || conservation === 'relire')) {
     const compte = conservation === 'ecrire' ? readFileSync(process.env.SWBLACKSMITH_PREUVE_COMPTE ?? '', 'utf8') : '';
     void lancerPreuveConservation(fenetre, DOSSIER_PREUVE, conservation, compte);
+  } else if (DOSSIER_PREUVE && preuve && process.env.SWBLACKSMITH_PREUVE_SESSION) {
+    // La sauvegarde de session.
+    const compte = readFileSync(process.env.SWBLACKSMITH_PREUVE_COMPTE ?? '', 'utf8');
+    void lancerPreuveSession(fenetre, DOSSIER_PREUVE, compte, preuve.dossierTelechargements);
   } else if (DOSSIER_PREUVE && process.env.SWBLACKSMITH_PREUVE_SWEX) {
     // Lot 9 : la preuve du dossier SW Exporter.
     const compte = readFileSync(process.env.SWBLACKSMITH_PREUVE_COMPTE ?? '', 'utf8');

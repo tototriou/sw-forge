@@ -302,24 +302,29 @@ function enqueue<T>(op: () => Promise<T>): Promise<T> {
  * API
  * ----------------------------------------------------------------------- */
 
+// Un compte stocké, relu avec méfiance : `null` si sa forme ou son schéma ne
+// sont pas ceux d'aujourd'hui. Pure — la relecture d'IndexedDB et celle d'une
+// sauvegarde de session (src/lib/session.ts) passent par elle.
+export function compteValide(brut: unknown): StoredAccount | null {
+  const rec = brut as StoredAccount;
+  if (!rec || typeof rec !== 'object') return null;
+  if (rec.schema !== ACCOUNT_SCHEMA) return null;
+  if (!Array.isArray(rec.box) || !Array.isArray(rec.runes) || !Array.isArray(rec.artifacts)) return null;
+  if (!Array.isArray(rec.relics)) return null;
+  if (!Array.isArray(rec.crafts)) return null;
+  // Un tableau PAR périmètre — une liste plate (schéma 6) n'en est pas un.
+  const used = rec.usedRuneIds as unknown;
+  if (!used || typeof used !== 'object' || Array.isArray(used)) return null;
+  if (!PERIMETRES_UTILISES.every((p) => Array.isArray((used as RunesUtilisees)[p.key]))) return null;
+  if (!rec.relicUsageById || typeof rec.relicUsageById !== 'object') return null;
+  if (!rec.runeMarkerLabels || typeof rec.runeMarkerLabels !== 'object') return null;
+  return rec;
+}
+
 // `null` = rien d'exploitable : pas de compte, stockage indisponible, ou schéma
 // périmé. L'appelant n'a qu'un cas à traiter.
 export function loadAccount(): Promise<StoredAccount | null> {
-  return enqueue(async () => {
-    const rec = await tx<StoredAccount>('readonly', (s) => s.get(KEY));
-    if (!rec || typeof rec !== 'object') return null;
-    if (rec.schema !== ACCOUNT_SCHEMA) return null;
-    if (!Array.isArray(rec.box) || !Array.isArray(rec.runes) || !Array.isArray(rec.artifacts)) return null;
-    if (!Array.isArray(rec.relics)) return null;
-    if (!Array.isArray(rec.crafts)) return null;
-    // Un tableau PAR périmètre — une liste plate (schéma 6) n'en est pas un.
-    const used = rec.usedRuneIds as unknown;
-    if (!used || typeof used !== 'object' || Array.isArray(used)) return null;
-    if (!PERIMETRES_UTILISES.every((p) => Array.isArray((used as RunesUtilisees)[p.key]))) return null;
-    if (!rec.relicUsageById || typeof rec.relicUsageById !== 'object') return null;
-    if (!rec.runeMarkerLabels || typeof rec.runeMarkerLabels !== 'object') return null;
-    return rec;
-  });
+  return enqueue(async () => compteValide(await tx<StoredAccount>('readonly', (s) => s.get(KEY))));
 }
 
 // `false` = non enregistré (stockage indisponible ou plein). L'import reste

@@ -83,10 +83,17 @@ const listeners = new Set<() => void>();
  * Écriture — le seul chemin autorisé vers `localStorage`
  * ----------------------------------------------------------------------- */
 
+// Le travail tel que les hooks l'ont écrit en dernier, conservation acceptée
+// OU refusée. ⚠️ C'est là que la sauvegarde de session le lit
+// (`lireTravail`) : conservation refusée, rien n'est sur le disque, et une
+// session lue dans `localStorage` serait vide.
+const miroir = new Map<string, string>();
+
 // ⚠️ **Aucun hook n'appelle `localStorage.setItem` directement.** Tout passe par
 // ici : c'est ce qui garantit qu'un refus de conservation vaut pour l'app
 // entière, et qu'ajouter un état persistant demain n'ouvrira pas une fuite.
 export function saveLocal(key: string, value: string) {
+  miroir.set(key, value);
   try {
     if (!current) {
       // Refus : on n'écrit pas, et on efface ce qui traînerait d'une session
@@ -108,6 +115,23 @@ export function loadLocal(key: string): string | null {
   } catch {
     return null;
   }
+}
+
+// L'effacement d'une valeur du travail : sur le disque ET dans le miroir.
+export function oublierLocal(key: string) {
+  miroir.delete(key);
+  try {
+    localStorage.removeItem(key);
+  } catch {
+    /* stockage indisponible : l'oubli vaut pour la session */
+  }
+}
+
+// Une valeur du travail ou des réglages, telle que l'app l'a écrite : le
+// miroir d'abord, sinon le disque (réglages, clé qu'aucun hook monté n'a
+// encore écrite).
+export function lireTravail(key: string): string | null {
+  return miroir.get(key) ?? loadLocal(key);
 }
 
 // Efface tout ce qui a été conservé, réglages exclus (voir `CLES_DE_REGLAGE`).

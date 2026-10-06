@@ -241,7 +241,8 @@ RTA et les équipes de siège. ⚠️ **Sans écriture disque**, à la différen
 ces deux-là : cette saisie n'a rien à voir avec le compte importé ni le
 système de conservation (voir [usePersistence](src/hooks/usePersistence.ts))
 — fermer l'onglet ou recharger la page la perd, seule la navigation ENTRE
-onglets de la session en cours la préserve. Le Worker de recherche lui-même
+onglets de la session en cours la préserve ; « Sauvegarder la session » en
+garde une copie à la demande. Le Worker de recherche lui-même
 suit ce cycle de vie : une recherche en cours **continue de tourner** en
 arrière-plan si on change d'onglet, et son résultat est toujours là au
 retour.

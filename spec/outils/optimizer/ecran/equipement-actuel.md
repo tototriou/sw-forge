@@ -9,13 +9,20 @@
    qu'ACTUELLEMENT équipés** sur l'exemplaire choisi dans la recherche du
    monstre (voir recherche-du-monstre.md § Recherche du monstre à optimiser) — **c'est
    CET exemplaire que la recherche optimise**, pas systématiquement la box.
-   Tant qu'aucun exemplaire n'a encore été choisi depuis le dernier montage
-   de la page : repli sur le **PREMIER exemplaire Box** de l'espèce
-   persistée (`boxCandidates[0]`, initialisation paresseuse de
-   `sourceSelector` dans [OptimizerSection.tsx](src/components/outils/OptimizerSection.tsx)
-   — la même règle que la recherche bestiaire,
-   voir recherche-du-monstre.md § Recherche du monstre à optimiser), stats de base seules si la box n'en compte aucun ; la
-   source active au montage est toujours Box. ⚠️ **Limite connue** : ce choix
+   L'exemplaire choisi (`gearSource`, la puce de source ; `sourceSelector`,
+   l'entrée précise) vit dans `useOptimizerState` : il **reste choisi quand
+   on change de page**, et entre dans la sauvegarde de session
+   ([sauvegarde-session.md](../../../shared/sauvegarde-session.md)). Au
+   montage, l'écran le revérifie dès le premier rendu
+   (`exemplaireAuMontage`, [OptimizerSection.tsx](src/components/outils/OptimizerSection.tsx),
+   enregistré par un `useLayoutEffect`) : s'il ne se résout plus
+   (`resolveExclusionEntry` — compte réimporté, équipe de siège supprimée)
+   ou n'est pas de l'espèce choisie, il est remplacé par le **PREMIER
+   exemplaire Box** de l'espèce (`boxCandidates[0]`), source Box — la même
+   règle que la recherche bestiaire
+   (voir recherche-du-monstre.md § Recherche du monstre à optimiser)
+   —, ou par `unownedSelectorIfNoneOwned` si la box n'en compte aucun.
+   ⚠️ **Limite connue** : ce choix
    d'exemplaire ne fait PAS partie de la recette exportée (`OptimizerRecipe`
    ne porte que l'espèce, `monsterCom2usId`) — réimporter une recette lancée
    sur un exemplaire RTA/siège retombe sur la box par défaut. Chacun de ses éléments reste **cliquable**

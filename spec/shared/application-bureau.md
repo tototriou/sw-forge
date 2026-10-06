@@ -1,13 +1,75 @@
 # L'application de bureau (Windows, Linux)
 
+**Statut :** ÉTAT ACTUEL — l'application Electron : construction, démarrage, fenêtre, pont avec la page, données, SW Exporter, installeur, publication, mise à jour
+**Lire si :** on touche `bureau/`, `src/lib/bureau.ts`, `electron-builder.yml`, `.github/workflows/bureau.yml` ou un texte `selonSupport`
+**Voir aussi :** [../telecharger.md](../telecharger.md) (la page du site), [import-compte.md](import-compte.md) § « Le dossier SW Exporter »
+
 SW Blacksmith existe aussi en **application de bureau**, construite avec
 **Electron** : la même app que le site, dans sa propre fenêtre, installée
-sur la machine. Chantier et décisions : [application-bureau.md](../chantiers/application-bureau.md).
+sur la machine.
 
 Code : **`bureau/`** (processus principal, hors de `src/` : il tourne dans
 Node), `src/lib/bureau.ts` (ce que la page en sait), `electron-builder.yml`
 (l'empaquetage), `.github/workflows/bureau.yml` (la publication). Carte des
 fichiers : [ARCHITECTURE.md](../../ARCHITECTURE.md).
+
+## Construire et lancer
+
+Electron `44.5.1`, electron-builder `26.15.3`, electron-updater `6.8.9`
+(`package.json`, dont `main` désigne le `main.cjs` compilé).
+
+- `scripts/construire-bureau.mjs` compile `bureau/main.ts` et
+  `bureau/preload.ts` avec esbuild en `main.cjs` et `preload.cjs`, dans le
+  dossier `dist-bureau` (non suivi) : un fichier chacun, CommonJS, cible `node22`, `electron`
+  laissé externe. Il lit dans `src/index.css` les couleurs des deux thèmes
+  (`--bg`, `--bar`, `--ink` ; `--forge-bg`, `--forge-bar`, `--forge-ink`) et
+  les injecte en `#rrggbb` (`__COULEURS_THEMES__`) : la fenêtre s'habille
+  avant que la page soit chargée.
+- `npm run bureau` : le serveur de dev Vite (par son API), la compilation,
+  puis Electron sur l'adresse du serveur (`SWBLACKSMITH_DEV_URL`),
+  rechargement à chaud ; fermer la fenêtre arrête tout.
+- `npm run bureau:construire` : la compilation seule. `npm run bureau:local` :
+  `vite build`, la compilation, puis l'app sur le build.
+  `npm run bureau:paquet` : la même chose, puis electron-builder (voir
+  « L'installeur »).
+- Tout lancement passe par `scripts/lib/electron.mjs`, qui retire
+  `ELECTRON_RUN_AS_NODE` de l'environnement (hérité d'un terminal de VS
+  Code, il fait démarrer Electron comme un simple Node).
+
+## Le démarrage
+
+`bureau/main.ts` :
+
+1. **Avant `ready`** : `protocol.registerSchemesAsPrivileged` pour `app`
+   (`standard`, `secure`, `supportFetchAPI`, `corsEnabled`, `stream`) ; avec
+   `SWBLACKSMITH_PREUVE`, le dossier des données passe dans
+   `<dossier>/donnees`.
+2. **À `ready`** : aucun menu (`Menu.setApplicationMenu(null)`) ;
+   `protocol.handle` sert les fichiers du build ; la fenêtre est créée,
+   puis branchés la navigation, la mise à jour et le dossier SW Exporter ;
+   elle charge `SWBLACKSMITH_DEV_URL` sinon `app://swblacksmith/`. En mode
+   preuve, le scénario demandé par les variables d'environnement se lance.
+3. Toutes les fenêtres fermées : l'app quitte.
+
+## Le pont entre la page et le bureau
+
+Le préchargement (`bureau/preload.ts`) expose par `contextBridge` un seul
+objet figé, `window.swblacksmithBureau` ; `src/lib/bureau.ts` en est le seul
+lecteur côté page (`estBureau()` = l'objet présent, avec `bureau: true`).
+
+| Côté page | Canal | Sens |
+|-----------|-------|------|
+| `bureau`, `plateforme` (`process.platform`) | — | valeurs |
+| `couleurs({ fond, barre, symboles })` | `bureau:couleurs` | page → bureau |
+| `miseAJour.etat()` | `bureau:mise-a-jour` (`invoke`) | état courant |
+| `miseAJour.surChangement(rappel)` | `bureau:mise-a-jour` | bureau → page ; rend de quoi se désabonner |
+| `miseAJour.rechercher()`, `telecharger()`, `redemarrer()` | `bureau:rechercher`, `bureau:telecharger`, `bureau:redemarrer` | page → bureau |
+| `swex.etat()`, `choisirDossier()`, `choisirInvocateur(fichier)`, `oublier()` | `bureau:swex-etat`, `bureau:swex-choisir-dossier`, `bureau:swex-choisir-invocateur`, `bureau:swex-oublier` (`invoke`) | rendent l'état du réglage |
+| `swex.surEtat(rappel)`, `swex.surExport(rappel)` | `bureau:swex-etat`, `bureau:swex-export` | bureau → page |
+| `swex.pret(pageSansCompte)`, `swex.lu(modifie)` | `bureau:swex-pret`, `bureau:swex-lu` | page → bureau |
+
+Le processus principal n'accepte un message que de la page de SA fenêtre
+(`evenement.sender`), et vérifie son contenu.
 
 ## Un seul code
 
@@ -33,11 +95,24 @@ change pas. Ce qui en dépend aujourd'hui :
 - **Sécurité** : `contextIsolation`, `sandbox`, `nodeIntegration: false` ; la
   page ne reçoit qu'un objet figé (`bureau/preload.ts`), une fonction à la
   fois. Les messages de la page sont vérifiés (expéditeur, contenu).
-- **La fenêtre** (`bureau/fenetre.ts`, pur) : barre de titre intégrée — la
-  barre du haut de l'app sert de zone de déplacement, les boutons de Windows
-  sont dessinés aux couleurs du thème (47 px) ; taille, position et état
-  agrandi mémorisés (une fenêtre hors de tout écran revient sur l'écran
-  principal) ; pas de menu ; fond au thème dès l'ouverture.
+- **La fenêtre** (`bureau/fenetre.ts`, pur) : barre de titre intégrée
+  (`titleBarStyle: 'hidden'`) — la barre du haut de l'app sert de zone de
+  déplacement (`html[data-bureau]`, `index.css`), les boutons de Windows
+  sont dessinés par-dessus aux couleurs du thème, sur 47 px
+  (`HAUTEUR_BARRE` : la barre de l'app en fait 48, filet compris). Défaut
+  1440 × 900, minimum 1024 × 640 (`lg` de Tailwind : jamais le format
+  téléphone). Taille normale, position, état agrandi et couleurs du dernier
+  thème mémorisés à la fermeture dans `fenetre.json` (dossier des données),
+  relus avec méfiance (`lireEtat`) : une position dont la barre n'est plus
+  saisissable (120 × 47 px sur un écran) est oubliée, la fenêtre s'ouvre
+  centrée sur l'écran principal, jamais plus grande que lui. Affichée une
+  fois peinte, fond au dernier thème vu, sinon au thème du système. Titre
+  `SW Blacksmith`, icône `favicon.png`.
+- **Les couleurs** : au démarrage (`habillerBureau`, `main.tsx`), la page
+  pose `data-bureau` et envoie `--bg`, `--bar`, `--ink` calculés, puis à
+  chaque changement de `data-theme` ou du thème du système ; le processus
+  principal n'accepte que trois `#rrggbb` (`couleursValides`) et recolore
+  boutons et fond.
 - **Navigation** (`bureau/navigation.ts`) : un lien externe s'ouvre dans le
   navigateur du système (`http`/`https` seulement) ; toute navigation hors
   de l'app est bloquée (un fichier déposé à côté de la zone d'import ne
@@ -61,16 +136,13 @@ change pas. Ce qui en dépend aujourd'hui :
 ## Le dossier SW Exporter
 
 `bureau/swex.ts` (disque, surveillance), `bureau/swexPur.ts` (pur, testé),
-`src/components/SuiviSwex.tsx` (page), bloc « Application » des Réglages
-(décision 15).
+`src/components/SuiviSwex.tsx` (page), bloc « Application » des Réglages.
 
 - **L'invocateur se choisit aussi depuis la carte du compte**, en tête de
-  la barre latérale (Thomas : « au niveau du menu principal, avec un drop
-  down ») : avec un dossier choisi, la carte ouvre un menu — les
+  la barre latérale : avec un dossier choisi, la carte ouvre un menu — les
   invocateurs (celui suivi, coché), puis « Importer un fichier… ». Un seul
-  réglage, deux accès (`useEtatSwex`) ; le processus principal DIFFUSE
-  l'état après chaque choix, sans quoi l'accès qui n'a pas choisi restait
-  sur l'ancien.
+  réglage, deux accès (`useEtatSwex`) ; le processus principal diffuse
+  l'état après chaque choix, pour que l'accès qui n'a pas choisi suive.
 - **Le réglage** : « Dossier SW Exporter » (« Choisir… » ouvre la boîte du
   système ; « Retirer ») et « Invocateur » (les exports `<nom>-<id>.json` à
   la **racine** ; sous-dossiers `live`, `plugins`, `cert` ignorés ; un seul export →
@@ -123,9 +195,16 @@ electron-builder : il ignore sans échouer une release publiée depuis plus de
 
 ## La mise à jour
 
-`bureau/miseAJour.ts`, dans l'app installée seulement. ⚠️ **L'utilisateur
-décide** : au lancement, une recherche dans les releases GitHub, **rien ne
-se télécharge** sans « Mettre à jour ».
+`bureau/miseAJour.ts`, avec electron-updater, dans l'app installée
+seulement (`app.isPackaged` ; lancée par `bureau:local`, « Rechercher »
+répond « à jour »). ⚠️ **L'utilisateur décide** : au lancement, une
+recherche dans les releases GitHub, **rien ne se télécharge** sans
+« Mettre à jour » (`autoDownload = false`, `downloadUpdate()` au clic ;
+`autoInstallOnAppQuit = true`). Phases données à la page (`EtatMiseAJour`) :
+`aucune`, `recherche`, `a-jour`, `injoignable`, `disponible`,
+`telechargement`, `prete`, `echec` ; « Redémarrer » =
+`quitAndInstall(true, true)`. Composants : `MiseAJourBureau` (la
+notification), `BlocApplication` (Réglages).
 
 - « Nouvelle version X disponible · Mettre à jour » — reste jusqu'à la
   réponse (notification `persistante`) ; puis « Téléchargement… », puis
@@ -142,13 +221,16 @@ se télécharge** sans « Mettre à jour ».
 npm run bureau:preuve                  # l'app se contrôle elle-même (resultats.json)
 npm run bureau:preuve -- --conservation  # les données survivent à la fermeture
 npm run bureau:preuve -- --swex        # le dossier SW Exporter, sur des fixtures
+npm run bureau:preuve -- --session     # « Sauvegarder la session », conservation refusée
 npm run bureau:preuve -- <dossier> --exe "<app installée>"  # la même chose, sur l'app installée
 npm run bureau:local                   # la regarder
 node tests/run.mjs bureau              # protocole, fenêtre, mise à jour, noms de fichiers
 ```
 
-Le mode preuve (`bureau/preuve.ts`) vit dans ses propres données
-(`<dossier>/donnees`) : il ne touche jamais celles de l'utilisateur.
-⚠️ Lancé depuis un terminal de VS Code, Electron hérite
-`ELECTRON_RUN_AS_NODE` et démarre comme un simple Node :
-`scripts/lib/electron.mjs` la retire — tout lancement passe par lui.
+Le mode preuve (`bureau/preuve.ts`, variables `SWBLACKSMITH_PREUVE` et
+`SWBLACKSMITH_PREUVE_*`) vit dans ses propres données (`<dossier>/donnees`) :
+il ne touche jamais celles de l'utilisateur. Il note les liens au lieu de
+les ouvrir, range les téléchargements dans `<dossier>/telechargements` sans
+boîte de dialogue, simule la mise à jour, se contrôle de l'intérieur,
+écrit ses résultats en JSON puis quitte, sans capture d'écran ; le script
+compare et rend 1 si un verdict échoue.

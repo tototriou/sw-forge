@@ -31,7 +31,7 @@ const rendreBestiaire = () => {
 const rendreParametres = (compte: string | null) => {
   faussLocalStorage({});
   return rendre(
-    <SettingsPage onClearData={rien} onKeepAccount={rien} onImport={rien} accountExportedAt={null} accountName={compte} />,
+    <SettingsPage onClearData={rien} onSauvegarderSession={rien} onKeepAccount={rien} onImport={rien} accountExportedAt={null} accountName={compte} />,
   );
 };
 
@@ -122,6 +122,11 @@ export function testRenduParametres() {
     ok(t.includes(intitule), `réglage « ${intitule} »`);
   ok(t.includes('Ces trois stats sont plafonnées à 100 % dans le jeu.') && t.includes('Sans ce réglage, il n\'est posé que si personne n\'est en face.') && t.includes('à éviter sur un ordinateur partagé.'), 'chaque réglage expliqué');
   ok(b.some((x) => x.texte === 'Tout supprimer' && x.title === 'Efface la prépa RTA, les équipes de siège, les recommandations, les monstres perso et le compte importé'), '« Tout supprimer », et ce qu\'il efface');
+  ok(b.some((x) => x.texte === 'Sauvegarder' && x.title === 'Sauvegarder la session dans un fichier'), 'Session : « Sauvegarder », et ce qu\'il fait');
+  ok(t.includes('Session') && t.includes('Tout l’état de l’app dans un fichier, à garder où tu veux : le compte, ton travail, les réglages et l’état des outils.'), 'Session : son intitulé et son texte d\'aide');
+  faussLocalStorage({});
+  const sansAction = boutons(rendre(<SettingsPage onClearData={rien} onKeepAccount={rien} onImport={rien} accountExportedAt={null} accountName={null} />));
+  ok(!sansAction.some((x) => x.texte === 'Sauvegarder'), 'Session : absente sans action de sauvegarde fournie');
 }
 
 export function testRenduBientot() {

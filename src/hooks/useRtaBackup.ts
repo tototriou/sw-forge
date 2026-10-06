@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { RtaState } from '../types';
 import { RtaCategory } from './useRtaCategories';
-import { loadLocal, saveLocal, usePersistence } from './usePersistence';
+import { loadLocal, oublierLocal, saveLocal, usePersistence } from './usePersistence';
 
 // **Point de restauration de la prépa RTA** — l'instantané que pose
 // « Sauvegarder » et que rappelle « Reprendre ».
@@ -102,11 +102,7 @@ export function useRtaBackup(): UseRtaBackup {
 
   const oublier = useCallback(() => {
     setBackup(null);
-    try {
-      localStorage.removeItem(KEY);
-    } catch {
-      /* stockage indisponible : l'oubli vaut pour la session */
-    }
+    oublierLocal(KEY);
   }, []);
 
   // Point d'import, écrit sur sa propre clé et à l'activation de la

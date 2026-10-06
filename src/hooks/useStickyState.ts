@@ -33,6 +33,12 @@ export function useStickyState<T>(key: string, initial: T): [T, Dispatch<SetStat
   return [state, setState];
 }
 
+// La mémoire entière, clé → valeur, pour la sauvegarde de session. À jour :
+// chaque hook monté y écrit sa valeur après chaque rendu.
+export function photographierMemoire(): Record<string, unknown> {
+  return Object.fromEntries(store);
+}
+
 // ⚠️ **Repartir de zéro sur tout un domaine**, clés démontées comprises.
 //
 // Le cas : on importe le JSON d'un AUTRE compte. Les états collants qui

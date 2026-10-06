@@ -102,6 +102,10 @@ Concepts partagés par plusieurs pages, documentés une seule fois :
   de bureau** (Electron, Windows et Linux) : ce qui diffère du site, la fenêtre,
   l'installeur, la publication au tag, la mise à jour, les données — et comment
   la vérifier (`bureau:preuve`).
+- [shared/sauvegarde-session.md](shared/sauvegarde-session.md) — la
+  **sauvegarde de session** : le format `swblacksmith/session` (compte,
+  travail, réglages, état des outils), ce qu'il refuse à la relecture, et où
+  déclarer une clé nouvelle.
 
 Outillage du dépôt (pas une page de l'app) :
 
@@ -282,7 +286,9 @@ Outillage du dépôt (pas une page de l'app) :
       rapide de l'équipe** (même lead, vitesse de runes, set et passif) : on tune
       alors contre soi-même. Sans lui, la copie n'est posée que si personne n'est
       en face. Voir [outils/speed-tuning.md](outils/speed-tuning.md).
-    - **Mes données** → « Tout supprimer ».
+    - **Session** → « Sauvegarder » : tout l'état de l'app dans un fichier
+      (voir [shared/sauvegarde-session.md](shared/sauvegarde-session.md)) ;
+    - **Mes données** → « Tout supprimer », toujours la dernière ligne du bloc.
     - **Application** — dans l'**application de bureau seulement** (absent du
       site) : la version installée et UN bouton qui suit la mise à jour
       (« Rechercher », « Mettre à jour », « Redémarrer »… — toujours

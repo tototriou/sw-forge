@@ -1,5 +1,5 @@
 import { ReactNode, useEffect, useRef, useState } from 'react';
-import { Trash2 } from 'lucide-react';
+import { Save, Trash2 } from 'lucide-react';
 import { IconeParametres } from './IconesAtelier';
 import { RUNE_METRICS, setRuneMetric, useRuneMetric } from '../hooks/useRuneMetric';
 import { setPersistence, storageAvailable, usePersistence } from '../hooks/usePersistence';
@@ -47,11 +47,13 @@ function Setting({ title, hint, children }: { title: string; hint?: string; chil
 // jamais les deux à la fois.
 export function SettingsList({
   onClearData,
+  onSauvegarderSession,
   onKeepAccount,
   accountExportedAt,
   groupes = false,
 }: {
   onClearData?: () => void;
+  onSauvegarderSession?: () => void;
   onKeepAccount?: () => void;
   accountExportedAt?: number | null;
   // ⚠️ **La PAGE de réglages, à la SOURIS** (refonte graphique, lot 10, la
@@ -145,6 +147,27 @@ export function SettingsList({
           aucune page. */}
       <AccountFreshness exportedAt={accountExportedAt ?? null} className="pb-2.5" />
 
+      {/* La sauvegarde de session (spec/shared/sauvegarde-session.md) :
+          avant la suppression, qui reste la dernière ligne du bloc. */}
+      {onSauvegarderSession && (
+        <Setting
+          title="Session"
+          hint={selonSupport(
+            'Tout l’état de l’app dans un fichier, à garder où tu veux : le compte, ton travail, les réglages et l’état des outils.',
+            'Tout l’état de l’app dans un fichier, enregistré où tu veux : le compte, ton travail, les réglages et l’état des outils.'
+          )}
+        >
+          <Bouton
+            taille="sm"
+            icone={<Save size={12} />}
+            libelle="Sauvegarder"
+            onClick={onSauvegarderSession}
+            title="Sauvegarder la session dans un fichier"
+            className="flex-none"
+          />
+        </Setting>
+      )}
+
       {/* ⚠️ La suppression vit ICI, pas à côté du bouton d'import : une action
           destructrice collée au bouton le plus utilisé finit par être cliquée de
           travers. Dans un menu qu'on ouvre exprès, le geste est délibéré. */}
@@ -186,10 +209,12 @@ export function SettingsList({
 // que le bouton hamburger (44 px, encadré) pour former une paire.
 export default function SettingsMenu({
   onClearData,
+  onSauvegarderSession,
   onKeepAccount,
   accountExportedAt,
 }: {
   onClearData?: () => void;
+  onSauvegarderSession?: () => void;
   onKeepAccount?: () => void;
   accountExportedAt?: number | null;
 }) {
@@ -257,6 +282,7 @@ export default function SettingsMenu({
           </div>
           <SettingsList
             onClearData={onClearData}
+            onSauvegarderSession={onSauvegarderSession}
             onKeepAccount={onKeepAccount}
             accountExportedAt={accountExportedAt}
           />

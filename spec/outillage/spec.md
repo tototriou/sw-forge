@@ -141,9 +141,10 @@ utile.
   niveau **≤** au sien, ou la fin du fichier ;
 - **première phrase** : premier paragraphe de prose de la section, avant son
   premier sous-titre, hors lignes vides, blocs de code et tableaux ; un item
-  de liste compte comme prose et **forme à lui seul son paragraphe**
-  (marqueur `-`/`1.` conservé), sinon une liste sans ligne vide interne
-  deviendrait la « phrase » entière ; tronquée à 120 caractères ; `—` si la
+  de liste compte comme prose et **termine le paragraphe** (marqueur
+  `-`/`1.` conservé), sinon une liste sans ligne vide interne deviendrait
+  la « phrase » entière : en tête, il forme à lui seul la phrase ; collé
+  sans ligne vide à une ligne de prose, il s'y ajoute ; tronquée à 120 caractères ; `—` si la
   section n'a pas de prose avant son premier sous-titre ;
 - **en-tête** : les lignes `**Champ :** valeur` entre le H1 et la première
   ligne qui n'en est pas une, **les lignes vides étant transparentes** (une
@@ -193,7 +194,9 @@ appellent.
     (champ `Source :`, mention en ligne ou texte d'un lien) qui ne résout
     pas vers un titre existant ;
   - `fichier-trop-long` : plus de 500 lignes, hors exception et hors
-    `chantiers/` ;
+    `chantiers/` — lignes comptées par `split`, qui compte une ligne de
+    plus qu'un `wc -l` pour un fichier terminé par un saut de ligne :
+    500 lignes au `wc -l` sont refusées ;
   - `bloc-trop-long` : un bloc terminal de plus de 100 lignes, hors
     exception ;
   - `exception-perimee` : un fichier en exception qui ne dépasse plus aucun
@@ -469,9 +472,12 @@ Trois objets distincts, et les deux premiers ne se confondent pas :
   (`manifeste.json`) des empreintes des octets **installés**, mis à jour
   par cette seule commande. Manifeste v2 : `fichiers {chemin: empreinte}`,
   `entrees {chemin: {proprietaire, source, commit, date}}`, `commitSource`,
-  `brancheSource`, `installeLe`, `version: 2`. L'installateur ne réécrit
-  **que ses chemins** et garde toute autre entrée telle quelle ; un
-  manifeste v1 (`fichiers` seul) se lit en mémoire, empreintes gardées.
+  `brancheSource`, `installeLe`, `version: 2`. Dans `fichiers` et
+  `entrees`, l'installateur ne réécrit **que ses chemins** et garde toute
+  autre entrée telle quelle ; `commitSource`, `brancheSource`,
+  `installeLe` et `version` sont réécrits à chaque installation. Un
+  manifeste v1 (`fichiers`, `commitSource`, `installeLe`) se lit en
+  mémoire, empreintes gardées, et s'écrit en v2 à l'installation suivante.
 - Le chemin de l'installation se calcule depuis le répertoire Git commun
   (`git rev-parse --git-common-dir`) : dans un worktree secondaire, `.git`
   est un fichier, pas un dossier.

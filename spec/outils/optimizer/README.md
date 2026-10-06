@@ -35,6 +35,9 @@ Publiés :
   sûrs, pré-filtrage, rétention.
 - [moteur/artefacts.md](moteur/artefacts.md) — le choix des artéfacts et la
   paire non figée.
+- [moteur/optimiseur-artefacts.md](moteur/optimiseur-artefacts.md) —
+  l'optimiseur d'artéfacts : éligibilité, effet de chaque ligne, focus
+  élémentaire, moteur, script CLI.
 - [verification.md](verification.md) — tests différentiels, oracles,
   benchmarks.
 - [limites-connues.md](limites-connues.md) — ce que le moteur ne garantit
@@ -61,7 +64,7 @@ décrit le sujet.
 | les listes de travail, les builds validés, la réservation de runes | [listes-et-reservation.md § Listes de travail et réservation de runes](listes-et-reservation.md) ; [invariants.md § UI](invariants.md) | [listes-et-reservation.md](listes-et-reservation.md) |
 | l'objectif de recherche, « Dégâts réels », un passif ou une mécanique de sort | [ecran/objectif-de-recherche.md § Objectif de recherche](ecran/objectif-de-recherche.md) ; [../degats-reels.md](../degats-reels.md) (par section) ; [invariants.md § Dégâts réels](invariants.md) | skill `game-data-curation` |
 | les conditions min/max, « Exclure les runes déjà utilisées », les réglages avancés | [ecran/conditions-et-reglages.md § Conditions, inventaire et réglages avancés](ecran/conditions-et-reglages.md) ; [invariants.md § Stats et slots](invariants.md) | — |
-| les artéfacts (optimisation, carte Artéfacts, « État de mon monstre ») | [ecran/artefacts.md § Artéfacts](ecran/artefacts.md) ; [ecran/etat-de-mon-monstre.md § État de mon monstre](ecran/etat-de-mon-monstre.md) ; [moteur/artefacts.md § Le choix des artéfacts — un second problème, séparé](moteur/artefacts.md) ; [invariants.md § Artéfacts](invariants.md) | [moteur/artefacts.md](moteur/artefacts.md) |
+| les artéfacts (optimisation, carte Artéfacts, « État de mon monstre ») | [ecran/artefacts.md § Artéfacts](ecran/artefacts.md) ; [ecran/etat-de-mon-monstre.md § État de mon monstre](ecran/etat-de-mon-monstre.md) ; [moteur/artefacts.md § Le choix des artéfacts — un second problème, séparé](moteur/artefacts.md) ; [invariants.md § Artéfacts](invariants.md) | [moteur/artefacts.md](moteur/artefacts.md) ; [moteur/optimiseur-artefacts.md](moteur/optimiseur-artefacts.md) |
 | les reliques | [ecran/relique.md § Relique](ecran/relique.md) ; [invariants.md § Reliques](invariants.md) | [moteur/reliques.md](moteur/reliques.md) ; assiette « au début du combat » : [../degats-reels/effets-equipe-et-leaders.md § Sets d'aura d'équipe — modèle](../degats-reels/effets-equipe-et-leaders.md) |
 | l'exclusion de runes (automatique, manuelle), les runes imposées | [exclusion.md § Exclusion des runes déjà portées ailleurs](exclusion.md) ; [exclusion.md § Exclusion manuelle — un monstre précis, dans n'importe quelle source](exclusion.md) ; [exclusion.md § Runes imposées — verrouiller un emplacement sur une rune précise](exclusion.md) | [exclusion.md](exclusion.md) ; [limites-connues.md](limites-connues.md) (CLI siège, `wizard_id`) |
 | le moteur `runeBuildOptim.ts` (élagages, meet-in-the-middle, budgets, presets) | [moteur/elagages.md § Recherche des runes — meet-in-the-middle et élagages](moteur/elagages.md) ; [invariants.md § Algorithme](invariants.md) ; [limites-connues.md § Limites connues](limites-connues.md) | [moteur/pipeline.md](moteur/pipeline.md) ; [moteur/elagages.md](moteur/elagages.md) ; [limites-connues.md](limites-connues.md) ; skill `algo-verify` ; [pistes.md](pistes.md) avant toute « nouvelle » idée |

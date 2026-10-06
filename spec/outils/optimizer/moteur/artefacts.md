@@ -245,7 +245,10 @@ paire qui viole ses conditions, ce qui est pire qu'un build manquant.
   `evaluateursArtefactsFiche` (la représentative, à l'écran et au CLI) et
   par `entreeResolutionDuBuild` (la résolution, à l'écran, au CLI et dans le
   Worker). Ses surcharges exigent le contexte de dégâts en `degats_reels` :
-  l'oubli échoue à la compilation.
+  l'oubli échoue à la compilation. Un régime ajouté à `RegimeArtefacts`
+  sans sa branche y échoue aussi (`const _exhaustif: never`) : jamais un
+  `else` qui le noterait par la somme des principales. Elle vit hors
+  d'`artifactOptim.ts`, qui reste sans logique de dégâts.
 - **Le régime de la représentative suit l'objectif ; celui de la
   résolution, le critère regardé** : `regimeEquipement =
   regimeEquipementDe(regimeArtefacts(adapterArtefactsAuTri ? sortBy :

@@ -14,18 +14,21 @@ plus du plafond de candidats collectés :
   combinaisons à examiner (ou du plafond de candidats collectés, voir
   ci-dessous), sans limite de temps automatique.
 - **Pré-filtrage par emplacement** — les presets « Réglages avancés »
-  ci-dessus, calibrés par mesure sur des comptes réels : plus le preset est
+  (voir ecran/conditions-et-reglages.md § Réglages avancés), calibrés par mesure sur des comptes réels : plus le preset est
   large, plus le pool considéré par emplacement grandit, et plus la
   recherche peut prendre de temps (jusqu'à plusieurs dizaines de secondes au
   preset le plus large sur un très gros compte). Valeurs
   (`SLOT_FILTER_PRESETS`, `runeBuildOptim.ts` — runes gardées par
   emplacement) : **Bas 40 · Moyen 80 (défaut) · Haut 150 · Extrême 300**.
-  Bas était le défaut d'origine, trop juste sur un vrai gros compte ; 300
-  est la valeur mesurée nécessaire pour y retrouver un build réel.
+  Bas est trop juste sur un vrai gros compte ; 300 est la valeur mesurée
+  nécessaire pour y retrouver un build réel.
 - **Bouton « Arrêter »** — l'utilisateur reprend la main quand il l'estime
-  suffisant. L'arrêt est **coopératif** : le moteur rend la main
-  régulièrement pendant la recherche et renvoie le **meilleur trouvé
-  jusque-là** plutôt que de tout jeter.
+  suffisant. Pendant l'appariement, l'arrêt est **coopératif** : le
+  moteur rend la main régulièrement et renvoie le **meilleur trouvé
+  jusque-là** plutôt que de tout jeter. Pendant la construction des
+  moitiés, avant qu'aucune paire n'ait été évaluée, il n'y a rien à
+  rendre : les Workers enfants sont terminés et le résultat est vide,
+  tronqué (voir moteur/pipeline.md § Interruption).
 
 Les cas de troncature se distinguent dans le message affiché : un arrêt
 manuel dit « voici le meilleur trouvé jusque-là » (un choix assumé), un
@@ -33,14 +36,14 @@ plafond atteint dit « resserre tes critères » (une limite subie).
 
 ⚠️ **Sur une grosse recherche (appariement parallèle, au-delà de 100 M de
 combinaisons), le plafond de candidats est partagé en quatre** : chaque
-tranche en reçoit le quart et s'arrête quand elle l'a rempli. Depuis
-degats-et-aura 6bis-b7 (2026-10-01), une tranche arrêtée ainsi alors qu'il
-restait des combinaisons à examiner rend la recherche **tronquée**, même si
-le total reste sous le plafond : l'écran affiche alors « Recherche
-interrompue après examen de N combinaisons — resserre tes critères pour un
-résultat exhaustif. » (`OptimizerSection.tsx`), là où il présentait jusque-là
-le résultat comme complet. Seul le message change : la recherche n'examine
-rien de plus, et le partage du plafond est inchangé. Une tranche qui remplit
+tranche en reçoit le quart et s'arrête quand elle l'a rempli. Une tranche
+arrêtée ainsi alors qu'il lui restait des combinaisons à examiner rend la
+recherche **tronquée**, même si le total reste sous le plafond : l'écran
+affiche alors « Recherche interrompue après examen de N combinaisons —
+resserre tes critères pour un résultat exhaustif. »
+(`OptimizerSection.tsx`), plutôt que de présenter le résultat comme
+complet. La troncature ne change que le message : la recherche n'examine
+rien de plus. Une tranche qui remplit
 son quart sur sa toute dernière combinaison ne laisse rien de côté et ne
 déclenche pas le message. Le moteur transmet le motif (`motifTroncature` :
 temps, plafond global ou quota de tranche) ; l'écran ne l'affiche pas, il
@@ -58,9 +61,9 @@ accélérer ou ralentir en cours de route plutôt que progresser régulièrement
 tous les 150 ms, `PROGRESS_THROTTLE_MS`), pour ne jamais inonder le fil
 principal quand l'élagage va vite. Chaque message porte `explored`, `found`
 et un `pct` approximatif : le plus avancé des trois budgets qui peuvent
-chacun terminer la recherche — et les seuls qui existent (le plafond de
-nœuds a été supprimé, précisément parce qu'une borne qui grandissait en
-cours de route faisait RECULER la barre) :
+chacun terminer la recherche — et les seuls qui existent (pas de plafond
+de nœuds : une borne qui grandit en cours de route ferait RECULER la
+barre) :
 
 ```
 pct = max(explored / totalPairs, found / maxCollected, tempsÉcoulé / maxMs)
@@ -68,8 +71,8 @@ pct = max(explored / totalPairs, found / maxCollected, tempsÉcoulé / maxMs)
 
 Le troisième terme vaut 0 quand le filet de temps est retiré
 (« Rechercher jusqu'à épuisement complet »). Sous la barre : le compteur
-`explored`/`totalPairs`/`found`, puis le message doré (point 12 de « Lancer
-la recherche ») — et rien d'autre : un second chiffre « espace de
-recherche à épuiser (au pire) » a été retiré, doublon du dénominateur de
+`explored`/`totalPairs`/`found`, puis le message doré (point 12 de
+ecran/lancer-la-recherche.md § Lancer la recherche) — et rien d'autre : un second chiffre
+« espace de recherche à épuiser (au pire) » doublerait le dénominateur de
 la ligne du dessus.
 

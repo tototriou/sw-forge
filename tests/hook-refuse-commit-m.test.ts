@@ -328,6 +328,7 @@ export default function testHookRefuseCommitM(): void {
     ['# collé à un mot (a#b), node après', `echo a#b ; node -e "$y"`],
     ['# entre apostrophes, node après', `echo '# x' ; node -e "$y"`],
     ['# entre guillemets doubles, node après', `echo "# x" ; node -e "$y"`],
+    ['\\" ne ferme pas la chaîne double : le # qui suit y reste', `echo "a\\" # x" ; node -e "$y"`],
     ['# dans la chaîne de node', `node -e "a #b $x"`],
     ['# en tête de ligne dans une chaîne sur plusieurs lignes', `node -e "\n# x\nconsole.log($y)\n"`],
     // Le commentaire s'arrête à la fin de sa ligne.

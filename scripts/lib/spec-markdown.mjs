@@ -3,7 +3,7 @@
 // ⚠️ **Une seule implémentation dans le dépôt** : tout script (contrôle de
 // slugs, de niveaux, `spec-toc`, `spec-lint`) importe ce fichier — jamais une
 // copie scratch, jamais une réimplémentation dans un hook. Voir
-// `spec/chantiers/spec-rangement.md`, B.2, B.3 et B.4.
+// `spec/outillage/spec.md`, ex-B.2, ex-B.3 et ex-B.4.
 //
 // `titres(texte)` repère les lignes `^#{1,6} …`, hors blocs de code clôturés
 // (```` ``` ```` ou `~~~`) : un exemple de titre Markdown DANS une citation

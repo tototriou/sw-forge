@@ -96,6 +96,13 @@ Concepts partagés par plusieurs pages, documentés une seule fois :
   l'installeur, la publication au tag, la mise à jour, les données — et comment
   la vérifier (`bureau:preuve`).
 
+Outillage du dépôt (pas une page de l'app) :
+
+- [outillage/spec.md](outillage/spec.md) — natures des specs, `spec-markdown`,
+  `spec-toc`, contrat de `spec-lint`, en-têtes, critère des invariants, niveaux
+  d'application, hook `Read` et installation des garde-fous (hook
+  `pre-commit`, garde-fou Codex).
+
 ## Conventions communes (toutes les pages)
 
 - ⚠️ **Un texte saisi est TRIMÉ à la sortie du champ**, jamais à la frappe.
@@ -438,20 +445,20 @@ Le cadre commun (nav, routing par hash, footer) vit dans
 Un chantier (travail de plus d'une session, exécuté par lots dans des
 sessions fraîches) a un **document de cadrage** : Partie A relue par chaque
 lot, Partie B un contrat par lot, résultats ajoutés au fil des lots.
-Comment l'écrire et le faire vivre : skill `cadrage-chantier`. Il vit dans
-[chantiers/](chantiers/) — ou, si son contenu est privé, dans
-`spec/outils/optimizer/chantiers/` (notes livrées par `chantier livrer`).
+L'écrire : skill `cadrage-chantier`. Il est public, dans
+[chantiers/](chantiers/), ou privé, dans les notes privées
+(`spec/outils/optimizer/chantiers/`), au choix du responsable du chantier.
+Le tableau ci-dessous n'a de ligne que pour un cadrage public, ou pour la
+fiche publique d'un journal archivé dans les notes privées.
 Chaque cadrage commence par un H1 et une ligne `**Statut :**` que
 `node scripts/spec-toc.mjs <fichier>` résume ; on l'ouvre par section,
 jamais en entier.
 
 | Cadrage | Statut | Branche |
 | --- | --- | --- |
-| [chantiers/orchestration-parallele.md](chantiers/orchestration-parallele.md) — deux agents en parallèle, outil `chantier` | en cours | `forge/orchestration-parallele` |
-| [chantiers/spec-rangement.md](chantiers/spec-rangement.md) — rangement des specs pour lire à la demande | terminé le 2026-09-17 | `forge/spec-rangement` |
+| [chantiers/spec-rangement.md](chantiers/spec-rangement.md) — rangement des specs pour lire à la demande ; fiche, journal archivé | terminé le 2026-09-17 | `forge/spec-rangement` |
 | [chantiers/refonte-graphique.md](chantiers/refonte-graphique.md) — refonte graphique sans régression (navigation, boutons, densité) | en cours | `forge/refonte-graphique` |
 | [chantiers/rebranding-blacksmith.md](chantiers/rebranding-blacksmith.md) — rebranding « SW Blacksmith » (nom, logo, thèmes, écrans), suite de la refonte | en cours | `forge/refonte-graphique` |
 | [chantiers/application-bureau.md](chantiers/application-bureau.md) — l'application de bureau (Electron) : coquille, installeur Windows, action GitHub au tag, mise à jour automatique, bouton sur le site ; entre dans la 2.0.0 | en cours | `forge/application-bureau` |
 | Speed tuning en mode RTA (1,5 % par tick au lieu de 7 %) — pas encore de cadrage ; ce qu'il devra trancher : [outils/speed-tuning.md](outils/speed-tuning.md) § Mode RTA | à ouvrir | — |
-| `spec/outils/optimizer/chantiers/implementation-relique.md` (privé, `sw-forge-docs`) — la relique dans l'Optimizer, 10 lots ; cadrage fonctionnel dans `spec/outils/optimizer/reliques.md` (décision), plan d'origine archivé | en cours | `forge/implementation-relique` |
-| [chantiers/degats-et-aura.md](chantiers/degats-et-aura.md) — quatre sorts au modèle incomplet, sets d'aura, ergonomie et planchers de conditions ; découpe `spec/outils/degats-reels.md` ; reliquat de l'audit traité en partie, le reste reporté (notes privées, `decisions/reste-a-faire-degats-2026-10.md`) | terminé le 2026-10-04 | `forge/degats-et-aura` |
+| [chantiers/degats-et-aura.md](chantiers/degats-et-aura.md) — quatre sorts au modèle incomplet, sets d'aura, ergonomie et planchers de conditions ; découpe `spec/outils/degats-reels.md` ; reliquat de l'audit traité en partie, le reste reporté (notes privées, `decisions/reste-a-faire-degats-2026-10.md`) ; fiche, journal archivé ; valeurs de jeu curées : [outils/degats-reels/valeurs-de-jeu-curees.md](outils/degats-reels/valeurs-de-jeu-curees.md) | terminé le 2026-10-04 | `forge/degats-et-aura` |

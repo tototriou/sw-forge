@@ -1,6 +1,6 @@
 ---
 name: spec-hygiene
-description: Trois recettes pour manipuler spec/ sans perdre d'information ni casser les références — déplacer un fichier entre natures (état actuel / décision / archive), découper un fichier en exception de spec-lint.json le jour où un chantier doit en modifier le contenu normatif, et extraire les invariants d'une section d'état actuel nouvelle ou modifiée. Née du cadrage spec/chantiers/spec-rangement.md (lots 1 à 9).
+description: "Trois recettes pour manipuler spec/ sans perdre d'information ni casser les références — déplacer un fichier entre natures (état actuel / décision / archive), découper un fichier en exception de spec-lint.json le jour où un chantier doit en modifier le contenu normatif, et extraire les invariants d'une section d'état actuel nouvelle ou modifiée. Contrat : spec/outillage/spec.md, ex-B.9."
 ---
 
 # Hygiène de `spec/` (SW Blacksmith)
@@ -21,8 +21,9 @@ genre littéraire du texte (B.1).
 
 1. **Déplacer** le fichier avec `git mv`, jamais une copie + suppression : on
    veut l'historique, pas un nouveau fichier qui commence à zéro.
-2. **Reposer l'en-tête** selon la nature cible (modèles en B.5 du cadrage) —
-   `**Statut :**` change, le reste de l'en-tête suit son gabarit.
+2. **Reposer l'en-tête** selon la nature cible (modèles en ex-B.5 de
+   `spec/outillage/spec.md`) — `**Statut :**` change, le reste de l'en-tête
+   suit son gabarit.
 3. **Repointer les liens** qui visaient l'ancien chemin — d'ABORD en
    **aperçu** (un script qui liste les fichiers/lignes concernés sans écrire,
    ex. un `grep -rn` de l'ancien chemin sur `spec/`), jamais une réécriture à
@@ -66,9 +67,9 @@ son contenu, ne pas ajouter au tas : découper d'abord.
 ## (c) Extraire les invariants d'une section d'état actuel
 
 Ce qu'un chantier applique quand il **ajoute ou modifie une section d'état
-actuel** et doit décider ce qui entre dans `invariants.md` — né du lot 6a,
-critère précisé au 6c après que « ça casse quelque chose si on l'ignore »,
-seul, a laissé passer plusieurs règles (`controle-6b.md` § 7, archivé sous
+actuel** et doit décider ce qui entre dans `invariants.md` — « ça casse
+quelque chose si on l'ignore », seul, laisse passer des règles
+(`controle-6b.md` § 7, archivé sous
 `spec/outils/optimizer/archive/controles-rangement-2026-09/`).
 
 **Le critère n'est pas « est-ce important »** mais une des trois familles
@@ -101,7 +102,8 @@ qu'un chantier qui touche à côté risque de casser sans le remarquer.
 
 ## Voir aussi
 
-- `spec/chantiers/spec-rangement.md`, B.1 (natures), B.4 (contrat du lint), B.5
-  (gabarits d'en-tête), B.6 § 6c (critère précisé), B.9 (ce skill).
+- `spec/outillage/spec.md`, la référence : ex-A.2 (natures), ex-B.1
+  (déplacer), ex-B.4 (contrat du lint), ex-B.5 (gabarits d'en-tête), ex-6c
+  (critère précisé), ex-B.9 (ce skill).
 - `node scripts/spec-toc.mjs <fichier>` pour lire une section sans charger
   le fichier entier avant de décider quoi découper ou extraire.

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Garde-fou de commit, commun aux deux agents — voir
-// spec/chantiers/orchestration-parallele.md, §2.4.
+// spec/outillage/spec.md, ex-B.9 (niveaux d'application, installation).
 //
 // ⚠️ **Pourquoi un hook GIT et pas un hook d'agent.** Un `PreToolUse` de Claude
 // Code ne vaut que pour Claude Code. Codex a **aussi** un système de hooks
@@ -22,7 +22,8 @@
 //
 // ⚠️ **Le script SOURCE est ici ; ce qui s'exécute est son INSTALLATION** (hors
 // arbre de travail, sous le répertoire git commun). Sans quoi son contenu
-// dépendrait de la branche checkoutée. `chantier installer` fait la copie.
+// dépendrait de la branche checkoutée. `node scripts/installer-hooks.mjs`
+// fait la copie.
 
 import { execFileSync } from 'child_process';
 import { existsSync, readFileSync } from 'fs';
@@ -143,7 +144,7 @@ for (const chemin of stagés) {
 // c'est `verifier()` qui l'applique — ce hook ne fait que lui SOUMETTRE les
 // `spec/**.md` de l'index et NE GARDER que les erreurs qui les concernent :
 // un fichier hors périmètre (`verifier` ne le voit tout simplement pas) coûte
-// zéro et n'est jamais refusé. Voir spec/chantiers/spec-rangement.md, B.9.
+// zéro et n'est jamais refusé. Voir spec/outillage/spec.md, ex-B.9.
 
 const specsIndex = stagés.filter((c) => /^spec\/.*\.md$/.test(c));
 
@@ -153,7 +154,7 @@ if (specsIndex.length > 0) {
   if (existsSync(cheminConfig)) {
     // ⚠️ Import RELATIF à ce script : en installation, `spec-lint.mjs` et son
     // parseur (`lib/spec-markdown.mjs`) vivent à côté, sous
-    // `<installation>/scripts/` — voir `chantier.mjs`, `FICHIERS_INSTALLES`.
+    // `<installation>/scripts/` — voir `installer-hooks.mjs`, `CHEMINS`.
     const { verifier } = await import(new URL('../scripts/spec-lint.mjs', import.meta.url));
     const config = JSON.parse(readFileSync(cheminConfig, 'utf8'));
     const { erreurs } = verifier(racineDepot, config);

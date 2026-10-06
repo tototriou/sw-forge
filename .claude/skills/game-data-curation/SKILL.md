@@ -11,9 +11,6 @@ comment y établir une règle sans se tromper : ne pas faire confiance aux
 données brutes plus qu'elles ne le méritent, ne rien déduire d'une mécanique
 voisine, et savoir demander la mesure qui tranche.
 
-Né de sept incidents de la même session (chantier artéfacts / bombes /
-formule de dégâts).
-
 ## Quand ce skill s'applique
 
 - Ajout ou modification d'une table `*_CONNUS` dans `damage.ts`.
@@ -23,8 +20,7 @@ formule de dégâts).
 - Reprise d'une liste de monstres/sorts fournie de mémoire (par
   l'utilisateur ou par une session précédente).
 - ⚠️ **Tout comportement supposé par RESSEMBLANCE avec un autre** — « cet
-  effet est décrit comme celui-là, donc il fait pareil ». Voir §6 ter : deux
-  fois sur trois, c'était faux.
+  effet est décrit comme celui-là, donc il fait pareil ». Voir §6 ter.
 - Avant de **demander un relevé en jeu** à l'utilisateur (§6 bis) : une
   mesure mal cadrée revient inexploitable.
 
@@ -32,15 +28,6 @@ formule de dégâts).
 
 ⚠️ **Toujours balayer `public/data/skills/*.json` en entier** avant de figer
 une règle, même quand une liste explicite vient d'être donnée.
-
-**Incident** : pour distinguer les sorts qui POSENT une bombe de ceux qui
-FRAPPENT en plus d'en poser, l'utilisateur a cité trois compétences
-(`Bombardment`, `Dancing Star`, `Star of Explosion`). Le balayage du corpus
-(8 434 compétences, 48 portant l'effet) en a trouvé **cinq**, puis quatre
-après correction : `Firecracker` (Kobold Bomber, Malaka, Zibrolta, Taurus…)
-manquait à la liste. S'en tenir aux trois noms aurait marqué « dégâts fixes »
-une dizaine de formes de monstres à tort — **un bug plus large que celui
-qu'on corrigeait**.
 
 La liste de l'utilisateur est un point de DÉPART précieux (elle dit ce qu'il
 faut chercher) et une VÉRIFICATION précieuse (elle doit se retrouver dans le
@@ -51,7 +38,7 @@ balayage). Elle n'est pas le résultat.
 ⚠️ Ne jamais fonder une règle sur un champ sans avoir vérifié le champ
 CONTRE la prose, sur tout le corpus concerné.
 
-**Incident** : `Cursed Apple` (Puppeteer, Zima, Smicer, Zenisek) porte
+`Cursed Apple` (Puppeteer, Zima, Smicer, Zenisek) porte
 `coups: 1` alors que sa prose ne décrit aucune attaque (« **Installs** a bomb
 … and stuns the enemy »). Le `1` compte l'application de son SECOND effet,
 l'étourdissement — pas un coup porté.
@@ -69,16 +56,8 @@ Même piège déjà documenté ailleurs pour la même raison :
 ⚠️ Une mécanique peut n'être écrite QUE dans la description en prose d'un
 effet, jamais dans son nom ni dans un marqueur de formule.
 
-**Incident** : une bombe ignore la défense. Les deux détections en place
-échouaient toutes les deux —
-- `fixed` lit le marqueur `(Fixed)` de la **formule** : absent (`"5.0*{ATK}"`) ;
-- `ignoreDef` compare le **nom** de l'effet à `'Ignore DEF'` : il s'appelle
-  `'Bomb'`.
-
-L'information était pourtant dans le dépôt depuis toujours, dans la
-description de l'effet : « the bomb explodes to deal damage that **ignores
-Defense** ». **Lire la prose des effets, pas seulement leurs noms**, avant de
-conclure qu'une mécanique est absente des données.
+**Lire la prose des effets, pas seulement leurs noms**, avant de conclure
+qu'une mécanique est absente des données.
 
 ## 4. …mais la prose n'est pas un discriminant automatisable
 
@@ -127,8 +106,7 @@ ne l'est.
 
 ### 6 bis. Comment DEMANDER un relevé — la recette qui marche
 
-Six mécaniques ont été tranchées en une session avec toujours le même moule.
-Le formuler explicitement à l'utilisateur fait gagner des allers-retours.
+La formuler explicitement à l'utilisateur fait gagner des allers-retours.
 
 **Demander un RAPPORT, jamais un chiffre absolu.** Même monstre, même cible,
 même sort, et on ne change **qu'une seule chose**. Le rapport annule tout ce
@@ -160,15 +138,7 @@ idée de ce qui est établi.
 
 ## 6 ter. Une mécanique voisine ne se déduit JAMAIS par analogie
 
-⚠️ **Le piège le plus coûteux de ce dépôt.** Trois fois dans la même session,
-un fait confirmé a été étendu « par symétrie » à une famille voisine. **Deux
-fois sur trois, c'était faux.**
-
-| Extension tentée | Verdict |
-|---|---|
-| Les artéfacts −DMG% sont additifs avec Mirinae → donc les +DMG% aussi | ❌ **FAUX** — deux termes différents de la formule, multiplicatifs entre eux |
-| Mirinae majore les dégâts subis → donc la Marque se comporte pareil | ❌ **FAUX** — la Marque agit sur les bombes et le bucket Additionnel, Mirinae non |
-| Mirinae épargne bombes et Additionnel → donc Dr. Matteo aussi | ✅ vrai, **mais vérifié avant d'être écrit** |
+⚠️ **Le piège le plus coûteux de ce dépôt.**
 
 Ce qui rend le piège vicieux : l'analogie est toujours *plausible*, souvent
 appuyée sur un libellé de jeu quasi identique (« +X % de dégâts subis » pour
@@ -182,25 +152,18 @@ l'erreur détectable quand la mesure arrive.
 
 **Source de référence pour les dégâts** :
 [swcalc.cz/game-mechanics](https://swcalc.cz/game-mechanics), qui donne la
-formule terme par terme. ⚠️ Elle a corrigé deux des erreurs ci-dessus — la
-consulter AVANT de déduire coûte moins cher que de corriger après.
+formule terme par terme. ⚠️ La consulter AVANT de déduire coûte moins cher
+que de corriger après.
 
 ## 7. « Confirmé par l'utilisateur » n'est pas une preuve
 
 ⚠️ Ces annotations sont précieuses mais **datées et faillibles**. Une mesure
 en jeu les périme sans discussion.
 
-**Incident** : `damage.ts` et son test portaient tous deux « UNE FOIS par
-sort (pas `×coups`, confirmé par l'utilisateur) » pour Sickle Blade / Sand
-Blade. C'était une erreur — les dégâts s'appliquent à chaque coup, établi par
-le relevé Shahat. **Le test verrouillait donc le bug au lieu de le
-détecter.**
+Un test qui recopie une telle annotation verrouille le bug au lieu de le
+détecter.
 
-⚠️ **Une DÉDUCTION figée dans un test est aussi dangereuse.** Même session :
-un test affirmait « Marque + ligne élémentaire : ADDITIF (2 740), pas
-multiplicatif (qui donnerait 2 800) ». Le chiffre venait d'une analogie
-(§6 ter), pas d'une mesure — mais une fois vert, il avait l'autorité d'un
-fait. Quand la vraie valeur est arrivée, le test a échoué *contre elle*.
+⚠️ **Une DÉDUCTION figée dans un test est aussi dangereuse.**
 **Un test qui fige une hypothèse doit le DIRE dans son libellé**, sinon il se
 lit comme une vérité établie au prochain passage.
 

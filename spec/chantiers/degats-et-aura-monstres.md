@@ -1,17 +1,17 @@
 # Liste des monstres et sorts modifiés — chantier degats-et-aura
 
-**Statut :** CHANTIER en cours — branche forge/degats-et-aura
+**Statut :** CHANTIER terminé le 2026-10-04 — branche forge/degats-et-aura
 
 Demande de l'utilisateur du 2026-10-02 : une liste exhaustive des monstres et
 des sorts modifiés par ce chantier, pour tout vérifier à la fin, **tenue à
 jour à chaque commit**. Lot LM du [cadrage](degats-et-aura.md). Point de
 départ : `81284199` ; état couvert à l'écriture : `084cd46a`.
 
-**Règle de tenue (A.8 du cadrage)** : tout commit qui change le calcul ou
-l'affichage d'un monstre ou d'un sort met cette liste à jour **dans le même
-commit**. Les vérifications visuelles déjà inscrites au cadrage (A.8,
-« Vérifications de l'utilisateur en attente ») disent *quand* regarder ;
-cette liste dit *quoi*, monstre par monstre.
+**Règle de tenue, pendant le chantier (A.8 du cadrage)** : tout commit qui
+changeait le calcul ou l'affichage d'un monstre ou d'un sort mettait cette
+liste à jour **dans le même commit**. Le chantier étant terminé, la liste
+est figée à son état de clôture ; elle dit *quoi* vérifier, monstre par
+monstre.
 
 ## Comment la lire
 
@@ -1683,8 +1683,8 @@ la liste des commits de code soit complète.
 | Extraction du corpus dégâts et aura, complément borné du lot 1a2 | 0, 1a2 | `c0407a5f`, `d9b6959d` |
 | Découpage de la spec des dégâts réels | 2b | `62fc8bf8` |
 | Parité des skills Codex | outillage | `f4ec2b9f` |
-| Verrous d'`ouvrir` et de `livrer` de l'outil `chantier` | O | `32a5da12` |
-| Définitions d'agents `lot-c`, `lot-m`, `lot-j` | A.4 | `7ad98468`, `69d659dc` |
+| Outillage d'orchestration (journal archivé) | O | `32a5da12` |
+| Définitions d'agents (journal archivé) | A.4 | `7ad98468`, `69d659dc` |
 | Tests des trois mécanismes rejoués sur des cas indépendants (aucun fichier de `src/`) | 12 | `6f16ce5d` |
 | Garde des séquences de coups curées par empreinte de la donnée (`formule`, `coups`, `aoe` de la fiche), distincte des groupes ; Blade Surge identique au chiffre près sur ses 8 identifiants et 11 formes | P6 (SZ-1) | `40056029` |
 

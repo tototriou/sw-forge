@@ -44,13 +44,15 @@ ouvrir. Ne pas explorer `src/` à l'aveugle.
   commit — l'atomicité se juge sur la cohérence du POURQUOI, pas sur le nombre
   de fichiers. Quand plusieurs sujets indépendants ont été traités dans le même
   tour de conversation, proposer/faire PLUSIEURS commits, pas un seul.
+- **Règles d'écriture.**
+  - Tout le temps : un commentaire de code donne la raison et l'invariant,
+    sans récit ; un commit donne le pourquoi en bref, sans journal.
 - **Un type partagé entre l'écran et un script a PLUSIEURS constructeurs**
   (ex. `OptimizerRecipe`/`recipeToSearchParams.ts`). Un champ ajouté ou
   renommé doit être répercuté dans TOUS — `tsc` ne détecte JAMAIS un champ
   oublié dans l'un d'eux (reste un accès optionnel valide). ⚠️ Depuis que
   `tsconfig.json` couvre aussi `scripts/` et `tests/`, `tsc` attrape en
-  revanche un champ dont le **type change** ou qui devient **obligatoire** —
-  c'est ce qui a révélé une vingtaine d'appels de test périmés d'un coup. La
+  revanche un champ dont le **type change** ou qui devient **obligatoire**. La
   règle ci-dessus ne vaut donc plus que pour les champs **optionnels**, où
   l'oubli reste parfaitement typé. Avant de
   considérer un champ ajouté/renommé comme terminé : `grep -rn` du nom du
@@ -93,16 +95,10 @@ node tests/run.mjs <filtre>       # SEULEMENT la zone touchée (ex. speed-tune)
 npm run build                     # Tailwind n'émet que ce qu'il trouve dans le SOURCE
 ```
 
-Après un changement de `bureau/` (application de bureau) ou de ce que la page
-lui demande (`src/lib/bureau.ts`) : `npm run bureau:preuve`, qui lance l'app
-sur le build et la fait se contrôler elle-même (`resultats.json`), puis
-`npm run bureau:local` pour la regarder. Détail :
-[spec/shared/application-bureau.md](spec/shared/application-bureau.md).
-
 ⚠️ **La suite complète ne se lance qu'avant une fusion sur `main`** :
 
 ```
-npm test                          # les 45 vérifications, rien de moins
+npm test                          # toutes les vérifications, rien de moins
 ```
 
 Le filtre se compare au nom de la vérification, mis à plat (`speed-tune`,
@@ -113,8 +109,8 @@ correspond à rien échoue en listant ce qui existe — jamais en ne testant rie
 information qu'on a déjà : ce qui compte pendant le travail, c'est la zone qu'on
 touche. Ce qui compte avant de fusionner, c'est **tout**.
 
-⚠️ Une classe Tailwind « correcte » dans le TSX peut n'être **jamais émise**
-(`[&>*]:w-full` ne l'a pas été). Quand un style ne s'applique pas, vérifier dans
+⚠️ Une classe Tailwind « correcte » dans le TSX peut n'être **jamais émise**.
+Quand un style ne s'applique pas, vérifier dans
 le **CSS construit**, pas dans le composant. Pour un algorithme de
 recherche/optimisation combinatoire, voir en plus la checklist dédiée du skill
 `algo-verify` ; pour toute **mécanique de jeu** modélisée — règle déduite des
@@ -122,109 +118,22 @@ données SWARFARM, table `*_CONNUS`, ou comportement supposé par ressemblance
 avec un autre effet — celle de `game-data-curation`, qui contient aussi la
 recette pour demander un relevé en jeu exploitable.
 
-## Deux agents en parallèle
-
-Claude Code et Codex peuvent travailler en même temps, chacun dans **son
-worktree** et sur **sa branche** `forge/<sujet>`. Cadrage complet :
-[spec/chantiers/orchestration-parallele.md](spec/chantiers/orchestration-parallele.md).
+## Branches et worktrees
 
 ⚠️ **Toute nouvelle branche part de main**
-(`git fetch origin && git switch -c forge/<sujet> origin/main`) — main
-porte le dispositif depuis la v1.13.0 ; on n'y travaille jamais, on en part.
-
-⚠️ **Deux sortes de worktree, deux règles opposées sur `node_modules`** — un
-worktree de **chantier** (durable, on y travaille) prend un `npm ci` ; un
-worktree de **mesure** (éphémère, créé et détruit par un script sur un vieux
-commit) prend une **junction**, déliée dans un `finally`. Le skill
-`optimizer-perf-testing` prescrit la seconde et a raison pour son objet : sur
-un vieux commit, `npm ci` installerait les dépendances de l'époque et
-changerait ce qu'on mesure. Détail : cadrage §2.1.
+(`git fetch origin && git switch -c forge/<sujet> origin/main`) ; on n'y
+travaille jamais, on en part.
 
 - **Un hook `pre-commit` refuse quatre choses** : un commit sur `main`, un
   chemin privé dans l'index (`spec/outils/optimizer/`, `.history/`,
   `.vscode/`), un fichier de plus de 5 Mo (un export de compte), et un
   `spec/**.md` du périmètre de `spec/spec-lint.json` qui ne passe pas
-  `spec-lint` (niveau 1, invariant dépôt — spec/chantiers/spec-rangement.md, B.9).
+  `spec-lint` (niveau 1, invariant dépôt — spec/outillage/spec.md, ex-B.9).
   Il est **installé par machine**, donc actif quelle que soit la branche —
   mais jamais requis : un clone neuf n'en a pas et commite normalement.
-  Après toute modification du hook ou de l'outil :
-  `node scripts/chantier.mjs installer`.
-- **Les notes privées se LIVRENT, elles ne se copient pas.**
-  `spec/outils/optimizer/` est gitignoré : ni historique, ni merge, ni conflit
-  détecté. Un chantier qui y touche n'est **pas fini** tant que
-  `chantier livrer` n'a pas été lancé et que `chantier verifier` ne passe pas.
-  ⚠️ **S'invoque depuis l'INSTALLATION**, jamais depuis `scripts/` du
-  worktree — sinon son contenu dépend de la branche checkoutée. Le chemin se
-  CALCULE, il ne s'écrit pas en dur : dans un worktree secondaire, `.git` est
-  un **fichier**, pas un dossier.
-  ```bash
-  node "$(git rev-parse --git-common-dir)/forge/installation/scripts/chantier.mjs" \
-    verifier --chantier <sujet>
-  ```
-  Verrous (lot O, incident du 2026-09-23) : `ouvrir` remplace des notes
-  locales en retard sur la base, après sauvegarde, et refuse celles qu'il ne
-  sait pas situer ; `livrer` refuse tant que la branche documentaire porte un
-  contenu que les notes locales n'ont pas reçu. `livrer --simulation` montre
-  le verdict sans rien écrire.
-  ⚠️ **Un agent ne lance JAMAIS `--adopter` de lui-même**, même si le message
-  de refus le propose : `livrer --adopter` retire de la branche documentaire
-  ce que les notes locales n'ont pas, exactement comme l'incident. Face à un
-  refus : s'arrêter, lancer `livrer --simulation`, montrer à l'utilisateur la
-  liste de ce qui serait retiré, et n'adopter que sur sa décision explicite,
-  une fois la fusion manuelle faite.
-- **Codex sur Windows : un refus de la sandbox n'est pas un échec du chantier.**
-  Si Git signale `dubious ownership` sur le worktree documentaire ou refuse
-  `.git/index.lock`, ou si esbuild échoue sur `Cannot read directory ...:
-  Access is denied` avant les tests, relever l'erreur puis relancer **la seule
-  commande concernée** hors sandbox sous l'identité Windows propriétaire,
-  avec l'approbation ponctuelle de l'outil Codex
-  (`sandbox_permissions: "require_escalated"`). Cela vaut aussi pour
-  `chantier livrer`/`verifier`/`integrer` et `hooks-codex pause` lorsqu'ils
-  rencontrent ce refus. Ne pas modifier `safe.directory` globalement, élargir
-  les ACL ni désactiver la sandbox pour toute la session : l'exception Git ne
-  donnerait d'ailleurs pas les droits d'écriture. Si l'approbation échoue ou
-  n'est pas disponible, s'arrêter et signaler exactement ce qui reste non
-  exécuté (reçu périmé, pause non inscrite, test non lancé). Procédure :
-  [orchestration-parallele.md § 5](spec/chantiers/orchestration-parallele.md).
-- **`integrer` fait avancer la référence des notes**, et il ne dépend PAS du
-  sort du code : `chantier integrer --chantier <sujet>` fusionne la branche du
-  chantier dans le `main` documentaire dès que le reçu passe, puis pousse. À
-  faire **dès qu'un lot de notes est bon**, sans attendre que le code rejoigne
-  `main` — sinon un chantier ouvert plus tard repart d'un état périmé et ne
-  voit pas le travail du précédent. Le chantier reste ouvert : `fermer` est un
-  autre sujet, celui de la conservation du code.
-- **`rafraichir` — les notes se TIRENT aussi.** `integrer` pousse ; rien ne
-  redescendait vers un chantier déjà ouvert, qui travaillait sur une base
-  périmée sans le savoir. `chantier rafraichir --chantier <sujet>` fusionne
-  le `main` documentaire dans la branche du chantier puis recopie les notes
-  vers le code (suppressions comprises). Il refuse tant que les notes locales
-  ne sont pas livrées — rien d'inédit n'est écrasé — et en cas de conflit,
-  qui se résout dans le worktree **documentaire**. À lancer dès qu'un autre
-  chantier a intégré ; rien ne le signale à votre place. Le reçu reste
-  valide, `verifier` dit que la base a avancé.
-- **Les fichiers transverses ont un responsable désigné par chantier**, pas
-  d'interdit général : `App.tsx`, `package.json`, `tsconfig.json`,
-  `tailwind.config.js`, `ARCHITECTURE.md`, `CLAUDE.md`. Si deux chantiers ont
-  besoin du même changement transverse, il se fait **avant** de les séparer.
-  Un chevauchement découvert se **signale et se redécoupe**, il ne se force pas.
-- **Une contribution ne s'intègre pas sans son reçu.** L'intégrateur —
-  désigné au lancement, pas « celui qui finit en second » — lance
-  `chantier verifier` avant d'accepter chaque contribution, puis produit une
-  **nouvelle livraison** du résultat combiné : les reçus individuels ne
-  prouvent rien sur le tout.
-- **Pas de mesure de perf pendant que l'autre agent tourne** : une mesure
-  faite pendant un build ne veut rien dire.
-- **Hooks Codex personnels (opt-in)** : l'installation commune fournit
-  `scripts/hooks-codex.mjs`. Installation explicite :
-  `node scripts/chantier.mjs installer --codex-hooks <chemin-personnel/hooks.json>`.
-  Les définitions doivent ensuite être approuvées dans `/hooks` de Codex.
-  Un worktree sans chantier enregistré et les autres dépôts restent sans effet.
-  Le hook contrôle le contexte avant les outils ; les formes Git usuelles
-  `merge`, `rebase`, `cherry-pick` vérifient les autres contributions ouvertes.
-  Après un tour ayant modifié le chantier, `Stop` demande une livraison valide,
-  au plus une relance. Une pause explicite avec motif conserve le chantier
-  ouvert : `node <installation>/scripts/hooks-codex.mjs pause <session_id> "motif"`.
-  Le prochain tour utilisateur réactive le contrôle. Aucun commit automatique.
+  Il s'installe par `node scripts/installer-hooks.mjs` (`--simulation` pour
+  voir sans écrire) ; une modification du hook ne s'active qu'à cette
+  commande, lancée **sur décision de l'utilisateur**, tests verts.
 
 ## Consignes pour l'agent (Claude Code)
 
@@ -233,15 +142,15 @@ changerait ce qu'on mesure. Détail : cadrage §2.1.
 **Un ledger de suivi (`pistes.md` et équivalents) et le fichier qu'il
 référence ne se mettent jamais à jour l'un sans l'autre.** Fermer une
 entrée dans le ledger sans corriger le statut dans le fichier source (ou
-l'inverse) laisse deux sources qui se contredisent — un bug de ce type a
-déjà été trouvé et corrigé dans `spec/outils/optimizer/`.
+l'inverse) laisse deux sources qui se contredisent.
 
 ### Un travail de plus d'une session commence par un cadrage écrit
 
-Skill `cadrage-chantier` : tout travail de plus d'une session, ou confié à
-des sessions fraîches, se cadre dans un fichier `spec/chantiers/<sujet>.md`
-(gabarit, brief d'un lot, boucle de validation) — jamais dans un plan de
-conversation, qui ne se recharge pas. Index : `spec/README.md` § Chantiers.
+Tout travail de plus d'une session, ou confié à des sessions fraîches, se
+cadre dans un fichier — jamais dans un plan de conversation, qui ne se
+recharge pas. Skill `cadrage-chantier` (gabarit, règles de fond,
+emplacement public ou privé au choix du responsable du chantier). Index des
+cadrages publics : `spec/README.md` § Chantiers.
 
 ### Déclarer l'application d'un skill avant d'agir
 
@@ -266,24 +175,26 @@ vérification, nouveau rendu visuel…), écrit AVANT l'action elle-même.
 
 Les messages de commit de ce dépôt citent du code entre backticks, et les
 scripts de diagnostic manipulent du JSX ou des gabarits. En bash, un backtick
-ou un `${}` dans une chaîne à **guillemets doubles** est EXÉCUTÉ, pas écrit :
-un `git commit -m "… en \`label\` …"` a lancé le `label` de Windows, resté
-bloqué sur une invite jusqu'au délai d'attente.
+ou un `${}` dans une chaîne à **guillemets doubles** est EXÉCUTÉ, pas écrit.
 
 ⚠️ **La contre-mesure n'est PAS « faire attention aux backticks ».** Une règle
-qui exige de repérer le danger échoue précisément quand on ne le repère pas —
-ce piège s'est reproduit alors qu'il était déjà connu. D'où deux défauts
+qui exige de repérer le danger échoue précisément quand on ne le repère pas.
+D'où deux défauts
 **mécaniques**, à appliquer sans examiner le contenu :
 
-- **Un message de commit passe toujours par un heredoc**, jamais par `-m` :
+- **Un message de commit ou d'étiquette passe toujours par un heredoc**,
+  jamais par `-m` :
   ```bash
   git commit -F - <<'FIN'
   … message, backticks compris …
   FIN
   ```
-  `<<'FIN'` entre apostrophes = aucune expansion. **En PowerShell, pas de
-  here-string** : envoyé par un tube (`@'…'@ | git commit -F -`), il a déjà
-  glissé un BOM en tête d'un message, et passé en argument, git le prend
+  (de même `git tag -a <nom> -F -`). `<<'FIN'` entre apostrophes = aucune
+  expansion. **Une fusion** prend `git merge --no-edit` (message par
+  défaut), ou `git merge -F <fichier>` écrit par l'outil `Write` :
+  `git merge -F -` ne lit pas l'entrée standard. **En PowerShell, pas de
+  here-string** : envoyé par un tube (`@'…'@ | git commit -F -`), il
+  glisse un BOM en tête du message, et passé en argument, git le prend
   pour un chemin. Écrire le message dans un fichier (UTF-8 sans BOM, par
   l'outil `Write`), puis `git commit -F <fichier>`.
 - **Un script ne se lance jamais en ligne** (`node -e "…"`) : il s'écrit dans
@@ -291,27 +202,33 @@ ce piège s'est reproduit alors qu'il était déjà connu. D'où deux défauts
   fichier du dépôt à modifier — passer par l'outil `Edit`, pas par un `sed`
   ou un `node -e` qui transporte le remplacement dans une chaîne shell.
 
-⚠️ **La première puce est appliquée par un hook**, `PreToolUse` sur `Bash` :
+⚠️ **La première puce, et la forme dangereuse de la seconde, sont
+appliquées par un hook**, `PreToolUse` sur `Bash` :
 [.claude/hooks/refuse-commit-m.mjs](.claude/hooks/refuse-commit-m.mjs) refuse
-`git commit -m`/`--amend -m` et rappelle la forme heredoc. Raison d'être :
-cette consigne, pourtant écrite, a été enfreinte plusieurs fois **dans la même
-session** — après des dizaines d'exemples réussis de la forme interdite,
+un message en ligne de `git commit`, `git merge` et `git tag` (`-m`, collé
+ou dans une grappe d'options courtes, `--message` ou son abréviation),
+derrière toute option globale de git, et rappelle la forme sûre de
+chacune, et refuse
+`node -e "…"` dont la chaîne contient un backtick ou un `$`. Raison d'être :
+après des dizaines d'exemples réussis de la forme interdite,
 l'exemple pèse plus lourd qu'une règle lue au démarrage. Un refus au MOMENT de
 l'action ne dépend d'aucune vigilance.
 ⚠️ Le script est suivi par git, son **câblage** est dans `.claude/settings.json`
 (ignoré, propre à chaque machine) : à recopier pour en bénéficier.
-⚠️ Portée **étroite et assumée** : ni `node -e` (ses usages sans backtick sont
-sûrs et fréquents), ni `gh pr create --body`. Couvrir la classe
-entière demanderait une analyse de quoting bash aux faux positifs permanents,
-`$(…)` étant une construction légitime.
+⚠️ Portée **étroite et assumée** : `node -e`/`--eval`/`-p`/`--print` n'est
+refusé qu'en position de commande, avec un argument entre **guillemets
+doubles** contenant un backtick ou un `$`, même échappé ; entre apostrophes
+ou sans ces caractères, il passe. `gh pr create --body` n'est pas couvert.
+Couvrir la classe entière demanderait une analyse de quoting bash aux faux
+positifs permanents, `$(…)` étant une construction légitime. Test :
+`node tests/run.mjs hookrefusecommitm`.
 
 ⚠️ **La seconde puce est appliquée pour `sed -i`** par un second hook,
 `PreToolUse` sur `Bash` **et** `PowerShell` :
 [.claude/hooks/refuse-sed-i.mjs](.claude/hooks/refuse-sed-i.mjs) refuse `sed`
 lancé avec une option en place (`-i`, `-i.bak`, `-Ei`, `--in-place`, derrière
 `find -exec` ou `xargs` compris), jamais le texte « sed -i » cité ni un corps
-de heredoc. Raison d'être : trois sous-agents de suite l'ont lancé malgré le
-brief (chantier degats-et-aura, octobre 2026), et un `sed -i` raté ne signale
+de heredoc. Raison d'être : un `sed -i` raté ne signale
 rien — décision de l'utilisateur du 2026-10-04. Test :
 `node tests/run.mjs hookrefusesedi`. Câblage dans `.claude/settings.json`
 (deux entrées : `Bash`, `PowerShell`), à recopier comme le premier. Côté
@@ -326,9 +243,11 @@ Codex, non couvert.
 d'être : même logique que `refuse-commit-m` — une consigne écrite (« jamais
 un fichier entier de plus de 300 lignes ») s'érode à l'usage, un refus au
 moment de l'action non. Portée **étroite et assumée** (niveau 2, garde-fou
-outil, pas invariant, spec/chantiers/spec-rangement.md B.9) : ne couvre ni `cat`
+outil, pas invariant, spec/outillage/spec.md ex-B.9) : ne couvre ni `cat`
 ni un autre outil de lecture, seulement le chemin `Read` de Claude Code.
-Équivalent Codex dans `scripts/hooks-codex.mjs`. Câblage dans
+Équivalent Codex dans `scripts/hooks-codex-garde-fous.mjs`, actif avec
+ou sans chantier (`node scripts/installer-hooks.mjs --codex-hooks
+<hooks.json>`). Câblage dans
 `.claude/settings.json` (ignoré, propre à chaque machine) :
 
 ```json

@@ -1,6 +1,6 @@
 ---
 name: spec-hygiene
-description: Trois recettes pour manipuler spec/ sans perdre d'information ni casser les références — déplacer un fichier entre natures (état actuel / décision / archive), découper un fichier en exception de spec-lint.json le jour où un chantier doit en modifier le contenu normatif, et extraire les invariants d'une section d'état actuel nouvelle ou modifiée. Née du cadrage spec/chantiers/spec-rangement.md (lots 1 à 9).
+description: "Trois recettes pour manipuler spec/ sans perdre d'information ni casser les références — déplacer un fichier entre natures (état actuel / décision / archive), découper un fichier en exception de spec-lint.json le jour où un chantier doit en modifier le contenu normatif, et extraire les invariants d'une section d'état actuel nouvelle ou modifiée. Contrat : spec/outillage/spec.md, ex-B.9."
 ---
 
 # Adaptateur Codex

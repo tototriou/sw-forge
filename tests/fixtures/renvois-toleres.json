@@ -2,7 +2,7 @@
   "_lisezmoi": [
     "Renvois morts tolérés par tests/renvois.test.ts : une entrée par (fichier, renvoi), avec son nombre exact d’occurrences.",
     "Une entrée qui ne fait plus échouer fait échouer le test : on la retire, ou on la décompte, dans le commit qui corrige le renvoi.",
-    "Propriétaires : a-publier (renvoi vers une note de l’Optimizer pas encore publiée, ou renvoi mort du périmètre du chantier en cours, à vider avant sa clôture), thomas (chantiers de Thomas), hors-perimetre (hors du périmètre du chantier en cours).",
+    "Propriétaires : a-publier (renvoi vers une note de l’Optimizer pas encore publiée ; l’entrée disparaît à sa publication, ou quand le renvoi est corrigé), a-corriger (renvoi mort déjà pris en charge, à corriger ; aucune entrée nouvelle), thomas (chantiers de Thomas), hors-perimetre (renvoi mort connu, sans correction prévue ; qui touche le fichier le corrige et retire l’entrée).",
     "Contrat : spec/outillage/renvois.md."
   ],
   "entrees": [
@@ -202,7 +202,7 @@
       "fichier": "ARCHITECTURE.md",
       "renvoi": "outils/OptimizerSection.tsx",
       "occurrences": 1,
-      "proprietaire": "a-publier"
+      "proprietaire": "a-corriger"
     },
     {
       "fichier": "ARCHITECTURE.md",
@@ -382,13 +382,13 @@
       "fichier": "ARCHITECTURE.md",
       "renvoi": "workers/buildHalf.worker.ts",
       "occurrences": 1,
-      "proprietaire": "a-publier"
+      "proprietaire": "a-corriger"
     },
     {
       "fichier": "ARCHITECTURE.md",
       "renvoi": "workers/runeBuildOptim.worker.ts",
       "occurrences": 1,
-      "proprietaire": "a-publier"
+      "proprietaire": "a-corriger"
     },
     {
       "fichier": "CLAUDE.md",
@@ -814,19 +814,19 @@
       "fichier": "spec/outils/degats-reels.md",
       "renvoi": "spec/outils/artefacts.md",
       "occurrences": 1,
-      "proprietaire": "a-publier"
+      "proprietaire": "a-corriger"
     },
     {
       "fichier": "spec/outils/degats-reels/artefacts-critique-et-element.md",
       "renvoi": "spec/outils/artefacts.md",
       "occurrences": 1,
-      "proprietaire": "a-publier"
+      "proprietaire": "a-corriger"
     },
     {
       "fichier": "spec/outils/degats-reels/artefacts-et-degats-bruts.md",
       "renvoi": "spec/outils/artefacts.md",
       "occurrences": 1,
-      "proprietaire": "a-publier"
+      "proprietaire": "a-corriger"
     },
     {
       "fichier": "spec/outils/degats-reels/conditions-et-audit.md",
@@ -856,13 +856,13 @@
       "fichier": "spec/outils/degats-reels/effets-equipe-et-leaders.md",
       "renvoi": "siege/LeadPill.tsx",
       "occurrences": 1,
-      "proprietaire": "a-publier"
+      "proprietaire": "a-corriger"
     },
     {
       "fichier": "spec/outils/degats-reels/formules-et-combat.md",
       "renvoi": "spec/outils/mecaniques.md",
       "occurrences": 1,
-      "proprietaire": "a-publier"
+      "proprietaire": "a-corriger"
     },
     {
       "fichier": "spec/outils/degats-reels/valeurs-de-jeu-curees.md",
@@ -874,19 +874,19 @@
       "fichier": "spec/outils/degats-reels/valeurs-de-jeu-curees.md",
       "renvoi": "degats-reels/",
       "occurrences": 1,
-      "proprietaire": "a-publier"
+      "proprietaire": "a-corriger"
     },
     {
       "fichier": "spec/outils/degats-reels/valeurs-de-jeu-curees.md",
       "renvoi": "degats-reels/artefacts-et-degats-bruts.md",
       "occurrences": 1,
-      "proprietaire": "a-publier"
+      "proprietaire": "a-corriger"
     },
     {
       "fichier": "spec/outils/optimizer.md",
       "renvoi": "lib/effects.ts",
       "occurrences": 2,
-      "proprietaire": "a-publier"
+      "proprietaire": "a-corriger"
     },
     {
       "fichier": "spec/outils/optimizer.md",
@@ -1024,7 +1024,7 @@
       "fichier": "src/components/outils/EtatMonstre.tsx",
       "renvoi": "siege/LeadPill.tsx",
       "occurrences": 1,
-      "proprietaire": "a-publier"
+      "proprietaire": "a-corriger"
     },
     {
       "fichier": "src/components/outils/MonsterSourcePicker.tsx",
@@ -1294,7 +1294,7 @@
       "fichier": "src/lib/runeBuildOptim.ts",
       "renvoi": "scripts/monster-search-skyline-diag.ts",
       "occurrences": 2,
-      "proprietaire": "a-publier"
+      "proprietaire": "a-corriger"
     },
     {
       "fichier": "src/lib/runeBuildOptim.ts",
@@ -1336,7 +1336,7 @@
       "fichier": "src/lib/runeBuildOptim.ts",
       "renvoi": "tests/le",
       "occurrences": 1,
-      "proprietaire": "a-publier"
+      "proprietaire": "a-corriger"
     },
     {
       "fichier": "src/lib/stats.ts",
@@ -1492,7 +1492,7 @@
       "fichier": "tests/degats-couverture-livraisons.test.ts",
       "renvoi": "tests/audit-degats-conditionnels",
       "occurrences": 2,
-      "proprietaire": "a-publier"
+      "proprietaire": "a-corriger"
     },
     {
       "fichier": "tests/degats-lot12.test.ts",
@@ -1600,7 +1600,7 @@
       "fichier": "tests/rune-optim-parallel-pairing.test.ts",
       "renvoi": "scripts/pairing-parallel-diag.ts/parallel-pairing-real-diag.ts",
       "occurrences": 1,
-      "proprietaire": "a-publier"
+      "proprietaire": "a-corriger"
     },
     {
       "fichier": "tests/rune-optim-parallel-pairing.test.ts",

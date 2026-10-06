@@ -59,15 +59,17 @@ où un renvoi doit nommer un fichier publié. Un chemin qui contient `<`, `*`,
 `tests/fixtures/renvois-toleres.json` : une entrée par fichier et par renvoi,
 avec le nombre exact d'occurrences et un propriétaire.
 
-- `a-publier` : renvoi vers une note de l'Optimizer pas encore publiée, ou
-  renvoi mort du périmètre du chantier en cours ; vidé avant sa clôture.
+- `a-publier` : renvoi vers une note de l'Optimizer pas encore publiée ;
+  l'entrée disparaît à sa publication, ou quand le renvoi est corrigé.
+- `a-corriger` : renvoi mort déjà pris en charge, à corriger.
 - `thomas` : renvoi qui appartient aux chantiers de refonte graphique et de
   rebranding ; on n'y touche pas.
-- `hors-perimetre` : renvoi mort hors du périmètre du chantier en cours.
+- `hors-perimetre` : renvoi mort connu, sans correction prévue ; qui touche
+  le fichier le corrige et retire l'entrée.
 
 Le test échoue sur un renvoi mort absent de la liste, ou plus fréquent
 qu'elle ne le dit, et sur une entrée qui ne fait plus échouer : le commit qui
 corrige un renvoi, ou qui publie la note qu'il vise, retire ou décompte
 l'entrée. Une entrée nouvelle n'est admise qu'en `a-publier`, quand le README
 de routage de l'Optimizer annonce sa cible, ou en `thomas` et
-`hors-perimetre` à la fusion d'une autre branche.
+`hors-perimetre` à la fusion d'une autre branche ; jamais en `a-corriger`.

@@ -64,7 +64,13 @@ export const CIBLES_EXEMPTEES: { chemin: string; dossier: boolean }[] = [
   { chemin: '.git', dossier: true },
 ];
 
-const PROPRIETAIRES = ['a-publier', 'thomas', 'hors-perimetre'];
+// a-publier : renvoi vers une note de l'Optimizer pas encore publiée ; l'entrée
+// disparaît à sa publication, ou quand le renvoi est corrigé.
+// a-corriger : renvoi mort déjà pris en charge, à corriger ; aucune entrée nouvelle.
+// thomas : chantiers de Thomas.
+// hors-perimetre : renvoi mort connu, sans correction prévue ; qui touche le
+// fichier le corrige et retire l'entrée.
+const PROPRIETAIRES = ['a-publier', 'a-corriger', 'thomas', 'hors-perimetre'];
 
 const RACINES = ['spec', 'src', 'scripts', 'tests', '.claude', '.agents'];
 const C = '\\p{L}\\p{N}_.\\-/';

@@ -295,7 +295,7 @@ ordre ». En particulier vérifier :
 - Les VALEURS de chaque paramètre transmis (caps, objectif, metric, pool,
   exclusions…), pas seulement leur présence — un défaut d'écran qui a changé
   depuis la dernière fois (ex. l'exclusion automatique de runes, renommée ET
-  son défaut INVERSÉ entre deux sessions — « Utiliser tout l'inventaire »
+  son défaut INVERSÉ — « Utiliser tout l'inventaire »
   cochée par défaut devenue « Exclure les runes déjà utilisées » décochée
   par défaut, voir `excludeUsedRunes`/`autoExcludedRuneIds`) invalide
   silencieusement un script écrit avant ce changement.

@@ -22,6 +22,7 @@ unique aurait fait fuiter des réservations entre des contextes qui, en
 jeu, n'ont RIEN à voir l'un avec l'autre.
 
 ## Créer, valider et réserver dans une liste
+
 - **Aucune liste fixe** — l'utilisateur en crée, renomme et supprime
   librement (`OptimizerListPicker.tsx`, menu déroulant : crayon de
   renommage, corbeille de suppression par ligne, « + Nouvelle liste » en
@@ -76,7 +77,9 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   infobulle nommant le monstre qui la retient : le retirer laisserait croire que
   ce build n'est pas validable du tout, alors qu'il le redevient dès qu'on
   libère la rune.
+
 ## Zone C — Monstres de la liste
+
 - **Zone C, « Monstres de la liste »** — juste sous les puces de source
   dans « Monstre & équipement » : chaque monstre de la liste active, son
   statut (« Validé » + bouton libérer, ou « pas encore validé »), cliquable
@@ -91,8 +94,8 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   n'est pas encore validé (rien à perdre), avec confirmation s'il l'est (le
   retrait libère aussi ses runes). Bouton **« Ajouter à la liste »**, dont
   le libellé change selon le contexte (aucun monstre choisi → désactivé ;
-  déjà dans la liste active → voir ci-dessous ; sinon → « Ajouter <monstre> à
-  « <liste> » », suffixé « (non possédé) » pour une espèce sans exemplaire
+  déjà dans la liste active → voir ci-dessous ; sinon → « Ajouter `<monstre>` à
+  « `<liste>` » », suffixé « (non possédé) » pour une espèce sans exemplaire
   réel, voir plus bas). Sans liste active, l'ajout crée une liste (prompt
   du nom) ET y ajoute le monstre dans le même geste.
   ⚠️ **Plusieurs exemplaires Box d'une même espèce** (degats-et-aura lot
@@ -102,12 +105,12 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   affiché **vient de la Box**, est déjà membre et qu'un autre exemplaire
   Box de l'espèce ne l'est pas, le bouton reste **actif** : « Ajouter un
   autre exemplaire de
-  <monstre> à « <liste> » ». Un clic choisit le **premier exemplaire Box,
+  `<monstre>` à « `<liste>` » ». Un clic choisit le **premier exemplaire Box,
   dans l'ordre de la zone D, absent de la liste**, l'affiche (règles de
   6bis-b19 : résultats affichés effacés, critères gardés, aucun rappel des
   auras externes — voir « Recherche du monstre à optimiser ») puis
   l'ajoute ; un clic, un exemplaire. Tous les exemplaires Box déjà
-  membres : « Déjà dans « <liste> » », désactivé. Exemplaire affiché
+  membres : « Déjà dans « `<liste>` » », désactivé. Exemplaire affiché
   venu de RTA ou du siège, déjà membre : « Déjà dans », désactivé, sans
   exemplaire suivant (décision du 2026-10-04) — l'exemplaire Box
   proposé pouvait être le même monstre physique. Aucun numéro
@@ -158,6 +161,9 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   barrée d’une interdiction**, celle d’« Exclure les runes déjà utilisées » :
   du point de vue du monstre, libérer, c’est lui retirer ses runes. Le second
   bouton reprend le même montage avec l’icône d’**artéfact**.
+
+### Monstre non possédé et auto-exemption
+
 - ⚠️ **Ajouter un monstre qu'on ne possède PAS** — demande explicite : « le
   joueur a obtenu le monstre et veut essayer des runages de teams sans
   avoir mis à jour son json ». Une ESPÈCE choisie via la recherche
@@ -203,7 +209,9 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   runage correspond bien à l'une des 4 sources. Réinitialisée à chaque
   changement d'exemplaire — revenir sur ce monstre plus tard réaffiche le
   build validé par défaut.
+
 ## Comparer, valider sans recherche et persistance
+
 - **« Comparer », à côté de « Valider ce build »** sur chaque carte de
   résultat (demande explicite) : les deux boutons **se partagent la largeur**
   de la carte, plutôt que d'être empilés — une rangée de plus par carte se

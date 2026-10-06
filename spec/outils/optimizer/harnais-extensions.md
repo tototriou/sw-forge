@@ -141,7 +141,8 @@ est une distribution, jamais un scalaire : `n`, min, médiane vraie (moyenne
 des deux valeurs centrales sur un effectif pair), p90, max, total et un
 histogramme en 12 classes, parce qu'une série bimodale ne se voit dans aucun
 jeu de quantiles et qu'une moyenne l'écraserait. `runesExterieures` est le
-`total` annoncé par le moteur. La médiane divisée par |f₁|×|f₂| est une
+`total` annoncé par le moteur. La médiane divisée par |f₁|×|f₂| (|f₄|×|f₅|
+pour la moitié B) est une
 DIVISION ARITHMÉTIQUE par le majorant des paires intérieures, jamais un
 « temps par triplet énumérable » (`scripts/lib/diagnosticHarness.ts:664-668`).
 Partent avec la mesure, chacun verrouillé par un test
@@ -291,11 +292,13 @@ est déterministe (`scripts/lib/diagnosticDifferentiel.ts:495-523`).
 
 ### Ce qu'une divergence dit
 
-Chaque lecture porte quatre champs (`LectureElement`,
+Chaque lecture porte quatre champs exigés (`LectureElement`,
 `scripts/lib/diagnosticDifferentiel.ts:167-188`,
-`tests/diagnostic-differentiel.test.ts:55-66`) : **OÙ** (l'élément et sa
-coordonnée, `meilleurs[4]` et non « le classement »), **COMBIEN** (dans son
-unité : rang, pourcentage de métrique, manque en points de stat, paires),
+`tests/diagnostic-differentiel.test.ts:55-66`) : **OÙ** (le chemin du
+champ comparé ; le rang divergent précis va dans COMBIEN et dans les
+exemples), **COMBIEN** (dans son unité : rang, pourcentage de métrique,
+candidats, paires ; pour le quasi-succès, un nombre de conditions, le
+manque de chacune dans l'unité de sa stat allant dans les exemples),
 **SUR COMBIEN** (la taille du support), **CE QUE ÇA AUTORISE** sur ce couple
 de runs. Un classement rapporte le premier rang divergent, la population et
 l'écart de métrique à ce rang ; l'écart dit seulement si la divergence

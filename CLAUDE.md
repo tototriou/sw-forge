@@ -206,8 +206,9 @@ D'où deux défauts
 appliquées par un hook**, `PreToolUse` sur `Bash` :
 [.claude/hooks/refuse-commit-m.mjs](.claude/hooks/refuse-commit-m.mjs) refuse
 un message en ligne de `git commit`, `git merge` et `git tag` (`-m`, collé
-ou dans une grappe d'options courtes, `--message`) et rappelle la forme
-sûre de chacune, et refuse
+ou dans une grappe d'options courtes, `--message` ou son abréviation),
+derrière toute option globale de git, et rappelle la forme sûre de
+chacune, et refuse
 `node -e "…"` dont la chaîne contient un backtick ou un `$`. Raison d'être :
 après des dizaines d'exemples réussis de la forme interdite,
 l'exemple pèse plus lourd qu'une règle lue au démarrage. Un refus au MOMENT de

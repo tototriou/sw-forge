@@ -220,4 +220,5 @@ Ce que le harnais ne sait pas faire, ou dit de travers :
   le dit dans son en-tête : `scripts/bucket-cap-scaling-diag.ts`,
   `scripts/stress-tranche-weighting-attainable-diag.ts` et
   `scripts/filterslot-topk-diag.ts`, dont la copie `filterSlotOld` n'a pas
-  l'élagage sûr de la production à combo de coût complet.
+  l'élagage sûr de la production à combo de coût complet
+  ([harnais-scripts.md § Les scripts voisins](harnais-scripts.md)).

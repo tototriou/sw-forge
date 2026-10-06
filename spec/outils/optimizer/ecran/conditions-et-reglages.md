@@ -51,8 +51,8 @@
      et Précision restent toujours des totaux. Affiché en `placeholder`
      tant que rien n'est saisi.
    - **Grille en `w-fit`**, un seul triplet (libellé/Min/Max) par rangée,
-     même au-delà de `2xl` — un passage à DEUX stats par rangée a été tenté
-     puis **explicitement écarté** : le triplet Min/Max reste la lecture
+     même au-delà de `2xl` — **jamais DEUX stats par rangée** : le triplet
+     Min/Max reste la lecture
      attendue, pas un doublement de densité. Cause du `w-fit` : un conteneur
      `grid` en BLOC prend toute la largeur de son parent, et des colonnes
      `auto` (Min/Max) sans aucune piste en `fr` **se partagent l'espace libre
@@ -79,7 +79,8 @@
      le pré-filtrage et la rétention restent heuristiques et ne valorisent
      pas l'aura propre. Les auras PV/ATQ/DEF ne comptent dans aucune
      condition. Les auras externes se saisissent dans « État de mon
-     monstre » (voir plus haut) ; `compterAurasResPre` se règle dans
+     monstre » (voir etat-de-mon-monstre.md § Sets d'aura des autres monstres) ;
+     `compterAurasResPre` se règle dans
      « Réglages avancés » (point 9 ci-dessous).
    - **« Réinitialiser les conditions »** vide les 16 champs sans toucher aux
      autres réglages de l'écran.
@@ -91,12 +92,12 @@
 9. **« Réglages avancés »** (repliés par défaut). ⚠️ **Au bureau, un
    `FlottantAuto`** (`shared/librairie-ui.md`), PAS un bloc qui grandit la
    carte — dépliée, la carte reste sous « Exclusion de runes » (colonne 2,
-   rangée 5, sous Exclusion en rangée 4 — voir « Mise en page bureau » en
-   tête d'« Écran ») à sa hauteur repliée, le
+   rangée 5, sous Exclusion en rangée 4 — voir
+   README.md § Ordre d'usage et grille) à sa hauteur repliée, le
    contenu flotte par-dessus le reste de la page ; ferme au clic extérieur.
    Un panneau replié par défaut ne peut pas réserver sa place à l'avance
    sans perdre l'intérêt d'être replié — voir
-   [shared/design.md](shared/design.md), « un clic ne déplace jamais ce
+   [shared/design.md](../../../shared/design.md), « un clic ne déplace jamais ce
    qu'on vient de cliquer ». **Pré-filtrage par emplacement**, en
    **presets** plutôt qu'un curseur libre — Bas / Moyen
    (défaut) / Haut / Extrême, du plus rapide au plus large (et donc plus
@@ -125,7 +126,8 @@
    ensuite pour revenir à décoché. Choisir Bas ou Moyen ne les décoche PAS
    automatiquement dans l'autre sens. Sous ce réglage :
    - **« Rechercher jusqu'à épuisement complet »**, décoché par défaut :
-     retire le filet de temps de 10 minutes (voir « Interruption ») — la
+     retire le filet de temps de 10 minutes (voir
+     ../interruption.md § Interruption — filet de temps, pré-filtrage et arrêt manuel) — la
      recherche continue tant qu'il reste des combinaisons à examiner, plutôt
      que de s'arrêter au bout d'un temps fixe. ⚠️ Peut prendre très longtemps
      sur une recherche avec peu de conditions (beaucoup de combinaisons
@@ -134,21 +136,22 @@
      plafond interne de candidats collectés (non réglable) reste actif ; une
      recherche assez large pour l'atteindre s'arrête quand même avant d'avoir
      tout exploré, ce qui n'a en pratique aucune conséquence sur la qualité
-     du résultat (voir « Limites connues »). Fait partie des réglages
-     exportés/importés dans une recette (voir plus bas).
+     du résultat (voir ../limites-connues.md § Limites connues). Fait partie
+     des réglages exportés/importés dans une recette (voir
+     lancer-la-recherche.md § Lancer la recherche).
    - **« Diagnostic approfondi sur 0 résultat »**, décoché par défaut (plus
-     coûteux qu'un diagnostic simple, voir « Résultats »).
+     coûteux qu'un diagnostic simple, voir resultats.md § Diagnostic sur 0 résultat).
    - **« Prioriser les stats les plus difficiles »**, décoché par défaut :
      réalloue le budget de rétention vers les stats demandées les plus
      rares/difficiles à combiner plutôt qu'un partage égal entre toutes —
      peut retrouver un build qu'une recherche normale rate, au prix d'une
      recherche plus longue. Fait partie des réglages exportés/importés dans
-     une recette (voir plus bas).
-   - **« Vérifier toutes les combinaisons trouvées »**, décoché par défaut
-     (degats-et-aura 6bis-b18, libellé proposé par le pilote, retenu par
-     l'utilisateur le 2026-10-02) : la file de résolution vérifie tous les
+     une recette (voir lancer-la-recherche.md § Lancer la recherche).
+   - **« Vérifier toutes les combinaisons trouvées »**, décoché par défaut :
+     la file de résolution vérifie tous les
      builds trouvés au lieu de s'arrêter à 100 combinaisons confirmées (300
-     en mode relique « recherche », voir « Le choix des artéfacts ») — le
+     en mode relique « recherche », voir
+     ../moteur/artefacts.md § Quand ce choix a lieu) — le
      compte des confirmées devient complet, au prix de plusieurs minutes
      possibles ; son aide le dit. ⚠️ **Lu EN DIRECT par la file**, jamais par
      « Rechercher » : il ne change pas la recherche de runes, seulement
@@ -157,12 +160,11 @@
      ⚠️ **Masqué quand l'optimisation d'artéfacts est désactivée** : sans
      file, rien n'est vérifié — même règle que « Adapter les artéfacts et
      reliques au tri ». Fait partie des réglages exportés/importés dans une
-     recette, champ optionnel `verifierToutesLesCombinaisons` (une recette
-     exportée avant le relit désactivé), et le CLI le respecte (voir
-     « Résultats »).
+     recette, champ optionnel `verifierToutesLesCombinaisons` (absent, il se
+     relit désactivé), et le CLI le respecte (voir
+     resultats.md § Valeur d'objectif affichée sur les cartes).
    - **« Compter les effets d'auras Tolerance et Précision dans les
-     conditions »**, activé par défaut (degats-et-aura 7a, libellé de
-     l'utilisateur) : le contrôle de `compterAurasResPre` (point 7
+     conditions »**, activé par défaut : le contrôle de `compterAurasResPre` (point 7
      ci-dessus) — activé, chaque set Tolerance ou Accuracy, externe ou
      propre au build, ajoute 8 points aux minimums ET aux maximums de RES
      et de Précision ; désactivé, ces deux conditions ignorent les auras,
@@ -177,10 +179,11 @@
      montre rien ; « toujours visible » porte sur leur contenu. Ajouter
      Accuracy ou Tolerance aux auras externes, ou le choisir comme set
      recherché, ouvre la surface du format et surligne cet interrupteur 3 s
-     (degats-et-aura 7b, ouverture guidée : voir « État de mon monstre »).
+     (voir
+     etat-de-mon-monstre.md § Ouverture guidée vers l'interrupteur des auras RES/PRE).
 
-   ⚠️ **Le seuil de niveau minimum de la relique N'EST PAS ICI** —
-   contrairement à ce qui était prévu : il vit dans le bloc
+   ⚠️ **Le seuil de niveau minimum de la relique N'EST PAS ICI** : il vit
+   dans le bloc
    « Relique » de la carte « Artéfacts et reliques » (« Niveau minimum »,
-   voir plus haut), avec les deux autres réglages relique, pas dans
-   « Réglages avancés » (T9 re-tranché deux fois).
+   voir relique.md § Relique), avec les deux autres réglages relique, pas dans
+   « Réglages avancés ».

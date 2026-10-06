@@ -12,11 +12,12 @@
     éloigné du nombre réel de demi-builds construits ou de paires visitées
     par le meet-in-the-middle pour servir de repère — seul le pool retenu,
     lui, est un nombre exact et directement lisible.
-11. **« Rechercher »** — lance le calcul. Changer un des critères ci-dessus
-    ne relance rien automatiquement : il faut recliquer. Un bouton
+11. **« Rechercher »** — lance le calcul. Changer un des critères de
+    recherche ne relance rien automatiquement : il faut recliquer. Un bouton
     **« Arrêter »** apparaît pendant le calcul — il interrompt la recherche
     et garde le **meilleur trouvé jusque-là**, plutôt que de tout perdre
-    (voir « Interruption »). ⚠️ **« Exporter les paramètres de recherche » / « Importer
+    (voir ../interruption.md § Interruption — filet de temps, pré-filtrage et arrêt manuel).
+    ⚠️ **« Exporter les paramètres de recherche » / « Importer
     les paramètres de recherche »** (« Exporter » / « Importer » quand la
     place manque), juste à côté : télécharge/relit un fichier `.json`
     contenant la RECETTE de cette recherche (set, minimums, objectif,
@@ -24,9 +25,9 @@
     **jamais le pool de runes ni le compte**, ce qui la rend partageable
     entre joueurs. L'import remplit tous les réglages et sélectionne
     automatiquement le monstre par son `com2usId` — **résolu dans TOUT le
-    bestiaire**, plus seulement les monstres possédés : importer la recette
+    bestiaire**, pas seulement parmi les monstres possédés : importer la recette
     de quelqu'un d'autre pour un monstre qu'on ne possède pas reste
-    utilisable (repli sur ses stats de base) au lieu d'échouer. Si le
+    utilisable (repli sur ses stats de base). Si le
     `com2usId` ne correspond à AUCUN monstre des données chargées (cas
     limite, ex. monstre retiré du jeu), les réglages sont importés et le
     message dit « ce monstre est introuvable dans les données actuelles —
@@ -41,7 +42,7 @@
     Le message d'import qui porte un tel avertissement prend le token
     d'avertissement (`warn`, jamais `good`) et **ne s'efface pas tout
     seul** : il reste jusqu'au prochain import de recette, réussi ou
-    refusé, qui le remplace (décision de l'utilisateur du 2026-10-02). Le
+    refusé, qui le remplace. Le
     message ordinaire (succès sans avertissement) s'efface après 5 s, le
     refus après 9 s (`messageImport.ts`). Le message vit dans le flux, sous
     la barre Rechercher / Exporter / Importer : le bouton cliqué, au-dessus,

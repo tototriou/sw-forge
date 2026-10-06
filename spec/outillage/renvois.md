@@ -51,8 +51,9 @@ dossier de l'Optimizer sous `spec/outils/`, le renvoi est mort, même si une
 base suivante résoudrait : il doit nommer un fichier publié. Un chemin qui
 contient encore `<`, `*`, `{` ou `$` est un modèle : il n'est pas vérifié.
 
-Un fichier suivi illisible fait échouer le test. Hors d'un dépôt Git, le test
-est ignoré ; toute autre erreur de Git le fait échouer.
+Un fichier suivi illisible fait échouer le test. Sans `.git` (fichier ou
+dossier) à la racine, le test est ignoré ; sinon, toute erreur de Git le fait
+échouer.
 
 ## Exemptions
 

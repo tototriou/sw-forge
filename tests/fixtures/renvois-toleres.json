@@ -551,19 +551,19 @@
       "fichier": "scripts/lib/spec-markdown.d.mts",
       "renvoi": "url",
       "occurrences": 1,
-      "proprietaire": "hors-perimetre"
+      "proprietaire": "a-corriger"
     },
     {
       "fichier": "scripts/lib/spec-markdown.mjs",
       "renvoi": "...",
       "occurrences": 1,
-      "proprietaire": "hors-perimetre"
+      "proprietaire": "a-corriger"
     },
     {
       "fichier": "scripts/lib/spec-markdown.mjs",
       "renvoi": "url",
       "occurrences": 1,
-      "proprietaire": "hors-perimetre"
+      "proprietaire": "a-corriger"
     },
     {
       "fichier": "scripts/monster-search-cap-sweep.ts",

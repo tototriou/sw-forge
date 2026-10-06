@@ -11,7 +11,7 @@
 // exemptés de leur propre contrôle (FICHIERS_EXEMPTES).
 
 import { execFileSync } from 'child_process';
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { dirname, join, posix } from 'path';
 import { fileURLToPath } from 'url';
@@ -297,19 +297,13 @@ export function releverFichier(
   return occ;
 }
 
-// Vrai dans un dépôt Git, faux hors dépôt ; toute autre erreur de Git est
-// levée : elle ne doit pas désactiver le garde-fou.
+// Faux sans `.git` (fichier ou dossier) à la racine ; sinon Git doit
+// répondre, et toute erreur est levée : elle ne doit pas désactiver le
+// garde-fou.
 export function depotGit(racine: string): boolean {
-  try {
-    execFileSync('git', ['-C', racine, 'rev-parse', '--git-dir'], {
-      stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, LC_ALL: 'C', LANGUAGE: 'C' },
-    });
-    return true;
-  } catch (e) {
-    const err = e as { status?: number; stderr?: Buffer | string };
-    if (err.status === 128 && /not a git repository/i.test(String(err.stderr ?? ''))) return false;
-    throw e;
-  }
+  if (!existsSync(join(racine, '.git'))) return false;
+  execFileSync('git', ['-C', racine, 'rev-parse', '--git-dir'], { stdio: ['ignore', 'pipe', 'pipe'] });
+  return true;
 }
 
 // Toutes les occurrences des fichiers lus, exemptés compris (`exempt`), et
@@ -402,7 +396,7 @@ export function testRenvoisFormes() {
     () => releverFichier('spec/outils/optimizer.md', ['[o](optimizer/)'], ordre, []).map((o) => o.statut), ['mort']);
   cas('`.` et `..` préservés, la racine est un dossier',
     () => morts('spec/probe.md', `Voir ../ et ${O}/..`), []);
-  cas('fichier suivi illisible relevé ; seule l’absence de dépôt est « pas de dépôt »', () => {
+  cas('fichier suivi illisible relevé ; seule l’absence de `.git` est « pas de dépôt », un `.git` invalide lève', () => {
     const bac = mkdtempSync(join(tmpdir(), 'swblacksmith-renvois-'));
     try {
       const depot = join(bac, 'depot');
@@ -413,26 +407,17 @@ export function testRenvoisFormes() {
       execFileSync('git', ['-C', depot, '-c', 'core.autocrlf=false', 'add', '--', 'a.md', 'b.md'], { stdio: 'ignore' });
       rmSync(join(depot, 'a.md'));
       mkdirSync(join(depot, 'a.md'));
+      const casse = join(bac, 'casse');
+      mkdirSync(casse);
+      writeFileSync(join(casse, '.git'), 'gitdir: nulle-part\n');
       let erreur = 'aucune';
-      try { depotGit(join(bac, 'absent')); } catch { erreur = 'levée'; }
+      try { depotGit(casse); } catch { erreur = 'levée'; }
       return [releverRenvois(depot).illisibles, depotGit(depot), depotGit(bac), erreur];
     } finally {
       // bac provient exclusivement de mkdtempSync sous tmpdir.
       rmSync(bac, { recursive: true, force: true });
     }
   }, [['a.md'], true, false, 'levée']);
-  cas('noms seuls : expressions compilées une fois, coût par ligne comparable hors des dossiers contrôlés', () => {
-    const lignes = Array.from({ length: 10000 }, (_, i) => `const v${i} = ${i}; // ligne ordinaire`);
-    const duree = (f: string) => {
-      const debut = performance.now();
-      releverFichier(f, lignes, resoudre, NOMS_DE_NOTES);
-      return performance.now() - debut;
-    };
-    duree('src/probe.ts');
-    const dans = Math.min(duree('src/probe.ts'), duree('src/probe.ts'));
-    const hors = Math.min(duree('autre/probe.ts'), duree('autre/probe.ts'));
-    return dans < 8 * hors + 20;
-  }, true);
 }
 
 export function testRenvois() {

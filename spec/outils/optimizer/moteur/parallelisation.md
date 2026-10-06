@@ -245,9 +245,11 @@ servent qu'à l'aperçu ; le résultat qui compte est celui de la fusion.
 - Erreur d'une tranche : sa promesse `done` est rejetée, `Promise.all`
   aussi, et `driveParallelPairing` sort sans terminer les autres tranches.
   Le Worker principal l'attrape : il termine les poignées encore inscrites
-  et poste un résultat vide, tronqué. Tout appelant de
-  `driveParallelPairing` fait de même avec les poignées reçues par
-  `onHandles`.
+  et poste un résultat vide, tronqué. Il est le seul appelant à passer
+  `onHandles` : le harnais, le différentiel d'extraction et
+  `tests/auras-modele.test.ts` n'en passent pas et ne terminent rien sur erreur. Un
+  appelant qui veut le même filet reçoit les poignées par `onHandles` et
+  les termine lui-même.
 - ⚠️ Ne pas retirer ce `try/catch` du Worker principal : un rejet non
   intercepté dans un `self.onmessage` asynchrone n'atteint pas le `onerror`
   du parent. Aucun message n'arriverait, l'écran resterait « en cours », et
@@ -399,8 +401,10 @@ contexte, annulations, demandes ; détail dans
   recherche au-dessus du seuil : la progression avance (barre, compte de
   candidats) ; « Arrêter » pendant l'appariement rend les candidats déjà
   trouvés, pas zéro, sans blocage ; une recherche menée jusqu'au bout rend
-  des résultats ; aucun Worker ne survit à la recherche, chemin d'erreur
-  compris. Pour comparer au navigateur sans outillage : exporter la recette,
+  des résultats ; aucun Worker de tranche ne survit à la recherche, chemin
+  d'erreur compris. Le Worker principal, lui, reste en vie après une
+  recherche finie : il n'est terminé que par la recherche suivante ou au
+  démontage (`src/hooks/useBuildOptimSearch.ts`). Pour comparer au navigateur sans outillage : exporter la recette,
   la rejouer sur la version d'avant le changement, comparer les premiers
   résultats.
 - Worker de résolution : `testResolutionWorker`

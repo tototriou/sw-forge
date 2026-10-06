@@ -62,7 +62,10 @@ const NOTES_SOUS_OPTIMIZER = /(^|\/)spec\/outils\/optimizer\/(archive|chantiers|
 const SEGMENT_NOTES = /(^|\/)(archive|chantiers|decisions|a-publier)(\/|$)/i;
 const SEGMENT_A_PUBLIER = /(^|\/)a-publier(\/|$)/i;
 const DELIMITEURS = /[\s()[\]<>`'"|,;:=*«»]+/;
+// Destination d'un lien en ligne, ou d'une définition de lien par
+// référence (`[nom]: cible`). Un lien éclaté sur plusieurs lignes n'est pas lu.
 const LIEN = /\]\(\s*<?([^)\s>]+)/g;
+const DEFINITION_LIEN = /^\s{0,3}\[[^\]]+\]:\s*<?([^\s>]+)/;
 // Identifiant de lot : le mot « lot » ou « lots » (toute casse usuelle, pas
 // « slot », « pilote » ni « îlot »), au plus deux espaces (insécables
 // comprises) ou tirets, puis un numéro (lettre, « bis » ou plage en
@@ -143,10 +146,19 @@ for (const chemin of stagés) {
 function lireIndex(chemin) {
   try {
     return execFileSync('git', ['show', `:${chemin}`],
-      { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe'] });
+      { maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe'] });
   } catch {
     return null;
   }
+}
+
+// UTF-16 à BOM décodé comme tel, sinon UTF-8 sans NUL (UTF-16 sans BOM) ;
+// puis NFC, pour qu'un caractère composé ou décomposé se lise pareil.
+function texte(octets) {
+  const corps = octets.subarray(2, 2 + ((octets.length - 2) & ~1));
+  if (octets[0] === 0xff && octets[1] === 0xfe) return corps.toString('utf16le').normalize('NFC');
+  if (octets[0] === 0xfe && octets[1] === 0xff) return Buffer.from(corps).swap16().toString('utf16le').normalize('NFC');
+  return octets.toString('utf8').replace(/\0/g, '').normalize('NFC');
 }
 
 // Un renvoi qui aboutit dans les sous-dossiers de notes, après
@@ -169,7 +181,7 @@ function renvoiAuxNotes(fichier, jeton, lien = false) {
 // se confond avec le dossier sur un disque Windows.
 const optimizer = stagés.filter((c) => c.toLowerCase().startsWith(DOSSIER_OPTIMIZER));
 if (optimizer.length > 0) {
-  const publies = new Set((lireIndex(LISTE_PUBLICS) ?? '').split(/\r?\n/)
+  const publies = new Set((lireIndex(LISTE_PUBLICS)?.toString('utf8') ?? '').split(/\r?\n/)
     .map((l) => l.trim()).filter((l) => l && !l.startsWith('#')));
   for (const chemin of optimizer) {
     if (!publies.has(chemin)) {
@@ -193,9 +205,10 @@ if (optimizer.length > 0) {
       continue;
     }
     const marques = [];
-    // Les NUL retirés : une note en UTF-16 se lit alors comme du texte.
-    contenu.replace(/\0/g, '').split(/\r?\n/).forEach((ligne, i) => {
+    texte(contenu).split(/\r?\n/).forEach((ligne, i) => {
       const liens = [...ligne.matchAll(LIEN)].map((m) => m[1]);
+      const definition = ligne.match(DEFINITION_LIEN);
+      if (definition) liens.push(definition[1]);
       if (ligne.split(DELIMITEURS).some((jeton) => renvoiAuxNotes(chemin, jeton))
         || liens.some((cible) => renvoiAuxNotes(chemin, cible, true))) {
         marques.push(`l. ${i + 1}, renvoi aux notes : ${ligne.trim()}`);
@@ -210,7 +223,8 @@ if (optimizer.length > 0) {
           ...(marques.length > 10 ? [`… (+${marques.length - 10})`] : []),
           '',
           'Une spec publiée ne renvoie pas aux notes et ne porte pas d’identifiant de lot.',
-          'Si ce contenu est une copie de note privée :',
+          'Un mot suivi d’une barre (« archive/… ») se lit comme un renvoi : le reformuler',
+          's’il n’en est pas un. Si ce contenu est une copie de note privée :',
           `  git restore --staged "${chemin}"`,
         ],
       });

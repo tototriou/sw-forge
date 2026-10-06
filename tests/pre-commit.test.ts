@@ -135,8 +135,21 @@ export function testPreCommit() {
       'note privée indexée, disque propre : le contenu de l’index fait foi, refus');
     ok(passe(cas({ [`${O}/invariants.md`]: propre }, undefined, { [`${O}/invariants.md`]: 'Voir archive/h.md.\n' })),
       'index propre, disque privé : accepté');
-    ok(refuse(marque(Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(`Voir archive/h.md, ${LOT} 7b.\r\n`, 'utf16le')])), RENVOI),
-      'note en UTF-16 : refus');
+    // Caractères construits par leur code : visibles dans ce source.
+    const INSECABLE = String.fromCharCode(0xa0);
+    const CIRCONFLEXE = String.fromCharCode(0x302);
+    const utf16 = (s: string, grosBoutiste = false) => {
+      const octets = Buffer.from(s, 'utf16le');
+      return Buffer.concat([Buffer.from(grosBoutiste ? [0xfe, 0xff] : [0xff, 0xfe]), grosBoutiste ? octets.swap16() : octets]);
+    };
+    ok(refuse(marque(utf16(`Voir archive/h.md, ${LOT} 7b.\r\n`)), RENVOI), 'note en UTF-16 : refus');
+    ok(refuse(marque(utf16(`Résultat du ${LOT}${INSECABLE}7b.\r\n`)), IDENTIFIANT),
+      'note en UTF-16, identifiant à espace insécable seul : refus');
+    ok(refuse(marque(utf16('Voir archive/h.md.\r\n', true)), RENVOI), 'note en UTF-16 gros-boutiste : refus');
+    git(depot, 'update-index', '--add', '--cacheinfo', `160000,${'1'.repeat(40)},${O}/sous/note.md`);
+    r = lancer(depot);
+    git(depot, 'reset', '-q', '--hard', 'HEAD');
+    ok(refuse(r, /REFUSÉ — contenu illisible/), 'contenu illisible dans l’index (sous-module inconnu) : refus');
 
     const identifiants: [string, string][] = [
       [`Source : ${LOT}s 3a–3c.`, 'pluriel et plage'],
@@ -146,10 +159,11 @@ export function testPreCommit() {
       [`{ ${LOT}: '1a2' }`, 'clé de données'],
       [`Résultat du ${LOT}\u00A07b.`, 'espace insécable'],
       [`Résultat du ${LOT}\t7b.`, 'tabulation'],
+      [`Résultat du ${LOT}  7b.`, 'deux espaces'],
     ];
     for (const [ligne, libelle] of identifiants) ok(refuse(marque(`${ligne}\n`), IDENTIFIANT), `identifiant de lot, ${libelle} : refus`);
-    ok(passe(marque(`Un ${LOT} de runes, le s${LOT} 4, le pi${LOT}e 2, un î${LOT} 7.\n`)),
-      'mot « lot » seul, « slot », « pilote », « îlot » : acceptés');
+    ok(passe(marque(`Un ${LOT} de runes, le s${LOT} 4, le pi${LOT}e 2, un î${LOT} 7, un i${CIRCONFLEXE}${LOT} 8.\n`)),
+      'mot « lot » seul, « slot », « pilote », « îlot » composé ou non : acceptés');
 
     /* --------------------------------------------- formes du renvoi aux notes */
     const renvois: [string, string][] = [
@@ -165,6 +179,7 @@ export function testPreCommit() {
       ['[notes](../a-publier)', 'lien vers a-publier lui-même'],
       ['Source=archive/h.md, Source:decisions/d.md', 'collé à = ou :'],
       ['archive\\historique\\h.md', 'séparateurs Windows'],
+      ['[Historique][notes]\n\n[notes]: archive', 'définition de lien par référence vers le dossier'],
     ];
     for (const [ligne, libelle] of renvois) ok(refuse(marque(`${ligne}\n`), RENVOI), `renvoi aux notes, ${libelle} : refus`);
     ok(refuse(cas({ [`${O}/sous/note.md`]: '[h](../archive/h.md)\n' }), RENVOI), 'depuis un sous-dossier publié, `../archive/` : refus');

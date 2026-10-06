@@ -7,7 +7,8 @@
 
 Une piste est ce qui n'est pas fait. Chaque entrée donne le **constat** (ce
 que le code fait aujourd'hui, avec sa coordonnée), l'**idée** et ce qui la
-**bloque** : une mesure, un relevé en jeu, une décision de produit. Ce qui
+**bloque** : une mesure, un relevé en jeu, une décision de produit, un
+chantier à ouvrir ou un changement de code pas encore fait. Ce qui
 est fait se lit dans la spec du mécanisme, que le
 [README.md](README.md) désigne ; une variante essayée puis écartée y tient en
 une ligne « ne pas… parce que… », pour qu'on ne la réessaie pas sans sa
@@ -357,8 +358,8 @@ raison. Celles du moteur de recherche des runes :
   builds validés d'une liste
   ([ecran/lancer-la-recherche.md § Lancer la recherche](ecran/lancer-la-recherche.md)) ;
   un compte réimporté peut perdre des validations (`revalidateBuilds`).
-- **Idée** : un fichier réimportable des builds validés (monstre et six
-  identifiants de runes par exemplaire).
+- **Idée** : un fichier réimportable des builds validés (liste, monstre,
+  six identifiants de runes et paire d'artéfacts par exemplaire).
 - **Bloque** : un format à concevoir, avec son écran d'import et la
   résolution contre un autre compte que celui d'origine.
 
@@ -413,7 +414,8 @@ raison. Celles du moteur de recherche des runes :
    mécanisme qu'elle n'y est pas écartée.
 2. Ajouter une entrée dans la section de son domaine : un titre, puis
    **Constat** (ce que le code fait, avec sa coordonnée), **Idée** et
-   **Bloque** (la mesure, le relevé en jeu ou la décision qui manque).
+   **Bloque** (ce qui manque : mesure, relevé en jeu, décision, chantier
+   ou changement de code).
 3. Une piste réalisée sort d'ici dans le commit qui la réalise ; la spec du
    mécanisme décrit alors ce qui est fait. Une piste essayée puis écartée
    sort d'ici et laisse dans la spec du mécanisme une ligne « ne pas…

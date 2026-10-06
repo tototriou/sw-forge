@@ -184,10 +184,9 @@ simultanée. Il faut deux répertoires distincts (voir
    Contre-mesure : liés EXPLICITEMENT, un par un, jamais par motif global —
    `node_modules` (jonction, `symlinkSync(..., 'junction')` — n'exige PAS
    de privilège élevé sur Windows, contrairement à un symlink de dossier),
-   les comptes réels par leur nom exact (`tototriou-12889591.json`,
-   `ß☆Enzo-6399149.json` — liste `ACCOUNT_FILES` dans
-   `perf-battery-compare.ts`, ⚠️ PAS `tests/outils.ts`/`exportReel`, qui ne
-   connaît QUE `tototriou-12889591.json`).
+   les comptes réels par leur nom exact (liste `ACCOUNT_FILES` dans
+   `perf-battery-compare.ts`, ⚠️ PAS `tests/outils.ts`/`exportReel`, qui
+   n'en connaît QU'UN).
 2. **Lier en BLOC par motif peut écraser un fichier SUIVI par git** dans le
    worktree (ex. `tsconfig.json`/`package.json` remplacés par la version de
    la branche courante au lieu du commit visé). Contre-mesure : jamais de

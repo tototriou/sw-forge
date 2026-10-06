@@ -33,19 +33,7 @@
     },
     {
       "fichier": ".claude/skills/optimizer-field-propagation/SKILL.md",
-      "renvoi": "spec/outils/optimizer/README.md",
-      "occurrences": 1,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": ".claude/skills/optimizer-field-propagation/SKILL.md",
       "renvoi": "spec/outils/optimizer/pistes.md",
-      "occurrences": 1,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": ".claude/skills/optimizer-perf-testing/SKILL.md",
-      "renvoi": "spec/outils/optimizer/README.md",
       "occurrences": 1,
       "proprietaire": "a-publier"
     },
@@ -866,6 +854,90 @@
       "proprietaire": "a-publier"
     },
     {
+      "fichier": "spec/outils/optimizer/README.md",
+      "renvoi": "ecran/README.md",
+      "occurrences": 3,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "spec/outils/optimizer/README.md",
+      "renvoi": "exclusion.md",
+      "occurrences": 2,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "spec/outils/optimizer/README.md",
+      "renvoi": "harnais.md",
+      "occurrences": 3,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "spec/outils/optimizer/README.md",
+      "renvoi": "interruption.md",
+      "occurrences": 2,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "spec/outils/optimizer/README.md",
+      "renvoi": "limites-connues.md",
+      "occurrences": 3,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "spec/outils/optimizer/README.md",
+      "renvoi": "listes-et-reservation.md",
+      "occurrences": 2,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "spec/outils/optimizer/README.md",
+      "renvoi": "moteur/artefacts.md",
+      "occurrences": 2,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "spec/outils/optimizer/README.md",
+      "renvoi": "moteur/diagnostics.md",
+      "occurrences": 2,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "spec/outils/optimizer/README.md",
+      "renvoi": "moteur/elagages.md",
+      "occurrences": 2,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "spec/outils/optimizer/README.md",
+      "renvoi": "moteur/parallelisation.md",
+      "occurrences": 3,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "spec/outils/optimizer/README.md",
+      "renvoi": "moteur/pipeline.md",
+      "occurrences": 3,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "spec/outils/optimizer/README.md",
+      "renvoi": "moteur/reliques.md",
+      "occurrences": 2,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "spec/outils/optimizer/README.md",
+      "renvoi": "pistes.md",
+      "occurrences": 3,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "spec/outils/optimizer/README.md",
+      "renvoi": "verification.md",
+      "occurrences": 2,
+      "proprietaire": "a-publier"
+    },
+    {
       "fichier": "spec/outils/optimizer/invariants.md",
       "renvoi": "ecran/README.md",
       "occurrences": 4,
@@ -948,12 +1020,6 @@
       "renvoi": "scripts/passifs-vitesse.mjs",
       "occurrences": 1,
       "proprietaire": "hors-perimetre"
-    },
-    {
-      "fichier": "spec/rta/sections-runes.md",
-      "renvoi": "../outils/optimizer/README.md",
-      "occurrences": 1,
-      "proprietaire": "a-publier"
     },
     {
       "fichier": "spec/rta/sections-runes.md",

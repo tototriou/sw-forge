@@ -35,6 +35,8 @@ Points d'entrée de l'Optimizer, avant un chantier qui le touche :
 
 - [outils/optimizer/invariants.md](outils/optimizer/invariants.md) — les
   contraintes critiques, chacune avec sa source ; se lit en entier.
+- [outils/optimizer/README.md](outils/optimizer/README.md) — routage par
+  tâche : quelle spec lire selon ce qu'on touche.
 
 Ordre d'importance (nav & cartes d'accueil) : **Accueil → RTA → Siège → Mon
 compte → Outils → Arène**. Arène se positionne dans la barre entre le

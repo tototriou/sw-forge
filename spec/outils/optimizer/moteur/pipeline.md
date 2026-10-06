@@ -1,14 +1,21 @@
 # Pipeline de la recherche de runes
 
-**Statut :** ÉTAT ACTUEL — décrit le chemin d'une recherche de runes dans le code, de la recherche lancée par l'écran à la fin de l'appariement : préparation, construction des moitiés, appariement
-**Lire si :** on modifie une étape de la recherche de runes ou ses Workers, et on cherche le fichier et la fonction qui la portent
-**Voir aussi :** elagages.md, ../interruption.md, ../invariants.md
+**Statut :** ÉTAT ACTUEL — décrit le chemin d'une recherche de runes dans le code, de la recherche lancée par l'écran au résultat affiché : préparation, construction des moitiés, appariement, résolution de l'équipement, file, interruption
+**Lire si :** on modifie une étape de la recherche de runes, de la résolution de l'équipement d'un build ou leurs Workers, et on cherche le fichier et la fonction qui la portent
+**Voir aussi :** elagages.md, artefacts.md, ../interruption.md, ../ecran/resultats.md, ../invariants.md
 
 Ce fichier suit une recherche dans l'ordre où le code l'exécute, une section
 par étape : ce qu'elle fait, le fichier et la fonction qui la portent, et le
-fichier qui la détaille. Il s'arrête quand l'appariement rend son résultat à
-l'écran. Les contraintes à ne pas casser sont dans
-[../invariants.md § Algorithme](../invariants.md) et
+fichier qui la détaille. Il va du clic qui lance la recherche au résultat
+affiché. La préparation, la construction des deux moitiés et leur
+appariement trouvent les candidats, notés avec une paire d'artéfacts
+supposée. Dès l'appariement, une file résout l'équipement réel des meilleurs
+d'entre eux (paire d'artéfacts et relique), dans un Worker dédié quand il est
+disponible. L'écran n'affiche que les builds ainsi vérifiés, sauf quand
+l'optimisation d'artéfacts est coupée. La dernière section dit ce qu'un arrêt
+avant terme rend. Les contraintes à ne pas casser sont dans
+[../invariants.md § Algorithme](../invariants.md),
+[../invariants.md § Artéfacts](../invariants.md) et
 [../invariants.md § Workers](../invariants.md).
 
 | Étape | Fichier | Fonction | Détail |
@@ -20,6 +27,11 @@ l'écran. Les contraintes à ne pas casser sont dans
 | Appariement séquentiel | `src/workers/pairingDriver.ts`, `src/lib/runeBuildOptim.ts` | `drivePairing`, `pairBuckets` | [elagages.md](elagages.md), [interruption.md](../interruption.md) |
 | Appariement parallèle | `src/workers/parallelPairing.ts`, `src/workers/pairSliceBody.ts`, `src/workers/pairSlice.worker.ts` | `driveParallelPairing`, `runPairSlice`, `combineParallelPairingResults` | [parallelisation.md](parallelisation.md) |
 | Fin de l'appariement | `src/workers/runeBuildOptim.worker.ts`, `src/hooks/useBuildOptimSearch.ts` | `useBuildOptimSearch` | — |
+| Résolution de l'équipement d'un build | `src/lib/relicQueue.ts` | `entreeResolutionDuBuild`, `resoudreEquipementDuBuild` | [artefacts.md](artefacts.md), [reliques.md](reliques.md) |
+| Worker de résolution | `src/workers/resolution.worker.ts`, `src/workers/resolutionBody.ts`, `src/workers/resolutionDistante.ts` | `CorpsResolution`, `ResolutionDistante` | [parallelisation.md](parallelisation.md) |
+| File de résolution | `src/hooks/useArtifactOptimQueue.ts`, `src/lib/artifactQueue.ts` | `useArtifactOptimQueue`, `prochainsATraiter`, `voieDeLaFile` | [artefacts.md](artefacts.md) |
+| Résultat affiché | `src/lib/artifactQueue.ts`, `src/components/outils/OptimizerSection.tsx` | `classementResolu`, `compositionDePage`, `compteConfirme` | [../ecran/resultats.md](../ecran/resultats.md) |
+| Interruption | `src/hooks/useBuildOptimSearch.ts`, `src/workers/runeBuildOptim.worker.ts`, `src/workers/pairingDriver.ts` | `stop`, `drivePairing` | [../interruption.md](../interruption.md) |
 
 ## Lancement
 
@@ -215,3 +227,207 @@ appariement parallèle. Des tests et des scripts l'utilisent ; d'autres
 pilotent l'appariement parallèle sous Node (`driveParallelPairing` avec
 `makeSpawnSliceNode`, `worker_threads`), ou appellent `prepareSearch` et
 `pairBuckets` directement.
+
+## Résolution de l'équipement d'un build
+
+La recherche de runes note ses candidats avec une paire d'artéfacts
+supposée. L'équipement réel d'un build se résout ensuite, un build à la
+fois, par `resoudreEquipementDuBuild` (`src/lib/relicQueue.ts`) : sa paire
+d'artéfacts et, en mode relique `recherche`, sa relique, ensemble. Son entrée
+(`EntreeResolution`) est assemblée par `entreeResolutionDuBuild`, le même
+producteur pour la résolution sur le fil de l'écran (`resoudreEquipement`,
+`OptimizerSection.tsx`), pour le CLI et pour le Worker de résolution.
+L'équipement est celui de la fiche, dont seules les runes sont remplacées
+par celles du candidat (`runesDuBuild`). La fabrique `faireParams(relique)`
+rend les paramètres de `chercherPaires`, avec un `evaluer` du régime effectif
+(`evaluerPourRegime`) calculé sur des stats qui incluent la relique essayée.
+
+Deux cas :
+
+- hors mode `recherche`, la relique portée est fixe : `resoudreReliqueFixe`
+  parcourt les paires par score décroissant (`pairesParScore`) et retient la
+  première qui tient les conditions (`respecteConditions`, nul quand
+  `conditionsPaireFixePosees` ne trouve aucune condition à tester) ; si
+  aucune ne les tient, la meilleure au score, avec `conforme: false` ;
+- en mode `recherche`, chaque relique éligible du contexte (`eligibles`)
+  remplace la portée ; pour chacune, le premier couple, par score
+  décroissant, qui tient minimums et maximums
+  (`respecteConditionsAvecRelique`) est retenu avec son score, et
+  `bestRelicForBuild` (`src/lib/relicOptim.ts`) choisit le meilleur couple
+  faisable entre reliques. Aucun couple faisable : `conforme: false`. Un pool
+  d'éligibles vide lève `RechercheRefusee`.
+
+Le résultat (`ResultatArtefacts`, `src/lib/artifactQueue.ts`) porte la paire,
+ses artéfacts, les stats recalculées avec l'équipement retenu, la conformité
+(`conforme`) et, en mode `recherche`, la relique retenue (`relique`). Il entre
+dans le cache conforme ou non : c'est le classement qui écarte un build non
+conforme (§ Résultat affiché ci-dessous). Les caches qu'une file partage
+entre ses builds (`CachesResolution`, créés par `nouveauxCachesResolution`)
+ne changent aucun résultat ; l'écran les recrée quand `signatureArtefacts`
+ou `artifactParams` change. Détail du choix de la paire :
+[artefacts.md § Quand ce choix a lieu](artefacts.md) et
+[artefacts.md § Partage entre les builds d'une file](artefacts.md) ; de la
+relique : [reliques.md](reliques.md).
+
+## Worker de résolution
+
+Quand il est disponible, la résolution tourne hors du fil de l'écran, dans un
+Worker dédié (`src/workers/resolution.worker.ts`). La coquille ne porte
+aucune logique : elle branche `self.onmessage` sur `CorpsResolution`
+(`src/workers/resolutionBody.ts`), un module neutre que Node importe tel
+quel. Vers le Worker, trois messages (`MessageVersResolution`) : `contexte`,
+qui porte les entrées en données (`EntreesResolutionSerialisables`, dérivées
+par `entreesSerialisables`, qui ne retire que `evaluer`) ; `resoudre`, une
+demande pour un build, avec ses runes ; `annuler`. Chaque demande reçoit une
+réponse (`ReponseResolution`) : `resultat`, `erreur` ou `annule`, marquée
+`idContexte` et `idDemande`.
+
+`recevoir` traite un message sans rien résoudre. Un nouveau contexte annule
+les demandes en attente et repart de caches neufs
+(`nouveauxCachesResolution`) ; une demande d'un autre contexte est annulée
+aussitôt ; `annuler` retire la demande visée, ou toutes sans `idDemande`.
+`etape` résout la plus ancienne demande en attente, une seule, par
+`entreeResolutionDuBuild` puis `resoudreEquipementDuBuild`, la résolution du
+fil de l'écran ; une exception devient une réponse `erreur` (nom, message,
+et motif `vide` d'une `RechercheRefusee`). La coquille appelle `etape` dans
+une tâche à part (`setTimeout`), une demande par tâche : un message arrivé
+entre deux résolutions passe avant la suivante.
+
+Côté écran, `ResolutionDistante` (`src/workers/resolutionDistante.ts`),
+module pur, décide quoi envoyer ; le hook de la file ne fait que le brancher.
+`planifier` rend, dans l'ordre :
+
+1. le contexte, s'il a changé (identité des entrées ou signature) et qu'il
+   reste du travail ; toutes les demandes en vol deviennent caduques ;
+2. les annulations des demandes sorties des premiers restants, sauf la plus
+   ancienne en vol, que le corps a sans doute commencée ;
+3. les demandes, dans l'ordre des restants, jusqu'à `DEMANDES_EN_VOL_MAX`
+   sans réponse, annulées comprises.
+
+`recevoir` libère toujours la place en vol, mais n'écrit dans le cache que le
+résultat d'une demande non annulée du contexte courant : une réponse périmée
+n'est jamais écrite. Une réponse `erreur` ou un envoi qui lève (`pomper`),
+une erreur du Worker, une réponse illisible ou un Worker impossible à créer
+font renoncer (`renoncer`) : le Worker est terminé, l'erreur journalisée
+(`console.error`), et la file repasse sur le fil de l'écran avec le cache tel
+qu'il est. Détail : [parallelisation.md](parallelisation.md) et
+[artefacts.md § Résolution hors du fil de l'écran](artefacts.md).
+
+## File de résolution
+
+`useArtifactOptimQueue` (`src/hooks/useArtifactOptimQueue.ts`) dit QUAND
+résoudre ; `src/lib/artifactQueue.ts` dit QUI, dans quel ordre et par quelle
+voie. L'écran lui passe :
+
+- l'ordre de base (`fullSortedCandidates`) : les candidats triés par
+  `sortCandidates` avec la paire supposée, ceux de l'aperçu de progression
+  pendant l'appariement, puis ceux du résultat. Jamais le classement corrigé
+  par la file elle-même ;
+- un accesseur de la page affichée ;
+- la résolution du fil de l'écran (`resoudreEquipement`), nulle quand il n'y a
+  rien à optimiser ;
+- la signature (`signatureArtefacts`), la cible `K` et les entrées hors fil
+  (`ResolutionHorsFil`).
+
+`prochainsATraiter` rend les builds à résoudre. D'abord ceux de la page
+affichée absents du cache : `aVerifier` de `compositionDePage`, les builds
+qui rempliront ses places en attente. Puis l'avance de fond, qui parcourt
+l'ordre de base et s'arrête quand les confirmées rencontrées (résolues et
+conformes) plus les non résolues rencontrées atteignent `K` ; un build écarté
+(`conforme: false`) ne compte pas, la fenêtre s'allonge d'autant. `K` vient
+de `cibleDeLaFile` : `kDeLaFile` du contexte relique de la recherche lancée
+(`K_BUILDS_RECHERCHE_RELIQUE` en mode `recherche`, `K_BUILDS_OPTIMISES`
+sinon), ou l'infini avec « Vérifier toutes les combinaisons trouvées », lu en
+direct.
+
+Avec le Worker, `pomper` relit la file et envoie les demandes à chaque rendu
+et après chaque réponse. Un seul Worker sert toute la vie du hook : créé au
+premier besoin, terminé au démontage. Après un repli, il n'est plus relancé.
+Sur le chemin direct, un build est résolu par tâche, sur le fil de l'écran.
+`voieDeLaFile` dit quand :
+
+- `page` : une tâche immédiate (`MessageChannel`), tant que la page affichée
+  porte un build non résolu ;
+- `fond` : le temps d'inactivité (`requestIdleCallback`, repli `setTimeout`) ;
+- `aucune` : rien n'est programmé.
+
+Une seule tâche attend, toutes voies confondues. Une tranche de fond en
+attente est annulée quand la page acquiert des builds non résolus. La voie ne
+change ni les builds traités ni leur ordre.
+
+Le cache (`parBuild`, clé `cleBuild` : les identifiants des six runes, triés)
+ne fait que grandir sous une même signature. Il se vide quand
+`signatureArtefacts` change, c'est-à-dire pour tout réglage qui change le
+score d'une paire, l'inventaire ou les conditions : détail dans
+[artefacts.md § Recalcul quand la paire peut changer](artefacts.md). Une
+recherche relancée aux mêmes réglages garde donc ce que la précédente a
+résolu. L'écran ne voit le cache qu'à sa publication, au plus une par
+`PUBLICATION_MS`. Elle est forcée quand la file se vide, et quand le dernier
+build non résolu de la page vient de l'être (`publicationForcee` côté
+Worker).
+
+Annulation : avec le Worker, `planifier` annule les demandes devenues
+inutiles (page changée, meilleurs builds arrivés) ou caduques (nouveau
+contexte). Sur le chemin direct, rien n'est en vol : la tâche en attente est
+annulée quand l'effet se démonte (résolution, signature ou `K` changés), et
+la tranche suivante relit la file à jour.
+
+## Résultat affiché
+
+`classementResolu` (`src/lib/artifactQueue.ts`) produit le classement
+affiché (`affichees`), le même pour l'écran et le CLI. Il part de l'ordre de
+base et retire les builds que la résolution a écartés (`conforme: false`). Il
+départage à score égal par `ordonnerParDepartage` (relique retenue, puis
+`cleBuild`) et lit chaque build à travers son équipement résolu
+(`candidatAvecSaPaire`). Il retrie enfin par `sortCandidates`. Un build résolu
+peut donc passer devant ; un build non résolu garde ses stats d'origine.
+
+`compositionDePage` compose une page. Ses cartes sont les seuls builds
+vérifiés, résolus et conformes, dans l'ordre du classement. Les places
+restantes attendent, « Vérification… », tant qu'il reste des builds non
+résolus, et `aVerifier` nomme ceux qui les rempliront : la page affichée que
+sert la file. `compteConfirme` donne l'en-tête, en combinaisons confirmées,
+et le nombre de pages ; `compteAffichable` donne le compte de la ligne de
+progression. Sans file (optimisation d'artéfacts coupée), la page est la
+tranche du classement. Détail de l'écran :
+[../ecran/resultats.md § Compte des combinaisons confirmées et pagination](../ecran/resultats.md).
+
+## Interruption
+
+Une recherche s'arrête avant d'avoir tout examiné par le filet de temps, par
+le plafond de candidats ou par l'arrêt manuel. Valeurs, réglages et
+messages : [../interruption.md § Interruption — filet de temps, pré-filtrage et arrêt manuel](../interruption.md).
+
+Le filet de temps, `maxMs` (défaut `DEFAULT_MAX_MS`), court depuis
+`prepared.startedAt`. `pairBuckets` le teste à chaque point de passage
+(§ Appariement séquentiel) et rend alors un résultat tronqué (`truncated`).
+Quand `maxMs` n'est pas fini, le terme de temps d'`estimatePct` vaut 0.
+
+L'arrêt manuel part du bouton « Arrêter » : il pose `stoppedManually` et
+appelle `stop` (`useBuildOptimSearch`), qui poste `{ stop: true }` au Worker
+de recherche. Le Worker (`self.onmessage`) lève son drapeau `stopped`, puis
+agit selon la phase :
+
+- construction des moitiés : les Workers enfants sont terminés
+  (`terminate()`) et `stopBuildReject` fait sortir l'attente : résultat
+  vide, tronqué ;
+- appariement séquentiel : `drivePairing` lit `isStopped` à chaque pas du
+  générateur et rend les candidats, `explored` et le quasi-succès
+  accumulés, avec `truncated: true`. Le message d'arrêt n'est lu que quand le
+  pilote rend la main (`YIELD_THROTTLE_MS`) ;
+- appariement parallèle : chaque tranche reçoit `{ stop: true }` et rend ce
+  qu'elle a trouvé ; `combineParallelPairingResults` fusionne.
+
+Dans tous les cas, le Worker poste un résultat ordinaire (`type: 'result'`)
+et le hook passe en `done`. Le message affiché sous un résultat tronqué
+dépend de `stoppedManually`, remis à faux à chaque lancement par
+`handleSearch` : le meilleur trouvé jusque-là après un arrêt manuel, une
+invitation à resserrer les critères sinon. En parallèle, la fusion dérive un
+motif (`motifTroncature`) : `maxCollected`, puis `maxMs`, puis `quotaTranche`.
+Elle ignore l'arrêt manuel : une tranche arrêtée sous son quota y compte
+comme `maxMs`. L'écran ne lit que `truncated`.
+
+« Arrêter » n'arrête que la recherche de runes. La file de résolution lit le
+résultat posté, tronqué ou non, et continue vers `K` confirmées. `cancel`, au
+démontage et par `run` avant une nouvelle recherche, termine le Worker de
+recherche sans rien récupérer (§ Lancement).

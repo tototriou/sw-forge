@@ -916,7 +916,13 @@
     {
       "fichier": "spec/outils/optimizer/moteur/pipeline.md",
       "renvoi": "parallelisation.md",
-      "occurrences": 4,
+      "occurrences": 6,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "spec/outils/optimizer/moteur/pipeline.md",
+      "renvoi": "reliques.md",
+      "occurrences": 2,
       "proprietaire": "a-publier"
     },
     {

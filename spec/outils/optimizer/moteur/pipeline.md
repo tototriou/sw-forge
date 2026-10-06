@@ -310,8 +310,8 @@ n'est jamais écrite. Une réponse `erreur` ou un envoi qui lève (`pomper`),
 une erreur du Worker ou une réponse illisible font renoncer (`renoncer`) :
 le Worker est terminé, l'erreur journalisée (`console.error`), et la file
 repasse sur le fil de l'écran avec le cache tel qu'il est. Un Worker
-impossible à créer ne fait que basculer la file sur le fil de l'écran
-(`setEnRepli`) : il n'y a rien à terminer. Détail : [parallelisation.md](parallelisation.md) et
+impossible à créer bascule la file de la même façon (`basculerEnRepli`),
+l'erreur journalisée, mais sans demande à abandonner ni Worker à terminer. Détail : [parallelisation.md](parallelisation.md) et
 [artefacts.md § Résolution hors du fil de l'écran](artefacts.md).
 
 ## File de résolution

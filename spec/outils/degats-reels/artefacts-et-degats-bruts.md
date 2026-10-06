@@ -117,7 +117,7 @@ d'« ATQ » dans le même calcul.
   lignes de la paire supposée et, en « Libre », de tout artéfact éligible que
   le choix de la paire peut retenir (`statsLignesArtefactsEquipables`), en
   « Dégâts réels » seulement. Voir
-  [l’Optimizer](../optimizer/moteur/elagages.md), « Recherche des runes ».
+  [../optimizer/moteur/elagages.md § Dominance — lignes d'artéfact 218–221](../optimizer/moteur/elagages.md).
 
 ## ⚠️ Le bucket Additionnel ne reçoit AUCUN bonus de type DMG%
 

@@ -120,7 +120,7 @@ Q1 → 7 (les données dépendent du choix de Thomas)
 |-----|------|--------|---------------|
 | 1 coquille Electron | J | **fait** — protocole `app://`, mode preuve, 19 tests | `dbcc1db0`, 2026-10-05 |
 | 1 bis habillage de la fenêtre (décision 7) | J | **validé par Thomas** (« oui tu peux commit ») — barre intégrée, état mémorisé, sans menu | `274cda58`, 2026-10-05 |
-| 2 le web dans la coquille (liens, téléchargements, audience, `estBureau`) | J | à faire | |
+| 2 le web dans la coquille (liens, téléchargements, audience, `estBureau`) | J | **validé par Thomas** (« c'est tout bon ») — liens au navigateur, navigations bloquées, « Enregistrer sous » | `f21e54ee`, 2026-10-06 |
 | 3 empaquetage Windows (NSIS) et Linux (AppImage) | M | à faire | |
 | 4 action GitHub au tag | J | à faire | |
 | 5 mise à jour automatique | J | à faire | |
@@ -293,6 +293,23 @@ bouton et par glisser-déposer ; `npm test` sur la zone ; le site inchangé
 (`refonte-inventaire`, rendus).
 
 **Ne fait pas** : le bouton de téléchargement du site (lot 6).
+
+**Résultat (2026-10-06)** — `f21e54ee`, validé par Thomas après la séance
+d'écran (« c'est tout bon »), preuve [lot-2.md](application-bureau-preuves/lot-2.md).
+Contrôles de l'intérieur : 29 liens externes cliqués (les 6 du source, dont
+un par version publiée), 29 confiés au navigateur, l'app en place ;
+navigations vers `file:` et vers le web bloquées, la seconde confiée au
+navigateur ; un téléchargement arrivé, nom et contenu exacts. Tests : bureau
+52 passées ; mutation du pilote (`ouvrableDehors` accepte `file:`) : 1 échec
+— restaurée. Écarts :
+- les 5 téléchargements ne sont pas essayés un par un dans le mode preuve :
+  un seul, construit comme eux (Blob + `a.download`) ; l'export de prépa RTA
+  l'a été à l'écran, avec la vraie boîte ;
+- import d'un compte (bouton, glisser-déposer) et recherche de l'Optimizer :
+  à l'écran seulement, pas rejoués par le mode preuve ;
+- le site n'est pas retesté : le commit ne touche aucun fichier de `src/`,
+  `public/`, `index.html` ni `vite.config.ts` (`git diff --name-only`) ;
+- `estBureau()` était déjà fait au lot 1 bis.
 
 ### Lot 3 — l'empaquetage Windows et Linux · M
 

@@ -220,7 +220,8 @@ un message en ligne de `git commit`, `git merge` et `git tag` (`-m`, collé
 ou dans une grappe d'options courtes, `--message` ou son abréviation),
 derrière toute option globale de git, et rappelle la forme sûre de
 chacune, et refuse
-`node -e "…"` dont la chaîne contient un backtick ou un `$`. Raison d'être :
+`node -e "…"` dont la chaîne contient un backtick, un `$` ou une barre
+oblique inverse. Raison d'être :
 après des dizaines d'exemples réussis de la forme interdite,
 l'exemple pèse plus lourd qu'une règle lue au démarrage. Un refus au MOMENT de
 l'action ne dépend d'aucune vigilance.

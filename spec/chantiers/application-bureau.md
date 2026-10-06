@@ -114,6 +114,8 @@ message de commit cite le fichier de preuve.
 2 → 6 (le bouton se cache dans l'app grâce à estBureau())
 Q1 → 7 (les données dépendent du choix de Thomas)
 {1 … 7} → 8 (clôture)
+5 → 9 (le bloc « Application » des Réglages accueille le dossier SW Exporter)
+9 → 8 (décision 15 : la clôture attend le lot 9)
 ```
 
 | Lot | Cat. | Statut | Commit / date |
@@ -125,8 +127,9 @@ Q1 → 7 (les données dépendent du choix de Thomas)
 | 4 action GitHub au tag | J | **validé par Thomas** (« ok ») — écrite et relue ; première exécution au tag `v2.0.0` (décision 9) | `3838aaa4`, 2026-10-06 |
 | 5 mise à jour automatique | J | **validé par Thomas** (« ok ») — l'utilisateur décide (décision 11) ; N → N+1 après la v2.0.0 (décision 10) | `e1562b23`, `648ef329`, `0c808472` (bloc « Application », décision 12), 2026-10-06 |
 | 6 « Télécharger pour Windows » sur le site | J | **validé par Thomas** (« ok ») — page « Télécharger » (décision 14), lien et carte sur l'accueil | `e7128fae`, `22b881f5`, 2026-10-06 |
-| 7 données du jeu — dans l'installeur (décision 1), une phrase de spec | M | à faire | |
-| 8 clôture : spec d'état actuel, docs, `npm test`, fusion dans `release/v2.0.0` | M | à faire | |
+| 7 données du jeu — dans l'installeur (décision 1), une phrase de spec | M | **fait** — `spec/shared/donnees-monstres.md` | `1a5fbbda`, 2026-10-06 |
+| 8 clôture : spec d'état actuel, docs, `npm test`, fusion dans `release/v2.0.0` | M | **première partie faite** (avec le lot 7) ; clôture après le lot 9 | `ca30733d` … `2061592e`, 2026-10-06 |
+| 9 le dossier SW Exporter (décision 15) | J | à faire | |
 
 ### A.8 Questions ouvertes et décisions
 
@@ -221,6 +224,8 @@ Q1 → 7 (les données dépendent du choix de Thomas)
     pastille dans la barre latérale, ou les deux.
     → lot 5 (complément).
 
+#### Décisions du 2026-10-06, suite (lots 6 et 9)
+
 13. **Les boutons de téléchargement de l'accueil** (2026-10-06, relevé du
     lot 6) :
     - **dans le héros**, sous la phrase de promesse, avant les éléments qui
@@ -258,6 +263,27 @@ Q1 → 7 (les données dépendent du choix de Thomas)
       la ligne d'information, en lien vers la page) ; et sa **carte** dans
       « Fonctionnalités » (accueil miroir de l'app).
     → lot 6.
+
+15. **Le dossier SW Exporter** (2026-10-06, avant la clôture : « dans les
+    paramètres on puisse choisir un dossier swexporter pour avoir une mise
+    à jour automatique du json et le choix de l'invocateur ») — **amende
+    la décision 4** (Q4 « plus tard ») : il entre dans la 2.0.0.
+    - **App de bureau seulement** (un navigateur ne surveille pas un
+      dossier), dans le bloc « Application » des Réglages : « Dossier SW
+      Exporter » (boîte de choix du système) et « Invocateur » (les exports
+      `<nom>-<id>.json` à la racine ; `live/`, `plugins/`, `cert/` ignorés) ;
+    - **seul « Mon compte » se met à jour** (box, runes, artéfacts,
+      reliques) : prépa RTA et siège ne bougent pas — l'import complet les
+      remplace, il reste manuel. Non retenus : tout avec confirmation, tout
+      sans demander ;
+    - **au lancement** (export plus récent que le dernier lu) **et en
+      continu** tant que l'app est ouverte ;
+    - **une notification** « Compte de <invocateur> mis à jour depuis SW
+      Exporter » ; le bloc montre la date du dernier export lu ;
+    - le dossier et l'invocateur sont un **réglage**, retenus même sans
+      « Garder mes données » ; le compte, lui, suit ce réglage (et se relit
+      du dossier au lancement).
+    → lot 9.
 
 #### Les questions d'origine (toutes tranchées)
 
@@ -560,6 +586,28 @@ les données du jeu sont celles de l'installeur, rafraîchies à chaque
 version publiée. ⚠️ Conséquence à écrire : une PR de données
 (`update-data.yml`) n'atteint l'app qu'à la version suivante. Fusionnable
 avec le lot 8.
+
+### Lot 9 — le dossier SW Exporter · J
+
+**Intrant** : décision 15, `spec/shared/import-compte.md` (§ « Import
+« Mon compte » », § « Persistance optionnelle »), `src/App.tsx`
+(`importAccount`), `bureau/`, `src/components/BlocApplication.tsx`.
+
+**Sortie** : dans le bloc « Application » des Réglages, le choix du
+dossier (boîte du système) et de l'invocateur ; le processus principal
+surveille le fichier choisi et en donne le texte à la page, qui
+n'applique que « Mon compte » (même extraction que l'import manuel) ;
+notification ; date du dernier export lu ; réglage retenu par le processus
+principal (dossier des données de l'app).
+
+**Preuve** : `lot-9.md` — mode preuve sur un dossier de fixtures (deux
+« invocateurs ») : liste, choix, lecture au lancement, réécriture du
+fichier pendant que l'app tourne → compte mis à jour, prépa RTA et siège
+**inchangés** ; tests purs (liste des exports, ce qui est appliqué).
+Arrêt avant commit : Thomas, avec son vrai dossier.
+
+**Ne fait pas** : l'import complet automatique (RTA, siège) ; rien sur le
+site.
 
 ### Lot 8 — clôture · M
 

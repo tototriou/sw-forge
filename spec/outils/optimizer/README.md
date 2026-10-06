@@ -18,6 +18,8 @@ Publiés :
 - [invariants.md](invariants.md) — les contraintes critiques, chacune avec sa
   source.
 - [README.md](README.md) — ce routage.
+- [moteur/pipeline.md](moteur/pipeline.md) — de la recherche lancée à la fin
+  de l'appariement : préparation, moitiés, appariement.
 
 Annoncés : un lien vers l'un d'eux désigne sa place avant qu'il paraisse ;
 d'ici là, la section de [../optimizer.md](../optimizer.md) citée dans la
@@ -31,8 +33,6 @@ même ligne du tableau décrit le sujet.
   imposées.
 - [interruption.md](interruption.md) — filet de temps, arrêt manuel, barre de
   progression.
-- [moteur/pipeline.md](moteur/pipeline.md) — de la recherche lancée au
-  résultat affiché : préparation, moitiés, appariement, résolution, file.
 - [moteur/elagages.md](moteur/elagages.md) — meet-in-the-middle, élagages
   sûrs, pré-filtrage, rétention.
 - [moteur/artefacts.md](moteur/artefacts.md) — le choix des artéfacts et la

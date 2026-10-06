@@ -168,8 +168,8 @@
      le meilleur trouvé jusque-là. ⚠️ Ne retire que la limite de TEMPS — le
      plafond interne de candidats collectés (non réglable) reste actif ; une
      recherche assez large pour l'atteindre s'arrête quand même avant d'avoir
-     tout exploré, ce qui n'a en pratique aucune conséquence sur la qualité
-     du résultat (voir ../limites-connues.md § Limites connues). Fait partie
+     tout exploré, et un meilleur build peut alors manquer (voir
+     ../limites-connues.md § Limites connues). Fait partie
      des réglages exportés/importés dans une recette (voir
      lancer-la-recherche.md § Lancer la recherche).
    - **« Diagnostic approfondi sur 0 résultat »**, décoché par défaut (plus

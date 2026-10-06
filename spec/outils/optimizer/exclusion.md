@@ -35,7 +35,9 @@ spécifique à la box. Ses branches RTA et Défenses siège comparent par
 **`com2usId`** (l'espèce), jamais par entrée précise — c'est ce qui garantit
 qu'un monstre recherché présent en RTA ne s'exclut jamais lui-même ; et le
 périmètre Défenses siège ne dépend que de `monsterId` (stable), jamais de
-`SiegeTeam.id` (régénéré à chaque import), ce qui le rend pleinement fiable
+`SiegeTeam.id`, qui n'a pas la même valeur à l'écran (un identifiant gardé
+d'un import à l'autre, par position) et en ligne de commande (la position
+de l'équipe, `scripts/lib/loadMonster.ts`), ce qui le rend pleinement fiable
 en ligne de commande — contrairement aux sélecteurs manuels siège (voir
 « Exclusion manuelle » ci-dessous).
 

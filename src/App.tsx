@@ -66,6 +66,7 @@ import {
 } from './hooks/usePersistence';
 import { ConfirmDialog, KeepAccountDialog } from './ui/Dialogs';
 import { FournisseurNotification } from './ui/Notification';
+import MiseAJourBureau from './components/MiseAJourBureau';
 import {
   COULEUR_SECTION,
   COULEUR_RTA_SUB,
@@ -1329,6 +1330,8 @@ export default function App() {
     // ⚠️ La notification « … · Annuler » (lot 13, décision 29) enveloppe
     // toute l'app : un geste qui se défait peut venir de n'importe quel écran.
     <FournisseurNotification>
+    {/* Application de bureau : « Mise à jour prête · Redémarrer ». Inerte sur le site. */}
+    <MiseAJourBureau />
     {/* ⚠️ `data-ctx` sur la RACINE : c'est lui qui décide de l'accent
         contextuel de tout l'écran (voir index.css). Une page qui parle d'un
         monstre le posera à son élément ; partout ailleurs il reste absent, et

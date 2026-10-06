@@ -10,6 +10,19 @@ interface PontBureau {
   bureau: true;
   plateforme: string;
   couleurs: (c: { fond: string; barre: string; symboles: string }) => void;
+  miseAJour: {
+    etat: () => Promise<EtatMiseAJour | null>;
+    surChangement: (rappel: (etat: EtatMiseAJour) => void) => () => void;
+    telecharger: () => void;
+    redemarrer: () => void;
+  };
+}
+
+// La mise à jour automatique (lot 5), phase par phase — voir
+// bureau/miseAJour.ts. Rien ne se télécharge sans « Mettre à jour ».
+export interface EtatMiseAJour {
+  phase: 'disponible' | 'telechargement' | 'prete' | 'echec';
+  version: string;
 }
 
 function pont(): PontBureau | null {
@@ -18,6 +31,33 @@ function pont(): PontBureau | null {
 }
 
 export const estBureau = (): boolean => pont() !== null;
+
+// `rappel` reçoit l'état de la mise à jour — celui qui existe déjà au
+// chargement de la page, puis chaque changement. Rend de quoi se désabonner.
+// Sur le site : rien.
+export function suivreMiseAJour(rappel: (etat: EtatMiseAJour) => void): () => void {
+  const p = pont();
+  if (!p) return () => {};
+  let actif = true;
+  void p.miseAJour.etat().then((etat) => {
+    if (actif && etat) rappel(etat);
+  });
+  const desabonner = p.miseAJour.surChangement(rappel);
+  return () => {
+    actif = false;
+    desabonner();
+  };
+}
+
+// « Mettre à jour » : télécharge la version proposée (en fond).
+export function telechargerMiseAJour() {
+  pont()?.miseAJour.telecharger();
+}
+
+// « Redémarrer » : installe la mise à jour téléchargée et relance l'app.
+export function redemarrerPourMettreAJour() {
+  pont()?.miseAJour.redemarrer();
+}
 
 // `"27 26 25"` (forme des jetons de `index.css`) → `#1b1a19` ; `null` si ce
 // n'est pas un triplet 0–255.

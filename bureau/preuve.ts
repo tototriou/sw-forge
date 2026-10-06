@@ -12,12 +12,15 @@
 import { app, BrowserWindow, desktopCapturer } from 'electron';
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import type { PreuveMiseAJour } from './miseAJour';
 
-// Ce que le branchement de navigation (navigation.ts) enregistre en mode
-// preuve, au lieu d'ouvrir le navigateur ou une boîte de dialogue.
+// Ce que les branchements enregistrent en mode preuve : la navigation
+// (navigation.ts) au lieu d'ouvrir le navigateur ou une boîte de dialogue, la
+// mise à jour (miseAJour.ts) au lieu de télécharger ou de redémarrer.
 export interface TemoinsPreuve {
   liensOuverts: string[];
   dossierTelechargements: string;
+  miseAJour: PreuveMiseAJour;
 }
 
 const attendre = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -164,6 +167,46 @@ export async function lancerPreuve(fenetre: BrowserWindow, dossier: string, raci
     await attendre(1500);
     const telecharge = join(temoins.dossierTelechargements, 'swblacksmith-essai.json');
     resultats.telechargement = existsSync(telecharge) ? readFileSync(telecharge, 'utf8') : 'absent';
+
+    // ── Lot 5 : la mise à jour automatique ───────────────────────────────
+    // Une version « disponible », simulée (aucun réseau). L'utilisateur
+    // décide : la question doit RESTER au-delà des 6 s, rien ne doit se
+    // télécharger sans « Mettre à jour » ; puis « Mise à jour prête »,
+    // « Redémarrer » qui atteint le processus principal (compté, sans
+    // redémarrer), et la page RECHARGÉE qui la propose encore.
+    // ⚠️ La notification, pas la première zone `role="status"` (App.tsx en a
+    // une, toujours là) : celle qui porte la croix « Fermer la notification ».
+    const notification = () =>
+      js(`document.querySelector('[aria-label="Fermer la notification"]')?.closest('[role="status"]')?.innerText.replace(/\\s+/g, ' ').trim() ?? 'aucune'`);
+    const cliquer = (libelle: string) =>
+      js(`(() => {
+        const b = [...document.querySelectorAll('[role="status"] button')].find((x) => x.textContent.trim() === ${JSON.stringify(libelle)});
+        if (!b) return 'pas de bouton « ${libelle} »';
+        b.click();
+        return 'cliqué';
+      })()`);
+    const ma: Record<string, unknown> = {};
+    ma.avant = await notification();
+    temoins.miseAJour.simuler?.('9.9.9');
+    await attendre(800);
+    ma.disponible = await notification();
+    await attendre(7000);
+    ma.disponibleApres7s = await notification();
+    ma.telechargementsSansAccord = temoins.miseAJour.telechargements;
+    ma.clicMettreAJour = await cliquer('Mettre à jour');
+    await attendre(100);
+    ma.pendant = await notification();
+    await attendre(1000);
+    ma.telechargements = temoins.miseAJour.telechargements;
+    ma.prete = await notification();
+    ma.clicRedemarrer = await cliquer('Redémarrer');
+    await attendre(500);
+    ma.redemarrages = temoins.miseAJour.redemarrages;
+    fenetre.webContents.reload();
+    await new Promise<void>((r) => fenetre.webContents.once('did-finish-load', () => r()));
+    await attendre(2000);
+    ma.apresRechargement = await notification();
+    resultats.miseAJour = ma;
 
     await js(`location.hash = '#/bestiary'`);
     await attendre(2500);

@@ -11,9 +11,10 @@ import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { NOM_APP } from '../src/marque';
 import { CouleursFenetre, couleursValides, EtatFenetre, HAUTEUR_BARRE, lireEtat, MINIMUM } from './fenetre';
-import { brancherNavigation, OptionsNavigation } from './navigation';
+import { brancherMiseAJour } from './miseAJour';
+import { brancherNavigation } from './navigation';
 import { SCHEMA, URL_ACCUEIL, cheminDuFichier } from './protocole';
-import { lancerPreuve } from './preuve';
+import { lancerPreuve, TemoinsPreuve } from './preuve';
 
 // Les couleurs des deux thèmes, LUES dans `src/index.css` à la compilation
 // (scripts/construire-bureau.mjs) — jamais recopiées ici. Elles habillent la
@@ -64,7 +65,7 @@ function ecrireFichierEtat(etat: EtatFenetre) {
   }
 }
 
-function creerFenetre(preuve: OptionsNavigation['preuve']): BrowserWindow {
+function creerFenetre(preuve: TemoinsPreuve | undefined): BrowserWindow {
   const ecrans = screen.getAllDisplays().map((d) => ({ x: d.workArea.x, y: d.workArea.y, largeur: d.workArea.width, hauteur: d.workArea.height }));
   const principal = screen.getPrimaryDisplay().workArea;
   const etat = lireEtat(lireFichierEtat(), [
@@ -127,6 +128,9 @@ function creerFenetre(preuve: OptionsNavigation['preuve']): BrowserWindow {
   // Liens externes vers le navigateur du système, navigations hors de l'app
   // bloquées, téléchargements par « Enregistrer sous » (lot 2).
   brancherNavigation(fenetre, { urlDev: URL_DEV, preuve });
+  // Mise à jour automatique (lot 5) : app installée seulement ; en mode
+  // preuve, simulée.
+  brancherMiseAJour(fenetre, preuve?.miseAJour);
 
   void fenetre.loadURL(URL_DEV ?? URL_ACCUEIL);
   return fenetre;
@@ -143,8 +147,8 @@ void app.whenReady().then(() => {
   });
   // Mode preuve : les liens sont notés, les téléchargements rangés dans son
   // dossier — puis contrôles, captures, et on quitte.
-  const preuve = DOSSIER_PREUVE
-    ? { liensOuverts: [] as string[], dossierTelechargements: join(DOSSIER_PREUVE, 'telechargements') }
+  const preuve: TemoinsPreuve | undefined = DOSSIER_PREUVE
+    ? { liensOuverts: [], dossierTelechargements: join(DOSSIER_PREUVE, 'telechargements'), miseAJour: { telechargements: 0, redemarrages: 0 } }
     : undefined;
   const fenetre = creerFenetre(preuve);
   if (DOSSIER_PREUVE && preuve) void lancerPreuve(fenetre, DOSSIER_PREUVE, RACINE, preuve);

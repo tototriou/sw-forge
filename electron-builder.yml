@@ -23,6 +23,17 @@ copyright: SW Blacksmith
 directories:
   output: paquets
 
+# Où la mise à jour automatique cherche les versions (lot 5) : écrit dans
+# `resources/app-update.yml` de l'app installée. ÉCRIT ici, pas déduit du
+# dépôt git (ce que fait electron-builder sans lui) : une CI qui clonerait
+# autrement ne change rien. Un dépôt RENOMMÉ reste suivi — GitHub redirige.
+# La publication elle-même n'est PAS faite par electron-builder (`--publish
+# never`, décision 9) : voir .github/workflows/bureau.yml.
+publish:
+  provider: github
+  owner: tototriou
+  repo: sw-forge
+
 # Le build Vite et le processus principal, rien d'autre. ⚠️ Pas de
 # `node_modules` : React & co. sont déjà DANS le build (Vite), et le
 # processus principal est un seul fichier (esbuild, construire-bureau.mjs).

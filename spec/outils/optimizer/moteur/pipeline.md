@@ -96,7 +96,8 @@ maximal de pièces de chaque set que l'AUTRE moitié peut apporter
 (`maxSetCountsForSlots` : `maxSetsForA` sur les indices 3 à 5, `maxSetsForB`
 sur 0 à 2) et capacité des compartiments (`bucketCap`, `bucketCapFor` de la
 taille du pré-filtrage sauf valeur passée). Les élagages et le pré-filtrage
-eux-mêmes : [elagages.md § Élagages sûrs](elagages.md) et
+eux-mêmes : [elagages.md § Élagages sûrs](elagages.md),
+[elagages.md § Élagage sûr — faisabilité](elagages.md) et
 [elagages.md § Pré-filtrage heuristique et compartiments](elagages.md).
 
 ## Construction des moitiés
@@ -193,7 +194,8 @@ temps, le plafond de candidats, l'épuisement de l'espace ; aucun plafond de
 paires. Le résultat (`SearchResult`) porte les candidats dans l'ordre de
 leur découverte, `explored`, `truncated`, le quasi-succès, et la trace de
 diagnostic si elle a été demandée (`traceur`). Détail des tests :
-[elagages.md § Élagages sûrs](elagages.md).
+[elagages.md § Élagage sûr — faisabilité](elagages.md) et
+[elagages.md § Faisabilité de set, groupage par compte et jokers](elagages.md).
 
 ## Appariement parallèle
 

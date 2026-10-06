@@ -134,7 +134,7 @@ lui, `sortCandidates` laisse l'ordre de collecte sans lever
 `candidateMetricTotal`, recalculé depuis les vraies runes dans la métrique
 courante, jamais de `effTotal`, figé à la recherche. Le rang d'un build se
 prend sur la liste entière ; la coupe aux 20 premiers (`TAILLE_TOP_RENDU`,
-`:1995-2001`) n'est que celle de l'affichage.
+`scripts/lib/diagnosticHarness.ts:1995-2001`) n'est que celle de l'affichage.
 
 ## L'observateur onStage
 
@@ -171,7 +171,7 @@ exécute celle que le palier 1 a décrite, sans relire recette ni export
 
 **Chaque paramètre effectif affiche son origine** : `recette`,
 `config synthétique`, `défaut moteur`, `DÉRIVÉ de <param>`, `OVERRIDE`,
-`recette (non surchargeable)` (`scripts/lib/diagnosticTypes.ts:147-166`). La
+`recette (non surchargeable)` (`scripts/lib/diagnosticTypes.ts:147-167`). La
 table couvre la surface d'override et les paramètres effectifs non
 surchargeables : objectif et stats d'objectif, `adaptiveTrancheWeighting`,
 métrique, recherche exhaustive, composition du pool, verrous, artéfacts,
@@ -208,7 +208,7 @@ l'écran et le dit (`scripts/lib/diagnosticConfig.ts:138-148`).
 
 **Piège A — la cascade.** Sans override, `bucketCap` est DÉRIVÉ :
 `bucketCapFor(slotFilterCap)` = `round(BUCKET_CAP × slotFilterCap /
-MAX_PER_SLOT_MATCH)` (`src/lib/runeBuildOptim.ts:1376-1387`). Surcharger
+MAX_PER_SLOT_MATCH)` (`src/lib/runeBuildOptim.ts:1377-1387`). Surcharger
 `slotFilterCap` déplace aussi `bucketCap` ; la table l'annonce « DÉRIVÉ de
 slotFilterCap » (`scripts/lib/diagnosticConfig.ts:166-177`,
 `tests/diagnostic-harness.test.ts:72-86`).
@@ -223,7 +223,7 @@ synthétique, le harnais EXIGE `--cap` (sans défaut) et refuse le run sans lui
 `tests/diagnostic-harness.test.ts:54-70`). Ce piège est un défaut du MOTEUR, et
 sa correction naïve (`MAX_PER_SLOT_MATCH = 80`) casserait la production : la
 même constante est l'ancre de `bucketCapFor`
-(`src/lib/runeBuildOptim.ts:1362-1376`), dont le résultat tomberait de 6000 à
+(`src/lib/runeBuildOptim.ts:1366-1377`), dont le résultat tomberait de 6000 à
 3000. Le défaut de `filterSlot` et l'ancre de `bucketCapFor` sont deux
 changements séparables.
 
@@ -248,7 +248,7 @@ absent au départ, jamais « éliminé au premier étage »
 - une rune qui atteint l'entrée réelle de `filterSlot` (sortie de
   `feasibility`, lue par `onStage`) reçoit son rang exact sur `relevance()` et
   par stat, avec les budgets `PER_STAT_KEEP`/`PER_STAT_KEEP_OBJECTIVE`
-  (`detailFiltrage`, `:1269-1317`) ;
+  (`detailFiltrage`, `scripts/lib/diagnosticHarness.ts:1269-1317`) ;
 - les 3 identifiants d'une même moitié (emplacements 1-3 ou 4-6) donnent le
   rang du demi-build dans son compartiment et ses voisins (`:347-360`,
   `:1325-1355`) ;
@@ -303,7 +303,7 @@ Après l'appariement, `evaluerCompletude`
 - **Une configuration invalide n'est pas un verdict.** Un emplacement vide
   fait rendre `null` à `prepareSearch` : le harnais dit « préparation
   impossible » et nomme la cause lue dans le verrou et le pool
-  (`causeConfigurationInvalide`, `:1208-1248`) — rune imposée absente du pool,
+  (`scripts/lib/diagnosticHarness.ts:1208-1248`) — rune imposée absente du pool,
   rune imposée à un autre emplacement (un verrou ne déplace pas une rune, il
   vide l'emplacement), sinon l'étage qui a vidé l'emplacement. Tests :
   `tests/diagnostic-harness.test.ts:372-457` et `:571-605`.
@@ -366,8 +366,8 @@ Le harnais ne choisit pas : une fois les moitiés construites,
 appariement parallèle sur 4 workers, sinon séquentiel
 (`scripts/lib/diagnosticHarness.ts:1046-1051`) — la règle de
 `src/workers/runeBuildOptim.worker.ts:330-341`. Le régime s'affiche avec sa
-raison, « comme la production pour ce cas » (`:361-375`,
-`tests/diagnostic-harness.test.ts:360-370`).
+raison, « comme la production pour ce cas »
+(`scripts/lib/diagnosticHarness.ts:361-375`, `tests/diagnostic-harness.test.ts:360-370`).
 
 **La construction est toujours parallèle.** La production lance ses deux Web
 Workers de construction dans tous les cas
@@ -416,8 +416,9 @@ production (`scripts/lib/diagnosticHarness.ts:10-17`). Il n'utilise pas
 `drivePairing`, boucle autour d'UN `pairBuckets` dont la progression par
 message, la main rendue et l'arrêt coopératif servent le navigateur
 (`src/workers/pairingDriver.ts:43-78`) : en séquentiel, il vide
-`pairBuckets(prepared, bucketsA, bucketsB)` (`:1060-1065`), appel nu qui
-explore ce que la production explore.
+`pairBuckets(prepared, bucketsA, bucketsB)`
+(`scripts/lib/diagnosticHarness.ts:1060-1065`), appel nu qui explore ce que la
+production explore.
 
 Passer un vrai `prepared` à `buildBuckets` ou `pairBuckets` n'est pas une
 reconstruction : la production fait de même. La reconstruction, c'est rebâtir
@@ -448,7 +449,8 @@ affirme une direction (`tests/diagnostic-harness.test.ts:122-135`).
    (`scripts/diagnostic-harness-parite.ts:1-28`), sur les cas réels de
    `scripts/lib/perfShared.ts` (`CASES`, partagés avec `perf-battery`, qui
    exigent les exports de compte). L'ancienne reconstruction y est une copie
-   littérale, à ne pas corriger. Attendus (`:222-246`) : `mainstat` et
+   littérale, à ne pas corriger. Attendus
+   (`scripts/diagnostic-harness-parite.ts:222-246`) : `mainstat` et
    `dominance` IDENTIQUES ; en `feasibility`, le harnais garde AU MOINS autant
    de runes (l'ancien chemin ignore `guaranteedMin`, `artFlatMin` et les bornes
    d'inventaire) ; `filterslot` sans attente stricte. Une divergence inattendue

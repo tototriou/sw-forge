@@ -427,6 +427,21 @@ dépôt avec ou sans chantier, posé dans le `hooks.json` personnel par
 `installer-hooks.mjs --codex-hooks <hooks.json>` (entrée `PreToolUse` à
 lui, distincte de tout autre hook Codex personnel).
 
+### Refus du `pre-commit`
+
+Sur les chemins ajoutés, copiés, modifiés ou renommés de l'index : un
+commit sur `main` ; un chemin sous `.history/` ou `.vscode/` ; un fichier
+de plus de 5 Mo ; un `spec/**.md` du périmètre que refuse `spec-lint`.
+Sous `spec/outils/optimizer/` (casse ignorée), un fichier absent de
+`.githooks/optimizer-publics.txt` (lue dans l'index ; un chemin par ligne
+depuis la racine, `#` en commentaire ; absente = vide), ou dont la
+version de l'index porte une marque de note privée : renvoi résolu dans
+`archive/`, `chantiers/` ou `decisions/` de ce dossier, renvoi vers
+`a-publier/`, identifiant de lot. Un fichier publié et sa ligne de liste
+vont dans le même commit. Limite assumée : une note privée sans aucune de
+ces marques, sous un nom de la liste, passe. Test : `node tests/run.mjs
+precommit`.
+
 ### Installation des garde-fous
 
 Trois objets distincts, et les deux premiers ne se confondent pas :

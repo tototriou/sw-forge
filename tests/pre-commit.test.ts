@@ -144,7 +144,7 @@ export function testPreCommit() {
       [`Le ${LOT}-6bis.`, 'tiret et « bis »'],
       [`Étape du ${LOT} P5a2.`, 'étiquette lettres et chiffres'],
       [`{ ${LOT}: '1a2' }`, 'clé de données'],
-      [`Résultat du ${LOT} 7b.`, 'espace insécable'],
+      [`Résultat du ${LOT}\u00A07b.`, 'espace insécable'],
       [`Résultat du ${LOT}\t7b.`, 'tabulation'],
     ];
     for (const [ligne, libelle] of identifiants) ok(refuse(marque(`${ligne}\n`), IDENTIFIANT), `identifiant de lot, ${libelle} : refus`);

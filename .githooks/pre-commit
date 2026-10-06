@@ -69,7 +69,7 @@ const LIEN = /\]\(\s*<?([^)\s>]+)/g;
 // suffixe), une étiquette lettres et chiffres, ou une étiquette CM/EX ; ou
 // la clé de données `lot:` suivie d'un numéro entre guillemets. Le mot seul
 // (« un lot de runes ») ne correspond pas.
-const MOTIF_LOT = /(?<![\p{L}\p{N}_])(?:[Ll]ots?|LOTS?)[\t   -]{0,2}(?:[0-9]+(?:[a-z][0-9]?)?(?:bis|[-–][0-9a-z]+)?|[A-Z]{1,2}[0-9]+[a-z0-9]*|CM\b|EX[0-9]?\b)|(?<![\p{L}\p{N}_])lot: ?['"][0-9][0-9a-z]*['"]/u;
+const MOTIF_LOT = /(?<![\p{L}\p{N}_])(?:[Ll]ots?|LOTS?)[\t \u00A0\u202F-]{0,2}(?:[0-9]+(?:[a-z][0-9]?)?(?:bis|[-–][0-9a-z]+)?|[A-Z]{1,2}[0-9]+[a-z0-9]*|CM\b|EX[0-9]?\b)|(?<![\p{L}\p{N}_])lot: ?['"][0-9][0-9a-z]*['"]/u;
 
 function git(...args) {
   return execFileSync('git', args, { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }).trim();

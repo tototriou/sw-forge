@@ -4,8 +4,8 @@
 // lui-même une application Electron et la pose à 1 dans son terminal intégré :
 // héritée, elle fait démarrer Electron comme un simple Node — `require('electron')`
 // rend alors un chemin au lieu de l'API, et la fenêtre ne s'ouvre jamais
-// (« Cannot read properties of undefined (reading 'registerSchemesAsPrivileged') »,
-// vu au lot 1). Tout lancement passe donc par ici.
+// (symptôme : « Cannot read properties of undefined (reading
+// 'registerSchemesAsPrivileged') »). Tout lancement passe donc par ici.
 
 import { spawn, spawnSync } from 'node:child_process';
 import { createRequire } from 'node:module';

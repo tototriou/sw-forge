@@ -117,7 +117,7 @@ export function brancherSwex(fenetre: BrowserWindow, preuve?: PreuveSwex) {
 
   // ⚠️ Après chaque CHOIX, l'état est aussi DIFFUSÉ : deux endroits de la page
   // le montrent (Réglages, carte du compte), et seul celui qui a fait le choix
-  // reçoit la réponse — l'autre restait sur l'ancien état (vu au lot 9).
+  // reçoit la réponse — sans diffusion, l'autre resterait sur l'ancien état.
   const repondre = () => {
     const e = etat();
     envoyer('bureau:swex-etat', e);

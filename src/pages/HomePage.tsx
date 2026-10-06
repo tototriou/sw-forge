@@ -313,7 +313,7 @@ export default function HomePage({ stats, onImport }: Props) {
 /* ---- Briques -------------------------------------------------------------- */
 
 // « Télécharger l'application » — application de bureau, lot 6, décisions
-// 13 et 14 de Thomas : le lien du héros vers la page « Télécharger ».
+// 13 et 14 : le lien du héros vers la page « Télécharger ».
 //
 // ⚠️ **Un bouton DANS le héros**, sous la promesse : la règle « aucun bouton
 // dans le héros » (spec/accueil.md) est levée pour lui seul. SECONDAIRE

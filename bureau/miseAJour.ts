@@ -2,8 +2,8 @@
 // application-bureau, lot 5 (décision 10 : le passage réel N → N+1 se
 // constate à la première version publiée après la v2.0.0).
 //
-// ⚠️ **L'utilisateur décide** (Thomas, 2026-10-06 : « il faut demander à
-// l'utilisateur avant de télécharger »). Au lancement, `electron-updater`
+// ⚠️ **L'utilisateur décide** (décision 11) : rien ne se télécharge sans son
+// accord. Au lancement, `electron-updater`
 // cherche seulement une version plus récente dans les releases GitHub
 // (`publish` de electron-builder.yml → `resources/app-update.yml`) ; rien ne
 // se télécharge tant qu'il n'a pas répondu. La page
@@ -15,9 +15,8 @@
 //                  elle s'installe à la fermeture de l'app
 //   echec          le téléchargement qu'il a demandé n'a pas abouti
 //
-// ⚠️ **Plus tard, c'est possible** (Thomas, 2026-10-06 : « si l'utilisateur
-// ne veut pas faire la mise à jour tout de suite mais la faire plus tard,
-// il faut que cela soit possible ») : le bloc « Application » des Réglages
+// ⚠️ **Une mise à jour remise à plus tard reste faisable** (décision 12) :
+// le bloc « Application » des Réglages
 // (src/components/BlocApplication.tsx) montre la même phase et la même
 // action, et peut RELANCER une recherche — trois phases de plus, les
 // siennes, sans notification :
@@ -164,8 +163,8 @@ export function brancherMiseAJour(fenetre: BrowserWindow, preuve?: PreuveMiseAJo
   autoUpdater.on('update-downloaded', (info) => passer('prete', info.version));
   // ⚠️ Un émetteur sans écouteur d'`error` LÈVE l'erreur : l'app planterait
   // hors ligne. On l'écoute — sans l'écrire : `electron-updater` l'a déjà
-  // passée à `logger.error` (sinon, trois fois la même dans le journal, vu
-  // au lot 5). Une RECHERCHE qui échoue : dite seulement s'il l'a demandée
+  // passée à `logger.error` (l'écrire ici la doublerait dans le journal).
+  // Une RECHERCHE qui échoue : dite seulement s'il l'a demandée
   // (l'échec d'un téléchargement passe par `downloadUpdate`, plus haut).
   autoUpdater.on('error', () => {
     if (etat?.phase === 'recherche') {

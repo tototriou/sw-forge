@@ -28,8 +28,8 @@ export interface TemoinsPreuve {
 const attendre = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 // Clique le bouton de ce libellé dès qu'il apparaît (au plus `delai` ms) :
-// un délai FIXE après un import a manqué la question « Garder mes données »
-// une fois sur deux (lot 9).
+// après un import, la question « Garder mes données » arrive après un délai
+// variable — un délai fixe la manque.
 async function cliquerQuandPret(fenetre: BrowserWindow, libelle: string, delai = 10_000): Promise<string> {
   const fin = Date.now() + delai;
   while (Date.now() < fin) {
@@ -171,8 +171,8 @@ export async function lancerPreuveSwex(fenetre: BrowserWindow, dossier: string, 
     resultats.reglageDossier = await reglage();
     resultats.options = await js(`[...document.querySelectorAll('[data-reglage-swex] select option')].map((o) => o.textContent)`);
     await fermerNotification();
-    // L'invocateur se choisit depuis la CARTE DU COMPTE (Thomas : « au niveau
-    // du menu principal, avec un drop down ») : la carte ouvre le menu.
+    // L'invocateur se choisit depuis la CARTE DU COMPTE : la carte ouvre le
+    // menu des invocateurs.
     resultats.menuCompte = await js(`(() => {
       const carte = document.querySelector('aside button[aria-label="Changer de compte"]');
       if (!carte) return 'pas de menu sur la carte du compte';

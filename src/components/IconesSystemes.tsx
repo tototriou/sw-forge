@@ -1,5 +1,5 @@
-// Logos des systèmes d'exploitation — application de bureau, lot 6 (Thomas :
-// « mets l'icône Windows et Linux plutôt que l'icône de download »).
+// Logos des systèmes d'exploitation — application de bureau, lot 6 : un
+// téléchargement pour Windows ou Linux se reconnaît au logo du système.
 //
 // Le même contrat d'appel que lucide (`size`, `className`), en `currentColor` :
 // ils prennent la couleur du bouton qui les porte. Pleins, pas au trait :

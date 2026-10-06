@@ -11,7 +11,7 @@ import { egal, ok, titre } from './outils';
 
 export default function testBureauSwex() {
   titre('bureau · SW Exporter — reconnaître un export de compte');
-  // Les noms relevés dans un vrai dossier SW Exporter (2026-10-06).
+  // Les noms d'un vrai dossier SW Exporter.
   egal(lireNomExport('tototriou-12889591.json'), { fichier: 'tototriou-12889591.json', nom: 'tototriou', id: '12889591' }, 'nom simple');
   egal(lireNomExport('Killian26~-738882.json')?.nom, 'Killian26~', 'un « ~ » dans le nom');
   egal(lireNomExport('✨Vincent✨-1321384.json')?.nom, '✨Vincent✨', 'des emojis dans le nom');

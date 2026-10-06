@@ -66,8 +66,8 @@ export interface MenuProps {
   elements: ElementMenu[];
   // Largeur de la liste. Défaut : 15 rem, la maquette.
   largeur?: string;
-  // ⚠️ Deux axes nés de la carte du compte (application de bureau, lot 9 :
-  // « le choix de l'invocateur au niveau du menu principal ») :
+  // ⚠️ Deux axes nés de la carte du compte de la barre latérale, qui ouvre
+  // le menu des invocateurs (application de bureau, lot 9) :
   //  - `declencheur` : le bouton qui ouvre le menu, quand ce n'est pas le
   //    « ⋯ » — il reçoit ce qu'il doit poser sur son bouton (`ref`, ARIA,
   //    `onClick`) ; la carte occupe alors toute la largeur (`w-full`) ;

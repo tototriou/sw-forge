@@ -4,8 +4,8 @@
 //
 // ⚠️ Pourquoi pas la conversion d'electron-builder : elle écrit TOUTES les
 // tailles en PNG, que Windows ne sait pas lire en petite taille (bureau, menu
-// Démarrer, barre des tâches) — l'exécutable s'affichait avec l'icône
-// générique (2026-10-06). Ici, comme dans `electron.exe` : 16 à 64 px en BMP
+// Démarrer, barre des tâches) : il affiche alors l'icône générique. Ici,
+// comme dans `electron.exe` : 16 à 64 px en BMP
 // 32 bits (alpha), 256 px en PNG.
 //
 // Le redimensionnement est celui de Chromium (`nativeImage`, qualité « best ») :
@@ -64,7 +64,7 @@ function entreeBmp(bgra, taille) {
 
 // ⚠️ Pas de `await app.whenReady()` au niveau du module : Electron ne déclare
 // l'app prête qu'une fois le module principal ESM évalué — attendre ici
-// bloque pour toujours (vu au lot 3).
+// bloque pour toujours.
 const { app, nativeImage } = await import('electron');
 app.whenReady().then(generer);
 

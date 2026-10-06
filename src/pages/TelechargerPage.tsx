@@ -6,7 +6,7 @@ import { NOM_APP } from '../marque';
 import { Bouton } from '../ui';
 
 // La page « Télécharger » (`#/telecharger`) — application de bureau, lot 6,
-// décision 14 de Thomas. SITE seulement : dans l'app, ni entrée ni route
+// décision 14. SITE seulement : dans l'app, ni entrée ni route
 // (App.tsx).
 //
 // ⚠️ Un clic télécharge le FICHIER de la dernière version publiée

@@ -161,6 +161,8 @@ Q1 → 7 (les données dépendent du choix de Thomas)
    - **fond au thème dès l'ouverture**, sans éclair.
    Non retenu : « une seule fenêtre ». → lot 1 bis.
 
+#### Décisions du 2026-10-06 (lots 3 à 5)
+
 8. **L'installeur Windows** (2026-10-06, relevé du lot 3) :
    - ~~en un clic~~ → **un assistant** (amendé le même jour, après la séance
      d'écran : « laisse le choix à l'utilisateur d'où il veut installer »,
@@ -198,6 +200,17 @@ Q1 → 7 (les données dépendent du choix de Thomas)
     le passage réel N → N+1 se constate à la première version publiée
     après la v2.0.0, et s'ajoute alors à `lot-5.md`.
     → lot 5.
+
+11. **L'utilisateur décide de la mise à jour** (2026-10-06, à l'arrêt
+    avant commit du lot 5 : « il faut demander à l'utilisateur avant de
+    télécharger, c'est lui qui choisit s'il veut faire la mise à jour ») :
+    rien ne se télécharge sans « Mettre à jour » ; la question **reste**
+    jusqu'à sa réponse (nouvel axe de la notification) ; une fois
+    téléchargée, « Mise à jour prête · Redémarrer », sinon installée à la
+    fermeture. Remplace le « téléchargement en fond » de A.1 et du lot 5.
+    → lot 5.
+
+#### Les questions d'origine (toutes tranchées)
 
 Toutes les questions sont tranchées.
 

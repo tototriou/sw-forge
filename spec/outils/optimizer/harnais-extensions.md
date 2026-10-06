@@ -3,12 +3,14 @@
 **Statut :** ÉTAT ACTUEL — ce que le harnais de diagnostic fait au-delà de son mode d'emploi de base (niveaux de coût d'une extension, configuration, observation de la construction, build cible, instant de découverte, dispersion par tranche, différentiel et ses profils), avec le code qui porte chaque garantie
 **Lire si :** on lit ou modifie une sortie du harnais sur la construction des demi-builds (rétention, mémoire, `--progression`), un build cible à six identifiants, un différentiel (`--differentiel`, `--profil`), ou on envisage d'étendre le harnais
 **Ne pas lire si :** on cherche le mode d'emploi de base du harnais : harnais.md
-**Voir aussi :** harnais.md, invariants.md, verification.md
+**Voir aussi :** harnais.md, harnais-scripts.md, invariants.md, verification.md
 
 Ce fichier prolonge [harnais.md](harnais.md), le mode d'emploi (sources,
 phases, palier 1, suivi d'une rune, complétude, temps, régime) : ce que le
 harnais fait en plus, et où le code le porte (`fichier:lignes`). Les sorties
 décrites impriment elles-mêmes leurs avertissements ; la spec dit pourquoi.
+Le lot sur les cas connus et les scripts de diagnostic voisins sont dans
+[harnais-scripts.md](harnais-scripts.md).
 
 ## Étendre le harnais : quatre niveaux de coût
 

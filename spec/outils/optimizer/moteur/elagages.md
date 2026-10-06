@@ -381,7 +381,8 @@ porte la ligne 218, même si les PV ne sont pas une stat du sort.
   l'écran passe le sien), le plafond de candidats, l'épuisement de
   l'espace. Ne pas réintroduire de plafond de paires : `totalPairCount`
   compte exactement les paires que `pairBuckets` visite (mêmes prédicats,
-  même ordre, égalité vérifiée par `tests/rune-optim-differential.test.ts`),
+  dans un ordre qui diffère sans changer le compte ; égalité vérifiée par
+  `tests/rune-optim-differential.test.ts`),
   si bien qu'un tel plafond ne protégerait de rien et changerait une future
   divergence de comptage en troncature silencieuse.
 - **La recherche de runes optimise uniquement les 6 runes.** Les artéfacts

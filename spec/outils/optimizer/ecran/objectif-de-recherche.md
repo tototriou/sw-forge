@@ -290,11 +290,13 @@ l'un de ces deux objectifs est traduite à l'import vers « Efficience »
 de portée d'un simple import).
 
 ⚠️ L'objectif choisi oriente le **pré-filtrage** (quelles runes ont une
-vraie chance d'être considérées) et le **tri par défaut** des résultats
-(modifiable ensuite) — il **n'influence pas** le classement des candidats
-pendant la recherche elle-même : seuls les minimums/maximums posés dans
-« Conditions » en décident, quel que soit l'objectif choisi
-(voir conditions-et-reglages.md § Conditions, inventaire et réglages avancés).
+vraie chance d'être considérées), la **rétention** des demi-builds (une
+tranche par stat de l'objectif dans chaque compartiment, et l'ordre des
+demi-builds) et le **tri par défaut** des résultats (modifiable ensuite).
+Il ne décide pas de ce qui est admis : seuls les minimums et maximums posés
+dans « Conditions » le font, quel que soit l'objectif choisi (voir
+conditions-et-reglages.md § Conditions, inventaire et réglages avancés ;
+limite : ../limites-connues.md § L'objectif de recherche oriente, il ne garantit pas).
 
 ⚠️⚠️ **UN OBJECTIF RETIRÉ SURVIT DANS LES SCRIPTS.** `objectiveKeysOf`
 retombe sur `[]` pour une valeur absente de la table : un script CLI/diag

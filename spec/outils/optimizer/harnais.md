@@ -364,7 +364,7 @@ Toute mesure suit le skill `optimizer-perf-testing`
 Le harnais ne choisit pas : une fois les moitiés construites,
 `totalPairs = totalPairCount(prepared, bucketsA, bucketsB)` ; à partir de
 `PARALLEL_PAIRING_THRESHOLD` (100 M de paires, `src/workers/parallelPairing.ts:58`),
-appariement parallèle sur 4 workers, sinon séquentiel
+appariement parallèle sur au plus 4 workers, sinon séquentiel
 (`scripts/lib/diagnosticHarness.ts:1046-1051`) — la règle de
 `src/workers/runeBuildOptim.worker.ts:330-341`. Le régime s'affiche avec sa
 raison, « comme la production pour ce cas »

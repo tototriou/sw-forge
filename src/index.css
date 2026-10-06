@@ -673,7 +673,8 @@ button:not(:disabled):not([draggable]):not([role='switch']):active,
    surfaces cliquables gardent le rétrécissement ci-dessus.
    ⚠️ Même liste d'exclusions, plus l'attribut : la règle doit être PLUS
    spécifique que la précédente, sans quoi `scale` l'emporterait. */
-button[data-bouton]:not(:disabled):not([draggable]):not([role='switch']):active {
+button[data-bouton]:not(:disabled):not([draggable]):not([role='switch']):active,
+a[data-bouton]:active {
   transform: translateY(1px);
 }
 

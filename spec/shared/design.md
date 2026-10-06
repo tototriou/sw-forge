@@ -1197,7 +1197,9 @@ doute d'un dixième de seconde.
 ⚠️ **Sauf les boutons de la librairie** (rebranding, décision 21 — la
 planche « Actions » de la toile) : un `Bouton` (donc aussi `BoutonIcone`)
 **descend d'1 px**, et le principal fonce (`accent-appui`). La règle vit dans
-`index.css` (`button[data-bouton]`, attribut posé par `Bouton`), plus
+`index.css` (`button[data-bouton]`, et `a[data-bouton]` pour un `Bouton`
+lien — axe `href`, lot 6 de l'application de bureau ; attribut posé par
+`Bouton`), plus
 spécifique que celle du rétrécissement ; les cartes, poignées et autres
 surfaces cliquables gardent `scale(0.97)`.
 

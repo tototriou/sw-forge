@@ -26,7 +26,7 @@ Fichiers : [TelechargerPage.tsx](src/pages/TelechargerPage.tsx) ·
 - **Au téléphone, pas de boutons** : « À installer depuis un ordinateur
   Windows ou Linux. » — rien ne s'installe sur un téléphone.
 - « Version proposée : vX.Y.Z » (la dernière **publiée** de
-  `data/releases.ts`) et « Toutes les versions sur GitHub » (nouvel onglet).
+  `src/data/releases.ts`) et « Toutes les versions sur GitHub » (nouvel onglet).
 
 ## Règles
 

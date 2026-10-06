@@ -115,10 +115,10 @@ export async function lancerPreuveConservation(fenetre: BrowserWindow, dossier: 
 
 // ── Lot 9 : le dossier SW Exporter ─────────────────────────────────────
 // `npm run bureau:preuve -- --swex` : un dossier de fixtures (deux
-// invocateurs, un `live/`), « choisi » sans boîte de dialogue (main.ts). Un
+// invocateurs, un sous-dossier `live`), « choisi » sans boîte de dialogue (main.ts). Un
 // import MANUEL d'abord (prépa RTA et siège remplis), puis, depuis les
 // Réglages, le dossier et l'invocateur ; l'export réécrit pendant que l'app
-// tourne ; un rechargement ; une écriture dans `live/`. À chaque étape : le
+// tourne ; un rechargement ; une écriture dans `live`. À chaque étape : le
 // compte affiché, la notification, et la prépa RTA et le siège INCHANGÉS.
 export async function lancerPreuveSwex(fenetre: BrowserWindow, dossier: string, fixtures: string, compte: string) {
   mkdirSync(dossier, { recursive: true });
@@ -208,7 +208,7 @@ export async function lancerPreuveSwex(fenetre: BrowserWindow, dossier: string, 
     await attendre(3500);
     resultats.apresRechargement = { compte: await compteAffiche(), notification: await notification(), travailInchange: (await travail()) === avant };
 
-    // 5. Une écriture dans `live/` (SW Exporter en partie) : ignorée.
+    // 5. Une écriture dans `live` (SW Exporter en partie) : ignorée.
     writeFileSync(join(fixtures, 'live', 'partie.json'), '{}');
     await attendre(3500);
     resultats.apresLive = { notification: await notification() };

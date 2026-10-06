@@ -55,4 +55,5 @@ l'application de bureau est décrit par
 
 Les identifiants de lot cités dans le code renvoient au journal archivé.
 
-Journal archivé dans les notes privées du projet : `spec/outils/optimizer/archive/chantiers/application-bureau.md`
+Journal archivé dans les notes privées du projet, avec ses preuves ; sa
+dernière version publique se lit dans l'historique git, commit `c5adcd69`.

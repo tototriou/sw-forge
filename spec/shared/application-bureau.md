@@ -73,7 +73,7 @@ change pas. Ce qui en dépend aujourd'hui :
   sur l'ancien.
 - **Le réglage** : « Dossier SW Exporter » (« Choisir… » ouvre la boîte du
   système ; « Retirer ») et « Invocateur » (les exports `<nom>-<id>.json` à
-  la **racine** ; `live/`, `plugins/`, `cert/` ignorés ; un seul export →
+  la **racine** ; sous-dossiers `live`, `plugins`, `cert` ignorés ; un seul export →
   choisi d'office ; deux homonymes → l'identifiant les sépare). Retenu dans
   `swex.json` (dossier des données de l'app) **même sans « Garder mes
   données »** : c'est un réglage. Relu avec méfiance — un nom de fichier,
@@ -93,7 +93,7 @@ change pas. Ce qui en dépend aujourd'hui :
 
 ## L'installeur
 
-`npm run bureau:paquet` → `paquets/` (`electron-builder.yml`) :
+`npm run bureau:paquet` → dossier `paquets`, non suivi (`electron-builder.yml`) :
 
 - **Windows** : assistant NSIS en français — pour qui (« juste pour moi »
   par défaut, sans droits administrateur), quel dossier, avancement ;

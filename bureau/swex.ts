@@ -94,7 +94,7 @@ export function brancherSwex(fenetre: BrowserWindow, preuve?: PreuveSwex) {
     surveillance = null;
     if (!reglage.dossier) return;
     try {
-      // Non récursif : seuls les exports de la RACINE comptent (`live/` écrit
+      // Non récursif : seuls les exports de la RACINE comptent (`live` écrit
       // en continu pendant une partie). Tout changement relance la liste ET
       // l'export suivi, une fois le dossier calme.
       surveillance = watch(reglage.dossier, () => {

@@ -2,7 +2,7 @@
 # (spec/chantiers/application-bureau.md, décisions 3 et 8).
 #
 # `npm run bureau:paquet` : build Vite + processus principal, puis
-# l'installeur de la plateforme courante dans `paquets/` (gitignoré).
+# l'installeur de la plateforme courante dans le dossier `paquets` (gitignoré).
 
 # ⚠️ DÉFINITIF (décision 8) : Windows et la mise à jour automatique
 # reconnaissent l'app installée par cet identifiant. Le changer = une autre
@@ -24,7 +24,7 @@ directories:
   output: paquets
 
 # Où la mise à jour automatique cherche les versions (lot 5) : écrit dans
-# `resources/app-update.yml` de l'app installée. ÉCRIT ici, pas déduit du
+# `app-update.yml` des ressources de l'app installée. ÉCRIT ici, pas déduit du
 # dépôt git (ce que fait electron-builder sans lui) : une CI qui clonerait
 # autrement ne change rien. Un dépôt RENOMMÉ reste suivi — GitHub redirige.
 # La publication elle-même n'est PAS faite par electron-builder (`--publish
@@ -38,7 +38,7 @@ publish:
 # `node_modules` : React & co. sont déjà DANS le build (Vite), et le
 # processus principal est un seul fichier (esbuild, construire-bureau.mjs).
 # ⚠️ `dist-bureau/*.cjs`, pas tout le dossier : `bureau:preuve` y range ses
-# captures et son profil Chromium (`dist-bureau/preuve/`).
+# captures et son profil Chromium (sous-dossier `preuve`).
 files:
   - dist/**/*
   - dist-bureau/*.cjs

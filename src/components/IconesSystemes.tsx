@@ -7,7 +7,7 @@
 //
 // Origine des tracés :
 //  - Windows : les quatre carreaux, dessinés ici sur la grille de 24 ;
-//  - Linux : Tux, de Simple Icons 16.34.0 (`icons/linux.svg`), licence
+//  - Linux : Tux, de Simple Icons 16.34.0 (son icône `linux.svg`), licence
 //    CC0-1.0 — repris tel quel.
 
 type PropsLogo = { size?: number; className?: string };

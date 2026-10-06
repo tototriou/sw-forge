@@ -1,4 +1,4 @@
-// Compile le code de l'application de bureau (`bureau/`) vers `dist-bureau/`
+// Compile le code de l'application de bureau (`bureau/`) vers `dist-bureau`
 // — chantier application-bureau, lots 1 et 1 bis.
 //
 // Electron charge du CommonJS : `main.cjs` et `preload.cjs`, chacun en UN

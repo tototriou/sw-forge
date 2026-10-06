@@ -3,8 +3,9 @@
 // contrôles, captures, `resultats.json`, puis l'app se ferme d'elle-même.
 // Chantier application-bureau.
 //
-// Dossier par défaut : `dist-bureau/preuve` (gitignoré). Le build (`dist/`) et
-// `dist-bureau/` doivent être à jour : `npm run bureau:local` les refait.
+// Dossier par défaut : `preuve` dans `dist-bureau` (gitignoré). Le build
+// (`dist/`) et `dist-bureau` doivent être à jour : `npm run bureau:local` les
+// refait.
 // `--exe` : rejoue la même preuve sur une app INSTALLÉE (lot 3), par exemple
 // `%LOCALAPPDATA%\Programs\SW Blacksmith\SW Blacksmith.exe`.
 // `--conservation` (lot 8) : DEUX lancements sur un dossier de données neuf —
@@ -12,7 +13,8 @@
 // « Garder mes données », le second relit — puis compare ; code de sortie 1
 // si quelque chose s'est perdu.
 // `--swex` (lot 9) : le dossier SW Exporter sur des fixtures — choix, export
-// réécrit, rechargement, `live/` ; prépa RTA et siège jamais touchés.
+// réécrit, rechargement, sous-dossier `live` ; prépa RTA et siège jamais
+// touchés.
 
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -29,7 +31,7 @@ const swex = iSwex >= 0 && args.splice(iSwex, 1).length > 0;
 if (swex) {
   // Lot 9 : un dossier SW Exporter de fixtures — deux invocateurs à la racine
   // (`Testeur-1.json`, `Autre-2.json`, tirés de compte-miniature.json) et un
-  // `live/` à ignorer.
+  // sous-dossier `live` à ignorer.
   const dossier = resolve(args[0] ?? 'dist-bureau/preuve-swex');
   rmSync(dossier, { recursive: true, force: true });
   const fixtures = resolve(dossier, 'swex-fixtures');

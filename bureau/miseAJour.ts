@@ -5,7 +5,8 @@
 // ⚠️ **L'utilisateur décide** (décision 11) : rien ne se télécharge sans son
 // accord. Au lancement, `electron-updater`
 // cherche seulement une version plus récente dans les releases GitHub
-// (`publish` de electron-builder.yml → `resources/app-update.yml`) ; rien ne
+// (`publish` de electron-builder.yml → `app-update.yml` des ressources de
+// l'app installée) ; rien ne
 // se télécharge tant qu'il n'a pas répondu. La page
 // (src/components/MiseAJourBureau.tsx, notification) montre chaque phase :
 //

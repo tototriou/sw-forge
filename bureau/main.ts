@@ -33,7 +33,8 @@ protocol.registerSchemesAsPrivileged([
   },
 ]);
 
-// `dist-bureau/main.cjs` → le build est à côté, dans `dist/`.
+// Compilé en `main.cjs` dans le dossier `dist-bureau` : le build est à côté,
+// dans `dist/`.
 const RACINE = join(__dirname, '..', 'dist');
 
 // `npm run bureau` pointe la fenêtre sur le serveur de dev Vite (rechargement

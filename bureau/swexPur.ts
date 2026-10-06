@@ -5,7 +5,7 @@
 // Un export de compte, tel que SW Exporter le nomme à la RACINE de son
 // dossier : `<invocateur>-<identifiant>.json` (`tototriou-12889591.json`). Le
 // nom peut contenir des tirets, des emojis, un `~` : l'identifiant est le
-// DERNIER groupe de chiffres. Tout le reste (`live/`, `plugins/`, `cert/`,
+// DERNIER groupe de chiffres. Tout le reste (sous-dossiers `live`, `plugins`, `cert`,
 // un `.json` sans identifiant) n'est pas un export de compte.
 export interface ExportCompte {
   fichier: string;

@@ -14,7 +14,7 @@ import { CouleursFenetre, couleursValides, EtatFenetre, HAUTEUR_BARRE, lireEtat,
 import { brancherMiseAJour } from './miseAJour';
 import { brancherNavigation } from './navigation';
 import { SCHEMA, URL_ACCUEIL, cheminDuFichier } from './protocole';
-import { lancerPreuve, TemoinsPreuve } from './preuve';
+import { lancerPreuve, lancerPreuveConservation, TemoinsPreuve } from './preuve';
 
 // Les couleurs des deux thèmes, LUES dans `src/index.css` à la compilation
 // (scripts/construire-bureau.mjs) — jamais recopiées ici. Elles habillent la
@@ -151,7 +151,13 @@ void app.whenReady().then(() => {
     ? { liensOuverts: [], dossierTelechargements: join(DOSSIER_PREUVE, 'telechargements'), miseAJour: { recherches: 0, telechargements: 0, redemarrages: 0 } }
     : undefined;
   const fenetre = creerFenetre(preuve);
-  if (DOSSIER_PREUVE && preuve) void lancerPreuve(fenetre, DOSSIER_PREUVE, RACINE, preuve);
+  // Lot 8 : la preuve de conservation (deux lancements, `ecrire` puis
+  // `relire`, sur le même dossier) à la place de la preuve ordinaire.
+  const conservation = process.env.SWBLACKSMITH_PREUVE_CONSERVATION;
+  if (DOSSIER_PREUVE && (conservation === 'ecrire' || conservation === 'relire')) {
+    const compte = conservation === 'ecrire' ? readFileSync(process.env.SWBLACKSMITH_PREUVE_COMPTE ?? '', 'utf8') : '';
+    void lancerPreuveConservation(fenetre, DOSSIER_PREUVE, conservation, compte);
+  } else if (DOSSIER_PREUVE && preuve) void lancerPreuve(fenetre, DOSSIER_PREUVE, RACINE, preuve);
 });
 
 app.on('window-all-closed', () => app.quit());

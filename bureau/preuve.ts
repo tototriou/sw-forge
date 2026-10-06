@@ -42,6 +42,60 @@ async function capturerFenetre(fenetre: BrowserWindow, fichier: string): Promise
   return 'ok';
 }
 
+// ── Lot 8 : les données survivent à la fermeture de l'app ───────────────
+// Deux lancements sur le MÊME dossier de données (`npm run bureau:preuve --
+// --conservation`). `ecrire` importe un compte de test par le vrai champ
+// fichier de l'accueil, répond « Garder mes données », puis l'app se ferme ;
+// `relire` relance et relève la même chose. Le script compare les deux.
+export async function lancerPreuveConservation(fenetre: BrowserWindow, dossier: string, etape: 'ecrire' | 'relire', compte: string) {
+  mkdirSync(dossier, { recursive: true });
+  const resultats: Record<string, unknown> = { etape };
+  const js = (code: string) => fenetre.webContents.executeJavaScript(code, true);
+  try {
+    if (fenetre.webContents.isLoading()) {
+      await new Promise<void>((r) => fenetre.webContents.once('did-finish-load', () => r()));
+    }
+    await attendre(2500);
+    if (etape === 'ecrire') {
+      resultats.import = await js(`(() => {
+        const champ = document.querySelector('input[type="file"][accept*="json"]');
+        if (!champ) return 'pas de champ fichier';
+        const dt = new DataTransfer();
+        dt.items.add(new File([${JSON.stringify(compte)}], 'compte-miniature.json', { type: 'application/json' }));
+        champ.files = dt.files;
+        champ.dispatchEvent(new Event('change', { bubbles: true }));
+        return 'déposé';
+      })()`);
+      await attendre(2500);
+      resultats.garder = await js(`(() => {
+        const b = [...document.querySelectorAll('button')].find((x) => x.textContent.trim() === 'Garder mes données (recommandé)');
+        if (!b) return 'pas de question « Garder mes données »';
+        b.click();
+        return 'cliqué';
+      })()`);
+      await attendre(2500);
+    } else {
+      await attendre(1500); // le compte se relit d'IndexedDB, après la page
+    }
+    // Ce qui est retenu : le compte affiché, la conservation, les clés de
+    // stockage et leur taille, les bases IndexedDB.
+    resultats.etat = await js(`(async () => ({
+      compteAffiche: document.body.innerText.includes('Testeur'),
+      conservation: localStorage.getItem('swblacksmith-persist-v1'),
+      cles: Object.keys(localStorage).filter((k) => k.startsWith('swblacksmith')).sort()
+        .map((k) => k + ' (' + localStorage.getItem(k).length + ')'),
+      bases: (await indexedDB.databases()).map((b) => b.name).sort(),
+    }))()`);
+  } catch (e) {
+    resultats.erreur = String(e);
+  } finally {
+    writeFileSync(join(dossier, `conservation-${etape}.json`), JSON.stringify(resultats, null, 2));
+    // Fermeture ORDINAIRE (comme l'utilisateur) : le stockage s'écrit sur le
+    // disque à la sortie de Chromium.
+    fenetre.close();
+  }
+}
+
 export async function lancerPreuve(fenetre: BrowserWindow, dossier: string, racine: string, temoins: TemoinsPreuve) {
   mkdirSync(dossier, { recursive: true });
   const resultats: Record<string, unknown> = {};

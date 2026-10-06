@@ -269,7 +269,7 @@ ne changent aucun résultat ; l'écran les recrée quand `signatureArtefacts`
 ou `artifactParams` change. Détail du choix de la paire :
 [artefacts.md § Quand ce choix a lieu](artefacts.md) et
 [artefacts.md § Partage entre les builds d'une file](artefacts.md) ; de la
-relique : [reliques.md](reliques.md).
+relique : [reliques.md § Résolution exacte par build, file, classement](reliques.md).
 
 ## Worker de résolution
 

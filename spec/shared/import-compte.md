@@ -267,13 +267,14 @@ stockage.
   `upgrade` = `upgrade_curr` (filtre de niveau et affichage, jamais la valeur
   de `main`, qui reste lue dans `pri_effect`). `relicUsageById` : occupation
   par rid, comptée sur les unités (`unit.relics[0].rid`), jamais sur
-  `data.relics.length` — voir [outils/optimizer/reliques.md](../outils/optimizer/reliques.md)
-  § 7. `relicUpgradeMismatches` : nombre de pièces où
+  `data.relics.length` — voir
+  [outils/optimizer/moteur/reliques.md § Ce que le moteur lit d'une relique](../outils/optimizer/moteur/reliques.md).
+  `relicUpgradeMismatches` : nombre de pièces où
   `pri_effect[1] ≠ upgrade_curr + 3`, un avertissement jamais une correction.
 - Utilisé par les sous-sections **Runes** et **Artéfacts** (voir
   [compte/runes.md](../compte/runes.md), [compte/artefacts.md](../compte/artefacts.md)),
   et par l'Optimizer pour la relique (voir
-  [outils/optimizer/reliques.md](../outils/optimizer/reliques.md)).
+  [outils/optimizer/moteur/reliques.md](../outils/optimizer/moteur/reliques.md)).
 
 ### Marqueurs de runes — `rune_lock_list` + `markers`
 

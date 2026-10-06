@@ -37,6 +37,8 @@ Publiés :
   paire non figée.
 - [verification.md](verification.md) — tests différentiels, oracles,
   benchmarks.
+- [moteur/parallelisation.md](moteur/parallelisation.md) — l'appariement
+  parallèle, navigateur et Node, et le Worker de résolution.
 - [limites-connues.md](limites-connues.md) — ce que le moteur ne garantit
   pas.
 
@@ -46,8 +48,6 @@ décrit le sujet.
 
 - [moteur/reliques.md](moteur/reliques.md) — la dimension relique : contexte,
   bornes, résolution exacte, oracle.
-- [moteur/parallelisation.md](moteur/parallelisation.md) — l'appariement
-  parallèle, navigateur et Node, et le Worker de résolution.
 - [moteur/diagnostics.md](moteur/diagnostics.md) — faisabilité, conditions
   bloquantes, quasi-succès (« near-miss »).
 - [pistes.md](pistes.md) — les pistes futures.

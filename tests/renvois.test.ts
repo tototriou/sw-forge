@@ -11,7 +11,8 @@
 // exemptés de leur propre contrôle (FICHIERS_EXEMPTES).
 
 import { execFileSync } from 'child_process';
-import { readFileSync } from 'fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs';
+import { tmpdir } from 'os';
 import { dirname, join, posix } from 'path';
 import { fileURLToPath } from 'url';
 import { egal, ignore, ok, titre } from './outils';
@@ -64,8 +65,9 @@ export const CIBLES_EXEMPTEES: { chemin: string; dossier: boolean }[] = [
   { chemin: '.git', dossier: true },
 ];
 
-// a-publier : renvoi vers une note de l'Optimizer pas encore publiée ; l'entrée
-// disparaît à sa publication, ou quand le renvoi est corrigé.
+// a-publier : renvoi vers les notes de l'Optimizer (une note, ou leur
+// dossier), pas encore publiées ; l'entrée disparaît à la publication, ou
+// quand le renvoi est corrigé.
 // a-corriger : renvoi mort déjà pris en charge, à corriger ; aucune entrée nouvelle.
 // thomas : chantiers de Thomas.
 // hors-perimetre : renvoi mort connu, sans correction prévue ; qui touche le
@@ -73,11 +75,15 @@ export const CIBLES_EXEMPTEES: { chemin: string; dossier: boolean }[] = [
 const PROPRIETAIRES = ['a-publier', 'a-corriger', 'thomas', 'hors-perimetre'];
 
 const RACINES = ['spec', 'src', 'scripts', 'tests', '.claude', '.agents'];
-const C = '\\p{L}\\p{N}_.\\-/';
-const RE_NU = new RegExp(`(?<![${C}\\\\@~])(?:${RACINES.map((r) => r.replace('.', '\\.')).join('|')})/[${C}<>*{}$]*`, 'gu');
+// Caractères d'un chemin : lettres et marques combinantes (accent décomposé),
+// chiffres, `_ . - / @ +`.
+const C = '\\p{L}\\p{M}\\p{N}_.\\-/@+';
+const RE_NU = new RegExp(`(?<![${C}\\\\~])(?:${RACINES.map((r) => r.replace('.', '\\.')).join('|')})/[${C}<>*{}$]*`, 'gu');
 const RE_REL = new RegExp(`(?<![${C}\\\\])\\.\\./[${C}<>*{}$]*`, 'gu');
-const RE_LIEN = /!?\[[^\]]*\]\(\s*<?([^)\s>]+)>?(?:\s+"[^"]*")?\s*\)/g;
-const RE_DEF = /^\s{0,3}\[[^\]]+\]:\s*<?(\S+?)>?(?:\s|$)/;
+// Destination entre chevrons (espaces admis) ou sans espace ; titre entre
+// "…", '…' ou (…). Une parenthèse dans le chemin n'est pas traitée.
+const RE_LIEN = /!?\[[^\]]*\]\(\s*(?:<([^>\n]*)>|([^)\s]*))(?:\s+(?:"[^"]*"|'[^']*'|\([^)]*\)))?\s*\)/g;
+const RE_DEF = /^\s{0,3}\[[^\]]+\]:\s*(?:<([^>\n]*)>|(\S+))/;
 const RE_BACK = /`([^`\n]+)`/g;
 const RE_SUITE = new RegExp(`^[${C}]+`, 'u');
 const RE_TOUT_CHEMIN = new RegExp(`^[${C}<>*{}$#§]+$`, 'u');
@@ -96,9 +102,10 @@ export type Occurrence = {
   recolle?: boolean;
 };
 
-// Un texte cité a la forme d'un chemin : extension connue, `/` final, racine
-// du dépôt ou `../` `./` en tête. Écarte `release/x.y.z`, `/api/v2/`, un nom
-// d'hôte, une liste de classes CSS.
+// Un texte entre backticks a la forme d'un chemin : extension connue, `/`
+// final, racine du dépôt ou `../` `./` en tête. Écarte `release/x.y.z`,
+// `/api/v2/`, un nom d'hôte, une liste de classes CSS. Pas pour les liens :
+// une destination Markdown relative est toujours un renvoi.
 function formeDeChemin(c: string): boolean {
   if (c.startsWith('/') || !/[\p{L}\p{N}]/u.test(c)) return false;
   if (/^[^.].*\./.test(c.split('/')[0]) && c.includes('/')) return false;
@@ -143,18 +150,29 @@ function plagesCommentaire(L: string, etat: { bloc: boolean }, diese: boolean): 
   return plages;
 }
 
-// `:ligne`, `#ancre`, `?requête` et ponctuation finale retirés.
-const nettoyer = (brut: string) => brut.replace(/[#?].*$/, '').replace(/:\d[\d\-–]*$/, '').replace(/[.,;:]+$/, '');
+// `#ancre`, `?requête`, `:ligne` retirés, puis la ponctuation finale qui suit
+// un caractère de nom : `.` et `..` restent des composants du chemin.
+const nettoyer = (brut: string) => brut.replace(/[#?].*$/, '').replace(/:\d[\d\-–]*$/, '')
+  .replace(/(?<=[\p{L}\p{M}\p{N}_\-@+])[.,;:]+$/u, '');
+
+const estExempte = (c: string) => CIBLES_EXEMPTEES.some((e) => c === e.chemin || (e.dossier && c.startsWith(e.chemin + '/')));
+
+// Cibles exemptées qui désignent pourtant un fichier suivi : l'exemption
+// masquerait un vrai renvoi.
+export function ciblesExempteesSuivies(suivis: string[]): string[] {
+  return CIBLES_EXEMPTEES.filter((e) => suivis.some((f) => f === e.chemin || (e.dossier && f.startsWith(e.chemin + '/')))).map((e) => e.chemin);
+}
 
 export function construireResolveur(suivis: string[]) {
   const fichiers = new Set(suivis);
-  const dossiers = new Set<string>();
+  const dossiers = new Set<string>(['.']);
   for (const f of suivis) {
     let d = posix.dirname(f);
     while (d !== '.' && !dossiers.has(d)) { dossiers.add(d); d = posix.dirname(d); }
   }
   const sousO = (c: string) => c === O || c.startsWith(O + '/');
-  // Trois bases, comme `spec-lint` : le dossier du fichier, la racine, `spec/`.
+  // Trois bases, dans l'ordre de `spec-lint` : le dossier du fichier, la
+  // racine, `spec/`. Le premier candidat qui existe gagne.
   return function resoudre(fichier: string, ref: string): { statut: Occurrence['statut']; candidats: string[] } {
     let r = ref;
     try { r = decodeURI(r); } catch { /* garde le texte brut */ }
@@ -163,25 +181,33 @@ export function construireResolveur(suivis: string[]) {
     const bases = absolu ? [''] : [posix.dirname(fichier), '', 'spec'];
     const candidats: string[] = [];
     for (const b of bases) {
-      const n = posix.normalize(b ? b + '/' + r : r).replace(/\/+$/, '');
-      if (n === '.' || n === '..' || n.startsWith('../') || n === '') continue;
+      const n = posix.normalize(b ? b + '/' + r : r).replace(/\/+$/, '') || '.';
+      if (n === '..' || n.startsWith('../')) continue;
       if (!candidats.includes(n)) candidats.push(n);
     }
-    if (candidats.some((c) => CIBLES_EXEMPTEES.some((e) => c === e.chemin || c.startsWith(e.chemin + '/')))) return { statut: 'exempte', candidats };
-    if (candidats.some((c) => fichiers.has(c))) return { statut: 'fichier', candidats };
-    // Un dossier résout s'il contient des fichiers suivis, sauf dans le
-    // dossier de l'Optimizer, où un renvoi doit nommer un fichier.
-    if (candidats.some((c) => dossiers.has(c) && !sousO(c))) return { statut: 'dossier', candidats };
+    for (const c of candidats) {
+      if (estExempte(c)) return { statut: 'exempte', candidats };
+      if (fichiers.has(c)) return { statut: 'fichier', candidats };
+      // Un dossier résout s'il contient des fichiers suivis, sauf dans le
+      // dossier de l'Optimizer, où un renvoi doit nommer un fichier.
+      if (dossiers.has(c)) return { statut: sousO(c) ? 'mort' : 'dossier', candidats };
+    }
     return { statut: 'mort', candidats };
   };
 }
+
+export type NomCompile = { nom: string; re: RegExp };
+export const compilerNoms = (noms: string[]): NomCompile[] =>
+  noms.map((nom) => ({ nom, re: new RegExp(`(?<![\\p{L}\\p{N}_\\-])${nom.replace(/\./g, '\\.')}(?![\\p{L}\\p{N}_\\-])`, 'gu') }));
 
 export function releverFichier(
   fichier: string,
   lignes: string[],
   resoudre: ReturnType<typeof construireResolveur>,
-  nomsSansHomonyme: string[],
+  nomsSansHomonyme: string[] | NomCompile[],
 ): Occurrence[] {
+  const noms: NomCompile[] = nomsSansHomonyme.length && typeof nomsSansHomonyme[0] === 'string'
+    ? compilerNoms(nomsSansHomonyme as string[]) : nomsSansHomonyme as NomCompile[];
   const occ: Occurrence[] = [];
   const type = typeDe(fichier, lignes[0]);
   const diese = /\.(?:sh|py|ya?ml|ps1)$/.test(fichier);
@@ -194,9 +220,9 @@ export function releverFichier(
     && lignes[n].slice(0, commentaires[n][0][0]).trim() === '';
 
   const ajouter = (n: number, a: number, forme: Occurrence['forme'], brut: string) => {
-    if (/[<*{$]/.test(brut)) { occ.push({ fichier, ligne: n + 1, forme, renvoi: brut, statut: 'non verifie', candidats: [] }); return; }
     const renvoi = nettoyer(brut);
     if (!renvoi) return;
+    if (/[<*{$]/.test(renvoi)) { occ.push({ fichier, ligne: n + 1, forme, renvoi, statut: 'non verifie', candidats: [] }); return; }
     // Une ligne de commentaire qui finit par `/` ou `-` n'est recollée à la
     // suivante que si le recollage résout.
     if (forme !== 'lien Markdown' && /[/-]$/.test(renvoi) && ligneDeComm(n)
@@ -216,22 +242,26 @@ export function releverFichier(
   };
 
   for (let n = 0; n < lignes.length; n++) {
-    const L = type === 'code' ? lignes[n].replace(RE_MODULE, (m) => ' '.repeat(m.length)) : lignes[n];
+    // Spécificateurs de module masqués hors des commentaires seulement.
+    const L = type === 'code'
+      ? lignes[n].replace(RE_MODULE, (m: string, _a: string, _b: string, debut: number) => (dansComm(n, debut) ? m : ' '.repeat(m.length)))
+      : lignes[n];
     const couverts: [number, number][] = [];
     const couvert = (a: number, b: number) => couverts.some(([x, y]) => a < y && b > x);
-    // 1. lien Markdown relatif, et définition de lien par référence
+    // 1. lien Markdown relatif, toujours relevé hors schéma, ancre seule et
+    // destination vide ; définition de lien par référence, Markdown seulement
     for (const m of L.matchAll(RE_LIEN)) {
       if (!texteOuComm(n, m.index!)) continue;
-      const cible = m[1];
+      const cible = (m[1] ?? m[2] ?? '').trim();
       couverts.push([m.index!, m.index! + m[0].length]);
-      if (RE_SCHEMA.test(cible) || cible.startsWith('#')) continue;
-      if (!formeDeChemin(cible.replace(/[#?].*$/, '').replace(/^\/+/, '')) && !/[<*{$]/.test(cible)) continue;
+      if (!cible || RE_SCHEMA.test(cible) || cible.startsWith('#')) continue;
       ajouter(n, m.index!, 'lien Markdown', cible);
     }
     const def = L.match(RE_DEF);
     if (def && type === 'markdown') {
       couverts.push([0, L.length]);
-      if (!RE_SCHEMA.test(def[1]) && !def[1].startsWith('#')) ajouter(n, 0, 'lien Markdown', def[1]);
+      const cible = (def[1] ?? def[2] ?? '').trim();
+      if (cible && !RE_SCHEMA.test(cible) && !cible.startsWith('#')) ajouter(n, 0, 'lien Markdown', cible);
     }
     // 2. chemin entre backticks
     for (const m of L.matchAll(RE_BACK)) {
@@ -256,8 +286,7 @@ export function releverFichier(
     }
     // 5. nom seul d'une note sans homonyme public
     if (nomSeulIci) {
-      for (const nom of nomsSansHomonyme) {
-        const re = new RegExp(`(?<![\\p{L}\\p{N}_\\-])${nom.replace(/\./g, '\\.')}(?![\\p{L}\\p{N}_\\-])`, 'gu');
+      for (const { nom, re } of noms) {
         for (const m of L.matchAll(re)) {
           if (couvert(m.index!, m.index! + m[0].length)) continue;
           occ.push({ fichier, ligne: n + 1, forme: 'nom seul', renvoi: nom, statut: 'mort', candidats: [] });
@@ -268,23 +297,40 @@ export function releverFichier(
   return occ;
 }
 
-// Toutes les occurrences des fichiers lus, exemptés compris (`exempt`).
-export function releverRenvois(racine: string): { occurrences: (Occurrence & { exempt: boolean })[]; suivis: string[] } {
+// Vrai dans un dépôt Git, faux hors dépôt ; toute autre erreur de Git est
+// levée : elle ne doit pas désactiver le garde-fou.
+export function depotGit(racine: string): boolean {
+  try {
+    execFileSync('git', ['-C', racine, 'rev-parse', '--git-dir'], {
+      stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, LC_ALL: 'C', LANGUAGE: 'C' },
+    });
+    return true;
+  } catch (e) {
+    const err = e as { status?: number; stderr?: Buffer | string };
+    if (err.status === 128 && /not a git repository/i.test(String(err.stderr ?? ''))) return false;
+    throw e;
+  }
+}
+
+// Toutes les occurrences des fichiers lus, exemptés compris (`exempt`), et
+// les fichiers suivis illisibles, qui font échouer le test.
+export function releverRenvois(racine: string): { occurrences: (Occurrence & { exempt: boolean })[]; suivis: string[]; illisibles: string[] } {
   const suivis = execFileSync('git', ['-C', racine, 'ls-files', '-z'], { maxBuffer: 1 << 28 })
     .toString().split('\0').filter(Boolean);
   const resoudre = construireResolveur(suivis);
   const bases = new Set(suivis.map((p) => posix.basename(p)));
-  const nomsSansHomonyme = NOMS_DE_NOTES.filter((n) => !bases.has(n));
+  const noms = compilerNoms(NOMS_DE_NOTES.filter((n) => !bases.has(n)));
   const occurrences: (Occurrence & { exempt: boolean })[] = [];
+  const illisibles: string[] = [];
   for (const f of suivis) {
     if (FICHIERS_NON_LUS.some((re) => re.test(f))) continue;
     let buf: Buffer;
-    try { buf = readFileSync(join(racine, f)); } catch { continue; }
+    try { buf = readFileSync(join(racine, f)); } catch { illisibles.push(f); continue; }
     if (buf.subarray(0, 8000).includes(0)) continue; // binaire
     const exempt = FICHIERS_EXEMPTES.includes(f);
-    for (const o of releverFichier(f, buf.toString('utf8').split(/\r?\n/), resoudre, nomsSansHomonyme)) occurrences.push({ ...o, exempt });
+    for (const o of releverFichier(f, buf.toString('utf8').split(/\r?\n/), resoudre, noms)) occurrences.push({ ...o, exempt });
   }
-  return { occurrences, suivis };
+  return { occurrences, suivis, illisibles };
 }
 
 type Entree = { fichier: string; renvoi: string; occurrences: number; proprietaire: string };
@@ -308,7 +354,7 @@ export function testRenvoisFormes() {
     'spécificateurs de module ignorés');
   egal(morts('src/lib/x.ts', '// voir ../../spec/mort.md\nconst p = "../../spec/mort.md";'), ['relatif:../../spec/mort.md'],
     'forme `../` : commentaire relevé, chaîne de code ignorée');
-  egal(morts('spec/c.md', `Dossiers : spec/outils/, ${O}/, ${O}/archive/.`), [`chemin nu:${O}/`, `chemin nu:${O}/archive/`],
+  egal(morts('spec/c.md', `Dossiers : spec/outils/, ${O}/, ${O}/archive/ ; fin.`), [`chemin nu:${O}/`, `chemin nu:${O}/archive/`],
     'dossier admis s’il porte des fichiers suivis, jamais dans le dossier de l’Optimizer');
   egal(morts('spec/c.md', `Publié : ${O}/publie.md.`), [], 'fichier publié du dossier de l’Optimizer : résolu');
   egal(morts('spec/c.md', 'Modèles : spec/<nom>.md, src/**/x.ts, spec/{a,b}.md, src/${x}.ts.'), [], 'chemin à <, *, { : non vérifié');
@@ -324,17 +370,86 @@ export function testRenvoisFormes() {
   const seul = construireResolveur(['src/lib/x.ts']);
   egal(releverFichier('spec/c.md', ['Voir `src/lib/ignore.ts`.'], seul, []).map((o) => o.statut), ['mort'],
     'fichier absent de la liste des suivis : mort, même s’il existe sur le disque');
+
+  // Une exception (fonction absente, Git en erreur) est un échec, pas un arrêt.
+  const cas = (libelle: string, calcul: () => unknown, attendu: unknown) => {
+    let recu: unknown;
+    try { recu = calcul(); } catch (e) { ok(false, `${libelle} — exception : ${String(e).split('\n')[0]}`); return; }
+    egal(recu, attendu, libelle);
+  };
+  cas('lien Markdown relatif relevé quelle que soit son extension ou son premier dossier',
+    () => morts('spec/c.md', '[g](guide) [a](archive/absent.pdf) [n](archive.v2/absent.md)'),
+    ['lien Markdown:guide', 'lien Markdown:archive/absent.pdf', 'lien Markdown:archive.v2/absent.md']);
+  cas('lien : `:ligne` et `#ancre` retirés avant tout test, ancre à gabarit comprise',
+    () => morts('spec/c.md', '[n](archive/absent.md:12) [m](archive/absent.md#<titre>) [o](outils/b.md:12#titre)'),
+    ['lien Markdown:archive/absent.md', 'lien Markdown:archive/absent.md']);
+  cas('lien : destination entre chevrons avec espaces, titre entre apostrophes ou parenthèses',
+    () => morts('spec/c.md', "[n](<archive/note absente.md>) [m](archive/absent.md 'Titre') [p](archive/autre.md (Titre))"),
+    ['lien Markdown:archive/note absente.md', 'lien Markdown:archive/absent.md', 'lien Markdown:archive/autre.md']);
+  cas('« from » dans un commentaire n’est pas un spécificateur de module',
+    () => morts('src/lib/x.ts', '// copié from "spec/absent.md"'), ['chemin nu:spec/absent.md']);
+  const unicode = construireResolveur([...suivis, 'src/x+y.ts', 'src/café.ts']);
+  cas('chemin à @, + ou accent décomposé : pris entier',
+    () => releverFichier('spec/c.md', ['Voir src/@absent.ts, src/x+y.ts et src/café.ts.'], unicode, [])
+      .filter((o) => o.statut === 'mort').map((o) => o.renvoi),
+    ['src/@absent.ts']);
+  cas('cible exemptée comme fichier : ses descendants ne le sont pas ; cible exemptée suivie : signalée',
+    () => [morts('spec/c.md', 'Voir `.claude/settings.json/absent.md`.'),
+      ciblesExempteesSuivies(['src/a.ts', '.claude/agents/x.md', '.claude/settings.json'])],
+    [['backticks:.claude/settings.json/absent.md'], ['.claude/settings.json', '.claude/agents']]);
+  const ordre = construireResolveur([`${O}/publie.md`, 'optimizer/public.txt']);
+  cas('trois bases dans l’ordre : le dossier de l’Optimizer gagne, et il est refusé',
+    () => releverFichier('spec/outils/optimizer.md', ['[o](optimizer/)'], ordre, []).map((o) => o.statut), ['mort']);
+  cas('`.` et `..` préservés, la racine est un dossier',
+    () => morts('spec/probe.md', `Voir ../ et ${O}/..`), []);
+  cas('fichier suivi illisible relevé ; seule l’absence de dépôt est « pas de dépôt »', () => {
+    const bac = mkdtempSync(join(tmpdir(), 'swblacksmith-renvois-'));
+    try {
+      const depot = join(bac, 'depot');
+      mkdirSync(depot);
+      execFileSync('git', ['-C', depot, 'init', '-q'], { stdio: 'ignore' });
+      writeFileSync(join(depot, 'a.md'), 'x\n');
+      writeFileSync(join(depot, 'b.md'), 'Voir [a](a.md).\n');
+      execFileSync('git', ['-C', depot, '-c', 'core.autocrlf=false', 'add', '--', 'a.md', 'b.md'], { stdio: 'ignore' });
+      rmSync(join(depot, 'a.md'));
+      mkdirSync(join(depot, 'a.md'));
+      let erreur = 'aucune';
+      try { depotGit(join(bac, 'absent')); } catch { erreur = 'levée'; }
+      return [releverRenvois(depot).illisibles, depotGit(depot), depotGit(bac), erreur];
+    } finally {
+      // bac provient exclusivement de mkdtempSync sous tmpdir.
+      rmSync(bac, { recursive: true, force: true });
+    }
+  }, [['a.md'], true, false, 'levée']);
+  cas('noms seuls : expressions compilées une fois, coût par ligne comparable hors des dossiers contrôlés', () => {
+    const lignes = Array.from({ length: 10000 }, (_, i) => `const v${i} = ${i}; // ligne ordinaire`);
+    const duree = (f: string) => {
+      const debut = performance.now();
+      releverFichier(f, lignes, resoudre, NOMS_DE_NOTES);
+      return performance.now() - debut;
+    };
+    duree('src/probe.ts');
+    const dans = Math.min(duree('src/probe.ts'), duree('src/probe.ts'));
+    const hors = Math.min(duree('autre/probe.ts'), duree('autre/probe.ts'));
+    return dans < 8 * hors + 20;
+  }, true);
 }
 
 export function testRenvois() {
   titre('renvois · aucun renvoi mort hors de la liste tolérée');
+  let depot: boolean;
   try {
-    execFileSync('git', ['-C', RACINE, 'rev-parse', '--git-dir'], { stdio: 'ignore' });
-  } catch {
+    depot = depotGit(RACINE);
+  } catch (e) {
+    ok(false, `Git en erreur, garde-fou non exécuté — ${String(e).split('\n')[0]}`);
+    return;
+  }
+  if (!depot) {
     ignore('renvois', 'pas de dépôt Git');
     return;
   }
-  const { occurrences, suivis } = releverRenvois(RACINE);
+  const { occurrences, suivis, illisibles } = releverRenvois(RACINE);
+  egal(illisibles, [], 'chaque fichier suivi est lisible');
   const liste = JSON.parse(readFileSync(join(RACINE, LISTE), 'utf8')) as { entrees: Entree[] };
   const entrees = liste.entrees;
 
@@ -370,6 +485,8 @@ export function testRenvois() {
   const suivisSet = new Set(suivis);
   egal(FICHIERS_EXEMPTES.filter((f) => !suivisSet.has(f)), [],
     'chaque fichier exempté est suivi');
+  egal(ciblesExempteesSuivies(suivis), [], 'aucune cible exemptée n’est suivie');
+  // `.git` n'est pas soumis à check-ignore : c'est le dossier de Git lui-même.
   const nonIgnorees = CIBLES_EXEMPTEES.filter((e) => e.chemin !== '.git').filter((e) => {
     try {
       execFileSync('git', ['-C', RACINE, 'check-ignore', '-q', '--no-index', e.dossier ? `${e.chemin}/x` : e.chemin], { stdio: 'ignore' });

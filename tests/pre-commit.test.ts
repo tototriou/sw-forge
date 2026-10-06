@@ -145,7 +145,9 @@ export function testPreCommit() {
     ok(refuse(marque(utf16(`Voir archive/h.md, ${LOT} 7b.\r\n`)), RENVOI), 'note en UTF-16 : refus');
     ok(refuse(marque(utf16(`Résultat du ${LOT}${INSECABLE}7b.\r\n`)), IDENTIFIANT),
       'note en UTF-16, identifiant à espace insécable seul : refus');
-    ok(refuse(marque(utf16('Voir archive/h.md.\r\n', true)), RENVOI), 'note en UTF-16 gros-boutiste : refus');
+    ok(refuse(marque(utf16(`Résultat du ${LOT}${INSECABLE}7b.\r\n`, true)), IDENTIFIANT),
+      'note en UTF-16 gros-boutiste, identifiant à espace insécable : refus');
+    ok(refuse(marque(Buffer.from('Voir archive/h.md.\r\n', 'utf16le')), RENVOI), 'note en UTF-16 sans BOM : refus');
     git(depot, 'update-index', '--add', '--cacheinfo', `160000,${'1'.repeat(40)},${O}/sous/note.md`);
     r = lancer(depot);
     git(depot, 'reset', '-q', '--hard', 'HEAD');

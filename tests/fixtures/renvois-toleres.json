@@ -633,30 +633,6 @@
     },
     {
       "fichier": "spec/README.md",
-      "renvoi": "archive/",
-      "occurrences": 2,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": "spec/README.md",
-      "renvoi": "decisions/",
-      "occurrences": 1,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": "spec/README.md",
-      "renvoi": "decisions/reste-a-faire-degats-2026-10.md",
-      "occurrences": 1,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": "spec/README.md",
-      "renvoi": "spec/outils/optimizer/chantiers/",
-      "occurrences": 1,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": "spec/README.md",
       "renvoi": "src/components/Segmented.tsx",
       "occurrences": 1,
       "proprietaire": "hors-perimetre"

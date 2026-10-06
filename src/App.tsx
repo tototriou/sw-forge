@@ -13,6 +13,7 @@ import {
   IconeDefense,
   IconeMecaniques,
   IconeNouveautes,
+  IconeTelecharger,
   IconeOffense,
   IconeOptimizer,
   IconeOutils,
@@ -36,6 +37,7 @@ import RtaPage from './pages/RtaPage';
 import SiegePage, { SiegeTab } from './pages/SiegePage';
 import MechanicsPage from './pages/MechanicsPage';
 import ReleasesPage from './pages/ReleasesPage';
+import TelechargerPage from './pages/TelechargerPage';
 import AccountPage from './pages/AccountPage';
 import OutilsPage from './pages/OutilsPage';
 import ComingSoon from './pages/ComingSoon';
@@ -66,6 +68,9 @@ import {
 } from './hooks/usePersistence';
 import { ConfirmDialog, KeepAccountDialog } from './ui/Dialogs';
 import { FournisseurNotification } from './ui/Notification';
+import MiseAJourBureau from './components/MiseAJourBureau';
+import SuiviSwex from './components/SuiviSwex';
+import { estBureau, selonSupport } from './lib/bureau';
 import {
   COULEUR_SECTION,
   COULEUR_RTA_SUB,
@@ -131,6 +136,7 @@ type Route =
   | 'compte'
   | 'outils'
   | 'releases'
+  | 'telecharger'
   | 'parametres';
 export type AccountSub = 'monstres' | 'runes' | 'artefacts';
 
@@ -208,6 +214,9 @@ export function parseHash(hash: string = window.location.hash): {
   }
   if (h === 'mecaniques') return { route: 'mecaniques', ...base };
   if (h === 'releases') return { route: 'releases', ...base };
+  // Site seulement (application de bureau, décision 14) : dans l'app, on a
+  // déjà l'app — l'adresse retombe sur l'accueil.
+  if (h === 'telecharger' && !estBureau()) return { route: 'telecharger', ...base };
   if (h === 'parametres') return { route: 'parametres', ...base };
   if (h === 'siege' || h.startsWith('siege/')) {
     const siegeTab: SiegeTab =
@@ -277,10 +286,18 @@ const SIEGE_SUBS: { tab: SiegeTab; label: string; icon: IconeAtelier; hash: stri
 ];
 
 // Regroupées sous « Ressources ».
+// ⚠️ « Télécharger » (application de bureau, décision 14) : sous
+// « Nouveautés », sur le SITE seulement — `estBureau()` se lit au chargement
+// du module, le préchargement de l'app ayant posé son objet avant la page.
+// Barre latérale, panneau mobile, palette et titre dérivent tous de cette
+// liste : l'entrée y apparaît (ou non) partout d'un coup.
 const RESOURCES: NavItem[] = [
   { key: 'bestiary', label: 'Bestiaire', icon: IconeBestiaire, hash: '#/bestiary', couleur: COULEUR_SECTION.bestiary },
   { key: 'mecaniques', label: 'Mécaniques', icon: IconeMecaniques, hash: '#/mecaniques', couleur: COULEUR_SECTION.mecaniques },
   { key: 'releases', label: 'Nouveautés', icon: IconeNouveautes, hash: '#/releases', couleur: COULEUR_SECTION.releases },
+  ...(estBureau()
+    ? []
+    : [{ key: 'telecharger' as const, label: 'Télécharger', icon: IconeTelecharger, hash: '#/telecharger', couleur: COULEUR_SECTION.telecharger }]),
 ];
 
 export default function App() {
@@ -669,22 +686,15 @@ export default function App() {
       return;
     }
 
-    const exporte = parseAccountExportDate(data);
-    const nomJoueur = parseAccountWizardName(data);
     const rtaRes = parseAccountJson(data);
     const defRes = parseSiegeDefense(data);
     const offRes = parseSiegeOffense(data);
-    const boxRes = parseAccountBox(data);
-    const invRes = parseAccountInventory(data);
-    // Tous les contenus où le joueur a posé des monstres (decks + RTA + siège),
-    // réduits aux runes qui y jouent — rangés par périmètre.
-    const usedRunes = parseUsedRuneIdsParPerimetre(data);
-    const markerLabels = parseRuneMarkerLabels(data);
+    const compte = preparerCompte(data);
 
     const rtaItems = rtaRes.units ? mapRtaItems(rtaRes.units, monsterByCom2us) : [];
     const def = mapSiegeTeams(defRes.decks ?? [], monsterByCom2us);
     const off = mapSiegeTeams(offRes.decks ?? [], monsterByCom2us);
-    const boxItems = mapBoxMonsters(boxRes.monsters ?? [], monsterByCom2us);
+    const { boxItems } = compte;
 
     if (
       rtaItems.length === 0 &&
@@ -695,7 +705,7 @@ export default function App() {
       setImportMsg({
         ok: false,
         text:
-          rtaRes.error || defRes.error || offRes.error || boxRes.error || 'Rien à importer depuis ce fichier.',
+          rtaRes.error || defRes.error || offRes.error || compte.boxRes.error || 'Rien à importer depuis ce fichier.',
       });
       return;
     }
@@ -707,6 +717,56 @@ export default function App() {
     if (def.teams.length) siegeDef.importTeams(def.teams);
     if (off.teams.length) siegeOff.importTeams(off.teams);
 
+    appliquerCompte(data, compte);
+
+    const parts: string[] = [];
+    if (boxItems.length) parts.push(`${boxItems.length} monstres 6★`);
+    if (rtaItems.length) parts.push(`${rtaItems.length} monstres RTA`);
+    if (def.teams.length) parts.push(`${def.teams.length} défenses`);
+    if (off.teams.length) parts.push(`${off.teams.length} attaques`);
+    const missing = def.missing + off.missing;
+    setImportMsg({
+      ok: true,
+      text:
+        `Import : ${parts.join(' · ')}` +
+        (missing > 0 ? ` · ${missing} monstre(s) introuvable(s), à créer à la main` : '') +
+        '.',
+    });
+
+    // La question de la conservation se pose ICI, une fois les données à l'écran
+    // — pas dans un menu que personne n'ouvre (voir usePersistence). Elle revient
+    // à CHAQUE import tant que « ne plus me montrer » n'est pas coché : le
+    // contexte peut changer entre deux fichiers (poste partagé, ordinateur d'un
+    // ami), et un choix pris une fois pour toutes ne le rattraperait jamais.
+    //
+    // ⚠️ **Après le succès seulement.** Proposer de conserver des données
+    // qu'on vient d'échouer à lire n'aurait aucun sens.
+    if (!dialogueMasque() && storageAvailable()) setAskKeep(true);
+  }
+
+  // « Mon compte » d'un export déjà parsé — box 6★, inventaire, identité —, lu
+  // une fois et partagé par l'import manuel et le dossier SW Exporter (lot 9).
+  function preparerCompte(data: Record<string, any>) {
+    const boxRes = parseAccountBox(data);
+    const invRes = parseAccountInventory(data);
+    return {
+      exporte: parseAccountExportDate(data),
+      nomJoueur: parseAccountWizardName(data),
+      boxRes,
+      invRes,
+      boxItems: mapBoxMonsters(boxRes.monsters ?? [], monsterByCom2us),
+      // Tous les contenus où le joueur a posé des monstres (decks + RTA +
+      // siège), réduits aux runes qui y jouent — rangés par périmètre.
+      usedRunes: parseUsedRuneIdsParPerimetre(data),
+      markerLabels: parseRuneMarkerLabels(data),
+    };
+  }
+
+  // Applique « Mon compte » — et RIEN d'autre : ni prépa RTA, ni siège.
+  // ⚠️ C'est tout ce que fait le dossier SW Exporter (décision 15) : il suit
+  // les exports sans jamais toucher au travail de l'utilisateur.
+  function appliquerCompte(data: Record<string, any>, compte: ReturnType<typeof preparerCompte>) {
+    const { exporte, nomJoueur, boxRes, invRes, boxItems, usedRunes, markerLabels } = compte;
     // Exclusion manuelle de runes de l'Optimizer (excludedSelectors) : à
     // effacer sur un compte VRAIMENT DIFFÉRENT (autre wizard_id — voir
     // parseWizardId), pas sur une simple nouvelle version RÉEXPORTÉE du même
@@ -764,30 +824,20 @@ export default function App() {
         wizardName: nomJoueur,
       });
     }
+  }
 
-    const parts: string[] = [];
-    if (boxItems.length) parts.push(`${boxItems.length} monstres 6★`);
-    if (rtaItems.length) parts.push(`${rtaItems.length} monstres RTA`);
-    if (def.teams.length) parts.push(`${def.teams.length} défenses`);
-    if (off.teams.length) parts.push(`${off.teams.length} attaques`);
-    const missing = def.missing + off.missing;
-    setImportMsg({
-      ok: true,
-      text:
-        `Import : ${parts.join(' · ')}` +
-        (missing > 0 ? ` · ${missing} monstre(s) introuvable(s), à créer à la main` : '') +
-        '.',
-    });
-
-    // La question de la conservation se pose ICI, une fois les données à l'écran
-    // — pas dans un menu que personne n'ouvre (voir usePersistence). Elle revient
-    // à CHAQUE import tant que « ne plus me montrer » n'est pas coché : le
-    // contexte peut changer entre deux fichiers (poste partagé, ordinateur d'un
-    // ami), et un choix pris une fois pour toutes ne le rattraperait jamais.
-    //
-    // ⚠️ **Après le succès seulement.** Proposer de conserver des données
-    // qu'on vient d'échouer à lire n'aurait aucun sens.
-    if (!dialogueMasque() && storageAvailable()) setAskKeep(true);
+  // Le dossier SW Exporter (lot 9, décision 15) : un nouvel export du compte
+  // suivi. N'applique QUE « Mon compte » ; pas de question de conservation
+  // (c'est un réglage, posé une fois). `ok: false` — fichier illisible (à
+  // moitié écrit ?) ou sans box : rien n'est touché, et l'export n'est pas
+  // marqué lu (bureau/swex.ts le redonnera au prochain changement).
+  function rafraichirCompte(text: string): { ok: boolean; nom: string | null } {
+    const data = parseAccountSource(text);
+    if (!data) return { ok: false, nom: null };
+    const compte = preparerCompte(data);
+    if (compte.boxItems.length === 0) return { ok: false, nom: null };
+    appliquerCompte(data, compte);
+    return { ok: true, nom: compte.nomJoueur };
   }
 
   // Réponse à la fenêtre de choix. `null` = fermée sans répondre : on
@@ -1314,7 +1364,7 @@ export default function App() {
     { key: 'rta', label: 'RTA', ouvre: sectionRta.titre, icon: <IconeRta size={17} color={COULEUR_SECTION.rta} />, actif: route === 'rta' },
     { key: 'siege', label: 'Siège', ouvre: sectionSiege.titre, icon: <IconeSiege size={17} color={COULEUR_SECTION.siege} />, actif: route === 'siege' },
     { key: 'compte', label: 'Compte', ouvre: sectionCompte.titre, icon: <IconeCompte size={17} color={COULEUR_SECTION.compte} />, actif: route === 'compte' },
-    { key: 'outils', label: 'Outils', ouvre: sectionOutils.titre, icon: <IconeOutils size={17} color={COULEUR_SECTION.outils} />, actif: route === 'outils' || route === 'bestiary' || route === 'mecaniques' || route === 'releases' || route === 'arene' },
+    { key: 'outils', label: 'Outils', ouvre: sectionOutils.titre, icon: <IconeOutils size={17} color={COULEUR_SECTION.outils} />, actif: route === 'outils' || route === 'bestiary' || route === 'mecaniques' || route === 'releases' || route === 'telecharger' || route === 'arene' },
   ];
 
   // La section dont on choisit la sous-section, sur téléphone.
@@ -1329,6 +1379,15 @@ export default function App() {
     // ⚠️ La notification « … · Annuler » (lot 13, décision 29) enveloppe
     // toute l'app : un geste qui se défait peut venir de n'importe quel écran.
     <FournisseurNotification>
+    {/* Application de bureau : « Mise à jour prête · Redémarrer ». Inerte sur le site. */}
+    <MiseAJourBureau />
+    {/* Application de bureau : le dossier SW Exporter met « Mon compte » à
+        jour (lot 9). Inerte sur le site. */}
+    <SuiviSwex
+      appliquer={rafraichirCompte}
+      pret={!accountHydrating && allMonsters.length > 0}
+      sansCompte={box.length === 0}
+    />
     {/* ⚠️ `data-ctx` sur la RACINE : c'est lui qui décide de l'accent
         contextuel de tout l'écran (voir index.css). Une page qui parle d'un
         monstre le posera à son élément ; partout ailleurs il reste absent, et
@@ -1575,6 +1634,8 @@ export default function App() {
           />
         ) : route === 'releases' ? (
           <ReleasesPage />
+        ) : route === 'telecharger' ? (
+          <TelechargerPage />
         ) : route === 'mecaniques' ? (
           <MechanicsPage />
         ) : route === 'parametres' ? (
@@ -1621,7 +1682,12 @@ export default function App() {
           {/* Mentions en encre TERTIAIRE, comme la toile : elles informent, elles
               ne doivent pas rivaliser avec le contenu (5.26 au pire). */}
           <div className="space-y-1 text-center text-ink-dimmer max-lg:order-last">
-            <p>Toutes tes données restent en local dans ton navigateur.</p>
+            <p>
+              {selonSupport(
+                'Toutes tes données restent en local dans ton navigateur.',
+                'Toutes tes données restent en local, sur ta machine.'
+              )}
+            </p>
             <p>
               Données et images © Com2uS · Source :{' '}
               <a href="https://swarfarm.com" target="_blank" rel="noreferrer" className="text-accent">

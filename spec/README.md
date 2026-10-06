@@ -30,6 +30,7 @@ ce qu'il peut faire, et les règles de calcul appliquées.
 | Bestiaire | `#/bestiary` | Live | [bestiaire.md](bestiaire.md) |
 | Mécaniques | `#/mecaniques` | Live | [mecaniques.md](mecaniques.md) |
 | Nouveautés | `#/releases` | Live | [releases.md](releases.md) |
+| Télécharger (site seulement) | `#/telecharger` | Live | [telecharger.md](telecharger.md) |
 
 Points d'entrée de l'Optimizer, avant un chantier qui le touche :
 
@@ -42,8 +43,9 @@ Ordre d'importance (nav & cartes d'accueil) : **Accueil → RTA → Siège → M
 compte → Outils → Arène**. Arène se positionne dans la barre entre le
 dropdown Outils et le dropdown Ressources — pas dans le groupe des onglets
 directs (Accueil/RTA/Siège), pour ne pas allonger cette rangée-là. Bestiaire,
-Mécaniques et Nouveautés sont regroupés sous « Ressources » (les moins
-centraux de l'outil).
+Mécaniques, Nouveautés et Télécharger sont regroupés sous « Ressources » (les
+moins centraux de l'outil) ; Télécharger n'existe que sur le site (application
+de bureau, décision 14).
 
 > ⚠️ **Règle permanente** : toute page ou section **ajoutée, renommée ou
 > supprimée** doit être répercutée sur **l'accueil** ([accueil.md](accueil.md) —
@@ -96,6 +98,10 @@ Concepts partagés par plusieurs pages, documentés une seule fois :
 - [shared/navigation.md](shared/navigation.md) — la **barre latérale** et les
   **onglets mobiles**, et l'**accent contextuel** (`--ctx`) qui prend la couleur
   de l'élément du monstre consulté.
+- [shared/application-bureau.md](shared/application-bureau.md) — l'**application
+  de bureau** (Electron, Windows et Linux) : ce qui diffère du site, la fenêtre,
+  l'installeur, la publication au tag, la mise à jour, les données — et comment
+  la vérifier (`bureau:preuve`).
 
 Outillage du dépôt (pas une page de l'app) :
 
@@ -157,11 +163,12 @@ Outillage du dépôt (pas une page de l'app) :
   - ⚠️ **Utilisateur déjà installé** : des données déjà présentes sur le disque
     valent **consentement**. Sans cette reprise, la mise à jour retirerait en
     silence une conservation dont il dispose depuis toujours.
-- **Statistiques de fréquentation** : **Vercel Web Analytics**
-  ([Analytics.tsx](src/components/Analytics.tsx)), sans cookie, limité aux pages
-  visitées. ⚠️ Le routage étant **par hash**, un `beforeSend` réécrit l'URL pour
-  que la route devienne le chemin — sinon toutes les visites seraient comptées
-  sur « / ».
+- **Aucune statistique de fréquentation.** La mesure d'audience Vercel Web
+  Analytics a été **retirée, du site comme de l'application de bureau**
+  (Thomas, 2026-10-05 — décision 6 du chantier
+  [application-bureau.md](chantiers/application-bureau.md)) : rien ne quitte
+  le navigateur, ce que dit le « 100 % local ». ⚠️ Ne pas la réintroduire sans
+  décision : elle n'aurait de toute façon aucun sens dans l'app de bureau.
 - **Vérifications automatiques** — `npm test`
   ([tests/README.md](tests/README.md)). Volontairement limitées aux endroits où
   une erreur serait **grave et invisible** : vitesse de combat, lecture d'un
@@ -276,6 +283,15 @@ Outillage du dépôt (pas une page de l'app) :
       alors contre soi-même. Sans lui, la copie n'est posée que si personne n'est
       en face. Voir [outils/speed-tuning.md](outils/speed-tuning.md).
     - **Mes données** → « Tout supprimer ».
+    - **Application** — dans l'**application de bureau seulement** (absent du
+      site) : la version installée et UN bouton qui suit la mise à jour
+      (« Rechercher », « Mettre à jour », « Redémarrer »… — toujours
+      affiché, désactivé quand il n'y a rien à faire). Une mise à jour remise
+      à plus tard s'y fait quand on veut. Voir
+      [le cadrage](chantiers/application-bureau.md), lot 5, décision 12.
+      Puis le **dossier SW Exporter** et l'**invocateur** à suivre : « Mon
+      compte » se met à jour à chaque export (décision 15, lot 9 —
+      [shared/import-compte.md](shared/import-compte.md)).
 - **Import de compte global** : un seul bouton invariant « Importer mon compte »
   dans la barre de nav remplit RTA + siège défense + offense **+ « Mon compte »**
   (box 6★ et inventaire runes/artéfacts) d'un coup. Chaque import remplace le
@@ -453,5 +469,6 @@ jamais en entier.
 | [chantiers/spec-rangement.md](chantiers/spec-rangement.md) — rangement des specs pour lire à la demande ; fiche, journal archivé | terminé le 2026-09-17 | `forge/spec-rangement` |
 | [chantiers/refonte-graphique.md](chantiers/refonte-graphique.md) — refonte graphique sans régression (navigation, boutons, densité) | en cours | `forge/refonte-graphique` |
 | [chantiers/rebranding-blacksmith.md](chantiers/rebranding-blacksmith.md) — rebranding « SW Blacksmith » (nom, logo, thèmes, écrans), suite de la refonte | en cours | `forge/refonte-graphique` |
+| [chantiers/application-bureau.md](chantiers/application-bureau.md) — l'application de bureau (Electron, Windows et Linux) : coquille, installeur, action GitHub au tag, mise à jour automatique, page « Télécharger », dossier SW Exporter ; entre dans la 2.0.0 ; fiche, journal archivé ; état actuel : [shared/application-bureau.md](shared/application-bureau.md) | terminé le 2026-10-06 | `forge/application-bureau` |
 | Speed tuning en mode RTA (1,5 % par tick au lieu de 7 %) — pas encore de cadrage ; ce qu'il devra trancher : [outils/speed-tuning.md](outils/speed-tuning.md) § Mode RTA | à ouvrir | — |
 | [chantiers/degats-et-aura.md](chantiers/degats-et-aura.md) — quatre sorts au modèle incomplet, sets d'aura, ergonomie et planchers de conditions ; découpe `spec/outils/degats-reels.md` ; reliquat de l'audit traité en partie, le reste reporté (notes privées, `decisions/reste-a-faire-degats-2026-10.md`) ; fiche, journal archivé ; valeurs de jeu curées : [outils/degats-reels/valeurs-de-jeu-curees.md](outils/degats-reels/valeurs-de-jeu-curees.md) | terminé le 2026-10-04 | `forge/degats-et-aura` |

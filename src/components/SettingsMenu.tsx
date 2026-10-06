@@ -7,6 +7,8 @@ import { THEME_CHOICES, setTheme, useTheme } from '../hooks/useTheme';
 import { setOvercapDisplay, useOvercapDisplay } from '../hooks/useOvercapDisplay';
 import { setAdversaireReference, useAdversaireReference } from '../hooks/useAdversaireReference';
 import AccountFreshness from './AccountFreshness';
+import BlocApplication from './BlocApplication';
+import { estBureau, selonSupport } from '../lib/bureau';
 import Segmented from '../ui/Segmented';
 import Bouton from '../ui/Bouton';
 import Flottant from '../ui/Flottant';
@@ -123,7 +125,10 @@ export function SettingsList({
         title="Garder mes données"
         hint={
           storageOk
-            ? 'Recommandé : sans ça, tout est perdu en fermant l’onglet — prépa RTA, équipes de siège, recommandations et compte. Tout reste dans ton navigateur, sur cet appareil : à éviter sur un ordinateur partagé.'
+            ? selonSupport(
+                'Recommandé : sans ça, tout est perdu en fermant l’onglet — prépa RTA, équipes de siège, recommandations et compte. Tout reste dans ton navigateur, sur cet appareil : à éviter sur un ordinateur partagé.',
+                'Recommandé : sans ça, tout est perdu en fermant l’application — prépa RTA, équipes de siège, recommandations et compte. Tout reste sur cette machine : à éviter sur un ordinateur partagé.'
+              )
             : "Ton navigateur n'autorise pas le stockage (navigation privée ?). L'import reste valable le temps de la session."
         }
       >
@@ -161,6 +166,17 @@ export function SettingsList({
       )}
       </div>
       </section>
+
+      {/* Application de bureau seulement (lot 5) : la version, et la mise à
+          jour à portée quand elle a été remise à plus tard. Sur le site, le
+          bloc n'existe pas — ce n'est pas un état des données, c'est une
+          autre app. */}
+      {estBureau() && (
+        <BlocApplication
+          intitule={intitule('Application')}
+          classeCarte={groupes ? carteLg : 'border-t border-border/60'}
+        />
+      )}
     </div>
   );
 }

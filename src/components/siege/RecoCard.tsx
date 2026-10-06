@@ -211,7 +211,7 @@ export default function RecoCard({
   function supprimerReco() {
     const index = recos.state.recos.findIndex((r) => r.id === reco.id);
     recos.removeReco(reco.id);
-    notifier({ message: 'Recommandation supprimée', annuler: () => recos.restaurerReco(reco, index) });
+    notifier({ message: 'Recommandation supprimée', action: () => recos.restaurerReco(reco, index) });
   }
   const deckCount = reco.decks.length;
   // ⚠️ Un deck retiré ou remis en place DÉCALE les index : le deck en édition
@@ -1418,7 +1418,7 @@ function DeckBlock({
   const notifier = useNotifier();
   function supprimerDeck() {
     recos.removeDeck(reco.id, deckIndex);
-    notifier({ message: 'Deck supprimé', annuler: () => recos.restaurerDeck(reco.id, deck, deckIndex) });
+    notifier({ message: 'Deck supprimé', action: () => recos.restaurerDeck(reco.id, deck, deckIndex) });
   }
   // Un monstre choisi → le curseur passe au slot vide suivant (voir
   // `slotVideSuivant`) : on compose les trois d'affilée, sans la souris.

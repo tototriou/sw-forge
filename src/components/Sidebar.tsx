@@ -181,6 +181,9 @@ export default function Sidebar({
           réglage de la barre elle-même, pas une destination. Repliée, les deux
           s'empilent. */}
       <div
+        // Dans l'app de bureau, la rangée du logo prolonge la barre de la
+        // fenêtre (index.css § Application de bureau). Sans effet sur le site.
+        data-barre-fenetre
         className={`flex flex-none items-center ${
           retractee ? 'flex-col gap-2 px-0' : 'gap-2.5 pl-4 pr-3'
         }`}

@@ -1,0 +1,85 @@
+# Empaquetage de l'application de bureau — chantier application-bureau, lot 3
+# (spec/chantiers/application-bureau.md, décisions 3 et 8).
+#
+# `npm run bureau:paquet` : build Vite + processus principal, puis
+# l'installeur de la plateforme courante dans le dossier `paquets` (gitignoré).
+
+# ⚠️ DÉFINITIF (décision 8) : Windows et la mise à jour automatique
+# reconnaissent l'app installée par cet identifiant. Le changer = une autre
+# app, installée à côté de l'ancienne.
+appId: com.swblacksmith.app
+# Le nom sous Windows (menu Démarrer, « Applications installées ») et le
+# dossier des données (`%APPDATA%\SW Blacksmith`). Seulement ici, pas dans
+# package.json : `npm run bureau:local` garde ses données à part
+# (`%APPDATA%\swblacksmith`) et ne touche jamais celles de l'app installée.
+productName: SW Blacksmith
+# ⚠️ `productName` seul nomme l'installeur, pas l'app : Electron lit son nom
+# (et le dossier des données) dans le package.json EMBARQUÉ, où il faut
+# l'écrire — sinon l'app installée s'appelle `swblacksmith`.
+extraMetadata:
+  productName: SW Blacksmith
+copyright: SW Blacksmith
+
+directories:
+  output: paquets
+
+# Où la mise à jour automatique cherche les versions (lot 5) : écrit dans
+# `app-update.yml` des ressources de l'app installée. ÉCRIT ici, pas déduit du
+# dépôt git (ce que fait electron-builder sans lui) : une CI qui clonerait
+# autrement ne change rien. Un dépôt RENOMMÉ reste suivi — GitHub redirige.
+# La publication elle-même n'est PAS faite par electron-builder (`--publish
+# never`, décision 9) : voir .github/workflows/bureau.yml.
+publish:
+  provider: github
+  owner: tototriou
+  repo: sw-forge
+
+# Le build Vite et le processus principal, rien d'autre. ⚠️ Pas de
+# `node_modules` : React & co. sont déjà DANS le build (Vite), et le
+# processus principal est un seul fichier (esbuild, construire-bureau.mjs).
+# ⚠️ `dist-bureau/*.cjs`, pas tout le dossier : `bureau:preuve` y range ses
+# captures et son profil Chromium (sous-dossier `preuve`).
+files:
+  - dist/**/*
+  - dist-bureau/*.cjs
+  - package.json
+  - "!node_modules/**/*"
+
+win:
+  target: nsis
+  # ⚠️ Pas `public/favicon.png` converti par electron-builder : il écrit
+  # toutes les tailles en PNG, illisibles par Windows en petit (icône
+  # générique). Généré par `node scripts/generer-icone-bureau.mjs`.
+  icon: bureau/icone.ico
+
+# Décision 8 (amendée) : un assistant — pour qui (moi seulement par défaut :
+# la mise à jour passe sans demande d'autorisation), dans quel dossier, puis
+# l'avancement ; la désinstallation a ses pages aussi (bienvenue, avancement,
+# fin).
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  # Décision 8 : la désinstallation efface les données. Une MISE À JOUR
+  # aussi passe par l'ancien désinstalleur, mais avec `--updated`, qui
+  # garde les données (app-builder-lib, templates/nsis/include/installUtil.nsh).
+  deleteAppDataOnUninstall: true
+  # … et la copie de l'installeur gardée pour la mise à jour (113 Mo), que
+  # electron-builder laisse derrière lui.
+  include: bureau/installeur.nsh
+  installerLanguages: [fr_FR]
+  language: "1036"
+  shortcutName: SW Blacksmith
+  # ⚠️ SANS numéro de version (décision 13) : l'accueil du site télécharge
+  # `…/releases/latest/download/SW-Blacksmith-Setup.exe`, la seule adresse
+  # fixe — src/lib/bureau.ts (TELECHARGEMENTS), vérifié par
+  # tests/bureau-mise-a-jour.test.ts. La mise à jour n'en souffre pas : elle
+  # retrouve l'ancien `.blockmap` par le tag (`v2.0.0`) dans le chemin.
+  artifactName: SW-Blacksmith-Setup.${ext}
+
+linux:
+  target: AppImage
+  icon: public/favicon.png
+  category: Game
+  # Sans version, comme l'installeur Windows (voir plus haut).
+  artifactName: SW-Blacksmith.${ext}

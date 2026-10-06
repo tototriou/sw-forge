@@ -8,8 +8,13 @@ import BoutonIcone from './BoutonIcone';
 //
 // ⚠️ **Elle REMPLACE une confirmation**, pour quatre suppressions (monstre de
 // la prépa RTA, équipe, deck, recommandation) : le geste se fait tout de suite,
-// et « Annuler » le défait quelques secondes. `annuler` doit remettre
+// et « Annuler » le défait quelques secondes. L'`action` doit alors remettre
 // l'élément À SA PLACE, tel quel (les fonctions `restaurer*` des hooks).
+//
+// Deux axes nés de l'application de bureau (lot 5) : le libellé de l'action
+// (« Nouvelle version disponible · Mettre à jour » ; « Annuler » par défaut)
+// et la durée — `persistante`, elle reste jusqu'à l'action ou la croix (une
+// QUESTION ne s'efface pas toute seule ; 6 s par défaut).
 //
 // ⚠️ **Une seule à la fois** : la suivante remplace la précédente, dont le geste
 // devient définitif. Deux notifications empilées se liraient comme deux choses
@@ -17,8 +22,12 @@ import BoutonIcone from './BoutonIcone';
 
 export interface Annonce {
   message: string;
-  // Absent : une simple annonce, sans retour possible.
-  annuler?: () => void;
+  // Absente : une simple annonce, sans bouton.
+  action?: () => void;
+  // « Annuler » par défaut.
+  libelleAction?: string;
+  // Reste jusqu'à l'action ou la croix, au lieu de 6 s.
+  persistante?: boolean;
 }
 
 type Notifier = (annonce: Annonce) => void;
@@ -42,9 +51,10 @@ export function FournisseurNotification({ children }: { children: ReactNode }) {
     setRetenue(false);
   }, []);
 
-  // 6 s, puis elle s'en va — sauf tant qu'on la survole ou qu'elle a le focus.
+  // 6 s, puis elle s'en va — sauf tant qu'on la survole ou qu'elle a le focus,
+  // et jamais si elle est persistante.
   useEffect(() => {
-    if (!courante || retenue) return;
+    if (!courante || retenue || courante.persistante) return;
     const id = setTimeout(() => setCourante(null), DUREE);
     return () => clearTimeout(id);
   }, [courante, retenue]);
@@ -96,16 +106,16 @@ export function BandeauNotification({
     >
       <Check size={15} className="flex-none text-good" aria-hidden />
       <span className="min-w-0 flex-1">{annonce.message}</span>
-      {annonce.annuler && (
+      {annonce.action && (
         <Bouton
           taille="sm"
           // Le « fantôme » de la toile : l'action en braise, sans cadre.
           ton="accent"
           fond="vide"
           trait="aucun"
-          libelle="Annuler"
+          libelle={annonce.libelleAction ?? 'Annuler'}
           onClick={() => {
-            annonce.annuler?.();
+            annonce.action?.();
             onFermer();
           }}
         />

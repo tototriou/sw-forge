@@ -72,6 +72,7 @@ const TITRES: [string, string][] = [
   ['#/bestiary', 'Bestiaire'],
   ['#/mecaniques', 'Mécaniques'],
   ['#/releases', 'Nouveautés'],
+  ['#/telecharger', 'Télécharger'],
   ['#/parametres', 'Paramètres'],
   ['#/arene', 'Arène'],
 ];

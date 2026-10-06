@@ -126,6 +126,10 @@ function remonteVersAffichage(n) {
     }
     if (ts.isCallExpression(p) && p.arguments.includes(enfant)) {
       const appele = ts.isIdentifier(p.expression) ? p.expression.text : null;
+      // `selonSupport(site, app)` (src/lib/bureau.ts) n'est qu'une BRANCHE,
+      // comme un ternaire : chacun de ses deux textes s'affiche (le premier
+      // sur le site, le second dans l'app de bureau).
+      if (appele === 'selonSupport') { enfant = p; p = p.parent; continue; }
       return appele && MESSAGE.test(appele) ? 'message' : null;
     }
     return null;

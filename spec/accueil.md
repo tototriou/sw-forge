@@ -26,11 +26,22 @@ Deux colonnes (`1.1fr / 0.9fr`, empilées sous `lg`).
     porte aussi le logo (depuis la refonte — cette spec disait l'inverse,
     corrigé au rebranding R2 bis) ; au téléphone, la barre du haut ne montre
     que le symbole.
-  - ⚠️ **Aucun bouton dans le héros**, et aucun argument commercial répété
-    (« Gratuit · Aucune inscription », « Traitement 100 % local… », « sans créer
-    de compte »). La **zone de dépôt est juste à côté** : un bouton « Importer
-    mon compte » qui fait défiler vers un élément déjà visible n'ajoute rien, et
-    la pile d'arguments noyait la promesse au lieu de la servir.
+  - ⚠️ **Aucun bouton d'IMPORT dans le héros**, et aucun argument commercial
+    répété (« Gratuit · Aucune inscription », « Traitement 100 % local… »,
+    « sans créer de compte »). La **zone de dépôt est juste à côté** : un
+    bouton « Importer mon compte » qui fait défiler vers un élément déjà
+    visible n'ajoute rien, et la pile d'arguments noyait la promesse au lieu
+    de la servir.
+  - **L'application de bureau** (application-bureau, lot 6, décisions 13
+    et 14 de Thomas — la règle « aucun bouton dans le héros » est levée pour
+    lui seul) : **sous la promesse, avant les éléments qui flottent**, UN
+    bouton SECONDAIRE (neutre, petit) « Télécharger l'application », aux
+    logos Windows et Linux, lien (`Bouton href`) vers la page
+    [Télécharger](telecharger.md) — les téléchargements eux-mêmes, la
+    phrase SmartScreen et la version y vivent. **Au téléphone**, à la
+    place, une ligne en lien vers la même page : « Existe aussi en
+    application pour Windows et Linux. » **Dans l'app de bureau**
+    (`estBureau()`) : rien.
 - **Droite** : la **zone de dépôt**.
 
 ### 2. ⚠️ Zone de dépôt DANS le héros
@@ -100,11 +111,13 @@ page hors de l'écran : à 7 entrées, la moitié des sections n'était jamais v
 | Bestiaire | `#/bestiary` | `COULEUR_SECTION.bestiary` |
 | Mécaniques | `#/mecaniques` | `COULEUR_SECTION.mecaniques` |
 | Nouveautés | `#/releases` | `COULEUR_SECTION.releases` |
+| Application de bureau — **site seulement** | `#/telecharger` | `COULEUR_SECTION.telecharger` |
 | Arène classique | `#/arene` — `soon` | `COULEUR_SECTION.arene` |
 
 (La table avait oublié Analyse d'artéfacts et Speed tuning, présents dans la
 page ; relevé par le test de rendu du lot 5, `tests/rendu/accueil.test.tsx`,
-qui fixe désormais les douze cartes et leur ordre.)
+qui fixe désormais les cartes et leur ordre — treize sur le site depuis
+l'application de bureau, douze dans l'app.)
 
 ### Rebranding « SW Blacksmith » — lot R5 (2026-09-29)
 

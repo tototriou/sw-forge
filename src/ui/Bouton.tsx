@@ -253,6 +253,11 @@ export interface BoutonProps
   // annonce « bouton » là où l'utilisateur voit un interrupteur. Laisser à
   // `undefined` pour une action ordinaire, qui n'a pas d'état à porter.
   actif?: boolean;
+  // ⚠️ **Un LIEN au dessin de bouton** (application de bureau, lot 6 :
+  // « Télécharger pour Windows ») : rendu en `<a href>`, même dessin. Un
+  // téléchargement, une page externe sont des LIENS — on peut en copier
+  // l'adresse, le lecteur d'écran dit « lien ». Sans `href` : un `<button>`.
+  href?: string;
 }
 
 const Bouton = forwardRef<HTMLButtonElement, BoutonProps>(function Bouton(
@@ -269,6 +274,7 @@ const Bouton = forwardRef<HTMLButtonElement, BoutonProps>(function Bouton(
     pleineLargeur = false,
     nuAuDoigt = false,
     actif,
+    href,
     className = '',
     type = 'button',
     ...reste
@@ -293,21 +299,14 @@ const Bouton = forwardRef<HTMLButtonElement, BoutonProps>(function Bouton(
       'compact:bg-transparent compact:px-0 compact:py-0'
     : '';
 
-  return (
-    <button
-      ref={ref}
-      type={type}
-      aria-pressed={actif}
-      // Appui : descend d'1 px (règle `button[data-bouton]` d'index.css).
-      data-bouton=""
-      {...(nuAuDoigt ? { 'data-cible-fine': true } : {})}
-      className={`${SOCLE} ${desactive(tonEffectif, fondEffectif)} ${TAILLES[taille]} ${FORMES[forme]} ${
-        TRAITS[ton][trait]
-      } ${nu} ${FONDS[tonEffectif][fondEffectif]} ${TEXTES[tonEffectif][fondEffectif === 'vide' ? 'nu' : fondEffectif]} ${
-        pleineLargeur ? 'w-full' : ''
-      } ${className}`}
-      {...reste}
-    >
+  const classes = `${SOCLE} ${desactive(tonEffectif, fondEffectif)} ${TAILLES[taille]} ${FORMES[forme]} ${
+    TRAITS[ton][trait]
+  } ${nu} ${FONDS[tonEffectif][fondEffectif]} ${TEXTES[tonEffectif][fondEffectif === 'vide' ? 'nu' : fondEffectif]} ${
+    pleineLargeur ? 'w-full' : ''
+  } ${className}`;
+
+  const contenu = (
+    <>
       {icone}
       {/* ⚠️ Le libellé est TOUJOURS dans un `<span>`, même visible : c'est cette
           balise que la règle `[data-tiroir] button > span.compact\:hidden` va
@@ -326,6 +325,36 @@ const Bouton = forwardRef<HTMLButtonElement, BoutonProps>(function Bouton(
           <span className={masquable ? 'compact:hidden' : undefined}>{libelle}</span>
         )
       )}
+    </>
+  );
+
+  // Un lien : mêmes classes, même appui (`[data-bouton]` d'index.css). Les
+  // attributs propres au bouton (`type`, `aria-pressed`) n'ont pas de sens ici.
+  if (href != null) {
+    return (
+      <a
+        href={href}
+        data-bouton=""
+        className={classes}
+        {...(reste as React.AnchorHTMLAttributes<HTMLAnchorElement>)}
+      >
+        {contenu}
+      </a>
+    );
+  }
+
+  return (
+    <button
+      ref={ref}
+      type={type}
+      aria-pressed={actif}
+      // Appui : descend d'1 px (règle `button[data-bouton]` d'index.css).
+      data-bouton=""
+      {...(nuAuDoigt ? { 'data-cible-fine': true } : {})}
+      className={classes}
+      {...reste}
+    >
+      {contenu}
     </button>
   );
 });

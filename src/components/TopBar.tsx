@@ -81,6 +81,10 @@ export default function TopBar({
       // `safe-area-inset-top`, et son contenu se décale d'autant. Sans cela,
       // le titre et les boutons passaient sous l'encoche d'un iPhone.
       // Fond `bar` : celui des barres de l'application (rebranding, décision 5).
+      // `data-barre-fenetre` : dans l'app de bureau SEULEMENT, la barre de la
+      // fenêtre (on la saisit, les boutons de Windows s'y dessinent) — voir
+      // index.css § Application de bureau. Sans effet sur le site.
+      data-barre-fenetre
       className="fixed inset-x-0 top-0 z-20 border-b border-border bg-bar
                  lg:left-[var(--top-left)] lg:right-0 lg:transition-[left] lg:duration-[180ms]"
       style={{

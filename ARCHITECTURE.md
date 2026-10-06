@@ -13,10 +13,11 @@ disent ce que contient chaque brique. Le comportement attendu, lui, est dans
 |---|---|
 | Framework | React 18 + TypeScript 5, **sans router** (routing par `window.location.hash`) |
 | Build | Vite 5, Tailwind 3, PostCSS + autoprefixer |
-| Dépendances runtime | `lucide-react` (icônes), `framer-motion`, `@vercel/analytics` |
+| Dépendances runtime | `lucide-react` (icônes), `framer-motion` — aucune mesure d'audience (retirée le 2026-10-05) |
 | Node | ≥ 24 |
 | Calcul lourd | 2 Web Workers (`src/workers/`) |
 | Stockage | `localStorage` (prépa, équipes, réglages) + **IndexedDB** (compte importé) |
+| Application de bureau | Electron, code dans **`bureau/`** (hors de `src/` : il tourne dans Node) — `main.ts` (fenêtre, protocole `app://swblacksmith/`), `protocole.ts` (règles pures, testées : fichier servi, adresse interne, lien ouvrable dehors), `navigation.ts` (liens vers le navigateur, navigations bloquées, « Enregistrer sous »), `fenetre.ts` (état mémorisé, pur), `preload.ts`, `miseAJour.ts` (mise à jour automatique, `electron-updater`), `swex.ts` + `swexPur.ts` (dossier SW Exporter : « Mon compte » suit les exports), `preuve.ts`, `installeur.nsh` (désinstalleur Windows), `icone.ico` (générée par `scripts/generer-icone-bureau.mjs`) ; empaqueté par `electron-builder.yml`, publié au tag `v*` par `.github/workflows/bureau.yml` (installeurs attachés à la release) ; côté page `src/lib/bureau.ts` (`estBureau()`, couleurs du thème, mise à jour), `src/components/MiseAJourBureau.tsx` (la mise à jour dite par la notification) et `src/components/BlocApplication.tsx` (bloc « Application » des Réglages : version, mise à jour à portée, dossier SW Exporter), `src/components/SuiviSwex.tsx` (applique « Mon compte » à chaque export), `src/hooks/useEtatSwex.ts` (l'état du dossier, lu par les Réglages et par `SidebarCompte`, dont la carte devient le menu des invocateurs) ; compilé par `scripts/construire-bureau.mjs` vers le dossier `dist-bureau` (non suivi). État actuel [spec/shared/application-bureau.md](spec/shared/application-bureau.md), chantier [spec/chantiers/application-bureau.md](spec/chantiers/application-bureau.md) |
 
 ⚠️ **Pas de librairie de composants.** Tout `src/ui/` est écrit à la main.
 Radix UI a été **validé mais jamais installé** — chantier en attente.
@@ -27,6 +28,10 @@ npm run build          # build de prod (⚠️ seul endroit où l'on voit le CSS
 npm test               # = node tests/run.mjs
 npm run fetch-data     # régénère les données monstres/skills depuis SWARFARM
 npm run benchmark:optim
+npm run bureau         # l'application de bureau sur le serveur de dev
+npm run bureau:local   # l'application de bureau sur le build (comme installée)
+npm run bureau:preuve  # l'app se contrôle elle-même, captures + resultats.json (--exe : l'app installée ; --conservation : les données survivent à la fermeture ; --swex : le dossier SW Exporter)
+npm run bureau:paquet  # l'installeur de la plateforme courante dans paquets/ (electron-builder.yml)
 ```
 
 ---
@@ -71,6 +76,7 @@ fait apparaître les 16 dans n'importe quelle analyse de dépendances.
 | Paramètres | `#/parametres` | `pages/SettingsPage.tsx` | `SettingsMenu`, `AccountImportControl` | `spec/shared/navigation.md` |
 | Mécaniques | `#/mecaniques` | `pages/MechanicsPage.tsx` | — (page statique) | `spec/mecaniques.md` |
 | Nouveautés | `#/releases` | `pages/ReleasesPage.tsx` | `data/releases.ts` | `spec/releases.md` |
+| Télécharger (site seulement) | `#/telecharger` | `src/pages/TelechargerPage.tsx` | `src/lib/bureau.ts` (`TELECHARGEMENTS`), `src/components/IconesSystemes.tsx` | `spec/telecharger.md` |
 | Arène | `#/arene` | `pages/ComingSoon.tsx` | — | `spec/arene.md` |
 
 ### Détail des écrans denses

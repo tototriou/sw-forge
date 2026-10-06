@@ -3,7 +3,9 @@
   "private": true,
   "version": "1.14.0",
   "type": "module",
+  "main": "dist-bureau/main.cjs",
   "description": "SW Blacksmith — boîte à outils Summoners War : siège, RTA, runes et analyse de compte. 100 % local, aucune donnée envoyée.",
+  "author": "SW Blacksmith",
   "engines": {
     "node": ">=24"
   },
@@ -17,10 +19,14 @@
     "test": "node tests/run.mjs",
     "benchmark:optim": "node scripts/benchmark-optim.mjs",
     "benchmark:bucket-retention": "node scripts/benchmark-bucket-retention.mjs",
-    "benchmark:search-budget": "node scripts/benchmark-search-budget.mjs"
+    "benchmark:search-budget": "node scripts/benchmark-search-budget.mjs",
+    "bureau": "node scripts/bureau-dev.mjs",
+    "bureau:construire": "node scripts/construire-bureau.mjs",
+    "bureau:local": "vite build && node scripts/construire-bureau.mjs && node scripts/bureau-local.mjs",
+    "bureau:preuve": "node scripts/bureau-preuve.mjs",
+    "bureau:paquet": "vite build && node scripts/construire-bureau.mjs && electron-builder --publish never"
   },
   "dependencies": {
-    "@vercel/analytics": "^2.0.1",
     "framer-motion": "^11.3.19",
     "lucide-react": "^0.407.0",
     "react": "^18.3.1",
@@ -32,6 +38,9 @@
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.1",
     "autoprefixer": "^10.4.19",
+    "electron": "44.5.1",
+    "electron-builder": "26.15.3",
+    "electron-updater": "6.8.9",
     "fake-indexeddb": "^6.2.5",
     "playwright": "^1.62.1",
     "postcss": "^8.4.39",

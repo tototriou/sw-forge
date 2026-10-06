@@ -69,6 +69,10 @@ export const IconeMecaniques = fabrique(
     'M12 2.5V5.5M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1'
 );
 export const IconeNouveautes = fabrique('M11 3l1.8 5.2L18 10l-5.2 1.8L11 17l-1.8-5.2L4 10l5.2-1.8zM19 15v6M16 18h6');
+// Application de bureau, lot 6 (décision 14) : la page « Télécharger » — la
+// flèche qui descend dans le bac. Dessinée pour l'app, pas choisie sur
+// planche comme les autres : remplaçable par un objet d'atelier.
+export const IconeTelecharger = fabrique('M12 3v11M7.5 9.5 12 14l4.5-4.5M4 15v3a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3v-3');
 // Notions de la toile (« Défense », « Attaque »).
 export const IconeDefense = fabrique('M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6zM12 8v8M9 11h6');
 export const IconeOffense = fabrique('M14.5 17.5 3 6V3h3l11.5 11.5M13 19l6-6M16 16l4 4M19 21l2-2');

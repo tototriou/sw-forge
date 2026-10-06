@@ -145,8 +145,8 @@ variantes nommées n'auraient pas couvert. Et surtout :
 
 ### Axes de comportement
 
-Trois axes ne touchent pas à l'apparence au repos mais à ce que le bouton fait
-selon le contexte :
+Quatre axes ne touchent pas à l'apparence au repos mais à ce que le bouton fait
+selon le contexte, ou à ce qu'il est :
 
 - **`nuAuDoigt`** — le bouton se déshabille au tactile : plus de cadre, plus de
   fond, plus de rembourrage, il ne reste que l'icône. ⚠️ **Réservé aux barres où
@@ -160,6 +160,12 @@ selon le contexte :
 - **`actif`** — bouton à **deux états**. Il prend le fond de son ton et pose
   `aria-pressed` : sans quoi un lecteur d'écran annonce « bouton » là où
   l'utilisateur voit un interrupteur.
+- **`href`** — un **lien** au dessin de bouton (application de bureau, lot 6 :
+  « Télécharger pour Windows ») : rendu en `<a href>`, mêmes classes, même
+  appui (`[data-bouton]` d'`index.css`). Un téléchargement, une page externe
+  sont des liens — on peut en copier l'adresse, le lecteur d'écran dit
+  « lien ». ⚠️ Jamais un `<button onClick={() => location.href = …}>` : il
+  ressemblerait au lien sans en être un.
 
 > ⚠️ **Le libellé se masque, il ne DISPARAÎT pas.** C'est pourquoi l'API est
 > `icone` + `libelle` et non un `children` libre : le panneau d'actions mobile
@@ -305,6 +311,14 @@ de rendu retrouver chaque action, son état et sa raison.
 13), contre la règle du deuxième (« Quand ajouter quelque chose ») : l'écrire
 dans l'écran aurait fait un contrôle MAISON — ce que la règle qui gouverne tout
 le reste interdit — et les maquettes en posent un dans plusieurs écrans.
+**Deux axes** nés de la carte du compte (application de bureau, lot 9 : le
+choix de l'invocateur « au niveau du menu principal ») : `declencheur` — le
+bouton qui ouvre le menu, quand ce n'est pas le « ⋯ » ; il reçoit ce qu'il doit
+poser sur son bouton (`ref`, `aria-haspopup`, `aria-expanded`,
+`aria-controls`, `onClick`), et le menu prend alors toute la largeur ; `cote`
+— le bord auquel la liste s'aligne (droite par défaut ; gauche pour la carte
+en tête de barre latérale). Une entrée `actif` (`menuitemcheckbox`) ne se
+dessine pas cochée d'elle-même : l'appelant met la coche en icône.
 
 ⚠️ **Pas de `Deroulant` (filtre fermé dans un menu)** : ajouté au lot 8a pour
 les filtres des runes (la maquette), puis retiré le même jour, sans autre

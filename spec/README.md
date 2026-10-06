@@ -31,6 +31,11 @@ ce qu'il peut faire, et les règles de calcul appliquées.
 | Mécaniques | `#/mecaniques` | Live | [mecaniques.md](mecaniques.md) |
 | Nouveautés | `#/releases` | Live | [releases.md](releases.md) |
 
+Points d'entrée de l'Optimizer, avant un chantier qui le touche :
+
+- [outils/optimizer/invariants.md](outils/optimizer/invariants.md) — les
+  contraintes critiques, chacune avec sa source ; se lit en entier.
+
 Ordre d'importance (nav & cartes d'accueil) : **Accueil → RTA → Siège → Mon
 compte → Outils → Arène**. Arène se positionne dans la barre entre le
 dropdown Outils et le dropdown Ressources — pas dans le groupe des onglets

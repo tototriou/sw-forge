@@ -14,18 +14,6 @@
       "proprietaire": "hors-perimetre"
     },
     {
-      "fichier": ".claude/hooks/refuse-read-spec-entier.mjs",
-      "renvoi": "invariants.md",
-      "occurrences": 1,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": ".claude/hooks/refuse-read-spec-entier.mjs",
-      "renvoi": "spec/outils/optimizer/invariants.md",
-      "occurrences": 2,
-      "proprietaire": "a-publier"
-    },
-    {
       "fichier": ".claude/skills/algo-verify/SKILL.md",
       "renvoi": "archive/historique/historique-diagnostics-et-robustesse.md",
       "occurrences": 1,
@@ -89,12 +77,6 @@
       "fichier": ".claude/skills/spec-hygiene/SKILL.md",
       "renvoi": "decisions/",
       "occurrences": 2,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": ".claude/skills/spec-hygiene/SKILL.md",
-      "renvoi": "invariants.md",
-      "occurrences": 3,
       "proprietaire": "a-publier"
     },
     {
@@ -398,12 +380,6 @@
       "proprietaire": "a-publier"
     },
     {
-      "fichier": "CLAUDE.md",
-      "renvoi": "spec/outils/optimizer/invariants.md",
-      "occurrences": 1,
-      "proprietaire": "a-publier"
-    },
-    {
       "fichier": "scripts/audit-degats-aura-corpus.mjs",
       "renvoi": "spec/outils/optimizer/archive/audit-degats-conditionnels-2026-09-08/inventaire.csv",
       "occurrences": 1,
@@ -448,18 +424,6 @@
     {
       "fichier": "scripts/filterslot-topk-diag.ts",
       "renvoi": "spec/outils/optimizer/pistes.md",
-      "occurrences": 1,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": "scripts/hooks-codex-garde-fous.mjs",
-      "renvoi": "invariants.md",
-      "occurrences": 1,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": "scripts/hooks-codex-garde-fous.mjs",
-      "renvoi": "spec/outils/optimizer/invariants.md",
       "occurrences": 1,
       "proprietaire": "a-publier"
     },
@@ -899,6 +863,60 @@
       "fichier": "spec/outils/optimizer.md",
       "renvoi": "optimizer/archive/audit-degats-conditionnels-2026-09-08/suivi-implementation.md",
       "occurrences": 1,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "spec/outils/optimizer/invariants.md",
+      "renvoi": "ecran/README.md",
+      "occurrences": 4,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "spec/outils/optimizer/invariants.md",
+      "renvoi": "harnais.md",
+      "occurrences": 23,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "spec/outils/optimizer/invariants.md",
+      "renvoi": "limites-connues.md",
+      "occurrences": 3,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "spec/outils/optimizer/invariants.md",
+      "renvoi": "moteur/artefacts.md",
+      "occurrences": 19,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "spec/outils/optimizer/invariants.md",
+      "renvoi": "moteur/diagnostics.md",
+      "occurrences": 6,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "spec/outils/optimizer/invariants.md",
+      "renvoi": "moteur/elagages.md",
+      "occurrences": 17,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "spec/outils/optimizer/invariants.md",
+      "renvoi": "moteur/parallelisation.md",
+      "occurrences": 10,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "spec/outils/optimizer/invariants.md",
+      "renvoi": "moteur/reliques.md",
+      "occurrences": 23,
+      "proprietaire": "a-publier"
+    },
+    {
+      "fichier": "spec/outils/optimizer/invariants.md",
+      "renvoi": "pistes.md",
+      "occurrences": 2,
       "proprietaire": "a-publier"
     },
     {

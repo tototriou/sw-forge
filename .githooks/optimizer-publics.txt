@@ -2,3 +2,4 @@
 # la racine du dépôt, à l'identique (casse comprise). Lue dans l'index par
 # .githooks/pre-commit : un fichier publié et sa ligne vont dans le même
 # commit. Lignes vides et lignes en # ignorées.
+spec/outils/optimizer/invariants.md

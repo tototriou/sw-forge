@@ -96,6 +96,9 @@ Outillage du dépôt (pas une page de l'app) :
   `spec-toc`, contrat de `spec-lint`, en-têtes, critère des invariants, niveaux
   d'application, hook `Read` et installation des garde-fous (hook
   `pre-commit`, garde-fou Codex).
+- [outillage/renvois.md](outillage/renvois.md) — garde-fou des renvois :
+  formes relevées, résolution dans les fichiers suivis, exemptions, liste
+  tolérée.
 
 ## Conventions communes (toutes les pages)
 

@@ -210,6 +210,17 @@ Q1 → 7 (les données dépendent du choix de Thomas)
     fermeture. Remplace le « téléchargement en fond » de A.1 et du lot 5.
     → lot 5.
 
+12. **La mise à jour remise à plus tard reste faisable** (2026-10-06,
+    après le commit du lot 5 : « si l'utilisateur ne veut pas faire la
+    mise à jour tout de suite mais la faire plus tard, il faut que cela
+    soit possible pour lui ») → un bloc **« Application »** dans les
+    Réglages (menu ⚙ et page), app de bureau seulement : la version et UN
+    bouton qui suit l'état — « Rechercher » (recherche manuelle),
+    « Mettre à jour », « Redémarrer », « Réessayer » ; toujours affiché,
+    désactivé pendant une recherche ou un téléchargement. Non retenus : une
+    pastille dans la barre latérale, ou les deux.
+    → lot 5 (complément).
+
 #### Les questions d'origine (toutes tranchées)
 
 Toutes les questions sont tranchées.

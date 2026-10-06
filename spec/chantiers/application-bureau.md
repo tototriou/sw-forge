@@ -162,8 +162,16 @@ Q1 → 7 (les données dépendent du choix de Thomas)
    Non retenu : « une seule fenêtre ». → lot 1 bis.
 
 8. **L'installeur Windows** (2026-10-06, relevé du lot 3) :
-   - **en un clic**, installé dans le profil de l'utilisateur, sans droits
-     administrateur — la mise à jour automatique passe sans confirmation ;
+   - ~~en un clic~~ → **un assistant** (amendé le même jour, après la séance
+     d'écran : « laisse le choix à l'utilisateur d'où il veut installer »,
+     « pour la désinstallation affiche une fenêtre d'avancement ») : pour
+     qui — « juste pour moi » par défaut, dans le profil, sans droits
+     administrateur, et la mise à jour passe sans confirmation ; « tous les
+     utilisateurs » la fera demander à chaque fois —, quel dossier,
+     avancement ; la désinstallation a ses pages (bienvenue, avancement,
+     fin) ;
+   - **l'icône de l'app** sur l'exécutable, l'installeur et les raccourcis
+     (manquait à la première séance) ;
    - **données supprimées à la désinstallation** (`%APPDATA%\SW Blacksmith`)
      — mais **jamais par une mise à jour**, qui passe aussi par l'ancien
      désinstalleur : à prouver au lot 3 ;

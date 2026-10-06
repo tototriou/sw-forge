@@ -23,6 +23,7 @@ spec/outils/optimizer/interruption.md
 spec/outils/optimizer/moteur/elagages.md
 spec/outils/optimizer/moteur/artefacts.md
 spec/outils/optimizer/moteur/pipeline.md
+spec/outils/optimizer/moteur/reliques.md
 spec/outils/optimizer/verification.md
 spec/outils/optimizer/limites-connues.md
 spec/outils/optimizer/harnais.md

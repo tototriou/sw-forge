@@ -855,12 +855,6 @@
     },
     {
       "fichier": "spec/outils/optimizer/README.md",
-      "renvoi": "moteur/reliques.md",
-      "occurrences": 2,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": "spec/outils/optimizer/README.md",
       "renvoi": "pistes.md",
       "occurrences": 3,
       "proprietaire": "a-publier"
@@ -891,12 +885,6 @@
     },
     {
       "fichier": "spec/outils/optimizer/invariants.md",
-      "renvoi": "moteur/reliques.md",
-      "occurrences": 23,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": "spec/outils/optimizer/invariants.md",
       "renvoi": "pistes.md",
       "occurrences": 2,
       "proprietaire": "a-publier"
@@ -905,12 +893,6 @@
       "fichier": "spec/outils/optimizer/moteur/pipeline.md",
       "renvoi": "parallelisation.md",
       "occurrences": 6,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": "spec/outils/optimizer/moteur/pipeline.md",
-      "renvoi": "reliques.md",
-      "occurrences": 2,
       "proprietaire": "a-publier"
     },
     {
@@ -1202,12 +1184,6 @@
       "proprietaire": "a-publier"
     },
     {
-      "fichier": "src/lib/accountStore.ts",
-      "renvoi": "reliques.md",
-      "occurrences": 1,
-      "proprietaire": "a-publier"
-    },
-    {
       "fichier": "src/lib/artifactEvaluation.ts",
       "renvoi": "spec/outils/optimizer/artefacts.md",
       "occurrences": 1,
@@ -1238,18 +1214,6 @@
       "proprietaire": "a-publier"
     },
     {
-      "fichier": "src/lib/effects.ts",
-      "renvoi": "reliques.md",
-      "occurrences": 1,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": "src/lib/importAccount.ts",
-      "renvoi": "reliques.md",
-      "occurrences": 2,
-      "proprietaire": "a-publier"
-    },
-    {
       "fichier": "src/lib/importAccount.ts",
       "renvoi": "spec/outils/optimizer/chantiers/implementation-relique.md",
       "occurrences": 1,
@@ -1274,21 +1238,9 @@
       "proprietaire": "a-publier"
     },
     {
-      "fichier": "src/lib/relicExclusive.ts",
-      "renvoi": "reliques.md",
-      "occurrences": 3,
-      "proprietaire": "a-publier"
-    },
-    {
       "fichier": "src/lib/relicOptim.ts",
       "renvoi": "../invariants.md",
       "occurrences": 1,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": "src/lib/relicOptim.ts",
-      "renvoi": "reliques.md",
-      "occurrences": 3,
       "proprietaire": "a-publier"
     },
     {
@@ -1547,18 +1499,6 @@
       "fichier": "tests/optimizer-recipe-import-selection.test.ts",
       "renvoi": "spec/outils/optimizer/pistes.md",
       "occurrences": 1,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": "tests/relic-exclusive.test.ts",
-      "renvoi": "reliques.md",
-      "occurrences": 1,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": "tests/relic-optim.test.ts",
-      "renvoi": "reliques.md",
-      "occurrences": 3,
       "proprietaire": "a-publier"
     },
     {

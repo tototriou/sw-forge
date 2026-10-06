@@ -39,13 +39,13 @@ Publiés :
   benchmarks.
 - [limites-connues.md](limites-connues.md) — ce que le moteur ne garantit
   pas.
+- [moteur/reliques.md](moteur/reliques.md) — la dimension relique : contexte,
+  bornes, résolution exacte, effet unique, oracle.
 
 Annoncés : un lien vers l'un d'eux désigne sa place avant qu'il paraisse ;
 d'ici là, la section du fichier publié citée dans la même ligne du tableau
 décrit le sujet.
 
-- [moteur/reliques.md](moteur/reliques.md) — la dimension relique : contexte,
-  bornes, résolution exacte, oracle.
 - [moteur/parallelisation.md](moteur/parallelisation.md) — l'appariement
   parallèle, navigateur et Node, et le Worker de résolution.
 - [moteur/diagnostics.md](moteur/diagnostics.md) — faisabilité, conditions

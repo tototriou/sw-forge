@@ -757,7 +757,7 @@ nom dans une liste — même règle que les filtres de runes (voir
   qui complète n'importe quel set : on recommande « Violent + Will », jamais
   « Intangible », et le proposer revenait à réclamer un set de 2 pièces qui
   n'existe pas. Signalé à l'usage sur le picker jumeau de l'Optimizer
-  ([../outils/optimizer.md](../outils/optimizer.md), « Set de runes
+  ([../outils/optimizer/ecran/set-et-principale.md](../outils/optimizer/ecran/set-et-principale.md), « Set de runes
   recherché »), corrigé des deux côtés en même temps — les deux grilles
   partaient de `RUNE_SETS` entier. Une reco **enregistrée avant** ce
   correctif qui en contiendrait un reste affichée et retirable.

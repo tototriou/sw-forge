@@ -40,10 +40,10 @@ contient le filtre (registre : `tests/index.ts`), par exemple
 `testRuneOptimDifferential` compare `searchBuilds` à `bruteForce`, une
 référence qui énumère vraiment le produit des six emplacements, sans
 pré-filtrage ni regroupement par compte de pièces, et ne partage avec le
-moteur que `computeStats`, `activeSets` et `missingSets`
-(`tests/rune-optim-differential.test.ts:13-17`, `:37-82`). Comme le moteur,
-elle refuse deux runes Intangible dans un même build (`:58-63`). Les pools
-font trois runes par emplacement, tirés par `randomPool` à graine fixe
+moteur que `computeStats`, `activeSets`, `missingSets` et
+`runeEfficiency` (`tests/rune-optim-differential.test.ts:19-22`,
+`:37-82`). Comme le moteur, elle refuse deux runes Intangible dans un
+même build (`:58-63`). Les pools font trois runes par emplacement, tirés par `randomPool` à graine fixe
 (`mulberry32`) : assez petits pour la référence, et sous les plafonds de
 pré-filtrage, si bien que le moteur voit tout le pool (`:91-99`).
 
@@ -164,15 +164,19 @@ discrimine pas (`:17-29`).
   explorées et exactement le même ensemble de candidats que le séquentiel ;
   une simulation séquentielle y suffit, le résultat ne dépendant ni du
   temps ni de la concurrence (`:141-185`) ;
-- tronqué par un `maxMs` court, sur de vrais `worker_threads` concurrents
-  qui partagent le même temps et divisent le plafond de candidats comme
-  `runParallelPairing` : chaque tranche reste sous son plafond, et une
-  tranche non tronquée retrouve exactement ce qu'une référence sans plafond
-  trouve sur la même tranche ; au moins un scénario doit tronquer, sinon le
-  régime n'a pas été exercé, et au moins une tranche doit atteindre son
-  propre plafond (`:186-351`). Une simulation séquentielle y
-  serait trop généreuse : un chrono neuf par tranche et le plafond global
-  non divisé masquent une perte par famine de quota (`:18-42`).
+- tronqué par un `maxMs` réaliste (30 s, `:240`), sur de vrais
+  `worker_threads` concurrents qui partagent le même temps et divisent le
+  plafond de candidats comme `driveParallelPairing`
+  (`src/workers/parallelPairing.ts:121`) : chaque tranche reste sous son
+  plafond, et une tranche non tronquée retrouve exactement ce qu'une
+  référence sans plafond trouve sur la même tranche ; au moins un scénario
+  doit tronquer, sinon le régime n'a pas été exercé, et au moins une
+  tranche doit être tronquée — par son plafond ou par le temps : le test
+  lit `truncated`, qui ne distingue pas les deux
+  (`tests/rune-optim-parallel-pairing.test.ts:186-351`). Une
+  simulation séquentielle y serait trop généreuse : un chrono neuf par
+  tranche et le plafond global non divisé masquent une perte par famine
+  de quota (`:18-42`).
 
 ## Vérification — oracle noté, paire tirée et différentiel ciblé
 

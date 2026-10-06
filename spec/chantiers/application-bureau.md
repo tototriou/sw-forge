@@ -179,6 +179,18 @@ Q1 → 7 (les données dépendent du choix de Thomas)
      s'y fient), indépendant du dépôt et de l'URL.
    → lot 3.
 
+9. **Pas d'essai de l'action sur un tag de test** (2026-10-06, relevé du
+   lot 4 : « on va supprimer cette partie et on testera directement à la
+   livraison de la v2.0.0 »). Le lot 4 écrit l'action et la relit ; sa
+   première exécution réelle est celle du tag `v2.0.0`, à la publication.
+   Le relevé a aussi écarté la publication par electron-builder : il vise
+   le tag `v` + la version de `package.json`, et ignore sans échouer une
+   release publiée depuis plus de 2 heures — or les releases du dépôt sont
+   rédigées et publiées à la main. Les fichiers sont attachés par `gh`.
+   ⚠️ Conséquence pour le lot 5 : sa preuve prévue (deux releases d'essai)
+   n'a plus de terrain avant la v2.0.0 — à trancher au lot 5.
+   → lot 4.
+
 Toutes les questions sont tranchées.
 
 Les lots 1 à 3 n'en dépendent pas ; chacune bloque le lot indiqué.
@@ -371,13 +383,16 @@ restaurée. Écarts :
 rédaction), le lot 3.
 
 **Sortie** : `.github/workflows/bureau.yml` : au tag `v*` (et
-`workflow_dispatch` pour un essai), une matrice **`windows-latest`** +
-**`ubuntu-latest`** : `npm ci`, build, `bureau:paquet --publish always` vers
-la release du tag, `latest.yml` et `latest-linux.yml` compris.
+`workflow_dispatch` avec le tag, une fois sur `main`), une matrice
+**`windows-latest`** + **`ubuntu-latest`** : `npm ci`, version prise du tag,
+`bureau:paquet` (sans publier) ; puis un job qui attache installeur,
+AppImage, `latest.yml` et `latest-linux.yml` à la release du tag par `gh`
+— ajout à une release existante, brouillon créé sinon (décision 9).
 
-**Preuve** : `lot-4.md` — un essai sur un tag de test (`v0.0.0-essai`, release
-en **brouillon**, supprimée ensuite) : journal de l'action, fichiers
-attachés.
+**Preuve** : `lot-4.md` — décision 9 : pas d'exécution avant la v2.0.0.
+L'action relue et analysée (YAML lu, chemins des fichiers confrontés au
+paquet local) ; la preuve réelle est l'exécution du tag `v2.0.0`, ajoutée
+à `lot-4.md` à la publication.
 
 **Ne fait pas** : le tag `v2.0.0` (posé à la publication, avec Thomas).
 

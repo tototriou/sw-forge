@@ -3,7 +3,8 @@
 // `git commit`, `git merge` et `git tag` avec un message en ligne (forme
 // collée `-m"…"` comprise) et, en position de commande, `node -e`/`--eval`/
 // `-p`/`--print` dont l'argument est une chaîne entre guillemets doubles
-// contenant un backtick ou un `$`. Tout le reste passe — en particulier le
+// contenant un backtick, un `$` ou une barre oblique inverse. Tout le reste
+// passe — en particulier le
 // texte cité par `grep`/`echo` et le corps d'un heredoc.
 //
 // Le hook est lancé tel que Claude Code le lance : un processus `node`, le JSON
@@ -196,7 +197,7 @@ function confronterAGit(): void {
 }
 
 export default function testHookRefuseCommitM(): void {
-  titre('Hook refuse-commit-m : message en ligne de git commit/merge/tag et node -e "…" à backtick ou $ refusés, le reste passe');
+  titre('Hook refuse-commit-m : message en ligne de git commit/merge/tag et node -e "…" à backtick, $ ou barre oblique inverse refusés, le reste passe');
 
   // --- git commit -m : comportement inchangé -------------------------------
   const commitsRefuses: [string, string][] = [
@@ -309,6 +310,14 @@ export default function testHookRefuseCommitM(): void {
     ['| et && dans la chaîne, $ après', `node -e "a | b && c; d($x)"`],
     ['chaîne sur plusieurs lignes', `node -e "\nconst a = 1;\nconsole.log(\`x\`);\n"`],
     ['\\$ échappé (règle mécanique)', `node -e "console.log(\\$x)"`],
+    // Barre oblique inverse : bash réduit `\\`, `\"`, `\$` et `` \` `` sans
+    // rien dire. Règle mécanique comme pour `$` : toute barre oblique inverse
+    // dans la chaîne, sans examiner ce qui la suit.
+    ['-e avec \\\\ (bash le réduit à \\)', `node -e "a\\\\nb"`],
+    ['-p avec \\\\', `node -p "x\\\\y"`],
+    ['--eval= avec \\\\', `node --eval="\\\\d"`],
+    ['-e avec \\" échappé', `node -e "console.log(\\"x\\")"`],
+    ['-e avec \\n seul (règle mécanique)', `node -e "a\\nb"`],
   ];
   for (const [nom, commande] of nodeRefuses) {
     egal(sortie(bash(commande)), 2, `node, refusé : ${nom}`);
@@ -326,6 +335,9 @@ export default function testHookRefuseCommitM(): void {
     ['heredoc de commit qui en parle', `git commit -F - <<'FIN'\ntitre\n\nnode -e "\`x\`" est refusé\nFIN`],
     ['heredoc vers un fichier', `cat <<'EOF' > diag.mjs\nnode -e "$x"\nEOF`],
     ['nodemon n’est pas node', `nodemon -e "$x"`],
+    ['\\\\ entre apostrophes', `node -e 'a\\\\b'`],
+    ['\\\\ dans le chemin cité de node, pas dans la chaîne', `"C:\\Program Files\\nodejs\\node.exe" -e "console.log(1)"`],
+    ['\\\\ dans un -e passé au script', `node scripts/x.mjs -e "a\\\\b"`],
   ];
   for (const [nom, commande] of nodePassent) {
     egal(sortie(bash(commande)), 0, `node, passe : ${nom}`);
@@ -335,6 +347,10 @@ export default function testHookRefuseCommitM(): void {
   const refus = lancer(bash(`node -e "$x"`));
   ok(/scratchpad/.test(refus.stderr ?? ''), 'le refus de node -e renvoie au fichier du scratchpad');
   ok(/par son chemin/.test(refus.stderr ?? ''), 'le refus de node -e dit de lancer le script par son chemin');
+  const refusBarre = lancer(bash(`node -e "a\\\\nb"`)).stderr ?? '';
+  ok(/barre oblique inverse/.test(refusBarre), 'le refus de node -e "…\\\\…" nomme la barre oblique inverse');
+  ok(/scratchpad/.test(refusBarre) && /par son chemin/.test(refusBarre),
+    'le refus de node -e "…\\\\…" donne la même forme sûre (fichier du scratchpad lancé par son chemin)');
   const refusCommit = lancer(bash(`git commit -m "x"`));
   ok(/<<'FIN'/.test(refusCommit.stderr ?? ''), 'le refus de git commit -m donne toujours le heredoc');
   const refusTag = lancer(bash(`git tag -a v1 -m "x"`)).stderr ?? '';

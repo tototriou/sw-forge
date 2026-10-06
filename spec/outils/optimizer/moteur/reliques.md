@@ -160,11 +160,14 @@ recherche : [pipeline.md § Pipeline de la recherche de runes](pipeline.md).
   tranches de `bucketCap`, `MAX_COLLECTED`) et peuvent évincer un vrai
   candidat avant la résolution : une perte par dilution, possible, jamais
   supposée absente (§ Oracle de la dimension relique).
-- **Le moteur ne lit l'effet unique que par la dominance des runes** : les
-  reliques qu'il peut équiper (`reliquesEquipables` : la relique portée
-  hors mode `recherche`, tout `relicContext.eligibles` en mode `recherche`)
-  y protègent les stats de leur effet unique (`statsDeLEffetUnique`) :
-  [elagages.md § Élagages sûrs](elagages.md).
+- **Pendant la recherche relâchée, le moteur ne lit l'effet unique que par
+  la dominance des runes** : les reliques qu'il peut équiper
+  (`reliquesEquipables` : la relique portée hors mode `recherche`, tout
+  `relicContext.eligibles` en mode `recherche`) y protègent les stats de
+  leur effet unique (`statsDeLEffetUnique`) :
+  [elagages.md § Élagages sûrs](elagages.md). Le score, lui, le lit une
+  fois la relique connue : `objectiveScore` reçoit son apport, neutre
+  (`APPORT_NEUTRE`) tant qu'aucune relique n'est résolue.
 - **Le filtre final exact** est `respecteConditionsAvecRelique(gear,
   relique, requirement)` : `computeStats` avec la candidate à la place de
   `gear.relic`, puis `respecteMinEtMax`, minimums ET maximums, avec les

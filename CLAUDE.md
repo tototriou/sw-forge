@@ -227,8 +227,10 @@ l'action ne dépend d'aucune vigilance.
 ⚠️ Le script est suivi par git, son **câblage** est dans `.claude/settings.json`
 (ignoré, propre à chaque machine) : à recopier pour en bénéficier.
 ⚠️ Portée **étroite et assumée** : `node -e`/`--eval`/`-p`/`--print` n'est
-refusé qu'en position de commande, avec un argument entre **guillemets
-doubles** contenant un backtick ou un `$`, même échappé ; entre apostrophes
+refusé qu'en position de commande, hors commentaire (`#` en début de mot,
+hors guillemets, jusqu'à la fin de la ligne), avec un argument entre
+**guillemets doubles** contenant un backtick, un `$` ou une barre oblique
+inverse (que bash réduit sans rien dire), même échappé ; entre apostrophes
 ou sans ces caractères, il passe. `gh pr create --body` n'est pas couvert.
 Couvrir la classe entière demanderait une analyse de quoting bash aux faux
 positifs permanents, `$(…)` étant une construction légitime. Test :

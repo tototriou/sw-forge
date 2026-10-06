@@ -2,7 +2,8 @@
 // (`-m`, forme collée `-m"…"` comprise, grappe `-am`, `--message` et ses
 // abréviations acceptées par git), derrière toute option globale, et
 // `node -e`/`--eval`/`-p`/`--print` dont l'argument est une chaîne entre
-// guillemets doubles contenant un backtick ou un `$` — voir CLAUDE.md,
+// guillemets doubles contenant un backtick, un `$` ou une barre oblique
+// inverse — voir CLAUDE.md,
 // « Jamais de code entre guillemets doubles dans une commande shell ».
 //
 // ⚠️ **Pourquoi un hook et pas seulement la consigne écrite** : la consigne
@@ -20,10 +21,13 @@
 // toujours du code, donc `-m` n'y est jamais le bon outil, et le heredoc
 // marche aussi pour une ligne unique, y compris chaîné derrière un `&&`.
 // `node -e` n'est refusé que dans la seule forme qui transforme le script :
-// argument entre guillemets doubles avec un backtick ou un `$` (même
-// échappé — la règle est mécanique, elle n'examine pas l'échappement). Entre
-// apostrophes ou sans ces deux caractères, il passe : ces usages sont sûrs et
-// fréquents.
+// argument entre guillemets doubles avec un backtick, un `$` ou une barre
+// oblique inverse (bash réduit `\\` à `\`, et `\"`, `\$`, `` \` ``, sans rien
+// dire). Même échappé, et quel que soit ce qui suit la barre : la règle est
+// mécanique, elle n'examine pas l'échappement. Entre apostrophes ou sans ces
+// trois caractères, il passe : ces usages sont sûrs et fréquents.
+// Un commentaire bash (`#` en début de mot, hors guillemets et hors heredoc,
+// jusqu'à la fin de la ligne) n'est pas analysé : bash ne l'exécute pas.
 //
 // Protocole : lit le JSON de l'outil sur stdin, sort en 2 pour REFUSER (le
 // texte de stderr est rendu à l'agent). Toute autre sortie laisse passer.
@@ -43,35 +47,88 @@ try {
 }
 
 /**
- * Retire le CORPS des heredocs avant toute analyse.
+ * Retire le CORPS des heredocs et les commentaires avant toute analyse.
  *
  * ⚠️ **Indispensable, pas défensif** : les messages de commit de ce dépôt
  * PARLENT de la règle — « un message de commit passe par un heredoc, jamais
  * par -m » contient littéralement `-m`. Sans ce nettoyage, le hook refuserait
- * précisément la forme correcte qu'il existe pour imposer.
+ * précisément la forme correcte qu'il existe pour imposer. Un commentaire
+ * n'est pas exécuté par bash : `echo ok # exemple ; node -e "$x"` ne lance
+ * pas node, et son texte n'ouvre pas de position de commande.
  */
-function sansHeredocs(texte) {
+function sansHeredocsNiCommentaires(texte) {
   const lignes = texte.split(/\r?\n/);
   const sortie = [];
   let tagOuvert = null;
+  const lecture = { guillemet: null, debutDeMot: true };
   for (const ligne of lignes) {
     if (tagOuvert != null) {
       if (ligne.trim() === tagOuvert) tagOuvert = null;
       continue; // corps du heredoc : jamais analysé
     }
+    // Le commentaire est retiré AVANT de chercher une ouverture : un `<<FIN`
+    // cité dans un commentaire n'ouvre rien, et les lignes suivantes restent
+    // analysées.
+    const gardee = sansCommentaire(ligne, lecture);
     // `<<TAG`, `<<'TAG'`, `<<"TAG"`, `<<-TAG` — on prend le DERNIER ouvert sur
     // la ligne, le corps commençant à la ligne suivante dans tous les cas.
-    const ouvertures = [...ligne.matchAll(/<<-?\s*(['"]?)([A-Za-z_][A-Za-z0-9_]*)\1/g)];
+    const ouvertures = [...gardee.matchAll(/<<-?\s*(['"]?)([A-Za-z_][A-Za-z0-9_]*)\1/g)];
     if (ouvertures.length > 0) tagOuvert = ouvertures[ouvertures.length - 1][2];
-    sortie.push(ligne);
+    sortie.push(gardee);
   }
   return sortie.join('\n');
+}
+
+/**
+ * La ligne privée de son commentaire : un `#` en début de mot, hors
+ * guillemets, ouvre un commentaire jusqu'à la fin de la ligne, que bash ne
+ * lit pas. Collé à un mot (`a#b`, `$#`, `${#x}`), il n'en ouvre pas.
+ *
+ * ⚠️ `lecture` porte l'état d'une ligne à la suivante : une chaîne citée peut
+ * s'étendre sur plusieurs lignes (`#` y reste littéral), et après une
+ * continuation (`\` en fin de ligne) la ligne suivante prolonge le mot.
+ * `$'…'` est lu comme bash : `\'` n'y ferme pas la chaîne.
+ */
+function sansCommentaire(ligne, lecture) {
+  let debutDeMot = lecture.guillemet == null && lecture.debutDeMot;
+  lecture.debutDeMot = true;
+  for (let i = 0; i < ligne.length; i++) {
+    const c = ligne[i];
+    if (lecture.guillemet != null) {
+      if (c === '\\' && lecture.guillemet !== "'") i++; // `"…"` et `$'…'` : caractère suivant échappé
+      else if (c === (lecture.guillemet === '"' ? '"' : "'")) lecture.guillemet = null;
+      continue;
+    }
+    if (c === '#' && debutDeMot) return ligne.slice(0, i);
+    if (c === '\\') {
+      // Continuation : bash retire `\` et la fin de ligne, la ligne suivante
+      // est en début de mot si et seulement si la barre l'était.
+      if (i + 1 === ligne.length) lecture.debutDeMot = debutDeMot;
+      i++;
+      debutDeMot = false;
+      continue;
+    }
+    if (c === '$' && ligne[i + 1] === "'") {
+      lecture.guillemet = "$'";
+      i++;
+      debutDeMot = false;
+      continue;
+    }
+    if (c === "'" || c === '"') {
+      lecture.guillemet = c;
+      debutDeMot = false;
+      continue;
+    }
+    debutDeMot = /[\s;&|()<>]/.test(c);
+  }
+  return ligne;
 }
 
 // ⚠️ Découpage en POSITION DE COMMANDE, jamais en sous-chaîne : sans ça,
 // `grep -rn "git commit -m" spec/` serait refusé — exactement le genre d'audit
 // de documentation qu'on lance sur ce dépôt.
-const segments = sansHeredocs(commande)
+const analysable = sansHeredocsNiCommentaires(commande);
+const segments = analysable
   .split(/\n|&&|\|\||;|(?<!\|)\|(?!\|)/)
   .map((s) => s.trim())
   .filter(Boolean);
@@ -168,7 +225,8 @@ const FORMES_SURES = {
  * ouvre une position de commande).
  *
  * Chaque mot porte `texte` (valeur sans guillemets) et `sensible` : un
- * backtick ou un `$` figure dans une de ses parties entre guillemets doubles.
+ * backtick, un `$` ou une barre oblique inverse figure dans une de ses parties
+ * entre guillemets doubles.
  */
 function segmentsHorsGuillemets(texte) {
   const segments = [];
@@ -199,9 +257,9 @@ function segmentsHorsGuillemets(texte) {
       i++;
       while (i < texte.length && texte[i] !== '"') {
         const d = texte[i];
+        if (d === '\\') m.sensible = true;
         if (d === '\\' && i + 1 < texte.length) {
           const s = texte[i + 1];
-          if (s === '$' || s === '`') m.sensible = true;
           m.texte += '"\\$`\n'.includes(s) ? s : d + s;
           i += 2;
           continue;
@@ -243,7 +301,7 @@ const OPTIONS_NODE_A_VALEUR = new Set(['-r', '--require', '--import', '--loader'
 
 /**
  * Ce segment lance-t-il `node -e "…"` dont la chaîne à guillemets doubles
- * contient un backtick ou un `$` ?
+ * contient un backtick, un `$` ou une barre oblique inverse ?
  *
  * ⚠️ Les options sont lues jusqu'au premier mot qui n'en est pas une : c'est le
  * script, et ce qui suit lui appartient (`node x.mjs -e "$y"` passe).
@@ -262,11 +320,12 @@ function evalueUneChaineDouble(mots) {
   return false;
 }
 
-const nodeFautif = segmentsHorsGuillemets(sansHeredocs(commande)).find(evalueUneChaineDouble);
+const nodeFautif = segmentsHorsGuillemets(analysable).find(evalueUneChaineDouble);
 if (nodeFautif) {
   process.stderr.write(
-    `REFUSÉ — « node -e "…" » avec un backtick ou un $ est interdit sur ce dépôt (CLAUDE.md).\n\n` +
-      `Bash EXÉCUTE un backtick et développe un $ dans une chaîne à guillemets doubles :\n` +
+    `REFUSÉ — « node -e "…" » avec un backtick, un $ ou une barre oblique inverse est interdit sur ce dépôt (CLAUDE.md).\n\n` +
+      `Dans une chaîne à guillemets doubles, bash EXÉCUTE un backtick, développe un $ et réduit\n` +
+      `sans rien dire une barre oblique inverse (\\\\ devient \\, de même \\", \\$, \\\`) :\n` +
       `node ne reçoit pas le script qui a été écrit.\n\n` +
       `Écris le script dans un fichier du scratchpad (outil Write), puis lance-le par son chemin :\n\n` +
       `  node <scratchpad>/diagnostic.mjs\n\n` +

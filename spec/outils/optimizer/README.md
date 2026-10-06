@@ -18,8 +18,8 @@ Publiés :
 - [invariants.md](invariants.md) — les contraintes critiques, chacune avec sa
   source.
 - [README.md](README.md) — ce routage.
-- [moteur/pipeline.md](moteur/pipeline.md) — de la recherche lancée à la fin
-  de l'appariement : préparation, moitiés, appariement.
+- [moteur/pipeline.md](moteur/pipeline.md) — de la recherche lancée au
+  résultat affiché : préparation, moitiés, appariement, résolution, file.
 - [ecran/README.md](ecran/README.md) — l'écran, de haut en bas, et le
   routage vers un fichier par bloc de l'écran.
 - [listes-et-reservation.md](listes-et-reservation.md) — listes de travail,

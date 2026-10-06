@@ -6,7 +6,7 @@
 // de l'utilisateur. Chaque forme connue d'évasion est essayée ici.
 
 import { join, normalize, sep } from 'node:path';
-import { cheminDuFichier, URL_ACCUEIL } from '../bureau/protocole';
+import { cheminDuFichier, estAdresseInterne, ouvrableDehors, URL_ACCUEIL } from '../bureau/protocole';
 import { egal, ok, titre } from './outils';
 
 export default function testBureauProtocole() {
@@ -44,4 +44,18 @@ export default function testBureauProtocole() {
   // n'y voit qu'un nom de fichier, le décodage en fait une remontée.
   egal(cheminDuFichier('app://swblacksmith/..%2Fpackage.json', racine), null, '`..` + barre encodée : refusé par la fonction');
   egal(cheminDuFichier('app://swblacksmith/..%5Cpackage.json', racine), null, '`..` + antislash encodé : refusé par la fonction');
+
+  titre('bureau · navigation (lot 2) — ce qui reste dans l’app');
+  ok(estAdresseInterne('app://swblacksmith/index.html#/siege/defense'), 'une page de l’app');
+  ok(estAdresseInterne('http://localhost:5173/#/rta', 'http://localhost:5173/'), 'en dev : le serveur Vite');
+  ok(!estAdresseInterne('http://localhost:5174/', 'http://localhost:5173/'), 'en dev : un AUTRE port n’est pas l’app');
+  ok(!estAdresseInterne('http://localhost:5173/'), 'hors dev : localhost n’est pas l’app');
+  ok(!estAdresseInterne('app://autrehote/index.html'), 'autre hôte du protocole : pas l’app');
+  ok(!estAdresseInterne('file:///C:/Users/moi/compte.json'), 'un fichier déposé : pas l’app');
+
+  titre('bureau · navigation (lot 2) — ce qui part au navigateur');
+  ok(ouvrableDehors('https://swarfarm.com'), 'https');
+  ok(ouvrableDehors('http://exemple.fr'), 'http');
+  for (const url of ['file:///C:/Windows/win.ini', 'javascript:alert(1)', 'ms-settings:', 'mailto:a@b.c', 'app://swblacksmith/', 'pas une url'])
+    ok(!ouvrableDehors(url), `jamais confié au système : ${url}`);
 }

@@ -45,3 +45,28 @@ export function cheminDuFichier(url: string, racine: string): string | null {
   if (rel === '' || rel.startsWith('..') || isAbsolute(rel)) return null;
   return cible;
 }
+
+// ── Navigation (lot 2, branchée par navigation.ts) ─────────────────────────
+
+// L'adresse appartient-elle à l'app ? Le protocole maison, ou — en dev — le
+// serveur Vite (`urlDev`), même origine seulement.
+export function estAdresseInterne(url: string, urlDev?: string): boolean {
+  try {
+    const u = new URL(url);
+    if (u.protocol === `${SCHEMA}:` && u.host === HOTE) return true;
+    return !!urlDev && u.origin === new URL(urlDev).origin;
+  } catch {
+    return false;
+  }
+}
+
+// Peut-on la confier au navigateur du système ? `http` et `https` seulement :
+// jamais `file:`, `javascript:` ni un protocole qui lancerait un programme.
+export function ouvrableDehors(url: string): boolean {
+  try {
+    const p = new URL(url).protocol;
+    return p === 'https:' || p === 'http:';
+  } catch {
+    return false;
+  }
+}

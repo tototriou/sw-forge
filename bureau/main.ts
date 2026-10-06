@@ -11,6 +11,7 @@ import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { NOM_APP } from '../src/marque';
 import { CouleursFenetre, couleursValides, EtatFenetre, HAUTEUR_BARRE, lireEtat, MINIMUM } from './fenetre';
+import { brancherNavigation, OptionsNavigation } from './navigation';
 import { SCHEMA, URL_ACCUEIL, cheminDuFichier } from './protocole';
 import { lancerPreuve } from './preuve';
 
@@ -63,7 +64,7 @@ function ecrireFichierEtat(etat: EtatFenetre) {
   }
 }
 
-function creerFenetre(): BrowserWindow {
+function creerFenetre(preuve: OptionsNavigation['preuve']): BrowserWindow {
   const ecrans = screen.getAllDisplays().map((d) => ({ x: d.workArea.x, y: d.workArea.y, largeur: d.workArea.width, hauteur: d.workArea.height }));
   const principal = screen.getPrimaryDisplay().workArea;
   const etat = lireEtat(lireFichierEtat(), [
@@ -123,6 +124,10 @@ function creerFenetre(): BrowserWindow {
     ecrireFichierEtat({ x: b.x, y: b.y, largeur: b.width, hauteur: b.height, agrandie: fenetre.isMaximized(), couleurs });
   });
 
+  // Liens externes vers le navigateur du système, navigations hors de l'app
+  // bloquées, téléchargements par « Enregistrer sous » (lot 2).
+  brancherNavigation(fenetre, { urlDev: URL_DEV, preuve });
+
   void fenetre.loadURL(URL_DEV ?? URL_ACCUEIL);
   return fenetre;
 }
@@ -136,9 +141,13 @@ void app.whenReady().then(() => {
     if (!fichier) return new Response('Introuvable', { status: 404 });
     return net.fetch(pathToFileURL(fichier).toString());
   });
-  const fenetre = creerFenetre();
-  // Mode preuve : quelques contrôles, des captures, puis on quitte.
-  if (DOSSIER_PREUVE) void lancerPreuve(fenetre, DOSSIER_PREUVE, RACINE);
+  // Mode preuve : les liens sont notés, les téléchargements rangés dans son
+  // dossier — puis contrôles, captures, et on quitte.
+  const preuve = DOSSIER_PREUVE
+    ? { liensOuverts: [] as string[], dossierTelechargements: join(DOSSIER_PREUVE, 'telechargements') }
+    : undefined;
+  const fenetre = creerFenetre(preuve);
+  if (DOSSIER_PREUVE && preuve) void lancerPreuve(fenetre, DOSSIER_PREUVE, RACINE, preuve);
 });
 
 app.on('window-all-closed', () => app.quit());

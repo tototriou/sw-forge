@@ -17,7 +17,7 @@ disent ce que contient chaque brique. Le comportement attendu, lui, est dans
 | Node | ≥ 24 |
 | Calcul lourd | 2 Web Workers (`src/workers/`) |
 | Stockage | `localStorage` (prépa, équipes, réglages) + **IndexedDB** (compte importé) |
-| Application de bureau | Electron, code dans **`bureau/`** (hors de `src/` : il tourne dans Node) — `main.ts` (fenêtre, protocole `app://swblacksmith/`), `protocole.ts` (règle pure, testée), `preload.ts`, `preuve.ts` ; compilé par `scripts/construire-bureau.mjs` vers `dist-bureau/`. Chantier [spec/chantiers/application-bureau.md](spec/chantiers/application-bureau.md) |
+| Application de bureau | Electron, code dans **`bureau/`** (hors de `src/` : il tourne dans Node) — `main.ts` (fenêtre, protocole `app://swblacksmith/`), `protocole.ts` (règles pures, testées : fichier servi, adresse interne, lien ouvrable dehors), `navigation.ts` (liens vers le navigateur, navigations bloquées, « Enregistrer sous »), `fenetre.ts` (état mémorisé, pur), `preload.ts`, `preuve.ts` ; côté page `src/lib/bureau.ts` (`estBureau()`, couleurs du thème) ; compilé par `scripts/construire-bureau.mjs` vers `dist-bureau/`. Chantier [spec/chantiers/application-bureau.md](spec/chantiers/application-bureau.md) |
 
 ⚠️ **Pas de librairie de composants.** Tout `src/ui/` est écrit à la main.
 Radix UI a été **validé mais jamais installé** — chantier en attente.

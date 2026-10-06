@@ -10,8 +10,15 @@
 // (voir main.ts) : une preuve ne touche jamais celles de l'utilisateur.
 
 import { app, BrowserWindow, desktopCapturer } from 'electron';
-import { mkdirSync, readdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+
+// Ce que le branchement de navigation (navigation.ts) enregistre en mode
+// preuve, au lieu d'ouvrir le navigateur ou une boîte de dialogue.
+export interface TemoinsPreuve {
+  liensOuverts: string[];
+  dossierTelechargements: string;
+}
 
 const attendre = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -32,7 +39,7 @@ async function capturerFenetre(fenetre: BrowserWindow, fichier: string): Promise
   return 'ok';
 }
 
-export async function lancerPreuve(fenetre: BrowserWindow, dossier: string, racine: string) {
+export async function lancerPreuve(fenetre: BrowserWindow, dossier: string, racine: string, temoins: TemoinsPreuve) {
   mkdirSync(dossier, { recursive: true });
   const resultats: Record<string, unknown> = {};
   const js = (code: string) => fenetre.webContents.executeJavaScript(code, true);
@@ -94,6 +101,54 @@ export async function lancerPreuve(fenetre: BrowserWindow, dossier: string, raci
       resultats[`fenetre-${theme}`] = await capturerFenetre(fenetre, join(dossier, `fenetre-${theme}.png`));
     }
     await js(`document.documentElement.removeAttribute('data-theme')`);
+
+    // ── Lot 2 : liens, navigations, téléchargements ──────────────────────
+    // Chaque lien externe de l'accueil, puis de la page Nouveautés, cliqué :
+    // il doit être confié au navigateur (ici, noté), et l'app rester en place.
+    const cliquerLiensExternes = () =>
+      js(`(() => {
+        const liens = [...document.querySelectorAll('a[target="_blank"]')].map((a) => a.href);
+        document.querySelectorAll('a[target="_blank"]').forEach((a) => a.click());
+        return liens;
+      })()`) as Promise<string[]>;
+    await js(`location.hash = '#/'`);
+    await attendre(1000);
+    const liensAccueil = await cliquerLiensExternes();
+    await js(`location.hash = '#/releases'`);
+    await attendre(1500);
+    const liensNouveautes = await cliquerLiensExternes();
+    await attendre(500);
+    const attendus = [...new Set([...liensAccueil, ...liensNouveautes])];
+    resultats.liensExternes = {
+      cliques: attendus.length,
+      confiesAuNavigateur: [...new Set(temoins.liensOuverts)].length,
+      manquants: attendus.filter((l) => !temoins.liensOuverts.includes(l)),
+      exemples: attendus.slice(0, 6),
+      appToujoursLa: await js('location.origin'),
+    };
+    // Quitter l'app : vers un fichier du disque (bloqué, rien d'ouvert) et
+    // vers le web (bloqué, confié au navigateur).
+    const avant = temoins.liensOuverts.length;
+    await js(`location.href = 'file:///C:/Windows/win.ini'`).catch(() => undefined);
+    await attendre(800);
+    resultats.navigationFichier = { origine: await js('location.origin'), ouvertDehors: temoins.liensOuverts.length > avant };
+    await js(`location.href = 'https://example.com/'`).catch(() => undefined);
+    await attendre(800);
+    resultats.navigationWeb = {
+      origine: await js('location.origin'),
+      confieAuNavigateur: temoins.liensOuverts.includes('https://example.com/'),
+    };
+    // Un téléchargement, construit comme les cinq exports de l'app (un Blob,
+    // puis `a.download`).
+    await js(`(() => {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob(['{"preuve":"lot 2"}'], { type: 'application/json' }));
+      a.download = 'swblacksmith-essai.json';
+      a.click();
+    })()`);
+    await attendre(1500);
+    const telecharge = join(temoins.dossierTelechargements, 'swblacksmith-essai.json');
+    resultats.telechargement = existsSync(telecharge) ? readFileSync(telecharge, 'utf8') : 'absent';
 
     await js(`location.hash = '#/bestiary'`);
     await attendre(2500);

@@ -1,7 +1,7 @@
 {
   "name": "swblacksmith",
   "private": true,
-  "version": "1.14.0",
+  "version": "2.0.0",
   "type": "module",
   "main": "dist-bureau/main.cjs",
   "description": "SW Blacksmith — boîte à outils Summoners War : siège, RTA, runes et analyse de compte. 100 % local, aucune donnée envoyée.",

@@ -152,12 +152,15 @@ la justesse : aucune sans la référence exhaustive qu'exige le skill
   compteur exact d'énumération dans la boucle interne de `buildBuckets`, et
   un chronomètre dans son épilogue, pour vérifier que le poids du dernier
   intervalle vient du tri des combinaisons retenues.
-- **Bloque** : tous deux sont du niveau C
+- **Bloque** : le compteur est du niveau C
   ([harnais-extensions.md § Étendre le harnais : quatre niveaux de coût](harnais-extensions.md)) :
-  l'instrument change le temps qu'il mesure. Le compteur ne s'ouvre que
-  sur une question falsifiable — une moitié A à fort produit brut au débit
-  pourtant équilibré énumère-t-elle tout son produit, ou coupe-t-elle
-  tôt ? —, et aucune piste sur le tri ne se tire avant le chronomètre.
+  il instrumente la boucle la plus chaude et change le temps qu'il mesure.
+  Il ne s'ouvre que sur une question falsifiable — une moitié A à fort
+  produit brut au débit pourtant équilibré énumère-t-elle tout son
+  produit, ou coupe-t-elle tôt ? Le chronomètre, autour des tris de
+  l'épilogue, hors de la triple boucle, est un observateur de plus dans
+  `src/` (niveau B), jamais construit ; aucune piste sur le tri ne se tire
+  avant lui.
   Suite de [pistes.md § Partition des moitiés selon leur coût](pistes.md).
 
 ## Vérifier le moteur

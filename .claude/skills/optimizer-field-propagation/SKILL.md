@@ -188,24 +188,42 @@ qui n'en touche qu'un a de bonnes chances d'en avoir oublié un autre :
 
 ## Vérification
 
-Après avoir coché les deux checklists ci-dessus :
+Après avoir coché les deux checklists ci-dessus, dans l'ordre de `CLAUDE.md`
+(« Vérifier ») :
 
-1. `npx tsc --noEmit`, `npm test`, `npm run build` — propres. ⚠️ `tsc` prouve
-   désormais que la FORME est cohérente partout, `tests/` et `scripts/`
-   compris (voir la section dédiée plus haut) ; il ne prouve toujours rien
-   sur un champ **optionnel** oublié ni sur une valeur mal interprétée.
-2. **Fumée sur un compte réel**, si le champ affecte `resolvePool`/le pool
-   de runes envoyé au moteur : un script ad hoc (supprimé après usage)
-   appelant `resolvePool`/`recipeToSearchParams` directement pour chaque
-   valeur du champ, sur un export de compte réel (voir `tests/outils.ts`,
-   `exportReel` pour les noms de fichiers disponibles) — pas besoin de
-   lancer une recherche complète (`runSearchToCompletion`), le
-   changement est en AMONT du moteur, voir le réflexe « bon étage du
-   pipeline » d'`algo-verify`.
-3. **Le script CLI réel** (`scripts/optimizer-search.ts`) lancé au moins une
-   fois de bout en bout avec le nouveau champ activé, sur un compte réel —
-   confirme que la ligne de résumé et le chemin complet (pas seulement les
-   fonctions internes testées au point 2) fonctionnent.
+1. `npx tsc --noEmit` — vide. Il prouve la FORME partout, `scripts/` et
+   `tests/` compris ; rien sur un champ optionnel oublié ni sur un sens mal
+   lu.
+2. `node tests/run.mjs <filtre…>` — seulement la zone touchée : la
+   vérification du champ, et celles des producteurs et constructeurs
+   traversés, par exemple `recette`, `optimizerrecipe`,
+   `artefactsficheparams`, `resolution`, `cliclassement`, `verifiertoutes`,
+   `relicdifferentiel`. Un filtre qui ne correspond à rien échoue en
+   listant les noms (registre : `tests/index.ts`).
+3. `npm run build`.
+
+La suite complète (`npm test`) ne tourne qu'avant une fusion sur `main`.
+
+**Un contrôle exprimable en vérification nommée va dans `tests/`**, appelé
+depuis `tests/index.ts`, et on le voit échouer une fois sur le code cassé
+avant de le croire (`tests/README.md`, « Ajouter une vérification »). Pour
+un champ traversant, c'est la parité : appeler le producteur, ou le
+constructeur de chaque côté, sur la même entrée et comparer ; quand le côté
+écran est une closure de composant, contrôler sa source, comme
+`verifier-toutes.test.ts` et `resolution-distante.test.ts`. Un test qui a
+besoin d'un export de compte réel le prend par `exportReel`
+(`tests/outils.ts`) et s'ignore quand il manque.
+
+**Un script ponctuel ne reste que pour ce qu'un test ne peut pas faire**, et
+il le dit en tête : un export de compte réel non suivi, une mesure de temps,
+un relevé ponctuel. Cas type : `scripts/optimizer-search.ts` lancé une fois
+de bout en bout, champ activé, sur un export réel, pour la ligne de résumé
+et le chemin complet ; ou, si le champ change le pool de runes, un script
+du scratchpad qui appelle `resolvePool` ou `recipeToSearchParams` pour
+chaque valeur du champ, sans recherche complète puisque le changement est en
+amont du moteur (« Vérifier au bon ÉTAGE du pipeline », `algo-verify`). Le
+script ne se commite pas ; sa sortie se cite avec le changement (commit,
+PR).
 
 ## Voir aussi
 

@@ -308,18 +308,6 @@
       "proprietaire": "hors-perimetre"
     },
     {
-      "fichier": "spec/chantiers/degats-et-aura.md",
-      "renvoi": "spec/outils/optimizer/archive/chantiers/degats-et-aura.md",
-      "occurrences": 1,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": "spec/chantiers/spec-rangement.md",
-      "renvoi": "spec/outils/optimizer/archive/chantiers/spec-rangement.md",
-      "occurrences": 1,
-      "proprietaire": "a-publier"
-    },
-    {
       "fichier": "spec/compte/artefacts.md",
       "renvoi": "src/components/account/DetailPopover.tsx",
       "occurrences": 1,

@@ -37,49 +37,49 @@ function fiches(): DetailMonstre[] {
 }
 
 // [identifiant, nom du sort, source : le code qui dit pourquoi le calcul est partiel].
-const ATTENDUS: [number, string, 'D63' | 'PV-2' | 'D36' | 'CP2'][] = [
-  [13406, 'Madness Judgement', 'D63'],
-  [13410, 'Madness Judgement', 'D63'],
-  [15511, 'Unlimited Power', 'D63'],
-  [13611, 'Start of Attacking', 'D63'],
-  [7713, 'Thunder Strike', 'D63'],
-  [6013, 'Sword of Discharge', 'D63'],
-  [11912, 'Hellfire', 'PV-2'],
-  [6015, 'Ragnarok', 'PV-2'],
-  [15114, 'Time of Destruction', 'PV-2'],
-  [20413, 'Dragon Bombardment', 'PV-2'],
-  [13401, 'Sword of Destruction', 'PV-2'],
-  [13402, 'Sword of Destruction', 'PV-2'],
-  [13403, 'Sword of Destruction', 'PV-2'],
-  [13404, 'Sword of Destruction', 'PV-2'],
-  [13405, 'Sword of Destruction', 'PV-2'],
-  [12615, 'Moonlight Blow', 'PV-2'],
-  [15437, 'Volcanic Tribe Totem', 'PV-2'],
-  [15440, 'Half Moon Tribe Totem', 'PV-2'],
-  [8912, 'Meteor Bomb', 'PV-2'],
-  [7113, 'Promised Time', 'PV-2'],
-  [10222, 'Detonation Shot', 'PV-2'],
-  [15214, 'Quantum Explosion', 'D36'],
-  [16307, 'Extraction', 'D36'],
-  [16309, 'Extraction', 'D36'],
-  [16807, 'Dancing Teacup', 'D36'],
-  [16809, 'Dancing Teacup', 'D36'],
-  [16315, 'Blending', 'D36'],
-  [16815, 'Midnight Teatime', 'D36'],
-  [12520, 'Justice Strike', 'CP2'],
-  [12510, 'Fury of Punishment', 'CP2'],
-  [23515, 'Summary Justice', 'CP2'],
+const ATTENDUS: [number, string, 'ignore-def' | 'pas-encore-codee' | 'non-calculee' | 'non-modelisee'][] = [
+  [13406, 'Madness Judgement', 'ignore-def'],
+  [13410, 'Madness Judgement', 'ignore-def'],
+  [15511, 'Unlimited Power', 'ignore-def'],
+  [13611, 'Start of Attacking', 'ignore-def'],
+  [7713, 'Thunder Strike', 'ignore-def'],
+  [6013, 'Sword of Discharge', 'ignore-def'],
+  [11912, 'Hellfire', 'pas-encore-codee'],
+  [6015, 'Ragnarok', 'pas-encore-codee'],
+  [15114, 'Time of Destruction', 'pas-encore-codee'],
+  [20413, 'Dragon Bombardment', 'pas-encore-codee'],
+  [13401, 'Sword of Destruction', 'pas-encore-codee'],
+  [13402, 'Sword of Destruction', 'pas-encore-codee'],
+  [13403, 'Sword of Destruction', 'pas-encore-codee'],
+  [13404, 'Sword of Destruction', 'pas-encore-codee'],
+  [13405, 'Sword of Destruction', 'pas-encore-codee'],
+  [12615, 'Moonlight Blow', 'pas-encore-codee'],
+  [15437, 'Volcanic Tribe Totem', 'pas-encore-codee'],
+  [15440, 'Half Moon Tribe Totem', 'pas-encore-codee'],
+  [8912, 'Meteor Bomb', 'pas-encore-codee'],
+  [7113, 'Promised Time', 'pas-encore-codee'],
+  [10222, 'Detonation Shot', 'pas-encore-codee'],
+  [15214, 'Quantum Explosion', 'non-calculee'],
+  [16307, 'Extraction', 'non-calculee'],
+  [16309, 'Extraction', 'non-calculee'],
+  [16807, 'Dancing Teacup', 'non-calculee'],
+  [16809, 'Dancing Teacup', 'non-calculee'],
+  [16315, 'Blending', 'non-calculee'],
+  [16815, 'Midnight Teatime', 'non-calculee'],
+  [12520, 'Justice Strike', 'non-modelisee'],
+  [12510, 'Fury of Punishment', 'non-modelisee'],
+  [23515, 'Summary Justice', 'non-modelisee'],
 ];
 
 // Lignes « calculé » écartées : total complet par décision.
 const ECARTES: [number, string][] = [
-  [13407, "Devil's Bargain — D36, la prose se trompe"],
-  [13408, "Devil's Bargain — D36"],
-  [13409, "Devil's Bargain — D36"],
-  [1362, 'Incinerate — détonation de DoT hors total (A.8)'],
+  [13407, "Devil's Bargain — part non calculée, la prose se trompe"],
+  [13408, "Devil's Bargain — part non calculée"],
+  [13409, "Devil's Bargain — part non calculée"],
+  [1362, 'Incinerate — détonation de DoT hors total'],
   [17513, 'Rage of Helheim — détonation de DoT hors total'],
   [18013, 'Stormy Axe — détonation de DoT hors total'],
-  [8901, 'Firecracker — bombe à retardement hors total (A.8)'],
+  [8901, 'Firecracker — bombe à retardement hors total'],
   [8902, 'Firecracker'],
   [8903, 'Firecracker'],
   [8904, 'Firecracker'],
@@ -99,13 +99,13 @@ function porteurs(id: number) {
 }
 
 export function testCalculPartielTable() {
-  titre('Calcul partiel — la table par identifiant : six ignore DEF de D63, PV-2 encore incomplets, parts non calculées de D36, parts non modélisées de CP2 (degats-et-aura P3)');
+  titre('Calcul partiel — la table par identifiant : six ignore DEF comptés, parts décidées pas encore codées, parts non calculées, parts non modélisées');
 
   const ids = idsCalculPartiel();
-  egal(ids.length, 31, '31 entrées : 6 (D63) + 15 (PV-2) + 7 (D36) + 3 (CP2)');
+  egal(ids.length, 31, '31 entrées : 6 (ignore DEF compté) + 15 (part décidée, pas encore codée) + 7 (part non calculée) + 3 (part non modélisée)');
   egal([...ids].sort((a, b) => a - b), ATTENDUS.map(([id]) => id).sort((a, b) => a - b), 'exactement les identifiants attendus');
-  egal(ATTENDUS.filter(([, , s]) => s === 'D63').length, 6, 'six ignore DEF permanents (D63)');
-  egal(ATTENDUS.filter(([, , s]) => s === 'CP2').length, 3, 'trois parts non modélisées demandées le 2026-10-04 (CP2 : Leona ×2, Theonia)');
+  egal(ATTENDUS.filter(([, , s]) => s === 'ignore-def').length, 6, 'six ignore DEF permanents');
+  egal(ATTENDUS.filter(([, , s]) => s === 'non-modelisee').length, 3, 'trois parts non modélisées (Leona ×2, Theonia)');
   for (const [id, raison] of ECARTES) ok(!ids.includes(id), `${id} écarté de la table : ${raison}`);
 
   const catalogue = monstersJson();
@@ -123,10 +123,10 @@ export function testCalculPartielTable() {
     const phrase = sorts.length > 0 ? calculPartielDuSort(sorts[0]) : null;
     ok(phrase != null && /^[A-ZL].*\.$/.test(phrase) && /n’est pas (encore )?(compté|comptée|calculée|modélisée)/.test(phrase),
       `${id} (${source}) : une phrase qui dit ce qui n’est pas compté — « ${phrase} »`);
-    if (source === 'D36') ok(phrase != null && /n’est pas calculée\.$/.test(phrase), `${id} : part non calculée par décision (D36), sans « encore »`);
-    if (source === 'PV-2') ok(phrase != null && /pas encore comptée?\.$/.test(phrase), `${id} : part décidée comptée, pas encore codée (« pas encore »)`);
-    if (source === 'CP2') ok(phrase != null && /n’est pas encore compté\.$/.test(phrase), `${id} : part non modélisée, reportée (CP2) — « pas encore compté »`);
-    if (source === 'D63') ok(phrase != null && phrase.startsWith('L’ignore DEF est compté'), `${id} : la phrase dit que l’ignore DEF est compté (D63)`);
+    if (source === 'non-calculee') ok(phrase != null && /n’est pas calculée\.$/.test(phrase), `${id} : part non calculée par décision, sans « encore »`);
+    if (source === 'pas-encore-codee') ok(phrase != null && /pas encore comptée?\.$/.test(phrase), `${id} : part décidée comptée, pas encore codée (« pas encore »)`);
+    if (source === 'non-modelisee') ok(phrase != null && /n’est pas encore compté\.$/.test(phrase), `${id} : part non modélisée, reportée — « pas encore compté »`);
+    if (source === 'ignore-def') ok(phrase != null && phrase.startsWith('L’ignore DEF est compté'), `${id} : la phrase dit que l’ignore DEF est compté`);
 
     // Chaque clé est portée par une forme jouable, où le sort est calculé.
     const formeDuCompte = PORTE_PAR_UNE_FORME_DU_COMPTE_SEULE[id];
@@ -143,13 +143,13 @@ export function testCalculPartielTable() {
       ok(s != null && estPrisEnCharge(s), `${id} (forme ${d.com2usId}) : sort calculé, donc l’étiquette s’affiche`);
       // D63 : l'ignore DEF est compté en permanence ; le jour où il est
       // conditionné, ce contrôle échoue et l'entrée doit sortir.
-      if (source === 'D63' && s && estPrisEnCharge(s)) ok(s.ignoreDef, `${id} (forme ${d.com2usId}) : ignore DEF compté en permanence (D63)`);
+      if (source === 'ignore-def' && s && estPrisEnCharge(s)) ok(s.ignoreDef, `${id} (forme ${d.com2usId}) : ignore DEF compté en permanence`);
     }
   }
 }
 
 export function testCalculPartielAffichage() {
-  titre('Calcul partiel — l’étiquette paraît pour un sort calculé de la table, jamais pour un autre (degats-et-aura P3)');
+  titre('Calcul partiel — l’étiquette paraît pour un sort calculé de la table, jamais pour un autre');
 
   const ids = new Set(idsCalculPartiel());
   let avec = 0;
@@ -185,7 +185,7 @@ const sansCommentaires = (s: string) =>
     .replace(/^\s*\/\/.*$/gm, '');
 
 export function testCalculPartielEcran() {
-  titre('Calcul partiel — « Compétence utilisée » : étiquette et « ? » hors du bouton de la case, rien ailleurs (degats-et-aura P3)');
+  titre('Calcul partiel — « Compétence utilisée » : étiquette et « ? » hors du bouton de la case, rien ailleurs');
 
   const carte = sansCommentaires(lire('src/components/outils/DamageSetupCard.tsx'));
   const debut = carte.indexOf('{skills.map((s) => {');

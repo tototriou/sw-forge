@@ -312,22 +312,22 @@ export default function testImport() {
   const d4 = parseAccountSource(exportReliquesD4())!;
 
   const boxD4 = parseAccountBox(d4).monsters;
-  egal(boxD4.length, 2, 'D4 : deux exemplaires 6★ du même com2usId, tous deux retenus');
+  egal(boxD4.length, 2, 'deux exemplaires 6★ du même com2usId, tous deux retenus');
   const gearParUnitId = new Map(boxD4.map((m) => [m.unitId, m.gear]));
-  egal(gearParUnitId.get(201)?.relic?.id, 9101, 'D4 (Box) : unit_id 201 → sa propre relique');
-  egal(gearParUnitId.get(202)?.relic?.id, 9102, 'D4 (Box) : unit_id 202 → sa propre relique, pas celle de 201');
+  egal(gearParUnitId.get(201)?.relic?.id, 9101, 'Box : unit_id 201 → sa propre relique');
+  egal(gearParUnitId.get(202)?.relic?.id, 9102, 'Box : unit_id 202 → sa propre relique, pas celle de 201');
 
   const rtaD4 = parseAccountJson(d4);
-  egal(rtaD4.units?.length, 1, 'D4 (RTA) : seul le favori (unit_id 201) est retenu');
-  egal(rtaD4.units?.[0]?.gear?.relic?.id, 9101, 'D4 (RTA) : même relique que la Box pour ce unit_id');
+  egal(rtaD4.units?.length, 1, 'RTA : seul le favori (unit_id 201) est retenu');
+  egal(rtaD4.units?.[0]?.gear?.relic?.id, 9101, 'RTA : même relique que la Box pour ce unit_id');
 
   // Défense de siège : le deck place 201 puis 202 (guildsiege_defense_deck_unit_list) —
   // l'ordre des slots reflète l'ordre du preset, chaque slot garde SA relique.
   const siegeD4 = parseSiegeDefense(d4).decks!;
-  egal(siegeD4.length, 1, 'D4 (siège) : un deck configuré');
+  egal(siegeD4.length, 1, 'siège : un deck configuré');
   const slotsD4 = siegeD4[0]?.slots ?? [];
-  egal(slotsD4[0]?.gear?.relic?.id, 9101, 'D4 (siège) : premier slot (unit_id 201) → sa relique');
-  egal(slotsD4[1]?.gear?.relic?.id, 9102, 'D4 (siège) : second slot (unit_id 202) → sa relique, pas celle du premier');
+  egal(slotsD4[0]?.gear?.relic?.id, 9101, 'siège : premier slot (unit_id 201) → sa relique');
+  egal(slotsD4[1]?.gear?.relic?.id, 9102, 'siège : second slot (unit_id 202) → sa relique, pas celle du premier');
 
   /* --- Sur l'export réel, quand il est là ------------------------------ */
 

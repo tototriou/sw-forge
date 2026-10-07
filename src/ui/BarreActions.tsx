@@ -6,7 +6,7 @@ import Menu, { ElementMenu, HAUTEUR_EN_TETE } from './Menu';
 // elles tiennent sur la ligne, sinon les actions `toujours` + un menu « ⋯ »
 // pour les autres.
 //
-// ⚠️ Demandé par Thomas (RTA, lot 6) : « sur PC, afficher ces boutons si on a
+// ⚠️ Demandé par le mainteneur (RTA, lot 6) : « sur PC, afficher ces boutons si on a
 // la place ». Le menu cachait derrière un clic des actions qu'un grand écran
 // pouvait montrer d'emblée.
 //

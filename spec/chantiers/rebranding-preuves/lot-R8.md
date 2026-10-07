@@ -38,17 +38,17 @@ Rouge et vert d'état à la place des couleurs d'élément, là où ils disent u
 - `SubSearchDialog` : survol de « Tout effacer » (`fire` → `bad`).
 Les tables d'éléments (`MonsterCard`, `MonsterAvatar`) ne bougent pas.
 
-## 4. Décisions de Thomas
+## 4. Décisions du mainteneur
 
 Structure (51), cartes de rune (52), icônes des vues (53) : gardées, les
-trois recommandations retenues. Question de Thomas en cours de lot : « est-ce
+trois recommandations retenues. Question du mainteneur en cours de lot : « est-ce
 que tu ne ferais pas quelque chose qui a déjà été fait ? » — vérifié par
 `git log -S"text-fire"` : aucun commit n'avait touché ces rouges ; la refonte
 avait déjà reconstruit les écrans, d'où un relevé qui garde tout.
 
 ## 5. Les tuiles de l'Optimisation (54)
 
-Trois retours de Thomas sur les captures, avant son « validé » :
+Trois retours du mainteneur sur les captures, avant son « validé » :
 1. « écris de la même couleur le Héro et la flèche et la valeur, idem pour
    Légend » → une couleur par ligne, `effColor` retiré ;
 2. « change la couleur de la valeur actuelle » → encre en gras, puis « bof,
@@ -56,7 +56,7 @@ Trois retours de Thomas sur les captures, avant son « validé » :
    (`r8-actuelle-planche.mjs` : encre, braise, bleu ciel, vert) → braise ;
 3. « il faut que le actuelle aussi prenne la couleur » → toute la ligne en
    braise.
-Limite dite à Thomas : en Atelier, sur une légendaire, la braise foncée
+Limite dite au mainteneur : en Atelier, sur une légendaire, la braise foncée
 (`166 79 17`) est quasi la couleur de rareté d'avant (`166 88 12`).
 
 ## 6. Vérifications

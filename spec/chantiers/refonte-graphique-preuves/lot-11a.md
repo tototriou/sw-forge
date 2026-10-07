@@ -31,11 +31,11 @@ la maquette au lot 13.
 | `54049bff` | RTA : une rangée par monstre, nom rendu, choix de section gardé ; colonnes de 210 px passées de `sm:` à `lg:` (ordre dans le CSS construit) |
 
 Rien n'est retiré. **Neuf assertions d'avant le lot changent**, signalées à
-Thomas : les titres attendus de « Mon compte » suivent la nouvelle barre
+Le mainteneur : les titres attendus de « Mon compte » suivent la nouvelle barre
 (« Mon compte · Runes Résumé » au lieu de « Runes · Résumé »), même
 information.
 
-Signalés à Thomas, gardés dans le code et la spec : deux choix déjà essayés
+Signalés au mainteneur, gardés dans le code et la spec : deux choix déjà essayés
 puis abandonnés dans le passé — la liste du panneau (cibles mal délimitées)
 et la RTA à une carte par ligne (trente monstres, trente lignes).
 
@@ -51,4 +51,4 @@ $ node scripts/spec-lint.mjs                  → aucune erreur
 $ npm run build                               → built ; ordre max-lg / compact / sm vérifié
 ```
 
-**Lot 11a clos le 2026-09-28** sur « ok continue » de Thomas.
+**Lot 11a clos le 2026-09-28** sur « ok continue » du mainteneur.

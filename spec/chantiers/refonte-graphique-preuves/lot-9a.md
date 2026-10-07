@@ -51,16 +51,16 @@ de sets suggérés (« Fatal + Blade · Fatal + Rage · Autre combo »), l'écar
 - **Couleurs d'état** (43) : rien — l'Optimizer n'emploie déjà que `bad` et
   `warn`, aucune couleur d'élément pour un état.
 
-## 4. Décision de Thomas — aucun changement de rendu (rebranding, 65)
+## 4. Décision du mainteneur — aucun changement de rendu (rebranding, 65)
 
-Les questions du relevé n'ont pas été posées : Thomas les a arrêtées par
+Les questions du relevé n'ont pas été posées : Le mainteneur les a arrêtées par
 « je ne veux aucun changement de rendu par rapport à l'état actuel de la
 page ». Les écarts du § 2 restent donc tels quels, et la décision 60
 (icône de l'écran vide des Outils) est abandonnée : c'est la même page.
 
 Seul changement, invisible à l'écran : le nom du fichier exporté
 (`98d50547`), `swblacksmith-optimizer-<monstre>-<date>.json`. Montré avant
-commit ; Thomas : « ok ».
+commit ; le mainteneur : « ok ».
 
 ```text
 npx tsc --noEmit                                  → 0

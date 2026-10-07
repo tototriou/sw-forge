@@ -89,7 +89,7 @@ avec le nombre exact d'occurrences et un propriétaire.
   pas à la publication : elle se remplace par le fichier publié qu'elle
   vise, puis l'entrée se retire.
 - `a-corriger` : renvoi mort déjà pris en charge, à corriger.
-- `thomas` : renvoi qui appartient aux chantiers de refonte graphique et de
+- `refonte` : renvoi qui appartient aux chantiers de refonte graphique et de
   rebranding ; on n'y touche pas.
 - `hors-perimetre` : renvoi mort connu, sans correction prévue ; qui touche
   le fichier le corrige et retire l'entrée.
@@ -98,6 +98,6 @@ Le test échoue sur un renvoi mort absent de la liste, ou plus fréquent
 qu'elle ne le dit, et sur une entrée qui ne fait plus échouer : le commit qui
 corrige un renvoi, ou qui publie la note qu'il vise, retire ou décompte
 l'entrée. Une entrée nouvelle n'est admise qu'en `a-publier`, quand le README
-de routage de l'Optimizer annonce sa cible, ou en `thomas` et
+de routage de l'Optimizer annonce sa cible, ou en `refonte` et
 `hors-perimetre` à la fusion d'une autre branche ; jamais en `a-corriger`.
 Les règles d'admission se vérifient en revue ; le test ne les contrôle pas.

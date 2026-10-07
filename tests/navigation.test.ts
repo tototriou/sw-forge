@@ -103,7 +103,7 @@ export default function testNavigation() {
     );
 
     // Le panneau de survol, qui avait ici son propre contrôle (il devait
-    // reposer la barre au clic), a été retiré par Thomas le 2026-09-24
+    // reposer la barre au clic), a été retiré par le mainteneur le 2026-09-24
     // ([retrait #12] du cadrage de la refonte graphique). On vérifie qu'il ne
     // revient pas par morceaux.
     ok(

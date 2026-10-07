@@ -11,7 +11,7 @@ import { CSSProperties } from 'react';
 // lucide — la toile le dit : « des symboles standards pour les actions ».
 //
 // Origine des tracés : ceux de la toile (planche « Icônes »), tels quels ; sept
-// dessinées pour l'app, choisies par Thomas sur planche (décision 27) — la
+// dessinées pour l'app, choisies par le mainteneur sur planche (décision 27) — la
 // coupe (Arène), les tenailles (Outils), le compas (Optimizer), les deux
 // compagnons (Ami), le chronomètre (Speed tuning), l'œuf (Monstres), et le
 // médaillon (Artéfacts) repris d'`InventaireIcon`.
@@ -96,5 +96,5 @@ export const IconeMonstres = fabrique(
 );
 // La pierre runique de la toile.
 export const IconeRunes = fabrique('M12 2l8.5 5v10L12 22l-8.5-5V7zM12 7v10M12 10.5l3-2M12 13.5l-3-2');
-// Le médaillon, repris tel quel d'`InventaireIcon` (Thomas l'a préféré).
+// Le médaillon, repris tel quel d'`InventaireIcon` (le mainteneur l'a préféré).
 export const IconeArtefacts = fabrique('M2.5 12L7 3.7H17L21.5 12L17 20.3H7ZM12 8L15 12L12 16L9 12Z');

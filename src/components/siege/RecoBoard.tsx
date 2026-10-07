@@ -37,7 +37,7 @@ interface Props {
 }
 
 // ⚠️ **Deux VUES des mêmes recommandations** (refonte graphique, décision 19 —
-// Thomas : « au lieu du tri Toutes / Mes recos / Importées, mets plutôt un tri
+// Le mainteneur : « au lieu du tri Toutes / Mes recos / Importées, mets plutôt un tri
 // attaque / défense ; je veux que les deux affichages soient possibles ») :
 // - Attaque : chaque deck, puis les défenses contre lesquelles il est fort —
 //   l'affichage d'avant, et celui où l'on MODIFIE ;
@@ -485,7 +485,7 @@ export default function RecoBoard({
         <BarreActions
           libelleMenu="Plus d'actions"
           // ⚠️ **Importer ET Créer toujours visibles, dans cet ordre** (lot 7b —
-          // Thomas : « l'organisation des boutons comme sur la maquette ») :
+          // Le mainteneur : « l'organisation des boutons comme sur la maquette ») :
           // la maquette les pose tous deux en boutons, Tout exporter et Tout
           // effacer derrière le « ⋯ ». Ces deux-là restent en boutons quand la
           // ligne a la place (décision 13 précisée).
@@ -691,7 +691,7 @@ export default function RecoBoard({
                 260 px à partir de `lg` seulement) : plafonné dès `sm`, il
                 laissait un grand vide entre lui et les cases, repoussées au
                 bord droit — les cases se lisaient comme un contrôle à part
-                (relevé par Thomas, capture en fenêtre étroite). Désormais
+                (relevé par le mainteneur, capture en fenêtre étroite). Désormais
                 champ et cases forment un seul bloc sur toute la largeur. */}
             {!casesPleines ? (
               <div className="min-w-[min(180px,100%)] flex-1 lg:max-w-[260px]">

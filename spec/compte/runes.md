@@ -303,14 +303,14 @@ déroulante (règle de vocabulaire du [README](../README.md)). Calcul pur dans
 
 ⚠️ **Le tri de la Liste reste une LISTE DÉROULANTE**, à la hauteur des
 filtres de la ligne à la souris (32 px) — refonte graphique, lot 8a. Des
-onglets (`Segmented`) ont été essayés à la demande de Thomas (« le tri des
+onglets (`Segmented`) ont été essayés à la demande du mainteneur (« le tri des
 runes ne peut pas être un segmented button comme le reste ? »), puis défaits :
 neuf entrées font ~920 px (« ça fait peut-être un peu gros »). Le tri de
 l'**Optimisation**, cinq entrées (~640 px), est en onglets à la souris ; au
 doigt, les deux restent des listes déroulantes (lot 11).
 
 ⚠️ **« Trier par » est AU-DESSUS de la propriété secondaire**, aux deux
-formats (Thomas, lot 8a : « mets le Trier par au-dessus de la propriété ») —
+formats (le mainteneur, lot 8a : « mets le Trier par au-dessus de la propriété ») —
 trier vient avant filtrer, comme dans le panneau mobile, où le bloc de tri
 remontait déjà en tête. L'avertissement des deux tris « propriété » dit donc
 « Choisis une propriété **ci-dessous** pour trier dessus » (il disait
@@ -337,7 +337,7 @@ d'`index.css` qui le remontait (`order: -1`) est retirée.
 | *Slot* | du 1 au 6 |
 
 ⚠️ **Une seule entrée de mesure, celle du menu ⚙** (refonte graphique,
-décision 21, [retrait #21] — Thomas : « il y a Score et Efficience mais
+décision 21, [retrait #21] — le mainteneur : « il y a Score et Efficience mais
 c'est la même chose ») : « Score » (le score du jeu) quand le ⚙ est sur
 Score SW, « Efficience » (notre mesure, %) quand il est sur Efficience. Les
 deux entrées côte à côte classaient aussi par la mesure qu'on ne voit pas sur
@@ -488,7 +488,7 @@ Deux pièces, reprises telles quelles :
 Au doigt, la rangée sous le graphe d'avant (lot 11). « Ajouter un set » et
 « Voir en tableau » de la maquette sont repoussés au lot 13 (décision 20).
 
-⚠️ **L'infobulle de survol est du HTML posé sur le graphe** (lot 8a — Thomas :
+⚠️ **L'infobulle de survol est du HTML posé sur le graphe** (lot 8a — le mainteneur :
 « revois un peu les infobulles pour que ça rende mieux ») : le gabarit des
 panneaux flottants de l'app (fond `panel`, contour, ombre, texte 12 px ; la
 maquette `.tt`), qui suit le thème. Dessinée en SVG, c'était une boîte aux
@@ -879,11 +879,11 @@ emplacements · antiques, les MÊMES contrôles qu'avant (`SetFilter`,
 `SlotFilter`, `AncientFilter`, inchangés), puis **« Effacer les filtres »**.
 Ils prenaient trois rangées.
 - ⚠️ **Aucun menu déroulant** : la maquette en posait trois (« Set ▾ »,
-  « Emplacement ▾ », « Antiques ▾ »). Essayés, puis défaits par Thomas, pour
+  « Emplacement ▾ », « Antiques ▾ »). Essayés, puis défaits par le mainteneur, pour
   les sets d'abord (« pas très fan d'avoir des drop-down pour un set filtre
   dedans »), puis pour le reste (« sors tout des boutons »). Un filtre fermé
   dans un menu ne dit pas ce qu'il filtre sans qu'on l'ouvre.
-- ⚠️ **Tous au même gabarit, celui du `Segmented`** (Thomas : « ce serait
+- ⚠️ **Tous au même gabarit, celui du `Segmented`** (le mainteneur : « ce serait
   bien que les boutons aient tous la même tête ») : à la souris, les barres
   de sets et d'emplacements prennent le cadre `panel2` de 32 px, des cases de
   26 px et le marqueur du `Segmented` (sans contour ; un aplat de braise
@@ -974,7 +974,7 @@ largeur de leur contenu.
 « Optimisation », puis « Ce que tes meules et gemmes permettent d'améliorer,
 rune par rune. ». Les tuiles et leur plan, qui s'ouvre au clic, ne changent
 pas. La maquette écrit le plan DANS chaque carte, toujours visible : c'est un
-changement de comportement, à décider avec Thomas, pas fait ici.
+changement de comportement, à décider avec le mainteneur, pas fait ici.
 
 Calcule, pour chaque rune, son **potentiel maximal** et **ce qu'il faut faire**
 pour l'atteindre. Calcul pur & linéaire dans [runeOptim.ts](src/lib/runeOptim.ts)
@@ -1073,7 +1073,7 @@ classiques/antiques, héro/légend) et l'**algorithme complet** `best()` sont da
     pas pour une absence de runes.
 - **Tuiles** : efficience **actuelle**, puis **Héro** et **Légend** avec leur gain
   et l'efficience cible.
-  - ⚠️ **Une couleur par ligne, celle de sa rareté** (Thomas, rebranding R8,
+  - ⚠️ **Une couleur par ligne, celle de sa rareté** (le mainteneur, rebranding R8,
     2026-09-30) : « Héro −7,1 → 133,0 % » tout en violet (`rarity-4`),
     « Légend » tout en or (`star`). La cible était colorée **vert** / **rouge** selon
     qu'elle passait au-dessus ou en dessous de l'actuelle, et la ligne se
@@ -1081,7 +1081,7 @@ classiques/antiques, héro/légend) et l'**algorithme complet** `best()` sont da
     ne vit plus que dans le plan détaillé d'une rune (`OptimPlanBox`), un gain
     négatif n'existant d'ailleurs que hors filtre de réserve (`noDowngrade`).
   - ⚠️ **La ligne « actuelle » en braise**, mot compris, la valeur en gras
-    (`text-accent`, la braise lisible ; Thomas, même jour, sur planche :
+    (`text-accent`, la braise lisible ; le mainteneur, même jour, sur planche :
     encre, braise, bleu ciel, vert) — une couleur par ligne, comme les deux
     autres.
     Dans la couleur de la rareté de la rune, elle se confondait avec la ligne

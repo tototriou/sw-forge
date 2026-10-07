@@ -306,7 +306,7 @@ export function testTrimPartage() {
     id: 'x',
     origin: 'mine' as const,
     name: '  Defs G3  ',
-    author: '  Thomas ',
+    author: '  Joueur ',
     note: '  viser le heal  ',
     decks: [
       {
@@ -333,7 +333,7 @@ export function testTrimPartage() {
 
   const relu = decodeRecosJson(encodeRecosJson([reco]))?.[0];
   egal(relu?.name, 'Defs G3', 'le nom de la recommandation est trimé');
-  egal(relu?.author, 'Thomas', 'l’auteur est trimé');
+  egal(relu?.author, 'Joueur', 'l’auteur est trimé');
   egal(relu?.note, 'viser le heal', 'les consignes générales sont trimées');
   egal(relu?.decks[0]?.name, 'Def 1', 'le nom du deck est trimé');
   egal(relu?.decks[0]?.note, 'garder le strip', 'les consignes du deck sont trimées');

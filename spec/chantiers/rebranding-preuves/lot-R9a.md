@@ -43,7 +43,7 @@ cadence que rien dans l'app ne garantit.
 En-tête et filtres (55), cartes (56) : gardés, les deux recommandations
 retenues. Code montré avant commit, capture sur l'app construite
 (`r9a-verif.mjs`, recherche « zzzz », deux thèmes), une page à vérifier
-donnée à Thomas ; réponse : « ok ». Commit `d3218f56`.
+donnée au mainteneur ; réponse : « ok ». Commit `d3218f56`.
 
 ```text
 npx tsc --noEmit                                  → 0

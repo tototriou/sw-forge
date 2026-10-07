@@ -772,7 +772,7 @@ export default function RunesOptim({
             ))}
           </Selecteur>
           {/* À la SOURIS, des onglets (`Segmented`), comme le reste de la
-              page (Thomas, lot 8a). Mêmes entrées, même ordre. */}
+              page (le mainteneur, lot 8a). Mêmes entrées, même ordre. */}
           <div className="hidden lg:block">
             <Segmented
               value={sort}
@@ -1073,7 +1073,7 @@ export const OptimTile = memo(function OptimTile({
           <div className={`font-mono text-accent leading-tight ${etroit ? 'text-nano' : 'text-xs'}`}>
             {/* ⚠️ Toute la ligne en BRAISE (`text-accent`, donc la braise
                 lisible), mot compris — une couleur par ligne, comme « Héro » et
-                « Légend ». Choisie par Thomas sur planche (rebranding R8 ;
+                « Légend ». Choisie par le mainteneur sur planche (rebranding R8 ;
                 essayés : encre, bleu ciel, vert). Dans la couleur de la rareté
                 (`meta.ink`), la valeur se confondait avec la ligne de même
                 rareté juste dessous — violette comme « Héro » sur une rune
@@ -1084,7 +1084,7 @@ export const OptimTile = memo(function OptimTile({
             className={`font-mono leading-tight ${etroit ? 'text-nano' : 'text-micro'}`}
             style={{ color: 'rgb(var(--rarity-4))' }}
           >
-            {/* ⚠️ UNE couleur par ligne, celle de sa rareté (Thomas, rebranding
+            {/* ⚠️ UNE couleur par ligne, celle de sa rareté (le mainteneur, rebranding
                 R8) : la flèche et la valeur cible suivaient le vert / rouge du
                 gain, et la ligne « Héro » se lisait en deux couleurs. Le signe du
                 gain dit déjà s'il monte ou descend ; le vert / rouge reste dans

@@ -511,9 +511,9 @@ export default function testRtaPartage() {
   const unitsAmi = parseAccountJson(exportAmi).units;
   const bestiaireAmi = [monstre('900', 15105, 'Kaki'), monstre('901', 14314, 'Teon')];
 
-  const vueCompte = mapRtaVueAmi(unitsAmi, parCom2us(bestiaireAmi), 'Thomas');
+  const vueCompte = mapRtaVueAmi(unitsAmi, parCom2us(bestiaireAmi), 'Joueur');
   egal(vueCompte.entries.length, 2, 'export de compte : les monstres RTA deviennent des cartes');
-  egal(vueCompte.auteur, 'Thomas', "le nom du joueur devient l'auteur affiché");
+  egal(vueCompte.auteur, 'Joueur', "le nom du joueur devient l'auteur affiché");
   egal(vueCompte.niveau, 'complet', 'un export de compte porte les runes : niveau complet');
   ok(
     vueCompte.entries.every((e) => e.entry.monsterId === String(e.monster.id)),

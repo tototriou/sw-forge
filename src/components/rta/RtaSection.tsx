@@ -137,7 +137,7 @@ export default function RtaSection({
           // plutôt qu'à côté (voir RtaCard).
           // ⚠️ **Au TÉLÉPHONE, une RANGÉE par monstre** (refonte graphique,
           // lot 11a, décision 24, la maquette) : une colonne, écart resserré.
-          // Thomas l'a choisie en connaissance de l'objection ci-dessus (trente
+          // Le mainteneur l'a choisie en connaissance de l'objection ci-dessus (trente
           // monstres, trente lignes) : la rangée est plus basse que la carte
           // et elle rend le NOM, que la tuile de 150 px devait masquer.
           // ⚠️ `lg:` et non plus `sm:` pour les colonnes de 210 px : `sm:` sort

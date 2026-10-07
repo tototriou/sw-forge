@@ -45,7 +45,7 @@ $ npm run build                               → built
 
 ## Second passage — le menu comme la maquette (décision 11)
 
-Demandé par Thomas après le premier passage : « je veux que tu fasses le menu
+Demandé par le mainteneur après le premier passage : « je veux que tu fasses le menu
 comme dans la maquette ». Relevé sur la maquette (`sidebar.txt`, `navjs.txt`,
 `css.txt` de la toile) puis appliqué :
 
@@ -63,7 +63,7 @@ comme dans la maquette ». Relevé sur la maquette (`sidebar.txt`, `navjs.txt`,
 - Paramètres en pied, au gabarit des entrées, bascule inchangée.
 
 Écart voulu à la maquette : les sous-sections gardent leur **icône**
-(demandé par Thomas après essai, vérifié par le test de rendu).
+(demandé par le mainteneur après essai, vérifié par le test de rendu).
 
 Non repris : le point « nouveau » sur Nouveautés (suivi du « lu » = un ajout,
 à décider). Logo : celui de l'app (`favicon.svg`), pas le losange de la
@@ -96,7 +96,7 @@ $ npm run build                               → built ; bg-ink/10,
 
 ## Ajustements après essai (2026-09-24), validés le 2026-09-25
 
-Chaque demande de Thomas, un commit :
+Chaque demande du mainteneur, un commit :
 
 | Demande | Commit | Effet |
 |---|---|---|
@@ -113,7 +113,7 @@ Dernier état vérifié : `tsc` 0 ; `node tests/run.mjs rendu refonte
 navigation` → 204 vérifications passées ; inventaire sans perte ; chemins
 interdits vides ; spec-lint propre ; build OK.
 
-**Validé par Thomas le 2026-09-25, sur bureau** (« ok c'est good »). Le
+**Validé par le mainteneur le 2026-09-25, sur bureau** (« ok c'est good »). Le
 téléphone n'a pas été regardé — il n'a pas changé au lot 4 (onglets et
 panneau mobiles inchangés, titre centré gardé en `lg:hidden`), et il a son
 propre lot (11), où cette vérification reste à faire.

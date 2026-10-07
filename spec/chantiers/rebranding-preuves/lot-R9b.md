@@ -44,7 +44,7 @@ encore le dégradé comme la règle : elle suit la décision sur le titre.
 
 Titres (57) : encre unie, grand titre gardé ; sommaire (58) et Nouveautés
 (59) : gardés — les trois recommandations retenues. Code montré avant commit,
-deux pages à vérifier données à Thomas ; réponse : « ok ». Commit `e8e65c92`.
+deux pages à vérifier données au mainteneur ; réponse : « ok ». Commit `e8e65c92`.
 
 Piège de vérification : la première capture montrait encore le dégradé. Un
 ancien `vite preview`, resté à l'écoute sur le port, servait l'ANCIEN build

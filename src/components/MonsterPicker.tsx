@@ -16,7 +16,7 @@ interface Props {
   ariaLabel?: string;
   // Le champ prend le FOCUS chaque fois que cette valeur change (et n'est pas
   // `undefined`). Sert à enchaîner la saisie d'une équipe : un monstre choisi,
-  // le curseur passe au slot vide suivant (Thomas, Recommandations).
+  // le curseur passe au slot vide suivant (le mainteneur, Recommandations).
   // ⚠️ Un JETON et pas un booléen, ni `autoFocus` : le champ suivant est DÉJÀ
   // monté — `autoFocus` n'agit qu'au montage —, et un booléen resté `true`
   // ne redonnerait pas le focus au deuxième passage sur le même slot.

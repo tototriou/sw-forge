@@ -164,12 +164,12 @@
     "de": "src/components/account/RunesList.tsx",
     "vers": "src/components/account/RunesList.tsx",
     "devient": "texte:Choisis une propriété ci-dessous pour trier dessus.",
-    "pourquoi": "Lot 8a : « Trier par » passe AU-DESSUS de la propriété secondaire (demande de Thomas) ; l'avertissement du tri, posé dans son bloc, désigne donc la propriété « ci-dessous ». Au doigt, le tri était déjà remonté en tête du panneau : « ci-dessus » y était déjà faux."
+    "pourquoi": "Lot 8a : « Trier par » passe AU-DESSUS de la propriété secondaire (demande du mainteneur) ; l'avertissement du tri, posé dans son bloc, désigne donc la propriété « ci-dessous ». Au doigt, le tri était déjà remonté en tête du panneau : « ci-dessus » y était déjà faux."
   },
   "src/components/siege/RecoBoard.tsx :: prop:label:Toutes": {
     "de": "src/components/siege/RecoBoard.tsx",
     "retrait": "A.2 bis #19",
-    "pourquoi": "Le filtre d'origine (Toutes / Mes recos / Importées) est remplacé par la vue Attaque / Défense, à la demande de Thomas. La pastille « Importée » reste sur chaque carte reçue."
+    "pourquoi": "Le filtre d'origine (Toutes / Mes recos / Importées) est remplacé par la vue Attaque / Défense, à la demande du mainteneur. La pastille « Importée » reste sur chaque carte reçue."
   },
   "src/components/siege/RecoBoard.tsx :: prop:label:Mes recos": {
     "de": "src/components/siege/RecoBoard.tsx",
@@ -309,31 +309,31 @@
     "de": "src/components/siege/SiegeBoard.tsx",
     "vers": "src/components/siege/SiegeBoard.tsx",
     "devient": "attr:titre:Effacer toutes les équipes {…} ?",
-    "pourquoi": "Faute corrigée (V0 du rebranding, Thomas) : « équipes d'défense » ; l'élision vient désormais avec le mot (« de défense » / « d'attaque »)."
+    "pourquoi": "Faute corrigée (V0 du rebranding, le mainteneur) : « équipes d'défense » ; l'élision vient désormais avec le mot (« de défense » / « d'attaque »)."
   },
   "src/components/siege/SiegeBoard.tsx :: texte:Aucune équipe d'": {
     "de": "src/components/siege/SiegeBoard.tsx",
     "vers": "src/components/siege/SiegeBoard.tsx",
     "devient": "texte:Aucune équipe",
-    "pourquoi": "Faute corrigée (V0 du rebranding, Thomas) : « Aucune équipe d'défense » ; l'élision vient désormais avec le mot."
+    "pourquoi": "Faute corrigée (V0 du rebranding, le mainteneur) : « Aucune équipe d'défense » ; l'élision vient désormais avec le mot."
   },
   "src/components/account/RunesOptim.tsx :: texte:= potentiel − efficience actuelle : ce que la rune gagnerait. Sur chaque carte, il est affiché en": {
     "de": "src/components/account/RunesOptim.tsx",
     "vers": "src/components/account/RunesOptim.tsx",
     "devient": "texte:= potentiel − efficience actuelle : ce que la rune gagnerait. Sur chaque carte, sa ligne garde la couleur de la rareté visée ; dans le détail d'une rune, il est en",
-    "pourquoi": "Rebranding R8 (Thomas) : sur les tuiles de l'Optimisation, une couleur par ligne, celle de la rareté ; le vert / rouge du gain ne vit plus que dans le plan détaillé. L'aide le dit."
+    "pourquoi": "Rebranding R8 (le mainteneur) : sur les tuiles de l'Optimisation, une couleur par ligne, celle de la rareté ; le vert / rouge du gain ne vit plus que dans le plan détaillé. L'aide le dit."
   },
   "src/components/account/RunesOptim.tsx :: texte:si le potentiel est au-dessus de l'actuelle, en": {
     "de": "src/components/account/RunesOptim.tsx",
     "vers": "src/components/account/RunesOptim.tsx",
     "devient": "texte:s'il est positif, en",
-    "pourquoi": "Rebranding R8 (Thomas) : même reformulation de l'aide, le vert / rouge décrit le gain du plan détaillé."
+    "pourquoi": "Rebranding R8 (le mainteneur) : même reformulation de l'aide, le vert / rouge décrit le gain du plan détaillé."
   },
   "src/components/account/RunesOptim.tsx :: texte:s'il est en dessous (ex. une rune déjà grindée légendaire « perd » en héroïque — ce cas disparaît sous « Faisable avec ma réserve »).": {
     "de": "src/components/account/RunesOptim.tsx",
     "vers": "src/components/account/RunesOptim.tsx",
     "devient": "texte:s'il est négatif (ex. une rune déjà grindée légendaire « perd » en héroïque — ce cas disparaît sous « Faisable avec ma réserve »).",
-    "pourquoi": "Rebranding R8 (Thomas) : même reformulation de l'aide."
+    "pourquoi": "Rebranding R8 (le mainteneur) : même reformulation de l'aide."
   },
   "src/components/outils/DamageSetupCard.tsx :: attr:title:Ce que l'app ne peut pas savoir (tes débuffs réellement actifs) — à toi de le renseigner, 0 par défaut": {
     "de": "src/components/outils/DamageSetupCard.tsx",

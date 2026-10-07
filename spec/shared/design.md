@@ -129,7 +129,7 @@ terne). Un avertissement se lit donc à son **libellé** — une pastille écrit
 décision 8 de la refonte — jamais à sa seule couleur.
 
 ⚠️ **Vert et rouge de Forge : plus saturés que la toile** (décision 13 —
-Thomas : « ça me paraît pâle »). La toile donne `#9fd39a` et `#e5848a`,
+Le mainteneur : « ça me paraît pâle »). La toile donne `#9fd39a` et `#e5848a`,
 pastel. Même clarté OKLCH et même teinte, chroma relevée à mi-chemin du
 maximum : `#73e06b` et `#f27a84`, contraste inchangé (8,35 et 5,23 au pire).
 Le rouge garde sa teinte rosée : le ramener vers le corail de l'ancien rouge
@@ -141,7 +141,7 @@ sombre en Forge (6,53), blanc en Atelier (6,91).
 prend la plus vive (chroma OKLCH) de deux constructions : la teinte fondue à
 12 % dans `panel`, ou la chroma et l'écart de clarté de l'ancien fond doux
 reportés sur le nouveau `panel`. ⚠️ Le 12 % seul a été posé d'abord, puis
-repris (Thomas, R1 : « ça me paraît pâle », les camps du speed tuning) : la
+repris (le mainteneur, R1 : « ça me paraît pâle », les camps du speed tuning) : la
 sémantique de la toile est pastel, et la fondre dans un fond brun donnait des
 gris à peine teintés — le vert des camps à la moitié de sa chroma d'avant.
 L'encre y fait 9,71 au pire (Forge) et 13,99 (Atelier). L'accent et la
@@ -207,7 +207,7 @@ filtres sont posés.
 | Support | Marqueur | Pourquoi pas l'autre |
 |---------|----------|----------------------|
 | **Champ de saisie** (`select`, `input`, `textarea`) | `border-accent` | Un fond coloré passe derrière du texte qu'on doit lire, et concurrence le curseur |
-| **Pastille de filtre** (`Pastille`, sets, emplacements, étoiles du Bestiaire) | `MARQUEUR_FILTRE_ACTIF` : `border-accent bg-accent-soft text-ink` | **La couleur de l'app, teintée** (refonte graphique, décision 9, 2026-09-24) : le contour porte l'état, le fond le rend lisible d'un coup d'œil. Depuis le rebranding (décision 20), le fond est le « braise sombre » de la toile (`accent-soft`, `#3a2415` en Forge), au lieu de la braise à 25 % ; **sans la coche ni le gras** de la toile, qui élargissaient la pastille au clic. Contraste mesuré : texte 11,44 (Forge) et 15,23 (Atelier) ; contour, en `accent-lisible`, 5,58 et 4,91. Une couleur inversée (aplat d'encre) a été essayée puis écartée par Thomas : un aplat blanc en thème sombre. Une seule constante, exportée de `Pastille`, importée par les filtres qui ne passent pas par elle. ⚠️ **Exception, à la souris : les filtres de sets et d'emplacements des RUNES** prennent le gabarit et le marqueur du `Segmented` (sans contour ; un aplat de braise depuis la décision 19) — posés sur une ligne à côté du filtre des antiques, qui EST un `Segmented`, deux marqueurs se lisaient comme deux familles de boutons (Thomas : « que les boutons aient tous la même tête », lot 8a ; `gabaritFiltre.ts`) |
+| **Pastille de filtre** (`Pastille`, sets, emplacements, étoiles du Bestiaire) | `MARQUEUR_FILTRE_ACTIF` : `border-accent bg-accent-soft text-ink` | **La couleur de l'app, teintée** (refonte graphique, décision 9, 2026-09-24) : le contour porte l'état, le fond le rend lisible d'un coup d'œil. Depuis le rebranding (décision 20), le fond est le « braise sombre » de la toile (`accent-soft`, `#3a2415` en Forge), au lieu de la braise à 25 % ; **sans la coche ni le gras** de la toile, qui élargissaient la pastille au clic. Contraste mesuré : texte 11,44 (Forge) et 15,23 (Atelier) ; contour, en `accent-lisible`, 5,58 et 4,91. Une couleur inversée (aplat d'encre) a été essayée puis écartée par le mainteneur : un aplat blanc en thème sombre. Une seule constante, exportée de `Pastille`, importée par les filtres qui ne passent pas par elle. ⚠️ **Exception, à la souris : les filtres de sets et d'emplacements des RUNES** prennent le gabarit et le marqueur du `Segmented` (sans contour ; un aplat de braise depuis la décision 19) — posés sur une ligne à côté du filtre des antiques, qui EST un `Segmented`, deux marqueurs se lisaient comme deux familles de boutons (le mainteneur : « que les boutons aient tous la même tête », lot 8a ; `gabaritFiltre.ts`) |
 | **Cran de `Segmented`, onglet** | `bg-accent text-accent-ink` (le cadre porte le contour) | Un choix UNIQUE dans un cadre commun, pas un filtre en rangée. **Un APLAT de braise** depuis le rebranding (décision 19, la planche « Actions » de la toile) — il gardait le fond d'accent léger depuis la décision 9. Toujours un seul marqueur. Encre dessus : 6,66 |
 
 ⚠️ **Les pastilles voisines partagent le même marqueur.** Les numéros de
@@ -298,7 +298,7 @@ pour elle, pas pour la densité de nos listes).
 
 ⚠️ **Une quatrième police, hors de ce système : `font-marque` (Saira 700)**,
 le NOM de l'app et rien d'autre — dans le logo (`Logo.tsx`, `CLASSE_NOM` :
-capitales espacées) et le héros de l'accueil. Choisie par Thomas avec la
+capitales espacées) et le héros de l'accueil. Choisie par le mainteneur avec la
 nouvelle identité de logo (rebranding R2 bis, décision 24). Les titres restent
 en Cinzel : Saira n'est pas une police de titre, c'est la signature.
 
@@ -366,7 +366,7 @@ un palier de l'échelle.
 | `radius-xl` | `rounded-xl` | 14 px | Carte, panneau |
 | `radius-2xl` | `rounded-2xl` | 20 px | Fenêtre : dialogue, panneau mobile |
 
-**Les mêmes dans les deux thèmes** (refonte graphique, décision 2 de Thomas,
+**Les mêmes dans les deux thèmes** (refonte graphique, décision 2 du mainteneur,
 2026-09-24, [cadrage](../chantiers/refonte-graphique.md)). Forge assumait
 jusque-là l'angle vif (4 / 6 px) ; il l'abandonne pour un rendu d'application
 plus doux, commun aux deux thèmes. Les valeurs sont celles de la toile depuis
@@ -523,7 +523,7 @@ n'est pas le mot « supprimer » sur le bouton, c'est le coût de l'erreur.
 | Effacer les données du compte | Tout |
 
 **Se DÉFAIT au lieu de se confirmer** (refonte graphique, lot 13, décision
-29 de Thomas) — le geste se fait tout de suite, puis une **notification
+29 du mainteneur) — le geste se fait tout de suite, puis une **notification
 « … · Annuler »** le laisse revenir en arrière quelques secondes :
 
 | Geste | Notification |
@@ -859,7 +859,7 @@ C'est ce qui manquait quand le détail d'une rune « semblait n'avoir aucun fond
 ⚠️ **Arbitrage du lot 14** : avec les fonds neutres et clairs de la maquette,
 `panel2` ne se distingue presque plus de `bg`. Une surface `panel2` posée
 directement sur la page est séparée par sa BORDURE, pas par son fond — le
-choix de la maquette, retenu par Thomas. De même, une carte `panel` ne se
+choix de la maquette, retenu par le mainteneur. De même, une carte `panel` ne se
 détache du fond qu'à 1,08 au lot 14 (1,28 avant), 1,12 depuis le rebranding :
 un papier clair sur un papier chaud, avec son contour.
 

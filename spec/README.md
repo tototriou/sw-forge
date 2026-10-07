@@ -170,7 +170,7 @@ Outillage du dépôt (pas une page de l'app) :
     silence une conservation dont il dispose depuis toujours.
 - **Aucune statistique de fréquentation.** La mesure d'audience Vercel Web
   Analytics a été **retirée, du site comme de l'application de bureau**
-  (Thomas, 2026-10-05 — décision 6 du chantier
+  (le mainteneur, 2026-10-05 — décision 6 du chantier
   [application-bureau.md](chantiers/application-bureau.md)) : rien ne quitte
   le navigateur, ce que dit le « 100 % local ». ⚠️ Ne pas la réintroduire sans
   décision : elle n'aurait de toute façon aucun sens dans l'app de bureau.
@@ -424,10 +424,10 @@ Outillage du dépôt (pas une page de l'app) :
 Le cadre commun (nav, routing par hash, footer) vit dans
 [App.tsx](src/App.tsx) :
 
-- **Pied de page — une rangée, comme la toile** (rebranding R4, Thomas : « le
+- **Pied de page — une rangée, comme la toile** (rebranding R4, le mainteneur : « le
   pied de page commence à être vraiment gros ») : au bureau, logo à gauche,
   mentions au centre (données locales ; © Com2uS, source SWARFARM, projet non
-  officiel), liens à droite, **en colonne** (GitHub, version, Discord ; Thomas :
+  officiel), liens à droite, **en colonne** (GitHub, version, Discord ; le mainteneur :
   « met sur une colonne le github la version et le discord ») — 79 px de haut,
   il empilait cinq lignes. Au téléphone, une colonne centrée : logo, liens sur
   une ligne en libellés courts (« GitHub », « Discord »), mentions. Police du

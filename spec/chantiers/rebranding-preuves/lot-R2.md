@@ -30,7 +30,7 @@ Relevé de départ : 30 fichiers mentionnent le nom. Renommés :
 identifiants de format (`sw-forge/prepa-rta`, `…/recommandations`,
 `…/siege-equipes`, `…/courbe-runes`), URLs GitHub et Vercel, historique des
 versions (`data/releases.ts`). **Différé** : `swforge-optimizer-…`
-(`OptimizerSection.tsx`), avec les lots 9a / 11e de la refonte — Thomas attend
+(`OptimizerSection.tsx`), avec les lots 9a / 11e de la refonte — le mainteneur attend
 une livraison sur l'Optimizer.
 
 Preuve du contrat (`grep -rnE "SW ?Forge" src index.html`, hors
@@ -100,7 +100,7 @@ Rendue par Playwright (`r2-images.mjs`) : fond Forge, surtitre « Summoners War
 · Boîte à outils », logo horizontal de la charte (symbole et « SW Blacksmith »
 en Cinzel 700), « RTA · Siège · Arène · Bestiaire », filet de braise en pied.
 Même contenu que l'ancienne, sans les losanges d'élément violets. **Commitée à
-part, après l'accord de Thomas** (« continues », 2026-09-29, en réponse à
+part, après l'accord du mainteneur** (« continues », 2026-09-29, en réponse à
 « l'image de partage te va ? »).
 
 ## 5. Vérifications

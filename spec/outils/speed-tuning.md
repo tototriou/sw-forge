@@ -55,7 +55,7 @@ raids de 4,5 % :
 L'outil ne connaît que le siège : un réglage validé ici ne vaut pas pour la
 RTA dès qu'un boost de barre ou un buff de vitesse entre en jeu (sans
 modificateur, l'ordre est le même : tout le monde est ralenti dans la même
-proportion). Demandé par Thomas le 2026-09-28 — **chantier à part**, pas la
+proportion). Demandé par le mainteneur le 2026-09-28 — **chantier à part**, pas la
 refonte graphique (il touche `src/lib/`). Ce qu'il devra trancher :
 
 - un réglage **Siège / RTA** de l'outil, qui change la constante du moteur
@@ -1217,7 +1217,7 @@ De haut en bas :
    empilés** (`max-lg:flex-col`, refonte graphique, lot 11d) : dès 560 px,
    deux camps de 280 px tenaient côte à côte et chacun devenait trop étroit —
    le lead débordait de l'en-tête, les réglages de chaque monstre
-   s'empilaient (relevé par Thomas en mode appareil). L'en-tête du camp passe
+   s'empilaient (relevé par le mainteneur en mode appareil). L'en-tête du camp passe
    à la ligne au lieu de déborder. Chacun a son **lead** (`Selecteur`), sa liste de
    monstres (portrait, **SPD de base seule**, champ vitesse de runes, vitesse de
    combat) et sa **barre de recherche** d'ajout (combobox `Champ` + `Flottant`,
@@ -1239,7 +1239,7 @@ De haut en bas :
    quel camp il remplace). Au doigt, il reste sous la recherche.
    L'en-tête est alors sur **deux lignes dans les deux camps** : le titre, puis
    lead et import calés à droite. Laissé au hasard de la largeur, « Ton
-   équipe » passait à la ligne et pas « En face » — Thomas : « il faut que le
+   équipe » passait à la ligne et pas « En face » — le mainteneur : « il faut que le
    rendu soit le même ». Chaque monstre est une **card** avec, en **haut à droite** (convention app),
    les **flèches** (monter / descendre dans l'équipe), l'**œil** (masquer /
    afficher) et la **croix** de suppression. Un monstre **masqué** reste dans son

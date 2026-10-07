@@ -2,7 +2,7 @@
 // `spec/chantiers/refonte-graphique.md` (B.0). La refonte change l'affichage,
 // jamais ce qui existe : ces vérifications refusent qu'une information ou une
 // fonctionnalité visible disparaisse sans déplacement déclaré ni décision de
-// Thomas, et qu'un lot touche la logique, les données ou les rendus du jeu.
+// Le mainteneur, et qu'un lot touche la logique, les données ou les rendus du jeu.
 //
 // ⚠️ L'EXTRACTION tourne dans un processus à part (`scripts/inventaire-ui.mjs`) :
 // elle a besoin du compilateur TypeScript, qu'on n'embarque pas dans le paquet
@@ -113,7 +113,7 @@ export function testRefonteInventaireComparer() {
     '### A.2 Cible',
     'exemple cité hors décision : [retrait #9]',
     '### A.2 bis Décisions retenues',
-    '1. Meules et Gemmes — [retrait #1] décidé par Thomas le 2026-09-25',
+    '1. Meules et Gemmes — [retrait #1] décidé par Joueur le 2026-09-25',
     '2. rayons 8 px — retenu',
     '### A.3 Hiérarchie',
     'autre mention : [retrait #7]',

@@ -44,11 +44,11 @@ est chaque monstre quand le premier joue ».
 - **Icônes (44)** : `Users` de lucide → `IconeAmi` (compagnons) dans
   l'onglet et l'état vide « Ami », et dans la vue d'une prépa partagée.
 
-## 4. Décisions de Thomas
+## 4. Décisions du mainteneur
 
 Sections (48), ordre des tours (49) et glisser-déposer (50) : gardés, les
 trois recommandations retenues. En-tête et « Non classé » gardés sans
-question, par la décision 38 du Siège — dit à Thomas avec le code.
+question, par la décision 38 du Siège — dit au mainteneur avec le code.
 
 ## 5. Le changement et sa validation
 
@@ -56,7 +56,7 @@ Commit `2f4fc0c5`, montré AVANT d'être commité (décision 47), captures sur
 l'app construite, deux thèmes (`r7-verif.mjs`) : état vide « Ami » et son
 icône ; rapport « Fichier refusé » en rouge d'état ; Ethna passée de 224 à
 236 dans l'ordre des tours — badge sur sa carte, « → 236 » en rouge d'état
-sur la ligne VIT de la fiche. Thomas : « Validé, commite ».
+sur la ligne VIT de la fiche. Le mainteneur : « Validé, commite ».
 
 ```text
 npx tsc --noEmit                                       → 0

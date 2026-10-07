@@ -24,7 +24,7 @@ Tokens de l'app contre ceux de la maquette (`.sf[data-theme=light]`) :
 | `bad` | `#B01C1C` | `#B91C1C` | quasi = |
 | `good-soft`, `bad-soft`, `warn`, les six éléments, les paliers | | | = |
 
-Thomas n'a pas nommé de défaut précis ; il a dit « passe à la suite » et
+Le mainteneur n'a pas nommé de défaut précis ; il a dit « passe à la suite » et
 a tranché les deux questions posées :
 - **bordures : « intermédiaires »** — celles de la maquette pour les
   séparateurs et les cadres de carte, un cran plus marquées pour les champs,
@@ -48,7 +48,7 @@ a tranché les deux questions posées :
 Gardés de l'app, et pourquoi :
 - `good` : celui de la maquette tombe à 4,41 sur `panel2` ;
 - `bad` : plus foncé, donc plus contrasté ;
-- l'accent indigo : choix de Thomas.
+- l'accent indigo : choix du mainteneur.
 
 Vérifié par `git diff -U0 src/index.css` : aucune ligne `--forge-*` touchée.
 
@@ -114,7 +114,7 @@ porteuse de sens ; cyan, jaune et vert tombent vers 1,6. Ce ne sont pas des
 tokens, donc hors du contrat de ce lot : je l'ai d'abord listé, sans le
 corriger.
 
-**Corrigé ensuite à la demande de Thomas** (capture de l'accueil en clair :
+**Corrigé ensuite à la demande du mainteneur** (capture de l'accueil en clair :
 « effectivement pas très lisible ») :
 - chaque couleur reçoit une variante claire (`TEINTE_CLAIRE`), de la même
   teinte, assombrie juste assez pour 3,2:1 (script `variantes-claires.mjs`) ;
@@ -138,7 +138,7 @@ Recherche de couleurs en dur dans les composants
 (`(bg|text|border|…)-[#…]`, `bg-white`, `bg-black`) : rien à signaler. Les
 occurrences restantes sont la pastille blanche de l'interrupteur et des
 rendus du jeu (portrait de collab, cadre de catégorie RTA). Aucun défaut
-relevé par Thomas.
+relevé par le mainteneur.
 
 ## Vérifications
 
@@ -162,5 +162,5 @@ $ node scripts/chemins-interdits.mjs 6110609  → aucun modifié
   ces valeurs.
 - **Téléphone** : non regardé (lot 11).
 
-**Validé par Thomas le 2026-09-27** (« ok »), après les teintes claires de
+**Validé par le mainteneur le 2026-09-27** (« ok »), après les teintes claires de
 l'accueil.

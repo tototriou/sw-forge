@@ -3,7 +3,7 @@ import type { CSSProperties, ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRight, LayoutGrid, Upload, Download, Sparkles, ExternalLink, ShieldCheck } from 'lucide-react';
 // ⚠️ Les cartes de SECTION (fonctionnalités, « Ton espace ») portent les icônes
-// d'atelier de la navigation (rebranding R5 — Thomas : une section a la même
+// d'atelier de la navigation (rebranding R5 — le mainteneur : une section a la même
 // icône partout). Les étapes et les titres gardent lucide : ce ne sont pas
 // des sections.
 import {
@@ -100,8 +100,8 @@ interface Props {
 // bandeau de version en fin de page donne la raison de revenir.
 //
 // ⚠️ **Refonte graphique, lot 5 — la structure est GARDÉE** (décision 10 de
-// Thomas), seul le style change : cartes de la refonte, icônes dans une tuile
-// À LA TEINTE de leur section (décision 3 précisée le 2026-09-25 : Thomas
+// Le mainteneur), seul le style change : cartes de la refonte, icônes dans une tuile
+// À LA TEINTE de leur section (décision 3 précisée le 2026-09-25 : Le mainteneur
 // aimait les couleurs de l'accueil — elles restent ici, le menu reste neutre),
 // bouton principal plein (décision 4).
 export default function HomePage({ stats, onImport }: Props) {
@@ -132,7 +132,7 @@ export default function HomePage({ stats, onImport }: Props) {
               téléphone plutôt que déborder. Le reste du héros est le lot R5. */}
           {/* ⚠️ R2 bis : le nom dans la police de l'identité (Saira, capitales
               espacées, `CLASSE_NOM`), en encre pleine comme sur l'identité de
-              Thomas — plus le dégradé de Cinzel. Taille `clamp(32px, 5vw,
+              Le mainteneur — plus le dégradé de Cinzel. Taille `clamp(32px, 5vw,
               56px)` : en capitales, « BLACKSMITH » mesure 291 px à 40 px, et
               débordait d'un téléphone de 360 px ; 233 px à 32 px. */}
           <div className="flex items-center gap-3">
@@ -418,7 +418,7 @@ function Separator() {
 }
 
 // L'icône d'une carte, dans sa tuile — la maquette : 32 px, rayon 8, contour
-// discret. ⚠️ **À la teinte de sa section** (décision 3 précisée : Thomas
+// discret. ⚠️ **À la teinte de sa section** (décision 3 précisée : Le mainteneur
 // aimait les couleurs de l'accueil, qui les garde ; le menu, lui, reste
 // neutre) : icône à la teinte, fond et contour de la même teinte, fondus.
 // `color-mix` et non un suffixe hexa (`${accent}44`) : ça marche aussi bien
@@ -449,7 +449,7 @@ function Tuile({ icon: Icon, accent }: { icon: Icone; accent: string }) {
 
 // Halo de la teinte, flouté dans le coin haut droit d'une carte — l'identité
 // colorée des cartes de l'accueil d'avant la refonte, gardée à la demande de
-// Thomas. La carte doit être `relative overflow-hidden`.
+// Le mainteneur. La carte doit être `relative overflow-hidden`.
 function Halo({ accent }: { accent: string }) {
   return (
     <div

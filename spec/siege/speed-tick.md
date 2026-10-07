@@ -35,7 +35,7 @@ combat = base + runes + ceil( base × (15 + lead) / 100 )
 - Boutons dans **chaque slot** : **Rapide 286**, **Lent 239** (`SIEGE_TICKS`).
   Un tick **par monstre** (`slot.tick`, 0 = aucun), pas par équipe → on peut
   viser 2 monstres en tick rapide et 1 en tick lent dans la même équipe.
-- ⚠️ **Recliquer sur le tick visé l'ENLÈVE** (retour à 0) — demandé par Thomas
+- ⚠️ **Recliquer sur le tick visé l'ENLÈVE** (retour à 0) — demandé par le mainteneur
   le 2026-09-26 (refonte graphique, lot 7a), avec le retrait du bouton
   **« Off »** à la souris : un bouton à deux états s'éteint là où on l'a
   allumé. L'infobulle le dit (« Ne plus viser le tick 239 » / « Viser le tick
@@ -72,10 +72,10 @@ lire — passait derrière. Le contour porte l'état ; la pastille le nomme pour
 ne distingue pas les teintes (**une couleur seule ne se lit pas en niveaux de
 gris**, règle de la charte).
 
-⚠️ **La pastille est ÉCRITE** (refonte graphique, décision 8 de Thomas) : à
+⚠️ **La pastille est ÉCRITE** (refonte graphique, décision 8 du mainteneur) : à
 côté du titre « Équipe N », un libellé court sur le fond doux du ton, un point
 de la couleur du statut, le texte à l'encre (un texte `good`/`warn` sur son
-propre fond doux manque de contraste en clair). Libellés choisis par Thomas le
+propre fond doux manque de contraste en clair). Libellés choisis par le mainteneur le
 2026-09-26, tirés des phrases du pied ([pastilleStatut.ts](src/components/siege/pastilleStatut.ts),
 testé par `tests/siege-pastille.test.ts`) :
 

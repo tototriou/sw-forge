@@ -164,7 +164,7 @@ Menu ⚙ → Thème → Clair puis Sombre, et sur chaque écran :
 - **Les 70 contours d'accent** passent tous à la braise lisible, sans tri un à
   un : elle tient 3:1 partout, donc un contour purement décoratif n'y perd rien.
 
-## 9. Retour de Thomas — « ça me paraît pâle » (2026-09-29)
+## 9. Retour du mainteneur — « ça me paraît pâle » (2026-09-29)
 
 Capture : les camps du speed tuning, en Forge. Cause : les fonds doux fondus à
 12 % dans `panel`. La sémantique de la toile est pastel ; fondue dans un fond
@@ -185,7 +185,7 @@ nouveau `panel`, dans la teinte de la toile (`r1-doux-chroma.mjs`).
 
 Mesures (`r1-doux-mesure.mjs`) : encre 9,71 au pire (Forge), 13,99 (Atelier) ;
 `good` sur `good-soft` 8,03 / 5,48, `bad` sur `bad-soft` 5,60 / 5,65.
-⚠️ **Ce correctif répondait à une lecture fausse du retour** : Thomas parlait
+⚠️ **Ce correctif répondait à une lecture fausse du retour** : Le mainteneur parlait
 du vert et du rouge eux-mêmes (§ 10), pas de leurs fonds. Il est gardé : il
 va dans le même sens, et les fonds recalculés suivent la teinte, qui ne
 change pas au § 10.

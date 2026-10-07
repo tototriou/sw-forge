@@ -1,5 +1,5 @@
 // ⚠️ **À la SOURIS, les filtres des runes prennent le gabarit du `Segmented`**
-// de la librairie (refonte graphique, lot 8a — Thomas : « ce serait bien que
+// de la librairie (refonte graphique, lot 8a — le mainteneur : « ce serait bien que
 // les boutons aient tous la même tête ») : sur une ligne, sets · emplacements
 // · antiques se lisaient comme trois contrôles différents — deux barres
 // maison de 38 px au fond `panel`, cases cerclées d'accent, à côté d'un

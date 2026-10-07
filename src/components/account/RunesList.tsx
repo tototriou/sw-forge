@@ -85,7 +85,7 @@ export default function RunesList({ runes, menuOuvert, onFermerMenu }: Props) {
   const cherches = useMemo(() => new Set(actifs.map((c) => c.code)), [actifs]);
   const metric = useRuneMetric(); // choix PARTAGÉ avec les autres vues
   // ⚠️ **UNE seule entrée de mesure dans le tri : celle du menu ⚙** (refonte
-  // graphique, décision 21 — Thomas : « il y a Score et Efficience mais c'est
+  // graphique, décision 21 — le mainteneur : « il y a Score et Efficience mais c'est
   // la même chose »). Les deux entrées côte à côte classaient aussi par la
   // mesure qu'on ne voit pas sur les tuiles, pour un classement presque
   // identique. L'entrée porte le nom de la mesure active (« Score » ou
@@ -188,13 +188,13 @@ export default function RunesList({ runes, menuOuvert, onFermerMenu }: Props) {
         {/* Tri — les entrées du JEU, dans son ordre. La MESURE (efficience /
             score) reste un réglage global, dans la barre de nav.
             ⚠️ **AU-DESSUS de la propriété secondaire**, aux deux formats
-            (Thomas, lot 8a : « mets le Trier par au-dessus de la
+            (le mainteneur, lot 8a : « mets le Trier par au-dessus de la
             propriété »). Dans le PANNEAU mobile, `data-tri-bloc` le remontait
             déjà en tête (voir index.css) — trier vient avant filtrer. */}
         <div data-tri-bloc className="flex items-center gap-2 flex-wrap">
           <span className="w-[86px] flex-none label">Trier par</span>
           {/* ⚠️ **Une liste DÉROULANTE, pas des onglets** : neuf entrées en
-              `Segmented` faisaient ~920 px, essayé puis défait par Thomas (« ça
+              `Segmented` faisaient ~920 px, essayé puis défait par le mainteneur (« ça
               fait peut-être un peu gros », lot 8a). L'Optimisation, cinq
               entrées, garde ses onglets. À la souris, la liste prend la
               hauteur des filtres de la ligne (32 px). */}

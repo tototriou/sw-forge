@@ -1,6 +1,6 @@
 import type { Monster, SiegeTeam } from '../../types';
 
-// Recherche d'équipe de siège par monstre — ajout décidé par Thomas
+// Recherche d'équipe de siège par monstre — ajout décidé par le mainteneur
 // (refonte graphique, décision 14) ; spec : spec/siege/README.md § Recherche
 // d'équipe par monstre. Affichage seulement : un filtre de liste.
 

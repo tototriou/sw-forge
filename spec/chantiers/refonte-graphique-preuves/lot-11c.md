@@ -28,10 +28,10 @@ d'optimisation », filtres des Courbes dans la page, Comparaison, Résumé).
 
 **Écart de méthode, corrigé** : la question des Courbes avait été posée sans
 l'historique de `spec/compte/runes.md` (filtres déjà descendus dans le
-panneau puis remontés). Relevé avant de coder, redemandé à Thomas avec
+panneau puis remontés). Relevé avant de coder, redemandé au mainteneur avec
 l'historique : les filtres restent dans la page. Rien n'avait été codé.
 
-Rien n'est retiré. **Deux assertions changent**, signalées à Thomas —
+Rien n'est retiré. **Deux assertions changent**, signalées au mainteneur —
 écrites au début du lot, elles suivent les deux panneaux modifiés (ordre
 « Trier » puis « Filtrer » ; mode sorti du panneau de l'Optimisation),
 chacune complétée par une vérification du nouvel emplacement.
@@ -45,4 +45,4 @@ $ node scripts/spec-lint.mjs                  → aucune erreur
 $ npm run build                               → built ; ordre max-lg vérifié
 ```
 
-**Lot 11c clos le 2026-09-28** sur « ok continue » de Thomas.
+**Lot 11c clos le 2026-09-28** sur « ok continue » du mainteneur.

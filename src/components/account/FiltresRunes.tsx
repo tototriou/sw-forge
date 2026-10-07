@@ -11,7 +11,7 @@ import AncientFilter, { AncientFilter as AncientFilterValue } from './AncientFil
 // `SetFilter`, `SlotFilter`, `AncientFilter`, inchangés —, rangés sur une
 // seule ligne au lieu de trois.
 // ⚠️ **Pas de menus déroulants** : la maquette en posait trois, essayés puis
-// défaits par Thomas, d'abord pour les sets (« pas très fan d'avoir des
+// défaits par le mainteneur, d'abord pour les sets (« pas très fan d'avoir des
 // drop-down pour un set filtre dedans »), puis pour le reste (« sors tout des
 // boutons »). Un filtre fermé dans un menu ne dit pas ce qu'il filtre sans
 // qu'on l'ouvre.

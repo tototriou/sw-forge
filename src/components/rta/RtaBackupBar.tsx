@@ -302,7 +302,7 @@ export default function RtaBackupBar({
       {enMenu ? (
         // ⚠️ `BarreActions` : toutes les actions en boutons S'IL Y A LA PLACE
         // sur la ligne de l'en-tête (mesurée), sinon « Exporter » + « ⋯ » —
-        // demandé par Thomas : sur PC, ne pas cacher derrière un clic ce que
+        // demandé par le mainteneur : sur PC, ne pas cacher derrière un clic ce que
         // l'écran peut montrer.
         // Les entrées reprennent les boutons de la barre MOT POUR MOT —
         // libellés, désactivations, infobulles — à une précision près :

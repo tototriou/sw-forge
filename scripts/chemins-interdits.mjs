@@ -17,7 +17,7 @@ const DOSSIERS = ['src/lib/', 'src/hooks/', 'src/workers/', 'src/data/', 'public
 // Exceptions explicites dans ces dossiers : ce que la refonte a le droit de
 // toucher — les couleurs de section (affichage) et les notes de version (la
 // refonte y écrit sa propre entrée « Nouveautés ») ; puis les fichiers des
-// AJOUTS décidés par Thomas, nommés dans le cadrage AVANT leur code (A.2 bis,
+// AJOUTS décidés par le mainteneur, nommés dans le cadrage AVANT leur code (A.2 bis,
 // décision 14 : recherche et export des équipes de siège ; décision 19 : la
 // vue Défense des recommandations, calculée sans toucher au format exporté ;
 // décision 29 : « Annuler » restaure ce qu'on vient de retirer de la prépa RTA

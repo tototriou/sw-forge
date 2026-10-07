@@ -34,7 +34,7 @@ Fichier racine : [RtaPage.tsx](src/pages/RtaPage.tsx) · État :
    prépa »), **Exporter**, et le menu **« ⋯ » Plus d'actions** — Sauvegarder,
    Reprendre, Importer une prépa, Créer un monstre, puis, séparés en bas,
    Réinitialiser et Tout effacer. Refonte graphique, lot 6, décision 13 de
-   Thomas : ces actions s'alignaient en deux rangées de boutons au-dessus de
+   Le mainteneur : ces actions s'alignaient en deux rangées de boutons au-dessus de
    la prépa. **Quand elles tiennent sur la ligne, elles s'y affichent toutes
    en boutons** (place mesurée) — le menu ne sert que faute de place. Voir
    [sauvegarde-partage.md](sauvegarde-partage.md).

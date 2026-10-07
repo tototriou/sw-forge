@@ -69,10 +69,10 @@ export const CIBLES_EXEMPTEES: { chemin: string; dossier: boolean }[] = [
 // dossier), pas encore publiées ; l'entrée disparaît à la publication, ou
 // quand le renvoi est corrigé.
 // a-corriger : renvoi mort déjà pris en charge, à corriger ; aucune entrée nouvelle.
-// thomas : chantiers de Thomas.
+// refonte : chantiers de refonte graphique et de rebranding.
 // hors-perimetre : renvoi mort connu, sans correction prévue ; qui touche le
 // fichier le corrige et retire l'entrée.
-const PROPRIETAIRES = ['a-publier', 'a-corriger', 'thomas', 'hors-perimetre'];
+const PROPRIETAIRES = ['a-publier', 'a-corriger', 'refonte', 'hors-perimetre'];
 
 const RACINES = ['spec', 'src', 'scripts', 'tests', '.claude', '.agents'];
 // Caractères d'un chemin : lettres et marques combinantes (accent décomposé),

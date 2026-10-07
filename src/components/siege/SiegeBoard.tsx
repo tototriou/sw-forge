@@ -318,7 +318,7 @@ export default function SiegeBoard({
             // « Vérifier mes speed » vient en premier : c'est pour vérifier ses
             // équipes qu'on vient ici, on n'en ajoute qu'une de temps en temps.
             // ⚠️ **Aucune action n'est mise en avant** (pas d'aplat d'accent) :
-            // essayé sur ce bouton, Thomas l'a retiré — « ça rend pas bien ».
+            // essayé sur ce bouton, le mainteneur l'a retiré — « ça rend pas bien ».
             // Allumé, il prend le fond d'accent doux d'un bouton enclenché.
             {
               cle: 'verifier',
@@ -347,7 +347,7 @@ export default function SiegeBoard({
             },
           ]}
           autres={[
-            // Export / import d'équipes — ajout décidé par Thomas (décision 14).
+            // Export / import d'équipes — ajout décidé par le mainteneur (décision 14).
             {
               cle: 'exporter',
               libelle: 'Exporter',
@@ -413,7 +413,7 @@ export default function SiegeBoard({
       {/* ---- Recherche d'équipe par monstre (décision 14) — aux deux formats.
           Le message d'export / d'import s'affiche juste en dessous. */}
       {/* ⚠️ **Une liste de suggestions sous le champ, comme partout ailleurs**
-          (RTA, Recommandations) — demandé par Thomas : on tape, on CHOISIT un
+          (RTA, Recommandations) — demandé par le mainteneur : on tape, on CHOISIT un
           monstre dans la liste, et le filtre s'applique. Les suggestions ne
           proposent que les monstres PRÉSENTS dans les équipes de ce côté : un
           autre ne trouverait rien. Le monstre choisi devient un jeton, que sa

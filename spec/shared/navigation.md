@@ -36,7 +36,7 @@ C'est celui de [README.md](README.md), issu de l'usage : la refonte change la
 **forme** de la navigation, pas la hiérarchie.
 
 **Sur bureau, le premier niveau est REGROUPÉ** (refonte graphique, décision 5
-de Thomas, 2026-09-24 — [cadrage](../chantiers/refonte-graphique.md)) :
+du mainteneur, 2026-09-24 — [cadrage](../chantiers/refonte-graphique.md)) :
 
 ```
 Accueil
@@ -80,7 +80,7 @@ l'adresse et en déduit la page et ses sous-niveaux.
 - ⚠️ **Une sous-page inconnue retombe sur le défaut de SA section**
   (`#/compte/artefacts/courbes` → Artéfacts · Résumé, par `vueValide`) ; une
   **section inconnue** retombe sur l'accueil. Jamais d'exception.
-- ⚠️ **Garde-fou** (Thomas, 2026-10-01) : `tests/navigation-adresses.test.ts`
+- ⚠️ **Garde-fou** (le mainteneur, 2026-10-01) : `tests/navigation-adresses.test.ts`
   tient la table de toutes les adresses et de leur page. Tout lien `#/…`
   affiché par l'app doit y figurer — un lien ajouté sans y être inscrit, ou qui
   ne mène plus où la table le dit, fait échouer `npm test`.
@@ -104,7 +104,7 @@ dans un nouvel onglet ». Le type l'impose — `hash` **ou** `ouvre`, jamais les
 deux.
 
 ⚠️ **Déroulées sur place, pas un second niveau** (refonte graphique, décision
-11 de Thomas, 2026-09-24 — « le menu comme dans la maquette »). Les
+11 du mainteneur, 2026-09-24 — « le menu comme dans la maquette »). Les
 sous-sections **remplaçaient** la liste, avec un retour « ‹ Siège » en tête :
 on perdait de vue les autres sections dès qu'on entrait dans une. Déroulées
 sous leur entrée, avec un filet vertical dans l'axe de son icône, on voit à la
@@ -143,12 +143,12 @@ Sans dossier, et sur le site : la carte importe, comme ci-dessus.
 **32 px de haut**, icône **16** (18 pour les icônes d'inventaire du jeu),
 texte **14** (`text-md`, `font-medium`), rayon 8 px — le gabarit de la
 maquette. Les sous-sections : texte 13, en retrait de 36 px, **avec leur
-icône** (16) — la maquette n'en montrait pas ; Thomas les a fait remettre
+icône** (16) — la maquette n'en montrait pas ; le mainteneur les a fait remettre
 (2026-09-24) : chaque vue a la sienne, et elle se repère plus vite qu'un mot.
 ⚠️ **Le filet est UN contour gauche du bloc des sous-sections** (décalé de
 18 px, dans l'axe de l'icône parente), pas un trait dessiné dans chaque
 ligne : ainsi dessiné, il traversait le fond de la sous-section choisie et
-se coupait entre deux lignes (« fait bizarre », Thomas). Le fond de sélection
+se coupait entre deux lignes (« fait bizarre », le mainteneur). Le fond de sélection
 commence après le filet.
 
 ⚠️ **Le texte était à 13 (`text-sm`) et la colonne se lisait serrée** ; 15
@@ -181,7 +181,7 @@ et 28 du [cadrage](../chantiers/rebranding-blacksmith.md)) : enclume (Accueil),
 Offense), parchemin (Recommandations), coffre (Mon compte), pierre runique
 (Runes), grimoire griffé (Bestiaire), engrenage (Mécaniques), étincelle
 (Nouveautés), curseurs (Paramètres) ; dessinées pour l'app et choisies par
-Thomas sur planche : coupe (Arène), compagnons (Ami), œuf fêlé (Monstres),
+Le mainteneur sur planche : coupe (Arène), compagnons (Ami), œuf fêlé (Monstres),
 médaillon (Artéfacts), tenailles (Outils), compas (Optimizer), chronomètre
 (Speed tuning). Grille 24, trait 2, `currentColor`, au contrat de lucide
 (`size`, `color`). Les ACTIONS gardent lucide (importer, rechercher…).
@@ -237,13 +237,13 @@ Ce qui suit décrit le marqueur d'avant, qui reste celui du panneau mobile
   ressaisie nulle part. (Elle a longtemps été monochrome et suivait l'encre du
   libellé ; la refonte lui rend l'identité colorée de l'accueil.)
 - ⚠️ **Dans la barre latérale BUREAU, l'icône est redevenue MONOCHROME**
-  (refonte graphique, décision 3 de Thomas, 2026-09-24) : la couleur quitte
+  (refonte graphique, décision 3 du mainteneur, 2026-09-24) : la couleur quitte
   le menu et reste aux données du jeu (éléments, raretés, statuts). La barre
   bureau a ses propres sections (`groupesBureau` dans `App.tsx`), sans
   couleur ; les onglets du bas, le panneau mobile, la barre supérieure et la
   recherche gardent pour l'instant la teinte de signature — le téléphone a son
   propre lot, et l'accueil le sien. ⚠️ Les teintes de section ont été
-  **réessayées sur les icônes puis écartées** par Thomas le même jour : il
+  **réessayées sur les icônes puis écartées** par le mainteneur le même jour : il
   préfère le menu neutre. Ce qu'il voulait voir, ce sont les **groupes** —
   voir « Un filet entre les groupes » plus bas.
 ### L'état de la barre : la route, plus ce qu'on a basculé à la main
@@ -280,7 +280,7 @@ chaque changement de page.
 (décision 5) : Monstres, Runes et Artéfacts sont au premier niveau, et Runes /
 Artéfacts déroulent directement leurs vues (Résumé · Liste · Courbes ·
 Comparaison · Optimisation). **Meules et Gemmes n'y figurent plus** tant
-qu'elles sont « Bientôt » — [retrait #6] décidé par Thomas ; leurs routes et
+qu'elles sont « Bientôt » — [retrait #6] décidé par le mainteneur ; leurs routes et
 leur page restent. Ce qui suit décrit le **panneau mobile**, qui garde les
 trois niveaux (choisir l'inventaire, puis sa vue).
 
@@ -324,7 +324,7 @@ Ressources) sont séparés par un **filet pleine largeur** (`bg-border`) et
 annoncés par leur **intitulé en capitales à la couleur principale**
 (`.label text-accent` — 5,4 à 9,7:1 sur le fond, mesuré au lot 3). La
 maquette ne portait qu'un intitulé gris, sans filet : les quatre groupes se
-lisaient comme une seule liste, et Thomas a demandé (2026-09-24) qu'ils se
+lisaient comme une seule liste, et le mainteneur a demandé (2026-09-24) qu'ils se
 séparent « d'une manière plus visible ». Le reste du menu reste neutre.
 Repliée, l'intitulé disparaît et le filet raccourcit.
 
@@ -351,7 +351,7 @@ Repliée, l'intitulé disparaît et le filet raccourcit.
 
 Survoler une section refermée (RTA, Siège, Runes, Artéfacts) ouvrait un
 panneau flottant à droite de la barre, qui en listait les sous-sections.
-**Retiré** par Thomas le 2026-09-24 — [retrait #12] du cadrage de la
+**Retiré** par le mainteneur le 2026-09-24 — [retrait #12] du cadrage de la
 refonte graphique : les sous-sections se déroulent désormais sous leur
 entrée, le panneau doublait ce geste et surgissait dès qu'on traversait la
 barre. Toutes restent atteignables en déroulant la section, au clic comme
@@ -381,18 +381,18 @@ décrit ce qu'elle garde de la recherche de pages d'avant.
 - Comparaison **insensible aux accents** : « arene » doit trouver « Arène ».
 - L'indication **`Ctrl K`** à droite du champ (décision 11, la maquette). Elle
   avait été remplacée par un chevron — un raccourci qu'on lit une fois, jugé
-  encombrant ; Thomas a retenu la maquette, qui l'affiche. Le raccourci marche
+  encombrant ; le mainteneur a retenu la maquette, qui l'affiche. Le raccourci marche
   avec Ctrl comme avec ⌘.
 - ⚠️ **Un résultat a le rendu exact d'une entrée du menu** : 32 px, icône
   NEUTRE de 16, texte 14, rayon 8, voile d'encre pour le résultat choisi
   (`bg-ink/10`) et au survol (`bg-ink/5`) ; la section en contexte à droite,
-  en petit. Thomas l'a relevé (2026-09-24) : les résultats avaient gardé
+  en petit. Le mainteneur l'a relevé (2026-09-24) : les résultats avaient gardé
   l'ancien gabarit (texte 13, icônes colorées, fond `ctx-soft`) et se
   lisaient comme une autre sorte de liste.
 
 ## Palette Ctrl K
 
-Refonte graphique, lot 13, décision 29 de Thomas, la maquette (planche
+Refonte graphique, lot 13, décision 29 du mainteneur, la maquette (planche
 « Palette »). Composant `src/components/Palette.tsx`, monté une fois par
 `App.tsx`.
 
@@ -436,7 +436,7 @@ droite.
 titre centré (refonte graphique, lot 4, 2026-09-24) : le chemin du menu
 jusqu'à la page — intitulé de groupe, entrée, sous-section (« Jouer › Siège ›
 Défense », « Mon compte › Runes › Liste »), texte 13, les étapes en
-`ink-dim`, la dernière en `ink` semi-gras, sans icône. Relevé par Thomas :
+`ink-dim`, la dernière en `ink` semi-gras, sans icône. Relevé par le mainteneur :
 le titre centré en Cinzel, icône colorée, « n'est pas raccord avec le menu ».
 ⚠️ Le fil est **tiré de `groupesBureau`** (`filBureau` dans `App.tsx`),
 jamais ressaisi : il ne peut pas contredire la barre latérale. Une vue hors
@@ -582,14 +582,14 @@ s'orienter.
 
 #### ⚠️ Une LISTE, une rangée par entrée
 
-Refonte graphique, lot 11a, **décision 24** (Thomas, la maquette) : une
+Refonte graphique, lot 11a, **décision 24** (le mainteneur, la maquette) : une
 colonne de rangées au lieu d'une grille de cases encadrées.
 
 - **Historique, à ne pas perdre de vue.** Le panneau a d'abord été une liste
   à filets — « trois libellés séparés par des traits, dont on ne voyait pas où
   commençait la cible » —, puis une **grille de deux colonnes** de cases
   encadrées (`repeat(auto-fit, minmax(max(140px, calc(50% - 4px)), 1fr))`,
-  deux colonnes dès 320 px d'écran). Thomas a choisi la liste de la maquette
+  deux colonnes dès 320 px d'écran). Le mainteneur a choisi la liste de la maquette
   en connaissance de cause ; ce qui répond au défaut d'alors :
   - chaque rangée prend **toute la largeur**, sur **52 px** exactement (au-delà
     des 44 de la règle tactile) : la cible est la rangée entière, pas le
@@ -610,7 +610,7 @@ colonne de rangées au lieu d'une grille de cases encadrées.
 - La **colonne d'icône est à largeur fixe** (18 px) : sans elle les libellés se
   décalent d'une rangée à l'autre au gré de la largeur des symboles.
 - Meules et Gemmes n'y reviennent pas (la maquette les montre avec
-  « Bientôt ») : elles ont quitté le menu par décision de Thomas, [retrait #6]
+  « Bientôt ») : elles ont quitté le menu par décision du mainteneur, [retrait #6]
   du cadrage de la refonte.
 - ⚠️ La hauteur du panneau est **re-mesurée au changement de temps**
   (`mesureCle`). Elle est figée à l'ouverture pour qu'un dépliage interne ne

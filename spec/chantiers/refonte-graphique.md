@@ -11,12 +11,12 @@ pages. Les maquettes validées vivent sur la toile
 `https://claude.ai/artifact/PYnjwXTKEGSou2XCdCWegE` (pages Bureau, Téléphone,
 Système).
 
-**Principe fondateur (Thomas, 2026-09-24) : ne perdre AUCUNE information ni
+**Principe fondateur (le mainteneur, 2026-09-24) : ne perdre AUCUNE information ni
 AUCUNE fonctionnalité présente — seulement repenser leur affichage.** Tout
 ce qui s'affiche, se lit, se touche ou se déclenche aujourd'hui existe
 encore après la refonte ; seules sa forme et sa place peuvent changer.
 **Un ajout ou un retrait peut être PROPOSÉ, jamais décidé par un lot :
-c'est Thomas qui tranche**, et seule sa décision écrite dans A.2 bis
+c'est le mainteneur qui tranche**, et seule sa décision écrite dans A.2 bis
 (numérotée, datée) l'autorise.
 
 **La contrainte qui prime sur tout le reste : aucune régression.** Une
@@ -77,7 +77,7 @@ le couvre par un **test de rendu** quand l'information est exposée en sens
 (texte, `title`, `aria-label`, `disabled`), sinon par le test de la logique
 qui la calcule (ex. `siegeStatut`, déjà testé) ; ce qui ne se teste ni l'un
 ni l'autre (une couleur seule) est listé dans la preuve du lot pour que
-Thomas le regarde sur le serveur de dev :
+Le mainteneur le regarde sur le serveur de dev :
 
 - statut d'une équipe de siège (vert / orange / rouge) ;
 - vitesse saisie ≠ runes importées (`DesyncBadge`) ;
@@ -91,7 +91,7 @@ Thomas le regarde sur le serveur de dev :
 
 **Hors périmètre par défaut** : toute fonctionnalité nouvelle vue dans les
 maquettes (palette Ctrl K, liste « Reprendre », « Premiers pas »). Elle
-reste une **proposition** : elle n'entre dans un lot que si Thomas la
+reste une **proposition** : elle n'entre dans un lot que si le mainteneur la
 retient dans A.2 bis, sinon elle a son propre chantier.
 
 **Les maquettes ne sont pas exhaustives.** Elles ne montrent ni la relique,
@@ -102,7 +102,7 @@ structure** : on lui applique les tokens et les composants, rien d'autre.
 
 ### A.2 bis Décisions retenues
 
-Décisions de Thomas, **2026-09-24** (lot 1), une par point de B.1 :
+Décisions du mainteneur, **2026-09-24** (lot 1), une par point de B.1 :
 
 1. **Polices : on garde** Inter / JetBrains Mono (et Cinzel pour les
    titres, comme aujourd'hui). Pas de Geist.
@@ -111,27 +111,27 @@ Décisions de Thomas, **2026-09-24** (lot 1), une par point de B.1 :
 3. **Menu sobre retenu** : les couleurs de section (`couleursSection.ts`)
    quittent le menu et l'accueil ; la couleur reste aux données du jeu.
    *Précisée le 2026-09-24 pour le menu bureau* : les teintes de section,
-   réessayées sur les icônes, ont été écartées — Thomas préfère le menu
+   réessayées sur les icônes, ont été écartées — le mainteneur préfère le menu
    neutre. Ce qui manquait, c'était de **séparer les groupes** : un filet
    entre eux, et leur intitulé (Jouer, Mon compte…) à la couleur
    principale (accent). Un trait devant l'entrée courante, essayé entre-temps
    sur un malentendu, est retiré — « on sait déjà où on est ».
    *Précisée le 2026-09-25 pour l'accueil* : après le premier passage du
-   lot 5 (accueil neutre), Thomas : « j'aimais bien les couleurs sur la page
+   lot 5 (accueil neutre), le mainteneur : « j'aimais bien les couleurs sur la page
    d'accueil ». **L'accueil garde ses teintes de section** (tuiles d'icône,
    halos, couleurs des étapes) ; seul le menu est neutre.
 4. **Bouton principal plein retenu** : `ton="accent"` + `fond="plein"`
    devient un aplat d'accent, un seul par écran.
    *Précisée le 2026-09-26* : **pas d'action mise en avant dans les
    EN-TÊTES d'écran** (`BarreActions`). Essayé sur « Vérifier mes speed »
-   (Siège), retiré par Thomas : « ne met pas d'action en avant en fait ça
+   (Siège), retiré par le mainteneur : « ne met pas d'action en avant en fait ça
    rend pas bien ». L'aplat reste là où il est déjà (« Importer mon compte »
    de l'accueil, boutons de validation des dialogues).
 5. **Regroupement du menu retenu** : Jouer (RTA, Siège, Arène) / Mon compte
    (Monstres, Runes, Artéfacts) / Outils / Ressources — toutes les entrées
    restent.
 6. **Meules et Gemmes retirées du MENU tant qu'elles sont « Bientôt »**
-   — [retrait #6] décidé par Thomas le 2026-09-24. Leurs routes
+   — [retrait #6] décidé par le mainteneur le 2026-09-24. Leurs routes
    (`#/compte/runes/meules`, `…/gemmes`) et leur page « Bientôt » restent ;
    elles reviennent au menu quand elles seront construites.
 7. **Flèches du speed tuning : on les garde sur la ligne.**
@@ -142,7 +142,7 @@ Décisions de Thomas, **2026-09-24** (lot 1), une par point de B.1 :
 9. **Pastille de filtre active plus marquée, en couleur de l'app** :
    contour d'accent + fond d'accent à 25 % (cuivre en Forge, indigo en
    Atelier). *Amendée le 2026-09-24* : la couleur inversée d'abord retenue
-   (aplat d'encre) a été écartée par Thomas après essai — un aplat blanc en
+   (aplat d'encre) a été écartée par le mainteneur après essai — un aplat blanc en
    thème sombre.
 10. **Accueil : on garde l'accueil actuel, restylé** (héros, zone de dépôt,
     « Ton espace », comment ça marche, fonctionnalités, version). La
@@ -152,7 +152,7 @@ Décisions de Thomas, **2026-09-24** (lot 1), une par point de B.1 :
 Même forme et même portée que les dix premières ; `[retrait #n]` y est
 reconnu de la même façon (cette sous-section fait partie de A.2 bis).
 
-11. **Menu bureau comme la maquette** — demandé par Thomas le 2026-09-24,
+11. **Menu bureau comme la maquette** — demandé par le mainteneur le 2026-09-24,
     après le premier passage du lot 4 (« je veux que tu fasses le menu comme
     dans la maquette ») : repli en tête à côté du logo, carte du compte
     (nom, date d'export, nombre de monstres ; la carte importe), recherche
@@ -160,17 +160,17 @@ reconnu de la même façon (cette sous-section fait partie de A.2 bis).
     « Bientôt » sur Arène, Paramètres en pied, et surtout **les
     sous-sections se déroulent SOUS leur entrée** au lieu de remplacer la
     liste. Le bouton « ‹ Section — revenir à toutes les sections » disparaît
-    avec le second niveau qu'il remontait — [retrait #11] décidé par Thomas
+    avec le second niveau qu'il remontait — [retrait #11] décidé par le mainteneur
     le 2026-09-24 (conséquence de la demande : toutes les sections restent
     visibles, il n'y a plus de niveau à remonter). Non repris : le point
     « nouveau » sur Nouveautés, qui demanderait de suivre ce qui a été lu —
     un ajout, à décider.
 12. **Plus d'aperçu au survol** à côté du menu bureau — [retrait #12]
-    décidé par Thomas le 2026-09-24 (« supprime le popup à droite du menu
+    décidé par le mainteneur le 2026-09-24 (« supprime le popup à droite du menu
     quand on hover une section »). Les sous-sections se déroulent sous leur
     entrée : le panneau doublait ce geste. Toutes restent atteignables en
     déroulant la section, au clic comme au clavier.
-13. **RTA · Ma prépa (lot 6)** — choix de Thomas le 2026-09-25 :
+13. **RTA · Ma prépa (lot 6)** — choix du mainteneur le 2026-09-25 :
     l'**ordre de tour reste en bas**, pleine largeur (pas le panneau latéral
     de la maquette) ; les **actions passent dans un menu « ⋯ »** (maquette) —
     « Exporter » seul reste visible dans l'en-tête, Sauvegarder, Reprendre,
@@ -185,7 +185,7 @@ reconnu de la même façon (cette sous-section fait partie de A.2 bis).
     ligne de l'en-tête** (place mesurée, barre latérale comprise), le menu
     « ⋯ » seulement faute de place (`src/ui/BarreActions`).
 14. **Siège · Défense et Offense — deux AJOUTS, faits tout de suite** —
-    demandés par Thomas le 2026-09-26 (« ajoute une barre de recherche dans
+    demandés par le mainteneur le 2026-09-26 (« ajoute une barre de recherche dans
     les offenses et une fonctionnalité d'export », « idem dans les
     défenses ») ; il a choisi de les faire maintenant plutôt qu'au lot 13 :
     - **recherche par monstre** : un champ filtre les équipes qui contiennent
@@ -200,7 +200,7 @@ reconnu de la même façon (cette sous-section fait partie de A.2 bis).
     `appendTeams`, rien d'autre) — `scripts/chemins-interdits.mjs` les
     autorise nommément.
 15. **Siège · Recommandations (lot 7b) — les decks en tableau, chacun
-    dépliable en sa carte détaillée** — choix de Thomas le 2026-09-26 :
+    dépliable en sa carte détaillée** — choix du mainteneur le 2026-09-26 :
     entre « garder les cartes » et « le tableau de la maquette », il a demandé
     un mélange des deux, l'a fait mettre dans la maquette (planche « Siège ·
     Recommandations — proposition mixte »), puis « pars là-dessus ». À la
@@ -211,7 +211,7 @@ reconnu de la même façon (cette sous-section fait partie de A.2 bis).
     par deck.
 #### Décisions prises en cours de chantier (16 et suivantes)
 
-16. **Boutons unifiés dans toute l'app, au rendu de la maquette** — Thomas,
+16. **Boutons unifiés dans toute l'app, au rendu de la maquette** — le mainteneur,
     le 2026-09-26 : « il faut que les boutons soient unifiés dans
     l'application », puis « surtout, je veux le même rendu que sur la
     maquette au niveau des boutons ». Fait DANS LA LIBRAIRIE, pas écran par
@@ -230,10 +230,10 @@ reconnu de la même façon (cette sous-section fait partie de A.2 bis).
     dans une phrase, entrées de navigation, grilles d'icônes du jeu.
     Spec : [../shared/librairie-ui.md](../shared/librairie-ui.md) § Bouton.
 17. **Siège · Recommandations — « Analyser mes decks » devient un bouton à
-    deux états** : un clic analyse, un second masque le résultat (Thomas, le
+    deux états** : un clic analyse, un second masque le résultat (le mainteneur, le
     2026-09-26 : « une fois analysé, je veux que si on clique ça cache
     l'analyse »). Le libellé « Réanalyser mes decks », que le bouton prenait
-    une fois l'analyse affichée, disparaît — [retrait #17] décidé par Thomas
+    une fois l'analyse affichée, disparaît — [retrait #17] décidé par le mainteneur
     le 2026-09-26 : relancer se fait en deux clics (masquer, puis analyser),
     aucune fonction perdue. Changement de COMPORTEMENT demandé, hors du
     « affichage seulement » de la refonte. Spec :
@@ -241,40 +241,40 @@ reconnu de la même façon (cette sous-section fait partie de A.2 bis).
     avec mon compte.
 18. **Siège · Recommandations — le curseur passe au monstre suivant** : dans
     un deck ou une défense visée en édition, un monstre choisi donne le focus
-    au slot vide suivant (Thomas, le 2026-09-26 : « quand on édite une
+    au slot vide suivant (le mainteneur, le 2026-09-26 : « quand on édite une
     équipe, mets un autofocus sur le monstre suivant une fois qu'on en a
     choisi un, idem pour les défenses »). AJOUT de comportement demandé,
     fait maintenant. Fichier permis hors A.2 :
     `src/components/siege/slotVideSuivant.ts` (calcul pur, testé). Spec :
     [../siege/recommandations.md](../siege/recommandations.md) § Trois
     niveaux d'édition. **Étendue le 2026-09-27** aux équipes de Siège
-    Défense / Offense (Thomas : « ah oui fais ça ») —
+    Défense / Offense (le mainteneur : « ah oui fais ça ») —
     [../siege/equipes.md](../siege/equipes.md) § Slot vide.
 19. **Siège · Recommandations — vue Attaque / Défense à la place du filtre
-    d'origine** (Thomas, le 2026-09-26 : « au lieu du tri toutes / mes recos
+    d'origine** (le mainteneur, le 2026-09-26 : « au lieu du tri toutes / mes recos
     / importées, mets plutôt un tri attaque / défense […] je veux des
     défenses qui ont X offenses fortes contre elles, je veux que les deux
     affichages soient possibles, sans toucher au modèle exporté ou alors
     compatible »). Vue Défense : dans chaque recommandation, une ligne par
     défense visée avec les offenses qui la battent ; même leader et mêmes
     deux autres monstres = même défense ; lecture seule (on modifie en vue
-    Attaque) — trois choix de Thomas. CALCULÉE à partir des decks
+    Attaque) — trois choix du mainteneur. CALCULÉE à partir des decks
     (`src/lib/recoDefenses.ts`, fichier permis hors A.2, testé) : format
     exporté inchangé. Le filtre Toutes / Mes recos / Importées et ce qui
     n'existait que pour lui (états vides, infobulle d'export filtrée) sont
-    retirés — [retrait #19] décidé par Thomas le 2026-09-26 ; la pastille
+    retirés — [retrait #19] décidé par le mainteneur le 2026-09-26 ; la pastille
     « Importée » reste. Spec :
     [../siege/recommandations.md](../siege/recommandations.md) § Vue Défense.
 #### Décisions prises en cours de chantier (20 et suivantes)
 
 20. **Mon compte · Runes (lot 8a) — filtres en menus déroulants, ajouts
-    plus tard** — deux choix de Thomas le 2026-09-27, avant le code :
+    plus tard** — deux choix du mainteneur le 2026-09-27, avant le code :
     - À la souris, les filtres Sets / Emplacement / Antiques deviennent
       trois menus déroulants compacts, comme la maquette, plus « Effacer
       les filtres ». Chaque menu garde les MÊMES choix qu'aujourd'hui. Au
       doigt, rien ne change (lot 11).
     - **Précisée le 2026-09-27, après essai, en deux temps** : les SETS
-      d'abord ne vont pas dans un menu (Thomas : « pas très fan d'avoir des
+      d'abord ne vont pas dans un menu (le mainteneur : « pas très fan d'avoir des
       drop-down pour un set filtre dedans »), puis plus AUCUN filtre (« sors
       tout des boutons »). Les trois filtres restent visibles, sur une seule
       ligne à la souris, suivis d'« Effacer les filtres ». Le composant
@@ -289,15 +289,15 @@ reconnu de la même façon (cette sous-section fait partie de A.2 bis).
       [../compte/runes.md](../compte/runes.md) § Choix de la mesure.
 21. **Mon compte · Runes — une seule entrée de mesure dans le tri de la
     Liste** : celle du menu ⚙, qui en porte le nom (« Score » ou
-    « Efficience »). Thomas, le 2026-09-27 : « il y a Score et Efficience
+    « Efficience »). Le mainteneur, le 2026-09-27 : « il y a Score et Efficience
     mais c'est la même chose », puis « une seule entrée qui suit ⚙ ». Les
     deux entrées côte à côte permettaient aussi de classer par la mesure
     qu'on ne voit pas sur les tuiles, pour un classement presque
-    identique — [retrait #21] décidé par Thomas le 2026-09-27. Un tri
+    identique — [retrait #21] décidé par le mainteneur le 2026-09-27. Un tri
     mémorisé sur l'autre mesure suit le ⚙. Une assertion d'avant le lot
     (la liste des entrées de tri) est remplacée en conséquence. Spec :
     [../compte/runes.md](../compte/runes.md) § Tri.
-22. **Outils · Speed tuning (lot 9b)** — trois choix de Thomas le
+22. **Outils · Speed tuning (lot 9b)** — trois choix du mainteneur le
     2026-09-28, avant le code :
     - « Importer un deck de siège » reste **un par camp**, posé dans
       l'en-tête de la carte du camp à côté du lead — et non un seul en tête
@@ -310,7 +310,7 @@ reconnu de la même façon (cette sous-section fait partie de A.2 bis).
       lot 13, à décider un par un.
     Les trois tableaux, absents de la maquette, restent ; les boutons de
     chaque monstre aussi (monter / descendre, copier en face).
-23. **Ressources, Paramètres, Bientôt (lot 10)** — Thomas, le 2026-09-28,
+23. **Ressources, Paramètres, Bientôt (lot 10)** — le mainteneur, le 2026-09-28,
     avant le code : les ajouts de la maquette vont au lot 13, à décider un
     par un (stats VIT / PV / ATQ / DEF sur les cartes du bestiaire, section
     en cours surlignée dans le sommaire des Mécaniques, « Voir les
@@ -322,7 +322,7 @@ reconnu de la même façon (cette sous-section fait partie de A.2 bis).
     supprimer »).
 #### Décisions prises en cours de chantier (24 et suivantes — le téléphone)
 
-24. **Téléphone · Accueil et RTA (lot 11a)** — quatre choix de Thomas le
+24. **Téléphone · Accueil et RTA (lot 11a)** — quatre choix du mainteneur le
     2026-09-28, avant le code :
     - **Accueil** : la structure est GARDÉE, resserrée au doigt (comme la
       décision 10 au bureau) — pas la liste groupée de la maquette, qui
@@ -340,7 +340,7 @@ reconnu de la même façon (cette sous-section fait partie de A.2 bis).
     haut (la palette Ctrl K, déjà décidée), les pastilles de filtre par
     catégorie avec compteurs en tête de la RTA, les compteurs Monstres /
     Runes / Artéfacts de l'accueil.
-25. **Téléphone · Siège (lot 11b)** — trois choix de Thomas le 2026-09-28,
+25. **Téléphone · Siège (lot 11b)** — trois choix du mainteneur le 2026-09-28,
     avant le code :
     - **Équipes** : les trois monstres restent CÔTE À CÔTE (une équipe tient
       en une carte basse, on en parcourt vingt) — pas les rangées de la
@@ -352,7 +352,7 @@ reconnu de la même façon (cette sous-section fait partie de A.2 bis).
       s'ouvrant au toucher — comme le tableau du bureau (décision 15).
     Le filtre « Toutes / Mes recos / Importées » de la maquette est ignoré :
     retiré par la décision 19.
-26. **Téléphone · Mon compte (lot 11c)** — quatre choix de Thomas le
+26. **Téléphone · Mon compte (lot 11c)** — quatre choix du mainteneur le
     2026-09-28, avant le code :
     - **Résumés** (runes, artéfacts) : les chiffres clés dans UNE carte sur
       deux colonnes — les six gardés, la maquette n'en montrait que quatre —,
@@ -362,7 +362,7 @@ reconnu de la même façon (cette sous-section fait partie de A.2 bis).
       été posée sans l'historique de `compte/runes.md` (« Pas de panneau
       « Options » ici ») : c'était déjà fait puis défait, la page ne portant
       plus qu'un graphe et deux réglages. Redemandé avec cet historique,
-      Thomas les garde dans la page.
+      Le mainteneur les garde dans la page.
     - **Optimisation** : « Gemme + meule / Meule seule » sort du panneau,
       sur la page, en tête.
     - **Panneau « Filtrer mes runes »** : deux blocs intitulés « Filtrer » et
@@ -371,7 +371,7 @@ reconnu de la même façon (cette sous-section fait partie de A.2 bis).
     runes · Swift, Violent · Tri : Score SW ↓ »), le bouton « Voir N runes »
     qui ferme le panneau.
 27. **Téléphone · Speed tuning, Ressources, Paramètres, Bientôt (lot
-    11d)** — Thomas, le 2026-09-28, avant le code : les Mécaniques (sections
+    11d)** — le mainteneur, le 2026-09-28, avant le code : les Mécaniques (sections
     à filet, **sommaire gardé** — la maquette le retirait), les Nouveautés
     (versions à filet) et les Paramètres (blocs « Réglages » et « Mes
     données ») prennent AU DOIGT le rendu posé au bureau au lot 10, qui est
@@ -385,7 +385,7 @@ reconnu de la même façon (cette sous-section fait partie de A.2 bis).
     notification « Annuler » remplace : leurs titres (« Retirer … de ta
     prépa ? », « Supprimer l'équipe … ? », « Supprimer ce deck ? »,
     « Supprimer cette recommandation ? ») et leurs messages — [retrait #29]
-    décidé par Thomas le 2026-09-28.
+    décidé par le mainteneur le 2026-09-28.
 
 **Ajouts décidés** (point 7 bis) : palette de recherche Ctrl K (à partir de
 la recherche de pages existante, « Rechercher une page (⌘K) »), indicateur
@@ -396,7 +396,7 @@ hors A.2.
 
 Forme d'une décision de retrait, et **seulement** dans cette section :
 `[retrait #<n>]` sur la ligne de la décision, avec la date et « décidé par
-Thomas ». `scripts/lib/inventaire-comparer.mjs` ne reconnaît que cette
+Le mainteneur ». `scripts/lib/inventaire-comparer.mjs` ne reconnaît que cette
 forme, dans cette section ; un `deplacements.json` qui cite un numéro
 absent d'ici est refusé.
 
@@ -422,7 +422,7 @@ regrouper, changer la forme. Un élément déplacé reste atteignable en un
 geste explicite, et sa nouvelle place est écrite (`deplacements.json`).
 Un lot qui juge qu'un ajout ou un retrait améliorerait l'écran **le
 propose** dans son rapport (quoi, pourquoi, ce qui serait perdu ou
-gagné) ; Thomas décide ; la décision s'écrit dans A.2 bis avant qu'un
+gagné) ; le mainteneur décide ; la décision s'écrit dans A.2 bis avant qu'un
 lot l'applique.
 
 ### A.4 Catégories de lots, modèles et efforts
@@ -464,16 +464,16 @@ lot l'applique.
 - **Vérification échouée → pas de commit.** On corrige la cause, jamais la
   vérification. Une entrée d'inventaire qui disparaît de son fichier n'est
   acceptée que si elle est **déplacée** : sa nouvelle place est écrite
-  dans `deplacements.json` (lot 0) et on l'y retrouve — ou si Thomas a
+  dans `deplacements.json` (lot 0) et on l'y retrouve — ou si le mainteneur a
   décidé son retrait (A.2 bis, numéro cité dans `deplacements.json`).
   Aucun autre cas.
 - **Cas ambigu → on conserve le comportement actuel**, on écrit
   `<!-- À trancher -->` dans la section du lot, on pose la question à
-  Thomas. Jamais de retrait « parce que la maquette ne le montre pas ».
+  Le mainteneur. Jamais de retrait « parce que la maquette ne le montre pas ».
 - **Écart entre maquette et règle de spec** → la règle gagne, l'écart va
   dans le rapport du lot.
 - **Les fonctionnalités se prouvent par des TESTS, jamais par des captures
-  d'écran** (Thomas, 2026-09-24 : « je veux les mêmes fonctionnalités, pas
+  d'écran** (le mainteneur, 2026-09-24 : « je veux les mêmes fonctionnalités, pas
   la même chose au pixel près » ; « crée des tests unitaires si tu veux
   contrôler de ne rien perdre »). Deux mécanismes : l'inventaire (statique,
   tout le code) et les **tests de rendu** (`tests/rendu/`, par écran). Une
@@ -485,7 +485,7 @@ lot l'applique.
   base, ils décrivent ce qui existe. Il refait ensuite l'affichage ; ils
   doivent rester verts. Un test qu'il faudrait modifier pour passer = une
   fonctionnalité perdue, sauf déplacement déclaré (on met à jour le chemin
-  pour la retrouver, jamais l'assertion) ou retrait décidé par Thomas.
+  pour la retrouver, jamais l'assertion) ou retrait décidé par le mainteneur.
 
 ### A.6 bis Preuves — où elles vivent, sous quelle forme
 
@@ -513,8 +513,8 @@ Notation **`A → B` : B requiert A** (prérequis à gauche).
 
 Ordre d'exécution : 0 → 1 → 2 → 3 → 4 → 5 → 6 → 7a → 7b → **14** → 8a → 8b
 → 9b → 10 → 9a → 11 → 13 → 12. (Le lot 14 est ajouté le 2026-09-26, à la
-demande de Thomas ; placé après 7b pour ne pas couper un lot d'écran en cours.)
-**9a reporté après 10** (Thomas, 2026-09-28 : « saute l'Optimizer, on le fera
+demande du mainteneur ; placé après 7b pour ne pas couper un lot d'écran en cours.)
+**9a reporté après 10** (le mainteneur, 2026-09-28 : « saute l'Optimizer, on le fera
 à la fin, j'attends une livraison sur cette partie-là ») : l'écran va changer
 par un autre travail, le refaire avant serait à refaire. Il reste un
 prérequis du lot 11 (`{5 … 10, 14} → 11`) : si la livraison n'est pas là
@@ -523,27 +523,27 @@ quand 11 commence, le téléphone de l'Optimizer attend 9a, le reste avance.
 | Lot | Cat. | Statut | Commit / date |
 | --- | --- | --- | --- |
 | 0 garde-fous : inventaire, chemins interdits, tests de rendu | C | exécuté | 2026-09-24 |
-| 1 décisions retenues (avec Thomas) | J | exécuté | 2026-09-24 |
+| 1 décisions retenues (avec le mainteneur) | J | exécuté | 2026-09-24 |
 | 2 tokens : rayons, texte sur accent | J | exécuté | 2026-09-24 |
 | 3 `src/ui/` : rendu interne, API inchangée | J | exécuté | `837efc0` (tests avant), 2026-09-24 |
-| 4 coquille bureau : barre latérale, barre du haut | J | exécuté, validé (bureau) | `a68260a` (tests avant), `b4ecf52`, second passage `7887b6b` (décision 11), ajustements `f285763`…`79066a8` ; validé par Thomas le 2026-09-25 |
-| 5 Accueil | J | exécuté, validé | `b5a0418` (tests avant), `4ebcf70`, couleurs remises `834ad3a` ; validé par Thomas le 2026-09-25 |
-| 6 RTA | J | exécuté, validé (bureau) | `ef35074` (tests avant), `1ef4103` (Menu), `501699a`, `ca0d435`, hauteurs `b5bf247`, `BarreActions` `4121a71` + `1c05c06` ; validé par Thomas le 2026-09-26 |
-| 7a Siège · Défense et Offense | J | exécuté, validé (bureau) | `553a709` (pastille), `f637bba`, `a39c836` (en-tête), ajustements `7587749`…`e3e00cf` ; validé par Thomas le 2026-09-26 |
-| 7b Siège · Recommandations | J | exécuté, validé (bureau) | `40cd2d8` (tests avant), `cddede4` (décision 15), `439dfa6` (tableau), `f04845c` (en-tête), ajustements `c06d36d`…`4b40d07` (décisions 16 à 19) ; validé par Thomas le 2026-09-27 |
-| 14 thème clair (Atelier) : revoir les tokens | J | exécuté, validé | `03fbe84` (tokens), `85f3c9e` (teintes claires de l'accueil) ; fonds, bordures « intermédiaires » et encres de la maquette, accent indigo gardé (choix de Thomas) ; preuve `lot-14.md` ; validé par Thomas le 2026-09-27 |
-| 8a Compte · Runes | J | exécuté, validé (bureau) | tests avant `dd0151b` (114) ; décisions 20 et 21 ; 8a-1 filtres (`f010f55`…`d310592`), 8a-2 Résumé et Liste (`84e07ed`, `989f8f5`), 8a-3 Courbes, Comparaison, Optimisation (`8dd9dba`), bulles de l'app (`c87c8f1`, `aaaac28`, `c094446`) ; validé par Thomas le 2026-09-27 |
-| 8b Compte · Monstres, Artéfacts | J | exécuté, validé (bureau) | tests avant `bb30d06` (59) ; décision 20 reprise ; box (`2227712`, `aee4db2`, `6c35a1b`), artéfacts (`ec5ec31`), tests (`2498f8b`) ; validé par Thomas le 2026-09-28 |
-| 9a Outils · Optimizer | J | **clos, sans changement de rendu** (rebranding, décisions 64 et 65, 2026-10-03) | tests avant `c3910f40` (68) ; export `98d50547` ; preuve [lot-9a.md](refonte-graphique-preuves/lot-9a.md) ; validé par Thomas (« ok ») | attend une livraison sur l'Optimizer (Thomas, 2026-09-28). ⚠️ Emporte aussi le renommage `swforge-optimizer-…` → `swblacksmith-optimizer-…` (`OptimizerSection.tsx`), différé par le R2 du rebranding (décision 14) pour ne pas entrer en conflit avec cette livraison |
-| 9b Outils · Speed tuning | J | exécuté, validé (bureau) | tests avant `f5cc897` (48) ; décision 22 (`f3c1715`) ; écran (`0f5e4c8`, `0e7a69a`) ; une assertion recomptée (import 2 → 4) ; validé par Thomas le 2026-09-28 |
-| 10 Ressources, Paramètres, Bientôt | J | exécuté, clos (bureau) | tests avant `96b74e9` (81) ; décision 23 (`6f90edd`) ; Bestiaire `cf11209`, Mécaniques `9779379`, Nouveautés `c99c99c`, Paramètres `9c7da0c` ; deux assertions assouplies (titre en tête) ; clos sur « continue » de Thomas le 2026-09-28 |
+| 4 coquille bureau : barre latérale, barre du haut | J | exécuté, validé (bureau) | `a68260a` (tests avant), `b4ecf52`, second passage `7887b6b` (décision 11), ajustements `f285763`…`79066a8` ; validé par le mainteneur le 2026-09-25 |
+| 5 Accueil | J | exécuté, validé | `b5a0418` (tests avant), `4ebcf70`, couleurs remises `834ad3a` ; validé par le mainteneur le 2026-09-25 |
+| 6 RTA | J | exécuté, validé (bureau) | `ef35074` (tests avant), `1ef4103` (Menu), `501699a`, `ca0d435`, hauteurs `b5bf247`, `BarreActions` `4121a71` + `1c05c06` ; validé par le mainteneur le 2026-09-26 |
+| 7a Siège · Défense et Offense | J | exécuté, validé (bureau) | `553a709` (pastille), `f637bba`, `a39c836` (en-tête), ajustements `7587749`…`e3e00cf` ; validé par le mainteneur le 2026-09-26 |
+| 7b Siège · Recommandations | J | exécuté, validé (bureau) | `40cd2d8` (tests avant), `cddede4` (décision 15), `439dfa6` (tableau), `f04845c` (en-tête), ajustements `c06d36d`…`4b40d07` (décisions 16 à 19) ; validé par le mainteneur le 2026-09-27 |
+| 14 thème clair (Atelier) : revoir les tokens | J | exécuté, validé | `03fbe84` (tokens), `85f3c9e` (teintes claires de l'accueil) ; fonds, bordures « intermédiaires » et encres de la maquette, accent indigo gardé (choix du mainteneur) ; preuve `lot-14.md` ; validé par le mainteneur le 2026-09-27 |
+| 8a Compte · Runes | J | exécuté, validé (bureau) | tests avant `dd0151b` (114) ; décisions 20 et 21 ; 8a-1 filtres (`f010f55`…`d310592`), 8a-2 Résumé et Liste (`84e07ed`, `989f8f5`), 8a-3 Courbes, Comparaison, Optimisation (`8dd9dba`), bulles de l'app (`c87c8f1`, `aaaac28`, `c094446`) ; validé par le mainteneur le 2026-09-27 |
+| 8b Compte · Monstres, Artéfacts | J | exécuté, validé (bureau) | tests avant `bb30d06` (59) ; décision 20 reprise ; box (`2227712`, `aee4db2`, `6c35a1b`), artéfacts (`ec5ec31`), tests (`2498f8b`) ; validé par le mainteneur le 2026-09-28 |
+| 9a Outils · Optimizer | J | **clos, sans changement de rendu** (rebranding, décisions 64 et 65, 2026-10-03) | tests avant `c3910f40` (68) ; export `98d50547` ; preuve [lot-9a.md](refonte-graphique-preuves/lot-9a.md) ; validé par le mainteneur (« ok ») | attend une livraison sur l'Optimizer (le mainteneur, 2026-09-28). ⚠️ Emporte aussi le renommage `swforge-optimizer-…` → `swblacksmith-optimizer-…` (`OptimizerSection.tsx`), différé par le R2 du rebranding (décision 14) pour ne pas entrer en conflit avec cette livraison |
+| 9b Outils · Speed tuning | J | exécuté, validé (bureau) | tests avant `f5cc897` (48) ; décision 22 (`f3c1715`) ; écran (`0f5e4c8`, `0e7a69a`) ; une assertion recomptée (import 2 → 4) ; validé par le mainteneur le 2026-09-28 |
+| 10 Ressources, Paramètres, Bientôt | J | exécuté, clos (bureau) | tests avant `96b74e9` (81) ; décision 23 (`6f90edd`) ; Bestiaire `cf11209`, Mécaniques `9779379`, Nouveautés `c99c99c`, Paramètres `9c7da0c` ; deux assertions assouplies (titre en tête) ; clos sur « continue » du mainteneur le 2026-09-28 |
 | 11a Téléphone · Accueil, RTA | J | exécuté, clos | tests avant `8d2552b` (37, `auTelephone`) ; décision 24 (`8ab9ebf`) ; barre `8ce6f6b`, panneau `e249feb`, accueil `96a1e5e`, RTA `54049bf` ; 9 titres attendus suivent la barre ; clos sur « ok continue » le 2026-09-28 |
 | 11b Téléphone · Siège | J | exécuté, clos | tests avant `9a421af` (30) ; décision 25 (`29f33f1`) ; interrupteur `afc5e8e`, decks `220ab28` ; une assertion suit le panneau ; clos sur « ok continue » le 2026-09-28 |
 | 11c Téléphone · Mon compte | J | exécuté, clos | tests avant `17c0ffb` (23) ; décision 26 (`74b1cb4`, corrigée `0b19997`) ; panneau runes `170861d`, Optimisation `8597bb6`, résumés `7bb9787` ; deux assertions suivent les panneaux ; clos sur « ok continue » le 2026-09-28 |
-| 11d Téléphone · Speed tuning, Ressources, Paramètres, Bientôt | J | exécuté, clos | tests avant `e89fc4d` (15) ; décision 27 (`c2b2f3c`) ; Mécaniques `baecb4e`, Nouveautés `a381111`, Paramètres `c9436c2`, Speed tuning `a7da34e` (retour de Thomas) ; clos sur « ok continue » le 2026-09-28 |
+| 11d Téléphone · Speed tuning, Ressources, Paramètres, Bientôt | J | exécuté, clos | tests avant `e89fc4d` (15) ; décision 27 (`c2b2f3c`) ; Mécaniques `baecb4e`, Nouveautés `a381111`, Paramètres `c9436c2`, Speed tuning `a7da34e` (retour du mainteneur) ; clos sur « ok continue » le 2026-09-28 |
 | 11e Téléphone · Optimizer | J | **clos, sans changement de rendu** (rebranding, décision 65) | le panneau « Options » couvert par `testRenduTelephoneOptimizer` (`c3910f40`) |
 | 13 ajouts décidés : palette Ctrl K, « Sauvegardé il y a … », « Annuler » | J | exécuté, clos | décisions 28 et 29 ; Effacer les filtres `41b5cb0`, filtre RTA `3b8ca2f`, indicateur `9123d0b`, restauration `3a47356`, Annuler `6e0294a`, palette `6384885` ; clos sur « ok » le 2026-09-28 |
-| 12 validation finale et fusion | M | en cours, **sans 9a ni 11e** | Thomas, 2026-09-28 : attendre l'Optimizer (livraison attendue), puis le rebranding « SW Blacksmith », fait sur cette même branche ([rebranding-blacksmith.md](rebranding-blacksmith.md)) — une seule validation finale, une seule fusion. ⚠️ **2026-09-30, Thomas : « saute la partie Optimizer »** — 9a et 11e sortent de la branche et deviennent un chantier à part après la fusion (rebranding, décisions 61 à 63 : version 2.0.0, PR vers `main`) |
+| 12 validation finale et fusion | M | en cours, **sans 9a ni 11e** | Le mainteneur, 2026-09-28 : attendre l'Optimizer (livraison attendue), puis le rebranding « SW Blacksmith », fait sur cette même branche ([rebranding-blacksmith.md](rebranding-blacksmith.md)) — une seule validation finale, une seule fusion. ⚠️ **2026-09-30, le mainteneur : « saute la partie Optimizer »** — 9a et 11e sortent de la branche et deviennent un chantier à part après la fusion (rebranding, décisions 61 à 63 : version 2.0.0, PR vers `main`) |
 
 ## Partie B — les lots
 
@@ -571,7 +571,7 @@ quand 11 commence, le téléphone de l'Optimizer attend 9a, le reste avance.
    entrée présente dans `main` n'est absente de l'arbre fusionné.
 3. `spec/chantiers/refonte-graphique-preuves/deplacements.json` — vide au
    départ : `{ "<entrée>": { "de": "<fichier>", "vers": "<fichier>" } }`,
-   ou `{ "de": "<fichier>", "retrait": "A.2 bis #<n>" }` quand Thomas a
+   ou `{ "de": "<fichier>", "retrait": "A.2 bis #<n>" }` quand le mainteneur a
    décidé le retrait — la vérification refuse un numéro absent de A.2 bis.
    *Ajout du lot 4* : `"devient": "<entrée>"` quand l'entrée change de
    NATURE sans disparaître (une entrée cliquable devenue titre de groupe) ;
@@ -611,17 +611,17 @@ de rendu du siège : 36 vérifications vertes ; « Tout effacer » renommé dans
 le vrai composant → le test échoue en nommant le bouton perdu.
 
 *Amendement (2026-09-24)* : le point 6 prévoyait des captures d'écran de
-chaque route ; faites puis **abandonnées sur décision de Thomas** au profit
+chaque route ; faites puis **abandonnées sur décision du mainteneur** au profit
 des tests de rendu (A.6). Script et images supprimés.
 
-### B.1 Lot 1 — décisions retenues · J (avec Thomas)
+### B.1 Lot 1 — décisions retenues · J (avec le mainteneur)
 
 **Intrant** : les maquettes (toile), l'inventaire du lot 0, `design.md` et
 `navigation.md` par sections (`spec-toc`).
 
 **Sortie** : A.2 bis rempli — une ligne numérotée par changement proposé,
 avec « retenu / écarté », la règle de spec qu'il touche, et pour tout
-ajout ou retrait **la décision de Thomas, datée**. Par défaut (sans
+ajout ou retrait **la décision du mainteneur, datée**. Par défaut (sans
 réponse), on garde l'existant. Points déjà identifiés comme **à trancher**
 (les maquettes s'écartent de l'existant) :
 
@@ -631,10 +631,10 @@ réponse), on garde l'existant. Points déjà identifiés comme **à trancher**
 4. `Bouton` `accent` + `plein` devient un aplat plein ;
 5. regroupement de la barre latérale (Jouer, Mon compte, Outils, Ressources) ;
 6. **proposition de retrait** : Meules et Gemmes ôtées du menu bureau tant
-   qu'elles sont « Bientôt » (gain de hauteur). Sans décision de Thomas :
+   qu'elles sont « Bientôt » (gain de hauteur). Sans décision du mainteneur :
    elles restent, sous une forme compacte (repli, marque « Bientôt ») ;
 7. **proposition de retrait** : flèches monter/descendre de la ligne du
-   speed tuning. Sans décision de Thomas : elles restent accessibles, au
+   speed tuning. Sans décision du mainteneur : elles restent accessibles, au
    besoin déplacées (menu « … » de la ligne) ;
 7 bis. **propositions d'ajout** : palette Ctrl K, indicateur « Sauvegardé
    il y a … », notification avec « Annuler ». Sans décision : hors
@@ -649,7 +649,7 @@ panneau Options) ne sont pas retenus : on garde ceux de l'app.
 
 **Ne fait pas** : aucun code.
 
-**Résultat (2026-09-24)** — les dix points tranchés par Thomas, recopiés dans
+**Résultat (2026-09-24)** — les dix points tranchés par le mainteneur, recopiés dans
 A.2 bis. Écarts aux maquettes à retenir par les lots suivants : polices
 inchangées (1), accueil actuel conservé (10). Un seul retrait, [retrait #6]
 (Meules et Gemmes hors du menu, routes conservées). Trois ajouts, isolés au
@@ -706,7 +706,7 @@ inversé dans une constante `MARQUEUR_FILTRE_ACTIF`. **Écart au périmètre
 « `src/ui/` seulement »** : `SetFilter`, `SlotFilter` et `FilterBar`
 importent ce marqueur — sinon des filtres voisins auraient porté deux
 marqueurs différents (règle de design.md). Comptes d'appels identiques.
-À regarder par Thomas : les icônes de set actives en thème sombre.
+À regarder par le mainteneur : les icônes de set actives en thème sombre.
 
 ### B.4 Lot 4 — coquille bureau · J
 
@@ -726,7 +726,7 @@ n'y était décidé). Premier changement de NATURE d'une entrée d'inventaire :
 `deplacements.json` gagne le champ `devient`.
 
 **Second passage (2026-09-24)** — décision 11, « le menu comme dans la
-maquette ». Le contrat « même logique de niveau » est levé par Thomas : les
+maquette ». Le contrat « même logique de niveau » est levé par le mainteneur : les
 sous-sections se déroulent sous leur entrée (la page ne change toujours
 qu'au choix d'une destination) ; carte du compte en tête, `Ctrl K`,
 Paramètres en pied, badge « Bientôt ». Un retrait, [retrait #11] (le retour
@@ -734,7 +734,7 @@ de second niveau). Assertions des tests d'avant inchangées, 14 ajoutées ;
 deux contrôles de source de `navigation.test.ts` suivent le mécanisme.
 Détail dans la preuve.
 
-**Ajustements et validation (2026-09-24 → 25)** — huit demandes de Thomas
+**Ajustements et validation (2026-09-24 → 25)** — huit demandes du mainteneur
 après essai, un commit chacune (`f285763`…`79066a8`, tableau dans la
 preuve) : icônes des sous-sections gardées, teintes de section écartées
 (décision 3 précisée), groupes séparés par un filet et un intitulé en
@@ -770,9 +770,9 @@ contrat pour tous :
 cartes de la refonte, bouton plein (décision 4), « Comment ça marche » en
 une carte. Un changement de nature (bouton → `libelle`), aucune perte.
 Premier passage en icônes neutres ; **couleurs remises** à la demande de
-Thomas le 2026-09-25 (décision 3 précisée : accueil coloré, menu neutre) —
+Le mainteneur le 2026-09-25 (décision 3 précisée : accueil coloré, menu neutre) —
 tuiles à la teinte de la section, halos, couleurs des étapes, mêmes valeurs
-qu'avant le lot. Validé par Thomas le 2026-09-25.
+qu'avant le lot. Validé par le mainteneur le 2026-09-25.
 
 **Résultat lot 6 — RTA (2026-09-25)** — preuve
 [lot-6.md](refonte-graphique-preuves/lot-6.md). Décision 13 prise avant de
@@ -784,7 +784,7 @@ sans cadre et cartes de la refonte (`ca0d435`). Aucune perte, aucun
 déplacement : la disposition mobile garde tous les libellés. Ajustements
 après essai : « Exporter » et « ⋯ » à la même hauteur (`b5bf247`) ; sur PC,
 toutes les actions en boutons quand elles tiennent (`src/ui/BarreActions`,
-place mesurée — `4121a71`, `1c05c06`). **Validé par Thomas le 2026-09-26.**
+place mesurée — `4121a71`, `1c05c06`). **Validé par le mainteneur le 2026-09-26.**
 
 **Lot 7 scindé (2026-09-26)** — ~5 200 lignes, dont 3 600 pour les
 Recommandations : **7a** Défense et Offense (`SiegeBoard`, `SiegeTeam`),
@@ -793,23 +793,23 @@ Recommandations : **7a** Défense et Offense (`SiegeBoard`, `SiegeTeam`),
 **Résultat lot 7a — Siège · Défense et Offense (2026-09-26)** — preuve
 [lot-7a.md](refonte-graphique-preuves/lot-7a.md). Tests d'avant (lot 0)
 verts sans changement. Pastille de statut écrite (décision 8, libellés
-choisis par Thomas, `pastilleStatut.ts` testé), fond coloré du thème clair
+choisis par le mainteneur, `pastilleStatut.ts` testé), fond coloré du thème clair
 retiré (`553a709`) ; en-tête bureau par `BarreActions`, comme la RTA
 (`a39c836`), avec « Vérifier mes speed » en action principale à la demande de
-Thomas ; axes `principal` / `actif` dans la librairie (`f637bba`). Fonctions
+Le mainteneur ; axes `principal` / `actif` dans la librairie (`f637bba`). Fonctions
 nouvelles de la maquette non faites. Aucune perte. Dix ajustements après
 essai, un commit chacun (`7587749`…`e3e00cf`, tableau dans la preuve) :
 aucune action mise en avant (décision 4 précisée), cartes resserrées et
 grille selon la place, édition réorganisée (flèches ← → en haut, lignes
 alignées, saisie puis conclusion, reclic pour enlever un tick, « Off »
-masqué à la souris). **Validé par Thomas le 2026-09-26, sur bureau.**
+masqué à la souris). **Validé par le mainteneur le 2026-09-26, sur bureau.**
 
 **Ajouts de la décision 14 (2026-09-26), faits dans la foulée du 7a** —
 spec avant le code (`b11a922`), logique `lib/siegeShare` + `appendTeams`
 (`6ef0e24`, test `siege-partage`), écran : recherche, Exporter, Importer
 (`bb69a00`), recherche en liste de suggestions comme ailleurs (`0e0e891`).
 Fichiers hors A.2 limités à ceux nommés par la décision ; chemins interdits
-vides. Validé par Thomas (« ok »).
+vides. Validé par le mainteneur (« ok »).
 
 **Résultat lot 7b — Siège · Recommandations (2026-09-26)** — preuve
 [lot-7b.md](refonte-graphique-preuves/lot-7b.md). Tests avant `40cd2d8`
@@ -819,25 +819,25 @@ planche « proposition mixte » ajoutée à la maquette : à la souris, les deck
 en tableau (offense avec sets visés, fort contre, verdict), la carte
 détaillée d'avant sous une ligne dépliée (`439dfa6`) ; en-tête par
 `BarreActions` (`f04845c`). Aucune perte. Puis onze ajustements demandés par
-Thomas (`c06d36d`…`4b40d07`, tableau dans la preuve), dont les décisions 16
+Le mainteneur (`c06d36d`…`4b40d07`, tableau dans la preuve), dont les décisions 16
 (boutons de toute l'app au gabarit de la maquette, dans `src/ui/`), 17
 (« Analyser » à deux états, [retrait #17]), 18 (curseur au monstre suivant)
 et 19 (vue Attaque / Défense à la place du filtre d'origine, [retrait #19]).
 Tests d'avant le lot inchangés, sauf les trois du filtre retiré. **Validé
-par Thomas le 2026-09-27.**
+par le mainteneur le 2026-09-27.**
 
 #### Lot 8a — Mon compte · Runes
 
 **Découpage, écrit AVANT le code (2026-09-27).** L'intrant fait environ 4 000 lignes de composants, 1 136
 de spec (`spec/compte/runes.md`, lue par sections) et cinq planches de
 maquette. C'est trop pour un seul passage sans dégrader les derniers
-écrans. Trois sous-lots, dans cet ordre, chacun validé par Thomas avant le
+écrans. Trois sous-lots, dans cet ordre, chacun validé par le mainteneur avant le
 suivant :
 - **8a-1 — les filtres** (décision 20, précisée) : `SetFilter`,
   `SlotFilter`, `AncientFilter` visibles sur UNE ligne à la souris, plus
   « Effacer les filtres ». Ils sont partagés par la Liste, les Courbes et
   l'Optimisation. Les menus déroulants de la maquette ont été essayés,
-  puis défaits par Thomas.
+  puis défaits par le mainteneur.
 - **8a-2 — Résumé et Liste** : le Résumé en barres et tableaux (planche
   « Résumé ») ; l'en-tête, le tri et la pagination de la Liste. Les
   tuiles, rendus du jeu, sont seulement placées.
@@ -866,11 +866,11 @@ Ils valent pour les trois sous-lots.
 Tests d'avant inchangés, sauf un, remplacé par la décision 21. Tests
 ajoutés : 21 vérifications, 135 au total. Aucune perte. Non repris, pour le
 lot 13 : les ajouts de la décision 20 et le plan d'optimisation dans chaque
-carte. **Validé par Thomas le 2026-09-27.**
+carte. **Validé par le mainteneur le 2026-09-27.**
 
 **Résultat lot 8b — Mon compte · Monstres et Artéfacts (2026-09-28)** —
 preuve [lot-8b.md](refonte-graphique-preuves/lot-8b.md). Décision 20
-reprise telle quelle, annoncée à Thomas avant le code.
+reprise telle quelle, annoncée au mainteneur avant le code.
 - **Box** : en-tête « Ma box » ; une barre unique essayée puis défaite
   (« ça va pas ») ; état final en trois lignes : recherche, filtres, puis
   le tri « à la suite des filtres » avec la pagination.
@@ -879,16 +879,16 @@ reprise telle quelle, annoncée à Thomas avant le code.
 
 Tests d'avant inchangés ; 3 vérifications ajoutées, 62 au total. Aucune
 perte. Non ajouté, pour le lot 13 : « Effacer les filtres » hors des runes.
-**Validé par Thomas le 2026-09-28.**
+**Validé par le mainteneur le 2026-09-28.**
 
 **Résultat lot 9b — Outils · Speed tuning (2026-09-28)** — preuve
 [lot-9b.md](refonte-graphique-preuves/lot-9b.md). Décision 22 avant le
 code. À la souris : titre au gabarit des pages, import de deck en tête de
 chaque camp (en-tête sur deux lignes dans les deux camps, après un retour
-de Thomas), ordre de tour sous l'analyse. Tests avant `f5cc897` (48) ; une
+du mainteneur), ordre de tour sous l'analyse. Tests avant `f5cc897` (48) ; une
 assertion recomptée, import 2 → 4 (une copie par format). Aucune perte.
 Hors refonte, noté : le mode RTA (1,5 % par tick), chantier à ouvrir.
-**Validé par Thomas le 2026-09-28.**
+**Validé par le mainteneur le 2026-09-28.**
 
 **Résultat lot 10 — Ressources, Paramètres, Bientôt (2026-09-28)** — preuve
 [lot-10.md](refonte-graphique-preuves/lot-10.md). Décision 23 avant le code.
@@ -898,7 +898,7 @@ deux blocs intitulés. Aux deux formats, les derniers contrôles dessinés à la
 main de ces pages passent sur la librairie. Tests avant `96b74e9` (81) ;
 deux assertions assouplies (« contient » : le titre de page passe en tête).
 Aucune perte. Reportés, hors refonte : deux textes de la page Mécaniques
-(`spec/mecaniques.md`). **Clos sur « continue » de Thomas le 2026-09-28.**
+(`spec/mecaniques.md`). **Clos sur « continue » du mainteneur le 2026-09-28.**
 
 ### B.11 Lot 11 — téléphone · J
 
@@ -907,9 +907,9 @@ mobile s'appliquent tels quels (panneau de sous-sections, bouton Options,
 pas de sous-onglets dans la page). Tous les tests de rendu restent verts.
 Se coordonne avec la passe responsive (A.5).
 
-**Découpage, décidé avec Thomas le 2026-09-28, avant le code** — même
+**Découpage, décidé avec le mainteneur le 2026-09-28, avant le code** — même
 raison que les lots bureau : 23 maquettes téléphone (`Mobile-*` sur la
-toile) et tous les écrans. Un sous-lot par zone, chacun validé par Thomas
+toile) et tous les écrans. Un sous-lot par zone, chacun validé par le mainteneur
 avant le suivant :
 
 - **11a** Accueil et RTA (`Mobile-Accueil`, `Mobile-Rta`, `Mobile-Rta-Ami`,
@@ -923,17 +923,17 @@ avant le suivant :
 
 Pour chacun, comme B.5 à B.10 : **premier commit** = tests de rendu de la
 zone au format téléphone (panneaux « Options » ouverts, `menuOuvert`), sur
-le code actuel ; décisions de maquette soumises à Thomas avant le code ;
+le code actuel ; décisions de maquette soumises au mainteneur avant le code ;
 preuve `lot-11x.md`. ⚠️ **Rien de ce qui est fait à la souris ne bouge** :
 une correction destinée au téléphone passe par les variantes sous `lg`
 (`max-lg:`, `lg:hidden`), jamais par une classe sans préfixe partagée avec
 le bureau.
 
-**Validation** : Thomas regarde en **mode appareil du navigateur**, sur son
+**Validation** : Le mainteneur regarde en **mode appareil du navigateur**, sur son
 serveur de dev habituel.
 
 **Branches voisines (A.5), relevé du 2026-09-28** : `forge/edition-json`
-(App.tsx, accueil, page Outils) est **abandonnée pour l'instant** (Thomas) —
+(App.tsx, accueil, page Outils) est **abandonnée pour l'instant** (le mainteneur) —
 elle ne bloque pas 11a ; c'est elle qui s'adaptera à sa reprise.
 `forge/implementation-relique` touche l'Optimizer (d'où 11e après 9a) et
 `MonsterGear.tsx` : avant 11a, vérifier si l'écran RTA le monte, et le
@@ -945,7 +945,7 @@ Les trois ajouts de A.2 bis (palette Ctrl K, « Sauvegardé il y a … »,
 notification « Annuler »). **Seul lot autorisé à ajouter du comportement.**
 
 **Candidats repoussés par la décision 20** (Runes, 2026-09-27), à décider
-un par un avec Thomas avant d'entrer dans ce lot :
+un par un avec le mainteneur avant d'entrer dans ce lot :
 - recherche texte de propriété dans la Liste (« VIT ≥ 20 ») ;
 - pagination numérotée ;
 - courbe par set et « Ajouter un set » ;
@@ -969,9 +969,9 @@ un par un avec Thomas avant d'entrer dans ce lot :
 - Téléphone (décision 26) : ligne de résumé en tête des listes (compte,
   filtres posés, tri), bouton « Voir N runes » qui ferme le panneau.
 
-Ils ne sont pas décidés : sans accord de Thomas, ils ne se construisent pas.
+Ils ne sont pas décidés : sans accord du mainteneur, ils ne se construisent pas.
 
-**Décision 28 (Thomas, 2026-09-28) — ce qui est retenu parmi ces
+**Décision 28 (le mainteneur, 2026-09-28) — ce qui est retenu parmi ces
 candidats** :
 - **Retenus** : « Effacer les filtres » dans la box et la liste
   d'artéfacts ; au téléphone, les pastilles de filtre par catégorie en tête
@@ -981,7 +981,7 @@ candidats** :
   comparaison, « Voir l'optimisation », plan dans chaque carte, tous ceux du
   Speed tuning et des Ressources, compteurs de l'accueil, ligne de résumé des
   listes, « Voir N runes ». (Pour deux groupes, la réponse a été « Autre »
-  sans précision : lue comme « aucun », dit à Thomas.)
+  sans précision : lue comme « aucun », dit au mainteneur.)
 - Les trois ajouts de A.2 bis restent décidés.
 
 **Fichiers permis hors A.2 pour les deux ajouts retenus** : aucun — ils ne
@@ -989,7 +989,7 @@ touchent que des composants d'écran (`AccountPage.tsx`, `ArtifactsList.tsx`,
 `components/rta/`) ; si un calcul de logique devait naître, il passerait par
 ici d'abord.
 
-**Décision 29 (Thomas, 2026-09-28) — le périmètre des trois ajouts de A.2
+**Décision 29 (le mainteneur, 2026-09-28) — le périmètre des trois ajouts de A.2
 bis**, avant leurs specs :
 - **Palette Ctrl K** : pages, **monstres** (ouvre leur fiche) et
   **actions** — importer mon compte ; thème auto / clair / sombre ; créer
@@ -1029,7 +1029,7 @@ verts.
 
 ### B.14 Lot 14 — thème clair (Atelier) · J
 
-Ajouté le 2026-09-26 à la demande de Thomas : « ajoute un lot pour revoir le
+Ajouté le 2026-09-26 à la demande du mainteneur : « ajoute un lot pour revoir le
 thème clair, il faut revoir ça ». Exécuté après 7b, avant les écrans
 restants (A.7).
 
@@ -1037,15 +1037,15 @@ restants (A.7).
 Forge ; `tailwind.config.js`), `spec/shared/design.md` § Tokens et
 § Contraste (par `spec-toc`), le thème clair de la maquette (`css.txt` de la
 toile, `.sf[data-theme=light]`), et la **liste des défauts relevés par
-Thomas** — rien d'autre.
+Le mainteneur** — rien d'autre.
 
 **Déroulé** :
 1. **Relevé, avant tout code** : un tableau token par token — valeur de l'app,
-   valeur de la maquette, écart — et les défauts vus par Thomas (lui demander
+   valeur de la maquette, écart — et les défauts vus par le mainteneur (lui demander
    ce qui le gêne, écran par écran s'il le faut). Premier écart déjà vu : le
    fond de page de l'app (`--bg` `223 227 237`, `#DFE3ED`, un gris-bleu
    soutenu) contre `#F6F6F8` dans la maquette.
-2. Les valeurs retenues sont **proposées à Thomas** (le tableau, avec les
+2. Les valeurs retenues sont **proposées au mainteneur** (le tableau, avec les
    contrastes), puis appliquées.
 3. Chaque couple texte / fond et contour / fond du thème clair est **mesuré**
    (WCAG : 4,5:1 pour le texte, 3:1 pour un contour ou une icône porteuse de
@@ -1070,7 +1070,7 @@ précisée) — seulement leur lisibilité sur le nouveau fond, mesurée.
 
 **Résultat lot 14 — thème clair (2026-09-27)** — preuve
 [lot-14.md](refonte-graphique-preuves/lot-14.md). Relevé app / maquette, puis
-deux choix de Thomas : bordures « intermédiaires », accent indigo gardé.
+deux choix du mainteneur : bordures « intermédiaires », accent indigo gardé.
 Changent, dans le bloc clair seulement :
 - depuis la maquette : `bg` (`#DFE3ED` → `#F6F6F8`), `panel2`, `border-soft`,
   les trois encres (neutres) et `warn-soft` ;
@@ -1088,15 +1088,15 @@ Aucune ligne `--forge-*` touchée. Contrastes mesurés :
 `design.md` : la colonne Atelier est réalignée sur le code, dont elle avait
 décroché. Défaut préexistant relevé par la mesure : les couleurs de section
 de l'accueil, des hex fixes pensés pour le sombre, passent sous 3:1 en clair
-(neuf sur douze). D'abord listé, il est corrigé à la demande de Thomas
+(neuf sur douze). D'abord listé, il est corrigé à la demande du mainteneur
 (« effectivement pas très lisible ») : une variante claire par couleur
 (`TEINTE_CLAIRE`, ≥ 3,2:1), choisie en CSS selon le thème ; l'accueil
-seulement, la navigation du téléphone relève du lot 11. **Validé par Thomas
+seulement, la navigation du téléphone relève du lot 11. **Validé par le mainteneur
 le 2026-09-27.**
 
 ### B.12 Lot 12 — validation finale · M
 
 `npm test` complet (inventaire et tous les tests de rendu compris), `tsc`,
 build ; relecture des déplacements déclarés et des retraits décidés
-(A.2 bis) ; Thomas vérifie sur le serveur de dev ce qui ne se teste pas
+(A.2 bis) ; le mainteneur vérifie sur le serveur de dev ce qui ne se teste pas
 (liste des preuves de zone) ; fusion.

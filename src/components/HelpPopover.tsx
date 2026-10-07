@@ -66,7 +66,7 @@ export default function HelpPopover({
 
       {/* À la SOURIS : bulle ancrée au bouton, qui choisit son côté. */}
       {/* ⚠️ **Rembourrée, bornée en hauteur, titre détaché** (refonte
-          graphique, lot 8a — Thomas, capture de « Comment est-ce calculé ? » :
+          graphique, lot 8a — le mainteneur, capture de « Comment est-ce calculé ? » :
           « ça ne rend pas bien, l'infobulle ») :
           - `rembourrage="md"` : `FlottantAuto` n'en pose aucun par défaut (il
             sert aussi aux LISTES, dont les entrées touchent le bord), et le

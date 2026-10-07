@@ -103,7 +103,7 @@ Les axes se **choisissent séparément et se combinent** :
 > d'accent, texte `accent-ink` (blanc en Atelier, fond sombre en Forge —
 > mesurés, `design.md` § Accent). **Un seul par écran** : l'action qu'on vient
 > faire. Il valait `accent-soft` comme `doux` jusqu'à la refonte graphique
-> (décision 4 de Thomas, 2026-09-24) — l'app n'avait aucun bouton principal
+> (décision 4 du mainteneur, 2026-09-24) — l'app n'avait aucun bouton principal
 > qui ressorte. `BoutonGroupe` suit la même règle.
 >
 > ⚠️ Corollaire : **ne jamais peindre un fond en `className`.** Le composant ne
@@ -268,7 +268,7 @@ type est la seule façon de ne plus avoir à y penser.
   ⚠️ **À CADRE à la souris** (`.btn-secondary` : fond `panel`, contour
   `border`, survol `panel2` ; `danger` : contour et texte `bad`, survol
   `bad-soft`) — un bouton à libellé posé parmi d'autres boutons à libellé
-  doit leur ressembler. Nu, il ne ressortait pas (Thomas, 2026-09-27).
+  doit leur ressembler. Nu, il ne ressortait pas (le mainteneur, 2026-09-27).
 
 ### Composants à part entière
 
@@ -277,7 +277,7 @@ quand elles tiennent sur la ligne, sinon les actions `toujours` + un `Menu`
 « ⋯ »** pour les `autres`. Les entrées sont les mêmes `ElementMenu` dans les
 deux formes (libellé, icône, désactivation et raison, `danger` rangé en
 dernier derrière un filet) : aucune action n'existe que dans l'une. Demandé par
-Thomas (RTA, lot 6) : « sur PC, afficher ces boutons si on a la place ».
+Le mainteneur (RTA, lot 6) : « sur PC, afficher ces boutons si on a la place ».
 ⚠️ **La place se MESURE** : une copie invisible et `inert` de la rangée complète
 est comparée à la largeur disponible, à chaque redimensionnement. Un point de
 rupture fixe se tromperait — la place dépend aussi de la barre latérale
@@ -290,14 +290,14 @@ bouton à deux états (`aria-pressed`, fond d'accent enclenché), qui devient un
 entrée à cocher (`menuitemcheckbox`) s'il tombe dans le menu.
 ⚠️ **Pas d'axe « principal »** : aucune action n'est mise en avant dans un
 en-tête d'écran. Un aplat d'accent a été essayé sur « Vérifier mes speed » et
-retiré par Thomas (« ça rend pas bien ») — décision 4 précisée.
+retiré par le mainteneur (« ça rend pas bien ») — décision 4 précisée.
 
 **`Menu`** — un bouton « ⋯ » (nommé par `libelle`) qui ouvre sous lui,
 ancrée à droite, une liste d'actions (`Flottant`, `role="menu"`).
 ⚠️ **Le « ⋯ » a la hauteur des boutons d'EN-TÊTE, 36 px au doigt, 32 px à
 la souris** (`HAUTEUR_EN_TETE`, exportée ; 32 = un bouton `md`, décision 16) — pas les 28 px d'un `BoutonIcone` : posé à côté
 d'un bouton d'action (« Exporter » dans la RTA), il faisait deux hauteurs
-voisines, lues comme deux familles de boutons (relevé par Thomas). Les
+voisines, lues comme deux familles de boutons (relevé par le mainteneur). Les
 boutons voisins s'y alignent en reprenant la constante. C'est un `Bouton`
 carré dimensionné, pas un `BoutonIcone` dont on écraserait le `h-7` : deux
 hauteurs dans la même classe, l'ordre de la feuille de style trancherait. Chaque entrée : icône, libellé, `disabled` + `title` pour dire
@@ -322,7 +322,7 @@ dessine pas cochée d'elle-même : l'appelant met la coche en icône.
 
 ⚠️ **Pas de `Deroulant` (filtre fermé dans un menu)** : ajouté au lot 8a pour
 les filtres des runes (la maquette), puis retiré le même jour, sans autre
-usage — Thomas n'a voulu aucun filtre fermé dans un menu (« sors tout des
+usage — le mainteneur n'a voulu aucun filtre fermé dans un menu (« sors tout des
 boutons »). Un filtre fermé ne dit pas ce qu'il filtre sans qu'on l'ouvre.
 Voir spec/compte/runes.md § Filtrer par set.
 
@@ -411,7 +411,7 @@ fois.
 > rassemble, là où trois surbrillances se liraient comme trois natures de filtre.
 > Ce marqueur est la **couleur d'accent teintée** (contour d'accent, fond
 > `accent-soft` — le « braise sombre » de la toile depuis le rebranding,
-> décision 20, sans sa coche ; refonte graphique, décision 9 de Thomas,
+> décision 20, sans sa coche ; refonte graphique, décision 9 du mainteneur,
 > 2026-09-24 — la couleur inversée, essayée d'abord, a été écartée) et vit dans une constante
 > exportée, `MARQUEUR_FILTRE_ACTIF` : les filtres qui ne passent pas par
 > `Pastille` (sets, emplacements, étoiles du Bestiaire) l'importent, pour porter
@@ -517,7 +517,7 @@ gardant la surface ancrée à ce qui l'a ouverte.
 > de `Flottant` : il sert aussi aux LISTES, dont les entrées touchent le bord.
 > Un TEXTE posé dedans demande donc `rembourrage="md"` — la bulle d'aide
 > `HelpPopover` l'oubliait, son texte collait au cadre (lot 8a de la refonte,
-> capture de Thomas). Un texte LONG demande aussi une hauteur bornée avec
+> capture du mainteneur). Un texte LONG demande aussi une hauteur bornée avec
 > défilement (`max-h-[…] overflow-y-auto`), sans quoi il sort de l'écran par
 > le bas. `HelpPopover` pose les deux, et détache son titre (13 px, filet
 > dessous) du corps (12 px).

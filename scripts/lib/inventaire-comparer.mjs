@@ -14,7 +14,7 @@
 //     FORME on la retrouve quand elle a changé de nature sans disparaître —
 //     ex. `prop:label:Mon compte` (entrée cliquable) devenue
 //     `prop:titre:Mon compte` (titre de groupe) ;
-//   - son retrait a été DÉCIDÉ par Thomas : `{ de, retrait: "A.2 bis #<n>" }`
+//   - son retrait a été DÉCIDÉ par le mainteneur : `{ de, retrait: "A.2 bis #<n>" }`
 //     ET le numéro figure dans A.2 bis sous la forme `[retrait #<n>]`.
 // Une entrée NOUVELLE est toujours acceptée : ajouter n'efface rien.
 

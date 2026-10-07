@@ -3,13 +3,13 @@
 **Statut :** CHANTIER en cours — branche forge/refonte-graphique
 
 Cadrage : [refonte-graphique.md](../refonte-graphique.md), section B.5 à B.10.
-Décisions appliquées (A.2 bis) : 13 (choix de Thomas pour la RTA), 1
+Décisions appliquées (A.2 bis) : 13 (choix du mainteneur pour la RTA), 1
 (Cinzel pour les titres), 4 (bouton principal), 9 et le reste du
 vocabulaire des lots 2 et 3.
 
 ## Décision 13, prise avant de coder
 
-Quatre questions posées à Thomas (la maquette changeait la structure) :
+Quatre questions posées au mainteneur (la maquette changeait la structure) :
 
 | Question | Réponse |
 |---|---|

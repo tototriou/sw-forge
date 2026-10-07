@@ -160,7 +160,7 @@ les coups. La forme d'une piste et des relevés en jeu est celle de
   Demon Art (Nezuko) ou Immortal Wings (Vermilion Bird Dancer), Flow
   (Chow), Full of Spirit (Byungchul), Cursed Body (Karakum), Magic Arrow
   (Ardella, critique), Bite (Shumar), S1 de Kamatau, de Gamir, de
-  GingerBrave ou Thomas. Massacre :
+  GingerBrave ou le mainteneur. Massacre :
   PV de la cible 100, 50, 25 %. VIT sans puis avec buff : Summary Justice
   (cible plus lente), Spear of Thunder (`23415`, Asbolus, cible plus
   rapide). Born to Fight (Lucas), premier tour puis bouclier affiché.

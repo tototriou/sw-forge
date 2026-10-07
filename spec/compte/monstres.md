@@ -272,11 +272,11 @@ filtre ne s'explique pas.
 
 ⚠️ **À la SOURIS, trois lignes fixes** (refonte graphique, lot 8b) : la
 recherche à largeur fixe (288 px), puis élément · Nat, Doublons, 2A sur une
-ligne, puis **le tri à la suite des filtres** (Thomas : « mets l'ordre à la
+ligne, puis **le tri à la suite des filtres** (le mainteneur : « mets l'ordre à la
 suite des filtres »), sur la ligne de la pagination, calée à droite. Cette
 ligne reste là sans résultat ni seconde page : le tri ne disparaît jamais
 avec les données. Une barre unique a été essayée puis défaite
-par Thomas : à 1 000 px, elle écrasait la recherche et renvoyait le tri seul
+par le mainteneur : à 1 000 px, elle écrasait la recherche et renvoyait le tri seul
 à la ligne. Les filtres restent **visibles**, pas
 dans des menus : même choix que pour les runes (décision 20 du cadrage
 [../chantiers/refonte-graphique.md](../chantiers/refonte-graphique.md)). Au

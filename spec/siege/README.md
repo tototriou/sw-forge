@@ -34,7 +34,7 @@ persistance : voir [recommandations.md](recommandations.md).
      qu'on vient ici, on n'en ajoute qu'une de temps en temps. Bouton à deux
      états : fond d'accent doux quand il est allumé (`aria-pressed`).
    - ⚠️ **Aucune action mise en avant** (pas d'aplat d'accent dans l'en-tête) :
-     essayé sur « Vérifier mes speed », retiré par Thomas le 2026-09-26 — « ça
+     essayé sur « Vérifier mes speed », retiré par le mainteneur le 2026-09-26 — « ça
      rend pas bien ». Voir la décision 4 précisée.
    - « Créer un monstre » est **en dernier des actions** : c'est le geste le plus
      rare.
@@ -55,13 +55,13 @@ persistance : voir [recommandations.md](recommandations.md).
 
 ### Recherche d'équipe par monstre
 
-Ajout décidé par Thomas le 2026-09-26 (refonte graphique, décision 14).
+Ajout décidé par le mainteneur le 2026-09-26 (refonte graphique, décision 14).
 
 - Un champ **« Nom du monstre… »** sous l'en-tête, aux deux formats, avec
   **une liste de suggestions sous le champ**, comme les autres recherches de
   monstre de l'app (RTA, Recommandations — `MonsterPicker`) : on tape, on
   **choisit** un monstre, et seules les équipes qui le contiennent restent
-  affichées. Demandé par Thomas : la première version filtrait à chaque
+  affichées. Demandé par le mainteneur : la première version filtrait à chaque
   frappe, sans liste — pas comme ailleurs.
 - ⚠️ **Les suggestions ne proposent que les monstres PRÉSENTS dans les équipes
   de ce côté** : un autre monstre ne trouverait aucune équipe.
@@ -78,7 +78,7 @@ Ajout décidé par Thomas le 2026-09-26 (refonte graphique, décision 14).
 
 ### Exporter et importer des équipes
 
-Ajout décidé par Thomas le 2026-09-26 (décision 14). Logique :
+Ajout décidé par le mainteneur le 2026-09-26 (décision 14). Logique :
 [siegeShare.ts](src/lib/siegeShare.ts), testée par
 [tests/siege-partage.test.ts](tests/siege-partage.test.ts). 100 % local.
 

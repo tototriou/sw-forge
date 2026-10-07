@@ -3,7 +3,7 @@
 **Statut :** CHANTIER en cours — branche forge/refonte-graphique
 
 Cadrage : [refonte-graphique.md](../refonte-graphique.md), section B.5 à
-B.10. Décision appliquée (A.2 bis) : **22**, trois choix de Thomas avant le
+B.10. Décision appliquée (A.2 bis) : **22**, trois choix du mainteneur avant le
 code — import de deck un par camp, en tête de carte ; Ordre des sorts |
 Analyse, puis Ordre de tour remonté avant les tableaux ; ajouts de la
 maquette au lot 13.
@@ -30,16 +30,16 @@ par un effet qui ne tourne pas en rendu serveur ; `src/hooks/` est interdit
 rendu seulement (`avecEtat`). Les kits ne se chargent pas non plus : le
 contenu de l'analyse reste couvert par `tests/speed-tune.test.ts`.
 
-## Le lot, puis les retours de Thomas
+## Le lot, puis les retours du mainteneur
 
-| Commit | Quoi | Retour de Thomas |
+| Commit | Quoi | Retour du mainteneur |
 |---|---|---|
 | `f3c17153` | décision 22 écrite dans le cadrage, avant le code | — |
 | `0f5e4c85` | à la souris : titre au gabarit des autres pages ; « Importer un deck de siège » dans l'en-tête de chaque camp ; ordre de tour sous l'analyse | capture : « ça ne va pas, il faut que le rendu soit le même » — « Ton équipe » passait à la ligne, pas « En face » |
 | `0e7a69ab` | en-tête des deux camps sur deux lignes : titre, puis lead et import calés à droite | « ça me va » |
 
 Rien n'est retiré. **Une assertion d'avant le lot change**, signalée à
-Thomas : le compte des boutons d'import passe de 2 à 4 (une copie par
+Le mainteneur : le compte des boutons d'import passe de 2 à 4 (une copie par
 format, une seule visible) ; le sens, un import par camp, reste.
 
 Non fait : les deux camps en grille à deux colonnes (la maquette). La spec
@@ -59,5 +59,5 @@ $ node scripts/spec-lint.mjs                  → aucune erreur
 $ npm run build                               → built ; classes lg: émises
 ```
 
-**Lot 9b validé par Thomas le 2026-09-28** (« ça me va »).
+**Lot 9b validé par le mainteneur le 2026-09-28** (« ça me va »).
 Téléphone non regardé (lot 11).

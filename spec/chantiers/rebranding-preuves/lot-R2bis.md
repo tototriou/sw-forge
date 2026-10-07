@@ -8,7 +8,7 @@ décisions 24 à 26 (A.8). Scripts du scratchpad : `r2bis-planche.mjs`,
 
 ## 1. L'intrant
 
-Une image envoyée par Thomas pendant le R3a : l'enclume blanche surmontée d'un
+Une image envoyée par le mainteneur pendant le R3a : l'enclume blanche surmontée d'un
 cristal de braise à deux facettes et de deux éclats, le nom en linéale large
 et capitales espacées, la devise « Analyse · Optimise · Progresse », des
 variantes sombre, claire et monochrome, favicon 512 et 32. Elle n'existe qu'en
@@ -21,7 +21,7 @@ pointes (il rejoint le cou vers y = 77), cou court, pied large ; cristal en
 losange étiré à deux facettes ; deux éclats en pointe vers l'extérieur.
 Premier jet trop fin (plateau en lame), corrigé avant de le montrer.
 
-Planche montrée à Thomas AVANT la pose :
+Planche montrée au mainteneur AVANT la pose :
 [lot-R2bis-planche.png](lot-R2bis-planche.png) — le symbole en Forge et en
 Atelier, en icône, en 32 et 16 px, et le nom dans six linéales. Réponses :
 **« Oui, pose-le »** ; police du nom **Saira 700**.
@@ -81,7 +81,7 @@ light 360 px : héros 2 ligne(s), tient ; page sans défilement latéral
 - La **fidélité du dessin** au-delà de l'œil : les tracés sont relevés sur un
   rendu, pas repris d'une source.
 - Le favicon dans un **vrai onglet**, et l'aperçu Discord (après déploiement).
-  ⚠️ **Confirmé ensuite par Thomas** (« tu as oublié le favicon non ? ») :
+  ⚠️ **Confirmé ensuite par le mainteneur** (« tu as oublié le favicon non ? ») :
   l'onglet montrait l'ANCIEN. Le fichier était bien neuf, mais à la même
   adresse, et les navigateurs gardent un favicon en cache à part, même au
   rechargement forcé. Corrigé par une adresse versionnée (`?v=2`) dans

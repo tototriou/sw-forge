@@ -1143,7 +1143,7 @@ function Application() {
   // siennes, à partir des MÊMES constantes (libellés, routes) — seule la
   // présentation diffère.
   //
-  // Décisions de Thomas (spec/chantiers/refonte-graphique.md, A.2 bis) :
+  // Décisions du mainteneur (spec/chantiers/refonte-graphique.md, A.2 bis) :
   // - 3 : icônes MONOCHROMES — la couleur de section quitte le menu, la couleur
   //   reste aux données du jeu ;
   // - 5 : premier niveau regroupé — Jouer (RTA, Siège, Arène), Mon compte
@@ -1766,7 +1766,7 @@ function Application() {
         )}
 
         {/* ⚠️ **Le pied de page de la toile : UNE rangée** (rebranding R4 —
-            Thomas : « le pied de page commence à être vraiment gros »). Il
+            Le mainteneur : « le pied de page commence à être vraiment gros »). Il
             empilait cinq lignes centrées en police à chasse fixe. Au bureau :
             logo à gauche, mentions au centre, liens à droite. Au téléphone,
             une colonne centrée : logo, liens sur UNE ligne (libellés courts
@@ -1806,7 +1806,7 @@ function Application() {
           </div>
           {/* Signature : projet perso, code ouvert, et un contact direct pour les
               questions ou les demandes particulières.
-              ⚠️ Au bureau, les trois liens EN COLONNE (Thomas : « met sur une
+              ⚠️ Au bureau, les trois liens EN COLONNE (le mainteneur : « met sur une
               colonne le github la version et le discord ») ; au téléphone, sur
               une ligne, inchangé. Le BLOC se cale à droite (`justify-self-end`),
               mais ses lignes s'alignent à GAUCHE (`items-start`) : alignées à

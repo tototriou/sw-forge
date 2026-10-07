@@ -133,15 +133,6 @@ qui n'en touche qu'un a de bonnes chances d'en avoir oublié un autre :
       un champ qui réalise une piste l'en retire ; une variante écartée
       s'écrit en une ligne « ne pas… parce que… » dans la spec du
       mécanisme.
-- [ ] **Les notes privées du responsable du chantier**, s'il en tient
-      (jamais un fichier du dépôt, jamais un chemin cité ici) : la piste
-      réalisée rejoint leur archive des pistes, avec un pointeur vers la
-      section « Suite — » de l'historique ; l'historique, narration
-      chronologique en plusieurs fichiers thématiques, reçoit une section
-      `## Suite — <titre>` dans le fichier le plus proche du sujet (ne PAS
-      en créer un nouveau sauf si aucun existant ne convient), avec le
-      POURQUOI (signalement, problème rencontré, arbitrage), pas seulement
-      le QUOI.
 
 ## Vérification
 

@@ -3,14 +3,12 @@
 **Statut :** ÉTAT ACTUEL — décrit les conditions livrées par l’audit des dégâts
 **Lire si :** on modifie une condition ou un correctif issu de l’audit des dégâts
 **Ne pas lire si :** on qualifie le reliquat encore non implémenté de l’audit
-**Voir aussi :** spec/outils/degats-reels/passifs-offensifs.md, spec/outils/optimizer/archive/audit-degats-conditionnels-2026-09-08/
+**Voir aussi :** spec/outils/degats-reels/passifs-offensifs.md, spec/outils/degats-reels/pistes.md, spec/outils/degats-reels/pistes-stats-et-modificateurs.md
 
 ## Audit des dégâts conditionnels — partie 1
 
-La livraison du 9 septembre 2026 ajoute les clauses recensées dans le
-[suivi d’audit](../optimizer/archive/audit-degats-conditionnels-2026-09-08/suivi-implementation.md).
-Les nouvelles saisies de `DamageSetup` restent optionnelles pour préserver les
-anciennes recettes : nombres de buffs sur la cible et sur soi, puis scénario
+Les saisies conditionnelles de `DamageSetup` restent optionnelles pour
+préserver les anciennes recettes : nombres de buffs sur la cible et sur soi, puis scénario
 de poses réussies entre les coups. Un scénario absent ou inactif ne suppose
 aucune réussite.
 
@@ -58,8 +56,7 @@ vivants est toujours borné de 1 à 4.
 
 ## Audit des dégâts conditionnels — partie 2
 
-Le [périmètre exact](../optimizer/archive/audit-degats-conditionnels-2026-09-08/partie-2.md)
-ajoute les PV propres actuels/manquants, le nombre d'alliés et d'ennemis
+Cette partie ajoute les PV propres actuels/manquants, le nombre d'alliés et d'ennemis
 vivants, les comparaisons de PV/ATQ/DEF/VIT, les statistiques acquises en
 combat, les seuils d'ignore DEF et les critiques garantis conditionnels.
 Chaque grandeur provenant du build est recalculée pour chaque candidat.

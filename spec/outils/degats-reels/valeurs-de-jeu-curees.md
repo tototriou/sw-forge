@@ -1,14 +1,11 @@
 # Dégâts réels — valeurs de jeu curées
 
 **Statut :** ÉTAT ACTUEL — valeurs de jeu fournies par l'utilisateur (joueur) pour le calcul des dégâts réels, chacune avec sa source
-**Lire si :** on modélise ou on corrige une mécanique de jeu dont la valeur ne vient pas de la donnée SWARFARM, ou un commentaire de code cite « A.2 ter »
+**Lire si :** on modélise ou on corrige une mécanique de jeu dont la valeur ne vient pas de la donnée SWARFARM
 **Ne pas lire si :** on cherche comment le calcul applique une valeur (voir les autres fichiers de `degats-reels/`)
 **Voir aussi :** spec/outils/degats-reels.md, spec/outils/degats-reels/formules-et-combat.md
 
-Le titre ci-dessous garde l'identifiant « A.2 ter », que le code et les
-tests citent.
-
-## Les valeurs de jeu — curées, avec leur source (ex-A.2 ter)
+## Les valeurs de jeu — curées, avec leur source
 
 **Les valeurs ci-dessous sont fournies.** Elles viennent de l'utilisateur
 (joueur), le 2026-09-23, sauf mention contraire. Elles ne sont pas à redemander.

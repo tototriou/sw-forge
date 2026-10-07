@@ -256,7 +256,7 @@ change pas ; posé après le coup qui le pose, l'effet ne majore que les coups
 suivants (sort seul, DEF cible 1 500 : ×1,455 pour Cichlid, ×1,682 pour les
 Brise DEF du coup 1, ×1,188 pour Weakness Shot, ×1,125 pour Eivor). Le
 sélecteur propose toujours tous les rangs, y compris un coup qui ne pose rien ;
-ne proposer que les coups qui posent l'effet (Cichlid : A.2 ter, « Crushed
+ne proposer que les coups qui posent l'effet (Cichlid : [valeurs curées](valeurs-de-jeu-curees.md), « Crushed
 Hopes de Cichlid ») reste à coder
 ([pistes.md § Poses entre les coups : rang, buff posé par le sort, Eightfold](pistes.md)).
 Les autres effets de ces sorts
@@ -285,7 +285,7 @@ pose entre les coups. Test : `testSuiteDuSortVoitLesPosesP4b`.
 Trois S3 dont la fiche porte `formule: ""` reçoivent la formule de leur
 « compétence auxiliaire » (`other_skill`) de l'API SWARFARM, vérifiée à la
 source (la valeur de l'API vaut par défaut, sauf si la prose la contredit :
-A.2 ter, « Valeurs connues par l'API seule ») :
+[valeurs curées](valeurs-de-jeu-curees.md), « Valeurs connues par l'API seule ») :
 
 | Sort · identifiant · formes | Formule (auxiliaire) | Portée retenue | Note |
 | --- | --- | --- | --- |
@@ -299,12 +299,12 @@ garde « formule vide » de `skillDamageProfile` porte sur la formule
 (sinon ces trois sorts ne seraient pas proposés), comme pour un passif : une fiche à formule vide sans formule curée reste sans profil.
 Devenus le dernier sort calculable, ils sont aussi le sort par défaut de ces
 monstres. Hors périmètre : les sorts « Horn » des Anges jumeaux (forme de
-soutien sans dégât : A.2 ter, « Anges jumeaux »), qui restent sans profil. Test :
+soutien sans dégât : [valeurs curées](valeurs-de-jeu-curees.md), « Anges jumeaux »), qui restent sans profil. Test :
 `testDegatsFormulesApi` (`node tests/run.mjs formulesapi`).
 
 ## Portée corrigée par la prose (`PORTEE_CORRIGEE_PAR_ID`)
 
-Règle (A.2 ter, « Valeurs connues par l'API seule ») : la donnée vaut par
+Règle ([valeurs curées](valeurs-de-jeu-curees.md), « Valeurs connues par l'API seule ») : la donnée vaut par
 défaut, sauf si la prose la contredit. La table `PORTEE_CORRIGEE_PAR_ID` remplace `Competence.aoe` dans le
 profil du sort (`skillDamageProfile`) ; la seule conséquence calculée est la
 ligne d'artéfact 224 (« D.CRIT+ comp cib uniq pdt tour »), qui ne porte que sur
@@ -379,7 +379,7 @@ Test : `testDegatsCoupsSaisis`
 
 ### Coups en plus sous condition
 
-D'après la règle « seuil → interrupteur » (A.2 ter, « Seuil de PV : un
+D'après la règle « seuil → interrupteur » ([valeurs curées](valeurs-de-jeu-curees.md), « Seuil de PV : un
 interrupteur ») : un coup en plus qui ne dépend que d'une
 **condition** se règle par un **interrupteur**, pas par un compteur. Il est
 **éteint par défaut** (le minimum, comme pour toute plage) et l'allumer

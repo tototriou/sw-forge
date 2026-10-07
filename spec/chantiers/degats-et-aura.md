@@ -24,7 +24,7 @@ archivé dans les notes privées du projet.
 
 | Section citée | Place publique |
 | --- | --- |
-| A.2 ter — valeurs de jeu curées | [valeurs-de-jeu-curees.md](../outils/degats-reels/valeurs-de-jeu-curees.md), titre « (ex-A.2 ter) » |
+| A.2 ter — valeurs de jeu curées | [valeurs-de-jeu-curees.md](../outils/degats-reels/valeurs-de-jeu-curees.md), titre « Les valeurs de jeu — curées, avec leur source » |
 | A.2 — cible (« cible 2 » : auras dans `statsDebutCombat` et les conditions) | [effets-equipe-et-leaders.md](../outils/degats-reels/effets-equipe-et-leaders.md), « Sets d'aura d'équipe — modèle » |
 | A.4 — catégories de lots → modèle et effort | journal archivé |
 | A.5 — branche, notes privées, verrous d'`ouvrir` | journal archivé |

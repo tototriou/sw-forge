@@ -68,7 +68,7 @@ trois passifs encaisserait le bonus quatre fois.
 
 Un passif choisi lui-même comme sort (Tempest seul, `SkillDamageProfile.passif`)
 garde ce profil sans 411 : il frappe toujours après le S1 ou le S2 qui le
-déclenche (A.2 ter, « Artéfact 411 » : « jamais sur Tempest, même
+déclenche ([valeurs curées](valeurs-de-jeu-curees.md), « Artéfact 411 » : « jamais sur Tempest, même
 sélectionné seul ») — voir [attaque après un sort](attaque-apres-un-sort.md).
 
 Même règle pour un sort à séquence de coups (Blade Surge) : 411 ne vaut que

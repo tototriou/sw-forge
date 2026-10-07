@@ -222,7 +222,7 @@ condition non déductible) :
 Increases the damage dealt by 50% when you have a Shield. »
 
 - **Le Bouclier n'est pas compté.** `formule: 2.0*{DEF}` décrit le Bouclier,
-  créé « when you are attacked » : ce n'est pas une attaque (A.2 ter,
+  créé « when you are attacked » : ce n'est pas une attaque ([valeurs curées](valeurs-de-jeu-curees.md),
   « Une attaque se lit dans la prose »).
 - **Le +50 % est compté** : effet `Increase Damage`, `quantite: 50`, note
   « When you have a Shield. » ; `+50 %` sur les dégâts du monstre sous le

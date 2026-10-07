@@ -30,8 +30,8 @@ de résolution.
 | 1 | 1 et 2 | `0.5*{ATK}` | mono-cible | donnée SWARFARM + confirmation |
 | 2 | 3 | `3.0*{ATK}` | zone, cible visée comprise | utilisateur, absent de l’API |
 
-Valeurs curées ([valeurs-de-jeu-curees.md](valeurs-de-jeu-curees.md),
-A.2 ter), fournies par l’utilisateur : séquence, portée de la famille,
+Valeurs curées ([valeurs-de-jeu-curees.md](valeurs-de-jeu-curees.md)),
+fournies par l’utilisateur : séquence, portée de la famille,
 skillups (`skillupDamagePct`, +30 %, sur les **trois** coups) et cible du
 troisième coup (la cible visée le reçoit aussi).
 
@@ -68,7 +68,7 @@ mécanique.
 
 Quatre sorts frappent d’abord l’ennemi, puis tous les ennemis ; la phase de
 zone n’est chiffrée que par la « compétence auxiliaire » (`other_skill`) de
-l’API SWARFARM, absente de l’import du corpus. Règle (A.2 ter, « Valeurs
+l’API SWARFARM, absente de l’import du corpus. Règle ([valeurs curées](valeurs-de-jeu-curees.md), « Valeurs
 connues par l'API seule ») : la valeur de l’API par défaut, sauf si la prose la contredit — aucune des
 quatre proses ne la contredit. Phases et portées viennent de la prose
 (« Attacks the enemy … Afterwards, … all enemies »).

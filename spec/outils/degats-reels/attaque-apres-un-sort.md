@@ -30,12 +30,12 @@ encore curé.
 
 | Paramètre | Champ curé | Tempest | Source |
 | --- | --- | --- | --- |
-| Profil : ratio, portée, coups, améliorations | formule de la fiche, ou `FORMULES_CUREES_PAR_ID` si elle manque | `3.7 × ATQ`, zone, une instance, +30 % | utilisateur et audit (A.2 ter) |
-| Sorts déclencheurs | `slotsDeclencheurs` | S1, S2 | utilisateur (A.2 ter) |
-| Inclusion | catégorie `conditionnel` : interrupteur désactivé par défaut | recharge non simulée | décision produit (A.2 ter) |
+| Profil : ratio, portée, coups, améliorations | formule de la fiche, ou `FORMULES_CUREES_PAR_ID` si elle manque | `3.7 × ATQ`, zone, une instance, +30 % | utilisateur et audit ([valeurs curées](valeurs-de-jeu-curees.md)) |
+| Sorts déclencheurs | `slotsDeclencheurs` | S1, S2 | utilisateur ([valeurs curées](valeurs-de-jeu-curees.md)) |
+| Inclusion | catégorie `conditionnel` : interrupteur désactivé par défaut | recharge non simulée | décision produit ([valeurs curées](valeurs-de-jeu-curees.md)) |
 | Choix seul | `selectionnableCommeSort` | oui | décision produit |
 
-Les valeurs de Tempest sont des valeurs curées (A.2 ter, utilisateur) ; les
+Les valeurs de Tempest sont des [valeurs curées](valeurs-de-jeu-curees.md) (utilisateur) ; les
 lignes d’artéfact viennent des réponses de l’utilisateur.
 
 ## Après le sort — l’interrupteur
@@ -82,9 +82,9 @@ laisse).
 | Règle | Tempest seul | Source |
 | --- | --- | --- |
 | Sort par défaut | jamais : `defaultDamageSkill` ne retient que les sorts actifs, Teshar reste sur S2 | réponse de l’utilisateur |
-| Contribution | une seule : le passif n’est jamais ajouté à lui-même, même interrupteur resté allumé | A.2 ter, « Tempest seul » |
-| 411 | jamais : il frappe toujours après le S1 ou le S2 qui le déclenche | A.2 ter, « Artéfact 411 » |
-| 402/410 | une fois (slot 3) | A.2 ter, « Tempest — coups critiques » |
+| Contribution | une seule : le passif n’est jamais ajouté à lui-même, même interrupteur resté allumé | [valeurs curées](valeurs-de-jeu-curees.md), « Tempest seul » |
+| 411 | jamais : il frappe toujours après le S1 ou le S2 qui le déclenche | [valeurs curées](valeurs-de-jeu-curees.md), « Artéfact 411 » |
+| 402/410 | une fois (slot 3) | [valeurs curées](valeurs-de-jeu-curees.md), « Tempest — coups critiques » |
 | 400/401 | jamais (lignes du S1 et du S2) | slot du profil |
 | 224 | jamais (zone) | portée du profil |
 | PV de la cible | ceux saisis : l’état avant Tempest | décision produit |
@@ -140,7 +140,7 @@ Puis, pour l’une comme pour l’autre :
    ni ratio ni améliorations transférés (réponse de l’utilisateur).
 2. **Les sorts déclencheurs** : la liste des slots, curée (passif), ou
    l’identifiant de chaque déclencheur (compétence appelée).
-3. **L’inclusion** : un interrupteur, jamais une probabilité tirée (A.2 ter,
+3. **L’inclusion** : un interrupteur, jamais une probabilité tirée ([valeurs curées](valeurs-de-jeu-curees.md),
    « Attaques supplémentaires conditionnelles »).
 4. **Le choix seul** : décision produit, jamais un défaut.
 5. **Les lignes d’artéfact**, à relever pour chaque cas : 411 dépend de ce qui
@@ -156,7 +156,7 @@ Puis, pour l’une comme pour l’autre :
    ligne 221, dégâts selon la VIT buffée). ⚠️ **La Marque** que Shoryuken et
    Iron Uppercut posent (`Brand`, 100 %) n’est pas modélisée pour la S1
    enchaînée. Elle est posée (ou non) **avant** que la S1 se déclenche : un
-   interrupteur « Marque posée » la règle, sans relevé (A.2 ter, « Marque
+   interrupteur « Marque posée » la règle, sans relevé ([valeurs curées](valeurs-de-jeu-curees.md), « Marque
    de la S2, puis S1 enchaîné ») ; il reste à coder
    ([pistes.md § Compétence active appelée par un sort](pistes.md)).
 
@@ -176,12 +176,12 @@ curée en production.
 ⚠️ **Les Samouraïs ne relèvent pas de « activée par un interrupteur »** :
 après S1, l’utilisateur CHOISIT S1, S2, S3 ou S4 ; après S2, S1, S3 ou S4 ;
 après S3, S1, S2 ou S4 ; une S4 seule ne déclenche rien, et la compétence
-suivante garde son propre profil et son slot (A.2 ter, « Samouraïs — tour
+suivante garde son propre profil et son slot ([valeurs curées](valeurs-de-jeu-curees.md), « Samouraïs — tour
 supplémentaire »). C’est un sélecteur de suite, pas un passif à bouton : il
 demandera son propre réglage.
 
 Hors de cette architecture : le stock de dégâts de Jin et Kai ténèbres
-(A.2 ter).
+([valeurs curées](valeurs-de-jeu-curees.md)).
 
 ## Vérification
 

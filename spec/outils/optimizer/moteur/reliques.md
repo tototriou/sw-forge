@@ -351,7 +351,7 @@ Relevé en jeu, `src/lib/relicExclusive.ts` :
   - Conquête (types 1 à 3) : pourcentage additif dans le terme DMG% de
     `computeTotalDamage` (`reliqueDmgPct`), pour le sort et chaque passif
     offensif ; jamais dans le terme Additionnel :
-    [../../degats-reels/valeurs-de-jeu-curees.md § Les valeurs de jeu — curées, avec leur source (ex-A.2 ter)](../../degats-reels/valeurs-de-jeu-curees.md) ;
+    [../../degats-reels/valeurs-de-jeu-curees.md § Les valeurs de jeu — curées, avec leur source](../../degats-reels/valeurs-de-jeu-curees.md) ;
   - Ténacité (4 à 6) : réduction des dégâts reçus. Les PV effectifs
     deviennent des PV effectifs équivalents, `pvEffectifs / (1 − X / 100)`
     (`facteurTenacite`), dérivé de l'équation des dégâts en posant

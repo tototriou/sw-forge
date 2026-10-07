@@ -4,7 +4,7 @@
 // global et le laisse en place. On le passe en dernier pour qu'il ne perturbe
 // rien d'autre.
 
-import { bilan } from './outils';
+import { bilan, debutVerification } from './outils';
 import testImport from './import.test';
 import testNavigation from './navigation.test';
 import { testNavigationAdresses, testNavigationAdressesDefauts, testNavigationVuesCompte } from './navigation-adresses.test';
@@ -555,9 +555,16 @@ async function main() {
 `
     );
   }
-  for (const [, fn] of liste) await fn();
+  for (const [nom, fn] of liste) {
+    debutVerification(nom);
+    await fn();
+  }
 
-  const { total, echecs, ignores } = bilan();
+  const { total, echecs, ignores, echecsDetail } = bilan();
+  if (echecsDetail.length > 0) {
+    console.log('\n\x1b[31mÉchecs :\x1b[0m');
+    for (const ligne of echecsDetail) console.log('  \x1b[31mKO\x1b[0m   ' + ligne);
+  }
   const resume =
     echecs === 0
       ? `\n\x1b[32m${total} vérifications passées\x1b[0m` + (ignores ? `, ${ignores} ignorée(s)` : '')

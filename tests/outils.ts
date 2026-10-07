@@ -12,6 +12,14 @@ import { resolve } from 'path';
 let echecs = 0;
 let total = 0;
 let ignores = 0;
+// Les échecs sont répétés à la fin : noyés parmi des milliers de « ok », ils
+// sont introuvables dans un journal tronqué (celui de la CI notamment).
+const echecsDetail: string[] = [];
+let verificationCourante = '';
+
+export function debutVerification(nom: string) {
+  verificationCourante = nom;
+}
 
 export function ok(condition: boolean, libelle: string) {
   total++;
@@ -19,6 +27,7 @@ export function ok(condition: boolean, libelle: string) {
     console.log('  [32mok[0m   ' + libelle);
   } else {
     echecs++;
+    echecsDetail.push(`${verificationCourante} — ${libelle}`);
     console.log('  [31mKO[0m   ' + libelle);
   }
 }
@@ -35,8 +44,8 @@ export function ignore(libelle: string, raison: string) {
   console.log(`  [33m--[0m   ${libelle} [2m(${raison})[0m`);
 }
 
-export function bilan(): { total: number; echecs: number; ignores: number } {
-  return { total, echecs, ignores };
+export function bilan(): { total: number; echecs: number; ignores: number; echecsDetail: string[] } {
+  return { total, echecs, ignores, echecsDetail };
 }
 
 export function titre(t: string) {

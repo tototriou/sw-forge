@@ -4,7 +4,9 @@
 npm test
 ```
 
-Affiche une ligne par vérification et sort en code 1 si l'une échoue.
+Affiche une ligne par vérification et sort en code 1 si l'une échoue. Les
+échecs sont répétés à la fin, avec le nom de leur vérification : un journal
+tronqué (celui de la CI) les montre quand même.
 
 ## Ce qui est couvert, et pourquoi seulement ça
 

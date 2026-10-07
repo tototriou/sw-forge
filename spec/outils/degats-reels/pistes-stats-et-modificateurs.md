@@ -75,7 +75,7 @@ les coups. La forme d'une piste et des relevés en jeu est celle de
   (`8215`, Fei) n'ont qu'un interrupteur pour tout le sort
   (`CONDITIONS_COMBAT_PAR_ID_CONNUS`).
 - **Idée** : Thunder Strike, borne stricte (DEF de la cible sous 50 % de la
-  tienne) ; Start of Attacking, 25 % par effet bénéfique retiré ; Sword of
+  tienne) ; Start of Attacking, 35 % par effet bénéfique retiré ; Sword of
   Discharge, sous Invincibilité. Meteor Strike et Black Meteor : « ignore
   DEF à partir du coup 1, 2, 3, ou aucun ». Fei, Bull's Eye, Wipe Out,
   Shadow Arrow : un choix coup par coup, la chance affichée près de

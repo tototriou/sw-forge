@@ -68,11 +68,12 @@ export const BUFFS_POSES_PAR_PASSIF_CONNUS: Readonly<Record<number, BuffPoseParP
   13911: { buffs: ['atk'], mode: 'tous', condition: 'If you receive damage during the turn of the enemy' },
   // Moore 24511 — même prose que RYU.
   14411: { buffs: ['atk'], mode: 'tous', condition: 'If you receive damage during the turn of the enemy' },
-  // Espresso Cookie 26513 — « grants one of the following effects for 2 turns when you gain a turn: Increase
-  // Attack Power, Increase Defense or Increase Attack Speed. »
-  16313: { buffs: ['atk', 'def', 'spd'], mode: 'unParmi', condition: 'when you gain a turn' },
-  // Chamomile 27013 — même prose qu'Espresso Cookie.
-  16813: { buffs: ['atk', 'def', 'spd'], mode: 'unParmi', condition: 'when you gain a turn' },
+  // Espresso Cookie 26513 — « grants one of the following effects to all allies for 2 turns whenever you gain a
+  // turn: Increase Attack Power, Increase Defense, or Increase Attack Speed. »
+  // Le porteur compté parmi « all allies », même réserve que Frodo (les effets portent `surSoi: false`, `aoe: true`).
+  16313: { buffs: ['atk', 'def', 'spd'], mode: 'unParmi', condition: 'whenever you gain a turn' },
+  // Chamomile 27013 — même prose qu'Espresso Cookie, même réserve.
+  16813: { buffs: ['atk', 'def', 'spd'], mode: 'unParmi', condition: 'whenever you gain a turn' },
   // Satoru Gojo 30311 — « Increases your Defense for 1 turn and Attack Bar by 30% whenever your turn ends. »
   20011: { buffs: ['def'], mode: 'tous', condition: 'whenever your turn ends' },
   // Fridrion 30714 — « Increases your Defense for 2 turns whenever you are granted with a harmful effect […] »

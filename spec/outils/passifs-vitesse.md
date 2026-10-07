@@ -83,7 +83,7 @@ qu'en coréen.
 - **Spear of Penetration (Passive) — pose le buff de vitesse du jeu (+30 %)**
   - Agrius, Centaur Knight
 
-## Tour supplémentaire hors de son tour — 77 monstre(s)
+## Tour supplémentaire hors de son tour — 75 monstre(s)
 
 - **Addicted Power (Passive) — tour supplémentaire hors de son tour**
   - Magic Order Guardian, Valdemar
@@ -143,8 +143,6 @@ qu'en coréen.
   - Antares, Lich
 - **Transfer Reaction (Passive) — tour supplémentaire hors de son tour**
   - Groa, Magic Order Elementalist
-- **Transmission (Passive) — tour supplémentaire hors de son tour**
-  - Dr. Matteo, Dr. Plasma
 - **Weight of Death (Passive) — tour supplémentaire hors de son tour**
   - Giant Warrior, Trasar
 
@@ -157,7 +155,7 @@ qu'en coréen.
   - Lars, Magic Order Guardian
 - **Adrenaline Rush (Passive) — +50 % de barre, hors de son tour**
   - Geralt, 게롤트(빛)
-- **Ally Cover (Passive) — +15 % de barre, hors de son tour**
+- **Ally Cover (Passive) — +5 % de barre, hors de son tour**
   - Fern
 - **Almighty Mask (Passive) — remplit une barre hors de son tour, montant introuvable**
   - Cayde, Poison Master
@@ -262,7 +260,7 @@ qu'en coréen.
   - Martial Cat 2A, Xiao Ling
 - **Magic Control (Passive) — +20 % de barre, hors de son tour**
   - Yennefer, 예니퍼(빛)
-- **Magic Interpretation (Passive) — +10 % de barre, hors de son tour**
+- **Magic Interpretation (Passive) — +25 % de barre, hors de son tour**
   - Frieren
 - **Magic Mastery (Passive) — +20 % de barre, hors de son tour**
   - Arcana, Magic Order Enchantress
@@ -388,7 +386,7 @@ qu'en coréen.
   - Vendhan
 - **Chaser (Passive) — −20 % de barre, hors de son tour**
   - Cow Girl, Loren
-- **Cold Brew (Passive) — −30 % de barre, hors de son tour**
+- **Cold Brew (Passive) — −15 % de barre, hors de son tour**
   - Espresso Cookie, 에스프레소맛 쿠키(물)
 - **Dreamy Leader (Passive) — −30 % de barre, hors de son tour**
   - Celia, Harp Magician
@@ -396,7 +394,7 @@ qu'en coréen.
   - Arcane Weapon, Christine
 - **Eye of the Storm (Passive) — −15 % de barre, hors de son tour**
   - Dragon Knight, Leo
-- **Iced Tea (Passive) — −30 % de barre, hors de son tour**
+- **Iced Tea (Passive) — −15 % de barre, hors de son tour**
   - Black Tea Bunny, Rosemary
 - **Learn Knowledge (Passive) — −1 % de barre, hors de son tour**
   - Geldnir, Lightning Emperor
@@ -452,4 +450,4 @@ faire, ça se pose à la main dans les grilles. Les entrées **AUCUNE donnée
 
 ---
 
-Total : **407** entrées, dont **33** au montant introuvable.
+Total : **405** entrées, dont **33** au montant introuvable.

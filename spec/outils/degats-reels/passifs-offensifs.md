@@ -92,7 +92,7 @@ affichaient encore juste « toujours actif » sans le pourcentage/formule
 confirmé par l'utilisateur (le nombre restait visible uniquement dans le
 texte anglais brut du jeu, en dessous) : Momo/Fermion/Ludo/Martina/
 Borgnine/Moogwang/Trevor (`+X %/palier, jusqu'à +Y %`), Backup Code
-(`+X %/effet`), Blessing of Curse (`+X %/débuff sur soi`), Calculated
+(`+X %/effet`), Blessing of Curse (`+X % par débuff sur tes alliés (toi compris), jusqu'à +Y %`), Calculated
 Sacrifice (`sacrifie X %/tour, +Y % de la perte`) — corrigé, le ratio
 apparaît maintenant à côté du nom, comme pour tous les autres.
 

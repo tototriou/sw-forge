@@ -792,8 +792,9 @@ export default function testDegats() {
 
     // ⚠️ **RELEVÉ JESSICA** — deuxième membre de la famille mesuré, et par
     // l'autre porte : « Blessing of Curse » majore de +20 % par effet néfaste
-    // sur SOI (`bonusParEffetPropre`), là où Julie compte les buffs de la
-    // CIBLE. Jessica à 53 050 PV / 827 DEF / 163 VIT, artéfacts 2 % PV + 6 %
+    // sur les ALLIÉS, soi compris (`bonusParEffetPropre`), là où Julie compte
+    // les buffs de la CIBLE. Les débuffs du relevé étaient tous sur Jessica,
+    // un cas particulier de la règle. Jessica à 53 050 PV / 827 DEF / 163 VIT, artéfacts 2 % PV + 6 %
     // DEF + 102 % VIT, contre un Xiong Fei très défensif, en COUP CRITIQUE :
     //   0 débuff → ~2 250 · 1 débuff → ~2 450 · 2 débuffs → ~2 600.
     // Si le +20 % touchait tout, 2 débuffs donneraient 3 150. Le modèle prédit
@@ -804,7 +805,7 @@ export default function testDegats() {
     // vaudrait à lui seul 3 192 — plus que le total observé de 2 250.
     const jessica = {
       ...sortSimple,
-      bonusParEffetPropre: { skillCom2usId: sortSimple.skillCom2usId, pct: 20 },
+      bonusParEffetPropre: { skillCom2usId: sortSimple.skillCom2usId, pct: 20, plafondPct: 200 },
     };
     const ecartJessica = (nbDebuffs: number) => {
       const s: DamageSetup = { ...base, effetsPropresCount: { [sortSimple.skillCom2usId]: nbDebuffs } };
@@ -2787,11 +2788,13 @@ export default function testDegats() {
     ok(Math.abs(avec2.total / sans.total - 1.4) < 1e-9, '2 débuffs sur la cible : exactement +40 % (20 % × 2)');
   }
 
-  // Blessing of Curse (Devil Maiden/Jessica) — même famille, mais sur SOI
-  // (`effetsPropresCount`, stockage séparé) : `quantite: 20` confirmé.
+  // Blessing of Curse (Devil Maiden/Jessica) — même famille, mais compte
+  // les débuffs sur les ALLIÉS, soi compris (`effetsPropresCount`, stockage
+  // séparé), bonus plafonné à +200 % : `quantite: 20` et « up to 200% »
+  // confirmés en données.
   const jessica = fiche(28614);
   const blessingOfCurse = monsterBonusParEffetPropre(jessica);
-  egal(blessingOfCurse, { ...blessingOfCurse!, pct: 20 }, 'Jessica : Blessing of Curse, +20 % par débuff sur SOI');
+  egal(blessingOfCurse, { ...blessingOfCurse!, pct: 20, plafondPct: 200 }, 'Jessica : Blessing of Curse, +20 % par débuff sur les alliés (soi compris), jusqu’à +200 %');
   ok(!monsterBonusParEffetPropre(fiche(LUSHEN)), 'Lushen ne porte pas ce mécanisme');
   egal(resolvedEffetsPropresCount(blessingOfCurse!.skillCom2usId, DEFAULT_DAMAGE_SETUP), 0, 'sans réglage utilisateur, 0 débuff — jamais deviné');
   {
@@ -2806,9 +2809,22 @@ export default function testDegats() {
       null,
       undefined,
       ARTIFACT_DAMAGE_NEUTRE,
-      { bonusParEffetPropre: { skillCom2usId: blessingOfCurse!.skillCom2usId, pct: 20 } }
+      { bonusParEffetPropre: { skillCom2usId: blessingOfCurse!.skillCom2usId, pct: 20, plafondPct: 200 } }
     );
-    ok(Math.abs(avec3.total / sans.total - 1.6) < 1e-9, '3 débuffs sur soi : exactement +60 % (20 % × 3)');
+    ok(Math.abs(avec3.total / sans.total - 1.6) < 1e-9, '3 débuffs sur les alliés : exactement +60 % (20 % × 3)');
+    const avecN = (n: number) =>
+      computeSkillDamageDetail(
+        s3!,
+        st,
+        { ...setup, effetsPropresCount: { [blessingOfCurse!.skillCom2usId]: n } },
+        AUCUNE_AURA_PROPRE,
+        null,
+        undefined,
+        ARTIFACT_DAMAGE_NEUTRE,
+        { bonusParEffetPropre: blessingOfCurse! }
+      ).total / sans.total;
+    ok(Math.abs(avecN(10) - 3) < 1e-9, '10 débuffs : +200 %, le plafond (×3)');
+    ok(Math.abs(avecN(15) - 3) < 1e-9, '15 débuffs : toujours +200 %, le plafond ne se dépasse pas');
   }
 
   titre('Dégâts réels — bouton RESTREINT À UN SORT (Emergency Drive, Cynthia)');
@@ -2824,8 +2840,8 @@ export default function testDegats() {
   const rendingClawProfile = rendingClaw as SkillDamageProfile;
   egal(
     rendingClawProfile.bonusConditionnelPropre,
-    { pct: 50, condition: 'tu es en Mechanical Frame State (Emergency Drive)' },
-    'Rending Claw : +50 % en Mechanical Frame State, confirmé en données'
+    { pct: 70, condition: 'tu es en Mechanical Frame State (Emergency Drive)' },
+    'Rending Claw : +70 % en Mechanical Frame State, confirmé en données'
   );
   const mechanicalFist = cynthiaSkills.find((s) => estPrisEnCharge(s) && s.nom === 'Mechanical Fist');
   ok(mechanicalFist != null && estPrisEnCharge(mechanicalFist), 'Cynthia : Mechanical Fist (S1) calculable');
@@ -2838,7 +2854,7 @@ export default function testDegats() {
     ...cynthiaSetup,
     passifsOffensifs: { [rendingClawProfile.skillCom2usId]: true },
   }, AUCUNE_AURA_PROPRE);
-  ok(Math.abs(cynthiaAvec / cynthiaSans - 1.5) < 1e-9, 'activé : exactement +50 % (×1,5)');
+  ok(Math.abs(cynthiaAvec / cynthiaSans - 1.7) < 1e-9, 'activé : exactement +70 % (×1,7)');
 
   // Le nom « Rending Claw » est partagé avec Cecilia (23306) et Elise (23310),
   // dont la fiche ne porte pas Emergency Drive : le bouton est par identifiant

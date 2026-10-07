@@ -36,8 +36,8 @@ sa propre formule `2,4 × ATQ` décrit le soin. À l'inverse, `Bite`,
 leur profil offensif. Ni une recherche automatique du mot « attaque » dans
 la prose ni la valeur de `coups` prise seule ne sont des preuves fiables.
 
-Les **sorts sans attaque** sont masqués de la même façon (lot 15c du
-chantier degats-et-aura). Règle de l'utilisateur : un ratio et des `coups`
+Les **sorts sans attaque** sont masqués de la même façon. Règle de
+l'utilisateur : un ratio et des `coups`
 ne prouvent pas qu'un sort attaque ; sans attaque ni dégâts infligés dans sa
 prose, ce n'en est pas une. Un tel sort n'apparaît pas dans « Compétence
 utilisée » : il n'est ni proposé ni affiché refusé, et un passif de la même
@@ -47,13 +47,13 @@ prose citée par ligne, jamais une détection de la prose. Elle compte
 36 sorts actifs : 25 boucliers (dont Frieren `24909`, Gandalf, Old Wood,
 les Air Shield, Force Field, Protection Field, Beneficial Hammering), Trade
 `7414`, Destiny Dice `12115` et Forbidden Galdr `13111`. Ce dernier est un
-effet de PV sans coup. Huit autres ont été confirmés par l'utilisateur au
-lot 15g (revue des 144 sorts à formule sans « attack » ni « damage ») :
+effet de PV sans coup. Huit autres sont confirmés par l'utilisateur, parmi
+les 144 sorts à formule sans « attack » ni « damage » :
 Regenerate `2113` (Lukan), Revive `2611` (Mikene), Dark Return `2615`
 (Tilasha), Unleashed Fury `4210` (Zeratu), Soul Revival `6713` (Michelle),
 Light of Revival `6714` (Iona) et les deux Scroll Trap `13707` (Jeogun) et
 `13709` (Hanwul), dont la formule est une durée de sceau. Harmonia et Vivachel S3 et le passif d'Aya vent
-n'ont pas de formule et restaient déjà hors calcul. Le mot « damage » d'un
+n'ont pas de formule et sont de toute façon hors calcul. Le mot « damage » d'un
 bouclier (dégâts absorbés) ou d'un Reflect Damage accordé ne fait pas une
 attaque. Les passifs de Pure Vanilla et Angela (`16113`, `16613`) restent
 hors table : leur prose inflige une riposte, mais leur `formule` est celle
@@ -89,9 +89,9 @@ Couverture mesurée sur le corpus complet après exclusion des 69 soins
 (mesure antérieure au masquage des sorts sans attaque) :
 **6 073 profils de dégâts calculables, 115 refusés explicitement** (variables hors modèle —
 `{Attacker's Level}`, `ABSORPTION_TOT_CNT`… — ou formules hors grammaire).
-`{Relative SPD}` a longtemps fait partie des variables refusées (20 sorts,
-Beast Rider ×10 formes/éléments, Barbara, Masha, Savannah, Narsha, Xiana) —
-reconnue depuis confirmation de sa formule par l'utilisateur.
+`{Relative SPD}` est reconnue (20 sorts, Beast Rider ×10 formes/éléments,
+Barbara, Masha, Savannah, Narsha, Xiana), sa formule confirmée par
+l'utilisateur.
 
 Un sort dont la formule ne dépend d'**aucune** statistique de l'attaquant
 (dégâts purement fixes) est refusé lui aussi : il est calculable, mais
@@ -136,8 +136,8 @@ Dégâts = ( Mult × Crit × FacteurDéf + Additionnel ) × Réductions × coups
   appliqués.
 - **Crit** — `1 + améliorations% + part_crit × DgtsCrit%`, où `part_crit`
   dépend du mode choisi : `1` (Critique) ou `0` (Non critique). Le Taux
-  Crit du build n'y entre pas : l'ancien mode « Moyenne », qui le prenait
-  pour `part_crit` (l'espérance), est supprimé (degats-et-aura, lot CM).
+  Crit du build n'y entre pas : le calcul n'a pas de mode « Moyenne » qui le
+  prendrait pour `part_crit` (l'espérance).
   ⚠️ **Taux Crit écrêté à 100 %** : `computeStats` renvoie volontairement
   le total brut (un dépassement reste une marge légitime contre la
   résistance adverse), mais au-delà de 100 % il ne rapporte plus aucun
@@ -164,16 +164,15 @@ Six sorts portent l'effet `Ignore DEF` avec une note qui le conditionne à la
 jauge d'attaque de la cible : « If enemy ATB at 0 », ou « If enemy ATB at 0
 or 7th hit ». Leur prose le confirme : la DEF n'est ignorée que lorsque la
 jauge de la cible est tombée à 0, ce que chaque coup rapproche. Le corpus
-balayé en entier n'en contient pas d'autre (constat 212 de l'audit, lots 1d
-et 1f du chantier degats-et-aura) : six identifiants, douze formes.
+balayé en entier n'en contient pas d'autre : six identifiants, douze formes.
 
 | Variante | Identifiants (formes) | Coups | Crans proposés | Défaut |
 |---|---|---|---|---|
 | **A** — −50 % d'ATB par coup | `14308` (24403, 24413), `14310` (24405, 24415), `14808` (24903, 24913), `14810` (24905, 24915) | 3 × `1,8 × ATQ` | aucun ignore DEF · à partir du 2ᵉ coup · à partir du 3ᵉ | aucun ignore DEF |
 | **B** — −40 % par coup, **7ᵉ coup toujours ignoré** | `14311` (24401, 24411), `14811` (24901, 24911) | 7 × `0,85 × ATQ` | à partir du 2ᵉ · 3ᵉ · 4ᵉ · 5ᵉ · 6ᵉ coup · 7ᵉ coup seul ; « aucun » n'existe pas | 7ᵉ coup seul |
 
-**La règle est fournie par l'utilisateur** (2026-09-23, confirmation de revue
-pour les défauts) : le **coup 1 n'ignore jamais** la DEF, et **une fois
+**La règle est fournie par l'utilisateur** (confirmation de revue pour les
+défauts) : le **coup 1 n'ignore jamais** la DEF, et **une fois
 qu'un coup ignore, tous les suivants ignorent**. Le choix se réduit donc à un
 seul nombre, le rang du premier coup qui ignore. Par défaut, seul le coup
 inconditionnel ignore : jamais une réussite supposée.
@@ -223,8 +222,7 @@ liste, dit ce cran sur une ligne à lui — « Ignore la DEF : dès le 2ᵉ coup
 soit le cran : en changer ne déplace pas le sélecteur. La ligne du sort du
 CLI (`scripts/optimizer-search.ts`) dit la même phrase
 (`resumeIgnoreDefRetenu`). La DEF de la cible reste affichée dans tous les
-crans, dans la fenêtre comme dans le résumé sous l'objectif (degats-et-aura
-10b).
+crans, dans la fenêtre comme dans le résumé sous l'objectif.
 
 **Recette.** Le champ voyage dans `damageSetup`, et l'import le valide
 **selon la règle du sort** : un objet indexé par identifiants entiers
@@ -237,11 +235,11 @@ sort sans cette règle (Lushen S3, autre monstre), font **refuser** la
 recette avec le chemin exact (`damageSetup.premierCoupIgnoreDefParSort.<identifiant>`),
 jamais ramenées en silence au défaut. Le message d'une clé sans règle,
 « désigne un sort sans réglage d'ignore DEF par coup », ne compte ni ne nomme
-les sorts de la table : il reste juste quand elle grandit (degats-et-aura 9c,
-relevé du lot 12). Une recette antérieure, sans le champ,
+les sorts de la table : il reste juste quand elle grandit. Une recette
+antérieure, sans le champ,
 garde le défaut de chaque sort. L'écran et le CLI lisent la recette par le
 même parseur, et le CLI passe `damageSetup` entier au calcul, comme
-l'écran : le rang s'y applique à l'identique (degats-et-aura 10b).
+l'écran : le rang s'y applique à l'identique.
 
 **Garde-fou.** Les rangs ne valent que pour le nombre de coups que la
 curation suppose : si les données en annonçaient un autre, le sort serait
@@ -300,7 +298,7 @@ exportée avant ce retrait reste lisible : « Aucune » y est normalisée vers
 Un sort **calculé** dont le total omet une part connue du jeu porte, dans
 « Compétence utilisée », une étiquette **« Calcul partiel »** posée après le
 « ? » de sa prose, suivie de son propre « ? » qui dit ce qui n'est pas
-compté (forme décidée par l'utilisateur le 2026-10-04, degats-et-aura P3).
+compté.
 La phrase vient d'une table curée par identifiant de sort
 (`CALCUL_PARTIEL_PAR_ID`, lue par `calculPartielDuSort`, `damage.ts`) ;
 l'écran ne l'écrit jamais lui-même.
@@ -311,14 +309,14 @@ l'écran ne l'écrit jamais lui-même.
 - **Quatre sources, 31 identifiants** : les six ignore DEF comptés en
   permanence alors que le jeu les conditionne (Madness Judgement ×2,
   Unlimited Power, Start of Attacking, Thunder Strike, Sword of Discharge —
-  décision D63 : total gardé avec la mention jusqu'à leur lot) ; les sorts
+  total gardé avec la mention tant que leur condition n'est pas modélisée) ; les sorts
   dont une perte de PV, un bonus selon les PV détruits ou retirés, ou la
   détonation de bombes déjà posées est décidée « comptée » mais pas encore
   codée (« pas encore comptée ») ; les parts que l'utilisateur a décidé de
   ne **pas** calculer, dites à l'écran (Daniel, Jasmine, Lavender, Espresso
   Cookie, et Hibiscus par la règle des jumeaux collab : « n'est pas
   calculée ») ; enfin deux parts connues du jeu, non modélisées, que
-  l'utilisateur a demandé de marquer le 2026-10-04 (lot CP2) :
+  l'utilisateur a demandé de marquer :
   l'équilibrage ATQ/DEF d'Internal Force de début de combat sur les deux
   sorts de dégâts de Leona (Justice Strike, Fury of Punishment) et le bonus
   de dégâts selon la VIT contre les ennemis plus lents de Summary Justice

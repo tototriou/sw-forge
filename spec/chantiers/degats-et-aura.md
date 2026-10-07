@@ -18,20 +18,18 @@ archivé dans les notes privées du projet.
   « Moyenne » supprimé.
 - Le contexte de combat survit au changement de monstre ; une carte de
   résultat n'apparaît qu'une fois vérifiée.
-- La spec des dégâts réels découpée sous `spec/outils/degats-reels/` ; la
-  liste des monstres et sorts modifiés :
-  [degats-et-aura-monstres.md](degats-et-aura-monstres.md).
+- La spec des dégâts réels découpée sous `spec/outils/degats-reels/`.
 
 ## Section citée → place publique
 
 | Section citée | Place publique |
 | --- | --- |
-| A.2 ter — valeurs de jeu curées | [valeurs-de-jeu-curees.md](../outils/degats-reels/valeurs-de-jeu-curees.md), titre « (ex-A.2 ter) » |
+| A.2 ter — valeurs de jeu curées | [valeurs-de-jeu-curees.md](../outils/degats-reels/valeurs-de-jeu-curees.md), titre « Les valeurs de jeu — curées, avec leur source » |
 | A.2 — cible (« cible 2 » : auras dans `statsDebutCombat` et les conditions) | [effets-equipe-et-leaders.md](../outils/degats-reels/effets-equipe-et-leaders.md), « Sets d'aura d'équipe — modèle » |
 | A.4 — catégories de lots → modèle et effort | journal archivé |
 | A.5 — branche, notes privées, verrous d'`ouvrir` | journal archivé |
 | A.6 bis — preuves, note d'un oracle | journal archivé ; la garantie vérifiée : [../outils/optimizer/moteur/elagages.md § Élagages sûrs](../outils/optimizer/moteur/elagages.md) |
-| A.8 — pilotage, vérifications et décisions de l'utilisateur | pilotage : journal archivé ; décisions de jeu : [valeurs-de-jeu-curees.md](../outils/degats-reels/valeurs-de-jeu-curees.md), [formules-et-combat.md](../outils/degats-reels/formules-et-combat.md) (sorts sans attaque, « Calcul partiel »), [catalogue-des-passifs.md](../outils/degats-reels/catalogue-des-passifs.md) (Internal Force) ; tenue de la liste : [degats-et-aura-monstres.md](degats-et-aura-monstres.md) ; le reste : journal archivé |
+| A.8 — pilotage, vérifications et décisions de l'utilisateur | pilotage : journal archivé ; décisions de jeu : [valeurs-de-jeu-curees.md](../outils/degats-reels/valeurs-de-jeu-curees.md), [formules-et-combat.md](../outils/degats-reels/formules-et-combat.md) (sorts sans attaque, « Calcul partiel »), [catalogue-des-passifs.md](../outils/degats-reels/catalogue-des-passifs.md) (Internal Force) ; le reste : journal archivé |
 | B.0 — champs traversants | `setsAuraExternes` : [etat-de-mon-monstre.md](../outils/optimizer/ecran/etat-de-mon-monstre.md), « État de mon monstre » ; `compterAurasResPre` : [effets-equipe-et-leaders.md](../outils/degats-reels/effets-equipe-et-leaders.md) ; `cibleDegatsParSort` : [sequences-de-coups.md](../outils/degats-reels/sequences-de-coups.md) ; `premierCoupIgnoreDefParSort` : [formules-et-combat.md](../outils/degats-reels/formules-et-combat.md), « Ignore DEF à partir d'un coup choisi — les Blade Dancers » |
 
 Les identifiants de lot cités dans le code renvoient au journal archivé

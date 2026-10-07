@@ -155,6 +155,17 @@ codée porte « Calcul partiel »
   coups, à tester d'abord en jeu, puis ATQ sous la DEF, à 1,5 fois, à 2
   fois. Hors inventaire : Crow Hunt et Rat Hunt sous Immunité.
 
+### Crow Hunt de Prilea : deux coups annoncés pour un
+
+- **Constat** : Crow Hunt (`1618`, Prilea `10513`) « attack the enemy
+  target 2 times » porte `coups: 1` ; `COUPS_FIXES_CORRIGES_PAR_ID`
+  (`src/lib/damage.ts`) est vide, le calcul compte un coup. Ses homonymes
+  jouables `1607` et `1609` portent `coups: 4`
+  (`tests/degats-coups-saisis.test.ts`).
+- **Idée** : l'entrée `1618: 2` dans `COUPS_FIXES_CORRIGES_PAR_ID`.
+- **Bloque** : un relevé, les nombres de dégâts affichés sur la cible :
+  deux → 2 coups, un → la donnée dit vrai.
+
 ### Séquences à valeur relevée
 
 - **Constat** : `SEQUENCES_DE_COUPS_PAR_ID_CONNUS` (`src/lib/damage.ts`) ne
@@ -183,6 +194,20 @@ codée porte « Calcul partiel »
   cible visée (deux → la suite la touche aussi). Guilty Sentence
   d'Agrenia et de Driana, coup 2 / coup 1 sur l'ennemi de plus faible DEF
   non touché par la Brise DEF : 3,3 ou 3,2.
+
+### Skillups des séquences à valeur de l'API
+
+- **Constat** : chaque groupe de `sequenceDeCoups` reçoit le profil entier
+  du sort (`computeSkillDamageDetail`, `src/lib/damage.ts`), skillups compris :
+  ils valent aux deux phases de Fatal Extinctive Bullet (`13311`, Abigail),
+  Fatal Armor Bullet (`13314`, Emily), Head Press (`14113`, M. BISON) et
+  Great Sword of the End (`14613`, Sagar), sans confirmation
+  ([sequences-de-coups.md § Séquences à valeur de l’API](sequences-de-coups.md)).
+- **Idée** : les borner à la phase 1 si le relevé le dit.
+- **Bloque** : un relevé, sort au maximum de skillups, deux coups non
+  critiques sur la cible visée, phase 2 / phase 1 : Abigail ou Emily,
+  environ 1,29 → les deux phases, environ 1,03 → la phase 1 seule ;
+  M. BISON ou Sagar, environ 1,30 contre 1,13.
 
 ### Part copiée sur un autre ennemi
 

@@ -130,7 +130,7 @@ Ce que contient ce réglage :
   « Coups variables ». Un champ **Attaques reçues avant ce sort**
   (0 par défaut) n'apparaît que pour l'unique sort connu dont le
   coefficient dépend d'un compteur de combat (Crawler/Frankenstein —
-  « Hammer Punch »). Détail : [degats-reels/catalogue-des-passifs.md#quatrième-vague--point-25--formule-bespoke-selon-un-compteur-crawler](../../degats-reels/catalogue-des-passifs.md#quatrième-vague--point-25--formule-bespoke-selon-un-compteur-crawler),
+  « Hammer Punch »). Détail : [degats-reels/catalogue-des-passifs.md#formule-selon-un-compteur-crawler](../../degats-reels/catalogue-des-passifs.md#formule-selon-un-compteur-crawler),
   « formule bespoke selon un compteur ». ⚠️ **L'ignore DEF des six
   sorts Blade Dancers se choisit** : ils n'ignorent la DEF qu'une fois
   la jauge d'attaque de la cible à 0, que l'app ne modélise pas. Pour
@@ -188,7 +188,7 @@ Ce que contient ce réglage :
   cible** (0 par défaut) n'apparaît que pour les rares sorts dont les
   dégâts augmentent par effet présent sur l'adversaire (Julie, Melissa)
   — l'app ne simule aucun effet réel sur la cible. Détail :
-  [degats-reels/catalogue-des-passifs.md#troisième-vague--points-4-et-5--bonus-selon-les-effets-sur-la-cible](../../degats-reels/catalogue-des-passifs.md#troisième-vague--points-4-et-5--bonus-selon-les-effets-sur-la-cible), « bonus selon les effets sur la
+  [degats-reels/catalogue-des-passifs.md#bonus-selon-les-effets-sur-la-cible](../../degats-reels/catalogue-des-passifs.md#bonus-selon-les-effets-sur-la-cible), « bonus selon les effets sur la
   CIBLE ». ⚠️ **VIT adversaire** : apparaît pour un sort/passif qui dépend de
   la vitesse de la cible (variable Relative SPD ou Target SPD d'une
   formule, ignore-DEF proportionnel à l'écart, un monstre qui force le

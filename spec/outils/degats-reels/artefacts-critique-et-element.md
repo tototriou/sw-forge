@@ -68,7 +68,7 @@ trois passifs encaisserait le bonus quatre fois.
 
 Un passif choisi lui-même comme sort (Tempest seul, `SkillDamageProfile.passif`)
 garde ce profil sans 411 : il frappe toujours après le S1 ou le S2 qui le
-déclenche (cadrage degats-et-aura, A.2 ter : « jamais sur Tempest, même
+déclenche ([valeurs curées](valeurs-de-jeu-curees.md), « Artéfact 411 » : « jamais sur Tempest, même
 sélectionné seul ») — voir [attaque après un sort](attaque-apres-un-sort.md).
 
 Même règle pour un sort à séquence de coups (Blade Surge) : 411 ne vaut que
@@ -159,14 +159,12 @@ Ces lignes vivent dans le terme **DMG%**, la Marque dans **Réductions**. Les
 deux brackets sont additifs *en interne* et **multiplicatifs entre eux** :
 `× 1,12 × 1,25`, et non `× (1 + 0,12 + 0,25)`.
 
-> **Incident — une déduction fausse figée par un test.** Ces lignes étaient
-> d'abord comptées dans `reductions`, donc additives avec la Marque, sur ce
-> raisonnement : l'utilisateur avait établi que Mirinae « stacks additively
-> with **-DMG%** artifacts », donc les lignes de DMG% d'artéfact seraient dans
-> ce sac. **La symétrie n'existait pas** : les artéfacts −DMG% (codes 305-309,
-> dégâts *subis*) sont bien dans Réductions, mais la famille +DMG% *infligés*
-> est un terme entièrement différent. Le test figeait 2 740 ; la bonne valeur
-> est 2 800. Corrigé d'après [swcalc.cz/game-mechanics](https://swcalc.cz/game-mechanics).
+> ⚠️ **Ne pas les compter dans `reductions`** par symétrie avec Mirinae, qui
+> « stacks additively with **-DMG%** artifacts » (utilisateur) : les artéfacts
+> −DMG% (codes 305-309, dégâts *subis*) sont bien dans Réductions, mais la
+> famille +DMG% *infligés* est un terme entièrement différent
+> ([swcalc.cz/game-mechanics](https://swcalc.cz/game-mechanics)). Additives
+> avec la Marque, elles donneraient 2 740 au lieu de 2 800 sur le cas du test.
 
 
 ## ⚠️ Jamais sur une bombe, jamais sur le bucket Additionnel
@@ -204,18 +202,18 @@ d'exprimer.
 « Élément visé » se pose au même titre que les PV et la DEF de la cible, sans
 condition.
 
-⚠️ **Il a d'abord été conditionné à la présence d'une ligne 300-304 sur les
-artéfacts pris en compte. C'était une erreur**, signalée par l'utilisateur, et
-pour deux raisons dont la seconde est décisive :
+⚠️ **Ne pas le conditionner à la présence d'une ligne 300-304 sur les
+artéfacts pris en compte**, pour deux raisons dont la seconde est décisive :
 
 1. **La chronologie** — on configure l'adversaire AVANT toute recherche, à un
    moment où rien ne dit encore quels artéfacts seront retenus (et en
-   pratique, il y en aura presque toujours un qui porte la ligne : le
-   « gating » ne filtrait donc quasiment rien, il clignotait).
+   pratique, il y en aura presque toujours un qui porte la ligne : un tel
+   filtre ne filtrerait quasiment rien, il clignoterait).
 2. **Le sens de la dépendance** — ce réglage est une **entrée** du choix
-   d'artéfact, pas une conséquence. Le futur mode « choisir le meilleur
-   artéfact » (voir le cadrage privé) sert précisément à trancher entre un
-   artéfact élémentaire et un autre : masquer le réglage tant qu'aucun
+   d'artéfact, pas une conséquence. Le choix « Libre » des artéfacts, qui
+   cherche le meilleur artéfact ([ecran/artefacts.md](../optimizer/ecran/artefacts.md)),
+   sert précisément à trancher entre un artéfact élémentaire et un autre :
+   masquer le réglage tant qu'aucun
    artéfact équipé ne porte la ligne reviendrait à cacher ce qui décide du
    choix en attendant que le choix soit fait.
 

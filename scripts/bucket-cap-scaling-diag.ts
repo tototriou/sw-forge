@@ -108,7 +108,7 @@ const requirement: BuildRequirement = {
 // `[]` et cette batterie mesurerait sans le biais qu'elle est là pour mesurer.
 const REFERENCES: { label: string; objective: 'degats' | 'vitesse'; adaptiveTrancheWeighting: boolean; builds: number[][] }[] = [
   {
-    label: 'Dégâts, piste B off',
+    label: 'Dégâts, adaptiveTrancheWeighting off',
     objective: 'degats',
     adaptiveTrancheWeighting: false,
     builds: [
@@ -118,7 +118,7 @@ const REFERENCES: { label: string; objective: 'degats' | 'vitesse'; adaptiveTran
     ],
   },
   {
-    label: 'Vitesse, piste B ON (cas le plus exigeant)',
+    label: 'Vitesse, adaptiveTrancheWeighting ON (cas le plus exigeant)',
     objective: 'vitesse',
     adaptiveTrancheWeighting: true,
     builds: [

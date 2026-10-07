@@ -451,8 +451,6 @@ jamais en entier.
 
 | Cadrage | Statut | Branche |
 | --- | --- | --- |
-| [chantiers/spec-rangement.md](chantiers/spec-rangement.md) — rangement des specs pour lire à la demande ; fiche, journal archivé | terminé le 2026-09-17 | `forge/spec-rangement` |
 | [chantiers/refonte-graphique.md](chantiers/refonte-graphique.md) — refonte graphique sans régression (navigation, boutons, densité) | en cours | `forge/refonte-graphique` |
 | [chantiers/rebranding-blacksmith.md](chantiers/rebranding-blacksmith.md) — rebranding « SW Blacksmith » (nom, logo, thèmes, écrans), suite de la refonte | en cours | `forge/refonte-graphique` |
 | Speed tuning en mode RTA (1,5 % par tick au lieu de 7 %) — pas encore de cadrage ; ce qu'il devra trancher : [outils/speed-tuning.md](outils/speed-tuning.md) § Mode RTA | à ouvrir | — |
-| [chantiers/degats-et-aura.md](chantiers/degats-et-aura.md) — quatre sorts au modèle incomplet, sets d'aura, ergonomie et planchers de conditions ; découpe `spec/outils/degats-reels.md` ; reliquat de l'audit traité en partie, le reste reporté ; fiche, journal archivé ; valeurs de jeu curées : [outils/degats-reels/valeurs-de-jeu-curees.md](outils/degats-reels/valeurs-de-jeu-curees.md) | terminé le 2026-10-04 | `forge/degats-et-aura` |

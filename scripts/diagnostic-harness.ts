@@ -473,7 +473,7 @@ function rendreResultat(r: ResultatHarnais): string {
   // bornée. Rendue brute (JSON) : c'est un relevé, pas une interprétation.
   if (r.traceCandidat) {
     const t = r.traceCandidat;
-    l.push('', 'TRACEUR — verdicts produits dans le moteur (lot 5a)', '─'.repeat(72));
+    l.push('', 'TRACEUR — verdicts produits dans le moteur', '─'.repeat(72));
     for (const e of t.preparation) l.push(`  ${e.etage.padEnd(11)} présentes : ${e.presentes.map((p) => (p ? '✓' : '✗')).join(' ')}`);
     for (const h of ['A', 'B'] as const) {
       const m = t.moities[h];
@@ -487,7 +487,7 @@ function rendreResultat(r: ResultatHarnais): string {
 
   // ── §5.7 : la DISPERSION PAR TRANCHE, telle que le moteur la calcule.
   if (r.dispersionTranches && r.dispersionTranches.length > 0) {
-    l.push('', 'Rétention — DISPERSION PAR TRANCHE (le CV du moteur, piste B)', '─'.repeat(72));
+    l.push('', 'Rétention — DISPERSION PAR TRANCHE (le CV du moteur, qui pilote adaptiveTrancheWeighting)', '─'.repeat(72));
     for (const d of r.dispersionTranches) {
       l.push(`  Moitié ${d.moitie} — ${d.applique ? 'RÉALLOCATION APPLIQUÉE' : 'parts égales appliquées'} (${nb(d.capEgal)} places par tranche)`);
       l.push('    stat     CV      places   contre part égale');

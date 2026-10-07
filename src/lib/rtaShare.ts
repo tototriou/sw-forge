@@ -624,7 +624,7 @@ function cleanGear(raw: unknown, ctx: Issues, where: string): GearSet | undefine
         ...(relicUnique ? { unique: relicUnique } : {}),
       };
     } else {
-      warn(ctx, `${where} : relique sans « id » ou « upgrade » valide (fichier antérieur au lot 1) — ignorée.`);
+      warn(ctx, `${where} : relique sans « id » ou « upgrade » valide (fichier d'une version antérieure de l'application) — ignorée.`);
     }
   }
 

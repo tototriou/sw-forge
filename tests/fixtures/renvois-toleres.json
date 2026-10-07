@@ -284,34 +284,10 @@
       "proprietaire": "hors-perimetre"
     },
     {
-      "fichier": "scripts/audit-degats-aura-corpus.mjs",
-      "renvoi": "spec/outils/optimizer/archive/audit-degats-conditionnels-2026-09-08/inventaire.csv",
-      "occurrences": 1,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": "scripts/audit-degats-aura-corpus.mjs",
-      "renvoi": "spec/outils/optimizer/archive/controles-degats-aura-2026-09/corpus-lot-1.json",
-      "occurrences": 2,
-      "proprietaire": "a-publier"
-    },
-    {
       "fichier": "scripts/passifs-vitesse.ts",
       "renvoi": "scripts/passifs-vitesse.mjs",
       "occurrences": 2,
       "proprietaire": "hors-perimetre"
-    },
-    {
-      "fichier": "scripts/projeter-degats-aura-lot-1.mjs",
-      "renvoi": "spec/outils/optimizer/archive/controles-degats-aura-2026-09",
-      "occurrences": 1,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": "scripts/projeter-degats-aura-lot-1.mjs",
-      "renvoi": "spec/outils/optimizer/archive/controles-degats-aura-2026-09/corpus-lot-1.json",
-      "occurrences": 1,
-      "proprietaire": "a-publier"
     },
     {
       "fichier": "spec/README.md",
@@ -330,18 +306,6 @@
       "renvoi": "components/account/",
       "occurrences": 1,
       "proprietaire": "hors-perimetre"
-    },
-    {
-      "fichier": "spec/chantiers/degats-et-aura.md",
-      "renvoi": "spec/outils/optimizer/archive/chantiers/degats-et-aura.md",
-      "occurrences": 1,
-      "proprietaire": "a-publier"
-    },
-    {
-      "fichier": "spec/chantiers/spec-rangement.md",
-      "renvoi": "spec/outils/optimizer/archive/chantiers/spec-rangement.md",
-      "occurrences": 1,
-      "proprietaire": "a-publier"
     },
     {
       "fichier": "spec/compte/artefacts.md",

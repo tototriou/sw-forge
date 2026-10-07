@@ -30,7 +30,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 // ⚠️ Pourquoi un MODULE À PART, exposé par un MODE du harnais
 //
-// Le précédent est le LOT (§5.3) : un module à part, un drapeau du CLI, un
+// Le précédent est le LOT : un module à part, un drapeau du CLI, un
 // type qui CONTIENT N `ResultatHarnais` sans en modifier un seul. Le
 // différentiel prend la même forme, et pour les mêmes raisons — mais il
 // fait exactement l'INVERSE de ce que le garde-fou du lot autorise :
@@ -41,7 +41,7 @@
 // | garde constant | la condition | le cas (un profil, un pool, une cible) |
 // | protocole | N runs indépendants, aucune comparaison | 2N runs ENTRELACÉS, comparés |
 //
-// ⚠️ **Ce n'est donc pas une contradiction du §5.3, c'en est la moitié
+// ⚠️ **Ce n'est donc pas une contradiction du mode lot, c'en est la moitié
 // manquante** : `AVERTISSEMENT_LOT` dit « comparer deux CONDITIONS
 // demanderait de les ENTRELACER dans une même séquence ; le harnais ne sait
 // pas entrelacer ». Ce fichier est ce qu'il annonçait. Les deux modes
@@ -78,8 +78,8 @@ import { ProfilSynthetique, configDuProfil } from './diagnosticProfils';
  * `OptionsLot = Omit<ConfigHarnais, 'source'>`.
  *
  * ⚠️ Et c'est bien la SURFACE D'OVERRIDE qui est l'ensemble des axes, pas la
- * recette : la recette est la vérité prod, elle ne se fait pas varier (§4.4
- * règle 1). Un différentiel compare deux SURCHARGES du même cas.
+ * recette : la recette est la vérité prod, elle ne se fait pas varier. Un
+ * différentiel compare deux SURCHARGES du même cas.
  */
 export type AxeDifferentiel = keyof OverridesHarnais;
 
@@ -137,7 +137,7 @@ export type ElementOracle =
  * ⚠️ **L'ORDRE EST CELUI DU PIPELINE**, et c'est lui qui fait tout le
  * travail de localisation : on cherche le PREMIER point de divergence,
  * exactement comme `verdictBuildCible` ORDONNE les étages déjà observés sans
- * rien calculer (§5.1). Une divergence de classement rapportée sans dire que
+ * rien calculer. Une divergence de classement rapportée sans dire que
  * les populations diffèrent déjà est un diagnostic qui accuse le mauvais
  * étage.
  */
@@ -152,11 +152,11 @@ export const ORDRE_LECTURE: ElementOracle[] = [
 ];
 
 /**
- * ⚠️ **`NON_COMPARABLE` est le mot réservé de tout ce chantier.** Pas
+ * ⚠️ **`NON_COMPARABLE` est le mot réservé de tout ce harnais.** Pas
  * « aucune différence », pas « inconclusif », pas une case vide : une case
  * vide se lit « pareil », et c'est un silence remplacé par un mensonge,
  * livré avec l'autorité d'un diagnostic. Même famille que `NON_OBSERVABLE`
- * au §5.1, et pour la même raison.
+ * dans le verdict du build cible, et pour la même raison.
  *
  * `INDISPONIBLE` en est distinct, et la distinction porte : l'élément
  * n'existe dans AUCUN des deux bras (pas de near-miss quand `meilleurs`
@@ -199,11 +199,12 @@ export type VerdictDifferentiel =
  *
  * ⚠️ **Le passager clandestin, rendu visible.** L'avertissement nomme déjà le
  * régime d'appariement, qui peut basculer TOUT SEUL quand `bucketCap` change.
- * Mais le piège A du §4.3 est plus courant encore et purement mécanique :
+ * Mais le piège de la cascade de `bucketCap` est plus courant encore et
+ * purement mécanique :
  * `bucketCap = params.bucketCap ?? bucketCapFor(slotFilterCap)`, donc
  * **surcharger `slotFilterCap` déplace AUSSI `bucketCap`**. Un différentiel
  * qui annoncerait « axe slotFilterCap » en faisant varier deux paramètres
- * mesurerait les deux à la fois — exactement ce que le §5.3 interdit au lot
+ * mesurerait les deux à la fois — exactement ce que le mode lot interdit
  * sous une autre forme (« faire varier le cas n'est pas faire varier la
  * condition »).
  *
@@ -225,19 +226,16 @@ export interface ParametreDivergent {
  * Les deux séries d'`explored`, avec **l'estimateur retenu par bras et sa
  * raison** — jamais un chiffre nu.
  *
- * ⚠️ **Correction interne au §5.2 bis, et elle porte.** Celui-ci écrit
- * « MINIMUM, comme pour les temps » en donnant la justification qui conduit
- * à l'inverse : *« une interférence ne peut qu'ajouter du temps, donc que
- * RETIRER des paires dans un budget fixe »*. Le raisonnement est juste, la
- * conclusion était un lapsus : le bon estimateur est toujours **le run le
- * MOINS PERTURBÉ**, ce qui donne le MINIMUM pour un temps (à travail fixe)
- * et le MAXIMUM pour un `explored` (à budget de temps fixe). Aucune décision
- * de 11a ne change — c'est son propre argument, mené jusqu'au bout.
+ * ⚠️ **L'estimateur d'`explored` n'est PAS « MINIMUM, comme pour les
+ * temps ».** Une interférence ne peut qu'ajouter du temps, donc que RETIRER
+ * des paires dans un budget fixe : le bon estimateur est toujours **le run
+ * le MOINS PERTURBÉ**, ce qui donne le MINIMUM pour un temps (à travail
+ * fixe) et le MAXIMUM pour un `explored` (à budget de temps fixe).
  *
  * ⚠️ Et ça ne mord QUE sous `maxMs`. Sur un run complet ou tronqué par quota,
  * `explored` est déterministe (min = max), donc les deux estimateurs
  * coïncident : le distinguer n'en est pas moins nécessaire, puisque `maxMs`
- * reste un override légitime (§7.1).
+ * reste un override légitime.
  */
 export interface ExploredCompare {
   temoin: SerieTemps;
@@ -289,7 +287,7 @@ export interface ResultatDifferentiel {
  * ----------------------------------------------------------------------- */
 
 /**
- * Sur le modèle d'`AVERTISSEMENT_LOT` (§5.3), et imprimé **AVANT** le
+ * Sur le modèle d'`AVERTISSEMENT_LOT`, et imprimé **AVANT** le
  * tableau, jamais après : c'est au moment de LIRE deux colonnes que la
  * confusion se produit.
  *
@@ -475,7 +473,7 @@ function diffParametres(a: ConfigResolue, b: ConfigResolue, axe: AxeDifferentiel
  *
  * ⚠️ Chaque run n'ayant qu'UNE répétition, `serie()` est rappelée ici sur les
  * N minima — jamais recopiée : c'est la même fonction qui produit min,
- * médiane et dispersion partout dans le harnais (§6.4 bis).
+ * médiane et dispersion partout dans le harnais.
  *
  * ⚠️ **Une phase absente d'un run est absente de la série**, jamais comptée
  * pour zéro : c'est la règle déjà tenue par `agregerTemps` du harnais, et la
@@ -550,9 +548,9 @@ function signatureTroncature(r: ResultatHarnais): string {
  * ⚠️ **Le portier ferme tout SAUF l'élément 2 (étage de perte)**, et ce n'est
  * pas une exception de confort : l'étage de perte est évalué sur la
  * STRUCTURE des compartiments, en amont de toute troncature — vérifié
- * identique par 11a sur trois runs dont l'`explored` variait de 32 %. Le
- * fermer aussi jetterait la seule information qui survit, ce que la règle 3
- * du §5.2 bis interdit explicitement (« le refus est LOCAL, jamais global »).
+ * identique sur trois runs dont l'`explored` variait de 32 %. Le
+ * fermer aussi jetterait la seule information qui survit : le refus est
+ * LOCAL, jamais global.
  */
 function evaluerAdmissibilite(
   a: BrasDifferentiel,
@@ -764,7 +762,7 @@ function lireTroncature(a: BrasDifferentiel, b: BrasDifferentiel, adm: Admissibi
       '⚠️ CE N’EST PAS UNE LIGNE PARMI D’AUTRES, C’EST UN ARRÊT. Un motif de troncature qui diffère ne dit ' +
       'pas « le comparé est moins bon » : il dit que les deux bras n’ont pas parcouru le même espace, donc que ' +
       'rien d’autre dans la sortie ne se compare. Un « 0 candidat » de configuration invalide n’est pas non ' +
-      'plus un verdict algorithmique (§6.2 du cadrage).',
+      'plus un verdict algorithmique.',
   };
 }
 
@@ -810,7 +808,7 @@ function lireEtagePerte(a: BrasDifferentiel, b: BrasDifferentiel): LectureElemen
     piege:
       '⚠️ `explorée` n’est PAS un cinquième élagage : c’est la valeur qui dit qu’aucun élagage n’a coupé. Une ' +
       'divergence `explorée` → `borne-compartiment` est un vrai résultat ; la même dans l’autre sens sur un bras ' +
-      'plus tronqué ne l’est pas. ⚠️ Et `PERDUE_À_L_APPARIEMENT` nomme l’ÉTAGE, pas une perte (§5.1) — le ' +
+      'plus tronqué ne l’est pas. ⚠️ Et `PERDUE_À_L_APPARIEMENT` nomme l’ÉTAGE, pas une perte — le ' +
       'différentiel hérite de ce vocabulaire, il ne le durcit pas.',
   };
 }
@@ -885,7 +883,7 @@ function lirePopulation(a: BrasDifferentiel, b: BrasDifferentiel, barrage: strin
       '⚠️ Le harnais ne rend PAS l’ensemble des candidats : `meilleurs` est un `slice(0, TAILLE_TOP_RENDU)`. Le ' +
       'différentiel compare donc le TOP-N et le CARDINAL, jamais l’ensemble — et le cardinal n’existe que parce ' +
       'que le profil porte un build cible. ⚠️ Aucune extension n’est ouverte pour combler ça : c’est la grandeur ' +
-      'qui a fait CONSERVER `monster-search-multicount-diag` au §5.4, et une grandeur manquante est un résultat ' +
+      'qui fait CONSERVER `monster-search-multicount-diag`, et une grandeur manquante est un résultat ' +
       'écrit, pas un chantier enchaîné.',
   };
   if (popA == null && popB == null && topA.length === 0 && topB.length === 0) {
@@ -1200,10 +1198,10 @@ function verdictGlobal(
  * configuration avant de la laisser tourner, et un différentiel MULTIPLIE ce
  * temps par `2N`.
  *
- * ⚠️ **Et il annonce ce que 11a a corrigé** : le coût n'est `2N` que pour le
- * bras bruité. Sur deux bras complets ou tronqués par quota, `N = 1` suffit
- * pour tout sauf les temps — le §5.2 annonçait `2N`, la spécification l'a
- * ramené à `2 + 2N`, et à **2 runs** dès que le différentiel tronque par quota.
+ * ⚠️ **Et il annonce le coût réel** : il n'est `2N` que pour le bras
+ * bruité. Sur deux bras complets ou tronqués par quota, `N = 1` suffit pour
+ * tout sauf les temps — le coût est `2 + 2N`, et **2 runs** dès que le
+ * différentiel tronque par quota.
  */
 export function annoncerDifferentiel(
   profil: ProfilSynthetique,
@@ -1296,7 +1294,7 @@ export function rendreDifferentiel(d: ResultatDifferentiel): string {
     l.push(
       `  ⚠️ ${entraines.length} paramètre(s) varie(nt) SANS avoir été demandé(s) : ${entraines.map((p) => p.nom).join(', ')}.`,
       '     Ce différentiel ne mesure donc PAS l’effet d’un paramètre isolé — il mesure celui du GROUPE. La',
-      '     cascade la plus fréquente est le piège A du §4.3 : `bucketCap = params.bucketCap ?? bucketCapFor(',
+      '     cascade la plus fréquente est celle de `bucketCap` : `bucketCap = params.bucketCap ?? bucketCapFor(',
       '     slotFilterCap)`, donc surcharger `slotFilterCap` déplace AUSSI `bucketCap`. Pour isoler l’un des',
       '     deux, le surcharger EXPLICITEMENT dans les deux bras (--bucketCap=<n>), ce qui fige la cascade.'
     );
@@ -1325,8 +1323,8 @@ export function rendreDifferentiel(d: ResultatDifferentiel): string {
     l.push(`      AUTORISE    : ${lec.autorise}`);
     for (const e of lec.exemples ?? []) l.push(`      exemple     : ${e}`);
     // ⚠️ Le piège n'est imprimé QUE là où il mord — un avertissement collé
-    // sous chaque ligne cesse d'être lu (défaut corrigé sur la sortie réelle
-    // du §5.1, où le même texte partait sous tous les verdicts).
+    // sous chaque ligne cesse d'être lu (le même texte sous tous les
+    // verdicts ne se lit plus).
     if (lec.piege && (lec.etat === 'DIVERGENT' || lec.etat === 'NON_COMPARABLE')) l.push(`      ${lec.piege}`);
   }
 
@@ -1353,7 +1351,7 @@ export function rendreDifferentiel(d: ResultatDifferentiel): string {
   const phases = ['preparation', 'demiBuilds', 'demiBuildA', 'demiBuildB', 'appariement', 'total'];
   const presentes = phases.filter((p) => d.temps.temoin[p] && d.temps.compare[p]);
   if (presentes.length > 0) {
-    l.push('', 'TEMPS — la grandeur pour laquelle l’entrelacement existe (minimum, §6.4 bis)', '─'.repeat(78));
+    l.push('', 'TEMPS — la grandeur pour laquelle l’entrelacement existe (minimum)', '─'.repeat(78));
     l.push(`  ${'phase'.padEnd(12)} ${'témoin'.padStart(12)} ${'comparé'.padStart(12)} ${'écart'.padStart(10)}   dispersions`);
     for (const p of presentes) {
       const ta = d.temps.temoin[p];

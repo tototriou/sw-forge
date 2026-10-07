@@ -52,6 +52,7 @@ import testRtaPartage from './rta-partage.test';
 import { testInstallerHooks, testHooksCodexGardeFous } from './installer-hooks.test';
 import { testPreCommit } from './pre-commit.test';
 import { testRenvois, testRenvoisFormes } from './renvois.test';
+import { testEcriturePublique, testEcriturePubliqueFormes } from './ecriture-publique.test';
 import testHookRefuseSedI from './hook-refuse-sed-i.test';
 import testHookRefuseCommitM from './hook-refuse-commit-m.test';
 import testCouleursCourbes from './courbe-couleurs.test';
@@ -324,6 +325,8 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testPreCommit', testPreCommit],
   ['testRenvoisFormes', testRenvoisFormes],
   ['testRenvois', testRenvois],
+  ['testEcriturePubliqueFormes', testEcriturePubliqueFormes],
+  ['testEcriturePublique', testEcriturePublique],
   ['testSetsIntangible', testSetsIntangible],
   ['testRuneTri', testRuneTri],
   ['testMonstreTri', testMonstreTri],

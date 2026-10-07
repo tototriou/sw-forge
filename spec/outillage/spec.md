@@ -1,7 +1,7 @@
 # Outillage des specs — natures, `spec-toc`, `spec-lint`
 
 **Statut :** ÉTAT ACTUEL — décrit la frontière entre public et privé, les natures de documents de `spec/`, le parseur `spec-markdown`, `spec-toc`, le contrat de `spec-lint`, les en-têtes, le critère des invariants et les niveaux d'application (hook `Read`, `pre-commit` et installation des garde-fous compris)
-**Lire si :** on modifie `scripts/spec-lint.mjs`, `scripts/spec-toc.mjs`, `scripts/lib/spec-markdown.mjs`, `spec/spec-lint.json`, le hook `Read`, le hook `pre-commit`, `scripts/installer-hooks.mjs` ou le skill `spec-hygiene` ; on crée, déplace, archive ou découpe une spec ; on se demande si un texte a sa place dans le dépôt public
+**Lire si :** on modifie `scripts/spec-lint.mjs`, `scripts/spec-toc.mjs`, `scripts/lib/spec-markdown.mjs`, `spec/spec-lint.json`, le hook `Read`, le hook `pre-commit`, `tests/ecriture-publique.test.ts`, `scripts/installer-hooks.mjs` ou le skill `spec-hygiene` ; on crée, déplace, archive ou découpe une spec ; on se demande si un texte a sa place dans le dépôt public
 **Ne pas lire si :** on ouvre une spec pour son contenu — `node scripts/spec-toc.mjs <fichier>` suffit
 **Voir aussi :** `spec/outillage/renvois.md` (garde-fou des renvois), skills `spec-hygiene` et `cadrage-chantier`
 
@@ -30,9 +30,8 @@ délibération des décisions, exports de compte.
   un sens dans le jeu reste) ; aucun cheminement, sauf l'écueil qu'un
   contributeur réessaierait, en une ligne avec sa raison ; aucun identifiant
   de lot ; jamais « décision de l'utilisateur ». La provenance d'une valeur
-  de jeu (relevé en jeu, déduction) reste. Ces règles se vérifient en revue :
-  seul le `pre-commit` refuse un identifiant de lot, et seulement dans le
-  dossier de l'Optimizer.
+  de jeu (relevé en jeu, déduction) reste. Vérifiées dans deux dossiers
+  par un test (« Test des règles d'écriture »), ailleurs en revue.
 - Un passage retiré du public pour ces raisons est rangé dans les notes
   privées s'il doit être gardé ; l'historique Git garde de toute façon le
   texte retiré.
@@ -49,9 +48,8 @@ Quatre natures, que `spec-lint` reconnaît au champ `Statut :` de l'en-tête :
 | **Archive** | document qui n'est plus une source de vérité active | jamais par défaut | dossier `archive` |
 
 Le critère de rangement d'un document est la deuxième colonne, pas son
-genre : une analyse dont la conclusion vit dans une synthèse est une
-archive ; une synthèse dont la conclusion est encore appliquée est une
-décision.
+genre : une analyse dont la conclusion vit dans une synthèse est une archive ;
+une synthèse dont la conclusion est encore appliquée est une décision.
 
 La nature **Archive** n'a plus de place dans le public : historique,
 preuves et récits sont privés. Archiver, c'est **retirer le document du
@@ -100,8 +98,7 @@ Un bloc terminal trop long se résorbe d'abord en posant des sous-titres :
   déplacé ou supprimé ;
 - hiérarchie propre : **aucun saut de niveau** (pas de H4 directement sous
   un H2), chaque titre décrit le bloc jusqu'au prochain titre de niveau
-  égal ou supérieur ; les titres reprennent les libellés du jeu ou de
-  l'écran ;
+  égal ou supérieur ; les titres reprennent les libellés du jeu ou de l'écran ;
 - aucune **ancre** dupliquée : contrôle par le slug, pas seulement par le
   texte du titre.
 
@@ -133,8 +130,7 @@ ponctuation, backticks, doublons).
 `node scripts/spec-toc.mjs <fichier|dossier> [--json]` imprime, par
 fichier : l'en-tête (statut, lire si), puis chaque titre avec **niveau,
 plage de lignes, première phrase**. C'est la façon d'ouvrir une spec
-(`CLAUDE.md`, « La spec avant le code ») : le sommaire, puis la section
-utile.
+(`CLAUDE.md`, « La spec avant le code ») : le sommaire, puis la section utile.
 
 - **titre** : celui de `titres()` ;
 - **plage** : du titre inclus à la ligne précédant le prochain titre de
@@ -237,11 +233,10 @@ fichiers ont leur en-tête.
 
 Tout `.md` sous un dossier `chantiers/`, à toute profondeur, est de nature
 Chantier ; le dossier fait foi, pas le périmètre déclaré. Deux formes de
-`Statut :` **seules** reconnues, par une expression stricte, casse
-ignorée : `CHANTIER en cours` et `CHANTIER terminé le AAAA-MM-JJ` (date
-calendaire valide), chacune avec un suffixe `— <texte>` facultatif. La
-nature est refusée hors d'un dossier `chantiers/`, et toute autre nature y
-est refusée.
+`Statut :` **seules** reconnues, par une expression stricte, casse ignorée :
+`CHANTIER en cours` et `CHANTIER terminé le AAAA-MM-JJ` (date calendaire
+valide), chacune avec un suffixe `— <texte>` facultatif. La nature est
+refusée hors d'un dossier `chantiers/`, et toute autre nature y est refusée.
 
 Un cadrage grossit avec les résultats de ses lots : la limite de 500 lignes
 par fichier ne s'applique pas sous `chantiers/`. Cette exemption est codée
@@ -255,12 +250,11 @@ restent exigés.
 `.md` suivi de `§`, puis lit la section jusqu'à la fin de la ligne, un
 `;`, ou un `)` ou `]` **sans ouvrant correspondant depuis le début de la
 référence** — celui qui enveloppe toute la référence ou ferme le texte d'un
-lien. Un titre qui
-contient un lien Markdown, des parenthèses ou des backticks se cite donc tel
-quel : la comparaison par slug neutralise la ponctuation. Une fixture
-couvre chacun des trois cas. Seul un bloc de code clôturé est exclu : un
-exemple écrit en ligne, même entre accents graves, est lu comme une
-référence et doit résoudre.
+lien. Un titre qui contient un lien Markdown, des parenthèses ou des
+backticks se cite donc tel quel : la comparaison par slug neutralise la
+ponctuation. Une fixture couvre chacun des trois cas. Seul un bloc de code
+clôturé est exclu : un exemple écrit en ligne, même entre accents graves,
+est lu comme une référence et doit résoudre.
 
 ### Cibles de test
 
@@ -279,15 +273,12 @@ Quatre vérifications, au sens fixe, dans `tests/spec-lint.test.ts`
 - **Un défaut de rendu** : un texte en retrait de quatre espaces, que le
   Markdown affiche comme un bloc de code, ou une balise HTML écrite nue
   (`<liste>` sans accents graves), que le rendu avale. Ni `spec-lint` ni
-  aucun test enregistré ne le relève : la relecture du rendu reste à
-  faire à la main.
-- **Un saut de niveau** de titre (H2 suivi d'un H4) : défaut de forme laissé
-  à la revue.
+  aucun test enregistré ne le relève : le rendu se relit à la main.
+- **Un saut de niveau** de titre (H2 suivi d'un H4), laissé à la revue.
 - **Une exception dont le fichier n'existe pas** : `verifier` ne parcourt
   que les fichiers présents, une entrée orpheline de `spec/spec-lint.json`
   ne déclenche rien.
-- Les champs d'en-tête autres que `Statut :` : leur présence se vérifie en
-  revue.
+- Les champs d'en-tête autres que `Statut :`, présence vérifiée en revue.
 
 ## En-têtes par nature, slugs uniques
 
@@ -395,7 +386,7 @@ offre un **niveau de garantie** :
 
 | Niveau | Vecteur | Garantie |
 | --- | --- | --- |
-| 1 — invariant dépôt | `spec-lint` dans `tests/index.ts`, `pre-commit` | refus mécanique, quel que soit l'agent |
+| 1 — invariant dépôt | `spec-lint` et le test des règles d'écriture dans `tests/index.ts`, `pre-commit` | refus mécanique, quel que soit l'agent |
 | 2 — garde-fou outil | hook `PreToolUse` sur `Read` (Claude Code), `hooks-codex-garde-fous.mjs` (Codex) | refuse le chemin **le plus courant** ; ne couvre ni `cat` ni un autre outil — **garde-fou ergonomique**, pas invariant |
 | 3 — convention agent | `CLAUDE.md`, skill `spec-hygiene` | lue au démarrage, s'érode |
 | 4 — jugement | revue du diff de spec | humaine |
@@ -448,6 +439,16 @@ note privée sans aucune de ces marques, sous un nom de la liste, passe.
 Limite : le lint du `pre-commit` lit les fichiers de l'**arbre de
 travail**, pas leur version de l'index ; un fichier corrigé sur le disque
 mais pas réindexé passe. Test : `node tests/run.mjs precommit`.
+
+### Test des règles d'écriture
+
+`tests/ecriture-publique.test.ts` (`node tests/run.mjs ecriturepublique`)
+refuse, par ligne des `.md` de `spec/outils/optimizer/**` et
+`spec/outils/degats-reels/**` : une date hors de la colonne « Source » des
+valeurs de jeu curées, un identifiant de lot avec ou sans le mot « lot »,
+« décision de l'utilisateur », et deux marques de récit, « incident » et
+« session ». Chaque exception du test porte sa raison ; une exception qui
+ne sert plus fait échouer. Le reste du cheminement relève de la revue.
 
 ### Installation des garde-fous
 

@@ -3152,7 +3152,7 @@ const CALCUL_PARTIEL_PAR_ID: Readonly<Record<number, string>> = {
   13406: 'L’ignore DEF est compté en entier, en permanence ; la part du jeu, qui grandit quand tes PV baissent, n’est pas encore modélisée.', // Madness Judgement (Belial)
   13410: 'L’ignore DEF est compté en entier, en permanence ; la part du jeu, qui grandit quand tes PV baissent, n’est pas encore modélisée.', // Madness Judgement (Beelzebub)
   15511: 'L’ignore DEF est compté en entier, en permanence ; la condition du jeu (3 ennemis ou moins, jusqu’à 100 % selon les PV de la cible) n’est pas encore modélisée.', // Unlimited Power (Liam)
-  13611: 'L’ignore DEF est compté en entier, en permanence ; la condition du jeu (25 % par effet bénéfique retiré par la bête) n’est pas encore modélisée.', // Start of Attacking (Barbara)
+  13611: 'L’ignore DEF est compté en entier, en permanence ; la condition du jeu (35 % par effet bénéfique retiré par la bête) n’est pas encore modélisée.', // Start of Attacking (Barbara)
   7713: 'L’ignore DEF est compté en permanence ; la condition du jeu (DEF de la cible sous 50 % de la tienne) n’est pas encore modélisée.', // Thunder Strike (Copper éveillé, sans second éveil)
   6013: 'L’ignore DEF est compté en permanence ; la condition du jeu (sort lancé sous Invincibilité) n’est pas encore modélisée.', // Sword of Discharge (Katarina)
   // ── Part décidée « comptée », pas encore codée ──

@@ -155,6 +155,17 @@ codée porte « Calcul partiel »
   coups, à tester d'abord en jeu, puis ATQ sous la DEF, à 1,5 fois, à 2
   fois. Hors inventaire : Crow Hunt et Rat Hunt sous Immunité.
 
+### Crow Hunt de Prilea : deux coups annoncés pour un
+
+- **Constat** : Crow Hunt (`1618`, Prilea `10513`) « attack the enemy
+  target 2 times » porte `coups: 1` ; `COUPS_FIXES_CORRIGES_PAR_ID`
+  (`src/lib/damage.ts`) est vide, le calcul compte un coup. Ses homonymes
+  jouables `1607` et `1609` portent `coups: 4`
+  (`tests/degats-coups-saisis.test.ts`).
+- **Idée** : l'entrée `1618: 2` dans `COUPS_FIXES_CORRIGES_PAR_ID`.
+- **Bloque** : un relevé, les nombres de dégâts affichés sur la cible :
+  deux → 2 coups, un → la donnée dit vrai.
+
 ### Séquences à valeur relevée
 
 - **Constat** : `SEQUENCES_DE_COUPS_PAR_ID_CONNUS` (`src/lib/damage.ts`) ne

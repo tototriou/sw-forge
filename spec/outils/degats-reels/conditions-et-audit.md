@@ -344,7 +344,8 @@ l'identifiant l'emporte (`plageDeCoupsDe`, `coupsFixesCorrigesDe`, lues par
 `skillDamageProfile` ET `monsterOffensivePassives`). Une entrée passe par
 identifiant quand un homonyme **jouable** a une autre mécanique : une entrée
 par nom s'étendrait à lui en silence. `COUPS_FIXES_CORRIGES_PAR_ID` est vide :
-Crow Hunt de Prilea (1618) attend un relevé en jeu, ses homonymes
+Crow Hunt de Prilea (1618) attend un relevé en jeu
+([pistes.md § Crow Hunt de Prilea : deux coups annoncés pour un](pistes.md)), ses homonymes
 jouables 1607 et 1609 portent `coups: 4`.
 
 | Sort · identifiant · formes | Plage | Clé | Citation |

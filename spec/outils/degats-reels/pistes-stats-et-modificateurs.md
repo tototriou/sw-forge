@@ -220,6 +220,20 @@ les coups. La forme d'une piste et des relevés en jeu est celle de
   dégâts contre un élément agit-elle sur leur S3 ? Dice Madness : plus
   grande face, cinq valeurs.
 
+### Skillups des séquences à valeur de l'API
+
+- **Constat** : chaque groupe de `sequenceDeCoups` reçoit le profil entier
+  du sort (`computeTotalDamage`, `src/lib/damage.ts`), skillups compris :
+  ils valent aux deux phases de Fatal Extinctive Bullet (`13311`, Abigail),
+  Fatal Armor Bullet (`13314`, Emily), Head Press (`14113`, M. BISON) et
+  Great Sword of the End (`14613`, Sagar), sans confirmation
+  ([sequences-de-coups.md § Séquences à valeur de l’API](sequences-de-coups.md)).
+- **Idée** : les borner à la phase 1 si le relevé le dit.
+- **Bloque** : un relevé, sort au maximum de skillups, deux coups non
+  critiques sur la cible visée, phase 2 / phase 1 : Abigail ou Emily,
+  environ 1,29 → les deux phases, environ 1,03 → la phase 1 seule ;
+  M. BISON ou Sagar, environ 1,30 contre 1,13.
+
 ## Stats des passifs
 
 ### Assiette des « +X % » de passif

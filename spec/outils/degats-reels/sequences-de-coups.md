@@ -96,7 +96,8 @@ le calcul recopie le profil sur chaque groupe ; rien ne l’a confirmé pour
 ces sorts, contrairement à Blade Surge. Sur la phase 1 seule, Abigail et
 Emily vaudraient `3,5 × 1,25 + 4,5 = 8,875` × ATQ au lieu de `10`, M. BISON
 et Sagar `4,0 × 1,15 + 5,2 = 9,8` au lieu de `10,58`. Un relevé du rapport
-phase 2 / phase 1 sur la cible visée tranche.
+phase 2 / phase 1 sur la cible visée tranche
+([pistes-stats-et-modificateurs.md § Skillups des séquences à valeur de l'API](pistes-stats-et-modificateurs.md)).
 
 ## La cible calculée — `cibleDegatsParSort`
 

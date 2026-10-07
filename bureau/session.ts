@@ -15,10 +15,11 @@
 
 import { app, BrowserWindow, dialog, ipcMain } from 'electron';
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 import {
   avecExtension,
   cheminLibre,
+  confirmationApresExtension,
   dossierSessions,
   ecrireSansRisque,
   etatDe,
@@ -26,6 +27,7 @@ import {
   lireDossierRetenu,
   lireSessionRetenue,
   messageEchec,
+  messageEchecDossier,
   nomProposeValide,
   texteSessionValide,
 } from './sessionPur';
@@ -130,7 +132,22 @@ export function brancherSession(fenetre: BrowserWindow, preuve?: PreuveSession) 
       filters: [{ name: 'Session SW Blacksmith', extensions: ['json'] }],
       properties: ['showOverwriteConfirmation'],
     });
-    return r.canceled || !r.filePath ? null : avecExtension(r.filePath);
+    if (r.canceled || !r.filePath) return null;
+    const chemin = avecExtension(r.filePath);
+    if (confirmationApresExtension(r.filePath, existsSync)) {
+      // Le défaut ne perd rien : « Annuler ».
+      const { response } = await dialog.showMessageBox(fenetre, {
+        type: 'warning',
+        title: 'Sauvegarder la session sous',
+        message: `« ${basename(chemin)} » existe déjà.`,
+        detail: 'Le remplacer efface la session qu’il contient.',
+        buttons: ['Annuler', 'Remplacer'],
+        defaultId: 0,
+        cancelId: 0,
+      });
+      if (response !== 1) return null;
+    }
+    return chemin;
   }
 
   async function enregistrer(
@@ -160,7 +177,7 @@ export function brancherSession(fenetre: BrowserWindow, preuve?: PreuveSession) 
         try {
           mkdirSync(sessions, { recursive: true });
         } catch (err) {
-          return { issue: 'echec', message: messageEchec((err as NodeJS.ErrnoException).code) };
+          return { issue: 'echec', message: messageEchecDossier((err as NodeJS.ErrnoException).code) };
         }
         chemin = sous ? await demanderFichier(sessions, nomPropose) : cheminLibre(sessions, nomPropose, existsSync);
         if (!chemin) return { issue: 'annulee' };

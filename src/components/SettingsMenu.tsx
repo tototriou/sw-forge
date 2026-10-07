@@ -84,12 +84,16 @@ function ReglageDossierSwblacksmith() {
 export function SettingsList({
   onClearData,
   onSauvegarderSession,
+  sauvegardeIndisponible = null,
   onKeepAccount,
   accountExportedAt,
   groupes = false,
 }: {
   onClearData?: () => void;
   onSauvegarderSession?: () => void;
+  // Pourquoi « Sauvegarder » est désactivé (le compte se relit encore), ou
+  // `null`. Le bouton reste affiché, désactivé avec cette raison en infobulle.
+  sauvegardeIndisponible?: string | null;
   onKeepAccount?: () => void;
   accountExportedAt?: number | null;
   // ⚠️ **La PAGE de réglages, à la SOURIS** (refonte graphique, lot 10, la
@@ -198,7 +202,8 @@ export function SettingsList({
             icone={<Save size={12} />}
             libelle="Sauvegarder"
             onClick={onSauvegarderSession}
-            title="Sauvegarder la session dans un fichier"
+            disabled={!!sauvegardeIndisponible}
+            title={sauvegardeIndisponible ?? 'Sauvegarder la session dans un fichier'}
             className="flex-none"
           />
         </Setting>
@@ -249,11 +254,15 @@ export function SettingsList({
 export default function SettingsMenu({
   onClearData,
   onSauvegarderSession,
+  sauvegardeIndisponible = null,
   onKeepAccount,
   accountExportedAt,
 }: {
   onClearData?: () => void;
   onSauvegarderSession?: () => void;
+  // Pourquoi « Sauvegarder » est désactivé (le compte se relit encore), ou
+  // `null`. Le bouton reste affiché, désactivé avec cette raison en infobulle.
+  sauvegardeIndisponible?: string | null;
   onKeepAccount?: () => void;
   accountExportedAt?: number | null;
 }) {
@@ -322,6 +331,7 @@ export default function SettingsMenu({
           <SettingsList
             onClearData={onClearData}
             onSauvegarderSession={onSauvegarderSession}
+            sauvegardeIndisponible={sauvegardeIndisponible}
             onKeepAccount={onKeepAccount}
             accountExportedAt={accountExportedAt}
           />

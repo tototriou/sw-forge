@@ -82,12 +82,20 @@ export function avecExtension(chemin: string): string {
   return /\.json$/i.test(chemin) ? chemin : `${chemin}.json`;
 }
 
+// ⚠️ La boîte « Sauvegarder sous » ne confirme l'écrasement que du nom TAPÉ.
+// Sous Linux, elle n'ajoute pas l'extension du filtre : « ancienne » ne
+// rencontre aucun conflit, puis `avecExtension` écrit `ancienne.json`. Ce cas
+// demande donc une seconde confirmation, sur le nom réellement écrit.
+export function confirmationApresExtension(rendu: string, existe: (chemin: string) => boolean): boolean {
+  return !/\.json$/i.test(rendu) && existe(avecExtension(rendu));
+}
+
 // Le message montré quand l'écriture échoue, selon le code d'erreur du
 // système.
 export function messageEchec(code: unknown): string {
   switch (code) {
     case 'ENOENT':
-      return 'Le dossier de la session n’existe plus. « Sauvegarder sous… » permet d’en choisir un autre.';
+      return 'Le dossier de la session n’existe plus. « Sauvegarder sous… » l’enregistre dans le dossier SW Blacksmith.';
     case 'EACCES':
     case 'EPERM':
       return 'Ce dossier refuse l’écriture, ou le fichier est ouvert ailleurs.';
@@ -100,6 +108,21 @@ export function messageEchec(code: unknown): string {
     default:
       return `L’écriture a échoué${typeof code === 'string' ? ` (${code})` : ''}.`;
   }
+}
+
+// Le message montré quand le dossier SW Blacksmith ne peut pas recevoir la
+// session (création du sous-dossier `sessions` impossible). « Sauvegarder
+// sous… » échouerait pareil : la sortie est d'en choisir un autre.
+export function messageEchecDossier(code: unknown): string {
+  const raison =
+    code === 'ENOSPC'
+      ? 'le disque est plein'
+      : code === 'EROFS'
+        ? 'ce disque est en lecture seule'
+        : code === 'EACCES' || code === 'EPERM'
+          ? 'il refuse l’écriture'
+          : 'il est introuvable ou inaccessible';
+  return `Le dossier SW Blacksmith ne peut pas recevoir la session : ${raison}. Choisis-en un autre dans Paramètres › « Dossier SW Blacksmith ».`;
 }
 
 const attendre = (ms: number) => new Promise((r) => setTimeout(r, ms));

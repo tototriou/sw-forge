@@ -934,9 +934,14 @@ function Application() {
   // l'état de l'app dans un fichier. Le compte est celui EN MÉMOIRE, pas celui
   // d'IndexedDB — conservation refusée, il n'est que là.
   // Sur le site, un fichier daté se télécharge, toujours. Dans l'app,
-  // « Sauvegarder » réécrit la session en cours (la première fois, la boîte
-  // « Enregistrer » demande où) et « Sauvegarder sous… » en choisit une autre.
+  // « Sauvegarder » réécrit la session en cours (sans session en cours, il
+  // demande le dossier SW Blacksmith s'il manque, puis écrit le nom daté dans
+  // son sous-dossier `sessions`) et « Sauvegarder sous… » en choisit une autre.
+  // ⚠️ Rien tant que le compte conservé se relit (`sauvegardeIndisponible`) :
+  // la session écrite n'aurait pas de compte, et dans l'app elle remplacerait
+  // la session en cours, que le bureau a déjà reprise.
   async function enregistrerSession(sous: boolean) {
+    if (sauvegardeIndisponible) return;
     const maintenant = new Date();
     const texte = texteSession(maintenant);
     const nom = nomFichierSession(maintenant);
@@ -949,6 +954,10 @@ function Application() {
     if (r?.issue === 'enregistree') notifier({ message: `Session enregistrée · ${r.etat.nom}` });
     else if (r?.issue === 'echec') setEchecSession(r.message);
   }
+  // Pourquoi « Sauvegarder » est désactivé, ou `null` s'il ne l'est pas.
+  const sauvegardeIndisponible = accountHydrating
+    ? 'Ton compte se charge encore : la sauvegarde attend qu’il soit relu.'
+    : null;
   const sauvegarderSession = () => void enregistrerSession(false);
   const sauvegarderSessionSous = () => void enregistrerSession(true);
   // Ctrl+S lit la DERNIÈRE version : l'écouteur, lui, ne se pose qu'une fois.
@@ -1551,6 +1560,7 @@ function Application() {
         fil={filBureau}
         onRecherche={() => setPaletteOuverte(true)}
         onSauvegarder={sauvegarderSession}
+        sauvegardeIndisponible={sauvegardeIndisponible}
         onSauvegarderSous={estBureau() ? sauvegarderSessionSous : undefined}
         sessionEnCours={sessionEnCours?.nom ?? null}
         decalage={sidebarRetractee ? LARGEUR_SIDEBAR_RETRACTEE : LARGEUR_SIDEBAR}
@@ -1735,6 +1745,7 @@ function Application() {
           <SettingsPage
             onClearData={() => setPurgeGlobale(true)}
             onSauvegarderSession={sauvegarderSession}
+            sauvegardeIndisponible={sauvegardeIndisponible}
             onKeepAccount={persistCurrentAccount}
             onImport={importAccount}
             accountExportedAt={accountExportedAt}

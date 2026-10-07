@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { SiegeState, SiegeTeam, SiegeSlot, GearSet } from '../types';
 import { saveLocal, usePersistence } from './usePersistence';
+import { reinsererA } from '../lib/reinsererA';
 
 // Défense et offense de siège = deux listes d'équipes indépendantes.
 export type SiegeSide = 'offense' | 'defense';
@@ -56,14 +57,6 @@ function load(side: SiegeSide): SiegeState {
   }
 }
 
-// Les équipes après restauration d'une équipe supprimée (« Annuler », lot 13) :
-// à son index d'origine, borné à la liste actuelle — pas au bout. Pure, pour
-// être testée.
-export function equipesApresRestauration(teams: SiegeTeam[], team: SiegeTeam, index: number): SiegeTeam[] {
-  const copie = [...teams];
-  copie.splice(Math.min(Math.max(index, 0), copie.length), 0, team);
-  return copie;
-}
 
 export interface UseSiegeState {
   state: SiegeState;
@@ -130,7 +123,7 @@ export function useSiegeState(side: SiegeSide): UseSiegeState {
   // Sans effet si elle est déjà là.
   const restaurerEquipe = useCallback(
     (team: SiegeTeam, index: number) =>
-      setState((s) => (s.teams.some((t) => t.id === team.id) ? s : { ...s, teams: equipesApresRestauration(s.teams, team, index) })),
+      setState((s) => (s.teams.some((t) => t.id === team.id) ? s : { ...s, teams: reinsererA(s.teams, team, index) })),
     []
   );
 

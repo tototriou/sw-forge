@@ -17,6 +17,7 @@ import {
 import { artifactSubKinds, canAddSet, isArtifactSub } from '../lib/effects';
 import { cleanArtifacts, cleanSetOptions } from '../lib/recoShare';
 import { avecContenuDeck, ContenuDeck } from '../lib/annulerEdition';
+import { reinsererA } from '../lib/reinsererA';
 import { saveLocal, usePersistence } from './usePersistence';
 
 // Un deck VIDE : celui que `removeDeck` pose quand on retire le dernier — trois
@@ -24,13 +25,6 @@ import { saveLocal, usePersistence } from './usePersistence';
 const deckVide = (d: RecoDeck) =>
   !d.note && d.counters.length === 0 && d.slots.every((s) => s.com2usId == null && !s.name);
 
-// Remettre un élément À SA PLACE dans une liste (« Annuler », lot 13) : à
-// l'index d'origine, borné à la liste actuelle. Pure, pour être testée.
-export function reinsererA<T>(liste: T[], el: T, index: number): T[] {
-  const copie = [...liste];
-  copie.splice(Math.min(Math.max(index, 0), copie.length), 0, el);
-  return copie;
-}
 
 // Les decks d'une recommandation après restauration d'un deck supprimé.
 // ⚠️ Supprimer le DERNIER deck en laisse un vide à sa place (jamais zéro deck,

@@ -211,8 +211,8 @@ export function testProseStatsCombatCarte() {
   ok(!/\.description\b/.test(bloc) && !/profile\.description/.test(carte),
     'la carte ne lit jamais `profile.description` : la prose ne passe que par `renduStatsCombat`');
 
-  // Ancres des validateurs de l'inventaire et du corpus
-  // (scripts/audit-degats-aura-corpus.mjs) : chacune une fois et une seule.
+  // Ancres du bloc « Stats acquises en combat » dans la carte : chacune une
+  // fois et une seule.
   for (const fragment of [
     '{combatStats.map((profile, index) => {',
     "profile.source === 'debuffsInverses'",

@@ -13,3 +13,11 @@ export function telechargerTexte(nomFichier: string, texte: string) {
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
+
+// « 2026-10-07 » : le jour LOCAL, pour dater un nom de fichier. Pas
+// `toISOString()`, qui donne le jour UTC : entre minuit et 2 h en France, le
+// fichier porterait la date de la veille.
+export function jourLocal(d = new Date()): string {
+  const n = (x: number) => String(x).padStart(2, '0');
+  return `${d.getFullYear()}-${n(d.getMonth() + 1)}-${n(d.getDate())}`;
+}

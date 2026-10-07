@@ -141,7 +141,7 @@ import {
 import { buildOptimizerRecipe, mainsPourCeCompte, parseOptimizerRecipe, relicMainPourCeCompte } from '../../lib/optimizerRecipe';
 import { classeMessageImport, delaiEffacementImport, type MessageImport } from '../../lib/messageImport';
 import { DUREE_ATTENTION_MS, doitRappeler, echoAurasExternes, guideVersResPre } from '../../lib/aurasExternes';
-import { telechargerTexte } from '../../lib/telechargement';
+import { jourLocal, telechargerTexte } from '../../lib/telechargement';
 import {
   ArtifactMainChoice,
   OptimizerState,
@@ -1916,7 +1916,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
       relicUniqueChoice,
       relicMinUpgrade,
     });
-    const jour = new Date().toISOString().slice(0, 10);
+    const jour = jourLocal();
     const DIACRITICS = new RegExp('[̀-ͯ]', 'g');
     const slug = selected.monster.name.toLowerCase().normalize('NFD').replace(DIACRITICS, '').replace(/[^a-z0-9]+/g, '-');
     // Préfixe de la marque (rebranding, décision 14) : `swblacksmith-optimizer-…`.

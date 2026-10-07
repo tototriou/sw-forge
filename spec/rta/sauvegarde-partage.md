@@ -337,7 +337,8 @@ dialogue l'explique plutôt que de laisser un bouton inerte.
 #### ⚠️ Le nom du fichier dit ce qu'il contient
 
 `swblacksmith-prepa-rta-<niveau>-<AAAA-MM-JJ>.json`, où `<niveau>` vaut `complet`,
-`vitesses` ou `ordre-de-tour`.
+`vitesses` ou `ordre-de-tour`, et la date est le jour **local** (`jourLocal`,
+pas le jour UTC).
 
 C'est le **seul repère avant d'ouvrir le fichier** : dans un dossier de
 téléchargements, ou quand on en reçoit un d'un ami, un nom générique ne dit pas

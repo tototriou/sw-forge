@@ -13,6 +13,7 @@
 import type { Monster, SiegeTeam } from '../types';
 import { NOM_APP, PREFIXE_FICHIER } from '../marque';
 import { formatExport, formatReconnu } from './formatsExport';
+import { jourLocal } from './telechargement';
 
 // ⚠️ Un IDENTIFIANT de format, pas le nom de l'app. Il s'écrivait
 // `sw-forge/siege-equipes` : cet ancien identifiant reste relu, sans quoi les
@@ -70,7 +71,7 @@ export function exporterEquipes(
 
 // `swblacksmith-siege-defense-2026-09-26.json` — le nom dit ce qu'il contient.
 export function nomFichierSiege(cote: CoteSiege, date = new Date()): string {
-  return `${PREFIXE_FICHIER}-siege-${cote}-${date.toISOString().slice(0, 10)}.json`;
+  return `${PREFIXE_FICHIER}-siege-${cote}-${jourLocal(date)}.json`;
 }
 
 export type LectureSiege =

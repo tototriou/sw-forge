@@ -29,7 +29,7 @@ import { ConfirmDialog, Modale } from '../../ui/Dialogs';
 import { BarreActions, Bouton, Option } from '../../ui';
 import { PREFIXE_FICHIER } from '../../marque';
 import { selonSupport } from '../../lib/bureau';
-import { telechargerTexte } from '../../lib/telechargement';
+import { jourLocal, telechargerTexte } from '../../lib/telechargement';
 import type { ElementMenu } from '../../ui';
 
 /* --------------------------------------------------------------------------
@@ -226,8 +226,7 @@ export default function RtaBackupBar({
       vitesses: 'ordre-et-sets',
       ordre: 'ordre-seul',
     };
-    const jour = new Date().toISOString().slice(0, 10); // déjà « 2026-08-11 »
-    const fichier = `${PREFIXE_FICHIER}-prepa-rta-${suffixe[niveau]}-${jour}.json`;
+    const fichier = `${PREFIXE_FICHIER}-prepa-rta-${suffixe[niveau]}-${jourLocal()}.json`;
     telechargerTexte(fichier, encodeSnapshot(snap));
     const dit: Record<NiveauPartage, string> = {
       complet: 'avec les runes et artéfacts',

@@ -46,7 +46,8 @@ Electron `44.5.1`, electron-builder `26.15.3`, electron-updater `6.8.9`
    `<dossier>/donnees`.
 2. **À `ready`** : aucun menu (`Menu.setApplicationMenu(null)`) ;
    `protocol.handle` sert les fichiers du build ; la fenêtre est créée,
-   puis branchés la navigation, la mise à jour et le dossier SW Exporter ;
+   puis branchés la navigation, la mise à jour, le dossier SW Exporter et
+   la session en cours ;
    elle charge `SWBLACKSMITH_DEV_URL` sinon `app://swblacksmith/`. En mode
    preuve, le scénario demandé par les variables d'environnement se lance.
 3. Toutes les fenêtres fermées : l'app quitte.
@@ -67,6 +68,9 @@ lecteur côté page (`estBureau()` = l'objet présent, avec `bureau: true`).
 | `swex.etat()`, `choisirDossier()`, `choisirInvocateur(fichier)`, `oublier()` | `bureau:swex-etat`, `bureau:swex-choisir-dossier`, `bureau:swex-choisir-invocateur`, `bureau:swex-oublier` (`invoke`) | rendent l'état du réglage |
 | `swex.surEtat(rappel)`, `swex.surExport(rappel)` | `bureau:swex-etat`, `bureau:swex-export` | bureau → page |
 | `swex.pret(pageSansCompte)`, `swex.lu(modifie)` | `bureau:swex-pret`, `bureau:swex-lu` | page → bureau |
+| `session.etat()`, `retenir(oui)`, `choisirDossier()`, `oublierDossier()`, `oublier()` | `bureau:session-etat`, `bureau:session-retenir`, `bureau:session-choisir-dossier`, `bureau:session-oublier-dossier`, `bureau:session-oublier` (`invoke`) | rendent l'état : session en cours, dossier SW Blacksmith |
+| `session.sauvegarder(texte, nomPropose)`, `sauvegarderSous(texte, nomPropose)` | `bureau:session-sauvegarder`, `bureau:session-sauvegarder-sous` (`invoke`) | rendent l'issue de l'écriture |
+| `session.surEtat(rappel)` | `bureau:session-etat` | bureau → page |
 
 Le processus principal n'accepte un message que de la page de SA fenêtre
 (`evenement.sender`), et vérifie son contenu.
@@ -83,6 +87,9 @@ change pas. Ce qui en dépend aujourd'hui :
 |-------------|-----------|
 | Page « Télécharger », son entrée sous Ressources, le bouton et la carte de l'accueil ([telecharger.md](../telecharger.md)) | absents ; `#/telecharger` mène à l'accueil |
 | — | bloc « Application » des Réglages : version, mise à jour, dossier SW Exporter |
+| — | ligne « Dossier SW Blacksmith » du bloc « Mes données » ([sauvegarde-session.md](sauvegarde-session.md)) |
+| « Se déconnecter », barre du haut (ordinateur) | absent : sans compte ni ordinateur partagé, il n'a pas de sens ; « Sauvegarder sous… » à sa place, « Tout supprimer » (Paramètres) reste le moyen de tout effacer |
+| « Sauvegarder » télécharge un fichier daté | « Sauvegarder » réécrit la session en cours ; « Sauvegarder sous… » dans la barre du haut et la palette ([sauvegarde-session.md](sauvegarde-session.md)) |
 | Textes qui parlent du navigateur (« dans ton navigateur », « en fermant l'onglet », « ta prochaine visite », thème « Auto », « un autre navigateur ») | leur variante : « sur ta machine », « en fermant l'application »… (`selonSupport(site, app)`) |
 
 ## La coquille
@@ -128,6 +135,10 @@ change pas. Ce qui en dépend aujourd'hui :
 - ⚠️ **Le site et l'app ne partagent rien** (deux origines) : passer de l'un
   à l'autre = réimporter son compte SWEX, exporter puis importer prépa et
   équipes.
+- **Le dossier SW Blacksmith** (réglage, `dossier-swblacksmith.json`) est
+  retenu même sans « Garder mes données » ; **la session en cours**
+  (`session.json`) seulement avec (`bureau/session.ts`,
+  [sauvegarde-session.md](sauvegarde-session.md) § La session en cours (application de bureau)).
 - `npm run bureau:local` garde ses données à part (`%APPDATA%\swblacksmith`,
   nom npm) : il ne touche jamais celles de l'app installée.
 - **Données du jeu** : celles de l'installeur, rafraîchies à chaque version
@@ -219,9 +230,9 @@ notification), `BlocApplication` (Réglages).
 
 ```
 npm run bureau:preuve                  # l'app se contrôle elle-même (resultats.json)
-npm run bureau:preuve -- --conservation  # les données survivent à la fermeture
+npm run bureau:preuve -- --conservation  # les données et la session en cours survivent à la fermeture
 npm run bureau:preuve -- --swex        # le dossier SW Exporter, sur des fixtures
-npm run bureau:preuve -- --session     # « Sauvegarder la session », conservation refusée
+npm run bureau:preuve -- --session     # « Sauvegarder », « Sauvegarder sous… », conservation refusée
 npm run bureau:preuve -- <dossier> --exe "<app installée>"  # la même chose, sur l'app installée
 npm run bureau:local                   # la regarder
 node tests/run.mjs bureau              # protocole, fenêtre, mise à jour, noms de fichiers
@@ -230,7 +241,8 @@ node tests/run.mjs bureau              # protocole, fenêtre, mise à jour, noms
 Le mode preuve (`bureau/preuve.ts`, variables `SWBLACKSMITH_PREUVE` et
 `SWBLACKSMITH_PREUVE_*`) vit dans ses propres données (`<dossier>/donnees`) :
 il ne touche jamais celles de l'utilisateur. Il note les liens au lieu de
-les ouvrir, range les téléchargements dans `<dossier>/telechargements` sans
-boîte de dialogue, simule la mise à jour, se contrôle de l'intérieur,
+les ouvrir, range les téléchargements dans `<dossier>/telechargements` et
+les sessions dans `<dossier>/sessions` sans boîte de dialogue, simule la
+mise à jour, se contrôle de l'intérieur,
 écrit ses résultats en JSON puis quitte, sans capture d'écran ; le script
 compare et rend 1 si un verdict échoue.

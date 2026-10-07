@@ -13,6 +13,7 @@ import { NOM_APP } from '../src/marque';
 import { CouleursFenetre, couleursValides, EtatFenetre, HAUTEUR_BARRE, lireEtat, MINIMUM } from './fenetre';
 import { brancherMiseAJour } from './miseAJour';
 import { brancherNavigation } from './navigation';
+import { brancherSession } from './session';
 import { brancherSwex } from './swex';
 import { SCHEMA, URL_ACCUEIL, cheminDuFichier } from './protocole';
 import { lancerPreuve, lancerPreuveConservation, lancerPreuveSession, lancerPreuveSwex, TemoinsPreuve } from './preuve';
@@ -135,6 +136,9 @@ function creerFenetre(preuve: TemoinsPreuve | undefined): BrowserWindow {
   brancherMiseAJour(fenetre, preuve?.miseAJour);
   // Le dossier SW Exporter (lot 9) : « Mon compte » suit les exports.
   brancherSwex(fenetre, preuve?.swex);
+  // La session en cours : « Sauvegarder » la réécrit, « Sauvegarder sous… »
+  // la remplace.
+  brancherSession(fenetre, preuve?.session);
 
   void fenetre.loadURL(URL_DEV ?? URL_ACCUEIL);
   return fenetre;
@@ -159,6 +163,9 @@ void app.whenReady().then(() => {
         // Lot 9 : le dossier « choisi » sans boîte de dialogue (fixtures de
         // `npm run bureau:preuve -- --swex`).
         swex: process.env.SWBLACKSMITH_PREUVE_SWEX ? { dossier: process.env.SWBLACKSMITH_PREUVE_SWEX } : undefined,
+        // Le dossier SW Blacksmith et les fichiers de session « choisis » sans
+        // boîte de dialogue.
+        session: { dossier: join(DOSSIER_PREUVE, 'swblacksmith'), choix: 0 },
       }
     : undefined;
   const fenetre = creerFenetre(preuve);

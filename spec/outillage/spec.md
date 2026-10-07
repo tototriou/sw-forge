@@ -373,7 +373,7 @@ relecture des sections d'état actuel cherche explicitement :
 - **constante** : un seuil ou une valeur qui ne découle d'aucune règle plus
   générale et casserait silencieusement si on la changeait ailleurs.
 
-Conduite :
+Conduite, que suit la recette pas à pas du skill `spec-hygiene`, (c) :
 
 - Se lisent **toutes** les sections d'état actuel touchées, pas seulement
   celles qui semblent candidates : un invariant est souvent une phrase
@@ -385,8 +385,6 @@ Conduite :
   normative du dépôt, avec son `Source : fichier § section`.
 - Une règle ajoutée se compare à `invariants.md` existant, pour n'écrire
   que les absentes.
-
-La recette pas à pas est dans le skill `spec-hygiene`, (c).
 
 ## Niveaux d'application et garde-fous
 

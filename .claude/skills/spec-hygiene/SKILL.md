@@ -86,9 +86,8 @@ changer son contenu, ne pas ajouter au tas : découper d'abord.
 ## (c) Extraire les invariants d'une section d'état actuel
 
 Ce qu'un chantier applique quand il **ajoute ou modifie une section d'état
-actuel** et doit décider ce qui entre dans `invariants.md` — « ça casse
-quelque chose si on l'ignore », seul, laisse passer des règles (« Critère
-des invariants »).
+actuel** et doit décider ce qui entre dans `invariants.md`. Critère et
+conduite : « Critère des invariants ».
 
 **Le critère n'est pas « est-ce important »** mais une des trois familles
 suivantes, chacune formulée en **description** du comportement actuel — pas
@@ -110,13 +109,18 @@ Une règle qui ne rentre dans AUCUNE des trois reste dans sa section source :
 `invariants.md` n'est pas un résumé de tout ce qui est vrai, seulement de ce
 qu'un chantier qui touche à côté risque de casser sans le remarquer.
 
-1. Relire la section modifiée (ou nouvelle) en entier une fois.
+1. Relire en entier **toutes** les sections d'état actuel touchées, pas
+   seulement celles qui semblent candidates.
 2. Pour chaque règle candidate, la confronter aux trois familles — pas à
    l'intuition « c'est important ».
-3. Ajouter les règles retenues à `invariants.md`, formulées en description
+3. Retrouver chaque règle retenue dans une source normative du dépôt :
+   jamais un fichier d'un dossier `decisions`, qui se cite, jamais la seule
+   mémoire d'un agent.
+4. La comparer à `invariants.md` existant ; n'ajouter que les absentes.
+5. Ajouter les règles retenues à `invariants.md`, formulées en description
    (« X est dérivé de Y », pas « ne pas ajouter de champ pour X »), chacune
    avec son `Source : fichier § section`.
-4. **Contrôle de précision** minimal sur ce qui est ajouté : citer la ligne
+6. **Contrôle de précision** minimal sur ce qui est ajouté : citer la ligne
    source de chaque règle retenue — pas de règle sans coordonnée.
 
 ## Voir aussi

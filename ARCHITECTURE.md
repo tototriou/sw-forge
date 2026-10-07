@@ -17,7 +17,7 @@ disent ce que contient chaque brique. Le comportement attendu, lui, est dans
 | Node | ≥ 24 |
 | Calcul lourd | 2 Web Workers (`src/workers/`) |
 | Stockage | `localStorage` (prépa, équipes, réglages) + **IndexedDB** (compte importé) |
-| Application de bureau | Electron, code dans **`bureau/`** (hors de `src/` : il tourne dans Node) — `main.ts` (fenêtre, protocole `app://swblacksmith/`), `protocole.ts` (règles pures, testées : fichier servi, adresse interne, lien ouvrable dehors), `navigation.ts` (liens vers le navigateur, navigations bloquées, « Enregistrer sous »), `fenetre.ts` (état mémorisé, pur), `preload.ts`, `miseAJour.ts` (mise à jour automatique, `electron-updater`), `swex.ts` + `swexPur.ts` (dossier SW Exporter : « Mon compte » suit les exports), `preuve.ts`, `installeur.nsh` (désinstalleur Windows), `icone.ico` (générée par `scripts/generer-icone-bureau.mjs`) ; empaqueté par `electron-builder.yml`, publié au tag `v*` par `.github/workflows/bureau.yml` (installeurs attachés à la release) ; côté page `src/lib/bureau.ts` (`estBureau()`, couleurs du thème, mise à jour), `src/components/MiseAJourBureau.tsx` (la mise à jour dite par la notification) et `src/components/BlocApplication.tsx` (bloc « Application » des Réglages : version, mise à jour à portée, dossier SW Exporter), `src/components/SuiviSwex.tsx` (applique « Mon compte » à chaque export), `src/hooks/useEtatSwex.ts` (l'état du dossier, lu par les Réglages et par `SidebarCompte`, dont la carte devient le menu des invocateurs) ; compilé par `scripts/construire-bureau.mjs` vers le dossier `dist-bureau` (non suivi). État actuel [spec/shared/application-bureau.md](spec/shared/application-bureau.md), chantier [spec/chantiers/application-bureau.md](spec/chantiers/application-bureau.md) |
+| Application de bureau | Electron, code dans **`bureau/`** (hors de `src/` : il tourne dans Node) — `main.ts` (fenêtre, protocole `app://swblacksmith/`), `protocole.ts` (règles pures, testées : fichier servi, adresse interne, lien ouvrable dehors), `navigation.ts` (liens vers le navigateur, navigations bloquées, « Enregistrer sous »), `fenetre.ts` (état mémorisé, pur), `preload.ts`, `miseAJour.ts` (mise à jour automatique, `electron-updater`), `swex.ts` + `swexPur.ts` (dossier SW Exporter : « Mon compte » suit les exports), `session.ts` + `sessionPur.ts` (session en cours : « Sauvegarder » la réécrit, « Sauvegarder sous… », `session.json` ; dossier SW Blacksmith et son sous-dossier `sessions`, `dossier-swblacksmith.json`), `preuve.ts`, `installeur.nsh` (désinstalleur Windows), `icone.ico` (générée par `scripts/generer-icone-bureau.mjs`) ; empaqueté par `electron-builder.yml`, publié au tag `v*` par `.github/workflows/bureau.yml` (installeurs attachés à la release) ; côté page `src/lib/bureau.ts` (`estBureau()`, couleurs du thème, mise à jour), `src/components/MiseAJourBureau.tsx` (la mise à jour dite par la notification) et `src/components/BlocApplication.tsx` (bloc « Application » des Réglages : version, mise à jour à portée, dossier SW Exporter), `src/components/SuiviSwex.tsx` (applique « Mon compte » à chaque export), `src/hooks/useEtatSwex.ts` (l'état du dossier, lu par les Réglages et par `SidebarCompte`, dont la carte devient le menu des invocateurs), `src/hooks/useSessionEnCours.ts` (la session en cours, « Garder mes données » redit au bureau ; `useEtatSession` pour la ligne « Dossier SW Blacksmith » de `SettingsList`, bloc « Mes données ») ; compilé par `scripts/construire-bureau.mjs` vers le dossier `dist-bureau` (non suivi). État actuel [spec/shared/application-bureau.md](spec/shared/application-bureau.md), chantier [spec/chantiers/application-bureau.md](spec/chantiers/application-bureau.md) |
 
 ⚠️ **Pas de librairie de composants.** Tout `src/ui/` est écrit à la main.
 Radix UI a été **validé mais jamais installé** — chantier en attente.
@@ -52,6 +52,8 @@ entre pages.
   C'est ce qui permet à un import de compte d'alimenter RTA + siège + compte
   d'un seul geste.
 - **Import de compte global** (`importAccount`) et **`clearAllData()`**.
+- **Sauvegarde de session** (`sauvegarderSession`, `sauvegarderSessionSous`, Ctrl+S) :
+  `spec/shared/sauvegarde-session.md`.
 
 ⚠️ **Cycle d'imports** : `AccountPage` et `OutilsPage` importent des types depuis
 `src/App`. Conséquence pratique : un parcours automatique des dépendances depuis
@@ -201,6 +203,7 @@ jeu** (halo, éclat) et en sont exemptés.
 | `useOptimizerLists` | Listes de travail + runes validées (Lot 3) — SEUL état de l'Optimiseur qui persiste sur disque, contrairement à `useOptimizerState` |
 | `usePersistence` | **un seul interrupteur** pour toute conservation ; ⚠️ aucun hook n'appelle `localStorage.setItem` directement ; clés préfixées `swblacksmith-`, migrées depuis l'ancien nom par `lib/migrationStockage.ts` (premier import de `main.tsx`) |
 | `useStickyState` | état conservé en mémoire à travers la navigation, sans persister |
+| `useSessionEnCours`, `useEtatSession` | la session en cours de l'application de bureau (`null` sur le site), redit « Garder mes données » au bureau ; l'état complet, dossier SW Blacksmith compris |
 | `useRuneMetric`, `useOvercapDisplay`, `useTheme` | réglages globaux (menu ⚙) |
 | `useMediaQuery` | une media query lue depuis React |
 | `useScrollBloque` | ⚠️ **compteur de verrous** — blocage du défilement, verrou `position: fixed` sur `body` (iOS ignore `overflow: hidden` au toucher) |
@@ -229,6 +232,7 @@ dans un composant.
 | Import de compte | `importAccount.ts` (parse SWEX), `applyAccount.ts` (→ états), `accountStore.ts` (IndexedDB), `accountViews.ts` |
 | Monstres | `monsterForms.ts`, `monsterSkills.ts`, `monsterSort.ts`, `collabPairs.ts` |
 | Siège / recos | `recoMatch.ts`, `recoSearch.ts`, `recoShare.ts`, `recoFromSiege.ts`, `recoDefenses.ts`, `ownedBuilds.ts`, `annulerEdition.ts` (« Annuler les modifications » d'une reco ou d'un deck en édition) |
+| Session | `session.ts` (format `swblacksmith/session` : composer, écrire, relire), `sessionOptimizer.ts` (photo de l'Optimiseur), `telechargement.ts` (un texte téléchargé en fichier) |
 | Fichiers exportés | `formatsExport.ts` (identifiant `swblacksmith/<nom>` écrit, l'ancien `sw-forge/<nom>` relu — lu par `rtaShare`, `recoShare`, `siegeShare`, `runeCurveShare`) |
 | Divers | `effects.ts` (codes com2us → libellés), `crafts.ts`, `gearSync.ts`, `detecteurDebordement.ts` (dev seulement), `migrationStockage.ts` (clés de stockage de l'ancien nom) |
 

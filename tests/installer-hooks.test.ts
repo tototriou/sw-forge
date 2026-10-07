@@ -6,7 +6,7 @@
 // temporaire ; aucune installation réelle n'est touchée.
 
 import { execFileSync } from 'child_process';
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'fs';
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from 'fs';
 import { createHash } from 'crypto';
 import { tmpdir } from 'os';
 import { dirname, join, resolve } from 'path';
@@ -92,6 +92,14 @@ function cablage(code: string): string {
   try { return git(code, 'config', 'core.hooksPath'); } catch { return ''; }
 }
 
+// Le dossier temporaire sous son nom LONG. Sous Windows, `tmpdir()` peut
+// renvoyer un nom court 8.3 (`C:\Users\RUNNER~1\…` sur les machines de la
+// CI), alors que Git — et donc l'installateur et le garde-fou — donne le nom
+// long : les chemins comparés ne se ressembleraient plus.
+function bacTemporaire(prefixe: string): string {
+  return realpathSync.native(mkdtempSync(join(tmpdir(), prefixe)));
+}
+
 function memeChemin(a: string, b: string): boolean {
   const n = (p: string) => (process.platform === 'win32' ? resolve(p).toLowerCase() : resolve(p));
   return n(a) === n(b);
@@ -100,7 +108,7 @@ function memeChemin(a: string, b: string): boolean {
 export function testInstallerHooks() {
   titre('Installateur public — manifeste par entrée, câblage, hooks Codex');
   if (!gitDisponible('installateur public')) return;
-  const bac = mkdtempSync(join(tmpdir(), 'swblacksmith-installer-hooks-'));
+  const bac = bacTemporaire('swblacksmith-installer-hooks-');
   const code = join(bac, 'code');
   try {
     depotPublic(code);
@@ -201,7 +209,7 @@ export function testInstallerHooks() {
 export function testHooksCodexGardeFous() {
   titre('Garde-fou Codex public — lecture entière d’une grosse spec');
   if (!gitDisponible('garde-fou Codex')) return;
-  const bac = mkdtempSync(join(tmpdir(), 'swblacksmith-garde-fous-'));
+  const bac = bacTemporaire('swblacksmith-garde-fous-');
   const code = join(bac, 'code');
   const autre = join(bac, 'autre');
   try {

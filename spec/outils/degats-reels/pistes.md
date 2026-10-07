@@ -31,6 +31,23 @@ codée porte « Calcul partiel »
   +139 exclut l'arrondi supérieur par cumul ; un écart de +140 ne le
   distingue pas d'un simple arrondi de l'affichage (139,2 → 140).
 
+### Arrondi de la VIT sous buff de vitesse
+
+- **Constat** : `maVitCombat` (`src/lib/damage.ts`) rend une VIT
+  flottante, `VIT × (100 + buff) / 100` sans arrondi : 168 sous le buff de
+  30 % donnent 218,4. Cette VIT nourrit `{SPD}`, le critique garanti si plus
+  rapide que la cible et l'écart de VIT de Sonia
+  ([passifs-offensifs.md](passifs-offensifs.md)). `src/lib/speed.ts` ne
+  modélise pas le buff de vitesse : aucune référence interne à laquelle se
+  comparer.
+- **Idée** : appliquer l'arrondi du jeu une fois connu, partout où
+  `maVitCombat` est lue.
+- **Bloque** : une source de mécanique (swcalc.cz) ou un relevé en jeu : la
+  VIT affichée d'un monstre de VIT de combat connue, sans puis sous buff de
+  vitesse, choisie pour que le produit tombe entre deux entiers. Ne pas
+  changer d'arrondi sans cette preuve, parce qu'on introduirait un écart
+  d'un point là où il n'y en a peut-être aucun.
+
 ## Attaques déclenchées et hors tour
 
 ### Attaques conjointes : lignes d'artéfact 209 et 225

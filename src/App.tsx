@@ -1,5 +1,5 @@
 import { CSSProperties, useEffect, useMemo, useRef, useState } from 'react';
-import { Github, MessageCircle, Upload, Plus, Gauge, Save, SunMoon, FilePlus, AlertTriangle } from 'lucide-react';
+import { Github, MessageCircle, Download, Plus, Gauge, Save, SunMoon, FilePlus, AlertTriangle } from 'lucide-react';
 import {
   IconeAtelier,
   IconeAccueil,
@@ -1394,7 +1394,7 @@ function Application() {
         },
       })),
       actions: [
-        { cle: 'a-import', libelle: 'Importer mon compte', icone: <Upload size={16} />, faire: () => fichierCompte.current?.click() },
+        { cle: 'a-import', libelle: 'Importer mon compte', icone: <Download size={16} />, faire: () => fichierCompte.current?.click() },
         { cle: 'a-session-sauver', libelle: 'Sauvegarder la session', contexte: 'Tout l’état de l’app dans un fichier', icone: <Save size={16} />, faire: sauvegarderSession },
         // Dans l'app seulement : le site télécharge toujours un fichier daté.
         ...(estBureau()

@@ -3,7 +3,7 @@ import { Layers } from 'lucide-react';
 import { RuneDetail, RUNE_SETS } from '../../types';
 import RuneIcon from '../RuneIcon';
 import { runeSetIconFilter } from '../../lib/effects';
-import { useMediaQuery, COMPACT } from '../../hooks/useMediaQuery';
+import { useMediaQuery, COMPACT, SOUS_LG } from '../../hooks/useMediaQuery';
 import { MARQUEUR_FILTRE_ACTIF } from '../../ui/Pastille';
 import { ACTIF_FILTRE_LG, CADRE_FILTRE_LG, CASE_FILTRE_LG } from './gabaritFiltre';
 
@@ -27,6 +27,8 @@ export default function SetFilter({
 }) {
   // Pointeur grossier (téléphone) → icônes de set agrandies pour la visée.
   const auDoigt = useMediaQuery(COMPACT);
+  // Au-delà de `lg`, un filtre actif est un aplat d'accent (`ACTIF_FILTRE_LG`).
+  const aLaSouris = !useMediaQuery(SOUS_LG);
 
   // Seulement les sets réellement présents dans l'inventaire : proposer un
   // filtre qui ne peut rien renvoyer n'aide personne.
@@ -109,7 +111,10 @@ export default function SetFilter({
               {/* ⚠️ Taille selon le POINTEUR : 24 px au doigt (visée du pouce),
                   18 px à la souris — la taille est posée en `style` inline par
                   RuneIcon, donc un `coarse:` en `className` serait ignoré. */}
-              <RuneIcon setKey={s.key} size={auDoigt ? 24 : 18} filter={runeSetIconFilter(active)} />
+              {/* Actif à la souris, sur l'aplat d'accent : le doré du repos,
+                  pas l'éclairci. Au doigt, l'actif garde un fond doux : doré
+                  éclairci. */}
+              <RuneIcon setKey={s.key} size={auDoigt ? 24 : 18} filter={runeSetIconFilter(active && !aLaSouris)} />
             </button>
           );
         })}

@@ -1213,6 +1213,15 @@ laisser visible sous `(hover: none)`.
 C'est ce qui rendait le bouton « Retirer » d'une carte RTA **impossible à
 actionner sur téléphone**.
 
+### Exporter ↑, importer ↓
+
+⚠️ **Exporter = `Upload` (flèche vers le haut), importer = `Download`
+(flèche vers le bas)**, partout : boutons, actions de la palette, zone de
+dépôt, étapes de l'accueil. Le fichier qui **sort** de l'app monte, celui
+qui **entre** descend — même « Exporte ton compte » de l'accueil, où le
+fichier sort du jeu. Ne pas raisonner « on télécharge un fichier, donc
+`Download` » : c'est l'inversion qui revenait.
+
 ## Réglage du thème
 
 Dans le menu ⚙ ([SettingsMenu.tsx](../../src/components/SettingsMenu.tsx)), un

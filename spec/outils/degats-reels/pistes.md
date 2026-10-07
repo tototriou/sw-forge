@@ -44,9 +44,8 @@ codée porte « Calcul partiel »
   `maVitCombat` est lue.
 - **Bloque** : une source de mécanique (swcalc.cz) ou un relevé en jeu : la
   VIT affichée d'un monstre de VIT de combat connue, sans puis sous buff de
-  vitesse, choisie pour que le produit tombe entre deux entiers. Ne pas
-  changer d'arrondi sans cette preuve, parce qu'on introduirait un écart
-  d'un point là où il n'y en a peut-être aucun.
+  vitesse, le produit tombant entre deux entiers. Ne pas changer d'arrondi
+  sans cette preuve : l'écart d'un point n'existe peut-être pas.
 
 ## Attaques déclenchées et hors tour
 
@@ -297,11 +296,14 @@ codée porte « Calcul partiel »
 
 - **Constat** : Head to Head (`6161`, Mina 2A), qui appelle Energy Punch
   après tout coup critique du tour, n'est pas curé ; la frappe de Moria 2A
-  pendant son S3 non plus.
+  pendant son S3 non plus. Deadly Swing ne garantit le critique sous 30 %
+  de PV de la cible que sur `6258` (`CONDITIONS_COMBAT_PAR_ID_CONNUS`),
+  pas sur `6207`, `6208`, `6209`, `6257`, `6272`, `6273`, de même prose.
 - **Idée** : Energy Punch suit le mode critique, un par coup du sort en
   « Critique », aucun en « Non critique »
   ([valeurs-de-jeu-curees.md](valeurs-de-jeu-curees.md)) ; un sort ne
-  s'appelle jamais lui-même.
+  s'appelle jamais lui-même. Deadly Swing : la garantie partout où la
+  prose la dit, forme jouable par forme jouable.
 - **Bloque** : un changement de code ; Moria 2A attend un relevé : frappe
   pendant le S3 / S1 Cross Attack, toutes deux critiques (environ 1,00 →
   profil de la S1 avec ses améliorations, environ 0,87 → sans).
@@ -339,13 +341,11 @@ codée porte « Calcul partiel »
   reçus ; Kiki, un choix de 0, 1 ou 2 effets nocifs sur la cible.
 - **Bloque** : des relevés. S4 de Zenitsu ou Qilin Slasher contre une cible
   à ~25 % puis à ~40 % que le coup fait passer sous 30 %. Nina ou Shasha,
-  S3, valeurs par coup. Shakan, PV % égaux puis cible entamée. Amber
-  (deux coups) contre 0, 1, 3, 4 débuffs. Lucifer : un allié frappe
-  ~50 000, puis un autre attaque (environ 1,10 → règle de swcalc.cz).
+  S3, valeurs par coup. Shakan, PV % égaux puis cible entamée, et Disdain
+  par un relevé propre. Amber (deux coups) contre 0, 1, 3, 4 débuffs.
   Mandrake avec puis sans effet sur la cible. S3 d'Übel feu sur une cible
   sans dégât continu, valeurs par coup. S3 de Jin et de Kai, coup par
-  coup, contre une ATQ entre la leur sans et avec buff. Disdain : un relevé
-  propre, avec celui de Shakan.
+  coup, contre une ATQ entre la leur sans et avec buff.
 
 ### PV et comparaisons continues
 
@@ -469,7 +469,8 @@ codée porte « Calcul partiel »
 - **Idée** : la forme choisissable dans la modale, puisqu'elle change les
   sorts disponibles, et jamais comme une entrée de plus de l'Optimizer :
   Lord of Hell (runes et ATQ de Liliana, puis +50 %), Bellenus, Taranys,
-  Pater, Beast Riders, Indra.
+  Pater, Beast Riders, Indra. Anges jumeaux : le sort de la forme archer
+  choisi seul, sans le Horn lancé avant ([valeurs-de-jeu-curees.md](valeurs-de-jeu-curees.md)).
 - **Bloque** : un changement de code ; l'assiette des passifs de forme
   (piste « Assiette des « +X % » de passif »).
 

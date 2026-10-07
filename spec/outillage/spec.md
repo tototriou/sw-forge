@@ -45,7 +45,7 @@ Quatre natures, que `spec-lint` reconnaît au champ `Statut :` de l'en-tête :
 | --- | --- | --- | --- |
 | **État actuel** | normatif, à jour | au démarrage, **par section** | racine de la zone |
 | **Décision** | conclusion **encore en vigueur** qu'un chantier peut devoir rouvrir, avec sa raison ; la délibération qui y a mené reste privée | quand on touche ce qui a été décidé | dossier `decisions` de la zone |
-| **Chantier** | cadrage ou fiche publique d'un chantier, « en cours » puis « terminé » | par section, selon le lot | sous un dossier `chantiers/` |
+| **Chantier** | cadrage public d'un chantier, « en cours » puis « terminé » ; un chantier privé n'a pas de document public | par section, selon le lot | sous un dossier `chantiers/` |
 | **Archive** | document qui n'est plus une source de vérité active | jamais par défaut | dossier `archive` |
 
 Le critère de rangement d'un document est la deuxième colonne, pas son

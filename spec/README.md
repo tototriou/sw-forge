@@ -443,8 +443,8 @@ lot, Partie B un contrat par lot, résultats ajoutés au fil des lots.
 L'écrire : skill `cadrage-chantier`. Il est public, dans
 [chantiers/](chantiers/), ou privé, dans les notes privées du projet, hors
 de ce dépôt, au choix du responsable du chantier. Le tableau ci-dessous
-n'a de ligne que pour un cadrage public, ou pour la fiche publique d'un
-journal archivé dans les notes privées.
+n'a de ligne que pour un cadrage public : un chantier privé n'a pas de
+document public.
 Chaque cadrage commence par un H1 et une ligne `**Statut :**` que
 `node scripts/spec-toc.mjs <fichier>` résume ; on l'ouvre par section,
 jamais en entier.

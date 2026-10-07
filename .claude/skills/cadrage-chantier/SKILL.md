@@ -149,13 +149,12 @@ dit pourquoi elle existe.
   puis la section utile.
 - **Quand le chantier finit**, son statut passe à « `terminé le <date>` ».
   Un cadrage public reste en place, ou, si son responsable le décide, est
-  archivé dans les notes privées et remplacé, au même chemin, par une
-  fiche publique : ce que le chantier a livré, et une table « section
-  citée → place publique ». Ses contrats encore en vigueur passent alors
-  d'abord dans une référence publique (`spec/outillage/`, `spec/outils/…`),
-  sous des titres propres, sans identifiant de section du cadrage ; les
-  renvois du code, des tests et des skills qui citaient le cadrage sont
-  repointés vers ces titres.
+  archivé dans les notes privées, sans rien laisser à son chemin. Ses
+  contrats encore en vigueur passent alors d'abord dans une référence
+  publique (`spec/outillage/`, `spec/outils/…`), sous des titres propres,
+  sans identifiant de section du cadrage ; les renvois du code, des tests
+  et des skills qui citaient le cadrage sont repointés vers ces titres.
+  Un chantier privé n'a pas de document public.
 
 ## Voir aussi
 

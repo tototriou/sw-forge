@@ -146,8 +146,9 @@ interface Props {
   // `resolved.bonusParEffetCible` (propre à UN sort, type Julie) : celui-ci
   // majore le sort choisi quel qu'il soit. `null` = pas ce passif.
   bonusParEffetCibleMonstre: BonusMonstreParEffetProfile | null;
-  // Blessing of Curse (Devil Maiden/Jessica) — même famille, mais sur SOI
-  // (`monsterBonusParEffetPropre`). `null` = pas ce passif.
+  // Blessing of Curse (Devil Maiden/Jessica) — même famille, mais compte les
+  // débuffs sur les ALLIÉS, soi compris (`monsterBonusParEffetPropre`).
+  // `null` = pas ce passif.
   bonusParEffetPropre: BonusMonstreParEffetPropreProfile | null;
   // Calculated Sacrifice (Onimusha, Fuuki) — dégâts fixes selon une saisie
   // de PV actuels avant le sacrifice (`monsterBonusSacrifice`). `null` = pas
@@ -1044,8 +1045,9 @@ export default function DamageSetupCard({
               </div>
             )}
             {/* Blessing of Curse (Devil Maiden/Jessica) — même mécanisme,
-                mais compte les débuffs sur SOI (stockage séparé,
-                `setup.effetsPropresCount`). */}
+                mais compte les débuffs sur les ALLIÉS, soi compris, bonus
+                plafonné (stockage séparé, `setup.effetsPropresCount`).
+                Libellés : « allies (including yourself) » du jeu. */}
             {bonusParEffetPropre && (
               <div key={`effet-propre-${bonusParEffetPropre.skillCom2usId}`}>
                 <Jeton
@@ -1055,13 +1057,13 @@ export default function DamageSetupCard({
                     ) : undefined
                   }
                   libelle={bonusParEffetPropre.nom.replace(/\s*\(Passive\)\s*$/i, '')}
-                  detail={`+${bonusParEffetPropre.pct} % par débuff sur toi-même`}
+                  detail={`+${bonusParEffetPropre.pct} % par débuff sur tes alliés (toi compris), jusqu'à +${bonusParEffetPropre.plafondPct} %`}
                 />
                 {bonusParEffetPropre.description && (
                   <p className="mt-1 text-xs leading-snug text-ink-dim">{bonusParEffetPropre.description}</p>
                 )}
                 <label className="mt-1 flex items-center gap-2">
-                  <span className="text-xs text-ink-dim">Débuffs sur toi-même</span>
+                  <span className="text-xs text-ink-dim">Débuffs sur tes alliés (toi compris)</span>
                   <NumberField
                     value={resolvedEffetsPropresCount(bonusParEffetPropre.skillCom2usId, setup)}
                     onChange={(v) =>
@@ -1074,8 +1076,8 @@ export default function DamageSetupCard({
                     }
                     min={0}
                     boxWidth="w-24"
-                    title="Ce que l'app ne peut pas savoir (tes débuffs réellement actifs) — à toi de le renseigner, 0 par défaut"
-                    ariaLabel="Nombre de débuffs actuellement sur toi-même"
+                    title="Ce que l'app ne peut pas savoir (les débuffs réellement actifs sur ton équipe) — à toi de le renseigner, 0 par défaut"
+                    ariaLabel="Nombre de débuffs actuellement sur tes alliés, toi compris"
                   />
                 </label>
               </div>

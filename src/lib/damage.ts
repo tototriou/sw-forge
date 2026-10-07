@@ -1259,8 +1259,8 @@ export function resolvedCompteurPersonnalise(profile: SkillDamageProfile, setup:
   return Math.min(9999, Math.max(0, setup.compteurPersonnalise?.[profile.skillCom2usId] ?? 0));
 }
 
-// Même discipline que `resolvedEffetsCibleCount`, mais sur SOI (Blessing of
-// Curse) — stockage séparé (`DamageSetup.effetsPropresCount`), jamais
+// Même discipline que `resolvedEffetsCibleCount`, mais côté alliés (Blessing
+// of Curse : débuffs sur les alliés, soi compris) — stockage séparé (`DamageSetup.effetsPropresCount`), jamais
 // confondu avec les effets sur la cible. Prend directement le
 // `skillCom2usId` (celui du PASSIF détecteur, `monsterBonusParEffetPropre`)
 // plutôt qu'un `SkillDamageProfile` — ce modificateur est MONSTRE-WIDE, pas
@@ -1681,13 +1681,15 @@ export function monsterBonusParEffetCible(detail: DetailMonstre | null): BonusMo
   return null;
 }
 
-const BONUS_MONSTRE_PAR_EFFET_PROPRE_CONNUS: Record<string, { pct: number }> = {
-  // « For every harmful effect granted on yourself, the damage dealt is
-  // increased by 20%... » `quantite: 20` confirmé en données. Le texte
-  // porte AUSSI une réduction des dégâts SUBIS (5 %/débuff) — hors modèle
-  // comme partout ailleurs (jamais les effets défensifs). Toujours des
-  // DÉBUFFS uniquement (aucun cas connu de « bonus par BUFF sur soi »).
-  'Blessing of Curse (Passive)': { pct: 20 }, // Devil Maiden, Jessica
+const BONUS_MONSTRE_PAR_EFFET_PROPRE_CONNUS: Record<string, { pct: number; plafondPct: number }> = {
+  // « For each harmful effect granted on allies (including yourself),
+  // increases the damage dealt by 20%, up to 200%... » `quantite: 20`
+  // confirmé en données (note « Per harmful effect granted on all allies, up
+  // to 200% »). Le compte porte sur TOUS les alliés, soi compris, et le bonus
+  // s'arrête à `plafondPct`. Le texte porte AUSSI une réduction des dégâts
+  // SUBIS (5 %/débuff, jusqu'à 50 %) — hors modèle comme partout ailleurs
+  // (jamais les effets défensifs). Toujours des DÉBUFFS uniquement.
+  'Blessing of Curse (Passive)': { pct: 20, plafondPct: 200 }, // Devil Maiden, Jessica
 };
 
 export interface BonusMonstreParEffetPropreProfile {
@@ -1696,6 +1698,17 @@ export interface BonusMonstreParEffetPropreProfile {
   description: string | null;
   icone: string | null;
   pct: number;
+  // Le bonus total ne dépasse pas ce pourcentage, quel que soit le compte.
+  plafondPct: number;
+}
+
+// Le bonus de dégâts (en %) de Blessing of Curse pour le nombre de débuffs
+// saisi sur les alliés (soi compris) : `pct` par débuff, plafonné.
+export function pctBonusParEffetPropreMonstre(
+  profil: Pick<BonusMonstreParEffetPropreProfile, 'skillCom2usId' | 'pct' | 'plafondPct'>,
+  setup: DamageSetup
+): number {
+  return Math.min(profil.plafondPct, profil.pct * resolvedEffetsPropresCount(profil.skillCom2usId, setup));
 }
 
 export function monsterBonusParEffetPropre(detail: DetailMonstre | null): BonusMonstreParEffetPropreProfile | null {
@@ -2182,7 +2195,7 @@ export interface MonsterWideDamageModifiers {
     BonusMonstreParEffetProfile,
     'skillCom2usId' | 'pct' | 'source' | 'maxCount' | 'exactementUnPct' | 'critiqueGarantiSiPresent'
   >;
-  bonusParEffetPropre?: { skillCom2usId: number; pct: number };
+  bonusParEffetPropre?: { skillCom2usId: number; pct: number; plafondPct: number };
   conditionsCombat?: ConditionMonstreProfile[];
   combatStats?: CombatStatProfile[];
   critInterdit?: boolean;
@@ -2426,7 +2439,7 @@ export interface SkillDamageProfile {
   // Record que `passifsOffensifs` (clé = `skillCom2usId` DE CE SORT, pas
   // d'un passif à part).
   //
-  // ⚠️ Blessing of Curse (par effet sur SOI), Backup Code (par effet sur la
+  // ⚠️ Blessing of Curse (par débuff sur les alliés, soi compris), Backup Code (par effet sur la
   // cible, débuffs seuls) et les quatre autres candidats initialement prévus
   // ici (Spear of Tenacity, Martial Arts Specialist, Sickle Blade/Sand
   // Blade, Calculated Sacrifice) ont TOUS `passif: true` avec `formule: ""`
@@ -4492,9 +4505,10 @@ export interface DamageSetup {
   // `coupsPersonnalises`/`effetsCibleCount`. Aucun état de combat simulé :
   // absent = 0, jamais deviné.
   compteurPersonnalise?: Record<number, number>;
-  // Nombre de débuffs actuellement présents sur SOI (Blessing of Curse —
-  // `bonusParEffetPropre`), clé = `skillCom2usId` DU SORT, même espace de
-  // clés que les autres compteurs. Absent = 0, jamais deviné.
+  // Nombre de débuffs actuellement présents : sur SOI pour le bonus d'un sort
+  // (`SkillDamageProfile.bonusParEffetPropre`, clé = ce sort) ; sur les
+  // alliés, soi compris, pour Blessing of Curse (clé = son passif). Même
+  // espace de clés que les autres compteurs. Absent = 0, jamais deviné.
   effetsPropresCount?: Record<number, number>;
   // Scénario explicite de poses réussies entre les coups. Absent/inactif =
   // ancien comportement, aucune réussite implicite.
@@ -5374,7 +5388,7 @@ export function computeSkillDamageDetail(
     bonusFixeMaxHpPropre?: { pct: number };
     bonusSacrifice?: { skillCom2usId: number; pctPerte: number; pctSurPerte: number };
     bonusParEffetCible?: MonsterWideDamageModifiers['bonusParEffetCible'];
-    bonusParEffetPropre?: { skillCom2usId: number; pct: number };
+    bonusParEffetPropre?: { skillCom2usId: number; pct: number; plafondPct: number };
     conditionsCombat?: ConditionMonstreProfile[];
     combatStats?: CombatStatProfile[];
     critInterdit?: boolean;
@@ -5801,10 +5815,10 @@ export function computeSkillDamageDetail(
   const facteurEffetCibleMonstre = monsterWide.bonusParEffetCible
     ? 1 + bonusPctParEffet(monsterWide.bonusParEffetCible, compteEffetsMonstre) / 100
     : 1;
-  // Blessing of Curse (« Increase Damage », débuffs sur SOI) — même famille,
-  // stockage séparé (`effetsPropresCount`).
+  // Blessing of Curse (« Increase Damage », débuffs sur les alliés, soi
+  // compris, plafonné) — même famille, stockage séparé (`effetsPropresCount`).
   const facteurEffetPropre = monsterWide.bonusParEffetPropre
-    ? 1 + (monsterWide.bonusParEffetPropre.pct * resolvedEffetsPropresCount(monsterWide.bonusParEffetPropre.skillCom2usId, setup)) / 100
+    ? 1 + pctBonusParEffetPropreMonstre(monsterWide.bonusParEffetPropre, setup) / 100
     : 1;
   // Emergency Drive (Cynthia/Arcane Weapon) : bouton restreint à CE SORT
   // (« Rending Claw »), voir `SkillDamageProfile.bonusConditionnelPropre` —
@@ -6236,7 +6250,7 @@ export function computeTotalDamage(
     bonusFixeMaxHpPropre?: { pct: number };
     bonusSacrifice?: { skillCom2usId: number; pctPerte: number; pctSurPerte: number };
     bonusParEffetCible?: MonsterWideDamageModifiers['bonusParEffetCible'];
-    bonusParEffetPropre?: { skillCom2usId: number; pct: number };
+    bonusParEffetPropre?: { skillCom2usId: number; pct: number; plafondPct: number };
     conditionsCombat?: ConditionMonstreProfile[];
     combatStats?: CombatStatProfile[];
     critInterdit?: boolean;

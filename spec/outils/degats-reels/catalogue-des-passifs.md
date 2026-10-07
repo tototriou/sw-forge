@@ -309,10 +309,13 @@ quel qu'il soit, pas un sort précis) :
 - **Backup Code/Hacker, 570RM** : « damage increases by 20% for
   each harmful effect granted on target » — confirmé (`quantite: 20`).
   PREMIER cas « débuffs SEULS » du fichier (`source: 'debuffs'`).
-- **Blessing of Curse/Devil Maiden, Jessica** : « For every
-  harmful effect granted on YOURSELF, the damage dealt is increased by
-  20% » — confirmé. Compte les débuffs sur SOI (`DamageSetup.
-  effetsPropresCount`, stockage séparé de `effetsCibleCount`).
+- **Blessing of Curse/Devil Maiden, Jessica** : « For each harmful
+  effect granted on allies (including yourself), increases the damage dealt
+  by 20%, up to 200% » — confirmé (`quantite: 20`, note « up to 200% »).
+  Compte les débuffs sur les ALLIÉS, soi compris (`DamageSetup.
+  effetsPropresCount`, stockage séparé de `effetsCibleCount`), et le bonus
+  s'arrête à +200 % (`plafondPct`, `pctBonusParEffetPropreMonstre`). Champ
+  « Débuffs sur tes alliés (toi compris) ».
 
 **Bouton restreint à UN SORT** (nouveau : `SkillDamageProfile.
 bonusConditionnelPropre?: { pct: number; condition: string }`) :

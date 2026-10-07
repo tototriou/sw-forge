@@ -334,5 +334,11 @@
     "vers": "src/components/account/RunesOptim.tsx",
     "devient": "texte:s'il est négatif (ex. une rune déjà grindée légendaire « perd » en héroïque — ce cas disparaît sous « Faisable avec ma réserve »).",
     "pourquoi": "Rebranding R8 (Thomas) : même reformulation de l'aide."
+  },
+  "src/components/outils/DamageSetupCard.tsx :: attr:title:Ce que l'app ne peut pas savoir (tes débuffs réellement actifs) — à toi de le renseigner, 0 par défaut": {
+    "de": "src/components/outils/DamageSetupCard.tsx",
+    "vers": "src/components/outils/DamageSetupCard.tsx",
+    "devient": "attr:title:Ce que l'app ne peut pas savoir (les débuffs réellement actifs sur ton équipe) — à toi de le renseigner, 0 par défaut",
+    "pourquoi": "Mise à jour du jeu (données SWARFARM) : Blessing of Curse compte les débuffs sur les alliés, soi compris (« allies (including yourself) »), plus seulement sur soi."
   }
 }

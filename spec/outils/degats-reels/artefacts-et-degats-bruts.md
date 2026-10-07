@@ -142,16 +142,24 @@ sort, le système `S + A = 700` / `1,5·S + A = 730` donne **S = 60, A = 640**.
 **formule** des lignes 218-221 (par coup, brutes, sur les stats buffées).
 
 **Relevé Jessica — le même verdict par l'autre porte.** « Blessing of Curse »
-majore de +20 % par effet **néfaste sur soi**, là où Julie compte les buffs de
-la **cible** : deux membres différents de la famille, tous deux mesurés.
-Jessica à 53 050 PV / 827 DEF / 163 VIT, artéfacts 2 % PV + 6 % DEF + 102 %
-VIT, contre un Xiong Fei très défensif, **en coup critique** :
+majore de +20 % par effet **néfaste sur les alliés, soi compris** (« allies
+(including yourself) »), jusqu'à +200 % — pas seulement ceux qui sont sur
+Jessica : les débuffs de chacun de ses alliés comptent aussi. Julie, elle,
+compte les buffs de la **cible** : deux membres différents de la famille,
+tous deux mesurés. Jessica à 53 050 PV / 827 DEF / 163 VIT, artéfacts 2 % PV
++ 6 % DEF + 102 % VIT, contre un Xiong Fei très défensif, **en coup
+critique** :
 
-| Débuffs sur elle | Bonus au sort | Dégâts |
+| Débuffs comptés (tous sur Jessica) | Bonus au sort | Dégâts |
 |---|---|---|
 | 0 | — | ~2 250 |
 | 1 | +20 % | ~2 450 |
 | 2 | +40 % | ~2 600 |
+
+Les débuffs du relevé étaient tous sur Jessica elle-même : c'est un cas
+particulier de la règle (elle fait partie des alliés), loin du plafond. Un
+débuff sur un allié aurait compté de la même façon ; le relevé ne le mesure
+pas, mais ne change pas pour autant.
 
 Si le +20 % touchait tout, 2 débuffs donneraient **3 150**. Le modèle prédit
 un additionnel de **1 277** (`0,02 × 53 050 + 0,06 × 827 + 1,02 × 163`) ; la

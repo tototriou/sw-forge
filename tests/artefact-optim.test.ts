@@ -263,11 +263,11 @@ export default function testArtefactOptim() {
 
   titre('Bornes d’artéfact — deux vecteurs, jamais un seul');
 
-  // ⚠️ Le défaut corrigé (spec/outils/optimizer/moteur/artefacts.md, « Bornes d'apport pendant la recherche ») : l'apport
-  // de la paire REPRÉSENTATIVE servait de borne des DEUX côtés. Elle est
-  // choisie pour son SCORE — en « Libre », deux PV+1500 —, donc elle apporte
-  // `+0 DEF` alors que l'inventaire contient des artéfacts DEF. Un minimum de
-  // DEF devenait infranchissable sans raison.
+  // ⚠️ Pourquoi deux vecteurs (spec/outils/optimizer/moteur/artefacts.md, « Bornes d'apport pendant la recherche ») : l'apport
+  // de la paire REPRÉSENTATIVE ne doit pas servir de borne des DEUX côtés. Elle
+  // est choisie pour son SCORE — en « Libre », deux PV+1500 —, donc elle
+  // apporte `+0 DEF` alors que l'inventaire contient des artéfacts DEF : un
+  // minimum de DEF deviendrait infranchissable sans raison.
   {
     const inv: ArtifactDetail[] = [
       { ...attribut('dark', 100), main: { code: 100, value: 1500 } }, // PV +1500
@@ -798,11 +798,11 @@ export default function testArtefactOptim() {
     };
     const pert = analyserPertinence(p);
     const sansMax = preFiltrerCandidats(candidatsParSorte(p, 'element'), 'element', [], pert);
-    egal(sansMax.includes(petit), false, 'sans maximum actif : le plus petit apport reste dominé, comme avant (identité)');
-    egal(sansMax.includes(grand), true, '… le plus grand survit, comme avant');
+    egal(sansMax.includes(petit), false, 'sans maximum actif : le plus petit apport reste dominé (identité)');
+    egal(sansMax.includes(grand), true, '… le plus grand survit');
     const avecMax = preFiltrerCandidats(candidatsParSorte(p, 'element'), 'element', [], pert, ['atk']);
-    egal(avecMax.includes(petit), true, 'sous maximum actif sur ATQ : le plus petit apport N’EST PLUS éliminé par dominance');
-    egal(avecMax.includes(grand), true, '… le plus grand reste candidat aussi (rien n’est perdu par le correctif)');
+    egal(avecMax.includes(petit), true, 'sous maximum actif sur ATQ : le plus petit apport n’est PAS éliminé par dominance');
+    egal(avecMax.includes(grand), true, '… le plus grand reste candidat aussi (rien n’est perdu)');
     // Un maximum sur une AUTRE stat ne protège pas une principale ATQ : les
     // deux artéfacts n’y diffèrent pas (ni l’un ni l’autre n’a de principale
     // DEF), donc la comparaison ATQ reste inchangée.
@@ -906,7 +906,7 @@ export function testAmplificationSurvitDominance() {
 
   {
     const sans = preFiltrerCandidats(candidatsParSorte(base, 'element'), 'element', [], analyserPertinence(base));
-    egal(sans.includes(ampli), false, 'sans le correctif, l’amplification est bien éliminée par dominance');
+    egal(sans.includes(ampli), false, 'sans la protection de l’amplification, elle est bien éliminée par dominance');
   }
 
   {

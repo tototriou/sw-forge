@@ -1645,7 +1645,7 @@ export default function testDegats() {
   egal(rollAgainLudo?.pctMax, 100, 'Ludo : plafonné à 100 % de dégâts');
   const absorbShadowMartina = monsterBonusDegatsStackable(fiche(22015));
   egal(absorbShadowMartina?.nom, 'Absorb Shadow (Passive)', 'Martina : nom exact du passif détecté');
-  egal(absorbShadowMartina?.ratio, 10, 'Martina : +10 % par vol de BUFF (pas de PV, corrigé)');
+  egal(absorbShadowMartina?.ratio, 10, 'Martina : +10 % par vol de BUFF (pas de PV)');
   egal(absorbShadowMartina?.label, 'Buffs volés', 'Martina : « Steal Buff » en données SWARFARM, pas un vol de PV');
   egal(absorbShadowMartina?.pctMax, 150, 'Martina : plafonné à +150 % (15 fois)');
 
@@ -1990,11 +1990,11 @@ export default function testDegats() {
     'Sickle Blade/Calculated Sacrifice : les PV entrent dans le pré-filtrage même pour un sort qui ne les lit pas'
   );
 
-  // ── BUG CORRIGÉ (revue de code externe, perf) : le mode « Non critique »
-  // (`critMode: 'normal'`) annule TOUJOURS la part critique dans le calcul
-  // réel (`partCrit` vaut 0, voir `computeSkillDamageDetail`) — Dégâts Crit
-  // ne devrait donc PLUS être retenu au pré-filtrage dans ce mode, sauf
-  // `critSiPlusRapide` qui force un critique garanti et passe outre. ──
+  // ── Le mode « Non critique » (`critMode: 'normal'`) annule TOUJOURS la
+  // part critique dans le calcul réel (`partCrit` vaut 0, voir
+  // `computeSkillDamageDetail`) — Dégâts Crit n'est donc PAS retenu au
+  // pré-filtrage dans ce mode, sauf `critSiPlusRapide` qui force un critique
+  // garanti et passe outre. ──
   ok(
     !damageRelevantStats(s3, [], { ...DEFAULT_DAMAGE_SETUP, critMode: 'normal' }).includes('cd'),
     "« Non critique » : Dégâts Crit ne pèse plus sur aucun dégât, donc plus retenu au pré-filtrage"
@@ -2346,14 +2346,13 @@ export default function testDegats() {
   );
   ok(wDetail.pvRestantsPct < 100, 'et les PV restants de la cible ont bien baissé');
 
-  // ── BUG CORRIGÉ (revue de code externe) : le chemin SÉQUENTIEL ajoutait
-  // `ajoutUneFois` (Sickle Blade/Sand Blade, Calculated Sacrifice — un
-  // modificateur monstre-wide UNE FOIS par sort) au `.total` retourné, mais
-  // JAMAIS au `pvCourant` utilisé pour calculer `pvRestantsPct` — contraire
-  // au chemin COURT, qui les créuse ensemble. `pvRestantsPct` restait donc
-  // SURESTIMÉ dès qu'un sort au chemin séquentiel portait aussi un
-  // `ajoutUneFois`, faussant tout seuil de passif suivant basé sur les PV
-  // restants (Final Strike/Benedict). ──
+  // ── Le chemin SÉQUENTIEL ajoute `ajoutUneFois` (Sickle Blade/Sand Blade,
+  // Calculated Sacrifice — un modificateur monstre-wide UNE FOIS par sort) au
+  // `.total` retourné ET au `pvCourant` utilisé pour calculer
+  // `pvRestantsPct`, comme le chemin COURT, qui les creuse ensemble. Sinon
+  // `pvRestantsPct` serait SURESTIMÉ dès qu'un sort au chemin séquentiel
+  // porte aussi un `ajoutUneFois`, faussant tout seuil de passif suivant basé
+  // sur les PV restants (Final Strike/Benedict). ──
   const wStatsAvecHp = stats({ atk: 2000, cd: 200, cr: 100, hp: 10000 });
   const sansAjoutUneFois = computeSkillDamageDetail(weakness, wStatsAvecHp, wSetup, AUCUNE_AURA_PROPRE, null, undefined, ARTIFACT_DAMAGE_NEUTRE, {});
   const avecAjoutUneFois = computeSkillDamageDetail(weakness, wStatsAvecHp, wSetup, AUCUNE_AURA_PROPRE, null, undefined, ARTIFACT_DAMAGE_NEUTRE, {
@@ -2617,7 +2616,7 @@ export default function testDegats() {
   // un vol de PV mais un vol de buff » (confirmé par l'effet SWARFARM
   // « Steal Buff », voir plus haut).
   const stackMartina = monsterBonusDegatsStackable(fiche(22015))!;
-  egal(stackMartina.label, 'Buffs volés', 'Martina : « vol de buff », PAS « vol de PV » (corrigé)');
+  egal(stackMartina.label, 'Buffs volés', 'Martina : « vol de buff », PAS « vol de PV »');
   ok(!/PV/i.test(stackMartina.label) && !/PV/.test(stackMartina.aide), "Martina : ni le libellé ni l'infobulle ne mentionnent des PV");
   // Borgnine et Moogwang (« PV cible détruits ») partagent le MÊME libellé
   // entre eux (même nature de compteur), mais restent DIFFÉRENTS de Trevor
@@ -2710,8 +2709,7 @@ export default function testDegats() {
     egal(avec.total, 12300, 'Sickle Blade : +7 % des PV max PROPRES, à CHAQUE coup (2100 × 3)');
   }
   {
-    // ⚠️ **L'AUTRE axe du correctif**, qu'aucun test ne couvrait : le terme
-    // est BRUT. Impossible à voir avec `neutre`, dont la formule porte
+    // ⚠️ **L'AUTRE axe** : le terme est BRUT. Impossible à voir avec `neutre`, dont la formule porte
     // `(Fixed)` — `horsCoup` y vaut 1, un terme mitigé y serait donc
     // indiscernable d'un terme brut. Il faut un sort ORDINAIRE, une cible qui
     // a de la défense, et le critique forcé.

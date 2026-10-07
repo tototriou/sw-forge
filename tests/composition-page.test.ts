@@ -289,7 +289,7 @@ export function testCompositionDePage() {
     }
     egal(retireesNouveauHorsDeplacement, 0, `nouvelle page : ${retireesNouveau} carte(s) sorties de la page 1, toutes déplacées par de meilleurs vérifiés (aucune retirée faute de conformité)`);
     egal(ecarteMontre, 0, 'nouvelle page : un build finalement écarté n’est jamais apparu');
-    ok(retireesAncienEcartees > 0, `témoin, ancienne page : ${retireesAncienEcartees} carte(s) apparues puis retirées à la résolution (${retireesAncien} sorties en tout) — le défaut corrigé`);
+    ok(retireesAncienEcartees > 0, `témoin, ancienne page : ${retireesAncienEcartees} carte(s) apparues puis retirées à la résolution (${retireesAncien} sorties en tout) — ce que la nouvelle page évite`);
   }
 
   titre('Composition de la page — l’écran la lit, et la file reçoit ses builds à vérifier');

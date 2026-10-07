@@ -166,7 +166,7 @@ export function testListeExemplaires() {
     'source : un choix en zone D applique la règle de relique');
   ok(/else reliqueCoherenteAvecExemplaire\(boxCandidates\[0\]\?\.gear\.relic\);\s*setSelectedId\(id\);/.test(ecran),
     'source : la même espèce rechoisie au bestiaire applique la règle de relique');
-  // Seconde revue externe : le recalcul au réimport se fait UNE fois par
+  // Le recalcul au réimport se fait UNE fois par
   // import, jamais à un simple remontage de l'écran (changement d'onglet).
   ok(/if \(importDuCompte === importReliqueTraite\.current\) return;\s*importReliqueTraite\.current = importDuCompte;\s*setRelicMainChoice\(defaultRelicMainChoice\(reliqueAffichee\.current\)\);/.test(ecran),
     'source : le défaut de relique du réimport ne se réapplique pas au remontage de l’écran');

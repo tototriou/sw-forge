@@ -282,16 +282,14 @@ export default function testRuneOptimDifferential() {
     }
   }
 
-  // ⚠️ Scénario DÉDIÉ (pas aléatoire) — vérifie le correctif du cas limite
+  // ⚠️ Scénario DÉDIÉ (pas aléatoire) — vérifie le cas limite
   // documenté dans `spec/outils/optimizer/moteur/elagages.md`, « Élagage sûr — faisabilité » :
   // `guaranteedSetBonus` ne compte
   // QUE les sets de `requirement.sets` — un set qui s'activerait par ACCIDENT
   // via les emplacements « libres » (non requis par le combo demandé) était
   // invisible de TOUS les élagages (`eliminateInfeasible`, `comboAOk`,
-  // `pairFeasible*`, `quickOk`), pas seulement du repli le plus récent —
-  // corrigé par `additionalSetActivationHeadroom`/`guaranteedMin` (renommée
-  // depuis, voir « Suite — activation supplémentaire d'un set DÉJÀ demandé »
-  // plus bas dans la spec). Pool à un seul
+  // `pairFeasible*`, `quickOk`) — d'où `additionalSetActivationHeadroom` et
+  // `guaranteedMin`. Pool à un seul
   // candidat par emplacement (aucune ambiguïté : une seule combinaison
   // possible) — Will (2 pièces, SANS bonus de stat, voir SET_STAT_BONUS) est
   // le set DEMANDÉ ; Blade (2 pièces, +12 Taux Crit PLAT) occupe deux

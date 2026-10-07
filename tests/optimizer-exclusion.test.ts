@@ -122,17 +122,16 @@ export default function testOptimizerExclusion() {
     const offCandidates = exclusionCandidatesFor('siege-offense', data, null, null);
     egal(offCandidates.length, 0, "siège offense : le seul monstre assigné (NonRune) n'a aucune rune — rien à exclure, par défaut (requireRunes)");
 
-    // ── Bug signalé : un monstre ASSIGNÉ à un deck d'offense siège mais
-    // jamais runé ne voyait pas son exemplaire proposé pour « Monstre à
-    // optimiser » (contrairement à Box, qui autorise déjà un exemplaire nu
-    // — « construire un build depuis rien »). `requireRunes: false`
-    // corrige : le monstre assigné redevient un candidat valide, gear
-    // toujours résolu (0 rune, pas absent). ──
+    // ── Un monstre ASSIGNÉ à un deck d'offense siège mais jamais runé voit
+    // son exemplaire proposé pour « Monstre à optimiser » (comme Box, qui
+    // autorise un exemplaire nu — « construire un build depuis rien ») :
+    // avec `requireRunes: false`, le monstre assigné est un candidat valide,
+    // gear toujours résolu (0 rune, pas absent). ──
     const offCandidatesSansRunes = exclusionCandidatesFor('siege-offense', data, null, null, false);
-    egal(offCandidatesSansRunes.length, 1, 'siège offense (requireRunes:false) : le monstre assigné mais nu redevient un candidat');
+    egal(offCandidatesSansRunes.length, 1, 'siège offense (requireRunes:false) : le monstre assigné mais nu est un candidat');
     egal(offCandidatesSansRunes[0]?.monster.name, 'NonRune', 'siège offense (requireRunes:false) : bon monstre résolu');
     egal(offCandidatesSansRunes[0]?.gear.runes, [], 'siège offense (requireRunes:false) : gear résolu avec 0 rune, jamais absent');
-    // Même correctif pour RTA — même bug, même cause.
+    // Même règle pour RTA.
     const rtaCandidatesSansRunes = exclusionCandidatesFor('rta', { ...data, rtaEntries: { ...rtaEntries, [String(nonRune.id)]: { monsterId: String(nonRune.id), section: 'violent', runeSpeed: null, gear: gear([]) } } }, null, null, false);
     ok(
       rtaCandidatesSansRunes.some((c) => c.monster.name === 'NonRune'),
@@ -140,11 +139,10 @@ export default function testOptimizerExclusion() {
     );
   }
 
-  // ── Trou trouvé par une revue de code externe : `excludeOwnUnitKey`
-  // (box) ne protégeait QUE la box — RTA et siège n'avaient AUCUNE garde,
-  // le monstre recherché pouvait s'auto-proposer à l'exclusion depuis ces
-  // deux sources. `excludeOwnCom2usId` (par ESPÈCE, pas par entrée —
-  // RTA/siège n'ont qu'UNE entrée par monstre) corrige les deux. ──
+  // ── `excludeOwnUnitKey` (box) ne protège QUE la box : RTA et siège n'ont
+  // qu'UNE entrée par monstre, donc `excludeOwnCom2usId` (par ESPÈCE, pas par
+  // entrée) empêche le monstre recherché de s'auto-proposer à l'exclusion
+  // depuis ces deux sources. ──
   {
     const rtaWithoutOwn = exclusionCandidatesFor('rta', data, null, camilla.com2usId);
     egal(rtaWithoutOwn.length, 0, "rta : le monstre recherché (excludeOwnCom2usId=Camilla) retiré de ses propres propositions RTA");
@@ -453,8 +451,7 @@ export default function testOptimizerExclusion() {
   // un sélecteur introuvable OU une rune validée qui n'EXISTE
   // PLUS DU TOUT dans le compte (vendue/reforgée depuis) est abandonné,
   // jamais silencieusement gardé — mais rester PAS ENCORE équipée sur
-  // l'exemplaire ne suffit PAS à l'abandonner (voir le cas dédié plus bas,
-  // bug corrigé). ──
+  // l'exemplaire ne suffit PAS à l'abandonner (voir le cas dédié plus bas). ──
   {
     const validated: ValidatedBuild[] = [
       { listId: 'deck-a', selector: { source: 'box', unitKey: 'unit-camilla' }, runeIds: [1, 2, 3, 4, 5, 6] }, // toujours intact → conservé
@@ -473,14 +470,13 @@ export default function testOptimizerExclusion() {
     const allValid = revalidateBuilds([validated[0]], data, allRuneIds);
     egal(allValid.droppedCount, 0, 'revalidateBuilds : rien de périmé → droppedCount à 0, pas juste kept correct');
 
-    // ── BUG CORRIGÉ (revue de code externe) : un build validé n'est PAS
-    // censé être déjà équipé sur l'exemplaire (voir ValidatedBuild, tête de
-    // fichier) — un build validé sur Lushen mais composé des runes
-    // ACTUELLEMENT portées par Camilla (pas les siennes, [7..12]) doit
-    // rester valide tant que ces runes existent QUELQUE PART dans le
-    // compte. L'ancienne version exigeait « encore portées par CET
-    // exemplaire » — elle aurait abandonné ce build à tort, silencieusement
-    // (perte de données sur pratiquement TOUT build validé réel). ──
+    // ── Un build validé n'est PAS censé être déjà équipé sur l'exemplaire
+    // (voir ValidatedBuild, tête de fichier) — un build validé sur Lushen mais
+    // composé des runes ACTUELLEMENT portées par Camilla (pas les siennes,
+    // [7..12]) doit rester valide tant que ces runes existent QUELQUE PART
+    // dans le compte. Exiger « encore portées par CET exemplaire »
+    // abandonnerait ce build à tort, silencieusement (perte de données sur
+    // pratiquement TOUT build validé réel). ──
     const validatedPasEncoreEquipe: ValidatedBuild[] = [
       { listId: 'deck-a', selector: { source: 'box', unitKey: 'unit-lushen' }, runeIds: [1, 2, 3, 4, 5, 6] },
     ];

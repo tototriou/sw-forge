@@ -155,14 +155,13 @@ export default function testRuneOptimParallelTruncated() {
   }
 
   // ── Cas 4 (référence) : rien tronqué nulle part, total loin du plafond —
-  // doit rester `false`, comme avant ce correctif (pas de régression sur le
-  // cas simple). ──
+  // doit rester `false` (cas simple). ──
   {
     const results: SearchResult[] = [fakeResult(fakeCandidates(10), 1_000, false), fakeResult(fakeCandidates(5), 500, false)];
     const out = combineParallelPairingResults(results, PER_WORKER_MAX, GLOBAL_MAX, 1_500);
     egal(out.truncated, false, 'aucune troncature individuelle, total loin du plafond global : pas tronqué');
     egal(out.motifTroncature, undefined, 'pas tronqué : aucun motif');
-    egal(out.explored, 1_500, "'explored' reste la somme simple, inchangé par ce correctif");
+    egal(out.explored, 1_500, "'explored' reste la somme simple");
   }
 
   // ── Traceur : la trace retenue porte le budget GLOBAL, pas celui de sa

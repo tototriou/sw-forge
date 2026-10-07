@@ -870,7 +870,7 @@ export default function testRuneOptim() {
 
   titre('Optimizer · règle du joker Intangible');
 
-  // ⚠️ Reproduit le bug signalé : « Swift » annoncé actif alors qu'un second
+  // ⚠️ Cas : « Swift » annoncé actif à tort alors qu'un second
   // ET un troisième set, ni l'un ni l'autre demandés, sont eux aussi
   // incomplets parmi les 6 runes réellement choisies — activeSets (voir
   // effects.ts) ne doit alors compléter AUCUN des trois. Le pool n'offre

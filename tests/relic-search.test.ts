@@ -461,7 +461,7 @@ export default async function testRelicSearch() {
     } finally {
       handle.terminate();
     }
-    ok(viaAdaptateur.traceur != null, 'traceur worker : l’adaptateur Node (spawnSliceNode) recopie le traceur (MINEUR 2 corrigé)');
+    ok(viaAdaptateur.traceur != null, 'traceur worker : l’adaptateur Node (spawnSliceNode) recopie le traceur');
     egal(viaAdaptateur.traceur, direct.traceur, 'traceur worker : trace identique entre appel direct et adaptateur worker_threads');
   }
 

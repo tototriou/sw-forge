@@ -548,14 +548,14 @@ export function testReserveParGrade() {
     'le plan héroïque pose bien la meule (+4)'
   );
 
-  // ⚠️ Le défaut corrigé : une SEULE dispo pour les deux chiffres, celle du
-  // grade du tri. Trié en héroïque (grade 4), le chiffre légendaire comptait
-  // la meule héroïque avec la table légendaire (+5).
-  const ancienTriHero = runePotential(rune, false, 'eff', true, {
+  // ⚠️ Une SEULE dispo pour les deux chiffres, celle du grade du tri, serait
+  // fausse : trié en héroïque (grade 4), le chiffre légendaire compterait la
+  // meule héroïque avec la table légendaire (+5).
+  const unSeulGrade = runePotential(rune, false, 'eff', true, {
     hero: dispoReserve(heroique, rune, 'hero'),
     legend: dispoReserve(heroique, rune, 'hero'),
   });
-  ok(ancienTriHero.legendEff > pot.legendEff, 'l’ancien câblage (grade du tri pour les deux) surestimait le légendaire');
+  ok(unSeulGrade.legendEff > pot.legendEff, 'le grade du tri pour les deux chiffres surestimerait le légendaire');
 
   // Grade ≥ scénario : une meule LÉGENDAIRE sert aux deux chiffres.
   const legendaire = stock([{ kind: 'grind' as const, stat: 8, grade: 5 }]);

@@ -88,9 +88,17 @@ de ces emplacements, coché explicitement, pas seulement « ça compile » :
       chargement conditionnel ou un avertissement de fidélité
       (`avertissements`). `scripts/lib/loadMonster.ts` seulement si le champ
       exige une donnée qui n'était pas déjà chargée.
-- [ ] **Scripts de diagnostic qui lisent une recette sans `chargerRecette`**
-      (`grep -ln parseOptimizerRecipe scripts/`) — chacun refait à la main
-      une partie de sa séquence, replis compris : autant de constructeurs.
+- [ ] **Scripts qui lisent ou fabriquent une recette sans `chargerRecette`**
+      (`grep -rln parseOptimizerRecipe scripts/`, moins
+      `scripts/lib/chargerRecette.ts`) — huit scripts de diagnostic lisent
+      la recette par `parseOptimizerRecipe` et n'en reprennent que ce qu'ils
+      utilisent : sept appellent `recipeToSearchParams` sans `exclusionData`,
+      donc lèvent une erreur dès que la recette exclut des runes
+      (`excludeUsedRunes` ou `excludedSelectors`) ; `optimizer-pctflat-diff-diag.ts`
+      ne passe pas par `recipeToSearchParams` ; seul
+      `optimizer-search-analyze.ts` recopie un repli (l'objectif retiré).
+      `artifact-contention-diag.ts` fabrique sa recette à la main
+      (`buildOptimizerRecipe`). Un champ qu'ils lisent se vérifie chez eux.
 - [ ] **`scripts/optimizer-search.ts`** — la ligne de résumé en tête de
       sortie mentionne le champ s'il change un comportement visible ; toute
       logique qui dépendait de l'ANCIEN champ est mise à jour, pas

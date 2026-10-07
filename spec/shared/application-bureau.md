@@ -179,6 +179,10 @@ change pas. Ce qui en dépend aujourd'hui :
   par un compte plus ancien.
 - **Un export qui disparaît pendant la lecture du dossier** (SW Exporter le
   réécrit à cet instant) est sauté, sans rendre le dossier « introuvable ».
+- ⚠️ **Une surveillance perdue se relance** toutes les 5 s (disque démonté
+  un instant, dossier synchronisé, dossier absent au lancement) : l'état est
+  diffusé entre-temps, et la surveillance revenue relit le dossier et
+  l'export suivi.
 
 ## L'installeur
 

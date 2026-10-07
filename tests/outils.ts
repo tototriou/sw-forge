@@ -82,8 +82,8 @@ export function exportSynthetique(): string {
 
 // Export miniature dédié à l'exemplaire (pas l'espèce) : deux unit_id
 // d'un même com2usId, reliques différentes — voir le `_lisezmoi` du fichier.
-export function exportReliquesD4(): string {
-  return readFileSync(resolve(racine, 'tests/fixtures/compte-reliques-d4.json'), 'utf8');
+export function exportExemplairesMultiples(): string {
+  return readFileSync(resolve(racine, 'tests/fixtures/compte-exemplaires-multiples.json'), 'utf8');
 }
 
 // ⚠️ Export RÉEL du développeur — **gitignoré**, donc absent partout ailleurs.

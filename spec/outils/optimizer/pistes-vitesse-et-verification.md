@@ -139,13 +139,14 @@ la justesse : aucune sans la référence exhaustive qu'exige le skill
 ### Ce que coûte la construction des demi-builds
 
 - **Constat** : le harnais rapporte, par moitié, les demi-builds retenus au
-  produit brut des pools, la mémoire de fin de fil et une progression par
-  rune extérieure ([harnais-extensions.md § La construction observée](harnais-extensions.md)) ;
+  produit brut des pools, la mémoire de fin de fil et, avec
+  `--progression`, une progression par rune extérieure
+  ([harnais-extensions.md § La construction observée](harnais-extensions.md)) ;
   il ne compte pas les combinaisons réellement énumérées, et le dernier
   intervalle mêle la dernière rune extérieure et l'épilogue
-  ([limites-connues.md § Harnais de diagnostic](limites-connues.md)). La
-  moitié A retient moins de demi-builds par milliseconde que la moitié B
-  sur la plupart des cas mesurés, sans cause établie : énumération plus
+  ([limites-connues.md § Harnais de diagnostic](limites-connues.md)). Sur
+  la plupart des cas mesurés, la moitié A retenait moins de demi-builds par
+  milliseconde que la moitié B, sans cause établie : énumération plus
   lente, énumération plus longue pour retenir autant (plafond `bucketCap`),
   ou ramasse-miettes ; la liste n'est pas close.
 - **Idée** : deux instruments expérimentaux, jamais permanents : un

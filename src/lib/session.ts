@@ -17,6 +17,7 @@
 import { ACCOUNT_SCHEMA, compteValide, StoredAccount } from './accountStore';
 import { formatExport, formatReconnu } from './formatsExport';
 import { CHAMPS_OPTIMIZER_SESSION } from './sessionOptimizer';
+import { jourLocal } from './telechargement';
 import { PREFIXE_FICHIER } from '../marque';
 
 export const FORMAT_SESSION = formatExport('session');
@@ -178,7 +179,7 @@ export const ecrireSession = (session: Session): string => JSON.stringify(sessio
 // `swblacksmith-session-2026-10-06-15h42.json`, à l'heure locale.
 export function nomFichierSession(d: Date): string {
   const n = (x: number) => String(x).padStart(2, '0');
-  return `${PREFIXE_FICHIER}-session-${d.getFullYear()}-${n(d.getMonth() + 1)}-${n(d.getDate())}-${n(d.getHours())}h${n(d.getMinutes())}.json`;
+  return `${PREFIXE_FICHIER}-session-${jourLocal(d)}-${n(d.getHours())}h${n(d.getMinutes())}.json`;
 }
 
 // ── Relire ──────────────────────────────────────────────────────────────

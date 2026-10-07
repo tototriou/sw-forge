@@ -1,5 +1,5 @@
-// Différentiel de l'EXTRACTION de l'appariement parallèle — étape 6 du
-// chantier `spec/outils/optimizer/parallelisation-partagee.md`.
+// Différentiel de l'EXTRACTION de l'appariement parallèle — extraction décrite dans
+// `spec/outils/optimizer/moteur/parallelisation.md`.
 //
 // Question posée : `driveParallelPairing` (extrait de `runParallelPairing`,
 // avec le lancement de worker INJECTÉ) trouve-t-il EXACTEMENT les mêmes

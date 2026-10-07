@@ -1,7 +1,7 @@
 // PARITÉ — le harnais de diagnostic contre les 6 scripts qu'il remplace.
 //
 // C'est le niveau 1 de la validation à trois niveaux du cadrage
-// (spec/outils/optimizer/harnais-diagnostic.md §8) : « mêmes nombres que les
+// (spec/outils/optimizer/harnais.md, « Validation du harnais ») : « mêmes nombres que les
 // 6 scripts sur leurs cas, ÉCARTS ATTENDUS DOCUMENTÉS là où l'ancien script
 // était faux ».
 //

@@ -8,8 +8,8 @@ index ae10071..9091b04 100644
  
 +// ⚠️ Comme `runeContribution`, mais SANS la principale — sous-stats et
 +// innée uniquement. Sert à la pondération adaptative des tranches de
-+// rétention (voir « Suite — point 4 » dans spec/outils/optimizer/, piste
-+// B) : la principale d'un slot est une valeur GARANTIE et relativement
++// rétention (voir spec/outils/optimizer/moteur/elagages.md, « Variantes écartées ou gardées en réserve »,
++// piste B) : la principale d'un slot est une valeur GARANTIE et relativement
 +// stable pour toute rune candidate de ce slot (surtout sur un slot à
 +// principale imposée — VIT slot 2, TC/DCC slot 4, RES/PRE slot 6) — elle
 +// NOIE la vraie dispersion (sous-stats, aléatoires) derrière une moyenne
@@ -42,8 +42,8 @@ index ae10071..9091b04 100644
    const genericCap = bucketCap;
    const perOtherSliceCap = genericCap;
  
-+  // ⚠️ Piste B — pondération adaptative par tranche (spec/outils/
-+  // optimizer/, « Suite — piste B envisagée à la lumière de la piste A »).
++  // ⚠️ Piste B — pondération adaptative par tranche (voir
++  // spec/outils/optimizer/moteur/elagages.md, « Variantes écartées ou gardées en réserve »).
 +  // PROXY ANALYTIQUE calculé AVANT la triple boucle — pour chaque
 +  // `retentionKey`, estime la variance du demi-build complet en sommant la
 +  // variance de la contribution HORS PRINCIPALE (`runeSubOnlyContribution`,

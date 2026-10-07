@@ -8,7 +8,7 @@ index ae10071..200337a 100644
  
 +// ⚠️ Comme `runeContribution`, mais SANS la principale — sous-stats et
 +// innée uniquement. Sert à la pondération adaptative des tranches de
-+// rétention (voir « Suite — point 4 » dans spec/outils/optimizer/) : la
++// rétention (voir spec/outils/optimizer/moteur/elagages.md, « Variantes écartées ou gardées en réserve ») : la
 +// principale d'un slot est une valeur GARANTIE et relativement stable pour
 +// toute rune candidate de ce slot (surtout sur un slot à principale imposée
 +// — VIT slot 2, TC/DCC slot 4, RES/PRE slot 6) — elle NOIE la vraie
@@ -42,8 +42,8 @@ index ae10071..200337a 100644
  // `buildBuckets`), pour ne jamais payer un tri à chaque insertion.
 -function heapPush<T>(heap: ScoredEntry<T>[], entry: ScoredEntry<T>, cap: number): void {
 +// ⚠️ Retourne ce qui a été inséré/évincé (au lieu de `void`) — sert
-+// UNIQUEMENT au suivi live de la dispersion (voir « Suite — pondération
-+// adaptative par tranche, piste A » plus bas) : additionner/soustraire la
++// UNIQUEMENT au suivi live de la dispersion (voir « Piste A — pondération
++// adaptative par tranche » plus bas) : additionner/soustraire la
 +// contribution d'un demi-build à des accumulateurs de somme/somme-des-carrés
 +// exactement quand il entre/sort d'un tas, sans jamais avoir à reparcourir
 +// le tas entier. Les 3 sites d'appel qui n'en ont pas besoin (tranche
@@ -83,8 +83,8 @@ index ae10071..200337a 100644
    const genericCap = bucketCap;
    const perOtherSliceCap = genericCap;
  
-+  // ⚠️ Piste A — pondération adaptative par tranche (spec/outils/
-+  // optimizer/, « Suite — point 4 »). Chaque tranche par stat est
++  // ⚠️ Piste A — pondération adaptative par tranche (voir
++  // spec/outils/optimizer/moteur/elagages.md, « Variantes écartées ou gardées en réserve »). Chaque tranche par stat est
 +  // construite en SURPROVISIONNÉ (`RETENTION_OVERPROVISION_FACTOR × bucketCap`
 +  // places, pas `bucketCap`), pendant qu'un tas global DÉDIÉ — séparé des tas
 +  // génériques PAR COMPARTIMENT ci-dessus, lui à l'échelle de la moitié

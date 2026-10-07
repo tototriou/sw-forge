@@ -55,7 +55,7 @@ export interface Case {
 // ⚠️ Eivor (défense deck 2, 7 conditions) volontairement ABSENT de cette
 // batterie : cas déjà connu comme cassé pour une raison indépendante de
 // bucketCap/des tranches (`buildBuckets` dépasse `maxMs` à lui seul, voir
-// spec/outils/optimizer/) — l'inclure ralentirait cette batterie à
+// spec/outils/optimizer/harnais.md, « Temps par phase ») — l'inclure ralentirait cette batterie à
 // chaque exécution sans mesurer ce qu'on cherche à suivre ici.
 export const CASES: Case[] = [
   { label: 'Lushen d15 (Rage+Blade, reel)', exportPath: 'ß☆Enzo-6399149.json', deckId: 15, monsterName: 'Lushen', defense: false, statKeys: ['atk', 'cr', 'cd'], objective: 'efficience', objectiveStats: ['atk', 'cd'] },
@@ -115,8 +115,8 @@ export function loadCase(c: Case): { gear: GearSet; allRunes: RuneDetail[]; allR
   return { gear, allRunes, allRelics, targetRuneIds, requirement, com2usId };
 }
 
-// ── Vérification de MONOTONICITÉ (voir spec/outils/optimizer/ « BUCKET_CAP
-// mis à l'échelle ») — rapide : `buildBuckets` SEUL, jamais `pairBuckets`,
+// ── Vérification de MONOTONICITÉ (voir spec/outils/optimizer/moteur/elagages.md,
+// « Pré-filtrage heuristique et compartiments ») — rapide : `buildBuckets` SEUL, jamais `pairBuckets`,
 // pas besoin d'appariement complet pour savoir si les runes cible SURVIVENT
 // à la rétention. `maxMs` n'a ici aucun effet réel (jamais vérifié en dehors
 // de `pairBuckets`) — une valeur fixe suffit.

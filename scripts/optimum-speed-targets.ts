@@ -1,7 +1,5 @@
 // Étape 1/2 de la comparaison de VITESSE « rétention par tranches » vs
-// l'ancien mécanisme à score unique — voir spec/outils/optimizer/
-// archive/historique/historique-dimensionnement.md, « Suite — vitesse de convergence : tranches
-// vs score unique ». Génère N scénarios synthétiques et calcule l'optimum
+// l'ancien mécanisme à score unique. Génère N scénarios synthétiques et calcule l'optimum
 // EXACT de chacun (référence indépendante de la rétention — un fait sur le
 // pool/l'exigence, pas sur le mécanisme testé), écrit le tout dans un JSON
 // partagé. Ne tourne QUE dans le répertoire courant (code ACTUEL — importe

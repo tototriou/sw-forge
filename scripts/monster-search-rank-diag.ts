@@ -10,7 +10,8 @@
 // supprimés le 2026-09-06. Celui-ci reste : sa question porte sur la
 // rétention INTERNE de `buildBuckets` (quelle TRANCHE garde ce demi-build),
 // ce que `Bucket.combos` (déjà fusionné, dédupliqué) ne peut pas dire — c'est
-// la limite V1 assumée du §9 de spec/outils/optimizer/harnais-diagnostic.md.
+// la limite assumée de spec/outils/optimizer/harnais.md,
+// « Limite : la rétention interne de buildBuckets ».
 //
 // Usage : monster-search-rank-diag.ts <export.json> <deckId> <nomMonstre> [--defense] [statKeys=atk,cr,cd] [objective=degats] [slotFilterCap=80]
 

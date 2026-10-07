@@ -441,7 +441,7 @@ async function deroulerHarnais(
     resultat.faisabilite.blocages = evaluerBlocages(resolue.params);
   }
   // ⚠️ Sous-produit GRATUIT de `pairBuckets` (voir spec/outils/optimizer/
-  // near-miss-appariement.md) — jamais recalculé, seulement mis en forme.
+  // moteur/diagnostics.md, « Quasi-succès à l'appariement ») — jamais recalculé, seulement mis en forme.
   // Rendu SEULEMENT quand `meilleurs` est vide : sinon rien à chercher.
   if (resultat.meilleurs.length === 0) {
     resultat.quasiSucces = evaluerQuasiSucces(dernier.resultat!, resolue);

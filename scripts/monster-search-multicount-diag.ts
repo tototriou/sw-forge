@@ -143,7 +143,7 @@ function runOnce(slotFilterCap: number, adaptiveTrancheWeighting: boolean, metri
   // ⚠️ Ce script reproduisait ICI l'escalade du budget de paires, sans
   // laquelle `pairBuckets` s'arrêtait à `truncated=true` sur <0,0001 % de
   // l'espace réellement couvert par l'app — cause du faux « 0 build trouvé »
-  // qui a fait perdre du temps. Le budget a été supprimé (piste 8) : un appel
+  // qui a fait perdre du temps. Le budget a été supprimé : un appel
   // nu explore désormais tout ce que l'app explore.
   const gen = pairBuckets(prepared, bucketsA, bucketsB);
   let step = gen.next();

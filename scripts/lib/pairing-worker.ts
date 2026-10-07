@@ -4,7 +4,7 @@
 // worker, pas un pointeur partagé), et appareille sa tranche en entier.
 // ⚠️ Recevait un budget de paires FIXE (`nodeBudgetMax`), que ses deux
 // appelants mettaient de toute façon à l'infini pour mesurer le débit brut :
-// champ supprimé avec le budget lui-même (piste 8).
+// champ supprimé avec le budget lui-même.
 //
 // ⚠️ `prepared` (avec sa fonction `totalOf`) n'est PAS clonable via
 // `postMessage` (structured clone ne clone jamais de fonction) — chaque

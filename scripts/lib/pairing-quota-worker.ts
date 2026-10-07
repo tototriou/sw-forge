@@ -4,8 +4,8 @@
 // `prepareSearch` (voir le correctif B1,
 // archive/historique/historique-acceleration-et-outillage.md).
 // ⚠️ Sa troisième fidélité, l'escalade du budget de paires à chaque
-// checkpoint, n'a plus d'objet : ce budget a été supprimé du moteur
-// (piste 8), donc la distinction d'avec `pairing-worker.ts` ne tient plus
+// checkpoint, n'a plus d'objet : ce budget a été supprimé du moteur,
+// donc la distinction d'avec `pairing-worker.ts` ne tient plus
 // que sur la coordination de quota ci-dessous.
 //
 // Deux modes, MÊME code de recherche, seule la coordination diffère :

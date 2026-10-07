@@ -6,7 +6,7 @@
 // `pairBuckets` sans reproduire l'escalade du budget de paires du chemin de
 // production, et n'explorait donc qu'une fraction dérisoire de l'espace réel
 // (voir le skill `algo-verify`, section « Fidélité des scripts
-// diagnostics »). Ce budget a depuis été supprimé du moteur (piste 8) : il
+// diagnostics »). Ce budget a depuis été supprimé du moteur : il
 // n'y a plus rien à reproduire de ce côté-là, mais la raison d'être de ce
 // module tient toujours — c'est ici, et pas dans chaque script, que vit la
 // séquence fidèle au chemin de prod.

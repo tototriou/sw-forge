@@ -11,7 +11,7 @@
 // des données d'exclusion, et `recipeToSearchParams` lui-même — qui résout
 // `artifactBounds` et `objectiveStats` comme l'écran. C'est exactement la
 // classe d'erreur que le harnais existe pour supprimer (voir
-// spec/outils/optimizer/harnais-diagnostic.md).
+// spec/outils/optimizer/harnais.md).
 //
 // ⚠️ **Chargement seulement, jamais d'affichage.** Les messages détaillés de
 // `optimizer-search.ts` (sort de dégâts réels retenu, comptes de runes

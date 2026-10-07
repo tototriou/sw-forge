@@ -229,7 +229,7 @@ export function testProseStatsCombatCarte() {
 /**
  * Un passif offensif MASQUÉ qui porte aussi un
  * réglage de stats de combat garde sa prose. Aucun cas au corpus (sentinelle
- * `testLot12PassifMasqueEtStatsDeCombat`) : le passif est SYNTHÉTIQUE, posé
+ * `testMecanismesPassifMasqueEtStatsDeCombat`) : le passif est SYNTHÉTIQUE, posé
  * sur l'identifiant d'un réglage RÉEL ; l'exclusion est calculée comme la
  * carte (`passifsSuivants` = `passifPeutSuivre(p, resolved)`, vérifié sur la
  * source par `testProseStatsCombatCarte`).

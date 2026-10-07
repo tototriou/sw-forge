@@ -178,7 +178,7 @@ export default function testDegatsSortsSansAttaque() {
   // passifs est un bouclier : elle ne doit jamais valoir des dégâts, par aucune
   // porte (ni passif offensif, ni sort proposé, ni un point du total), quels
   // que soient les interrupteurs. La riposte de leur prose n'est pas modélisée
-  // (relevé R8 du plan). Une entrée par nom de ces passifs dans la liste des
+  // Une entrée par nom de ces passifs dans la liste des
   // passifs offensifs ferait échouer ce test.
   titre('Passifs de bouclier 16113 / 16613 — le bouclier n’est jamais compté comme des dégâts');
   const valeurs: Partial<Record<StatKey, number>> = { hp: 20000, atk: 1000, def: 800, spd: 200, cr: 25, cd: 100 };

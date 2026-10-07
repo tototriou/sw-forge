@@ -4,7 +4,7 @@
 //
 // ⚠️ **Ce qui est volontairement DEHORS** : tout ce qui exige un compte réel
 // (gitignoré, absent des autres machines) ou une recherche complète de
-// plusieurs minutes. Décision d'intégration hybride du cadrage (§12) — la
+// plusieurs minutes. Intégration hybride — la
 // suite entière doit rester sous la barre des quelques dizaines de secondes.
 //
 // ⚠️ Le harnais est de l'OUTILLAGE : `algo-verify` ne s'y applique pas. Ce
@@ -229,7 +229,7 @@ export default async function testDiagnosticHarness() {
    *
    * ⚠️ La TROISIÈME hypothèse de l'asymétrie A/B — A alloue peut-être
    * davantage et paie plus de ramassage de miettes. Elle manquait aux deux
-   * premières rédactions du cadrage : « deux hypothèses » n'était pas une
+   * premières rédactions : « deux hypothèses » n'était pas une
    * énumération close, mais celles auxquelles on avait pensé. */
   {
     const mem = arretDemiBuilds.demiBuilds!.memoire;

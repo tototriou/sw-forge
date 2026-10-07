@@ -419,7 +419,7 @@ export default function testRelicQueue() {
     egal(vit.sansEffetSurLeTri, true, 'régime aucun : le tri VIT est aussi sans effet sur le tri');
   }
 
-  /* ── Les quatre exemples du plan § 2.4 — le bouton choisit le régime
+  /* ── Les quatre exemples de résolution — le bouton choisit le régime
    * (`adapterAuTri ? sortBy : objective`) ; objectif de recherche PV
    * effectifs, tri ATQ. */
   {
@@ -462,7 +462,7 @@ export default function testRelicQueue() {
     egal(parAtk[0], cle(c.runeIds), 'plan § 2.4 ex. 4 : classé par ATQ, le build ATQ % passe devant — seul le classement a changé');
   }
 
-  /* ── L'exemple du plan § 2.3 en Dégâts réels (Sonia, sort scalant sur
+  /* ── L'exemple de résolution en Dégâts réels (Sonia, sort scalant sur
    * l'ATQ) : ATQ % + exclusive NON offensive (Régénération, 16) l'emporte sur
    * DEF % + exclusive offensive (Conquête, 1) — l'exclusive n'entre pas dans
    * le score, la principale décide par son effet RÉEL. */

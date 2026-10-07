@@ -450,8 +450,8 @@ export default function testOptimizerExclusion() {
     egal(findValidatedBuild(validated, null, ownKey), undefined, 'findValidatedBuild : listId null → jamais de faux positif');
   }
 
-  // ── revalidateBuilds — revérification au réimport (point bloquant 4 du
-  // cadrage) : un sélecteur introuvable OU une rune validée qui n'EXISTE
+  // ── revalidateBuilds — revérification au réimport (point bloquant :
+  // un sélecteur introuvable OU une rune validée qui n'EXISTE
   // PLUS DU TOUT dans le compte (vendue/reforgée depuis) est abandonné,
   // jamais silencieusement gardé — mais rester PAS ENCORE équipée sur
   // l'exemplaire ne suffit PAS à l'abandonner (voir le cas dédié plus bas,

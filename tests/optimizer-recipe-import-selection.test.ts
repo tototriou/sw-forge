@@ -1,6 +1,6 @@
 // Sélection d'exemplaire à l'import d'une recette Optimizer — voir
-// spec/outils/optimizer/pistes.md, entrée « BUG — l'import d'une recette ne
-// sélectionne aucun exemplaire dès qu'on en possède PLUSIEURS ».
+// le défaut corrigé : l'import d'une recette ne
+// sélectionne aucun exemplaire dès qu'on en possède PLUSIEURS.
 //
 // ⚠️ Le dépôt ne teste pas les composants React (voir le commentaire de
 // `testOptimizerExclusion` sur `useSiegeState.ts`) : `sourceSelector` est un
@@ -187,7 +187,7 @@ function testRecetteRelique() {
     egal(avecRelique, { mode: 'equipped', principale: 'equipped', type: 'libre', seuil: 6 }, 'avec relique portée : intention « equipped » par défaut');
 
     // Interrupteur coupé (`ignoreArtifacts`) : mode « off », quelle que soit
-    // la relique portée — pas d'interrupteur propre à la relique (T2).
+    // la relique portée — pas d'interrupteur propre à la relique.
     const interrupteurCoupe = recipeToRelicIntent({ ...recetteAncienne, ignoreArtifacts: true }, monstreCharge({ id: 7, upgrade: 6, main: { code: 100, value: 11 } }));
     egal(interrupteurCoupe.mode, 'off', "« Activer l'optimisation d'artéfacts » coupé : mode « off » pour la relique aussi (D1)");
   }

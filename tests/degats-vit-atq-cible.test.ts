@@ -159,7 +159,7 @@ export function testTheoniaAtqCible() {
       `23515 ${nom} — la donnée porte Increase Damage 100, note « For enemies with Attack Power lower than yours »`);
     const p = profilDe(forme, 23515);
     // ⚠️ La clause VIT (« Attack Speed lower than yours », `quantite: null`)
-    // n'est PAS modélisée : une seule condition, et c'est voulu (relevé R11).
+    // n'est PAS modélisée : une seule condition, et c'est voulu.
     egal(p.conditionsCombat, [{ type: 'atkCibleSousAtkPropre', ratio: 1, pct: 100 }],
       `23515 ${nom} — une condition, ATQ cible < ATQ propre, +100 % (clause VIT non modélisée, sans valeur en donnée)`);
     ok(p.critiqueGaranti === true, `23515 ${nom} — critique garanti conservé`);

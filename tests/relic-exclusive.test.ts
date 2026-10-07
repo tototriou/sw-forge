@@ -94,7 +94,7 @@ export default function testRelicExclusive() {
 
   /* ── Tranches entières, par palier, sans plafond ─────────────────────── */
   {
-    // ⚠️ Le relevé (rév. 42) : « 1 % par 1 000 ATQ » vaut 1 % à 1 000 comme à
+    // ⚠️ Le relevé en jeu : « 1 % par 1 000 ATQ » vaut 1 % à 1 000 comme à
     // 1 800, et 2 % à 2 000 — JAMAIS au prorata.
     egal(tranchesAtteintes(999, 1000), 0, 'tranche non atteinte → 0 (999 pour 1 000)');
     egal(tranchesAtteintes(1000, 1000), 1, 'juste AU palier → 1 (1 000 pour 1 000)');
@@ -281,11 +281,11 @@ export default function testRelicExclusive() {
  * Producteur réel : `optionsDeClassement`, que l'écran appelle tel quel ;
  * l'état de relique vient d'`etatReliqueDuBuild` sur les contextes de
  * `resoudreContexteRelique` — les deux mêmes fonctions que l'écran. Règle 1
- * du cadrage : `off`/`equipped` → la relique de la fiche ; `recherche` → la
+ * : `off`/`equipped` → la relique de la fiche ; `recherche` → la
  * relique RETENUE ; non résolue → neutre, sans repli ; aucune → neutre.
  *
  * Attentes calculées À LA MAIN, jamais par `scoreDuCandidat` : l'apport
- * (`⌊Y / t⌋ × percent`, relevé T4) puis `objectiveScore` ou `pvEffectifs`
+ * (`⌊Y / t⌋ × percent`, relevé en jeu) puis `objectiveScore` ou `pvEffectifs`
  * avec cet apport écrit en dur.
  * ----------------------------------------------------------------------- */
 

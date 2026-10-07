@@ -281,7 +281,7 @@ function quantile(vals: number[], q: number): number {
 }
 
 /* --------------------------------------------------------------------------
- * T2 — un minimum RES/PRE que SEULE une aura propre fait tenir, sans aucune
+ * Un minimum RES/PRE que SEULE une aura propre fait tenir, sans aucune
  * marge Endure/Focus dans le pool ; un scénario isole chaque coupe sûre.
  * ----------------------------------------------------------------------- */
 
@@ -381,7 +381,7 @@ export function testRuneOptimAurasCoupesMinimum() {
 }
 
 /* --------------------------------------------------------------------------
- * T3 — diagnostics : jamais une impossibilité sur une borne plus étroite
+ * Diagnostics : jamais une impossibilité sur une borne plus étroite
  * que la recherche ; near-miss lu avec l'aura propre.
  * ----------------------------------------------------------------------- */
 
@@ -460,7 +460,7 @@ export function testRuneOptimAurasCoupesDiagnostics() {
 }
 
 /* --------------------------------------------------------------------------
- * T4 — activation réelle et rétention : perte HEURISTIQUE ≠ faux rejet.
+ * Activation réelle et rétention : perte HEURISTIQUE ≠ faux rejet.
  * ----------------------------------------------------------------------- */
 
 export function testRuneOptimAurasCoupesRetention() {
@@ -521,7 +521,7 @@ export function testRuneOptimAurasCoupesRetention() {
 }
 
 /* --------------------------------------------------------------------------
- * T1 — témoin Blade/Intangible (Rage seul demandé) : crédit du joker.
+ * Témoin Blade/Intangible (Rage seul demandé) : crédit du joker.
  * ----------------------------------------------------------------------- */
 
 const R = (id: number, slot: number) => r(id, slot, 'rage');
@@ -777,7 +777,7 @@ export function testRuneOptimAurasCoupesDominance() {
   verifier(memeSet, vS, false);
   egal([...vS.trouves], ['1,2,3,4,25,16'], 'Dominance entre deux Tolerance : seule la meilleure des deux reste, sans perte d\'optimum');
 
-  // Témoin T1 : une rune Will domine la Blade de l'emplacement 5 (ATQ 6 ≥ 5),
+  // Témoin Blade/Intangible : une rune Will domine la Blade de l'emplacement 5 (ATQ 6 ≥ 5),
   // mais seule la Blade complète le set qui porte CR 27 (Rage seul demandé).
   const blade: Cas = {
     nom: 'T1 Blade dominée par une rune hors combo',
@@ -788,7 +788,7 @@ export function testRuneOptimAurasCoupesDominance() {
   verifier(blade, vB, true);
   cibleCollectee(blade, vB, '1,2,3,4,15,16');
 
-  // Témoin T1 : deux sets SANS effet (Will/Shield), combo tenu par
+  // Témoin Blade/Intangible : deux sets SANS effet (Will/Shield), combo tenu par
   // l'Intangible. Remplacer Will par Shield laisse deux sets incomplets : le
   // joker ne complète plus Violent (règle d'`activeSets`).
   const joker: Cas = {

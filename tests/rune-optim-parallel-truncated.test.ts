@@ -16,8 +16,8 @@
 // elles, pas juste celui de la première/dernière, y compris quand une
 // tranche n'en a AUCUN.
 //
-// ⚠️ **Cas 1 INVERSÉ (
-// revue technique).** La correction de 2026-08-19 avait raison sur le motif
+// ⚠️ **Cas 1 INVERSÉ.**
+// La correction précédente avait raison sur le motif
 // (un quota de tranche n'est pas un budget-temps épuisé) et tort sur la
 // conclusion : une tranche qui atteint SON quota s'arrête (`pairBuckets`,
 // `break outer`), et le reste de SA tranche n'est jamais visité. Elle rend
@@ -35,8 +35,7 @@ function fakeCandidates(n: number): BuildCandidate[] {
 
 // Défauts near-miss VIDES par défaut — la plupart des cas ci-dessous testent
 // `truncated`/`candidates`, pas le near-miss ; `tsc` exige ces deux champs
-// depuis qu'ils sont devenus obligatoires sur `SearchResult` (délibéré, voir
-// le cadrage §4).
+// depuis qu'ils sont devenus obligatoires sur `SearchResult` (délibéré).
 function fakeResult(
   candidates: BuildCandidate[],
   explored: number,

@@ -136,7 +136,7 @@ export default async function testRuneOptimNearMiss() {
 
   // ── Cas limite : condition triviale, satisfaite par TOUT candidat exploré
   // (`candidates.length > 0`, jamais un seul échec du test conjoint) — le
-  // near-miss reste calculé (coût nul, voir le cadrage) mais n’a
+  // near-miss reste calculé (coût nul) mais n’a
   // logiquement rien à y ajouter. ──
   {
     const requirementTriviale: BuildRequirement = { sets: [], minStats: { spd: 100 } }; // déjà garanti par la base seule

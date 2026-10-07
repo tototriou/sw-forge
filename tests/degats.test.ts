@@ -1222,7 +1222,7 @@ export default function testDegats() {
   ok(modifRigna[0]?.detail.includes('critique garanti'), 'le détail affiché de Rigna mentionne le critique, pas un bonus de dégâts');
 
   // Zenitsu Agatsuma (Ténèbres)/Qilin Slasher (Ténèbres) — « Hidden Sense of
-  // Justice »/« Lethal Intent », point 29 du catalogue : QUATRIÈME
+  // Justice »/« Lethal Intent » (`spec/outils/degats-reels/catalogue-des-passifs.md`, « Statistiques ») : QUATRIÈME
   // mécanique liée à une stat (le Taux Crit cette fois, pas la VIT), même
   // famille que Sonia (multiplicatif sur le TOTAL, toujours actif). `quantite: 0`/
   // `null` en données — confirmé par l'utilisateur : « 1% de Taux critique =
@@ -1256,7 +1256,7 @@ export default function testDegats() {
     'le Taux Crit est privilégié au pré-filtrage — SEUL cas de ce fichier (partout ailleurs, plafonné à 100 %, jamais une cible à maximiser)'
   );
 
-  // Gideon (« Aegis Shell »), point 30a — CINQUIÈME mécanique liée à une
+  // Gideon (« Aegis Shell ») — CINQUIÈME mécanique liée à une
   // stat, cette fois la DEF PROPRE (pas un écart avec la cible, contrairement
   // à Martial Arts Specialist). `quantite: 100` confirmé en données —
   // confirmé par l'utilisateur : 100 % à 5000 DEF.
@@ -1406,7 +1406,7 @@ export default function testDegats() {
   const chunliSansEcart = computeSkillDamage(chunliBase!, chunliStats, { ...chunliSetup, enemySpd: 200 }, AUCUNE_AURA_PROPRE);
   const chunliAvec150 = computeTotalDamage(chunliBase!, [], chunliStats, { ...chunliSetup, enemySpd: 50 }, AUCUNE_AURA_PROPRE, null, ARTIFACT_DAMAGE_NEUTRE, false, chunliConfig);
   ok(Math.abs(chunliAvec150 / chunliSansEcart - 3) < 1e-9, 'Chun-Li : 150 pts d’écart = +200 % (le plafond), soit ×3');
-  // ⚠️ RÉGRESSION trouvée en implémentant Gideon (point 30a), PAS signalée
+  // ⚠️ RÉGRESSION trouvée en implémentant Gideon, PAS signalée
   // par l'utilisateur : le plafond clampait `ecartVit` sur `pctMax` (200) au
   // lieu de `ecartMax` (150) — invisible sur Sonia (50 % = 50 pts,
   // coïncidence), mais un écart de VIT > 150 donnait ~267 % au lieu de

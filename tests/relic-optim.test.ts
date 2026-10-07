@@ -80,7 +80,7 @@ export default function testRelicOptim() {
   }
 
   /* ------------------------------------------------------------------
-   * Les sept contrôles du plan § 8.2
+   * Les sept contrôles
    * ---------------------------------------------------------------- */
   {
     // Une meilleure ATQ n'est jamais aussi une meilleure PV — bornes
@@ -180,7 +180,7 @@ export default function testRelicOptim() {
   }
 
   /* ------------------------------------------------------------------
-   * Trois de la rév. 6 : borne infaisable, régime aucun, aucune écartée
+   * Borne infaisable, régime aucun, aucune écartée
    * ---------------------------------------------------------------- */
   {
     // +14 mieux notée mais rendrait le build infaisable (au-dessus d'un
@@ -218,7 +218,7 @@ export default function testRelicOptim() {
   }
 
   /* ------------------------------------------------------------------
-   * Quatre de la rév. 3 : minimum hors objectif, Vitesse, exclusives
+   * Minimum hors objectif, Vitesse, exclusives
    * incompatibles, scorePartiel PAR RÉGIME
    * ---------------------------------------------------------------- */
   {

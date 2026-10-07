@@ -202,7 +202,9 @@ export default function HomePage({ stats, onImport }: Props) {
         <div className={`${CARTE} grid md:grid-cols-3`}>
           <Etape
             n="01"
-            icon={Download}
+            // Exporter = flèche vers le HAUT (le fichier sort du jeu) ;
+            // importer = flèche vers le BAS. Convention de l'app.
+            icon={Upload}
             accent="#5B9DE0"
             title="Exporte ton compte"
             desc="Génère un fichier .json de ton compte avec SW Exporter, en lançant le jeu une fois."
@@ -210,7 +212,7 @@ export default function HomePage({ stats, onImport }: Props) {
           />
           <Etape
             n="02"
-            icon={Upload}
+            icon={Download}
             accent="#5EDB8F"
             title="Dépose le fichier"
             desc={selonSupport(
@@ -271,7 +273,7 @@ export default function HomePage({ stats, onImport }: Props) {
           <Bouton
             ton="accent"
             fond="plein"
-            icone={<Upload size={15} />}
+            icone={<Download size={15} />}
             libelle="Importer mon compte"
             onClick={() => ctaRef.current?.click()}
           />
@@ -384,9 +386,9 @@ function Dropzone({ onImport }: { onImport: (text: string) => void }) {
                   }`}
     >
       {/* La tuile d'icône des cartes, en plus grand et à l'accent : c'est
-          l'action de la page. */}
+          l'action de la page. Un IMPORT : flèche vers le bas. */}
       <span className="flex h-12 w-12 items-center justify-center rounded-xl border border-border-soft bg-accent/10 text-accent">
-        <Upload size={22} />
+        <Download size={22} />
       </span>
       <div className="text-md font-semibold text-ink">Dépose ton fichier .json ici</div>
       <div className="text-sm text-ink-dim">ou clique pour parcourir</div>

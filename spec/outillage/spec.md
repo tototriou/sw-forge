@@ -305,7 +305,7 @@ champ.
 **Vérifié le :** AAAA-MM-JJ                 (optionnel : dernière relecture explicite)
 
 # <Titre>                                   ← DÉCISION
-**Statut :** DÉCISION <date> — <la décision en une phrase>
+**Statut :** DÉCISION — <la décision en une phrase>
 **Remplace / remplacé par :** … (ou « — »)
 **Exécution :** commit <sha> — vérifiée par <observation>   (si exécutée)
 **Lire si :** …

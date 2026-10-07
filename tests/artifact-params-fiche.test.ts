@@ -1,11 +1,11 @@
-// degats-et-aura 6bis-b6 — les `ArtifactSearchParams` de la fiche, produits
+// Les `ArtifactSearchParams` de la fiche, produits
 // par UN producteur pur (`parametresArtefactsFiche`, artifactFiche.ts) que
 // l'écran (`artifactParams`, OptimizerSection.tsx), le CLI (`paramsArtefacts`,
 // recipeToSearchParams.ts) et le différentiel relique (`entreeResolution`,
 // relicDifferentiel.ts) appellent tous trois.
 //
-// Constats de la revue technique 6bis-b : C5 (§ 4.2, le CLI n'appliquait pas
-// la neutralisation des verrous de l'écran) et C6 (§ 4.3, le différentiel
+// Deux écarts que le producteur unique supprime : le CLI n'appliquait pas
+// la neutralisation des verrous de l'écran, et le différentiel
 // recopiait l'entrée de résolution sans `codesAmplification` ni canal
 // exclusive obligatoire).
 //
@@ -101,7 +101,7 @@ function recette(r: Partial<OptimizerRecipe>): OptimizerRecipe {
 // L'écran de cette recette sur ce monstre, comme `importRecipe` le règle :
 // mêmes choix, mêmes verrous, même `damageSetup`, aucun artéfact réservé
 // (aucune liste active), la fiche du monstre ; l'évaluateur de la fiche est
-// le producteur partagé de 6bis-b5b (celui que `artefactsDuCli` appelle).
+// le producteur partagé (celui que `artefactsDuCli` appelle).
 function entreesEcran(recipe: OptimizerRecipe, loaded: LoadedMonster, evaluer: (arts: ArtifactDetail[]) => number): EntreesMemoArtifactParams {
   return {
     selected: { monster: { element: 'wind', archetype: 'attack' }, gear: loaded.gear },
@@ -162,7 +162,7 @@ export function testArtefactsFicheParamsCliVerrous() {
 
 /* ── Contrainte du 2026-10-01 : l'écran garde exactement le même comportement ── */
 
-// Le corps du mémo `artifactParams` APRÈS 6bis-b6, recopié tel quel — le
+// Le corps du mémo `artifactParams` APRÈS l'extraction du producteur, recopié tel quel — le
 // contrôle de source ci-dessous vérifie que l'écran porte exactement ce texte.
 function artifactParamsApres(e: EntreesMemoArtifactParams) {
   const { selected, evaluateursFiche, optimiserArtefacts, artifactMainByKind, artifacts, artefactsReserves, lignesVerrouillees, damageSetup, maxStats } = e;
@@ -204,7 +204,7 @@ export function testArtefactsFicheParamsEcran() {
     allRunes: RUNES_PORTEES, allArtifacts: inventaire, allRelics: [RELIQUE],
   };
   // Un évaluateur réel de la fiche (« Dégâts réels », Lushen), le producteur
-  // partagé de 6bis-b5b : la paire et ses notes dépendent des lignes.
+  // partagé : la paire et ses notes dépendent des lignes.
   const evaluer = artefactsDuCli(recette({}), loaded)!.params.evaluer;
   const selected = { monster: { element: 'wind' as const, archetype: 'attack' as const }, gear: loaded.gear };
 

@@ -1,6 +1,6 @@
-// Module pur `relicOptim.ts` (implementation-relique, lot 3) — les sept
-// contrôles du plan § 8.2, plus les compléments D1/rév. 3/rév. 6, plus la
-// dominance § 6 de reliques.md et son symétrique.
+// Module pur `relicOptim.ts` — les sept
+// contrôles du plan, plus les compléments, plus la
+// dominance (`spec/outils/optimizer/moteur/reliques.md`, « Pertinence et dominance — écrites, non appelées en production ») et son symétrique.
 
 import { RelicDetail } from '../src/types';
 import {
@@ -80,7 +80,7 @@ export default function testRelicOptim() {
   }
 
   /* ------------------------------------------------------------------
-   * Les sept contrôles du plan § 8.2
+   * Les sept contrôles
    * ---------------------------------------------------------------- */
   {
     // Une meilleure ATQ n'est jamais aussi une meilleure PV — bornes
@@ -92,7 +92,7 @@ export default function testRelicOptim() {
     // +9 élimine +8 (Régénération, jamais pertinente) mais pas +15 : en
     // « Dégâts réels » scalant sur l'ATQ, Conquête (type 1) ET Bravoure·ATQ
     // (type 7, buffe l'ATQ) sont TOUTES DEUX pertinentes mais DE TYPES
-    // DIFFÉRENTS — aucune ne domine l'autre (D6) ; +8 porte Régénération
+    // DIFFÉRENTS — aucune ne domine l'autre ; +8 porte Régénération
     // (type 16, jamais pertinente) et se fait dominer par les deux.
     const dims = dimensionsRetenues('degats_reels', ['atk'], {});
     const r8 = relic(1, 101, 8, { type: 16, tranche: 27000, percent: 1 }); // Régénération
@@ -147,7 +147,7 @@ export default function testRelicOptim() {
   }
 
   /* ------------------------------------------------------------------
-   * Trois de D1 : type forcé, intersection, vide nommé
+   * Type forcé, intersection, vide nommé
    * ---------------------------------------------------------------- */
   {
     const inventaire = [
@@ -180,7 +180,7 @@ export default function testRelicOptim() {
   }
 
   /* ------------------------------------------------------------------
-   * Trois de la rév. 6 : borne infaisable, régime aucun, aucune écartée
+   * Borne infaisable, régime aucun, aucune écartée
    * ---------------------------------------------------------------- */
   {
     // +14 mieux notée mais rendrait le build infaisable (au-dessus d'un
@@ -218,7 +218,7 @@ export default function testRelicOptim() {
   }
 
   /* ------------------------------------------------------------------
-   * Quatre de la rév. 3 : minimum hors objectif, Vitesse, exclusives
+   * Minimum hors objectif, Vitesse, exclusives
    * incompatibles, scorePartiel PAR RÉGIME
    * ---------------------------------------------------------------- */
   {
@@ -239,7 +239,7 @@ export default function testRelicOptim() {
   {
     // Deux exclusives pertinentes de types différents → aucune dominance,
     // dans aucun des deux sens (Éternité·PV = type 12, Origine·VIT = type 14,
-    // toutes deux pertinentes en PV effectifs — reliques.md § 6).
+    // toutes deux pertinentes en PV effectifs — `spec/outils/optimizer/moteur/reliques.md`, « Pertinence et dominance — écrites, non appelées en production »).
     const dims = dimensionsRetenues('ehp', [], {});
     const eternitePv = relic(1, 100, 12, { type: 12, tranche: 500, percent: 5 });
     const origineVit = relic(2, 100, 12, { type: 14, tranche: 500, percent: 5 });
@@ -248,9 +248,9 @@ export default function testRelicOptim() {
     ok(!relicDominates(origineVit, eternitePv, dims), 'Origine·VIT ne domine pas Éternité·PV non plus');
   }
   {
-    // `scorePartiel` PAR RÉGIME. ⚠️ **Renversé par le lot 7** : Dégâts réels
+    // `scorePartiel` PAR RÉGIME. ⚠️ **Renversé par l'effet unique** : Dégâts réels
     // et PV effectifs valaient `true` tant qu'aucune exclusive n'avait de
-    // formule (D9). Les cinq groupes que le relevé T4 couvre sont désormais
+    // formule. Les cinq groupes que le relevé en jeu couvre sont désormais
     // chiffrés (`relicExclusive.ts`), et les seuls types non chiffrables
     // (Régénération, un type inconnu) ne sont jamais pertinents : le score
     // n'est plus partiel sur aucun des quatre objectifs.
@@ -265,7 +265,7 @@ export default function testRelicOptim() {
   }
 
   /* ------------------------------------------------------------------
-   * Le test de dominance § 6 (reliques.md) et son symétrique
+   * Le test de dominance (`spec/outils/optimizer/moteur/reliques.md`, « Pertinence et dominance — écrites, non appelées en production ») et son symétrique
    * ---------------------------------------------------------------- */
   {
     // Exemple donné par l'utilisateur, en PV effectifs : principales

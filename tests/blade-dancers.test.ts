@@ -1,8 +1,8 @@
-// L'ignore DEF conditionnel des Blade Dancers (cadrage degats-et-aura, lot 10a).
+// L'ignore DEF conditionnel des Blade Dancers.
 //
 // Six sorts n'ignorent la DEF que lorsque la jauge d'attaque de la cible est à
 // 0. L'ATB adverse n'est pas modélisée : le premier coup qui ignore est un
-// CHOIX de l'utilisateur, avec la règle fournie par lui (A.2 ter) — le coup 1
+// CHOIX de l'utilisateur, avec la règle fournie par lui (`spec/outils/degats-reels/valeurs-de-jeu-curees.md`) — le coup 1
 // n'ignore jamais, une fois qu'un coup ignore tous les suivants ignorent, le
 // 7ᵉ coup de la variante B ignore toujours ; par défaut, seul ce coup
 // inconditionnel ignore (aucun en variante A).
@@ -65,10 +65,10 @@ function stats(valeurs: Partial<Record<StatKey, number>>): StatRow[] {
 }
 
 // Variante A : 3 coups à 1,8 × ATQ, Damage +5/+10/+15 % ; variante B : 7 coups
-// à 0,85 × ATQ, Damage +10 % (lot 1d, relu dans les données ci-dessous).
+// à 0,85 × ATQ, Damage +10 % (relu dans les données ci-dessous).
 const VARIANTE_A = { coups: 3, coef: 1.8, skillupPct: 30, rangs: [2, 3], inconditionnel: null as number | null };
 const VARIANTE_B = { coups: 7, coef: 0.85, skillupPct: 10, rangs: [2, 3, 4, 5, 6, 7], inconditionnel: 7 as number | null };
-// Les douze formes du corpus (lot 1d, extraction du lot 1) : forme non éveillée
+// Les douze formes du corpus : forme non éveillée
 // puis éveillée, partageant le même identifiant de compétence.
 const SORTS: { id: number; nom: string; formes: number[]; variante: typeof VARIANTE_A; note: string }[] = [
   { id: 14308, nom: 'Hyakuretsukyaku', formes: [24403, 24413], variante: VARIANTE_A, note: 'If enemy ATB at 0' },
@@ -256,7 +256,7 @@ export default function testBladeDancersIgnoreDef() {
   egal(JSON.parse(JSON.stringify(regle.premierCoupIgnoreDefParSort)), { 14811: 3 }, 'le rang choisi est sérialisable tel quel');
 }
 
-// ── degats-et-aura 10b — la recette et le CLI ───────────────────────────────
+// ── la recette et le CLI ────────────────────────────────────────────────────
 
 // Cordelia (vent, éveillée) : son S3, Blade Dance of Night (14808), est de la
 // variante A. Monstre minimal : ni runes ni artéfacts, le contexte de calcul
@@ -312,7 +312,7 @@ export function testBladeDancersRecette() {
     egal(avecChamp(champ).recipe?.damageSetup.premierCoupIgnoreDefParSort, champ, `présent et permis, transporté tel quel : ${motif}`);
   }
 
-  // Hors des crans du sort : REFUSÉ à l'import avec son chemin (B.0), jamais
+  // Hors des crans du sort : REFUSÉ à l'import avec son chemin, jamais
   // ramené en silence au défaut. Le repli du calcul (`resolvedPremierCoupIgnoreDef`)
   // ne garde plus que ce qui n'arrive pas par une recette.
   const CHEMIN = 'damageSetup.premierCoupIgnoreDefParSort';
@@ -334,7 +334,7 @@ export function testBladeDancersRecette() {
   ok(!!avecChamp({ 14811: null }).error?.includes(`${CHEMIN}.14811 doit valoir 2, 3, 4, 5, 6, 7 pour ce sort`),
     'message : les valeurs permises de la variante B');
 
-  // Clé d'un sort SANS cette règle : REFUSÉE avec son chemin (B.0) — Lushen S3
+  // Clé d'un sort SANS cette règle : REFUSÉE avec son chemin — Lushen S3
   // (4713) et Hero Strike (17407) ignorent la DEF sur tous leurs coups.
   for (const [champ, chemin, motif] of [
     [{ 4713: 2 }, `${CHEMIN}.4713`, 'Lushen S3, rang 2'],
@@ -403,7 +403,7 @@ export function testBladeDancersRecette() {
   // L'écran : l'import pose `damageSetup` entier, sans reset ultérieur ; le
   // contexte de calcul et l'export le reprennent entier.
   const ecran = readFileSync(resolve(racine, 'src/components/outils/OptimizerSection.tsx'), 'utf8').replace(/\r\n/g, '\n');
-  // Lot CM : la ligne lit aussi les `avertissements` du parseur.
+  // La ligne lit aussi les `avertissements` du parseur.
   ok(ecran.includes('const { recipe, error, avertissements } = parseOptimizerRecipe(text);'), 'écran : la recette passe par le même `parseOptimizerRecipe`');
   ok(ecran.includes('setDamageSetup(recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP);'), 'écran : l’import de recette restaure damageSetup entier, rang compris');
   ok(/profile: resolvedSkill,\n\s*setup: damageSetup,\n/.test(ecran), 'écran : le contexte de calcul reçoit damageSetup entier, comme le CLI');
@@ -417,7 +417,7 @@ export function testBladeDancersRecette() {
   egal(signature(cliRang2.ctx.setup), signature(parLeCli(recetteCordelia({ 14808: 2 })).ctx.setup), 'cache de la file : même rang, même signature');
 }
 
-// ── degats-et-aura 10b — l'écran et la ligne du CLI ─────────────────────────
+// ── l'écran et la ligne du CLI ──────────────────────────────────────────────
 
 const lireSource = (f: string) => readFileSync(resolve(racine, f), 'utf8').replace(/\r\n/g, '\n');
 // Le code seul : un commentaire qui cite un nom ne doit ni faire échouer ni
@@ -428,7 +428,7 @@ const sansCommentaires = (s: string) =>
 export function testBladeDancersEcranEtCli() {
   titre('Blade Dancers — les crans du sélecteur, dérivés de la règle curée (degats-et-aura 10b)');
 
-  // Libellés retenus par l'utilisateur (recalage du lot 10, choix n° 12).
+  // Libellés retenus par l'utilisateur.
   const CRANS_A = [
     { rang: null, libelle: 'Aucun' }, { rang: 2, libelle: 'Dès le 2ᵉ coup' }, { rang: 3, libelle: 'Dès le 3ᵉ coup' },
   ];

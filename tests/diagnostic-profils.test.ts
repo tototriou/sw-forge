@@ -1,13 +1,13 @@
-// Les profils de pool synthétique nommés — piste 11b (§7 des extensions).
+// Les profils de pool synthétique nommés (`spec/outils/optimizer/harnais.md`, « Deux sources : une recette ou un pool synthétique »).
 //
 // ⚠️ **Ce test ne vérifie pas que le moteur a raison ; il vérifie qu'un
 // profil tient encore ce qu'il PROMET.** Chaque grandeur de `attendu` a été
-// mesurée pendant la calibration de 11b ; les relire à chaque exécution est
+// mesurée pendant la calibration ; les relire à chaque exécution est
 // la seule défense contre un profil qui dériverait en silence — et un profil
 // qui dérive est pire qu'un profil absent, puisqu'un différentiel bâti
 // dessus rendrait « aucune divergence » avec l'autorité d'un résultat.
 //
-// ⚠️ Ce qui est vérifié ici est exactement la liste que 11a exige de 11b, et
+// ⚠️ Ce qui est vérifié ici est exactement la liste que le harnais exige d'un profil, et
 // dans cet ordre : complétude et MOTIF · régime · totalPairs · rang de la
 // cible ET population. Le TEMPS est délibérément dehors — une machine plus
 // lente ne doit pas faire échouer une vérification de justesse.
@@ -74,7 +74,7 @@ export default async function testDiagnosticProfils() {
 
     // ── Exigences n° 1 et 2 : COMPLET, ou tronqué par QUOTA.
     egal(r.completude?.complet, a.complet, `${profil.nom} — complétude`);
-    // ⚠️ Le motif est relu, pas déduit : c'est LE piège nommé par 11a. Un
+    // ⚠️ Le motif est relu, pas déduit : c'est LE piège connu du harnais. Un
     // profil à faible rendement n'atteint jamais son quota, et le run
     // retombe alors sur `maxMs` EN SILENCE — ce qui violerait l'exigence
     // n° 1 sans que rien ne le dise. Ici, un `maxMs` inattendu échoue.
@@ -94,7 +94,7 @@ export default async function testDiagnosticProfils() {
     ok(r.regime?.force !== true, `${profil.nom} — le régime suit le seuil de PROD, il n’est pas forcé`);
     // ⚠️ « Franchement » d'un côté ou de l'autre, jamais à cheval : le
     // seuil est ce qu'un changement de configuration peut faire traverser,
-    // et 11a exige de le vérifier PAR BRAS. Un facteur 2 est le minimum
+    // et le harnais exige de le vérifier PAR BRAS. Un facteur 2 est le minimum
     // pour que le bras comparé ne bascule pas sur une variation modeste.
     const marge =
       a.regime === 'parallele'
@@ -113,7 +113,7 @@ export default async function testDiagnosticProfils() {
       egal(rang.population, a.population, `${profil.nom} — population des candidats collectés`);
       // ⚠️ L'exigence n° 5 n'est pas une préférence : une cible au rang 1
       // masque toute la sensibilité du classement à l'instant de coupe
-      // (mesure I de 11a — verdict et rang identiques pendant que la
+      // (mesure de référence — verdict et rang identiques pendant que la
       // population variait de 32 %).
       ok(rang.rang > 1, `${profil.nom} — la cible n’est PAS au rang 1 (elle est #${rang.rang})`);
       ok(

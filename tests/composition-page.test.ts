@@ -1,4 +1,4 @@
-// degats-et-aura 6bis-b16 — une carte n'apparaît qu'une fois vérifiée
+// Une carte n'apparaît qu'une fois vérifiée
 // (`compositionDePage`, artifactQueue.ts) : la page montre les builds VÉRIFIÉS
 // (résolus et conformes) seuls, dans l'ordre du classement réel, puis des
 // places « Vérification… » jusqu'à ce que la page attend ; la file résout

@@ -4,7 +4,7 @@
 //
 // ⚠️ **Ce qui est volontairement DEHORS** : tout ce qui exige un compte réel
 // (gitignoré, absent des autres machines) ou une recherche complète de
-// plusieurs minutes. Décision d'intégration hybride du cadrage (§12) — la
+// plusieurs minutes. Intégration hybride — la
 // suite entière doit rester sous la barre des quelques dizaines de secondes.
 //
 // ⚠️ Le harnais est de l'OUTILLAGE : `algo-verify` ne s'y applique pas. Ce
@@ -229,7 +229,7 @@ export default async function testDiagnosticHarness() {
    *
    * ⚠️ La TROISIÈME hypothèse de l'asymétrie A/B — A alloue peut-être
    * davantage et paie plus de ramassage de miettes. Elle manquait aux deux
-   * premières rédactions du cadrage : « deux hypothèses » n'était pas une
+   * premières rédactions : « deux hypothèses » n'était pas une
    * énumération close, mais celles auxquelles on avait pensé. */
   {
     const mem = arretDemiBuilds.demiBuilds!.memoire;
@@ -405,15 +405,15 @@ export default async function testDiagnosticHarness() {
 
   // Le motif transmis par le résultat est LU, jamais redéduit : un résultat
   // fusionné du régime parallèle qui porte « quota de tranche » avec moins de
-  // candidats que le plafond global ne devient pas « maxMs » (6bis-b7).
+  // candidats que le plafond global ne devient pas « maxMs ».
   const parQuotaTranche: SearchResult = { ...parTemps, motifTroncature: 'quotaTranche' };
   egal(evaluerCompletude(parQuotaTranche, 1000, paramsFictifs).motif, 'quotaTranche', 'motif porté par le résultat ⇒ lu tel quel, la déduction ne s’applique pas');
 
   /* ── §3.5 : le quota LOCAL d'un worker, et la composition avec le harnais ─
    *
-   * ⚠️ **INVERSÉ le 2026-10-01 (degats-et-aura 6bis-b7, constat C2 de la
-   * revue technique).** Ce cas verrouillait la réfutation de deux revues
-   * externes (§9.2 et §9.3 de harnais-diagnostic-extensions.md), sur un
+   * ⚠️ **INVERSÉ.**
+   * Ce cas verrouillait la réfutation de deux revues
+   * externes (`spec/outils/optimizer/harnais-extensions.md`), sur un
    * scénario où `explored` égalait l'espace. Or une tranche qui remplit son
    * quota s'ARRÊTE (`pairBuckets`, `break outer`) : en général, le reste de
    * sa tranche n'est jamais visité, et la recherche était annoncée complète
@@ -1031,7 +1031,7 @@ export default async function testDiagnosticHarness() {
 }
 
 /**
- * degats-et-aura 6bis-b4 — `classer` en « Dégâts réels » reçoit le contexte
+ * `classer` en « Dégâts réels » reçoit le contexte
  * de dégâts construit comme le CLI (`buildRealDamageContext`). Sans lui,
  * `sortCandidates` rendait l'ordre de COLLECTE en silence, sous un titre
  * « classés par sortCandidates ».

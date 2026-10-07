@@ -1,5 +1,5 @@
-// Les trois options relique de `perf-battery.ts` (implementation-relique,
-// lot 6, B.6 « outillage relevé au brief ») — harnais d'abord (A.0) : ce
+// Les trois options relique de `perf-battery.ts`
+// — harnais d'abord : ce
 // qui s'exprime en test nommé ne reste pas une commande recopiée dans une
 // preuve.
 //
@@ -8,7 +8,7 @@
 // `--case=`) ; (2) un cas porteur de l'option pose bien son `relicContext`
 // par `buildCaseSearchParams` — l'expression de production de perf-battery
 // et de l'oracle `--case` — avec l'objectif du cas INCHANGÉ, et le libellé
-// du run porte l'intention ; (3) la BASELINE de B.6, `--relic-main=equipped`,
+// du run porte l'intention ; (3) la BASELINE, `--relic-main=equipped`,
 // donne la même projection canonique que le chemin sans contexte — sur la
 // fixture miniature, pour chacun des sept cas de `CASES`, l'objectif du cas
 // compris.
@@ -80,7 +80,7 @@ export default function testPerfRelicOptions() {
   egal(paramsLibre.objectiveStats, CASES[3]!.objectiveStats, 'objectiveStats du cas inchangés');
   egal(paramsLibre.relic, gear.relic, 'SearchParams.relic reste la relique PORTÉE (garantie G)');
 
-  /* (3) La baseline de B.6 : equipped ≡ sans contexte, projection canonique. */
+  /* (3) La baseline : equipped ≡ sans contexte, projection canonique. */
   for (const cas of CASES) {
     const base = buildCaseSearchParams(cas, charge, Number.POSITIVE_INFINITY);
     const equipped = buildCaseSearchParams(caseAvecRelique(cas, { principale: 'equipped', type: 'libre', seuil: 6 }), charge, Number.POSITIVE_INFINITY);

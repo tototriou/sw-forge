@@ -1,4 +1,4 @@
-// degats-et-aura 6bis-b10 — le compte affiché des builds (`compteAffichable`,
+// Le compte affiché des builds (`compteAffichable`,
 // artifactQueue.ts) : trouvés par le moteur, moins ceux que la résolution
 // exacte a écartés (`conforme: false`), mesurés comme candidats reçus moins
 // affichables — jamais en comptant les rejets du cache de la file, qui
@@ -6,7 +6,7 @@
 //
 // Les affichables viennent de la vraie `classementResolu`, comme à l'écran.
 // Le dépôt n'a pas d'infrastructure de test React : les lecteurs du compte se
-// contrôlent sur la source. Depuis 6bis-b18, il n'en reste que deux, la ligne
+// contrôlent sur la source. Il n'en reste que deux, la ligne
 // de progression et la ligne de raison ; l'en-tête et les pages lisent les
 // confirmées (`compteConfirme`, tests/compte-confirme.test.ts).
 

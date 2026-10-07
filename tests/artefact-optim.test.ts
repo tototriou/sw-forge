@@ -263,7 +263,7 @@ export default function testArtefactOptim() {
 
   titre('Bornes d’artéfact — deux vecteurs, jamais un seul');
 
-  // ⚠️ Le défaut corrigé (spec/outils/optimizer/artefacts.md, §12) : l'apport
+  // ⚠️ Le défaut corrigé (spec/outils/optimizer/moteur/artefacts.md, « Bornes d'apport pendant la recherche ») : l'apport
   // de la paire REPRÉSENTATIVE servait de borne des DEUX côtés. Elle est
   // choisie pour son SCORE — en « Libre », deux PV+1500 —, donc elle apporte
   // `+0 DEF` alors que l'inventaire contient des artéfacts DEF. Un minimum de
@@ -778,8 +778,8 @@ export default function testArtefactOptim() {
     egal(avecVerrou, [porteurVerrou], 'le porteur du verrou reste, l’inerte de même principale tombe sur le seuil');
   }
 
-  // ⚠️ B.5b bis, BLOQUANT 1 de la revue adversariale du lot 5b
-  // (`revue-diff-lot5b-2026-09-21.md`) : sous un MAXIMUM ACTIF sur la stat
+  // ⚠️ Un maximum actif change la dominance :
+  // sous un MAXIMUM ACTIF sur la stat
   // d'une principale, « plus grand » n'est plus « au moins aussi bon » — un
   // artéfact au plus petit apport peut rester sous le plafond quand celui au
   // plus grand le dépasse. Sans `maxStatsActifs`, la dominance l'éliminait

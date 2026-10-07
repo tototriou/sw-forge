@@ -1,20 +1,18 @@
-// Lot 12 du chantier degats-et-aura — les trois mécanismes rejoués sur des cas
+// Les trois mécanismes rejoués sur des cas
 // INDÉPENDANTS de ceux qui les ont fait naître (Blade Surge, Tempest, Blade
 // Dancers). Aucun code de production n'est touché : chaque cas est fourni
-// DANS CE TEST, et ce qu'il a fallu fournir est le résultat du lot
-// (spec/outils/optimizer/archive/controles-degats-aura-2026-09/controle-12.md).
+// DANS CE TEST.
 //
 // ⚠️ Deux sortes de cas, jamais mélangées :
 // - RÉEL : la fiche existe dans `public/data/skills`, ses valeurs sont celles de
 //   SWARFARM (formule, coups, améliorations) et ses décisions de produit celles
-//   du cadrage (A.2 ter). C'est le cas de l'attaque déclenchée (constat 178 :
+//   des valeurs curées (`spec/outils/degats-reels/valeurs-de-jeu-curees.md`). C'est le cas de l'attaque déclenchée (sorts S2 qui appellent leur S1 :
 //   RYU, Douglas, Kashmir, Vancliffe, Striker…).
 // - SYNTHÉTIQUE : aucune fiche ne porte ces coefficients ; la fixture est ANNONCÉE
 //   comme telle et ne valide AUCUNE mécanique du jeu — seulement que le
 //   mécanisme générique ne dépend pas de la forme du cas qui l'a fait naître.
-//   C'est le cas de la séquence de coups (troisième contrôle du lot 8) et de
-//   l'ignore DEF depuis un coup (aucun autre cas réel dans le corpus : voir le
-//   classement des voisins dans controle-12.md).
+//   C'est le cas de la séquence de coups et de
+//   l'ignore DEF depuis un coup (aucun autre cas réel dans le corpus).
 //
 // Chaque nombre attendu est écrit à la main depuis ces valeurs, ou comparé au
 // chemin ORDINAIRE d'un sort d'un seul groupe — jamais relu dans le code qui
@@ -94,7 +92,7 @@ function sortSimple(formule: string, coups: number, aoe: boolean, id = 999_012):
   return p;
 }
 
-// ── Mécanisme 8 — troisième contrôle exigé pour le lot 8 ────────────────────
+// ── Mécanisme 8 — séquence de coups : fixture SYNTHÉTIQUE ───────────────────
 
 type GroupeFixture = { coef: number; coups: number; zone: boolean };
 
@@ -236,9 +234,9 @@ export function testLot12SequenceDeCoups() {
   ok(proche(calcul(pz, normal).total, ATQ * somme(Z) * SKILLUP * df), 'Z : tous les coups comptés');
 }
 
-// ── Mécanisme 9 — constat 178 : S2 déclenche S1 (RYU, Striker) ──────────────
+// ── Mécanisme 9 — S2 déclenche S1 (RYU, Striker) ────────────────────────────
 
-// Les six compétences S2 du constat 178 (inventaire.csv, entrée 178, six lignes),
+// Les six compétences S2 qui appellent leur S1,
 // leur forme éveillée jouable et la S1 que la prose de la S2 nomme entre
 // crochets. Liste écrite À LA MAIN depuis les fiches : la prose ne sert jamais de
 // discriminant automatique (game-data-curation § 4).
@@ -264,7 +262,7 @@ function sortDe(detail: DetailMonstre, id: number): SkillDamageProfile {
 // S1 lu par `skillDamageProfile` (SA fiche), les slots déclencheurs, un
 // interrupteur. Construit ICI à la main, au format de `PassifOffensifProfile`
 // (donnée pure) : le chemin d'approvisionnement de production
-// (`monsterOffensivePassives`) ne sait pas l'établir, voir controle-12.md.
+// (`monsterOffensivePassives`) ne sait pas l'établir.
 function attaqueAppelee(s1: SkillDamageProfile, slotsDeclencheurs: readonly number[]): PassifOffensifProfile {
   return {
     skillCom2usId: s1.skillCom2usId,
@@ -362,8 +360,8 @@ export function testLot12AttaqueDeclenchee() {
 
 // ── Mécanisme 10 — ignore DEF depuis un coup choisi : fixture SYNTHÉTIQUE ────
 
-// Aucun autre sort du corpus n'ignore la DEF « à partir d'un coup » (voir
-// controle-12.md, catégorie 09 de l'audit) : deux règles SYNTHÉTIQUES, de forme
+// Aucun autre sort du corpus n'ignore la DEF « à partir d'un coup » :
+// deux règles SYNTHÉTIQUES, de forme
 // différente des variantes A et B (3 et 7 coups) des Blade Dancers.
 //   C : 5 coups à 1,1 × ATQ, rangs 2 à 5, 5ᵉ coup toujours ignoré (défaut : lui seul)
 //   E : 4 coups à 0,7 × ATQ, rangs 3 et 4 SEULEMENT, aucun coup inconditionnel
@@ -474,7 +472,7 @@ export function testLot12IgnoreDefDepuisUnCoup() {
       ok(r.recipe === null && !!r.error?.includes(`${chemin} `), `recette refusée avec son chemin : ${motif}`);
     }
     ok(!!lire({ [ID_E]: 2 }).error?.includes(`${CHEMIN}.${ID_E} doit valoir null, 3, 4 pour ce sort`), 'recette : message avec les valeurs permises de E (dérivées de la règle)');
-    // degats-et-aura 9c : avec huit entrées, le refus d'une clé sans règle ne
+    // Avec huit entrées, le refus d'une clé sans règle ne
     // compte ni ne nomme les sorts de la table (il disait « seuls les six sorts
     // des Blade Dancers en ont un »).
     egal(Object.keys(table).length, 8, 'précondition : la table compte huit entrées, fixtures C et E comprises');
@@ -491,11 +489,11 @@ export function testLot12IgnoreDefDepuisUnCoup() {
 export function testLot12PassifMasqueEtStatsDeCombat() {
   titre('Lot 12, point à constater — un passif masqué porte-t-il aussi des stats de combat ? (sentinelle du corpus)');
 
-  // Le bloc des passifs ne rend que `passifsSuivants`. Jusqu'au lot 9c,
+  // Le bloc des passifs ne rend que `passifsSuivants`. Auparavant,
   // « Stats acquises en combat » écartait la prose de TOUS les passifs
   // (`clesProseDejaRendue([...passifs])`) : un passif masqué qui porterait aussi
-  // un réglage de stats de combat aurait perdu sa prose ET son en-tête. Depuis
-  // 9c, l'exclusion lit `passifsSuivants` (testProseStatsCombatCarte,
+  // un réglage de stats de combat aurait perdu sa prose ET son en-tête. Désormais,
+  // l'exclusion lit `passifsSuivants` (testProseStatsCombatCarte,
   // testProseStatsCombatPassifMasque). Deux causes de masquage existent : être
   // soi-même le sort choisi (`selectionnableCommeSort`) et ne pas suivre le slot
   // du sort (`slotsDeclencheurs`). On balaie chaque forme du corpus, avec chacun
@@ -535,9 +533,9 @@ export function testLot12PassifMasqueEtStatsDeCombat() {
   }
   egal([...masquables].sort((a, b) => a - b), [3213], 'corpus : seul Tempest (3213) peut être masqué par construction (slots déclencheurs, choix comme sort)');
   egal([...masques].sort(), ['3213'], 'corpus : sur tous les sorts proposés par toutes les formes, seul Tempest est effectivement masqué');
-  // Depuis le lot 15e, Flash Step (19014) et Turning Slash (19414) partagent
+  // Flash Step (19014) et Turning Slash (19414) partagent
   // leur identifiant avec un compteur de VIT (quatre formes, mesure dans le
-  // libellé) ; ce n'est plus un défaut (9c) : la règle le vérifie sur chaque
+  // libellé) ; ce n'est plus un défaut : la règle le vérifie sur chaque
   // sort.
   egal(prosesPerdues, [],
     `corpus, chaque sort proposé : la prose d’un passif qui porte aussi des stats de combat est rendue une fois — par son bloc s’il suit le sort, sinon par « Stats acquises en combat » (${partagesAvecStats.length} cas aujourd’hui${partagesAvecStats.length ? ` : ${partagesAvecStats.join(', ')}` : ''})`);

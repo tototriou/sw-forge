@@ -1,4 +1,4 @@
-// degats-et-aura 6bis-b5c — la résolution de l'équipement par build et le
+// La résolution de l'équipement par build et le
 // classement résolu, extraits de l'écran (`resoudreEquipement`, `affichees`,
 // OptimizerSection.tsx) en deux producteurs que le CLI appelle aussi :
 // `entreeResolutionDuBuild` (relicQueue.ts) et `classementResolu`
@@ -7,10 +7,10 @@
 // Référence de l'extraction : `entreeResolutionAvant`, copie FIGÉE de
 // `entreeResolution` (scripts/lib/relicDifferentiel.ts) au commit 7905df36,
 // elle-même copie TEL QUEL de l'assemblage d'avant de l'écran
-// (`faireParamsArtefacts` + `resoudreEquipement`). Depuis 6bis-b6, le
+// (`faireParamsArtefacts` + `resoudreEquipement`). Le
 // différentiel passe par le producteur partagé : la référence vit donc ici.
 // Le nouveau producteur doit rendre, candidat par candidat, le même
-// `ResultatArtefacts` sur le corpus écrit à la main du lot 5a (`CORPUS_5A`),
+// `ResultatArtefacts` sur le corpus écrit à la main (`CORPUS_5A`),
 // avec et sans dimension relique, pour chaque régime — et le différentiel
 // (`resoudreCandidat`) aussi, sur ce corpus sans buff ni verrou.
 
@@ -75,7 +75,7 @@ function entreeResolutionAvant(p: SearchParams, c: BuildCandidate, ctx: RelicCon
     respecteConditions: conditionsPosees ? (arts) => respecteConditionsPaireFixe(computeStats({ ...gear, artifacts: arts }), p.requirement, aurasPropresDesRunes(gear.runes)) : null,
     requirement: p.requirement,
     regimeAucun: regime === 'aucun',
-    // Seul ajout à la copie (6bis-b9) : le champ obligatoire du départage
+    // Seul ajout à la copie : le champ obligatoire du départage
     // des régimes de stat, qui n'existait pas au commit 7905df36.
     regimeDeStat: regime === 'hp' || regime === 'atk' || regime === 'def',
     relicContext: ctx,
@@ -96,7 +96,7 @@ export function testResolutionProducteurPartage() {
   for (const fx of Object.values(CORPUS_5A)) {
     const p: SearchParams = { ...fx.p0, relicContext: fx.ctx };
     const candidats = searchBuilds(p).candidates;
-    // 6bis-b13 : UN jeu de caches et UN objet de paramètres de paires pour
+    // UN jeu de caches et UN objet de paramètres de paires pour
     // toute la fixture, comme une file de l'écran — chaque candidat, relique,
     // contexte et critère suivant relit les profils et préfiltres des
     // précédents, comparé à la référence qui recalcule tout.
@@ -113,7 +113,7 @@ export function testResolutionProducteurPartage() {
         for (const c of candidats) {
           // La référence : l'assemblage d'avant de l'écran, recopié tel quel.
           const ref = resoudreEquipementDuBuild(entreeResolutionAvant(p, c, ctx, reglages));
-          // Le différentiel, qui passe désormais par les producteurs (6bis-b6).
+          // Le différentiel, qui passe désormais par les producteurs.
           if (JSON.stringify(resoudreCandidat(p, c, ctx, reglages)) !== JSON.stringify(ref)) differents.push(`différentiel ${cleBuild(c)}`);
           // Le producteur partagé, avec les mêmes paramètres de paires que
           // la référence (son `evaluer` est remplacé par le producteur).
@@ -159,7 +159,7 @@ export function testResolutionProducteurPartage() {
     'écran : la file résout par entreeResolutionDuBuild (fiche, runes du candidat par runesDuBuild, artifactParams, régime effectif, contexte, conditions avec auras, contexte relique lancé, caches de la file)');
   ok(/\}, \[artifactParams, selected, optimiserArtefacts, runeById, regimeEquipement, contexteDegatsArtefacts, contexteExclusive, requirementAvecAuras, relicContextRecherche, cachesResolution\]\);/.test(ecran),
     'écran : le mémo de résolution dépend de chacune de ses entrées');
-  // 6bis-b13 : les caches de la file se refont avec la signature des réglages
+  // Les caches de la file se refont avec la signature des réglages
   // et les paramètres de paires (l'inventaire) — jamais un état global.
   ok(/const cachesResolution = useMemo\(\(\) => nouveauxCachesResolution\(\), \[signatureArtefacts, artifactParams\]\);/.test(ecran),
     'écran : caches de la file neufs à chaque signature des réglages ou paramètres de paires');

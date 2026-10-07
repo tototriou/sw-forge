@@ -1,5 +1,5 @@
-// 6bis-b5b : producteurs réellement appelés par l'écran, contre des
-// attentes indépendantes. Sources de jeu : cadrage A.2 ter et reliques §8.
+// Producteurs réellement appelés par l'écran, contre des
+// attentes indépendantes. Sources de jeu : `spec/outils/degats-reels/valeurs-de-jeu-curees.md` et `spec/outils/optimizer/moteur/reliques.md`, « L'effet unique — score de la propriété exclusive ».
 import { readFileSync } from 'node:fs';
 import type { ArtifactDetail, GearSet, RelicDetail } from '../src/types';
 import { evaluateursArtefactsFiche } from '../src/lib/artifactFiche';

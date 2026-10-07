@@ -28,7 +28,7 @@ import { AUCUNE_AURA_PROPRE } from '../src/lib/damage';
 import { egal, ok, titre } from './outils';
 
 // Candidats synthétiques des tests de tri, sans aucune rune réelle : aucune
-// aura propre, déclarée explicitement (6bis-b2, `aurasPropresDe` obligatoire).
+// aura propre, déclarée explicitement (`aurasPropresDe` obligatoire).
 const SANS_AURA_PROPRE = { aurasPropresDe: () => AUCUNE_AURA_PROPRE };
 
 const ZERO_BASE: BaseStats = { hp: 1000, atk: 100, def: 100, spd: 100, cr: 15, cd: 50, res: 15, acc: 0 };
@@ -1002,9 +1002,9 @@ export default function testRuneOptim() {
   }
 
   {
-    // ⚠️ **Aucun plafond de PAIRES** — voir spec/outils/optimizer/pistes.md,
-    // piste 8 (`maxNodes` et son escalade supprimés au profit de la borne
-    // exacte `totalPairs`). Ce bloc vérifiait auparavant que le plafond
+    // ⚠️ **Aucun plafond de PAIRES** — la borne exacte
+    // `totalPairs` remplace `maxNodes` et son escalade
+    // (supprimés). Ce bloc vérifiait auparavant que le plafond
     // mutable était LU EN DIRECT par le générateur ; il vérifie désormais les
     // deux propriétés qui l'ont remplacé, et qui sont celles dont dépend tout
     // le reste :
@@ -1066,7 +1066,7 @@ export default function testRuneOptim() {
       // ⚠️ L'égalité vaut en RÉALITÉ dans tous les cas, minimums compris —
       // vérifiée là-dessus par `rune-optim-differential.test.ts` sur des
       // scénarios aléatoires contraints. C'est d'elle que dépend l'absence de
-      // tout plafond de paires (piste 8) : ici on la vérifie sur un espace
+      // tout plafond de paires : ici on la vérifie sur un espace
       // dont on connaît la taille théorique à la main.
       const total = totalPairCount(prepared, bucketsA, bucketsB);
       egal(total, resultFull.explored, "totalPairCount : l'espace annoncé correspond EXACTEMENT au nombre de paires réellement explorées par une recherche exhaustive");

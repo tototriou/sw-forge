@@ -80,7 +80,7 @@ export function exportSynthetique(): string {
   return readFileSync(resolve(racine, 'tests/fixtures/compte-miniature.json'), 'utf8');
 }
 
-// Export miniature dédié à D4 (implementation-relique, B.1) : deux unit_id
+// Export miniature dédié à l'exemplaire (pas l'espèce) : deux unit_id
 // d'un même com2usId, reliques différentes — voir le `_lisezmoi` du fichier.
 export function exportReliquesD4(): string {
   return readFileSync(resolve(racine, 'tests/fixtures/compte-reliques-d4.json'), 'utf8');

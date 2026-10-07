@@ -1,9 +1,9 @@
-// Couverture des livraisons que rien ne gardait (degats-et-aura 15a) : des
+// Couverture des livraisons que rien ne gardait : des
 // entrées curées de `damage.ts`, livrées depuis des mois, dont AUCUN test ne
 // citait l'identifiant. Supprimer l'une d'elles ne faisait échouer rien
 // (skill game-data-curation § 8 : une entrée par nom ou par identifiant n'est
 // protégée que par son test). Ce fichier n'ajoute AUCUNE mécanique : il pose,
-// pour chaque identifiant, un contrôle nommé « N — » (N = constat de l'audit)
+// pour chaque identifiant, un contrôle nommé « N — » (N = numéro de l'entrée relevée)
 // qui passe par le vrai chemin de calcul et rougit si l'entrée disparaît.
 //
 // Familles, chacune pilotée par une table (identifiant, attendu) :
@@ -13,7 +13,7 @@
 //   - livraisons partielles de la partie 2 (VP-a) : variables de formule,
 //     conditions de sort, statistiques de combat.
 //
-// Les attendus viennent des sondes des preuves 13b (formule ou prose, écrits à
+// Les attendus viennent de sondes du chemin de production (formule ou prose, écrits à
 // la main, jamais recalculés par le code testé) ; la source de chaque famille
 // est nommée au-dessus de sa table.
 
@@ -67,8 +67,8 @@ function stats(valeurs: Partial<Record<StatKey, number>>): StatRow[] {
   return cles.map((key) => ({ key, label: key, base: 0, bonus: valeurs[key] ?? 0, total: valeurs[key] ?? 0, suffix: '' }));
 }
 
-// Build et réglage de la sonde `02-chemin-production.ts` de la preuve
-// 13b-critiques-garantis (même build que `tests/audit-degats-conditionnels`).
+// Build et réglage d'une sonde du chemin de production
+// (même build que `tests/audit-degats-conditionnels.test.ts`).
 const build = stats({ hp: 20000, atk: 1000, def: 800, spd: 200, cr: 25, cd: 100 });
 const base: DamageSetup = {
   ...DEFAULT_DAMAGE_SETUP,
@@ -82,8 +82,8 @@ const enCritique = (setup: DamageSetup): DamageSetup => ({ ...setup, critMode: '
 
 // ---------------------------------------------------------------------------
 // CG-1 — garanties de critique livrées sans test
-// Source : controle-13b-critiques-garantis.md § 3 et § 5 (22 identifiants sans
-// assertion), sonde 02-sortie.txt § 1 (totaux à ATQ 1 000, DEF cible nulle,
+// 22 identifiants sans
+// assertion ; totaux à ATQ 1 000, DEF cible nulle,
 // élément eau). « Non critique » égale « Critique » ⇔ critique imposé.
 // ---------------------------------------------------------------------------
 
@@ -158,8 +158,8 @@ export function testCouvertureGarantiesCritique() {
 
 // ---------------------------------------------------------------------------
 // TC-2 — bonus de Taux Crit et de Dgts Crit propres, livrés depuis 826fb331
-// Source : controle-13b-critiques-bonus-tc-dc.md § 2 et § 3, sonde 05-sortie.txt
-// § 1 et § 3. Depuis le lot CM (mode « Moyenne » supprimé), un bonus de TC seul
+// Totaux relevés par une sonde du chemin de production.
+// Depuis la suppression du mode « Moyenne », un bonus de TC seul
 // ne change AUCUN total : le contrôle le dit (inerte), il ne l'ignore pas ;
 // un bonus de DC ne compte qu'en « Critique » (Fire Wall : ×1,4082).
 // ---------------------------------------------------------------------------
@@ -212,8 +212,8 @@ export function testCouvertureBonusCritique() {
 
 // ---------------------------------------------------------------------------
 // IGN-a — ignore DEF conditionnel livré sans test
-// Source : controle-13b-ignore-def.md § 2 et § 6, sonde 04-sonde.txt (même
-// build et même réglage que `tests/audit-degats-conditionnels`, DEF de la cible
+// Totaux relevés par une sonde du chemin de production (même
+// build et même réglage que `tests/audit-degats-conditionnels.test.ts`, DEF de la cible
 // 1 500 sauf Guard Crush, au seuil de 600). « sans » : condition non remplie ;
 // « avec » : interrupteur actif (proc, présence de débuff, cible endormie…).
 // ---------------------------------------------------------------------------
@@ -288,8 +288,8 @@ export function testCouvertureIgnoreDefIdentifiants() {
 
 // ---------------------------------------------------------------------------
 // VP-a — livraisons de la partie 2 dont des identifiants n'avaient aucun test
-// Source : controle-13b-verif-partie2.md § 2, § 5 et § 6 ; sonde 08-sonde.ts /
-// 08-sonde.txt : chemin de production du CLI (`buildRealDamageContext`, puis
+// Totaux relevés par une sonde :
+// chemin de production du CLI (`buildRealDamageContext`, puis
 // `objectiveScore`) sur un build à BASE NON NULLE (une base nulle masque
 // l'assiette des statistiques de combat). Les attendus sont des RAPPORTS écrits
 // à la main depuis la formule de la donnée ou le coefficient de la prose :
@@ -378,8 +378,8 @@ export function testCouvertureVariablesFormule() {
   }
 
   // 72 — Torrent de Ragdoll (7810) : coefficient CONSTANT 5,5 × ATQ, comme celui de
-  // Leo (7808, déjà gardé). ⚠️ C'est la décision livrée de la partie 2, dont la
-  // source n'est écrite nulle part (relevé R1 de la preuve : la donnée dit
+  // Leo (7808, déjà gardé). ⚠️ C'est la valeur livrée, dont la
+  // source n'est écrite nulle part (la donnée dit
   // 7,5 − 2,0·h) : ce contrôle garde la livraison, il ne la déclare pas établie.
   egal(profilDe(16615, 7810).formule, '5.5*{ATK}', '72 — Torrent de Ragdoll (7810, forme 16615) : coefficient constant de la décision livrée');
   rapportSonde('72 — Torrent de Ragdoll (7810) : PV propres 100 % → 31 %, total inchangé', 16615, 7810, { ownHpPct: 100 }, { ownHpPct: 31 }, 1);
@@ -428,7 +428,7 @@ export function testCouvertureConditionsSort() {
   ok(!critiqueImpose(16033, 6258, { enemyHpPct: 31 }), '264 — Hiva 2A (6258) : PV cible 31 %, aucune garantie');
 }
 
-// Statistiques de combat des passifs (STATS_COMBAT_PAR_ID_CONNUS), constats
+// Statistiques de combat des passifs (STATS_COMBAT_PAR_ID_CONNUS), entrées
 // 90-106, 114, 116, 123. Le contrôle mesure l'apport de chaque stat (ATQ, DEF,
 // PV, VIT) entre `statsDeCombat` SANS le passif et AVEC lui, au cumul 1, au
 // plafond et au-delà du plafond. Attendus : coefficient et plafond de la prose
@@ -436,8 +436,8 @@ export function testCouvertureConditionsSort() {
 //
 // ⚠️ Ce que ce contrôle garde : le COEFFICIENT et le PLAFOND de chaque entrée.
 // L'ASSIETTE d'un pourcentage (stat de combat totale, livrée aujourd'hui, ou
-// stat de base) est INDÉTERMINÉE pour les 26 lignes concernées (I-1 de
-// 13b-stats-passifs, relevé R2) : les pourcentages sont lus ici en part de la
+// stat de base) est INDÉTERMINÉE pour les 26 lignes concernées :
+// les pourcentages sont lus ici en part de la
 // stat de combat sans le passif, comme le calcul actuel, et un relevé qui
 // trancherait contre cette assiette fera rougir ces lignes — à mettre à jour
 // alors, en connaissance de cause.
@@ -532,7 +532,7 @@ export function testCouvertureStatsCombat() {
     }
   }
 
-  // 105 — la part de Taux Crit (+20 points) ne se lit pas dans ces stats ; depuis le lot CM
+  // 105 — la part de Taux Crit (+20 points) ne se lit pas dans ces stats ; depuis la suppression du mode « Moyenne »
   // elle ne change aucun total, la ligne ne porte donc que l'ATQ.
 
   // 116 — Berserk : la même ligne majore aussi les dégâts de +100 % (prose « damage dealt … increased by 100% »).

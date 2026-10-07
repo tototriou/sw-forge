@@ -36,7 +36,7 @@ const SETUP = { ...DEFAULT_DAMAGE_SETUP, setsAuraExternes: [
   { set: 'tolerance' as const, nombre: 1 },
 ] };
 
-// 6bis-b2 : des runes SANS statistique (principale VIT +0, aucune
+// Des runes SANS statistique (principale VIT +0, aucune
 // sous-propriété) — seules leurs clés de set comptent, la fiche reste la base.
 // Les attentes des tests d'auras propres se calculent donc à la main.
 function runesDeSets(idBase: number, sets: string[]): RuneDetail[] {
@@ -82,7 +82,7 @@ export function testAurasRecette() {
   // `erreur` écrit « <chemin> <attente> » : l'espace final exige le chemin exact.
   const refuse = (resultat: ReturnType<typeof lire>, chemin: string) => resultat.recipe === null && !!resultat.error?.includes(`${chemin} `);
 
-  // Plafond de saisie : cinq AUTRES monstres à trois sets (A.2 ter), les
+  // Plafond de saisie : cinq AUTRES monstres à trois sets (`spec/outils/degats-reels/valeurs-de-jeu-curees.md`), les
   // activations propres du build s'ajoutant hors de ce champ.
   egal(avecExternes([]).recipe?.damageSetup.setsAuraExternes, [], '0 aura externe acceptée');
   egal(avecExternes([{ set: 'fight', nombre: 15 }]).recipe?.damageSetup.setsAuraExternes,
@@ -106,7 +106,7 @@ export function testAurasRecette() {
   ok(!!lire({ ...r, compterAurasResPre: 'oui' }).error?.includes('compterAurasResPre'), 'toggle mal typé refusé avec chemin');
 
   // Le lead s'additionne aux auras : un `pct` en texte concaténait (« 20 » +
-  // 8 → « 208 ») — revue externe de la v1.14.0, constat 6.
+  // 8 → « 208 »).
   const avecLead = (leaderSkill: unknown) => lire({ ...r, damageSetup: { ...SETUP, leaderSkill } });
   ok(avecLead({ stat: 'Attack Power', pct: 20 }).recipe !== null, 'lead ATQ 20 % accepté');
   ok(refuse(avecLead({ stat: 'Attack Power', pct: '20' }), 'damageSetup.leaderSkill.pct'), 'lead en texte refusé avec chemin');
@@ -170,7 +170,7 @@ export function testAurasArrondiCommunLeadInvocateur() {
   titre('Auras · PV/ATQ/DEF : lead + invocateur + aura, un seul ceil');
   // Attentes fixées par le contrat, avant l'appel au moteur : 20 + 13 + 8 = 41 %
   // de la base. Trois ceil séparés donneraient 1414, 145 et 147.
-  // 6bis-b2 : une aura externe ET une propre (16 %) → 20 + 13 + 16 = 49 %.
+  // Une aura externe ET une propre (16 %) → 20 + 13 + 16 = 49 %.
   // `ceil(externe) + ceil(propre)` séparés donneraient 1493, 152 et 155.
   const cas = [
     { stat: 'HP' as const, key: 'hp' as const, base: 1001, attendu: 1412, arrondisSepares: 1414, attendu16: 1492, separes16: 1493 },
@@ -328,7 +328,7 @@ export function testAurasPariteEcranCliEtCache() {
     lignesVerrouillees: [], relique: null, nbArtefacts: 0, empreinteRelique: null,
     requirement: { minStats: { res: 8 }, maxStats: {} }, artefactsReserves: [], piecesFigees: [], importDuCompte: 0 }) !== signature(true), 'la liste invalide le cache');
 
-  // 6bis-b4 — cache (T5). La signature GLOBALE suit le nombre d'auras
+  // Cache. La signature GLOBALE suit le nombre d'auras
   // externes, le toggle et le régime ; la clé PAR BUILD (six runeIds, sans
   // ordre) porte les activations propres, qui ne dépendent que des runes.
   const sig = (externes: Partial<Record<SetAura, number>>, compter: boolean, regime: string) => signatureArtefacts({
@@ -418,7 +418,7 @@ export function testAurasRechercheDifferentielle() {
 }
 
 /* --------------------------------------------------------------------------
- * 6bis-b2 — activations PROPRES aux six runes de chaque build. Attentes
+ * Activations PROPRES aux six runes de chaque build. Attentes
  * calculées à la main (aides en tête de fichier), jamais par le moteur.
  * ----------------------------------------------------------------------- */
 
@@ -442,7 +442,7 @@ export function testAurasPropresResolution() {
     ok(SETS_AURA.every((s) => propres[s] === actifs.filter((a) => a === s).length),
       `${nom} : cohérent avec activeSets [${actifs.join('+') || 'aucun'}]`);
   }
-  // Exemples obligatoires du chapeau 6bis, avec 3 Fight externes.
+  // Exemples obligatoires, avec 3 Fight externes.
   const trois = avecExternes({ fight: 3 });
   egal(nombreAuraEffectif(trois, aurasPropresDesRunes(runesDeSets(1000, ['fight', 'fight', 'fight', 'fight', 'will', 'will'])), 'fight'), 5,
     '3 Fight externes + 2 actifs = 5');
@@ -503,7 +503,7 @@ export function testAurasPropresCombatEtScore() {
     coupsDuSortActif: false, categorie: { type: 'toujours' as const }, profile: passif }];
   const total = (setup: DamageSetup, propres: AurasPropres) => computeTotalDamage(actif, p, statsA, setup, propres);
   // Référence : le même total avec 5 Fight et 4 Enhance EXTERNES, chemin du
-  // lot 6 sans aura propre — les propres entrent dans le même terme, une fois.
+  // sans aura propre — les propres entrent dans le même terme, une fois.
   const reference5 = total(avecExternes({ fight: 5, enhance: 4 }), AUCUNE_AURA_PROPRE);
   egal(total(setup3, propresA), reference5, 'dégâts (sort + passif) : 3 + 2 Fight valent 5 Fight externes');
   ok(total(setup3, propresA) !== total(avecExternes({ fight: 7, enhance: 5 }), AUCUNE_AURA_PROPRE), 'dégâts : jamais 7 (double compte)');
@@ -513,7 +513,7 @@ export function testAurasPropresCombatEtScore() {
     'part additionnelle (218-221) : ATQ de combat avec 5 Fight');
 
   // `atkCombatComplet` (Brita) et `defCombat` (Gideon) : dérivés de
-  // `statsDebutCombat` depuis 6bis-b2. ⚠️ Décision de cadrage (A.2, cible 2 :
+  // `statsDebutCombat`. ⚠️ Décision de modélisation (`spec/outils/degats-reels/effets-equipe-et-leaders.md`, « Sets d'aura d'équipe — modèle » :
   // les auras entrent dans les passifs ; « toute source confondue » pour
   // Brita), pas un relevé en jeu.
   const seul = (propres: AurasPropres, seuilAtq: { seuil: number; pct: number } | null, selonDef: { defMax: number; pctMax: number } | null, stats = statsA) =>
@@ -632,7 +632,7 @@ export function testAurasPropresNoteDesCouples() {
   egal(sans.relique?.id, pv.id, 'mêmes fiches, runes sans aura : la PV +10 % reste retenue');
   ok(proche(sans.paire?.score, attendu.pvSansAura), 'note sans aura propre');
 
-  // Usage « conditions » (b3a) inchangé : les couples y sont jugés sur la
+  // Usage « conditions » inchangé : les couples y sont jugés sur la
   // FICHE. PV max 1150 : la fiche PV +10 % (1102) passe, alors que ses PV de
   // combat (1102 + 81 = 1183) échoueraient ; DEF max 141 écarte la DEF +40 %
   // (fiche 142), pourtant la mieux notée.
@@ -655,9 +655,9 @@ export function testAurasPropresNoteDesCouples() {
 }
 
 /* --------------------------------------------------------------------------
- * 6bis-b3a — conditions RES/PRE EXACTES avec les auras propres du build.
+ * Conditions RES/PRE EXACTES avec les auras propres du build.
  * Candidats CONSTRUITS, jamais issus de `searchBuilds`. Attentes à la main :
- * +8 points par activation (A.2 ter), externes de `SETUP` = 1 Tolerance et
+ * +8 points par activation (`spec/outils/degats-reels/valeurs-de-jeu-curees.md`), externes de `SETUP` = 1 Tolerance et
  * 1 Accuracy, fiche sans rune de RES/PRE (base 0). `activeSets` reste la
  * seule source des sets actifs (cohérence prouvée par
  * `testAurasPropresResolution`).
@@ -820,8 +820,8 @@ export function testAurasConditionsPropresPairBuckets() {
 }
 
 /* --------------------------------------------------------------------------
- * 6bis-b4 — la carte de résultat affiche le chiffre qui CLASSE. Constat hérité
- * de b2 : la carte « Dégâts réels » omettait la Conquête de la relique
+ * La carte de résultat affiche le chiffre qui CLASSE. Constat hérité
+ * de départ : la carte « Dégâts réels » omettait la Conquête de la relique
  * retenue, que le tri compte ; « PV effectifs » omettait de même Ténacité et
  * points Bravoure/Éternité/Origine. Les deux cartes passent désormais par
  * `scoreDuCandidat`, la fonction même du tri.
@@ -886,14 +886,14 @@ export function testAurasCarteEgaleTri() {
 }
 
 /* --------------------------------------------------------------------------
- * 6bis-b4 — le MÊME build par les constructeurs de l'écran et du CLI, le
+ * Le MÊME build par les constructeurs de l'écran et du CLI, le
  * Worker séquentiel (préparation sur le message cloné, comme `postMessage`)
  * et l'appariement PARALLÈLE de production : `driveParallelPairing` + vrais
  * `worker_threads` exécutant `runPairSlice` (`scripts/lib/pair-slice-worker.ts`).
  * ⚠️ FIDÉLITÉ : DIVERGE DE LA PROD — sur ce petit pool, `totalPairCount` est
  * sous le seuil de 100 M : la production choisirait le séquentiel, le
  * parallèle est FORCÉ ici. Le cas réel au-dessus du seuil est la recette
- * gelée `recette-6bis-degats.json` (preuve privée de 6bis-b4).
+ * gelée sur un compte réel, hors dépôt.
  * ----------------------------------------------------------------------- */
 
 export async function testAurasPariteRegimes() {
@@ -947,7 +947,7 @@ export async function testAurasPariteRegimes() {
   egal(cles(parallele), cles(sequentiel), 'parallèle (worker_threads) = Worker séquentiel : mêmes builds');
   egal(cles(cli), cles(sequentiel), 'CLI (runSearchToCompletion) = Worker séquentiel : mêmes builds');
 
-  // Legs de b3b : chaque tranche relance `prepareSearch` sur SES paramètres.
+  // Chaque tranche relance `prepareSearch` sur SES paramètres.
   const tranche = structuredClone({ ...params, maxCollected: Math.ceil(prepared.maxCollected / Math.min(4, bucketsA.length)) });
   const apresDominance = (p: typeof params) => {
     let ids: number[][] = [];

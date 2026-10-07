@@ -15,10 +15,10 @@ import { egal, ok, titre } from './outils';
 
 const build = (...runeIds: number[]) => ({ runeIds }) as unknown as BuildCandidate;
 // Le cache de la file : des builds résolus ET conformes. La conformité ne change
-// la fenêtre que pour un écarté (6bis-b18, `tests/file-confirmees.test.ts`).
+// la fenêtre que pour un écarté (`tests/file-confirmees.test.ts`).
 const resolus = (...cles: string[]) => new Map(cles.map((cle) => [cle, { conforme: true }]));
 
-// Pièces portées minimales (6bis-b17) : seuls `id` et `kind` sont lus par
+// Pièces portées minimales : seuls `id` et `kind` sont lus par
 // `piecesFigeesDe` ; la principale distingue deux pièces d'une même sorte.
 const piece = (id: number, kind: 'element' | 'archetype', code: number) =>
   ({ id, kind, main: { code, value: 100 }, subs: [] }) as unknown as ArtifactDetail;
@@ -55,7 +55,7 @@ export default function testArtefactFile() {
     );
     egal(prochainsATraiter(triees, resolus('1', '2', '3'), 3), [], 'les K premiers tous traités : plus rien à faire');
     // ⚠️ Un build au-delà n'est PAS repêché parce que les K premiers sont
-    // finis et CONFIRMÉS : la cible porte sur les confirmées (6bis-b18), pas
+    // finis et CONFIRMÉS : la cible porte sur les confirmées, pas
     // sur le nombre restant.
     egal(
       prochainsATraiter(triees, resolus('1', '2', '3'), 3).length,
@@ -185,7 +185,7 @@ export default function testArtefactFile() {
     ok(signatureReglages({ ...base, objective: 'efficience' }) !== s, '… et le changement d’objectif');
     ok(signatureReglages({ ...base, ignoreArtifacts: true }) !== s, '… et « ignorer les artéfacts »');
     ok(signatureReglages({ ...base, relique: { main: { code: 101, value: 15 } } }) !== s, '… et un changement de relique (elle entre dans les stats)');
-    // Lot 5b : la dimension relique de la recherche — l'empreinte canonique
+    // La dimension relique de la recherche — l'empreinte canonique
     // du contexte (mode, pool éligible, choix, seuil) — invalide aussi ; un
     // contexte absent (chemin écran avant 5c) et un contexte présent ne
     // partagent jamais la clé.
@@ -223,7 +223,7 @@ export default function testArtefactFile() {
       'l’ordre de saisie des lignes verrouillées est sans effet'
     );
 
-    // ⚠️ **B.5b bis, BLOQUANT 2 de la revue** (`revue-diff-lot5b-2026-09-21.md`) :
+    // ⚠️ **Le maximum entre dans la signature** :
     // `requirement` (minimums ET maximums) doit invalider le cache — sans lui,
     // relancer avec le même contexte et un autre maximum gardait un couple
     // devenu infaisable (`conforme: true` périmé).
@@ -241,7 +241,7 @@ export default function testArtefactFile() {
       '… mais le MÊME requirement (copie) ne change rien'
     );
 
-    // ⚠️ **6bis-b17 — les artéfacts RÉSERVÉS** par les autres builds validés
+    // ⚠️ **Les artéfacts RÉSERVÉS** par les autres builds validés
     // de la liste active sortent de l'inventaire de la paire. Défaut relevé
     // par la revue du Worker : « Libérer les artéfacts » sur la ligne d'un
     // autre monstre de la liste, ou un changement de liste active, laissait la
@@ -265,8 +265,8 @@ export default function testArtefactFile() {
       '… un doublon non plus : c’est un ensemble'
     );
     // « Comme avant » : sans réservation, la signature est EXACTEMENT celle
-    // du code d'avant 6bis-b17 — littéral relevé sur 47cecfa9 avec ces mêmes
-    // réglages (controle-6bis-b17.md). Aucun cache n'est donc vidé pour rien
+    // du code d'avant les réservations — littéral relevé sur 47cecfa9 avec ces mêmes
+    // réglages. Aucun cache n'est donc vidé pour rien
     // chez qui n'a pas de liste de travail.
     egal(
       s,
@@ -275,7 +275,7 @@ export default function testArtefactFile() {
     );
     egal(signatureReglages({ ...base, artefactsReserves: new Set() }), s, '… qu’on passe un tableau vide ou un ensemble vide');
 
-    // ⚠️ **6bis-b17 — la pièce d'un emplacement FIGÉ** sur « Garder l'artéfact
+    // ⚠️ **La pièce d'un emplacement FIGÉ** sur « Garder l'artéfact
     // équipé » est le seul candidat de cet emplacement (`candidatsParSorte`) :
     // même nature que les réservations (l'inventaire de la paire). Valider un
     // build de CE monstre, « Voir le runage réellement porté » ou changer
@@ -306,7 +306,7 @@ export default function testArtefactFile() {
     );
     egal(signatureReglages({ ...base, piecesFigees: piecesFigeesDe({}, portes) }), s, 'sans emplacement figé, la signature d’avant 6bis-b17');
 
-    // ⚠️ **6bis-b19 — l'IDENTITÉ de l'import du compte.** Le cache est indexé
+    // ⚠️ **L'IDENTITÉ de l'import du compte.** Le cache est indexé
     // par les identifiants de runes (`cleBuild`) et ne voyait de l'inventaire
     // que le NOMBRE d'artéfacts : un réimport qui changeait des pièces ou des
     // runes à nombre et identifiants égaux laissait la signature IDENTIQUE —
@@ -319,8 +319,8 @@ export default function testArtefactFile() {
     ok(import2 !== import1, 'deux imports distincts → deux signatures différentes, à réglages et inventaire de même taille');
     egal(signatureReglages({ ...base, importDuCompte: 1 }), import1, 'même import → signature inchangée');
     // `base` porte `importDuCompte: 0` et `s` est épinglé plus haut sur le
-    // littéral d'avant 6bis-b17 : avant tout import de la session, la
-    // signature reste donc aussi celle d'avant 6bis-b19 (rien vidé pour rien).
+    // littéral d'avant les réservations : avant tout import de la session, la
+    // signature reste donc aussi celle d'avant l'identité d'import (rien vidé pour rien).
     ok(!s.includes('import:'), 'avant tout import de la session, aucun composant d’import : la signature d’avant 6bis-b19');
   }
 
@@ -330,7 +330,7 @@ export default function testArtefactFile() {
     // ⚠️ `signatureArtefacts` (artifactQueue.ts) est la closure d'écran
     // extraite : elle n'assemble RIEN de nouveau, elle relaie `regimeEquipement`
     // vers `objective` (signatureReglages) sous un nom qui protège CONTRE le
-    // bug déjà survenu (B.5b bis, contrôle 4 : le mauvais régime — brut,
+    // bug déjà survenu (le mauvais régime — brut,
     // `regimePaire` — passait à la place de l'effectif).
     const base2 = {
       monstreCom2usId: 14311,
@@ -379,7 +379,7 @@ export default function testArtefactFile() {
       signatureArtefacts({ ...base2, empreinteRelique: 'recherche|1:100:14:6:1/100/1|libre|libre|6' }) !== s2,
       'empreinteRelique aussi'
     );
-    // 6bis-b17 : les réservations traversent l'adaptateur, et leur absence
+    // Les réservations traversent l'adaptateur, et leur absence
     // laisse la signature d'avant (littéral relevé sur 47cecfa9).
     ok(signatureArtefacts({ ...base2, artefactsReserves: new Set([501]) }) !== s2, 'les artéfacts réservés aussi (6bis-b17)');
     ok(

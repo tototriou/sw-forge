@@ -10,14 +10,14 @@
 // `rune-optim-parallel-pairing.test.ts`, qui vérifie le VOLUME de candidats
 // retrouvé sous vraie concurrence, pas la justesse du signal `truncated`.
 //
-// Étendu (2026-09-07, voir spec/outils/optimizer/near-miss-appariement.md,
-// §6 « Fusion parallèle ») : `combineParallelPairingResults` fusionne aussi
+// Étendu (voir spec/outils/optimizer/moteur/diagnostics.md,
+// « Quasi-succès à l'appariement ») : `combineParallelPairingResults` fusionne aussi
 // le near-miss de N tranches — vérifie qu'elle garde le MEILLEUR entre
 // elles, pas juste celui de la première/dernière, y compris quand une
 // tranche n'en a AUCUN.
 //
-// ⚠️ **Cas 1 INVERSÉ le 2026-10-01 (degats-et-aura 6bis-b7, constat C2 de la
-// revue technique).** La correction de 2026-08-19 avait raison sur le motif
+// ⚠️ **Cas 1 INVERSÉ.**
+// La correction précédente avait raison sur le motif
 // (un quota de tranche n'est pas un budget-temps épuisé) et tort sur la
 // conclusion : une tranche qui atteint SON quota s'arrête (`pairBuckets`,
 // `break outer`), et le reste de SA tranche n'est jamais visité. Elle rend
@@ -35,8 +35,7 @@ function fakeCandidates(n: number): BuildCandidate[] {
 
 // Défauts near-miss VIDES par défaut — la plupart des cas ci-dessous testent
 // `truncated`/`candidates`, pas le near-miss ; `tsc` exige ces deux champs
-// depuis qu'ils sont devenus obligatoires sur `SearchResult` (délibéré, voir
-// le cadrage §4).
+// depuis qu'ils sont devenus obligatoires sur `SearchResult` (délibéré).
 function fakeResult(
   candidates: BuildCandidate[],
   explored: number,
@@ -68,7 +67,7 @@ export default function testRuneOptimParallelTruncated() {
   const PER_WORKER_MAX = 1000;
   const GLOBAL_MAX = 4000; // 4 workers x 1000
 
-  // ── Cas 1 (INVERSÉ en 6bis-b7) : un worker remplit SON PROPRE quota
+  // ── Cas 1 (INVERSÉ) : un worker remplit SON PROPRE quota
   // (tranche riche) et s'arrête ; les 3 autres finissent leur tranche ENTIÈRE.
   // Le total reste très en-deçà du plafond GLOBAL, mais 77 000 paires de la
   // tranche riche n'ont jamais été visitées : la recherche est TRONQUÉE, motif

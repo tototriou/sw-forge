@@ -1,7 +1,6 @@
 // Le score de la paire d'artéfacts REPRÉSENTATIVE pour l'objectif « PV
 // effectifs » (`ehp`) n'est PAS une somme des deux principales — voir
-// spec/outils/optimizer/decisions/cadrage-score-artefacts-ehp.md et
-// spec/outils/optimizer/artefacts.md §12.0/§12.7.
+// spec/outils/optimizer/moteur/artefacts.md.
 //
 // ⚠️ Deux niveaux, volontairement séparés :
 // - `testArtifactEvaluation` isole le helper partagé (`evaluerPourRegime`) —
@@ -26,7 +25,7 @@ import { LoadedMonster } from '../scripts/lib/loadMonster';
 import { egal, ok, titre } from './outils';
 
 // Camilla (water/hp) — le monstre du cas mesuré, spec/outils/optimizer/
-// artefacts.md §12.0. Réel : nécessaire pour que `loadMonstersList().find`
+// moteur/artefacts.md. Réel : nécessaire pour que `loadMonstersList().find`
 // (dans `paireReelle`) le retrouve, et pour que l'éligibilité élément/
 // archétype filtre pour de vrai.
 const CAMILLA_COM2USID = 13811;
@@ -50,8 +49,8 @@ const artefactArchetype = (id: number, code: number, value: number): ArtifactDet
   subs: [],
 });
 
-// Base gonflée pour amplifier l'écart et le rendre vérifiable à la main (voir
-// le calcul dans le cadrage) — indépendante des vraies stats de Camilla,
+// Base gonflée pour amplifier l'écart et le rendre vérifiable à la main
+// ; indépendante des vraies stats de Camilla,
 // seuls son élément et son archétype servent à l'éligibilité.
 const BASE_GONFLEE = { hp: 30000, atk: 1000, def: 1500, spd: 100, cr: 15, cd: 50, res: 15, acc: 0 };
 
@@ -60,7 +59,7 @@ export default function testArtifactEvaluation() {
 
   const gear: GearSet = { base: BASE_GONFLEE, runes: [], artifacts: [] };
   const statsAvec = statsParPaire(gear);
-  // `runes: []` : aucune aura propre, déclarée explicitement (6bis-b2).
+  // `runes: []` : aucune aura propre, déclarée explicitement.
   const evaluer = evaluerPourRegime('ehp', statsAvec, AUCUNE_AURA_PROPRE);
 
   const deuxPv = [artefactElement(1, 'water', 100, 1500), artefactArchetype(2, 100, 1500)];
@@ -122,10 +121,10 @@ export function testArtifactPaireReelleEhp() {
 }
 
 /*
- * degats-et-aura 6bis-b5c — la paire représentative du CLI en « Dégâts
+ * La paire représentative du CLI en « Dégâts
  * réels » compte l'effet unique de la relique de la fiche, comme l'écran
- * (`evaluateursArtefactsFiche`, 6bis-b5b). Avant : seule la représentative
- * EHP le comptait (constat de départ de 6bis-b5). Attente indépendante du
+ * (`evaluateursArtefactsFiche`). Avant : seule la représentative
+ * EHP le comptait. Attente indépendante du
  * chemin CLI : la note de production de la fiche équipée de chaque pièce
  * (`scoreDeReference`).
  */

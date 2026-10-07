@@ -1,10 +1,10 @@
-// degats-et-aura P2 — le rappel « tel passif pose tel buff » d'« État de mon
-// monstre » (décision de l'utilisateur D1 : rappel à l'écran, réglage manuel
+// Le rappel « tel passif pose tel buff » d'« État de mon
+// monstre » (rappel à l'écran, réglage manuel
 // conservé).
 //
 // Trois vérifications :
 // 1. `testBuffsDePassifTable` — la table curée `BUFFS_POSES_PAR_PASSIF_CONNUS`
-//    (src/lib/buffsDePassif.ts) : exactement les 21 identifiants du tri 13b encore jouables (24 moins les trois passifs de boss, D56)
+//    (src/lib/buffsDePassif.ts) : exactement les 21 identifiants des passifs de stats encore jouables (24 moins les trois passifs de boss)
 //    (cases D × E et Dp × E), chacun passif, porté par une forme jouable, et
 //    dont la condition est un extrait LITTÉRAL de la prose de CHAQUE fiche
 //    qui le porte. Chaque buff noté est nommé dans la prose (recoupement, pas
@@ -16,7 +16,7 @@
 //    de test React, voir tests/run.mjs) : la carte rend la liste reçue sous
 //    les vignettes des buffs ; l'écran la calcule avec la garde d'identité
 //    de la fiche ; aucun fichier de calcul n'importe la table — elle ne
-//    change aucun total (mesuré en plus avant / après : controle-p2.md).
+//    change aucun total (mesuré avant / après).
 
 import { readFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -43,9 +43,9 @@ function fiches(): DetailMonstre[] {
 }
 const fiche = (com2usId: number) => fiches().find((d) => d.com2usId === com2usId)!;
 
-// Les 24 du tri 13b (controle-13b-stats-passifs-corpus.md § 5.1, comptes
+// Les 24 du tri des passifs de stats (comptes
 // « D × E » puis « Dp × E »), moins les trois passifs de boss (20021103,
-// 20021203, 20021303) dont la forme n'est plus jouable (D56, 2026-10-04) :
+// 20021203, 20021303) dont la forme n'est plus jouable :
 // 21, recopiés ici pour que la table ne puisse ni perdre ni gagner une entrée
 // sans que ce test le dise.
 const TRI_13B = [

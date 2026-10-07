@@ -1,20 +1,20 @@
-// Lot 5b (implementation-relique) — la résolution EXACTE de l'équipement par
+// La résolution EXACTE de l'équipement par
 // build (paire d'artéfacts ET relique, ensemble), la file, le classement, et
 // le différentiel COMPLET de l'option A contre l'oracle.
 //
 // Référence de contrôle (`algo-verify`) : `oracleSearch` (scripts/lib/
-// relicOracle.ts, lot 4) — N recherches du moteur d'avant, relique FIXÉE,
+// relicOracle.ts) — N recherches du moteur d'avant, relique FIXÉE,
 // sans aucune des éliminations que l'option A introduit. Ce fichier compare
 // l'option A ENTIÈRE (moteur relâché de 5a + résolution exacte de ce lot,
 // sur la partie pure `resoudreEquipementDuBuild`) à cet oracle, sur LE corpus
 // de 5a (`CORPUS_5A`, neuf fixtures écrites à la main — pas de graine, le
-// moteur n'a aucun aléa, A.6 bis).
+// moteur n'a aucun aléa).
 //
-// Ce qu'une perte VEUT DIRE (B.5b, « Preuve ») : un build faisable de
+// Ce qu'une perte VEUT DIRE : un build faisable de
 // l'oracle absent de l'option A se CLASSE par le candidat traceur de 5a —
 // rejeté par un prédicat de faisabilité → faux négatif, ÉCHEC ; évincé par
 // une structure bornée (`filterSlot`, tranches de `bucketCap`) → dilution,
-// consignée pour B.6 ; arrêté par le budget → tronqué, à part. Le
+// consignée ; arrêté par le budget → tronqué, à part. Le
 // différentiel ne VAUT que sur un cas où aucune capacité n'est saturée —
 // l'instrumentation le prouve pour chaque fixture, jamais « petit volume ».
 
@@ -47,17 +47,17 @@ import { egal, ok, titre } from './outils';
 
 /* --------------------------------------------------------------------------
  * Les mécanismes du différentiel vivent dans `scripts/lib/relicDifferentiel.ts`
- * (lot 6, B.6 amendé) — extraits d'ici TELS QUELS ; ce test les réimporte et
+ * — extraits d'ici TELS QUELS ; ce test les réimporte et
  * garde ses assertions de corpus : ce sont elles qui prouvent que rien n'a
  * bougé. Le porteur des fixtures reste fixe (fire / attack) ; aucune paire
- * figée ici (inventaires vides, la paire vide), comme au lot 5b.
+ * figée ici (inventaires vides, la paire vide), comme à l'origine.
  * ----------------------------------------------------------------------- */
 
 const PORTEUR = { element: 'fire' as ElementKey, archetype: 'attack' as ArtifactArchetype };
 
 type Reglages = Omit<ReglagesDifferentiel, 'porteur' | 'exclusive'> & { exclusive?: ContexteExclusive };
 
-// ⚠️ 6bis-b6 : le canal exclusive est OBLIGATOIRE dans le différentiel — la
+// ⚠️ Le canal exclusive est OBLIGATOIRE dans le différentiel — la
 // résolution de production (`entreeResolutionDuBuild`) note toujours avec
 // l'effet unique de la relique essayée. Un cas qui ne le précise pas reçoit
 // le réglage par défaut de l'écran, et `differentiel` donne le MÊME objet à
@@ -97,7 +97,7 @@ interface Differentiel {
 function differentiel(fx: Fixture5a, reglages: Reglages, realDamage?: RealDamageContext | null): Differentiel {
   const nom = fx.nom;
   const p = { ...fx.p0, relicContext: fx.ctx };
-  // ⚠️ Lot 7 — le canal exclusive va aux DEUX côtés, depuis la MÊME source
+  // ⚠️ Le canal exclusive va aux DEUX côtés, depuis la MÊME source
   // (`reglages.exclusive`, complété par `complets`) : A le lit par
   // `entreeResolution`/`scoreOracle`, l'oracle par `OptionsOracle`. Un canal
   // donné d'un seul côté rendrait le différentiel vide de sens.
@@ -342,8 +342,7 @@ export default function testRelicQueue() {
     }
   }
 
-  /* ── BLOQUANT 1 de la revue adversariale du lot 5b (2026-09-21,
-   * `revue-diff-lot5b-2026-09-21.md`) : le préfiltre de dominance de
+  /* ── Le préfiltre de dominance de
    * `chercherPaires` éliminait le meilleur couple FAISABLE avant tout
    * contrôle du maximum — deux artéfacts ATQ de même sorte, seul le plus
    * PETIT apport tient le maximum. Sans `maxStatsActifs`, il disparaissait
@@ -420,7 +419,7 @@ export default function testRelicQueue() {
     egal(vit.sansEffetSurLeTri, true, 'régime aucun : le tri VIT est aussi sans effet sur le tri');
   }
 
-  /* ── Les quatre exemples du plan § 2.4 — le bouton choisit le régime
+  /* ── Les quatre exemples de résolution — le bouton choisit le régime
    * (`adapterAuTri ? sortBy : objective`) ; objectif de recherche PV
    * effectifs, tri ATQ. */
   {
@@ -437,7 +436,7 @@ export default function testRelicQueue() {
     // 2. tri ATQ + bouton inactif : la relique suit l'objectif (PV effectifs).
     const ex2 = resoudre(p, c, ctx, { critere: 'ehp' });
     egal(ex2.relique?.id, 1, 'plan § 2.4 ex. 2 : tri ATQ + bouton inactif → la relique suit l’objectif (PV % +14)');
-    // ⚠️ 6bis-b6 (C6) : la note est celle de la production, effet unique de la
+    // ⚠️ La note est celle de la production, effet unique de la
     // relique retenue compris (PV14 porte Origine·ATQ, dont les points de PV
     // entrent dans les PV effectifs) — jamais plus la note sans canal
     // exclusive, que seule la copie du différentiel rendait.
@@ -463,10 +462,10 @@ export default function testRelicQueue() {
     egal(parAtk[0], cle(c.runeIds), 'plan § 2.4 ex. 4 : classé par ATQ, le build ATQ % passe devant — seul le classement a changé');
   }
 
-  /* ── L'exemple du plan § 2.3 en Dégâts réels (Sonia, sort scalant sur
+  /* ── L'exemple de résolution en Dégâts réels (Sonia, sort scalant sur
    * l'ATQ) : ATQ % + exclusive NON offensive (Régénération, 16) l'emporte sur
    * DEF % + exclusive offensive (Conquête, 1) — l'exclusive n'entre pas dans
-   * le score (D9), la principale décide par son effet RÉEL. */
+   * le score, la principale décide par son effet RÉEL. */
   {
     const recette = { objective: 'degats_reels', damageSetup: { skillCom2usId: 15908, enemyDef: 2000, enemyHp: 60000, critMode: 'crit' } } as OptimizerRecipe;
     const realDamage = buildRealDamageContext(recette, 26113, []);
@@ -530,7 +529,7 @@ export default function testRelicQueue() {
   egal(pertes.filter((x) => x.classe === 'tronqué').length, 0, 'différentiel : aucune perte par troncature (maxMs infini, MAX_COLLECTED non atteint)');
 
   /* ────────────────────────────────────────────────────────────────────────
-   * LOT 7 — (1) la GRANULARITÉ de l'oracle, prouvée AVANT de s'en servir
+   * (1) La GRANULARITÉ de l'oracle, prouvée AVANT de s'en servir
    * ──────────────────────────────────────────────────────────────────────
    * La garantie E fait reposer l'oracle sur « une recherche par couple
    * (statistique, valeur) de principale » — donc sur l'hypothèse que **deux
@@ -561,12 +560,12 @@ export default function testRelicQueue() {
 
     // (a) Les bornes transportées au moteur ne dépendent que des principales.
     egal(ctx2.bornes, ctx1.bornes, 'granularité (a) : les bornes du contexte ne bougent pas quand seule l’exclusive change');
-    // (b) Depuis 6bis-b6 (constat C3), la granularité de l'oracle est le
+    // (b) La granularité de l'oracle est le
     //     couple (principale, stats de l'effet unique), pas la pièce : la
     //     dominance d'un run protège les stats de l'effet unique de SA
     //     relique. Ici une seule relique par principale : N ne bouge pas.
     //     Deux reliques de MÊME principale dont les effets protègent des
-    //     stats différentes donnent deux runs (un seul avant 6bis-b6).
+    //     stats différentes donnent deux runs (un seul auparavant).
     egal(oracleSearchRuns(p2, ctx2).length, oracleSearchRuns(p1, ctx1).length, 'granularité (b) : une relique par principale — N identique quand seule l’exclusive change');
     const memePrincipale = (inv: RelicDetail[]) => inv.map((r) => ({ ...r, main: { code: 102, value: 14 } }));
     const ctx3 = resoudreContexteRelique(LIBRE, undefined, memePrincipale(memeExclusive));
@@ -594,7 +593,7 @@ export default function testRelicQueue() {
   }
 
   /* ────────────────────────────────────────────────────────────────────────
-   * LOT 7 — (2) le différentiel de B.5b REJOUÉ avec le score complet
+   * (2) Le différentiel REJOUÉ avec le score complet
    * ──────────────────────────────────────────────────────────────────────
    * Les neuf fixtures ci-dessus portent toutes Conquête·ATQ (le défaut de
    * `relique()`), neutre en Efficience comme en PV effectifs : elles
@@ -609,7 +608,7 @@ export default function testRelicQueue() {
     // question du contrat est « aucun optimum PERDU PAR L'AJOUT du canal » :
     // on compare donc chaque fixture à elle-même sans canal (`resultats`,
     // calculés plus haut), pas à un idéal — la fixture C porte une dilution
-    // connue et consignée depuis le lot 5b (`bucketCap` 10), qui doit rester
+    // connue et consignée (`bucketCap` 10), qui doit rester
     // exactement ce qu'elle était, ni plus ni moins.
     const avantPertes = pertes.length;
     for (const f of fixtures) {

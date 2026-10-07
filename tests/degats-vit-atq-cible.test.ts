@@ -1,12 +1,12 @@
 // VIT en points de Ciri et Birgitta, ATQ ennemie inférieure de Theonia
-// (degats-et-aura 15e, damage.ts) :
+// (damage.ts) :
 //   - Flash Step (19014) et Turning Slash (19414) : +50 de VIT en POINTS par
 //     cumul, 5 cumuls au plus (« up to 250 »), dans `STATS_COMBAT_PAR_ID_CONNUS` ;
 //   - Summary Justice (23515) : +100 % de dégâts quand l'ATQ ennemie saisie
 //     (`enemyAtk`) est STRICTEMENT inférieure à l'ATQ du build, dans
 //     `CONDITIONS_COMBAT_PAR_ID_CONNUS` ;
 //   - une recette SANS `enemyAtk` prend l'ATQ ennemie affichée par l'écran
-//     (1 000) et non 0 : Theonia, Kassandra, Eleni, Zaiross (15f).
+//     (1 000) et non 0 : Theonia, Kassandra, Eleni, Zaiross.
 //
 // ⚠️ Ce qui serait GRAVE ET INVISIBLE ici : un cumul lu comme un pourcentage
 // (×1,5 au lieu de +50), ou un bonus accordé à l'égalité d'ATQ — le
@@ -95,7 +95,7 @@ const proche = (a: number, b: number) => Math.abs(a - b) < 1e-9 * Math.max(1, Ma
 // Forme → [passif, S1 qui lit `{SPD}`, nom]. Écrite à la main, jamais dérivée
 // de la table : c'est ce qui fait échouer le test quand une ligne disparaît.
 // 29304 (Ciri, nom coréen en donnée) et 29704 (Magic Order Swordsinger) sont
-// les formes non éveillées : non sélectionnables (A.2 ter), elles partagent
+// les formes non éveillées : non sélectionnables (`spec/outils/degats-reels/valeurs-de-jeu-curees.md`), elles partagent
 // l'identifiant du passif.
 const FORMES_VIT: [number, number, number, string][] = [
   [29314, 19014, 19004, 'Ciri'],
@@ -159,7 +159,7 @@ export function testTheoniaAtqCible() {
       `23515 ${nom} — la donnée porte Increase Damage 100, note « For enemies with Attack Power lower than yours »`);
     const p = profilDe(forme, 23515);
     // ⚠️ La clause VIT (« Attack Speed lower than yours », `quantite: null`)
-    // n'est PAS modélisée : une seule condition, et c'est voulu (relevé R11).
+    // n'est PAS modélisée : une seule condition, et c'est voulu.
     egal(p.conditionsCombat, [{ type: 'atkCibleSousAtkPropre', ratio: 1, pct: 100 }],
       `23515 ${nom} — une condition, ATQ cible < ATQ propre, +100 % (clause VIT non modélisée, sans valeur en donnée)`);
     ok(p.critiqueGaranti === true, `23515 ${nom} — critique garanti conservé`);
@@ -184,7 +184,7 @@ export function testTheoniaAtqCible() {
 
   // Une recette SANS `enemyAtk` (ancienne recette) prend la valeur que
   // l'écran affiche, 1 000 (`DEFAULT_DAMAGE_SETUP.enemyAtk`), et non 0
-  // (degats-et-aura 15f, décision de l'utilisateur du 2026-10-03). ⚠️ Un 0
+  // (choix de l'utilisateur). ⚠️ Un 0
   // allumerait la condition à tort sur toute ancienne recette, sans rien
   // afficher d'anormal : le champ montre 1 000. Les quatre monstres dont une
   // condition est `atkCibleSousAtkPropre` sont couverts, écrits à la main.

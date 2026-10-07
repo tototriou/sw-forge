@@ -1,6 +1,6 @@
-// Valeurs connues par l'API SWARFARM seule — chantier degats-et-aura, lot P6.
+// Valeurs connues par l'API SWARFARM seule.
 //
-// Règle D12 de l'utilisateur (2026-10-03) : la valeur de l'API par défaut,
+// Règle de l'utilisateur : la valeur de l'API par défaut,
 // sauf si la prose du sort la contredit. Les valeurs testées ici viennent des
 // « compétences auxiliaires » (`other_skill`) lues par l'audit des dégâts
 // conditionnels du 2026-09-08, absentes de l'import du corpus : chaque nombre
@@ -76,8 +76,8 @@ function sortDe(forme: number, id: number): SkillDamageProfile {
 const ATQ = 2000;
 const PV = 20000;
 
-// SZ-2 : identifiant, formes porteuses (balayage du corpus, contrôle
-// 13b-sequences-zone), donnée de la fiche (l'empreinte), coefficients des deux
+// Identifiant, formes porteuses (balayage du corpus),
+// donnée de la fiche (l'empreinte), coefficients des deux
 // phases (fiche puis auxiliaire de l'API) et skillups « Damage » de la fiche.
 const SEQUENCES: {
   id: number; nom: string; formes: number[]; monstre: string;
@@ -130,7 +130,7 @@ export function testDegatsSequencesApi() {
       ok(proche(calcul(normal), visee), `${s.id} sur ${forme}, cible visée : 2 000 × (${s.phase1} + ${s.phase2}) × ${k} × FacteurDéf = ${visee.toFixed(2)}`);
       ok(proche(calcul(secondaire), autres), `${s.id} sur ${forme}, autres ennemis : 2 000 × ${s.phase2} × ${k} × FacteurDéf = ${autres.toFixed(2)} (la phase de zone seule)`);
       egal(cibleDegatsRetenue(p, secondaire), 'secondaire', `${s.id} sur ${forme} : clé « secondaire » retenue`);
-      // Avant P6 : la seule donnée (une phase, ou deux fois la phase 1).
+      // Avant : la seule donnée (une phase, ou deux fois la phase 1).
       ok(!proche(calcul(normal), ATQ * s.phase1 * s.donnee.coups * k * df), `${s.id} sur ${forme} : plus le calcul d'avant P6 (${s.donnee.coups} × ${s.phase1} × ATQ)`);
       ok(proche(computeTotalDamage(p, monsterOffensivePassives(fiche(forme)), st, { ...normal, skillCom2usId: s.id }, AUCUNE_AURA_PROPRE, null), visee),
         `${s.id} sur ${forme} : computeTotalDamage = le sort seul (aucun passif)`);
@@ -225,10 +225,10 @@ export function testDegatsFormulesApi() {
   }
 }
 
-// Lot P22 — la prose dit « all enemies », la donnée dit `aoe: false` : la prose
-// l'emporte (règle D12). Une entrée par identifiant ; `prose` est le début de la
+// La prose dit « all enemies », la donnée dit `aoe: false` : la prose
+// l'emporte. Une entrée par identifiant ; `prose` est le début de la
 // description de la fiche (précondition lue sur le corpus), `formes` les formes
-// porteuses (balayage du corpus, contrôle p22).
+// porteuses (balayage du corpus).
 const PORTEES_PAR_LA_PROSE: { id: number; nom: string; monstres: string; formes: number[]; prose: string }[] = [
   { id: 20014, nom: 'Hollow Purple', monstres: 'Satoru Gojo', formes: [30304, 30314], prose: 'Removes all harmful effects on all allies and attacks all enemies to deal damage' },
   { id: 20614, nom: 'Explosion and Blaze', monstres: 'Werner', formes: [30904, 30914], prose: 'Removes all harmful effects on all allies and attacks all enemies to deal damage' },

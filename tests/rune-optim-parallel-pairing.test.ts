@@ -1,6 +1,6 @@
 // Test différentiel de la parallélisation de l'APPARIEMENT (voir
-// runeBuildOptim.worker.ts, `runParallelPairing`, et spec/outils/optimizer/
-// pistes.md, point 9). Deux régimes, PAS un seul depuis que la
+// runeBuildOptim.worker.ts, `runParallelPairing`, et spec/outils/optimizer/moteur/parallelisation.md,
+// « Répartition et partage du plafond »). Deux régimes, PAS un seul depuis que la
 // parallélisation s'applique aussi en recherche normale :
 // 1. Budget INFINI (mode exhaustif) : découper `bucketsA` et appareiller
 //    chaque tranche INDÉPENDAMMENT doit produire EXACTEMENT le même
@@ -12,7 +12,7 @@
 // 2. Recherche NORMALE (tronquée), plafonnée par un vrai `maxMs` COURT pour
 //    forcer une troncature réelle. ⚠️ Ce régime reposait à l'origine sur le
 //    budget ADAPTATIF + escalade (`maybeEscalateNodeBudget`) ; ce budget a
-//    été supprimé (pistes.md, piste 8), mais la dépendance au TEMPS RÉEL
+//    été supprimé, mais la dépendance au TEMPS RÉEL
 //    demeure — c'est désormais `maxMs` seul qui tronque, ce qui ne change
 //    rien aux deux raisons ci-dessous.
 //    ⚠️ De VRAIS `worker_threads` Node concurrents (PAS une simulation
@@ -31,8 +31,8 @@
 //        voir `runParallelPairing`) : chaque tranche simulée gardait le
 //        plafond GLOBAL entier, non divisé — un écart de fidélité qui
 //        aurait empêché ce test de détecter le genre de perte par famine
-//        de quota confirmée sur un cas réel (Camilla, voir
-//        spec/outils/optimizer/archive/historique/historique-acceleration-et-outillage.md,
+//        de quota confirmée sur un cas réel (Camilla ;
+//        spec/outils/optimizer/moteur/parallelisation.md).
 //        « Chantier D »). Avec de vrais workers ET la vraie division du
 //        plafond, l'égalité stricte n'est PAS attendue (le parallèle peut
 //        trouver PLUS ou MOINS que le séquentiel selon la répartition
@@ -78,7 +78,7 @@ function drain<T>(gen: Generator<unknown, T, void>): T {
 }
 
 // ── VRAIS worker_threads pour le régime 2 (voir l'en-tête du fichier) —
-// même patron que scripts/pairing-parallel-diag.ts/parallel-pairing-real-diag.ts :
+// même patron que scripts/parallel-pairing-real-diag.ts :
 // bundlé UNE FOIS via esbuild (déjà une dépendance de Vite, pas un ajout),
 // réutilisé pour tous les scénarios. ──
 let workerBundlePath: string | null = null;
@@ -141,11 +141,11 @@ export default async function testRuneOptimParallelPairing() {
     // ⚠️ Budget INFINI des deux côtés de la comparaison — c'est le SEUL
     // régime où le découpage est prouvé sans perte (voir l'en-tête de ce
     // fichier). Comparer sous troncature reproduirait le régime déjà connu
-    // comme cassé (pistes.md, point 9), pas celui que ce code active.
+    // comme cassé, pas celui que ce code active.
     // ⚠️ « Budget infini » ne concerne plus que `maxMs`/`maxCollected` : le
     // plafond de PAIRES, qu'il fallait aussi neutraliser explicitement ici
     // (`{ max: Number.POSITIVE_INFINITY }` passé à `pairBuckets`), n'existe
-    // plus du tout (pistes.md, piste 8).
+    // plus du tout.
     const params = { base: BASE, artifacts: [], pool, requirement, metric: 'eff' as const, maxMs: Number.POSITIVE_INFINITY, maxCollected: Number.MAX_SAFE_INTEGER };
     const prepared = prepareSearch(params);
     if (!prepared) continue; // pool vide après filtrage — rien à comparer sur ce scénario
@@ -200,10 +200,10 @@ export default async function testRuneOptimParallelPairing() {
   // qu'un déséquilibre de charge initial entre workers se corrige — en
   // dessous de ce minimum (jamais atteint en usage réel, voir la discussion
   // qui a mené à cette valeur), la perte reste possible. ⚠️ Ce minimum était
-  // attribué au mécanisme d'ESCALADE du budget de paires, depuis supprimé
-  // (piste 8) : la valeur de 30 s reste vérifiée telle quelle ci-dessous,
+  // attribué au mécanisme d'ESCALADE du budget de paires, depuis supprimé,
+  // la valeur de 30 s reste vérifiée telle quelle ci-dessous,
   // sans plus dépendre de lui.
-  // Documenté aussi dans spec/outils/optimizer/pistes.md, point 9. ──
+  // Voir spec/outils/optimizer/moteur/parallelisation.md, « Répartition et partage du plafond ». ──
   {
     let scenariosTronques = 0;
     let auMoinsUneQuotaTronque = false;
@@ -253,12 +253,12 @@ export default async function testRuneOptimParallelPairing() {
       // légitimement trouver MOINS que cette référence au plafond entier —
       // confirmé sur un cas réel (Camilla, 25 % de perte), ce n'est plus un
       // bug à détecter mais une conséquence attendue de la division
-      // (Chantier D reste ouvert pour ça, voir
-      // spec/outils/optimizer/pistes.md).
+      // (voir
+      // spec/outils/optimizer/moteur/parallelisation.md, « Répartition et partage du plafond »).
       // ⚠️ S'appelait `runWithEscalation` : elle reproduisait à la main
       // l'escalade de budget du chemin de production, sans laquelle un
       // pilotage pas à pas explorait une fraction dérisoire de l'espace. Le
-      // budget de paires ayant été supprimé (pistes.md, piste 8), il ne reste
+      // budget de paires ayant été supprimé, il ne reste
       // RIEN à reproduire ici — mais la fonction est conservée parce que le
       // reste de sa fidélité compte toujours : `maxCollected` divisé comme en
       // production, et surtout le `startedAt` PARTAGÉ (sans lui, chaque

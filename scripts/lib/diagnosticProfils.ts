@@ -100,10 +100,10 @@ export interface AttenduProfil {
    * par le temps.
    */
   motif?: 'maxCollected' | 'maxMs';
-  /** Exigence n° 3 — vérifiée PAR BRAS, voir `axesVerifies`. */
+  /** Régime vérifié PAR BRAS, voir `axesVerifies`. */
   regime: RegimeAppariement;
   totalPairs: number;
-  /** Exigence n° 4 : le build cible existe et se situe. */
+  /** Le build cible existe et se situe. */
   rang: number;
   population: number;
   /**

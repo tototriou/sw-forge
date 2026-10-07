@@ -27,6 +27,35 @@ interface PontBureau {
     pret: (pageSansCompte: boolean) => void;
     lu: (modifie: number) => void;
   };
+  session: {
+    etat: () => Promise<EtatSession | null>;
+    surEtat: (rappel: (etat: EtatSession) => void) => () => void;
+    retenir: (oui: boolean) => Promise<EtatSession | null>;
+    sauvegarder: (texte: string, nomPropose: string) => Promise<IssueSession | null>;
+    sauvegarderSous: (texte: string, nomPropose: string) => Promise<IssueSession | null>;
+    choisirDossier: () => Promise<EtatSession | null>;
+    oublierDossier: () => Promise<EtatSession | null>;
+    oublier: () => Promise<EtatSession | null>;
+  };
+}
+
+// La session en cours (voir bureau/session.ts) : le fichier que
+// « Sauvegarder » réécrit, ou aucun ; et le dossier SW Blacksmith, dont le
+// sous-dossier `sessions` reçoit les sessions.
+export interface EtatSession {
+  chemin: string | null;
+  nom: string | null;
+  dossier: string | null;
+}
+export type IssueSession =
+  | { issue: 'enregistree'; etat: EtatSession }
+  | { issue: 'annulee' }
+  | { issue: 'echec'; message: string };
+
+// Le pont de la session en cours, ou `null` sur le site (qui télécharge
+// toujours un fichier daté).
+export function sessionBureau(): PontBureau['session'] | null {
+  return pont()?.session ?? null;
 }
 
 // Le dossier SW Exporter (lot 9, décision 15 — voir bureau/swex.ts).

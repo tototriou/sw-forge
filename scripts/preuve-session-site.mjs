@@ -5,8 +5,9 @@
 //
 // Compte de test importé, conservation ACCEPTÉE (l'app de bureau prouve le
 // refus), un exemplaire de l'Optimizer pris en défense de siège et suivi à
-// travers un changement de page, puis « Sauvegarder » des Paramètres et
-// « Sauvegarder la session » de la palette. Chaque fichier téléchargé est relu
+// travers un changement de page, puis « Sauvegarder » des Paramètres,
+// « Sauvegarder la session » de la palette, « Sauvegarder » de la barre du
+// haut et Ctrl+S. Chaque fichier téléchargé est relu
 // par le vrai `lireSession`. Jamais de capture d'écran. Code de sortie 1 si
 // un verdict échoue.
 //
@@ -84,7 +85,9 @@ try {
 
   await page.evaluate(() => (location.hash = '#/parametres'));
   await page.waitForTimeout(1200);
-  const bouton = page.getByRole('button', { name: 'Sauvegarder', exact: true });
+  // Celui des Paramètres, par son infobulle : la barre du haut porte le même
+  // libellé.
+  const bouton = page.getByTitle('Sauvegarder la session dans un fichier', { exact: true });
   await bouton.scrollIntoViewIfNeeded();
 
   // Un téléchargement, relu par `lireSession`.
@@ -116,6 +119,17 @@ try {
   await page.getByRole('combobox').fill('sauv');
   await page.waitForTimeout(300);
   res.palette = await relire(() => page.getByRole('option', { name: /Sauvegarder la session/ }).click(), 'depuis-palette.json');
+  // Sur le site, pas de session en cours : ni « Sauvegarder sous… » dans la
+  // palette, ni dans la barre ; « Sauvegarder » de la barre et Ctrl+S
+  // téléchargent un fichier daté, comme les Paramètres.
+  await page.keyboard.press('Control+k');
+  await page.getByRole('combobox').fill('session');
+  await page.waitForTimeout(300);
+  res.paletteNouvelle = await page.getByRole('option', { name: /Sauvegarder sous/ }).count();
+  await page.keyboard.press('Escape');
+  res.barreNouvelle = await page.getByRole('button', { name: 'Sauvegarder sous…' }).count();
+  res.barre = await relire(() => page.locator('header').getByRole('button', { name: 'Sauvegarder', exact: true }).click(), 'depuis-barre.json');
+  res.ctrlS = await relire(() => page.keyboard.press('Control+s'), 'depuis-ctrl-s.json');
 
   // L'exemplaire disparu entre-temps : les défenses de siège supprimées, le
   // retour sur l'Optimizer retombe sur la box, jamais sur une fiche vide.
@@ -138,6 +152,7 @@ try {
   await tel.goto(adresse + '#/parametres');
   await tel.waitForTimeout(1500);
   res.telephone = await tel.getByRole('button', { name: 'Sauvegarder', exact: true }).isVisible();
+  res.telephoneBarre = await tel.locator('header').getByRole('button', { name: 'Sauvegarder la session (Ctrl+S)' }).isVisible();
 } catch (e) {
   res.erreur = String(e);
 } finally {
@@ -162,7 +177,13 @@ const verdicts = {
   'sans les préférences d’interface': Array.isArray(r.memoire) && !r.memoire.includes('sidebar.retractee'),
   'prépa RTA identique au disque': r.rtaCommeLeDisque === true,
   'Ctrl K : fichier relu par lireSession, sans avertissement': res.palette?.avertissements?.length === 0,
+  'barre du haut : fichier daté, relu par lireSession, sans avertissement':
+    /^swblacksmith-session-.*\.json$/.test(res.barre?.nomPropose ?? '') && res.barre?.avertissements?.length === 0,
+  'Ctrl+S : fichier daté, relu par lireSession, sans avertissement':
+    /^swblacksmith-session-.*\.json$/.test(res.ctrlS?.nomPropose ?? '') && res.ctrlS?.avertissements?.length === 0,
+  'site : pas de « Sauvegarder sous… » (palette, barre)': res.paletteNouvelle === 0 && res.barreNouvelle === 0,
   'au téléphone : la ligne « Session » et son bouton': res.telephone === true,
+  'au téléphone : « Sauvegarder » dans la barre du haut': res.telephoneBarre === true,
   'aucune erreur': !res.erreur,
 };
 for (const [quoi, bon] of Object.entries(verdicts)) console.log(`${bon ? 'ok' : 'KO'}  ${quoi}`);

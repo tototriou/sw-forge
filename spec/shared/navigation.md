@@ -407,6 +407,7 @@ Refonte graphique, lot 13, décision 29 de Thomas, la maquette (planche
 - **Actions** (décision 29) — aucune destructrice : **Importer mon compte**
   (le choix de fichier des Paramètres) ; **Sauvegarder la session** (le
   bouton des Paramètres, [sauvegarde-session.md](sauvegarde-session.md)) ;
+  **Sauvegarder sous…**, dans l'application de bureau seulement ;
   **Thème auto / clair / sombre** ;
   **Créer une recommandation** (ouvre les Recommandations et en crée une) ;
   **Mesure : efficience / score SW** (le réglage du menu ⚙) ; **Speed tuning
@@ -458,10 +459,15 @@ endroits où les deux se séparent (voir
 
 | | Zone droite |
 |---|---|
-| **Bureau** | « Se déconnecter » seule |
-| **Mobile** | ⚙ **Paramètres** seul |
+| **Bureau** | « Sauvegarder », puis « Sauvegarder sous… » (application de bureau) ou « Se déconnecter » (site) |
+| **Mobile** | « Sauvegarder » (icône), la loupe, ⚙ **Paramètres** |
 
-- ⚠️ **Un seul bouton de chaque côté, et ce n'est pas le même.** Sur bureau, le
+- « Sauvegarder » ouvre la zone (`ml-auto`) aux deux formats : c'est la
+  sauvegarde de la session, Ctrl+S
+  ([sauvegarde-session.md](sauvegarde-session.md) § Sauvegarder). Au
+  téléphone, une icône de 32 px nommée « Sauvegarder la session (Ctrl+S) »,
+  du même gabarit que la loupe et le ⚙.
+- ⚠️ **Les paramètres et la déconnexion ne sont pas du même côté.** Sur bureau, le
   ⚙ a été retiré : le **pied de la barre latérale** porte déjà « Paramètres »
   (`SidebarParametres`). Deux chemins vers le même écran se lisent comme deux
   réglages différents.

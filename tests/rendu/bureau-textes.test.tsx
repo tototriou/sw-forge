@@ -42,6 +42,12 @@ export function testRenduBureauTextes() {
     ok(app.reglages.includes('tout est perdu en fermant l’application') && app.reglages.includes('Tout reste sur cette machine'), 'Garder mes données : « l’application », « cette machine »');
     ok(!/navigateur|onglet/.test(app.reglages), 'Réglages : ni « navigateur » ni « onglet »');
     ok(app.reglages.includes('Tout l’état de l’app dans un fichier, enregistré où tu veux'), 'Session : « enregistré où tu veux »');
+    // Le bloc « Application » commence par sa ligne « Version ».
+    const [dossier, supprimer, application] = ['Dossier SW Blacksmith', 'Tout supprimer', 'Version '].map((t) => app.reglages.indexOf(t));
+    ok(
+      dossier >= 0 && dossier < supprimer && supprimer < application,
+      'Mes données : « Dossier SW Blacksmith », puis « Tout supprimer », en dernier avant le bloc « Application »'
+    );
     ok(app.question.includes("à la prochaine ouverture de l'application") && app.question.includes("en fermant l'application"), 'question du premier import : « ouverture », « application »');
     ok(app.theme === 'Suit le thème de ton système', 'thème Auto : « ton système »');
   } finally {

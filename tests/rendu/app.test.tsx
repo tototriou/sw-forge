@@ -26,7 +26,7 @@ function fenetre(hash: string) {
   };
 }
 
-function rendreApp(hash: string): string {
+export function rendreApp(hash: string): string {
   faussLocalStorage();
   fenetre(hash);
   return rendre(<App />);

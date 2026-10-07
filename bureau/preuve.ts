@@ -13,16 +13,19 @@ import { app, BrowserWindow } from 'electron';
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { PreuveMiseAJour } from './miseAJour';
+import type { PreuveSession } from './session';
 import type { PreuveSwex } from './swex';
 
 // Ce que les branchements enregistrent en mode preuve : la navigation
 // (navigation.ts) au lieu d'ouvrir le navigateur ou une boîte de dialogue, la
-// mise à jour (miseAJour.ts) au lieu de télécharger ou de redémarrer.
+// mise à jour (miseAJour.ts) au lieu de télécharger ou de redémarrer, la
+// session (session.ts) au lieu de demander où l'enregistrer.
 export interface TemoinsPreuve {
   liensOuverts: string[];
   dossierTelechargements: string;
   miseAJour: PreuveMiseAJour;
   swex?: PreuveSwex;
+  session?: PreuveSession;
 }
 
 const attendre = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -46,6 +49,55 @@ async function cliquerQuandPret(fenetre: BrowserWindow, libelle: string, delai =
     await attendre(250);
   }
   return `pas de bouton « ${libelle} »`;
+}
+
+// Clique le bouton de ce libellé dans la BARRE DU HAUT.
+function cliquerDansLaBarre(fenetre: BrowserWindow, libelle: string): Promise<string> {
+  return fenetre.webContents.executeJavaScript(
+    `(() => {
+      const b = [...document.querySelectorAll('header button')].find((x) => x.textContent.trim() === ${JSON.stringify(libelle)});
+      if (!b) return 'pas de bouton';
+      b.click();
+      return 'cliqué';
+    })()`,
+    true
+  );
+}
+
+// La session en cours, vue de l'app et du disque, après un geste : les
+// fichiers de `<dossier>/swblacksmith/sessions` (le dossier SW Blacksmith du
+// mode preuve, main.ts) et la date écrite dans chacun, l'infobulle de
+// « Sauvegarder » (barre du haut), la notification, la ligne « Dossier SW
+// Blacksmith » des Paramètres quand ils sont affichés, si `session.json` la
+// retient pour le prochain lancement, et le réglage du dossier.
+async function releverSession(fenetre: BrowserWindow, dossier: string) {
+  await attendre(1200);
+  const sessions = join(dossier, 'swblacksmith', 'sessions');
+  const reglage = join(dossier, 'donnees', 'dossier-swblacksmith.json');
+  const fichiers = existsSync(sessions) ? readdirSync(sessions).sort() : [];
+  const dates: Record<string, string | null> = {};
+  for (const f of fichiers.filter((n) => /^[^.].*\.json$/.test(n))) {
+    try {
+      dates[f] = (JSON.parse(readFileSync(join(sessions, f), 'utf8')) as { enregistreeLe?: string }).enregistreeLe ?? null;
+    } catch {
+      dates[f] = 'illisible';
+    }
+  }
+  const page = (await fenetre.webContents.executeJavaScript(
+    `({
+      infobulle: [...document.querySelectorAll('header button')].find((b) => b.textContent.trim() === 'Sauvegarder')?.title ?? null,
+      notification: [...document.querySelectorAll('[role="status"]')].map((e) => e.innerText.trim()).join(' | '),
+      ligneDossier: document.querySelector('[data-repere="dossier-swblacksmith"]')?.innerText.replace(/\\s+/g, ' ').trim() ?? null,
+    })`,
+    true
+  )) as { infobulle: string | null; notification: string; ligneDossier: string | null };
+  return {
+    fichiers,
+    dates,
+    ...page,
+    retenue: existsSync(join(dossier, 'donnees', 'session.json')),
+    dossierRetenu: existsSync(reglage) ? (JSON.parse(readFileSync(reglage, 'utf8')) as { dossier: string | null }).dossier : 'absent',
+  };
 }
 
 
@@ -75,8 +127,16 @@ export async function lancerPreuveConservation(fenetre: BrowserWindow, dossier: 
       })()`);
       resultats.garder = await cliquerQuandPret(fenetre, 'Garder mes données (recommandé)');
       await attendre(2500);
+      // La session en cours, choisie maintenant : conservation activée, elle
+      // doit être retenue pour le lancement suivant.
+      resultats.sauvegarde = await cliquerDansLaBarre(fenetre, 'Sauvegarder');
+      resultats.session = await releverSession(fenetre, dossier);
     } else {
       await attendre(1500); // le compte se relit d'IndexedDB, après la page
+      // La session en cours est revenue : Ctrl+S la réécrit, sans rien demander.
+      resultats.sessionAuLancement = await releverSession(fenetre, dossier);
+      await js(`document.dispatchEvent(new KeyboardEvent('keydown', { key: 's', ctrlKey: true, bubbles: true }))`);
+      resultats.session = await releverSession(fenetre, dossier);
     }
     // Ce qui est retenu : le compte affiché, la conservation, les clés de
     // stockage et leur taille, les bases IndexedDB.
@@ -208,36 +268,29 @@ export async function lancerPreuveSwex(fenetre: BrowserWindow, dossier: string, 
 // ── Sauvegarde de session ──────────────────────────────────────────────
 // `npm run bureau:preuve -- --session` : un compte importé en REFUSANT la
 // conservation (rien n'est alors sur le disque : c'est le cas où la session
-// doit lire l'app, pas le stockage), deux écrans visités, puis « Sauvegarder »
-// des Paramètres et « Sauvegarder la session » de la palette. Les fichiers
-// produits sont gardés dans `<dossier>/sessions` ; le script les relit par
+// doit lire l'app, pas le stockage), deux écrans visités, puis chaque accès :
+// « Sauvegarder » des Paramètres (aucun dossier SW Blacksmith : il est
+// demandé — sans boîte en mode preuve — puis la session s'écrit dans son
+// sous-dossier `sessions`), « Sauvegarder la session » de la palette, Ctrl+S,
+// « Sauvegarder sous… » puis « Sauvegarder » de la barre du haut, enfin
+// « Retirer » le dossier dans les Paramètres et Ctrl+S. Après chaque geste,
+// `releverSession`. Le script relit chaque fichier de session par
 // `lireSession`.
+// Le script pose avant le lancement un `session.json` d'une ouverture
+// précédente : conservation refusée, il doit être oublié, jamais réécrit.
 export async function lancerPreuveSession(fenetre: BrowserWindow, dossier: string, compte: string, telechargements: string) {
-  mkdirSync(join(dossier, 'sessions'), { recursive: true });
   const resultats: Record<string, unknown> = {};
   const js = (code: string) => fenetre.webContents.executeJavaScript(code, true);
-  // Le fichier de session téléchargé, déplacé sous `nom` (le suivant porte
-  // le même nom daté, à la minute près).
-  const recuperer = async (nom: string): Promise<string> => {
-    const fin = Date.now() + 10_000;
-    while (Date.now() < fin) {
-      const f = existsSync(telechargements) ? readdirSync(telechargements).find((n) => /^swblacksmith-session-.*\.json$/.test(n)) : undefined;
-      if (f) {
-        await attendre(500); // écriture terminée
-        const texte = readFileSync(join(telechargements, f), 'utf8');
-        writeFileSync(join(dossier, 'sessions', nom), texte);
-        rmSync(join(telechargements, f));
-        return f;
-      }
-      await attendre(250);
-    }
-    return 'aucun fichier';
-  };
+  const releve = async () => ({
+    ...(await releverSession(fenetre, dossier)),
+    telechargements: existsSync(telechargements) ? readdirSync(telechargements) : [],
+  });
   try {
     if (fenetre.webContents.isLoading()) {
       await new Promise<void>((r) => fenetre.webContents.once('did-finish-load', () => r()));
     }
     await attendre(2500);
+    resultats.depart = await releve();
     resultats.import = await js(`(() => {
       const champ = document.querySelector('input[type="file"][accept*="json"]');
       if (!champ) return 'pas de champ fichier';
@@ -259,26 +312,56 @@ export async function lancerPreuveSession(fenetre: BrowserWindow, dossier: strin
       await js(`location.hash = '${ecran}'`);
       await attendre(1500);
     }
-    // 1. « Sauvegarder », ligne « Session » des Paramètres.
+    // 1. « Sauvegarder », ligne « Session » des Paramètres (hors de la barre
+    // du haut, qui porte le même libellé).
     await js(`location.hash = '#/parametres'`);
     await attendre(1200);
+    const boutonReglages = `[...document.querySelectorAll('button')].find((x) => x.textContent.trim() === 'Sauvegarder' && !x.closest('header'))`;
     resultats.ligneSession = await js(`(() => {
-      const b = [...document.querySelectorAll('button')].find((x) => x.textContent.trim() === 'Sauvegarder');
+      const b = ${boutonReglages};
       if (!b) return 'pas de bouton';
       return b.closest('.py-2\\\\.5')?.innerText.replace(/\\s+/g, ' ').trim() ?? 'ligne introuvable';
     })()`);
-    resultats.clicReglages = await cliquerQuandPret(fenetre, 'Sauvegarder');
-    resultats.fichierReglages = await recuperer('depuis-reglages.json');
+    resultats.avantReglages = await releve();
+    resultats.clicReglages = await js(`(() => {
+      const b = ${boutonReglages};
+      if (!b) return 'pas de bouton';
+      b.click();
+      return 'cliqué';
+    })()`);
+    resultats.apresReglages = await releve();
     // 2. Ctrl K, puis l'action « Sauvegarder la session ».
     await js(`document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true }))`);
     await attendre(800);
+    resultats.actionsPalette = await js(
+      `[...document.querySelectorAll('[role="option"]')].map((x) => x.textContent.trim()).filter((t) => /session/i.test(t))`
+    );
     resultats.clicPalette = await js(`(() => {
       const o = [...document.querySelectorAll('[role="option"]')].find((x) => x.textContent.includes('Sauvegarder la session'));
       if (!o) return 'pas d’action';
       o.click();
       return 'cliqué';
     })()`);
-    resultats.fichierPalette = await recuperer('depuis-palette.json');
+    resultats.apresPalette = await releve();
+    // 3. Ctrl+S.
+    await js(`document.dispatchEvent(new KeyboardEvent('keydown', { key: 's', ctrlKey: true, bubbles: true }))`);
+    resultats.apresCtrlS = await releve();
+    // 4. « Sauvegarder sous… », puis 5. « Sauvegarder », dans la barre du haut.
+    resultats.clicNouvelle = await cliquerDansLaBarre(fenetre, 'Sauvegarder sous…');
+    resultats.apresNouvelle = await releve();
+    resultats.clicBarre = await cliquerDansLaBarre(fenetre, 'Sauvegarder');
+    resultats.apresBarre = await releve();
+    // 6. « Retirer » le dossier (Paramètres), puis Ctrl+S : la session en
+    // cours reste celle qu'on avait.
+    resultats.clicRetirer = await js(`(() => {
+      const b = [...document.querySelectorAll('[data-repere="dossier-swblacksmith"] button')].find((x) => x.textContent.trim() === 'Retirer');
+      if (!b) return 'pas de bouton';
+      b.click();
+      return 'cliqué';
+    })()`);
+    resultats.apresRetrait = await releve();
+    await js(`document.dispatchEvent(new KeyboardEvent('keydown', { key: 's', ctrlKey: true, bubbles: true }))`);
+    resultats.apresRetraitCtrlS = await releve();
   } catch (e) {
     resultats.erreur = String(e);
   } finally {

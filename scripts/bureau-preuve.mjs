@@ -10,14 +10,15 @@
 // `%LOCALAPPDATA%\Programs\SW Blacksmith\SW Blacksmith.exe`.
 // `--conservation` (lot 8) : DEUX lancements sur un dossier de données neuf —
 // le premier importe `tests/fixtures/compte-miniature.json` et répond
-// « Garder mes données », le second relit — puis compare ; code de sortie 1
-// si quelque chose s'est perdu.
+// « Garder mes données » et choisit une session en cours, le second relit et
+// la réécrit par Ctrl+S — puis compare ; code de sortie 1 si quelque chose
+// s'est perdu.
 // `--swex` (lot 9) : le dossier SW Exporter sur des fixtures — choix, export
 // réécrit, rechargement, sous-dossier `live` ; prépa RTA et siège jamais
 // touchés.
-// `--session` (spec/shared/sauvegarde-session.md) : « Sauvegarder » depuis
-// les Paramètres et depuis Ctrl K, conservation refusée ; chaque fichier relu
-// par `lireSession`.
+// `--session` (spec/shared/sauvegarde-session.md) : conservation refusée,
+// « Sauvegarder » depuis les Paramètres, Ctrl K, Ctrl+S et la barre du haut,
+// puis « Sauvegarder sous… » ; chaque fichier relu par `lireSession`.
 
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -42,11 +43,17 @@ async function chargerModule(entree) {
 }
 
 if (session) {
-  // La sauvegarde de session : compte importé, conservation REFUSÉE,
-  // puis « Sauvegarder » (Paramètres) et « Sauvegarder la session » (Ctrl K).
-  // Chaque fichier est relu par le vrai `lireSession`.
+  // La sauvegarde de session : compte importé, conservation REFUSÉE, puis
+  // chaque accès à « Sauvegarder » et « Sauvegarder sous… ». Chaque fichier
+  // est relu par le vrai `lireSession`.
   const dossier = resolve(args[0] ?? 'dist-bureau/preuve-session');
   rmSync(dossier, { recursive: true, force: true }); // données neuves
+  // Une session en cours retenue par une ouverture précédente : conservation
+  // refusée, elle doit être oubliée au lancement, et son fichier jamais réécrit.
+  const ancienne = resolve(dossier, 'ancienne-session.json');
+  mkdirSync(resolve(dossier, 'donnees'), { recursive: true });
+  writeFileSync(ancienne, 'ne pas réécrire');
+  writeFileSync(resolve(dossier, 'donnees', 'session.json'), JSON.stringify({ chemin: ancienne }));
   const r = lancerElectronEtAttendre(
     { SWBLACKSMITH_PREUVE: dossier, SWBLACKSMITH_PREUVE_SESSION: '1', SWBLACKSMITH_PREUVE_COMPTE: resolve('tests/fixtures/compte-miniature.json') },
     90_000,
@@ -56,7 +63,7 @@ if (session) {
   const res = JSON.parse(readFileSync(resolve(dossier, 'resultats-session.json'), 'utf8'));
   const { lireSession } = await chargerModule('src/lib/session.ts');
   const relire = (nom) => {
-    const chemin = resolve(dossier, 'sessions', nom);
+    const chemin = resolve(dossier, 'swblacksmith', 'sessions', nom);
     if (!existsSync(chemin)) return { ok: false, erreur: 'absent' };
     const texte = readFileSync(chemin, 'utf8');
     const lu = lireSession(texte);
@@ -72,19 +79,42 @@ if (session) {
       optimizer: s.outils.optimizer ? Object.keys(s.outils.optimizer).length : null,
     };
   };
-  const reglages = relire('depuis-reglages.json');
-  const palette = relire('depuis-palette.json');
-  console.log(JSON.stringify({ res, reglages, palette }, null, 2));
+  // Les deux fichiers : le nom daté, écrit d'office par « Sauvegarder » des
+  // Paramètres (aucune session en cours), puis `1-…`, choisi par
+  // « Sauvegarder sous… ».
+  const premier = res.apresReglages?.fichiers?.[0];
+  const second = res.apresNouvelle?.fichiers?.find((f) => f !== premier);
+  const dossierSwb = resolve(dossier, 'swblacksmith');
+  const reglages = relire(premier ?? 'absent');
+  const nouvelle = relire(second ?? 'absent');
+  console.log(JSON.stringify({ res, reglages, nouvelle }, null, 2));
+  const date = (etape, f) => res[etape]?.dates?.[f];
+  const notifie = (etape, f) => res[etape]?.notification?.includes(`Session enregistrée · ${f}`);
+  const infobulle = (etape, f) => res[etape]?.infobulle === `Sauvegarder dans ${f} (Ctrl+S)`;
   const verdicts = {
+    'au lancement, la session retenue d’avant est oubliée': res.depart?.retenue === false && res.depart?.infobulle === 'Sauvegarder la session dans un fichier (Ctrl+S)',
+    'et son fichier n’est jamais réécrit': readFileSync(ancienne, 'utf8') === 'ne pas réécrire',
     'import, conservation refusée': res.import === 'déposé' && res.refus === 'cliqué' && res.disque?.conservation === '0',
     'refusée : prépa RTA et siège absents du disque': res.disque?.prepaRta === null && res.disque?.siegeDefense === null,
     'ligne « Session » des Paramètres': typeof res.ligneSession === 'string' && res.ligneSession.startsWith('Session'),
-    'Paramètres : un fichier, relu par lireSession, sans avertissement': res.fichierReglages !== 'aucun fichier' && reglages.ok && reglages.avertissements.length === 0,
+    'Paramètres, avant : aucun dossier SW Blacksmith': res.avantReglages?.dossierRetenu === 'absent' && res.avantReglages?.ligneDossier?.includes('sous-dossier « sessions »'),
+    'Paramètres : le dossier est demandé, puis la session s’écrit dans sessions/, sans autre question': res.clicReglages === 'cliqué' && /^swblacksmith-session-\d{4}-\d\d-\d\d-\d\dh\d\d\.json$/.test(premier ?? '') && JSON.stringify(res.apresReglages?.fichiers) === JSON.stringify([premier]),
+    'le dossier est retenu (réglage, même conservation refusée), et affiché': res.apresReglages?.dossierRetenu === dossierSwb && res.apresReglages?.ligneDossier?.includes(dossierSwb),
+    '« Session enregistrée · <nom> », et l’infobulle le nomme': notifie('apresReglages', premier) && infobulle('apresReglages', premier),
+    'Ctrl K : réécrit la session en cours, sans autre fichier': res.clicPalette === 'cliqué' && res.apresPalette?.fichiers?.length === 1 && date('apresPalette', premier) > date('apresReglages', premier),
+    'la palette propose « Sauvegarder sous… » dans l’app': res.actionsPalette?.some((t) => t.startsWith('Sauvegarder sous…')),
+    'Ctrl+S : réécrit la session en cours, sans autre fichier': res.apresCtrlS?.fichiers?.length === 1 && date('apresCtrlS', premier) > date('apresPalette', premier),
+    'Sauvegarder sous… : un second fichier dans sessions/, qui devient la session en cours': res.clicNouvelle === 'cliqué' && /^1-swblacksmith-session-/.test(second ?? '') && infobulle('apresNouvelle', second) && notifie('apresNouvelle', second) && date('apresNouvelle', premier) === date('apresCtrlS', premier),
+    'Sauvegarder (barre) : réécrit la nouvelle, pas l’ancienne': res.clicBarre === 'cliqué' && res.apresBarre?.fichiers?.length === 2 && date('apresBarre', second) > date('apresNouvelle', second) && date('apresBarre', premier) === date('apresCtrlS', premier),
+    'aucun fichier temporaire, aucun téléchargement': res.apresBarre?.fichiers?.every((f) => /^[^.].*\.json$/.test(f)) && res.apresBarre?.telechargements?.length === 0,
+    'conservation refusée : la session en cours n’est pas retenue': res.apresBarre?.retenue === false,
+    'Retirer : plus de dossier, la ligne redit à quoi il sert': res.clicRetirer === 'cliqué' && res.apresRetrait?.dossierRetenu === null && res.apresRetrait?.ligneDossier?.includes('sous-dossier « sessions »'),
+    'après Retirer, Ctrl+S réécrit toujours la session en cours': res.apresRetraitCtrlS?.fichiers?.length === 2 && date('apresRetraitCtrlS', second) > date('apresBarre', second),
+    'les deux fichiers, relus par lireSession, sans avertissement': reglages.ok && reglages.avertissements.length === 0 && nouvelle.ok && nouvelle.avertissements.length === 0,
     'le travail y est, bien qu’absent du disque': reglages.ok && reglages.cles.includes('swblacksmith-rta-v1') && reglages.cles.includes('swblacksmith-siege-defense-v1'),
     'le compte en mémoire y est': reglages.ok && reglages.compte?.invocateur === 'Testeur' && reglages.compte.monstres > 0,
     'la mémoire des écrans, sans les préférences d’interface': reglages.ok && reglages.memoire.includes('siege.checkTicks.defense') && !reglages.memoire.includes('sidebar.retractee'),
     'la photo de l’Optimizer (27 champs, exemplaire compris)': reglages.ok && reglages.optimizer === 27,
-    'Ctrl K : un fichier, relu par lireSession': res.clicPalette === 'cliqué' && palette.ok && palette.avertissements.length === 0,
     'aucune erreur': !res.erreur,
   };
   for (const [quoi, bon] of Object.entries(verdicts)) console.log(`${bon ? 'ok' : 'KO'}  ${quoi}`);
@@ -156,6 +186,10 @@ if (session) {
     'conservation activée, et retenue': ecrit.etat?.conservation === '1' && relu.etat?.conservation === '1',
     'mêmes clés de stockage, même taille': JSON.stringify(ecrit.etat?.cles) === JSON.stringify(relu.etat?.cles) && (ecrit.etat?.cles?.length ?? 0) > 1,
     'mêmes bases IndexedDB': JSON.stringify(ecrit.etat?.bases) === JSON.stringify(relu.etat?.bases) && (relu.etat?.bases?.length ?? 0) > 0,
+    // La session en cours, choisie avant la fermeture, conservation activée.
+    'session en cours choisie, et retenue': ecrit.sauvegarde === 'cliqué' && ecrit.session?.fichiers?.length === 1 && ecrit.session?.retenue === true,
+    'session en cours revenue après réouverture': relu.sessionAuLancement?.infobulle === `Sauvegarder dans ${ecrit.session?.fichiers?.[0]} (Ctrl+S)`,
+    'Ctrl+S la réécrit, sans rien demander': relu.session?.fichiers?.length === 1 && relu.session?.dates?.[ecrit.session?.fichiers?.[0]] > ecrit.session?.dates?.[ecrit.session?.fichiers?.[0]],
   };
   for (const [quoi, bon] of Object.entries(verdicts)) console.log(`${bon ? 'ok' : 'KO'}  ${quoi}`);
   if (Object.values(verdicts).some((v) => !v)) process.exit(1);

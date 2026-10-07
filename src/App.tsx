@@ -1,5 +1,5 @@
 import { CSSProperties, useEffect, useMemo, useRef, useState } from 'react';
-import { Github, MessageCircle, Upload, Plus, Gauge, Save, SunMoon } from 'lucide-react';
+import { Github, MessageCircle, Upload, Plus, Gauge, Save, SunMoon, FilePlus, AlertTriangle } from 'lucide-react';
 import {
   IconeAtelier,
   IconeAccueil,
@@ -70,11 +70,13 @@ import {
   setPersistence,
   storageAvailable,
 } from './hooks/usePersistence';
-import { ConfirmDialog, KeepAccountDialog } from './ui/Dialogs';
-import { FournisseurNotification } from './ui/Notification';
+import { ConfirmDialog, KeepAccountDialog, Modale } from './ui/Dialogs';
+import { FournisseurNotification, useNotifier } from './ui/Notification';
+import { Bouton } from './ui';
+import { useSessionEnCours } from './hooks/useSessionEnCours';
 import MiseAJourBureau from './components/MiseAJourBureau';
 import SuiviSwex from './components/SuiviSwex';
-import { estBureau, selonSupport } from './lib/bureau';
+import { estBureau, selonSupport, sessionBureau } from './lib/bureau';
 import {
   COULEUR_SECTION,
   COULEUR_RTA_SUB,
@@ -304,7 +306,18 @@ const RESOURCES: NavItem[] = [
     : [{ key: 'telecharger' as const, label: 'Télécharger', icon: IconeTelecharger, hash: '#/telecharger', couleur: COULEUR_SECTION.telecharger }]),
 ];
 
+// ⚠️ La notification « … · Annuler » (lot 13, décision 29) enveloppe toute
+// l'app : un geste qui se défait peut venir de n'importe quel écran. Posée
+// AU-DESSUS d'`Application`, qui notifie elle aussi (« Session enregistrée »).
 export default function App() {
+  return (
+    <FournisseurNotification>
+      <Application />
+    </FournisseurNotification>
+  );
+}
+
+function Application() {
   const data = useMonsters();
   const custom = useCustomMonsters();
 
@@ -481,6 +494,12 @@ export default function App() {
   // qu'on conservait déjà (la valeur portée est « ne plus me montrer »).
   const [purgeGlobale, setPurgeGlobale] = useState(false);
 
+  // La session en cours (application de bureau), « Session enregistrée », et
+  // le message d'une écriture qui a échoué.
+  const sessionEnCours = useSessionEnCours();
+  const notifier = useNotifier();
+  const [echecSession, setEchecSession] = useState<string | null>(null);
+
   // Panneau d'actions de la page, sous `lg`. ⚠️ L'état vit ICI parce que le
   // bouton (barre d'onglets) et le contenu (la page) sont deux sous-arbres
   // distincts : seul leur ancêtre commun peut les relier.
@@ -581,6 +600,13 @@ export default function App() {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         setPaletteOuverte(true);
+      }
+      // Ctrl/⌘ S : « Sauvegarder » la session — sur le site aussi, à la place
+      // de « Enregistrer la page » du navigateur. Une touche tenue ne
+      // sauvegarde qu'une fois.
+      if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        if (!e.repeat) sauvegarderSessionRef.current();
       }
     }
     window.addEventListener('keydown', onKey);
@@ -879,6 +905,10 @@ export default function App() {
   async function clearAllData() {
     setPurgeGlobale(false);
     await purgeDonneesConservees();
+    // Application de bureau : l'app repart vide, sa session en cours,
+    // réécrite par un Ctrl+S, le serait avec ce vide. Les fichiers de
+    // sessions, eux, ne sont pas touchés.
+    await sessionBureau()?.oublier();
     location.reload();
   }
 
@@ -903,8 +933,29 @@ export default function App() {
   // « Sauvegarder la session » (spec/shared/sauvegarde-session.md) : tout
   // l'état de l'app dans un fichier. Le compte est celui EN MÉMOIRE, pas celui
   // d'IndexedDB — conservation refusée, il n'est que là.
-  function sauvegarderSession() {
+  // Sur le site, un fichier daté se télécharge, toujours. Dans l'app,
+  // « Sauvegarder » réécrit la session en cours (la première fois, la boîte
+  // « Enregistrer » demande où) et « Sauvegarder sous… » en choisit une autre.
+  async function enregistrerSession(sous: boolean) {
     const maintenant = new Date();
+    const texte = texteSession(maintenant);
+    const nom = nomFichierSession(maintenant);
+    const pont = sessionBureau();
+    if (!pont) {
+      telechargerTexte(nom, texte);
+      return;
+    }
+    const r = await (sous ? pont.sauvegarderSous(texte, nom) : pont.sauvegarder(texte, nom));
+    if (r?.issue === 'enregistree') notifier({ message: `Session enregistrée · ${r.etat.nom}` });
+    else if (r?.issue === 'echec') setEchecSession(r.message);
+  }
+  const sauvegarderSession = () => void enregistrerSession(false);
+  const sauvegarderSessionSous = () => void enregistrerSession(true);
+  // Ctrl+S lit la DERNIÈRE version : l'écouteur, lui, ne se pose qu'une fois.
+  const sauvegarderSessionRef = useRef(sauvegarderSession);
+  sauvegarderSessionRef.current = sauvegarderSession;
+
+  function texteSession(maintenant: Date): string {
     const session = composerSession({
       maintenant,
       versionApp: __APP_VERSION__,
@@ -927,7 +978,7 @@ export default function App() {
       memoire: photographierMemoire(),
       optimizer: photoOptimizer(optimizer),
     });
-    telechargerTexte(nomFichierSession(maintenant), ecrireSession(session));
+    return ecrireSession(session);
   }
 
   // ⚠️ **Le ⚙ BASCULE, il ne navigue pas** : il ouvre les paramètres, puis
@@ -1345,6 +1396,10 @@ export default function App() {
       actions: [
         { cle: 'a-import', libelle: 'Importer mon compte', icone: <Upload size={16} />, faire: () => fichierCompte.current?.click() },
         { cle: 'a-session-sauver', libelle: 'Sauvegarder la session', contexte: 'Tout l’état de l’app dans un fichier', icone: <Save size={16} />, faire: sauvegarderSession },
+        // Dans l'app seulement : le site télécharge toujours un fichier daté.
+        ...(estBureau()
+          ? [{ cle: 'a-session-sous', libelle: 'Sauvegarder sous…', contexte: 'Un autre fichier, qui devient la session en cours', icone: <FilePlus size={16} />, faire: sauvegarderSessionSous }]
+          : []),
         ...THEME_CHOICES.map((t) => ({
           cle: `a-theme-${t.key}`,
           libelle: `Thème ${t.label.toLowerCase()}`,
@@ -1411,9 +1466,7 @@ export default function App() {
     null;
 
   return (
-    // ⚠️ La notification « … · Annuler » (lot 13, décision 29) enveloppe
-    // toute l'app : un geste qui se défait peut venir de n'importe quel écran.
-    <FournisseurNotification>
+    <>
     {/* Application de bureau : « Mise à jour prête · Redémarrer ». Inerte sur le site. */}
     <MiseAJourBureau />
     {/* Application de bureau : le dossier SW Exporter met « Mon compte » à
@@ -1497,6 +1550,9 @@ export default function App() {
         icone={iconeSection}
         fil={filBureau}
         onRecherche={() => setPaletteOuverte(true)}
+        onSauvegarder={sauvegarderSession}
+        onSauvegarderSous={estBureau() ? sauvegarderSessionSous : undefined}
+        sessionEnCours={sessionEnCours?.nom ?? null}
         decalage={sidebarRetractee ? LARGEUR_SIDEBAR_RETRACTEE : LARGEUR_SIDEBAR}
         // ⚠️ Le burger n'apparaît que sur les pages qui ONT des actions : un
         // bouton qui ouvre un panneau vide est pire que pas de bouton.
@@ -1504,7 +1560,9 @@ export default function App() {
         // ⚠️ Le MÊME geste que « Effacer mes données » des paramètres, pas un
         // second chemin : deux façons de purger auraient divergé à la première
         // garde ajoutée (le dialogue de conservation, par exemple).
-        onDeconnexion={() => setPurgeGlobale(true)}
+        // Sur le site seulement : l'application de bureau n'efface rien, ses
+        // données vivent dans les sessions du dossier SW Blacksmith.
+        onDeconnexion={estBureau() ? undefined : () => setPurgeGlobale(true)}
         onToggleParametres={basculerParametres}
         gauche={
           /* ⚠️ Le LOGO SEUL, et seulement sous `lg` — au-dessus, la barre
@@ -1815,6 +1873,23 @@ export default function App() {
           />
         )}
 
+        {/* Une session qui n'a pas pu s'écrire : une modale, pas une
+            notification — on croyait son travail à l'abri, il ne l'est pas. */}
+        {echecSession !== null && (
+          <Modale
+            onClose={() => setEchecSession(null)}
+            labelledBy="echec-session-titre"
+            titre="La session n’a pas été enregistrée"
+            sousTitre={echecSession}
+            icone={
+              <span className="mt-0.5 flex-none rounded-lg bg-bad/15 p-2 text-bad">
+                <AlertTriangle size={18} />
+              </span>
+            }
+            actions={<Bouton onClick={() => setEchecSession(null)} autoFocus ton="accent" fond="doux" libelle="Fermer" />}
+          />
+        )}
+
         {/* La question de la conservation, modale : la réponse conditionne ce
             qui sera gardé. */}
         {askKeep && !importEnAttente && (
@@ -1859,6 +1934,6 @@ export default function App() {
         />
       </div>
     </div>
-    </FournisseurNotification>
+    </>
   );
 }

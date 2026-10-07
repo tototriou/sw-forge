@@ -103,9 +103,10 @@ Concepts partagés par plusieurs pages, documentés une seule fois :
   l'installeur, la publication au tag, la mise à jour, les données — et comment
   la vérifier (`bureau:preuve`).
 - [shared/sauvegarde-session.md](shared/sauvegarde-session.md) — la
-  **sauvegarde de session** : le format `swblacksmith/session` (compte,
-  travail, réglages, état des outils), ce qu'il refuse à la relecture, et où
-  déclarer une clé nouvelle.
+  **sauvegarde de session** : ses accès (barre du haut, Ctrl+S, Paramètres,
+  palette), la session en cours de l'application de bureau, le format
+  `swblacksmith/session` (compte, travail, réglages, état des outils), ce
+  qu'il refuse à la relecture, et où déclarer une clé nouvelle.
 
 Outillage du dépôt (pas une page de l'app) :
 
@@ -292,6 +293,9 @@ Outillage du dépôt (pas une page de l'app) :
       en face. Voir [outils/speed-tuning.md](outils/speed-tuning.md).
     - **Session** → « Sauvegarder » : tout l'état de l'app dans un fichier
       (voir [shared/sauvegarde-session.md](shared/sauvegarde-session.md)) ;
+    - **Dossier SW Blacksmith** → « Retirer », « Choisir… » — dans
+      l'**application de bureau seulement** : le dossier dont le
+      sous-dossier `sessions` reçoit les sessions ;
     - **Mes données** → « Tout supprimer », toujours la dernière ligne du bloc.
     - **Application** — dans l'**application de bureau seulement** (absent du
       site) : la version installée et UN bouton qui suit la mise à jour

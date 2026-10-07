@@ -8,7 +8,8 @@ import { setOvercapDisplay, useOvercapDisplay } from '../hooks/useOvercapDisplay
 import { setAdversaireReference, useAdversaireReference } from '../hooks/useAdversaireReference';
 import AccountFreshness from './AccountFreshness';
 import BlocApplication from './BlocApplication';
-import { estBureau, selonSupport } from '../lib/bureau';
+import { EtatSession, estBureau, selonSupport } from '../lib/bureau';
+import { useEtatSession } from '../hooks/useSessionEnCours';
 import Segmented from '../ui/Segmented';
 import Bouton from '../ui/Bouton';
 import Flottant from '../ui/Flottant';
@@ -21,15 +22,50 @@ import Switch from './Switch';
 // Une ligne de réglage : intitulé à gauche, contrôle à droite. `hint` reste
 // disponible pour un futur réglage moins évident, mais on s'en passe quand
 // l'intitulé et les options parlent d'eux-mêmes.
-function Setting({ title, hint, children }: { title: string; hint?: string; children: ReactNode }) {
+// `repere` : un `data-repere`, pour le mode preuve (bureau/preuve.ts).
+// `break-words` : un texte sans espace (un chemin de dossier) se coupe au
+// lieu de déborder ; un texte ordinaire n'en est pas affecté.
+function Setting({ title, hint, repere, children }: { title: string; hint?: string; repere?: string; children: ReactNode }) {
   return (
-    <div className="py-2.5 border-b border-border/60 last:border-0">
+    <div data-repere={repere} className="py-2.5 border-b border-border/60 last:border-0">
       <div className="flex items-center justify-between gap-3">
         <span className="text-sm font-semibold text-ink">{title}</span>
         {children}
       </div>
-      {hint && <p className="mt-1 text-micro text-ink-dim leading-snug">{hint}</p>}
+      {hint && <p className="mt-1 break-words text-micro text-ink-dim leading-snug">{hint}</p>}
     </div>
+  );
+}
+
+// ── Le dossier SW Blacksmith (spec/shared/sauvegarde-session.md) ────────────
+
+// Pure : la ligne sous « Dossier SW Blacksmith » (`null` : rien reçu).
+export function presentationDossierSwblacksmith(etat: EtatSession | null): string {
+  return etat?.dossier
+    ? etat.dossier
+    : 'Choisis le dossier de SW Blacksmith : les sessions s’enregistrent dans son sous-dossier « sessions ».';
+}
+
+// Application de bureau seulement : le site n'écrit dans aucun dossier.
+function ReglageDossierSwblacksmith() {
+  const { etat, agir } = useEtatSession();
+  return (
+    <Setting title="Dossier SW Blacksmith" hint={presentationDossierSwblacksmith(etat)} repere="dossier-swblacksmith">
+      <div className="flex flex-none gap-2">
+        {/* Toujours affiché, désactivé sans dossier : il ne disparaît pas
+            selon l'état. */}
+        <Bouton
+          taille="sm"
+          fond="vide"
+          trait="aucun"
+          libelle="Retirer"
+          title="Ne plus utiliser ce dossier : la prochaine session le redemandera"
+          disabled={!etat?.dossier}
+          onClick={() => void agir((s) => s.oublierDossier())}
+        />
+        <Bouton taille="sm" libelle="Choisir…" onClick={() => void agir((s) => s.choisirDossier())} />
+      </div>
+    </Setting>
   );
 }
 
@@ -167,10 +203,13 @@ export function SettingsList({
           />
         </Setting>
       )}
+      {onSauvegarderSession && estBureau() && <ReglageDossierSwblacksmith />}
 
       {/* ⚠️ La suppression vit ICI, pas à côté du bouton d'import : une action
           destructrice collée au bouton le plus utilisé finit par être cliquée de
           travers. Dans un menu qu'on ouvre exprès, le geste est délibéré. */}
+      {/* Dans l'application de bureau, c'est le SEUL moyen de tout effacer :
+          elle n'a pas « Se déconnecter » dans la barre du haut. */}
       {onClearData && (
         <Setting title="Mes données">
           {/* ⚠️ Le `Bouton` de la LIBRAIRIE, ton `danger` (refonte graphique,

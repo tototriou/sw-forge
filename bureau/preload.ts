@@ -58,5 +58,25 @@ contextBridge.exposeInMainWorld(
       pret: (pageSansCompte: boolean) => ipcRenderer.send('bureau:swex-pret', pageSansCompte),
       lu: (modifie: number) => ipcRenderer.send('bureau:swex-lu', modifie),
     }),
+    // La session en cours (voir bureau/session.ts) : son état et ses
+    // changements, « Garder mes données » redit à chaque changement,
+    // « Sauvegarder », « Sauvegarder sous… », le dossier SW Blacksmith
+    // (« Choisir… », « Retirer ») et l'oubli de « Tout supprimer ».
+    session: Object.freeze({
+      etat: () => ipcRenderer.invoke('bureau:session-etat'),
+      surEtat: (rappel: (etat: unknown) => void) => {
+        const ecouteur = (_e: unknown, etat: unknown) => rappel(etat);
+        ipcRenderer.on('bureau:session-etat', ecouteur);
+        return () => {
+          ipcRenderer.removeListener('bureau:session-etat', ecouteur);
+        };
+      },
+      retenir: (oui: boolean) => ipcRenderer.invoke('bureau:session-retenir', oui),
+      sauvegarder: (texte: string, nomPropose: string) => ipcRenderer.invoke('bureau:session-sauvegarder', texte, nomPropose),
+      sauvegarderSous: (texte: string, nomPropose: string) => ipcRenderer.invoke('bureau:session-sauvegarder-sous', texte, nomPropose),
+      choisirDossier: () => ipcRenderer.invoke('bureau:session-choisir-dossier'),
+      oublierDossier: () => ipcRenderer.invoke('bureau:session-oublier-dossier'),
+      oublier: () => ipcRenderer.invoke('bureau:session-oublier'),
+    }),
   })
 );

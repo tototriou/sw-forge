@@ -1,16 +1,17 @@
 import { Fragment, ReactNode } from 'react';
-import { ChevronRight, LogOut, Search } from 'lucide-react';
+import { ChevronRight, FilePlus, LogOut, Save, Search } from 'lucide-react';
 import { IconeParametres } from './IconesAtelier';
-import { Bouton } from '../ui';
+import { Bouton, BoutonIcone } from '../ui';
 
 // Barre SUPÉRIEURE, fixe.
 //
 // ⚠️ **Trois zones, et rien de plus** : à gauche le menu des actions de la page
-// (mobile) ou l'identité, OÙ L'ON EST au centre, les PARAMÈTRES à droite.
+// (mobile) ou l'identité, OÙ L'ON EST au centre, à droite « Sauvegarder » la
+// session et les PARAMÈTRES (mobile) ou la déconnexion (bureau).
 //
-// Elle a d'abord porté l'import et la déconnexion. Ni l'un ni l'autre n'y
-// avait sa place : ce sont des gestes RARES, et la barre est ce qu'on lit en
-// permanence. Ils vivent dans les paramètres, où l'on va justement quand on
+// Elle a d'abord porté l'import. Il n'y avait pas sa place : c'est un geste
+// RARE, et la barre est ce qu'on lit en permanence. « Sauvegarder », lui,
+// revient sans cesse. Ils vivent dans les paramètres, où l'on va justement quand on
 // veut changer quelque chose — l'import y côtoie l'état du compte, la
 // suppression des données y côtoie le réglage de conservation.
 //
@@ -35,6 +36,9 @@ export default function TopBar({
   parametresActifs,
   onToggleParametres,
   onRecherche,
+  onSauvegarder,
+  onSauvegarderSous,
+  sessionEnCours = null,
   // Bord GAUCHE de la barre : celui de la barre latérale, qu'elle ne recouvre
   // pas. ⚠️ Piloté par l'appelant, qui seul sait si elle est repliée.
   decalage,
@@ -49,8 +53,10 @@ export default function TopBar({
   fil?: string[];
   gauche?: ReactNode;
   // Efface les données de l'appareil — « Se déconnecter » en attendant que les
-  // comptes vivent en base. ⚠️ Bureau seulement (voir plus bas).
-  onDeconnexion: () => void;
+  // comptes vivent en base. ⚠️ À l'ordinateur seulement (voir plus bas), et
+  // sur le site seulement : absent, le bouton n'est pas rendu (l'application
+  // de bureau n'efface rien, ses données vivent dans les sessions).
+  onDeconnexion?: () => void;
   parametresActifs: boolean;
   // ⚠️ Le bouton BASCULE : il ouvre les paramètres, puis ramène d'où l'on
   // vient. Un lien seul n'offrait aucune sortie — on y entrait sans pouvoir en
@@ -60,8 +66,18 @@ export default function TopBar({
   // une loupe : sans clavier, c'est son seul accès. Au bureau, le champ de la
   // barre latérale et Ctrl K suffisent.
   onRecherche?: () => void;
+  // « Sauvegarder » la session (Ctrl+S) : sur le site, un fichier daté se
+  // télécharge ; dans l'app, la session en cours est réécrite.
+  onSauvegarder: () => void;
+  // « Sauvegarder sous… » : dans l'app seulement.
+  onSauvegarderSous?: () => void;
+  // Le nom du fichier de la session en cours (app), pour l'infobulle.
+  sessionEnCours?: string | null;
   decalage: number;
 }) {
+  const titreSauvegarder = sessionEnCours
+    ? `Sauvegarder dans ${sessionEnCours} (Ctrl+S)`
+    : 'Sauvegarder la session dans un fichier (Ctrl+S)';
   return (
     <header
       // ⚠️ `left` suit la barre latérale, à la MÊME durée qu'elle : les deux
@@ -144,30 +160,60 @@ export default function TopBar({
           </nav>
         )}
 
-        {/* ⚠️ **Zone droite : un contenu par format, et strictement un.**
+        {/* ⚠️ **Zone droite : un contenu par format.**
 
-            BUREAU — « Se déconnecter » seule. Le ⚙ en a été retiré : le pied de
+            BUREAU — « Sauvegarder », puis « Sauvegarder sous… » (application
+            de bureau) ou « Se déconnecter » (site). Le ⚙ en a été retiré : le pied de
             la barre latérale en porte déjà un, à côté du nom du compte et de
             l'import (voir SidebarCompte). Deux chemins vers le même écran, à
             60 px l'un de l'autre, se lisent comme deux réglages différents — et
             c'est dans le bloc compte que celui-ci a sa place.
 
-            MOBILE — le ⚙ seul, parce qu'il n'y a pas de barre latérale et
-            qu'aucun onglet ne mène aux paramètres : c'est le seul accès. La
-            déconnexion et l'import y descendent, faute de place — trois cibles
-            dans 48 px de haut, à côté d'un titre centré, ne laissaient à chacune
-            ni la marge d'erreur qu'un doigt réclame. */}
-        {/* Bouton de la librairie (décision 16) : la hauteur commune des
-            boutons de l'app, ton `danger` qui ne rougit qu'au survol. */}
+            MOBILE — « Sauvegarder », la loupe et le ⚙, en icônes : il n'y a pas
+            de barre latérale et aucun onglet ne mène aux paramètres. La
+            déconnexion et l'import y descendent, faute de place. */}
         <Bouton
-          onClick={onDeconnexion}
-          title="Effacer mes données de cet appareil"
-          ton="danger"
+          onClick={onSauvegarder}
+          title={titreSauvegarder}
           fond="vide"
           trait="aucun"
-          icone={<LogOut size={16} className="flex-none" />}
-          libelle="Se déconnecter"
+          icone={<Save size={16} className="flex-none" />}
+          libelle="Sauvegarder"
           className="relative z-10 ml-auto hidden lg:inline-flex"
+        />
+        {onSauvegarderSous && (
+          <Bouton
+            onClick={onSauvegarderSous}
+            title="Enregistrer la session dans un autre fichier, qui devient la session en cours (l’ancien n’est plus modifié)"
+            fond="vide"
+            trait="aucun"
+            icone={<FilePlus size={16} className="flex-none" />}
+            libelle="Sauvegarder sous…"
+            className="relative z-10 hidden lg:inline-flex"
+          />
+        )}
+        {/* Bouton de la librairie (décision 16) : la hauteur commune des
+            boutons de l'app, ton `danger` qui ne rougit qu'au survol. */}
+        {onDeconnexion && (
+          <Bouton
+            onClick={onDeconnexion}
+            title="Effacer mes données de cet appareil"
+            ton="danger"
+            fond="vide"
+            trait="aucun"
+            icone={<LogOut size={16} className="flex-none" />}
+            libelle="Se déconnecter"
+            className="relative z-10 hidden lg:inline-flex"
+          />
+        )}
+
+        {/* TÉLÉPHONE — « Sauvegarder », en tête du groupe de droite : la
+            loupe et le ⚙ gardent leur place au bord. */}
+        <BoutonIcone
+          onClick={onSauvegarder}
+          libelle="Sauvegarder la session (Ctrl+S)"
+          icone={<Save size={16} />}
+          className="relative z-10 ml-auto h-8 w-8 lg:hidden"
         />
 
         {/* TÉLÉPHONE — la loupe de la palette Ctrl K (lot 13, décision 29, la
@@ -178,7 +224,7 @@ export default function TopBar({
             onClick={onRecherche}
             title="Rechercher une page, un monstre, une action"
             aria-label="Rechercher"
-            className="relative z-10 ml-auto flex aspect-square h-8 w-8 items-center justify-center rounded-md
+            className="relative z-10 flex aspect-square h-8 w-8 items-center justify-center rounded-md
                        text-ink-dim transition-colors hoverable:bg-panel2 hoverable:text-ink lg:hidden"
           >
             <Search size={16} />
@@ -194,9 +240,9 @@ export default function TopBar({
           // ⚠️ `lg:hidden` : sur bureau, le pied de la barre latérale porte le
           // même accès, à côté du nom du compte. Le garder ici aurait fait deux
           // boutons pour un seul écran.
-          // ⚠️ `ml-auto` seulement sans loupe : avec elle, c'est la loupe qui
-          // pousse la paire à droite ; deux `ml-auto` se partageraient la place.
-          className={`relative z-10 ${onRecherche ? '' : 'ml-auto'} flex aspect-square h-8 w-8 items-center justify-center
+          // ⚠️ Pas de `ml-auto` : c'est « Sauvegarder » qui pousse le groupe à
+          // droite ; deux `ml-auto` se partageraient la place.
+          className={`relative z-10 flex aspect-square h-8 w-8 items-center justify-center
                       rounded-md transition-colors lg:hidden ${
                         parametresActifs
                           ? 'bg-ctx-soft text-ctx'

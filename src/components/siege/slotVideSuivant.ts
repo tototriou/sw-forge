@@ -1,9 +1,7 @@
-// ⚠️ **Un monstre choisi, le curseur passe au monstre suivant** (refonte
-// graphique, décision 18 — le mainteneur : « quand on édite une équipe, mets un
-// autofocus sur le monstre suivant une fois qu'on en a choisi un, idem pour
-// les défenses »). Vaut pour les 3 slots d'un deck de recommandation, les 3
-// monstres d'une défense visée (« Fort contre ») et, depuis le 2026-09-27, les
-// 3 slots d'une équipe de Siège Défense / Offense. Calcul pur, testé à part
+// ⚠️ **Un monstre choisi, le curseur passe au monstre suivant** : on compose
+// une équipe ou une défense d'affilée, sans la souris. Vaut pour les 3 slots
+// d'un deck de recommandation, les 3 monstres d'une défense visée (« Fort
+// contre ») et les 3 slots d'une équipe de Siège Défense / Offense. Calcul pur, testé à part
 // (tests/siege-slot-suivant.test.ts) : le focus lui-même ne se voit pas dans
 // un rendu serveur.
 

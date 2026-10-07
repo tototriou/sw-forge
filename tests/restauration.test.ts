@@ -1,8 +1,8 @@
 // « Annuler » une suppression — ce qui revient, et où (refonte graphique,
 // lot 13, décision 29 ; spec/shared/design.md § Notification « Annuler »).
 
-import { decksApresRestauration, reinsererA } from '../src/hooks/useSiegeRecos';
-import { equipesApresRestauration } from '../src/hooks/useSiegeState';
+import { decksApresRestauration } from '../src/hooks/useSiegeRecos';
+import { reinsererA } from '../src/lib/reinsererA';
 import { emptyRecoDeck, type RecoDeck, type SiegeTeam } from '../src/types';
 import { egal, ok, titre } from './outils';
 
@@ -17,7 +17,7 @@ export function testRestauration() {
   egal(reinsererA(['a'], 'z', 9), ['a', 'z'], 'index au-delà de la liste (d\'autres ont été retirés depuis) : borné, au bout');
   egal(reinsererA(['b'], 'a', -3), ['a', 'b'], 'index négatif : borné, en tête');
 
-  egal(equipesApresRestauration([equipe('1'), equipe('3')], equipe('2'), 1).map((t) => t.id), ['1', '2', '3'], 'une équipe revient entre ses voisines, pas au bout');
+  egal(reinsererA([equipe('1'), equipe('3')], equipe('2'), 1).map((t) => t.id), ['1', '2', '3'], 'une équipe revient entre ses voisines, pas au bout');
 
   const restes = decksApresRestauration([deck('A'), deck('C')], deck('B'), 1);
   egal(restes.map((d) => d.note), ['A', 'B', 'C'], 'un deck revient à sa place');

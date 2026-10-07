@@ -48,6 +48,24 @@ const URL_DEV = process.env.SWBLACKSMITH_DEV_URL;
 const DOSSIER_PREUVE = process.env.SWBLACKSMITH_PREUVE;
 if (DOSSIER_PREUVE) app.setPath('userData', join(DOSSIER_PREUVE, 'donnees'));
 
+// ⚠️ **Une seule instance par dossier de données.** Deux processus sur le
+// même dossier se disputeraient le stockage local et IndexedDB (le second
+// démarrerait sans données) et réécriraient tour à tour `session.json`,
+// `swex.json` et `fenetre.json` — un Ctrl+S dans l'un écraserait la session
+// de l'autre. Le second lancement quitte et ramène la fenêtre du premier.
+// Le verrou suit `userData` : une preuve, dans son propre dossier, n'est pas
+// gênée par l'app ouverte de l'utilisateur.
+const PREMIERE_INSTANCE = app.requestSingleInstanceLock();
+if (!PREMIERE_INSTANCE) app.quit();
+let fenetrePrincipale: BrowserWindow | null = null;
+app.on('second-instance', () => {
+  const f = fenetrePrincipale;
+  if (!f || f.isDestroyed()) return;
+  if (f.isMinimized()) f.restore();
+  f.show();
+  f.focus();
+});
+
 // L'état de la fenêtre (taille, position, agrandie, couleurs du dernier
 // thème), dans le dossier de l'app (`%APPDATA%/…` sous Windows).
 const cheminEtat = () => join(app.getPath('userData'), 'fenetre.json');
@@ -145,6 +163,7 @@ function creerFenetre(preuve: TemoinsPreuve | undefined): BrowserWindow {
 }
 
 void app.whenReady().then(() => {
+  if (!PREMIERE_INSTANCE) return;
   // Pas de menu (décision 7) : celui d'Electron (File, Edit, View…) est en
   // anglais et n'apporte rien ici.
   Menu.setApplicationMenu(null);
@@ -169,6 +188,7 @@ void app.whenReady().then(() => {
       }
     : undefined;
   const fenetre = creerFenetre(preuve);
+  fenetrePrincipale = fenetre;
   // Lot 8 : la preuve de conservation (deux lancements, `ecrire` puis
   // `relire`, sur le même dossier) à la place de la preuve ordinaire.
   const conservation = process.env.SWBLACKSMITH_PREUVE_CONSERVATION;

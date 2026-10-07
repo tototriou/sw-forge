@@ -43,7 +43,11 @@ Electron `44.5.1`, electron-builder `26.15.3`, electron-updater `6.8.9`
 1. **Avant `ready`** : `protocol.registerSchemesAsPrivileged` pour `app`
    (`standard`, `secure`, `supportFetchAPI`, `corsEnabled`, `stream`) ; avec
    `SWBLACKSMITH_PREUVE`, le dossier des données passe dans
-   `<dossier>/donnees`.
+   `<dossier>/donnees`. ⚠️ **Une seule instance par dossier de données**
+   (`app.requestSingleInstanceLock`) : un second lancement quitte et ramène
+   la fenêtre du premier au premier plan. Deux processus sur les mêmes
+   données se disputeraient le stockage de la page et réécriraient tour à
+   tour `session.json`, `swex.json` et `fenetre.json`.
 2. **À `ready`** : aucun menu (`Menu.setApplicationMenu(null)`) ;
    `protocol.handle` sert les fichiers du build ; la fenêtre est créée,
    puis branchés la navigation, la mise à jour, le dossier SW Exporter et
@@ -173,6 +177,12 @@ change pas. Ce qui en dépend aujourd'hui :
 - ⚠️ La page ne se déclare prête qu'**après** le chargement des monstres et
   la relecture du compte conservé : plus tôt, la box serait vide, ou écrasée
   par un compte plus ancien.
+- **Un export qui disparaît pendant la lecture du dossier** (SW Exporter le
+  réécrit à cet instant) est sauté, sans rendre le dossier « introuvable ».
+- ⚠️ **Une surveillance perdue se relance** toutes les 5 s (disque démonté
+  un instant, dossier synchronisé, dossier absent au lancement) : l'état est
+  diffusé entre-temps, et la surveillance revenue relit le dossier et
+  l'export suivi.
 
 ## L'installeur
 
@@ -225,6 +235,11 @@ notification), `BlocApplication` (Réglages).
   l'offre, et peut relancer une recherche (« Rechercher »).
 - **Jamais de bruit sans demande** : une recherche qui échoue au lancement
   ne dit rien ; tout va dans `mise-a-jour.log` (dossier des données).
+- ⚠️ **Une recherche se conclut toujours** : quand `checkForUpdates` se
+  termine sans aucun événement (il rend `null` quand electron-updater
+  s'estime inactif, une AppImage extraite par exemple), elle passe en
+  `injoignable` si on l'a demandée, sinon en `aucune` — jamais bloquée sur
+  « Recherche… », que « Rechercher » refuserait de relancer.
 
 ## Vérifier
 

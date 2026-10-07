@@ -1664,6 +1664,10 @@ gardant tout. Pendant une édition, un bouton **« Annuler les modifications »*
   ne serait plus le même. L'édition se **termine** alors, modifications
   gardées — sauf pour le deck qu'on vient d'ajouter en fin de liste
   (`deckEditeApresChangement`).
+- **Supprimer un deck termine l'édition** avant de le retirer : supprimer le
+  dernier le remplace par un deck vide sans changer leur nombre, et l'édition
+  resterait sinon ouverte sur ce deck vide, prête à recopier une partie du
+  deck supprimé.
 
 ⚠️ **Un monstre choisi, le curseur passe au monstre suivant** (refonte
 graphique, décision 18 — le mainteneur : « quand on édite une équipe, mets un

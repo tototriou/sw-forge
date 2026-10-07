@@ -12,8 +12,14 @@ export function useEtatSwex() {
     const s = swex();
     if (!s) return;
     let actif = true;
-    void s.etat().then((e) => actif && setEtat(e));
-    const desabonner = s.surEtat(setEtat);
+    // Un état diffusé avant la réponse de `etat()` est plus récent : elle ne
+    // l'écrase pas (voir useSessionEnCours.ts).
+    let diffuse = false;
+    void s.etat().then((e) => actif && !diffuse && setEtat(e));
+    const desabonner = s.surEtat((e) => {
+      diffuse = true;
+      setEtat(e);
+    });
     return () => {
       actif = false;
       desabonner();

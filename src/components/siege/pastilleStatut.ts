@@ -1,11 +1,10 @@
 import type { StatutEquipe } from '../../lib/siegeStatut';
 
-// La PASTILLE de statut d'une équipe de siège, écrite à côté de son titre —
-// refonte graphique, décision 8 (A.2 bis) : elle remplace le point de couleur
-// et le fond coloré du thème clair. Le statut y est ÉCRIT.
+// La PASTILLE de statut d'une équipe de siège, écrite à côté de son titre, à
+// la place d'un point de couleur ou d'un fond coloré : le statut y est ÉCRIT.
 //
-// ⚠️ **Des libellés tirés des phrases de l'app**, jamais inventés : choisis par
-// Le mainteneur le 2026-09-26 parmi les phrases que le pied de la carte affiche déjà
+// ⚠️ **Des libellés tirés des phrases de l'app**, jamais inventés : choisis
+// parmi les phrases que le pied de la carte affiche déjà
 // (« Tous au tick », « Speed tune validé », « Ton équipe n'est pas au tick »…).
 // La phrase détaillée reste dans le pied : la pastille dit l'état d'un coup
 // d'œil, le pied dit quoi faire.

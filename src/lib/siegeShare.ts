@@ -98,7 +98,13 @@ export function lireEquipes(texte: string, monsters: Monster[]): LectureSiege {
   if (!o || typeof o !== 'object' || !formatReconnu(o.format, 'siege-equipes')) {
     return { ok: false, erreur: `Ce fichier n'est pas un export d'équipes de siège ${NOM_APP}.` };
   }
-  if (typeof o.version !== 'number' || o.version > VERSION_SIEGE) {
+  // Deux refus distincts : une version absente ou illisible est un fichier
+  // abîmé — le dire « plus récent » enverrait chercher une mise à jour qui
+  // n'existe pas.
+  if (typeof o.version !== 'number' || !Number.isFinite(o.version)) {
+    return { ok: false, erreur: 'Export d’équipes abîmé : version illisible.' };
+  }
+  if (o.version > VERSION_SIEGE) {
     return { ok: false, erreur: `Ce fichier vient d’une version plus récente de ${NOM_APP}.` };
   }
   if (!Array.isArray(o.equipes)) {

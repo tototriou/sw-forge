@@ -11,8 +11,15 @@ export function useEtatSession() {
     const s = sessionBureau();
     if (!s) return;
     let actif = true;
-    void s.etat().then((e) => actif && e && setEtat(e));
-    const desabonner = s.surEtat(setEtat);
+    // ⚠️ Un état diffusé avant la réponse de `etat()` est plus récent qu'elle :
+    // elle ne l'écrase pas (le dossier ou la session affichés reviendraient
+    // à l'ancienne valeur).
+    let diffuse = false;
+    void s.etat().then((e) => actif && !diffuse && e && setEtat(e));
+    const desabonner = s.surEtat((e) => {
+      diffuse = true;
+      setEtat(e);
+    });
     return () => {
       actif = false;
       desabonner();

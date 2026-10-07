@@ -14,8 +14,8 @@ import {
   Gauge,
   Undo2,
 } from 'lucide-react';
-// L'épée de la section Offense, à la place des deux épées de lucide
-// (rebranding, décision 44) : « Importer un deck d'offense », « Fort contre ».
+// L'épée de la section Offense, à la place des deux épées de lucide :
+// « Importer un deck d'offense », « Fort contre ».
 import { IconeOffense } from '../IconesAtelier';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRecalageEcran } from '../../hooks/useRecalageEcran';
@@ -133,17 +133,16 @@ interface Props {
   // Où le monstre cherché se trouve dans CETTE recommandation, `null` hors
   // recherche. Sert à déplier les bons decks et à surligner les bons portraits.
   hit?: RecoHit | null;
-  // Vue de la page (décision 19). Absente : Attaque, l'affichage d'avant.
+  // Vue de la page. Absente : Attaque, l'affichage d'avant.
   vue?: VueRecos;
 }
 
 // Carte d'une recommandation — ⚠️ **NEUTRE, quel que soit le résultat de
-// l'analyse** (refonte graphique, lot 7b, « revois les couleurs, là il n'y a
-// rien qui va »). Elle se teintait en entier (vert, orange, rouge à 25-45 %),
+// l'analyse**. Elle se teintait en entier (vert, orange, rouge à 25-45 %),
 // et chaque deck, chaque monstre, l'encart de synthèse se teintaient à leur
 // tour : une page analysée devenait un patchwork où plus rien ne ressortait.
 // Le statut se lit désormais aux PASTILLES et aux CONTOURS — la même règle que
-// les équipes de siège (décision 8) —, jamais à un aplat. La table est gardée,
+// les équipes de siège —, jamais à un aplat. La table est gardée,
 // par statut, pour qu'un ajustement ultérieur reste local.
 const AURA: Record<string, string> = {
   ok: 'border-border-soft bg-panel',
@@ -204,8 +203,8 @@ export default function RecoCard({
   // celui qui nous intéresse. Réinitialisé si le nombre de decks change (les
   // index se décalent à l'ajout/suppression).
   const [openDecks, setOpenDecks] = useState<Set<number>>(new Set());
-  // Supprimer une recommandation SE DÉFAIT au lieu de se confirmer (lot 13,
-  // décision 29) : immédiat, puis « Recommandation supprimée · Annuler » la
+  // Supprimer une recommandation SE DÉFAIT au lieu de se confirmer :
+  // immédiat, puis « Recommandation supprimée · Annuler » la
   // remet à SA place, avec tous ses decks et ses consignes.
   const notifier = useNotifier();
   function supprimerReco() {
@@ -226,13 +225,13 @@ export default function RecoCard({
     setEditingDeck((cur) => deckEditeApresChangement(cur, avant, deckCount));
   }, [deckCount]);
 
-  // ── Annuler une édition (le mainteneur, 2026-10-05) ─────────────────────────────
+  // ── Annuler une édition ─────────────────────────────────────────────────
   //
   // Chaque modification s'enregistre tout de suite : annuler, c'est REMETTRE
   // ce qu'on a mémorisé à l'ouverture de l'édition (voir annulerEdition.ts).
   // ⚠️ **Ni confirmation, ni notification** : une confirmation serait un « OK »
   // qui détruit ; une notification « … · Rétablir » ferait une annulation
-  // d'annulation (le mainteneur : « c'est bizarre »). La sortie du mode édition dit
+  // d'annulation, déroutante. La sortie du mode édition dit
   // assez ce qui s'est passé.
   const [avantReco, setAvantReco] = useState<MetaReco | null>(null);
   const [avantDeck, setAvantDeck] = useState<{ index: number; contenu: ContenuDeck } | null>(null);
@@ -299,9 +298,9 @@ export default function RecoCard({
   // Positions du monstre dans un deck donné, pour le surlignage.
   const hitDeDeck = (di: number) => hit?.decks.find((d) => d.deckIndex === di) ?? null;
 
-  // ── Vue Défense (décision 19) ─────────────────────────────────────────────
+  // ── Vue Défense ─────────────────────────────────────────────────────────
   //
-  // ⚠️ **En LECTURE SEULE** (choix du mainteneur) : dès qu'on édite — la
+  // ⚠️ **En LECTURE SEULE** : dès qu'on édite — la
   // recommandation ou l'un de ses decks —, la carte reprend la vue Attaque,
   // celle où se trouvent les formulaires. Changer de vue ne fait donc jamais
   // disparaître une édition en cours.
@@ -376,15 +375,14 @@ export default function RecoCard({
           (`items-center`), toujours à deux, jamais perturbée par la longueur
           des badges — qui passent en dessous, sur une deuxième rangée qui
           leur est propre et peut s'enrouler librement. */}
-      {/* ⚠️ **À la souris, l'en-tête tient sur UNE ligne** (lot 7b, la
-          maquette) : titre · origine · decks · auteur · Analyser, puis les
+      {/* ⚠️ **À la souris, l'en-tête tient sur UNE ligne** : titre · origine · decks · auteur · Analyser, puis les
           actions au bout. Les deux rangées ci-dessous s'effacent
           (`lg:contents`) dans ce conteneur ; au doigt, elles restent deux,
           pour la raison dite juste en dessous. */}
       <div className="lg:mb-3 lg:flex lg:flex-wrap lg:items-center lg:gap-x-3 lg:gap-y-1.5">
       <div className="mb-1.5 flex items-center gap-2 lg:contents">
         {/* ⚠️ **À la souris, le repli de la carte est un CHEVRON en tête de
-            ligne** (lot 7b, la maquette) — même bouton, même taille et même
+            ligne** — même bouton, même taille et même
             place que le chevron de chaque deck juste en dessous. Il remplace
             « Consulter / Réduire » au bout de la ligne, qui reste au doigt
             (masqué `lg:hidden` plus bas).
@@ -466,7 +464,7 @@ export default function RecoCard({
             />
           )}
           {/* Filet vertical entre les informations et les actions — à la
-              souris seulement, comme dans la maquette. */}
+              souris seulement. */}
           <span className="hidden h-5 w-px bg-border-soft lg:block" aria-hidden />
           {/* Exporter / Éditer / Supprimer : icônes nues (ni cadre ni fond), comme
               la corbeille — l'en-tête est déjà chargé. Groupées pour se lire
@@ -480,8 +478,8 @@ export default function RecoCard({
               (valeurs Tailwind rangées par ordre croissant) — vérifié dans le
               CSS construit, pas supposé.
               ⚠️ **À la souris, carrés de 28 px aux coins arrondis**
-              (`lg:h-7 lg:w-7 lg:rounded-lg`, lot 7b) : la taille et la forme
-              des boutons d'icône de la maquette, les mêmes que les chevrons —
+              (`lg:h-7 lg:w-7 lg:rounded-lg`) : la taille et la forme
+              des boutons d'icône de la page, les mêmes que les chevrons —
               toute la page n'a plus qu'un seul bouton d'icône. Les variantes
               `lg:` passent après les classes de base dans la feuille : l'ordre
               est garanti, pas supposé. */}
@@ -502,7 +500,7 @@ export default function RecoCard({
                 de la librairie garde ses propres couleurs, et l'ordre de deux
                 classes de couleur rivales dans la feuille ne serait pas
                 garanti. `aria-pressed` passe directement. */}
-            {/* « Annuler les modifications » (2026-10-05) — en édition
+            {/* « Annuler les modifications » — en édition
                 seulement, À GAUCHE du ✓ : le groupe est en bout de ligne, il
                 s'allonge vers la gauche et le ✓ qu'on vient de toucher ne
                 bouge pas. Grisé tant que rien n'a changé. */}
@@ -540,7 +538,7 @@ export default function RecoCard({
           librement sans jamais perturber l'alignement titre/icônes. */}
       <div className="mb-3 flex flex-wrap items-center gap-2 lg:contents">
         {reco.origin === 'imported' && (
-          // Pastille NEUTRE (lot 7b) : l'origine est une information, pas un
+          // Pastille NEUTRE : l'origine est une information, pas un
           // état à signaler — le contour d'accent la faisait passer pour un
           // élément sélectionné.
           <span
@@ -573,16 +571,15 @@ export default function RecoCard({
             ⚠️ **Masqué aussi sous `lg`** (`max-lg:hidden`), même à la souris :
             sous ce seuil, la page prend sa disposition téléphone, et
             « Analyser » vit dans le panneau « Options » — une fenêtre étroite
-            le montrait aux DEUX endroits (le mainteneur : « il ne le faut qu'à un
-            seul endroit »). */}
+            le montrait aux DEUX endroits, alors qu'il ne doit être qu'à un
+            seul. */}
         {/* ⚠️ À la souris, un RESSORT pousse la suite au bout de la ligne
-            (la maquette : titre et résumé à gauche, puis ce qui se clique à
-            droite, derrière le filet). Il remplace le `ml-auto` des actions,
+            (titre et résumé à gauche, puis ce qui se clique à droite,
+            derrière le filet). Il remplace le `ml-auto` des actions,
             qui laissait « Analyser » au milieu. */}
         <span className="hidden lg:block lg:flex-1" aria-hidden />
         {!editing && (
-          // ⚠️ **Bouton à DEUX ÉTATS** (décision 17 — le mainteneur : « une fois
-          // analysé, si on clique ça cache l'analyse ») : un premier clic
+          // ⚠️ **Bouton à DEUX ÉTATS** : un premier clic
           // analyse, un second MASQUE le résultat — le même geste que la croix
           // de l'encart. Enclenché (`actif`, `aria-pressed`) tant qu'une
           // analyse est affichée. Il disait « Réanalyser mes decks » dans cet
@@ -595,9 +592,8 @@ export default function RecoCard({
             actif={Boolean(match)}
             // ⚠️ Bouton À CADRE (`.btn-secondary`), comme les autres boutons à
             // libellé de la page — pas fantôme. En fantôme, seul libellé nu au
-            // milieu d'icônes nues, il ne se lisait plus comme un bouton
-            // (le mainteneur : « il ne ressort pas, il ne ressemble pas aux autres
-            // boutons »). Les icônes du bout de ligne restent nues.
+            // milieu d'icônes nues, il ne ressortait pas et ne ressemblait pas
+            // aux autres boutons. Les icônes du bout de ligne restent nues.
             title={
               match
                 ? "Masquer le résultat de l'analyse"
@@ -729,16 +725,16 @@ export default function RecoCard({
               decks qui ne sont plus à l'écran. */}
           {reco.decks.length > 1 && !decksFiltres && (
             <div className="flex justify-end mb-1.5">
-              {/* Au doigt : le lien souligné d'avant, inchangé (lot 11). */}
+              {/* Au doigt : le lien souligné d'avant, inchangé. */}
               <button
                 onClick={basculerTousLesDecks}
                 className="font-mono text-micro text-ink-dim hoverable:text-ink transition underline lg:hidden"
               >
                 {tousOuverts ? 'Replier tous les decks' : 'Déplier tous les decks'}
               </button>
-              {/* ⚠️ **À la souris, un bouton fantôme de la librairie** (lot 7b,
-                  la maquette), plus un lien souligné. Il reste AU-DESSUS du
-                  tableau, pas en dessous comme dans la maquette : en bas, le
+              {/* ⚠️ **À la souris, un bouton fantôme de la librairie**, plus
+                  un lien souligné. Il reste AU-DESSUS du tableau, pas en
+                  dessous : en bas, le
                   clic l'aurait repoussé de toute la hauteur des decks dépliés
                   (un clic ne déplace jamais ce qu'on vient de cliquer). */}
               <Bouton
@@ -755,7 +751,7 @@ export default function RecoCard({
               ⚠️ L'animation est sur CE conteneur, déjà présent, et non sur un
               `<div>` ajouté autour du fragment : un wrapper de plus casserait
               l'espacement du parent pour un simple effet.
-              ⚠️ **À la souris, un TABLEAU** (décision 15) : une seule colonne
+              ⚠️ **À la souris, un TABLEAU** : une seule colonne
               de lignes, dans un cadre commun, sous une rangée d'intitulés. Il a
               remplacé une grille de cartes à deux colonnes (`lg:grid-cols-2`),
               où le deck en édition prenait les deux (`lg:col-span-2`).
@@ -763,8 +759,7 @@ export default function RecoCard({
               une grille à UNE colonne, il en créait une seconde, implicite —
               la rangée d'intitulés et les lignes se tassaient dans la
               première, « Offense · sets visés » passait sur trois lignes et
-              « Fort contre » chevauchait (capture du mainteneur, « gros bug
-              d'affichage quand on essaye d'éditer un deck »). Retiré. */}
+              « Fort contre » chevauchait dès qu'on éditait un deck. Retiré. */}
           <div
             className={`grid grid-cols-1 gap-2.5 animate-[apparition_180ms_var(--ease-out)]
                        lg:gap-0 lg:overflow-hidden lg:rounded-xl lg:border lg:border-border-soft ${
@@ -813,6 +808,7 @@ export default function RecoCard({
                     onToggleFold={() => toggleDeck(di)}
                     hit={hitDeDeck(di)}
                     recos={recos}
+                    onSupprime={() => setEditingDeck(null)}
                   />
                 </div>
               );
@@ -821,8 +817,7 @@ export default function RecoCard({
         </>
       )}
 
-      {/* ⚠️ **À la souris, le PIED du tableau des decks** (lot 7b, la
-          maquette) : collé sous le cadre (`lg:mt-0`, le cadre perd ses coins
+      {/* ⚠️ **À la souris, le PIED du tableau des decks** : collé sous le cadre (`lg:mt-0`, le cadre perd ses coins
           du bas en édition), le filet du cadre pour séparateur — un seul
           trait —, les ajouts à DROITE, en boutons pointillés À FOND (fantômes
           un temps, ils ne ressortaient pas). Au doigt, rien ne change. */}
@@ -969,8 +964,8 @@ function deckProblem(dm: DeckMatch): string {
 // Les deux gardent le même rouge, `bad` : ils sont bloquants tous les deux, et
 // c'est bien ce que la couleur dit. Ce sont deux FILTRES sur un même rouge, pas
 // deux couleurs de plus.
-// ⚠️ `bad`, le rouge d'ÉTAT, et non plus `fire`, celui de l'élément Feu
-// (rebranding, décision 43) : un rouge de faute ne doit pas se lire comme un
+// ⚠️ `bad`, le rouge d'ÉTAT, et non plus `fire`, celui de l'élément Feu :
+// un rouge de faute ne doit pas se lire comme un
 // monstre Feu, et « Tout effacer » était déjà en `bad` sur la même page.
 type VerdictKey = 'ok' | 'nodeck' | 'ko' | 'missing';
 
@@ -1038,15 +1033,12 @@ const VERDICTS: {
   },
 ];
 
-// ⚠️ **Pastille de statut COLORÉE, à la maquette** (`.pill.good/.warn/.bad` :
-// fond doux du ton, texte du ton, pas de contour) — le mainteneur : « les couleurs ne
-// sont pas assez vives sur les vignettes de validation de decks ». Elles
-// étaient neutres, la couleur réduite à un point de 6 px (lot 7b, « cartes
-// neutres ») : la CARTE reste neutre, mais la pastille qui dit le verdict
-// porte sa couleur en entier. Contrastes mesurés, texte sur fond doux, deux
-// thèmes : 4.91 au plus bas (`warn` ocre sur `warn-soft`, Atelier, depuis la
-// décision 46 ; `bad` sur `bad-soft` fait 5.53 en Forge, contre 4.26 pour
-// l'ancien `fire`).
+// ⚠️ **Pastille de statut COLORÉE** (fond doux du ton, texte du ton, pas de
+// contour) : réduite à un point de 6 px, la couleur ne se voyait pas assez
+// sur les pastilles de validation des decks. La CARTE reste neutre, mais la
+// pastille qui dit le verdict porte sa couleur en entier. Contrastes mesurés,
+// texte sur fond doux, deux thèmes : 4.91 au plus bas (`warn` ocre sur
+// `warn-soft`, Atelier ; `bad` sur `bad-soft` fait 5.53 en Forge).
 // Par STATUT de deck (celui de `DOT`), pas par verdict : les puces de la carte
 // repliée et la ligne du tableau disent la même chose de la même façon.
 const PASTILLE_STATUT: Record<string, string> = {
@@ -1148,7 +1140,7 @@ function AnalysisSummary({
   // L'icône et le titre de l'encart prennent la couleur du pire verdict
   // présent : vert si tout passe, orange sinon — le rouge reste porté par les
   // lignes, pour ne pas alarmer sur une reco dont il ne manque qu'une équipe à
-  // composer. ⚠️ Le FOND reste neutre (lot 7b, voir `AURA`) : un encart teinté
+  // composer. ⚠️ Le FOND reste neutre (voir `AURA`) : un encart teinté
   // posé dans une carte teintée ne ressortait plus.
   const toutPasse = rates.length === 0;
 
@@ -1176,8 +1168,8 @@ function AnalysisSummary({
           Un verdict sans aucun deck est affiché GRISÉ et non retiré : on voit
           qu'il n'y en a aucun, au lieu de chercher un bouton disparu.
           ⚠️ **Colorées AU REPOS, comme les pastilles des decks en dessous**
-          (`PASTILLE_STATUT`, 2026-09-27 — le mainteneur : « dans le résumé d'analyse
-          et dans les cards en dessous, la même couleur ») : fond doux et
+          (`PASTILLE_STATUT`) — la même couleur dans le résumé d'analyse et
+          dans les cartes en dessous : fond doux et
           texte du ton. Elles étaient neutres au repos, seul le point coloré.
           Enclenchée, la pastille garde ces couleurs et prend le CONTOUR de son
           ton — la bordure reste le seul marqueur d'état.
@@ -1221,7 +1213,7 @@ function AnalysisSummary({
         })}
         {vus.size > 0 && (
           <>
-            {/* Au doigt : le lien souligné d'avant (lot 11). À la souris : un
+            {/* Au doigt : le lien souligné d'avant. À la souris : un
                 bouton fantôme de la librairie, comme « Déplier tous les
                 decks ». */}
             <button
@@ -1349,11 +1341,11 @@ const DECK_AURA: Record<string, string> = {
   unknown: 'border-border-soft bg-panel2',
 };
 
-// ⚠️ **À la souris, un deck est une LIGNE de tableau** (décision 15) : chevron ·
+// ⚠️ **À la souris, un deck est une LIGNE de tableau** : chevron ·
 // offense (sets visés collés à chaque monstre) · fort contre · verdict · crayon.
 // Même gabarit de colonnes pour la rangée d'intitulés et pour chaque ligne.
 // Écrit EN TOUTES LETTRES : Tailwind lit le source comme du texte.
-// ⚠️ **QUATRE colonnes, plus de colonne d'actions** (la maquette) : le crayon
+// ⚠️ **QUATRE colonnes, plus de colonne d'actions** : le crayon
 // quitte la ligne et devient « Éditer ce deck », en pied du détail déplié —
 // voir `DeckBlock`. La ligne elle-même est la grille du deck entier : ses
 // enfants s'y posent directement (`lg:contents` sur les conteneurs), le détail
@@ -1361,8 +1353,7 @@ const DECK_AURA: Record<string, string> = {
 const LIGNE_DECK =
   'lg:grid lg:grid-cols-[28px_minmax(0,1fr)_minmax(0,170px)_minmax(0,150px)] lg:items-center lg:gap-3';
 
-// ⚠️ **UN seul bouton d'icône sur toute la page, à la souris** (lot 7b, la
-// maquette) : un carré de 28 px aux coins arrondis, sans cadre ni fond —
+// ⚠️ **UN seul bouton d'icône sur toute la page, à la souris** : un carré de 28 px aux coins arrondis, sans cadre ni fond —
 // chevrons, Exporter, Éditer, Supprimer, en-tête de recommandation comme ligne
 // de deck. Au doigt, chacun garde sa taille d'avant (24 px dans l'en-tête de la
 // recommandation, 20 px dans celui du deck) : `taille="serre"` et son exemption
@@ -1374,9 +1365,8 @@ const ICONE_ACTION = `h-6 w-6 ${ICONE_LG}`;
 // échappe — il prend la hauteur des vignettes de défense qu'il prolonge.
 const BOUTON_LG = 'lg:h-7';
 // ⚠️ Plus de bouton d'ajout FANTÔME : « Ajouter un deck vide », « Importer un
-// deck d'offense » et « + Défense » l'ont été un temps (la maquette), et ne
-// ressortaient pas (le mainteneur : « le bouton d'ajout de défense ne ressort pas
-// trop »). Ils gardent le fond d'un bouton et le bord POINTILLÉ d'un ajout.
+// deck d'offense » et « + Défense » l'ont été un temps, et ne
+// ressortaient pas. Ils gardent le fond d'un bouton et le bord POINTILLÉ d'un ajout.
 
 function DeckBlock({
   reco,
@@ -1393,6 +1383,7 @@ function DeckBlock({
   onToggleFold,
   hit,
   recos,
+  onSupprime,
 }: {
   reco: Reco;
   deck: RecoDeck;
@@ -1410,13 +1401,19 @@ function DeckBlock({
   // Positions du monstre cherché dans CE deck, `null` hors recherche.
   hit: DeckHit | null;
   recos: UseRecoState;
+  // Termine l'édition du deck avant sa suppression.
+  onSupprime: () => void;
 }) {
-  // Supprimer un deck SE DÉFAIT au lieu de se confirmer (lot 13, décision 29) :
-  // immédiat, puis « Deck supprimé · Annuler » le remet à SA place — le dernier
-  // deck remplace alors le deck vide laissé derrière lui (voir
-  // `decksApresRestauration`).
+  // Supprimer un deck SE DÉFAIT au lieu de se confirmer : immédiat, puis
+  // « Deck supprimé · Annuler » le remet à SA place — le dernier deck remplace
+  // alors le deck vide laissé derrière lui (voir `decksApresRestauration`).
+  // ⚠️ L'édition se termine AVANT : supprimer le dernier deck le remplace par
+  // un deck vide sans changer leur nombre, et l'édition resterait ouverte sur
+  // ce deck vide avec le contenu d'avant mémorisé — « Annuler les
+  // modifications » recopierait alors à moitié le deck supprimé.
   const notifier = useNotifier();
   function supprimerDeck() {
+    onSupprime();
     recos.removeDeck(reco.id, deckIndex);
     notifier({ message: 'Deck supprimé', action: () => recos.restaurerDeck(reco.id, deck, deckIndex) });
   }
@@ -1498,7 +1495,7 @@ function DeckBlock({
                 <span key={i} className="flex min-w-0 items-center gap-1.5">
                   <MiniMonster monster={m} fallback={sl.name} size={34} lead={i === 0 ? leaderLead : null} />
                   {/* À la souris seulement : le nom et les sets visés de CE
-                      monstre, collés à lui (décision 15). Au doigt, la ligne
+                      monstre, collés à lui. Au doigt, la ligne
                       reste aux portraits seuls. */}
                   {(m?.name || sl.name) && (
                     <span className="hidden truncate text-xs font-medium text-ink lg:inline">{m?.name ?? sl.name}</span>
@@ -1520,7 +1517,7 @@ function DeckBlock({
 
           {/* FORT CONTRE — les portraits de la première défense visée, +N s'il
               y en a d'autres. Purement informatif, comme le bloc détaillé.
-              ⚠️ **Au téléphone aussi** (lot 11b, décision 25, la maquette) :
+              ⚠️ **Au téléphone aussi** :
               la rangée repliée dit l'offense ET ce qu'elle bat, séparées par
               un filet. Il était réservé à la souris. */}
           <span className="flex min-w-0 flex-none items-center gap-1 max-lg:border-l max-lg:border-border-soft max-lg:pl-2">
@@ -1570,8 +1567,7 @@ function DeckBlock({
 
           {/* Édition PROPRE au deck (monstres, sets, stats, consignes) : icônes
               nues et resserrées, comme dans l'en-tête de la recommandation.
-              ⚠️ **À la souris, le PIED du détail déplié** (lot 7b, la
-              maquette) : « Éditer ce deck » écrit en toutes lettres, à droite,
+              ⚠️ **À la souris, le PIED du détail déplié** : « Éditer ce deck » écrit en toutes lettres, à droite,
               sous un filet — placé sur la 3ᵉ rangée de la grille du deck
               (`lg:row-start-3`), sous le détail, dont il ferme le cadre (le
               détail n'a pas de bord bas : un seul trait entre les deux). Replié,
@@ -1588,7 +1584,7 @@ function DeckBlock({
                 cette page (spec/siege/recommandations.md), pas le marqueur
                 d'état standard. Couleur posée sur l'icône, comme dans
                 l'en-tête de la recommandation. */}
-            {/* « Annuler les modifications » (2026-10-05) — en édition
+            {/* « Annuler les modifications » — en édition
                 seulement, juste AVANT le ✓ : au doigt le groupe est calé à
                 droite, à la souris le pied aussi (`justify-end`) ; il
                 s'allonge vers la gauche, le ✓ qu'on vient de toucher ne bouge
@@ -1611,8 +1607,7 @@ function DeckBlock({
               libelle={editing ? "Terminer l'édition de ce deck" : 'Éditer ce deck'}
               libelleALaSouris
             />
-            {/* ⚠️ **Toujours présent**, plus seulement en édition (le mainteneur :
-                « le bouton de suppression devrait toujours être présent ») —
+            {/* ⚠️ **Toujours présent**, plus seulement en édition —
                 la confirmation (« Supprimer ce deck ? ») reste le garde-fou.
                 À la souris, à l'AUTRE bout du pied (`lg:order-first
                 lg:mr-auto`) : un geste qui perd quelque chose ne se range pas
@@ -1639,9 +1634,8 @@ function DeckBlock({
             propre ligne, systématique. `sm:basis-auto` : au-delà, la place ne
             manque plus, elles reprennent leur place naturelle côte à côte. */}
         {/* `lg:hidden` : à la souris, le verdict et « réalisable N fois » sont
-            dans la colonne Verdict de la ligne (décision 15). */}
-        {/* ⚠️ **Au téléphone, les SETS visés sous la rangée** (lot 11b,
-            décision 25, la maquette) : ceux de chaque monstre, dans l'ordre
+            dans la colonne Verdict de la ligne. */}
+        {/* ⚠️ **Au téléphone, les SETS visés sous la rangée** : ceux de chaque monstre, dans l'ordre
             des portraits — à la souris, ils sont collés à chaque nom. La
             PREMIÈRE possibilité de runage, comme là-bas. */}
         {deck.slots.some((sl) => (sl.setOptions?.[0] ?? []).length > 0) && (
@@ -1677,7 +1671,7 @@ function DeckBlock({
 
       {!folded && (
       // ⚠️ À la souris, le détail d'une ligne dépliée est une CARTE sous elle,
-      // en retrait du chevron (décision 15) — le contenu est celui d'avant,
+      // en retrait du chevron — le contenu est celui d'avant,
       // inchangé. Au doigt, ce conteneur ne dessine rien.
       // Le cadre s'ARRÊTE au bas du détail (`lg:border-b-0`, coins du bas
       // droits) : le pied d'actions, en dessous, le ferme — voir plus haut.
@@ -2063,9 +2057,8 @@ function CounterBlock({
             porte encore aucune.
             ⚠️ **À la souris, un bouton `sm` POINTILLÉ à fond**, au bout de la
             rangée (`lg:ml-auto`) — le bord pointillé d'un ajout, le fond d'un
-            bouton. Il a été fantôme un temps (la maquette), et ne ressortait
-            pas (le mainteneur : « le bouton d'ajout de défense ne ressort pas
-            trop »). Au doigt,
+            bouton. Il a été fantôme un temps, et ne ressortait
+            pas. Au doigt,
             la tuile pointillée de 44 px d'avant, à la hauteur des vignettes :
             `taille="sm"` + `max-lg:px-3.5 max-lg:text-sm` redonnent
             exactement son dessin SOUS `lg` seulement. ⚠️ Pas `px-3.5 text-sm`
@@ -2223,9 +2216,8 @@ function CounterRow({
             jamais depuis son centre (voir spec/shared/design.md).
             `min-w-full` : au moins aussi large que la vignette, pour se lire
             comme sa suite ; `w-max` + plafond au-delà, la note étant courte. */}
-        {/* ⚠️ **Le `Flottant` de la librairie** (refonte graphique, lot 8a —
-            Le mainteneur : « fais la même chose partout dans l'appli », après la
-            bulle d'aide) : même fond, même contour neutre, même ombre et même
+        {/* ⚠️ **Le `Flottant` de la librairie**, comme partout dans l'app :
+            même fond, même contour neutre, même ombre et même
             rembourrage que toutes les bulles de l'app. C'était une boîte
             maison au contour d'ACCENT (réservé à l'état enclenché), à l'ombre
             et aux marges à elle. */}
@@ -2344,7 +2336,7 @@ function CounterRow({
   );
 }
 
-/* ---- Vue Défense (décision 19) ------------------------------------------ */
+/* ---- Vue Défense ------------------------------------------ */
 
 // Rang d'un statut de deck, du plus favorable au moins favorable : le point
 // d'une défense prend le MEILLEUR de ses offenses — une seule jouable suffit
@@ -2368,7 +2360,7 @@ function defenseLabel(monsters: RecoCounter['monsters'], byCom2us: Map<number, M
     .join(' - ');
 }
 
-// ⚠️ **Lecture seule** (choix du mainteneur) : on consulte « contre cette défense,
+// ⚠️ **Lecture seule** : on consulte « contre cette défense,
 // j'ai ces offenses » ; on modifie en vue Attaque. Même cadre et même rangée
 // d'intitulés que le tableau des decks, pour qu'une vue se lise comme l'autre.
 // Au doigt, chaque défense s'empile au-dessus de ses offenses.
@@ -3085,7 +3077,7 @@ function ArtifactList({
                         : `Propriété absente de l'artéfact ${LIBELLE_KIND[key]} de ton exemplaire`
                   }
                   // Fonds DOUX du jeton (`good-soft`/`bad-soft`), texte à l'encre :
-                  // un aplat saturé à 20-25 % se lisait mal (lot 7b).
+                  // un aplat saturé à 20-25 % se lisait mal.
                   className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 ${
                     ok === null
                       ? 'border-border-soft bg-panel'
@@ -3149,7 +3141,7 @@ function SetList({ options, sm }: { options: string[][]; sm: SlotMatch | null })
                       title={
                         ok === null ? undefined : ok ? 'Set porté' : `Set ${key} manquant sur ton exemplaire`
                       }
-                      // Fonds DOUX, texte à l'encre (lot 7b) — comme les
+                      // Fonds DOUX, texte à l'encre — comme les
                       // propriétés d'artéfact.
                       className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 ${
                         ok === null
@@ -3187,7 +3179,7 @@ function DeckBadge({ match }: { match: DeckMatch }) {
 }
 
 // La phrase du verdict d'un deck — lue par `DeckBadge` et par l'infobulle de
-// la pastille de la ligne (tableau des decks à la souris, décision 15) : une
+// la pastille de la ligne (tableau des decks à la souris) : une
 // seule rédaction pour les deux.
 function verdictDeck(match: DeckMatch): { cls: string; text: string } | null {
   const map: Record<string, { cls: string; text: string }> = {

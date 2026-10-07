@@ -33,6 +33,9 @@ export interface PreuveSwex {
 }
 
 const ATTENTE = 1500;
+// Délai avant de relancer une surveillance perdue (disque démonté un
+// instant, dossier synchronisé, dossier absent au lancement).
+const RELANCE = 5000;
 
 export function brancherSwex(fenetre: BrowserWindow, preuve?: PreuveSwex) {
   const cheminReglage = () => join(app.getPath('userData'), 'swex.json');
@@ -54,6 +57,7 @@ export function brancherSwex(fenetre: BrowserWindow, preuve?: PreuveSwex) {
   let reglage = lire();
   let surveillance: FSWatcher | null = null;
   let minuterie: ReturnType<typeof setTimeout> | null = null;
+  let relance: ReturnType<typeof setTimeout> | null = null;
   let pagePrete = false;
 
   const deLaPage = (e: Electron.IpcMainEvent | Electron.IpcMainInvokeEvent) => e.sender === fenetre.webContents;
@@ -66,7 +70,16 @@ export function brancherSwex(fenetre: BrowserWindow, preuve?: PreuveSwex) {
     if (!dossier) return { dossier, fichier, exports: [], dernierLu, introuvable: false };
     try {
       const noms = readdirSync(dossier, { withFileTypes: true }).filter((d) => d.isFile()).map((d) => d.name);
-      const exports = exportsDuDossier(noms).map((e) => ({ ...e, modifie: statSync(join(dossier, e.fichier)).mtimeMs }));
+      // ⚠️ Chaque fichier à part : un export que SW Exporter réécrit à cet
+      // instant peut disparaître entre la liste et sa date. Il est sauté —
+      // le dossier, lui, est bien là.
+      const exports = exportsDuDossier(noms).flatMap((e) => {
+        try {
+          return [{ ...e, modifie: statSync(join(dossier, e.fichier)).mtimeMs }];
+        } catch {
+          return [];
+        }
+      });
       return { dossier, fichier, exports, dernierLu, introuvable: false };
     } catch {
       return { dossier, fichier, exports: [], dernierLu, introuvable: true };
@@ -89,10 +102,30 @@ export function brancherSwex(fenetre: BrowserWindow, preuve?: PreuveSwex) {
     }
   }
 
-  function surveiller() {
+  // ⚠️ **Une surveillance perdue se relance.** Sur une erreur (disque externe
+  // démonté un instant, dossier synchronisé) ou un dossier illisible, elle
+  // était fermée pour de bon : les nouveaux exports n'arrivaient plus dans
+  // « Mon compte », sans un mot. L'état est diffusé (le dossier peut être dit
+  // introuvable), puis on réessaie ; revenue, la surveillance relit le dossier
+  // et l'export suivi, qui ont pu changer entre-temps.
+  function relancerPlusTard() {
+    envoyer('bureau:swex-etat', etat());
+    if (relance) clearTimeout(relance);
+    relance = setTimeout(() => {
+      relance = null;
+      if (!surveiller()) return;
+      envoyer('bureau:swex-etat', etat());
+      void donner(false);
+    }, RELANCE);
+  }
+
+  // `true` si le dossier est surveillé.
+  function surveiller(): boolean {
     surveillance?.close();
     surveillance = null;
-    if (!reglage.dossier) return;
+    if (relance) clearTimeout(relance);
+    relance = null;
+    if (!reglage.dossier) return false;
     try {
       // Non récursif : seuls les exports de la RACINE comptent (`live` écrit
       // en continu pendant une partie). Tout changement relance la liste ET
@@ -107,9 +140,13 @@ export function brancherSwex(fenetre: BrowserWindow, preuve?: PreuveSwex) {
       surveillance.on('error', () => {
         surveillance?.close();
         surveillance = null;
+        relancerPlusTard();
       });
+      return true;
     } catch {
-      /* dossier illisible : `etat().introuvable` le dira */
+      // Dossier illisible : `etat().introuvable` le dit, et on réessaie.
+      relancerPlusTard();
+      return false;
     }
   }
 

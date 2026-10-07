@@ -78,9 +78,23 @@ export function brancherMiseAJour(fenetre: BrowserWindow, preuve?: PreuveMiseAJo
 
   ipcMain.handle('bureau:mise-a-jour', (evenement) => (deLaPage(evenement) ? etat : null));
 
+  // ⚠️ Une recherche peut se terminer SANS aucun événement : `checkForUpdates`
+  // rend `null` quand `electron-updater` s'estime inactif (une AppImage
+  // extraite, par exemple). « Recherche… » resterait affiché, et « Rechercher »
+  // refuse cet état : rien ne le débloquerait avant un redémarrage. On conclut
+  // donc la recherche restée en cours, comme une erreur.
+  let demandee = false;
+  const chercher = () => {
+    autoUpdater
+      .checkForUpdates()
+      .then((resultat) => {
+        if (resultat == null && etat?.phase === 'recherche') passer(demandee ? 'injoignable' : 'aucune', app.getVersion());
+      })
+      .catch(() => {});
+  };
+
   // « Rechercher » (Réglages) : seulement quand rien n'attend — jamais
   // pendant un téléchargement, ni par-dessus une version proposée.
-  let demandee = false;
   ipcMain.on('bureau:rechercher', (evenement) => {
     if (!deLaPage(evenement)) return;
     if (etat && etat.phase !== 'aucune' && etat.phase !== 'a-jour' && etat.phase !== 'injoignable') return;
@@ -98,7 +112,7 @@ export function brancherMiseAJour(fenetre: BrowserWindow, preuve?: PreuveMiseAJo
       passer('a-jour', app.getVersion());
       return;
     }
-    autoUpdater.checkForUpdates().catch(() => {});
+    chercher();
   });
 
   // « Mettre à jour » : seulement depuis une version disponible (ou un échec,
@@ -175,5 +189,5 @@ export function brancherMiseAJour(fenetre: BrowserWindow, preuve?: PreuveMiseAJo
   });
   // La recherche du lancement : les Réglages la montrent (« Recherche… »).
   passer('recherche', app.getVersion());
-  autoUpdater.checkForUpdates().catch(() => {});
+  chercher();
 }

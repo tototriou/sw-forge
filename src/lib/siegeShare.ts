@@ -1,7 +1,6 @@
 // Export / import d'ÉQUIPES DE SIÈGE en fichier `.json` — Défense et Offense.
 //
-// Ajout décidé par Thomas le 2026-09-26 (refonte graphique, décision 14) ; spec :
-// spec/siege/README.md § Exporter et importer des équipes. 100 % local.
+// Spec : spec/siege/README.md § Exporter et importer des équipes. 100 % local.
 //
 // ⚠️ **Le `com2usId`, jamais l'id local.** Une équipe se range par `monsterId`
 // LOCAL, qui ne veut rien dire d'un joueur à l'autre (même règle que la prépa
@@ -13,10 +12,11 @@
 import type { Monster, SiegeTeam } from '../types';
 import { NOM_APP, PREFIXE_FICHIER } from '../marque';
 import { formatExport, formatReconnu } from './formatsExport';
+import { jourLocal } from './telechargement';
 
 // ⚠️ Un IDENTIFIANT de format, pas le nom de l'app. Il s'écrivait
 // `sw-forge/siege-equipes` : cet ancien identifiant reste relu, sans quoi les
-// fichiers déjà exportés seraient refusés (décision 66, formatsExport.ts).
+// fichiers déjà exportés seraient refusés (formatsExport.ts).
 export const FORMAT_SIEGE = formatExport('siege-equipes');
 export const VERSION_SIEGE = 1;
 
@@ -70,7 +70,7 @@ export function exporterEquipes(
 
 // `swblacksmith-siege-defense-2026-09-26.json` — le nom dit ce qu'il contient.
 export function nomFichierSiege(cote: CoteSiege, date = new Date()): string {
-  return `${PREFIXE_FICHIER}-siege-${cote}-${date.toISOString().slice(0, 10)}.json`;
+  return `${PREFIXE_FICHIER}-siege-${cote}-${jourLocal(date)}.json`;
 }
 
 export type LectureSiege =

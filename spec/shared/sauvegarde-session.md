@@ -119,6 +119,9 @@ testé).
   (`{ "chemin": … }`). La page redit la conservation au chargement et à
   chaque changement (`retenir`) ; le fichier retenu n'est repris qu'à la
   première réponse, si elle est oui, et si le fichier existe encore.
+  Introuvable (support pas encore monté, fichier déplacé), il n'est pas la
+  session en cours mais **reste retenu** pour l'ouverture suivante, jusqu'à
+  ce qu'une sauvegarde ou « Tout supprimer » le remplace.
   Conservation refusée : `session.json` est effacé, la session en cours ne
   vaut que jusqu'à la fermeture.
 - **« Tout supprimer »** (Paramètres ; l'application de bureau n'a pas

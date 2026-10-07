@@ -84,7 +84,8 @@ Ajout décidé par Thomas le 2026-09-26 (décision 14). Logique :
 
 - **« Exporter »** télécharge les équipes **affichées** — toutes, ou celles
   du filtre actif : l'infobulle le dit — dans un fichier
-  `swblacksmith-siege-<defense|offense>-AAAA-MM-JJ.json`.
+  `swblacksmith-siege-<defense|offense>-AAAA-MM-JJ.json`, daté du jour
+  **local** (`jourLocal`, pas le jour UTC).
 - Format `swblacksmith/siege-equipes` (`sw-forge/siege-equipes` avant le
   rebranding, toujours relu — décision 66), version 1, clés en français :
   `{ format, version, cote, equipes: [{ monstres: [{ com2usId, nom,

@@ -58,7 +58,7 @@ export function sessionBureau(): PontBureau['session'] | null {
   return pont()?.session ?? null;
 }
 
-// Le dossier SW Exporter (lot 9, décision 15 — voir bureau/swex.ts).
+// Le dossier SW Exporter (voir bureau/swex.ts).
 export interface EtatSwex {
   dossier: string | null;
   fichier: string | null;
@@ -80,7 +80,7 @@ export function swex(): PontBureau['swex'] | null {
   return pont()?.swex ?? null;
 }
 
-// La mise à jour automatique (lot 5), phase par phase — voir
+// La mise à jour automatique, phase par phase — voir
 // bureau/miseAJour.ts. Rien ne se télécharge sans « Mettre à jour ».
 export interface EtatMiseAJour {
   phase: 'aucune' | 'recherche' | 'a-jour' | 'injoignable' | 'disponible' | 'telechargement' | 'prete' | 'echec';
@@ -95,15 +95,15 @@ function pont(): PontBureau | null {
 export const estBureau = (): boolean => pont() !== null;
 
 // Un texte qui parle du NAVIGATEUR (« dans ton navigateur », « en fermant
-// l'onglet ») est faux dans l'app de bureau (lot 8) : `site` partout, `app`
-// dans l'app. ⚠️ Le site ne change pas (A.2 du cadrage) — on ne réécrit
+// l'onglet ») est faux dans l'app de bureau : `site` partout, `app`
+// dans l'app. ⚠️ Le site ne change pas — on ne réécrit
 // jamais le texte du site pour qu'il convienne aux deux.
 export function selonSupport<T>(site: T, app: T): T {
   return estBureau() ? app : site;
 }
 
 // Les installeurs de la dernière version publiée, que l'accueil du SITE
-// propose (lot 6, décision 13). ⚠️ Les noms suivent `artifactName` de
+// propose. ⚠️ Les noms suivent `artifactName` de
 // electron-builder.yml — sans numéro de version, seule adresse fixe ;
 // tests/bureau-mise-a-jour.test.ts vérifie qu'ils concordent.
 export const DEPOT = 'https://github.com/tototriou/sw-forge';

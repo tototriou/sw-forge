@@ -29,6 +29,7 @@ import { ConfirmDialog, Modale } from '../../ui/Dialogs';
 import { BarreActions, Bouton, Option } from '../../ui';
 import { PREFIXE_FICHIER } from '../../marque';
 import { selonSupport } from '../../lib/bureau';
+import { jourLocal, telechargerTexte } from '../../lib/telechargement';
 import type { ElementMenu } from '../../ui';
 
 /* --------------------------------------------------------------------------
@@ -82,16 +83,6 @@ interface Props {
   // de construction (« Créer un monstre ») avec les autres, les destructeurs
   // (« Tout effacer ») séparés en bas, avec « Réinitialiser ».
   entreesEnPlus?: ElementMenu[];
-}
-
-// Télécharge un texte en fichier (aucun envoi réseau).
-function download(filename: string, text: string) {
-  const url = URL.createObjectURL(new Blob([text], { type: 'application/json;charset=utf-8' }));
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
 }
 
 // « il y a 3 minutes », « hier à 14:32 » — repère plus parlant qu'une date ISO
@@ -235,9 +226,8 @@ export default function RtaBackupBar({
       vitesses: 'ordre-et-sets',
       ordre: 'ordre-seul',
     };
-    const jour = new Date().toISOString().slice(0, 10); // déjà « 2026-08-11 »
-    const fichier = `${PREFIXE_FICHIER}-prepa-rta-${suffixe[niveau]}-${jour}.json`;
-    download(fichier, encodeSnapshot(snap));
+    const fichier = `${PREFIXE_FICHIER}-prepa-rta-${suffixe[niveau]}-${jourLocal()}.json`;
+    telechargerTexte(fichier, encodeSnapshot(snap));
     const dit: Record<NiveauPartage, string> = {
       complet: 'avec les runes et artéfacts',
       vitesses: 'ordre de tour, vitesses et sets',

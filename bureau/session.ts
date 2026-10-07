@@ -48,6 +48,11 @@ export function brancherSession(fenetre: BrowserWindow, preuve?: PreuveSession) 
   const cheminRetenu = () => join(app.getPath('userData'), 'session.json');
   const cheminReglage = () => join(app.getPath('userData'), 'dossier-swblacksmith.json');
   let courante: string | null = null;
+  // Le fichier retenu, introuvable à la reprise (clé USB, partage réseau ou
+  // dossier synchronisé pas encore monté) : il n'est pas la session en cours,
+  // mais il reste retenu pour l'ouverture suivante, jusqu'à ce qu'une
+  // sauvegarde ou « Tout supprimer » le remplace.
+  let absente: string | null = null;
   let dossier = lireDossier();
   let retenir = false;
   let repris = false;
@@ -86,7 +91,8 @@ export function brancherSession(fenetre: BrowserWindow, preuve?: PreuveSession) 
 
   function memoriser() {
     try {
-      if (retenir && courante) writeFileSync(cheminRetenu(), JSON.stringify({ chemin: courante }, null, 2));
+      const chemin = courante ?? absente;
+      if (retenir && chemin) writeFileSync(cheminRetenu(), JSON.stringify({ chemin }, null, 2));
       else rmSync(cheminRetenu(), { force: true });
     } catch {
       /* disque en lecture seule : la session en cours vaut pour cette ouverture */
@@ -99,9 +105,11 @@ export function brancherSession(fenetre: BrowserWindow, preuve?: PreuveSession) 
     if (!retenir) return;
     try {
       const chemin = lireSessionRetenue(JSON.parse(readFileSync(cheminRetenu(), 'utf8')));
-      // Déplacé ou supprimé depuis : pas de session en cours, la prochaine
-      // sauvegarde en crée une.
+      // Introuvable : pas de session en cours, la prochaine sauvegarde en crée
+      // une. Mais il reste retenu (`absente`) : un support pas encore monté
+      // n'efface pas la session de l'utilisateur.
       if (chemin && existsSync(chemin)) courante = chemin;
+      else absente = chemin;
     } catch {
       /* aucun fichier retenu, ou illisible */
     }
@@ -190,6 +198,7 @@ export function brancherSession(fenetre: BrowserWindow, preuve?: PreuveSession) 
       }
       if (chemin !== courante) {
         courante = chemin;
+        absente = null;
         memoriser();
         repondre();
       }
@@ -248,6 +257,7 @@ export function brancherSession(fenetre: BrowserWindow, preuve?: PreuveSession) 
   ipcMain.handle('bureau:session-oublier', (e) => {
     if (!deLaPage(e)) return null;
     courante = null;
+    absente = null;
     memoriser();
     return repondre();
   });

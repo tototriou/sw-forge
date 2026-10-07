@@ -141,6 +141,7 @@ import {
 import { buildOptimizerRecipe, mainsPourCeCompte, parseOptimizerRecipe, relicMainPourCeCompte } from '../../lib/optimizerRecipe';
 import { classeMessageImport, delaiEffacementImport, type MessageImport } from '../../lib/messageImport';
 import { DUREE_ATTENTION_MS, doitRappeler, echoAurasExternes, guideVersResPre } from '../../lib/aurasExternes';
+import { jourLocal, telechargerTexte } from '../../lib/telechargement';
 import {
   ArtifactMainChoice,
   OptimizerState,
@@ -403,17 +404,6 @@ function formatBig(n: number): string {
   if (!Number.isFinite(n)) return '—';
   if (n < 1_000_000_000) return Math.round(n).toLocaleString('fr-FR');
   return n.toExponential(1);
-}
-
-// Télécharge un texte en fichier (aucun envoi réseau) — même patron que
-// RtaBackupBar.tsx.
-function download(filename: string, text: string) {
-  const url = URL.createObjectURL(new Blob([text], { type: 'application/json;charset=utf-8' }));
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
 }
 
 // Outil « Optimizer » : cherche, parmi les runes du compte, la (les)
@@ -1926,12 +1916,12 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
       relicUniqueChoice,
       relicMinUpgrade,
     });
-    const jour = new Date().toISOString().slice(0, 10);
+    const jour = jourLocal();
     const DIACRITICS = new RegExp('[̀-ͯ]', 'g');
     const slug = selected.monster.name.toLowerCase().normalize('NFD').replace(DIACRITICS, '').replace(/[^a-z0-9]+/g, '-');
     // Préfixe de la marque (rebranding, décision 14) : `swblacksmith-optimizer-…`.
     // Seul le NOM du fichier change ; son contenu et son format, non.
-    download(`${PREFIXE_FICHIER}-optimizer-${slug}-${jour}.json`, JSON.stringify(recipe, null, 2));
+    telechargerTexte(`${PREFIXE_FICHIER}-optimizer-${slug}-${jour}.json`, JSON.stringify(recipe, null, 2));
   }
 
   // Reprend une recette importée (export d'un autre joueur, ou la sienne

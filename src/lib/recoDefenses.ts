@@ -1,15 +1,15 @@
 // Vue DÉFENSE d'une recommandation : les défenses visées, et pour chacune les
 // offenses de la recommandation qui la battent — l'inverse de la vue Attaque
-// (un deck, puis les défenses contre lesquelles il est fort). Refonte
-// graphique, décision 19 ; spec : spec/siege/recommandations.md § Vue Défense.
+// (un deck, puis les défenses contre lesquelles il est fort). Spec :
+// spec/siege/recommandations.md § Vue Défense.
 //
 // ⚠️ **Une VUE, pas un modèle** : tout est DÉRIVÉ des `counters` de chaque
-// deck, rien n'est stocké. Le format exporté ne change pas, un ancien fichier
-// s'affiche dans les deux vues sans conversion. (Thomas : « attention à ne pas
-// toucher au modèle de données exporté ».)
+// deck, rien n'est stocké. Le format exporté ne change pas : un ancien fichier
+// s'affiche dans les deux vues sans conversion, et les fichiers déjà partagés
+// restent lisibles.
 //
 // ⚠️ **Même défense = même LEADER et mêmes deux autres monstres**, dans
-// n'importe quel ordre (choix de Thomas) : un leader différent change la
+// n'importe quel ordre : un leader différent change la
 // défense en jeu — son lead —, les deux autres se saisissent dans l'ordre
 // qu'on veut. Un monstre sans identifiant (saisi à la main) se reconnaît à son
 // nom, sans casse.

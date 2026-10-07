@@ -1,4 +1,4 @@
-// Le dossier SW Exporter — chantier application-bureau, lot 9, décision 15.
+// Le dossier SW Exporter.
 //
 // L'utilisateur choisit dans les Réglages (bloc « Application ») le dossier où
 // SW Exporter écrit ses exports et l'invocateur à suivre. Ce module retient ce

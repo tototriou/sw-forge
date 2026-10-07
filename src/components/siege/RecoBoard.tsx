@@ -13,6 +13,7 @@ import type { VueRecos } from '../../lib/recoDefenses';
 import { ConfirmDialog } from '../../ui/Dialogs';
 import { OwnedBuild, OwnedTeam, indexBuildsByCom2us } from '../../lib/ownedBuilds';
 import { formesJouables } from '../../lib/monsterForms';
+import { telechargerTexte } from '../../lib/telechargement';
 import Segmented from '../../ui/Segmented';
 import MobileSheet from '../../ui/MobileSheet';
 import MonsterAvatar from '../MonsterAvatar';
@@ -33,16 +34,6 @@ interface Props {
   // Panneau d'actions mobile — piloté par le bouton « Options » (voir App.tsx).
   menuOuvert: boolean;
   onFermerMenu: () => void;
-}
-
-// Télécharge un texte en fichier (aucun envoi réseau).
-function download(filename: string, text: string, mime = 'application/json;charset=utf-8') {
-  const url = URL.createObjectURL(new Blob([text], { type: mime }));
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
 }
 
 // ⚠️ **Deux VUES des mêmes recommandations** (refonte graphique, décision 19 —
@@ -293,7 +284,7 @@ export default function RecoBoard({
     // presse-papier — l'import ne lit que des fichiers, un contenu collé
     // n'aurait nulle part où aller.
     const what = `${usable.length} recommandation(s) · ${decks} deck(s)`;
-    download(`${PREFIXE_FICHIER}-reco-${slugify(label)}.json`, encodeRecosJson(usable));
+    telechargerTexte(`${PREFIXE_FICHIER}-reco-${slugify(label)}.json`, encodeRecosJson(usable));
     setMsg({ text: `${what} · fichier .json téléchargé.` });
     setExportAConfirmer(null);
   }

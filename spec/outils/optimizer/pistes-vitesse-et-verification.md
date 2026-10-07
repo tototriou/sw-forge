@@ -17,15 +17,18 @@ Sur les cas mesurés, l'appariement prenait presque tout le temps de la
 recherche, et une paire y coûtait bien moins qu'un calcul de stats complet :
 les replis rapides de `pairBuckets` écartent presque toutes les paires avant
 `computeStats`. Le gain le plus large viendrait donc d'explorer moins de
-paires, pas de les parcourir plus vite :
-[pistes.md § Optimalité prouvée : Branch & Bound sur les paires, statuts du résultat](pistes.md),
-[pistes.md § Ordre des emplacements dans une moitié](pistes.md). Ces pistes
-touchent la justesse : aucune sans la référence exhaustive qu'exige le skill
+paires, pas de les parcourir plus vite. Au préréglage le plus large, c'est
+la construction des compartiments qui domine
+([verification.md § Benchmarks](verification.md)).
+
+Les entrées ci-dessous accélèrent la recherche sans changer ce qu'elle
+cherche. Celles qui changent le pool, les garanties ou le résultat, même
+pour aller plus vite, sont dans
+[pistes.md § Moteur de recherche des runes](pistes.md) — explorer moins de
+paires (§ Optimalité prouvée : Branch & Bound sur les paires, statuts du
+résultat), couper plus tôt, autre partition des moitiés, GPU — et touchent
+la justesse : aucune sans la référence exhaustive qu'exige le skill
 `algo-verify` ([verification.md § Référence exhaustive : le test différentiel](verification.md)).
-Au préréglage le plus large, c'est la construction des compartiments qui
-domine ([verification.md § Benchmarks](verification.md)). Les entrées
-ci-dessous retirent un coût sans rien changer à ce qui est exploré, sauf la
-dernière.
 
 ### Le temps relu à chaque paire
 
@@ -41,23 +44,6 @@ dernière.
   harnais déduit le motif d'arrêt de l'ordre des tests dans la boucle
   ([harnais.md § Complétude : jamais un « 0 candidat » nu](harnais.md)) :
   à revérifier avec le nouvel ordre.
-
-### Écarter les runes hors combo avant la dominance
-
-- **Constat** : quand le combo demandé coûte les six emplacements,
-  `filterSlot` écarte toute rune qui n'est ni d'un set demandé ni une
-  Intangible (`hasFreeSlots`, `src/lib/runeBuildOptim.ts`) : un élagage
-  sûr, mais au dernier étage de `prepareSearch`, après
-  `mainStatFilteredBySlot`, `pruneDominated` et `eliminateInfeasible`.
-  `pruneDominated` compare chaque paire de runes d'un emplacement, et y
-  renonce au-delà de `DOMINANCE_MAX_POOL` (2 000 runes).
-- **Idée** : appliquer cette coupe en tête. La dominance coûterait moins,
-  et un emplacement repassé sous le seuil la retrouverait : un pool mieux
-  élagué pour toute la suite, pas seulement plus vite.
-- **Bloque** : jamais mesuré, et sans effet dès qu'un emplacement reste
-  libre. `contexteDominance` et `eliminateInfeasible` se calculent sur le
-  pool de l'étage, que la coupe réduirait : vérifier contre un oracle que
-  rien n'en devient faux (skill `algo-verify`).
 
 ### Rendre la main moins souvent pendant l'appariement
 
@@ -83,17 +69,53 @@ dernière.
 - **Bloque** : une campagne de mesure (`scripts/pairing-parallel-diag.ts`,
   skill `optimizer-perf-testing`), jamais faite.
 
-### Ce que garde une recherche arrêtée par le plafond de candidats
+### Équilibrage de l'appariement parallèle par productivité
 
-- **Constat** : `MAX_COLLECTED` atteint, la recherche s'arrête, et les
-  candidats gardés sont les premiers collectés dans l'ordre d'exploration
-  (compartiments par potentiel, `combosOrderMode`), pas forcément les meilleurs
-  ([limites-connues.md § Recherche des runes — le meilleur trouvé, pas l'optimum prouvé](limites-connues.md)).
-  Le joueur ne lit que le haut de ce classement.
-- **Idée** : un ordre de collecte qui fasse arriver les meilleurs d'abord :
-  une piste de pertinence, pas de vitesse.
-- **Bloque** : jamais explorée. Se juge sur la qualité sous saturation,
-  jamais sur les comptes ([moteur/artefacts.md § Mesurer un changement des bornes](moteur/artefacts.md)).
+- **Constat** : `partitionBucketsALPT` équilibre les tranches par taille
+  (`combos.length`), jamais par productivité
+  ([moteur/parallelisation.md § Répartition et partage du plafond](moteur/parallelisation.md)).
+  Sous troncature, une tranche peu productive et une tranche qui bute sur
+  sa part du plafond coexistent. Aucune perte n'est constatée, ni sur un
+  pool synthétique ni sur les cas connus, depuis la coupe des moitiés sans
+  pièce d'un set de plus de 3 pièces
+  ([moteur/elagages.md § Faisabilité de set, groupage par compte et jokers](moteur/elagages.md)).
+- **Idée** : équilibrer par productivité attendue, ou redistribuer les
+  parts du plafond en cours de route.
+- **Bloque** : aucun cas réel ne montre de perte : à rouvrir sur un tel cas.
+  Toute reprise garde une part par fil bornée : un fil qui recevrait sans
+  limite le plafond entier rouvrirait le compromis mémoire et temps de
+  `MAX_COLLECTED`, et le nombre de candidats s'affiche à l'écran.
+
+### Ordre des emplacements dans une moitié
+
+- **Constat** : `buildBuckets` parcourt les trois emplacements d'une moitié
+  dans l'ordre de `slotIdxs`, quel qu'il soit ; la faisabilité de set
+  (`stillFeasible`) coupe une branche dès qu'elle ne peut plus atteindre le
+  compte de pièces demandé
+  ([moteur/elagages.md § Faisabilité de set, groupage par compte et jokers](moteur/elagages.md)).
+- **Idée** : mettre en position extérieure l'emplacement le plus contraint,
+  pour couper les branches mortes avant d'avoir parcouru les deux autres.
+  Pur réordonnancement : la justesse ne change pas.
+- **Bloque** : jamais construit ni mesuré.
+
+### Recherche à beaucoup de conditions simultanées
+
+- **Constat** : sur un cas réel à sept conditions simultanées, la seule
+  construction des moitiés dépasse le filet de temps. Ce cas est absent
+  exprès de la batterie de mesure (`scripts/lib/perfShared.ts`, commentaire
+  qui précède `CASES`). Rien dans le moteur ne le traite.
+- **Idée** : localiser où la construction passe son temps à ce nombre de
+  conditions (harnais, arrêt après les demi-builds), puis la borner.
+- **Bloque** : non remesuré sur le code actuel, et jamais retouché.
+
+### WebAssembly
+
+- **Constat** : le moteur calcule sur des objets JavaScript, sans tableaux
+  typés.
+- **Idée** : porter la boucle la plus chaude en WebAssembly.
+- **Bloque** : suppose d'abord des tableaux typés à disposition fixe, qui
+  n'existent pas ; le chantier le plus lourd et le plus risqué, jamais
+  commencé.
 
 ## Mesurer la recherche
 

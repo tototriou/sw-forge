@@ -239,6 +239,25 @@ codée porte « Calcul partiel »
   suites critique et non critique (environ 1,20 → règle confirmée). Hors
   inventaire : Mach Crush à 0, 1 puis 2 débuffs.
 
+### Escalade d'un coup à l'autre
+
+- **Constat** : trois S3 annoncent des dégâts qui croissent au fil des
+  coups : Start of Apocalypse (`13112`, Baleygr, « the damage increases as
+  you attack »), Shooting Star (`1311`, `1361`, Kacey, « increases as the
+  same target gets hit again ») et Doomsday (`6215`, `6265`, `6280`,
+  Thrain, « increases with time »). Aucun n'a d'entrée dans
+  `src/lib/damage.ts` : chaque coup vaut le ratio de la donnée, sans
+  croissance. Start of Apocalypse frappe autant de fois que Baleygr a de
+  Connaissances (1 à 5) ; la donnée dit 5 coups.
+- **Idée** : un incrément par coup, curé par identifiant ; pour Start of
+  Apocalypse, le nombre de coups saisi selon les Connaissances ; pour
+  Shooting Star, avec le compteur des coups qui touchent la cible.
+- **Bloque** : un relevé en jeu par sort, sur une cible seule (donjon à un
+  ennemi ou dernier ennemi vivant) à DEF élevée : les chiffres d'un même
+  lancer. Coup k / coup 1 constant → aucune escalade ; croissance régulière
+  → l'incrément. Pour Baleygr, compter aussi les coups selon le nombre de
+  Connaissances.
+
 ### Effets entre coups hors inventaire
 
 - **Constat** : `EFFETS_ENTRE_COUPS_CONNUS` et

@@ -95,8 +95,8 @@ par invention.
 | Chain Fire (D09) | Salves de **deux** flèches : le compteur avance par pas de 2, une unité = une flèche | utilisateur, 2026-10-03 (questionnaire) |
 | Frodo — buff « all allies » du passif | Le porteur **reçoit aussi** le buff d'ATQ (le champ `surSoi: false` de la fiche est faux) ; de même Silver Tail, son jumeau collab | utilisateur, 2026-10-03 (lot P2) |
 | Versions Summoners War et collab | Deux monstres reliés par `jumeauCollab` (même `skillGroupId`) ont **la même mécanique** : une valeur ou une règle fournie pour l'un vaut pour l'autre (déjà dit pour Taebaek et Hwoarang ténèbres) | utilisateur, 2026-10-03 |
-| Sindar's Volley, Sylvan Volley (QR-02) | **2 à 5 coups** : 2, puis jusqu'à 3 supplémentaires (R05 sans objet ; à coder par le lot reporté P5b, `decisions/reste-a-faire-degats-2026-10.md`) | utilisateur, 2026-10-04 (questions du lot R) |
-| Clear Water, Precision (Q10) | +50 RES et +25 PRE en **points additifs** (utile seulement si les passifs comptent dans les conditions, D54) | utilisateur, 2026-10-03 (questionnaire) |
+| Sindar's Volley, Sylvan Volley | **2 à 5 coups** : 2, puis jusqu'à 3 supplémentaires ; pas encore codé : [pistes.md § Plages de coups à relever et coups « au hasard »](pistes.md) | utilisateur, 2026-10-04 (questionnaire) |
+| Clear Water, Precision | +50 RES et +25 PRE en **points additifs** (utile seulement si les passifs comptent dans les conditions : voir « RES et PRE des passifs ») | utilisateur, 2026-10-03 (questionnaire) |
 
 ⚠️ **La jauge d'ATB adverse n'est pas modélisée dans l'Optimizer, et ce
 chantier ne la modélise pas.** C'est précisément pourquoi la condition d'ignore

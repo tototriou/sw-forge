@@ -260,8 +260,11 @@ et Reelseiden・Flurry 25206 et 25210 (Übel). Sans pose choisie le total ne
 change pas ; posé après le coup qui le pose, l'effet ne majore que les coups
 suivants (sort seul, DEF cible 1 500 : ×1,455 pour Cichlid, ×1,682 pour les
 Brise DEF du coup 1, ×1,188 pour Weakness Shot, ×1,125 pour Eivor). Le
-sélecteur propose toujours tous les rangs, y compris un coup qui ne pose rien
-(décision D21 en attente). Les autres effets de ces sorts
+sélecteur propose toujours tous les rangs, y compris un coup qui ne pose rien ;
+ne proposer que les coups qui posent l'effet (Cichlid : A.2 ter, « Crushed
+Hopes de Cichlid ») reste à coder
+([pistes.md § Poses entre les coups : rang, buff posé par le sort, Eightfold](pistes.md)).
+Les autres effets de ces sorts
 (Decrease ATK, Étourdissement, Irrécupérable) ne sont pas curés ; Solveig et
 Berghild (18007, 18009 : la Marque n'est que dans la prose) attendent un
 relevé en jeu. Test : `testEffetsEntreCoups322`

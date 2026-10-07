@@ -156,11 +156,11 @@ Puis, pour l’une comme pour l’autre :
    qu’il est déjà actif et que le calcul lit fait classer le cas, jamais
    accepter : buff d’ATQ de Tiger Punch, buff de VIT de Seal Punch (lu par la
    ligne 221, dégâts selon la VIT buffée). ⚠️ **La Marque** que Shoryuken et
-   Iron Uppercut posent (`Brand`, 100 %) n’est ni modélisée ni relevée pour
-   la S1 enchaînée : **à relever avant de curer** le constat 178 — un
-   rapport, un seul changement : Hadoken déclenché avec et sans Marque
-   préexistante, sur une cible à forte DEF (skill `game-data-curation`,
-   § 6 bis).
+   Iron Uppercut posent (`Brand`, 100 %) n’est pas modélisée pour la S1
+   enchaînée. Elle est posée (ou non) **avant** que la S1 se déclenche : un
+   interrupteur « Marque posée » la règle, sans relevé (A.2 ter, « Marque
+   de la S2, puis S1 enchaîné ») ; il reste à coder
+   ([pistes.md § Compétence active appelée par un sort](pistes.md)).
 
 ### Les 17 amorces des constats 168, 178 et 179 (lot 9c)
 
@@ -169,11 +169,11 @@ curée en production.
 
 | Amorces | Verdict | Raison |
 | --- | --- | --- |
-| `13907`, `13908`, `13910`, `14407`, `14408`, `14410` (178, RYU et Striker) | acceptables, une entrée chacune | même total que le profil construit à la main du lot 12 ; la Marque reste à relever (point 6) |
-| `8107`, `8110` (Drunken Kick), `8113` (Phoenix Kick), `8114` (Stork Kick), `8115` (Snake Punch) (179) | acceptables, une entrée chacune | rien de ce qu’ils posent n’est lu par Rolling Punch (il ignore la DEF ; le soin ne porte que sur Stork Kick) ; Snake Punch : sa hausse de TC ne comptait qu’en mode Moyenne, « pas le calcul visé » selon l’utilisateur (amendement 1c1) — limite tombée avec ce mode (lot CM) |
-| `8106`, `8108`, `8109` (One More Drink, 179) | classées | le déclencheur est un soin, sans profil de dégâts, jamais « Compétence utilisée » ; Rolling Punch y est la première attaque du tour et reçoit 411, que la boucle neutralise |
-| `8111` (Seal Punch), `8112` (Tiger Punch) (179) | classées | buff de VIT ou d’ATQ posé avant Rolling Punch, lu par le calcul (point 6) |
-| `6161` (Head to Head, Mina 2A, 168) | classée | un passif qui appelle Energy Punch après **tout coup critique** de son tour, S1 comprise : la S1 s’appellerait elle-même, ce que l’exclusion par identifiant interdit ; condition liée au critique ; déclencheurs et récursion non curés |
+| `13907`, `13908`, `13910`, `14407`, `14408`, `14410` (RYU et Striker) | acceptables, une entrée chacune | même total qu’un profil construit à la main ; la Marque reste à régler (point 6) |
+| `8107`, `8110` (Drunken Kick), `8113` (Phoenix Kick), `8114` (Stork Kick), `8115` (Snake Punch) | acceptables, une entrée chacune | rien de ce qu’ils posent n’est lu par Rolling Punch (il ignore la DEF ; le soin ne porte que sur Stork Kick) ; Snake Punch : sa hausse de TC ne compterait que dans un mode critique pondéré par le Taux Crit, que le calcul n’a pas (« Critique » ou « Non critique ») |
+| `8106`, `8108`, `8109` (One More Drink) | classées | le déclencheur est un soin, sans profil de dégâts, jamais « Compétence utilisée » ; Rolling Punch y est la première attaque du tour et reçoit 411, que la boucle neutralise |
+| `8111` (Seal Punch), `8112` (Tiger Punch) | classées | buff de VIT ou d’ATQ posé avant Rolling Punch, lu par le calcul (point 6) |
+| `6161` (Head to Head, Mina 2A) | classée | un passif qui appelle Energy Punch après **tout coup critique** de son tour, S1 comprise : la S1 s’appellerait elle-même, ce que l’exclusion par identifiant interdit ; condition liée au critique ; déclencheurs et récursion non curés |
 
 ⚠️ **Les Samouraïs ne relèvent pas de « activée par un interrupteur »** :
 après S1, l’utilisateur CHOISIT S1, S2, S3 ou S4 ; après S2, S1, S3 ou S4 ;

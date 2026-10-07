@@ -195,6 +195,20 @@ codée porte « Calcul partiel »
   d'Agrenia et de Driana, coup 2 / coup 1 sur l'ennemi de plus faible DEF
   non touché par la Brise DEF : 3,3 ou 3,2.
 
+### Skillups des séquences à valeur de l'API
+
+- **Constat** : chaque groupe de `sequenceDeCoups` reçoit le profil entier
+  du sort (`computeSkillDamageDetail`, `src/lib/damage.ts`), skillups compris :
+  ils valent aux deux phases de Fatal Extinctive Bullet (`13311`, Abigail),
+  Fatal Armor Bullet (`13314`, Emily), Head Press (`14113`, M. BISON) et
+  Great Sword of the End (`14613`, Sagar), sans confirmation
+  ([sequences-de-coups.md § Séquences à valeur de l’API](sequences-de-coups.md)).
+- **Idée** : les borner à la phase 1 si le relevé le dit.
+- **Bloque** : un relevé, sort au maximum de skillups, deux coups non
+  critiques sur la cible visée, phase 2 / phase 1 : Abigail ou Emily,
+  environ 1,29 → les deux phases, environ 1,03 → la phase 1 seule ;
+  M. BISON ou Sagar, environ 1,30 contre 1,13.
+
 ### Part copiée sur un autre ennemi
 
 - **Constat** : Thunder Break (`2908`), Lightning of Cycle (`9413`) et

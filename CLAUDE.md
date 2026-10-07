@@ -19,9 +19,9 @@ ouvrir. Ne pas explorer `src/` à l'aveugle.
   `node scripts/spec-toc.mjs <fichier|dossier>` (sommaire compact : en-tête,
   puis niveau / plage de lignes / première phrase de chaque titre) puis la
   section utile — jamais un fichier entier de plus de 300 lignes sans raison
-  écrite. Avant un chantier Optimizer : `invariants.md` (en entier — le seul
-  fichier lu ainsi, tenu compact pour ça) et le README de routage, tous deux
-  dans `spec/outils/optimizer/`. **Modification NORMATIVE** d'un fichier
+  écrite. Avant un chantier Optimizer : `spec/outils/optimizer/invariants.md`
+  (en entier — le seul fichier lu ainsi, tenu compact pour ça) et le README
+  de routage, `spec/outils/optimizer/README.md`. **Modification NORMATIVE** d'un fichier
   listé en exception dans `spec/spec-lint.json`, ou extraction des
   invariants d'une section d'état actuel nouvelle/modifiée : skill
   `spec-hygiene` (déplacer, découper, extraire — pas pour une faute, un lien
@@ -133,8 +133,8 @@ recette pour demander un relevé en jeu exploitable.
 travaille jamais, on en part.
 
 - **Un hook `pre-commit` refuse cinq choses** : un commit sur `main`, un
-  chemin privé dans l'index (`.history/`, `.vscode/`), sous
-  `spec/outils/optimizer/` un fichier absent de
+  chemin privé dans l'index (`.history/`, `.vscode/`), dans le dossier de
+  l'Optimizer un fichier absent de
   `.githooks/optimizer-publics.txt` ou qui porte une marque de note privée
   (une spec publiée y ajoute sa ligne dans le même commit), un fichier de
   plus de 5 Mo (un export de compte), et un `spec/**.md` du périmètre de

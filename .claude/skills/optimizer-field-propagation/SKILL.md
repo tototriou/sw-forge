@@ -1,116 +1,168 @@
 ---
 name: optimizer-field-propagation
-description: "Checklist à suivre pour tout ajout, renommage ou changement de sémantique/défaut d'un champ TRAVERSANT (OptimizerState, OptimizerRecipe, RealDamageContext, ArtifactDamageProfile…) — l'écran, la recette et les scripts CLI ont chacun leur propre copie de la logique, et la documentation est éclatée sur plusieurs fichiers distincts. Un champ OPTIONNEL oublié dans l'un d'eux ne déclenche aucune erreur tsc : le seul signal est un script qui diverge silencieusement de l'écran, ou une doc qui ment."
+description: "Checklist pour tout ajout, renommage ou changement de type, de défaut ou de sens d'un champ TRAVERSANT de l'Optimizer (OptimizerState, OptimizerRecipe, SearchParams, RealDamageContext, entrée de résolution…) — d'abord un producteur pur unique, appelé par l'écran, la recette, les scripts et les Workers ; là où plusieurs constructeurs subsistent, chacun se vérifie, parce qu'un champ optionnel oublié dans l'un d'eux passe tsc et fait diverger un script de l'écran sans bruit."
 ---
 
 # Propagation d'un champ Optimizer (SW Blacksmith)
 
 ## Quand ce skill s'applique
 
-- Ajout d'un nouveau champ dans `OptimizerState` (`useOptimizerState.ts`)
-  ou `OptimizerRecipe` (`optimizerRecipe.ts`).
-- Renommage, changement de type, ou changement de **valeur par défaut** /
-  **sémantique** (ex. inversion booléenne) d'un champ existant de l'un des
-  deux.
-- Suppression d'un champ devenu inutile.
-- ⚠️ **Tout autre type TRAVERSANT** — c'est-à-dire dont la valeur est
-  construite à plusieurs endroits indépendants (écran, moteur, scripts CLI,
-  tests) plutôt qu'en un seul. `RealDamageContext` (runeBuildOptim.ts) et
-  `ArtifactDamageProfile` (damage.ts) en sont : ils vivent hors
-  d'`OptimizerState`/`OptimizerRecipe` mais traversent les mêmes six
-  emplacements, avec exactement le même risque.
+- Ajout d'un champ dans `OptimizerState` (`useOptimizerState.ts`) ou
+  `OptimizerRecipe` (`optimizerRecipe.ts`).
+- Renommage, changement de type, de **valeur par défaut** ou de **sens**
+  (ex. inversion booléenne) d'un champ de l'un des deux ; suppression d'un
+  champ devenu inutile.
+- Tout autre type **traversant**, c'est-à-dire construit à plusieurs
+  endroits indépendants (écran, scripts, Workers, tests) : `SearchParams`,
+  `RealDamageContext`, `ArtifactSearchParams`, l'argument de
+  `entreeResolutionDuBuild`.
 
-**Le critère n'est donc PAS « ce champ est-il dans OptimizerState ? »** mais
-**« combien d'endroits INDÉPENDANTS construisent cette valeur ? »**. Un seul
-constructeur → le compilateur suffit. Plusieurs → cette checklist.
+**Le critère est « combien d'endroits INDÉPENDANTS construisent cette
+valeur ? »**, pas « ce champ est-il dans `OptimizerState` ? ». Un seul
+constructeur : le compilateur suffit. Plusieurs : d'abord les ramener à un
+seul (section suivante), puis la checklist pour ce qui reste.
 
-**Hors périmètre** : un changement purement interne au moteur qui ne traverse
-rien (une variable locale, une constante de calage) — voir `algo-verify` pour
-la correction algorithmique, `optimizer-perf-testing` pour la méthodologie de
-mesure. Ce skill-ci ne couvre QUE la complétude de la PLOMBERIE (la valeur
-arrive-t-elle partout où elle doit arriver), jamais la justesse de
-l'algorithme lui-même.
+**Hors périmètre** : un changement interne au moteur qui ne traverse rien
+(variable locale, constante de calage). La correction algorithmique relève
+d'`algo-verify`, la mesure d'`optimizer-perf-testing`. Ce skill ne couvre que
+la **plomberie** : la valeur arrive-t-elle partout où elle doit arriver.
+
+## D'abord le producteur unique
+
+Avant de brancher un champ dans plusieurs constructeurs, chercher la
+fonction pure qui produit déjà la valeur pour tous les côtés, et n'ajouter le
+champ qu'à elle. Si la valeur est encore assemblée à deux endroits, la
+première réponse est d'extraire cette fonction (sous `src/lib/`, sans
+React ni API de plateforme, pour que Node et les Workers l'importent) et de
+la faire appeler partout ; la checklist ne sert que là où plusieurs
+constructeurs subsistent.
+
+Producteurs en place, chacun appelé de plusieurs côtés :
+
+| Valeur | Producteur | Appelé par |
+|---|---|---|
+| paramètres de choix des paires, sans `evaluer` | `parametresArtefactsFiche` (artifactFiche.ts) | écran (`artifactParams`, OptimizerSection.tsx), CLI (`paramsArtefacts`, recipeToSearchParams.ts), différentiel des reliques (`entreeResolution`, relicDifferentiel.ts) |
+| entrée de résolution d'un build | `entreeResolutionDuBuild` (relicQueue.ts) | écran (`resoudreEquipement`), CLI (`resoudreEquipementCli`), différentiel des reliques (`entreeResolution`), Worker de résolution (`CorpsResolution`, resolutionBody.ts) |
+| options du classement | `optionsDeClassement` (runeBuildOptim.ts) | écran, CLI (classementCli.ts), harnais (diagnosticHarness.ts) |
+| stats des lignes d'artéfacts équipables | `statsLignesArtefactsEquipables` (artifactFiche.ts) | écran (`handleSearch`), CLI (`resolveStatsLignesArtefacts`) |
+| conditions avec auras | `avecAurasConditions` (runeBuildOptim.ts) | écran (`requirementAvecAuras`), CLI (`recipeToSearchParams`) |
+| profil de dégâts des artéfacts | `artifactDamageProfile` (damage.ts), depuis `ARTIFACT_DAMAGE_NEUTRE` | seul constructeur de `ArtifactDamageProfile` ; écran, CLI et moteur l'appellent |
+| recette lue d'un fichier | `parseOptimizerRecipe` (optimizerRecipe.ts) | écran (`importRecipe`), scripts (`chargerRecette`) |
+| recette et export de compte vers `SearchParams`, côté scripts | `chargerRecette` (scripts/lib/chargerRecette.ts) | `optimizer-search.ts`, harnais (diagnosticConfig.ts), oracle des reliques (relicOracle.ts) |
+
+Les runes d'un build ont un producteur pour les deux résolutions de l'écran,
+directe et dans le Worker (`runesDuBuild`, relicQueue.ts) ; le CLI
+(`resoudreEquipementCli`) et le différentiel (`runesDe`, relicDifferentiel.ts)
+gardent chacun leur expression : ce sont deux constructeurs de plus.
 
 ## La checklist — code
 
-Chaque champ touché doit être vérifié (grep du nom, ancien ET nouveau) dans
-CHACUN de ces emplacements — cocher explicitement, pas seulement « ça
-compile » :
+Chaque champ touché se cherche (grep du nom, ancien ET nouveau) dans CHACUN
+de ces emplacements, coché explicitement, pas seulement « ça compile » :
 
-- [ ] **`src/hooks/useOptimizerState.ts`** — le champ + son setter dans
-      l'interface `OptimizerState`, la valeur initiale du `useState`, et le
-      retour de la fonction.
-- [ ] **`src/components/outils/OptimizerSection.tsx`** — destructuré depuis
-      `optimizer`, lu dans le `useMemo`/`handleSearch` qui construit les
-      `SearchParams` réels envoyés au moteur, câblé dans le JSX (toggle/
-      segmented/champ), lu dans `exportRecipe` (construction de la
-      recette), écrit dans `importRecipe` (avec repli `?? défaut` pour une
-      recette exportée AVANT ce champ — voir « Compatibilité arrière »
-      ci-dessous).
-- [ ] **`src/lib/optimizerRecipe.ts`** — le champ dans l'interface
-      `OptimizerRecipe` (commentaire de tête du fichier : RAPPEL explicite
-      de la règle des deux constructeurs, à jour).
-- [ ] **`scripts/lib/recipeToSearchParams.ts`** — `resolvePool`/
-      `recipeToSearchParams` (ou toute autre fonction qui traduit une
-      `OptimizerRecipe` en `SearchParams`) lit le champ EXACTEMENT comme
-      l'écran.
-- [ ] **`scripts/optimizer-search.ts`** — la ligne de résumé affichée en
-      console (`console.log` en tête de script) mentionne le nouveau champ
-      s'il change un comportement visible ; toute logique conditionnelle
-      qui dépendait de l'ANCIEN champ (ex. avertissements, chargement
-      conditionnel de données) est mise à jour, pas dupliquée à côté.
-- [ ] **`scripts/lib/loadMonster.ts`** — UNIQUEMENT si le champ nécessite de
-      charger une donnée qui n'était pas déjà chargée pour un autre usage
-      (sinon, rien à faire ici).
-- [ ] **`tests/`** — au moins un test couvre le nouveau comportement ; si un
-      champ est renommé/inversé, vérifier qu'aucun test existant ne
-      référence encore l'ancien nom (`grep` de l'ancien nom sur `tests/`
-      APRÈS le renommage, pas seulement sur `src/`/`scripts/`).
-      ⚠️ **Les tests CONSTRUISENT eux aussi ces valeurs** — ce ne sont pas
-      de simples lecteurs. Un test qui fabrique un contexte à la main est un
-      constructeur de plus, à traiter comme les autres.
+- [ ] **`src/hooks/useOptimizerState.ts`** — le champ et son setter dans
+      `OptimizerState`, la valeur initiale du `useState`, le retour ; et
+      `resetSearch`, qui remet les critères à zéro au changement de monstre
+      ou de compte mais garde les réglages avancés : décider de quel côté
+      est le champ. Les champs d'`OptimizerState` sont obligatoires, `tsc`
+      voit donc un oubli ici ; il ne voit pas un état que personne ne lit.
+- [ ] **`src/components/outils/OptimizerSection.tsx`** — déstructuré depuis
+      `optimizer` ; lu par `handleSearch` (le `SearchParams` envoyé au
+      moteur) ou par le mémo qui l'alimente ; câblé dans le JSX ; passé à
+      `buildOptimizerRecipe` dans `exportRecipe` ; écrit par `importRecipe`,
+      avec son repli (« Compatibilité arrière » ci-dessous). Un champ
+      optionnel absent de l'appel à `buildOptimizerRecipe` reste valide pour
+      `tsc`. Fichier très long : `grep -n`, jamais en entier.
+- [ ] **`src/lib/optimizerRecipe.ts`** — le champ dans `OptimizerRecipe` ; sa
+      validation dans `parseOptimizerRecipe`, sans quoi une valeur d'un
+      mauvais type passe telle quelle à l'écran et au CLI ; le commentaire
+      « Deux constructeurs » en tête du fichier, à jour.
+- [ ] **`scripts/lib/recipeToSearchParams.ts`** — `recipeToSearchParams` et
+      ses résolveurs (`resolvePool`, `resolveArtifacts`,
+      `resolveArtifactBounds`, `resolveObjectiveStats`, `recipeToRelicIntent`,
+      `artefactsDuCli`, `resoudreEquipementCli`) lisent le champ EXACTEMENT
+      comme l'écran, repli compris. Un champ qui n'entre pas dans
+      `SearchParams` a un seul point de lecture côté CLI, comme
+      `toutVerifierDeLaRecette`.
+- [ ] **`scripts/lib/chargerRecette.ts`** — si le champ demande un
+      chargement conditionnel ou un avertissement de fidélité
+      (`avertissements`). `scripts/lib/loadMonster.ts` seulement si le champ
+      exige une donnée qui n'était pas déjà chargée.
+- [ ] **`scripts/optimizer-search.ts`** — la ligne de résumé en tête de
+      sortie mentionne le champ s'il change un comportement visible ; toute
+      logique qui dépendait de l'ANCIEN champ est mise à jour, pas
+      dupliquée à côté.
+- [ ] **Contexte relique** (`SearchParams.relicContext`) — trois producteurs,
+      tous par `resoudreContexteRelique` : l'écran (`relicIntentDepuisEtat`,
+      useOptimizerState.ts), le CLI (`recipeToRelicIntent`) et les cas
+      nommés (`buildCaseSearchParams`, scripts/lib/perfShared.ts).
+- [ ] **Bornes d'artéfacts** (`SearchParams.artifactBounds`) — l'écran
+      (`searchArtifactBounds`), le CLI (`resolveArtifactBounds`), et le repli
+      du moteur quand elles manquent (`deriveMinMaxContext`, runeBuildOptim.ts).
+- [ ] **`RealDamageContext`** — le mémo `realDamage` de l'écran,
+      `buildRealDamageContext` (scripts/lib/realDamageCli.ts), et tout script
+      qui l'assemble à la main (`grep -rn RealDamageContext scripts/`).
+- [ ] **Worker de résolution** — un argument ajouté à
+      `entreeResolutionDuBuild` doit aussi voyager : `EntreesResolutionSerialisables`
+      et `entreesSerialisables` (src/workers/resolutionBody.ts) listent les
+      champs un par un (sauf `artifactParams`, recopié par décomposition), et
+      `CorpsResolution` les repasse au producteur. L'écran passe les mêmes
+      arguments à `entreeResolutionDuBuild` et à `entreesSerialisables` ; le
+      test `resolutiondistante` compare les deux listes et en fige le compte,
+      à mettre à jour. Un champ qui porte une fonction est refusé par `tsc`
+      (`ProtocoleClonable`).
+- [ ] **Différentiel des reliques** — `entreeResolution`
+      (scripts/lib/relicDifferentiel.ts) traduit `ReglagesDifferentiel` vers
+      les entrées des producteurs, avec ses propres `runesDe` et
+      `maxStatsActifsDe`.
+- [ ] **`tests/`** — au moins un test couvre le nouveau comportement ; après
+      un renommage ou une inversion, plus aucun test ne cite l'ancien nom
+      (`grep` sur `tests/` aussi). Un test qui fabrique la valeur à la main
+      est un constructeur de plus, à traiter comme les autres.
 
-## Ce que `tsc` attrape, et ce qu'il n'attrape toujours pas
+## Ce que `tsc` attrape, et ce qu'il n'attrape pas
 
-⚠️ `tsconfig.json` couvre désormais
-`["src", "scripts", "tests"]`, plus seulement `src`. `npx tsc --noEmit`
-type-vérifie donc tout le dépôt.
+`tsconfig.json` couvre `src`, `scripts` et `tests` : `npx tsc --noEmit`
+type-vérifie tout le dépôt.
 
-**Ce qu'il attrape maintenant** — et qu'il laissait passer avant :
-- un champ dont le **type change** (`number` → objet) ;
-- un champ **obligatoire** ajouté à une interface, absent d'un littéral ;
-- un import de type devenu faux, un nom de variante d'union périmé.
+**Il attrape** un champ dont le **type change**, un champ **obligatoire**
+absent d'un littéral, un import de type faux, une variante d'union périmée.
 
-**Ce qu'il n'attrape TOUJOURS pas**, et qui reste la raison d'être de la
-checklist :
-- un champ **optionnel** jamais lu par un constructeur — accès parfaitement
-  valide, divergence parfaitement silencieuse ;
-- un champ lu mais **mal interprété** (bon type, mauvaise sémantique) ;
+**Il n'attrape pas**, et c'est la raison d'être de la checklist :
+- un champ **optionnel** jamais lu par un constructeur ;
+- un champ lu mais **mal interprété** (bon type, mauvais sens) ;
 - une **documentation** qui ment.
 
-Autrement dit : le compilateur couvre désormais la FORME, jamais l'INTENTION.
-La checklist reste obligatoire, plus une vérification de comportement RÉEL
-(voir « Vérification »).
+Le compilateur couvre la FORME, jamais l'INTENTION.
 
 ## Compatibilité arrière (recettes déjà exportées)
 
-Une recette `.json` déjà exportée par un joueur AVANT ce changement ne
-porte PAS le nouveau champ (`undefined`). Deux cas :
+Une recette `.json` exportée AVANT le changement ne porte pas le nouveau
+champ (`undefined`).
 
 - **Champ nouveau, sans équivalent avant** : repli sur un défaut sûr,
-  `recipe.nouveauChamp ?? défaut` — déjà la convention établie
-  (`exhaustiveSearch ?? false`, `excludedSelectors ?? []`).
-- **Renommage/inversion d'un champ EXISTANT** : ne pas se contenter d'un
-  défaut générique — traduire explicitement l'ANCIEN champ vers le
-  nouveau, pour qu'une recette déjà exportée continue de se comporter
-  EXACTEMENT pareil après réimport. Exemple (`exploreAll` booléen,
-  cochée par défaut, portée uniquement box → `excludeUsedRunes` +
-  `excludeUsedScope`, décochée par défaut, 3 périmètres) :
+  `recipe.nouveauChamp ?? défaut`, le même dans chaque lecteur (l'écran,
+  `importRecipe` ; le CLI, `recipeToSearchParams` ou sa fonction de lecture).
+  Exemples en place : `exhaustiveSearch ?? false`, `excludedSelectors ?? []`,
+  `lignesVerrouillees ?? []`.
+- **Ancienne valeur à normaliser** : dans `parseOptimizerRecipe`, que l'écran
+  et `chargerRecette` lisent tous deux, une seule fois pour les deux. Y vivent
+  déjà le mode critique supprimé (avec l'avertissement
+  `AVERTISSEMENT_CRIT_MOYENNE`), l'ancien cran « aucune » de `summonerSkills`
+  et le seuil de relique ramené dans ses bornes.
+- **Renommage ou inversion d'un champ EXISTANT** : traduire explicitement
+  l'ANCIEN champ vers le nouveau, pour qu'une recette déjà exportée se
+  comporte EXACTEMENT pareil après réimport. Exemple (`exploreAll`, coché
+  par défaut, box seulement → `excludeUsedRunes` décoché par défaut et
+  `excludeUsedScope`, trois périmètres) :
   ```ts
   const legacy = recipe as unknown as { exploreAll?: boolean };
   setExcludeUsedRunes(recipe.excludeUsedRunes ?? legacy.exploreAll === false);
   setExcludeUsedScope(recipe.excludeUsedScope ?? 'box'); // seul périmètre que l'ancien champ connaissait
   ```
+  Deux replis vivent encore hors du parseur, chacun dans son lecteur :
+  l'objectif retiré (`importRecipe` et `chargerRecette`) et `exploreAll`
+  (`importRecipe` seulement). Un nouveau repli va dans le parseur.
 
 ## La checklist — documentation
 

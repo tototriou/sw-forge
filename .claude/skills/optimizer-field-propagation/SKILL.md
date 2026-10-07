@@ -103,10 +103,16 @@ de ces emplacements, coché explicitement, pas seulement « ça compile » :
       sortie mentionne le champ s'il change un comportement visible ; toute
       logique qui dépendait de l'ANCIEN champ est mise à jour, pas
       dupliquée à côté.
-- [ ] **Contexte relique** (`SearchParams.relicContext`) — trois producteurs,
-      tous par `resoudreContexteRelique` : l'écran (`relicIntentDepuisEtat`,
-      useOptimizerState.ts), le CLI (`recipeToRelicIntent`) et les cas
-      nommés (`buildCaseSearchParams`, scripts/lib/perfShared.ts).
+- [ ] **Contexte relique** (`SearchParams.relicContext`) — tous les appels
+      passent par `resoudreContexteRelique`, l'intention vient de plusieurs
+      endroits : l'écran (`relicIntentDepuisEtat`, useOptimizerState.ts), le
+      CLI (`recipeToRelicIntent`), les cas nommés (`buildCaseSearchParams`,
+      scripts/lib/perfShared.ts) et l'oracle des reliques
+      (scripts/lib/relicOracle.ts), qui l'appelle une fois par
+      `recipeToRelicIntent` et une fois avec une intention écrite à la main
+      (`{ mode: 'recherche', ...option }`). Le différentiel
+      (scripts/relic-differentiel.ts, `paramsA`) pose ce contexte dans
+      `SearchParams.relicContext`. `grep -rn resoudreContexteRelique src/ scripts/`.
 - [ ] **Bornes d'artéfacts** (`SearchParams.artifactBounds`) — l'écran
       (`searchArtifactBounds`), le CLI (`resolveArtifactBounds`), et le repli
       du moteur quand elles manquent (`deriveMinMaxContext`, runeBuildOptim.ts).

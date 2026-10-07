@@ -64,8 +64,8 @@ const base: BaseStats = gear.base;
 const maxKeys = new Set<StatKey>();
 const step1 = mainStatFilteredBySlot(allRunes, requirement);
 // Relique FIXE : la portée, la même que `relPct` ci-dessous — ce script n'a
-// pas de contexte relique (6bis-b3c). Paire FIXE de même, la portée
-// (`artFlat`) : ses seules lignes 218–221 (6bis-b3d-1).
+// pas de contexte relique. Paire FIXE de même, la portée
+// (`artFlat`) : ses seules lignes 218–221.
 const step2 = step1.map((l) => pruneDominated(l, maxKeys, contexteDominance(requirement, step1.flat(), objective, objectiveStats, reliquesEquipables(gear.relic, undefined),
   statsLuesParLesLignes(objective, gear.artifacts, undefined))));
 const guaranteed = guaranteedSetBonus(requirement, base);

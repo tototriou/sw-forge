@@ -27,8 +27,7 @@ import { PairingWorkerData, PairingWorkerResult } from './lib/pairing-worker';
 import { drain } from './lib/drain';
 
 // ── Bundling du worker, même patron que perf-battery.ts (répertoire par
-// RUN_ID pour ne jamais servir un bundle figé si la source a changé depuis —
-// voir « Suite — point 1 implémenté et mesuré », le bug de cache vécu). ──
+// RUN_ID pour ne jamais servir un bundle figé si la source a changé depuis). ──
 const RUN_ID = `${Date.now()}-${process.pid}`;
 const BUNDLE_DIR = join(tmpdir(), `swblacksmith-pairing-diag-${RUN_ID}`);
 async function ensureWorkerBundle(): Promise<string> {

@@ -81,10 +81,9 @@ export interface OracleSearchRun {
 
 /**
  * Les groupes de reliques de l'oracle, un run chacun : même principale
- * `(code, valeur)` ET mêmes stats d'effet unique (`statsDeLEffetUnique`) —
- * degats-et-aura 6bis-b6, constat C3 de la revue technique 6bis-b.
+ * `(code, valeur)` ET mêmes stats d'effet unique (`statsDeLEffetUnique`).
  *
- * ⚠️ Depuis 6bis-b3c, la dominance d'un run protège les stats de l'effet
+ * ⚠️ La dominance d'un run protège les stats de l'effet
  * unique de SA relique (`reliquesEquipables(relic, undefined)` = la relique
  * posée) ; la rétention ignore la relique et la fusion renote tout. Ces stats
  * sont donc la seule chose qui, dans un run, distingue deux reliques de même
@@ -173,7 +172,7 @@ function scoreOracleDuCandidat(
 ): number {
   const objectif = params.objective ?? 'efficience';
   if (objectif === 'efficience') return candidateMetricTotal(candidate, runeById, params.metric);
-  // Auras propres des six runes du candidat (6bis-b2), par la même porte que
+  // Auras propres des six runes du candidat, par la même porte que
   // le tri (`aurasPropresParRunes`), jamais un recomptage local.
   const propres = aurasPropresParRunes(runeById)(candidate);
   const apport = exclusive ? apportExclusive(relique, candidate.stats, exclusive.setup, propres, exclusive.element) : APPORT_NEUTRE;
@@ -289,8 +288,8 @@ export function fusionnerRunsOracle(
   const candidats = ordre.map((cle) => fusion.get(cle)!);
   // ⚠️ L'optimum se classe par `OracleCandidate.score` — la note qui porte
   // l'apport de la relique retenue —, jamais par `sortCandidates`, qui
-  // renotait sans l'effet unique et pouvait désigner un autre build
-  // (degats-et-aura 6bis-b6, constat C4). Ex æquo : `rid` croissant, puis
+  // renotait sans l'effet unique et pouvait désigner un autre build.
+  // Ex æquo : `rid` croissant, puis
   // ordre d'insertion — la convention de la fusion ci-dessus.
   let optimum: OracleCandidate | null = null;
   for (const c of candidats) {

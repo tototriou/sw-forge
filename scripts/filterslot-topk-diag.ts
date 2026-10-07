@@ -134,8 +134,7 @@ const FILTER_SLOT_WIDENING_PER_CONDITION = 20;
 // ⚠️ MAX_PER_SLOT_MATCH/MAX_PER_SLOT_FILL importés de runeBuildOptim.ts
 // (pas dupliqués localement) — un ancien copié-collé à 80/40 (asymétrique,
 // jamais vrai en production, où les deux valent 40) avait faussé la mesure
-// de divergence de ce script sans qu'aucune erreur tsc ne le détecte (voir
-// archive/historique/historique-dimensionnement.md, « revue de code externe »).
+// de divergence de ce script sans qu'aucune erreur tsc ne le détecte).
 
 // Synthétique mais réaliste (mêmes ordres de grandeur qu'un vrai monstre) —
 // ce script ne teste PAS la pondération pct/flat par base (sujet d'un autre

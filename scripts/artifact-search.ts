@@ -62,7 +62,7 @@ if (!porteur.archetype) {
 const sorts = monsterDamageSkills(fiche).filter((s): s is SkillDamageProfile => 'noeud' in s);
 // Sans `--sort`, le sort par défaut de l'écran (`defaultDamageSkill`, source
 // unique) : jamais le dernier de la liste, qui peut être un passif
-// sélectionnable (Tempest au slot 3, degats-et-aura 9b). `--sort 3` le choisit.
+// sélectionnable (Tempest au slot 3). `--sort 3` le choisit.
 const sortParDefaut = defaultDamageSkill(sorts);
 if (!sortParDefaut) throw new Error(`Aucun sort calculable pour ${monsterName}.`);
 const slotVoulu = opt('sort') ? Number(opt('sort')) : null;
@@ -98,7 +98,7 @@ const passifs = monsterOffensivePassives(fiche);
 // ⚠️ Les stats sont RECALCULÉES pour chaque paire : la stat principale d'un
 // artéfact entre dans les stats du monstre. Un score qui réutiliserait les
 // stats du build actuel comparerait des paires sur des stats fausses.
-// Les auras propres (6bis-b2) sont celles des runes PORTÉES, les mêmes pour
+// Les auras propres sont celles des runes PORTÉES, les mêmes pour
 // toutes les paires : aucun artéfact ne porte de set.
 const propres = aurasPropresDesRunes(loaded.gear.runes);
 const evaluer = (artefacts: ArtifactDetail[]) => {
@@ -120,7 +120,7 @@ const parSorte = ARTIFACT_KINDS.map(({ key, label }) => {
 }).join(' · ');
 // Séquence curée (Blade Surge) : la séquence ENTIÈRE, par la fonction du
 // résumé de l'écran et de la ligne du CLI (`resumeSequenceDeCoups`) — `hits`
-// et `aoe` ne décrivent que la donnée, jamais la séquence (degats-et-aura 8c).
+// et `aoe` ne décrivent que la donnée, jamais la séquence.
 const sequence = sort.sequenceDeCoups;
 console.log(
   `\nSort : ${sort.nom} (slot ${sort.slot}, ${sequence ? resumeSequenceDeCoups(sequence) : `${sort.hits} coup(s)`}` +

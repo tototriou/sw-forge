@@ -5,8 +5,7 @@
 // Extrait TEL QUEL de `tests/relic-queue.test.ts`, qui le réimporte : ses assertions de corpus n'ont
 // pas bougé et prouvent que rien n'a bougé ici. Aucune étape du pipeline
 // n'est réimplémentée — l'entrée de résolution vient des producteurs de
-// l'écran et du CLI (`entreeResolutionDuBuild`, `parametresArtefactsFiche`,
-// depuis 6bis-b6), puis `resoudreEquipementDuBuild` (la partie pure de la
+// l'écran et du CLI (`entreeResolutionDuBuild`, `parametresArtefactsFiche`), puis `resoudreEquipementDuBuild` (la partie pure de la
 // file), `respecteConditionsAvecRelique`, `sortCandidates`, le traceur du
 // moteur.
 //
@@ -87,7 +86,7 @@ export interface ReglagesDifferentiel {
    * l'objectif (« État de mon monstre » modifie les stats partout). Son
    * `setup` donne aussi les codes d'amplification de buff des paires.
    *
-   * ⚠️ **OBLIGATOIRE** depuis 6bis-b6 (constat C6) : la résolution de
+   * ⚠️ **OBLIGATOIRE** : la résolution de
    * production (`entreeResolutionDuBuild`) note toujours avec l'effet unique
    * de la relique essayée et le `DamageSetup` (auras externes comprises) ;
    * l'absence faisait noter les paires EHP sans auras externes, en silence.
@@ -118,7 +117,7 @@ export function maxStatsActifsDe(p: SearchParams): StatKey[] {
 
 /**
  * L'entrée de résolution d'un candidat, par les producteurs de l'écran et du
- * CLI (degats-et-aura 6bis-b6, constat C6) : `entreeResolutionDuBuild`
+ * CLI : `entreeResolutionDuBuild`
  * (relicQueue.ts) et `parametresArtefactsFiche` (artifactFiche.ts). Jusque-là
  * une copie, sans `codesAmplification` ni canal exclusive obligatoire.
  *
@@ -154,7 +153,7 @@ export function entreeResolution(p: SearchParams, c: BuildCandidate, ctx: RelicC
     exclusive: r.exclusive,
     requirement: p.requirement,
     relicContext: ctx,
-    // Un candidat à la fois, sans file : tout se recalcule (6bis-b13).
+    // Un candidat à la fois, sans file : tout se recalcule.
     caches: null,
   });
 }

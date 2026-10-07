@@ -84,7 +84,7 @@
 //            développement, pas pour la validation avant de committer.
 //   --relic-main=<equipped|libre|100|101|102> --relic-type=<libre|1..16>
 //   --relic-min-upgrade=<0..15> : l'intention relique posée sur CHAQUE cas
-//            du run (implementation-relique, B.6) — résolue par
+//            du run — résolue par
 //            `buildCaseSearchParams` en `relicContext`, objectif du cas
 //            inchangé, propagée telle quelle au processus `--case=` et
 //            inscrite dans le libellé du run. Sans les trois : comportement
@@ -218,8 +218,7 @@ interface CaseOutcome {
 // `build-half-worker.ts` LUI-MÊME avait changé — jamais si un fichier qu'il
 // IMPORTE (`runeBuildOptim.ts`, bundlé DEDANS par esbuild) changeait. Deux
 // mesures dos-à-dos prises pour chiffrer une optimisation de
-// `runeBuildOptim.ts` (précalcul par rune, voir « Suite — relecture du
-// pipeline ») se sont révélées IDENTIQUES au bit près — repéré en comparant
+// `runeBuildOptim.ts` (précalcul par rune) se sont révélées IDENTIQUES au bit près — repéré en comparant
 // les dates du bundle caché (20:19) et du source modifié (20:30, APRÈS le
 // bundle) : les deux mesures tournaient sur le MÊME bundle figé, ni l'une ni
 // l'autre ne reflétait le vrai code. Un chemin par PID élimine le risque à
@@ -585,5 +584,5 @@ if (SAVE) {
 // `ensureWorkerBundle`) — un chemin par PID évite toute mesure
 // silencieusement faussée, mais laisserait sinon un dossier orphelin par
 // exécution dans %TEMP% (le même genre d'accumulation déjà nettoyée une
-// fois cette session, voir « Suite — investigation de la dérive »).
+// fois).
 rmSync(BUNDLE_DIR, { recursive: true, force: true });

@@ -1,17 +1,17 @@
 // Le classement du CLI (`optimizer-search.ts`) une fois l'équipement de
-// chaque build résolu — comme l'écran classe le cache de sa file
-// (degats-et-aura 6bis-b5c). Aucune étape n'est réimplémentée ici : la
+// chaque build résolu — comme l'écran classe le cache de sa file.
+// Aucune étape n'est réimplémentée ici : la
 // résolution est `resoudreEquipementCli` (recipeToSearchParams.ts, par
 // `entreeResolutionDuBuild` + `resoudreEquipementDuBuild`), les options
 // `optionsDeClassement`, le classement `classementResolu` — les producteurs
 // mêmes de l'écran.
 //
 // ⚠️ **Par défaut, le CLI résout COMME LA FILE DE L'ÉCRAN** (décision
-// utilisateur du 2026-10-01, option 2, après la mesure de 6bis-b5c) : l'ordre
+// utilisateur du 2026-10-01, option 2) : l'ordre
 // de base jusqu'à K combinaisons CONFIRMÉES (résolues et conformes) ou
 // jusqu'au dernier build trouvé — `kDeLaFile` du contexte relique de la
-// recherche, comme l'écran : 300 en mode « recherche », 100 sinon (6bis-b8),
-// des confirmées depuis 6bis-b18 — et sa « page affichée » — les
+// recherche, comme l'écran : 300 en mode « recherche », 100 sinon,
+// des confirmées — et sa « page affichée » — les
 // `LIGNES_IMPRIMEES` lignes qu'il imprime —, choisis par `prochainsATraiter`,
 // la fonction pure de la file, jusqu'au point fixe.
 // Résoudre TOUS les candidats collectés coûtait jusqu'à 20 fois la recherche
@@ -56,7 +56,7 @@ export interface ClassementResoluCli {
   // La cible de la file en mode `file`, en combinaisons CONFIRMÉES
   // (`cibleDeLaFile` : `kDeLaFile` du contexte relique de la recherche, ou
   // `Infinity` avec « Vérifier toutes les combinaisons trouvées » dans la
-  // recette, 6bis-b18) — celle que la console cite.
+  // recette) — celle que la console cite.
   K: number;
   // Le cache de résolution, par `cleBuild` — le pendant de `parBuild` de la
   // file. En mode `file`, seuls les builds résolus y figurent ; les autres
@@ -131,7 +131,7 @@ export function classerApresResolution(e: {
   // Le contexte de la recherche LANCÉE, comme `relicContextRecherche` à
   // l'écran : jamais relu dans la recette. L'interrupteur « Vérifier toutes les
   // combinaisons trouvées », lui, vient de la recette, comme l'écran le lit
-  // dans ses réglages (6bis-b18) : tous les candidats, dans l'ordre de base.
+  // dans ses réglages : tous les candidats, dans l'ordre de base.
   const K = cibleDeLaFile({ relicContext: e.params.relicContext, toutVerifier: toutVerifierDeLaRecette(e.recipe) });
   const t0 = performance.now();
   let lots = 0;
@@ -191,11 +191,11 @@ export function classerCommeLEcran(e: {
     damageSetup: setup,
     runeById,
     metric: recipe.metric,
-    // Auras propres des six runes de chaque candidat (6bis-b2), comme l'écran.
+    // Auras propres des six runes de chaque candidat, comme l'écran.
     aurasPropresDe: aurasPropresParRunes(runeById),
     contexteExclusive: { setup, element: loadMonstersList().find((m) => m.com2usId === loaded.com2usId)?.element ?? null },
   };
-  // ⚠️ Le MÊME producteur que l'écran (`optionsDeClassement`, 6bis-b5a) : un
+  // ⚠️ Le MÊME producteur que l'écran (`optionsDeClassement`) : un
   // champ ajouté d'un côté ne peut plus manquer de l'autre en silence. Ce sont
   // les options de l'ordre de BASE (`fullSortedCandidates` à l'écran), sans
   // cache de résolution : la paire de `params.artifacts`, déjà portée par

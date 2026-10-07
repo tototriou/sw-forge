@@ -80,10 +80,10 @@ function pipelineHistorique(
   // d'une rune sur le cas Ciri (objectif `ehp`) qui ne venait PAS de la
   // correction mesurée — un faux positif produit par l'oracle lui-même.
   objective: Parameters<typeof filterSlot>[5],
-  // Les reliques équipables de la recherche du HARNAIS (6bis-b3c) : la
+  // Les reliques équipables de la recherche du HARNAIS : la
   // dominance protège l'effet unique de chacune.
   reliques: readonly RelicDetail[],
-  // Les stats des lignes 218–221 de la recherche du HARNAIS (6bis-b3d-1),
+  // Les stats des lignes 218–221 de la recherche du HARNAIS,
   // même provenance que `reliques`.
   lignes: ReadonlySet<StatKey>
 ): EtatsHistoriques {
@@ -179,7 +179,7 @@ async function comparerCas(index: number): Promise<boolean> {
     // RÉSOUT (recette → `recipeToSearchParams` : `equipped` si le monstre
     // porte une relique, sinon `recherche` sur l'inventaire) — la même
     // résolution que celle qu'il exécute, sinon l'étage `dominance` diverge
-    // entre les deux chemins (6bis-b3c). `executerHarnais` = cette résolution
+    // entre les deux chemins. `executerHarnais` = cette résolution
     // puis `executerHarnaisResolu`.
     const resolue = resoudreConfig(config);
     ancien = pipelineHistorique(allRunes, gear.base, requirement, statKeys, gear.artifacts, gear.relic, cap, c.objective,

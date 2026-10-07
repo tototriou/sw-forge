@@ -1,5 +1,4 @@
-// Les trois options relique de `perf-battery.ts` (implementation-relique,
-// B.6, rév. 35) : `--relic-main=<equipped|libre|100|101|102>
+// Les trois options relique de `perf-battery.ts` : `--relic-main=<equipped|libre|100|101|102>
 // --relic-type=<libre|1..16> --relic-min-upgrade=<0..15>`.
 //
 // Module SÉPARÉ de `perfShared.ts` (chargé par un `worker_threads`, qui ne

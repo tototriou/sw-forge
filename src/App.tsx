@@ -1570,7 +1570,7 @@ export default function App() {
             menuOuvert={menuPageOuvert}
             onFermerMenu={() => setMenuPageOuvert(false)}
             // L'Optimizer ouvre lui-même ce panneau pour l'ouverture guidée
-            // au doigt (degats-et-aura 7b) — seule page qui le demande.
+            // au doigt — seule page qui le demande.
             onOuvrirMenu={() => setMenuPageOuvert(true)}
           />
         ) : route === 'releases' ? (

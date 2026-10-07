@@ -48,7 +48,7 @@ import {
  * effets d'alliés) n'y touche pas — voir les correctifs 7798557 et e26118c,
  * « un bonus +X % par effet ne majore pas les dégâts bruts ». Test : changer
  * un réglage d'ici DOIT faire bouger le « +X / coup » — sauf les auras
- * Accuracy et Tolerance (degats-et-aura 7a). Elles modifient bien des
+ * Accuracy et Tolerance. Elles modifient bien des
  * statistiques propres du monstre, la Précision et la RES, mais aucune
  * n'entre dans les dégâts bruts : pour elles, ce qui bouge est la condition
  * RES/PRE (minimum ou maximum), quand `compterAurasResPre` est activé.
@@ -73,16 +73,13 @@ export default function EtatMonstre({
   maj: (patch: Partial<DamageSetup>) => void;
   etroit: boolean;
   artefacts: ArtifactDamageProfile;
-  // Passifs du monstre choisi qui posent un buff standard (degats-et-aura
-  // P2, `rappelsBuffsDePassif`, buffsDePassif.ts) : un rappel, jamais un
+  // Passifs du monstre choisi qui posent un buff standard (`rappelsBuffsDePassif`, buffsDePassif.ts) : un rappel, jamais un
   // réglage — le buff reste à allumer à la main dans la boîte ci-dessous.
   rappelsBuffs: RappelBuffDePassif[];
-  // Rappel « Pense à vérifier les sets d'aura externes. » (degats-et-aura
-  // 7b) : décidé et minuté par l'écran (`doitRappeler`, OptimizerSection.tsx,
+  // Rappel « Pense à vérifier les sets d'aura externes. » : décidé et minuté par l'écran (`doitRappeler`, OptimizerSection.tsx,
   // au seul geste de la liste de travail) ; seul son rendu vit ici.
   rappelAuras: boolean;
-  // Ouverture guidée vers l'interrupteur des auras RES/PRE (degats-et-aura
-  // 7b) : appelée quand une écriture de l'utilisateur fait APPARAÎTRE
+  // Ouverture guidée vers l'interrupteur des auras RES/PRE : appelée quand une écriture de l'utilisateur fait APPARAÎTRE
   // Accuracy ou Tolerance (`guideVersResPre`) ; défilement, ouverture et
   // surlignage appartiennent à l'écran, qui connaît les deux formats.
   onGuiderResPre: () => void;
@@ -195,7 +192,7 @@ export default function EtatMonstre({
         />
       </div>
       </div>
-      {/* ⚠️ **Rappel des buffs posés par un passif** (degats-et-aura P2) :
+      {/* ⚠️ **Rappel des buffs posés par un passif** :
           même grammaire que les lignes d'amplification juste dessous (texte
           `xs` atténué sous la rangée des buffs) ; le passif est nommé comme
           dans « Stats acquises en combat » — `Jeton` en lecture
@@ -275,7 +272,7 @@ export default function EtatMonstre({
  * menu occupe la colonne `1fr` : sa largeur vient de la boîte, jamais de
  * l'option choisie.
  *
- * ⚠️ **Le rappel (degats-et-aura 7b) recolore la boîte, il ne la redessine
+ * ⚠️ **Le rappel recolore la boîte, il ne la redessine
  * pas** : contour `warn` et fond `warn-soft` À LA PLACE de `border-soft` et
  * `panel2` — toujours un seul contour de 1 px. Son message occupe la MÊME
  * case de grille que l'en-tête (libellé, aide, total), invisible le reste du

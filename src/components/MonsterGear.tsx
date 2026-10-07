@@ -47,7 +47,7 @@ interface Props {
   selection?: Selected;
   onSelectionChange?: (s: Selected) => void;
   // Occupation par `rid` (`n / 150`, D3), affichée dans le détail de la
-  // relique — SEUL l'Optimizer la fournit (implementation-relique, B.5c ter) :
+  // relique — SEUL l'Optimizer la fournit :
   // `undefined` pour RTA, Siège, speed tuning, le sélecteur d'exclusion — hors
   // périmètre de ce lot, aucune ligne de compteur n'y apparaît, comme avant.
   relicUsageById?: Record<number, number>;
@@ -372,7 +372,7 @@ export default function MonsterGear({
           `ArtifactSlots` (toujours 2 emplacements, un vide grisé à l'icône
           `Ban`) et la roue de runes (toujours rendue, même à 0 rune).
           ⚠️ **`RelicSlot`, partagé avec la carte candidat de l'Optimizer**
-          (implementation-relique, B.5c bis) — voir RelicSlot.tsx : LE modèle
+ — voir RelicSlot.tsx : LE modèle
           que la carte candidat reprend, jamais une copie. */}
       <RelicSlot
         relic={gear.relic}

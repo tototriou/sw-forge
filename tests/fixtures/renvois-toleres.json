@@ -284,12 +284,6 @@
       "proprietaire": "hors-perimetre"
     },
     {
-      "fichier": "scripts/passifs-vitesse.ts",
-      "renvoi": "scripts/passifs-vitesse.mjs",
-      "occurrences": 2,
-      "proprietaire": "hors-perimetre"
-    },
-    {
       "fichier": "spec/README.md",
       "renvoi": "src/components/Segmented.tsx",
       "occurrences": 1,
@@ -320,12 +314,6 @@
       "proprietaire": "hors-perimetre"
     },
     {
-      "fichier": "spec/outils/passifs-vitesse.md",
-      "renvoi": "scripts/passifs-vitesse.mjs",
-      "occurrences": 1,
-      "proprietaire": "hors-perimetre"
-    },
-    {
       "fichier": "spec/outils/speed-tuning.md",
       "renvoi": "hooks/useSpeedTune.ts",
       "occurrences": 1,
@@ -340,12 +328,6 @@
     {
       "fichier": "spec/outils/speed-tuning.md",
       "renvoi": "lib/speedTuneLignes.ts",
-      "occurrences": 1,
-      "proprietaire": "hors-perimetre"
-    },
-    {
-      "fichier": "spec/outils/speed-tuning.md",
-      "renvoi": "scripts/passifs-vitesse.mjs",
       "occurrences": 1,
       "proprietaire": "hors-perimetre"
     },

@@ -542,12 +542,6 @@
       "proprietaire": "a-publier"
     },
     {
-      "fichier": "scripts/spec-lint.mjs",
-      "renvoi": "archive/",
-      "occurrences": 1,
-      "proprietaire": "a-publier"
-    },
-    {
       "fichier": "spec/README.md",
       "renvoi": "src/components/Segmented.tsx",
       "occurrences": 1,

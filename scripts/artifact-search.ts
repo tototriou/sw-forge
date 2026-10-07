@@ -21,8 +21,7 @@
 //                        comptent 0
 //   --def=<n>            DEF de l'adversaire (défaut : celle de l'écran)
 //   --crit=<mode>        crit|normal (défaut : crit, celui de l'écran) ;
-//                        l'ancien « moyenne » (mode supprimé, lot CM de
-//                        degats-et-aura) devient « crit » avec un avertissement
+//                        l'ancien « moyenne » (mode supprimé) devient « crit » avec un avertissement
 //   --attribut=<choix>   equipped|none|libre|100|101|102 (défaut : libre)
 //   --type=<choix>       idem pour l'artéfact de type
 //   --top=<n>            nombre de paires à afficher (défaut : 5)
@@ -69,7 +68,7 @@ if (!sortParDefaut) throw new Error(`Aucun sort calculable pour ${monsterName}.`
 const slotVoulu = opt('sort') ? Number(opt('sort')) : null;
 const sort = (slotVoulu != null ? sorts.find((s) => s.slot === slotVoulu) : null) ?? sortParDefaut;
 
-// Deux modes seulement (lot CM) : « moyenne », l'ancien mode supprimé, se
+// Deux modes seulement : « moyenne », l'ancien mode supprimé, se
 // convertit en « crit » comme dans une recette, en le disant ; toute autre
 // valeur arrête le script plutôt que d'être lue en silence.
 const critDemande = opt('crit');

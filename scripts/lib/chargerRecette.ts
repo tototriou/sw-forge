@@ -72,7 +72,7 @@ export function chargerRecette(
   const { recipe, error, avertissements: conversions } = parseOptimizerRecipe(readFileSync(cheminRecette, 'utf8'));
   if (!recipe) throw new Error(`Recette invalide : ${error}`);
   // Ce que le parseur a CONVERTI (l'ancien mode critique « Moyenne » →
-  // « Critique », degats-et-aura lot CM) : le même texte que le message
+  // « Critique ») : le même texte que le message
   // d'import de l'écran, jamais une conversion silencieuse.
   avertissements.push(...(conversions ?? []));
 

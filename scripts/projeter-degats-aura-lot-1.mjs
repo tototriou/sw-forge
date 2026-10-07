@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/** Projections canoniques des sous-lots 1b à 1e depuis le corpus figé du lot 1a. */
+/** Projections canoniques depuis le corpus figé. */
 import { createHash } from 'node:crypto';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';

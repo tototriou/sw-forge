@@ -1,4 +1,4 @@
-// degats-et-aura 11bis — les proses de sort au CLIC, sur les deux formats.
+// Les proses de sort au CLIC, sur les deux formats.
 //
 // Deux vérifications, sur la source (le dépôt n'a pas d'infrastructure de test
 // React, voir tests/run.mjs) :
@@ -68,7 +68,7 @@ export function testProsesSortAuClic() {
   ok(!/title=\{s\.description/.test(carte), 'plus aucun `title={s.description…}` dans la carte');
   const sorts = entre(carte, '{skills.map((s) => {', '{champCoupsVariables(');
   ok(sorts.length > 0, 'précondition : la liste des cases de sort');
-  // Deux `title=` depuis le lot P3 : celui de la prose et celui de « Calcul
+  // Deux `title=` : celui de la prose et celui de « Calcul
   // partiel » — deux titres de bulle, aucun survol.
   egal((sorts.match(/\btitle=/g) ?? []).length, 2, 'cases de sort : deux `title=`, ceux des deux HelpPopover (titres de bulle, pas un survol)');
   ok(/<HelpPopover title=\{s\.nom\} ariaLabel=\{`Description de \$\{s\.nom\}`\}>\s*\{s\.description\}\s*<\/HelpPopover>/.test(sorts),

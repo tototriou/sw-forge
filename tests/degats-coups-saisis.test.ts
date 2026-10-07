@@ -1,16 +1,15 @@
-// Nombres de coups variables, SAISIS — chantier degats-et-aura, lot P5a.
+// Nombres de coups variables, SAISIS.
 //
 // Décisions de l'utilisateur : le nombre de coups variable est SAISI (borné à la
 // plage) ; le défaut est le MINIMUM ; un coup supplémentaire vaut les autres
-// coups (D30). Les bornes viennent de la prose du sort ou d'un champ de la fiche,
+// coups. Les bornes viennent de la prose du sort ou d'un champ de la fiche,
 // jamais d'une dérivation depuis les stats : chaque borne attendue ci-dessous est
 // écrite à la main, avec sa citation, et jamais relue dans le code qui calcule.
 //
 // ⚠️ Ce qui serait GRAVE ET INVISIBLE ici : une entrée par NOM qui s'étend à un
 // homonyme JOUABLE d'une autre mécanique (le Whirlpool de Seal n'a aucun coup
 // supplémentaire) ; un défaut au maximum (surestimation silencieuse) ; un coup
-// supplémentaire qui ne vaudrait pas les autres (la formule est la même par coup,
-// l'hypothèse « U1 » du contrôle 13b-coups-variables).
+// supplémentaire qui ne vaudrait pas les autres (la formule est la même par coup).
 
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
@@ -55,8 +54,8 @@ function sortDe(forme: number, id: number): SkillDamageProfile {
   return p;
 }
 
-// Une entrée : le sort (identifiant), ses formes porteuses (balayage du corpus,
-// contrôle P5a), la plage ou le nombre fixe attendu, la citation, la clé de la
+// Une entrée : le sort (identifiant), ses formes porteuses (balayage du corpus),
+// la plage ou le nombre fixe attendu, la citation, la clé de la
 // curation et, pour une entrée par NOM, les homonymes couverts (même prose).
 interface EntreeCoups {
   nom: string;
@@ -70,7 +69,7 @@ interface EntreeCoups {
   homonymesCouverts?: [number, number][];
   // Homonymes d'une clé par IDENTIFIANT : autre mécanique, aucune plage.
   homonymesExclus?: [number, number][];
-  // Lot P5a2 : le coup en plus est DÉDUIT de l'ATQ adverse, la saisie n'existe plus
+  // Le coup en plus est DÉDUIT de l'ATQ adverse, la saisie n'existe plus
   // (voir `testDegatsCoupsSousCondition`, plus bas) : seules la plage et le défaut se lisent ici.
   sansSaisie?: boolean;
 }
@@ -158,11 +157,11 @@ export function testDegatsCoupsSaisis() {
         egal(p.hits, min, `${e.id} sur ${forme} : défaut = MINIMUM (${min}), jamais le maximum`);
         egal(resolvedHits(p, base), min, `${e.id} sur ${forme} : sans saisie, ${min} coup(s) retenu(s)`);
         if (e.sansSaisie) continue;
-        // La saisie est bornée à la plage. Pour un sort réglé par interrupteur (lot
-        // P5a2), c'est la LECTURE D'UNE ANCIENNE RECETTE : elle doit rester celle d'avant.
+        // La saisie est bornée à la plage. Pour un sort réglé par interrupteur,
+        // c'est la LECTURE D'UNE ANCIENNE RECETTE : elle doit rester celle d'avant.
         egal(resolvedHits(p, { ...base, coupsPersonnalises: { [e.id]: max + 50 } }), max, `${e.id} sur ${forme} : une saisie au-dessus de la plage retombe sur ${max}`);
         egal(resolvedHits(p, { ...base, coupsPersonnalises: { [e.id]: 0 } }), min, `${e.id} sur ${forme} : une saisie sous la plage retombe sur ${min}`);
-        // Un coup supplémentaire vaut les autres (D30) : le total est proportionnel au nombre de coups.
+        // Un coup supplémentaire vaut les autres : le total est proportionnel au nombre de coups.
         const parCoup = calcul(p, min) / min;
         for (let n = min; n <= max; n++) {
           ok(proche(calcul(p, n), n * parCoup), `${e.id} sur ${forme} : ${n} coup(s) = ${n} × un coup (chaque coup vaut les autres)`);
@@ -186,8 +185,8 @@ export function testDegatsCoupsSaisis() {
     }
   }
 
-  // Témoins HORS PÉRIMÈTRE de P5a : ils restent comme avant, jusqu'à leur propre lot.
-  // (Stormfist, qui y figurait, a sa règle depuis le lot P5a4 : voir plus bas.)
+  // Témoins HORS PÉRIMÈTRE : ils restent comme avant.
+  // (Stormfist, qui y figurait, a sa règle : voir plus bas.)
   titre('Lot P5a — témoins hors périmètre : Crow Hunt (relevé R9)');
   for (const [id, forme] of [[1607, 10512], [1609, 10514], [1618, 10513]] as const) {
     const p = sortDe(forme, id);
@@ -198,9 +197,9 @@ export function testDegatsCoupsSaisis() {
 }
 
 // ───────────────────────────────────────────────────────────────────────────
-// Lot P5a2 — un coup en plus qui ne dépend que d'une CONDITION se règle par un
-// interrupteur (éteint par défaut = le minimum), pas par un compteur. Décision de
-// l'utilisateur du 2026-10-04 (règle « seuil → interrupteur », A.2 ter D06).
+// Un coup en plus qui ne dépend que d'une CONDITION se règle par un
+// interrupteur (éteint par défaut = le minimum), pas par un compteur.
+// Règle « seuil → interrupteur ».
 // Brutal Fists : le coup en plus est DÉDUIT du champ « ATQ adverse » (ATQ du build
 // strictement supérieure), comme Theonia — aucun réglage neuf. Barrage of Madness et
 // Sura's Seal restent des compteurs. Les attendus (bornes, libellés) sont écrits à
@@ -363,8 +362,8 @@ function testDegatsCoupsSousCondition() {
     egal(resolvedHits(p, { ...base, coupsPersonnalises: { [id]: max + 50 } }), max, `${nom} : saisie hors plage, bornée à ${max}`);
   }
 
-  // ── Lot P5a4 — Stormfist (Mayasura, 18306) ──
-  // Valeur de l'utilisateur (2026-10-04) : 3 coups, +1 coup par tranche de 60 % de l'ATQ de base
+  // ── Stormfist (Mayasura, 18306) ──
+  // Valeur de l'utilisateur : 3 coups, +1 coup par tranche de 60 % de l'ATQ de base
   // contenue dans l'ATQ de combat, 6 au plus (6 coups à 280 % de la base). Paliers écrits à la main.
   titre('Lot P5a4 — Stormfist (18306) : coups déduits de l\'ATQ de combat, par tranche de 60 % de l\'ATQ de base');
   {
@@ -424,8 +423,8 @@ function testDegatsCoupsSousCondition() {
     ok(proche(calcul(p, { ...base, coupsPersonnalises: { [STORMFIST]: 6 } }, buildA(100)), 3 * unCoup(p, base, buildA(100))), 'une ancienne saisie à 6 est ignorée : ATQ à 100 %, 3 coups');
   }
 
-  // ── Lot P5a5 — Stormfist de Varuna (18307) et de Danu (18309) ──
-  // Même règle que Mayasura (utilisateur, 2026-10-04), calculée sur l'ATQ de base DE CHAQUE monstre, lue
+  // ── Stormfist de Varuna (18307) et de Danu (18309) ──
+  // Même règle que Mayasura (utilisateur), calculée sur l'ATQ de base DE CHAQUE monstre, lue
   // sur sa fiche (monsters.json, stats.attack). Les paliers sont écrits à la main (rapport 1,6 / 2,2 / 2,8).
   titre('Lot P5a5 — Stormfist de Varuna et de Danu : la règle de Mayasura sur l\'ATQ de base de chaque monstre');
   {
@@ -477,7 +476,7 @@ function testDegatsCoupsSousCondition() {
     egal(sortDe(28514, 18304).conditionsCombat?.some((c) => c.type === 'atkParTranche') ?? false, false, 'Brutal Fists (18304) : aucune règle de tranche');
   }
 
-  // ── Lot P5a5 — les cumuls de Constant Training (18311) comptent dans l'ATQ qui décide les coups de Mayasura ──
+  // ── les cumuls de Constant Training (18311) comptent dans l'ATQ qui décide les coups de Mayasura ──
   titre('Lot P5a5 — Mayasura : les cumuls de Constant Training (+100 ATQ chacun) entrent dans l\'ATQ qui compte les coups de Stormfist');
   {
     const mayasura = fiche(28511);

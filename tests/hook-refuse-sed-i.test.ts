@@ -1,5 +1,4 @@
-// Le hook `.claude/hooks/refuse-sed-i.mjs` (décision de l'utilisateur du
-// 2026-10-04, chantier degats-et-aura) : il refuse `sed` lancé avec une option
+// Le hook `.claude/hooks/refuse-sed-i.mjs` : il refuse `sed` lancé avec une option
 // en place dans les outils Bash et PowerShell, et laisse passer tout le reste —
 // en particulier le texte « sed -i » cité dans un `grep`, un `echo` ou le corps
 // d'un message de commit en heredoc.

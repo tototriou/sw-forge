@@ -1,19 +1,19 @@
-// degats-et-aura 11 — la prose des passifs « Stats acquises en combat ».
+// La prose des passifs « Stats acquises en combat ».
 //
 // Deux vérifications :
 // 1. `testProseStatsCombat` — la fonction pure `renduStatsCombat`
 //    (src/lib/proseStatsCombat.ts) sur TOUT le corpus, avec les blocs voisins
 //    construits par les mêmes producteurs que l'écran (OptimizerSection.tsx) :
-//    l'inventaire du lot 1e (38 identifiants, 40 réglages, 80 formes), 30
+//    l'inventaire des passifs de stats de combat (38 identifiants, 40 réglages, 80 formes), 30
 //    proses pour 32 réglages, une par identifiant, jamais déjà rendue par un
 //    bloc voisin. Les huit exclusions sont DÉDUITES de ces blocs, le test
-//    vérifie seulement qu'on retrouve celles du lot 1e. L'icône et le nom
+//    vérifie seulement qu'on retrouve celles de l'inventaire. L'icône et le nom
 //    du passif coiffent les 27 réglages dont le contrôle ne le nomme pas.
 // 2. `testProseStatsCombatCarte` — la carte, sur la source (le dépôt n'a pas
 //    d'infrastructure de test React, voir tests/run.mjs) : la prose passe par
 //    `renduStatsCombat`, à un seul endroit, entre ce qui nomme le passif et
 //    le réglage ; les blocs que la carte exclut sont ceux qui rendent une prose.
-// 3. `testProseStatsCombatPassifMasque` — degats-et-aura 9c : un passif
+// 3. `testProseStatsCombatPassifMasque` — un passif
 //    offensif MASQUÉ (choisi comme sort, ou qui ne suit pas le sort choisi)
 //    et porteur de stats de combat garde sa prose, puisque l'exclusion ne lit
 //    que les passifs que leur bloc rend (`passifsSuivants`).
@@ -47,7 +47,7 @@ const dossierSorts = resolve(racine, 'public/data/skills');
 // Les huit blocs voisins, dans l'ordre de la carte, chacun construit par le
 // producteur dont l'écran passe le résultat à `DamageSetupCard` ; les passifs
 // offensifs sont ceux que leur bloc rend pour le sort retenu à l'ouverture
-// (le sort par défaut : `passifsSuivants`, degats-et-aura 9c). Les 84 formes à
+// (le sort par défaut : `passifsSuivants`). Les 84 formes à
 // stats de combat ont toutes un sort par défaut : sans lui, la carte ne
 // s'afficherait pas, et le test échoue plutôt que d'inventer un repli.
 function blocsVoisins(fiche: DetailMonstre): (ProseDUnBloc | null)[] {
@@ -66,7 +66,7 @@ function blocsVoisins(fiche: DetailMonstre): (ProseDUnBloc | null)[] {
 }
 
 // Le contrôle du réglage nomme-t-il déjà le passif ? Oracle du TEST, écrit
-// comme la règle de branche du lot 1e (valider-lot-1e.mjs) : un Jeton pour
+// comme la règle de branche de l'inventaire : un Jeton pour
 // `toujours`, `debuffsInverses` et le `toggle` piloté par une condition déjà
 // affichée ; un compteur ou un interrupteur d'état, nus, sinon.
 function controleNomme(profil: CombatStatProfile, fiche: DetailMonstre): boolean {
@@ -79,7 +79,7 @@ function controleNomme(profil: CombatStatProfile, fiche: DetailMonstre): boolean
 
 const EXCLUSIONS_1E = [2565, 9611, 9612, 9613, 9614, 9615, 10612, 18139];
 // Flash Step (Ciri) et Turning Slash (Birgitta, Magic Order Swordsinger),
-// compteurs de VIT ajoutés au lot 15e de degats-et-aura : passifs offensifs
+// compteurs de VIT : passifs offensifs
 // « toujours », ils suivent chaque sort, et leur bloc rend déjà nom et prose.
 const EXCLUSIONS_15E = [19014, 19414];
 
@@ -145,7 +145,7 @@ export function testProseStatsCombat() {
   egal(exclus, [...EXCLUSIONS_1E, ...EXCLUSIONS_15E],
     'dix exclusions, déduites des blocs voisins : celles du lot 1e (2565, 9611 à 9615, 10612, 18139) et Flash Step, Turning Slash (15e), ni prose ni en-tête');
 
-  // Décision n° 15 : l'icône et le nom au-dessus des réglages dont le contrôle ne nomme pas le passif.
+  // L'icône et le nom au-dessus des réglages dont le contrôle ne nomme pas le passif.
   const nus = tous.filter((id) => reglagesParId.get(id)!.every(([nomme]) => !nomme));
   const coiffes = nus.filter((id) => !exclus.includes(id));
   egal([coiffes.length, somme(coiffes)], [25, 27],
@@ -211,7 +211,7 @@ export function testProseStatsCombatCarte() {
   ok(!/\.description\b/.test(bloc) && !/profile\.description/.test(carte),
     'la carte ne lit jamais `profile.description` : la prose ne passe que par `renduStatsCombat`');
 
-  // Ancres des validateurs du lot 1e (valider-lot-1e.mjs) et du corpus
+  // Ancres des validateurs de l'inventaire et du corpus
   // (scripts/audit-degats-aura-corpus.mjs) : chacune une fois et une seule.
   for (const fragment of [
     '{combatStats.map((profile, index) => {',
@@ -227,7 +227,7 @@ export function testProseStatsCombatCarte() {
 }
 
 /**
- * degats-et-aura 9c, point 4 — un passif offensif MASQUÉ qui porte aussi un
+ * Un passif offensif MASQUÉ qui porte aussi un
  * réglage de stats de combat garde sa prose. Aucun cas au corpus (sentinelle
  * `testLot12PassifMasqueEtStatsDeCombat`) : le passif est SYNTHÉTIQUE, posé
  * sur l'identifiant d'un réglage RÉEL ; l'exclusion est calculée comme la

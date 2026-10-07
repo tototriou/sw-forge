@@ -1,4 +1,4 @@
-// Garanties de critique et bornes strictes (degats-et-aura 15d, damage.ts) :
+// Garanties de critique et bornes strictes (damage.ts) :
 //   - Byungchul : la garantie de son passif 18613 sur ses deux sorts actifs
 //     (`CRITIQUES_GARANTIS_INCONDITIONNELS`) ;
 //   - Yuji et Rick (S2) : critique garanti contre une cible affligée, et sur
@@ -159,7 +159,7 @@ export function testGarantieYujiRick() {
       `${sort} ${nom} — Brise DEF saisie : débuff présent, les deux coups critiques`);
   }
 
-  // Décision de l'utilisateur du 2026-10-03 (degats-et-aura 15f) : la
+  // La
   // réduction de DEF du coup 1 baisse aussi la DEF que subit le coup 2. Les
   // totaux du témoin Yuji vent (1 000 ATQ, 100 % de Dgts Crit, DEF cible
   // 1 000, « Non critique ») sont figés en valeur : 848,5363 sans scénario
@@ -228,7 +228,7 @@ export function testBornesStrictesDef() {
   // ignore toujours la DEF. ⚠️ Comparer au total contre une DEF NULLE, pas
   // au total un point de DEF plus haut : une DEF plus basse augmente déjà
   // les dégâts sans aucun ignore DEF, et `seuil > seuil + 1` passait encore
-  // sous une borne stricte (mutation du lot 15d). Stats de combat = celles
+  // sous une borne stricte (mutation éprouvée). Stats de combat = celles
   // du build (aucun passif de stat transmis) : 800 DEF, 1 000 ATQ.
   const ignoreAuSeuil = (p: SkillDamageProfile, seuil: number) => {
     const degats = (def: number) => computeSkillDamage(p, build, { ...base, enemyDef: def }, AUCUNE_AURA_PROPRE);

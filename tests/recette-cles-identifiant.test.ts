@@ -1,5 +1,4 @@
-// Une seule règle de clé d'identifiant de compétence pour toute la recette
-// (chantier degats-et-aura, lot 8d).
+// Une seule règle de clé d'identifiant de compétence pour toute la recette.
 //
 // ⚠️ Ce qui serait GRAVE ET INVISIBLE : un champ indexé par identifiant qui
 // accepte « 010616 » — `Number` le ramène à 10616, mais le calcul lit la clé

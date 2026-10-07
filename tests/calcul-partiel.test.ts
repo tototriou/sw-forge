@@ -1,5 +1,5 @@
-// L'étiquette « Calcul partiel » de « Compétence utilisée » (degats-et-aura P3,
-// `calculPartielDuSort`, damage.ts ; DamageSetupCard.tsx).
+// L'étiquette « Calcul partiel » de « Compétence utilisée »
+// (`calculPartielDuSort`, damage.ts ; DamageSetupCard.tsx).
 //
 // ⚠️ Ce qui serait GRAVE ET INVISIBLE ici : un sort dont le total omet une
 // part connue (une perte de PV, un ignore DEF compté en permanence) affiché
@@ -36,7 +36,7 @@ function fiches(): DetailMonstre[] {
   return corpus;
 }
 
-// [identifiant, nom du sort, source] — preuves `controle-p3.md` (D63, PV-2, D36) et `controle-cp2.md` (CP2).
+// [identifiant, nom du sort, source : le code qui dit pourquoi le calcul est partiel].
 const ATTENDUS: [number, string, 'D63' | 'PV-2' | 'D36' | 'CP2'][] = [
   [13406, 'Madness Judgement', 'D63'],
   [13410, 'Madness Judgement', 'D63'],
@@ -71,7 +71,7 @@ const ATTENDUS: [number, string, 'D63' | 'PV-2' | 'D36' | 'CP2'][] = [
   [23515, 'Summary Justice', 'CP2'],
 ];
 
-// Lignes « calculé » de PV-2 écartées : total complet par décision.
+// Lignes « calculé » écartées : total complet par décision.
 const ECARTES: [number, string][] = [
   [13407, "Devil's Bargain — D36, la prose se trompe"],
   [13408, "Devil's Bargain — D36"],
@@ -141,8 +141,8 @@ export function testCalculPartielTable() {
     for (const { d } of p) {
       const s = monsterDamageSkills(d).find((x) => x.skillCom2usId === id);
       ok(s != null && estPrisEnCharge(s), `${id} (forme ${d.com2usId}) : sort calculé, donc l’étiquette s’affiche`);
-      // D63 : l'ignore DEF est compté en permanence ; le jour où un lot le
-      // conditionne (P11), ce contrôle échoue et l'entrée doit sortir.
+      // D63 : l'ignore DEF est compté en permanence ; le jour où il est
+      // conditionné, ce contrôle échoue et l'entrée doit sortir.
       if (source === 'D63' && s && estPrisEnCharge(s)) ok(s.ignoreDef, `${id} (forme ${d.com2usId}) : ignore DEF compté en permanence (D63)`);
     }
   }

@@ -325,8 +325,8 @@ export default function testDegats() {
   const crit = computeSkillDamage(s3!, build, critique, AUCUNE_AURA_PROPRE);
   ok(normal < crit, 'non critique < critique');
 
-  // Deux modes seulement depuis la suppression de « Moyenne » (degats-et-aura,
-  // lot CM) : le Taux Crit n'entre plus dans la part critique — 0 ou 1 —, ni
+  // Deux modes seulement depuis la suppression de « Moyenne » :
+  // le Taux Crit n'entre plus dans la part critique — 0 ou 1 —, ni
   // sous 100 % ni au-delà. Converti de l'ancien test « au-delà de 100 % de
   // Taux Crit, plus aucun dégât », qui ne se lisait qu'en mode Moyenne.
   for (const critMode of ['crit', 'normal'] as const) {
@@ -403,7 +403,7 @@ export default function testDegats() {
   );
   // Le ratio attendu ci-dessous ne dépend que de l'ATQ : la part critique est
   // la même des deux côtés (l'élément ne touche pas aux Dgts Crit). Converti
-  // du mode « Moyenne », supprimé (lot CM), vers « Critique », le défaut.
+  // du mode « Moyenne », supprimé, vers « Critique », le défaut.
   const combatSansElement = computeSkillDamage(s3!, buildInvoc, { ...DEFAULT_DAMAGE_SETUP, critMode: 'crit', summonerSkills: 'combat' }, AUCUNE_AURA_PROPRE, null);
   const avecCombat = computeSkillDamage(s3!, buildInvoc, { ...DEFAULT_DAMAGE_SETUP, critMode: 'crit', summonerSkills: 'combat' }, AUCUNE_AURA_PROPRE, 'wind');
   ok(avecCombat > combatSansElement, 'la compétence de Combat élémentaire augmente les dégâts du bon élément');
@@ -1072,7 +1072,7 @@ export default function testDegats() {
   // Taux Crit / Dégâts Crit — des POINTS FLATS ajoutés à la stat, jamais un
   // pourcentage de la base : même famille que les compétences d'invocateur
   // et Euldong, PAS la même famille que PV/ATQ/DEF/VIT ci-dessus.
-  // ⚠️ Converti du mode « Moyenne », supprimé (degats-et-aura, lot CM), où le
+  // ⚠️ Converti du mode « Moyenne », supprimé, où le
   // Taux Crit pesait sur la part critique : en « Critique », il ne se lit plus
   // que par le surplus au-delà de 100 % reversé en Dgts Crit (Wolf School
   // Training, `critRateSelonVit`). 50 + 20 (VIT 240 / 12) = 70 % sans lead :
@@ -1429,7 +1429,7 @@ export default function testDegats() {
   // maVit = 240 (base VIT nulle dans ce fixture, donc Combat n'ajoute rien) → crDepuisVit =
   // floor(240/12) = 20 pts.
   const critVitStatsSansOverflow = stats({ atk: 2000, cd: 100, cr: 40, spd: 240 });
-  // ⚠️ Converti du mode « Moyenne », supprimé (degats-et-aura, lot CM) : en
+  // ⚠️ Converti du mode « Moyenne », supprimé : en
   // « Critique », la part critique vaut 1 et le Taux Crit ne se lit plus que
   // par le surplus reversé — les 20 pts sous 100 % ne changent plus rien.
   const critVitSetup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, critMode: 'crit', summonerSkills: 'combat' };
@@ -1474,8 +1474,8 @@ export default function testDegats() {
     ) < 1e-9,
     'Detect Weakspot : +20 pts de Dgts Crit, toujours actif'
   );
-  // Les +20 pts de Taux Crit ne se lisent plus qu'au-delà de 100 % (lot CM,
-  // voir plus haut) : combinaison SYNTHÉTIQUE avec le reversement de Wolf
+  // Les +20 pts de Taux Crit ne se lisent plus qu'au-delà de 100 % (voir
+  // plus haut) : combinaison SYNTHÉTIQUE avec le reversement de Wolf
   // School Training, qu'aucun monstre ne porte avec Detect Weakspot — elle
   // éprouve seulement que `crBrutEffectif` additionne `bonusStatFixe.cr`.
   // 70 + 20 (VIT 240 / 12) = 90 % sans le passif ; 110 % avec : 10 pts
@@ -1999,7 +1999,7 @@ export default function testDegats() {
     !damageRelevantStats(s3, [], { ...DEFAULT_DAMAGE_SETUP, critMode: 'normal' }).includes('cd'),
     "« Non critique » : Dégâts Crit ne pèse plus sur aucun dégât, donc plus retenu au pré-filtrage"
   );
-  // Converti du mode « Moyenne », supprimé (degats-et-aura, lot CM), vers
+  // Converti du mode « Moyenne », supprimé, vers
   // « Critique » : le seul autre mode où Dégâts Crit pèse.
   ok(
     damageRelevantStats(s3, [], { ...DEFAULT_DAMAGE_SETUP, critMode: 'crit' }).includes('cd'),
@@ -2450,12 +2450,12 @@ export default function testDegats() {
   // répondues dans le même message. Les données réelles ont prévalu.
   egal(monsterBonusDegatsConditionnel(fiche(22011))?.pct, 20, 'Female Warrior : 20 %, PAS 200 % — les données SWARFARM prévalent sur une réponse en aparté imprécise');
 
-  // Internal Force (12515 ; Paladin 21805, Leona 21815) — lot 15b du chantier
-  // degats-et-aura, décision de l'utilisateur du 2026-10-02. ⚠️ Ce test
+  // Internal Force (12515 ; Paladin 21805, Leona 21815).
+  // ⚠️ Ce test
   // FIGEAIT l'inverse : un `PASSIFS_OFFENSIFS_CONNUS` `conditionnel` dont la
   // formule `2.0*{DEF}` (le Bouclier) s'ajoutait aux dégâts, le +50 % étant
   // réputé porter sur les dégâts absorbés. Renversé : le Bouclier se crée
-  // « when you are attacked », ce n'est pas une attaque (cadrage A.2 ter,
+  // « when you are attacked », ce n'est pas une attaque (`spec/outils/degats-reels/valeurs-de-jeu-curees.md`,
   // « Une attaque se lit dans la prose ») ; le +50 % « damage dealt » de la
   // donnée (`Increase Damage`, `quantite: 50`, note « When you have a
   // Shield. ») majore les dégâts du monstre sous le bouton « bouclier
@@ -2844,7 +2844,7 @@ export default function testDegats() {
 
   // Le nom « Rending Claw » est partagé avec Cecilia (23306) et Elise (23310),
   // dont la fiche ne porte pas Emergency Drive : le bouton est par identifiant
-  // (23307), pas par nom — décision du 2026-10-03 (degats-et-aura P1b).
+  // (23307), pas par nom.
   egal(rendingClawProfile.skillCom2usId, 23307, 'Rending Claw de Cynthia : identifiant 23307');
   for (const [forme, sortId, qui] of [[34011, 23306, 'Cecilia'], [34015, 23310, 'Elise']] as const) {
     const autre = monsterDamageSkills(fiche(forme)).find((s) => estPrisEnCharge(s) && s.nom === 'Rending Claw');
@@ -2864,8 +2864,8 @@ export default function testDegats() {
   titre('Dégâts réels — propagation dans la recherche');
 
   // ⚠️ Ce bloc existe parce que `tsc --noEmit` ne peut PAS voir ces erreurs :
-  // un champ non lu reste un accès optionnel valide, et `scripts/` est même
-  // hors de son périmètre (voir le skill optimizer-field-propagation, né de
+  // un champ optionnel non lu reste un accès valide, même si `tsc` couvre aussi
+  // `scripts/` et `tests/` (voir le skill optimizer-field-propagation, né de
   // trois incidents de ce type exactement).
 
   // Le repli doit rester STRICTEMENT le comportement d'avant pour les cinq

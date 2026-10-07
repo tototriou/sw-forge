@@ -1,20 +1,20 @@
-// Lot 9c du chantier degats-et-aura — l'attaque appelée ACTIVE : une compétence
+// L'attaque appelée ACTIVE : une compétence
 // active de la fiche enchaînée après UN sort déclencheur (la S2 de RYU appelle
 // sa S1). Trois vérifications :
 // 1. l'approvisionnement par `ATTAQUES_APPELEES_PAR_DECLENCHEUR` (clé = sort
 //    déclencheur, slot appelé ; jamais un nom) ;
-// 2. la couverture des 17 amorces des constats 168, 178 et 179, une par une ;
+// 2. la couverture des 17 amorces, une par une ;
 // 3. l'espace de clés de l'interrupteur (`passifsOffensifs`).
 //
-// ⚠️ AUCUNE entrée de production : la table est vide (contrat du lot 9 : « n'en
+// ⚠️ AUCUNE entrée de production : la table est vide (« n'en
 // code aucune »). Chaque test injecte SES entrées et les retire dans un
 // `finally` ; la restauration est vérifiée.
 //
 // Valeurs de jeu : formules, coups et améliorations des fiches SWARFARM
 // (`public/data/skills`), recopiées ici à la main ; inclusion par interrupteur,
-// lignes d'artéfact et ordre des effets des Maîtres ivres = cadrage A.2 ter et
-// amendement du lot 1c1 (`controle-1c1-amendement.md`, réponses de
-// l'utilisateur du 2026-09-23). Aucun nombre attendu n'est relu dans le code
+// lignes d'artéfact et ordre des effets des Maîtres ivres : `spec/outils/degats-reels/valeurs-de-jeu-curees.md`,
+// réponses de
+// l'utilisateur. Aucun nombre attendu n'est relu dans le code
 // qui calcule, aucun cas n'est déduit d'un voisin.
 
 import { readFileSync, readdirSync } from 'fs';
@@ -67,7 +67,7 @@ function toutesLesFiches(): DetailMonstre[] {
     .map((n) => JSON.parse(readFileSync(resolve(DOSSIER_SORTS, n), 'utf8')) as DetailMonstre);
 }
 
-// Stats de fiche à base nulle (comme le lot 12) : ce qui porte sur la base
+// Stats de fiche à base nulle (comme dans `tests/degats-lot12.test.ts`) : ce qui porte sur la base
 // (compétences d'invocateur) s'annule, l'ATQ de combat vaut l'ATQ saisie.
 function stats(valeurs: Partial<Record<StatKey, number>>): StatRow[] {
   const cles: StatKey[] = ['hp', 'atk', 'def', 'spd', 'cr', 'cd', 'res', 'acc'];
@@ -115,8 +115,8 @@ function appeleesDe(detail: DetailMonstre): PassifOffensifProfile[] {
   return monsterOffensivePassives(detail).filter((p) => actives.has(p.skillCom2usId));
 }
 
-// Le profil construit À LA MAIN par le lot 12 (`tests/degats-lot12.test.ts`,
-// `attaqueAppelee`) : la référence du point 2, « même total au centième près ».
+// Le profil construit À LA MAIN dans `tests/degats-lot12.test.ts`,
+// (`attaqueAppelee`) : la référence du point 2, « même total au centième près ».
 function attaqueAppeleeALaMain(appelee: SkillDamageProfile, slotsDeclencheurs: readonly number[]): PassifOffensifProfile {
   return {
     skillCom2usId: appelee.skillCom2usId,
@@ -240,8 +240,8 @@ export function testAttaqueAppeleeApprovisionnement() {
 
 // ── 2. Couverture des 17 amorces ─────────────────────────────────────────────
 
-// Constat 178 — six S2 qui appellent leur S1 (inventaire.csv, entrée 178 ;
-// formes éveillées jouables). Valeurs des fiches : S2 `6.1*{ATK}`, S1
+// Six S2 qui appellent leur S1 ;
+// formes éveillées jouables. Valeurs des fiches : S2 `6.1*{ATK}`, S1
 // `3.7*{ATK}`, chacune ses « Damage + » (+25 %), un coup, cible unique.
 const CAS_178: { forme: number; monstre: string; s2: number; s1: number }[] = [
   { forme: 24012, monstre: 'RYU feu', s2: 13907, s1: 13902 },
@@ -252,7 +252,7 @@ const CAS_178: { forme: number; monstre: string; s2: number; s1: number }[] = [
   { forme: 24515, monstre: 'Vancliffe ténèbres', s2: 14410, s1: 14405 },
 ];
 
-// Constat 179 — les amorces ACCEPTÉES : le sort déclencheur ne pose rien que
+// Les amorces ACCEPTÉES : le sort déclencheur ne pose rien que
 // Rolling Punch lise (vérifié au cas par cas plus bas). Rolling Punch : `1.8*{ATK}`,
 // un coup, cible unique, ignore la DEF, « Damage + » 5/10/10 (+25 %).
 const CAS_179: { amorce: number; forme: number; monstre: string; slot: number; nom: string; coef: number; coups: number; skillup: number; appelee: number }[] = [
@@ -263,7 +263,7 @@ const CAS_179: { amorce: number; forme: number; monstre: string; slot: number; n
   { amorce: 8115, forme: 17215, monstre: 'Wei Shin (ténèbres)', slot: 3, nom: 'Snake Punch', coef: 2.7, coups: 3, skillup: 40, appelee: 8105 },
 ];
 
-// Le verdict de chacune des 17 amorces (`controle-1c1-amendement.md`, L14), avec
+// Le verdict de chacune des 17 amorces, avec
 // sa raison. « acceptée » = une entrée de table suffit, total identique au
 // profil construit à la main ; « classée » = mécanique voisine ou donnée
 // manquante, jamais forcée.
@@ -361,7 +361,7 @@ export function testAttaqueAppeleeCouverture() {
   const tc = (cr: number) => stats({ hp: 20000, atk: ATQ, def: 800, spd: 200, cr, cd: 100 });
   // Les deux modes restants : la « LIMITE ASSUMÉE » du mode Moyenne (la hausse
   // de TC posée par Snake Punch n'y était pas appliquée à Rolling Punch) est
-  // retirée avec ce mode (degats-et-aura, lot CM).
+  // retirée avec ce mode.
   for (const critMode of ['normal', 'crit'] as const) {
     ok(proche(rpCalcul(rpWei, { ...BASE, critMode }, tc(50)), rpCalcul(rpWei, { ...BASE, critMode }, tc(80))),
       `Wei Shin, mode ${critMode} : une hausse de TC ne change pas Rolling Punch`);

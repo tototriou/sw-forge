@@ -123,12 +123,12 @@ codée porte « Calcul partiel »
   même effet contre ~500 puis ~2 500 de DEF (environ 1 → ignore la DEF).
   Legolas ou Elder Horn, attaque d'état / coup de Sindar's Volley ; Pure
   Vanilla ou Angela, riposte / bouclier absorbé ; Malite, riposte en
-  statue / Earth Strike ; Madeleine Cookie et Pavé, additionnelle / S1 ;
-  Artamiel, S1 critique à k cumuls de Judge puis la contre-attaque ;
-  Chakra, deux VIT puis Wild Bolt ; Übel vent, chaque coup ajouté sur une
-  cible sans réduction de DEF ; Danu, passif / Brutal Fists (environ
-  2,304 → formule confirmée). Facultatifs : Ramon et Psamathe ; Jin et Kai
-  feu, Frieren (écart de plus de 5 % → facteur hors tour).
+  statue / Earth Strike ; Madeleine Cookie feu ou Pavé, son jumeau,
+  additionnelle / S1 ; Artamiel, S1 critique à k cumuls de Judge puis la
+  contre-attaque ; Chakra, deux VIT puis Wild Bolt ; Übel vent, chaque
+  coup ajouté sur une cible sans réduction de DEF. Danu : le passif
+  peut-il critiquer ? Facultatifs : Jin et Kai feu, Frieren (écart de plus
+  de 5 % → facteur hors tour).
 
 ## Coups et séquences
 
@@ -147,14 +147,13 @@ codée porte « Calcul partiel »
   VIT totale de combat ([valeurs-de-jeu-curees.md](valeurs-de-jeu-curees.md)).
   Chain Fire : salves de deux flèches, compteur par pas de 2. Lala : un
   sélecteur de 0 à 5 [Attack!], son S3 sans coup propre. Coco : compteur des
-  sphères restantes sur S1 et S2, 5 par défaut.
+  sphères restantes sur S1 et S2, 5 par défaut, chaque sphère en dégâts
+  fixes, valeur de la donnée.
 - **Bloque** : un changement de code, et des relevés. Wild Shot! avec 4, 3,
   2 puis 1 ennemi vivant, coups reçus par un ennemi : une table, ou une
   somme constante répartie. Cleave et Exorcism Orb : la règle du nombre de
   coups, à tester d'abord en jeu, puis ATQ sous la DEF, à 1,5 fois, à 2
-  fois. Lala avec 0, 2 puis 5 effets nocifs sur les alliés. Coco contre une
-  DEF basse puis ~3 000 : sphère égale à ±3 % → `(Fixed)` exact. Hors
-  inventaire : Crow Hunt et Rat Hunt sous Immunité.
+  fois. Hors inventaire : Crow Hunt et Rat Hunt sous Immunité.
 
 ### Séquences à valeur relevée
 
@@ -209,13 +208,15 @@ codée porte « Calcul partiel »
   partir du coup choisi, comme l'ignore DEF des Blade Dancers
   ([formules-et-combat.md](formules-et-combat.md)). Un buff que le sort se
   pose : un interrupteur allumé par défaut quand ce sort est choisi.
+  Hairpin: Black Flash et Exorcist Shuriken Formation (`20315`, `20915`,
+  Nobara et Aya ténèbres) : +100 % au seul coup 2 si la cible porte un
+  effet nocif, comme le disent la donnée et la prose.
 - **Bloque** : un changement de code, et des relevés. Buff posé par le
-  sort, monstre déjà sous ce buff puis sans : environ 1,00 → actif avant
-  l'attaque. Barbara contre ~3 000 de DEF et 4 buffs : coup 2 / coup 1
-  très au-dessus de 1 → la cavalière est le coup 2 ; Savannah sous k
-  débuffs : environ 1 + 0,15k. Nobara ou Aya ténèbres sur une cible déjà
-  sous Brise DEF : coup 2 / coup 1 environ 2 → +100 % au coup 2 seul.
-  Solveig ou Berghild : l'icône de Marque après le sort. Hellfire sans puis
+  sort : la prose le place avant l'attaque ; un relevé (monstre déjà sous
+  ce buff puis sans, environ 1,00 → actif avant) seulement en cas de doute.
+  Barbara contre ~3 000 de DEF et 4 buffs : coup 2 / coup 1 très au-dessus
+  de 1 → la cavalière est le coup 2 ; Savannah sous k débuffs : environ
+  1 + 0,15k. Solveig ou Berghild : l'icône de Marque après le sort. Hellfire sans puis
   avec Brise DEF (~1 500 de DEF) : environ 1 → la Brise DEF précède le
   coup, environ 2,36 → après.
 

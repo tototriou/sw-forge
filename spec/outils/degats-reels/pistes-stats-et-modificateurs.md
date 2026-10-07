@@ -135,14 +135,14 @@ les coups. La forme d'une piste et des relevés en jeu est celle de
   Disdain), de Mandrake (Hyanes), du S3 de Jin et Kai ne sont pas comptées.
 - **Idée** : une clause « la cible porte un effet » en interrupteur ;
   Lucifer, un effet actif saisi de 0 à 50 % avec l'équivalent en dégâts
-  reçus ; Kiki, un choix de 0, 1 ou 2 effets nocifs sur la cible.
-- **Bloque** : des relevés. S4 de Zenitsu ou Qilin Slasher contre une cible
-  à ~25 % puis à ~40 % que le coup fait passer sous 30 %. Nina ou Shasha,
-  S3, valeurs par coup. Shakan, PV % égaux puis cible entamée, et Disdain
+  reçus ; Kiki, un choix de 0, 1 ou 2 effets nocifs sur la cible ; le
+  bonus du S4 de Zenitsu et de Qilin Slasher, lié à un seuil de PV de la
+  cible, en interrupteur.
+- **Bloque** : des relevés. Nina ou Shasha, S3, valeurs par coup. Shakan, PV % égaux puis cible entamée, et Disdain
   par un relevé propre. Amber (deux coups) contre 0, 1, 3, 4 débuffs.
   Mandrake avec puis sans effet sur la cible. S3 d'Übel feu sur une cible
-  sans dégât continu, valeurs par coup. S3 de Jin et de Kai, coup par
-  coup, contre une ATQ entre la leur sans et avec buff.
+  sans dégât continu, valeurs par coup. S3 de Jin ou de Kai, jumeaux, une
+  mesure, coup par coup, contre une ATQ entre la leur sans et avec buff.
 
 ### PV et comparaisons continues
 
@@ -156,14 +156,15 @@ les coups. La forme d'une piste et des relevés en jeu est celle de
   (valeurs fournies) ; Massacre déduit des PV de la cible ; Bayek et Ahmed
   sur l'état partagé « PV détruits de la cible ». Une seule source pour les PV propres.
 - **Bloque** : des relevés à PV propres 100, 50, 25 %, rapport au cas
-  pleine vie (linéaire ou palier) : Blood Demon Art (Nezuko), Immortal
-  Wings (Vermilion Bird Dancer, pente propre), Flow (Chow), Full of Spirit
-  (Byungchul), Cursed Body (Karakum), Magic Arrow (Ardella, critique),
-  Bite (Shumar), S1 de Kamatau, Gamir, GingerBrave et Thomas. Massacre :
+  pleine vie (linéaire ou palier), une mesure par paire de jumeaux : Blood
+  Demon Art (Nezuko) ou Immortal Wings (Vermilion Bird Dancer), Flow
+  (Chow), Full of Spirit (Byungchul), Cursed Body (Karakum), Magic Arrow
+  (Ardella, critique), Bite (Shumar), S1 de Kamatau, de Gamir, de
+  GingerBrave ou Thomas. Massacre :
   PV de la cible 100, 50, 25 %. VIT sans puis avec buff : Summary Justice
   (cible plus lente), Spear of Thunder (`23415`, Asbolus, cible plus
   rapide). Born to Fight (Lucas), premier tour puis bouclier affiché.
-  Dismantle (Sukuna) et Bead Explosion (Hayato), sans puis avec Brise DEF,
+  Dismantle (Sukuna) ou Bead Explosion (Hayato), sans puis avec Brise DEF,
   puis buff d'ATQ. Stark, équipe pleine, alliés blessés, 1 puis 2 morts.
   Bayek ou Ahmed, cible intacte puis après une destruction connue.
 
@@ -180,12 +181,13 @@ les coups. La forme d'une piste et des relevés en jeu est celle de
   une jauge « PV détruits » de 15 à 60 %. Sword of Destruction : un champ
   « PV actuels de l'ennemi le plus en forme »
   ([valeurs-de-jeu-curees.md](valeurs-de-jeu-curees.md)).
-- **Bloque** : des relevés. Base d'une perte de PV, un sort à la fois,
-  cible à PV pleins puis ~50 % : rapport environ 0,5 → PV actuels, environ
-  1 → PV max. Terme proportionnel : deux lancers ne changeant que la
-  quantité réduite ou absorbée, puis contre ~3 000 de DEF (mitigé si la
-  part baisse comme le facteur de DEF, sinon brut). Ereshion, buff retiré,
-  PV pleins puis ~50 %.
+- **Bloque** : des relevés. Base d'une perte de PV, un sort à la fois
+  (Hellfire, Ragnarok, le sort d'Agrenia, Moonlight Blow, les
+  totems de Nora et de Maya), cible à PV pleins puis ~50 % : rapport
+  environ 0,5 → PV actuels, environ 1 → PV max. Sword of Destruction : la
+  part des PV retirés est-elle réduite par la DEF de la cible (deux
+  lancers à même part retirée, puis contre ~3 000 de DEF) ? Ereshion, buff
+  retiré, PV pleins puis ~50 %.
 
 ### Bombes qui explosent pendant le sort
 

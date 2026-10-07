@@ -80,14 +80,25 @@ codée porte « Calcul partiel »
 
 ### Chaînes ordonnées
 
-- **Constat** : aucune chaîne de sorts n'est calculée. Les S2 des Kung Fu
-  Girls appelés par leur S1 (`8216`, `8217`, `8219`) ne sont pas curés ; ni
-  Trinity Claymore (`22515`), ni Backlash avant elle (Hwoarang et Taebaek
-  ténèbres), ni Shoot n' Slash de Barque (`10223`).
-- **Idée** : la chaîne entière sous un interrupteur par appel, dans l'ordre
-  fourni ([valeurs-de-jeu-curees.md](valeurs-de-jeu-curees.md), « Chaînes
-  des Kung Fu Girls (sens) », « Trinity Claymore », « Barque — Shoot n'
-  Slash ») ; Backlash appelé avant.
+- **Constat** : aucune chaîne de sorts n'est calculée. Kung Fu Girls :
+  Energy Ball (S1, `8201` à `8205`) appelle Twist Kick ou Shadowless Kick
+  (S2, `8216` à `8220`), qui appelle leur Dragon Attack (S3, `8211` à
+  `8215`). Hwoarang ténèbres : Hunting Hawk (`22510`) frappe d'abord avec
+  Backlash quand la cible n'a aucun effet bénéfique, et Trinity Claymore
+  (`22515`) enchaîne Backlash, Hunting Hawk puis trois coups ; Taebaek
+  ténèbres, son jumeau, porte Roundhouse Kick Combo (`23010`) et Endless
+  Kick Combo (`23015`). Shoot n' Slash de Barque (`10223`, sans formule)
+  enchaîne Backspin Slash et Pirate's Strike.
+- **Idée** : ce que décide chaque chaîne
+  ([valeurs-de-jeu-curees.md](valeurs-de-jeu-curees.md)). Kung Fu Girls :
+  chaque appel sous son interrupteur ; S3 choisi, un seul sort ; S1 choisi,
+  la chaîne entière possible. Hunting Hawk : Backlash compté avant, la
+  condition sur la cible en interrupteur. Trinity Claymore, choisi comme
+  sort : toute la chaîne d'abord (S1 puis S2), puis ses 3 coups au ratio du
+  sort ; aucun sort ne l'appelle. Barque : Backspin Slash puis Pirate's
+  Strike, sans interrupteur de chaîne ; seul l'interrupteur du break DEF de
+  la première frappe, qui profite à la seconde ; +35 % par effet nocif
+  recalculé avant chaque frappe ; lignes 400 puis 401.
 - **Bloque** : un changement de code, après la piste « Compétence active
   appelée par un sort ».
 

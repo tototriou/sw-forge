@@ -317,8 +317,8 @@ quel qu'il soit, pas un sort précis) :
 **Bouton restreint à UN SORT** (nouveau : `SkillDamageProfile.
 bonusConditionnelPropre?: { pct: number; condition: string }`) :
 
-- **Emergency Drive/Cynthia, Arcane Weapon** : « deal 50%
-  increased damage » UNIQUEMENT « While in the mechanical frame state », un
+- **Emergency Drive/Cynthia, Arcane Weapon** : « deal 70%
+  increased damage » (`quantite: 70`) UNIQUEMENT « While in the mechanical frame state », un
   état qui force l'usage de **Rending Claw** (S2) — un bouton monstre-wide
   aurait été faux dès qu'un AUTRE sort est sélectionné à l'écran. Le bouton
   ne majore donc QUE Rending Claw, jamais Mechanical Fist (S1). Le nom est

@@ -2824,8 +2824,8 @@ export default function testDegats() {
   const rendingClawProfile = rendingClaw as SkillDamageProfile;
   egal(
     rendingClawProfile.bonusConditionnelPropre,
-    { pct: 50, condition: 'tu es en Mechanical Frame State (Emergency Drive)' },
-    'Rending Claw : +50 % en Mechanical Frame State, confirmé en données'
+    { pct: 70, condition: 'tu es en Mechanical Frame State (Emergency Drive)' },
+    'Rending Claw : +70 % en Mechanical Frame State, confirmé en données'
   );
   const mechanicalFist = cynthiaSkills.find((s) => estPrisEnCharge(s) && s.nom === 'Mechanical Fist');
   ok(mechanicalFist != null && estPrisEnCharge(mechanicalFist), 'Cynthia : Mechanical Fist (S1) calculable');
@@ -2838,7 +2838,7 @@ export default function testDegats() {
     ...cynthiaSetup,
     passifsOffensifs: { [rendingClawProfile.skillCom2usId]: true },
   }, AUCUNE_AURA_PROPRE);
-  ok(Math.abs(cynthiaAvec / cynthiaSans - 1.5) < 1e-9, 'activé : exactement +50 % (×1,5)');
+  ok(Math.abs(cynthiaAvec / cynthiaSans - 1.7) < 1e-9, 'activé : exactement +70 % (×1,7)');
 
   // Le nom « Rending Claw » est partagé avec Cecilia (23306) et Elise (23310),
   // dont la fiche ne porte pas Emergency Drive : le bouton est par identifiant

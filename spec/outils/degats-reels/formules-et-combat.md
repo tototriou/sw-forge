@@ -89,9 +89,9 @@ Couverture mesurée sur le corpus complet après exclusion des 69 soins
 (mesure antérieure au masquage des sorts sans attaque) :
 **6 073 profils de dégâts calculables, 115 refusés explicitement** (variables hors modèle —
 `{Attacker's Level}`, `ABSORPTION_TOT_CNT`… — ou formules hors grammaire).
-`{Relative SPD}` a longtemps fait partie des variables refusées (20 sorts,
-Beast Rider ×10 formes/éléments, Barbara, Masha, Savannah, Narsha, Xiana) —
-reconnue depuis confirmation de sa formule par l'utilisateur.
+`{Relative SPD}` est reconnue (20 sorts, Beast Rider ×10 formes/éléments,
+Barbara, Masha, Savannah, Narsha, Xiana), sa formule confirmée par
+l'utilisateur.
 
 Un sort dont la formule ne dépend d'**aucune** statistique de l'attaquant
 (dégâts purement fixes) est refusé lui aussi : il est calculable, mais

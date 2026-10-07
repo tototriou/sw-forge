@@ -57,8 +57,8 @@ donc jamais des `PASSIFS_OFFENSIFS_CONNUS`) :
   ⚠️ **Hidden Aim n'est PAS un passif** (S2 actif, `formule` vide dans les
   données SWARFARM) — c'est une exception au reste de cette famille,
   demandée explicitement par l'utilisateur pour Carcano malgré ça :
-  `monsterBonusDegatsConditionnel` ne filtre plus sur `c.passif` (les autres
-  entrées, toutes passives, ne changent pas de comportement). Nom curé
+  `monsterBonusDegatsConditionnel` ne filtre pas sur `c.passif` (les autres
+  entrées sont toutes passives). Nom curé
   exclusif à cette famille de monstre dans tout le corpus — les douze fiches
   (base + éveillé × 3 éléments × 2 stades) partagent le texte mot pour mot,
   couvertes sans code supplémentaire par la curation par nom exact, même
@@ -237,15 +237,14 @@ Increases the damage dealt by 50% when you have a Shield. »
 PROPRE au passif, pas un % du total) :
 
 - **Comeuppance/Onmyouji, Giou** : `formule: 0.2*{Target MAX HP}`
-  confirmée (capture du bestiaire à l'appui — d'abord exclue à tort par
+  confirmée (capture du bestiaire à l'appui). ⚠️ Ne pas l'exclure par
   analogie avec `skillDamageProfile`, qui rejette un sort ACTIF
   stat-indépendant parce qu'INUTILE comme référence de classement des
-  builds ; une raison qui ne s'applique PAS à `monsterOffensivePassives`,
-  qui somme une contribution RÉELLE au total affiché, jamais utilisée pour
-  classer). Le filtre correspondant a été RETIRÉ de
-  `monsterOffensivePassives` (seule une formule vraiment illisible reste
-  rejetée) — aucune autre entrée de la table n'est affectée, toutes
-  dépendaient déjà d'au moins une stat de l'attaquant. `critique: 'jamais'`,
+  builds : la raison ne s'applique PAS à `monsterOffensivePassives`, qui
+  somme une contribution RÉELLE au total affiché, jamais utilisée pour
+  classer. `monsterOffensivePassives` ne rejette qu'une formule vraiment
+  illisible ; toutes les autres entrées de la table dépendent d'au moins
+  une stat de l'attaquant. `critique: 'jamais'`,
   catégorie `conditionnel` (bouton).
 
 **Nouveau `BONUS_DEGATS_STACKABLE_CONNUS`** (compteur saisi manuellement, 0
@@ -274,15 +273,13 @@ mais déduits d'un passif sans formule plutôt que propres à un sort — voir
 comme un champ de `SkillDamageProfile` keyé par le nom du passif** —
 `skillDamageProfile()` (`if (c.passif || !c.formule …) return null`) ne
 construit un profil QUE pour un sort ACTIF à formule : une telle entrée n'y
-serait jamais lue. Erreur d'architecture évitée avant commit sur ces six
-mécanismes (d'abord codés ainsi, repérés en relisant `skillDamageProfile()`),
-reconstruits en modificateurs monstre-wide (`monsterWide` étendu de 2 à 8
-champs). Seul `bonusConditionnelPropre` (Emergency Drive → Rending Claw)
+serait jamais lue. Ces six mécanismes sont donc des modificateurs
+monstre-wide (`monsterWide`). Seul `bonusConditionnelPropre` (Emergency Drive → Rending Claw)
 reste sur `SkillDamageProfile`, à raison : « Rending Claw » est un vrai sort
 ACTIF. ⚠️ Un mécanisme se branche AUSSI dans le calcul, pas seulement dans
-la table, le résolveur et l'UI : `bonusConditionnelPropre` avait tout sauf sa
-multiplication dans `computeSkillDamageDetail`, trouvé par un test qui
-échouait (`facteurConditionnelPropre`, fusionné dans `horsCoup`).
+la table, le résolveur et l'UI : la multiplication de
+`bonusConditionnelPropre` vit dans `computeSkillDamageDetail`
+(`facteurConditionnelPropre`), et un test la garde.
 
 - **Spear of Tenacity/Centaur Knight, Pholus** : « damage...
   proportionate to the enemy's MAX HP » — confirmé +2 %. Toujours actif,

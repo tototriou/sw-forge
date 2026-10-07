@@ -45,7 +45,7 @@ lesquels le passif compte (Tempest : S1 ou S2 ; absent, tous) ; `passifCompte`
 le lit avec le `slot` du sort RETENU, et n'ajoute jamais un passif choisi comme
 sort à lui-même ([attaque après un sort](attaque-apres-un-sort.md)).
 
-⚠️ **`bonus` ne met plus toute la contribution à zéro quand le bouton est
+⚠️ **`bonus` ne met pas toute la contribution à zéro quand le bouton est
 éteint.** Le texte de ces passifs décrit une attaque supplémentaire
 INCONDITIONNELLE (« Attacks additionally … when you attack the enemy on your
 turn »), dont seule la magnitude est conditionnée. Les confondre
@@ -57,8 +57,7 @@ cas MAJORÉ, pas le cas de base.** `Competence.formule` vaut `2.0*{ATK}
 (Fixed)` — 100 % de base × (1 + 100 % si PV > 50 %) — sans formule séparée
 pour le cas de base. Demande explicite de l'utilisateur : un bouton comme
 Hidden Gun (« pouvoir activer ou non l'augmentation… comme le passif de
-Ezio ») ; Dominic était d'abord passé de `bonus` à `toujours` précisément
-parce qu'un bouton `bonus` NAÏF aurait doublé une seconde fois une valeur
+Ezio ») ; un bouton `bonus` NAÏF doublerait une seconde fois une valeur
 déjà majorée. `categorie: { type: 'bonus', pct: 100, dejaInclus: true,
 condition: 'tes PV dépassent 50 %' }` inverse le sens de l'opération plutôt
 que de réécrire la formule (interdit, voir plus haut) : bouton décoché (par
@@ -100,9 +99,8 @@ apparaît maintenant à côté du nom, comme pour tous les autres.
 
 ## La réduction de Défense : « avant » n'est pas « après »
 
-Le problème signalé à l'origine (Roid pose lui-même la réduction que son
-propre passif vérifie) ne demandait PAS un bouton par passif, mais **un
-second réglage** :
+Roid pose lui-même la réduction que son propre passif vérifie : cela
+demande, non un bouton par passif, mais **un second réglage** :
 
 | Réglage | Sens |
 |---|---|
@@ -205,7 +203,7 @@ frappent après lui sur une cible déjà entamée. C'est ce qui permet à
   sur les PV que la simulation vient de calculer, à l'instant où le passif
   frappe.
 
-⚠️ **Conséquence assumée** : les PV de l'adversaire ne sont plus purement
+⚠️ **Conséquence assumée** : les PV de l'adversaire ne sont pas purement
 décoratifs. Pour un sort ou un passif qui en dépend, `enemyHp` et
 `enemyHpPct` changent le classement des builds — alors que pour tous les
 autres, ils ne servent toujours qu'à lire le résultat. Le champ « PV
@@ -434,14 +432,13 @@ dans « Passifs offensifs » à côté du Jeton du passif — désactivé (0) pa
 défaut, jamais un déclencheur deviné.
 
 ⚠️ **Le DÉCLENCHEUR et le BONUS DE DÉGÂTS qui en résulte sont DEUX NOMBRES
-DIFFÉRENTS, jamais confondus.** Signalé par l'utilisateur sur Borgnine :
+DIFFÉRENTS, jamais confondus.** Règle de l'utilisateur, sur Borgnine :
 « si l'utilisateur renseigne le % de PV cible détruit, alors il doit
 pouvoir renseigner une valeur entre 0 et 60 % par palier de 1 %, par
 contre l'augmentation de dégâts qui s'ensuit va de 0 à 30 % par palier de
-0,5 % ». Le champ demandait jusque-là de saisir DIRECTEMENT le bonus
-(0 à 30 %, pas de 0,5) — l'utilisateur devait faire la conversion
-mentalement, et le libellé du champ ne correspondait plus à la plage
-affichée. Curé dans `BONUS_DEGATS_STACKABLE_CONNUS` (`{ triggerMax,
+0,5 % ». Ne pas faire saisir DIRECTEMENT le bonus (0 à 30 %, pas de
+0,5) : l'utilisateur devrait convertir de tête, et le libellé du champ ne
+correspondrait pas à la plage affichée. Curé dans `BONUS_DEGATS_STACKABLE_CONNUS` (`{ triggerMax,
 triggerStep, ratio, pctMax, label, aide, suffix }`) — `triggerMax`/
 `triggerStep` décrivent la plage du DÉCLENCHEUR saisi, `ratio` (dégâts %
 par unité) et `pctMax` (plafond de dégâts) décrivent le BONUS qui en

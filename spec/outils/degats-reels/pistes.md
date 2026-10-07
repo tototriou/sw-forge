@@ -198,7 +198,7 @@ codée porte « Calcul partiel »
 - **Bloque** : un relevé, un sort à la fois : A visée, B autre ennemi de DEF
   et de PV très différents. D_B / D_A constant à 0,20, 0,75 ou 0,60
   (±1 %) malgré B → copie ; sinon recalcul par cible ; Crush : D_B critique
-  → copie.
+  → copie, et la ligne 224 porte-t-elle sur son coup principal ?
 
 ### Poses entre les coups : rang, buff posé par le sort, Eightfold
 

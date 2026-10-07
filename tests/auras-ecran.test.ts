@@ -71,7 +71,7 @@ export function testAurasEcranBornes() {
   titre('Auras à l’écran · bornes : 1 à 15 − somme des autres lignes, ajout impossible à 15 ou à cinq sets');
 
   egal(SETS_AURA, Object.keys(STAT_DE_L_AURA), 'les cinq sets sont DÉRIVÉS de STAT_DE_L_AURA, dans son ordre');
-  egal(PLAFOND_AURAS_EXTERNES, 15, 'plafond de saisie : 15 (cinq autres monstres à trois sets, A.2 ter)');
+  egal(PLAFOND_AURAS_EXTERNES, 15, 'plafond de saisie : 15 (cinq autres monstres à trois sets)');
   egal(libelleNombreAura('fight'), 'Nombre de sets Fight des autres monstres de l\'équipe', 'libellé explicite, patron de l’utilisateur');
   egal(libelleNombreAura('tolerance'), 'Nombre de sets Tolerance des autres monstres de l\'équipe', 'même patron pour les cinq sets');
 
@@ -295,7 +295,7 @@ export function testAurasEcranRappel() {
   egal(DUREE_ATTENTION_MS, 3000, 'effacé après 3 s (réponse de l’utilisateur du 2026-10-02)');
   const setup = { ...DEFAULT_DAMAGE_SETUP, setsAuraExternes: auras };
   egal(damageSetupApresChangementMonstre(setup).setsAuraExternes, auras,
-    'les nombres ne sont jamais réécrits : le changement de monstre conserve les auras (lot 5), le rappel ne fait que les signaler');
+    'les nombres ne sont jamais réécrits : le changement de monstre conserve les auras, le rappel ne fait que les signaler');
 
   // Branchement : dans le seul onClick d'un membre de la liste de travail.
   const ecran = lireSansCommentaires('src/components/outils/OptimizerSection.tsx');

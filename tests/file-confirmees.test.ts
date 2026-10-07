@@ -50,7 +50,7 @@ function derouler(base: BuildCandidate[], verdict: Map<string, boolean>, K: numb
 }
 
 export function testFileConfirmees() {
-  titre('File de résolution — elle vise K confirmées, plus les K premiers (6bis-b18)');
+  titre('File de résolution — elle vise K confirmées, plus les K premiers');
 
   {
     const triees = ordre(10);

@@ -506,7 +506,7 @@ const resume = (ms: MessageVersResolution[]) =>
 const resultat = (idContexte: number, idDemande: number, cle: string, n = idDemande): ReponseResolution => ({ type: 'resultat', idContexte, idDemande, cle, resultat: res(n) });
 
 export function testResolutionDistante() {
-  titre('Résolution hors du fil de l’écran — le module côté écran (6bis-b13bis-b)');
+  titre('Résolution hors du fil de l’écran — le module côté écran');
 
   /* ── 1. Neutralité ───────────────────────────────────────────────────── */
   const source = sansCommentaires(readFileSync('src/workers/resolutionDistante.ts', 'utf8'));
@@ -647,7 +647,7 @@ export function testResolutionDistante() {
     ok(q.enRepli && t.replis.length === 1 && /RechercheRefusee/.test(t.replis[0]!) && cacheP.size === 0,
       `réponse d’erreur : repli, rien d’écrit (${t.replis[0]})`);
     egal(t.details, [{ nom: 'RechercheRefusee', message: 'pool vide', vide: 'seuil' }],
-      'réponse d’erreur : le repli journalise le nom, le message ET le motif `vide` de la RechercheRefusee (6bis-b13bis-c)');
+      'réponse d’erreur : le repli journalise le nom, le message ET le motif `vide` de la RechercheRefusee');
   }
   egal(repliSurErreur({ issue: 'erreur', nom: 'Error', message: 'boum' }),
     { raison: 'la résolution a levé dans le Worker (Error)', detail: { nom: 'Error', message: 'boum' } },
@@ -670,7 +670,7 @@ export function testResolutionDistante() {
     [false, true, true, false, true], 'publicationForcee : la règle de la tranche directe');
 
   /* ── 5 bis. Rien d'écrit ne reste non publié ─────────── */
-  titre('Résolution hors du fil — rien d’écrit ne reste non publié (6bis-b13bis-c)');
+  titre('Résolution hors du fil — rien d’écrit ne reste non publié');
   {
     // File [1, 2], K = 3, pas de page ; `retient` : la cadence retient toute
     // publication non forcée. Le journal mêle publications et replis, dans
@@ -946,13 +946,13 @@ export function testResolutionDistante() {
   ok(/console\.error\(/.test(repli) && /d\.worker\.terminate\(\);/.test(repli) && /setEnRepli\(true\);/.test(repli),
     'hook : le repli journalise (console.error), termine le Worker et rend la main au chemin direct');
   ok(/if \(d\) \{\s*if \(d\.pilote\.renoncer\(\)\) setParBuild\(new Map\(cacheRef\.current\)\);\s*d\.worker\.terminate\(\);/.test(repli),
-    'hook : au repli, une écriture retenue par la cadence (renoncer rend vrai) est publiée de force (6bis-b13bis-c)');
+    'hook : au repli, une écriture retenue par la cadence (renoncer rend vrai) est publiée de force');
   ok(/courant: \(\) => \{\s*const h = horsFilRef\.current;\s*return h \? \{ entrees: h\.entrees, signature: signatureRef\.current \} : null;/.test(effetWorker),
     'hook : le contexte courant est lu dans les refs du rendu (entrées et signature), à chaque réponse');
   ok(/restants: \(\) => prochainsATraiter\(trieesRef\.current, cacheRef\.current, K, pageRef\.current\(\)\)/.test(effetWorker),
-    'hook : la priorité reste `prochainsATraiter` sur le fil de l’écran, page affichée comprise, sur le cache lui-même (6bis-b18)');
+    'hook : la priorité reste `prochainsATraiter` sur le fil de l’écran, page affichée comprise, sur le cache lui-même');
   ok(/publier: \(forcer\) => \{\s*const now = Date\.now\(\);\s*if \(!forcer && now - dernierePublication < PUBLICATION_MS\) return false;\s*dernierePublication = now;\s*setParBuild\(new Map\(cacheRef\.current\)\);\s*return true;\s*\},/.test(effetWorker),
-    'hook : même cadence de publication que le chemin direct ; rend faux quand la cadence retient, vrai quand l’écran reçoit le cache (6bis-b13bis-c)');
+    'hook : même cadence de publication que le chemin direct ; rend faux quand la cadence retient, vrai quand l’écran reçoit le cache');
   ok(/return \(\) => \{\s*vivant = false;\s*distant\.surReponse = \(r\) => reponseAuRepos\(distant\.pilote, r\);/.test(effetWorker),
     'hook : hors effet actif, une réponse libère sa place sans rien écrire');
 
@@ -963,7 +963,7 @@ export function testResolutionDistante() {
   // rendu, un gestionnaire de Worker, un effet) : chacune est gardée par un
   // contrôle de source PRÉCIS, sur la ligne entière. La mutation 1 (runes du
   // Worker) l'est au § 8, par le producteur unique.
-  titre('Résolution hors du fil — le branchement à l’écran gardé (6bis-b13bis-c)');
+  titre('Résolution hors du fil — le branchement à l’écran gardé');
   ok(/const horsFilRef = useRef\(horsFil\);\s*const signatureRef = useRef\(signature\);\s*horsFilRef\.current = horsFil;\s*signatureRef\.current = signature;/.test(hook)
     && /trieesRef\.current = triees;\s*pageRef\.current = pageAffichee;/.test(hook),
     'branchement (mutation 5 de la revue) : les refs que lisent les ports — entrées, signature, candidats, page — sont remises à jour à CHAQUE rendu');
@@ -992,7 +992,7 @@ export function testResolutionDistante() {
     && memoEntrees.length > 0, 'écran : les entrées sont mémoïsées sur les dépendances de la résolution directe, sans runeById ni caches');
 
   /* ── 8. Un seul producteur des runes d'un build ──────── */
-  titre('Résolution hors du fil — un seul producteur des runes d’un build (6bis-b13bis-c)');
+  titre('Résolution hors du fil — un seul producteur des runes d’un build');
   {
     const r1 = { id: 11 } as unknown as RuneDetail;
     const r2 = { id: 12 } as unknown as RuneDetail;

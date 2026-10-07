@@ -110,7 +110,7 @@ function artefacts(subs: { code: number; value: number }[]): ArtifactDamageProfi
 const proche = (a: number, b: number) => Math.abs(a - b) <= 1e-9 * Math.max(1, Math.abs(a), Math.abs(b));
 
 export default function testDegatsBladeSurge() {
-  titre('Blade Surge — la séquence curée couvre les huit identifiants et onze formes du lot 1b');
+  titre('Blade Surge — la séquence curée couvre les huit identifiants et onze formes');
 
   // Balayage du corpus ENTIER, pas seulement de la liste : un sort porteur de
   // séquence hors famille, ou un porteur manquant, se verrait ici.
@@ -130,7 +130,7 @@ export default function testDegatsBladeSurge() {
   egal([...idsCapables].sort((a, b) => a - b), Object.keys({ ...FAMILLE, ...SEQUENCES_API }).map(Number).sort((a, b) => a - b),
     'capacité « autres ennemis » : les huit identifiants Blade Surge et les quatre séquences à valeur de l’API, aucun autre sort du corpus');
   for (const id of HORS_FAMILLE) {
-    ok(!cibleSecondairePriseEnCharge(id), `hors famille (lot 1b) : ${id} sans cible secondaire`);
+    ok(!cibleSecondairePriseEnCharge(id), `hors famille : ${id} sans cible secondaire`);
   }
 
   for (const [id, formes] of Object.entries(FAMILLE)) {
@@ -153,7 +153,7 @@ export default function testDegatsBladeSurge() {
     }
   }
 
-  titre('Blade Surge — la curation se refuse quand la donnée ne porte plus son empreinte (lot P6, SZ-1)');
+  titre('Blade Surge — la curation se refuse quand la donnée ne porte plus son empreinte');
   {
     const reelle = fiche(19812).competences.find((c) => c.com2usId === 10602)!;
     for (const [libelle, ecart] of [
@@ -187,7 +187,7 @@ export default function testDegatsBladeSurge() {
     // Si les skillups oubliaient le coup de zone, ou si le troisième coup
     // manquait (le calcul d'avant ce lot), on lirait ces deux nombres-là.
     ok(!proche(calcul(visee(normal)).total, ATQ * (0.5 * 2 * SKILLUP + 3.0) * df), 'skillups : le troisième coup en profite aussi');
-    ok(!proche(calcul(visee(normal)).total, ATQ * 0.5 * 2 * SKILLUP * df), 'le troisième coup n’est plus oublié (constat 151)');
+    ok(!proche(calcul(visee(normal)).total, ATQ * 0.5 * 2 * SKILLUP * df), 'le troisième coup n’est plus oublié');
     egal(cibleDegatsRetenue(bs, visee(normal)), 'visee', 'clé absente : cible visée');
     egal(cibleDegatsRetenue(bs, secondaire(normal)), 'secondaire', 'clé « secondaire » : autres ennemis');
     egal(

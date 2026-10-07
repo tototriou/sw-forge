@@ -1472,7 +1472,7 @@ export default function testAuditDegatsConditionnels() {
 // Chemin de production : recette → `buildRealDamageContext` → `objectiveScore`.
 // Montage des témoins : ATQ 1 000, DEF cible 1 500, non critique.
 function testSuiteDuSortVoitLesPosesP4b() {
-  titre('Les coups qui suivent le sort voient les effets qu’il a posés (P4b)');
+  titre('Les coups qui suivent le sort voient les effets qu’il a posés');
 
   const cible: DamageSetup = { ...setupAudit, enemyDef: 1500 };
   const candidat = { stats: buildAudit, effTotal: 0 } as unknown as BuildCandidate;
@@ -1511,7 +1511,7 @@ function testSuiteDuSortVoitLesPosesP4b() {
   // « First hit ») ; Great Friends (2 coups par défaut) frappe après le sort.
   const sia = { ...cible, skillCom2usId: 3454 };
   const siaSans = score(12134, sia);
-  egal(arrondi(siaSans, 4), 1292.3077, 'Sia : sans scénario, total inchangé (témoin de P4)');
+  egal(arrondi(siaSans, 4), 1292.3077, 'Sia : sans scénario, total inchangé (témoin)');
   egal(score(12134, { ...sia, ...pose(3454, 'decrease-def') }), siaSans, 'Sia : scénario actif sans réussite, total inchangé');
   const siaPose = score(12134, { ...sia, ...pose(3454, 'decrease-def', 1) });
   const sortSans = score(12134, sia, true);
@@ -1559,7 +1559,7 @@ function testSuiteDuSortVoitLesPosesP4b() {
 // « les coups d'avant sans l'effet, les suivants avec ». Les ratios sont
 // ceux d'une sonde du chemin de production (DEF cible 1 500, ATQ 1 000, non critique).
 function testEffetsEntreCoups322() {
-  titre('Effets posés entre les coups, par identifiant — constat 322 (P4)');
+  titre('Effets posés entre les coups, par identifiant');
 
   // [forme jouable, sort, effet de la donnée, effetCombat, coup poseur, ratio « posé après le coup poseur »]
   const entrees: [number, number, string, 'defBreak' | 'brand', number, number][] = [

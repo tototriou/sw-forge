@@ -77,7 +77,7 @@ function bladeSurgeDeLapis(): SkillDamageProfile {
 }
 
 export function testBladeSurgeRecette() {
-  titre('Blade Surge · recette — cibleDegatsParSort validé, refusé avec son chemin, aller-retour et resets (degats-et-aura 8b, 8c)');
+  titre('Blade Surge · recette — cibleDegatsParSort validé, refusé avec son chemin, aller-retour et resets');
 
   const lire = (valeur: unknown) => parseOptimizerRecipe(JSON.stringify(valeur));
   const avecCible = (cibleDegatsParSort: unknown) =>
@@ -196,7 +196,7 @@ function fonctionDe(source: ts.SourceFile, nom: string): ts.FunctionDeclaration 
 }
 
 export function testBladeSurgeEcran() {
-  titre('Blade Surge · écran — deux crans sous « Compétence utilisée », seulement pour un sort qui le permet (degats-et-aura 8b)');
+  titre('Blade Surge · écran — deux crans sous « Compétence utilisée », seulement pour un sort qui le permet');
 
   egal(CIBLE_DEGATS_LABELS, [
     { key: 'visee', label: 'Dégâts sur la cible visée' },
@@ -248,7 +248,7 @@ export function testBladeSurgeEcran() {
 const proche = (a: number, b: number) => Math.abs(a - b) <= 1e-9 * Math.max(1, Math.abs(a), Math.abs(b));
 
 export function testBladeSurgePariteEcranCli() {
-  titre('Blade Surge · parité écran/CLI — la recette porte la cible, le CLI calcule celle de l’écran (degats-et-aura 8b)');
+  titre('Blade Surge · parité écran/CLI — la recette porte la cible, le CLI calcule celle de l’écran');
 
   const bs = bladeSurgeDeLapis();
   const detail = loadMonsterSkills(LAPIS);
@@ -323,7 +323,7 @@ function memoDe(source: ts.SourceFile, nom: string): { corps: string[]; deps: st
 }
 
 export function testBladeSurgeResumeObjectif() {
-  titre('Blade Surge · résumé sous l’objectif — « autres ennemis » après le sort, pour la cible retenue du sort résolu (degats-et-aura 8c)');
+  titre('Blade Surge · résumé sous l’objectif — « autres ennemis » après le sort, pour la cible retenue du sort résolu');
 
   const sorts = monsterDamageSkills(loadMonsterSkills(LAPIS));
   // Ce que lit `resumeCombat` : le sort que l'écran résout (`resolvedSkill`,
@@ -386,7 +386,7 @@ export function testBladeSurgeResumeObjectif() {
 }
 
 export function testBladeSurgeLigneArtifactSearch() {
-  titre('Blade Surge · script de diagnostic des artéfacts — la ligne du sort dit la séquence curée, comme le CLI (degats-et-aura 8c)');
+  titre('Blade Surge · script de diagnostic des artéfacts — la ligne du sort dit la séquence curée, comme le CLI');
 
   const script = sansCommentaires(lireSource('scripts/artifact-search.ts'));
   ok(/const sequence = sort\.sequenceDeCoups;/.test(script) && script.includes('${sequence ? resumeSequenceDeCoups(sequence) : `${sort.hits} coup(s)`}'),

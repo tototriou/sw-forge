@@ -65,7 +65,7 @@ export function inventaire(graine: number, parSorte: number): ArtifactDetail[] {
 }
 
 export function testResolutionCaches() {
-  titre('Caches de la résolution par build — même résultat, mémoire bornée (6bis-b13)');
+  titre('Caches de la résolution par build — même résultat, mémoire bornée');
 
   /* ── 1. Profil par paire : exact, clé sur les DEUX pièces, borné ──────── */
   const inv = inventaire(13, 6);

@@ -35,7 +35,7 @@ function relique(id: number, code: 100 | 101 | 102, value: number): RelicDetail 
 }
 
 export default function testRelicDifferentiel() {
-  titre('Optimizer · différentiel de fidélité (lot 6) — comparaison pure et orchestrateur');
+  titre('Optimizer · différentiel de fidélité — comparaison pure et orchestrateur');
 
   /* (1) La comparaison pure, sur une fixture synthétique (objectif ehp). */
   const base = { hp: 10000, atk: 700, def: 600, spd: 100, cr: 15, cd: 50, res: 15, acc: 0 };

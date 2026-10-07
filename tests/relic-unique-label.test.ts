@@ -47,7 +47,7 @@ export default function testRelicUniqueLabel() {
 
   egal(relicUniqueEffectLabel(999), undefined, 'un type hors corpus reste `undefined`, jamais deviné');
 
-  titre('Relique — compteur d’occupation (n / 150, D3)');
+  titre('Relique — compteur d’occupation (n / 150)');
 
   egal(RELIC_MAX_INSTANCES, 150, 'la constante nommée vaut 150 (valeur de jeu au 2026-09)');
   egal(formatRelicUsage(1), 'Équipée sur 1 exemplaire / 150', 'singulier à 1 exemplaire');

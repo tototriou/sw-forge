@@ -113,7 +113,7 @@ const GARANTIES: [number, string, number, number[], number][] = [
 ];
 
 export function testCouvertureGarantiesCritique() {
-  titre('Garanties de critique livrées sans test — 22 identifiants (degats-et-aura 15a, CG-1)');
+  titre('Garanties de critique livrées sans test — 22 identifiants');
 
   // Témoin : un sort SANS garantie (Heavenly Sword d'Artamiel) donne bien un
   // total « Non critique » inférieur au total « Critique » dans ce réglage.
@@ -165,7 +165,7 @@ export function testCouvertureGarantiesCritique() {
 // ---------------------------------------------------------------------------
 
 export function testCouvertureBonusCritique() {
-  titre('Bonus de critique propres livrés — 287, 289, 293, 303, 304 (degats-et-aura 15a, TC-2)');
+  titre('Bonus de critique propres livrés — 287, 289, 293, 303, 304');
 
   egal(monsterBonusStatFixe(fiche(10735)), { cr: 20, cd: 0 }, '287 — Gorgo (1865, forme 10735) : +20 points de TC, aucun point de DC');
 
@@ -176,7 +176,7 @@ export function testCouvertureBonusCritique() {
     egal(
       computeSkillDamage(eludain, build, { ...base, critMode: mode }, AUCUNE_AURA_PROPRE, 'fire'),
       computeSkillDamage(sansTc, build, { ...base, critMode: mode }, AUCUNE_AURA_PROPRE, 'fire'),
-      `293 — Eludain : le TC seul ne change aucun total depuis le lot CM (mode ${mode})`
+      `293 — Eludain : le TC seul ne change aucun total (mode ${mode})`
     );
   }
 
@@ -245,7 +245,7 @@ const IGNORE_DEF_MONSTRE: [number, string, number, number, [number, number, numb
 ];
 
 export function testCouvertureIgnoreDefIdentifiants() {
-  titre('Ignore DEF conditionnel livré sans test — 15 identifiants (degats-et-aura 15a, IGN-a)');
+  titre('Ignore DEF conditionnel livré sans test — 15 identifiants');
 
   for (const [constat, nom, forme, sort, interrupteur, def, sans, avec] of IGNORE_DEF_PAR_SORT) {
     const p = profilDe(forme, sort);
@@ -370,7 +370,7 @@ const FORMULES_PV: [number, string, number, number, number][] = [
 ];
 
 export function testCouvertureVariablesFormule() {
-  titre('Variables de formule : PV propres et alliés vivants — constats 72, 73, 75 (degats-et-aura 15a, VP-a)');
+  titre('Variables de formule : PV propres et alliés vivants');
 
   for (const [constat, nom, sort, forme, attendu] of FORMULES_PV) {
     rapportSonde(`${constat} — ${nom} (${sort}, forme ${forme}) : PV propres 100 % → 0 %, rapport ${attendu.toFixed(4)}`,
@@ -395,7 +395,7 @@ export function testCouvertureVariablesFormule() {
 }
 
 export function testCouvertureConditionsSort() {
-  titre('Conditions de sort : bornes et interrupteurs — constats 63, 70, 246, 249, 264 (degats-et-aura 15a, VP-a)');
+  titre('Conditions de sort : bornes et interrupteurs');
 
   // 63 — Eleni (17913) : +30 % si l'ATQ de la cible est STRICTEMENT inférieure à la sienne.
   {
@@ -512,7 +512,7 @@ const FIXES: LigneFixe[] = [
 ];
 
 export function testCouvertureStatsCombat() {
-  titre('Statistiques de combat des passifs — constats 90 à 106, 114, 116, 123 (degats-et-aura 15a, VP-a)');
+  titre('Statistiques de combat des passifs');
 
   for (const [constat, nom, id, forme, compteur, pct, pts, plafond] of CUMULS) {
     const etiquette = `${constat} — ${nom} (${id}, forme ${forme})`;

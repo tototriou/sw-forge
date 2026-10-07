@@ -83,7 +83,7 @@ function entreeResolutionAvant(p: SearchParams, c: BuildCandidate, ctx: RelicCon
 }
 
 export function testResolutionProducteurPartage() {
-  titre('Résolution par build — le producteur partagé rend l’assemblage de l’écran, candidat par candidat (6bis-b5c)');
+  titre('Résolution par build — le producteur partagé rend l’assemblage de l’écran, candidat par candidat');
 
   const exclusive = { setup: DEFAULT_DAMAGE_SETUP, element: null };
   const criteres: { critere: ReglagesDifferentiel['critere']; degats: typeof DEGATS_FICHE | null }[] = [
@@ -179,7 +179,7 @@ function resultat(atk: number, conforme: boolean, relique?: RelicDetail): Result
 }
 
 export function testClassementResolu() {
-  titre('classementResolu — le classement affiché d’un cache résolu (6bis-b5c)');
+  titre('classementResolu — le classement affiché d’un cache résolu');
 
   const options: OptionsDeClassement = { aurasPropresDe: aurasPropresParRunes(new Map()) };
   const a = candidat([1], 1000), b = candidat([2], 900), c = candidat([3], 800), d = candidat([4], 700), e = candidat([5], 600);
@@ -208,7 +208,7 @@ export function testClassementResolu() {
     aurasPropresDe: aurasPropresParRunes(new Map()), artefactsDuBuild: () => null, etatReliqueDe: etat,
     contexteExclusive: { setup: DEFAULT_DAMAGE_SETUP, element: null },
   });
-  egal(classementResolu(base, cache, 'atk', opts).map(cleBuild), ['4', '2', '3', '5'], 'avec les options du producteur b5a : même classement');
+  egal(classementResolu(base, cache, 'atk', opts).map(cleBuild), ['4', '2', '3', '5'], 'avec les options du producteur : même classement');
 
   // Raccordement : l'écran classe par CE producteur.
   const ecran = readFileSync('src/components/outils/OptimizerSection.tsx', 'utf8');

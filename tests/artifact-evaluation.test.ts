@@ -132,7 +132,7 @@ const LUSHEN_COM2USID = 13413;
 const BASE_LUSHEN_TEST = { hp: 10000, atk: 1000, def: 500, spd: 100, cr: 15, cd: 50, res: 15, acc: 0 };
 
 export function testArtifactPaireReelleDegatsEffetUnique() {
-  titre('resolveArtifacts (CLI) — « Dégâts réels » : effet unique de la relique de la fiche (6bis-b5c)');
+  titre('resolveArtifacts (CLI) — « Dégâts réels » : effet unique de la relique de la fiche');
 
   const artVent = (id: number, code: number, subs: [number, number][]): ArtifactDetail => ({
     id, kind: 'element', element: 'wind', level: 15, rarity: 5,

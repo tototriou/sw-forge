@@ -377,7 +377,7 @@ const CAS_MINIMAL: Cas = {
 };
 
 export function testDominanceReliqueCasMinimal() {
-  titre('Dominance · effet unique de la relique — cas minimal (6bis-b3c)');
+  titre('Dominance · effet unique de la relique — cas minimal');
   // Exactement la sonde du pilote : `slotFilterCap` 80, `maxMs` infini.
   const extra = { slotFilterCap: 80, maxMs: Infinity, bucketCap: undefined, maxCollected: undefined };
   const p = parametres(CAS_MINIMAL, extra);
@@ -507,7 +507,7 @@ export function couvertureDesTypes(): { echecs: string[]; tableau: string[] } {
 }
 
 export function testDominanceReliqueCouverture() {
-  titre('Dominance · effet unique de la relique — couverture des 15 types chiffrables (6bis-b3c)');
+  titre('Dominance · effet unique de la relique — couverture des 15 types chiffrables');
   const { echecs, tableau } = couvertureDesTypes();
   const types = new Set(COUVERTURE.map((c) => c.type));
   egal(types.size, 15, 'les 15 types chiffrables ont chacun au moins un cas');
@@ -548,7 +548,7 @@ function casRecherche(): Cas {
 }
 
 export function testDominanceReliqueRecherche() {
-  titre('Dominance · effet unique de la relique — mode recherche (6bis-b3c)');
+  titre('Dominance · effet unique de la relique — mode recherche');
   const cas = casRecherche();
   const [A, B] = cas.eligibles!;
   const p = parametres(cas);
@@ -580,7 +580,7 @@ export function testDominanceReliqueRecherche() {
  * ----------------------------------------------------------------------- */
 
 export function testDominanceReliqueTemoins() {
-  titre('Dominance · effet unique de la relique — témoins sans changement (6bis-b3c)');
+  titre('Dominance · effet unique de la relique — témoins sans changement');
   const sans: Cas = { ...CAS_MINIMAL, nom: 'Témoin sans relique', relique: undefined };
   const reference = apresDominance(parametres(sans));
   egal(reference, [1, 2, 3, 4, 5, 6], 'sans relique : Fight interchangeable avec Will, ses runes tombent à la dominance (comme avant)');
@@ -606,7 +606,7 @@ export function testDominanceReliqueTemoins() {
  * ----------------------------------------------------------------------- */
 
 export function testDominanceReliqueWorkers() {
-  titre('Dominance · effet unique de la relique — Workers et tranches reçoivent la relique (6bis-b3c)');
+  titre('Dominance · effet unique de la relique — Workers et tranches reçoivent la relique');
   for (const cas of [CAS_MINIMAL, casRecherche()]) {
     const p = parametres(cas);
     const attendu = apresDominance(p);
@@ -937,7 +937,7 @@ function scenarioCible(seed: number): ScenarioCible | string {
 }
 
 export function testDominanceReliqueDifferentielCible() {
-  titre('Dominance · effet unique et lignes 218–221 — différentiel ciblé (seeds 6500..6559, 6bis-b3d-2)');
+  titre('Dominance · effet unique et lignes 218–221 — différentiel ciblé (seeds 6500..6559)');
   const ignores: string[] = [];
   const violations: string[] = [];
   const echecs: string[] = [];

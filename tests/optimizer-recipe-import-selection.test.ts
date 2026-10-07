@@ -88,7 +88,7 @@ function monstreCharge(relic?: LoadedMonster['gear']['relic']): LoadedMonster {
 }
 
 function testRecetteRelique() {
-  titre('Optimizer · recette de relique (lot 2) — trois champs, défauts, bascule');
+  titre('Optimizer · recette de relique — trois champs, défauts, bascule');
 
   // Recette ANCIENNE (avant ces champs) : aucun des trois champs. `tsc` ne
   // détecte jamais un champ optionnel oublié — c'est ce round-trip qui
@@ -181,7 +181,7 @@ function testRecetteRelique() {
   {
     const recetteAncienne = recetteDeBase();
     const sansRelique = recipeToRelicIntent(recetteAncienne, monstreCharge(undefined));
-    egal(sansRelique, { mode: 'recherche', principale: 'libre', type: 'libre', seuil: 6 }, 'sans relique portée : intention « libre » par défaut, seuil D2 (+6)');
+    egal(sansRelique, { mode: 'recherche', principale: 'libre', type: 'libre', seuil: 6 }, 'sans relique portée : intention « libre » par défaut, seuil par défaut +6');
 
     const avecRelique = recipeToRelicIntent(recetteAncienne, monstreCharge({ id: 7, upgrade: 6, main: { code: 100, value: 11 } }));
     egal(avecRelique, { mode: 'equipped', principale: 'equipped', type: 'libre', seuil: 6 }, 'avec relique portée : intention « equipped » par défaut');
@@ -189,7 +189,7 @@ function testRecetteRelique() {
     // Interrupteur coupé (`ignoreArtifacts`) : mode « off », quelle que soit
     // la relique portée — pas d'interrupteur propre à la relique.
     const interrupteurCoupe = recipeToRelicIntent({ ...recetteAncienne, ignoreArtifacts: true }, monstreCharge({ id: 7, upgrade: 6, main: { code: 100, value: 11 } }));
-    egal(interrupteurCoupe.mode, 'off', "« Activer l'optimisation d'artéfacts » coupé : mode « off » pour la relique aussi (D1)");
+    egal(interrupteurCoupe.mode, 'off', "« Activer l'optimisation d'artéfacts » coupé : mode « off » pour la relique aussi");
   }
 
   // Contrat : « même recette → même RelicIntent par les deux
@@ -227,6 +227,6 @@ function testRecetteRelique() {
       'libre',
       6
     );
-    egal(depuisEcranAncienne, depuisCliAncienne, 'recette ancienne (sans les trois champs) : même défaut D1 des deux côtés');
+    egal(depuisEcranAncienne, depuisCliAncienne, 'recette ancienne (sans les trois champs) : même défaut des deux côtés');
   }
 }

@@ -67,7 +67,7 @@ function toutesLesFiches(): DetailMonstre[] {
     .map((n) => JSON.parse(readFileSync(resolve(DOSSIER_SORTS, n), 'utf8')) as DetailMonstre);
 }
 
-// Stats de fiche à base nulle (comme dans `tests/degats-lot12.test.ts`) : ce qui porte sur la base
+// Stats de fiche à base nulle (comme dans `tests/degats-mecanismes-generiques.test.ts`) : ce qui porte sur la base
 // (compétences d'invocateur) s'annule, l'ATQ de combat vaut l'ATQ saisie.
 function stats(valeurs: Partial<Record<StatKey, number>>): StatRow[] {
   const cles: StatKey[] = ['hp', 'atk', 'def', 'spd', 'cr', 'cd', 'res', 'acc'];
@@ -115,7 +115,7 @@ function appeleesDe(detail: DetailMonstre): PassifOffensifProfile[] {
   return monsterOffensivePassives(detail).filter((p) => actives.has(p.skillCom2usId));
 }
 
-// Le profil construit À LA MAIN dans `tests/degats-lot12.test.ts`,
+// Le profil construit À LA MAIN dans `tests/degats-mecanismes-generiques.test.ts`,
 // (`attaqueAppelee`) : la référence du point 2, « même total au centième près ».
 function attaqueAppeleeALaMain(appelee: SkillDamageProfile, slotsDeclencheurs: readonly number[]): PassifOffensifProfile {
   return {
@@ -125,7 +125,7 @@ function attaqueAppeleeALaMain(appelee: SkillDamageProfile, slotsDeclencheurs: r
     critique: 'suit',
     coupsDuSortActif: false,
     slotsDeclencheurs,
-    categorie: { type: 'conditionnel', condition: 'la compétence appelée se déclenche à la suite du sort (probabilité non tirée : interrupteur, A.2 ter)' },
+    categorie: { type: 'conditionnel', condition: 'la compétence appelée se déclenche à la suite du sort (probabilité non tirée : interrupteur)' },
     profile: appelee,
   };
 }
@@ -155,9 +155,9 @@ const SHORYUKEN_FEU = 13907;
 const HADOKEN_FEU = 13902;
 
 export function testAttaqueAppeleeApprovisionnement() {
-  titre('Attaque appelée active — une ligne clée par le sort déclencheur, lue par le chemin des passifs (degats-et-aura 9c, point 1)');
+  titre('Attaque appelée active — une ligne clée par le sort déclencheur, lue par le chemin des passifs');
 
-  egal(Object.keys(TABLE), [], 'production : aucune entrée (contrat du lot 9 : « n’en code aucune »)');
+  egal(Object.keys(TABLE), [], 'production : aucune entrée (la table n’en code aucune)');
   const ryu = fiche(RYU_FEU);
   const passifsAvant = monsterOffensivePassives(ryu);
   const sortsAvant = monsterDamageSkills(ryu);
@@ -165,7 +165,7 @@ export function testAttaqueAppeleeApprovisionnement() {
   const s1 = sortDe(ryu, HADOKEN_FEU);
   const s2 = sortDe(ryu, SHORYUKEN_FEU);
 
-  avecEntrees({ [SHORYUKEN_FEU]: entree(1, 'test : constat 178, RYU feu') }, () => {
+  avecEntrees({ [SHORYUKEN_FEU]: entree(1, 'test : RYU feu') }, () => {
     const appelees = appeleesDe(ryu);
     egal(appelees.map((p) => p.skillCom2usId), [HADOKEN_FEU], 'une ligne (déclencheur 13907, slot 1) suffit : Hadoken (13902) entre par monsterOffensivePassives');
     const a = appelees[0];
@@ -267,32 +267,32 @@ const CAS_179: { amorce: number; forme: number; monstre: string; slot: number; n
 // sa raison. « acceptée » = une entrée de table suffit, total identique au
 // profil construit à la main ; « classée » = mécanique voisine ou donnée
 // manquante, jamais forcée.
-const VERDICTS: Record<number, { constat: number; verdict: 'acceptée' | 'classée'; raison: string }> = {
-  6161: { constat: 168, verdict: 'classée', raison: 'déclencheur = un coup critique de n’importe quel sort, S1 comprise, qui appelle Energy Punch, elle-même la S1 : l’exclusion par identifiant l’interdit après la S1 ; condition liée au critique ; sorts déclencheurs et récursion non curés' },
-  8106: { constat: 179, verdict: 'classée', raison: 'One More Drink est un soin : aucun profil de dégâts, jamais « Compétence utilisée » ; Rolling Punch y serait la première attaque du tour et recevrait 411 (amendement 1c1), que la boucle des passifs neutralise' },
-  8107: { constat: 179, verdict: 'acceptée', raison: 'Drunken Kick ne pose rien entre les deux attaques' },
-  8108: { constat: 179, verdict: 'classée', raison: 'One More Drink (Huan) : même raison que 8106' },
-  8109: { constat: 179, verdict: 'classée', raison: 'One More Drink (Tien Qin) : même raison que 8106' },
-  8110: { constat: 179, verdict: 'acceptée', raison: 'Drunken Kick ne pose rien ; probabilité 30 % (amendement 1c1) sans effet, interrupteur' },
-  8111: { constat: 179, verdict: 'classée', raison: 'buff de VIT posé par Seal Punch, actif pour Rolling Punch (amendement 1c1) et lu par la ligne 221 ; la boucle des passifs ne lit que le buff saisi' },
-  8112: { constat: 179, verdict: 'classée', raison: 'buff d’ATQ posé par Tiger Punch, actif pour Rolling Punch (amendement 1c1) ; la boucle des passifs ne lit que le buff saisi' },
-  8113: { constat: 179, verdict: 'acceptée', raison: 'la réduction de DEF posée par Phoenix Kick est sans effet : Rolling Punch ignore la DEF (amendement 1c1)' },
-  8114: { constat: 179, verdict: 'acceptée', raison: 'le soin de Stork Kick ne porte que sur lui (amendement 1c1), Unrecoverable n’entre pas dans le calcul' },
-  8115: { constat: 179, verdict: 'acceptée', raison: 'la hausse de TC de Snake Punch ne change pas le calcul visé (amendement 1c1) ; la limite du mode Moyenne est tombée avec ce mode (lot CM)' },
-  13907: { constat: 178, verdict: 'acceptée', raison: 'Shoryuken ; Marque posée par la S2 non modélisée, à relever avant de curer' },
-  13908: { constat: 178, verdict: 'acceptée', raison: 'idem 13907' },
-  13910: { constat: 178, verdict: 'acceptée', raison: 'idem 13907' },
-  14407: { constat: 178, verdict: 'acceptée', raison: 'Iron Uppercut ; Marque posée par la S2 non modélisée, à relever avant de curer' },
-  14408: { constat: 178, verdict: 'acceptée', raison: 'idem 14407' },
-  14410: { constat: 178, verdict: 'acceptée', raison: 'idem 14407' },
+const VERDICTS: Record<number, { verdict: 'acceptée' | 'classée'; raison: string }> = {
+  6161: { verdict: 'classée', raison: 'déclencheur = un coup critique de n’importe quel sort, S1 comprise, qui appelle Energy Punch, elle-même la S1 : l’exclusion par identifiant l’interdit après la S1 ; condition liée au critique ; sorts déclencheurs et récursion non curés' },
+  8106: { verdict: 'classée', raison: 'One More Drink est un soin : aucun profil de dégâts, jamais « Compétence utilisée » ; Rolling Punch y serait la première attaque du tour et recevrait 411, que la boucle des passifs neutralise' },
+  8107: { verdict: 'acceptée', raison: 'Drunken Kick ne pose rien entre les deux attaques' },
+  8108: { verdict: 'classée', raison: 'One More Drink (Huan) : même raison que 8106' },
+  8109: { verdict: 'classée', raison: 'One More Drink (Tien Qin) : même raison que 8106' },
+  8110: { verdict: 'acceptée', raison: 'Drunken Kick ne pose rien ; probabilité 30 % sans effet, interrupteur' },
+  8111: { verdict: 'classée', raison: 'buff de VIT posé par Seal Punch, actif pour Rolling Punch et lu par la ligne 221 ; la boucle des passifs ne lit que le buff saisi' },
+  8112: { verdict: 'classée', raison: 'buff d’ATQ posé par Tiger Punch, actif pour Rolling Punch ; la boucle des passifs ne lit que le buff saisi' },
+  8113: { verdict: 'acceptée', raison: 'la réduction de DEF posée par Phoenix Kick est sans effet : Rolling Punch ignore la DEF' },
+  8114: { verdict: 'acceptée', raison: 'le soin de Stork Kick ne porte que sur lui, Unrecoverable n’entre pas dans le calcul' },
+  8115: { verdict: 'acceptée', raison: 'la hausse de TC de Snake Punch ne change pas le calcul visé ; la limite du mode Moyenne est tombée avec ce mode' },
+  13907: { verdict: 'acceptée', raison: 'Shoryuken ; Marque posée par la S2 non modélisée, à relever avant de curer' },
+  13908: { verdict: 'acceptée', raison: 'idem 13907' },
+  13910: { verdict: 'acceptée', raison: 'idem 13907' },
+  14407: { verdict: 'acceptée', raison: 'Iron Uppercut ; Marque posée par la S2 non modélisée, à relever avant de curer' },
+  14408: { verdict: 'acceptée', raison: 'idem 14407' },
+  14410: { verdict: 'acceptée', raison: 'idem 14407' },
 };
 
 export function testAttaqueAppeleeCouverture() {
-  titre('Attaque appelée active — les 17 amorces des constats 168, 178 et 179 (degats-et-aura 9c, point 2)');
+  titre('Attaque appelée active — les 17 amorces de compétences appelées');
 
   egal(Object.keys(VERDICTS).map(Number).sort((a, b) => a - b),
     [6161, 8106, 8107, 8108, 8109, 8110, 8111, 8112, 8113, 8114, 8115, 13907, 13908, 13910, 14407, 14408, 14410],
-    'les 17 amorces de l’amendement 1c1 (« même architecture »), ni plus ni moins');
+    'les 17 amorces (« même architecture »), ni plus ni moins');
   const acceptees = Object.entries(VERDICTS).filter(([, v]) => v.verdict === 'acceptée').map(([k]) => Number(k));
   egal([acceptees.length, Object.keys(VERDICTS).length - acceptees.length], [11, 6], 'onze acceptées, six classées avec leur raison');
   egal(acceptees.sort((a, b) => a - b), [...CAS_179.map((c) => c.amorce), ...CAS_178.map((c) => c.s2)].sort((a, b) => a - b),
@@ -300,19 +300,19 @@ export function testAttaqueAppeleeCouverture() {
 
   const df = defenseFactor(1000);
 
-  titre('Constat 178 — les six S2 de RYU et Striker, une entrée chacune, même total que le profil construit à la main');
+  titre('Les six S2 de RYU et Striker, une entrée chacune, même total que le profil construit à la main');
   for (const c of CAS_178) {
     const detail = fiche(c.forme);
     const s1 = sortDe(detail, c.s1);
     const s2 = sortDe(detail, c.s2);
-    avecEntrees({ [c.s2]: entree(1, `test : constat 178, ${c.monstre}`) }, () => {
+    avecEntrees({ [c.s2]: entree(1, `test : ${c.monstre}`) }, () => {
       const prod = monsterOffensivePassives(detail);
       egal(appeleesDe(detail).map((p) => p.skillCom2usId), [c.s1], `${c.monstre} : une entrée (déclencheur ${c.s2}, slot 1) → S1 ${c.s1}`);
       const main = [attaqueAppeleeALaMain(s1, [2])];
       for (const [nom, setup, art] of reglagesDeComparaison(s2, c.s1)) {
         const t = computeTotalDamage(s2, prod, ST, setup, AUCUNE_AURA_PROPRE, null, art);
         const r = computeTotalDamage(s2, main, ST, setup, AUCUNE_AURA_PROPRE, null, art);
-        ok(auCentieme(t, r), `${c.monstre}, ${nom} : ${t.toFixed(2)} = profil construit à la main du lot 12 (${r.toFixed(2)}), au centième`);
+        ok(auCentieme(t, r), `${c.monstre}, ${nom} : ${t.toFixed(2)} = profil construit à la main (${r.toFixed(2)}), au centième`);
       }
       const allume: DamageSetup = { ...BASE, skillCom2usId: c.s2, passifsOffensifs: { [c.s1]: true } };
       ok(proche(computeTotalDamage(s2, prod, ST, allume, AUCUNE_AURA_PROPRE, null), ATQ * (6.1 + 3.7) * 1.25 * df),
@@ -320,7 +320,7 @@ export function testAttaqueAppeleeCouverture() {
     });
   }
 
-  titre('Constat 179 — les cinq amorces acceptées des Maîtres ivres, une entrée chacune');
+  titre('Les cinq amorces acceptées des Maîtres ivres, une entrée chacune');
   for (const c of CAS_179) {
     const detail = fiche(c.forme);
     const declencheur = sortDe(detail, c.amorce);
@@ -329,7 +329,7 @@ export function testAttaqueAppeleeCouverture() {
       `${c.monstre} : ${c.nom} (S${c.slot}) = ${c.coef} × ATQ, ${c.coups} coups, +${c.skillup} % (fiche)`);
     egal([rolling.nom, rolling.slot, rolling.formule, rolling.hits, rolling.ignoreDef, rolling.aoe, rolling.skillupDamagePct], ['Rolling Punch', 1, '1.8*{ATK}', 1, true, false, 25],
       `${c.monstre} : Rolling Punch (S1) = 1,8 × ATQ, un coup, cible unique, ignore la DEF, +25 % (ses propres améliorations)`);
-    avecEntrees({ [c.amorce]: entree(1, `test : constat 179, ${c.monstre}`) }, () => {
+    avecEntrees({ [c.amorce]: entree(1, `test : ${c.monstre}`) }, () => {
       const prod = monsterOffensivePassives(detail);
       egal(appeleesDe(detail).map((p) => [p.skillCom2usId, p.slotsDeclencheurs]), [[c.appelee, [c.slot]]], `${c.monstre} : une entrée (déclencheur ${c.amorce}, slot 1) → Rolling Punch ${c.appelee}, après le seul S${c.slot}`);
       const main = [attaqueAppeleeALaMain(rolling, [c.slot])];
@@ -349,7 +349,7 @@ export function testAttaqueAppeleeCouverture() {
   // Les effets que le déclencheur pose avant Rolling Punch (amendement 1c1,
   // « Ordre des effets des Maîtres ivres ») : chaque raison d'acceptation se
   // vérifie sur le calcul, jamais par ressemblance.
-  titre('Constat 179 — ce que le déclencheur pose ne change pas Rolling Punch (raisons des acceptations)');
+  titre('Ce que le déclencheur pose ne change pas Rolling Punch (raisons des acceptations)');
   const rpHuan = sortDe(fiche(17213), 8103);
   const rpCalcul = (p: SkillDamageProfile, setup: DamageSetup, st = ST, art = ARTIFACT_DAMAGE_NEUTRE) =>
     computeSkillDamageDetail(p, st, setup, AUCUNE_AURA_PROPRE, null, undefined, art).total;
@@ -367,7 +367,7 @@ export function testAttaqueAppeleeCouverture() {
       `Wei Shin, mode ${critMode} : une hausse de TC ne change pas Rolling Punch`);
   }
 
-  titre('Constat 179 — Wei Shin : deux déclencheurs (S2 et S3) pour la même S1, un seul interrupteur');
+  titre('Wei Shin : deux déclencheurs (S2 et S3) pour la même S1, un seul interrupteur');
   const wei = fiche(17215);
   avecEntrees({ 8110: entree(1, 'test'), 8115: entree(1, 'test') }, () => {
     const a = appeleesDe(wei);
@@ -484,7 +484,7 @@ function scoreEtStats(forme: number, setup: DamageSetup): { score: number; stats
 }
 
 export function testAttaqueAppeleeEspaceDeCles() {
-  titre('Attaque appelée active — la clé de son interrupteur n’est partagée avec aucun réglage du même sort (degats-et-aura 9c, point 3)');
+  titre('Attaque appelée active — la clé de son interrupteur n’est partagée avec aucun réglage du même sort');
 
   egal(APPELEES_DES_17.flatMap((a) => a.amorces).sort((x, y) => x - y), Object.keys(VERDICTS).map(Number).sort((x, y) => x - y),
     'les compétences appelées par les 17 amorces, toutes examinées');

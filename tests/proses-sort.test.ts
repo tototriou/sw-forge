@@ -33,7 +33,7 @@ function entre(source: string, debut: string, fin: string): string {
 }
 
 export function testProsesSortAuClic() {
-  titre('Prose de sort au clic — l’axe `actionTitre` d’Option, hors du bouton principal (degats-et-aura 11bis)');
+  titre('Prose de sort au clic — l’axe `actionTitre` d’Option, hors du bouton principal');
 
   const option = sansCommentaires(lire('src/ui/Option.tsx'));
   ok(/\n\s*actionTitre\?: ReactNode;\n/.test(option), 'Option : axe `actionTitre?: ReactNode`');
@@ -83,7 +83,7 @@ export function testProsesSortAuClic() {
 }
 
 export function testEffetsActifsInfobulle() {
-  titre('« Effets actifs » — l’infobulle dérivée des descriptions des vignettes (degats-et-aura 11bis)');
+  titre('« Effets actifs » — l’infobulle dérivée des descriptions des vignettes');
 
   const carte = sansCommentaires(lire('src/components/outils/DamageSetupCard.tsx'));
   const bulle = carte.match(/<HelpPopover title="Effets actifs">([\s\S]*?)<\/HelpPopover>/)?.[1] ?? '';

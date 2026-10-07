@@ -31,7 +31,7 @@ function leve(f: () => unknown): string | null {
 }
 
 export default function testPerfRelicOptions() {
-  titre('Optimizer · perf-battery — options relique (lot 6)');
+  titre('Optimizer · perf-battery — options relique');
 
   /* (1) Analyse pure des options. */
   egal(parseOptionsRelique([]), undefined, 'aucune option → undefined (comportement d’avant, pas de relicContext)');
@@ -64,7 +64,7 @@ export default function testPerfRelicOptions() {
   const box = parseAccountBox(data).monsters;
   const inventaire = parseAccountInventory(data);
   const gear = box.find((m) => m.gear?.relic)?.gear!;
-  ok(gear != null && gear.relic != null, 'fixture : un exemplaire porte une relique (7001, lot 1)');
+  ok(gear != null && gear.relic != null, 'fixture : un exemplaire porte une relique (7001)');
   const charge = { gear, allRunes: inventaire.runes, allRelics: inventaire.relics, requirement: { sets: activeSets(gear.runes.map((r) => r.set)), minStats: {} } };
 
   const sansOption = caseAvecRelique(CASES[3]!, undefined);

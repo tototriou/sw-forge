@@ -82,7 +82,7 @@ const proche = (a: number, b: number) => Math.abs(a - b) <= 1e-9 * Math.max(1, M
 // ordinaire, référence indépendante de chaque groupe d'une séquence.
 function sortSimple(formule: string, coups: number, aoe: boolean, id = 999_012): SkillDamageProfile {
   const c: Competence = {
-    id: 1, com2usId: id, nom: 'Fixture lot 12', description: null, slot: 1, passif: false, aoe,
+    id: 1, com2usId: id, nom: 'Fixture synthétique', description: null, slot: 1, passif: false, aoe,
     cooldown: null, coups, niveauMax: 5, formule, scale: ['ATK'],
     ameliorations: ['Damage +5%', 'Damage +5%', 'Damage +5%', 'Damage +15%'],
     icone: null, effets: [],
@@ -138,8 +138,8 @@ function sortASequence(groupes: GroupeFixture[], id: number): SkillDamageProfile
   return { ...premier, sequenceDeCoups };
 }
 
-export function testLot12SequenceDeCoups() {
-  titre('Lot 12, mécanisme 8 — séquence de coups : fixtures SYNTHÉTIQUES X, Y, Z (aucune valeur de jeu)');
+export function testMecanismesSequenceDeCoups() {
+  titre('Séquence de coups — fixtures SYNTHÉTIQUES X, Y, Z (aucune valeur de jeu)');
 
   const st = stats({ atk: ATQ, cr: 100, cd: 100 });
   const base: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, enemyDef: 1000, enemyHp: 100_000_000, enemyHpPct: 100 };
@@ -163,7 +163,7 @@ export function testLot12SequenceDeCoups() {
     const coupsZone = groupes.filter((g) => g.zone).reduce((n, g) => n + g.coups, 0);
     const coupsTotal = groupes.reduce((n, g) => n + g.coups, 0);
 
-    titre(`Lot 12, mécanisme 8 — fixture ${nom} : cible visée et autres ennemis`);
+    titre(`Séquence de coups — fixture ${nom} : cible visée et autres ennemis`);
     ok(!cibleSecondairePriseEnCharge(id), `${nom} : hors de la table curée (la capacité lue par l’écran et la recette est dans la table, pas dans ce profil)`);
     egal(cibleDegatsRetenue(p, normal), 'visee', `${nom} : clé absente, cible visée`);
     egal(cibleDegatsRetenue(p, secondaire(normal, id)), 'secondaire', `${nom} : clé « secondaire », la capacité vient du profil (un groupe de zone)`);
@@ -172,7 +172,7 @@ export function testLot12SequenceDeCoups() {
     egal(resumeSequenceDeCoups(p.sequenceDeCoups!), groupes.map((g) => `${g.coups} coup${g.coups > 1 ? 's' : ''} · ${g.zone ? 'Zone' : 'Cible unique'}`).join(', puis '),
       `${nom} : le résumé dit la séquence entière, dans l’ordre`);
 
-    titre(`Lot 12, mécanisme 8 — fixture ${nom} : 224 selon la portée, 400 sur tous les coups, 411 selon le rang du tour`);
+    titre(`Séquence de coups — fixture ${nom} : 224 selon la portée, 400 sur tous les coups, 411 selon le rang du tour`);
     const gain = (art: ArtifactDamageProfile, s: DamageSetup) => calcul(p, s, art).total - calcul(p, s).total;
     const a224 = artefacts([{ code: 224, value: 30 }]);
     const a400 = artefacts([{ code: 400, value: 30 }]);
@@ -188,14 +188,14 @@ export function testLot12SequenceDeCoups() {
     const attendu411Secondaire = groupes[0].zone ? sur(premier) : 0;
     ok(proche(gain(a411, secondaire(crit, id)), attendu411Secondaire),
       groupes[0].zone
-        ? `${nom}, 411, autres ennemis : le premier coup du tour est en zone, chaque ennemi qui le reçoit en profite (A.2 ter) — ${premier} × ATQ`
+        ? `${nom}, 411, autres ennemis : le premier coup du tour est en zone, chaque ennemi qui le reçoit en profite — ${premier} × ATQ`
         : `${nom}, 411, autres ennemis : jamais — le premier coup du tour, de cible unique, n’est pas reçu par un autre ennemi`);
     // Le score réel (sort + passifs, aucun ici) lit la même règle.
     const total = (s: DamageSetup, art: ArtifactDamageProfile) => computeTotalDamage(p, [], st, s, AUCUNE_AURA_PROPRE, null, art);
     ok(proche(total(secondaire(crit, id), a411) - total(secondaire(crit, id), ARTIFACT_DAMAGE_NEUTRE), attendu411Secondaire), `${nom}, computeTotalDamage, autres ennemis : même 411`);
     ok(proche(total(crit, a411) - total(crit, ARTIFACT_DAMAGE_NEUTRE), sur(premier)), `${nom}, computeTotalDamage, cible visée : même 411`);
 
-    titre(`Lot 12, mécanisme 8 — fixture ${nom} : PV de la cible secondaire non creusés par les coups de cible unique`);
+    titre(`Séquence de coups — fixture ${nom} : PV de la cible secondaire non creusés par les coups de cible unique`);
     // Cible petite : chaque groupe creuse réellement ses PV, 222 le lit.
     const petite: DamageSetup = { ...crit, enemyHp: 20_000, enemyHpPct: 100 };
     const a222 = artefacts([{ code: 222, value: 30 }]);
@@ -227,7 +227,7 @@ export function testLot12SequenceDeCoups() {
     ok(proche(calcul(p, secondaire(petite, id), a219).additionnel, coupsZone * 0.1 * ATQ), `${nom}, additionnel, autres ennemis : ${coupsZone} coups de zone seulement`);
   }
 
-  titre('Lot 12, mécanisme 8 — fixture Z (aucun coup de zone) : le cran « autres ennemis » ne s’applique pas');
+  titre('Séquence de coups — fixture Z (aucun coup de zone) : le cran « autres ennemis » ne s’applique pas');
   const pz = sortASequence(Z, 999_014);
   egal(cibleDegatsRetenue(pz, secondaire(normal, 999_014)), 'visee', 'Z : clé « secondaire » sur une séquence sans zone, cible visée retenue');
   ok(proche(calcul(pz, secondaire(normal, 999_014)).total, calcul(pz, normal).total), 'Z : le total ne change pas');
@@ -271,13 +271,13 @@ function attaqueAppelee(s1: SkillDamageProfile, slotsDeclencheurs: readonly numb
     critique: 'suit',
     coupsDuSortActif: false,
     slotsDeclencheurs,
-    categorie: { type: 'conditionnel', condition: 'la compétence appelée se déclenche à la suite du sort (probabilité non tirée : interrupteur, A.2 ter)' },
+    categorie: { type: 'conditionnel', condition: 'la compétence appelée se déclenche à la suite du sort (probabilité non tirée : interrupteur)' },
     profile: s1,
   };
 }
 
-export function testLot12AttaqueDeclenchee() {
-  titre('Lot 12, mécanisme 9 — constat 178 : les six S2 déclenchent leur S1 (valeurs de SWARFARM, interrupteur du cadrage A.2 ter)');
+export function testMecanismesAttaqueDeclenchee() {
+  titre('Attaque déclenchée — les six S2 déclenchent leur S1 (valeurs de SWARFARM, interrupteur)');
 
   const st = stats({ atk: ATQ, cr: 100, cd: 100 });
   const df = defenseFactor(1000);
@@ -341,7 +341,7 @@ export function testLot12AttaqueDeclenchee() {
     ok(proche(total(s2, true, a222, petite), refS2.total + refS1.total), `${c.monstre} : 222 : la S1 appelée lit les PV laissés par la S2, pas ceux du réglage`);
   }
 
-  titre('Lot 12, mécanisme 9 — voisinage : la prose « activated in succession » dans le corpus (inventaire, jamais une règle de calcul)');
+  titre('Attaque déclenchée — voisinage : la prose « activated in succession » dans le corpus (inventaire, jamais une règle de calcul)');
   // Balayage COMPLET du corpus (game-data-curation § 1), pour que toute nouvelle
   // compétence qui en appelle une autre soit CLASSÉE avant d'être ignorée. Ce
   // n'est PAS un discriminant : le calcul ne lit jamais cette prose.
@@ -354,8 +354,8 @@ export function testLot12AttaqueDeclenchee() {
   }
   const ids = [...porteurs.keys()].sort((a, b) => a - b);
   egal(ids, [8201, 8202, 8203, 8204, 8205, 13907, 13908, 13910, 14407, 14408, 14410, 22512, 23012],
-    'corpus : treize identifiants appellent une autre compétence « in succession » — Energy Ball ×5 (Kung Fu Girls), Shoryuken ×3 et Iron Uppercut ×3 (constat 178), Blood Talon et Heaven’s Might (passifs, condition sur les buffs de la cible)');
-  egal(CAS_178.map((c) => c.s2[0]).sort((a, b) => a - b), ids.filter((i) => i >= 13907 && i <= 14410), 'les six S2 du constat 178 sont exactement les six porteurs Shoryuken / Iron Uppercut');
+    'corpus : treize identifiants appellent une autre compétence « in succession » — Energy Ball ×5 (Kung Fu Girls), Shoryuken ×3 et Iron Uppercut ×3, Blood Talon et Heaven’s Might (passifs, condition sur les buffs de la cible)');
+  egal(CAS_178.map((c) => c.s2[0]).sort((a, b) => a - b), ids.filter((i) => i >= 13907 && i <= 14410), 'les six S2 de l’attaque déclenchée sont exactement les six porteurs Shoryuken / Iron Uppercut');
 }
 
 // ── Mécanisme 10 — ignore DEF depuis un coup choisi : fixture SYNTHÉTIQUE ────
@@ -367,8 +367,8 @@ export function testLot12AttaqueDeclenchee() {
 //   E : 4 coups à 0,7 × ATQ, rangs 3 et 4 SEULEMENT, aucun coup inconditionnel
 const ID_C = 99_012_001;
 const ID_E = 99_012_002;
-const REGLE_C: IgnoreDefAPartirDuCoupProfile = { coups: 5, rangsPermis: [2, 3, 4, 5], dernierCoupInconditionnel: 5, source: 'FIXTURE SYNTHÉTIQUE du lot 12 — aucune valeur de jeu' };
-const REGLE_E: IgnoreDefAPartirDuCoupProfile = { coups: 4, rangsPermis: [3, 4], dernierCoupInconditionnel: null, source: 'FIXTURE SYNTHÉTIQUE du lot 12 — aucune valeur de jeu' };
+const REGLE_C: IgnoreDefAPartirDuCoupProfile = { coups: 5, rangsPermis: [2, 3, 4, 5], dernierCoupInconditionnel: 5, source: 'FIXTURE SYNTHÉTIQUE — aucune valeur de jeu' };
+const REGLE_E: IgnoreDefAPartirDuCoupProfile = { coups: 4, rangsPermis: [3, 4], dernierCoupInconditionnel: null, source: 'FIXTURE SYNTHÉTIQUE — aucune valeur de jeu' };
 const FIXTURES_IGNORE: { id: number; regle: IgnoreDefAPartirDuCoupProfile; coef: number; skillup: number; crans: (number | null)[]; defaut: number | null }[] = [
   { id: ID_C, regle: REGLE_C, coef: 1.1, skillup: 20, crans: [2, 3, 4, 5], defaut: 5 },
   { id: ID_E, regle: REGLE_E, coef: 0.7, skillup: 10, crans: [null, 3, 4], defaut: null },
@@ -376,7 +376,7 @@ const FIXTURES_IGNORE: { id: number; regle: IgnoreDefAPartirDuCoupProfile; coef:
 
 function competenceIgnore(f: (typeof FIXTURES_IGNORE)[number]): Competence {
   return {
-    id: 1, com2usId: f.id, nom: 'Fixture ignore DEF lot 12', description: null, slot: 3, passif: false, aoe: false,
+    id: 1, com2usId: f.id, nom: 'Fixture ignore DEF', description: null, slot: 3, passif: false, aoe: false,
     cooldown: null, coups: f.regle.coups, niveauMax: 5, formule: `${f.coef}*{ATK}`, scale: ['ATK'],
     ameliorations: Array.from({ length: f.skillup / 10 }, () => 'Damage +10%'),
     icone: null,
@@ -385,8 +385,8 @@ function competenceIgnore(f: (typeof FIXTURES_IGNORE)[number]): Competence {
   } as Competence;
 }
 
-export function testLot12IgnoreDefDepuisUnCoup() {
-  titre('Lot 12, mécanisme 10 — ignore DEF depuis un coup : règles SYNTHÉTIQUES C et E, une ligne de table chacune');
+export function testMecanismesIgnoreDefDepuisUnCoup() {
+  titre('Ignore DEF depuis un coup — ignore DEF depuis un coup : règles SYNTHÉTIQUES C et E, une ligne de table chacune');
 
   const table = IGNORE_DEF_A_PARTIR_DU_COUP_PAR_ID as Record<number, IgnoreDefAPartirDuCoupProfile>;
   const clesAvant = Object.keys(table).sort();
@@ -447,7 +447,7 @@ export function testLot12IgnoreDefDepuisUnCoup() {
       ok(regenere !== null && !estPrisEnCharge(regenere), `${f.id} : un autre nombre de coups dans les données fait refuser le sort`);
     }
 
-    titre('Lot 12, mécanisme 10 — la recette valide selon la règle de la ligne ajoutée (aucun code de plus)');
+    titre('Ignore DEF depuis un coup — la recette valide selon la règle de la ligne ajoutée (aucun code de plus)');
     const base = buildOptimizerRecipe({
       monsterCom2usId: 24913, monsterName: 'Cordelia',
       requirement: { sets: [], minStats: {} }, objective: 'degats_reels', damageSetup: { ...DEFAULT_DAMAGE_SETUP, skillCom2usId: ID_C },
@@ -486,8 +486,8 @@ export function testLot12IgnoreDefDepuisUnCoup() {
 
 // ── Point à constater — prose de « Stats acquises en combat » × passifsSuivants ─
 
-export function testLot12PassifMasqueEtStatsDeCombat() {
-  titre('Lot 12, point à constater — un passif masqué porte-t-il aussi des stats de combat ? (sentinelle du corpus)');
+export function testMecanismesPassifMasqueEtStatsDeCombat() {
+  titre('Passif masqué — porte-t-il aussi des stats de combat ? (sentinelle du corpus)');
 
   // Le bloc des passifs ne rend que `passifsSuivants`. Auparavant,
   // « Stats acquises en combat » écartait la prose de TOUS les passifs

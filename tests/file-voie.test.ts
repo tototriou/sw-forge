@@ -29,7 +29,7 @@ function bloc(src: string, debut: string, fin: string): string {
 }
 
 export function testVoieDeLaFile() {
-  titre('File de résolution — la voie de la prochaine tranche (6bis-b11)');
+  titre('File de résolution — la voie de la prochaine tranche');
 
   const triees = [build(1), build(2), build(3), build(4), build(5)];
   const K = 3;

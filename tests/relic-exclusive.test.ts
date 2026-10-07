@@ -90,7 +90,7 @@ function sortSynthetique(formule: string): SkillDamageProfile {
 }
 
 export default function testRelicExclusive() {
-  titre('Relique — score chiffré des propriétés uniques (lot 7)');
+  titre('Relique — score chiffré des propriétés uniques');
 
   /* ── Tranches entières, par palier, sans plafond ─────────────────────── */
   {
@@ -322,7 +322,7 @@ function resolu(c: BuildCandidate, relique: RelicDetail | undefined): ResultatAr
 }
 
 export function testRelicClassementParMode() {
-  titre('Relique — effet unique dans le tri et les cartes, dans les trois modes (6bis-b5a)');
+  titre('Relique — effet unique dans le tri et les cartes, dans les trois modes');
 
   const ctxOff = resoudreContexteRelique(intention('off'), CONQUETE, [CONQUETE]);
   const ctxEquipped = resoudreContexteRelique(intention('equipped'), CONQUETE, [CONQUETE]);
@@ -398,15 +398,15 @@ export function testRelicClassementParMode() {
     // Attentes modifiées (choix de l'utilisateur) : jusque-là
     // [2 500, 2 550] et B devant A, les points Bravoure comptés dans le tri.
     for (const [nom, e] of [['off', etat(ctxOff, bravoure)], ['equipped', etat(ctxEquipped, bravoure)]] as const) {
-      egal([scoreDuCandidat(a, 'atk', opts(e)), scoreDuCandidat(b, 'atk', opts(e))], [2300, 2250], `tri ATQ, ${nom} : la fiche, 2 300 et 2 250 — les points Bravoure ne classent plus (6bis-b9)`);
-      egal(sortCandidates([a, b], 'atk', opts(e)).map(cleBuild), [a, b].map(cleBuild), `tri ATQ, ${nom} : A reste devant B, que ses points ne font plus passer (6bis-b9)`);
+      egal([scoreDuCandidat(a, 'atk', opts(e)), scoreDuCandidat(b, 'atk', opts(e))], [2300, 2250], `tri ATQ, ${nom} : la fiche, 2 300 et 2 250 — les points Bravoure ne classent plus`);
+      egal(sortCandidates([a, b], 'atk', opts(e)).map(cleBuild), [a, b].map(cleBuild), `tri ATQ, ${nom} : A reste devant B, que ses points ne font plus passer`);
     }
     // L'ancien ordre de BASE de l'écran (options sans effet unique), affiché
     // tel quel tant que la file n'a rien résolu, contredisait les cartes
     // Il coïncide désormais avec le classement affiché.
     const ancienneBase = sortCandidates([a, b], 'atk', { runeById: parId, metric: 'eff', damageSetup: SETUP, aurasPropresDe: propresDe });
     egal(ancienneBase.map(cleBuild), sortCandidates([a, b], 'atk', opts(etat(ctxOff, bravoure))).map(cleBuild),
-      'ordre de base sans effet unique et classement affiché : le même ordre (6bis-b9)');
+      'ordre de base sans effet unique et classement affiché : le même ordre');
     const nonResolu = etat(ctxRecherche, bravoure);
     egal(scoreDuCandidat(a, 'atk', opts(nonResolu)), 2300, 'tri ATQ, recherche non résolue : neutre (2 300)');
     egal(sortCandidates([a, b], 'atk', opts(nonResolu)).map(cleBuild), [a, b].map(cleBuild), 'tri ATQ, recherche non résolue : ordre des stats seules');
@@ -414,7 +414,7 @@ export function testRelicClassementParMode() {
     // 2 300, le tri classe sur 2 500 ») est corrigé — la carte (`StatPanel`,
     // `candidate.stats`) montre la valeur qui classe.
     egal(scoreDuCandidat(a, 'atk', opts(etat(ctxOff, bravoure))), statTotal(a.stats, 'atk'),
-      'écart corrigé (6bis-b9) : la carte montre l’ATQ de la fiche (2 300), le tri classe sur 2 300');
+      'la carte montre l’ATQ de la fiche (2 300), le tri classe sur 2 300');
   }
 
   /* ── Harnais : classé comme le CLI (invariant « Harnais ») ──────────────── */
@@ -509,7 +509,7 @@ function artefact(id: number, kind: 'element' | 'archetype', subs: [number, numb
 }
 
 export function testRelicReferenceComparer() {
-  titre('Relique — « Comparer » : la fiche notée avec SES artéfacts et SA relique (6bis-b5a)');
+  titre('Relique — « Comparer » : la fiche notée avec SES artéfacts et SA relique');
 
   // Fiche : deux runes Fight (une activation propre) et quatre Violent ; sa
   // paire porte 5 % de dégâts bruts sur l'ATQ (219). La paire de la
@@ -605,7 +605,7 @@ export function testRelicReferenceComparer() {
 const BRAVOURE_ATQ = piece(690, 101, 10, 9, 9, 12000, 5);
 
 export function testTriParStatSurLaFiche() {
-  titre('Tri par PV, ATQ ou DEF — la carte égale le tri, sur la fiche (6bis-b9)');
+  titre('Tri par PV, ATQ ou DEF — la carte égale le tri, sur la fiche');
 
   const { c: a, runes: ra } = candidatDe(7500, BRAVOURE_ATQ, { 1: [3, 300] });
   const { c: b, runes: rb } = candidatDe(7600, BRAVOURE_ATQ, { 1: [3, 250], 5: [1, 6000] });
@@ -680,7 +680,7 @@ export function testTriParStatSurLaFiche() {
 }
 
 export function testDepartageReliquePortee() {
-  titre('Mode recherche, régime de stat — à égalité, la relique PORTÉE l’emporte (6bis-b9)');
+  titre('Mode recherche, régime de stat — à égalité, la relique PORTÉE l’emporte');
 
   // Le build B du test précédent : il franchit 3 tranches de Bravoure.
   const runes: RuneDetail[] = [1, 2, 3, 4, 5, 6].map((slot) => rune(7700 + slot, slot, slot === 1 ? [3, 250] : slot === 5 ? [1, 6000] : [8, 0]));

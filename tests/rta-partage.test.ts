@@ -570,7 +570,7 @@ export default function testRtaPartage() {
   egal(
     { id: avecRelique.snapshot!.entries[0].gear?.relic?.id, upgrade: avecRelique.snapshot!.entries[0].gear?.relic?.upgrade },
     { id: 34315, upgrade: 11 },
-    'relique partagée : id et upgrade arrivent aussi (non optionnels depuis le lot 1)'
+    'relique partagée : id et upgrade arrivent aussi (non optionnels)'
   );
 
   // ⚠️ Un fichier exporté AVANT cette version porte `relic.sub = { code, value }`

@@ -447,7 +447,7 @@ refuse, par ligne des `.md` de `spec/outils/optimizer/**` et
 `spec/outils/degats-reels/**` : une date hors de la colonne « Source » des
 valeurs de jeu curées, un identifiant de lot avec ou sans le mot « lot »,
 « décision de l'utilisateur », et deux marques de récit, « incident » et
-« session ». Chaque exception du test porte sa raison ; une exception qui
+la session de travail. Chaque exception porte sa raison ; une exception qui
 ne sert plus fait échouer. Le reste du cheminement relève de la revue.
 
 ### Installation des garde-fous

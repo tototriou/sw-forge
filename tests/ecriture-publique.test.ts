@@ -3,7 +3,7 @@
 //
 // Chaque ligne de chaque `.md` du périmètre est confrontée à cinq règles :
 // une date, un identifiant de lot (avec ou sans le mot « lot »),
-// « décision de l'utilisateur », « incident », « session ». Une occurrence
+// « décision de l'utilisateur », « incident », la session de travail. Une occurrence
 // n'est admise que par une exception de la liste plus bas, qui porte sa
 // raison ; une exception qui ne couvre plus rien fait échouer.
 //
@@ -71,8 +71,13 @@ const REGLES: [Regle, (ligne: string) => boolean][] = [
   ],
   ['decision', (l) => /\bdécisions? (?:de l['’]utilisateur|utilisateur)\b/i.test(l)],
   ['incident', (l) => /\bincidents?\b/i.test(l)],
-  // `sessionStorage` (API du navigateur) ne correspond pas : mot entier.
-  ['session', (l) => /\bsessions?\b/i.test(l)],
+  // Seule la session de travail est du récit : la session de l'application
+  // (« sauvegarde de session », « session en cours ») et du navigateur
+  // (`sessionStorage`) décrivent le produit.
+  [
+    'session',
+    (l) => /\bsessions? (?:de travail|précédente|suivante|d['’]agent|pilote)\b|\b(?:même|nouvelle|autre|chaque) sessions?\b/i.test(l),
+  ],
 ];
 
 export interface Occurrence {
@@ -97,18 +102,6 @@ export const EXCEPTIONS: Exception[] = [
     fragment: '(joueur), le 2026-09-23, sauf mention contraire',
     regle: 'date',
     raison: 'provenance par défaut des valeurs du tableau, dite une fois au-dessus de la colonne « Source »',
-  },
-  {
-    fichier: 'spec/outils/optimizer/ecran/README.md',
-    fragment: 'onglets de la session en cours',
-    regle: 'session',
-    raison: 'session du navigateur : la saisie vit tant que l’onglet reste ouvert',
-  },
-  {
-    fichier: 'spec/outils/optimizer/invariants.md',
-    fragment: 'avant tout import de la session',
-    regle: 'session',
-    raison: 'session du navigateur : depuis l’ouverture de l’onglet',
   },
 ];
 
@@ -201,6 +194,7 @@ export function testEcriturePubliqueFormes() {
     'Le slot 2 porte la VIT.',
     'Le S3 de Lynn peut être critique.',
     '`sessionStorage` garde la saisie de l’onglet.',
+    'La sauvegarde de session garde la session en cours.',
     'Voir [bonus](compte/calcul-runes.md § 5.2 Bonus de set).',
     'Voir `calcul-runes.md` § 5.2 Bonus de set.',
     'Un écart de 1e-9 tranche, une tolérance de 1e-6.',
@@ -235,8 +229,8 @@ export function testEcriturePubliqueFormes() {
 
   // Exceptions : une exception couvre sa règle sur sa ligne, rien d'autre,
   // et une exception qui ne couvre rien est signalée.
-  const occ = relever(F, 'Dans la session du 2031-02-14.');
-  const sert: Exception = { fichier: F, fragment: 'la session du', regle: 'session', raison: 'cas d’essai' };
+  const occ = relever(F, 'Dans la session de travail du 2031-02-14.');
+  const sert: Exception = { fichier: F, fragment: 'la session de travail', regle: 'session', raison: 'cas d’essai' };
   const sertPlus: Exception = { fichier: F, fragment: 'absent', regle: 'session', raison: 'cas d’essai' };
   const { restantes, inutilisees } = appliquerExceptions(occ, [sert, sertPlus]);
   egal(restantes.map((o) => o.regle), ['date'], 'une exception « session » ne couvre pas la date de la même ligne');

@@ -3987,7 +3987,7 @@ export interface AttaqueAppeleeConnue {
   // déclencheur : son identifiant change d'une forme à l'autre (Hadoken 13902,
   // 13903, 13905), son slot non.
   slotAppele: number;
-  // D'où viennent le déclencheur et le slot appelé (prose, constat, cadrage).
+  // D'où viennent le déclencheur et le slot appelé (prose du sort, valeur fournie par l'utilisateur).
   source: string;
 }
 
@@ -5063,10 +5063,10 @@ function resolvedCombatStatBonuses(profiles: CombatStatProfile[], setup: DamageS
 // l'utilisateur, « toute source confondue (ATQ de base + rune + lead +
 // compétence d'invocateur) ». Pas de buff ATQ (`atkBuff`) ni de Miriam : la
 // stat du DÉBUT du combat, pas un instantané de tour.
-// ⚠️ Les auras Fight (externes + propres) en font partie depuis 6bis-b2 :
+// ⚠️ Les auras Fight (externes + propres) en font partie :
 // « toute source confondue », les seuils sont « des totaux de combat »
-// (catalogue-des-passifs.md), et le cadrage (A.2, cible 2) fait entrer les
-// auras dans les passifs. C'est exactement l'ATQ de `statsDebutCombat`, même
+// (catalogue-des-passifs.md), et effets-equipe-et-leaders.md (« Sets d'aura
+// d'équipe — modèle ») fait entrer les auras dans les passifs. C'est exactement l'ATQ de `statsDebutCombat`, même
 // `ceil` unique ; aura nulle → valeur strictement identique à l'ancienne
 // réplique locale.
 function atkCombatComplet(stats: StatRow[], setup: DamageSetup, propres: AurasPropres, element: ElementKey | null = null): number {
@@ -5101,7 +5101,8 @@ function crBrutEffectif(
  *
  * ⚠️ **C'est la définition de l'assiette `Y` des propriétés uniques de
  * relique** (« tous les X pts de DEF au début du combat ») — voir
- * spec/outils/optimizer/reliques.md § 5.2, la définition qui fait foi, et
+ * spec/outils/optimizer/moteur/reliques.md, « L'effet unique — score de la
+ * propriété exclusive », la définition qui fait foi, et
  * `relicExclusive.ts` qui la consomme.
  *
  * ⚠️ **Extraite de `statsDeCombat`, pas recopiée** : celle-ci n'est que ce

@@ -2,13 +2,14 @@
 // `artifactOptim.ts`) pour quel régime — UNE seule définition, consommée par
 // les trois sites qui en construisaient une chacun (OptimizerSection.tsx ×2,
 // scripts/lib/recipeToSearchParams.ts ×1). Voir
-// spec/outils/optimizer/decisions/cadrage-score-artefacts-ehp.md pour le cadrage complet.
+// spec/outils/optimizer/moteur/artefacts.md § Régime de la paire.
 //
-// ⚠️ Volontairement SÉPARÉ de `artifactOptim.ts`, qui reste libre de toute
-// dépendance à `damage.ts`/`stats.ts` (spec/outils/optimizer/artefacts.md,
-// §6bis, « ce qui garde ce module testable sans monter un contexte de
-// dégâts »). `computeTotalDamage`/`pvEffectifs`/`statsParPaire` casseraient
-// cette frontière.
+// ⚠️ Volontairement SÉPARÉ de `artifactOptim.ts`, qui reste sans logique de
+// dégâts (sa seule dépendance vers `damage.ts` est le code
+// `CODE_AMPLI_VIT`) et se teste sans contexte de combat
+// (spec/outils/optimizer/moteur/optimiseur-artefacts.md § La double boucle).
+// `computeTotalDamage`/`pvEffectifs`/`statsParPaire` casseraient cette
+// frontière.
 
 import { ArtifactDetail, ElementKey, RelicDetail } from '../types';
 import { StatKey } from './effects';
@@ -26,7 +27,8 @@ export type RegimeArtefacts = 'aucun' | 'hp' | 'atk' | 'def' | 'ehp' | 'degats_r
  * ⚠️ Branche EXHAUSTIVE sur les valeurs réelles de `StatKey | Objective`, pas
  * un `else` qui absorberait un cas imprévu : `'aucun'` est le régime propre à
  * efficience/vitesse/TC/DCC/RES/PRE — celles où AUCUN artéfact n'entre dans
- * le score (voir §12.6 d'artefacts.md), pas un repli pour un oubli.
+ * le score (voir spec/outils/optimizer/moteur/artefacts.md § Régime de la
+ * paire), pas un repli pour un oubli.
  */
 export function regimeArtefacts(critere: StatKey | Objective): RegimeArtefacts {
   if (critere === 'degats_reels' || critere === 'ehp') return critere;
@@ -36,12 +38,12 @@ export function regimeArtefacts(critere: StatKey | Objective): RegimeArtefacts {
 
 /**
  * Le régime EFFECTIF de l'ÉQUIPEMENT COMPLET — paire d'artéfacts ET relique,
- * un seul régime pour les deux (D7, implementation-relique) : rabat
+ * un seul régime pour les deux (D7) : rabat
  * `'degats_reels'` sur `'aucun'` tant qu'aucun sort n'est calculable pour ce
  * monstre, sinon le régime brut tel quel.
  *
  * ⚠️ **C'est CE régime, jamais le brut, qui doit alimenter la signature de
- * cache et le choix de paire/relique** (B.5b bis, contrôle 4 — un bug a
+ * cache et le choix de paire/relique** (un bug a
  * laissé passer le régime brut dans la signature) : pendant la transition
  * « sort indisponible → calculable » (le contexte de dégâts passe de
  * `null`/absent à disponible), le régime brut reste `'degats_reels'` dans
@@ -58,7 +60,8 @@ export function regimeEquipementDe(regime: RegimeArtefacts, contexteDegatsDispon
 export type DegatsContext = Omit<RealDamageContext, 'artefacts'>;
 
 /**
- * Le CANAL EXCLUSIVE (implementation-relique, lot 7 — B.7) : la relique
+ * Le CANAL EXCLUSIVE (spec/outils/optimizer/moteur/reliques.md § L'effet unique — score de la propriété
+ * exclusive) : la relique
  * qu'`evaluate` est en train d'essayer pour ce build, et le contexte dont son
  * assiette `Y` a besoin (leader skill, compétences d'invocateur).
  *
@@ -72,9 +75,9 @@ export type DegatsContext = Omit<RealDamageContext, 'artefacts'>;
  * `bestRelicForBuild`) et celui qui classe. Jamais un score de principale
  * auquel on ajouterait un score d'exclusive.
  *
- * Absent → apport neutre, comportement strictement d'avant le lot 7.
+ * Absent → apport neutre : aucune note d'effet unique.
  * Lu par les régimes `degats_reels` et `ehp` seulement : les régimes
- * `hp`/`atk`/`def` jugent la fiche (degats-et-aura 6bis-b9).
+ * `hp`/`atk`/`def` jugent la fiche.
  */
 export interface CanalExclusive {
   relique: RelicDetail | undefined;
@@ -85,8 +88,7 @@ export interface CanalExclusive {
 /**
  * Au plus tant de paires en cache (`CacheProfilsParPaire`) : un peu plus du
  * double des 7 727 paires distinctes que parcourt la résolution de 300 builds
- * × 4 reliques sur la recette « Dégâts réels » de référence (degats-et-aura
- * 6bis-b13), loin des ~100 000 paires de l'inventaire entier (250 × 430
+ * × 4 reliques sur la recette « Dégâts réels » de référence, loin des ~100 000 paires de l'inventaire entier (250 × 430
  * candidats). Atteinte, le cache se vide d'un coup : jamais plus de cette
  * borne d'entrées vivantes, jamais un résultat différent.
  */
@@ -104,8 +106,7 @@ const SANS_PIECE = -1;
 
 /**
  * Le profil de dégâts d'une paire (`artifactDamageProfile`), mémoïsé par les
- * identifiants de ses pièces, dans l'ordre reçu, emplacement vide compris
- * (degats-et-aura 6bis-b13).
+ * identifiants de ses pièces, dans l'ordre reçu, emplacement vide compris.
  *
  * ⚠️ **Exact parce que le profil ne lit que les pièces** : leurs
  * sous-propriétés, rien du build, de la relique ni du réglage (damage.ts) ;
@@ -150,14 +151,14 @@ export class CacheProfilsParPaire {
   }
 }
 
-// `propres` (6bis-b2, les deux surcharges) : les activations d'aura des runes
+// `propres` (les deux surcharges) : les activations d'aura des runes
 // du build dont `statsAvec` calcule les stats. Constantes pour toutes ses
 // paires et reliques (ni artéfact ni relique ne porte de set), obligatoires :
 // la note d'une paire, celle qui choisit la relique et celle qui classe les
 // voient toutes trois (D6, une seule note).
 // Surcharge 1 : `degats_reels` EXIGE le contexte de dégâts — omission =
 // erreur `tsc`, pas un repli silencieux sur la somme des principales.
-// `profils` (6bis-b13) : le profil de chaque paire est lu dans ce cache au
+// `profils` : le profil de chaque paire est lu dans ce cache au
 // lieu d'être recalculé — même valeur, voir `CacheProfilsParPaire`. Absent :
 // recalculé à chaque paire, comme avant.
 export function evaluerPourRegime(
@@ -196,8 +197,7 @@ export function evaluerPourRegime(
   // ⚠️ L'apport et les stats qui l'incluent ne dépendent que du TABLEAU de
   // stats de la paire (`apportExclusive`, `statsAvecApport` : pures) :
   // calculés une fois par tableau, reconnu à son identité — `statsParPaire`
-  // rend le même tableau aux paires de mêmes principales (degats-et-aura
-  // 6bis-b13). Exact pour tout `statsAvec` ; au plus
+  // rend le même tableau aux paires de mêmes principales. Exact pour tout `statsAvec` ; au plus
   // `BORNE_APPORTS_PAR_STATS` tableaux retenus, puis la mémoire se vide.
   const parStats = new Map<StatRow[], { stats: StatRow[]; apport: ApportExclusive }>();
   const avecApport = (brutes: StatRow[]) => {
@@ -258,12 +258,13 @@ export function evaluerPourRegime(
     // du tri par stat (`scorerPour`), que la carte affiche (`row.total`) et
     // que jugent les conditions min/max. Le canal exclusive est ignoré ici —
     // les points Bravoure/Éternité/Origine ne départagent plus ni les paires
-    // ni les reliques (degats-et-aura 6bis-b9, option (a) de l'utilisateur).
+    // ni les reliques (option (a) de l'utilisateur).
     // `computeStats` garantit une entrée par `StatKey`.
     return (arts) => statTotal(statsAvec(arts), regime);
   }
   if (regime === 'aucun') {
-    // Aucun artéfact n'entre dans ce score (§12.6 d'artefacts.md) — la somme
+    // Aucun artéfact n'entre dans ce score (voir
+    // spec/outils/optimizer/moteur/artefacts.md § Régime de la paire) — la somme
     // des principales sert seulement à ne pas rendre une paire arbitraire,
     // jamais à maximiser quoi que ce soit.
     return (arts) => arts.reduce((n, a) => n + a.main.value, 0);

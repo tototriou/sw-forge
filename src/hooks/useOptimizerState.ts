@@ -34,9 +34,10 @@ export type ArtifactMainChoice = 'equipped' | 'libre' | 100 | 101 | 102;
 // `'equipped'`, `'libre'`), mais une sémantique différente : la principale
 // d'un artéfact est un PLAT (`ARTIFACT_MAIN`, effects.ts), celle d'une
 // relique un POURCENTAGE (`stat = B + ceil(B × (R + L) / 100) + plats`,
-// spec/outils/optimizer/chantiers/implementation-relique.md § A.1). Pas de
+// spec/outils/optimizer/moteur/reliques.md § Contexte transporté, bornes
+// relâchées, filtre exact). Pas de
 // `'none'` : une relique n'a pas d'emplacement à vider, comme pour
-// l'artéfact — voir A.2 bis D1.
+// l'artéfact.
 export type RelicMainChoice = ArtifactMainChoice;
 
 // Choix de propriété unique de relique — `'libre'` (défaut) ou l'un des 16
@@ -53,12 +54,11 @@ export const DEFAULT_RELIC_MIN_UPGRADE = 6;
 
 /**
  * Le défaut de `relicMainChoice`, calculé au choix du MONSTRE — jamais une
- * constante (A.2 bis D1) : `'equipped'` s'il porte déjà une relique,
+ * constante : `'equipped'` s'il porte déjà une relique,
  * `'libre'` sinon. Fonction PURE et exportée exprès (même raison que
  * `mainsPourCeCompte`, optimizerRecipe.ts) : elle sert à la fois à
- * `recipeToRelicIntent` (une recette antérieure au lot 2 ne porte pas le
- * champ) et, au lot 5c, à `pickSpecies` (OptimizerSection.tsx) — ce lot ne
- * la câble qu'au premier site, pas encore au second.
+ * `recipeToRelicIntent` (une recette exportée sans ce champ ne le porte pas)
+ * et à `pickSpecies` (OptimizerSection.tsx), qui la câblent tous deux.
  *
  * ⚠️ **Ne pas répéter l'incident artéfacts** : l'écran doit AFFICHER la
  * valeur que le moteur applique, jamais l'inverse — cette fonction est donc
@@ -76,7 +76,7 @@ export function defaultRelicMainChoice(relic: RelicDetail | undefined): RelicMai
  * - Autre espèce, ou compte réimporté : les critères repartent de zéro, le
  *   défaut se recalcule contre la relique du nouvel exemplaire, comme dans
  *   `pickSpecies`.
- * - Même espèce : les critères sont conservés (6bis-b19), sauf l'incohérence
+ * - Même espèce : les critères sont conservés, sauf l'incohérence
  *   « Garder la relique équipée » sur un exemplaire qui n'en porte pas :
  *   le mode `equipped` ne refuse pas la recherche, il la ferait tourner SANS
  *   relique, sans rien en dire — elle redevient « Libre ».
@@ -92,11 +92,11 @@ export function relicMainChoiceApresChangementExemplaire(
 
 /**
  * L'intention de recherche de relique — interrupteur, principale, type,
- * seuil — résolue en un objet UNIQUE (garantie G, A.3 bis) : ni l'écran, ni
- * le CLI, ni la file ne relisent les trois champs séparément. Ce lot livre
- * le TYPE et le constructeur côté recette (`recipeToRelicIntent`,
- * scripts/lib/recipeToSearchParams.ts) ; le constructeur côté écran (depuis
- * `OptimizerState`) est du lot 5c — les listes n'ont d'effet qu'avec la
+ * seuil — résolue en un objet UNIQUE (garantie G) : ni l'écran, ni
+ * le CLI, ni la file ne relisent les trois champs séparément. Deux
+ * constructeurs : côté recette (`recipeToRelicIntent`,
+ * scripts/lib/recipeToSearchParams.ts) et côté écran (`relicIntentDepuisEtat`,
+ * depuis `OptimizerState`) — les listes n'ont d'effet qu'avec la
  * recherche (D1).
  */
 export interface RelicIntent {
@@ -107,14 +107,14 @@ export interface RelicIntent {
 }
 
 /**
- * Le constructeur ÉCRAN de `RelicIntent` (second constructeur attendu par
- * B.2, lot 5c) — mêmes règles que `recipeToRelicIntent`
+ * Le constructeur ÉCRAN de `RelicIntent` (second constructeur, après
+ * la recette) — mêmes règles que `recipeToRelicIntent`
  * (scripts/lib/recipeToSearchParams.ts), appliquées aux quatre champs de
  * `OptimizerState` au lieu d'une `OptimizerRecipe` : `mode: 'off'` suit
- * l'interrupteur (D1, aucun interrupteur propre à la relique — T2),
+ * l'interrupteur (aucun interrupteur propre à la relique),
  * `'equipped'` si la principale l'est (le type est alors sans effet, D1),
  * `'recherche'` sinon. `run()` (OptimizerSection.tsx) l'appelle pour poser
- * `SearchParams.relicContext` — troisième producteur attendu par B.5a, à
+ * `SearchParams.relicContext` — troisième producteur, à
  * côté du CLI (`recipeToRelicIntent`) et de l'oracle.
  */
 export function relicIntentDepuisEtat(
@@ -213,14 +213,13 @@ export interface OptimizerState {
   // vide. Le « et si… » est perdu, en connaissance de cause.
   artifactMainByKind: Partial<Record<ArtifactKind, ArtifactMainChoice>>;
   setArtifactMainByKind: Dispatch<SetStateAction<Partial<Record<ArtifactKind, ArtifactMainChoice>>>>;
-  // Principale ET propriété unique de RELIQUE demandées (A.2 bis D1) —
+  // Principale ET propriété unique de RELIQUE demandées —
   // combinées en ET, comme `artifactMainByKind` un CRITÈRE remis à zéro par
   // `resetSearch` au changement de monstre (une valeur `equipped`/propriété
   // choisie pour l'ancien monstre n'a pas de sens pour le nouveau).
   //
-  // ⚠️ **Aucune liste ne les lit encore** (lot 5c) : `libre` et le type n'ont
-  // d'effet qu'avec la recherche de relique, qui n'existe pas avant le
-  // lot 5a/5b. Ce lot ne pose que l'état, la recette et le CLI.
+  // ⚠️ `libre` et le type n'ont d'effet qu'avec la recherche de relique
+  // (mode `recherche` de `RelicIntent`).
   relicMainChoice: RelicMainChoice;
   setRelicMainChoice: Dispatch<SetStateAction<RelicMainChoice>>;
   relicUniqueChoice: RelicUniqueChoice;
@@ -228,8 +227,8 @@ export interface OptimizerState {
   // Seuil de niveau minimum d'une relique éligible (D2, +0 à +15, +6 par
   // défaut) — un RÉGLAGE AVANCÉ, pas un critère : `resetSearch` ne le remet
   // PAS à zéro au changement de monstre, comme `slotFilterPreset` ou
-  // `exhaustiveSearch`. Vit dans « Réglages avancés » à partir du lot 5c
-  // seulement (un seuil sans pool visible ne réglerait rien d'observable).
+  // `exhaustiveSearch`. Se règle par le champ « Niveau minimum » de la carte
+  // relique (spec/outils/optimizer/ecran/relique.md § Relique).
   relicMinUpgrade: number;
   setRelicMinUpgrade: Dispatch<SetStateAction<number>>;
   // Sous-propriétés d'artéfact EXIGÉES, avec leur minimum.
@@ -288,9 +287,9 @@ export interface OptimizerState {
   // remplace pas) — voir lib/optimizerExclusion.ts. Vide par défaut.
   excludedSelectors: ExclusionSelector[];
   setExcludedSelectors: Dispatch<SetStateAction<ExclusionSelector[]>>;
-  // Toggle « Prioriser les stats les plus difficiles » (piste B, voir
-  // spec/outils/optimizer/ « Suite — piste B gatée derrière un
-  // paramètre ») — désactivé par défaut, lu par `handleSearch` au moment du
+  // Toggle « Prioriser les stats les plus difficiles » (voir
+  // spec/outils/optimizer/moteur/elagages.md § Pré-filtrage heuristique et
+  // compartiments) — désactivé par défaut, lu par `handleSearch` au moment du
   // clic sur « Rechercher », pas un bouton séparé qui lance sa propre
   // recherche.
   adaptiveTrancheWeighting: boolean;
@@ -302,8 +301,7 @@ export interface OptimizerState {
   // candidats collectés, qui reste une limite indépendante.
   exhaustiveSearch: boolean;
   setExhaustiveSearch: Dispatch<SetStateAction<boolean>>;
-  // Toggle « Vérifier toutes les combinaisons trouvées » (degats-et-aura
-  // 6bis-b18) — désactivé par défaut : la file de résolution s'arrête à K
+  // Toggle « Vérifier toutes les combinaisons trouvées » — désactivé par défaut : la file de résolution s'arrête à K
   // combinaisons confirmées (300 en relique « recherche », 100 sinon) ; activé,
   // elle vérifie tous les builds trouvés (`cibleDeLaFile`). Un RÉGLAGE AVANCÉ,
   // comme `exhaustiveSearch` : `resetSearch` ne le remet pas à zéro. Lu en
@@ -361,7 +359,7 @@ export interface OptimizerState {
    * chaque import réel, jamais à la relecture du compte conservé. 0 tant
    * qu'aucun import n'a eu lieu. Entre dans la signature de la file
    * (`signatureArtefacts`) : tout réimport en vide le cache, même à nombre
-   * d'artéfacts et identifiants de runes égaux (degats-et-aura 6bis-b19).
+   * d'artéfacts et identifiants de runes égaux.
    *
    * ⚠️ Une identité, pas une empreinte du contenu (décision de l'utilisateur
    * du 2026-10-02) ; sans setter : rien d'autre qu'un import ne l'avance.
@@ -397,8 +395,7 @@ export interface OptimizerState {
    * changer d'exemplaire effacent donc la même chose.
    *
    * Appelée seule par OptimizerSection.tsx quand un membre de liste de la
-   * MÊME espèce désigne un AUTRE exemplaire (degats-et-aura 6bis-b19,
-   * décision de l'utilisateur du 2026-10-02) : la recherche affichée, faite
+   * MÊME espèce désigne un AUTRE exemplaire (décision de l'utilisateur du 2026-10-02) : la recherche affichée, faite
    * pour l'ancien exemplaire, disparaît comme au changement d'espèce ; les
    * critères restent, et l'utilisateur relance lui-même — jamais de relance
    * automatique.
@@ -413,7 +410,8 @@ export function useOptimizerState(): OptimizerState {
   const [minStats, setMinStats] = useState<Partial<Record<StatKey, number>>>({});
   const [maxStats, setMaxStats] = useState<Partial<Record<StatKey, number>>>({});
   // ⚠️ Coché par défaut : demande reconfirmée après un premier aller-retour
-  // (décoché par défaut, puis revenu sur cochée) — voir spec/outils/optimizer/.
+  // (décoché par défaut, puis revenu sur cochée) — voir
+  // spec/outils/optimizer/ecran/conditions-et-reglages.md § Grille des conditions.
   const [excludeBase, setExcludeBase] = useState(true);
   // Activee par defaut : chercher les artefacts est le comportement utile,
   // et il ne coute rien a la recherche de runes (temps masque).
@@ -425,8 +423,8 @@ export function useOptimizerState(): OptimizerState {
   const [artifactMainByKind, setArtifactMainByKind] = useState<Partial<Record<ArtifactKind, ArtifactMainChoice>>>({});
   // ⚠️ Défaut STATIQUE ('libre') volontairement — le vrai défaut D1
   // ('equipped' si le monstre porte une relique) se calcule au choix du
-  // monstre (`defaultRelicMainChoice`), câblé par `pickSpecies` au lot 5c,
-  // pas ici : ce hook n'a jamais accès au monstre sélectionné.
+  // monstre (`defaultRelicMainChoice`), câblé par `pickSpecies`, pas ici :
+  // ce hook n'a jamais accès au monstre sélectionné.
   const [relicMainChoice, setRelicMainChoice] = useState<RelicMainChoice>('libre');
   const [relicUniqueChoice, setRelicUniqueChoice] = useState<RelicUniqueChoice>('libre');
   const [relicMinUpgrade, setRelicMinUpgrade] = useState(DEFAULT_RELIC_MIN_UPGRADE);
@@ -463,8 +461,8 @@ export function useOptimizerState(): OptimizerState {
     setAdapterArtefactsAuTri(true);
     setArtifactMainByKind({});
     // ⚠️ Défaut statique ici — voir le commentaire du `useState` ci-dessus ;
-    // `pickSpecies` (lot 5c) surchargera avec `defaultRelicMainChoice` juste
-    // après cet appel, comme il le fait déjà pour `objective`.
+    // `pickSpecies` surcharge avec `defaultRelicMainChoice` juste après cet
+    // appel, comme il le fait déjà pour `objective`.
     setRelicMainChoice('libre');
     setRelicUniqueChoice('libre');
     // ⚠️ Remis à zéro au changement de monstre, comme les runes imposées : une
@@ -483,7 +481,7 @@ export function useOptimizerState(): OptimizerState {
     // contexte commun et vide les réglages indexés par sort ou passif.
     setDamageSetup((s) => motif === 'compte' ? DEFAULT_DAMAGE_SETUP : damageSetupApresChangementMonstre(s));
     if (motif === 'compte') setCompterAurasResPre(true);
-    // ⚠️ Chaque import est un NOUVEL import (6bis-b19) : remettre les réglages
+    // ⚠️ Chaque import est un NOUVEL import : remettre les réglages
     // par défaut ne changeait pas toujours la signature de la file (réglages
     // déjà par défaut, même monstre, même relique, même nombre d'artéfacts),
     // et une nouvelle recherche reprenait du cache des paires de l'ancien
@@ -495,7 +493,7 @@ export function useOptimizerState(): OptimizerState {
     effacerResultats();
   }
 
-  // ⚠️ **Une seule fonction pour l'effacement des résultats** (6bis-b19) :
+  // ⚠️ **Une seule fonction pour l'effacement des résultats** :
   // le changement d'espèce (`resetSearch`) et le changement d'exemplaire de
   // la même espèce (OptimizerSection.tsx, zone C) effacent EXACTEMENT la même
   // chose — une copie de ces quatre lignes divergerait au premier ajout.

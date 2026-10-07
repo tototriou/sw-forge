@@ -15,10 +15,11 @@
 // retirer un set recherché ne crée, ne relève et ne supprime aucune aura
 // externe.
 //
-// Source des valeurs : cadrage degats-et-aura, A.2 ter (utilisateur,
-// 2026-09-23 puis 2026-09-25) — cinq autres monstres à trois sets, donc 15.
+// Source des valeurs : spec/outils/degats-reels/valeurs-de-jeu-curees.md
+// § Les valeurs de jeu — curées, avec leur source — cinq autres monstres à
+// trois sets, donc 15.
 //
-// Lot 7b : le RAPPEL au changement de monstre (`doitRappeler`) et
+// Le RAPPEL au changement de monstre (`doitRappeler`) et
 // l'OUVERTURE GUIDÉE vers l'interrupteur des auras RES/PRE
 // (`guideVersResPre`), en fin de fichier — deux décisions de l'écran, prises
 // ici pour être testées sans React ; les composants ne font que brancher
@@ -162,7 +163,7 @@ export function echoAurasExternes(entrees: readonly AuraExterne[] | undefined): 
     : `aucune aura externe ; les sets d'aura du build comptent sur chaque résultat`;
 }
 
-// ── Rappel au changement de monstre (degats-et-aura 7b) ──────────────────
+// ── Rappel au changement de monstre ──────────────────
 
 /**
  * Durée d'un surlignage d'attention (réponse de l'utilisateur du 2026-10-02 :
@@ -187,7 +188,7 @@ export interface MonstreOptimise {
   espece: string | null;
   /** L'exemplaire (`exclusionSelectorKey` du sélecteur actif), `null` sans exemplaire. */
   exemplaire: string | null;
-  /** Les auras externes en vigueur — conservées au changement de monstre (lot 5). */
+  /** Les auras externes en vigueur — conservées au changement de monstre. */
   aurasExternes: readonly AuraExterne[] | undefined;
 }
 
@@ -200,7 +201,7 @@ export interface MonstreOptimise {
  * jamais les nombres à la place de l'utilisateur.
  *
  * ⚠️ **Aucune autre voie** : ni le bestiaire, ni une puce de source ou la
- * zone D (décision de l'utilisateur sur 6bis-b19 : la liste de travail
+ * zone D (décision de l'utilisateur : la liste de travail
  * seulement), ni l'import d'une recette ou d'un compte, ni un simple rendu.
  * Recliquer l'exemplaire déjà affiché ne rappelle rien.
  */
@@ -210,7 +211,7 @@ export function doitRappeler(voie: VoieChangementMonstre, avant: MonstreOptimise
   return avant.espece !== apres.espece || avant.exemplaire !== apres.exemplaire;
 }
 
-// ── Ouverture guidée vers l'interrupteur des auras RES/PRE (degats-et-aura 7b)
+// ── Ouverture guidée vers l'interrupteur des auras RES/PRE
 
 /**
  * Les sets d'aura dont l'effet passe par une CONDITION — Accuracy (PRE) et

@@ -25,13 +25,16 @@ import { RELIC_UNIQUE, setsCost } from './effects';
 
 export const OPTIMIZER_RECIPE_VERSION = 1;
 
-// ⚠️ **Deux constructeurs, PAS un seul — un champ ajouté ici doit être
-// branché dans les DEUX, sinon un script diverge de l'écran en silence
+// ⚠️ **Un champ ajouté ici traverse plusieurs endroits indépendants, pas un
+// seul** : l'oublier dans l'un fait diverger un script de l'écran en silence
 // (aucune erreur `tsc`, le champ manquant reste un type optionnel valide).
 // Incident vécu : `exhaustiveSearch` branché dans OptimizerSection.tsx
 // (l'écran) mais oublié dans recipeToSearchParams.ts, repéré seulement
 // parce que l'utilisateur a posé la question — voir spec/README.md,
-// « Conventions communes », pour la règle générale.
+// « Conventions communes », pour la règle générale, et le skill
+// `optimizer-field-propagation` pour les producteurs purs qui remplacent
+// ces constructeurs et pour la checklist de ceux qui subsistent. Les deux
+// principaux :
 // 1. `OptimizerSection.tsx` — `exportRecipe`/`importRecipe`/`handleSearch`
 //    (l'écran, source de vérité).
 // 2. `scripts/lib/recipeToSearchParams.ts` — `recipeToSearchParams` (rejoue
@@ -142,7 +145,7 @@ export interface OptimizerRecipe {
   adaptiveTrancheWeighting: boolean;
   exhaustiveSearch: boolean;
   /**
-   * « Vérifier toutes les combinaisons trouvées » (degats-et-aura 6bis-b18) :
+   * « Vérifier toutes les combinaisons trouvées » :
    * la file de résolution vérifie tous les builds trouvés au lieu de s'arrêter
    * à K confirmées (`cibleDeLaFile`, artifactQueue.ts).
    *
@@ -177,13 +180,13 @@ export interface OptimizerRecipe {
   // `excludedSelectors`. La règle de tête de ce fichier tient.
   lignesVerrouillees?: LigneVerrouillee[];
   /**
-   * Intention de recherche de relique (A.2 bis D1/D2) : principale ET
+   * Intention de recherche de relique : principale ET
    * propriété unique demandées, seuil de niveau. **Trois champs OPTIONNELS,
-   * et ils doivent le rester** : une recette exportée avant le lot 2 n'en
+   * et ils doivent le rester** : une recette exportée sans ces champs n'en
    * porte aucun — tout lecteur applique le défaut de
    * `defaultRelicMainChoice`/`'libre'`/`DEFAULT_RELIC_MIN_UPGRADE`
    * (hooks/useOptimizerState.ts), jamais une valeur devinée ici. Sans effet
-   * sur `SearchParams` avant le lot 5a (D1 : `libre` et le type n'ont
+   * sur `SearchParams` hors du mode `recherche` (D1 : `libre` et le type n'ont
    * d'effet qu'avec la recherche de relique).
    */
   relicMainChoice?: RelicMainChoice;
@@ -209,9 +212,8 @@ export interface RecipeValidationResult {
   avertissements?: string[];
 }
 
-// L'ancien mode critique « Moyenne », supprimé (degats-et-aura, lot CM,
-// décision de l'utilisateur du 2026-10-02) : une recette exportée avant le
-// porte encore. Elle est CONVERTIE en « Critique », le défaut — jamais
+// L'ancien mode critique « Moyenne », supprimé : une recette exportée avant
+// sa suppression le porte encore. Elle est CONVERTIE en « Critique », le défaut — jamais
 // refusée, jamais changée en silence. Toute autre valeur inconnue reste
 // refusée (`validerDamageSetup`).
 const CRIT_MODE_SUPPRIME = 'moyenne';
@@ -244,8 +246,7 @@ function validerNombre(value: unknown, path: string, entier = false): string | n
   return null;
 }
 
-// LA règle de clé d'identifiant de compétence de toute la recette (degats-et-aura
-// 8d) : entier positif SANS zéro de tête. « 010616 » désignerait bien le sort
+// LA règle de clé d'identifiant de compétence de toute la recette : entier positif SANS zéro de tête. « 010616 » désignerait bien le sort
 // 10616 par `Number`, mais le calcul lit la clé « 10616 » et ne verrait jamais
 // l'autre ; la clé morte repartirait à l'export suivant.
 function estIdentifiantDeCompetence(cle: string): boolean {
@@ -326,7 +327,7 @@ function validerDamageSetup(value: unknown): string | null {
     }
   }
   // Le lead s'additionne aux auras : un `pct` en texte (« "20" ») concaténait
-  // au lieu d'additionner — revue externe de la v1.14.0, constat 6.
+  // au lieu d'additionner — revue externe de la v1.14.0.
   if (setup.leaderSkill !== undefined) {
     const lead = setup.leaderSkill;
     if (!estObjet(lead)) return erreur('damageSetup.leaderSkill', 'doit être un objet');
@@ -380,7 +381,7 @@ function validerDamageSetup(value: unknown): string | null {
   if (ePassifs) return ePassifs;
   const eStatsCombat = validerRecordBooleen(setup.statsCombatActives, 'damageSetup.statsCombatActives');
   if (eStatsCombat) return eStatsCombat;
-  // Cible calculée d'un sort à séquence curée (degats-et-aura 8b, cadrage B.0) :
+  // Cible calculée d'un sort à séquence curée :
   // clé = identifiant entier positif du SORT, valeur dans l'union, et
   // seulement pour un sort dont la séquence curée porte un coup de zone — la
   // MÊME table de capacité que celle qui décide d'afficher les deux crans
@@ -393,7 +394,7 @@ function validerDamageSetup(value: unknown): string | null {
     for (const [skillId, cible] of Object.entries(setup.cibleDegatsParSort)) {
       const path = `damageSetup.cibleDegatsParSort.${skillId}`;
       // « 010616 » passerait la table de capacité (`Number` le ramène à
-      // 10616) : la règle de clé la refuse d'abord (degats-et-aura 8c, 8d).
+      // 10616) : la règle de clé la refuse d'abord.
       if (!estIdentifiantDeCompetence(skillId)) return erreur(path, "utilise un identifiant de compétence invalide");
       if (cible !== 'visee' && cible !== 'secondaire') return erreur(path, 'doit valoir « visee » ou « secondaire »');
       if (!cibleSecondairePriseEnCharge(Number(skillId))) {
@@ -429,7 +430,7 @@ function validerDamageSetup(value: unknown): string | null {
     }
   }
   // Rang du premier coup qui ignore la DEF, par sort (les Blade Dancers,
-  // degats-et-aura 10b, contrat B.0) : validé À L'IMPORT selon la règle curée
+  // contrat des champs traversants) : validé À L'IMPORT selon la règle curée
   // du sort, DÉRIVÉE de `IGNORE_DEF_A_PARTIR_DU_COUP_PAR_ID` par
   // `cransDeLaRegleIgnoreDef` — les crans mêmes du sélecteur de l'écran :
   // variante à 3 coups `null`, 2 ou 3 ; variante à 7 coups 2 à 7, jamais
@@ -444,11 +445,11 @@ function validerDamageSetup(value: unknown): string | null {
     for (const [skillId, rang] of Object.entries(setup.premierCoupIgnoreDefParSort)) {
       const path = `damageSetup.premierCoupIgnoreDefParSort.${skillId}`;
       // « 014808 » désignerait bien un sort de la table : la règle de clé
-      // le refuse d'abord (degats-et-aura 8d).
+      // le refuse d'abord.
       if (!estIdentifiantDeCompetence(skillId)) return erreur(path, "utilise un identifiant de compétence invalide");
       const regle = IGNORE_DEF_A_PARTIR_DU_COUP_PAR_ID[Number(skillId)];
       // Le message ne compte ni ne nomme les sorts de la table : il resterait
-      // faux dès une entrée de plus (degats-et-aura 9c, relevé du lot 12).
+      // faux dès une entrée de plus.
       if (!regle) {
         return erreur(path, "désigne un sort sans réglage d'ignore DEF par coup");
       }

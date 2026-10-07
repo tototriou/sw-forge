@@ -1,9 +1,9 @@
-// Le SCORE CHIFFRÉ d'une propriété unique de relique (implementation-relique,
-// lot 7 — B.7). Module pur : il traduit une pièce en APPORT, il ne note rien
+// Le SCORE CHIFFRÉ d'une propriété unique de relique (spec/outils/optimizer/moteur/reliques.md
+// § L'effet unique — score de la propriété exclusive). Module pur : il
+// traduit une pièce en APPORT, il ne note rien
 // lui-même et ne connaît ni objectif, ni régime, ni candidat.
 //
-// ⚠️ **La formule est RELEVÉE EN JEU, jamais déduite** (A.2 ter T4, rév. 41-43 ;
-// `game-data-curation`) :
+// ⚠️ **La formule est RELEVÉE EN JEU, jamais déduite** (`game-data-curation`) :
 //
 //     gain = ⌊Y / t⌋ × percent
 //
@@ -15,7 +15,7 @@
 //   1 % à 1 000 comme à 1 800, 2 % à 2 000) ;
 // - **AUCUN plafond** : le jeu n'en mentionne nulle part ;
 // - `Y` = la statistique de RÉFÉRENCE au **début du combat**
-//   (`statsDebutCombat`, damage.ts — reliques.md § 5.2).
+//   (`statsDebutCombat`, damage.ts — voir l'en-tête du fichier).
 //
 // ⚠️ **Une pièce sans `percent` est NEUTRE**, jamais estimée : un fichier de
 // prépa exporté par une version antérieure ne transporte que le type et la
@@ -52,7 +52,8 @@ import { exclusiveChiffrable, relicUniqueNature } from './relicOptim';
  *   **valeur de base** de la stat augmentée.
  *
  * **Régénération** (16) n'apporte rien : les soins et boucliers ne sont mesurés
- * par aucun objectif (reliques.md § 5.1).
+ * par aucun objectif (spec/outils/optimizer/moteur/reliques.md
+ * § L'effet unique — score de la propriété exclusive).
  */
 export interface ApportExclusive {
   dmgPct: number;
@@ -84,8 +85,8 @@ const CLE_AMELIOREE: Partial<Record<RelicGroupeNom, 'hp' | 'atk' | 'def'>> = {
 
 // ⚠️ Le prédicat « ce type a-t-il une formule ? » (`exclusiveChiffrable`) vit
 // dans `relicOptim.ts`, PAS ici : ce module-ci importe `damage.ts`, et
-// `relicOptim.ts` doit rester libre de cette dépendance (frontière posée au
-// lot 3, « aucune dépendance runtime à damage.ts/stats.ts »). Les deux ne
+// `relicOptim.ts` doit rester libre de cette dépendance (frontière : « aucune
+// dépendance runtime à damage.ts/stats.ts »). Les deux ne
 // peuvent donc pas se dériver l'un de l'autre par le typage — c'est
 // `tests/relic-exclusive.test.ts` qui verrouille leur accord, type par type,
 // sur les seize.
@@ -97,8 +98,7 @@ const CLE_AMELIOREE: Partial<Record<RelicGroupeNom, 'hp' | 'atk' | 'def'>> = {
  * qu'il AMÉLIORE (`relicUniqueNature`), pour chaque type CHIFFRABLE
  * (`exclusiveChiffrable`).
  *
- * Consommée par la dominance des runes (`contexteDominance`, degats-et-aura
- * 6bis-b3c) : un set dont le bonus porte sur l'une d'elles peut faire
+ * Consommée par la dominance des runes (`contexteDominance`) : un set dont le bonus porte sur l'une d'elles peut faire
  * franchir une tranche, il n'est jamais interchangeable avec un set sans
  * effet. ⚠️ **Sur-ensemble assumé** : ni l'objectif ni `percent` ne
  * restreignent rien. Protéger une stat que le score ne lit pas ne coûte que de
@@ -137,11 +137,12 @@ export function tranchesAtteintes(Y: number, tranche: number): number {
  * `stats` sont les statistiques de ce build **avec la principale de cette
  * relique déjà posée** (c'est `computeStats({ ...gear, relic })`) : la
  * principale entre donc dans `Y`, le gain de l'exclusive non — il n'y a qu'une
- * relique, donc aucune boucle à résoudre (reliques.md § 5.2).
+ * relique, donc aucune boucle à résoudre (spec/outils/optimizer/moteur/reliques.md
+ * § L'effet unique — score de la propriété exclusive).
  *
  * `setup`/`propres`/`element` servent au seul `statsDebutCombat` (leader
  * skill, compétences d'invocateur, auras externes ET activations propres des
- * runes de ce build — 6bis-b2). Ils sont toujours disponibles : « État de mon
+ * runes de ce build). Ils sont toujours disponibles : « État de mon
  * monstre » modifie les stats quel que soit l'objectif choisi.
  */
 export function apportExclusive(
@@ -202,7 +203,7 @@ export function statsAvecApport(stats: StatRow[], apport: ApportExclusive): Stat
 /**
  * Le facteur qui transforme des PV effectifs en PV effectifs ÉQUIVALENTS sous
  * une réduction de dégâts reçus — **dérivé de l'équation, pas posé par
- * analogie** (B.7) :
+ * analogie** :
  *
  * `Dégâts = (Mult × Crit × DMG% × FacteurDéf × Variance + Additionnel) × Réductions`
  *

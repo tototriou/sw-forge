@@ -1,7 +1,7 @@
 // Optimise les artéfacts des meilleurs builds PENDANT que la recherche de
 // runes tourne. Deux chemins, un seul cache :
 //
-// 1. **Le Worker de résolution** (degats-et-aura 6bis-b13bis-b), quand il est
+// 1. **Le Worker de résolution**, quand il est
 //    disponible : le fil de l'écran ne résout plus RIEN. Il choisit quoi
 //    résoudre (`prochainsATraiter`, page affichée d'abord), envoie au plus
 //    deux demandes à la fois à `resolution.worker.ts` et range les réponses
@@ -11,7 +11,7 @@
 // 2. **Le chemin direct, en REPLI** : Worker impossible à créer, qui lève, ou
 //    réponse d'erreur → l'erreur est journalisée, le Worker terminé, et la
 //    file reprend sur le fil principal, avec le cache tel qu'il est (rien de
-//    déjà résolu n'est perdu), par les DEUX VOIES de 6bis-b11 :
+//    déjà résolu n'est perdu), par les DEUX VOIES de la file :
 //     - la PAGE AFFICHÉE, par une tâche immédiate (`planifierImmediat`) : tant
 //       qu'elle contient un build non résolu, la tranche suivante part sans
 //       attendre l'inactivité ;
@@ -21,7 +21,7 @@
 //    (`voieDeLaFile`, artifactQueue.ts). Elle ne change ni QUI est traité ni
 //    dans quel ordre (`prochainsATraiter`), seulement QUAND.
 //
-// Pourquoi le Worker : mesuré au navigateur (6bis-b12, puis 6bis-b13), la
+// Pourquoi le Worker : mesuré au navigateur, la
 // résolution saturait le fil de l'écran pendant une recherche — chaque build
 // une tâche de 35 à 100 ms, la barre de progression et le compte saccadaient.
 // Les deux voies du chemin direct rendaient la main entre deux builds, mais ne
@@ -30,7 +30,7 @@
 // déjà dans des Workers (coordinateur, deux constructions, jusqu'à quatre fils
 // d'appariement), et l'envoi du contexte (tout l'inventaire d'artéfacts) à
 // chaque nouvelle identité des entrées, soit une fois par recherche, ou de la
-// signature — est MESURÉ dans les preuves de 6bis-b13bis-b (recherche +4 à
+// signature — est MESURÉ au navigateur (recherche +4 à
 // +7 %, résultat complet −27 %) ; que ce soit le fil de plus qui ralentit la
 // recherche reste une hypothèse. Aucune API JavaScript ne permet de choisir
 // un cœur.
@@ -158,7 +158,7 @@ export function useArtifactOptimQueue(opts: {
   pageAffichee: () => readonly BuildCandidate[];
   /**
    * Résout l'équipement d'UN build — sa paire d'artéfacts ET sa relique,
-   * ensemble : `resoudreEquipementDuBuild` (relicQueue.ts, lot 5b), le
+   * ensemble : `resoudreEquipementDuBuild` (relicQueue.ts), le
    * « comment », pur et testé sans navigateur. Ce hook ne fait plus que le
    * « quand ».
    *
@@ -167,7 +167,8 @@ export function useArtifactOptimQueue(opts: {
    *
    * ⚠️ Le résultat entre TOUJOURS dans le cache, conforme ou non : c'est le
    * classement (`affichees`) qui écarte un build qu'aucun couple réel ne
-   * rend équipable (`ResultatArtefacts.conforme`, §12.5 d'artefacts.md).
+   * rend équipable (`ResultatArtefacts.conforme`,
+   * spec/outils/optimizer/moteur/artefacts.md § Filtre final sur la vraie paire).
    */
   resoudre: ((c: BuildCandidate) => ResultatArtefacts) | null;
   // Change dès qu'un réglage modifie le score d'une paire ou le pool de
@@ -177,13 +178,13 @@ export function useArtifactOptimQueue(opts: {
   // vise hors page affichée : `kDeLaFile` (artifactQueue.ts) du contexte relique
   // de la recherche LANCÉE — 300 en mode « recherche », 100 sinon ; la file
   // continue au-delà des écartés, dans l'ordre de base, jusqu'à K confirmées
-  // ou jusqu'au dernier build trouvé (6bis-b18) ; `Infinity` avec « Vérifier
+  // ou jusqu'au dernier build trouvé ; `Infinity` avec « Vérifier
   // toutes les combinaisons trouvées » — l'écran passe `cibleDeLaFile`.
   // Obligatoire, sans défaut : un appel qui l'oublierait garderait 100 en mode
-  // « recherche » sans que `tsc` le voie (6bis-b8).
+  // « recherche » sans que `tsc` le voie.
   K: number;
   /**
-   * La résolution hors du fil de l'écran (6bis-b13bis-b) — `null` quand
+   * La résolution hors du fil de l'écran — `null` quand
    * `resoudre` l'est. Obligatoire, sans défaut : un appel qui l'oublierait
    * résoudrait tout sur le fil de l'écran sans que `tsc` le voie.
    */
@@ -239,7 +240,7 @@ export function useArtifactOptimQueue(opts: {
     let planifie: (Planifie & { voie: 'page' | 'fond' }) | null = null;
 
     // ⚠️ Le cache LUI-MÊME, jamais une copie de ses clés : la file lit la
-    // conformité de chaque résultat pour viser K confirmées (6bis-b18).
+    // conformité de chaque résultat pour viser K confirmées.
     const aTraiter = () => prochainsATraiter(trieesRef.current, cacheRef.current, K, pageRef.current());
 
     /**
@@ -324,7 +325,7 @@ export function useArtifactOptimQueue(opts: {
       // ou le dernier de la file, qui s'endort : sans elle, les derniers builds
       // resteraient dans le cache sans jamais atteindre l'écran. La file après
       // ce build est `restants.slice(1)` : le cache n'a grandi que de lui.
-      // ⚠️ Depuis 6bis-b18, s'il a été ÉCARTÉ, la fenêtre de fond s'allonge
+      // ⚠️ S'il a été ÉCARTÉ, la fenêtre de fond s'allonge
       // d'un build : `restants.slice(1)` n'en est que le début. La seule
       // différence possible est une publication forcée un peu tôt (file crue
       // vide) — sans perte : `reveiller()` ci-dessous recalcule la vraie file.
@@ -358,13 +359,13 @@ export function useArtifactOptimQueue(opts: {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resoudre, signature, K]);
 
-  /* ── Le chemin Worker (6bis-b13bis-b) ─────────────────────────────────── */
+  /* ── Le chemin Worker ─────────────────────────────────── */
 
   // ⚠️ Le branchement ci-dessous — refs relues au rendu, gestionnaire relu à
   // CHAQUE message, rebranché par chaque effet, réveil, port `repli` — n'est
   // exercé par aucun test d'exécution (le dépôt n'a pas de test React) : chaque
   // ligne est gardée par un contrôle de source nommé
-  // (tests/resolution-distante.test.ts, § 7 bis — 6bis-b13bis-c). Modifier
+  // (tests/resolution-distante.test.ts, § 7 bis). Modifier
   // l'une d'elles, c'est revoir son contrôle.
   const horsFilRef = useRef(horsFil);
   const signatureRef = useRef(signature);
@@ -376,8 +377,8 @@ export function useArtifactOptimQueue(opts: {
   // terminé, et le chemin direct reprend avec le cache tel qu'il est. Ne lit
   // que des refs et des setters stables : la version capturée par les
   // gestionnaires du Worker à sa création reste juste.
-  // ⚠️ Une écriture que la cadence avait retenue est publiée DE FORCE
-  // (6bis-b13bis-c) : le chemin direct qui reprend n'a peut-être plus rien à
+  // ⚠️ Une écriture que la cadence avait retenue est publiée DE FORCE :
+  // le chemin direct qui reprend n'a peut-être plus rien à
   // traiter, donc plus rien à publier. C'est le module qui le sait
   // (`renoncer` rend vrai) ; quand le repli vient de lui (`basculer`), il a
   // déjà publié et `renoncer` rend faux ici.

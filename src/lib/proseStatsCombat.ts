@@ -1,5 +1,5 @@
 // « Stats acquises en combat » (carte « Dégâts réels ») : QUELLE PROSE DU JEU
-// est rendue, et sur quel réglage le bloc OUVRE un passif — degats-et-aura 11.
+// est rendue, et sur quel réglage le bloc OUVRE un passif.
 //
 // Fonction pure, sans React : `DamageSetupCard.tsx` l'appelle telle quelle, et
 // `tests/prose-stats-combat.test.ts` l'exerce sur tout le corpus.

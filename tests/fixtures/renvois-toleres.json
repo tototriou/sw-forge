@@ -2,7 +2,7 @@
   "_lisezmoi": [
     "Renvois morts tolérés par tests/renvois.test.ts : une entrée par (fichier, renvoi), avec son nombre exact d’occurrences.",
     "Une entrée qui ne fait plus échouer fait échouer le test : on la retire, ou on la décompte, dans le commit qui corrige le renvoi.",
-    "Propriétaires : a-publier (renvoi vers les notes de l’Optimizer (une note, ou leur dossier), pas encore publiées ; l’entrée disparaît à la publication, ou quand le renvoi est corrigé), a-corriger (renvoi mort déjà pris en charge, à corriger ; aucune entrée nouvelle), thomas (chantiers de Thomas), hors-perimetre (renvoi mort connu, sans correction prévue ; qui touche le fichier le corrige et retire l’entrée).",
+    "Propriétaires : a-publier (renvoi vers les notes de l’Optimizer (une note, ou leur dossier), pas encore publiées ; l’entrée disparaît à la publication, ou quand le renvoi est corrigé), a-corriger (renvoi mort déjà pris en charge, à corriger ; aucune entrée nouvelle), refonte (chantiers de refonte graphique et de rebranding), hors-perimetre (renvoi mort connu, sans correction prévue ; qui touche le fichier le corrige et retire l’entrée).",
     "Les règles d’admission se vérifient en revue ; le test ne les contrôle pas.",
     "Contrat : spec/outillage/renvois.md."
   ],
@@ -77,7 +77,7 @@
       "fichier": "ARCHITECTURE.md",
       "renvoi": "lib/migrationStockage.ts",
       "occurrences": 1,
-      "proprietaire": "thomas"
+      "proprietaire": "refonte"
     },
     {
       "fichier": "ARCHITECTURE.md",
@@ -467,7 +467,7 @@
       "fichier": "tests/rendu/ressources.test.tsx",
       "renvoi": "data/releases.ts",
       "occurrences": 1,
-      "proprietaire": "thomas"
+      "proprietaire": "refonte"
     }
   ]
 }

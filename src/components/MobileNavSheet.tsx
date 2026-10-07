@@ -27,7 +27,7 @@ import { COURBE, GLISSEMENT, SidebarGroupe, SidebarSection } from './Sidebar';
 // ⚠️ **Une LISTE, une rangée par entrée** (refonte graphique, lot 11a,
 // décision 24, la maquette). Le panneau a été une liste à filets, puis une
 // grille de cases encadrées parce qu'on ne voyait pas où commençait la cible
-// entre deux traits. Thomas a choisi la liste de la maquette ; ce qui répond
+// entre deux traits. Le mainteneur a choisi la liste de la maquette ; ce qui répond
 // à ce défaut d'alors : chaque rangée prend TOUTE la largeur sur 52 px (la
 // cible est la rangée entière, pas le libellé), se surligne au toucher, et
 // l'entrée courante porte le marqueur d'état de l'app (encre, icône teintée).

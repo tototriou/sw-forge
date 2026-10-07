@@ -6,7 +6,7 @@
 
 ### A.1 Pourquoi
 
-Thomas veut une **nouvelle identité** pour l'app (2026-09-28) : la toile
+Le mainteneur veut une **nouvelle identité** pour l'app (2026-09-28) : la toile
 `https://claude.ai/artifact/9KRpA74BakEWdkmvioBwKC` (« SW Forge —
 Rebranding », page « SW Blacksmith — maquette », « Thème & icônes »,
 « Composants »). Ce n'est pas un restylage de plus : le **nom** change
@@ -25,9 +25,9 @@ de code d'écran.
 **Cible** : l'app porte le nom, le logo, les deux thèmes (Forge sombre,
 Atelier clair ; le défaut reste « Auto », décision 6), les polices, les
 arrondis et les composants de la toile ; chaque écran qui a une planche en
-suit la structure, dans les limites des décisions de Thomas.
+suit la structure, dans les limites des décisions du mainteneur.
 
-**Décisions de départ (Thomas, 2026-09-28)** :
+**Décisions de départ (le mainteneur, 2026-09-28)** :
 1. **Tout de suite, sur la branche de la refonte** (`forge/refonte-graphique`)
    — le rebranding en devient la suite, avant sa fusion. Le lot 12 de la
    refonte (validation finale, fusion) couvre les deux.
@@ -58,13 +58,13 @@ son lot avant le code, comme pour la refonte.
 
 Celle de la refonte (`refonte-graphique.md` § A.3) : 1 ne rien perdre ;
 2 traçabilité ; 3 erreurs observables ; 4 fidélité à la toile ; 5 volume.
-Quand une planche contredit une décision déjà prise avec Thomas (refonte ou
+Quand une planche contredit une décision déjà prise avec le mainteneur (refonte ou
 ce cadrage), la **décision l'emporte**, et l'écart lui est signalé.
 
 ### A.4 Catégories de lots
 
 Celles de la refonte : M mécanique, C classification, J jugement (décisions
-de Thomas avant le code). Même modèle, même effort.
+du mainteneur avant le code). Même modèle, même effort.
 
 ### A.5 Branche, fichiers transverses
 
@@ -78,13 +78,13 @@ librairie comme tout écran, sa structure attend 9a.
 ### A.6 Quand une vérification échoue ou qu'un cas est ambigu
 
 Comme la refonte : vérification échouée → pas de commit ; planche ambiguë
-ou contraire à une décision → question à Thomas avant le code, décision
+ou contraire à une décision → question au mainteneur avant le code, décision
 numérotée en A.8.
 
 ### A.6 bis Preuves
 
 `spec/chantiers/rebranding-preuves/lot-R<n>.md` : H1, en-tête `Statut`,
-tests d'avant, commits, retours de Thomas, commandes et sorties. Mêmes outils
+tests d'avant, commits, retours du mainteneur, commandes et sorties. Mêmes outils
 que la refonte : `node scripts/inventaire-ui.mjs --verifier`,
 `node scripts/chemins-interdits.mjs 6110609`, tests de rendu de la zone,
 `npm run build`, classes émises et ordonnées.
@@ -101,11 +101,11 @@ V0 → R7 (on ne refait pas un écran de plus sur des lots non relus)
 ```
 
 ⚠️ **Deux arrêts par lot, à partir du V0** (décision 47) :
-1. **Relevé** — planche contre écran, captures, questions. Arrêt : Thomas
+1. **Relevé** — planche contre écran, captures, questions. Arrêt : Le mainteneur
    choisit.
 2. **Code, sans commit** — captures avant / après, bureau et téléphone,
-   Forge et Atelier. Arrêt : Thomas regarde et dit « validé » ou corrige.
-   ⚠️ **L'arrêt donne la LISTE DES PAGES à vérifier** (Thomas, 2026-09-30) :
+   Forge et Atelier. Arrêt : Le mainteneur regarde et dit « validé » ou corrige.
+   ⚠️ **L'arrêt donne la LISTE DES PAGES à vérifier** (le mainteneur, 2026-09-30) :
    pour chacune, l'adresse (`#/…`), le geste à faire et ce qu'on doit voir,
    numérotées pour qu'il réponde par numéro.
 3. **Commit, preuve, cadrage** — seulement après « validé ».
@@ -116,29 +116,29 @@ Les lots R1 à R6 ont été commités avant d'être vus : c'est l'objet du V0.
 | Lot | Cat. | Statut | Commit / date |
 | --- | --- | --- | --- |
 | R0 relevé : jetons de la toile ↔ jetons de l'app, écarts, questions | C | fait — sept questions posées | 2026-09-28, [lot-R0.md](rebranding-preuves/lot-R0.md) |
-| R1 jetons : deux thèmes, police de texte, arrondis | J | **validé par Thomas** (« continues », après les décisions 11 à 13) | 2026-09-29, [lot-R1.md](rebranding-preuves/lot-R1.md) |
-| R2 nom et logo | J | **validé par Thomas** (« continues », image de partage comprise) | 2026-09-29, [lot-R2.md](rebranding-preuves/lot-R2.md) |
-| R2 bis le logo de la nouvelle identité (décisions 24 à 26) | J | **validé par Thomas** (« ok continues ») | 2026-09-29, [lot-R2bis.md](rebranding-preuves/lot-R2bis.md) |
-| R3 `src/ui/` aux planches « Composants » | J | **validé par Thomas au V0** — relevé `dc9bee00`, R3a `012f7baa`, R3b `766258e1`, R3c `39a4c0af` | 2026-09-29, [lot-R3.md](rebranding-preuves/lot-R3.md) § 5 à 7 |
-| R4 coquille : barre latérale, barre du haut, icônes de nav (décision 9) | J | **validé par Thomas au V0** | 2026-09-29, [lot-R4.md](rebranding-preuves/lot-R4.md) |
+| R1 jetons : deux thèmes, police de texte, arrondis | J | **validé par le mainteneur** (« continues », après les décisions 11 à 13) | 2026-09-29, [lot-R1.md](rebranding-preuves/lot-R1.md) |
+| R2 nom et logo | J | **validé par le mainteneur** (« continues », image de partage comprise) | 2026-09-29, [lot-R2.md](rebranding-preuves/lot-R2.md) |
+| R2 bis le logo de la nouvelle identité (décisions 24 à 26) | J | **validé par le mainteneur** (« ok continues ») | 2026-09-29, [lot-R2bis.md](rebranding-preuves/lot-R2bis.md) |
+| R3 `src/ui/` aux planches « Composants » | J | **validé par le mainteneur au V0** — relevé `dc9bee00`, R3a `012f7baa`, R3b `766258e1`, R3c `39a4c0af` | 2026-09-29, [lot-R3.md](rebranding-preuves/lot-R3.md) § 5 à 7 |
+| R4 coquille : barre latérale, barre du haut, icônes de nav (décision 9) | J | **validé par le mainteneur au V0** | 2026-09-29, [lot-R4.md](rebranding-preuves/lot-R4.md) |
 | R5 Accueil (bureau et téléphone) | J | fait — accueil gardé (décisions 31 à 36) ; icônes d'atelier sur les cartes (37) | 2026-09-29, [lot-R5.md](rebranding-preuves/lot-R5.md) |
-| R6 Siège et Recommandations | J | fait — écrans gardés (38 à 40, 42, 45) ; couleurs d'état `a329378c`, icônes `f3198798`, carte d'ajout `fb770b5c` ; **validé par Thomas au V0** | 2026-09-29, [lot-R6.md](rebranding-preuves/lot-R6.md) |
-| V0 relecture par Thomas de R3, R4, R6 et de la décision 46 (commités sans avoir été vus) | — | **validé par Thomas** (« tout est ok », sur une liste de 16 points) ; faute « équipe d'défense » corrigée depuis (`SiegeBoard.tsx`, `deNoun`) | 2026-09-30 |
-| R7 RTA (Ma prépa, Ami) — affichage seulement, **pas de classement** (47) | J | **validé par Thomas** — écran gardé (48 à 50) ; rouge d'état et icône « Ami » `2f4fc0c5` | 2026-09-30, [lot-R7.md](rebranding-preuves/lot-R7.md) |
-| R8 Mon compte (Monstres, Runes, Artéfacts) | J | **validé par Thomas** — écrans gardés (51 à 53) ; rouges d'état `999a4c25`, tuiles d'Optimisation (54) `d52c438e` | 2026-09-30, [lot-R8.md](rebranding-preuves/lot-R8.md) |
-| R9a Bestiaire | J | **validé par Thomas** (« ok ») — écran gardé (55, 56) ; grimoire sur « aucun monstre » `d3218f56` | 2026-09-30, [lot-R9a.md](rebranding-preuves/lot-R9a.md) |
-| R9b Mécaniques, Nouveautés | J | **validé par Thomas** (« ok ») — pages gardées (58, 59) ; titres à l'encre unie (57) `e8e65c92` | 2026-09-30, [lot-R9b.md](rebranding-preuves/lot-R9b.md) |
-| R10 Outils : Speed tuning, page Arène — sans planche : couleurs d'état (43), icônes (44), librairie | J | **validé par Thomas** (« ok ») — chronomètre dans l'en-tête du Speed tuning `f1870822` ; rien d'autre à faire | 2026-09-30, [lot-R10.md](rebranding-preuves/lot-R10.md) |
-| Refonte 9a / 11e — Optimizer, `swforge-optimizer` compris ; **et** l'écran vide des Outils (`OutilsPage.tsx`, clé à molette → tenailles, décision 60) | J | **validé par Thomas** — revenu dans la branche (64), **sans changement de rendu** (65) : tests de rendu `c3910f40`, export `swblacksmith-optimizer` `98d50547` ; décision 60 abandonnée | 2026-10-03, [lot-9a.md](refonte-graphique-preuves/lot-9a.md) |
+| R6 Siège et Recommandations | J | fait — écrans gardés (38 à 40, 42, 45) ; couleurs d'état `a329378c`, icônes `f3198798`, carte d'ajout `fb770b5c` ; **validé par le mainteneur au V0** | 2026-09-29, [lot-R6.md](rebranding-preuves/lot-R6.md) |
+| V0 relecture par le mainteneur de R3, R4, R6 et de la décision 46 (commités sans avoir été vus) | — | **validé par le mainteneur** (« tout est ok », sur une liste de 16 points) ; faute « équipe d'défense » corrigée depuis (`SiegeBoard.tsx`, `deNoun`) | 2026-09-30 |
+| R7 RTA (Ma prépa, Ami) — affichage seulement, **pas de classement** (47) | J | **validé par le mainteneur** — écran gardé (48 à 50) ; rouge d'état et icône « Ami » `2f4fc0c5` | 2026-09-30, [lot-R7.md](rebranding-preuves/lot-R7.md) |
+| R8 Mon compte (Monstres, Runes, Artéfacts) | J | **validé par le mainteneur** — écrans gardés (51 à 53) ; rouges d'état `999a4c25`, tuiles d'Optimisation (54) `d52c438e` | 2026-09-30, [lot-R8.md](rebranding-preuves/lot-R8.md) |
+| R9a Bestiaire | J | **validé par le mainteneur** (« ok ») — écran gardé (55, 56) ; grimoire sur « aucun monstre » `d3218f56` | 2026-09-30, [lot-R9a.md](rebranding-preuves/lot-R9a.md) |
+| R9b Mécaniques, Nouveautés | J | **validé par le mainteneur** (« ok ») — pages gardées (58, 59) ; titres à l'encre unie (57) `e8e65c92` | 2026-09-30, [lot-R9b.md](rebranding-preuves/lot-R9b.md) |
+| R10 Outils : Speed tuning, page Arène — sans planche : couleurs d'état (43), icônes (44), librairie | J | **validé par le mainteneur** (« ok ») — chronomètre dans l'en-tête du Speed tuning `f1870822` ; rien d'autre à faire | 2026-09-30, [lot-R10.md](rebranding-preuves/lot-R10.md) |
+| Refonte 9a / 11e — Optimizer, `swforge-optimizer` compris ; **et** l'écran vide des Outils (`OutilsPage.tsx`, clé à molette → tenailles, décision 60) | J | **validé par le mainteneur** — revenu dans la branche (64), **sans changement de rendu** (65) : tests de rendu `c3910f40`, export `swblacksmith-optimizer` `98d50547` ; décision 60 abandonnée | 2026-10-03, [lot-9a.md](refonte-graphique-preuves/lot-9a.md) |
 | Rebranding total (décision 66) — stockage et base IndexedDB migrés, formats `swblacksmith/…` (anciens relus), passe de texte | J | **fait** — `a677e670`, `160fab0e`, `3f52eb4e`, `83ef308e`, `65498d7f` ; état des lieux du 2026-10-05 : plus d'ancien nom hors historique, URLs et relecture de l'ancien | 2026-10-05 |
-| Refonte 12 — `npm test` complet, note de version 2.0.0, PR vers `main` (décisions 62, 63) | M | 12a fait le 2026-10-01 sous Linux (`npm test` 5 KO, tous sur le hook `pre-commit` de l'outil `chantier`, non exécutable sous Linux, préexistant, hors refonte — garde-fou de navigation ajouté, décision 67, `015cad83`) puis le 2026-10-03 (`npm test` 4 602 passées), **à refaire** : la branche a reçu depuis la fusion de la v1.14.0 (`94548113`), la décision 66 et le garde-fou de navigation — 12a se refait sur l'état final ; **12b** relecture générale de Thomas en attente | 2026-10-03 |
+| Refonte 12 — `npm test` complet, note de version 2.0.0, PR vers `main` (décisions 62, 63) | M | 12a fait le 2026-10-01 sous Linux (`npm test` 5 KO, tous sur le hook `pre-commit` de l'outil `chantier`, non exécutable sous Linux, préexistant, hors refonte — garde-fou de navigation ajouté, décision 67, `015cad83`) puis le 2026-10-03 (`npm test` 4 602 passées), **à refaire** : la branche a reçu depuis la fusion de la v1.14.0 (`94548113`), la décision 66 et le garde-fou de navigation — 12a se refait sur l'état final ; **12b** relecture générale du mainteneur en attente | 2026-10-03 |
 
 ### A.8 Décisions prises en cours de chantier
 
-(Numérotées à partir de 4, datées, « Thomas » ; un retrait porte
+(Numérotées à partir de 4, datées, « Le mainteneur » ; un retrait porte
 `[retrait R#n]` et se déclare dans `deplacements.json` de la refonte.)
 
-#### 4 à 10 — les questions du R0 (Thomas, 2026-09-29)
+#### 4 à 10 — les questions du R0 (le mainteneur, 2026-09-29)
 
 Chiffres dans [lot-R0.md](rebranding-preuves/lot-R0.md) :
 
@@ -158,11 +158,11 @@ Chiffres dans [lot-R0.md](rebranding-preuves/lot-R0.md) :
    (4,79 sur `surface`) y entre sans repli.
 9. **Les icônes de la toile, plus sept à dessiner** dans le même trait :
    Arène, Outils, Optimizer, Speed tuning, Monstres, Artéfacts, Ami. Elles
-   sont montrées à Thomas avant d'être posées (R4).
+   sont montrées au mainteneur avant d'être posées (R4).
 10. **Les couleurs de section sont gardées** (accueil, onglets du
     téléphone), variantes claires du lot 14 comprises.
 
-#### 11 à 13 — les questions du R1 (Thomas, 2026-09-29)
+#### 11 à 13 — les questions du R1 (le mainteneur, 2026-09-29)
 
 Chiffres dans [lot-R1.md](rebranding-preuves/lot-R1.md) :
 
@@ -173,23 +173,23 @@ Chiffres dans [lot-R1.md](rebranding-preuves/lot-R1.md) :
     en Forge, 3,8 en Atelier. Le libellé porte l'état ; aucun ambre lisible ne
     s'éloignait vraiment de la braise foncée en clair.
     ⚠️ **Remplacée par la décision 46** (jaune / ocre).
-13. **Le vert et le rouge de Forge, plus saturés que la toile** (Thomas,
+13. **Le vert et le rouge de Forge, plus saturés que la toile** (le mainteneur,
     2026-09-29, sur les camps du speed tuning : « ça me paraît pâle », puis
     « je parlais du vert et du rouge »). Même clarté et même teinte, chroma à
     mi-chemin du maximum : `#73E06B`, `#F27A84`. Atelier inchangé. Nouveau
     jeton `bad-ink` (encre sur l'aplat rouge), le blanc n'y tenant plus.
 
-#### 14 à 16 — les questions du R2 (Thomas, 2026-09-29)
+#### 14 à 16 — les questions du R2 (le mainteneur, 2026-09-29)
 
 14. **Les fichiers téléchargés prennent le préfixe `swblacksmith-`** (ils
     s'appelaient `swforge-…`). Contenu et format inchangés, l'import ne
     dépend pas du nom : un ancien fichier se réimporte comme avant.
-15. **L'infobulle Discord dit « SW Blacksmith »** ; Thomas renomme le
+15. **L'infobulle Discord dit « SW Blacksmith »** ; le mainteneur renomme le
     serveur de son côté, le lien d'invitation ne change pas.
 16. **L'image de partage est refaite dans ce lot** : même contenu, logo et
-    couleurs de la charte, montrée à Thomas avant son commit.
+    couleurs de la charte, montrée au mainteneur avant son commit.
 
-#### 17 à 23 — les questions du R3 (Thomas, 2026-09-29)
+#### 17 à 23 — les questions du R3 (le mainteneur, 2026-09-29)
 
 Relevé dans [lot-R3.md](rebranding-preuves/lot-R3.md) :
 
@@ -209,7 +209,7 @@ Relevé dans [lot-R3.md](rebranding-preuves/lot-R3.md) :
 23. **Notification : en bas à droite au bureau** ; au téléphone, au-dessus des
     onglets, comme aujourd'hui. 6 s et une à la fois, inchangés.
 
-#### 24 à 26 — la nouvelle identité de logo (Thomas, 2026-09-29)
+#### 24 à 26 — la nouvelle identité de logo (le mainteneur, 2026-09-29)
 
 Envoyée en image pendant le R3a (« voilà ce que je veux comme identité de logo ») : une
 enclume blanche surmontée d'un cristal de braise et de deux éclats, le nom en
@@ -221,10 +221,10 @@ Progresse ». Elle ne vient pas de la toile.
     la toile (R1) — l'image propose un fond #0E1116 et un accent #FF7A32,
     écartés.
 25. **Le symbole est redessiné en SVG** d'après l'image (il n'existe qu'en
-    rendu), et montré à Thomas avant d'être posé.
+    rendu), et montré au mainteneur avant d'être posé.
 26. **La devise va sur l'image de partage.**
 
-#### 27 à 30 — les questions du R4 (Thomas, 2026-09-29)
+#### 27 à 30 — les questions du R4 (le mainteneur, 2026-09-29)
 
 Planches dans `rebranding-preuves/lot-R4-icones*.png` :
 
@@ -242,9 +242,9 @@ Planches dans `rebranding-preuves/lot-R4-icones*.png` :
     relecture (« le pied de page commence à être vraiment gros ») : une
     rangée comme la toile, liens en colonne au bureau, en encre.
 
-#### 31 à 37 — les questions du R5, l'accueil (Thomas, 2026-09-29)
+#### 31 à 37 — les questions du R5, l'accueil (le mainteneur, 2026-09-29)
 
-La toile propose un autre accueil ; Thomas garde le nôtre.
+La toile propose un autre accueil ; le mainteneur garde le nôtre.
 
 31. **Héros : gardé tel quel** — logo et nom en titre, « La boîte à outils
     pour Summoners War. » (pas « Forgé pour la guilde. »).
@@ -257,9 +257,9 @@ La toile propose un autre accueil ; Thomas garde le nôtre.
 37. **Les cartes de section prennent les icônes d'atelier** de la nav : une
     section a la même icône partout.
 
-#### 38 à 45 — les questions du R6, Siège et Recommandations (Thomas, 2026-09-29)
+#### 38 à 45 — les questions du R6, Siège et Recommandations (le mainteneur, 2026-09-29)
 
-Relevé dans [lot-R6.md](rebranding-preuves/lot-R6.md). Thomas garde nos
+Relevé dans [lot-R6.md](rebranding-preuves/lot-R6.md). Le mainteneur garde nos
 écrans, prend la carte d'ajout de la toile et les couleurs d'état.
 
 38. **En-tête du Siège gardé** : « Défense » + compteur, côtés dans la barre
@@ -282,7 +282,7 @@ Relevé dans [lot-R6.md](rebranding-preuves/lot-R6.md). Thomas garde nos
 45. **Téléphone gardé** : côtés dans le panneau de l'onglet Siège,
     interrupteur « Vérifier mes speed » dans la page.
 
-#### 46 — l'avertissement passe au jaune (Thomas, 2026-09-29)
+#### 46 — l'avertissement passe au jaune (le mainteneur, 2026-09-29)
 
 Pendant la relecture du R6 : « le orange rappelle vachement la couleur
 principale de l'application, essaye une autre teinte ». En Forge, `warn`
@@ -297,7 +297,7 @@ valait exactement `accent-hover`.
     crème indiscernable de `panel2`. Le code et les specs appellent encore ce
     statut « orange » : `design.md` dit de lire `warn`.
 
-#### 47 — le plan en lots, validé par Thomas (2026-09-30)
+#### 47 — le plan en lots, validé par le mainteneur (2026-09-30)
 
 « Refais-moi un plan en lots que je valide, j'ai l'impression que je ne
 valide pas ton travail », puis : « ok continue, mais je ne veux pas de
@@ -311,9 +311,9 @@ classement en RTA, ne touche pas au fonctionnel, on fait juste une refonte ».
     d'affichage. Ce qui dans une planche suppose une fonction absente de
     l'app ne se propose pas.
 
-#### 48 à 50 — les questions du R7, la RTA (Thomas, 2026-09-30)
+#### 48 à 50 — les questions du R7, la RTA (le mainteneur, 2026-09-30)
 
-Relevé dans [lot-R7.md](rebranding-preuves/lot-R7.md). Thomas garde l'écran ;
+Relevé dans [lot-R7.md](rebranding-preuves/lot-R7.md). Le mainteneur garde l'écran ;
 seules les décisions 43 et 44 s'y appliquent.
 
 48. **Sections gardées** : titre avec l'icône du set, sans cadre ni bandeau.
@@ -321,13 +321,13 @@ seules les décisions 43 et 44 s'y appliquent.
 50. **Glisser-déposer gardé** : pas d'emplacement « Déposer ici ».
 
 L'en-tête et « Non classé » en tête de page sont gardés sans question, comme
-l'en-tête du Siège (décision 38) ; dit à Thomas.
+l'en-tête du Siège (décision 38) ; dit au mainteneur.
 
-#### 51 à 54 — les questions du R8, Mon compte (Thomas, 2026-09-30)
+#### 51 à 54 — les questions du R8, Mon compte (le mainteneur, 2026-09-30)
 
 Relevé dans [lot-R8.md](rebranding-preuves/lot-R8.md). La refonte avait déjà
 reconstruit ces écrans sur sa maquette : la planche n'apporte rien qu'ils
-n'aient. Thomas demande à la relecture : « est-ce que tu ne ferais pas
+n'aient. Le mainteneur demande à la relecture : « est-ce que tu ne ferais pas
 quelque chose qui a déjà été fait ? » — vérifié : les rouges `fire` du compte
 n'avaient été touchés par aucun commit.
 
@@ -340,9 +340,9 @@ n'avaient été touchés par aucun commit.
     « actuelle » en braise, choisie sur planche (encre, braise, bleu ciel,
     vert). Le vert / rouge du gain ne reste que dans le plan détaillé.
     ⚠️ En Atelier, sur une légendaire, la braise foncée est quasi la couleur
-    d'avant (`166 79 17` contre `166 88 12`) : dit à Thomas.
+    d'avant (`166 79 17` contre `166 88 12`) : dit au mainteneur.
 
-#### 55 et 56 — les questions du R9a, le Bestiaire (Thomas, 2026-09-30)
+#### 55 et 56 — les questions du R9a, le Bestiaire (le mainteneur, 2026-09-30)
 
 Relevé dans [lot-R9a.md](rebranding-preuves/lot-R9a.md).
 
@@ -353,7 +353,7 @@ Relevé dans [lot-R9a.md](rebranding-preuves/lot-R9a.md).
 Non proposés (47) : « Uniquement les miens » et « Dans ta box », qui
 croiseraient le Bestiaire avec le compte.
 
-#### 57 à 59 — les questions du R9b, Mécaniques et Nouveautés (Thomas, 2026-09-30)
+#### 57 à 59 — les questions du R9b, Mécaniques et Nouveautés (le mainteneur, 2026-09-30)
 
 Relevé dans [lot-R9b.md](rebranding-preuves/lot-R9b.md).
 
@@ -366,7 +366,7 @@ Relevé dans [lot-R9b.md](rebranding-preuves/lot-R9b.md).
 Non proposés (47) : le surlignage de la section lue (suivi du défilement)
 et les grilles des sets et des effets (du contenu nouveau).
 
-#### 60 — la question du R10, les Outils (Thomas, 2026-09-30)
+#### 60 — la question du R10, les Outils (le mainteneur, 2026-09-30)
 
 Relevé dans [lot-R10.md](rebranding-preuves/lot-R10.md) : sans planche, seules
 les décisions 43 et 44 s'appliquent ; une seule icône à changer.
@@ -375,25 +375,25 @@ les décisions 43 et 44 s'appliquent ; une seule icône à changer.
     molette d'`OutilsPage.tsx` (« Aucune donnée de compte chargée ») passera
     aux tenailles des Outils avec les lots 9a / 11e — même raison que le
     renommage `swforge-optimizer` (R2) : rien sur l'Optimizer avant la
-    livraison de Thomas.
+    livraison du mainteneur.
 
-#### 61 à 63 — la fin du chantier (Thomas, 2026-09-30)
+#### 61 à 63 — la fin du chantier (le mainteneur, 2026-09-30)
 
 « Saute la partie Optimizer. »
 
 61. **L'Optimizer sort de cette branche** : les lots 9a et 11e de la refonte,
     avec leurs points différés (renommage `swforge-optimizer`, décision 14 ;
     écran vide des Outils, décision 60), deviennent un chantier à part,
-    cadré après la fusion et reparti de `main` quand la livraison de Thomas
+    cadré après la fusion et reparti de `main` quand la livraison du mainteneur
     sera là. Le lot 12 se fait sans eux.
 62. **Version 2.0.0** : nouveau nom, nouveau logo, nouvelle interface.
-63. **Fusion par pull request** vers `main` ; Thomas la relit et fusionne.
+63. **Fusion par pull request** vers `main` ; le mainteneur la relit et fusionne.
 
 Le lot 12 garde les deux arrêts de la décision 47 : 12a contrôles (rien
-modifié), 12b relecture générale par Thomas sur une liste de pages, 12c
+modifié), 12b relecture générale par le mainteneur sur une liste de pages, 12c
 note de version montrée avant commit, 12d branche poussée et PR ouverte.
 
-#### 64 — l'Optimizer revient dans la branche (Thomas, 2026-10-03)
+#### 64 — l'Optimizer revient dans la branche (le mainteneur, 2026-10-03)
 
 « Je te demande de faire l'Optimizer maintenant. »
 
@@ -403,7 +403,7 @@ note de version montrée avant commit, 12d branche poussée et PR ouverte.
     écran vide des Outils, décision 60) et les décisions 43 et 44.
     - **Sans `origin/forge/implementation-relique`** (62 commits, 26
       fichiers de `src/`, dont +549 lignes dans `OptimizerSection.tsx`) :
-      Thomas choisit de refaire l'écran actuel ; cette branche s'adaptera à
+      Le mainteneur choisit de refaire l'écran actuel ; cette branche s'adaptera à
       sa propre fusion.
     - **Tests de rendu d'abord** (contrat B.5 à B.10 de la refonte) : il
       n'en existait aucun pour l'Optimizer.
@@ -411,7 +411,7 @@ note de version montrée avant commit, 12d branche poussée et PR ouverte.
       l'installation `chantier` sont **absentes de cette machine** : lot
       d'affichage seul, sans moteur, mené sur `spec/outils/optimizer.md`.
 
-#### 65 — l'Optimizer sans changement de rendu (Thomas, 2026-10-03)
+#### 65 — l'Optimizer sans changement de rendu (le mainteneur, 2026-10-03)
 
 Au relevé du lot 9a, avant les questions : « je ne veux aucun changement de
 rendu par rapport à l'état actuel de la page ».
@@ -424,7 +424,7 @@ rendu par rapport à l'état actuel de la page ».
     maquette (titre, bouton en aplat, objectif, replis au téléphone) ne
     sont pas faits.
 
-#### 66 — le rebranding devient total (Thomas, 2026-10-05)
+#### 66 — le rebranding devient total (le mainteneur, 2026-10-05)
 
 « Fais une passe sur tout le dépôt pour ne plus laisser traîner de SW Forge,
 je veux que le rebranding soit total. » Relevé : 297 mentions, classées par
@@ -444,14 +444,14 @@ et R2 (« ne bougent pas »)** pour le stockage et les formats :
        et preuves des chantiers — ils racontent ce qui s'est passé sous
        l'ancien nom.
     d. **Dépôt GitHub, URL Vercel, dossier local : gardés pour l'instant.**
-       Thomas annoncera le changement d'URL et invitera chacun à exporter
+       Le mainteneur annoncera le changement d'URL et invitera chacun à exporter
        son travail — le stockage d'un navigateur est lié à l'ADRESSE du
        site, aucune migration ne le fait passer d'un domaine à l'autre.
        Le nom du paquet npm, lui, change.
     e. Tout le reste (commentaires, docs, specs d'état actuel, skills,
        agents, messages des scripts et des tests) prend le nouveau nom.
 
-#### 67 — un garde-fou sur la navigation simple (Thomas, 2026-10-01)
+#### 67 — un garde-fou sur la navigation simple (le mainteneur, 2026-10-01)
 
 ⚠️ **Numérotée 64 à l'origine** (`ac9bbbe4`), dans une session menée en
 parallèle sous Linux, depuis l'état du 2026-09-30 ; la 64 d'ici (l'Optimizer
@@ -481,7 +481,7 @@ chaque thème : nom de la toile (`--bs-*`), jeton de l'app qu'il remplace
 actuelle, valeur de la toile, **contraste mesuré** des paires texte / fond ;
 les jetons de l'app SANS équivalent dans la toile (éléments, raretés,
 palette de données `pal-*`, couleurs de section de l'accueil) et une
-proposition pour chacun ; la liste des questions à poser à Thomas avant R1.
+proposition pour chacun ; la liste des questions à poser au mainteneur avant R1.
 **Ne fait pas** : aucune valeur changée.
 
 ### R1 — jetons · J
@@ -505,12 +505,12 @@ logique du thème n'y bouge pas (décision 6 : « Auto » reste le défaut).
 ⚠️ **À mesurer dans ce lot** : `border-accent` (65 usages) marque souvent
 une sélection, donc un contour porteur de sens (3:1). La braise vive fait
 2,11 à 2,57 sur les fonds Atelier. Si les usages porteurs de sens ne
-passent pas, question à Thomas **avant** de trancher (jeton de texte,
+passent pas, question au mainteneur **avant** de trancher (jeton de texte,
 épaisseur, ou tolérance).
 
 **Preuve** : contrastes re-mesurés (≥ 4,5:1 pour le texte courant, règle
 de la décision 8), tous les tests de rendu verts, build, relecture par
-Thomas sur son serveur de dev dans les deux thèmes.
+Le mainteneur sur son serveur de dev dans les deux thèmes.
 
 **Résultat (2026-09-29)** — preuve [lot-R1.md](rebranding-preuves/lot-R1.md).
 Les jetons de la toile posés dans les deux thèmes, `bar` et
@@ -525,7 +525,7 @@ halo retiré. `border-accent` mesuré comme prévu : question posée, décision
 - un test périmé depuis le lot 13 de la refonte a été corrigé à part
   (f119015d).
 
-Reste la relecture de Thomas à l'œil.
+Reste la relecture du mainteneur à l'œil.
 
 ### R2 — nom et logo · J
 
@@ -555,7 +555,7 @@ GitHub et Vercel (A.2, hors périmètre).
   `rtaShare.ts`, `recoShare.ts` et `siegeShare.ts` — seulement les messages
   d'erreur qui nomment l'app, et le nom de fichier du siège.
 - **Différé aux lots 9a / 11e** : `swforge-optimizer-…`, dans
-  `OptimizerSection.tsx`. Thomas attend une livraison sur l'Optimizer, et une
+  `OptimizerSection.tsx`. Le mainteneur attend une livraison sur l'Optimizer, et une
   ligne changée ici risquerait un conflit avec elle.
 
 **Résultat (2026-09-29)** — preuve [lot-R2.md](rebranding-preuves/lot-R2.md).
@@ -571,7 +571,7 @@ contrat :
   rien ne les utilise encore (R5, l'accueil, pourra en avoir besoin).
 
 Restent l'image de partage (décision 16, montrée avant son commit) et la
-relecture de Thomas.
+relecture du mainteneur.
 
 ### R2 bis — le logo de la nouvelle identité · J
 
@@ -580,9 +580,9 @@ sur les mêmes fichiers : `SymboleLogo` et `Logo` (`src/components/Logo.tsx`),
 `public/favicon.svg`, `public/favicon.png`, `public/og-image.png` (déjà
 permis). Le nom reste écrit une fois (`src/marque.ts`).
 1. **Symbole redessiné en SVG** d'après l'image, en couleurs de jetons
-   (enclume et éclats `ink`, cristal `accent`) ; montré à Thomas en grand, en
+   (enclume et éclats `ink`, cristal `accent`) ; montré au mainteneur en grand, en
    32 et en 16 px, dans les deux thèmes, AVANT d'être posé.
-2. **Police du nom** : une linéale large de Google Fonts, choisie par Thomas
+2. **Police du nom** : une linéale large de Google Fonts, choisie par le mainteneur
    sur un rendu comparatif. Elle ne sert qu'au NOM : les titres de l'app
    restent en Cinzel (décision 24).
 3. **Pose** : composant, favicon (32 : symbole complet ; 16 : à juger sur le
@@ -621,7 +621,7 @@ retouché : ce qu'un écran dessine à la main hors librairie attend son lot
 
 **Preuve** : tests de rendu `ui` et `rendu` verts, avec les assertions
 changées déclarées une à une ; inventaire ; build ; classes vérifiées dans le
-CSS construit ; relecture de Thomas dans les deux thèmes.
+CSS construit ; relecture du mainteneur dans les deux thèmes.
 
 **Ne fait pas** : le bouton « chargement » (spinner + « En cours ») de la
 toile — aucun écran ne l'emploie : il monte au premier usage réel, pas avant.
@@ -651,10 +651,10 @@ fond et le libellé portent l'état) ; logo et mention en pied de page.
 
 **Écrit au démarrage (2026-09-29)**. Intrant : planches « Accueil » (bureau)
 et « Accueil mobile » de la toile, `spec/accueil.md`, `HomePage.tsx`.
-Relevé des écarts, six questions à Thomas, puis une septième sur les icônes.
+Relevé des écarts, six questions au mainteneur, puis une septième sur les icônes.
 
 **Résultat (2026-09-29)** — preuve [lot-R5.md](rebranding-preuves/lot-R5.md).
-Thomas garde l'accueil (décisions 31 à 36). Seul changement : les cartes de
+Le mainteneur garde l'accueil (décisions 31 à 36). Seul changement : les cartes de
 section prennent les icônes d'atelier de la nav (37).
 
 ### R6 — Siège et Recommandations · J
@@ -663,7 +663,7 @@ section prennent les icônes d'atelier de la nav (37).
 `BsRecommandations` et `BsMobileSiege` de la toile ; `spec/siege/README.md`
 (l. 1–184), `speed-tick.md` (tableau des statuts), `recommandations.md`
 (sections d'affichage) ; `SiegeBoard.tsx`, `SiegeTeam.tsx`, `RecoBoard.tsx`,
-`RecoCard.tsx`. Relevé, puis huit questions à Thomas (décisions 38 à 45).
+`RecoCard.tsx`. Relevé, puis huit questions au mainteneur (décisions 38 à 45).
 
 Un commit par décision appliquée : la carte d'ajout (41), les couleurs d'état
 (43, contrastes mesurés sur les fonds où elles se posent), les icônes (44).
@@ -683,7 +683,7 @@ corrigé : « Aucune équipe d'défense ».
 ### V0 — relecture de ce qui est commité · —
 
 Pour chaque lot commité avant d'avoir été vu (R3, R4, R6, décision 46) : la
-liste de ce que Thomas regarde, écran par écran, sur son serveur de dev, dans
+liste de ce que le mainteneur regarde, écran par écran, sur son serveur de dev, dans
 les deux thèmes. Ses corrections deviennent des commits propres, montrés
 avant d'être commités. **Ne fait pas** : de nouveaux changements de son propre
 chef.
@@ -697,7 +697,7 @@ planche dessine un classement S / A / B, qui n'est pas repris.
 **Résultat (2026-09-30)** — preuve [lot-R7.md](rebranding-preuves/lot-R7.md).
 Écran gardé (48 à 50). Un commit, `2f4fc0c5` : erreurs en rouge d'état (43),
 icône « Ami » d'atelier (44). Premier lot aux deux arrêts de la décision 47 :
-relevé puis questions, code montré sans commit, « validé » de Thomas, commit.
+relevé puis questions, code montré sans commit, « validé » du mainteneur, commit.
 
 ### R8 — Mon compte · J
 
@@ -708,7 +708,7 @@ Runes, deux d'Artéfacts).
 **Résultat (2026-09-30)** — preuve [lot-R8.md](rebranding-preuves/lot-R8.md).
 Écrans gardés (51 à 53). Deux commits : rouges d'état (43) `999a4c25` ;
 tuiles de l'Optimisation, une couleur par ligne (54) `d52c438e`, trois
-allers-retours avec Thomas avant son « validé ».
+allers-retours avec le mainteneur avant son « validé ».
 
 ### R9a — le Bestiaire · J
 
@@ -740,4 +740,4 @@ tuning au téléphone (44). Rien pour 43 ni pour la librairie. L'écran vide
 de l'Optimizer attend ses lots (60).
 
 Les lots d'écran R5 à R10 sont tous passés. Restent les lots 9a / 11e de la
-refonte (l'Optimizer, en attente de la livraison de Thomas) et le lot 12.
+refonte (l'Optimizer, en attente de la livraison du mainteneur) et le lot 12.

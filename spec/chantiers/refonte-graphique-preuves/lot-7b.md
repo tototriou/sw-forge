@@ -28,10 +28,10 @@ Décisions appliquées (A.2 bis) :
 - **l'édition** : Terminer, Ajouter un deck vide, Importer un deck
   d'offense désactivé avec sa raison.
 
-## Décision 15, prise avec Thomas
+## Décision 15, prise avec le mainteneur
 
 1. Question posée : garder les cartes, ou le tableau de la maquette ?
-2. Thomas demande le lien de la maquette, puis « propose-moi un mix des deux ».
+2. Le mainteneur demande le lien de la maquette, puis « propose-moi un mix des deux ».
 3. Proposition mixte décrite, puis « mets-la dans la maquette ».
 4. Planche « Siège · Recommandations — proposition mixte (tableau + détail) »
    ajoutée à la toile.
@@ -80,12 +80,12 @@ $ npm run build                               → built ; gabarit de colonnes
 - **L'en-tête** : le passage des boutons au « ⋯ » selon la largeur.
 - **Téléphone** : non regardé, il reste en cartes (lot 11).
 
-## Ajustements demandés par Thomas, puis validation (2026-09-26 et 27)
+## Ajustements demandés par le mainteneur, puis validation (2026-09-26 et 27)
 
 Chaque ajustement a son commit et sa spec (`recommandations.md`, sauf
 mention). Décisions 16 à 19 inscrites en A.2 bis.
 
-| Commit | Demande de Thomas | Quoi |
+| Commit | Demande du mainteneur | Quoi |
 |---|---|---|
 | `c06d36d` | « revois les couleurs et l'affichage sur les cards » | cartes neutres, statut aux pastilles, en-tête sur une ligne |
 | `12496d4` | « revoir le système de bouton de cette page, comme dans la maquette » | un seul bouton d'icône (28 px) à la souris, chevron en tête, crayons dans la librairie |
@@ -100,12 +100,12 @@ mention). Décisions 16 à 19 inscrites en A.2 bis.
 | `4b40d07` | « un tri attaque / défense au lieu de toutes / mes recos / importées » | **décision 19** : vue Défense calculée (`recoDefenses.ts`, testé), format exporté inchangé ; [retrait #19] le filtre d'origine |
 
 **Tests modifiés, et pourquoi.** Assertions écrites PENDANT ce lot, mises
-à jour quand Thomas a changé ce qu'elles décrivaient : le contenu du menu
+à jour quand le mainteneur a changé ce qu'elles décrivaient : le contenu du menu
 « ⋯ » (Importer en est sorti, `20beae2`). Assertions d'AVANT le lot
 remplacées : les trois du filtre d'origine (`4b40d07`), dont la fonction
 est retirée (décision 19, [retrait #19]). Toutes les autres sont
 inchangées et passent. Tests ajoutés : `siege-slot-suivant` (10),
 `reco-defenses` (13), `testRenduRecosVueDefense` (9).
 
-**Validé par Thomas le 2026-09-27** (« ok c'est super », puis « oui,
+**Validé par le mainteneur le 2026-09-27** (« ok c'est super », puis « oui,
 clos »). Téléphone non regardé (lot 11).

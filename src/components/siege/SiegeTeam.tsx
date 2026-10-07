@@ -292,7 +292,7 @@ export default function SiegeTeam({
   // coloré qu'apportait le thème clair (`--siege-card-*`) : en clair, un
   // contour d'un pixel sur fond blanc ne se voyait pas, d'où ce fond — la
   // pastille, lisible dans les deux thèmes, dit désormais l'état en toutes
-  // lettres. Libellés choisis par Thomas (voir `pastilleStatut`).
+  // lettres. Libellés choisis par le mainteneur (voir `pastilleStatut`).
   // ⚠️ Rouge d'ÉTAT (`bad`), comme la pastille juste à côté — plus `fire`, le
   // rouge de l'élément Feu (rebranding, décision 43).
   const sectionClass = aGearIncomplet || statut === 'rouge'
@@ -928,7 +928,7 @@ function SlotContent({
       //   1. le monstre (les deux colonnes) ;
       //   2. ce qu'on SAISIT : le champ SPD, puis les ticks visés ;
       //   3. la CONCLUSION, en bas : la vitesse de combat, sa base, l'écart au
-      //      tick — demandé par Thomas : « la spd et la conclusion en bas, car
+      //      tick — demandé par le mainteneur : « la spd et la conclusion en bas, car
       //      c'est la conclusion ».
       className="relative flex flex-col p-2.5 compact:min-h-[110px] compact:p-2 lg:row-span-3 lg:grid lg:grid-rows-subgrid lg:grid-cols-[auto_1fr] lg:items-center lg:gap-x-3"
     >
@@ -994,7 +994,7 @@ function SlotContent({
             propre zone étendue à 44 px (le pseudo-élément de `data-cible-fine`) :
             elle est seule dans son coin, rien à rater autour. */}
         {/* ⚠️ **À la souris, deux FLÈCHES au lieu du sélecteur de position**,
-            EN HAUT du slot, à côté de la croix — demandé par Thomas : échanger
+            EN HAUT du slot, à côté de la croix — demandé par le mainteneur : échanger
             avec le voisin de gauche ou de droite est un geste direct, là où
             le sélecteur demandait d'ouvrir une liste. Posées d'abord sur la
             ligne de la vitesse, elles s'y mêlaient au champ SPD (« compact
@@ -1047,7 +1047,7 @@ function SlotContent({
           (ligne 3), le champ SPD avec les ticks (ligne 2). */}
       <div className="mt-1 flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 compact:mt-0.5 lg:contents">
         {/* Pas de filet au-dessus de la conclusion : essayé, retiré par
-            Thomas (« pas besoin de séparateur dans la card »). */}
+            Le mainteneur (« pas besoin de séparateur dans la card »). */}
         <div className="lg:col-span-2 lg:row-start-3 lg:mt-2">
           {/* ⚠️ 16 px au doigt contre 22 à la souris (26 avant le lot 7a). Le
               nom du monstre est la RÉFÉRENCE de ce bloc : la vitesse doit rester
@@ -1085,7 +1085,7 @@ function SlotContent({
       {/* Tick cible, propre à ce monstre — à la souris, sur la ligne de la
           saisie, à droite du champ SPD. */}
       <div className="mt-2 flex flex-wrap items-center gap-1.5 compact:mt-1 compact:gap-1 lg:col-start-2 lg:row-start-2 lg:mt-0">
-        {/* ⚠️ **Recliquer sur le tick visé l'ENLÈVE** — demandé par Thomas,
+        {/* ⚠️ **Recliquer sur le tick visé l'ENLÈVE** — demandé par le mainteneur,
             avec le retrait du bouton « Off » à la souris : un bouton à deux
             états s'éteint là où on l'a allumé, sans aller chercher un
             troisième bouton. Au doigt, « Off » reste pour l'instant (lot 11),

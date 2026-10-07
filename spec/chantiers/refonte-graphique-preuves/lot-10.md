@@ -39,11 +39,11 @@ déduits de `monsters.json` et de `data/releases.ts`.
 « Voir les nouveautés », reporté au lot 13.
 
 Rien n'est retiré. **Deux assertions d'avant le lot sont assouplies**,
-signalées à Thomas : les filtres du bestiaire et l'introduction des
+signalées au mainteneur : les filtres du bestiaire et l'introduction des
 Paramètres étaient attendus EN TÊTE du texte ; le titre de page les précède
 désormais. Leur suite est vérifiée à l'identique (« contient »).
 
-Relevés en passant, hors refonte (contenu), reportés par Thomas (« on le
+Relevés en passant, hors refonte (contenu), reportés par le mainteneur (« on le
 fera plus tard ») et écrits dans `spec/mecaniques.md` : la formule de
 défense affichée (`1140 + 3.5` au lieu de `1142 + 3.572`) et « 7 % par
 tick » sans la réserve raid / RTA.
@@ -57,5 +57,5 @@ $ node scripts/spec-lint.mjs                  → aucune erreur
 $ npm run build                               → built ; classes lg: émises
 ```
 
-**Lot 10 clos le 2026-09-28** sur « continue » de Thomas, sans retour
+**Lot 10 clos le 2026-09-28** sur « continue » du mainteneur, sans retour
 visuel propre à ces pages. Téléphone non regardé (lot 11).

@@ -1,6 +1,6 @@
 import { NOM_APP } from '../marque';
 
-// Logo « SW Blacksmith » — l'identité choisie par Thomas (rebranding, R2 bis,
+// Logo « SW Blacksmith » — l'identité choisie par le mainteneur (rebranding, R2 bis,
 // décisions 24-25) : une enclume surmontée d'un cristal de braise à deux
 // facettes et de deux éclats. Redessiné en SVG d'après son image (elle n'existe
 // qu'en rendu), validé sur planche (spec/chantiers/rebranding-preuves/
@@ -37,7 +37,7 @@ export function SymboleLogo({ className }: { className?: string }) {
 }
 
 // Le NOM dans la police de l'identité : Saira 700, en capitales espacées
-// (choix de Thomas). Il ne sert qu'au nom : les titres restent en Cinzel.
+// (choix du mainteneur). Il ne sert qu'au nom : les titres restent en Cinzel.
 export const CLASSE_NOM = 'font-marque font-bold uppercase tracking-widest';
 
 // Logo HORIZONTAL : le symbole, puis le nom. `replie` : le symbole seul — la

@@ -149,7 +149,7 @@ export default function Sidebar({
   const deroulee = (l: SidebarLien) => (l.ouvre ? (bascules[l.ouvre.titre] ?? l.actif) : false);
 
   // ⚠️ **Pas d'aperçu au survol.** Un panneau sortait à droite de la barre
-  // quand la souris passait sur une section refermée ; Thomas l'a fait
+  // quand la souris passait sur une section refermée ; le mainteneur l'a fait
   // retirer (2026-09-24, [retrait #12] du cadrage de la refonte) : les
   // sous-sections se déroulent désormais sous leur entrée, l'aperçu doublait
   // ce geste et surgissait dès qu'on traversait la barre.
@@ -222,7 +222,7 @@ export default function Sidebar({
         {groupes.map((g, i) => (
           <div key={g.titre ?? i} className="flex flex-col gap-px">
             {/* ⚠️ **Les groupes se séparent VISIBLEMENT** — demandé par
-                Thomas : un intitulé gris ne suffisait pas, les quatre groupes
+                Le mainteneur : un intitulé gris ne suffisait pas, les quatre groupes
                 se lisaient comme une seule liste. Un FILET avant chaque groupe
                 (sauf le premier), et l'intitulé à la couleur principale de
                 l'app. Le menu reste neutre par ailleurs : les teintes de
@@ -287,7 +287,7 @@ function SousSections({ section, retractee }: { section: SidebarSection; retract
   // ⚠️ **UN filet continu, porté par le BLOC, pas un bout de trait par ligne.**
   // Dessiné dans chaque ligne, il traversait le fond de la sous-section
   // choisie et se coupait dans l'espace entre deux lignes — relevé par
-  // Thomas : « le rendu avec les lignes des sous-sections et la zone de
+  // Le mainteneur : « le rendu avec les lignes des sous-sections et la zone de
   // sélection fait bizarre ». Le bloc est décalé de 18 px (10 de marge + la
   // moitié d'une icône de 16) : son contour gauche tombe dans l'axe de l'icône
   // de l'entrée parente, et le fond de sélection commence APRÈS lui.
@@ -306,7 +306,7 @@ function SousSections({ section, retractee }: { section: SidebarSection; retract
               }`}
             >
               {/* ⚠️ L'icône de la sous-section, comme avant la refonte —
-                  demandé par Thomas : la maquette n'en montrait pas, mais
+                  demandé par le mainteneur : la maquette n'en montrait pas, mais
                   chaque vue a la sienne et elle se repère plus vite qu'un mot. */}
               <span className="flex flex-none items-center">{s.icon}</span>
               <span className="min-w-0 truncate">{s.label}</span>

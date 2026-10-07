@@ -23,7 +23,7 @@ décisions déjà prises.
 ## 2. Le changement et sa validation
 
 Commit `f1870822`, montré avant commit : capture de l'en-tête au téléphone
-tactile (390 px, deux thèmes), une page à vérifier donnée à Thomas ;
+tactile (390 px, deux thèmes), une page à vérifier donnée au mainteneur ;
 réponse : « ok ».
 
 ```text

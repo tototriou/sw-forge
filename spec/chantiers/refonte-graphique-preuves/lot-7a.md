@@ -27,7 +27,7 @@ d'avant la refonte) :
 
 **Aucune assertion modifiée.**
 
-## Réponses de Thomas pendant le lot
+## Réponses du mainteneur pendant le lot
 
 | Question | Réponse |
 |---|---|
@@ -49,7 +49,7 @@ verra plus tard ») — elles restent des propositions.
 
 ## Ajustements après essai (2026-09-26), puis validation
 
-Chaque demande de Thomas, un commit :
+Chaque demande du mainteneur, un commit :
 
 | Demande | Commit | Effet |
 |---|---|---|
@@ -64,7 +64,7 @@ Chaque demande de Thomas, un commit :
 | « supprime le bouton off, reclic = enlève le tick » | `d00b3b0` | « Off » masqué à la souris, reclic sur le tick actif = 0 |
 | « pas besoin de séparateur dans la card » | `e3e00cf` | plus de filet au-dessus de la conclusion |
 
-**Validé par Thomas le 2026-09-26, sur bureau** (« et on est bon »). Le
+**Validé par le mainteneur le 2026-09-26, sur bureau** (« et on est bon »). Le
 téléphone n'a pas été regardé : il garde « Off », le sélecteur de position et
 sa disposition — à voir au lot 11 (les flèches et le reclic y seraient aussi
 pratiques).

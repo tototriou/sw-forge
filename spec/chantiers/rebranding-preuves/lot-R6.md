@@ -109,4 +109,4 @@ npm run build                                     → classes `bad` émises, ord
   (390 et 360 px), pas sur un appareil.
 - Au passage, un défaut **antérieur au lot**, non corrigé : l'état vide de la
   défense écrit « Aucune équipe d'défense » (`d'${noun}` avec
-  `noun = 'défense'`). À corriger à part si Thomas le veut.
+  `noun = 'défense'`). À corriger à part si le mainteneur le veut.

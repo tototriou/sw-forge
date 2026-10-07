@@ -95,7 +95,7 @@ function desactive(ton: TonBouton, fond: FondBouton): string {
 }
 
 // ⚠️ **À la souris, le gabarit des boutons de la MAQUETTE, dans toute l'app**
-// (refonte graphique, décision 16 — Thomas : « il faut que les boutons soient
+// (refonte graphique, décision 16 — le mainteneur : « il faut que les boutons soient
 // unifiés dans l'application », « le même rendu que sur la maquette ») :
 // `md` = `.btn` (32 px, 12 px de côté, 13 px de texte), `sm` = `.btn-sm`
 // (28 px, 10 px, 12 px), rayon 8 px ; un bouton d'icône est un carré de la

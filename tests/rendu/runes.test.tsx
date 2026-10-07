@@ -112,7 +112,7 @@ export function testRenduRunesListe() {
   // Décision 21, [retrait #21] : une seule entrée de mesure, celle du menu ⚙
   // (ici l'efficience, par défaut). L'assertion d'avant listait « Score » ET
   // « Efficience » ; la fonction qu'elle couvrait (trier par la mesure qu'on ne
-  // voit pas) est retirée à la demande de Thomas.
+  // voit pas) est retirée à la demande du mainteneur.
   ok(t.includes('Trier par Grade Propriété secondaire Sous-propriété avant meule Nv. d’amélioration Obtenu Total des sous-prop. Efficience Slot'), 'tri : les entrées du jeu, une seule mesure — celle du ⚙');
   ok(b.some((x) => x.ariaLabel === 'Trier du plus petit au plus grand'), 'sens du tri');
 
@@ -195,7 +195,7 @@ export function testRenduRunesAVenir() {
 
 // Lot 8a-1 (décision 20 précisée) : à la souris, les filtres tous VISIBLES sur
 // une ligne, plus « Effacer les filtres ». Pas de menu déroulant (essayé, puis
-// défait par Thomas). Ajouté avec eux ; les tests d'avant restent inchangés.
+// défait par le mainteneur). Ajouté avec eux ; les tests d'avant restent inchangés.
 export function testRenduRunesFiltresLigne() {
   titre('rendu · Mon compte · Runes — filtres sur une ligne (souris)');
   for (const vue of ['liste', 'courbes', 'optimisation'] as AccountView[]) {
@@ -208,7 +208,7 @@ export function testRenduRunesFiltresLigne() {
 
 // Lot 8a-1 : à la souris, le tri de l'Optimisation en ONGLETS (`Segmented`),
 // comme le reste de la page. Celui de la Liste reste une liste déroulante
-// (neuf entrées en onglets : « un peu gros », Thomas). Ajouté avec eux ; les
+// (neuf entrées en onglets : « un peu gros », le mainteneur). Ajouté avec eux ; les
 // tests d'avant restent inchangés.
 export function testRenduRunesTriOnglets() {
   titre('rendu · Mon compte · Runes — le tri en onglets (souris)');

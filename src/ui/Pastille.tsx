@@ -29,7 +29,7 @@ import { PRESSION } from './Bouton';
 
 // Marqueur « filtre actif » de l'app : la couleur d'ACCENT (la braise, depuis
 // le rebranding) en fond teinté à 25 %, avec son contour (refonte
-// graphique, décision 9 de Thomas, amendée : la couleur inversée donnait un
+// graphique, décision 9 du mainteneur, amendée : la couleur inversée donnait un
 // aplat blanc en thème sombre, écarté). Exporté pour que les filtres qui ne
 // passent pas par `Pastille` (sets, emplacements, étoiles du Bestiaire) portent
 // EXACTEMENT le même : deux marqueurs côte à côte se liraient comme deux natures

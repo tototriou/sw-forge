@@ -8,7 +8,7 @@ filtre active en couleur inversée).
 
 > **Amendement (2026-09-24)** — le marqueur « couleur inversée » décrit
 > ci-dessous (`border-ink bg-ink text-bg`) a été essayé puis **écarté par
-> Thomas** (aplat blanc en thème sombre). Remplacé par la couleur de l'app
+> Le mainteneur** (aplat blanc en thème sombre). Remplacé par la couleur de l'app
 > teintée : `border-accent bg-accent/25 text-ink`. Contraste mesuré (fond
 > translucide calculé sur la surface réelle) : texte 10.61 / 8.52 (Atelier,
 > sur panneau / sur page), 9.73 / 10.49 (Forge) ; contour 9.66 / 7.52

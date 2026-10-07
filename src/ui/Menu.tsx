@@ -48,7 +48,7 @@ export interface ElementMenu {
   // entrée à cocher (`menuitemcheckbox`).
   actif?: boolean;
   // ⚠️ Pas d'axe « principal » : aucune action n'est mise en avant dans un
-  // en-tête d'écran (décision 4 précisée — essayé, retiré par Thomas).
+  // en-tête d'écran (décision 4 précisée — essayé, retiré par le mainteneur).
 }
 
 // Ce que le déclencheur doit poser sur SON bouton (axe `declencheur`).
@@ -143,7 +143,7 @@ export default function Menu({ libelle, elements, largeur = 'w-60', declencheur:
         // pas celle d'un `BoutonIcone` (28 px) : le « ⋯ » se pose à côté des
         // boutons d'action d'un en-tête (« Exporter » dans la RTA), et deux
         // hauteurs côte à côte se lisaient comme deux familles de boutons —
-        // relevé par Thomas. Un `Bouton` carré dimensionné ici, et non un
+        // relevé par le mainteneur. Un `Bouton` carré dimensionné ici, et non un
         // `BoutonIcone` dont on écraserait le `h-7` : deux hauteurs dans la
         // même classe, c'est l'ordre de la feuille de style qui trancherait.
         <Bouton

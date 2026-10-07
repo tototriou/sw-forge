@@ -4,12 +4,12 @@ Cinq actions de **Ma prépa** : **Sauvegarder · Reprendre · Réinitialiser ·
 Exporter · Importer**.
 
 ⚠️ **Deux dispositions, une seule logique** (`RtaBackupBar`, prop
-`disposition`) — refonte graphique, lot 6, décision 13 de Thomas :
+`disposition`) — refonte graphique, lot 6, décision 13 du mainteneur :
 
 - **Bureau — `menu`** : dans l'en-tête de la page (composant `BarreActions`
   de `src/ui`). **S'il y a la place sur la ligne, toutes les actions y sont en
   boutons** (Réinitialiser et Tout effacer à droite, derrière un filet) —
-  demandé par Thomas ; la place est mesurée, barre latérale comprise. Sinon :
+  demandé par le mainteneur ; la place est mesurée, barre latérale comprise. Sinon :
   « **Exporter** » visible,
   les autres dans le menu **« ⋯ » Plus d'actions** (composant `Menu` de
   `src/ui`) : Sauvegarder, Reprendre, **Importer une prépa**, puis les entrées

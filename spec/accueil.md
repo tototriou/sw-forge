@@ -33,7 +33,7 @@ Deux colonnes (`1.1fr / 0.9fr`, empilées sous `lg`).
     visible n'ajoute rien, et la pile d'arguments noyait la promesse au lieu
     de la servir.
   - **L'application de bureau** (application-bureau, lot 6, décisions 13
-    et 14 de Thomas — la règle « aucun bouton dans le héros » est levée pour
+    et 14 du mainteneur — la règle « aucun bouton dans le héros » est levée pour
     lui seul) : **sous la promesse, avant les éléments qui flottent**, UN
     bouton SECONDAIRE (neutre, petit) « Télécharger l'application », aux
     logos Windows et Linux, lien (`Bouton href`) vers la page
@@ -122,7 +122,7 @@ l'application de bureau, douze dans l'app.)
 ### Rebranding « SW Blacksmith » — lot R5 (2026-09-29)
 
 La planche d'accueil de la toile a été relevée et comparée, point par point ;
-**Thomas garde l'accueil tel quel** (décisions 31 à 36 du
+**Le mainteneur garde l'accueil tel quel** (décisions 31 à 36 du
 [cadrage](chantiers/rebranding-blacksmith.md)) : héros (nom en titre, zone
 de dépôt seule, aucun bouton), pas de bandeau de garanties, les douze cartes,
 « Comment ça marche », et au téléphone la décision 24 (même structure,
@@ -137,7 +137,7 @@ même icône partout. Les étapes et le titre « Ton espace » gardent lucide.
 
 ### Le style — refonte graphique, lot 5
 
-La structure ci-dessus est **gardée** (décision 10 de Thomas) ; seul le
+La structure ci-dessus est **gardée** (décision 10 du mainteneur) ; seul le
 style change :
 
 - **Cartes de la refonte** : fond de panneau, contour discret
@@ -149,12 +149,12 @@ style change :
   gardent leur **halo** flouté dans le coin, plus marqué au survol. Les
   étapes gardent leurs trois couleurs propres (bleu, vert, or), numéro
   compris. Le premier passage du lot 5 les avait retirées (décision 3 lue
-  comme « neutre partout ») ; Thomas les a fait remettre le 2026-09-25 :
+  comme « neutre partout ») ; le mainteneur les a fait remettre le 2026-09-25 :
   « j'aimais bien les couleurs sur la page d'accueil ». **L'accueil est
   coloré, le menu neutre.**
 - ⚠️ **En thème CLAIR, chaque teinte a sa variante assombrie**
   (`TEINTE_CLAIRE`, [couleursSection.ts](../src/data/couleursSection.ts) —
-  refonte graphique, lot 14 ; Thomas, sur une capture de l'accueil en clair :
+  refonte graphique, lot 14 ; le mainteneur, sur une capture de l'accueil en clair :
   « effectivement pas très lisible »). Les couleurs de section sont pensées
   pour le fond sombre : en clair, l'icône sur sa tuile tombait jusqu'à 1,40:1
   (arène), neuf sur douze sous 3:1. Chaque variante garde la teinte,
@@ -169,7 +169,7 @@ style change :
 - Pastille de version : fond d'accent à 15 %, texte à l'**encre** — l'accent
   sur ce fond tombait à 4,4:1 en Forge.
 - ⚠️ **Au doigt, la même structure, resserrée** (lot 11a, décision 24 —
-  Thomas a écarté la liste groupée de la maquette téléphone, qui retirait la
+  Le mainteneur a écarté la liste groupée de la maquette téléphone, qui retirait la
   zone de dépôt, « Comment ça marche », les descriptions, « Prépa d'un ami »,
   l'Arène et la dernière version) : marges verticales entre blocs réduites
   (`max-lg:py-6`), zone de dépôt moins haute (170 px au lieu de 260), cartes

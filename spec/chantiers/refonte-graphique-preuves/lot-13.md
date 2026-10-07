@@ -27,7 +27,7 @@ Fichiers hors A.2 touchés : `src/hooks/useRtaState.ts`,
 `src/hooks/useSiegeRecos.ts` (permis par la décision 29),
 `src/hooks/useSiegeState.ts` (déjà permis).
 
-Limite signalée à Thomas : « Créer une recommandation » depuis la palette
+Limite signalée au mainteneur : « Créer une recommandation » depuis la palette
 crée et ouvre la page, sans ouvrir la carte en édition.
 
 Écarts de méthode, signalés : deux modifications de fichiers du dépôt par le
@@ -43,4 +43,4 @@ $ node scripts/spec-lint.mjs                  → aucune erreur
 $ npm run build                               → built
 ```
 
-**Lot 13 clos le 2026-09-28** sur « ok » de Thomas.
+**Lot 13 clos le 2026-09-28** sur « ok » du mainteneur.

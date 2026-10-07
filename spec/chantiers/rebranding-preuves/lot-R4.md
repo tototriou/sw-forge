@@ -13,7 +13,7 @@ La toile dessine neuf icônes de navigation et huit notions (grille 24,
 trait 2). Croisées avec notre nav : douze entrées prennent une icône de la
 toile telle quelle ; sept n'en avaient pas.
 
-Trois planches montrées à Thomas avant la pose :
+Trois planches montrées au mainteneur avant la pose :
 1. [lot-R4-icones.png](lot-R4-icones.png) — première proposition pour les
    sept. Deux jets refaits avant de la montrer (une griffure qui lisait comme
    des ondes, une longue-vue qui lisait comme un fusil). Réponse : les sept à
@@ -73,7 +73,7 @@ light bureau : entrée active Bestiaire — rgb(255, 237, 221) / rgb(166, 79, 17
 barre d'onglets ni le bouton « Options » ne la recouvrent. En cours de
 défilement, le bouton flottant passe par-dessus, comme tout contenu.)
 
-## 4. Retour de Thomas — « le pied de page commence à être vraiment gros »
+## 4. Retour du mainteneur — « le pied de page commence à être vraiment gros »
 
 Il empilait cinq lignes centrées en police à chasse fixe (logo, liens,
 trois mentions). Question posée, réponse : « une rangée, comme la toile ».
@@ -85,7 +85,7 @@ trois mentions). Question posée, réponse : « une rangée, comme la toile ».
   Les libellés longs restent au bureau, l'infobulle garde la phrase entière.
 - Police du texte au lieu de la mono ; filet `border-soft` au-dessus.
 - Mêmes phrases, mêmes liens : inventaire sans perte.
-- Puis, Thomas : « met sur une colonne le github la version et le
+- Puis, le mainteneur : « met sur une colonne le github la version et le
   discord » — au bureau, les trois liens en colonne, alignés à droite
   (`lg:flex-col lg:items-end`) : **79 px**. Téléphone inchangé (145 px),
   la demande visant la rangée du bureau.

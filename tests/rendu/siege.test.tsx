@@ -141,9 +141,9 @@ export function testRenduSiegeEdition() {
   ok(valeurs(html, 'title').filter((v) => v === 'Changer la position (intervertir les monstres)').length >= 2, 'chaque monstre posé a son sélecteur « Position »');
   ok(t.includes('1 · Leader'), 'la position « 1 · Leader » est proposée');
 
-  // À la souris, les flèches ← → (demandées par Thomas, lot 7a). Aux bords,
+  // À la souris, les flèches ← → (demandées par le mainteneur, lot 7a). Aux bords,
   // affichées mais désactivées, et l'infobulle dit pourquoi.
-  // Recliquer sur le tick visé l'enlève (demandé par Thomas) : l'infobulle
+  // Recliquer sur le tick visé l'enlève (demandé par le mainteneur) : l'infobulle
   // du tick actif le dit, celle des autres propose de le viser.
   ok(valeurs(html, 'title').includes('Ne plus viser le tick 239'), 'le tick visé (239) se désactive d\'un reclic — son infobulle le dit');
   ok(valeurs(html, 'title').includes('Viser le tick 286'), 'un tick non visé propose « Viser le tick 286 »');

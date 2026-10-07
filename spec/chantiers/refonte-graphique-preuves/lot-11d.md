@@ -15,9 +15,9 @@ sans changement prévu.
 (sommaire), Nouveautés, Paramètres (compte, réglages, données, dix
 boutons), Bientôt.
 
-## Le lot, puis le retour de Thomas
+## Le lot, puis le retour du mainteneur
 
-| Commit | Quoi | Retour de Thomas |
+| Commit | Quoi | Retour du mainteneur |
 |---|---|---|
 | `c2b2f3ca` | décision 27 écrite dans le cadrage, avant le code | — |
 | `baecb4ed` | Mécaniques : sections à filet au doigt, sommaire gardé | — |
@@ -27,7 +27,7 @@ boutons), Bientôt.
 
 Le défaut du Speed tuning datait d'avant la refonte (deux camps de 280 px
 côte à côte dès 560 px) ; le relevé du 11d s'était fié à la maquette sans
-regarder cette largeur intermédiaire — écart signalé à Thomas.
+regarder cette largeur intermédiaire — écart signalé au mainteneur.
 
 Rien n'est retiré ; aucune assertion ne change.
 
@@ -40,4 +40,4 @@ $ node scripts/spec-lint.mjs                  → aucune erreur
 $ npm run build                               → built ; ordre max-lg vérifié
 ```
 
-**Lot 11d clos le 2026-09-28** sur « ok continue » de Thomas.
+**Lot 11d clos le 2026-09-28** sur « ok continue » du mainteneur.

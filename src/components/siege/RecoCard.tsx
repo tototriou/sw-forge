@@ -226,13 +226,13 @@ export default function RecoCard({
     setEditingDeck((cur) => deckEditeApresChangement(cur, avant, deckCount));
   }, [deckCount]);
 
-  // ── Annuler une édition (Thomas, 2026-10-05) ─────────────────────────────
+  // ── Annuler une édition (le mainteneur, 2026-10-05) ─────────────────────────────
   //
   // Chaque modification s'enregistre tout de suite : annuler, c'est REMETTRE
   // ce qu'on a mémorisé à l'ouverture de l'édition (voir annulerEdition.ts).
   // ⚠️ **Ni confirmation, ni notification** : une confirmation serait un « OK »
   // qui détruit ; une notification « … · Rétablir » ferait une annulation
-  // d'annulation (Thomas : « c'est bizarre »). La sortie du mode édition dit
+  // d'annulation (le mainteneur : « c'est bizarre »). La sortie du mode édition dit
   // assez ce qui s'est passé.
   const [avantReco, setAvantReco] = useState<MetaReco | null>(null);
   const [avantDeck, setAvantDeck] = useState<{ index: number; contenu: ContenuDeck } | null>(null);
@@ -301,7 +301,7 @@ export default function RecoCard({
 
   // ── Vue Défense (décision 19) ─────────────────────────────────────────────
   //
-  // ⚠️ **En LECTURE SEULE** (choix de Thomas) : dès qu'on édite — la
+  // ⚠️ **En LECTURE SEULE** (choix du mainteneur) : dès qu'on édite — la
   // recommandation ou l'un de ses decks —, la carte reprend la vue Attaque,
   // celle où se trouvent les formulaires. Changer de vue ne fait donc jamais
   // disparaître une édition en cours.
@@ -573,7 +573,7 @@ export default function RecoCard({
             ⚠️ **Masqué aussi sous `lg`** (`max-lg:hidden`), même à la souris :
             sous ce seuil, la page prend sa disposition téléphone, et
             « Analyser » vit dans le panneau « Options » — une fenêtre étroite
-            le montrait aux DEUX endroits (Thomas : « il ne le faut qu'à un
+            le montrait aux DEUX endroits (le mainteneur : « il ne le faut qu'à un
             seul endroit »). */}
         {/* ⚠️ À la souris, un RESSORT pousse la suite au bout de la ligne
             (la maquette : titre et résumé à gauche, puis ce qui se clique à
@@ -581,7 +581,7 @@ export default function RecoCard({
             qui laissait « Analyser » au milieu. */}
         <span className="hidden lg:block lg:flex-1" aria-hidden />
         {!editing && (
-          // ⚠️ **Bouton à DEUX ÉTATS** (décision 17 — Thomas : « une fois
+          // ⚠️ **Bouton à DEUX ÉTATS** (décision 17 — le mainteneur : « une fois
           // analysé, si on clique ça cache l'analyse ») : un premier clic
           // analyse, un second MASQUE le résultat — le même geste que la croix
           // de l'encart. Enclenché (`actif`, `aria-pressed`) tant qu'une
@@ -596,7 +596,7 @@ export default function RecoCard({
             // ⚠️ Bouton À CADRE (`.btn-secondary`), comme les autres boutons à
             // libellé de la page — pas fantôme. En fantôme, seul libellé nu au
             // milieu d'icônes nues, il ne se lisait plus comme un bouton
-            // (Thomas : « il ne ressort pas, il ne ressemble pas aux autres
+            // (le mainteneur : « il ne ressort pas, il ne ressemble pas aux autres
             // boutons »). Les icônes du bout de ligne restent nues.
             title={
               match
@@ -763,7 +763,7 @@ export default function RecoCard({
               une grille à UNE colonne, il en créait une seconde, implicite —
               la rangée d'intitulés et les lignes se tassaient dans la
               première, « Offense · sets visés » passait sur trois lignes et
-              « Fort contre » chevauchait (capture de Thomas, « gros bug
+              « Fort contre » chevauchait (capture du mainteneur, « gros bug
               d'affichage quand on essaye d'éditer un deck »). Retiré. */}
           <div
             className={`grid grid-cols-1 gap-2.5 animate-[apparition_180ms_var(--ease-out)]
@@ -1039,7 +1039,7 @@ const VERDICTS: {
 ];
 
 // ⚠️ **Pastille de statut COLORÉE, à la maquette** (`.pill.good/.warn/.bad` :
-// fond doux du ton, texte du ton, pas de contour) — Thomas : « les couleurs ne
+// fond doux du ton, texte du ton, pas de contour) — le mainteneur : « les couleurs ne
 // sont pas assez vives sur les vignettes de validation de decks ». Elles
 // étaient neutres, la couleur réduite à un point de 6 px (lot 7b, « cartes
 // neutres ») : la CARTE reste neutre, mais la pastille qui dit le verdict
@@ -1176,7 +1176,7 @@ function AnalysisSummary({
           Un verdict sans aucun deck est affiché GRISÉ et non retiré : on voit
           qu'il n'y en a aucun, au lieu de chercher un bouton disparu.
           ⚠️ **Colorées AU REPOS, comme les pastilles des decks en dessous**
-          (`PASTILLE_STATUT`, 2026-09-27 — Thomas : « dans le résumé d'analyse
+          (`PASTILLE_STATUT`, 2026-09-27 — le mainteneur : « dans le résumé d'analyse
           et dans les cards en dessous, la même couleur ») : fond doux et
           texte du ton. Elles étaient neutres au repos, seul le point coloré.
           Enclenchée, la pastille garde ces couleurs et prend le CONTOUR de son
@@ -1375,7 +1375,7 @@ const ICONE_ACTION = `h-6 w-6 ${ICONE_LG}`;
 const BOUTON_LG = 'lg:h-7';
 // ⚠️ Plus de bouton d'ajout FANTÔME : « Ajouter un deck vide », « Importer un
 // deck d'offense » et « + Défense » l'ont été un temps (la maquette), et ne
-// ressortaient pas (Thomas : « le bouton d'ajout de défense ne ressort pas
+// ressortaient pas (le mainteneur : « le bouton d'ajout de défense ne ressort pas
 // trop »). Ils gardent le fond d'un bouton et le bord POINTILLÉ d'un ajout.
 
 function DeckBlock({
@@ -1611,7 +1611,7 @@ function DeckBlock({
               libelle={editing ? "Terminer l'édition de ce deck" : 'Éditer ce deck'}
               libelleALaSouris
             />
-            {/* ⚠️ **Toujours présent**, plus seulement en édition (Thomas :
+            {/* ⚠️ **Toujours présent**, plus seulement en édition (le mainteneur :
                 « le bouton de suppression devrait toujours être présent ») —
                 la confirmation (« Supprimer ce deck ? ») reste le garde-fou.
                 À la souris, à l'AUTRE bout du pied (`lg:order-first
@@ -2064,7 +2064,7 @@ function CounterBlock({
             ⚠️ **À la souris, un bouton `sm` POINTILLÉ à fond**, au bout de la
             rangée (`lg:ml-auto`) — le bord pointillé d'un ajout, le fond d'un
             bouton. Il a été fantôme un temps (la maquette), et ne ressortait
-            pas (Thomas : « le bouton d'ajout de défense ne ressort pas
+            pas (le mainteneur : « le bouton d'ajout de défense ne ressort pas
             trop »). Au doigt,
             la tuile pointillée de 44 px d'avant, à la hauteur des vignettes :
             `taille="sm"` + `max-lg:px-3.5 max-lg:text-sm` redonnent
@@ -2224,7 +2224,7 @@ function CounterRow({
             `min-w-full` : au moins aussi large que la vignette, pour se lire
             comme sa suite ; `w-max` + plafond au-delà, la note étant courte. */}
         {/* ⚠️ **Le `Flottant` de la librairie** (refonte graphique, lot 8a —
-            Thomas : « fais la même chose partout dans l'appli », après la
+            Le mainteneur : « fais la même chose partout dans l'appli », après la
             bulle d'aide) : même fond, même contour neutre, même ombre et même
             rembourrage que toutes les bulles de l'app. C'était une boîte
             maison au contour d'ACCENT (réservé à l'état enclenché), à l'ombre
@@ -2368,7 +2368,7 @@ function defenseLabel(monsters: RecoCounter['monsters'], byCom2us: Map<number, M
     .join(' - ');
 }
 
-// ⚠️ **Lecture seule** (choix de Thomas) : on consulte « contre cette défense,
+// ⚠️ **Lecture seule** (choix du mainteneur) : on consulte « contre cette défense,
 // j'ai ces offenses » ; on modifie en vue Attaque. Même cadre et même rangée
 // d'intitulés que le tableau des decks, pour qu'une vue se lise comme l'autre.
 // Au doigt, chaque défense s'empile au-dessus de ses offenses.

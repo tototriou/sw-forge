@@ -3,8 +3,8 @@
 **Statut :** CHANTIER en cours — branche forge/refonte-graphique
 
 Cadrage : [refonte-graphique.md](../refonte-graphique.md), section B.5 à
-B.10. Décision appliquée (A.2 bis) : **20**, telle que Thomas l'a précisée
-pour les runes, reprise sans nouvelle question (annoncé à Thomas avant le
+B.10. Décision appliquée (A.2 bis) : **20**, telle que le mainteneur l'a précisée
+pour les runes, reprise sans nouvelle question (annoncé au mainteneur avant le
 code) : filtres visibles, jamais en menus ; en-tête de vue avec titre et
 compteur ; chiffres clés en bandeau.
 
@@ -23,9 +23,9 @@ comprend une box de 6 monstres (cinq éléments, un niveau non maximal) et
   principale, propriétés, sens du tri, compte par sorte, premier et dernier
   artéfact.
 
-## Le lot, puis les retours de Thomas
+## Le lot, puis les retours du mainteneur
 
-| Commit | Quoi | Retour de Thomas |
+| Commit | Quoi | Retour du mainteneur |
 |---|---|---|
 | `2227712c` | Box : en-tête « Ma box » + compte en pastille ; recherche, filtres et tri sur une seule barre | capture : « ça va pas » — la recherche écrasée, le tri seul à la ligne |
 | `ec5ec310` | Artéfacts : en-têtes « Résumé » et « Liste » + nombre d'artéfacts ; chiffres clés en bandeau (`Kpi bandeau`) ; les six rangées de filtres sur la ligne, intitulés à leur largeur ; spec « Onglet Résumé », qui manquait | — |
@@ -36,7 +36,7 @@ comprend une box de 6 monstres (cinq éléments, un niveau non maximal) et
 Rien n'est retiré. Les 59 vérifications d'avant sont inchangées.
 
 Non ajouté, faute de décision : « Effacer les filtres » dans la box et la
-liste d'artéfacts (décidé pour les runes seulement). Proposé à Thomas, resté
+liste d'artéfacts (décidé pour les runes seulement). Proposé au mainteneur, resté
 sans réponse ; porté aux candidats du lot 13.
 
 ```text
@@ -48,5 +48,5 @@ $ node scripts/spec-lint.mjs                  → aucune erreur
 $ npm run build                               → built ; classes lg: émises
 ```
 
-**Lot 8b validé par Thomas le 2026-09-28** (« ok good »).
+**Lot 8b validé par le mainteneur le 2026-09-28** (« ok good »).
 Téléphone non regardé (lot 11).

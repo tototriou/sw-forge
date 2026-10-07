@@ -2,7 +2,7 @@
 // mobiles), affichée EN ENTIER par `App` sur chaque route. Principe dans
 // tests/rendu/outils-rendu.tsx. Écrits AVANT le lot 4 de la refonte graphique
 // (`spec/chantiers/refonte-graphique.md` § B.4) : ils fixent ce que la
-// navigation permet, pas sa forme — le regroupement du menu décidé par Thomas
+// navigation permet, pas sa forme — le regroupement du menu décidé par le mainteneur
 // (décision 5) doit les laisser verts.
 
 import App from '../../src/App';
@@ -79,7 +79,7 @@ const TITRES: [string, string][] = [
 
 // Ce que le menu bureau doit permettre d'atteindre par un lien. Hors liste :
 // `#/parametres` (le bouton ⚙ y mène) ; Meules et Gemmes, retirées du menu par
-// décision de Thomas — [retrait #6], cadrage A.2 bis — mais dont les ROUTES
+// décision du mainteneur — [retrait #6], cadrage A.2 bis — mais dont les ROUTES
 // restent (vérifié plus bas : elles s'affichent toujours).
 const HORS_MENU = new Set(['#/parametres', '#/compte/runes/meules', '#/compte/runes/gemmes']);
 
@@ -129,7 +129,7 @@ export function testRenduAppNavigation() {
   }
   ok(/aria-label="Replier la navigation"/.test(rendreApp('#/')), 'bouton « Replier la navigation »');
 
-  // [retrait #6], décidé par Thomas : Meules et Gemmes hors du menu bureau —
+  // [retrait #6], décidé par le mainteneur : Meules et Gemmes hors du menu bureau —
   // leurs routes, elles, s'affichent toujours (testRenduAppRoutes).
   const runes = valeurs(barreLaterale(rendreApp('#/compte/runes/liste')), 'href');
   ok(!runes.includes('#/compte/runes/meules') && !runes.includes('#/compte/runes/gemmes'), 'Meules et Gemmes hors du menu bureau ([retrait #6])');
@@ -148,7 +148,7 @@ export function testRenduAppNavigation() {
   for (const nom of ['RTA', 'Mon compte', 'Runes', 'Outils', 'Ressources']) ok(tSiege.includes(nom), `dans le Siège : « ${nom} » reste visible`);
   ok(/aria-expanded="true"[^>]*>(?:(?!<\/button>)[\s\S])*Siège/.test(siege), 'l\'entrée « Siège » se dit déroulée');
   ok(!hrefs.includes('#/rta/ami'), 'les autres sections restent refermées');
-  // Chaque sous-section déroulée garde son icône (demandé par Thomas).
+  // Chaque sous-section déroulée garde son icône (demandé par le mainteneur).
   for (const h of ['#/siege/defense', '#/siege/offense', '#/siege/recommandations']) {
     const lienSous = siege.match(new RegExp(`<a[^>]*href="${h}"[^>]*>[\\s\\S]*?</a>`))?.[0] ?? '';
     ok(lienSous.includes('<svg'), `la sous-section ${h} porte son icône`);
@@ -178,7 +178,7 @@ export function testRenduAppFil() {
   }
 }
 
-// Garde-fou de navigation (Thomas, 2026-10-01 ; spec/shared/navigation.md
+// Garde-fou de navigation (le mainteneur, 2026-10-01 ; spec/shared/navigation.md
 // § Adresses) : sur CHAQUE page, chaque lien `#/…` affiché — barre latérale,
 // onglets mobiles, fil d'Ariane, cartes de l'accueil, liens de page — figure
 // dans la table des adresses, et mène bien où elle le dit.

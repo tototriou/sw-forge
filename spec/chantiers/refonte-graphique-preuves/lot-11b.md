@@ -25,13 +25,13 @@ compte).
 | `afc5e8e0` | « Vérifier mes speed » : interrupteur sur la page au téléphone, hors du panneau ; libellé et forme courte déclarés dans `deplacements.json` |
 | `220ab28b` | recommandations : la rangée repliée d'un deck montre aussi « Fort contre » et les sets visés |
 
-Rien n'est retiré. **Une assertion change**, signalée à Thomas : celle du
+Rien n'est retiré. **Une assertion change**, signalée au mainteneur : celle du
 panneau « Options » (écrite au début du lot) suit le panneau sans « Vérifier
 mes speed » ; une vérification de l'interrupteur sur la page est ajoutée
 (31 vérifications).
 
 Relevé en passant, hors refonte : l'infobulle d'« Exporter » en Défense dit
-« tes équipes d'défense » — signalé à Thomas, non corrigé ici.
+« tes équipes d'défense » — signalé au mainteneur, non corrigé ici.
 
 ```text
 $ npx tsc --noEmit                            → code 0
@@ -42,4 +42,4 @@ $ node scripts/spec-lint.mjs                  → aucune erreur
 $ npm run build                               → built
 ```
 
-**Lot 11b clos le 2026-09-28** sur « ok continue » de Thomas.
+**Lot 11b clos le 2026-09-28** sur « ok continue » du mainteneur.

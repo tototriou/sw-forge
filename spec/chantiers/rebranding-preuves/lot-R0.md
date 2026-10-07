@@ -147,7 +147,7 @@ nouvelles surfaces.
 - **Accent contextuel `ctx`** : alias d'`accent` ou de la couleur d'élément
   (`[data-ctx]`) ; il suit ce que R1 décide pour eux, rien à trancher.
 
-## 5. Questions pour Thomas avant R1
+## 5. Questions pour le mainteneur avant R1
 
 - **Q1** — accent en texte (Atelier) : jeton de texte séparé (`accent-texte`,
   repli `#A64F11`), l'aplat restant braise ?
@@ -160,7 +160,7 @@ nouvelles surfaces.
 - **Q6** — icônes de navigation de la toile, ou lucide ?
 - **Q7** — couleurs de section de l'accueil gardées, ou braise / laiton ?
 
-## 6. Réponses de Thomas (2026-09-29)
+## 6. Réponses du mainteneur (2026-09-29)
 
 La recommandation, sur les sept questions ; inscrites comme décisions 4 à 10
 du cadrage (A.8) :

@@ -1,5 +1,5 @@
 // « Annuler les modifications » d'une recommandation ou d'un deck en édition
-// (Thomas, 2026-10-05) — spec/siege/recommandations.md § Trois niveaux
+// (le mainteneur, 2026-10-05) — spec/siege/recommandations.md § Trois niveaux
 // d'édition.
 //
 // Une édition enregistre chaque modification TOUT DE SUITE : annuler, c'est

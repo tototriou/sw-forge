@@ -144,7 +144,7 @@ export default function TopBar({
 
         {/* BUREAU — le FIL D'ARIANE, à gauche, comme dans la maquette : le
             chemin du menu jusqu'à la page (« Mon compte › Runes › Liste »),
-            en police de texte, sans icône. Relevé par Thomas : le titre
+            en police de texte, sans icône. Relevé par le mainteneur : le titre
             centré (Cinzel, icône colorée) « n'est pas raccord avec le menu ».
             ⚠️ Construit par l'appelant À PARTIR DU MENU lui-même, jamais
             ressaisi : le fil ne peut pas contredire la barre latérale. */}

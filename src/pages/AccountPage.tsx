@@ -343,10 +343,10 @@ function MonsterBoxSection({
           téléphone — plus que la grille qu'elles filtrent.
           ⚠️ **À la SOURIS, trois lignes fixes** (lot 8b) : la recherche à
           largeur fixe, TOUS les filtres sur une ligne, puis le tri et la
-          pagination. Une barre unique a été essayée et défaite (Thomas :
+          pagination. Une barre unique a été essayée et défaite (le mainteneur :
           « ça va pas ») : à 1 000 px elle écrasait la recherche et renvoyait
           le tri seul à la ligne. Les filtres restent VISIBLES, pas dans des
-          menus (décision 20, Runes : Thomas n'en a pas voulu). */}
+          menus (décision 20, Runes : Le mainteneur n'en a pas voulu). */}
       <div className="flex flex-col gap-3 mb-4">
         <div className="flex flex-wrap items-center gap-2 lg:flex-nowrap">
           <Champ
@@ -365,7 +365,7 @@ function MonsterBoxSection({
         <div className="hidden lg:flex lg:flex-wrap lg:items-center lg:gap-x-5 lg:gap-y-2">{filtres}</div>
       </div>
 
-      {/* ⚠️ **À la SOURIS, le TRI vient À LA SUITE DES FILTRES** (Thomas,
+      {/* ⚠️ **À la SOURIS, le TRI vient À LA SUITE DES FILTRES** (le mainteneur,
           lot 8b : « mets l'ordre à la suite des filtres »), sur la ligne de
           la pagination : les deux réglages de PRÉSENTATION de la grille, juste
           au-dessus d'elle. La ligne est là même sans résultat ni seconde

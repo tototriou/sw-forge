@@ -475,7 +475,7 @@ export default function SpeedTuningSection({
           ⚠️ **Au TÉLÉPHONE, toujours empilés** (`max-lg:flex-col`, lot 11d) :
           dès 560 px de large, deux camps de 280 px tenaient côte à côte, et
           chacun devenait trop étroit — le lead débordait de l'en-tête et les
-          trois réglages de chaque monstre s'empilaient (relevé par Thomas en
+          trois réglages de chaque monstre s'empilaient (relevé par le mainteneur en
           mode appareil). Pleine largeur, la card retrouve sa rangée. */}
       <div className="flex flex-wrap gap-4 max-lg:flex-col">
         <CampPanneau
@@ -877,7 +877,7 @@ export default function SpeedTuningSection({
 
           {/* ⚠️ **À la SOURIS, l'ordre de tour vient ICI**, sous l'ordre des
               sorts et l'analyse, avant les tableaux (décision 22 du cadrage de
-              la refonte, Thomas) : c'est la conclusion qu'on vient lire, pas un
+              la refonte, le mainteneur) : c'est la conclusion qu'on vient lire, pas un
               pied de page sous trois tableaux de 40 colonnes. */}
           {ordreDeTour('hidden lg:block')}
 
@@ -1124,7 +1124,7 @@ function CampPanneau({
             lead et import passent dessous, calés à droite — dans les DEUX
             camps. Laissé au hasard de la largeur, « Ton équipe » (plus long
             qu'« En face ») renvoyait ses réglages à la ligne et pas l'autre :
-            deux cartes voisines rendues différemment (Thomas : « il faut que
+            deux cartes voisines rendues différemment (le mainteneur : « il faut que
             le rendu soit le même »). Une seule ligne ne tient pas : la
             pastille d'un lead posé l'élargit encore. */}
         <span className={`flex items-center gap-1.5 text-sm font-bold lg:w-full ${adv ? 'text-bad' : 'text-ink'}`}>
@@ -1176,7 +1176,7 @@ function CampPanneau({
             </optgroup>
           </Selecteur>
           {/* ⚠️ **À la SOURIS, l'import du camp vit ICI**, à côté du lead
-              (décision 22, Thomas) : dans l'en-tête de la carte qu'il
+              (décision 22, le mainteneur) : dans l'en-tête de la carte qu'il
               remplace, on voit sans lire quel camp il touche. Au doigt, il
               reste sous la recherche (lot 11). */}
           {decks && onImporterDeck && (

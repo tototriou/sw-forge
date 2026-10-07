@@ -30,7 +30,7 @@ vérifications :
 - Cartes de la refonte (panneau, `border-soft`, rayon 12, fond appuyé au
   survol) ; plus de soulèvement (`whileHover`).
 - Icônes dans une tuile de 32 px. **Premier passage : neutres, halos
-  retirés. Retour de Thomas (2026-09-25) : « j'aimais bien les couleurs sur
+  retirés. Retour du mainteneur (2026-09-25) : « j'aimais bien les couleurs sur
   la page d'accueil »** — tuiles à la teinte de leur section (icône, fond
   14 %, contour 32 %), halos des cartes de fonctionnalités, couleurs des
   étapes, numéro compris. Les 16 teintes des cartes et tuiles sont les

@@ -21,7 +21,7 @@ Défense / Offense) : le titre « Recommandations », le compteur, puis les
 actions par `BarreActions` — **toutes en boutons quand elles tiennent sur la
 ligne**, sinon **Importer** et **Créer une recommandation** visibles, dans
 cet ordre, et **Tout exporter**, **Tout effacer** (séparé, en `bad`) dans le
-menu « ⋯ » Plus d'actions — l'organisation de la maquette (Thomas : « sur la
+menu « ⋯ » Plus d'actions — l'organisation de la maquette (le mainteneur : « sur la
 page de reco, le rendu comme sur la maquette sur l'organisation des boutons et
 leur rendu »). Importer était d'abord dans le menu. Aucune action mise en
 avant. Libellés, désactivations et infobulles repris des boutons d'avant. Au
@@ -46,7 +46,7 @@ verdict, ce dernier aligné à droite), et l'édition devient **« Éditer ce
 deck » écrit en toutes lettres, en PIED du détail déplié**, à droite, sous
 un filet (en édition : « Terminer l'édition de ce deck »), et **« Supprimer
 ce deck » à l'autre bout, TOUJOURS présent** — plus seulement en édition
-(Thomas, 2026-09-27 : « le bouton de suppression devrait toujours être
+(le mainteneur, 2026-09-27 : « le bouton de suppression devrait toujours être
 présent » ; la confirmation reste le garde-fou). Au doigt aussi, la
 corbeille suit le crayon en permanence. Ces boutons ont un **CADRE** à la
 souris, comme les autres boutons à libellé (« le bouton d'édition ne ressort
@@ -64,7 +64,7 @@ en HAUT du tableau — en bas, son clic l'aurait repoussé de toute la hauteur
 des decks dépliés (un clic ne déplace jamais ce qu'on vient de cliquer).
 
 ⚠️ **À la souris, UN seul bouton d'icône sur toute la page** (lot 7b —
-Thomas : « il faudrait revoir un peu le système de bouton de cette page… comme
+Le mainteneur : « il faudrait revoir un peu le système de bouton de cette page… comme
 tu as fait dans la maquette ») : un carré de 28 px aux coins arrondis, sans
 cadre ni fond, voile au survol — chevron de la recommandation, chevron de
 chaque deck, Exporter, Éditer, Supprimer (`ICONE_LG` dans
@@ -76,7 +76,7 @@ librairie : ils sont désormais des `BoutonIcone`, le ✓ doré posé sur l'icô
 librairie, plus un lien souligné) prennent la même hauteur de 28 px. Au doigt,
 chaque bouton garde sa taille et sa forme d'avant (lot 11).
 
-Puis, en édition (Thomas : « revoir tous les boutons de la page ») : **28 px
+Puis, en édition (le mainteneur : « revoir tous les boutons de la page ») : **28 px
 de haut pour tout bouton à libellé et toute pastille de filtre**, à la souris
 (`BOUTON_LG`) — Ajouter un deck vide, Importer un deck d'offense, + Set,
 + Possibilité, les pastilles de verdict, « Tout afficher » (bouton fantôme,
@@ -90,7 +90,7 @@ posé sur le coin d'une vignette**, la **grille des sets** (icônes du jeu) et
 les **liens dans une phrase** (« Chercher partout », « Effacer la
 recherche »).
 
-⚠️ **Couleurs : plus d'aplats teintés** (lot 7b — Thomas : « revois les
+⚠️ **Couleurs : plus d'aplats teintés** (lot 7b — le mainteneur : « revois les
 couleurs et l'affichage sur les cards, là il n'y a rien qui va »). La carte
 d'une recommandation, chaque deck, chaque monstre et l'encart de synthèse se
 teintaient chacun en vert / orange / rouge à 20-45 % : une page analysée
@@ -109,7 +109,7 @@ devenait un patchwork. Désormais :
   prend en plus le contour de son ton, seul marqueur d'état. Elles étaient
   neutres, la couleur
   réduite à un point de 6 px : « les couleurs ne sont pas assez vives sur les
-  vignettes de validation de decks » (Thomas, 2026-09-27). Non analysé :
+  vignettes de validation de decks » (le mainteneur, 2026-09-27). Non analysé :
   neutre. Le point reste dedans (son creux distingue « monstre manquant » de
   « à revoir »). `PASTILLE_STATUT` dans RecoCard.tsx ; contrastes texte /
   fond doux mesurés dans les deux thèmes, 4,63:1 au plus bas ;
@@ -192,7 +192,7 @@ export (d'où `RecoPayload`, qui exclut `id` **et** `origin`). Ce qui est « à 
 chez l'auteur devient « importée » chez celui qui la reçoit — y compris si je
 réimporte mon propre export.
 
-⚠️ **Plus de filtre par origine** (refonte graphique, décision 19 — Thomas :
+⚠️ **Plus de filtre par origine** (refonte graphique, décision 19 — le mainteneur :
 « au lieu du tri toutes / mes recos / importées, mets plutôt un tri attaque /
 défense »). Le filtre **Toutes · Mes recos · Importées**, ses effectifs, ses
 états vides (« Tu n'as créé aucune recommandation… », « Voir toutes les
@@ -218,7 +218,7 @@ calcul pur, testé : `reco-defenses`) — rien n'est stocké en plus, un ancien
 fichier s'affiche dans les deux vues sans conversion (« attention à ne pas
 toucher au modèle de données exporté »).
 
-Règles de la vue Défense — trois choix de Thomas :
+Règles de la vue Défense — trois choix du mainteneur :
 - **Dans chaque recommandation** : la carte garde son en-tête (titre, auteur,
   analyse, export) ; à l'intérieur, une ligne par défense visée, avec les
   decks de CETTE recommandation qui la battent. Rien ne se mélange entre
@@ -335,7 +335,7 @@ RÉSULTAT : ils se lisent après ce qu'on vient de taper, jamais avant.
 ⚠️ **Sous `lg`, le champ prend toute la largeur restante** ; il n'est plafonné
 (260 px) qu'à partir de `lg`. Plafonné dès `sm`, avec les cases poussées au
 bord droit (`ml-auto`), il laissait un grand vide entre les deux, et les cases
-se lisaient comme un contrôle à part (Thomas, sur une capture en fenêtre
+se lisaient comme un contrôle à part (le mainteneur, sur une capture en fenêtre
 étroite : « revois cet affichage »). Champ et cases forment maintenant un seul
 bloc.
 
@@ -592,7 +592,7 @@ au-dessus puisqu'elle n'apparaît qu'après une analyse.
   — six chiffres de la police du champ, plus son rembourrage (24 px) et son
   contour (2 px) : au moins cinq chiffres visibles (PV ~35 000), plus un signe
   pour un bonus négatif. ⚠️ L'ancien `w-14` (56 px) annonçait cinq chiffres
-  et n'en montrait que trois (lot 7b — Thomas : « augmenter la taille des
+  et n'en montrait que trois (lot 7b — le mainteneur : « augmenter la taille des
   champs en mode édition pour avoir au moins 5 chiffres dedans ») : le `px-3`
   de `Champ` l'emporte sur un `px-1` ajouté (ordre de la feuille), et son
   `text-sm` sur `text-micro`. Une largeur en `ch` suit la police réelle,
@@ -671,12 +671,12 @@ siège (`SIEGE_TICKS`, voir [speed-tick.md](speed-tick.md)). Un clic met dans la
 VIT la **VIT de fiche** qui amène le monstre **pile** sur le tick en combat,
 totem (+15 %) et lead de vitesse du deck compris (`ficheSpeedForTick` dans
 [speed.ts](src/lib/speed.ts) ; lead lu sur le slot 0, appliqué au monstre selon
-son élément par `siegeLeadFor`). Demandé par Thomas le 2026-10-04.
+son élément par `siegeLeadFor`). Demandé par le mainteneur le 2026-10-04.
 
 - ⚠️ **Pas de chiffre sur le bouton**, contrairement au siège (« Rapide
   286 ») : la VIT écrite est celle de fiche — 271 pour un monstre de base 96
   sans lead —, et un bouton qui annonçait 286 pour écrire 269 (cas relevé)
-  se lisait comme une erreur (Thomas, 2026-10-04). Le tick visé et la VIT écrite sont dans
+  se lisait comme une erreur (le mainteneur, 2026-10-04). Le tick visé et la VIT écrite sont dans
   l'infobulle (« Mettre la VIT à 271 : tick 286 en combat, totem et lead
   compris »).
 
@@ -850,7 +850,7 @@ d'une équipe de siège dont on consulte les runes (voir
 - `min-w-full` (au moins la largeur de sa vignette, pour se lire comme sa suite)
   et **280 px au plus** : la note est une phrase courte.
 - ⚠️ **C'est le `Flottant` de la librairie** (refonte graphique, lot 8a —
-  Thomas : « fais la même chose partout dans l'appli », après la bulle
+  Le mainteneur : « fais la même chose partout dans l'appli », après la bulle
   d'aide) : même fond, même contour neutre, même ombre, même rembourrage que
   toutes les bulles de l'app. C'était une boîte maison au contour d'ACCENT —
   réservé à l'état enclenché, que porte déjà la vignette —, à l'ombre et aux
@@ -1150,7 +1150,7 @@ recommandation**, via le bouton **« Analyser mes decks »** de son en-tête —
 libellé dit bien que la confrontation porte sur **l'ensemble des decks**, pas
 sur un seul.
 
-⚠️ **Bouton à DEUX ÉTATS** (refonte graphique, décision 17 — Thomas : « une
+⚠️ **Bouton à DEUX ÉTATS** (refonte graphique, décision 17 — le mainteneur : « une
 fois analysé, je veux que si on clique ça cache l'analyse ») : un clic
 analyse, un second **masque** le résultat — le même geste que la croix
 « Masquer le résultat de l'analyse » de l'encart. Il est enclenché
@@ -1173,7 +1173,7 @@ endroit ne se justifiait plus.
 `compact:hidden`, lot 7b) : sous ce seuil la page prend sa disposition
 téléphone, panneau « Options » compris — même à la souris, dans une fenêtre
 étroite. Le bouton y apparaissait alors aux DEUX endroits, sur la carte et
-dans le panneau (Thomas : « il ne le faut qu'à un seul endroit »). Un geste,
+dans le panneau (le mainteneur : « il ne le faut qu'à un seul endroit »). Un geste,
 un endroit : la carte à partir de `lg`, le panneau en dessous.
 
 - Le bouton est **désactivé sans compte importé** (rien à quoi comparer).
@@ -1533,7 +1533,7 @@ Indépendamment du repli de la carte, **chaque deck a son propre chevron**.
   **liste de ses decks**, pas leur contenu. On ouvre ensuite celui qui intéresse.
   Sans ça, une reco de 6 decks déroulait tout l'écran d'un coup.
 - ⚠️ **À la SOURIS, un TABLEAU de decks, chacun dépliable en sa carte
-  détaillée** — refonte graphique, lot 7b, décision 15 de Thomas (« propose-moi
+  détaillée** — refonte graphique, lot 7b, décision 15 du mainteneur (« propose-moi
   un mix des deux propositions », puis « pars là-dessus », sur la planche
   « proposition mixte » de la maquette). Chaque deck est une LIGNE, sous une
   rangée d'intitulés de colonnes :
@@ -1633,7 +1633,7 @@ est un **travail de fond**. Il n'a d'ailleurs **pas de mode édition de bloc** �
 juste un « + » qui ajoute et ouvre l'entrée créée. Voir « Défenses visées » plus
 haut.
 
-#### « Annuler les modifications » — sortir sans garder (Thomas, 2026-10-05)
+#### « Annuler les modifications » — sortir sans garder (le mainteneur, 2026-10-05)
 
 Chaque modification s'enregistre **tout de suite** ; le ✓ termine l'édition en
 gardant tout. Pendant une édition, un bouton **« Annuler les modifications »**
@@ -1653,7 +1653,7 @@ gardant tout. Pendant une édition, un bouton **« Annuler les modifications »*
   chose n'est pas une modification).
 - ⚠️ **Ni confirmation, ni notification.** Une confirmation serait un « OK »
   qui détruit ; une notification « Modifications annulées · Rétablir » —
-  essayée — faisait une **annulation d'annulation** (Thomas, 2026-10-05 :
+  essayée — faisait une **annulation d'annulation** (le mainteneur, 2026-10-05 :
   « c'est bizarre »). La sortie du mode édition dit assez ce qui s'est passé ;
   le bouton grisé tant que rien n'a changé évite le clic pour rien.
 - **Un deck tout juste ajouté** (création d'une recommandation, « Ajouter un
@@ -1666,7 +1666,7 @@ gardant tout. Pendant une édition, un bouton **« Annuler les modifications »*
   (`deckEditeApresChangement`).
 
 ⚠️ **Un monstre choisi, le curseur passe au monstre suivant** (refonte
-graphique, décision 18 — Thomas : « quand on édite une équipe, mets un
+graphique, décision 18 — le mainteneur : « quand on édite une équipe, mets un
 autofocus sur le monstre suivant une fois qu'on en a choisi un, idem pour les
 défenses (fort contre) ») : dans les 3 slots d'un deck comme dans les 3
 monstres d'une défense visée, le champ du **slot vide suivant** prend le focus

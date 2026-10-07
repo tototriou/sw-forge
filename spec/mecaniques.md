@@ -31,7 +31,7 @@ changement de hash pour ne pas casser le routing) puis sections en panneaux :
 > des runes, sets de runes, précision/résistance, avantage élémentaire.
 
 ⚠️ **Deux écarts connus entre la page et cette spec, à corriger** (relevés au
-lot 10 de la refonte graphique, le 2026-09-28 ; Thomas : « on le fera plus
+lot 10 de la refonte graphique, le 2026-09-28 ; le mainteneur : « on le fera plus
 tard ») :
 
 - la page affiche encore `1000 / (1140 + 3.5 × DEF)`, les valeurs arrondies

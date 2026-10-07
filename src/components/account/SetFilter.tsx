@@ -56,7 +56,7 @@ export default function SetFilter({
           ligne même avec 25 sets. Seul l'état actif porte un cadre. */}
       {/* ⚠️ À la SOURIS, le gabarit du `Segmented` (`CADRE_FILTRE_LG`) : les
           filtres des runes tiennent sur une ligne à côté des antiques, qui en
-          sont un — Thomas : « que les boutons aient tous la même tête ». */}
+          sont un — le mainteneur : « que les boutons aient tous la même tête ». */}
       <div className={`flex flex-wrap items-center gap-0.5 rounded-lg border border-border bg-panel p-1 coarse:gap-1 ${CADRE_FILTRE_LG}`}>
         {/* Bascule TOUT / RIEN, EN TÊTE de la grille et au même gabarit que les
             sets — comme la tuile « Tous » du jeu, pas un bouton à part greffé

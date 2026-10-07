@@ -43,7 +43,7 @@ dessinent autrement :
 | Notification | bas à droite, 5 s, pile de 3 | bas au centre, 6 s, une à la fois |
 | Zone d'import | pointillés **2 px** | pointillés 1 px |
 
-## 3. Ce qui contredit une règle posée par Thomas
+## 3. Ce qui contredit une règle posée par le mainteneur
 
 - **« Contours : 1 px, et un seul »** (CLAUDE.md, librairie-ui.md) : le
   double anneau de focus, le halo du champ, les pointillés de 2 px.
@@ -56,9 +56,9 @@ dessinent autrement :
   n'en contredit pas le principe, seulement la valeur retenue au lot 9 de la
   refonte (fond doux).
 
-## 4. Questions pour Thomas avant le code
+## 4. Questions pour le mainteneur avant le code
 
-Posées le 2026-09-29, en deux séries ; Thomas retient la recommandation sur
+Posées le 2026-09-29, en deux séries ; le mainteneur retient la recommandation sur
 les sept. Inscrites comme décisions 17 à 23 du cadrage (A.8) :
 
 | Question | Réponse | Décision |

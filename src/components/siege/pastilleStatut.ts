@@ -5,7 +5,7 @@ import type { StatutEquipe } from '../../lib/siegeStatut';
 // et le fond coloré du thème clair. Le statut y est ÉCRIT.
 //
 // ⚠️ **Des libellés tirés des phrases de l'app**, jamais inventés : choisis par
-// Thomas le 2026-09-26 parmi les phrases que le pied de la carte affiche déjà
+// Le mainteneur le 2026-09-26 parmi les phrases que le pied de la carte affiche déjà
 // (« Tous au tick », « Speed tune validé », « Ton équipe n'est pas au tick »…).
 // La phrase détaillée reste dans le pied : la pastille dit l'état d'un coup
 // d'œil, le pied dit quoi faire.

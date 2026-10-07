@@ -86,7 +86,7 @@ export interface BoutonIconeProps
   // lecteur d'écran. Un seul élément, deux dessins.
   // ⚠️ **À CADRE à la souris** (`.btn-secondary`) : un bouton à libellé posé
   // parmi d'autres boutons à libellé doit leur ressembler. Nu, « Éditer ce
-  // deck » ne ressortait pas (Thomas : « le bouton d'édition ne ressort pas
+  // deck » ne ressortait pas (le mainteneur : « le bouton d'édition ne ressort pas
   // trop »). Au doigt, l'icône reste nue, comme avant. `danger` prend le
   // contour et le texte de son ton.
   libelleALaSouris?: boolean;

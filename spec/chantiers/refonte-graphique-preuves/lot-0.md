@@ -105,6 +105,6 @@ $ node tests/run.mjs rendusiegedefense
 
 Le point 6 prévoyait d'abord des captures d'écran de chaque route (bureau et
 téléphone, clair et sombre). Elles ont été faites (92), puis **abandonnées
-sur décision de Thomas** : des captures mesurent l'apparence, pas les
+sur décision du mainteneur** : des captures mesurent l'apparence, pas les
 fonctionnalités. Script et images supprimés ; les tests de rendu les
 remplacent (cadrage A.6).

@@ -36,7 +36,7 @@ export const RECOS = {
       id: 'r1',
       origin: 'mine',
       name: 'Contres des défenses feu',
-      author: 'Thomas',
+      author: 'Joueur',
       note: 'Toujours viser le heal en premier.',
       decks: [
         {
@@ -159,7 +159,7 @@ export function testRenduRecosPage() {
 
   // Chaque recommandation, repliée : nom, résumé, compositions, actions.
   for (const [nom, resume, decks] of [
-    ['Contres des défenses feu', '2 decks · par Thomas', 2],
+    ['Contres des défenses feu', '2 decks · par Joueur', 2],
     ['Defs de guilde', '1 deck · par Ami', 1],
   ] as const) {
     ok(t.includes(nom), `« ${nom} »`);
@@ -180,7 +180,7 @@ export function testRenduRecosEnTete() {
   const html = rendreRecos();
   ok(texteVisible(html).includes('Recommandations 2 recommandations'), 'le titre, puis le compteur');
   const menu = html.match(/<div[^>]*role="menu"[\s\S]*?<\/div><\/div>/)?.[0] ?? '';
-  // Organisation de la maquette (lot 7b, demandée par Thomas) : Importer et
+  // Organisation de la maquette (lot 7b, demandée par le mainteneur) : Importer et
   // Créer restent visibles, le menu ne garde que Tout exporter et Tout effacer.
   egal(boutons(menu).map((b) => b.texte), ['Tout exporter', 'Tout effacer'], 'le menu : Tout exporter, puis Tout effacer');
   const horsMenu = boutons(html.replace(menu, ''));
@@ -293,7 +293,7 @@ export function testRenduRecosTicks() {
   ok(!tick(editeur({ setOptions: [['swift', 'energy'], ['violent', 'will']] }), 'Tick rapide').desactive, 'une option sans Swift suffit : actif');
 }
 
-// « Annuler les modifications » (Thomas, 2026-10-05) : en édition seulement,
+// « Annuler les modifications » (le mainteneur, 2026-10-05) : en édition seulement,
 // à côté du ✓, grisé tant que rien n'a changé. Le rendu serveur ne clique
 // pas : on vérifie la PRÉSENCE et l'état à l'ouverture, la règle elle-même
 // est testée dans annuler-edition.test.ts.

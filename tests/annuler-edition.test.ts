@@ -1,5 +1,5 @@
 // « Annuler les modifications » d'une recommandation ou d'un deck en édition
-// (Thomas, 2026-10-05) — la règle pure de src/lib/annulerEdition.ts.
+// (le mainteneur, 2026-10-05) — la règle pure de src/lib/annulerEdition.ts.
 //
 // ⚠️ Une annulation qui remet le mauvais contenu, ou qui défait au passage une
 // défense visée, détruit le travail de l'utilisateur en croyant le protéger.
@@ -33,8 +33,8 @@ export default function testAnnulerEdition() {
   titre('annuler une édition · ce qui est mémorisé');
   const d = deck('ouvrir sur le leader', [10, 20, null], [defense('si Chloe en lead')]);
   egal(Object.keys(contenuDeck(d)).sort(), ['name', 'note', 'slots'], 'un deck : consignes et monstres, PAS les défenses visées');
-  const reco: Reco = { id: 'r', origin: 'mine', name: 'Défs', author: 'Thomas', note: 'viser le heal', decks: [d, deck('', [30, null, null])] };
-  egal(metaReco(reco), { name: 'Défs', author: 'Thomas', note: 'viser le heal' }, 'une recommandation : nom, auteur, consignes générales');
+  const reco: Reco = { id: 'r', origin: 'mine', name: 'Défs', author: 'Joueur', note: 'viser le heal', decks: [d, deck('', [30, null, null])] };
+  egal(metaReco(reco), { name: 'Défs', author: 'Joueur', note: 'viser le heal' }, 'une recommandation : nom, auteur, consignes générales');
 
   titre('annuler une édition · ce qui est remis');
   const avant = contenuDeck(d);

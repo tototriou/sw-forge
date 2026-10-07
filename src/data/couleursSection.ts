@@ -2,7 +2,7 @@
 //
 // ⚠️ **Refonte graphique (décision 3, précisée)** : ces teintes ont quitté la
 // barre latérale bureau (lot 4), qui est neutre. Elles restent sur l'ACCUEIL
-// (tuiles d'icône, halos — Thomas l'a demandé au lot 5) et sur la navigation
+// (tuiles d'icône, halos — le mainteneur l'a demandé au lot 5) et sur la navigation
 // du TÉLÉPHONE (onglets, panneau, barre du haut) jusqu'à son lot (11).
 //
 // ⚠️ **Une seule source pour l'accueil ET la navigation.** L'accueil peint ses
@@ -61,7 +61,7 @@ export const COULEUR_COMPTE_SUB = {
 } as const;
 
 // ⚠️ **Variante THÈME CLAIR de chaque couleur ci-dessus** (refonte graphique,
-// lot 14 — Thomas, sur une capture de l'accueil en clair : « effectivement
+// lot 14 — le mainteneur, sur une capture de l'accueil en clair : « effectivement
 // pas très lisible »). Les couleurs d'origine sont pensées pour le fond
 // sombre : en clair, l'icône sur sa tuile tombait à 1.40:1 (arène) — neuf sur
 // douze sous 3:1, le seuil d'une icône. Chaque variante est la MÊME teinte,

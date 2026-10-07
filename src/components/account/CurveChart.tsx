@@ -363,7 +363,7 @@ export default function CurveChart({
   }
 
   // ⚠️ **L'infobulle de survol est du HTML, posé AU-DESSUS du SVG** (refonte
-  // graphique, lot 8a — Thomas : « revois un peu les infobulles pour que ça
+  // graphique, lot 8a — le mainteneur : « revois un peu les infobulles pour que ça
   // rende mieux »). Dessinée en SVG, c'était une boîte aux couleurs écrites en
   // dur (bleu nuit, texte gris-bleu) : sombre même en thème clair, sans ombre,
   // et des noms coupés à 16 caractères faute de mesurer le texte. Elle prend

@@ -16,6 +16,7 @@ import AccountImportControl from '../components/AccountImportControl';
 export default function SettingsPage({
   onClearData,
   onSauvegarderSession,
+  sauvegardeIndisponible = null,
   onKeepAccount,
   onImport,
   accountExportedAt,
@@ -23,6 +24,9 @@ export default function SettingsPage({
 }: {
   onClearData?: () => void;
   onSauvegarderSession?: () => void;
+  // Pourquoi « Sauvegarder » est désactivé (le compte se relit encore), ou
+  // `null`. Le bouton reste affiché, désactivé avec cette raison en infobulle.
+  sauvegardeIndisponible?: string | null;
   onKeepAccount?: () => void;
   accountExportedAt?: number | null;
   // Nom du joueur dont le compte est chargé. ⚠️ Répété ici parce que la barre
@@ -78,6 +82,7 @@ export default function SettingsPage({
         <SettingsList
           onClearData={onClearData}
           onSauvegarderSession={onSauvegarderSession}
+          sauvegardeIndisponible={sauvegardeIndisponible}
           onKeepAccount={onKeepAccount}
           accountExportedAt={accountExportedAt}
           groupes

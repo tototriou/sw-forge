@@ -39,6 +39,7 @@ export default function TopBar({
   onSauvegarder,
   onSauvegarderSous,
   sessionEnCours = null,
+  sauvegardeIndisponible = null,
   // Bord GAUCHE de la barre : celui de la barre latérale, qu'elle ne recouvre
   // pas. ⚠️ Piloté par l'appelant, qui seul sait si elle est repliée.
   decalage,
@@ -73,11 +74,14 @@ export default function TopBar({
   onSauvegarderSous?: () => void;
   // Le nom du fichier de la session en cours (app), pour l'infobulle.
   sessionEnCours?: string | null;
+  // Pourquoi la sauvegarde est désactivée (le compte se relit encore), ou
+  // `null`. Les boutons restent affichés, désactivés avec cette raison.
+  sauvegardeIndisponible?: string | null;
   decalage: number;
 }) {
-  const titreSauvegarder = sessionEnCours
-    ? `Sauvegarder dans ${sessionEnCours} (Ctrl+S)`
-    : 'Sauvegarder la session dans un fichier (Ctrl+S)';
+  const titreSauvegarder =
+    sauvegardeIndisponible ??
+    (sessionEnCours ? `Sauvegarder dans ${sessionEnCours} (Ctrl+S)` : 'Sauvegarder la session dans un fichier (Ctrl+S)');
   return (
     <header
       // ⚠️ `left` suit la barre latérale, à la MÊME durée qu'elle : les deux
@@ -174,6 +178,7 @@ export default function TopBar({
             déconnexion et l'import y descendent, faute de place. */}
         <Bouton
           onClick={onSauvegarder}
+          disabled={!!sauvegardeIndisponible}
           title={titreSauvegarder}
           fond="vide"
           trait="aucun"
@@ -184,7 +189,8 @@ export default function TopBar({
         {onSauvegarderSous && (
           <Bouton
             onClick={onSauvegarderSous}
-            title="Enregistrer la session dans un autre fichier, qui devient la session en cours (l’ancien n’est plus modifié)"
+            disabled={!!sauvegardeIndisponible}
+            title={sauvegardeIndisponible ?? 'Enregistrer la session dans un autre fichier, qui devient la session en cours (l’ancien n’est plus modifié)'}
             fond="vide"
             trait="aucun"
             icone={<FilePlus size={16} className="flex-none" />}
@@ -211,6 +217,7 @@ export default function TopBar({
             loupe et le ⚙ gardent leur place au bord. */}
         <BoutonIcone
           onClick={onSauvegarder}
+          disabled={!!sauvegardeIndisponible}
           libelle="Sauvegarder la session (Ctrl+S)"
           icone={<Save size={16} />}
           className="relative z-10 ml-auto h-8 w-8 lg:hidden"

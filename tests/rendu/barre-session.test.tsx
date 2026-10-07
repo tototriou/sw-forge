@@ -4,13 +4,19 @@
 // préchargement simulé), les deux, et l'infobulle nomme la session en cours.
 
 import TopBar from '../../src/components/TopBar';
+import { SettingsList } from '../../src/components/SettingsMenu';
 import { ok, titre } from '../outils';
 import { rendreApp } from './app.test';
 import { bouton, boutons, rendre } from './outils-rendu';
 
 const rien = () => {};
 
-function barre(props: { onSauvegarderSous?: () => void; onDeconnexion?: () => void; sessionEnCours?: string | null }): string {
+function barre(props: {
+  onSauvegarderSous?: () => void;
+  onDeconnexion?: () => void;
+  sessionEnCours?: string | null;
+  sauvegardeIndisponible?: string | null;
+}): string {
   return rendre(
     <TopBar
       titre="Accueil"
@@ -52,6 +58,18 @@ export function testRenduBarreSession() {
     ordreApp.indexOf('Sauvegarder') < ordreApp.indexOf('Sauvegarder sous…') && !ordreApp.includes('Se déconnecter'),
     'ordre : Sauvegarder, Sauvegarder sous… — sans « Se déconnecter »'
   );
+
+  titre('rendu · sauvegarde — désactivée tant que le compte se relit');
+  const attente = 'Ton compte se charge encore : la sauvegarde attend qu’il soit relu.';
+  const enAttente = barre({ onSauvegarderSous: rien, sessionEnCours: 'ma-session.json', sauvegardeIndisponible: attente });
+  for (const nom of ['Sauvegarder', 'Sauvegarder sous…']) {
+    const b = boutons(enAttente).find((x) => x.texte === nom);
+    ok(b?.desactive === true && b.title === attente, `« ${nom} » reste affiché, désactivé, avec la raison en infobulle`);
+  }
+  ok(bouton(enAttente, 'Sauvegarder la session (Ctrl+S)')?.desactive === true, 'téléphone : l’icône aussi est désactivée');
+  const reglages = rendre(<SettingsList onSauvegarderSession={rien} sauvegardeIndisponible={attente} />);
+  const ligne = boutons(reglages).find((x) => x.texte === 'Sauvegarder');
+  ok(ligne?.desactive === true && ligne.title === attente, 'Paramètres : « Sauvegarder » désactivé, avec la raison');
 
   titre('rendu · barre du haut — l’app les branche selon le support');
   const htmlSite = rendreApp('#/');

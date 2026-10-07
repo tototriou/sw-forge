@@ -34,6 +34,16 @@ Quatre accès à « Sauvegarder », qui font tous la même chose
 - **Palette Ctrl K** : l'action « **Sauvegarder la session** », sous-titrée
   « Tout l'état de l'app dans un fichier ».
 
+**Tant que le compte conservé se relit**, au lancement (`accountHydrating`,
+`src/App.tsx`), la sauvegarde attend : « Sauvegarder » et « Sauvegarder
+sous… » de la barre du haut, et « Sauvegarder » des Paramètres, restent
+affichés, désactivés, avec l'infobulle « Ton compte se charge encore : la
+sauvegarde attend qu'il soit relu. » (`sauvegardeIndisponible`) ; l'icône
+du téléphone est désactivée aussi, son nom inchangé. Ctrl+S et l'action de
+la palette ne font rien. Sinon la session écrite n'aurait pas de
+compte — et dans l'app, elle remplacerait la session en cours, que le bureau
+a déjà reprise.
+
 `sauvegarderSession` compose la session et l'écrit (`ecrireSession`), puis :
 
 - **sur le site**, la télécharge (`telechargerTexte`,

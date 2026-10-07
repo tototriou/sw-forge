@@ -4,11 +4,11 @@
 // **Niveau A-PASSIF, au sens strict**, exactement comme `diagnosticLot.ts` :
 // ce module BOUCLE sur des runs qui existent déjà, il n'appelle pas une
 // seule fonction du moteur et ne réimplémente aucune étape. Ce qu'il ajoute
-// n'est pas de la mesure, c'est une LECTURE — l'oracle spécifié par 11a,
+// n'est pas de la mesure, c'est une LECTURE — l'oracle du différentiel,
 // appliqué à deux sorties du harnais.
 //
 // ─────────────────────────────────────────────────────────────────────────
-// ⚠️ Ce que 11a a établi, et qui décide de toute la forme de ce fichier
+// ⚠️ Ce que l'oracle établit, et qui décide de toute la forme de ce fichier
 //
 // **Un SEUL élément de l'oracle est bruité — l'INSTANT DE TRONCATURE —, et
 // seulement sous `maxMs`.** Tout le reste est une fonction DÉTERMINISTE du
@@ -54,9 +54,9 @@
 //
 // Un différentiel sur un cas réel n'est pas « plus lent », il est
 // INCOMPARABLE : un cas réel tronque, et il tronque par `maxMs` — or
-// l'instant de coupe y varie de 3,65 % à 32 % d'un run à l'autre (mesures
-// E, G, H de 11a), ce qui rend NON_COMPARABLES le verdict, la population,
-// le classement et le near-miss. Un profil de 11b n'est donc pas « la
+// l'instant de coupe y varie de 3,65 % à 32 % d'un run à l'autre (mesuré
+// sur des cas réels), ce qui rend NON_COMPARABLES le verdict, la population,
+// le classement et le near-miss. Un profil n'est donc pas « la
 // version rapide du cas réel », c'est **la seule configuration où l'oracle
 // est comparable du tout**. D'où le refus, au CLI, d'un différentiel sans
 // `--profil` — un refus qui NOMME la raison plutôt que de laisser payer
@@ -116,7 +116,7 @@ export interface BrasDifferentiel {
  * ----------------------------------------------------------------------- */
 
 /**
- * Les sept éléments de l'oracle, tels que 11a les a spécifiés.
+ * Les sept éléments de l'oracle, tels que le différentiel les définit.
  *
  * ⚠️ **Définis ICI et pas dans `diagnosticTypes.ts`**, pour la raison exacte
  * qui a fait naître `diagnosticLot.ts` : `ResultatHarnais` décrit UN run, et
@@ -166,7 +166,7 @@ export const ORDRE_LECTURE: ElementOracle[] = [
 export type EtatElement = 'IDENTIQUE' | 'DIVERGENT' | 'NON_COMPARABLE' | 'INDISPONIBLE';
 
 /**
- * Une lecture d'élément — avec les QUATRE champs que 11a exige de toute
+ * Une lecture d'élément — avec les QUATRE champs qu'exige toute
  * divergence, jamais moins.
  */
 export interface LectureElement {
@@ -273,7 +273,7 @@ export interface ResultatDifferentiel {
   /**
    * ⚠️ **Ce que le profil PEUT détecter sur cet axe** — sans quoi « aucune
    * divergence » se lirait comme un résultat alors que le profil en est
-   * peut-être incapable (constat n° 1 de 11b : un profil COMPLET peut être
+   * peut-être incapable (un profil COMPLET peut être
    * totalement INSENSIBLE, et sa rétention affichée ne le dit pas).
    */
   sensibilite: { axeDeclareSensible: boolean; limitesDuProfil: string };
@@ -317,7 +317,7 @@ export const AVERTISSEMENT_DIFFERENTIEL =
  * ----------------------------------------------------------------------- */
 
 /**
- * ⚠️ **`11c ALTERNE, il ne SUPERPOSE pas`** — et le protocole du voisin
+ * ⚠️ **Le harnais ALTERNE les bras, il ne les SUPERPOSE pas** — et le protocole du voisin
  * n'est pas transposable. `perf-battery-compare` lance ses deux bras AU MÊME
  * INSTANT (deux processus) pour éliminer la dérive machine ; le harnais, lui,
  * ouvre déjà 4 workers d'appariement plus 2 de construction, et deux bras
@@ -495,7 +495,7 @@ function agregerTemps(runs: ResultatHarnais[]): Record<string, SerieTemps> {
  *
  * ⚠️ **C'est le seul élément de l'oracle qui soit intrinsèquement bruité**,
  * et seulement sous `maxMs` : sous quota ou sur un run complet, il est
- * identique à l'unité (mesures A, D, F de 11a). Le rendre en série plutôt
+ * identique à l'unité. Le rendre en série plutôt
  * qu'en valeur unique est ce qui permet au portier de mesurer son plancher
  * **sur les répétitions du bras lui-même**, jamais sur un plancher importé
  * d'une autre grandeur.
@@ -516,7 +516,7 @@ function serieExplored(a: BrasDifferentiel, b: BrasDifferentiel): ExploredCompar
         'interférence ne peut que RETIRER des paires, donc le run le MOINS PERTURBÉ est celui qui en a exploré ' +
         'le PLUS. ⚠️ C’est l’inverse d’un temps, où le run le moins perturbé est le plus COURT.'
       : 'estimateur = la valeur elle-même : hors `maxMs`, `explored` est DÉTERMINISTE (identique à l’unité sur ' +
-        'un run complet comme sous quota — mesures A, D, F de 11a). Une dispersion non nulle ici serait donc ' +
+        'un run complet comme sous quota). Une dispersion non nulle ici serait donc ' +
         'un signal en soi, pas du bruit à moyenner.',
   };
 }
@@ -577,9 +577,8 @@ function evaluerAdmissibilite(
     // Un `explored` différent entre deux bras complets n'est donc pas une
     // coupe survenue à un instant différent, c'est la CONFIGURATION qui a
     // changé l'espace — et c'est un résultat, pas un obstacle. C'est
-    // exactement pourquoi l'exigence n° 1 de 11a demandait des bras complets :
-    // « un run complet supprime le portier, le préfixe, le plancher et le
-    // bruit d'un seul coup ».
+    // exactement pourquoi un profil vise des bras complets : un run complet
+    // supprime le portier, le préfixe, le plancher et le bruit d'un seul coup.
     return {
       portier: 'OUVERT',
       motifPortier: `les deux bras se sont arrêtés de la même façon : ${sa}.`,
@@ -648,7 +647,7 @@ function evaluerAdmissibilite(
  * ⚠️ **Un élément qui varie DANS un bras ne peut pas être comparé ENTRE
  * bras.** C'est la forme littérale de « le plancher est établi par les
  * répétitions du run lui-même, jamais importé » — appliquée à chaque élément
- * plutôt qu'au seul `explored`, parce que 11a a montré qu'un run tronqué par
+ * plutôt qu'au seul `explored`, parce qu'un run tronqué par
  * `maxMs` fait bouger le verdict et la population autant que l'`explored`.
  *
  * Pour un élément catégoriel ou ensembliste, le plancher n'est pas un
@@ -747,7 +746,7 @@ function lireTroncature(a: BrasDifferentiel, b: BrasDifferentiel, adm: Admissibi
       combien: '—',
       autorise: instable,
       piege:
-        '⚠️ Un motif de troncature instable au sein d’un même bras est le cas que 11a déclarait « non observé, ' +
+        '⚠️ Un motif de troncature instable au sein d’un même bras est un cas « non observé, ' +
         'pas démontré impossible » : un bras qui frôle son quota peut basculer maxMs ↔ maxCollected d’un run à ' +
         'l’autre. C’est ce que les répétitions existent pour attraper.',
     };
@@ -847,7 +846,7 @@ function lireVerdict(a: BrasDifferentiel, b: BrasDifferentiel, barrage: string |
         'divergence (élément 2), jamais dans la colonne où elle apparaît.',
     piege:
       '⚠️ `PRÉSENT_DANS_LE_TOP_N` contre `PRÉSENT_HORS_TOP_N` n’est PAS une propriété du build : c’est une ' +
-      'propriété de l’instant où la collecte s’est arrêtée. Mesure I de 11a — à configuration identique, la même ' +
+      'propriété de l’instant où la collecte s’est arrêtée. Mesuré : à configuration identique, la même ' +
       'cible passe de #20/50 000 à #37/200 000 à #48/800 000 et le verdict BASCULE, sans que sa qualité propre ' +
       '(`totalMetrique`) bouge d’un chiffre.',
   };
@@ -943,7 +942,7 @@ function lireClassement(a: BrasDifferentiel, b: BrasDifferentiel, barrage: strin
         ? `top-${topA.length} rendu · populations ${nb(rangA.population)} (témoin) contre ${nb(rangB.population)} (comparé)`
         : `top-${topA.length} rendu`,
     // ⚠️ **Un rang identique sur des populations DIFFÉRENTES n'est pas « rien
-    // à signaler ».** C'est le constat n° 3 de 11b, et il se lit ici : l'ordre
+    // à signaler ».** Cela se lit ici : l'ordre
     // n'a pas bougé alors que le volume collecté a bougé, donc l'élagage a
     // retiré des candidats classés APRÈS la cible. Écrire « à pool égal » sans
     // regarder les populations serait affirmer une égalité qui n'existe pas —
@@ -1168,7 +1167,7 @@ function lireExplored(
  * ----------------------------------------------------------------------- */
 
 /**
- * ⚠️ **Constat n° 1 de 11b, tenu ici en code** : un profil COMPLET peut être
+ * ⚠️ **Tenu ici en code** : un profil COMPLET peut être
  * totalement INSENSIBLE à la configuration, et sa rétention affichée ne le
  * dit pas (le produit brut est un MAJORANT de l'énumération). Un différentiel
  * bâti sur un tel profil rendrait « aucune divergence » sans jamais pouvoir en
@@ -1225,7 +1224,7 @@ export function annoncerDifferentiel(
   if (!profil.axesSensibles.includes(axe)) {
     // ⚠️ DIT AVANT, pas après : payer 2N runs pour apprendre à l'arrivée que
     // le profil ne pouvait rien détecter sur cet axe, c'est un run payé pour
-    // rien — exactement ce que 11a reproche à `maxMs` sur un cas neuf.
+    // rien.
     l.push(
       `  ⚠️ AXE NON DÉCLARÉ SENSIBLE sur ce profil (axes mesurés sensibles : ` +
         `${profil.axesSensibles.length > 0 ? profil.axesSensibles.join(', ') : 'AUCUN'}). Une absence de divergence ` +
@@ -1246,7 +1245,7 @@ export function annoncerDifferentiel(
 }
 
 /* --------------------------------------------------------------------------
- * La RESTITUTION — la vraie difficulté de 11c
+ * La RESTITUTION — la vraie difficulté du différentiel
  * ----------------------------------------------------------------------- */
 
 /**

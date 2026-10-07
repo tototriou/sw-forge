@@ -286,31 +286,7 @@ raison. Celles du moteur de recherche des runes :
 
 ## Dégâts réels
 
-### Gold Headband : arrondi de la VIT par cumul
-
-- **Constat** : chaque cumul ajoute 12 % de la VIT de base, sans arrondi
-  dans les dégâts (`statsDeCombat`, `src/lib/damage.ts` : +13,92 par cumul
-  pour la base 116 de Mei Hou Wang), arrondi au supérieur par cumul dans
-  le Speed tune (`pointsDeGain`, `src/lib/speedTunePassif.ts` : +14). Pour
-  une base de 100, les deux lectures donnent +12 et +120
-  ([../degats-reels/conditions-et-audit.md § Audit des dégâts conditionnels — partie 2](../degats-reels/conditions-et-audit.md)).
-- **Idée** : une seule lecture, la même pour les deux outils.
-- **Bloque** : un relevé en jeu de la VIT affichée par Mei Hou Wang sans
-  cumul puis à dix cumuls. Règle de décision posée d'avance : un écart de
-  +139 exclut l'arrondi supérieur par cumul ; un écart de +140 ne le
-  distingue pas d'un simple arrondi de l'affichage (139,2 → 140).
-
-### Attaques conjointes : lignes d'artéfact 209 et 225
-
-- **Constat** : les lignes 209 (« Dégâts d'attaque conjointe ») et 225
-  (« Dégâts contre/attaque conjointe ») existent
-  (`src/lib/artifacts.ts`), mais le calcul des dégâts n'en lit aucune ; la
-  ligne 224 (« Dmg crit mono-cible à ton tour ») est lue, selon la portée
-  du sort (`damage.ts`).
-- **Idée** : laisser choisir une attaque conjointe pour compter 209 et
-  225, avec le rôle du monstre dans le tour pour 224.
-- **Bloque** : périmètre et cas sans formule à qualifier : un chantier à
-  cadrer.
+Les pistes du calcul des dégâts réels, dont l'arrondi de la VIT de Gold Headband et les attaques conjointes, sont dans [../degats-reels/pistes.md](../degats-reels/pistes.md).
 
 ## Écran, recette et listes
 

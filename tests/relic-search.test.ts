@@ -105,7 +105,7 @@ function cles(candidats: { runeIds: number[] }[]): string[] {
 }
 
 /* --------------------------------------------------------------------------
- * LE corpus du chantier — neuf fixtures (A–H + F bis), écrites à la main.
+ * LE corpus de la recherche — neuf fixtures (A–H + F bis), écrites à la main.
  * Exporté pour que le différentiel complet de la file
  * (tests/relic-queue.test.ts) porte sur EXACTEMENT ces cas, jamais une copie.
  * Chaque entrée : le pool de runes, l'inventaire de reliques, l'intention, les
@@ -395,7 +395,7 @@ export default async function testRelicSearch() {
    * (`prepareForSearch.ts`) est la fonction extraite du handler
    * `self.onmessage`, neutre et testable ici SANS `self` — un appel direct
    * à `prepareSearch` dans le handler transformait ce refus en rejet de
-   * promesse non géré (BLOQUANT 1 : ni message posté, ni `Worker.onerror`,
+   * promesse non géré (ni message posté, ni `Worker.onerror`,
    * l'UI restait bloquée en `'running'`). */
   {
     const pool = [...six(100, (slot, id) => rune(id, slot, [4, 63]))];
@@ -486,7 +486,7 @@ export default async function testRelicSearch() {
     const atk = stats.find((s) => s.key === 'atk')!.total;
     ok(respecteConditionsAvecRelique(gear, equipee, { minStats: { atk }, maxStats: { atk } }).respecte, 'filtre final : min = max = total exact → respecte');
     ok(!respecteConditionsAvecRelique(gear, equipee, { minStats: { atk: atk + 1 } }).respecte, 'filtre final : minimum dépassé d’un point → rejeté');
-    ok(!respecteConditionsAvecRelique(gear, equipee, { minStats: {}, maxStats: { atk: atk - 1 } }).respecte, 'filtre final : MAXIMUM dépassé d’un point → rejeté (T11 : le pendant artéfacts ne le fait pas)');
+    ok(!respecteConditionsAvecRelique(gear, equipee, { minStats: {}, maxStats: { atk: atk - 1 } }).respecte, 'filtre final : MAXIMUM dépassé d’un point → rejeté (le pendant artéfacts ne le fait pas)');
     // Remplacement, jamais cumul : la candidate REMPLACE `gear.relic`.
     const autre = relique(902, 100, 14);
     const avecAutre = respecteConditionsAvecRelique(gear, autre, { minStats: {} }).stats;

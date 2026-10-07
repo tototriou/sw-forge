@@ -1,6 +1,6 @@
 // L’INSTANT DE DÉCOUVERTE et la COURBE DE RENDEMENT (§5.6), puis la
 // DISPERSION PAR TRANCHE (§5.7) — les deux extensions qui absorbent les
-// grandeurs du groupe G2.
+// grandeurs de découverte et de dispersion.
 //
 // ⚠️ **Ce que ce test défend n'est pas une valeur, c'est une DISTINCTION.**
 // L'instant de découverte (quand la cible est apparue dans le flux) et le
@@ -88,7 +88,7 @@ export default async function testDiagnosticDecouverte() {
   // ⚠️ Ce n'est PAS un défaut du harnais : `explored` y est la somme des
   // workers à l'instant d'un relevé TEMPOREL, et l'ordre d'arrivée des
   // candidats dépend de l'ordonnancement des fils. Le masquer serait le
-  // mensonge que tout ce chantier combat.
+  // mensonge que le harnais s'interdit.
   ok(!dt.reproductible, 'un run parallèle se déclare NON REPRODUCTIBLE sur cette grandeur');
   egal(dt.granularitePaires, null, 'en parallèle la granularité est TEMPORELLE, donc pas un nombre de paires');
   ok(

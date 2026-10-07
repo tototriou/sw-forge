@@ -211,7 +211,7 @@ export default function testRelicOptim() {
     // « brutes », ne se dominent pas puisqu'aucune dimension n'existe.
     const dims = dimensionsRetenues('efficience', [], {});
     egal(dims.principaleStats.size, 0, "'efficience' sans minimum actif : aucune statistique de principale retenue");
-    egal(dims.exclusiveTypesPertinents.size, 0, "'efficience' : aucune exclusive retenue (T3)");
+    egal(dims.exclusiveTypesPertinents.size, 0, "'efficience' : aucune exclusive retenue");
     const petite = relic(1, 100, 9, { type: 16, tranche: 27000, percent: 1 });
     const grande = relic(2, 100, 14, { type: 16, tranche: 27000, percent: 1 });
     ok(!relicDominates(grande, petite, dims), 'aucune dimension → aucune relique écartée, même strictement moins bonne en apparence');
@@ -234,7 +234,7 @@ export default function testRelicOptim() {
     // seule source de pertinence de principale.
     const dims = dimensionsRetenues('vitesse', [], { hp: 20000 });
     egal([...dims.principaleStats], ['hp'], "'vitesse' : seule la statistique sous minimum actif est retenue");
-    egal(dims.exclusiveTypesPertinents.size, 0, "'vitesse' : aucune exclusive, jamais (T7)");
+    egal(dims.exclusiveTypesPertinents.size, 0, "'vitesse' : aucune exclusive, jamais");
   }
   {
     // Deux exclusives pertinentes de types différents → aucune dominance,
@@ -248,12 +248,12 @@ export default function testRelicOptim() {
     ok(!relicDominates(origineVit, eternitePv, dims), 'Origine·VIT ne domine pas Éternité·PV non plus');
   }
   {
-    // `scorePartiel` PAR RÉGIME. ⚠️ **Renversé par l'effet unique** : Dégâts réels
-    // et PV effectifs valaient `true` tant qu'aucune exclusive n'avait de
-    // formule. Les cinq groupes que le relevé en jeu couvre sont désormais
-    // chiffrés (`relicExclusive.ts`), et les seuls types non chiffrables
+    // `scorePartiel` PAR RÉGIME. ⚠️ Dégâts réels et PV effectifs ne seraient
+    // `true` que si une exclusive pertinente n'avait pas de formule. Les cinq
+    // groupes que le relevé en jeu couvre sont chiffrés
+    // (`relicExclusive.ts`), et les seuls types non chiffrables
     // (Régénération, un type inconnu) ne sont jamais pertinents : le score
-    // n'est plus partiel sur aucun des quatre objectifs.
+    // n'est partiel sur aucun des quatre objectifs.
     //
     // ⚠️ Ce test fige une CONSÉQUENCE du relevé, pas le relevé lui-même :
     // il retombera à `true` tout seul le jour où un type pertinent arrivera
@@ -268,7 +268,7 @@ export default function testRelicOptim() {
    * Le test de dominance (`spec/outils/optimizer/moteur/reliques.md`, « Pertinence et dominance — écrites, non appelées en production ») et son symétrique
    * ---------------------------------------------------------------- */
   {
-    // Exemple donné par l'utilisateur, en PV effectifs : principales
+    // Exemple en PV effectifs : principales
     // identiques ; l'exclusive de la 1 (dégâts infligés selon la VIT — ici
     // Conquête·ATQ, type 1, comme représentant d'un type « dégâts infligés »
     // non pertinent en PV effectifs) n'entre dans aucun axe de l'objectif ;
@@ -285,13 +285,13 @@ export default function testRelicOptim() {
    * ---------------------------------------------------------------- */
   {
     // Un maximum actif sur la statistique de la principale interdit toute
-    // dominance dessus, dans les deux sens (contre-exemple B1).
+    // dominance dessus, dans les deux sens (contre-exemple).
     const dims: RelicDimensions = dimensionsRetenues('ehp', [], {});
     dims.maxActifs.add('hp');
     dims.principaleStats.add('hp');
     const plus14 = relic(1, 100, 14, { type: 16, tranche: 27000, percent: 1 });
     const plus12 = relic(2, 100, 12, { type: 16, tranche: 27000, percent: 1 });
-    ok(!relicDominates(plus14, plus12, dims), 'maximum actif sur PV → +14 ne domine pas +12 (B1)');
+    ok(!relicDominates(plus14, plus12, dims), 'maximum actif sur PV → +14 ne domine pas +12');
     ok(!relicDominates(plus12, plus14, dims), 'et réciproquement');
   }
   {

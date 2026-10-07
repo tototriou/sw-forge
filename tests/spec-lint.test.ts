@@ -104,7 +104,7 @@ export default function testSpecLint() {
 
   egal(CONFIG.exceptions.length, 2, 'la fixture de config déclare deux exceptions (une périmée, une valide)');
 
-  // C6 : un cadrage (dossier chantiers/) est une quatrième nature (`spec/outillage/spec.md`, « La nature CHANTIER »).
+  // Un cadrage (dossier chantiers/) est une quatrième nature (`spec/outillage/spec.md`, « La nature CHANTIER »).
   ok(
     regles(erreurs, 'chantiers/cadrage-ok.md').length === 0,
     'cadrage de 619 lignes, blocs < 100, Statut « CHANTIER en cours » : accepté malgré > 500 lignes (exemption chantiers/)'

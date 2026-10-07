@@ -1,6 +1,6 @@
 // Valeurs connues par l'API SWARFARM seule.
 //
-// Règle de l'utilisateur : la valeur de l'API par défaut,
+// Règle : la valeur de l'API par défaut,
 // sauf si la prose du sort la contredit. Les valeurs testées ici viennent des
 // « compétences auxiliaires » (`other_skill`) lues par l'audit des dégâts
 // conditionnels du 2026-09-08, absentes de l'import du corpus : chaque nombre
@@ -217,7 +217,7 @@ export function testDegatsFormulesApi() {
     // Même fiche, autre identifiant : aucune formule curée, la garde tient.
     const ramon = fiche(31414).competences.find((c) => c.com2usId === 21114)!;
     egal(skillDamageProfile({ ...ramon, com2usId: 999_114 }), null, 'formule vide sans formule curée : aucun profil');
-    // Hors périmètre (Q04) : les sorts « Horn » des Anges jumeaux restent sans profil.
+    // Hors périmètre : les sorts « Horn » des Anges jumeaux restent sans profil.
     for (const id of [18801, 18811]) {
       const horn = fiche(29111).competences.find((c) => c.com2usId === id)!;
       egal(skillDamageProfile(horn), null, `${id} « ${horn.nom} » : aucune formule curée, aucun profil (forme de soutien)`);

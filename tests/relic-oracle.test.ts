@@ -194,25 +194,25 @@ export default function testRelicOracle() {
     ok(leve(() => paireDeReference([15, 16], inventaire, porteur)) != null, 'paire de référence : deux intangibles ne se portent pas ensemble');
   }
 
-  /* B1 : un maximum actif interdit de jeter la valeur de principale basse. */
-  const poolB1 = randomPool(mulberry32(4012), 1).map((r) => ({ ...r, set: 'energy' }));
+  /* Contre-exemple : un maximum actif interdit de jeter la valeur de principale basse. */
+  const poolMaximumActif = randomPool(mulberry32(4012), 1).map((r) => ({ ...r, set: 'energy' }));
   const basse = relique(8301, 100, 12);
   const haute = relique(8302, 100, 14);
-  const hpBasse = computeStats({ base, runes: poolB1, artifacts: [], relic: basse }).find((s) => s.key === 'hp')!.total;
-  const paramsB1: SearchParams = {
+  const hpBasse = computeStats({ base, runes: poolMaximumActif, artifacts: [], relic: basse }).find((s) => s.key === 'hp')!.total;
+  const paramsMaximumActif: SearchParams = {
     ...params,
-    pool: poolB1,
+    pool: poolMaximumActif,
     requirement: { sets: [], minStats: {}, maxStats: { hp: hpBasse } },
   };
-  const contexteB1 = resoudreContexteRelique(
+  const contexteMaximumActif = resoudreContexteRelique(
     { mode: 'recherche', principale: 'libre', type: 'libre', seuil: 6 },
     undefined,
     [haute, basse]
   );
-  const oracleB1 = oracleSearch(paramsB1, contexteB1);
-  egal(oracleB1.N, 2, 'B1 : les deux valeurs de principale restent des recherches distinctes');
-  egal(oracleB1.candidats.length, 1, 'B1 : le build faisable avec +12 est trouvé malgré le +14 infaisable');
-  egal(oracleB1.rid, basse.id, 'B1 : l’optimum faisable porte la PV % +12');
+  const oracleMaximumActif = oracleSearch(paramsMaximumActif, contexteMaximumActif);
+  egal(oracleMaximumActif.N, 2, 'maximum actif : les deux valeurs de principale restent des recherches distinctes');
+  egal(oracleMaximumActif.candidats.length, 1, 'maximum actif : le build faisable avec +12 est trouvé malgré le +14 infaisable');
+  egal(oracleMaximumActif.rid, basse.id, 'maximum actif : l’optimum faisable porte la PV % +12');
 
   /* ── Refus nommé : pool vide en mode recherche — même classe que le moteur
    * (l'oracle rendait

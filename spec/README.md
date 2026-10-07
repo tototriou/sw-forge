@@ -300,8 +300,8 @@ Outillage du dépôt (pas une page de l'app) :
       à plus tard s'y fait quand on veut. Voir
       [shared/application-bureau.md](shared/application-bureau.md).
       Puis le **dossier SW Exporter** et l'**invocateur** à suivre : « Mon
-      compte » se met à jour à chaque export (décision 15, lot 9 —
-      [shared/import-compte.md](shared/import-compte.md)).
+      compte » se met à jour à chaque export
+      ([shared/import-compte.md](shared/import-compte.md)).
 - **Import de compte global** : un seul bouton invariant « Importer mon compte »
   dans la barre de nav remplit RTA + siège défense + offense **+ « Mon compte »**
   (box 6★ et inventaire runes/artéfacts) d'un coup. Chaque import remplace le

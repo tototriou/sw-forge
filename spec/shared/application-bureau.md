@@ -1,6 +1,6 @@
 # L'application de bureau (Windows, Linux)
 
-**Statut :** ÉTAT ACTUEL — l'application Electron : construction, démarrage, fenêtre, pont avec la page, données, SW Exporter, installeur, publication, mise à jour
+**Statut :** ÉTAT ACTUEL — l'application Electron : construction, démarrage, fenêtre, pont avec la page, données, SW Exporter, installeur, publication, mise à jour, bloc « Application » des Réglages
 **Lire si :** on touche `bureau/`, `src/lib/bureau.ts`, `electron-builder.yml`, `.github/workflows/bureau.yml` ou un texte `selonSupport`
 **Voir aussi :** [../telecharger.md](../telecharger.md) (la page du site), [import-compte.md](import-compte.md) § « Le dossier SW Exporter »
 
@@ -188,11 +188,19 @@ change pas. Ce qui en dépend aujourd'hui :
 
 `npm run bureau:paquet` → dossier `paquets`, non suivi (`electron-builder.yml`) :
 
-- **Windows** : assistant NSIS en français — pour qui (« juste pour moi »
-  par défaut, sans droits administrateur), quel dossier, avancement ;
-  désinstallation avec ses pages. **Non signé** : Windows avertit au premier
-  lancement (la page « Télécharger » dit comment passer). **Linux** :
-  AppImage.
+- **Deux plateformes : Windows et Linux.** Pas de macOS. Sous Linux,
+  l'**AppImage** est le seul format qu'electron-updater sait mettre à jour
+  (un `.deb` passe par le gestionnaire de paquets).
+- **Windows** : assistant NSIS en français (`oneClick: false`) — pour qui
+  (« juste pour moi » par défaut, `perMachine: false` : dans le profil,
+  sans droits administrateur, et la mise à jour passe sans demande
+  d'autorisation ; « tous les utilisateurs » la fait demander à chaque
+  fois), quel dossier (`allowToChangeInstallationDirectory`), avancement ;
+  désinstallation avec ses pages (bienvenue, avancement, fin). L'icône de
+  l'app est sur l'exécutable, l'installeur et les raccourcis (`SW
+  Blacksmith`). **Non signé** : Windows avertit au premier lancement (la
+  page « Télécharger » dit comment passer). **Linux** : AppImage, icône
+  `public/favicon.png`.
 - **`appId` `com.swblacksmith.app` — définitif** : Windows et la mise à jour
   reconnaissent l'app par lui.
 - Fichiers **sans numéro de version** (`SW-Blacksmith-Setup.exe`,
@@ -240,6 +248,40 @@ notification), `BlocApplication` (Réglages).
   s'estime inactif, une AppImage extraite par exemple), elle passe en
   `injoignable` si on l'a demandée, sinon en `aucune` — jamais bloquée sur
   « Recherche… », que « Rechercher » refuserait de relancer.
+
+## Le bloc « Application » des Réglages
+
+`src/components/BlocApplication.tsx`, en dernier dans la liste des
+réglages (`SettingsList` : menu ⚙ et page Paramètres), **dans l'app
+seulement** (`estBureau()`) : sur le site, le bloc n'existe pas. Chaque
+rangée a toujours une ligne de texte dessous (hauteur constante), et ses
+boutons restent affichés, désactivés quand il n'y a rien à faire.
+
+- **« Version X »** et UN bouton qui suit la phase de la mise à jour
+  (`presentationMiseAJour`, pure) — largeur réservée, pour que « Rechercher »
+  → « Recherche… » ne déplace pas le bouton cliqué :
+
+  | Phase | Bouton | Ligne dessous |
+  |-------|--------|---------------|
+  | `aucune` (ou rien reçu) | Rechercher | Les nouvelles versions sont cherchées au lancement. |
+  | `recherche` | Recherche… (désactivé) | Recherche d'une nouvelle version… |
+  | `a-jour` | Rechercher | Tu as la dernière version. |
+  | `injoignable` | Rechercher | Impossible de vérifier : pas de connexion ? |
+  | `disponible` | Mettre à jour | Nouvelle version X disponible. |
+  | `telechargement` | Téléchargement… (désactivé) | Téléchargement de la version X… |
+  | `prete` | Redémarrer | Version X prête : installée au redémarrage, ou à la fermeture de l'app. |
+  | `echec` | Réessayer | Le téléchargement n'a pas abouti. |
+
+- **« Dossier SW Exporter »** — « Retirer » (désactivé sans dossier) et
+  « Choisir… » ; dessous, le chemin, ou sans dossier : « Choisis le dossier
+  où SW Exporter enregistre ses exports : « Mon compte » suivra chaque
+  nouvel export. »
+- **« Invocateur »** — un `Selecteur` (« Invocateur à suivre »), désactivé
+  sans export ; dessous (`presentationSwex`, pure) : « Aucun dossier
+  choisi. », « Dossier introuvable : vérifie qu'il existe encore, ou
+  choisis-en un autre. », « Aucun export de compte à la racine de ce
+  dossier. », « Choisis l'invocateur à suivre. », puis « Export du <date> —
+  lu. » ou « … — lecture en cours… » tant que la page ne l'a pas confirmé.
 
 ## Vérifier
 

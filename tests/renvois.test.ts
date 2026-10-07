@@ -46,7 +46,6 @@ export const FICHIERS_EXEMPTES = [
   'tests/installer-hooks.test.ts',
   'tests/hook-refuse-commit-m.test.ts',
   'tests/skill-adapters.test.ts',
-  'tests/refonte-inventaire.test.ts',
   'tests/renvois.test.ts',
   LISTE,
 ];

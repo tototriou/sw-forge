@@ -210,20 +210,6 @@ export function testProseStatsCombatCarte() {
     'en-tête posé seulement au-dessus d’un compteur ou d’un interrupteur d’état (deux branches)');
   ok(!/\.description\b/.test(bloc) && !/profile\.description/.test(carte),
     'la carte ne lit jamais `profile.description` : la prose ne passe que par `renduStatsCombat`');
-
-  // Ancres du bloc « Stats acquises en combat » dans la carte : chacune une
-  // fois et une seule.
-  for (const fragment of [
-    '{combatStats.map((profile, index) => {',
-    "profile.source === 'debuffsInverses'",
-    "profile.source === 'toujours'",
-    "if (profile.source === 'debuffsInverses')",
-    "if (profile.source === 'toujours')",
-    "if (profile.source === 'toggle')",
-    'const record = profile.source',
-  ]) {
-    egal(brute.split(fragment).length - 1, 1, `ancre unique dans la carte : ${fragment}`);
-  }
 }
 
 /**

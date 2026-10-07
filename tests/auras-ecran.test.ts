@@ -280,7 +280,7 @@ export function testAurasEcranRappel() {
     ({ espece, exemplaire, aurasExternes });
   ok(doitRappeler('liste', m('1001', 'box:1'), m('2002', 'box:7')), 'liste de travail, autre espèce, auras renseignées : rappel');
   ok(doitRappeler('liste', m('1001', 'box:1'), m('1001', 'siege-defense:3')),
-    'liste de travail, MÊME espèce, autre exemplaire : rappel (réponse de l’utilisateur du 2026-10-02)');
+    'liste de travail, MÊME espèce, autre exemplaire : rappel');
   ok(!doitRappeler('liste', m('1001', 'box:1'), m('1001', 'box:1')), 'recliquer l’exemplaire déjà affiché : aucun rappel');
   ok(!doitRappeler('liste', m('1001', 'box:1', []), m('2002', 'box:7', [])), 'aucune aura externe : aucun rappel');
   // ⚠️ Objets écrits en entier : un `undefined` passé à `m` prendrait la valeur par défaut.
@@ -292,7 +292,7 @@ export function testAurasEcranRappel() {
     ok(!doitRappeler(voie, m('1001', 'box:1'), m('2002', 'box:7')), `voie « ${voie} », autre espèce, auras renseignées : aucun rappel`);
   }
   ok(!doitRappeler('rendu', m(null, null), m('2002', 'box:7')), 'premier rendu : aucun rappel');
-  egal(DUREE_ATTENTION_MS, 3000, 'effacé après 3 s (réponse de l’utilisateur du 2026-10-02)');
+  egal(DUREE_ATTENTION_MS, 3000, 'effacé après 3 s');
   const setup = { ...DEFAULT_DAMAGE_SETUP, setsAuraExternes: auras };
   egal(damageSetupApresChangementMonstre(setup).setsAuraExternes, auras,
     'les nombres ne sont jamais réécrits : le changement de monstre conserve les auras, le rappel ne fait que les signaler');

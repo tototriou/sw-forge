@@ -21,7 +21,7 @@ const AUTRE: RelicDetail = { id: 2, upgrade: 9, main: { code: 100, value: 12 }, 
 export function testKDeLaFile() {
   titre('File de résolution — sa taille selon le mode relique');
 
-  egal([K_BUILDS_OPTIMISES, K_BUILDS_RECHERCHE_RELIQUE], [100, 300], 'les deux tailles décidées le 2026-10-01');
+  egal([K_BUILDS_OPTIMISES, K_BUILDS_RECHERCHE_RELIQUE], [100, 300], 'les deux tailles de file : 100 et 300');
   egal(kDeLaFile(undefined), 100, 'aucune recherche lancée : 100');
 
   const ctx = (optimiser: boolean, principale: 'equipped' | 'libre', portee: RelicDetail | undefined) =>

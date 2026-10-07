@@ -60,9 +60,8 @@ export default function testOptimizerDamageTransitions() {
 
   titre('Optimizer · changement d’exemplaire de la même espèce');
 
-  // Décision de l'utilisateur du 2026-10-02 : changer d'exemplaire efface les
-  // résultats affichés, comme un changement d'espèce ; l'utilisateur relance
-  // lui-même. Le dépôt n'a pas de test React : l'arbre syntaxique du hook
+  // Changer d'exemplaire efface les résultats affichés, comme un changement
+  // d'espèce ; l'utilisateur relance lui-même. Le dépôt n'a pas de test React : l'arbre syntaxique du hook
   // établit CE qui est effacé, l'écran QUAND.
   const sourceHook = ts.createSourceFile('useOptimizerState.ts', hook, ts.ScriptTarget.Latest, true);
   const fonctionDuHook = (nom: string) => {

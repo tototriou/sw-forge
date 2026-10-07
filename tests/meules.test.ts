@@ -240,8 +240,8 @@ export function testRegistre() {
     'héroïque épuisée → on se rabat sur la légendaire'
   );
 
-  // ⚠️ LE test : tout dépenser doit rendre la rune infaisable. C'est le cas que
-  // l'utilisateur a demandé — meuler une Violent, ne plus s'en voir proposer.
+  // ⚠️ LE test : tout dépenser doit rendre la rune infaisable. C'est le cas
+  // d'usage : meuler une Violent, ne plus s'en voir proposer.
   const vide = buildCraftStock(lignes, { 'grind|violent|8|4|n': 1, 'grind|violent|8|5|n': 2 });
   ok(!ownsCraft(vide, q), 'tout dépensé → plus rien de disponible');
   egal(vide.total, 0, 'et la réserve affichée tombe bien à zéro');

@@ -1,16 +1,18 @@
-// Score chiffré des propriétés uniques de relique (
-// `spec/outils/optimizer/moteur/reliques.md`, « L'effet unique — score de la propriété exclusive »). Un test par GROUPE, contre des valeurs calculées À LA MAIN
-// depuis des pièces RÉELLES des deux exports du chantier (le `rid` et le
+// Score chiffré des propriétés uniques de relique
+// (`spec/outils/optimizer/moteur/reliques.md`, « L'effet unique — score de la
+// propriété exclusive »). Un test par GROUPE, contre des valeurs calculées À LA
+// MAIN depuis des pièces RÉELLES des deux exports de compte (le `rid` et le
 // `sec_effect = [type, tranche, percent]` de chacune sont cités en
 // commentaire, relevés le 2026-09-22 par le vrai chemin d'import).
 //
 // ⚠️ **`game-data-curation` s'applique intégralement.** La formule
-// `⌊Y / t⌋ × percent` et le placement de chaque groupe (bracket `DMG%` pour
-// Conquête, `Réductions` pour Ténacité, valeur de BASE pour Bravoure /
-// Éternité / Origine) sont un RELEVÉ EN JEU de l'utilisateur (`spec/outils/degats-reels/valeurs-de-jeu-curees.md`),
-// pas une déduction. Ce que ces tests figent, c'est ce relevé —
-// et deux analogies de `damage.ts` s'étant déjà révélées fausses, aucune
-// valeur n'est ici « par symétrie » avec une autre.
+// `⌊Y / t⌋ × percent` et le placement des groupes Conquête (terme `DMG%`),
+// Bravoure / Éternité / Origine (valeur de BASE) sont un RELEVÉ EN JEU, décrit
+// dans la section de `reliques.md` citée ci-dessus, pas une déduction. La
+// Ténacité fait exception : sa traduction en PV effectifs équivalents est une
+// SIMPLIFICATION, pas un relevé, et son test fige cette simplification. Deux
+// analogies de `damage.ts` s'étant déjà révélées fausses, aucune valeur n'est
+// ici « par symétrie » avec une autre.
 //
 // ⚠️ Ce que les tests ne figent PAS, et qui est dit : l'arrondi de l'apport
 // de POINTS (Bravoure/Éternité/Origine) n'a pas été relevé — le code n'en
@@ -101,7 +103,7 @@ export default function testRelicExclusive() {
     egal(tranchesAtteintes(1800, 1000), 1, 'entre deux paliers → toujours 1, jamais au prorata (1 800 pour 1 000)');
     egal(tranchesAtteintes(2000, 1000), 2, 'palier suivant → 2 (2 000 pour 1 000)');
     // Aucun plafond : 120 tranches sont rendues telles quelles.
-    egal(tranchesAtteintes(120_000, 1000), 120, 'aucun plafond sur le nombre de tranches (rév. 43)');
+    egal(tranchesAtteintes(120_000, 1000), 120, 'aucun plafond sur le nombre de tranches');
   }
 
   /* ── L'assiette Y — « au début du combat », sans buff ────────────────── */
@@ -280,8 +282,8 @@ export default function testRelicExclusive() {
  *
  * Producteur réel : `optionsDeClassement`, que l'écran appelle tel quel ;
  * l'état de relique vient d'`etatReliqueDuBuild` sur les contextes de
- * `resoudreContexteRelique` — les deux mêmes fonctions que l'écran. Règle 1
- * : `off`/`equipped` → la relique de la fiche ; `recherche` → la
+ * `resoudreContexteRelique` — les deux mêmes fonctions que l'écran. Règle :
+ * `off`/`equipped` → la relique de la fiche ; `recherche` → la
  * relique RETENUE ; non résolue → neutre, sans repli ; aucune → neutre.
  *
  * Attentes calculées À LA MAIN, jamais par `scoreDuCandidat` : l'apport
@@ -350,7 +352,7 @@ export function testRelicClassementParMode() {
   // Attentes à la main.
   const degatsNeutres = objectiveScore(cAtq, 'degats_reels', AUCUNE_AURA_PROPRE, DEGATS);
   const degatsConquete = objectiveScore(cAtq, 'degats_reels', AUCUNE_AURA_PROPRE, DEGATS, { ...APPORT_NEUTRE, dmgPct: 4 });
-  ok(Math.abs(degatsConquete / degatsNeutres - 1.04) < 1e-12, 'Conquête additive dans DMG% (T4) : ×1,04 sur un sort sans autre bonus');
+  ok(Math.abs(degatsConquete / degatsNeutres - 1.04) < 1e-12, 'Conquête additive dans DMG% : ×1,04 sur un sort sans autre bonus');
   const ehpNeutres = pvEffectifs(cPv.stats, AUCUNE_AURA_PROPRE, SETUP);
   const ehpTenacite = ehpNeutres / (1 - 3 / 100);
   const proche = (a: number | null, b: number) => a != null && Math.abs(a - b) < 1e-9 * Math.max(1, Math.abs(b));
@@ -395,24 +397,22 @@ export function testRelicClassementParMode() {
       realDamage: null, damageSetup: SETUP, runeById: parId, metric: 'eff', aurasPropresDe: propresDe,
       artefactsDuBuild: () => null, etatReliqueDe: e, contexteExclusive: { setup: SETUP, element: null },
     });
-    // Attentes modifiées (choix de l'utilisateur) : jusque-là
-    // [2 500, 2 550] et B devant A, les points Bravoure comptés dans le tri.
+    // Avec la relique de la fiche, les points Bravoure ne comptent pas dans
+    // le tri : le score est celui de la fiche et A reste devant B.
     for (const [nom, e] of [['off', etat(ctxOff, bravoure)], ['equipped', etat(ctxEquipped, bravoure)]] as const) {
       egal([scoreDuCandidat(a, 'atk', opts(e)), scoreDuCandidat(b, 'atk', opts(e))], [2300, 2250], `tri ATQ, ${nom} : la fiche, 2 300 et 2 250 — les points Bravoure ne classent plus`);
       egal(sortCandidates([a, b], 'atk', opts(e)).map(cleBuild), [a, b].map(cleBuild), `tri ATQ, ${nom} : A reste devant B, que ses points ne font plus passer`);
     }
-    // L'ancien ordre de BASE de l'écran (options sans effet unique), affiché
-    // tel quel tant que la file n'a rien résolu, contredisait les cartes
-    // Il coïncide désormais avec le classement affiché.
-    const ancienneBase = sortCandidates([a, b], 'atk', { runeById: parId, metric: 'eff', damageSetup: SETUP, aurasPropresDe: propresDe });
-    egal(ancienneBase.map(cleBuild), sortCandidates([a, b], 'atk', opts(etat(ctxOff, bravoure))).map(cleBuild),
+    // L'ordre de BASE de l'écran (options sans effet unique), affiché tel
+    // quel tant que la file n'a rien résolu, coïncide avec le classement
+    // affiché.
+    const ordreDeBase = sortCandidates([a, b], 'atk', { runeById: parId, metric: 'eff', damageSetup: SETUP, aurasPropresDe: propresDe });
+    egal(ordreDeBase.map(cleBuild), sortCandidates([a, b], 'atk', opts(etat(ctxOff, bravoure))).map(cleBuild),
       'ordre de base sans effet unique et classement affiché : le même ordre');
     const nonResolu = etat(ctxRecherche, bravoure);
     egal(scoreDuCandidat(a, 'atk', opts(nonResolu)), 2300, 'tri ATQ, recherche non résolue : neutre (2 300)');
     egal(sortCandidates([a, b], 'atk', opts(nonResolu)).map(cleBuild), [a, b].map(cleBuild), 'tri ATQ, recherche non résolue : ordre des stats seules');
-    // Bascule : l'écart d'avant (« la carte montre
-    // 2 300, le tri classe sur 2 500 ») est corrigé — la carte (`StatPanel`,
-    // `candidate.stats`) montre la valeur qui classe.
+    // La carte (`StatPanel`, `candidate.stats`) montre la valeur qui classe.
     egal(scoreDuCandidat(a, 'atk', opts(etat(ctxOff, bravoure))), statTotal(a.stats, 'atk'),
       'la carte montre l’ATQ de la fiche (2 300), le tri classe sur 2 300');
   }
@@ -449,7 +449,7 @@ export function testRelicClassementParMode() {
       [ca, cb].map(cleBuild), 'harnais, mode recherche sans résolution : neutre, A devant B');
   }
 
-  /* ── Règle 6 : effet unique modifié, identifiant de relique constant ───── */
+  /* ── Effet unique modifié, identifiant de relique constant ─────────────── */
   {
     const conqueteBis: RelicDetail = { ...CONQUETE, unique: { type: 1, tranche: 1000, percent: 3 } };
     egal(conqueteBis.id, CONQUETE.id, 'même identifiant de relique');
@@ -496,8 +496,8 @@ export function testRelicClassementParMode() {
  * « Comparer » : la FICHE notée comme un candidat
  * (`scoreDeReference`, le producteur que l'écran appelle) — ses stats, ses
  * auras propres, le profil de SA paire d'artéfacts, l'effet unique de SA
- * relique. L'ancienne référence mêlait les stats de la fiche au profil de
- * `searchArtifacts` et omettait l'effet unique. Attentes à la main :
+ * relique — jamais les stats de la fiche mêlées au profil de
+ * `searchArtifacts`, ni l'effet unique omis. Attentes à la main :
  * `computeTotalDamage` / `pvEffectifs` avec l'apport écrit en dur.
  * ----------------------------------------------------------------------- */
 
@@ -525,8 +525,7 @@ export function testRelicReferenceComparer() {
   egal([profilFiche.brutPctAtk, profilRecherche.brutPctAtk], [5, 0], 'précondition : les deux paires diffèrent par la ligne 219');
 
   // Le contexte que l'écran passe : celui du combat. On y laisse EXPRÈS le
-  // profil de la paire de la recherche (ce que lisait l'ancienne référence) :
-  // la référence doit l'ignorer.
+  // profil de la paire de la recherche : la référence doit l'ignorer.
   const degatsRecherche: RealDamageContext = { ...DEGATS, artefacts: profilRecherche };
   const ctxRef = { degats: degatsRecherche, damageSetup: SETUP, exclusive: { setup: SETUP, element: null } };
   const degats = (stats: ReturnType<typeof computeStats>, profil: typeof profilFiche, dmgPct: number) =>
@@ -539,8 +538,8 @@ export function testRelicReferenceComparer() {
   const statsConq = computeStats(fiche(CONQUETE));
   egal(statTotal(statsConq, 'atk'), 2200, 'précondition : ATQ de la fiche 2 200');
   const attenduConq = degats(statsConq, profilFiche, 4);
-  const ancienne = degats(statsConq, profilRecherche, 0);
-  ok(Math.abs(attenduConq - ancienne) > 1, `constat : l'ancienne référence (paire de la recherche, sans Conquête) valait ${ancienne.toFixed(1)}, la fiche vaut ${attenduConq.toFixed(1)}`);
+  const sansConquete = degats(statsConq, profilRecherche, 0);
+  ok(Math.abs(attenduConq - sansConquete) > 1, `témoin : la référence (paire de la recherche, sans Conquête) vaudrait ${sansConquete.toFixed(1)}, la fiche vaut ${attenduConq.toFixed(1)}`);
   ok(proche(scoreDeReference('degats_reels', fiche(CONQUETE), ctxRef), attenduConq),
     `référence « Dégâts réels » : paire de la FICHE et Conquête 4 % (${attenduConq.toFixed(3)})`);
   egal(scoreDeReference('degats_reels', fiche(undefined), ctxRef), degats(computeStats(fiche(undefined)), profilFiche, 0),
@@ -589,8 +588,7 @@ export function testRelicReferenceComparer() {
 }
 
 /* --------------------------------------------------------------------------
- * Le tri par PV, ATQ ou DEF classe sur la FICHE (choix
- * de l'utilisateur) : le tri,
+ * Le tri par PV, ATQ ou DEF classe sur la FICHE : le tri,
  * l'évaluateur de paire des régimes `hp`/`atk`/`def` et la carte lisent une
  * seule valeur, sans les points Bravoure/Éternité/Origine. « Dégâts réels »
  * et « PV effectifs » les comptent toujours (témoins).
@@ -685,7 +683,7 @@ export function testDepartageReliquePortee() {
   // Le build B du test précédent : il franchit 3 tranches de Bravoure.
   const runes: RuneDetail[] = [1, 2, 3, 4, 5, 6].map((slot) => rune(7700 + slot, slot, slot === 1 ? [3, 250] : slot === 5 ? [1, 6000] : [8, 0]));
   // Même principale (ATQ +10 %) que la Bravoure 690, plus grande `id` :
-  // l'ancienne note (points) ET la seule règle de l'`id` retiendraient 690.
+  // une note en points ET la seule règle de l'`id` retiendraient 690.
   const portee = piece(695, 101, 10, 9, 16, 1000, 5);
   const autre = piece(696, 101, 10, 9, 16, 1000, 5);
   const principalePv = piece(697, 100, 10, 9, 16, 1000, 5);

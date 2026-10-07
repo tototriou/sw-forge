@@ -135,7 +135,7 @@ export function testGarantieYujiRick() {
     egal(p.conditionsCombat, [{ type: 'debuffCiblePresent', critiqueGaranti: true }],
       `${sort} ${nom} — condition « débuff sur la cible » qui garantit le critique`);
     egal(p.effetsEntreCoups, [{ id: 'decrease-def', label: 'Réduction de DEF', cumulable: false, effetCombat: 'defBreak' }],
-      `${sort} ${nom} — réduction de DEF posable entre les coups, comptée comme débuff ET comme Brise DEF pour le coup 2 (décision du 2026-10-03)`);
+      `${sort} ${nom} — réduction de DEF posable entre les coups, comptée comme débuff ET comme Brise DEF pour le coup 2`);
 
     const element = forme % 10 === 2 ? 'fire' : forme % 10 === 3 ? 'wind' : 'dark';
     const total = (s: Partial<DamageSetup>) =>
@@ -159,8 +159,9 @@ export function testGarantieYujiRick() {
       `${sort} ${nom} — Brise DEF saisie : débuff présent, les deux coups critiques`);
   }
 
-  // La
-  // réduction de DEF du coup 1 baisse aussi la DEF que subit le coup 2. Les
+  // La réduction de DEF du coup 1 baisse aussi la DEF que subit le coup 2
+  // (`spec/outils/degats-reels/conditions-et-audit.md`, « Correctifs de
+  // contexte et de dégâts fixes »). Les
   // totaux du témoin Yuji vent (1 000 ATQ, 100 % de Dgts Crit, DEF cible
   // 1 000, « Non critique ») sont figés en valeur : 848,5363 sans scénario
   // (inchangé), 2 231,2793 avec la réduction posée après le coup 1.

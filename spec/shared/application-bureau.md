@@ -242,7 +242,8 @@ Le mode preuve (`bureau/preuve.ts`, variables `SWBLACKSMITH_PREUVE` et
 `SWBLACKSMITH_PREUVE_*`) vit dans ses propres données (`<dossier>/donnees`) :
 il ne touche jamais celles de l'utilisateur. Il note les liens au lieu de
 les ouvrir, range les téléchargements dans `<dossier>/telechargements` et
-les sessions dans `<dossier>/sessions` sans boîte de dialogue, simule la
+les sessions dans `<dossier>/swblacksmith/sessions` (le dossier SW
+Blacksmith « choisi ») sans boîte de dialogue, simule la
 mise à jour, se contrôle de l'intérieur,
 écrit ses résultats en JSON puis quitte, sans capture d'écran ; le script
 compare et rend 1 si un verdict échoue.

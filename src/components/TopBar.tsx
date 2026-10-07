@@ -10,10 +10,10 @@ import { Bouton, BoutonIcone } from '../ui';
 // session et les PARAMÈTRES (mobile) ou la déconnexion (bureau).
 //
 // Elle a d'abord porté l'import. Il n'y avait pas sa place : c'est un geste
-// RARE, et la barre est ce qu'on lit en permanence. « Sauvegarder », lui,
-// revient sans cesse. Ils vivent dans les paramètres, où l'on va justement quand on
-// veut changer quelque chose — l'import y côtoie l'état du compte, la
-// suppression des données y côtoie le réglage de conservation.
+// RARE, et la barre est ce qu'on lit en permanence. Il vit dans les
+// paramètres, où l'on va justement quand on veut changer quelque chose : il y
+// côtoie l'état du compte. « Sauvegarder », lui, revient sans cesse : il a sa
+// place ici.
 //
 // ⚠️ **Fixe, et elle COMMENCE après la barre latérale** — elle ne la surplombe
 // pas. La barre latérale est la navigation principale : la couper d'un bandeau

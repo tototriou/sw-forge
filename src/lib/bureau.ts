@@ -119,10 +119,16 @@ export function suivreMiseAJour(rappel: (etat: EtatMiseAJour) => void): () => vo
   const p = pont();
   if (!p) return () => {};
   let actif = true;
+  // Un changement reçu avant la réponse de `etat()` est plus récent : elle
+  // ne l'écrase pas (une phase déjà passée reviendrait à l'écran).
+  let change = false;
   void p.miseAJour.etat().then((etat) => {
-    if (actif && etat) rappel(etat);
+    if (actif && !change && etat) rappel(etat);
   });
-  const desabonner = p.miseAJour.surChangement(rappel);
+  const desabonner = p.miseAJour.surChangement((etat) => {
+    change = true;
+    rappel(etat);
+  });
   return () => {
     actif = false;
     desabonner();

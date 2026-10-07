@@ -2,7 +2,7 @@
 
 **Statut :** ÉTAT ACTUEL — valeurs de jeu fournies par l'utilisateur (joueur) pour le calcul des dégâts réels, chacune avec sa source
 **Lire si :** on modélise ou on corrige une mécanique de jeu dont la valeur ne vient pas de la donnée SWARFARM
-**Ne pas lire si :** on cherche comment le calcul applique une valeur (voir les autres fichiers de `degats-reels/`)
+**Ne pas lire si :** on cherche comment le calcul applique une valeur (voir les autres fichiers de `spec/outils/degats-reels/`)
 **Voir aussi :** spec/outils/degats-reels.md, spec/outils/degats-reels/formules-et-combat.md
 
 ## Les valeurs de jeu — curées, avec leur source
@@ -42,7 +42,7 @@ par invention.
 | Artéfact 411 | Premier coup du tour seulement ; s'il est en zone, chaque adversaire recevant CE coup en profite. Jamais sur Tempest, même sélectionné seul, ni sur le coup de zone de Blade Surge | utilisateur, correction explicite en revue |
 | Cible secondaire | « Autres ennemis » = dégâts sur **un** autre ennemi, jamais somme sur tous | utilisateur, précision de revue |
 | Tempest seul | Une seule contribution, jamais un second déclenchement de lui-même | utilisateur, précision de revue |
-| Conquête et lignes 218–221 | Le bonus Conquête vit dans le terme DMG% : il ne s'applique jamais au bucket Additionnel, dont font partie les dégâts supplémentaires 218–221 | utilisateur, 2026-09-30 ; concorde avec la spec (`degats-reels/artefacts-et-degats-bruts.md`, bucket Additionnel sans DMG%, relevés Julie et Jessica) et le code (`damage.ts`, `dmgPct` vs `horsCoupBrut`) |
+| Conquête et lignes 218–221 | Le bonus Conquête vit dans le terme DMG% : il ne s'applique jamais au bucket Additionnel, dont font partie les dégâts supplémentaires 218–221 | utilisateur, 2026-09-30 ; concorde avec la spec (`spec/outils/degats-reels/artefacts-et-degats-bruts.md`, bucket Additionnel sans DMG%, relevés Julie et Jessica) et le code (`damage.ts`, `dmgPct` vs `horsCoupBrut`) |
 | Points de relique et lignes 218–221 | Les points de Bravoure (ATQ), Éternité (DEF) et Origine (PV), acquis au début du combat, augmentent la stat dont les lignes 218–221 prennent leur pourcentage | utilisateur, 2026-09-30 |
 | Lignes 224 et 400 sur Blade Surge | **224** (« D.CRIT+ comp cib uniq pdt tour ») porte sur les **coups 1 et 2** seulement ; **400** (« [Comp.1] Aug. Dgts CRIT ») porte sur les **trois coups**, coup de zone compris | utilisateur, confirmation explicite du 2026-10-02 |
 | Rankyaku — `5 × VIT` | La VIT est la **VIT finale** : base + runes + set + lead + effet d'augmentation de vitesse, éventuellement augmentée par les artéfacts | utilisateur, confirmation explicite du 2026-10-02 |

@@ -3,7 +3,7 @@
 **Statut :** ÉTAT ACTUEL — décrit les dégâts additionnels bruts et les amplifications d’artéfact
 **Lire si :** on modifie une ligne d’artéfact ou un bucket de dégâts additionnels
 **Ne pas lire si :** on travaille sur le critique conditionnel, les bombes ou les passifs offensifs
-**Voir aussi :** spec/outils/degats-reels/artefacts-critique-et-element.md, spec/outils/artefacts.md
+**Voir aussi :** spec/outils/degats-reels/artefacts-critique-et-element.md, spec/outils/optimizer/ecran/artefacts.md
 
 ## Dégâts BRUTS d'un passif — ni critiques, ni mitigés, à chaque coup
 

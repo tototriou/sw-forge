@@ -437,7 +437,7 @@ lignes de description, une icône centrée verticalement flotte en face de rien.
 
 - `actionTitre` — une action posée **juste à droite du titre**, dans la case
   mais **hors du bouton principal** : le « ? » qui ouvre la prose d'un sort
-  dans « Dégâts réels » (`HelpPopover`, degats-et-aura 11bis). ⚠️ **Un axe qui
+  dans « Dégâts réels » (`HelpPopover`). ⚠️ **Un axe qui
   change la structure, pas une variante.** Posée dans `titre`, l'action ferait
   un bouton dans un bouton (HTML invalide) et un clic sur elle choisirait aussi
   l'option. Avec elle, la case devient un **cadre qui dessine** — le patron de

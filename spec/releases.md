@@ -158,8 +158,8 @@ commit, on y fait l'étape 4 **une seule fois** (entrée unique dans
 `releases.ts` — deux entrées `version: null` deviennent une, pas deux
 entrées au même numéro — numéro dans `package.json`, `tsc`, `npm test`,
 `build`), et c'est **elle** qui part en PR vers `main`. Vécu pour la
-v1.13.0 (2026-09-17) : `forge/spec-rangement` et
-`forge/fixtures-cumul-equipe` fusionnées dans `release/v1.13.0`, par-dessus
+v1.13.0 (2026-09-17) : deux branches `forge/<sujet>`
+fusionnées dans `release/v1.13.0`, par-dessus
 la version en préparation du speed tuning déjà sur `main`.
 
 ### Les cinq étapes

@@ -111,12 +111,6 @@
     },
     {
       "fichier": "ARCHITECTURE.md",
-      "renvoi": "outils/OptimizerSection.tsx",
-      "occurrences": 1,
-      "proprietaire": "a-corriger"
-    },
-    {
-      "fichier": "ARCHITECTURE.md",
       "renvoi": "outils/SpeedTuneModale.tsx",
       "occurrences": 1,
       "proprietaire": "hors-perimetre"
@@ -290,18 +284,6 @@
       "proprietaire": "hors-perimetre"
     },
     {
-      "fichier": "ARCHITECTURE.md",
-      "renvoi": "workers/buildHalf.worker.ts",
-      "occurrences": 1,
-      "proprietaire": "a-corriger"
-    },
-    {
-      "fichier": "ARCHITECTURE.md",
-      "renvoi": "workers/runeBuildOptim.worker.ts",
-      "occurrences": 1,
-      "proprietaire": "a-corriger"
-    },
-    {
       "fichier": "CLAUDE.md",
       "renvoi": "spec/outils/optimizer/",
       "occurrences": 2,
@@ -378,60 +360,6 @@
       "renvoi": "artifacts/",
       "occurrences": 1,
       "proprietaire": "hors-perimetre"
-    },
-    {
-      "fichier": "spec/outils/degats-reels.md",
-      "renvoi": "spec/outils/artefacts.md",
-      "occurrences": 1,
-      "proprietaire": "a-corriger"
-    },
-    {
-      "fichier": "spec/outils/degats-reels/artefacts-critique-et-element.md",
-      "renvoi": "spec/outils/artefacts.md",
-      "occurrences": 1,
-      "proprietaire": "a-corriger"
-    },
-    {
-      "fichier": "spec/outils/degats-reels/artefacts-et-degats-bruts.md",
-      "renvoi": "spec/outils/artefacts.md",
-      "occurrences": 1,
-      "proprietaire": "a-corriger"
-    },
-    {
-      "fichier": "spec/outils/degats-reels/effets-equipe-et-leaders.md",
-      "renvoi": "siege/LeadPill.tsx",
-      "occurrences": 1,
-      "proprietaire": "a-corriger"
-    },
-    {
-      "fichier": "spec/outils/degats-reels/formules-et-combat.md",
-      "renvoi": "spec/outils/mecaniques.md",
-      "occurrences": 1,
-      "proprietaire": "a-corriger"
-    },
-    {
-      "fichier": "spec/outils/degats-reels/valeurs-de-jeu-curees.md",
-      "renvoi": "degats-reels/",
-      "occurrences": 1,
-      "proprietaire": "a-corriger"
-    },
-    {
-      "fichier": "spec/outils/degats-reels/valeurs-de-jeu-curees.md",
-      "renvoi": "degats-reels/artefacts-et-degats-bruts.md",
-      "occurrences": 1,
-      "proprietaire": "a-corriger"
-    },
-    {
-      "fichier": "spec/outils/optimizer/ecran/relique.md",
-      "renvoi": "lib/effects.ts",
-      "occurrences": 1,
-      "proprietaire": "a-corriger"
-    },
-    {
-      "fichier": "spec/outils/optimizer/exclusion.md",
-      "renvoi": "lib/effects.ts",
-      "occurrences": 1,
-      "proprietaire": "a-corriger"
     },
     {
       "fichier": "spec/outils/passifs-vitesse.md",

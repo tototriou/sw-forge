@@ -25,7 +25,7 @@ Chromium tourne headless nativement sous Windows sans display virtuel. Sur
 Linux, `npx playwright install --with-deps chromium` couvre l'équivalent
 (dépendances système + navigateur en une commande).
 
-⚠️ **Conteneur Linux de claude.ai/code** (constaté le 2026-09-30) : NE PAS
+⚠️ **Conteneur Linux de claude.ai/code** : NE PAS
 lancer `npx playwright install`. Chromium y est préinstallé dans
 `/opt/pw-browsers`, mais pour une autre version de Playwright que celle du
 dépôt : `chromium.launch()` échoue en réclamant l'installation. Le driver
@@ -170,7 +170,7 @@ réflexes :
   le compteur et les plafonds deviennent lisibles. Deux sous-propriétés de
   la même sorte n'auraient rien montré.
 - ⚠️ **Les sélecteurs Playwright bâtis sur un libellé sont fragiles.** Ce
-  bloc s'est appelé « Lignes verrouillées » jusqu'au 2026-09-01, et le
+  bloc s'est appelé « Lignes verrouillées » avant son nom actuel, et le
   compteur « emplacements : » avant de devenir « sous-propriétés : ». Un
   `filter({ hasText: /^Sous-propriétés verrouillées/ })` qui ne matche plus
   ne lève PAS d'erreur : il produit une capture vide. Vérifier le libellé

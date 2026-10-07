@@ -3,7 +3,7 @@
 **Statut :** ÉTAT ACTUEL — route vers les règles du calcul de dégâts réels
 **Lire si :** on cherche dans quel fichier vit une règle du calcul de dégâts
 **Ne pas lire si :** on connaît déjà la famille de règle recherchée
-**Voir aussi :** spec/outils/optimizer.md, spec/outils/artefacts.md
+**Voir aussi :** spec/outils/optimizer.md, spec/outils/optimizer/ecran/artefacts.md
 
 Calcul des **dégâts d'un sort précis** d'un monstre précis contre un
 adversaire configuré. Brique de calcul pure, sans état ni rendu :

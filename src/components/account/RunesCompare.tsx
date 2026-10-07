@@ -4,6 +4,7 @@ import { RuneDetail } from '../../types';
 import { runeEfficiency, runeScore } from '../../lib/effects';
 import { encodeCurveJson, decodeCurve } from '../../lib/runeCurveShare';
 import { parseAccountInventory } from '../../lib/importAccount';
+import { telechargerTexte } from '../../lib/telechargement';
 import { ConfirmDialog, PromptDialog } from '../../ui/Dialogs';
 import { useStickyState } from '../../hooks/useStickyState';
 import { useRuneMetric } from '../../hooks/useRuneMetric';
@@ -48,16 +49,6 @@ interface AccountOverlay {
 type Onglet = 'courbes' | 'comptes';
 
 const desc = (a: number, b: number) => b - a;
-
-function download(filename: string, text: string) {
-  const blob = new Blob([text], { type: 'application/json;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
-}
 
 // ⚠️ DEUX onglets, parce que les deux formats ne portent pas la même chose.
 //
@@ -227,7 +218,7 @@ function OngletCourbes({
     // doit transporter aucune donnée de compte.
     const json = encodeCurveJson(name, myEffs, myScores);
     navigator.clipboard?.writeText(json).catch(() => {});
-    download(`${PREFIXE_FICHIER}-runes-${name.replace(/\s+/g, '_')}.json`, json);
+    telechargerTexte(`${PREFIXE_FICHIER}-runes-${name.replace(/\s+/g, '_')}.json`, json);
     flash(true, 'Courbe exportée : fichier .json téléchargé et contenu copié.');
   }
 

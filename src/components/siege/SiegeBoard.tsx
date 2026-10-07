@@ -15,6 +15,7 @@ import MonsterPicker from '../MonsterPicker';
 import MonsterAvatar from '../MonsterAvatar';
 import { equipeContient } from './rechercheEquipe';
 import { exporterEquipes, lireEquipes, nomFichierSiege } from '../../lib/siegeShare';
+import { telechargerTexte } from '../../lib/telechargement';
 import { NOM_APP } from '../../marque';
 import { CustomLead } from '../../hooks/useCustomMonsters';
 
@@ -157,13 +158,7 @@ export default function SiegeBoard({
     if (aExporter.length === 0) return;
     const { texte, equipes, perso } = exporterEquipes(aExporter, side, monsterById);
     const nom = nomFichierSiege(side);
-    const blob = new Blob([texte], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = nom;
-    a.click();
-    URL.revokeObjectURL(url);
+    telechargerTexte(nom, texte);
     setMsg({
       text:
         `${equipes} équipe(s) exportée(s) · ${nom}` +

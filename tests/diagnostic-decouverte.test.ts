@@ -1,5 +1,5 @@
-// L’INSTANT DE DÉCOUVERTE et la COURBE DE RENDEMENT (§5.6), puis la
-// DISPERSION PAR TRANCHE (§5.7) — les deux extensions qui absorbent les
+// L’INSTANT DE DÉCOUVERTE et la COURBE DE RENDEMENT, puis la
+// DISPERSION PAR TRANCHE — les deux extensions qui absorbent les
 // grandeurs de découverte et de dispersion.
 //
 // ⚠️ **Ce que ce test défend n'est pas une valeur, c'est une DISTINCTION.**
@@ -14,7 +14,7 @@
 // doit se DIRE, jamais se remplir avec la dernière valeur connue. Sans ça,
 // `quota-parallele` — tronqué à 0,006 % de son espace — afficherait une
 // ligne plate qu'on lirait « la collecte a saturé » alors qu'elle n'a pas
-// commencé. Même famille que `NON_COMPARABLE` au §5.2 ter.
+// commencé. Même famille que `NON_COMPARABLE` du harnais.
 //
 // ⚠️ `algo-verify` ne s'y applique pas, même doctrine que
 // `diagnostic-profils.test.ts` : c'est de l'OUTILLAGE, et ce qui est en jeu
@@ -27,7 +27,7 @@ import { JALONS_RENDEMENT } from '../scripts/lib/diagnosticHarness';
 import { configDuProfil, trouverProfil } from '../scripts/lib/diagnosticProfils';
 
 export default async function testDiagnosticDecouverte() {
-  titre('Harnais — instant de découverte et courbe de rendement (§5.6)');
+  titre('Harnais — instant de découverte et courbe de rendement');
 
   // ── Un profil COMPLET et SÉQUENTIEL : le seul régime où la grandeur est
   // reproductible, donc le seul sur lequel on a le droit de figer une valeur.
@@ -113,9 +113,9 @@ export default async function testDiagnosticDecouverte() {
   }
 
   // ═══════════════════════════════════════════════════════════════════════
-  // §5.7 — la DISPERSION PAR TRANCHE, le CV que le moteur calcule lui-même.
+  // La DISPERSION PAR TRANCHE, le CV que le moteur calcule lui-même.
   // ═══════════════════════════════════════════════════════════════════════
-  titre('Harnais — dispersion par tranche, le CV du moteur (§5.7)');
+  titre('Harnais — dispersion par tranche, le CV du moteur');
 
   const disp = r.dispersionTranches;
   ok(disp != null && disp.length === 2, 'la dispersion est rendue pour les DEUX moitiés');

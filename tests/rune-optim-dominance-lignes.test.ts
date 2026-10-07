@@ -245,7 +245,7 @@ function verifierPaireFixe(cas: Cas): Bilan & { tout: boolean } {
  * ----------------------------------------------------------------------- */
 
 interface Porteur { nom: string; set: string; ligne: number; valeur: number }
-// La sonde de la revue (§ 2.1), devenue test : deux bonus de fiche, deux auras.
+// La sonde de revue, devenue test : deux bonus de fiche, deux auras.
 const PORTEURS: Porteur[] = [
   { nom: 'Energy (PV +15 %) + ligne 218 (PV)', set: 'energy', ligne: 218, valeur: 1.5 },
   { nom: 'Guard (DEF +15 %) + ligne 220 (DEF)', set: 'guard', ligne: 220, valeur: 4 },

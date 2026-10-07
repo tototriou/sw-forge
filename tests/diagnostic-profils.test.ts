@@ -39,7 +39,7 @@ export default async function testDiagnosticProfils() {
     'les noms de profil sont uniques — sans quoi `--profil=<nom>` en désignerait deux'
   );
 
-  // ⚠️ « Aucun repli silencieux » (§4.4 règle 4) : un nom inconnu REFUSE en
+  // ⚠️ « Aucun repli silencieux » : un nom inconnu REFUSE en
   // listant ce qui existe, il ne retombe pas sur le premier profil.
   let refuse = false;
   try {
@@ -85,7 +85,7 @@ export default async function testDiagnosticProfils() {
     );
     ok(
       r.completude?.incoherence == null,
-      `${profil.nom} — aucune incohérence complet/explored (§3.3)`
+      `${profil.nom} — aucune incohérence complet/explored`
     );
 
     // ── Exigence n° 3 : le régime, et sa MARGE au seuil.

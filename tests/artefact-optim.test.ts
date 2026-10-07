@@ -298,7 +298,7 @@ export default function testArtefactOptim() {
     // ⚠️ La borne est calculée PAR STAT ISOLÉE : `{hp: 3000, def: 200}` n'est
     // atteignable par AUCUNE paire (deux emplacements = deux principales).
     // C'est assumé — une borne optimiste ne peut que retenir trop — et c'est
-    // exactement pourquoi `respecteMinimums` reste obligatoire en aval (§12.5).
+    // exactement pourquoi `respecteMinimums` reste obligatoire en aval.
     ok(
       b.max.hp + b.max.def > 3000 + 0 && b.max.hp + b.max.def > 0 + 200,
       'les deux maxima ne sont PAS conjointement atteignables — d’où le filtre final'

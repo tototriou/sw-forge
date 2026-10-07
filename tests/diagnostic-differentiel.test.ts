@@ -11,7 +11,7 @@
 // ⚠️ **Et il verrouille le contraire du silence** : les sept éléments sont
 // TOUJOURS rendus, jamais omis. Une case absente se lirait « pareil », ce qui
 // est un silence remplacé par un mensonge — même doctrine que
-// `NON_OBSERVABLE` au §5.1 et que les phases de temps absentes du §5.3.
+// `NON_OBSERVABLE` et que les phases de temps absentes.
 //
 // ⚠️ `algo-verify` ne s'y applique pas, même doctrine que
 // `diagnostic-profils.test.ts` : c'est de l'OUTILLAGE, et ce qui est en jeu
@@ -130,7 +130,7 @@ export default async function testDiagnosticDifferentiel() {
   // ⚠️ **Et l'étage de perte SURVIT au portier**, ce n'est pas une exception
   // de confort : il est évalué sur la STRUCTURE des compartiments, en amont de
   // toute troncature. Le fermer aussi jetterait la seule information qui
-  // reste — « le refus est LOCAL, jamais global » (§5.2 bis, règle 3).
+  // reste — « le refus est LOCAL, jamais global ».
   egal(
     portier.lectures.find((l) => l.element === 'etage-perte')?.etat,
     'IDENTIQUE',

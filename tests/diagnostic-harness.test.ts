@@ -51,7 +51,7 @@ function configSynthetique(surcharges: Partial<ConfigHarnais> = {}): ConfigHarna
 export default async function testDiagnosticHarness() {
   titre('Harnais de diagnostic — configuration, paliers et points d’arrêt');
 
-  /* ── §4.4 règle 4 : aucun repli silencieux ─────────────────────────── */
+  /* ── aucun repli silencieux ─────────────────────────── */
   let leve = false;
   try {
     resoudreConfig({
@@ -69,7 +69,7 @@ export default async function testDiagnosticHarness() {
   }
   ok(leve, 'mode synthétique sans slotFilterCap explicite : REFUSÉ, jamais un repli sur le défaut moteur');
 
-  /* ── §4.3 piège A : la cascade est visible ─────────────────────────── */
+  /* ── la cascade est visible ─────────────────────────── */
   const sansOverride = resoudreConfig(configSynthetique());
   const bucketCap = sansOverride.parametres.find((p) => p.nom === 'bucketCap')!;
   egal(bucketCap.valeur, bucketCapFor(40), 'bucketCap suit slotFilterCap');
@@ -85,9 +85,9 @@ export default async function testDiagnosticHarness() {
     'surcharger slotFilterCap déplace AUSSI bucketCap — deux paramètres bougent, un seul a été touché'
   );
 
-  /* ── §6 : la table liste les paramètres EFFECTIFS, pas surchargeables ─
+  /* ── la table liste les paramètres EFFECTIFS, pas surchargeables ─
    *
-   * ⚠️ Le §4.4 règle 2 dit « chaque paramètre EFFECTIF affiche son
+   * ⚠️ Le principe dit « chaque paramètre EFFECTIF affiche son
    * origine » ; `resoudreConfig` implémentait « chaque paramètre
    * SURCHARGEABLE ». Un run lancé avec `adaptiveTrancheWeighting` sans le
    * savoir mesure une autre rétention, et l'aperçu n'en montrait rien. */
@@ -111,7 +111,7 @@ export default async function testDiagnosticHarness() {
     'élargir la table ne fait basculer AUCUN verdict : ces paramètres sont effectifs, pas surchargés'
   );
 
-  /* ── §4.4 règle 3 : un run surchargé est MARQUÉ ────────────────────── */
+  /* ── un run surchargé est MARQUÉ ────────────────────── */
   ok(!sansOverride.fidelite.divergeDeLaProd, 'sans override : la fidélité annonce « conforme à la production »');
   const surcharge = resoudreConfig(configSynthetique({ overrides: { bucketCap: 500 } }));
   ok(surcharge.fidelite.divergeDeLaProd, 'avec un override : la fidélité annonce « DIVERGE DE LA PROD »');
@@ -119,7 +119,7 @@ export default async function testDiagnosticHarness() {
     surcharge.fidelite.ecarts.some((e) => e.nom === 'bucketCap' && e.valeur === 500),
     'et l’écart nomme le paramètre, sa valeur ET celle de la prod'
   );
-  // ⚠️ §3.4 — le mot « PLANCHER » est absent : ce serait une affirmation de
+  // ⚠️ Le mot « PLANCHER » est absent : ce serait une affirmation de
   // DIRECTION, et la direction n'est pas établie (la taxe setTimeout(0) va
   // dans un seul sens, mais JIT, démarrage des workers et sérialisation ne
   // sont pas comptés). Le test le VERROUILLE plutôt que de le laisser
@@ -134,7 +134,7 @@ export default async function testDiagnosticHarness() {
     'elle dit ce qu’elle est : un ordre de grandeur arithmétique, non mesuré, non transposable'
   );
 
-  // ⚠️ §3.4 — la fidélité porte sur les paramètres SUIVIS, pas sur « la
+  // ⚠️ La fidélité porte sur les paramètres SUIVIS, pas sur « la
   // production ». Ce que la comparaison ne prouve pas voyage avec elle.
   ok(
     sansOverride.fidelite.horsPerimetre.some((h) => h.includes('COMPOSITION du pool')) &&
@@ -142,7 +142,7 @@ export default async function testDiagnosticHarness() {
     'le périmètre de la preuve est rendu : ce que la comparaison des paramètres ne couvre pas'
   );
 
-  /* ── §3 : les points d'arrêt ───────────────────────────────────────── */
+  /* ── les points d'arrêt ───────────────────────────────────────── */
   const arretDominance = await executerHarnais(configSynthetique({ arretApres: 'dominance' }));
   egal(
     arretDominance.preparation.map((t) => t.etage),
@@ -180,7 +180,7 @@ export default async function testDiagnosticHarness() {
   // ce texte, `temps.preparation` se relit comme un `prepareSearch` pur, ce
   // qu'il n'est pas : le harnais observe la préparation étage par étage et ce
   // travail tombe DANS son chronomètre. Le dire sans le chiffrer aurait laissé
-  // le lecteur estimer l'écart — ce que le §4.6 refuse déjà pour A₂.
+  // le lecteur estimer l'écart — ce que le harnais refuse déjà pour A₂.
   const perimetre = arretFilterslot.temps!.perimetrePreparation;
   ok(perimetre.includes('onStage'), 'la fenêtre `preparation` dit ce qu’elle enclot EN PLUS de la production');
   ok(perimetre.includes('MESURÉ') && perimetre.includes('%'), 'et l’écart est CHIFFRÉ, jamais laissé à l’estimation du lecteur');
@@ -192,7 +192,7 @@ export default async function testDiagnosticHarness() {
   ok(arretDemiBuilds.temps!.demiBuilds != null, 'un arrêt après la construction rend bien, lui, le temps des demi-builds');
   ok(arretDemiBuilds.temps!.appariement == null, 'mais toujours pas celui de l’appariement, qui n’a pas eu lieu');
 
-  /* ── §4.1 : le taux de rétention de la CONSTRUCTION (A₁) ───────────── */
+  /* ── le taux de rétention de la CONSTRUCTION (A₁) ───────────── */
   {
     const ret = arretDemiBuilds.demiBuilds!.retention;
     const tailles = arretDemiBuilds.preparation.find((t) => t.etage === 'filterslot')!.parEmplacement;
@@ -208,7 +208,7 @@ export default async function testDiagnosticHarness() {
       'le produit brut est bien un MAJORANT : on ne retient jamais plus de triplets qu’il n’en existe'
     );
 
-    // ⚠️ **La règle d'interprétation du §4.4 doit être IMPRIMÉE avec le
+    // ⚠️ **La règle d'interprétation doit être IMPRIMÉE avec le
     // résultat**, pas seulement écrite dans la spec — sinon un taux voyage
     // seul et autorise la causalité fausse qu'il ne démontre pas.
     ok(
@@ -225,7 +225,7 @@ export default async function testDiagnosticHarness() {
     );
   }
 
-  /* ── §4.1 bis : le pic de tas par moitié (A₁ bis, palier LÉGER) ─────
+  /* ── le pic de tas par moitié (A₁ bis, palier LÉGER) ─────
    *
    * ⚠️ La TROISIÈME hypothèse de l'asymétrie A/B — A alloue peut-être
    * davantage et paie plus de ramassage de miettes. « Deux hypothèses »
@@ -249,7 +249,7 @@ export default async function testDiagnosticHarness() {
       'et il dit pourquoi le palier COMPLET reste écarté — son coût s’insère dans la phase qu’il mesurerait'
     );
   }
-  /* ── §4.2 : la cartographie de l'ÉLAGAGE (A₂, A-INSTRUMENTÉ) ────────
+  /* ── la cartographie de l'ÉLAGAGE (A₂, A-INSTRUMENTÉ) ────────
    *
    * ⚠️ A₂ est le SEUL instrument du harnais qui se paie : il associe un
    * horodatage à des événements que la production émet déjà. D'où le
@@ -356,7 +356,7 @@ export default async function testDiagnosticHarness() {
   ok(complet.completude != null, 'run complet : la complétude est rendue');
   ok(complet.meilleurs != null, 'run complet : les candidats sont CLASSÉS (jamais candidates[0] brut)');
 
-  /* ── §7.0 : le régime miroite la production ────────────────────────── */
+  /* ── le régime miroite la production ────────────────────────── */
   egal(
     complet.regime!.applique,
     complet.regime!.totalPairs >= complet.regime!.seuil ? 'parallele' : 'sequentiel',
@@ -368,7 +368,7 @@ export default async function testDiagnosticHarness() {
     'l’explication dit explicitement que c’est le comportement de production'
   );
 
-  /* ── §6.2 : jamais un « 0 candidat » nu ────────────────────────────── */
+  /* ── jamais un « 0 candidat » nu ────────────────────────────── */
   const c = complet.completude!;
   ok(
     c.complet ? c.motif == null : c.motif === 'maxMs' || c.motif === 'maxCollected' || c.motif === 'quotaTranche',
@@ -387,7 +387,7 @@ export default async function testDiagnosticHarness() {
   const parTemps: SearchResult = { candidates: new Array(37).fill({ runeIds: [], stats: [], effTotal: 0 }), explored: 500, truncated: true, nearMissByCondition: [], globalNearMiss: null };
   egal(evaluerCompletude(parQuota, 1000, paramsFictifs).motif, 'maxCollected', 'plafond de candidats ATTEINT ⇒ motif maxCollected');
   egal(evaluerCompletude(parTemps, 1000, paramsFictifs).motif, 'maxMs', 'plafond NON atteint alors que tronqué ⇒ motif maxMs (le temps)');
-  // ⚠️ **Garde §3.3** — le harnais ne doit pas rendre `complet: true` EN
+  // ⚠️ **Garde** — le harnais ne doit pas rendre `complet: true` EN
   // MÊME TEMPS qu'une `incoherence` : « la recherche est complète » et « elle
   // n'a pas exploré tout l'espace » dans le même objet tromperait un lecteur
   // JSON qui teste `complet`. Le verdict PUBLIC doit basculer, pas
@@ -408,7 +408,7 @@ export default async function testDiagnosticHarness() {
   const parQuotaTranche: SearchResult = { ...parTemps, motifTroncature: 'quotaTranche' };
   egal(evaluerCompletude(parQuotaTranche, 1000, paramsFictifs).motif, 'quotaTranche', 'motif porté par le résultat ⇒ lu tel quel, la déduction ne s’applique pas');
 
-  /* ── §3.5 : le quota LOCAL d'un worker, et la composition avec le harnais ─
+  /* ── le quota LOCAL d'un worker, et la composition avec le harnais ─
    *
    * ⚠️ **INVERSÉ.**
    * Ce cas verrouillait la réfutation de deux revues
@@ -455,7 +455,7 @@ export default async function testDiagnosticHarness() {
     ok(verdictDerniere.incoherence == null, 'et aucune incohérence : explored couvre tout l’espace');
   }
 
-  /* ── §6.1 : suivi d'une rune, et ce qu'une disparition SIGNIFIE ────── */
+  /* ── suivi d'une rune, et ce qu'une disparition SIGNIFIE ────── */
   const pool = randomPool(mulberry32(7), 5, SETS_JOKER);
   const etages: EtagePopulation[] = [
     { nom: 'mainstat', nature: 'contrainte', presents: new Set([1, 2, 3]) },
@@ -474,7 +474,7 @@ export default async function testDiagnosticHarness() {
     'un élagage sûr le dit — « prouvé », jamais un vague « éliminée »'
   );
 
-  // ⚠️ `filterSlot` est MIXTE : le dire est le cœur du §6.1. Une rune qui y
+  // ⚠️ `filterSlot` est MIXTE : le dire est le cœur du suivi d'une rune. Une rune qui y
   // disparaît ne peut PAS être déclarée inutile.
   const etagesFiltrees: EtagePopulation[] = [
     { nom: 'mainstat', nature: 'contrainte', presents: new Set([1]) },
@@ -493,7 +493,7 @@ export default async function testDiagnosticHarness() {
   ok(!inconnue.presenteAuDepart, 'une rune absente du pool est signalée comme telle');
   ok(inconnue.premiereDisparition == null, 'et n’est PAS présentée comme éliminée par un étage');
 
-  /* ── §6.4 bis : aucun temps livré nu ───────────────────────────────── */
+  /* ── aucun temps livré nu ───────────────────────────────── */
   const uneSeule = serie([12]);
   ok(uneSeule.avertissement != null, 'une seule répétition : la mesure est MARQUÉE comme non comparative');
   const plusieurs = serie([10, 12, 11, 40]);
@@ -502,7 +502,7 @@ export default async function testDiagnosticHarness() {
   egal(Math.round(plusieurs.dispersionPct), 300, 'et la DISPERSION, qui dit si un écart veut dire quelque chose');
   ok(plusieurs.avertissement == null, 'au-delà d’une répétition, plus d’avertissement');
 
-  // ⚠️ §6.4 bis niveau 2 : le harnais ne sait pas entrelacer deux conditions.
+  // ⚠️ Niveau 2 : le harnais ne sait pas entrelacer deux conditions.
   // Il doit donc DIRE que comparer deux runs séparés est le protocole en
   // blocs — un biais qui se reproduit, donc qui passe pour un signal.
   ok(
@@ -533,7 +533,7 @@ export default async function testDiagnosticHarness() {
   );
   ok(borne.artFlatMax >= borne.artFlatMin, 'la borne HAUTE d’artéfact est au moins la borne basse');
 
-  /* ── §6.3 : preuve et indice, jamais confondus ─────────────────────── */
+  /* ── preuve et indice, jamais confondus ─────────────────────── */
   // Une preuve est rendue pour chaque condition posée, même quand tout va
   // bien — c'est ce qui permet de lire un « 0 candidat » sans deviner.
   egal(
@@ -567,7 +567,7 @@ export default async function testDiagnosticHarness() {
     'dont le COÛT est rendu — un diagnostic dont on ignore le prix finit lancé au mauvais moment'
   );
 
-  /* ── §6.2 : une configuration invalide NOMME sa cause ──────────────── */
+  /* ── une configuration invalide NOMME sa cause ──────────────── */
   const verrouAbsent = await executerHarnais(
     configSynthetique({
       source: {
@@ -603,7 +603,7 @@ export default async function testDiagnosticHarness() {
     'une rune imposée au mauvais emplacement est distinguée d’une rune absente'
   );
 
-  /* ── §5.1, ÉTAGE 0 : l'ADMISSIBILITÉ d'un BUILD COMPLET à l'entrée ──
+  /* ── l'ADMISSIBILITÉ d'un BUILD COMPLET à l'entrée ──
    *
    * ⚠️ C'est l'étage qui empêche d'attribuer au moteur une absence causée
    * par l'ENTRÉE. Ce qui est vérifié ici : chaque refus NOMME sa cause, et
@@ -723,7 +723,7 @@ export default async function testDiagnosticHarness() {
     );
   }
 
-  /* ── §5.1, ÉTAGES 4-5 : la PAIRE a-t-elle été explorée, et à quel RANG ?
+  /* ── la PAIRE a-t-elle été explorée, et à quel RANG ?
    *
    * ⚠️ C'est ici que se joue le piège que décrit `algo-verify` : conclure
    * « le moteur manque un build meilleur » en lisant `candidates[0]`, alors
@@ -778,7 +778,7 @@ export default async function testDiagnosticHarness() {
     // si le pool s'y prête ne vérifie rien les jours où il ne s'y prête pas.
     //
     // ⚠️ Cette distinction n'existe QUE grâce aux trois primitives exportées
-    // (§11.2) : sans elles, ce build serait « perdu à l'appariement » sans
+    // : sans elles, ce build serait « perdu à l'appariement » sans
     // qu'on puisse dire pourquoi — alors que la paire n'a JAMAIS pu produire
     // quoi que ce soit.
     const surJoker = await executerHarnais({ ...base, suivre: [1, 9, 17, 25, 33, 41] });
@@ -792,7 +792,7 @@ export default async function testDiagnosticHarness() {
     ok(!apJoker.presenteDansLesCandidats, 'un build non équipable en jeu n’est évidemment pas dans les candidats');
     ok(apJoker.rang == null, 'et il n’a aucun rang — rien n’est fabriqué pour un build que la recherche n’a pas rendu');
 
-    /* ── §5.1 : LE VERDICT STRUCTURÉ, et il ne se lit JAMAIS sans la
+    /* ── LE VERDICT STRUCTURÉ, et il ne se lit JAMAIS sans la
      * complétude ─────────────────────────────────────────────────────── */
     const vPresent = avecCible.verdictBuildCible!;
     egal(vPresent.verdict, 'PRÉSENT_DANS_LE_TOP_N', 'un build trouvé au rang 3 est PRÉSENT_DANS_LE_TOP_N');
@@ -802,7 +802,7 @@ export default async function testDiagnosticHarness() {
     egal(vJoker.verdict, 'PERDUE_À_L_APPARIEMENT', 'une paire coupée à un étage d’appariement rend PERDUE_À_L_APPARIEMENT');
     ok(
       vJoker.explication.includes('joker'),
-      '⚠️ et l’ÉTAGE est nommé — c’est exactement la distinction que les trois exports du §11.2 rendent possible'
+      '⚠️ et l’ÉTAGE est nommé — c’est exactement la distinction que les trois exports rendent possible'
     );
     ok(
       vJoker.avertissementTroncature.includes('élagage SÛR'),
@@ -824,7 +824,7 @@ export default async function testDiagnosticHarness() {
     }
   }
 
-  /* ── §5.1 : PRÉSENT_HORS_TOP_N sur un run COMPLET — le piège de `algo-verify`
+  /* ── PRÉSENT_HORS_TOP_N sur un run COMPLET — le piège de `algo-verify`
    *
    * ⚠️ C'est LE cas que le n° 6 existe pour rendre lisible : la cible sort au
    * rang 2 915 sur 4 096, donc INVISIBLE dans un top-20. Un diagnostic qui
@@ -906,11 +906,11 @@ export default async function testDiagnosticHarness() {
     );
   }
 
-  /* ── §4.2 : la provenance du pool figure TOUJOURS dans le résultat ── */
+  /* ── la provenance du pool figure TOUJOURS dans le résultat ── */
   egal(complet.source, 'synthetique', 'la source du pool est rendue');
   ok(complet.descriptionSource.includes('seed'), 'et sa description permet de rejouer le run à l’identique');
 
-  /* ── §5.3 : la SÉLECTION de cas d'un lot ───────────────────────────
+  /* ── la SÉLECTION de cas d'un lot ───────────────────────────
    *
    * ⚠️ Ce qui est vérifié ici est la SÉLECTION, jamais l'exécution : les
    * deux exports de compte sont gitignorés, donc absents des autres
@@ -930,7 +930,7 @@ export default async function testDiagnosticHarness() {
     'casse et ponctuation sont mises à plat : « RAGE+BLADE » trouve « Rage+Blade »'
   );
 
-  // ⚠️ Trois refus, et chacun NOMME ce qui était attendu (§4.4 règle 4).
+  // ⚠️ Trois refus, et chacun NOMME ce qui était attendu .
   // Le plus important est l'AMBIGUÏTÉ : « lushen » désigne quatre cas, et en
   // choisir un serait exactement le repli silencieux qu'on interdit.
   const refuse = (brut: string): string => {
@@ -973,7 +973,7 @@ export default async function testDiagnosticHarness() {
     'un arrêt à « classement » annonce son coût — c’est le run complet, des minutes par cas'
   );
 
-  /* ── §5.3 : la RESTITUTION du lot, et son garde-fou ────────────────
+  /* ── la RESTITUTION du lot, et son garde-fou ────────────────
    *
    * ⚠️ Le lot est monté À LA MAIN à partir de deux runs SYNTHÉTIQUES : ce
    * qui est vérifié ici est la mise en forme et le garde-fou, pas
@@ -1005,7 +1005,7 @@ export default async function testDiagnosticHarness() {
     recap.includes('deux CAS') && recap.includes('deux CONDITIONS'),
     'et il distingue explicitement comparer deux CAS (légitime) de comparer deux CONDITIONS (non)'
   );
-  ok(recap.includes('ENTRELACER'), 'en nommant ce qui manquerait pour l’autre : l’entrelacement (niveau 2 du §6.4 bis)');
+  ok(recap.includes('ENTRELACER'), 'en nommant ce qui manquerait pour l’autre : l’entrelacement (niveau 2)');
   ok(
     recap.indexOf(AVERTISSEMENT_LOT) < recap.indexOf('Cas factice A'),
     'le garde-fou est AVANT le tableau, pas sous sa dernière ligne — sur le chemin d’un lecteur pressé'

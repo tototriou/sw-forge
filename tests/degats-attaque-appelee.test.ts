@@ -116,7 +116,7 @@ function appeleesDe(detail: DetailMonstre): PassifOffensifProfile[] {
 }
 
 // Le profil construit À LA MAIN dans `tests/degats-mecanismes-generiques.test.ts`,
-// (`attaqueAppelee`) : la référence du point 2, « même total au centième près ».
+// (`attaqueAppelee`) : la référence du contrôle « même total au centième près ».
 function attaqueAppeleeALaMain(appelee: SkillDamageProfile, slotsDeclencheurs: readonly number[]): PassifOffensifProfile {
   return {
     skillCom2usId: appelee.skillCom2usId,
@@ -346,9 +346,8 @@ export function testAttaqueAppeleeCouverture() {
     });
   }
 
-  // Les effets que le déclencheur pose avant Rolling Punch (amendement 1c1,
-  // « Ordre des effets des Maîtres ivres ») : chaque raison d'acceptation se
-  // vérifie sur le calcul, jamais par ressemblance.
+  // Les effets que le déclencheur pose avant Rolling Punch : chaque raison
+  // d'acceptation se vérifie sur le calcul, jamais par ressemblance.
   titre('Ce que le déclencheur pose ne change pas Rolling Punch (raisons des acceptations)');
   const rpHuan = sortDe(fiche(17213), 8103);
   const rpCalcul = (p: SkillDamageProfile, setup: DamageSetup, st = ST, art = ARTIFACT_DAMAGE_NEUTRE) =>

@@ -184,8 +184,7 @@ export function testTheoniaAtqCible() {
 
   // Une recette SANS `enemyAtk` (ancienne recette) prend la valeur que
   // l'écran affiche, 1 000 (`DEFAULT_DAMAGE_SETUP.enemyAtk`), et non 0
-  // (choix de l'utilisateur). ⚠️ Un 0
-  // allumerait la condition à tort sur toute ancienne recette, sans rien
+  // ⚠️ Un 0 allumerait la condition à tort sur toute ancienne recette, sans rien
   // afficher d'anormal : le champ montre 1 000. Les quatre monstres dont une
   // condition est `atkCibleSousAtkPropre` sont couverts, écrits à la main.
   // [forme, sort, nom, ATQ du build où la condition est éteinte contre 1 000,

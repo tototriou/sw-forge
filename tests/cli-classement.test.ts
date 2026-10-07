@@ -245,8 +245,8 @@ export function testCliClassementParMode() {
       ok(etats.every((r) => r === undefined), 'equipped : aucune relique résolue, celle de la fiche compte (état « fixe »)');
     }
 
-    // Mode par DÉFAUT du CLI, comme la file de l'écran (décision utilisateur
-    // du 2026-10-01, option 2) : comparé au hook déroulé build par build.
+    // Mode par DÉFAUT du CLI, comme la file de l'écran (file non exhaustive,
+    // voir plus bas) : comparé au hook déroulé build par build.
     const cliFile = classerCommeLEcran({ recipe, loaded: LOADED, params, candidates: res.candidates, realDamage, toutResoudre: false });
     const ecranFile = classementEcran(recipe, res.candidates, realDamage, true);
     const lignes = (classes: BuildCandidate[], options: OptionsDeClassement) =>
@@ -262,7 +262,7 @@ export function testCliClassementParMode() {
       // La file en mode `recherche` résout 300 builds, 100 en
       // `equipped` — valeur attendue écrite en dur, indépendante de `kDeLaFile`.
       egal(r.K, mode === 'recherche' ? K_BUILDS_RECHERCHE_RELIQUE : K_BUILDS_OPTIMISES, `${mode}, file : K = ${r.K}`);
-      egal([K_BUILDS_OPTIMISES, K_BUILDS_RECHERCHE_RELIQUE], [100, 300], 'les deux tailles de file décidées le 2026-10-01');
+      egal([K_BUILDS_OPTIMISES, K_BUILDS_RECHERCHE_RELIQUE], [100, 300], 'les deux tailles de file : 100 et 300');
       ok(cliFile.base.slice(0, r.K).every((c) => r.parBuild.has(cleBuild(c))), `${mode}, file : les ${r.K} premiers de l’ordre de base sont résolus`);
       // K CONFIRMÉES — attente indépendante de `prochainsATraiter`,
       // relue sur le cache et l'ordre de base : K résolus et conformes, ou tout
@@ -292,14 +292,12 @@ export function testCliClassementParMode() {
       egal(cliFile.classes.slice(0, LIGNES_IMPRIMEES)
         .filter((c) => !proche(scoreDuCandidat(c, recipe.objective, cliFile.options), scoreDeReference(recipe.objective, equipementFile(c), ref)))
         .map(cleBuild), [], `${mode}, file : les ${LIGNES_IMPRIMEES} scores imprimés = note de production de l’équipement complet`);
-      // ⚠️ La file n'est PAS exhaustive (le prix de l'option 2, comme à
-      // l'écran) : en `recherche`, l'ordre de base ignore la relique, et un
-      // build au-delà de la K-ième confirmée (300) peut remonter
-      // très haut une fois résolu — la file ne le résout pas. Sur cette
-      // fixture, faite pour cela, les manquants venaient des rangs de base 305
-      // à 399 tant que la file s'arrêtait aux 300 premiers ; désormais,
-      // elle continue au-delà des 112 écartés jusqu'à 300 confirmées (rang 412)
-      // et n'en manque plus aucun — la limite demeure en principe. Ce qui est garanti : un build des
+      // ⚠️ La file n'est PAS exhaustive (comme à l'écran) : en `recherche`,
+      // l'ordre de base ignore la relique, et un build au-delà de la K-ième
+      // confirmée (300) peut remonter très haut une fois résolu — la file ne
+      // le résout pas. Sur cette fixture, faite pour cela, la file continue
+      // au-delà des 112 écartés jusqu'à 300 confirmées (rang 412) et n'en
+      // manque aucun — la limite demeure en principe. Ce qui est garanti : un build des
       // vingt premiers de `--resoudre-tout` absent des lignes de la file n'a
       // JAMAIS été résolu par elle (un build résolu y aurait sa note exacte,
       // et vingt lignes résolues au-dessus de lui contrediraient son rang

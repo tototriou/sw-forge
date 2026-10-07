@@ -196,13 +196,12 @@ export default function testArtefactFile() {
       '… et un changement de seuil dans l’empreinte'
     );
 
-    // ⚠️ **LE test — bug rapporté à l'usage.** La signature ne listait que
-    // `skillCom2usId` et l'élément visé : changer le buff ATQ, les PV restants
-    // de la cible ou sa défense laissait le cache INTACT. L'écran affichait des
-    // paires optimisées pour un réglage abandonné, et le « gain » comparait un
-    // score d'avant à un total d'après — d'où un « +52,8 % » identique sur
-    // toutes les cartes. Toucher au sélecteur de stat principale « réparait »
-    // l'affichage, ce qui a mis sur la piste.
+    // ⚠️ **LE test.** La signature doit lister plus que `skillCom2usId` et
+    // l'élément visé : si changer le buff ATQ, les PV restants de la cible ou
+    // sa défense laissait le cache INTACT, l'écran afficherait des paires
+    // optimisées pour un réglage abandonné, et le « gain » comparerait un
+    // score ancien à un total nouveau — d'où un même « +52,8 % » sur toutes
+    // les cartes.
     ok(signatureReglages({ ...base, damageSetup: { ...setup, atkBuff: true } }) !== s, 'ACTIVER LE BUFF ATQ invalide le cache');
     ok(signatureReglages({ ...base, damageSetup: { ...setup, enemyHpPct: 30 } }) !== s, '… les PV restants de la cible aussi');
     ok(signatureReglages({ ...base, damageSetup: { ...setup, enemyDef: 1500 } }) !== s, '… sa défense aussi');
@@ -311,8 +310,8 @@ export default function testArtefactFile() {
     // que le NOMBRE d'artéfacts : un réimport qui changeait des pièces ou des
     // runes à nombre et identifiants égaux laissait la signature IDENTIQUE —
     // une nouvelle recherche reprenait du cache les paires de l'ancien compte.
-    // Une identité, pas une empreinte du contenu (décision de l'utilisateur) :
-    // tout réimport compte, même celui d'un fichier identique.
+    // Une identité, pas une empreinte du contenu : tout réimport compte,
+    // même celui d'un fichier identique.
     const import1 = signatureReglages({ ...base, importDuCompte: 1 });
     const import2 = signatureReglages({ ...base, importDuCompte: 2 });
     ok(import1 !== s, 'le premier import de la session change la signature');

@@ -1,14 +1,14 @@
 // L'ignore DEF conditionnel des Blade Dancers.
 //
 // Six sorts n'ignorent la DEF que lorsque la jauge d'attaque de la cible est à
-// 0. L'ATB adverse n'est pas modélisée : le premier coup qui ignore est un
-// CHOIX de l'utilisateur, avec la règle fournie par lui (`spec/outils/degats-reels/valeurs-de-jeu-curees.md`) — le coup 1
+// 0. L'ATB adverse n'est pas modélisée : le premier coup qui ignore suit la
+// règle curée (`spec/outils/degats-reels/valeurs-de-jeu-curees.md`) — le coup 1
 // n'ignore jamais, une fois qu'un coup ignore tous les suivants ignorent, le
 // 7ᵉ coup de la variante B ignore toujours ; par défaut, seul ce coup
 // inconditionnel ignore (aucun en variante A).
 //
 // ⚠️ Ce qui serait GRAVE ET INVISIBLE : un coup 1 qui ignorerait la DEF, ou
-// l'ancien calcul (tous les coups ignorent) qui survivrait — des dégâts
+// un calcul où tous les coups ignorent — des dégâts
 // plausibles, surestimés, qui classeraient les builds sur une base fausse.
 // Les valeurs attendues se recalculent ici depuis `defenseFactor` et les
 // coefficients des données, jamais en rejouant la découpe du moteur.

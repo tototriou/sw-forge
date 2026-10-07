@@ -78,7 +78,7 @@ export default function testPerfRelicOptions() {
   egal(paramsLibre.relicContext?.type, 1, 'le type de l’option est celui du contexte');
   egal(paramsLibre.objective, CASES[3]!.objective, 'l’objectif du cas est INCHANGÉ (jamais un override)');
   egal(paramsLibre.objectiveStats, CASES[3]!.objectiveStats, 'objectiveStats du cas inchangés');
-  egal(paramsLibre.relic, gear.relic, 'SearchParams.relic reste la relique PORTÉE (garantie G)');
+  egal(paramsLibre.relic, gear.relic, 'SearchParams.relic reste la relique PORTÉE');
 
   /* (3) La baseline : equipped ≡ sans contexte, projection canonique. */
   for (const cas of CASES) {

@@ -1,11 +1,10 @@
 // Test dédié de `combineParallelPairingResults` (src/lib/runeBuildOptim.ts)
 // — la fusion des résultats des N workers de l'appariement PARALLÈLE
-// (`runParallelPairing`, runeBuildOptim.worker.ts). Trouvé par une revue de
-// code externe (2026-08-19, point 4) : l'ancien `results.some(r =>
-// r.truncated)` confondait deux causes distinctes de `truncated=true` par
-// worker — quota PROPRE rempli (tranche riche, pas forcément un signe de
-// recherche globalement incomplète) vs budget nœuds/temps épuisé (une vraie
-// troncature). Pure agrégation, testable SANS `worker_threads` (voir
+// (`runParallelPairing`, runeBuildOptim.worker.ts). Un simple
+// `results.some(r => r.truncated)` confondrait deux causes distinctes de
+// `truncated=true` par worker — quota PROPRE rempli (tranche riche, pas
+// forcément un signe de recherche globalement incomplète) vs budget
+// nœuds/temps épuisé (une vraie troncature). Pure agrégation, testable SANS `worker_threads` (voir
 // `algo-verify`, point 6 — vérifier au bon étage) : distinct de
 // `rune-optim-parallel-pairing.test.ts`, qui vérifie le VOLUME de candidats
 // retrouvé sous vraie concurrence, pas la justesse du signal `truncated`.
@@ -24,7 +23,7 @@
 // donc la recherche TRONQUÉE dès qu'il reste des paires non visitées
 // (`explored < totalPairs`, l'espace exact que le Worker a déjà calculé pour
 // choisir le régime) — sauf si le quota tombe sur la toute dernière paire.
-// Le motif (`motifTroncature`) voyage désormais dans le résultat fusionné.
+// Le motif (`motifTroncature`) voyage dans le résultat fusionné.
 
 import { BuildCandidate, NearMiss, SearchResult, TraceCandidat, combineParallelPairingResults } from '../src/lib/runeBuildOptim';
 import { egal, ok, titre } from './outils';
@@ -156,14 +155,13 @@ export default function testRuneOptimParallelTruncated() {
   }
 
   // ── Cas 4 (référence) : rien tronqué nulle part, total loin du plafond —
-  // doit rester `false`, comme avant ce correctif (pas de régression sur le
-  // cas simple). ──
+  // doit rester `false` (cas simple). ──
   {
     const results: SearchResult[] = [fakeResult(fakeCandidates(10), 1_000, false), fakeResult(fakeCandidates(5), 500, false)];
     const out = combineParallelPairingResults(results, PER_WORKER_MAX, GLOBAL_MAX, 1_500);
     egal(out.truncated, false, 'aucune troncature individuelle, total loin du plafond global : pas tronqué');
     egal(out.motifTroncature, undefined, 'pas tronqué : aucun motif');
-    egal(out.explored, 1_500, "'explored' reste la somme simple, inchangé par ce correctif");
+    egal(out.explored, 1_500, "'explored' reste la somme simple");
   }
 
   // ── Traceur : la trace retenue porte le budget GLOBAL, pas celui de sa

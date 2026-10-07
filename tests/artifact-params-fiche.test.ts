@@ -11,7 +11,7 @@
 //
 // La référence de l'écran est une COPIE FIGÉE du corps du mémo
 // `artifactParams` au commit 7905df36 (`artifactParamsAvant`) : l'écran ne
-// doit pas changer de comportement (contrainte du 2026-10-01), c'est donc son
+// doit pas changer de comportement, c'est donc son
 // ancien corps qui fait foi, jamais le producteur qu'on teste.
 
 import { ArtifactArchetype, ArtifactDetail, ArtifactKind, ARTIFACT_KINDS, ElementKey, GearSet, RelicDetail, RuneDetail } from '../src/types';
@@ -119,7 +119,7 @@ function entreesEcran(recipe: OptimizerRecipe, loaded: LoadedMonster, evaluer: (
 const ids = (arts: readonly ArtifactDetail[]) => arts.map((a) => a.id);
 const sansEvaluer = <T extends { evaluer: unknown }>({ evaluer: _e, ...reste }: T) => reste;
 
-/* ── C5 : la recette verrouillée, CLI = écran ──────────────────────────── */
+/* ── La recette verrouillée, CLI = écran ───────────────────────────────── */
 
 export function testArtefactsFicheParamsCliVerrous() {
   titre('Paramètres d’artéfacts de la fiche — recette verrouillée, deux emplacements figés : CLI = écran');
@@ -160,7 +160,7 @@ export function testArtefactsFicheParamsCliVerrous() {
   egal(ids(paireRepresentative(aDemi.params)), [803, 802], '… et la paire tient la ligne 218 (803 + la pièce portée figée)');
 }
 
-/* ── Contrainte du 2026-10-01 : l'écran garde exactement le même comportement ── */
+/* ── Contrainte : l'écran garde exactement le même comportement ─────────── */
 
 // Le corps du mémo `artifactParams` APRÈS l'extraction du producteur, recopié tel quel — le
 // contrôle de source ci-dessous vérifie que l'écran porte exactement ce texte.
@@ -272,7 +272,7 @@ export function testArtefactsFicheParamsEcran() {
     'différentiel : entreeResolution passe par entreeResolutionDuBuild et le producteur');
 }
 
-/* ── C6 : l'entrée de résolution du différentiel = celle du CLI ─────────── */
+/* ── L'entrée de résolution du différentiel = celle du CLI ──────────────── */
 
 export function testArtefactsFicheParamsDifferentiel() {
   titre('Différentiel relique — entreeResolution = résolution du CLI, recette « Libre » avec buff de DEF');

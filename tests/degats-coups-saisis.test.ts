@@ -1,6 +1,6 @@
 // Nombres de coups variables, SAISIS.
 //
-// Décisions de l'utilisateur : le nombre de coups variable est SAISI (borné à la
+// Règles : le nombre de coups variable est SAISI (borné à la
 // plage) ; le défaut est le MINIMUM ; un coup supplémentaire vaut les autres
 // coups. Les bornes viennent de la prose du sort ou d'un champ de la fiche,
 // jamais d'une dérivation depuis les stats : chaque borne attendue ci-dessous est

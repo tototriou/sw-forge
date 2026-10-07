@@ -292,7 +292,7 @@ export function testAurasReliqueFinaleEtDiagnostics() {
   ok(conditionsPaireFixePosees(maximum) && !respecteConditionsPaireFixe(STATS, maximum, AUCUNE_AURA_PROPRE),
     'paire à relique fixe : maximum RES/PRE seul bloque le résultat');
   ok(!conditionsPaireFixePosees({ minStats: {}, maxStats: { atk: 100 } }),
-    'paire à relique fixe : ancien comportement T11 des autres maximums préservé');
+    'paire à relique fixe : les autres maximums restent hors de ce filtre');
   const diagnosticMin = diagnoseFeasibility({ base: BASE, artifacts: [], pool: [], requirement: exact, metric: 'eff' });
   egal(diagnosticMin.filter((d) => d.kind === 'min').map((d) => [d.key, d.bound, d.satisfiable]),
     [['res', 8, true], ['acc', 8, true]], 'diagnostic de minimum : borne avec aura');
@@ -820,11 +820,10 @@ export function testAurasConditionsPropresPairBuckets() {
 }
 
 /* --------------------------------------------------------------------------
- * La carte de résultat affiche le chiffre qui CLASSE. Constat hérité
- * de départ : la carte « Dégâts réels » omettait la Conquête de la relique
- * retenue, que le tri compte ; « PV effectifs » omettait de même Ténacité et
- * points Bravoure/Éternité/Origine. Les deux cartes passent désormais par
- * `scoreDuCandidat`, la fonction même du tri.
+ * La carte de résultat affiche le chiffre qui CLASSE : la carte « Dégâts
+ * réels » compte la Conquête de la relique retenue, comme le tri ; « PV
+ * effectifs » compte de même Ténacité et points Bravoure/Éternité/Origine.
+ * Les deux cartes passent par `scoreDuCandidat`, la fonction même du tri.
  * ----------------------------------------------------------------------- */
 
 export function testAurasCarteEgaleTri() {
@@ -851,13 +850,13 @@ export function testAurasCarteEgaleTri() {
   const opts = { realDamage, damageSetup: setup, aurasPropresDe,
     exclusiveDuBuild: (c: BuildCandidate) => (c === cB ? apportB : null) };
 
-  // Le constat, tel qu'il était : l'ancienne formule de la carte.
+  // Témoin : la formule d'une carte qui omettrait l'exclusive.
   const ancienneCarte = (c: BuildCandidate) => computeTotalDamage(actif, [], c.stats, setup, aurasPropresDe(c), null, ARTIFACT_DAMAGE_NEUTRE,
     false, null, null, {}, null, null, null, null);
   const tri = sortCandidates([cA, cB], 'degats_reels', opts);
   egal(tri.map((c) => c.runeIds), [cB.runeIds, cA.runeIds], 'tri : B passe devant grâce à sa Conquête');
   ok(ancienneCarte(cB) < ancienneCarte(cA),
-    `constat confirmé : l'ancienne carte affichait ${Math.round(ancienneCarte(cB))} sur B, au-dessus de ${Math.round(ancienneCarte(cA))} sur A`);
+    `témoin : une carte sans exclusive afficherait ${Math.round(ancienneCarte(cB))} sur B, au-dessus de ${Math.round(ancienneCarte(cA))} sur A`);
   egal(scoreDuCandidat(cB, 'degats_reels', opts), objectiveScore(cB, 'degats_reels', aurasPropresDe(cB), realDamage, apportB),
     'scoreDuCandidat(B) = objectiveScore avec la Conquête retenue');
   ok(scoreDuCandidat(cB, 'degats_reels', opts)! > scoreDuCandidat(cA, 'degats_reels', opts)!,
@@ -870,7 +869,7 @@ export function testAurasCarteEgaleTri() {
   ok(apportT.reductionPct > 0, `Ténacité de A : ${apportT.reductionPct} % de réduction`);
   const optsEhp = { damageSetup: setup, aurasPropresDe, exclusiveDuBuild: (c: BuildCandidate) => (c === cA ? apportT : null) };
   ok(pvEffectifs(cA.stats, aurasPropresDe(cA), setup) !== scoreDuCandidat(cA, 'ehp', optsEhp),
-    'constat PV effectifs : l’ancienne carte (pvEffectifs seul) omettait la Ténacité que le tri compte');
+    'témoin PV effectifs : une carte (pvEffectifs seul) omettrait la Ténacité que le tri compte');
   egal(scoreDuCandidat(cA, 'ehp', optsEhp), objectiveScore(cA, 'ehp', aurasPropresDe(cA), undefined, apportT, setup),
     'scoreDuCandidat(A, ehp) = objectiveScore avec la Ténacité');
   egal(scoreDuCandidat(cB, 'ehp', optsEhp), pvEffectifs(cB.stats, aurasPropresDe(cB), setup),

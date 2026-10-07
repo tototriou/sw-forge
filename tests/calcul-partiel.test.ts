@@ -141,7 +141,7 @@ export function testCalculPartielTable() {
     for (const { d } of p) {
       const s = monsterDamageSkills(d).find((x) => x.skillCom2usId === id);
       ok(s != null && estPrisEnCharge(s), `${id} (forme ${d.com2usId}) : sort calculé, donc l’étiquette s’affiche`);
-      // D63 : l'ignore DEF est compté en permanence ; le jour où il est
+      // L'ignore DEF est compté en permanence ; le jour où il est
       // conditionné, ce contrôle échoue et l'entrée doit sortir.
       if (source === 'ignore-def' && s && estPrisEnCharge(s)) ok(s.ignoreDef, `${id} (forme ${d.com2usId}) : ignore DEF compté en permanence`);
     }

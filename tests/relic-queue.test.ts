@@ -189,7 +189,7 @@ function total(stats: { key: string; total: number }[], k: string): number {
  * (algo-verify : une référence de contrôle, pas une réimplémentation
  * améliorée). `faire`, `calculerStats`, `respecteConditions` sont les trois
  * rappels que l'écran construisait (`faireParamsArtefacts`, `calculerStats`,
- * `respecteConditions`, OptimizerSection.tsx l. 2003–2100 au 2026-09-21).
+ * `respecteConditions`, que construisait OptimizerSection.tsx).
  * ----------------------------------------------------------------------- */
 
 function referenceBase26db0cc(
@@ -248,9 +248,9 @@ export default function testRelicQueue() {
     const r = resoudre(p, c, ctx, { critere: 'ehp' });
     // Le moteur d'avant, relique fixée : les stats du candidat qu'il collecte.
     const moteur = searchBuilds({ ...p, relicContext: undefined }).candidates.find((x) => cle(x.runeIds) === cle(c.runeIds))!;
-    egal(r.stats, moteur.stats, 'G identité : candidate = équipée → stats identiques à celles du moteur avec la relique fixe');
-    egal(r.relique?.id, 900, 'G identité : la relique retenue est l’équipée');
-    egal(total(r.stats, 'def'), 600 + Math.ceil((600 * 14) / 100), 'G identité : la principale DEF % +14 est appliquée exactement UNE fois');
+    egal(r.stats, moteur.stats, 'identité : candidate = équipée → stats identiques à celles du moteur avec la relique fixe');
+    egal(r.relique?.id, 900, 'identité : la relique retenue est l’équipée');
+    egal(total(r.stats, 'def'), 600 + Math.ceil((600 * 14) / 100), 'identité : la principale DEF % +14 est appliquée exactement UNE fois');
   }
 
   /* ── Identité G — candidate différente → ancienne principale absente,
@@ -325,10 +325,11 @@ export default function testRelicQueue() {
       // Le score du couple retenu est l'UNIQUE note : celle d'`evaluer` sur
       // ses paires, égale au régime appliqué aux stats exactes.
       egal(r.paire?.score, total(r.stats, 'atk'), 'ordre (a) : une seule note — le score de la paire = le régime (ATQ) sur les stats exactes');
-      // Sans contexte (chemin d'avant), le maximum n'est PAS vérifié par la
-      // file (T11, hors chantier) : l'artéfact ATQ est retenu.
+      // Sans contexte (hors mode `recherche`), le maximum n'est PAS vérifié
+      // par la file (spec/outils/optimizer/moteur/reliques.md, « Résolution
+      // exacte par build, file, classement ») : l'artéfact ATQ est retenu.
       const avant = resoudre(p, c, undefined, { critere: 'atk', inventaireArtefacts: arts });
-      egal(avant.artefacts.map((a) => a.id), [11], 'ordre (T11, documenté) : sans contexte, la file d’avant ne lit que les minimums et garde l’artéfact ATQ');
+      egal(avant.artefacts.map((a) => a.id), [11], 'ordre (documenté) : sans contexte, la file ne lit que les minimums et garde l’artéfact ATQ');
     }
     // (b) Artéfact ATQ +100 : (PV % +14, +100) = 3446 tient le maximum et
     // bat (ATQ % +14, vide) = 3444 — la paire et la relique se résolvent
@@ -361,24 +362,24 @@ export default function testRelicQueue() {
     const ctx = contexte(LIBRE, equipee, [equipee]);
     const arts = [grand, petit];
     const r = resoudre(p, candidat(p, c0), ctx, { critere: 'atk', inventaireArtefacts: arts });
-    ok(r.conforme, 'BLOQUANT 1 : un couple faisable existe — le plus petit apport');
-    egal(r.artefacts.map((a) => a.id), [22], 'BLOQUANT 1 : la paire retenue porte l’artéfact ATQ +90, jamais le +100 (dépasse le maximum)');
-    egal(total(r.stats, 'atk'), atkRunes + 90, 'BLOQUANT 1 : ATQ = runes + 90, sous le maximum');
+    ok(r.conforme, 'maximum actif : un couple faisable existe — le plus petit apport');
+    egal(r.artefacts.map((a) => a.id), [22], 'maximum actif : la paire retenue porte l’artéfact ATQ +90, jamais le +100 (dépasse le maximum)');
+    egal(total(r.stats, 'atk'), atkRunes + 90, 'maximum actif : ATQ = runes + 90, sous le maximum');
     // « faisable rejeté » (deuxième cas de la revue) : un minimum QUE SEUL
     // le couple (+90) satisfait encore — le build FAISABLE doit rester
     // CONSERVÉ, jamais rejeté.
     const pMin = { ...p, requirement: { sets: [], minStats: { atk: atkRunes + 50 }, maxStats: { atk: max } } };
     const rMin = resoudre(pMin, candidat(pMin, c0), ctx, { critere: 'atk', inventaireArtefacts: arts });
-    egal(rMin.conforme, true, 'BLOQUANT 1 : avec un minimum entre les deux apports, le build faisable (+90) reste CONSERVÉ');
-    egal(rMin.artefacts.map((a) => a.id), [22], 'BLOQUANT 1 : … toujours avec l’artéfact +90');
+    egal(rMin.conforme, true, 'maximum actif : avec un minimum entre les deux apports, le build faisable (+90) reste CONSERVÉ');
+    egal(rMin.artefacts.map((a) => a.id), [22], 'maximum actif : … toujours avec l’artéfact +90');
     // Sans maximum actif : identité — la dominance élimine encore le plus
     // petit apport, comportement d'avant, byte-identique.
     const pSansMax = { ...p, requirement: { sets: [], minStats: {} } };
     const rSansMax = resoudre(pSansMax, candidat(pSansMax, c0), ctx, { critere: 'atk', inventaireArtefacts: arts });
-    egal(rSansMax.artefacts.map((a) => a.id), [21], 'BLOQUANT 1 : sans maximum actif, le plus grand apport (+100) l’emporte — identité');
+    egal(rSansMax.artefacts.map((a) => a.id), [21], 'maximum actif : sans maximum actif, le plus grand apport (+100) l’emporte — identité');
   }
 
-  /* ── Contre-exemple B1 côté file : maximum PV actif, deux reliques PV %,
+  /* ── Contre-exemple côté file : maximum PV actif, deux reliques PV %,
    * seule la plus basse faisable ; un build que TOUTE relique fait dépasser
    * est rejeté. */
   {
@@ -389,18 +390,18 @@ export default function testRelicQueue() {
     const ctx = contexte(LIBRE, undefined, [haute, basse]);
     const c = candidat(p, c0);
     const r = resoudre(p, c, ctx, { critere: 'ehp' });
-    ok(r.conforme, 'B1 file : un couple faisable existe');
-    egal(r.relique?.id, 52, 'B1 file : seule la PV % +12 est faisable (11200 ≤ 11300 ; +14 → 11400 rejetée)');
-    egal(total(r.stats, 'hp'), 11200, 'B1 file : PV = 11200 avec la +12');
+    ok(r.conforme, 'maximum PV actif : un couple faisable existe');
+    egal(r.relique?.id, 52, 'maximum PV actif : seule la PV % +12 est faisable (11200 ≤ 11300 ; +14 → 11400 rejetée)');
+    egal(total(r.stats, 'hp'), 11200, 'maximum PV actif : PV = 11200 avec la +12');
     // Le moteur relâché (Lmin = 0 en libre) garde ce build ; la file décide.
     const relaxed = searchBuilds({ ...p, relicContext: ctx });
-    ok(relaxed.candidates.some((x) => cle(x.runeIds) === cle(c0)), 'B1 file : le moteur relâché garde le build (borne max = 0 en libre)');
+    ok(relaxed.candidates.some((x) => cle(x.runeIds) === cle(c0)), 'maximum PV actif : le moteur relâché garde le build (borne max = 0 en libre)');
     // Maximum sous la plus basse : aucun couple faisable → rejeté.
     const pRejet = { ...p, requirement: { sets: [], minStats: {}, maxStats: { hp: 11100 } } };
     const rejet = resoudre(pRejet, candidat(pRejet, c0), ctx, { critere: 'ehp' });
-    egal(rejet.conforme, false, 'B1 file : maximum 11100 → aucune relique éligible ne tient, build REJETÉ');
-    egal(etatReliqueDuBuild(rejet, ctx, undefined).etat, 'rejete', 'B1 file : état « rejeté » — jamais affiché');
-    ok(searchBuilds({ ...pRejet, relicContext: ctx }).candidates.some((x) => cle(x.runeIds) === cle(c0)), 'B1 file : … alors que le moteur relâché l’avait gardé (faux positif de la borne, filtré ici)');
+    egal(rejet.conforme, false, 'maximum PV actif : maximum 11100 → aucune relique éligible ne tient, build REJETÉ');
+    egal(etatReliqueDuBuild(rejet, ctx, undefined).etat, 'rejete', 'maximum PV actif : état « rejeté » — jamais affiché');
+    ok(searchBuilds({ ...pRejet, relicContext: ctx }).candidates.some((x) => cle(x.runeIds) === cle(c0)), 'maximum PV actif : … alors que le moteur relâché l’avait gardé (faux positif de la borne, filtré ici)');
   }
 
   /* ── Régime `aucun` (Efficience, Vitesse) : équipée si candidate et

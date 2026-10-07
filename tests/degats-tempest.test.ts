@@ -328,7 +328,7 @@ export function testDegatsTempestCommeSort() {
     egal(commeSort, tempest.profile, `${forme} : le sort « Tempest » EST le profil du passif, champ pour champ — une seule source`);
     egal(commeSort.passif, true, `${forme} : profil marqué « passif »`);
     egal(sorts.map((s) => s.slot), [1, 2, 3], `${forme} : S1, S2 puis Tempest (S3), dans l’ordre des slots`);
-    egal(defaultDamageSkill(sorts)?.skillCom2usId, LIGHTNING_NOVA, `${forme} : le sort par défaut reste le S2, jamais Tempest (réponse n° 9 de l’utilisateur)`);
+    egal(defaultDamageSkill(sorts)?.skillCom2usId, LIGHTNING_NOVA, `${forme} : le sort par défaut reste le S2, jamais Tempest`);
     egal(resolveDamageSkill(sorts, null)?.skillCom2usId, LIGHTNING_NOVA, `${forme} : sort non précisé (null) → S2`);
     egal(resolveDamageSkill(sorts, TEMPEST)?.skillCom2usId, TEMPEST, `${forme} : sort 3213 demandé (l’identifiant d’un passif) → Tempest`);
   }
@@ -571,7 +571,7 @@ const sansCommentaires = (s: string) =>
 
 /**
  * L'écran (`DamageSetupCard.tsx`), lu sur la source : le dépôt n'a pas
- * d'infrastructure de test React (tests/run.mjs). Réponses de l'utilisateur :
+ * d'infrastructure de test React (tests/run.mjs). Règles :
  * l'interrupteur est MASQUÉ quand Tempest est la compétence
  * choisie, et « Tempest (S3) se déclenche après ce sort » est désactivé
  * par défaut, à la place d'une phrase de condition. Cet

@@ -489,11 +489,11 @@ export function testMecanismesIgnoreDefDepuisUnCoup() {
 export function testMecanismesPassifMasqueEtStatsDeCombat() {
   titre('Passif masqué — porte-t-il aussi des stats de combat ? (sentinelle du corpus)');
 
-  // Le bloc des passifs ne rend que `passifsSuivants`. Auparavant,
-  // « Stats acquises en combat » écartait la prose de TOUS les passifs
-  // (`clesProseDejaRendue([...passifs])`) : un passif masqué qui porterait aussi
-  // un réglage de stats de combat aurait perdu sa prose ET son en-tête. Désormais,
-  // l'exclusion lit `passifsSuivants` (testProseStatsCombatCarte,
+  // Le bloc des passifs ne rend que `passifsSuivants`. Si « Stats acquises en
+  // combat » écartait la prose de TOUS les passifs
+  // (`clesProseDejaRendue([...passifs])`), un passif masqué qui porterait aussi
+  // un réglage de stats de combat perdrait sa prose ET son en-tête. L'exclusion
+  // lit donc `passifsSuivants` (testProseStatsCombatCarte,
   // testProseStatsCombatPassifMasque). Deux causes de masquage existent : être
   // soi-même le sort choisi (`selectionnableCommeSort`) et ne pas suivre le slot
   // du sort (`slotsDeclencheurs`). On balaie chaque forme du corpus, avec chacun

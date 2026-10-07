@@ -148,11 +148,10 @@ export default async function testRuneOptimNearMiss() {
 
   titre('Optimizer · quasi-succès — survit à un arrêt manuel (drivePairing)');
 
-  // ⚠️ Vérifie spécifiquement le correctif décrit dans spec/outils/optimizer/moteur/diagnostics.md,
-  // « Quasi-succès à l'appariement » : `drivePairing` reconstruisait
-  // `SearchResult` À LA MAIN sur `isStopped()` (3 champs seulement) — sans
-  // correction, le near-miss accumulé jusqu'à l'arrêt aurait été perdu en
-  // silence. Générateur FACTICE (pas un vrai `pairBuckets`) — la question
+  // ⚠️ Vérifie spécifiquement la règle décrite dans spec/outils/optimizer/moteur/diagnostics.md,
+  // « Quasi-succès à l'appariement » : `drivePairing` doit rendre le
+  // near-miss accumulé jusqu'à l'arrêt sur `isStopped()` : un `SearchResult`
+  // reconstruit À LA MAIN (3 champs seulement) le perdrait en silence. Générateur FACTICE (pas un vrai `pairBuckets`) — la question
   // posée ici porte sur `drivePairing` seul (voir algo-verify, point 6 :
   // vérifier au bon étage), jamais sur la justesse de l'appariement lui-même
   // (couverte juste au-dessus). Un vrai `pairBuckets` ne céderait la main

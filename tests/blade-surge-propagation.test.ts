@@ -394,5 +394,5 @@ export function testBladeSurgeLigneArtifactSearch() {
   ok(script.includes('${!sequence && sort.aoe ? \', zone\' : \'\'}'), '… la portée seulement hors séquence (la donnée ne décrit pas la séquence)');
   egal((script.match(/coup\(s\)/g) ?? []).length, 1, '« coup(s) » ne reste que dans le repli hors séquence');
   egal(resumeSequenceDeCoups(bladeSurgeDeLapis().sequenceDeCoups ?? []), '2 coups · Cible unique, puis 1 coup · Zone',
-    'Blade Surge de Lapis : ce que la ligne écrit désormais, au lieu de « 2 coup(s) »');
+    'Blade Surge de Lapis : la ligne écrit la séquence, pas « 2 coup(s) »');
 }

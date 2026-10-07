@@ -18,8 +18,8 @@ export type OptimizerSortKey = StatKey | Objective;
 //
 // ⚠️ `'libre'` n'a de sens qu'avec une recherche d'artéfacts : il n'a été
 // ajouté qu'une fois celle-ci construite, pour ne pas laisser une option morte
-// dans le sélecteur. Il aligne ce type sur `ChoixPrincipale`
-// (artifactOptim.ts), dont il était jusque-là le sous-ensemble.
+// dans le sélecteur. Il est aligné sur `ChoixPrincipale`
+// (artifactOptim.ts).
 //
 // ⚠️ **`'none'` (laisser l'emplacement vide) a été RETIRÉ.** Un monstre porte
 // deux artéfacts ou n'en porte pas : vider UN emplacement pendant que l'autre
@@ -47,7 +47,7 @@ export type RelicMainChoice = ArtifactMainChoice;
 // `EffectLine.stat` (types.ts) le fait déjà pour les codes d'effet.
 export type RelicUniqueChoice = 'libre' | number;
 
-// Seuil de niveau par défaut d'une relique éligible (D2, +6) — nommé une
+// Seuil de niveau par défaut d'une relique éligible (+6) — nommé une
 // seule fois : repris par `optimizerRecipe.ts` pour la recette ancienne qui
 // ne porte pas encore ce champ.
 export const DEFAULT_RELIC_MIN_UPGRADE = 6;
@@ -60,7 +60,7 @@ export const DEFAULT_RELIC_MIN_UPGRADE = 6;
  * `recipeToRelicIntent` (une recette exportée sans ce champ ne le porte pas)
  * et à `pickSpecies` (OptimizerSection.tsx), qui la câblent tous deux.
  *
- * ⚠️ **Ne pas répéter l'incident artéfacts** : l'écran doit AFFICHER la
+ * ⚠️ **Le moteur fait foi pour le défaut** : l'écran doit AFFICHER la
  * valeur que le moteur applique, jamais l'inverse — cette fonction est donc
  * la source unique du calcul, pas une case à cocher qui devinerait.
  */
@@ -92,12 +92,12 @@ export function relicMainChoiceApresChangementExemplaire(
 
 /**
  * L'intention de recherche de relique — interrupteur, principale, type,
- * seuil — résolue en un objet UNIQUE (garantie G) : ni l'écran, ni
+ * seuil — résolue en un objet UNIQUE : ni l'écran, ni
  * le CLI, ni la file ne relisent les trois champs séparément. Deux
  * constructeurs : côté recette (`recipeToRelicIntent`,
  * scripts/lib/recipeToSearchParams.ts) et côté écran (`relicIntentDepuisEtat`,
  * depuis `OptimizerState`) — les listes n'ont d'effet qu'avec la
- * recherche (D1).
+ * recherche.
  */
 export interface RelicIntent {
   mode: 'off' | 'equipped' | 'recherche';
@@ -112,7 +112,7 @@ export interface RelicIntent {
  * (scripts/lib/recipeToSearchParams.ts), appliquées aux quatre champs de
  * `OptimizerState` au lieu d'une `OptimizerRecipe` : `mode: 'off'` suit
  * l'interrupteur (aucun interrupteur propre à la relique),
- * `'equipped'` si la principale l'est (le type est alors sans effet, D1),
+ * `'equipped'` si la principale l'est (le type est alors sans effet),
  * `'recherche'` sinon. `run()` (OptimizerSection.tsx) l'appelle pour poser
  * `SearchParams.relicContext` — troisième producteur, à
  * côté du CLI (`recipeToRelicIntent`) et de l'oracle.
@@ -161,12 +161,10 @@ export interface OptimizerState {
    * simplement d'en chercher d'autres. C'est le sens du réglage — « je
    * compose un runage autour des artéfacts que j'ai déjà dessus ».
    *
-   * ⚠️ Ce drapeau a été INVERSÉ (il s'appelait `ignoreArtifacts`) et son
-   * comportement corrigé : il retirait auparavant TOUTE statistique
-   * d'artéfact, ce que son libellé ne disait pas et qui rendait la recherche
-   * plus stricte sans raison. La recette exportée garde, elle, le champ
-   * `ignoreArtifacts` (format stable) — la conversion se fait à la frontière,
-   * voir `exportRecipe`/`importRecipe` (OptimizerSection.tsx).
+   * ⚠️ Ce drapeau est l'INVERSE du champ `ignoreArtifacts` de la recette
+   * exportée (format stable), et il ne retire PAS toute statistique
+   * d'artéfact — la conversion se fait à la frontière, voir
+   * `exportRecipe`/`importRecipe` (OptimizerSection.tsx).
    */
   optimiserArtefacts: boolean;
   setOptimiserArtefacts: Dispatch<SetStateAction<boolean>>;
@@ -198,19 +196,17 @@ export interface OptimizerState {
   //
   // ⚠️ **Clé absente = `'libre'`**, et c'est la SEULE réponse valable : c'est
   // ce que `candidatsParSorte` (artifactOptim.ts) fait d'une clé absente, et
-  // le moteur a le dernier mot. Ce commentaire disait `'equipped'`, le
-  // sélecteur l'affichait, et la recherche cherchait pourtant librement —
-  // trois sources, deux réponses. Tout ce qui se fiait à l'affichage
-  // raisonnait donc sur un état faux.
+  // le moteur a le dernier mot. Afficher `'equipped'` alors que la recherche
+  // cherche librement ferait raisonner sur un état faux tout ce qui se fie à
+  // l'affichage.
   //
-  // ⚠️ **C'est un FILTRE sur l'inventaire, plus une hypothèse.** Ce réglage a
-  // d'abord servi de « et si j'avais un artéfact PV+1500 ? » et fabriquait pour
-  // cela une pièce à `subs: []`. En « Dégâts réels », cette pièce faisait
-  // calculer les dégâts SANS aucune ligne d'effet, quand « Comme équipé » les
-  // comptait : deux réglages voisins, deux modèles de dégâts, sans que rien ne
-  // le signale. Le cran désigne donc désormais les artéfacts RÉELLEMENT
-  // possédés portant cette principale — et sans aucun, l'emplacement reste
-  // vide. Le « et si… » est perdu, en connaissance de cause.
+  // ⚠️ **C'est un FILTRE sur l'inventaire, plus une hypothèse.** Une pièce
+  // hypothétique (« et si j'avais un artéfact PV+1500 ? », à `subs: []`)
+  // ferait calculer les dégâts SANS aucune ligne d'effet en « Dégâts réels »,
+  // quand « Comme équipé » les compte : deux réglages voisins, deux modèles de
+  // dégâts, sans que rien ne le signale. Le cran désigne donc les artéfacts
+  // RÉELLEMENT possédés portant cette principale — et sans aucun,
+  // l'emplacement reste vide.
   artifactMainByKind: Partial<Record<ArtifactKind, ArtifactMainChoice>>;
   setArtifactMainByKind: Dispatch<SetStateAction<Partial<Record<ArtifactKind, ArtifactMainChoice>>>>;
   // Principale ET propriété unique de RELIQUE demandées —
@@ -224,7 +220,7 @@ export interface OptimizerState {
   setRelicMainChoice: Dispatch<SetStateAction<RelicMainChoice>>;
   relicUniqueChoice: RelicUniqueChoice;
   setRelicUniqueChoice: Dispatch<SetStateAction<RelicUniqueChoice>>;
-  // Seuil de niveau minimum d'une relique éligible (D2, +0 à +15, +6 par
+  // Seuil de niveau minimum d'une relique éligible (+0 à +15, +6 par
   // défaut) — un RÉGLAGE AVANCÉ, pas un critère : `resetSearch` ne le remet
   // PAS à zéro au changement de monstre, comme `slotFilterPreset` ou
   // `exhaustiveSearch`. Se règle par le champ « Niveau minimum » de la carte
@@ -361,8 +357,8 @@ export interface OptimizerState {
    * (`signatureArtefacts`) : tout réimport en vide le cache, même à nombre
    * d'artéfacts et identifiants de runes égaux.
    *
-   * ⚠️ Une identité, pas une empreinte du contenu (décision de l'utilisateur
-   * du 2026-10-02) ; sans setter : rien d'autre qu'un import ne l'avance.
+   * ⚠️ Une identité, pas une empreinte du contenu ; sans setter : rien d'autre
+   * qu'un import ne l'avance.
    */
   importDuCompte: number;
   /**
@@ -395,7 +391,7 @@ export interface OptimizerState {
    * changer d'exemplaire effacent donc la même chose.
    *
    * Appelée seule par OptimizerSection.tsx quand un membre de liste de la
-   * MÊME espèce désigne un AUTRE exemplaire (décision de l'utilisateur du 2026-10-02) : la recherche affichée, faite
+   * MÊME espèce désigne un AUTRE exemplaire : la recherche affichée, faite
    * pour l'ancien exemplaire, disparaît comme au changement d'espèce ; les
    * critères restent, et l'utilisateur relance lui-même — jamais de relance
    * automatique.
@@ -409,9 +405,9 @@ export function useOptimizerState(): OptimizerState {
   const [setPickerInvalid, setSetPickerInvalid] = useState(false);
   const [minStats, setMinStats] = useState<Partial<Record<StatKey, number>>>({});
   const [maxStats, setMaxStats] = useState<Partial<Record<StatKey, number>>>({});
-  // ⚠️ Coché par défaut : demande reconfirmée après un premier aller-retour
-  // (décoché par défaut, puis revenu sur cochée) — voir
-  // spec/outils/optimizer/ecran/conditions-et-reglages.md § Grille des conditions.
+  // ⚠️ Coché par défaut — règle dans l'introduction de
+  // spec/outils/optimizer/ecran/conditions-et-reglages.md, sous son titre
+  // « Conditions, inventaire et réglages avancés ».
   const [excludeBase, setExcludeBase] = useState(true);
   // Activee par defaut : chercher les artefacts est le comportement utile,
   // et il ne coute rien a la recherche de runes (temps masque).
@@ -421,7 +417,7 @@ export function useOptimizerState(): OptimizerState {
   // (efficience, VIT, TC, DCC, RES, PRE) — voir `regimeArtefacts`.
   const [adapterArtefactsAuTri, setAdapterArtefactsAuTri] = useState(true);
   const [artifactMainByKind, setArtifactMainByKind] = useState<Partial<Record<ArtifactKind, ArtifactMainChoice>>>({});
-  // ⚠️ Défaut STATIQUE ('libre') volontairement — le vrai défaut D1
+  // ⚠️ Défaut STATIQUE ('libre') volontairement — le vrai défaut
   // ('equipped' si le monstre porte une relique) se calcule au choix du
   // monstre (`defaultRelicMainChoice`), câblé par `pickSpecies`, pas ici :
   // ce hook n'a jamais accès au monstre sélectionné.

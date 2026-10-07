@@ -114,7 +114,7 @@ export interface ExclusionSourceData {
 //   par CETTE fonction).
 //
 // ⚠️ Deux gardes DISTINCTES, une par granularité — la garde par espèce
-// manquait d'abord pour RTA/siège :
+// est nécessaire pour RTA/siège :
 // - `excludeOwnUnitKey` (box UNIQUEMENT) : compare par ENTRÉE précise (clé de
 //   box), pas par espèce — la box peut contenir plusieurs exemplaires du même
 //   monstre (voir l'en-tête du fichier), et SEUL l'exemplaire réellement en
@@ -245,7 +245,7 @@ export function resolveExcludedRuneIds(selectors: ExclusionSelector[], data: Exc
  * siège ou Box), à l'opposé de l'exclusion MANUELLE ci-dessus qui retient des
  * entrées précises une par une. Un seul périmètre actif à la fois — remplace
  * l'ancienne case « Utiliser tout l'inventaire » (inversée : décochée par
- * défaut désormais, et plus seulement scopée à la box).
+ * défaut, et pas seulement scopée à la box).
  * ----------------------------------------------------------------------- */
 export type AutoExclusionScope = 'rta' | 'siege-defense' | 'box';
 

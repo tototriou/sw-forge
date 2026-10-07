@@ -37,12 +37,12 @@ export interface BuildHalfRequest {
   // runeBuildOptim.ts, même discipline de propagation que `base`.
   objectiveKeys: StatKey[];
   // Bouton « Prioriser les stats les plus difficiles » — voir SearchParams
-  // dans runeBuildOptim.ts, même paramètre relayé tel quel jusqu'ici.
+  // dans runeBuildOptim.ts, même paramètre relayé tel quel.
   adaptiveTrancheWeighting?: boolean;
-  // ⚠️ Manquait jusqu'ici — voir SearchParams.combosOrderMode dans
+  // ⚠️ Voir SearchParams.combosOrderMode dans
   // runeBuildOptim.ts. Sans ce champ (et son relais ci-dessous jusqu'à
-  // `buildBuckets`), `SearchParams.combosOrderMode` n'avait AUCUN effet sur
-  // le vrai chemin de production (Web Workers) : `buildBuckets` recevait
+  // `buildBuckets`), `SearchParams.combosOrderMode` n'aurait AUCUN effet sur
+  // le vrai chemin de production (Web Workers) : `buildBuckets` recevrait
   // toujours `undefined` ici, retombant sur son défaut interne quel que
   // soit ce que l'appelant avait demandé.
   combosOrderMode?: 'potential' | 'relevance' | 'combined' | 'objective';

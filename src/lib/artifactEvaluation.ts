@@ -38,13 +38,13 @@ export function regimeArtefacts(critere: StatKey | Objective): RegimeArtefacts {
 
 /**
  * Le régime EFFECTIF de l'ÉQUIPEMENT COMPLET — paire d'artéfacts ET relique,
- * un seul régime pour les deux (D7) : rabat
+ * un seul régime pour les deux : rabat
  * `'degats_reels'` sur `'aucun'` tant qu'aucun sort n'est calculable pour ce
  * monstre, sinon le régime brut tel quel.
  *
  * ⚠️ **C'est CE régime, jamais le brut, qui doit alimenter la signature de
- * cache et le choix de paire/relique** (un bug a
- * laissé passer le régime brut dans la signature) : pendant la transition
+ * cache et le choix de paire/relique** (le régime brut dans la signature
+ * serait périmé) : pendant la transition
  * « sort indisponible → calculable » (le contexte de dégâts passe de
  * `null`/absent à disponible), le régime brut reste `'degats_reels'` dans
  * les deux cas — un cache indexé dessus resterait périmé.
@@ -70,7 +70,7 @@ export type DegatsContext = Omit<RealDamageContext, 'artefacts'>;
  * artéfact y entre. Deux paires différentes peuvent donc franchir un palier
  * de tranche différent.
  *
- * ⚠️ **Une seule note** (D6) : le score rendu ici est celui qui choisit la
+ * ⚠️ **Une seule note** : le score rendu ici est celui qui choisit la
  * paire, celui qui choisit la relique (`PaireArtefacts.score`, lu par
  * `bestRelicForBuild`) et celui qui classe. Jamais un score de principale
  * auquel on ajouterait un score d'exclusive.
@@ -155,7 +155,7 @@ export class CacheProfilsParPaire {
 // du build dont `statsAvec` calcule les stats. Constantes pour toutes ses
 // paires et reliques (ni artéfact ni relique ne porte de set), obligatoires :
 // la note d'une paire, celle qui choisit la relique et celle qui classe les
-// voient toutes trois (D6, une seule note).
+// voient toutes trois (une seule note).
 // Surcharge 1 : `degats_reels` EXIGE le contexte de dégâts — omission =
 // erreur `tsc`, pas un repli silencieux sur la somme des principales.
 // `profils` : le profil de chaque paire est lu dans ce cache au

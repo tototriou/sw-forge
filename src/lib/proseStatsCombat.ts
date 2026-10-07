@@ -7,8 +7,7 @@
 // Trois règles :
 // 1. **Une prose par passif**, jamais une par réglage : Elsharion (`10014`) et
 //    Crane (`11663`) ont deux compteurs pour une même compétence, donc une
-//    seule description, au-dessus du premier (décision de l'utilisateur
-//    n° 14, 2026-10-02).
+//    seule description, au-dessus du premier.
 // 2. **Jamais une prose déjà rendue ailleurs dans la carte.** L'exclusion est
 //    DÉRIVÉE des blocs voisins qui rendent déjà la prose d'une compétence
 //    (`clesProseDejaRendue`), jamais une liste d'identifiants — même patron
@@ -44,7 +43,7 @@ export interface RenduReglageCombat {
    * Le réglage OUVRE son passif dans le bloc : c'est le premier réglage de sa
    * compétence, et aucun autre bloc n'en rend la prose. Quand son contrôle ne
    * nomme pas le passif (un compteur, un interrupteur d'état), la carte pose
-   * au-dessus l'icône et le nom du passif (décision de l'utilisateur n° 15).
+   * au-dessus l'icône et le nom du passif.
    */
   ouvre: boolean;
   /** Prose du jeu, rendue sous ce qui nomme le passif et avant le réglage ; `null` = rien. */

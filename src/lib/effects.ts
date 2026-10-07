@@ -121,8 +121,8 @@ export const RELIC_MAIN: Record<number, { label: string; stat: StatKey }> = {
 
 // Options du sélecteur « Relique — principale » — qualifiées comme les entrées d'artéfact qui FILTRENT réellement
 // par stat principale (`ARTIFACT_MAIN_OPTIONS`, runeBuildOptim.ts) : « Comme
-// équipé » lu au milieu de trois statistiques se lisait « la principale,
-// comme équipé » (incident artéfacts). Le « % » distingue la relique de
+// équipé » lu au milieu de trois statistiques se lirait « la principale,
+// comme équipé ». Le « % » distingue la relique de
 // l'artéfact (plat) — même stat, sémantique différente.
 export const RELIC_MAIN_OPTIONS: { code: 100 | 101 | 102; label: string }[] = [
   { code: 101, label: 'Principale ATQ %' },
@@ -298,10 +298,10 @@ export function canAddSet(sets: string[], key: string): boolean {
 //     — voir runeBuildOptim.ts).
 //  2. Le joker ne complète RIEN dès que DEUX sets ou plus sont incomplets
 //     PARMI LES RUNES RÉELLEMENT PORTÉES — même celui qui ne lui manque
-//     qu'UNE seule pièce. Avant ce correctif, la fonction complétait
-//     silencieusement le set le plus proche de l'activation sans regarder si
-//     un AUTRE set (même non demandé par l'utilisateur) était lui aussi
-//     incomplet — un set annoncé actif alors qu'il ne l'est pas en jeu.
+//     qu'UNE seule pièce. Compléter silencieusement le set le plus proche de
+//     l'activation sans regarder si un AUTRE set (même non demandé par
+//     l'utilisateur) est lui aussi incomplet annoncerait actif un set qui ne
+//     l'est pas en jeu.
 export function activeSets(keys: string[]): string[] {
   const count = new Map<string, number>();
   let jokers = 0;
@@ -599,10 +599,10 @@ export function formatRelicMain(e: EffectLine): string {
   return def ? `${def.label} +${e.value}%` : `#${e.code} +${e.value}`;
 }
 
-// Limite de poses simultanées d'une relique sur le compte (D3,
-// spec/outils/optimizer/moteur/reliques.md § Ce que le moteur lit d'une relique —
+// Limite de poses simultanées d'une relique sur le compte
+// (spec/outils/optimizer/moteur/reliques.md § Ce que le moteur lit d'une relique —
 // AFFICHÉE, jamais opposée). Valeur de
-// jeu susceptible de rebouger (elle a déjà changé une fois) : une seule
+// jeu susceptible de rebouger : une seule
 // constante nommée, à son seul point d'usage (`RelicDetailBox`).
 export const RELIC_MAX_INSTANCES = 150;
 

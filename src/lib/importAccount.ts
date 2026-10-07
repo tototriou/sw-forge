@@ -454,7 +454,7 @@ const indexArtifacts = memoByData((data: any): ReadonlyMap<number, any> => {
 });
 
 // Index de TOUTES les reliques par rid : inventaire (top-level `data.relics`,
-// source première — les équipées y figurent aussi, D1) + reliques embarquées
+// source première — les équipées y figurent aussi) + reliques embarquées
 // dans les unités (repli, exports anciens/incomplets). `data.relics` est
 // ajouté en premier : `!m.has(id)` lui laisse la priorité, jamais écrasé par
 // le repli (spec/shared/import-compte.md § Inventaire).

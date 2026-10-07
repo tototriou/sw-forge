@@ -166,8 +166,7 @@ export function echoAurasExternes(entrees: readonly AuraExterne[] | undefined): 
 // ── Rappel au changement de monstre ──────────────────
 
 /**
- * Durée d'un surlignage d'attention (réponse de l'utilisateur du 2026-10-02 :
- * « effacés après 3 s »).
+ * Durée d'un surlignage d'attention : effacé après 3 s.
  */
 export const DUREE_ATTENTION_MS = 3000;
 
@@ -195,13 +194,13 @@ export interface MonstreOptimise {
 /**
  * Faut-il rappeler les auras externes ? Vrai SEULEMENT quand on change de
  * monstre depuis la LISTE DE TRAVAIL — autre espèce, ou autre exemplaire de
- * la même espèce (réponse de l'utilisateur, 2026-10-02) — et que des auras
+ * la même espèce — et que des auras
  * externes restent renseignées (celles d'après, conservées) : l'identité du
  * monstre optimisé change ce qui est « externe », mais l'app ne réécrit
  * jamais les nombres à la place de l'utilisateur.
  *
  * ⚠️ **Aucune autre voie** : ni le bestiaire, ni une puce de source ou la
- * zone D (décision de l'utilisateur : la liste de travail
+ * zone D (la liste de travail
  * seulement), ni l'import d'une recette ou d'un compte, ni un simple rendu.
  * Recliquer l'exemplaire déjà affiché ne rappelle rien.
  */

@@ -72,7 +72,7 @@ export interface ResultatArtefacts {
    * Ce build tient-il encore ses minimums avec une VRAIE paire ?
    *
    * ⚠️ **Ce n'est pas une précaution, c'est la moitié d'une correction.** La
-   * recherche de runes valide désormais les minimums contre `artifactBounds`,
+   * recherche de runes valide les minimums contre `artifactBounds`,
    * une borne calculée PAR STAT ISOLÉE (voir `bornesArtefacts`). Avec des
    * minimums sur PV, ATQ et DEF à la fois, elle suppose les trois maxima
    * réunis — alors qu'une paire ne porte que deux principales. Des builds
@@ -141,8 +141,7 @@ export function candidatAvecSaPaire(c: BuildCandidate, cache: ReadonlyMap<string
 // entièrement justes. Calibré AVANT le mode relique « recherche ».
 export const K_BUILDS_OPTIMISES = 100;
 
-// ⚠️ **En mode relique « recherche », 300** (décision
-// utilisateur du 2026-10-01). L'ordre de base y note SANS relique : un build
+// ⚠️ **En mode relique « recherche », 300.** L'ordre de base y note SANS relique : un build
 // au-delà des 100 premiers peut remonter très haut une fois résolu (sur le
 // vrai compte, en PV effectifs, les rangs exhaustifs 16, 17 et 19 venaient
 // des rangs de base 107 à 117). 300 réduit le manque, ne l'annule pas : le
@@ -155,10 +154,9 @@ export const K_BUILDS_RECHERCHE_RELIQUE = 300;
  * partagée par l'écran (`useArtifactOptimQueue`) et le CLI
  * (`classerApresResolution`).
  *
- * ⚠️ **Des confirmées, plus des rangs** (décision de
- * l'utilisateur du 2026-10-02). La valeur ne change pas (300 / 100) ; son sens,
- * si : la file ne s'arrête plus aux K premiers de l'ordre de base, mais quand
- * K builds y sont résolus ET conformes (voir `prochainsATraiter`).
+ * ⚠️ **Des confirmées, pas des rangs** : K vaut 300 / 100, et la file ne
+ * s'arrête pas aux K premiers de l'ordre de base mais quand K builds y sont
+ * résolus ET conformes (voir `prochainsATraiter`).
  *
  * ⚠️ L'entrée est le contexte relique de la recherche LANCÉE
  * (`relicContextRecherche` à l'écran, `params.relicContext` au CLI), jamais
@@ -198,7 +196,7 @@ export function cibleDeLaFile(e: { relicContext: RelicContext | undefined; toutV
  * écartée (`conforme: false`) ne compte pas : la fenêtre s'allonge d'autant, et
  * la file continue, dans l'ordre du classement, jusqu'à K confirmées ou
  * jusqu'au dernier build trouvé. **Sans écartée, c'est exactement « les K
- * premiers non résolus »**, la règle d'avant ce lot : rien ne change dans le cas
+ * premiers non résolus »** : rien ne change dans le cas
  * normal (« Dégâts réels » de référence : 300 conformes sur 300). `K` infini
  * (`cibleDeLaFile`, « Vérifier toutes les combinaisons trouvées ») : tous les
  * non résolus, dans l'ordre.
@@ -299,8 +297,8 @@ export type VoieDeLaFile = 'page' | 'fond' | 'aucune';
  * Pourquoi deux voies : pendant une recherche, l'écran reçoit la progression
  * toutes les 150 ms et retrie l'aperçu. Il est rarement inactif, et chaque
  * build de la page pouvait attendre jusqu'à une seconde (`timeout` de
- * `requestIdleCallback`) — constat de l'utilisateur au navigateur, le
- * 2026-10-02. L'avance de fond, elle, peut attendre.
+ * `requestIdleCallback`), constaté au navigateur. L'avance de fond, elle,
+ * peut attendre.
  *
  * `deja` est lu par `has` seulement : le cache du hook (une `Map`) s'y passe
  * tel quel, sans copier ses clés.
@@ -327,11 +325,11 @@ export function voieDeLaFile(
 export function signatureReglages(parts: {
   monstreCom2usId: number;
   // ⚠️ **Le réglage de dégâts ENTIER, jamais quelques champs choisis à la
-  // main.** Une première version ne prenait que `skillCom2usId` et l'élément
-  // visé : changer le buff ATQ, les PV restants de la cible ou sa défense
-  // laissait alors la signature IDENTIQUE, donc le cache intact — l'écran
-  // affichait des paires optimisées pour un réglage abandonné, et le « gain »
-  // comparait un score d'avant à un total d'après. Bug rapporté à l'usage.
+  // main.** Ne prendre que `skillCom2usId` et l'élément
+  // visé laisserait la signature IDENTIQUE quand on change le buff ATQ, les PV
+  // restants de la cible ou sa défense, donc le cache intact — l'écran
+  // afficherait des paires optimisées pour un réglage abandonné, et le « gain »
+  // comparerait un score d'avant à un total d'après.
   //
   // ⚠️ Choisir les champs un par un est ici la même faute que la règle des
   // « plusieurs constructeurs » (CLAUDE.md) : `tsc` ne signalera JAMAIS un
@@ -355,7 +353,7 @@ export function signatureReglages(parts: {
    * choix de principale, de type et seuil — un `rid` réimporté avec une autre
    * valeur la change. Elle vaut « signature complète » de la dimension
    * relique ; le régime effectif est `objective`
-   * ci-dessus (D7 : un seul régime pour l'équipement complet), les données de
+   * ci-dessus (un seul régime pour l'équipement complet), les données de
    * combat `damageSetup`.
    */
   empreinteRelique: string | null;
@@ -404,8 +402,7 @@ export function signatureReglages(parts: {
    * artéfact sans en changer le nombre ni les identifiants laissait des
    * paires calculées avec l'ancien compte.
    *
-   * ⚠️ **Une identité, pas une empreinte du contenu** (décision de
-   * l'utilisateur du 2026-10-02) : TOUT réimport vide le cache, même celui
+   * ⚠️ **Une identité, pas une empreinte du contenu** : TOUT réimport vide le cache, même celui
    * d'un fichier identique — aucun calcul du contenu à chaque rendu.
    * Obligatoire, pour la même raison qu'`artefactsReserves`.
    */
@@ -639,8 +636,7 @@ export interface CompteConfirme {
 /**
  * Le compte des combinaisons CONFIRMÉES — l'unique source de l'en-tête des
  * résultats, du nombre de pages et des contrôles masqués sous « Aucune
- * combinaison… » (décision de l'utilisateur du
- * 2026-10-02 : « ne compter qu'après vérification »).
+ * combinaison… » : on ne compte qu'après vérification.
  *
  * - `recus` : l'ordre de base (`fullSortedCandidates`), les candidats de CETTE
  *   recherche. Seules leurs entrées du cache comptent : les rejets d'une
@@ -716,11 +712,10 @@ export interface CompositionDePage {
  * source des cartes affichées, des places « Vérification… » et de la page que
  * la file résout en priorité.
  *
- * ⚠️ **Une carte n'apparaît qu'une fois vérifiée.** Avant ce lot, un build reçu
- * de la recherche s'affichait tout de suite avec sa paire SUPPOSÉE, puis
- * disparaissait à la résolution s'il n'atteignait pas les minimums : avec le
- * Worker, qui résout vite, les retraits s'enchaînaient sous les yeux (essai de
- * l'utilisateur, 2026-10-02). Désormais la page montre les vérifiés seuls, dans
+ * ⚠️ **Une carte n'apparaît qu'une fois vérifiée.** Un build affiché tout de
+ * suite avec sa paire SUPPOSÉE, puis retiré à la résolution s'il n'atteint pas
+ * les minimums, ferait s'enchaîner les retraits sous les yeux (le Worker
+ * résout vite) : la page montre les vérifiés seuls, dans
  * l'ordre réel ; un build vérifié plus tard prend sa place dans ce classement
  * — une carte peut donc DESCENDRE sous un meilleur build vérifié, jamais
  * disparaître faute de conformité.

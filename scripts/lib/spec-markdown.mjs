@@ -3,7 +3,8 @@
 // ⚠️ **Une seule implémentation dans le dépôt** : tout script (contrôle de
 // slugs, de niveaux, `spec-toc`, `spec-lint`) importe ce fichier — jamais une
 // copie scratch, jamais une réimplémentation dans un hook. Voir
-// `spec/outillage/spec.md`, ex-B.2, ex-B.3 et ex-B.4.
+// `spec/outillage/spec.md`, « Sous-titrer un fichier, parseur `spec-markdown` »,
+// « `spec-toc` » et « Contrat de `spec-lint` ».
 //
 // `titres(texte)` repère les lignes `^#{1,6} …`, hors blocs de code clôturés
 // (```` ``` ```` ou `~~~`) : un exemple de titre Markdown DANS une citation
@@ -45,7 +46,7 @@
 // termine plus la capture ; seul un fermant SANS ouvrant correspondant dans
 // la capture la termine — c'est soit la parenthèse qui enveloppe toute la
 // référence (« (fichier.md § Titre) »), soit le crochet fermant d'un lien
-// Markdown (« [fichier.md § Titre](url) »). Un `;` termine toujours, sans
+// Markdown (« `[fichier.md § Titre](url)` »). Un `;` termine toujours, sans
 // condition de solde.
 //
 // `fichiersMarkdown(chemin)` liste récursivement les `.md` d'un fichier ou

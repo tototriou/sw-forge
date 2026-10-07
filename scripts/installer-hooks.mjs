@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Installateur public des garde-fous : hook Git `pre-commit` (et le lint qu'il
 // importe), garde-fou Codex de lecture. Contrat : spec/outillage/spec.md,
-// ex-B.9 (niveaux d'application, installation des garde-fous).
+// « Niveaux d'application et garde-fous », « Installation des garde-fous ».
 //
 //   node scripts/installer-hooks.mjs [--simulation] [--sans-cablage]
 //                                    [--codex-hooks <hooks.json personnel>]

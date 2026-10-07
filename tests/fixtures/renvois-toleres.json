@@ -428,12 +428,6 @@
       "proprietaire": "a-publier"
     },
     {
-      "fichier": "scripts/lib/spec-markdown.mjs",
-      "renvoi": "url",
-      "occurrences": 1,
-      "proprietaire": "a-corriger"
-    },
-    {
       "fichier": "scripts/monster-search-cap-sweep.ts",
       "renvoi": "spec/outils/optimizer/",
       "occurrences": 1,

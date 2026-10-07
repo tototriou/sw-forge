@@ -220,6 +220,9 @@ export const RARITY_FILTER: Record<number, string> = {
 //
 // `accentue` : légèrement plus clair quand l'entrée porte l'emphase (état actif
 // d'un filtre), un cran plus sombre au repos.
+// ⚠️ Pas sur l'aplat d'accent (`ACTIF_FILTRE_LG`, filtre de sets à la souris) :
+// éclairci sur l'orange plein, le contraste agressait l'œil ; le symbole y
+// garde le doré du repos.
 export const runeSetIconFilter = (accentue: boolean) =>
   `sepia(1) saturate(3.2) hue-rotate(-12deg) brightness(${accentue ? 1.15 : 0.95}) contrast(1.05)`;
 

@@ -895,6 +895,11 @@ Ils prenaient trois rangées.
   (c'est celui que leur donne déjà l'Optimisation). Avant, trois gabarits
   cohabitaient : barres de 38 px au fond `panel` et cases cerclées d'accent,
   `Segmented` de 32 px, bouton de 28 px.
+- **Le symbole d'un set** est doré (`runeSetIconFilter`, `effects.ts`),
+  éclairci quand le set est actif — sauf **à la souris** : posé sur l'aplat
+  de braise, il garde le doré du repos (éclairci sur l'orange plein, le
+  contraste agressait l'œil). Au doigt, l'actif garde un fond doux et le doré
+  éclairci.
 - « Effacer les filtres » remet tous les sets, tous les emplacements et
   toutes les runes. Il est **toujours affiché**, désactivé quand rien n'est
   filtré (« Aucun filtre posé »).

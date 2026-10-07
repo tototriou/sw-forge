@@ -1,12 +1,15 @@
-// Tests de rendu — une convention d'icônes (spec/shared/design.md,
-// « Exporter ↑, importer ↓ »).
+// Tests de rendu — deux conventions d'icônes (spec/shared/design.md,
+// « Exporter ↑, importer ↓ » ; spec/compte/runes.md, « Filtrer par set »).
 //
 // ⚠️ L'inversion importer / exporter est revenue plusieurs fois : chaque
 // endroit de l'accueil et de la palette qui l'a portée est gardé ici.
 
 import HomePage from '../../src/pages/HomePage';
+import SetFilter from '../../src/components/account/SetFilter';
+import { runeSetIconFilter } from '../../src/lib/effects';
 import { ok, titre } from '../outils';
-import { rendre } from './outils-rendu';
+import { RUNES } from './runes.test';
+import { auTelephone, rendre } from './outils-rendu';
 
 // L'icône lucide la plus proche AVANT `texte` dans le HTML (`lucide-upload`…).
 function iconeAvant(html: string, texte: string): string | null {
@@ -23,4 +26,16 @@ export function testRenduIcones() {
   ok(iconeAvant(accueil, 'Dépose ton fichier .json ici') === 'download', 'zone de dépôt : flèche vers le bas');
   ok(iconeAvant(accueil, 'Exporte ton compte') === 'upload', 'étape 01 « Exporte ton compte » : flèche vers le haut');
   ok(iconeAvant(accueil, 'Dépose le fichier') === 'download', 'étape 02 « Dépose le fichier » : flèche vers le bas');
+
+  titre('rendu · icônes — symbole d’un set actif dans le filtre');
+  const sets = [...new Set(RUNES.map((r) => r.set))];
+  ok(sets.length >= 2, 'au moins deux sets dans les runes de test');
+  const filtre = () => rendre(<SetFilter runes={RUNES} value={new Set([sets[0]])} onChange={() => {}} />);
+  const filtres = (html: string) => [...html.matchAll(/filter:([^;"]+)/g)].map((m) => m[1].trim());
+  const repos = runeSetIconFilter(false);
+  const eclairci = runeSetIconFilter(true);
+  const souris = filtres(filtre());
+  ok(souris.length === sets.length && souris.every((f) => f === repos), 'à la souris : l’actif, sur l’aplat, garde le doré du repos, comme les autres');
+  const doigt = filtres(auTelephone(filtre));
+  ok(doigt.filter((f) => f === eclairci).length === 1, 'au doigt : l’actif, sur fond doux, garde le doré éclairci');
 }

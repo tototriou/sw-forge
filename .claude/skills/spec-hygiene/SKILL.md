@@ -86,13 +86,15 @@ changer son contenu, ne pas ajouter au tas : découper d'abord.
 ## (c) Extraire les invariants d'une section d'état actuel
 
 Ce qu'un chantier applique quand il **ajoute ou modifie une section d'état
-actuel** et doit décider ce qui entre dans `invariants.md` — « ça casse
-quelque chose si on l'ignore », seul, laisse passer des règles (« Critère
-des invariants »).
+actuel** et doit décider ce qui entre dans `invariants.md`. Critère et
+conduite : « Critère des invariants » ; forme d'une entrée : « Statut du
+fichier ».
 
-**Le critère n'est pas « est-ce important »** mais une des trois familles
-suivantes, chacune formulée en **description** du comportement actuel — pas
-en impératif, pas en check-list de procédure :
+**Le critère n'est pas « est-ce important »** mais : un chantier qui
+ignore la règle casse-t-il quelque chose ? Trois familles y répondent
+souvent sans que rien ne casse au sens naïf, et se lisent comme une
+description du comportement actuel : la relecture les cherche
+explicitement, sans en faire une liste fermée.
 
 - **Dérivé de** — une valeur affichée ou utilisée n'est jamais saisie
   directement, elle se déduit d'autre chose. Exemple réel : « un effet
@@ -106,17 +108,25 @@ en impératif, pas en check-list de procédure :
   d'aucune règle plus générale, et qui casserait silencieusement si on la
   changeait ailleurs sans le savoir.
 
-Une règle qui ne rentre dans AUCUNE des trois reste dans sa section source :
+Y entre aussi une règle de méthode dont l'oubli fausse une conclusion
+(mesure, harnais). Le reste demeure dans sa section source :
 `invariants.md` n'est pas un résumé de tout ce qui est vrai, seulement de ce
 qu'un chantier qui touche à côté risque de casser sans le remarquer.
 
-1. Relire la section modifiée (ou nouvelle) en entier une fois.
-2. Pour chaque règle candidate, la confronter aux trois familles — pas à
-   l'intuition « c'est important ».
-3. Ajouter les règles retenues à `invariants.md`, formulées en description
-   (« X est dérivé de Y », pas « ne pas ajouter de champ pour X »), chacune
-   avec son `Source : fichier § section`.
-4. **Contrôle de précision** minimal sur ce qui est ajouté : citer la ligne
+1. Relire en entier **toutes** les sections d'état actuel touchées, pas
+   seulement celles qui semblent candidates.
+2. Pour chaque règle candidate, poser la question du critère en cherchant
+   les trois familles et les règles de méthode — pas l'intuition « c'est
+   important ».
+3. Retrouver chaque règle retenue dans une source normative du dépôt :
+   jamais un fichier d'un dossier `decisions`, qui se cite, jamais la seule
+   mémoire d'un agent.
+4. La comparer à `invariants.md` existant ; n'ajouter que les absentes.
+5. Écrire chaque entrée comme une contrainte, impérative ou descriptive,
+   qui dit ce qui doit rester vrai (« X est dérivé de Y » ou « Dériver X
+   de Y », pas « ne pas ajouter de champ pour X »), suivie de
+   `Source : fichier § section`.
+6. **Contrôle de précision** minimal sur ce qui est ajouté : citer la ligne
    source de chaque règle retenue — pas de règle sans coordonnée.
 
 ## Voir aussi
@@ -124,6 +134,6 @@ qu'un chantier qui touche à côté risque de casser sans le remarquer.
 - `spec/outillage/spec.md`, la référence : « Public et privé »,
   « Natures de documents et règles de forme », « Déplacer, archiver ou
   découper un document », « Contrat de `spec-lint` », « En-têtes par
-  nature, slugs uniques », « Critère des invariants ».
+  nature, slugs uniques », « Statut du fichier », « Critère des invariants ».
 - `node scripts/spec-toc.mjs <fichier>` pour lire une section sans charger
   le fichier entier avant de décider quoi découper ou extraire.

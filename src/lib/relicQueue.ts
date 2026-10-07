@@ -1,6 +1,5 @@
 // Résolution EXACTE de l'équipement d'UN build : la paire d'artéfacts ET la
-// relique, ensemble (implementation-relique, lot 5b — garantie G,
-// « consommation »).
+// relique, ensemble (garantie G, « consommation »).
 //
 // ⚠️ **Pourquoi ensemble, et pas la relique après la paire.** La principale
 // d'une relique est un POURCENTAGE qui entre dans `computeStats` AVANT les
@@ -79,8 +78,8 @@ export interface EntreeResolution {
   /**
    * Le prédicat de conformité hors mode `recherche` —
    * `respecteConditionsPaireFixe` : les minimums, plus les seuls maximums
-   * RES/PRE, auras propres du build et toggle compris (degats-et-aura lot 6
-   * puis 6bis-b3a). Les autres maximums restent hors de ce filtre (T11,
+   * RES/PRE, auras propres du build et toggle compris. Les autres maximums
+   * restent hors de ce filtre (T11,
    * défaut préexistant côté artéfacts, hors chantier). `null` = aucune de ces
    * conditions posée (`conditionsPaireFixePosees`), toute paire convient.
    */
@@ -99,7 +98,7 @@ export interface EntreeResolution {
   // 6bis-b9). Obligatoire, pour que `tsc` signale un constructeur oublié.
   regimeDeStat: boolean;
   // Le contexte canonique de la recherche dont ce build est issu (garantie
-  // G) — jamais recalculé ici. Absent : chemin écran d'avant le lot 5c.
+  // G) — jamais recalculé ici. Absent : la relique portée reste fixe, rien n'est résolu.
   relicContext: RelicContext | undefined;
   // Les caches partagés entre builds (6bis-b13) : le memo du préfiltre sert
   // à chaque `chercherPaires` de la résolution. Absent : tout se recalcule.
@@ -330,7 +329,7 @@ export function entreeResolutionDuBuild(e: {
   const conditionsPosees = conditionsPaireFixePosees(e.requirement);
   return {
     gear,
-    // ⚠️ `relique` : la candidate que la résolution exacte (lot 5b) essaie
+    // ⚠️ `relique` : la candidate que la résolution exacte essaie
     // pour ce build — elle REMPLACE la portée dans les stats qui notent chaque
     // paire (garantie G, jamais un cumul). Hors mode `recherche`, la
     // résolution passe la portée elle-même.
@@ -342,7 +341,7 @@ export function entreeResolutionDuBuild(e: {
       // calculent une fois et chaque paire ne coûte plus que trois additions
       // (voir `statsParPaire`).
       const statsAvec = statsParPaire({ ...gear, relic: relique });
-      // ⚠️ Le canal exclusive (lot 7) : la candidate qu'on essaie, plus le
+      // ⚠️ Le canal exclusive : la candidate qu'on essaie, plus le
       // contexte de son assiette `Y`. C'est la MÊME note qui choisit la
       // paire, choisit la relique et classe — jamais un score d'exclusive
       // ajouté après coup (D6).
@@ -351,7 +350,8 @@ export function entreeResolutionDuBuild(e: {
       // régime effectif), pas sur une somme de statistiques principales —
       // voir `evaluerPourRegime` (`artifactEvaluation.ts`). Sur Efficience et
       // Vitesse (régime `'aucun'`), il n'y a RIEN à maximiser : le seul
-      // travail qui compte est la faisabilité (§12.6 d'artefacts.md).
+      // travail qui compte est la faisabilité (spec/outils/optimizer/moteur/
+      // artefacts.md § Régime de la paire).
       const evaluer =
         e.regime === 'degats_reels'
           ? evaluerPourRegime(e.regime, statsAvec, propres, e.degats!, exclusive, e.caches?.profils)

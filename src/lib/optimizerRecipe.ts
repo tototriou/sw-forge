@@ -25,13 +25,16 @@ import { RELIC_UNIQUE, setsCost } from './effects';
 
 export const OPTIMIZER_RECIPE_VERSION = 1;
 
-// ⚠️ **Deux constructeurs, PAS un seul — un champ ajouté ici doit être
-// branché dans les DEUX, sinon un script diverge de l'écran en silence
+// ⚠️ **Un champ ajouté ici traverse plusieurs endroits indépendants, pas un
+// seul** : l'oublier dans l'un fait diverger un script de l'écran en silence
 // (aucune erreur `tsc`, le champ manquant reste un type optionnel valide).
 // Incident vécu : `exhaustiveSearch` branché dans OptimizerSection.tsx
 // (l'écran) mais oublié dans recipeToSearchParams.ts, repéré seulement
 // parce que l'utilisateur a posé la question — voir spec/README.md,
-// « Conventions communes », pour la règle générale.
+// « Conventions communes », pour la règle générale, et le skill
+// `optimizer-field-propagation` pour les producteurs purs qui remplacent
+// ces constructeurs et pour la checklist de ceux qui subsistent. Les deux
+// principaux :
 // 1. `OptimizerSection.tsx` — `exportRecipe`/`importRecipe`/`handleSearch`
 //    (l'écran, source de vérité).
 // 2. `scripts/lib/recipeToSearchParams.ts` — `recipeToSearchParams` (rejoue
@@ -179,11 +182,11 @@ export interface OptimizerRecipe {
   /**
    * Intention de recherche de relique (A.2 bis D1/D2) : principale ET
    * propriété unique demandées, seuil de niveau. **Trois champs OPTIONNELS,
-   * et ils doivent le rester** : une recette exportée avant le lot 2 n'en
+   * et ils doivent le rester** : une recette exportée sans ces champs n'en
    * porte aucun — tout lecteur applique le défaut de
    * `defaultRelicMainChoice`/`'libre'`/`DEFAULT_RELIC_MIN_UPGRADE`
    * (hooks/useOptimizerState.ts), jamais une valeur devinée ici. Sans effet
-   * sur `SearchParams` avant le lot 5a (D1 : `libre` et le type n'ont
+   * sur `SearchParams` hors du mode `recherche` (D1 : `libre` et le type n'ont
    * d'effet qu'avec la recherche de relique).
    */
   relicMainChoice?: RelicMainChoice;
@@ -209,9 +212,8 @@ export interface RecipeValidationResult {
   avertissements?: string[];
 }
 
-// L'ancien mode critique « Moyenne », supprimé (degats-et-aura, lot CM,
-// décision de l'utilisateur du 2026-10-02) : une recette exportée avant le
-// porte encore. Elle est CONVERTIE en « Critique », le défaut — jamais
+// L'ancien mode critique « Moyenne », supprimé : une recette exportée avant
+// sa suppression le porte encore. Elle est CONVERTIE en « Critique », le défaut — jamais
 // refusée, jamais changée en silence. Toute autre valeur inconnue reste
 // refusée (`validerDamageSetup`).
 const CRIT_MODE_SUPPRIME = 'moyenne';
@@ -448,7 +450,7 @@ function validerDamageSetup(value: unknown): string | null {
       if (!estIdentifiantDeCompetence(skillId)) return erreur(path, "utilise un identifiant de compétence invalide");
       const regle = IGNORE_DEF_A_PARTIR_DU_COUP_PAR_ID[Number(skillId)];
       // Le message ne compte ni ne nomme les sorts de la table : il resterait
-      // faux dès une entrée de plus (degats-et-aura 9c, relevé du lot 12).
+      // faux dès une entrée de plus.
       if (!regle) {
         return erreur(path, "désigne un sort sans réglage d'ignore DEF par coup");
       }

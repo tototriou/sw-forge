@@ -9,10 +9,8 @@
 // le monstre choisi peut se le poser, et quand.
 //
 // ⚠️ **Curée par IDENTIFIANT de compétence, jamais par nom** : la liste est
-// celle des passifs « buff standard » du tri du lot 13b (cases D × E et
-// Dp × E du tableau des comptes, controle-13b-stats-passifs-corpus.md § 5.1),
-// chacun relu dans la prose de sa fiche (`public/data/skills/<forme>.json`) au
-// lot P2 ; 24 au tri, 21 ici depuis que les trois passifs de boss
+// celle des passifs « buff standard », chacun relu dans la prose de sa fiche
+// (`public/data/skills/<forme>.json`) ; 21 depuis que les trois passifs de boss
 // (20021103/1203/1303) ont perdu leur forme jouable (D56). Les buffs viennent de
 // la PROSE ; l'effet de la fiche ne sert que de recoupement (Veteran 13213
 // n'a aucun effet dans sa fiche : prose seule). Aucune règle n'est dérivée des champs
@@ -43,7 +41,7 @@ export interface BuffPoseParPassif {
 
 /**
  * Les 21 passifs, par identifiant de compétence. Une ligne = forme jouable
- * qui le porte (`formesJouables`, au lot P2), puis la prose qui fonde l'entrée.
+ * qui le porte (`formesJouables`), puis la prose qui fonde l'entrée.
  */
 export const BUFFS_POSES_PAR_PASSIF_CONNUS: Readonly<Record<number, BuffPoseParPassif>> = {
   // Icaru 11031 — « Increases your Attack Power and counterattacks for 1 turn when you attack on your turn. »

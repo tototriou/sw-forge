@@ -208,9 +208,9 @@ export interface ArtifactSearchParams {
    * moins aussi bonne (D5 : la borne d'artéfacts est optimiste pour les
    * minimums) ; avec un maximum actif dessus, un artéfact « plus » peut
    * rendre un couple infaisable là où un « moins » restait sous le plafond —
-   * exactement la leçon de la dominance des reliques (A.2 bis D6 : « aucune
-   * dominance sur une statistique sous maximum actif »), transposée ici par
-   * la revue adversariale du lot 5b (bloquant 1, `revue-diff-lot5b-2026-09-21.md`).
+   * exactement la leçon de la dominance des reliques (« aucune dominance sur
+   * une statistique sous maximum actif », spec/outils/optimizer/moteur/reliques.md § Pertinence et dominance
+   * — écrites, non appelées en production), transposée ici.
    *
    * Absent (ou vide) : comportement d'avant, byte-identique — les trois
    * principales restent comparées sans condition.
@@ -420,7 +420,7 @@ export function preFiltrerCandidats(
   // ne sont pas équivalents, l'un peut être feasible et l'autre non. La
   // principale reste donc DANS le vecteur (comparaison inchangée quand les
   // deux artéfacts s'y valent), mais la paire devient INCOMPARABLE dès qu'ils
-  // y diffèrent (bloquant 1, revue du lot 5b) : ni domine, ni dominé.
+  // y diffèrent : ni domine, ni dominé.
   const dims = pertinence ? [...new Set([...pertinence.croissants, ...codesVerrouilles])] : null;
   const MAINS = [100, 101, 102];
   const plafonnees = new Set(maxStatsActifs ?? []);

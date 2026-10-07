@@ -4,9 +4,8 @@
 // reliques vide en mode `recherche`, D1) ou toute autre erreur, et cette
 // fonction les convertit en un résultat NOMMÉ plutôt que de laisser l'appel
 // direct dans `self.onmessage` transformer un rejet en promesse non gérée
-// (revue adversariale du diff du lot 5a, BLOQUANT 1 : aucune réponse
-// n'était postée, `Worker.onerror` ne se déclenchait pas, l'UI restait dans
-// `'running'`). Neutre — testable en Node sans `self`.
+// (aucune réponse n'était alors postée, `Worker.onerror` ne se déclenchait
+// pas, l'UI restait dans `'running'`). Neutre — testable en Node sans `self`.
 //
 // ⚠️ `prepareSearch` qui rend `null` (pré-filtrage ayant vidé un slot) reste
 // un cas DISTINCT du refus : comportement inchangé, résultat vide normal.

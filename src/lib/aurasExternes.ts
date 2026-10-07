@@ -15,10 +15,11 @@
 // retirer un set recherché ne crée, ne relève et ne supprime aucune aura
 // externe.
 //
-// Source des valeurs : cadrage degats-et-aura, A.2 ter (utilisateur,
-// 2026-09-23 puis 2026-09-25) — cinq autres monstres à trois sets, donc 15.
+// Source des valeurs : spec/outils/degats-reels/valeurs-de-jeu-curees.md
+// § Les valeurs de jeu — curées, avec leur source — cinq autres monstres à
+// trois sets, donc 15.
 //
-// Lot 7b : le RAPPEL au changement de monstre (`doitRappeler`) et
+// Le RAPPEL au changement de monstre (`doitRappeler`) et
 // l'OUVERTURE GUIDÉE vers l'interrupteur des auras RES/PRE
 // (`guideVersResPre`), en fin de fichier — deux décisions de l'écran, prises
 // ici pour être testées sans React ; les composants ne font que brancher
@@ -187,7 +188,7 @@ export interface MonstreOptimise {
   espece: string | null;
   /** L'exemplaire (`exclusionSelectorKey` du sélecteur actif), `null` sans exemplaire. */
   exemplaire: string | null;
-  /** Les auras externes en vigueur — conservées au changement de monstre (lot 5). */
+  /** Les auras externes en vigueur — conservées au changement de monstre. */
   aurasExternes: readonly AuraExterne[] | undefined;
 }
 

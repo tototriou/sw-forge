@@ -158,7 +158,7 @@ export function useArtifactOptimQueue(opts: {
   pageAffichee: () => readonly BuildCandidate[];
   /**
    * Résout l'équipement d'UN build — sa paire d'artéfacts ET sa relique,
-   * ensemble : `resoudreEquipementDuBuild` (relicQueue.ts, lot 5b), le
+   * ensemble : `resoudreEquipementDuBuild` (relicQueue.ts), le
    * « comment », pur et testé sans navigateur. Ce hook ne fait plus que le
    * « quand ».
    *
@@ -167,7 +167,8 @@ export function useArtifactOptimQueue(opts: {
    *
    * ⚠️ Le résultat entre TOUJOURS dans le cache, conforme ou non : c'est le
    * classement (`affichees`) qui écarte un build qu'aucun couple réel ne
-   * rend équipable (`ResultatArtefacts.conforme`, §12.5 d'artefacts.md).
+   * rend équipable (`ResultatArtefacts.conforme`,
+   * spec/outils/optimizer/moteur/artefacts.md § Filtre final sur la vraie paire).
    */
   resoudre: ((c: BuildCandidate) => ResultatArtefacts) | null;
   // Change dès qu'un réglage modifie le score d'une paire ou le pool de

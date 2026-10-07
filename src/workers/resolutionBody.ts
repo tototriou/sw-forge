@@ -6,8 +6,8 @@
 // tel quel.
 //
 // ⚠️ **Ce module doit rester NEUTRE** : jamais d'import de `worker_threads`,
-// de `self`/`postMessage`, du DOM ni de React (spec/outils/optimizer/
-// parallelisation-partagee.md § 3.6) — Vite tenterait sinon de résoudre du
+// de `self`/`postMessage`, du DOM ni de React (spec/outils/optimizer/moteur/parallelisation.md
+// § Code commun aux deux plateformes) — Vite tenterait sinon de résoudre du
 // code Node dans le bundle navigateur, et Node ne pourrait plus l'exécuter.
 //
 // ⚠️ **Jamais une réimplémentation de la résolution.** Le corps reconstruit

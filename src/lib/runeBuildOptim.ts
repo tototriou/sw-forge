@@ -24,11 +24,12 @@
 // construisait un tableau complet de `cap³` combinaisons par moitié avant de
 // les regrouper : sur un vrai compte (des centaines de runes par slot), ça
 // pouvait épuiser plusieurs Go de mémoire et planter — voir
-// spec/outils/optimizer/, « Validation grandeur nature ». Chaque
+// spec/outils/optimizer/verification.md § Validation grandeur nature. Chaque
 // combinaison est maintenant évaluée puis, selon son mérite, retenue ou
 // **immédiatement jetée** : la mémoire dépend du nombre de compartiments ×
 // leur taille max (`BUCKET_CAP`), plus jamais du cube du pré-filtrage par
-// slot. Voir spec/outils/optimizer/ pour le résumé fonctionnel, et
+// slot. Voir spec/outils/optimizer/moteur/elagages.md
+// § Recherche des runes — meet-in-the-middle et élagages pour le résumé fonctionnel, et
 // .claude/skills/algo-verify/SKILL.md pour la discipline de vérification
 // (référence brute-force + test différentiel dans
 // tests/rune-optim-differential.test.ts).
@@ -47,7 +48,7 @@ import { INTANGIBLE_SET, MAX_SET_PIECES, RUNE_EFFECT, SET_STAT_BONUS, StatKey, a
 import { computeStats, StatRow } from './stats';
 import { missingSets } from './recoMatch';
 import { OptimMetric } from './runeOptim';
-// Le canal exclusive du lot 7 — `relicExclusive.ts` ne dépend que de
+// Le canal exclusive — `relicExclusive.ts` ne dépend que de
 // `effects`/`stats`/`damage`, jamais de ce module : aucun cycle.
 import { APPORT_NEUTRE, ApportExclusive, apportExclusive, facteurTenacite, statsAvecApport, statsDeLEffetUnique } from './relicExclusive';
 // ⚠️ Type SEUL : `relicQueue.ts` importe ce module à l'exécution — un import
@@ -178,7 +179,8 @@ export interface SearchParams {
    * sert les branches MINIMUM, `min` (l'apport incompressible) les branches
    * MAXIMUM — même dissymétrie que `guaranteedMin`/`guaranteed` pour les sets.
    * Un scalaire unique des deux côtés est précisément le défaut corrigé ici
-   * (spec/outils/optimizer/artefacts.md, §12).
+   * (spec/outils/optimizer/moteur/artefacts.md § Bornes d'apport pendant la
+   * recherche).
    *
    * ⚠️ Absent → repli sur l'apport de la paire représentative des deux côtés,
    * c'est-à-dire le comportement d'AVANT la correction. Sûr, mais il refige le
@@ -220,7 +222,7 @@ export interface SearchParams {
   statsLignesArtefactsEquipables?: StatKey[];
   // La relique PORTÉE — reste ce paramètre-là même quand une relique est
   // cherchée (garantie G : une candidate le REMPLACE au moment de la
-  // résolution exacte, lot 5b — jamais un cumul avec lui).
+  // résolution exacte — jamais un cumul avec lui).
   relic?: RelicDetail; // fixe
   /**
    * Le contexte relique canonique (`resoudreContexteRelique`, relicOptim.ts —
@@ -253,7 +255,8 @@ export interface SearchParams {
   // (scripts/benchmark-bucket-retention.ts) : élargir ce plafond pour
   // comparer la qualité trouvée à différents niveaux, en réutilisant le
   // moteur réel déjà vérifié plutôt qu'une réimplémentation séparée risquant
-  // de diverger. Jamais exposé dans l'UI — voir spec/outils/optimizer/.
+  // de diverger. Jamais exposé dans l'UI — voir spec/outils/optimizer/moteur/elagages.md
+  // § Pré-filtrage heuristique et compartiments.
   bucketCap?: number;
   // Choix fait AVANT de lancer la recherche (voir OptimizerSection.tsx) :
   // oriente le PRÉ-FILTRAGE par slot vers les stats utiles à cet objectif,
@@ -269,26 +272,24 @@ export interface SearchParams {
   // comportement inchangé.
   objectiveStats?: StatKey[];
   // Bouton « Prioriser les stats les plus difficiles » (OptimizerSection.tsx)
-  // — piste B, spec/outils/optimizer/ « Suite — piste B gatée derrière un
-  // paramètre ». `false`/absent (défaut, bouton « Rechercher » normal) :
+  // — voir spec/outils/optimizer/moteur/elagages.md
+  // § Pré-filtrage heuristique et compartiments. `false`/absent (défaut, bouton « Rechercher » normal) :
   // comportement inchangé, coût nul (vérifié par mesure dos-à-dos). `true` :
   // réalloue le budget de rétention par tranche entre les stats demandées
   // selon leur dispersion mesurée — peut retrouver un build qu'une
   // répartition uniforme raterait, au prix d'un temps de recherche plus
   // long (+20 % de temps de construction mesuré en moyenne).
   adaptiveTrancheWeighting?: boolean;
-  // Voir `buildBuckets`, paramètre `combosOrderMode`. `undefined`/
-  // `'relevance'` (défaut depuis le 2026-08-18, tous les appels de
-  // production) : tri des demi-builds par `relevanceScore` au sein d'un
-  // compartiment (mesuré ~2× plus rapide, 0 régression — voir
-  // archive/historique/historique-dimensionnement.md). `'potential'` : ancien comportement,
-  // conservé comme échappatoire de mesure/comparaison. `'combined'` :
-  // PROTOTYPE (forge/order-as-weight-contrib) — trie uniquement par
-  // combinedRetentionScore, repli sur relevanceScore si aucun minimum posé.
-  // Jamais exposé dans l'UI.
+  // Voir `buildBuckets`, paramètre `combosOrderMode` : l'ordre des demi-builds
+  // au sein d'un compartiment. `undefined` : le défaut de `buildBuckets`,
+  // `'objective'` (celui de tous les appels de production). `'relevance'` :
+  // tri par `relevanceScore`. `'potential'` : ancien comportement, conservé
+  // comme échappatoire de mesure/comparaison. `'combined'` : PROTOTYPE — trie
+  // uniquement par combinedRetentionScore, repli sur relevanceScore si aucun
+  // minimum posé. Jamais exposé dans l'UI.
   combosOrderMode?: 'potential' | 'relevance' | 'combined' | 'objective';
   /**
-   * DIAGNOSTIC SEULEMENT (lot 5a, instrumentation de la rétention) : un
+   * DIAGNOSTIC SEULEMENT (instrumentation de la rétention) : un
    * build « traceur » — ses 6 runes, alignées slot 1..6 — dont le moteur
    * enregistre, DANS LE CODE, le verdict de chaque prédicat de faisabilité
    * qu'il traverse et sa présence dans chaque structure bornée
@@ -444,8 +445,8 @@ export function respecteConditionsPaireFixe(
 }
 
 /**
- * **Le filtre final EXACT de la dimension relique** (lot 5a, appelé par la
- * résolution exacte de 5b) : les stats du build AVEC la relique candidate —
+ * **Le filtre final EXACT de la dimension relique** (appelé par la
+ * résolution exacte) : les stats du build AVEC la relique candidate —
  * qui REMPLACE `gear.relic` (garantie G, jamais un cumul avec l'équipée) —
  * puis minimums ET maximums vérifiés sur ces stats.
  *
@@ -468,8 +469,8 @@ export function respecteConditionsAvecRelique(
   return { stats, respecte: respecteMinEtMax(stats, requirement, aurasPropresDesRunes(gear.runes)) };
 }
 
-// Diagnostic « quasi-succès » — voir spec/outils/optimizer/
-// near-miss-appariement.md pour le cadrage complet. Sous-produit GRATUIT de
+// Diagnostic « quasi-succès » — voir spec/outils/optimizer/moteur/diagnostics.md
+// § Quasi-succès à l'appariement pour le cadrage complet. Sous-produit GRATUIT de
 // l'appariement réel (`pairBuckets`) : les stats EXACTES (`computeStats`)
 // d'une paire (comboA, comboB) sont déjà calculées au moment où elle est
 // rejetée faute de satisfaire toutes les conditions — ce type capture
@@ -537,7 +538,8 @@ export interface SearchResult {
    * tableau.
    *
    * ⚠️ Champs `SearchResult` NON optionnels, délibérément : voir
-   * spec/outils/optimizer/near-miss-appariement.md, §4 — `tsc` doit
+   * spec/outils/optimizer/moteur/diagnostics.md
+   * § Types et transport du quasi-succès — `tsc` doit
    * échouer sur tout site qui construit un `SearchResult` sans eux, plutôt
    * que de laisser un near-miss silencieusement vide passer inaperçu.
    */
@@ -603,8 +605,8 @@ export const OBJECTIVE_LABELS: { key: Objective; label: string }[] = [
 export type SlotFilterPresetKey = 'bas' | 'moyen' | 'haut' | 'extreme';
 
 // Pré-filtrage par emplacement, en PRESETS plutôt qu'un curseur libre —
-// calibré par mesure sur un vrai compte (voir spec/outils/optimizer/,
-// « Validation grandeur nature ») : 40 est le défaut historique, 300 est la
+// calibré par mesure sur un vrai compte (voir
+// spec/outils/optimizer/verification.md § Validation grandeur nature) : 40 est le défaut historique, 300 est la
 // valeur qui a permis de retrouver un build réel sur un très gros compte.
 export const SLOT_FILTER_PRESETS: { key: SlotFilterPresetKey; label: string; cap: number; hint: string }[] = [
   {
@@ -780,13 +782,13 @@ export interface RealDamageContext {
  * Le score d'un candidat pour un objectif.
  *
  * `apport` — l'APPORT de la propriété unique de la relique retenue par ce
- * candidat (implementation-relique, lot 7 ; `relicExclusive.ts`). ⚠️ **Il se
+ * candidat (`relicExclusive.ts`). ⚠️ **Il se
  * PASSE, il ne se calcule pas ici** : son assiette `Y` a besoin du
  * `DamageSetup` (leader skill, compétences d'invocateur), que cette fonction
  * ne reçoit pas hors « Dégâts réels ». C'est l'appelant qui possède le
  * contexte — l'écran, la file, l'oracle — et la MÊME valeur sert alors au
  * choix de la relique et à son classement : jamais deux notes (D6).
- * `APPORT_NEUTRE` (le défaut) = comportement strictement d'avant le lot 7,
+ * `APPORT_NEUTRE` (le défaut) = comportement sans effet unique,
  * qui est aussi ce que voit le moteur pendant la recherche relâchée, où
  * aucune relique n'est encore résolue.
  *
@@ -814,8 +816,7 @@ export function objectiveScore(
     // ou une autre formule : un score plausible mais calculé sur un autre
     // modèle que celui affiché à l'utilisateur serait invisible. Même
     // garde-fou que la branche finale de cette fonction, qui a justement
-    // rendu visible un trou réel (voir spec/outils/optimizer/, revue de code
-    // externe).
+    // rendu visible un trou réel.
     if (!realDamage) {
       throw new Error("objectiveScore : l'objectif « Dégâts réels » exige un contexte (sort + adversaire).");
     }
@@ -841,7 +842,6 @@ export function objectiveScore(
   }
   // Filet de sécurité : tout objectif futur sans branche dédiée ci-dessus
   // échoue bruyamment plutôt que de retomber silencieusement sur EHP (voir
-  // archive/historique/historique-acceleration-et-outillage.md, « revue de code externe » —
   // c'est ce garde-fou qui a justement rendu visible le trou comblé ici).
   if (objective !== 'ehp') {
     throw new Error(`objectiveScore : aucune formule de score pour l'objectif "${objective}".`);
@@ -949,12 +949,12 @@ export function sortCandidates(
     artefactsDuBuild?: (c: BuildCandidate) => ArtifactDamageProfile | null;
     /**
      * L'APPORT de la propriété unique de la relique retenue par un candidat
-     * (lot 7, `relicExclusive.ts`) — même rôle qu'`artefactsDuBuild` : ce qui
+     * (`relicExclusive.ts`) — même rôle qu'`artefactsDuBuild` : ce qui
      * est propre à CE candidat une fois son équipement résolu, et que le
      * classement doit voir sous peine de noter autrement que le choix.
      *
      * Absent, ou rendant `null` (candidat en attente, pas de dimension
-     * relique) : apport neutre, exactement l'ordre d'avant le lot 7.
+     * relique) : apport neutre, exactement l'ordre sans effet unique.
      */
     exclusiveDuBuild?: (c: BuildCandidate) => ApportExclusive | null;
     /**
@@ -1138,7 +1138,7 @@ function scorerPour(
 ): ((c: BuildCandidate) => number) | null {
   // Même patron qu'`artefactsDuBuild` : ce qui est PROPRE à un candidat une
   // fois son équipement résolu. Absent, ou rendant `null` (relique pas encore
-  // résolue, aucune dimension relique) → neutre, l'ordre d'avant le lot 7.
+  // résolue, aucune dimension relique) → neutre, l'ordre sans effet unique.
   const apportDe = (c: BuildCandidate) => opts.exclusiveDuBuild?.(c) ?? APPORT_NEUTRE;
   if (sortBy === 'efficience') {
     const { runeById, metric } = opts;
@@ -1166,15 +1166,14 @@ function scorerPour(
 
 // ⚠️ **Il n'existe PLUS de budget de PAIRES** (`DEFAULT_MAX_NODES`, puis
 // `adaptiveMaxNodes` + escalade) : supprimé au profit de la borne exacte
-// `totalPairCount` — voir spec/outils/optimizer/pistes.md, piste 8, pour la
-// démonstration et l'historique de ses calibrages successifs. Ne subsistent
+// `totalPairCount` — voir son commentaire pour la démonstration. Ne subsistent
 // que les DEUX bornes ci-dessous (candidats collectés, temps écoulé), plus
 // la taille de l'espace lui-même. Toute lecture de ce fichier qui suppose
 // encore un plafond de nœuds est périmée.
 // ⚠️ Relevé de 5000 à 100 000 (×20) — demande explicite : trouver le
 // meilleur build importe plus que la vitesse, une recherche allant jusqu'à
 // ~1 minute est acceptable. Mesuré avant de relever
-// (scripts/benchmark-search-budget.ts, voir spec/outils/optimizer/) plutôt
+// (scripts/benchmark-search-budget.ts) plutôt
 // que deviné : au preset « Moyen » (slotFilterCap=80, le défaut réel),
 // relever `maxCollected` de 5000 à 100 000 a fait passer un scénario serré
 // (maximum posé) de 95,2 % à 100 % du meilleur trouvé, pour un coût de temps
@@ -1209,8 +1208,7 @@ export const MAX_PER_SLOT_MATCH = 40;
 // production plutôt que de les dupliquer localement — incident vécu : une
 // copie locale à 80/40 (asymétrique, jamais vraie en production) a produit
 // une mesure de divergence qui ne caractérisait pas le vrai comportement de
-// filterSlot (voir archive/historique/historique-dimensionnement.md, « revue de code
-// externe »).
+// filterSlot.
 export const MAX_PER_SLOT_FILL = 40;
 // ⚠️ En plus des deux paquets ci-dessus : le meilleur d'un slot sur CHAQUE
 // stat individuellement, même sans minimum demandé dessus. Sans ça, le
@@ -1223,7 +1221,7 @@ export const MAX_PER_SLOT_FILL = 40;
 // ⚠️ Les deux constantes ci-dessous sont exportées pour le harnais de
 // diagnostic, qui doit dire — pour une rune précise — si elle est retenue
 // par le budget top-K PAR STAT, sans dupliquer ces valeurs (voir
-// spec/outils/optimizer/harnais-diagnostic.md).
+// spec/outils/optimizer/harnais.md § Suivi d'une rune, étage par étage).
 export const PER_STAT_KEEP = 6;
 // Budget élargi pour les stats de l'OBJECTIF choisi (voir OBJECTIVE_RELEVANT_
 // STATS) : l'utilisateur a explicitement dit « je cherche des dégâts » (ou
@@ -1281,11 +1279,11 @@ export const PER_STAT_KEEP_OBJECTIVE = 24;
 // en pratique contrairement aux cas à 3-5 qui ont motivé cette recalibration.
 //
 // ⚠️ **Relevé une quatrième fois, 1500 → 3000, une fois l'escalade de budget
-// de nœuds en place** — « Phase 0 » de spec/outils/optimizer/. Le rejet de
+// de nœuds en place**. Le rejet de
 // `bucketCap=2000` ci-dessus supposait un budget de paires FIXE : un
 // compartiment plus gros épuise ce budget sur MOINS de paires, faisant
 // reculer un résultat déjà trouvé. Cette hypothèse ne tient plus depuis
-// l'escalade — ni, désormais, depuis sa SUPPRESSION (piste 8) : le seul
+// l'escalade — ni, désormais, depuis sa SUPPRESSION : le seul
 // arbitre restant est le budget-TEMPS, sous lequel un compartiment plus gros
 // coûte plus cher par paire de compartiments sans jamais raccourcir
 // l'exploration d'un plafond de nœuds. C'est bien à ce régime-là que le
@@ -1360,8 +1358,8 @@ const BUCKET_CAP = 3000;
 // consomme de toute façon tout le budget-temps disponible) et trouve
 // MOINS de builds en prime — conservé tel quel après mesure, pas par
 // défaut. Détails complets, y compris la piste « objectif de recherche
-// mieux aligné » testée et écartée : spec/outils/optimizer/, section
-// « BUCKET_CAP mis à l'échelle ». Script de calibration réutilisable :
+// mieux aligné » testée et écartée : spec/outils/optimizer/moteur/elagages.md
+// § Pré-filtrage heuristique et compartiments et § Variantes écartées ou gardées en réserve. Script de calibration réutilisable :
 // scripts/bucket-cap-scaling-diag.ts.
 // ⚠️ Volontairement IDENTIQUE à `MAX_PER_SLOT_MATCH` — les deux dérivent du
 // même préréglage « Bas » (slotFilterCap=40) : l'un est le plafond de
@@ -1378,7 +1376,8 @@ const BUCKET_CAP_REFERENCE_SLOT_FILTER_CAP = MAX_PER_SLOT_MATCH;
 
 // ⚠️ Exportée pour que le harnais de diagnostic puisse ANNONCER le `bucketCap`
 // effectif d'un run AVANT de l'exécuter (son palier 1, voir
-// spec/outils/optimizer/harnais-diagnostic.md §5) — et surtout rendre visible
+// spec/outils/optimizer/harnais.md § Le palier 1 : configuration effective et
+// fidélité) — et surtout rendre visible
 // que surcharger `slotFilterCap` déplace AUSSI `bucketCap`. Recopier la
 // formule ailleurs la laisserait diverger de celle-ci en silence, ce qui est
 // exactement le piège que ce harnais existe pour supprimer.
@@ -1389,7 +1388,8 @@ export function bucketCapFor(slotFilterCap: number): number {
 // ⚠️ Exportée pour le harnais de diagnostic (scripts/lib/diagnosticHarness.ts) :
 // il a besoin de reproduire le classement par stat de `filterSlot` pour
 // expliquer pourquoi une rune précise survit ou non — RÉUTILISER cette
-// liste, jamais la recopier (voir spec/outils/optimizer/harnais-diagnostic.md).
+// liste, jamais la recopier (voir spec/outils/optimizer/harnais.md
+// § Suivi d'une rune, étage par étage).
 export const ALL_STAT_KEYS: StatKey[] = ['hp', 'atk', 'def', 'spd', 'cr', 'cd', 'res', 'acc'];
 
 /* --------------------------------------------------------------------------
@@ -1445,8 +1445,8 @@ function runeContributionAllKeys(rune: RuneDetail): Record<StatKey, { pct: numbe
 
 // ⚠️ Comme `runeContribution`, mais SANS la principale — sous-stats et
 // innée uniquement. Sert à la pondération adaptative des tranches de
-// rétention (voir « Suite — point 4 » dans spec/outils/optimizer/, piste
-// B) : la principale d'un slot est une valeur GARANTIE et relativement
+// rétention (voir spec/outils/optimizer/moteur/elagages.md
+// § Pré-filtrage heuristique et compartiments) : la principale d'un slot est une valeur GARANTIE et relativement
 // stable pour toute rune candidate de ce slot (surtout sur un slot à
 // principale imposée — VIT slot 2, TC/DCC slot 4, RES/PRE slot 6) — elle
 // NOIE la vraie dispersion (sous-stats, aléatoires) derrière une moyenne
@@ -1485,8 +1485,7 @@ function valueOf(rune: RuneDetail, metric: OptimMetric): number {
 // flat=0` traité comme égal à `pct=0,flat=10`) mélange deux échelles —
 // mesuré : sur le pool réel d'un slot, jusqu'à ~47 % du top-40 par
 // `relevance()` change entre l'ancien classement et celui-ci (Lushen deck 10,
-// slot 2 — voir spec/outils/optimizer/archive/historique/historique-dimensionnement.md, « Suite
-// — pct/flat pondérés par base »). Même principe que `totalOf` (résultat
+// slot 2). Même principe que `totalOf` (résultat
 // EXACT, avec le terme `base` additif en plus) et déjà appliqué par
 // `isDominated` (comparaison composante par composante) — seul son propre
 // commentaire n'avait pas essaimé jusqu'à `relevance`/`retentionScore`/
@@ -1500,8 +1499,8 @@ export function weightedContribution(base: BaseStats, key: StatKey, pct: number,
 }
 
 // ⚠️ **Ne dépend JAMAIS de `objective`** — vérifié précisément cette session
-// (voir spec/outils/optimizer/, « Piste écartée — un objectif de
-// recherche mieux aligné… ») après avoir supposé le contraire par erreur.
+// (voir spec/outils/optimizer/moteur/elagages.md
+// § Variantes écartées ou gardées en réserve) après avoir supposé le contraire par erreur.
 // Ce classement (qui alimente `matches`/`fillCap` dans `filterSlot`, ET la
 // rétention par tranche dans `buildBuckets`) n'est influencé QUE par
 // `requirement.minStats` — jamais par l'objectif choisi à l'écran.
@@ -1555,9 +1554,10 @@ export function filterSlot(
   objective?: Objective,
   // ⚠️ Paramètre AJOUTÉ en fin de liste, jamais un changement de type de
   // `objective` : les ~7 scripts de diagnostic qui appellent cette fonction
-  // vivent hors du périmètre de `tsconfig.json` — `tsc --noEmit` ne verrait
-  // pas leur rupture (incident déjà vécu deux fois, voir
-  // spec/outils/optimizer/). Omis = comportement strictement inchangé.
+  // ne passent pas tous par un type que `tsc --noEmit` vérifie (incident déjà
+  // vécu deux fois, voir spec/outils/optimizer/pistes-vitesse-et-verification.md
+  // § Tests et scripts qui ne passent pas par la production). Omis =
+  // comportement strictement inchangé.
   objectiveStats?: StatKey[]
 ): RuneDetail[] {
   const requiredKeys = new Set(requirement.sets);
@@ -1607,7 +1607,7 @@ export function filterSlot(
   // place garantie — la recherche ne peut alors proposer que des builds
   // tout-un-set, même quand le combo demandé n'en réclame qu'une partie des
   // pièces (ex. un set 4 pièces sur 6 emplacements). Signalé sur un compte
-  // réel (voir spec/outils/optimizer/, « Limites connues »).
+  // réel (voir spec/outils/optimizer/limites-connues.md § Recherche des runes — le meilleur trouvé, pas l'optimum prouvé).
   // ⚠️ Motif ci-dessus SANS OBJET à coût complet (`!hasFreeSlots`) : `pool`
   // a déjà exclu toute rune hors combo plus haut, `offSet` est alors
   // structurellement vide — pas une branche morte à retirer, juste un
@@ -1625,8 +1625,8 @@ export function filterSlot(
   // O(n log n) à O(n log keepN) par stat, `keepN` (6 ou 24) restant petit
   // devant `n` (jusqu'à plusieurs milliers de runes par slot sur un gros
   // compte). Un seul passage sur `candidates` par stat, aucun tableau
-  // intermédiaire trié. Voir spec/outils/optimizer/, piste « point 2 —
-  // filterSlot : top-K via le tas ».
+  // intermédiaire trié. Voir spec/outils/optimizer/moteur/elagages.md
+  // § Pré-filtrage heuristique et compartiments.
   // ⚠️ Contribution des 8 clés précalculée UNE FOIS par rune
   // (`runeContributionAllKeys`), pas rappelée 8× via `runeContribution` —
   // voir son commentaire pour le motif (même bug que `precomputeSlot`
@@ -1702,8 +1702,9 @@ export interface ContexteDominance {
  * protège l'effet unique (6bis-b3c) :
  * - relique fixe (`off`, `equipped`, contexte absent) : `SearchParams.relic`,
  *   la relique que le moteur applique ;
- * - mode `recherche` : tout `RelicContext.eligibles`, pris AVANT la dominance
- *   des reliques — un sur-ensemble sûr de celle que la résolution retiendra.
+ * - mode `recherche` : tout `RelicContext.eligibles`, qu'aucune dominance de
+ *   reliques ne réduit (elle n'est pas appelée en production) — un
+ *   sur-ensemble sûr de celle que la résolution retiendra.
  */
 export function reliquesEquipables(relic: RelicDetail | undefined, relicContext: RelicContext | undefined): readonly RelicDetail[] {
   if (relicContext?.mode === 'recherche') return relicContext.eligibles;
@@ -1832,8 +1833,7 @@ function isDominated(
 }
 
 // Garde-fou de performance : la comparaison est O(n²) — négligeable sur les
-// tailles réelles d'un slot (quelques centaines à ~1000 runes, voir
-// spec/outils/optimizer/), mais sans borne un pool démesuré (« Explorer
+// tailles réelles d'un slot (quelques centaines à ~1000 runes), mais sans borne un pool démesuré (« Explorer
 // tout l'inventaire » sur un très gros compte) pourrait coûter cher pour un
 // gain marginal. Au-delà, on renonce à cet élagage plutôt que de ralentir.
 const DOMINANCE_MAX_POOL = 2000;
@@ -1910,7 +1910,7 @@ export function eliminateInfeasible(
   // défaut = `artFlatMax` (comportement d'avant le §12) pour les appelants qui
   // n'ont pas d'inventaire d'artéfacts sous la main — scripts de diagnostic.
   artFlatMin: Record<string, number> = artFlatMax,
-  // ⚠️ Même dissymétrie, côté relique (lot 5a) : `relPctMax` ne sert que les
+  // ⚠️ Même dissymétrie, côté relique : `relPctMax` ne sert que les
   // MINIMUMS, `relPctMin` (`MinMaxContext.relPctMin`) que les MAXIMUMS. Par
   // défaut = `relPctMax` — exact pour une relique FIXÉE (les deux vecteurs
   // coïncident), ce qu'ont les scripts de diagnostic qui appellent sans.
@@ -1982,7 +1982,7 @@ export function guaranteedSetBonus(requirement: BuildRequirement, base: BaseStat
 
 /* --------------------------------------------------------------------------
  * Bonus de set NON demandé, potentiellement en PLUS de `guaranteedSetBonus`
- * — voir spec/outils/optimizer/, « Limites connues ». `guaranteedSetBonus`
+ * — voir spec/outils/optimizer/limites-connues.md § Recherche des runes — le meilleur trouvé, pas l'optimum prouvé. `guaranteedSetBonus`
  * ne compte QUE les sets de `requirement.sets` ; un set À BONUS DE STAT
  * (`SET_STAT_BONUS`) peut s'activer PAR ACCIDENT sur les emplacements
  * « libres » (ceux que le combo demandé ne réserve pas), et ce bonus est
@@ -2005,7 +2005,7 @@ export function guaranteedSetBonus(requirement: BuildRequirement, base: BaseStat
 // raison d'être de cette fonction, voir « Limites connues ».
 // ⚠️ Suite — généralisée aux sets DÉJÀ demandés qui pourraient s'activer
 // PLUS de fois que le minimum demandé, pas seulement aux sets absents de
-// `requirement.sets` — voir spec/outils/optimizer/, cas réel Ciri (Energy
+// `requirement.sets` — voir spec/outils/optimizer/limites-connues.md § Recherche des runes — le meilleur trouvé, pas l'optimum prouvé, cas réel Ciri (Energy
 // demandé UNE fois = 1 activation garantie par `guaranteedSetBonus`, mais le
 // pool permet une SECONDE activation d'Energy sur les emplacements
 // « libres » : `guaranteed` seul ne créditait que +15 % PV, la moitié du
@@ -2165,8 +2165,8 @@ function bucketKeyOf(counts: number[], jokers: number): string {
   return `${counts.join(',')}|${jokers}`;
 }
 
-// ⚠️ PROTOTYPE EN MESURE — voir spec/outils/optimizer/, « Suite —
-// dominance de demi-builds (skyline) ». Dominance de DEMI-BUILDS (3 runes),
+// ⚠️ PROTOTYPE EN MESURE — voir spec/outils/optimizer/moteur/elagages.md
+// § Variantes écartées ou gardées en réserve. Dominance de DEMI-BUILDS (3 runes),
 // un cran au-dessus de la dominance de runes individuelles (`isDominated`
 // plus haut). Même principe, même sûreté : A est dominé par B si B est AU
 // MOINS aussi bon que A sur CHAQUE dimension suivie (`keys`), pct et flat
@@ -2203,9 +2203,8 @@ export function dominatesHalfCombo(a: HalfCombo, b: HalfCombo, keys: StatKey[]):
 // fois). ⚠️ Coût par insertion : O(taille de la skyline courante × |keys|)
 // — SANS BORNE fixe (contrairement à `heapPush`) : c'est délibéré, la
 // skyline est exacte par construction, pas un compromis mémoire/qualité.
-// Voir `scripts/monster-search-skyline-diag.ts` pour la taille RÉELLEMENT
-// observée sur des comptes réels avant d'en faire une dépendance de la
-// recherche de production — une skyline qui grossirait sans borne sur des
+// La taille RÉELLEMENT observée sur des comptes réels est dans spec/outils/optimizer/moteur/elagages.md
+// § Variantes écartées ou gardées en réserve — une skyline qui grossirait sans borne sur des
 // cas à beaucoup de dimensions (`retentionKeys` nombreux) coûterait cher
 // pour un bénéfice à vérifier, pas à supposer.
 export function insertIntoSkyline(skyline: HalfCombo[], combo: HalfCombo, keys: StatKey[]): void {
@@ -2226,7 +2225,7 @@ export function insertIntoSkyline(skyline: HalfCombo[], combo: HalfCombo, keys: 
 // rune-optim-filterslot-topk.test.ts) puissent appeler `heapPush` RÉELLEMENT
 // utilisé par `filterSlot`/`buildBuckets`, plutôt qu'une réimplémentation
 // locale qui ne détecterait jamais une régression du vrai code (incident
-// vécu : voir archive/historique/historique-dimensionnement.md, « revue de code externe »).
+// vécu).
 export interface ScoredEntry<T> {
   item: T;
   score: number;
@@ -2396,8 +2395,7 @@ export interface BuildBucketsContext {
   // pct/flat, voir `weightedContribution`) — absent avant, ces deux
   // fonctions mélangeaient les deux échelles. Propagé à TOUS les chemins
   // structurellement compatibles (`BuildHalfRequest`, `BuildHalfWorkerData`)
-  // — voir spec/outils/optimizer/archive/historique/historique-dimensionnement.md, « Suite —
-  // pct/flat pondérés par base ».
+  // — voir `weightedContribution`.
   base: BaseStats;
   // PROTOTYPE (combosOrderMode='objective') — voir son commentaire dans
   // prepareSearch. Même discipline de propagation que `base` ci-dessus.
@@ -2416,8 +2414,7 @@ export interface BuildBucketsContext {
 // (le seul endroit qui rendait la main jusqu'ici) n'ait la moindre chance de
 // tourner — sans point de passage ICI, ni la barre de progression ni le
 // bouton Arrêter ne réagissaient pendant cette phase (voir
-// spec/outils/optimizer/, « Suite — la phase de préparation restait
-// muette »). `half` sert uniquement à étiqueter la progression émise (A ou
+// spec/outils/optimizer/moteur/pipeline.md § Construction des moitiés). `half` sert uniquement à étiqueter la progression émise (A ou
 // B), aucun effet sur le calcul lui-même.
 /**
  * Le CV par tranche et la réallocation qu'il produit — piste B.
@@ -2428,7 +2425,8 @@ export interface BuildBucketsContext {
  * retaper — et aurait alors mesuré SA copie, pas la valeur qui pilote
  * réellement la répartition. C'est l'incident fondateur de la discipline
  * « fidélité des scripts de diagnostic », et le précédent exact de
- * `releverPreparation` (spec/outils/optimizer/, §5.3, résidu 1) : extraire
+ * `releverPreparation` (spec/outils/optimizer/harnais.md § L'observateur
+ * onStage) : extraire
  * est la condition de possibilité de la mesure, pas un découpage de confort.
  * `buildBuckets` l'appelle lui-même — il ne peut donc pas y avoir deux
  * versions.
@@ -2506,22 +2504,19 @@ export function* buildBuckets(
   // ne change, coût nul. Fourni : maintient EN PLUS, pour chaque
   // compartiment, la frontière de Pareto exacte sur ces clés — jamais à la
   // place des tranches habituelles. Réservé aux scripts de mesure
-  // (`scripts/monster-search-skyline-diag.ts`) tant que le coût réel
-  // (taille de la skyline sur un compte réel) n'est pas mesuré.
+  // (scripts de mesure) tant que le coût réel (taille de la skyline sur un
+  // compte réel) n'est pas mesuré.
   skylineKeys?: StatKey[],
-  // ⚠️ PROTOTYPE EN MESURE — piste B, pondération adaptative par tranche
-  // (spec/outils/optimizer/, « Suite — piste B »). `false`/`undefined`
-  // (par défaut, TOUS les appels de production actuels) : le bloc
-  // `reallocatedCap` ci-dessous ne s'exécute pas, chaque tranche par stat
-  // reçoit `perOtherSliceCap` exactement comme avant sa mise en place —
-  // coût nul À VÉRIFIER (voir la mesure demandée avant d'exposer un bouton
-  // dans l'UI, pas encore fait). `true` : reproduit le comportement piste B
-  // déjà validé (Sonia deck 6, cas de stress atteignable) contre un coût de
-  // construction non démontré meilleur que la piste A.
+  // Pondération adaptative par tranche (spec/outils/optimizer/moteur/elagages.md
+  // § Pré-filtrage heuristique et compartiments). `false`/`undefined` :
+  // le bloc `reallocatedCap` ci-dessous ne s'exécute pas, chaque tranche par
+  // stat reçoit `perOtherSliceCap`, coût nul. `true` — l'interrupteur
+  // « Prioriser les stats les plus difficiles », que l'écran et le Worker
+  // transmettent — réalloue le budget de rétention entre les tranches par
+  // stat, à budget total égal (validé sur Sonia deck 6, cas de stress
+  // atteignable).
   adaptiveTrancheWeighting = false,
-  // Voir spec/outils/optimizer/archive/historique/historique-dimensionnement.md, « Suite —
-  // vitesse de convergence : ordre au sein d'un compartiment » et « Suite —
-  // rétention re-vérifiée EMPIRIQUEMENT avec le prototype ». Quatre valeurs,
+  // Ordre des demi-builds au sein d'un compartiment. Quatre valeurs,
   // toutes INTERNES — jamais exposées dans l'UI, aucun appel de production
   // n'en passe une explicitement (le défaut ci-dessous s'applique donc
   // partout). Trient les demi-builds À L'INTÉRIEUR d'un même compartiment
@@ -2592,8 +2587,8 @@ export function* buildBuckets(
   const genericCap = bucketCap;
   const perOtherSliceCap = genericCap;
 
-  // ⚠️ Piste B — pondération adaptative par tranche (spec/outils/
-  // optimizer/, « Suite — piste B envisagée à la lumière de la piste A »).
+  // ⚠️ Pondération adaptative par tranche (spec/outils/optimizer/moteur/elagages.md
+  // § Pré-filtrage heuristique et compartiments).
   // PROXY ANALYTIQUE calculé AVANT la triple boucle — pour chaque
   // `retentionKey`, estime la variance du demi-build complet en sommant la
   // variance de la contribution HORS PRINCIPALE (`runeSubOnlyContribution`,
@@ -2625,9 +2620,8 @@ export function* buildBuckets(
   // demandé — calculé une fois, réutilisé à chaque étape du triple flux.
   const slotHasKey = [i0, i1, i2].map((i) => distinctKeys.map((key) => filtered[i].some((r) => r.set === key)));
 
-  // ⚠️ Précalcul PAR RUNE, une fois avant la triple boucle — voir
-  // spec/outils/optimizer/, « Suite — relecture du pipeline, pistes
-  // d'accélération ». `runeEfficiency(r0)`/`runeContribution(r0, k)`
+  // ⚠️ Précalcul PAR RUNE, une fois avant la triple boucle.
+  // `runeEfficiency(r0)`/`runeContribution(r0, k)`
   // étaient recalculés à CHAQUE itération de la double boucle r1×r2, alors
   // que r0 est fixe pour toute cette double boucle — pur travail redondant
   // (mesuré : ~1,5M appels à `runeEfficiency` au lieu de 240 possibles, au
@@ -2718,8 +2712,7 @@ export function* buildBuckets(
       // Mesuré sur un compte réel (Lushen deck 10, Rage/Rage+Blade/Energy+
       // Shield+Guard) : ~11 % des demi-builds construits tombaient dans ce
       // cas, pour 0 effet sur `pairBuckets` (déjà écarté au niveau du
-      // compartiment) — voir spec/outils/optimizer/archive/historique/historique-dimensionnement.md,
-      // « Suite — élagage jokers≥2 ».
+      // compartiment).
       if (jokersR01 >= 2) {
         if (tr01 && traceMoitie) traceMoitie.coupee = 'jokers';
         continue;
@@ -2761,8 +2754,7 @@ export function* buildBuckets(
         // violent 4p + nemesis 2p) — une tranche entière de compartiments à
         // 0 pièce violent, aucun n'ayant de joker propre, gaspillait tout
         // son quota de candidats en pairing parallèle faute de pouvoir
-        // s'apparier avec QUOI QUE CE SOIT (voir spec/outils/optimizer/
-        // archive/historique/historique-acceleration-et-outillage.md, « Chantier D »).
+        // s'apparier avec QUOI QUE CE SOIT.
         let demiBuildMort = false;
         for (let k = 0; k < distinctKeys.length; k++) {
           if (requiredPieces[k] > 3 && counts[k] === 0 && jokers === 0) {
@@ -2878,8 +2870,8 @@ export function* buildBuckets(
   // passe, `combos` restait trié par la seule efficience générique : un
   // demi-build qui n'a survécu à `bucketCap` que grâce à la tranche combinée
   // ou une tranche par stat (pas grâce à son efficience — précisément le cas
-  // d'un build spécialisé sur des stats non meulables, voir « Suite —
-  // ordonnancement conscient des tranches » dans spec/outils/optimizer/)
+  // d'un build spécialisé sur des stats non meulables, voir spec/outils/optimizer/moteur/elagages.md
+  // § Pré-filtrage heuristique et compartiments)
   // se retrouvait trié vers la FIN de la liste — la boucle d'appariement
   // (`for comboA of bA.combos` dans searchBuildsSteps) ne l'atteignait donc
   // qu'après des milliers de demi-builds génériquement bons mais hors sujet,
@@ -2943,8 +2935,7 @@ export function* buildBuckets(
   // max via une meule, contrairement à PV/ATQ/DEF) mais forts sur une stat
   // protégée par une tranche dédiée n'est plus exploré en dernier par
   // défaut, dès que `maxCollected`/`maxMs` interrompt la recherche avant de
-  // tout explorer (le cas courant, voir « Suite — augmenter le budget de
-  // recherche » dans spec/outils/optimizer/).
+  // tout explorer (le cas courant, voir spec/outils/optimizer/limites-connues.md § Recherche des runes — le meilleur trouvé, pas l'optimum prouvé).
   // PROTOTYPE (ordre d'appariement) — calculé UNE FOIS par compartiment ici
   // (au lieu d'être recalculé à chaque comparaison puis jeté) et conservé sur
   // `Bucket.potential` : sert à `pairBuckets` pour ordonner les PAIRES de
@@ -3041,7 +3032,7 @@ export function satisfiesSets(
 // commentaire de `totalPairCount` lui-même, plus bas, et le test différentiel
 // (`rune-optim-differential.test.ts`) qui vérifie l'égalité stricte avec les
 // paires réellement explorées. C'est cette exactitude qui a permis de
-// supprimer le budget de nœuds (piste 8).
+// supprimer le budget de nœuds.
 // Borne optimiste (sûre) pour les MINIMUMS, à partir des bornes de deux
 // compartiments — factorisée pour être réutilisée à l'IDENTIQUE par
 // `pairBuckets` (élagage réel pendant l'appariement) ET `totalPairCount`
@@ -3091,7 +3082,7 @@ export function comboAFeasible(
   // Même repli que `guaranteedMin = guaranteed` ci-dessus : voir
   // `eliminateInfeasible`.
   artFlatMin: Record<string, number> = artFlatMax,
-  // Même repli, côté relique (lot 5a) : voir `eliminateInfeasible`.
+  // Même repli, côté relique : voir `eliminateInfeasible`.
   relPctMin: Record<string, number> = relPctMax
 ): boolean {
   for (const { k, min } of minEntries) {
@@ -3128,7 +3119,8 @@ export function comboAFeasible(
 // cher que la recherche elle-même (143 099 comboA vérifiés sur ce cas,
 // contre 86,8M paires que la vraie recherche visite).
 // ⚠️ Parallélisation de l'appariement (voir runeBuildOptim.worker.ts,
-// `runParallelPairing`, et spec/outils/optimizer/pistes.md, point 9) —
+// `runParallelPairing`, et spec/outils/optimizer/moteur/parallelisation.md
+// § Répartition et partage du plafond) —
 // réparti GLOUTONNEMENT par charge réelle (LPT — Longest Processing Time
 // first : les plus gros compartiments d'abord, toujours au worker le moins
 // chargé), PAS par rang. Mesuré (`scripts/pairing-parallel-diag.ts`) :
@@ -3139,7 +3131,8 @@ export function comboAFeasible(
 // elle-même. Exportée (plutôt que privée au Worker) pour être testable
 // directement en Node, sans dépendre de l'API Worker du navigateur — voir
 // tests/rune-optim-parallel-pairing.test.ts.
-// ⚠️ OPTION E (voir spec/outils/optimizer/pistes.md, point 9 — comparaison
+// ⚠️ OPTION E (voir spec/outils/optimizer/moteur/parallelisation.md
+// § Répartition et partage du plafond — comparaison
 // à 3 branches) : l'équilibrage par charge (LPT) reste IDENTIQUE à la
 // version de base, mais chaque tranche est retriée EN PLUS dans l'ordre
 // d'origine de `bucketsA` (déjà par potentiel décroissant, voir
@@ -3163,7 +3156,7 @@ export function partitionBucketsALPT(bucketsA: Bucket[], workerCount: number): B
 }
 
 // ⚠️ **C'est LA borne du moteur** — la seule, depuis la suppression du budget
-// de nœuds (piste 8). Elle vaut EXACTEMENT le nombre de paires que
+// de nœuds. Elle vaut EXACTEMENT le nombre de paires que
 // `pairBuckets` incrémente sur les mêmes compartiments : mêmes prédicats,
 // dans le même ordre (joker, `satisfiesSets`, `bucketPairFeasibleMin`,
 // `comboAFeasible`), et `explored` s'incrémente AVANT tout élagage
@@ -3288,8 +3281,8 @@ export function estimateSearchSpace(
 // sur des recherches réelles (voir tests/rune-optim.test.ts).
 // ⚠️ Peut être TRÈS au-dessus de la réalité (attendu, pas un bug à
 // resserrer) : `bucketCap` est lui-même une valeur de sécurité rarement
-// atteinte en usage courant — voir spec/outils/optimizer/, « BUCKET_CAP mis
-// à l'échelle ». Le nombre affiché à l'écran doit rester lisible comme
+// atteinte en usage courant — voir spec/outils/optimizer/moteur/elagages.md
+// § Pré-filtrage heuristique et compartiments. Le nombre affiché à l'écran doit rester lisible comme
 // « au pire », pas comme une prédiction.
 export function estimatePairBound(
   requirement: BuildRequirement,
@@ -3398,7 +3391,7 @@ interface MinMaxContext {
    *
    * Relique portée (mode `off`/`equipped`, ou sans contexte) : son propre
    * pourcentage, des deux côtés — le comportement d'avant. Mode `recherche`
-   * (lot 5a, D5) : la MEILLEURE principale éligible de chaque statistique
+   * (D5) : la MEILLEURE principale éligible de chaque statistique
    * (`relicContext.bornes.max`, PV/ATQ/DEF indépendantes — permissif, jamais
    * un faux négatif : `ceil` est monotone, donc `L ≤ Lmax` ⇒
    * `ceil(B×(R+L)/100) ≤ ceil(B×(R+Lmax)/100)`).
@@ -3445,8 +3438,8 @@ function deriveMinMaxContext(
   // (`bornesArtefacts`, artifactOptim.ts). Absentes → repli sur l'apport de la
   // paire représentative des DEUX côtés, c'est-à-dire le comportement d'avant
   // la dissymétrie. Ce repli est SÛR mais pas juste : il fige le choix
-  // d'artéfact avant la recherche (voir spec/outils/optimizer/artefacts.md,
-  // §12). Il n'existe que pour les scripts de diagnostic sans inventaire.
+  // d'artéfact avant la recherche (voir spec/outils/optimizer/moteur/artefacts.md
+  // § Bornes d'apport pendant la recherche). Il n'existe que pour les scripts de diagnostic sans inventaire.
   artifactBounds?: SearchParams['artifactBounds'],
   // Le contexte relique (garantie G). Absent ou `mode` ≠ `'recherche'` : la
   // relique PORTÉE fait les deux bornes, comme avant. Mode `recherche` : ses
@@ -3479,8 +3472,7 @@ function deriveMinMaxContext(
   // d'avant. En mode recherche : `bornes.max` côté minimum, `bornes.min` côté
   // maximum, et `relic` n'est PAS lu (sinon l'équipée s'additionnerait à la
   // candidate — garantie G).
-  // ⚠️ Calculé SEULEMENT hors mode recherche (revue adversariale du diff du
-  // lot 5a, « ce qui tient ») : en mode recherche, `relPctMax`/`relPctMin`
+  // ⚠️ Calculé SEULEMENT hors mode recherche : en mode recherche, `relPctMax`/`relPctMin`
   // valent `relicContext.bornes`, cet appel restait inutilisé.
   const relPctFige = relicRelache ? undefined : relicPctBonus(relic);
   const relPctMax: Record<string, number> = relicRelache ? { ...relicContext!.bornes.max } : relPctFige!;
@@ -3539,8 +3531,9 @@ export interface StatFeasibility {
 // déjà rune par rune ; ici agrégé pour un diagnostic lisible). Mais
 // l'inverse n'est PAS garanti : `satisfiable=true` sur CHAQUE stat prise
 // isolément ne prouve pas qu'un build satisfaisant TOUTES à la fois existe
-// — c'est exactement le piège documenté dans spec/outils/optimizer/
-// (« l'aiguille dans une botte de foin » du deck 10 Lushen) : chaque
+// — c'est exactement le piège documenté dans spec/outils/optimizer/moteur/diagnostics.md
+// § Preuve d'impossibilité par stat isolée (« l'aiguille dans une botte de
+// foin » du deck 10 Lushen) : chaque
 // contrainte était individuellement large, leur CONJONCTION était rare.
 // Sert de premier palier de diagnostic quand une recherche ne trouve rien
 // (voir OptimizerSection.tsx) : gratuit (une passe O(pool), pas une
@@ -3589,10 +3582,8 @@ export function diagnoseFeasibility(params: SearchParams): StatFeasibility[] {
 // `filterSlot`/`buildBuckets`/l'appariement (le vrai coût combinatoire) —
 // coût O(N × log(plage) × pool), N = nombre de conditions posées, jamais
 // O(pool³). Un ordre de grandeur de plus que la version binaire d'origine
-// (qui ne relançait le pré-filtrage qu'une fois par condition — voir
-// spec/outils/optimizer/pistes.md, « `rankBlockingConditions` répond à la
-// mauvaise question », et archive/historique/historique-diagnostics-et-robustesse.md pour le
-// coût mesuré), mais reste sans commune mesure avec une recherche complète
+// (qui ne relançait le pré-filtrage qu'une fois par condition — voir spec/outils/optimizer/moteur/diagnostics.md
+// § Conditions bloquantes du pré-filtrage sûr), mais reste sans commune mesure avec une recherche complète
 // — d'où le réglage dédié dans l'écran (« Options avancées ») pour le
 // rendre optionnel plutôt que systématique.
 // ⚠️ **Un INDICE, pas une preuve** : contrairement à `diagnoseFeasibility`,
@@ -3654,7 +3645,7 @@ export function poolMinSlotSafe(
   objective: Objective | undefined,
   objectiveStats: StatKey[] | undefined,
   artifactBounds?: SearchParams['artifactBounds'],
-  // Même borne relique que la recherche (lot 5a) — les trois consommateurs
+  // Même borne relique que la recherche — les trois consommateurs
   // reçoivent le même contexte, sinon le diagnostic prouverait une
   // impossibilité sur une borne plus étroite que celle qui a élagué.
   relicContext?: RelicContext,
@@ -3787,8 +3778,8 @@ export function rankBlockingConditions(params: SearchParams): BlockingConditions
 // compartiments (`buildBucketsSteps`, avant même de savoir combien de paires
 // il y aura à explorer) peut à elle seule prendre de quelques secondes à
 // ~1 minute sur un compte réel avec beaucoup de conditions à la fois (voir
-// spec/outils/optimizer/, « Suite — la phase de préparation restait
-// muette ») — sans un point de passage PENDANT cette phase, l'utilisateur
+// spec/outils/optimizer/moteur/pipeline.md
+// § Construction des moitiés) — sans un point de passage PENDANT cette phase, l'utilisateur
 // n'avait aucune information et le bouton Arrêter ne réagissait pas avant la
 // toute première paire évaluée. `phase: 'pairing'` est l'ancien
 // comportement (inchangé) ; `phase: 'building'` est nouveau.
@@ -3806,7 +3797,8 @@ export interface PairingProgress {
   // pour la sémantique exacte. Porté ici, pas seulement sur le résultat
   // final, pour qu'un arrêt manuel EN COURS D'APPARIEMENT (`drivePairing`,
   // `isStopped()`) puisse le récupérer plutôt que le perdre — voir
-  // spec/outils/optimizer/near-miss-appariement.md, §5.
+  // spec/outils/optimizer/moteur/diagnostics.md
+  // § Types et transport du quasi-succès.
   nearMissByCondition: { key: StatKey; kind: 'min' | 'max'; miss: NearMiss }[];
   globalNearMiss: NearMiss | null;
 }
@@ -3823,7 +3815,7 @@ export type SearchProgress = BuildingProgress | PairingProgress;
 export const CHECKPOINT_EVERY = 500;
 
 // ⚠️ **`NodeBudget`/`maybeEscalateNodeBudget`/`ESCALATION_FACTOR` ont été
-// SUPPRIMÉS ici** (piste 8, voir spec/outils/optimizer/pistes.md). Résumé,
+// SUPPRIMÉS ici**. Résumé,
 // pour qui viendrait les chercher : le budget de paires était doublé dès
 // qu'on l'approchait, tant qu'il restait du temps et pas assez de candidats
 // — sa valeur finale était donc, par construction, « tout ce que le temps
@@ -3840,7 +3832,7 @@ export const CHECKPOINT_EVERY = 500;
  * Cœur du moteur, sous forme de GÉNÉRATEUR : produit un {@link SearchProgress}
  * à intervalles réguliers plutôt que de tourner jusqu'au bout d'un seul bloc.
  * ⚠️ Ce n'est pas une seconde implémentation à maintenir en double :
- * `searchBuilds` (l'API historique, utilisée par les tests/le benchmark) ne
+ * `searchBuilds` (l'API historique, utilisée par les tests et le benchmark) ne
  * fait que DRAINER ce générateur jusqu'à son `return`. Le Worker, lui,
  * pilote le générateur pas à pas, ce qui permet de rendre la main entre deux
  * points de passage — condition nécessaire pour recevoir un message
@@ -3850,7 +3842,7 @@ export const CHECKPOINT_EVERY = 500;
 // ⚠️ `adaptiveMaxNodes` (budget de paires PROPORTIONNEL au nombre de
 // tranches, ancré à 32M pour 5 tranches, plancher 8M) a été SUPPRIMÉ avec le
 // reste de la machinerie de budget — voir le bloc ⚠️ au-dessus de
-// `CHECKPOINT_EVERY` et spec/outils/optimizer/pistes.md, piste 8. Les
+// `CHECKPOINT_EVERY`. Les
 // mesures qui l'avaient calibré (deck 10 Lushen : au moins ~28M paires pour
 // être retrouvé exactement, échoue à 24M) restent des faits utiles sur le
 // COÛT des cas réels, pas sur un plafond : la recherche les explore
@@ -3860,7 +3852,7 @@ export const CHECKPOINT_EVERY = 500;
 // (`pairBuckets`) doivent partager — factorisé pour que les deux moitiés
 // puissent être construites INDÉPENDAMMENT (en parallèle, potentiellement
 // dans deux Workers distincts, voir runeBuildOptim.worker.ts et
-// spec/outils/optimizer/ « Suite — parallélisation… ») sans dupliquer la
+// spec/outils/optimizer/moteur/pipeline.md § Construction des moitiés) sans dupliquer la
 // préparation (mainStatFilteredBySlot → pruneDominated → eliminateInfeasible
 // → filterSlot), qui elle reste séquentielle et bon marché en comparaison.
 // `null` en retour de `prepareSearch` = un emplacement est vide après
@@ -3936,7 +3928,7 @@ export type PrepareStage = 'mainstat' | 'dominance' | 'feasibility' | 'filterslo
  * « seulement écartée » (filterSlot, rétention heuristique) n'a d'autre
  * choix que de rappeler les fonctions une par une et de reconstruire le
  * contexte à la main — exactement le second pipeline qu'on ne veut pas.
- * Voir spec/outils/optimizer/harnais-diagnostic.md, §2.
+ * Voir spec/outils/optimizer/harnais.md § L'observateur onStage.
  *
  * ⚠️ **L'observateur ne doit JAMAIS muter ce qu'il reçoit.** Il reçoit la
  * référence réelle utilisée par l'étage suivant. Chaque étage produit des
@@ -3956,8 +3948,7 @@ export type PrepareStageObserver = (stage: PrepareStage, bySlot: RuneDetail[][])
 // sérialisable — l'y placer casserait le chemin parallèle au lieu d'échouer
 // à la compilation.
 //
-// `onReject` (diagnostic seulement, revue adversariale du diff du lot 5a,
-// MINEUR 1) : appelé avec le traceur AVANT le `return null` de rejet par
+// `onReject` (diagnostic seulement) : appelé avec le traceur AVANT le `return null` de rejet par
 // pré-filtrage — sans lui, ce candidat était enregistré PUIS PERDU
 // silencieusement (`searchBuildsSteps` ne reconstruisait qu'un résultat vide
 // sans trace), alors que c'est précisément le cas où l'instrumentation sert
@@ -3982,8 +3973,8 @@ export function prepareSearch(
   // buildBuckets) : les minimums demandés, PLUS les stats propres à
   // l'objectif choisi. JAMAIS les maximums — sur une stat plafonnée, « plus »
   // n'est pas sûrement « meilleur » pour un tri après coup (le même piège
-  // que la dominance directionnelle abandonnée cette session, voir
-  // spec/outils/optimizer/) : un utilisateur qui pose un maximum peut
+  // que la dominance directionnelle abandonnée, voir spec/outils/optimizer/moteur/elagages.md
+  // § Variantes écartées ou gardées en réserve) : un utilisateur qui pose un maximum peut
   // vouloir ensuite trier PAR cette stat pour voir les valeurs les plus
   // proches du plafond, pas les plus basses. Se limiter aux minimums garde
   // la protection strictement sûre.
@@ -4010,8 +4001,8 @@ export function prepareSearch(
   // maximum — ne peut jamais entrer dans un build valide). Enfin le
   // pré-filtrage heuristique par pertinence, orienté par l'objectif choisi
   // le cas échéant. Cet ordre réduit le pool réel dès le départ, ce qui
-  // atténue aussi le coût mémoire/temps de tout ce qui suit — voir
-  // spec/outils/optimizer/.
+  // atténue aussi le coût mémoire/temps de tout ce qui suit — voir spec/outils/optimizer/moteur/elagages.md
+  // § Pré-filtrage heuristique et compartiments.
   //
   // ⚠️ `onStage` (voir son type) observe chacun de ces quatre états — le seul
   // endroit du moteur où les trois premiers existent encore.
@@ -4089,9 +4080,9 @@ export function prepareSearch(
 // arrêt à la première paire faisable : ici on veut visiter TOUTES les
 // paires, juste dans un meilleur ordre, pour rester compatible avec le
 // produit actuel (collecter jusqu'à maxCollected sur tout l'espace, pas une
-// preuve d'optimalité avec arrêt anticipé — voir spec/outils/optimizer/
-// pistes.md, « Branch & Bound au niveau des paires », gated derrière une
-// décision produit non prise). `bucketsA`/`bucketsB` DOIVENT déjà être
+// preuve d'optimalité avec arrêt anticipé — voir spec/outils/optimizer/pistes.md
+// § Optimalité prouvée : Branch & Bound sur les paires, statuts du résultat,
+// gated derrière une décision produit non prise). `bucketsA`/`bucketsB` DOIVENT déjà être
 // triés par potentiel décroissant (comportement existant de `buildBuckets`,
 // inchangé).
 function* orderedCompartmentPairs(bucketsA: Bucket[], bucketsB: Bucket[]): Generator<readonly [Bucket, Bucket], void, void> {
@@ -4180,8 +4171,8 @@ export function* pairBuckets(
   let explored = 0;
   let truncated = false;
 
-  // Diagnostic « quasi-succès » — voir spec/outils/optimizer/
-  // near-miss-appariement.md. Sous-produit gratuit : alimenté UNIQUEMENT à
+  // Diagnostic « quasi-succès » — voir spec/outils/optimizer/moteur/diagnostics.md
+  // § Quasi-succès à l'appariement. Sous-produit gratuit : alimenté UNIQUEMENT à
   // partir de paires qui ont déjà atteint `computeStats` (donc déjà passé
   // `quickOk`/`comboAFeasible`, la minorité) et qui échouent sur le test
   // CONJOINT exact — aucun calcul supplémentaire, seulement des comparaisons
@@ -4355,7 +4346,7 @@ export function* pairBuckets(
           }
           if (trPair && traceApp) traceApp.missingSets = true;
 
-          // ⚠️ Mode recherche (`relicRelache`, lot 5a) : le candidat est
+          // ⚠️ Mode recherche (`relicRelache`) : le candidat est
           // collecté SANS relique — la portée n'est pas une hypothèse de la
           // recherche (D1 : le pool est filtré, elle peut ne pas en faire
           // partie ; garantie G : remplacement, jamais cumul), et la candidate
@@ -4561,10 +4552,9 @@ export function combineParallelPairingResults(
 // aussi ce que `runeBuildOptim.worker.ts` appelait avant sa propre
 // parallélisation — désormais il appelle `prepareSearch`/`buildBuckets`/
 // `pairBuckets` directement pour pouvoir construire A et B dans deux Workers
-// séparés, voir spec/outils/optimizer/ « Suite — parallélisation… ».
+// séparés, voir spec/outils/optimizer/moteur/pipeline.md § Construction des moitiés.
 export function* searchBuildsSteps(params: SearchParams): Generator<SearchProgress, SearchResult, void> {
-  // Le traceur d'un rejet par pré-filtrage (revue adversariale du diff du
-  // lot 5a, MINEUR 1) : `prepareSearch` le construit puis le perd en rendant
+  // Le traceur d'un rejet par pré-filtrage : `prepareSearch` le construit puis le perd en rendant
   // `null` — récupéré ici via `onReject` pour qu'un résultat vide reste
   // diagnosticable (étage `feasibility`/`filterslot` à 0), au lieu de
   // disparaître précisément quand l'instrumentation sert le plus.

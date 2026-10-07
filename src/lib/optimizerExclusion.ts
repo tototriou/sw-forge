@@ -113,9 +113,8 @@ export interface ExclusionSourceData {
 //   (voir le filtre Box séparé de `speciesCandidatesBySource`, jamais passé
 //   par CETTE fonction).
 //
-// ⚠️ Deux gardes DISTINCTES, une par granularité — trouvé manquant pour RTA/
-// siège par une revue de code externe (voir spec/outils/optimizer/
-// archive/historique/historique-acceleration-et-outillage.md) :
+// ⚠️ Deux gardes DISTINCTES, une par granularité — la garde par espèce
+// manquait d'abord pour RTA/siège :
 // - `excludeOwnUnitKey` (box UNIQUEMENT) : compare par ENTRÉE précise (clé de
 //   box), pas par espèce — la box peut contenir plusieurs exemplaires du même
 //   monstre (voir l'en-tête du fichier), et SEUL l'exemplaire réellement en
@@ -291,8 +290,8 @@ export function autoExcludedRuneIds(scope: AutoExclusionScope, data: ExclusionSo
 }
 
 /* --------------------------------------------------------------------------
- * Listes de travail (Lot 3, voir
- * spec/outils/optimizer/archive/historique/historique-import-monstres-a-optimiser.md)
+ * Listes de travail (voir spec/outils/optimizer/listes-et-reservation.md
+ * § Créer, valider et réserver dans une liste)
  * — conteneurs LIBRES créés par l'utilisateur, PAS
  * de liste fixe (Box/RTA/Défense siège ne sont plus des cas spéciaux : c'est
  * l'utilisateur qui décide quels monstres partagent un même pool de runes,
@@ -314,9 +313,9 @@ export interface OptimizerListMember {
 }
 
 /* --------------------------------------------------------------------------
- * Plusieurs exemplaires Box d'une même espèce dans une liste (lot EX de
- * degats-et-aura, décision de l'utilisateur du 2026-10-04). Les membres sont
- * repérés par EXEMPLAIRE depuis le lot 3 (`exclusionSelectorKey`, Box =
+ * Plusieurs exemplaires Box d'une même espèce dans une liste (spec/outils/
+ * optimizer/listes-et-reservation.md § Zone C — Monstres de la liste). Les
+ * membres sont repérés par EXEMPLAIRE (`exclusionSelectorKey`, Box =
  * `box:<unitKey>`) : rien n'empêchait deux exemplaires dans la même liste,
  * c'est le chemin à l'écran qui manquait. Choisir l'espèce prend le premier
  * exemplaire Box, le bouton affichait « Déjà dans », désactivé, et rien ne
@@ -347,7 +346,7 @@ export interface EtatAjoutListe {
 
 // État du bouton « Ajouter à la liste » de la zone C. Les libellés existants
 // sont repris tels quels ; seul le cas « déjà membre, un autre exemplaire Box
-// absent » est nouveau (contrat A du lot EX).
+// absent » est nouveau.
 export function etatAjoutListe(p: {
   // Nom de l'espèce affichée ; `null` : aucun monstre choisi.
   monstre: string | null;
@@ -365,7 +364,7 @@ export function etatAjoutListe(p: {
   const cle = exclusionSelectorKey(p.selecteur);
   if (membresListe.some((m) => exclusionSelectorKey(m.selector) === cle)) {
     // ⚠️ « Un autre exemplaire » seulement si l'exemplaire AFFICHÉ vient de la
-    // Box (lot EX2, décision du 2026-10-04) : affiché depuis RTA ou le siège,
+    // Box : affiché depuis RTA ou le siège,
     // l'exemplaire Box proposé pouvait être le même monstre physique, et
     // « un autre exemplaire » aurait été faux.
     const suivant = p.selecteur.source === 'box' ? exemplaireBoxHorsListe(p.candidatsBox, membresListe) : null;
@@ -384,15 +383,15 @@ export function etatAjoutListe(p: {
 }
 
 // Libellé d'une puce de source (Box, RTA, Défenses siège, Offenses siège) :
-// `{source} · {n}` dès deux exemplaires de l'espèce dans cette source (contrat
-// B du lot EX) ; zéro ou un, le libellé reste celui de la source.
+// `{source} · {n}` dès deux exemplaires de l'espèce dans cette source ;
+// zéro ou un, le libellé reste celui de la source.
 export function libellePuceSource(libelle: string, nombre: number): string {
   return nombre >= 2 ? `${libelle} · ${nombre}` : libelle;
 }
 
 /* --------------------------------------------------------------------------
  * Runes VALIDÉES — « Monstres déjà runés » (fusionné dans la zone C d'une
- * liste, Lot 3). 3ᵉ mécanisme d'exclusion, distinct des deux ci-dessus : ni
+ * liste). 3ᵉ mécanisme d'exclusion, distinct des deux ci-dessus : ni
  * un périmètre entier (AUTO), ni une entrée du compte lue dynamiquement
  * (MANUEL, `ExclusionSelector` résolu à chaque calcul contre le gear ACTUEL)
  * — un build qu'on vient de TROUVER par la recherche, dont les 6 `runeIds`
@@ -403,8 +402,9 @@ export function libellePuceSource(libelle: string, nombre: number): string {
  * que par UN monstre à la fois, mais SEULEMENT au sein d'un même pool réel
  * (une même liste). Deux decks d'offense siège sont deux presets appliqués
  * MOMENTANÉMENT, jamais simultanément : leurs runes validées ne se bloquent
- * pas entre elles (voir « Suite — cadrage du Lot 3 » pour le détail complet
- * du modèle de rareté). Upsert par PAIRE `(listId, selector)`, pas par
+ * pas entre elles (voir spec/outils/optimizer/listes-et-reservation.md
+ * § Listes de travail et réservation de runes pour le détail complet du
+ * modèle de rareté). Upsert par PAIRE `(listId, selector)`, pas par
  * `selector` seul : le même exemplaire peut porter un build validé DIFFÉRENT
  * dans deux listes différentes.
  * ----------------------------------------------------------------------- */
@@ -512,7 +512,8 @@ export function findValidatedBuild(validated: ValidatedBuild[], listId: string |
 // encore dans le compte ». Plus faible qu'une vérification « toujours porté
 // par CE monstre » aurait pu l'être (ne détecte pas une rune réattribuée à
 // un AUTRE monstre réel depuis la validation) — limite assumée, documentée
-// dans spec/outils/optimizer/, pas une régression : rien dans ce fichier
+// dans spec/outils/optimizer/listes-et-reservation.md § Monstre non possédé et
+// auto-exemption, pas une régression : rien dans ce fichier
 // n'a jamais pu détecter correctement ce cas plus fin.
 export function revalidateBuilds(validated: ValidatedBuild[], data: ExclusionSourceData, allRuneIds: Set<number>): { kept: ValidatedBuild[]; droppedCount: number } {
   const kept: ValidatedBuild[] = [];

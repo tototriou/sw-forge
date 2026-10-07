@@ -2,8 +2,8 @@
 // Worker DÉDIÉ à la construction d'UNE SEULE moitié (`buildBuckets`), spawné
 // PAR `runeBuildOptim.worker.ts` (pas par l'app directement) pour paralléliser
 // la construction des deux moitiés A et B sur deux cœurs plutôt qu'un seul —
-// voir spec/outils/optimizer/, « Suite — parallélisation de la construction
-// des deux moitiés ». Reste minimal, comme runeBuildOptim.worker.ts : aucune
+// voir spec/outils/optimizer/moteur/pipeline.md § Construction des moitiés.
+// Reste minimal, comme runeBuildOptim.worker.ts : aucune
 // logique propre, pilote juste `buildBuckets` pas à pas pour pouvoir relayer
 // une progression pendant que ça tourne.
 //
@@ -44,9 +44,7 @@ export interface BuildHalfRequest {
   // `buildBuckets`), `SearchParams.combosOrderMode` n'avait AUCUN effet sur
   // le vrai chemin de production (Web Workers) : `buildBuckets` recevait
   // toujours `undefined` ici, retombant sur son défaut interne quel que
-  // soit ce que l'appelant avait demandé — trouvé par une revue de code
-  // externe, voir spec/outils/optimizer/archive/historique/historique-dimensionnement.md,
-  // « revue de code externe ».
+  // soit ce que l'appelant avait demandé.
   combosOrderMode?: 'potential' | 'relevance' | 'combined' | 'objective';
 }
 export interface BuildHalfProgressMessage {
@@ -101,7 +99,8 @@ self.onmessage = (e: MessageEvent<BuildHalfRequest>) => {
   // affichée restait bloquée juste avant 100 % (ex. 57/61) alors que le
   // calcul, LUI, allait bien jusqu'au bout (cette boucle ne saute JAMAIS une
   // étape de `gen.next()`, seulement des `postMessage` — voir
-  // spec/outils/optimizer/). Un cas réel confirmé en usage : la barre ne
+  // spec/outils/optimizer/interruption.md § Barre de progression). Un cas réel
+  // confirmé en usage : la barre ne
   // semblait jamais finir, laissant croire à tort que des demi-builds
   // manquaient au résultat.
   const finalProgress: BuildHalfProgressMessage = { type: 'progress', half, scanned: total, total };

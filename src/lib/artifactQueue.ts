@@ -81,16 +81,17 @@ export interface ResultatArtefacts {
    *
    * `false` = à ne PAS afficher. Un build affiché qui viole la condition
    * demandée est pire qu'un build manquant : l'utilisateur ne le vérifie pas.
-   * Voir spec/outils/optimizer/artefacts.md, §12.5.
+   * Voir spec/outils/optimizer/moteur/artefacts.md § Filtre final sur la
+   * vraie paire.
    *
-   * ⚠️ Depuis le lot 5b (implementation-relique), en mode `recherche` de la
+   * ⚠️ En mode `recherche` de la
    * relique, `false` signifie « aucun couple (paire, relique) faisable » :
    * minimums ET maximums, avec la relique réelle (`respecteConditionsAvecRelique`).
    */
   conforme: boolean;
   /**
    * La relique RETENUE pour ce build, résolue ENSEMBLE avec la paire
-   * (`resoudreEquipementDuBuild`, relicQueue.ts — lot 5b). Présente en mode
+   * (`resoudreEquipementDuBuild`, relicQueue.ts). Présente en mode
    * `recherche` seulement : hors de ce mode la relique portée est fixe
    * (`SearchParams.relic`), rien n'est résolu et le champ reste absent.
    * `stats` ci-dessus l'INCLUT : c'est elle qui classe, et c'est son `id`
@@ -121,7 +122,7 @@ export interface ResultatArtefacts {
  * C'est ce qui autorise à laisser un build passer devant dans l'ordre plutôt
  * que d'afficher une inversion visible entre le rang et le total.
  *
- * ⚠️ Lot 5b : en mode `recherche` de la relique, `r.stats` INCLUT la relique
+ * ⚠️ En mode `recherche` de la relique, `r.stats` INCLUT la relique
  * retenue (`ResultatArtefacts.relique`) — un candidat non résolu garde ses
  * stats SANS relique (score non exact, « en attente »). L'argument de
  * convergence tient : une principale en % ne fait jamais baisser PV, ATQ ni
@@ -145,7 +146,8 @@ export const K_BUILDS_OPTIMISES = 100;
 // au-delà des 100 premiers peut remonter très haut une fois résolu (sur le
 // vrai compte, en PV effectifs, les rangs exhaustifs 16, 17 et 19 venaient
 // des rangs de base 107 à 117). 300 réduit le manque, ne l'annule pas : le
-// top affiché reste une approximation (limites-connues.md).
+// top affiché reste une approximation (spec/outils/optimizer/limites-connues.md
+// § Équipement d'un build et diagnostics de l'écran).
 export const K_BUILDS_RECHERCHE_RELIQUE = 300;
 
 /**
@@ -350,7 +352,7 @@ export function signatureReglages(parts: {
   nbArtefacts: number;
   /**
    * L'empreinte du contexte relique de la recherche (`RelicContext.empreinte`,
-   * relicOptim.ts — lot 5b), `null` sans contexte. Elle est STABLE et
+   * relicOptim.ts), `null` sans contexte. Elle est STABLE et
    * SÉMANTIQUE : mode, pool éligible (`rid`, principale, upgrade, exclusive),
    * choix de principale, de type et seuil — un `rid` réimporté avec une autre
    * valeur la change. Elle vaut « signature complète » de la dimension
@@ -361,11 +363,11 @@ export function signatureReglages(parts: {
   empreinteRelique: string | null;
   /**
    * Les conditions ENTIÈRES (minimums ET maximums) que le résolveur consomme
-   * depuis le lot 5b (`respecteConditionsAvecRelique`, `resoudreEquipementDuBuild`)
+   * (`respecteConditionsAvecRelique`, `resoudreEquipementDuBuild`)
    * — jamais un sous-ensemble choisi à la main, même règle que `damageSetup`
    * (CLAUDE.md, « plusieurs constructeurs »). Sans ce champ, relancer avec le
    * même contexte et un autre maximum gardait un couple devenu infaisable en
-   * cache (bloquant 2, revue du lot 5b, `revue-diff-lot5b-2026-09-21.md`).
+   * cache.
    */
   requirement: Pick<BuildRequirement, 'minStats' | 'maxStats'>;
   /**

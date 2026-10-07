@@ -140,8 +140,9 @@ export function evaluateursArtefactsFiche(
   const brut = (arts: GearSet['artifacts']) => {
     const stats = statsAvec(arts);
     // Recalcul PAR PAIRE : sa principale peut franchir une tranche de Y.
-    // A.2 ter (2026-09-30) : seuls les points Bravoure/Éternité/Origine
-    // entrent dans 218–221. Conquête et Ténacité ne multiplient pas ce brut.
+    // Seuls les points Bravoure/Éternité/Origine entrent dans 218–221
+    // (spec/outils/degats-reels/valeurs-de-jeu-curees.md § Les valeurs de jeu
+    // — curées, avec leur source). Conquête et Ténacité ne multiplient pas ce brut.
     const apport = apportExclusive(gear.relic, stats, contexte.setup, propres, contexte.element);
     return degatsBrutsArtefactsParCoup(
       statsAvecApport(stats, apport), contexte.setup, propres, contexte.element,

@@ -2,13 +2,14 @@
 // `artifactOptim.ts`) pour quel régime — UNE seule définition, consommée par
 // les trois sites qui en construisaient une chacun (OptimizerSection.tsx ×2,
 // scripts/lib/recipeToSearchParams.ts ×1). Voir
-// spec/outils/optimizer/decisions/cadrage-score-artefacts-ehp.md pour le cadrage complet.
+// spec/outils/optimizer/moteur/artefacts.md § Régime de la paire.
 //
-// ⚠️ Volontairement SÉPARÉ de `artifactOptim.ts`, qui reste libre de toute
-// dépendance à `damage.ts`/`stats.ts` (spec/outils/optimizer/artefacts.md,
-// §6bis, « ce qui garde ce module testable sans monter un contexte de
-// dégâts »). `computeTotalDamage`/`pvEffectifs`/`statsParPaire` casseraient
-// cette frontière.
+// ⚠️ Volontairement SÉPARÉ de `artifactOptim.ts`, qui reste sans logique de
+// dégâts (sa seule dépendance vers `damage.ts` est le code
+// `CODE_AMPLI_VIT`) et se teste sans contexte de combat
+// (spec/outils/optimizer/moteur/optimiseur-artefacts.md § La double boucle).
+// `computeTotalDamage`/`pvEffectifs`/`statsParPaire` casseraient cette
+// frontière.
 
 import { ArtifactDetail, ElementKey, RelicDetail } from '../types';
 import { StatKey } from './effects';
@@ -26,7 +27,8 @@ export type RegimeArtefacts = 'aucun' | 'hp' | 'atk' | 'def' | 'ehp' | 'degats_r
  * ⚠️ Branche EXHAUSTIVE sur les valeurs réelles de `StatKey | Objective`, pas
  * un `else` qui absorberait un cas imprévu : `'aucun'` est le régime propre à
  * efficience/vitesse/TC/DCC/RES/PRE — celles où AUCUN artéfact n'entre dans
- * le score (voir §12.6 d'artefacts.md), pas un repli pour un oubli.
+ * le score (voir spec/outils/optimizer/moteur/artefacts.md § Régime de la
+ * paire), pas un repli pour un oubli.
  */
 export function regimeArtefacts(critere: StatKey | Objective): RegimeArtefacts {
   if (critere === 'degats_reels' || critere === 'ehp') return critere;
@@ -58,7 +60,8 @@ export function regimeEquipementDe(regime: RegimeArtefacts, contexteDegatsDispon
 export type DegatsContext = Omit<RealDamageContext, 'artefacts'>;
 
 /**
- * Le CANAL EXCLUSIVE (implementation-relique, lot 7 — B.7) : la relique
+ * Le CANAL EXCLUSIVE (spec/outils/optimizer/moteur/reliques.md § L'effet unique — score de la propriété
+ * exclusive) : la relique
  * qu'`evaluate` est en train d'essayer pour ce build, et le contexte dont son
  * assiette `Y` a besoin (leader skill, compétences d'invocateur).
  *
@@ -72,7 +75,7 @@ export type DegatsContext = Omit<RealDamageContext, 'artefacts'>;
  * `bestRelicForBuild`) et celui qui classe. Jamais un score de principale
  * auquel on ajouterait un score d'exclusive.
  *
- * Absent → apport neutre, comportement strictement d'avant le lot 7.
+ * Absent → apport neutre : aucune note d'effet unique.
  * Lu par les régimes `degats_reels` et `ehp` seulement : les régimes
  * `hp`/`atk`/`def` jugent la fiche (degats-et-aura 6bis-b9).
  */
@@ -263,7 +266,8 @@ export function evaluerPourRegime(
     return (arts) => statTotal(statsAvec(arts), regime);
   }
   if (regime === 'aucun') {
-    // Aucun artéfact n'entre dans ce score (§12.6 d'artefacts.md) — la somme
+    // Aucun artéfact n'entre dans ce score (voir
+    // spec/outils/optimizer/moteur/artefacts.md § Régime de la paire) — la somme
     // des principales sert seulement à ne pas rendre une paire arbitraire,
     // jamais à maximiser quoi que ce soit.
     return (arts) => arts.reduce((n, a) => n + a.main.value, 0);

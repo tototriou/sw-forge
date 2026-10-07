@@ -245,8 +245,8 @@ export const SET_BONUS: Record<string, { pieces: number; label: string }> = {
   determination: { pieces: 2, label: 'DEF alliés +8%' },
   enhance: { pieces: 2, label: 'PV alliés +8%' },
   // ⚠️ +8 points, comme le calcul (`pointsAuraResPre`, damage.ts) : valeur
-  // curée par l'utilisateur, cadrage degats-et-aura A.2 ter. Le libellé
-  // affichait +10 % jusqu'au lot 7a.
+  // curée (spec/outils/degats-reels/valeurs-de-jeu-curees.md § Les valeurs de
+  // jeu — curées, avec leur source). Le libellé reste celui du calcul.
   accuracy: { pieces: 2, label: 'Précision alliés +8%' },
   tolerance: { pieces: 2, label: 'Résistance alliés +8%' },
   seal: { pieces: 2, label: "Réduit les PV max de l'ennemi vaincu" },
@@ -601,15 +601,16 @@ export function formatRelicMain(e: EffectLine): string {
 }
 
 // Limite de poses simultanées d'une relique sur le compte (D3,
-// ../outils/optimizer/reliques.md § 7 — AFFICHÉE, jamais opposée). Valeur de
+// spec/outils/optimizer/moteur/reliques.md § Ce que le moteur lit d'une relique —
+// AFFICHÉE, jamais opposée). Valeur de
 // jeu susceptible de rebouger (elle a déjà changé une fois) : une seule
 // constante nommée, à son seul point d'usage (`RelicDetailBox`,
 // implementation-relique B.5c ter).
 export const RELIC_MAX_INSTANCES = 150;
 
 // Ligne de compteur affichée dans le détail d'une relique. Aucun libellé
-// relevé en jeu pour cette mécanique (reliques.md § 7 ne cite qu'un exemple
-// d'affichage, « 96 / 150 ») : phrase choisie par le lot, comme les textes
+// relevé en jeu pour cette mécanique (seul exemple d'affichage connu :
+// « 96 / 150 ») : phrase choisie ici, comme les textes
 // de refus (B.5c) et les libellés propres à l'écran (B.5c bis).
 export function formatRelicUsage(count: number): string {
   return `Équipée sur ${count} exemplaire${count > 1 ? 's' : ''} / ${RELIC_MAX_INSTANCES}`;

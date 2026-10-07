@@ -9,14 +9,14 @@
 //
 // ⚠️ **La principale d'une relique est un POURCENTAGE**, pas un plat comme un
 // artéfact : `stat = B + ceil(B × (R + L) / 100) + plats`
-// (spec/outils/optimizer/chantiers/implementation-relique.md § A.1). Elle
+// (spec/outils/optimizer/moteur/reliques.md § Contexte transporté, bornes relâchées, filtre exact). Elle
 // change donc la FAISABILITÉ des minimums, pas seulement le classement — d'où
 // les bornes par statistique ci-dessous, qui jouent le même rôle que
-// `artFlatMax`/`artFlatMin` pour les artéfacts (../invariants.md § Artéfacts).
+// `artFlatMax`/`artFlatMin` pour les artéfacts (spec/outils/optimizer/invariants.md
+// § Artéfacts).
 //
-// ⚠️ **Dominance STRUCTURELLE seulement** (D6) : sans formule chiffrée pour
-// les exclusives (D9, jusqu'au lot 7), on ne peut comparer deux reliques que
-// sur des cas où l'ordre est évident — jamais par un score inventé.
+// ⚠️ **Dominance STRUCTURELLE seulement** (D6) : on ne compare deux reliques
+// que sur des cas où l'ordre est évident (D9) — jamais par un score inventé.
 
 import { RelicDetail, RelicUnique } from '../types';
 import { RELIC_UNIQUE, StatKey } from './effects';
@@ -53,18 +53,18 @@ function statDePrincipale(choix: RelicMainChoice): RelicStat | undefined {
 export type RelicNature =
   | { sorte: 'degatsInfliges' } // Conquête (1,2,3)
   | { sorte: 'degatsReduits' } // Ténacité (4,5,6)
-  | { sorte: 'soins' } // Régénération (16) — jamais pertinente, reliques.md § 5.1
+  | { sorte: 'soins' } // Régénération (16) — jamais pertinente (spec/outils/optimizer/moteur/reliques.md § Pertinence et dominance — écrites, non appelées en production)
   | { sorte: 'buffStat'; stat: RelicStat }; // Bravoure→atk (7,8,9) · Éternité→def (10,11,12) · Origine→hp (13,14,15)
 
 /**
  * Le type a-t-il une formule numérique ? C'est ce qui décide de
- * `RelicDimensions.scorePartiel` : depuis le lot 7, les cinq groupes que le
- * relevé T4 couvre sont chiffrés (`relicExclusive.ts`), le score cesse donc
+ * `RelicDimensions.scorePartiel` : les cinq groupes que le relevé en jeu
+ * couvre sont chiffrés (`relicExclusive.ts`), le score cesse donc
  * d'être partiel là où ils sont les seuls pertinents.
  *
  * ⚠️ **Écrit ICI et pas dans `relicExclusive.ts`**, qui porte la formule :
  * celui-là importe `damage.ts`, et ce module doit rester libre de cette
- * dépendance (frontière du lot 3). Les deux ne peuvent donc pas se dériver
+ * dépendance (frontière du module). Les deux ne peuvent donc pas se dériver
  * l'un de l'autre — c'est `tests/relic-exclusive.test.ts` qui vérifie leur
  * accord sur les seize types, et qui tombera si l'un bouge sans l'autre.
  *
@@ -122,7 +122,7 @@ export function relicPctMaxByStat(eligibles: RelicDetail[]): Record<RelicStat, n
 // Le `Lmin` de D5 (rév. 7, CORR-2) : la PLUS PETITE principale éligible sur
 // la statistique FORCÉE, 0 sur les deux autres et si aucune principale n'est
 // forcée sur une statistique précise (`'libre'`/`'equipped'`) — c'est
-// l'appelant (lot 5a) qui en fait des points par `floor`, jamais ce module.
+// l'appelant qui en fait des points par `floor`, jamais ce module.
 export function relicPctMinByStat(eligibles: RelicDetail[], principaleForcee: RelicMainChoice): Record<RelicStat, number> {
   const min: Record<RelicStat, number> = { hp: 0, atk: 0, def: 0 };
   const stat = statDePrincipale(principaleForcee);
@@ -275,7 +275,7 @@ export interface RelicDimensions {
    * Vrai ssi au moins un type pertinent pour CE régime n'a pas de formule
    * numérique (`exclusiveChiffrable`).
    *
-   * ⚠️ Depuis le lot 7, les cinq groupes que le relevé T4 couvre sont
+   * ⚠️ Les cinq groupes que le relevé en jeu couvre sont
    * chiffrés — et les seuls types qui ne le sont pas (Régénération, un type
    * inconnu ajouté par le jeu) ne sont jamais pertinents. Ce drapeau vaut
    * donc `false` sur les quatre objectifs actuels. Il reste DÉRIVÉ et non
@@ -318,7 +318,8 @@ export function dimensionsRetenues(
     // Le scaling du sort (dimension directe) + Conquête, TOUJOURS pertinente
     // (elle augmente les dégâts infligés quel que soit le scaling) + le
     // groupe dont le buff correspond au scaling (Bravoure→atk, Éternité→def,
-    // Origine→hp) — reliques.md § 5.1.
+    // Origine→hp) — spec/outils/optimizer/moteur/reliques.md
+    // § Pertinence et dominance — écrites, non appelées en production.
     objectifStats = sort;
     typePertinent = (type) => {
       const nature = relicUniqueNature(type);
@@ -330,7 +331,8 @@ export function dimensionsRetenues(
   } else if (objectif === 'ehp') {
     // PV et DEF entrent toujours (elles nourrissent les PV effectifs) ; les
     // exclusives qui les augmentent, plus Ténacité (dégâts reçus réduits) —
-    // reliques.md § 5.1.
+    // spec/outils/optimizer/moteur/reliques.md
+    // § Pertinence et dominance — écrites, non appelées en production.
     objectifStats = ['hp', 'def'];
     typePertinent = (type) => {
       const nature = relicUniqueNature(type);

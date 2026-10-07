@@ -409,14 +409,15 @@ rappel `node scripts/spec-toc.mjs <fichier>`. Exception :
 absent laissent passer. Câblage dans `.claude/settings.json` (par machine, à
 recopier).
 
-Équivalent Codex : `scripts/hooks-codex-garde-fous.mjs`, autonome, actif
-dans ce dépôt avec ou sans chantier, et seulement depuis son installation.
-Codex lisant par le shell, il refuse `cat`, `type` ou `Get-Content` suivi du
-seul chemin d'un `spec/**.md` de plus de 300 lignes, en début de commande
-ou après `&&`, `||`, `;`. Il se pose dans le `hooks.json` personnel par
+Équivalent Codex : `scripts/hooks-codex-garde-fous.mjs`, actif dans ce dépôt
+avec ou sans chantier, seulement depuis son installation. Il refuse
+`cat`, `type` ou `Get-Content` suivi du seul chemin d'un `spec/**.md` de plus
+de 300 lignes, en début de commande ou après `&&`, `||`, `;`. Il se pose par
 `node scripts/installer-hooks.mjs --codex-hooks <hooks.json>` (entrée
 `PreToolUse` à lui, distincte de tout autre hook Codex personnel) ; une
-erreur interne ne bloque jamais l'outil.
+erreur interne ne bloque jamais l'outil. Il appelle les parseurs installés
+de `.claude/hooks/refuse-commit-m.mjs` et `refuse-sed-i.mjs` : messages Git
+en ligne, `node -e` sensible et `sed -i` sont refusés avec les mêmes limites.
 
 ### Refus du `pre-commit`
 
@@ -456,7 +457,7 @@ Trois objets distincts, et les deux premiers ne se confondent pas :
 
 | Objet | Où | Versionné ? |
 | --- | --- | --- |
-| Les **sources** (`.githooks/pre-commit`, `scripts/spec-lint.mjs`, `scripts/lib/spec-markdown.mjs`, `scripts/hooks-codex-garde-fous.mjs`) | dans le dépôt | ✅ relues en revue |
+| Les **sources** (`.githooks/pre-commit`, `scripts/spec-lint.mjs`, `scripts/lib/spec-markdown.mjs`, `scripts/hooks-codex-garde-fous.mjs`, les deux hooks de commande sous `.claude/hooks/`) | dans le dépôt | ✅ relues en revue |
 | **L'installation** | `<git commun>/forge/installation/` | ❌ propre à la machine |
 | Le **câblage** | `core.hooksPath` → `<installation>/hooks` | ❌ |
 

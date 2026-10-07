@@ -95,7 +95,11 @@ testé).
   puis ouvre la boîte « Sauvegarder la session sous » dans son dossier
   `sessions` (filtre `.json`, nom daté proposé, confirmation avant
   d'écraser) ; le fichier choisi devient la session en cours, l'ancien
-  n'est plus touché. Absent du site.
+  n'est plus touché. Absent du site. Un nom tapé sans `.json` le reçoit
+  (`avecExtension`) ; si ce fichier-là existe déjà, la boîte n'a rien vu
+  (sous Linux, elle n'ajoute pas l'extension du filtre) : une seconde
+  question, « « <nom>.json » existe déjà. », demande « Annuler » (le défaut)
+  ou « Remplacer » (`confirmationApresExtension`).
 - **Après l'écriture**, la notification « Session enregistrée · <nom>.json »
   (`useNotifier`). **Un échec** (dossier disparu, accès refusé, disque
   plein…) ouvre une modale « La session n'a pas été enregistrée » avec la

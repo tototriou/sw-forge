@@ -82,6 +82,14 @@ export function avecExtension(chemin: string): string {
   return /\.json$/i.test(chemin) ? chemin : `${chemin}.json`;
 }
 
+// ⚠️ La boîte « Sauvegarder sous » ne confirme l'écrasement que du nom TAPÉ.
+// Sous Linux, elle n'ajoute pas l'extension du filtre : « ancienne » ne
+// rencontre aucun conflit, puis `avecExtension` écrit `ancienne.json`. Ce cas
+// demande donc une seconde confirmation, sur le nom réellement écrit.
+export function confirmationApresExtension(rendu: string, existe: (chemin: string) => boolean): boolean {
+  return !/\.json$/i.test(rendu) && existe(avecExtension(rendu));
+}
+
 // Le message montré quand l'écriture échoue, selon le code d'erreur du
 // système.
 export function messageEchec(code: unknown): string {

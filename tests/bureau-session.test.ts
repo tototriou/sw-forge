@@ -11,6 +11,7 @@ import { join } from 'node:path';
 import {
   avecExtension,
   cheminLibre,
+  confirmationApresExtension,
   cheminSessionValide,
   dossierSessions,
   ecrireSansRisque,
@@ -74,6 +75,13 @@ export default async function testBureauSession() {
   egal(avecExtension(join(racine, 'sans-extension')), join(racine, 'sans-extension.json'), 'un nom sans extension prend .json');
   egal(avecExtension(session), session, 'un nom en .json ne change pas');
 
+  // La boîte n'a confirmé l'écrasement que du nom tapé : sans extension, le
+  // fichier réellement écrit peut exister sans qu'elle l'ait vu.
+  const existant = new Set([join(racine, 'ancienne.json')]);
+  const existe = (c: string) => existant.has(c);
+  ok(confirmationApresExtension(join(racine, 'ancienne'), existe), 'tapé sans extension, « ancienne.json » existe : confirmation demandée');
+  ok(!confirmationApresExtension(join(racine, 'ancienne.json'), existe), 'tapé avec l’extension : la boîte a déjà confirmé');
+  ok(!confirmationApresExtension(join(racine, 'neuve'), existe), 'tapé sans extension, rien n’existe : aucune confirmation');
   titre('bureau · session en cours — le message d’échec');
   ok(messageEchec('ENOENT').includes('Sauvegarder sous'), 'dossier disparu : « Sauvegarder sous… » est la sortie');
   ok(messageEchec('ENOSPC') === 'Le disque est plein.', 'disque plein');

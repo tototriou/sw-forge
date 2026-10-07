@@ -130,8 +130,8 @@ Distingué par l'identité STABLE du compte (`wizard_id`), pas la date
 d'export (qui change à chaque réexport) : réimporter son propre compte,
 même après des heures de jeu, garde les sélections ; importer le fichier
 d'un autre joueur les efface. Il faut les deux identités connues et
-différentes (`appliquerImport`, `App.tsx`) : au premier import de la
-session, ou sans `wizard_id` lisible, rien n'est effacé — mieux vaut une
+différentes (`appliquerImport`, `App.tsx`) : au premier import depuis le
+chargement de la page, ou sans `wizard_id` lisible, rien n'est effacé — mieux vaut une
 sélection peut-être périmée qu'une sélection valide perdue. Ce n'est pas
 `resetSearch`, qui part à chaque import, réexport compris.
 

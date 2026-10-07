@@ -287,6 +287,11 @@ Côté moteur :
   la dominance. Les `paires` d'un tel appel peuvent donc manquer la meilleure
   paire conforme quand une ligne verrouillée ne fait pas bouger le score ;
   l'écran n'en lit que `meilleurSansVerrous`.
+- Ne pas tester les verrous avant `evaluer` pour économiser l'évaluation des
+  paires qui les violent : `meilleurSansVerrous` se construit sur ces paires
+  mêmes, et le coût affiché tomberait à `null` ou serait sous-estimé sans
+  que rien n'échoue. La garde qui l'éviterait dédouble la boucle pour un
+  gain nul sans verrou posé, où `paireRespecteLignes` rend vrai aussitôt.
 
 ### Paire supposée et revérifications
 

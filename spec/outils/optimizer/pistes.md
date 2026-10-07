@@ -3,7 +3,7 @@
 **Statut :** ÉTAT ACTUEL — liste les pistes futures de l'Optimizer, chacune avec son constat, l'idée et ce qui la bloque
 **Lire si :** on envisage une amélioration du moteur, des artéfacts, des reliques ou de l'écran de l'Optimizer, avant de la proposer comme nouvelle
 **Ne pas lire si :** on cherche ce qui est fait, ou pourquoi une variante a été écartée : la spec du mécanisme le dit (README.md dit laquelle)
-**Voir aussi :** README.md, invariants.md, limites-connues.md
+**Voir aussi :** README.md, invariants.md, limites-connues.md, pistes-vitesse-et-verification.md
 
 Une piste est ce qui n'est pas fait. Chaque entrée donne le **constat** (ce
 que le code fait aujourd'hui, avec sa coordonnée), l'**idée** et ce qui la
@@ -14,6 +14,9 @@ est fait se lit dans la spec du mécanisme, que le
 une ligne « ne pas… parce que… », pour qu'on ne la réessaie pas sans sa
 raison. Celles du moteur de recherche des runes :
 [moteur/elagages.md § Variantes écartées ou gardées en réserve](moteur/elagages.md).
+Les pistes qui accéléreraient la recherche sans changer ce qu'elle cherche,
+et celles des tests, du harnais et des scripts de mesure :
+[pistes-vitesse-et-verification.md](pistes-vitesse-et-verification.md).
 
 ## Moteur de recherche des runes
 
@@ -76,6 +79,23 @@ raison. Celles du moteur de recherche des runes :
   se calculent sur le pool avant les verrous). À mesurer avant toute
   adoption (skill `algo-verify`).
 
+### Écarter les runes hors combo avant la dominance
+
+- **Constat** : quand le combo demandé coûte les six emplacements,
+  `filterSlot` écarte toute rune qui n'est ni d'un set demandé ni une
+  Intangible (`hasFreeSlots`, `src/lib/runeBuildOptim.ts`) : un élagage
+  sûr, mais au dernier étage de `prepareSearch`, après
+  `mainStatFilteredBySlot`, `pruneDominated` et `eliminateInfeasible`.
+  `pruneDominated` compare chaque paire de runes d'un emplacement, et y
+  renonce au-delà de `DOMINANCE_MAX_POOL` (2 000 runes).
+- **Idée** : appliquer cette coupe en tête. La dominance coûterait moins,
+  et un emplacement repassé sous le seuil la retrouverait : un pool mieux
+  élagué pour toute la suite, pas seulement plus vite.
+- **Bloque** : jamais mesuré, et sans effet dès qu'un emplacement reste
+  libre. `contexteDominance` et `eliminateInfeasible` se calculent sur le
+  pool de l'étage, que la coupe réduirait : vérifier contre un oracle que
+  rien n'en devient faux (skill `algo-verify`).
+
 ### Partition des moitiés selon leur coût
 
 - **Constat** : les moitiés sont fixes, emplacements 1 à 3 puis 4 à 6
@@ -95,18 +115,6 @@ raison. Celles du moteur de recherche des runes :
 - **Bloque** : jamais construit ni mesuré. Avant d'attribuer une cause au
   débit, un compteur d'énumération dans la boucle interne de
   `buildBuckets`, sur une question falsifiable.
-
-### Ordre des emplacements dans une moitié
-
-- **Constat** : `buildBuckets` parcourt les trois emplacements d'une moitié
-  dans l'ordre de `slotIdxs`, quel qu'il soit ; la faisabilité de set
-  (`stillFeasible`) coupe une branche dès qu'elle ne peut plus atteindre le
-  compte de pièces demandé
-  ([moteur/elagages.md § Faisabilité de set, groupage par compte et jokers](moteur/elagages.md)).
-- **Idée** : mettre en position extérieure l'emplacement le plus contraint,
-  pour couper les branches mortes avant d'avoir parcouru les deux autres.
-  Pur réordonnancement : la justesse ne change pas.
-- **Bloque** : jamais construit ni mesuré.
 
 ### Repli de `slotFilterCap` quand le paramètre est omis
 
@@ -130,32 +138,22 @@ raison. Celles du moteur de recherche des runes :
   paramètre, et rend leurs repères historiques incomparables ; le choix
   entre les deux options reste à faire.
 
-### Équilibrage de l'appariement parallèle par productivité
+### Le joker au pré-filtrage
 
-- **Constat** : `partitionBucketsALPT` équilibre les tranches par taille
-  (`combos.length`), jamais par productivité
-  ([moteur/parallelisation.md § Répartition et partage du plafond](moteur/parallelisation.md)).
-  Sous troncature, une tranche peu productive et une tranche qui bute sur
-  sa part du plafond coexistent. Aucune perte n'est constatée, ni sur un
-  pool synthétique ni sur les cas connus, depuis la coupe des moitiés sans
-  pièce d'un set de plus de 3 pièces
-  ([moteur/elagages.md § Faisabilité de set, groupage par compte et jokers](moteur/elagages.md)).
-- **Idée** : équilibrer par productivité attendue, ou redistribuer les
-  parts du plafond en cours de route.
-- **Bloque** : aucun cas réel ne montre de perte : à rouvrir sur un tel cas.
-  Toute reprise garde une part par fil bornée : un fil qui recevrait sans
-  limite le plafond entier rouvrirait le compromis mémoire et temps de
-  `MAX_COLLECTED`, et le nombre de candidats s'affiche à l'écran.
-
-### Recherche à beaucoup de conditions simultanées
-
-- **Constat** : sur un cas réel à sept conditions simultanées, la seule
-  construction des moitiés dépasse le filet de temps. Ce cas est absent
-  exprès de la batterie de mesure (`scripts/lib/perfShared.ts`, commentaire
-  qui précède `CASES`). Rien dans le moteur ne le traite.
-- **Idée** : localiser où la construction passe son temps à ce nombre de
-  conditions (harnais, arrêt après les demi-builds), puis la borner.
-- **Bloque** : non remesuré sur le code actuel, et jamais retouché.
+- **Constat** : `filterSlot` (`src/lib/runeBuildOptim.ts`) classe une
+  Intangible dans la tranche des sets demandés par `relevance`, sans valeur
+  pour le set qu'elle complète, et ne l'admet jamais dans la tranche hors
+  set (`offSet`) ; l'ordre des compartiments ne la crédite pas non plus
+  ([limites-connues.md § Recherche des runes — le meilleur trouvé, pas l'optimum prouvé](limites-connues.md)).
+  Une Intangible aux stats faibles peut donc être écartée avant la
+  rétention, qui n'est pas en cause (écart au classement :
+  [moteur/elagages.md § Variantes écartées ou gardées en réserve](moteur/elagages.md)).
+- **Idée** : lui réserver une place au pré-filtrage, ou lui créditer ce
+  qu'elle complète quand un set demandé ne se complète pas sans elle.
+- **Bloque** : aucune perte relevée sur un cas réel ; ce qu'elle complète
+  dépend des autres emplacements, inconnus à l'étage d'un emplacement. Un oracle
+  sur un pool où seule une Intangible complète le set (skill `algo-verify`)
+  dirait si la perte existe.
 
 ### Optimalité prouvée : Branch & Bound sur les paires, statuts du résultat
 
@@ -174,14 +172,17 @@ raison. Celles du moteur de recherche des runes :
   de lever le caractère heuristique du pré-filtrage, un chantier bien plus
   large.
 
-### WebAssembly
+### Ce que garde une recherche arrêtée par le plafond de candidats
 
-- **Constat** : le moteur calcule sur des objets JavaScript, sans tableaux
-  typés.
-- **Idée** : porter la boucle la plus chaude en WebAssembly.
-- **Bloque** : suppose d'abord des tableaux typés à disposition fixe, qui
-  n'existent pas ; le chantier le plus lourd et le plus risqué, jamais
-  commencé.
+- **Constat** : `MAX_COLLECTED` atteint, la recherche s'arrête, et les
+  candidats gardés sont les premiers collectés dans l'ordre d'exploration
+  (compartiments par potentiel, `combosOrderMode`), pas forcément les meilleurs
+  ([limites-connues.md § Recherche des runes — le meilleur trouvé, pas l'optimum prouvé](limites-connues.md)).
+  Le joueur ne lit que le haut de ce classement.
+- **Idée** : un ordre de collecte qui fasse arriver les meilleurs d'abord :
+  une piste de pertinence, pas de vitesse.
+- **Bloque** : jamais explorée. Se juge sur la qualité sous saturation,
+  jamais sur les comptes ([moteur/artefacts.md § Mesurer un changement des bornes](moteur/artefacts.md)).
 
 ### GPU comme architecture de remplacement
 
@@ -395,6 +396,43 @@ raison. Celles du moteur de recherche des runes :
 - **Bloque** : une décision de produit : c'est un mode d'affichage, pas un
   paramètre de recherche. S'il y entre, la checklist du skill
   `optimizer-field-propagation` s'applique.
+
+### Le cran des artéfacts au choix d'un membre de liste
+
+- **Constat** : choisir dans le bestiaire une autre espèce remet le cran
+  des artéfacts à « Dégâts supplémentaires » (`pickSpecies`) ; choisir un
+  membre de liste d'une autre espèce (`choisirExemplaire`) le laisse tel
+  quel. Sur « Dégâts réels », la légende nomme alors le sort par défaut du
+  nouveau monstre : le repli est visible, pas empêché
+  ([ecran/recherche-du-monstre.md § Recherche du monstre à optimiser](ecran/recherche-du-monstre.md)).
+- **Idée** : remettre aussi le cran au défaut dans `choisirExemplaire`.
+- **Bloque** : une décision de produit.
+
+### Diagnostics de l'écran avec les paramètres de la recherche
+
+- **Constat** : l'écran appelle `diagnoseFeasibility` et
+  `rankBlockingConditions` sans `relicContext`, sans objectif et sans
+  `statsLignesArtefactsEquipables` : en mode relique « recherche », la
+  preuve d'impossibilité porte sur la relique portée
+  ([moteur/diagnostics.md § Paramètres reçus par les diagnostics de l'écran](moteur/diagnostics.md)).
+  Le harnais leur passe les paramètres complets.
+- **Idée** : leur passer les `SearchParams` de la recherche, comme le
+  harnais.
+- **Bloque** : un changement de code, jamais fait.
+
+### Fiche du quasi-succès
+
+- **Constat** : `NearMiss.stats` est la fiche calculée avec la paire
+  figée, sans relique en mode « recherche », alors que les écarts viennent
+  de l'apport essayé
+  ([moteur/diagnostics.md § Ce que le quasi-succès retient](moteur/diagnostics.md)) ;
+  l'écran en tire les « PV effectifs » qu'il affiche quand c'est
+  l'objectif.
+- **Idée** : une fiche qui tienne compte de l'apport essayé.
+- **Bloque** : un apport essayé n'est qu'une valeur par stat
+  (`artPossibles`), sans la paire qui le produit ; la fiche demanderait de
+  garder cette paire, et, en mode « recherche », la relique. Jamais
+  construit.
 
 ### Viser un ordre de tours plutôt qu'une VIT runée
 

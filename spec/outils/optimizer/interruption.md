@@ -56,7 +56,11 @@ accélérer ou ralentir en cours de route plutôt que progresser régulièrement
 
 ⚠️ Les messages du Worker sont **throttlés au temps écoulé** (au plus un
 tous les 150 ms, `PROGRESS_THROTTLE_MS`), pour ne jamais inonder le fil
-principal quand l'élagage va vite. Chaque message porte `explored`, `found`
+principal quand l'élagage va vite. Ne pas allonger ce délai pour accélérer
+une grosse recherche : il ne ralentit rien, il borne le nombre de
+`postMessage`, dont chacun clone les nouveaux candidats ; plus long, il
+n'en économiserait que quelques-uns par seconde, pour une barre moins
+vivante. Chaque message porte `explored`, `found`
 et un `pct` approximatif : le plus avancé des trois budgets qui peuvent
 chacun terminer la recherche — et les seuls qui existent (pas de plafond
 de nœuds : une borne qui grandit en cours de route ferait RECULER la

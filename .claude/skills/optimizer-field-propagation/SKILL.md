@@ -47,7 +47,7 @@ Producteurs en place, chacun appelé de plusieurs côtés :
 | stats des lignes d'artéfacts équipables | `statsLignesArtefactsEquipables` (artifactFiche.ts) | écran (`handleSearch`), CLI (`resolveStatsLignesArtefacts`) |
 | conditions avec auras | `avecAurasConditions` (runeBuildOptim.ts) | écran (`requirementAvecAuras`), CLI (`recipeToSearchParams`) |
 | profil de dégâts des artéfacts | `artifactDamageProfile` (damage.ts), depuis `ARTIFACT_DAMAGE_NEUTRE` | seul constructeur de `ArtifactDamageProfile` ; écran, CLI et moteur l'appellent |
-| recette lue d'un fichier | `parseOptimizerRecipe` (optimizerRecipe.ts) | écran (`importRecipe`), scripts (`chargerRecette`) |
+| recette lue d'un fichier | `parseOptimizerRecipe` (optimizerRecipe.ts) | écran (`importRecipe`), scripts (`chargerRecette`, scripts de diagnostic) |
 | recette et export de compte vers `SearchParams`, côté scripts | `chargerRecette` (scripts/lib/chargerRecette.ts) | `optimizer-search.ts`, harnais (diagnosticConfig.ts), oracle des reliques (relicOracle.ts) |
 
 Les runes d'un build ont un producteur pour les deux résolutions de l'écran,
@@ -88,6 +88,9 @@ de ces emplacements, coché explicitement, pas seulement « ça compile » :
       chargement conditionnel ou un avertissement de fidélité
       (`avertissements`). `scripts/lib/loadMonster.ts` seulement si le champ
       exige une donnée qui n'était pas déjà chargée.
+- [ ] **Scripts de diagnostic qui lisent une recette sans `chargerRecette`**
+      (`grep -ln parseOptimizerRecipe scripts/`) — chacun refait à la main
+      une partie de sa séquence, replis compris : autant de constructeurs.
 - [ ] **`scripts/optimizer-search.ts`** — la ligne de résumé en tête de
       sortie mentionne le champ s'il change un comportement visible ; toute
       logique qui dépendait de l'ANCIEN champ est mise à jour, pas
@@ -161,7 +164,8 @@ champ (`undefined`).
   setExcludeUsedScope(recipe.excludeUsedScope ?? 'box'); // seul périmètre que l'ancien champ connaissait
   ```
   Deux replis vivent encore hors du parseur, chacun dans son lecteur :
-  l'objectif retiré (`importRecipe` et `chargerRecette`) et `exploreAll`
+  l'objectif retiré (`importRecipe`, `chargerRecette` et
+  `optimizer-search-analyze.ts`, chacun sa copie) et `exploreAll`
   (`importRecipe` seulement). Un nouveau repli va dans le parseur.
 
 ## La checklist — documentation

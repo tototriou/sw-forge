@@ -47,7 +47,7 @@ portée de la seule phase de zone, sans règle qui relie ces champs aux
 groupes. Pour Blade Surge, l’empreinte (`0.5*{ATK}`, `coups: 2`,
 `aoe: false`) coïncide avec le premier groupe.
 
-**Couverture, en trois unités :**
+**Couverture, en deux unités :**
 
 - **8 identifiants** : `10601`, `10602`, `10603`, `10604`, `10605`, `10616`,
   `10618`, `10620` ;
@@ -56,9 +56,7 @@ groupes. Pour Blade Surge, l’empreinte (`0.5*{ATK}`, `coups: 2`,
   Lupinus `19813`, Iris `19814`, Lanett `19815` ; Imperfect Magic Knight vent
   `19823`. Les Magic Knights non éveillés ne sont pas sélectionnables dans
   l’Optimizer : `10601` et `10605`, portés par eux seuls, ne sont couverts que
-  par la table et le test ;
-- **5 amorces**, une par identifiant : `10602`,
-  `10604`, `10616`, `10618`, `10620`.
+  par la table et le test.
 
 Cinq candidats écartés (`11015`, `18314`, `23507`, `23508`, `23510`)
 restent hors table, comme les sorts voisins de même catégorie, d’une autre

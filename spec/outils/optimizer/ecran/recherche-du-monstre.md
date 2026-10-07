@@ -25,9 +25,10 @@
    [shared/librairie-ui.md](../../../shared/librairie-ui.md)), comportement commun
    à TOUS les sélecteurs de l'app. **Une puce grisée** signale que l'espèce
    choisie n'a aucun exemplaire dans cette source (`options[i].disabled` ;
-   aucune source : tout le contrôle, `allSourcesEmpty`). Un changement
-   d'espèce appelle `speciesCandidatesBySource` lui-même, jamais par un
-   `useMemo` en retard d'un rendu. **Une puce dit le nombre
+   aucune source : tout le contrôle, `allSourcesEmpty`). La recherche du
+   bestiaire et l'import de recette appellent `speciesCandidatesBySource`
+   eux-mêmes, jamais par un `useMemo` en retard d'un rendu ; un membre de
+   la zone C porte déjà son exemplaire. **Une puce dit le nombre
    dès deux exemplaires** : `{source} · {n}` (« Box · 2 »), même règle pour les
    quatre sources ; à zéro ou un exemplaire, la puce garde son libellé.
    C'est le seul signe qu'un clic sur la puce, même déjà allumée, ouvre la

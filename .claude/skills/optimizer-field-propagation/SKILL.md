@@ -45,7 +45,7 @@ Producteurs en place, chacun appelé de plusieurs côtés :
 | entrée de résolution d'un build | `entreeResolutionDuBuild` (relicQueue.ts) | écran (`resoudreEquipement`), CLI (`resoudreEquipementCli`), différentiel des reliques (`entreeResolution`), Worker de résolution (`CorpsResolution`, resolutionBody.ts) |
 | options du classement | `optionsDeClassement` (runeBuildOptim.ts) | écran, CLI (classementCli.ts), harnais (diagnosticHarness.ts) |
 | stats des lignes d'artéfacts équipables | `statsLignesArtefactsEquipables` (artifactFiche.ts) | écran (`handleSearch`), CLI (`resolveStatsLignesArtefacts`) |
-| conditions avec auras | `avecAurasConditions` (runeBuildOptim.ts) | écran (`requirementAvecAuras`), CLI (`recipeToSearchParams`) |
+| conditions avec auras | `avecAurasConditions` (runeBuildOptim.ts) | écran (`requirementAvecAuras`), CLI (`recipeToSearchParams`), parité du harnais (`diagnostic-harness-parite.ts`, avec des arguments figés : `DEFAULT_DAMAGE_SETUP`, `true`) |
 | profil de dégâts des artéfacts | `artifactDamageProfile` (damage.ts), depuis `ARTIFACT_DAMAGE_NEUTRE` | seul constructeur de `ArtifactDamageProfile` ; écran, CLI et moteur l'appellent |
 | recette lue d'un fichier | `parseOptimizerRecipe` (optimizerRecipe.ts) | écran (`importRecipe`), scripts (`chargerRecette`, scripts de diagnostic) |
 | recette et export de compte vers `SearchParams`, côté scripts | `chargerRecette` (scripts/lib/chargerRecette.ts) | `optimizer-search.ts`, harnais (diagnosticConfig.ts), oracle des reliques (relicOracle.ts) |

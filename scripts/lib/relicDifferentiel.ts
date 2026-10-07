@@ -11,11 +11,12 @@
 //
 // ⚠️ Ce module ne LANCE aucune recherche de lui-même (hors `classerPerte`,
 // qui rejoue UNE recherche tracée sur le build perdu, et `saturationDe`, qui
-// reconstruit les deux moitiés sans appariement) : l'orchestrateur de B.6
-// (`scripts/relic-differentiel.ts`, un processus par recherche) et le test
+// reconstruit les deux moitiés sans appariement) : l'orchestrateur du
+// différentiel de reliques (`scripts/relic-differentiel.ts`, un processus par
+// recherche) et le test
 // (tout dans un processus, fixtures) décident où et quand chercher.
 //
-// ⚠️ **Le domaine comparé est la seule dimension relique** (B.6 amendé) : la
+// ⚠️ **Le domaine comparé est la seule dimension relique** : la
 // paire d'artéfacts de RÉFÉRENCE est `params.artifacts` — celle que l'oracle
 // note (`candidatAvecRelique`) —, figée côté A par `paireFixe` (choix
 // `equipped` × 2, `equipes` = cette paire, inventaire vide, verrous
@@ -62,16 +63,16 @@ import { drain } from './drain';
 
 export interface ReglagesDifferentiel {
   // Le critère effectif : `adapterAuTri ? sortBy : objective` — le régime en
-  // découle par `regimeArtefacts`, le même pour la paire et la relique (D7).
+  // découle par `regimeArtefacts`, le même pour la paire et la relique.
   critere: StatKey | Objective;
   // Le contexte de dégâts SANS son profil d'artéfacts (`evaluerPourRegime`
   // recalcule celui de chaque paire) — DÉRIVÉ de `realDamage`, jamais un
-  // second objet (revue externe de l'outil F, § 4).
+  // second objet.
   degats?: Omit<RealDamageContext, 'artefacts'> | null;
   porteur: PorteurArtefact;
   inventaireArtefacts?: ArtifactDetail[];
   /**
-   * B.6 : la paire de référence figée côté A — `equipped` × 2, `equipes` =
+   * La paire de référence figée côté A — `equipped` × 2, `equipes` =
    * cette paire, inventaire vide. Absente (tests) : `libre` sur un
    * inventaire vide, la paire vide.
    */
@@ -108,7 +109,7 @@ export function runesDe(p: SearchParams, c: BuildCandidate): RuneDetail[] {
   return c.runeIds.map((id) => byId.get(id)!).filter(Boolean);
 }
 
-// ⚠️ B.5b bis, bloquant 1 : le même calcul que `artifactParams`
+// ⚠️ Le même calcul que `artifactParams`
 // (OptimizerSection.tsx) — les stats sous MAXIMUM ACTIF, filtrées aux
 // entrées réellement posées (> 0).
 export function maxStatsActifsDe(p: SearchParams): StatKey[] {
@@ -239,7 +240,7 @@ export function saturationDe(p: SearchParams, trace: TraceCandidat, tronque: boo
  * rejouée) : rejeté par un prédicat de faisabilité → faux négatif ; évincé
  * d'une structure bornée (`filterSlot`, tranches) → dilution ; budget →
  * tronqué ; rien d'observé → « non observable » (nommé, jamais une cause
- * fabriquée — revue externe de l'outil F, § 2).
+ * fabriquée).
  */
 export function classerPerteParTrace(t: TraceCandidat, runeIds: number[]): { classe: ClasseDePerte; detail: string } {
   const feas = t.preparation.find((e) => e.etage === 'feasibility')?.presentes ?? [];
@@ -375,15 +376,16 @@ export interface ResultatDifferentiel {
   // faisable : un faux négatif de la RÉSOLUTION (classé sans trace).
   rejetesParResolution: string[];
   // Les candidats de l'oracle qui ne respectent PAS les conditions avec la
-  // paire de référence (bornes d'artéfacts plus larges que la paire — revue
-  // externe de l'outil F, § 3) : contrôlé, rapporté.
+  // paire de référence (bornes d'artéfacts plus larges que la paire) :
+  // contrôlé, rapporté.
   oracleNonConformes: string[];
   paireFixeViolee: string[];
   conditionsVioleesA: string[];
   top20: TopK;
   sature: Saturation | null;
   // L'optimum de l'oracle perdu : classé par la trace (fournie par l'appelant
-  // — le run A la porte en B.6 ; les tests rejouent une recherche tracée).
+  // — le run A la porte dans le différentiel de reliques ; les tests rejouent
+  // une recherche tracée).
   perteOptimum: PerteClassee | null;
 }
 

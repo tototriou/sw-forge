@@ -2,7 +2,7 @@
 // « Deux sources : une recette ou un pool synthétique »).
 //
 // ⚠️ **Un profil n'est PAS « la version rapide d'un cas réel ».** C'est la
-// seule configuration où l'oracle du différentiel (11a, §5.2 bis) est
+// seule configuration où l'oracle du différentiel est
 // comparable du tout : sur un cas réel la recherche tronque, et elle tronque
 // PAR LE TEMPS — or l'instant de coupe varie de 3,65 % à 32 % d'un run à
 // l'autre, ce qui rend NON_COMPARABLES le verdict, la population, le
@@ -11,7 +11,7 @@
 // ne servirait à rien.
 //
 // ⚠️ **Construits À CÔTÉ des variantes de `randomPool` qui ne sont pas
-// migrées, jamais en les migrant** (exigence n° 6, piège du §1.3) : migrer
+// migrées, jamais en les migrant** : migrer
 // changerait leur séquence de tirage, donc le pool qu'elles mesurent — et
 // « le point dur n'était pas l'extraction mais la PREUVE d'équivalence ».
 // Ces profils n'en touchent aucune : ils passent par le générateur PARTAGÉ
@@ -67,7 +67,7 @@
 //   fige, et ce que `tests/diagnostic-profils.test.ts` relit.
 //
 // ⚠️ Un `maxCollected` explicite est un OVERRIDE, donc un run MARQUÉ
-// « DIVERGE DE LA PROD » (§4.4 règle 3). C'est voulu et assumé : 11a le
+// « DIVERGE DE LA PROD ». C'est voulu et assumé : le différentiel le
 // demande nommément, et la marque voyage avec le résultat.
 
 import {
@@ -85,7 +85,7 @@ type SourceSynthetique = Extract<SourceHarnais, { type: 'synthetique' }>;
  * Ce qu'un profil PROMET, et que le test relit à chaque exécution.
  *
  * ⚠️ **Chacune de ces valeurs a été MESURÉE, aucune n'est affirmée.** C'est
- * la règle du chantier : un profil dont une seule de ces grandeurs serait
+ * la règle du harnais : un profil dont une seule de ces grandeurs serait
  * supposée n'est pas livré. Elles jouent deux rôles distincts — documenter
  * ce que le profil fait, et servir d'alarme le jour où un changement du
  * moteur les déplace en silence.
@@ -152,9 +152,9 @@ export interface ProfilSynthetique {
    * divergence, ce qui n'est pas la même chose.
    *
    * ⚠️ Un axe absent d'ici n'est pas « insensible » : il est **non mesuré**.
-   * La distinction est celle de `NON_OBSERVABLE` au §5.1, et elle vaut d'être
+   * La distinction est celle de `NON_OBSERVABLE` du verdict, et elle vaut d'être
    * tenue — remplacer « je n'ai pas mesuré » par « il ne se passe rien »
-   * serait exactement l'erreur que tout ce chantier combat.
+   * serait exactement l'erreur que tout ce harnais combat.
    */
   axesSensibles: (keyof import('./diagnosticTypes').OverridesHarnais)[];
   /**
@@ -238,7 +238,7 @@ export const PROFILS: ProfilSynthetique[] = [
     // 11c, pas par prudence. Le bras `slotFilterCap 40` de la calibration 11b
     // rendait 6 747 981 paires au lieu de 6 752 131, ce qui ressemblait à un
     // effet propre du pré-filtrage : c'était la CASCADE (`bucketCap` dérivé
-    // tombant de 6000 à 3000, piège A du §4.3). À `bucketCap` FIGÉ des deux
+    // tombant de 6000 à 3000). À `bucketCap` FIGÉ des deux
     // côtés, `slotFilterCap` 80 → 40 laisse l'oracle IDENTIQUE élément par
     // élément, `explored` compris.
     axesSensibles: ['bucketCap'],
@@ -298,7 +298,7 @@ export const NOMS_PROFILS = PROFILS.map((p) => p.nom);
 
 /**
  * ⚠️ Un nom inconnu REFUSE en listant ce qui existe — jamais un repli
- * silencieux sur le premier profil (§4.4 règle 4, qui vaut aussi pour la
+ * silencieux sur le premier profil (règle qui vaut aussi pour la
  * ligne de commande).
  */
 export function trouverProfil(nom: string): ProfilSynthetique {

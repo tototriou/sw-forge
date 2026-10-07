@@ -56,7 +56,7 @@ import {
  * ⚠️ **Rendus INCONDITIONNELLEMENT**, contrairement à leur ancienne place. Les
  * vignettes n'apparaissaient que si la formule du sort choisi lisait la
  * statistique (`utilise('ATK')`…) — la bonne question tant qu'elles
- * décrivaient un coup. Elle ne l'est plus : un buff change les statistiques du
+ * décrivaient un coup. Ce n'est pas la bonne question : un buff change les statistiques du
  * monstre, donc les dégâts bruts des artéfacts, quel que soit le sort et même
  * sans sort du tout.
  */

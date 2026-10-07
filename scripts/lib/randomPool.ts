@@ -3,16 +3,14 @@
 // 14 fichiers (5 tests + 9 scripts) : même corps au caractère près dans 8
 // d'entre eux, seule la liste des sets changeait.
 //
-// ⚠️ **Décompte CORRIGÉ le 2026-09-08** (compté, pas recopié) : l'en-tête
-// annonçait 13 fichiers et « cinq variantes non migrées ». Il y en a **six**,
-// la sixième étant `tests/rune-optim-onstage.test.ts` — absent de la liste
-// d'origine. ⚠️ Ce n'est PAS une sixième variante biaisée : son générateur
-// est ÉQUIVALENT à celui-ci, et c'est prouvé — `mulberry32` et `randomRune`
+// ⚠️ **`tests/rune-optim-onstage.test.ts` est une copie oubliée à la
+// consolidation**, pas une variante biaisée : son générateur est ÉQUIVALENT à
+// celui-ci, et c'est prouvé — `mulberry32` et `randomRune`
 // ont un corps identique, `randomPool` ne diffère que par le passage
 // explicite de `setKeys` (la copie s'appuie sur le défaut), et son
-// `SET_KEYS` vaut `SETS_JOKER` dans le MÊME ORDRE. C'est une copie oubliée à
-// la consolidation, migrable sans changer son tirage — contrairement aux
-// cinq ci-dessous, dont le biais est le sujet même de ce qu'elles mesurent.
+// `SET_KEYS` vaut `SETS_JOKER` dans le MÊME ORDRE. Elle est migrable sans
+// changer son tirage — contrairement aux quatre variantes ci-dessous, dont
+// le biais est le sujet même de ce qu'elles mesurent.
 //
 // ⚠️ **La séquence de tirage est un CONTRAT, pas un détail
 // d'implémentation.** Chaque appel à `rng()` se fait dans un ordre précis
@@ -41,14 +39,10 @@
 // `stress-tranche-weighting-attainable-diag.ts` (principales FORCÉES par
 // emplacement). Leur biais est le sujet même de ce qu'elles mesurent.
 //
-// ⚠️ **CINQ auparavant — `stress-tranche-weighting-diag.ts` a été SUPPRIMÉ le
-// 2026-09-09** (§5.5 bis des extensions). Sa variante n'était pas un biais
-// assumé mais une ERREUR : elle tirait au hasard les principales des
-// emplacements 1/3/5, alors que le jeu impose ATQ+ en 1, DEF+ en 3 et PV+ en
-// 5 — son pool ne pouvait donc pas exister en jeu. Son successeur
-// `attainable` corrige exactement ça et porte les mêmes grandeurs. ⚠️ Le
-// compte est repassé de cinq à quatre : ne pas le relire comme une variante
-// oubliée à retrouver.
+// ⚠️ **Tirer au hasard les principales des emplacements 1/3/5 serait une
+// ERREUR**, pas un biais assumé : le jeu impose ATQ+ en 1, DEF+ en 3 et PV+
+// en 5, un tel pool ne pourrait pas exister en jeu.
+// `stress-tranche-weighting-attainable-diag.ts` impose ces principales.
 
 import { RuneDetail, EffectLine } from '../../src/types';
 

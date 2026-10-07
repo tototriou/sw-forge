@@ -1,6 +1,6 @@
 // PARITÉ — le harnais de diagnostic contre les 6 scripts qu'il remplace.
 //
-// C'est le niveau 1 de la validation à trois niveaux du cadrage
+// C'est le niveau 1 de la validation à trois niveaux
 // (spec/outils/optimizer/harnais.md, « Validation du harnais ») : « mêmes nombres que les
 // 6 scripts sur leurs cas, ÉCARTS ATTENDUS DOCUMENTÉS là où l'ancien script
 // était faux ».
@@ -16,8 +16,10 @@
 //     `guaranteedMin` ni `artFlatMin`, et borne l'apport d'artéfact à la
 //     paire FIGÉE du monstre au lieu de ce que l'inventaire peut donner.
 //     Ses bornes sont donc plus PESSIMISTES : elle élimine des runes qui
-//     peuvent en réalité entrer dans un build valide. C'est exactement la
-//     dette du §12.15 d'artefacts.md.
+//     peuvent en réalité entrer dans un build valide. C'est l'écart entre
+//     une borne sur la paire figée et une borne sur ce que l'inventaire peut
+//     donner (spec/outils/optimizer/moteur/artefacts.md, « Bornes d'apport
+//     pendant la recherche »).
 //
 // ⚠️ **La reconstruction ci-dessous est une COPIE LITTÉRALE de l'ancien
 // code** (`monster-search-pipeline-diag.ts`), y compris son `totalOf` maison
@@ -140,7 +142,7 @@ async function comparerCas(index: number): Promise<boolean> {
 
   // Le harnais passe par une RECETTE — la source de vérité de l'écran. Elle
   // est fabriquée par `buildOptimizerRecipe`, donc réimportable telle quelle
-  // dans l'interface (§4.1 du cadrage).
+  // dans l'interface.
   // ⚠️ Le vrai `com2usId` du monstre chargé, pas un numéro de remplissage :
   // sinon `chargerRecette` avertit à chaque cas d'un désaccord qui n'existe
   // pas, et le bruit finirait par masquer un vrai désaccord.

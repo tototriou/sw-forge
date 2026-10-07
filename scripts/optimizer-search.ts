@@ -3,8 +3,8 @@
 // src/lib/optimizerRecipe.ts), sur un export de compte réel — sans jamais
 // retranscrire les réglages à la main. Ferme la boucle ouverte par
 // l'investigation du cas Sonia : la recette vient de l'écran, pas d'une
-// reconstruction manuelle sujette aux mêmes erreurs de fidélité que celles
-// rencontrées cette session-là (voir le skill algo-verify).
+// reconstruction manuelle sujette à des erreurs de fidélité (voir le skill
+// algo-verify).
 //
 // Usage : optimizer-search.ts <export.json> <recipe.json> [--rta] [--siege=<deckId>[:defense]] [--resoudre-tout]
 //   --rta   : charge le monstre depuis son preset RTA (favoris/runé RTA) au
@@ -413,7 +413,7 @@ if (recipe.objective === 'degats_reels') {
 
 
 
-// Le contexte relique (garantie G) — la même ligne que le harnais
+// Le contexte relique — la même ligne que le harnais
 // (`diagnosticConfig.ts`) : en mode `recherche` les bornes sont RELÂCHÉES
 // et les candidats sortent SANS relique ; la relique de chaque build est
 // résolue après la recherche, comme la file de l'écran.
@@ -433,7 +433,7 @@ let result: ReturnType<typeof runSearchToCompletion>;
 try {
   result = runSearchToCompletion(params);
 } catch (e) {
-  // Refus NOMMÉ du moteur (pool de reliques vide en mode recherche, D1) :
+  // Refus NOMMÉ du moteur (pool de reliques vide en mode recherche) :
   // imprimé tel quel, jamais présenté comme « 0 build ».
   if (e instanceof RechercheRefusee) {
     console.error(`\n${e.message}`);
@@ -538,9 +538,8 @@ if (classes.length > LIGNES_IMPRIMEES) console.log(`  … et ${classes.length - 
 // Rendu SEULEMENT quand rien n'a été trouvé : sinon rien à chercher.
 if (result.candidates.length === 0) {
   const runeById = new Map(params.pool.map((r) => [r.id, r]));
-  // ⚠️ Même vocabulaire que le bloc de blocages du harnais (« −15 suffit »)
-  // — décision explicite (2026-09-07) : un seul réflexe de lecture pour
-  // tout le diagnostic.
+  // ⚠️ Même vocabulaire que le bloc de blocages du harnais (« −15 suffit ») :
+  // un seul réflexe de lecture pour tout le diagnostic.
   const describe = (m: NearMiss) =>
     m.shortfalls
       .map((s) => {

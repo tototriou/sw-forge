@@ -55,7 +55,7 @@ if (!scenarioFile || (modeArg !== 'potential' && modeArg !== 'relevance')) {
 }
 // ⚠️ Toujours un littéral EXPLICITE ('potential' ou 'relevance'), jamais
 // `undefined` — sinon, passer 'potential' ici retomberait sur le défaut
-// interne de `buildBuckets` (`'relevance'` depuis le 2026-08-18) au lieu de
+// interne de `buildBuckets` (`'relevance'`) au lieu de
 // vraiment forcer l'ancien comportement demandé par l'appelant.
 const combosOrderMode = modeArg === 'relevance' ? ('relevance' as const) : ('potential' as const);
 const MAX_PAIRES = maxPairesArg ? Number(maxPairesArg) : 20_000_000;

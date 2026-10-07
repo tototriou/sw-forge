@@ -20,20 +20,18 @@
 // reproduire l'escalade du budget de PAIRES, sans quoi il se serait arrêté
 // bien avant les ~700M paires des plus gros de ces 7 cas réels
 // (scripts/perf-baseline.json) : ce budget n'existe plus, le
-// pilotage nu ci-dessous est donc désormais fidèle par construction.
+// pilotage nu ci-dessous est donc fidèle par construction.
 //
-// ⚠️⚠️ **CE BLOC EST PÉRIMÉ — ce script est désormais ABSORBABLE** (§5.5 bis
-// des extensions, 2026-09-09). Le harnais rend `decouverteBuildCible` :
+// ⚠️⚠️ **CE BLOC EST PÉRIMÉ — ce script est ABSORBABLE** : le harnais
+// rend `decouverteBuildCible` :
 // `foundExplored` ET la courbe de rendement, aux SEPT MÊMES jalons, par
 // `diagnostic-harness.ts --cas=<n> --suivre=<les 6 ids>`. Et il le fait sans
 // les deux écarts de fidélité listés plus bas — il apparie dans le RÉGIME de
 // production (parallèle au-delà de 100 M paires) au lieu du séquentiel forcé
-// ici. La justification ci-dessous est conservée pour la trace : elle
-// explique ce que le harnais n'avait pas, et qu'il a maintenant.
+// ici. Les écarts de fidélité listés plus bas sont ceux de CE script, pas
+// ceux du harnais.
 //
-// ⚠️ **POURQUOI CE SCRIPT SURVIT AU HARNAIS** (vérifié le 2026-09-09, §5.2 bis
-// des extensions — le sort des sept scripts G2, tranché après que 11c ait
-// tourné). `--combos=potential|relevance|combined|objective` EST un override
+// ⚠️ **POURQUOI CE SCRIPT SURVIT AU HARNAIS** : `--combos=potential|relevance|combined|objective` EST un override
 // du harnais, et `--differentiel=combosOrderMode:a,b` compare deux de ces
 // valeurs proprement. Mais la GRANDEUR mesurée ici n'est dans aucun champ du
 // harnais, et c'est elle qui le sauve :
@@ -44,22 +42,21 @@
 //   · la **COURBE DE RENDEMENT** (candidats cumulés à 1/5/10/25/50/75/100 %
 //     d'`explored`) décrit la TRAJECTOIRE de l'appariement ; le harnais rend
 //     un état final, jamais une trajectoire.
-// C'est exactement la grandeur qui a fait CONSERVER `optimizer-deck10-final-
-// diag` au §5.4, ici sur les 7 cas réels et les QUATRE modes au lieu de deux.
+// C'est exactement la grandeur qui fait CONSERVER `optimizer-deck10-final-
+// diag`, ici sur les 7 cas réels et les QUATRE modes au lieu de deux.
 // ⚠️ Ne pas le supprimer « parce que le harnais couvre `--combos` » : il
 // couvre l'AXE, pas la grandeur.
 //
-// ⚠️ **CE QUE SON PROTOCOLE NE VAUT PAS, mesuré et non supposé** (2026-09-09).
+// ⚠️ **CE QUE SON PROTOCOLE NE VAUT PAS, mesuré et non supposé**.
 // Deux défauts connus, écrits ici pour qu'ils voyagent avec les chiffres :
 //   1. son oracle est fait de COMPTES mais il tronque à `maxMs` — donc lu sur
-//      un préfixe BRUITÉ (l'instant de coupe varie de 3,65 % à 32 %, mesures
-//      E/G/H de 11a). Un écart de `foundExplored` plus petit que ça ne
-//      signifie rien. Corrigeable par un quota, PAS corrigé : ouvrir ce
-//      chantier pour sauver un script est exactement ce que le §5.4 interdit ;
+//      un préfixe BRUITÉ (l'instant de coupe varie de 3,65 % à 32 %, mesuré).
+//      Un écart de `foundExplored` plus petit que ça ne
+//      signifie rien. Corrigeable par un quota, PAS corrigé : on ne rouvre
+//      pas le moteur pour sauver un script ;
 //   2. il appelle `pairBuckets` directement, donc apparie en SÉQUENTIEL,
 //      là où la production bascule en parallèle au-delà de 100 M paires — ce
-//      que les plus gros de ces 7 cas dépassent largement. Même écart que
-//      celui relevé sur `set-relax-diag` au §5.4.
+//      que les plus gros de ces 7 cas dépassent largement.
 //
 // Usage : combos-order-mode-real-account-diag.ts [maxMs=60000] [filtres]
 //   filtres — sous-chaînes (insensibles à la casse), séparées par des
@@ -135,12 +132,10 @@ function measure(base: BaseStats, artifacts: ArtifactDetail[], relic: RelicDetai
   return { foundExplored, foundRank: foundExplored != null && total > 0 ? foundExplored / total : null, totalPairCount: total, yieldCurve };
 }
 
-// ⚠️ La mention « budget de nœuds adaptatif + escalade réelle, comme en
-// production » a été RETIRÉE de cette ligne le 2026-09-09 : ce budget
-// n'existe plus, ce que l'en-tête de ce fichier dit déjà. Elle
-// survivait dans la SORTIE, où elle affirmait une fidélité que le run ne peut
-// plus avoir — un script conservé n'imprime pas une phrase que son propre
-// en-tête dément. Remplacée par ce qui LIMITE réellement sa lecture : la
+// ⚠️ La sortie n'annonce pas « budget de nœuds adaptatif + escalade réelle,
+// comme en production » : ce budget n'existe plus, ce que l'en-tête de ce
+// fichier dit déjà, et un script conservé n'imprime pas une phrase que son
+// propre en-tête dément. Elle dit ce qui LIMITE réellement sa lecture : la
 // troncature par temps et son plancher de bruit.
 console.log(`combosOrderMode 'potential' vs 'relevance' — ${SELECTED_CASES.length}/${CASES.length} cas réel(s)${FILTERS ? ` (filtre: ${FILTERS.join(', ')})` : ''}, objective réel, maxMs=${MAX_MS}ms — ⚠️ troncature par TEMPS : l'instant de coupe varie de 3,65 % à 32 %, tout écart de foundExplored sous ce plancher est du bruit.\n`);
 

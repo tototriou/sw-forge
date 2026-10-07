@@ -14,7 +14,7 @@ interface Props {
 }
 
 // « Liste active » — menu déroulant, jamais de liste fixe (Box/RTA/
-// Défense siège ne sont plus des cas spéciaux, voir
+// Défense siège ne sont pas des cas spéciaux, voir
 // spec/outils/optimizer/listes-et-reservation.md,
 // « Créer, valider et réserver dans une liste ») :
 // tout est créé, renommé, supprimé par l'utilisateur. Flotte par-dessus zone

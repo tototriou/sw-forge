@@ -17,7 +17,7 @@
 //   … --run=oracle:<i> --out=<dossier>   →  <dossier>/oracle-<i>.json
 //   … --run=A --traceur=<6 ids> --out=<dossier>   →  <dossier>/A.json
 //
-// ⚠️ **Un processus par recherche, en séquence** (B.6 l. 3767 ; skill
+// ⚠️ **Un processus par recherche, en séquence** (skill
 // optimizer-perf-testing : enchaîner des recherches lourdes dans un
 // processus fait dériver les suivantes — sous `maxMs`, une dérive devient
 // une différence de candidats). L'enfant est relancé par
@@ -156,7 +156,7 @@ function reglagesDe(point: PointOracle): ReglagesDifferentiel {
     // depuis le même `DamageSetup` et le même élément, sinon la comparaison
     // de fidélité ne compare plus rien.
     exclusive: point.exclusive,
-    // B.6 amendé : la paire de RÉFÉRENCE (`params.artifacts`, celle que
+    // La paire de RÉFÉRENCE (`params.artifacts`, celle que
     // l'oracle note) figée côté A ; verrous neutralisés comme l'écran.
     paireFixe: point.params.artifacts,
     lignesVerrouillees: point.lignesVerrouillees,
@@ -221,14 +221,14 @@ async function enfantOracle(point: PointOracle, i: number, out: string): Promise
   process.stderr.write(`oracle run ${i + 1}/${runs.length} (${run.principale ? `${run.principale.code}:${run.principale.value}` : 'sans relique'}) : ${r.candidates.length} candidats, tronqué ${r.truncated}, régime ${regime?.applique ?? '—'}, ${(ms / 1000).toFixed(1)} s\n`);
 }
 
-// Les `SearchParams` du run A : ceux du point, PLUS le contexte G résolu
+// Les `SearchParams` du run A : ceux du point, PLUS le contexte relique résolu
 // (`relicContext` — la forme `--case` ne le pose pas dans les params, l'oracle
 // l'efface de toute façon ; la forme recette le porte déjà, et c'est le MÊME,
 // vérifié par l'empreinte). Le traceur est posé par le harnais (`suivre`).
 function paramsA(point: PointOracle): SearchParams {
   const deja = point.params.relicContext;
   if (deja && deja.empreinte !== point.contexte.empreinte) {
-    throw new Error(`relic-differentiel : le relicContext des SearchParams (${deja.empreinte}) diffère du contexte du point (${point.contexte.empreinte}) — deux lectures de l'intention (garantie G).`);
+    throw new Error(`relic-differentiel : le relicContext des SearchParams (${deja.empreinte}) diffère du contexte du point (${point.contexte.empreinte}) — deux lectures de l'intention, alors qu'il n'y a qu'un point de lecture.`);
   }
   return { ...point.params, relicContext: point.contexte };
 }
@@ -298,8 +298,8 @@ function orchestrer(argv: string[]): void {
   };
   const commande = ['relic-differentiel.ts', ...argsPoint, `--out=${out}`];
 
-  // Refus NOMMÉ (pool vide en mode recherche, D1) — le « test de refus » de
-  // B.6 : un résultat de statut `refus`, jamais un point à 0 candidat.
+  // Refus NOMMÉ (pool vide en mode recherche) — le « test de refus » du
+  // différentiel de reliques : un résultat de statut `refus`, jamais un point à 0 candidat.
   if (contexte.mode === 'recherche' && contexte.vide) {
     const motif = new RechercheRefusee(contexte.vide).message;
     ecrire(resolve(out, 'resultat.json'), { point: entete, statut: 'refus', refus: motif, commande } satisfies FichierResultat);

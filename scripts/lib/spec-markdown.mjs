@@ -31,7 +31,7 @@
 // pour `spec-lint`.
 //
 // `blocsTerminaux(texte)` découpe le fichier en blocs terminaux au sens de
-// B.4 : les lignes entre un titre (exclu) et le PROCHAIN TITRE DE N'IMPORTE
+// « Bloc terminal et refus » de `spec/outillage/spec.md` : les lignes entre un titre (exclu) et le PROCHAIN TITRE DE N'IMPORTE
 // QUEL NIVEAU (exclu), ou la fin du fichier — pas jusqu'au niveau ≤ au sien
 // comme `sections()`. Le préambule (avant le premier titre) est un bloc.
 //
@@ -51,7 +51,7 @@
 //
 // `fichiersMarkdown(chemin)` liste récursivement les `.md` d'un fichier ou
 // dossier, hors `node_modules/` et `.git/` — le « mode dossier » de
-// `spec-toc` (B.3), partagé avec `spec-lint` qui en a besoin pour parcourir
+// `spec-toc` (`spec/outillage/spec.md`, « `spec-toc` »), partagé avec `spec-lint` qui en a besoin pour parcourir
 // le périmètre.
 
 import { readdirSync, statSync } from 'node:fs';

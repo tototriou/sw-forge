@@ -7,8 +7,8 @@
 // ⚠️ Pourquoi un `worktree`, pas juste revert/relancer/restaurer le
 // fichier : un même chemin sur disque ne peut pas être dans deux états à
 // la fois pour deux processus qui tournent EN MÊME TEMPS. Éditer-relancer-
-// rééditer marche pour deux mesures SÉQUENTIELLES (ce qui a été fait toute
-// cette session), jamais pour une comparaison simultanée — il faut deux
+// rééditer marche pour deux mesures SÉQUENTIELLES, jamais pour une
+// comparaison simultanée — il faut deux
 // RÉPERTOIRES distincts, chacun avec son propre `runeBuildOptim.ts`.
 //
 // ⚠️ Pourquoi simultané plutôt que la baseline JSON habituelle

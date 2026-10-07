@@ -1,10 +1,9 @@
-// Fil `worker_threads` FIDÈLE au Chantier D — reproduit le mécanisme réel de
+// Fil `worker_threads` FIDÈLE au quota partagé — reproduit le mécanisme réel de
 // `pairSlice.worker.ts` : `prepareSearch` reconstruit localement (postMessage
 // ne clone pas `totalOf`) et `startedAt` VRAI partagé écrasant celui de
 // `prepareSearch`.
-// ⚠️ Sa troisième fidélité, l'escalade du budget de paires à chaque
-// checkpoint, n'a plus d'objet : ce budget a été supprimé du moteur,
-// donc la distinction d'avec `pairing-worker.ts` ne tient plus
+// ⚠️ Le moteur n'a pas de budget de paires à escalader à chaque
+// checkpoint : la distinction d'avec `pairing-worker.ts` ne tient donc
 // que sur la coordination de quota ci-dessous.
 //
 // Deux modes, MÊME code de recherche, seule la coordination diffère :

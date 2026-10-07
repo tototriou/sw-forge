@@ -1,8 +1,7 @@
-// Phase 0 du plan d'action Optimizer (voir la discussion « analyse du
-// problème » dans l'historique du projet) : mesurer, PAS deviner, si
-// `BUCKET_CAP` (600, le plafond de rétention par compartiment dans
+// Mesurer, PAS deviner, si
+// `BUCKET_CAP` (le plafond de rétention par compartiment dans
 // runeBuildOptim.ts) perd réellement de bons candidats — avant de décider
-// s'il faut construire quoi que ce soit pour le corriger (Phase 2).
+// s'il faut construire quoi que ce soit pour le corriger.
 //
 // Méthode : réutiliser le moteur RÉEL, déjà vérifié par le test différentiel
 // (tests/rune-optim-differential.test.ts), via le nouveau paramètre
@@ -56,7 +55,7 @@ const SCENARIOS: Scenario[] = [
 // 50 000 → ~80 s rien que pour construire, avant même la recherche, alors
 // que `overBudget()`/`maxMs` n'est vérifié que dans la boucle d'appariement,
 // jamais pendant `buildBuckets`). Confirme au passage, empiriquement, le
-// bénéfice attendu d'un tas binaire (Phase 1b) plutôt qu'une liste triée.
+// bénéfice attendu d'un tas binaire plutôt qu'une liste triée.
 const BUCKET_CAPS = [100, 300, 600, 1500, 3000, 6000];
 
 // 80/slot correspond au preset « Moyen » (défaut réel de l'app) après
@@ -116,7 +115,7 @@ async function runExperiment(title: string, extra: Partial<SearchParams>) {
 }
 
 async function main() {
-  console.log('Phase 0 — BUCKET_CAP perd-il de bons candidats ? (moteur réel, bucketCap variable)');
+  console.log('BUCKET_CAP perd-il de bons candidats ? (moteur réel, bucketCap variable)');
 
   await runExperiment(
     'Budget LÂCHE (isole bucketCap : maxCollected très large, slotFilterCap=300)',

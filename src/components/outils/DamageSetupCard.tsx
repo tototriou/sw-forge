@@ -479,7 +479,7 @@ export default function DamageSetupCard({
   // Les passifs qui PEUVENT frapper après le sort choisi (`passifPeutSuivre`,
   // la porte de `passifCompte`) — les seuls affichés. Un passif choisi
   // lui-même comme sort (Tempest seul) n'est jamais ajouté à lui-même : son
-  // interrupteur est MASQUÉ (réponse de l'utilisateur, 2026-10-02) ; de même pour un passif dont les slots déclencheurs
+  // interrupteur est MASQUÉ ; de même pour un passif dont les slots déclencheurs
   // excluent le sort choisi — un bouton sans effet possible n'est jamais
   // montré (principe 2 ci-dessus).
   const passifsSuivants = passifs.filter((p) => passifPeutSuivre(p, resolved));
@@ -514,7 +514,7 @@ export default function DamageSetupCard({
     );
 
   // ⚠️ **UNE SEULE SOURCE pour la rangée « Effets actifs » ET son infobulle**
-  // (décision de l'utilisateur du 2026-10-02 : une seule
+  // (une seule
   // infobulle, pas une par effet). Chaque effet que ce sort affiche porte ici
   // sa description : sa vignette la montre au survol, l'infobulle de la rangée
   // les regroupe toutes — seulement les effets présents. Écrite à la main,
@@ -663,7 +663,7 @@ export default function DamageSetupCard({
                     {s.nom}
                   </>
                 }
-                // ⚠️ **La prose du sort au CLIC, plus au survol** (demande de l'utilisateur du 2026-10-02) : un `title`
+                // ⚠️ **La prose du sort au CLIC, pas au survol** : un `title`
                 // natif ne s'ouvre jamais au doigt, la prose restait donc
                 // invisible sur téléphone. Le « ? » juste à droite du nom ouvre
                 // une bulle à la souris et un panneau montant au doigt
@@ -671,8 +671,7 @@ export default function DamageSetupCard({
                 // `actionTitre` d'`Option`) : le toucher ne choisit pas le sort.
                 // Un sort sans prose n'a pas de « ? » ; un sort refusé garde le
                 // sien.
-                // ⚠️ **« Calcul partiel »** (forme décidée par
-                // l'utilisateur le 2026-10-04) : un sort calculé dont le total
+                // ⚠️ **« Calcul partiel »** : un sort calculé dont le total
                 // omet une part connue (`calculPartielDuSort`) porte une
                 // étiquette après le « ? » de sa prose, et SON « ? » dit ce qui
                 // n'est pas compté. Elle dépend du seul sort, jamais du choix :
@@ -1184,14 +1183,12 @@ export default function DamageSetupCard({
               // Un passif qui frappe APRÈS certains sorts (`slotsDeclencheurs`
               // curés — Tempest) : l'interrupteur dit lui-même ce que
               // l'utilisateur suppose pour le calcul, « Tempest (S3) se
-              // déclenche après ce sort » (réponse de l'utilisateur,
-              // 2026-10-02), à la place de la phrase « Se
+              // déclenche après ce sort », à la place de la phrase « Se
               // déclenche si … », qui n'en dirait pas plus. ⚠️ **Pas de survol
-              // (`title`) sur cet interrupteur-là** (décision de l'utilisateur
-              // du 2026-10-02) : un survol n'existe pas au
+              // (`title`) sur cet interrupteur-là** : un survol n'existe pas au
               // doigt. La condition du jeu reste lisible dans la prose du
               // passif, sous l'interrupteur et au « ? » de sa case dans
-              // « Compétence utilisée » (11bis). Les autres interrupteurs de
+              // « Compétence utilisée ». Les autres interrupteurs de
               // passif gardent le leur.
               const apresSort = cat.type === 'conditionnel' && p.slotsDeclencheurs != null;
               const libelle = apresSort
@@ -1332,7 +1329,7 @@ export default function DamageSetupCard({
               const { ouvre, prose } = renduCombat[index];
               // Un compteur ou un interrupteur d'état ne nomme pas son passif :
               // l'icône et le nom se posent au-dessus du réglage qui l'ouvre
-              // (décision de l'utilisateur n° 15, patron des passifs offensifs).
+              // (patron des passifs offensifs).
               const nomDuPassif = ouvre ? <Jeton icone={icone} libelle={nom} /> : null;
               let nomme: ReactNode = null;
               let reglage: ReactNode = null;
@@ -1901,7 +1898,7 @@ export default function DamageSetupCard({
             de couleurs RTA) : sur des icônes déjà très colorées, le
             liseré/fond seuls se voient mal — la coche est le signal qui
             reste net quelle que soit la couleur dessous. */}
-        {/* ⚠️ **Les buffs ATQ/DEF/VIT ne sont PLUS ici** — ils ont rejoint
+        {/* ⚠️ **Les buffs ATQ/DEF/VIT ne sont PAS ici** — ils sont dans
             « État de mon monstre » (EtatMonstre.tsx), toujours visible dans la
             carte Artéfacts. Raison : ils changent les statistiques du monstre,
             donc les dégâts supplémentaires bruts des artéfacts (218-221),

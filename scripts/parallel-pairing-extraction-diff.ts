@@ -9,7 +9,7 @@
 // ⚠️ **De VRAIS fils, jamais une simulation en processus.** Exécuter les
 // tranches séquentiellement fausserait le budget-temps de chacune
 // (`overBudget()` lit l'horloge) et ne prouverait rien sur la concurrence —
-// leçon du Chantier D, voir le skill `optimizer-perf-testing`.
+// voir le skill `optimizer-perf-testing`.
 //
 // ⚠️ **Budget INFINI des deux côtés.** C'est le seul régime où l'égalité est
 // démontrable : sous troncature, le découpage change légitimement QUELS

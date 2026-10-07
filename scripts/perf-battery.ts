@@ -89,7 +89,8 @@
 //            inchangé, propagée telle quelle au processus `--case=` et
 //            inscrite dans le libellé du run. Sans les trois : comportement
 //            d'avant (pas de `relicContext`). `--relic-main=equipped` est la
-//            baseline de B.6 (contexte présent, moteur byte-identique).
+//            baseline du différentiel de reliques (contexte présent, moteur
+//            byte-identique).
 //            Refusées avec `--monotonicity`, qui construit ses propres
 //            `SearchParams` sans relique (voir `checkMonotonicityForCase`).
 
@@ -120,7 +121,7 @@ export type { Case };
 export { CASES };
 
 const REPEATS = Number(process.argv.find((a) => a.startsWith('--repeats='))?.split('=')[1] ?? 2);
-// Les trois options relique (B.6) — validées ICI, une fois, dans
+// Les trois options relique — validées ICI, une fois, dans
 // l'orchestrateur comme dans l'enfant `--case=` (qui reçoit les mêmes
 // jetons) ; `CASES_DU_RUN` est la seule table que ce fichier consulte.
 const RELIC_OPTION = parseOptionsRelique(process.argv);
@@ -295,7 +296,7 @@ async function runOnce(c: Case, maxMs: number = MAX_MS): Promise<CaseOutcome> {
   const targetRuneIds = new Set(gear.runes.map((r) => r.id));
   // ⚠️ slotFilterCap=80 explicite : préréglage « Moyen », le défaut réel de
   // l'écran (voir OptimizerSection.tsx) et la valeur utilisée dans TOUTES
-  // les mesures Phase 0 — l'omettre retombe sur MAX_PER_SLOT_MATCH=40 (le
+  // les mesures de référence — l'omettre retombe sur MAX_PER_SLOT_MATCH=40 (le
   // défaut interne du moteur), un pré-filtrage plus étroit que ce que
   // l'app utilise réellement, faussant toute comparaison.
   const params = loadCaseSearchParams(c, maxMs);
@@ -444,9 +445,9 @@ if (caseArg) {
   try {
     outcome = await runOnce(CASES_DU_RUN[idx]);
   } catch (e) {
-    // Refus NOMMÉ du moteur (pool de reliques vide en mode recherche, D1) :
+    // Refus NOMMÉ du moteur (pool de reliques vide en mode recherche) :
     // imprimé tel quel, code 2 — jamais un résultat vide ni une pile
-    // anonyme. C'est le « test de refus » de B.6 (seuil 15).
+    // anonyme. C'est le « test de refus » du différentiel de reliques.
     if (e instanceof RechercheRefusee) {
       process.stderr.write(`\nREFUS ${CASES_DU_RUN[idx].label} : ${e.message}\n`);
       process.exit(2);

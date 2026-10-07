@@ -42,7 +42,7 @@ export interface BuildHalfWorkerData {
   adaptiveTrancheWeighting?: boolean;
   combosOrderMode?: 'potential' | 'relevance' | 'combined' | 'objective';
   /**
-   * §4.2 des extensions (A₂) — horodater les `BuildingProgress` que
+   * A₂ — horodater les `BuildingProgress` que
    * `buildBuckets` émet DÉJÀ, pour cartographier son ÉLAGAGE.
    *
    * ⚠️ **OPT-IN, et ce n'est pas une commodité.** `perf-battery.ts` PARTAGE
@@ -130,7 +130,7 @@ export interface BuildHalfWorkerResult {
   buckets: Bucket[];
   ms: number;
   memoire: MemoireMoitie;
-  /** §4.2 (A₂) — présent SEULEMENT si `horodaterProgression` a été demandé. */
+  /** A₂ — présent SEULEMENT si `horodaterProgression` a été demandé. */
   progression?: ProgressionMoitie;
 }
 

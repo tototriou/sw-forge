@@ -11,8 +11,7 @@
 // testé — voir spec/outils/optimizer/pistes-vitesse-et-verification.md,
 // « Ce que coûte la construction des demi-builds ».
 //
-// ⚠️ **POURQUOI CE SCRIPT SURVIT AU HARNAIS** (vérifié le 2026-09-08, en même
-// temps que `--cas=<index|nom|tous>`). `diagnostic-harness.ts --cas=tous
+// ⚠️ **POURQUOI CE SCRIPT SURVIT AU HARNAIS** : `diagnostic-harness.ts --cas=tous
 // --arret=demi-builds` rend `demiBuildA`/`demiBuildB` sur les mêmes 7 cas —
 // mais ce ne sont PAS les mêmes grandeurs : le harnais construit les deux
 // moitiés dans deux `worker_threads` SIMULTANÉS, parce que la production

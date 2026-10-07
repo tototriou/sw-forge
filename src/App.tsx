@@ -331,7 +331,7 @@ export default function App() {
   // encore de valeur « précédente » à comparer, et l'Optimizer démarre de
   // toute façon déjà vide.
   const boxMountedRef = useRef(false);
-  // ⚠️ **BUG CORRIGÉ** (revue de code externe) : `boxMountedRef` ne protège QUE
+  // ⚠️ `boxMountedRef` ne protège QUE
   // le tout premier rendu (`box` encore à `[]`) — la RELECTURE du compte
   // conservé (voir l'effet d'hydratation plus bas, `setBox`/`setRunes` dans
   // le `.then()` de `loadAccount()`) arrive forcément APRÈS ce premier rendu,
@@ -366,7 +366,7 @@ export default function App() {
     // résout plus si le monstre a été fusionné/retiré). Revérifié à CHAQUE
     // réimport (pas seulement sur un wizard_id différent, contrairement à
     // `excludedSelectors` plus bas — ici on veut justement détecter « mon
-    // propre compte a changé depuis », voir le point bloquant 4 du cadrage).
+    // propre compte a changé depuis »).
     // ⚠️ Jamais silencieux : averti dans `importMsg`, jamais juste retiré.
     if (optimizerLists.members.length > 0 || optimizerLists.validated.length > 0) {
       const monsterById = new Map<string, Monster>();
@@ -1452,7 +1452,7 @@ export default function App() {
           un appareil SANS encoche basse (108 > 96) : `elementFromPoint` sur
           une tuile de rune y résolvait le lien de navigation ou le bouton
           Options en dessous, pas la tuile elle-même (confirmé avec Playwright,
-          viewport mobile réel — voir historique-*.md sous compte/runes.md).
+          viewport mobile réel).
           `116px` = 108 px + 8 px de respiration, `+ env(safe-area-inset-bottom)`
           pour rester aligné avec le même terme dans `MobileTabs.tsx`. */}
       <div

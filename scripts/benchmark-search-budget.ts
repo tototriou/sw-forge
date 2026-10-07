@@ -1,5 +1,5 @@
-// Suite de la Phase 0 : la mesure précédente (benchmark-bucket-retention.ts)
-// a montré que sous les VRAIS budgets de production (MAX_COLLECTED=5000,
+// Suite de `benchmark-bucket-retention.ts` : cette mesure
+// montre que sous les VRAIS budgets de production (MAX_COLLECTED=5000,
 // DEFAULT_MAX_NODES=400 000), `maxCollected` coupe TOUJOURS la recherche en
 // premier, avant que `bucketCap` n'ait la moindre importance — et donc avant
 // que la recherche n'ait exploré grand-chose de l'espace réel. Cette mesure-
@@ -8,8 +8,8 @@
 // achète réellement en qualité de résultat ?
 //
 // bucketCap et slotFilterCap restent FIXES aux valeurs de production
-// (5000 et 80, le preset « Moyen » — bucketCap relevé une seconde fois
-// depuis, voir spec/outils/optimizer/moteur/elagages.md,
+// (5000 et 80, le preset « Moyen » — voir
+// spec/outils/optimizer/moteur/elagages.md,
 // « Pré-filtrage heuristique et compartiments ») — seul le budget de collecte
 // (`maxCollected`) varie, avec un temps de mur mesuré à chaque palier pour
 // vérifier qu'on reste bien dans l'ordre de grandeur annoncé.
@@ -55,7 +55,7 @@ const SCENARIOS: Scenario[] = [
 // palier pour ne jamais devenir le facteur limitant à la place de
 // `maxCollected` : il n'y a plus de plafond de paires du tout, la
 // précaution est sans objet.
-const PRODUCTION_BUCKET_CAP = 3000; // valeur de production réelle (BUCKET_CAP, par tranche depuis la 4e recalibration — Phase 0)
+const PRODUCTION_BUCKET_CAP = 3000; // valeur de production réelle (BUCKET_CAP, par tranche)
 // ⚠️ Testé aux DEUX presets réels, pas seulement « Moyen » : à 300/slot
 // (« Extrême »), la construction des compartiments (O(slotFilterCap³), fixe
 // quel que soit `maxCollected`) domine largement le temps total — 20 à 55 s
@@ -74,7 +74,7 @@ function fmt(n: number): string {
 }
 
 async function main() {
-  console.log('Suite Phase 0 — augmenter le budget de collecte améliore-t-il vraiment le résultat ?');
+  console.log('Augmenter le budget de collecte améliore-t-il vraiment le résultat ?');
   console.log(`bucketCap=${PRODUCTION_BUCKET_CAP} · slotFilterCap=${PRODUCTION_SLOT_FILTER_CAP} (valeurs de production, fixes)\n`);
 
   const pool = poolDeBenchmark(POOL_PER_SLOT, POOL_PER_SLOT);

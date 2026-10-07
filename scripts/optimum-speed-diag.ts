@@ -14,8 +14,8 @@
 // `optimum-speed-targets.ts` (reste dans le répertoire courant, importe
 // `buildBuckets`/`prepareSearch`, absents de l'ancien commit).
 //
-// ⚠️ **MAL CLASSÉ EN G2, ET LE RECLASSER EST LE RÉSULTAT** (vérifié le
-// 2026-09-09, §5.2 bis des extensions). Ce script porte bien un axe de
+// ⚠️ **CE SCRIPT NE RELÈVE PAS DU DIFFÉRENTIEL, ET LE RANGER AINSI EST LE
+// RÉSULTAT.** Il porte bien un axe de
 // configuration (`combosOrderMode` en argv), mais ce n'est pas ce qu'il
 // mesure : il est copié TEL QUEL dans le `git worktree` d'un ancien commit
 // et comparé à lui-même — une comparaison de **VERSIONS DU MOTEUR**, donc le
@@ -27,14 +27,15 @@
 // chercher à le faire passer par le différentiel serait une erreur de
 // catégorie.
 //
-// ⚠️ **MISE À JOUR DU 2026-09-09 (§5.6, §5.8)** : le harnais rend désormais
-// `foundExplored` lui-même (`decouverteBuildCible`). Ce script ne survit donc
-// plus QUE par sa portée inter-versions — et elle est **BORNÉE, mesure encore
-// OUVERTE** : `diagnosticHarness.ts` importe des symboles récents du moteur,
-// il ne compile donc dans le worktree d'un ancien commit que jusqu'à un
-// certain horizon. Au-delà, ce fichier-ci reste le seul outil, parce qu'il
-// n'importe QUE l'API stable (`searchBuildsSteps`/`SearchParams`). En deçà,
-// il est ABSORBABLE. La mesure 1 du §5.8 tranche laquelle des deux.
+// ⚠️ Le harnais rend `foundExplored` lui-même (`decouverteBuildCible`). Ce
+// script ne survit donc QUE par sa portée inter-versions — et elle est
+// **BORNÉE, mesure OUVERTE** : `diagnosticHarness.ts` importe des symboles
+// récents du moteur, il ne compile donc dans le worktree d'un ancien commit
+// que jusqu'à un certain horizon. Au-delà, ce fichier-ci reste le seul
+// outil, parce qu'il n'importe QUE l'API stable
+// (`searchBuildsSteps`/`SearchParams`). En deçà, il est ABSORBABLE. Savoir
+// lequel des deux se mesure en compilant le harnais dans des commits plus
+// anciens : cela n'a pas été fait.
 //
 // ⚠️ **POURQUOI IL SURVIT À `perf-battery-compare`**, qui occupe pourtant le
 // même domaine — vérifié, pas supposé : `perf-battery-compare` ne rend que
@@ -54,8 +55,8 @@
 // budget de tas. Le harnais ne calcule aucun optimum exact : rien à périmer.
 //
 // Usage : optimum-speed-diag.ts <scenarios.json> [combosOrderMode=relevance]
-//   combosOrderMode — 'relevance' (défaut ici ET en production depuis le
-//   2026-08-18) ou 'potential' (ancien comportement — voir `buildBuckets`,
+//   combosOrderMode — 'relevance' (défaut ici ET en production) ou
+//   'potential' (ancien comportement — voir `buildBuckets`,
 //   `SearchParams.combosOrderMode`) : tri des demi-builds À L'INTÉRIEUR d'un
 //   compartiment par pure efficience au lieu du potentiel multi-tranches
 //   normalisé, sans toucher au tri DES compartiments entre eux (inchangé).

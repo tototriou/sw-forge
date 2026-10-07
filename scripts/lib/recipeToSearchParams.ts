@@ -4,7 +4,7 @@
 // `searchArtifacts`/`pool`/`slotFilterCap` de OptimizerSection.tsx, tenue à
 // UN SEUL endroit (SLOT_FILTER_PRESETS/ARTIFACT_MAIN_VALUE viennent de
 // runeBuildOptim.ts, pas d'une copie locale) pour qu'un script ne puisse
-// plus diverger silencieusement de l'écran comme c'est arrivé cette session.
+// plus diverger silencieusement de l'écran.
 
 import { BuildCandidate, SearchParams, SlotFilterPresetKey, SLOT_FILTER_PRESETS, ARTIFACT_MAIN_VALUE, avecAurasConditions } from '../../src/lib/runeBuildOptim';
 import { ExclusionSourceData, autoExcludedRuneIds, resolveExcludedRuneIds } from '../../src/lib/optimizerExclusion';
@@ -63,9 +63,9 @@ export function resolveSlotFilterCap(preset: SlotFilterPresetKey): number {
  * conditionnels — quand « Comme équipé » les comptait : deux réglages voisins,
  * deux modèles de dégâts, sans que rien ne le signale.
  *
- * Le cran désigne donc désormais **vos artéfacts réels portant cette
- * principale**, avec leurs lignes. Décision explicite de l'utilisateur, prise
- * en connaissance du « et si… » perdu.
+ * Le cran désigne donc **vos artéfacts réels portant cette
+ * principale**, avec leurs lignes. Le « et si… » est perdu, en connaissance
+ * de cause.
  *
  * ⚠️ Conséquence assumée : sans aucun artéfact éligible portant la principale
  * demandée, l'emplacement reste VIDE au lieu d'être hypothéqué. On ne peut pas
@@ -100,7 +100,7 @@ export function resolveArtifacts(recipe: OptimizerRecipe, loaded: LoadedMonster)
   // garde les pièces qu'il porte réellement et leurs statistiques : ce drapeau
   // retirait avant TOUTE contribution d'artéfact, ce qui rendait les conditions
   // minimales plus dures à franchir sans que rien ne le dise. Le champ garde
-  // son nom (format de recette stable) ; c'est l'écran qui l'expose désormais
+  // son nom (format de recette stable) ; c'est l'écran qui l'expose
   // à l'endroit, « Activer l'optimisation d'artéfacts ».
   if (recipe.ignoreArtifacts) return loaded.gear.artifacts;
   const reelle = paireReelle(recipe, loaded);
@@ -135,13 +135,14 @@ export function resolveArtifacts(recipe: OptimizerRecipe, loaded: LoadedMonster)
 /**
  * Construit l'intention de recherche de relique (`RelicIntent`) depuis une
  * recette — le second des deux constructeurs (le
- * premier, depuis `OptimizerState`, est dans l'écran). **Un seul point de lecture** (garantie G) : ni ce
+ * premier, depuis `OptimizerState`, est dans l'écran). **Un seul point de
+ * lecture** : ni ce
  * fichier ni l'écran ne relisent `relicMainChoice`/`relicUniqueChoice`/
  * `relicMinUpgrade` séparément une fois cette fonction posée.
  *
- * ⚠️ `mode: 'off'` suit `ignoreArtifacts` (D1 : l'interrupteur « Activer
+ * ⚠️ `mode: 'off'` suit `ignoreArtifacts` (l'interrupteur « Activer
  * l'optimisation d'artéfacts » s'étend aux reliques, aucun interrupteur
- * propre — T2). Sans `relicMainChoice` (recette antérieure à ce champ, ou
+ * propre). Sans `relicMainChoice` (recette antérieure à ce champ, ou
  * écran qui ne l'a pas encore posé), le défaut se CALCULE contre la relique
  * réellement portée par `loaded` (`defaultRelicMainChoice`), jamais une
  * constante — même règle que l'écran, pour que les deux
@@ -302,7 +303,7 @@ export function resoudreEquipementCli(
  * artifactFiche.ts), jamais un assemblage local : jusque-là, ce
  * second constructeur ne neutralisait pas les verrous quand les deux
  * emplacements sont figés, et rejetait chaque build d'une recette que
- * l'écran résolvait (constat C5 de la revue technique 6bis-b). Seul écart
+ * l'écran résolvait. Seul écart
  * documenté : le CLI n'a pas de liste de travail, donc aucun artéfact
  * réservé (`AUCUN_ARTEFACT_RESERVE`).
  */
@@ -333,7 +334,7 @@ function paramsArtefacts(
 
 /**
  * Ce que l'INVENTAIRE d'artéfacts peut apporter, borné des deux côtés — ce qui
- * décide désormais de la FAISABILITÉ (voir `SearchParams.artifactBounds`).
+ * décide de la FAISABILITÉ (voir `SearchParams.artifactBounds`).
  *
  * ⚠️ Pendant EXACT de `searchArtifactBounds` (OptimizerSection.tsx). Le CLI
  * doit produire les mêmes bornes que l'écran, sinon il rejouerait un moteur
@@ -342,7 +343,8 @@ function paramsArtefacts(
  *
  * `undefined` quand la recette ignore les artéfacts, quand l'espèce est
  * introuvable, ou quand aucune condition n'est posée : le moteur retombe alors
- * sur l'apport de la paire représentative, comportement d'avant le §12.
+ * sur l'apport de la paire représentative, comportement d'avant la borne
+ * par stat.
  */
 export function resolveArtifactBounds(
   recipe: OptimizerRecipe,
@@ -500,8 +502,8 @@ export function recipeToSearchParams(
     statsLignesArtefactsEquipables: resolveStatsLignesArtefacts(recipe, loaded),
     relic: loaded.gear.relic,
     // ⚠️ **Deuxième des trois producteurs de `relicContext`** (les
-    // autres : `buildCaseSearchParams` de perfShared.ts, et l'écran). L'intention vient d'UN seul point de lecture (`recipeToRelicIntent`,
-    // garantie G), résolue contre la relique portée et l'inventaire du
+    // autres : `buildCaseSearchParams` de perfShared.ts, et l'écran). L'intention
+    // vient d'UN seul point de lecture (`recipeToRelicIntent`), résolue contre la relique portée et l'inventaire du
     // compte — exactement ce que `relicOracleCli` fait pour l'oracle.
     relicContext: resoudreContexteRelique(recipeToRelicIntent(recipe, loaded), loaded.gear.relic, loaded.allRelics),
     pool: resolvePool(recipe, loaded, exclusionData),

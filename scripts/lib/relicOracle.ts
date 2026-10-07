@@ -44,7 +44,7 @@ export interface OracleCandidate extends BuildCandidate {
 /**
  * La complétude de CHAQUE run de l'oracle (`OracleResult` jetait
  * `truncated` : la complétude ne pouvait pas s'établir). Un point
- * de la grille B.6 n'est complet que si aucun des N runs n'est tronqué.
+ * de la grille du différentiel de reliques n'est complet que si aucun des N runs n'est tronqué.
  */
 export interface OracleRunOutcome {
   principale: { code: number; value: number } | null;
@@ -220,7 +220,7 @@ function candidatAvecRelique(
   const evalue = evaluations.get(meilleure.relique.id)!;
   // ⚠️ Le score RENDU est celui de la relique RETENUE, avec son apport — le
   // même nombre que celui qui l'a fait gagner, jamais un second calcul sans
-  // exclusive (D6 : jamais deux notes).
+  // exclusive (jamais deux notes).
   return {
     ...evalue,
     rid: meilleure.relique.id,
@@ -299,18 +299,18 @@ export function fusionnerRunsOracle(
 }
 
 /**
- * Point d'entrée réutilisable par B.6 :
+ * Point d'entrée réutilisable par le différentiel de reliques :
  * `npx tsx scripts/lib/relicOracle.ts --case=<index> [--relic-main=<libre|100|101|102>] [--relic-type=<libre|1..16>] [--relic-min-upgrade=<0..15>] [--export-dir=<dossier>]`
  * ou `npx tsx scripts/lib/relicOracle.ts <export.json> <recette.json> [--rta] [--siege=<deckId>[:defense]]`.
  * Un appel exécute une seule mesure (les N runs), dans le processus courant ;
  * la sortie porte la complétude de chaque run.
  */
 /**
- * Un point de mesure : les `SearchParams` de production, le contexte G résolu
+ * Un point de mesure : les `SearchParams` de production, le contexte relique résolu
  * UNE fois, le contexte de dégâts, et de quoi nommer le point. PARTAGÉ entre
- * ce CLI et l'orchestrateur de B.6 (`scripts/relic-differentiel.ts`) — un
- * seul chargement pour l'oracle et pour A, jamais deux lectures des trois
- * champs (garantie G).
+ * ce CLI et l'orchestrateur du différentiel de reliques
+ * (`scripts/relic-differentiel.ts`) — un seul chargement pour l'oracle et
+ * pour A, jamais deux lectures des trois champs.
  */
 export interface PointOracle {
   params: SearchParams;
@@ -344,11 +344,10 @@ export interface PointOracle {
  * RÉGIME sur l'équipement porté — en PV effectifs avec une principale ATQ
  * forcée, toutes les paires sont ex æquo avec la paire VIDE, qui sort la
  * première (relevé sur Shihwa : `[]`). Le différentiel fige cette
- * paire des DEUX côtés (B.6 amendé, point 2) ; vide, elle rend infaisable
+ * paire des DEUX côtés ; vide, elle rend infaisable
  * tout build dont le minimum d'ATQ dépend de l'apport +100 × 2 que
- * `artifactBounds.possibles` a pourtant admis à la recherche — le cas 3 (c)
- * de la revue externe de l'outil F (« choisir et archiver explicitement la
- * paire de référence »). L'option ne touche ni `artifactBounds` (le domaine
+ * `artifactBounds.possibles` a pourtant admis à la recherche : la paire de
+ * référence se choisit et s'archive explicitement. L'option ne touche ni `artifactBounds` (le domaine
  * de la recherche) ni la recette : elle s'archive avec la commande du point.
  *
  * Contrôles, refus nommé sinon (jamais une paire partielle silencieuse) :
@@ -487,7 +486,7 @@ export function relicOracleCli(): void {
   try {
     resultat = oracleSearch(params, contexte, { realDamage, exclusive });
   } catch (e) {
-    // Refus NOMMÉ du moteur (pool de reliques vide en mode recherche, D1) :
+    // Refus NOMMÉ du moteur (pool de reliques vide en mode recherche) :
     // imprimé tel quel, comme `optimizer-search.ts`, jamais présenté comme
     // « 0 build ».
     if (e instanceof RechercheRefusee) {

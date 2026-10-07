@@ -6,8 +6,7 @@
 // `optionsDeClassement`, le classement `classementResolu` — les producteurs
 // mêmes de l'écran.
 //
-// ⚠️ **Par défaut, le CLI résout COMME LA FILE DE L'ÉCRAN** (décision
-// utilisateur du 2026-10-01, option 2) : l'ordre
+// ⚠️ **Par défaut, le CLI résout COMME LA FILE DE L'ÉCRAN** : l'ordre
 // de base jusqu'à K combinaisons CONFIRMÉES (résolues et conformes) ou
 // jusqu'au dernier build trouvé — `kDeLaFile` du contexte relique de la
 // recherche, comme l'écran : 300 en mode « recherche », 100 sinon,

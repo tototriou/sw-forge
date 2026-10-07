@@ -129,7 +129,7 @@ export default function testImport() {
   egal(inv.runes.length, 8, 'inventaire : runes équipées ET en réserve, dédupliquées');
   egal(inv.artifacts.length, 3, 'inventaire : artéfacts équipés ET en réserve');
 
-  /* --- Inventaire de reliques (B.1) ------------------------------------- */
+  /* --- Inventaire de reliques ------------------------------------------- */
 
   // data.relics porte 4 pièces, dont 7001 (équipée par l'unité 101, présente
   // AUSSI dans unit.relics[0]) : le dédoublonnage par rid ne doit pas la
@@ -303,7 +303,7 @@ export default function testImport() {
   egal(parseWizardId('{"wizard_id":0}'), null, 'wizard_id à zéro → rejeté (jamais un vrai compte)');
   egal(parseWizardId('{"wizard_id":"abc"}'), null, 'wizard_id non numérique → rejeté');
 
-  /* --- D4 : l'exemplaire, pas l'espèce ---------------------------------- */
+  /* --- L'exemplaire, pas l'espèce --------------------------------------- */
 
   // Deux unit_id du MÊME com2usId (15105) portent des reliques différentes.
   // Box, RTA et défense de siège doivent chacun retrouver la BONNE relique

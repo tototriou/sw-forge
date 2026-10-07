@@ -1,6 +1,6 @@
 // Corps de la RÉSOLUTION D'ÉQUIPEMENT d'un build (paire d'artéfacts ET
 // relique) hors du fil de l'écran — la LOGIQUE seule, sans aucune API de
-// messagerie (degats-et-aura 6bis-b13bis-a). Même patron que
+// messagerie. Même patron que
 // `pairSliceBody.ts` : la coquille `resolution.worker.ts` ne fait que brancher
 // `self.onmessage`/`postMessage` dessus ; un fil Node ou un test l'appellent
 // tel quel.
@@ -113,7 +113,7 @@ export function entreesSerialisables(e: {
  * Le contexte (inventaire, réglages, contexte relique) — envoyé par la file à
  * chaque nouvelle IDENTITÉ de ses entrées (l'objet mémoïsé par l'écran : une
  * fois par recherche au moins, le contexte relique de la recherche lancée en
- * faisant partie) ou de la signature des réglages (précisé en 6bis-b13bis-c).
+ * faisant partie) ou de la signature des réglages.
  * Il remplace le précédent : les demandes encore en attente sont annulées
  * (motif `contexte`) et les caches repartent à neuf.
  */
@@ -161,7 +161,7 @@ export type MessageVersResolution = MessageContexteResolution | MessageDemandeRe
  * - `erreur` : la résolution a levé ; `vide` porte le motif d'une
  *   `RechercheRefusee` (pool de reliques vide en mode `recherche`), que
  *   l'appelant journalise avec le nom et le message au repli
- *   (`repliSurErreur`, resolutionDistante.ts — 6bis-b13bis-c) : le motif
+ *   (`repliSurErreur`, resolutionDistante.ts) : le motif
  *   structuré n'est jamais perdu en route. Il ne reconstruit pas l'erreur.
  *
  * ⚠️ Toutes portent `idContexte` et `idDemande` : un résultat d'une demande

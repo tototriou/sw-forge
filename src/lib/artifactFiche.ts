@@ -34,7 +34,7 @@ export function sortesFigeesDe(principaleParSorte: Partial<Record<ArtifactKind, 
  * du porteur (l'espèce). Une sorte « Libre » ou à principale imposée n'y entre
  * pas : sa pièce portée n'est jamais lue.
  *
- * Entre dans la signature de la file (degats-et-aura 6bis-b17) : valider un
+ * Entre dans la signature de la file : valider un
  * build de CE monstre, « Voir le runage réellement porté » ou changer
  * d'exemplaire de la même espèce changent `selected.gear.artifacts` sans rien
  * changer d'autre à la signature — l'emplacement figé changeait alors de pièce
@@ -52,8 +52,7 @@ export const AUCUN_ARTEFACT_RESERVE: ReadonlySet<number> = new Set();
 
 /**
  * Les `ArtifactSearchParams` de la fiche, sans `evaluer` (chaque appelant
- * pose le sien) — degats-et-aura 6bis-b6, constats C5 et C6 de la revue
- * technique 6bis-b. Producteur PUR appelé par l'écran (`artifactParams`,
+ * pose le sien). Producteur PUR appelé par l'écran (`artifactParams`,
  * OptimizerSection.tsx), le CLI (`paramsArtefacts`, recipeToSearchParams.ts)
  * et le différentiel relique (`entreeResolution`, relicDifferentiel.ts) :
  * jusque-là, chacun recopiait l'assemblage, et le CLI avait perdu la
@@ -70,7 +69,7 @@ export const AUCUN_ARTEFACT_RESERVE: ReadonlySet<number> = new Set();
  *   d'amplification de buff (`codesAmplificationActifs`) — sans eux, une
  *   amplification est éliminée par dominance alors qu'elle vaut des dégâts.
  * - `maxStats` : les maximums de la recherche ; seuls ceux réellement posés
- *   (> 0) retirent leur stat de la dominance (B.5b bis, bloquant 1).
+ *   (> 0) retirent leur stat de la dominance.
  */
 export function parametresArtefactsFiche(e: {
   porteur: PorteurArtefact;
@@ -106,8 +105,7 @@ export function parametresArtefactsFiche(e: {
 /**
  * Les stats lues par les lignes 218–221 des artéfacts que la résolution peut
  * équiper avec ces paramètres — `SearchParams.statsLignesArtefactsEquipables`,
- * que la dominance des runes protège en « Dégâts réels » (degats-et-aura
- * 6bis-b3d-1, constat B1 de la revue technique 6bis-b). Appelé par l'écran
+ * que la dominance des runes protège en « Dégâts réels ». Appelé par l'écran
  * (`handleSearch`, sur `artifactParams`) et par le CLI
  * (`resolveStatsLignesArtefacts`, sur `artefactsDuCli`).
  *

@@ -95,7 +95,7 @@ export type SpawnSlice = (
 //
 // `totalPairs` : l'espace EXACT (`totalPairCount`) que l'appelant a déjà
 // calculé pour choisir le régime — transmis à la fusion, jamais recalculé
-// (degats-et-aura 6bis-b7 : aucun coût ajouté à la recherche).
+// (aucun coût ajouté à la recherche).
 //
 // Répartition GLOUTONNE par charge réelle (LPT) — voir `partitionBucketsALPT`
 // dans runeBuildOptim.ts (déplacée là pour être testable en Node, voir

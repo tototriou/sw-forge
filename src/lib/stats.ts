@@ -169,7 +169,7 @@ export function monsterBaseStats(monster: Monster): BaseStats {
  * partagé entre appels : à lire, jamais à muter — comme tout ce que rend
  * `computeStats`.
  *
- * ⚠️ **Même apport, même tableau** (degats-et-aura 6bis-b13) : les stats ne
+ * ⚠️ **Même apport, même tableau** : les stats ne
  * dépendent que des trois sommes de principales, un tableau déjà construit
  * pour les mêmes sommes est rendu tel quel — des milliers de paires n'en ont
  * qu'une poignée. L'évaluateur de paire s'en sert pour ne calculer l'effet

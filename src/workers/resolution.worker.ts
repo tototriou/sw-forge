@@ -1,6 +1,6 @@
 /// <reference lib="webworker" />
 // Worker de RÉSOLUTION D'ÉQUIPEMENT (paire d'artéfacts et relique, un build à
-// la fois) — degats-et-aura 6bis-b13bis-a.
+// la fois).
 //
 // ⚠️ **COQUILLE SEULE — aucune logique ici.** Tout vit dans
 // `resolutionBody.ts` (`CorpsResolution`), importable en Node et exercé tel

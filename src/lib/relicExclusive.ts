@@ -98,8 +98,7 @@ const CLE_AMELIOREE: Partial<Record<RelicGroupeNom, 'hp' | 'atk' | 'def'>> = {
  * qu'il AMÉLIORE (`relicUniqueNature`), pour chaque type CHIFFRABLE
  * (`exclusiveChiffrable`).
  *
- * Consommée par la dominance des runes (`contexteDominance`, degats-et-aura
- * 6bis-b3c) : un set dont le bonus porte sur l'une d'elles peut faire
+ * Consommée par la dominance des runes (`contexteDominance`) : un set dont le bonus porte sur l'une d'elles peut faire
  * franchir une tranche, il n'est jamais interchangeable avec un set sans
  * effet. ⚠️ **Sur-ensemble assumé** : ni l'objectif ni `percent` ne
  * restreignent rien. Protéger une stat que le score ne lit pas ne coûte que de
@@ -143,7 +142,7 @@ export function tranchesAtteintes(Y: number, tranche: number): number {
  *
  * `setup`/`propres`/`element` servent au seul `statsDebutCombat` (leader
  * skill, compétences d'invocateur, auras externes ET activations propres des
- * runes de ce build — 6bis-b2). Ils sont toujours disponibles : « État de mon
+ * runes de ce build). Ils sont toujours disponibles : « État de mon
  * monstre » modifie les stats quel que soit l'objectif choisi.
  */
 export function apportExclusive(
@@ -204,7 +203,7 @@ export function statsAvecApport(stats: StatRow[], apport: ApportExclusive): Stat
 /**
  * Le facteur qui transforme des PV effectifs en PV effectifs ÉQUIVALENTS sous
  * une réduction de dégâts reçus — **dérivé de l'équation, pas posé par
- * analogie** (B.7) :
+ * analogie** :
  *
  * `Dégâts = (Mult × Crit × DMG% × FacteurDéf × Variance + Additionnel) × Réductions`
  *

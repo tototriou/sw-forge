@@ -589,12 +589,12 @@ function candidatsPourRecherche(
 
 // Au plus tant de listes en mémoire (`MemoPreFiltre`) : deux sortes par
 // pertinence distincte — une seule mesurée sur 1 200 appels (300 builds × 4
-// reliques, degats-et-aura 6bis-b13). Atteinte, le memo se vide d'un coup.
+// reliques). Atteinte, le memo se vide d'un coup.
 export const BORNE_MEMO_PREFILTRE = 64;
 
 /**
  * Les candidats élagués d'une sorte (`candidatsPourRecherche`), mémoïsés sur
- * TOUTES leurs entrées (degats-et-aura 6bis-b13) : la pertinence, par sa
+ * TOUTES leurs entrées : la pertinence, par sa
  * VALEUR (codes croissants et ambigus), et les champs de `params` que lisent
  * `candidatsParSorte` et `preFiltrerCandidats`, par identité.
  *
@@ -672,7 +672,7 @@ export interface ResultatPaires {
 // Un tri instable rendrait le résultat dépendant du moteur JS.
 const PAR_SCORE_DECROISSANT = (a: PaireArtefacts, b: PaireArtefacts) => b.score - a.score;
 
-// `memo` (6bis-b13) : les candidats élagués de chaque sorte, mémoïsés sur
+// `memo` : les candidats élagués de chaque sorte, mémoïsés sur
 // leurs entrées (`MemoPreFiltre`) — même liste. Absent : recalculés.
 export function chercherPaires(params: ArtifactSearchParams, combien = 1, memo?: MemoPreFiltre): ResultatPaires {
   const { trouvees, meilleurSansVerrous } = collecterPaires(params, memo);
@@ -691,8 +691,7 @@ export interface PairesParScore {
 /**
  * Les paires de `chercherPaires`, toutes, par score décroissant — pour un
  * appelant qui s'arrête à la première qui lui convient (la résolution par
- * build : la première conforme, le premier couple faisable), degats-et-aura
- * 6bis-b13.
+ * build : la première conforme, le premier couple faisable).
  *
  * ⚠️ **Même ordre, au bit près.** La première se trouve par un seul parcours
  * : le plus grand score, au PLUS PETIT indice parmi les ex æquo — celle que

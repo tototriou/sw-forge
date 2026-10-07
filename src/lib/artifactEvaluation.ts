@@ -38,12 +38,12 @@ export function regimeArtefacts(critere: StatKey | Objective): RegimeArtefacts {
 
 /**
  * Le régime EFFECTIF de l'ÉQUIPEMENT COMPLET — paire d'artéfacts ET relique,
- * un seul régime pour les deux (D7, implementation-relique) : rabat
+ * un seul régime pour les deux (D7) : rabat
  * `'degats_reels'` sur `'aucun'` tant qu'aucun sort n'est calculable pour ce
  * monstre, sinon le régime brut tel quel.
  *
  * ⚠️ **C'est CE régime, jamais le brut, qui doit alimenter la signature de
- * cache et le choix de paire/relique** (B.5b bis, contrôle 4 — un bug a
+ * cache et le choix de paire/relique** (un bug a
  * laissé passer le régime brut dans la signature) : pendant la transition
  * « sort indisponible → calculable » (le contexte de dégâts passe de
  * `null`/absent à disponible), le régime brut reste `'degats_reels'` dans
@@ -77,7 +77,7 @@ export type DegatsContext = Omit<RealDamageContext, 'artefacts'>;
  *
  * Absent → apport neutre : aucune note d'effet unique.
  * Lu par les régimes `degats_reels` et `ehp` seulement : les régimes
- * `hp`/`atk`/`def` jugent la fiche (degats-et-aura 6bis-b9).
+ * `hp`/`atk`/`def` jugent la fiche.
  */
 export interface CanalExclusive {
   relique: RelicDetail | undefined;
@@ -88,8 +88,7 @@ export interface CanalExclusive {
 /**
  * Au plus tant de paires en cache (`CacheProfilsParPaire`) : un peu plus du
  * double des 7 727 paires distinctes que parcourt la résolution de 300 builds
- * × 4 reliques sur la recette « Dégâts réels » de référence (degats-et-aura
- * 6bis-b13), loin des ~100 000 paires de l'inventaire entier (250 × 430
+ * × 4 reliques sur la recette « Dégâts réels » de référence, loin des ~100 000 paires de l'inventaire entier (250 × 430
  * candidats). Atteinte, le cache se vide d'un coup : jamais plus de cette
  * borne d'entrées vivantes, jamais un résultat différent.
  */
@@ -107,8 +106,7 @@ const SANS_PIECE = -1;
 
 /**
  * Le profil de dégâts d'une paire (`artifactDamageProfile`), mémoïsé par les
- * identifiants de ses pièces, dans l'ordre reçu, emplacement vide compris
- * (degats-et-aura 6bis-b13).
+ * identifiants de ses pièces, dans l'ordre reçu, emplacement vide compris.
  *
  * ⚠️ **Exact parce que le profil ne lit que les pièces** : leurs
  * sous-propriétés, rien du build, de la relique ni du réglage (damage.ts) ;
@@ -153,14 +151,14 @@ export class CacheProfilsParPaire {
   }
 }
 
-// `propres` (6bis-b2, les deux surcharges) : les activations d'aura des runes
+// `propres` (les deux surcharges) : les activations d'aura des runes
 // du build dont `statsAvec` calcule les stats. Constantes pour toutes ses
 // paires et reliques (ni artéfact ni relique ne porte de set), obligatoires :
 // la note d'une paire, celle qui choisit la relique et celle qui classe les
 // voient toutes trois (D6, une seule note).
 // Surcharge 1 : `degats_reels` EXIGE le contexte de dégâts — omission =
 // erreur `tsc`, pas un repli silencieux sur la somme des principales.
-// `profils` (6bis-b13) : le profil de chaque paire est lu dans ce cache au
+// `profils` : le profil de chaque paire est lu dans ce cache au
 // lieu d'être recalculé — même valeur, voir `CacheProfilsParPaire`. Absent :
 // recalculé à chaque paire, comme avant.
 export function evaluerPourRegime(
@@ -199,8 +197,7 @@ export function evaluerPourRegime(
   // ⚠️ L'apport et les stats qui l'incluent ne dépendent que du TABLEAU de
   // stats de la paire (`apportExclusive`, `statsAvecApport` : pures) :
   // calculés une fois par tableau, reconnu à son identité — `statsParPaire`
-  // rend le même tableau aux paires de mêmes principales (degats-et-aura
-  // 6bis-b13). Exact pour tout `statsAvec` ; au plus
+  // rend le même tableau aux paires de mêmes principales. Exact pour tout `statsAvec` ; au plus
   // `BORNE_APPORTS_PAR_STATS` tableaux retenus, puis la mémoire se vide.
   const parStats = new Map<StatRow[], { stats: StatRow[]; apport: ApportExclusive }>();
   const avecApport = (brutes: StatRow[]) => {
@@ -261,7 +258,7 @@ export function evaluerPourRegime(
     // du tri par stat (`scorerPour`), que la carte affiche (`row.total`) et
     // que jugent les conditions min/max. Le canal exclusive est ignoré ici —
     // les points Bravoure/Éternité/Origine ne départagent plus ni les paires
-    // ni les reliques (degats-et-aura 6bis-b9, option (a) de l'utilisateur).
+    // ni les reliques (option (a) de l'utilisateur).
     // `computeStats` garantit une entrée par `StatKey`.
     return (arts) => statTotal(statsAvec(arts), regime);
   }

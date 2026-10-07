@@ -494,7 +494,7 @@ export function findValidatedBuild(validated: ValidatedBuild[], listId: string |
 // abandonné : le garder afficherait un build « validé » qui n'a plus rien à
 // voir avec le compte réel. ⚠️ Jamais silencieux — voir son appelant
 // (App.tsx), qui avertit l'utilisateur du nombre abandonné plutôt que de les
-// perdre sans un mot (point bloquant 4 du cadrage).
+// perdre sans un mot (point bloquant).
 // ⚠️ **BUG CORRIGÉ** (revue de code externe) : la version précédente exigeait,
 // pour un exemplaire RÉEL (box/RTA/siège), que les runes validées soient
 // ENCORE PORTÉES par CET exemplaire (`resolved.gear.runes`) — contradiction

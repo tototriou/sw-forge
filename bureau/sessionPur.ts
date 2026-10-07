@@ -95,7 +95,7 @@ export function confirmationApresExtension(rendu: string, existe: (chemin: strin
 export function messageEchec(code: unknown): string {
   switch (code) {
     case 'ENOENT':
-      return 'Le dossier de la session n’existe plus. « Sauvegarder sous… » permet d’en choisir un autre.';
+      return 'Le dossier de la session n’existe plus. « Sauvegarder sous… » l’enregistre dans le dossier SW Blacksmith.';
     case 'EACCES':
     case 'EPERM':
       return 'Ce dossier refuse l’écriture, ou le fichier est ouvert ailleurs.';
@@ -108,6 +108,21 @@ export function messageEchec(code: unknown): string {
     default:
       return `L’écriture a échoué${typeof code === 'string' ? ` (${code})` : ''}.`;
   }
+}
+
+// Le message montré quand le dossier SW Blacksmith ne peut pas recevoir la
+// session (création du sous-dossier `sessions` impossible). « Sauvegarder
+// sous… » échouerait pareil : la sortie est d'en choisir un autre.
+export function messageEchecDossier(code: unknown): string {
+  const raison =
+    code === 'ENOSPC'
+      ? 'le disque est plein'
+      : code === 'EROFS'
+        ? 'ce disque est en lecture seule'
+        : code === 'EACCES' || code === 'EPERM'
+          ? 'il refuse l’écriture'
+          : 'il est introuvable ou inaccessible';
+  return `Le dossier SW Blacksmith ne peut pas recevoir la session : ${raison}. Choisis-en un autre dans Paramètres › « Dossier SW Blacksmith ».`;
 }
 
 const attendre = (ms: number) => new Promise((r) => setTimeout(r, ms));

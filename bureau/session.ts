@@ -27,6 +27,7 @@ import {
   lireDossierRetenu,
   lireSessionRetenue,
   messageEchec,
+  messageEchecDossier,
   nomProposeValide,
   texteSessionValide,
 } from './sessionPur';
@@ -176,7 +177,7 @@ export function brancherSession(fenetre: BrowserWindow, preuve?: PreuveSession) 
         try {
           mkdirSync(sessions, { recursive: true });
         } catch (err) {
-          return { issue: 'echec', message: messageEchec((err as NodeJS.ErrnoException).code) };
+          return { issue: 'echec', message: messageEchecDossier((err as NodeJS.ErrnoException).code) };
         }
         chemin = sous ? await demanderFichier(sessions, nomPropose) : cheminLibre(sessions, nomPropose, existsSync);
         if (!chemin) return { issue: 'annulee' };

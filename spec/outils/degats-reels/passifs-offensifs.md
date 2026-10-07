@@ -85,7 +85,7 @@ retenu pour le sort actif qui s'affiche, jamais le nombre propre — souvent
 non fiable — du passif lui-même.
 
 ⚠️ **Même exigence étendue aux modificateurs SANS formule propre** (les
-familles introduites dans les vagues suivantes — `BONUS_DEGATS_STACKABLE_
+familles du [catalogue des passifs](catalogue-des-passifs.md) — `BONUS_DEGATS_STACKABLE_
 CONNUS`, les comptes d'effets monstre-wide, Calculated Sacrifice…) —
 demande explicite de l'utilisateur : « affiche les ratios et formules des
 passifs/sorts pour lesquels je t'ai fourni l'information ». Quatre blocs

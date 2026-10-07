@@ -908,12 +908,6 @@
       "proprietaire": "a-publier"
     },
     {
-      "fichier": "src/lib/damage.ts",
-      "renvoi": "spec/outils/optimizer/reliques.md",
-      "occurrences": 1,
-      "proprietaire": "a-publier"
-    },
-    {
       "fichier": "src/lib/effects.ts",
       "renvoi": "../outils/optimizer/reliques.md",
       "occurrences": 1,

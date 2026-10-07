@@ -197,11 +197,15 @@ la justesse : aucune sans la référence exhaustive qu'exige le skill
 
 ### Oracle exhaustif du quasi-succès
 
-- **Constat** : le quasi-succès n'est vérifié que sur un scénario dont
-  chaque valeur est dérivée à la main
-  ([moteur/diagnostics.md § Vérification des diagnostics](moteur/diagnostics.md)).
+- **Constat** : un scénario dérivé à la main
+  ([moteur/diagnostics.md § Vérification des diagnostics](moteur/diagnostics.md))
+  et, sur deux scénarios, l'oracle de `tests/rune-optim-auras-coupes.test.ts`
+  vérifient les valeurs `actual` du quasi-succès, global et par condition,
+  pour la paire retenue. Rien ne vérifie que cette paire est la PLUS
+  PROCHE de toutes.
 - **Idée** : balayer toutes les paires d'un petit pool, sans borne
-  optimiste, et comparer au quasi-succès que `pairBuckets` retient.
+  optimiste, et vérifier que le quasi-succès que `pairBuckets` retient
+  est bien la plus proche, globalement et par condition.
 - **Bloque** : jamais construit ; le pool doit exercer le test conjoint,
   que les replis rapides court-circuitent sur un pool trop simple.
 

@@ -1,5 +1,5 @@
 // Tests de rendu — bibliothèque `src/ui/`. Écrits AVANT le lot 3 de la refonte
-// graphique (`spec/chantiers/refonte-graphique.md` § B.3) : le lot change le
+// graphique : le lot change le
 // RENDU INTERNE des composants, jamais ce qu'ils exposent. Ces tests fixent
 // ce qui est exposé — nom accessible, infobulle, état désactivé, état actif —
 // et doivent rester verts sans que leurs assertions changent.

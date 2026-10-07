@@ -1,4 +1,4 @@
-// Outils des tests de RENDU — refonte graphique, `spec/chantiers/refonte-graphique.md`.
+// Outils des tests de RENDU — nés avec la refonte graphique.
 //
 // Un test de rendu affiche un vrai composant avec des données d'exemple
 // (`react-dom/server`, sans navigateur) et vérifie qu'une FONCTIONNALITÉ ou une

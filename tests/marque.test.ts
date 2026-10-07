@@ -1,5 +1,5 @@
 // Le nom de l'app et ce qui ne doit PAS le suivre — rebranding « SW Blacksmith »,
-// lot R2 (spec/chantiers/rebranding-blacksmith.md).
+// lot R2.
 //
 // ⚠️ Les identifiants de format des exports sont des ADRESSES, pas des textes.
 // Ils sont passés de `sw-forge/…` à `swblacksmith/…` (décision 66), et

@@ -46,8 +46,7 @@ Refonte graphique, lot 10 (la maquette, et la barre de la box reprise du lot
 **la recherche** à largeur fixe (`Champ` de la librairie), **élément et
 étoiles** sur une ligne, et **le tri** qui ouvre la ligne du compte et de la
 pagination — il reste affiché sans résultat. Filtres visibles, jamais en
-menus (décision 20 du cadrage
-[chantiers/refonte-graphique.md](chantiers/refonte-graphique.md)). Au doigt,
+menus. Au doigt,
 rien ne change : grande recherche, filtres et tri dans le tiroir (lot 11).
 
 ### Affichage — [MonsterGrid.tsx](src/components/MonsterGrid.tsx) + [MonsterCard.tsx](src/components/MonsterCard.tsx)

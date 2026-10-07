@@ -1,6 +1,6 @@
 node_modules
 dist
-# Application de bureau (spec/chantiers/application-bureau.md) : le code
+# Application de bureau (spec/shared/application-bureau.md) : le code
 # compilé de `bureau/` et les installeurs — produits, jamais suivis (un
 # installeur dépasse les 5 Mo du hook pre-commit).
 dist-bureau

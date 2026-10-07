@@ -120,17 +120,13 @@ dit pourquoi elle existe.
 
 ## F. Où vit un cadrage
 
-- **Public ou privé, au choix du responsable du chantier.** Public :
-  `spec/chantiers/<sujet>.md`, avec une ligne dans `spec/README.md`
-  § Chantiers (fichier, statut, branche), ajoutée dans le commit qui crée
-  le cadrage. Privé : dans les notes privées du projet, hors de ce dépôt,
-  sans ligne dans `spec/README.md` ; aucun texte public ne cite son
-  emplacement.
-- **Un cadrage public est dans le périmètre du lint**
-  (`spec/spec-lint.json`), et un cadrage privé prend la même forme, que ce
-  dépôt ne vérifie pas (`spec/outillage/spec.md`, « La nature
-  CHANTIER ») : un cadrage est une **quatrième nature**, ni état
-  actuel, ni décision, ni archive — `Statut :` reconnu seulement sous
+- **Toujours privé** : dans les notes privées du projet, hors de ce dépôt ;
+  aucun texte public ne cite son emplacement. Le dépôt ne garde aucune doc
+  de chantier — ni cadrage, ni fiche, ni index —, seulement la doc de
+  l'app.
+- **Forme** (`spec/outillage/spec.md`, « La nature CHANTIER », que ce
+  dépôt ne vérifie pas sur un cadrage privé) : un cadrage est une
+  **quatrième nature**, ni état actuel, ni décision, ni archive — `Statut :` reconnu seulement sous
   deux formes exactes, `CHANTIER en cours` ou `CHANTIER terminé le
   AAAA-MM-JJ` ; blocs terminaux ≤ 100 lignes toujours exigés ; **fichier
   ≤ 500 : exemption inconditionnelle** pour tout fichier sous un dossier
@@ -141,20 +137,15 @@ dit pourquoi elle existe.
   second fichier `<sujet>-lots.md`.
 - **En tête du fichier** : un H1, une ligne vide, puis
   `**Statut :** CHANTIER en cours — branche forge/<sujet>` ou
-  `**Statut :** CHANTIER terminé le <date> — branche forge/<sujet>`
-  (même forme, public ou privé), pour que `spec-toc` le résume en une
-  ligne. Les autres champs d'en-tête (Lire si, Ne pas lire si, Voir
-  aussi) sont facultatifs pour cette nature. Le hook `Read` s'applique à
-  un cadrage public comme à toute spec : au-delà de 300 lignes, `spec-toc`
-  puis la section utile.
-- **Quand le chantier finit**, son statut passe à « `terminé le <date>` ».
-  Un cadrage public reste en place, ou, si son responsable le décide, est
-  archivé dans les notes privées, sans rien laisser à son chemin. Ses
-  contrats encore en vigueur passent alors d'abord dans une référence
-  publique (`spec/outillage/`, `spec/outils/…`), sous des titres propres,
-  sans identifiant de section du cadrage ; les renvois du code, des tests
-  et des skills qui citaient le cadrage sont repointés vers ces titres.
-  Un chantier privé n'a pas de document public.
+  `**Statut :** CHANTIER terminé le <date> — branche forge/<sujet>`,
+  pour que `spec-toc` le résume en une ligne. Les autres champs
+  d'en-tête (Lire si, Ne pas lire si, Voir aussi) sont facultatifs pour
+  cette nature. Au-delà de 300 lignes, `spec-toc` puis la section utile.
+- **Quand le chantier finit**, son statut passe à « `terminé le <date>` »
+  et il rejoint l'archive des notes privées. Ses contrats encore en
+  vigueur passent dans la spec d'état actuel de la zone (`spec/…`), sous
+  des titres propres, sans identifiant de section ni numéro de décision
+  ou de lot du cadrage.
 
 ## Voir aussi
 

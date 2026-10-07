@@ -1,5 +1,5 @@
-// Le protocole maison de l'application de bureau — chantier application-bureau,
-// lot 1 (spec/chantiers/application-bureau.md).
+// Le protocole maison de l'application de bureau
+// (spec/shared/application-bureau.md).
 //
 // ⚠️ **Pourquoi pas `file://`.** L'app lit `import.meta.env.BASE_URL` (`/`) à
 // 19 endroits et charge ses données par `fetch` (`/data/monsters.json`) : sous

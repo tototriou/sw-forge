@@ -1,8 +1,7 @@
 // Tests de rendu — Outils · Speed tuning (`SpeedTuningSection`). Principe dans
 // tests/rendu/outils-rendu.tsx : on vérifie que chaque fonctionnalité et
 // chaque information sont présentes, jamais l'apparence. Écrits AVANT le lot 9b
-// de la refonte graphique (`spec/chantiers/refonte-graphique.md` § B.5 à
-// B.10) : ils doivent rester verts sans qu'une assertion change.
+// de la refonte graphique : ils doivent rester verts sans qu'une assertion change.
 //
 // ⚠️ Rendu serveur : les kits (`public/data/skills`) se chargent dans un
 // effet, qui ne tourne pas. « Ordre des sorts » reste donc vide et l'analyse

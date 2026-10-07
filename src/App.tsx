@@ -1143,7 +1143,7 @@ function Application() {
   // siennes, à partir des MÊMES constantes (libellés, routes) — seule la
   // présentation diffère.
   //
-  // Décisions du mainteneur (spec/chantiers/refonte-graphique.md, A.2 bis) :
+  // Décisions du mainteneur (refonte graphique) :
   // - 3 : icônes MONOCHROMES — la couleur de section quitte le menu, la couleur
   //   reste aux données du jeu ;
   // - 5 : premier niveau regroupé — Jouer (RTA, Siège, Arène), Mon compte

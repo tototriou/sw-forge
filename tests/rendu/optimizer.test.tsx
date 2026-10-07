@@ -1,9 +1,8 @@
 // Tests de rendu — Outils · Optimizer (`OptimizerSection`, et l'écran vide de
 // `OutilsPage`). Principe dans tests/rendu/outils-rendu.tsx : on vérifie que
 // chaque fonctionnalité et chaque information sont présentes, jamais
-// l'apparence. Écrits AVANT le lot 9a de la refonte graphique
-// (`spec/chantiers/refonte-graphique.md` § B.5 à B.10, rebranding décision
-// 64) : ils doivent rester verts sans qu'une assertion change.
+// l'apparence. Écrits AVANT le lot 9a de la refonte graphique (rebranding
+// décision 64) : ils doivent rester verts sans qu'une assertion change.
 //
 // ⚠️ L'état de l'outil (`useOptimizerState`) est un objet ordinaire : le banc
 // appelle le vrai hook puis REMPLACE les champs voulus (monstre choisi, set,

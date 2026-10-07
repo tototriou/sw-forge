@@ -36,8 +36,7 @@ profondeur en sombre deviennent des gris sales sur blanc. Forge et Atelier sont
 **deux systèmes cohérents chacun**, qui partagent leur structure de tokens mais
 pas leurs valeurs.
 
-Depuis le rebranding « SW Blacksmith » (lot R1, 2026-09-29,
-[cadrage](../chantiers/rebranding-blacksmith.md)), les deux thèmes sont ceux
+Depuis le rebranding « SW Blacksmith », les deux thèmes sont ceux
 de la toile :
 
 - **Forge** — charbon brun presque noir, **braise** (`#FF7A1A`) en accent
@@ -47,8 +46,7 @@ de la toile :
   une **braise foncée** (`#A64F11`) pour tout ce qui se lit ou se trace : la
   vive tombe sous 2,6 sur fond clair (voir « Deux braises » plus bas).
 
-Avant : Forge bleu nuit et cuivre, Atelier gris neutre et indigo
-([preuve du R1](../chantiers/rebranding-preuves/lot-R1.md)).
+Avant : Forge bleu nuit et cuivre, Atelier gris neutre et indigo.
 
 ## Tokens
 
@@ -176,8 +174,7 @@ filtre actif indiscernable d'une alerte.
 le seuil ; l'encre sombre de la toile (`#1b1a19`) y fait **6,66**, dans les
 deux thèmes. En Atelier, l'aplat de braise ne se détache du fond qu'à 2,30 —
 sous le 3,0 d'un élément d'interface — mais un bouton plein porte son
-libellé, et c'est lui qui l'identifie. Mesures du R1
-([preuve](../chantiers/rebranding-preuves/lot-R1.md)).
+libellé, et c'est lui qui l'identifie.
 
 ### Rayon intérieur : `rounded-lg-inner`
 
@@ -366,8 +363,7 @@ un palier de l'échelle.
 | `radius-xl` | `rounded-xl` | 14 px | Carte, panneau |
 | `radius-2xl` | `rounded-2xl` | 20 px | Fenêtre : dialogue, panneau mobile |
 
-**Les mêmes dans les deux thèmes** (refonte graphique, décision 2 du mainteneur,
-2026-09-24, [cadrage](../chantiers/refonte-graphique.md)). Forge assumait
+**Les mêmes dans les deux thèmes** (refonte graphique). Forge assumait
 jusque-là l'angle vif (4 / 6 px) ; il l'abandonne pour un rendu d'application
 plus doux, commun aux deux thèmes. Les valeurs sont celles de la toile depuis
 le rebranding (R1) ; elles valaient 6 / 8 / 12 / 14.
@@ -572,7 +568,7 @@ pour annoncer un geste qui se défait (tableau plus haut).
 - « Annuler » **restaure l'élément à sa place** (fonctions `restaurer*` des
   hooks, qui réinsèrent à l'index d'origine) puis ferme la notification.
 - **Deux axes nés de l'application de bureau** (voir
-  [le cadrage](../chantiers/application-bureau.md), lot 5) :
+  [application-bureau.md](application-bureau.md)) :
   - **le libellé de l'action** (`libelleAction`, « Annuler » par défaut ; le
     rappel s'appelle `action`) — « Nouvelle version 2.0.1 disponible ·
     **Mettre à jour** », « Mise à jour prête · **Redémarrer** ». Une seule
@@ -838,7 +834,6 @@ courant. Même tolérance pour les paliers du résumé de compte et pour le lait
 **Règle gardée au rebranding** (décision 8) : 4,5 sur `panel`, rien de plus.
 Sur les fonds de la toile, elle n'a fait bouger que deux paliers, d'un
 cheveu : `pal-1` en Atelier (4,47 → 4,53) et `pal-6` en Forge (3,35 → 4,52).
-Mesures complètes : [preuve du R1](../chantiers/rebranding-preuves/lot-R1.md).
 
 ### Les trois surfaces se distinguent deux à deux
 

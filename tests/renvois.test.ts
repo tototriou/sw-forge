@@ -32,9 +32,6 @@ const NOMS_DE_NOTES = [
   'synthese-decisionnelle-harnais', 'vitesse-finale',
 ].map((n) => n + '.md');
 
-// Chantiers d'un autre contributeur : non lus, rien n'y bouge.
-const FICHIERS_NON_LUS = [/^spec\/chantiers\/refonte-graphique/, /^spec\/chantiers\/rebranding/];
-
 // Fichiers lus, renvois non contrôlés : garde-fous qui citent un chemin privé
 // à dessein, tests qui montent des arborescences jetables aux chemins factices.
 export const FICHIERS_EXEMPTES = [
@@ -334,7 +331,6 @@ export function releverRenvois(racine: string): { occurrences: (Occurrence & { e
   const occurrences: (Occurrence & { exempt: boolean })[] = [];
   const illisibles: string[] = [];
   for (const f of suivis) {
-    if (FICHIERS_NON_LUS.some((re) => re.test(f))) continue;
     let buf: Buffer;
     try { buf = readFileSync(join(racine, f)); } catch { illisibles.push(f); continue; }
     if (buf.subarray(0, 8000).includes(0)) continue; // binaire

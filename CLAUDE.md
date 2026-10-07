@@ -160,8 +160,8 @@ l'inverse) laisse deux sources qui se contredisent.
 Tout travail de plus d'une session, ou confié à des sessions fraîches, se
 cadre dans un fichier — jamais dans un plan de conversation, qui ne se
 recharge pas. Skill `cadrage-chantier` (gabarit, règles de fond,
-emplacement public ou privé au choix du responsable du chantier). Index des
-cadrages publics : `spec/README.md` § Chantiers.
+emplacement). Un cadrage est **toujours privé**, hors du dépôt : le dépôt ne
+garde aucune doc de chantier, seulement la doc de l'app.
 
 ### Déclarer l'application d'un skill avant d'agir
 

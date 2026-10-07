@@ -1,5 +1,5 @@
-// Le NOM de l'application, écrit UNE fois (rebranding « SW Blacksmith », lot R2
-// — spec/chantiers/rebranding-blacksmith.md). Tout texte affiché qui nomme
+// Le NOM de l'application, écrit UNE fois (rebranding « SW Blacksmith », lot
+// R2). Tout texte affiché qui nomme
 // l'app le lit ici : barre latérale, titre, infobulles, messages d'import.
 // `index.html` aussi, au build : `vite.config.ts` y remplace `%NOM_APP%`.
 //

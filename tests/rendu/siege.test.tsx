@@ -1,8 +1,7 @@
 // Tests de rendu — Siège · Défense et Offense (`SiegeBoard`). Principe dans
 // tests/rendu/outils-rendu.tsx : on vérifie que chaque fonctionnalité et chaque
 // information sont présentes, jamais l'apparence. Écrits sur l'écran AVANT la
-// refonte (`spec/chantiers/refonte-graphique.md`) : ils doivent rester verts
-// après.
+// refonte graphique : ils doivent rester verts après.
 
 import SiegeBoard from '../../src/components/siege/SiegeBoard';
 import SiegeTeam from '../../src/components/siege/SiegeTeam';

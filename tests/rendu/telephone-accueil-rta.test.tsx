@@ -1,5 +1,5 @@
 // Tests de rendu AU TÉLÉPHONE — Accueil et RTA (lot 11a de la refonte
-// graphique, `spec/chantiers/refonte-graphique.md` § B.11). Principe dans
+// graphique). Principe dans
 // tests/rendu/outils-rendu.tsx ; rendu téléphone par `auTelephone`, qui
 // fait apparaître les panneaux « Options » (`MobileSheet`). Écrits AVANT le
 // 11a : ils doivent rester verts sans qu'une assertion change.

@@ -1,8 +1,7 @@
 // Tests de rendu — RTA, « Ma prépa » et « Ami » (`RtaPage`). Principe dans
 // tests/rendu/outils-rendu.tsx : on vérifie que chaque fonctionnalité et chaque
 // information sont présentes, jamais l'apparence. Écrits AVANT le lot 6 de la
-// refonte graphique (`spec/chantiers/refonte-graphique.md` § B.5 à B.10) :
-// ils doivent rester verts sans qu'une assertion change.
+// refonte graphique : ils doivent rester verts sans qu'une assertion change.
 //
 // ⚠️ Rendu BUREAU : le panneau d'actions mobile est fermé (`menuOuvert`
 // faux). Le téléphone a son propre lot (11).

@@ -65,10 +65,10 @@ export function mainsPourCeCompte(
   recipe: Pick<OptimizerRecipe, 'artifactMainByKind' | 'wizardName'>,
   accountName: string | null
 ): { mains: OptimizerRecipe['artifactMainByKind']; bascules: boolean } {
-  // ⚠️ **`'none'` a été RETIRÉ du sélecteur** — laisser un emplacement vide
+  // ⚠️ **Le sélecteur n'offre pas `'none'`** — laisser un emplacement vide
   // pendant que l'autre cherche n'a aucun sens en jeu, et « ne pas compter les
   // artéfacts » se dit avec l'interrupteur, pour les DEUX emplacements à la
-  // fois. Une recette exportée avant ce retrait peut encore le porter : on le
+  // fois. Une ancienne recette peut encore porter `'none'` : on le
   // ramène sur « Libre », l'intention la plus proche (cherche le meilleur
   // parmi les tiens). ⚠️ TOUJOURS, avant même la question du compte : une
   // valeur qui n'existe plus ne doit atteindre aucun appelant.

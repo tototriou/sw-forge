@@ -24,7 +24,10 @@
    et se resserre tout seul (voir
    [shared/librairie-ui.md](../../../shared/librairie-ui.md)), comportement commun
    à TOUS les sélecteurs de l'app. **Une puce grisée** signale que l'espèce
-   choisie n'a aucun exemplaire dans cette source. **Une puce dit le nombre
+   choisie n'a aucun exemplaire dans cette source (`options[i].disabled` ;
+   aucune source : tout le contrôle, `allSourcesEmpty`). Un changement
+   d'espèce appelle `speciesCandidatesBySource` lui-même, jamais par un
+   `useMemo` en retard d'un rendu. **Une puce dit le nombre
    dès deux exemplaires** : `{source} · {n}` (« Box · 2 »), même règle pour les
    quatre sources ; à zéro ou un exemplaire, la puce garde son libellé.
    C'est le seul signe qu'un clic sur la puce, même déjà allumée, ouvre la
@@ -140,4 +143,15 @@ les puces de source et la zone D, ne vide rien, et n'efface pas non plus
 les résultats affichés. L'import de
 recette écrit directement ses valeurs après validation ; aucun effet
 différé de changement d'espèce ne les écrase.
+
+## Au téléphone : trois blocs empilés
+
+Un rendu à part (`lg:hidden`), pas un réagencement du bureau :
+
+1. la recherche, toujours visible, avec en dessous la liste active et la
+   zone C dans un dépliement replié par défaut (`zoneCOpen`) ;
+2. les puces, toujours visibles, avec la zone D **en ligne** dessous (le
+   même `zoneDOpen` qu'au bureau ; un flottant se prête mal à un écran
+   étroit) ;
+3. la fiche `MonsterGear`, même composant qu'au bureau.
 

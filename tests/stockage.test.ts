@@ -45,7 +45,7 @@ export default async function testStockage() {
   egal(relu.runes.length, inv.runes.length, 'runes identiques');
   egal(relu.relics, inv.relics, 'reliques identiques après aller-retour');
   egal(relu.relicUsageById, inv.relicUsageById, "occupation par rid conservée");
-  // ⚠️ Le point précis du rév. 6 de implementation-relique : une pièce sans
+  // ⚠️ Le point précis : une pièce sans
   // `sec_effect[2]` (percent illisible) doit rester SANS `percent` après le
   // structured clone d'IndexedDB — jamais un 0 apparu au passage.
   const relique7002 = relu.relics.find((r) => r.id === 7002);
@@ -117,7 +117,7 @@ export default async function testStockage() {
   await ecrireBrut({ schema: 99, savedAt: 1, exportedAt: null, box: [], runes: [], artifacts: [], crafts: [] });
   egal(await loadAccount(), null, 'schéma périmé → ignoré');
 
-  // ⚠️ D10 : le schéma précédent (6, sans reliques) doit être rejeté comme tout
+  // ⚠️ Le schéma précédent (6, sans reliques) doit être rejeté comme tout
   // autre schéma périmé — jamais l'apparence d'un inventaire complet quand
   // `relics`/`relicUsageById` manquent.
   await ecrireBrut({

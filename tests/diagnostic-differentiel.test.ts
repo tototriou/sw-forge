@@ -1,4 +1,4 @@
-// Le DIFFÉRENTIEL ENTRELACÉ — piste 11c (§5.2 bis des extensions).
+// Le DIFFÉRENTIEL ENTRELACÉ (`spec/outils/optimizer/harnais-extensions.md`, « Le différentiel : l'oracle »).
 //
 // ⚠️ **Ce test ne vérifie pas que le moteur a raison ; il vérifie que le
 // différentiel REFUSE ce qu'il doit refuser.** C'est la propriété qui compte
@@ -64,7 +64,7 @@ export default async function testDiagnosticDifferentiel() {
     'chaque lecture porte ses QUATRE champs (OÙ · COMBIEN · SUR COMBIEN · CE QUE ÇA AUTORISE), jamais moins'
   );
 
-  // ⚠️ Le constat n° 1 de 11b, tenu en code : `fumee` ne peut RIEN détecter,
+  // ⚠️ Tenu en code : `fumee` ne peut RIEN détecter,
   // et le différentiel ne doit donc jamais y écrire « aucune divergence ».
   egal(d.premiereDivergence, null, 'fumee — aucun point de divergence, comme mesuré par 11b');
   egal(
@@ -75,7 +75,7 @@ export default async function testDiagnosticDifferentiel() {
   egal(d.sensibilite.axeDeclareSensible, false, 'fumee ne déclare aucun axe sensible — c’est son résultat, pas un oubli');
 
   // ⚠️ Deux bras COMPLETS n'ont pas de préfixe : c'est ce qui supprime le
-  // portier, le plancher et le bruit d'un seul coup (exigence n° 1 de 11a).
+  // portier, le plancher et le bruit d'un seul coup (exigence du harnais).
   egal(d.admissibilite.portier, 'OUVERT', 'fumee — deux bras complets : le portier est ouvert');
   egal(d.admissibilite.prefixe, 'SANS_OBJET', 'deux bras COMPLETS n’ont pas de préfixe partiel à comparer');
 
@@ -97,7 +97,7 @@ export default async function testDiagnosticDifferentiel() {
     `COMBIEN est dans l’unité de l’élément (des candidats), reçu « ${population.combien} »`
   );
 
-  // ⚠️ Le constat n° 3 de 11b, verrouillé : le RANG ne bouge PAS alors que la
+  // ⚠️ Verrouillé : le RANG ne bouge PAS alors que la
   // POPULATION bouge. Un différentiel qui ne lirait que le rang ne verrait
   // rien ici — c'est la justification vivante d'un oracle multi-éléments.
   const classement = div.lectures.find((l) => l.element === 'classement')!;
@@ -136,7 +136,7 @@ export default async function testDiagnosticDifferentiel() {
     'IDENTIQUE',
     'l’étage de perte reste LISIBLE malgré le portier fermé — il ne dépend d’aucun préfixe'
   );
-  // ⚠️ Le cas exact de la mesure I de 11a : deux rangs très différents
+  // ⚠️ Le cas exact d'une mesure de référence : deux rangs très différents
   // (#396/1 000 contre #1 424/27 449) qui ne disent RIEN, la population ayant
   // changé. Les rendre comparables ferait lire « le paramètre déplace la
   // cible de mille rangs ».

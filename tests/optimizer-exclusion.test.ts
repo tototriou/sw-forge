@@ -366,7 +366,7 @@ export default function testOptimizerExclusion() {
     );
   }
 
-  // ── Runes VALIDÉES (Lot 3, « Monstres de la liste ») — 3ᵉ mécanisme
+  // ── Runes VALIDÉES (« Monstres de la liste ») — 3ᵉ mécanisme
   // d'exclusion : un INSTANTANÉ de runeIds, pas une entrée relue
   // dynamiquement, scopé PAR LISTE (deux listes ne se bloquent jamais entre
   // elles — un deck d'offense siège est un preset appliqué momentanément,
@@ -534,7 +534,7 @@ export default function testOptimizerExclusion() {
     egal(unownedDropped.droppedCount, 1, "revalidateBuilds (unowned) : abandonné si une rune n'existe plus du tout dans le compte");
   }
 
-  // ── revalidateMembers (Lot 3) — même principe que revalidateBuilds, mais
+  // ── revalidateMembers — même principe que revalidateBuilds, mais
   // pour la simple appartenance à une liste : seul le sélecteur doit encore
   // résoudre, aucune rune à comparer. ──
   {

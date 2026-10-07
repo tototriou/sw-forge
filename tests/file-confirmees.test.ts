@@ -1,4 +1,4 @@
-// degats-et-aura 6bis-b18 — la file vise K combinaisons CONFIRMÉES
+// La file vise K combinaisons CONFIRMÉES
 // (`prochainsATraiter`, artifactQueue.ts) : elle parcourt l'ordre de base et
 // continue au-delà des écartés (`conforme: false`), jusqu'à K builds résolus ET
 // conformes ou jusqu'au dernier build trouvé — plus seulement les K premiers.

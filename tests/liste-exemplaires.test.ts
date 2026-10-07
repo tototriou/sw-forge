@@ -1,8 +1,8 @@
-// Lot EX de degats-et-aura — plusieurs exemplaires Box d'une même espèce dans
+// Plusieurs exemplaires Box d'une même espèce dans
 // une liste de travail.
 //
 // Les membres d'une liste sont repérés par EXEMPLAIRE (`exclusionSelectorKey`,
-// Box = `box:<unitKey>`) depuis le lot 3 ; ce qui manquait, c'est le chemin à
+// Box = `box:<unitKey>`) ; ce qui manquait, c'est le chemin à
 // l'écran. Choisir l'espèce prend le premier exemplaire Box (`pickSpecies`),
 // le bouton affichait alors « Déjà dans « … » », désactivé, et rien ne disait
 // qu'un autre exemplaire existait.
@@ -96,7 +96,7 @@ export function testListeExemplaires() {
   const rtaMembre = etatAjoutListe({ ...base, membres: [membre('L', a.selector), membre('L', { source: 'rta', monsterId: '77' })] });
   egal(rtaMembre.exemplaireSuivant, b, 'un membre RTA de la même espèce n’occupe aucun exemplaire Box');
 
-  // Lot EX2 : « un autre exemplaire » seulement si l'exemplaire AFFICHÉ vient de la Box.
+  // « Un autre exemplaire » seulement si l'exemplaire AFFICHÉ vient de la Box.
   // Venu de RTA ou du siège, l'exemplaire Box proposé pouvait être le même monstre physique.
   const rta: ExclusionSelector = { source: 'rta', monsterId: '77' };
   const rtaAffiche = etatAjoutListe({ ...base, selecteur: rta, membres: [membre('L', rta)] });
@@ -149,12 +149,12 @@ export function testListeExemplaires() {
   'source : le clic change d’exemplaire PUIS ajoute l’exemplaire suivant, jamais celui déjà membre');
   ok(ajout.length > 0 && !/doitRappeler|setRappelAuras/.test(ajout), 'source : le bouton ne rappelle pas les auras externes');
 
-  // Un seul chemin de changement d'exemplaire (6bis-b19), partagé avec la zone C.
+  // Un seul chemin de changement d'exemplaire, partagé avec la zone C.
   const chemin = entre(ecran, 'function choisirExemplaire(', 'function handleAddToList(');
   ok(/if \(id !== selectedId\) resetSearch\(\);\s*else if \(key !== ownSelectorKey\) effacerResultats\(\);/.test(chemin)
     && chemin.includes('setSourceSelector(selector);') && chemin.includes('setZoneDOpen(false);'),
   'source : choisirExemplaire porte les règles de 6bis-b19 (résultats effacés, critères gardés)');
-  // Revue externe de la v1.14.0, constat 1 : le défaut de relique suit
+  // Revue externe de la v1.14.0 : le défaut de relique suit
   // l'exemplaire désigné, APRÈS le reset qui le remet à « Libre ».
   ok(/setSelectedId\(id\);[\s\S]*if \(autreEspece \|\| key !== ownSelectorKey\) \{[^}]*setRelicMainChoice\(\(c\) => relicMainChoiceApresChangementExemplaire\(c, relique, !autreEspece\)\);/.test(chemin),
     'source : choisirExemplaire recalcule le choix de relique après le reset, jamais en recliquant l’exemplaire affiché');

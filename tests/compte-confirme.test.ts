@@ -1,4 +1,4 @@
-// degats-et-aura 6bis-b18 — le compte des combinaisons CONFIRMÉES
+// Le compte des combinaisons CONFIRMÉES
 // (`compteConfirme`, artifactQueue.ts) : seulement les builds vérifiés (résolus
 // et conformes) de CETTE recherche ; un compte qui ne baisse jamais pendant une
 // recherche ; les pages des confirmées plus une tant qu'il reste des builds non
@@ -132,7 +132,7 @@ export function testCompteConfirme() {
   {
     // Les candidats arrivent par paquets (aperçu qui grandit), la file résout
     // pendant ce temps : le compte confirmé ne baisse jamais. Témoin : le
-    // compte des trouvées (6bis-b10) baisse à chaque écarté découvert.
+    // compte des trouvées baisse à chaque écarté découvert.
     const tirer = alea(2018);
     const tous = recus(600);
     const issue = new Map(tous.map((c) => [cleBuild(c), tirer() < 0.2] as const));

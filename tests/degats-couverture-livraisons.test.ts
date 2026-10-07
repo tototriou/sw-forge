@@ -68,7 +68,7 @@ function stats(valeurs: Partial<Record<StatKey, number>>): StatRow[] {
 }
 
 // Build et réglage d'une sonde du chemin de production
-// (même build que `tests/audit-degats-conditionnels`).
+// (même build que `tests/audit-degats-conditionnels.test.ts`).
 const build = stats({ hp: 20000, atk: 1000, def: 800, spd: 200, cr: 25, cd: 100 });
 const base: DamageSetup = {
   ...DEFAULT_DAMAGE_SETUP,
@@ -213,7 +213,7 @@ export function testCouvertureBonusCritique() {
 // ---------------------------------------------------------------------------
 // IGN-a — ignore DEF conditionnel livré sans test
 // Totaux relevés par une sonde du chemin de production (même
-// build et même réglage que `tests/audit-degats-conditionnels`, DEF de la cible
+// build et même réglage que `tests/audit-degats-conditionnels.test.ts`, DEF de la cible
 // 1 500 sauf Guard Crush, au seuil de 600). « sans » : condition non remplie ;
 // « avec » : interrupteur actif (proc, présence de débuff, cible endormie…).
 // ---------------------------------------------------------------------------

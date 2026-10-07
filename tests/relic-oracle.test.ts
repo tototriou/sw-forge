@@ -140,7 +140,7 @@ export default function testRelicOracle() {
   egal(oracleTrois.N, 3, 'trois principales distinctes : N = 3');
   egal(cles(oracleTrois.candidats), cles(union), 'trois principales : candidats = union des trois listes moteur');
 
-  /* Lot 6 — complétude PAR RUN, et fusion partagée avec l'orchestrateur. */
+  /* Complétude PAR RUN, et fusion partagée avec l'orchestrateur. */
   egal(oracleTrois.runs.length, 3, 'complétude : un relevé par run');
   ok(oracleTrois.complet && oracleTrois.runs.every((r) => !r.truncated), 'complétude : maxMs infini, aucun run tronqué → complet');
   egal(oracleTrois.runs.map((r) => r.principale), [{ code: 100, value: 10 }, { code: 101, value: 10 }, { code: 102, value: 10 }], 'complétude : chaque relevé porte sa principale, dans l’ordre des runs');
@@ -152,7 +152,7 @@ export default function testRelicOracle() {
   ok(tronque.runs.every((r) => r.truncated && r.candidats === 1), 'complétude : chaque run tronqué le dit, avec son compte');
   ok(leve(() => fusionnerRunsOracle(params, runsTrois, [])) != null, 'fusion partagée : N runs sans N résultats est refusé');
 
-  /* Lot 6 — chargement d'un point (--case) : les trois options relique, l'espèce. */
+  /* Chargement d'un point (--case) : les trois options relique, l'espèce. */
   const exportDir = existsSync(resolve(racineTests, '..', 'tototriou-12889591.json')) ? resolve(racineTests, '..') : null;
   if (exportDir) {
     const point = chargerPointOracle(['node', 'relicOracle.ts', '--case=3', '--relic-main=101', '--relic-type=1', '--relic-min-upgrade=0', `--export-dir=${exportDir}`]);
@@ -172,7 +172,7 @@ export default function testRelicOracle() {
     ok(true, 'chargement --case non contrôlé : export réel tototriou-12889591.json absent de la racine');
   }
 
-  /* Lot 6 bis — la paire de référence désignée explicitement (`paireDeReference`) :
+  /* La paire de référence désignée explicitement (`paireDeReference`) :
    * remplace la représentative quand celle-ci ne décrit pas le domaine comparé
    * (Shihwa : `[]` en PV effectifs, le minimum d'ATQ dépend de +100 × 2). */
   {
@@ -215,7 +215,7 @@ export default function testRelicOracle() {
   egal(oracleB1.rid, basse.id, 'B1 : l’optimum faisable porte la PV % +12');
 
   /* ── Refus nommé : pool vide en mode recherche — même classe que le moteur
-   * (revue adversariale du diff du lot 5a, BLOQUANT 2 : l'oracle rendait
+   * (l'oracle rendait
    * { candidats: [], optimum: null, N: 0 } au lieu de lever). */
   {
     const contexteVide = resoudreContexteRelique({ mode: 'recherche', principale: 'libre', type: 'libre', seuil: 6 }, undefined, []);
@@ -259,8 +259,8 @@ export default function testRelicOracle() {
 }
 
 /* --------------------------------------------------------------------------
- * degats-et-aura 6bis-b6 — garantie E depuis 6bis-b3c (revue technique
- * 6bis-b, § 2.3 et § 5.2). Le cas minimal de b3c : Violent + Will / Fight en
+ * Garantie E.
+ * Le cas minimal : Violent + Will / Fight en
  * PV effectifs, une Ténacité·ATQ dont l'assiette (l'ATQ) ne monte qu'avec
  * Fight. La note de référence est celle de la production pour l'équipement
  * complet (`objectiveScore` + auras propres + `apportExclusive` de la
@@ -277,7 +277,7 @@ function runeB3c(id: number, slot: number, set: string, pvPlat = 0): RuneDetail 
   return { id, slot, set, rank: 6, rarity: 5, level: 15, main: { code, value }, subs: pvPlat ? [{ code: 1, value: pvPlat }] : [] };
 }
 
-// `pvWill` : PV plats sur les runes Will (0 : le cas de b3c ; 2 : Violent +
+// `pvWill` : PV plats sur les runes Will (0 : le cas minimal ; 2 : Violent +
 // Will passe devant SANS l'effet unique).
 function casB3c(reliques: RelicDetail[], pvWill: number) {
   const pool = [runeB3c(1, 1, 'violent'), runeB3c(2, 2, 'violent'), runeB3c(3, 3, 'violent'), runeB3c(4, 4, 'violent'),

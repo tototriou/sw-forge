@@ -1,4 +1,4 @@
-// degats-et-aura 6bis-b13bis-a — le corps du Worker de résolution
+// Le corps du Worker de résolution
 // (`src/workers/resolutionBody.ts`) et son protocole, sans navigateur.
 //
 // Ce qui est prouvé ici :
@@ -10,7 +10,7 @@
 //    par `structuredClone` (ce que fait `postMessage`), est IDENTIQUE à la
 //    résolution directe de production (`entreeResolutionDuBuild` +
 //    `resoudreEquipementDuBuild`), build par build — conformité, relique,
-//    paire, score, stats — sur le corpus du lot 5a, en mode relique
+//    paire, score, stats — sur le corpus relique, en mode relique
 //    `recherche` et à relique fixe, quatre régimes, verrous, coût des
 //    verrous, amplifications et emplacement porté ;
 // 4. les caches du corps repartent à neuf à chaque contexte (un inventaire
@@ -18,8 +18,8 @@
 // 5. le protocole : une réponse et une seule par demande, annulation,
 //    contexte périmé, erreurs nommées.
 //
-// Les trois recettes gelées sur le compte réel : script de preuve du lot
-// (`controle-6bis-b13bis-a.md`), qui réutilise `nonClonables` et
+// Les trois recettes gelées sur le compte réel : script de preuve hors dépôt
+// qui réutilise `nonClonables` et
 // `identiques` d'ici.
 
 import { readFileSync } from 'node:fs';

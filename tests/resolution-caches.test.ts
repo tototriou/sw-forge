@@ -1,4 +1,4 @@
-// degats-et-aura 6bis-b13 — les caches partagés par la résolution de
+// Les caches partagés par la résolution de
 // plusieurs builds : le profil de dégâts par paire (`CacheProfilsParPaire`)
 // et les candidats élagués par sorte (`MemoPreFiltre`). Ils ne changent
 // aucun résultat (différentiel contre la résolution qui recalcule tout, sur
@@ -6,8 +6,7 @@
 //
 // Le différentiel contre la copie FIGÉE de l'assemblage d'avant vit dans
 // `resolution-partagee.test.ts` (caches partagés par toute une fixture) ; le
-// différentiel build par build sur les recettes réelles, dans la preuve du
-// lot (`controle-6bis-b13.md`).
+// différentiel build par build sur les recettes réelles, ;
 
 import { ArtifactArchetype, ArtifactDetail, ArtifactKind, ElementKey } from '../src/types';
 import { ARTIFACT_SUB_MAX } from '../src/lib/artifacts';
@@ -42,7 +41,7 @@ function aleatoire(graine: number) {
 // Un inventaire « Libre » éligible (fire / attack) : principales PV, ATQ ou
 // DEF, quatre sous-propriétés tirées parmi les lignes que la sorte peut
 // porter, à une valeur sous leur plafond ; quelques intangibles. Réutilisé
-// par `resolution-worker.test.ts` (6bis-b13bis-a).
+// par `resolution-worker.test.ts`.
 export function inventaire(graine: number, parSorte: number): ArtifactDetail[] {
   const r = aleatoire(graine);
   const codesDe = (kind: ArtifactKind) => Object.keys(ARTIFACT_SUB_MAX).map(Number).filter((c) => artifactSubKinds(c).includes(kind));
@@ -142,7 +141,7 @@ export function testResolutionCaches() {
 
   /* ── 3. Différentiel de la résolution, build par build ─────────────────── */
   // Un inventaire plus large (24 pièces par sorte), « Dégâts réels » au
-  // critique, sur chaque fixture du lot 5a, en mode relique `recherche` et à
+  // critique, sur chaque fixture du corpus relique, en mode relique `recherche` et à
   // relique fixe : UN jeu de caches et UN objet de paramètres de paires pour
   // toute la fixture (une file), contre la résolution qui recalcule tout.
   const invLarge = inventaire(2026, 24);

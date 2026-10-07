@@ -1,4 +1,4 @@
-// degats-et-aura 6bis-b8 — la taille de la file de résolution (`kDeLaFile`,
+// La taille de la file de résolution (`kDeLaFile`,
 // artifactQueue.ts) : 300 builds en mode relique « recherche », 100 sinon,
 // dès le lancement, lue sur le contexte de la recherche LANCÉE.
 //
@@ -47,7 +47,7 @@ export function testKDeLaFile() {
   ok(/relicContext: relicContextRecherche, run, stop \} = search;/.test(ecran),
     'écran : `relicContextRecherche` est le contexte de la recherche lancée (`useBuildOptimSearch`)');
   const appelFile = ecran.match(/useArtifactOptimQueue\(\{[\s\S]*?\n {2}\}\);/)?.[0] ?? '';
-  // Depuis 6bis-b18, par `cibleDeLaFile`, qui rend `kDeLaFile` du même contexte
+  // Via `cibleDeLaFile`, qui rend `kDeLaFile` du même contexte
   // sans l'interrupteur « Vérifier toutes les combinaisons trouvées »
   // (tests/verifier-toutes.test.ts).
   ok(/\n\s*K: cibleDeLaFile\(\{ relicContext: relicContextRecherche, toutVerifier: verifierToutesLesCombinaisons \}\),/.test(appelFile),

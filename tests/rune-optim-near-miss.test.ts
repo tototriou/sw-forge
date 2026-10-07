@@ -1,5 +1,5 @@
-// Diagnostic « quasi-succès » à l'appariement — voir spec/outils/optimizer/
-// near-miss-appariement.md. `pairBuckets` retient, au moment où une paire
+// Diagnostic « quasi-succès » à l'appariement — voir spec/outils/optimizer/moteur/diagnostics.md,
+// « Quasi-succès à l'appariement ». `pairBuckets` retient, au moment où une paire
 // EXPLORÉE échoue le test conjoint exact, la MEILLEURE déjà vue — par
 // condition (satisfait tout SAUF k) et globalement (le plus petit écart
 // relatif MAX, toutes conditions confondues).
@@ -148,8 +148,8 @@ export default async function testRuneOptimNearMiss() {
 
   titre('Optimizer · quasi-succès — survit à un arrêt manuel (drivePairing)');
 
-  // ⚠️ Vérifie spécifiquement le correctif de spec/outils/optimizer/
-  // near-miss-appariement.md, §5 : `drivePairing` reconstruisait
+  // ⚠️ Vérifie spécifiquement le correctif décrit dans spec/outils/optimizer/moteur/diagnostics.md,
+  // « Quasi-succès à l'appariement » : `drivePairing` reconstruisait
   // `SearchResult` À LA MAIN sur `isStopped()` (3 champs seulement) — sans
   // correction, le near-miss accumulé jusqu'à l'arrêt aurait été perdu en
   // silence. Générateur FACTICE (pas un vrai `pairBuckets`) — la question

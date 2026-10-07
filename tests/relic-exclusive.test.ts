@@ -1,5 +1,5 @@
-// Score chiffré des propriétés uniques de relique (implementation-relique,
-// lot 7 — B.7). Un test par GROUPE, contre des valeurs calculées À LA MAIN
+// Score chiffré des propriétés uniques de relique (
+// `spec/outils/optimizer/moteur/reliques.md`, « L'effet unique — score de la propriété exclusive »). Un test par GROUPE, contre des valeurs calculées À LA MAIN
 // depuis des pièces RÉELLES des deux exports du chantier (le `rid` et le
 // `sec_effect = [type, tranche, percent]` de chacune sont cités en
 // commentaire, relevés le 2026-09-22 par le vrai chemin d'import).
@@ -7,8 +7,8 @@
 // ⚠️ **`game-data-curation` s'applique intégralement.** La formule
 // `⌊Y / t⌋ × percent` et le placement de chaque groupe (bracket `DMG%` pour
 // Conquête, `Réductions` pour Ténacité, valeur de BASE pour Bravoure /
-// Éternité / Origine) sont un RELEVÉ EN JEU de l'utilisateur (A.2 ter T4,
-// rév. 41-43), pas une déduction. Ce que ces tests figent, c'est ce relevé —
+// Éternité / Origine) sont un RELEVÉ EN JEU de l'utilisateur (`spec/outils/degats-reels/valeurs-de-jeu-curees.md`),
+// pas une déduction. Ce que ces tests figent, c'est ce relevé —
 // et deux analogies de `damage.ts` s'étant déjà révélées fausses, aucune
 // valeur n'est ici « par symétrie » avec une autre.
 //
@@ -61,7 +61,7 @@ const BASE: BaseStats = { hp: 25000, atk: 2000, def: 1800, spd: 200, cr: 15, cd:
 
 // ⚠️ `summonerSkills: 'combat'` est le DÉFAUT du jeu et de l'app (il n'existe
 // pas de cran « aucun ») : +20 % ATQ/DEF/PV et +15 % VIT, appliqués à la
-// BASE. Ils font partie de l'assiette `Y` (reliques.md § 5.2), donc chaque
+// BASE. Ils font partie de l'assiette `Y` (`spec/outils/optimizer/moteur/reliques.md`, « L'effet unique — score de la propriété exclusive »), donc chaque
 // valeur attendue ci-dessous les inclut. `element: null` écarte en revanche
 // le +21 % ATQ de la compétence élémentaire, qu'un test dédié vérifie.
 const SETUP: DamageSetup = { ...DEFAULT_DAMAGE_SETUP };
@@ -162,7 +162,7 @@ export default function testRelicExclusive() {
     egal(apport(tenacite), { ...APPORT_NEUTRE, reductionPct: 1 }, 'rid 1326 (Ténacité·PV, 1 % / 27 000) : ⌊30 000/27 000⌋ × 1 = −1 % de DGTS reçus');
 
     // PV effectifs ÉQUIVALENTS = pvEffectifs / (1 − X/100) — dérivé de
-    // l'équation, pas posé par analogie (B.7).
+    // l'équation, pas posé par analogie.
     egal(facteurTenacite(0), 1, 'réduction nulle → facteur 1, le score d’avant à l’identique');
     ok(Math.abs(facteurTenacite(1) - 1 / 0.99) < 1e-12, 'réduction de 1 % → facteur 1/0,99');
     const st = statsDe(tenacite);
@@ -275,7 +275,7 @@ export default function testRelicExclusive() {
 }
 
 /* --------------------------------------------------------------------------
- * degats-et-aura 6bis-b5a — l'effet unique dans le classement AFFICHÉ (tri et
+ * L'effet unique dans le classement AFFICHÉ (tri et
  * cartes « Dégâts réels » / « PV effectifs »), dans les TROIS modes.
  *
  * Producteur réel : `optionsDeClassement`, que l'écran appelle tel quel ;
@@ -378,7 +378,7 @@ export function testRelicClassementParMode() {
     ok(proche(p, k.compte ? ehpTenacite : ehpNeutres), `PV effectifs, ${k.nom} : ${p?.toFixed(3)} (attendu ${(k.compte ? ehpTenacite : ehpNeutres).toFixed(3)})`);
   }
 
-  /* ── Tri PV/ATQ/DEF : la fiche, comme la carte (6bis-b9) ────────────────── */
+  /* ── Tri PV/ATQ/DEF : la fiche, comme la carte ────────────────── */
   {
     // Bravoure (type 9 : ATQ depuis les PV) — tranche 12 000, 5 %, principale
     // DEF +0. A : ATQ 2 300, PV 25 000 → Y 30 000 → 2 tranches → +10 % de
@@ -395,7 +395,7 @@ export function testRelicClassementParMode() {
       realDamage: null, damageSetup: SETUP, runeById: parId, metric: 'eff', aurasPropresDe: propresDe,
       artefactsDuBuild: () => null, etatReliqueDe: e, contexteExclusive: { setup: SETUP, element: null },
     });
-    // Attentes modifiées en 6bis-b9 (option (a) de l'utilisateur) : jusque-là
+    // Attentes modifiées (choix de l'utilisateur) : jusque-là
     // [2 500, 2 550] et B devant A, les points Bravoure comptés dans le tri.
     for (const [nom, e] of [['off', etat(ctxOff, bravoure)], ['equipped', etat(ctxEquipped, bravoure)]] as const) {
       egal([scoreDuCandidat(a, 'atk', opts(e)), scoreDuCandidat(b, 'atk', opts(e))], [2300, 2250], `tri ATQ, ${nom} : la fiche, 2 300 et 2 250 — les points Bravoure ne classent plus (6bis-b9)`);
@@ -403,14 +403,14 @@ export function testRelicClassementParMode() {
     }
     // L'ancien ordre de BASE de l'écran (options sans effet unique), affiché
     // tel quel tant que la file n'a rien résolu, contredisait les cartes
-    // (6bis-b5a). Depuis 6bis-b9, il coïncide avec le classement affiché.
+    // Il coïncide désormais avec le classement affiché.
     const ancienneBase = sortCandidates([a, b], 'atk', { runeById: parId, metric: 'eff', damageSetup: SETUP, aurasPropresDe: propresDe });
     egal(ancienneBase.map(cleBuild), sortCandidates([a, b], 'atk', opts(etat(ctxOff, bravoure))).map(cleBuild),
       'ordre de base sans effet unique et classement affiché : le même ordre (6bis-b9)');
     const nonResolu = etat(ctxRecherche, bravoure);
     egal(scoreDuCandidat(a, 'atk', opts(nonResolu)), 2300, 'tri ATQ, recherche non résolue : neutre (2 300)');
     egal(sortCandidates([a, b], 'atk', opts(nonResolu)).map(cleBuild), [a, b].map(cleBuild), 'tri ATQ, recherche non résolue : ordre des stats seules');
-    // Bascule de 6bis-b9 : l'écart consigné par 6bis-b5a (« la carte montre
+    // Bascule : l'écart d'avant (« la carte montre
     // 2 300, le tri classe sur 2 500 ») est corrigé — la carte (`StatPanel`,
     // `candidate.stats`) montre la valeur qui classe.
     egal(scoreDuCandidat(a, 'atk', opts(etat(ctxOff, bravoure))), statTotal(a.stats, 'atk'),
@@ -482,7 +482,7 @@ export function testRelicClassementParMode() {
       'écran : etatReliqueDe dépend de la PIÈCE de la fiche (objet), pas de son identifiant');
     // Le CLI : même producteur ; sans cache de file, `fixe` en off/equipped
     // (relique de la fiche, `SearchParams.relic`), `en attente` en recherche.
-    // Depuis 6bis-b5c, ces options de l'ordre de BASE vivent dans
+    // Ces options de l'ordre de BASE vivent dans
     // `classerCommeLEcran` (scripts/lib/classementCli.ts), que le script
     // appelle ; la résolution par build les complète ensuite.
     const cli = readFileSync('scripts/lib/classementCli.ts', 'utf8');
@@ -493,7 +493,7 @@ export function testRelicClassementParMode() {
 }
 
 /* --------------------------------------------------------------------------
- * degats-et-aura 6bis-b5a — « Comparer » : la FICHE notée comme un candidat
+ * « Comparer » : la FICHE notée comme un candidat
  * (`scoreDeReference`, le producteur que l'écran appelle) — ses stats, ses
  * auras propres, le profil de SA paire d'artéfacts, l'effet unique de SA
  * relique. L'ancienne référence mêlait les stats de la fiche au profil de
@@ -589,8 +589,8 @@ export function testRelicReferenceComparer() {
 }
 
 /* --------------------------------------------------------------------------
- * 6bis-b9 — le tri par PV, ATQ ou DEF classe sur la FICHE (constat C7 de la
- * revue technique 6bis-b, option (a) de l'utilisateur, 2026-10-01) : le tri,
+ * Le tri par PV, ATQ ou DEF classe sur la FICHE (choix
+ * de l'utilisateur) : le tri,
  * l'évaluateur de paire des régimes `hp`/`atk`/`def` et la carte lisent une
  * seule valeur, sans les points Bravoure/Éternité/Origine. « Dégâts réels »
  * et « PV effectifs » les comptent toujours (témoins).

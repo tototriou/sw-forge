@@ -1,11 +1,11 @@
 // Coupes SÛRES, diagnostics et rétention face aux auras propres au build
-// (degats-et-aura, lot 6bis-b3b). Discipline `algo-verify` : un ORACLE
+// Discipline `algo-verify` : un ORACLE
 // exhaustif indépendant, sur le pool AVANT préparation, contre le vrai
 // moteur (`searchBuilds`, bout en bout).
 //
 // ⚠️ Indépendance de l'oracle : il partage `computeStats` (fiche, aucune
 // aura) et `activeSets` (sets actifs, Intangible compris), rien d'autre. Il
-// compte lui-même les activations d'aura, les +8 points RES/PRE (A.2 ter),
+// compte lui-même les activations d'aura, les +8 points RES/PRE (`spec/outils/degats-reels/valeurs-de-jeu-curees.md`),
 // la satisfaction du combo demandé et les conditions min/max. Il n'appelle
 // ni `aurasPropres*`, ni `pointsAuraResPre*`, ni `prepareSearch`, ni aucune
 // borne ou élagage du moteur. `avecAurasConditions` ne sert qu'à construire
@@ -17,8 +17,8 @@
 // par la MÊME fonction des deux côtés — une dominance qui retire une rune
 // Fight utile fait baisser le meilleur score, c'est tout ce qu'on mesure.
 //
-// ⚠️ **Limite assumée : cet oracle NE NOTE PAS** (degats-et-aura 6bis-b3d-2,
-// constat C8). Il compare un maximum PAR CRITÈRE, sans sort, sans artéfact
+// ⚠️ **Limite assumée : cet oracle NE NOTE PAS** (
+// il compare un maximum PAR CRITÈRE, sans sort, sans artéfact
 // ni relique : il est aveugle à l'effet unique de la relique et aux lignes
 // d'artéfact 218–221. Mesuré : `statsDeLEffetUnique` ou `statsLuesParLesLignes`
 // vidé, il reste entièrement vert. Ces deux protections de la dominance sont
@@ -186,7 +186,7 @@ function parametres(cas: Cas, extra: Partial<SearchParams> = {}): SearchParams {
 }
 
 // Première coupe traversée par un build (6 identifiants), lue dans la trace.
-// Réutilisée par l'oracle de 6bis-b3c (`rune-optim-dominance-relique.test.ts`).
+// Réutilisée par l'oracle de `rune-optim-dominance-relique.test.ts`.
 export function premiereCoupe(t: TraceCandidat | undefined, tronque: boolean): string {
   if (!t) return 'trace:absente';
   for (const e of t.preparation) if (!e.presentes.every(Boolean)) return `preparation:${e.etage}`;

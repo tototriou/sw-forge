@@ -52,9 +52,9 @@ export default function testOptimizerRecipeImportSelection() {
   testRecetteRelique();
 }
 
-// Lot 2 (implementation-relique, B.2) : trois champs (`relicMainChoice`,
+// Trois champs (`relicMainChoice`,
 // `relicUniqueChoice`, `relicMinUpgrade`) dans `OptimizerRecipe`, sans écran
-// — voir spec/outils/optimizer/chantiers/implementation-relique.md § B.2.
+// — voir spec/outils/optimizer/moteur/reliques.md.
 function recetteDeBase(extra: Partial<Parameters<typeof buildOptimizerRecipe>[0]> = {}) {
   return buildOptimizerRecipe({
     monsterCom2usId: 14104,
@@ -90,7 +90,7 @@ function monstreCharge(relic?: LoadedMonster['gear']['relic']): LoadedMonster {
 function testRecetteRelique() {
   titre('Optimizer · recette de relique (lot 2) — trois champs, défauts, bascule');
 
-  // Recette ANCIENNE (avant le lot 2) : aucun des trois champs. `tsc` ne
+  // Recette ANCIENNE (avant ces champs) : aucun des trois champs. `tsc` ne
   // détecte jamais un champ optionnel oublié — c'est ce round-trip qui
   // protège la compatibilité arrière (règle des constructeurs multiples,
   // CLAUDE.md).
@@ -112,7 +112,7 @@ function testRecetteRelique() {
     ok(parseOptimizerRecipe(JSON.stringify(invalideType)).recipe === null, 'relicUniqueChoice hors des 16 types connus : recette rejetée');
   }
 
-  // Le seuil est un FILTRE D'ENTRÉE (D2), jamais un critère : hors bornes, il
+  // Le seuil est un FILTRE D'ENTRÉE, jamais un critère : hors bornes, il
   // est NORMALISÉ plutôt que rejeté — seul champ de ce parseur à l'être.
   {
     const tropBas = { ...recetteDeBase(), relicMinUpgrade: -1 };
@@ -123,7 +123,7 @@ function testRecetteRelique() {
   }
 
   // « Garder la relique équipée » ne se partage pas — même règle que
-  // l'artéfact (`mainsPourCeCompte`, D1 : « mêmes trois règles »).
+  // l'artéfact (`mainsPourCeCompte` : « mêmes trois règles »).
   {
     const r = { relicMainChoice: 'equipped' as const, wizardName: 'Alice' };
     const autreCompte = relicMainPourCeCompte(r, 'Bob');
@@ -142,14 +142,14 @@ function testRecetteRelique() {
     egal(nonEquipe.bascule, false, 'une principale explicite (101) : rien à basculer, même venue d’ailleurs');
 
     // Le CLI (`recipeToSearchParams.ts`) ne bascule JAMAIS — même règle que
-    // l'artéfact (D1) : reproduire fidèlement l'export signalé, pas
+    // l'artéfact : reproduire fidèlement l'export signalé, pas
     // « corriger » une intention exportée avec un compte explicite.
     const rechargeParLeCli = recipeToRelicIntent({ ...recetteDeBase(), relicMainChoice: 'equipped' }, monstreCharge());
     egal(rechargeParLeCli.principale, 'equipped', 'le CLI reproduit « equipped » tel quel, sans bascule de compte');
   }
 
   // Le défaut de `relicMainChoice` se CALCULE contre le monstre — jamais une
-  // constante (D1, incident artéfacts « le défaut affiché était FAUX »).
+  // constante (incident artéfacts « le défaut affiché était FAUX »).
   {
     egal(defaultRelicMainChoice(undefined), 'libre', 'monstre sans relique → défaut « libre »');
     egal(
@@ -160,7 +160,7 @@ function testRecetteRelique() {
   }
 
   // Changement d'exemplaire hors du bestiaire (liste de travail, « un autre
-  // exemplaire », réimport) : revue externe de la v1.14.0, constat 1.
+  // exemplaire », réimport) : revue externe de la v1.14.0.
   {
     const relique = { id: 7, upgrade: 6, main: { code: 100, value: 11 } };
     egal(relicMainChoiceApresChangementExemplaire('libre', relique, false), 'equipped',
@@ -176,7 +176,7 @@ function testRecetteRelique() {
   }
 
   // `recipeToRelicIntent` (CLI) applique les mêmes défauts qu'un écran qui
-  // câblerait `defaultRelicMainChoice` (lot 5c) — même recette, mêmes
+  // câblerait `defaultRelicMainChoice` — même recette, mêmes
   // réglages résolus, qu'il y ait ou non une relique portée.
   {
     const recetteAncienne = recetteDeBase();
@@ -192,7 +192,7 @@ function testRecetteRelique() {
     egal(interrupteurCoupe.mode, 'off', "« Activer l'optimisation d'artéfacts » coupé : mode « off » pour la relique aussi (D1)");
   }
 
-  // Lot 5c (B.5c, contrat) : « même recette → même RelicIntent par les deux
+  // Contrat : « même recette → même RelicIntent par les deux
   // constructeurs » — `relicIntentDepuisEtat` (le constructeur ÉCRAN, depuis
   // `OptimizerState`) doit produire EXACTEMENT le même `RelicIntent` que
   // `recipeToRelicIntent` (le constructeur CLI, depuis `OptimizerRecipe`)
@@ -217,8 +217,8 @@ function testRecetteRelique() {
       egal(depuisEcran, depuisCli, `même recette (${JSON.stringify(recette.relicMainChoice)}) → même RelicIntent, écran comme CLI`);
     }
 
-    // Recette ANCIENNE (avant le lot 2, aucun des trois champs) : les deux
-    // constructeurs retombent sur le même défaut D1 — ici avec relique portée.
+    // Recette ANCIENNE (avant ces champs, aucun des trois champs) : les deux
+    // constructeurs retombent sur le même défaut — ici avec relique portée.
     const ancienne = recetteDeBase();
     const depuisCliAncienne = recipeToRelicIntent(ancienne, monstreCharge(relique));
     const depuisEcranAncienne = relicIntentDepuisEtat(

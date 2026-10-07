@@ -121,7 +121,7 @@ export default function testRuneOptimDifferential() {
     // ⚠️ L'optimum EXACT n'est comparable que si le moteur n'a pas été
     // tronqué (`truncated`) : au-delà de son plafond de collecte, il renvoie
     // « le meilleur trouvé », pas une garantie d'optimalité globale — c'est
-    // documenté (spec/outils/optimizer/), pas un bug. Le comparer quand
+    // documenté (`spec/outils/optimizer/limites-connues.md`), pas un bug. Le comparer quand
     // même ferait échouer le test sur un comportement voulu.
     if (res.candidates.length > 0 && ref.count > 0 && !res.truncated) {
       const bestFound = Math.max(...res.candidates.map((c) => c.effTotal));
@@ -160,8 +160,8 @@ export default function testRuneOptimDifferential() {
     // ⚠️ `totalPairCount` (affiché à l'écran comme « espace de recherche à
     // épuiser ») doit valoir EXACTEMENT le nombre de paires visitées par une
     // recherche exhaustive (`!truncated`) sur ce même scénario — pas
-    // seulement « au moins autant ». Voir spec/outils/optimizer/, « Suite —
-    // espace de recherche affiné (pairFeasibleMin) ». Balayé sur les 15
+    // seulement « au moins autant ». Voir `spec/outils/optimizer/moteur/elagages.md`, « Élagage sûr — faisabilité ».
+    // Balayé sur les 15
     // scénarios aléatoires (sets et minStats variés, contrairement au pool
     // synthétique à un seul compartiment de tests/rune-optim.test.ts) plutôt
     // que sur un seul cas choisi à la main.
@@ -172,7 +172,7 @@ export default function testRuneOptimDifferential() {
     // (« ne jamais annoncer moins de travail qu'il n'y en a », la formulation
     // d'origine de cette assertion). Ce n'est plus le seul enjeu : c'est cette
     // exactitude qui autorise à SUPPRIMER le budget de nœuds et son escalade
-    // (spec/outils/optimizer/pistes.md, piste 8), donc à laisser `pairBuckets`
+    // donc à laisser `pairBuckets`
     // parcourir son espace sans aucun plafond de paires. Elle tient parce que
     // les deux fonctions appliquent LITTÉRALEMENT les mêmes prédicats
     // factorisés (`satisfiesSets`, joker, `bucketPairFeasibleMin`,
@@ -284,8 +284,8 @@ export default function testRuneOptimDifferential() {
   }
 
   // ⚠️ Scénario DÉDIÉ (pas aléatoire) — vérifie le correctif du cas limite
-  // documenté dans spec/outils/optimizer/, « Suite — bonus de set NON
-  // demandé anticipé dès le pré-filtrage » : `guaranteedSetBonus` ne compte
+  // documenté dans `spec/outils/optimizer/moteur/elagages.md`, « Élagage sûr — faisabilité » :
+  // `guaranteedSetBonus` ne compte
   // QUE les sets de `requirement.sets` — un set qui s'activerait par ACCIDENT
   // via les emplacements « libres » (non requis par le combo demandé) était
   // invisible de TOUS les élagages (`eliminateInfeasible`, `comboAOk`,
@@ -355,7 +355,7 @@ export default function testRuneOptimDifferential() {
   }
 
   // ⚠️ Scénario DÉDIÉ — vérifie le correctif « activation supplémentaire d'un
-  // set DÉJÀ demandé » (voir spec/outils/optimizer/, cas réel Ciri :
+  // set DÉJÀ demandé » (voir `spec/outils/optimizer/moteur/elagages.md`, « Élagage sûr — faisabilité » ; cas réel Ciri :
   // Energy demandé UNE fois — 1 activation garantie, +15 % PV — mais le
   // build réel en active DEUX, `energy+shield+energy`, +30 % PV réels).
   // `guaranteedSetBonus` ne comptait que l'activation MINIMALE demandée ;

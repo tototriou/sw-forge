@@ -5,9 +5,8 @@
 // `.slice()`. Voir spec/outils/optimizer/pistes.md, piste « point 2 —
 // filterSlot : top-K via le tas ».
 //
-// ⚠️ **Version corrigée après une revue de code externe** (voir
-// spec/outils/optimizer/archive/historique/historique-dimensionnement.md, « revue de code
-// externe : le défaut 'relevance' invalidé », point 3) : la version
+// ⚠️ **Version corrigée après une revue de code externe** :
+// la version
 // précédente définissait SA PROPRE réimplémentation locale de `heapPush`
 // (array + tri complet à chaque insertion) au lieu d'appeler le vrai
 // `heapPush` de `runeBuildOptim.ts` — un bug dans le VRAI code n'aurait pas

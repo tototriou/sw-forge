@@ -1,4 +1,4 @@
-// degats-et-aura 6bis-b18 — l'interrupteur « Vérifier toutes les combinaisons
+// L'interrupteur « Vérifier toutes les combinaisons
 // trouvées » (Réglages avancés, désactivé par défaut) : la file vérifie tous
 // les builds trouvés au lieu de s'arrêter à K confirmées (`cibleDeLaFile`,
 // artifactQueue.ts). Gardé dans la recette (champ optionnel

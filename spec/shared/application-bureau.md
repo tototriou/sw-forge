@@ -229,6 +229,11 @@ notification), `BlocApplication` (Réglages).
   l'offre, et peut relancer une recherche (« Rechercher »).
 - **Jamais de bruit sans demande** : une recherche qui échoue au lancement
   ne dit rien ; tout va dans `mise-a-jour.log` (dossier des données).
+- ⚠️ **Une recherche se conclut toujours** : quand `checkForUpdates` se
+  termine sans aucun événement (il rend `null` quand electron-updater
+  s'estime inactif, une AppImage extraite par exemple), elle passe en
+  `injoignable` si on l'a demandée, sinon en `aucune` — jamais bloquée sur
+  « Recherche… », que « Rechercher » refuserait de relancer.
 
 ## Vérifier
 

@@ -66,7 +66,16 @@ export function brancherSwex(fenetre: BrowserWindow, preuve?: PreuveSwex) {
     if (!dossier) return { dossier, fichier, exports: [], dernierLu, introuvable: false };
     try {
       const noms = readdirSync(dossier, { withFileTypes: true }).filter((d) => d.isFile()).map((d) => d.name);
-      const exports = exportsDuDossier(noms).map((e) => ({ ...e, modifie: statSync(join(dossier, e.fichier)).mtimeMs }));
+      // ⚠️ Chaque fichier à part : un export que SW Exporter réécrit à cet
+      // instant peut disparaître entre la liste et sa date. Il est sauté —
+      // le dossier, lui, est bien là.
+      const exports = exportsDuDossier(noms).flatMap((e) => {
+        try {
+          return [{ ...e, modifie: statSync(join(dossier, e.fichier)).mtimeMs }];
+        } catch {
+          return [];
+        }
+      });
       return { dossier, fichier, exports, dernierLu, introuvable: false };
     } catch {
       return { dossier, fichier, exports: [], dernierLu, introuvable: true };

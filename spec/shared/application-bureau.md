@@ -177,6 +177,8 @@ change pas. Ce qui en dépend aujourd'hui :
 - ⚠️ La page ne se déclare prête qu'**après** le chargement des monstres et
   la relecture du compte conservé : plus tôt, la box serait vide, ou écrasée
   par un compte plus ancien.
+- **Un export qui disparaît pendant la lecture du dossier** (SW Exporter le
+  réécrit à cet instant) est sauté, sans rendre le dossier « introuvable ».
 
 ## L'installeur
 

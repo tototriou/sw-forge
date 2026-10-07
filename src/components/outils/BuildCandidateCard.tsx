@@ -68,8 +68,9 @@ interface Props {
   // Écart d'efficience/score total avec la référence — la ligne de mesure en
   // tête de carte est toujours affichée, donc son écart aussi quand on compare.
   metricDelta?: number;
-  // Bouton « Valider » (Lot 2 — réservation des 6 runes de CE build, voir
-  // spec/outils/optimizer/archive/historique/historique-import-monstres-a-optimiser.md).
+  // Bouton « Valider » (réservation des 6 runes de CE build, voir
+  // spec/outils/optimizer/listes-et-reservation.md,
+  // « Créer, valider et réserver dans une liste »).
   // `undefined` : aucun bouton — cas d'un monstre non réellement possédé
   // (repli stats de base, voir OptimizerSection.tsx), rien à réserver sur un
   // exemplaire qui n'existe pas dans le compte.
@@ -458,7 +459,7 @@ export default function BuildCandidateCard({
         </div>
       )}
 
-      {/* « Valider » (Lot 2) — réserve les 6 runes de CE build (bloquées
+      {/* « Valider » — réserve les 6 runes de CE build (bloquées
           pour les recherches des AUTRES monstres de « Monstres déjà runés »,
           voir OptimizerSection.tsx). Absent (`onValidate` non fourni) pour
           un monstre non réellement possédé — rien à réserver sur un

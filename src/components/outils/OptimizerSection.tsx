@@ -215,7 +215,7 @@ interface Props {
   rtaEntries: Record<string, RtaEntry>;
   siegeDefenseTeams: SiegeTeam[];
   siegeOffenseTeams: SiegeTeam[];
-  // Listes de travail (Lot 3) — remonté dans App.tsx pour les mêmes raisons
+  // Listes de travail — remonté dans App.tsx pour les mêmes raisons
   // qu'`optimizer` (survit au démontage) ET pour persister sur disque (voir
   // useOptimizerLists.ts), ce qu'`optimizer` lui-même ne fait délibérément
   // pas.
@@ -261,8 +261,7 @@ const CONFIGURABLE_SLOTS: (2 | 4 | 6)[] = [2, 4, 6];
 // encore la nouvelle valeur dans le même appel). Sert deux choses : activer/
 // désactiver chaque puce (une espèce jamais possédée dans une source
 // précise désactive SA puce, voir
-// spec/outils/optimizer/archive/historique/historique-import-monstres-a-optimiser.md,
-// Questions 2-3) et peupler la désambiguïsation
+// spec/outils/optimizer/ecran/recherche-du-monstre.md) et peupler la désambiguïsation
 // d'exemplaire (zone D, plusieurs candidats dans la même source — ex. 2
 // équipes de siège).
 // ⚠️ Box : `item.gear` truthy suffit (PAS `item.gear.runes.length>0`,
@@ -309,7 +308,7 @@ function unownedSelectorIfNoneOwned(monster: Monster, box: BoxItem[], exclusionD
 
 // Deux builds portent-ils EXACTEMENT le même jeu de 6 runes (peu importe
 // l'ordre) ? Sert à repérer, parmi les candidats affichés, celui qui EST le
-// build déjà validé pour ce monstre (Lot 2) — un simple `===` sur les
+// build déjà validé pour ce monstre — un simple `===` sur les
 // tableaux ne suffirait pas, `runeIds` n'est jamais garanti dans le même
 // ordre d'un calcul à l'autre.
 /**
@@ -319,7 +318,8 @@ function unownedSelectorIfNoneOwned(monster: Monster, box: BoxItem[], exclusionD
  * un build aux MÊMES runes mais aux artéfacts DIFFÉRENTS : l'utilisateur
  * voyait des stats qui ne sont pas celles réservées, et le bouton disait
  * « Validé » sans rien offrir. Le cas est devenu courant depuis que la paire
- * suit le critère de tri (voir spec/outils/optimizer/artefacts.md, §12.16) :
+ * suit le critère de tri (voir spec/outils/optimizer/moteur/artefacts.md,
+ * « Régime de la paire ») :
  * changer de tri change la paire, donc les stats, à runes identiques.
  *
  * Un artéfact entre dans les statistiques du monstre — deux paires
@@ -355,8 +355,7 @@ type EtatValidation = 'non' | 'oui' | 'artefacts';
  * `RegimeArtefacts`/`regimeArtefacts`/`evaluerPourRegime` vivent dans
  * `artifactEvaluation.ts` — UNE seule définition, partagée avec le CLI
  * (`scripts/lib/recipeToSearchParams.ts`), pour que les deux ne puissent
- * plus diverger silencieusement (spec/outils/optimizer/
- * decisions/cadrage-score-artefacts-ehp.md).
+ * plus diverger silencieusement (spec/outils/optimizer/moteur/artefacts.md).
  */
 
 function memesIds(a: number[], b: number[]): boolean {
@@ -399,7 +398,7 @@ function download(filename: string, text: string) {
 
 // Outil « Optimizer » : cherche, parmi les runes du compte, la (les)
 // meilleure(s) combinaison(s) de 6 pour un monstre, un combo de sets et des
-// minimums de stats donnés. Voir spec/outils/optimizer/.
+// minimums de stats donnés. Voir spec/outils/optimizer/README.md.
 // Les deux crans de « Meilleurs artéfacts offensifs pour ce build ».
 //
 // ⚠️ Défini ici et non dans `runeBuildOptim.ts` avec `OBJECTIVE_LABELS` : ce
@@ -421,8 +420,7 @@ const LARGEUR_SELECTEUR_LISTE = 'w-44 truncate';
 // Principale / Propriété unique / Niveau minimum) : une largeur commune,
 // dimensionnée sur le plus long (« Propriété unique »), sans quoi les
 // boutons de la seconde rangée ne tombent pas sous ceux de la première —
-// « Type » et « Propriété unique » doivent être alignés (demande explicite,
-// vue sur le rendu du lot 5c quater).
+// « Type » et « Propriété unique » doivent être alignés (demande explicite).
 const LARGEUR_LIBELLE_LISTE = 'w-28';
 
 export default function OptimizerSection({ box, runes, artifacts, relics, relicUsageById, optimizer, allMonsters, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, lists, accountName, menuOuvert, onFermerMenu, onOuvrirMenu }: Props) {
@@ -509,9 +507,8 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
 
   // Tous les monstres du BESTIAIRE, indexés par id — la recherche du
   // monstre à optimiser résout désormais une ESPÈCE dans TOUT le bestiaire
-  // (monstre possédé ou non), pas seulement dans les 4 sources du compte
-  // (voir spec/outils/optimizer/archive/historique/historique-import-monstres-a-optimiser.md,
-  // Question 1). Indexé par `String(monster.id)` — même clé que
+  // (monstre possédé ou non), pas seulement dans les 4 sources du compte.
+  // Indexé par `String(monster.id)` — même clé que
   // `RtaEntry.monsterId`/`SiegeSlot.monsterId` (voir applyAccount.ts).
   // Recalculé seulement si la liste de monstres change, pas à chaque rendu.
   const monsterById = useMemo(() => {
@@ -829,7 +826,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
     ]
   );
   // Statistiques principales autorisées sur les slots 2/4/6 — vide = libre.
-  // Voir spec/outils/optimizer/ : pour un Lushen, ATQ% en 2, Dmg Crit en 4,
+  // Voir spec/outils/optimizer/ecran/set-et-principale.md : pour un Lushen, ATQ% en 2, Dmg Crit en 4,
   // ATQ% en 6 — sans cette contrainte, ces slots partent dans n'importe quel
   // sens et noient le pré-filtrage sous des runes hors sujet.
   function toggleMainStat(slot: 2 | 4 | 6, code: number) {
@@ -859,7 +856,8 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
   // Filet de sécurité fixe, large, PAS un réglage utilisateur : le bouton
   // « Arrêter » reste le vrai moyen de reprendre la main. 10 min, pas 15 s :
   // une recherche légitimement longue (preset Extrême sur un gros compte,
-  // voir « Validation grandeur nature ») ne doit pas être coupée avant
+  // voir spec/outils/optimizer/verification.md,
+  // « Validation grandeur nature ») ne doit pas être coupée avant
   // d'avoir eu sa chance d'aboutir.
   const HARD_TIMEOUT_MS = 10 * 60 * 1000;
 
@@ -923,8 +921,8 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
   // activer explicitement pour restreindre a changé de sens et de nom, avec
   // en plus un périmètre au choix (RTA/Défenses siège/Box, un seul à la
   // fois, voir `AUTO_EXCLUSION_SCOPES`) là où l'ancienne case ne portait QUE
-  // sur la box. Voir spec/outils/optimizer/ « Suite — case cochée par
-  // défaut » pour l'historique de la case d'origine.
+  // sur la box. Voir spec/outils/optimizer/exclusion.md,
+  // « Exclusion des runes déjà portées ailleurs ».
   const exclusionData = useMemo<ExclusionSourceData>(
     () => ({ box, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, monsterById }),
     [box, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, monsterById]
@@ -1091,11 +1089,11 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
   // Confirmation avant de libérer un build validé — demande explicite de
   // l'utilisateur. Porte la PAIRE (liste, sélecteur) à libérer (`null` =
   // dialogue fermé), pas juste un booléen, pour savoir LAQUELLE confirmer —
-  // un build validé est identifié par les DEUX depuis le Lot 3 (le même
+  // un build validé est identifié par les DEUX (le même
   // exemplaire peut porter un build différent dans deux listes).
   const [releaseConfirm, setReleaseConfirm] = useState<{ listId: string; selector: ExclusionSelector } | null>(null);
   // Confirmation avant de libérer TOUTES les runes validées d'une liste
-  // d'un coup (Lot 3) — porte l'id de la liste concernée.
+  // d'un coup — porte l'id de la liste concernée.
   // Confirmation avant de rendre la PAIRE d’artéfacts d’un build validé,
   // ses runes restant réservées — destructif comme `releaseConfirm`, donc
   // confirmé de la même façon.
@@ -1132,7 +1130,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
   // du tout (recherche vide).
   // Clé du sélecteur ACTIF — sert d'auto-exemption pour les runes validées
   // (voir `otherValidatedRuneIds` plus bas) et à retrouver si CET exemplaire
-  // a déjà un build validé (Lot 2, `findValidatedBuild`).
+  // a déjà un build validé (`findValidatedBuild`).
   const ownSelectorKey = sourceSelector ? exclusionSelectorKey(sourceSelector) : null;
   const ownValidatedBuild = findValidatedBuild(lists.validated, lists.activeListId, ownSelectorKey);
 
@@ -1154,11 +1152,11 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
     if (sourceSelector) {
       const resolved = resolveExclusionEntry(sourceSelector, exclusionData);
       if (resolved) {
-        // ⚠️ **Runes VALIDÉES affichées comme équipées** (Lot 2) — un build
+        // ⚠️ **Runes VALIDÉES affichées comme équipées** — un build
         // trouvé par la recherche puis validé n'est PAS réellement reruné en
         // jeu ; substituer seulement `runes` (base/artéfacts/relique restent
-        // ceux réellement équipés, voir spec/outils/optimizer/historique-
-        // import-monstres-a-optimiser.md) donne l'illusion voulue « ce
+        // ceux réellement équipés, voir spec/outils/optimizer/listes-et-reservation.md,
+        // « Zone C — Monstres de la liste ») donne l'illusion voulue « ce
         // monstre porte déjà ce build » sans toucher au reste de la fiche.
         // `showRealGear` désactive CETTE substitution (mais pas la
         // résolution elle-même) pour retrouver l'équipement réel sur
@@ -1262,7 +1260,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
     // automatique (un périmètre entier, RTA/Défenses siège/Box),
     // `excludedSelectors` l'exclusion manuelle en plus (entrée par entrée,
     // n'importe laquelle des 4 sources), `lists.validated` les runes déjà
-    // VALIDÉES pour un AUTRE monstre de LA MÊME liste active (Lot 3 — scopé
+    // VALIDÉES pour un AUTRE monstre de LA MÊME liste active (scopé
     // par liste, deux listes ne se bloquent jamais entre elles) — voir
     // optimizerExclusion.ts. Jamais les siennes propres (`ownSelectorKey`) :
     // sans cette exemption, relancer une recherche sur un monstre déjà
@@ -1391,8 +1389,8 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
   const regimeEquipement: RegimeArtefacts = regimeEquipementDe(regimePaire, !!contexteDegatsArtefacts);
 
   /**
-   * Le contexte de l'assiette `Y` des propriétés uniques de relique (lot 7,
-   * `relicExclusive.ts`) : le `DamageSetup` et l'élément de l'espèce.
+   * Le contexte de l'assiette `Y` des propriétés uniques de relique
+   * (`relicExclusive.ts`) : le `DamageSetup` et l'élément de l'espèce.
    *
    * ⚠️ **Indépendant du contexte de dégâts** : « État de mon monstre » (lead,
    * compétences d'invocateur) modifie les statistiques quel que soit
@@ -1452,7 +1450,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
     // ⚠️ Le score de la paire dépend de l'OBJECTIF, et PAS de la même façon
     // pour tous : `pvEffectifs` (PV effectifs) n'est PAS une somme des deux
     // principales, contrairement à l'efficience/la VIT (voir
-    // spec/outils/optimizer/decisions/cadrage-score-artefacts-ehp.md).
+    // spec/outils/optimizer/moteur/artefacts.md).
     // `evaluerPourRegime` centralise ce contrat, partagé avec le site « au
     // fil de l'eau » plus bas et le CLI (`recipeToSearchParams.ts`).
     //
@@ -1525,8 +1523,8 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
     // où il sert le plus : un monstre runé pour SURVIVRE (efficience, PV
     // effectifs, vitesse) porte de gros PV/DEF/VIT, que les lignes 218-221
     // convertissent en dégâts — son build est déjà figé par un autre objectif,
-    // et les artéfacts se posent par-dessus. C'est le cas fondateur du cadrage
-    // (spec/outils/optimizer/artefacts.md, §1), et je l'avais exclu.
+    // et les artéfacts se posent par-dessus. C'est le cas fondateur de ce bloc
+    // (spec/outils/optimizer/ecran/meilleurs-artefacts-offensifs.md).
     // ⚠️ Rien à montrer sans optimisation : ce bloc EST une optimisation
     // d'artéfacts, et il répondrait « la meilleure paire est celle que tu
     // portes » — vrai, mais uniquement parce qu'on lui a interdit d'en
@@ -1735,7 +1733,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
    * être franchi par les runes seules, sans raison — au point que forcer la
    * principale sur DEF rendait PLUS de résultats que « Libre », qui autorise
    * pourtant strictement plus de paires. Voir
-   * spec/outils/optimizer/artefacts.md, §12.
+   * spec/outils/optimizer/moteur/artefacts.md, « Bornes d'apport pendant la recherche ».
    *
    * ⚠️ **La borne est calculée PAR STAT ISOLÉE, donc pas conjointement
    * atteignable** : avec des minimums sur PV, ATQ et DEF à la fois, le vecteur
@@ -1796,9 +1794,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
   // difficiles », voir SearchParams dans runeBuildOptim.ts) — réalloue le
   // budget de rétention par tranche entre les stats demandées selon leur
   // dispersion mesurée, au lieu d'un plafond uniforme. Désactivé (défaut) :
-  // comportement historique inchangé, coût nul (vérifié par mesure — voir
-  // spec/outils/optimizer/, « Suite — piste B gatée derrière un
-  // paramètre »). Activé : recherche plus longue (+20 % de temps de
+  // comportement historique inchangé, coût nul (vérifié par mesure). Activé : recherche plus longue (+20 % de temps de
   // construction mesuré en moyenne), pour les cas où la recherche normale
   // ne trouve pas un build qui semble pourtant montable.
   //
@@ -1925,8 +1921,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
   useEffect(() => {
     if (!importMsg) return;
     // Un message porteur d'un avertissement de conversion n'a pas de délai
-    // (`null`) : il reste jusqu'au prochain import (lot CM, décision du
-    // 2026-10-02) — voir `delaiEffacementImport` (messageImport.ts).
+    // (`null`) : il reste jusqu'au prochain import — voir `delaiEffacementImport` (messageImport.ts).
     const delai = delaiEffacementImport(importMsg);
     if (delai === null) return;
     const t = setTimeout(() => setImportMsg(null), delai);
@@ -2167,7 +2162,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
       // bascule « equipped » → « libre » sur compte différent ; le défaut
       // D1 (`defaultRelicMainChoice`, contre la relique réellement portée)
       // ne s'applique QUE si la recette ne porte pas le champ (recette
-      // antérieure au lot 2) — résolu plus bas, une fois le monstre trouvé.
+      // antérieure à ce champ) — résolu plus bas, une fois le monstre trouvé.
       const { main: relicMainResolu, bascule: relicBascule } = relicMainPourCeCompte(recipe, accountName);
       setRelicUniqueChoice(recipe.relicUniqueChoice ?? 'libre');
       setRelicMinUpgrade(recipe.relicMinUpgrade ?? DEFAULT_RELIC_MIN_UPGRADE);
@@ -2183,7 +2178,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
         + (bascules ? ` Cette recette vient d'un autre compte : « Garder l'artéfact équipé » est passé sur « Libre ».` : '')
         + (relicBascule ? ` Cette recette vient d'un autre compte : « Garder la relique équipée » est passé sur « Libre ».` : '')
         // ⚠️ Ce que le parseur a CONVERTI (l'ancien mode critique « Moyenne »
-        // → « Critique », degats-et-aura lot CM) se dit aussi, mot pour mot
+        // → « Critique ») se dit aussi, mot pour mot
         // comme le CLI (`chargerRecette`) : jamais une conversion silencieuse.
         + (avertissements ?? []).map((a) => ` ${a}`).join('');
       // Un avertissement de conversion change le TON et la DURÉE du message :
@@ -2217,8 +2212,8 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
         // Cas limite : le `com2usId` de la recette ne correspond à AUCUN
         // monstre des données actuellement chargées (ex. retiré du jeu) —
         // devrait rester rare maintenant que `allMonsters` couvre tout le
-        // bestiaire (avant Lot 1, ce message apparaissait dès que le
-        // monstre n'était simplement pas POSSÉDÉ, un cas bien plus courant).
+        // bestiaire (autrement, ce message apparaîtrait dès que le
+        // monstre n'est simplement pas POSSÉDÉ, un cas bien plus courant).
         // ⚠️ Aucun exemplaire résolu : pas de relique connue pour calculer le
         // défaut D1, repli sur « libre » (même situation que `pickSpecies`
         // sur une espèce possédée nulle part).
@@ -2339,13 +2334,13 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
         lignesVerrouillees,
         relique: selected?.gear.relic ?? null,
         nbArtefacts: artifacts.length,
-        // ⚠️ La dimension relique de la recherche (lot 5b) : mode, pool
+        // ⚠️ La dimension relique de la recherche : mode, pool
         // éligible, choix, seuil — tout dans l'empreinte canonique. Un tri
         // qui change de régime invalide déjà par `objective` ci-dessus ; un
         // tri qui n'en change pas ne relance rien (plan § 8.4).
         empreinteRelique: relicContextRecherche?.empreinte ?? null,
         // ⚠️ B.5b bis, bloquant 2 : le résolveur consomme `requirement`
-        // (minimums ET maximums) depuis le lot 5b ; sans lui ici, relancer
+        // (minimums ET maximums) ; sans lui ici, relancer
         // avec un autre maximum gardait un couple devenu infaisable en cache.
         requirement: requirementAvecAuras,
         // ⚠️ Les artéfacts RÉSERVÉS par les autres builds validés de la liste
@@ -2373,10 +2368,10 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
 
   /**
    * Résout l'équipement d'UN build — paire ET relique, ensemble — pour la
-   * file : `resoudreEquipementDuBuild` (relicQueue.ts, lot 5b), la partie
+   * file : `resoudreEquipementDuBuild` (relicQueue.ts), la partie
    * pure que `tests/relic-queue.test.ts` compare à l'oracle, avec l'entrée
    * construite par `entreeResolutionDuBuild` — le producteur que le CLI
-   * appelle aussi (degats-et-aura 6bis-b5c) : le build, le prédicat à relique
+   * appelle aussi : le build, le prédicat à relique
    * fixe (`respecteConditionsPaireFixe` : minimums et maximums RES/PRE, les
    * autres maximums restant hors filtre, T11), les conditions complètes et
    * le contexte relique de la recherche LANCÉE (garantie G : jamais une
@@ -2554,7 +2549,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
    * fait que changer le tri d'affichage repriorise la file sans rien invalider
    * (le cache est indexé par build).
    *
-   * ⚠️ Lot 5b : les stats remplacées INCLUENT la relique retenue
+   * ⚠️ Les stats remplacées INCLUENT la relique retenue
    * (`ResultatArtefacts.relique`) — c'est ici, AVANT `sortCandidates`, que
    * la résolution exacte entre dans le classement ; un build qu'aucun couple
    * (paire, relique) ne rend faisable est `conforme: false` et sort par le
@@ -2688,8 +2683,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
   // source sans AUCUN candidat pour l'espèce courante voit SA puce
   // désactivée (voir l'axe `disabled` ajouté à Segmented.tsx), le contrôle
   // entier en plus si les 4 le sont (aucune source ne possède l'espèce).
-  // Dès deux exemplaires dans une source, sa puce le dit (« Box · 2 », lot EX
-  // de degats-et-aura) : c'est le seul signe qu'un clic dessus ouvre la zone D,
+  // Dès deux exemplaires dans une source, sa puce le dit (« Box · 2 ») : c'est le seul signe qu'un clic dessus ouvre la zone D,
   // y compris sur la puce déjà allumée. Le compte ne dépend que de l'espèce,
   // jamais d'un clic : les puces, à largeur égale (`size="lg"`), ne bougent pas.
   const sourceOptions = SOURCE_OPTIONS.map((o) => ({
@@ -2699,7 +2693,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
   }));
   const allSourcesEmpty = sourceOptions.every((o) => o.disabled);
 
-  // Effectif par liste (Lot 3) — affiché dans `OptimizerListPicker`, à côté
+  // Effectif par liste — affiché dans `OptimizerListPicker`, à côté
   // de chaque nom de liste.
   const memberCountsByList = useMemo(() => {
     const out: Record<string, number> = {};
@@ -2733,11 +2727,11 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
       ))
     );
 
-  // Zone C (Lot 3) — les monstres de la liste ACTIVE, fusionnée avec
-  // l'ancienne « Monstres déjà runés » (Lot 2) : chaque ligne porte
+  // Zone C — les monstres de la liste ACTIVE : chaque ligne porte
   // directement son état validé, une section séparée ailleurs dans l'écran
-  // pour la même info aurait été redondante (voir spec/outils/optimizer/
-  // archive/historique/historique-import-monstres-a-optimiser.md, « Suite — cadrage du Lot 3 »).
+  // pour la même info aurait été redondante (voir
+  // spec/outils/optimizer/listes-et-reservation.md,
+  // « Zone C — Monstres de la liste »).
   const activeList = lists.lists.find((l) => l.id === lists.activeListId) ?? null;
   const activeMembers = lists.activeListId ? lists.members.filter((m) => m.listId === lists.activeListId) : [];
   const listHasValidated = activeList != null && lists.validated.some((v) => v.listId === activeList.id);
@@ -2750,7 +2744,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
   // mais pas encore désambiguïsée (zone D). Sans liste active, crée-en une
   // ET y ajoute le monstre dans le même geste plutôt que d'obliger un
   // aller-retour par le menu déroulant.
-  // ⚠️ Lot EX de degats-et-aura : l'exemplaire affiché déjà membre, un autre
+  // ⚠️ L'exemplaire affiché déjà membre, un autre
   // exemplaire Box de l'espèce absent de la liste → le bouton reste actif
   // (« Ajouter un autre exemplaire de … ») et vise le premier exemplaire Box
   // absent, dans l'ordre de la zone D. Décision pure : `etatAjoutListe`.
@@ -2765,7 +2759,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
 
   // Change l'exemplaire optimisé — chemin UNIQUE des gestes qui désignent un
   // exemplaire précis hors des puces de source : un membre de la zone C et
-  // le bouton « Ajouter un autre exemplaire » (lot EX). Autre espèce :
+  // le bouton « Ajouter un autre exemplaire ». Autre espèce :
   // `resetSearch` habituel. Même espèce, AUTRE exemplaire (6bis-b19, décision
   // de l'utilisateur) : la recherche affichée a été faite pour l'ancien — sa
   // fiche, sa relique, ses artéfacts portés ; effacée comme au changement
@@ -2995,8 +2989,9 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
             gain sur une grosse base affichaient le même nombre.
             ⚠️ L'absolu s'affiche TOUJOURS, même quand on porte déjà la
             meilleure paire — c'est justement là qu'il est seul à dire quelque
-            chose, l'écart valant zéro. L'écart, lui, ne s'affiche que s'il y a
-            quelque chose à gagner. */}
+            chose, l'écart valant zéro. L'écart, lui, ne s'affiche que si la meilleure
+            paire n'est pas déjà portée et que l'écart n'est pas nul à
+            l'arrondi, en plus comme en moins (voir plus bas). */}
         {/* ⚠️ Aucun chiffre quand il n'y a rien à proposer : un « 0 / coup »
             se lirait comme un résultat, alors que rien n'a été cherché. */}
         {modeArtefactsSeuls.explication == null && (
@@ -3292,7 +3287,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
                     // Règles de 6bis-b19 (autre espèce : `resetSearch` ; même
                     // espèce, autre exemplaire : résultats effacés) — voir
                     // `choisirExemplaire`, chemin partagé avec le bouton
-                    // « Ajouter un autre exemplaire » (lot EX).
+                    // « Ajouter un autre exemplaire ».
                     choisirExemplaire(m.selector, resolved.monster);
                     // ⚠️ **Rappel des auras externes (degats-et-aura 7b) — ICI,
                     // dans le geste de la liste de travail, et nulle part
@@ -3458,79 +3453,56 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
       </p>
 
       {/* ── UNE SEULE grille, à partir de `xl`, pour tout l'écran de
-          réglages (Monstre, Critères, Objectif, Réglages avancés,
-          Exclusion) ────────────────────────────────────────────────────
-          ⚠️ **Disposition ACTUELLE** (après le repositionnement demandé
-          suite au Lot 3) : rangée 1 = Monstre & équipement, PLEINE
-          LARGEUR (`xl:col-span-2`). Rangées 2-3, colonne 1 = Critères de
-          recherche (`row-span-2`, même patron que l'ancien Monstre ci-
-          dessous). Rangée 2, colonne 2 = Objectif de recherche (à droite
-          de Critères, demande explicite). Rangée 3, colonne 2 = Réglages
-          avancés (sous Objectif). Rangée 4, colonne 2 = Exclusion de
-          runes (sous Réglages avancés). Rangée 5, pleine largeur =
-          estimation. Le paragraphe qui suit décrit la disposition
-          ANTÉRIEURE (avant Lot 3) — gardé pour la narration chronologique
-          de `row-span-2`/`FlottantAuto`, toujours d'actualité sur le
-          PRINCIPE (juste plus sur les mêmes blocs).
+          réglages (Monstre, Critères, Artéfacts, État de mon monstre,
+          Exclusion, Réglages avancés) ────────────────────────────────────
+          ⚠️ **Disposition au bureau** (`xl:grid-cols-[1.35fr_1fr]`) : rangée 1
+          = Monstre & équipement, PLEINE LARGEUR (`xl:col-span-2`). Colonne 1,
+          rangées 2 à 5 (`row-span-4`) = Critères de recherche. Colonne 2,
+          de haut en bas : Artéfacts et reliques (rangée 2), État de mon
+          monstre (3), Exclusion de runes (4), Réglages avancés (5). Rangée 6,
+          pleine largeur = estimation.
           ⚠️ **Placement EXPLICITE (`col-start`/`row-start`/`row-span`) sur
           CHAQUE bloc** — l'ordre du DOM peut alors rester celui de l'ordre
           d'USAGE (1. monstre, 2. objectif, 3. critères, puis
           optionnellement exclusion/réglages avancés) SANS dicter l'ordre
-          VISUEL au bureau, qui suit une logique de PAIRES : Monstre à côté
-          d'Exclusion/Réglages avancés (rangées 1-2), Critères à côté
-          d'Objectif (rangée 3). Sous `xl`, une seule colonne : ces classes
-          ne s'appliquent plus, l'ordre du DOM (= l'ordre d'usage) devient
+          VISUEL au bureau. Sous `xl`, une seule colonne : ces classes ne
+          s'appliquent plus, l'ordre du DOM (= l'ordre d'usage) devient
           l'ordre de lecture.
           ⚠️ **Réglages avancés reste EMPILÉ sous Exclusion de runes**
-          (rangée 2, `row-span-2` sur Monstre pour couvrir les deux) —
-          demande explicite : une tentative précédente l'avait isolé en
-          DERNIÈRE rangée pour éviter qu'il pousse « Critères de
-          recherche » en se dépliant, corrigeant le bon symptôme par le
-          mauvais moyen (déplacer un bloc que l'utilisateur n'avait pas
-          demandé à déplacer). Le VRAI fix : son contenu déplié n'est plus
-          un bloc INLINE qui grandit la carte, mais un **`FlottantAuto`**
-          qui flotte PAR-DESSUS la page — la carte elle-même garde
-          toujours la même hauteur repliée, donc aucune rangée ne peut
-          plus jamais bouger quand on déplie, quel que soit l'endroit où
-          le bloc vit dans la grille. Voir `avancesRef`/`showAdvanced` plus
-          bas, et [design.md](../../../spec/shared/design.md) : « un clic
-          ne déplace jamais ce qu'on vient de cliquer » — un panneau
-          replié par défaut ne peut pas réserver sa place à l'avance sans
-          perdre l'intérêt d'être replié, donc il sort du flux (flottant),
-          l'autre option prévue par cette règle.
+          (colonne 2, rangées 4 et 5) : son contenu déplié n'est pas un bloc
+          INLINE qui grandit la carte, mais un **`FlottantAuto`** qui flotte
+          PAR-DESSUS la page — la carte elle-même garde toujours la même
+          hauteur repliée, donc aucune rangée ne bouge quand on déplie, quel
+          que soit l'endroit où le bloc vit dans la grille. Voir
+          `avancesRef`/`showAdvanced` plus bas, et
+          [design.md](../../../spec/shared/design.md) : « un clic ne déplace
+          jamais ce qu'on vient de cliquer » — un panneau replié par défaut
+          ne peut pas réserver sa place à l'avance sans perdre l'intérêt
+          d'être replié, donc il sort du flux (flottant), l'autre option
+          prévue par cette règle.
           ⚠️ `items-start` : sans lui, chaque bloc s'étire à la hauteur de sa
           rangée et les cartes courtes se retrouvent avec un grand vide
           bordé.
-          ⚠️ **Colonne 1 en `1.35fr`, plus une largeur en pixels** : elle
-          était bornée à `minmax(480px,560px)`, trop étroite pour la rangée
-          d'équipement (recherche 224 + stats 200 + artéfacts 58 + roue 208 +
-          relique ≈ 800 px) — la roue puis la relique passaient à la ligne,
-          cette dernière finissant hors du cadre. En `fr`, la colonne suit la
-          largeur réelle de l'écran (≈ 700 px à `xl`, ≈ 965 px sur un 1920)
-          au lieu d'un plafond deviné, et « Critères de recherche » (`w-fit`,
-          même colonne) continue de se serrer sur son contenu. */}
+          ⚠️ **Colonne 1 en `1.35fr`, pas une largeur en pixels** : une
+          colonne bornée à `minmax(480px,560px)` est trop étroite pour la
+          rangée d'équipement (recherche 224 + stats 200 + artéfacts 58 + roue
+          208 + relique ≈ 800 px) — la roue puis la relique passeraient à la
+          ligne, cette dernière finissant hors du cadre. En `fr`, la colonne
+          suit la largeur réelle de l'écran (≈ 700 px à `xl`, ≈ 965 px sur un
+          1920), et « Critères de recherche » (`w-fit`, même colonne) se
+          serre sur son contenu. */}
       <div className="grid gap-5 items-start xl:grid-cols-[1.35fr_1fr]">
       {/* Étape 1 — carte À PART, en tête du DOM. ⚠️ **La fiche reste
           TOUJOURS affichée, vide (`EMPTY_GEAR`) tant qu'aucun monstre n'est
           choisi**, plutôt que de n'apparaître qu'au clic : l'espace qu'elle
-          occupe est réservé d'avance (voir spec/shared/design.md).
-          `row-span-2` : occupe les DEUX rangées où « Exclusion de runes »
-          puis « Réglages avancés » s'empilent à sa droite — sûr même une
-          fois Avancés déplié, puisque son contenu déplié est un
-          `FlottantAuto` qui ne grandit plus la carte (voir plus bas).
-          ⚠️ **SUPERSÉDÉ PAR LE LOT 3** (commentaire ci-dessous) — gardé pour
-          la narration chronologique : la carte n'est plus `row-span-2`
-          dans la colonne 1, elle occupe désormais la rangée 1 en PLEINE
-          LARGEUR. */}
-      {/* ⚠️ Lot 3 : carte élargie EN PLEINE LARGEUR (`xl:col-span-2`,
-          `xl:row-start-1`, plus de `row-span-2`) — la fiche stats/artéfacts/
-          runes/relique a déménagé DANS cette carte (colonne interne de
-          droite, sous les puces) au lieu de vivre pleine largeur tout en bas
-          (voir plus loin) ; elle a besoin de la largeur des DEUX colonnes de
-          la page pour tenir stats+artéfacts+roue+relique sur une seule
-          ligne sans repasser à la ligne. « Exclusion de runes »/« Réglages
-          avancés », qui vivaient à sa droite, descendent donc d'une rangée
-          (voir plus bas). */}
+          occupe est réservé d'avance (voir spec/shared/design.md). */}
+      {/* ⚠️ Carte en PLEINE LARGEUR (`xl:col-span-2`, `xl:row-start-1`) : la
+          fiche stats/artéfacts/runes/relique vit DANS cette carte (colonne
+          interne de droite, sous les puces) et a besoin de la largeur des
+          DEUX colonnes de la page pour tenir stats+artéfacts+roue+relique sur
+          une seule ligne sans repasser à la ligne. « Exclusion de runes » et
+          « Réglages avancés » occupent la colonne 2, rangées 4 et 5 (voir
+          plus bas). */}
       <div className="rounded-xl border border-border bg-panel p-3 xl:col-span-2 xl:row-start-1">
         <div className="mb-3 flex items-center gap-2">
           <div className="flex h-6 w-6 flex-none items-center justify-center rounded-md border border-border-soft bg-panel2">
@@ -3540,14 +3512,14 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
         </div>
         {/* ⚠️ Bureau et mobile ont des dispositions RÉELLEMENT DIFFÉRENTES
             ici, une par bloc `hidden`/`lg:hidden`, pas l'une déclinée de
-            l'autre (Question 7 du cadrage, voir spec/outils/optimizer/
-            archive/historique/historique-import-monstres-a-optimiser.md — Lot 1) : recherche +
+            l'autre (voir spec/outils/optimizer/ecran/recherche-du-monstre.md) : recherche +
             puces CÔTE À CÔTE avec zones C/D en encarts fixes sur bureau,
             contre 3 blocs empilés avec un dépliement propre chacun au
-            doigt. La fiche (zone E), elle, est PARTAGÉE (même JSX, tout en
-            bas) — son contenu ne change pas entre les deux formats. */}
-        {/* ⚠️ Lot 3 : carte élargie en PLEINE LARGEUR (voir le commentaire
-            d'ouverture de cette carte) — nécessaire pour que la fiche
+            doigt. La fiche (zone E) a deux `<MonsterGear>`, un par format (ici,
+            et dans le bloc 3 du téléphone), branchés sur le MÊME état
+            (`selectionFiche`) — son contenu ne change pas entre les deux
+            formats. */}
+        {/* ⚠️ Carte en PLEINE LARGEUR — nécessaire pour que la fiche
             stats/artéfacts/roue/relique, déplacée ici SOUS les puces
             (colonne de droite), tienne sur une seule ligne sans repasser à
             la ligne (gabarit réel : ~200px stats + ~60px artéfacts + ~210px
@@ -3562,13 +3534,13 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
         <div className="hidden lg:grid lg:grid-cols-[1.35fr_1fr] lg:items-start lg:gap-6">
           {/* Zone A (recherche — résout une ESPÈCE dans tout le bestiaire,
               possédée ou non, voir Question 1 du cadrage) + liste active
-              (Lot 3) + zone C (monstres de cette liste), à GAUCHE. */}
+              + zone C (monstres de cette liste), à GAUCHE. */}
           <div>
             <p className="label mb-1.5">Monstre à optimiser</p>
             {/* ⚠️ Mode BESTIAIRE (voir MonsterSourcePicker.tsx, Question 8
                 du cadrage) : résout une ESPÈCE (nom, icône, stats de base,
                 sorts) dans TOUT le bestiaire — remplace la recherche PAR
-                SOURCE d'avant Lot 1 (rôle 1 des 4 puces, SUPPRIMÉ). Choisir
+                SOURCE (rôle 1 des 4 puces, SUPPRIMÉ). Choisir
                 un résultat pose l'espèce et tente une résolution Box
                 silencieuse (`pickSpecies`, jamais en cas d'ambiguïté — voir
                 sa définition). */}
@@ -3581,8 +3553,8 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
             )}
             {/* ⚠️ Aucune liste FIXE (Box/RTA/Défense siège ne sont plus des
                 cas spéciaux, voir
-                spec/outils/optimizer/archive/historique/historique-import-monstres-a-optimiser.md,
-                « Suite — cadrage du Lot 3 ») —
+                spec/outils/optimizer/listes-et-reservation.md,
+                « Créer, valider et réserver dans une liste ») —
                 tout est créé/renommé/supprimé par l'utilisateur. Flotte par-
                 dessus zone C, ne la pousse jamais (voir OptimizerListPicker.tsx). */}
             <div className="mt-3">
@@ -3604,7 +3576,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
               déjà choisie à gauche dans un « contenu » précis, rôle 2 SEUL
               survit, voir Question 1) + zone D (désambiguïsation
               d'exemplaire, en `Flottant` sous les puces — ex. 2 équipes de
-              siège, voir Question 6) + fiche (déplacée ici, Lot 3), à DROITE. */}
+              siège, voir Question 6) + fiche, à DROITE. */}
           <div className="flex flex-col gap-3">
             <div ref={zoneDRef} className="relative">
               <p className="label mb-1.5">Exemplaire</p>
@@ -3724,8 +3696,8 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
           serrer sur son contenu — même patron que « Monstre & équipement »
           (carte haute à gauche, cartes plus courtes empilées à sa droite).
           ⚠️ **`xl:row-span-4`** : la colonne 2 empile QUATRE cartes —
-          Artéfacts et reliques (2, bloc Relique fusionné dedans,
-          implementation-relique B.5c ter), État de mon monstre (3), Exclusion
+          Artéfacts et reliques (2, bloc Relique fusionné dedans),
+          État de mon monstre (3), Exclusion
           de runes (4), Réglages avancés (5). Ce nombre suit la colonne d'EN
           FACE, il ne décrit pas le contenu de celle-ci : toute carte ajoutée
           ou retirée à droite se répercute ici, et sur la rangée de la ligne
@@ -4319,8 +4291,8 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
           ⚠️ **Fragment, PAS un `<div>`** : les deux cartes desktop qu'il
           rend (Exclusion de runes, Réglages avancés) doivent devenir des
           ENFANTS DIRECTS de la grille pour se placer chacune dans sa propre
-          rangée (`xl:row-start-1`/`xl:row-start-2`, à côté du duo
-          Monstre/Critères) — un `<div>` intermédiaire les aurait fait
+          rangée (`xl:row-start-4`/`xl:row-start-5`, colonne 2, sous
+          Artéfacts et État de mon monstre) — un `<div>` intermédiaire les aurait fait
           compter comme UNE seule cellule de grille. `MobileSheet` (portail)
           et le paragraphe d'estimation n'ont pas besoin de cette
           contrainte, voir leurs commentaires plus bas. */}
@@ -4736,7 +4708,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
 
         return (
           <>
-            {/* Bureau : « Réglages avancés », colonne 2, rangée 4 — SOUS
+            {/* Bureau : « Réglages avancés », colonne 2, rangée 5 — SOUS
                 « Exclusion de runes » (ordre inversé sur demande explicite,
                 voir le commentaire d'Exclusion ci-dessous) — ⚠️ **`relative`**
                 : ancre du `FlottantAuto` ci-dessous, qui se positionne en
@@ -4817,9 +4789,9 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
               </FlottantAuto>
             </div>
 
-            {/* ⚠️ Placée en rangée 5 (`xl:col-span-2`, pleine largeur) : ni
-                dans la paire Critères/Objectif (rangée 2) ni dans la colonne
-                Objectif/Avancés/Exclusion (rangées 2-4), cette ligne
+            {/* ⚠️ Placée en rangée 6 (`xl:col-span-2`, pleine largeur) : ni
+                dans la colonne Critères (rangées 2-5) ni dans la colonne
+                Artéfacts/État/Exclusion/Avancés (rangées 2-5), cette ligne
                 d'estimation n'a pas sa place dans une cellule précise —
                 simple info sous tout le reste. Ne bouge plus JAMAIS au
                 dépliement de Réglages avancés, désormais un flottant hors
@@ -5046,7 +5018,8 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
           la phase `building` (jusqu'à ~1 minute sur un compte réel à
           beaucoup de conditions) : la barre affichait 0 % sans bouger et le
           texte « 0 combinaisons examinées », sans dire qu'un TRAVAIL était
-          en cours — voir spec/outils/optimizer/. */}
+          en cours — voir spec/outils/optimizer/interruption.md,
+          « Barre de progression ». */}
       {/* ⚠️ Deux barres empilées, une par moitié, pas une seule — depuis leur
           construction EN PARALLÈLE (deux Workers, voir
           runeBuildOptim.worker.ts), A et B avancent en même temps ; une seule
@@ -5086,8 +5059,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
               longtemps coexisté avec lui, écarté d'ici parce qu'il
               grandissait en cours de route et aurait fait RECULER la barre.
               C'est ce choix de l'interface qui a fini par emporter sa
-              suppression du moteur (spec/outils/optimizer/pistes.md,
-              piste 8). */}
+              suppression du moteur. */}
           <p className="mt-1 font-mono text-micro text-ink-dim">
             {progress === null
               ? 'Préparation…'
@@ -5362,8 +5334,8 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
           {/* ⚠️ Quasi-succès à l'appariement — sous-produit GRATUIT de la
               vraie recherche (`pairBuckets`, jamais recalculé), affiché
               SYSTÉMATIQUEMENT (contrairement au palier 2 ci-dessus, dont le
-              coût réel justifie un réglage) : voir spec/outils/optimizer/
-              near-miss-appariement.md. Ne voit que ce que la recherche a
+              coût réel justifie un réglage) : voir spec/outils/optimizer/moteur/diagnostics.md,
+              « Quasi-succès à l'appariement ». Ne voit que ce que la recherche a
               RÉELLEMENT exploré avant troncature — une paire encore plus
               proche, jamais atteinte, resterait invisible. */}
           {result?.candidates.length === 0 && (result.globalNearMiss || result.nearMissByCondition.length > 0) && (() => {
@@ -5554,7 +5526,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
                       })()
                     : undefined
                 }
-                // « Valider » (Lot 2) — réserve les 6 runes RÉELLES de CE
+                // « Valider » — réserve les 6 runes RÉELLES de CE
                 // candidat pour `sourceSelector`, qu'il pointe un exemplaire
                 // réel OU un sélecteur `unowned` (monstre non possédé,
                 // demande explicite — « essayer des runages de teams sans

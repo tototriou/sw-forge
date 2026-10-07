@@ -35,7 +35,7 @@ import {
  * sont les mêmes `DamageSetup.atkBuff`/`defBuff`/`spdBuff`/`leaderSkill`/
  * `summonerSkills`, montrés ailleurs.
  *
- * Un sixième contexte s'y ajoute au lot 7a de degats-et-aura : les sets
+ * Un sixième contexte s'y ajoute : les sets
  * d'aura des AUTRES monstres de l'équipe (`DamageSetup.setsAuraExternes`),
  * jusque-là saisissables seulement dans une recette — voir
  * `AurasExternesSaisie` plus bas.
@@ -198,7 +198,7 @@ export default function EtatMonstre({
       {/* ⚠️ **Rappel des buffs posés par un passif** (degats-et-aura P2) :
           même grammaire que les lignes d'amplification juste dessous (texte
           `xs` atténué sous la rangée des buffs) ; le passif est nommé comme
-          dans « Stats acquises en combat » (lot 11) — `Jeton` en lecture
+          dans « Stats acquises en combat » — `Jeton` en lecture
           seule, icône et nom du jeu. La condition est un extrait LITTÉRAL de
           la prose, entre guillemets, jamais reformulé.
           ⚠️ Il dépend du MONSTRE, jamais d'un clic dans cette carte : il
@@ -437,7 +437,7 @@ function AurasExternesSaisie({
 // l'utilisateur, jamais déduit d'un monstre chargé ici (le lead vient d'un
 // AUTRE monstre de l'équipe).
 //
-// ⚠️ Icône et libellés RÉUTILISÉS depuis `siege/LeadPill.tsx`
+// ⚠️ Icône et libellés RÉUTILISÉS depuis `src/components/siege/LeadPill.tsx`
 // (`leadIconUrl`/`STAT_LABEL`, déjà l'icône OFFICIELLE du jeu pour un lead de
 // monstre) plutôt que dupliqués — « deux tables de libellés auraient
 // divergé ». `leadIconUrl` attend un objet `LeaderSkill` complet

@@ -70,7 +70,7 @@ import { ELEMENTS, type ElementKey } from '../../types';
 import HelpPopover from '../HelpPopover';
 
 // Réglage de l'objectif « Dégâts réels » — voir spec/outils/degats-reels.md
-// pour le modèle de calcul, spec/outils/optimizer.md pour sa place à l'écran.
+// pour le modèle de calcul, spec/outils/optimizer/ecran/objectif-de-recherche.md pour sa place à l'écran.
 //
 // ⚠️ **Deux principes portent toute la mise en page de ce panneau :**
 //
@@ -208,7 +208,7 @@ function effetCondition(condition: ConditionMonstreProfile['condition']): string
   return 'condition active';
 }
 
-// « +2 coups » : l'effet d'une condition qui ajoute des coups (lot P5a2).
+// « +2 coups » : l'effet d'une condition qui ajoute des coups.
 function libelleCoupsEnPlus(n: number): string {
   return `+${n} coup${n > 1 ? 's' : ''}`;
 }
@@ -337,7 +337,7 @@ interface EffetActif {
 // entre le sort actif et un passif : même mécanisme, même champ.
 function champCoupsVariables(profile: SkillDamageProfile, setup: DamageSetup, maj: (patch: Partial<DamageSetup>) => void) {
   // Un coup en plus qui ne dépend que d'une condition se règle par son
-  // interrupteur (lot P5a2), jamais par un compteur.
+  // interrupteur, jamais par un compteur.
   if (!profile.hitsRange || coupsEnPlusDeCondition(profile)) return null;
   return (
     <div className="mt-1 flex items-center gap-2">
@@ -2002,7 +2002,7 @@ export default function DamageSetupCard({
             </p>
           )}
           {/* L'ancien mode « Moyenne » et son avertissement « purement
-              théorique » sont supprimés (degats-et-aura, lot CM) : une recette
+              théorique » sont supprimés : une recette
               qui le porte est convertie en « Critique » à l'import, et le
               message d'import le dit. */}
         </div>

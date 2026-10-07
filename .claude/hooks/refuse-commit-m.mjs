@@ -7,9 +7,9 @@
 // « Jamais de code entre guillemets doubles dans une commande shell ».
 //
 // ⚠️ **Pourquoi un hook et pas seulement la consigne écrite** : la consigne
-// existe, elle est lue au démarrage de session, et elle a quand même été
-// enfreinte plusieurs fois dans la même session — après des dizaines
-// d'exemples réussis de la forme interdite, l'exemple pèse plus que la règle.
+// existe et est lue au démarrage, mais une règle lue s'érode — après des
+// dizaines d'exemples réussis de la forme interdite, l'exemple pèse plus que
+// la règle.
 // Un refus au MOMENT de l'action ne dépend d'aucune vigilance.
 //
 // ⚠️ **Portée volontairement ÉTROITE.** Ce hook ne couvre pas la classe de

@@ -19,8 +19,8 @@ interface Props {
   runeById: Map<number, RuneDetail>;
   // La paire d'artéfacts retenue POUR CE BUILD.
   //
-  // ⚠️ **Elle varie désormais d'une carte à l'autre**, contrairement à ce que
-  // ce champ portait à l'origine (les artéfacts équipés, identiques partout).
+  // ⚠️ **Elle varie d'une carte à l'autre** : ce n'est pas la paire des
+  // artéfacts équipés, identique partout.
   // Deux builds voisins n'appellent pas les mêmes artéfacts, et ce sont ces
   // pièces-là qui ont servi à calculer `candidate.stats` — montrer autre chose
   // afficherait des stats et un équipement qui ne vont pas ensemble.
@@ -29,11 +29,11 @@ interface Props {
    * L'état de la relique de CE build,
    * `etatReliqueDuBuild` (relicQueue.ts) — SEULE source, jamais recalculé
    * ici. `undefined` : aucune dimension relique dans cette recherche (hors
-   * mode `recherche`, chemin d'avant ce lot) — traité comme `fixe` sans
+   * mode `recherche`) — traité comme `fixe` sans
    * relique, la case reste affichée, grisée « aucune ».
    */
   etatRelique?: EtatRelique;
-  // Occupation par `rid` (`n / 150`, D3), affichée dans le détail de la
+  // Occupation par `rid` (`n / 150`), affichée dans le détail de la
   // relique — nécessaire seulement quand `etatRelique.etat === 'resolue'` ou
   // `'fixe'` avec une relique.
   relicUsageById?: Record<number, number>;
@@ -191,9 +191,8 @@ export default function BuildCandidateCard({
   //
   // ⚠️ Les trois sortes partagent donc une clé, préfixée pour rester
   // distinguables : `a<kind>` pour un artéfact, `r<slot>` pour une rune,
-  // `relic` (fixe, un seul emplacement) pour la relique (implementation-
-  // relique, B.5c bis). Sans préfixe, l'ancien format `<candidateKey>-<slot>`
-  // ne se relisait pas.
+  // `relic` (fixe, un seul emplacement) pour la relique. Sans préfixe,
+  // l'ancien format `<candidateKey>-<slot>` ne se relisait pas.
   const cleArtefact = (kind: string) => `${candidateKey}-a${kind}`;
   const cleRune = (slot: number) => `${candidateKey}-r${slot}`;
   const cleRelique = `${candidateKey}-relic`;
@@ -222,7 +221,7 @@ export default function BuildCandidateCard({
       : etatRelique.etat === 'en attente'
         ? { relic: undefined, enAttente: true, marques: [] }
         : etatRelique.etat === 'rejete'
-          ? // Jamais affiché en pratique (le classement l'a déjà écarté, B.5b) —
+          ? // Jamais affiché en pratique (le classement l'a déjà écarté) —
             // repli sûr si ce chemin était emprunté quand même.
             { relic: undefined, enAttente: false, marques: [] }
           : {
@@ -375,7 +374,7 @@ export default function BuildCandidateCard({
           Empilés, chacun garde sa taille de lecture. */}
       <div className="flex flex-col items-center justify-center gap-2 sm:flex-row">
         <StatPanel stats={candidate.stats} />
-        {/* ⚠️ À LA SOURIS, la relique est TOUJOURS SOUS LA ROUE (décision de l'utilisateur, carte de résultat seulement) :
+        {/* ⚠️ À LA SOURIS, la relique est TOUJOURS SOUS LA ROUE (carte de résultat seulement) :
             fiche 200 px + artéfacts 26 px + roue 94 px (échelle 0,45) et leurs
             écarts font 332 px, ce qu'une carte de 360 px contient tout juste —
             la relique à droite de la roue débordait des deux côtés. Grille à

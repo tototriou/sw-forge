@@ -18,8 +18,8 @@ import { ZoneCliquable } from '../ui';
 // ⚠️ `encadre=false` dans un `Flottant`, qui pose déjà bord + fond + coins
 // arrondis — voir `PieceDetailBox`, même règle.
 // ⚠️ `count` : occupation par `rid` (`relicUsageById`, calculée à l'import,
-// accountStore.ts) — D3, AFFICHÉE jamais bloquante. `undefined` : appelant
-// qui n'a pas cette donnée (RTA, Siège — hors périmètre de ce lot), aucune
+// accountStore.ts) — AFFICHÉE jamais bloquante. `undefined` : appelant
+// qui n'a pas cette donnée (RTA, Siège), aucune
 // ligne rendue plutôt qu'un chiffre inventé.
 export function RelicDetailBox({
   relic,

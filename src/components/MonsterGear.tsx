@@ -46,10 +46,10 @@ interface Props {
    */
   selection?: Selected;
   onSelectionChange?: (s: Selected) => void;
-  // Occupation par `rid` (`n / 150`, D3), affichée dans le détail de la
+  // Occupation par `rid` (`n / 150`), affichée dans le détail de la
   // relique — SEUL l'Optimizer la fournit :
-  // `undefined` pour RTA, Siège, speed tuning, le sélecteur d'exclusion — hors
-  // périmètre de ce lot, aucune ligne de compteur n'y apparaît, comme avant.
+  // `undefined` pour RTA, Siège, speed tuning, le sélecteur d'exclusion —
+  // aucune ligne de compteur n'y apparaît.
   relicUsageById?: Record<number, number>;
 }
 
@@ -80,7 +80,7 @@ export default function MonsterGear({
     !!s &&
     sel.kind === s.kind &&
     (sel.kind === 'relic' || (s as { i: number }).i === (sel as { i: number }).i);
-  // ⚠️ Plus de forme « updater » : `setSel` est désormais un simple appel (il
+  // ⚠️ Pas de forme « updater » : `setSel` est un simple appel (il
   // peut router vers le parent), et `isSel` lit déjà la valeur courante.
   const toggle = (s: Exclude<Selected, null>) => setSel(isSel(s) ? null : s);
 
@@ -252,7 +252,7 @@ export default function MonsterGear({
         // ⚠️ **Plus de `compact:w-full`** — cette classe forçait le groupe à
         // occuper toute la largeur de sa propre ligne, EXACTEMENT ce qui
         // l'empêchait de rester à côté du panneau de stats au doigt. La mise
-        // à l'échelle ci-dessus s'en charge désormais.
+        // à l'échelle ci-dessus s'en charge.
         //
         // ⚠️ **`w-max`, LA VRAIE cause de la saccade signalée** (le plancher
         // continu de la révision précédente n'y était pour rien). Sans lui,

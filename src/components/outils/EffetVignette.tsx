@@ -4,10 +4,9 @@ import { Vignette } from '../../ui';
 // Un effet actif, sous forme de vignette où l'ICÔNE EST LE CONTRÔLE — pas une
 // icône décorative à côté d'une case à cocher.
 //
-// ⚠️ Extrait de `DamageSetupCard.tsx`, où il était local, quand les buffs
-// ATQ/DEF/VIT ont rejoint « État de mon monstre » : deux composants s'en
-// servent désormais, et le dupliquer aurait fait diverger deux rendus de la
-// même chose.
+// ⚠️ Partagé par `DamageSetupCard.tsx` et « État de mon monstre » (buffs
+// ATQ/DEF/VIT) : deux composants s'en servent, et le dupliquer ferait
+// diverger deux rendus de la même chose.
 export default function EffetVignette({
   icone,
   libelle,

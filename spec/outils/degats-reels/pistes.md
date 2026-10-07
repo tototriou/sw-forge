@@ -26,15 +26,23 @@ codée porte « Calcul partiel »
 
 ### Attaques conjointes : lignes d'artéfact 209 et 225
 
-- **Constat** : les lignes 209 (« Dégâts d'attaque conjointe ») et 225
-  (« Dégâts contre/attaque conjointe ») existent
-  (`src/lib/artifacts.ts`), mais le calcul des dégâts n'en lit aucune ; la
-  ligne 224 (« Dmg crit mono-cible à ton tour ») est lue, selon la portée
-  du sort (`damage.ts`).
-- **Idée** : laisser choisir une attaque conjointe pour compter 209 et
-  225, avec le rôle du monstre dans le tour pour 224.
-- **Bloque** : périmètre et cas sans formule à qualifier : un chantier à
-  cadrer.
+- **Constat** : les lignes 209 (« Dgts d'attaque conjointe ») et 225
+  (« Dgts de contre-attaque/attaque conjointe ») existent
+  (`src/lib/artifacts.ts`), mais le calcul des dégâts n'en lit aucune ;
+  224 (« D.CRIT+ comp cib uniq pdt tour ») est lue selon la portée du
+  sort, sans notion de tour (`damage.ts`).
+- **Idée** : un choix « attaque conjointe » dans « Effets actifs », pour
+  un S1 ou un sort à effet `Ally Attack`, qui ajoute 209 et la part
+  conjointe de 225 au terme `DMG%` des lignes élémentaires, sans 208 ;
+  un S1 qui participe pendant le tour d'un autre perd 224 (et 411 à
+  examiner), un S1 ordinaire la garde. Assailing Horn (`17515`, Eivor) et
+  Flag of Ambush (`18015`, Sigrid) portent `Ally Attack` sans formule : une
+  coopération sans dégâts propres est exclue.
+- **Bloque** : un chantier à cadrer. L'effet `Ally Attack` ne couvre
+  pas tous les sorts concernés (inclusion par identifiant) ; plusieurs
+  n'ont pas de formule principale ; à trancher : additionner ou non les
+  dégâts des alliés, et le sort d'un S1 `Ally Attack` appelé hors de son
+  tour.
 
 ### Compétence active appelée par un sort
 

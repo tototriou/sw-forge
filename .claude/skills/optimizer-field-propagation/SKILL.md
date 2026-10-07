@@ -210,6 +210,10 @@ qui n'en touche qu'un a de bonnes chances d'en avoir oublié un autre :
       un champ qui réalise une piste l'en retire ; une variante écartée
       s'écrit en une ligne « ne pas… parce que… » dans la spec du
       mécanisme.
+- [ ] **`spec/outils/optimizer/invariants.md`** — si la règle modifiée y
+      figure, elle se modifie dans sa source ET dans `invariants.md`, dans le
+      même commit
+      ([spec/outillage/spec.md § Statut du fichier](../../../spec/outillage/spec.md)).
 
 ## Vérification
 

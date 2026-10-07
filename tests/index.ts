@@ -90,11 +90,11 @@ import {
 import { testRecetteClesIdentifiant } from './recette-cles-identifiant.test';
 import testBladeDancersIgnoreDef,{ testBladeDancersRecette, testBladeDancersEcranEtCli } from './blade-dancers.test';
 import {
-  testLot12SequenceDeCoups,
-  testLot12AttaqueDeclenchee,
-  testLot12IgnoreDefDepuisUnCoup,
-  testLot12PassifMasqueEtStatsDeCombat,
-} from './degats-lot12.test';
+  testMecanismesSequenceDeCoups,
+  testMecanismesAttaqueDeclenchee,
+  testMecanismesIgnoreDefDepuisUnCoup,
+  testMecanismesPassifMasqueEtStatsDeCombat,
+} from './degats-mecanismes-generiques.test';
 import {
   testAttaqueAppeleeApprovisionnement,
   testAttaqueAppeleeCouverture,
@@ -363,10 +363,10 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testBladeDancersIgnoreDef', testBladeDancersIgnoreDef],
   ['testBladeDancersRecette', testBladeDancersRecette],
   ['testBladeDancersEcranEtCli', testBladeDancersEcranEtCli],
-  ['testLot12SequenceDeCoups', testLot12SequenceDeCoups],
-  ['testLot12AttaqueDeclenchee', testLot12AttaqueDeclenchee],
-  ['testLot12IgnoreDefDepuisUnCoup', testLot12IgnoreDefDepuisUnCoup],
-  ['testLot12PassifMasqueEtStatsDeCombat', testLot12PassifMasqueEtStatsDeCombat],
+  ['testMecanismesSequenceDeCoups', testMecanismesSequenceDeCoups],
+  ['testMecanismesAttaqueDeclenchee', testMecanismesAttaqueDeclenchee],
+  ['testMecanismesIgnoreDefDepuisUnCoup', testMecanismesIgnoreDefDepuisUnCoup],
+  ['testMecanismesPassifMasqueEtStatsDeCombat', testMecanismesPassifMasqueEtStatsDeCombat],
   ['testAttaqueAppeleeApprovisionnement', testAttaqueAppeleeApprovisionnement],
   ['testAttaqueAppeleeCouverture', testAttaqueAppeleeCouverture],
   ['testAttaqueAppeleeEspaceDeCles', testAttaqueAppeleeEspaceDeCles],

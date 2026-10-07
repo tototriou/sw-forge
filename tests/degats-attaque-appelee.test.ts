@@ -67,7 +67,7 @@ function toutesLesFiches(): DetailMonstre[] {
     .map((n) => JSON.parse(readFileSync(resolve(DOSSIER_SORTS, n), 'utf8')) as DetailMonstre);
 }
 
-// Stats de fiche à base nulle (comme dans `tests/degats-lot12.test.ts`) : ce qui porte sur la base
+// Stats de fiche à base nulle (comme dans `tests/degats-mecanismes-generiques.test.ts`) : ce qui porte sur la base
 // (compétences d'invocateur) s'annule, l'ATQ de combat vaut l'ATQ saisie.
 function stats(valeurs: Partial<Record<StatKey, number>>): StatRow[] {
   const cles: StatKey[] = ['hp', 'atk', 'def', 'spd', 'cr', 'cd', 'res', 'acc'];
@@ -115,7 +115,7 @@ function appeleesDe(detail: DetailMonstre): PassifOffensifProfile[] {
   return monsterOffensivePassives(detail).filter((p) => actives.has(p.skillCom2usId));
 }
 
-// Le profil construit À LA MAIN dans `tests/degats-lot12.test.ts`,
+// Le profil construit À LA MAIN dans `tests/degats-mecanismes-generiques.test.ts`,
 // (`attaqueAppelee`) : la référence du point 2, « même total au centième près ».
 function attaqueAppeleeALaMain(appelee: SkillDamageProfile, slotsDeclencheurs: readonly number[]): PassifOffensifProfile {
   return {

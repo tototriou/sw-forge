@@ -813,6 +813,7 @@ export default function RecoCard({
                     onToggleFold={() => toggleDeck(di)}
                     hit={hitDeDeck(di)}
                     recos={recos}
+                    onSupprime={() => setEditingDeck(null)}
                   />
                 </div>
               );
@@ -1393,6 +1394,7 @@ function DeckBlock({
   onToggleFold,
   hit,
   recos,
+  onSupprime,
 }: {
   reco: Reco;
   deck: RecoDeck;
@@ -1410,13 +1412,19 @@ function DeckBlock({
   // Positions du monstre cherché dans CE deck, `null` hors recherche.
   hit: DeckHit | null;
   recos: UseRecoState;
+  // Termine l'édition du deck avant sa suppression.
+  onSupprime: () => void;
 }) {
-  // Supprimer un deck SE DÉFAIT au lieu de se confirmer (lot 13, décision 29) :
-  // immédiat, puis « Deck supprimé · Annuler » le remet à SA place — le dernier
-  // deck remplace alors le deck vide laissé derrière lui (voir
-  // `decksApresRestauration`).
+  // Supprimer un deck SE DÉFAIT au lieu de se confirmer : immédiat, puis
+  // « Deck supprimé · Annuler » le remet à SA place — le dernier deck remplace
+  // alors le deck vide laissé derrière lui (voir `decksApresRestauration`).
+  // ⚠️ L'édition se termine AVANT : supprimer le dernier deck le remplace par
+  // un deck vide sans changer leur nombre, et l'édition resterait ouverte sur
+  // ce deck vide avec le contenu d'avant mémorisé — « Annuler les
+  // modifications » recopierait alors à moitié le deck supprimé.
   const notifier = useNotifier();
   function supprimerDeck() {
+    onSupprime();
     recos.removeDeck(reco.id, deckIndex);
     notifier({ message: 'Deck supprimé', action: () => recos.restaurerDeck(reco.id, deck, deckIndex) });
   }

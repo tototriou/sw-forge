@@ -16,16 +16,15 @@ export type OptimizerSortKey = StatKey | Objective;
 // (défaut — reprend l'artéfact RÉELLEMENT équipé de ce type) et `'libre'`
 // (chercher parmi TOUS les éligibles, quelle que soit la principale).
 //
-// ⚠️ `'libre'` n'a de sens qu'avec une recherche d'artéfacts : il n'a été
-// ajouté qu'une fois celle-ci construite, pour ne pas laisser une option morte
-// dans le sélecteur. Il est aligné sur `ChoixPrincipale`
+// ⚠️ `'libre'` n'a de sens qu'avec une recherche d'artéfacts : sans elle
+// ce serait une option morte dans le sélecteur. Il est aligné sur `ChoixPrincipale`
 // (artifactOptim.ts).
 //
-// ⚠️ **`'none'` (laisser l'emplacement vide) a été RETIRÉ.** Un monstre porte
+// ⚠️ **Le sélecteur n'offre pas `'none'` (laisser l'emplacement vide).** Un monstre porte
 // deux artéfacts ou n'en porte pas : vider UN emplacement pendant que l'autre
 // cherche ne correspond à rien en jeu. Et « ne pas compter les artéfacts » se
 // dit déjà d'un seul geste avec l'interrupteur, pour les deux emplacements à
-// la fois. Les recettes exportées avant ce retrait sont ramenées sur `'libre'`
+// la fois. Une recette qui porterait encore `'none'` est ramenée sur `'libre'`
 // à l'import (voir `mainsPourCeCompte`, optimizerRecipe.ts).
 export type ArtifactMainChoice = 'equipped' | 'libre' | 100 | 101 | 102;
 

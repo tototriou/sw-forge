@@ -188,7 +188,7 @@ export interface SearchParams {
    *
    * ⚠️ La borne étant calculée PAR STAT ISOLÉE, des builds survivent sans
    * qu'aucune paire réelle ne satisfasse leurs minimums — d'où
-   * `respecteMinimums`, OBLIGATOIRE en aval (§12.5). Mesuré sur un cas réel :
+   * `respecteMinimums`, OBLIGATOIRE en aval. Mesuré sur un cas réel :
    * 99 builds sur 105 dans ce cas.
    */
   artifactBounds?: {
@@ -2382,8 +2382,8 @@ export interface BuildBucketsContext {
   jokerCredit: number;
   requiredPieces: number[];
   // ⚠️ Nécessaire à `retentionScore`/`combinedRetentionScore` (pondération
-  // pct/flat, voir `weightedContribution`) — absent avant, ces deux
-  // fonctions mélangeaient les deux échelles. Propagé à TOUS les chemins
+  // pct/flat, voir `weightedContribution`) — sans lui, ces deux
+  // fonctions mélangeraient les deux échelles. Propagé à TOUS les chemins
   // structurellement compatibles (`BuildHalfRequest`, `BuildHalfWorkerData`)
   // — voir `weightedContribution`.
   base: BaseStats;
@@ -4179,7 +4179,7 @@ export function* pairBuckets(
   function considerNearMiss(runeIds: number[], statsRow: StatRow[], effTotal: number, shortfalls: StatShortfall[]): void {
     // Par condition : seulement si CETTE tentative échoue sur UNE SEULE
     // condition — sinon desserrer cette condition seule ne suffirait pas à
-    // rendre CETTE paire valide (décision explicite).
+    // rendre CETTE paire valide.
     if (shortfalls.length === 1) {
       const s = shortfalls[0];
       const mapKey = `${s.key}-${s.kind}`;

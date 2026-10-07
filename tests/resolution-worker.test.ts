@@ -141,7 +141,7 @@ function sansCommentaires(source: string): string {
 }
 
 export function testResolutionWorker() {
-  titre('Worker de résolution — corps neutre, entrées sérialisables, résultat identique à la résolution directe (6bis-b13bis-a)');
+  titre('Worker de résolution — corps neutre, entrées sérialisables, résultat identique à la résolution directe');
 
   /* ── 1. Neutralité ───────────────────────────────────────────────────── */
   const corpsSource = sansCommentaires(readFileSync('src/workers/resolutionBody.ts', 'utf8'));

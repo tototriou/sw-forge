@@ -48,7 +48,7 @@ const fiche = (com2usId: number) => fiches().find((d) => d.com2usId === com2usId
 // 20021203, 20021303) dont la forme n'est plus jouable :
 // 21, recopiés ici pour que la table ne puisse ni perdre ni gagner une entrée
 // sans que ce test le dise.
-const TRI_13B = [
+const PASSIFS_A_BUFF_STANDARD = [
   2061, 3212, 7112, 7512, 10012, 11713, 12311, 13012, 13214, 13911, 14411, 16313, 16813, 20011, 20414, 20611,
   21613, 22213, 23611, 24111, 13213,
 ];
@@ -58,19 +58,19 @@ const PASSIFS_DE_BOSS_RETIRES = [20021103, 20021203, 20021303];
 const MOT_DU_BUFF = { atk: 'Attack Power', def: 'Defense', spd: 'Attack Speed', cr: 'Critical Rate' } as const;
 
 export function testBuffsDePassifTable() {
-  titre('Buffs posés par un passif — la table par identifiant : les 21 du tri 13b qui ont une forme jouable, prose citée (degats-et-aura P2, D56)');
+  titre('Buffs posés par un passif — la table par identifiant : les 21 passifs de stats à buff standard qui ont une forme jouable, prose citée');
 
   const cles = Object.keys(BUFFS_POSES_PAR_PASSIF_CONNUS).map(Number);
-  egal(cles.length, 21, '21 entrées : les 24 « J » buff standard du tri 13b, moins les trois passifs de boss (D56)');
-  egal([...cles].sort((a, b) => a - b), [...TRI_13B].sort((a, b) => a - b), 'exactement les identifiants du tri 13b encore jouables');
-  for (const id of PASSIFS_DE_BOSS_RETIRES) ok(!(id in BUFFS_POSES_PAR_PASSIF_CONNUS), `${id} : passif de boss, retiré de la table (D56)`);
+  egal(cles.length, 21, '21 entrées : les 24 passifs de stats à buff standard, moins les trois passifs de boss');
+  egal([...cles].sort((a, b) => a - b), [...PASSIFS_A_BUFF_STANDARD].sort((a, b) => a - b), 'exactement les identifiants des passifs à buff standard encore jouables');
+  for (const id of PASSIFS_DE_BOSS_RETIRES) ok(!(id in BUFFS_POSES_PAR_PASSIF_CONNUS), `${id} : passif de boss, retiré de la table`);
 
   const jouables = new Set<number>();
   for (const m of formesJouables(monstersJson())) if (m.com2usId != null) jouables.add(m.com2usId);
   ok(jouables.size > 0, 'témoin : le filtre des formes jouables en laisse');
   for (const id of [2003503, 2003601, 2003705, 2004003, 2004103]) {
-    ok(monstersJson().some((m) => m.com2usId === id), `${id} : forme de boss présente dans le corpus (D56)`);
-    ok(!jouables.has(id), `${id} : forme de boss écartée de formesJouables (D56)`);
+    ok(monstersJson().some((m) => m.com2usId === id), `${id} : forme de boss présente dans le corpus`);
+    ok(!jouables.has(id), `${id} : forme de boss écartée de formesJouables`);
   }
 
   for (const id of cles) {
@@ -94,7 +94,7 @@ export function testBuffsDePassifTable() {
 }
 
 export function testBuffsDePassifRappel() {
-  titre('Buffs posés par un passif — le rappel paraît pour un passif de la table, jamais pour un autre (degats-et-aura P2)');
+  titre('Buffs posés par un passif — le rappel paraît pour un passif de la table, jamais pour un autre');
 
   egal(rappelsBuffsDePassif(null), [], 'sans fiche, aucun rappel');
 
@@ -145,7 +145,7 @@ function fichiersTs(dossier: string): string[] {
 }
 
 export function testBuffsDePassifEcran() {
-  titre('Buffs posés par un passif — la carte rend le rappel, aucun calcul ne lit la table (degats-et-aura P2)');
+  titre('Buffs posés par un passif — la carte rend le rappel, aucun calcul ne lit la table');
 
   const carte = source('src/components/outils/EtatMonstre.tsx');
   const vignettes = carte.indexOf('libelle="Buff VIT"');
@@ -156,7 +156,7 @@ export function testBuffsDePassifEcran() {
   ok(/\{rappelsBuffs\.length > 0 && \(\s*<div className="space-y-0\.5 text-xs text-ink-dim">\s*\{rappelsBuffs\.map\(\(r\) => \(/.test(carte),
     'même grammaire que les lignes d’amplification : texte xs atténué, une ligne par passif');
   ok(/<Jeton\s+icone=\{r\.icone \? <img src=\{r\.icone\} alt="" className="h-4 w-4 rounded" loading="lazy" \/> : undefined\}\s+libelle=\{r\.nom\}\s+\/>/.test(carte),
-    'le passif est nommé par un Jeton en lecture seule (icône, nom du jeu), comme au lot 11');
+    'le passif est nommé par un Jeton en lecture seule (icône, nom du jeu)');
   ok(carte.includes('pose {r.buffs} — « {r.condition} »'), 'le texte : buffs posés, puis la condition citée');
   for (const libelle of [LIBELLE_BUFF_DE_PASSIF.atk, LIBELLE_BUFF_DE_PASSIF.def, LIBELLE_BUFF_DE_PASSIF.spd]) {
     ok(carte.includes(`libelle="${libelle}"`), `« ${libelle} » est bien le libellé d’une vignette de la carte`);

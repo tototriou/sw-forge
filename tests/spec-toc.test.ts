@@ -71,7 +71,7 @@ export default function testSpecToc() {
   const brutLongue = lireFixture('avec-entete.md').split('\n').find((l) => l.startsWith('Ceci est'))!;
   egal(longue.premierePhrase, brutLongue.slice(0, 120), 'la troncature coupe la même phrase source, sans rien y ajouter');
 
-  titre('spec-toc · fichier sans en-tête normalisé (bootstrap, avant le lot 5)');
+  titre('spec-toc · fichier sans en-tête normalisé (bootstrap)');
 
   const sansEnTete = enTete(lireFixture('imbrique.md'));
   egal(sansEnTete, { statut: null, lireSi: null }, 'aucun en-tête normalisé — statut et lire si à null, pas une erreur');

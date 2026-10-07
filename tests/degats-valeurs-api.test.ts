@@ -103,7 +103,7 @@ export function testDegatsSequencesApi() {
   const a411 = artefacts([{ code: 411, value: 30 }]);
 
   for (const s of SEQUENCES) {
-    titre(`Lot P6, SZ-2 — ${s.nom} (${s.id}, ${s.monstre}) : phase 1 de la fiche, phase de zone de l'auxiliaire ${s.auxiliaire} de l'API`);
+    titre(`Phase de zone — ${s.nom} (${s.id}, ${s.monstre}) : phase 1 de la fiche, phase de zone de l'auxiliaire ${s.auxiliaire} de l'API`);
     ok(cibleSecondairePriseEnCharge(s.id), `${s.id} : un coup de zone curé, le cran « autres ennemis » est permis`);
     const secondaire: DamageSetup = { ...normal, cibleDegatsParSort: { [s.id]: 'secondaire' } };
     const k = 1 + s.skillup / 100;
@@ -131,7 +131,7 @@ export function testDegatsSequencesApi() {
       ok(proche(calcul(secondaire), autres), `${s.id} sur ${forme}, autres ennemis : 2 000 × ${s.phase2} × ${k} × FacteurDéf = ${autres.toFixed(2)} (la phase de zone seule)`);
       egal(cibleDegatsRetenue(p, secondaire), 'secondaire', `${s.id} sur ${forme} : clé « secondaire » retenue`);
       // Avant : la seule donnée (une phase, ou deux fois la phase 1).
-      ok(!proche(calcul(normal), ATQ * s.phase1 * s.donnee.coups * k * df), `${s.id} sur ${forme} : plus le calcul d'avant P6 (${s.donnee.coups} × ${s.phase1} × ATQ)`);
+      ok(!proche(calcul(normal), ATQ * s.phase1 * s.donnee.coups * k * df), `${s.id} sur ${forme} : plus le calcul de la fiche seule (${s.donnee.coups} × ${s.phase1} × ATQ)`);
       ok(proche(computeTotalDamage(p, monsterOffensivePassives(fiche(forme)), st, { ...normal, skillCom2usId: s.id }, AUCUNE_AURA_PROPRE, null), visee),
         `${s.id} sur ${forme} : computeTotalDamage = le sort seul (aucun passif)`);
 
@@ -144,7 +144,7 @@ export function testDegatsSequencesApi() {
     }
   }
 
-  titre('Lot P6, SZ-1 — la garde lit l’empreinte de la donnée, jamais le premier groupe');
+  titre('Phase de zone — la garde lit l’empreinte de la donnée, jamais le premier groupe');
   {
     // Head Press et Sagar : `coups: 2` compte les deux phases (premier groupe :
     // un coup), Sagar porte en plus `aoe: true` (premier groupe : mono-cible).
@@ -184,7 +184,7 @@ export function testDegatsFormulesApi() {
   const a224 = artefacts([{ code: 224, value: 30 }]);
 
   for (const f of FORMULES) {
-    titre(`Lot P6, HT-1 — ${f.nom} (${f.id}, ${f.monstre}) : formule vide de la fiche, formule de l'auxiliaire ${f.auxiliaire} de l'API`);
+    titre(`Formule vide — ${f.nom} (${f.id}, ${f.monstre}) : formule vide de la fiche, formule de l'auxiliaire ${f.auxiliaire} de l'API`);
     for (const forme of f.formes) {
       const brute = fiche(forme).competences.find((c) => c.com2usId === f.id)!;
       egal(brute.formule, '', `${f.id} sur ${forme} : la fiche ne porte aucune formule (précondition)`);
@@ -204,7 +204,7 @@ export function testDegatsFormulesApi() {
     }
   }
 
-  titre('Lot P6, HT-1 — Ramon : la prose (« Attacks the enemy ») l’emporte sur `aoe: true` de la donnée');
+  titre('Formule vide — Ramon : la prose (« Attacks the enemy ») l’emporte sur `aoe: true` de la donnée');
   {
     const brute = fiche(31414).competences.find((c) => c.com2usId === 21114)!;
     egal(brute.aoe, true, 'Cursed Tombstone : la donnée dit « zone » (précondition)');
@@ -212,15 +212,15 @@ export function testDegatsFormulesApi() {
     egal(sortDe(31414, 21114).aoe, false, 'Cursed Tombstone : profil mono-cible');
   }
 
-  titre('Lot P6, HT-1 — la garde « formule vide » porte sur la formule retenue');
+  titre('Formule vide — la garde « formule vide » porte sur la formule retenue');
   {
     // Même fiche, autre identifiant : aucune formule curée, la garde tient.
     const ramon = fiche(31414).competences.find((c) => c.com2usId === 21114)!;
-    egal(skillDamageProfile({ ...ramon, com2usId: 999_114 }), null, 'formule vide sans formule curée : aucun profil, comme avant P6');
+    egal(skillDamageProfile({ ...ramon, com2usId: 999_114 }), null, 'formule vide sans formule curée : aucun profil');
     // Hors périmètre (Q04) : les sorts « Horn » des Anges jumeaux restent sans profil.
     for (const id of [18801, 18811]) {
       const horn = fiche(29111).competences.find((c) => c.com2usId === id)!;
-      egal(skillDamageProfile(horn), null, `${id} « ${horn.nom} » : aucune formule curée, aucun profil (forme de soutien, Q04 → P17)`);
+      egal(skillDamageProfile(horn), null, `${id} « ${horn.nom} » : aucune formule curée, aucun profil (forme de soutien)`);
     }
   }
 }
@@ -249,7 +249,7 @@ export function testDegatsPorteesParLaProse() {
     computeSkillDamageDetail(p, st, setup, AUCUNE_AURA_PROPRE, null, undefined, a).total;
 
   for (const e of PORTEES_PAR_LA_PROSE) {
-    titre(`Lot P22 — ${e.nom} (${e.id}, ${e.monstres}) : « ${e.prose} » l'emporte sur \`aoe: false\``);
+    titre(`Prose d’attaque — ${e.nom} (${e.id}, ${e.monstres}) : « ${e.prose} » l'emporte sur \`aoe: false\``);
     for (const forme of e.formes) {
       const brute = fiche(forme).competences.find((c) => c.com2usId === e.id)!;
       egal(brute.aoe, false, `${e.id} sur ${forme} : la donnée dit « une cible » (précondition)`);

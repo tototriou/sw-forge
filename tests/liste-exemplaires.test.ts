@@ -55,7 +55,7 @@ const box = (unitKey: string): ExclusionCandidate => ({ selector: { source: 'box
 const membre = (listId: string, selector: ExclusionSelector): OptimizerListMember => ({ listId, selector });
 
 export function testListeExemplaires() {
-  titre('Liste de travail · un autre exemplaire Box de la même espèce : le bouton enchaîne, la puce dit le nombre (lot EX)');
+  titre('Liste de travail · un autre exemplaire Box de la même espèce : le bouton enchaîne, la puce dit le nombre');
 
   const [a, b, c] = [box('u-a'), box('u-b'), box('u-c')];
   const candidats = [a, b, c];
@@ -100,11 +100,11 @@ export function testListeExemplaires() {
   // Venu de RTA ou du siège, l'exemplaire Box proposé pouvait être le même monstre physique.
   const rta: ExclusionSelector = { source: 'rta', monsterId: '77' };
   const rtaAffiche = etatAjoutListe({ ...base, selecteur: rta, membres: [membre('L', rta)] });
-  egal(rtaAffiche.libelle, 'Déjà dans « GB12 »', 'affiché RTA et membre, un Box absent : « Déjà dans » (lot EX2)');
+  egal(rtaAffiche.libelle, 'Déjà dans « GB12 »', 'affiché RTA et membre, un Box absent : « Déjà dans »');
   ok(!rtaAffiche.actif && rtaAffiche.exemplaireSuivant === null, '… désactivé, aucun exemplaire suivant');
   const siege: ExclusionSelector = { source: 'siege-defense', teamId: 't1', slotIndex: 0 };
   const siegeAffiche = etatAjoutListe({ ...base, selecteur: siege, membres: [membre('L', siege)] });
-  egal(siegeAffiche.libelle, 'Déjà dans « GB12 »', 'affiché siège et membre, un Box absent : « Déjà dans » (lot EX2)');
+  egal(siegeAffiche.libelle, 'Déjà dans « GB12 »', 'affiché siège et membre, un Box absent : « Déjà dans »');
   ok(!siegeAffiche.actif && siegeAffiche.exemplaireSuivant === null, '… désactivé, aucun exemplaire suivant');
 
   const nonMembre = etatAjoutListe({ ...base, selecteur: b.selector, membres: [membre('L', a.selector)] });
@@ -153,7 +153,7 @@ export function testListeExemplaires() {
   const chemin = entre(ecran, 'function choisirExemplaire(', 'function handleAddToList(');
   ok(/if \(id !== selectedId\) resetSearch\(\);\s*else if \(key !== ownSelectorKey\) effacerResultats\(\);/.test(chemin)
     && chemin.includes('setSourceSelector(selector);') && chemin.includes('setZoneDOpen(false);'),
-  'source : choisirExemplaire porte les règles de 6bis-b19 (résultats effacés, critères gardés)');
+  'source : choisirExemplaire porte les règles (résultats effacés, critères gardés)');
   // Revue externe de la v1.14.0 : le défaut de relique suit
   // l'exemplaire désigné, APRÈS le reset qui le remet à « Libre ».
   ok(/setSelectedId\(id\);[\s\S]*if \(autreEspece \|\| key !== ownSelectorKey\) \{[^}]*setRelicMainChoice\(\(c\) => relicMainChoiceApresChangementExemplaire\(c, relique, !autreEspece\)\);/.test(chemin),

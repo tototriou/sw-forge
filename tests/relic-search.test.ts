@@ -338,7 +338,7 @@ function verifierFixture(
  * ----------------------------------------------------------------------- */
 
 export default async function testRelicSearch() {
-  titre('Optimizer · recherche relique (lot 5a — bornes, faisabilité, transport)');
+  titre('Optimizer · recherche relique (bornes, faisabilité, transport)');
 
   /* ── Identité sans relique / mode off / mode equipped : projection
    * canonique byte-identique. Le même pool qu'une fixture (A) ; l'équipée est
@@ -377,7 +377,7 @@ export default async function testRelicSearch() {
       refus = e;
     }
     ok(refus instanceof RechercheRefusee, 'refus : RechercheRefusee levée par prepareSearch');
-    egal((refus as RechercheRefusee).vide, 'inventaire', 'refus : le motif transporte le vide de B.3');
+    egal((refus as RechercheRefusee).vide, 'inventaire', 'refus : le motif transporte le vide (inventaire)');
     egal((refus as RechercheRefusee).motif, 'relique-pool-vide', 'refus : motif nommé');
     const seuil = contexte({ ...LIBRE, seuil: 9 }, undefined, [relique(1, 100, 9, 1, 6)]);
     egal(seuil.vide, 'seuil', 'refus : seuil trop haut → vide seuil');

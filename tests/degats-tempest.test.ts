@@ -118,15 +118,15 @@ export function testDegatsTempestFormule() {
     const tempest = tempestDe(detail);
     ok(tempest != null, `${forme} : Tempest est reconnu comme passif offensif malgré « formule: "" » (formule de la table curée)`);
     if (!tempest) continue;
-    egal(tempest.profile.formule, '3.7*{ATK}', `${forme} : formule retenue = 3.7 × ATQ (A.2 ter, utilisateur + audit other_skill=1181)`);
+    egal(tempest.profile.formule, '3.7*{ATK}', `${forme} : formule retenue = 3.7 × ATQ (utilisateur + audit other_skill=1181)`);
     egal(tempest.profile.variables, ['ATK'], `${forme} : la formule curée est analysée comme une formule de données (ATQ seule)`);
-    egal(tempest.profile.skillupDamagePct, 30, `${forme} : les trois « Damage +10% » s’appliquent (+30 %, A.2 ter)`);
+    egal(tempest.profile.skillupDamagePct, 30, `${forme} : les trois « Damage +10% » s’appliquent (+30 %)`);
     egal(tempest.profile.aoe, true, `${forme} : en zone (donnée « aoe » du passif)`);
     egal(tempest.profile.slot, 3, `${forme} : slot 3 (celui des lignes d’artéfact 402/410)`);
     egal(tempest.profile.hits, 1, `${forme} : une seule instance (« once more »), jamais Competence.coups`);
     egal(tempest.profile.fixed, false, `${forme} : pas de dégâts fixes`);
     egal(tempest.profile.ignoreDef, false, `${forme} : n’ignore pas la DEF`);
-    egal(tempest.categorie.type, 'conditionnel', `${forme} : interrupteur (recharge non simulée, A.2 ter)`);
+    egal(tempest.categorie.type, 'conditionnel', `${forme} : interrupteur (recharge non simulée)`);
     egal(tempest.critique, 'suit', `${forme} : critique comme le mode choisi`);
   }
 
@@ -134,7 +134,7 @@ export function testDegatsTempestFormule() {
   egal(
     defaultDamageSkill(monsterDamageSkills(teshar))?.skillCom2usId,
     LIGHTNING_NOVA,
-    'Teshar : le sort par défaut reste le S2 (Lightning Nova), jamais Tempest (choisissable depuis 9b, voir testDegatsTempestCommeSort)'
+    'Teshar : le sort par défaut reste le S2 (Lightning Nova), jamais Tempest (choisissable comme sort, voir testDegatsTempestCommeSort)'
   );
 
   const tempest = tempestDe(teshar);
@@ -191,7 +191,7 @@ export function testDegatsTempestDeclenchement() {
     ok(false, 'Teshar : Tempest absent des passifs offensifs — le déclenchement ne peut pas être vérifié');
     return;
   }
-  egal(tempest.slotsDeclencheurs, [1, 2], 'slots déclencheurs curés : S1 et S2 (A.2 ter)');
+  egal(tempest.slotsDeclencheurs, [1, 2], 'slots déclencheurs curés : S1 et S2');
 
   const s1 = sortDe(teshar, ARCANE_BLAST);
   const s2 = sortDe(teshar, LIGHTNING_NOVA);
@@ -314,7 +314,7 @@ export function testDegatsTempestDeclenchement() {
  * 224 (zone), sur les PV saisis.
  */
 export function testDegatsTempestCommeSort() {
-  titre('Tempest comme sort — liste des sorts, sort par défaut, résolution (degats-et-aura 9b)');
+  titre('Tempest comme sort — liste des sorts, sort par défaut, résolution');
 
   for (const forme of [TESHAR, PHOENIX_VENT]) {
     const detail = fiche(forme);
@@ -422,7 +422,7 @@ export function testDegatsTempestCommeSort() {
   egal(
     totalSeul,
     computeSkillDamage(seul, st, choisi, AUCUNE_AURA_PROPRE, null),
-    'Tempest choisi, interrupteur allumé : le total vaut Tempest seul, au bit près — une seule contribution (A.2 ter, « Tempest seul »)'
+    'Tempest choisi, interrupteur allumé : le total vaut Tempest seul, au bit près — une seule contribution (« Tempest seul »)'
   );
   const apresS2 = computeTotalDamage(s2, passifs, st, setupS2, AUCUNE_AURA_PROPRE, null) - computeSkillDamage(s2, st, setupS2, AUCUNE_AURA_PROPRE, null);
   ok(proche(totalSeul, apresS2), 'Tempest seul vaut exactement ce qu’il ajoute après le S2 (même profil, sans artéfact)');
@@ -505,7 +505,7 @@ export function testDegatsTempestCommeSort() {
  * passe par `passifCompte`, avec le sort retenu.
  */
 export function testDegatsTempestRecette() {
-  titre('Tempest comme sort — recette portant l’identifiant d’un passif, relue par le CLI (degats-et-aura 9b)');
+  titre('Tempest comme sort — recette portant l’identifiant d’un passif, relue par le CLI');
 
   const damageSetup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, skillCom2usId: TEMPEST, passifsOffensifs: { [TEMPEST]: true } };
   const recette = buildOptimizerRecipe({
@@ -578,7 +578,7 @@ const sansCommentaires = (s: string) =>
  * interrupteur n'a pas de survol (`title`).
  */
 export function testDegatsTempestEcran() {
-  titre('Tempest comme sort — l’interrupteur à l’écran (DamageSetupCard.tsx, degats-et-aura 9b)');
+  titre('Tempest comme sort — l’interrupteur à l’écran (DamageSetupCard.tsx)');
 
   const carte = sansCommentaires(readFileSync(resolve(racine, 'src/components/outils/DamageSetupCard.tsx'), 'utf8').replace(/\r\n/g, '\n'));
   ok(
@@ -601,16 +601,16 @@ export function testDegatsTempestEcran() {
   // jeu reste dans la prose du passif (sous l'interrupteur, et au « ? » de 11bis).
   ok(
     carte.includes("title={apresSort ? undefined : `${condition}${actif ? ' (activé)' : ' — désactivé par défaut'}`}"),
-    '9d : l’interrupteur « se déclenche après ce sort » n’a plus de survol (`title`), les autres interrupteurs de passif gardent le leur'
+    'l’interrupteur « se déclenche après ce sort » n’a plus de survol (`title`), les autres interrupteurs de passif gardent le leur'
   );
   ok(
     !/title=\{`\$\{condition\}/.test(carte),
-    '9d : aucun `title` ne porte la condition curée sans la garde `apresSort`'
+    'aucun `title` ne porte la condition curée sans la garde `apresSort`'
   );
-  ok(carte.includes('{texteJeu}') && carte.includes('<p className="mt-1 text-xs leading-snug text-ink-dim">{p.description}</p>'), '9d : la prose du jeu du passif reste affichée sous l’interrupteur');
+  ok(carte.includes('{texteJeu}') && carte.includes('<p className="mt-1 text-xs leading-snug text-ink-dim">{p.description}</p>'), 'la prose du jeu du passif reste affichée sous l’interrupteur');
   ok(
     carte.includes('<HelpPopover title={s.nom} ariaLabel={`Description de ${s.nom}`}>'),
-    '9d : la prose de chaque sort, Tempest compris, reste au « ? » de sa case (11bis)'
+    'la prose de chaque sort, Tempest compris, reste au « ? » de sa case'
   );
   ok(carte.includes("const nom = p.nom.replace(/\\s*\\(Passive\\)\\s*$/i, '');"), 'nom affiché : celui du jeu, sans « (Passive) »');
   ok(carte.includes('const actif = setup.passifsOffensifs?.[p.skillCom2usId] ?? false;'), 'interrupteur éteint tant que rien n’est saisi');
@@ -632,7 +632,7 @@ export function testDegatsTempestEcran() {
     (monsterDamageSkills(teshar).find((s) => s.skillCom2usId === TEMPEST)?.description ?? '').includes(
       'after you attack the enemy on your turn'
     ) && (tempest.description ?? '').includes('after you attack the enemy on your turn'),
-    '9d : sans survol, la condition du jeu reste lisible — prose de Tempest portée par le passif (sous l’interrupteur) ET par sa case de « Compétence utilisée » (« ? »)'
+    'sans survol, la condition du jeu reste lisible — prose de Tempest portée par le passif (sous l’interrupteur) ET par sa case de « Compétence utilisée » (« ? »)'
   );
   const affiches = (sort: SkillDamageProfile) =>
     monsterOffensivePassives(teshar)

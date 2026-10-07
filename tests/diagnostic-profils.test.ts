@@ -28,7 +28,7 @@ import {
 import { PARALLEL_PAIRING_THRESHOLD } from '../src/workers/parallelPairing';
 
 export default async function testDiagnosticProfils() {
-  titre('Profils de pool synthétique nommés (11b) — chaque profil tient-il ce qu’il promet ?');
+  titre('Profils de pool synthétique nommés — chaque profil tient-il ce qu’il promet ?');
 
   /* ── Le catalogue lui-même ─────────────────────────────────────────── */
 

@@ -148,7 +148,7 @@ export function testDegatsCoupsSaisis() {
     computeSkillDamage(p, st, n == null ? base : { ...base, coupsPersonnalises: { [p.skillCom2usId]: n } }, AUCUNE_AURA_PROPRE);
 
   for (const e of ENTREES) {
-    titre(`Lot P5a — ${e.nom} (${e.id}) : clé ${e.cle}`);
+    titre(`Coups saisis — ${e.nom} (${e.id}) : clé ${e.cle}`);
     for (const forme of e.formes) {
       const p = sortDe(forme, e.id);
       if (e.plage) {
@@ -187,10 +187,10 @@ export function testDegatsCoupsSaisis() {
 
   // Témoins HORS PÉRIMÈTRE : ils restent comme avant.
   // (Stormfist, qui y figurait, a sa règle : voir plus bas.)
-  titre('Lot P5a — témoins hors périmètre : Crow Hunt (relevé R9)');
+  titre('Coups saisis — témoins hors périmètre : Crow Hunt');
   for (const [id, forme] of [[1607, 10512], [1609, 10514], [1618, 10513]] as const) {
     const p = sortDe(forme, id);
-    egal([p.hitsRange, p.hits], [undefined, id === 1618 ? 1 : 4], `Crow Hunt ${id} sur ${forme} : inchangé (${id === 1618 ? '`coups: 1`, relevé R9 attendu' : '`coups: 4`'})`);
+    egal([p.hitsRange, p.hits], [undefined, id === 1618 ? 1 : 4], `Crow Hunt ${id} sur ${forme} : inchangé (${id === 1618 ? '`coups: 1`, valeur relevée en jeu' : '`coups: 4`'})`);
   }
 
   testDegatsCoupsSousCondition();
@@ -253,7 +253,7 @@ function testDegatsCoupsSousCondition() {
   const unCoup = (p: SkillDamageProfile, s: DamageSetup, stat = st) => calcul({ ...p, hits: 1, hitsRange: undefined }, s, stat);
 
   for (const e of INTERRUPTEURS) {
-    titre(`Lot P5a2 — ${e.nom} (${e.id}) : interrupteur « ${e.libelle} », +${e.extra} coup(s)`);
+    titre(`Coups saisis — ${e.nom} (${e.id}) : interrupteur « ${e.libelle} », +${e.extra} coup(s)`);
     const p = sortDe(e.forme, e.id);
     const max = e.min + e.extra;
     const regle = (p.conditionsCombat ?? []).filter((c) => c.coupsEnPlus);
@@ -290,10 +290,10 @@ function testDegatsCoupsSousCondition() {
     egal(resolvedHits(p, { ...base, coupsPersonnalises: { [e.id]: e.min }, passifsOffensifs: { [e.id]: true } }), max, `${e.id} : interrupteur allumé à la main, il prévaut sur l'ancienne saisie`);
   }
 
-  titre('Lot P5a2 — Pound : une ancienne recette à 5 coups reste à 5 (jamais arrondie)');
+  titre('Coups saisis — Pound : une ancienne recette à 5 coups reste à 5 (jamais arrondie)');
   egal(resolvedHits(sortDe(20834, 11664), { ...base, coupsPersonnalises: { 11664: 5 } }), 5, 'Pound : 5 coups saisis avant le lot, 5 coups après');
 
-  titre('Lot P5a2 — Whirlpool de Seal (3463) : aucun interrupteur, aucun coup en plus');
+  titre('Coups saisis — Whirlpool de Seal (3463) : aucun interrupteur, aucun coup en plus');
   {
     const p = sortDe(12133, 3463);
     egal([p.hitsRange, p.conditionsCombat, p.hits], [undefined, undefined, 1], 'Whirlpool 3463 : ni plage ni condition, un coup');
@@ -302,7 +302,7 @@ function testDegatsCoupsSousCondition() {
 
   const stat = (atk: number) => stats({ atk, def: 800, hp: 20000, spd: 200, cr: 25, cd: 100 });
   for (const [id, forme] of BRUTAL_FISTS) {
-    titre(`Lot P5a2 — Brutal Fists (${id}) : +1 coup si l'ATQ du build dépasse l'ATQ adverse, sans réglage neuf`);
+    titre(`Coups saisis — Brutal Fists (${id}) : +1 coup si l'ATQ du build dépasse l'ATQ adverse, sans réglage neuf`);
     const p = sortDe(forme, id);
     egal(p.conditionsCombat?.map((c) => [c.type, (c as { ratio?: number }).ratio, c.coupsEnPlus]), [['atkCibleSousAtkPropre', 1, 1]], `${id} : la condition de Theonia (ATQ adverse < ATQ du build, ratio 1), +1 coup`);
     egal(p.hitsRange, { min: 3, max: 4 }, `${id} : bornes 3 à 4, comme avant`);
@@ -324,7 +324,7 @@ function testDegatsCoupsSousCondition() {
     ok(proche(calcul(p, { ...base, enemyAtk: 1500, passifsOffensifs: { [id]: true } }), 3 * parCoupA(1000, 1500)), `${id} : aucun interrupteur ne force le coup en plus`);
   }
 
-  titre('Lot P5a3 — l\'affichage lit le même nombre de coups que le calcul (fonction partagée)');
+  titre('Coups saisis — l\'affichage lit le même nombre de coups que le calcul (fonction partagée)');
   for (const [id, forme] of BRUTAL_FISTS) {
     const p = sortDe(forme, id);
     for (const [enemyAtk, attendu] of [[500, 4], [999, 4], [1000, 3], [1500, 3]] as const) {
@@ -338,7 +338,7 @@ function testDegatsCoupsSousCondition() {
       egal([sans.hits, sans.max, sans.dependDuBuild], [3, 4, true], `${id} : sans build, l'affichage annonce 3 à 4 (selon l'ATQ du build), adverse ${enemyAtk}`);
     }
   }
-  titre('Lot P5a3 — le résumé de l\'écran et la ligne du CLI passent par la fonction partagée');
+  titre('Coups saisis — le résumé de l\'écran et la ligne du CLI passent par la fonction partagée');
   {
     const ecran = readFileSync(resolve(racine, 'src/components/outils/DamageSetupCard.tsx'), 'utf8');
     const cli = readFileSync(resolve(racine, 'scripts/optimizer-search.ts'), 'utf8');
@@ -346,14 +346,14 @@ function testDegatsCoupsSousCondition() {
     ok(cli.includes('const coupsAffiches = coupsAffichesDuSort(profile, s);'), 'CLI : la ligne du sort lit le nombre de coups par coupsAffichesDuSort');
     ok(!/const hits = hitsOverride \?\? resolvedHits\(/.test(ecran), 'écran : plus de lecture directe de resolvedHits dans le résumé');
   }
-  titre('Lot P5a3 — les autres sorts : l\'affichage n\'a pas changé');
+  titre('Coups saisis — les autres sorts : l\'affichage n\'a pas changé');
   for (const [id, forme] of [[11664, 20834], [21311, 31811]] as const) {
     const p = sortDe(forme, id);
     const sans = coupsAffichesDuSort(p, base);
     egal([sans.hits, sans.max, sans.dependDuBuild], [resolvedHits(p, base), resolvedHits(p, base), false], `${id} : un interrupteur, pas une plage selon le build : le minimum, comme avant`);
   }
 
-  titre('Lot P5a2 — Barrage of Madness et Sura\'s Seal : toujours des compteurs, inchangés');
+  titre('Coups saisis — Barrage of Madness et Sura\'s Seal : toujours des compteurs, inchangés');
   for (const [nom, id, forme, min, max] of [['Barrage of Madness', 18313, 28513, 3, 5], ["Sura's Seal", 18312, 28512, 4, 8]] as const) {
     const p = sortDe(forme, id);
     egal([p.conditionsCombat, p.hitsRange, p.hits], [undefined, { min, max }, min], `${nom} : aucune condition, plage ${min} à ${max}`);
@@ -365,7 +365,7 @@ function testDegatsCoupsSousCondition() {
   // ── Stormfist (Mayasura, 18306) ──
   // Valeur de l'utilisateur : 3 coups, +1 coup par tranche de 60 % de l'ATQ de base
   // contenue dans l'ATQ de combat, 6 au plus (6 coups à 280 % de la base). Paliers écrits à la main.
-  titre('Lot P5a4 — Stormfist (18306) : coups déduits de l\'ATQ de combat, par tranche de 60 % de l\'ATQ de base');
+  titre('Coups saisis — Stormfist (18306) : coups déduits de l\'ATQ de combat, par tranche de 60 % de l\'ATQ de base');
   {
     const STORMFIST = 18306;
     const p = sortDe(28511, STORMFIST);
@@ -426,7 +426,7 @@ function testDegatsCoupsSousCondition() {
   // ── Stormfist de Varuna (18307) et de Danu (18309) ──
   // Même règle que Mayasura (utilisateur), calculée sur l'ATQ de base DE CHAQUE monstre, lue
   // sur sa fiche (monsters.json, stats.attack). Les paliers sont écrits à la main (rapport 1,6 / 2,2 / 2,8).
-  titre('Lot P5a5 — Stormfist de Varuna et de Danu : la règle de Mayasura sur l\'ATQ de base de chaque monstre');
+  titre('Coups saisis — Stormfist de Varuna et de Danu : la règle de Mayasura sur l\'ATQ de base de chaque monstre');
   {
     const monstres: { com2usId: number; stats: { attack: number } }[] = JSON.parse(readFileSync(resolve(racine, 'public/data/monsters.json'), 'utf8')).monsters;
     const atkBaseDe = (forme: number) => monstres.find((m) => m.com2usId === forme)!.stats.attack;
@@ -477,7 +477,7 @@ function testDegatsCoupsSousCondition() {
   }
 
   // ── les cumuls de Constant Training (18311) comptent dans l'ATQ qui décide les coups de Mayasura ──
-  titre('Lot P5a5 — Mayasura : les cumuls de Constant Training (+100 ATQ chacun) entrent dans l\'ATQ qui compte les coups de Stormfist');
+  titre('Coups saisis — Mayasura : les cumuls de Constant Training (+100 ATQ chacun) entrent dans l\'ATQ qui compte les coups de Stormfist');
   {
     const mayasura = fiche(28511);
     const mw = { combatStats: monsterCombatStatProfiles(mayasura) };

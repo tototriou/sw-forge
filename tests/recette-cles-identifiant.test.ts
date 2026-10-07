@@ -46,7 +46,7 @@ const CHAMPS: [string, unknown, number][] = [
 const SOURCE = readFileSync(new URL('../src/lib/optimizerRecipe.ts', import.meta.url), 'utf8');
 
 export function testRecetteClesIdentifiant() {
-  titre('Recette — une seule règle de clé d’identifiant de compétence, quatorze champs (degats-et-aura 8d)');
+  titre('Recette — une seule règle de clé d’identifiant de compétence, quatorze champs');
 
   const base = JSON.parse(
     JSON.stringify(

@@ -165,7 +165,7 @@ export default function testRelicOracle() {
     egal(point.com2usId, 13413, '--case : l’espèce (Lushen, com2usId 13413) est rendue pour le porteur des artéfacts');
     egal(point.lignesVerrouillees, [], '--case : aucun verrou');
     const defaut = chargerPointOracle(['node', 'relicOracle.ts', '--case=3', `--export-dir=${exportDir}`]);
-    egal([defaut.contexte.principale, defaut.contexte.type, defaut.contexte.seuil], ['libre', 'libre', 6], '--case sans option relique : libre/libre/+6, la forme du lot 4');
+    egal([defaut.contexte.principale, defaut.contexte.type, defaut.contexte.seuil], ['libre', 'libre', 6], '--case sans option relique : libre/libre/+6');
     ok(leve(() => chargerPointOracle(['node', 'relicOracle.ts', '--case=3', '--relic-main=equipped', `--export-dir=${exportDir}`])) != null, '--case + --relic-main=equipped est refusé (pas un point d’oracle)');
     ok(leve(() => chargerPointOracle(['node', 'relicOracle.ts', '--case=3', '--paire-reference=1,2', `--export-dir=${exportDir}`])) != null, '--case + --paire-reference est refusé (un cas de batterie porte sa paire)');
   } else {
@@ -308,7 +308,7 @@ function casB3c(reliques: RelicDetail[], pvWill: number) {
 }
 
 export function testRelicOracleGroupesEffetUnique() {
-  titre('Oracle relique (E) — deux reliques de même principale aux effets uniques différents : un run par couple (principale, stats de l’effet unique) (6bis-b6, C3)');
+  titre('Oracle relique (E) — deux reliques de même principale aux effets uniques différents : un run par couple (principale, stats de l’effet unique)');
 
   const regeneration: RelicDetail = { id: 899, upgrade: 6, main: { code: 100, value: 9 }, unique: { type: 16, tranche: 1000, percent: 1 } };
   const tenacite: RelicDetail = { id: 900, upgrade: 6, main: { code: 100, value: 9 }, unique: { type: 4, tranche: 1000, percent: 1 } };
@@ -342,7 +342,7 @@ export function testRelicOracleGroupesEffetUnique() {
 }
 
 export function testRelicOracleOptimumParScore() {
-  titre('Oracle relique — l’optimum est le meilleur OracleCandidate.score, ex æquo par rid puis ordre d’insertion (6bis-b6, C4)');
+  titre('Oracle relique — l’optimum est le meilleur OracleCandidate.score, ex æquo par rid puis ordre d’insertion');
 
   // Will à +2 PV : SANS l'effet unique, Violent + Will passerait devant.
   const tenacite: RelicDetail = { id: 900, upgrade: 6, main: { code: 100, value: 9 }, unique: { type: 4, tranche: 1000, percent: 1 } };

@@ -26,7 +26,7 @@ import {
 import { trouverProfil } from '../scripts/lib/diagnosticProfils';
 
 export default async function testDiagnosticDifferentiel() {
-  titre('Différentiel entrelacé (11c) — le portier refuse-t-il ce qu’il doit refuser ?');
+  titre('Différentiel entrelacé — le portier refuse-t-il ce qu’il doit refuser ?');
 
   /* ── L'ordre de lecture : les sept éléments, dans l'ordre du pipeline ── */
 
@@ -66,7 +66,7 @@ export default async function testDiagnosticDifferentiel() {
 
   // ⚠️ Tenu en code : `fumee` ne peut RIEN détecter,
   // et le différentiel ne doit donc jamais y écrire « aucune divergence ».
-  egal(d.premiereDivergence, null, 'fumee — aucun point de divergence, comme mesuré par 11b');
+  egal(d.premiereDivergence, null, 'fumee — aucun point de divergence');
   egal(
     d.verdict,
     'AUCUNE_DIVERGENCE_SENSIBILITÉ_NON_ÉTABLIE',

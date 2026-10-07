@@ -19,7 +19,7 @@ const PORTEE: RelicDetail = { id: 1, upgrade: 9, main: { code: 101, value: 12 },
 const AUTRE: RelicDetail = { id: 2, upgrade: 9, main: { code: 100, value: 12 }, unique: { type: 1, tranche: 1000, percent: 2 } };
 
 export function testKDeLaFile() {
-  titre('File de résolution — sa taille selon le mode relique (6bis-b8)');
+  titre('File de résolution — sa taille selon le mode relique');
 
   egal([K_BUILDS_OPTIMISES, K_BUILDS_RECHERCHE_RELIQUE], [100, 300], 'les deux tailles décidées le 2026-10-01');
   egal(kDeLaFile(undefined), 100, 'aucune recherche lancée : 100');
@@ -59,7 +59,7 @@ export function testKDeLaFile() {
   const hook = readFileSync('src/hooks/useArtifactOptimQueue.ts', 'utf8');
   ok(/\n\s*K: number;/.test(hook) && !/K = /.test(hook) && !/K\?:/.test(hook), 'hook : `K` obligatoire, sans valeur par défaut');
   ok(/prochainsATraiter\(trieesRef\.current, cacheRef\.current, K, pageRef\.current\(\)\)/.test(hook),
-    'hook : la file sert `prochainsATraiter` avec ce K, sur le cache lui-même (conformité lue, 6bis-b18)');
+    'hook : la file sert `prochainsATraiter` avec ce K, sur le cache lui-même (conformité lue)');
   ok(!/new Set\(cacheRef\.current\.keys\(\)\)/.test(hook), 'hook : plus aucune copie des seules clés du cache pour la file');
 
   // Le CLI : le contexte de la recherche lancée (`params.relicContext`).

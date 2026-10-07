@@ -87,7 +87,7 @@ function violations(affichees: BuildCandidate[], cache: Map<string, ResultatArte
 }
 
 export function testCompositionDePage() {
-  titre('Composition de la page — une carte n’apparaît qu’une fois vérifiée (6bis-b16)');
+  titre('Composition de la page — une carte n’apparaît qu’une fois vérifiée');
 
   {
     // Page 1 au début d'une recherche : rien n'est résolu.

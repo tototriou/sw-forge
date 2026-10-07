@@ -47,7 +47,7 @@ function alea(graine: number) {
 }
 
 export function testCompteConfirme() {
-  titre('Compte confirmé — seulement les builds vérifiés (6bis-b18)');
+  titre('Compte confirmé — seulement les builds vérifiés');
 
   {
     const r = recus(5);
@@ -181,7 +181,7 @@ export function testCompteConfirme() {
   egal((src.match(/compteConfirme\(/g) ?? []).length, 1, 'écran : un seul appel à `compteConfirme`');
   ok(/const totalResultsPages = compteConfirmes\.pages;/.test(src), 'pagination : le nombre de pages vient des confirmées');
   ok(/setResultsPage\(\(p\) => Math\.min\(Math\.max\(p, 1\), totalResultsPages\)\);\s*\}, \[totalResultsPages, setResultsPage\]\);/.test(src),
-    'pagination : la page courante revient sur la dernière quand le nombre de pages diminue (6bis-b10, inchangé)');
+    'pagination : la page courante revient sur la dernière quand le nombre de pages diminue');
   const entete = src.match(/<p className="label">\s*\{result\s*\?[\s\S]*?<\/p>/)?.[0] ?? '';
   ok(/compteConfirmes\.aucune\s*\?\s*'Aucune combinaison ne répond à ces critères'/.test(entete),
     'en-tête : « Aucune combinaison ne répond à ces critères » seulement sous `compteConfirmes.aucune`');

@@ -267,7 +267,7 @@ function casPorteur(nom: string, set: string, ligne: number, valeur: number, jok
 }
 
 export function testDominanceLignesQuatrePorteurs() {
-  titre('Dominance · lignes d’artéfact 218–221 — quatre porteurs, témoin, variante avec Intangible (6bis-b3d-1)');
+  titre('Dominance · lignes d’artéfact 218–221 — quatre porteurs, témoin, variante avec Intangible');
   for (const p of PORTEURS) {
     const cas = casPorteur(p.nom, p.set, p.ligne, p.valeur);
     egal(parametres(cas).objectiveStats, ['atk', 'cd'], `${cas.nom} : précondition — la stat de la ligne est hors de l’objectif`);
@@ -304,7 +304,7 @@ function casJoker(fatal: number[], nom: string): Cas {
 }
 
 export function testDominanceLignesJoker() {
-  titre('Dominance · lignes d’artéfact 218–221 — un set formable seulement grâce au joker (6bis-b3d-1)');
+  titre('Dominance · lignes d’artéfact 218–221 — un set formable seulement grâce au joker');
   const cas = casJoker([3, 4, 5], 'Fatal ×3 + Intangible, Blade demandé, sort PV, ligne 219');
   egal(parametres(cas).objectiveStats?.includes('atk'), false, `${cas.nom} : précondition — l’ATQ est hors de l’objectif`);
   const { valides, survivantes } = verifierPaireFixe(cas);
@@ -364,7 +364,7 @@ function meilleureNoteLibre(cas: Cas, a: ArtifactSearchParams, runes: RuneDetail
 }
 
 export function testDominanceLignesLibre() {
-  titre('Dominance · lignes d’artéfact 218–221 — « Libre » : la ligne est sur une autre pièce que la représentative (6bis-b3d-1)');
+  titre('Dominance · lignes d’artéfact 218–221 — « Libre » : la ligne est sur une autre pièce que la représentative');
   const cas = casPorteur('« Libre » : Energy, ligne 218 hors de la représentative', 'energy', 0, 0);
   const a = contexteDePaires(cas, INVENTAIRE_LIBRE);
   const representative = paireRepresentative(a);
@@ -432,7 +432,7 @@ function recette(r: Partial<OptimizerRecipe>): OptimizerRecipe {
 }
 
 export function testDominanceLignesProducteurs() {
-  titre('Dominance · lignes d’artéfact 218–221 — producteurs : union, cas mixte, écran et CLI (6bis-b3d-1)');
+  titre('Dominance · lignes d’artéfact 218–221 — producteurs : union, cas mixte, écran et CLI');
 
   // Le moteur : la paire TOUJOURS, unie au champ ; « Dégâts réels » seulement.
   const paire219 = [art(1, 'element', [101, 100], [[219, 4]])];
@@ -516,7 +516,7 @@ export function testDominanceLignesProducteurs() {
  * ----------------------------------------------------------------------- */
 
 export function testDominanceLignesWorkers() {
-  titre('Dominance · lignes d’artéfact 218–221 — Workers et tranches reçoivent le champ (6bis-b3d-1)');
+  titre('Dominance · lignes d’artéfact 218–221 — Workers et tranches reçoivent le champ');
   const cas = casPorteur('« Libre » : Energy, ligne 218 hors de la représentative', 'energy', 0, 0);
   const a = contexteDePaires(cas, INVENTAIRE_LIBRE);
   const p = parametres({ ...cas, paire: paireRepresentative(a) }, { statsLignesArtefactsEquipables: statsLignesArtefactsEquipables(a) });

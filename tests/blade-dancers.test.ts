@@ -281,7 +281,7 @@ function recetteCordelia(premierCoupIgnoreDefParSort?: Record<number, number | n
 }
 
 export function testBladeDancersRecette() {
-  titre('Blade Dancers — recette : `premierCoupIgnoreDefParSort` validé à l’import (degats-et-aura 10b)');
+  titre('Blade Dancers — recette : `premierCoupIgnoreDefParSort` validé à l’import');
 
   const lire = (value: unknown) => parseOptimizerRecipe(JSON.stringify(value));
   const base = recetteCordelia({ 14808: 2 });
@@ -345,7 +345,7 @@ export function testBladeDancersRecette() {
     ok(refuse(avecChamp(champ), chemin), `refusé avec son chemin : ${motif}`);
   }
   egal(avecChamp({ 4713: 2 }).error, `Fichier invalide : ${CHEMIN}.4713 désigne un sort sans réglage d'ignore DEF par coup.`,
-    'message : le sort n’a pas ce réglage — sans compter ni nommer les sorts de la table (degats-et-aura 9c)');
+    'message : le sort n’a pas ce réglage — sans compter ni nommer les sorts de la table');
 
   // Mal typé ou mal indexé : refusé avec son chemin.
   for (const [champ, chemin, motif] of [
@@ -371,7 +371,7 @@ export function testBladeDancersRecette() {
   egal(relue?.damageSetup, base.damageSetup, 'aller-retour : damageSetup identique, rang compris');
   egal(relue && lire(relue).recipe, relue, 'aller-retour : un second import ne change rien');
 
-  titre('Blade Dancers — recette : le CLI applique le rang, comme l’écran (degats-et-aura 10b)');
+  titre('Blade Dancers — recette : le CLI applique le rang, comme l’écran');
 
   // Le CLI passe `recipe.damageSetup` ENTIER au contexte de calcul
   // (`recipeToSearchParams`, puis `buildRealDamageContext` sur ses artéfacts),
@@ -426,7 +426,7 @@ const sansCommentaires = (s: string) =>
   s.replace(/\{\/\*[\s\S]*?\*\/\}/g, '').replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
 
 export function testBladeDancersEcranEtCli() {
-  titre('Blade Dancers — les crans du sélecteur, dérivés de la règle curée (degats-et-aura 10b)');
+  titre('Blade Dancers — les crans du sélecteur, dérivés de la règle curée');
 
   // Libellés retenus par l'utilisateur.
   const CRANS_A = [

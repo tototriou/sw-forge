@@ -93,7 +93,7 @@ function score(forme: number, setup: DamageSetup): number {
 }
 
 export function testGarantieByungchul() {
-  titre('Byungchul — la garantie du passif 18613 sur S1 et S2 (degats-et-aura 15d)');
+  titre('Byungchul — la garantie du passif 18613 sur S1 et S2');
   const prose = fiche(28913).competences.find((c) => c.com2usId === 18613)?.description ?? '';
   ok(prose.includes('Your attacks will always land as a Critical Hit whenever you attack the enemy'),
     '18613 — la prose du passif porte la garantie sans condition');
@@ -125,7 +125,7 @@ const YUJI_RICK: [number, number, string][] = [
 ];
 
 export function testGarantieYujiRick() {
-  titre('Yuji et Rick (S2) — critique garanti contre une cible affligée, coup 2 après la réduction de DEF (degats-et-aura 15d)');
+  titre('Yuji et Rick (S2) — critique garanti contre une cible affligée, coup 2 après la réduction de DEF');
   for (const [forme, sort, nom] of YUJI_RICK) {
     const p = profilDe(forme, sort);
     const c = fiche(forme).competences.find((x) => x.com2usId === sort)!;
@@ -186,7 +186,7 @@ export function testGarantieYujiRick() {
 }
 
 export function testBornesStrictesDef() {
-  titre('Bornes de DEF — strictes pour Jaara et Varus, inclusives pour Copper et Guard Crush (degats-et-aura 15d)');
+  titre('Bornes de DEF — strictes pour Jaara et Varus, inclusives pour Copper et Guard Crush');
 
   // Chaque entrée du corpus qui compare la DEF de la cible doit être
   // classée ici, sa borne lue dans SA prose. Une entrée nouvelle fait
@@ -248,7 +248,7 @@ function carte(): string {
 }
 
 export function testResumeConditionDef() {
-  titre('Résumé des comparaisons de DEF — effet et borne lus sur l’entrée (DamageSetupCard.tsx, degats-et-aura 15d)');
+  titre('Résumé des comparaisons de DEF — effet et borne lus sur l’entrée (DamageSetupCard.tsx)');
   const source = carte();
   ok(/function effetCondition\(/.test(source), 'un seul producteur de l’effet d’une condition');
   ok(source.includes("if (condition.critiqueGaranti) return 'critique garanti';"),
@@ -260,7 +260,7 @@ export function testResumeConditionDef() {
 }
 
 export function testResumeConditionDebuff() {
-  titre('Résumé « débuff sur la cible » — l’effet lu sur l’entrée (DamageSetupCard.tsx, degats-et-aura 15d)');
+  titre('Résumé « débuff sur la cible » — l’effet lu sur l’entrée (DamageSetupCard.tsx)');
   const source = carte();
   ok(source.includes("return `${effetCondition(condition)} si la cible a un débuff`;"),
     'débuff sur la cible : l’effet suit l’entrée (Triss : ignore DEF ; Yuji, Rick : critique garanti)');

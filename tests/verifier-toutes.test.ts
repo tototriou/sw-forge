@@ -35,7 +35,7 @@ function recette(verifier?: boolean) {
 }
 
 export function testVerifierToutes() {
-  titre('« Vérifier toutes les combinaisons trouvées » — la cible de la file (6bis-b18)');
+  titre('« Vérifier toutes les combinaisons trouvées » — la cible de la file');
 
   {
     const ctx = (principale: 'equipped' | 'libre') =>

@@ -161,7 +161,7 @@ function classementEcran(recipe: OptimizerRecipe, candidats: BuildCandidate[], r
 }
 
 export function testCliClassementParMode() {
-  titre('CLI — résolution par build et classement de l’écran, trois modes de relique (6bis-b5c)');
+  titre('CLI — résolution par build et classement de l’écran, trois modes de relique');
 
   const cas: { mode: 'off' | 'equipped' | 'recherche'; atk: number; def: number }[] = [
     { mode: 'off', atk: 1250, def: 900 },

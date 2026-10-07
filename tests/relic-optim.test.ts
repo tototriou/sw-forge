@@ -260,8 +260,8 @@ export default function testRelicOptim() {
     // sans formule — c'est exactement ce qu'on veut qu'il dise.
     egal(dimensionsRetenues('vitesse', [], { hp: 1 }).scorePartiel, false, "'vitesse' → scorePartiel faux");
     egal(dimensionsRetenues('efficience', [], { hp: 1 }).scorePartiel, false, "'efficience' → scorePartiel faux");
-    egal(dimensionsRetenues('degats_reels', ['atk'], {}).scorePartiel, false, "'degats_reels' avec scaling ATQ → scorePartiel FAUX depuis le lot 7 (Conquête et Bravoure sont chiffrées)");
-    egal(dimensionsRetenues('ehp', [], {}).scorePartiel, false, "'ehp' → scorePartiel FAUX depuis le lot 7 (Ténacité, Éternité et Origine sont chiffrées)");
+    egal(dimensionsRetenues('degats_reels', ['atk'], {}).scorePartiel, false, "'degats_reels' avec scaling ATQ → scorePartiel FAUX (Conquête et Bravoure sont chiffrées)");
+    egal(dimensionsRetenues('ehp', [], {}).scorePartiel, false, "'ehp' → scorePartiel FAUX (Ténacité, Éternité et Origine sont chiffrées)");
   }
 
   /* ------------------------------------------------------------------

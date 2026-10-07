@@ -248,7 +248,7 @@ export default function testArtefactFile() {
     // signature IDENTIQUE — les cartes déjà calculées gardaient leur paire
     // d'avant, même après une nouvelle recherche aux mêmes réglages.
     const reserve501 = signatureReglages({ ...base, artefactsReserves: new Set([501]) });
-    ok(reserve501 !== s, '… et la réservation d’un artéfact par un autre build validé (6bis-b17)');
+    ok(reserve501 !== s, '… et la réservation d’un artéfact par un autre build validé');
     ok(
       signatureReglages({ ...base, artefactsReserves: new Set([501, 502]) }) !== reserve501,
       '… et un artéfact réservé de plus — ou, lu à l’envers, un artéfact libéré'
@@ -271,7 +271,7 @@ export default function testArtefactFile() {
     egal(
       s,
       '14311§{"skillCom2usId":4713,"enemyElement":null,"atkBuff":false,"enemyHpPct":100,"enemyDef":1000,"critMode":"crit"}§true§degats_reels§-§{"element":101}§§{"main":{"code":101,"value":12}}§2518§§{"atk":100}§{"def":2000}',
-      'sans réservation, la signature est exactement celle d’avant 6bis-b17'
+      'sans réservation, la signature est exactement le littéral épinglé'
     );
     egal(signatureReglages({ ...base, artefactsReserves: new Set() }), s, '… qu’on passe un tableau vide ou un ensemble vide');
 
@@ -297,14 +297,14 @@ export default function testArtefactFile() {
       signatureReglages({ ...base, principaleParSorte: { element: 'equipped' }, piecesFigees: piecesFigeesDe({ element: 'equipped' }, equipes) });
     ok(
       figeAvec([ART_ELEMENT_2, ART_TYPE_1]) !== figeAvec([ART_ELEMENT_1, ART_TYPE_1]),
-      '… et la pièce portée d’un emplacement figé qui change (6bis-b17)'
+      '… et la pièce portée d’un emplacement figé qui change'
     );
     egal(
       figeAvec([ART_ELEMENT_1, ART_TYPE_2]),
       figeAvec([ART_ELEMENT_1, ART_TYPE_1]),
       'la pièce portée d’un emplacement NON figé ne change rien : elle n’est jamais lue'
     );
-    egal(signatureReglages({ ...base, piecesFigees: piecesFigeesDe({}, portes) }), s, 'sans emplacement figé, la signature d’avant 6bis-b17');
+    egal(signatureReglages({ ...base, piecesFigees: piecesFigeesDe({}, portes) }), s, 'sans emplacement figé, la signature reste le littéral épinglé');
 
     // ⚠️ **L'IDENTITÉ de l'import du compte.** Le cache est indexé
     // par les identifiants de runes (`cleBuild`) et ne voyait de l'inventaire
@@ -315,16 +315,16 @@ export default function testArtefactFile() {
     // tout réimport compte, même celui d'un fichier identique.
     const import1 = signatureReglages({ ...base, importDuCompte: 1 });
     const import2 = signatureReglages({ ...base, importDuCompte: 2 });
-    ok(import1 !== s, 'le premier import de la session change la signature (6bis-b19)');
+    ok(import1 !== s, 'le premier import de la session change la signature');
     ok(import2 !== import1, 'deux imports distincts → deux signatures différentes, à réglages et inventaire de même taille');
     egal(signatureReglages({ ...base, importDuCompte: 1 }), import1, 'même import → signature inchangée');
     // `base` porte `importDuCompte: 0` et `s` est épinglé plus haut sur le
     // littéral d'avant les réservations : avant tout import de la session, la
     // signature reste donc aussi celle d'avant l'identité d'import (rien vidé pour rien).
-    ok(!s.includes('import:'), 'avant tout import de la session, aucun composant d’import : la signature d’avant 6bis-b19');
+    ok(!s.includes('import:'), 'avant tout import de la session, aucun composant d’import : la signature ne porte pas d’identité d’import');
   }
 
-  titre('File d’artéfacts — signatureArtefacts (la closure de l’écran, extraite, B.5c)');
+  titre('File d’artéfacts — signatureArtefacts (la closure de l’écran, extraite)');
 
   {
     // ⚠️ `signatureArtefacts` (artifactQueue.ts) est la closure d'écran
@@ -381,20 +381,20 @@ export default function testArtefactFile() {
     );
     // Les réservations traversent l'adaptateur, et leur absence
     // laisse la signature d'avant (littéral relevé sur 47cecfa9).
-    ok(signatureArtefacts({ ...base2, artefactsReserves: new Set([501]) }) !== s2, 'les artéfacts réservés aussi (6bis-b17)');
+    ok(signatureArtefacts({ ...base2, artefactsReserves: new Set([501]) }) !== s2, 'les artéfacts réservés aussi');
     ok(
       signatureArtefacts({ ...base2, piecesFigees: piecesFigeesDe({ element: 'equipped' }, [ART_ELEMENT_1]) }) !==
         signatureArtefacts({ ...base2, piecesFigees: piecesFigeesDe({ element: 'equipped' }, [ART_ELEMENT_2]) }),
-      '… et les pièces des emplacements figés (6bis-b17)'
+      '… et les pièces des emplacements figés'
     );
     ok(
       signatureArtefacts({ ...base2, importDuCompte: 1 }) !== signatureArtefacts({ ...base2, importDuCompte: 2 }),
-      '… et l’identité de l’import du compte (6bis-b19)'
+      '… et l’identité de l’import du compte'
     );
     egal(
       s2,
       '14311§{"skillCom2usId":4713,"enemyElement":null,"atkBuff":false,"enemyHpPct":100,"enemyDef":1000,"critMode":"crit"}§true§aucun§-§{}§§null§10§§{}§{}',
-      'sans réservation, la signature de l’écran est exactement celle d’avant 6bis-b17'
+      'sans réservation, la signature de l’écran est exactement le littéral épinglé'
     );
 
     // Un réglage SANS effet (minimum nul dans une ligne verrouillée, déjà
@@ -407,7 +407,7 @@ export default function testArtefactFile() {
     );
   }
 
-  titre('File d’artéfacts — l’écran passe réservations et pièces figées à la signature (6bis-b17)');
+  titre('File d’artéfacts — l’écran passe réservations et pièces figées à la signature');
 
   {
     // Le hook de la file ne vide son cache qu'au changement de signature
@@ -441,7 +441,7 @@ export default function testArtefactFile() {
     );
   }
 
-  titre('File d’artéfacts — chaque import du compte change la signature (6bis-b19)');
+  titre('File d’artéfacts — chaque import du compte change la signature');
 
   {
     // Même raison que le bloc précédent (pas de test React) : la fonction
@@ -476,7 +476,7 @@ export default function testArtefactFile() {
     );
   }
 
-  titre('File d’artéfacts — départage canonique (B.5b bis, mineur de la revue)');
+  titre('File d’artéfacts — départage canonique');
 
   // ⚠️ À score égal, `sortCandidates` est un tri STABLE : sans départage,
   // l'ordre de sortie suit l'ordre d'entrée (celui de l'appariement), qui n'a

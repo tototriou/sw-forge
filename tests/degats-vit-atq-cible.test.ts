@@ -105,7 +105,7 @@ const FORMES_VIT: [number, number, number, string][] = [
 ];
 
 export function testVitCiriBirgitta() {
-  titre('Ciri et Birgitta — +50 de VIT en points par cumul, 250 au plus (degats-et-aura 15e)');
+  titre('Ciri et Birgitta — +50 de VIT en points par cumul, 250 au plus');
   for (const [forme, passif, s1, nom] of FORMES_VIT) {
     const c = fiche(forme).competences.find((x) => x.com2usId === passif)!;
     ok(c.description?.includes('increases your Attack Speed by 50 each, up to 250') === true,
@@ -149,7 +149,7 @@ export function testVitCiriBirgitta() {
 }
 
 export function testTheoniaAtqCible() {
-  titre('Theonia (Summary Justice) — +100 % contre une ATQ ennemie inférieure, borne stricte (degats-et-aura 15e)');
+  titre('Theonia (Summary Justice) — +100 % contre une ATQ ennemie inférieure, borne stricte');
   for (const forme of [34215, 34205]) {
     const nom = forme === 34215 ? 'Theonia' : 'Justice (non éveillée)';
     const c = fiche(forme).competences.find((x) => x.com2usId === 23515)!;

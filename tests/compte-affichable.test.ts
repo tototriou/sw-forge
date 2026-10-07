@@ -48,7 +48,7 @@ const RAISON_FICHE_1 =
   "1 combinaison trouvée par la recherche a été écartée : aucune paire d'artéfacts réelle ne tient toutes les conditions.";
 
 export function testCompteAffichable() {
-  titre('Compte affiché — un build écarté à la résolution sort du compte (6bis-b10)');
+  titre('Compte affiché — un build écarté à la résolution sort du compte');
 
   // Le constat Kinki : 1 trouvé, 1 écarté.
   const kinki = candidat(1);
@@ -103,9 +103,9 @@ export function testCompteAffichable() {
   egal((ecran.match(/compteAffichable\(/g) ?? []).length, 1, 'écran : un seul appel à `compteAffichable`');
   egal((ecran.match(/progress\.found/g) ?? []).length, 1, 'écran : `progress.found` n’est lu qu’une fois, au compte du moteur');
   ok(/combinaisons examinées · \$\{compteAffiche\.compte\.toLocaleString\('fr-FR'\)\} trouvée\(s\)`/.test(ecran),
-    'ligne de progression : le compte des trouvées, inchangé (6bis-b18)');
+    'ligne de progression : le compte des trouvées, inchangé');
   ok(/\{compteConfirmes\.aucune && compteAffiche\.raison && \(/.test(ecran),
-    'la ligne de raison s’affiche quand la fonction en rend une, sous « Aucune combinaison… » (6bis-b18)');
+    'la ligne de raison s’affiche quand la fonction en rend une, sous « Aucune combinaison… »');
   egal((ecran.match(/compteAffiche\.(compte|raison|ecartes)/g) ?? []).length, 3,
     'écran : deux lecteurs seulement, la ligne de progression (une lecture) et la ligne de raison (condition et texte)');
   egal((ecran.match(/\{result\?\.candidates\.length === 0 &&/g) ?? []).length, 3,

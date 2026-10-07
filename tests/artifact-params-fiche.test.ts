@@ -122,7 +122,7 @@ const sansEvaluer = <T extends { evaluer: unknown }>({ evaluer: _e, ...reste }: 
 /* ── C5 : la recette verrouillée, CLI = écran ──────────────────────────── */
 
 export function testArtefactsFicheParamsCliVerrous() {
-  titre('Paramètres d’artéfacts de la fiche — recette verrouillée, deux emplacements figés : CLI = écran (6bis-b6, C5)');
+  titre('Paramètres d’artéfacts de la fiche — recette verrouillée, deux emplacements figés : CLI = écran');
 
   // Les deux pièces portées ne portent pas la ligne 218 ; une pièce de
   // l'inventaire la porte, mais les deux emplacements sont figés.
@@ -194,7 +194,7 @@ function corpsDuMemo(source: string, debut: string, fin: string): string | null 
 }
 
 export function testArtefactsFicheParamsEcran() {
-  titre('Paramètres d’artéfacts de la fiche — l’écran rend les mêmes ArtifactSearchParams qu’avant 6bis-b6 (copie figée du mémo)');
+  titre('Paramètres d’artéfacts de la fiche — l’écran rend les mêmes ArtifactSearchParams que la copie figée du mémo');
 
   const portees = [art(801, 'element', [101, 100], [[219, 10]]), art(802, 'archetype', [101, 100], [[204, 20]])];
   const inventaire = [...portees, art(803, 'element', [100, 1500], [[218, 1.5], [205, 30]]), art(804, 'archetype', [102, 100], [[220, 20]]), art(805, 'element', [101, 100], [[300, 10]])];
@@ -275,7 +275,7 @@ export function testArtefactsFicheParamsEcran() {
 /* ── C6 : l'entrée de résolution du différentiel = celle du CLI ─────────── */
 
 export function testArtefactsFicheParamsDifferentiel() {
-  titre('Différentiel relique — entreeResolution = résolution du CLI, recette « Libre » avec buff de DEF (6bis-b6, C6)');
+  titre('Différentiel relique — entreeResolution = résolution du CLI, recette « Libre » avec buff de DEF');
 
   // Lushen scale sur l'ATQ : la ligne 205 (amplification du buff de DEF),
   // sondée seule, ne change rien ; avec une ligne 220 (dégâts supp. en prop.

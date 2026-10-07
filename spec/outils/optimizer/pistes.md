@@ -110,8 +110,11 @@ et celles des tests, du harnais et des scripts de mesure :
   elle-même n'est pas comptée
   ([harnais-extensions.md § La construction observée](harnais-extensions.md)).
 - **Idée** : choisir la partition selon un modèle de coût réel, pas
-  seulement le produit des tailles ; sûr, puisque ce qui est cherché ne
-  change pas.
+  seulement le produit des tailles. Ce qui est cherché ne change pas, ce
+  qui est retenu si : chaque compartiment d'une moitié (`bucketKeyOf`,
+  `src/lib/runeBuildOptim.ts`) plafonne ses tranches à `bucketCap`, et une
+  autre partition forme d'autres compartiments ; à vérifier comme une
+  variante de rétention.
 - **Bloque** : jamais construit ni mesuré. Avant d'attribuer une cause au
   débit, un compteur d'énumération dans la boucle interne de
   `buildBuckets`, sur une question falsifiable.

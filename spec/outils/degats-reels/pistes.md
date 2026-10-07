@@ -159,11 +159,13 @@ codée porte « Calcul partiel »
 ### Séquences à valeur relevée
 
 - **Constat** : `SEQUENCES_DE_COUPS_PAR_ID_CONNUS` (`src/lib/damage.ts`) ne
-  porte ni Shoulder Smash (`22615`), ni Triple Break Combo (`23115`), ni
-  Oathbreakers (`23815`), ni Spirits of Wolf Warriors (`24315`), ni
-  Explosive Bullet, Undefeated Warrior (`9515`), Tempest Sword (`10613`) ou
-  Guilty Sentence (`23507`, `23508`, `23510`) : leur phase que la donnée ne
-  chiffre pas manque au total.
+  porte ni Shoulder Smash (`22615`, Paul Phoenix) et Triple Break Combo
+  (`23115`, Duke), ni Oathbreakers (`23815`, Aragorn) et Spirits of Wolf
+  Warriors (`24315`, Night Fang), ni Triple Combo (`13913`, RYU vent) et
+  Triple Crush (`14413`, Kashmir), chaque paire de jumeaux de même prose,
+  ni Explosive Bullet, Undefeated Warrior (`9515`), Tempest Sword
+  (`10613`) ou Guilty Sentence (`23507`, `23508`, `23510`) : leur phase
+  que la donnée ne chiffre pas manque au total.
 - **Idée** : une séquence curée par sort
   ([sequences-de-coups.md § La séquence curée — une table par identifiant](sequences-de-coups.md)).
   Tempest Sword : troisième coup au ratio des deux premiers (valeur
@@ -172,14 +174,16 @@ codée porte « Calcul partiel »
   Theonia, second coup à 3,3, valeur d'une sous-compétence de l'API que la
   prose ne contredit pas. Un effet posé entre deux groupes se règle par le
   choix « après quel coup ».
-- **Bloque** : des relevés, chacun sur la cible visée. Shoulder Smash,
-  coup 3 / coup 1 (deux nombres seulement → la zone exclut la cible).
-  Oathbreakers, chaque coup de zone / coup 1. Explosive Bullet, chaque
-  phase / S1 Cross Fire. Undefeated Warrior, suite / coup 1. Guilty
-  Sentence d'Agrenia et de Driana, coup 2 / coup 1 sur l'ennemi de plus
-  faible DEF non touché par la Brise DEF : 3,3 ou 3,2. Triple Combo et
-  Triple Crush, coup 3 / coup 2 avec la Brise DEF du coup 1 posée : 1,00 à
-  2 % → aucun coefficient final.
+- **Bloque** : des relevés, chacun sur la cible visée ; une mesure vaut
+  pour une paire de jumeaux. Shoulder Smash ou Triple Break Combo, coup 3
+  / coup 1 (deux nombres seulement → la zone exclut la cible).
+  Oathbreakers ou Spirits of Wolf Warriors, chaque coup de zone / coup 1.
+  Triple Combo ou Triple Crush, coup 3 / coup 2 avec la Brise DEF du
+  coup 1 posée : 1,00 à 2 % → aucun coefficient final. Explosive Bullet,
+  chaque phase / S1 Cross Fire. Undefeated Warrior : les nombres sur la
+  cible visée (deux → la suite la touche aussi). Guilty Sentence
+  d'Agrenia et de Driana, coup 2 / coup 1 sur l'ennemi de plus faible DEF
+  non touché par la Brise DEF : 3,3 ou 3,2.
 
 ### Part copiée sur un autre ennemi
 

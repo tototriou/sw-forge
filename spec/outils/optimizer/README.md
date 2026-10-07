@@ -23,6 +23,10 @@ Publiés :
   résultat affiché : préparation, moitiés, appariement, résolution, file.
 - [harnais.md](harnais.md) — mode d'emploi du harnais de diagnostic et ce
   qu'il garantit.
+- [harnais-extensions.md](harnais-extensions.md) — le harnais au-delà de son
+  mode d'emploi : construction observée, build cible, différentiel.
+- [harnais-scripts.md](harnais-scripts.md) — le harnais sur les cas connus,
+  et les scripts de diagnostic qui restent à côté de lui.
 - [ecran/README.md](ecran/README.md) — l'écran, de haut en bas, et le
   routage vers un fichier par bloc de l'écran.
 - [listes-et-reservation.md](listes-et-reservation.md) — listes de travail,
@@ -35,22 +39,24 @@ Publiés :
   sûrs, pré-filtrage, rétention.
 - [moteur/artefacts.md](moteur/artefacts.md) — le choix des artéfacts et la
   paire non figée.
+- [moteur/optimiseur-artefacts.md](moteur/optimiseur-artefacts.md) —
+  l'optimiseur d'artéfacts : éligibilité, effet de chaque ligne, focus
+  élémentaire, moteur, script CLI.
 - [verification.md](verification.md) — tests différentiels, oracles,
   benchmarks.
-- [limites-connues.md](limites-connues.md) — ce que le moteur ne garantit
-  pas.
-
-Annoncés : un lien vers l'un d'eux désigne sa place avant qu'il paraisse ;
-d'ici là, la section du fichier publié citée dans la même ligne du tableau
-décrit le sujet.
-
-- [moteur/reliques.md](moteur/reliques.md) — la dimension relique : contexte,
-  bornes, résolution exacte, oracle.
 - [moteur/parallelisation.md](moteur/parallelisation.md) — l'appariement
   parallèle, navigateur et Node, et le Worker de résolution.
+- [limites-connues.md](limites-connues.md) — ce que le moteur ne garantit
+  pas.
+- [moteur/reliques.md](moteur/reliques.md) — la dimension relique : contexte,
+  bornes, résolution exacte, effet unique, oracle.
 - [moteur/diagnostics.md](moteur/diagnostics.md) — faisabilité, conditions
   bloquantes, quasi-succès (« near-miss »).
-- [pistes.md](pistes.md) — les pistes futures.
+- [pistes.md](pistes.md) — les pistes futures : constat, idée, ce qui les
+  bloque.
+- [pistes-vitesse-et-verification.md](pistes-vitesse-et-verification.md) —
+  les pistes qui accéléreraient la recherche sans changer ce qu'elle
+  cherche, et celles des tests, du harnais et des scripts de mesure.
 
 ## Je touche…
 
@@ -61,7 +67,7 @@ décrit le sujet.
 | les listes de travail, les builds validés, la réservation de runes | [listes-et-reservation.md § Listes de travail et réservation de runes](listes-et-reservation.md) ; [invariants.md § UI](invariants.md) | [listes-et-reservation.md](listes-et-reservation.md) |
 | l'objectif de recherche, « Dégâts réels », un passif ou une mécanique de sort | [ecran/objectif-de-recherche.md § Objectif de recherche](ecran/objectif-de-recherche.md) ; [../degats-reels.md](../degats-reels.md) (par section) ; [invariants.md § Dégâts réels](invariants.md) | skill `game-data-curation` |
 | les conditions min/max, « Exclure les runes déjà utilisées », les réglages avancés | [ecran/conditions-et-reglages.md § Conditions, inventaire et réglages avancés](ecran/conditions-et-reglages.md) ; [invariants.md § Stats et slots](invariants.md) | — |
-| les artéfacts (optimisation, carte Artéfacts, « État de mon monstre ») | [ecran/artefacts.md § Artéfacts](ecran/artefacts.md) ; [ecran/etat-de-mon-monstre.md § État de mon monstre](ecran/etat-de-mon-monstre.md) ; [moteur/artefacts.md § Le choix des artéfacts — un second problème, séparé](moteur/artefacts.md) ; [invariants.md § Artéfacts](invariants.md) | [moteur/artefacts.md](moteur/artefacts.md) |
+| les artéfacts (optimisation, carte Artéfacts, « État de mon monstre ») | [ecran/artefacts.md § Artéfacts](ecran/artefacts.md) ; [ecran/etat-de-mon-monstre.md § État de mon monstre](ecran/etat-de-mon-monstre.md) ; [moteur/artefacts.md § Le choix des artéfacts — un second problème, séparé](moteur/artefacts.md) ; [invariants.md § Artéfacts](invariants.md) | [moteur/artefacts.md](moteur/artefacts.md) ; [moteur/optimiseur-artefacts.md](moteur/optimiseur-artefacts.md) |
 | les reliques | [ecran/relique.md § Relique](ecran/relique.md) ; [invariants.md § Reliques](invariants.md) | [moteur/reliques.md](moteur/reliques.md) ; assiette « au début du combat » : [../degats-reels/effets-equipe-et-leaders.md § Sets d'aura d'équipe — modèle](../degats-reels/effets-equipe-et-leaders.md) |
 | l'exclusion de runes (automatique, manuelle), les runes imposées | [exclusion.md § Exclusion des runes déjà portées ailleurs](exclusion.md) ; [exclusion.md § Exclusion manuelle — un monstre précis, dans n'importe quelle source](exclusion.md) ; [exclusion.md § Runes imposées — verrouiller un emplacement sur une rune précise](exclusion.md) | [exclusion.md](exclusion.md) ; [limites-connues.md](limites-connues.md) (CLI siège, `wizard_id`) |
 | le moteur `runeBuildOptim.ts` (élagages, meet-in-the-middle, budgets, presets) | [moteur/elagages.md § Recherche des runes — meet-in-the-middle et élagages](moteur/elagages.md) ; [invariants.md § Algorithme](invariants.md) ; [limites-connues.md § Limites connues](limites-connues.md) | [moteur/pipeline.md](moteur/pipeline.md) ; [moteur/elagages.md](moteur/elagages.md) ; [limites-connues.md](limites-connues.md) ; skill `algo-verify` ; [pistes.md](pistes.md) avant toute « nouvelle » idée |
@@ -69,10 +75,10 @@ décrit le sujet.
 | l'interruption, la barre de progression, le cycle de vie du Worker | [interruption.md § Interruption — filet de temps, pré-filtrage et arrêt manuel](interruption.md) ; [interruption.md § Barre de progression](interruption.md) ; [invariants.md § Workers](invariants.md) | [interruption.md](interruption.md) ; [moteur/pipeline.md](moteur/pipeline.md) ; [moteur/parallelisation.md](moteur/parallelisation.md) si l'appariement parallèle est concerné |
 | la parallélisation de l'appariement (navigateur/Node), le Worker de résolution | [invariants.md § Workers](invariants.md) ; [invariants.md § Algorithme](invariants.md) | [moteur/parallelisation.md](moteur/parallelisation.md) |
 | le diagnostic « 0 résultat », le quasi-succès (« near-miss ») | [ecran/resultats.md § Résultats](ecran/resultats.md) ; [invariants.md § Algorithme](invariants.md) | [moteur/diagnostics.md](moteur/diagnostics.md) ; [harnais.md](harnais.md) si l'instrumentation est concernée |
-| le harnais de diagnostic | [invariants.md § Harnais](invariants.md) | [harnais.md](harnais.md) ; skill `optimizer-perf-testing` |
+| le harnais de diagnostic | [invariants.md § Harnais](invariants.md) | [harnais.md](harnais.md) ; [harnais-extensions.md](harnais-extensions.md) ; [harnais-scripts.md](harnais-scripts.md) ; skill `optimizer-perf-testing` |
 | la recette (export/import, un champ d'`OptimizerState`/`OptimizerRecipe`) | [ecran/lancer-la-recherche.md § Lancer la recherche](ecran/lancer-la-recherche.md) ; skill `optimizer-field-propagation` (plusieurs constructeurs) | [exclusion.md § Exclusion des runes déjà portées ailleurs](exclusion.md) (repli de compatibilité `exploreAll`) |
 | les cartes de résultat (tri, moyenne par rune, popover de rune) | [ecran/resultats.md § Résultats](ecran/resultats.md) ; [invariants.md § UI](invariants.md) | [../../rta/sections-runes.md](../../rta/sections-runes.md) pour `StatPanel`/`RuneWheel`/`ArtifactSlots` partagés |
-| une piste de perf ou une idée « nouvelle » | [pistes.md](pistes.md) | la spec du mécanisme concerné, qui dit une piste écartée avec sa raison |
+| une piste de perf ou une idée « nouvelle » | [pistes.md](pistes.md) ; [pistes-vitesse-et-verification.md](pistes-vitesse-et-verification.md) | la spec du mécanisme concerné, qui dit une piste écartée avec sa raison |
 | la vitesse (speed tune, ordre des tours) | [../speed-tuning.md](../speed-tuning.md) (le modèle réel) | — |
 | une spec de ce dossier (en-têtes, lint, publication) | [../../outillage/spec.md](../../outillage/spec.md) ; `node scripts/spec-lint.mjs` | [../../outillage/renvois.md](../../outillage/renvois.md) ; un fichier publié ici a sa ligne dans `.githooks/optimizer-publics.txt`, dans le même commit |
 

@@ -1,4 +1,4 @@
-// degats-et-aura 6bis-b18 — la file vise K combinaisons CONFIRMÉES
+// La file vise K combinaisons CONFIRMÉES
 // (`prochainsATraiter`, artifactQueue.ts) : elle parcourt l'ordre de base et
 // continue au-delà des écartés (`conforme: false`), jusqu'à K builds résolus ET
 // conformes ou jusqu'au dernier build trouvé — plus seulement les K premiers.
@@ -50,7 +50,7 @@ function derouler(base: BuildCandidate[], verdict: Map<string, boolean>, K: numb
 }
 
 export function testFileConfirmees() {
-  titre('File de résolution — elle vise K confirmées, plus les K premiers (6bis-b18)');
+  titre('File de résolution — elle vise K confirmées, plus les K premiers');
 
   {
     const triees = ordre(10);

@@ -1,5 +1,5 @@
 // La résolution d'équipement HORS du fil de l'écran — la logique du côté de
-// l'ÉCRAN (degats-et-aura 6bis-b13bis-b) : quoi envoyer au Worker de
+// l'ÉCRAN : quoi envoyer au Worker de
 // résolution, quoi annuler, quelles réponses écrire dans le cache, quand
 // renoncer au Worker. Le corps (`resolutionBody.ts`) est l'autre moitié : il
 // résout ce qu'on lui demande, dans l'ordre reçu.
@@ -64,8 +64,7 @@ export interface PortsResolutionDistante {
   /**
    * Publie le cache à l'écran — `forcer` passe outre la cadence. Rend VRAI si
    * l'écran a reçu le cache, FAUX si la cadence l'a retenu (jamais faux quand
-   * `forcer`) : c'est ainsi que le module sait qu'une écriture attend encore
-   * (6bis-b13bis-c).
+   * `forcer`) : c'est ainsi que le module sait qu'une écriture attend encore.
    */
   publier(forcer: boolean): boolean;
   /** Combien restent à traiter, pour l'affichage. */
@@ -87,7 +86,7 @@ export type IssueReponse =
  * Ce qui est journalisé quand la résolution a levé dans le Worker (réponse
  * `erreur`) : la raison du repli, et un détail qui porte le nom, le message
  * et, pour une `RechercheRefusee`, son motif `vide` — jamais perdu en route
- * (6bis-b13bis-c). Une seule écriture pour le module (`surReponse`) et le
+ * Une seule écriture pour le module (`surReponse`) et le
  * hook (réponse arrivée hors d'un effet actif).
  */
 export function repliSurErreur(issue: Extract<IssueReponse, { issue: 'erreur' }>): {
@@ -245,7 +244,7 @@ export class ResolutionDistante {
    * Plus rien n'est envoyé ni écrit ; les demandes en vol sont oubliées.
    *
    * Rend VRAI s'il restait une écriture non publiée : l'appelant publie alors
-   * le cache DE FORCE (6bis-b13bis-c) — le chemin direct qui reprend n'a
+   * le cache DE FORCE — le chemin direct qui reprend n'a
    * peut-être plus rien à traiter, donc plus rien à publier. `basculer` le
    * fait lui-même ; le hook le fait pour les replis qui ne passent pas par le
    * module (erreur du Worker, réponse illisible). Un second appel rend faux.
@@ -270,7 +269,7 @@ export class ResolutionDistante {
     p.enAttente(restants.length);
     // ⚠️ **La file s'est vidée sans nouvelle écriture** — réponse ignorée,
     // changement de page, nouvelle recherche — alors que la cadence a retenu
-    // la dernière : publication FORCÉE (6bis-b13bis-c). Sans elle, ce résultat
+    // la dernière : publication FORCÉE. Sans elle, ce résultat
     // resterait dans le cache sans jamais atteindre l'écran, puisque plus
     // rien ne publierait. Le chemin direct fait de même quand il s'endort.
     if (restants.length === 0 && this.nonPubliee) this.publier(p, true);

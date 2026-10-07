@@ -1,7 +1,5 @@
 // Étape 1/2 de la comparaison de VITESSE « rétention par tranches » vs
-// l'ancien mécanisme à score unique — voir spec/outils/optimizer/
-// archive/historique/historique-dimensionnement.md, « Suite — vitesse de convergence : tranches
-// vs score unique ». Génère N scénarios synthétiques et calcule l'optimum
+// l'ancien mécanisme à score unique. Génère N scénarios synthétiques et calcule l'optimum
 // EXACT de chacun (référence indépendante de la rétention — un fait sur le
 // pool/l'exigence, pas sur le mécanisme testé), écrit le tout dans un JSON
 // partagé. Ne tourne QUE dans le répertoire courant (code ACTUEL — importe
@@ -16,7 +14,7 @@
 // complet (a fait OOM en premier jet sur cette même piste).
 //
 // ⚠️⚠️ **CE BLOC EST PÉRIMÉ SOUS CONDITION — ce script est ABSORBABLE, mais
-// PAS sur tous ses scénarios** (§5.5 bis et §5.8 mesure 2, 2026-09-09). La
+// PAS sur tous ses scénarios**. La
 // condition est le **COÛT DU SET DEMANDÉ**, donc le nombre d'emplacements
 // laissés libres :
 //   · set de **4 pièces** (2 libres — la forme courante en production) : un
@@ -35,19 +33,18 @@
 // et des combos à **8 pièces pour 6 emplacements** (`violent`+`swift`),
 // structurellement impossibles, qui partent en `skippedInfeasible`.
 //
-// ⚠️ **POURQUOI CE SCRIPT SURVIT AU HARNAIS** (vérifié le 2026-09-09, §5.2 bis
-// des extensions). Il ne compare rien : il **PRODUIT une VÉRITÉ TERRAIN** —
+// ⚠️ **POURQUOI CE SCRIPT SURVIT AU HARNAIS** : il ne compare rien : il **PRODUIT une VÉRITÉ TERRAIN** —
 // l'optimum EXACT de chaque scénario, calculé indépendamment du mécanisme de
 // rétention qu'on cherche à évaluer. Le harnais ne calcule aucun optimum
 // exact : il observe le pipeline, il ne le contourne pas. Il n'y a donc rien
-// à périmer ici, exactement comme `pair-bound-diag` au §5.3 (seul porteur
+// à périmer ici, exactement comme `pair-bound-diag` (seul porteur
 // d'`estimatePairBound`, dont l'intégration a été ÉCARTÉE).
 // ⚠️ Et c'est un **précédent à reprendre**, pas seulement un script à garder :
 // son `exactOptimum` REFUSE d'écrire un résultat dès qu'UN SEUL couple de
 // compartiments a épuisé `HEAP_BUDGET` (`'budget-exceeded'`, plus bas) — un
 // oracle qui s'abstient plutôt que de livrer un optimum sous-optimal avec
 // l'autorité d'une référence. C'est la même culture que `NON_OBSERVABLE`
-// (§5.1) et `NON_COMPARABLE` (11c), trouvée ici avant eux.
+// et `NON_COMPARABLE` du harnais.
 // ⚠️ Ne pas le supprimer avec `optimum-speed-diag` : ils forment une chaîne
 // en deux étapes, mais leurs raisons de survivre sont DIFFÉRENTES.
 //
@@ -170,12 +167,11 @@ function exactOptimum(bucketsA: Bucket[], bucketsB: Bucket[], distinctKeys: stri
   // ⚠️ Conservateur À DESSEIN : dès qu'UN SEUL couple de compartiments a
   // atteint HEAP_BUDGET (anyBudgetExceeded), le résultat n'est PLUS une
   // preuve d'optimalité — un autre couple tronqué peut porter un meilleur
-  // effTotal jamais atteint. Avant ce correctif, une troncature partielle
-  // était absorbée en silence dès qu'AU MOINS UN couple avait produit un
-  // résultat (`!best && anyBudgetExceeded` seulement) : un optimum
-  // SOUS-OPTIMAL pouvait être écrit comme vérité terrain sans le signaler
-  // — trouvé par une revue de code externe, voir historique-
-  // dimensionnement.md, « revue de code externe ». Ce script sert de
+  // effTotal jamais atteint. Une troncature partielle absorbée en silence
+  // dès qu'AU MOINS UN couple a produit un
+  // résultat (`!best && anyBudgetExceeded` seulement) laisserait un optimum
+  // SOUS-OPTIMAL s'écrire comme vérité terrain sans le signaler.
+  // Ce script sert de
   // référence pour valider d'autres mesures : mieux vaut sauter un
   // scénario incertain que lui faire confiance à tort.
   if (anyBudgetExceeded) return 'budget-exceeded';

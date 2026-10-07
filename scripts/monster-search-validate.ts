@@ -79,13 +79,10 @@ const params: SearchParams = {
 
 console.log('\nRecherche en cours (peut prendre jusqu\'à quelques dizaines de secondes)...');
 
-// ⚠️ Phase 0 (spec/outils/optimizer/) : ce script rejouait ici l'escalade
-// automatique du budget de nœuds plutôt que d'appeler `searchBuilds` (budget
-// FIXE) — sans quoi un `bucketCap` plus élevé reproduisait à tort le rejet
-// historique (budget fixe pénalisé par des compartiments plus coûteux à
-// parcourir). Le budget de paires ayant disparu (piste 8), cette précaution
-// n'a plus lieu d'être ; le pilotage pas à pas est conservé pour l'affichage
-// détaillé (compartiments, `totalPairCount`) que `searchBuilds` n'expose pas.
+// ⚠️ Pilotage pas à pas plutôt que `searchBuilds`, pour l'affichage détaillé
+// (compartiments, `totalPairCount`) que `searchBuilds` n'expose pas. Il n'y a
+// plus de budget de paires : ce script ne rejoue plus l'escalade automatique
+// du budget de nœuds, que la recherche ne connaît plus.
 const prepared = prepareSearch(params);
 if (!prepared) {
   console.log('prepareSearch = null (au moins un emplacement vide après pré-filtrage)');

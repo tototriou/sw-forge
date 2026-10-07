@@ -381,7 +381,8 @@ porte la ligne 218, même si les PV ne sont pas une stat du sort.
   l'écran passe le sien), le plafond de candidats, l'épuisement de
   l'espace. Ne pas réintroduire de plafond de paires : `totalPairCount`
   compte exactement les paires que `pairBuckets` visite (mêmes prédicats,
-  même ordre, égalité vérifiée par `tests/rune-optim-differential.test.ts`),
+  dans un ordre qui diffère sans changer le compte ; égalité vérifiée par
+  `tests/rune-optim-differential.test.ts`),
   si bien qu'un tel plafond ne protégerait de rien et changerait une future
   divergence de comptage en troncature silencieuse.
 - **La recherche de runes optimise uniquement les 6 runes.** Les artéfacts
@@ -416,3 +417,46 @@ porte la ligne 218, même si les PV ne sont pas une stat du sort.
   garanties : `tests/rune-optim-parallel-pairing.test.ts` compare le
   découpage au chemin séquentiel. Détail :
   [pipeline.md § Appariement parallèle](pipeline.md).
+
+### Variantes écartées ou gardées en réserve
+
+Chaque ligne dit une variante déjà essayée ou raisonnée, et pourquoi elle
+n'est pas en production. Les pistes encore ouvertes sont dans
+[../pistes.md](../pistes.md).
+
+- Ne pas ajouter de dominance entre demi-builds (frontière de Pareto par
+  compartiment, `skylineKeys`) : mesurée sur des comptes réels, son coût
+  croît bien plus vite que linéairement avec le nombre de stats suivies,
+  au point de ne pas finir à sept. Le prototype est resté dans le code,
+  inutilisé ([../pistes.md § Prototypes de `buildBuckets`](../pistes.md)).
+- Ne pas rendre la dominance directionnelle sur une stat qui n'a qu'un
+  maximum (y tenir « moins » pour « mieux ») : un tri après coup par cette
+  stat cherche les valeurs proches du plafond, pas les plus basses ; seule
+  l'égalité y est sûre (§ Élagages sûrs), et la rétention écarte les
+  maximums pour la même raison (`prepareSearch`, `retentionKeys`).
+- Ne pas élargir un objectif pour retrouver plus de builds (l'union de
+  Dégâts et de Vitesse, par exemple) : il retient plus de runes au
+  pré-filtrage, ce qui accroît la concurrence dans les compartiments au
+  lieu de la réduire ; à `bucketCap` égal, cette union n'a jamais fait
+  mieux que Vitesse seule.
+- Ne pas avantager au classement de rétention un demi-build parce que son
+  Intangible complète un set de plus de 3 pièces : aucun cas réaliste de
+  perte n'est connu. Quand le plafond de candidats arrête la recherche,
+  le choix est déjà trop large ; quand c'est le temps, seul un set à très
+  peu d'exemplaires est menacé, et son pool, minuscule, s'épuise vite.
+- Ne pas remplacer le pré-filtrage par une enveloppe convexe : elle ne vaut
+  que pour un critère fixé d'avance, combinaison linéaire de deux stats,
+  alors que le tri se choisit après coup, et elle ignore les contraintes de
+  set (raisonnement, non mesuré).
+- Ne pas passer les stats en `Float32Array` : environ sept chiffres
+  significatifs contre des stats au centième de pour cent, pour aucun coût
+  de ramasse-miettes identifié (raisonnement, non mesuré).
+- Gardée en réserve, pas adoptée : une autre façon de prioriser les stats
+  les plus difficiles, qui répartit les places des tranches d'après des
+  accumulateurs tenus pendant la construction
+  (`scripts/patches/piste-a-tranche-weighting.patch`, qui ne s'applique
+  plus tel quel). Elle coûte à la construction, là où
+  `trancheReallocation` estime la dispersion sur le pool filtré avant la
+  boucle, et son avantage pour trouver n'a été vu que sur un cas. À
+  reprendre si l'interrupteur actuel laisse encore des recherches
+  infructueuses.

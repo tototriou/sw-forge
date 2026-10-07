@@ -1,29 +1,29 @@
 // Choix de la MEILLEURE RELIQUE pour un build donné, et ce qui la précède :
 // bornes optimistes par statistique, pertinence et dominance structurelle.
 //
-// ⚠️ **Frontière volontaire** (implementation-relique, B.3) : ce module ne
+// ⚠️ **Frontière volontaire** : ce module ne
 // connaît ni `computeStats` ni `pvEffectifs` ni rien de `damage.ts`/`stats.ts`
-// — l'appelant (B.5a/B.5b) fournit un `evaluate` qui sait calculer les stats
+// — l'appelant fournit un `evaluate` qui sait calculer les stats
 // du build AVEC une relique candidate. Même séparation que
 // `artifactOptim.ts` vis-à-vis du moteur de runes.
 //
 // ⚠️ **La principale d'une relique est un POURCENTAGE**, pas un plat comme un
 // artéfact : `stat = B + ceil(B × (R + L) / 100) + plats`
-// (spec/outils/optimizer/chantiers/implementation-relique.md § A.1). Elle
+// (spec/outils/optimizer/moteur/reliques.md § Contexte transporté, bornes relâchées, filtre exact). Elle
 // change donc la FAISABILITÉ des minimums, pas seulement le classement — d'où
 // les bornes par statistique ci-dessous, qui jouent le même rôle que
-// `artFlatMax`/`artFlatMin` pour les artéfacts (../invariants.md § Artéfacts).
+// `artFlatMax`/`artFlatMin` pour les artéfacts (spec/outils/optimizer/invariants.md
+// § Artéfacts).
 //
-// ⚠️ **Dominance STRUCTURELLE seulement** (D6) : sans formule chiffrée pour
-// les exclusives (D9, jusqu'au lot 7), on ne peut comparer deux reliques que
-// sur des cas où l'ordre est évident — jamais par un score inventé.
+// ⚠️ **Dominance STRUCTURELLE seulement** : on ne compare deux reliques
+// que sur des cas où l'ordre est évident — jamais par un score inventé.
 
 import { RelicDetail, RelicUnique } from '../types';
 import { RELIC_UNIQUE, StatKey } from './effects';
 // ⚠️ `import type` UNIQUEMENT : `useOptimizerState.ts` importe `damage.ts`
 // (DamageSetup) — un import de valeur ferait entrer cette dépendance dans le
 // bundle de ce module. Effacé à la compilation, celui-ci ne tire donc RIEN
-// de `useOptimizerState.ts` au runtime (frontière du module, B.3).
+// de `useOptimizerState.ts` au runtime (frontière du module).
 import type { RelicMainChoice, RelicUniqueChoice, RelicIntent } from '../hooks/useOptimizerState';
 import type { Objective } from './runeBuildOptim';
 
@@ -53,24 +53,24 @@ function statDePrincipale(choix: RelicMainChoice): RelicStat | undefined {
 export type RelicNature =
   | { sorte: 'degatsInfliges' } // Conquête (1,2,3)
   | { sorte: 'degatsReduits' } // Ténacité (4,5,6)
-  | { sorte: 'soins' } // Régénération (16) — jamais pertinente, reliques.md § 5.1
+  | { sorte: 'soins' } // Régénération (16) — jamais pertinente (spec/outils/optimizer/moteur/reliques.md § Pertinence et dominance — écrites, non appelées en production)
   | { sorte: 'buffStat'; stat: RelicStat }; // Bravoure→atk (7,8,9) · Éternité→def (10,11,12) · Origine→hp (13,14,15)
 
 /**
  * Le type a-t-il une formule numérique ? C'est ce qui décide de
- * `RelicDimensions.scorePartiel` : depuis le lot 7, les cinq groupes que le
- * relevé T4 couvre sont chiffrés (`relicExclusive.ts`), le score cesse donc
+ * `RelicDimensions.scorePartiel` : les cinq groupes que le relevé en jeu
+ * couvre sont chiffrés (`relicExclusive.ts`), le score cesse donc
  * d'être partiel là où ils sont les seuls pertinents.
  *
  * ⚠️ **Écrit ICI et pas dans `relicExclusive.ts`**, qui porte la formule :
  * celui-là importe `damage.ts`, et ce module doit rester libre de cette
- * dépendance (frontière du lot 3). Les deux ne peuvent donc pas se dériver
+ * dépendance (frontière du module). Les deux ne peuvent donc pas se dériver
  * l'un de l'autre — c'est `tests/relic-exclusive.test.ts` qui vérifie leur
  * accord sur les seize types, et qui tombera si l'un bouge sans l'autre.
  *
  * ⚠️ **Régénération** (16) est exclue à dessein : son effet est réel en jeu,
  * mais aucun objectif ne le mesure — elle n'est jamais pertinente, donc ne
- * rend jamais un score partiel (D6, rév. 9). Un type INCONNU n'est pas
+ * rend jamais un score partiel. Un type INCONNU n'est pas
  * chiffrable non plus, et n'est jamais pertinent : il ne rend rien partiel.
  */
 export function exclusiveChiffrable(type: number): boolean {
@@ -99,7 +99,7 @@ export function relicUniqueNature(type: number): RelicNature | undefined {
 }
 
 /* --------------------------------------------------------------------------
- * Bornes optimistes par statistique — D5, garantie C
+ * Bornes optimistes par statistique
  * ----------------------------------------------------------------------- */
 
 export function relicMainPercent(r: RelicDetail): number {
@@ -109,7 +109,7 @@ export function relicMainPercent(r: RelicDetail): number {
 // La meilleure principale de chaque statistique parmi les éligibles —
 // INDÉPENDANTES (elle accorde les trois meilleures à la fois : la borne est
 // permissive, jamais un faux négatif au test de faisabilité). `[]` → zéro
-// partout (garantie C).
+// partout.
 export function relicPctMaxByStat(eligibles: RelicDetail[]): Record<RelicStat, number> {
   const max: Record<RelicStat, number> = { hp: 0, atk: 0, def: 0 };
   for (const r of eligibles) {
@@ -119,10 +119,10 @@ export function relicPctMaxByStat(eligibles: RelicDetail[]): Record<RelicStat, n
   return max;
 }
 
-// Le `Lmin` de D5 (rév. 7, CORR-2) : la PLUS PETITE principale éligible sur
+// Le `Lmin` : la PLUS PETITE principale éligible sur
 // la statistique FORCÉE, 0 sur les deux autres et si aucune principale n'est
 // forcée sur une statistique précise (`'libre'`/`'equipped'`) — c'est
-// l'appelant (lot 5a) qui en fait des points par `floor`, jamais ce module.
+// l'appelant qui en fait des points par `floor`, jamais ce module.
 export function relicPctMinByStat(eligibles: RelicDetail[], principaleForcee: RelicMainChoice): Record<RelicStat, number> {
   const min: Record<RelicStat, number> = { hp: 0, atk: 0, def: 0 };
   const stat = statDePrincipale(principaleForcee);
@@ -133,14 +133,14 @@ export function relicPctMinByStat(eligibles: RelicDetail[], principaleForcee: Re
 }
 
 /* --------------------------------------------------------------------------
- * Le pool éligible — D1 : principale ∈ champ 1 ET type ∈ champ 2, puis seuil
+ * Le pool éligible : principale ∈ champ 1 ET type ∈ champ 2, puis seuil
  * ----------------------------------------------------------------------- */
 
 // Premier filtre qui a tout retiré (inventaire → principale → type → seuil),
-// ou `'equipee'` en mode `equipped` sans relique portée (B.3, « le contrat »).
+// ou `'equipee'` en mode `equipped` sans relique portée.
 export type RelicVide = 'inventaire' | 'principale' | 'type' | 'seuil' | 'equipee';
 
-// Mode recherche SEULEMENT — ne connaît pas la relique équipée (D1).
+// Mode recherche SEULEMENT — ne connaît pas la relique équipée.
 export function eligibleRelics(
   inventaire: RelicDetail[],
   principale: RelicMainChoice,
@@ -165,7 +165,7 @@ export function eligibleRelics(
 }
 
 /* --------------------------------------------------------------------------
- * Le contexte canonique — garantie G
+ * Le contexte canonique
  * ----------------------------------------------------------------------- */
 
 export interface RelicBounds {
@@ -181,7 +181,7 @@ export interface RelicContext {
   type: RelicUniqueChoice;
   seuil: number;
   equipee?: RelicDetail;
-  // Avant dominance (rév. 5, C3) : la dominance dépend du RÉGIME (objectif,
+  // Avant dominance : la dominance dépend du RÉGIME (objectif,
   // sort, minimums, maximums) que ce contexte ne connaît pas — chaque
   // consommateur l'applique avec le sien.
   eligibles: RelicDetail[];
@@ -190,10 +190,10 @@ export interface RelicContext {
   empreinte: string;
 }
 
-// Hachage stable et SÉMANTIQUE (rév. 6, MAJ-4) : deux imports qui ne diffèrent
+// Hachage stable et SÉMANTIQUE : deux imports qui ne diffèrent
 // que par l'ordre produisent la même empreinte ; un `rid` réimporté avec une
 // autre valeur (upgrade, unique) la change — donc invalide tout cache basé
-// dessus (B.5b).
+// dessus.
 function empreinteDe(eligibles: RelicDetail[], intention: RelicIntent): string {
   const trie = [...eligibles].sort((a, b) => a.id - b.id);
   const parts = trie.map((r) => {
@@ -208,8 +208,8 @@ function bornesDe(eligibles: RelicDetail[], principale: RelicMainChoice): RelicB
   return { max: relicPctMaxByStat(eligibles), min: relicPctMinByStat(eligibles, principale) };
 }
 
-// LA fonction de la garantie G : résout l'intention (interrupteur, principale,
-// type, seuil — livrée par B.2) contre le monstre et l'inventaire courants,
+// LA fonction canonique : résout l'intention (interrupteur, principale,
+// type, seuil) contre le monstre et l'inventaire courants,
 // UNE SEULE FOIS, en un contexte que moteur, oracle, file, CLI et écran
 // consomment tous — jamais leur propre lecture des trois champs.
 export function resoudreContexteRelique(
@@ -226,8 +226,8 @@ export function resoudreContexteRelique(
   };
 
   if (intention.mode === 'off') {
-    // L'équipée est appliquée UNE FOIS par le moteur (déjà `SearchParams.relic`,
-    // garantie G) : ce contexte ne fait que le documenter, il n'y touche pas.
+    // L'équipée est appliquée UNE FOIS par le moteur (déjà `SearchParams.relic`) :
+    // ce contexte ne fait que le documenter, il n'y touche pas.
     return { ...commun, eligibles: [], bornes: BORNES_NULLES, empreinte: empreinteDe([], intention) };
   }
 
@@ -258,7 +258,7 @@ export function resoudreContexteRelique(
 }
 
 /* --------------------------------------------------------------------------
- * Pertinence et dimensions — D6, garantie A
+ * Pertinence et dimensions
  * ----------------------------------------------------------------------- */
 
 const STATS: RelicStat[] = ['hp', 'atk', 'def'];
@@ -267,7 +267,7 @@ export interface RelicDimensions {
   // Statistiques dont la principale est retenue (objectif ∪ minimums actifs).
   principaleStats: Set<RelicStat>;
   // Statistiques sous un MAXIMUM actif : aucune dominance par la principale
-  // dessus, dans aucun sens (rév. 5, B1 — un maximum casse la monotonie).
+  // dessus, dans aucun sens (un maximum casse la monotonie).
   maxActifs: Set<RelicStat>;
   // Types d'exclusive (1..16) dont le gain entre dans le régime courant.
   exclusiveTypesPertinents: Set<number>;
@@ -275,7 +275,7 @@ export interface RelicDimensions {
    * Vrai ssi au moins un type pertinent pour CE régime n'a pas de formule
    * numérique (`exclusiveChiffrable`).
    *
-   * ⚠️ Depuis le lot 7, les cinq groupes que le relevé T4 couvre sont
+   * ⚠️ Les cinq groupes que le relevé en jeu couvre sont
    * chiffrés — et les seuls types qui ne le sont pas (Régénération, un type
    * inconnu ajouté par le jeu) ne sont jamais pertinents. Ce drapeau vaut
    * donc `false` sur les quatre objectifs actuels. Il reste DÉRIVÉ et non
@@ -287,7 +287,7 @@ export interface RelicDimensions {
 
 // Reçoit les minimums ET maximums ACTIFS (pas seulement l'objectif) : une
 // statistique de principale sert aussi si un minimum de la recherche porte
-// dessus, même hors de l'objectif choisi (D6 — contre-exemple : dégâts sur
+// dessus, même hors de l'objectif choisi (contre-exemple : dégâts sur
 // l'ATQ, minimum DEF actif, la DEF % peut rendre faisable un runage que
 // l'ATQ % seule ne permet pas).
 //
@@ -295,8 +295,7 @@ export interface RelicDimensions {
 // l'appelant — ce module n'ouvre jamais `damage.ts`), utilisées seulement en
 // « Dégâts réels ».
 //
-// « Vitesse » et « Efficience » ne reçoivent AUCUN traitement spécial (T3,
-// T7) : la règle générale produit d'elle-même « aucune dimension d'objectif,
+// « Vitesse » et « Efficience » ne reçoivent AUCUN traitement spécial : la règle générale produit d'elle-même « aucune dimension d'objectif,
 // principales par les minimums actifs, aucune exclusive » pour les deux —
 // elles tombent simplement dans le cas par défaut ci-dessous.
 export function dimensionsRetenues(
@@ -318,7 +317,8 @@ export function dimensionsRetenues(
     // Le scaling du sort (dimension directe) + Conquête, TOUJOURS pertinente
     // (elle augmente les dégâts infligés quel que soit le scaling) + le
     // groupe dont le buff correspond au scaling (Bravoure→atk, Éternité→def,
-    // Origine→hp) — reliques.md § 5.1.
+    // Origine→hp) — spec/outils/optimizer/moteur/reliques.md
+    // § Pertinence et dominance — écrites, non appelées en production.
     objectifStats = sort;
     typePertinent = (type) => {
       const nature = relicUniqueNature(type);
@@ -330,7 +330,8 @@ export function dimensionsRetenues(
   } else if (objectif === 'ehp') {
     // PV et DEF entrent toujours (elles nourrissent les PV effectifs) ; les
     // exclusives qui les augmentent, plus Ténacité (dégâts reçus réduits) —
-    // reliques.md § 5.1.
+    // spec/outils/optimizer/moteur/reliques.md
+    // § Pertinence et dominance — écrites, non appelées en production.
     objectifStats = ['hp', 'def'];
     typePertinent = (type) => {
       const nature = relicUniqueNature(type);
@@ -341,7 +342,7 @@ export function dimensionsRetenues(
     };
   }
   // 'efficience' et 'vitesse' : `objectifStats` reste `[]`, `typePertinent`
-  // reste « toujours faux » — régime `aucun` (T3, T7).
+  // reste « toujours faux » — régime `aucun`.
 
   const principaleStats = new Set<RelicStat>([...objectifStats, ...statsMin]);
   const exclusiveTypesPertinents = new Set<number>();
@@ -356,7 +357,7 @@ export function dimensionsRetenues(
 }
 
 /* --------------------------------------------------------------------------
- * Dominance structurelle — D6, garantie B
+ * Dominance structurelle
  * ----------------------------------------------------------------------- */
 
 function typeConnu(u: RelicUnique | undefined): u is RelicUnique {
@@ -373,7 +374,7 @@ function exclusiveCompatible(a: RelicDetail, b: RelicDetail, dims: RelicDimensio
   const ua = a.unique;
   const ub = b.unique;
   if (ua.type === ub.type) {
-    // Percent absent d'un côté ou de l'autre → pas de « même type » (rév. 6).
+    // Percent absent d'un côté ou de l'autre → pas de « même type ».
     if (ua.percent == null || ub.percent == null) return false;
     return ua.tranche <= ub.tranche && ua.percent >= ub.percent ? 'meme-type' : false;
   }
@@ -408,7 +409,7 @@ export function relicDominates(a: RelicDetail, b: RelicDetail, dimensions: Relic
 }
 
 /* --------------------------------------------------------------------------
- * Résolution — admissibilité exacte AVANT le score (rév. 6, BLOC-1)
+ * Résolution — admissibilité exacte AVANT le score
  * ----------------------------------------------------------------------- */
 
 export type RelicEvaluation = number | 'infaisable';
@@ -425,17 +426,16 @@ export interface MeilleureRelique {
 // écrire, la preuve est la couverture des tests unitaires, exhaustive par
 // construction sur un petit nombre de candidates).
 //
-// `regimeAucun` : Efficience et Vitesse (rév. 5, C6) — `evaluate` y rend un
+// `regimeAucun` : Efficience et Vitesse — `evaluate` y rend un
 // score constant pour toute candidate faisable ; le choix privilégie la
 // relique déjà équipée si elle est candidate et faisable pour CE build,
 // sinon la première faisable par `id` croissant.
 //
-// `departagePortee` : régimes de stat `hp`/`atk`/`def` (degats-et-aura
-// 6bis-b9, décision de l'utilisateur du 2026-10-01) — `evaluate` y note la
+// `departagePortee` : régimes de stat `hp`/`atk`/`def` — `evaluate` y note la
 // FICHE, sans l'effet unique, et deux reliques de même principale sont ex
 // æquo : la relique PORTÉE l'emporte si elle est parmi les meilleures, sinon
 // la plus petite `id`. Ce départage ne touche que le CHOIX de la relique ;
-// les autres régimes, et l'oracle (garantie E), gardent l'`id` croissant.
+// les autres régimes, et l'oracle, gardent l'`id` croissant.
 export function bestRelicForBuild(
   candidates: RelicDetail[],
   evaluate: (relique: RelicDetail) => RelicEvaluation,

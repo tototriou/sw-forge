@@ -1,15 +1,16 @@
-// Vérifie les documents de `spec/` contre le contrat de rangement — ex-B.4 de
-// `spec/outillage/spec.md`. Deux régimes : documents actifs (bloc
-// terminal ≤ 100 lignes, fichier ≤ 500 hors exception, en-tête avec Statut
+// Vérifie les documents de `spec/` contre le contrat de rangement
+// (`spec/outillage/spec.md`, « Contrat de `spec-lint` »). Deux régimes :
+// documents actifs (bloc terminal ≤ 100 lignes, fichier ≤ 500 hors exception, en-tête avec Statut
 // reconnu, slugs uniques, références `fichier § section` résolues) et
-// `archive/` (seule la présence de `**Statut :** ARCHIVE` est exigée).
+// les archives (seule la présence de `**Statut :** ARCHIVE` est exigée).
 //
 // Usage : `node scripts/spec-lint.mjs [--json]`
 // Périmètre et exceptions déclarés dans `spec/spec-lint.json`.
 //
 // ⚠️ Le parseur (titres, blocs, en-tête, références, mode dossier) vit dans
 // `scripts/lib/spec-markdown.mjs`, partagé avec `spec-toc` — ce script ne
-// fait qu'appliquer les règles de B.4 et mettre en forme.
+// fait qu'appliquer les règles de « Contrat de `spec-lint` »
+// (`spec/outillage/spec.md`) et mettre en forme.
 
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, relative, resolve } from 'node:path';
@@ -29,7 +30,7 @@ function estArchive(relatif) {
   return /(^|\/)archive\//.test(relatif);
 }
 
-// B.4 amendement C6 : un cadrage — tout `.md` sous un dossier `chantiers/`,
+// « La nature CHANTIER » (`spec/outillage/spec.md`) : un cadrage — tout `.md` sous un dossier `chantiers/`,
 // à toute profondeur (`spec/chantiers/**`) — n'est ni un état actuel, ni une
 // décision, ni une archive : il est « en cours » puis « terminé ». Le
 // dossier `chantiers/` fait foi, pas le périmètre déclaré.
@@ -37,8 +38,9 @@ function estChantier(relatif) {
   return /(^|\/)chantiers\//.test(relatif);
 }
 
-// B.5 : un Statut n'est reconnu que s'il commence par une des trois natures
-// (A.2) — « présent et non vide » ne suffit plus depuis le lot 5. Comparaison
+// Un Statut n'est reconnu que s'il commence par une des trois natures
+// (`spec/outillage/spec.md`, « En-têtes par nature, slugs uniques ») :
+// « présent et non vide » ne suffit pas. Comparaison
 // insensible à la casse : les en-têtes existants écrivent « État actuel »,
 // pas « ÉTAT ACTUEL ».
 const NATURES_RECONNUES = ['ÉTAT ACTUEL', 'DÉCISION', 'ARCHIVE'];
@@ -61,8 +63,9 @@ function dateValide(annee, mois, jour) {
   return d.getUTCFullYear() === annee && d.getUTCMonth() === mois - 1 && d.getUTCDate() === jour;
 }
 
-// B.4 amendement C6 : regex stricte, deux formes acceptées — pas de préfixe
-// libre comme pour les trois autres natures. Les champs d'en-tête B.5 (Lire
+// « La nature CHANTIER » (`spec/outillage/spec.md`) : regex stricte, deux
+// formes acceptées — pas de préfixe libre comme pour les trois autres
+// natures. Les champs d'en-tête (« En-têtes par nature, slugs uniques » : Lire
 // si, Ne pas lire si, Voir aussi) restent facultatifs pour cette nature.
 const RE_CHANTIER_EN_COURS = /^CHANTIER EN COURS(\s+—.*)?$/;
 const RE_CHANTIER_TERMINE = /^CHANTIER TERMIN[EÉ] LE (\d{4})-(\d{2})-(\d{2})(\s+—.*)?$/;
@@ -91,7 +94,8 @@ function resoudreChemin(cheminSource, racine, refFichier) {
 // ou au moins un bloc > 100), pas sur sa seule inscription dans la liste.
 //
 // `options.inclureLongueurs = false` limite le contrôle aux en-têtes, aux
-// slugs et aux références — c'est la cible `spec-lint-en-tetes` de B.4 ;
+// slugs et aux références — c'est la cible `spec-lint-en-tetes` de « Cibles
+// de test » (`spec/outillage/spec.md`) ;
 // `true` (par défaut) ajoute les longueurs et les exceptions — la cible
 // `spec-lint`.
 export function verifier(racine, config, options = {}) {
@@ -123,7 +127,7 @@ export function verifier(racine, config, options = {}) {
       if (!statut || !statut.trim().startsWith('ARCHIVE')) {
         erreurs.push({ fichier: relatif, regle: 'statut-archive', message: 'en-tête sans « **Statut :** ARCHIVE »' });
       }
-      continue; // archive/ : aucune autre règle (A.2, B.4)
+      continue; // archive/ : aucune autre règle (« Natures de documents et règles de forme », `spec/outillage/spec.md`)
     }
 
     const dansChantiers = estChantier(relatif);
@@ -162,7 +166,7 @@ export function verifier(racine, config, options = {}) {
 
     const nbLignes = texte.split(/\r\n|\n/).length;
     const blocs = blocsTerminaux(texte);
-    // B.4 amendement C6 : seule exemption au plafond fichier — codée ici,
+    // « La nature CHANTIER » : seule exemption au plafond fichier — codée ici,
     // pas dans spec-lint.json (ce n'est pas une dette à résorber, c'est la
     // nature du document, cf. contrat). Le bloc terminal ≤ 100 reste exigé.
     const depasseFichier = nbLignes > 500 && !dansChantiers;

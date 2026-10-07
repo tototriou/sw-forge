@@ -13,9 +13,10 @@ interface Props {
   onDelete: (id: string) => void;
 }
 
-// « Liste active » (Lot 3) — menu déroulant, jamais de liste fixe (Box/RTA/
-// Défense siège ne sont plus des cas spéciaux, voir spec/outils/optimizer/
-// archive/historique/historique-import-monstres-a-optimiser.md, « Suite — cadrage du Lot 3 ») :
+// « Liste active » — menu déroulant, jamais de liste fixe (Box/RTA/
+// Défense siège ne sont pas des cas spéciaux, voir
+// spec/outils/optimizer/listes-et-reservation.md,
+// « Créer, valider et réserver dans une liste ») :
 // tout est créé, renommé, supprimé par l'utilisateur. Flotte par-dessus zone
 // C au lieu de la repousser (voir spec/shared/design.md, « un clic ne
 // déplace jamais ce qu'on vient de cliquer »).

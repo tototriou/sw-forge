@@ -12,7 +12,7 @@ import { WorkerResponse } from '../workers/runeBuildOptim.worker';
 // lui, n'est jamais tronqué par cette limite — seul l'aperçu EN DIRECT l'est.
 const PREVIEW_CANDIDATES_CAP = 3000;
 
-// `'refused'` : refus NOMMÉ (pool de reliques vide en mode `recherche`, D1),
+// `'refused'` : refus NOMMÉ (pool de reliques vide en mode `recherche`),
 // jamais un `'done'` avec un résultat vide — voir `refusal` ci-dessous.
 export type BuildOptimStatus = 'idle' | 'running' | 'done' | 'error' | 'refused';
 
@@ -31,8 +31,7 @@ export interface HalfBuildProgress {
 // l'ancien comportement) et peut à elle seule durer jusqu'à environ une
 // minute sur un compte réel avec beaucoup de conditions — sans cette
 // distinction, l'UI n'avait AUCUNE information pendant cette phase (voir
-// spec/outils/optimizer/, « Suite — la phase de préparation restait
-// muette »).
+// spec/outils/optimizer/moteur/pipeline.md § Construction des moitiés).
 // ⚠️ `building` garde les DEUX moitiés (`halves.A`/`halves.B`), pas une seule
 // — depuis leur construction en parallèle (deux Workers, voir
 // runeBuildOptim.worker.ts), les messages de progression des deux moitiés
@@ -49,7 +48,7 @@ export type BuildOptimProgress =
   // de recherche à épuiser » juste en dessous. ⚠️ Un second champ
   // (`nodeBudgetMax`, le plafond de nœuds ACTUEL, qui grandissait en cours de
   // recherche) transitait ici sans jamais être affiché : supprimé avec le
-  // budget lui-même (piste 8).
+  // budget lui-même.
   | {
       phase: 'pairing';
       explored: number;
@@ -85,7 +84,8 @@ export type BuildOptimProgress =
 // parfaitement valide (React ne l'invalide pas) et écraserait alors l'état
 // de la recherche EN COURS avec une valeur PÉRIMÉE. Confirmé en usage réel :
 // lancer/arrêter plusieurs recherches rapprochées pouvait figer une des deux
-// barres de la phase `building` (voir spec/outils/optimizer/) — plus
+// barres de la phase `building` (voir
+// spec/outils/optimizer/moteur/pipeline.md § Lancement) — plus
 // probable depuis la parallélisation des deux moitiés (deux Workers de plus
 // à chaque recherche, donc deux fois plus de messages en vol au moment d'un
 // arrêt/relance). Chaque `run()` incrémente `runId` ; tout message reçu par
@@ -98,13 +98,13 @@ export function useBuildOptimSearch() {
   const [status, setStatus] = useState<BuildOptimStatus>('idle');
   const [result, setResult] = useState<SearchResult | null>(null);
   const [progress, setProgress] = useState<BuildOptimProgress | null>(null);
-  // Motif du refus (5c l'affiche ; ce lot ne touche pas OptimizerSection.tsx).
+  // Motif du refus (affiché par OptimizerSection.tsx).
   const [refusal, setRefusal] = useState<{ motif: 'relique-pool-vide'; vide: RelicVide } | null>(null);
-  // Le contexte relique de la recherche LANCÉE (`SearchParams.relicContext`,
-  // garantie G — lot 5b) : c'est lui, et pas une relecture des trois champs
+  // Le contexte relique de la recherche LANCÉE (`SearchParams.relicContext`) :
+  // c'est lui, et pas une relecture des trois champs
   // de l'écran, que la file de résolution (`resoudreEquipementDuBuild`)
   // consomme sur les candidats de CETTE recherche. `undefined` tant que
-  // l'écran n'en pose pas (5c) : la file garde alors la relique portée.
+  // l'écran n'en pose pas : la file garde alors la relique portée.
   const [relicContext, setRelicContext] = useState<RelicContext | undefined>(undefined);
 
   const cancel = useCallback(() => {

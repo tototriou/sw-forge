@@ -1,5 +1,5 @@
-// La dominance des runes face aux lignes d'artéfact 218–221 (degats-et-aura,
-// lot 6bis-b3d-1, constat B1 de la revue technique 6bis-b). En « Dégâts
+// La dominance des runes face aux lignes d'artéfact 218–221 (
+// En « Dégâts
 // réels », ces lignes ajoutent un pourcentage des PV, de l'ATQ, de la DEF ou
 // de la VIT de combat (`ajoutArtefactBrut`, damage.ts). `damageRelevantStats`
 // les exclut volontairement de l'objectif (décision de rétention), et la
@@ -11,7 +11,7 @@
 // comme la production (`optionsDeClassement` + `sortCandidates`).
 //
 // ⚠️ **La note de l'oracle est celle de la PRODUCTION** pour l'équipement
-// complet (cadrage A.6 bis) : `computeStats` avec la paire, `objectiveScore`
+// complet : `computeStats` avec la paire, `objectiveScore`
 // avec les auras propres du build (`aurasPropresDesRunes`), le profil des
 // lignes de CETTE paire (`artifactDamageProfile`) et l'effet unique de la
 // relique (`apportExclusive`, neutre sans relique). En « Libre », la paire
@@ -67,7 +67,7 @@ import { readFileSync } from 'node:fs';
 import type { ArtifactDetail, ArtifactKind, BaseStats, GearSet, RuneDetail } from '../src/types';
 
 const BASE: BaseStats = { hp: 10000, atk: 660, def: 600, spd: 100, cr: 15, cd: 50, res: 15, acc: 0 };
-// Les principales du cas minimal de b3c (sonde de la revue) : ATQ, PV %, DEF,
+// Les principales du cas minimal (sonde) : ATQ, PV %, DEF,
 // PV %, PV, PV % — identiques pour tous les sets, aucune sous-propriété.
 const PRINCIPALES: Record<number, [number, number]> = { 1: [3, 160], 2: [2, 63], 3: [5, 160], 4: [2, 63], 5: [1, 2448], 6: [2, 63] };
 
@@ -228,7 +228,7 @@ function verifierPaireFixe(cas: Cas): Bilan & { tout: boolean } {
     realDamage: contexteDegats(cas, cas.paire), damageSetup: setup, runeById, metric: 'eff', aurasPropresDe: aurasPropresParRunes(runeById),
     artefactsDuBuild: () => null, etatReliqueDe: () => ({ etat: 'fixe', relique: undefined }), contexteExclusive: { setup, element: null },
   });
-  // A.6 bis : la note de l'oracle EST celle de la production — pour chaque
+  // La note de l'oracle EST celle de la production — pour chaque
   // candidat, le chiffre de la carte et du tri (`scoreDuCandidat`).
   const ecartsNote = resultat.candidates.filter((c) => !presque(scoreDuCandidat(c, 'degats_reels', opts) ?? Number.NaN, valides.get(cleDe(c)) ?? Number.NaN));
   t(ecartsNote.length === 0,
@@ -245,7 +245,7 @@ function verifierPaireFixe(cas: Cas): Bilan & { tout: boolean } {
  * ----------------------------------------------------------------------- */
 
 interface Porteur { nom: string; set: string; ligne: number; valeur: number }
-// La sonde de la revue (§ 2.1), devenue test : deux bonus de fiche, deux auras.
+// La sonde de revue, devenue test : deux bonus de fiche, deux auras.
 const PORTEURS: Porteur[] = [
   { nom: 'Energy (PV +15 %) + ligne 218 (PV)', set: 'energy', ligne: 218, valeur: 1.5 },
   { nom: 'Guard (DEF +15 %) + ligne 220 (DEF)', set: 'guard', ligne: 220, valeur: 4 },
@@ -267,7 +267,7 @@ function casPorteur(nom: string, set: string, ligne: number, valeur: number, jok
 }
 
 export function testDominanceLignesQuatrePorteurs() {
-  titre('Dominance · lignes d’artéfact 218–221 — quatre porteurs, témoin, variante avec Intangible (6bis-b3d-1)');
+  titre('Dominance · lignes d’artéfact 218–221 — quatre porteurs, témoin, variante avec Intangible');
   for (const p of PORTEURS) {
     const cas = casPorteur(p.nom, p.set, p.ligne, p.valeur);
     egal(parametres(cas).objectiveStats, ['atk', 'cd'], `${cas.nom} : précondition — la stat de la ligne est hors de l’objectif`);
@@ -304,7 +304,7 @@ function casJoker(fatal: number[], nom: string): Cas {
 }
 
 export function testDominanceLignesJoker() {
-  titre('Dominance · lignes d’artéfact 218–221 — un set formable seulement grâce au joker (6bis-b3d-1)');
+  titre('Dominance · lignes d’artéfact 218–221 — un set formable seulement grâce au joker');
   const cas = casJoker([3, 4, 5], 'Fatal ×3 + Intangible, Blade demandé, sort PV, ligne 219');
   egal(parametres(cas).objectiveStats?.includes('atk'), false, `${cas.nom} : précondition — l’ATQ est hors de l’objectif`);
   const { valides, survivantes } = verifierPaireFixe(cas);
@@ -335,7 +335,7 @@ const INVENTAIRE_LIBRE = [PIECE_A, PIECE_B, PIECE_C];
 const LIBRE: Partial<Record<ArtifactKind, ChoixPrincipale>> = { element: 'libre', archetype: 'libre' };
 
 // Le contexte de paires de l'écran (`artifactParams`) : le producteur de b6
-// et l'évaluateur de la fiche (6bis-b5b), pour cette fiche et cet inventaire.
+// et l'évaluateur de la fiche, pour cette fiche et cet inventaire.
 function contexteDePaires(cas: Cas, inventaire: ArtifactDetail[]): ArtifactSearchParams {
   const setup = setupDe(cas);
   const { artefacts: _a, ...degats } = contexteDegats(cas, []);
@@ -364,7 +364,7 @@ function meilleureNoteLibre(cas: Cas, a: ArtifactSearchParams, runes: RuneDetail
 }
 
 export function testDominanceLignesLibre() {
-  titre('Dominance · lignes d’artéfact 218–221 — « Libre » : la ligne est sur une autre pièce que la représentative (6bis-b3d-1)');
+  titre('Dominance · lignes d’artéfact 218–221 — « Libre » : la ligne est sur une autre pièce que la représentative');
   const cas = casPorteur('« Libre » : Energy, ligne 218 hors de la représentative', 'energy', 0, 0);
   const a = contexteDePaires(cas, INVENTAIRE_LIBRE);
   const representative = paireRepresentative(a);
@@ -388,7 +388,7 @@ export function testDominanceLignesLibre() {
   const espace = espaceExact(p);
   ok(!resultat.truncated && resultat.explored === espace, `${cas.nom} : recherche complète (explorées ${resultat.explored} / totalPairCount ${espace})`);
   const { artefacts: _a, ...degats } = contexteDegats(cas, []);
-  // Les caches de la file, partagés par tous les candidats comme à l'écran (6bis-b13).
+  // Les caches de la file, partagés par tous les candidats comme à l'écran.
   const caches = nouveauxCachesResolution();
   const resolus = resultat.candidates.map((c) => {
     const r = resoudreEquipementDuBuild(entreeResolutionDuBuild({
@@ -432,7 +432,7 @@ function recette(r: Partial<OptimizerRecipe>): OptimizerRecipe {
 }
 
 export function testDominanceLignesProducteurs() {
-  titre('Dominance · lignes d’artéfact 218–221 — producteurs : union, cas mixte, écran et CLI (6bis-b3d-1)');
+  titre('Dominance · lignes d’artéfact 218–221 — producteurs : union, cas mixte, écran et CLI');
 
   // Le moteur : la paire TOUJOURS, unie au champ ; « Dégâts réels » seulement.
   const paire219 = [art(1, 'element', [101, 100], [[219, 4]])];
@@ -516,7 +516,7 @@ export function testDominanceLignesProducteurs() {
  * ----------------------------------------------------------------------- */
 
 export function testDominanceLignesWorkers() {
-  titre('Dominance · lignes d’artéfact 218–221 — Workers et tranches reçoivent le champ (6bis-b3d-1)');
+  titre('Dominance · lignes d’artéfact 218–221 — Workers et tranches reçoivent le champ');
   const cas = casPorteur('« Libre » : Energy, ligne 218 hors de la représentative', 'energy', 0, 0);
   const a = contexteDePaires(cas, INVENTAIRE_LIBRE);
   const p = parametres({ ...cas, paire: paireRepresentative(a) }, { statsLignesArtefactsEquipables: statsLignesArtefactsEquipables(a) });

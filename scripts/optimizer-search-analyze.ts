@@ -63,13 +63,13 @@ if (!recipe) {
   process.exit(1);
 }
 
-// ⚠️ **BUG CORRIGÉ** (revue de code externe — piège « un type, plusieurs
-// constructeurs », CLAUDE.md) : `parseOptimizerRecipe` ne valide PAS
+// ⚠️ Piège « un type, plusieurs constructeurs » (CLAUDE.md) :
+// `parseOptimizerRecipe` ne valide PAS
 // `objective` contre le type (JSON non validé) — une recette exportée
 // pendant la durée de vie d'un objectif depuis retiré (`speed_nuker`,
 // `degats`) porte encore cette valeur. L'ÉCRAN a un repli explicite
 // (`OptimizerSection.tsx`, `importRecipe` : legacyObjective === 'speed_nuker'
-// || 'degats' → 'efficience'), CE script ne l'avait pas — `objectiveScore`
+// || 'degats' → 'efficience'), CE script doit avoir le même — `objectiveScore`
 // (plus bas, via le tri) lève sur un objectif inconnu APRÈS avoir consommé
 // toute la recherche, pas avant. Même repli que l'écran, appliqué ici une
 // seule fois, avant toute autre lecture de `recipe.objective`.
@@ -151,7 +151,7 @@ console.log(
 );
 
 const runeById = new Map<number, RuneDetail>(loaded.allRunes.map((r) => [r.id, r]));
-// Auras propres des six runes de chaque candidat (6bis-b2), comme l'écran.
+// Auras propres des six runes de chaque candidat, comme l'écran.
 const aurasPropresDe = aurasPropresParRunes(runeById);
 
 // Tri identique à l'écran (OptimizerSection.tsx, fullSortedCandidates) :

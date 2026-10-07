@@ -1,6 +1,6 @@
-// Le différentiel de fidélité de B.6 (implementation-relique, lot 6 — B.6
-// amendé le 2026-09-21 : « cinquième point d'entrée, le différentiel de
-// fidélité ; un processus par recherche ») : pour UN point de la grille,
+// Le différentiel de fidélité de la dimension relique (voir
+// spec/outils/optimizer/moteur/reliques.md,
+// « Oracle de la dimension relique ») : pour UN point de la grille,
 // l'oracle (N recherches, une par principale éligible) puis l'option A
 // ENTIÈRE (une recherche relâchée + la résolution exacte de TOUS ses
 // candidats), et la comparaison — N, C (complétude de chaque run ET de A),
@@ -11,13 +11,13 @@
 //   relic-differentiel.ts --case=<i> [--relic-main=] [--relic-type=] [--relic-min-upgrade=] [--export-dir=] --out=<dossier>
 //   relic-differentiel.ts <export.json> <recette.json> [--rta] [--siege=<deckId>[:defense]] [--paire-reference=<id>,<id>] --out=<dossier>
 //     (`--paire-reference` : la paire de référence désignée explicitement à la
-//     place de la représentative — lot 6 bis, `paireDeReference` dans
+//     place de la représentative — `paireDeReference` dans
 //     relicOracle.ts ; archivée dans `resultat.json.point.paireReference`)
 // Mode enfant (interne — une seule recherche, ce processus et rien d'autre) :
 //   … --run=oracle:<i> --out=<dossier>   →  <dossier>/oracle-<i>.json
 //   … --run=A --traceur=<6 ids> --out=<dossier>   →  <dossier>/A.json
 //
-// ⚠️ **Un processus par recherche, en séquence** (B.6 l. 3767 ; skill
+// ⚠️ **Un processus par recherche, en séquence** (skill
 // optimizer-perf-testing : enchaîner des recherches lourdes dans un
 // processus fait dériver les suivantes — sous `maxMs`, une dérive devient
 // une différence de candidats). L'enfant est relancé par
@@ -41,12 +41,11 @@
 // code du différentiel de 5b). Le domaine comparé est la seule dimension
 // relique : paire de référence = `params.artifacts`, figée des deux côtés.
 //
-// ⚠️ Lot 6 bis : la recherche passait par `searchBuilds`, TOUJOURS
-// séquentiel — sur une recette relâchée réelle (Shihwa, 3,2 G paires, 32 ×
-// le seuil) l'écran apparie à 4 workers et le séquentiel coûtait 22 min par
+// ⚠️ `searchBuilds` est TOUJOURS séquentiel — sur une recette relâchée réelle (Shihwa, 3,2 G paires, 32 ×
+// le seuil) l'écran apparie à 4 workers et le séquentiel coûte 22 min par
 // recherche. Le harnais décide du régime comme la production, des DEUX
 // côtés (oracle et A) ; il est rapporté par run (`regime`). Sous le seuil
-// (les cas de batterie du lot 6, Ciri du test) rien ne change.
+// (les cas de batterie, Ciri du test) rien ne change.
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { spawnSync } from 'child_process';
@@ -152,12 +151,12 @@ function reglagesDe(point: PointOracle): ReglagesDifferentiel {
     critere: point.params.objective ?? 'efficience',
     degats: degatsSansArtefacts(point.realDamage),
     porteur: porteurDe(point.com2usId),
-    // ⚠️ Le canal exclusive (lot 7) — le MÊME objet que celui donné à
+    // ⚠️ Le canal exclusive — le MÊME objet que celui donné à
     // `fusionnerRunsOracle` plus bas : les deux côtés calculent l'apport
     // depuis le même `DamageSetup` et le même élément, sinon la comparaison
     // de fidélité ne compare plus rien.
     exclusive: point.exclusive,
-    // B.6 amendé : la paire de RÉFÉRENCE (`params.artifacts`, celle que
+    // La paire de RÉFÉRENCE (`params.artifacts`, celle que
     // l'oracle note) figée côté A ; verrous neutralisés comme l'écran.
     paireFixe: point.params.artifacts,
     lignesVerrouillees: point.lignesVerrouillees,
@@ -222,14 +221,14 @@ async function enfantOracle(point: PointOracle, i: number, out: string): Promise
   process.stderr.write(`oracle run ${i + 1}/${runs.length} (${run.principale ? `${run.principale.code}:${run.principale.value}` : 'sans relique'}) : ${r.candidates.length} candidats, tronqué ${r.truncated}, régime ${regime?.applique ?? '—'}, ${(ms / 1000).toFixed(1)} s\n`);
 }
 
-// Les `SearchParams` du run A : ceux du point, PLUS le contexte G résolu
+// Les `SearchParams` du run A : ceux du point, PLUS le contexte relique résolu
 // (`relicContext` — la forme `--case` ne le pose pas dans les params, l'oracle
 // l'efface de toute façon ; la forme recette le porte déjà, et c'est le MÊME,
 // vérifié par l'empreinte). Le traceur est posé par le harnais (`suivre`).
 function paramsA(point: PointOracle): SearchParams {
   const deja = point.params.relicContext;
   if (deja && deja.empreinte !== point.contexte.empreinte) {
-    throw new Error(`relic-differentiel : le relicContext des SearchParams (${deja.empreinte}) diffère du contexte du point (${point.contexte.empreinte}) — deux lectures de l'intention (garantie G).`);
+    throw new Error(`relic-differentiel : le relicContext des SearchParams (${deja.empreinte}) diffère du contexte du point (${point.contexte.empreinte}) — deux lectures de l'intention, alors qu'il n'y a qu'un point de lecture.`);
   }
   return { ...point.params, relicContext: point.contexte };
 }
@@ -299,8 +298,8 @@ function orchestrer(argv: string[]): void {
   };
   const commande = ['relic-differentiel.ts', ...argsPoint, `--out=${out}`];
 
-  // Refus NOMMÉ (pool vide en mode recherche, D1) — le « test de refus » de
-  // B.6 : un résultat de statut `refus`, jamais un point à 0 candidat.
+  // Refus NOMMÉ (pool vide en mode recherche) — le « test de refus » du
+  // différentiel de reliques : un résultat de statut `refus`, jamais un point à 0 candidat.
   if (contexte.mode === 'recherche' && contexte.vide) {
     const motif = new RechercheRefusee(contexte.vide).message;
     ecrire(resolve(out, 'resultat.json'), { point: entete, statut: 'refus', refus: motif, commande } satisfies FichierResultat);

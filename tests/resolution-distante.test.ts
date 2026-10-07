@@ -1,4 +1,4 @@
-// degats-et-aura 6bis-b13bis-b — la résolution d'équipement HORS du fil de
+// La résolution d'équipement HORS du fil de
 // l'écran, côté écran : le module pur `ResolutionDistante`
 // (`src/workers/resolutionDistante.ts`) et son branchement dans la file
 // (`useArtifactOptimQueue`).
@@ -14,7 +14,7 @@
 //    file l'a renvoyé) ou d'une demande annulée — ne sont JAMAIS écrites ;
 // 5. le repli : un envoi qui lève ou une réponse d'erreur fait renoncer au
 //    Worker, l'erreur passant par `repli`, jamais tue ;
-//    5 bis. rien d'écrit ne reste non publié (6bis-b13bis-c) : une écriture
+//    5 bis. rien d'écrit ne reste non publié : une écriture
 //    retenue par la cadence est publiée de force quand la file se vide
 //    (réponse ignorée comprise) et au repli ;
 // 6. différentiel : une file SIMULÉE — le module, le corps derrière
@@ -24,19 +24,19 @@
 //    (`entreeResolutionDuBuild` + `resoudreEquipementDuBuild`), chaque
 //    écriture contrôlée au moment où elle a lieu ; elle suit `publier` avec
 //    la cadence du hook : sur toute file vide et à la fin, publié = cache ;
-//    elle couvre aussi (6bis-b13bis-c) un repli en cours de route — réponse
+//    elle couvre aussi un repli en cours de route — réponse
 //    d'erreur, envoi qui lève, repli du hook : cache intact, plus rien
 //    d'envoyé ni d'écrit ensuite — et des entrées changées à signature
 //    égale : nouveau contexte, cache gardé, comme le chemin direct ;
 // 7. le hook et l'écran, contrôlés sur la source (le dépôt n'a pas
 //    d'infrastructure de test React) ;
-//    7 bis. le branchement gardé (6bis-b13bis-c) : chaque ligne visée par
+//    7 bis. le branchement gardé : chaque ligne visée par
 //    les mutations de la revue du Worker a son contrôle de source précis ;
 // 8. un seul producteur des runes d'un build (`runesDuBuild`), testé, et
-//    passé par les deux résolutions de l'écran (6bis-b13bis-c).
+//    passé par les deux résolutions de l'écran.
 //
-// Les trois recettes gelées sur le compte réel : script de preuve du lot
-// (`controle-6bis-b13bis-b.md`), qui réutilise `simulerFile` d'ici. Une
+// Les trois recettes gelées sur le compte réel : script de preuve hors dépôt
+// qui réutilise `simulerFile` d'ici. Une
 // seule, « Dégâts réels », y exerce une vraie résolution (en « PV
 // effectifs », artéfacts gardés équipés : une paire par relique ; la
 // troisième n'a qu'un candidat).
@@ -108,7 +108,7 @@ export interface ScenarioFile {
   changementsDeContexte: number;
   progressif: boolean;
   /**
-   * 6bis-b13bis-c — changements des ENTRÉES à signature égale (nouvelle
+   * Changements des ENTRÉES à signature égale (nouvelle
    * recherche aux mêmes réglages, par exemple) : le rendu passe au contexte
    * suivant SANS changer la signature, l'effet du Worker ne repart pas et le
    * cache est GARDÉ, comme sur le chemin direct ; le module doit renvoyer un
@@ -116,7 +116,7 @@ export interface ScenarioFile {
    */
   changementsDEntrees?: number;
   /**
-   * 6bis-b13bis-c — un repli EN COURS DE ROUTE, et son origine : réponse
+   * Un repli EN COURS DE ROUTE, et son origine : réponse
    * d'erreur du corps (`erreur`), envoi qui lève (`envoi`) — tous deux passent
    * par le module —, ou repli du hook (`hook` : erreur du Worker, branchée
    * comme `basculerEnRepli` — `renoncer`, publication forcée s'il rend vrai).
@@ -138,19 +138,19 @@ export interface BilanFile {
   maxEnVol: number;
   maxFileDuCorps: number;
   cacheFinal: number;
-  // 6bis-b13bis-c : publications effectives (forcées comprises), retenues par
+  // Publications effectives (forcées comprises), retenues par
   // la cadence, et contrôles « publié = cache » faits sur une file vide.
   publications: number;
   publicationsForcees: number;
   publicationsRetenues: number;
   controlesPublication: number;
-  // 6bis-b13bis-c : contextes renvoyés après un changement des entrées à
+  // Contextes renvoyés après un changement des entrées à
   // signature égale, entrées du cache gardées à ce changement, entrées d'un
   // ancien contexte encore en cache à la fin (gardées, comme le chemin direct).
   contextesSurEntrees: number;
   entreesGardees: number;
   entreesAnciennesFinales: number;
-  // 6bis-b13bis-c : le repli est-il survenu, et combien de réponses sont
+  // Le repli est-il survenu, et combien de réponses sont
   // encore arrivées après lui (toutes ignorées).
   repliSurvenu: boolean;
   reponsesApresRepli: number;
@@ -181,15 +181,15 @@ const CADENCE_SIMULEE_MS = 400;
  *   contexte COURANT (contrôle indépendant des valeurs, par les identifiants
  *   observés à l'envoi) et elle est identique à la référence de production ;
  * - au plus `DEMANDES_EN_VOL_MAX` demandes sans réponse, à tout instant ;
- * - la PUBLICATION (6bis-b13bis-c) : `publier` est suivi avec la cadence du
+ * - la PUBLICATION : `publier` est suivi avec la cadence du
  *   hook sur une horloge simulée ; après chaque appel du module (rendu,
  *   effet, réponse), si la file est vide, ce que l'écran a reçu égale le
  *   cache — sinon une écriture resterait non publiée, plus rien ne
  *   publiant ;
  * - toute demande part sous le contexte COURANT (index et signature) : après
  *   un changement des entrées à signature égale, le module renvoie un
- *   contexte avant de redemander (6bis-b13bis-c) ;
- * - repli en cours de route (6bis-b13bis-c) : à cet instant l'écran a reçu
+ *   contexte avant de redemander ;
+ * - repli en cours de route : à cet instant l'écran a reçu
  *   le cache ; ensuite plus aucun envoi, plus aucune écriture, et le cache
  *   reste le même objet, entrées inchangées, jusqu'à la fin ;
  * - après vidange : chaque demande a reçu exactement une réponse, chaque
@@ -506,7 +506,7 @@ const resume = (ms: MessageVersResolution[]) =>
 const resultat = (idContexte: number, idDemande: number, cle: string, n = idDemande): ReponseResolution => ({ type: 'resultat', idContexte, idDemande, cle, resultat: res(n) });
 
 export function testResolutionDistante() {
-  titre('Résolution hors du fil de l’écran — le module côté écran (6bis-b13bis-b)');
+  titre('Résolution hors du fil de l’écran — le module côté écran');
 
   /* ── 1. Neutralité ───────────────────────────────────────────────────── */
   const source = sansCommentaires(readFileSync('src/workers/resolutionDistante.ts', 'utf8'));
@@ -647,7 +647,7 @@ export function testResolutionDistante() {
     ok(q.enRepli && t.replis.length === 1 && /RechercheRefusee/.test(t.replis[0]!) && cacheP.size === 0,
       `réponse d’erreur : repli, rien d’écrit (${t.replis[0]})`);
     egal(t.details, [{ nom: 'RechercheRefusee', message: 'pool vide', vide: 'seuil' }],
-      'réponse d’erreur : le repli journalise le nom, le message ET le motif `vide` de la RechercheRefusee (6bis-b13bis-c)');
+      'réponse d’erreur : le repli journalise le nom, le message ET le motif `vide` de la RechercheRefusee');
   }
   egal(repliSurErreur({ issue: 'erreur', nom: 'Error', message: 'boum' }),
     { raison: 'la résolution a levé dans le Worker (Error)', detail: { nom: 'Error', message: 'boum' } },
@@ -669,8 +669,8 @@ export function testResolutionDistante() {
   egal([publicationForcee('page', 'page'), publicationForcee('page', 'fond'), publicationForcee('page', 'aucune'), publicationForcee('fond', 'fond'), publicationForcee('fond', 'aucune')],
     [false, true, true, false, true], 'publicationForcee : la règle de la tranche directe');
 
-  /* ── 5 bis. Rien d'écrit ne reste non publié (6bis-b13bis-c) ─────────── */
-  titre('Résolution hors du fil — rien d’écrit ne reste non publié (6bis-b13bis-c)');
+  /* ── 5 bis. Rien d'écrit ne reste non publié ─────────── */
+  titre('Résolution hors du fil — rien d’écrit ne reste non publié');
   {
     // File [1, 2], K = 3, pas de page ; `retient` : la cadence retient toute
     // publication non forcée. Le journal mêle publications et replis, dans
@@ -812,8 +812,8 @@ export function testResolutionDistante() {
   let replis = 0;
   let reponsesApresRepli = 0;
   const tousEcarts: string[] = [];
-  // Graines 1 à 6 : les files de 6bis-b13bis-b, inchangées. Graines 7 à 12
-  // (6bis-b13bis-c) : entrées changées à signature égale (sans changement de
+  // Graines 1 à 6 : les files d'origine, inchangées. Graines 7 à 12
+  // : entrées changées à signature égale (sans changement de
   // signature, qui viderait le cache : les entrées gardées vont jusqu'à la
   // fin), repli en cours de route par ses trois origines, puis les deux
   // ensemble.
@@ -946,24 +946,24 @@ export function testResolutionDistante() {
   ok(/console\.error\(/.test(repli) && /d\.worker\.terminate\(\);/.test(repli) && /setEnRepli\(true\);/.test(repli),
     'hook : le repli journalise (console.error), termine le Worker et rend la main au chemin direct');
   ok(/if \(d\) \{\s*if \(d\.pilote\.renoncer\(\)\) setParBuild\(new Map\(cacheRef\.current\)\);\s*d\.worker\.terminate\(\);/.test(repli),
-    'hook : au repli, une écriture retenue par la cadence (renoncer rend vrai) est publiée de force (6bis-b13bis-c)');
+    'hook : au repli, une écriture retenue par la cadence (renoncer rend vrai) est publiée de force');
   ok(/courant: \(\) => \{\s*const h = horsFilRef\.current;\s*return h \? \{ entrees: h\.entrees, signature: signatureRef\.current \} : null;/.test(effetWorker),
     'hook : le contexte courant est lu dans les refs du rendu (entrées et signature), à chaque réponse');
   ok(/restants: \(\) => prochainsATraiter\(trieesRef\.current, cacheRef\.current, K, pageRef\.current\(\)\)/.test(effetWorker),
-    'hook : la priorité reste `prochainsATraiter` sur le fil de l’écran, page affichée comprise, sur le cache lui-même (6bis-b18)');
+    'hook : la priorité reste `prochainsATraiter` sur le fil de l’écran, page affichée comprise, sur le cache lui-même');
   ok(/publier: \(forcer\) => \{\s*const now = Date\.now\(\);\s*if \(!forcer && now - dernierePublication < PUBLICATION_MS\) return false;\s*dernierePublication = now;\s*setParBuild\(new Map\(cacheRef\.current\)\);\s*return true;\s*\},/.test(effetWorker),
-    'hook : même cadence de publication que le chemin direct ; rend faux quand la cadence retient, vrai quand l’écran reçoit le cache (6bis-b13bis-c)');
+    'hook : même cadence de publication que le chemin direct ; rend faux quand la cadence retient, vrai quand l’écran reçoit le cache');
   ok(/return \(\) => \{\s*vivant = false;\s*distant\.surReponse = \(r\) => reponseAuRepos\(distant\.pilote, r\);/.test(effetWorker),
     'hook : hors effet actif, une réponse libère sa place sans rien écrire');
 
-  /* ── 7 bis. Le branchement gardé (6bis-b13bis-c) ─────────────────────── */
+  /* ── 7 bis. Le branchement gardé ─────────────────────── */
   // La revue du Worker a appliqué cinq mutations du branchement à l'écran :
   // toutes laissaient les tests verts. Aucune de ces lignes ne s'extrait en
   // fonction pure sans y laisser son équivalent (une ref React relue au
   // rendu, un gestionnaire de Worker, un effet) : chacune est gardée par un
   // contrôle de source PRÉCIS, sur la ligne entière. La mutation 1 (runes du
   // Worker) l'est au § 8, par le producteur unique.
-  titre('Résolution hors du fil — le branchement à l’écran gardé (6bis-b13bis-c)');
+  titre('Résolution hors du fil — le branchement à l’écran gardé');
   ok(/const horsFilRef = useRef\(horsFil\);\s*const signatureRef = useRef\(signature\);\s*horsFilRef\.current = horsFil;\s*signatureRef\.current = signature;/.test(hook)
     && /trieesRef\.current = triees;\s*pageRef\.current = pageAffichee;/.test(hook),
     'branchement (mutation 5 de la revue) : les refs que lisent les ports — entrées, signature, candidats, page — sont remises à jour à CHAQUE rendu');
@@ -991,8 +991,8 @@ export function testResolutionDistante() {
   ok(/\[artifactParams, selected, optimiserArtefacts, regimeEquipement, contexteDegatsArtefacts, contexteExclusive, requirementAvecAuras, relicContextRecherche\]\);/.test(ecran)
     && memoEntrees.length > 0, 'écran : les entrées sont mémoïsées sur les dépendances de la résolution directe, sans runeById ni caches');
 
-  /* ── 8. Un seul producteur des runes d'un build (6bis-b13bis-c) ──────── */
-  titre('Résolution hors du fil — un seul producteur des runes d’un build (6bis-b13bis-c)');
+  /* ── 8. Un seul producteur des runes d'un build ──────── */
+  titre('Résolution hors du fil — un seul producteur des runes d’un build');
   {
     const r1 = { id: 11 } as unknown as RuneDetail;
     const r2 = { id: 12 } as unknown as RuneDetail;

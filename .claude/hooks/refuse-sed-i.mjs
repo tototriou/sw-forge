@@ -3,14 +3,13 @@
 // une commande shell » : un fichier se modifie par l'outil Edit, jamais par un
 // remplacement transporté dans une chaîne shell.
 //
-// ⚠️ **Pourquoi un hook et pas seulement la consigne écrite** : la consigne
-// existe et figure dans chaque brief de sous-agent, et elle a quand même été
-// enfreinte trois lots de suite (degats-et-aura P5a, P5a3, D56, octobre 2026),
-// une fois sur un fichier suivi. Un `sed -i` raté ne dit rien : motif absent →
+// ⚠️ **Pourquoi un hook et pas seulement la consigne écrite** : une consigne
+// écrite, même reprise dans chaque brief de sous-agent, s'érode. Un `sed -i`
+// raté ne dit rien : motif absent →
 // fichier intact sans erreur ; motif multiple → tout remplacé ; fins de ligne
 // et accents réécrits par le `sed` de Git sous Windows. L'outil Edit, lui,
-// échoue bruyamment et montre l'avant / l'après. Décision de l'utilisateur du
-// 2026-10-04 : un refus au MOMENT de l'action, sur Bash ET PowerShell (le
+// échoue bruyamment et montre l'avant / l'après. D'où un refus au MOMENT de
+// l'action, sur Bash ET PowerShell (le
 // `sed` de Git est aussi joignable depuis PowerShell).
 //
 // ⚠️ **Portée : `sed` appelé avec une option en place** (`-i`, `-i.bak`,
@@ -119,7 +118,7 @@ const fautif = segmentsEnJetons(sansCorpsLitteraux(commande)).find((jetons) =>
 if (!fautif) process.exit(0);
 
 process.stderr.write(
-  `REFUSÉ — « sed -i » est interdit sur ce dépôt (CLAUDE.md, décision du 2026-10-04).\n\n` +
+  `REFUSÉ — « sed -i » est interdit sur ce dépôt (CLAUDE.md).\n\n` +
     `Un sed -i raté ne signale rien : motif absent → fichier intact sans erreur ;\n` +
     `motif multiple → tout remplacé ; fins de ligne et accents réécrits sous Windows.\n\n` +
     `Modifie le fichier avec l'outil Edit (il échoue si le texte est introuvable ou\n` +

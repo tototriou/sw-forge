@@ -3,14 +3,12 @@
 **Statut :** ÉTAT ACTUEL — décrit les conditions livrées par l’audit des dégâts
 **Lire si :** on modifie une condition ou un correctif issu de l’audit des dégâts
 **Ne pas lire si :** on qualifie le reliquat encore non implémenté de l’audit
-**Voir aussi :** spec/outils/degats-reels/passifs-offensifs.md, spec/outils/optimizer/archive/audit-degats-conditionnels-2026-09-08/
+**Voir aussi :** spec/outils/degats-reels/passifs-offensifs.md, spec/outils/degats-reels/pistes.md, spec/outils/degats-reels/pistes-stats-et-modificateurs.md
 
 ## Audit des dégâts conditionnels — partie 1
 
-La livraison du 9 septembre 2026 ajoute les clauses recensées dans le
-[suivi d’audit](../optimizer/archive/audit-degats-conditionnels-2026-09-08/suivi-implementation.md).
-Les nouvelles saisies de `DamageSetup` restent optionnelles pour préserver les
-anciennes recettes : nombres de buffs sur la cible et sur soi, puis scénario
+Les saisies conditionnelles de `DamageSetup` restent optionnelles pour
+préserver les anciennes recettes : nombres de buffs sur la cible et sur soi, puis scénario
 de poses réussies entre les coups. Un scénario absent ou inactif ne suppose
 aucune réussite.
 
@@ -20,6 +18,9 @@ le compteur de débuffs, la Marque et la DEF actualisés. Une Marque, un DEF
 break ou un autre effet non cumulable déjà présent est identifié et ne
 réaugmente pas le compteur ; un DoT reste cumulable. Les profils concernés
 sont curés par identifiant quand leur nom possède un homonyme différent.
+Mach Crush d'Akhamamir 2A (`10013`) garde son exception, relue à chaque
+coup : exactement un débuff vaut +50 %, sinon +30 % par débuff
+(`exactementUnPct`, `BONUS_PAR_EFFET_CIBLE_PAR_ID_CONNUS`).
 
 Les conditions déductibles du contexte — nombre de buffs, débuffs propres,
 PV et élément de la cible — sont recalculées pour chaque build candidat. Les
@@ -32,7 +33,7 @@ Le choix des artéfacts, leur réévaluation dans la file et le score final
 consomment le même contexte complet : sort, passifs, conditions, interdiction
 de critique et modificateurs monstre-wide. Ce contrat est dérivé de
 `RealDamageContext` ; ajouter un champ au moteur sans le propager à
-l'évaluation des artéfacts fait désormais échouer le typage. Un test
+l'évaluation des artéfacts fait échouer le typage. Un test
 différentiel sur Guillaume vérifie notamment que ses +100 points de Dgts Crit
 produisent le même score dans l'écran, le moteur et le chemin CLI.
 
@@ -55,8 +56,7 @@ vivants est toujours borné de 1 à 4.
 
 ## Audit des dégâts conditionnels — partie 2
 
-Le [périmètre exact](../optimizer/archive/audit-degats-conditionnels-2026-09-08/partie-2.md)
-ajoute les PV propres actuels/manquants, le nombre d'alliés et d'ennemis
+Cette partie ajoute les PV propres actuels/manquants, le nombre d'alliés et d'ennemis
 vivants, les comparaisons de PV/ATQ/DEF/VIT, les statistiques acquises en
 combat, les seuils d'ignore DEF et les critiques garantis conditionnels.
 Chaque grandeur provenant du build est recalculée pour chaque candidat.
@@ -66,17 +66,15 @@ inclusive s'écrit entrée par entrée, seulement quand la prose du sort la
 dit. Copper (« half or lower than your Defense ») et Guard Crush (« 60% or
 less than your Attack Power ») ignorent la DEF à l'égalité ; Jaara
 (« Defense lower than your Attack Power ») et Varus (« lower Defense than
-yours ») ne garantissent plus le critique à l'égalité, conformément à leur
-prose et à la `note` de leur effet (degats-et-aura 15d). Summary Justice
+yours ») ne garantissent pas le critique à l'égalité, conformément à leur
+prose et à la `note` de leur effet. Summary Justice
 (Theonia, S3) gagne +100 % quand l'ATQ ennemie saisie (« ATQ adverse »,
 `enemyAtk`) est strictement inférieure à l'ATQ du build (« For enemies with
-Attack Power lower than yours », valeur de la donnée ; décision de
-l'utilisateur du 2026-10-03), comme Kassandra et Eleni vent à +30 % ; sa
+Attack Power lower than yours », valeur de la donnée ; [valeurs curées](valeurs-de-jeu-curees.md),
+« Summary Justice de Theonia (S3) »), comme Kassandra et Eleni vent à +30 % ; sa
 clause sœur « Attack Speed lower than yours », sans valeur dans la donnée,
-n'est pas comptée (degats-et-aura 15e). Le résumé de la
-condition dit ce qu'elle accorde (ignore DEF ou critique garanti) et sa
-borne (≤ ou <), lus sur l'entrée : Jaara et Varus affichaient « ignore
-DEF ».
+n'est pas comptée. Le résumé de la condition dit ce qu'elle accorde (ignore
+DEF ou critique garanti) et sa borne (≤ ou <), lus sur l'entrée.
 
 Les compteurs de débuffs ennemis sont plafonnés à 10 : Brise DEF et Marque
 actifs s'ajoutent automatiquement aux autres effets saisis. Les clauses
@@ -109,8 +107,8 @@ cumuls, de 0 à 10. Chaque cumul ajoute 20 % de l'ATQ de base et 12 % de la
 VIT de base, sans arrondi : pour les 116 de VIT de base de Mei Hou Wang,
 +13,92 VIT par cumul et +139,2 à dix cumuls, à côté de +138,4 puis +1 384
 ATQ. Les runes, les buffs et le leader skill ne changent pas cet apport,
-calculé sur la seule base (curation de l'utilisateur du 2026-09-24, absence
-d'arrondi décidée le 2026-10-02). La VIT reste, avec l'ATQ, une stat que la
+calculé sur la seule base, sans arrondi (valeur curée de l'utilisateur). La
+VIT reste, avec l'ATQ, une stat que la
 recherche privilégie pour ce monstre.
 
 <!-- À trancher : le Speed tune lit le même passif avec un arrondi supérieur
@@ -118,23 +116,24 @@ par cumul (`pointsDeGain`, speedTunePassif.ts) : +14 VIT par cumul et +140 à
 dix cumuls pour la base 116, contre +13,92 et +139,2 dans les dégâts. Pour
 une base de 100 (Monkey King), les deux donnent +12 et +120. Les deux
 lectures restent en place ; un relevé en jeu de la VIT affichée par Mei Hou
-Wang après un puis dix cumuls trancherait. Ligne correspondante dans
-spec/outils/optimizer/pistes.md. -->
+Wang après un puis dix cumuls trancherait. Piste :
+spec/outils/degats-reels/pistes-stats-et-modificateurs.md § Gold Headband : arrondi de la VIT par cumul
+-->
 
 Flash Step (Ciri lumière) et Turning Slash (Birgitta lumière) : un compteur
 des cumuls acquis avant le sort, de 0 à 5, chacun +50 de VIT **en points**
 (« by 50 each, up to 250 »), après les pourcentages de la VIT de combat ;
-il change leur S1, qui lit `{SPD}` (degats-et-aura 15e). Lu comme un gain
+il change leur S1, qui lit `{SPD}`. Lu comme un gain
 propre, comme dans le Speed tune : qu'un artéfact « Effet aug. VIT »
 amplifie le cumul de Birgitta, typé « Buff » en donnée, n'est pas établi.
 
 Rankyaku (Chun-Li vent) et Accelerando (Cordelia), toujours actifs, ajoutent
 à l'ATQ cinq fois la VIT finale : base, runes et sets, compétence
 d'invocateur, leader skill de VIT, puis buff de VIT, amplifié le cas échéant
-par un artéfact « Effet aug. VIT » (confirmation de l'utilisateur du
-2026-10-02). C'est la VIT de `maVitCombat`, jamais la VIT de fiche. Le
-calcul est vérifié de bout en bout, lead et buff actifs, jusqu'aux dégâts du
-S1 (constat 110 de l'audit).
+par un artéfact « Effet aug. VIT » (confirmation de l'utilisateur). C'est
+la VIT de `maVitCombat`, jamais la VIT de fiche. Le calcul est vérifié de
+bout en bout, lead et buff actifs, jusqu'aux dégâts du S1
+(`tests/audit-degats-conditionnels.test.ts`).
 
 Dans la fenêtre « Dégâts réels », chaque passif de « Stats acquises en
 combat » affiche la prose du jeu, telle quelle, sous ce qui le nomme et
@@ -148,8 +147,8 @@ Vengeful Fire, Flash Step, Turning Slash) : cette exclusion se déduit des blocs
 liste de monstres. Pour les passifs offensifs, ce sont ceux que leur bloc
 rend pour le sort choisi (`passifsSuivants`) : un passif masqué — choisi
 lui-même comme sort, ou qui ne suit pas le sort choisi — qui porterait aussi
-des stats de combat garde ici sa prose et son en-tête (degats-et-aura 9c ;
-aucun cas au corpus aujourd'hui).
+des stats de combat garde ici sa prose et son en-tête (aucun cas au corpus
+aujourd'hui).
 
 
 ## Conditions binaires de buffs adverses et lecture des sorts
@@ -206,11 +205,9 @@ increases to 100% when attacking an enemy with harmful effects ») :
 interrupteur du sort, Brise DEF ou Marque saisies, et les deux coups
 critiquent. Le scénario des poses entre les coups propose aussi la
 réduction de DEF du coup 1 : posée après le coup 1, elle rend le coup 2
-seul critique (décision de l'utilisateur du 2026-10-03, sans relevé ;
-degats-et-aura 15d). Elle compte comme un débuff **et** comme une
+seul critique (sans relevé). Elle compte comme un débuff **et** comme une
 réduction de la DEF que subit le coup 2 (`effetCombat: 'defBreak'`, comme
-Ghost Slash ou Triple Crush ; autre décision de l'utilisateur du
-2026-10-03, degats-et-aura 15f) : le coup 2 est alors critique sous la DEF
+Ghost Slash ou Triple Crush) : le coup 2 est alors critique sous la DEF
 réduite. Sans scénario, rien n'est supposé posé et le total ne change pas.
 Témoin (Yuji vent, 1 000 ATQ, 100 % de Dgts Crit, DEF cible 1 000,
 « Non critique ») : 848,5 sans débuff ni scénario, 2 231,3 avec la pose
@@ -222,14 +219,13 @@ l'écran affiche, `DEFAULT_DAMAGE_SETUP.enemyAtk` (1 000), et non 0 : la
 condition « ATQ cible inférieure » est éteinte sous 1 000 d'ATQ du build,
 allumée au-dessus, exactement comme avec une recette qui porte 1 000.
 Theonia, Kassandra, Eleni (vent) et Zaiross (S3 Fiery Breath, seuil
-inclusif à 50 % de l'ATQ) sont concernés (décision de l'utilisateur du
-2026-10-03, degats-et-aura 15f).
+inclusif à 50 % de l'ATQ) sont concernés.
 
 Byungchul critique toujours avec ses deux sorts actifs (Violent Swing,
 Summon Heavenly Kings Gate) : la garantie vient de son passif Full of
 Spirit (« Your attacks will always land as a Critical Hit whenever you
 attack the enemy »), sans condition, même si la prose des sorts n'en dit
-rien et que la donnée ne porte l'effet que sur le S2 (degats-et-aura 15d).
+rien et que la donnée ne porte l'effet que sur le S2.
 
 Torrent de Leo et Ragdoll utilise un coefficient constant `5,5 × ATQ`.
 L'état de PV n'est pas interpolé : un interrupteur « PV actuels inférieurs à
@@ -260,8 +256,11 @@ et Reelseiden・Flurry 25206 et 25210 (Übel). Sans pose choisie le total ne
 change pas ; posé après le coup qui le pose, l'effet ne majore que les coups
 suivants (sort seul, DEF cible 1 500 : ×1,455 pour Cichlid, ×1,682 pour les
 Brise DEF du coup 1, ×1,188 pour Weakness Shot, ×1,125 pour Eivor). Le
-sélecteur propose toujours tous les rangs, y compris un coup qui ne pose rien
-(décision D21 en attente). Les autres effets de ces sorts
+sélecteur propose toujours tous les rangs, y compris un coup qui ne pose rien ;
+ne proposer que les coups qui posent l'effet (Cichlid : [valeurs curées](valeurs-de-jeu-curees.md), « Crushed
+Hopes de Cichlid ») reste à coder
+([pistes.md § Poses entre les coups : rang, buff posé par le sort, Eightfold](pistes.md)).
+Les autres effets de ces sorts
 (Decrease ATK, Étourdissement, Irrécupérable) ne sont pas curés ; Solveig et
 Berghild (18007, 18009 : la Marque n'est que dans la prose) attendent un
 relevé en jeu. Test : `testEffetsEntreCoups322`
@@ -271,7 +270,7 @@ Une contribution qui **suit** le sort — passif qui frappe après lui, attaque
 appelée, Tempest — lit l'état de la cible **après le dernier coup** du sort,
 poses du scénario comprises (Brise DEF, Marque, débuffs comptés) ; un passif
 qui **accompagne** chaque coup (`coupsDuSortActif`, Feng Yan) garde la
-lecture coup par coup ci-dessus (degats-et-aura P4b). Sans scénario actif,
+lecture coup par coup ci-dessus. Sans scénario actif,
 rien ne change et rien n'est calculé de plus : l'état final se calcule une
 fois par appel de `computeTotalDamage`, seulement sous scénario
 (`etatCibleApresSort`). Formes jouables concernées : Sia (Great Friends après
@@ -285,10 +284,9 @@ pose entre les coups. Test : `testSuiteDuSortVoitLesPosesP4b`.
 ## Formules de l'API pour les sorts à formule vide
 
 Trois S3 dont la fiche porte `formule: ""` reçoivent la formule de leur
-« compétence auxiliaire » (`other_skill`) de l'API SWARFARM, lue par l'audit
-du 2026-09-08 et vérifiée à la source au contrôle 13b-hors-tour-cooperation
-(degats-et-aura P6, HT-1 ; règle D12 de l'utilisateur : la valeur de l'API
-par défaut, sauf si la prose la contredit) :
+« compétence auxiliaire » (`other_skill`) de l'API SWARFARM, vérifiée à la
+source (la valeur de l'API vaut par défaut, sauf si la prose la contredit :
+[valeurs curées](valeurs-de-jeu-curees.md), « Valeurs connues par l'API seule ») :
 
 | Sort · identifiant · formes | Formule (auxiliaire) | Portée retenue | Note |
 | --- | --- | --- | --- |
@@ -296,27 +294,26 @@ par défaut, sauf si la prose la contredit) :
 | Purification, Cooperation! · `21415` · Nezuko Kamado `31915` (`31905` et `32015` non proposées par `formesJouables`) | `4.5*{ATK}` (4626) | mono-cible | les attaques des deux alliés (« Ally Attack ») sont hors calcul : dégâts d'autres monstres |
 | Rite of Ashes · `22015` · Vermilion Bird Dancer `32615` (`32605` non éveillé) | `4.5*{ATK}` (4710) | mono-cible | idem |
 
-Les améliorations « Damage » de la fiche s'y appliquent (+15 %, +20 %). Ces
-trois sorts n'étaient pas proposés avant P6 : `skillDamageProfile` écartait
-toute fiche à formule vide **avant** de lire `FORMULES_CUREES_PAR_ID`. La
-garde « formule vide » porte désormais sur la formule **retenue**, comme pour
-un passif : une fiche à formule vide sans formule curée reste sans profil.
+Les améliorations « Damage » de la fiche s'y appliquent (+15 %, +20 %). La
+garde « formule vide » de `skillDamageProfile` porte sur la formule
+**retenue**, après `FORMULES_CUREES_PAR_ID`, jamais sur celle de la fiche
+(sinon ces trois sorts ne seraient pas proposés), comme pour un passif : une fiche à formule vide sans formule curée reste sans profil.
 Devenus le dernier sort calculable, ils sont aussi le sort par défaut de ces
 monstres. Hors périmètre : les sorts « Horn » des Anges jumeaux (forme de
-soutien sans dégât, décision Q04), qui restent sans profil. Test :
+soutien sans dégât : [valeurs curées](valeurs-de-jeu-curees.md), « Anges jumeaux »), qui restent sans profil. Test :
 `testDegatsFormulesApi` (`node tests/run.mjs formulesapi`).
 
 ## Portée corrigée par la prose (`PORTEE_CORRIGEE_PAR_ID`)
 
-Règle D12 de l'utilisateur : la donnée vaut par défaut, sauf si la prose la
-contredit. La table `PORTEE_CORRIGEE_PAR_ID` remplace `Competence.aoe` dans le
+Règle ([valeurs curées](valeurs-de-jeu-curees.md), « Valeurs connues par l'API seule ») : la donnée vaut par
+défaut, sauf si la prose la contredit. La table `PORTEE_CORRIGEE_PAR_ID` remplace `Competence.aoe` dans le
 profil du sort (`skillDamageProfile`) ; la seule conséquence calculée est la
 ligne d'artéfact 224 (« D.CRIT+ comp cib uniq pdt tour »), qui ne porte que sur
 un sort `aoe === false` (voir
-[artéfacts de critique](artefacts-critique-et-element.md)). Ramon (21114, lot
-P6) est corrigé dans l'autre sens (mono-cible). Lot P22 : sept sorts que la
-donnée dit « une cible » et que la prose dit « all enemies », désormais de zone
-— la 224 ne leur est plus appliquée, aucun autre total ne bouge.
+[artéfacts de critique](artefacts-critique-et-element.md)). Ramon (21114) est
+corrigé dans l'autre sens (mono-cible). Sept sorts que la donnée dit « une
+cible » et que la prose dit « all enemies » sont de zone : la 224 ne leur est
+pas appliquée, aucun autre total ne change.
 
 | Sort · identifiant · monstres | Prose de la fiche |
 | --- | --- |
@@ -332,14 +329,13 @@ Test : `testDegatsPorteesParLaProse` (`node tests/run.mjs porteesparlaprose`).
 
 ## Nombres de coups variables, saisis
 
-Décisions de l'utilisateur (degats-et-aura, lot P5a ; constat 13b-coups-
-variables) : le nombre de coups d'un sort dont la prose le dit variable est
+Le nombre de coups d'un sort dont la prose le dit variable est
 **saisi** par l'utilisateur, borné à la plage ; le **défaut est le minimum** ;
 un coup supplémentaire **vaut les autres coups** (même formule par coup).
 Aucune dérivation depuis les stats (ATQ, VIT, effets nocifs, PV) : les seuils
 du jeu ne sont pas relevés — **sauf** les sorts dont le coup en plus ne dépend
 que d'une condition, réglés par un interrupteur ou déduits d'un champ déjà
-présent (section « Coups en plus sous condition », lot P5a2, plus bas). Les
+présent (section « Coups en plus sous condition », plus bas). Les
 bornes viennent de la prose ou d'un champ de la fiche, citées dans le test.
 
 **Deux clés.** `COUPS_VARIABLES_CONNUS` (`{ min, max, defaut? }`) et
@@ -349,7 +345,8 @@ l'identifiant l'emporte (`plageDeCoupsDe`, `coupsFixesCorrigesDe`, lues par
 `skillDamageProfile` ET `monsterOffensivePassives`). Une entrée passe par
 identifiant quand un homonyme **jouable** a une autre mécanique : une entrée
 par nom s'étendrait à lui en silence. `COUPS_FIXES_CORRIGES_PAR_ID` est vide :
-Crow Hunt de Prilea (1618) attend un relevé en jeu (R9), ses homonymes
+Crow Hunt de Prilea (1618) attend un relevé en jeu
+([pistes.md § Crow Hunt de Prilea : deux coups annoncés pour un](pistes.md)), ses homonymes
 jouables 1607 et 1609 portent `coups: 4`.
 
 | Sort · identifiant · formes | Plage | Clé | Citation |
@@ -362,8 +359,8 @@ jouables 1607 et 1609 portent `coups: 4`.
 | Barrage of Madness · `18313` · Usha `28513` | 3 à 5 | nom (unique) | « Attacks all enemies 3 to 5 times … The more harmful effects granted on the target, the higher the chance » ; la probabilité n'est jamais tirée |
 | Hammer Punch · `11651`-`11655` · Tractor `20831`, Bulldozer `20832`, Crane `20833`, Driller `20834`, Crawler `20835` | 2 à 3 | nom | « Attacks the enemy 2 times … If the target is not suffering any harmful effects, 1 additional attack is added » ; `coups: 2`. Homonymes `11601`-`11605` (Frankenstein 1A) et `11673`-`11677` (boss), non jouables : même prose, couverts par le nom. Le terme « Attaques reçues avant ce sort » reste par coup |
 | Pound · `11664` · Driller `20834` | 4 à 6 | nom | « Attacks the enemy 4 times … 2 additional attacks are added if the enemy's HP condition is worse than yours or if the target is suffering a harmful effect » ; `coups: 4`. Homonymes `11614` (Driller 1A, condition « MAX HP **et** effet nocif ») et `11686` (boss), non jouables : même plage |
-| Brutal Fists · `18301`-`18305` · Mayasura `28511`, Varuna `28512`, Usha `28513`, Danu `28514`, Vritra `28515` | 3 à 4 | nom (exclusif aux cinq) | « Attacks the enemy 3 times … In addition, you attack the enemy one more time if your Attack Power is higher than the enemy target » ; `coups: 4` = le maximum. Le défaut passe de 4 à 3 coups ; le coup en plus est ensuite déduit de l'ATQ adverse (lot P5a2) |
-| Stormfist · `18306` · Mayasura `28511` (`28501` non éveillé), `18307` · Varuna `28512` (`28502`), `18309` · Danu `28514` (`28504`) | 3 à 6 | identifiant (un par sort) | « Attacks the enemy 3 times … The number of attacks increases up to 6 times according to your Attack Power » ; `coups: 3`. Valeur de l'utilisateur (2026-10-04) : +1 coup par tranche de 60 % de l'ATQ de base **du monstre** dans l'ATQ de combat (lots P5a4 pour Mayasura, P5a5 pour Varuna et Danu) |
+| Brutal Fists · `18301`-`18305` · Mayasura `28511`, Varuna `28512`, Usha `28513`, Danu `28514`, Vritra `28515` | 3 à 4 | nom (exclusif aux cinq) | « Attacks the enemy 3 times … In addition, you attack the enemy one more time if your Attack Power is higher than the enemy target » ; `coups: 4` = le maximum. Défaut : 3 coups ; le coup en plus est déduit de l'ATQ adverse |
+| Stormfist · `18306` · Mayasura `28511` (`28501` non éveillé), `18307` · Varuna `28512` (`28502`), `18309` · Danu `28514` (`28504`) | 3 à 6 | identifiant (un par sort) | « Attacks the enemy 3 times … The number of attacks increases up to 6 times according to your Attack Power » ; `coups: 3`. Valeur de l'utilisateur : +1 coup par tranche de 60 % de l'ATQ de base **du monstre** dans l'ATQ de combat |
 
 Deux sorts portent à l'inverse un nombre **fixe** corrigé (`COUPS_FIXES_CORRIGES`,
 pas de saisie) : « Attacks all enemies 3 times … and attacks them once more »
@@ -376,17 +373,19 @@ minimum.
 
 Stormfist de Mayasura (18306…) : coups selon l'ATQ, valeur de
 l'utilisateur dans [valeurs-de-jeu-curees.md](valeurs-de-jeu-curees.md).
-Hors périmètre, journal archivé du chantier : Crow Hunt (R9), Lala, Coco, Stella,
-Cleave, les coups tirés au hasard (P5b). Test : `testDegatsCoupsSaisis`
+Non couverts : Crow Hunt (relevé attendu, ci-dessus), Lala, Coco, Stella,
+Cleave, les coups tirés au hasard
+([pistes.md § Plages de coups à relever et coups « au hasard »](pistes.md)).
+Test : `testDegatsCoupsSaisis`
 (`node tests/run.mjs coupssaisis`).
 
-### Coups en plus sous condition (lot P5a2)
+### Coups en plus sous condition
 
-Décision de l'utilisateur du 2026-10-04, d'après la règle « seuil →
-interrupteur » (cadrage A.2 ter, D06) : un coup en plus qui ne dépend que d'une
+D'après la règle « seuil → interrupteur » ([valeurs curées](valeurs-de-jeu-curees.md), « Seuil de PV : un
+interrupteur ») : un coup en plus qui ne dépend que d'une
 **condition** se règle par un **interrupteur**, pas par un compteur. Il est
-**éteint par défaut** (le minimum, comme tout le lot) et l'allumer ajoute
-exactement les coups en plus (l'ancien maximum). Le champ du nombre de coups
+**éteint par défaut** (le minimum, comme pour toute plage) et l'allumer
+ajoute exactement les coups en plus (jusqu'au maximum de la plage). Le champ du nombre de coups
 disparaît de ces sorts. Mécanique : une condition de combat (`conditionsCombat`)
 porte `coupsEnPlus`, ajouté au minimum par `resolvedHits` ; l'interrupteur est
 celui des conditions existantes, stocké dans `passifsOffensifs` sous
@@ -405,15 +404,15 @@ ci-dessus.
 Brutal Fists est **déduit** : le coup en plus se règle dans
 `computeSkillDamageDetail`, avec la même `statsDeCombat` que le reste du calcul
 (`resolvedHits` reçoit l'ATQ du build), et le champ « ATQ adverse » s'ouvre sur
-ce sort. Une ancienne recette sans `enemyAtk` prend la valeur affichée (1 000,
-degats-et-aura 15f). Le résumé de l'écran et la ligne du CLI décrivent un
+ce sort. Une ancienne recette sans `enemyAtk` prend la valeur affichée
+(1 000). Le résumé de l'écran et la ligne du CLI décrivent un
 réglage, **sans build** : ils passent par `coupsAffichesDuSort` (même règle que
 `resolvedHits`, jamais une copie) et annoncent la plage, « 3 à 4 coups (selon
-l'ATQ du build) », au lieu d'un « 3 » qui passerait pour le nombre du calcul
-(lot P5a3) ; avec les stats de combat d'un build, la fonction rend le nombre
+l'ATQ du build) », au lieu d'un « 3 » qui passerait pour le nombre du calcul ;
+avec les stats de combat d'un build, la fonction rend le nombre
 exact du calcul. Affichage seulement, hors de la boucle de l'optimiseur.
 
-**Stormfist (lot P5a4)** est **déduit** de la même façon, sans réglage ni champ.
+**Stormfist** est **déduit** de la même façon, sans réglage ni champ.
 L'« ATQ totale » est l'**ATQ de combat** (`statsDeCombat().atk` : fiche, runes,
 artéfacts, compétences d'invocateur, leader, auras, buff d'ATQ — celle que
 lisent déjà Brutal Fists et la formule) ; l'« ATQ de base » est la ligne `atk`
@@ -427,7 +426,7 @@ l'affichage annonce « 3 à 6 coups (selon l'ATQ du build) » par
 `coupsAffichesDuSort`. Aucun coût dans la boucle de l'optimiseur : le calcul
 ne lit les stats de combat une fois de plus que pour ce sort.
 
-**Varuna et Danu (lot P5a5)** : les Stormfist `18307` et `18309`, de même prose,
+**Varuna et Danu** : les Stormfist `18307` et `18309`, de même prose,
 ont la même condition `atkParTranche` (une entrée par identifiant). La tranche
 se compte sur l'ATQ de base **de chaque monstre** (`StatRow.base` de son
 propre build : 823 pour Varuna, 812 pour Danu à la fiche), jamais une valeur
@@ -438,7 +437,7 @@ Danu (1 800 / 812 = 2,217) 5 fois.
 (`STATS_COMBAT_PAR_ID_CONNUS[18311]`, +100 ATQ plats chacun, 10 au plus)
 **comptent dans l'ATQ de combat** (`statsDeCombat` les ajoute par
 `atkFlat`) qui décide les coups de Stormfist : à l'ATQ de la fiche fixée à la
-base (747), 0 cumul = 3 coups, 5 = 4, 10 = 5 (test du lot P5a5). Ce n'est vrai
+base (747), 0 cumul = 3 coups, 5 = 4, 10 = 5 (`testDegatsCoupsSaisis`). Ce n'est vrai
 que si l'appelant passe les stats de combat du monstre (`monsterWide`,
 `monsterCombatStatProfiles`), ce que font l'écran et le CLI.
 
@@ -454,4 +453,4 @@ ancienne saisie, qui n'a plus de champ pour être corrigée (Stormfist de même)
 **Restent des compteurs** : Barrage of Madness (3 à 5, au hasard selon les
 effets nocifs) et Sura's Seal (4 à 8 selon l'écart d'ATQ, seuils inconnus).
 Le Whirlpool de Seal 2A (`3463`) n'a toujours ni plage ni interrupteur. Test :
-`testDegatsCoupsSaisis`, section « Lot P5a2 ».
+`testDegatsCoupsSaisis` (coups en plus sous condition).

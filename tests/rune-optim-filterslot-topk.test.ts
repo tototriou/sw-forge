@@ -2,17 +2,12 @@
 // dans `filterSlot` (src/lib/runeBuildOptim.ts) — remplacée par un top-K via
 // le tas borné (`heapPush`, déjà en production pour la rétention par
 // compartiment) au lieu d'un tri complet de `candidates` suivi d'un
-// `.slice()`. Voir spec/outils/optimizer/pistes.md, piste « point 2 —
-// filterSlot : top-K via le tas ».
+// `.slice()`. Voir spec/outils/optimizer/moteur/elagages.md, « Élagage sûr — faisabilité ».
 //
-// ⚠️ **Version corrigée après une revue de code externe** (voir
-// spec/outils/optimizer/archive/historique/historique-dimensionnement.md, « revue de code
-// externe : le défaut 'relevance' invalidé », point 3) : la version
-// précédente définissait SA PROPRE réimplémentation locale de `heapPush`
-// (array + tri complet à chaque insertion) au lieu d'appeler le vrai
-// `heapPush` de `runeBuildOptim.ts` — un bug dans le VRAI code n'aurait pas
-// fait échouer ce test. `heapPush`/`ScoredEntry` sont maintenant exportés
-// (uniquement pour cet usage) et appelés directement ici.
+// ⚠️ **Ce test appelle le VRAI `heapPush`** de `runeBuildOptim.ts`, jamais
+// une réimplémentation locale (array + tri complet à chaque insertion) : un
+// bug dans le VRAI code ne ferait sinon pas échouer ce test.
+// `heapPush`/`ScoredEntry` sont exportés uniquement pour cet usage.
 //
 // ⚠️ **L'ensemble EXACT des runes gardées peut différer sur une ÉGALITÉ de
 // score** (mesuré via `scripts/filterslot-topk-diag.ts` — voir ce script

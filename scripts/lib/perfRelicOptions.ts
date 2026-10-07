@@ -1,5 +1,4 @@
-// Les trois options relique de `perf-battery.ts` (implementation-relique,
-// B.6, rév. 35) : `--relic-main=<equipped|libre|100|101|102>
+// Les trois options relique de `perf-battery.ts` : `--relic-main=<equipped|libre|100|101|102>
 // --relic-type=<libre|1..16> --relic-min-upgrade=<0..15>`.
 //
 // Module SÉPARÉ de `perfShared.ts` (chargé par un `worker_threads`, qui ne
@@ -61,8 +60,8 @@ export function jetonsRelique(argv: readonly string[]): string[] {
   return argv.filter((a) => PREFIXES.some((p) => a.startsWith(p)));
 }
 
-// Le libellé du run porte l'intention relique (B.6 : « inscrites dans le
-// libellé du run ») — un résultat mesuré avec relique ne peut ainsi jamais
+// Le libellé du run porte l'intention relique (inscrite dans le
+// libellé du run) — un résultat mesuré avec relique ne peut ainsi jamais
 // se confondre avec l'entrée sans relique de `perf-baseline.json`.
 export function libelleAvecRelique(label: string, relic: OptionRelique | undefined): string {
   return relic ? `${label} [relique ${String(relic.principale)}/${String(relic.type)}/+${relic.seuil}]` : label;

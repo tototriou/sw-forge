@@ -117,7 +117,7 @@ function chargeArtefacts() {
     artifactMainByKind: { element: 'libre', archetype: 'libre' },
   });
   const ctx = buildRealDamageContext(recipe, lushen.com2usId, lushen.gear.artifacts)!;
-  // Auras propres des runes portées (6bis-b2), résolues une fois : la charge
+  // Auras propres des runes portées, résolues une fois : la charge
   // mesurée par paire reste celle d'avant.
   const propres = aurasPropresDesRunes(lushen.gear.runes);
   const params: ArtifactSearchParams = {

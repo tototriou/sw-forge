@@ -137,7 +137,7 @@ export function testRenduOptimizerMonstre() {
     `un minimum et un maximum pour chacune des huit stats (${STATS_CONDITIONS.join(', ')})`,
   );
   ok(!!bouton(html, 'Réinitialiser les conditions'), 'réinitialiser les conditions');
-  // ⚠️ La v1.14.0 (fusionnée le 2026-10-05) a fait entrer la relique dans ce
+  // ⚠️ La v1.14.0 a fait entrer la relique dans ce
   // bloc : « Artéfacts » est devenu « Artéfacts et reliques », et son
   // interrupteur aussi. Le reste du bloc est inchangé.
   ok(t.includes("Artéfacts et reliques Activer l'optimisation d'artéfacts et reliques Attribut Garder l'artéfact équipé Libre Principale ATQ +100 Principale DEF +100 Principale PV +1500 Type"), 'les deux artéfacts : garder, libre, ou une principale');

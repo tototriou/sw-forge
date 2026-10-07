@@ -123,12 +123,13 @@ dit pourquoi elle existe.
 - **Public ou privé, au choix du responsable du chantier.** Public :
   `spec/chantiers/<sujet>.md`, avec une ligne dans `spec/README.md`
   § Chantiers (fichier, statut, branche), ajoutée dans le commit qui crée
-  le cadrage. Privé : dans les notes privées du projet
-  (`spec/outils/optimizer/chantiers/<sujet>.md`, non suivies), sans ligne
-  dans `spec/README.md`.
-- **Public ou privé, il est dans le périmètre du lint**
-  (`spec/spec-lint.json`) — même contrat pour les deux
-  (`spec/outillage/spec.md`, ex-B.4, amendement C6) : un cadrage est une **quatrième nature**, ni état
+  le cadrage. Privé : dans les notes privées du projet, hors de ce dépôt,
+  sans ligne dans `spec/README.md` ; aucun texte public ne cite son
+  emplacement.
+- **Un cadrage public est dans le périmètre du lint**
+  (`spec/spec-lint.json`), et un cadrage privé prend la même forme, que ce
+  dépôt ne vérifie pas (`spec/outillage/spec.md`, « La nature
+  CHANTIER ») : un cadrage est une **quatrième nature**, ni état
   actuel, ni décision, ni archive — `Statut :` reconnu seulement sous
   deux formes exactes, `CHANTIER en cours` ou `CHANTIER terminé le
   AAAA-MM-JJ` ; blocs terminaux ≤ 100 lignes toujours exigés ; **fichier
@@ -144,16 +145,16 @@ dit pourquoi elle existe.
   (même forme, public ou privé), pour que `spec-toc` le résume en une
   ligne. Les autres champs d'en-tête (Lire si, Ne pas lire si, Voir
   aussi) sont facultatifs pour cette nature. Le hook `Read` s'applique à
-  lui comme à toute spec : au-delà de 300 lignes, `spec-toc` puis la
-  section utile.
-- **Quand le chantier finit**, son statut passe à « terminé le <date> ».
+  un cadrage public comme à toute spec : au-delà de 300 lignes, `spec-toc`
+  puis la section utile.
+- **Quand le chantier finit**, son statut passe à « `terminé le <date>` ».
   Un cadrage public reste en place, ou, si son responsable le décide, est
-  archivé dans les notes privées et remplacé, au même chemin, par une
-  fiche publique : ce que le chantier a livré, et une table « section
-  citée → place publique ». Ses contrats encore en vigueur passent alors
-  d'abord dans une référence publique (`spec/outillage/`, `spec/outils/…`)
-  dont les titres gardent l'identifiant d'origine (« ex-B.4 »), pour que
-  les renvois du code, des tests et des skills restent résolus.
+  archivé dans les notes privées, sans rien laisser à son chemin. Ses
+  contrats encore en vigueur passent alors d'abord dans une référence
+  publique (`spec/outillage/`, `spec/outils/…`), sous des titres propres,
+  sans identifiant de section du cadrage ; les renvois du code, des tests
+  et des skills qui citaient le cadrage sont repointés vers ces titres.
+  Un chantier privé n'a pas de document public.
 
 ## Voir aussi
 

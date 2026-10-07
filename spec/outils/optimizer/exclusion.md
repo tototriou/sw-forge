@@ -15,6 +15,11 @@ roue de runes (le fond derrière les runes des cartes de résultat, voir
 `RuneWheel.tsx`), barrée du symbole « interdit » — même traitement que les
 deux autres icônes de cette section.
 
+Ne pas l'activer par défaut : des runes écartées sans rien le dire font
+paraître introuvable un build attendu. Les défenses de siège et le RTA
+gardent dans l'export leurs propres runes (`importAccount.ts`), qu'un
+autre monstre de la box peut porter aujourd'hui.
+
 Activé, la recherche **exclut** les runes déjà portées ailleurs, dans **un
 seul périmètre au choix** (jamais plusieurs à la fois) : **RTA** (défaut),
 **Défenses siège** ou **Box**. Elle ne propose alors que des combinaisons
@@ -23,6 +28,10 @@ déjà portées par le monstre **choisi** lui-même (même espèce, n'importe
 lequel de ses exemplaires) restent TOUJOURS disponibles quel que soit ce
 réglage — jamais exclu de ses propres runes. Le sélecteur de périmètre est
 grisé et non cliquable tant que l'interrupteur est désactivé.
+Un seul périmètre RTA, parce que l'import ne garde qu'un jeu RTA : les
+favoris, ou à défaut tous les monstres runés en RTA (`parseAccountJson`,
+`importAccount.ts`). Distinguer « favoris » et « tous » demanderait de
+changer d'abord l'import.
 
 ⚠️ **Le moteur est générique**, pas couplé à un périmètre précis :
 `searchBuilds` ne connaît qu'un `pool` de runes déjà filtré.
@@ -35,7 +44,9 @@ spécifique à la box. Ses branches RTA et Défenses siège comparent par
 **`com2usId`** (l'espèce), jamais par entrée précise — c'est ce qui garantit
 qu'un monstre recherché présent en RTA ne s'exclut jamais lui-même ; et le
 périmètre Défenses siège ne dépend que de `monsterId` (stable), jamais de
-`SiegeTeam.id` (régénéré à chaque import), ce qui le rend pleinement fiable
+`SiegeTeam.id`, qui n'a pas la même valeur à l'écran (un identifiant gardé
+d'un import à l'autre, par position) et en ligne de commande (la position
+de l'équipe, `scripts/lib/loadMonster.ts`), ce qui le rend pleinement fiable
 en ligne de commande — contrairement aux sélecteurs manuels siège (voir
 « Exclusion manuelle » ci-dessous).
 
@@ -55,6 +66,10 @@ Offenses siège), et retire SES runes **actuellement équipées** du pool
 considéré — utile pour un build qu'on ne veut pas défaire, sans dépendre du
 périmètre choisi pour « Exclure les runes déjà utilisées ». Se **superpose**
 à ce dernier, ne le remplace pas : les deux exclusions s'additionnent.
+Seules les entrées qui portent au moins une rune sont proposées
+(`exclusionCandidatesFor`, `requireRunes` par défaut, appelé par
+`RuneExclusionPicker.tsx`), jamais le bestiaire : une entrée sans rune ou
+un monstre non possédé n'a rien à exclure.
 ⚠️ **Icône** : même pictogramme que « Monstre & équipement » (le monstre),
 barré du symbole « interdit » — même traitement que l'icône « Exclusion de
 runes » elle-même, cette action-ci RETIRE un monstre précis du pool.
@@ -94,7 +109,7 @@ l'écran Siège, pour lever l'ambiguïté sans avoir à cliquer.
 ⚠️ **Chaque résultat affiche aussi les icônes des sets ACTIFS** de
 l'équipement montré, entre le nom et le compte de runes — pas un simple
 comptage des sets présents parmi les runes portées : `activeSets`
-(`lib/effects.ts`), la SEULE source de vérité de l'app pour « quels sets
+(`src/lib/effects.ts`), la SEULE source de vérité de l'app pour « quels sets
 sont actifs » (un set 4 pièces à 3 runes n'est pas actif, une rune
 Intangible peut compléter le set incomplet le plus proche — un recomptage
 à côté diverge de l'affichage, voir `swiftActive`, importAccount.ts). Même fonction que celle qui alimente les icônes de set
@@ -114,7 +129,11 @@ monstres/runes par identifiant — valides pour un réexport du même joueur
 Distingué par l'identité STABLE du compte (`wizard_id`), pas la date
 d'export (qui change à chaque réexport) : réimporter son propre compte,
 même après des heures de jeu, garde les sélections ; importer le fichier
-d'un autre joueur les efface.
+d'un autre joueur les efface. Il faut les deux identités connues et
+différentes (`appliquerImport`, `App.tsx`) : au premier import depuis le
+chargement de la page, ou sans `wizard_id` lisible, rien n'est effacé — mieux vaut une
+sélection peut-être périmée qu'une sélection valide perdue. Ce n'est pas
+`resetSearch`, qui part à chaque import, réexport compris.
 
 ## Runes imposées — verrouiller un emplacement sur une rune précise
 

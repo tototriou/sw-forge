@@ -122,17 +122,16 @@ export default function testOptimizerExclusion() {
     const offCandidates = exclusionCandidatesFor('siege-offense', data, null, null);
     egal(offCandidates.length, 0, "siège offense : le seul monstre assigné (NonRune) n'a aucune rune — rien à exclure, par défaut (requireRunes)");
 
-    // ── Bug signalé : un monstre ASSIGNÉ à un deck d'offense siège mais
-    // jamais runé ne voyait pas son exemplaire proposé pour « Monstre à
-    // optimiser » (contrairement à Box, qui autorise déjà un exemplaire nu
-    // — « construire un build depuis rien »). `requireRunes: false`
-    // corrige : le monstre assigné redevient un candidat valide, gear
-    // toujours résolu (0 rune, pas absent). ──
+    // ── Un monstre ASSIGNÉ à un deck d'offense siège mais jamais runé voit
+    // son exemplaire proposé pour « Monstre à optimiser » (comme Box, qui
+    // autorise un exemplaire nu — « construire un build depuis rien ») :
+    // avec `requireRunes: false`, le monstre assigné est un candidat valide,
+    // gear toujours résolu (0 rune, pas absent). ──
     const offCandidatesSansRunes = exclusionCandidatesFor('siege-offense', data, null, null, false);
-    egal(offCandidatesSansRunes.length, 1, 'siège offense (requireRunes:false) : le monstre assigné mais nu redevient un candidat');
+    egal(offCandidatesSansRunes.length, 1, 'siège offense (requireRunes:false) : le monstre assigné mais nu est un candidat');
     egal(offCandidatesSansRunes[0]?.monster.name, 'NonRune', 'siège offense (requireRunes:false) : bon monstre résolu');
     egal(offCandidatesSansRunes[0]?.gear.runes, [], 'siège offense (requireRunes:false) : gear résolu avec 0 rune, jamais absent');
-    // Même correctif pour RTA — même bug, même cause.
+    // Même règle pour RTA.
     const rtaCandidatesSansRunes = exclusionCandidatesFor('rta', { ...data, rtaEntries: { ...rtaEntries, [String(nonRune.id)]: { monsterId: String(nonRune.id), section: 'violent', runeSpeed: null, gear: gear([]) } } }, null, null, false);
     ok(
       rtaCandidatesSansRunes.some((c) => c.monster.name === 'NonRune'),
@@ -140,11 +139,10 @@ export default function testOptimizerExclusion() {
     );
   }
 
-  // ── Trou trouvé par une revue de code externe : `excludeOwnUnitKey`
-  // (box) ne protégeait QUE la box — RTA et siège n'avaient AUCUNE garde,
-  // le monstre recherché pouvait s'auto-proposer à l'exclusion depuis ces
-  // deux sources. `excludeOwnCom2usId` (par ESPÈCE, pas par entrée —
-  // RTA/siège n'ont qu'UNE entrée par monstre) corrige les deux. ──
+  // ── `excludeOwnUnitKey` (box) ne protège QUE la box : RTA et siège n'ont
+  // qu'UNE entrée par monstre, donc `excludeOwnCom2usId` (par ESPÈCE, pas par
+  // entrée) empêche le monstre recherché de s'auto-proposer à l'exclusion
+  // depuis ces deux sources. ──
   {
     const rtaWithoutOwn = exclusionCandidatesFor('rta', data, null, camilla.com2usId);
     egal(rtaWithoutOwn.length, 0, "rta : le monstre recherché (excludeOwnCom2usId=Camilla) retiré de ses propres propositions RTA");
@@ -188,12 +186,11 @@ export default function testOptimizerExclusion() {
     egal(combined.size, 12, 'plusieurs sélecteurs : union des runes exclues (box + RTA de Camilla, aucun chevauchement)');
   }
 
-  // ── Trou trouvé par une revue de code externe : un sélecteur choisi
-  // LÉGITIMEMENT en optimisant un AUTRE monstre (« exclure les runes de
-  // Camilla » pendant qu'on optimise Lushen) devient une AUTO-exclusion si
-  // l'utilisateur change ensuite le monstre recherché pour Camilla —
-  // `excludedSelectors` (l'état de l'écran) n'était jusqu'ici jamais purgé
-  // ni revérifié à ce changement. Défendu ICI, à la résolution, pour que
+  // ── Un sélecteur choisi LÉGITIMEMENT en optimisant un AUTRE monstre
+  // (« exclure les runes de Camilla » pendant qu'on optimise Lushen) devient
+  // une AUTO-exclusion si l'utilisateur change ensuite le monstre recherché
+  // pour Camilla — `excludedSelectors` (l'état de l'écran) n'est ni purgé ni
+  // revérifié à ce changement. Défendu ICI, à la résolution, pour que
   // la garantie tienne quelle que soit la façon dont le sélecteur est
   // arrivé dans la liste (voir aussi le useEffect de purge dans
   // OptimizerSection.tsx, qui nettoie l'AFFICHAGE — cosmétique, cette
@@ -224,7 +221,7 @@ export default function testOptimizerExclusion() {
       'box : un AUTRE exemplaire de Camilla (entrée différente, même espèce) reste exclusible — granularité par entrée préservée'
     );
 
-    // Mélange : un sélecteur périmé (RTA de Camilla, désormais soi-même) ET
+    // Mélange : un sélecteur périmé (RTA de Camilla, qui est alors le monstre recherché) ET
     // un sélecteur toujours légitime (box de Lushen) dans la MÊME liste —
     // seul le premier doit être ignoré.
     const mixed = resolveExcludedRuneIds(
@@ -366,7 +363,7 @@ export default function testOptimizerExclusion() {
     );
   }
 
-  // ── Runes VALIDÉES (Lot 3, « Monstres de la liste ») — 3ᵉ mécanisme
+  // ── Runes VALIDÉES (« Monstres de la liste ») — 3ᵉ mécanisme
   // d'exclusion : un INSTANTANÉ de runeIds, pas une entrée relue
   // dynamiquement, scopé PAR LISTE (deux listes ne se bloquent jamais entre
   // elles — un deck d'offense siège est un preset appliqué momentanément,
@@ -450,12 +447,11 @@ export default function testOptimizerExclusion() {
     egal(findValidatedBuild(validated, null, ownKey), undefined, 'findValidatedBuild : listId null → jamais de faux positif');
   }
 
-  // ── revalidateBuilds — revérification au réimport (point bloquant 4 du
-  // cadrage) : un sélecteur introuvable OU une rune validée qui n'EXISTE
+  // ── revalidateBuilds — revérification au réimport (point bloquant :
+  // un sélecteur introuvable OU une rune validée qui n'EXISTE
   // PLUS DU TOUT dans le compte (vendue/reforgée depuis) est abandonné,
   // jamais silencieusement gardé — mais rester PAS ENCORE équipée sur
-  // l'exemplaire ne suffit PAS à l'abandonner (voir le cas dédié plus bas,
-  // bug corrigé). ──
+  // l'exemplaire ne suffit PAS à l'abandonner (voir le cas dédié plus bas). ──
   {
     const validated: ValidatedBuild[] = [
       { listId: 'deck-a', selector: { source: 'box', unitKey: 'unit-camilla' }, runeIds: [1, 2, 3, 4, 5, 6] }, // toujours intact → conservé
@@ -474,14 +470,13 @@ export default function testOptimizerExclusion() {
     const allValid = revalidateBuilds([validated[0]], data, allRuneIds);
     egal(allValid.droppedCount, 0, 'revalidateBuilds : rien de périmé → droppedCount à 0, pas juste kept correct');
 
-    // ── BUG CORRIGÉ (revue de code externe) : un build validé n'est PAS
-    // censé être déjà équipé sur l'exemplaire (voir ValidatedBuild, tête de
-    // fichier) — un build validé sur Lushen mais composé des runes
-    // ACTUELLEMENT portées par Camilla (pas les siennes, [7..12]) doit
-    // rester valide tant que ces runes existent QUELQUE PART dans le
-    // compte. L'ancienne version exigeait « encore portées par CET
-    // exemplaire » — elle aurait abandonné ce build à tort, silencieusement
-    // (perte de données sur pratiquement TOUT build validé réel). ──
+    // ── Un build validé n'est PAS censé être déjà équipé sur l'exemplaire
+    // (voir ValidatedBuild, tête de fichier) — un build validé sur Lushen mais
+    // composé des runes ACTUELLEMENT portées par Camilla (pas les siennes,
+    // [7..12]) doit rester valide tant que ces runes existent QUELQUE PART
+    // dans le compte. Exiger « encore portées par CET exemplaire »
+    // abandonnerait ce build à tort, silencieusement (perte de données sur
+    // pratiquement TOUT build validé réel). ──
     const validatedPasEncoreEquipe: ValidatedBuild[] = [
       { listId: 'deck-a', selector: { source: 'box', unitKey: 'unit-lushen' }, runeIds: [1, 2, 3, 4, 5, 6] },
     ];
@@ -497,10 +492,9 @@ export default function testOptimizerExclusion() {
     // son `gear.runes` résolu est TOUJOURS vide (pas d'exemplaire réel), donc
     // la question posée diffère : « ces runes existent-elles encore dans le
     // compte », pas « sont-elles encore PORTÉES par lui ». ──
-    // ⚠️ **Un id LIBRE, vérifié.** Il valait 4 — déjà pris par `NonRune`, posé
-    // en offense siège, et par `Fran` : le monstre n'était donc PAS « possédé
-    // nulle part », et `dataAvecZaiross` écrasait l'entrée 4 de `monsterById`.
-    // Le scénario ne testait pas ce qu'il annonce, et polluait le reste.
+    // ⚠️ **Un id LIBRE, vérifié.** L'id 4 est déjà pris par `NonRune`, posé
+    // en offense siège, et par `Fran` : le monstre ne serait donc PAS « possédé
+    // nulle part », et `dataAvecZaiross` écraserait l'entrée 4 de `monsterById`.
     const zaiross = monster(9, 'Zaiross'); // absent de box/rta/siège — possédé nulle part
     const dataAvecZaiross: ExclusionSourceData = { ...data, monsterById: new Map([...monsterById, [String(zaiross.id), zaiross]]) };
     const unownedSelector = { source: 'unowned' as const, monsterId: String(zaiross.id) };
@@ -534,7 +528,7 @@ export default function testOptimizerExclusion() {
     egal(unownedDropped.droppedCount, 1, "revalidateBuilds (unowned) : abandonné si une rune n'existe plus du tout dans le compte");
   }
 
-  // ── revalidateMembers (Lot 3) — même principe que revalidateBuilds, mais
+  // ── revalidateMembers — même principe que revalidateBuilds, mais
   // pour la simple appartenance à une liste : seul le sélecteur doit encore
   // résoudre, aucune rune à comparer. ──
   {
@@ -600,12 +594,12 @@ export default function testOptimizerExclusion() {
 
   // ── ⚠️⚠️ L'IDENTITÉ D'UNE ÉQUIPE DE SIÈGE SURVIT AU RÉIMPORT ──
   //
-  // Un sélecteur siège désigne un monstre par `{ teamId, slotIndex }`. Tant que
-  // `importTeams` régénérait les ids (`newId()`), plus aucun ne résolvait après
-  // un import : `revalidateMembers` supprimait DÉFINITIVEMENT tous les membres
-  // et builds venus du siège — sur le geste même qu'elle est censée servir. Ce
-  // n'était pas « mon compte a changé », c'était l'identifiant qui avait changé
-  // sous eux.
+  // Un sélecteur siège désigne un monstre par `{ teamId, slotIndex }`. Si
+  // `importTeams` régénérait les ids (`newId()`), plus aucun ne résoudrait
+  // après un import : `revalidateMembers` supprimerait DÉFINITIVEMENT tous les
+  // membres et builds venus du siège — sur le geste même qu'elle est censée
+  // servir. Ce ne serait pas « mon compte a changé », mais l'identifiant qui
+  // aurait changé sous eux.
   //
   // ⚠️ Contrôle de SOURCE, comme celui des clés collantes : `importTeams` est un
   // callback de hook React, et le dépôt ne teste pas les composants. C'est la

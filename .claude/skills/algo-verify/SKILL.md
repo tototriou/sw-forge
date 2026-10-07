@@ -180,9 +180,8 @@ suit s'applique intégralement.
 incomplet.
 
 ⚠️⚠️ Le moteur n'a plus de budget de paires ni d'escalade (voir
-`spec/outils/optimizer/pistes.md`, piste 8, et
-`archive/historique/historique-diagnostics-et-robustesse.md`, « Suite — suppression du budget de
-nœuds ») : `pairBuckets(prepared, bucketsA, bucketsB)` prend TROIS arguments,
+[spec/outils/optimizer/verification.md § Benchmarks](../../../spec/outils/optimizer/verification.md),
+qui en donne les seules bornes) : `pairBuckets(prepared, bucketsA, bucketsB)` prend TROIS arguments,
 et un appel nu explore exactement ce
 que la production explore. Ne pas chercher à « reproduire l'escalade » dans un
 script neuf — un script qui la reproduirait aujourd'hui serait lui-même
@@ -285,8 +284,8 @@ que la production) — pas seulement « même noms de fonctions dans le même
 ordre ». En particulier vérifier :
 - Tout paramètre optionnel avec une valeur par défaut différente du
   comportement réel. ⚠️ Le cas d'école (`pairBuckets(..., nodeBudget)`, 4ᵉ
-  argument au défaut FIGÉ) a été supprimé — mais `maxMs` en est un autre,
-  bien vivant : `searchBuilds` retombe sur 15 s là où l'écran donne 10 min.
+  argument au défaut FIGÉ) n'existe plus dans le moteur — mais `maxMs` en
+  est un autre, bien vivant : `searchBuilds` retombe sur 15 s là où l'écran donne 10 min.
 - Toute boucle englobante autour d'un générateur (`while (!step.done)`) dans
   le vrai chemin — un simple `drain()` qui ignore les valeurs intermédiaires
   (`step.value` à chaque itération) est un signal qu'un comportement basé sur
@@ -294,11 +293,11 @@ ordre ». En particulier vérifier :
   mesure) a pu être perdu. Inversement, une boucle pas à pas qui ne fait RIEN
   de `step.value` n'a aucune raison d'exister : `drain()` suffit.
 - Les VALEURS de chaque paramètre transmis (caps, objectif, metric, pool,
-  exclusions…), pas seulement leur présence — un défaut d'écran qui a changé
-  depuis la dernière fois (ex. l'exclusion automatique de runes, renommée ET
-  son défaut INVERSÉ entre deux sessions — « Utiliser tout l'inventaire »
-  cochée par défaut devenue « Exclure les runes déjà utilisées » décochée
-  par défaut, voir `excludeUsedRunes`/`autoExcludedRuneIds`) invalide
+  exclusions…), pas seulement leur présence — un défaut d'écran qui change
+  (ex. l'exclusion automatique de runes : « Exclure les runes déjà
+  utilisées », décochée par défaut, voir
+  `excludeUsedRunes`/`autoExcludedRuneIds`, a remplacé « Utiliser tout
+  l'inventaire » cochée par défaut) invalide
   silencieusement un script écrit avant ce changement.
 Si le script reproduit un cas signalé par l'utilisateur, ne jamais conclure
 « bug confirmé dans le moteur » avant que cette fidélité soit vérifiée — un

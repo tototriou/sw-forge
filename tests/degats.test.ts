@@ -325,8 +325,8 @@ export default function testDegats() {
   const crit = computeSkillDamage(s3!, build, critique, AUCUNE_AURA_PROPRE);
   ok(normal < crit, 'non critique < critique');
 
-  // Deux modes seulement depuis la suppression de « Moyenne » (degats-et-aura,
-  // lot CM) : le Taux Crit n'entre plus dans la part critique — 0 ou 1 —, ni
+  // Deux modes seulement depuis la suppression de « Moyenne » :
+  // le Taux Crit n'entre plus dans la part critique — 0 ou 1 —, ni
   // sous 100 % ni au-delà. Converti de l'ancien test « au-delà de 100 % de
   // Taux Crit, plus aucun dégât », qui ne se lisait qu'en mode Moyenne.
   for (const critMode of ['crit', 'normal'] as const) {
@@ -345,7 +345,7 @@ export default function testDegats() {
     computeSkillDamage(s3!, build, DEFAULT_DAMAGE_SETUP, AUCUNE_AURA_PROPRE),
     'un sort qui ignore la défense ne réagit pas à la DEF ennemie'
   );
-  // ⚠️ Question directe de l'utilisateur : le def break (posé AVANT le
+  // ⚠️ Le def break (posé AVANT le
   // sort, `setup.defBreak`) n'y change rien NON PLUS — `defEff =
   // profile.ignoreDef ? 0 : …` court-circuite `facteurDefBreak` avant même
   // de l'évaluer, que Deborah l'amplifie ou non.
@@ -403,7 +403,7 @@ export default function testDegats() {
   );
   // Le ratio attendu ci-dessous ne dépend que de l'ATQ : la part critique est
   // la même des deux côtés (l'élément ne touche pas aux Dgts Crit). Converti
-  // du mode « Moyenne », supprimé (lot CM), vers « Critique », le défaut.
+  // du mode « Moyenne », supprimé, vers « Critique », le défaut.
   const combatSansElement = computeSkillDamage(s3!, buildInvoc, { ...DEFAULT_DAMAGE_SETUP, critMode: 'crit', summonerSkills: 'combat' }, AUCUNE_AURA_PROPRE, null);
   const avecCombat = computeSkillDamage(s3!, buildInvoc, { ...DEFAULT_DAMAGE_SETUP, critMode: 'crit', summonerSkills: 'combat' }, AUCUNE_AURA_PROPRE, 'wind');
   ok(avecCombat > combatSansElement, 'la compétence de Combat élémentaire augmente les dégâts du bon élément');
@@ -425,7 +425,7 @@ export default function testDegats() {
   ok(profil('2.0*{ATK}*({Relative SPD}+1)') !== null, '{Relative SPD} est maintenant une variable reconnue');
   const beastRider = fiche(23504);
   const spearOfProtector = monsterDamageSkills(beastRider).filter(estPrisEnCharge).find((s) => s.nom === 'Spear of Protector')!;
-  ok(spearOfProtector != null, 'Beast Rider : « Spear of Protector » est désormais calculable');
+  ok(spearOfProtector != null, 'Beast Rider : « Spear of Protector » est calculable');
   egal(spearOfProtector.variables, ['ATK', 'Relative SPD'], 'sa formule dépend bien de ATQ et de Relative SPD');
 
   const brStats = stats({ atk: 2000, cd: 200, cr: 100, spd: 150 });
@@ -900,9 +900,9 @@ export default function testDegats() {
     // est dans le terme DMG%, la Marque dans Réductions : 2000 × 1,12 × 1,25 =
     // 2800, et non 2000 × (1 + 0,12 + 0,25) = 2740.
     //
-    // ⚠️ Ce test figeait 2740 — une DÉDUCTION faite « par symétrie » avec les
-    // artéfacts −DMG% (305-309), qui sont bien dans Réductions. La symétrie
-    // n'existait pas. Corrigé d'après swcalc.cz/game-mechanics.
+    // ⚠️ 2740 serait une DÉDUCTION « par symétrie » avec les artéfacts
+    // −DMG% (305-309), qui sont bien dans Réductions. La symétrie n'existe
+    // pas. Source : swcalc.cz/game-mechanics.
     egal(
       Math.round(computeSkillDamageDetail(profilFixe2, st, { ...base, brand: true }, AUCUNE_AURA_PROPRE, null, undefined, ARTIFACT_DAMAGE_NEUTRE).total),
       2500,
@@ -1072,7 +1072,7 @@ export default function testDegats() {
   // Taux Crit / Dégâts Crit — des POINTS FLATS ajoutés à la stat, jamais un
   // pourcentage de la base : même famille que les compétences d'invocateur
   // et Euldong, PAS la même famille que PV/ATQ/DEF/VIT ci-dessus.
-  // ⚠️ Converti du mode « Moyenne », supprimé (degats-et-aura, lot CM), où le
+  // ⚠️ Converti du mode « Moyenne », supprimé, où le
   // Taux Crit pesait sur la part critique : en « Critique », il ne se lit plus
   // que par le surplus au-delà de 100 % reversé en Dgts Crit (Wolf School
   // Training, `critRateSelonVit`). 50 + 20 (VIT 240 / 12) = 70 % sans lead :
@@ -1222,7 +1222,7 @@ export default function testDegats() {
   ok(modifRigna[0]?.detail.includes('critique garanti'), 'le détail affiché de Rigna mentionne le critique, pas un bonus de dégâts');
 
   // Zenitsu Agatsuma (Ténèbres)/Qilin Slasher (Ténèbres) — « Hidden Sense of
-  // Justice »/« Lethal Intent », point 29 du catalogue : QUATRIÈME
+  // Justice »/« Lethal Intent » (`spec/outils/degats-reels/catalogue-des-passifs.md`, « Statistiques ») : QUATRIÈME
   // mécanique liée à une stat (le Taux Crit cette fois, pas la VIT), même
   // famille que Sonia (multiplicatif sur le TOTAL, toujours actif). `quantite: 0`/
   // `null` en données — confirmé par l'utilisateur : « 1% de Taux critique =
@@ -1256,7 +1256,7 @@ export default function testDegats() {
     'le Taux Crit est privilégié au pré-filtrage — SEUL cas de ce fichier (partout ailleurs, plafonné à 100 %, jamais une cible à maximiser)'
   );
 
-  // Gideon (« Aegis Shell »), point 30a — CINQUIÈME mécanique liée à une
+  // Gideon (« Aegis Shell ») — CINQUIÈME mécanique liée à une
   // stat, cette fois la DEF PROPRE (pas un écart avec la cible, contrairement
   // à Martial Arts Specialist). `quantite: 100` confirmé en données —
   // confirmé par l'utilisateur : 100 % à 5000 DEF.
@@ -1386,7 +1386,7 @@ export default function testDegats() {
   egal(monsterModificateursVit(fiche(LUSHEN)).length, 0, 'Lushen : aucun modificateur');
   egal(monsterModificateursVit(null).length, 0, 'fiche absente : liste vide, jamais une exception');
 
-  titre('Dégâts réels — catalogue « passifs non implémentés », réponses jusqu’au point 26');
+  titre('Dégâts réels — catalogue « passifs non implémentés », paliers et bonus confirmés');
 
   // Chun-Li (Lumière)/Leah (Lumière) — même mécanisme que Sonia, seuls les
   // paliers changent (confirmé par l'utilisateur : max 200 % à 150 pts
@@ -1406,7 +1406,7 @@ export default function testDegats() {
   const chunliSansEcart = computeSkillDamage(chunliBase!, chunliStats, { ...chunliSetup, enemySpd: 200 }, AUCUNE_AURA_PROPRE);
   const chunliAvec150 = computeTotalDamage(chunliBase!, [], chunliStats, { ...chunliSetup, enemySpd: 50 }, AUCUNE_AURA_PROPRE, null, ARTIFACT_DAMAGE_NEUTRE, false, chunliConfig);
   ok(Math.abs(chunliAvec150 / chunliSansEcart - 3) < 1e-9, 'Chun-Li : 150 pts d’écart = +200 % (le plafond), soit ×3');
-  // ⚠️ RÉGRESSION trouvée en implémentant Gideon (point 30a), PAS signalée
+  // ⚠️ RÉGRESSION trouvée en implémentant Gideon, PAS signalée
   // par l'utilisateur : le plafond clampait `ecartVit` sur `pctMax` (200) au
   // lieu de `ecartMax` (150) — invisible sur Sonia (50 % = 50 pts,
   // coïncidence), mais un écart de VIT > 150 donnait ~267 % au lieu de
@@ -1429,7 +1429,7 @@ export default function testDegats() {
   // maVit = 240 (base VIT nulle dans ce fixture, donc Combat n'ajoute rien) → crDepuisVit =
   // floor(240/12) = 20 pts.
   const critVitStatsSansOverflow = stats({ atk: 2000, cd: 100, cr: 40, spd: 240 });
-  // ⚠️ Converti du mode « Moyenne », supprimé (degats-et-aura, lot CM) : en
+  // ⚠️ Converti du mode « Moyenne », supprimé : en
   // « Critique », la part critique vaut 1 et le Taux Crit ne se lit plus que
   // par le surplus reversé — les 20 pts sous 100 % ne changent plus rien.
   const critVitSetup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, critMode: 'crit', summonerSkills: 'combat' };
@@ -1474,8 +1474,8 @@ export default function testDegats() {
     ) < 1e-9,
     'Detect Weakspot : +20 pts de Dgts Crit, toujours actif'
   );
-  // Les +20 pts de Taux Crit ne se lisent plus qu'au-delà de 100 % (lot CM,
-  // voir plus haut) : combinaison SYNTHÉTIQUE avec le reversement de Wolf
+  // Les +20 pts de Taux Crit ne se lisent plus qu'au-delà de 100 % (voir
+  // plus haut) : combinaison SYNTHÉTIQUE avec le reversement de Wolf
   // School Training, qu'aucun monstre ne porte avec Detect Weakspot — elle
   // éprouve seulement que `crBrutEffectif` additionne `bonusStatFixe.cr`.
   // 70 + 20 (VIT 240 / 12) = 90 % sans le passif ; 110 % avec : 10 pts
@@ -1589,8 +1589,8 @@ export default function testDegats() {
 
   // ⚠️ Le DÉCLENCHEUR (nombre d'attaques alliées, ici 5) et le BONUS DE
   // DÉGÂTS qui en résulte (5 × 10 % = 50 %) sont DEUX NOMBRES DIFFÉRENTS —
-  // `stackPersonnalise` porte désormais le DÉCLENCHEUR, jamais le bonus
-  // directement (bug corrigé, signalé par l'utilisateur sur Borgnine/Trevor).
+  // `stackPersonnalise` porte le DÉCLENCHEUR, jamais le bonus
+  // directement (Borgnine, Trevor).
   const momoSetup5Attaques: DamageSetup = {
     ...momoSetupSansStack,
     stackPersonnalise: { [stackMomo.skillCom2usId]: 5 },
@@ -1645,7 +1645,7 @@ export default function testDegats() {
   egal(rollAgainLudo?.pctMax, 100, 'Ludo : plafonné à 100 % de dégâts');
   const absorbShadowMartina = monsterBonusDegatsStackable(fiche(22015));
   egal(absorbShadowMartina?.nom, 'Absorb Shadow (Passive)', 'Martina : nom exact du passif détecté');
-  egal(absorbShadowMartina?.ratio, 10, 'Martina : +10 % par vol de BUFF (pas de PV, corrigé)');
+  egal(absorbShadowMartina?.ratio, 10, 'Martina : +10 % par vol de BUFF (pas de PV)');
   egal(absorbShadowMartina?.label, 'Buffs volés', 'Martina : « Steal Buff » en données SWARFARM, pas un vol de PV');
   egal(absorbShadowMartina?.pctMax, 150, 'Martina : plafonné à +150 % (15 fois)');
 
@@ -1873,7 +1873,7 @@ export default function testDegats() {
   );
   ok(!bonusConditionnelPropreActif(touchOfMercyProfile, brandiaSetup), 'désactivé par défaut, jamais deviné actif');
 
-  // Zaiross (« Fiery Breath ») — l'audit étape 2 connaît désormais
+  // Zaiross (« Fiery Breath ») — l'audit connaît
   // l'ATQ adverse saisie. La condition ≤ 50 % est donc calculée directement,
   // et force aussi le critique annoncé par le texte du sort.
   const zaiross = fiche(14412);
@@ -1990,16 +1990,16 @@ export default function testDegats() {
     'Sickle Blade/Calculated Sacrifice : les PV entrent dans le pré-filtrage même pour un sort qui ne les lit pas'
   );
 
-  // ── BUG CORRIGÉ (revue de code externe, perf) : le mode « Non critique »
-  // (`critMode: 'normal'`) annule TOUJOURS la part critique dans le calcul
-  // réel (`partCrit` vaut 0, voir `computeSkillDamageDetail`) — Dégâts Crit
-  // ne devrait donc PLUS être retenu au pré-filtrage dans ce mode, sauf
-  // `critSiPlusRapide` qui force un critique garanti et passe outre. ──
+  // ── Le mode « Non critique » (`critMode: 'normal'`) annule TOUJOURS la
+  // part critique dans le calcul réel (`partCrit` vaut 0, voir
+  // `computeSkillDamageDetail`) — Dégâts Crit n'est donc PAS retenu au
+  // pré-filtrage dans ce mode, sauf `critSiPlusRapide` qui force un critique
+  // garanti et passe outre. ──
   ok(
     !damageRelevantStats(s3, [], { ...DEFAULT_DAMAGE_SETUP, critMode: 'normal' }).includes('cd'),
     "« Non critique » : Dégâts Crit ne pèse plus sur aucun dégât, donc plus retenu au pré-filtrage"
   );
-  // Converti du mode « Moyenne », supprimé (degats-et-aura, lot CM), vers
+  // Converti du mode « Moyenne », supprimé, vers
   // « Critique » : le seul autre mode où Dégâts Crit pèse.
   ok(
     damageRelevantStats(s3, [], { ...DEFAULT_DAMAGE_SETUP, critMode: 'crit' }).includes('cd'),
@@ -2216,7 +2216,7 @@ export default function testDegats() {
   );
 
   // Dominic — « Improvisation (Passive) » : `bonus` avec `dejaInclus: true`
-  // (demande explicite de l'utilisateur : un bouton, comme Hidden Gun/Ezio).
+  // (un bouton, comme Hidden Gun/Ezio).
   // La formule `(Fixed)` porte le cas MAJORÉ (`2.0*{ATK}` = 100 % de base ×
   // (1 + 100 % si PV > 50 %)) — décoché (par défaut), la contribution est
   // DIVISÉE par 2 pour retomber au cas de base, jamais multipliée.
@@ -2256,8 +2256,8 @@ export default function testDegats() {
     ) < 1e-9,
     'bouton décoché (par défaut) : la contribution est DIVISÉE par 2, retombant au cas de base (1.0 × ATQ)'
   );
-  // Question directe de l'utilisateur : les dégâts de ce passif (`(Fixed)`)
-  // sont-ils bien insensibles à la DEF adverse ? Oui — et PLUS FORT qu'un
+  // Les dégâts de ce passif (`(Fixed)`) sont insensibles à la DEF adverse,
+  // et PLUS FORT qu'un
   // simple `ignoreDef` : `mitigation = profile.fixed ? 1 : defenseFactor(…)`
   // saute ENTIÈREMENT le facteur de défense (aucune réduction, même pas le
   // plancher `defenseFactor(0) ≈ 0,877` qu'`ignoreDef` laisserait subsister).
@@ -2346,14 +2346,13 @@ export default function testDegats() {
   );
   ok(wDetail.pvRestantsPct < 100, 'et les PV restants de la cible ont bien baissé');
 
-  // ── BUG CORRIGÉ (revue de code externe) : le chemin SÉQUENTIEL ajoutait
-  // `ajoutUneFois` (Sickle Blade/Sand Blade, Calculated Sacrifice — un
-  // modificateur monstre-wide UNE FOIS par sort) au `.total` retourné, mais
-  // JAMAIS au `pvCourant` utilisé pour calculer `pvRestantsPct` — contraire
-  // au chemin COURT, qui les créuse ensemble. `pvRestantsPct` restait donc
-  // SURESTIMÉ dès qu'un sort au chemin séquentiel portait aussi un
-  // `ajoutUneFois`, faussant tout seuil de passif suivant basé sur les PV
-  // restants (Final Strike/Benedict). ──
+  // ── Le chemin SÉQUENTIEL ajoute `ajoutUneFois` (Sickle Blade/Sand Blade,
+  // Calculated Sacrifice — un modificateur monstre-wide UNE FOIS par sort) au
+  // `.total` retourné ET au `pvCourant` utilisé pour calculer
+  // `pvRestantsPct`, comme le chemin COURT, qui les creuse ensemble. Sinon
+  // `pvRestantsPct` serait SURESTIMÉ dès qu'un sort au chemin séquentiel
+  // porte aussi un `ajoutUneFois`, faussant tout seuil de passif suivant basé
+  // sur les PV restants (Final Strike/Benedict). ──
   const wStatsAvecHp = stats({ atk: 2000, cd: 200, cr: 100, hp: 10000 });
   const sansAjoutUneFois = computeSkillDamageDetail(weakness, wStatsAvecHp, wSetup, AUCUNE_AURA_PROPRE, null, undefined, ARTIFACT_DAMAGE_NEUTRE, {});
   const avecAjoutUneFois = computeSkillDamageDetail(weakness, wStatsAvecHp, wSetup, AUCUNE_AURA_PROPRE, null, undefined, ARTIFACT_DAMAGE_NEUTRE, {
@@ -2444,18 +2443,18 @@ export default function testDegats() {
     egal(p?.nom, nom, `${id} : nom exact du passif détecté`);
     egal(p?.pct, pct, `${id} (${nom}) : pourcentage confirmé`);
   }
-  // ⚠️ Female Warrior : la réponse de l'utilisateur (« jusqu'à 200 % ») ne
-  // correspond PAS aux données réelles (`quantite: 20`, texte fixe) — très
-  // probablement une confusion avec Cold Brew/Iced Tea juste en dessous,
-  // répondues dans le même message. Les données réelles ont prévalu.
+  // ⚠️ Female Warrior : un relevé « jusqu'à 200 % » ne correspond PAS aux
+  // données réelles (`quantite: 20`, texte fixe) — très probablement une
+  // confusion avec Cold Brew/Iced Tea juste en dessous. Les données réelles
+  // prévalent.
   egal(monsterBonusDegatsConditionnel(fiche(22011))?.pct, 20, 'Female Warrior : 20 %, PAS 200 % — les données SWARFARM prévalent sur une réponse en aparté imprécise');
 
-  // Internal Force (12515 ; Paladin 21805, Leona 21815) — lot 15b du chantier
-  // degats-et-aura, décision de l'utilisateur du 2026-10-02. ⚠️ Ce test
+  // Internal Force (12515 ; Paladin 21805, Leona 21815).
+  // ⚠️ Ce test
   // FIGEAIT l'inverse : un `PASSIFS_OFFENSIFS_CONNUS` `conditionnel` dont la
   // formule `2.0*{DEF}` (le Bouclier) s'ajoutait aux dégâts, le +50 % étant
   // réputé porter sur les dégâts absorbés. Renversé : le Bouclier se crée
-  // « when you are attacked », ce n'est pas une attaque (cadrage A.2 ter,
+  // « when you are attacked », ce n'est pas une attaque (`spec/outils/degats-reels/valeurs-de-jeu-curees.md`,
   // « Une attaque se lit dans la prose ») ; le +50 % « damage dealt » de la
   // donnée (`Increase Damage`, `quantite: 50`, note « When you have a
   // Shield. ») majore les dégâts du monstre sous le bouton « bouclier
@@ -2499,8 +2498,8 @@ export default function testDegats() {
   // ratio) : `skillDamageProfile` rejette parce qu'un sort stat-indépendant
   // est INUTILE comme référence de classement des builds, une raison qui
   // ne s'applique PAS à `monsterOffensivePassives` (sommer une contribution
-  // RÉELLE au total affiché, jamais utilisée pour classer). Le filtre
-  // correspondant a été retiré dans `monsterOffensivePassives`.
+  // RÉELLE au total affiché, jamais utilisée pour classer). Aucun filtre
+  // correspondant dans `monsterOffensivePassives`.
   const giou = fiche(25013);
   const comeuppancePassif = monsterOffensivePassives(giou).find((p) => p.nom === 'Comeuppance (Passive)');
   ok(comeuppancePassif != null, 'Giou : Comeuppance reconnu comme passif offensif');
@@ -2604,7 +2603,7 @@ export default function testDegats() {
   // champ de saisie de Trevor affichait « Stack actuel » avec une infobulle
   // écrite pour Momo (« nombre d'attaques alliées ») — incohérent, Trevor
   // compte ses PROPRES PV perdus, pas des attaques. Chaque entrée porte
-  // désormais son propre `label`/`aide` — vérifié qu'ils sont bien
+  // son propre `label`/`aide` — vérifié qu'ils sont bien
   // DISTINCTS entre deux mécanismes différents (Momo vs Trevor), pas un
   // texte générique partagé.
   const stackMomoLabels = monsterBonusDegatsStackable(momo)!;
@@ -2617,7 +2616,7 @@ export default function testDegats() {
   // un vol de PV mais un vol de buff » (confirmé par l'effet SWARFARM
   // « Steal Buff », voir plus haut).
   const stackMartina = monsterBonusDegatsStackable(fiche(22015))!;
-  egal(stackMartina.label, 'Buffs volés', 'Martina : « vol de buff », PAS « vol de PV » (corrigé)');
+  egal(stackMartina.label, 'Buffs volés', 'Martina : « vol de buff », PAS « vol de PV »');
   ok(!/PV/i.test(stackMartina.label) && !/PV/.test(stackMartina.aide), "Martina : ni le libellé ni l'infobulle ne mentionnent des PV");
   // Borgnine et Moogwang (« PV cible détruits ») partagent le MÊME libellé
   // entre eux (même nature de compteur), mais restent DIFFÉRENTS de Trevor
@@ -2710,8 +2709,7 @@ export default function testDegats() {
     egal(avec.total, 12300, 'Sickle Blade : +7 % des PV max PROPRES, à CHAQUE coup (2100 × 3)');
   }
   {
-    // ⚠️ **L'AUTRE axe du correctif**, qu'aucun test ne couvrait : le terme
-    // est BRUT. Impossible à voir avec `neutre`, dont la formule porte
+    // ⚠️ **L'AUTRE axe** : le terme est BRUT. Impossible à voir avec `neutre`, dont la formule porte
     // `(Fixed)` — `horsCoup` y vaut 1, un terme mitigé y serait donc
     // indiscernable d'un terme brut. Il faut un sort ORDINAIRE, une cible qui
     // a de la défense, et le critique forcé.
@@ -2844,7 +2842,7 @@ export default function testDegats() {
 
   // Le nom « Rending Claw » est partagé avec Cecilia (23306) et Elise (23310),
   // dont la fiche ne porte pas Emergency Drive : le bouton est par identifiant
-  // (23307), pas par nom — décision du 2026-10-03 (degats-et-aura P1b).
+  // (23307), pas par nom.
   egal(rendingClawProfile.skillCom2usId, 23307, 'Rending Claw de Cynthia : identifiant 23307');
   for (const [forme, sortId, qui] of [[34011, 23306, 'Cecilia'], [34015, 23310, 'Elise']] as const) {
     const autre = monsterDamageSkills(fiche(forme)).find((s) => estPrisEnCharge(s) && s.nom === 'Rending Claw');
@@ -2864,12 +2862,11 @@ export default function testDegats() {
   titre('Dégâts réels — propagation dans la recherche');
 
   // ⚠️ Ce bloc existe parce que `tsc --noEmit` ne peut PAS voir ces erreurs :
-  // un champ non lu reste un accès optionnel valide, et `scripts/` est même
-  // hors de son périmètre (voir le skill optimizer-field-propagation, né de
-  // trois incidents de ce type exactement).
+  // un champ optionnel non lu reste un accès valide, même si `tsc` couvre aussi
+  // `scripts/` et `tests/` (voir le skill optimizer-field-propagation).
 
-  // Le repli doit rester STRICTEMENT le comportement d'avant pour les cinq
-  // autres objectifs : sans override, la table statique fait foi.
+  // Le repli reste STRICTEMENT la table statique pour les cinq autres
+  // objectifs : sans override, la table statique fait foi.
   for (const o of OBJECTIVE_LABELS) {
     egal(objectiveKeysOf(o.key, undefined), OBJECTIVE_RELEVANT_STATS[o.key], `sans override, « ${o.label} » garde ses stats d'origine`);
   }
@@ -2879,13 +2876,13 @@ export default function testDegats() {
   // rien »), pas retomber sur la table — un `??`/`||` mal placé confondrait
   // les deux, sans que rien ne le signale.
   egal(objectiveKeysOf('ehp', []), [], 'un override vide reste un override');
-  // ⚠️ `speed_nuker` retiré (v1.8.1 → forge/calcul-degats-reels) et `degats`
-  // retiré (2026-08-27 → approximation devenue redondante avec « Dégâts
-  // réels ») : une recette exportée pendant leur durée de vie porte encore
-  // ces valeurs, jamais validées par `parseOptimizerRecipe`. Sans repli, le
-  // spread sur `undefined` plus haut dans la pile lève une TypeError.
+  // ⚠️ `speed_nuker` et `degats` ne sont plus des objectifs (« degats » est
+  // redondant avec « Dégâts réels ») : une recette exportée quand ils
+  // existaient porte encore ces valeurs, jamais validées par
+  // `parseOptimizerRecipe`. Sans repli, le spread sur `undefined` plus haut
+  // dans la pile lève une TypeError.
   egal(objectiveKeysOf('speed_nuker' as unknown as Objective, undefined), [], 'un objectif retiré (recette ancienne) dégrade vers aucun biais, sans lever');
-  egal(objectiveKeysOf('degats' as unknown as Objective, undefined), [], "« degats », retiré à son tour, dégrade pareillement");
+  egal(objectiveKeysOf('degats' as unknown as Objective, undefined), [], "« degats », qui n'est plus un objectif, dégrade pareillement");
 
   // Sans contexte, le score échoue BRUYAMMENT — jamais un repli silencieux
   // sur une autre formule que celle affichée à l'utilisateur.
@@ -2940,7 +2937,7 @@ export default function testDegats() {
 
   // Le cran « aucune » a existé dans des recettes déjà partagées. Il reste
   // lisible pour ne pas casser ces fichiers, mais ne doit jamais ressortir du
-  // parseur ni atteindre l'écran ou le CLI : Combat est désormais le minimum
+  // parseur ni atteindre l'écran ou le CLI : Combat est le minimum
   // réel et le défaut unique.
   const recetteLegacySansInvocateur = JSON.parse(JSON.stringify(recette));
   recetteLegacySansInvocateur.damageSetup.summonerSkills = 'aucune';

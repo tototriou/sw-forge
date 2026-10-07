@@ -28,7 +28,7 @@ import { AUCUNE_AURA_PROPRE } from '../src/lib/damage';
 import { egal, ok, titre } from './outils';
 
 // Candidats synthétiques des tests de tri, sans aucune rune réelle : aucune
-// aura propre, déclarée explicitement (6bis-b2, `aurasPropresDe` obligatoire).
+// aura propre, déclarée explicitement (`aurasPropresDe` obligatoire).
 const SANS_AURA_PROPRE = { aurasPropresDe: () => AUCUNE_AURA_PROPRE };
 
 const ZERO_BASE: BaseStats = { hp: 1000, atk: 100, def: 100, spd: 100, cr: 15, cd: 50, res: 15, acc: 0 };
@@ -870,7 +870,7 @@ export default function testRuneOptim() {
 
   titre('Optimizer · règle du joker Intangible');
 
-  // ⚠️ Reproduit le bug signalé : « Swift » annoncé actif alors qu'un second
+  // ⚠️ Cas : « Swift » annoncé actif à tort alors qu'un second
   // ET un troisième set, ni l'un ni l'autre demandés, sont eux aussi
   // incomplets parmi les 6 runes réellement choisies — activeSets (voir
   // effects.ts) ne doit alors compléter AUCUN des trois. Le pool n'offre
@@ -1002,11 +1002,11 @@ export default function testRuneOptim() {
   }
 
   {
-    // ⚠️ **Aucun plafond de PAIRES** — voir spec/outils/optimizer/pistes.md,
-    // piste 8 (`maxNodes` et son escalade supprimés au profit de la borne
-    // exacte `totalPairs`). Ce bloc vérifiait auparavant que le plafond
-    // mutable était LU EN DIRECT par le générateur ; il vérifie désormais les
-    // deux propriétés qui l'ont remplacé, et qui sont celles dont dépend tout
+    // ⚠️ **Aucun plafond de PAIRES** — la borne exacte
+    // `totalPairs` remplace `maxNodes` et son escalade
+    // (supprimés). Ce bloc vérifie les
+    // deux propriétés qui remplacent la lecture EN DIRECT d'un plafond
+    // mutable par le générateur, et qui sont celles dont dépend tout
     // le reste :
     //   1. un appel nu à `pairBuckets` (aucun 4ᵉ argument à oublier, il n'en
     //      existe plus) épuise TOUT l'espace, sans troncature — c'est ce qui
@@ -1066,7 +1066,7 @@ export default function testRuneOptim() {
       // ⚠️ L'égalité vaut en RÉALITÉ dans tous les cas, minimums compris —
       // vérifiée là-dessus par `rune-optim-differential.test.ts` sur des
       // scénarios aléatoires contraints. C'est d'elle que dépend l'absence de
-      // tout plafond de paires (piste 8) : ici on la vérifie sur un espace
+      // tout plafond de paires : ici on la vérifie sur un espace
       // dont on connaît la taille théorique à la main.
       const total = totalPairCount(prepared, bucketsA, bucketsB);
       egal(total, resultFull.explored, "totalPairCount : l'espace annoncé correspond EXACTEMENT au nombre de paires réellement explorées par une recherche exhaustive");
@@ -1075,14 +1075,14 @@ export default function testRuneOptim() {
 
   titre('Optimiseur — l’ordre des candidats n’est PAS celui de l’objectif');
 
-  // ⚠️ **Incident.** `SearchResult.candidates` sort dans l'ordre de collecte
-  // de l'appariement, jamais classé par ce qu'on a demandé de maximiser. Un
-  // diagnostic a conclu « le moteur manque un build meilleur et faisable » en
-  // lisant `candidates[0]` — le build cherché était là, au RANG 6. Et le vrai
-  // CLI affichait `slice(0, 20)` en présentant ces 20 comme des résultats.
+  // ⚠️ **Piège.** `SearchResult.candidates` sort dans l'ordre de collecte
+  // de l'appariement, jamais classé par ce qu'on a demandé de maximiser.
+  // Lire `candidates[0]` fait conclure à tort « le moteur manque un build
+  // meilleur et faisable » : le build cherché peut être là, au RANG 6 ; de
+  // même, présenter `slice(0, 20)` comme les meilleurs résultats est faux.
   //
-  // `sortCandidates` est désormais la SEULE porte, partagée par l'écran et
-  // les scripts. Ce test verrouille son contrat.
+  // `sortCandidates` est la SEULE porte, partagée par l'écran et les
+  // scripts. Ce test verrouille son contrat.
   {
     const st = (spd: number, hp: number): StatRow[] => [
       { key: 'spd', label: 'VIT', base: 0, bonus: spd, total: spd, suffix: '' },
@@ -1137,7 +1137,7 @@ export default function testRuneOptim() {
   // ⚠️ **Ce que ce test protège.** `sortCandidates` calculait le score DANS le
   // comparateur, donc ~2 n log n fois — pour « Dégâts réels », autant d'appels
   // à `computeTotalDamage` : ~3,4 millions pour 100 000 candidats, mesurés à
-  // 1 084 ms par tri sur le FIL PRINCIPAL. Il le calcule désormais UNE fois par
+  // 1 084 ms par tri sur le FIL PRINCIPAL. Il le calcule UNE fois par
   // candidat, puis trie sur des nombres.
   //
   // ⚠️ C'est censé être EXACTEMENT équivalent, parce que le score est une

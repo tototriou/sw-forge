@@ -9,33 +9,28 @@
 // Calibré en mesurant D'ABORD le rang RÉEL de la cible sans aucun plafond,
 // puis en choisissant les paramètres — jamais en ajustant à l'aveugle.
 //
-// ⚠️ **Il a eu un PRÉDÉCESSEUR, `stress-tranche-weighting-diag.ts`, SUPPRIMÉ
-// le 2026-09-09** (§5.5 bis des extensions) — et ce qui l'a fait supprimer
-// vaut d'être gardé ici, parce que c'est ce que ce fichier-ci corrige :
-//   · **son pool ne pouvait pas exister en jeu** : il tirait au hasard les
-//     principales des emplacements 1/3/5, alors que le jeu impose ATQ+ en 1,
-//     DEF+ en 3 et PV+ en 5. D'où les principales FIXES ci-dessous ;
-//   · **il ne contraignait que l'emplacement 2**, laissant 4/5/6 libres — sa
-//     moitié B avait un pool ~74× plus grand que sa moitié A (mesuré), ce qui
-//     rendait sa cible structurellement hors de portée quel que soit le
-//     nombre de spécialistes injectés. D'où les principales imposées sur les
-//     DEUX moitiés (2/4/6 = VIT/TC/RES), qui bornent les deux pools à une
-//     taille comparable. ⚠️ Aucune de ces trois ne recoupe les 5 stats
-//     suivies : la mollesse et la tension voulues sont intactes ;
-//   · il portait les MÊMES grandeurs que ce script — rang par `acc` seul, CV
-//     par `retentionKey` — donc rien n'a été perdu à le supprimer, seulement
-//     un pool illégal et une calibration qui n'a jamais fonctionné.
+// ⚠️ **Deux contraintes de pool, que ce fichier tient** :
+//   · **le pool doit pouvoir exister en jeu** : tirer au hasard les
+//     principales des emplacements 1/3/5 serait faux, le jeu impose ATQ+ en
+//     1, DEF+ en 3 et PV+ en 5. D'où les principales FIXES ci-dessous ;
+//   · **les DEUX moitiés doivent être contraintes** : ne contraindre que
+//     l'emplacement 2, en laissant 4/5/6 libres, donnerait à la moitié B un
+//     pool ~74× plus grand que celui de la moitié A (mesuré), donc une
+//     cible structurellement hors de portée quel que soit le nombre de
+//     spécialistes injectés. D'où les principales imposées sur les DEUX
+//     moitiés (2/4/6 = VIT/TC/RES), qui bornent les deux pools à une taille
+//     comparable. ⚠️ Aucune de ces trois ne recoupe les 5 stats suivies :
+//     la mollesse et la tension voulues sont intactes.
 //
-// ⚠️ **CE QUI LE FAIT SURVIVRE, ET CE QUI NE LE FERAIT PAS** (vérifié le
-// 2026-09-09, §5.5 bis des extensions). Une seule chose : son **POOL n'est
+// ⚠️ **CE QUI LE FAIT SURVIVRE, ET CE QUI NE LE FERAIT PAS.** Une seule chose : son **POOL n'est
 // pas exprimable par le harnais** — une source synthétique tire par
 // `randomPool`, qui ne force aucune principale par emplacement et n'injecte
 // ni vague de spécialistes ni runes cibles fabriquées.
 //
-// ⚠️⚠️ **Mais ce n'est PAS un motif suffisant en soi, et c'est la leçon du
-// §5.5 bis.** Les deux autres grandeurs qu'on lui attribuait sont désormais
-// couvertes, et mieux :
-//   · le **CV par `retentionKey`** vient du harnais depuis le §5.7
+// ⚠️⚠️ **Mais ce n'est PAS un motif suffisant en soi.** Les deux autres
+// grandeurs qu'on pourrait lui attribuer sont couvertes, et mieux, par le
+// harnais :
+//   · le **CV par `retentionKey`** vient du harnais
 //     (`dispersionTranches`), LU sur `trancheReallocation` que `buildBuckets`
 //     appelle lui-même. Celui calculé ici est un AUTRE nombre — principale
 //     COMPRISE, sur les demi-builds retenus tous compartiments aplatis, là où
@@ -50,15 +45,14 @@
 // rigueur. Ce fichier ne survit donc que pour l'injection de runes précises —
 // et calibrer un paramètre de production dessus resterait une mauvaise idée.
 //
-// ⚠️⚠️ **SA CALIBRATION NE REPRODUIT PLUS — relevé le 2026-09-09.** Son
+// ⚠️⚠️ **SA CALIBRATION NE REPRODUIT PLUS.** Son
 // en-tête ci-dessus promet un cas « plus ATTEIGNABLE », calibré en mesurant
-// d'abord le rang réel sans plafond. Relancé tel quel aujourd'hui, il rend la
-// cible **ABSENTE des DEUX moitiés** (36 989 et 38 308 demi-builds retenus) —
-// donc MOINS atteignable que le prédécesseur supprimé, dont la moitié A était
-// au moins RETENUE (#6701 sur 13 098 retenus). Le moteur a bougé depuis
+// d'abord le rang réel sans plafond. Relancé tel quel, il rend la
+// cible **ABSENTE des DEUX moitiés** (36 989 et 38 308 demi-builds retenus).
+// Le moteur a bougé depuis la calibration
 // (rétention par tranches, `filterSlot` top-K par tas, élagage
 // `hasFreeSlots`). ⚠️ Recalibrer est un chantier à part : une calibration
-// périmée est un résultat écrit, pas un travail enchaîné (§5.4). D'ici là,
+// périmée est un résultat écrit, pas un travail enchaîné. D'ici là,
 // ses CV restent lisibles — ils portent sur la population retenue, pas sur la
 // cible — mais ses quatre lignes de RANG ne démontrent plus rien.
 //

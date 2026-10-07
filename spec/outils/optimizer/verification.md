@@ -257,6 +257,11 @@ script sur la machine du moment, en suivant le skill
 - `npm run benchmark:bucket-retention`
   (`scripts/benchmark-bucket-retention.ts`) : seul `bucketCap` varie, pour
   voir si la rétention par compartiment perd de bons candidats.
+- `scripts/perf-battery.ts` : les cas connus en temps et en builds trouvés,
+  `--save` pour figer la référence `scripts/perf-baseline.json`. Ne pas
+  paralléliser ses mesures de temps : la contention entre processus
+  fausserait ce qu'elles mesurent. `--monotonicity`, qui ne compare aucun
+  temps, tourne sur des `worker_threads` (`scripts/lib/monotonicity-worker.ts`).
 - `scripts/pairing-parallel-diag.ts` : la calibration, aux volumes réels, du
   seuil de déclenchement et du nombre de workers de l'appariement parallèle
   (`tests/rune-optim-parallel-pairing.test.ts:49-51`).

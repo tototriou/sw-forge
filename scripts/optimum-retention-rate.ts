@@ -1,5 +1,4 @@
-// Mesure P(optimum conservé | BUCKET_CAP) — voir spec/outils/optimizer/
-// pistes.md, « Mesurer le rang de l'optimum dans relevanceScore ». Priorité
+// Mesure P(optimum conservé | BUCKET_CAP). Priorité
 // n°1 unanime des 3 analyses externes (ChatGPT/Gemini) sur ce moteur :
 // remplace l'anecdote actuelle (« le demi-build réel de Lushen deck 10 est
 // classé 11 854ᵉ sur 342 654 dans son compartiment » — UN cas, trouvé par
@@ -39,8 +38,7 @@
 //     EXACT sont-ils PRÉSENTS dans les compartiments retenus réels ? À quel
 //     rang (position dans `bucket.combos`, 0 = meilleur) ?
 //
-// ⚠️ CALIBRÉ — voir spec/outils/optimizer/archive/historique/historique-dimensionnement.md,
-// « Suite — mesure P(optimum conservé | BUCKET_CAP)… » pour le résultat de
+// ⚠️ CALIBRÉ — résultat de
 // référence : `npx tsx scripts/optimum-retention-rate.ts 200 35 5000` →
 // 696/696 mesures (174 scénarios × 4 préréglages), 100 % de survie, rang
 // maximum 584 (bien sous le plus petit `bucketCap` réel, 3000). Les
@@ -57,8 +55,8 @@
 //               partagent exactement le même pool filtré).
 //   seed      — graine de base du PRNG déterministe (défaut 5000 — 1000 et
 //               3000 déjà pris par differential/scale-monotonicity).
-//   combosOrderMode — 'relevance' (défaut ici ET en production depuis le
-//               2026-08-18) ou 'potential' (ancien comportement, gardé
+//   combosOrderMode — 'relevance' (défaut ici ET en production) ou
+//               'potential' (ancien comportement, gardé
 //               comme échappatoire de mesure/comparaison — voir
 //               buildBuckets/SearchParams) — appliqué explicitement, PAS
 //               via `undefined`/le défaut interne de `buildBuckets`, pour
@@ -200,13 +198,13 @@ function exactOptimum(bucketsA: Bucket[], bucketsB: Bucket[], distinctKeys: stri
     }
   }
   if (!anyCompatible) return null;
-  // ⚠️ Conservateur À DESSEIN (même correctif que optimum-speed-targets.ts,
+  // ⚠️ Conservateur À DESSEIN (voir optimum-speed-targets.ts,
   // voir son commentaire) : dès qu'UN SEUL couple de compartiments a
   // atteint le budget du tas, le résultat n'est plus une preuve
-  // d'optimalité, même si un AUTRE couple a produit un `best` — avant ce
-  // correctif, cette troncature partielle était absorbée en silence
-  // (`!best && anyBudgetExceeded` seulement), un optimum sous-optimal
-  // pouvant être écrit comme vérité terrain sans le signaler.
+  // d'optimalité, même si un AUTRE couple a produit un `best` — absorber
+  // cette troncature partielle en silence
+  // (`!best && anyBudgetExceeded` seulement) laisserait un optimum
+  // sous-optimal s'écrire comme vérité terrain sans le signaler.
   if (anyBudgetExceeded) return 'budget-exceeded';
   return best;
 }
@@ -252,11 +250,9 @@ for (let s = 0; s < SCENARIOS; s++) {
   const pool = randomPool(rng, PER_SLOT, SETS_SANS_JOKER);
 
   // Seuils calibrés pour forcer une tension comparable ou supérieure aux
-  // pires cas réels connus (Sonia deck 14, 4 conditions simultanées) — voir
-  // spec/outils/optimizer/archive/historique/historique-dimensionnement.md, « Suite — mesure
-  // P(optimum conservé | BUCKET_CAP)… » pour le calibrage complet (un
-  // premier jet plus doux n'avait déjà rien perdu ; celui-ci vérifie que ce
-  // n'était pas juste un signal trop faible). 2-4 conditions simultanées
+  // pires cas réels connus (Sonia deck 14, 4 conditions simultanées) ; un
+  // premier jet plus doux n'avait déjà rien perdu, celui-ci vérifie que ce
+  // n'était pas juste un signal trop faible. 2-4 conditions simultanées
   // (pas 4 fixe) pour une distribution de difficulté représentative.
   const nMin = 2 + Math.floor(rng() * 3);
   const shuffledStats = [...STAT_KEYS].sort(() => rng() - 0.5).slice(0, nMin);

@@ -52,6 +52,7 @@ import testRtaPartage from './rta-partage.test';
 import { testInstallerHooks, testHooksCodexGardeFous } from './installer-hooks.test';
 import { testPreCommit } from './pre-commit.test';
 import { testRenvois, testRenvoisFormes } from './renvois.test';
+import { testEcriturePublique, testEcriturePubliqueFormes } from './ecriture-publique.test';
 import testHookRefuseSedI from './hook-refuse-sed-i.test';
 import testHookRefuseCommitM from './hook-refuse-commit-m.test';
 import testCouleursCourbes from './courbe-couleurs.test';
@@ -90,11 +91,11 @@ import {
 import { testRecetteClesIdentifiant } from './recette-cles-identifiant.test';
 import testBladeDancersIgnoreDef,{ testBladeDancersRecette, testBladeDancersEcranEtCli } from './blade-dancers.test';
 import {
-  testLot12SequenceDeCoups,
-  testLot12AttaqueDeclenchee,
-  testLot12IgnoreDefDepuisUnCoup,
-  testLot12PassifMasqueEtStatsDeCombat,
-} from './degats-lot12.test';
+  testMecanismesSequenceDeCoups,
+  testMecanismesAttaqueDeclenchee,
+  testMecanismesIgnoreDefDepuisUnCoup,
+  testMecanismesPassifMasqueEtStatsDeCombat,
+} from './degats-mecanismes-generiques.test';
 import {
   testAttaqueAppeleeApprovisionnement,
   testAttaqueAppeleeCouverture,
@@ -338,6 +339,8 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testPreCommit', testPreCommit],
   ['testRenvoisFormes', testRenvoisFormes],
   ['testRenvois', testRenvois],
+  ['testEcriturePubliqueFormes', testEcriturePubliqueFormes],
+  ['testEcriturePublique', testEcriturePublique],
   ['testSetsIntangible', testSetsIntangible],
   ['testRuneTri', testRuneTri],
   ['testMonstreTri', testMonstreTri],
@@ -377,10 +380,10 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testBladeDancersIgnoreDef', testBladeDancersIgnoreDef],
   ['testBladeDancersRecette', testBladeDancersRecette],
   ['testBladeDancersEcranEtCli', testBladeDancersEcranEtCli],
-  ['testLot12SequenceDeCoups', testLot12SequenceDeCoups],
-  ['testLot12AttaqueDeclenchee', testLot12AttaqueDeclenchee],
-  ['testLot12IgnoreDefDepuisUnCoup', testLot12IgnoreDefDepuisUnCoup],
-  ['testLot12PassifMasqueEtStatsDeCombat', testLot12PassifMasqueEtStatsDeCombat],
+  ['testMecanismesSequenceDeCoups', testMecanismesSequenceDeCoups],
+  ['testMecanismesAttaqueDeclenchee', testMecanismesAttaqueDeclenchee],
+  ['testMecanismesIgnoreDefDepuisUnCoup', testMecanismesIgnoreDefDepuisUnCoup],
+  ['testMecanismesPassifMasqueEtStatsDeCombat', testMecanismesPassifMasqueEtStatsDeCombat],
   ['testAttaqueAppeleeApprovisionnement', testAttaqueAppeleeApprovisionnement],
   ['testAttaqueAppeleeCouverture', testAttaqueAppeleeCouverture],
   ['testAttaqueAppeleeEspaceDeCles', testAttaqueAppeleeEspaceDeCles],

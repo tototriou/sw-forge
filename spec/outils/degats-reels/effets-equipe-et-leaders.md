@@ -96,12 +96,13 @@ entrée par type, un entier de 1 à 15 et une somme de tous les types au plus
 répétée ou hors bornes est refusée avec le chemin
 `damageSetup.setsAuraExternes` ou celui de son entrée. La liste survit à un
 changement d'espèce, d'exemplaire ou de liste et se vide à l'import d'un
-compte. Depuis le lot 7a, l'écran la saisit dans la carte « État de mon
+compte. L'écran la saisit dans la carte « État de mon
 monstre » ([spec/outils/optimizer/ecran/etat-de-mon-monstre.md § État de mon monstre](../optimizer/ecran/etat-de-mon-monstre.md)) par les
 fonctions pures de `src/lib/aurasExternes.ts`, qui bornent chaque écriture
 et portent la validation que la recette appelle (`erreurAurasExternes`) :
-ce que l'écran écrit, la recette le relit. Source des cinq valeurs et du plafond : utilisateur, 2026-09-23 puis
-2026-09-25, cadrage `spec/chantiers/degats-et-aura.md` A.2 ter.
+ce que l'écran écrit, la recette le relit. Source des cinq valeurs et du plafond : utilisateur
+([valeurs de jeu curées](valeurs-de-jeu-curees.md), « Sets d'aura, les cinq
+stats » et « Plafond de saisie des auras externes »).
 
 Les activations d'aura **propres** au build — les sets réellement formés par
 ses runes, résolus par `activeSets` : répétitions et Intangible compris, set
@@ -111,20 +112,19 @@ s'ajoutent à cette part externe, pour un total effectif d'au plus 18
 build dont on choisit la paire et la relique — et se transmettent aux calculs
 comme un argument **obligatoire** (`AurasPropres`), jamais stockées dans
 `DamageSetup` ni déduites des statistiques ; sans rune, le zéro se déclare
-explicitement (`AUCUNE_AURA_PROPRE`). Depuis le lot 6bis-b2, le **combat et
-le score** les comptent ; depuis le lot 6bis-b3a, les **contrôles exacts**
-des conditions RES/PRE aussi, comme décrit ci-dessous. Depuis le lot
-6bis-b3b, les **coupes sûres** de la recherche (dominance, faisabilité,
+explicitement (`AUCUNE_AURA_PROPRE`). Le **combat et le score** les
+comptent, ainsi que les **contrôles exacts** des conditions RES/PRE, comme
+décrit ci-dessous. Les **coupes sûres** de la recherche (dominance, faisabilité,
 bornes rapides de l'appariement) et les diagnostics de faisabilité en
 tiennent compte : pour un minimum, le potentiel favorable — activations
 Tolerance/Accuracy possibles, set non demandé et Intangible compris, toggle
-actif —, pour un maximum, seul l'inévitable ; la dominance ne remplace plus
+actif —, pour un maximum, seul l'inévitable ; la dominance ne remplace pas
 une rune d'aura utile à la recherche (stat d'une condition ou de l'objectif)
-par celle d'un autre set. Depuis le lot 6bis-b3c, une aura dont la stat
+par celle d'un autre set. Une aura dont la stat
 entre dans l'effet unique d'une relique que la recherche peut équiper — stat
 de référence, lue au début du combat, ou stat améliorée — est utile au même
 titre : Fight peut faire franchir une tranche de Ténacité sur l'ATQ en
-« PV effectifs ». Depuis le lot 6bis-b3d-1, de même en « Dégâts réels »
+« PV effectifs ». De même en « Dégâts réels »
 pour une aura dont la stat nourrit une ligne d'artéfact 218–221 qu'un
 artéfact équipable porte : Enhance avec la ligne 218 (PV), Determination
 avec la 220 (DEF), même hors de l'objectif. Un oracle exhaustif indépendant
@@ -147,7 +147,7 @@ part externe et activations propres forment un seul terme
 `8 × (externes + propres)`, jamais deux arrondis, jamais un set du build
 compté deux fois. Ils agissent ainsi sur le sort actif, ses passifs, les
 dégâts additionnels, les bonus lus sur l'ATQ ou la DEF de combat (Brita,
-Gideon : `atkCombatComplet` et `defCombat` dérivent désormais de ce même
+Gideon : `atkCombatComplet` et `defCombat` dérivent de ce même
 préfixe) et l'assiette `Y` des propriétés uniques de relique. Accuracy et
 Tolerance donnent chacun **8 points** de PRE/RES par set effectif, même si la
 base vaut zéro. Aucun de ces cinq effets ne modifie `computeStats`, qui reste
@@ -176,22 +176,18 @@ aura dans les conditions, et « désactivé » ne s'écrit jamais par cette
 absence. Les coupes amont lisent encore la part externe seule (voir l'état
 intermédiaire ci-dessus). Désactiver ce booléen ne retire aucun effet des
 dégâts ni des PV effectifs, et une aura propre n'y favorise ni ne pénalise
-plus aucune condition. Les auras PV/ATQ/DEF restent hors conditions. Le
+aucune condition. Les auras PV/ATQ/DEF restent hors conditions. Le
 booléen est optionnel dans la recette pour préserver les exports antérieurs ;
-ses valeurs présentes doivent être booléennes. Le modèle est livré au lot 6,
-le champ externe au lot 6bis-b1, les activations propres dans le combat et le
-score au lot 6bis-b2, dans les contrôles exacts des conditions au lot
-6bis-b3a ; la saisie des auras externes à l'écran et l'interrupteur
+ses valeurs présentes doivent être booléennes. L'interrupteur s'appelle
 « Compter les effets d'auras Tolerance et Précision dans les conditions »
-(réglages avancés, `compterAurasResPre`), au lot 7a.
+(réglages avancés, `compterAurasResPre`).
 
 ## Leader skill d'équipe
 
-Généralise l'ancien champ VIT-only (`leaderSpeedPct`) à **toute** stat de
-lead — demande explicite de l'utilisateur : « choisir un leader skill…
-implémenter les leader skill de PV, d'ATQ, de DEF, de VIT, de Taux Crit et
-de dégâts crit ». Sélection dans « Effets actifs » : un type d'abord (avec
-l'icône OFFICIELLE du jeu, réutilisée depuis `siege/LeadPill.tsx` —
+Couvre **toute** stat de lead : PV, ATQ, DEF, VIT, Taux Crit et Dégâts
+Crit ; l'ancien champ VIT seule (`leaderSpeedPct`) est relu (voir
+« Compatibilité arrière »). Sélection dans « Effets actifs » : un type d'abord (avec
+l'icône OFFICIELLE du jeu, réutilisée depuis `src/components/siege/LeadPill.tsx` —
 `leadIconUrl`/`STAT_LABEL`, jamais dupliquée), puis une valeur — **une seule
 liste déroulante** (`DamageSetup.leaderSkill: { stat, pct }`).
 
@@ -199,14 +195,12 @@ Une recette importée est validée comme l'écran écrit : `stat` parmi les six
 de `LEADER_SKILL_STATS` (damage.ts), `pct` nombre fini. Un `pct` en texte est
 refusé avec son chemin, jamais additionné aux auras par concaténation.
 
-⚠️ **Plus de saisie libre.** L'écran proposait un menu de « paliers courants »
-**et** un champ numérique, parce que la table ne prétendait pas être complète.
-`LEADER_SKILL_VALEURS` (damage.ts) est désormais **EXHAUSTIVE** — liste
-fournie par l'utilisateur — donc le champ libre n'a plus rien à rattraper.
-Ça corrige au passage un défaut signalé : l'ancien menu gagnait une option
-« 44 % (personnalisé) » dès que la valeur quittait un palier, et un `<select>`
-natif se dimensionnant sur l'option SÉLECTIONNÉE, il s'élargissait d'un coup
-et poussait le champ voisin — un clic qui déplace ce qu'on vient de cliquer.
+⚠️ **Pas de saisie libre.** `LEADER_SKILL_VALEURS` (damage.ts) est
+**EXHAUSTIVE** — liste fournie par l'utilisateur — : un menu suffit, sans
+champ numérique. Ne pas y ajouter d'option « 44 % (personnalisé) » qui
+apparaîtrait hors palier : un `<select>` natif se dimensionne sur l'option
+SÉLECTIONNÉE, s'élargirait d'un coup et pousserait le champ voisin — un clic
+qui déplace ce qu'on vient de cliquer.
 
 | Stat | Valeurs |
 |---|---|
@@ -217,17 +211,15 @@ et poussait le champ voisin — un clic qui déplace ce qu'on vient de cliquer.
 | Taux Crit | 10, 15, 16, 17, 19, 21, 23, 24, 28, 30, 33, 38 % |
 | Dégâts Crit | 25 % — un seul monstre du jeu porte ce lead |
 
-⚠️ **PV, ATQ et DEF ne partagent PLUS la même liste.** L'ancienne table les
-donnait identiques (`28, 33, 38, 40, 44, 50`) : c'était un relevé partiel.
-ATQ a un 35 que PV n'a pas, PV a un 17 et un 18 absents de DEF, et DEF ne
+⚠️ **PV, ATQ et DEF n'ont pas la même liste.** ATQ a un 35 que PV n'a pas, PV a un 17 et un 18 absents de DEF, et DEF ne
 descend pas sous 20. Ne pas les refactoriser en une ligne « parce qu'elles se
 ressemblent ». Les maximums diffèrent aussi : **33 % en VIT contre 50 % en
 ATQ**.
 
-⚠️ Une valeur enregistrée HORS liste (saisie du temps du champ libre, ou
-recette importée) reste affichée telle quelle dans le menu plutôt que
-remplacée en silence — changer un chiffre sans prévenir serait pire que le
-défaut corrigé. Elle disparaît dès qu'on choisit autre chose.
+⚠️ Une valeur enregistrée HORS liste (ancienne saisie libre, ou recette
+importée) reste affichée telle quelle dans le menu plutôt que remplacée en
+silence — changer un chiffre sans prévenir serait pire qu'une valeur hors
+liste. Elle disparaît dès qu'on choisit autre chose.
 
 ⚠️ **Une GRILLE dont toutes les places sont tenues d'avance** — libellé
 (« Lead », abrégé pour la largeur), icône, menus. Trois choses y bougeaient au
@@ -268,27 +260,25 @@ prochain changement de libellé. Même parade que le champ de Velaska.
 
 ⚠️ **Deux familles de mécaniques, jamais confondues** :
 - **PV/ATQ/DEF/VIT** — un pourcentage MULTIPLICATIF de la stat de **BASE**
-  (voir l'incident ci-dessous), ajouté comme des points FLATS au total
+  (voir « Un lead porte sur la stat de BASE » ci-dessous), ajouté comme des points FLATS au total
   runé — exactement `avecInvocateur`/`pctSpeedBonus` (speed.ts, page RTA).
 - **Taux Crit/Dégâts Crit** — des points FLATS ajoutés DIRECTEMENT à la
   stat, même famille que les compétences d'invocateur (`cdPoints`) et
   Euldong — jamais un pourcentage de quoi que ce soit.
 
 
-## ⚠️ Incident : un lead porte sur la stat de BASE, pas le total runé
+## ⚠️ Un lead porte sur la stat de BASE, pas le total runé
 
-Signalé par l'utilisateur : « les leaderskill s'appliquent sur les
-statistiques de base. Tu as un exemple d'utilisation des leader skill (de
-VIT) dans la page RTA. » Un premier jet appliquait le pourcentage du lead
-au **total runé** — exactement l'erreur que `combatSpeed`/`pctSpeedBonus`
-(speed.ts) évitent déjà pour la VIT en siège/RTA :
-`base + rune + ceil(base × (totem+lead+swift)/100)`, le pourcentage ne
-portant QUE sur `base`, jamais sur `base + rune`. Corrigé pour toutes les
-stats concernées (`avecInvocateur` gagne un second paramètre
-`extraBasePct`, sommé à la compétence d'invocateur — même nature — AVANT
-le `ceil` UNIQUE, jamais un second `ceil` séparé qui reproduirait l'écart
-d'un point déjà documenté et corrigé une fois dans `pctSpeedBonus`, « ne
-jamais arrondir bonus par bonus »).
+Le pourcentage d'un lead porte sur la stat de **base** (utilisateur ; même
+règle que le lead de VIT de la page RTA). L'appliquer au **total runé** est
+l'erreur que `combatSpeed`/`pctSpeedBonus` (speed.ts) évitent pour la VIT en
+siège/RTA : `base + rune + ceil(base × (totem+lead+swift)/100)`, le
+pourcentage ne portant QUE sur `base`, jamais sur `base + rune`. Toutes les
+stats concernées suivent cette règle : `avecInvocateur` reçoit un second
+paramètre `extraBasePct`, sommé à la compétence d'invocateur — même nature —
+AVANT le `ceil` UNIQUE, jamais un second `ceil` séparé, qui recréerait l'écart
+d'un point que `pctSpeedBonus` évite (« ne jamais arrondir bonus par
+bonus »).
 
 Le buff de combat (`atkBuff`/`defBuff`/`spdBuff`), lui, reste %TOTAL — une
 mécanique DIFFÉRENTE, pas la même formule : il s'applique donc APRÈS le
@@ -297,7 +287,7 @@ lead déjà posé, jamais sommé avec lui dans la même étape.
 
 ## Compatibilité arrière
 
-Une recette exportée AVANT cette généralisation ne porte que l'ancien
+Une recette ancienne ne porte que le champ
 `leaderSpeedPct` (un pourcentage de VIT nu, sans type). `resolvedLeaderSkill`
 (damage.ts) traduit explicitement : `leaderSkill` si présent, sinon
 `{ stat: 'Attack Speed', pct: leaderSpeedPct }` — jamais un défaut générique

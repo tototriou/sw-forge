@@ -1,9 +1,9 @@
 // Équivalent Node (`worker_threads`) de `src/workers/buildHalf.worker.ts`, à
 // l'usage EXCLUSIF de scripts/perf-battery.ts — pour que la mesure de
 // construction reflète le vrai comportement de l'app (les deux moitiés A/B
-// construites EN PARALLÈLE sur deux fils séparés, voir spec/outils/
-// optimizer/ « Suite — parallélisation de la construction des deux
-// moitiés »), pas une simulation séquentielle dans le même processus qui
+// construites EN PARALLÈLE sur deux fils séparés, voir
+// spec/outils/optimizer/moteur/pipeline.md,
+// « Construction des moitiés »), pas une simulation séquentielle dans le même processus qui
 // gonflerait artificiellement le temps de construction mesuré.
 //
 // Repris via esbuild en .cjs par perf-battery.ts avant d'être passé à
@@ -38,12 +38,11 @@ export interface BuildHalfWorkerData {
   // silencieusement adaptiveTrancheWeighting ET combosOrderMode, retombant
   // TOUJOURS sur le défaut interne de buildBuckets quel que soit ce que
   // SearchParams portait — trouvé en corrigeant le même trou côté
-  // src/workers/buildHalf.worker.ts (voir spec/outils/optimizer/
-  // archive/historique/historique-dimensionnement.md, « revue de code externe »).
+  // src/workers/buildHalf.worker.ts.
   adaptiveTrancheWeighting?: boolean;
   combosOrderMode?: 'potential' | 'relevance' | 'combined' | 'objective';
   /**
-   * §4.2 des extensions (A₂) — horodater les `BuildingProgress` que
+   * A₂ — horodater les `BuildingProgress` que
    * `buildBuckets` émet DÉJÀ, pour cartographier son ÉLAGAGE.
    *
    * ⚠️ **OPT-IN, et ce n'est pas une commodité.** `perf-battery.ts` PARTAGE
@@ -61,8 +60,8 @@ export interface BuildHalfWorkerData {
   horodaterProgression?: boolean;
 }
 /**
- * Relevé mémoire de FIN de moitié — §4.1 bis de spec/outils/optimizer/
- * harnais-diagnostic-extensions.md, palier **LÉGER**.
+ * Relevé mémoire de FIN de moitié — spec/outils/optimizer/
+ * harnais-extensions.md, « La construction observée », palier **LÉGER**.
  *
  * ⚠️ **Pourquoi la mesure est propre ici et nulle part ailleurs** : chaque
  * moitié tourne dans son PROPRE `worker_threads`, donc dans son propre tas.
@@ -131,7 +130,7 @@ export interface BuildHalfWorkerResult {
   buckets: Bucket[];
   ms: number;
   memoire: MemoireMoitie;
-  /** §4.2 (A₂) — présent SEULEMENT si `horodaterProgression` a été demandé. */
+  /** A₂ — présent SEULEMENT si `horodaterProgression` a été demandé. */
   progression?: ProgressionMoitie;
 }
 

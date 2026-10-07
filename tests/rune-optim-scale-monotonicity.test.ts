@@ -1,6 +1,6 @@
 // Test de RÉGRESSION à ÉCHELLE RÉELLE pour la classe de bug BUCKET_CAP (voir
-// spec/outils/optimizer/, section « BUCKET_CAP mis à l'échelle avec
-// slotFilterCap ») : un demi-build valide, retenu à un préréglage de
+// spec/outils/optimizer/moteur/elagages.md, « Pré-filtrage heuristique et
+// compartiments ») : un demi-build valide, retenu à un préréglage de
 // pré-filtrage ÉTROIT, peut disparaître de la rétention à un préréglage plus
 // LARGE — l'inverse de ce qu'élargir le pré-filtrage devrait faire.
 //

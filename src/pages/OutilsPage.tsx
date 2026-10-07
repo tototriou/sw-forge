@@ -15,12 +15,11 @@ interface Props {
   // Inventaire COMPLET d'artéfacts — l'Optimizer y cherche la meilleure paire
   // pour un build, il ne se contente plus de ceux que le monstre porte.
   artifacts: ArtifactDetail[];
-  // Inventaire COMPLET de reliques (implementation-relique, B.5c) — même
+  // Inventaire COMPLET de reliques — même
   // rôle qu'`artifacts` ci-dessus pour la dimension relique de la recherche.
   relics: RelicDetail[];
   // Occupation par `rid` (nombre d'exemplaires du compte qui la portent),
-  // affichée `n / 150` dans le détail d'une relique (implementation-relique,
-  // D3, B.5c ter) — jamais bloquante.
+  // affichée `n / 150` dans le détail d'une relique — jamais bloquante.
   relicUsageById: Record<number, number>;
   loadState: LoadState;
   hydrating?: boolean;
@@ -40,7 +39,7 @@ interface Props {
   menuOuvert: boolean;
   onFermerMenu: () => void;
   // Ouvre ce même panneau à la demande de l'outil — l'ouverture guidée au
-  // doigt de l'Optimizer (degats-et-aura 7b). Simple relais, comme les deux
+  // doigt de l'Optimizer. Simple relais, comme les deux
   // props ci-dessus.
   onOuvrirMenu: () => void;
 }

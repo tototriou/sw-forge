@@ -1,22 +1,19 @@
-// Sélection d'exemplaire à l'import d'une recette Optimizer — voir
-// spec/outils/optimizer/pistes.md, entrée « BUG — l'import d'une recette ne
-// sélectionne aucun exemplaire dès qu'on en possède PLUSIEURS ».
+// Sélection d'exemplaire à l'import d'une recette Optimizer : l'import
+// sélectionne un exemplaire dès qu'on en possède PLUSIEURS.
 //
 // ⚠️ Le dépôt ne teste pas les composants React (voir le commentaire de
 // `testOptimizerExclusion` sur `useSiegeState.ts`) : `sourceSelector` vit
 // dans `useOptimizerState`, mais sa résolution reste dans `OptimizerSection`,
 // pas une fonction pure exportée. Même patron ici — contrôle de SOURCE, seule
-// façon de voir la régression revenir si un site retombe sur l'ancienne règle
-// divergente.
+// façon de voir un site retomber sur une règle divergente.
 //
-// Le bug : le picker (`pickSpecies`) prend TOUJOURS `boxCandidates[0]`, avec
+// La règle : le picker (`pickSpecies`) prend TOUJOURS `boxCandidates[0]`, avec
 // repli sur `unownedSelectorIfNoneOwned` seulement si la box n'a AUCUN
-// candidat. L'import de recette, lui, ne prenait `boxCandidates[0]` QUE si un
-// SEUL exemplaire existait — dès 2, repli sur « non possédé », donc des
-// stats de base 6★ sans runes silencieusement fausses. Un troisième site
-// (la résolution de `sourceSelector` au montage, aujourd'hui sa
-// revérification) portait la même faute. Décision (2026-09-04) : aligner tous les sites sur la règle du
-// picker, aucun cas spécial sur la longueur du tableau.
+// candidat. L'import de recette et la revérification de `sourceSelector`
+// suivent la même règle, sans cas spécial sur la longueur du tableau :
+// prendre `boxCandidates[0]` seulement pour un SEUL exemplaire ferait
+// retomber, dès 2, sur « non possédé », donc sur des stats de base 6★ sans
+// runes silencieusement fausses.
 
 import { readFileSync } from 'fs';
 import { egal, ok, titre } from './outils';
@@ -53,9 +50,9 @@ export default function testOptimizerRecipeImportSelection() {
   testRecetteRelique();
 }
 
-// Lot 2 (implementation-relique, B.2) : trois champs (`relicMainChoice`,
+// Trois champs (`relicMainChoice`,
 // `relicUniqueChoice`, `relicMinUpgrade`) dans `OptimizerRecipe`, sans écran
-// — voir spec/outils/optimizer/chantiers/implementation-relique.md § B.2.
+// — voir spec/outils/optimizer/moteur/reliques.md.
 function recetteDeBase(extra: Partial<Parameters<typeof buildOptimizerRecipe>[0]> = {}) {
   return buildOptimizerRecipe({
     monsterCom2usId: 14104,
@@ -89,9 +86,9 @@ function monstreCharge(relic?: LoadedMonster['gear']['relic']): LoadedMonster {
 }
 
 function testRecetteRelique() {
-  titre('Optimizer · recette de relique (lot 2) — trois champs, défauts, bascule');
+  titre('Optimizer · recette de relique — trois champs, défauts, bascule');
 
-  // Recette ANCIENNE (avant le lot 2) : aucun des trois champs. `tsc` ne
+  // Recette ANCIENNE (avant ces champs) : aucun des trois champs. `tsc` ne
   // détecte jamais un champ optionnel oublié — c'est ce round-trip qui
   // protège la compatibilité arrière (règle des constructeurs multiples,
   // CLAUDE.md).
@@ -113,7 +110,7 @@ function testRecetteRelique() {
     ok(parseOptimizerRecipe(JSON.stringify(invalideType)).recipe === null, 'relicUniqueChoice hors des 16 types connus : recette rejetée');
   }
 
-  // Le seuil est un FILTRE D'ENTRÉE (D2), jamais un critère : hors bornes, il
+  // Le seuil est un FILTRE D'ENTRÉE, jamais un critère : hors bornes, il
   // est NORMALISÉ plutôt que rejeté — seul champ de ce parseur à l'être.
   {
     const tropBas = { ...recetteDeBase(), relicMinUpgrade: -1 };
@@ -124,7 +121,7 @@ function testRecetteRelique() {
   }
 
   // « Garder la relique équipée » ne se partage pas — même règle que
-  // l'artéfact (`mainsPourCeCompte`, D1 : « mêmes trois règles »).
+  // l'artéfact (`mainsPourCeCompte` : « mêmes trois règles »).
   {
     const r = { relicMainChoice: 'equipped' as const, wizardName: 'Alice' };
     const autreCompte = relicMainPourCeCompte(r, 'Bob');
@@ -143,14 +140,14 @@ function testRecetteRelique() {
     egal(nonEquipe.bascule, false, 'une principale explicite (101) : rien à basculer, même venue d’ailleurs');
 
     // Le CLI (`recipeToSearchParams.ts`) ne bascule JAMAIS — même règle que
-    // l'artéfact (D1) : reproduire fidèlement l'export signalé, pas
+    // l'artéfact : reproduire fidèlement l'export signalé, pas
     // « corriger » une intention exportée avec un compte explicite.
     const rechargeParLeCli = recipeToRelicIntent({ ...recetteDeBase(), relicMainChoice: 'equipped' }, monstreCharge());
     egal(rechargeParLeCli.principale, 'equipped', 'le CLI reproduit « equipped » tel quel, sans bascule de compte');
   }
 
   // Le défaut de `relicMainChoice` se CALCULE contre le monstre — jamais une
-  // constante (D1, incident artéfacts « le défaut affiché était FAUX »).
+  // constante : un défaut affiché FAUX pour le monstre choisi est invisible.
   {
     egal(defaultRelicMainChoice(undefined), 'libre', 'monstre sans relique → défaut « libre »');
     egal(
@@ -161,7 +158,7 @@ function testRecetteRelique() {
   }
 
   // Changement d'exemplaire hors du bestiaire (liste de travail, « un autre
-  // exemplaire », réimport) : revue externe de la v1.14.0, constat 1.
+  // exemplaire », réimport) : même règle que depuis le bestiaire.
   {
     const relique = { id: 7, upgrade: 6, main: { code: 100, value: 11 } };
     egal(relicMainChoiceApresChangementExemplaire('libre', relique, false), 'equipped',
@@ -177,27 +174,27 @@ function testRecetteRelique() {
   }
 
   // `recipeToRelicIntent` (CLI) applique les mêmes défauts qu'un écran qui
-  // câblerait `defaultRelicMainChoice` (lot 5c) — même recette, mêmes
+  // câblerait `defaultRelicMainChoice` — même recette, mêmes
   // réglages résolus, qu'il y ait ou non une relique portée.
   {
     const recetteAncienne = recetteDeBase();
     const sansRelique = recipeToRelicIntent(recetteAncienne, monstreCharge(undefined));
-    egal(sansRelique, { mode: 'recherche', principale: 'libre', type: 'libre', seuil: 6 }, 'sans relique portée : intention « libre » par défaut, seuil D2 (+6)');
+    egal(sansRelique, { mode: 'recherche', principale: 'libre', type: 'libre', seuil: 6 }, 'sans relique portée : intention « libre » par défaut, seuil par défaut +6');
 
     const avecRelique = recipeToRelicIntent(recetteAncienne, monstreCharge({ id: 7, upgrade: 6, main: { code: 100, value: 11 } }));
     egal(avecRelique, { mode: 'equipped', principale: 'equipped', type: 'libre', seuil: 6 }, 'avec relique portée : intention « equipped » par défaut');
 
     // Interrupteur coupé (`ignoreArtifacts`) : mode « off », quelle que soit
-    // la relique portée — pas d'interrupteur propre à la relique (T2).
+    // la relique portée — pas d'interrupteur propre à la relique.
     const interrupteurCoupe = recipeToRelicIntent({ ...recetteAncienne, ignoreArtifacts: true }, monstreCharge({ id: 7, upgrade: 6, main: { code: 100, value: 11 } }));
-    egal(interrupteurCoupe.mode, 'off', "« Activer l'optimisation d'artéfacts » coupé : mode « off » pour la relique aussi (D1)");
+    egal(interrupteurCoupe.mode, 'off', "« Activer l'optimisation d'artéfacts » coupé : mode « off » pour la relique aussi");
   }
 
-  // Lot 5c (B.5c, contrat) : « même recette → même RelicIntent par les deux
+  // Contrat : « même recette → même RelicIntent par les deux
   // constructeurs » — `relicIntentDepuisEtat` (le constructeur ÉCRAN, depuis
   // `OptimizerState`) doit produire EXACTEMENT le même `RelicIntent` que
   // `recipeToRelicIntent` (le constructeur CLI, depuis `OptimizerRecipe`)
-  // pour un même jeu de valeurs — la garantie G (un seul point de lecture)
+  // pour un même jeu de valeurs — l'unicité du point de lecture
   // ne tient que si les deux constructeurs convergent.
   {
     const relique = { id: 7, upgrade: 6, main: { code: 100, value: 11 } };
@@ -218,8 +215,8 @@ function testRecetteRelique() {
       egal(depuisEcran, depuisCli, `même recette (${JSON.stringify(recette.relicMainChoice)}) → même RelicIntent, écran comme CLI`);
     }
 
-    // Recette ANCIENNE (avant le lot 2, aucun des trois champs) : les deux
-    // constructeurs retombent sur le même défaut D1 — ici avec relique portée.
+    // Recette ANCIENNE (avant ces champs, aucun des trois champs) : les deux
+    // constructeurs retombent sur le même défaut — ici avec relique portée.
     const ancienne = recetteDeBase();
     const depuisCliAncienne = recipeToRelicIntent(ancienne, monstreCharge(relique));
     const depuisEcranAncienne = relicIntentDepuisEtat(
@@ -228,6 +225,6 @@ function testRecetteRelique() {
       'libre',
       6
     );
-    egal(depuisEcranAncienne, depuisCliAncienne, 'recette ancienne (sans les trois champs) : même défaut D1 des deux côtés');
+    egal(depuisEcranAncienne, depuisCliAncienne, 'recette ancienne (sans les trois champs) : même défaut des deux côtés');
   }
 }

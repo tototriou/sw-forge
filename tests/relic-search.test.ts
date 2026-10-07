@@ -1,11 +1,11 @@
-// Lot 5a (implementation-relique) — l'option A dans le moteur : bornes,
+// L'option A dans le moteur : bornes,
 // faisabilité, transport du contexte, refus, instrumentation.
 //
 // Ce que ce fichier PROUVE : la relaxation est sûre LOCALEMENT — bornes
 // orientées (garantie C), aucun faux négatif au test de faisabilité,
 // contexte transporté, refus sur pool vide, rétention observable. Ce qu'il
-// ne prouve PAS : l'optimum final de l'option A (résolution exacte = lot 5b,
-// différentiel complet contre l'oracle = B.5b/B.6).
+// ne prouve PAS : l'optimum final de l'option A (résolution exacte,
+// différentiel complet contre l'oracle : voir `tests/relic-queue.test.ts`).
 //
 // Référence de contrôle (`algo-verify`) : `oracleSearch` (scripts/lib/
 // relicOracle.ts) — N recherches du moteur d'avant, une par principale
@@ -15,9 +15,9 @@
 // est PRODUIT DANS LE MOTEUR, jamais rejoué ici.
 //
 // Les neuf fixtures (A–H + F bis) sont ÉCRITES À LA MAIN, déterministes —
-// aucune graine, aucun tirage : le moteur n'a pas d'aléa (A.6 bis).
+// aucune graine, aucun tirage : le moteur n'a pas d'aléa.
 //
-// Classes de résultat par fixture (B.5a, « Preuve ») :
+// Classes de résultat par fixture :
 //   (i)  le verdict de chaque point avec la borne est AU MOINS AUSSI
 //        permissif que celui de l'oracle avec la relique fixe ;
 //   (ii) le build optimal de l'oracle ENTRE dans la recherche relâchée (aucun
@@ -105,8 +105,8 @@ function cles(candidats: { runeIds: number[] }[]): string[] {
 }
 
 /* --------------------------------------------------------------------------
- * LE corpus du chantier — neuf fixtures (A–H + F bis), écrites à la main.
- * Exporté pour que le différentiel complet du lot 5b
+ * LE corpus de la recherche — neuf fixtures (A–H + F bis), écrites à la main.
+ * Exporté pour que le différentiel complet de la file
  * (tests/relic-queue.test.ts) porte sur EXACTEMENT ces cas, jamais une copie.
  * Chaque entrée : le pool de runes, l'inventaire de reliques, l'intention, les
  * paramètres SANS contexte (`p0`) et le contexte résolu (`ctx`).
@@ -211,7 +211,7 @@ export const CORPUS_5A: Record<'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'Fbis' | 'G' 
 })();
 
 /* --------------------------------------------------------------------------
- * Projection algorithmique canonique (A.6 bis) — ce qui se compare octet
+ * Projection algorithmique canonique — ce qui se compare octet
  * pour octet : candidats dans l'ordre rendu (ids, rid, stats, score), N,
  * population par compartiment, statut tronqué ; JSON à clés triées ; jamais
  * un temps.
@@ -338,7 +338,7 @@ function verifierFixture(
  * ----------------------------------------------------------------------- */
 
 export default async function testRelicSearch() {
-  titre('Optimizer · recherche relique (lot 5a — bornes, faisabilité, transport)');
+  titre('Optimizer · recherche relique (bornes, faisabilité, transport)');
 
   /* ── Identité sans relique / mode off / mode equipped : projection
    * canonique byte-identique. Le même pool qu'une fixture (A) ; l'équipée est
@@ -377,7 +377,7 @@ export default async function testRelicSearch() {
       refus = e;
     }
     ok(refus instanceof RechercheRefusee, 'refus : RechercheRefusee levée par prepareSearch');
-    egal((refus as RechercheRefusee).vide, 'inventaire', 'refus : le motif transporte le vide de B.3');
+    egal((refus as RechercheRefusee).vide, 'inventaire', 'refus : le motif transporte le vide (inventaire)');
     egal((refus as RechercheRefusee).motif, 'relique-pool-vide', 'refus : motif nommé');
     const seuil = contexte({ ...LIBRE, seuil: 9 }, undefined, [relique(1, 100, 9, 1, 6)]);
     egal(seuil.vide, 'seuil', 'refus : seuil trop haut → vide seuil');
@@ -390,12 +390,12 @@ export default async function testRelicSearch() {
     ok(refusSeuil instanceof RechercheRefusee && /seuil/.test((refusSeuil as Error).message), 'refus : le message nomme le seuil');
   }
 
-  /* ── Refus nommé sur le protocole du Worker (B.5a ter, commit 1 — sonde
+  /* ── Refus nommé sur le protocole du Worker (sonde
    * navigateur de la revue rejouée en Node) : `prepareOrRefuse`
    * (`prepareForSearch.ts`) est la fonction extraite du handler
    * `self.onmessage`, neutre et testable ici SANS `self` — un appel direct
    * à `prepareSearch` dans le handler transformait ce refus en rejet de
-   * promesse non géré (BLOQUANT 1 : ni message posté, ni `Worker.onerror`,
+   * promesse non géré (ni message posté, ni `Worker.onerror`,
    * l'UI restait bloquée en `'running'`). */
   {
     const pool = [...six(100, (slot, id) => rune(id, slot, [4, 63]))];
@@ -410,8 +410,8 @@ export default async function testRelicSearch() {
     ok(normal.kind === 'prepared', 'protocole Worker : sans refus → préparation normale');
   }
 
-  /* ── Traceur : un rejet par pré-filtrage reste diagnosticable (B.5a ter,
-   * commit 4 — sonde TRACE_REJET de la revue). Six runes VIT, minimum ATQ
+  /* ── Traceur : un rejet par pré-filtrage reste diagnosticable (sonde
+   * TRACE_REJET). Six runes VIT, minimum ATQ
    * hors de portée même avec la relique ATQ % la plus haute éligible :
    * `prepareSearch` rejette (retour `null`), et `searchBuildsSteps`
    * restituait jusqu'ici un résultat vide SANS trace — précisément le cas
@@ -432,7 +432,7 @@ export default async function testRelicSearch() {
   }
 
   /* ── Traceur : recopié par l'adaptateur Node d'appariement parallèle
-   * (B.5a ter, commit 5 — sonde TRACE_WORKER de la revue, avec de VRAIS
+   * (sonde TRACE_WORKER, avec de VRAIS
    * `worker_threads`). `runPairSlice` le rend déjà ; seule la
    * reconstruction EXPLICITE de `spawnSliceNode.ts` l'omettait. */
   {
@@ -461,7 +461,7 @@ export default async function testRelicSearch() {
     } finally {
       handle.terminate();
     }
-    ok(viaAdaptateur.traceur != null, 'traceur worker : l’adaptateur Node (spawnSliceNode) recopie le traceur (MINEUR 2 corrigé)');
+    ok(viaAdaptateur.traceur != null, 'traceur worker : l’adaptateur Node (spawnSliceNode) recopie le traceur');
     egal(viaAdaptateur.traceur, direct.traceur, 'traceur worker : trace identique entre appel direct et adaptateur worker_threads');
   }
 
@@ -486,7 +486,7 @@ export default async function testRelicSearch() {
     const atk = stats.find((s) => s.key === 'atk')!.total;
     ok(respecteConditionsAvecRelique(gear, equipee, { minStats: { atk }, maxStats: { atk } }).respecte, 'filtre final : min = max = total exact → respecte');
     ok(!respecteConditionsAvecRelique(gear, equipee, { minStats: { atk: atk + 1 } }).respecte, 'filtre final : minimum dépassé d’un point → rejeté');
-    ok(!respecteConditionsAvecRelique(gear, equipee, { minStats: {}, maxStats: { atk: atk - 1 } }).respecte, 'filtre final : MAXIMUM dépassé d’un point → rejeté (T11 : le pendant artéfacts ne le fait pas)');
+    ok(!respecteConditionsAvecRelique(gear, equipee, { minStats: {}, maxStats: { atk: atk - 1 } }).respecte, 'filtre final : MAXIMUM dépassé d’un point → rejeté (le pendant artéfacts ne le fait pas)');
     // Remplacement, jamais cumul : la candidate REMPLACE `gear.relic`.
     const autre = relique(902, 100, 14);
     const avecAutre = respecteConditionsAvecRelique(gear, autre, { minStats: {} }).stats;
@@ -498,8 +498,8 @@ export default async function testRelicSearch() {
    * survie par le minimum DEF 684 = 600 + ceil(600 × 14 / 100), atteignable
    * par le build optimum SEULEMENT avec la DEF % +14 — les runes ATQ % +
    * Dmg Crit sont les plus efficientes sous l'objectif Efficience de cette
-   * fixture. Repli documenté (revue adversariale du diff du lot 5a, MAJEUR ;
-   * B.5a ter, commit 3) : le nom d'origine annonçait un conflit
+   * fixture. Repli documenté :
+   * le nom d'origine annonçait un conflit
    * objectif ATQ / minimum DEF que `objective: 'efficience'` n'exerce pas
    * (`dimensionsRetenues` ne retient que `def`, par le minimum) — construire
    * un `RealDamageContext` factice minimal (`objective: 'degats_reels'`)

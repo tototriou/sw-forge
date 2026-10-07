@@ -28,7 +28,7 @@ export default function testOptimizerDamageTransitions() {
   egal(apres.passifsOffensifs, {}, 'espèce différente : passifs du monstre vidés');
   egal(apres.defBreakParLeSort, false, 'espèce différente : état du sort vidé');
   egal(apres.sacrificeReservePct, 0, 'espèce différente : réserve du sort vidée');
-  egal(apres.premierCoupIgnoreDefParSort, undefined, 'espèce différente : rang d’ignore DEF du sort vidé (degats-et-aura 10b)');
+  egal(apres.premierCoupIgnoreDefParSort, undefined, 'espèce différente : rang d’ignore DEF du sort vidé');
   egal(apres.effetsCibleCountAutres, true, 'espèce différente : marqueur associé au compteur remis au défaut');
   // L'import de recette écrit directement sa valeur ; le compte suit l'autre
   // branche explicite de resetSearch.
@@ -58,11 +58,10 @@ export default function testOptimizerDamageTransitions() {
   ok(hook.includes("motif === 'compte' ? DEFAULT_DAMAGE_SETUP : damageSetupApresChangementMonstre(s)"), 'resetSearch : deux branches de production');
   ok(!hook.includes('resetDamageSkill'), 'hook : aucune transition superflue sur les listes ou exemplaires');
 
-  titre('Optimizer · changement d’exemplaire de la même espèce (6bis-b19)');
+  titre('Optimizer · changement d’exemplaire de la même espèce');
 
-  // Décision de l'utilisateur du 2026-10-02 : changer d'exemplaire efface les
-  // résultats affichés, comme un changement d'espèce ; l'utilisateur relance
-  // lui-même. Le dépôt n'a pas de test React : l'arbre syntaxique du hook
+  // Changer d'exemplaire efface les résultats affichés, comme un changement
+  // d'espèce ; l'utilisateur relance lui-même. Le dépôt n'a pas de test React : l'arbre syntaxique du hook
   // établit CE qui est effacé, l'écran QUAND.
   const sourceHook = ts.createSourceFile('useOptimizerState.ts', hook, ts.ScriptTarget.Latest, true);
   const fonctionDuHook = (nom: string) => {

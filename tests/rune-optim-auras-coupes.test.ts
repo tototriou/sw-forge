@@ -1,11 +1,11 @@
 // Coupes SÛRES, diagnostics et rétention face aux auras propres au build
-// (degats-et-aura, lot 6bis-b3b). Discipline `algo-verify` : un ORACLE
+// Discipline `algo-verify` : un ORACLE
 // exhaustif indépendant, sur le pool AVANT préparation, contre le vrai
 // moteur (`searchBuilds`, bout en bout).
 //
 // ⚠️ Indépendance de l'oracle : il partage `computeStats` (fiche, aucune
 // aura) et `activeSets` (sets actifs, Intangible compris), rien d'autre. Il
-// compte lui-même les activations d'aura, les +8 points RES/PRE (A.2 ter),
+// compte lui-même les activations d'aura, les +8 points RES/PRE (`spec/outils/degats-reels/valeurs-de-jeu-curees.md`),
 // la satisfaction du combo demandé et les conditions min/max. Il n'appelle
 // ni `aurasPropres*`, ni `pointsAuraResPre*`, ni `prepareSearch`, ni aucune
 // borne ou élagage du moteur. `avecAurasConditions` ne sert qu'à construire
@@ -17,8 +17,8 @@
 // par la MÊME fonction des deux côtés — une dominance qui retire une rune
 // Fight utile fait baisser le meilleur score, c'est tout ce qu'on mesure.
 //
-// ⚠️ **Limite assumée : cet oracle NE NOTE PAS** (degats-et-aura 6bis-b3d-2,
-// constat C8). Il compare un maximum PAR CRITÈRE, sans sort, sans artéfact
+// ⚠️ **Limite assumée : cet oracle NE NOTE PAS** (
+// il compare un maximum PAR CRITÈRE, sans sort, sans artéfact
 // ni relique : il est aveugle à l'effet unique de la relique et aux lignes
 // d'artéfact 218–221. Mesuré : `statsDeLEffetUnique` ou `statsLuesParLesLignes`
 // vidé, il reste entièrement vert. Ces deux protections de la dominance sont
@@ -121,8 +121,7 @@ function evaluer(cas: Cas, runes: RuneDetail[]): { cond: Record<StatKey, number>
 // Les critères sur lesquels la dominance DOIT conserver l'optimum :
 // l'efficience (toujours comparée), les stats des conditions (telles que les
 // lisent les conditions) et celles de l'objectif (avec ses auras de combat).
-// « Efficience » ou aucun objectif : TOUTES les stats (décision utilisateur
-// du 2026-09-29). Un tri après coup sur une autre stat n'est pas garanti.
+// « Efficience » ou aucun objectif : TOUTES les stats. Un tri après coup sur une autre stat n'est pas garanti.
 const CRITERE_OBJECTIF: Record<StatKey, string> = { atk: 'atkCombat', def: 'defCombat', hp: 'hpCombat', res: 'resCombat', acc: 'accCombat', spd: 'spd', cr: 'cr', cd: 'cd' };
 function criteresUtiles(cas: Cas): string[] {
   const out = new Set<string>(['eff']);
@@ -186,7 +185,7 @@ function parametres(cas: Cas, extra: Partial<SearchParams> = {}): SearchParams {
 }
 
 // Première coupe traversée par un build (6 identifiants), lue dans la trace.
-// Réutilisée par l'oracle de 6bis-b3c (`rune-optim-dominance-relique.test.ts`).
+// Réutilisée par l'oracle de `rune-optim-dominance-relique.test.ts`.
 export function premiereCoupe(t: TraceCandidat | undefined, tronque: boolean): string {
   if (!t) return 'trace:absente';
   for (const e of t.preparation) if (!e.presentes.every(Boolean)) return `preparation:${e.etage}`;
@@ -281,17 +280,17 @@ function quantile(vals: number[], q: number): number {
 }
 
 /* --------------------------------------------------------------------------
- * T2 — un minimum RES/PRE que SEULE une aura propre fait tenir, sans aucune
+ * Un minimum RES/PRE que SEULE une aura propre fait tenir, sans aucune
  * marge Endure/Focus dans le pool ; un scénario isole chaque coupe sûre.
  * ----------------------------------------------------------------------- */
 
 export function testRuneOptimAurasCoupesMinimum() {
-  titre('Auras propres · minimum RES/PRE tenu par la seule aura propre (T2, bout en bout)');
+  titre('Auras propres · minimum RES/PRE tenu par la seule aura propre (bout en bout)');
 
   // (E) Aucune rune ne porte de RES : seule la Tolerance propre (+8) franchit
   // 23 = 15 + 8. Première coupe concernée : eliminateInfeasible.
   const tolerance: Cas = {
-    nom: 'T2-E Tolerance non demandée ×2',
+    nom: 'Tolerance non demandée ×2',
     pool: [...QUATRE_VIOLENT, r(15, 5, 'tolerance', [[1, 100]]), r(25, 5, 'will', [[3, 10]]), r(16, 6, 'tolerance', [[1, 100]]), r(26, 6, 'will', [[3, 10]])],
     sets: ['violent'], minStats: { res: 23 }, compter: true,
   };
@@ -301,7 +300,7 @@ export function testRuneOptimAurasCoupesMinimum() {
 
   // Intangible qui complète la Tolerance (Violent tenu par quatre vraies pièces).
   const joker: Cas = {
-    nom: 'T2-E Tolerance 1 + Intangible',
+    nom: 'Tolerance 1 + Intangible',
     pool: [...QUATRE_VIOLENT, r(15, 5, 'tolerance', [[1, 100]]), r(25, 5, 'will', [[3, 10]]), r(16, 6, 'intangible', [[5, 10]]), r(26, 6, 'will', [[3, 10]])],
     sets: ['violent'], minStats: { res: 23 }, compter: true,
   };
@@ -311,7 +310,7 @@ export function testRuneOptimAurasCoupesMinimum() {
 
   // Accuracy : PRE 0 + 8.
   const accuracy: Cas = {
-    nom: 'T2-E Accuracy non demandée ×2',
+    nom: 'Accuracy non demandée ×2',
     pool: [...QUATRE_VIOLENT, r(15, 5, 'accuracy', [[1, 100]]), r(25, 5, 'will', [[3, 10]]), r(16, 6, 'accuracy', [[1, 100]]), r(26, 6, 'will', [[3, 10]])],
     sets: ['violent'], minStats: { acc: 8 }, compter: true,
   };
@@ -320,23 +319,23 @@ export function testRuneOptimAurasCoupesMinimum() {
   cibleCollectee(accuracy, vA, '1,2,3,4,15,16');
 
   // Avec une part externe : 1 Tolerance externe + 1 propre = 15 + 16 = 31.
-  const externe: Cas = { ...tolerance, nom: 'T2-E externe 1 + propre 1', minStats: { res: 31 }, externes: { tolerance: 1 } };
+  const externe: Cas = { ...tolerance, nom: 'externe 1 + propre 1', minStats: { res: 31 }, externes: { tolerance: 1 } };
   const vX = lancer(externe);
   verifier(externe, vX, true);
   cibleCollectee(externe, vX, '1,2,3,4,15,16');
 
   // Toggle éteint : l'aura propre ne franchit plus rien ; l'oracle et le
   // moteur n'ont aucun build, et c'est la bonne réponse.
-  const eteint: Cas = { ...tolerance, nom: 'T2 toggle éteint', compter: false };
+  const eteint: Cas = { ...tolerance, nom: 'toggle éteint', compter: false };
   const vO = lancer(eteint);
   verifier(eteint, vO, true);
-  egal(vO.o.valides.size, 0, 'T2 toggle éteint : aucun build ne franchit RES 23 sans aura dans les conditions');
+  egal(vO.o.valides.size, 0, 'toggle éteint : aucun build ne franchit RES 23 sans aura dans les conditions');
 
   // (P) bucketPairFeasibleMin : eliminateInfeasible passe (RES 8 sur des
   // runes Will des emplacements 1 et 2), mais les deux compartiments de la
   // cible (Violent 3 / Violent 1) n'ont aucune RES.
   const paire: Cas = {
-    nom: 'T2-P coupe bucketPairFeasibleMin',
+    nom: 'coupe bucketPairFeasibleMin',
     pool: [V(1, 1), r(21, 1, 'will', [[11, 8]]), V(2, 2), r(22, 2, 'will', [[11, 8]]), V(3, 3), V(4, 4), r(15, 5, 'tolerance', [[1, 100]]), r(16, 6, 'tolerance', [[1, 100]])],
     sets: ['violent'], minStats: { res: 23 }, compter: true,
   };
@@ -347,7 +346,7 @@ export function testRuneOptimAurasCoupesMinimum() {
   // (C) comboAFeasible : le compartiment Violent 3 contient une moitié à RES 8
   // (rune 11), celui de la cible non ; la moitié B n'a aucune RES.
   const comboA: Cas = {
-    nom: 'T2-C coupe comboAFeasible',
+    nom: 'coupe comboAFeasible',
     pool: [V(1, 1, [[3, 5]]), V(11, 1, [[11, 8]]), V(2, 2), r(22, 2, 'will', [[11, 8]]), V(3, 3), V(4, 4), r(15, 5, 'tolerance', [[1, 100]]), r(16, 6, 'tolerance', [[1, 100]])],
     sets: ['violent'], minStats: { res: 23 }, compter: true,
   };
@@ -358,7 +357,7 @@ export function testRuneOptimAurasCoupesMinimum() {
   // (Q) quickOk : le compartiment B de la cible contient d'autres moitiés à
   // RES 8 (Will), la moitié B de la cible non.
   const quick: Cas = {
-    nom: 'T2-Q coupe quickOkMin',
+    nom: 'coupe quickOkMin',
     pool: [...QUATRE_VIOLENT, r(15, 5, 'tolerance', [[1, 100]]), r(25, 5, 'will', [[11, 8]]), r(16, 6, 'tolerance', [[1, 100]]), r(26, 6, 'will', [[11, 8]])],
     sets: ['violent'], minStats: { res: 23 }, compter: true,
   };
@@ -368,20 +367,20 @@ export function testRuneOptimAurasCoupesMinimum() {
 
   // MAXIMUM : seul l'inévitable compte ; la Tolerance propre (23 > 22) est
   // rejetée au contrôle final, les trois autres builds restent.
-  const max: Cas = { ...tolerance, nom: 'T2 maximum RES 22', minStats: {}, maxStats: { res: 22 } };
+  const max: Cas = { ...tolerance, nom: 'maximum RES 22', minStats: {}, maxStats: { res: 22 } };
   const vM = lancer(max);
   verifier(max, vM, true);
-  egal(vM.o.valides.size, 3, 'T2 maximum RES 22 : trois builds sans activation Tolerance');
-  const maxEteint: Cas = { ...max, nom: 'T2 maximum RES 22, toggle éteint', compter: false };
+  egal(vM.o.valides.size, 3, 'maximum RES 22 : trois builds sans activation Tolerance');
+  const maxEteint: Cas = { ...max, nom: 'maximum RES 22, toggle éteint', compter: false };
   const vME = lancer(maxEteint);
   verifier(maxEteint, vME, true);
-  egal(vME.o.valides.size, 4, 'T2 maximum RES 22, toggle éteint : la Tolerance propre ne pénalise plus');
-  const maxAcc: Cas = { ...accuracy, nom: 'T2 maximum PRE 7', minStats: {}, maxStats: { acc: 7 } };
+  egal(vME.o.valides.size, 4, 'maximum RES 22, toggle éteint : la Tolerance propre ne pénalise plus');
+  const maxAcc: Cas = { ...accuracy, nom: 'maximum PRE 7', minStats: {}, maxStats: { acc: 7 } };
   verifier(maxAcc, lancer(maxAcc), true);
 }
 
 /* --------------------------------------------------------------------------
- * T3 — diagnostics : jamais une impossibilité sur une borne plus étroite
+ * Diagnostics : jamais une impossibilité sur une borne plus étroite
  * que la recherche ; near-miss lu avec l'aura propre.
  * ----------------------------------------------------------------------- */
 
@@ -408,7 +407,7 @@ function verifierDiagnostics(cas: Cas) {
 }
 
 export function testRuneOptimAurasCoupesDiagnostics() {
-  titre('Auras propres · diagnostics de faisabilité et near-miss (T3)');
+  titre('Auras propres · diagnostics de faisabilité et near-miss');
   const base = {
     pool: [...QUATRE_VIOLENT, r(15, 5, 'tolerance', [[1, 100]]), r(25, 5, 'will', [[3, 10]]), r(16, 6, 'tolerance', [[1, 100]]), r(26, 6, 'will', [[3, 10]])],
     sets: ['violent'],
@@ -460,15 +459,15 @@ export function testRuneOptimAurasCoupesDiagnostics() {
 }
 
 /* --------------------------------------------------------------------------
- * T4 — activation réelle et rétention : perte HEURISTIQUE ≠ faux rejet.
+ * Activation réelle et rétention : perte HEURISTIQUE ≠ faux rejet.
  * ----------------------------------------------------------------------- */
 
 export function testRuneOptimAurasCoupesRetention() {
-  titre('Auras propres · activation réelle et rétention (T4)');
+  titre('Auras propres · activation réelle et rétention');
 
   // Répétitions d'aura : trois Tolerance propres = +24 (15 + 24 = 39).
   const trois: Cas = {
-    nom: 'T4 Tolerance ×3 (aucun set demandé)', compter: true, sets: [], minStats: { res: 39 },
+    nom: 'Tolerance ×3 (aucun set demandé)', compter: true, sets: [], minStats: { res: 39 },
     pool: [1, 2, 3, 4, 5, 6].flatMap((s) => [r(s, s, 'tolerance', [[1, 100]]), r(20 + s, s, 'will', [[3, 10]])]),
   };
   const v3 = lancer(trois);
@@ -477,16 +476,16 @@ export function testRuneOptimAurasCoupesRetention() {
 
   // Deux sets incomplets : l'Intangible ne complète rien ; zéro aura propre.
   const incomplets: Cas = {
-    nom: 'T4 deux sets incomplets + Intangible', compter: true, sets: ['violent'], minStats: { res: 23 },
+    nom: 'deux sets incomplets + Intangible', compter: true, sets: ['violent'], minStats: { res: 23 },
     pool: [V(1, 1), V(2, 2), V(3, 3), r(14, 4, 'intangible', [[5, 10]]), r(15, 5, 'tolerance', [[1, 100]]), r(16, 6, 'accuracy', [[1, 100]])],
   };
   const vI = lancer(incomplets);
   verifier(incomplets, vI, true);
-  egal(vI.o.valides.size, 0, 'T4 deux sets incomplets : le joker ne complète ni Violent ni Tolerance');
+  egal(vI.o.valides.size, 0, 'deux sets incomplets : le joker ne complète ni Violent ni Tolerance');
 
   // Deux Intangible dans le pool : jamais deux serties ensemble.
   const deuxJokers: Cas = {
-    nom: 'T4 deux Intangible disponibles', compter: true, sets: ['violent'], minStats: { res: 23 },
+    nom: 'deux Intangible disponibles', compter: true, sets: ['violent'], minStats: { res: 23 },
     pool: [V(1, 1), V(2, 2), V(3, 3), r(14, 4, 'intangible', [[5, 10]]), V(24, 4), r(15, 5, 'tolerance', [[1, 100]]), r(16, 6, 'intangible', [[5, 11]]), r(26, 6, 'tolerance', [[1, 100]])],
   };
   verifier(deuxJokers, lancer(deuxJokers), true);
@@ -506,7 +505,7 @@ export function testRuneOptimAurasCoupesRetention() {
     const brouillon: Cas = { nom: '', pool, sets, compter: true };
     const tous = oracle(brouillon).ensembleSets;
     if (tous.length === 0) continue;
-    const cas: Cas = { ...brouillon, nom: `T4 rétention seed ${seed}`, minStats: { res: quantile(tous.map((b) => b.cond.res), 0.7) } };
+    const cas: Cas = { ...brouillon, nom: `rétention seed ${seed}`, minStats: { res: quantile(tous.map((b) => b.cond.res), 0.7) } };
     const v = lancer(cas, { bucketCap: 1 }, 30);
     const fp = [...v.trouves].filter((c) => !v.o.valides.has(c));
     egal(fp, [], `${cas.nom} (bucketCap 1) : aucun faux positif`);
@@ -517,21 +516,21 @@ export function testRuneOptimAurasCoupesRetention() {
       if (HEURISTIQUES.has(k)) perteHeuristique += n;
     }
   }
-  egal(fauxRejets, 0, `T4 rétention : ${absents} build(s) absents, ${perteHeuristique} tracé(s) à une perte heuristique, zéro à une coupe sûre (${fmtMotifs(motifs)})`);
+  egal(fauxRejets, 0, `rétention : ${absents} build(s) absents, ${perteHeuristique} tracé(s) à une perte heuristique, zéro à une coupe sûre (${fmtMotifs(motifs)})`);
 }
 
 /* --------------------------------------------------------------------------
- * T1 — témoin Blade/Intangible (Rage seul demandé) : crédit du joker.
+ * Témoin Blade/Intangible (Rage seul demandé) : crédit du joker.
  * ----------------------------------------------------------------------- */
 
 const R = (id: number, slot: number) => r(id, slot, 'rage');
 
 export function testRuneOptimAurasCoupesBladeIntangible() {
-  titre('Témoin T1 · Blade non demandé et Intangible (Rage seul)');
+  titre('Témoin · Blade non demandé et Intangible (Rage seul)');
 
   // Une Blade physique + Intangible : CR 15 + 12 = 27, seul build valide.
   const unBlade: Cas = {
-    nom: 'T1 Blade 1 + Intangible, min CR 27',
+    nom: 'Blade 1 + Intangible, min CR 27',
     pool: [R(1, 1), R(2, 2), R(3, 3), R(4, 4), r(15, 5, 'blade', [[1, 100]]), r(25, 5, 'will', [[3, 10]]), r(16, 6, 'intangible', [[5, 10]]), r(26, 6, 'will', [[3, 10]])],
     sets: ['rage'], minStats: { cr: 27 }, compter: true,
   };
@@ -541,7 +540,7 @@ export function testRuneOptimAurasCoupesBladeIntangible() {
 
   // Moitiés permutées : Blade en moitié A, Intangible en moitié B.
   const permute: Cas = {
-    nom: 'T1 Blade 1 + Intangible, moitiés permutées',
+    nom: 'Blade 1 + Intangible, moitiés permutées',
     pool: [R(1, 1), r(12, 2, 'blade', [[1, 100]]), r(22, 2, 'will', [[3, 10]]), R(3, 3), R(4, 4), r(15, 5, 'intangible', [[5, 10]]), r(25, 5, 'will', [[3, 10]]), R(6, 6)],
     sets: ['rage'], minStats: { cr: 27 }, compter: true,
   };
@@ -551,26 +550,26 @@ export function testRuneOptimAurasCoupesBladeIntangible() {
 
   // Deux Blade physiques : le cas déjà couvert (témoin inchangé).
   const deuxBlade: Cas = {
-    nom: 'T1 Blade 2 physiques, min CR 27',
+    nom: 'Blade 2 physiques, min CR 27',
     pool: [R(1, 1), R(2, 2), R(3, 3), R(4, 4), r(15, 5, 'blade', [[1, 100]]), r(25, 5, 'will', [[3, 10]]), r(16, 6, 'blade', [[1, 100]]), r(26, 6, 'will', [[3, 10]])],
     sets: ['rage'], minStats: { cr: 27 }, compter: true,
   };
   verifier(deuxBlade, lancer(deuxBlade), true);
 
   // Sans seuil, puis maximum CR 26 : l'activation Blade n'est pas inévitable.
-  const sansSeuil: Cas = { ...unBlade, nom: 'T1 Blade 1 + Intangible, sans seuil', minStats: {} };
+  const sansSeuil: Cas = { ...unBlade, nom: 'Blade 1 + Intangible, sans seuil', minStats: {} };
   verifier(sansSeuil, lancer(sansSeuil), true);
-  const max: Cas = { ...unBlade, nom: 'T1 Blade 1 + Intangible, max CR 26', minStats: {}, maxStats: { cr: 26 } };
+  const max: Cas = { ...unBlade, nom: 'Blade 1 + Intangible, max CR 26', minStats: {}, maxStats: { cr: 26 } };
   const vM = lancer(max);
   verifier(max, vM, true);
-  egal(vM.o.valides.size, 3, 'T1 max CR 26 : Blade+Intangible (27) rejeté, les trois autres gardés');
+  egal(vM.o.valides.size, 3, 'max CR 26 : Blade+Intangible (27) rejeté, les trois autres gardés');
 
   // Seconde activation d'un set DEMANDÉ grâce au joker : Energy demandé une
   // fois, trois Energy physiques + Intangible = deux activations (PV +30 %,
   // 10000 → 13000) ; le Will des emplacements 5-6 est complet, seul Energy
   // reste incomplet pour le joker.
   const energy: Cas = {
-    nom: 'T1 Energy demandé, 2e activation par Intangible',
+    nom: 'Energy demandé, 2e activation par Intangible',
     pool: [r(1, 1, 'energy'), r(2, 2, 'energy'), r(3, 3, 'energy'), r(14, 4, 'intangible', [[5, 10]]), r(24, 4, 'will', [[3, 10]]), r(5, 5, 'will', [[3, 10]]), r(6, 6, 'will', [[5, 10]])],
     sets: ['energy'], minStats: { hp: 13000 }, compter: true,
   };
@@ -701,8 +700,8 @@ export function testRuneOptimAurasCoupesDominance() {
     'dégâts réels : le Focus dominé est retiré (2 builds, par la dominance), la Blade dominée reste et porte CR 27');
 
   // Sans aucune condition CR, la Blade n'est PAS protégée en « Dégâts réels »
-  // (décision utilisateur du 2026-09-29 : le Taux Crit ne compte que sous un
-  // minimum de Taux Crit, jamais par l'objectif). Will la domine : elle part.
+  // (règle : le Taux Crit ne compte que sous un minimum de Taux Crit,
+  // jamais par l'objectif). Will la domine : elle part.
   const bladeObjectif: Cas = {
     nom: 'Dominance Blade non protégée en dégâts réels sans condition CR',
     pool: [...QUATRE_VIOLENT, r(15, 5, 'blade', [[3, 5]]), r(25, 5, 'will', [[3, 6]]), r(16, 6, 'blade', [[1, 100]])],
@@ -777,10 +776,10 @@ export function testRuneOptimAurasCoupesDominance() {
   verifier(memeSet, vS, false);
   egal([...vS.trouves], ['1,2,3,4,25,16'], 'Dominance entre deux Tolerance : seule la meilleure des deux reste, sans perte d\'optimum');
 
-  // Témoin T1 : une rune Will domine la Blade de l'emplacement 5 (ATQ 6 ≥ 5),
+  // Témoin Blade/Intangible : une rune Will domine la Blade de l'emplacement 5 (ATQ 6 ≥ 5),
   // mais seule la Blade complète le set qui porte CR 27 (Rage seul demandé).
   const blade: Cas = {
-    nom: 'T1 Blade dominée par une rune hors combo',
+    nom: 'Blade dominée par une rune hors combo',
     pool: [R(1, 1), R(2, 2), R(3, 3), R(4, 4), r(15, 5, 'blade', [[3, 5]]), r(25, 5, 'will', [[3, 6]]), r(16, 6, 'blade', [[1, 100]])],
     sets: ['rage'], minStats: { cr: 27 }, compter: true,
   };
@@ -788,11 +787,11 @@ export function testRuneOptimAurasCoupesDominance() {
   verifier(blade, vB, true);
   cibleCollectee(blade, vB, '1,2,3,4,15,16');
 
-  // Témoin T1 : deux sets SANS effet (Will/Shield), combo tenu par
+  // Témoin Blade/Intangible : deux sets SANS effet (Will/Shield), combo tenu par
   // l'Intangible. Remplacer Will par Shield laisse deux sets incomplets : le
   // joker ne complète plus Violent (règle d'`activeSets`).
   const joker: Cas = {
-    nom: 'T1 Intangible : dominance Will → Shield',
+    nom: 'Intangible : dominance Will → Shield',
     pool: [V(1, 1), V(2, 2), V(3, 3), r(14, 4, 'intangible', [[5, 10]]), r(15, 5, 'will', [[3, 5]]), r(25, 5, 'shield', [[3, 6]]), r(16, 6, 'will', [[1, 100]])],
     sets: ['violent'], compter: true,
   };

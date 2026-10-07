@@ -52,7 +52,7 @@ unique : **pas d'écran d'attente**, il n'aurait fait que clignoter.
 > ⚠️⚠️ **MAIS L'IDENTITÉ D'UNE ÉQUIPE SURVIT AU REMPLACEMENT.** `importTeams`
 > régénérait l'`id` de chaque équipe (`newId()`), alors que les **listes de
 > travail de l'Optimizer** désignent un monstre par `{ teamId, slotIndex }`
-> (voir [../outils/optimizer.md](../outils/optimizer.md)). Plus aucun sélecteur
+> (voir [../outils/optimizer/listes-et-reservation.md](../outils/optimizer/listes-et-reservation.md)). Plus aucun sélecteur
 > ne résolvait après un import, et la revérification supprimait
 > **définitivement** tous les membres et builds validés venus du siège — sur le
 > geste même qu'elle est censée servir. Ce n'était pas « mon compte a changé »,
@@ -292,13 +292,14 @@ stockage.
   `upgrade` = `upgrade_curr` (filtre de niveau et affichage, jamais la valeur
   de `main`, qui reste lue dans `pri_effect`). `relicUsageById` : occupation
   par rid, comptée sur les unités (`unit.relics[0].rid`), jamais sur
-  `data.relics.length` — voir [outils/optimizer/reliques.md](../outils/optimizer/reliques.md)
-  § 7. `relicUpgradeMismatches` : nombre de pièces où
+  `data.relics.length` — voir
+  [outils/optimizer/moteur/reliques.md § Ce que le moteur lit d'une relique](../outils/optimizer/moteur/reliques.md).
+  `relicUpgradeMismatches` : nombre de pièces où
   `pri_effect[1] ≠ upgrade_curr + 3`, un avertissement jamais une correction.
 - Utilisé par les sous-sections **Runes** et **Artéfacts** (voir
   [compte/runes.md](../compte/runes.md), [compte/artefacts.md](../compte/artefacts.md)),
   et par l'Optimizer pour la relique (voir
-  [outils/optimizer/reliques.md](../outils/optimizer/reliques.md)).
+  [outils/optimizer/moteur/reliques.md](../outils/optimizer/moteur/reliques.md)).
 
 ### Marqueurs de runes — `rune_lock_list` + `markers`
 

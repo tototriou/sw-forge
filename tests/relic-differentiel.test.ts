@@ -1,9 +1,9 @@
-// L'orchestrateur du différentiel de fidélité (implementation-relique, lot 6,
-// `scripts/relic-differentiel.ts`) — harnais d'abord (A.0) : ce qui se
+// L'orchestrateur du différentiel de fidélité (
+// `scripts/relic-differentiel.ts`) — harnais d'abord : ce qui se
 // vérifie en test nommé ne reste pas une commande recopiée dans la preuve.
 //
 // Deux contrôles : (1) sur fixture, la comparaison PURE (`comparerOptionA`)
-// rend les statuts distincts que B.6 amendé exige — fidèle, perte, surplus,
+// rend les statuts distincts que le différentiel exige — fidèle, perte, surplus,
 // vide d'un côté ou des deux, paire de référence violée — et le top-K est
 // pris par `sortCandidates`, frontière ≥ K-ième, jamais l'ordre de fusion ;
 // (2) sur le cas réel le plus léger (Ciri, `--case=6`, si l'export est à la
@@ -35,7 +35,7 @@ function relique(id: number, code: 100 | 101 | 102, value: number): RelicDetail 
 }
 
 export default function testRelicDifferentiel() {
-  titre('Optimizer · différentiel de fidélité (lot 6) — comparaison pure et orchestrateur');
+  titre('Optimizer · différentiel de fidélité — comparaison pure et orchestrateur');
 
   /* (1) La comparaison pure, sur une fixture synthétique (objectif ehp). */
   const base = { hp: 10000, atk: 700, def: 600, spd: 100, cr: 15, cd: 50, res: 15, acc: 0 };
@@ -43,7 +43,7 @@ export default function testRelicDifferentiel() {
   const inv = [relique(9001, 100, 12), relique(9002, 100, 14), relique(9003, 102, 14)];
   const ctx = resoudreContexteRelique({ mode: 'recherche', principale: 'libre', type: 'libre', seuil: 6 }, undefined, inv);
   const p: SearchParams = { base, artifacts: [], relic: undefined, relicContext: ctx, pool, requirement: { sets: [], minStats: {} }, metric: 'eff', objective: 'ehp', maxMs: Number.POSITIVE_INFINITY, slotFilterCap: 80 };
-  // Le canal exclusive, OBLIGATOIRE côté A depuis 6bis-b6 (la résolution de
+  // Le canal exclusive, OBLIGATOIRE côté A (la résolution de
   // production note toujours avec lui) : le MÊME objet va à l'oracle. Les
   // reliques portent Conquête, neutre en PV effectifs.
   const exclusive = { setup: DEFAULT_DAMAGE_SETUP, element: null };
@@ -102,7 +102,7 @@ export default function testRelicDifferentiel() {
   egal(violee.paireFixeViolee, [resolus[0]!.cle], 'paire fixe : un candidat dont la paire retenue diffère de la référence est rapporté');
   egal(degatsSansArtefacts(null), null, 'degats : sans contexte de dégâts, aucun contexte de sélection');
 
-  // Mode `equipped` (lot 6 bis, point de non-régression) : la file ne pose pas
+  // Mode `equipped` (point de non-régression) : la file ne pose pas
   // `relique` sur le résultat hors mode recherche — la portée est fixe. A doit
   // résoudre chaque candidat avec elle (rid = l'équipée) et être fidèle au run
   // unique de l'oracle ; A plantait sur `r.relique!.id` avant.

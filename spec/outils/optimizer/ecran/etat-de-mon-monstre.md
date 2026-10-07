@@ -188,8 +188,7 @@
    fenêtre EXACTEMENT les réglages qui modifient les statistiques propres du
    monstre ; ce qui y reste (cible, sort, critique, réduction de DEF, marque,
    effets d'alliés) n'y touche pas. Test : changer un réglage d'« État de
-   mon monstre » DOIT faire bouger le « +X / coup ». Mesuré sur Lushen —
-   buff ATQ activé : **+737 → +1 068 / coup**. ⚠️ **Sauf les auras
+   mon monstre » DOIT faire bouger le « +X / coup ». ⚠️ **Sauf les auras
    Accuracy et Tolerance** : elles modifient bien des
    statistiques propres du monstre, la Précision et la RES, mais aucune
    n'entre dans les dégâts bruts — pour elles, ce qui bouge est la
@@ -203,7 +202,14 @@
    dans son sous-titre — jamais les contrôles eux-mêmes, qui feraient deux
    exemplaires vivants du même interrupteur visibles en même temps. Qui
    ouvre la fenêtre voit sous quelles hypothèses il travaille ; pour les
-   changer, il ferme. L'écho **nomme les auras
+   changer, il ferme. Le sous-titre dit d'abord « Décris le coup à évaluer :
+   le sort, l'adversaire, et comment traiter le critique. », puis l'écho :
+   « État du monstre : » suivi des buffs actifs (« buff ATQ », « buff DEF »,
+   « buff VIT »), du lead (`lead <stat> +<valeur> %`, la stat nommée comme
+   dans le jeu, `LEADER_SKILL_STATS`) et du cran d'invocateur (« Combat » ou
+   « Combat + Guilde »), séparés par « · » (`echoEtatMonstre`,
+   OptimizerSection.tsx). L'écho ne nomme aucun sort : le sort se choisit
+   dans la fenêtre elle-même (« Compétence utilisée »). L'écho **nomme les auras
    externes** par set, avec leur nombre (« auras externes : 2 sets Fight,
    1 set Accuracy »), ou « aucune aura externe », et dit que les sets
    d'aura du build s'y ajoutent sur chaque résultat — **sans nombre** : la

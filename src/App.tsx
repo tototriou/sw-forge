@@ -328,7 +328,7 @@ function Application() {
   const siegeOff = useSiegeState('offense');
   const recos = useSiegeRecos();
   const optimizer = useOptimizerState();
-  // Listes de travail de l'Optimizer (Lot 3) — SÉPARÉES de `useOptimizerState`,
+  // Listes de travail de l'Optimizer — SÉPARÉES de `useOptimizerState`,
   // voir useOptimizerLists.ts : c'est la seule part de l'écran Optimizer qui
   // persiste sur disque.
   const optimizerLists = useOptimizerLists();
@@ -365,17 +365,17 @@ function Application() {
   // encore de valeur « précédente » à comparer, et l'Optimizer démarre de
   // toute façon déjà vide.
   const boxMountedRef = useRef(false);
-  // ⚠️ **BUG CORRIGÉ** (revue de code externe) : `boxMountedRef` ne protège QUE
+  // ⚠️ `boxMountedRef` ne protège QUE
   // le tout premier rendu (`box` encore à `[]`) — la RELECTURE du compte
   // conservé (voir l'effet d'hydratation plus bas, `setBox`/`setRunes` dans
   // le `.then()` de `loadAccount()`) arrive forcément APRÈS ce premier rendu,
-  // donc APRÈS que `boxMountedRef.current` soit déjà passé à `true` : cet
-  // effet ne pouvait pas la distinguer d'un VRAI réimport. Résultat, à CHAQUE
-  // rechargement de page avec un compte conservé : `resetSearch()` + la
-  // revérification des listes de travail se déclenchaient pour de faux, avec
-  // le message « … dans le compte réimporté » alors qu'aucun réimport n'avait
-  // eu lieu — et pouvaient faire disparaître des builds validés (voir aussi le
-  // bug corrigé dans `revalidateBuilds`, optimizerExclusion.ts).
+  // donc APRÈS que `boxMountedRef.current` soit déjà passé à `true` : sans
+  // autre garde, cet effet la prendrait pour un VRAI réimport. À CHAQUE
+  // rechargement de page avec un compte conservé, `resetSearch()` + la
+  // revérification des listes de travail se déclencheraient alors à tort, avec
+  // le message « … dans le compte réimporté » alors qu'aucun réimport n'a
+  // eu lieu — et pourraient faire disparaître des builds validés (voir aussi
+  // `revalidateBuilds`, optimizerExclusion.ts).
   // `hydrationJustAppliedRef` : posé au moment précis où l'effet d'hydratation
   // écrit `box`/`runes` depuis le stockage, consommé ICI — seule cette
   // écriture-là doit être ignorée, un VRAI réimport (même juste après) continue
@@ -392,7 +392,7 @@ function Application() {
     }
     optimizer.resetSearch('compte');
 
-    // Listes de travail (Lot 3) — un build validé porte un INSTANTANÉ de
+    // Listes de travail — un build validé porte un INSTANTANÉ de
     // runes (voir ValidatedBuild, optimizerExclusion.ts), pas une référence
     // recalculée : un réimport (même compte réexporté, runes déplacées/
     // vendues entre-temps) peut le rendre périmé — même chose pour la simple
@@ -400,7 +400,7 @@ function Application() {
     // résout plus si le monstre a été fusionné/retiré). Revérifié à CHAQUE
     // réimport (pas seulement sur un wizard_id différent, contrairement à
     // `excludedSelectors` plus bas — ici on veut justement détecter « mon
-    // propre compte a changé depuis », voir le point bloquant 4 du cadrage).
+    // propre compte a changé depuis »).
     // ⚠️ Jamais silencieux : averti dans `importMsg`, jamais juste retiré.
     if (optimizerLists.members.length > 0 || optimizerLists.validated.length > 0) {
       const monsterById = new Map<string, Monster>();
@@ -1604,7 +1604,7 @@ function Application() {
           un appareil SANS encoche basse (108 > 96) : `elementFromPoint` sur
           une tuile de rune y résolvait le lien de navigation ou le bouton
           Options en dessous, pas la tuile elle-même (confirmé avec Playwright,
-          viewport mobile réel — voir historique-*.md sous compte/runes.md).
+          viewport mobile réel).
           `116px` = 108 px + 8 px de respiration, `+ env(safe-area-inset-bottom)`
           pour rester aligné avec le même terme dans `MobileTabs.tsx`. */}
       <div
@@ -1722,7 +1722,7 @@ function Application() {
             menuOuvert={menuPageOuvert}
             onFermerMenu={() => setMenuPageOuvert(false)}
             // L'Optimizer ouvre lui-même ce panneau pour l'ouverture guidée
-            // au doigt (degats-et-aura 7b) — seule page qui le demande.
+            // au doigt — seule page qui le demande.
             onOuvrirMenu={() => setMenuPageOuvert(true)}
           />
         ) : route === 'releases' ? (

@@ -1,6 +1,6 @@
-// Valeurs connues par l'API SWARFARM seule — chantier degats-et-aura, lot P6.
+// Valeurs connues par l'API SWARFARM seule.
 //
-// Règle D12 de l'utilisateur (2026-10-03) : la valeur de l'API par défaut,
+// Règle : la valeur de l'API par défaut,
 // sauf si la prose du sort la contredit. Les valeurs testées ici viennent des
 // « compétences auxiliaires » (`other_skill`) lues par l'audit des dégâts
 // conditionnels du 2026-09-08, absentes de l'import du corpus : chaque nombre
@@ -76,8 +76,8 @@ function sortDe(forme: number, id: number): SkillDamageProfile {
 const ATQ = 2000;
 const PV = 20000;
 
-// SZ-2 : identifiant, formes porteuses (balayage du corpus, contrôle
-// 13b-sequences-zone), donnée de la fiche (l'empreinte), coefficients des deux
+// Identifiant, formes porteuses (balayage du corpus),
+// donnée de la fiche (l'empreinte), coefficients des deux
 // phases (fiche puis auxiliaire de l'API) et skillups « Damage » de la fiche.
 const SEQUENCES: {
   id: number; nom: string; formes: number[]; monstre: string;
@@ -103,7 +103,7 @@ export function testDegatsSequencesApi() {
   const a411 = artefacts([{ code: 411, value: 30 }]);
 
   for (const s of SEQUENCES) {
-    titre(`Lot P6, SZ-2 — ${s.nom} (${s.id}, ${s.monstre}) : phase 1 de la fiche, phase de zone de l'auxiliaire ${s.auxiliaire} de l'API`);
+    titre(`Phase de zone — ${s.nom} (${s.id}, ${s.monstre}) : phase 1 de la fiche, phase de zone de l'auxiliaire ${s.auxiliaire} de l'API`);
     ok(cibleSecondairePriseEnCharge(s.id), `${s.id} : un coup de zone curé, le cran « autres ennemis » est permis`);
     const secondaire: DamageSetup = { ...normal, cibleDegatsParSort: { [s.id]: 'secondaire' } };
     const k = 1 + s.skillup / 100;
@@ -130,8 +130,8 @@ export function testDegatsSequencesApi() {
       ok(proche(calcul(normal), visee), `${s.id} sur ${forme}, cible visée : 2 000 × (${s.phase1} + ${s.phase2}) × ${k} × FacteurDéf = ${visee.toFixed(2)}`);
       ok(proche(calcul(secondaire), autres), `${s.id} sur ${forme}, autres ennemis : 2 000 × ${s.phase2} × ${k} × FacteurDéf = ${autres.toFixed(2)} (la phase de zone seule)`);
       egal(cibleDegatsRetenue(p, secondaire), 'secondaire', `${s.id} sur ${forme} : clé « secondaire » retenue`);
-      // Avant P6 : la seule donnée (une phase, ou deux fois la phase 1).
-      ok(!proche(calcul(normal), ATQ * s.phase1 * s.donnee.coups * k * df), `${s.id} sur ${forme} : plus le calcul d'avant P6 (${s.donnee.coups} × ${s.phase1} × ATQ)`);
+      // Avant : la seule donnée (une phase, ou deux fois la phase 1).
+      ok(!proche(calcul(normal), ATQ * s.phase1 * s.donnee.coups * k * df), `${s.id} sur ${forme} : plus le calcul de la fiche seule (${s.donnee.coups} × ${s.phase1} × ATQ)`);
       ok(proche(computeTotalDamage(p, monsterOffensivePassives(fiche(forme)), st, { ...normal, skillCom2usId: s.id }, AUCUNE_AURA_PROPRE, null), visee),
         `${s.id} sur ${forme} : computeTotalDamage = le sort seul (aucun passif)`);
 
@@ -144,7 +144,7 @@ export function testDegatsSequencesApi() {
     }
   }
 
-  titre('Lot P6, SZ-1 — la garde lit l’empreinte de la donnée, jamais le premier groupe');
+  titre('Phase de zone — la garde lit l’empreinte de la donnée, jamais le premier groupe');
   {
     // Head Press et Sagar : `coups: 2` compte les deux phases (premier groupe :
     // un coup), Sagar porte en plus `aoe: true` (premier groupe : mono-cible).
@@ -184,7 +184,7 @@ export function testDegatsFormulesApi() {
   const a224 = artefacts([{ code: 224, value: 30 }]);
 
   for (const f of FORMULES) {
-    titre(`Lot P6, HT-1 — ${f.nom} (${f.id}, ${f.monstre}) : formule vide de la fiche, formule de l'auxiliaire ${f.auxiliaire} de l'API`);
+    titre(`Formule vide — ${f.nom} (${f.id}, ${f.monstre}) : formule vide de la fiche, formule de l'auxiliaire ${f.auxiliaire} de l'API`);
     for (const forme of f.formes) {
       const brute = fiche(forme).competences.find((c) => c.com2usId === f.id)!;
       egal(brute.formule, '', `${f.id} sur ${forme} : la fiche ne porte aucune formule (précondition)`);
@@ -204,7 +204,7 @@ export function testDegatsFormulesApi() {
     }
   }
 
-  titre('Lot P6, HT-1 — Ramon : la prose (« Attacks the enemy ») l’emporte sur `aoe: true` de la donnée');
+  titre('Formule vide — Ramon : la prose (« Attacks the enemy ») l’emporte sur `aoe: true` de la donnée');
   {
     const brute = fiche(31414).competences.find((c) => c.com2usId === 21114)!;
     egal(brute.aoe, true, 'Cursed Tombstone : la donnée dit « zone » (précondition)');
@@ -212,23 +212,23 @@ export function testDegatsFormulesApi() {
     egal(sortDe(31414, 21114).aoe, false, 'Cursed Tombstone : profil mono-cible');
   }
 
-  titre('Lot P6, HT-1 — la garde « formule vide » porte sur la formule retenue');
+  titre('Formule vide — la garde « formule vide » porte sur la formule retenue');
   {
     // Même fiche, autre identifiant : aucune formule curée, la garde tient.
     const ramon = fiche(31414).competences.find((c) => c.com2usId === 21114)!;
-    egal(skillDamageProfile({ ...ramon, com2usId: 999_114 }), null, 'formule vide sans formule curée : aucun profil, comme avant P6');
-    // Hors périmètre (Q04) : les sorts « Horn » des Anges jumeaux restent sans profil.
+    egal(skillDamageProfile({ ...ramon, com2usId: 999_114 }), null, 'formule vide sans formule curée : aucun profil');
+    // Hors périmètre : les sorts « Horn » des Anges jumeaux restent sans profil.
     for (const id of [18801, 18811]) {
       const horn = fiche(29111).competences.find((c) => c.com2usId === id)!;
-      egal(skillDamageProfile(horn), null, `${id} « ${horn.nom} » : aucune formule curée, aucun profil (forme de soutien, Q04 → P17)`);
+      egal(skillDamageProfile(horn), null, `${id} « ${horn.nom} » : aucune formule curée, aucun profil (forme de soutien)`);
     }
   }
 }
 
-// Lot P22 — la prose dit « all enemies », la donnée dit `aoe: false` : la prose
-// l'emporte (règle D12). Une entrée par identifiant ; `prose` est le début de la
+// La prose dit « all enemies », la donnée dit `aoe: false` : la prose
+// l'emporte. Une entrée par identifiant ; `prose` est le début de la
 // description de la fiche (précondition lue sur le corpus), `formes` les formes
-// porteuses (balayage du corpus, contrôle p22).
+// porteuses (balayage du corpus).
 const PORTEES_PAR_LA_PROSE: { id: number; nom: string; monstres: string; formes: number[]; prose: string }[] = [
   { id: 20014, nom: 'Hollow Purple', monstres: 'Satoru Gojo', formes: [30304, 30314], prose: 'Removes all harmful effects on all allies and attacks all enemies to deal damage' },
   { id: 20614, nom: 'Explosion and Blaze', monstres: 'Werner', formes: [30904, 30914], prose: 'Removes all harmful effects on all allies and attacks all enemies to deal damage' },
@@ -249,7 +249,7 @@ export function testDegatsPorteesParLaProse() {
     computeSkillDamageDetail(p, st, setup, AUCUNE_AURA_PROPRE, null, undefined, a).total;
 
   for (const e of PORTEES_PAR_LA_PROSE) {
-    titre(`Lot P22 — ${e.nom} (${e.id}, ${e.monstres}) : « ${e.prose} » l'emporte sur \`aoe: false\``);
+    titre(`Prose d’attaque — ${e.nom} (${e.id}, ${e.monstres}) : « ${e.prose} » l'emporte sur \`aoe: false\``);
     for (const forme of e.formes) {
       const brute = fiche(forme).competences.find((c) => c.com2usId === e.id)!;
       egal(brute.aoe, false, `${e.id} sur ${forme} : la donnée dit « une cible » (précondition)`);

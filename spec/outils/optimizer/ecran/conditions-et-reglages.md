@@ -50,6 +50,15 @@
      exclues » ne s'applique qu'à PV/ATQ/DEF/VIT : Taux Crit, Dmg Crit, RES
      et Précision restent toujours des totaux. Affiché en `placeholder`
      tant que rien n'est saisi.
+   - **La condition de VIT porte sur la VIT de la fiche** : base, runes et
+     bonus de set, Swift compris, comme `computeStats` la calcule ; ni lead,
+     ni compétence d'invocateur, ni buff de vitesse, ni amplification
+     d'artéfact. Ne pas y proposer une « vitesse finale » visée, buff et
+     amplification compris, parce que l'ordre des tours se joue tick par
+     tick sur la vitesse de combat, sans buff : viser une vitesse finale ne
+     garantit aucun speed tune. Les deux fonctions de conversion qui
+     restent, sans appelant à l'écran, sont décrites dans
+     [../moteur/optimiseur-artefacts.md](../moteur/optimiseur-artefacts.md).
 
 ## Grille des conditions
 
@@ -168,8 +177,8 @@
      le meilleur trouvé jusque-là. ⚠️ Ne retire que la limite de TEMPS — le
      plafond interne de candidats collectés (non réglable) reste actif ; une
      recherche assez large pour l'atteindre s'arrête quand même avant d'avoir
-     tout exploré, ce qui n'a en pratique aucune conséquence sur la qualité
-     du résultat (voir ../limites-connues.md § Limites connues). Fait partie
+     tout exploré, et un meilleur build peut alors manquer (voir
+     ../limites-connues.md § Limites connues). Fait partie
      des réglages exportés/importés dans une recette (voir
      lancer-la-recherche.md § Lancer la recherche).
    - **« Diagnostic approfondi sur 0 résultat »**, décoché par défaut (plus

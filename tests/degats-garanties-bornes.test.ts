@@ -1,4 +1,4 @@
-// Garanties de critique et bornes strictes (degats-et-aura 15d, damage.ts) :
+// Garanties de critique et bornes strictes (damage.ts) :
 //   - Byungchul : la garantie de son passif 18613 sur ses deux sorts actifs
 //     (`CRITIQUES_GARANTIS_INCONDITIONNELS`) ;
 //   - Yuji et Rick (S2) : critique garanti contre une cible affligée, et sur
@@ -93,7 +93,7 @@ function score(forme: number, setup: DamageSetup): number {
 }
 
 export function testGarantieByungchul() {
-  titre('Byungchul — la garantie du passif 18613 sur S1 et S2 (degats-et-aura 15d)');
+  titre('Byungchul — la garantie du passif 18613 sur S1 et S2');
   const prose = fiche(28913).competences.find((c) => c.com2usId === 18613)?.description ?? '';
   ok(prose.includes('Your attacks will always land as a Critical Hit whenever you attack the enemy'),
     '18613 — la prose du passif porte la garantie sans condition');
@@ -125,7 +125,7 @@ const YUJI_RICK: [number, number, string][] = [
 ];
 
 export function testGarantieYujiRick() {
-  titre('Yuji et Rick (S2) — critique garanti contre une cible affligée, coup 2 après la réduction de DEF (degats-et-aura 15d)');
+  titre('Yuji et Rick (S2) — critique garanti contre une cible affligée, coup 2 après la réduction de DEF');
   for (const [forme, sort, nom] of YUJI_RICK) {
     const p = profilDe(forme, sort);
     const c = fiche(forme).competences.find((x) => x.com2usId === sort)!;
@@ -135,7 +135,7 @@ export function testGarantieYujiRick() {
     egal(p.conditionsCombat, [{ type: 'debuffCiblePresent', critiqueGaranti: true }],
       `${sort} ${nom} — condition « débuff sur la cible » qui garantit le critique`);
     egal(p.effetsEntreCoups, [{ id: 'decrease-def', label: 'Réduction de DEF', cumulable: false, effetCombat: 'defBreak' }],
-      `${sort} ${nom} — réduction de DEF posable entre les coups, comptée comme débuff ET comme Brise DEF pour le coup 2 (décision du 2026-10-03)`);
+      `${sort} ${nom} — réduction de DEF posable entre les coups, comptée comme débuff ET comme Brise DEF pour le coup 2`);
 
     const element = forme % 10 === 2 ? 'fire' : forme % 10 === 3 ? 'wind' : 'dark';
     const total = (s: Partial<DamageSetup>) =>
@@ -159,8 +159,9 @@ export function testGarantieYujiRick() {
       `${sort} ${nom} — Brise DEF saisie : débuff présent, les deux coups critiques`);
   }
 
-  // Décision de l'utilisateur du 2026-10-03 (degats-et-aura 15f) : la
-  // réduction de DEF du coup 1 baisse aussi la DEF que subit le coup 2. Les
+  // La réduction de DEF du coup 1 baisse aussi la DEF que subit le coup 2
+  // (`spec/outils/degats-reels/conditions-et-audit.md`, « Correctifs de
+  // contexte et de dégâts fixes »). Les
   // totaux du témoin Yuji vent (1 000 ATQ, 100 % de Dgts Crit, DEF cible
   // 1 000, « Non critique ») sont figés en valeur : 848,5363 sans scénario
   // (inchangé), 2 231,2793 avec la réduction posée après le coup 1.
@@ -186,7 +187,7 @@ export function testGarantieYujiRick() {
 }
 
 export function testBornesStrictesDef() {
-  titre('Bornes de DEF — strictes pour Jaara et Varus, inclusives pour Copper et Guard Crush (degats-et-aura 15d)');
+  titre('Bornes de DEF — strictes pour Jaara et Varus, inclusives pour Copper et Guard Crush');
 
   // Chaque entrée du corpus qui compare la DEF de la cible doit être
   // classée ici, sa borne lue dans SA prose. Une entrée nouvelle fait
@@ -228,7 +229,7 @@ export function testBornesStrictesDef() {
   // ignore toujours la DEF. ⚠️ Comparer au total contre une DEF NULLE, pas
   // au total un point de DEF plus haut : une DEF plus basse augmente déjà
   // les dégâts sans aucun ignore DEF, et `seuil > seuil + 1` passait encore
-  // sous une borne stricte (mutation du lot 15d). Stats de combat = celles
+  // sous une borne stricte (mutation éprouvée). Stats de combat = celles
   // du build (aucun passif de stat transmis) : 800 DEF, 1 000 ATQ.
   const ignoreAuSeuil = (p: SkillDamageProfile, seuil: number) => {
     const degats = (def: number) => computeSkillDamage(p, build, { ...base, enemyDef: def }, AUCUNE_AURA_PROPRE);
@@ -248,7 +249,7 @@ function carte(): string {
 }
 
 export function testResumeConditionDef() {
-  titre('Résumé des comparaisons de DEF — effet et borne lus sur l’entrée (DamageSetupCard.tsx, degats-et-aura 15d)');
+  titre('Résumé des comparaisons de DEF — effet et borne lus sur l’entrée (DamageSetupCard.tsx)');
   const source = carte();
   ok(/function effetCondition\(/.test(source), 'un seul producteur de l’effet d’une condition');
   ok(source.includes("if (condition.critiqueGaranti) return 'critique garanti';"),
@@ -260,7 +261,7 @@ export function testResumeConditionDef() {
 }
 
 export function testResumeConditionDebuff() {
-  titre('Résumé « débuff sur la cible » — l’effet lu sur l’entrée (DamageSetupCard.tsx, degats-et-aura 15d)');
+  titre('Résumé « débuff sur la cible » — l’effet lu sur l’entrée (DamageSetupCard.tsx)');
   const source = carte();
   ok(source.includes("return `${effetCondition(condition)} si la cible a un débuff`;"),
     'débuff sur la cible : l’effet suit l’entrée (Triss : ignore DEF ; Yuji, Rick : critique garanti)');

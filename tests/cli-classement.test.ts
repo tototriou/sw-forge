@@ -1,19 +1,19 @@
-// degats-et-aura 6bis-b5c — le classement du CLI (`optimizer-search.ts`, par
+// Le classement du CLI (`optimizer-search.ts`, par
 // `classerCommeLEcran`) contre celui de l'écran, dans les trois modes de
 // relique, sur une vraie recherche (`runSearchToCompletion`, le chemin du
 // script) et un vrai monstre (Lushen, pour le sort et l'éligibilité).
 //
 // L'écran est représenté par ses producteurs, assemblés ici comme
 // OptimizerSection.tsx les assemble : `optionsDeClassement` (ordre de base
-// et classement affiché, 6bis-b5a), `entreeResolutionDuBuild` +
+// et classement affiché), `entreeResolutionDuBuild` +
 // `resoudreEquipementDuBuild` (la file), `classementResolu` (`affichees`), et
 // les conditions recalculées depuis la recette (`avecAurasConditions`, comme
 // `requirementAvecAuras`). Seul `artifactParams` (un mémo React) n'a pas
 // d'équivalent hors navigateur : son pendant CLI, `artefactsDuCli`, en tient
-// lieu. Depuis 6bis-b6, les deux passent par le même producteur
+// lieu. Les deux passent par le même producteur
 // (`parametresArtefactsFiche`) — prouvé à part, `artifact-params-fiche.test.ts`.
 //
-// Attentes INDÉPENDANTES du chemin testé (A.6 bis : la note de référence est
+// Attentes INDÉPENDANTES du chemin testé (la note de référence est
 // celle de la production pour l'équipement complet) :
 // - chaque score imprimé = `scoreDeReference` de l'équipement complet du
 //   build (ses runes, la paire et la relique retenues), qui recalcule tout
@@ -23,8 +23,8 @@
 //   sans `chercherPaires` ni dominance, par le prédicat exact
 //   `respecteConditionsAvecRelique`.
 //
-// Fixture calibrée le 2026-10-01 (script d'exploration de la preuve
-// controle-6bis-b5c.md) : trois runes par emplacement (ATQ, DEF, mixte),
+// Fixture calibrée par un script d'exploration hors dépôt :
+// trois runes par emplacement (ATQ, DEF, mixte),
 // deux reliques — celle de la fiche, DEF % avec une Conquête sans effet
 // (tranche 3 000), et une ATQ % avec Conquête 2 % par 1 000 ATQ —, quatre
 // artéfacts à +50, minimums ATQ et DEF simultanés : le moteur relâche chaque
@@ -104,7 +104,7 @@ const LOADED: LoadedMonster = {
  * la déroule, sans navigateur — UN build par tranche, le premier de
  * `prochainsATraiter(ordre de base, cache, cibleDeLaFile(contexte lancé,
  * interrupteur), page)` — 300 confirmées en mode « recherche », 100 sinon
- * (6bis-b8, 6bis-b18), tout avec l'interrupteur —, la page
+ * tout avec l'interrupteur —, la page
  * (20 lignes, `RESULTS_PAGE_SIZE`) recalculée à chaque tranche, jusqu'à ce
  * qu'il ne reste rien. `file` faux : tous les candidats résolus.
  */
@@ -129,7 +129,7 @@ function classementEcran(recipe: OptimizerRecipe, candidats: BuildCandidate[], r
   const regimeEquipement = regimeEquipementDe(regimeArtefacts(recipe.objective), a.degats != null);
   const requirementAvecAuras = avecAurasConditions(recipe.requirement, damageSetup, recipe.compterAurasResPre ?? true);
   const parBuild = new Map<string, ResultatArtefacts>();
-  // `cachesResolution` de l'écran : un jeu pour toute la file (6bis-b13).
+  // `cachesResolution` de l'écran : un jeu pour toute la file.
   const caches = nouveauxCachesResolution();
   const resoudre = (c: BuildCandidate) => resoudreEquipementDuBuild(entreeResolutionDuBuild({
     fiche, runes: c.runeIds.map((id) => runeById.get(id)!).filter(Boolean), artifactParams: a.params, regime: regimeEquipement,
@@ -161,7 +161,7 @@ function classementEcran(recipe: OptimizerRecipe, candidats: BuildCandidate[], r
 }
 
 export function testCliClassementParMode() {
-  titre('CLI — résolution par build et classement de l’écran, trois modes de relique (6bis-b5c)');
+  titre('CLI — résolution par build et classement de l’écran, trois modes de relique');
 
   const cas: { mode: 'off' | 'equipped' | 'recherche'; atk: number; def: number }[] = [
     { mode: 'off', atk: 1250, def: 900 },
@@ -245,8 +245,8 @@ export function testCliClassementParMode() {
       ok(etats.every((r) => r === undefined), 'equipped : aucune relique résolue, celle de la fiche compte (état « fixe »)');
     }
 
-    // Mode par DÉFAUT du CLI, comme la file de l'écran (décision utilisateur
-    // du 2026-10-01, option 2) : comparé au hook déroulé build par build.
+    // Mode par DÉFAUT du CLI, comme la file de l'écran (file non exhaustive,
+    // voir plus bas) : comparé au hook déroulé build par build.
     const cliFile = classerCommeLEcran({ recipe, loaded: LOADED, params, candidates: res.candidates, realDamage, toutResoudre: false });
     const ecranFile = classementEcran(recipe, res.candidates, realDamage, true);
     const lignes = (classes: BuildCandidate[], options: OptionsDeClassement) =>
@@ -259,17 +259,17 @@ export function testCliClassementParMode() {
       const r = cliFile.resolu!;
       egal(r.mode, 'file', `${mode}, file : mode par défaut`);
       ok(cliFile.classes.slice(0, LIGNES_IMPRIMEES).every((c) => r.parBuild.has(cleBuild(c))), `${mode}, file : les ${LIGNES_IMPRIMEES} lignes imprimées sont toutes résolues`);
-      // 6bis-b8 : la file en mode `recherche` résout 300 builds, 100 en
+      // La file en mode `recherche` résout 300 builds, 100 en
       // `equipped` — valeur attendue écrite en dur, indépendante de `kDeLaFile`.
       egal(r.K, mode === 'recherche' ? K_BUILDS_RECHERCHE_RELIQUE : K_BUILDS_OPTIMISES, `${mode}, file : K = ${r.K}`);
-      egal([K_BUILDS_OPTIMISES, K_BUILDS_RECHERCHE_RELIQUE], [100, 300], 'les deux tailles de file décidées le 2026-10-01');
+      egal([K_BUILDS_OPTIMISES, K_BUILDS_RECHERCHE_RELIQUE], [100, 300], 'les deux tailles de file : 100 et 300');
       ok(cliFile.base.slice(0, r.K).every((c) => r.parBuild.has(cleBuild(c))), `${mode}, file : les ${r.K} premiers de l’ordre de base sont résolus`);
-      // 6bis-b18 : K CONFIRMÉES — attente indépendante de `prochainsATraiter`,
+      // K CONFIRMÉES — attente indépendante de `prochainsATraiter`,
       // relue sur le cache et l'ordre de base : K résolus et conformes, ou tout
       // l'ordre de base résolu, et tout build avant la K-ième confirmée résolu.
       // (« Rien après » ne se vérifie pas ici : la « page » du CLI change d'un
-      // lot à l'autre et fait résoudre des builds plus loin — 107 en `equipped`,
-      // comme avant ce lot ; prouvé sans page dans `testFileConfirmees`.)
+      // lot à l'autre et fait résoudre des builds plus loin — 107 en `equipped` ;
+      // prouvé sans page dans `testFileConfirmees`.)
       {
         let vues = 0;
         let fin = cliFile.base.length;
@@ -292,14 +292,12 @@ export function testCliClassementParMode() {
       egal(cliFile.classes.slice(0, LIGNES_IMPRIMEES)
         .filter((c) => !proche(scoreDuCandidat(c, recipe.objective, cliFile.options), scoreDeReference(recipe.objective, equipementFile(c), ref)))
         .map(cleBuild), [], `${mode}, file : les ${LIGNES_IMPRIMEES} scores imprimés = note de production de l’équipement complet`);
-      // ⚠️ La file n'est PAS exhaustive (le prix de l'option 2, comme à
-      // l'écran) : en `recherche`, l'ordre de base ignore la relique, et un
-      // build au-delà de la K-ième confirmée (300 depuis 6bis-b8) peut remonter
-      // très haut une fois résolu — la file ne le résout pas. Sur cette
-      // fixture, faite pour cela, les manquants venaient des rangs de base 305
-      // à 399 tant que la file s'arrêtait aux 300 premiers ; depuis 6bis-b18,
-      // elle continue au-delà des 112 écartés jusqu'à 300 confirmées (rang 412)
-      // et n'en manque plus aucun — la limite demeure en principe. Ce qui est garanti : un build des
+      // ⚠️ La file n'est PAS exhaustive (comme à l'écran) : en `recherche`,
+      // l'ordre de base ignore la relique, et un build au-delà de la K-ième
+      // confirmée (300) peut remonter très haut une fois résolu — la file ne
+      // le résout pas. Sur cette fixture, faite pour cela, la file continue
+      // au-delà des 112 écartés jusqu'à 300 confirmées (rang 412) et n'en
+      // manque aucun — la limite demeure en principe. Ce qui est garanti : un build des
       // vingt premiers de `--resoudre-tout` absent des lignes de la file n'a
       // JAMAIS été résolu par elle (un build résolu y aurait sa note exacte,
       // et vingt lignes résolues au-dessus de lui contrediraient son rang
@@ -313,7 +311,7 @@ export function testCliClassementParMode() {
         `${mode}, file : ${manquants.length} des ${LIGNES_IMPRIMEES} premiers de --resoudre-tout absents de la file, aucun résolu par elle` +
           (manquants.length ? ` (rangs exhaustifs ${JSON.stringify(manquants.map((k) => tout.indexOf(k) + 1))}, rangs dans l'ordre de base ${JSON.stringify(rangsBase.map((i) => i + 1))})` : ''));
 
-      // 6bis-b18 : « Vérifier toutes les combinaisons trouvées » dans la
+      // « Vérifier toutes les combinaisons trouvées » dans la
       // recette — le CLI, en mode par défaut, résout TOUT, comme la file de
       // l'écran avec l'interrupteur ; et son classement est celui de
       // `--resoudre-tout`.

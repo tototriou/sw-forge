@@ -1,4 +1,4 @@
-// degats-et-aura 6bis-b11 — la voie de la file de résolution (`voieDeLaFile`,
+// La voie de la file de résolution (`voieDeLaFile`,
 // artifactQueue.ts) : tant que la page affichée contient un build non résolu,
 // la tranche suivante part par une tâche IMMÉDIATE ; sinon, l'avance de fond
 // (les K premiers) attend l'inactivité, comme avant ; rien à traiter, rien
@@ -16,7 +16,7 @@ import { egal, ok, titre } from './outils';
 
 const build = (...runeIds: number[]) => ({ runeIds }) as unknown as BuildCandidate;
 // Le cache du hook est une `Map` (clé → résultat) : des résultats conformes ici,
-// la conformité ne changeant la fenêtre que pour un écarté (6bis-b18).
+// la conformité ne changeant la fenêtre que pour un écarté.
 type Cache = Map<string, { conforme: boolean }>;
 const cache = (...cles: string[]): Cache => new Map(cles.map((c) => [c, { conforme: true }]));
 
@@ -29,7 +29,7 @@ function bloc(src: string, debut: string, fin: string): string {
 }
 
 export function testVoieDeLaFile() {
-  titre('File de résolution — la voie de la prochaine tranche (6bis-b11)');
+  titre('File de résolution — la voie de la prochaine tranche');
 
   const triees = [build(1), build(2), build(3), build(4), build(5)];
   const K = 3;
@@ -106,8 +106,8 @@ export function testVoieDeLaFile() {
   const reveiller = bloc(hook, 'const reveiller = () => {', '\n    };');
   ok(/voieDeLaFile\(aTraiter\(\), pageRef\.current\(\), cacheRef\.current\)/.test(reveiller), 'réveil : la voie vient de `voieDeLaFile`');
   ok(/if \(voie === 'aucune'\) \{[^}]*return setEnAttente\(0\);\s*\}/.test(reveiller), 'réveil : rien à traiter, rien de planifié');
-  // Revue externe de la v1.14.0, constat 4 : une relance de l'effet (K qui
-  // change) trouvait la file vide sans publier les écritures retenues.
+  // Une relance de l'effet (K qui change) qui trouve la file vide doit
+  // publier les écritures retenues.
   ok(/if \(voie === 'aucune'\) \{\s*if \(nonPublieeRef\.current\) publier\(true\);/.test(reveiller),
     'réveil : file vide sur une écriture retenue → publication forcée, comme le chemin Worker');
   ok(/const nonPublieeRef = useRef\(false\);/.test(hook), 'le drapeau d’écriture retenue survit à une relance de l’effet (ref)');

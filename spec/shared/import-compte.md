@@ -52,7 +52,7 @@ unique : **pas d'écran d'attente**, il n'aurait fait que clignoter.
 > ⚠️⚠️ **MAIS L'IDENTITÉ D'UNE ÉQUIPE SURVIT AU REMPLACEMENT.** `importTeams`
 > régénérait l'`id` de chaque équipe (`newId()`), alors que les **listes de
 > travail de l'Optimizer** désignent un monstre par `{ teamId, slotIndex }`
-> (voir [../outils/optimizer.md](../outils/optimizer.md)). Plus aucun sélecteur
+> (voir [../outils/optimizer/listes-et-reservation.md](../outils/optimizer/listes-et-reservation.md)). Plus aucun sélecteur
 > ne résolvait après un import, et la revérification supprimait
 > **définitivement** tous les membres et builds validés venus du siège — sur le
 > geste même qu'elle est censée servir. Ce n'était pas « mon compte a changé »,
@@ -67,6 +67,30 @@ unique : **pas d'écran d'attente**, il n'aurait fait que clignoter.
 
 Message global récapitulatif **éphémère** (disparaît seul ~5 s ; ~9 s pour une
 erreur) : « Import : N monstres 6★ · N monstres RTA · N défenses · N attaques ».
+
+### Le dossier SW Exporter — l'app de bureau seulement
+
+Dans l'**application de bureau**, le bloc « Application » des Réglages laisse choisir le **dossier SW
+Exporter** et l'**invocateur** à suivre (ses exports `<nom>-<id>.json` à la
+racine) — l'invocateur aussi depuis la **carte du compte** de la barre
+latérale, qui devient alors un menu. Chaque nouvel export de cet invocateur — au lancement s'il est plus
+récent que le dernier lu, puis à chaque écriture tant que l'app est ouverte —
+met à jour **« Mon compte » seulement** (box 6★, inventaire, reliques, runes
+utilisées, marqueurs), annoncé par « Compte de <invocateur> mis à jour depuis
+SW Exporter ».
+
+- ⚠️ **Jamais la prépa RTA ni le siège.** L'import complet les REMPLACE
+  (classement RTA, leads et ticks remis à zéro) : le faire à chaque
+  connexion au jeu effacerait le travail de l'utilisateur. Ils restent à
+  importer à la main, comme ci-dessus.
+- **Un seul chemin** : `appliquerCompte` (App.tsx) est la moitié « Mon
+  compte » de l'import manuel, appelée par les deux — même extraction, même
+  enregistrement (selon « Garder mes données »), même remise à zéro de
+  l'exclusion de runes et du speed tuning quand l'invocateur CHANGE
+  (`wizard_id`).
+- Pas de question de conservation : le dossier est un réglage, posé une fois.
+- Détail (surveillance, réglage retenu, export illisible) :
+  [application-bureau.md](application-bureau.md) § « Le dossier SW Exporter ».
 
 Helpers partagés par les deux parseurs : `runeSpeed` (SPD d'une rune : mainstat +
 prefix + substats avec meule), `indexRunes` (index rune_id → rune, inventaire +
@@ -267,13 +291,14 @@ stockage.
   `upgrade` = `upgrade_curr` (filtre de niveau et affichage, jamais la valeur
   de `main`, qui reste lue dans `pri_effect`). `relicUsageById` : occupation
   par rid, comptée sur les unités (`unit.relics[0].rid`), jamais sur
-  `data.relics.length` — voir [outils/optimizer/reliques.md](../outils/optimizer/reliques.md)
-  § 7. `relicUpgradeMismatches` : nombre de pièces où
+  `data.relics.length` — voir
+  [outils/optimizer/moteur/reliques.md § Ce que le moteur lit d'une relique](../outils/optimizer/moteur/reliques.md).
+  `relicUpgradeMismatches` : nombre de pièces où
   `pri_effect[1] ≠ upgrade_curr + 3`, un avertissement jamais une correction.
 - Utilisé par les sous-sections **Runes** et **Artéfacts** (voir
   [compte/runes.md](../compte/runes.md), [compte/artefacts.md](../compte/artefacts.md)),
   et par l'Optimizer pour la relique (voir
-  [outils/optimizer/reliques.md](../outils/optimizer/reliques.md)).
+  [outils/optimizer/moteur/reliques.md](../outils/optimizer/moteur/reliques.md)).
 
 ### Marqueurs de runes — `rune_lock_list` + `markers`
 
@@ -351,8 +376,17 @@ IndexedDB n'a aucun de ces défauts, et son **structured clone** évite le
 
 ### Ce qu'on stocke
 
-Une base `sw-forge`, un store `account`, **une clé fixe** `current` :
+Une base `swblacksmith`, un store `account`, **une clé fixe** `current` :
 `{ schema, savedAt, box, runes, artifacts, relics, crafts, usedRuneIds, relicUsageById, runeMarkerLabels }`.
+
+- ⚠️ **La base s'appelait `sw-forge`** jusqu'au rebranding.
+  À la première ouverture, `reprendreAncienneBase` recopie son compte dans la
+  nouvelle, le RELIT, puis supprime l'ancienne — avant toute opération de la
+  file, sinon la première lecture rendrait « aucun compte ». Un compte déjà
+  présent dans la nouvelle base fait foi. Copie impossible : l'ancienne reste,
+  reprise au lancement suivant. ⚠️ `indexedDB.open` créerait une base absente :
+  la création est annulée (`oldVersion === 0`), aucune base `sw-forge` vide
+  n'apparaît.
 
 - ⚠️ **La sortie des extracteurs (`BoxMonster[]`), jamais l'état affiché
   (`BoxItem[]`).** Un `BoxItem` embarque l'objet `Monster` complet : ça duplique

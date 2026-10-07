@@ -46,10 +46,10 @@ interface Props {
    */
   selection?: Selected;
   onSelectionChange?: (s: Selected) => void;
-  // Occupation par `rid` (`n / 150`, D3), affichée dans le détail de la
-  // relique — SEUL l'Optimizer la fournit (implementation-relique, B.5c ter) :
-  // `undefined` pour RTA, Siège, speed tuning, le sélecteur d'exclusion — hors
-  // périmètre de ce lot, aucune ligne de compteur n'y apparaît, comme avant.
+  // Occupation par `rid` (`n / 150`), affichée dans le détail de la
+  // relique — SEUL l'Optimizer la fournit :
+  // `undefined` pour RTA, Siège, speed tuning, le sélecteur d'exclusion —
+  // aucune ligne de compteur n'y apparaît.
   relicUsageById?: Record<number, number>;
 }
 
@@ -80,7 +80,7 @@ export default function MonsterGear({
     !!s &&
     sel.kind === s.kind &&
     (sel.kind === 'relic' || (s as { i: number }).i === (sel as { i: number }).i);
-  // ⚠️ Plus de forme « updater » : `setSel` est désormais un simple appel (il
+  // ⚠️ Pas de forme « updater » : `setSel` est un simple appel (il
   // peut router vers le parent), et `isSel` lit déjà la valeur courante.
   const toggle = (s: Exclude<Selected, null>) => setSel(isSel(s) ? null : s);
 
@@ -252,7 +252,7 @@ export default function MonsterGear({
         // ⚠️ **Plus de `compact:w-full`** — cette classe forçait le groupe à
         // occuper toute la largeur de sa propre ligne, EXACTEMENT ce qui
         // l'empêchait de rester à côté du panneau de stats au doigt. La mise
-        // à l'échelle ci-dessus s'en charge désormais.
+        // à l'échelle ci-dessus s'en charge.
         //
         // ⚠️ **`w-max`, LA VRAIE cause de la saccade signalée** (le plancher
         // continu de la révision précédente n'y était pour rien). Sans lui,
@@ -372,7 +372,7 @@ export default function MonsterGear({
           `ArtifactSlots` (toujours 2 emplacements, un vide grisé à l'icône
           `Ban`) et la roue de runes (toujours rendue, même à 0 rune).
           ⚠️ **`RelicSlot`, partagé avec la carte candidat de l'Optimizer**
-          (implementation-relique, B.5c bis) — voir RelicSlot.tsx : LE modèle
+ — voir RelicSlot.tsx : LE modèle
           que la carte candidat reprend, jamais une copie. */}
       <RelicSlot
         relic={gear.relic}

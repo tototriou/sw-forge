@@ -4,7 +4,7 @@ import { saveLocal, usePersistence } from './usePersistence';
 
 const RUNE_SET_KEYS = new Set(RUNE_SETS.map((s) => s.key));
 
-const STORAGE_KEY = 'sky-arena-rta-v1';
+const STORAGE_KEY = 'swblacksmith-rta-v1';
 
 function defaultState(): RtaState {
   return { sections: [...RTA_DEFAULT_SECTIONS], entries: {} };
@@ -41,6 +41,8 @@ export interface UseRtaState {
   state: RtaState;
   addMonster: (id: string) => void;
   removeMonster: (id: string) => void;
+  // « Annuler » un retrait : remet l'entrée telle quelle (lot 13).
+  restaurerMonstre: (entry: RtaEntry) => void;
   moveMonster: (id: string, section: string) => void;
   setRuneSpeed: (id: string, value: number | null) => void;
   addSection: (key: string) => void;
@@ -94,6 +96,14 @@ export function useRtaState(): UseRtaState {
       delete entries[id];
       return { ...s, entries };
     });
+  }, []);
+
+  // « Annuler » un retrait (refonte graphique, lot 13, décision 29) : remet
+  // l'entrée TELLE QUELLE — section, vitesse saisie, sets, équipement. Sa place
+  // dans la section suit le tri par vitesse, donc elle retrouve la sienne.
+  // Sans effet si le monstre est revenu entre-temps (ajouté à nouveau).
+  const restaurerMonstre = useCallback((entry: RtaEntry) => {
+    setState((s) => (s.entries[entry.monsterId] ? s : { ...s, entries: { ...s.entries, [entry.monsterId]: entry } }));
   }, []);
 
   const moveMonster = useCallback((id: string, section: string) => {
@@ -200,6 +210,7 @@ export function useRtaState(): UseRtaState {
     state,
     addMonster,
     removeMonster,
+    restaurerMonstre,
     moveMonster,
     setRuneSpeed,
     addSection,

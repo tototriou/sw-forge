@@ -28,26 +28,32 @@ export default async function testPersistance() {
   /* --- Refus : plus rien ne doit atteindre le disque -------------------- */
 
   P.setPersistence(false);
-  P.saveLocal('sky-arena-rta-v1', '{"entries":{}}');
-  P.saveLocal('sw-forge-siege-defense-v1', '{"teams":[]}');
-  egal(mem.get('sky-arena-rta-v1'), undefined, 'refus → la prépa RTA n’est pas écrite');
-  egal(mem.get('sw-forge-siege-defense-v1'), undefined, 'refus → le siège n’est pas écrit');
-  egal(mem.get('sw-forge-persist-v1'), '0', 'le choix lui-même reste mémorisé');
+  P.saveLocal('swblacksmith-rta-v1', '{"entries":{}}');
+  P.saveLocal('swblacksmith-siege-defense-v1', '{"teams":[]}');
+  egal(mem.get('swblacksmith-rta-v1'), undefined, 'refus → la prépa RTA n’est pas écrite');
+  egal(mem.get('swblacksmith-siege-defense-v1'), undefined, 'refus → le siège n’est pas écrit');
+  egal(mem.get('swblacksmith-persist-v1'), '0', 'le choix lui-même reste mémorisé');
+  // La sauvegarde de session lit le travail dans le miroir : refusé, il
+  // n'est que là.
+  egal(P.lireTravail('swblacksmith-rta-v1'), '{"entries":{}}', 'refus → la session lit quand même la prépa RTA (miroir)');
+  egal(P.lireTravail('swblacksmith-recos-inconnues-v1'), null, 'une clé jamais écrite → rien');
+  P.oublierLocal('swblacksmith-siege-defense-v1');
+  egal(P.lireTravail('swblacksmith-siege-defense-v1'), null, 'oublierLocal vide aussi le miroir');
 
   /* --- Acceptation ------------------------------------------------------ */
 
   P.setPersistence(true);
-  P.saveLocal('sky-arena-rta-v1', '{"entries":{"a":1}}');
-  P.saveLocal('sw-forge-rune-metric-v1', 'score');
-  egal(mem.get('sky-arena-rta-v1'), '{"entries":{"a":1}}', 'acceptation → la prépa RTA est écrite');
+  P.saveLocal('swblacksmith-rta-v1', '{"entries":{"a":1}}');
+  P.saveLocal('swblacksmith-rune-metric-v1', 'score');
+  egal(mem.get('swblacksmith-rta-v1'), '{"entries":{"a":1}}', 'acceptation → la prépa RTA est écrite');
 
   /* --- Retour en arrière : purge des DONNÉES, pas des RÉGLAGES ---------- */
 
   P.setPersistence(false);
   await new Promise((r) => setTimeout(r, 20));
-  egal(mem.get('sky-arena-rta-v1'), undefined, 'refus après coup → la prépa RTA est effacée');
-  egal(mem.get('sw-forge-rune-metric-v1'), 'score', 'le réglage de score survit à la purge');
-  egal(mem.get('sw-forge-persist-v1'), '0', 'le choix survit à la purge');
+  egal(mem.get('swblacksmith-rta-v1'), undefined, 'refus après coup → la prépa RTA est effacée');
+  egal(mem.get('swblacksmith-rune-metric-v1'), 'score', 'le réglage de score survit à la purge');
+  egal(mem.get('swblacksmith-persist-v1'), '0', 'le choix survit à la purge');
 
   /* --- « Ne plus me montrer » : la SESSION, et rien de plus ------------- */
 
@@ -65,15 +71,15 @@ export default async function testPersistance() {
   // dont il dispose depuis toujours.
   const cas: [string, Record<string, string>, boolean][] = [
     ['navigateur vierge → on ne conserve pas', {}, false],
-    ['siège déjà sur le disque → consentement repris', { 'sw-forge-siege-defense-v1': '{}' }, true],
-    ['ancien réglage compte = oui → repris', { 'sw-forge-keep-account-v1': '1' }, true],
-    ['ancien réglage compte = non → repris', { 'sw-forge-keep-account-v1': '0' }, false],
+    ['siège déjà sur le disque → consentement repris', { 'swblacksmith-siege-defense-v1': '{}' }, true],
+    ['ancien réglage compte = oui → repris', { 'swblacksmith-keep-account-v1': '1' }, true],
+    ['ancien réglage compte = non → repris', { 'swblacksmith-keep-account-v1': '0' }, false],
     [
       'choix récent prioritaire sur les deux autres',
-      { 'sw-forge-persist-v1': '0', 'sw-forge-keep-account-v1': '1', 'sky-arena-rta-v1': '{}' },
+      { 'swblacksmith-persist-v1': '0', 'swblacksmith-keep-account-v1': '1', 'swblacksmith-rta-v1': '{}' },
       false,
     ],
-    ['un réglage seul ne vaut pas consentement', { 'sw-forge-rune-metric-v1': 'score' }, false],
+    ['un réglage seul ne vaut pas consentement', { 'swblacksmith-rune-metric-v1': 'score' }, false],
   ];
   for (const [libelle, stockage, attendu] of cas) {
     egal(P.etatDepuisStockage(stockage).actif, attendu, libelle);

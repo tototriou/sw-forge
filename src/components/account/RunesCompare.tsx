@@ -4,6 +4,7 @@ import { RuneDetail } from '../../types';
 import { runeEfficiency, runeScore } from '../../lib/effects';
 import { encodeCurveJson, decodeCurve } from '../../lib/runeCurveShare';
 import { parseAccountInventory } from '../../lib/importAccount';
+import { telechargerTexte } from '../../lib/telechargement';
 import { ConfirmDialog, PromptDialog } from '../../ui/Dialogs';
 import { useStickyState } from '../../hooks/useStickyState';
 import { useRuneMetric } from '../../hooks/useRuneMetric';
@@ -20,6 +21,7 @@ import AncientFilter, {
 } from './AncientFilter';
 import Bouton from '../../ui/Bouton';
 import Segmented from '../../ui/Segmented';
+import { PREFIXE_FICHIER } from '../../marque';
 
 interface Props {
   runes: RuneDetail[];
@@ -47,16 +49,6 @@ interface AccountOverlay {
 type Onglet = 'courbes' | 'comptes';
 
 const desc = (a: number, b: number) => b - a;
-
-function download(filename: string, text: string) {
-  const blob = new Blob([text], { type: 'application/json;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
-}
 
 // ⚠️ DEUX onglets, parce que les deux formats ne portent pas la même chose.
 //
@@ -109,7 +101,11 @@ export default function RunesCompare({ runes }: Props) {
 
   return (
     <div>
-      <div className="mb-3 flex items-center gap-2 flex-wrap">
+      <div className="mb-3 flex items-center gap-2 flex-wrap lg:gap-3">
+        {/* ⚠️ **À la SOURIS, le titre de la vue en tête de la rangée** (refonte
+            graphique, lot 8a-3, la maquette : « Comparaison » puis ses deux
+            sources). Au doigt, la barre du haut dit déjà la vue (lot 11). */}
+        <h1 className="hidden font-display text-xl tracking-wide text-ink lg:block">Comparaison</h1>
         <Segmented
           value={onglet}
           onChange={(k) => {
@@ -136,7 +132,7 @@ export default function RunesCompare({ runes }: Props) {
         )}
       </div>
 
-      {msg && <p className={`text-xs mb-3 ${msg.ok ? 'text-wind' : 'text-fire'}`}>{msg.text}</p>}
+      {msg && <p className={`text-xs mb-3 ${msg.ok ? 'text-good' : 'text-bad'}`}>{msg.text}</p>}
 
       {onglet === 'courbes' ? (
         <OngletCourbes
@@ -222,7 +218,7 @@ function OngletCourbes({
     // doit transporter aucune donnée de compte.
     const json = encodeCurveJson(name, myEffs, myScores);
     navigator.clipboard?.writeText(json).catch(() => {});
-    download(`swforge-runes-${name.replace(/\s+/g, '_')}.json`, json);
+    telechargerTexte(`${PREFIXE_FICHIER}-runes-${name.replace(/\s+/g, '_')}.json`, json);
     flash(true, 'Courbe exportée : fichier .json téléchargé et contenu copié.');
   }
 
@@ -552,7 +548,11 @@ function Graphe({
     });
 
   return (
-    <>
+    // ⚠️ **À la SOURIS, le graphe et sa légende côte à côte** (refonte
+    // graphique, lot 8a-3, la maquette) : la légende passe dans une carte
+    // « Séries » à droite, en colonne — comme l'onglet Courbes. Au doigt, la
+    // rangée sous le graphe d'avant (lot 11).
+    <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_240px] lg:items-start lg:gap-3">
       <CurveChart
         series={lignes.map((l) => l.series).filter((s) => !hidden.has(s.name))}
         yLabel={metric === 'eff' ? 'Efficience (%)' : 'Score SW'}
@@ -562,15 +562,19 @@ function Graphe({
       {/* Légende partagée avec l'onglet Courbes (voir CurveLegend). Le retrait
           d'une ligne lui est attaché — l'onglet Courbes mélange deux listes, un
           index n'y désignerait plus rien de fiable. */}
-      <CurveLegend
-        entrees={lignes.map(({ series: s, remove }) => ({
-          name: s.name,
-          color: s.color,
-          onRetirer: remove,
-        }))}
-        masquees={hidden}
-        onBascule={toggle}
-      />
-    </>
+      <aside className="lg:rounded-xl lg:border lg:border-border-soft lg:bg-panel lg:p-3">
+        <p className="mb-2 hidden label lg:block">Séries</p>
+        <CurveLegend
+          entrees={lignes.map(({ series: s, remove }) => ({
+            name: s.name,
+            color: s.color,
+            onRetirer: remove,
+          }))}
+          masquees={hidden}
+          onBascule={toggle}
+          className="lg:mt-0 lg:flex-col lg:items-stretch lg:gap-1"
+        />
+      </aside>
+    </div>
   );
 }

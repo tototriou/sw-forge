@@ -16,14 +16,31 @@ import {
 } from '../types';
 import { artifactSubKinds, canAddSet, isArtifactSub } from '../lib/effects';
 import { cleanArtifacts, cleanSetOptions } from '../lib/recoShare';
+import { avecContenuDeck, ContenuDeck } from '../lib/annulerEdition';
+import { reinsererA } from '../lib/reinsererA';
 import { saveLocal, usePersistence } from './usePersistence';
+
+// Un deck VIDE : celui que `removeDeck` pose quand on retire le dernier — trois
+// slots sans monstre, sans consigne ni défense visée.
+const deckVide = (d: RecoDeck) =>
+  !d.note && d.counters.length === 0 && d.slots.every((s) => s.com2usId == null && !s.name);
+
+
+// Les decks d'une recommandation après restauration d'un deck supprimé.
+// ⚠️ Supprimer le DERNIER deck en laisse un vide à sa place (jamais zéro deck,
+// voir `removeDeck`) : le restaurer REMPLACE ce deck vide au lieu de s'y
+// ajouter. Pure, pour être testée.
+export function decksApresRestauration(decks: RecoDeck[], deck: RecoDeck, index: number): RecoDeck[] {
+  if (decks.length === 1 && deckVide(decks[0])) return [deck];
+  return reinsererA(decks, deck, index);
+}
 
 const SET_KEYS = new Set(RUNE_SETS.map((s) => s.key));
 
 // Recommandations de decks de siège. Contrairement à la box (en mémoire), ce
 // sont des données CRÉÉES par l'utilisateur ou reçues d'un ami : elles sont
 // persistées dans localStorage, comme les équipes de siège.
-const STORAGE_KEY = 'sw-forge-siege-recos-v1';
+const STORAGE_KEY = 'swblacksmith-siege-recos-v1';
 
 function newId(): string {
   const c = globalThis.crypto as Crypto | undefined;
@@ -130,7 +147,13 @@ export interface UseRecoState {
   addDeck: (id: string) => void;
   addDeckWith: (id: string, deck: RecoDeck) => void; // deck pré-rempli (ex. depuis le siège)
   removeDeck: (id: string, deck: number) => void;
+  // « Annuler » une suppression (lot 13) : remet à sa place, tel quel.
+  restaurerReco: (reco: Reco, index: number) => void;
+  restaurerDeck: (id: string, deck: RecoDeck, index: number) => void;
   setDeckMeta: (id: string, deck: number, patch: Partial<Pick<RecoDeck, 'name' | 'note'>>) => void;
+  // « Annuler les modifications » d'un deck : remet ce qui avait été mémorisé
+  // à l'ouverture de son édition (voir lib/annulerEdition.ts).
+  remettreContenuDeck: (id: string, deck: number, contenu: ContenuDeck) => void;
   // Défenses adverses visées par un deck (« fort contre ») — informatif.
   addCounter: (id: string, deck: number) => void;
   removeCounter: (id: string, deck: number, ci: number) => void;
@@ -221,10 +244,31 @@ export function useSiegeRecos(): UseRecoState {
     [update]
   );
 
+  // « Annuler » (refonte graphique, lot 13, décision 29) : ce qu'on vient de
+  // supprimer revient TEL QUEL, à SA place. Sans effet s'il est déjà là.
+  const restaurerReco = useCallback(
+    (reco: Reco, index: number) =>
+      setState((s) => (s.recos.some((r) => r.id === reco.id) ? s : { recos: reinsererA(s.recos, reco, index) })),
+    []
+  );
+
+  // Voir `decksApresRestauration` : un deck vide laissé par la suppression du
+  // dernier est remplacé, pas complété.
+  const restaurerDeck = useCallback(
+    (id: string, deck: RecoDeck, index: number) =>
+      update(id, (r) => ({ ...r, decks: decksApresRestauration(r.decks, deck, index) })),
+    [update]
+  );
+
   const setDeckMeta = useCallback(
     (id: string, deck: number, patch: Partial<Pick<RecoDeck, 'name' | 'note'>>) =>
       updateDeck(id, deck, (d) => ({ ...d, ...patch })),
     [updateDeck]
+  );
+
+  const remettreContenuDeck = useCallback(
+    (id: string, deck: number, contenu: ContenuDeck) => update(id, (r) => avecContenuDeck(r, deck, contenu)),
+    [update]
   );
 
   /* ---- Défenses adverses visées par un deck (« fort contre ») ----------- */
@@ -405,11 +449,14 @@ export function useSiegeRecos(): UseRecoState {
     state,
     addReco,
     removeReco,
+    restaurerReco,
     setMeta,
     addDeck,
     addDeckWith,
     removeDeck,
+    restaurerDeck,
     setDeckMeta,
+    remettreContenuDeck,
     addCounter,
     removeCounter,
     setCounterMonster,

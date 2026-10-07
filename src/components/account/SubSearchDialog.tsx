@@ -185,7 +185,7 @@ export default function SubSearchDialog({
         <button
           onClick={() => setBrouillon([])}
           disabled={brouillon.length === 0}
-          className="text-xs text-ink-dim underline transition hoverable:text-fire
+          className="text-xs text-ink-dim underline transition hoverable:text-bad
                      disabled:cursor-not-allowed disabled:no-underline disabled:opacity-30"
         >
           Réinitialiser

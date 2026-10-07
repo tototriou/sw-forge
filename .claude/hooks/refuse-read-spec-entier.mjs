@@ -1,8 +1,9 @@
 // Refuse un `Read` sans `offset`/`limit` sur un `spec/**.md` de plus de
-// 300 lignes — voir spec/chantiers/spec-rangement.md, B.9 § Hook `Read`, et
+// 300 lignes — voir spec/outillage/spec.md, titre « Hook `Read` », et
 // CLAUDE.md, « La spec avant le code ».
 //
-// ⚠️ Niveau 2 (« garde-fou outil », B.9) : refuse le chemin le PLUS COURANT
+// ⚠️ Niveau 2 (« garde-fou outil », « Niveaux d'application et garde-fous » de
+// spec/outillage/spec.md) : refuse le chemin le PLUS COURANT
 // d'une lecture par erreur d'un fichier entier — ni `cat`, ni un autre outil
 // de lecture, ni un `Read` avec un offset choisi pour contourner le rappel ne
 // sont couverts. Ce n'est pas un invariant, seulement une aide.

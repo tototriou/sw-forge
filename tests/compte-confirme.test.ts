@@ -1,4 +1,4 @@
-// degats-et-aura 6bis-b18 — le compte des combinaisons CONFIRMÉES
+// Le compte des combinaisons CONFIRMÉES
 // (`compteConfirme`, artifactQueue.ts) : seulement les builds vérifiés (résolus
 // et conformes) de CETTE recherche ; un compte qui ne baisse jamais pendant une
 // recherche ; les pages des confirmées plus une tant qu'il reste des builds non
@@ -47,7 +47,7 @@ function alea(graine: number) {
 }
 
 export function testCompteConfirme() {
-  titre('Compte confirmé — seulement les builds vérifiés (6bis-b18)');
+  titre('Compte confirmé — seulement les builds vérifiés');
 
   {
     const r = recus(5);
@@ -132,7 +132,7 @@ export function testCompteConfirme() {
   {
     // Les candidats arrivent par paquets (aperçu qui grandit), la file résout
     // pendant ce temps : le compte confirmé ne baisse jamais. Témoin : le
-    // compte des trouvées (6bis-b10) baisse à chaque écarté découvert.
+    // compte des trouvées baisse à chaque écarté découvert.
     const tirer = alea(2018);
     const tous = recus(600);
     const issue = new Map(tous.map((c) => [cleBuild(c), tirer() < 0.2] as const));
@@ -181,7 +181,7 @@ export function testCompteConfirme() {
   egal((src.match(/compteConfirme\(/g) ?? []).length, 1, 'écran : un seul appel à `compteConfirme`');
   ok(/const totalResultsPages = compteConfirmes\.pages;/.test(src), 'pagination : le nombre de pages vient des confirmées');
   ok(/setResultsPage\(\(p\) => Math\.min\(Math\.max\(p, 1\), totalResultsPages\)\);\s*\}, \[totalResultsPages, setResultsPage\]\);/.test(src),
-    'pagination : la page courante revient sur la dernière quand le nombre de pages diminue (6bis-b10, inchangé)');
+    'pagination : la page courante revient sur la dernière quand le nombre de pages diminue');
   const entete = src.match(/<p className="label">\s*\{result\s*\?[\s\S]*?<\/p>/)?.[0] ?? '';
   ok(/compteConfirmes\.aucune\s*\?\s*'Aucune combinaison ne répond à ces critères'/.test(entete),
     'en-tête : « Aucune combinaison ne répond à ces critères » seulement sous `compteConfirmes.aucune`');

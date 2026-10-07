@@ -13,8 +13,7 @@
 //
 // Usage : optimizer-bucket-rank-diag.ts <export.json> <recipe.json> <runeId>
 //
-// ⚠️ **POURQUOI CE SCRIPT SURVIT AU HARNAIS** (vérifié le 2026-09-08, §11.3
-// des extensions). Il pose sa question sur UNE rune ISOLÉE : « existe-t-il au
+// ⚠️ **POURQUOI CE SCRIPT SURVIT AU HARNAIS** : il pose sa question sur UNE rune ISOLÉE : « existe-t-il au
 // moins UN demi-build RETENU qui l'utilise ? » — ce qui sépare « morte au
 // pré-filtrage » de « morte à la rétention (bucketCap) ». Le harnais ne sait
 // pas répondre à celle-là :
@@ -37,8 +36,8 @@
 // recette a pu être montée pour un monstre de DECK. Sur un compte qui porte
 // plusieurs exemplaires du même monstre, les artéfacts et la relique résolus
 // peuvent alors ne pas être ceux de la recherche qu'on croit reproduire.
-// Vérifié le 2026-09-08 sur Sonia deck 14 (compte Enzo) : base et relique
-// identiques, donc sans effet CE jour-là — ce n'est pas une garantie.
+// Vérifié sur Sonia deck 14 (compte Enzo) : base et relique
+// identiques, donc sans effet sur ce cas — ce n'est pas une garantie.
 
 import { readFileSync } from 'fs';
 import { parseOptimizerRecipe } from '../src/lib/optimizerRecipe';

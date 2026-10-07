@@ -6,15 +6,11 @@
 // les VRAIES contraintes de la recette (minStats plus laxes que le build
 // cible), dans le budget réel ? ».
 //
-// ⚠️ Il était dit ici « complémentaire à set-relax-diag.ts (qui dérive des
-// minStats artificiellement serrés à partir du build cible lui-même) ».
-// `set-relax-diag.ts` a été SUPPRIMÉ le 2026-09-08 (§11.3 des extensions),
-// périmé par `scripts/diagnostic-harness.ts --suivre=<les 6 ids>` — dont le
-// VERDICT structuré et le RANG dans le classement entier remplacent aussi,
-// et avantageusement, le booléen « présent parmi tous les candidats » que ce
-// script-ci calcule. La distinction que cette phrase notait reste vraie :
-// une recette porte les minStats RÉELLEMENT demandés, jamais ceux dérivés du
-// build cible.
+// ⚠️ `scripts/diagnostic-harness.ts --suivre=<les 6 ids>` rend, pour le build
+// cible, un VERDICT structuré et le RANG dans le classement entier, qui
+// remplacent avantageusement le booléen « présent parmi tous les candidats »
+// que ce script-ci calcule. Ce qui le distingue : une recette porte les
+// minStats RÉELLEMENT demandés, jamais ceux dérivés du build cible.
 //
 // Usage : optimizer-target-search-diag.ts <export.json> <recipe.json> <deckId> <targetRuneIds séparés par virgules>
 

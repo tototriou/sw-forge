@@ -1,6 +1,6 @@
-// Module pur `relicOptim.ts` (implementation-relique, lot 3) — les sept
-// contrôles du plan § 8.2, plus les compléments D1/rév. 3/rév. 6, plus la
-// dominance § 6 de reliques.md et son symétrique.
+// Module pur `relicOptim.ts` — les sept
+// contrôles du plan, plus les compléments, plus la
+// dominance (`spec/outils/optimizer/moteur/reliques.md`, « Pertinence et dominance — écrites, non appelées en production ») et son symétrique.
 
 import { RelicDetail } from '../src/types';
 import {
@@ -80,7 +80,7 @@ export default function testRelicOptim() {
   }
 
   /* ------------------------------------------------------------------
-   * Les sept contrôles du plan § 8.2
+   * Les sept contrôles
    * ---------------------------------------------------------------- */
   {
     // Une meilleure ATQ n'est jamais aussi une meilleure PV — bornes
@@ -92,7 +92,7 @@ export default function testRelicOptim() {
     // +9 élimine +8 (Régénération, jamais pertinente) mais pas +15 : en
     // « Dégâts réels » scalant sur l'ATQ, Conquête (type 1) ET Bravoure·ATQ
     // (type 7, buffe l'ATQ) sont TOUTES DEUX pertinentes mais DE TYPES
-    // DIFFÉRENTS — aucune ne domine l'autre (D6) ; +8 porte Régénération
+    // DIFFÉRENTS — aucune ne domine l'autre ; +8 porte Régénération
     // (type 16, jamais pertinente) et se fait dominer par les deux.
     const dims = dimensionsRetenues('degats_reels', ['atk'], {});
     const r8 = relic(1, 101, 8, { type: 16, tranche: 27000, percent: 1 }); // Régénération
@@ -147,7 +147,7 @@ export default function testRelicOptim() {
   }
 
   /* ------------------------------------------------------------------
-   * Trois de D1 : type forcé, intersection, vide nommé
+   * Type forcé, intersection, vide nommé
    * ---------------------------------------------------------------- */
   {
     const inventaire = [
@@ -180,7 +180,7 @@ export default function testRelicOptim() {
   }
 
   /* ------------------------------------------------------------------
-   * Trois de la rév. 6 : borne infaisable, régime aucun, aucune écartée
+   * Borne infaisable, régime aucun, aucune écartée
    * ---------------------------------------------------------------- */
   {
     // +14 mieux notée mais rendrait le build infaisable (au-dessus d'un
@@ -211,14 +211,14 @@ export default function testRelicOptim() {
     // « brutes », ne se dominent pas puisqu'aucune dimension n'existe.
     const dims = dimensionsRetenues('efficience', [], {});
     egal(dims.principaleStats.size, 0, "'efficience' sans minimum actif : aucune statistique de principale retenue");
-    egal(dims.exclusiveTypesPertinents.size, 0, "'efficience' : aucune exclusive retenue (T3)");
+    egal(dims.exclusiveTypesPertinents.size, 0, "'efficience' : aucune exclusive retenue");
     const petite = relic(1, 100, 9, { type: 16, tranche: 27000, percent: 1 });
     const grande = relic(2, 100, 14, { type: 16, tranche: 27000, percent: 1 });
     ok(!relicDominates(grande, petite, dims), 'aucune dimension → aucune relique écartée, même strictement moins bonne en apparence');
   }
 
   /* ------------------------------------------------------------------
-   * Quatre de la rév. 3 : minimum hors objectif, Vitesse, exclusives
+   * Minimum hors objectif, Vitesse, exclusives
    * incompatibles, scorePartiel PAR RÉGIME
    * ---------------------------------------------------------------- */
   {
@@ -234,12 +234,12 @@ export default function testRelicOptim() {
     // seule source de pertinence de principale.
     const dims = dimensionsRetenues('vitesse', [], { hp: 20000 });
     egal([...dims.principaleStats], ['hp'], "'vitesse' : seule la statistique sous minimum actif est retenue");
-    egal(dims.exclusiveTypesPertinents.size, 0, "'vitesse' : aucune exclusive, jamais (T7)");
+    egal(dims.exclusiveTypesPertinents.size, 0, "'vitesse' : aucune exclusive, jamais");
   }
   {
     // Deux exclusives pertinentes de types différents → aucune dominance,
     // dans aucun des deux sens (Éternité·PV = type 12, Origine·VIT = type 14,
-    // toutes deux pertinentes en PV effectifs — reliques.md § 6).
+    // toutes deux pertinentes en PV effectifs — `spec/outils/optimizer/moteur/reliques.md`, « Pertinence et dominance — écrites, non appelées en production »).
     const dims = dimensionsRetenues('ehp', [], {});
     const eternitePv = relic(1, 100, 12, { type: 12, tranche: 500, percent: 5 });
     const origineVit = relic(2, 100, 12, { type: 14, tranche: 500, percent: 5 });
@@ -248,27 +248,27 @@ export default function testRelicOptim() {
     ok(!relicDominates(origineVit, eternitePv, dims), 'Origine·VIT ne domine pas Éternité·PV non plus');
   }
   {
-    // `scorePartiel` PAR RÉGIME. ⚠️ **Renversé par le lot 7** : Dégâts réels
-    // et PV effectifs valaient `true` tant qu'aucune exclusive n'avait de
-    // formule (D9). Les cinq groupes que le relevé T4 couvre sont désormais
-    // chiffrés (`relicExclusive.ts`), et les seuls types non chiffrables
+    // `scorePartiel` PAR RÉGIME. ⚠️ Dégâts réels et PV effectifs ne seraient
+    // `true` que si une exclusive pertinente n'avait pas de formule. Les cinq
+    // groupes que le relevé en jeu couvre sont chiffrés
+    // (`relicExclusive.ts`), et les seuls types non chiffrables
     // (Régénération, un type inconnu) ne sont jamais pertinents : le score
-    // n'est plus partiel sur aucun des quatre objectifs.
+    // n'est partiel sur aucun des quatre objectifs.
     //
     // ⚠️ Ce test fige une CONSÉQUENCE du relevé, pas le relevé lui-même :
     // il retombera à `true` tout seul le jour où un type pertinent arrivera
     // sans formule — c'est exactement ce qu'on veut qu'il dise.
     egal(dimensionsRetenues('vitesse', [], { hp: 1 }).scorePartiel, false, "'vitesse' → scorePartiel faux");
     egal(dimensionsRetenues('efficience', [], { hp: 1 }).scorePartiel, false, "'efficience' → scorePartiel faux");
-    egal(dimensionsRetenues('degats_reels', ['atk'], {}).scorePartiel, false, "'degats_reels' avec scaling ATQ → scorePartiel FAUX depuis le lot 7 (Conquête et Bravoure sont chiffrées)");
-    egal(dimensionsRetenues('ehp', [], {}).scorePartiel, false, "'ehp' → scorePartiel FAUX depuis le lot 7 (Ténacité, Éternité et Origine sont chiffrées)");
+    egal(dimensionsRetenues('degats_reels', ['atk'], {}).scorePartiel, false, "'degats_reels' avec scaling ATQ → scorePartiel FAUX (Conquête et Bravoure sont chiffrées)");
+    egal(dimensionsRetenues('ehp', [], {}).scorePartiel, false, "'ehp' → scorePartiel FAUX (Ténacité, Éternité et Origine sont chiffrées)");
   }
 
   /* ------------------------------------------------------------------
-   * Le test de dominance § 6 (reliques.md) et son symétrique
+   * Le test de dominance (`spec/outils/optimizer/moteur/reliques.md`, « Pertinence et dominance — écrites, non appelées en production ») et son symétrique
    * ---------------------------------------------------------------- */
   {
-    // Exemple donné par l'utilisateur, en PV effectifs : principales
+    // Exemple en PV effectifs : principales
     // identiques ; l'exclusive de la 1 (dégâts infligés selon la VIT — ici
     // Conquête·ATQ, type 1, comme représentant d'un type « dégâts infligés »
     // non pertinent en PV effectifs) n'entre dans aucun axe de l'objectif ;
@@ -285,13 +285,13 @@ export default function testRelicOptim() {
    * ---------------------------------------------------------------- */
   {
     // Un maximum actif sur la statistique de la principale interdit toute
-    // dominance dessus, dans les deux sens (contre-exemple B1).
+    // dominance dessus, dans les deux sens (contre-exemple).
     const dims: RelicDimensions = dimensionsRetenues('ehp', [], {});
     dims.maxActifs.add('hp');
     dims.principaleStats.add('hp');
     const plus14 = relic(1, 100, 14, { type: 16, tranche: 27000, percent: 1 });
     const plus12 = relic(2, 100, 12, { type: 16, tranche: 27000, percent: 1 });
-    ok(!relicDominates(plus14, plus12, dims), 'maximum actif sur PV → +14 ne domine pas +12 (B1)');
+    ok(!relicDominates(plus14, plus12, dims), 'maximum actif sur PV → +14 ne domine pas +12');
     ok(!relicDominates(plus12, plus14, dims), 'et réciproquement');
   }
   {

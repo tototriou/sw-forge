@@ -63,26 +63,54 @@ export type TailleBouton = 'xs' | 'sm' | 'md' | 'carre';
 // posée dans un formulaire ou un dialogue.
 export type FormeBouton = 'boite' | 'pilule';
 
-// Retour tactile commun à tout élément pressable.
+// Retour tactile commun à tout élément pressable QUI N'EST PAS un `Bouton`.
 //
 // ⚠️ Un seul endroit à modifier, toute l'app qui accuse réception. Un bouton qui
 // ne bouge pas au clic laisse un doute d'un dixième de seconde : est-ce que ça a
 // pris ? Voir spec/shared/design.md.
+// ⚠️ Le `Bouton` lui-même ne rétrécit plus : il descend d'1 px (rebranding,
+// décision 21), par la règle `button[data-bouton]` d'index.css, posée ici par
+// l'attribut. Cette constante reste celle des autres surfaces pressables.
 export const PRESSION = 'transition-transform duration-150 ease-out active:scale-[0.97]';
 
-// ⚠️ Le SOCLE ne porte ni couleur ni contour : il pose la géométrie, l'alignement
-// et l'état désactivé, que toutes les combinaisons partagent sans exception.
+// ⚠️ Le SOCLE ne porte ni couleur ni contour : il pose la géométrie et
+// l'alignement, que toutes les combinaisons partagent sans exception. L'état
+// désactivé dépend du remplissage (voir `desactive`).
 const SOCLE =
   'inline-flex flex-none items-center justify-center gap-1.5 font-semibold select-none ' +
-  'transition disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100 ' +
-  PRESSION;
+  'transition disabled:cursor-not-allowed';
 
+// ⚠️ **Désactivé : un APLAT de braise devient gris, il ne pâlit pas.** La planche
+// « Actions » de la toile le dessine en `panel2` avec une encre éteinte : une
+// braise à 40 % d'opacité donnait un brun boueux qui se lisait encore comme
+// une invitation. Les autres boutons, sans aplat de couleur, pâlissent comme
+// avant.
+// ⚠️ `disabled:!bg-panel2` : même raison que `active:!` dans FONDS — sans
+// l'important, le survol (émis plus loin) rallumait la braise sur un bouton
+// désactivé.
+function desactive(ton: TonBouton, fond: FondBouton): string {
+  return ton === 'accent' && fond === 'plein'
+    ? 'disabled:border-transparent disabled:!bg-panel2 disabled:text-ink-dimmer'
+    : 'disabled:opacity-40';
+}
+
+// ⚠️ **À la souris, le gabarit des boutons de la MAQUETTE, dans toute l'app**
+// (refonte graphique, décision 16 — le mainteneur : « il faut que les boutons soient
+// unifiés dans l'application », « le même rendu que sur la maquette ») :
+// `md` = `.btn` (32 px, 12 px de côté, 13 px de texte), `sm` = `.btn-sm`
+// (28 px, 10 px, 12 px), rayon 8 px ; un bouton d'icône est un carré de la
+// même hauteur (`BoutonIcone` = `.btn-icon.btn-sm`, le « ⋯ » d'en-tête =
+// `.btn-icon`). `md` valait 37,5 px — un rembourrage autour d'une ligne de
+// 19,5 px — et ne tombait juste à côté de rien. `min-h` et non `h` : un
+// libellé qui passe à la ligne agrandit le bouton au lieu de déborder. `xs`
+// et `BoutonIcone` `serre` restent hors de l'échelle : ils vivent DANS un
+// contenant plus petit qu'elle. Au doigt, rien ne change (lot 11).
 const TAILLES: Record<TailleBouton, string> = {
   // ⚠️ `xs` vit DANS un contenant déjà serré (une carte, une pilule d'en-tête),
   // jamais pour l'action principale d'un écran.
   xs: 'px-2 py-0.5 text-micro',
-  sm: 'px-2.5 py-1 text-xs',
-  md: 'px-3.5 py-2 text-sm',
+  sm: 'px-2.5 py-1 text-xs lg:min-h-7 lg:py-0',
+  md: 'px-3.5 py-2 text-sm lg:min-h-8 lg:px-3 lg:py-0',
   // Voir la note sur le type : pas de rembourrage du tout, la boîte est un carré.
   carre: 'p-0 text-xs',
 };
@@ -104,35 +132,68 @@ const FORMES: Record<FormeBouton, string> = {
 const TEXTES: Record<TonBouton, { nu: string; doux: string; plein: string }> = {
   neutre: { nu: 'text-ink-dim hoverable:text-ink', doux: 'text-ink', plein: 'text-ink' },
   accent: {
-    nu: 'text-ink hoverable:brightness-110',
+    // « FANTÔME » de la toile (rebranding R3c) : texte braise lisible, sans
+    // fond ni contour, le fond braise sombre au survol (voir FONDS). Personne
+    // ne l'employait avant — il sert à l'action d'une notification.
+    nu: 'text-accent',
     doux: 'text-ink hoverable:brightness-110',
-    plein: 'text-ink hoverable:brightness-110',
+    // Bouton PRINCIPAL (refonte graphique, décision 4) : texte `accent-ink`
+    // sur l'aplat de braise, l'encre sombre de la toile. Le survol ne passe
+    // plus par un filtre de luminosité : c'est le FOND qui change (voir FONDS,
+    // `accent-hover` / `accent-appui`, rebranding R3a).
+    plein: 'text-accent-ink',
   },
-  // `text-white` et non `text-ink` : sur l'aplat d'alerte, l'encre du thème
-  // clair n'aurait pas le contraste, et cet aplat est le même dans les deux.
-  danger: { nu: 'text-ink-dim hoverable:text-bad', doux: 'text-bad', plein: 'text-white' },
+  // `text-bad-ink` sur l'aplat rouge : blanc en Atelier, SOMBRE en Forge. C'était
+  // `text-white` pour les deux thèmes ; depuis le rebranding, le rouge de Forge
+  // est clair et le blanc n'y faisait plus que 2.66 (la croix « Retirer » d'une
+  // carte RTA). Même logique qu'`accent-ink`.
+  danger: { nu: 'text-ink-dim hoverable:text-bad', doux: 'text-bad', plein: 'text-bad-ink' },
   // ⚠️ La teinte est là DÈS LE REPOS et ne bouge pas au survol : elle signale un
   // état des données, et un signal qui s'allume au passage de la souris n'est
   // plus un signal.
   alerte: { nu: 'text-warn', doux: 'text-warn', plein: 'text-bg' },
 };
 
+// ⚠️ **Le survol peint le FOND, comme dans la maquette** (décision 16) :
+// `.btn-secondary:hover` et `.btn-ghost:hover` y prennent `--hover`, dont
+// l'équivalent ici est `panel2` (même écart au panneau, dans les deux thèmes).
+// Il allumait le CONTOUR en accent — un signal réservé, depuis, à l'état
+// enclenché et au focus. `.btn-danger:hover` prend `--bad-soft`.
 const FONDS: Record<TonBouton, Record<FondBouton, string>> = {
-  neutre: { vide: 'bg-transparent', doux: 'bg-panel', plein: 'bg-panel2' },
-  accent: { vide: 'bg-transparent', doux: 'bg-accent-soft', plein: 'bg-accent-soft' },
+  neutre: {
+    vide: 'bg-transparent hoverable:bg-panel2',
+    doux: 'bg-panel hoverable:bg-panel2',
+    plein: 'bg-panel2',
+  },
+  // ⚠️ `plein` est un VRAI aplat d'accent depuis la refonte (décision 4) : le
+  // bouton principal d'un écran, un seul par écran. Il valait `accent-soft`,
+  // comme `doux` — l'app n'avait aucun bouton principal qui ressorte.
+  // Survol et appui : les états de la toile (R3a) — plus clair puis plus
+  // foncé en Forge ; en Atelier, les deux foncent (voir index.css).
+  // ⚠️ `active:!` : les variantes du plugin (`hoverable:`) sont émises APRÈS
+  // les variantes de base (`active:`, `disabled:`) dans le CSS construit — à
+  // spécificité égale, le survol l'emportait sur l'appui, qu'on n'aurait
+  // jamais vu à la souris (on survole toujours ce qu'on presse). Vérifié dans
+  // `dist/` : `hoverable:bg-accent-hover` après `active:bg-accent-appui`.
+  accent: {
+    vide: 'bg-transparent hoverable:bg-accent-soft',
+    doux: 'bg-accent-soft',
+    plein: 'bg-accent hoverable:bg-accent-hover active:!bg-accent-appui',
+  },
   // ⚠️ `plein` est OPAQUE, pas une opacité de plus que `doux` : c'est le cran
   // des actions posées SUR autre chose (la croix au coin d'une carte), où un
   // fond translucide laisserait passer l'image dessous et rendrait l'icône
   // illisible. `doux` reste le voile discret d'un bouton posé dans un panneau.
-  danger: { vide: 'bg-transparent', doux: 'bg-bad/10', plein: 'bg-bad' },
+  danger: { vide: 'bg-transparent hoverable:bg-bad-soft', doux: 'bg-bad/10', plein: 'bg-bad' },
   alerte: { vide: 'bg-transparent', doux: 'bg-warn/10', plein: 'bg-warn' },
 };
 
 const TRAITS: Record<TonBouton, Record<TraitBouton, string>> = {
+  // Plus de contour d'accent au survol : c'est le fond qui répond (voir FONDS).
   neutre: {
     aucun: 'border border-transparent',
-    plein: 'border border-border hoverable:border-accent',
-    pointille: 'border border-dashed border-border hoverable:border-accent',
+    plein: 'border border-border',
+    pointille: 'border border-dashed border-border',
   },
   accent: {
     aucun: 'border border-transparent',
@@ -192,6 +253,11 @@ export interface BoutonProps
   // annonce « bouton » là où l'utilisateur voit un interrupteur. Laisser à
   // `undefined` pour une action ordinaire, qui n'a pas d'état à porter.
   actif?: boolean;
+  // ⚠️ **Un LIEN au dessin de bouton** (application de bureau, lot 6 :
+  // « Télécharger pour Windows ») : rendu en `<a href>`, même dessin. Un
+  // téléchargement, une page externe sont des LIENS — on peut en copier
+  // l'adresse, le lecteur d'écran dit « lien ». Sans `href` : un `<button>`.
+  href?: string;
 }
 
 const Bouton = forwardRef<HTMLButtonElement, BoutonProps>(function Bouton(
@@ -208,6 +274,7 @@ const Bouton = forwardRef<HTMLButtonElement, BoutonProps>(function Bouton(
     pleineLargeur = false,
     nuAuDoigt = false,
     actif,
+    href,
     className = '',
     type = 'button',
     ...reste
@@ -232,19 +299,14 @@ const Bouton = forwardRef<HTMLButtonElement, BoutonProps>(function Bouton(
       'compact:bg-transparent compact:px-0 compact:py-0'
     : '';
 
-  return (
-    <button
-      ref={ref}
-      type={type}
-      aria-pressed={actif}
-      {...(nuAuDoigt ? { 'data-cible-fine': true } : {})}
-      className={`${SOCLE} ${TAILLES[taille]} ${FORMES[forme]} ${TRAITS[ton][trait]} ${nu} ${
-        FONDS[tonEffectif][fondEffectif]
-      } ${TEXTES[tonEffectif][fondEffectif === 'vide' ? 'nu' : fondEffectif]} ${
-        pleineLargeur ? 'w-full' : ''
-      } ${className}`}
-      {...reste}
-    >
+  const classes = `${SOCLE} ${desactive(tonEffectif, fondEffectif)} ${TAILLES[taille]} ${FORMES[forme]} ${
+    TRAITS[ton][trait]
+  } ${nu} ${FONDS[tonEffectif][fondEffectif]} ${TEXTES[tonEffectif][fondEffectif === 'vide' ? 'nu' : fondEffectif]} ${
+    pleineLargeur ? 'w-full' : ''
+  } ${className}`;
+
+  const contenu = (
+    <>
       {icone}
       {/* ⚠️ Le libellé est TOUJOURS dans un `<span>`, même visible : c'est cette
           balise que la règle `[data-tiroir] button > span.compact\:hidden` va
@@ -263,6 +325,36 @@ const Bouton = forwardRef<HTMLButtonElement, BoutonProps>(function Bouton(
           <span className={masquable ? 'compact:hidden' : undefined}>{libelle}</span>
         )
       )}
+    </>
+  );
+
+  // Un lien : mêmes classes, même appui (`[data-bouton]` d'index.css). Les
+  // attributs propres au bouton (`type`, `aria-pressed`) n'ont pas de sens ici.
+  if (href != null) {
+    return (
+      <a
+        href={href}
+        data-bouton=""
+        className={classes}
+        {...(reste as React.AnchorHTMLAttributes<HTMLAnchorElement>)}
+      >
+        {contenu}
+      </a>
+    );
+  }
+
+  return (
+    <button
+      ref={ref}
+      type={type}
+      aria-pressed={actif}
+      // Appui : descend d'1 px (règle `button[data-bouton]` d'index.css).
+      data-bouton=""
+      {...(nuAuDoigt ? { 'data-cible-fine': true } : {})}
+      className={classes}
+      {...reste}
+    >
+      {contenu}
     </button>
   );
 });

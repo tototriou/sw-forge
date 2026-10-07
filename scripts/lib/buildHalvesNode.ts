@@ -56,7 +56,7 @@ let cheminBundle: string | null = null;
 
 export async function ensureBuildHalfBundle(): Promise<string> {
   if (cheminBundle && existsSync(cheminBundle)) return cheminBundle;
-  const dossier = join(tmpdir(), `sw-forge-build-half-${Date.now()}-${process.pid}`);
+  const dossier = join(tmpdir(), `swblacksmith-build-half-${Date.now()}-${process.pid}`);
   mkdirSync(dossier, { recursive: true });
   cheminBundle = join(dossier, 'build-half-worker.cjs');
   await build({
@@ -88,7 +88,7 @@ export interface MoitiesConstruites {
   msA: number;
   msB: number;
   /**
-   * Relevé mémoire de fin de fil (§4.1 bis) — chaque moitié ayant son propre
+   * Relevé mémoire de fin de fil — chaque moitié ayant son propre
    * `worker_threads`, donc son propre tas, les deux chiffres ne peuvent pas
    * se confondre. ⚠️ Vaut pour comparer A à B DANS CE PROCESSUS Node,
    * jamais comme prédiction de ce que vit l'utilisateur : le ramasse-miettes
@@ -97,7 +97,7 @@ export interface MoitiesConstruites {
   memoireA: MemoireMoitie;
   memoireB: MemoireMoitie;
   /**
-   * §4.2 (A₂) — les intervalles entre `BuildingProgress`, par moitié.
+   * A₂ — les intervalles entre `BuildingProgress`, par moitié.
    * ⚠️ `undefined` quand l'horodatage n'a pas été demandé : c'est un
    * instrument OPT-IN, et son absence est le cas normal.
    */
@@ -118,7 +118,7 @@ export async function construireMoitiesEnParallele(
   params: SearchParams,
   chemin: string,
   /**
-   * §4.2 (A₂). ⚠️ Par défaut `false` : `perf-battery.ts` n'appelle pas cette
+   * A₂. ⚠️ Par défaut `false` : `perf-battery.ts` n'appelle pas cette
    * coquille, mais le worker qu'elle lance lui est COMMUN — le défaut doit
    * donc être « rien de plus qu'avant », jamais l'inverse.
    */

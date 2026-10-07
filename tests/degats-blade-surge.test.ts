@@ -1,13 +1,13 @@
 // Blade Surge — la séquence curée de trois coups et la cible secondaire
-// (chantier degats-et-aura, lot 8a, constat 151).
+// (`spec/outils/degats-reels/sequences-de-coups.md`).
 //
 // ⚠️ Ce qui serait GRAVE ET INVISIBLE ici : un troisième coup oublié (le
 // calcul d'avant ne comptait que les deux coups mono-cible de la donnée), une
 // ligne d'artéfact appliquée au mauvais coup (224 sur le coup de zone, 400 ou
 // les skillups qui l'oublieraient, 411 rouvert pour la cible secondaire), ou
 // une cible secondaire calculée par soustraction du premier cran. Chaque
-// nombre attendu est écrit à la main depuis les valeurs curées (cadrage
-// A.2 ter : `0.5 × ATQ` ×2 mono-cible puis `3.0 × ATQ` en zone, +30 % de
+// nombre attendu est écrit à la main depuis les valeurs curées (
+// `spec/outils/degats-reels/valeurs-de-jeu-curees.md` : `0.5 × ATQ` ×2 mono-cible puis `3.0 × ATQ` en zone, +30 % de
 // skillups sur les trois coups, 224 sur les coups 1 et 2, 400 sur les trois,
 // 411 sur le premier coup du tour) ou comparé au chemin ordinaire d'un sort
 // synthétique d'un seul groupe — jamais relu dans le code qui calcule.
@@ -53,8 +53,8 @@ function stats(valeurs: Partial<Record<StatKey, number>>): StatRow[] {
   return cles.map((key) => ({ key, label: key, base: 0, bonus: valeurs[key] ?? 0, total: valeurs[key] ?? 0, suffix: '' }));
 }
 
-// Lot 1b : huit identifiants, onze formes (cadrage, « Résultat validé le
-// 2026-09-23 ») ; les cinq candidats écartés restent hors famille.
+// Huit identifiants, onze formes ;
+// les cinq candidats écartés restent hors famille.
 const FAMILLE: Record<number, number[]> = {
   10601: [19801],
   10602: [19802, 19812],
@@ -67,7 +67,7 @@ const FAMILLE: Record<number, number[]> = {
 };
 const HORS_FAMILLE = [11015, 18314, 23507, 23508, 23510];
 // Les autres porteurs d'une séquence curée : les quatre séquences dont la phase
-// de zone vient de l'API (lot P6, SZ-2), testées dans
+// de zone vient de l'API, testées dans
 // `degats-valeurs-api.test.ts`. Listés ici pour que le balayage du corpus
 // continue de voir tout porteur inattendu.
 const SEQUENCES_API: Record<number, number[]> = {
@@ -110,7 +110,7 @@ function artefacts(subs: { code: number; value: number }[]): ArtifactDamageProfi
 const proche = (a: number, b: number) => Math.abs(a - b) <= 1e-9 * Math.max(1, Math.abs(a), Math.abs(b));
 
 export default function testDegatsBladeSurge() {
-  titre('Blade Surge — la séquence curée couvre les huit identifiants et onze formes du lot 1b');
+  titre('Blade Surge — la séquence curée couvre les huit identifiants et onze formes');
 
   // Balayage du corpus ENTIER, pas seulement de la liste : un sort porteur de
   // séquence hors famille, ou un porteur manquant, se verrait ici.
@@ -130,7 +130,7 @@ export default function testDegatsBladeSurge() {
   egal([...idsCapables].sort((a, b) => a - b), Object.keys({ ...FAMILLE, ...SEQUENCES_API }).map(Number).sort((a, b) => a - b),
     'capacité « autres ennemis » : les huit identifiants Blade Surge et les quatre séquences à valeur de l’API, aucun autre sort du corpus');
   for (const id of HORS_FAMILLE) {
-    ok(!cibleSecondairePriseEnCharge(id), `hors famille (lot 1b) : ${id} sans cible secondaire`);
+    ok(!cibleSecondairePriseEnCharge(id), `hors famille : ${id} sans cible secondaire`);
   }
 
   for (const [id, formes] of Object.entries(FAMILLE)) {
@@ -153,7 +153,7 @@ export default function testDegatsBladeSurge() {
     }
   }
 
-  titre('Blade Surge — la curation se refuse quand la donnée ne porte plus son empreinte (lot P6, SZ-1)');
+  titre('Blade Surge — la curation se refuse quand la donnée ne porte plus son empreinte');
   {
     const reelle = fiche(19812).competences.find((c) => c.com2usId === 10602)!;
     for (const [libelle, ecart] of [
@@ -187,7 +187,7 @@ export default function testDegatsBladeSurge() {
     // Si les skillups oubliaient le coup de zone, ou si le troisième coup
     // manquait (le calcul d'avant ce lot), on lirait ces deux nombres-là.
     ok(!proche(calcul(visee(normal)).total, ATQ * (0.5 * 2 * SKILLUP + 3.0) * df), 'skillups : le troisième coup en profite aussi');
-    ok(!proche(calcul(visee(normal)).total, ATQ * 0.5 * 2 * SKILLUP * df), 'le troisième coup n’est plus oublié (constat 151)');
+    ok(!proche(calcul(visee(normal)).total, ATQ * 0.5 * 2 * SKILLUP * df), 'le troisième coup n’est plus oublié');
     egal(cibleDegatsRetenue(bs, visee(normal)), 'visee', 'clé absente : cible visée');
     egal(cibleDegatsRetenue(bs, secondaire(normal)), 'secondaire', 'clé « secondaire » : autres ennemis');
     egal(

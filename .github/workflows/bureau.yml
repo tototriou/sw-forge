@@ -1,0 +1,126 @@
+name: Application de bureau (installeurs)
+
+# Construit l'installeur Windows et l'AppImage Linux de la version taguée, puis
+# les attache à la release GitHub du tag, avec les `latest*.yml` que lit la
+# mise à jour automatique (spec/shared/application-bureau.md).
+#
+# ⚠️ **Les fichiers s'attachent par `gh`, pas par electron-builder**
+# (`--publish always`). Celui-ci vise la release `v` + la version de
+# package.json, et IGNORE SANS ÉCHOUER une release publiée depuis plus de
+# 2 heures (electron-publish, gitHubPublisher.js) — or les releases du dépôt
+# sont rédigées et publiées à la main : l'installeur n'aurait jamais été
+# attaché, et l'action serait restée verte.
+#
+# Ordre indifférent à la publication :
+#  - release déjà publiée (titre, notes), puis tag poussé → fichiers AJOUTÉS,
+#    titre et notes intacts ;
+#  - tag poussé d'abord → un BROUILLON est créé, à compléter et publier.
+
+on:
+  push:
+    tags: ['v*']
+  # Relancer à la main pour un tag (ex. un job tombé en panne) — seulement
+  # une fois ce fichier présent sur `main`.
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag de la version (ex. v2.0.0)'
+        required: true
+
+permissions:
+  contents: write # créer le brouillon, attacher les fichiers
+
+env:
+  TAG: ${{ github.event.inputs.tag || github.ref_name }}
+
+concurrency:
+  group: bureau-${{ github.event.inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  construire:
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            fichiers: |
+              paquets/*.exe
+              paquets/*.exe.blockmap
+              paquets/latest.yml
+          - os: ubuntu-latest
+            fichiers: |
+              paquets/*.AppImage
+              paquets/latest-linux.yml
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ env.TAG }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          # ⚠️ Aligné sur `engines` de package.json (voir update-data.yml).
+          node-version: 24
+          cache: npm
+
+      - name: Dépendances
+        run: npm ci
+
+      # La version de l'app (affichée, nom de l'installeur, `latest.yml`) est
+      # celle du TAG. Si package.json en porte une autre, on le dit — le site,
+      # lui, affiche celle de package.json.
+      - name: Version du tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="${TAG#v}"
+          ACTUELLE="$(node -p "require('./package.json').version")"
+          if [ "$VERSION" != "$ACTUELLE" ]; then
+            echo "::warning::package.json dit $ACTUELLE, le tag $TAG : l'app de bureau prend $VERSION. Le site affichera $ACTUELLE tant que package.json n'est pas à jour."
+            npm version "$VERSION" --no-git-tag-version
+          fi
+
+      # `--publish never` (dans le script) : rien ne part d'ici, voir l'en-tête.
+      - name: Construire l'installeur
+        run: npm run bureau:paquet
+
+      - name: Garder les fichiers pour la publication
+        uses: actions/upload-artifact@v7
+        with:
+          name: paquets-${{ matrix.os }}
+          path: ${{ matrix.fichiers }}
+          if-no-files-found: error
+          retention-days: 1
+
+  publier:
+    needs: construire
+    runs-on: ubuntu-latest
+    steps:
+      - name: Récupérer les fichiers
+        uses: actions/download-artifact@v8
+        with:
+          path: paquets
+          merge-multiple: true
+
+      - name: Attacher à la release du tag
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          ls -la paquets
+          # `gh release view` trouve aussi un brouillon. Une release absente :
+          # un brouillon, que l'on complétera et publiera à la main.
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            echo "Release $TAG trouvée : fichiers ajoutés, titre et notes intacts."
+          else
+            echo "Pas de release $TAG : brouillon créé."
+            gh release create "$TAG" --draft --verify-tag --title "$TAG" \
+              --notes "Brouillon créé par l'action « Application de bureau » : titre et notes à rédiger avant publication."
+          fi
+          # `--clobber` : une relance remplace les fichiers d'une exécution
+          # précédente au lieu d'échouer.
+          gh release upload "$TAG" paquets/* --clobber
+          gh release view "$TAG" --json assets --jq '.assets[].name'

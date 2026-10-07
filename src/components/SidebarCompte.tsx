@@ -1,41 +1,42 @@
 import { ChangeEvent, useRef } from 'react';
-import { Import, Settings } from 'lucide-react';
+import { Check, ChevronsUpDown, Import } from 'lucide-react';
+import { IconeParametres } from './IconesAtelier';
+import { dateCourte } from './AccountFreshness';
+import { presentationSwex } from './BlocApplication';
+import { useEtatSwex } from '../hooks/useEtatSwex';
+import Menu from '../ui/Menu';
 
-// Pied de la barre latérale : QUI est chargé, et les deux gestes qui s'y
-// rapportent — changer de compte, régler l'application.
+// Carte du compte, en tête de la barre latérale (bureau) : QUI est chargé, et
+// le geste qui s'y rapporte — en charger un autre.
 //
 // ⚠️ **Le nom du joueur en premier.** On jongle entre plusieurs exports (le
 // sien, celui d'un ami dont on compare les runes) et rien ne disait lequel
-// était affiché. Une date d'import ne suffit pas : deux comptes importés le
-// même jour se ressemblent.
+// était affiché. En dessous, la date de l'EXPORT et le nombre de monstres :
+// deux comptes importés le même jour ne se ressemblent plus.
+//
+// ⚠️ **Toute la carte est le bouton d'import.** Le double chevron dit
+// « changer » : charger un autre compte EST changer de compte. Un bouton à
+// part, à côté, aurait fait deux cibles pour un seul geste.
 //
 // ⚠️ **L'avatar est une INITIALE, pas une image.** L'export SWEX ne porte
-// aucune photo de profil, et le jeu n'expose pas celle du joueur. Une initiale
-// sur fond teinté distingue deux comptes d'un coup d'œil sans rien inventer —
-// là où un pictogramme générique serait le même pour tous.
+// aucune photo de profil. Une initiale sur fond teinté distingue deux comptes
+// d'un coup d'œil sans rien inventer.
 export default function SidebarCompte({
   nom,
+  exporteLe,
+  nbMonstres,
   retractee,
-  parametresActifs,
-  onToggleParametres,
   onImport,
 }: {
-  // `null` = aucun compte chargé. L'avatar cède alors la place au seul geste
-  // qui vaille : importer.
+  // `null` = aucun compte chargé : la carte invite à importer.
   nom: string | null;
+  // Date de l'export chargé (`tvalue`), pas celle de l'import.
+  exporteLe: number | null;
+  nbMonstres: number;
   retractee: boolean;
-  parametresActifs: boolean;
-  // ⚠️ **Une BASCULE, pas un lien.** Le ⚙ ouvre les paramètres, et le clic
-  // suivant ramène à l'écran d'où l'on vient — c'est le même geste que le ⚙ de
-  // la barre supérieure au doigt (`basculerParametres` dans App.tsx). Un
-  // `<a href="#/parametres">` ne pouvait pas défaire ce qu'il venait de faire :
-  // une fois dans les paramètres, il ne restait qu'à choisir une autre
-  // destination pour en sortir.
-  onToggleParametres: () => void;
   // Reçoit le contenu du fichier choisi. ⚠️ Le composant porte son propre
   // `<input type="file">` : le sélecteur natif ne s'ouvre que depuis un vrai
-  // clic utilisateur, et le relayer à travers un parent aurait ajouté une ref
-  // et un effet pour rien.
+  // clic utilisateur.
   onImport: (texte: string) => void;
 }) {
   const fichier = useRef<HTMLInputElement>(null);
@@ -47,123 +48,139 @@ export default function SidebarCompte({
     onImport(await f.text());
   }
 
-  const champ = (
-    <input
-      ref={fichier}
-      type="file"
-      accept=".json,application/json"
-      onChange={choisir}
-      className="hidden"
-    />
+  const detail = nom
+    ? [exporteLe != null ? `Export du ${dateCourte(exporteLe)}` : null, `${nbMonstres} monstres`]
+        .filter(Boolean)
+        .join(' · ')
+    : 'Importer un export SWEX';
+
+  // ⚠️ **App de bureau, dossier SW Exporter choisi (lot 9)** : la carte ouvre
+  // un MENU — les invocateurs du dossier (celui suivi, coché), puis l'import
+  // d'un fichier. Choisir un invocateur ne change que « Mon compte »
+  // (décision 15). Sans dossier, et sur le site : la carte importe, comme
+  // avant.
+  const { etat, agir } = useEtatSwex();
+  const invocateurs = etat?.dossier && !etat.introuvable ? presentationSwex(etat).options : [];
+
+  const classeCarte = `flex w-full items-center rounded-xl border border-border-soft bg-panel text-left
+                    transition-colors hoverable:bg-panel2 ${
+                      retractee ? 'justify-center p-1.5' : 'gap-2.5 p-2'
+                    }`;
+  const contenu = (
+    <>
+      {/* Repliée, seul l'avatar tient : c'est la seule chose de la carte qui
+          reste identifiable à cette taille. */}
+      <span
+        aria-hidden
+        className="flex h-8 w-8 flex-none items-center justify-center rounded-lg bg-ctx-soft
+                   text-sm font-bold uppercase text-ctx"
+      >
+        {nom ? nom.trim().charAt(0) : <Import size={16} />}
+      </span>
+      {!retractee && (
+        <>
+          <span className="flex min-w-0 flex-1 flex-col">
+            <span className={`truncate text-sm font-semibold ${nom ? 'text-ink' : 'text-ink-dim'}`}>
+              {nom ?? 'Aucun compte'}
+            </span>
+            <span className="truncate text-xs text-ink-dimmer">{detail}</span>
+          </span>
+          <ChevronsUpDown size={16} aria-hidden className="flex-none text-ink-dimmer" />
+        </>
+      )}
+    </>
   );
-  // Rétractée, la barre ne garde que l'avatar — il tient dans 52 px, et c'est
-  // la seule chose du pied qui reste identifiable à cette taille.
-  if (retractee) {
+
+  const champ = (
+    <input ref={fichier} type="file" accept=".json,application/json" onChange={choisir} className="hidden" />
+  );
+
+  if (invocateurs.length > 0) {
     return (
-      <div className="flex flex-col items-center gap-1">
+      <>
         {champ}
-        {nom && <Avatar nom={nom} />}
-        <button
-          type="button"
-          onClick={() => fichier.current?.click()}
-          title="Importer un export de compte SWEX"
-          aria-label="Importer un compte"
-          className="flex aspect-square h-8 w-8 items-center justify-center rounded-lg text-ink-dim
-                     transition-colors hoverable:bg-panel2 hoverable:text-ink"
-        >
-          <Import size={16} />
-        </button>
-        <button
-          type="button"
-          onClick={onToggleParametres}
-          title={parametresActifs ? 'Fermer les paramètres' : 'Paramètres'}
-          aria-label={parametresActifs ? 'Fermer les paramètres' : 'Paramètres'}
-          aria-pressed={parametresActifs}
-          className={`flex aspect-square h-8 w-8 items-center justify-center rounded-lg transition-colors ${
-            parametresActifs
-              ? 'bg-ctx-soft text-ctx'
-              : 'text-ink-dim hoverable:bg-panel2 hoverable:text-ink'
-          }`}
-        >
-          <Settings
-            size={16}
-            className={`transition-transform ${parametresActifs ? 'rotate-45' : ''}`}
-          />
-        </button>
-      </div>
+        <Menu
+          libelle="Changer de compte"
+          cote="gauche"
+          largeur={retractee ? 'w-56' : 'w-full'}
+          declencheur={(p) => (
+            <button type="button" {...p} aria-label="Changer de compte" title="Changer de compte" className={classeCarte}>
+              {contenu}
+            </button>
+          )}
+          elements={[
+            ...invocateurs.map((o) => ({
+              cle: o.valeur,
+              libelle: o.libelle,
+              actif: o.valeur === etat?.fichier,
+              // La coche dit lequel est suivi ; une place vide aux autres
+              // garde les noms alignés.
+              icone: o.valeur === etat?.fichier ? <Check size={14} /> : <span className="w-[14px]" />,
+              onClick: () => void agir((s) => s.choisirInvocateur(o.valeur)),
+            })),
+            {
+              cle: 'importer',
+              libelle: 'Importer un fichier…',
+              icone: <Import size={14} />,
+              title: "Importer un export de compte SWEX (traité localement, rien n'est envoyé)",
+              onClick: () => fichier.current?.click(),
+            },
+          ]}
+        />
+      </>
     );
   }
 
   return (
-    <div className="flex items-center gap-2">
+    <>
       {champ}
-      {nom ? (
-        <>
-          <Avatar nom={nom} />
-          {/* `min-w-0` + `truncate` : un pseudo long ne doit pas pousser les
-              deux boutons hors de la barre. */}
-          <span className="min-w-0 flex-1 truncate text-sm text-ink" title={nom}>
-            {nom}
-          </span>
-        </>
-      ) : (
-        <span className="min-w-0 flex-1 truncate text-sm text-ink-dimmer">
-          Aucun compte
-        </span>
-      )}
-
-      {/* ⚠️ Deux boutons NUS, alignés à droite : ils accompagnent le nom, ils
-          ne sont pas des destinations de la navigation. Encadrés, ils se
-          liraient comme deux entrées de plus dans la liste au-dessus.
-          ⚠️ Une icône d'IMPORT, pas trois points : « … » annonce un menu de
-          plusieurs choix, alors qu'il n'y a qu'une action ici. On cliquait en
-          s'attendant à une liste. */}
       <button
         type="button"
         onClick={() => fichier.current?.click()}
-        title="Importer un export de compte SWEX (traité localement, rien n'est envoyé)"
         aria-label="Importer un compte"
-        className="flex aspect-square h-8 w-8 flex-none items-center justify-center rounded-md text-ink-dim
-                   transition-colors hoverable:bg-panel2 hoverable:text-ink"
+        title="Importer un export de compte SWEX (traité localement, rien n'est envoyé)"
+        className={classeCarte}
       >
-        <Import size={16} />
+        {contenu}
       </button>
-      {/* L'engrenage pivote d'un huitième de tour quand les paramètres sont
-          ouverts : le bouton dit alors qu'il fera l'INVERSE au prochain clic,
-          sans changer d'icône — une croix aurait fait croire à la fermeture de
-          la page entière. Même signe que le ⚙ de la barre supérieure. */}
-      <button
-        type="button"
-        onClick={onToggleParametres}
-        title={parametresActifs ? 'Fermer les paramètres' : 'Paramètres'}
-        aria-label={parametresActifs ? 'Fermer les paramètres' : 'Paramètres'}
-        aria-pressed={parametresActifs}
-        className={`flex aspect-square h-8 w-8 flex-none items-center justify-center rounded-md
-                    transition-colors ${
-                      parametresActifs
-                        ? 'bg-ctx-soft text-ctx'
-                        : 'text-ink-dim hoverable:bg-panel2 hoverable:text-ink'
-                    }`}
-      >
-        <Settings
-          size={16}
-          className={`transition-transform ${parametresActifs ? 'rotate-45' : ''}`}
-        />
-      </button>
-    </div>
+    </>
   );
 }
 
-// Pastille d'initiale. La teinte suit l'ACCENT CONTEXTUEL : sur la fiche d'un
-// monstre d'eau, tout l'écran vire au bleu, l'avatar compris.
-function Avatar({ nom }: { nom: string }) {
+// Paramètres, en pied de la barre — une entrée au gabarit des autres.
+//
+// ⚠️ **Une BASCULE, pas un lien.** Le ⚙ ouvre les paramètres, et le clic
+// suivant ramène à l'écran d'où l'on vient — le même geste que le ⚙ de la
+// barre supérieure au doigt (`basculerParametres` dans App.tsx). L'engrenage
+// pivote d'un huitième de tour quand ils sont ouverts : le bouton dit qu'il
+// fera l'INVERSE au prochain clic.
+export function SidebarParametres({
+  actifs,
+  retractee,
+  onToggle,
+}: {
+  actifs: boolean;
+  retractee: boolean;
+  onToggle: () => void;
+}) {
   return (
-    <span
-      aria-hidden
-      className="flex h-7 w-7 flex-none items-center justify-center rounded-full
-                 bg-ctx-soft text-xs font-bold uppercase text-ctx"
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-label={actifs ? 'Fermer les paramètres' : 'Paramètres'}
+      title={actifs ? 'Fermer les paramètres' : 'Paramètres'}
+      aria-pressed={actifs}
+      className={`flex h-8 w-full items-center rounded-lg text-left text-md font-medium transition-colors ${
+        retractee ? 'justify-center px-0' : 'gap-2.5 px-2.5'
+      } ${actifs ? 'bg-accent-soft text-accent' : 'text-ink-dim hoverable:bg-ink/5 hoverable:text-ink'}`}
     >
-      {nom.trim().charAt(0)}
-    </span>
+      {/* Rebranding R4 : les curseurs « Réglages » de la toile (décision 28 —
+          l'engrenage est à Mécaniques), et l'état ouvert en braise comme toute
+          entrée active de la barre (décision 29). L'engrenage pivotait d'un
+          huitième de tour à l'ouverture : des curseurs tournés ne diraient
+          rien, et l'état se lit déjà au fond et au libellé. */}
+      <IconeParametres size={16} />
+      {!retractee && <span>Paramètres</span>}
+    </button>
   );
 }

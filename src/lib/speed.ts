@@ -157,6 +157,18 @@ export function runeSpeedForTarget(
   return target - base - pctSpeedBonus(base, lead, swift) + (swift ? swiftFlat(base) : 0);
 }
 
+// VIT de FICHE (base + runes, ce que montre la carte du monstre avant le combat)
+// qui amène un monstre pile sur un tick de siège, totem et lead compris.
+//
+// ⚠️ **Une recommandation stocke la VIT de fiche, jamais la vitesse de combat**
+// (voir ../../spec/siege/recommandations.md). Le raccourci « Rapide 286 / Lent
+// 239 » de sa saisie passe donc par ici : sans Swift, la fiche + le bonus %
+// (totem + lead) donne le tick visé.
+export function ficheSpeedForTick(base: number | null, lead: number, tick: number): number | null {
+  const runes = runeSpeedForTarget(base, lead, tick);
+  return base === null || runes === null ? null : base + runes;
+}
+
 /* --- Leads de vitesse déduits automatiquement de la leader skill --- */
 
 export interface LeadInfo {

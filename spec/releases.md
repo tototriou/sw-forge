@@ -35,6 +35,16 @@ interface Release {
 }
 ```
 
+⚠️ **À la souris, une version = une rangée à deux colonnes** (refonte
+graphique, lot 10, la maquette) : à gauche le numéro, le statut (« Version
+actuelle », « Pas encore publiée »), la date et « GitHub ↗ » ; à droite le
+titre, les points mis en avant et les changements. Plus de carte : un filet
+sépare les versions, la pastille dit laquelle tourne. Libellés gardés
+(« Nouveau », « Correction » — la maquette écrivait « Correctif »). **Au
+doigt** (lot 11d, décision 27), le même filet entre les versions, plus de
+carte ; la ligne numéro · statut · date reste au-dessus du titre, faute de
+place pour deux colonnes.
+
 ### ⚠️ `version: null` — la version en préparation
 
 Une version se développe **sans savoir** si elle sortira en corrective ou en
@@ -148,8 +158,8 @@ commit, on y fait l'étape 4 **une seule fois** (entrée unique dans
 `releases.ts` — deux entrées `version: null` deviennent une, pas deux
 entrées au même numéro — numéro dans `package.json`, `tsc`, `npm test`,
 `build`), et c'est **elle** qui part en PR vers `main`. Vécu pour la
-v1.13.0 (2026-09-17) : `forge/spec-rangement` et
-`forge/fixtures-cumul-equipe` fusionnées dans `release/v1.13.0`, par-dessus
+v1.13.0 (2026-09-17) : deux branches `forge/<sujet>`
+fusionnées dans `release/v1.13.0`, par-dessus
 la version en préparation du speed tuning déjà sur `main`.
 
 ### Les cinq étapes

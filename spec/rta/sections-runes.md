@@ -18,12 +18,42 @@ Fichiers : [RtaSection.tsx](src/components/rta/RtaSection.tsx) ·
   et sa **couleur d'accent** (`sectionAccent`).
 - « Autre » et « Non classé » utilisent un losange coloré au lieu d'une icône de rune.
 
+## Filtre par section — au téléphone
+
+Refonte graphique, lot 13, décision 28 (la maquette) : **au doigt**, une rangée
+de pastilles en tête des sections — **« Tous »**, puis **« Non classé »** et
+chaque section de set, chacune avec son **nombre de monstres** (et l'icône de
+son set). **Une seule à la fois** : en choisir une n'affiche plus que cette
+section ; « Tous » les rend toutes.
+
+- ⚠️ **Un filtre d'AFFICHAGE, rien d'autre** : l'ordre de tour, les
+  compteurs, la prépa elle-même ne changent pas — on regarde une section, on
+  ne la sort pas de la prépa.
+- ⚠️ **Au téléphone seulement** (`lg:hidden`) : sur une colonne, trente
+  rangées se parcourent mal ; à la souris, les sections tiennent côte à côte
+  sous les yeux.
+- Non persisté : rouvrir la page montre tout. Une section supprimée pendant
+  qu'elle est choisie ramène à « Tous ».
+- Défilement horizontal de la rangée si les sections dépassent la largeur,
+  jamais un retour à la ligne qui pousserait les sections vers le bas.
+
 ## Section — `RtaSection`
 
-- En-tête : icône/losange + label + compteur de cartes + (si supprimable) croix.
+- En-tête : icône/losange + label + compteur de cartes + **filet** jusqu'au bord
+  + (si supprimable) croix.
+- ⚠️ **Pas de cadre au repos** (refonte graphique, lot 6, la maquette) : cinq
+  sections encadrées empilaient cinq boîtes dans la page ; c'est l'en-tête et
+  son filet qui délimitent la section. Même gabarit pour les sections de la
+  prépa d'un ami (`RtaFriendView`).
 - Vide → « Glisse des monstres ici ». Sinon grille de cartes responsive.
-- **Cible de drop** : surbrillance + halo à la couleur d'accent au survol d'un
-  drag (compteur enter/leave pour éviter le scintillement). Drop → `moveMonster`.
+- **Cible de drop** : au survol d'un drag, le cadre apparaît — **1 px à la
+  couleur d'accent** (la bordure, transparente au repos, prend la teinte : rien
+  ne bouge) — sur un fond `panel2` léger (compteur enter/leave pour éviter le
+  scintillement). Drop → `moveMonster`. Plus d'ombre ajoutée par-dessus la
+  bordure, qui en faisait un trait de 2 px.
+- **Cartes** (`RtaCard`, et celles de la prépa d'un ami) : gabarit des cartes de
+  la refonte — fond `panel`, contour `border-soft` (`border` au survol), rayon
+  12 ; l'anneau des catégories suit ce rayon.
 - **Suppression de section** : disponible pour tous les sets **sauf « Autre »**.
   Les monstres de la section supprimée **repartent en « Non classé »**.
 
@@ -184,8 +214,8 @@ Comme en **vue compacte du siège**, le panneau de détail (`MonsterGear`) s'ouv
     Précision** (`CAPPED_STATS` dans [effects.ts](src/lib/effects.ts)) qui
     passent en **rouge** (`text-red-500`, pas le jeton `bad` — voir la
     surbrillance du sélecteur de set dans
-    [outils/optimizer.md](../outils/optimizer.md) pour le même choix et sa
-    raison) dès que leur TOTAL atteint 100 % — leur plafond réel en jeu. Un
+    [outils/optimizer/ecran/set-et-principale.md](../outils/optimizer/ecran/set-et-principale.md)
+    pour le même choix et sa raison) dès que leur TOTAL atteint 100 % — leur plafond réel en jeu. Un
     bonus de +30 % isolé n'est pas « au plafond » en soi, c'est la somme avec
     la base qui peut l'être : le rouge n'apparaît donc qu'en mode Total,
     jamais sur la colonne bonus seule.

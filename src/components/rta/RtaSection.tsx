@@ -69,30 +69,37 @@ export default function RtaSection({
       // ⚠️ Rembourrage réduit sous `sm` : la page empile trois à six sections,
       // et chaque `p-3` coûte 24 px de haut multipliés par le nombre de
       // sections — soit un écran entier de vide sur un téléphone.
-      className={`rounded-2xl border p-3 transition-colors compact:p-2 ${
-        over ? 'border-transparent bg-panel2/80' : 'border-border bg-panel/40'
+      // ⚠️ Refonte graphique, lot 6 : **plus de cadre au repos** (la maquette).
+      // Cinq sections encadrées empilaient cinq boîtes dans la page ; c'est
+      // l'en-tête — icône, titre, nombre, filet — qui délimite désormais la
+      // section. Le cadre REVIENT pendant un glisser, à la couleur du set :
+      // c'est là qu'il dit quelque chose (« tu peux lâcher ici »).
+      // ⚠️ **1 px, et un seul** : la bordure (transparente au repos, pour que
+      // son apparition ne décale rien) prend la teinte — plus d'ombre ajoutée
+      // par-dessus, qui en faisait un trait de 2 px. Voir la règle du
+      // marqueur unique dans spec/shared/design.md.
+      className={`rounded-xl border p-2 transition-colors compact:p-1.5 ${
+        over ? 'bg-panel2/60' : 'border-transparent'
       }`}
-      // ⚠️ 1 px, pas 2 : la bordure de la section est DÉJÀ teintée juste en
-      // dessous (`borderColor`), donc l'ombre s'ajoute à elle. À 2 px, la cible
-      // de dépôt se cernait d'un trait de 3 px qui pesait plus que la section
-      // elle-même. Voir la règle du marqueur unique dans spec/shared/design.md.
-      style={over ? { boxShadow: `0 0 0 1px ${accent}`, borderColor: accent } : undefined}
+      style={over ? { borderColor: accent } : undefined}
     >
-      <div className="flex items-center gap-2.5 mb-3 compact:gap-2 compact:mb-2">
+      <div className="mb-2.5 flex items-center gap-2.5 compact:mb-2 compact:gap-2">
         {sectionKey === RTA_OTHER || sectionKey === RTA_UNASSIGNED ? (
           <span className="w-3 h-3 rounded-[3px] rotate-45 flex-none" style={{ background: accent }} />
         ) : (
           <RuneIcon setKey={sectionKey} size={22} className="flex-none" />
         )}
         <h3 className="font-display text-base tracking-wide">{label}</h3>
-        <span className="font-mono text-ink-dim text-micro">{count}</span>
+        <span className="font-mono text-ink-dimmer text-micro">{count}</span>
+        {/* Le filet prolonge l'en-tête jusqu'au bord : c'est lui qui sépare
+            deux sections, maintenant qu'elles n'ont plus de cadre. */}
+        <span aria-hidden className="ml-1 h-px flex-1 bg-border-soft" />
         {removable && onRemoveSection && (
           <BoutonIcone
             onClick={() => setSuppressionAConfirmer(true)}
             libelle="Supprimer la section (les monstres reviennent en Non classé)"
             ton="danger"
             icone={<X size={13} />}
-            className="ml-auto"
           />
         )}
       </div>
@@ -116,7 +123,7 @@ export default function RtaSection({
       )}
 
       {count === 0 ? (
-        <div className="rounded-xl border border-dashed border-border/70 py-6 text-center text-ink-dim text-xs">
+        <div className="rounded-xl border border-dashed border-border py-6 text-center text-ink-dim text-xs">
           Glisse des monstres ici
         </div>
       ) : (
@@ -128,8 +135,18 @@ export default function RtaSection({
           // 320 px et trois à partir de 480.
           // La carte s'y adapte : le sélecteur de section passe sous le nom
           // plutôt qu'à côté (voir RtaCard).
+          // ⚠️ **Au TÉLÉPHONE, une RANGÉE par monstre** (refonte graphique,
+          // lot 11a, décision 24, la maquette) : une colonne, écart resserré.
+          // Le mainteneur l'a choisie en connaissance de l'objection ci-dessus (trente
+          // monstres, trente lignes) : la rangée est plus basse que la carte
+          // et elle rend le NOM, que la tuile de 150 px devait masquer.
+          // ⚠️ `lg:` et non plus `sm:` pour les colonnes de 210 px : `sm:` sort
+          // APRÈS `max-lg:` dans le CSS construit et l'aurait emporté entre 640
+          // et 1023 px — deux colonnes sur un téléphone en paysage. Au-dessus
+          // de `lg`, les deux reviennent au même : le bureau ne bouge pas.
           className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,150px),1fr))] gap-2
-                     sm:grid-cols-[repeat(auto-fill,minmax(min(100%,210px),1fr))] sm:gap-2.5"
+                     lg:grid-cols-[repeat(auto-fill,minmax(min(100%,210px),1fr))] lg:gap-2.5
+                     max-lg:grid-cols-1 max-lg:gap-1.5"
           openIndex={openIndex}
           detail={detail}
         >

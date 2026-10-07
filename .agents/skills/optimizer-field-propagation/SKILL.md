@@ -1,6 +1,6 @@
 ---
 name: optimizer-field-propagation
-description: Checklist à suivre pour tout ajout, renommage ou changement de sémantique ou de défaut d'un champ traversant (OptimizerState, OptimizerRecipe, RealDamageContext, ArtifactDamageProfile…) — l'écran, la recette, les scripts CLI et la documentation ont chacun leur propre copie de la logique, et un champ optionnel oublié ne déclenche aucune erreur tsc.
+description: "Checklist pour tout ajout, renommage ou changement de type, de défaut ou de sens d'un champ TRAVERSANT de l'Optimizer (OptimizerState, OptimizerRecipe, SearchParams, RealDamageContext, entrée de résolution…) — d'abord un producteur pur unique, appelé par l'écran, la recette, les scripts et les Workers ; là où plusieurs constructeurs subsistent, chacun se vérifie, parce qu'un champ optionnel oublié dans l'un d'eux passe tsc et fait diverger un script de l'écran sans bruit."
 ---
 
 # Adaptateur Codex

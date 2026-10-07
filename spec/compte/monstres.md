@@ -21,6 +21,9 @@ Affiche **tous les monstres montés 6★** du compte importé. Composant :
     d'exemplaires (box seule — le bestiaire ne sait pas ce qu'on possède) et la
     rangée d'**étoiles**, masquée ici puisque tout est 6★.
 - En-tête : « N monstres différents · M au total · 6★ ».
+  - ⚠️ **À la SOURIS** (refonte graphique, lot 8b, la maquette) : précédé du
+    titre « Ma box », le compte passe en pastille. Au doigt, il reste une ligne
+    sous la barre du haut (lot 11).
 
 ## Pagination & performance
 
@@ -258,6 +261,25 @@ n'en cocher **aucune** revient à **ne rien vouloir voir**. Les interrupteurs
   dérivé de `awaken_level ≥ 2` côté données SWARFARM). Ex. Tractor 2A.
 
 Les filtres se combinent avec la recherche.
+
+**« Effacer les filtres »** (refonte graphique, lot 13, décision 28 — le même
+bouton que les runes, `spec/compte/runes.md`) : au bout des filtres, à la
+souris comme dans le panneau « Filtrer ma box ». Il remet **tous les
+éléments, toutes les étoiles**, et coupe **Doublons** et **2A**. Il ne touche
+ni à la recherche ni au tri. ⚠️ **Toujours affiché, désactivé** quand rien
+n'est filtré (« Aucun filtre posé ») : un bouton qui apparaît au premier
+filtre ne s'explique pas.
+
+⚠️ **À la SOURIS, trois lignes fixes** (refonte graphique, lot 8b) : la
+recherche à largeur fixe (288 px), puis élément · Nat, Doublons, 2A sur une
+ligne, puis **le tri à la suite des filtres** (le mainteneur : « mets l'ordre à la
+suite des filtres »), sur la ligne de la pagination, calée à droite. Cette
+ligne reste là sans résultat ni seconde page : le tri ne disparaît jamais
+avec les données. Une barre unique a été essayée puis défaite
+par le mainteneur : à 1 000 px, elle écrasait la recherche et renvoyait le tri seul
+à la ligne. Les filtres restent **visibles**, pas
+dans des menus : même choix que pour les runes. Au
+doigt, rien ne change (lot 11).
 
 > ⚠️ **Une chip active se reconnaît à sa couleur, sans lire son libellé.**
 >

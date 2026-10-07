@@ -9,7 +9,7 @@ import { mkdtempSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 
-const dossier = mkdtempSync(join(tmpdir(), 'sw-forge-benchmark-'));
+const dossier = mkdtempSync(join(tmpdir(), 'swblacksmith-benchmark-'));
 const sortie = join(dossier, 'benchmark.cjs');
 
 try {

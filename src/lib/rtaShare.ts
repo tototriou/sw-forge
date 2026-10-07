@@ -26,6 +26,8 @@ import {
   RelicUnique,
 } from '../types';
 import { RtaCategory } from '../hooks/useRtaCategories';
+import { NOM_APP } from '../marque';
+import { formatExport, formatReconnu } from './formatsExport';
 
 const SET_KEYS = new Set<string>(RUNE_SETS.map((s) => s.key));
 // Sections acceptées : les sets de runes + les deux sections spéciales.
@@ -603,8 +605,8 @@ function cleanGear(raw: unknown, ctx: Issues, where: string): GearSet | undefine
 
   const relicRaw = o.relic as Record<string, unknown> | undefined;
   const relicMain = cleanEffect(relicRaw?.main);
-  // ⚠️ `id` et `upgrade` sont non optionnels dans `RelicDetail` depuis `75f073f`
-  // (lot 1 d'implementation-relique) : un lien émis avant cette version ne les
+  // ⚠️ `id` et `upgrade` sont non optionnels dans `RelicDetail` (commit
+  // `75f073f`) : un lien émis avant cette version ne les
   // porte pas. On ne les fabrique jamais avec `undefined` — la relique entière
   // est ignorée, avec un avertissement, plutôt que de mentir sur son typage.
   const relicId = Number(relicRaw?.id);
@@ -622,7 +624,7 @@ function cleanGear(raw: unknown, ctx: Issues, where: string): GearSet | undefine
         ...(relicUnique ? { unique: relicUnique } : {}),
       };
     } else {
-      warn(ctx, `${where} : relique sans « id » ou « upgrade » valide (fichier antérieur au lot 1) — ignorée.`);
+      warn(ctx, `${where} : relique sans « id » ou « upgrade » valide (fichier d'une version antérieure de l'application) — ignorée.`);
     }
   }
 
@@ -773,7 +775,8 @@ function cleanCategory(raw: unknown, ctx: Issues, where: string): RtaShareCatego
  * Format JSON — celui des FICHIERS échangés
  * ----------------------------------------------------------------------- */
 
-export const JSON_FORMAT = 'sw-forge/prepa-rta';
+// `sw-forge/prepa-rta` avant le rebranding : toujours relu (formatsExport.ts).
+export const JSON_FORMAT = formatExport('prepa-rta');
 // v2 : l'**équipement** (runes, artéfacts, relique) peut accompagner chaque
 // monstre — c'est ce qu'on vient voir dans la prépa d'un ami. Il reste
 // facultatif : l'auteur choisit à l'export. Un fichier v1 se lit sans perte, il
@@ -847,7 +850,7 @@ export function validateRtaImport(text: string): ImportReport {
   }
   // Message explicite plutôt qu'une erreur de parseur cryptique.
   if (!t.startsWith('{')) {
-    ctx.errors.push("Attendu un JSON de prépa RTA (fichier .json d'export SW Forge).");
+    ctx.errors.push(`Attendu un JSON de prépa RTA (fichier .json d'export ${NOM_APP}).`);
     return { ...vide, ...ctx };
   }
 
@@ -863,7 +866,7 @@ export function validateRtaImport(text: string): ImportReport {
     return { ...vide, ...ctx };
   }
 
-  if (typeof obj.format === 'string' && obj.format !== JSON_FORMAT) {
+  if (typeof obj.format === 'string' && !formatReconnu(obj.format, 'prepa-rta')) {
     // Erreur BLOQUANTE et non simple avertissement : importer une prépa
     // REMPLACE la prépa en cours. Se tromper de fichier (une recommandation de
     // siège, par exemple) coûterait le classement en place.
@@ -877,7 +880,7 @@ export function validateRtaImport(text: string): ImportReport {
   if (Number.isFinite(version) && version > JSON_VERSION) {
     warn(
       ctx,
-      `Fichier au format v${version}, plus récent que cette version de SW Forge (v${JSON_VERSION}) — ` +
+      `Fichier au format v${version}, plus récent que cette version de ${NOM_APP} (v${JSON_VERSION}) — ` +
         `ce qui n'est pas reconnu a été ignoré.`
     );
   } else if (Number.isFinite(version) && version < JSON_VERSION) {

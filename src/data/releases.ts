@@ -1,4 +1,6 @@
-// Journal des versions de SW Forge, affiché sur `#/releases`.
+// Journal des versions de SW Blacksmith (SW Forge avant la 2.0.0), affiché sur
+// `#/releases`. ⚠️ Les notes des versions passées gardent l'ancien nom : elles
+// racontent ce qui s'est passé à l'époque (décision 66 c du rebranding).
 //
 // ⚠️ **Source de vérité du contenu des releases.** Il est tenu À LA MAIN, et
 // non dérivé de l'API GitHub : le site est statique et doit rester lisible hors
@@ -57,6 +59,44 @@ export const CHANGE_META: Record<ChangeKind, { label: string; color: string }> =
 // détail d'implémentation — tout ça vit dans les commits et dans `spec/`.
 // Si une ligne dépasse ~15 mots, c'est qu'elle raconte l'implémentation.
 export const RELEASES: Release[] = [
+  {
+    version: '2.0.0',
+    date: '2026-10-05',
+    title: 'SW Forge devient SW Blacksmith, et s’installe sur ton ordinateur',
+    highlights: [
+      'Nouveau nom, nouveau logo, nouvelle interface — tes données restent, rien à réimporter',
+      'SW Blacksmith existe en application pour Windows et Linux',
+      'Ctrl K pour aller partout, et « Annuler » après une suppression',
+    ],
+    changes: [
+      { kind: 'feat', scope: 'Identité', text: 'SW Forge s’appelle SW Blacksmith : nouveau nom, nouveau logo, nouvelle interface.' },
+      { kind: 'feat', scope: 'Application', text: 'SW Blacksmith existe en application de bureau pour Windows et Linux.' },
+      { kind: 'feat', scope: 'Application', text: 'Une page « Télécharger » propose l’installeur de la dernière version.' },
+      { kind: 'feat', scope: 'Application', text: 'Chaque nouvelle version t’est proposée ; tu choisis quand l’installer.' },
+      { kind: 'feat', scope: 'Thèmes', text: 'Les thèmes Forge et Atelier prennent les couleurs de la braise.' },
+      { kind: 'feat', scope: 'Navigation', text: 'Ctrl K ouvre une palette : pages, monstres et actions.' },
+      { kind: 'feat', scope: 'Navigation', text: 'Supprimer une équipe, un deck ou une recommandation se défait avec « Annuler ».' },
+      { kind: 'feat', scope: 'Siège', text: 'Cherche une équipe par monstre.' },
+      { kind: 'feat', scope: 'Siège', text: 'Exporte et importe tes équipes en fichier, pour les partager.' },
+      { kind: 'feat', scope: 'Siège', text: 'Une carte « Ajouter une équipe » termine la grille.' },
+      { kind: 'feat', scope: 'Siège', text: 'Un monstre choisi, la case suivante s’active d’elle-même.' },
+      { kind: 'feat', scope: 'Recommandations', text: 'La vue Attaque / Défense remplace le filtre Toutes / Mes recos / Importées.' },
+      { kind: 'feat', scope: 'Recommandations', text: 'Un second clic sur « Analyser mes decks » masque l’analyse.' },
+      { kind: 'feat', scope: 'Recommandations', text: '« Tick rapide » / « Tick lent » met la VIT d’un monstre au tick, totem et lead compris.' },
+      { kind: 'feat', scope: 'Recommandations', text: '« Annuler les modifications » quitte l’édition d’un deck ou d’une recommandation sans rien garder.' },
+      { kind: 'feat', scope: 'RTA', text: '« Sauvegardé il y a … » dans l’en-tête de Ma prépa.' },
+      { kind: 'feat', scope: 'RTA', text: 'Retirer un monstre de la prépa se défait avec « Annuler ».' },
+      { kind: 'feat', scope: 'RTA', text: 'Au téléphone, filtre l’affichage par section.' },
+      { kind: 'feat', scope: 'Mon compte', text: '« Effacer les filtres » dans la box et la liste d’artéfacts.' },
+      { kind: 'fix', scope: 'Navigation', text: 'Les sous-sections se déroulent sous leur entrée ; l’aperçu au survol disparaît.' },
+      { kind: 'fix', scope: 'Navigation', text: 'Le menu marquait la section au lieu de la sous-section ouverte depuis le panneau.' },
+      { kind: 'fix', scope: 'Interface', text: 'Les fautes s’affichent en rouge, les avertissements en jaune, partout pareil.' },
+      { kind: 'fix', scope: 'Runes', text: 'Le tri n’a plus qu’une mesure, celle choisie dans ⚙.' },
+      { kind: 'fix', scope: 'Siège', text: '« Aucune équipe de défense » : la faute de « d’défense » est corrigée.' },
+      { kind: 'fix', scope: 'Fichiers', text: 'Les fichiers téléchargés commencent par « swblacksmith- » ; les anciens se relisent.' },
+      { kind: 'fix', scope: 'Confidentialité', text: 'Plus aucune mesure d’audience : rien ne quitte ton navigateur.' },
+    ],
+  },
   {
     version: '1.14.0',
     date: '2026-10-04',

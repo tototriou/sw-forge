@@ -1,6 +1,6 @@
 ---
 name: cadrage-chantier
-description: Comment produire un document de cadrage de chantier (un fichier, jamais un plan dans la conversation) pour tout travail de plus d'une session ou confié à des sessions fraîches, et comment le faire vivre pendant le chantier — gabarit Partie A / Partie B, règles apprises sur spec-rangement avec leur incident, forme fixe du brief d'un lot, boucle de validation côté pilote, emplacement dans spec/chantiers/. Modèle : spec/chantiers/spec-rangement.md.
+description: "Comment écrire le document de cadrage d'un chantier (un fichier, jamais un plan dans la conversation) pour tout travail de plus d'une session ou confié à des sessions fraîches — gabarit Partie A / Partie B, règles de fond de son contenu, emplacement (public ou privé, au choix du responsable du chantier), en-tête et clôture."
 ---
 
 # Adaptateur Codex

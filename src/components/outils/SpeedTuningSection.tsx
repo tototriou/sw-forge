@@ -1,5 +1,7 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
-import { Search, Plus, Timer, Users, Swords, X, Zap, Gauge, Eye, EyeOff, Download, Check, Scissors, Play, ChevronUp, ChevronDown, Sparkles, CopyPlus } from 'lucide-react';
+import { Search, Plus, Users, Swords, X, Zap, Gauge, Eye, EyeOff, Download, Check, Scissors, Play, ChevronUp, ChevronDown, Sparkles, CopyPlus } from 'lucide-react';
+// Le chronomètre de l'entrée « Speed tuning » de la nav (rebranding, décision 44).
+import { IconeSpeedTuning } from '../IconesAtelier';
 import { ELEMENTS, Monster, SiegeTeam } from '../../types';
 import { LeadInfo, combatSpeed, leadsDeVitesse, runeSpeedForTarget, SIEGE_TICKS } from '../../lib/speed';
 import {
@@ -367,16 +369,58 @@ export default function SpeedTuningSection({
     }
   };
 
+  // L'ordre de tour, posé à DEUX endroits selon le format (un seul visible) :
+  // tout en bas au doigt, sous l'analyse à la souris (décision 22).
+  const ordreDeTour = (className: string) => (
+    <section className={`rounded-lg border border-border bg-panel ${className}`}>
+      <div className="border-b border-border-soft px-4 py-2.5 text-micro font-semibold uppercase tracking-wider text-ink-dimmer">
+        Ordre de tour
+      </div>
+      <div className="flex flex-wrap items-center gap-2 px-4 py-3.5">
+        {premiers.map((a, i) => {
+          const l = ligneParUid.get(a.id);
+          if (!l) return null;
+          const adv = a.camp === 'ennemi';
+          return (
+            <span key={a.id} className="flex items-center gap-2">
+              {i > 0 && <span className="text-ink-dimmer">→</span>}
+              <Jeton
+                icone={
+                  <span className="flex items-center gap-1.5">
+                    <span
+                      className={`flex h-5 w-5 items-center justify-center rounded-full text-micro font-bold text-bg ${
+                        adv ? 'bg-bad' : 'bg-good'
+                      }`}
+                    >
+                      {a.ordre}
+                    </span>
+                    <MonsterAvatar monster={l.monster} size={20} element={false} />
+                  </span>
+                }
+                libelle={l.monster.name}
+                detail={<span className="font-mono">tick {a.tick}</span>}
+              />
+            </span>
+          );
+        })}
+      </div>
+    </section>
+  );
 
   return (
     <div className="space-y-4">
       {entete && (
+        // ⚠️ **À la SOURIS, le titre au gabarit des autres pages** (refonte
+        // graphique, lot 9b, la maquette) : titre en police d'affichage, sans
+        // la pastille d'icône, la règle des ticks dessous.
         <header className="flex items-start gap-3">
-          <span className="flex h-8 w-8 flex-none items-center justify-center rounded bg-accent-soft text-accent">
-            <Timer size={18} />
+          <span className="flex h-8 w-8 flex-none items-center justify-center rounded bg-accent-soft text-accent lg:hidden">
+            <IconeSpeedTuning size={18} />
           </span>
           <div>
-            <h1 className="text-lg font-semibold leading-tight">Speed tuning</h1>
+            <h1 className="text-lg font-semibold leading-tight lg:font-display lg:text-xl lg:font-normal lg:tracking-wide lg:text-ink">
+              Speed tuning
+            </h1>
             <p className="mt-0.5 text-sm text-ink-dim">{REGLE_TICKS}</p>
           </div>
         </header>
@@ -427,8 +471,13 @@ export default function SpeedTuningSection({
         </div>
       </section>
 
-      {/* Camps — flex-wrap : côte à côte quand il y a la place, empilés sinon. */}
-      <div className="flex flex-wrap gap-4">
+      {/* Camps — flex-wrap : côte à côte quand il y a la place, empilés sinon.
+          ⚠️ **Au TÉLÉPHONE, toujours empilés** (`max-lg:flex-col`, lot 11d) :
+          dès 560 px de large, deux camps de 280 px tenaient côte à côte, et
+          chacun devenait trop étroit — le lead débordait de l'en-tête et les
+          trois réglages de chaque monstre s'empilaient (relevé par le mainteneur en
+          mode appareil). Pleine largeur, la card retrouve sa rangée. */}
+      <div className="flex flex-wrap gap-4 max-lg:flex-col">
         <CampPanneau
           camp="allie"
           titre="Ton équipe"
@@ -826,6 +875,12 @@ export default function SpeedTuningSection({
             </section>
             </div>
 
+          {/* ⚠️ **À la SOURIS, l'ordre de tour vient ICI**, sous l'ordre des
+              sorts et l'analyse, avant les tableaux (décision 22 du cadrage de
+              la refonte, le mainteneur) : c'est la conclusion qu'on vient lire, pas un
+              pied de page sous trois tableaux de 40 colonnes. */}
+          {ordreDeTour('hidden lg:block')}
+
           {/* Barre d'action par tick (résultat, lecture seule) */}
           <section className="rounded-lg border border-border bg-panel">
             <div className="border-b border-border-soft px-4 py-2.5 text-micro font-semibold uppercase tracking-wider text-ink-dimmer">
@@ -952,40 +1007,8 @@ export default function SpeedTuningSection({
             onScrollSync={synchro}
           />
 
-          {/* Ordre de tour */}
-          <section className="rounded-lg border border-border bg-panel">
-            <div className="border-b border-border-soft px-4 py-2.5 text-micro font-semibold uppercase tracking-wider text-ink-dimmer">
-              Ordre de tour
-            </div>
-            <div className="flex flex-wrap items-center gap-2 px-4 py-3.5">
-              {premiers.map((a, i) => {
-                const l = ligneParUid.get(a.id);
-                if (!l) return null;
-                const adv = a.camp === 'ennemi';
-                return (
-                  <span key={a.id} className="flex items-center gap-2">
-                    {i > 0 && <span className="text-ink-dimmer">→</span>}
-                    <Jeton
-                      icone={
-                        <span className="flex items-center gap-1.5">
-                          <span
-                            className={`flex h-5 w-5 items-center justify-center rounded-full text-micro font-bold text-bg ${
-                              adv ? 'bg-bad' : 'bg-good'
-                            }`}
-                          >
-                            {a.ordre}
-                          </span>
-                          <MonsterAvatar monster={l.monster} size={20} element={false} />
-                        </span>
-                      }
-                      libelle={l.monster.name}
-                      detail={<span className="font-mono">tick {a.tick}</span>}
-                    />
-                  </span>
-                );
-              })}
-            </div>
-          </section>
+          {/* Ordre de tour — au doigt, tout en bas ; à la souris, plus haut. */}
+          {ordreDeTour('lg:hidden')}
         </>
       )}
     </div>
@@ -1083,7 +1106,7 @@ function CampPanneau({
     // concentriques, ce que la charte interdit. Même règle pour le bandeau, qui
     // teinte une bande existante au lieu d'en ajouter une.
     <section
-      className={`min-w-[280px] flex-1 rounded-lg border bg-panel ${
+      className={`min-w-[280px] flex-1 rounded-lg border bg-panel max-lg:min-w-0 ${
         adv ? 'border-bad/45' : 'border-good/45'
       }`}
     >
@@ -1091,15 +1114,24 @@ function CampPanneau({
         // ⚠️ `rounded-t-lg-inner` : le fond du bandeau débordait dans l'arrondi
         // du panneau et lui redonnait des coins carrés. Le rayon intérieur vaut
         // celui du panneau MOINS son contour d'un pixel (voir tailwind.config).
-        className={`flex items-center gap-2 rounded-t-lg-inner border-b px-3.5 py-2.5 ${
+        // ⚠️ `flex-wrap` aux deux formats : au téléphone, sur un écran étroit,
+        // le lead passe sous le titre au lieu de déborder de la carte.
+        className={`flex flex-wrap items-center gap-2 rounded-t-lg-inner border-b px-3.5 py-2.5 ${
           adv ? 'border-bad/30 bg-bad-soft' : 'border-good/30 bg-good-soft'
         }`}
       >
-        <span className={`flex items-center gap-1.5 text-sm font-bold ${adv ? 'text-bad' : 'text-ink'}`}>
+        {/* ⚠️ **À la SOURIS, le titre prend TOUTE sa ligne** (`lg:w-full`),
+            lead et import passent dessous, calés à droite — dans les DEUX
+            camps. Laissé au hasard de la largeur, « Ton équipe » (plus long
+            qu'« En face ») renvoyait ses réglages à la ligne et pas l'autre :
+            deux cartes voisines rendues différemment (le mainteneur : « il faut que
+            le rendu soit le même »). Une seule ligne ne tient pas : la
+            pastille d'un lead posé l'élargit encore. */}
+        <span className={`flex items-center gap-1.5 text-sm font-bold lg:w-full ${adv ? 'text-bad' : 'text-ink'}`}>
           <span className={adv ? 'text-bad' : 'text-good'}>{icone}</span>
           {titre}
         </span>
-        <span className="ml-auto flex items-center gap-1.5">
+        <span className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-1.5">
           <span className="text-micro font-semibold uppercase tracking-wide text-ink-dimmer">Lead</span>
           {/* ⚠️ **Un lead d'ÉLÉMENT s'affiche ICI, pas sur chaque monstre.** Le
               sélecteur n'a qu'une valeur : il ne sait pas dire « +33 % pour les
@@ -1143,6 +1175,15 @@ function CampPanneau({
                 ))}
             </optgroup>
           </Selecteur>
+          {/* ⚠️ **À la SOURIS, l'import du camp vit ICI**, à côté du lead
+              (décision 22, le mainteneur) : dans l'en-tête de la carte qu'il
+              remplace, on voit sans lire quel camp il touche. Au doigt, il
+              reste sous la recherche (lot 11). */}
+          {decks && onImporterDeck && (
+            <span className="hidden lg:block">
+              <ImportDeck decks={decks} onImporter={onImporterDeck} adv={adv} enTete />
+            </span>
+          )}
         </span>
       </div>
 
@@ -1423,7 +1464,11 @@ function CampPanneau({
           onAdd={onAjouter}
           placeholder={adv ? 'Ajouter un monstre adverse…' : 'Ajouter un monstre à ton équipe…'}
         />
-        {decks && onImporterDeck && <ImportDeck decks={decks} onImporter={onImporterDeck} adv={adv} />}
+        {decks && onImporterDeck && (
+          <div className="lg:hidden">
+            <ImportDeck decks={decks} onImporter={onImporterDeck} adv={adv} />
+          </div>
+        )}
       </div>
     </section>
   );
@@ -1785,10 +1830,15 @@ function ImportDeck({
   decks,
   onImporter,
   adv,
+  enTete = false,
 }: {
   decks: DeckDispo[];
   onImporter: (team: SiegeTeam) => void;
   adv: boolean;
+  // Posé dans l'en-tête du camp (à la souris, décision 22) : bouton compact,
+  // liste calée à DROITE — le bouton est au bord droit de la carte, une liste
+  // calée à gauche déborderait de l'écran.
+  enTete?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement | null>(null);
@@ -1816,7 +1866,8 @@ function ImportDeck({
   return (
     <div ref={ref} className="relative">
       <Bouton
-        pleineLargeur
+        pleineLargeur={!enTete}
+        taille={enTete ? 'sm' : 'md'}
         icone={<Download size={14} />}
         libelle="Importer un deck de siège"
         disabled={vide}
@@ -1833,6 +1884,8 @@ function ImportDeck({
       {open && !vide && (
         <Flottant
           rembourrage="aucun"
+          cote={enTete ? 'droite' : 'gauche'}
+          largeur={enTete ? 'w-80' : 'w-full'}
           className="max-h-[320px] overflow-y-auto"
           role="listbox"
           aria-label="Decks de siège"

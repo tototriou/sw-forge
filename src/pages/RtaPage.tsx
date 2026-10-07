@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Plus, Trash2, Swords } from 'lucide-react';
+import { Plus, Trash2, Swords, Wand2 } from 'lucide-react';
 import {
   Monster,
   ElementKey,
@@ -30,6 +30,10 @@ import TurnOrder, { TurnItem } from '../components/rta/TurnOrder';
 import CreateMonster from '../components/CreateMonster';
 import { CustomLead } from '../hooks/useCustomMonsters';
 import { Bouton, Selecteur } from '../ui';
+import Pastille from '../ui/Pastille';
+import RuneIcon from '../components/RuneIcon';
+import IndicateurSauvegarde from '../components/rta/IndicateurSauvegarde';
+import { useNotifier } from '../ui/Notification';
 import type { RtaSub } from '../App';
 
 interface Props {
@@ -69,6 +73,8 @@ export default function RtaPage({
   // Un seul détail de runes ouvert à la fois, toutes sections confondues.
   const [openId, setOpenId] = useState<string | null>(null);
   const [effacementAConfirmer, setEffacementAConfirmer] = useState(false);
+  // Formulaire de création ouvert depuis le menu « ⋯ » (bureau).
+  const [creationOuverte, setCreationOuverte] = useState(false);
   const toggleDetail = (id: string) => setOpenId((cur) => (cur === id ? null : id));
 
   const monsterById = useMemo(() => {
@@ -163,6 +169,17 @@ export default function RtaPage({
   // Destinations proposées dans le sélecteur des cartes (repli tactile du drag).
   const moveTargets = [RTA_UNASSIGNED, ...rta.state.sections];
 
+  // Retirer un monstre de la prépa SE DÉFAIT au lieu de se confirmer (lot 13,
+  // décision 29) : le retrait est immédiat, et la notification « Annuler »
+  // remet l'entrée telle quelle — section, vitesse saisie, sets, équipement.
+  const notifier = useNotifier();
+  function retirerMonstre(id: string) {
+    const entree = rta.state.entries[id];
+    const nom = monsterById.get(id)?.name ?? 'Monstre';
+    rta.removeMonster(id);
+    if (entree) notifier({ message: `${nom} retiré de ta prépa`, action: () => rta.restaurerMonstre(entree) });
+  }
+
   function renderCards(items: TurnItem[]) {
     return items.map((it) => (
       <RtaCard
@@ -178,7 +195,7 @@ export default function RtaPage({
         open={openId === String(it.monster.id)}
         onToggleDetail={toggleDetail}
         onMove={rta.moveMonster}
-        onRemove={rta.removeMonster}
+        onRemove={retirerMonstre}
         onDragStart={setDraggingId}
         onDragEnd={() => setDraggingId(null)}
       />
@@ -222,6 +239,19 @@ export default function RtaPage({
   }
 
   const runeSections = rta.state.sections;
+
+  // Filtre par section AU TÉLÉPHONE (lot 13, décision 28, la maquette) : une
+  // seule section affichée, ou toutes (`null`). ⚠️ Affichage seulement —
+  // l'ordre de tour et la prépa ne changent pas. Non persisté. Une section
+  // supprimée pendant qu'elle est choisie ramène à « Tous ».
+  const [filtreSection, setFiltreSection] = useState<string | null>(null);
+  const sectionFiltree =
+    filtreSection && (filtreSection === RTA_UNASSIGNED || runeSections.includes(filtreSection))
+      ? filtreSection
+      : null;
+  // Au téléphone, une section non choisie sort de l'affichage (`max-lg:hidden`) ;
+  // à la souris, tout reste.
+  const horsFiltre = (key: string) => (sectionFiltree && sectionFiltree !== key ? 'max-lg:hidden' : '');
 
   // ⚠️ Rendus une seule fois, posés à DEUX endroits selon la largeur : dans la
   // page au-dessus de `lg`, dans le panneau en dessous. Deux copies auraient
@@ -287,22 +317,87 @@ export default function RtaPage({
     );
   }
 
+  // Posé DEUX fois : dans l'en-tête bureau, et seul dans la page au téléphone.
+  const compteur = (
+    <>
+      {addedIds.size} monstre{addedIds.size > 1 ? 's' : ''} en prépa
+    </>
+  );
+
   return (
     <div>
+      {/* ---- En-tête BUREAU (refonte graphique, lot 6, décision 13) ----------
+          Le titre, le compteur, « Exporter » et le menu « ⋯ » qui porte les
+          autres actions : Sauvegarder, Reprendre, Importer une prépa, Créer un
+          monstre, puis — séparés — Réinitialiser et Tout effacer. Elles
+          s'alignaient en deux rangées de boutons au-dessus de la prépa.
+          ⚠️ `hidden lg:flex` : le téléphone garde son compteur et son panneau
+          d'actions, inchangés (lot 11). */}
+      <div className="mb-4 hidden flex-wrap items-center gap-x-3 gap-y-1 lg:flex">
+        {/* Cinzel, comme tous les titres de l'app (décision 1). */}
+        <h1 className="font-display text-xl tracking-wide text-ink">Ma prépa</h1>
+        <span className="rounded-full border border-border-soft bg-panel2 px-2 py-0.5 font-mono text-micro text-ink-dim">
+          {compteur}
+        </span>
+        {/* « Sauvegardé il y a … » (lot 13, décision 29) : la prépa ET ses
+            catégories, écrites à chaque changement. */}
+        <IndicateurSauvegarde prepa={rta.state} categories={cats.categories} />
+        {/* Pas d'espaceur : la barre d'actions prend elle-même la place
+            restante (`flex-1`) — c'est cette largeur qu'elle mesure pour
+            décider si ses boutons tiennent. */}
+        <RtaBackupBar
+          rta={rta}
+          cats={cats}
+          backup={backup}
+          monsters={monsters}
+          onCreateMonster={onCreateMonster}
+          disposition="menu"
+          entreesEnPlus={[
+            {
+              cle: 'creer',
+              libelle: 'Créer un monstre',
+              icone: <Wand2 size={14} />,
+              title: "Créer un monstre qui n'existe pas dans les données chargées",
+              onClick: () => setCreationOuverte(true),
+            },
+            // « Tout effacer » : seulement sur une prépa non vide, comme le
+            // bouton qu'il remplace.
+            ...(addedIds.size > 0
+              ? [
+                  {
+                    cle: 'effacer',
+                    libelle: 'Tout effacer',
+                    icone: <Trash2 size={14} />,
+                    onClick: () => setEffacementAConfirmer(true),
+                    danger: true,
+                  },
+                ]
+              : []),
+          ]}
+        />
+      </div>
+      {/* Le formulaire de création, ouvert depuis le menu (mode piloté). */}
+      <CreateMonster
+        onCreate={handleCreateMonster}
+        customMonsters={customMonsters}
+        onDelete={onDeleteMonster}
+        sansBouton
+        ouvert={creationOuverte}
+        onOuvert={setCreationOuverte}
+      />
+
       <div>
         <RtaSearch monsters={monsters} addedIds={addedIds} onAdd={rta.addMonster} />
       </div>
 
-      {/* ⚠️ Seul le COMPTEUR reste dans la page — c'est une information, pas
-          une action. La création et l'effacement descendent dans le panneau
-          « Options » sous `lg`. */}
-      <div className="mt-4 flex flex-wrap items-center gap-3">
-        <span className="font-mono text-xs text-ink-dim">
-          {addedIds.size} monstre{addedIds.size > 1 ? 's' : ''} en prépa
+      {/* TÉLÉPHONE : seul le COMPTEUR reste dans la page — c'est une
+          information, pas une action. La création et l'effacement vivent dans
+          le panneau « Options ». Sur bureau, le compteur est dans l'en-tête. */}
+      <div className="mt-4 flex flex-wrap items-center gap-3 lg:hidden">
+        <span className="font-mono text-xs text-ink-dim">{compteur}</span>
+        <span className="ml-auto">
+          <IndicateurSauvegarde prepa={rta.state} categories={cats.categories} />
         </span>
-
-        <div className="hidden lg:contents">{creation}</div>
-        <div className="ml-auto hidden lg:contents">{boutonEffacer(false)}</div>
       </div>
 
       {effacementAConfirmer && (
@@ -335,19 +430,11 @@ export default function RtaPage({
       )}
 
       {/* ⚠️ La barre d'actions vit à DEUX endroits selon la largeur, mais
-          c'est le MÊME composant rendu une seule fois — pas une copie. Au-dessus
-          de `lg` elle est en tête de page ; en dessous elle passe dans le
-          tiroir, faute de place : six boutons, deux rangées de catégories et un
-          champ de recherche repoussaient la prépa de trois écrans. */}
-      <div className="hidden lg:block">
-        <RtaBackupBar
-          rta={rta}
-          cats={cats}
-          backup={backup}
-          monsters={monsters}
-          onCreateMonster={onCreateMonster}
-        />
-      </div>
+          c'est le MÊME composant — pas une copie. Au-dessus de `lg`, en
+          disposition `menu` dans l'en-tête ci-dessus ; en dessous, en rangées
+          dans le tiroir, faute de place : six boutons, deux rangées de
+          catégories et un champ de recherche repoussaient la prépa de trois
+          écrans. */}
 
       {/* ⚠️ **Une rangée par TYPE d'action.** Empilés en une seule colonne, six
           boutons de nature différente se lisaient comme une liste indifférenciée
@@ -398,8 +485,31 @@ export default function RtaPage({
         <p className="mt-4 text-ink-dim text-sm">Chargement des monstres…</p>
       )}
 
+      {/* ⚠️ **Filtre par section, au TÉLÉPHONE** (lot 13, décision 28, la
+          maquette) : « Tous », « Non classé », puis chaque section, avec son
+          nombre de monstres. Une rangée qui DÉFILE en largeur, jamais à la
+          ligne — elle ne pousse pas les sections vers le bas. */}
+      <div className="mt-4 flex gap-2 overflow-x-auto pb-1 lg:hidden" role="group" aria-label="Afficher une section">
+        <Pastille
+          actif={sectionFiltree === null}
+          onClick={() => setFiltreSection(null)}
+          libelle={`Tous ${allItems.length}`}
+          className="flex-none"
+        />
+        {[RTA_UNASSIGNED, ...runeSections].map((key) => (
+          <Pastille
+            key={key}
+            actif={sectionFiltree === key}
+            onClick={() => setFiltreSection(key)}
+            icone={RUNE_SETS.some((s) => s.key === key) ? <RuneIcon setKey={key} size={15} /> : undefined}
+            libelle={`${key === RTA_UNASSIGNED ? 'Non classé' : sectionLabel(key)} ${groups[key]?.length ?? 0}`}
+            className="flex-none"
+          />
+        ))}
+      </div>
+
       {/* Zone tampon : les monstres ajoutés y arrivent avant classement */}
-      <div className="mt-5">
+      <div className={`mt-5 ${horsFiltre(RTA_UNASSIGNED)}`}>
         <RtaSection
           sectionKey={RTA_UNASSIGNED}
           label="Non classé"
@@ -415,19 +525,20 @@ export default function RtaPage({
       {/* Sections par set de runes */}
       <div className="mt-6 flex flex-col gap-4">
         {runeSections.map((key) => (
-          <RtaSection
-            key={key}
-            sectionKey={key}
-            label={sectionLabel(key)}
-            accent={sectionAccent(key)}
-            count={groups[key]?.length ?? 0}
-            removable={key !== RTA_OTHER}
-            onRemoveSection={rta.removeSection}
-            onDropMonster={handleDrop}
-            {...detailOf(groups[key] ?? [])}
-          >
-            {renderCards(groups[key] ?? [])}
-          </RtaSection>
+          <div key={key} className={horsFiltre(key)}>
+            <RtaSection
+              sectionKey={key}
+              label={sectionLabel(key)}
+              accent={sectionAccent(key)}
+              count={groups[key]?.length ?? 0}
+              removable={key !== RTA_OTHER}
+              onRemoveSection={rta.removeSection}
+              onDropMonster={handleDrop}
+              {...detailOf(groups[key] ?? [])}
+            >
+              {renderCards(groups[key] ?? [])}
+            </RtaSection>
+          </div>
         ))}
       </div>
 

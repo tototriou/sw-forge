@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from 'react';
+import { selonSupport } from '../lib/bureau';
 
 // Thème de l'application : **Forge** (sombre) ou **Atelier** (clair).
 // Voir spec/shared/design.md.
@@ -10,16 +11,26 @@ export type ThemeChoice = 'auto' | 'light' | 'dark';
 export type ResolvedTheme = 'light' | 'dark';
 
 export const THEME_CHOICES: { key: ThemeChoice; label: string; hint: string }[] = [
-  { key: 'auto', label: 'Auto', hint: 'Suit le thème de ton navigateur' },
-  { key: 'light', label: 'Clair', hint: 'Atelier — fond clair, encre froide' },
-  { key: 'dark', label: 'Sombre', hint: 'Forge — fond profond, accent cuivre' },
+  // Un ACCESSEUR, lu à l'affichage : dans l'app de bureau, c'est le thème du
+  // système que suit « Auto » (application de bureau, lot 8).
+  {
+    key: 'auto',
+    label: 'Auto',
+    get hint() {
+      return selonSupport('Suit le thème de ton navigateur', 'Suit le thème de ton système');
+    },
+  },
+  // Rebranding R1 : l'encre de l'atelier est CHAUDE, l'accent est la BRAISE
+  // (ils disaient « encre froide », « accent cuivre » — l'ancienne identité).
+  { key: 'light', label: 'Clair', hint: 'Atelier — fond clair, encre chaude' },
+  { key: 'dark', label: 'Sombre', hint: 'Forge — fond profond, accent braise' },
 ];
 
 // **Persisté** dans `localStorage`, même si la conservation est refusée : c'est
 // un RÉGLAGE, pas une donnée de l'utilisateur — au même titre que la mesure de
 // score ou le choix de conservation lui-même. Un thème oublié à chaque visite
 // serait un bug, pas une protection. Voir spec/README.md § Persistance.
-const STORAGE_KEY = 'sw-forge-theme-v1';
+const STORAGE_KEY = 'swblacksmith-theme-v1';
 
 function load(): ThemeChoice {
   try {

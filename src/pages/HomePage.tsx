@@ -1,33 +1,45 @@
 import { useRef, useState } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import { motion } from 'framer-motion';
+import { ArrowRight, LayoutGrid, Upload, Download, Sparkles, ExternalLink, ShieldCheck } from 'lucide-react';
+// ⚠️ Les cartes de SECTION (fonctionnalités, « Ton espace ») portent les icônes
+// d'atelier de la navigation (rebranding R5 — le mainteneur : une section a la même
+// icône partout). Les étapes et les titres gardent lucide : ce ne sont pas
+// des sections.
 import {
-  BookOpen,
-  Swords,
-  Users,
-  ArrowRight,
-  Castle,
-  Trophy,
-  UserRound,
-  Calculator,
-  Lightbulb,
-  Tag,
-  LayoutGrid,
-  Upload,
-  Download,
-  Sparkles,
-  ExternalLink,
-  ShieldCheck,
-  Gem,
-  Timer,
-} from 'lucide-react';
+  IconeAmi,
+  IconeArene,
+  IconeArtefacts,
+  IconeBestiaire,
+  IconeDefense,
+  IconeMecaniques,
+  IconeNouveautes,
+  IconeOffense,
+  IconeTelecharger,
+  IconeOptimizer,
+  IconeRecos,
+  IconeRta,
+  IconeRunes,
+  IconeSiege,
+  IconeSpeedTuning,
+} from '../components/IconesAtelier';
+
+// Une icône d'atelier ou une icône lucide : le même contrat d'appel.
+type Icone = (props: { size?: number; className?: string }) => ReactNode;
 import ElementIcon from '../components/ElementIcon';
 import { ElementKey } from '../types';
 import { RELEASES, libelleVersion } from '../data/releases';
+import { Bouton } from '../ui';
+import { NOM_APP } from '../marque';
+import { estBureau, selonSupport } from '../lib/bureau';
+import { LogoLinux, LogoWindows } from '../components/IconesSystemes';
+import { CLASSE_NOM, SymboleLogo } from '../components/Logo';
 import {
   COULEUR_SECTION,
   COULEUR_RTA_SUB,
   COULEUR_SIEGE_SUB,
   COULEUR_COMPTE_SUB,
+  TEINTE_CLAIRE,
 } from '../data/couleursSection';
 
 const ELEMENT_ORDER: ElementKey[] = ['fire', 'water', 'wind', 'light', 'dark'];
@@ -48,6 +60,14 @@ const item = {
   hidden: { opacity: 0, y: 16 },
   show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: EASE_OUT } },
 };
+
+// Carte de l'accueil — le gabarit de la refonte graphique (lot 5) : fond de
+// panneau, contour discret, rayon 12 ; au survol, le fond s'appuie et le
+// contour se précise. ⚠️ Plus de soulèvement : la carte dit « cliquable » par
+// son fond, comme les entrées du menu. La COULEUR, elle, reste (voir `Tuile`
+// et `Halo`).
+const CARTE = 'rounded-xl border border-border-soft bg-panel';
+const CARTE_LIEN = `${CARTE} transition-colors hoverable:border-border hoverable:bg-panel2`;
 
 // Ce que l'accueil sait de l'état local du joueur. Tout vient de `App` : ce sont
 // les mêmes états que les pages outils, sans calcul ni stockage supplémentaire.
@@ -78,6 +98,12 @@ interface Props {
 //
 // Puis « comment ça marche », les fonctionnalités et un dernier appel. Le
 // bandeau de version en fin de page donne la raison de revenir.
+//
+// ⚠️ **Refonte graphique, lot 5 — la structure est GARDÉE** (décision 10 de
+// Le mainteneur), seul le style change : cartes de la refonte, icônes dans une tuile
+// À LA TEINTE de leur section (décision 3 précisée le 2026-09-25 : Le mainteneur
+// aimait les couleurs de l'accueil — elles restent ici, le menu reste neutre),
+// bouton principal plein (décision 4).
 export default function HomePage({ stats, onImport }: Props) {
   // ⚠️ La dernière version PUBLIÉE, pas `RELEASES[0]` : une version en
   // préparation est en tête du journal sans être en ligne. L'annoncer ici
@@ -91,21 +117,27 @@ export default function HomePage({ stats, onImport }: Props) {
   return (
     <motion.div variants={container} initial="hidden" animate="show" className="pt-4">
       {/* ---- Héros : promesse à gauche, action à droite ------------------- */}
-      <header className="grid lg:grid-cols-[1.1fr_0.9fr] gap-8 items-center pt-6 pb-10">
+      {/* ⚠️ **Au doigt, resserré** (refonte graphique, lot 11a, décision 24) :
+          la structure est gardée, seules les marges verticales et la zone de
+          dépôt se tassent (`max-lg:`) — le bureau ne bouge pas. */}
+      <header className="grid lg:grid-cols-[1.1fr_0.9fr] gap-8 items-center pt-6 pb-10 max-lg:gap-5 max-lg:pt-2 max-lg:pb-6">
         <motion.div variants={item} className="max-w-xl">
           {/* ⚠️ Le NOM du site reste le titre. Sur desktop la barre de nav ne
               porte pas la marque (elle n'apparaît qu'en version repliée) : sans
               ce titre, on ne sait plus sur quel site on est. L'accroche vient
               juste après, en sous-titre. */}
+          {/* ⚠️ Rebranding R2 : le symbole en composant (couleurs du thème) et
+              le nom de `marque.ts`. Espace ORDINAIRE, plus `&nbsp;` : « SW
+              Blacksmith » est long, il doit pouvoir passer sur deux lignes au
+              téléphone plutôt que déborder. Le reste du héros est le lot R5. */}
+          {/* ⚠️ R2 bis : le nom dans la police de l'identité (Saira, capitales
+              espacées, `CLASSE_NOM`), en encre pleine comme sur l'identité de
+              Le mainteneur — plus le dégradé de Cinzel. Taille `clamp(32px, 5vw,
+              56px)` : en capitales, « BLACKSMITH » mesure 291 px à 40 px, et
+              débordait d'un téléphone de 360 px ; 233 px à 32 px. */}
           <div className="flex items-center gap-3">
-            <img
-              src={`${import.meta.env.BASE_URL}favicon.svg`}
-              alt=""
-              className="w-[clamp(38px,6vw,64px)] h-[clamp(38px,6vw,64px)] flex-none drop-shadow-[0_4px_10px_rgba(0,0,0,0.5)]"
-            />
-            <h1 className="font-display font-black text-[clamp(40px,7vw,76px)] leading-[0.95] title-gradient">
-              SW&nbsp;Forge
-            </h1>
+            <SymboleLogo className="w-[clamp(38px,6vw,64px)] h-[clamp(38px,6vw,64px)] flex-none drop-shadow-[0_4px_10px_rgba(0,0,0,0.5)]" />
+            <h1 className={`${CLASSE_NOM} text-[clamp(32px,5vw,56px)] leading-[0.95] text-ink`}>{NOM_APP}</h1>
           </div>
 
           <p className="mt-3 max-w-lg font-display text-[clamp(18px,2.4vw,26px)] leading-tight tracking-wide text-ink">
@@ -114,11 +146,17 @@ export default function HomePage({ stats, onImport }: Props) {
 
           <p className="mt-3 max-w-lg text-base leading-relaxed text-ink-dim">
             Runes, RTA, siège, analyse de compte. Importe ton export SWEX et tout est calculé{' '}
-            <b className="text-ink">dans ton navigateur</b>.
+            <b className="text-ink">{selonSupport('dans ton navigateur', 'sur ta machine')}</b>.
           </p>
 
+          {/* L'application de bureau (application-bureau, lot 6, décisions 13
+              et 14) : sur le SITE seulement — dans l'app, on l'a déjà. */}
+          {!estBureau() && <LienApplication />}
+
           {/* Vague d'éléments centrée sous le texte : alignée à gauche, elle
-              pendait sous le dernier paragraphe sans rien équilibrer. */}
+              pendait sous le dernier paragraphe sans rien équilibrer.
+              ⚠️ Les icônes d'élément sont des RENDUS DU JEU : leur couleur
+              reste, comme partout. */}
           <div className="mt-6 flex items-center justify-center gap-4">
             {ELEMENT_ORDER.map((el, i) => (
               <motion.div
@@ -139,16 +177,16 @@ export default function HomePage({ stats, onImport }: Props) {
 
       {/* ---- Reprise (habitués) ------------------------------------------- */}
       {aDesDonnees && (
-        <motion.section variants={item} className="pb-10">
+        <motion.section variants={item} className="pb-10 max-lg:pb-6">
           {/* ⚠️ Titre NEUTRE : ce bloc apparaît dès le premier import, pas
               seulement au retour. « Reprends où tu en étais » accueillait donc
               un débutant en lui parlant d'un passé qu'il n'a pas. */}
           <SectionTitle icon={LayoutGrid} title="Ton espace" />
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
-            <Resume href="#/rta" icon={Swords} accent={COULEUR_SECTION.rta} value={stats.rta} unit={stats.rta > 1 ? 'monstres' : 'monstre'} label="Prépa RTA" />
-            <Resume href="#/siege/defense" icon={Castle} accent={COULEUR_SIEGE_SUB.defense} value={stats.defense} unit={stats.defense > 1 ? 'équipes' : 'équipe'} label="Défense de siège" />
-            <Resume href="#/siege/offense" icon={Swords} accent={COULEUR_SIEGE_SUB.offense} value={stats.offense} unit={stats.offense > 1 ? 'équipes' : 'équipe'} label="Offense de siège" />
-            <Resume href="#/siege/recommandations" icon={Lightbulb} accent={COULEUR_SIEGE_SUB.recos} value={stats.recos} unit={stats.recos > 1 ? 'recos' : 'reco'} label="Recommandations" />
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <Resume href="#/rta" icon={IconeRta} accent={COULEUR_SECTION.rta} value={stats.rta} unit={stats.rta > 1 ? 'monstres' : 'monstre'} label="Prépa RTA" />
+            <Resume href="#/siege/defense" icon={IconeDefense} accent={COULEUR_SIEGE_SUB.defense} value={stats.defense} unit={stats.defense > 1 ? 'équipes' : 'équipe'} label="Défense de siège" />
+            <Resume href="#/siege/offense" icon={IconeOffense} accent={COULEUR_SIEGE_SUB.offense} value={stats.offense} unit={stats.offense > 1 ? 'équipes' : 'équipe'} label="Offense de siège" />
+            <Resume href="#/siege/recommandations" icon={IconeRecos} accent={COULEUR_SIEGE_SUB.recos} value={stats.recos} unit={stats.recos > 1 ? 'recos' : 'reco'} label="Recommandations" />
           </div>
         </motion.section>
       )}
@@ -156,15 +194,17 @@ export default function HomePage({ stats, onImport }: Props) {
       <Separator />
 
       {/* ---- Comment ça marche -------------------------------------------- */}
-      <motion.section variants={item} id="comment" className="py-12">
-        <h2 className="font-display text-[26px] tracking-wide mb-6">Comment ça marche</h2>
-        <div className="grid md:grid-cols-3 gap-2.5">
+      <motion.section variants={item} id="comment" className="py-12 max-lg:py-6">
+        <h2 className="font-display text-[26px] tracking-wide mb-6 max-lg:mb-4">Comment ça marche</h2>
+        {/* ⚠️ UNE carte, trois étapes séparées par des filets (la maquette) :
+            une séquence qu'on lit de gauche à droite, pas trois cartes
+            indépendantes. Empilées sous `md`, le filet passe en haut. */}
+        <div className={`${CARTE} grid md:grid-cols-3`}>
           <Etape
             n="01"
-            icon={Download}
-            /* ⚠️ Une couleur PROPRE, pas `var(--accent)` : les trois étapes
-               forment une séquence, elles doivent se lire comme trois pairs.
-               L'accent du thème singularisait la première sans raison. */
+            // Exporter = flèche vers le HAUT (le fichier sort du jeu) ;
+            // importer = flèche vers le BAS. Convention de l'app.
+            icon={Upload}
             accent="#5B9DE0"
             title="Exporte ton compte"
             desc="Génère un fichier .json de ton compte avec SW Exporter, en lançant le jeu une fois."
@@ -172,10 +212,13 @@ export default function HomePage({ stats, onImport }: Props) {
           />
           <Etape
             n="02"
-            icon={Upload}
+            icon={Download}
             accent="#5EDB8F"
             title="Dépose le fichier"
-            desc="Ici même, en haut de page. Rien n'est envoyé : tout se calcule dans ton navigateur."
+            desc={selonSupport(
+              "Ici même, en haut de page. Rien n'est envoyé : tout se calcule dans ton navigateur.",
+              "Ici même, en haut de page. Rien n'est envoyé : tout se calcule sur ta machine."
+            )}
           />
           <Etape
             n="03"
@@ -190,26 +233,31 @@ export default function HomePage({ stats, onImport }: Props) {
       <Separator />
 
       {/* ---- Fonctionnalités ---------------------------------------------- */}
-      <motion.section variants={item} id="features" className="py-12">
-        <h2 className="font-display text-[26px] tracking-wide mb-6">Fonctionnalités</h2>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
-          <Feature href="#/rta" icon={Swords} accent={COULEUR_SECTION.rta} kicker="RTA" title="Préparation RTA" body="Classe ta box par set en glisser-déposer et lis l'ordre de tour recalculé selon les leads." />
-          <Feature href="#/rta/ami" icon={Users} accent={COULEUR_RTA_SUB.ami} kicker="RTA" title="Prépa d'un ami" body="Ouvre la prépa qu'un ami t'a exportée — ou son export SWEX complet — et regarde son classement, ses vitesses et son ordre de tour." />
-          <Feature href="#/siege/defense" icon={Castle} accent={COULEUR_SECTION.siege} kicker="Siège" title="Défenses et offenses" body="Compose tes équipes et vérifie tes speed tune sur les ticks 239 et 286." />
-          <Feature href="#/siege/recommandations" icon={Lightbulb} accent={COULEUR_SIEGE_SUB.recos} kicker="Partage" title="Recommandations" body="Décris tes decks, partage-les en JSON, et vois ce que ton compte peut jouer." />
-          <Feature href="#/compte/runes" icon={UserRound} accent={COULEUR_COMPTE_SUB.runes} kicker="Compte" title="Analyse de runes" body="Résumé chiffré, efficience ou score SW, courbes, et ce que tes meules et gemmes en réserve permettent d'améliorer dès maintenant." />
-          <Feature href="#/compte/artefacts" icon={Gem} accent={COULEUR_COMPTE_SUB.artefacts} kicker="Compte" title="Analyse d'artéfacts" body="Le score du jeu et l'efficience de chaque pièce, la distribution de ton stock et les propriétés que tu possèdes le plus." />
-          <Feature href="#/outils/optimizer" icon={Sparkles} accent={COULEUR_SECTION.outils} kicker="Outils" title="Optimiseur de runes" body="Cherche, parmi les runes que tu possèdes déjà, la meilleure combinaison de 6 pour un monstre, un set et des minimums donnés." />
-          <Feature href="#/outils/speed-tuning" icon={Timer} accent={COULEUR_SECTION.outils} kicker="Outils" title="Speed tuning" body="Tick par tick, vois quel monstre remplit sa barre d'action en premier — ton équipe et celle d'en face, pour savoir qui joue avant qui." />
-          <Feature href="#/bestiary" icon={BookOpen} accent={COULEUR_SECTION.bestiary} kicker="Données" title="Bestiaire" body="Recherche et filtres par élément et étoiles naturelles, stats de base à portée de main." />
-          <Feature href="#/mecaniques" icon={Calculator} accent={COULEUR_SECTION.mecaniques} kicker="Doc" title="Mécaniques" body="Vitesse de combat, barre d'action, équation des dégâts et facteur de défense." />
-          <Feature href="#/releases" icon={Tag} accent={COULEUR_SECTION.releases} kicker="Suivi" title="Nouveautés" body="Ce qui change à chaque version : ajouts, corrections et calculs revus." />
-          <Feature href="#/arene" icon={Trophy} accent={COULEUR_SECTION.arene} kicker="Arène" title="Arène classique" body="Préparation des équipes d'offense et de défense." soon />
+      <motion.section variants={item} id="features" className="py-12 max-lg:py-6">
+        <h2 className="font-display text-[26px] tracking-wide mb-6 max-lg:mb-4">Fonctionnalités</h2>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <Feature href="#/rta" icon={IconeRta} accent={COULEUR_SECTION.rta} kicker="RTA" title="Préparation RTA" body="Classe ta box par set en glisser-déposer et lis l'ordre de tour recalculé selon les leads." />
+          <Feature href="#/rta/ami" icon={IconeAmi} accent={COULEUR_RTA_SUB.ami} kicker="RTA" title="Prépa d'un ami" body="Ouvre la prépa qu'un ami t'a exportée — ou son export SWEX complet — et regarde son classement, ses vitesses et son ordre de tour." />
+          <Feature href="#/siege/defense" icon={IconeSiege} accent={COULEUR_SECTION.siege} kicker="Siège" title="Défenses et offenses" body="Compose tes équipes et vérifie tes speed tune sur les ticks 239 et 286." />
+          <Feature href="#/siege/recommandations" icon={IconeRecos} accent={COULEUR_SIEGE_SUB.recos} kicker="Partage" title="Recommandations" body="Décris tes decks, partage-les en JSON, et vois ce que ton compte peut jouer." />
+          <Feature href="#/compte/runes" icon={IconeRunes} accent={COULEUR_COMPTE_SUB.runes} kicker="Compte" title="Analyse de runes" body="Résumé chiffré, efficience ou score SW, courbes, et ce que tes meules et gemmes en réserve permettent d'améliorer dès maintenant." />
+          <Feature href="#/compte/artefacts" icon={IconeArtefacts} accent={COULEUR_COMPTE_SUB.artefacts} kicker="Compte" title="Analyse d'artéfacts" body="Le score du jeu et l'efficience de chaque pièce, la distribution de ton stock et les propriétés que tu possèdes le plus." />
+          <Feature href="#/outils/optimizer" icon={IconeOptimizer} accent={COULEUR_SECTION.outils} kicker="Outils" title="Optimiseur de runes" body="Cherche, parmi les runes que tu possèdes déjà, la meilleure combinaison de 6 pour un monstre, un set et des minimums donnés." />
+          <Feature href="#/outils/speed-tuning" icon={IconeSpeedTuning} accent={COULEUR_SECTION.outils} kicker="Outils" title="Speed tuning" body="Tick par tick, vois quel monstre remplit sa barre d'action en premier — ton équipe et celle d'en face, pour savoir qui joue avant qui." />
+          <Feature href="#/bestiary" icon={IconeBestiaire} accent={COULEUR_SECTION.bestiary} kicker="Données" title="Bestiaire" body="Recherche et filtres par élément et étoiles naturelles, stats de base à portée de main." />
+          <Feature href="#/mecaniques" icon={IconeMecaniques} accent={COULEUR_SECTION.mecaniques} kicker="Doc" title="Mécaniques" body="Vitesse de combat, barre d'action, équation des dégâts et facteur de défense." />
+          <Feature href="#/releases" icon={IconeNouveautes} accent={COULEUR_SECTION.releases} kicker="Suivi" title="Nouveautés" body="Ce qui change à chaque version : ajouts, corrections et calculs revus." />
+          {/* Site seulement (application de bureau, décision 14) : comme
+              l'entrée de la navigation, dans l'ordre de la navigation. */}
+          {!estBureau() && (
+            <Feature href="#/telecharger" icon={IconeTelecharger} accent={COULEUR_SECTION.telecharger} kicker="Application" title="Application de bureau" body={`${NOM_APP} dans sa propre fenêtre, pour Windows et Linux, avec la mise à jour proposée à chaque version.`} />
+          )}
+          <Feature href="#/arene" icon={IconeArene} accent={COULEUR_SECTION.arene} kicker="Arène" title="Arène classique" body="Préparation des équipes d'offense et de défense." soon />
         </div>
       </motion.section>
 
       {/* ---- Dernier appel -------------------------------------------------- */}
-      <motion.section variants={item} className="py-12 max-w-xl">
+      <motion.section variants={item} className="py-12 max-w-xl max-lg:py-6">
         <h2 className="font-display text-[26px] tracking-wide">Prêt à préparer tes équipes ?</h2>
         <p className="mt-2 text-sm leading-relaxed text-ink-dim">
           Importe ton fichier SWEX et retrouve ta box, tes runes, ta prépa RTA et tes équipes de siège
@@ -218,15 +266,18 @@ export default function HomePage({ stats, onImport }: Props) {
         {/* ⚠️ Il ouvre le sélecteur de fichier, il ne renvoie PAS à la zone de
             dépôt. C'était un lien `#depot` : avec le routage par hash il ne
             faisait rien de visible, et un bouton d'appel à l'action qui ne
-            déclenche rien est pire que pas de bouton du tout. */}
-        <button
-          onClick={() => ctaRef.current?.click()}
-          className="mt-4 inline-flex items-center gap-2 rounded-lg bg-accent-soft
-                     border border-accent px-4 py-2.5 text-sm font-semibold text-ink
-                     transition hoverable:border-accent"
-        >
-          <Upload size={15} /> Importer mon compte
-        </button>
+            déclenche rien est pire que pas de bouton du tout.
+            ⚠️ Le bouton PRINCIPAL de la librairie, plein (décision 4) : c'est
+            le seul bouton de la page. */}
+        <div className="mt-4">
+          <Bouton
+            ton="accent"
+            fond="plein"
+            icone={<Download size={15} />}
+            libelle="Importer mon compte"
+            onClick={() => ctaRef.current?.click()}
+          />
+        </div>
         <input
           ref={ctaRef}
           type="file"
@@ -244,13 +295,15 @@ export default function HomePage({ stats, onImport }: Props) {
       <motion.a
         variants={item}
         href="#/releases"
-        className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl border border-border
-                   bg-panel/50 px-4 py-3 transition hoverable:border-accent"
+        className={`mb-4 flex flex-wrap items-center gap-x-3 gap-y-1.5 px-4 py-3 ${CARTE_LIEN}`}
       >
-        <span className="rounded-full bg-star/15 px-2 py-0.5 label text-star">
+        {/* ⚠️ Texte à l'ENCRE, pas à l'accent : accent sur accent/15 tombe à
+            4,4:1 en Forge (3,97 au survol, sur `panel2`) ; l'encre tient
+            10,3:1 au pire. Mesuré au lot 5. */}
+        <span className="label rounded-full bg-accent/15 px-2 py-0.5 text-ink">
           {libelleVersion(derniere.version)}
         </span>
-        <span className="text-sm text-ink">{derniere.title}</span>
+        <span className="text-sm font-semibold text-ink">{derniere.title}</span>
         <span className="ml-auto inline-flex items-center gap-1 text-xs text-ink-dim">
           Voir les nouveautés <ArrowRight size={13} />
         </span>
@@ -260,6 +313,39 @@ export default function HomePage({ stats, onImport }: Props) {
 }
 
 /* ---- Briques -------------------------------------------------------------- */
+
+// « Télécharger l'application » — application de bureau, lot 6, décisions
+// 13 et 14 : le lien du héros vers la page « Télécharger ».
+//
+// ⚠️ **Un bouton DANS le héros**, sous la promesse : la règle « aucun bouton
+// dans le héros » (spec/accueil.md) est levée pour lui seul. SECONDAIRE
+// (neutre, petit) : « Importer mon compte » reste le bouton principal, et la
+// zone de dépôt le premier geste. Les deux téléchargements, la phrase
+// SmartScreen et la version vivent sur la page.
+// ⚠️ **Au téléphone, une ligne d'information** (en lien vers la page) : rien
+// ne s'installe sur un téléphone. Deux formats, deux contenus (`lg:`).
+function LienApplication() {
+  return (
+    <>
+      <div className="mt-5 hidden lg:block">
+        <Bouton
+          taille="sm"
+          href="#/telecharger"
+          icone={
+            <span className="inline-flex items-center gap-1">
+              <LogoWindows size={13} />
+              <LogoLinux size={13} />
+            </span>
+          }
+          libelle="Télécharger l'application"
+        />
+      </div>
+      <a href="#/telecharger" className="mt-3 inline-block text-sm text-accent hoverable:text-ink transition lg:hidden">
+        Existe aussi en application pour Windows et Linux.
+      </a>
+    </>
+  );
+}
 
 // Zone de dépôt du fichier de compte, dans le héros.
 //
@@ -293,18 +379,20 @@ function Dropzone({ onImport }: { onImport: (text: string) => void }) {
       tabIndex={0}
       onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && ref.current?.click()}
       className={`flex min-h-[260px] cursor-pointer flex-col items-center justify-center gap-2.5
-                  rounded-2xl border border-dashed p-8 text-center transition ${
+                  rounded-2xl border border-dashed p-8 text-center transition-colors max-lg:min-h-[170px] max-lg:p-5 ${
                     survol
                       ? 'border-accent bg-panel2'
-                      : 'border-border bg-panel hoverable:border-accent hoverable:bg-panel2/60'
+                      : 'border-border bg-panel hoverable:border-accent hoverable:bg-panel2'
                   }`}
     >
-      <Upload size={30} className="text-accent" />
-      <div className="font-display text-base tracking-wide text-ink">
-        Dépose ton fichier .json ici
-      </div>
+      {/* La tuile d'icône des cartes, en plus grand et à l'accent : c'est
+          l'action de la page. Un IMPORT : flèche vers le bas. */}
+      <span className="flex h-12 w-12 items-center justify-center rounded-xl border border-border-soft bg-accent/10 text-accent">
+        <Download size={22} />
+      </span>
+      <div className="text-md font-semibold text-ink">Dépose ton fichier .json ici</div>
       <div className="text-sm text-ink-dim">ou clique pour parcourir</div>
-      <span className="mt-1 rounded-full border border-border bg-panel2 px-2.5 py-1 label">
+      <span className="mt-1 rounded-full border border-border-soft bg-panel2 px-2.5 py-1 label">
         Export SWEX (.json)
       </span>
       <span className="mt-1 inline-flex items-center gap-1.5 text-micro text-ink-dim">
@@ -326,12 +414,56 @@ function Dropzone({ onImport }: { onImport: (text: string) => void }) {
 }
 
 function Separator() {
-  return <div className="h-px bg-border" />;
+  return <div className="h-px bg-border-soft" />;
 }
 
-function SectionTitle({ icon: Icon, title }: { icon: typeof BookOpen; title: string }) {
+// L'icône d'une carte, dans sa tuile — la maquette : 32 px, rayon 8, contour
+// discret. ⚠️ **À la teinte de sa section** (décision 3 précisée : Le mainteneur
+// aimait les couleurs de l'accueil, qui les garde ; le menu, lui, reste
+// neutre) : icône à la teinte, fond et contour de la même teinte, fondus.
+// `color-mix` et non un suffixe hexa (`${accent}44`) : ça marche aussi bien
+// avec une variable CSS qu'avec un hexa.
+// ⚠️ **Deux valeurs de la teinte, choisies en CSS selon le thème** (lot 14) :
+// la couleur d'origine en sombre, sa variante assombrie en clair
+// (`TEINTE_CLAIRE`), où l'origine tombait à 1.4:1. L'élément porte
+// `teinte-section` et peint avec `var(--teinte)` — voir index.css.
+function varsTeinte(accent: string): CSSProperties {
+  return { '--teinte-sombre': accent, '--teinte-clair': TEINTE_CLAIRE[accent] ?? accent } as CSSProperties;
+}
+
+function Tuile({ icon: Icon, accent }: { icon: Icone; accent: string }) {
   return (
-    <div className="flex items-center gap-2 mb-2.5">
+    <span
+      className="teinte-section flex h-8 w-8 flex-none items-center justify-center rounded-lg border"
+      style={{
+        ...varsTeinte(accent),
+        color: 'var(--teinte)',
+        background: 'color-mix(in srgb, var(--teinte) 14%, transparent)',
+        borderColor: 'color-mix(in srgb, var(--teinte) 32%, transparent)',
+      }}
+    >
+      <Icon size={16} />
+    </span>
+  );
+}
+
+// Halo de la teinte, flouté dans le coin haut droit d'une carte — l'identité
+// colorée des cartes de l'accueil d'avant la refonte, gardée à la demande de
+// Le mainteneur. La carte doit être `relative overflow-hidden`.
+function Halo({ accent }: { accent: string }) {
+  return (
+    <div
+      aria-hidden
+      className="teinte-section pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full opacity-15 blur-2xl
+                 transition-opacity group-hover:opacity-30"
+      style={{ ...varsTeinte(accent), background: 'var(--teinte)' }}
+    />
+  );
+}
+
+function SectionTitle({ icon: Icon, title }: { icon: Icone; title: string }) {
+  return (
+    <div className="flex items-center gap-2 mb-3">
       <Icon size={15} className="text-ink-dim" />
       <h2 className="font-display text-lg tracking-wide">{title}</h2>
     </div>
@@ -342,93 +474,77 @@ function SectionTitle({ icon: Icon, title }: { icon: typeof BookOpen; title: str
 // vérifier ; le lien mène directement dans la bonne sous-section.
 function Resume({
   href,
-  icon: Icon,
+  icon,
   accent,
   value,
   unit,
   label,
 }: {
   href: string;
-  icon: typeof BookOpen;
+  icon: Icone;
   accent: string;
   value: number;
   unit: string;
   label: string;
 }) {
   return (
-    <motion.a
+    <a
       href={href}
-      whileHover={{ y: -3 }}
-      transition={{ type: 'spring', stiffness: 300, damping: 22 }}
-      className={`rounded-xl border border-border bg-panel p-3 transition hoverable:border-accent ${
-        value === 0 ? 'opacity-60' : ''
-      }`}
+      // ⚠️ Une valeur à 0 est ATTÉNUÉE, pas masquée : sinon la rangée saute.
+      className={`flex items-center gap-3 p-3 ${CARTE_LIEN} ${value === 0 ? 'opacity-60' : ''}`}
     >
-      <div className="flex items-center gap-1.5 mb-1">
-        <Icon size={13} style={{ color: accent }} />
-        <span className="label">{label}</span>
+      <Tuile icon={icon} accent={accent} />
+      <div className="min-w-0">
+        <div className="label truncate">{label}</div>
+        <div className="flex items-baseline gap-1.5">
+          <span className="font-mono text-[22px] font-bold leading-tight text-ink">{value}</span>
+          <span className="text-micro text-ink-dim">{unit}</span>
+        </div>
       </div>
-      <div className="flex items-baseline gap-1.5">
-        <span className="font-mono text-[24px] font-black leading-none text-ink">{value}</span>
-        <span className="text-micro text-ink-dim">{unit}</span>
-      </div>
-    </motion.a>
+    </a>
   );
 }
 
-// Étape mise en carte : un numéro nu au-dessus d'un paragraphe se lisait comme
-// une note de bas de page. Le cadre, le numéro en pastille et l'icône colorée en
-// font une séquence qu'on suit du regard.
+// Une étape de « Comment ça marche », dans la carte commune : le numéro en
+// chiffres de code, la tuile d'icône, le titre, la phrase. Les étapes sont
+// séparées par un filet (à gauche en colonnes, en haut une fois empilées).
+// ⚠️ Chaque étape a sa couleur PROPRE, pas `var(--accent)` : les trois
+// forment une séquence, elles se lisent comme trois pairs.
 function Etape({
   n,
-  icon: Icon,
+  icon,
   accent,
   title,
   desc,
   lien,
 }: {
   n: string;
-  icon: typeof BookOpen;
+  icon: Icone;
   accent: string;
   title: string;
   desc: string;
   lien?: { href: string; label: string };
 }) {
   return (
-    <div className="relative overflow-hidden rounded-xl border border-border bg-panel p-4">
-      <div
-        className="pointer-events-none absolute -top-12 -right-12 w-28 h-28 rounded-full opacity-15 blur-2xl"
-        style={{ background: accent }}
-      />
-      <div className="flex items-center gap-2.5">
-        {/* ⚠️ `color-mix` et non un suffixe hexa (`${accent}44`) : `accent` peut
-            être une variable CSS (`var(--accent)`), et « var(--accent)44 » est
-            invalide — le cadre disparaissait purement et simplement sur l'étape
-            qui l'utilisait. `color-mix` marche avec les deux formes. */}
-        <span
-          className="flex h-8 w-8 flex-none items-center justify-center rounded-lg font-mono text-sm font-bold"
-          style={{
-            background: `linear-gradient(135deg, color-mix(in srgb, ${accent} 22%, transparent), transparent)`,
-            border: `1px solid color-mix(in srgb, ${accent} 45%, transparent)`,
-            color: accent,
-          }}
-        >
-          {n}
-        </span>
-        <Icon size={17} style={{ color: accent }} />
+    <div className="flex gap-3.5 border-t border-border-soft p-4 first:border-t-0 md:border-l md:border-t-0 md:first:border-l-0">
+      <span className="teinte-section pt-2 font-mono text-xs font-bold" style={{ ...varsTeinte(accent), color: 'var(--teinte)' }}>
+        {n}
+      </span>
+      <div className="min-w-0">
+        <Tuile icon={icon} accent={accent} />
+        <h3 className="mt-2.5 text-md font-semibold text-ink">{title}</h3>
+        <p className="mt-1 text-sm leading-relaxed text-ink-dim">{desc}</p>
+        {lien && (
+          <a
+            href={lien.href}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-1.5 inline-flex items-center gap-1 text-sm text-accent transition-colors hoverable:text-ink"
+          >
+            {lien.label} <ExternalLink size={11} />
+          </a>
+        )}
       </div>
-      <h3 className="mt-2.5 font-display text-base tracking-wide">{title}</h3>
-      <p className="mt-1.5 text-sm leading-relaxed text-ink-dim">{desc}</p>
-      {lien && (
-        <a
-          href={lien.href}
-          target="_blank"
-          rel="noreferrer"
-          className="mt-1.5 inline-flex items-center gap-1 text-sm text-accent transition hoverable:text-ink"
-        >
-          {lien.label} <ExternalLink size={11} />
-        </a>
-      )}
     </div>
   );
 }
@@ -437,7 +553,7 @@ function Etape({
 // cartes de 260 px repoussaient tout le reste de la page hors de l'écran.
 function Feature({
   href,
-  icon: Icon,
+  icon,
   accent,
   kicker,
   title,
@@ -445,7 +561,7 @@ function Feature({
   soon,
 }: {
   href: string;
-  icon: typeof BookOpen;
+  icon: Icone;
   accent: string;
   kicker: string;
   title: string;
@@ -453,25 +569,18 @@ function Feature({
   soon?: boolean;
 }) {
   return (
-    <motion.a
+    <a
       href={href}
-      whileHover={{ y: -4 }}
-      transition={{ type: 'spring', stiffness: 300, damping: 22 }}
-      className={`group relative overflow-hidden rounded-xl border border-border bg-panel p-4
-                  transition hoverable:border-accent ${soon ? 'opacity-70' : ''}`}
+      className={`group relative flex flex-col overflow-hidden p-4 max-lg:p-3 ${CARTE_LIEN} ${soon ? 'opacity-70' : ''}`}
     >
-      <div
-        className="pointer-events-none absolute -top-10 -right-10 w-28 h-28 rounded-full opacity-15 blur-2xl transition-opacity group-hover:opacity-30"
-        style={{ background: accent }}
-      />
-      <Icon size={20} style={{ color: accent }} />
-      <div className="mt-2.5 label">
+      <Halo accent={accent} />
+      <Tuile icon={icon} accent={accent} />
+      <div className="mt-3 label">
         {kicker}
         {soon && ' · bientôt'}
       </div>
       <div className="mt-0.5 text-sm font-semibold text-ink">{title}</div>
       <p className="mt-1.5 text-xs leading-relaxed text-ink-dim">{body}</p>
-    </motion.a>
+    </a>
   );
 }
-

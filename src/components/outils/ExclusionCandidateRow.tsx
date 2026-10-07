@@ -16,15 +16,15 @@ interface Props {
 // apparaître dans plusieurs équipes, indiscernables par le seul nom : le
 // vrai repère est le NUMÉRO d'équipe et SES COÉQUIPIERS). Remonté ici à son
 // second usage — RuneExclusionPicker (exclure) ET MonsterSourcePicker
-// (choisir le monstre à optimiser) affichent désormais EXACTEMENT la même
-// rangée, demande explicite de cohérence entre les deux écrans.
+// (choisir le monstre à optimiser) affichent EXACTEMENT la même
+// rangée, par cohérence entre les deux écrans.
 export default function ExclusionCandidateRow({ candidate: c, suffixe }: Props) {
   // ⚠️ `activeSets`, PAS un simple `Set` des `rune.set` présents — SEULE
   // source de vérité pour « quels sets sont actifs » (voir son en-tête,
   // effects.ts) : un set 4 pièces à 3 runes n'est pas actif, une rune
   // Intangible peut compléter le set incomplet le plus proche. Recompter à
-  // côté (ex. `swiftCount >= 4`) a déjà fait diverger un affichage d'un cas
-  // réel — voir `swiftActive` dans importAccount.ts pour l'incident. Même
+  // côté (ex. `swiftCount >= 4`) diverge de l'affichage sur un cas réel —
+  // voir `swiftActive` dans importAccount.ts. Même
   // fonction que `RtaEntry.sets` (calculée à l'import) et que les icônes de
   // `RtaCard.tsx`, ici recalculée à la volée : ces candidats (n'importe quel
   // monstre du compte, pas seulement les favoris RTA) n'ont pas cette valeur

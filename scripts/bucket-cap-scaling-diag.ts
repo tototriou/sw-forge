@@ -1,16 +1,16 @@
 // Calibre `bucketCapFor` (src/lib/runeBuildOptim.ts) — mise à l'échelle de
 // `bucketCap` avec `slotFilterCap` — contre DEUX cas réels Sonia mesurés
-// cette session, sur le même compte. Historique complet du raisonnement
-// dans le commentaire de `bucketCapFor` lui-même ; ce script sert à REJOUER
-// la calibration si la constante doit être relevée à nouveau un jour (règle
-// algo-verify : mesurer, jamais deviner).
+// sur le même compte. Le raisonnement complet est dans le commentaire de
+// `bucketCapFor` lui-même ; ce script sert à REJOUER la calibration si la
+// constante doit être relevée à nouveau (règle algo-verify : mesurer,
+// jamais deviner).
 //
-// - Dégâts, piste B off : 3 demi-builds trouvés à Moyen (slotFilterCap=80).
-// - Vitesse, piste B ON : 5 demi-builds trouvés à Bas (slotFilterCap=40) —
+// - Dégâts, `adaptiveTrancheWeighting` off : 3 demi-builds trouvés à Moyen (slotFilterCap=80).
+// - Vitesse, `adaptiveTrancheWeighting` ON : 5 demi-builds trouvés à Bas (slotFilterCap=40) —
 //   le cas le plus exigeant : Moyen n'en retient que 3/5 à `bucketCap=3000`
 //   fixe, MÊME valeur qu'à Bas — la dilution touche donc déjà 40→80, pas
-//   seulement au-delà de 80 comme le cas Dégâts l'avait d'abord laissé
-//   croire. `perf-battery.ts` (ses 7 cas, TOUS à slotFilterCap=80) ne peut
+//   seulement au-delà de 80 comme le cas Dégâts le laisserait croire.
+//   `perf-battery.ts` (ses 7 cas, TOUS à slotFilterCap=80) ne peut
 //   PAS détecter ce genre de perte : il vérifie qu'un build CIBLE connu est
 //   retrouvé, jamais le NOMBRE de builds valides retenus.
 //
@@ -22,10 +22,9 @@
 // AUCUN préréglage, sur AUCUN des deux cas — pas la plus généreuse par
 // prudence, le coût mémoire/temps grandit avec bucketCap.
 //
-// ⚠️⚠️ **CE BLOC EST PÉRIMÉ — ce script est désormais ABSORBABLE** (§5.5 bis
-// des extensions, 2026-09-09), et pour une raison que la première relecture
-// avait simplement MANQUÉE : `perf-battery.ts --monotonicity` faisait déjà le
-// balayage. `checkMonotonicityForCase` (scripts/lib/perfShared.ts) parcourt
+// ⚠️⚠️ **CE BLOC EST PÉRIMÉ — ce script est ABSORBABLE** :
+// `perf-battery.ts --monotonicity` fait déjà le balayage.
+// `checkMonotonicityForCase` (scripts/lib/perfShared.ts) parcourt
 // les 5 préréglages et rend `halfARetained`/`halfBRetained` — l'oracle exact
 // de survie ci-dessous — sur les 7 cas RÉELS, en parallèle (aucun temps
 // n'étant mesuré, la contention ne corrompt pas ce verdict).
@@ -34,11 +33,10 @@
 // la main. Le seul résidu — balayer 3 formules candidates — se dit
 // `--slotFilterCap=<p> --bucketCap=<formule(p)>`, un run par couple.
 //
-// ⚠️ **POURQUOI CE SCRIPT SURVIT AU HARNAIS** (vérifié le 2026-09-09, §5.2 bis
-// des extensions). 11a l'annonçait « absorbable tel quel à `--arret=demi-
-// builds` » ; la relecture du CODE le contredit sur trois points, dont deux
+// ⚠️ **POURQUOI CE SCRIPT SURVIT AU HARNAIS** : l'absorber tel quel dans
+// `--arret=demi-builds` ne tient pas, sur trois points, dont deux
 // sont structurels et non ergonomiques :
-//   · `adaptiveTrancheWeighting` (le cas « Vitesse, piste B ON ») n'est PAS
+//   · `adaptiveTrancheWeighting` (le cas « Vitesse, `adaptiveTrancheWeighting` ON ») n'est PAS
 //     dans `OverridesHarnais` et PAS dans `SourceHarnais.synthetique` — il
 //     s'affiche « recette (non surchargeable) ». Le faire varier demande
 //     autant de recettes que de conditions ;
@@ -50,14 +48,14 @@
 //     réel du compte. Ni l'une ni l'autre ne reproduit ce `SearchParams`,
 //     donc aucune commande de remplacement ne reproduit ces chiffres.
 // S'y ajoute la forme : ce script rend **UNE TABLE de 15 configurations**
-// (5 préréglages × 3 formules) par cas, quand le harnais rend UN run — et
-// 11c a tranché que 5 demi-builds suivis = 5 invocations. Le remplacement
+// (5 préréglages × 3 formules) par cas, quand le harnais rend UN run, et
+// 5 demi-builds suivis = 5 invocations. Le remplacement
 // coûterait ~150 runs pour 30. ⚠️ Il est aussi cité par la PRODUCTION comme
 // le script de calibration réutilisable de `bucketCapFor`
 // (`src/lib/runeBuildOptim.ts`). Ne pas le supprimer « parce que le harnais
 // couvre la survie d'un demi-build » : il couvre la survie, pas le BALAYAGE.
 //
-// ⚠️⚠️ **SA RÉFÉRENCE NE REPRODUIT PLUS — relevé le 2026-09-09, à lire AVANT
+// ⚠️⚠️ **SA RÉFÉRENCE NE REPRODUIT PLUS — à lire AVANT
 // de se fier à sa sortie.** Relancé tel quel sur le compte d'origine, le cas
 // « Vitesse » ne retrouve plus ce que l'en-tête ci-dessus annonce :
 //   · en-tête : « 5 demi-builds trouvés à Bas (slotFilterCap=40) » →
@@ -71,7 +69,7 @@
 // référence ont été relevés AVANT. ⚠️ Ils ne sont donc PLUS une vérité
 // terrain : les recalibrer est un chantier à part, pas un préalable à ce
 // constat — une grandeur périmée est un résultat écrit, pas un travail
-// enchaîné (§5.4).
+// enchaîné.
 //
 // Usage : bucket-cap-scaling-diag.ts <export.json>
 
@@ -108,7 +106,7 @@ const requirement: BuildRequirement = {
 // `[]` et cette batterie mesurerait sans le biais qu'elle est là pour mesurer.
 const REFERENCES: { label: string; objective: 'degats' | 'vitesse'; adaptiveTrancheWeighting: boolean; builds: number[][] }[] = [
   {
-    label: 'Dégâts, piste B off',
+    label: 'Dégâts, adaptiveTrancheWeighting off',
     objective: 'degats',
     adaptiveTrancheWeighting: false,
     builds: [
@@ -118,7 +116,7 @@ const REFERENCES: { label: string; objective: 'degats' | 'vitesse'; adaptiveTran
     ],
   },
   {
-    label: 'Vitesse, piste B ON (cas le plus exigeant)',
+    label: 'Vitesse, adaptiveTrancheWeighting ON (cas le plus exigeant)',
     objective: 'vitesse',
     adaptiveTrancheWeighting: true,
     builds: [

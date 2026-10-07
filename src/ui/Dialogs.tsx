@@ -2,6 +2,7 @@ import { ReactNode, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { AlertTriangle, HardDriveDownload, ShieldCheck, X } from 'lucide-react';
 import { useScrollBloque } from '../hooks/useScrollBloque';
+import { selonSupport } from '../lib/bureau';
 import { Bouton, BoutonIcone, Case, Champ, PiedDeDialogue } from '../ui';
 
 /* --------------------------------------------------------------------------
@@ -487,14 +488,23 @@ export function ConfirmDialog({
         <>
           {/* ⚠️ `plein` pour le ton neutre : c'est `bg-panel2`, la surface d'un
               bouton posé DANS un dialogue — lui-même déjà en `bg-panel`. Un fond
-              `doux` s'y confondrait avec la boîte qui le porte. */}
+              `doux` s'y confondrait avec la boîte qui le porte.
+              ⚠️ **Destructif : l'action en APLAT rouge, « Annuler » à
+              contour** (rebranding, décision 22 — la planche « Retours et
+              fenêtres » de la toile). Le focus reste sur « Annuler » : l'aplat
+              dit ce que l'action coûte, il ne l'invite pas. Encre sur l'aplat :
+              `bad-ink`, 6.53 / 6.91. */}
           <Bouton
             onClick={onConfirm}
             ton={destructif ? 'danger' : 'neutre'}
-            fond={destructif ? 'doux' : 'plein'}
+            fond="plein"
             libelle={libelleAction}
           />
-          <Bouton onClick={onCancel} autoFocus ton="accent" fond="doux" libelle="Annuler" />
+          {destructif ? (
+            <Bouton onClick={onCancel} autoFocus fond="vide" trait="plein" libelle="Annuler" />
+          ) : (
+            <Bouton onClick={onCancel} autoFocus ton="accent" fond="doux" libelle="Annuler" />
+          )}
         </>
       }
     />
@@ -635,10 +645,15 @@ export function KeepAccountDialog({
       titre="Garder tes données sur cet appareil ?"
       sousTitre={
         <>
-          Ton compte, ta prépa RTA, tes équipes de siège et tes recommandations seront encore là à
-          ta prochaine visite, sans rien redéposer.
+          {selonSupport(
+            'Ton compte, ta prépa RTA, tes équipes de siège et tes recommandations seront encore là à ta prochaine visite, sans rien redéposer.',
+            "Ton compte, ta prépa RTA, tes équipes de siège et tes recommandations seront encore là à la prochaine ouverture de l'application, sans rien redéposer."
+          )}
           <span className="mt-2 block font-semibold text-star">
-            Recommandé : sans ça, tu perds tout ton travail en fermant l'onglet.
+            {selonSupport(
+              "Recommandé : sans ça, tu perds tout ton travail en fermant l'onglet.",
+              "Recommandé : sans ça, tu perds tout ton travail en fermant l'application."
+            )}
           </span>
         </>
       }

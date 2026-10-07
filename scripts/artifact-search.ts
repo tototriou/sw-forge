@@ -21,8 +21,7 @@
 //                        comptent 0
 //   --def=<n>            DEF de l'adversaire (défaut : celle de l'écran)
 //   --crit=<mode>        crit|normal (défaut : crit, celui de l'écran) ;
-//                        l'ancien « moyenne » (mode supprimé, lot CM de
-//                        degats-et-aura) devient « crit » avec un avertissement
+//                        l'ancien « moyenne » (mode supprimé) devient « crit » avec un avertissement
 //   --attribut=<choix>   equipped|none|libre|100|101|102 (défaut : libre)
 //   --type=<choix>       idem pour l'artéfact de type
 //   --top=<n>            nombre de paires à afficher (défaut : 5)
@@ -63,13 +62,13 @@ if (!porteur.archetype) {
 const sorts = monsterDamageSkills(fiche).filter((s): s is SkillDamageProfile => 'noeud' in s);
 // Sans `--sort`, le sort par défaut de l'écran (`defaultDamageSkill`, source
 // unique) : jamais le dernier de la liste, qui peut être un passif
-// sélectionnable (Tempest au slot 3, degats-et-aura 9b). `--sort 3` le choisit.
+// sélectionnable (Tempest au slot 3). `--sort 3` le choisit.
 const sortParDefaut = defaultDamageSkill(sorts);
 if (!sortParDefaut) throw new Error(`Aucun sort calculable pour ${monsterName}.`);
 const slotVoulu = opt('sort') ? Number(opt('sort')) : null;
 const sort = (slotVoulu != null ? sorts.find((s) => s.slot === slotVoulu) : null) ?? sortParDefaut;
 
-// Deux modes seulement (lot CM) : « moyenne », l'ancien mode supprimé, se
+// Deux modes seulement : « moyenne », l'ancien mode supprimé, se
 // convertit en « crit » comme dans une recette, en le disant ; toute autre
 // valeur arrête le script plutôt que d'être lue en silence.
 const critDemande = opt('crit');
@@ -99,7 +98,7 @@ const passifs = monsterOffensivePassives(fiche);
 // ⚠️ Les stats sont RECALCULÉES pour chaque paire : la stat principale d'un
 // artéfact entre dans les stats du monstre. Un score qui réutiliserait les
 // stats du build actuel comparerait des paires sur des stats fausses.
-// Les auras propres (6bis-b2) sont celles des runes PORTÉES, les mêmes pour
+// Les auras propres sont celles des runes PORTÉES, les mêmes pour
 // toutes les paires : aucun artéfact ne porte de set.
 const propres = aurasPropresDesRunes(loaded.gear.runes);
 const evaluer = (artefacts: ArtifactDetail[]) => {
@@ -121,7 +120,7 @@ const parSorte = ARTIFACT_KINDS.map(({ key, label }) => {
 }).join(' · ');
 // Séquence curée (Blade Surge) : la séquence ENTIÈRE, par la fonction du
 // résumé de l'écran et de la ligne du CLI (`resumeSequenceDeCoups`) — `hits`
-// et `aoe` ne décrivent que la donnée, jamais la séquence (degats-et-aura 8c).
+// et `aoe` ne décrivent que la donnée, jamais la séquence.
 const sequence = sort.sequenceDeCoups;
 console.log(
   `\nSort : ${sort.nom} (slot ${sort.slot}, ${sequence ? resumeSequenceDeCoups(sequence) : `${sort.hits} coup(s)`}` +

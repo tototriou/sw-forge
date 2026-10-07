@@ -1,17 +1,17 @@
-// degats-et-aura 6bis-b6 — les `ArtifactSearchParams` de la fiche, produits
+// Les `ArtifactSearchParams` de la fiche, produits
 // par UN producteur pur (`parametresArtefactsFiche`, artifactFiche.ts) que
 // l'écran (`artifactParams`, OptimizerSection.tsx), le CLI (`paramsArtefacts`,
 // recipeToSearchParams.ts) et le différentiel relique (`entreeResolution`,
 // relicDifferentiel.ts) appellent tous trois.
 //
-// Constats de la revue technique 6bis-b : C5 (§ 4.2, le CLI n'appliquait pas
-// la neutralisation des verrous de l'écran) et C6 (§ 4.3, le différentiel
+// Deux écarts que le producteur unique supprime : le CLI n'appliquait pas
+// la neutralisation des verrous de l'écran, et le différentiel
 // recopiait l'entrée de résolution sans `codesAmplification` ni canal
 // exclusive obligatoire).
 //
 // La référence de l'écran est une COPIE FIGÉE du corps du mémo
 // `artifactParams` au commit 7905df36 (`artifactParamsAvant`) : l'écran ne
-// doit pas changer de comportement (contrainte du 2026-10-01), c'est donc son
+// doit pas changer de comportement, c'est donc son
 // ancien corps qui fait foi, jamais le producteur qu'on teste.
 
 import { ArtifactArchetype, ArtifactDetail, ArtifactKind, ARTIFACT_KINDS, ElementKey, GearSet, RelicDetail, RuneDetail } from '../src/types';
@@ -101,7 +101,7 @@ function recette(r: Partial<OptimizerRecipe>): OptimizerRecipe {
 // L'écran de cette recette sur ce monstre, comme `importRecipe` le règle :
 // mêmes choix, mêmes verrous, même `damageSetup`, aucun artéfact réservé
 // (aucune liste active), la fiche du monstre ; l'évaluateur de la fiche est
-// le producteur partagé de 6bis-b5b (celui que `artefactsDuCli` appelle).
+// le producteur partagé (celui que `artefactsDuCli` appelle).
 function entreesEcran(recipe: OptimizerRecipe, loaded: LoadedMonster, evaluer: (arts: ArtifactDetail[]) => number): EntreesMemoArtifactParams {
   return {
     selected: { monster: { element: 'wind', archetype: 'attack' }, gear: loaded.gear },
@@ -119,10 +119,10 @@ function entreesEcran(recipe: OptimizerRecipe, loaded: LoadedMonster, evaluer: (
 const ids = (arts: readonly ArtifactDetail[]) => arts.map((a) => a.id);
 const sansEvaluer = <T extends { evaluer: unknown }>({ evaluer: _e, ...reste }: T) => reste;
 
-/* ── C5 : la recette verrouillée, CLI = écran ──────────────────────────── */
+/* ── La recette verrouillée, CLI = écran ───────────────────────────────── */
 
 export function testArtefactsFicheParamsCliVerrous() {
-  titre('Paramètres d’artéfacts de la fiche — recette verrouillée, deux emplacements figés : CLI = écran (6bis-b6, C5)');
+  titre('Paramètres d’artéfacts de la fiche — recette verrouillée, deux emplacements figés : CLI = écran');
 
   // Les deux pièces portées ne portent pas la ligne 218 ; une pièce de
   // l'inventaire la porte, mais les deux emplacements sont figés.
@@ -160,9 +160,9 @@ export function testArtefactsFicheParamsCliVerrous() {
   egal(ids(paireRepresentative(aDemi.params)), [803, 802], '… et la paire tient la ligne 218 (803 + la pièce portée figée)');
 }
 
-/* ── Contrainte du 2026-10-01 : l'écran garde exactement le même comportement ── */
+/* ── Contrainte : l'écran garde exactement le même comportement ─────────── */
 
-// Le corps du mémo `artifactParams` APRÈS 6bis-b6, recopié tel quel — le
+// Le corps du mémo `artifactParams` APRÈS l'extraction du producteur, recopié tel quel — le
 // contrôle de source ci-dessous vérifie que l'écran porte exactement ce texte.
 function artifactParamsApres(e: EntreesMemoArtifactParams) {
   const { selected, evaluateursFiche, optimiserArtefacts, artifactMainByKind, artifacts, artefactsReserves, lignesVerrouillees, damageSetup, maxStats } = e;
@@ -194,7 +194,7 @@ function corpsDuMemo(source: string, debut: string, fin: string): string | null 
 }
 
 export function testArtefactsFicheParamsEcran() {
-  titre('Paramètres d’artéfacts de la fiche — l’écran rend les mêmes ArtifactSearchParams qu’avant 6bis-b6 (copie figée du mémo)');
+  titre('Paramètres d’artéfacts de la fiche — l’écran rend les mêmes ArtifactSearchParams que la copie figée du mémo');
 
   const portees = [art(801, 'element', [101, 100], [[219, 10]]), art(802, 'archetype', [101, 100], [[204, 20]])];
   const inventaire = [...portees, art(803, 'element', [100, 1500], [[218, 1.5], [205, 30]]), art(804, 'archetype', [102, 100], [[220, 20]]), art(805, 'element', [101, 100], [[300, 10]])];
@@ -204,7 +204,7 @@ export function testArtefactsFicheParamsEcran() {
     allRunes: RUNES_PORTEES, allArtifacts: inventaire, allRelics: [RELIQUE],
   };
   // Un évaluateur réel de la fiche (« Dégâts réels », Lushen), le producteur
-  // partagé de 6bis-b5b : la paire et ses notes dépendent des lignes.
+  // partagé : la paire et ses notes dépendent des lignes.
   const evaluer = artefactsDuCli(recette({}), loaded)!.params.evaluer;
   const selected = { monster: { element: 'wind' as const, archetype: 'attack' as const }, gear: loaded.gear };
 
@@ -272,10 +272,10 @@ export function testArtefactsFicheParamsEcran() {
     'différentiel : entreeResolution passe par entreeResolutionDuBuild et le producteur');
 }
 
-/* ── C6 : l'entrée de résolution du différentiel = celle du CLI ─────────── */
+/* ── L'entrée de résolution du différentiel = celle du CLI ──────────────── */
 
 export function testArtefactsFicheParamsDifferentiel() {
-  titre('Différentiel relique — entreeResolution = résolution du CLI, recette « Libre » avec buff de DEF (6bis-b6, C6)');
+  titre('Différentiel relique — entreeResolution = résolution du CLI, recette « Libre » avec buff de DEF');
 
   // Lushen scale sur l'ATQ : la ligne 205 (amplification du buff de DEF),
   // sondée seule, ne change rien ; avec une ligne 220 (dégâts supp. en prop.

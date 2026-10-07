@@ -2,6 +2,7 @@ import { memo, useMemo, useState } from 'react';
 import { RuneDetail } from '../../types';
 import { RUNE_EFFECT, runeEfficiency, runeScore } from '../../lib/effects';
 import SetFilter from './SetFilter';
+import FiltresRunes, { EffacerFiltres } from './FiltresRunes';
 import SlotFilter from './SlotFilter';
 import RuneSlotIcon from '../RuneSlotIcon';
 import { RuneDetailBox } from '../PieceDetail';
@@ -71,10 +72,6 @@ export default function RunesList({ runes, menuOuvert, onFermerMenu }: Props) {
   // Sens du tri — un AXE à part du critère : il vaut pour celui qui est choisi,
   // quel qu'il soit (voir lib/tri.ts).
   const [sens, setSens] = useStickyState<SensTri>('runesList.sens', SENS_PAR_DEFAUT);
-  // ⚠️ Un tri mémorisé qui n'existe plus (les clés ont changé avec les libellés
-  // du jeu) retombe sur le défaut : sinon `sortFn` renvoie `undefined` et le
-  // `sort` lève, page blanche à la clé.
-  const sort = estTriConnu(sortBrut) ? sortBrut : 'score';
   // Propriétés cherchées, dans l'ordre de priorité — même grammaire que
   // l'inventaire d'artéfacts (voir SubSearchDialog).
   //
@@ -87,6 +84,19 @@ export default function RunesList({ runes, menuOuvert, onFermerMenu }: Props) {
   // Codes recherchés : les tuiles s'en servent pour surligner la ligne visée.
   const cherches = useMemo(() => new Set(actifs.map((c) => c.code)), [actifs]);
   const metric = useRuneMetric(); // choix PARTAGÉ avec les autres vues
+  // ⚠️ **UNE seule entrée de mesure dans le tri : celle du menu ⚙** (refonte
+  // graphique, décision 21 — le mainteneur : « il y a Score et Efficience mais c'est
+  // la même chose »). Les deux entrées côte à côte classaient aussi par la
+  // mesure qu'on ne voit pas sur les tuiles, pour un classement presque
+  // identique. L'entrée porte le nom de la mesure active (« Score » ou
+  // « Efficience », les libellés de `RUNE_SORTS`).
+  const autreMesure: RuneSortMode = metric === 'eff' ? 'score' : 'eff';
+  const trisProposes = RUNE_SORTS.filter((s) => s.key !== autreMesure);
+  // ⚠️ Un tri mémorisé qui n'existe plus (les clés ont changé avec les libellés
+  // du jeu) retombe sur la mesure active : sinon `sortFn` renvoie `undefined`
+  // et le `sort` lève, page blanche à la clé. Un tri mémorisé sur l'AUTRE
+  // mesure suit le menu ⚙ de la même façon.
+  const sort: RuneSortMode = estTriConnu(sortBrut) && sortBrut !== autreMesure ? sortBrut : metric;
   const [page, setPage] = useState(0);
   // Sous `lg`, la grille passe à DEUX colonnes et les tuiles au rendu étroit.
   // ⚠️ Lu ICI, une seule fois, et passé aux tuiles : ce qui change n'est pas un
@@ -140,38 +150,92 @@ export default function RunesList({ runes, menuOuvert, onFermerMenu }: Props) {
   const safePage = Math.min(page, pageCount - 1);
   const shown = sorted.slice(safePage * PAGE, safePage * PAGE + PAGE);
 
-  // Les filtres, rendus une seule fois et posés à DEUX endroits selon la
-  // largeur. Deux copies auraient divergé au premier filtre ajouté.
-  const filtres = (
+  // Changer un filtre ramène à la première page.
+  const choisirSets = (next: Set<string>) => {
+    setSets(next);
+    setPage(0);
+  };
+  const choisirSlots = (next: Set<number>) => {
+    setSlots(next);
+    setPage(0);
+  };
+  const choisirAntiques = (v: AncientFilterValue) => {
+    setAncient(v);
+    setPage(0);
+  };
+
+  // Sets, emplacements, antiques — AU DOIGT, dans le panneau « Options ». À
+  // la souris, ils deviennent trois menus déroulants (`FiltresRunes`, lot 8a,
+  // décision 20), avec les MÊMES contrôles dedans.
+  const filtresEnsemble = (
     <>
         {/* Sets : multi-sélection, icônes seules (voir SetFilter) */}
-        <SetFilter
-          runes={runes}
-          value={sets}
-          onChange={(next) => {
-            setSets(next);
-            setPage(0);
-          }}
-        />
+        <SetFilter runes={runes} value={sets} onChange={choisirSets} />
 
         {/* Slot + antiques */}
         <div className="flex flex-wrap items-center gap-2">
-          <SlotFilter
-            value={slots}
-            onChange={(next) => {
-              setSlots(next);
-              setPage(0);
-            }}
-          />
-          <AncientFilter
-            value={ancient}
-            onChange={(v) => {
-              setAncient(v);
-              setPage(0);
-            }}
-          />
+          <SlotFilter value={slots} onChange={choisirSlots} />
+          <AncientFilter value={ancient} onChange={choisirAntiques} />
         </div>
+    </>
+  );
 
+  // Propriété secondaire et tri : les mêmes aux deux formats, rendus une seule
+  // fois et posés à DEUX endroits selon la largeur. Deux copies auraient
+  // divergé au premier filtre ajouté.
+  const blocTri = (
+    <>
+        {/* Tri — les entrées du JEU, dans son ordre. La MESURE (efficience /
+            score) reste un réglage global, dans la barre de nav.
+            ⚠️ **AU-DESSUS de la propriété secondaire**, aux deux formats
+            (le mainteneur, lot 8a : « mets le Trier par au-dessus de la
+            propriété »). Dans le PANNEAU mobile, `data-tri-bloc` le remontait
+            déjà en tête (voir index.css) — trier vient avant filtrer. */}
+        <div data-tri-bloc className="flex items-center gap-2 flex-wrap">
+          <span className="w-[86px] flex-none label">Trier par</span>
+          {/* ⚠️ **Une liste DÉROULANTE, pas des onglets** : neuf entrées en
+              `Segmented` faisaient ~920 px, essayé puis défait par le mainteneur (« ça
+              fait peut-être un peu gros », lot 8a). L'Optimisation, cinq
+              entrées, garde ses onglets. À la souris, la liste prend la
+              hauteur des filtres de la ligne (32 px). */}
+          <Selecteur
+            value={sort}
+            onChange={(e) => {
+              setSort(e.target.value as RuneSortMode);
+              setPage(0);
+            }}
+            title={trisProposes.find((s) => s.key === sort)?.hint}
+            pleineLargeur={false}
+            className="lg:h-8 lg:py-0 lg:text-xs"
+          >
+            {trisProposes.map((s) => (
+              <option key={s.key} value={s.key} title={s.hint}>
+                {s.label}
+              </option>
+            ))}
+          </Selecteur>
+          {/* ⚠️ Collé au sélecteur, jamais ailleurs : c'est le MÊME réglage en
+              deux morceaux — sur quoi l'on trie, et dans quel sens. */}
+          <BoutonSensTri
+            sens={sens}
+            onChange={(v) => {
+              setSens(v);
+              setPage(0);
+            }}
+          />
+          {/* ⚠️ Les deux tris « propriété » n'ont rien à classer sans critère :
+              le dire ici évite de croire que le tri est cassé. */}
+          {(sort === 'sub_desc' || sort === 'sub_brut_desc') && !premierCode && (
+            <span className="text-xs text-warn">
+              Choisis une propriété ci-dessous pour trier dessus.
+            </span>
+          )}
+        </div>
+    </>
+  );
+
+  const blocPropriete = (
+    <>
         {/* Propriété secondaire — la barre du JEU : quatre cases de rappel
             et la bascule 2 ↔ 4 à côté.
             ⚠️ Les cases sont ORDONNÉES : la 1ʳᵉ sert aussi de clé aux deux tris
@@ -191,46 +255,6 @@ export default function RunesList({ runes, menuOuvert, onFermerMenu }: Props) {
             />
           </div>
         </div>
-
-        {/* Tri — les entrées du JEU, dans son ordre. La MESURE (efficience /
-            score) reste un réglage global, dans la barre de nav.
-            ⚠️ `data-tri-bloc` : dans le PANNEAU mobile, ce bloc remonte en tête
-            (voir index.css) — trier vient avant filtrer. Au desktop il garde sa
-            place, en bas de la colonne de filtres. */}
-        <div data-tri-bloc className="flex items-center gap-2 flex-wrap">
-          <span className="w-[86px] flex-none label">Trier par</span>
-          <Selecteur
-            value={sort}
-            onChange={(e) => {
-              setSort(e.target.value as RuneSortMode);
-              setPage(0);
-            }}
-            title={RUNE_SORTS.find((s) => s.key === sort)?.hint}
-            pleineLargeur={false}
-          >
-            {RUNE_SORTS.map((s) => (
-              <option key={s.key} value={s.key} title={s.hint}>
-                {s.label}
-              </option>
-            ))}
-          </Selecteur>
-          {/* ⚠️ Collé au sélecteur, jamais ailleurs : c'est le MÊME réglage en
-              deux morceaux — sur quoi l'on trie, et dans quel sens. */}
-          <BoutonSensTri
-            sens={sens}
-            onChange={(v) => {
-              setSens(v);
-              setPage(0);
-            }}
-          />
-          {/* ⚠️ Les deux tris « propriété » n'ont rien à classer sans critère :
-              le dire ici évite de croire que le tri est cassé. */}
-          {(sort === 'sub_desc' || sort === 'sub_brut_desc') && !premierCode && (
-            <span className="text-xs text-warn">
-              Choisis une propriété ci-dessus pour trier dessus.
-            </span>
-          )}
-        </div>
     </>
   );
 
@@ -239,15 +263,57 @@ export default function RunesList({ runes, menuOuvert, onFermerMenu }: Props) {
       {/* ⚠️ CINQ rangées de filtres — sets, slots, propriété secondaire, tri —
           soit près de la moitié d'un écran de téléphone avant la première rune.
           Sous `lg` elles descendent dans le panneau « Options ». */}
-      <div className="hidden lg:flex lg:flex-col gap-3 mb-4">{filtres}</div>
+      {/* ⚠️ **En-tête à la SOURIS** (refonte graphique, lot 8a, la maquette) :
+          le titre de la vue et le nombre de runes de l'INVENTAIRE ; le compte
+          FILTRÉ reste au-dessus des tuiles. Au doigt, la barre du haut dit
+          déjà la vue (lot 11). */}
+      <div className="mb-3 hidden items-center gap-2.5 lg:flex">
+        <h1 className="font-display text-xl tracking-wide text-ink">Liste</h1>
+        <span className="rounded-full border border-border-soft bg-panel2 px-2 py-0.5 font-mono text-micro text-ink-dim">
+          {runes.length.toLocaleString('fr-FR')} rune{runes.length > 1 ? 's' : ''}
+        </span>
+      </div>
+
+      <div className="hidden lg:flex lg:flex-col gap-3 mb-4">
+        <FiltresRunes
+          runes={runes}
+          sets={sets}
+          onSets={choisirSets}
+          slots={slots}
+          onSlots={choisirSlots}
+          ancient={ancient}
+          onAncient={choisirAntiques}
+        />
+        {blocTri}
+        {blocPropriete}
+      </div>
 
       <MobileSheet ouvert={menuOuvert} onFermer={onFermerMenu} titre="Filtrer mes runes">
         {/* ⚠️ `data-filtres-runes` : dans le PANNEAU, les contrôles prennent toute
-            la largeur (voir index.css). Le même bloc sert au desktop (ci-dessus,
-            hors tiroir), où il reste compact — d'où le marqueur, lu uniquement
-            sous `[data-tiroir]`. */}
+            la largeur (voir index.css). Les mêmes blocs servent au desktop
+            (ci-dessus, hors tiroir), où ils restent compacts — d'où le
+            marqueur, lu uniquement sous `[data-tiroir]`.
+            ⚠️ **Deux blocs intitulés, « Trier » puis « Filtrer »** (lot 11c,
+            décision 26, la maquette), et « Effacer les filtres » au bout
+            (décision 20). Le TRI d'abord, comme avant — « trier vient avant
+            filtrer » ; la maquette mettait « Filtrer » en tête. L'ordre est
+            maintenant celui du DOM : la règle d'index.css qui remontait le
+            tri (`order: -1`) est retirée. */}
         <div className="flex flex-col gap-3" data-filtres-runes>
-          {filtres}
+          <span className="label">Trier</span>
+          {blocTri}
+          <span className="label mt-2 border-t border-border-soft pt-3">Filtrer</span>
+          {filtresEnsemble}
+          {blocPropriete}
+          <EffacerFiltres
+            runes={runes}
+            sets={sets}
+            onSets={choisirSets}
+            slots={slots}
+            onSlots={choisirSlots}
+            ancient={ancient}
+            onAncient={choisirAntiques}
+          />
         </div>
       </MobileSheet>
 

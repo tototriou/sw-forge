@@ -2,8 +2,7 @@
 // rune décrite par l'utilisateur (slot/set/rareté/main/innée/sous-stats
 // approximatives), pour ensuite l'utiliser dans un diagnostic buildBuckets
 // (voir optimizer-bucket-rank-diag.ts). Même chargement (`loadBoxMonster`)
-// que scripts/optimizer-search.ts — même pool que les recherches déjà
-// lancées cette session.
+// que scripts/optimizer-search.ts — même pool que ces recherches.
 //
 // Usage : optimizer-find-rune.ts <export.json> <nomMonstre> <slot> <set> <mainCode>
 

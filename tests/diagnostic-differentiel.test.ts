@@ -1,4 +1,4 @@
-// Le DIFFÉRENTIEL ENTRELACÉ — piste 11c (§5.2 bis des extensions).
+// Le DIFFÉRENTIEL ENTRELACÉ (`spec/outils/optimizer/harnais-extensions.md`, « Le différentiel : l'oracle »).
 //
 // ⚠️ **Ce test ne vérifie pas que le moteur a raison ; il vérifie que le
 // différentiel REFUSE ce qu'il doit refuser.** C'est la propriété qui compte
@@ -11,7 +11,7 @@
 // ⚠️ **Et il verrouille le contraire du silence** : les sept éléments sont
 // TOUJOURS rendus, jamais omis. Une case absente se lirait « pareil », ce qui
 // est un silence remplacé par un mensonge — même doctrine que
-// `NON_OBSERVABLE` au §5.1 et que les phases de temps absentes du §5.3.
+// `NON_OBSERVABLE` et que les phases de temps absentes.
 //
 // ⚠️ `algo-verify` ne s'y applique pas, même doctrine que
 // `diagnostic-profils.test.ts` : c'est de l'OUTILLAGE, et ce qui est en jeu
@@ -26,7 +26,7 @@ import {
 import { trouverProfil } from '../scripts/lib/diagnosticProfils';
 
 export default async function testDiagnosticDifferentiel() {
-  titre('Différentiel entrelacé (11c) — le portier refuse-t-il ce qu’il doit refuser ?');
+  titre('Différentiel entrelacé — le portier refuse-t-il ce qu’il doit refuser ?');
 
   /* ── L'ordre de lecture : les sept éléments, dans l'ordre du pipeline ── */
 
@@ -64,9 +64,9 @@ export default async function testDiagnosticDifferentiel() {
     'chaque lecture porte ses QUATRE champs (OÙ · COMBIEN · SUR COMBIEN · CE QUE ÇA AUTORISE), jamais moins'
   );
 
-  // ⚠️ Le constat n° 1 de 11b, tenu en code : `fumee` ne peut RIEN détecter,
+  // ⚠️ Tenu en code : `fumee` ne peut RIEN détecter,
   // et le différentiel ne doit donc jamais y écrire « aucune divergence ».
-  egal(d.premiereDivergence, null, 'fumee — aucun point de divergence, comme mesuré par 11b');
+  egal(d.premiereDivergence, null, 'fumee — aucun point de divergence');
   egal(
     d.verdict,
     'AUCUNE_DIVERGENCE_SENSIBILITÉ_NON_ÉTABLIE',
@@ -75,7 +75,7 @@ export default async function testDiagnosticDifferentiel() {
   egal(d.sensibilite.axeDeclareSensible, false, 'fumee ne déclare aucun axe sensible — c’est son résultat, pas un oubli');
 
   // ⚠️ Deux bras COMPLETS n'ont pas de préfixe : c'est ce qui supprime le
-  // portier, le plancher et le bruit d'un seul coup (exigence n° 1 de 11a).
+  // portier, le plancher et le bruit d'un seul coup (exigence du harnais).
   egal(d.admissibilite.portier, 'OUVERT', 'fumee — deux bras complets : le portier est ouvert');
   egal(d.admissibilite.prefixe, 'SANS_OBJET', 'deux bras COMPLETS n’ont pas de préfixe partiel à comparer');
 
@@ -97,7 +97,7 @@ export default async function testDiagnosticDifferentiel() {
     `COMBIEN est dans l’unité de l’élément (des candidats), reçu « ${population.combien} »`
   );
 
-  // ⚠️ Le constat n° 3 de 11b, verrouillé : le RANG ne bouge PAS alors que la
+  // ⚠️ Verrouillé : le RANG ne bouge PAS alors que la
   // POPULATION bouge. Un différentiel qui ne lirait que le rang ne verrait
   // rien ici — c'est la justification vivante d'un oracle multi-éléments.
   const classement = div.lectures.find((l) => l.element === 'classement')!;
@@ -130,13 +130,13 @@ export default async function testDiagnosticDifferentiel() {
   // ⚠️ **Et l'étage de perte SURVIT au portier**, ce n'est pas une exception
   // de confort : il est évalué sur la STRUCTURE des compartiments, en amont de
   // toute troncature. Le fermer aussi jetterait la seule information qui
-  // reste — « le refus est LOCAL, jamais global » (§5.2 bis, règle 3).
+  // reste — « le refus est LOCAL, jamais global ».
   egal(
     portier.lectures.find((l) => l.element === 'etage-perte')?.etat,
     'IDENTIQUE',
     'l’étage de perte reste LISIBLE malgré le portier fermé — il ne dépend d’aucun préfixe'
   );
-  // ⚠️ Le cas exact de la mesure I de 11a : deux rangs très différents
+  // ⚠️ Le cas exact d'une mesure de référence : deux rangs très différents
   // (#396/1 000 contre #1 424/27 449) qui ne disent RIEN, la population ayant
   // changé. Les rendre comparables ferait lire « le paramètre déplace la
   // cible de mille rangs ».

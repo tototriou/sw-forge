@@ -8,10 +8,10 @@ import {
 } from '../lib/optimizerExclusion';
 import { saveLocal, usePersistence } from './usePersistence';
 
-// « Listes de travail » de l'Optimizer (Lot 3, voir spec/outils/optimizer/
-// archive/historique/historique-import-monstres-a-optimiser.md) — remplace useOptimizerValidatedBuilds
-// (Lot 2), qui ne portait qu'un tableau plat de runes validées, sans notion
-// de liste. Trois pièces d'état, une seule persistance : les listes
+// « Listes de travail » de l'Optimizer (spec/outils/optimizer/
+// listes-et-reservation.md § Créer, valider et réserver dans une liste) :
+// pas un tableau plat de runes validées, mais des listes. Trois pièces
+// d'état, une seule persistance : les listes
 // elles-mêmes (créées/renommées/supprimées par l'utilisateur, AUCUNE fixe —
 // voir OptimizerList), leurs membres (« Inclure à la liste », zone C) et les
 // builds validés (runes réservées, scopées PAR LISTE — voir ValidatedBuild).
@@ -20,7 +20,7 @@ import { saveLocal, usePersistence } from './usePersistence';
 // rechargement) — cet état-ci, à l'inverse, DOIT survivre à un rechargement
 // (un flux de plusieurs dizaines de minutes ne doit pas perdre le travail
 // déjà fait), même statut que la prépa RTA/les équipes de siège.
-const STORAGE_KEY = 'sw-forge-optimizer-lists-v1';
+const STORAGE_KEY = 'swblacksmith-optimizer-lists-v1';
 
 interface StoredState {
   lists: OptimizerList[];

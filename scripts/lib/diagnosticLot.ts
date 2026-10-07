@@ -1,5 +1,5 @@
 // Le LOT — faire tourner le harnais sur PLUSIEURS des 7 cas connus au lieu
-// d'un seul (§5.3 des extensions, ligne 10 du tableau du §10).
+// d'un seul.
 //
 // **Niveau A-PASSIF, au sens strict** : rien ici ne mesure, n'observe ni ne
 // calcule quoi que ce soit de nouveau. Ce module BOUCLE sur des runs qui
@@ -15,7 +15,7 @@
 //     ou une graine). Un lot n'est pas une huitième provenance : c'est de
 //     l'ORCHESTRATION, la même distinction que `ConfigResolue` (ce que le
 //     moteur consomme) contre `OptionsHarnais` (ce qui pilote le harnais),
-//     posée au §3.1 des extensions.
+//     posée dans le harnais.
 //   - `ResultatHarnais` décrit **UN run** — une préparation, une complétude,
 //     une série de temps. Lui faire porter sept préparations en aurait fait
 //     un type dont aucun champ n'a plus le même sens selon le mode.
@@ -25,8 +25,8 @@
 // arrive ici sans que personne ait à y penser.
 //
 // ⚠️ **Le motif que ce module INTERNALISE.** La coquille ci-dessous a déjà
-// été écrite ad hoc deux fois (mesures des §4.5 et §4.6 des extensions) puis
-// jetée à chaque fois, toujours dans la même forme : boucler sur `CASES`,
+// été écrite ad hoc deux fois (mesures de la rétention et du coût de
+// l'instrumentation) puis jetée à chaque fois, toujours dans la même forme : boucler sur `CASES`,
 // monter la recette par `buildOptimizerRecipe`, l'écrire dans un fichier
 // temporaire (`chargerRecette` lit un CHEMIN, pas un objet), appeler le
 // harnais, `unlinkSync` dans un `finally`. C'est exactement le motif que le
@@ -68,8 +68,8 @@ export type OptionsLot = Omit<ConfigHarnais, 'source'>;
  * ⚠️ **Il n'est pas choisi ici, il est CONSTATÉ** : « Moyen » est le défaut
  * de l'écran (`useOptimizerState`), donc ce que la production applique quand
  * l'utilisateur ne touche à rien — et c'est aussi celui sous lequel les
- * mesures des §4.5 et §4.6 ont été relevées, donc la seule valeur qui rend
- * un lot d'aujourd'hui lisible à côté d'elles. Le changer se fait par
+ * mesures de la rétention et du coût de l'instrumentation ont été relevées,
+ * donc la seule valeur qui rend un lot lisible à côté d'elles. Le changer se fait par
  * `--slotFilterCap`, qui est un OVERRIDE au sens plein : marqué, et le
  * drapeau de fidélité bascule.
  */
@@ -126,8 +126,7 @@ export interface ObservateurLot {
  * ⚠️ **Tolérante à la SAISIE, jamais au RÉSULTAT** : la mise à plat élargit
  * ce qui est reconnu, elle n'autorise aucun repli. Un nom qui ne désigne pas
  * exactement un cas — inconnu, ou correspondant à plusieurs — est REFUSÉ, il
- * n'en choisit pas un arbitrairement (règle 4 du §4.4, « aucun repli
- * silencieux »).
+ * n'en choisit pas un arbitrairement (« aucun repli silencieux »).
  */
 function aplatir(s: string): string {
   return s
@@ -255,7 +254,7 @@ export function resoudreCas(index: number, commun: OptionsLot): { config: Config
     artifactMainByKind: {},
   });
 
-  const chemin = join(tmpdir(), `sw-forge-lot-${process.pid}-${index}.json`);
+  const chemin = join(tmpdir(), `swblacksmith-lot-${process.pid}-${index}.json`);
   const config: ConfigHarnais = {
     source: {
       type: 'recette',
@@ -320,7 +319,7 @@ export async function executerLot(
 
 /**
  * ⚠️ **Le palier 1 existe pour « challenger la configuration AVANT de laisser
- * tourner vingt minutes »** (§5 du cadrage). Un lot multiplie ce temps par le
+ * tourner vingt minutes »**. Un lot multiplie ce temps par le
  * nombre de cas : il doit donc dire ce qu'il va faire — combien de cas,
  * lesquels, jusqu'où, combien de fois — avant de le faire, et pas seulement
  * l'afficher au fur et à mesure.
@@ -344,8 +343,8 @@ export function annoncerLot(indices: number[], commun: OptionsLot): string {
   if (commun.horodaterProgression) l.push('  progression   : A₂ activé (instrument OPT-IN, il se paie — son coût est imprimé avec lui)');
   l.push('');
   // ⚠️ L'ordre de grandeur est DIT, jamais estimé cas par cas : le harnais ne
-  // sait pas prédire la durée d'une recherche (c'est même la raison d'être du
-  // §6.2, « jamais un 0 candidat nu »). Ce qu'il peut dire honnêtement, c'est
+  // sait pas prédire la durée d'une recherche (c'est même la raison d'être de
+  // la complétude, « jamais un 0 candidat nu »). Ce qu'il peut dire honnêtement, c'est
   // que le coût est MULTIPLIÉ, et où se trouve le point d'arrêt gratuit.
   l.push(`  ${AVERTISSEMENT_LOT_COURT}`);
   l.push(
@@ -365,7 +364,7 @@ export function annoncerLot(indices: number[], commun: OptionsLot): string {
  * ⚠️ **Le piège propre au lot, et ce n'est PAS celui du run unique.**
  *
  * Une sortie qui aligne sept cas en colonnes RESSEMBLE à une comparaison. Le
- * harnais porte déjà `avertissementComparaison` (§6.4 bis), qui dit de ne pas
+ * harnais porte déjà `avertissementComparaison`, qui dit de ne pas
  * lancer deux runs séparés et soustraire — il part avec CHAQUE mesure de
  * temps, donc autant de fois qu'il y a de cas, et il n'est ici ni affaibli,
  * ni remplacé, ni remonté une seule fois en tête comme s'il ne valait que
@@ -374,9 +373,9 @@ export function annoncerLot(indices: number[], commun: OptionsLot): string {
  * Mais il ne suffit pas, parce qu'il répond à une AUTRE question. Comparer un
  * CAS à un autre CAS n'est pas comparer deux CONDITIONS : le premier est
  * légitime — c'est même tout ce pour quoi le lot existe, et c'est ainsi que
- * les §4.5 et §4.6 se lisent ; le second demande l'entrelacement, que le
- * harnais ne sait pas faire (niveau 2 du §6.4 bis, non implémenté ; n° 11c du
- * tableau du §10, dont l'ordre 11a → 11b → 11c est strict). **Si la sortie ne
+ * ces mesures se lisent ; le second demande l'entrelacement, que le
+ * harnais ne sait pas faire (le garde-fou du niveau 2, non implémenté).
+ * **Si la sortie ne
  * dit pas laquelle des deux elle autorise, elle sera lue comme autorisant
  * l'autre** — d'où ce texte, imprimé AVANT le tableau récapitulatif et non
  * après, pour tomber sur le chemin d'un lecteur pressé plutôt que sous sa
@@ -497,12 +496,12 @@ export function rendreRecapLot(lot: ResultatLot): string {
 
   l.push('');
   if (avecTemps) {
-    // ⚠️ Les temps de ce tableau sont des MINIMUMS (§6.4 bis) — l'estimateur
+    // ⚠️ Les temps de ce tableau sont des MINIMUMS — l'estimateur
     // du harnais, et le seul qui ait un sens. La DISPERSION, elle, ne se
     // résume pas en une colonne : elle vit dans le bloc de chaque cas, et
     // c'est là qu'il faut aller AVANT de faire quoi que ce soit d'un écart.
     l.push(
-      `  Temps = MINIMUM sur ${c.repetitions} répétition(s), l’estimateur du §6.4 bis. La dispersion de chaque`,
+      `  Temps = MINIMUM sur ${c.repetitions} répétition(s), l’estimateur des temps. La dispersion de chaque`,
       '  série est dans le bloc du cas correspondant, plus haut — un écart plus petit qu’elle ne veut rien dire.'
     );
   } else {

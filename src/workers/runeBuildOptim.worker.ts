@@ -9,8 +9,8 @@
 // moitiés A et B sont indépendantes (aucune ne dépend du résultat construit
 // de l'autre, seulement de bornes calculées d'avance par `prepareSearch`),
 // donc les construire sur deux cœurs plutôt qu'un seul accélère cette phase
-// d'environ 2× — voir spec/outils/optimizer/, « Suite — parallélisation de
-// la construction des deux moitiés ». La phase d'appariement (`pairBuckets`)
+// d'environ 2× — voir spec/outils/optimizer/moteur/pipeline.md § Construction des moitiés.
+// La phase d'appariement (`pairBuckets`)
 // reste, elle, pilotée PAS À PAS dans CE Worker, exactement comme avant :
 // c'est ce qui permet de rendre la main à la boucle d'évènements entre deux
 // points de passage, condition nécessaire pour qu'un message d'arrêt envoyé
@@ -33,7 +33,8 @@ export type WorkerRequest = SearchParams | { stop: true };
 // prendre jusqu'à environ une minute sur un compte réel avec beaucoup de
 // conditions à la fois, ENTIÈREMENT AVANT que `phase: 'pairing'` (l'ancien
 // comportement, inchangé) ne commence — sans cette distinction, l'UI n'avait
-// aucune information pendant cette phase (voir spec/outils/optimizer/).
+// aucune information pendant cette phase (voir spec/outils/optimizer/moteur/pipeline.md
+// § Construction des moitiés).
 export interface WorkerBuildingMessage {
   type: 'progress';
   phase: 'building';
@@ -52,12 +53,12 @@ export interface WorkerPairingMessage {
   // `totalPairCount`) — CONSTANTE pour toute la phase d'appariement (les
   // deux moitiés sont déjà construites), et EXACTE : c'est le nombre de
   // paires que l'appariement parcourra s'il va au bout. Depuis la
-  // suppression du budget de nœuds (piste 8), c'est le seul dénominateur
+  // suppression du budget de nœuds, c'est le seul dénominateur
   // que le Worker ait à transmettre.
   totalPairs: number;
   // ⚠️ Les candidats NOUVEAUX depuis le dernier message, PAS la liste
-  // entière accumulée jusqu'ici (voir « Suite — affichage des résultats en
-  // direct » dans spec/outils/optimizer/) : `progress.candidates` peut
+  // entière accumulée jusqu'ici (voir spec/outils/optimizer/moteur/pipeline.md
+  // § Appariement séquentiel) : `progress.candidates` peut
   // grossir jusqu'à `maxCollected` (100 000 par défaut) sur une recherche
   // lâche — le retransmettre EN ENTIER à chaque point de passage throttlé
   // (~150 ms) recopierait le même préfixe des dizaines de fois pour rien.
@@ -66,9 +67,8 @@ export interface WorkerPairingMessage {
 }
 export type WorkerProgressMessage = WorkerBuildingMessage | WorkerPairingMessage;
 export type WorkerResultMessage = { type: 'result' } & SearchResult;
-// Refus NOMMÉ (pool de reliques vide en mode `recherche`, D1) — jamais un
-// `result` vide qui se présenterait comme « 0 build » (revue adversariale du
-// diff du lot 5a, BLOQUANT 1). `useBuildOptimSearch.ts` le distingue de
+// Refus NOMMÉ (pool de reliques vide en mode `recherche`) — jamais un
+// `result` vide qui se présenterait comme « 0 build ». `useBuildOptimSearch.ts` le distingue de
 // `error` par un statut propre (`'refused'`).
 export interface WorkerRefusMessage {
   type: 'refus';
@@ -91,9 +91,9 @@ export type WorkerResponse = WorkerProgressMessage | WorkerResultMessage | Worke
 // ⚠️ Contre `totalPairs` (l'espace RÉEL à épuiser, voir `totalPairCount`) —
 // c'était DÉJÀ le cas quand un plafond de nœuds existait encore à côté (il
 // grandissait avec l'escalade et n'avait plus grand-chose à voir avec la
-// taille réelle du travail restant, voir « Suite — espace de recherche
-// affiché en direct ») ; ce choix de l'interface est l'un des arguments qui
-// ont mené à sa suppression (piste 8). Affiché à
+// taille réelle du travail restant, voir spec/outils/optimizer/interruption.md
+// § Barre de progression) ; ce choix de l'interface est l'un des arguments qui
+// ont mené à sa suppression. Affiché à
 // l'écran comme `X / totalPairs`, cohérent avec la ligne « Espace de
 // recherche à épuiser » juste en dessous : les DEUX doivent montrer le
 // MÊME dénominateur, sous peine de désaccord visible entre deux lignes
@@ -125,8 +125,8 @@ let stopBuildReject: (() => void) | null = null;
 // meilleur trouvé jusque-là »).
 let activePairingWorkers: SliceHandle[] = [];
 
-// ⚠️ Parallélisation de l'APPARIEMENT — voir spec/outils/optimizer/
-// pistes.md, point 9. Historique en deux temps :
+// ⚠️ Parallélisation de l'APPARIEMENT — voir spec/outils/optimizer/moteur/parallelisation.md
+// § Choix du régime. Historique en trois temps :
 // 1. Mesuré sur 3 itérations (scripts/pairing-parallel-diag.ts) : un
 //    découpage STATIQUE de bucketsA à budget INFINI (mode exhaustif
 //    seulement) est SÛR — aucune perte, quel que soit le découpage.
@@ -142,7 +142,7 @@ let activePairingWorkers: SliceHandle[] = [];
 //    s'applique donc depuis aux DEUX modes — seul le seuil de taille
 //    (`PARALLEL_PAIRING_THRESHOLD`, parallelPairing.ts) décide si ça vaut
 //    le coût de coordination.
-// 3. Le budget de paires a fini par être supprimé tout court (piste 8, voir
+// 3. Le budget de paires a fini par être supprimé tout court (voir
 //    `totalPairCount`) : chaque worker parcourt sa tranche ENTIÈRE sous les
 //    seules bornes `maxMs`/quota de candidats. C'est le cas LIMITE du
 //    point 2 — l'escalade convergeait déjà vers « tout ce que le temps
@@ -175,11 +175,11 @@ function pairSliceInWorker(
       }
       // ⚠️ Reconstruction EXPLICITE, pas un spread de `msg` — un champ ajouté
       // à `SearchResult` sans être listé ICI serait perdu en silence. Voir
-      // spec/outils/optimizer/near-miss-appariement.md, §5 : un des deux
-      // points identifiés à l'avance pour cette raison précise.
-      // ⚠️ `traceur` (revue adversariale du diff du lot 5a, MINEUR 2) : cette
-      // reconstruction l'omettait, `combineParallelPairingResults` ne
-      // recevait alors rien à fusionner sur ce chemin.
+      // spec/outils/optimizer/moteur/diagnostics.md
+      // § Types et transport du quasi-succès : un des sites qui reconstruisent
+      // un résultat champ par champ pour cette raison précise.
+      // ⚠️ `traceur` : sans lui ici, `combineParallelPairingResults` ne
+      // recevrait rien à fusionner sur ce chemin.
       resolve({
         candidates: msg.candidates,
         explored: msg.explored,
@@ -239,10 +239,10 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
   let lastProgressPost = 0;
 
   // ⚠️ `prepareSearch` peut lever `RechercheRefusee` (pool de reliques vide
-  // en mode `recherche`, D1) — jamais un simple appel direct ICI : un rejet
+  // en mode `recherche`) — jamais un simple appel direct ICI : un rejet
   // dans un handler `async self.onmessage` non intercepté ne déclenche NI
   // réponse du Worker NI `Worker.onerror` côté parent (piège JS/navigateur
-  // réel, revue adversariale du diff du lot 5a, BLOQUANT 1) — l'UI restait
+  // réel) — l'UI restait
   // bloquée en `'running'` indéfiniment. `prepareOrRefuse` (module neutre,
   // testable en Node sans `self`) convertit refus et erreur en résultats
   // NOMMÉS plutôt que de laisser échapper l'exception.
@@ -355,9 +355,7 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
       };
       (self as unknown as Worker).postMessage(message);
     };
-    // ⚠️ `try/catch` ajouté après une revue de code externe — ABSENT jusqu'ici,
-    // contrairement à la phase de construction juste au-dessus (qui, elle,
-    // l'est). Si un des workers `pairSlice.worker.ts` lève une erreur
+    // ⚠️ `try/catch`, comme pour la phase de construction juste au-dessus. Si un des workers `pairSlice.worker.ts` lève une erreur
     // (`worker.onerror = reject` dans `pairSliceInWorker`), la `Promise.all`
     // de `runParallelPairing` rejette — et une rejection de promesse NON
     // interceptée à l'intérieur d'un handler `async self.onmessage` de
@@ -388,15 +386,14 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
 
   // ── Chemin séquentiel existant, INCHANGÉ (recherche normale, ou
   // recherche exhaustive sous le seuil de parallélisation) ──
-  // ⚠️ **Aucun budget de paires à piloter ici** (piste 8, voir
+  // ⚠️ **Aucun budget de paires à piloter ici** (voir
   // `totalPairCount` dans runeBuildOptim.ts) : l'appariement va au bout de
   // `totalPairs`, sauf arrêt par `maxMs`, par `maxCollected` ou par le bouton
-  // « Arrêter » (`stopped`). Ce qui l'imposait auparavant, gardé comme repère
-  // de dimensionnement : sur un vrai compte (Sonia, tototriou-12889591.json),
-  // le plafond adaptatif était épuisé en 22 s (38,4M paires, 0 résultat)
-  // alors qu'un plafond 13× plus large retrouvait le build exact en 32 s
-  // (86,8M paires) — le budget-TEMPS n'était jamais sollicité. Ce cas se
-  // termine désormais par construction. Voir spec/outils/optimizer/.
+  // « Arrêter » (`stopped`). Repère de dimensionnement : sur un vrai
+  // compte (Sonia), un plafond adaptatif s'épuiserait en 22 s (38,4M paires,
+  // 0 résultat) alors qu'un plafond 13× plus large retrouve le build exact en
+  // 32 s (86,8M paires) — le budget-TEMPS n'est jamais sollicité. Ce cas se
+  // termine par construction.
   const gen = pairBuckets(prepared, bucketsA, bucketsB);
   const result = await drivePairing(gen, () => stopped, (explored, newCandidates, foundTotal) => {
     const message: WorkerPairingMessage = {

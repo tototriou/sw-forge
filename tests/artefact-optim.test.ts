@@ -263,11 +263,11 @@ export default function testArtefactOptim() {
 
   titre('Bornes d’artéfact — deux vecteurs, jamais un seul');
 
-  // ⚠️ Le défaut corrigé (spec/outils/optimizer/artefacts.md, §12) : l'apport
-  // de la paire REPRÉSENTATIVE servait de borne des DEUX côtés. Elle est
-  // choisie pour son SCORE — en « Libre », deux PV+1500 —, donc elle apporte
-  // `+0 DEF` alors que l'inventaire contient des artéfacts DEF. Un minimum de
-  // DEF devenait infranchissable sans raison.
+  // ⚠️ Pourquoi deux vecteurs (spec/outils/optimizer/moteur/artefacts.md, « Bornes d'apport pendant la recherche ») : l'apport
+  // de la paire REPRÉSENTATIVE ne doit pas servir de borne des DEUX côtés. Elle
+  // est choisie pour son SCORE — en « Libre », deux PV+1500 —, donc elle
+  // apporte `+0 DEF` alors que l'inventaire contient des artéfacts DEF : un
+  // minimum de DEF deviendrait infranchissable sans raison.
   {
     const inv: ArtifactDetail[] = [
       { ...attribut('dark', 100), main: { code: 100, value: 1500 } }, // PV +1500
@@ -298,7 +298,7 @@ export default function testArtefactOptim() {
     // ⚠️ La borne est calculée PAR STAT ISOLÉE : `{hp: 3000, def: 200}` n'est
     // atteignable par AUCUNE paire (deux emplacements = deux principales).
     // C'est assumé — une borne optimiste ne peut que retenir trop — et c'est
-    // exactement pourquoi `respecteMinimums` reste obligatoire en aval (§12.5).
+    // exactement pourquoi `respecteMinimums` reste obligatoire en aval.
     ok(
       b.max.hp + b.max.def > 3000 + 0 && b.max.hp + b.max.def > 0 + 200,
       'les deux maxima ne sont PAS conjointement atteignables — d’où le filtre final'
@@ -778,8 +778,8 @@ export default function testArtefactOptim() {
     egal(avecVerrou, [porteurVerrou], 'le porteur du verrou reste, l’inerte de même principale tombe sur le seuil');
   }
 
-  // ⚠️ B.5b bis, BLOQUANT 1 de la revue adversariale du lot 5b
-  // (`revue-diff-lot5b-2026-09-21.md`) : sous un MAXIMUM ACTIF sur la stat
+  // ⚠️ Un maximum actif change la dominance :
+  // sous un MAXIMUM ACTIF sur la stat
   // d'une principale, « plus grand » n'est plus « au moins aussi bon » — un
   // artéfact au plus petit apport peut rester sous le plafond quand celui au
   // plus grand le dépasse. Sans `maxStatsActifs`, la dominance l'éliminait
@@ -798,11 +798,11 @@ export default function testArtefactOptim() {
     };
     const pert = analyserPertinence(p);
     const sansMax = preFiltrerCandidats(candidatsParSorte(p, 'element'), 'element', [], pert);
-    egal(sansMax.includes(petit), false, 'sans maximum actif : le plus petit apport reste dominé, comme avant (identité)');
-    egal(sansMax.includes(grand), true, '… le plus grand survit, comme avant');
+    egal(sansMax.includes(petit), false, 'sans maximum actif : le plus petit apport reste dominé (identité)');
+    egal(sansMax.includes(grand), true, '… le plus grand survit');
     const avecMax = preFiltrerCandidats(candidatsParSorte(p, 'element'), 'element', [], pert, ['atk']);
-    egal(avecMax.includes(petit), true, 'sous maximum actif sur ATQ : le plus petit apport N’EST PLUS éliminé par dominance');
-    egal(avecMax.includes(grand), true, '… le plus grand reste candidat aussi (rien n’est perdu par le correctif)');
+    egal(avecMax.includes(petit), true, 'sous maximum actif sur ATQ : le plus petit apport n’est PAS éliminé par dominance');
+    egal(avecMax.includes(grand), true, '… le plus grand reste candidat aussi (rien n’est perdu)');
     // Un maximum sur une AUTRE stat ne protège pas une principale ATQ : les
     // deux artéfacts n’y diffèrent pas (ni l’un ni l’autre n’a de principale
     // DEF), donc la comparaison ATQ reste inchangée.
@@ -814,9 +814,9 @@ export default function testArtefactOptim() {
 // « Garder l'artéfact équipé » ne se partage pas — une recette importée depuis
 // un AUTRE compte doit basculer ce choix sur « Libre ».
 //
-// ⚠️ Testé ici parce que la règle vivait dans une closure de `importRecipe`,
-// qu'aucun test ne pouvait atteindre : elle est désormais une fonction pure
-// (`mainsPourCeCompte`), et c'est précisément ce que ce test protège.
+// ⚠️ Testé ici parce que la règle est une fonction pure (`mainsPourCeCompte`),
+// et non une closure de `importRecipe` qu'aucun test ne pourrait atteindre :
+// c'est précisément ce que ce test protège.
 export function testRecettePartagee() {
   const mains = { element: 'equipped', archetype: 101 } as const;
 
@@ -906,7 +906,7 @@ export function testAmplificationSurvitDominance() {
 
   {
     const sans = preFiltrerCandidats(candidatsParSorte(base, 'element'), 'element', [], analyserPertinence(base));
-    egal(sans.includes(ampli), false, 'sans le correctif, l’amplification est bien éliminée par dominance');
+    egal(sans.includes(ampli), false, 'sans la protection de l’amplification, elle est bien éliminée par dominance');
   }
 
   {

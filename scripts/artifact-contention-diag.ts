@@ -48,7 +48,7 @@ import { computeStats } from '../src/lib/stats';
 import type { ArtifactDetail } from '../src/types';
 
 const RUN_ID = `${Date.now()}-${process.pid}`;
-const BUNDLE_DIR = join(tmpdir(), `sw-forge-artifact-contention-${RUN_ID}`);
+const BUNDLE_DIR = join(tmpdir(), `swblacksmith-artifact-contention-${RUN_ID}`);
 async function ensureWorkerBundle(): Promise<string> {
   const outfile = join(BUNDLE_DIR, 'pairing-worker.cjs');
   if (existsSync(outfile)) return outfile;
@@ -117,7 +117,7 @@ function chargeArtefacts() {
     artifactMainByKind: { element: 'libre', archetype: 'libre' },
   });
   const ctx = buildRealDamageContext(recipe, lushen.com2usId, lushen.gear.artifacts)!;
-  // Auras propres des runes portées (6bis-b2), résolues une fois : la charge
+  // Auras propres des runes portées, résolues une fois : la charge
   // mesurée par paire reste celle d'avant.
   const propres = aurasPropresDesRunes(lushen.gear.runes);
   const params: ArtifactSearchParams = {

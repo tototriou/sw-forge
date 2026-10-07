@@ -1,11 +1,10 @@
-import { useRef, useState } from 'react';
+import { useRef } from 'react';
 import { GripVertical, X } from 'lucide-react';
 import { Monster, RtaEntry, sectionLabel } from '../../types';
 import ElementIcon from '../ElementIcon';
 import RuneIcon from '../RuneIcon';
 import CategoryRing from './CategoryRing';
 import DesyncBadge from './DesyncBadge';
-import { ConfirmDialog } from '../../ui/Dialogs';
 import { BoutonIcone, Selecteur, ZoneCliquable } from '../../ui';
 
 const SPD_ICON = `${import.meta.env.BASE_URL}stats/spd.png`;
@@ -72,12 +71,13 @@ export default function RtaCard({
   markDesync = true,
 }: Props) {
   const cardRef = useRef<HTMLDivElement>(null);
-  // ⚠️ Le retrait passe par une CONFIRMATION. La croix est posée sur le coin de
-  // la carte, à quelques pixels du portrait qu'on touche pour ouvrir le détail :
-  // au doigt on la déclenche par accident en faisant défiler une grille, et le
-  // monstre part avec sa vitesse saisie, ses sets et ses catégories — sans
-  // annulation ni corbeille pour le retrouver.
-  const [retraitAConfirmer, setRetraitAConfirmer] = useState(false);
+  // ⚠️ Le retrait se DÉFAIT au lieu de se confirmer (lot 13, décision 29) : la
+  // croix retire tout de suite, et la page annonce « … retiré de ta prépa ·
+  // Annuler », qui remet le monstre tel quel. Elle passait par une
+  // confirmation : posée sur le coin de la carte, près du portrait, on la
+  // touchait par accident en faisant défiler — le danger reste, mais c'est
+  // désormais « Annuler » qui le couvre, sans un dialogue à chaque retrait
+  // voulu.
   const base = monster.stats.speed;
   const rune = entry.runeSpeed;
   const total = base !== null || rune !== null ? (base ?? 0) + (rune ?? 0) : null;
@@ -119,12 +119,15 @@ export default function RtaCard({
       // `ring-1 ring-accent/50`, soit deux traits d'accent concentriques autour
       // de la même carte. Superposés, ils ne se lisent pas comme deux
       // informations mais comme un contour flou. Voir spec/shared/design.md.
-      className={`group relative rounded-lg border bg-panel2 transition-colors ${
-        open ? 'border-accent' : 'border-border'
+      // ⚠️ Refonte graphique, lot 6 : le gabarit des cartes de la refonte —
+      // fond de panneau, contour discret, rayon 12 —, le contour se précisant au
+      // survol. L'anneau des catégories suit le même rayon.
+      className={`group relative rounded-xl border bg-panel transition-colors ${
+        open ? 'border-accent' : 'border-border-soft hoverable:border-border'
       }`}
     >
       {/* Anneau des catégories, par-dessus la bordure (voir CategoryRing). */}
-      <CategoryRing colors={categoryColors} />
+      <CategoryRing colors={categoryColors} radius="rounded-xl" />
       <div className="flex items-center gap-2 p-1.5">
       {/* Poignée de drag : seule zone qui déclenche le glisser-déposer.
           ⚠️ Masquée au DOIGT (`coarse:hidden`) : le glisser-déposer HTML5 n'y
@@ -194,8 +197,12 @@ export default function RtaCard({
               ⚠️ La vitesse passe alors à GAUCHE (`flex-1` transféré) : seule sur
               sa ligne, calée à droite, elle flottait loin du portrait qu'elle
               qualifie. */}
+          {/* ⚠️ **Au TÉLÉPHONE, le nom REVIENT** (lot 11a, décision 24) : la
+              rangée prend toute la largeur, il n'a plus à céder sa place. Il
+              reste masqué sur une tablette tactile au format bureau, où la
+              tuile garde ses 150 px. */}
           <span
-            className={`text-xs font-semibold compact:hidden leading-tight truncate flex-1 ${
+            className={`text-xs font-semibold compact:hidden leading-tight truncate flex-1 max-lg:block max-lg:text-sm ${
               desync && markDesync ? 'text-warn' : ''
             }`}
           >
@@ -205,7 +212,7 @@ export default function RtaCard({
             <>
               <img src={SPD_ICON} alt="SPD" width={15} height={15} className="flex-none" />
               <span
-                className={`font-mono text-sm font-black leading-none compact:flex-1 ${
+                className={`font-mono text-sm font-black leading-none compact:flex-1 max-lg:flex-none max-lg:text-base ${
                   desync && markDesync ? 'text-warn' : 'text-ink'
                 }`}
               >
@@ -240,7 +247,9 @@ export default function RtaCard({
           // ⚠️ La carte est déjà en `panel2` : le sélecteur y prend `panel` pour
           // s'en détacher. Voir la prop `surface`.
           surface="panel"
-          className="mt-1"
+          // Au téléphone, la rangée est pleine largeur : étiré, le sélecteur
+          // pèserait plus que le monstre qu'il classe.
+          className="mt-1 max-lg:w-auto"
         >
           {sectionKeys.map((k) => (
             <option key={k} value={k}>
@@ -261,7 +270,7 @@ export default function RtaCard({
           Sa cible reste petite mais isolée — rien d'autre à toucher autour, donc
           rien à rater. */}
       <BoutonIcone
-        onClick={() => setRetraitAConfirmer(true)}
+        onClick={() => onRemove(String(monster.id))}
         libelle={`Retirer ${monster.name}`}
         taille="serre"
         ton="danger"
@@ -274,25 +283,6 @@ export default function RtaCard({
         icone={<X size={12} />}
         className="absolute -top-1.5 -right-1.5 shadow"
       />
-
-      {retraitAConfirmer && (
-        <ConfirmDialog
-          titre={`Retirer ${monster.name} de ta prépa ?`}
-          message={
-            <>
-              Sa vitesse saisie et son classement partent avec lui. Les autres
-              monstres ne sont pas touchés.
-            </>
-          }
-          libelleAction="Retirer"
-          destructif
-          onCancel={() => setRetraitAConfirmer(false)}
-          onConfirm={() => {
-            setRetraitAConfirmer(false);
-            onRemove(String(monster.id));
-          }}
-        />
-      )}
       </div>
     </div>
   );

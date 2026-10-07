@@ -24,8 +24,13 @@ import { useLayoutEffect, useRef, useState } from 'react';
 // le libellé passe sur deux lignes plutôt que déborder. Les autres crans
 // gardent `whitespace-nowrap`, ils ont la place.
 const CRAN_DENSE = 'px-1 py-1 text-nano leading-tight';
-const CRAN_LARGE = 'px-3 py-1.5 text-xs whitespace-nowrap';
-const CRAN_PETIT = 'px-2 py-1 text-micro whitespace-nowrap';
+// ⚠️ À la souris, les crans font 26 px et le cadre 32 (26 + 2 × 2 de `p-0.5`
+// + le contour), 10 px de côté et 12 px de texte : le `.seg` de la maquette,
+// qui n'a qu'une taille — celle d'un bouton `md` (décision 16, voir
+// Bouton.tsx). Le petit en faisait 30, le grand 36.
+const CRAN_LG = 'lg:h-[26px] lg:py-0 lg:px-2.5 lg:text-xs';
+const CRAN_LARGE = `px-3 py-1.5 text-xs whitespace-nowrap ${CRAN_LG}`;
+const CRAN_PETIT = `px-2 py-1 text-micro whitespace-nowrap ${CRAN_LG}`;
 
 export default function Segmented<T extends string>({
   options,
@@ -191,8 +196,14 @@ export default function Segmented<T extends string>({
                               // une élévation qui ne veut rien dire ici (le cran
                               // ne flotte pas au-dessus du contrôle qui le
                               // contient). Voir spec/shared/design.md.
+                              // ⚠️ Un APLAT de braise, texte `accent-ink`
+                              // (rebranding, décision 19 — la planche
+                              // « Actions » de la toile) : il valait le fond
+                              // doux `accent-soft` depuis le lot 9 de la
+                              // refonte. Toujours un seul marqueur. Encre
+                              // dessus : 6.66.
                               active
-                              ? 'bg-accent-soft text-ink'
+                              ? 'bg-accent text-accent-ink'
                               : 'text-ink-dim hoverable:text-ink'
                           }`}
             >

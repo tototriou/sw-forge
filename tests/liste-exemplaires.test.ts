@@ -1,8 +1,8 @@
-// Lot EX de degats-et-aura — plusieurs exemplaires Box d'une même espèce dans
+// Plusieurs exemplaires Box d'une même espèce dans
 // une liste de travail.
 //
 // Les membres d'une liste sont repérés par EXEMPLAIRE (`exclusionSelectorKey`,
-// Box = `box:<unitKey>`) depuis le lot 3 ; ce qui manquait, c'est le chemin à
+// Box = `box:<unitKey>`) ; ce qui manquait, c'est le chemin à
 // l'écran. Choisir l'espèce prend le premier exemplaire Box (`pickSpecies`),
 // le bouton affichait alors « Déjà dans « … » », désactivé, et rien ne disait
 // qu'un autre exemplaire existait.
@@ -55,7 +55,7 @@ const box = (unitKey: string): ExclusionCandidate => ({ selector: { source: 'box
 const membre = (listId: string, selector: ExclusionSelector): OptimizerListMember => ({ listId, selector });
 
 export function testListeExemplaires() {
-  titre('Liste de travail · un autre exemplaire Box de la même espèce : le bouton enchaîne, la puce dit le nombre (lot EX)');
+  titre('Liste de travail · un autre exemplaire Box de la même espèce : le bouton enchaîne, la puce dit le nombre');
 
   const [a, b, c] = [box('u-a'), box('u-b'), box('u-c')];
   const candidats = [a, b, c];
@@ -96,15 +96,15 @@ export function testListeExemplaires() {
   const rtaMembre = etatAjoutListe({ ...base, membres: [membre('L', a.selector), membre('L', { source: 'rta', monsterId: '77' })] });
   egal(rtaMembre.exemplaireSuivant, b, 'un membre RTA de la même espèce n’occupe aucun exemplaire Box');
 
-  // Lot EX2 : « un autre exemplaire » seulement si l'exemplaire AFFICHÉ vient de la Box.
+  // « Un autre exemplaire » seulement si l'exemplaire AFFICHÉ vient de la Box.
   // Venu de RTA ou du siège, l'exemplaire Box proposé pouvait être le même monstre physique.
   const rta: ExclusionSelector = { source: 'rta', monsterId: '77' };
   const rtaAffiche = etatAjoutListe({ ...base, selecteur: rta, membres: [membre('L', rta)] });
-  egal(rtaAffiche.libelle, 'Déjà dans « GB12 »', 'affiché RTA et membre, un Box absent : « Déjà dans » (lot EX2)');
+  egal(rtaAffiche.libelle, 'Déjà dans « GB12 »', 'affiché RTA et membre, un Box absent : « Déjà dans »');
   ok(!rtaAffiche.actif && rtaAffiche.exemplaireSuivant === null, '… désactivé, aucun exemplaire suivant');
   const siege: ExclusionSelector = { source: 'siege-defense', teamId: 't1', slotIndex: 0 };
   const siegeAffiche = etatAjoutListe({ ...base, selecteur: siege, membres: [membre('L', siege)] });
-  egal(siegeAffiche.libelle, 'Déjà dans « GB12 »', 'affiché siège et membre, un Box absent : « Déjà dans » (lot EX2)');
+  egal(siegeAffiche.libelle, 'Déjà dans « GB12 »', 'affiché siège et membre, un Box absent : « Déjà dans »');
   ok(!siegeAffiche.actif && siegeAffiche.exemplaireSuivant === null, '… désactivé, aucun exemplaire suivant');
 
   const nonMembre = etatAjoutListe({ ...base, selecteur: b.selector, membres: [membre('L', a.selector)] });
@@ -149,16 +149,15 @@ export function testListeExemplaires() {
   'source : le clic change d’exemplaire PUIS ajoute l’exemplaire suivant, jamais celui déjà membre');
   ok(ajout.length > 0 && !/doitRappeler|setRappelAuras/.test(ajout), 'source : le bouton ne rappelle pas les auras externes');
 
-  // Un seul chemin de changement d'exemplaire (6bis-b19), partagé avec la zone C.
+  // Un seul chemin de changement d'exemplaire, partagé avec la zone C.
   const chemin = entre(ecran, 'function choisirExemplaire(', 'function handleAddToList(');
   ok(/if \(id !== selectedId\) resetSearch\(\);\s*else if \(key !== ownSelectorKey\) effacerResultats\(\);/.test(chemin)
     && chemin.includes('setSourceSelector(selector);') && chemin.includes('setZoneDOpen(false);'),
-  'source : choisirExemplaire porte les règles de 6bis-b19 (résultats effacés, critères gardés)');
-  // Revue externe de la v1.14.0, constat 1 : le défaut de relique suit
-  // l'exemplaire désigné, APRÈS le reset qui le remet à « Libre ».
+  'source : choisirExemplaire porte les règles (résultats effacés, critères gardés)');
+  // Le défaut de relique suit l'exemplaire désigné, APRÈS le reset qui le remet à « Libre ».
   ok(/setSelectedId\(id\);[\s\S]*if \(autreEspece \|\| key !== ownSelectorKey\) \{[^}]*setRelicMainChoice\(\(c\) => relicMainChoiceApresChangementExemplaire\(c, relique, !autreEspece\)\);/.test(chemin),
     'source : choisirExemplaire recalcule le choix de relique après le reset, jamais en recliquant l’exemplaire affiché');
-  // Seconde revue ciblée, défaut 2 : les autres sites qui désignent un
+  // Les autres sites qui désignent un
   // exemplaire de la même espèce appliquent la même règle.
   const pickSourceSrc = entre(ecran, 'function pickSource(', 'function pickSpecies(');
   ok(/setSourceSelector\(candidates\[0\]\.selector\);\s*reliqueCoherenteAvecExemplaire\(candidates\[0\]\.gear\.relic\);/.test(pickSourceSrc),
@@ -167,7 +166,7 @@ export function testListeExemplaires() {
     'source : un choix en zone D applique la règle de relique');
   ok(/else reliqueCoherenteAvecExemplaire\(boxCandidates\[0\]\?\.gear\.relic\);\s*setSelectedId\(id\);/.test(ecran),
     'source : la même espèce rechoisie au bestiaire applique la règle de relique');
-  // Seconde revue externe : le recalcul au réimport se fait UNE fois par
+  // Le recalcul au réimport se fait UNE fois par
   // import, jamais à un simple remontage de l'écran (changement d'onglet).
   ok(/if \(importDuCompte === importReliqueTraite\.current\) return;\s*importReliqueTraite\.current = importDuCompte;\s*setRelicMainChoice\(defaultRelicMainChoice\(reliqueAffichee\.current\)\);/.test(ecran),
     'source : le défaut de relique du réimport ne se réapplique pas au remontage de l’écran');

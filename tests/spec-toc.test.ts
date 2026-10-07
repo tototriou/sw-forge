@@ -1,7 +1,7 @@
 // `scripts/spec-toc.mjs` et l'extension de `spec-markdown.mjs` (plages,
 // en-tête, première phrase) qui le porte. Fixtures synthétiques pour chaque
-// cas de B.3, plus un passage sur `spec/outils/optimizer.md` réel : voir
-// `spec/chantiers/spec-rangement.md`, B.3.
+// cas de `spec-toc`, plus un passage sur `spec/outils/optimizer.md` réel : voir
+// `spec/outillage/spec.md`, « `spec-toc` ».
 
 import { execFileSync } from 'child_process';
 import { readFileSync } from 'fs';
@@ -71,7 +71,7 @@ export default function testSpecToc() {
   const brutLongue = lireFixture('avec-entete.md').split('\n').find((l) => l.startsWith('Ceci est'))!;
   egal(longue.premierePhrase, brutLongue.slice(0, 120), 'la troncature coupe la même phrase source, sans rien y ajouter');
 
-  titre('spec-toc · fichier sans en-tête normalisé (bootstrap, avant le lot 5)');
+  titre('spec-toc · fichier sans en-tête normalisé (bootstrap)');
 
   const sansEnTete = enTete(lireFixture('imbrique.md'));
   egal(sansEnTete, { statut: null, lireSi: null }, 'aucun en-tête normalisé — statut et lire si à null, pas une erreur');
@@ -96,13 +96,8 @@ export default function testSpecToc() {
   const optimizerSections = sections(optimizerTexte);
   const h2 = optimizerSections.filter((s) => s.niveau === 2).map((s) => s.titre);
   egal(h2, [
-    'Écran (de haut en bas)',
-    'Listes de travail et réservation de runes',
-    'Exclusion des runes déjà portées ailleurs',
-    'Interruption — filet de temps, pré-filtrage et arrêt manuel',
-    'Algorithme (résumé fonctionnel)',
-    'Limites connues',
-  ], 'les six H2 attendus (A.1) sont tous présents dans le sommaire');
+    'Où vit le reste de la spec',
+  ], 'le seul H2 de la page d\'entrée est présent dans le sommaire');
 
   const sortieJson = execFileSync(process.execPath, [SCRIPT, 'spec/outils/optimizer.md', '--json'], {
     cwd: RACINE,

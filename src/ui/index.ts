@@ -1,4 +1,4 @@
-// Librairie UI de SW Forge — le vocabulaire visuel commun à toute l'app.
+// Librairie UI de SW Blacksmith — le vocabulaire visuel commun à toute l'app.
 //
 // ⚠️ **Un composant dessiné ici ne se redessine nulle part ailleurs.** C'est la
 // raison d'être de ce dossier : un changement demandé sur un bouton mobile doit
@@ -59,6 +59,10 @@ export type { FlottantProps } from './Flottant';
 // une grille, un badge au bout d'une ligne : ces ancres vont jusqu'aux bords de
 // la page, où un flottant posé toujours du même côté se fait couper.
 export { default as FlottantAuto } from './FlottantAuto';
+export { default as Menu, HAUTEUR_EN_TETE } from './Menu';
+export { default as BarreActions } from './BarreActions';
+export type { BarreActionsProps } from './BarreActions';
+export type { MenuProps, ElementMenu } from './Menu';
 export type { FlottantAutoProps } from './FlottantAuto';
 
 // Saisie NUMÉRIQUE bornée, avec ses deux flèches. ⚠️ Vivait dans `components/`
@@ -96,6 +100,12 @@ export type { PastilleProps } from './Pastille';
 // deux états qu'on relâche en place — : un jeton n'existe que tant qu'il est là.
 export { default as Jeton } from './Jeton';
 export type { JetonProps } from './Jeton';
+
+// NOTIFICATION « … · Annuler » (lot 13, décision 29) : un geste qui se défait
+// au lieu de se confirmer. Un fournisseur monté par App.tsx, `useNotifier()`
+// pour annoncer. Voir spec/shared/design.md § Notification « Annuler ».
+export { FournisseurNotification, useNotifier } from './Notification';
+export type { Annonce } from './Notification';
 
 // SURFACE rendue cliquable (ligne de carte, poignée de glissement) : un
 // <button> volontairement NU. Voir le composant — la nudité y est la règle, pas

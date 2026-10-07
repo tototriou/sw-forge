@@ -88,7 +88,9 @@ export default function StatPanel({ stats, spdCible = null }: Props) {
                           pour coller à la valeur saisie dans l'ordre de tour. */}
                       {row.key === 'spd' && spdCible != null && spdCible !== row.bonus && (
                         <span
-                          className="ml-1.5 inline-flex items-center gap-0.5 text-fire"
+                          // Rouge d'ÉTAT, celui qu'annonce `DesyncBadge` (RTA) —
+                          // rebranding, décision 43.
+                          className="ml-1.5 inline-flex items-center gap-0.5 text-bad"
                           title={`Il faut ${fmt(spdCible)} de SPD sur les runes pour coller à l'ordre de tour`}
                         >
                           <ArrowRight size={11} className="flex-none" />

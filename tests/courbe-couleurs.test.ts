@@ -1,10 +1,9 @@
 // Couleurs des courbes en comparaison.
 //
 // Deux courbes de la même couleur sont indistinguables, et la légende ment
-// puisqu'elle donne un nom à chacune. Le bug s'est produit sur le cas le plus
-// courant qui soit — la PREMIÈRE courbe importée — et il est resté invisible
-// parce que rien ne relie, à l'œil, la couleur du joueur et la palette
-// d'import. Ces vérifications le figent.
+// puisqu'elle donne un nom à chacune. Le cas le plus courant — la PREMIÈRE
+// courbe importée — est invisible à l'œil, parce que rien ne relie la couleur
+// du joueur et la palette d'import. Ces vérifications le figent.
 
 import { OVERLAY_COLORS, OWN_COLOR, couleurLibre } from '../src/components/account/curveColors';
 import { egal, ok, titre } from './outils';
@@ -12,8 +11,8 @@ import { egal, ok, titre } from './outils';
 export default function testCouleursCourbes() {
   titre('Couleurs des courbes de comparaison');
 
-  // ⚠️ LA cause du bug : `OWN_COLOR` ouvrait aussi `OVERLAY_COLORS`, donc la
-  // première courbe importée tombait exactement sur le bleu de « Moi ».
+  // ⚠️ `OWN_COLOR` ne doit pas ouvrir `OVERLAY_COLORS` : sinon la première
+  // courbe importée tombe exactement sur le bleu de « Moi ».
   ok(
     !OVERLAY_COLORS.some((c) => c.toLowerCase() === OWN_COLOR.toLowerCase()),
     'la couleur du joueur ne figure pas dans la palette d’import'

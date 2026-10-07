@@ -9,8 +9,9 @@ import { formesJouables } from '../../lib/monsterForms';
 import MonsterAvatar from '../MonsterAvatar';
 import ExclusionCandidateRow from './ExclusionCandidateRow';
 
-// ⚠️ **Deux modes, UN SEUL composant** (voir spec/outils/optimizer/
-// archive/historique/historique-import-monstres-a-optimiser.md, Question 8) — plutôt que de
+// ⚠️ **Deux modes, UN SEUL composant** (voir
+// spec/outils/optimizer/ecran/recherche-du-monstre.md,
+// « Recherche du monstre à optimiser ») — plutôt que de
 // dupliquer un second picker pour la recherche bestiaire.
 interface AccountModeProps {
   // Mode « compte réel » (défaut, comportement historique inchangé) —
@@ -111,8 +112,7 @@ function AccountPicker({ candidates, onPick, placeholder }: AccountModeProps) {
 }
 
 // Recherche du monstre à optimiser dans TOUT le bestiaire (monstre possédé ou
-// non) — résout une ESPÈCE, jamais un exemplaire/build (voir Question 1 du
-// cadrage) : nom, icône, SPD de base, exactement ce que porte `Monster`.
+// non) — résout une ESPÈCE, jamais un exemplaire/build : nom, icône, SPD de base, exactement ce que porte `Monster`.
 // Choisir un exemplaire précis avec un build réel se fait ENSUITE, via les 4
 // puces Box/RTA/Défenses siège/Offenses siège (voir OptimizerSection.tsx).
 function BestiaryPicker({ candidates, onPick, placeholder }: BestiaryModeProps) {

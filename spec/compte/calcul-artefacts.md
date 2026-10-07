@@ -200,7 +200,7 @@ casse donc plus qu'un affichage.
 ⚠️ `ARTIFACT_SUB` porte les libellés **du jeu**, pas une reformulation : « Drain
 de vie » et non « Vol de vie », « Dgts supp. en prop. de ATQ » et non « Dégâts
 add. par X% de l'ATQ », « [Comp.1] Aug. Dgts CRIT » et non « Dmg crit
-Compétence 1 ». Un joueur qui lit autre chose dans SW Forge que dans son
+Compétence 1 ». Un joueur qui lit autre chose dans SW Blacksmith que dans son
 inventaire ne fait pas le rapprochement — même règle qu'**Attribut** / **Type**
 pour les sortes d'artéfact (voir [artefacts.md](artefacts.md)).
 

@@ -13,10 +13,11 @@ disent ce que contient chaque brique. Le comportement attendu, lui, est dans
 |---|---|
 | Framework | React 18 + TypeScript 5, **sans router** (routing par `window.location.hash`) |
 | Build | Vite 5, Tailwind 3, PostCSS + autoprefixer |
-| Dépendances runtime | `lucide-react` (icônes), `framer-motion`, `@vercel/analytics` |
+| Dépendances runtime | `lucide-react` (icônes), `framer-motion` — aucune mesure d'audience (retirée le 2026-10-05) |
 | Node | ≥ 24 |
 | Calcul lourd | 2 Web Workers (`src/workers/`) |
 | Stockage | `localStorage` (prépa, équipes, réglages) + **IndexedDB** (compte importé) |
+| Application de bureau | Electron, code dans **`bureau/`** (hors de `src/` : il tourne dans Node) — `main.ts` (fenêtre, protocole `app://swblacksmith/`), `protocole.ts` (règles pures, testées : fichier servi, adresse interne, lien ouvrable dehors), `navigation.ts` (liens vers le navigateur, navigations bloquées, « Enregistrer sous »), `fenetre.ts` (état mémorisé, pur), `preload.ts`, `miseAJour.ts` (mise à jour automatique, `electron-updater`), `swex.ts` + `swexPur.ts` (dossier SW Exporter : « Mon compte » suit les exports), `session.ts` + `sessionPur.ts` (session en cours : « Sauvegarder » la réécrit, « Sauvegarder sous… », `session.json` ; dossier SW Blacksmith et son sous-dossier `sessions`, `dossier-swblacksmith.json`), `preuve.ts`, `installeur.nsh` (désinstalleur Windows), `icone.ico` (générée par `scripts/generer-icone-bureau.mjs`) ; empaqueté par `electron-builder.yml`, publié au tag `v*` par `.github/workflows/bureau.yml` (installeurs attachés à la release) ; côté page `src/lib/bureau.ts` (`estBureau()`, couleurs du thème, mise à jour), `src/components/MiseAJourBureau.tsx` (la mise à jour dite par la notification) et `src/components/BlocApplication.tsx` (bloc « Application » des Réglages : version, mise à jour à portée, dossier SW Exporter), `src/components/SuiviSwex.tsx` (applique « Mon compte » à chaque export), `src/hooks/useEtatSwex.ts` (l'état du dossier, lu par les Réglages et par `SidebarCompte`, dont la carte devient le menu des invocateurs), `src/hooks/useSessionEnCours.ts` (la session en cours, « Garder mes données » redit au bureau ; `useEtatSession` pour la ligne « Dossier SW Blacksmith » de `SettingsList`, bloc « Mes données ») ; compilé par `scripts/construire-bureau.mjs` vers le dossier `dist-bureau` (non suivi). État actuel [spec/shared/application-bureau.md](spec/shared/application-bureau.md) |
 
 ⚠️ **Pas de librairie de composants.** Tout `src/ui/` est écrit à la main.
 Radix UI a été **validé mais jamais installé** — chantier en attente.
@@ -27,6 +28,10 @@ npm run build          # build de prod (⚠️ seul endroit où l'on voit le CSS
 npm test               # = node tests/run.mjs
 npm run fetch-data     # régénère les données monstres/skills depuis SWARFARM
 npm run benchmark:optim
+npm run bureau         # l'application de bureau sur le serveur de dev
+npm run bureau:local   # l'application de bureau sur le build (comme installée)
+npm run bureau:preuve  # l'app se contrôle elle-même, captures + resultats.json (--exe : l'app installée ; --conservation : les données survivent à la fermeture ; --swex : le dossier SW Exporter)
+npm run bureau:paquet  # l'installeur de la plateforme courante dans paquets/ (electron-builder.yml)
 ```
 
 ---
@@ -36,7 +41,8 @@ npm run benchmark:optim
 Fichier central, gros et volontairement : il tient tout ce qui doit être partagé
 entre pages.
 
-- **Routing** `routeFromHash()` sur `window.location.hash`.
+- **Routing** `parseHash()` sur `window.location.hash` — table des adresses
+  et garde-fou : `spec/shared/navigation.md` § Adresses.
 - **Nav** : barre latérale (`Sidebar`), barre supérieure (`TopBar`), onglets
   mobiles (`MobileTabs`), recherche de nav (`SidebarSearch`).
 - **Repli de la barre supérieure : mesuré, pas fixé à un breakpoint**
@@ -46,6 +52,8 @@ entre pages.
   C'est ce qui permet à un import de compte d'alimenter RTA + siège + compte
   d'un seul geste.
 - **Import de compte global** (`importAccount`) et **`clearAllData()`**.
+- **Sauvegarde de session** (`sauvegarderSession`, `sauvegarderSessionSous`, Ctrl+S) :
+  `spec/shared/sauvegarde-session.md`.
 
 ⚠️ **Cycle d'imports** : `AccountPage` et `OutilsPage` importent des types depuis
 `src/App`. Conséquence pratique : un parcours automatique des dépendances depuis
@@ -70,6 +78,7 @@ fait apparaître les 16 dans n'importe quelle analyse de dépendances.
 | Paramètres | `#/parametres` | `pages/SettingsPage.tsx` | `SettingsMenu`, `AccountImportControl` | `spec/shared/navigation.md` |
 | Mécaniques | `#/mecaniques` | `pages/MechanicsPage.tsx` | — (page statique) | `spec/mecaniques.md` |
 | Nouveautés | `#/releases` | `pages/ReleasesPage.tsx` | `data/releases.ts` | `spec/releases.md` |
+| Télécharger (site seulement) | `#/telecharger` | `src/pages/TelechargerPage.tsx` | `src/lib/bureau.ts` (`TELECHARGEMENTS`), `src/components/IconesSystemes.tsx` | `spec/telecharger.md` |
 | Arène | `#/arene` | `pages/ComingSoon.tsx` | — | `spec/arene.md` |
 
 ### Détail des écrans denses
@@ -97,7 +106,8 @@ Lib : `rtaShare`, `speed`, `stats`, `gearSync`, `artifacts`, `monsterForms`.
 **Siège** — `siege/SiegeBoard.tsx` (défense/offense), `siege/SiegeTeam.tsx`,
 `siege/RecoBoard.tsx` + `siege/RecoCard.tsx` (recommandations),
 `siege/LeadPill.tsx`. Hooks `useSiegeState`, `useSiegeRecos`. Lib `recoMatch`,
-`recoSearch`, `recoShare`, `recoFromSiege`, `ownedBuilds`, **`siegeStatut`**
+`recoSearch`, `recoShare`, `recoFromSiege`, `recoDefenses` (la vue Défense,
+calculée à partir des decks), `ownedBuilds`, **`siegeStatut`**
 (le statut vert/orange/rouge d'une équipe en mode « Vérifier mes tick ATB » —
 pur et testé, il ne vit pas dans la card).
 
@@ -108,19 +118,19 @@ sont les deux racines ; dessous : `RunesList`, `RunesSummary`, `RunesCurve` +
 `ArtifactsList`, `ArtifactsSummary`. Lib `accountStore` (IndexedDB),
 `accountViews`, `runeSort`, `runeOptim`, `monsterSort`, `crafts`.
 
-**Optimiseur** — `outils/OptimizerSection.tsx` (racine), `MonsterSourcePicker`
+**Optimiseur** — `src/components/outils/OptimizerSection.tsx` (racine), `MonsterSourcePicker`
 (recherche — deux modes, bestiaire/compte réel), `OptimizerListPicker`
-(listes de travail, Lot 3), `SetComboPicker`, `BuildCandidateCard` — spec :
-`spec/outils/optimizer.md § Écran (de haut en bas)`. Hooks
+(listes de travail), `SetComboPicker`, `BuildCandidateCard` — spec :
+`spec/outils/optimizer/ecran/README.md § Écran (de haut en bas)`. Hooks
 `useOptimizerState` + `useBuildOptimSearch` (saisie et recherche, jamais
 persistées) et `useOptimizerLists` (listes de travail créées par
-l'utilisateur + runes validées scopées par liste, Lot 3 — seul état PERSISTÉ
-de l'écran — spec : `spec/outils/optimizer.md § Listes de travail et
+l'utilisateur + runes validées scopées par liste — seul état PERSISTÉ
+de l'écran — spec : `spec/outils/optimizer/listes-et-reservation.md § Listes de travail et
 réservation de runes`). Moteur `lib/runeBuildOptim.ts`, exécuté dans
-`workers/runeBuildOptim.worker.ts` et
-`workers/buildHalf.worker.ts` — spec : `spec/outils/optimizer.md
+`src/workers/runeBuildOptim.worker.ts` et
+`src/workers/buildHalf.worker.ts` — spec : `spec/outils/optimizer/moteur/elagages.md
 § Algorithme (résumé fonctionnel)`. ⚠️ Disposition mobile dédiée pour « Monstre &
-équipement » seul (Lot 1) — le reste de l'écran n'est pas encore audité en
+équipement » seul — le reste de l'écran n'est pas encore audité en
 mobile.
 
 **Speed tuning** — `outils/SpeedTuningSection.tsx` (racine) ne fait que
@@ -190,9 +200,10 @@ jeu** (halo, éclat) et en sont exemptés.
 | `useRtaState`, `useRtaCategories`, `useRtaBackup` | état de la prépa RTA |
 | `useSiegeState`, `useSiegeRecos` | défense/offense, recommandations |
 | `useOptimizerState`, `useBuildOptimSearch` | réglages et recherche de l'Optimiseur |
-| `useOptimizerLists` | Listes de travail + runes validées (Lot 3) — SEUL état de l'Optimiseur qui persiste sur disque, contrairement à `useOptimizerState` |
-| `usePersistence` | **un seul interrupteur** pour toute conservation ; ⚠️ aucun hook n'appelle `localStorage.setItem` directement |
+| `useOptimizerLists` | Listes de travail + runes validées — SEUL état de l'Optimiseur qui persiste sur disque, contrairement à `useOptimizerState` |
+| `usePersistence` | **un seul interrupteur** pour toute conservation ; ⚠️ aucun hook n'appelle `localStorage.setItem` directement ; clés préfixées `swblacksmith-`, migrées depuis l'ancien nom par `lib/migrationStockage.ts` (premier import de `main.tsx`) |
 | `useStickyState` | état conservé en mémoire à travers la navigation, sans persister |
+| `useSessionEnCours`, `useEtatSession` | la session en cours de l'application de bureau (`null` sur le site), redit « Garder mes données » au bureau ; l'état complet, dossier SW Blacksmith compris |
 | `useRuneMetric`, `useOvercapDisplay`, `useTheme` | réglages globaux (menu ⚙) |
 | `useMediaQuery` | une media query lue depuis React |
 | `useScrollBloque` | ⚠️ **compteur de verrous** — blocage du défilement, verrou `position: fixed` sur `body` (iOS ignore `overflow: hidden` au toucher) |
@@ -215,13 +226,15 @@ dans un composant.
 | Vitesse & stats | `speed.ts` (source de vérité), `stats.ts` |
 | Speed tuning | `speedTune.ts` (moteur de ticks), `speedTuneLignes.ts` (modèle de l'écran), `speedTuneAuto.ts` (analyse partagée outil/siège), `speedTuneKit.ts` + `speedTunePassif.ts` (lecture des kits), `speedTuneDeck.ts` (import d'un deck), `siegeStatut.ts` (statut d'une équipe de siège) |
 | Runes | `runeOptim.ts`, `runeBuildOptim.ts`, `runeSort.ts`, `runeCurveShare.ts` |
-| Reliques | `relicOptim.ts` (choix de la meilleure relique pour un build, pertinence et dominance structurelle — `forge/implementation-relique`, lot 3) ; `relicQueue.ts` (résolution EXACTE de l'équipement d'un build — paire d'artéfacts ET relique, ensemble — la partie pure de la file `useArtifactOptimQueue`, et l'état de la relique d'un candidat pour l'écran — lot 5b) |
+| Reliques | `relicOptim.ts` (choix de la meilleure relique pour un build, pertinence et dominance structurelle) ; `relicQueue.ts` (résolution EXACTE de l'équipement d'un build — paire d'artéfacts ET relique, ensemble — la partie pure de la file `useArtifactOptimQueue`, et l'état de la relique d'un candidat pour l'écran) |
 | Tri | `tri.ts` (le SENS d'un tri, partagé par toutes les listes) |
 | Artéfacts | `artifacts.ts` |
 | Import de compte | `importAccount.ts` (parse SWEX), `applyAccount.ts` (→ états), `accountStore.ts` (IndexedDB), `accountViews.ts` |
 | Monstres | `monsterForms.ts`, `monsterSkills.ts`, `monsterSort.ts`, `collabPairs.ts` |
-| Siège / recos | `recoMatch.ts`, `recoSearch.ts`, `recoShare.ts`, `recoFromSiege.ts`, `ownedBuilds.ts` |
-| Divers | `effects.ts` (codes com2us → libellés), `crafts.ts`, `gearSync.ts`, `detecteurDebordement.ts` (dev seulement) |
+| Siège / recos | `recoMatch.ts`, `recoSearch.ts`, `recoShare.ts`, `recoFromSiege.ts`, `recoDefenses.ts`, `ownedBuilds.ts`, `annulerEdition.ts` (« Annuler les modifications » d'une reco ou d'un deck en édition), `reinsererA.ts` (« Annuler » une suppression : l'élément revient à sa place, équipes et recos) |
+| Session | `session.ts` (format `swblacksmith/session` : composer, écrire, relire), `sessionOptimizer.ts` (photo de l'Optimiseur), `telechargement.ts` (un texte téléchargé en fichier) |
+| Fichiers exportés | `formatsExport.ts` (identifiant `swblacksmith/<nom>` écrit, l'ancien `sw-forge/<nom>` relu — lu par `rtaShare`, `recoShare`, `siegeShare`, `runeCurveShare`) |
+| Divers | `effects.ts` (codes com2us → libellés), `crafts.ts`, `gearSync.ts`, `detecteurDebordement.ts` (dev seulement), `migrationStockage.ts` (clés de stockage de l'ancien nom) |
 
 ---
 
@@ -282,3 +295,10 @@ tris, optimiseur (dont un test différentiel).
 
 ⚠️ **Aucun test d'interface** — elle se vérifie à l'œil ; des tests d'affichage
 ne feraient que figer le rendu du jour.
+
+Une exception, qui ne fige PAS le rendu : les **tests de rendu**
+(`tests/rendu/`) — un vrai composant affiché avec `react-dom/server` et des
+données d'exemple, interrogé sur le
+SENS (texte, `aria-label`, `title`, `disabled`), jamais sur les classes ou la
+disposition — ils vérifient qu'une fonctionnalité est là, pas à quoi elle
+ressemble.

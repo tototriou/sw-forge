@@ -32,9 +32,15 @@ combat = base + runes + ceil( base × (15 + lead) / 100 )
 
 ## Ticks (speed tune) — **par monstre**
 
-- Boutons dans **chaque slot** : **Off**, **Rapide 286**, **Lent 239**
-  (`SIEGE_TICKS`). Un tick **par monstre** (`slot.tick`, 0 = Off), pas par équipe
-  → on peut viser 2 monstres en tick rapide et 1 en tick lent dans la même équipe.
+- Boutons dans **chaque slot** : **Rapide 286**, **Lent 239** (`SIEGE_TICKS`).
+  Un tick **par monstre** (`slot.tick`, 0 = aucun), pas par équipe → on peut
+  viser 2 monstres en tick rapide et 1 en tick lent dans la même équipe.
+- ⚠️ **Recliquer sur le tick visé l'ENLÈVE** (retour à 0) — demandé par le mainteneur
+  le 2026-09-26 (refonte graphique, lot 7a), avec le retrait du bouton
+  **« Off »** à la souris : un bouton à deux états s'éteint là où on l'a
+  allumé. L'infobulle le dit (« Ne plus viser le tick 239 » / « Viser le tick
+  286 »). Au doigt, « Off » reste pour l'instant (lot 11), et le reclic y
+  marche aussi.
 - **Par défaut à l'import** : chaque monstre reçoit le **tick le plus proche** de sa
   vitesse de combat (`nearestTick` dans [applyAccount.ts](src/lib/applyAccount.ts)),
   **sauf** si l'équipe contient **au moins un Swift** (équipe speed → pas de tick)
@@ -42,6 +48,11 @@ combat = base + runes + ceil( base × (15 + lead) / 100 )
 - **But : informer**, pas modifier. Le tick ne change aucune vitesse ; il sert de
   cible pour le retour manque/surplus de **ce** monstre.
 - Réglé via `setSlotTick(teamId, idx, tick)` ([useSiegeState.ts](src/hooks/useSiegeState.ts)).
+- Les mêmes ticks servent de **raccourci de saisie** dans une
+  recommandation, sous les libellés « Tick rapide » / « Tick lent » : là, ils
+  écrivent la VIT de fiche qui tombe sur le tick, et ne stockent aucun tick
+  ([recommandations.md](recommandations.md), « Raccourci « Tick rapide / Tick
+  lent » sur la VIT »).
 - Migration : l'ancien tick d'équipe est repris comme tick par défaut de chaque
   slot au chargement.
 
@@ -61,21 +72,28 @@ lire — passait derrière. Le contour porte l'état ; la pastille le nomme pour
 ne distingue pas les teintes (**une couleur seule ne se lit pas en niveaux de
 gris**, règle de la charte).
 
-⚠️ **Le fond, lui, dépend du THÈME — et c'est le contour qui décide, pas
-l'inverse.** En sombre, un contour clair sur fond profond se voit seul : le fond
-reste celui de toutes les cards. En clair, un trait d'un pixel sur du blanc ne
-se distingue pas d'une card neutre — on ne voyait plus quelle équipe allait mal.
-Les trois tokens `--siege-card-vert` / `-orange` / `-rouge`
-([index.css](src/index.css)) portent donc un fond doux **en clair seulement**
-(`good-soft` / `warn-soft` / `el-fire-soft`) et retombent à la couleur du panel
-sous les **deux** déclencheurs sombres — d'où : *contour seul en sombre, contour
-+ fond en clair*.
+⚠️ **La pastille est ÉCRITE** (refonte graphique, décision 8 du mainteneur) : à
+côté du titre « Équipe N », un libellé court sur le fond doux du ton, un point
+de la couleur du statut, le texte à l'encre (un texte `good`/`warn` sur son
+propre fond doux manque de contraste en clair). Libellés choisis par le mainteneur le
+2026-09-26, tirés des phrases du pied ([pastilleStatut.ts](src/components/siege/pastilleStatut.ts),
+testé par `tests/siege-pastille.test.ts`) :
 
-⚠️ **Ce fond est un fond DOUX, pas un aplat.** La première tentative posait des
-opacités de 5 à 10 % : imperceptibles sur blanc, elles donnaient l'impression
-que la vérification n'avait pas tourné. Les teintes sont fondues dans le fond de
-page (tokens `*-soft`), assez pour comparer deux équipes d'un coup d'œil, pas
-assez pour qu'on les subisse l'une après l'autre.
+| Cas | Pastille |
+|---|---|
+| runes manquantes (même équipe verte) | **Runes incomplètes** (rouge) |
+| seulement des artéfacts manquants | **Artéfacts incomplets** (rouge) |
+| rouge | **Pas au tick** |
+| orange | **À vérifier** |
+| vert, équipe normale / Swift | **Tous au tick** / **Speed tune** |
+| vert validé à la main | **Tick validé** / **Speed tune validé** |
+| neutre (mode éteint, équipe vide…) | pas de pastille |
+
+⚠️ **Plus de fond coloré en thème clair.** Il existait parce qu'en clair un
+contour d'un pixel sur du blanc ne se distinguait pas d'une carte neutre ; les
+tokens `--siege-card-*` le portaient. La pastille écrite, lisible dans les deux
+thèmes, le remplace — les tokens ont été retirés d'`index.css`. La phrase
+détaillée (quel monstre, combien de VIT) reste dans le pied.
 
 ⚠️ **Le pied non plus ne prend pas la teinte.** Un bandeau ambré pleine largeur
 sous chaque équipe repeignait la page à la place du contenu, et faisait passer
@@ -108,12 +126,17 @@ par équipe :
 
 | Statut | Couleur | Condition | Message sous les monstres |
 |--------|---------|-----------|---------------------------|
-| Orange | `amber` | Équipe avec **≥1 Swift** qui **n'est PAS speed tune** | ⚠️ **RIEN QUE ce qui manque**, monstre par monstre (« Susano +14 VIT ») |
+| Orange | `warn` | Équipe avec **≥1 Swift** qui **n'est PAS speed tune** | ⚠️ **RIEN QUE ce qui manque**, monstre par monstre (« Susano +14 VIT ») |
 | — | neutre | Équipe Swift dont le speed tune **ne peut pas encore être calculé** (données en cours de chargement, un seul monstre renseigné) | la RAISON, et pas n'importe laquelle — voir ci-dessous |
-| Rouge | `fire` | (Sans Swift) un monstre **pas au tick** (anneau rouge sur le slot fautif) | une phrase par monstre fautif, voir ci-dessous |
-| Vert | `emerald` | (Sans Swift) **tous au tick** · **ou** équipe Swift **speed tune** · **ou** recommandation ignorée | « ✓ Équipe speed : elle est speed tune » pour le cas Swift |
+| Rouge | `bad` | (Sans Swift) un monstre **pas au tick** (contour rouge et fond `bad-soft` sur le slot fautif) | une phrase par monstre fautif, voir ci-dessous |
+| Vert | `good` | (Sans Swift) **tous au tick** · **ou** équipe Swift **speed tune** · **ou** recommandation ignorée | « ✓ Équipe speed : elle est speed tune » pour le cas Swift |
 | — | neutre | Équipe **vide** ou avec **Leo** | — |
-| Rouge | `fire` | **Équipement incomplet** (< 6 runes ou < 2 artéfacts sur un monstre importé) — prime sur tous les autres cas | une phrase par monstre, voir ci-dessous |
+| Rouge | `bad` | **Équipement incomplet** (< 6 runes ou < 2 artéfacts sur un monstre importé) — prime sur tous les autres cas | une phrase par monstre, voir ci-dessous |
+
+⚠️ **Rouge d'ÉTAT (`bad`), pas celui de l'élément Feu** (rebranding, décision
+43). Le rouge d'une faute était `fire` : il se confondait avec un monstre Feu,
+et la pastille de la même carte était déjà en `bad`. Les couleurs de ce tableau
+sont celles des jetons (`amber` / `emerald` étaient des noms d'avant les jetons).
 
 ⚠️ **Le message orange n'a pas d'introduction.** Il disait « Équipe speed : … »,
 ce que le pictogramme d'alerte et le contour disaient déjà : on relisait la même
@@ -354,9 +377,14 @@ Marges : `TICK_BELOW_MARGIN = 10`, `TICK_ABOVE_MARGIN = 15`.
 
 | Cas | Affichage |
 |-----|-----------|
-| `diff < 0` | « manque `-diff` pour `tick` » (rouge / `fire`) |
+| `diff < 0` | « manque `-diff` pour `tick` » (`bad` sur `bad-soft`) |
 | `diff > 0` | « +`diff` au-dessus de `tick` » (bleu / `water`) |
-| `diff = 0` | « pile au tick `tick` ✓ » (vert / `wind`) |
+| `diff = 0` | « pile au tick `tick` ✓ » (`good` sur `good-soft`) |
+
+Rebranding, décision 43 : « manque » et « pile au tick » prennent les couleurs
+d'ÉTAT sur leur fond doux (ils empruntaient le Feu et l'or du Vent, qui ne
+faisait que 3,78:1 en Atelier). Le bleu de « au-dessus » reste : aucune couleur
+d'état ne dit « plus que nécessaire, sans faute ».
 
 ## Attendus
 

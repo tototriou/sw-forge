@@ -1,8 +1,7 @@
 // Blade Surge — propagation de la cible calculée (`cibleDegatsParSort`) :
-// recette, écran, CLI (chantier degats-et-aura, lot 8b ; le calcul est celui
-// du lot 8a, vérifié par `testDegatsBladeSurge`), puis le résumé sous
-// l'objectif et la ligne du sort du script de diagnostic des artéfacts
-// (lot 8c).
+// recette, écran, CLI (le calcul est celui
+// vérifié par `testDegatsBladeSurge`), puis le résumé sous
+// l'objectif et la ligne du sort du script de diagnostic des artéfacts.
 //
 // ⚠️ Ce qui serait GRAVE ET INVISIBLE ici : une recette qui laisse passer une
 // cible inconnue ou un cran posé sur un sort sans coup de zone curé — le
@@ -50,7 +49,7 @@ const BLADE_SURGE_LAPIS = 10616;
 // secondaire, la portée seule ne suffit pas.
 const MAGIC_SHOT_LAPIS = 10606;
 const RETRIEVE_MAGIC_LAPIS = 10611;
-// Les huit identifiants du lot 1b (cadrage A.2 ter, `SEQUENCES_DE_COUPS_PAR_ID_CONNUS`).
+// Les huit identifiants de `SEQUENCES_DE_COUPS_PAR_ID_CONNUS` (`spec/outils/degats-reels/valeurs-de-jeu-curees.md`).
 const FAMILLE = [10601, 10602, 10603, 10604, 10605, 10616, 10618, 10620];
 
 const SECONDAIRE: DamageSetup = {
@@ -78,7 +77,7 @@ function bladeSurgeDeLapis(): SkillDamageProfile {
 }
 
 export function testBladeSurgeRecette() {
-  titre('Blade Surge · recette — cibleDegatsParSort validé, refusé avec son chemin, aller-retour et resets (degats-et-aura 8b, 8c)');
+  titre('Blade Surge · recette — cibleDegatsParSort validé, refusé avec son chemin, aller-retour et resets');
 
   const lire = (valeur: unknown) => parseOptimizerRecipe(JSON.stringify(valeur));
   const avecCible = (cibleDegatsParSort: unknown) =>
@@ -139,7 +138,7 @@ export function testBladeSurgeRecette() {
     'la même clé sans zéro de tête : acceptée, relue telle quelle');
 
   // Un sort sans coup de zone curé : refusé quelle que soit la valeur, sur la
-  // table de capacité (cadrage B.0) — jamais un cran posé en silence sur un
+  // table de capacité — jamais un cran posé en silence sur un
   // sort qui ne le connaît pas.
   for (const [id, motif] of [
     [MAGIC_SHOT_LAPIS, 'sort ordinaire (Lapis S2)'],
@@ -161,7 +160,7 @@ export function testBladeSurgeRecette() {
   egal(relue && lire(relue).recipe, relue, 'aller-retour : un second import ne change rien');
   egal(relue && cibleDegatsRetenue(bs, relue.damageSetup), 'secondaire', 'la cible relue est celle que retient le calcul');
 
-  // Resets (B.0). L'import de recette écrit sa valeur telle quelle, sans
+  // Resets. L'import de recette écrit sa valeur telle quelle, sans
   // reset ultérieur (`setDamageSetup(recipe.damageSetup ?? …)`, contrôlé à son
   // point d'appel par `testOptimizerDamageTransitions`, comme le changement
   // d'exemplaire, qui n'efface que les résultats).
@@ -197,7 +196,7 @@ function fonctionDe(source: ts.SourceFile, nom: string): ts.FunctionDeclaration 
 }
 
 export function testBladeSurgeEcran() {
-  titre('Blade Surge · écran — deux crans sous « Compétence utilisée », seulement pour un sort qui le permet (degats-et-aura 8b)');
+  titre('Blade Surge · écran — deux crans sous « Compétence utilisée », seulement pour un sort qui le permet');
 
   egal(CIBLE_DEGATS_LABELS, [
     { key: 'visee', label: 'Dégâts sur la cible visée' },
@@ -249,7 +248,7 @@ export function testBladeSurgeEcran() {
 const proche = (a: number, b: number) => Math.abs(a - b) <= 1e-9 * Math.max(1, Math.abs(a), Math.abs(b));
 
 export function testBladeSurgePariteEcranCli() {
-  titre('Blade Surge · parité écran/CLI — la recette porte la cible, le CLI calcule celle de l’écran (degats-et-aura 8b)');
+  titre('Blade Surge · parité écran/CLI — la recette porte la cible, le CLI calcule celle de l’écran');
 
   const bs = bladeSurgeDeLapis();
   const detail = loadMonsterSkills(LAPIS);
@@ -324,7 +323,7 @@ function memoDe(source: ts.SourceFile, nom: string): { corps: string[]; deps: st
 }
 
 export function testBladeSurgeResumeObjectif() {
-  titre('Blade Surge · résumé sous l’objectif — « autres ennemis » après le sort, pour la cible retenue du sort résolu (degats-et-aura 8c)');
+  titre('Blade Surge · résumé sous l’objectif — « autres ennemis » après le sort, pour la cible retenue du sort résolu');
 
   const sorts = monsterDamageSkills(loadMonsterSkills(LAPIS));
   // Ce que lit `resumeCombat` : le sort que l'écran résout (`resolvedSkill`,
@@ -387,7 +386,7 @@ export function testBladeSurgeResumeObjectif() {
 }
 
 export function testBladeSurgeLigneArtifactSearch() {
-  titre('Blade Surge · script de diagnostic des artéfacts — la ligne du sort dit la séquence curée, comme le CLI (degats-et-aura 8c)');
+  titre('Blade Surge · script de diagnostic des artéfacts — la ligne du sort dit la séquence curée, comme le CLI');
 
   const script = sansCommentaires(lireSource('scripts/artifact-search.ts'));
   ok(/const sequence = sort\.sequenceDeCoups;/.test(script) && script.includes('${sequence ? resumeSequenceDeCoups(sequence) : `${sort.hits} coup(s)`}'),
@@ -395,5 +394,5 @@ export function testBladeSurgeLigneArtifactSearch() {
   ok(script.includes('${!sequence && sort.aoe ? \', zone\' : \'\'}'), '… la portée seulement hors séquence (la donnée ne décrit pas la séquence)');
   egal((script.match(/coup\(s\)/g) ?? []).length, 1, '« coup(s) » ne reste que dans le repli hors séquence');
   egal(resumeSequenceDeCoups(bladeSurgeDeLapis().sequenceDeCoups ?? []), '2 coups · Cible unique, puis 1 coup · Zone',
-    'Blade Surge de Lapis : ce que la ligne écrit désormais, au lieu de « 2 coup(s) »');
+    'Blade Surge de Lapis : la ligne écrit la séquence, pas « 2 coup(s) »');
 }

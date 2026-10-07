@@ -240,8 +240,8 @@ export function testRegistre() {
     'héroïque épuisée → on se rabat sur la légendaire'
   );
 
-  // ⚠️ LE test : tout dépenser doit rendre la rune infaisable. C'est le cas que
-  // l'utilisateur a demandé — meuler une Violent, ne plus s'en voir proposer.
+  // ⚠️ LE test : tout dépenser doit rendre la rune infaisable. C'est le cas
+  // d'usage : meuler une Violent, ne plus s'en voir proposer.
   const vide = buildCraftStock(lignes, { 'grind|violent|8|4|n': 1, 'grind|violent|8|5|n': 2 });
   ok(!ownsCraft(vide, q), 'tout dépensé → plus rien de disponible');
   egal(vide.total, 0, 'et la réserve affichée tombe bien à zéro');
@@ -548,14 +548,14 @@ export function testReserveParGrade() {
     'le plan héroïque pose bien la meule (+4)'
   );
 
-  // ⚠️ Le défaut corrigé : une SEULE dispo pour les deux chiffres, celle du
-  // grade du tri. Trié en héroïque (grade 4), le chiffre légendaire comptait
-  // la meule héroïque avec la table légendaire (+5).
-  const ancienTriHero = runePotential(rune, false, 'eff', true, {
+  // ⚠️ Une SEULE dispo pour les deux chiffres, celle du grade du tri, serait
+  // fausse : trié en héroïque (grade 4), le chiffre légendaire compterait la
+  // meule héroïque avec la table légendaire (+5).
+  const unSeulGrade = runePotential(rune, false, 'eff', true, {
     hero: dispoReserve(heroique, rune, 'hero'),
     legend: dispoReserve(heroique, rune, 'hero'),
   });
-  ok(ancienTriHero.legendEff > pot.legendEff, 'l’ancien câblage (grade du tri pour les deux) surestimait le légendaire');
+  ok(unSeulGrade.legendEff > pot.legendEff, 'le grade du tri pour les deux chiffres surestimerait le légendaire');
 
   // Grade ≥ scénario : une meule LÉGENDAIRE sert aux deux chiffres.
   const legendaire = stock([{ kind: 'grind' as const, stat: 8, grade: 5 }]);

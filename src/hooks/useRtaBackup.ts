@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { RtaState } from '../types';
 import { RtaCategory } from './useRtaCategories';
-import { loadLocal, saveLocal, usePersistence } from './usePersistence';
+import { loadLocal, oublierLocal, saveLocal, usePersistence } from './usePersistence';
 
 // **Point de restauration de la prépa RTA** — l'instantané que pose
 // « Sauvegarder » et que rappelle « Reprendre ».
@@ -29,13 +29,13 @@ import { loadLocal, saveLocal, usePersistence } from './usePersistence';
 // qu'on venait de poser — ou que « Réinitialiser » ramènerait à un classement
 // remanié à la main, ce qui n'est pas ce qu'il promet.
 
-const KEY = 'sw-forge-rta-backup-v1';
+const KEY = 'swblacksmith-rta-backup-v1';
 // ⚠️ Clé SÉPARÉE du point manuel : les deux instantanés coexistent.
 //
 // Le point d'import est posé automatiquement, celui-là est posé par
 // l'utilisateur. Les mettre dans la même case ferait qu'importer un compte
 // effacerait sans un mot le point qu'on venait de poser — ou l'inverse.
-const KEY_IMPORT = 'sw-forge-rta-import-v1';
+const KEY_IMPORT = 'swblacksmith-rta-import-v1';
 
 export interface RtaBackup {
   date: string; // ISO — sert à dire « sauvegardé le … »
@@ -102,11 +102,7 @@ export function useRtaBackup(): UseRtaBackup {
 
   const oublier = useCallback(() => {
     setBackup(null);
-    try {
-      localStorage.removeItem(KEY);
-    } catch {
-      /* stockage indisponible : l'oubli vaut pour la session */
-    }
+    oublierLocal(KEY);
   }, []);
 
   // Point d'import, écrit sur sa propre clé et à l'activation de la

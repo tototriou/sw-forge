@@ -3,7 +3,7 @@
 **Statut :** ÉTAT ACTUEL — décrit les dégâts additionnels bruts et les amplifications d’artéfact
 **Lire si :** on modifie une ligne d’artéfact ou un bucket de dégâts additionnels
 **Ne pas lire si :** on travaille sur le critique conditionnel, les bombes ou les passifs offensifs
-**Voir aussi :** spec/outils/degats-reels/artefacts-critique-et-element.md, spec/outils/artefacts.md
+**Voir aussi :** spec/outils/degats-reels/artefacts-critique-et-element.md, spec/outils/optimizer/ecran/artefacts.md
 
 ## Dégâts BRUTS d'un passif — ni critiques, ni mitigés, à chaque coup
 
@@ -109,15 +109,14 @@ d'« ATQ » dans le même calcul.
 
 
 - **Rétention de recherche.** Les lignes 218–221 n’entrent jamais dans `damageRelevantStats` : elles récoltent les statistiques déjà présentes sur le build sans réorienter les statistiques recherchées.
-- **Dominance des runes.** Elle, en revanche, les compte (degats-et-aura
-  6bis-b3d-1) : un bonus de set dont la stat nourrit une de ces lignes
+- **Dominance des runes.** Elle, en revanche, les compte : un bonus de set dont la stat nourrit une de ces lignes
   (Energy pour la ligne 218, Guard pour la 220, Fight, Determination…) n’est
   pas « inutile », et la dominance, élagage **sûr**, ne doit pas le remplacer
   par un set aux mêmes stats de rune. Les stats protégées sont celles des
   lignes de la paire supposée et, en « Libre », de tout artéfact éligible que
   le choix de la paire peut retenir (`statsLignesArtefactsEquipables`), en
   « Dégâts réels » seulement. Voir
-  [l’Optimizer](../optimizer.md), « Recherche des runes ».
+  [../optimizer/moteur/elagages.md § Dominance — lignes d'artéfact 218–221](../optimizer/moteur/elagages.md).
 
 ## ⚠️ Le bucket Additionnel ne reçoit AUCUN bonus de type DMG%
 
@@ -143,16 +142,24 @@ sort, le système `S + A = 700` / `1,5·S + A = 730` donne **S = 60, A = 640**.
 **formule** des lignes 218-221 (par coup, brutes, sur les stats buffées).
 
 **Relevé Jessica — le même verdict par l'autre porte.** « Blessing of Curse »
-majore de +20 % par effet **néfaste sur soi**, là où Julie compte les buffs de
-la **cible** : deux membres différents de la famille, tous deux mesurés.
-Jessica à 53 050 PV / 827 DEF / 163 VIT, artéfacts 2 % PV + 6 % DEF + 102 %
-VIT, contre un Xiong Fei très défensif, **en coup critique** :
+majore de +20 % par effet **néfaste sur les alliés, soi compris** (« allies
+(including yourself) »), jusqu'à +200 % — pas seulement ceux qui sont sur
+Jessica : les débuffs de chacun de ses alliés comptent aussi. Julie, elle,
+compte les buffs de la **cible** : deux membres différents de la famille,
+tous deux mesurés. Jessica à 53 050 PV / 827 DEF / 163 VIT, artéfacts 2 % PV
++ 6 % DEF + 102 % VIT, contre un Xiong Fei très défensif, **en coup
+critique** :
 
-| Débuffs sur elle | Bonus au sort | Dégâts |
+| Débuffs comptés (tous sur Jessica) | Bonus au sort | Dégâts |
 |---|---|---|
 | 0 | — | ~2 250 |
 | 1 | +20 % | ~2 450 |
 | 2 | +40 % | ~2 600 |
+
+Les débuffs du relevé étaient tous sur Jessica elle-même : c'est un cas
+particulier de la règle (elle fait partie des alliés), loin du plafond. Un
+débuff sur un allié aurait compté de la même façon ; le relevé ne le mesure
+pas, mais ne change pas pour autant.
 
 Si le +20 % touchait tout, 2 débuffs donneraient **3 150**. Le modèle prédit
 un additionnel de **1 277** (`0,02 × 53 050 + 0,06 × 827 + 1,02 × 163`) ; la
@@ -201,7 +208,7 @@ sont arrondies à la centaine, ce qui déplace la résolution de plusieurs
 dizaines dans chaque sens.
 
 ⚠️ **Ce que ça a coûté en structure** : `computeSkillDamageDetail` remonte
-désormais sa part additionnelle (`additionnel`), et `computeTotalDamage`
+sa part additionnelle (`additionnel`), et `computeTotalDamage`
 l'accumule — **sur le sort ET sur chaque passif** — puis la met de côté avant
 toute la chaîne de multiplicateurs, pour ne la rendre qu'à la fin. Les
 majorations propres à un passif (`bonusPvCible`, `bonus`) sont traitées pareil,

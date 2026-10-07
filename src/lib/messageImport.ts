@@ -2,9 +2,9 @@
 // ton et sa durée, en fonctions pures pour que les tests les atteignent
 // (le dépôt ne teste pas les composants React).
 //
-// Décision de l'utilisateur du 2026-10-02 (degats-et-aura, lot CM) : un
-// message qui porte un AVERTISSEMENT de conversion (l'ancien mode critique
-// « Moyenne » passé en « Critique ») prend le token d'avertissement (`warn`,
+// Un message qui porte un AVERTISSEMENT de conversion (l'ancien mode critique
+// « Moyenne » passé en « Critique », spec/outils/optimizer/ecran/
+// lancer-la-recherche.md § Lancer la recherche) prend le token d'avertissement (`warn`,
 // comme les autres avertissements de l'écran, jamais `good`) et ne s'efface
 // plus tout seul : il reste jusqu'au prochain import de recette, réussi ou
 // non, qui le remplace. Le message ordinaire (succès sans avertissement)

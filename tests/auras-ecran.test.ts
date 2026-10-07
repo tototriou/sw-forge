@@ -1,4 +1,4 @@
-// Lot 7a de degats-et-aura — la saisie des auras EXTERNES à l'écran.
+// La saisie des auras EXTERNES à l'écran.
 //
 // La logique vit dans `src/lib/aurasExternes.ts` (fonctions pures), que la
 // carte « État de mon monstre » appelle pour CHAQUE écriture : c'est ici
@@ -71,7 +71,7 @@ export function testAurasEcranBornes() {
   titre('Auras à l’écran · bornes : 1 à 15 − somme des autres lignes, ajout impossible à 15 ou à cinq sets');
 
   egal(SETS_AURA, Object.keys(STAT_DE_L_AURA), 'les cinq sets sont DÉRIVÉS de STAT_DE_L_AURA, dans son ordre');
-  egal(PLAFOND_AURAS_EXTERNES, 15, 'plafond de saisie : 15 (cinq autres monstres à trois sets, A.2 ter)');
+  egal(PLAFOND_AURAS_EXTERNES, 15, 'plafond de saisie : 15 (cinq autres monstres à trois sets)');
   egal(libelleNombreAura('fight'), 'Nombre de sets Fight des autres monstres de l\'équipe', 'libellé explicite, patron de l’utilisateur');
   egal(libelleNombreAura('tolerance'), 'Nombre de sets Tolerance des autres monstres de l\'équipe', 'même patron pour les cinq sets');
 
@@ -196,7 +196,7 @@ export function testAurasEcranValidationPartagee() {
   egal(erreurAurasExternes(undefined), null, 'liste absente : zéro aura, acceptée');
   egal(erreurAurasExternes([]), null, 'liste vide acceptée');
 
-  // Les deux sources sont indépendantes (cadrage, lot 7, point 2).
+  // Les deux sources sont indépendantes.
   ok(recette([], ['fight', 'fight', 'fight']).recipe !== null,
     'recette à 0 externe valide même avec trois Fight demandés (activés sur le build)');
   ok(recette([{ set: 'fight', nombre: 15 }], ['fight', 'fight', 'fight']).recipe !== null,
@@ -273,14 +273,14 @@ export function testAurasEcranInterrupteur() {
 export function testAurasEcranRappel() {
   titre('Auras à l’écran · rappel au changement de monstre : liste de travail seulement, autre espèce ou autre exemplaire, auras renseignées ; un seul état, rendu dans la boîte des auras et sous la liste');
 
-  // Lot 7b — la décision est pure (`doitRappeler`) ; l'écran ne fait que la
+  // La décision est pure (`doitRappeler`) ; l'écran ne fait que la
   // brancher, ce que vérifient les contrôles de source plus bas.
   const auras = [a('fight', 2), a('tolerance', 1)];
   const m = (espece: string | null, exemplaire: string | null, aurasExternes: readonly AuraExterne[] | undefined = auras): MonstreOptimise =>
     ({ espece, exemplaire, aurasExternes });
   ok(doitRappeler('liste', m('1001', 'box:1'), m('2002', 'box:7')), 'liste de travail, autre espèce, auras renseignées : rappel');
   ok(doitRappeler('liste', m('1001', 'box:1'), m('1001', 'siege-defense:3')),
-    'liste de travail, MÊME espèce, autre exemplaire : rappel (réponse de l’utilisateur du 2026-10-02)');
+    'liste de travail, MÊME espèce, autre exemplaire : rappel');
   ok(!doitRappeler('liste', m('1001', 'box:1'), m('1001', 'box:1')), 'recliquer l’exemplaire déjà affiché : aucun rappel');
   ok(!doitRappeler('liste', m('1001', 'box:1', []), m('2002', 'box:7', [])), 'aucune aura externe : aucun rappel');
   // ⚠️ Objets écrits en entier : un `undefined` passé à `m` prendrait la valeur par défaut.
@@ -292,16 +292,16 @@ export function testAurasEcranRappel() {
     ok(!doitRappeler(voie, m('1001', 'box:1'), m('2002', 'box:7')), `voie « ${voie} », autre espèce, auras renseignées : aucun rappel`);
   }
   ok(!doitRappeler('rendu', m(null, null), m('2002', 'box:7')), 'premier rendu : aucun rappel');
-  egal(DUREE_ATTENTION_MS, 3000, 'effacé après 3 s (réponse de l’utilisateur du 2026-10-02)');
+  egal(DUREE_ATTENTION_MS, 3000, 'effacé après 3 s');
   const setup = { ...DEFAULT_DAMAGE_SETUP, setsAuraExternes: auras };
   egal(damageSetupApresChangementMonstre(setup).setsAuraExternes, auras,
-    'les nombres ne sont jamais réécrits : le changement de monstre conserve les auras (lot 5), le rappel ne fait que les signaler');
+    'les nombres ne sont jamais réécrits : le changement de monstre conserve les auras, le rappel ne fait que les signaler');
 
   // Branchement : dans le seul onClick d'un membre de la liste de travail.
   const ecran = lireSansCommentaires('src/components/outils/OptimizerSection.tsx');
   const zoneC = ecran.slice(Math.max(0, ecran.indexOf('const zoneCContent = (')));
   const clic = entre(zoneC, 'onClick={() => {', 'className="flex min-w-0 flex-1 items-center gap-2 text-left"');
-  // Depuis le lot EX, le changement d'exemplaire vit dans `choisirExemplaire`,
+  // Le changement d'exemplaire vit dans `choisirExemplaire`,
   // partagé avec le bouton « Ajouter un autre exemplaire » ; le rappel, lui,
   // reste dans ce onClick (contrôles suivants).
   const chemin = entre(ecran, 'function choisirExemplaire(', 'function handleAddToList(');
@@ -344,8 +344,8 @@ export function testAurasEcranRappel() {
   ok(message !== null, 'rendu : « Pense à vérifier les sets d’aura externes. » dans la MÊME case, toujours rendu, invisible hors rappel (place réservée)');
   ok(!/\{rappel &&/.test(saisie), 'rendu : rien n’est monté sous condition du rappel — rien ne bouge quand il paraît');
 
-  // Lot 7c — le MÊME rappel, aussi sous la liste de la zone C (décision de
-  // l'utilisateur du 2026-10-02) : un seul état (`rappelAuras`), une seule
+  // Le MÊME rappel, aussi sous la liste de la zone C :
+  // un seul état (`rappelAuras`), une seule
   // minuterie, deux rendus. Aucun déclencheur nouveau : les deux comptes plus
   // haut (un seul `doitRappeler`, un seul `setRappelAuras` hors effacement)
   // le prouvent déjà.
@@ -379,7 +379,7 @@ export function testAurasEcranRappel() {
 export function testAurasEcranGuidage() {
   titre('Auras à l’écran · ouverture guidée vers l’interrupteur : Accuracy ou Tolerance ajouté, jamais Fight / Determination / Enhance');
 
-  // Lot 7b — la décision est pure (`guideVersResPre`), sur les vraies écritures.
+  // La décision est pure (`guideVersResPre`), sur les vraies écritures.
   egal([...SETS_AURA_RES_PRE], ['accuracy', 'tolerance'], 'les sets qui guident sont DÉRIVÉS de STAT_DE_L_AURA : Précision et RES seulement');
   const vide: AuraExterne[] = [];
   ok(guideVersResPre({ aurasExternes: vide }, { aurasExternes: [a('accuracy', 1)] }), 'Accuracy ajouté aux auras externes : guide');

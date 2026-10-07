@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from 'react';
 import { clearAccount, isAvailable, requestPersistence } from '../lib/accountStore';
+import { PREFIXE_STOCKAGE } from '../lib/migrationStockage';
 
 // **Conservation des données entre deux sessions** — un seul interrupteur pour
 // TOUTE l'application : prépa RTA, équipes de siège, recommandations, catégories,
@@ -16,16 +17,20 @@ import { clearAccount, isAvailable, requestPersistence } from '../lib/accountSto
 // posée à la fin du premier import (`KeepAccountDialog`), au moment où elle a un
 // sens — pas dans un menu que personne n'ouvre.
 
-const STORAGE_KEY = 'sw-forge-persist-v1';
-const ANCIENNE_CLE = 'sw-forge-keep-account-v1'; // réglage limité au compte
+const STORAGE_KEY = 'swblacksmith-persist-v1';
+const ANCIENNE_CLE = 'swblacksmith-keep-account-v1'; // réglage limité au compte
 
 // ⚠️ Ces clés-là restent écrites même quand la conservation est refusée : ce sont
 // des **réglages**, pas le travail de l'utilisateur. Refuser la conservation doit
 // justement être mémorisé, sinon on repose la question à chaque import.
-const CLES_DE_REGLAGE = new Set([STORAGE_KEY, ANCIENNE_CLE, 'sw-forge-rune-metric-v1']);
+const CLES_DE_REGLAGE = new Set([STORAGE_KEY, ANCIENNE_CLE, 'swblacksmith-rune-metric-v1']);
 
+// ⚠️ Les anciens préfixes restent reconnus (décision 66 du rebranding) : une
+// clé que la migration n'a pas pu renommer (quota) reste une donnée de
+// l'utilisateur — « Supprimer mes données » doit l'effacer aussi.
+const PREFIXES_DE_DONNEES = [PREFIXE_STOCKAGE, 'sw-forge', 'sky-arena'];
 const estUneCleDeDonnees = (k: string) =>
-  (k.startsWith('sw-forge') || k.startsWith('sky-arena')) && !CLES_DE_REGLAGE.has(k);
+  PREFIXES_DE_DONNEES.some((p) => k.startsWith(p)) && !CLES_DE_REGLAGE.has(k);
 
 function clesDeDonnees(): string[] {
   try {
@@ -78,10 +83,17 @@ const listeners = new Set<() => void>();
  * Écriture — le seul chemin autorisé vers `localStorage`
  * ----------------------------------------------------------------------- */
 
+// Le travail tel que les hooks l'ont écrit en dernier, conservation acceptée
+// OU refusée. ⚠️ C'est là que la sauvegarde de session le lit
+// (`lireTravail`) : conservation refusée, rien n'est sur le disque, et une
+// session lue dans `localStorage` serait vide.
+const miroir = new Map<string, string>();
+
 // ⚠️ **Aucun hook n'appelle `localStorage.setItem` directement.** Tout passe par
 // ici : c'est ce qui garantit qu'un refus de conservation vaut pour l'app
 // entière, et qu'ajouter un état persistant demain n'ouvrira pas une fuite.
 export function saveLocal(key: string, value: string) {
+  miroir.set(key, value);
   try {
     if (!current) {
       // Refus : on n'écrit pas, et on efface ce qui traînerait d'une session
@@ -103,6 +115,23 @@ export function loadLocal(key: string): string | null {
   } catch {
     return null;
   }
+}
+
+// L'effacement d'une valeur du travail : sur le disque ET dans le miroir.
+export function oublierLocal(key: string) {
+  miroir.delete(key);
+  try {
+    localStorage.removeItem(key);
+  } catch {
+    /* stockage indisponible : l'oubli vaut pour la session */
+  }
+}
+
+// Une valeur du travail ou des réglages, telle que l'app l'a écrite : le
+// miroir d'abord, sinon le disque (réglages, clé qu'aucun hook monté n'a
+// encore écrite).
+export function lireTravail(key: string): string | null {
+  return miroir.get(key) ?? loadLocal(key);
 }
 
 // Efface tout ce qui a été conservé, réglages exclus (voir `CLES_DE_REGLAGE`).

@@ -1,6 +1,6 @@
 # Deux formats de premier rang
 
-SW Forge est **une seule application responsive** — une base de code, un
+SW Blacksmith est **une seule application responsive** — une base de code, un
 déploiement. Mais elle vise **deux plateformes** : le téléphone et
 l'ordinateur, et **aucune des deux n'est le cas dégradé de l'autre**.
 

@@ -83,8 +83,8 @@ export default function DesyncBadge({
           <span className="mb-1 block font-semibold text-warn">Runes plus à jour</span>
           Les runes affichées ne correspondent plus à la vitesse demandée dans l'ordre de tour : elles
           donnent <b className="text-ink">{ecart.attendu}</b> de SPD, alors qu'il en faut{' '}
-          <b className="text-fire">{ecart.saisi}</b>. Cette vitesse demandée apparaît{' '}
-          <b className="text-fire">en rouge</b> sur la ligne VIT de la fiche.
+          <b className="text-bad">{ecart.saisi}</b>. Cette vitesse demandée apparaît{' '}
+          <b className="text-bad">en rouge</b> sur la ligne VIT de la fiche.
         </div>
       </FlottantAuto>
     </span>

@@ -1,10 +1,10 @@
-# SW Forge
+# SW Blacksmith
 
 Une boîte à outils pour Summoners War.
 
 **En ligne : https://sw-forge.vercel.app**
 
-SW Forge aide à préparer ses contenus compétitifs : composer ses équipes de
+SW Blacksmith aide à préparer ses contenus compétitifs : composer ses équipes de
 siège et vérifier leur speed tuning, classer ses monstres pour la RTA, analyser
 ses runes et son compte, partager des recommandations de decks avec sa guilde.
 

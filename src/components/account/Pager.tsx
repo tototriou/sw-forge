@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { BoutonIcone } from '../../ui';
 
 // Pagination compacte, partagée par TOUTES les listes paginées (runes,
 // artéfacts, optimisation) pour borner le DOM — une seule page rendue à la fois.
@@ -44,22 +45,21 @@ export default function Pager({
   // étirerait en rectangles de 28 × 40 — elle n'élargit que ce qui porte
   // `aspect-square`. Le pseudo-élément leur rend 44 px de zone touchable sans
   // toucher au dessin ; l'écart de 6 px entre elles suffit à les distinguer.
-  const arrow =
-    'cible-tactile flex items-center justify-center w-7 h-7 rounded-lg border border-border bg-panel ' +
-    'hoverable:text-ink hoverable:border-accent transition disabled:opacity-30 disabled:cursor-not-allowed';
-
+  // ⚠️ Les flèches sont des `BoutonIcone` de la librairie (refonte graphique,
+  // lot 8a — décision 16, boutons unifiés), plus des `<button>` redessinés :
+  // même carré de 28 px à cadre, même zone tactile de 44 px (`zoneEtendue` pose
+  // `cible-tactile` ET `data-cible-fine`, comme avant), le survol de tous les
+  // boutons de l'app. Vaut pour toutes les pages qui paginent.
   return (
     <div className="flex items-center gap-1.5 font-mono text-xs text-ink-dim">
-      <button
+      <BoutonIcone
         onClick={() => onChange(Math.max(0, page - 1))}
         disabled={page === 0}
-        data-cible-fine
-        className={arrow}
-        aria-label="Page précédente"
-        title="Page précédente"
-      >
-        <ChevronLeft size={15} />
-      </button>
+        cadre
+        zoneEtendue
+        icone={<ChevronLeft size={15} />}
+        libelle="Page précédente"
+      />
 
       <input
         type="text"
@@ -81,16 +81,14 @@ export default function Pager({
       />
       <span className="tabular-nums">/ {pageCount}</span>
 
-      <button
+      <BoutonIcone
         onClick={() => onChange(Math.min(pageCount - 1, page + 1))}
         disabled={page >= pageCount - 1}
-        data-cible-fine
-        className={arrow}
-        aria-label="Page suivante"
-        title="Page suivante"
-      >
-        <ChevronRight size={15} />
-      </button>
+        cadre
+        zoneEtendue
+        icone={<ChevronRight size={15} />}
+        libelle="Page suivante"
+      />
     </div>
   );
 }

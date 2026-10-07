@@ -16,6 +16,114 @@ Fichiers :
 - [recoFromSiege.ts](src/lib/recoFromSiege.ts) — deck pré-rempli depuis une équipe d'offense.
 - [recoSearch.ts](src/lib/recoSearch.ts) — recherche d'un monstre dans les recos (calcul pur).
 
+⚠️ **En-tête BUREAU** (refonte graphique, lot 7b — même règle que la RTA et
+Défense / Offense) : le titre « Recommandations », le compteur, puis les
+actions par `BarreActions` — **toutes en boutons quand elles tiennent sur la
+ligne**, sinon **Importer** et **Créer une recommandation** visibles, dans
+cet ordre, et **Tout exporter**, **Tout effacer** (séparé, en `bad`) dans le
+menu « ⋯ » Plus d'actions — l'organisation de la maquette (le mainteneur : « sur la
+page de reco, le rendu comme sur la maquette sur l'organisation des boutons et
+leur rendu »). Importer était d'abord dans le menu. Aucune action mise en
+avant. Libellés, désactivations et infobulles repris des boutons d'avant. Au
+doigt, le panneau « Options » ne change pas (lot 11).
+
+⚠️ **À la souris, une seule barre d'outils sous l'en-tête** (la maquette) :
+Vue (Attaque / Défense, qui a remplacé Origine — décision 19) · filet vertical · recherche par
+monstre et ses trois cases, sur la même ligne ; « Rôle » passe dessous
+quand une recherche est posée.
+
+⚠️ **À la souris, l'en-tête d'une recommandation tient sur UNE ligne**
+(lot 7b, la maquette) : chevron · titre · Importée · decks · auteur, un
+ressort, puis **au bout** « Analyser mes decks » (bouton **à cadre**, comme
+les autres boutons à libellé de la page — il a été fantôme un temps, et ne se
+lisait plus comme un bouton parmi les icônes nues : « il ne ressort pas, il ne
+ressemble pas aux autres boutons »), un filet vertical et Exporter / Éditer /
+Supprimer. Au doigt, il garde ses deux rangées.
+
+⚠️ **À la souris, le crayon d'un deck quitte la ligne** (la maquette) : la
+ligne n'a plus que ses quatre colonnes (chevron · offense · fort contre ·
+verdict, ce dernier aligné à droite), et l'édition devient **« Éditer ce
+deck » écrit en toutes lettres, en PIED du détail déplié**, à droite, sous
+un filet (en édition : « Terminer l'édition de ce deck »), et **« Supprimer
+ce deck » à l'autre bout, TOUJOURS présent** — plus seulement en édition
+(le mainteneur, 2026-09-27 : « le bouton de suppression devrait toujours être
+présent » ; la confirmation reste le garde-fou). Au doigt aussi, la
+corbeille suit le crayon en permanence. Ces boutons ont un **CADRE** à la
+souris, comme les autres boutons à libellé (« le bouton d'édition ne ressort
+pas trop ») : `BoutonIcone` `libelleALaSouris`. Replié, un deck ne montre
+donc plus d'action d'édition : on le déplie d'abord, comme dans la maquette.
+C'est le MÊME bouton qu'au doigt, placé sur la 3ᵉ rangée de la grille du
+deck. **En édition de la recommandation**, Ajouter un deck vide et Importer
+un deck d'offense forment le **pied du tableau des decks**, à droite, en
+boutons **pointillés à fond**. **« + Défense »** devient un bouton `sm`
+pointillé à fond au bout de la rangée des défenses visées. Tous trois ont
+été fantômes un temps (la maquette) et ne ressortaient pas (« le bouton
+d'ajout de défense ne ressort pas trop »). ⚠️ **Écart assumé** : la
+maquette pose « Déplier tous les decks » dans ce pied, en BAS ; il reste
+en HAUT du tableau — en bas, son clic l'aurait repoussé de toute la hauteur
+des decks dépliés (un clic ne déplace jamais ce qu'on vient de cliquer).
+
+⚠️ **À la souris, UN seul bouton d'icône sur toute la page** (lot 7b —
+Le mainteneur : « il faudrait revoir un peu le système de bouton de cette page… comme
+tu as fait dans la maquette ») : un carré de 28 px aux coins arrondis, sans
+cadre ni fond, voile au survol — chevron de la recommandation, chevron de
+chaque deck, Exporter, Éditer, Supprimer (`ICONE_LG` dans
+[RecoCard.tsx](../../src/components/siege/RecoCard.tsx)). Avant, trois
+tailles et deux formes cohabitaient (24 px rond, 20 px rond, bouton étiqueté
+« Consulter »), et les deux crayons étaient des `<button>` redessinés hors
+librairie : ils sont désormais des `BoutonIcone`, le ✓ doré posé sur l'icône.
+« Analyser mes decks » et « Déplier tous les decks » (bouton fantôme de la
+librairie, plus un lien souligné) prennent la même hauteur de 28 px. Au doigt,
+chaque bouton garde sa taille et sa forme d'avant (lot 11).
+
+Puis, en édition (le mainteneur : « revoir tous les boutons de la page ») : **28 px
+de haut pour tout bouton à libellé et toute pastille de filtre**, à la souris
+(`BOUTON_LG`) — Ajouter un deck vide, Importer un deck d'offense, + Set,
++ Possibilité, les pastilles de verdict, « Tout afficher » (bouton fantôme,
+plus un lien souligné). Le ✓ « Terminer » d'une défense devient un
+`BoutonIcone`, de la taille de la corbeille voisine. Restent à part, et c'est
+voulu : **« + Défense »** au doigt (la hauteur des vignettes qu'il prolonge ;
+à la souris, bouton `sm` pointillé à fond, voir plus haut), les
+**croix posées dans une puce** (set, propriété d'artéfact, monstre d'une
+défense — `serre`, 20 px, la puce est plus petite qu'un bouton), le **crayon
+posé sur le coin d'une vignette**, la **grille des sets** (icônes du jeu) et
+les **liens dans une phrase** (« Chercher partout », « Effacer la
+recherche »).
+
+⚠️ **Couleurs : plus d'aplats teintés** (lot 7b — le mainteneur : « revois les
+couleurs et l'affichage sur les cards, là il n'y a rien qui va »). La carte
+d'une recommandation, chaque deck, chaque monstre et l'encart de synthèse se
+teintaient chacun en vert / orange / rouge à 20-45 % : une page analysée
+devenait un patchwork. Désormais :
+
+- cartes **neutres** (fond de panneau, contour discret) ; le statut d'un deck
+  ou d'un monstre se lit au **contour** (au doigt) et aux **pastilles** —
+  même règle que les équipes de siège (décision 8) ;
+- ⚠️ **les pastilles de statut sont COLORÉES en entier**, à la maquette
+  (`.pill.good/.warn/.bad` : fond doux du ton, texte du ton, sans contour) —
+  la pastille Verdict de chaque ligne de deck, les puces de la carte repliée
+  (un deck, ou une défense en vue Défense) **et les pastilles de filtre du
+  résumé d'analyse**, colorées dès le repos pour que le résumé et les decks en
+  dessous parlent la même couleur (« dans le résumé d'analyse et dans les
+  cards en dessous, la même couleur ») — enclenchée, une pastille de filtre
+  prend en plus le contour de son ton, seul marqueur d'état. Elles étaient
+  neutres, la couleur
+  réduite à un point de 6 px : « les couleurs ne sont pas assez vives sur les
+  vignettes de validation de decks » (le mainteneur, 2026-09-27). Non analysé :
+  neutre. Le point reste dedans (son creux distingue « monstre manquant » de
+  « à revoir »). `PASTILLE_STATUT` dans RecoCard.tsx ; contrastes texte /
+  fond doux mesurés dans les deux thèmes, 4,63:1 au plus bas ;
+- l'encart de synthèse est neutre, son icône et son titre portent la couleur ;
+- jetons de sets et de propriétés d'artéfact, rapport d'import : les **fonds
+  doux** (`good-soft`, `warn-soft`, `bad-soft`) avec le texte à l'encre (les
+  filtres de verdict ont depuis le texte de leur ton, voir ci-dessus).
+  Contrastes mesurés, 4,91:1 au plus bas
+  (`warn` ocre sur `warn-soft`, Atelier — décision 46 du rebranding ; le
+  rouge est `bad` depuis la décision 43, et fait 5,53 sur `bad-soft` en
+  Forge) ;
+- « Importée » : pastille neutre (le contour d'accent la faisait passer pour
+  un élément sélectionné).
+
 ## Modèle
 
 ```ts
@@ -70,7 +178,7 @@ lesquelles il peut jouer.
     apporter.
 - Les **decks totalement vides** ne sont ni exportés ni comptés dans les statuts.
 
-## Origine & filtre
+## Origine
 
 Chaque recommandation porte une **origine** :
 
@@ -84,16 +192,68 @@ export (d'où `RecoPayload`, qui exclut `id` **et** `origin`). Ce qui est « à 
 chez l'auteur devient « importée » chez celui qui la reçoit — y compris si je
 réimporte mon propre export.
 
-**Filtre** : **Toutes · Mes recos · Importées**, chacun avec son effectif.
-**Toujours affiché et actif**, même sans aucune recommandation (tous les
-effectifs à zéro) — voir plus bas pourquoi il ne suit pas la règle du bloc de
-filtres. Persistance via `useStickyState` (survit à la navigation, remis à
-« Toutes » au reload).
+⚠️ **Plus de filtre par origine** (refonte graphique, décision 19 — le mainteneur :
+« au lieu du tri toutes / mes recos / importées, mets plutôt un tri attaque /
+défense »). Le filtre **Toutes · Mes recos · Importées**, ses effectifs, ses
+états vides (« Tu n'as créé aucune recommandation… », « Voir toutes les
+recommandations »), l'infobulle d'export « celles du filtre actif » et les
+bascules automatiques à la création et à l'import sont retirés ([retrait #19]
+du cadrage). L'origine reste une donnée de la carte : la puce « Importée » dit
+toujours ce qu'on a reçu.
 
-Garde-fous pour ne jamais « perdre » ce qu'on vient de faire :
-- **créer** une recommandation depuis la vue « Importées » bascule le filtre sur
-  « Mes recos » ;
-- **importer** depuis la vue « Mes recos » bascule sur « Toutes ».
+## Vue Attaque / Défense
+
+Les mêmes recommandations, lues dans les deux sens (décision 19 — « je
+voudrais des défenses qui ont X offenses fortes contre elles, je veux que les
+deux affichages soient possibles ») :
+
+| Vue | Une ligne par… | Puis | Rôle |
+|-----|----------------|------|------|
+| **Attaque** (défaut) | deck (offense) | les défenses contre lesquelles il est fort (« Fort contre ») | l'affichage d'avant ; **c'est là qu'on modifie** |
+| **Défense** | défense visée | les offenses de la recommandation fortes contre elle | **lecture seule** |
+
+⚠️ **Le format exporté ne change pas.** La vue Défense est **calculée** à
+partir des `counters` de chaque deck ([recoDefenses.ts](../../src/lib/recoDefenses.ts),
+calcul pur, testé : `reco-defenses`) — rien n'est stocké en plus, un ancien
+fichier s'affiche dans les deux vues sans conversion (« attention à ne pas
+toucher au modèle de données exporté »).
+
+Règles de la vue Défense — trois choix du mainteneur :
+- **Dans chaque recommandation** : la carte garde son en-tête (titre, auteur,
+  analyse, export) ; à l'intérieur, une ligne par défense visée, avec les
+  decks de CETTE recommandation qui la battent. Rien ne se mélange entre
+  recommandations de joueurs différents.
+- **Même défense = même leader et mêmes deux autres monstres**, dans
+  n'importe quel ordre : un leader différent change la défense en jeu (son
+  lead). Un monstre saisi à la main se reconnaît à son nom, sans casse.
+  Défense entièrement vide : ignorée. Les monstres affichés sont ceux de sa
+  première saisie ; les lignes suivent l'ordre de première apparition (celui
+  de la vue Attaque).
+- **Lecture seule** : on consulte « contre cette défense, j'ai ces
+  offenses ». Dès qu'on édite — la recommandation ou l'un de ses decks —, la
+  carte reprend la vue Attaque, où sont les formulaires : changer de vue ne
+  fait jamais disparaître une édition en cours.
+
+Affichage :
+- **Repliée** : une puce par défense (« Galleon - Belladeon · 2 » — le nombre
+  d'offenses), dont le point prend le **meilleur** verdict de ses offenses
+  après analyse — une seule jouable suffit à la taper — ; puis « N deck(s)
+  sans défense visée ».
+- **Dépliée** : même cadre et même rangée d'intitulés que le tableau des decks
+  (« Défense » · « Offenses fortes contre elle »). Chaque offense : le point
+  de son verdict, ses trois portraits (le leader porte son lead), son nom, et
+  la **précision** que CE deck donne sur la défense (« — si Galleon est en
+  lead »). Un deck qui vise deux fois la même défense n'y figure qu'une fois.
+- **Les decks sans défense visée** ne disparaissent pas : ils sont listés à la
+  fin, sous « Aucune défense visée ».
+- **Recherche** : une offense reste si son deck JOUE le monstre cherché, ou si
+  CETTE défense le contient ; une défense sans offense restante disparaît.
+- L'encart d'analyse reste ; ses lignes (« Voir le deck… ») sont
+  **désactivées** en vue Défense, où les decks ne sont pas affichés —
+  infobulle « Passe en vue Attaque pour ouvrir ce deck ».
+
+La vue est **mémorisée** (`useStickyState`, clé `recos.vue` — neuve :
+l'ancienne portait une origine).
 
 ## Recherche par monstre — sur toute la page
 
@@ -105,21 +265,22 @@ Garde-fous pour ne jamais « perdre » ce qu'on vient de faire :
 C'est elle qui décide de ce que la liste montre, elle doit donc être collée à ce
 qu'elle filtre.
 
-### Origine — SORTIE du bloc de filtres, toujours affichée
+### La vue — SORTIE du bloc de filtres, toujours affichée
 
-⚠️ **Origine ne suit pas la règle du bloc de filtres** (ci-dessous), et c'est
-volontaire. Un filtre au-dessus d'une liste vide n'a normalement rien à
+⚠️ **La vue ne suit pas la règle du bloc de filtres** (ci-dessous), et c'est
+volontaire — elle a hérité de la place et de la règle du filtre d'origine
+qu'elle remplace. Un filtre au-dessus d'une liste vide n'a normalement rien à
 filtrer — c'est vrai pour la recherche par monstre, qui n'a RIEN à chercher
-sans recommandation. Ce n'est **pas** vrai pour Origine : ses trois crans
-(Toutes/Mes recos/Importées) restent un choix qui a un sens dès qu'on **crée**
+sans recommandation. Ce n'est **pas** vrai pour la vue : ses deux crans
+(Attaque/Défense) restent un choix qui a un sens dès qu'on **crée**
 la première recommandation, et un bouton d'action qui apparaît une fois qu'on
 en a besoin surprend — on ne l'a jamais vu apparaître d'un geste, il était
 juste absent (voir la règle générale dans
 [shared/design.md](../shared/design.md#-un-bouton-daction-ne-disparaît-jamais--il-se-désactive)).
-Origine est donc **posée hors du bloc**, sur sa propre ligne, **toujours
-affichée et active** — aux deux formats.
+La vue est donc **posée hors du bloc**, **toujours affichée et active** —
+aux deux formats.
 
-Rendu **une seule fois** (`origineFilter(pleineLargeur)`), posé aux deux
+Rendu **une seule fois** (`vueFilter(pleineLargeur)`), posé aux deux
 endroits — même geste que `actions` et `effacer` :
 - **à la souris** : sur la page, juste au-dessus du bloc de filtres, `hidden
   lg:flex` ;
@@ -131,13 +292,11 @@ endroits — même geste que `actions` et `effacer` :
 de sa ligne, il y flotterait sinon dans une bande vide. `Segmented` passe en
 `size="lg"` (chaque cran se partage la largeur à égalité).
 
-⚠️ **Intitulé « Origine » : au DOIGT seulement.** Dans le panneau, c'est le
+⚠️ **Intitulé « Vue » : au DOIGT seulement.** Dans le panneau, c'est le
 seul repère de ce contrôle — rien d'autre à côté pour dire ce qu'il fait.
-À la SOURIS, plus d'intitulé : il avait sa raison d'être DANS le bloc de
-filtres, aligné sur « Monstres » et « Rôle » en dessous (même largeur
-`w-[76px]`, grammaire intitulé+contrôle) ; sorti de ce bloc et seul sur sa
-ligne, rien ne le précède plus à quoi l'intitulé pourrait s'aligner — les trois
-crans (Toutes/Mes recos/Importées) se lisent d'eux-mêmes.
+À la SOURIS, pas d'intitulé : en tête de la barre d'outils, les deux crans
+(Attaque/Défense) se lisent d'eux-mêmes, et leur infobulle dit ce que chacun
+montre.
 
 ⚠️ **`size="md"` à la souris, pas `sm`** — troisième palier ajouté à
 [Segmented.tsx](../../src/components/Segmented.tsx) : le texte et le
@@ -154,11 +313,11 @@ Monstres cherchés et rôle **filtrent tous la même liste** et se
 
 | Rangée | Contrôle | Visible |
 |--------|----------|---------|
-| **(sans intitulé)** | le champ, puis les 3 cases (`ml-auto`), puis « Vider » | dès 1 recommandation |
+| **(sans intitulé)** | le champ, puis les 3 cases collées à lui, puis « Vider » | dès 1 recommandation |
 | **Rôle** | `Segmented` Partout · Défense à taper · Offense à runer + le compteur de résultats | une fois un monstre posé |
 
 ⚠️ **Pas de cadre.** Il enfermait un contenu qui n'a pas besoin d'être distingué
-du reste de la page — Origine, juste au-dessus, n'en a pas non plus.
+du reste de la page — la vue, juste avant, n'en a pas non plus.
 
 ⚠️ **Pas d'intitulé « Monstres ».** Les trois cases et le champ disent déjà par
 leur FORME ce qu'on y fait — une composition de 3 monstres à composer —, un mot
@@ -166,28 +325,34 @@ devant n'ajoutait rien. « Rôle » garde le sien : contrairement aux cases, un
 `Segmented` Partout/Défense/Offense ne dit pas de lui-même sur QUOI il porte.
 
 Ce bloc **n'apparaît que s'il existe au moins une recommandation** : sans rien
-à chercher, la recherche n'a pas sa place — à la différence d'Origine, qui
+à chercher, la recherche n'a pas sa place — à la différence de la vue, qui
 reste affichée à vide (voir plus haut).
 
 ⚠️ **Le champ de recherche à GAUCHE, les portraits des monstres posés à
-DROITE (`ml-auto`).** C'est le champ qu'on utilise en premier — le regard
+sa DROITE, collés à lui.** C'est le champ qu'on utilise en premier — le regard
 commence par lui, pas par des cases encore vides — et les portraits sont son
 RÉSULTAT : ils se lisent après ce qu'on vient de taper, jamais avant.
+⚠️ **Sous `lg`, le champ prend toute la largeur restante** ; il n'est plafonné
+(260 px) qu'à partir de `lg`. Plafonné dès `sm`, avec les cases poussées au
+bord droit (`ml-auto`), il laissait un grand vide entre les deux, et les cases
+se lisaient comme un contrôle à part (le mainteneur, sur une capture en fenêtre
+étroite : « revois cet affichage »). Champ et cases forment maintenant un seul
+bloc.
 
 - ⚠️ **Origine, Monstres et Rôle étaient posés à trois niveaux différents, sans
   intitulé** : trois objets flottants dont rien ne disait qu'ils portaient sur
   la même liste ni qu'ils se cumulaient. L'intitulé de **largeur fixe**
   (`w-[76px]`) aligne les contrôles entre eux quelle que soit la longueur du
   mot.
-- ⚠️ **Le filtre d'origine utilise le VRAI [Segmented](src/components/Segmented.tsx)**,
+- ⚠️ **La vue (comme le filtre d'origine avant elle) utilise le VRAI
+  [Segmented](src/components/Segmented.tsx)**,
   et non une copie écrite à la main. La copie avait dérivé — `bg-panel` au lieu de
   `bg-panel2`, `rounded-xl p-1` au lieu de `rounded-lg p-0.5`, texte plus grand :
   deux contrôles à cran voisins n'avaient ni le même cadre, ni le même rayon, ni
   la même taille. Un composant partagé existe, on le prend.
-- L'**effectif** vit **dans le cran, après le libellé** (`suffix` de `Segmented`,
-  ajouté pour ça) : un nombre se lit après ce qu'il compte. Il reste `ink-dim`
-  dans tous les états — c'est une quantité, pas l'état du cran, que le fond dit
-  déjà (voir [../shared/design.md](../shared/design.md)).
+- Les crans de la vue ne portent pas d'effectif (le filtre d'origine en avait
+  un, dans le cran après le libellé, `suffix` de `Segmented`) : les deux vues
+  montrent les MÊMES recommandations, il n'y aurait rien à compter.
 - Le **compteur de résultats** est sur la rangée **Rôle** : c'est lui qui décide
   combien il en reste. Il n'a ainsi plus besoin d'une hauteur de ligne en dur
   (`leading-[30px]`) pour se caler sur un contrôle voisin.
@@ -306,11 +471,10 @@ la même réponse :
     l'analyse (rouge/vert), la remplacer effacerait cette information au moment
     même où on parcourt la page. Deux langages, deux supports. Même écho de
     filtre que les propriétés recherchées d'un artéfact.
-- **Aucun résultat** → message dédié, distinct de celui du filtre : dire « tu
-  n'as créé aucune recommandation » après une recherche ferait croire à une
-  perte de données.
+- **Aucun résultat** → message dédié : dire « aucune recommandation » après
+  une recherche ferait croire à une perte de données.
 - Persistée via `useStickyState` (survit à la navigation, repartie à vide au
-  reload), comme le filtre d'origine.
+  reload), comme la vue.
 
 Effet du filtre sur les actions :
 - **Export global** : exporte **ce qui est affiché**. ⚠️ Le bouton s'intitule
@@ -424,8 +588,15 @@ plus lourd que la colonne qu'il remplaçait. Les autres colonnes (`Stat`,
 suffit à les nommer, et « actuel » est la seule à valoir la peine d'un mot
 au-dessus puisqu'elle n'apparaît qu'après une analyse.
 
-- le **champ de bonus** est **`w-14`, `pleineLargeur={false}`** — cinq
-  chiffres visibles, la taille de la plupart des stats (PV ~35 000).
+- le **champ de bonus** est **`w-[calc(6ch+26px)]`, `pleineLargeur={false}`**
+  — six chiffres de la police du champ, plus son rembourrage (24 px) et son
+  contour (2 px) : au moins cinq chiffres visibles (PV ~35 000), plus un signe
+  pour un bonus négatif. ⚠️ L'ancien `w-14` (56 px) annonçait cinq chiffres
+  et n'en montrait que trois (lot 7b — le mainteneur : « augmenter la taille des
+  champs en mode édition pour avoir au moins 5 chiffres dedans ») : le `px-3`
+  de `Champ` l'emporte sur un `px-1` ajouté (ordre de la feuille), et son
+  `text-sm` sur `text-micro`. Une largeur en `ch` suit la police réelle,
+  quel que soit le format.
   ⚠️ **`pleineLargeur={false}` n'est pas optionnel** : `Champ` (la librairie)
   vaut `w-full` par défaut, pensé pour un champ posé seul dans un formulaire.
   Sans l'annuler ici, un champ de cinq chiffres s'étirait sur presque toute
@@ -492,6 +663,47 @@ retire la stat.
 - **Changer le monstre d'un slot remet ses stats ET ses sets à zéro** (ils ne
   valaient que pour le monstre visé).
 
+#### Raccourci « Tick rapide / Tick lent » sur la VIT
+
+En saisie, sous la ligne VIT de chaque monstre, deux boutons **« Tick
+rapide »** et **« Tick lent »** — les ticks 286 et 239 des cartes d'équipe du
+siège (`SIEGE_TICKS`, voir [speed-tick.md](speed-tick.md)). Un clic met dans la
+VIT la **VIT de fiche** qui amène le monstre **pile** sur le tick en combat,
+totem (+15 %) et lead de vitesse du deck compris (`ficheSpeedForTick` dans
+[speed.ts](src/lib/speed.ts) ; lead lu sur le slot 0, appliqué au monstre selon
+son élément par `siegeLeadFor`). Demandé par le mainteneur le 2026-10-04.
+
+- ⚠️ **Pas de chiffre sur le bouton**, contrairement au siège (« Rapide
+  286 ») : la VIT écrite est celle de fiche — 271 pour un monstre de base 96
+  sans lead —, et un bouton qui annonçait 286 pour écrire 269 (cas relevé)
+  se lisait comme une erreur (le mainteneur, 2026-10-04). Le tick visé et la VIT écrite sont dans
+  l'infobulle (« Mettre la VIT à 271 : tick 286 en combat, totem et lead
+  compris »).
+
+- ⚠️ **Un raccourci de saisie, rien de plus : aucun tick n'est stocké.** Seule
+  la VIT l'est, comme avant — modèle et format d'export inchangés. Pour régler
+  l'**ordre de jeu** entre monstres au même tick, on ajoute soi-même +1, +2…
+  dans le champ bonus ; rien d'autre n'est affiché (ni vitesse de combat, ni
+  ordre calculé).
+- Le bouton est **allumé** tant que la VIT tombe dans le tick : de pile à
+  +15 au-dessus (`TICK_ABOVE_MARGIN`, la marge de `tickDanger`). Un +3 pour
+  passer devant le garde allumé. Un clic, allumé ou non, remet la VIT pile au
+  tick — il n'y a rien à « éteindre ».
+- Le lead est celui **du moment du clic** : changer de leader ensuite ne
+  recalcule pas la VIT (rien ne dit qu'elle venait d'un tick) — il faut
+  recliquer.
+- **Désactivé**, toujours affiché, avec la raison en infobulle :
+  - quand **toutes** les possibilités de runage du monstre portent **Swift** —
+    un runage Swift se speed tune, il ne vise pas de tick (même règle que les
+    équipes de siège). Une seule possibilité sans Swift suffit à l'activer : le
+    calcul se fait alors sans Swift ;
+  - quand la **vitesse de base** du monstre est inconnue.
+- Les boutons occupent **leur propre ligne** (`basis-full`), à une place fixe :
+  le total qui change de largeur au clic ne les déplace pas. Ils sont **calés à
+  droite**, sous le champ et le total qu'ils remplissent — à gauche, sous la
+  base, ils ne s'alignaient sur rien. Police du texte, pas `font-mono` : ce
+  sont des mots, pas des chiffres.
+
 ## Sets de runes recommandés
 
 Un monstre porte **6 runes** ; un set 4 pièces en coûte 4, tous les autres 2
@@ -545,7 +757,7 @@ nom dans une liste — même règle que les filtres de runes (voir
   qui complète n'importe quel set : on recommande « Violent + Will », jamais
   « Intangible », et le proposer revenait à réclamer un set de 2 pièces qui
   n'existe pas. Signalé à l'usage sur le picker jumeau de l'Optimizer
-  ([../outils/optimizer.md](../outils/optimizer.md), « Set de runes
+  ([../outils/optimizer/ecran/set-et-principale.md](../outils/optimizer/ecran/set-et-principale.md), « Set de runes
   recherché »), corrigé des deux côtés en même temps — les deux grilles
   partaient de `RUNE_SETS` entier. Une reco **enregistrée avant** ce
   correctif qui en contiendrait un reste affichée et retirable.
@@ -637,6 +849,12 @@ d'une équipe de siège dont on consulte les runes (voir
   popovers de l'app ([SettingsMenu.tsx](src/components/SettingsMenu.tsx)).
 - `min-w-full` (au moins la largeur de sa vignette, pour se lire comme sa suite)
   et **280 px au plus** : la note est une phrase courte.
+- ⚠️ **C'est le `Flottant` de la librairie** (refonte graphique, lot 8a —
+  Le mainteneur : « fais la même chose partout dans l'appli », après la bulle
+  d'aide) : même fond, même contour neutre, même ombre, même rembourrage que
+  toutes les bulles de l'app. C'était une boîte maison au contour d'ACCENT —
+  réservé à l'état enclenché, que porte déjà la vignette —, à l'ombre et aux
+  marges à elle.
 - La vignette ouverte passe en **`z-20`** : les suivantes sont peintes après dans
   le flux et passeraient sinon par-dessus le flottant.
 
@@ -774,9 +992,9 @@ artéfacts les séparent.
 
 ## Persistance
 
-`localStorage` `sw-forge-siege-recos-v1` — contrairement à la box (en mémoire),
+`localStorage` `swblacksmith-siege-recos-v1` — contrairement à la box (en mémoire),
 ce sont des données **créées par l'utilisateur ou reçues d'un ami** : elles
-survivent au reload. Effacées par « Supprimer mes données » (préfixe `sw-forge`).
+survivent au reload. Effacées par « Supprimer mes données » (préfixe `swblacksmith-`).
 
 ## Partage — un seul format : le JSON
 
@@ -788,10 +1006,14 @@ base64 (`SWF-RECO-1:`) a coexisté un temps ; il a été **retiré** — deux fo
 pour la même chose, c'est deux fois plus de surface à valider, pour un contenu
 que personne ne peut relire ni corriger.
 
-### Fichier JSON (`format: "sw-forge/recommandations"`, `version: 5`)
+### Fichier JSON (`format: "swblacksmith/recommandations"`, `version: 5`)
+
+⚠️ L'identifiant s'écrivait `sw-forge/recommandations` avant le rebranding
+(décision 66) : il reste reconnu à l'import, sans avertissement
+([formatsExport.ts](src/lib/formatsExport.ts)).
 
 ```json
-{ "format": "sw-forge/recommandations", "version": 5, "exporte_le": "…",
+{ "format": "swblacksmith/recommandations", "version": 5, "exporte_le": "…",
   "recommandations": [
     { "nom": "…", "auteur": "…", "consignes": "…",
       "decks": [ { "nom": "Def 1", "consignes": "…",
@@ -924,9 +1146,20 @@ Calcul pur dans [recoMatch.ts](src/lib/recoMatch.ts) → stats réelles via
 
 ⚠️ **Rien n'est confronté par défaut.** Une carte non analysée est neutre : pas
 d'aura, pas de pastille, pas de badge sur les monstres. L'analyse se lance **par
-recommandation**, via le bouton **« Analyser mes decks »** de son en-tête (il
-devient « Réanalyser mes decks » ensuite) — le libellé dit bien que la
-confrontation porte sur **l'ensemble des decks**, pas sur un seul.
+recommandation**, via le bouton **« Analyser mes decks »** de son en-tête — le
+libellé dit bien que la confrontation porte sur **l'ensemble des decks**, pas
+sur un seul.
+
+⚠️ **Bouton à DEUX ÉTATS** (refonte graphique, décision 17 — le mainteneur : « une
+fois analysé, je veux que si on clique ça cache l'analyse ») : un clic
+analyse, un second **masque** le résultat — le même geste que la croix
+« Masquer le résultat de l'analyse » de l'encart. Il est enclenché
+(`aria-pressed`, fond d'accent) tant qu'une analyse est affichée, avec
+« Masquer le résultat de l'analyse » en infobulle. Masquer reste possible sans
+compte chargé (rien à calculer). Il devenait avant « Réanalyser mes decks » :
+relancer se fait maintenant en deux clics — et relancer sans rien avoir changé
+redonnait le même résultat, puisqu'un résultat périmé est de toute façon
+effacé (voir plus bas).
 
 ⚠️ **À la SOURIS seulement** (`compact:hidden`), étiqueté, à côté du titre — la
 place ne manque pas. Au doigt, il n'est plus sur la carte du tout : il vivait en
@@ -935,6 +1168,13 @@ mais choisir SA carte demandait d'abord d'y faire défiler — un geste que le
 panneau « Options » fait maintenant sans quitter le haut de l'écran (voir plus
 bas). Une icône de plus dans un coin déjà chargé pour un geste qui a un meilleur
 endroit ne se justifiait plus.
+
+⚠️ **Et seulement à partir de `lg`** (`max-lg:hidden` en plus de
+`compact:hidden`, lot 7b) : sous ce seuil la page prend sa disposition
+téléphone, panneau « Options » compris — même à la souris, dans une fenêtre
+étroite. Le bouton y apparaissait alors aux DEUX endroits, sur la carte et
+dans le panneau (le mainteneur : « il ne le faut qu'à un seul endroit »). Un geste,
+un endroit : la carte à partir de `lg`, le panneau en dessous.
 
 - Le bouton est **désactivé sans compte importé** (rien à quoi comparer).
 - Le résultat est **mémorisé dans le board** avec la reco et les builds qui ont
@@ -951,8 +1191,8 @@ endroit ne se justifiait plus.
 analyser (aucune carte n'est sous les yeux pour le dire), puis « Analyser » qui
 fait le reste.
 
-- Le menu liste les recommandations **affichées** (`list` — filtre d'origine et
-  recherche déjà appliqués), avec le même nom de repli
+- Le menu liste les recommandations **affichées** (`list` — recherche déjà
+  appliquée), avec le même nom de repli
   (« Recommandation N ») que sur les cartes.
 - **Désactivé sans compte importé**, même condition que le bouton de la souris.
 - Au clic sur « Analyser » : l'analyse se lance, la carte visée **s'ouvre**
@@ -1047,9 +1287,10 @@ chacune :
   monter un monstre qu'on n'a pas. Ce n'est ni le même horizon, ni la même
   décision. Fondus, il fallait parcourir toute la liste rouge pour trier à l'œil
   ce sur quoi on pouvait agir le soir même.
-- ⚠️ **Deux filtres, un seul rouge.** Les deux gardent la couleur `fire` : ils
-  sont bloquants tous les deux, et c'est ce que la couleur dit. On n'introduit
-  pas une cinquième couleur qui mentirait sur la gravité.
+- ⚠️ **Deux filtres, un seul rouge.** Les deux gardent la même couleur, `bad` :
+  ils sont bloquants tous les deux, et c'est ce que la couleur dit. On
+  n'introduit pas une cinquième couleur qui mentirait sur la gravité. (C'était
+  `fire`, le rouge de l'élément Feu, jusqu'au rebranding, décision 43.)
 - ⚠️ **Le point de « Monstre manquant » est CREUX.** Deux pastilles de la même
   couleur côte à côte ne se distinguent plus que par leur texte, qu'on ne relit
   pas une fois la barre connue. Le creux dit « il manque quelque chose ». Il est
@@ -1181,10 +1422,10 @@ build de cette équipe-là**, pas au meilleur build tous contextes confondus.
 
 | Statut | Couleur | Condition | Badge |
 |--------|---------|-----------|-------|
-| `missing` | `fire` | au moins un monstre **non possédé** | « monstre indisponible — deck impossible » |
-| `ko` | `fire` | l'équipe existe mais **stats/sets insuffisants** | selon la cause, voir ci-dessous |
-| `nodeck` | `amber` | monstres possédés, **aucune équipe ne les réunit** | « aucun deck avec ces monstres — à composer » |
-| `ok` | `emerald` | l'équipe existe et tout est au niveau | « jouable · Offense 3 » |
+| `missing` | `bad` | au moins un monstre **non possédé** | « monstre indisponible — deck impossible » |
+| `ko` | `bad` | l'équipe existe mais **stats/sets insuffisants** | selon la cause, voir ci-dessous |
+| `nodeck` | `warn` | monstres possédés, **aucune équipe ne les réunit** | « aucun deck avec ces monstres — à composer » |
+| `ok` | `good` | l'équipe existe et tout est au niveau | « jouable · Offense 3 » |
 | `unknown` | neutre | deck **vide** | — |
 
 Statut **par slot** : `absent` (rouge, « monstre indisponible ») · `ko` (rouge,
@@ -1237,9 +1478,9 @@ deck bloqué. Elles sont montées à **20–45 % selon la teinte et la surface**
 
 | Statut | Couleur | Condition |
 |--------|---------|-----------|
-| `ok` | `emerald` | **tous** les decks jouables |
-| `partial` | `amber` | une partie seulement |
-| `missing` | `fire` | **aucun** deck jouable, tous bloqués par un monstre manquant |
+| `ok` | `good` | **tous** les decks jouables |
+| `partial` | `warn` | une partie seulement |
+| `missing` | `bad` | **aucun** deck jouable, tous bloqués par un monstre manquant |
 | `unknown` | neutre | **pas encore analysée**, ou aucun deck rempli |
 
 - Sans compte importé : bouton « Analyser » **désactivé**, cartes neutres. Les
@@ -1267,6 +1508,13 @@ illisible tout déplié. Chaque carte est donc **repliée par défaut** :
   seconde cible pour le même geste que le titre — sur un écran qu'on parcourt
   au pouce, la plus petite des deux. À la souris, viser un bouton précis ne
   coûte rien, et le chevron confirme l'état d'un coup d'œil.
+  ⚠️ **À la souris, c'est un CHEVRON seul en tête de ligne** (lot 7b, la
+  maquette), le même que celui de chaque deck : pointe à droite replié, en bas
+  déplié, libellé « Consulter » / « Réduire » en infobulle et `aria-label`.
+  Le bouton étiqueté « Consulter / Réduire » au bout de la ligne ne vit plus
+  que sous `lg` (souris sur fenêtre étroite). En édition, le chevron reste en
+  place, **désactivé** (« Termine l'édition pour replier ») : le retirer
+  décalerait le champ du nom.
 - **Le TITRE bascule aussi la carte** — même geste que « Consulter », pas un
   second, et le SEUL au doigt. Masqué en édition, comme « Consulter » : le
   titre devient alors le champ de saisie du nom.
@@ -1284,13 +1532,42 @@ Indépendamment du repli de la carte, **chaque deck a son propre chevron**.
 - ⚠️ **Les decks sont repliés par défaut** : déplier une recommandation montre la
   **liste de ses decks**, pas leur contenu. On ouvre ensuite celui qui intéresse.
   Sans ça, une reco de 6 decks déroulait tout l'écran d'un coup.
-- ⚠️ **Grille à 2 colonnes à la SOURIS** (`lg:grid-cols-2`), une colonne en
-  dessous — même seuil que la grille d'équipes de siège (SiegeBoard.tsx). Une
-  recommandation porte souvent une demi-douzaine de decks : les empiler sur
-  une seule colonne, à la souris, laissait la moitié de la largeur de l'écran
-  vide. **Le deck en édition reprend toute la largeur** (`col-span-2`) : ses 3
-  emplacements de monstres plus le picker de chacun seraient à l'étroit sur
-  une demi-colonne — même raison que pour une équipe de siège dépliée.
+- ⚠️ **À la SOURIS, un TABLEAU de decks, chacun dépliable en sa carte
+  détaillée** — refonte graphique, lot 7b, décision 15 du mainteneur (« propose-moi
+  un mix des deux propositions », puis « pars là-dessus », sur la planche
+  « proposition mixte » de la maquette). Chaque deck est une LIGNE, sous une
+  rangée d'intitulés de colonnes :
+  - **Offense · sets visés** : les 3 monstres (portrait + nom), le leader
+    d'abord avec son badge de lead ; les **icônes des sets visés collées à
+    chaque monstre** (première possibilité de runage) — on voit qui porte
+    quoi sans ouvrir. La colonne « Sets et stats » de la maquette est FUSIONNÉE
+    ici : dans une colonne à part, on ne saurait plus quel monstre porte quel
+    set ; les stats visées restent dans le détail, trop nombreuses pour une
+    ligne.
+  - **Fort contre** : les portraits de la première défense visée (+N s'il y
+    en a d'autres).
+  - **Verdict** : après analyse, la pastille du statut avec les libellés des
+    filtres (Bon · À composer · À revoir · Monstre manquant, `VERDICTS`), la
+    phrase complète en infobulle, et « réalisable N fois ». Avant analyse,
+    rien.
+  - Le chevron garde sa place dans la ligne. Le crayon l'a quittée depuis :
+    il est devenu « Éditer ce deck », en pied du détail déplié (voir en tête
+    de fichier) — c'est le MÊME bouton, seule la disposition change.
+  Déplier une ligne montre, dessous, la **carte détaillée d'avant, inchangée**
+  (consignes du deck, les 3 monstres avec runage, stats et artéfacts, « Fort
+  contre » avec ses précisions, édition). **Au doigt**, les decks restent
+  des cartes empilées, repliées par défaut, qui s'ouvrent au toucher ; depuis
+  le lot 11b (décision 25, la maquette), la rangée repliée montre aussi
+  **« Fort contre »** (séparé de l'offense par un filet) et, dessous, les
+  **sets visés** de chaque monstre (une pastille par monstre, première
+  possibilité de runage) — ce qu'elle réservait à la souris.
+  L'ancienne disposition à la souris — une grille de cartes sur deux colonnes
+  (`lg:grid-cols-2`, le deck en édition sur toute la largeur) — est remplacée
+  par cette liste : une ligne par deck se lit d'un regard, sans demi-largeur
+  vide. ⚠️ Le `lg:col-span-2` du deck en édition, resté de cette grille, a été
+  retiré le 2026-09-27 : dans le tableau à UNE colonne, il en créait une
+  seconde, implicite, où la rangée d'intitulés et les lignes se tassaient
+  (« gros bug d'affichage quand on essaye d'éditer un deck »).
 - **Lead du leader** : affiché **sur le monstre** en slot 0, comme en siège et
   avec les mêmes composants ([LeadPill.tsx](src/components/siege/LeadPill.tsx)) —
   `LeadBadge` sur son portrait dans l'aperçu replié, `LeadPill` (icône +
@@ -1329,7 +1606,9 @@ Indépendamment du repli de la carte, **chaque deck a son propre chevron**.
   demi-douzaine par recommandation) sur un écran étroit. Même resserrement
   sur l'espacement de la rangée verdict/copies (`compact:gap-1 compact:mt-0.5`).
 - **« Déplier / Replier tous les decks »** : lien en haut à droite de la liste,
-  affiché dès **2 decks**.
+  affiché dès **2 decks**. À la souris, un **bouton fantôme** de la librairie
+  (lot 7b), toujours **au-dessus** du tableau — la maquette le posait en
+  dessous, où le clic l'aurait repoussé de toute la hauteur des decks dépliés.
 - Un deck **en édition est toujours déplié**, quel que soit son état de repli.
 - État **local à la carte** (`openDecks` = les decks ouverts), réinitialisé quand
   le **nombre de decks change** (les index se décalent à l'ajout/suppression).
@@ -1353,6 +1632,56 @@ qu'on vient d'affronter est un geste **de passage**, éditer les stats d'un deck
 est un **travail de fond**. Il n'a d'ailleurs **pas de mode édition de bloc** —
 juste un « + » qui ajoute et ouvre l'entrée créée. Voir « Défenses visées » plus
 haut.
+
+#### « Annuler les modifications » — sortir sans garder (le mainteneur, 2026-10-05)
+
+Chaque modification s'enregistre **tout de suite** ; le ✓ termine l'édition en
+gardant tout. Pendant une édition, un bouton **« Annuler les modifications »**
+(icône ↶) termine l'édition en remettant ce qu'il y avait **à son ouverture**
+— logique pure dans [annulerEdition.ts](src/lib/annulerEdition.ts) :
+
+| Où | Ce qui revient | Ce qui reste |
+|----|----------------|--------------|
+| deck (pied à la souris, à côté du ✓ au doigt) | consignes, monstres, sets, artéfacts, stats | les **défenses visées** — édition détachée, on ne défait pas l'une avec l'autre |
+| recommandation (en-tête, à côté du ✓) | nom, auteur, consignes générales, **et** le deck en cours d'édition s'il y en a un — symétrique de « Terminer », qui termine aussi le deck | les decks **ajoutés** pendant l'édition (on les retire avec « Supprimer ce deck ») |
+
+- **Placé juste AVANT le ✓** : le groupe d'actions est en bout de ligne (au
+  doigt) ou calé à droite (pied, à la souris) ; il s'allonge vers la gauche,
+  le ✓ qu'on vient de toucher ne bouge pas. À la souris, le pied l'écrit en
+  toutes lettres, comme « Terminer l'édition de ce deck ».
+- **Grisé tant que rien n'a changé** (comparaison par valeur : retaper la même
+  chose n'est pas une modification).
+- ⚠️ **Ni confirmation, ni notification.** Une confirmation serait un « OK »
+  qui détruit ; une notification « Modifications annulées · Rétablir » —
+  essayée — faisait une **annulation d'annulation** (le mainteneur, 2026-10-05 :
+  « c'est bizarre »). La sortie du mode édition dit assez ce qui s'est passé ;
+  le bouton grisé tant que rien n'a changé évite le clic pour rien.
+- **Un deck tout juste ajouté** (création d'une recommandation, « Ajouter un
+  deck vide », « Importer un deck d'offense ») s'ouvre en édition : annuler le
+  remet **comme à l'ajout** (vide, ou tel qu'importé), il ne le retire pas.
+- ⚠️ **Le nombre de decks change pendant une édition** (un autre deck
+  supprimé, ou remis par « Annuler ») : les index se décalent, le deck mémorisé
+  ne serait plus le même. L'édition se **termine** alors, modifications
+  gardées — sauf pour le deck qu'on vient d'ajouter en fin de liste
+  (`deckEditeApresChangement`).
+- **Supprimer un deck termine l'édition** avant de le retirer : supprimer le
+  dernier le remplace par un deck vide sans changer leur nombre, et l'édition
+  resterait sinon ouverte sur ce deck vide, prête à recopier une partie du
+  deck supprimé.
+
+⚠️ **Un monstre choisi, le curseur passe au monstre suivant** (refonte
+graphique, décision 18 — le mainteneur : « quand on édite une équipe, mets un
+autofocus sur le monstre suivant une fois qu'on en a choisi un, idem pour les
+défenses (fort contre) ») : dans les 3 slots d'un deck comme dans les 3
+monstres d'une défense visée, le champ du **slot vide suivant** prend le focus
+— en bouclant sur ceux d'avant si on a commencé par le milieu ; trio complet,
+le focus ne bouge pas. On compose ainsi un trio au clavier, sans revenir à la
+souris. Calcul dans
+[slotVideSuivant.ts](../../src/components/siege/slotVideSuivant.ts) (testé :
+`siege-slot-suivant`), focus par le `jetonFocus` de
+[MonsterPicker](../../src/components/MonsterPicker.tsx) — un jeton qui change
+à chaque demande, car le champ suivant est DÉJÀ affiché (`autoFocus` n'agit
+qu'au montage).
 
 #### ⚠️ Le titre et les icônes d'action partagent LEUR PROPRE rangée
 
@@ -1404,11 +1733,17 @@ fond**, groupés et resserrés (`gap-0.5`) à droite de la ligne :
   le titre, la puce « Importée », le compteur de decks, l'auteur, et
   « Analyser mes decks » / « Consulter » à la souris. Analyser vit au doigt
   dans le panneau « Options » (voir plus haut), pas dans ce groupe.
-- **deck** : Éditer ✏️, puis Supprimer 🗑 (visible seulement en édition).
+- **deck** : Éditer ✏️, puis Supprimer 🗑 — **toujours visible** depuis le
+  2026-09-27 (il ne l'était qu'en édition).
 - Le sens passe par l'**infobulle** et l'`aria-label` (obligatoire : une icône
   seule n'est pas lisible au lecteur d'écran).
 - Faute de cadre pour marquer l'état actif, l'**édition en cours** se lit à
-  l'icône qui devient un **✓ doré** (`text-star`) + `aria-pressed`.
+  l'icône qui devient un **✓ doré** (`text-star`) + `aria-pressed`. Les deux
+  crayons sont des `BoutonIcone` (lot 7b) : la couleur dorée est posée sur
+  l'**icône**, pas sur le bouton — deux classes de couleur rivales sur le même
+  élément n'ont pas d'ordre garanti dans la feuille.
+- À la souris, ces carrés passent à **28 px aux coins arrondis** (voir en tête
+  de fichier, « un seul bouton d'icône »).
 - Les libellés ne sont conservés que là où la place ne manque pas : « Analyser
   mes decks », « Consulter », et les actions de la barre du haut.
 
@@ -1426,7 +1761,8 @@ fond**, groupés et resserrés (`gap-0.5`) à droite de la ligne :
   sans passer par l'édition de la recommandation.
 - **Raccourcis** : créer une recommandation ouvre directement son deck vide en
   édition ; ajouter/importer un deck ouvre le nouveau deck en édition.
-- La suppression d'un deck demande une **confirmation**.
+- La suppression d'un deck **se défait** (« Deck supprimé · Annuler ») au
+  lieu de se confirmer, depuis le lot 13 de la refonte (décision 29).
 - **Disposition** : les recommandations sont **empilées en pleine largeur** (une
   par ligne) — elles contiennent plusieurs decks de 3 monstres, une mise en
   2 colonnes serait illisible. À l'intérieur, les decks sont empilés et chaque

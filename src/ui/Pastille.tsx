@@ -27,6 +27,23 @@ import { PRESSION } from './Bouton';
 // classes d'élément s'accrochent ; `aria-pressed` pour qu'un lecteur d'écran
 // annonce l'état, pas un simple bouton.
 
+// Marqueur « filtre actif » de l'app : la couleur d'ACCENT (la braise, depuis
+// le rebranding) en fond teinté à 25 %, avec son contour (refonte
+// graphique, décision 9 du mainteneur, amendée : la couleur inversée donnait un
+// aplat blanc en thème sombre, écarté). Exporté pour que les filtres qui ne
+// passent pas par `Pastille` (sets, emplacements, étoiles du Bestiaire) portent
+// EXACTEMENT le même : deux marqueurs côte à côte se liraient comme deux natures
+// de filtre (spec/shared/design.md § UN SEUL marqueur). ⚠️ Le contour lit la
+// braise LISIBLE (tailwind.config.js) : en Atelier, la vive ne ferait que 2.1 à
+// 2.6 comme contour.
+// ⚠️ Rebranding, décision 20 — la planche « Actions » de la toile : contour
+// braise sur le « braise sombre » (`accent-soft`, #3A2415 en Forge), qui
+// remplace le fond braise à 25 %. **Sans la coche ni le gras** de la toile : la coche
+// apparaissait au clic et élargissait la pastille, ses voisines bougeaient
+// (règle « un clic ne déplace jamais ce qu'on vient de cliquer »). Contraste
+// mesuré : texte 11.44 / 15.23, contour 5.58 / 4.91 (Forge / Atelier).
+export const MARQUEUR_FILTRE_ACTIF = 'border-accent bg-accent-soft text-ink';
+
 export interface PastilleProps
   extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'children'> {
   actif: boolean;
@@ -46,7 +63,7 @@ const Pastille = forwardRef<HTMLButtonElement, PastilleProps>(function Pastille(
   const schema = couleurs
     ? `bg-panel ${couleurs} ${actif ? '' : 'opacity-70 hoverable:opacity-100'}`
     : actif
-      ? 'border-accent bg-accent-soft text-ink'
+      ? MARQUEUR_FILTRE_ACTIF
       : 'bg-panel border-border text-ink-dim hoverable:text-ink hoverable:border-accent';
 
   return (

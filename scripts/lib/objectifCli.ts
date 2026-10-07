@@ -1,15 +1,15 @@
 // L'objectif passé en ARGUMENT à un script, résolu contre le type courant.
 //
-// ⚠️⚠️ **`'degats'` A ÉTÉ RETIRÉ d'`Objective`** (2026-08-27, voir
-// runeBuildOptim.ts) — mais il restait le DÉFAUT de neuf scripts CLI/diag, en
-// cast `as Objective`. Or `objectiveKeysOf` retombe sur `[]` pour une valeur
-// absente de la table : ces scripts mesuraient donc **sans aucun biais de
-// pré-filtrage**, alors qu'ils sont précisément là pour mesurer ce biais. Le
-// validateur différentiel comparait deux moteurs dans des conditions qui
-// n'étaient plus celles de l'app, et rien ne le disait.
+// ⚠️⚠️ **`'degats'` n'est plus un `Objective`** (voir runeBuildOptim.ts) :
+// un script qui le passerait en cast `as Objective` ferait retomber
+// `objectiveKeysOf` sur `[]` (valeur absente de la table), et mesurerait donc
+// **sans aucun biais de pré-filtrage**, alors que ces scripts sont
+// précisément là pour mesurer ce biais. Un validateur différentiel
+// comparerait deux moteurs dans des conditions qui ne sont pas celles de
+// l'app, et rien ne le dirait.
 //
-// ⚠️ **Le repli reproduit l'ANCIEN comportement, il ne l'efface pas** :
-// `'degats'` privilégiait ATQ + Dgts Crit. On rend donc `'efficience'` avec
+// ⚠️ **Le repli reproduit l'ANCIEN comportement de `'degats'`** : il
+// privilégiait ATQ + Dgts Crit. On rend donc `'efficience'` avec
 // `objectiveStats: ['atk', 'cd']` — exactement l'équivalence déjà retenue dans
 // `perfShared.ts` pour sa batterie. Mesurer « sans biais » aurait changé la
 // question posée, silencieusement.

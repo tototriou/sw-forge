@@ -1,4 +1,4 @@
-// 6bis-b5b : le harnais ne propose pas l'axe « évaluateur représentatif ».
+// Le harnais ne propose pas l'axe « évaluateur représentatif ».
 // API publique searchBuilds, sans réimplémenter ses phases. L'oracle énumère
 // le pool brut ; sa NOTE est scoreDeReference, indépendante du nouveau
 // producteur et vérifiée contre des attentes chiffrées dans artifact-fiche.
@@ -19,7 +19,7 @@ import { BASE_FICHE, DEGATS_FICHE, REF_FICHE, CONTEXTE_FICHE, artFiche, gearFich
 import { egal, ok, titre } from './outils';
 
 // Le chemin final de l'écran, avec ses vrais producteurs de note et de paire.
-// Limité aux reliques fixes : la résolution CLI en recherche appartient à b5c.
+// Limité aux reliques fixes : la résolution CLI en recherche appartient au classement du CLI (`tests/cli-classement.test.ts`).
 export function classerFicheCollectee(params: SearchParams, resultat: SearchResult,
   paires: Omit<ArtifactSearchParams, 'evaluer'>, degats: DegatsContext) {
   if (params.relicContext?.mode === 'recherche') throw new Error('Ce contrôle porte sur la relique fixe');

@@ -1,5 +1,4 @@
-// Le mode critique « Moyenne » supprimé (degats-et-aura, lot CM — décision de
-// l'utilisateur du 2026-10-02). Une recette déjà exportée ou partagée qui le
+// Le mode critique « Moyenne » supprimé. Une recette déjà exportée ou partagée qui le
 // porte est CONVERTIE en « Critique » (le défaut) avec un avertissement
 // visible, à l'écran comme dans le CLI — jamais refusée, jamais changée en
 // silence. Toute autre valeur inconnue reste refusée ; l'export n'écrit
@@ -44,7 +43,7 @@ function recetteBrute(critMode: unknown, monsterCom2usId = 14104, monsterName = 
 }
 
 export function testCritiqueMoyenneImport() {
-  titre('Coup critique — « Moyenne » supprimé : conversion à l’import, refus du reste, export (lot CM)');
+  titre('Coup critique — « Moyenne » supprimé : conversion à l’import, refus du reste, export');
 
   egal(CRIT_MODE_LABELS.map((c) => c.key), ['crit', 'normal'], 'deux modes proposés : Critique, Non critique');
 
@@ -86,12 +85,12 @@ export function testCritiqueMoyenneImport() {
   egal(JSON.parse(reexportee).damageSetup.critMode, 'crit', '… elle porte « crit »');
 }
 
-// Décision de l'utilisateur du 2026-10-02 : le message porteur d'un
+// Le message porteur d'un
 // avertissement de conversion prend le token `warn` et ne s'efface plus après
 // 5 s — il reste jusqu'au prochain import (réussi ou refusé), qui le
 // remplace ; le message ordinaire garde sa minuterie.
 export function testCritiqueMoyenneMessageImport() {
-  titre('Coup critique — message d’import porteur d’un avertissement : token warn, sans effacement automatique (lot CM)');
+  titre('Coup critique — message d’import porteur d’un avertissement : token warn, sans effacement automatique');
 
   egal(
     [classeMessageImport({ text: 'x', avertissement: true }), delaiEffacementImport({ text: 'x', avertissement: true })],
@@ -127,7 +126,7 @@ export function testCritiqueMoyenneMessageImport() {
 }
 
 export function testCritiqueMoyenneEcranEtCli() {
-  titre('Coup critique — « Moyenne » converti : avertissement à l’écran et dans le CLI (lot CM)');
+  titre('Coup critique — « Moyenne » converti : avertissement à l’écran et dans le CLI');
 
   // L'écran : `importRecipe` lit les avertissements du parseur et les ajoute
   // au message d'import, dans les deux branches (monstre trouvé ou non).
@@ -145,7 +144,7 @@ export function testCritiqueMoyenneEcranEtCli() {
   ok(espece != null, `précondition : ${COM2US_MINIATURE} est dans monsters.json`);
   if (!espece) return;
   const compte = resolve(racine, 'tests/fixtures/compte-miniature.json');
-  const dossier = mkdtempSync(join(tmpdir(), 'swforge-lot-cm-'));
+  const dossier = mkdtempSync(join(tmpdir(), 'swblacksmith-lot-cm-'));
   try {
     const cheminMoyenne = join(dossier, 'moyenne.json');
     const cheminCrit = join(dossier, 'crit.json');

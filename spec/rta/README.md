@@ -5,7 +5,7 @@ par set de runes, saisir la vitesse de leurs runes, et lire l'**ordre de tour**
 recalculé selon les leads de vitesse.
 
 Fichier racine : [RtaPage.tsx](src/pages/RtaPage.tsx) · État :
-[useRtaState.ts](src/hooks/useRtaState.ts) (`localStorage` `sky-arena-rta-v1`).
+[useRtaState.ts](src/hooks/useRtaState.ts) (`localStorage` `swblacksmith-rta-v1`).
 
 ## Deux sous-sections
 
@@ -30,13 +30,19 @@ Fichier racine : [RtaPage.tsx](src/pages/RtaPage.tsx) · État :
 
 ## Vue d'ensemble de l'écran « Ma prépa » (de haut en bas)
 
-1. **En-tête** : titre + explication.
-2. **Barre de recherche** pour ajouter un monstre à la prépa.
-3. **Barre d'actions** : compteur, **Importer un compte**, **Créer un monstre**,
-   **Tout effacer** ; + disclaimer monstres récents / message d'import.
-3bis. **Sauvegarder · Reprendre · Réinitialiser · Exporter · Importer** — point
-   de restauration manuel et partage. Voir
+1. **En-tête** (bureau) : titre « Ma prépa », le compteur (« 3 monstres en
+   prépa »), **Exporter**, et le menu **« ⋯ » Plus d'actions** — Sauvegarder,
+   Reprendre, Importer une prépa, Créer un monstre, puis, séparés en bas,
+   Réinitialiser et Tout effacer. Refonte graphique, lot 6, décision 13 de
+   Le mainteneur : ces actions s'alignaient en deux rangées de boutons au-dessus de
+   la prépa. **Quand elles tiennent sur la ligne, elles s'y affichent toutes
+   en boutons** (place mesurée) — le menu ne sert que faute de place. Voir
    [sauvegarde-partage.md](sauvegarde-partage.md).
+2. **Barre de recherche** pour ajouter un monstre à la prépa — **permanente**
+   (décision 13 : pas derrière un bouton).
+3. **Téléphone** : le compteur seul dans la page ; toutes les actions dans le
+   panneau « Options » (création, Sauvegarder · Reprendre · Réinitialiser ·
+   Exporter · Importer, catégories, Tout effacer) — inchangé, lot 11.
 4. **« Non classé »** : zone tampon où atterrissent les monstres ajoutés.
 5. **Sections par set de runes** (Swift / Violent / Despair / Autre + ajoutables).
 6. **Ajouter une section** (choix d'un set de runes).
@@ -75,8 +81,8 @@ interface RtaState { sections: string[]; entries: Record<string, RtaEntry> }
   — **automatiquement**, sans geste de l'utilisateur. Le bouton « Sauvegarder »
   ne sert donc pas à enregistrer mais à poser un **point de retour** ; voir
   [sauvegarde-partage.md](sauvegarde-partage.md).
-- Clés : `sky-arena-rta-v1` (la prépa), `sw-forge-rta-categories-v1` (les
-  catégories), `sw-forge-rta-backup-v1` (le point de sauvegarde).
+- Clés : `swblacksmith-rta-v1` (la prépa), `swblacksmith-rta-categories-v1` (les
+  catégories), `swblacksmith-rta-backup-v1` (le point de sauvegarde).
 - Au chargement, l'état est validé/réparé (types, garantie de « Autre »).
 - Un monstre présent dans `entries` mais **absent des données chargées** est
   simplement ignoré à l'affichage (pas d'erreur).

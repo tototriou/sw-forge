@@ -76,6 +76,20 @@ export interface BoutonIconeProps
   // reste dans le DOM), et il est rendu visible d'office là où il n'y a pas de
   // survol (`no-hover:`) ainsi qu'au focus clavier. Voir spec/shared/design.md.
   auSurvol?: boolean;
+  // À la SOURIS, le libellé s'écrit à côté de l'icône : le carré devient un
+  // bouton `sm` à libellé (28 px). Au doigt, rien ne change — l'icône seule.
+  //
+  // ⚠️ Pour une action que la maquette ÉCRIT à la souris et que le téléphone
+  // garde en icône (« Éditer ce deck », lot 7b). Deux boutons — une icône
+  // `lg:hidden` et un bouton à libellé `hidden lg:inline-flex` — auraient fait
+  // deux éléments pour un geste : deux cibles au clavier, deux annonces au
+  // lecteur d'écran. Un seul élément, deux dessins.
+  // ⚠️ **À CADRE à la souris** (`.btn-secondary`) : un bouton à libellé posé
+  // parmi d'autres boutons à libellé doit leur ressembler. Nu, « Éditer ce
+  // deck » ne ressortait pas (le mainteneur : « le bouton d'édition ne ressort pas
+  // trop »). Au doigt, l'icône reste nue, comme avant. `danger` prend le
+  // contour et le texte de son ton.
+  libelleALaSouris?: boolean;
 }
 
 const BoutonIcone = forwardRef<HTMLButtonElement, BoutonIconeProps>(function BoutonIcone(
@@ -91,6 +105,7 @@ const BoutonIcone = forwardRef<HTMLButtonElement, BoutonIconeProps>(function Bou
     zoneEtendue = false,
     sansInfobulle = false,
     auSurvol = false,
+    libelleALaSouris = false,
     className = '',
     ...reste
   },
@@ -116,13 +131,22 @@ const BoutonIcone = forwardRef<HTMLButtonElement, BoutonIconeProps>(function Bou
       aria-label={libelle}
       title={sansInfobulle ? undefined : libelle}
       icone={icone}
+      libelle={libelleALaSouris ? <span className="hidden lg:inline">{libelle}</span> : undefined}
       // ⚠️ Voir plus haut : `serre` s'exempte de la règle tactile parce que son
       // contenant est plus petit qu'elle, pas parce que 40 px gênait.
       {...(serre || zoneEtendue ? { 'data-cible-fine': true } : {})}
-      // ⚠️ Le voile de survol ne se pose QUE sur un bouton sans fond propre :
-      // sur un fond déjà peint, il l'assombrit au lieu de le désigner.
+      // ⚠️ Plus de voile propre (`hoverable:bg-black/25`) : le fond de survol
+      // vient désormais de `Bouton` lui-même, `panel2` comme `.btn-ghost` de la
+      // maquette (décision 16). Deux classes de survol rivales, c'est l'ordre
+      // de la feuille qui aurait tranché.
       className={`${serre ? 'h-5 w-5' : 'h-7 w-7'} ${zoneEtendue ? 'cible-tactile' : ''} ${
-        cadre || fond ? '' : 'hoverable:bg-black/25'
+        libelleALaSouris
+          ? `lg:h-7 lg:w-auto lg:rounded-lg lg:px-2.5 ${
+              ton === 'danger'
+                ? 'lg:border-bad/50 lg:bg-panel lg:text-bad lg:hoverable:bg-bad-soft'
+                : 'lg:border-border lg:bg-panel lg:hoverable:bg-panel2'
+            }`
+          : ''
       } ${apparition} ${className}`}
       {...reste}
     />

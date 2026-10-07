@@ -1,5 +1,6 @@
 // Le vocabulaire du harnais de diagnostic — types seuls, aucune logique.
-// Cadrage complet : spec/outils/optimizer/harnais-diagnostic.md.
+// Description complète : spec/outils/optimizer/harnais.md
+// et spec/outils/optimizer/harnais-extensions.md.
 //
 // **Principe directeur, qui tranche tout ce qui suit :**
 //
@@ -14,7 +15,7 @@ import { MotifTroncature, PrepareStage, SearchResult, TraceCandidat } from '../.
 import { ModeChargement } from './chargerRecette';
 
 /* --------------------------------------------------------------------------
- * Configuration — §4 du cadrage
+ * Configuration
  * ----------------------------------------------------------------------- */
 
 /**
@@ -36,7 +37,7 @@ export type SourceHarnais =
       requirement: SyntheticRequirement;
       objective?: SyntheticObjective;
       /**
-       * ⚠️ **OBLIGATOIRE, aucun repli** (§4.4 règle 4). Omis, le moteur
+       * ⚠️ **OBLIGATOIRE, aucun repli**. Omis, le moteur
        * retomberait sur `MAX_PER_SLOT_MATCH` = 40 — la MOITIÉ du préréglage
        * réel de l'app (« Moyen », 80) — et entraînerait `bucketCap` avec lui
        * (3000 au lieu de 6000). Le run mesurerait alors la moitié de la
@@ -55,7 +56,7 @@ export type SyntheticObjective = import('../../src/lib/runeBuildOptim').Objectiv
  * pas (ils ne sont pas exposés dans l'UI), plus `slotFilterCap` qu'elle
  * porte sous forme de préréglage.
  *
- * ⚠️ `maxNodes` N'EXISTE PLUS (piste 8) : il n'y a plus aucun plafond de
+ * ⚠️ `maxNodes` N'EXISTE PLUS : il n'y a plus aucun plafond de
  * paires, et un harnais qui en réintroduirait un dans sa propre boucle de
  * pilotage mesurerait une recherche tronquée que la production ne fait pas.
  * ⚠️ `maxMs`, lui, est désormais la SEULE borne pouvant tronquer : c'est le
@@ -98,7 +99,7 @@ export interface ConfigHarnais {
   /** Défaut : `'classement'` — la recherche complète, classée. */
   arretApres?: ArretApres;
   /**
-   * Pièces à suivre d'étage en étage (§6.1). Ids de runes en V1.
+   * Pièces à suivre d'étage en étage. Ids de runes en V1.
    * ⚠️ Un id absent du pool d'entrée est signalé comme tel, jamais confondu
    * avec « écartée dès le premier étage ».
    */
@@ -113,7 +114,7 @@ export interface ConfigHarnais {
    */
   blocages?: boolean;
   /**
-   * §4.2 des extensions (A₂) — horodater les `BuildingProgress` que
+   * A₂ — horodater les `BuildingProgress` que
    * `buildBuckets` émet déjà, pour CARTOGRAPHIER SON ÉLAGAGE.
    *
    * ⚠️ **Ce qu'A₂ ne fait PAS, et c'est le point le plus important de cette
@@ -127,7 +128,7 @@ export interface ConfigHarnais {
    */
   horodaterProgression?: boolean;
   /**
-   * Répétitions de la mesure de temps (§6.4 bis). Défaut 1.
+   * Répétitions de la mesure de temps. Défaut 1.
    * ⚠️ À 1, AUCUNE dispersion n'est disponible : la mesure est marquée comme
    * n'autorisant aucune conclusion comparative.
    */
@@ -135,7 +136,7 @@ export interface ConfigHarnais {
 }
 
 /* --------------------------------------------------------------------------
- * Paramètres effectifs et fidélité — §4.4 du cadrage
+ * Paramètres effectifs et fidélité
  * ----------------------------------------------------------------------- */
 
 /**
@@ -152,17 +153,17 @@ export type OrigineParametre =
   | 'override'
   /**
    * ⚠️ **Un paramètre EFFECTIF que le harnais ne sait pas surcharger.**
-   * `resoudreConfig` listait la surface d'OVERRIDE, pas la surface
-   * EFFECTIVE — alors que le §4.4 règle 2 dit « chaque paramètre EFFECTIF
-   * affiche son origine ». Manquaient `objective`/`objectiveStats` (un
+   * `resoudreConfig` liste la surface EFFECTIVE, pas seulement la surface
+   * d'OVERRIDE, parce que la règle est « chaque paramètre EFFECTIF
+   * affiche son origine ». Sont concernés `objective`/`objectiveStats` (un
    * levier de rétention ×4 : `PER_STAT_KEEP` 6 contre
    * `PER_STAT_KEEP_OBJECTIVE` 24), `adaptiveTrancheWeighting`, `metric`,
    * la recherche exhaustive et la composition du pool.
    *
    * ⚠️ **Ce n'est PAS une infidélité** : la valeur appliquée est bien celle
-   * de la production. C'était un ANGLE MORT de l'aperçu — le drapeau de
+   * de la production : le drapeau de
    * fidélité ne change donc pas de verdict pour ces lignes (leur
-   * `valeurProd` est leur valeur), seulement de libellé (§3.4).
+   * `valeurProd` est leur valeur), seulement de libellé.
    */
   | 'recette (non surchargeable)';
 
@@ -203,7 +204,7 @@ export interface Fidelite {
    * navigateur rend la main toutes les 50 ms et plafonne à ~4 ms un
    * `setTimeout(0)` enchaîné — ~7 % de surcoût que Node ne paie pas.
    *
-   * ⚠️ **Le mot « plancher » a été RETIRÉ** (2026-09-07) : c'était une
+   * ⚠️ **Le mot « plancher » est proscrit** : ce serait une
    * affirmation de DIRECTION, et la direction n'est pas établie. La taxe de
    * `setTimeout(0)` est bien un terme à sens unique, mais ce n'est pas le
    * seul écart entre les deux plateformes (JIT, démarrage des workers,
@@ -213,14 +214,13 @@ export interface Fidelite {
 }
 
 /* --------------------------------------------------------------------------
- * Complétude — §6.2 du cadrage
+ * Complétude
  * ----------------------------------------------------------------------- */
 
 /**
- * ⚠️ **TROIS motifs, et trois seulement** : le budget de paires n'existe plus
- * depuis la piste 8, et `quotaTranche` (une tranche parallèle arrêtée sur sa
- * part du plafond avec des paires restantes) s'ajoute en degats-et-aura
- * 6bis-b7. Le type vit dans le moteur, qui le transmet sur le résultat
+ * ⚠️ **TROIS motifs, et trois seulement** : le budget de paires n'existe plus,
+ * et `quotaTranche` (une tranche parallèle arrêtée sur sa part du plafond
+ * avec des paires restantes) s'ajoute à `maxMs` et `maxCollected`. Le type vit dans le moteur, qui le transmet sur le résultat
  * fusionné : une seule définition.
  */
 export type { MotifTroncature };
@@ -270,7 +270,7 @@ export interface Completude {
 }
 
 /* --------------------------------------------------------------------------
- * Faisabilité — §6.3 du cadrage
+ * Faisabilité
  * ----------------------------------------------------------------------- */
 
 /**
@@ -335,7 +335,7 @@ export interface Faisabilite {
 }
 
 /* --------------------------------------------------------------------------
- * Temps — §6.4 et §6.4 bis du cadrage
+ * Temps
  * ----------------------------------------------------------------------- */
 
 /**
@@ -387,9 +387,8 @@ export interface TempsParPhase {
    * plus lent des deux, pas leur somme.
    *
    * ⚠️ **ABSENT quand la phase n'a pas tourné**, jamais une série à zéro.
-   * Le harnais rendait auparavant `temps` en bloc ou pas du tout : un arrêt
-   * dans la préparation mesurait la préparation N fois puis JETAIT les N
-   * relevés. Les rendre en remplissant les autres phases de zéros aurait
+   * Rendre `temps` en bloc ou pas du tout jetterait les relevés d'un arrêt
+   * dans la préparation, qui la mesure N fois. Les rendre en remplissant les autres phases de zéros aurait
    * remplacé un silence par un mensonge — un lecteur de `--json` aurait lu
    * « la construction a coûté 0 ms » sur un run qui n'a rien construit.
    * D'où l'optionalité : `undefined` dit « pas exécutée », et `tsc` force
@@ -415,7 +414,7 @@ export interface TempsParPhase {
    */
   total: SerieTemps;
   /**
-   * ⚠️ **Le garde-fou du niveau 2** (§6.4 bis). Le harnais sait répéter UNE
+   * ⚠️ **Le garde-fou du niveau 2**. Le harnais sait répéter UNE
    * condition ; il ne sait pas ENTRELACER deux conditions. Quelqu'un qui veut
    * comparer deux configurations lancera donc deux runs séparés — c'est-à-dire
    * exactement le protocole en BLOCS dont le biais est documenté : chaque
@@ -431,7 +430,7 @@ export interface TempsParPhase {
 }
 
 /* --------------------------------------------------------------------------
- * Suivi d'une pièce d'étage en étage — §6.1 et §6.1 bis du cadrage
+ * Suivi d'une pièce d'étage en étage
  * ----------------------------------------------------------------------- */
 
 /**
@@ -510,7 +509,7 @@ export interface DemiBuildCombo {
 /**
  * ⚠️ Déclenché automatiquement quand `--suivre` porte EXACTEMENT les 3 runes
  * d'une même moitié (3 emplacements distincts, 1-3 ou 4-6) — aucune option
- * séparée : le principe de suivi générique (§6.1 bis du cadrage) s'étend
+ * séparée : le principe de suivi générique s'étend
  * naturellement à un demi-build dès que ses 3 pièces sont suivies ensemble.
  */
 export interface DetailDemiBuild {
@@ -528,7 +527,7 @@ export interface DetailDemiBuild {
 }
 
 /* --------------------------------------------------------------------------
- * Taux de rétention de la CONSTRUCTION — §4.1 des extensions
+ * Taux de rétention de la CONSTRUCTION
  * ----------------------------------------------------------------------- */
 
 /**
@@ -563,7 +562,7 @@ export interface RetentionMoitie {
 }
 
 /* --------------------------------------------------------------------------
- * Pic de tas par moitié — §4.1 bis des extensions (palier LÉGER)
+ * Pic de tas par moitié (palier LÉGER)
  * ----------------------------------------------------------------------- */
 
 /**
@@ -585,13 +584,13 @@ export interface MemoireConstruction {
    * ramasse-miettes de Node n'est pas celui du navigateur. Le chiffre vaut
    * pour comparer A à B **dans le même processus**, jamais comme prédiction
    * de ce que vit l'utilisateur. Imprimé avec la mesure, jamais laissé à la
-   * prose du cadrage.
+   * seule prose d'une spec.
    */
   caveat: string;
 }
 
 /* --------------------------------------------------------------------------
- * Cartographie de l'ÉLAGAGE — §4.2 des extensions (A₂, **A-INSTRUMENTÉ**)
+ * Cartographie de l'ÉLAGAGE (A₂, **A-INSTRUMENTÉ**)
  * ----------------------------------------------------------------------- */
 
 /**
@@ -691,7 +690,7 @@ export interface RetentionConstruction {
   A: RetentionMoitie;
   B: RetentionMoitie;
   /**
-   * ⚠️ **La règle d'interprétation du §4.4, IMPRIMÉE avec le résultat** —
+   * ⚠️ **La règle d'interprétation, IMPRIMÉE avec le résultat** —
    * pas seulement écrite dans la spec. Ni ce taux ni aucun autre signal ne
    * DÉMONTRE quoi que ce soit ; ils peuvent produire une causalité fausse
    * (« A retient moins, A est plus lent, donc A est lent parce qu'il
@@ -702,7 +701,7 @@ export interface RetentionConstruction {
 }
 
 /* --------------------------------------------------------------------------
- * ÉTAGE 0 du build cible — l'ADMISSIBILITÉ À L'ENTRÉE — §5.1 des extensions
+ * ÉTAGE 0 du build cible — l'ADMISSIBILITÉ À L'ENTRÉE
  * ----------------------------------------------------------------------- */
 
 /**
@@ -711,10 +710,10 @@ export interface RetentionConstruction {
  * en double, une principale imposée que la rune ne porte pas, un combo de
  * sets que les six runes n'activent pas — serait attribuée au moteur. C'est
  * exactement la classe d'erreur commise avec l'autorité d'un diagnostic que
- * ce chantier existe pour empêcher.
+ * ce harnais existe pour empêcher.
  *
- * ⚠️ **Aucune règle de compatibilité n'est RECOPIÉE ici** (§6.3 du cadrage :
- * « réutiliser, jamais recopier »). L'admissibilité par emplacement est lue
+ * ⚠️ **Aucune règle de compatibilité n'est RECOPIÉE ici** (« réutiliser,
+ * jamais recopier »). L'admissibilité par emplacement est lue
  * sur `mainStatFilteredBySlot`, la fonction de production qui applique les
  * verrous ET la statistique principale imposée — « le point le plus AMONT du
  * pipeline, traversé par TOUS les chemins ». Le combo de sets est lu par
@@ -769,7 +768,7 @@ export interface AdmissibiliteBuild {
 }
 
 /* --------------------------------------------------------------------------
- * ÉTAGES 4-5 du build cible — la PAIRE et le RANG — §5.1 des extensions
+ * ÉTAGES 4-5 du build cible — la PAIRE et le RANG
  * ----------------------------------------------------------------------- */
 
 /**
@@ -793,8 +792,8 @@ export type EtapeAppariement =
  * ⚠️ **Le rang vient de `sortCandidates` sur la liste ENTIÈRE**, jamais d'un
  * top-20 déjà tronqué et jamais de `candidates[0]`. C'est le cœur de l'oracle :
  * sur 100 000 candidats collectés, un build au rang 250 est autrement
- * indistinguable d'un build ABSENT — l'incident fondateur d'`algo-verify`,
- * où le build cherché était au rang 6.
+ * indistinguable d'un build ABSENT (cas déjà vu : le build cherché était au
+ * rang 6).
  */
 export interface RangBuildCible {
   /** 1 = le meilleur. */
@@ -812,7 +811,7 @@ export interface RangBuildCible {
 }
 
 /* --------------------------------------------------------------------------
- * La DISPERSION PAR TRANCHE — §5.7 des extensions
+ * La DISPERSION PAR TRANCHE
  * ----------------------------------------------------------------------- */
 
 /**
@@ -842,7 +841,7 @@ export interface TrancheDispersion {
  *
  * ⚠️ **Rendue MÊME quand `adaptiveTrancheWeighting` est OFF**, et c'est
  * délibéré : le CV est une propriété du POOL, pas du réglage. Le lire sans
- * activer la piste B répond à « qu'est-ce que la réallocation ferait ici ? »
+ * activer `adaptiveTrancheWeighting` répond à « qu'est-ce que la réallocation ferait ici ? »
  * — la question qu'on se pose AVANT de décider d'activer quoi que ce soit.
  * ⚠️ Mais `applique` dit alors NON : rendre une répartition sans dire qu'elle
  * n'a pas été appliquée serait présenter une simulation comme un fait.
@@ -859,7 +858,7 @@ export interface DispersionTranches {
 }
 
 /* --------------------------------------------------------------------------
- * L'INSTANT DE DÉCOUVERTE et la COURBE DE RENDEMENT — §5.6 des extensions
+ * L'INSTANT DE DÉCOUVERTE et la COURBE DE RENDEMENT
  * ----------------------------------------------------------------------- */
 
 /**
@@ -917,10 +916,10 @@ export interface JalonRendement {
  *    identiques peuvent rendre deux instants de découverte différents —
  *    `reproductible: false` le marque. ⚠️ Ce n'est pas un défaut du harnais :
  *    c'est une propriété du régime, et la masquer serait le mensonge que tout
- *    ce chantier combat.
+ *    ce harnais combat.
  * 3. **Sur un run TRONQUÉ, une absence ne conclut rien.** « Jamais vue » veut
  *    dire « pas avant la coupe », pas « le moteur ne la trouve pas » — même
- *    asymétrie qu'au §5.1 : une PRÉSENCE est monotone et solide, une absence
+ *    asymétrie que pour le verdict : une PRÉSENCE est monotone et solide, une absence
  *    n'est jamais une preuve. `absente` porte le motif.
  */
 export interface DecouverteBuildCible {
@@ -960,7 +959,7 @@ export interface AppariementBuildCible {
 }
 
 /* --------------------------------------------------------------------------
- * LE VERDICT du build cible — §5.1 des extensions
+ * LE VERDICT du build cible
  * ----------------------------------------------------------------------- */
 
 /**
@@ -971,18 +970,18 @@ export interface AppariementBuildCible {
  *
  * ⚠️ **`NON_OBSERVABLE` N'EST PAS UN AVEU DE FAIBLESSE.** C'est la valeur qui
  * EMPÊCHE le harnais de FABRIQUER une cause quand il n'en connaît pas — même
- * culture que les limites assumées du §9 du cadrage. La remplacer par une
- * cause plausible recréerait exactement le défaut que ce chantier corrige.
+ * culture que les limites assumées du harnais. La remplacer par une
+ * cause plausible recréerait exactement le défaut que ce harnais corrige.
  *
  * ⚠️ **`PERDUE_À_L_APPARIEMENT` dit OÙ, pas si c'est une perte.** Le
- * vocabulaire est celui du §5.1, et il recouvre deux situations que seule
+ * vocabulaire est celui du verdict, et il recouvre deux situations que seule
  * l'`explication` distingue : une paire écartée par un élagage SÛR (elle ne
  * pouvait rien produire — ce n'est PAS une perte) et une paire visitée dont
  * le build a échoué le test conjoint exact (le build ne satisfait pas les
  * conditions posées — ce n'en est pas une non plus). Le mot « perdue »
  * nomme l'étage, l'explication dit la vérité.
  *
- * ⚠️ `PRÉSENT_DANS_LE_TOP_N` est la valeur que la liste du §5.1 laisse
+ * ⚠️ `PRÉSENT_DANS_LE_TOP_N` est la valeur que la liste des étages laisse
  * implicite : sans elle, « trouvé et affiché » et « trouvé mais hors du top »
  * partageraient une étiquette, ce qui est précisément la confusion que
  * `PRÉSENT_HORS_TOP_N` existe pour lever.
@@ -1038,7 +1037,7 @@ export interface TaillesParEtage {
 }
 
 export interface ResultatHarnais {
-  /** La provenance du pool figure TOUJOURS dans le résultat (§4.2). */
+  /** La provenance du pool figure TOUJOURS dans le résultat. */
   source: 'recette' | 'synthetique';
   descriptionSource: string;
   parametres: ParametreEffectif[];
@@ -1050,12 +1049,12 @@ export interface ResultatHarnais {
   preparation: TaillesParEtage[];
   suivi: TraceSurvie[];
   /**
-   * ÉTAGE 0 du build cible (§5.1 des extensions) — l'admissibilité des SIX
+   * ÉTAGE 0 du build cible — l'admissibilité des SIX
    * runes suivies, prise à l'ENTRÉE.
    *
    * ⚠️ Déclenché quand `--suivre` porte exactement SIX identifiants — aucune
    * option séparée, même raison que `detailDemiBuilds` pour trois : le suivi
-   * générique (§6.1 bis) s'étend naturellement à un build complet dès que ses
+   * générique s'étend naturellement à un build complet dès que ses
    * six pièces sont suivies ensemble, et une seconde surface de configuration
    * porterait exactement la même information.
    *
@@ -1064,7 +1063,7 @@ export interface ResultatHarnais {
    */
   admissibiliteBuildCible?: AdmissibiliteBuild;
   /**
-   * §6.3 — ce qui est PROUVÉ impossible, et ce qui n'est qu'un indice.
+   * Ce qui est PROUVÉ impossible, et ce qui n'est qu'un indice.
    * ⚠️ Calculé HORS des chronos de phase : c'est un diagnostic, il n'a
    * aucune raison d'entrer dans le temps qu'on attribue à la préparation.
    */
@@ -1109,7 +1108,7 @@ export interface ResultatHarnais {
      */
     memoire: MemoireConstruction;
     /**
-     * §4.2 (A₂) — la cartographie de l'ÉLAGAGE. ⚠️ Absente sauf si
+     * A₂ — la cartographie de l'ÉLAGAGE. ⚠️ Absente sauf si
      * `horodaterProgression` a été demandé : c'est le seul instrument
      * A-INSTRUMENTÉ du harnais, donc le seul qui se paie.
      *
@@ -1125,7 +1124,7 @@ export interface ResultatHarnais {
    */
   detailDemiBuilds?: DetailDemiBuild[];
   /**
-   * ÉTAGES 4-5 du build cible (§5.1 des extensions) — la paire de
+   * ÉTAGES 4-5 du build cible — la paire de
    * compartiments a-t-elle été explorée, et à quel RANG la cible sort-elle ?
    *
    * ⚠️ Absent si l'arrêt a eu lieu avant l'appariement : c'est alors une
@@ -1133,7 +1132,7 @@ export interface ResultatHarnais {
    */
   appariementBuildCible?: AppariementBuildCible;
   /**
-   * L'INSTANT DE DÉCOUVERTE et la COURBE DE RENDEMENT (§5.6 des extensions) —
+   * L'INSTANT DE DÉCOUVERTE et la COURBE DE RENDEMENT —
    * QUAND la cible est apparue dans le flux, et à quel rythme les candidats
    * se sont accumulés.
    *
@@ -1145,8 +1144,9 @@ export interface ResultatHarnais {
    */
   decouverteBuildCible?: DecouverteBuildCible;
   /**
-   * La DISPERSION PAR TRANCHE (§5.7 des extensions) — le CV que la piste B
-   * calcule, et la répartition du budget de rétention qu'il produit, par
+   * La DISPERSION PAR TRANCHE (spec/outils/optimizer/harnais-extensions.md,
+   * « Instant de découverte et dispersion par tranche ») — le CV que
+   * `adaptiveTrancheWeighting` calcule, et la répartition du budget de rétention qu'il produit, par
    * moitié.
    *
    * ⚠️ Rendue dès que la construction a tourné et qu'il existe au moins une
@@ -1155,7 +1155,7 @@ export interface ResultatHarnais {
    */
   dispersionTranches?: DispersionTranches[];
   /**
-   * LE VERDICT du build cible (§5.1 des extensions) — le premier point de
+   * LE VERDICT du build cible — le premier point de
    * divergence, avec la complétude qui dit ce qu'on a le droit d'en conclure.
    *
    * ⚠️ Assemblé APRÈS tous les points d'arrêt, à partir des étages ci-dessus :
@@ -1164,8 +1164,8 @@ export interface ResultatHarnais {
    */
   verdictBuildCible?: VerdictBuildCible;
   /**
-   * La trace du candidat traceur PRODUITE DANS LE MOTEUR (lot 5a,
-   * `SearchParams.traceur`) : verdict de chaque prédicat de faisabilité
+   * La trace du candidat traceur PRODUITE DANS LE MOTEUR
+   * (`SearchParams.traceur`) : verdict de chaque prédicat de faisabilité
    * traversé, présence dans chaque structure bornée, compteurs. Présente dès
    * que six identifiants sont suivis et que l'appariement a eu lieu.
    * ⚠️ `moities.*.tranches` n'est pas observable ici : le harnais construit
@@ -1180,7 +1180,7 @@ export interface ResultatHarnais {
    * Le résultat BRUT de l'appariement du dernier passage (`SearchResult` :
    * tous les candidats dans l'ordre de collecte, `explored`, `truncated`,
    * `traceur`) — pour un consommateur qui a besoin de la liste ENTIÈRE, pas
-   * du top coupé `meilleurs` (implementation-relique, lot 6 bis : le
+   * du top coupé `meilleurs` (le
    * différentiel de fidélité fusionne les N runs de l'oracle et résout TOUS
    * les candidats relâchés de A ; il passe par le harnais pour hériter du
    * régime d'appariement décidé comme la production — 4 workers au-delà du
@@ -1203,7 +1203,7 @@ export interface ResultatHarnais {
   temps?: TempsParPhase;
   /**
    * Diagnostic « quasi-succès » — voir spec/outils/optimizer/
-   * near-miss-appariement.md. Sous-produit GRATUIT de l'appariement réel
+   * moteur/diagnostics.md, « Quasi-succès à l'appariement ». Sous-produit GRATUIT de l'appariement réel
    * (`pairBuckets`), jamais recalculé : les paires EXPLORÉES qui échouent
    * le test conjoint exact, mais s'en approchent le plus. Absent si
    * `meilleurs` n'est PAS vide (rien à chercher), ou si l'arrêt a eu lieu

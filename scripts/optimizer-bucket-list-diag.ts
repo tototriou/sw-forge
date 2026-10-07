@@ -6,8 +6,7 @@
 //
 // Usage : optimizer-bucket-list-diag.ts <export.json> <recipe.json> <deckId> <A|B>
 //
-// ⚠️ **POURQUOI CE SCRIPT SURVIT AU HARNAIS** (vérifié le 2026-09-08, §11.3
-// des extensions). `diagnostic-harness.ts --suivre=<les 3 ids d'une moitié>`
+// ⚠️ **POURQUOI CE SCRIPT SURVIT AU HARNAIS** : `diagnostic-harness.ts --suivre=<les 3 ids d'une moitié>`
 // rend bien `detailDemiBuilds` — mais il rend le rang de LA CIBLE
 // (`compartiment : rang #3 / 6`) et les dix meilleurs classés À L'INTÉRIEUR
 // de ce compartiment. Il ne rend JAMAIS le CATALOGUE des compartiments : ni
@@ -15,7 +14,7 @@
 // ni leur meilleur combo. Ce script-ci est le seul endroit où cette grandeur
 // existe.
 //
-// ⚠️ Et elle n'est pas dérivable du rang. Relevé le 2026-09-08 sur Sonia
+// ⚠️ Et elle n'est pas dérivable du rang. Relevé sur Sonia
 // deck 14 (compte Enzo), moitié A — le harnais dit « compartiment #3/6 » ;
 // ce script dit POURQUOI :
 //
@@ -32,9 +31,8 @@
 //
 // ⚠️ Ce script chronomètre aussi `buildBuckets` (meilleur temps sur 15
 // essais). Ce n'est PAS la raison de sa survie, et ce temps ne se lit pas
-// comme une comparaison : voir le skill `optimizer-perf-testing` et le
-// §6.4 bis du cadrage (aucun temps livré nu, aucune conclusion sous le
-// plancher de bruit).
+// comme une comparaison : voir le skill `optimizer-perf-testing` (aucun temps
+// livré nu, aucune conclusion sous le plancher de bruit).
 
 import { readFileSync } from 'fs';
 import { parseOptimizerRecipe } from '../src/lib/optimizerRecipe';

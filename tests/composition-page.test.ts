@@ -1,4 +1,4 @@
-// degats-et-aura 6bis-b16 — une carte n'apparaît qu'une fois vérifiée
+// Une carte n'apparaît qu'une fois vérifiée
 // (`compositionDePage`, artifactQueue.ts) : la page montre les builds VÉRIFIÉS
 // (résolus et conformes) seuls, dans l'ordre du classement réel, puis des
 // places « Vérification… » jusqu'à ce que la page attend ; la file résout
@@ -87,7 +87,7 @@ function violations(affichees: BuildCandidate[], cache: Map<string, ResultatArte
 }
 
 export function testCompositionDePage() {
-  titre('Composition de la page — une carte n’apparaît qu’une fois vérifiée (6bis-b16)');
+  titre('Composition de la page — une carte n’apparaît qu’une fois vérifiée');
 
   {
     // Page 1 au début d'une recherche : rien n'est résolu.
@@ -289,7 +289,7 @@ export function testCompositionDePage() {
     }
     egal(retireesNouveauHorsDeplacement, 0, `nouvelle page : ${retireesNouveau} carte(s) sorties de la page 1, toutes déplacées par de meilleurs vérifiés (aucune retirée faute de conformité)`);
     egal(ecarteMontre, 0, 'nouvelle page : un build finalement écarté n’est jamais apparu');
-    ok(retireesAncienEcartees > 0, `témoin, ancienne page : ${retireesAncienEcartees} carte(s) apparues puis retirées à la résolution (${retireesAncien} sorties en tout) — le défaut corrigé`);
+    ok(retireesAncienEcartees > 0, `témoin, ancienne page : ${retireesAncienEcartees} carte(s) apparues puis retirées à la résolution (${retireesAncien} sorties en tout) — ce que la nouvelle page évite`);
   }
 
   titre('Composition de la page — l’écran la lit, et la file reçoit ses builds à vérifier');

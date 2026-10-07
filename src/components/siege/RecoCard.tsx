@@ -10,10 +10,13 @@ import {
   StickyNote,
   Download,
   ChevronDown,
-  Swords,
   Search,
   Gauge,
+  Undo2,
 } from 'lucide-react';
+// L'épée de la section Offense, à la place des deux épées de lucide :
+// « Importer un deck d'offense », « Fort contre ».
+import { IconeOffense } from '../IconesAtelier';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRecalageEcran } from '../../hooks/useRecalageEcran';
 import {
@@ -33,8 +36,8 @@ import {
 } from '../../types';
 import { DeckMatch, FaultCause, RecoMatch, SlotMatch, deckFaults, fmtStat, slotFaults } from '../../lib/recoMatch';
 import { DeckHit, RecoHit } from '../../lib/recoSearch';
-import { ConfirmDialog } from '../../ui/Dialogs';
-import { Bouton, BoutonIcone, Champ, Selecteur, ZoneCliquable } from '../../ui';
+import { VueDefenses, VueRecos, vueDefenses } from '../../lib/recoDefenses';
+import { Bouton, BoutonIcone, Champ, Flottant, Selecteur, ZoneCliquable, useNotifier } from '../../ui';
 import { NOTE_MAX, DECK_NOTE_MAX, COUNTER_NOTE_MAX } from '../../lib/recoShare';
 import { deckFromSiegeTeam } from '../../lib/recoFromSiege';
 import {
@@ -49,8 +52,18 @@ import {
 import { UseRecoState } from '../../hooks/useSiegeRecos';
 import RuneIcon from '../RuneIcon';
 import MonsterPicker from '../MonsterPicker';
+import { JetonSlot, prochainFocus } from './slotVideSuivant';
 import MonsterAvatar from '../MonsterAvatar';
 import LeadPill, { LeadBadge } from './LeadPill';
+import { SIEGE_TICKS, TICK_ABOVE_MARGIN, ficheSpeedForTick, siegeLeadFor, speedLeadOf } from '../../lib/speed';
+import {
+  ContenuDeck,
+  MetaReco,
+  contenuDeck,
+  deckEditeApresChangement,
+  memeContenu,
+  metaReco,
+} from '../../lib/annulerEdition';
 
 
 // ⚠️ **UNE reco affiche des stats de FICHE** : celles que le jeu montre sur la
@@ -120,17 +133,22 @@ interface Props {
   // Où le monstre cherché se trouve dans CETTE recommandation, `null` hors
   // recherche. Sert à déplier les bons decks et à surligner les bons portraits.
   hit?: RecoHit | null;
+  // Vue de la page. Absente : Attaque, l'affichage d'avant.
+  vue?: VueRecos;
 }
 
-// Aura selon la confrontation avec la box (même langage visuel que les équipes
-// de siège) : vert = OK, orange = partiel, rouge = bloqué, neutre = pas de compte.
-// ⚠️ Fonds à /10 et non /5 : sur fond clair, un aplat à 5 % ne se distingue pas
-// du panneau. Même langage visuel que SiegeTeam.
+// Carte d'une recommandation — ⚠️ **NEUTRE, quel que soit le résultat de
+// l'analyse**. Elle se teintait en entier (vert, orange, rouge à 25-45 %),
+// et chaque deck, chaque monstre, l'encart de synthèse se teintaient à leur
+// tour : une page analysée devenait un patchwork où plus rien ne ressortait.
+// Le statut se lit désormais aux PASTILLES et aux CONTOURS — la même règle que
+// les équipes de siège —, jamais à un aplat. La table est gardée,
+// par statut, pour qu'un ajustement ultérieur reste local.
 const AURA: Record<string, string> = {
-  ok: 'border-good bg-good/30',
-  partial: 'border-warn bg-warn/45',
-  missing: 'border-fire bg-fire/25',
-  unknown: 'border-border bg-panel/50',
+  ok: 'border-border-soft bg-panel',
+  partial: 'border-border-soft bg-panel',
+  missing: 'border-border-soft bg-panel',
+  unknown: 'border-border-soft bg-panel',
 };
 
 export default function RecoCard({
@@ -151,6 +169,7 @@ export default function RecoCard({
   onToggleEdit,
   onExport,
   recos,
+  vue = 'attaque',
 }: Props) {
   const status = match?.status ?? 'unknown';
 
@@ -184,18 +203,84 @@ export default function RecoCard({
   // celui qui nous intéresse. Réinitialisé si le nombre de decks change (les
   // index se décalent à l'ajout/suppression).
   const [openDecks, setOpenDecks] = useState<Set<number>>(new Set());
-  const [suppressionAConfirmer, setSuppressionAConfirmer] = useState(false);
+  // Supprimer une recommandation SE DÉFAIT au lieu de se confirmer :
+  // immédiat, puis « Recommandation supprimée · Annuler » la
+  // remet à SA place, avec tous ses decks et ses consignes.
+  const notifier = useNotifier();
+  function supprimerReco() {
+    const index = recos.state.recos.findIndex((r) => r.id === reco.id);
+    recos.removeReco(reco.id);
+    notifier({ message: 'Recommandation supprimée', action: () => recos.restaurerReco(reco, index) });
+  }
   const deckCount = reco.decks.length;
+  // ⚠️ Un deck retiré ou remis en place DÉCALE les index : le deck en édition
+  // ne serait plus le même, et « Annuler » recopierait le contenu d'un autre.
+  // Voir `deckEditeApresChangement` — seul un deck tout juste AJOUTÉ (en fin
+  // de liste) reste ouvert.
+  const deckCountAvant = useRef(deckCount);
   useEffect(() => {
     setOpenDecks(new Set());
-    setEditingDeck((cur) => (cur != null && cur >= deckCount ? null : cur));
+    const avant = deckCountAvant.current;
+    deckCountAvant.current = deckCount;
+    setEditingDeck((cur) => deckEditeApresChangement(cur, avant, deckCount));
   }, [deckCount]);
+
+  // ── Annuler une édition ─────────────────────────────────────────────────
+  //
+  // Chaque modification s'enregistre tout de suite : annuler, c'est REMETTRE
+  // ce qu'on a mémorisé à l'ouverture de l'édition (voir annulerEdition.ts).
+  // ⚠️ **Ni confirmation, ni notification** : une confirmation serait un « OK »
+  // qui détruit ; une notification « … · Rétablir » ferait une annulation
+  // d'annulation, déroutante. La sortie du mode édition dit
+  // assez ce qui s'est passé.
+  const [avantReco, setAvantReco] = useState<MetaReco | null>(null);
+  const [avantDeck, setAvantDeck] = useState<{ index: number; contenu: ContenuDeck } | null>(null);
+  // ⚠️ Mémorisé quand l'édition S'OUVRE, et seulement là : `reco` n'est pas
+  // dans les dépendances, sinon chaque frappe réécrirait l'état « d'avant ».
+  useEffect(() => {
+    setAvantReco(editing ? metaReco(reco) : null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editing]);
+  useEffect(() => {
+    const d = editingDeck == null ? undefined : reco.decks[editingDeck];
+    setAvantDeck(d && editingDeck != null ? { index: editingDeck, contenu: contenuDeck(d) } : null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editingDeck]);
+
+  const deckEnCours = avantDeck ? reco.decks[avantDeck.index] : undefined;
+  const deckModifie = !!avantDeck && !!deckEnCours && !memeContenu(contenuDeck(deckEnCours), avantDeck.contenu);
+  const recoModifiee = !!avantReco && !memeContenu(metaReco(reco), avantReco);
+
+  // Le deck en édition revient à son état d'ouverture.
+  function annulerDeck() {
+    if (!avantDeck) return;
+    recos.remettreContenuDeck(reco.id, avantDeck.index, avantDeck.contenu);
+    setEditingDeck(null);
+  }
+
+  // ⚠️ Symétrique de « Terminer » sur la recommandation, qui termine aussi
+  // l'édition de son deck : « Annuler » y revient sur le nom, l'auteur, les
+  // consignes générales ET sur le deck en cours d'édition. Les decks ajoutés
+  // pendant l'édition restent.
+  function annulerReco() {
+    if (!avantReco) return;
+    recos.setMeta(reco.id, avantReco);
+    if (deckModifie && avantDeck) recos.remettreContenuDeck(reco.id, avantDeck.index, avantDeck.contenu);
+    onToggleEdit(reco.id);
+  }
   const toggleDeck = (i: number) =>
     setOpenDecks((s) => {
       const next = new Set(s);
       next.has(i) ? next.delete(i) : next.add(i);
       return next;
     });
+  // « Déplier / Replier tous les decks » — un geste, deux boutons (lien au
+  // doigt, bouton fantôme à la souris).
+  const basculerTousLesDecks = () =>
+    setOpenDecks((s) =>
+      s.size === reco.decks.length ? new Set() : new Set(reco.decks.map((_, i) => i))
+    );
+  const tousOuverts = openDecks.size === reco.decks.length;
 
   // Decks contenant le monstre cherché : dépliés d'office pendant la recherche.
   //
@@ -212,6 +297,30 @@ export default function RecoCard({
   const decksFiltres = hit != null;
   // Positions du monstre dans un deck donné, pour le surlignage.
   const hitDeDeck = (di: number) => hit?.decks.find((d) => d.deckIndex === di) ?? null;
+
+  // ── Vue Défense ─────────────────────────────────────────────────────────
+  //
+  // ⚠️ **En LECTURE SEULE** : dès qu'on édite — la
+  // recommandation ou l'un de ses decks —, la carte reprend la vue Attaque,
+  // celle où se trouvent les formulaires. Changer de vue ne fait donc jamais
+  // disparaître une édition en cours.
+  const enVueDefense = vue === 'defense' && !editing && editingDeck === null;
+  // Pendant une recherche : on garde l'offense si son deck JOUE le monstre
+  // cherché, ou si CETTE défense le contient — la même règle que le
+  // dépliage des decks en vue Attaque.
+  const defenses = useMemo(
+    () =>
+      vueDefenses(
+        reco,
+        hit
+          ? (di, ci) => {
+              const h = hit.decks.find((d) => d.deckIndex === di);
+              return !!h && (h.slots.length > 0 || (ci != null && h.counters.includes(ci)));
+            }
+          : undefined,
+      ),
+    [reco, hit],
+  );
 
   // ── Aller d'une ligne du résumé au deck correspondant ────────────────────
   //
@@ -253,7 +362,8 @@ export default function RecoCard({
     // ⚠️ `compact:p-2.5` : même resserrement qu'une équipe de siège
     // (SiegeTeam.tsx) — au doigt, la page empile plusieurs recommandations,
     // et chaque `p-4` coûte 32 px de haut multipliés par leur nombre.
-    <section className={`rounded-2xl border p-4 compact:p-2.5 transition-colors ${AURA[status]}`}>
+    // Gabarit des cartes de la refonte : rayon 12, contour discret (`AURA`).
+    <section className={`rounded-xl border p-4 compact:p-2.5 transition-colors ${AURA[status]}`}>
       {/* En-tête de la recommandation.
           ⚠️ **TROIS zones, pas deux.** Le titre et les icônes d'action
           vivaient chacun dans leur propre bloc (titre + badges à gauche,
@@ -265,7 +375,28 @@ export default function RecoCard({
           (`items-center`), toujours à deux, jamais perturbée par la longueur
           des badges — qui passent en dessous, sur une deuxième rangée qui
           leur est propre et peut s'enrouler librement. */}
-      <div className="mb-1.5 flex items-center gap-2">
+      {/* ⚠️ **À la souris, l'en-tête tient sur UNE ligne** : titre · origine · decks · auteur · Analyser, puis les
+          actions au bout. Les deux rangées ci-dessous s'effacent
+          (`lg:contents`) dans ce conteneur ; au doigt, elles restent deux,
+          pour la raison dite juste en dessous. */}
+      <div className="lg:mb-3 lg:flex lg:flex-wrap lg:items-center lg:gap-x-3 lg:gap-y-1.5">
+      <div className="mb-1.5 flex items-center gap-2 lg:contents">
+        {/* ⚠️ **À la souris, le repli de la carte est un CHEVRON en tête de
+            ligne** — même bouton, même taille et même
+            place que le chevron de chaque deck juste en dessous. Il remplace
+            « Consulter / Réduire » au bout de la ligne, qui reste au doigt
+            (masqué `lg:hidden` plus bas).
+            ⚠️ En édition il reste là, DÉSACTIVÉ : la carte est forcément
+            dépliée, mais le retirer décalerait le champ du nom. */}
+        <BoutonIcone
+          onClick={() => onToggleOpen(reco.id)}
+          disabled={editing}
+          aria-expanded={expanded}
+          taille="serre"
+          icone={<ChevronDown size={15} className={`transition-transform ${expanded ? '' : '-rotate-90'}`} />}
+          libelle={editing ? "Termine l'édition pour replier" : open ? 'Réduire' : 'Consulter'}
+          className={`hidden lg:inline-flex ${ICONE_LG}`}
+        />
         {editing ? (
           <Champ
             value={reco.name}
@@ -293,7 +424,9 @@ export default function RecoCard({
             // ⚠️ `p-0` explicite : un `<button>` porte un rembourrage par
             // défaut du navigateur, invisible à l'œil mais qui élargit sa
             // boîte au-delà du texte.
-            className="min-w-0 flex-1 truncate p-0 text-left transition hoverable:text-ctx"
+            // `lg:flex-initial` : sur la ligne unique, le titre prend sa
+            // largeur, et l'origine, les decks et l'auteur le suivent.
+            className="min-w-0 flex-1 truncate p-0 text-left transition hoverable:text-ctx lg:flex-initial"
           >
             {/* ⚠️ `compact:text-base` : même resserrement que le titre d'une
                 équipe de siège (SiegeTeam.tsx) — au doigt, `text-lg` pesait
@@ -306,8 +439,9 @@ export default function RecoCard({
           </ZoneCliquable>
         )}
 
-        {/* Actions — sur la MÊME rangée que le titre, à sa hauteur. */}
-        <div className="flex flex-none items-center gap-1.5">
+        {/* Actions — sur la MÊME rangée que le titre, à sa hauteur ; à la
+            souris, au BOUT de la ligne unique (`lg:order-last lg:ml-auto`). */}
+        <div className="flex flex-none items-center gap-1.5 lg:order-last">
           {/* En édition, la carte est forcément dépliée → le bouton n'a pas de sens.
               ⚠️ **Masqué au DOIGT** (`compact:hidden`) : le titre bascule
               désormais la carte lui-même (voir plus haut), et ce petit bouton
@@ -326,9 +460,12 @@ export default function RecoCard({
               }
               libelle={open ? 'Réduire' : 'Consulter'}
               title={open ? 'Replier' : `Voir les ${reco.decks.length} deck(s)`}
-              className="compact:hidden"
+              className="compact:hidden lg:hidden"
             />
           )}
+          {/* Filet vertical entre les informations et les actions — à la
+              souris seulement. */}
+          <span className="hidden h-5 w-px bg-border-soft lg:block" aria-hidden />
           {/* Exporter / Éditer / Supprimer : icônes nues (ni cadre ni fond), comme
               la corbeille — l'en-tête est déjà chargé. Groupées pour se lire
               comme UNE barre d'outils, pas comme trois actions éparses. Le sens
@@ -339,39 +476,59 @@ export default function RecoCard({
               redonner un peu d'air autour de l'icône. `h-6` gagne sur le `h-5`
               du composant car il est plus loin dans la feuille de style
               (valeurs Tailwind rangées par ordre croissant) — vérifié dans le
-              CSS construit, pas supposé. */}
-          <div className="flex items-center gap-1 -mr-1">
+              CSS construit, pas supposé.
+              ⚠️ **À la souris, carrés de 28 px aux coins arrondis**
+              (`lg:h-7 lg:w-7 lg:rounded-lg`) : la taille et la forme
+              des boutons d'icône de la page, les mêmes que les chevrons —
+              toute la page n'a plus qu'un seul bouton d'icône. Les variantes
+              `lg:` passent après les classes de base dans la feuille : l'ordre
+              est garanti, pas supposé. */}
+          <div className="flex items-center gap-1 -mr-1 lg:mr-0 lg:gap-0.5">
             <BoutonIcone
               onClick={() => onExport(reco)}
               taille="serre"
               icone={<Upload size={13} />}
               libelle="Exporter cette recommandation (tous ses decks)"
-              className="h-6 w-6"
+              className={ICONE_ACTION}
             />
             {/* ⚠️ Pas `actif` (le marqueur d'état standard) : le ✓ DORÉ
                 (`text-star`) est la convention DOCUMENTÉE de l'édition en
                 cours sur cette page entière (voir spec/siege/recommandations.md
                 §« icônes d'action »), reprise plus bas sur chaque deck et
-                chaque défense — la changer ici la briserait partout ailleurs. */}
-            <button
-              onClick={() => onToggleEdit(reco.id)}
-              data-cible-fine
-              className={`flex h-6 w-6 items-center justify-center transition ${
-                editing ? 'text-star' : 'text-ink-dim hoverable:text-ink'
-              }`}
-              title={editing ? "Terminer l'édition" : 'Éditer la recommandation'}
-              aria-label={editing ? "Terminer l'édition" : 'Éditer la recommandation'}
-              aria-pressed={editing}
-            >
-              {editing ? <Check size={14} /> : <Pencil size={13} />}
-            </button>
+                chaque défense — la changer ici la briserait partout ailleurs.
+                La couleur est posée sur l'ICÔNE, pas sur le bouton : le bouton
+                de la librairie garde ses propres couleurs, et l'ordre de deux
+                classes de couleur rivales dans la feuille ne serait pas
+                garanti. `aria-pressed` passe directement. */}
+            {/* « Annuler les modifications » — en édition
+                seulement, À GAUCHE du ✓ : le groupe est en bout de ligne, il
+                s'allonge vers la gauche et le ✓ qu'on vient de toucher ne
+                bouge pas. Grisé tant que rien n'a changé. */}
+            {editing && (
+              <BoutonIcone
+                onClick={annulerReco}
+                disabled={!recoModifiee && !deckModifie}
+                taille="serre"
+                icone={<Undo2 size={13} />}
+                libelle="Annuler les modifications"
+                className={ICONE_ACTION}
+              />
+            )}
             <BoutonIcone
-              onClick={() => setSuppressionAConfirmer(true)}
+              onClick={() => onToggleEdit(reco.id)}
+              aria-pressed={editing}
+              taille="serre"
+              icone={editing ? <Check size={14} className="text-star" /> : <Pencil size={13} />}
+              libelle={editing ? "Terminer l'édition" : 'Éditer la recommandation'}
+              className={ICONE_ACTION}
+            />
+            <BoutonIcone
+              onClick={supprimerReco}
               ton="danger"
               taille="serre"
               icone={<Trash2 size={13} />}
               libelle="Supprimer cette recommandation"
-              className="h-6 w-6"
+              className={ICONE_ACTION}
             />
           </div>
         </div>
@@ -379,10 +536,13 @@ export default function RecoCard({
 
       {/* Métadonnées — SOUS le titre, sur leur propre rangée qui s'enroule
           librement sans jamais perturber l'alignement titre/icônes. */}
-      <div className="mb-3 flex flex-wrap items-center gap-2">
+      <div className="mb-3 flex flex-wrap items-center gap-2 lg:contents">
         {reco.origin === 'imported' && (
+          // Pastille NEUTRE : l'origine est une information, pas un
+          // état à signaler — le contour d'accent la faisait passer pour un
+          // élément sélectionné.
           <span
-            className="inline-flex items-center gap-1 rounded-full border border-accent bg-panel2 px-2 py-0.5
+            className="inline-flex items-center gap-1 rounded-full border border-border-soft bg-panel2 px-2 py-0.5
                        label"
             title="Recommandation reçue d'un autre joueur"
           >
@@ -407,37 +567,48 @@ export default function RecoCard({
             pastille qui redisait déjà ce que l'encart d'analyse affiche juste
             en dessous (voir plus bas — `StatusPill` a été retiré pour ça). Sa
             version au doigt vit désormais en icône, groupée avec Exporter /
-            Éditer / Supprimer — voir plus bas. */}
+            Éditer / Supprimer — voir plus bas.
+            ⚠️ **Masqué aussi sous `lg`** (`max-lg:hidden`), même à la souris :
+            sous ce seuil, la page prend sa disposition téléphone, et
+            « Analyser » vit dans le panneau « Options » — une fenêtre étroite
+            le montrait aux DEUX endroits, alors qu'il ne doit être qu'à un
+            seul. */}
+        {/* ⚠️ À la souris, un RESSORT pousse la suite au bout de la ligne
+            (titre et résumé à gauche, puis ce qui se clique à droite,
+            derrière le filet). Il remplace le `ml-auto` des actions,
+            qui laissait « Analyser » au milieu. */}
+        <span className="hidden lg:block lg:flex-1" aria-hidden />
         {!editing && (
+          // ⚠️ **Bouton à DEUX ÉTATS** : un premier clic
+          // analyse, un second MASQUE le résultat — le même geste que la croix
+          // de l'encart. Enclenché (`actif`, `aria-pressed`) tant qu'une
+          // analyse est affichée. Il disait « Réanalyser mes decks » dans cet
+          // état : relancer se fait maintenant en deux clics (masquer, puis
+          // analyser). Masquer reste possible sans compte chargé : il n'y a
+          // rien à calculer pour ça.
           <Bouton
-            onClick={onAnalyze}
-            disabled={!canAnalyze}
+            onClick={match ? onClearAnalysis : onAnalyze}
+            disabled={!match && !canAnalyze}
+            actif={Boolean(match)}
+            // ⚠️ Bouton À CADRE (`.btn-secondary`), comme les autres boutons à
+            // libellé de la page — pas fantôme. En fantôme, seul libellé nu au
+            // milieu d'icônes nues, il ne ressortait pas et ne ressemblait pas
+            // aux autres boutons. Les icônes du bout de ligne restent nues.
             title={
-              canAnalyze
-                ? 'Confronter toute la recommandation à tes monstres'
-                : 'Importe ton compte pour analyser'
+              match
+                ? "Masquer le résultat de l'analyse"
+                : canAnalyze
+                  ? 'Confronter toute la recommandation à tes monstres'
+                  : 'Importe ton compte pour analyser'
             }
             taille="sm"
             icone={<Gauge size={13} />}
-            libelle={match ? 'Réanalyser mes decks' : 'Analyser mes decks'}
-            className="compact:hidden"
+            libelle="Analyser mes decks"
+            className={`compact:hidden max-lg:hidden ${BOUTON_LG}`}
           />
         )}
       </div>
-
-      {suppressionAConfirmer && (
-        <ConfirmDialog
-          titre="Supprimer cette recommandation ?"
-          message="Elle sera retirée avec tous ses decks et ses consignes."
-          libelleAction="Supprimer"
-          destructif
-          onCancel={() => setSuppressionAConfirmer(false)}
-          onConfirm={() => {
-            setSuppressionAConfirmer(false);
-            recos.removeReco(reco.id);
-          }}
-        />
-      )}
+      </div>
 
       {editing && (
         <div className="flex flex-col gap-2 mb-3">
@@ -469,7 +640,7 @@ export default function RecoCard({
           match={match}
           monsterByCom2us={monsterByCom2us}
           onClear={onClearAnalysis}
-          onGoToDeck={allerAuDeck}
+          onGoToDeck={enVueDefense ? undefined : allerAuDeck}
         />
       )}
 
@@ -477,7 +648,40 @@ export default function RecoCard({
 
       {/* Repliée : un aperçu d'une ligne — le nom de chaque deck et sa pastille
           de statut, pour savoir quoi ouvrir sans tout déplier. */}
-      {!expanded && (
+      {/* En vue Défense : une puce par DÉFENSE visée, le point du meilleur
+          verdict de ses offenses (verte si l'une au moins est jouable), et
+          combien d'offenses la battent. */}
+      {!expanded && enVueDefense && (
+        <ZoneCliquable
+          onClick={() => onToggleOpen(reco.id)}
+          className="w-full flex flex-wrap items-center gap-1.5"
+          title="Consulter cette recommandation"
+        >
+          {defenses.defenses.map((d) => (
+            <span
+              key={d.cle}
+              className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-micro ${
+                PASTILLE_STATUT[meilleurStatut(d.offenses, match)]
+              }`}
+            >
+              <span className={`w-1.5 h-1.5 rounded-full flex-none ${DOT[meilleurStatut(d.offenses, match)]}`} />
+              {defenseLabel(d.monsters, monsterByCom2us)}
+              <span className="font-mono">· {d.offenses.length}</span>
+            </span>
+          ))}
+          {defenses.sansDefense.length > 0 && (
+            <span className="inline-flex items-center gap-1 text-micro text-ink-dim">
+              {defenses.sansDefense.length} deck{defenses.sansDefense.length > 1 ? 's' : ''} sans défense visée
+            </span>
+          )}
+          {reco.note && (
+            <span className="inline-flex items-center gap-1 text-micro text-ink-dim">
+              <StickyNote size={11} className="text-star" /> consignes
+            </span>
+          )}
+        </ZoneCliquable>
+      )}
+      {!expanded && !enVueDefense && (
         <ZoneCliquable
           onClick={() => onToggleOpen(reco.id)}
           className="w-full flex flex-wrap items-center gap-1.5"
@@ -488,8 +692,7 @@ export default function RecoCard({
             return (
               <span
                 key={di}
-                className="inline-flex items-center gap-1.5 rounded-full border border-border bg-panel2/60
-                           px-2 py-0.5 text-micro text-ink-dim"
+                className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-micro ${PASTILLE_STATUT[st]}`}
               >
                 <span className={`w-1.5 h-1.5 rounded-full flex-none ${DOT[st]}`} />
                 {deckLabel(deck, monsterByCom2us, di)}
@@ -504,40 +707,73 @@ export default function RecoCard({
         </ZoneCliquable>
       )}
 
+      {/* Vue Défense : les défenses visées, et les offenses qui les battent. */}
+      {expanded && enVueDefense && (
+        <TableauDefenses
+          reco={reco}
+          vue={defenses}
+          match={match}
+          monsterByCom2us={monsterByCom2us}
+        />
+      )}
+
       {/* Les decks de la recommandation */}
-      {expanded && (
+      {expanded && !enVueDefense && (
         <>
           {/* ⚠️ Masqué pendant une recherche : les decks trouvés sont déjà
               dépliés d'office, et « Déplier tous les decks » désignerait des
               decks qui ne sont plus à l'écran. */}
           {reco.decks.length > 1 && !decksFiltres && (
             <div className="flex justify-end mb-1.5">
+              {/* Au doigt : le lien souligné d'avant, inchangé. */}
               <button
-                onClick={() =>
-                  setOpenDecks((s) =>
-                    s.size === reco.decks.length ? new Set() : new Set(reco.decks.map((_, i) => i))
-                  )
-                }
-                className="font-mono text-micro text-ink-dim hoverable:text-ink transition underline"
+                onClick={basculerTousLesDecks}
+                className="font-mono text-micro text-ink-dim hoverable:text-ink transition underline lg:hidden"
               >
-                {openDecks.size === reco.decks.length ? 'Replier tous les decks' : 'Déplier tous les decks'}
+                {tousOuverts ? 'Replier tous les decks' : 'Déplier tous les decks'}
               </button>
+              {/* ⚠️ **À la souris, un bouton fantôme de la librairie**, plus
+                  un lien souligné. Il reste AU-DESSUS du tableau, pas en
+                  dessous : en bas, le
+                  clic l'aurait repoussé de toute la hauteur des decks dépliés
+                  (un clic ne déplace jamais ce qu'on vient de cliquer). */}
+              <Bouton
+                onClick={basculerTousLesDecks}
+                fond="vide"
+                trait="aucun"
+                taille="sm"
+                libelle={tousOuverts ? 'Replier tous les decks' : 'Déplier tous les decks'}
+                className={`hidden lg:inline-flex ${BOUTON_LG}`}
+              />
             </div>
           )}
           {/* Les decks se posent au dépliage plutôt que d'apparaître d'un bloc.
               ⚠️ L'animation est sur CE conteneur, déjà présent, et non sur un
               `<div>` ajouté autour du fragment : un wrapper de plus casserait
               l'espacement du parent pour un simple effet.
-              ⚠️ **Grille à la SOURIS** (`lg:grid-cols-2`), une colonne en
-              dessous — même seuil que la grille d'équipes de siège
-              (SiegeBoard.tsx). Une recommandation porte souvent une demi-douzaine
-              de decks : les empiler sur une seule colonne, à la souris, laissait
-              la moitié de la largeur de l'écran vide.
-              ⚠️ **Le deck en ÉDITION reprend toute la largeur** (`col-span-2`) :
-              ses 3 emplacements de monstres plus le picker de chacun seraient à
-              l'étroit sur une demi-colonne — même raison que pour une équipe de
-              siège dépliée. */}
-          <div className="grid grid-cols-1 gap-2.5 lg:grid-cols-2 lg:items-start animate-[apparition_180ms_var(--ease-out)]">
+              ⚠️ **À la souris, un TABLEAU** : une seule colonne
+              de lignes, dans un cadre commun, sous une rangée d'intitulés. Il a
+              remplacé une grille de cartes à deux colonnes (`lg:grid-cols-2`),
+              où le deck en édition prenait les deux (`lg:col-span-2`).
+              ⚠️ **Ce `col-span-2` était resté** sur le deck en édition : dans
+              une grille à UNE colonne, il en créait une seconde, implicite —
+              la rangée d'intitulés et les lignes se tassaient dans la
+              première, « Offense · sets visés » passait sur trois lignes et
+              « Fort contre » chevauchait dès qu'on éditait un deck. Retiré. */}
+          <div
+            className={`grid grid-cols-1 gap-2.5 animate-[apparition_180ms_var(--ease-out)]
+                       lg:gap-0 lg:overflow-hidden lg:rounded-xl lg:border lg:border-border-soft ${
+                         editing ? 'lg:rounded-b-none' : ''
+                       }`}
+          >
+            {/* Intitulés des colonnes — à la souris seulement, même gabarit que
+                chaque ligne (`LIGNE_DECK`). */}
+            <div className={`hidden bg-panel2 px-3 py-1.5 ${LIGNE_DECK}`} aria-hidden data-intitules-decks>
+              <span />
+              <span className="label">Offense · sets visés</span>
+              <span className="label">Fort contre</span>
+              <span className="label text-right">Verdict</span>
+            </div>
             {/* ⚠️ Pendant une recherche, SEULS les decks trouvés sont rendus —
                 les autres disparaissent complètement. Sans ça la carte remontait
                 dans les résultats en affichant ses six decks, et il fallait
@@ -556,7 +792,6 @@ export default function RecoCard({
                     if (el) deckRefs.current.set(di, el);
                     else deckRefs.current.delete(di);
                   }}
-                  className={editingDeck === di ? 'lg:col-span-2' : undefined}
                 >
                   <DeckBlock
                     reco={reco}
@@ -567,10 +802,13 @@ export default function RecoCard({
                     match={match?.decks[di] ?? null}
                     editing={editingDeck === di}
                     onToggleEdit={() => setEditingDeck((cur) => (cur === di ? null : di))}
+                    onAnnulerEdition={annulerDeck}
+                    annulable={editingDeck === di && deckModifie}
                     folded={!openDecks.has(di) && editingDeck !== di && !decksTrouves.has(di)}
                     onToggleFold={() => toggleDeck(di)}
                     hit={hitDeDeck(di)}
                     recos={recos}
+                    onSupprime={() => setEditingDeck(null)}
                   />
                 </div>
               );
@@ -579,9 +817,13 @@ export default function RecoCard({
         </>
       )}
 
+      {/* ⚠️ **À la souris, le PIED du tableau des decks** : collé sous le cadre (`lg:mt-0`, le cadre perd ses coins
+          du bas en édition), le filet du cadre pour séparateur — un seul
+          trait —, les ajouts à DROITE, en boutons pointillés À FOND (fantômes
+          un temps, ils ne ressortaient pas). Au doigt, rien ne change. */}
       {editing && (
-        <div className="mt-2.5">
-          <div className="flex items-center gap-2 flex-wrap">
+        <div className="mt-2.5 lg:mt-0 lg:rounded-b-xl lg:border lg:border-t-0 lg:border-border-soft lg:px-3 lg:py-2">
+          <div className="flex items-center gap-2 flex-wrap lg:justify-end">
             <Bouton
               onClick={() => {
                 recos.addDeck(reco.id);
@@ -591,6 +833,7 @@ export default function RecoCard({
               taille="sm"
               icone={<Plus size={14} />}
               libelle="Ajouter un deck vide"
+              className={BOUTON_LG}
             />
             {/* ⚠️ `trait` bascule pointillé → plein avec l'état, comme le fond :
                 le pointillé dit « pas encore rempli », et perd son sens une fois
@@ -606,7 +849,8 @@ export default function RecoCard({
                   : "Partir d'une de tes équipes d'offense (monstres, sets, artéfacts et stats réels pré-remplis)"
               }
               taille="sm"
-              icone={<Swords size={14} />}
+              icone={<IconeOffense size={14} />}
+              className={BOUTON_LG}
               libelle={
                 <>
                   Importer un deck d'offense{' '}
@@ -717,9 +961,12 @@ function deckProblem(dm: DeckMatch): string {
 // horizon, ni la même décision. Les fondre obligeait à parcourir la liste rouge
 // pour trier à l'œil ce sur quoi on pouvait agir ce soir.
 //
-// Les deux gardent la couleur `fire` : ils sont bloquants tous les deux, et
+// Les deux gardent le même rouge, `bad` : ils sont bloquants tous les deux, et
 // c'est bien ce que la couleur dit. Ce sont deux FILTRES sur un même rouge, pas
 // deux couleurs de plus.
+// ⚠️ `bad`, le rouge d'ÉTAT, et non plus `fire`, celui de l'élément Feu :
+// un rouge de faute ne doit pas se lire comme un
+// monstre Feu, et « Tout effacer » était déjà en `bad` sur la même page.
 type VerdictKey = 'ok' | 'nodeck' | 'ko' | 'missing';
 
 const VERDICTS: {
@@ -744,7 +991,10 @@ const VERDICTS: {
     statuts: ['ok'],
     dot: 'bg-good',
     texte: 'text-good',
-    actif: 'border-good bg-good/30 text-ink',
+    // `actif` : la pastille COLORÉE de repos (`PASTILLE_STATUT`, la même que
+    // sur les decks) + le CONTOUR du ton, qui seul dit « enclenché » — voir
+    // le filtre dans `AnalysisSummary`.
+    actif: 'border-good bg-good-soft text-good',
     rang: 3,
   },
   {
@@ -753,16 +1003,16 @@ const VERDICTS: {
     statuts: ['nodeck'],
     dot: 'bg-warn',
     texte: 'text-warn',
-    actif: 'border-warn bg-warn/45 text-ink',
+    actif: 'border-warn bg-warn-soft text-warn',
     rang: 2,
   },
   {
     key: 'ko',
     label: 'À revoir',
     statuts: ['ko'],
-    dot: 'bg-fire',
-    texte: 'text-fire',
-    actif: 'border-fire bg-fire/25 text-ink',
+    dot: 'bg-bad',
+    texte: 'text-bad',
+    actif: 'border-bad bg-bad-soft text-bad',
     rang: 1,
   },
   {
@@ -776,12 +1026,30 @@ const VERDICTS: {
     // côte ne se distinguent plus que par leur texte, qu'on ne relit pas une
     // fois la barre connue. Le creux dit « il manque quelque chose » sans
     // introduire une cinquième couleur qui mentirait sur la gravité.
-    dot: 'border border-fire',
-    texte: 'text-fire',
-    actif: 'border-fire bg-fire/25 text-ink',
+    dot: 'border border-bad',
+    texte: 'text-bad',
+    actif: 'border-bad bg-bad-soft text-bad',
     rang: 0,
   },
 ];
+
+// ⚠️ **Pastille de statut COLORÉE** (fond doux du ton, texte du ton, pas de
+// contour) : réduite à un point de 6 px, la couleur ne se voyait pas assez
+// sur les pastilles de validation des decks. La CARTE reste neutre, mais la
+// pastille qui dit le verdict porte sa couleur en entier. Contrastes mesurés,
+// texte sur fond doux, deux thèmes : 4.91 au plus bas (`warn` ocre sur
+// `warn-soft`, Atelier ; `bad` sur `bad-soft` fait 5.53 en Forge).
+// Par STATUT de deck (celui de `DOT`), pas par verdict : les puces de la carte
+// repliée et la ligne du tableau disent la même chose de la même façon.
+const PASTILLE_STATUT: Record<string, string> = {
+  ok: 'border-transparent bg-good-soft text-good',
+  partial: 'border-transparent bg-warn-soft text-warn',
+  nodeck: 'border-transparent bg-warn-soft text-warn',
+  ko: 'border-transparent bg-bad-soft text-bad',
+  missing: 'border-transparent bg-bad-soft text-bad',
+  // Non analysé : neutre — rien à dire encore.
+  unknown: 'border-border bg-panel2/60 text-ink-dim',
+};
 
 const RANG_DE = Object.fromEntries(VERDICTS.map((v) => [v.key, v.rang])) as Record<
   VerdictKey,
@@ -817,7 +1085,8 @@ function AnalysisSummary({
   monsterByCom2us: Map<number, Monster>;
   onClear: () => void;
   // Déplie le deck visé (et la carte si besoin) puis y fait défiler.
-  onGoToDeck: (deckIndex: number) => void;
+  // Absent en vue Défense, où les decks ne sont pas affichés.
+  onGoToDeck?: (deckIndex: number) => void;
 }) {
   // Tous les decks analysables, triés du plus urgent au plus tranquille :
   // ⚠️ ROUGE → ORANGE → VERT. Ce qui demande du travail se lit en premier ; les
@@ -868,17 +1137,15 @@ function AnalysisSummary({
     );
   }
 
-  // L'encart prend la couleur du pire verdict présent : vert si tout passe,
-  // orange sinon — le rouge reste porté par les lignes, pour ne pas alarmer sur
-  // une reco dont il ne manque qu'une équipe à composer.
+  // L'icône et le titre de l'encart prennent la couleur du pire verdict
+  // présent : vert si tout passe, orange sinon — le rouge reste porté par les
+  // lignes, pour ne pas alarmer sur une reco dont il ne manque qu'une équipe à
+  // composer. ⚠️ Le FOND reste neutre (voir `AURA`) : un encart teinté
+  // posé dans une carte teintée ne ressortait plus.
   const toutPasse = rates.length === 0;
 
   return (
-    <div
-      className={`mb-3 rounded-lg border px-3 py-2 ${
-        toutPasse ? 'border-good bg-good/30' : 'border-warn bg-warn/40'
-      }`}
-    >
+    <div className="mb-3 rounded-lg border border-border-soft bg-panel2 px-3 py-2">
       <div className="flex items-center gap-2">
         {toutPasse ? (
           <Check size={15} className="flex-none text-good" />
@@ -900,6 +1167,12 @@ function AnalysisSummary({
           des pastilles de filtre (voir spec/shared/design.md).
           Un verdict sans aucun deck est affiché GRISÉ et non retiré : on voit
           qu'il n'y en a aucun, au lieu de chercher un bouton disparu.
+          ⚠️ **Colorées AU REPOS, comme les pastilles des decks en dessous**
+          (`PASTILLE_STATUT`) — la même couleur dans le résumé d'analyse et
+          dans les cartes en dessous : fond doux et
+          texte du ton. Elles étaient neutres au repos, seul le point coloré.
+          Enclenchée, la pastille garde ces couleurs et prend le CONTOUR de son
+          ton — la bordure reste le seul marqueur d'état.
           ⚠️ Pas un `Bouton` de la librairie : chaque verdict porte SA couleur
           sémantique (bon/à composer/à revoir/manquant), et aucune n'est un ton
           de bouton (accent, danger…) — même exception que les pastilles
@@ -922,12 +1195,12 @@ function AnalysisSummary({
                     : `N'afficher que « ${v.label} »`
               }
               className={`flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs
-                          font-semibold transition ${
+                          font-semibold transition ${BOUTON_LG} ${
                             n === 0
                               ? 'border-border text-ink-dim opacity-40 cursor-not-allowed'
                               : actif
                                 ? v.actif
-                                : 'border-border text-ink-dim hoverable:border-accent hoverable:text-ink'
+                                : `${PASTILLE_STATUT[v.key]} hoverable:border-border`
                           }`}
             >
               {/* 2 px de plus que le point des lignes : un cercle CREUX de
@@ -939,12 +1212,25 @@ function AnalysisSummary({
           );
         })}
         {vus.size > 0 && (
-          <button
-            onClick={() => setVus(new Set())}
-            className="text-xs text-ink-dim underline transition hoverable:text-ink"
-          >
-            Tout afficher
-          </button>
+          <>
+            {/* Au doigt : le lien souligné d'avant. À la souris : un
+                bouton fantôme de la librairie, comme « Déplier tous les
+                decks ». */}
+            <button
+              onClick={() => setVus(new Set())}
+              className="text-xs text-ink-dim underline transition hoverable:text-ink lg:hidden"
+            >
+              Tout afficher
+            </button>
+            <Bouton
+              onClick={() => setVus(new Set())}
+              fond="vide"
+              trait="aucun"
+              taille="sm"
+              libelle="Tout afficher"
+              className={`hidden lg:inline-flex ${BOUTON_LG}`}
+            />
+          </>
         )}
       </div>
 
@@ -962,11 +1248,19 @@ function AnalysisSummary({
                   parmi six, puis l'ouvrir — alors que la ligne le désigne déjà.
                   ⚠️ Le DÉTAIL par monstre reste HORS du bouton : c'est du texte
                   qu'on lit et qu'on veut pouvoir sélectionner, pas une cible. */}
+              {/* ⚠️ En vue Défense (`onGoToDeck` absent), les decks ne sont pas
+                  affichés : la ligne reste, DÉSACTIVÉE, et dit pourquoi — un
+                  clic qui ne mène nulle part se lirait comme un défaut. */}
               <ZoneCliquable
-                onClick={() => onGoToDeck(i)}
+                onClick={() => onGoToDeck?.(i)}
+                disabled={!onGoToDeck}
                 className="flex w-full items-baseline gap-1.5 flex-wrap rounded-md px-1 py-0.5 -mx-1
-                           transition hoverable:bg-panel2/60"
-                title={`Voir le deck « ${deckLabel(deck, monsterByCom2us, i)} »`}
+                           transition hoverable:bg-panel2/60 disabled:hoverable:bg-transparent"
+                title={
+                  onGoToDeck
+                    ? `Voir le deck « ${deckLabel(deck, monsterByCom2us, i)} »`
+                    : 'Passe en vue Attaque pour ouvrir ce deck'
+                }
               >
                 {/* Le point du VERDICT, pas `DOT[status]` : il doit être le
                     même que celui de la pastille qui filtre cette ligne — dont
@@ -1028,20 +1322,51 @@ function AnalysisSummary({
 const DOT: Record<string, string> = {
   ok: 'bg-good',
   nodeck: 'bg-warn',
-  ko: 'bg-fire',
-  missing: 'bg-fire',
+  ko: 'bg-bad',
+  missing: 'bg-bad',
   partial: 'bg-warn',
   unknown: 'bg-unknown',
 };
 
+// Un deck : le statut au CONTOUR (au doigt, où le deck est une carte), le fond
+// reste neutre — plus d'aplat teinté (voir `AURA`). À la souris, le deck est
+// une ligne de tableau sans contour propre : la pastille de la colonne Verdict
+// porte le statut.
 const DECK_AURA: Record<string, string> = {
-  ok: 'border-good/70 bg-good/20',
-  nodeck: 'border-warn/70 bg-warn/35',
-  ko: 'border-fire/70 bg-fire/20',
-  missing: 'border-fire/70 bg-fire/20',
-  partial: 'border-warn/70 bg-warn/35',
-  unknown: 'border-border bg-panel2/40',
+  ok: 'border-good/60 bg-panel2',
+  nodeck: 'border-warn/60 bg-panel2',
+  ko: 'border-bad/60 bg-panel2',
+  missing: 'border-bad/60 bg-panel2',
+  partial: 'border-warn/60 bg-panel2',
+  unknown: 'border-border-soft bg-panel2',
 };
+
+// ⚠️ **À la souris, un deck est une LIGNE de tableau** : chevron ·
+// offense (sets visés collés à chaque monstre) · fort contre · verdict · crayon.
+// Même gabarit de colonnes pour la rangée d'intitulés et pour chaque ligne.
+// Écrit EN TOUTES LETTRES : Tailwind lit le source comme du texte.
+// ⚠️ **QUATRE colonnes, plus de colonne d'actions** : le crayon
+// quitte la ligne et devient « Éditer ce deck », en pied du détail déplié —
+// voir `DeckBlock`. La ligne elle-même est la grille du deck entier : ses
+// enfants s'y posent directement (`lg:contents` sur les conteneurs), le détail
+// sur la rangée suivante, le pied d'actions sur la troisième.
+const LIGNE_DECK =
+  'lg:grid lg:grid-cols-[28px_minmax(0,1fr)_minmax(0,170px)_minmax(0,150px)] lg:items-center lg:gap-3';
+
+// ⚠️ **UN seul bouton d'icône sur toute la page, à la souris** : un carré de 28 px aux coins arrondis, sans cadre ni fond —
+// chevrons, Exporter, Éditer, Supprimer, en-tête de recommandation comme ligne
+// de deck. Au doigt, chacun garde sa taille d'avant (24 px dans l'en-tête de la
+// recommandation, 20 px dans celui du deck) : `taille="serre"` et son exemption
+// tactile ne changent pas.
+const ICONE_LG = 'lg:h-7 lg:w-7 lg:rounded-lg';
+const ICONE_ACTION = `h-6 w-6 ${ICONE_LG}`;
+// Même règle pour les boutons à LIBELLÉ et les pastilles de filtre : 28 px de
+// haut à la souris, la hauteur des boutons d'icône. Seul « + Défense » y
+// échappe — il prend la hauteur des vignettes de défense qu'il prolonge.
+const BOUTON_LG = 'lg:h-7';
+// ⚠️ Plus de bouton d'ajout FANTÔME : « Ajouter un deck vide », « Importer un
+// deck d'offense » et « + Défense » l'ont été un temps, et ne
+// ressortaient pas. Ils gardent le fond d'un bouton et le bord POINTILLÉ d'un ajout.
 
 function DeckBlock({
   reco,
@@ -1052,10 +1377,13 @@ function DeckBlock({
   match,
   editing,
   onToggleEdit,
+  onAnnulerEdition,
+  annulable,
   folded,
   onToggleFold,
   hit,
   recos,
+  onSupprime,
 }: {
   reco: Reco;
   deck: RecoDeck;
@@ -1065,13 +1393,33 @@ function DeckBlock({
   match: DeckMatch | null;
   editing: boolean; // édition de CE deck (indépendante de celle de la reco)
   onToggleEdit: () => void;
+  // Sortir de l'édition en remettant le deck tel qu'il était à son ouverture.
+  onAnnulerEdition: () => void;
+  annulable: boolean; // quelque chose a changé depuis l'ouverture
   folded: boolean;
   onToggleFold: () => void;
   // Positions du monstre cherché dans CE deck, `null` hors recherche.
   hit: DeckHit | null;
   recos: UseRecoState;
+  // Termine l'édition du deck avant sa suppression.
+  onSupprime: () => void;
 }) {
-  const [deckAConfirmer, setDeckAConfirmer] = useState(false);
+  // Supprimer un deck SE DÉFAIT au lieu de se confirmer : immédiat, puis
+  // « Deck supprimé · Annuler » le remet à SA place — le dernier deck remplace
+  // alors le deck vide laissé derrière lui (voir `decksApresRestauration`).
+  // ⚠️ L'édition se termine AVANT : supprimer le dernier deck le remplace par
+  // un deck vide sans changer leur nombre, et l'édition resterait ouverte sur
+  // ce deck vide avec le contenu d'avant mémorisé — « Annuler les
+  // modifications » recopierait alors à moitié le deck supprimé.
+  const notifier = useNotifier();
+  function supprimerDeck() {
+    onSupprime();
+    recos.removeDeck(reco.id, deckIndex);
+    notifier({ message: 'Deck supprimé', action: () => recos.restaurerDeck(reco.id, deck, deckIndex) });
+  }
+  // Un monstre choisi → le curseur passe au slot vide suivant (voir
+  // `slotVideSuivant`) : on compose les trois d'affilée, sans la souris.
+  const [focus, setFocus] = useState<JetonSlot | null>(null);
 
   // Un monstre ne peut pas occuper deux slots du MÊME deck (il peut revenir
   // dans un autre deck de la recommandation).
@@ -1083,14 +1431,26 @@ function DeckBlock({
   );
   const status = match?.status ?? 'unknown';
   const empty = deck.slots.every((s) => s.com2usId == null);
+  // Le verdict de la ligne (souris), avec les libellés et points des filtres.
+  const verdictKey = match ? VERDICT_DE[match.status] : null;
+  const verdictLigne = verdictKey ? VERDICTS.find((v) => v.key === verdictKey) ?? null : null;
   // Lead porté par le slot 0 du deck recommandé.
   const leaderId = deck.slots[0]?.com2usId;
   const leaderLead = leaderId != null ? monsterByCom2us.get(leaderId)?.leaderSkill ?? null : null;
-  // Lead de VITESSE du deck (slot 0), pour le total de VIT des monstres.
+  // Lead de VITESSE du deck (slot 0), pour le raccourci « Rapide / Lent » de la
+  // saisie : la VIT de fiche qui tombe sur un tick dépend du lead.
+  const leadVitesse = speedLeadOf(leaderId != null ? monsterByCom2us.get(leaderId) : null);
 
   return (
-    <div className={`rounded-xl border p-2.5 compact:p-1 ${DECK_AURA[empty ? 'unknown' : status]}`}>
-      <div className="mb-2">
+    // ⚠️ À la souris, la carte du deck devient une LIGNE du tableau : plus de
+    // cadre ni d'arrondi, un filet au-dessus (celui du tableau). Le fond
+    // teinté de l'analyse (`DECK_AURA`) reste : il colore la ligne entière.
+    <div
+      className={`rounded-xl border p-2.5 compact:p-1 ${DECK_AURA[empty ? 'unknown' : status]}
+        lg:rounded-none lg:border-0 lg:border-t lg:border-border-soft lg:bg-transparent lg:px-3 lg:py-2
+        ${LIGNE_DECK} lg:gap-y-0`}
+    >
+      <div className="mb-2 lg:contents">
         {/* ⚠️ **Rangée à part, jamais mêlée au verdict/copies en dessous** :
             le crayon doit rester en HAUT À DROITE quel que soit l'état du
             deck. Le mettre dans la même rangée flex-wrap que le verdict le
@@ -1098,7 +1458,7 @@ function DeckBlock({
             « réalisable N fois » prenait sa propre ligne, voir plus bas) —
             un bouton d'action ne doit pas se déplacer selon ce qui s'affiche
             à côté de lui. */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 lg:contents">
           {/* Chevron de repli : indispensable en édition avec plusieurs decks */}
           <BoutonIcone
             onClick={onToggleFold}
@@ -1106,6 +1466,7 @@ function DeckBlock({
             taille="serre"
             icone={<ChevronDown size={14} className={`transition-transform ${folded ? '-rotate-90' : ''}`} />}
             libelle={folded ? 'Déplier ce deck' : 'Replier ce deck'}
+            className={ICONE_LG}
           />
 
           {/* ⚠️ **Plus de titre texte : les portraits SEULS identifient le
@@ -1121,50 +1482,145 @@ function DeckBlock({
               n'a jamais été lu ici, et n'est pas rejeté à l'import. */}
           <ZoneCliquable
             onClick={onToggleFold}
-            className="flex items-center gap-1.5 flex-1 min-w-0"
+            className="flex items-center gap-1.5 flex-1 min-w-0 lg:gap-4"
             title={folded ? 'Déplier ce deck' : 'Replier ce deck'}
           >
-            {deck.slots.map((sl, i) => (
-              <MiniMonster
-                key={i}
-                monster={sl.com2usId != null ? monsterByCom2us.get(sl.com2usId) ?? null : null}
-                fallback={sl.name}
-                size={34}
-                lead={i === 0 ? leaderLead : null}
-              />
-            ))}
+            {deck.slots.map((sl, i) => {
+              const m = sl.com2usId != null ? monsterByCom2us.get(sl.com2usId) ?? null : null;
+              // Sets visés : la PREMIÈRE possibilité de runage, sans doublon
+              // (3× Fight → une icône). Les autres possibilités restent dans le
+              // détail.
+              const sets = [...new Set(sl.setOptions?.[0] ?? [])];
+              return (
+                <span key={i} className="flex min-w-0 items-center gap-1.5">
+                  <MiniMonster monster={m} fallback={sl.name} size={34} lead={i === 0 ? leaderLead : null} />
+                  {/* À la souris seulement : le nom et les sets visés de CE
+                      monstre, collés à lui. Au doigt, la ligne
+                      reste aux portraits seuls. */}
+                  {(m?.name || sl.name) && (
+                    <span className="hidden truncate text-xs font-medium text-ink lg:inline">{m?.name ?? sl.name}</span>
+                  )}
+                  {sets.length > 0 && (
+                    <span
+                      className="hidden flex-none items-center gap-0.5 lg:inline-flex"
+                      title={sets.map((k) => RUNE_SETS.find((s) => s.key === k)?.label ?? k).join(' + ')}
+                    >
+                      {sets.map((k) => (
+                        <RuneIcon key={k} setKey={k} size={14} />
+                      ))}
+                    </span>
+                  )}
+                </span>
+              );
+            })}
           </ZoneCliquable>
+
+          {/* FORT CONTRE — les portraits de la première défense visée, +N s'il
+              y en a d'autres. Purement informatif, comme le bloc détaillé.
+              ⚠️ **Au téléphone aussi** :
+              la rangée repliée dit l'offense ET ce qu'elle bat, séparées par
+              un filet. Il était réservé à la souris. */}
+          <span className="flex min-w-0 flex-none items-center gap-1 max-lg:border-l max-lg:border-border-soft max-lg:pl-2">
+            {deck.counters.length > 0 ? (
+              <>
+                {deck.counters[0].monsters
+                  .filter((cm) => cm.com2usId != null || cm.name)
+                  .map((cm, i) => (
+                    <MiniMonster
+                      key={i}
+                      monster={cm.com2usId != null ? monsterByCom2us.get(cm.com2usId) ?? null : null}
+                      fallback={cm.name}
+                      size={24}
+                    />
+                  ))}
+                {deck.counters.length > 1 && (
+                  <span className="font-mono text-micro text-ink-dim">+{deck.counters.length - 1}</span>
+                )}
+              </>
+            ) : (
+              <span className="text-micro text-ink-dimmer">—</span>
+            )}
+          </span>
+
+          {/* À la souris : le VERDICT — la pastille des filtres (Bon, À
+              composer, À revoir, Monstre manquant), la phrase complète en
+              infobulle, et combien de fois le deck est montable. Avant
+              l'analyse : rien. */}
+          <span className="hidden min-w-0 flex-col items-start gap-0.5 lg:flex lg:items-end">
+            {!editing && match && !empty && verdictLigne && (
+              <>
+                <span
+                  className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-micro font-semibold ${
+                    PASTILLE_STATUT[match.status] ?? PASTILLE_STATUT.unknown
+                  }`}
+                  title={verdictDeck(match)?.text}
+                >
+                  <span className={`h-1.5 w-1.5 flex-none rounded-full ${verdictLigne.dot}`} />
+                  {verdictLigne.label}
+                </span>
+                <CopiesBadge copies={match.copies} />
+              </>
+            )}
+          </span>
           {/* Le lead n'est pas dans l'en-tête : il est posé sur le leader lui-même
               (aperçu replié ci-dessous, ou slot 0 déplié) — comme en siège. */}
 
           {/* Édition PROPRE au deck (monstres, sets, stats, consignes) : icônes
-              nues et resserrées, comme dans l'en-tête de la recommandation. */}
-          <div className="ml-auto flex items-center gap-0.5">
+              nues et resserrées, comme dans l'en-tête de la recommandation.
+              ⚠️ **À la souris, le PIED du détail déplié** : « Éditer ce deck » écrit en toutes lettres, à droite,
+              sous un filet — placé sur la 3ᵉ rangée de la grille du deck
+              (`lg:row-start-3`), sous le détail, dont il ferme le cadre (le
+              détail n'a pas de bord bas : un seul trait entre les deux). Replié,
+              il n'y a pas de détail à éditer à l'œil : il se masque
+              (`lg:hidden`), sans quitter le DOM. Au doigt, rien ne change : les
+              icônes restent en haut à droite de la carte. */}
+          <div
+            className={`ml-auto flex items-center gap-0.5 lg:col-span-full lg:row-start-3 lg:mb-1 lg:ml-8
+              lg:justify-end lg:gap-1.5 lg:rounded-b-xl lg:border lg:border-border-soft lg:bg-panel lg:px-3 lg:py-2
+              ${folded ? 'lg:hidden' : ''}`}
+          >
             {/* ⚠️ Même exception que l'en-tête de la recommandation : le ✓ doré
                 est la convention documentée de l'édition en cours sur toute
                 cette page (spec/siege/recommandations.md), pas le marqueur
-                d'état standard. */}
-            <button
-              onClick={onToggleEdit}
-              data-cible-fine
-              className={`flex h-5 w-5 items-center justify-center transition ${
-                editing ? 'text-star' : 'text-ink-dim hoverable:text-ink'
-              }`}
-              title={editing ? "Terminer l'édition de ce deck" : 'Éditer ce deck'}
-              aria-label={editing ? "Terminer l'édition de ce deck" : 'Éditer ce deck'}
-              aria-pressed={editing}
-            >
-              {editing ? <Check size={13} /> : <Pencil size={12} />}
-            </button>
+                d'état standard. Couleur posée sur l'icône, comme dans
+                l'en-tête de la recommandation. */}
+            {/* « Annuler les modifications » — en édition
+                seulement, juste AVANT le ✓ : au doigt le groupe est calé à
+                droite, à la souris le pied aussi (`justify-end`) ; il
+                s'allonge vers la gauche, le ✓ qu'on vient de toucher ne bouge
+                pas. Grisé tant que rien n'a changé. */}
             {editing && (
               <BoutonIcone
-                onClick={() => setDeckAConfirmer(true)}
-                ton="danger"
+                onClick={onAnnulerEdition}
+                disabled={!annulable}
                 taille="serre"
-                icone={<Trash2 size={12} />}
-                libelle="Supprimer ce deck"
+                icone={<Undo2 size={12} />}
+                libelle="Annuler les modifications"
+                libelleALaSouris
               />
             )}
+            <BoutonIcone
+              onClick={onToggleEdit}
+              aria-pressed={editing}
+              taille="serre"
+              icone={editing ? <Check size={13} className="text-star" /> : <Pencil size={12} />}
+              libelle={editing ? "Terminer l'édition de ce deck" : 'Éditer ce deck'}
+              libelleALaSouris
+            />
+            {/* ⚠️ **Toujours présent**, plus seulement en édition —
+                la confirmation (« Supprimer ce deck ? ») reste le garde-fou.
+                À la souris, à l'AUTRE bout du pied (`lg:order-first
+                lg:mr-auto`) : un geste qui perd quelque chose ne se range pas
+                au contact de celui qu'on presse le plus. */}
+            <BoutonIcone
+              onClick={supprimerDeck}
+              ton="danger"
+              taille="serre"
+              icone={<Trash2 size={12} />}
+              libelle="Supprimer ce deck"
+              libelleALaSouris
+              className="lg:order-first lg:mr-auto"
+            />
           </div>
         </div>
 
@@ -1177,8 +1633,32 @@ function DeckBlock({
             force CHAQUE ligne (verdict, puis nombre de copies) à démarrer sa
             propre ligne, systématique. `sm:basis-auto` : au-delà, la place ne
             manque plus, elles reprennent leur place naturelle côte à côte. */}
+        {/* `lg:hidden` : à la souris, le verdict et « réalisable N fois » sont
+            dans la colonne Verdict de la ligne. */}
+        {/* ⚠️ **Au téléphone, les SETS visés sous la rangée** : ceux de chaque monstre, dans l'ordre
+            des portraits — à la souris, ils sont collés à chaque nom. La
+            PREMIÈRE possibilité de runage, comme là-bas. */}
+        {deck.slots.some((sl) => (sl.setOptions?.[0] ?? []).length > 0) && (
+          <div className="mt-1.5 flex flex-wrap items-center gap-1.5 lg:hidden">
+            {deck.slots.map((sl, i) => {
+              const sets = [...new Set(sl.setOptions?.[0] ?? [])];
+              if (sets.length === 0) return null;
+              return (
+                <span
+                  key={i}
+                  className="inline-flex items-center gap-0.5 rounded-full border border-border-soft bg-panel2 px-1.5 py-0.5"
+                  title={sets.map((k) => RUNE_SETS.find((s) => s.key === k)?.label ?? k).join(' + ')}
+                >
+                  {sets.map((k) => (
+                    <RuneIcon key={k} setKey={k} size={13} />
+                  ))}
+                </span>
+              );
+            })}
+          </div>
+        )}
         {!editing && match && !empty && (
-          <div className="flex flex-wrap items-center gap-2 compact:gap-1 mt-1 compact:mt-0.5">
+          <div className="flex flex-wrap items-center gap-2 compact:gap-1 mt-1 compact:mt-0.5 lg:hidden">
             <span className="basis-full sm:basis-auto">
               <DeckBadge match={match} />
             </span>
@@ -1189,22 +1669,13 @@ function DeckBlock({
         )}
       </div>
 
-      {deckAConfirmer && (
-        <ConfirmDialog
-          titre="Supprimer ce deck ?"
-          message="Ses trois slots et ses consignes seront perdus. Les autres decks de la recommandation restent en place."
-          libelleAction="Supprimer"
-          destructif
-          onCancel={() => setDeckAConfirmer(false)}
-          onConfirm={() => {
-            setDeckAConfirmer(false);
-            recos.removeDeck(reco.id, deckIndex);
-          }}
-        />
-      )}
-
       {!folded && (
-      <>
+      // ⚠️ À la souris, le détail d'une ligne dépliée est une CARTE sous elle,
+      // en retrait du chevron — le contenu est celui d'avant,
+      // inchangé. Au doigt, ce conteneur ne dessine rien.
+      // Le cadre s'ARRÊTE au bas du détail (`lg:border-b-0`, coins du bas
+      // droits) : le pied d'actions, en dessous, le ferme — voir plus haut.
+      <div className="lg:col-span-full lg:ml-8 lg:mt-2 lg:rounded-t-xl lg:border lg:border-b-0 lg:border-border-soft lg:bg-panel lg:p-3">
 
       {/* Consignes propres à ce deck */}
       {editing ? (
@@ -1234,11 +1705,13 @@ function DeckBlock({
               // voisine au lieu de laisser la table défiler à l'intérieur.
               className={`min-w-0 rounded-xl border p-2.5 compact:p-2 ${
                 // Indisponible ET stats insuffisantes sont tous deux bloquants → rouge.
+                // Statut au CONTOUR seul, fond neutre (voir `AURA`) : le badge
+                // sous le nom dit déjà ce qui cloche.
                 sm?.status === 'absent' || sm?.status === 'ko'
-                  ? 'border-fire bg-fire/20'
+                  ? 'border-bad/60 bg-panel2'
                   : sm?.status === 'ok'
-                    ? 'border-good/70 bg-good/20'
-                    : 'border-border bg-panel2/60'
+                    ? 'border-good/60 bg-panel2'
+                    : 'border-border-soft bg-panel2'
               } ${
                 // ⚠️ Le monstre CHERCHÉ prend un fond d'accent léger, jamais une
                 // bordure : celle-ci porte déjà le résultat de l'analyse
@@ -1259,10 +1732,15 @@ function DeckBlock({
                       monsters={monsters}
                       excludeIds={usedIds}
                       placeholder="Choisir un monstre…"
+                      jetonFocus={focus?.slot === idx ? focus.n : undefined}
                       onPick={(id) => {
                         const m = monsters.find((x) => String(x.id) === id);
-                        if (m && m.com2usId != null)
+                        if (m && m.com2usId != null) {
                           recos.setSlotMonster(reco.id, deckIndex, idx, m.com2usId, m.name);
+                          setFocus((f) =>
+                            prochainFocus(f, deck.slots.map((s) => s.com2usId != null), idx)
+                          );
+                        }
                       }}
                     />
                   </div>
@@ -1332,6 +1810,7 @@ function DeckBlock({
                       <StatEditor
                         slot={slot}
                         monster={monster}
+                        lead={monster ? siegeLeadFor(leadVitesse, monster.element) : 0}
                         onSet={(key, total) =>
                           recos.setSlotStat(reco.id, deckIndex, idx, key, total)
                         }
@@ -1389,7 +1868,7 @@ function DeckBlock({
         recos={recos}
         hitCounters={hit?.counters ?? []}
       />
-      </>
+      </div>
       )}
     </div>
   );
@@ -1538,7 +2017,7 @@ function CounterBlock({
   return (
     <div className="mt-2.5 pt-2.5 border-t border-border/50">
       <div className="mb-1.5 flex items-center gap-1.5">
-        <Swords size={13} className="flex-none text-ink-dim" />
+        <IconeOffense size={13} className="text-ink-dim" />
         <span className="label">Fort contre</span>
         {deck.counters.length > 1 && (
           <span className="font-mono text-micro text-ink-dim">{deck.counters.length}</span>
@@ -1575,11 +2054,21 @@ function CounterBlock({
             rangée, à la suite des défenses — c'est là qu'on ajoute, et il montre
             où la prochaine se posera. Le bloc restant visible même vide, c'est
             aussi lui qui rend la fonctionnalité découvrable sur un deck qui n'en
-            porte encore aucune. */}
+            porte encore aucune.
+            ⚠️ **À la souris, un bouton `sm` POINTILLÉ à fond**, au bout de la
+            rangée (`lg:ml-auto`) — le bord pointillé d'un ajout, le fond d'un
+            bouton. Il a été fantôme un temps, et ne ressortait
+            pas. Au doigt,
+            la tuile pointillée de 44 px d'avant, à la hauteur des vignettes :
+            `taille="sm"` + `max-lg:px-3.5 max-lg:text-sm` redonnent
+            exactement son dessin SOUS `lg` seulement. ⚠️ Pas `px-3.5 text-sm`
+            nus : `text-xs` (de `sm`) passe APRÈS `text-sm` dans la feuille
+            construite, il aurait gagné — vérifié dans le CSS. */}
         <Bouton
           onClick={ajouter}
           trait="pointille"
-          className="h-[44px]"
+          taille="sm"
+          className="h-[44px] max-lg:px-3.5 max-lg:text-sm lg:ml-auto lg:h-7 lg:self-center"
           icone={<Plus size={14} />}
           libelle="Défense"
           aria-label="Ajouter une défense que ce deck bat"
@@ -1633,6 +2122,9 @@ function CounterRow({
       .filter((id): id is string => id != null)
       .map(String)
   );
+  // Un monstre choisi → le curseur passe au monstre vide suivant (voir
+  // `slotVideSuivant`), comme dans les slots d'un deck.
+  const [focus, setFocus] = useState<JetonSlot | null>(null);
 
   if (!editing) {
     // Une vignette sans note n'a rien à déplier : elle ne devient donc pas
@@ -1724,19 +2216,23 @@ function CounterRow({
             jamais depuis son centre (voir spec/shared/design.md).
             `min-w-full` : au moins aussi large que la vignette, pour se lire
             comme sa suite ; `w-max` + plafond au-delà, la note étant courte. */}
+        {/* ⚠️ **Le `Flottant` de la librairie**, comme partout dans l'app :
+            même fond, même contour neutre, même ombre et même
+            rembourrage que toutes les bulles de l'app. C'était une boîte
+            maison au contour d'ACCENT (réservé à l'état enclenché), à l'ombre
+            et aux marges à elle. */}
         {noteOuverte && (
-          <div
+          <Flottant
             ref={noteRef}
             // ⚠️ Ancrée à gauche d'une vignette qui peut être la DERNIÈRE de sa
             // rangée : la note sortait alors de l'écran par la droite. Le
             // `max-w` borne sa largeur, pas sa position. Voir le hook.
             style={recalageNote}
-            className="absolute left-0 top-full z-20 mt-1 w-max min-w-full max-w-[280px] origin-top-left
-                       rounded-lg border border-accent bg-panel px-2.5 py-1.5 shadow-xl shadow-black/50
-                       animate-[popover_150ms_var(--ease-out)]"
+            largeur="w-max min-w-full max-w-[280px]"
+            rembourrage="sm"
           >
             <p className="text-xs leading-snug text-ink-dim">{counter.note}</p>
-          </div>
+          </Flottant>
         )}
       </div>
     );
@@ -1759,11 +2255,12 @@ function CounterRow({
                     monsters={monsters}
                     excludeIds={usedIds}
                     placeholder={`Monstre ${i + 1}…`}
+                    jetonFocus={focus?.slot === i ? focus.n : undefined}
                     onPick={(id) => {
                       const mon = monsters.find((x) => String(x.id) === id);
                       // ⚠️ Même clé stable que partout : un monstre perso
                       // (`com2usId` nul) n'est pas partageable, donc pas retenu.
-                      if (mon && mon.com2usId != null)
+                      if (mon && mon.com2usId != null) {
                         recos.setCounterMonster(
                           reco.id,
                           deckIndex,
@@ -1772,6 +2269,10 @@ function CounterRow({
                           mon.com2usId,
                           mon.name
                         );
+                        setFocus((f) =>
+                          prochainFocus(f, counter.monsters.map((x) => x.com2usId != null), i)
+                        );
+                      }
                     }}
                   />
                 ) : (
@@ -1797,17 +2298,16 @@ function CounterRow({
         </div>
         {/* Terminer, puis supprimer — l'ordre du geste courant d'abord.
             ⚠️ Le ✓ doré est la convention de l'édition en cours dans toute la
-            page (voir spec/siege/recommandations.md). */}
+            page (voir spec/siege/recommandations.md) — posé sur l'icône d'un
+            `BoutonIcone`, comme les crayons de la recommandation et du deck,
+            et de la même taille que la corbeille voisine. */}
         <div className="mt-1 flex flex-none items-center gap-1.5">
-          <button
+          <BoutonIcone
             onClick={onToggleEdit}
             aria-pressed
-            className="text-star transition hoverable:brightness-125"
-            title="Terminer"
-            aria-label="Terminer"
-          >
-            <Check size={14} />
-          </button>
+            icone={<Check size={14} className="text-star" />}
+            libelle="Terminer"
+          />
           <BoutonIcone
             onClick={() => recos.removeCounter(reco.id, deckIndex, counterIndex)}
             ton="danger"
@@ -1832,6 +2332,137 @@ function CounterRow({
         placeholder="Précision (ex. « si le Chloe est en lead »)…"
         className="mt-1.5 bg-panel py-1 text-micro"
       />
+    </div>
+  );
+}
+
+/* ---- Vue Défense ------------------------------------------ */
+
+// Rang d'un statut de deck, du plus favorable au moins favorable : le point
+// d'une défense prend le MEILLEUR de ses offenses — une seule jouable suffit
+// à la taper.
+const RANG_STATUT: Record<string, number> = { ok: 0, partial: 1, nodeck: 2, ko: 3, missing: 4, unknown: 5 };
+
+function meilleurStatut(offenses: { deckIndex: number }[], match: RecoMatch | null): string {
+  let meilleur = 'unknown';
+  for (const o of offenses) {
+    const st = match?.decks[o.deckIndex]?.status ?? 'unknown';
+    if ((RANG_STATUT[st] ?? 5) < (RANG_STATUT[meilleur] ?? 5)) meilleur = st;
+  }
+  return meilleur;
+}
+
+// « Galleon - Belladeon », même forme que le nom d'un deck (`deckLabel`).
+function defenseLabel(monsters: RecoCounter['monsters'], byCom2us: Map<number, Monster>): string {
+  return monsters
+    .map((m) => (m.com2usId != null ? byCom2us.get(m.com2usId)?.name ?? m.name : m.name).trim())
+    .filter(Boolean)
+    .join(' - ');
+}
+
+// ⚠️ **Lecture seule** : on consulte « contre cette défense,
+// j'ai ces offenses » ; on modifie en vue Attaque. Même cadre et même rangée
+// d'intitulés que le tableau des decks, pour qu'une vue se lise comme l'autre.
+// Au doigt, chaque défense s'empile au-dessus de ses offenses.
+function TableauDefenses({
+  reco,
+  vue,
+  match,
+  monsterByCom2us,
+}: {
+  reco: Reco;
+  vue: VueDefenses;
+  match: RecoMatch | null;
+  monsterByCom2us: Map<number, Monster>;
+}) {
+  const monstre = (id: number | null) => (id != null ? monsterByCom2us.get(id) ?? null : null);
+
+  // Une offense : ses trois portraits (le leader porte son lead), le point de
+  // son verdict si la recommandation est analysée, et la précision que CE deck
+  // donne sur la défense (« si Galleon est en lead »).
+  const offense = (deckIndex: number, note: string) => {
+    const deck = reco.decks[deckIndex];
+    const st = match?.decks[deckIndex]?.status ?? 'unknown';
+    const leader = monstre(deck.slots[0]?.com2usId ?? null);
+    return (
+      <li key={deckIndex} className="flex flex-wrap items-center gap-x-2 gap-y-1" data-offense-contre>
+        <span className={`h-2 w-2 flex-none rounded-full ${DOT[st]}`} aria-hidden />
+        <span className="flex flex-none items-center gap-1" title={deckLabel(deck, monsterByCom2us, deckIndex)}>
+          {deck.slots.map((sl, i) => (
+            <MiniMonster
+              key={i}
+              monster={monstre(sl.com2usId)}
+              fallback={sl.name}
+              size={28}
+              lead={i === 0 ? leader?.leaderSkill ?? null : null}
+            />
+          ))}
+        </span>
+        <span className="text-xs text-ink">{deckLabel(deck, monsterByCom2us, deckIndex)}</span>
+        {note && <span className="text-micro text-ink-dim">— {note}</span>}
+      </li>
+    );
+  };
+
+  if (vue.defenses.length === 0 && vue.sansDefense.length === 0) {
+    return <p className="py-3 text-center text-xs text-ink-dim">Aucun deck dans cette recommandation.</p>;
+  }
+
+  return (
+    <div
+      className="grid grid-cols-1 gap-2.5 animate-[apparition_180ms_var(--ease-out)]
+                 lg:gap-0 lg:overflow-hidden lg:rounded-xl lg:border lg:border-border-soft"
+    >
+      <div
+        className="hidden bg-panel2 px-3 py-1.5 lg:grid lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] lg:gap-3"
+        aria-hidden
+        data-intitules-defenses
+      >
+        <span className="label">Défense</span>
+        <span className="label">Offenses fortes contre elle</span>
+      </div>
+      {vue.defenses.map((d) => {
+        const leader = monstre(d.monsters[0]?.com2usId ?? null);
+        return (
+          <div
+            key={d.cle}
+            className="rounded-xl border border-border-soft bg-panel2 p-2.5 compact:p-1.5
+                       lg:grid lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] lg:items-center lg:gap-3
+                       lg:rounded-none lg:border-0 lg:border-t lg:bg-transparent lg:px-3 lg:py-2"
+            data-defense-visee
+          >
+            <div className="mb-2 flex min-w-0 items-center gap-2 lg:mb-0">
+              <span className="flex flex-none items-center gap-1">
+                {d.monsters.map((m, i) => (
+                  <MiniMonster
+                    key={i}
+                    monster={monstre(m.com2usId)}
+                    fallback={m.name}
+                    size={34}
+                    lead={i === 0 ? leader?.leaderSkill ?? null : null}
+                  />
+                ))}
+              </span>
+              <span className="min-w-0 truncate text-sm font-semibold text-ink">
+                {defenseLabel(d.monsters, monsterByCom2us)}
+              </span>
+            </div>
+            <ul className="flex flex-col gap-1.5">{d.offenses.map((o) => offense(o.deckIndex, o.note))}</ul>
+          </div>
+        );
+      })}
+      {/* Les decks sans défense visée : pas de ligne à eux, mais ils ne
+          disparaissent pas en changeant de vue. */}
+      {vue.sansDefense.length > 0 && (
+        <div
+          className="rounded-xl border border-dashed border-border-soft p-2.5 compact:p-1.5
+                     lg:grid lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] lg:items-center lg:gap-3
+                     lg:rounded-none lg:border-0 lg:border-t lg:border-solid lg:px-3 lg:py-2"
+        >
+          <p className="mb-2 text-xs text-ink-dim lg:mb-0">Aucune défense visée</p>
+          <ul className="flex flex-col gap-1.5">{vue.sansDefense.map((di) => offense(di, ''))}</ul>
+        </div>
+      )}
     </div>
   );
 }
@@ -1882,15 +2513,74 @@ function baseFor(key: RecoStatKey, monster: Monster | null): number | null {
 // rappelée, et un champ où l'on ne met que le **bonus à ajouter**. Le total
 // (base + bonus) est affiché à droite — c'est lui qui est stocké et comparé,
 // pour rester une valeur absolue même si les données de base évoluent.
-function StatEditor({
+// Exporté pour les tests de rendu : sans clic, le rendu serveur n'ouvre jamais
+// l'édition d'un deck.
+export function StatEditor({
   slot,
   monster,
+  lead,
   onSet,
 }: {
   slot: RecoSlot;
   monster: Monster | null;
+  // Lead de vitesse effectif EN SIÈGE pour ce monstre (0 = aucun).
+  lead: number;
   onSet: (key: RecoStatKey, total: number | null) => void;
 }) {
+  // Raccourci « Tick rapide / Tick lent », comme sur les cartes d'équipe du
+  // siège : un clic met la VIT de FICHE qui tombe pile sur le tick, totem et
+  // lead du deck compris. ⚠️ **Rien n'est stocké** : seule la VIT l'est, et on
+  // y ajoute ensuite soi-même +1, +2… pour régler l'ordre de jeu. Le bouton
+  // reste allumé tant que la VIT tombe dans le tick (de pile à +15, la marge
+  // de `tickDanger`).
+  //
+  // ⚠️ **Désactivé quand TOUTES les possibilités de runage portent Swift** :
+  // une équipe Swift ne se cale pas au tick, elle se speed tune
+  // (spec/siege/speed-tick.md). Une seule option sans Swift suffit : le calcul
+  // se fait alors sans lui.
+  const baseVit = baseFor('spd', monster);
+  const options = slot.setOptions.filter((o) => o.length > 0);
+  const toutSwift = options.length > 0 && options.every((o) => o.includes('swift'));
+  const vit = slot.stats.spd;
+  const ticks = (
+    // Calés à DROITE, sous le champ et le total qu'ils remplissent : à gauche,
+    // sous la base, ils ne s'alignaient sur rien de ce qu'ils modifient.
+    <div className="flex basis-full items-center justify-end gap-1.5">
+      {SIEGE_TICKS.map((t) => {
+        const cible = ficheSpeedForTick(baseVit, lead, t.value);
+        const atteint = cible != null && vit != null && vit >= cible && vit <= cible + TICK_ABOVE_MARGIN;
+        return (
+          <Bouton
+            key={t.key}
+            onClick={() => cible != null && onSet('spd', cible)}
+            actif={atteint}
+            disabled={cible == null || toutSwift}
+            forme="pilule"
+            taille="xs"
+            // ⚠️ « Tick rapide », pas « Rapide 286 » comme au siège : ici la
+            // VIT écrite est celle de FICHE (269 sans lead), et un bouton qui
+            // annonçait 286 pour écrire 269 se lisait comme une erreur. Le
+            // tick visé reste dans l'infobulle.
+            libelle={`Tick ${t.label.toLowerCase()}`}
+            title={
+              toutSwift
+                ? 'Runage Swift : il se speed tune, il ne vise pas de tick'
+                : cible == null
+                  ? 'Vitesse de base inconnue : le tick ne peut pas être calculé'
+                  : `Mettre la VIT à ${cible} : tick ${t.value} en combat, totem et lead compris`
+            }
+            // Même pastille que les ticks d'une équipe de siège (`TickBtn`) :
+            // deux côte à côte, sans zone tactile étendue qui les ferait se
+            // chevaucher — c'est l'espacement qui protège du ratage. Sans
+            // `font-mono` : au siège il servait des chiffres, ici ce sont des mots.
+            data-cible-fine
+            className="select-none compact:px-1.5 compact:py-0 compact:text-nano"
+          />
+        );
+      })}
+    </div>
+  );
+
   // ⚠️ **PLUS de table qui défile.** Une table à colonnes fixes, sous sa
   // largeur mini, faisait défiler HORIZONTALEMENT dans la carte — et une
   // barre de défilement horizontale, sur trois ou quatre chiffres, est
@@ -1921,8 +2611,14 @@ function StatEditor({
               {/* Champ texte (et non `type=number`) : pas de boutons +/- à
                   droite, qui mangent la largeur d'une colonne déjà étroite.
                   `inputMode=numeric` garde le pavé numérique sur mobile.
-                  `w-14` : cinq chiffres visibles — la plupart des stats en ont
-                  autant (PV ~35 000).
+                  ⚠️ **Largeur en `ch`, pas en pixels** : six chiffres de la
+                  police mono du champ, plus son rembourrage (`px-3` de `Champ`,
+                  qui l'emporte sur un `px-1` ajouté — ordre de la feuille) et
+                  son contour. L'ancien `w-14` (56 px) annonçait cinq chiffres
+                  mais n'en montrait que trois : le rembourrage en mangeait 24,
+                  et `ch` suit la taille de police quel que soit le format.
+                  Six et non cinq : un bonus négatif porte un signe. */}
+              {/* Largeur : `6ch` + 24 px de rembourrage + 2 px de contour.
                   ⚠️ **`pleineLargeur={false}` obligatoire ici.** `Champ` vaut
                   `w-full` par défaut : posé tel quel dans une ligne
                   `flex-wrap`, sans largeur de colonne pour le contenir, il
@@ -1939,7 +2635,7 @@ function StatEditor({
                 }}
                 placeholder="—"
                 pleineLargeur={false}
-                className="w-14 bg-panel px-1 py-0.5 text-micro font-mono tabular-nums text-good"
+                className="w-[calc(6ch+26px)] bg-panel py-0.5 text-micro font-mono tabular-nums text-good"
               />
             </span>
             <span
@@ -1949,6 +2645,10 @@ function StatEditor({
             >
               {total != null ? `= ${fmtStat(total)}${st.suffix}` : '—'}
             </span>
+            {/* `basis-full` : les ticks prennent leur propre ligne sous la VIT,
+                à une place fixe — le total qui change de largeur au clic ne
+                les déplace pas. */}
+            {st.key === 'spd' && ticks}
           </div>
         );
       })}
@@ -1981,7 +2681,7 @@ function NoteEditor({
       <div className="flex items-center justify-between mb-0.5">
         <span className="label">{label}</span>
         {left < max / 4 && (
-          <span className={`font-mono text-micro ${left <= 0 ? 'text-fire' : 'text-ink-dim'}`}>
+          <span className={`font-mono text-micro ${left <= 0 ? 'text-bad' : 'text-ink-dim'}`}>
             {left} car.
           </span>
         )}
@@ -2137,7 +2837,7 @@ function SetEditor({
                         <button
                           onClick={() => onRemove(oi, pos)}
                           data-cible-fine
-                          className="flex-none text-ink-dim transition hoverable:text-fire"
+                          className="flex-none text-ink-dim transition hoverable:text-bad"
                           title="Retirer ce set"
                           aria-label="Retirer ce set"
                         >
@@ -2175,6 +2875,7 @@ function SetEditor({
           pleineLargeur
           icone={!full ? <Plus size={11} /> : undefined}
           libelle={full ? 'Plus de place (6 runes)' : 'Set'}
+          className={BOUTON_LG}
         />
         <Bouton
           onClick={() => {
@@ -2192,6 +2893,7 @@ function SetEditor({
           pleineLargeur
           icone={<Plus size={11} />}
           libelle="Possibilité"
+          className={BOUTON_LG}
         />
       </div>
 
@@ -2374,19 +3076,21 @@ function ArtifactList({
                         ? 'Propriété présente sur son artéfact'
                         : `Propriété absente de l'artéfact ${LIBELLE_KIND[key]} de ton exemplaire`
                   }
+                  // Fonds DOUX du jeton (`good-soft`/`bad-soft`), texte à l'encre :
+                  // un aplat saturé à 20-25 % se lisait mal.
                   className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 ${
                     ok === null
-                      ? 'border-border bg-panel'
+                      ? 'border-border-soft bg-panel'
                       : ok
-                        ? 'border-good bg-good/25'
-                        : 'border-fire bg-fire/20'
+                        ? 'border-good/50 bg-good-soft'
+                        : 'border-bad/50 bg-bad-soft'
                   }`}
                 >
-                  <span className={`text-micro ${ok === false ? 'text-fire' : 'text-ink'}`}>
+                  <span className="text-micro text-ink">
                     {artifactSubLabel(code)}
                   </span>
                   {ok === true && <Check size={10} className="text-good" />}
-                  {ok === false && <X size={10} className="text-fire" />}
+                  {ok === false && <X size={10} className="text-bad" />}
                 </span>
               );
             })}
@@ -2437,20 +3141,22 @@ function SetList({ options, sm }: { options: string[][]; sm: SlotMatch | null })
                       title={
                         ok === null ? undefined : ok ? 'Set porté' : `Set ${key} manquant sur ton exemplaire`
                       }
+                      // Fonds DOUX, texte à l'encre — comme les
+                      // propriétés d'artéfact.
                       className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 ${
                         ok === null
-                          ? 'border-border bg-panel'
+                          ? 'border-border-soft bg-panel'
                           : ok
-                            ? 'border-good/70 bg-good/20'
-                            : 'border-fire/70 bg-fire/20'
+                            ? 'border-good/50 bg-good-soft'
+                            : 'border-bad/50 bg-bad-soft'
                       }`}
                     >
                       <RuneIcon setKey={key} size={14} />
-                      <span className={`text-micro ${ok === false ? 'text-fire' : 'text-ink'}`}>
+                      <span className="text-micro text-ink">
                         ×{setPieces(key)}
                       </span>
                       {ok === true && <Check size={10} className="text-good" />}
-                      {ok === false && <X size={10} className="text-fire" />}
+                      {ok === false && <X size={10} className="text-bad" />}
                     </span>
                   );
                 })}
@@ -2467,18 +3173,25 @@ function SetList({ options, sm }: { options: string[][]; sm: SlotMatch | null })
 
 // Badge d'un deck : le verdict en trois mots, + l'équipe retenue si trouvée.
 function DeckBadge({ match }: { match: DeckMatch }) {
+  const m = verdictDeck(match);
+  if (!m) return null;
+  return <span className={`font-mono text-micro ${m.cls}`}>· {m.text}</span>;
+}
+
+// La phrase du verdict d'un deck — lue par `DeckBadge` et par l'infobulle de
+// la pastille de la ligne (tableau des decks à la souris) : une
+// seule rédaction pour les deux.
+function verdictDeck(match: DeckMatch): { cls: string; text: string } | null {
   const map: Record<string, { cls: string; text: string }> = {
     ok: { cls: 'text-good', text: `jouable${match.team ? ` · ${match.team}` : ''}` },
     nodeck: { cls: 'text-warn', text: 'aucun deck avec ces monstres — à composer' },
     ko: {
-      cls: 'text-fire',
+      cls: 'text-bad',
       text: `${libelleCausesDeck(deckFaults(match.slots)) || 'critères non respectés'}${match.team ? ` · ${match.team}` : ''}`,
     },
-    missing: { cls: 'text-fire', text: 'monstre indisponible — deck impossible' },
+    missing: { cls: 'text-bad', text: 'monstre indisponible — deck impossible' },
   };
-  const m = map[match.status];
-  if (!m) return null;
-  return <span className={`font-mono text-micro ${m.cls}`}>· {m.text}</span>;
+  return map[match.status] ?? null;
 }
 
 // Combien de fois le deck est montable EN PARALLÈLE avec la réserve 6★.
@@ -2499,7 +3212,7 @@ function CopiesBadge({ copies }: { copies: number | null }) {
   if (copies === 0) {
     return (
       <span
-        className="font-mono text-micro text-fire"
+        className="font-mono text-micro text-bad"
         title="Il manque au moins un monstre 6★ en réserve pour monter ce deck"
       >
         · réalisable 0 fois
@@ -2556,7 +3269,7 @@ function libelleCausesDeck(causes: FaultCause[]): string {
 // (box, RTA, défense/offense de siège) — utile quand plusieurs presets existent.
 function SlotBadge({ sm }: { sm: SlotMatch }) {
   if (sm.status === 'absent')
-    return <div className="font-mono text-micro text-fire">monstre indisponible</div>;
+    return <div className="font-mono text-micro text-bad">monstre indisponible</div>;
   if (sm.status === 'unknown')
     // Possédé, mais aucun deck existant ne le réunit aux autres → rien à comparer.
     return <div className="font-mono text-micro text-ink-dim">possédé</div>;
@@ -2568,7 +3281,7 @@ function SlotBadge({ sm }: { sm: SlotMatch }) {
     );
   if (sm.status === 'ko')
     return (
-      <div className="font-mono text-micro text-fire" title={`Deck retenu : ${sm.owned?.label}`}>
+      <div className="font-mono text-micro text-bad" title={`Deck retenu : ${sm.owned?.label}`}>
         {libelleCausesSlot(slotFaults(sm)) || 'critères non respectés'}
       </div>
     );
@@ -2634,9 +3347,9 @@ function StatList({
           <div
             key={st.key}
             className={`flex flex-wrap items-center gap-x-2 gap-y-1 border-b border-border/40 py-1
-              text-micro last:border-0 ${rate ? 'bg-fire/10' : ''}`}
+              text-micro last:border-0 ${rate ? 'bg-bad-soft' : ''}`}
           >
-            <span className={`w-14 flex-none ${rate ? 'text-fire font-semibold' : 'text-ink-dim'}`}>
+            <span className={`w-14 flex-none ${rate ? 'text-bad font-semibold' : 'text-ink-dim'}`}>
               {st.label}
             </span>
             {total ? (
@@ -2657,7 +3370,7 @@ function StatList({
             {analyse && (
               <span
                 className={`ml-auto flex-none font-mono tabular-nums ${
-                  c ? (c.ok ? 'text-good' : 'text-fire') : 'text-ink-dim'
+                  c ? (c.ok ? 'text-good' : 'text-bad') : 'text-ink-dim'
                 }`}
                 title={
                   c && c.actual !== null && !c.ok
@@ -2669,7 +3382,7 @@ function StatList({
                   <>
                     {fmtStat(c.actual)}
                     {st.suffix}
-                    {!c.ok && <span className="text-fire/70"> (−{fmtStat(-c.diff)})</span>}
+                    {!c.ok && <span className="text-bad/70"> (−{fmtStat(-c.diff)})</span>}
                   </>
                 ) : (
                   '—'

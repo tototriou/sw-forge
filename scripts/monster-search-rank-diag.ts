@@ -5,12 +5,12 @@
 // tranche protège ce demi-build, et à quelle taille ? » sans payer le coût
 // d'une recherche complète à chaque essai.
 //
-// ⚠️ SEUL SURVIVANT des 6 scripts à reconstruction complète que le harnais de
-// diagnostic (scripts/diagnostic-harness.ts) remplace — les 5 autres ont été
-// supprimés le 2026-09-06. Celui-ci reste : sa question porte sur la
+// ⚠️ SEUL SURVIVANT des scripts à reconstruction complète que le harnais de
+// diagnostic (scripts/diagnostic-harness.ts) remplace. Celui-ci reste : sa question porte sur la
 // rétention INTERNE de `buildBuckets` (quelle TRANCHE garde ce demi-build),
 // ce que `Bucket.combos` (déjà fusionné, dédupliqué) ne peut pas dire — c'est
-// la limite V1 assumée du §9 de spec/outils/optimizer/harnais-diagnostic.md.
+// la limite assumée de spec/outils/optimizer/harnais.md,
+// « Limite : la rétention interne de buildBuckets ».
 //
 // Usage : monster-search-rank-diag.ts <export.json> <deckId> <nomMonstre> [--defense] [statKeys=atk,cr,cd] [objective=degats] [slotFilterCap=80]
 
@@ -63,8 +63,8 @@ const base: BaseStats = gear.base;
 const maxKeys = new Set<StatKey>();
 const step1 = mainStatFilteredBySlot(allRunes, requirement);
 // Relique FIXE : la portée, la même que `relPct` ci-dessous — ce script n'a
-// pas de contexte relique (6bis-b3c). Paire FIXE de même, la portée
-// (`artFlat`) : ses seules lignes 218–221 (6bis-b3d-1).
+// pas de contexte relique. Paire FIXE de même, la portée
+// (`artFlat`) : ses seules lignes 218–221.
 const step2 = step1.map((l) => pruneDominated(l, maxKeys, contexteDominance(requirement, step1.flat(), objective, objectiveStats, reliquesEquipables(gear.relic, undefined),
   statsLuesParLesLignes(objective, gear.artifacts, undefined))));
 const guaranteed = guaranteedSetBonus(requirement, base);

@@ -1,15 +1,14 @@
 // Dos-à-dos SIMULTANÉ entre le code courant (répertoire de travail
 // principal, y compris les modifications non committées) et une version
 // antérieure (`git worktree`, checkout séparé sur disque), pour un cas
-// connu — voir spec/outils/optimizer/, « Suite — mode --quick et
-// parallélisation de --monotonicity », section sur la fiabilité des
-// comparaisons de temps.
+// connu — voir le skill `optimizer-perf-testing` (fiabilité des
+// comparaisons de temps).
 //
 // ⚠️ Pourquoi un `worktree`, pas juste revert/relancer/restaurer le
 // fichier : un même chemin sur disque ne peut pas être dans deux états à
 // la fois pour deux processus qui tournent EN MÊME TEMPS. Éditer-relancer-
-// rééditer marche pour deux mesures SÉQUENTIELLES (ce qui a été fait toute
-// cette session), jamais pour une comparaison simultanée — il faut deux
+// rééditer marche pour deux mesures SÉQUENTIELLES, jamais pour une
+// comparaison simultanée — il faut deux
 // RÉPERTOIRES distincts, chacun avec son propre `runeBuildOptim.ts`.
 //
 // ⚠️ Pourquoi simultané plutôt que la baseline JSON habituelle
@@ -20,8 +19,8 @@
 // cette dérive — au prix d'une contention à 2 processus (pas 7×2 comme la
 // batterie complète), largement plus légère.
 //
-// Deux pièges déjà rencontrés dans CE dépôt (voir « leçons retenues sur la
-// méthodologie de mesure », spec/outils/optimizer/) et leurs
+// Deux pièges déjà rencontrés dans CE dépôt (voir le skill
+// `optimizer-perf-testing`) et leurs
 // contre-mesures ici :
 //   1. `node_modules` et les comptes réels (gitignorés) sont ABSENTS d'un
 //      nouveau worktree (git ne checkout que les fichiers SUIVIS) — sans
@@ -65,7 +64,7 @@ const repeats = Number(process.argv.find((a) => a.startsWith('--repeats='))?.spl
 
 const MAIN_DIR = process.cwd();
 const SAFE_REF = ref.replace(/[^a-zA-Z0-9_.-]/g, '_');
-const WORKTREE_DIR = join(tmpdir(), `sw-forge-compare-${SAFE_REF}-${process.pid}`);
+const WORKTREE_DIR = join(tmpdir(), `swblacksmith-compare-${SAFE_REF}-${process.pid}`);
 
 // ⚠️ Liste EXPLICITE, jamais un motif — voir le piège n°2 en tête de
 // fichier. Alignée sur .gitignore (`tototriou-*.json`, `*Enzo-*.json`) et
@@ -155,7 +154,7 @@ interface SideResult {
   result: {
     found: boolean;
     // ⚠️ Optionnel : `ref` peut désigner un commit ANTÉRIEUR à l'ajout de
-    // ce champ (voir spec/outils/optimizer/) — absent, pas invalide.
+    // ce champ — absent, pas invalide.
     foundCount?: number;
     foundMs: number | null;
     totalMs: number;
@@ -235,7 +234,7 @@ async function compareCase(idx: number) {
   const oldBest = { totalMs: bestTotal(oldRuns), foundMs: bestFound(oldRuns), foundCount: oldRuns[oldRuns.length - 1].result.foundCount, found: oldRuns.every((r) => r.result.found), buildWallMs: bestBuildWall(oldRuns), pairingFoundMs: bestPairingFound(oldRuns) };
   const deltaTotal = newBest.totalMs - oldBest.totalMs;
   // ⚠️ `foundCount` peut être ABSENT côté `ancien` si `ref` précède son
-  // ajout au format (voir spec/outils/optimizer/) — pas une erreur, juste
+  // ajout au format — pas une erreur, juste
   // un champ qui n'existait pas encore à cette version. Affiché « — »
   // plutôt que `undefined`/`NaN`.
   const deltaCount = oldBest.foundCount != null && newBest.foundCount != null ? newBest.foundCount - oldBest.foundCount : null;

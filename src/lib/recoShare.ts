@@ -22,6 +22,8 @@ import {
   emptyRecoSlot,
 } from '../types';
 import { artifactSubKinds, artifactSubLabel, canAddSet, isArtifactSub } from './effects';
+import { NOM_APP } from '../marque';
+import { formatExport, formatReconnu } from './formatsExport';
 
 const STAT_KEYS = new Set<string>(RECO_STATS.map((s) => s.key));
 const SET_KEYS = new Set<string>(RUNE_SETS.map((s) => s.key));
@@ -273,7 +275,8 @@ const texteSortant = (s: string | undefined, max: number) => (s ?? '').trim().sl
  * Format JSON lisible — celui des FICHIERS échangés
  * ----------------------------------------------------------------------- */
 
-export const JSON_FORMAT = 'sw-forge/recommandations';
+// `sw-forge/recommandations` avant le rebranding : toujours relu (formatsExport.ts).
+export const JSON_FORMAT = formatExport('recommandations');
 // v3 : `sets` d'un monstre devient une LISTE DE POSSIBILITÉS (« Violent/Némésis
 // OU Violent/Vengeance »). Les fichiers v1/v2 restent lus sans perte — leur
 // liste de clés est reprise comme possibilité unique — mais on le SIGNALE à
@@ -404,7 +407,7 @@ export function decodeRecosJson(text: string, ctx: Issues = noIssues()): RecoPay
     ctx.errors.push("Le JSON doit être un objet contenant une clé « recommandations ».");
     return null;
   }
-  if (typeof obj.format === 'string' && obj.format !== JSON_FORMAT) {
+  if (typeof obj.format === 'string' && !formatReconnu(obj.format, 'recommandations')) {
     warn(ctx, `Format déclaré « ${obj.format} » (attendu « ${JSON_FORMAT} ») — lecture tentée quand même.`);
   }
   // Fichier d'une version antérieure : lu sans perte, mais on le dit.
@@ -413,14 +416,14 @@ export function decodeRecosJson(text: string, ctx: Issues = noIssues()): RecoPay
     warn(
       ctx,
       `Fichier au format v${version} (actuel : v${JSON_VERSION}). Il a été lu sans perte — ` +
-        `réexporte-le depuis SW Forge pour le mettre à jour.`
+        `réexporte-le depuis ${NOM_APP} pour le mettre à jour.`
     );
   }
   const list = (
     Array.isArray(obj.recommandations) ? obj.recommandations : Array.isArray(obj.recos) ? obj.recos : null
   ) as unknown[] | null;
   if (!list) {
-    ctx.errors.push("Clé « recommandations » absente ou invalide : ce n'est pas un export SW Forge.");
+    ctx.errors.push(`Clé « recommandations » absente ou invalide : ce n'est pas un export ${NOM_APP}.`);
     return null;
   }
   if (list.length === 0) {

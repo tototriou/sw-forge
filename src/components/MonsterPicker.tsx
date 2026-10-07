@@ -1,4 +1,4 @@
-import { useId, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useState } from 'react';
 import { Search, Plus } from 'lucide-react';
 import { Monster } from '../types';
 import MonsterAvatar from './MonsterAvatar';
@@ -11,6 +11,16 @@ interface Props {
   onPick: (id: string) => void;
   excludeIds?: Set<string>;
   placeholder?: string;
+  // Nom accessible du champ, quand le placeholder ne suffit pas à dire à quoi
+  // il sert (« Chercher une équipe par monstre »).
+  ariaLabel?: string;
+  // Le champ prend le FOCUS chaque fois que cette valeur change (et n'est pas
+  // `undefined`). Sert à enchaîner la saisie d'une équipe : un monstre choisi,
+  // le curseur passe au slot vide suivant (le mainteneur, Recommandations).
+  // ⚠️ Un JETON et pas un booléen, ni `autoFocus` : le champ suivant est DÉJÀ
+  // monté — `autoFocus` n'agit qu'au montage —, et un booléen resté `true`
+  // ne redonnerait pas le focus au deuxième passage sur le même slot.
+  jetonFocus?: number;
 }
 
 const MAX_RESULTS = 25;
@@ -21,7 +31,7 @@ const MAX_RESULTS = 25;
 // [useComboboxNav](src/hooks/useComboboxNav.ts), partagé avec
 // [RtaSearch](src/components/rta/RtaSearch.tsx) : ↑/↓, Entrée sur l'élément
 // surligné, Échap pour fermer.
-export default function MonsterPicker({ monsters, onPick, excludeIds, placeholder }: Props) {
+export default function MonsterPicker({ monsters, onPick, excludeIds, placeholder, ariaLabel, jetonFocus }: Props) {
   const [query, setQuery] = useState('');
   // ⚠️ Plusieurs pickers coexistent (un par slot d'équipe de siège) : les `id`
   // ARIA doivent être uniques, sinon `aria-activedescendant` désigne l'option
@@ -57,6 +67,12 @@ export default function MonsterPicker({ monsters, onPick, excludeIds, placeholde
     onValider: (m) => onPick(String(m.id)),
   });
 
+  // Voir `jetonFocus` : focus à chaque NOUVELLE valeur du jeton.
+  const champ = nav.inputProps.ref;
+  useEffect(() => {
+    if (jetonFocus !== undefined) champ.current?.focus();
+  }, [jetonFocus, champ]);
+
   return (
     <div className="relative">
       <Champ
@@ -64,6 +80,7 @@ export default function MonsterPicker({ monsters, onPick, excludeIds, placeholde
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         placeholder={placeholder ?? 'Rechercher…'}
+        aria-label={ariaLabel}
         icone={<Search size={16} />}
         // ⚠️ `bg-panel` plutôt que le `panel2` par défaut de `Champ` — même
         // écart assumé que le champ de RtaSearch : ce champ vit DANS un slot

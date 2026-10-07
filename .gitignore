@@ -1,5 +1,10 @@
 node_modules
 dist
+# Application de bureau (spec/shared/application-bureau.md) : le code
+# compilé de `bureau/` et les installeurs — produits, jamais suivis (un
+# installeur dépasse les 5 Mo du hook pre-commit).
+dist-bureau
+paquets
 .DS_Store
 *.log
 .env
@@ -28,39 +33,20 @@ sw-account*.json
 # exclu pour y appliquer une règle d'inclusion — exclure `.claude/` tout
 # entier rendrait `!.claude/skills/` inopérant.
 # ⚠️ `hooks/` suit la MÊME logique que `skills/` : le script y applique une
-# consigne de CLAUDE.md (« un message de commit passe par un heredoc »), donc
+# consigne de CLAUDE.md (« Un message de commit passe toujours par un heredoc »), donc
 # il vaut pour quiconque travaille sur ce dépôt. Son CÂBLAGE, lui, reste dans
 # `settings.json` et donc ignoré — c'est un réglage de machine, et le rendre
 # suivi entraînerait la liste de permissions personnelles avec lui.
-# ⚠️ `agents/` aussi : les définitions de sous-agents fixent le modèle et
-# l'effort par catégorie de lot (A.4 des cadrages, ex.
-# spec/chantiers/degats-et-aura.md), que l'outil de lancement ne règle pas
-# à l'appel — une règle de projet, pas un réglage personnel.
 .claude/*
 !.claude/skills/
 !.claude/hooks/
-!.claude/agents/
 
-# Historique/méthodologie détaillée de l'Optimizer — PRIVÉ, protection
-# compétitive : ce dossier contient le journal chronologique complet du
-# calibrage (valeurs exactes, mesures, pistes tentées puis écartées), la
-# feuille de route des pistes encore ouvertes, et des échanges externes
-# (ChatGPT/Gemini) sur des idées d'amélioration de l'algorithme — soit
-# exactement ce qu'un concurrent gagnerait des jours à reconstruire, et
-# qu'un LLM peut aujourd'hui extraire d'un repo public en un instant.
-# ⚠️ `spec/outils/optimizer.md` (SANS le `/` final) reste public — c'est la
-# spec normale de la fonctionnalité, à la même philosophie que le reste de
-# `spec/` (comportement actuel, pas le journal d'investigation). Rien n'est
-# perdu en rendant ce dossier privé : il reste sur le disque, juste plus
-# suivi par git ni poussé vers le dépôt public.
-spec/outils/optimizer/
-
-# Captures du driver run-sw-forge (.claude/skills/run-sw-forge/driver.mjs) —
+# Captures du driver run-swblacksmith (.claude/skills/run-swblacksmith/driver.mjs) —
 # régénérables à tout moment en relançant le driver, et construites à
 # partir d'un VRAI export de compte (voir plus haut) : les stats/runes d'un
 # joueur réel ne doivent pas finir committées juste parce qu'elles sont
 # passées par une capture d'écran plutôt qu'un fichier .json.
-.claude/skills/run-sw-forge/screenshots/
+.claude/skills/run-swblacksmith/screenshots/
 
 # Comptes-rendus de revue de code (/code-review) déposés à la racine pour
 # consultation locale — notes de travail éphémères, pas un artefact du
@@ -72,12 +58,12 @@ AUDIT-AMELIORATIONS.md
 
 # Révisions de l'extension VS Code « Local History » (une copie du fichier à
 # chaque sauvegarde dans l'éditeur).
-# ⚠️ **Ce n'est pas qu'une question de propreté** : les règles ci-dessus sont
-# ANCRÉES à la racine, donc `spec/outils/optimizer/` ne couvre PAS
-# `.history/spec/outils/optimizer/…`. Sans cette ligne, sauvegarder un fichier
-# de la spec privée dans l'éditeur en dépose une copie hors protection, qu'un
-# `git add -A` pousserait vers un dépôt PUBLIC — exactement le contournement
-# contre lequel la règle de protection compétitive existe.
+# ⚠️ **Ce n'est pas qu'une question de propreté** : une copie y garde le
+# chemin du fichier sauvegardé, mais les règles ancrées à la racine ne la
+# couvrent plus. Sans cette ligne, un fichier ignoré par une règle ancrée
+# (les réglages personnels de `.claude/`, par exemple), sauvegardé dans
+# l'éditeur, laisse une copie qu'un `git add -A` pousserait vers le dépôt
+# PUBLIC.
 # ⚠️ Second effet, voulu : `Grep`/ripgrep respectent ce fichier, donc les
 # copies périmées disparaissent aussi des recherches — sinon un agent finit
 # par « corriger » une version morte d'un fichier.

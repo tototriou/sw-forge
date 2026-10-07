@@ -1,5 +1,5 @@
-// Libellé dérivé de propriété unique de relique (implementation-relique,
-// B.5c bis) — « <effet> en fonction <stat> », affiché dans le sélecteur
+// Libellé dérivé de propriété unique de relique (voir
+// `spec/outils/optimizer/moteur/reliques.md`) — « <effet> en fonction <stat> », affiché dans le sélecteur
 // « Relique — propriété unique » (OptimizerSection.tsx) et, via
 // `RelicDetailBox`/`formatRelicUnique`, sur la carte candidat.
 //
@@ -9,10 +9,10 @@
 // ORIGINE/REGENERATION, et `stat.phrase`) — l'assemblage « en fonction » est
 // le nôtre, pas une nouvelle mécanique déduite. Ce test vérifie que les 16
 // types du corpus produisent bien 16 libellés DISTINCTS, sans « type
-// inconnu » — contrat du lot B.5c bis.
+// inconnu ».
 //
-// `formatRelicUsage` (B.5c ter) : compteur `n / 150` réintroduit dans
-// `RelicDetailBox` — D3, ../spec/outils/optimizer/reliques.md § 7.
+// `formatRelicUsage` : compteur `n / 150` réintroduit dans
+// `RelicDetailBox` — voir spec/outils/optimizer/moteur/reliques.md.
 
 import { RELIC_MAX_INSTANCES, RELIC_UNIQUE, formatRelicUsage, relicUniqueEffectLabel } from '../src/lib/effects';
 import { egal, ok, titre } from './outils';
@@ -32,7 +32,7 @@ export default function testRelicUniqueLabel() {
 
   ok(new Set(labels).size === labels.length, 'les 16 libellés sont deux à deux DISTINCTS');
 
-  // ⚠️ Mots du jeu attendus (cadrage B.5c bis, rév. 31) — vérifie que
+  // ⚠️ Mots du jeu attendus — vérifie que
   // l'assemblage utilise bien les mots exacts, pas une paraphrase.
   egal(relicUniqueEffectLabel(1), "DGTS infligés en fonction d'ATQ", 'Conquête · ATQ (type 1)');
   egal(relicUniqueEffectLabel(6), 'DGTS reçus en fonction du max des PV', 'Ténacité · PV (type 6)');
@@ -47,7 +47,7 @@ export default function testRelicUniqueLabel() {
 
   egal(relicUniqueEffectLabel(999), undefined, 'un type hors corpus reste `undefined`, jamais deviné');
 
-  titre('Relique — compteur d’occupation (n / 150, D3)');
+  titre('Relique — compteur d’occupation (n / 150)');
 
   egal(RELIC_MAX_INSTANCES, 150, 'la constante nommée vaut 150 (valeur de jeu au 2026-09)');
   egal(formatRelicUsage(1), 'Équipée sur 1 exemplaire / 150', 'singulier à 1 exemplaire');

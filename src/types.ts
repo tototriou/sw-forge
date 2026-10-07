@@ -440,7 +440,7 @@ export type RecoOrigin = 'mine' | 'imported';
 export interface Reco {
   id: string;
   origin: RecoOrigin;
-  name: string; // « Défenses de guilde — Thomas »
+  name: string; // « Défenses de guilde — Joueur »
   author: string; // auteur de la recommandation (facultatif)
   note: string; // consignes globales, valables pour tous les decks (multi-lignes)
   decks: RecoDeck[];

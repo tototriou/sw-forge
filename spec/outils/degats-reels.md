@@ -3,7 +3,7 @@
 **Statut :** ÉTAT ACTUEL — route vers les règles du calcul de dégâts réels
 **Lire si :** on cherche dans quel fichier vit une règle du calcul de dégâts
 **Ne pas lire si :** on connaît déjà la famille de règle recherchée
-**Voir aussi :** spec/outils/optimizer.md, spec/outils/artefacts.md
+**Voir aussi :** spec/outils/optimizer.md, spec/outils/optimizer/ecran/artefacts.md
 
 Calcul des **dégâts d'un sort précis** d'un monstre précis contre un
 adversaire configuré. Brique de calcul pure, sans état ni rendu :
@@ -29,5 +29,7 @@ le **modèle**, pas l'interface.
 - [Dégâts réels — effets d’équipe et leaders](degats-reels/effets-equipe-et-leaders.md) — état actuel
 - [Dégâts réels — conditions et audit](degats-reels/conditions-et-audit.md) — état actuel
 - [Dégâts réels — catalogue des passifs](degats-reels/catalogue-des-passifs.md) — état actuel
+- [Dégâts réels — valeurs de jeu curées](degats-reels/valeurs-de-jeu-curees.md) — état actuel
+- [Dégâts réels — pistes futures : coups comptés](degats-reels/pistes.md) — état actuel
+- [Dégâts réels — pistes futures : stats et modificateurs](degats-reels/pistes-stats-et-modificateurs.md) — état actuel
 - [Choix de recherche pour les dégâts réels](degats-reels/decisions/choix-de-recherche.md) — décision
-- [Historique du modèle de dégâts réels](degats-reels/archive/historique-du-modele.md) — archive

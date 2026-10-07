@@ -1,4 +1,4 @@
-# SW Forge — Spécifications
+# SW Blacksmith — Spécifications
 
 Boîte à outils Summoners War (React + TypeScript + Vite + Tailwind). Ce dossier
 documente **le comportement attendu de chaque page** : ce que l'utilisateur voit,
@@ -30,13 +30,22 @@ ce qu'il peut faire, et les règles de calcul appliquées.
 | Bestiaire | `#/bestiary` | Live | [bestiaire.md](bestiaire.md) |
 | Mécaniques | `#/mecaniques` | Live | [mecaniques.md](mecaniques.md) |
 | Nouveautés | `#/releases` | Live | [releases.md](releases.md) |
+| Télécharger (site seulement) | `#/telecharger` | Live | [telecharger.md](telecharger.md) |
+
+Points d'entrée de l'Optimizer, avant un chantier qui le touche :
+
+- [outils/optimizer/invariants.md](outils/optimizer/invariants.md) — les
+  contraintes critiques, chacune avec sa source ; se lit en entier.
+- [outils/optimizer/README.md](outils/optimizer/README.md) — routage par
+  tâche : quelle spec lire selon ce qu'on touche.
 
 Ordre d'importance (nav & cartes d'accueil) : **Accueil → RTA → Siège → Mon
 compte → Outils → Arène**. Arène se positionne dans la barre entre le
 dropdown Outils et le dropdown Ressources — pas dans le groupe des onglets
 directs (Accueil/RTA/Siège), pour ne pas allonger cette rangée-là. Bestiaire,
-Mécaniques et Nouveautés sont regroupés sous « Ressources » (les moins
-centraux de l'outil).
+Mécaniques, Nouveautés et Télécharger sont regroupés sous « Ressources » (les
+moins centraux de l'outil) ; Télécharger n'existe que sur le site (application
+de bureau, décision 14).
 
 > ⚠️ **Règle permanente** : toute page ou section **ajoutée, renommée ou
 > supprimée** doit être répercutée sur **l'accueil** ([accueil.md](accueil.md) —
@@ -89,6 +98,25 @@ Concepts partagés par plusieurs pages, documentés une seule fois :
 - [shared/navigation.md](shared/navigation.md) — la **barre latérale** et les
   **onglets mobiles**, et l'**accent contextuel** (`--ctx`) qui prend la couleur
   de l'élément du monstre consulté.
+- [shared/application-bureau.md](shared/application-bureau.md) — l'**application
+  de bureau** (Electron, Windows et Linux) : ce qui diffère du site, la fenêtre,
+  l'installeur, la publication au tag, la mise à jour, les données — et comment
+  la vérifier (`bureau:preuve`).
+- [shared/sauvegarde-session.md](shared/sauvegarde-session.md) — la
+  **sauvegarde de session** : ses accès (barre du haut, Ctrl+S, Paramètres,
+  palette), la session en cours de l'application de bureau, le format
+  `swblacksmith/session` (compte, travail, réglages, état des outils), ce
+  qu'il refuse à la relecture, et où déclarer une clé nouvelle.
+
+Outillage du dépôt (pas une page de l'app) :
+
+- [outillage/spec.md](outillage/spec.md) — natures des specs, `spec-markdown`,
+  `spec-toc`, contrat de `spec-lint`, en-têtes, critère des invariants, niveaux
+  d'application, hook `Read` et installation des garde-fous (hook
+  `pre-commit`, garde-fou Codex).
+- [outillage/renvois.md](outillage/renvois.md) — garde-fou des renvois :
+  formes relevées, résolution dans les fichiers suivis, exemptions, liste
+  tolérée.
 
 ## Conventions communes (toutes les pages)
 
@@ -140,32 +168,34 @@ Concepts partagés par plusieurs pages, documentés une seule fois :
   - ⚠️ **Utilisateur déjà installé** : des données déjà présentes sur le disque
     valent **consentement**. Sans cette reprise, la mise à jour retirerait en
     silence une conservation dont il dispose depuis toujours.
-- **Statistiques de fréquentation** : **Vercel Web Analytics**
-  ([Analytics.tsx](src/components/Analytics.tsx)), sans cookie, limité aux pages
-  visitées. ⚠️ Le routage étant **par hash**, un `beforeSend` réécrit l'URL pour
-  que la route devienne le chemin — sinon toutes les visites seraient comptées
-  sur « / ».
+- **Aucune statistique de fréquentation.** La mesure d'audience Vercel Web
+  Analytics a été **retirée, du site comme de l'application de bureau** :
+  rien ne quitte le navigateur, ce que dit le « 100 % local ». ⚠️ Ne pas la réintroduire sans
+  décision : elle n'aurait de toute façon aucun sens dans l'app de bureau.
 - **Vérifications automatiques** — `npm test`
-  ([tests/README.md](tests/README.md)). Volontairement limitées aux endroits où
+  ([tests/README.md](tests/README.md)). À chaque pull request vers `main`
+  ou une branche `release/*`, l'action `.github/workflows/tests.yml` lance
+  sous Windows les types (`npx tsc --noEmit`), la suite complète et le build ;
+  les tests qui lisent un export de compte réel, non suivi, y sont ignorés.
+  Volontairement limitées aux endroits où
   une erreur serait **grave et invisible** : vitesse de combat, lecture d'un
   export, stockage du compte, conservation des données. ⚠️ **Pas de test
   d'interface** : elle se vérifie à l'œil, et des tests d'affichage se
   contenteraient de figer le rendu du jour.
 - **Un type partagé entre l'écran et un script (recette exportable, etc.) a
   PLUSIEURS constructeurs — un champ ajouté doit être répercuté dans TOUS.**
-  ⚠️ **Incident vécu** : `exhaustiveSearch`, ajouté à `OptimizerRecipe`
-  ([optimizerRecipe.ts](src/lib/optimizerRecipe.ts)), a été branché dans
+  ⚠️ **Écueil** : un champ optionnel ajouté à `OptimizerRecipe`
+  ([optimizerRecipe.ts](src/lib/optimizerRecipe.ts)), branché dans
   `OptimizerSection.tsx` (l'écran) mais oublié dans
-  `recipeToSearchParams.ts` (le seul autre constructeur, utilisé par
-  `scripts/optimizer-search.ts`) — un script rejouant une recette exportée
-  avec ce réglage activé se serait tu, sans jamais l'appliquer, sans la
-  moindre erreur `tsc` (le champ manquant reste un type optionnel valide).
-  Repéré seulement parce que l'utilisateur a posé la question, pas par une
-  vérification systématique. **Avant de considérer un champ ajouté comme
-  terminé** : chercher tous les fichiers qui construisent ou consomment ce
-  type (`grep -rn NomDuType`), pas seulement celui qu'on vient d'éditer —
-  un `tsc` propre ne le détecte jamais, puisque l'appel reste valide, juste
-  incomplet.
+  `scripts/lib/recipeToSearchParams.ts` (utilisé par
+  `scripts/optimizer-search.ts`), fait taire le réglage pour tout script
+  qui rejoue une recette exportée, sans la moindre erreur `tsc` (le champ
+  manquant reste un type optionnel valide). **Avant de considérer un champ
+  ajouté comme terminé** : chercher tous les fichiers qui construisent ou
+  consomment ce type (`grep -rn NomDuType`), pas seulement celui qu'on
+  vient d'éditer ; un `tsc` propre ne le détecte jamais, puisque l'appel
+  reste valide, juste incomplet. Les constructeurs connus : skill
+  `optimizer-field-propagation`.
 - **Versions & releases** — `main` reste **stable et déployée** ; on développe
   dans une branche **`forge/<sujet>`**, qui porte l'entrée du journal
   ([releases.md](releases.md)) puis, à la fin, l'incrément de `package.json`.
@@ -184,9 +214,22 @@ Concepts partagés par plusieurs pages, documentés une seule fois :
   2. Rappel que les données restent locales.
   3. Crédit Com2uS / SWARFARM.
 - **Données 100 % locales** : le footer rappelle que toutes les données restent
-  en local. **« Tout supprimer »** efface les clés `localStorage` `sw-forge*` /
-  `sky-arena*` (prépa RTA, équipes de siège, recommandations, catégories,
-  monstres perso) puis recharge. Voir [App.tsx](src/App.tsx).
+  en local. **« Tout supprimer »** efface les clés `localStorage`
+  `swblacksmith-*` (prépa RTA, équipes de siège, recommandations, catégories,
+  monstres perso) — et celles des anciens noms `sw-forge*` / `sky-arena*` qui
+  traîneraient — puis recharge. Voir [App.tsx](src/App.tsx).
+  - **Clés renommées au rebranding, avec migration** :
+    au premier lancement, [migrationStockage.ts](src/lib/migrationStockage.ts)
+    — premier import de `main.tsx`, avant tout module qui lit le stockage —
+    recopie chaque `sw-forge-…` / `sky-arena-…` sous `swblacksmith-…`, RELIT la
+    copie, puis efface l'ancienne. Une nouvelle clé déjà présente fait foi.
+    Quota plein : l'ancienne place est libérée avant de réécrire ; en cas
+    d'échec, l'ancienne valeur est remise, intacte, et reprise au lancement
+    suivant. Le script de thème d'`index.html`, qui passe avant, lit l'ancienne
+    clé en repli. ⚠️ Toute nouvelle clé prend le préfixe `swblacksmith-` ; un
+    test refuse un littéral de l'ancien nom hors du module de migration.
+  - ⚠️ Le stockage d'un navigateur est lié à l'**adresse** du site : un
+    changement de domaine ne se migre pas, il passe par les exports.
   - ⚠️ Cette action vit **dans le menu ⚙**, pas à côté du bouton d'import : une
     action destructrice collée au bouton le plus utilisé finit par être cliquée
     de travers. Dans un menu qu'on ouvre exprès, le geste est délibéré.
@@ -232,7 +275,7 @@ Concepts partagés par plusieurs pages, documentés une seule fois :
       s'arrête à 100 % même si la somme brute des runes dépasse — un réglage
       d'AFFICHAGE seulement, `computeStats` continue de renvoyer le total brut
       (la recherche de l'Optimizer ne doit surtout pas exclure un build dont
-      le total brut dépasse 100 %, voir [outils/optimizer.md](outils/optimizer.md)).
+      le total brut dépasse 100 %, voir [outils/optimizer/ecran/conditions-et-reglages.md](outils/optimizer/ecran/conditions-et-reglages.md)).
       Appliqué partout où un TOTAL de build est affiché (fiche de monstre en
       RTA/Siège/Optimizer, résultats de l'Optimizer) — **pas** aux exigences
       des recommandations de siège, qui restent un objectif à atteindre, pas
@@ -244,7 +287,21 @@ Concepts partagés par plusieurs pages, documentés une seule fois :
       rapide de l'équipe** (même lead, vitesse de runes, set et passif) : on tune
       alors contre soi-même. Sans lui, la copie n'est posée que si personne n'est
       en face. Voir [outils/speed-tuning.md](outils/speed-tuning.md).
-    - **Mes données** → « Tout supprimer ».
+    - **Session** → « Sauvegarder » : tout l'état de l'app dans un fichier
+      (voir [shared/sauvegarde-session.md](shared/sauvegarde-session.md)) ;
+    - **Dossier SW Blacksmith** → « Retirer », « Choisir… » — dans
+      l'**application de bureau seulement** : le dossier dont le
+      sous-dossier `sessions` reçoit les sessions ;
+    - **Mes données** → « Tout supprimer », toujours la dernière ligne du bloc.
+    - **Application** — dans l'**application de bureau seulement** (absent du
+      site) : la version installée et UN bouton qui suit la mise à jour
+      (« Rechercher », « Mettre à jour », « Redémarrer »… — toujours
+      affiché, désactivé quand il n'y a rien à faire). Une mise à jour remise
+      à plus tard s'y fait quand on veut. Voir
+      [shared/application-bureau.md](shared/application-bureau.md).
+      Puis le **dossier SW Exporter** et l'**invocateur** à suivre : « Mon
+      compte » se met à jour à chaque export
+      ([shared/import-compte.md](shared/import-compte.md)).
 - **Import de compte global** : un seul bouton invariant « Importer mon compte »
   dans la barre de nav remplit RTA + siège défense + offense **+ « Mon compte »**
   (box 6★ et inventaire runes/artéfacts) d'un coup. Chaque import remplace le
@@ -270,7 +327,7 @@ Concepts partagés par plusieurs pages, documentés une seule fois :
     recommandations ne sont pas touchées » évite d'annuler par précaution une
     action qu'on voulait faire.
 - **Avertissement petit écran** — [MobileNotice.tsx](src/components/MobileNotice.tsx),
-  au-dessus du contenu, sous la barre de nav. SW Forge manipule des listes de
+  au-dessus du contenu, sous la barre de nav. SW Blacksmith manipule des listes de
   runes, des équipes de trois monstres et des ordres de tour : tout cela demande
   de la largeur. Sans un mot, on croit à un site mal fait plutôt qu'à un site
   consulté dans de mauvaises conditions.
@@ -322,11 +379,15 @@ Concepts partagés par plusieurs pages, documentés une seule fois :
     saisie dès qu'un `min` positif dépasse un chiffre isolé : avec `min={15}`
     `max={100}`, taper « 5 » sautait à 15, puis « 0 » (lu comme « 150 »)
     sautait à 100 — impossible d'écrire 50. Repéré sur les conditions minimum
-    de l'Optimizer (voir [outils/optimizer.md](outils/optimizer.md)), premier
+    de l'Optimizer (voir [outils/optimizer/ecran/conditions-et-reglages.md](outils/optimizer/ecran/conditions-et-reglages.md)), premier
     endroit de l'app à passer un `min` positif non trivial (tous les usages
     précédents étaient à 0 ou 1, jamais heurtés par ce piège).
-- **Titre de page** : `font-display` en dégradé (`title-gradient`), taille
-  `clamp(28px,4vw,42px)`, suivi d'un paragraphe d'intro `text-ink-dim`.
+- **Titre de page** : `font-display` à l'**encre unie** (`text-ink`). Les
+  pages de lecture (Mécaniques, Nouveautés) gardent le grand titre
+  (`clamp(28px,4vw,42px)`, suivi d'un paragraphe d'intro `text-ink-dim`) ; les
+  écrans d'outil (Siège, RTA, Bestiaire…) un titre `text-xl` dans leur ligne
+  d'en-tête. Le dégradé encre → braise (`title-gradient`) a été retiré au
+  rebranding (décision 57), comme la toile.
 - **Responsive** : nav desktop en pilules ; menu hamburger sur mobile (`< sm`)
   **et dès que la barre ne tient plus sur une ligne** (voir « Shell applicatif »).
   Le drag & drop natif ne fonctionne pas au tactile → chaque zone drag propose
@@ -339,27 +400,39 @@ Concepts partagés par plusieurs pages, documentés une seule fois :
     locales seraient à défaire.
 - **Langue** : interface 100 % française.
 - **Rétention.** Une mise à jour de spec **remplace** la section obsolète,
-  elle n'ajoute pas un paragraphe « depuis la v… » — l'ancien texte part
-  dans `archive/`, daté. Le raisonnement encore utile à une décision en
-  vigueur va dans `decisions/`. `archive/` reçoit les documents datés qui
-  ne sont plus une source de vérité active — conclusion déjà reprise
-  ailleurs, ou conservés comme historique — et les artefacts de preuve
-  d'un chantier ; une archive n'a qu'un en-tête `ARCHIVE`, aucune
-  contrainte de taille. Pour les documents actifs : aucun bloc terminal de
-  plus de 80 lignes (le lint refuse à 100) ; aucun fichier de plus de 500
-  lignes hors exceptions déclarées ; slugs de titres uniques. Un
-  fichier en exception se découpe **avant** qu'un chantier modifie son
-  contenu normatif — pas pour une faute, un lien ou un en-tête. Chaque
-  fichier commence par l'en-tête de sa nature (état actuel / décision /
-  archive). `invariants.md` est un index : une règle modifiée se modifie
-  dans sa source ET dans l'index, dans le même commit.
+  elle n'ajoute pas un paragraphe « depuis la v… ». Tout `spec/` est
+  public, et ne renvoie jamais aux notes privées du projet : l'ancien
+  texte, l'historique, les preuves et les récits quittent le public, et
+  vont dans ces notes s'il faut les garder ; l'historique Git garde de
+  toute façon le texte remplacé. Une conclusion encore en vigueur qu'un
+  chantier peut devoir rouvrir va dans le dossier `decisions` de sa zone,
+  avec sa raison. Pour les documents actifs : aucun bloc terminal de plus
+  de 80 lignes (le lint refuse à 100) ; aucun fichier de plus de 500
+  lignes hors exceptions déclarées et hors dossiers `chantiers` ; slugs de
+  titres uniques. Un fichier en exception se découpe **avant** qu'un chantier
+  modifie son contenu normatif — pas pour une faute, un lien ou un
+  en-tête. Chaque fichier commence par l'en-tête de sa nature (état
+  actuel / décision / chantier). `invariants.md` est un index : une règle
+  modifiée se modifie dans sa source ET dans l'index, dans le même commit.
+  Contrat : [outillage/spec.md](outillage/spec.md).
 
 ## Shell applicatif
 
 Le cadre commun (nav, routing par hash, footer) vit dans
 [App.tsx](src/App.tsx) :
 
-- Routing par `window.location.hash` (`routeFromHash()`), pas de router externe.
+- **Pied de page — une rangée, comme la toile** (rebranding R4, le mainteneur : « le
+  pied de page commence à être vraiment gros ») : au bureau, logo à gauche,
+  mentions au centre (données locales ; © Com2uS, source SWARFARM, projet non
+  officiel), liens à droite, **en colonne** (GitHub, version, Discord ; le mainteneur :
+  « met sur une colonne le github la version et le discord ») — 79 px de haut,
+  il empilait cinq lignes. Au téléphone, une colonne centrée : logo, liens sur
+  une ligne en libellés courts (« GitHub », « Discord »), mentions. Police du
+  texte, plus la mono. Liens en encre secondaire, braise au survol ; mentions
+  en encre tertiaire (la toile) ; au bureau, la colonne de liens se cale à
+  droite mais ses lignes s'alignent à gauche, pour que les icônes restent
+  dans l'axe.
+- Routing par `window.location.hash` (`parseHash()`, dans `App.tsx`), pas de router externe.
 - Nav desktop (pilules) + nav repliée (hamburger qui se referme à la navigation),
   avec le bouton d'import global + lien « Supprimer mes données » à droite / dans le menu.
 - **Repli de la barre du haut — mesuré, pas fixé à un breakpoint.** ⚠️ La barre
@@ -387,22 +460,3 @@ Le cadre commun (nav, routing par hash, footer) vit dans
   qu'un import global les alimente tous. `importAccount(text)` orchestre les 3 ;
   `clearAllData()` efface tout.
 - Footer : rappel « données 100 % locales » ; crédit Com2uS / source SWARFARM.
-
-## Chantiers
-
-Un chantier (travail de plus d'une session, exécuté par lots dans des
-sessions fraîches) a un **document de cadrage** : Partie A relue par chaque
-lot, Partie B un contrat par lot, résultats ajoutés au fil des lots.
-Comment l'écrire et le faire vivre : skill `cadrage-chantier`. Il vit dans
-[chantiers/](chantiers/) — ou, si son contenu est privé, dans
-`spec/outils/optimizer/chantiers/` (notes livrées par `chantier livrer`).
-Chaque cadrage commence par un H1 et une ligne `**Statut :**` que
-`node scripts/spec-toc.mjs <fichier>` résume ; on l'ouvre par section,
-jamais en entier.
-
-| Cadrage | Statut | Branche |
-| --- | --- | --- |
-| [chantiers/orchestration-parallele.md](chantiers/orchestration-parallele.md) — deux agents en parallèle, outil `chantier` | en cours | `forge/orchestration-parallele` |
-| [chantiers/spec-rangement.md](chantiers/spec-rangement.md) — rangement des specs pour lire à la demande | terminé le 2026-09-17 | `forge/spec-rangement` |
-| `spec/outils/optimizer/chantiers/implementation-relique.md` (privé, `sw-forge-docs`) — la relique dans l'Optimizer, 10 lots ; cadrage fonctionnel dans `spec/outils/optimizer/reliques.md` (décision), plan d'origine archivé | en cours | `forge/implementation-relique` |
-| [chantiers/degats-et-aura.md](chantiers/degats-et-aura.md) — quatre sorts au modèle incomplet, sets d'aura, ergonomie et planchers de conditions ; découpe `spec/outils/degats-reels.md` ; reliquat de l'audit traité en partie, le reste reporté (notes privées, `decisions/reste-a-faire-degats-2026-10.md`) | terminé le 2026-10-04 | `forge/degats-et-aura` |

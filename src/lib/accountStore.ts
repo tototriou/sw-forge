@@ -9,7 +9,7 @@
 //     en UTF-16 (2 octets par caractère). Le modèle utile d'un gros compte pèse
 //     2,2 Mo (box 0,73 + runes 0,91 + artéfacts 0,53), soit ~4,4 Mo de quota :
 //     à la limite. L'export brut, lui, fait 5 à 8 Mo — impossible.
-//  2. Tout SW Forge partage ce même budget de 5 Mo : prépa RTA, équipes de
+//  2. Toute l'app partage ce même budget de 5 Mo : prépa RTA, équipes de
 //     siège, recommandations, catégories, monstres perso. Ces données-là sont
 //     **écrites à la main** par le joueur, il ne peut pas les régénérer. Le
 //     compte, lui, se réimporte en deux secondes. Mettre le gros consommable
@@ -63,7 +63,8 @@ export interface StoredAccount {
   usedRuneIds: RunesUtilisees;
   // Occupation par rid de relique (nombre d'unités dont `relics[0].rid` vaut
   // ce rid) — calculée à l'import, jamais déduite de `relics.length` (une
-  // relique n'est pas exclusive, reliques.md § 1.2/§ 7). Même raison de
+  // relique n'est pas exclusive, spec/outils/optimizer/moteur/reliques.md
+  // § Ce que le moteur lit d'une relique). Même raison de
   // stockage que `usedRuneIds` : l'export brut n'est jamais conservé.
   relicUsageById: Record<number, number>;
   // Libellés des marqueurs de runes, numéro → texte saisi en jeu — voir
@@ -99,7 +100,10 @@ export interface StoredAccount {
 // retombait sur les artéfacts réellement portés, sans le moindre signal.
 export const ACCOUNT_SCHEMA = 7;
 
-const DB_NAME = 'sw-forge';
+// Renommée au rebranding (décision 66) : la base s'appelait `sw-forge`. Elle
+// est reprise une fois, à la première ouverture — voir `reprendreAncienneBase`.
+const DB_NAME = 'swblacksmith';
+const ANCIENNE_BASE = 'sw-forge';
 const DB_VERSION = 1;
 const STORE = 'account';
 const KEY = 'current'; // ⚠️ clé FIXE : un seul compte, celui du joueur.
@@ -138,13 +142,118 @@ function openDb(): Promise<IDBDatabase | null> {
       const db = req.result;
       if (!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE);
     };
-    req.onsuccess = () => resolve(req.result);
+    // ⚠️ La reprise de l'ancienne base passe AVANT toute opération : la file
+    // ne voit la connexion qu'une fois le compte recopié, sinon la première
+    // lecture rendrait « aucun compte » à un utilisateur qui en a un.
+    req.onsuccess = () => {
+      const db = req.result;
+      reprendreAncienneBase(db).then(
+        () => resolve(db),
+        () => resolve(db)
+      );
+    };
     req.onerror = () => resolve(null);
     // Un autre onglet garde une version antérieure ouverte : on n'insiste pas,
     // on repart en mémoire plutôt que d'attendre indéfiniment.
     req.onblocked = () => resolve(null);
   });
   return dbPromise;
+}
+
+/* --------------------------------------------------------------------------
+ * Reprise de l'ancienne base `sw-forge` (rebranding, décision 66)
+ * ----------------------------------------------------------------------- */
+
+// Ouvre l'ancienne base SI elle existe. ⚠️ `indexedDB.open` CRÉE une base
+// absente : on l'en empêche en annulant la création (`oldVersion === 0`), sans
+// quoi chaque lancement laisserait une base `sw-forge` vide derrière lui.
+function ouvrirAncienneBase(): Promise<IDBDatabase | null> {
+  return new Promise((resolve) => {
+    let req: IDBOpenDBRequest;
+    try {
+      req = indexedDB.open(ANCIENNE_BASE);
+    } catch {
+      resolve(null);
+      return;
+    }
+    req.onupgradeneeded = (e) => {
+      if (e.oldVersion === 0) req.transaction?.abort();
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => resolve(null); // y compris la création annulée
+    req.onblocked = () => resolve(null);
+  });
+}
+
+function lireBrut(db: IDBDatabase): Promise<unknown> {
+  return new Promise((resolve) => {
+    try {
+      const req = db.transaction(STORE, 'readonly').objectStore(STORE).get(KEY);
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => resolve(undefined);
+    } catch {
+      resolve(undefined);
+    }
+  });
+}
+
+function ecrireBrut(db: IDBDatabase, valeur: unknown): Promise<boolean> {
+  return new Promise((resolve) => {
+    try {
+      const t = db.transaction(STORE, 'readwrite');
+      t.objectStore(STORE).put(valeur, KEY);
+      t.oncomplete = () => resolve(true);
+      t.onabort = () => resolve(false); // quota
+      t.onerror = () => resolve(false);
+    } catch {
+      resolve(false);
+    }
+  });
+}
+
+function supprimerBase(nom: string): Promise<void> {
+  return new Promise((resolve) => {
+    try {
+      const req = indexedDB.deleteDatabase(nom);
+      req.onsuccess = () => resolve();
+      req.onerror = () => resolve();
+      // Un onglet resté sur l'ancienne version tient la base ouverte : la
+      // suppression aura lieu quand il se fermera, on n'attend pas.
+      req.onblocked = () => resolve();
+    } catch {
+      resolve();
+    }
+  });
+}
+
+// Recopie le compte de l'ancienne base dans la nouvelle, puis supprime
+// l'ancienne. ⚠️ **Jamais de perte** : l'ancienne n'est supprimée qu'une fois
+// la copie RELUE dans la nouvelle ; sinon elle reste, et la reprise
+// recommencera au lancement suivant. Un compte déjà présent dans la nouvelle
+// base fait foi (enregistré depuis la mise à jour) — l'ancien n'est alors
+// qu'un doublon périmé.
+export async function reprendreAncienneBase(db: IDBDatabase): Promise<void> {
+  const vieille = await ouvrirAncienneBase();
+  if (!vieille) return;
+  try {
+    if (vieille.objectStoreNames.contains(STORE)) {
+      const ancien = await lireBrut(vieille);
+      if (ancien !== undefined && (await lireBrut(db)) === undefined) {
+        if (!(await ecrireBrut(db, ancien)) || (await lireBrut(db)) === undefined) return;
+      }
+    }
+  } finally {
+    vieille.close();
+  }
+  await supprimerBase(ANCIENNE_BASE);
+}
+
+// Ferme la connexion et l'oublie : la prochaine opération rouvre la base, et
+// refait donc la reprise. Réservé aux tests — l'app garde une connexion unique.
+export function oublierConnexion(): Promise<void> {
+  const p = dbPromise;
+  dbPromise = null;
+  return (p ?? Promise.resolve(null)).then((db) => db?.close());
 }
 
 function tx<T>(mode: IDBTransactionMode, run: (store: IDBObjectStore) => IDBRequest): Promise<T | null> {
@@ -194,24 +303,29 @@ function enqueue<T>(op: () => Promise<T>): Promise<T> {
  * API
  * ----------------------------------------------------------------------- */
 
+// Un compte stocké, relu avec méfiance : `null` si sa forme ou son schéma ne
+// sont pas ceux d'aujourd'hui. Pure — la relecture d'IndexedDB et celle d'une
+// sauvegarde de session (src/lib/session.ts) passent par elle.
+export function compteValide(brut: unknown): StoredAccount | null {
+  const rec = brut as StoredAccount;
+  if (!rec || typeof rec !== 'object') return null;
+  if (rec.schema !== ACCOUNT_SCHEMA) return null;
+  if (!Array.isArray(rec.box) || !Array.isArray(rec.runes) || !Array.isArray(rec.artifacts)) return null;
+  if (!Array.isArray(rec.relics)) return null;
+  if (!Array.isArray(rec.crafts)) return null;
+  // Un tableau PAR périmètre — une liste plate (schéma 6) n'en est pas un.
+  const used = rec.usedRuneIds as unknown;
+  if (!used || typeof used !== 'object' || Array.isArray(used)) return null;
+  if (!PERIMETRES_UTILISES.every((p) => Array.isArray((used as RunesUtilisees)[p.key]))) return null;
+  if (!rec.relicUsageById || typeof rec.relicUsageById !== 'object') return null;
+  if (!rec.runeMarkerLabels || typeof rec.runeMarkerLabels !== 'object') return null;
+  return rec;
+}
+
 // `null` = rien d'exploitable : pas de compte, stockage indisponible, ou schéma
 // périmé. L'appelant n'a qu'un cas à traiter.
 export function loadAccount(): Promise<StoredAccount | null> {
-  return enqueue(async () => {
-    const rec = await tx<StoredAccount>('readonly', (s) => s.get(KEY));
-    if (!rec || typeof rec !== 'object') return null;
-    if (rec.schema !== ACCOUNT_SCHEMA) return null;
-    if (!Array.isArray(rec.box) || !Array.isArray(rec.runes) || !Array.isArray(rec.artifacts)) return null;
-    if (!Array.isArray(rec.relics)) return null;
-    if (!Array.isArray(rec.crafts)) return null;
-    // Un tableau PAR périmètre — une liste plate (schéma 6) n'en est pas un.
-    const used = rec.usedRuneIds as unknown;
-    if (!used || typeof used !== 'object' || Array.isArray(used)) return null;
-    if (!PERIMETRES_UTILISES.every((p) => Array.isArray((used as RunesUtilisees)[p.key]))) return null;
-    if (!rec.relicUsageById || typeof rec.relicUsageById !== 'object') return null;
-    if (!rec.runeMarkerLabels || typeof rec.runeMarkerLabels !== 'object') return null;
-    return rec;
-  });
+  return enqueue(async () => compteValide(await tx<StoredAccount>('readonly', (s) => s.get(KEY))));
 }
 
 // `false` = non enregistré (stockage indisponible ou plein). L'import reste

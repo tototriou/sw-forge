@@ -1,15 +1,14 @@
 ---
 name: algo-verify
-description: Discipline à suivre pour tout algorithme de recherche combinatoire ou d'optimisation sous contraintes ajouté ou modifié dans SW Forge (ex. runeBuildOptim.ts) — jamais un seul choix d'algorithme "qui a l'air de marcher" sans référence de contrôle, test différentiel et benchmark chiffré avant de figer des constantes.
+description: Discipline à suivre pour tout algorithme de recherche combinatoire ou d'optimisation sous contraintes ajouté ou modifié dans SW Blacksmith (ex. runeBuildOptim.ts) — jamais un seul choix d'algorithme "qui a l'air de marcher" sans référence de contrôle, test différentiel et benchmark chiffré avant de figer des constantes.
 ---
 
-# Vérification des algorithmes combinatoires (SW Forge)
+# Vérification des algorithmes combinatoires (SW Blacksmith)
 
-Née de la comparaison entre le moteur de recherche de builds
-([runeBuildOptim.ts](src/lib/runeBuildOptim.ts)) et une conversation externe sur
-le même problème : le point qui manquait n'était pas la connaissance d'une
-technique (branch-and-bound, meet-in-the-middle…), mais la **discipline de
-vérification** avant de considérer une implémentation comme fiable.
+Ce skill porte sur la **discipline de vérification** avant de considérer
+une implémentation comme fiable (ex. le moteur de recherche de builds,
+[runeBuildOptim.ts](src/lib/runeBuildOptim.ts)), pas sur la connaissance
+d'une technique (branch-and-bound, meet-in-the-middle…).
 
 ## Quand ce skill s'applique
 
@@ -57,12 +56,11 @@ ou un filtre linéaire n'a pas besoin de cette discipline.
    jeux aléatoires est une preuve bien plus solide que trois cas choisis à la
    main.
    ⚠️ **Un test différentiel à PETITE échelle ne couvre PAS les bugs qui
-   n'existent qu'au VOLUME réel.** Vécu directement : `rune-optim-
-   differential.test.ts` (3 runes/slot, comparé à une référence
-   brute-force) passait de façon identique avec et sans le bug de dilution
-   `BUCKET_CAP`/`slotFilterCap` — ce bug n'apparaît que sur des pools de
-   centaines de runes par slot, très au-delà de ce qu'une référence
-   brute-force peut encore énumérer. Une constante de RÉTENTION/CAPPING
+   n'existent qu'au VOLUME réel**, parce qu'une référence brute-force
+   n'énumère que de petits pools (`rune-optim-differential.test.ts` :
+   3 runes/slot), alors qu'un bug de rétention comme la dilution
+   `BUCKET_CAP`/`slotFilterCap` n'apparaît que sur des pools de centaines
+   de runes par slot. Une constante de RÉTENTION/CAPPING
    (qui ne joue un rôle qu'une fois le volume de candidats dépassé) a
    besoin d'un test dédié à l'échelle réelle (voir point 4), PAS d'une
    simple extension du test différentiel existant — les deux répondent à
@@ -72,18 +70,13 @@ ou un filtre linéaire n'a pas besoin de cette discipline.
    exemple du second genre.
    ⚠️ **De la même façon, un budget de TEMPS artificiellement court peut
    faire diverger un test différentiel sans que ce soit représentatif d'un
-   usage réel.** Vécu en étendant la parallélisation de l'appariement au
-   mode normal (`partitionBucketsALPT`/`runParallelPairing`,
-   `runeBuildOptim.worker.ts`) : un test différentiel committé a d'abord
-   trouvé de VRAIES pertes de candidats à `maxMs ≤ 500` — il faut un minimum
-   de temps RÉEL pour qu'un déséquilibre de charge initial entre workers se
-   corrige — mais AUCUN réglage d'écran ni arrêt manuel réel ne descend à
-   cette échelle (challengé directement par l'utilisateur : « un
-   utilisateur ne met jamais de limite de temps, tout au plus il arrêtera
-   une recherche au bout de quelques dizaines de secondes »). Remonté à un
-   `maxMs` réaliste (15 s puis 30 s), les MÊMES scénarios ne perdent plus
-   rien — voir `tests/rune-optim-parallel-pairing.test.ts` (`maxMs=30000`
-   committé comme plancher vérifié) et la mémoire
+   usage réel**, parce qu'il faut un minimum de temps RÉEL pour qu'un
+   déséquilibre de charge initial entre workers se corrige, et qu'AUCUN
+   réglage d'écran ni arrêt manuel réel ne descend à quelques centaines de
+   millisecondes : un utilisateur ne met jamais de limite de temps, tout au
+   plus il arrête une recherche au bout de quelques dizaines de secondes. Voir
+   `tests/rune-optim-parallel-pairing.test.ts` (`maxMs=30000` committé
+   comme plancher vérifié) et la mémoire
    `sw-forge-realistic-test-parameters.md`. Un paramètre juste « assez
    extrême pour déclencher le chemin de code » (peu de temps, un plafond
    serré…) peut être QUALITATIVEMENT différent d'un paramètre réaliste —
@@ -112,12 +105,11 @@ ou un filtre linéaire n'a pas besoin de cette discipline.
    bout.** Un pipeline en plusieurs phases (ex. `prepareSearch` →
    `buildBuckets` → `pairBuckets` dans `runeBuildOptim.ts`) n'a pas besoin
    d'être rejoué EN ENTIER pour vérifier une hypothèse qui ne concerne
-   qu'UNE phase. Repère utilisé toute cette session : `buildBuckets` seul
+   qu'UNE phase. Repère : `buildBuckets` seul
    (sans `pairBuckets`) répond en quelques secondes à « ce demi-build
    survit-il à la rétention ? », contre plusieurs minutes (jusqu'à
    `HARD_TIMEOUT_MS`) pour la même question posée
-   via une recherche complète — c'est cette différence qui a rendu possible
-   toute l'investigation `BUCKET_CAP` en un temps raisonnable. Avant de
+   via une recherche complète. Avant de
    relancer un pipeline complet pour vérifier un changement, se demander
    quelle phase il touche réellement, et s'il existe un point d'arrêt
    intermédiaire qui répond déjà à la question posée. Voir le skill
@@ -140,9 +132,8 @@ posé, le régime d'appariement choisi comme la production le choisirait, la
 complétude avec son motif, l'autodiagnostic `explored` contre `totalPairs`,
 et la distinction élagage SÛR / rétention HEURISTIQUE.
 
-⚠️ **Il répond en particulier à la question de l'INCIDENT FONDATEUR de ce
-skill** — *« ce build de 6 runes est-il dans le résultat, et sinon, QUI l'a
-perdu ? »* :
+⚠️ **Il répond en particulier à la question** — *« ce build de 6 runes est-il
+dans le résultat, et sinon, QUI l'a perdu ? »* :
 
 ```
 diagnostic-harness.ts … --suivre=<les 6 ids du build>
@@ -155,10 +146,7 @@ constater l'absence finale : `ENTRÉE_INADMISSIBLE` · `MOITIÉ_A_ÉCARTÉE` ·
 (avec l'ÉTAGE d'appariement qui a coupé la paire) · `PRÉSENT_DANS_LE_TOP_N` ·
 `PRÉSENT_HORS_TOP_N` **avec son rang** · `NON_OBSERVABLE`.
 
-C'est exactement le diagnostic qui manquait le jour où l'on a conclu « le
-moteur manque un build meilleur » en lisant `candidates[0]`, le build cherché
-étant au rang 6. **Le rang vient du classement ENTIER**, jamais d'un top-N
-déjà coupé.
+**Le rang vient du classement ENTIER**, jamais d'un top-N déjà coupé.
 
 ⚠️ **Deux valeurs à ne jamais contourner en les remplaçant par une cause
 plausible** :
@@ -174,10 +162,10 @@ lui-même : sur un run TRONQUÉ, « la cible n'est pas dans le classement » ne
 veut pas dire « le moteur ne la trouve pas ».
 
 **Avant d'écrire un script qui appelle `prepareSearch`/`buildBuckets`/
-`pairBuckets`, vérifier que le harnais ne répond pas déjà à la question.**
-C'est le cas pour l'écrasante majorité des diagnostics passés — les 6 qui
-avaient dérivé (contexte min/max reconstruit à la main, `guaranteedMin` et
-les bornes d'artéfact manquants) sont exactement ceux qu'il remplace.
+`pairBuckets`, vérifier que le harnais ne répond pas déjà à la question**,
+parce qu'un script ad hoc dérive précisément sur ce que le harnais fait
+d'office (contexte min/max reconstruit à la main, `guaranteedMin` et les
+bornes d'artéfact manquants).
 
 Le diff ligne à ligne décrit plus bas garde tout son sens pour ce que le
 harnais ne couvre PAS : l'intérieur de `buildBuckets`, une charge concurrente
@@ -186,32 +174,22 @@ suit s'applique intégralement.
 
 ### Quand le script est nécessaire quand même
 
-⚠️ **Incident vécu** : un script écrit pour reproduire un cas signalé par
-l'utilisateur (builds Sonia qui diminuent quand `slotFilterCap` augmente)
-appelait `prepareSearch`/`buildBuckets`/`pairBuckets` directement, en copiant
-la même séquence d'appels que `searchBuildsSteps` — mais SANS l'escalade de
-budget de nœuds qu'appliquait alors le vrai chemin de prod. Le script
-s'arrêtait donc net au budget INITIAL (~38M paires) au lieu de monter à
-~600M+ comme la vraie recherche sur 10 minutes — il n'explorait qu'une
-fraction dérisoire (~3×10⁻⁶ %) de l'espace réellement couvert. Résultat :
-« 0 build trouvé » partout, un faux signal de bug pris pour argent comptant
-pendant une bonne partie d'une session, alors que `tsc`/les types ne
-pouvaient rien détecter (l'appel était parfaitement valide, juste
-incomplet).
+⚠️ **Un script qui copie la séquence d'appels de la production
+(`prepareSearch`/`buildBuckets`/`pairBuckets`) peut rester infidèle sans que
+`tsc` ni les types ne le détectent** : l'appel est parfaitement valide, juste
+incomplet.
 
-⚠️⚠️ **Ce piège PRÉCIS n'existe plus, la LEÇON reste entière.** Le budget de
-paires et son escalade ont été supprimés du moteur (voir
-`spec/outils/optimizer/pistes.md`, piste 8, et
-`archive/historique/historique-diagnostics-et-robustesse.md`, « Suite — suppression du budget de
-nœuds ») : `pairBuckets(prepared, bucketsA, bucketsB)` prend TROIS arguments,
-il n'y a plus de 4ᵉ à oublier, et un appel nu explore désormais exactement ce
+⚠️⚠️ Le moteur n'a plus de budget de paires ni d'escalade (voir
+[spec/outils/optimizer/verification.md § Benchmarks](../../../spec/outils/optimizer/verification.md),
+qui en donne les seules bornes) : `pairBuckets(prepared, bucketsA, bucketsB)` prend TROIS arguments,
+et un appel nu explore exactement ce
 que la production explore. Ne pas chercher à « reproduire l'escalade » dans un
 script neuf — un script qui la reproduirait aujourd'hui serait lui-même
 infidèle.
 
-**Ce qui reste vrai, et qui est la vraie leçon** : *un script infidèle qui ne
+**La règle** : *un script infidèle qui ne
 trouve rien ressemble EXACTEMENT à un vrai bug*. Les deux façons de le
-redevenir, aujourd'hui :
+devenir, aujourd'hui :
 
 - **Réimposer une limite que la production n'a plus.** Un plafond de paires
   posé « pour que ça finisse » (dans la boucle de pilotage, ou via un `maxMs`
@@ -224,7 +202,7 @@ redevenir, aujourd'hui :
   précise rien, alors que l'écran donne 10 min (`HARD_TIMEOUT_MS`) — ou
   `Infinity` en mode exhaustif. Un script qui omet `maxMs` mesure donc une
   recherche 40× plus courte que celle de l'utilisateur, avec exactement la
-  même signature d'échec qu'à l'époque de l'escalade oubliée. **C'est le
+  signature d'échec d'un vrai bug (« rien trouvé »). **C'est le
   premier paramètre à vérifier** dans tout script de mesure.
 
 ⚠️ Corollaire à ne pas manquer : `totalPairCount` est maintenant la borne
@@ -236,20 +214,10 @@ déduire après coup.
 
 ## ⚠️ La fidélité s'arrête rarement à la recherche : elle va jusqu'à l'ÉCRAN
 
-**Incident vécu, et il a coûté trois messages de fausse piste.** Un
-diagnostic a conclu « le moteur MANQUE un build meilleur et faisable » — le
-build en question était présent, au **rang 6**. Le script avait lu
-`result.candidates[0]` en le prenant pour le meilleur.
-
 ⚠️ **`SearchResult.candidates` n'est PAS trié par l'objectif.** L'ordre est
-celui de la collecte à l'appariement. C'est **l'écran** qui classe, et le tri
-vivait *inline* dans `OptimizerSection.tsx` — donc invisible pour quiconque
-lisait le moteur. Le vrai CLI (`optimizer-search.ts`) affichait lui aussi
-`slice(0, 20)` en présentant ces vingt comme des résultats : le script ad hoc
-était **fidèle au CLI**, c'est le CLI qui était infidèle à l'écran.
-
-Corrigé depuis par `sortCandidates` (runeBuildOptim.ts), source unique
-partagée. Mais la leçon générale demeure :
+celui de la collecte à l'appariement. Le classement est celui de
+`sortCandidates` (runeBuildOptim.ts), source unique partagée : lire
+`result.candidates[0]` comme le meilleur build est faux.
 
 **Le « vrai chemin de production » inclut ce que l'ÉCRAN fait du résultat**,
 pas seulement ce que le moteur calcule. Avant de conclure quoi que ce soit
@@ -268,11 +236,9 @@ prouve rien — et ressemble EXACTEMENT à un vrai bug.
 **charge** qu'un script de mesure oppose au système — et elle se vérifie
 exactement pareil.
 
-**Incident vécu** (`artifact-contention-diag.ts`). Le script devait mesurer si
-l'optimisation d'artéfacts, exécutée pendant que l'appariement tourne, ralentit
-la recherche. Sa charge rejouait bien `chercherPaires`, le vrai point d'entrée
-— mais son `evaluer` sommait les stats au lieu de dérouler le calcul de dégâts.
-Il ne lisait donc **aucune sous-propriété d'artéfact**.
+Exemple : une charge qui rejoue bien `chercherPaires`, le vrai point
+d'entrée, mais dont l'`evaluer` somme les stats au lieu de dérouler le
+calcul de dégâts ne lit **aucune sous-propriété d'artéfact**.
 
 La cascade, invisible à la lecture du script :
 
@@ -282,10 +248,9 @@ La cascade, invisible à la lecture du script :
 3. l'inventaire s'effondre de ~12 000 paires parcourues à **une poignée** ;
 4. la « charge » coûte **0,4 ms au lieu de 86 ms**.
 
-La mesure a annoncé « aucun ralentissement ». C'était vrai, et vide de sens :
-il n'y avait aucune charge. ⚠️ **Rien dans le script ne le disait** — seul le
-compteur de builds, présent par chance dans la sortie, était incohérent
-(20 213 builds en 8,6 s).
+La mesure annonce alors « aucun ralentissement » : vrai, et vide de sens, il
+n'y a aucune charge. ⚠️ **Rien dans le script ne le dit** — seul un compteur
+incohérent, s'il figure dans la sortie, le trahit.
 
 **Contre-mesure : faire dire au script sa PROPRE fidélité, avant de mesurer.**
 Deux nombres en tête de sortie, avec leur fourchette attendue :
@@ -297,11 +262,11 @@ Charge par build : 86 ms sur 12 315 paires parcourues.
 
 Une charge effondrée se voit alors à la première ligne, au lieu de se déduire
 après coup en relisant des compteurs. ⚠️ La fourchette doit venir d'une mesure
-INDÉPENDANTE et citer le bon régime : « ~340 ms » (l'espace NON élagué) aurait
-été un repère faux ici, la production élaguant elle aussi.
+INDÉPENDANTE et citer le bon régime : un repère pris sur l'espace NON élagué
+est faux, la production élaguant elle aussi.
 
 ⚠️ **Un évaluateur simplifié n'est jamais anodin quand l'algorithme s'en sert
-pour DÉCIDER.** Ici il ne servait pas qu'à noter : `analyserPertinence` et la
+pour DÉCIDER.** `analyserPertinence` et la
 dominance en dérivent leur comportement. Remplacer un score par « quelque chose
 de moins cher » change alors la STRUCTURE de ce qui est exécuté, pas seulement
 sa valeur.
@@ -319,8 +284,8 @@ que la production) — pas seulement « même noms de fonctions dans le même
 ordre ». En particulier vérifier :
 - Tout paramètre optionnel avec une valeur par défaut différente du
   comportement réel. ⚠️ Le cas d'école (`pairBuckets(..., nodeBudget)`, 4ᵉ
-  argument au défaut FIGÉ) a été supprimé — mais `maxMs` en est un autre,
-  bien vivant : `searchBuilds` retombe sur 15 s là où l'écran donne 10 min.
+  argument au défaut FIGÉ) n'existe plus dans le moteur — mais `maxMs` en
+  est un autre, bien vivant : `searchBuilds` retombe sur 15 s là où l'écran donne 10 min.
 - Toute boucle englobante autour d'un générateur (`while (!step.done)`) dans
   le vrai chemin — un simple `drain()` qui ignore les valeurs intermédiaires
   (`step.value` à chaque itération) est un signal qu'un comportement basé sur
@@ -328,11 +293,11 @@ ordre ». En particulier vérifier :
   mesure) a pu être perdu. Inversement, une boucle pas à pas qui ne fait RIEN
   de `step.value` n'a aucune raison d'exister : `drain()` suffit.
 - Les VALEURS de chaque paramètre transmis (caps, objectif, metric, pool,
-  exclusions…), pas seulement leur présence — un défaut d'écran qui a changé
-  depuis la dernière fois (ex. l'exclusion automatique de runes, renommée ET
-  son défaut INVERSÉ entre deux sessions — « Utiliser tout l'inventaire »
-  cochée par défaut devenue « Exclure les runes déjà utilisées » décochée
-  par défaut, voir `excludeUsedRunes`/`autoExcludedRuneIds`) invalide
+  exclusions…), pas seulement leur présence — un défaut d'écran qui change
+  (ex. l'exclusion automatique de runes : « Exclure les runes déjà
+  utilisées », décochée par défaut, voir
+  `excludeUsedRunes`/`autoExcludedRuneIds`, a remplacé « Utiliser tout
+  l'inventaire » cochée par défaut) invalide
   silencieusement un script écrit avant ce changement.
 Si le script reproduit un cas signalé par l'utilisateur, ne jamais conclure
 « bug confirmé dans le moteur » avant que cette fidélité soit vérifiée — un
@@ -340,8 +305,8 @@ script infidèle qui ne trouve rien ressemble EXACTEMENT à un vrai bug.
 
 ## Arithmétique joker/pièces — ne jamais généraliser par analogie
 
-⚠️ **Incident vécu, DEUX FOIS dans la même session** — même classe
-d'erreur à chaque fois : combiner « pièces réelles d'un set » (`counts[k]`)
+⚠️ **Classe d'erreur à ne pas commettre** : combiner « pièces réelles
+d'un set » (`counts[k]`)
 et « crédit joker » (`jokers`/`jokerCredit`) par analogie avec une borne
 déjà établie ailleurs dans le fichier, sans revérifier que le résultat
 tient dans la limite physique de **3 emplacements par moitié** (6 au
@@ -354,10 +319,8 @@ total, meet-in-the-middle).
    sur-addition — un pruning trop généreux ne peut qu'ÉCHOUER à couper
    une branche morte, jamais couper une branche valide à tort, donc pas
    un bug actif, mais révèle déjà le biais).
-2. Proposition (jamais implémentée, attrapée avant) d'une condition de
-   « compartiment de secours » généralisée depuis `demiBuildMort`/
-   `mustRescue` en changeant juste un chiffre : `counts[k] =
-   requiredPieces[k]-1 ET jokers=1` pour un set à 4 pièces — physiquement
+2. Une condition de « compartiment de secours » `counts[k] =
+   requiredPieces[k]-1 ET jokers=1` pour un set à 4 pièces est physiquement
    IMPOSSIBLE (3 pièces réelles + 1 joker = 4 runes dans une moitié qui
    n'en contient que 3). La condition RÉELLEMENT prouvée par
    `demiBuildMort` est `counts[k]=0 ET jokers≥1` : la moitié n'apporte

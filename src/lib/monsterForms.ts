@@ -44,7 +44,7 @@ export function estEveille(m: Monster): boolean {
 // d'éléments différents restent bien deux entrées distinctes.
 //
 // ⚠️ **Les formes de BOSS sont écartées, par une liste d'identifiants.**
-// Décision de l'utilisateur du 2026-10-04 (degats-et-aura, D56) : Azazel,
+// Azazel,
 // Kazuya Mishima, True Devil Kazuya, The Witch-king of Angmar et Solide (6 étoiles,
 // rareté naturelle 1, prose « the boss's ») ne se jouent pas. Aucune règle
 // déduite des champs : ces cinq-là, citées, et pas d'autre.

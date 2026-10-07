@@ -1,12 +1,18 @@
 import { ReactNode, useEffect, useRef, useState } from 'react';
-import { Settings, Trash2 } from 'lucide-react';
+import { Save, Trash2 } from 'lucide-react';
+import { IconeParametres } from './IconesAtelier';
 import { RUNE_METRICS, setRuneMetric, useRuneMetric } from '../hooks/useRuneMetric';
 import { setPersistence, storageAvailable, usePersistence } from '../hooks/usePersistence';
 import { THEME_CHOICES, setTheme, useTheme } from '../hooks/useTheme';
 import { setOvercapDisplay, useOvercapDisplay } from '../hooks/useOvercapDisplay';
 import { setAdversaireReference, useAdversaireReference } from '../hooks/useAdversaireReference';
 import AccountFreshness from './AccountFreshness';
+import BlocApplication from './BlocApplication';
+import { EtatSession, estBureau, selonSupport } from '../lib/bureau';
+import { useEtatSession } from '../hooks/useSessionEnCours';
 import Segmented from '../ui/Segmented';
+import Bouton from '../ui/Bouton';
+import Flottant from '../ui/Flottant';
 import Switch from './Switch';
 
 /* --------------------------------------------------------------------------
@@ -16,15 +22,50 @@ import Switch from './Switch';
 // Une ligne de réglage : intitulé à gauche, contrôle à droite. `hint` reste
 // disponible pour un futur réglage moins évident, mais on s'en passe quand
 // l'intitulé et les options parlent d'eux-mêmes.
-function Setting({ title, hint, children }: { title: string; hint?: string; children: ReactNode }) {
+// `repere` : un `data-repere`, pour le mode preuve (bureau/preuve.ts).
+// `break-words` : un texte sans espace (un chemin de dossier) se coupe au
+// lieu de déborder ; un texte ordinaire n'en est pas affecté.
+function Setting({ title, hint, repere, children }: { title: string; hint?: string; repere?: string; children: ReactNode }) {
   return (
-    <div className="py-2.5 border-b border-border/60 last:border-0">
+    <div data-repere={repere} className="py-2.5 border-b border-border/60 last:border-0">
       <div className="flex items-center justify-between gap-3">
         <span className="text-sm font-semibold text-ink">{title}</span>
         {children}
       </div>
-      {hint && <p className="mt-1 text-micro text-ink-dim leading-snug">{hint}</p>}
+      {hint && <p className="mt-1 break-words text-micro text-ink-dim leading-snug">{hint}</p>}
     </div>
+  );
+}
+
+// ── Le dossier SW Blacksmith (spec/shared/sauvegarde-session.md) ────────────
+
+// Pure : la ligne sous « Dossier SW Blacksmith » (`null` : rien reçu).
+export function presentationDossierSwblacksmith(etat: EtatSession | null): string {
+  return etat?.dossier
+    ? etat.dossier
+    : 'Choisis le dossier de SW Blacksmith : les sessions s’enregistrent dans son sous-dossier « sessions ».';
+}
+
+// Application de bureau seulement : le site n'écrit dans aucun dossier.
+function ReglageDossierSwblacksmith() {
+  const { etat, agir } = useEtatSession();
+  return (
+    <Setting title="Dossier SW Blacksmith" hint={presentationDossierSwblacksmith(etat)} repere="dossier-swblacksmith">
+      <div className="flex flex-none gap-2">
+        {/* Toujours affiché, désactivé sans dossier : il ne disparaît pas
+            selon l'état. */}
+        <Bouton
+          taille="sm"
+          fond="vide"
+          trait="aucun"
+          libelle="Retirer"
+          title="Ne plus utiliser ce dossier : la prochaine session le redemandera"
+          disabled={!etat?.dossier}
+          onClick={() => void agir((s) => s.oublierDossier())}
+        />
+        <Bouton taille="sm" libelle="Choisir…" onClick={() => void agir((s) => s.choisirDossier())} />
+      </div>
+    </Setting>
   );
 }
 
@@ -42,12 +83,25 @@ function Setting({ title, hint, children }: { title: string; hint?: string; chil
 // jamais les deux à la fois.
 export function SettingsList({
   onClearData,
+  onSauvegarderSession,
+  sauvegardeIndisponible = null,
   onKeepAccount,
   accountExportedAt,
+  groupes = false,
 }: {
   onClearData?: () => void;
+  onSauvegarderSession?: () => void;
+  // Pourquoi « Sauvegarder » est désactivé (le compte se relit encore), ou
+  // `null`. Le bouton reste affiché, désactivé avec cette raison en infobulle.
+  sauvegardeIndisponible?: string | null;
   onKeepAccount?: () => void;
   accountExportedAt?: number | null;
+  // ⚠️ **La PAGE de réglages, à la SOURIS** (refonte graphique, lot 10, la
+  // maquette) : deux blocs intitulés, « Réglages » puis « Mes données »,
+  // chacun dans sa carte. Même liste, même ordre — seul le rangement change.
+  // Au doigt, les classes ne s'appliquent pas : une seule carte, portée par la
+  // page, comme avant. Le popover ⚙ n'en a pas l'usage.
+  groupes?: boolean;
 }) {
   const metric = useRuneMetric();
   const keep = usePersistence();
@@ -55,8 +109,20 @@ export function SettingsList({
   const theme = useTheme();
   const overcap = useOvercapDisplay();
   const adversaireRef = useAdversaireReference();
+  // ⚠️ Aux DEUX formats depuis le lot 11d (décision 27) : la page de réglages
+  // range ses blocs de la même façon au doigt qu'à la souris.
+  const carteLg = groupes ? 'rounded-xl border border-border bg-panel px-4 py-1' : '';
+  const intitule = (texte: string) =>
+    groupes ? <span className="mb-2 block label">{texte}</span> : null;
   return (
-    <div>
+    <div className={groupes ? 'flex flex-col gap-5' : ''}>
+      <section>
+      {intitule('Réglages')}
+      {/* ⚠️ `border-b` : le filet qui séparait « Adversaire de référence » de
+          « Garder mes données » doit rester (popover ⚙, et la page au doigt) —
+          le dernier réglage du bloc perd le sien (`last:border-0`). À la
+          souris, la carte du bloc le remplace. */}
+      <div className={`border-b border-border/60 ${carteLg}`}>
       {/* Le réglage le plus global de tous : il change l'app entière, il vient
           donc en premier. ⚠️ TROIS options, pas un interrupteur — « Auto » doit
           rester un choix explicite, sinon quelqu'un dont le système bascule le
@@ -91,12 +157,20 @@ export function SettingsList({
           label="Toujours ajouter en face mon monstre le plus rapide"
         />
       </Setting>
+      </div>
+      </section>
 
+      <section>
+      {intitule('Mes données')}
+      <div className={carteLg}>
       <Setting
         title="Garder mes données"
         hint={
           storageOk
-            ? 'Recommandé : sans ça, tout est perdu en fermant l’onglet — prépa RTA, équipes de siège, recommandations et compte. Tout reste dans ton navigateur, sur cet appareil : à éviter sur un ordinateur partagé.'
+            ? selonSupport(
+                'Recommandé : sans ça, tout est perdu en fermant l’onglet — prépa RTA, équipes de siège, recommandations et compte. Tout reste dans ton navigateur, sur cet appareil : à éviter sur un ordinateur partagé.',
+                'Recommandé : sans ça, tout est perdu en fermant l’application — prépa RTA, équipes de siège, recommandations et compte. Tout reste sur cette machine : à éviter sur un ordinateur partagé.'
+              )
             : "Ton navigateur n'autorise pas le stockage (navigation privée ?). L'import reste valable le temps de la session."
         }
       >
@@ -113,21 +187,62 @@ export function SettingsList({
           aucune page. */}
       <AccountFreshness exportedAt={accountExportedAt ?? null} className="pb-2.5" />
 
+      {/* La sauvegarde de session (spec/shared/sauvegarde-session.md) :
+          avant la suppression, qui reste la dernière ligne du bloc. */}
+      {onSauvegarderSession && (
+        <Setting
+          title="Session"
+          hint={selonSupport(
+            'Tout l’état de l’app dans un fichier, à garder où tu veux : le compte, ton travail, les réglages et l’état des outils.',
+            'Tout l’état de l’app dans un fichier, enregistré où tu veux : le compte, ton travail, les réglages et l’état des outils.'
+          )}
+        >
+          <Bouton
+            taille="sm"
+            icone={<Save size={12} />}
+            libelle="Sauvegarder"
+            onClick={onSauvegarderSession}
+            disabled={!!sauvegardeIndisponible}
+            title={sauvegardeIndisponible ?? 'Sauvegarder la session dans un fichier'}
+            className="flex-none"
+          />
+        </Setting>
+      )}
+      {onSauvegarderSession && estBureau() && <ReglageDossierSwblacksmith />}
+
       {/* ⚠️ La suppression vit ICI, pas à côté du bouton d'import : une action
           destructrice collée au bouton le plus utilisé finit par être cliquée de
           travers. Dans un menu qu'on ouvre exprès, le geste est délibéré. */}
+      {/* Dans l'application de bureau, c'est le SEUL moyen de tout effacer :
+          elle n'a pas « Se déconnecter » dans la barre du haut. */}
       {onClearData && (
         <Setting title="Mes données">
-          <button
+          {/* ⚠️ Le `Bouton` de la LIBRAIRIE, ton `danger` (refonte graphique,
+              lot 10) : il était dessiné à la main, et ne disait son danger
+              qu'au survol. */}
+          <Bouton
+            taille="sm"
+            ton="danger"
+            icone={<Trash2 size={12} />}
+            libelle="Tout supprimer"
             onClick={onClearData}
             title="Efface la prépa RTA, les équipes de siège, les recommandations, les monstres perso et le compte importé"
-            className="flex flex-none items-center gap-1.5 rounded-lg border border-border bg-panel2
-                       px-2.5 py-1 text-micro font-semibold text-ink-dim transition
-                       hoverable:border-fire/60 hoverable:text-fire"
-          >
-            <Trash2 size={12} /> Tout supprimer
-          </button>
+            className="flex-none"
+          />
         </Setting>
+      )}
+      </div>
+      </section>
+
+      {/* Application de bureau seulement (lot 5) : la version, et la mise à
+          jour à portée quand elle a été remise à plus tard. Sur le site, le
+          bloc n'existe pas — ce n'est pas un état des données, c'est une
+          autre app. */}
+      {estBureau() && (
+        <BlocApplication
+          intitule={intitule('Application')}
+          classeCarte={groupes ? carteLg : 'border-t border-border/60'}
+        />
       )}
     </div>
   );
@@ -138,10 +253,16 @@ export function SettingsList({
 // que le bouton hamburger (44 px, encadré) pour former une paire.
 export default function SettingsMenu({
   onClearData,
+  onSauvegarderSession,
+  sauvegardeIndisponible = null,
   onKeepAccount,
   accountExportedAt,
 }: {
   onClearData?: () => void;
+  onSauvegarderSession?: () => void;
+  // Pourquoi « Sauvegarder » est désactivé (le compte se relit encore), ou
+  // `null`. Le bouton reste affiché, désactivé avec cette raison en infobulle.
+  sauvegardeIndisponible?: string | null;
   onKeepAccount?: () => void;
   accountExportedAt?: number | null;
 }) {
@@ -178,17 +299,21 @@ export default function SettingsMenu({
         title="Réglages"
         className={`flex items-center justify-center transition ${btnClass}`}
       >
-        <Settings size={16} />
+        {/* Rebranding R4 : les curseurs de Paramètres (décision 28). */}
+        <IconeParametres size={16} />
       </button>
       {open && (
-        <div
-          // Ancré à DROITE de son bouton, donc origine en haut à droite : le
-          // menu sort de l'engrenage, pas de son propre centre.
-          // ⚠️ `max-w-[calc(100vw-2rem)]` : ancré à droite de son bouton, le
-          // popover sortait de l'écran sur un téléphone — les réglages les plus
-          // à gauche devenaient inatteignables. `min-w` seul ne borne rien.
-          className="absolute z-30 right-0 mt-1.5 w-fit min-w-[260px] max-w-[calc(100vw-2rem)] rounded-xl border border-border bg-panel px-3 py-2 shadow-glow shadow-black/60
-                     origin-top-right animate-[popover_150ms_var(--ease-out)]"
+        // ⚠️ Le `Flottant` de la librairie (refonte graphique, lot 8a : les
+        // bulles de l'app ont toutes le même gabarit) : il en était une copie
+        // écrite à la main. Ancré à DROITE de son bouton, donc origine en haut
+        // à droite : le menu sort de l'engrenage, pas de son propre centre.
+        // ⚠️ `max-w-[calc(100vw-2rem)]` : ancré à droite de son bouton, le
+        // popover sortait de l'écran sur un téléphone — les réglages les plus
+        // à gauche devenaient inatteignables. `min-w` seul ne borne rien.
+        <Flottant
+          cote="droite"
+          largeur="w-fit min-w-[260px] max-w-[calc(100vw-2rem)]"
+          rembourrage="md"
         >
           <div className="flex items-baseline gap-3 border-b border-border pb-1.5">
             <span className="label">Réglages</span>
@@ -205,10 +330,12 @@ export default function SettingsMenu({
           </div>
           <SettingsList
             onClearData={onClearData}
+            onSauvegarderSession={onSauvegarderSession}
+            sauvegardeIndisponible={sauvegardeIndisponible}
             onKeepAccount={onKeepAccount}
             accountExportedAt={accountExportedAt}
           />
-        </div>
+        </Flottant>
       )}
     </div>
   );

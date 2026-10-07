@@ -135,13 +135,23 @@ dans [LeadPill.tsx](src/components/siege/LeadPill.tsx) (`leadIconUrl`).
 `public/data/monsters.json` (même origine, `cache: 'no-store'`). Expose
 `monsters`, `loadState` (`loading | live | demo | error`), `generatedAt`.
 
+⚠️ **Dans l'application de bureau, les données sont celles de son
+installeur** (chantier application-bureau, décision 1) : le build Vite, et
+donc `public/data/`, est empaqueté avec l'app, et servi par son protocole
+`app://swblacksmith/` — même `fetch`, même chemin, aucun réseau. Elles se
+rafraîchissent **à chaque version publiée**, avec la mise à jour de l'app.
+Conséquence : une actualisation SWARFARM (PR de `update-data.yml`) atteint le
+site à sa fusion, mais l'app seulement à la version suivante — un monstre
+sorti entre deux versions y manque d'ici là (les monstres perso, plus bas,
+comblent le trou).
+
 ## Monstres perso (créés à la main)
 
 Les tout derniers monstres sortis peuvent manquer dans SWARFARM. L'utilisateur
 peut donc **créer un monstre** utilisable comme les autres, en **RTA et en Siège**.
 
 - Hook : [useCustomMonsters.ts](src/hooks/useCustomMonsters.ts) — persiste dans
-  `localStorage` (`sw-forge-custom-monsters-v1`), fusionné aux monstres officiels
+  `localStorage` (`swblacksmith-custom-monsters-v1`), fusionné aux monstres officiels
   dans [App.tsx](src/App.tsx) (`allMonsters`).
 - Formulaire : [CreateMonster.tsx](src/components/CreateMonster.tsx). Son bouton
   déclencheur suit le **gabarit commun** des boutons d'action (`px-3.5 py-2`,

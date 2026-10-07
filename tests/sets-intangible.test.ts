@@ -1,9 +1,9 @@
 // activeSets() — règle du jeu pour la rune Intangible (joker). Un set annoncé
 // actif à tort serait une stat affichée fausse (RTA/Siège/Optimizer/Compte),
-// pas un simple détail cosmétique — voir spec/compte/calcul-runes.md §5.2 et
-// la capture qui a motivé ce correctif (un set « Swift » annoncé actif alors
-// qu'un second set, non demandé par l'utilisateur, était lui aussi incomplet
-// parmi les runes réellement portées).
+// pas un simple détail cosmétique — voir spec/compte/calcul-runes.md §5.2.
+// Cas typique : un set « Swift » annoncé actif alors qu'un second set, non
+// demandé par l'utilisateur, est lui aussi incomplet parmi les runes
+// réellement portées.
 
 import { activeSets } from '../src/lib/effects';
 import { egal, titre } from './outils';

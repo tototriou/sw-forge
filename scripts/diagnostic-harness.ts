@@ -28,7 +28,8 @@
 //                         [--max=res:60] [--assortiment=joker|sans-joker|varies]
 //                         [--verrous=<slot:runeId,…>]  runes IMPOSÉES
 //
-// Usage — PROFIL nommé (§7 des extensions, piste 11b) :
+// Usage — PROFIL nommé (spec/outils/optimizer/harnais.md,
+//   « Deux sources : une recette ou un pool synthétique ») :
 //   diagnostic-harness.ts --profils            liste les profils et ce qu'ils promettent
 //   diagnostic-harness.ts --profil=<nom>       exécute ce profil, cible comprise
 // ⚠️ Un profil porte SA cible dans `--suivre` par construction, et ses
@@ -37,7 +38,8 @@
 // est comparable : un cas réel tronque par le TEMPS, ce qui rend
 // NON_COMPARABLES le verdict, la population et le classement.
 //
-// Usage — DIFFÉRENTIEL entrelacé (§5.2 bis des extensions, piste 11c) :
+// Usage — DIFFÉRENTIEL entrelacé (spec/outils/optimizer/harnais-extensions.md,
+//   « Le différentiel : l'oracle ») :
 //   diagnostic-harness.ts --profil=<nom> --differentiel=<axe>:<témoin>,<comparé>
 //                         [--repetitions=<n>] [--arret=…]
 //   ex. --profil=complet-sensible --differentiel=bucketCap:6000,500
@@ -49,7 +51,7 @@
 // ce qui rend NON_COMPARABLES le verdict, la population, le classement et le
 // near-miss — un différentiel y serait payé pour rien.
 //
-// Usage — LOT sur les cas connus de `perfShared.ts` (§5.3 des extensions) :
+// Usage — LOT sur les cas connus de `perfShared.ts` :
 //   diagnostic-harness.ts --cas=tous          les 7 cas, l'un après l'autre
 //   diagnostic-harness.ts --cas=3             par indice
 //   diagnostic-harness.ts --cas=ciri          par fragment de libellé
@@ -68,7 +70,7 @@
 //                          en plus le rang du demi-build dans son
 //                          compartiment et les mieux classés à côté de lui ;
 //                          si les SIX ids d'un build y sont, rend en plus son
-//                          ADMISSIBILITÉ à l'entrée (étage 0 du §5.1) — même
+//                          ADMISSIBILITÉ à l'entrée (étage 0 de l'oracle) — même
 //                          surface, jamais une deuxième option
 //   --blocages             cherche, par condition, DE COMBIEN la desserrer
 //                          suffit (⚠️ COÛTEUX : une dichotomie par condition ;
@@ -121,7 +123,7 @@ const valeur = (nom: string): string | undefined =>
   args.find((a) => a.startsWith(`--${nom}=`))?.slice(nom.length + 3);
 
 /* --------------------------------------------------------------------------
- * Lecture des arguments — ⚠️ **« aucun repli silencieux » (§4.4 règle 4)
+ * Lecture des arguments — ⚠️ **« aucun repli silencieux »
  * vaut AUSSI pour la ligne de commande.**
  *
  * C'est la règle que ce module existe pour tenir, et elle était enfreinte
@@ -223,7 +225,8 @@ function lireStats(nom: string): Partial<Record<StatKey, number>> {
 }
 
 /**
- * `--differentiel=<axe>:<témoin>,<comparé>` — piste 11c.
+ * `--differentiel=<axe>:<témoin>,<comparé>` — spec/outils/optimizer/harnais-extensions.md,
+ * « Le différentiel : l'oracle ».
  *
  * ⚠️ **La table est un `Record` sur `AxeDifferentiel`, pas une liste** : si
  * un override est ajouté à `OverridesHarnais`, `tsc` refuse de compiler tant
@@ -232,7 +235,7 @@ function lireStats(nom: string): Partial<Record<StatKey, number>> {
  * partagé a plusieurs constructeurs » demande.
  *
  * ⚠️ Et chaque valeur est lue avec la MÊME sévérité que son option
- * homonyme : « aucun repli silencieux » (§4.4 règle 4) ne s'affaiblit pas
+ * homonyme : « aucun repli silencieux » ne s'affaiblit pas
  * parce que la valeur arrive par un autre argument.
  */
 const LECTEURS_AXE: Record<AxeDifferentiel, (brut: string, axe: string) => ValeurAxe> = {
@@ -275,7 +278,7 @@ function lireDifferentiel(brut: string): { axe: AxeDifferentiel; temoin: ValeurA
   const temoin = lire(valeurs[0].trim(), axe);
   const compare = lire(valeurs[1].trim(), axe);
   // ⚠️ Deux bras identiques ne comparent RIEN — et rendraient « aucune
-  // divergence » avec l'autorité d'un résultat, ce que tout ce chantier
+  // divergence » avec l'autorité d'un résultat, ce que tout ce harnais
   // existe pour empêcher. Refus, jamais un run payé pour rien.
   if (temoin === compare) {
     refuser(`--differentiel : le témoin et le comparé valent tous deux « ${temoin} » — il n’y a rien à comparer.`);
@@ -449,7 +452,7 @@ const msFin = (n: number) => (n >= 1 ? `${n.toFixed(1)} ms` : `${(n * 1000).toFi
 function rendreResultat(r: ResultatHarnais): string {
   const l: string[] = [];
 
-  // ── LE VERDICT, EN TÊTE — §5.1. ⚠️ Il est imprimé AVANT tout le reste
+  // ── LE VERDICT, EN TÊTE. ⚠️ Il est imprimé AVANT tout le reste
   // parce que c'est la réponse à la question posée, et parce qu'un lecteur
   // pressé lit le haut. ⚠️ Et il est imprimé AVEC sa complétude, dans le même
   // bloc, jamais renvoyé à la section « Complétude » trente lignes plus bas :
@@ -465,12 +468,12 @@ function rendreResultat(r: ResultatHarnais): string {
     l.push(`  ${v.avertissementTroncature}`);
   }
 
-  // ── Lot 5a : la trace PRODUITE DANS LE MOTEUR pour le build cible —
+  // ── La trace PRODUITE DANS LE MOTEUR pour le build cible —
   // verdict de chaque prédicat traversé, présence dans chaque structure
   // bornée. Rendue brute (JSON) : c'est un relevé, pas une interprétation.
   if (r.traceCandidat) {
     const t = r.traceCandidat;
-    l.push('', 'TRACEUR — verdicts produits dans le moteur (lot 5a)', '─'.repeat(72));
+    l.push('', 'TRACEUR — verdicts produits dans le moteur', '─'.repeat(72));
     for (const e of t.preparation) l.push(`  ${e.etage.padEnd(11)} présentes : ${e.presentes.map((p) => (p ? '✓' : '✗')).join(' ')}`);
     for (const h of ['A', 'B'] as const) {
       const m = t.moities[h];
@@ -482,9 +485,9 @@ function rendreResultat(r: ResultatHarnais): string {
     l.push(`  budget : ${JSON.stringify(t.budget)} — compteurs : ${JSON.stringify(t.compteurs)}`);
   }
 
-  // ── §5.7 : la DISPERSION PAR TRANCHE, telle que le moteur la calcule.
+  // ── La DISPERSION PAR TRANCHE, telle que le moteur la calcule.
   if (r.dispersionTranches && r.dispersionTranches.length > 0) {
-    l.push('', 'Rétention — DISPERSION PAR TRANCHE (le CV du moteur, piste B)', '─'.repeat(72));
+    l.push('', 'Rétention — DISPERSION PAR TRANCHE (le CV du moteur, qui pilote adaptiveTrancheWeighting)', '─'.repeat(72));
     for (const d of r.dispersionTranches) {
       l.push(`  Moitié ${d.moitie} — ${d.applique ? 'RÉALLOCATION APPLIQUÉE' : 'parts égales appliquées'} (${nb(d.capEgal)} places par tranche)`);
       l.push('    stat     CV      places   contre part égale');
@@ -496,7 +499,7 @@ function rendreResultat(r: ResultatHarnais): string {
     }
   }
 
-  // ── §5.6 : l'INSTANT DE DÉCOUVERTE et la COURBE DE RENDEMENT.
+  // ── L'INSTANT DE DÉCOUVERTE et la COURBE DE RENDEMENT.
   // ⚠️ Imprimé JUSTE APRÈS le verdict, et jamais avant : le verdict dit si la
   // cible est là, celui-ci dit QUAND elle est arrivée. Dans l'autre ordre, un
   // instant de découverte lu en premier se prendrait pour un rang — la
@@ -671,8 +674,7 @@ function rendreResultat(r: ResultatHarnais): string {
     const qs = r.quasiSucces;
     l.push('', 'Quasi-succès à l’appariement — sous-produit GRATUIT de la vraie recherche', '─'.repeat(72));
     // ⚠️ Même vocabulaire que le bloc « Conditions bloquantes » plus haut
-    // (« −15 suffit ») — décision explicite (2026-09-07) : un seul réflexe
-    // de lecture pour tout le diagnostic, plutôt que « manque »/« suffit »
+    // (« −15 suffit ») : un seul réflexe de lecture pour tout le diagnostic, plutôt que « manque »/« suffit »
     // pour la même idée de desserrage.
     const suffirait = (m: { stat: string; borne: 'min' | 'max'; demande: number; manque: number }) => {
       const seuil = m.borne === 'min' ? m.demande - m.manque : m.demande + m.manque;
@@ -722,7 +724,7 @@ function rendreResultat(r: ResultatHarnais): string {
     l.push(`  rapport des taux A/B : ×${rapport.toFixed(2)}`);
     l.push(`  ${ret.regleInterpretation}`);
 
-    // ⚠️ §4.1 bis — la TROISIÈME hypothèse de l'asymétrie A/B : A pourrait
+    // ⚠️ La TROISIÈME hypothèse de l'asymétrie A/B : A pourrait
     // énumérer autant, retenir autant, et être plus lent parce qu'il alloue
     // davantage. Chaque moitié ayant son propre worker_threads, donc son
     // propre tas, les deux chiffres ne peuvent pas se confondre.
@@ -737,7 +739,7 @@ function rendreResultat(r: ResultatHarnais): string {
     l.push(`  rapport heapUsed A/B : ×${ecart.toFixed(2)}`);
     l.push(`  ${mem.caveat}`);
 
-    // ⚠️ §4.2 (A₂) — la CARTOGRAPHIE DE L'ÉLAGAGE, et rien d'autre. La
+    // ⚠️ La CARTOGRAPHIE DE L'ÉLAGAGE, et rien d'autre. La
     // distribution est rendue entière (quantiles ET forme) : c'est la
     // dispersion qui porte l'information, une moyenne écraserait une série
     // bimodale — le cas qu'on vient précisément chercher.
@@ -775,7 +777,7 @@ function rendreResultat(r: ResultatHarnais): string {
     }
   }
 
-  // ⚠️ §5.1, ÉTAGES 4-5 — le cœur de l'oracle : à quel étage la paire de
+  // ⚠️ ÉTAGES 4-5 — le cœur de l'oracle : à quel étage la paire de
   // compartiments du build cible a été coupée, et si elle a survécu, à quel
   // RANG la cible sort dans le classement ENTIER (jamais dans un top-20 déjà
   // coupé, jamais `candidates[0]`).
@@ -846,7 +848,7 @@ function rendreResultat(r: ResultatHarnais): string {
     }
     // ⚠️ Collé à la série qu'il qualifie, jamais relégué en bas du bloc : la
     // fenêtre `preparation` enclot l'observateur du harnais, et son coût est
-    // MESURÉ (§5.3) — même doctrine que `coutInstrumentation` pour A₂.
+    // MESURÉ — même doctrine que `coutInstrumentation` pour A₂.
     l.push(`  ${r.temps.perimetrePreparation}`);
     l.push(`  ⚠️ ${r.fidelite.noteNavigateur}`);
     l.push('', `  ${r.temps.avertissementComparaison}`);
@@ -867,7 +869,7 @@ function rendreResultat(r: ResultatHarnais): string {
  * ----------------------------------------------------------------------- */
 
 /**
- * Le LOT — §5.3 des extensions. ⚠️ **Une boucle, et rien de plus** : chaque
+ * Le LOT. ⚠️ **Une boucle, et rien de plus** : chaque
  * cas produit exactement la sortie qu'il produirait lancé seul, palier 1
  * compris. Rien n'est agrégé, rien n'est comparé, aucun texte n'est
  * mutualisé — en particulier l'avertissement de comparaison, qui part avec
@@ -945,7 +947,8 @@ async function mainLot(brut: string): Promise<void> {
 }
 
 /**
- * Le DIFFÉRENTIEL — §5.2 bis, piste 11c. ⚠️ **L'inverse exact du lot** : il
+ * Le DIFFÉRENTIEL (spec/outils/optimizer/harnais-extensions.md,
+ * « Le différentiel : l'oracle »). ⚠️ **L'inverse exact du lot** : il
  * garde le CAS constant et fait varier la CONDITION, là où le lot garde la
  * condition et fait varier le cas. D'où deux modes qui s'excluent, et deux
  * avertissements distincts — « si la sortie ne dit pas laquelle des deux
@@ -987,7 +990,7 @@ async function mainDifferentiel(brut: string): Promise<void> {
   // ⚠️ **Refus EN AMONT, avant de payer deux runs** : sans `objective`, les
   // modes `objective` et `combined` REPLIENT sur `relevanceScore` (tri de
   // `buildBuckets`), donc les quatre valeurs de `combosOrderMode` rendent le
-  // même résultat — mesuré par 11b. Ce n'est pas une insensibilité du profil,
+  // même résultat — mesuré. Ce n'est pas une insensibilité du profil,
   // c'est une inertie PROUVÉE par le code du moteur : la refuser vaut mieux
   // que de la mesurer.
   if (axe === 'combosOrderMode' && profil.source.objective == null) {

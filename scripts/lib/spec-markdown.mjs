@@ -3,7 +3,8 @@
 // ⚠️ **Une seule implémentation dans le dépôt** : tout script (contrôle de
 // slugs, de niveaux, `spec-toc`, `spec-lint`) importe ce fichier — jamais une
 // copie scratch, jamais une réimplémentation dans un hook. Voir
-// `spec/chantiers/spec-rangement.md`, B.2, B.3 et B.4.
+// `spec/outillage/spec.md`, « Sous-titrer un fichier, parseur `spec-markdown` »,
+// « `spec-toc` » et « Contrat de `spec-lint` ».
 //
 // `titres(texte)` repère les lignes `^#{1,6} …`, hors blocs de code clôturés
 // (```` ``` ```` ou `~~~`) : un exemple de titre Markdown DANS une citation
@@ -30,7 +31,7 @@
 // pour `spec-lint`.
 //
 // `blocsTerminaux(texte)` découpe le fichier en blocs terminaux au sens de
-// B.4 : les lignes entre un titre (exclu) et le PROCHAIN TITRE DE N'IMPORTE
+// « Bloc terminal et refus » de `spec/outillage/spec.md` : les lignes entre un titre (exclu) et le PROCHAIN TITRE DE N'IMPORTE
 // QUEL NIVEAU (exclu), ou la fin du fichier — pas jusqu'au niveau ≤ au sien
 // comme `sections()`. Le préambule (avant le premier titre) est un bloc.
 //
@@ -45,12 +46,12 @@
 // termine plus la capture ; seul un fermant SANS ouvrant correspondant dans
 // la capture la termine — c'est soit la parenthèse qui enveloppe toute la
 // référence (« (fichier.md § Titre) »), soit le crochet fermant d'un lien
-// Markdown (« [fichier.md § Titre](url) »). Un `;` termine toujours, sans
+// Markdown (« `[fichier.md § Titre](url)` »). Un `;` termine toujours, sans
 // condition de solde.
 //
 // `fichiersMarkdown(chemin)` liste récursivement les `.md` d'un fichier ou
 // dossier, hors `node_modules/` et `.git/` — le « mode dossier » de
-// `spec-toc` (B.3), partagé avec `spec-lint` qui en a besoin pour parcourir
+// `spec-toc` (`spec/outillage/spec.md`, « `spec-toc` »), partagé avec `spec-lint` qui en a besoin pour parcourir
 // le périmètre.
 
 import { readdirSync, statSync } from 'node:fs';

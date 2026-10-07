@@ -11,7 +11,9 @@ import { StatKey, CAPPED_STATS } from '../lib/effects';
 // ⚠️ Un réglage d'AFFICHAGE, pas de calcul : `computeStats` continue de
 // renvoyer le total BRUT (nécessaire à la recherche de l'Optimizer, qui ne
 // doit surtout pas exclure un build dont le total brut dépasse 100 % — c'est
-// un résultat légitime, voir spec/outils/optimizer/). Seule la VALEUR
+// un résultat légitime, voir
+// spec/outils/optimizer/ecran/conditions-et-reglages.md § Grille des
+// conditions). Seule la VALEUR
 // MONTRÉE est bornée, jamais la donnée elle-même.
 //
 // Store externe (comme useRuneMetric) : le choix doit se propager EN DIRECT
@@ -19,7 +21,7 @@ import { StatKey, CAPPED_STATS } from '../lib/effects';
 // résultats de l'Optimizer, recommandations de siège), pas seulement au
 // prochain montage. Persisté dans localStorage — un réglage d'application
 // doit survivre au rechargement.
-const STORAGE_KEY = 'sw-forge-overcap-display-v1';
+const STORAGE_KEY = 'swblacksmith-overcap-display-v1';
 
 // Défaut = affiché (comportement historique, non bornée) : activer ce
 // réglage ne doit surprendre personne, seul le DÉSACTIVER change quelque

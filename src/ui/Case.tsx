@@ -43,7 +43,11 @@ const Case = forwardRef<HTMLInputElement, CaseProps>(function Case(
             checked
               ? ton === 'star'
                 ? 'border-star bg-star text-bg'
-                : 'border-accent bg-accent text-bg'
+                : // ⚠️ Coche en `accent-ink`, l'encre sombre posée sur la braise
+                  // (rebranding R3b, la planche « Formulaires ») : en
+                  // `text-bg`, elle devenait CLAIRE sur braise en Atelier
+                  // — 2.3 de contraste — depuis que l'accent est la braise.
+                  'border-accent bg-accent text-accent-ink'
               : 'border-border bg-panel2'
           }`}
       >

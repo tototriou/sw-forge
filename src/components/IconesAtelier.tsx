@@ -1,8 +1,7 @@
 import { CSSProperties } from 'react';
 
 // Icônes de NAVIGATION « objets d'atelier » (rebranding R4, décisions 9, 27 et
-// 28 — spec/chantiers/rebranding-blacksmith.md ; planches dans
-// spec/chantiers/rebranding-preuves/lot-R4-icones*.png).
+// 28 ; spec/shared/navigation.md).
 //
 // Grille de 24, trait de 2, bouts et angles ronds, `currentColor` : le même
 // contrat que lucide, pour que chacune remplace son icône lucide sans que

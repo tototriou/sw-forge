@@ -1,5 +1,5 @@
 // Identifiants de format des fichiers exportés (`"format": "…"` en tête du
-// JSON) — décision 66 du rebranding (spec/chantiers/rebranding-blacksmith.md).
+// JSON) — décision 66 du rebranding.
 //
 // Ils s'écrivaient `sw-forge/<nom>` ; ils s'écrivent `swblacksmith/<nom>`.
 // ⚠️ **L'ancien identifiant reste reconnu, pour toujours** : un fichier exporté

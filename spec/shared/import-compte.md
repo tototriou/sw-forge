@@ -70,8 +70,7 @@ erreur) : « Import : N monstres 6★ · N monstres RTA · N défenses · N atta
 
 ### Le dossier SW Exporter — l'app de bureau seulement
 
-Dans l'**application de bureau** (chantier application-bureau, décision 15),
-le bloc « Application » des Réglages laisse choisir le **dossier SW
+Dans l'**application de bureau**, le bloc « Application » des Réglages laisse choisir le **dossier SW
 Exporter** et l'**invocateur** à suivre (ses exports `<nom>-<id>.json` à la
 racine) — l'invocateur aussi depuis la **carte du compte** de la barre
 latérale, qui devient alors un menu. Chaque nouvel export de cet invocateur — au lancement s'il est plus
@@ -380,8 +379,7 @@ IndexedDB n'a aucun de ces défauts, et son **structured clone** évite le
 Une base `swblacksmith`, un store `account`, **une clé fixe** `current` :
 `{ schema, savedAt, box, runes, artifacts, relics, crafts, usedRuneIds, relicUsageById, runeMarkerLabels }`.
 
-- ⚠️ **La base s'appelait `sw-forge`** jusqu'au rebranding (décision 66,
-  [../chantiers/rebranding-blacksmith.md](../chantiers/rebranding-blacksmith.md)).
+- ⚠️ **La base s'appelait `sw-forge`** jusqu'au rebranding.
   À la première ouverture, `reprendreAncienneBase` recopie son compte dans la
   nouvelle, le RELIT, puis supprime l'ancienne — avant toute opération de la
   file, sinon la première lecture rendrait « aucun compte ». Un compte déjà

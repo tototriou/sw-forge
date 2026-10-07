@@ -82,9 +82,7 @@ rien n'est filtré (« Aucun filtre posé »).
 la ligne**, chacune avec son intitulé à sa largeur naturelle, collé à ses
 choix — ce qui sépare deux filtres est alors l'écart entre les groupes, plus
 la colonne. La rangée `Propriété` prend la place restante (au moins 440 px).
-Tout reste visible, rien ne passe en menu : même choix que pour les runes
-(décision 20 du cadrage
-[../chantiers/refonte-graphique.md](../chantiers/refonte-graphique.md)). Au
+Tout reste visible, rien ne passe en menu : même choix que pour les runes. Au
 doigt, les rangées restent empilées dans le panneau « Options » (lot 11).
 
 - **Catégorie** : `Tous` · `Attribut` · `Type`.

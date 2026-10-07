@@ -169,10 +169,8 @@ Outillage du dépôt (pas une page de l'app) :
     valent **consentement**. Sans cette reprise, la mise à jour retirerait en
     silence une conservation dont il dispose depuis toujours.
 - **Aucune statistique de fréquentation.** La mesure d'audience Vercel Web
-  Analytics a été **retirée, du site comme de l'application de bureau**
-  (le mainteneur, 2026-10-05 — décision 6 du chantier
-  [application-bureau.md](chantiers/application-bureau.md)) : rien ne quitte
-  le navigateur, ce que dit le « 100 % local ». ⚠️ Ne pas la réintroduire sans
+  Analytics a été **retirée, du site comme de l'application de bureau** :
+  rien ne quitte le navigateur, ce que dit le « 100 % local ». ⚠️ Ne pas la réintroduire sans
   décision : elle n'aurait de toute façon aucun sens dans l'app de bureau.
 - **Vérifications automatiques** — `npm test`
   ([tests/README.md](tests/README.md)). À chaque pull request vers `main`
@@ -220,8 +218,7 @@ Outillage du dépôt (pas une page de l'app) :
   `swblacksmith-*` (prépa RTA, équipes de siège, recommandations, catégories,
   monstres perso) — et celles des anciens noms `sw-forge*` / `sky-arena*` qui
   traîneraient — puis recharge. Voir [App.tsx](src/App.tsx).
-  - **Clés renommées au rebranding, avec migration** (décision 66,
-    [chantiers/rebranding-blacksmith.md](chantiers/rebranding-blacksmith.md)) :
+  - **Clés renommées au rebranding, avec migration** :
     au premier lancement, [migrationStockage.ts](src/lib/migrationStockage.ts)
     — premier import de `main.tsx`, avant tout module qui lit le stockage —
     recopie chaque `sw-forge-…` / `sky-arena-…` sous `swblacksmith-…`, RELIT la
@@ -301,10 +298,10 @@ Outillage du dépôt (pas une page de l'app) :
       (« Rechercher », « Mettre à jour », « Redémarrer »… — toujours
       affiché, désactivé quand il n'y a rien à faire). Une mise à jour remise
       à plus tard s'y fait quand on veut. Voir
-      [le cadrage](chantiers/application-bureau.md), lot 5, décision 12.
+      [shared/application-bureau.md](shared/application-bureau.md).
       Puis le **dossier SW Exporter** et l'**invocateur** à suivre : « Mon
-      compte » se met à jour à chaque export (décision 15, lot 9 —
-      [shared/import-compte.md](shared/import-compte.md)).
+      compte » se met à jour à chaque export
+      ([shared/import-compte.md](shared/import-compte.md)).
 - **Import de compte global** : un seul bouton invariant « Importer mon compte »
   dans la barre de nav remplit RTA + siège défense + offense **+ « Mon compte »**
   (box 6★ et inventaire runes/artéfacts) d'un coup. Chaque import remplace le
@@ -463,24 +460,3 @@ Le cadre commun (nav, routing par hash, footer) vit dans
   qu'un import global les alimente tous. `importAccount(text)` orchestre les 3 ;
   `clearAllData()` efface tout.
 - Footer : rappel « données 100 % locales » ; crédit Com2uS / source SWARFARM.
-
-## Chantiers
-
-Un chantier (travail de plus d'une session, exécuté par lots dans des
-sessions fraîches) a un **document de cadrage** : Partie A relue par chaque
-lot, Partie B un contrat par lot, résultats ajoutés au fil des lots.
-L'écrire : skill `cadrage-chantier`. Il est public, dans
-[chantiers/](chantiers/), ou privé, dans les notes privées du projet, hors
-de ce dépôt, au choix du responsable du chantier. Le tableau ci-dessous
-n'a de ligne que pour un cadrage public : un chantier privé n'a pas de
-document public.
-Chaque cadrage commence par un H1 et une ligne `**Statut :**` que
-`node scripts/spec-toc.mjs <fichier>` résume ; on l'ouvre par section,
-jamais en entier.
-
-| Cadrage | Statut | Branche |
-| --- | --- | --- |
-| [chantiers/refonte-graphique.md](chantiers/refonte-graphique.md) — refonte graphique sans régression (navigation, boutons, densité) | en cours | `forge/refonte-graphique` |
-| [chantiers/rebranding-blacksmith.md](chantiers/rebranding-blacksmith.md) — rebranding « SW Blacksmith » (nom, logo, thèmes, écrans), suite de la refonte | en cours | `forge/refonte-graphique` |
-| [chantiers/application-bureau.md](chantiers/application-bureau.md) — l'application de bureau (Electron, Windows et Linux) : coquille, installeur, action GitHub au tag, mise à jour automatique, page « Télécharger », dossier SW Exporter ; entre dans la 2.0.0 ; fiche, journal archivé ; état actuel : [shared/application-bureau.md](shared/application-bureau.md) | terminé le 2026-10-06 | `forge/application-bureau` |
-| Speed tuning en mode RTA (1,5 % par tick au lieu de 7 %) — pas encore de cadrage ; ce qu'il devra trancher : [outils/speed-tuning.md](outils/speed-tuning.md) § Mode RTA | à ouvrir | — |

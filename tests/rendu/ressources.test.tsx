@@ -1,9 +1,8 @@
 // Tests de rendu — Ressources (Bestiaire, Mécaniques, Nouveautés), Paramètres
 // et « Bientôt disponible ». Principe dans tests/rendu/outils-rendu.tsx : on
 // vérifie que chaque fonctionnalité et chaque information sont présentes,
-// jamais l'apparence. Écrits AVANT le lot 10 de la refonte graphique
-// (`spec/chantiers/refonte-graphique.md` § B.5 à B.10) : ils doivent rester
-// verts sans qu'une assertion change.
+// jamais l'apparence. Écrits AVANT le lot 10 de la refonte graphique : ils
+// doivent rester verts sans qu'une assertion change.
 //
 // ⚠️ Aucun chiffre qui bouge avec les données : le nombre de monstres suit
 // `monsters.json`, les versions suivent `data/releases.ts`. Les attendus en

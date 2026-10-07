@@ -1,7 +1,7 @@
 // Tests de rendu — la coquille de l'app (barre latérale, barre du haut, onglets
 // mobiles), affichée EN ENTIER par `App` sur chaque route. Principe dans
-// tests/rendu/outils-rendu.tsx. Écrits AVANT le lot 4 de la refonte graphique
-// (`spec/chantiers/refonte-graphique.md` § B.4) : ils fixent ce que la
+// tests/rendu/outils-rendu.tsx. Écrits AVANT le lot 4 de la refonte
+// graphique : ils fixent ce que la
 // navigation permet, pas sa forme — le regroupement du menu décidé par le mainteneur
 // (décision 5) doit les laisser verts.
 

@@ -8,6 +8,12 @@
   ],
   "entrees": [
     {
+      "fichier": ".claude/skills/cadrage-chantier/SKILL.md",
+      "renvoi": "chantiers/",
+      "occurrences": 1,
+      "proprietaire": "hors-perimetre"
+    },
+    {
       "fichier": ".agents/skills/design-taste-frontend/SKILL.md",
       "renvoi": "feature/bento-grid--material.md",
       "occurrences": 1,
@@ -284,6 +290,12 @@
       "proprietaire": "hors-perimetre"
     },
     {
+      "fichier": "scripts/spec-lint.mjs",
+      "renvoi": "chantiers/",
+      "occurrences": 2,
+      "proprietaire": "hors-perimetre"
+    },
+    {
       "fichier": "spec/README.md",
       "renvoi": "src/components/Segmented.tsx",
       "occurrences": 1,
@@ -311,6 +323,12 @@
       "fichier": "spec/compte/calcul-artefacts.md",
       "renvoi": "artifacts/",
       "occurrences": 1,
+      "proprietaire": "hors-perimetre"
+    },
+    {
+      "fichier": "spec/outillage/spec.md",
+      "renvoi": "chantiers/",
+      "occurrences": 6,
       "proprietaire": "hors-perimetre"
     },
     {

@@ -122,8 +122,7 @@ l'application de bureau, douze dans l'app.)
 ### Rebranding « SW Blacksmith » — lot R5 (2026-09-29)
 
 La planche d'accueil de la toile a été relevée et comparée, point par point ;
-**Le mainteneur garde l'accueil tel quel** (décisions 31 à 36 du
-[cadrage](chantiers/rebranding-blacksmith.md)) : héros (nom en titre, zone
+**Le mainteneur garde l'accueil tel quel** : héros (nom en titre, zone
 de dépôt seule, aucun bouton), pas de bandeau de garanties, les douze cartes,
 « Comment ça marche », et au téléphone la décision 24 (même structure,
 resserrée) — la toile proposait « Forgé pour la guilde. », deux boutons et

@@ -1,7 +1,7 @@
 // Tests de rendu — l'accueil (`HomePage`). Principe dans
 // tests/rendu/outils-rendu.tsx : on vérifie que chaque fonctionnalité et chaque
 // information sont présentes, jamais l'apparence. Écrits AVANT le lot 5 de la
-// refonte graphique (`spec/chantiers/refonte-graphique.md` § B.5) : l'accueil
+// refonte graphique : l'accueil
 // est gardé tel quel et restylé (décision 10) — ces tests doivent rester verts
 // sans qu'une assertion change.
 

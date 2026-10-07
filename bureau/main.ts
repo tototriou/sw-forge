@@ -1,5 +1,5 @@
-// Processus principal de l'application de bureau (Electron) — chantier
-// application-bureau (spec/chantiers/application-bureau.md).
+// Processus principal de l'application de bureau (Electron)
+// (spec/shared/application-bureau.md).
 //
 // Un seul code : la fenêtre affiche le build Vite (`dist/`), servi par le
 // protocole `app://swblacksmith/` (voir protocole.ts). Rien de l'app n'est

@@ -1,5 +1,4 @@
-# Empaquetage de l'application de bureau — chantier application-bureau, lot 3
-# (spec/chantiers/application-bureau.md, décisions 3 et 8).
+# Empaquetage de l'application de bureau (spec/shared/application-bureau.md).
 #
 # `npm run bureau:paquet` : build Vite + processus principal, puis
 # l'installeur de la plateforme courante dans le dossier `paquets` (gitignoré).

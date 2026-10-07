@@ -278,8 +278,7 @@ ligne reste là sans résultat ni seconde page : le tri ne disparaît jamais
 avec les données. Une barre unique a été essayée puis défaite
 par le mainteneur : à 1 000 px, elle écrasait la recherche et renvoyait le tri seul
 à la ligne. Les filtres restent **visibles**, pas
-dans des menus : même choix que pour les runes (décision 20 du cadrage
-[../chantiers/refonte-graphique.md](../chantiers/refonte-graphique.md)). Au
+dans des menus : même choix que pour les runes. Au
 doigt, rien ne change (lot 11).
 
 > ⚠️ **Une chip active se reconnaît à sa couleur, sans lire son libellé.**

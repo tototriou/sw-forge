@@ -1,6 +1,5 @@
 // Tests de rendu AU TÉLÉPHONE — Siège : Défense, Offense, Recommandations
-// (lot 11b de la refonte graphique, `spec/chantiers/refonte-graphique.md`
-// § B.11). Principe dans tests/rendu/outils-rendu.tsx ; rendu téléphone par
+// (lot 11b de la refonte graphique). Principe dans tests/rendu/outils-rendu.tsx ; rendu téléphone par
 // `auTelephone`, qui fait apparaître les panneaux « Options ». Écrits AVANT le
 // 11b : ils doivent rester verts sans qu'une assertion change.
 

@@ -17,7 +17,7 @@ disent ce que contient chaque brique. Le comportement attendu, lui, est dans
 | Node | ≥ 24 |
 | Calcul lourd | 2 Web Workers (`src/workers/`) |
 | Stockage | `localStorage` (prépa, équipes, réglages) + **IndexedDB** (compte importé) |
-| Application de bureau | Electron, code dans **`bureau/`** (hors de `src/` : il tourne dans Node) — `main.ts` (fenêtre, protocole `app://swblacksmith/`), `protocole.ts` (règles pures, testées : fichier servi, adresse interne, lien ouvrable dehors), `navigation.ts` (liens vers le navigateur, navigations bloquées, « Enregistrer sous »), `fenetre.ts` (état mémorisé, pur), `preload.ts`, `miseAJour.ts` (mise à jour automatique, `electron-updater`), `swex.ts` + `swexPur.ts` (dossier SW Exporter : « Mon compte » suit les exports), `session.ts` + `sessionPur.ts` (session en cours : « Sauvegarder » la réécrit, « Sauvegarder sous… », `session.json` ; dossier SW Blacksmith et son sous-dossier `sessions`, `dossier-swblacksmith.json`), `preuve.ts`, `installeur.nsh` (désinstalleur Windows), `icone.ico` (générée par `scripts/generer-icone-bureau.mjs`) ; empaqueté par `electron-builder.yml`, publié au tag `v*` par `.github/workflows/bureau.yml` (installeurs attachés à la release) ; côté page `src/lib/bureau.ts` (`estBureau()`, couleurs du thème, mise à jour), `src/components/MiseAJourBureau.tsx` (la mise à jour dite par la notification) et `src/components/BlocApplication.tsx` (bloc « Application » des Réglages : version, mise à jour à portée, dossier SW Exporter), `src/components/SuiviSwex.tsx` (applique « Mon compte » à chaque export), `src/hooks/useEtatSwex.ts` (l'état du dossier, lu par les Réglages et par `SidebarCompte`, dont la carte devient le menu des invocateurs), `src/hooks/useSessionEnCours.ts` (la session en cours, « Garder mes données » redit au bureau ; `useEtatSession` pour la ligne « Dossier SW Blacksmith » de `SettingsList`, bloc « Mes données ») ; compilé par `scripts/construire-bureau.mjs` vers le dossier `dist-bureau` (non suivi). État actuel [spec/shared/application-bureau.md](spec/shared/application-bureau.md), chantier [spec/chantiers/application-bureau.md](spec/chantiers/application-bureau.md) |
+| Application de bureau | Electron, code dans **`bureau/`** (hors de `src/` : il tourne dans Node) — `main.ts` (fenêtre, protocole `app://swblacksmith/`), `protocole.ts` (règles pures, testées : fichier servi, adresse interne, lien ouvrable dehors), `navigation.ts` (liens vers le navigateur, navigations bloquées, « Enregistrer sous »), `fenetre.ts` (état mémorisé, pur), `preload.ts`, `miseAJour.ts` (mise à jour automatique, `electron-updater`), `swex.ts` + `swexPur.ts` (dossier SW Exporter : « Mon compte » suit les exports), `session.ts` + `sessionPur.ts` (session en cours : « Sauvegarder » la réécrit, « Sauvegarder sous… », `session.json` ; dossier SW Blacksmith et son sous-dossier `sessions`, `dossier-swblacksmith.json`), `preuve.ts`, `installeur.nsh` (désinstalleur Windows), `icone.ico` (générée par `scripts/generer-icone-bureau.mjs`) ; empaqueté par `electron-builder.yml`, publié au tag `v*` par `.github/workflows/bureau.yml` (installeurs attachés à la release) ; côté page `src/lib/bureau.ts` (`estBureau()`, couleurs du thème, mise à jour), `src/components/MiseAJourBureau.tsx` (la mise à jour dite par la notification) et `src/components/BlocApplication.tsx` (bloc « Application » des Réglages : version, mise à jour à portée, dossier SW Exporter), `src/components/SuiviSwex.tsx` (applique « Mon compte » à chaque export), `src/hooks/useEtatSwex.ts` (l'état du dossier, lu par les Réglages et par `SidebarCompte`, dont la carte devient le menu des invocateurs), `src/hooks/useSessionEnCours.ts` (la session en cours, « Garder mes données » redit au bureau ; `useEtatSession` pour la ligne « Dossier SW Blacksmith » de `SettingsList`, bloc « Mes données ») ; compilé par `scripts/construire-bureau.mjs` vers le dossier `dist-bureau` (non suivi). État actuel [spec/shared/application-bureau.md](spec/shared/application-bureau.md) |
 
 ⚠️ **Pas de librairie de composants.** Tout `src/ui/` est écrit à la main.
 Radix UI a été **validé mais jamais installé** — chantier en attente.
@@ -281,11 +281,6 @@ Source de vérité du rendu : [`spec/shared/design.md`](spec/shared/design.md).
 - `scripts/fetch-monsters.mjs`, `fetch-skills.mjs`, `link-collabs.mjs` —
   régénèrent les données depuis SWARFARM.
 - `scripts/benchmark-*.mjs` — mesures de l'optimiseur.
-- `scripts/inventaire-ui.mjs` + `scripts/lib/inventaire-comparer.mjs` —
-  inventaire des points d'entrée visibles (textes, libellés, infobulles,
-  routes) comparé à une référence figée ; `scripts/chemins-interdits.mjs` —
-  ce qu'un lot de refonte ne touche pas. Chantier
-  `spec/chantiers/refonte-graphique.md`.
 - `scripts/lib/relicOracle.ts` — oracle de contrôle de la dimension relique : N recherches du moteur réel, une par principale éligible distincte, et point d'entrée CLI pour les mesures du chantier.
 - `src/data/releases.ts` — le journal des versions, lu par l'accueil **et** la
   page Nouveautés.
@@ -301,13 +296,9 @@ tris, optimiseur (dont un test différentiel).
 ⚠️ **Aucun test d'interface** — elle se vérifie à l'œil ; des tests d'affichage
 ne feraient que figer le rendu du jour.
 
-Une exception, qui ne fige PAS le rendu : `refonte-inventaire` refuse qu'une
-entrée visible (texte, libellé, infobulle, route) **disparaisse** sans
-déplacement déclaré ni décision écrite — la forme et la place restent libres.
-Référence et déplacements : `spec/chantiers/refonte-graphique-preuves/`.
-
-Même esprit pour les **tests de rendu** (`tests/rendu/`) : un vrai composant
-affiché avec `react-dom/server` et des données d'exemple, interrogé sur le
+Une exception, qui ne fige PAS le rendu : les **tests de rendu**
+(`tests/rendu/`) — un vrai composant affiché avec `react-dom/server` et des
+données d'exemple, interrogé sur le
 SENS (texte, `aria-label`, `title`, `disabled`), jamais sur les classes ou la
 disposition — ils vérifient qu'une fonctionnalité est là, pas à quoi elle
 ressemble.

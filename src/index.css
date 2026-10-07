@@ -28,9 +28,7 @@
      Voir spec/shared/design.md § Contraste. */
   /* ⚠️ **Rebranding « SW Blacksmith », lot R1 (2026-09-29) : les jetons de la
      toile**, thème Atelier — un papier chaud, l'encre de l'atelier, la braise
-     en accent. Correspondance et mesures : spec/chantiers/rebranding-preuves/
-     lot-R1.md. Les anciennes valeurs (gris neutres et indigo du lot 14 de la
-     refonte) y sont relevées.
+     en accent. Voir spec/shared/design.md.
      ⚠️ Les trois surfaces se distinguent deux à deux, mais faiblement
      (`panel2` / `bg` 1.09, `panel` / `bg` 1.12) : c'est la BORDURE qui sépare
      une surface posée sur la page, comme depuis le lot 14. */
@@ -250,8 +248,7 @@
    toile — le charbon et la braise. Fonds bruns presque noirs, qui ne se
    séparent que de peu (`bg` / `bar` 1.05, `bar` / `panel` 1.08, `panel` /
    `panel2` 1.15) : « en mode Forge, la profondeur vient surtout de la surface
-   plus claire » (toile, BsTheme). Ancien thème (bleu nuit, cuivre) relevé
-   dans spec/chantiers/rebranding-preuves/lot-R1.md.
+   plus claire » (toile, BsTheme).
 
    ⚠️ Ces `--forge-*` ne sont JAMAIS consommés directement par un composant :
    ils alimentent les tokens réels dans les deux déclencheurs ci-dessous. Le

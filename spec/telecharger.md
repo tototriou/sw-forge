@@ -8,8 +8,8 @@ l'accueil (`estBureau()`).
 Fichiers : [TelechargerPage.tsx](src/pages/TelechargerPage.tsx) ·
 [bureau.ts](src/lib/bureau.ts) (`TELECHARGEMENTS`, `DEPOT`) ·
 [IconesSystemes.tsx](src/components/IconesSystemes.tsx) (logos) ·
-[App.tsx](src/App.tsx) (route, `RESOURCES`). Décisions 13 et 14 du chantier
-[application-bureau](chantiers/application-bureau.md).
+[App.tsx](src/App.tsx) (route, `RESOURCES`). Application de bureau :
+[shared/application-bureau.md](shared/application-bureau.md).
 
 ## Contenu (de haut en bas)
 

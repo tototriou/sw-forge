@@ -1,5 +1,5 @@
-// Ce que la PAGE sait de l'application de bureau — chantier
-// application-bureau (spec/chantiers/application-bureau.md).
+// Ce que la PAGE sait de l'application de bureau
+// (spec/shared/application-bureau.md).
 //
 // ⚠️ **Sur le site, tout ceci est inerte** : `estBureau()` y vaut `false`, et
 // rien n'est posé ni écouté. Le site ne change pas.

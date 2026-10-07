@@ -346,8 +346,9 @@ jamais supprimer un titre. Puis :
 ### Statut du fichier
 
 `spec/outils/optimizer/invariants.md` est un **index de contraintes
-critiques**, pas une source normative. Chaque entrée : une phrase
-impérative suivie de **`Source : fichier § section`** (référence durable ; un `fichier:ligne`
+critiques**, pas une source normative. Chaque entrée : une contrainte,
+impérative ou descriptive, qui dit ce qui doit rester vrai, suivie de
+**`Source : fichier § section`** (référence durable ; un `fichier:ligne`
 ne sert qu'au contrôle ponctuel). Le fichier est groupé par sujet et **se
 lit en entier au démarrage d'un chantier Optimizer** : c'est le seul
 fichier pour lequel cette lecture intégrale est assumée (le hook `Read` l'en
@@ -362,10 +363,11 @@ disparue ou renommée fait échouer le lint.
 
 ### Critère des invariants
 
-Entre dans `invariants.md` une règle qu'**un chantier qui l'ignore casse**
-— pas une description, pas une raison. Le critère se précise par trois
-familles, souvent formulées en description et non en impératif, qu'une
-relecture des sections d'état actuel cherche explicitement :
+Entre dans `invariants.md` une règle qu'**un chantier qui l'ignore casse**,
+y compris une règle de méthode dont l'oubli fausse une conclusion (mesure,
+harnais) ; pas un résumé de ce qui est vrai, pas une raison. Une relecture
+des sections d'état actuel cherche explicitement trois familles, souvent
+formulées en description, sans en faire une liste fermée :
 
 - **dérivé de** : une valeur se déduit d'autre chose, jamais saisie ni
   listée à la main ;

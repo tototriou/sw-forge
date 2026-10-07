@@ -369,15 +369,14 @@ un passif avec son propre `'jamais'`/`'toujours'` (fait plus précis sur
 cette contribution précise) garde la priorité sur ce modificateur
 monstre-wide.
 
-⚠️ **Le champ « VIT adversaire », le bouton « Buff VIT » et le leader skill
-apparaissent aussi quand `critSiPlusRapide` OU `bonusDegatsSelonVit` sont
-présents**, même si le sort ACTIF choisi ne lit ni `{SPD}` ni
-`{Relative SPD}` (ex. Rigna S1 « Double Gash » ; ou n'importe quel sort de
-Sonia, voir ci-dessous) : la comparaison de vitesse a lieu indépendamment du
-sort sélectionné. Le bouton « Buff VIT » suit la même condition que le
-champ « VIT adversaire », `utilise('SPD') || utilise('Relative SPD') ||
-critSiPlusRapide || bonusDegatsSelonVit`, jamais `utilise('SPD')` seul
-(Ciri Eau, Sonia).
+⚠️ **Le champ « VIT adversaire » apparaît dès que la VIT de la cible
+compte**, même si le sort choisi ne la lit pas (Rigna S1, tout sort de
+Sonia) : `utilise('Relative SPD') || utilise('Target SPD') ||
+critSiPlusRapide || bonusDegatsSelonVit || demandeVitCible`
+(`DamageSetupCard.tsx` ; le dernier pour une condition `vitPropreSuperieure`
+du sort). Le bouton « Buff VIT » et le leader skill ne sont pas
+conditionnels : toujours visibles dans « État de mon monstre »
+(`EtatMonstre.tsx`), ils changent les stats du monstre quel que soit le sort.
 
 
 ## Bonus de dégâts continu selon l'écart de VIT (Sonia, Battle Angel)

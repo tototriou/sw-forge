@@ -1,8 +1,8 @@
-// Vérifie les documents de `spec/` contre le contrat de rangement — ex-B.4 de
-// `spec/outillage/spec.md`. Deux régimes : documents actifs (bloc
-// terminal ≤ 100 lignes, fichier ≤ 500 hors exception, en-tête avec Statut
+// Vérifie les documents de `spec/` contre le contrat de rangement
+// (`spec/outillage/spec.md`, « Contrat de `spec-lint` »). Deux régimes :
+// documents actifs (bloc terminal ≤ 100 lignes, fichier ≤ 500 hors exception, en-tête avec Statut
 // reconnu, slugs uniques, références `fichier § section` résolues) et
-// `archive/` (seule la présence de `**Statut :** ARCHIVE` est exigée).
+// les archives (seule la présence de `**Statut :** ARCHIVE` est exigée).
 //
 // Usage : `node scripts/spec-lint.mjs [--json]`
 // Périmètre et exceptions déclarés dans `spec/spec-lint.json`.
@@ -37,8 +37,9 @@ function estChantier(relatif) {
   return /(^|\/)chantiers\//.test(relatif);
 }
 
-// B.5 : un Statut n'est reconnu que s'il commence par une des trois natures
-// (A.2) — « présent et non vide » ne suffit plus depuis le lot 5. Comparaison
+// Un Statut n'est reconnu que s'il commence par une des trois natures
+// (`spec/outillage/spec.md`, « En-têtes par nature, slugs uniques ») :
+// « présent et non vide » ne suffit pas. Comparaison
 // insensible à la casse : les en-têtes existants écrivent « État actuel »,
 // pas « ÉTAT ACTUEL ».
 const NATURES_RECONNUES = ['ÉTAT ACTUEL', 'DÉCISION', 'ARCHIVE'];

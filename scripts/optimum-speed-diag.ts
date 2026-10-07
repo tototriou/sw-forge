@@ -1,7 +1,5 @@
 // Étape 2/2 de la comparaison de VITESSE « rétention par tranches » vs
-// l'ancien mécanisme à score unique — voir spec/outils/optimizer/
-// archive/historique/historique-dimensionnement.md, « Suite — vitesse de convergence : tranches
-// vs score unique ». Lit les scénarios+cibles produits par
+// l'ancien mécanisme à score unique. Lit les scénarios+cibles produits par
 // `optimum-speed-targets.ts` (code ACTUEL uniquement) et mesure, pour
 // CHAQUE version du moteur, le nombre de paires explorées (et le temps)
 // avant que la cible exacte n'apparaisse dans le flux de résultats de

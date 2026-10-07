@@ -1,9 +1,7 @@
 // Vérifie si le gain mesuré en `explored` absolu (voir optimum-speed-diag.ts)
 // tient aussi en RANG RELATIF sur l'espace de recherche total, et si le
 // prototype `combosOrderMode:'relevance'` ne fait pas payer plus tard, à
-// l'appariement, ce qu'il gagne à la construction — voir spec/outils/
-// optimizer/archive/historique/historique-dimensionnement.md, « Suite — rang relatif et courbe
-// de rendement ». Deux questions distinctes du script précédent :
+// l'appariement, ce qu'il gagne à la construction. Deux questions distinctes du script précédent :
 //   1. Le gain en `explored` ABSOLU tient-il une fois RAPPORTÉ à la taille
 //      RÉELLE de l'espace de recherche de CE scénario (`totalPairCount`,
 //      la même quantité affichée à l'écran) ? Un scénario où l'espace total
@@ -20,8 +18,8 @@
 // quasi-totalité des 51 scénarios sans tronquer avant la cible, voir
 // MAX_PAIRES ci-dessous — calibré empiriquement, pas deviné.
 // ⚠️ Ce plafond est un INSTRUMENT DE MESURE propre à ce script, plus un
-// paramètre du moteur : `pairBuckets` n'a plus aucun plafond de paires
-// (piste 8). La coupure est donc appliquée ICI, dans la boucle de pilotage —
+// paramètre du moteur : `pairBuckets` n'a plus aucun plafond de paires.
+// La coupure est donc appliquée ICI, dans la boucle de pilotage —
 // `break` dès que `step.value.explored` dépasse MAX_PAIRES, avec les
 // candidats déjà trouvés à cet instant, exactement ce que faisait l'ancien
 // 4ᵉ argument.

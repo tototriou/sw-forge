@@ -151,7 +151,7 @@ console.log(
 );
 
 const runeById = new Map<number, RuneDetail>(loaded.allRunes.map((r) => [r.id, r]));
-// Auras propres des six runes de chaque candidat (6bis-b2), comme l'écran.
+// Auras propres des six runes de chaque candidat, comme l'écran.
 const aurasPropresDe = aurasPropresParRunes(runeById);
 
 // Tri identique à l'écran (OptimizerSection.tsx, fullSortedCandidates) :

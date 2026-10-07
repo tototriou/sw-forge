@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/** Extraction du lot 1 : aucune valeur de jeu nouvelle, aucun import du moteur.
+/** Extraction du corpus : aucune valeur de jeu nouvelle, aucun import du moteur.
  * Usage : node scripts/audit-degats-aura-corpus.mjs [--out chemin.json | --complement-out dossier]
  * JSON tabulaire : une ligne par enregistrement, tableaux séparés par unité.
  * Les prédicats découvrent des CANDIDATS ; ils ne prouvent aucune mécanique.

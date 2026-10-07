@@ -28,7 +28,8 @@
 //                         [--max=res:60] [--assortiment=joker|sans-joker|varies]
 //                         [--verrous=<slot:runeId,…>]  runes IMPOSÉES
 //
-// Usage — PROFIL nommé (§7 des extensions, piste 11b) :
+// Usage — PROFIL nommé (spec/outils/optimizer/harnais.md,
+//   « Deux sources : une recette ou un pool synthétique ») :
 //   diagnostic-harness.ts --profils            liste les profils et ce qu'ils promettent
 //   diagnostic-harness.ts --profil=<nom>       exécute ce profil, cible comprise
 // ⚠️ Un profil porte SA cible dans `--suivre` par construction, et ses
@@ -37,7 +38,8 @@
 // est comparable : un cas réel tronque par le TEMPS, ce qui rend
 // NON_COMPARABLES le verdict, la population et le classement.
 //
-// Usage — DIFFÉRENTIEL entrelacé (§5.2 bis des extensions, piste 11c) :
+// Usage — DIFFÉRENTIEL entrelacé (spec/outils/optimizer/harnais-extensions.md,
+//   « Le différentiel : l'oracle ») :
 //   diagnostic-harness.ts --profil=<nom> --differentiel=<axe>:<témoin>,<comparé>
 //                         [--repetitions=<n>] [--arret=…]
 //   ex. --profil=complet-sensible --differentiel=bucketCap:6000,500
@@ -223,7 +225,8 @@ function lireStats(nom: string): Partial<Record<StatKey, number>> {
 }
 
 /**
- * `--differentiel=<axe>:<témoin>,<comparé>` — piste 11c.
+ * `--differentiel=<axe>:<témoin>,<comparé>` — spec/outils/optimizer/harnais-extensions.md,
+ * « Le différentiel : l'oracle ».
  *
  * ⚠️ **La table est un `Record` sur `AxeDifferentiel`, pas une liste** : si
  * un override est ajouté à `OverridesHarnais`, `tsc` refuse de compiler tant
@@ -465,7 +468,7 @@ function rendreResultat(r: ResultatHarnais): string {
     l.push(`  ${v.avertissementTroncature}`);
   }
 
-  // ── Lot 5a : la trace PRODUITE DANS LE MOTEUR pour le build cible —
+  // ── La trace PRODUITE DANS LE MOTEUR pour le build cible —
   // verdict de chaque prédicat traversé, présence dans chaque structure
   // bornée. Rendue brute (JSON) : c'est un relevé, pas une interprétation.
   if (r.traceCandidat) {
@@ -945,7 +948,8 @@ async function mainLot(brut: string): Promise<void> {
 }
 
 /**
- * Le DIFFÉRENTIEL — §5.2 bis, piste 11c. ⚠️ **L'inverse exact du lot** : il
+ * Le DIFFÉRENTIEL (spec/outils/optimizer/harnais-extensions.md,
+ * « Le différentiel : l'oracle »). ⚠️ **L'inverse exact du lot** : il
  * garde le CAS constant et fait varier la CONDITION, là où le lot garde la
  * condition et fait varier le cas. D'où deux modes qui s'excluent, et deux
  * avertissements distincts — « si la sortie ne dit pas laquelle des deux

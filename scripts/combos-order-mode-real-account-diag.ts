@@ -2,9 +2,7 @@
 // connus de scripts/lib/perfShared.ts (CASES), AVEC leur `objective` réel
 // (`degats` pour 6/7, `ehp` pour Ciri) — le régime précis que les mesures
 // précédentes (scripts/optimum-*.ts, toutes en metric:'eff' SANS objective)
-// n'exerçaient jamais. Voir spec/outils/optimizer/historique-
-// dimensionnement.md, « revue de code externe : le défaut 'relevance'
-// invalidé », point 1 : le commentaire de runeBuildOptim.ts (~ligne 1455)
+// n'exerçaient jamais. Le commentaire de runeBuildOptim.ts (~ligne 1455)
 // documente qu'un build spécialisé sur des stats non meulables (Taux
 // Crit/Dmg Crit, exactement les stats de `objective: 'degats'`) se
 // retrouvait trié en fin de liste par la seule relevanceScore — c'est CE
@@ -21,7 +19,7 @@
 // maxMs=30s retenu comme plancher vérifié). ⚠️ Ce script devait aussi
 // reproduire l'escalade du budget de PAIRES, sans quoi il se serait arrêté
 // bien avant les ~700M paires des plus gros de ces 7 cas réels
-// (scripts/perf-baseline.json) : ce budget n'existe plus (piste 8), le
+// (scripts/perf-baseline.json) : ce budget n'existe plus, le
 // pilotage nu ci-dessous est donc désormais fidèle par construction.
 //
 // ⚠️⚠️ **CE BLOC EST PÉRIMÉ — ce script est désormais ABSORBABLE** (§5.5 bis
@@ -139,7 +137,7 @@ function measure(base: BaseStats, artifacts: ArtifactDetail[], relic: RelicDetai
 
 // ⚠️ La mention « budget de nœuds adaptatif + escalade réelle, comme en
 // production » a été RETIRÉE de cette ligne le 2026-09-09 : ce budget
-// n'existe plus (piste 8), ce que l'en-tête de ce fichier dit déjà. Elle
+// n'existe plus, ce que l'en-tête de ce fichier dit déjà. Elle
 // survivait dans la SORTIE, où elle affirmait une fidélité que le run ne peut
 // plus avoir — un script conservé n'imprime pas une phrase que son propre
 // en-tête dément. Remplacée par ce qui LIMITE réellement sa lecture : la

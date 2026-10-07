@@ -5,7 +5,7 @@
 //
 // ⚠️ **Pourquoi un hook et pas seulement la consigne écrite** : la consigne
 // existe et figure dans chaque brief de sous-agent, et elle a quand même été
-// enfreinte trois lots de suite (degats-et-aura P5a, P5a3, D56, octobre 2026),
+// enfreinte plusieurs fois de suite,
 // une fois sur un fichier suivi. Un `sed -i` raté ne dit rien : motif absent →
 // fichier intact sans erreur ; motif multiple → tout remplacé ; fins de ligne
 // et accents réécrits par le `sed` de Git sous Windows. L'outil Edit, lui,

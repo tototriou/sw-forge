@@ -248,8 +248,8 @@ d'alerte.
 #### La relique dans un fichier partagé
 
 Le fichier transporte `relic.id` et `relic.upgrade` (identifiant et niveau
-d'amélioration, non optionnels dans `RelicDetail` depuis le lot 1 du chantier
-`implementation-relique`), en plus de la **propriété unique**
+d'amélioration, non optionnels dans `RelicDetail`),
+en plus de la **propriété unique**
 (`relic.unique = { type, tranche, percent }`, voir
 [../compte/calcul-runes.md](../compte/calcul-runes.md)).
 

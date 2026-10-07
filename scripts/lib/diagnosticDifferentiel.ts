@@ -1,4 +1,5 @@
-// Le DIFFÉRENTIEL ENTRELACÉ — piste 11c (§5.2 bis des extensions).
+// Le DIFFÉRENTIEL ENTRELACÉ (spec/outils/optimizer/harnais-extensions.md,
+// « Le différentiel : l'oracle »).
 //
 // **Niveau A-PASSIF, au sens strict**, exactement comme `diagnosticLot.ts` :
 // ce module BOUCLE sur des runs qui existent déjà, il n'appelle pas une

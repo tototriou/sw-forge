@@ -1,13 +1,11 @@
 // Le différentiel de l'option A ENTIÈRE contre l'oracle — les mécanismes
-// (implementation-relique, lot 6, B.6 amendé : « cinquième point d'entrée,
-// le différentiel de fidélité »).
+// (voir spec/outils/optimizer/moteur/reliques.md,
+// « Oracle de la dimension relique »).
 //
-// Extrait TEL QUEL de `tests/relic-queue.test.ts` (lot 5b, revu par la revue
-// adversariale du diff), qui le réimporte : ses assertions de corpus n'ont
+// Extrait TEL QUEL de `tests/relic-queue.test.ts`, qui le réimporte : ses assertions de corpus n'ont
 // pas bougé et prouvent que rien n'a bougé ici. Aucune étape du pipeline
 // n'est réimplémentée — l'entrée de résolution vient des producteurs de
-// l'écran et du CLI (`entreeResolutionDuBuild`, `parametresArtefactsFiche`,
-// depuis 6bis-b6), puis `resoudreEquipementDuBuild` (la partie pure de la
+// l'écran et du CLI (`entreeResolutionDuBuild`, `parametresArtefactsFiche`), puis `resoudreEquipementDuBuild` (la partie pure de la
 // file), `respecteConditionsAvecRelique`, `sortCandidates`, le traceur du
 // moteur.
 //
@@ -74,7 +72,7 @@ export interface ReglagesDifferentiel {
   inventaireArtefacts?: ArtifactDetail[];
   /**
    * B.6 : la paire de référence figée côté A — `equipped` × 2, `equipes` =
-   * cette paire, inventaire vide. Absente (tests du lot 5b) : `libre` sur un
+   * cette paire, inventaire vide. Absente (tests) : `libre` sur un
    * inventaire vide, la paire vide.
    */
   paireFixe?: ArtifactDetail[];
@@ -83,12 +81,12 @@ export interface ReglagesDifferentiel {
   // transmis sinon.
   lignesVerrouillees?: LigneVerrouillee[];
   /**
-   * Le contexte de l'assiette `Y` des propriétés uniques (lot 7) — le
+   * Le contexte de l'assiette `Y` des propriétés uniques — le
    * `DamageSetup` et l'élément du monstre, disponibles quel que soit
    * l'objectif (« État de mon monstre » modifie les stats partout). Son
    * `setup` donne aussi les codes d'amplification de buff des paires.
    *
-   * ⚠️ **OBLIGATOIRE** depuis 6bis-b6 (constat C6) : la résolution de
+   * ⚠️ **OBLIGATOIRE** : la résolution de
    * production (`entreeResolutionDuBuild`) note toujours avec l'effet unique
    * de la relique essayée et le `DamageSetup` (auras externes comprises) ;
    * l'absence faisait noter les paires EHP sans auras externes, en silence.
@@ -119,7 +117,7 @@ export function maxStatsActifsDe(p: SearchParams): StatKey[] {
 
 /**
  * L'entrée de résolution d'un candidat, par les producteurs de l'écran et du
- * CLI (degats-et-aura 6bis-b6, constat C6) : `entreeResolutionDuBuild`
+ * CLI : `entreeResolutionDuBuild`
  * (relicQueue.ts) et `parametresArtefactsFiche` (artifactFiche.ts). Jusque-là
  * une copie, sans `codesAmplification` ni canal exclusive obligatoire.
  *
@@ -155,7 +153,7 @@ export function entreeResolution(p: SearchParams, c: BuildCandidate, ctx: RelicC
     exclusive: r.exclusive,
     requirement: p.requirement,
     relicContext: ctx,
-    // Un candidat à la fois, sans file : tout se recalcule (6bis-b13).
+    // Un candidat à la fois, sans file : tout se recalcule.
     caches: null,
   });
 }
@@ -169,7 +167,7 @@ export function resoudreCandidat(p: SearchParams, c: BuildCandidate, ctx: RelicC
 // métrique des runes (`candidateMetricTotal`), pas le score de paire (régime
 // `aucun`).
 //
-// ⚠️ `relique` + `exclusive` (lot 7) : l'apport de la propriété unique de la
+// ⚠️ `relique` + `exclusive` : l'apport de la propriété unique de la
 // relique RETENUE par ce candidat, calculé par le même module et depuis le
 // même contexte que côté oracle (`scoreOracleDuCandidat`, relicOracle.ts). Sans
 // eux, A noterait sans exclusive ce que l'oracle note avec — et F ne
@@ -307,8 +305,7 @@ export function resoudreTousLesCandidats(
       // Hors mode `recherche` (`equipped`, contexte `off`), la file ne pose pas
       // `relique` : la relique portée est fixe (`ctx.equipee`, le même
       // paramètre que le moteur) — même convention que `comparerOptionA`
-      // (`ctx.equipee`, sentinelle `-1` sans relique). Lot 6 bis : le point
-      // `equipped` de non-régression n'avait jamais été joué par A au lot 6.
+      // (`ctx.equipee`, sentinelle `-1` sans relique).
       const relique = r.relique ?? (ctx.mode === 'recherche' ? undefined : ctx.equipee);
       const rid = relique?.id ?? -1;
       return {

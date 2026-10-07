@@ -1,5 +1,5 @@
 // Refuse un `Read` sans `offset`/`limit` sur un `spec/**.md` de plus de
-// 300 lignes — voir spec/outillage/spec.md, ex-B.9, titre « Hook `Read` », et
+// 300 lignes — voir spec/outillage/spec.md, titre « Hook `Read` », et
 // CLAUDE.md, « La spec avant le code ».
 //
 // ⚠️ Niveau 2 (« garde-fou outil », B.9) : refuse le chemin le PLUS COURANT

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Garde-fou Codex public, autonome : équivalent du hook `Read` de Claude Code
-// (spec/outillage/spec.md, ex-B.9). Codex n'a pas d'outil `Read` distinct, il
+// (spec/outillage/spec.md, « Niveaux d'application et garde-fous »). Codex n'a pas d'outil `Read` distinct, il
 // lit via des commandes shell — seule la forme la PLUS COURANTE d'une lecture
 // entière (`cat`/`type`/`Get-Content` sans plage) est couverte ; niveau 2,
 // garde-fou, pas invariant. Exception : `invariants.md`, comme côté Claude Code.

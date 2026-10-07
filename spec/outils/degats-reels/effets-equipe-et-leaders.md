@@ -187,7 +187,7 @@ ses valeurs présentes doivent être booléennes. L'interrupteur s'appelle
 Couvre **toute** stat de lead : PV, ATQ, DEF, VIT, Taux Crit et Dégâts
 Crit ; l'ancien champ VIT seule (`leaderSpeedPct`) est relu (voir
 « Compatibilité arrière »). Sélection dans « Effets actifs » : un type d'abord (avec
-l'icône OFFICIELLE du jeu, réutilisée depuis `siege/LeadPill.tsx` —
+l'icône OFFICIELLE du jeu, réutilisée depuis `src/components/siege/LeadPill.tsx` —
 `leadIconUrl`/`STAT_LABEL`, jamais dupliquée), puis une valeur — **une seule
 liste déroulante** (`DamageSetup.leaderSkill: { stat, pct }`).
 

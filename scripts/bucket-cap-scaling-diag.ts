@@ -5,8 +5,8 @@
 // la calibration si la constante doit être relevée à nouveau un jour (règle
 // algo-verify : mesurer, jamais deviner).
 //
-// - Dégâts, piste B off : 3 demi-builds trouvés à Moyen (slotFilterCap=80).
-// - Vitesse, piste B ON : 5 demi-builds trouvés à Bas (slotFilterCap=40) —
+// - Dégâts, `adaptiveTrancheWeighting` off : 3 demi-builds trouvés à Moyen (slotFilterCap=80).
+// - Vitesse, `adaptiveTrancheWeighting` ON : 5 demi-builds trouvés à Bas (slotFilterCap=40) —
 //   le cas le plus exigeant : Moyen n'en retient que 3/5 à `bucketCap=3000`
 //   fixe, MÊME valeur qu'à Bas — la dilution touche donc déjà 40→80, pas
 //   seulement au-delà de 80 comme le cas Dégâts l'avait d'abord laissé
@@ -38,7 +38,7 @@
 // des extensions). 11a l'annonçait « absorbable tel quel à `--arret=demi-
 // builds` » ; la relecture du CODE le contredit sur trois points, dont deux
 // sont structurels et non ergonomiques :
-//   · `adaptiveTrancheWeighting` (le cas « Vitesse, piste B ON ») n'est PAS
+//   · `adaptiveTrancheWeighting` (le cas « Vitesse, `adaptiveTrancheWeighting` ON ») n'est PAS
 //     dans `OverridesHarnais` et PAS dans `SourceHarnais.synthetique` — il
 //     s'affiche « recette (non surchargeable) ». Le faire varier demande
 //     autant de recettes que de conditions ;

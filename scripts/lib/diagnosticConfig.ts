@@ -294,7 +294,7 @@ function parametresNonSurchargeables(
     effectif('artéfacts (paire représentative)', params.artifacts.length),
     effectif('bornes d’artéfact', params.artifactBounds != null ? 'inventaire' : 'repli sur la paire figée'),
     effectif('relique', params.relic != null ? 'présente' : 'absente'),
-    // Le contexte relique (garantie G, lot 5a) : en mode `recherche`, les
+    // Le contexte relique (garantie G) : en mode `recherche`, les
     // bornes de faisabilité sont RELÂCHÉES (option A) — un « 0 build » ou un
     // build en trop se lit aussi à cette ligne, pas seulement au pool.
     effectif(

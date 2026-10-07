@@ -487,7 +487,7 @@ par vol d'effet bénéfique, jusqu'à +150 %, 15 fois).
 passifs retenus après lui (`passifCompte`) font **réellement** travailler —
 variables des formules, plus les Dgts Crit (hors dégâts fixes). C'est ce qui oriente
 le pré-filtrage de la recherche (`OBJECTIVE_RELEVANT_STATS`, voir
-[optimizer.md](../optimizer.md)).
+[limites-connues.md](../optimizer/limites-connues.md)).
 
 ⚠️ **Source UNIQUE**, appelée par l'écran **et** par la relecture d'une
 recette en ligne de commande — deux calculs séparés divergeraient en

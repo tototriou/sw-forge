@@ -26,7 +26,7 @@ interface Props {
   // afficherait des stats et un équipement qui ne vont pas ensemble.
   artifacts: ArtifactDetail[];
   /**
-   * L'état de la relique de CE build (implementation-relique, B.5c/5c bis),
+   * L'état de la relique de CE build,
    * `etatReliqueDuBuild` (relicQueue.ts) — SEULE source, jamais recalculé
    * ici. `undefined` : aucune dimension relique dans cette recherche (hors
    * mode `recherche`, chemin d'avant ce lot) — traité comme `fixe` sans
@@ -35,9 +35,9 @@ interface Props {
   etatRelique?: EtatRelique;
   // Occupation par `rid` (`n / 150`, D3), affichée dans le détail de la
   // relique — nécessaire seulement quand `etatRelique.etat === 'resolue'` ou
-  // `'fixe'` avec une relique (implementation-relique, B.5c ter).
+  // `'fixe'` avec une relique.
   relicUsageById?: Record<number, number>;
-  // ⚠️ Plus de `paireProvisoire` (degats-et-aura 6bis-b16) : une carte n'est
+  // ⚠️ Plus de `paireProvisoire` : une carte n'est
   // affichée qu'une fois son équipement résolu — avant, sa place dit
   // « Vérification… » (`PlaceEnVerification`, plus bas).
   metric: RuneMetric;
@@ -68,8 +68,9 @@ interface Props {
   // Écart d'efficience/score total avec la référence — la ligne de mesure en
   // tête de carte est toujours affichée, donc son écart aussi quand on compare.
   metricDelta?: number;
-  // Bouton « Valider » (Lot 2 — réservation des 6 runes de CE build, voir
-  // spec/outils/optimizer/archive/historique/historique-import-monstres-a-optimiser.md).
+  // Bouton « Valider » (réservation des 6 runes de CE build, voir
+  // spec/outils/optimizer/listes-et-reservation.md,
+  // « Créer, valider et réserver dans une liste »).
   // `undefined` : aucun bouton — cas d'un monstre non réellement possédé
   // (repli stats de base, voir OptimizerSection.tsx), rien à réserver sur un
   // exemplaire qui n'existe pas dans le compte.
@@ -234,7 +235,7 @@ export default function BuildCandidateCard({
             };
 
   // Relique — même composant partagé que l'emplacement de `MonsterGear.tsx`
-  // (`RelicSlot`, implementation-relique, B.5c bis), jamais une copie. `small` :
+  // (`RelicSlot`), jamais une copie. `small` :
   // case resserrée à l'échelle 0,45 de cette carte. Un seul élément, posé à
   // l'un de deux endroits selon le pointeur : à droite de la roue au doigt,
   // SOUS la roue à la souris (voir la ligne fiche/artéfacts/roue).
@@ -282,7 +283,7 @@ export default function BuildCandidateCard({
         detailOuvertIci ? 'relative z-10' : ''
       }`}
       // Lu par `useHauteurDesCartes` : les places « Vérification… » prennent
-      // la hauteur d'une carte réelle (degats-et-aura 6bis-b16).
+      // la hauteur d'une carte réelle.
       data-carte-resultat=""
     >
       <div className="flex items-start justify-between mb-2">
@@ -334,7 +335,7 @@ export default function BuildCandidateCard({
           {/* ⚠️ **Il y avait ici une rangée réservée « artéfacts pas encore
               optimisés »**, toujours présente pour que la hauteur de la carte
               ne change pas quand la file trouvait sa paire. Retirée avec la
-              carte provisoire elle-même (degats-et-aura 6bis-b16) : une carte
+              carte provisoire elle-même : une carte
               n'apparaît plus qu'une fois résolue, la mention ne pouvait plus
               s'afficher.
 
@@ -374,8 +375,7 @@ export default function BuildCandidateCard({
           Empilés, chacun garde sa taille de lecture. */}
       <div className="flex flex-col items-center justify-center gap-2 sm:flex-row">
         <StatPanel stats={candidate.stats} />
-        {/* ⚠️ À LA SOURIS, la relique est TOUJOURS SOUS LA ROUE (degats-et-aura
-            6bis-b15, décision de l'utilisateur, carte de résultat seulement) :
+        {/* ⚠️ À LA SOURIS, la relique est TOUJOURS SOUS LA ROUE (décision de l'utilisateur, carte de résultat seulement) :
             fiche 200 px + artéfacts 26 px + roue 94 px (échelle 0,45) et leurs
             écarts font 332 px, ce qu'une carte de 360 px contient tout juste —
             la relique à droite de la roue débordait des deux côtés. Grille à
@@ -458,7 +458,7 @@ export default function BuildCandidateCard({
         </div>
       )}
 
-      {/* « Valider » (Lot 2) — réserve les 6 runes de CE build (bloquées
+      {/* « Valider » — réserve les 6 runes de CE build (bloquées
           pour les recherches des AUTRES monstres de « Monstres déjà runés »,
           voir OptimizerSection.tsx). Absent (`onValidate` non fourni) pour
           un monstre non réellement possédé — rien à réserver sur un
@@ -552,8 +552,7 @@ export default function BuildCandidateCard({
 }
 
 /**
- * Une place de la page de résultats PAS ENCORE VÉRIFIÉE (degats-et-aura
- * 6bis-b16) : un build la remplira une fois son équipement résolu et conforme
+ * Une place de la page de résultats PAS ENCORE VÉRIFIÉE : un build la remplira une fois son équipement résolu et conforme
  * — jamais avant (`compositionDePage`, artifactQueue.ts).
  *
  * ⚠️ **Sa hauteur est réservée**, celle d'une carte : sans ça, chaque carte

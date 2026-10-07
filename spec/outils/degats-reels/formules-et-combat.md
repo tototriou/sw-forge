@@ -3,7 +3,7 @@
 **Statut :** ÉTAT ACTUEL — décrit les formules, l’équation et les compétences d’invocateur
 **Lire si :** on modifie l’analyse d’une formule ou l’équation de dégâts
 **Ne pas lire si :** on travaille sur les artéfacts, bombes ou passifs offensifs
-**Voir aussi :** spec/outils/degats-reels.md, spec/outils/mecaniques.md
+**Voir aussi :** spec/outils/degats-reels.md, spec/mecaniques.md
 
 ## Principe directeur — ne jamais redemander ce qu'on sait déjà
 

@@ -3,7 +3,7 @@
 **Statut :** ÉTAT ACTUEL — décrit les lignes d’artéfact de critique et de dégâts élémentaires
 **Lire si :** on modifie les lignes 210, 222–224, 300–304, 400–411 ou leur ordre d’application
 **Ne pas lire si :** on travaille sur les dégâts bruts additionnels ou la détection et la formule des bombes
-**Voir aussi :** spec/outils/degats-reels/artefacts-et-degats-bruts.md, spec/outils/artefacts.md
+**Voir aussi :** spec/outils/degats-reels/artefacts-et-degats-bruts.md, spec/outils/optimizer/ecran/artefacts.md
 
 ## Dgts CRIT qui VARIENT d'un coup à l'autre (411, 222, 223)
 

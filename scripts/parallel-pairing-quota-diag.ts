@@ -11,7 +11,7 @@
 // partitionBucketsALPT → pairBuckets), jamais une réimplémentation — voir le
 // skill algo-verify, section « Fidélité des scripts diagnostics ». (Il a
 // aussi longtemps fallu y reproduire l'escalade du budget de paires ;
-// supprimée du moteur, piste 8.) Chaque tranche simulée reconstruit sa PROPRE
+// supprimée du moteur.) Chaque tranche simulée reconstruit sa PROPRE
 // PreparedSearch (piège déjà documenté dans optimizer-perf-testing : un
 // `prepared` partagé entre tranches traitées séquentiellement fausse
 // `overBudget()`).

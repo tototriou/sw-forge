@@ -263,7 +263,7 @@ Outillage du dépôt (pas une page de l'app) :
       s'arrête à 100 % même si la somme brute des runes dépasse — un réglage
       d'AFFICHAGE seulement, `computeStats` continue de renvoyer le total brut
       (la recherche de l'Optimizer ne doit surtout pas exclure un build dont
-      le total brut dépasse 100 %, voir [outils/optimizer.md](outils/optimizer.md)).
+      le total brut dépasse 100 %, voir [outils/optimizer/ecran/conditions-et-reglages.md](outils/optimizer/ecran/conditions-et-reglages.md)).
       Appliqué partout où un TOTAL de build est affiché (fiche de monstre en
       RTA/Siège/Optimizer, résultats de l'Optimizer) — **pas** aux exigences
       des recommandations de siège, qui restent un objectif à atteindre, pas
@@ -353,7 +353,7 @@ Outillage du dépôt (pas une page de l'app) :
     saisie dès qu'un `min` positif dépasse un chiffre isolé : avec `min={15}`
     `max={100}`, taper « 5 » sautait à 15, puis « 0 » (lu comme « 150 »)
     sautait à 100 — impossible d'écrire 50. Repéré sur les conditions minimum
-    de l'Optimizer (voir [outils/optimizer.md](outils/optimizer.md)), premier
+    de l'Optimizer (voir [outils/optimizer/ecran/conditions-et-reglages.md](outils/optimizer/ecran/conditions-et-reglages.md)), premier
     endroit de l'app à passer un `min` positif non trivial (tous les usages
     précédents étaient à 0 ou 1, jamais heurtés par ce piège).
 - **Titre de page** : `font-display` à l'**encre unie** (`text-ink`). Les

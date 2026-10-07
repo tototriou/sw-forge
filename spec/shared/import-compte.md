@@ -52,7 +52,7 @@ unique : **pas d'écran d'attente**, il n'aurait fait que clignoter.
 > ⚠️⚠️ **MAIS L'IDENTITÉ D'UNE ÉQUIPE SURVIT AU REMPLACEMENT.** `importTeams`
 > régénérait l'`id` de chaque équipe (`newId()`), alors que les **listes de
 > travail de l'Optimizer** désignent un monstre par `{ teamId, slotIndex }`
-> (voir [../outils/optimizer.md](../outils/optimizer.md)). Plus aucun sélecteur
+> (voir [../outils/optimizer/listes-et-reservation.md](../outils/optimizer/listes-et-reservation.md)). Plus aucun sélecteur
 > ne résolvait après un import, et la revérification supprimait
 > **définitivement** tous les membres et builds validés venus du siège — sur le
 > geste même qu'elle est censée servir. Ce n'était pas « mon compte a changé »,

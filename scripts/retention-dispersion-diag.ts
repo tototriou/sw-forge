@@ -1,4 +1,7 @@
-// Point 4 (spec/outils/optimizer/) : mesure si une stat de `retentionKeys`
+// Pondération adaptative des tranches (`adaptiveTrancheWeighting`,
+// spec/outils/optimizer/harnais-extensions.md,
+// « Instant de découverte et dispersion par tranche ») : mesure si une stat de
+// `retentionKeys`
 // DIFFÉRENCIE vraiment les demi-builds, ou si presque tous les demi-builds
 // déjà bons (par `relevanceScore`, la tranche générique) l'ont de toute
 // façon — c'est CE signal, pas `diagnoseFeasibility` (écarté, voir

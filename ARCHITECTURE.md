@@ -110,19 +110,19 @@ sont les deux racines ; dessous : `RunesList`, `RunesSummary`, `RunesCurve` +
 `ArtifactsList`, `ArtifactsSummary`. Lib `accountStore` (IndexedDB),
 `accountViews`, `runeSort`, `runeOptim`, `monsterSort`, `crafts`.
 
-**Optimiseur** — `outils/OptimizerSection.tsx` (racine), `MonsterSourcePicker`
+**Optimiseur** — `src/components/outils/OptimizerSection.tsx` (racine), `MonsterSourcePicker`
 (recherche — deux modes, bestiaire/compte réel), `OptimizerListPicker`
-(listes de travail, Lot 3), `SetComboPicker`, `BuildCandidateCard` — spec :
+(listes de travail), `SetComboPicker`, `BuildCandidateCard` — spec :
 `spec/outils/optimizer/ecran/README.md § Écran (de haut en bas)`. Hooks
 `useOptimizerState` + `useBuildOptimSearch` (saisie et recherche, jamais
 persistées) et `useOptimizerLists` (listes de travail créées par
-l'utilisateur + runes validées scopées par liste, Lot 3 — seul état PERSISTÉ
+l'utilisateur + runes validées scopées par liste — seul état PERSISTÉ
 de l'écran — spec : `spec/outils/optimizer/listes-et-reservation.md § Listes de travail et
 réservation de runes`). Moteur `lib/runeBuildOptim.ts`, exécuté dans
-`workers/runeBuildOptim.worker.ts` et
-`workers/buildHalf.worker.ts` — spec : `spec/outils/optimizer/moteur/elagages.md
+`src/workers/runeBuildOptim.worker.ts` et
+`src/workers/buildHalf.worker.ts` — spec : `spec/outils/optimizer/moteur/elagages.md
 § Algorithme (résumé fonctionnel)`. ⚠️ Disposition mobile dédiée pour « Monstre &
-équipement » seul (Lot 1) — le reste de l'écran n'est pas encore audité en
+équipement » seul — le reste de l'écran n'est pas encore audité en
 mobile.
 
 **Speed tuning** — `outils/SpeedTuningSection.tsx` (racine) ne fait que
@@ -192,7 +192,7 @@ jeu** (halo, éclat) et en sont exemptés.
 | `useRtaState`, `useRtaCategories`, `useRtaBackup` | état de la prépa RTA |
 | `useSiegeState`, `useSiegeRecos` | défense/offense, recommandations |
 | `useOptimizerState`, `useBuildOptimSearch` | réglages et recherche de l'Optimiseur |
-| `useOptimizerLists` | Listes de travail + runes validées (Lot 3) — SEUL état de l'Optimiseur qui persiste sur disque, contrairement à `useOptimizerState` |
+| `useOptimizerLists` | Listes de travail + runes validées — SEUL état de l'Optimiseur qui persiste sur disque, contrairement à `useOptimizerState` |
 | `usePersistence` | **un seul interrupteur** pour toute conservation ; ⚠️ aucun hook n'appelle `localStorage.setItem` directement ; clés préfixées `swblacksmith-`, migrées depuis l'ancien nom par `lib/migrationStockage.ts` (premier import de `main.tsx`) |
 | `useStickyState` | état conservé en mémoire à travers la navigation, sans persister |
 | `useRuneMetric`, `useOvercapDisplay`, `useTheme` | réglages globaux (menu ⚙) |
@@ -217,7 +217,7 @@ dans un composant.
 | Vitesse & stats | `speed.ts` (source de vérité), `stats.ts` |
 | Speed tuning | `speedTune.ts` (moteur de ticks), `speedTuneLignes.ts` (modèle de l'écran), `speedTuneAuto.ts` (analyse partagée outil/siège), `speedTuneKit.ts` + `speedTunePassif.ts` (lecture des kits), `speedTuneDeck.ts` (import d'un deck), `siegeStatut.ts` (statut d'une équipe de siège) |
 | Runes | `runeOptim.ts`, `runeBuildOptim.ts`, `runeSort.ts`, `runeCurveShare.ts` |
-| Reliques | `relicOptim.ts` (choix de la meilleure relique pour un build, pertinence et dominance structurelle — `forge/implementation-relique`, lot 3) ; `relicQueue.ts` (résolution EXACTE de l'équipement d'un build — paire d'artéfacts ET relique, ensemble — la partie pure de la file `useArtifactOptimQueue`, et l'état de la relique d'un candidat pour l'écran — lot 5b) |
+| Reliques | `relicOptim.ts` (choix de la meilleure relique pour un build, pertinence et dominance structurelle) ; `relicQueue.ts` (résolution EXACTE de l'équipement d'un build — paire d'artéfacts ET relique, ensemble — la partie pure de la file `useArtifactOptimQueue`, et l'état de la relique d'un candidat pour l'écran) |
 | Tri | `tri.ts` (le SENS d'un tri, partagé par toutes les listes) |
 | Artéfacts | `artifacts.ts` |
 | Import de compte | `importAccount.ts` (parse SWEX), `applyAccount.ts` (→ états), `accountStore.ts` (IndexedDB), `accountViews.ts` |

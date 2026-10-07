@@ -294,7 +294,7 @@ export default function App() {
   const siegeOff = useSiegeState('offense');
   const recos = useSiegeRecos();
   const optimizer = useOptimizerState();
-  // Listes de travail de l'Optimizer (Lot 3) — SÉPARÉES de `useOptimizerState`,
+  // Listes de travail de l'Optimizer — SÉPARÉES de `useOptimizerState`,
   // voir useOptimizerLists.ts : c'est la seule part de l'écran Optimizer qui
   // persiste sur disque.
   const optimizerLists = useOptimizerLists();
@@ -358,7 +358,7 @@ export default function App() {
     }
     optimizer.resetSearch('compte');
 
-    // Listes de travail (Lot 3) — un build validé porte un INSTANTANÉ de
+    // Listes de travail — un build validé porte un INSTANTANÉ de
     // runes (voir ValidatedBuild, optimizerExclusion.ts), pas une référence
     // recalculée : un réimport (même compte réexporté, runes déplacées/
     // vendues entre-temps) peut le rendre périmé — même chose pour la simple
@@ -1570,7 +1570,7 @@ export default function App() {
             menuOuvert={menuPageOuvert}
             onFermerMenu={() => setMenuPageOuvert(false)}
             // L'Optimizer ouvre lui-même ce panneau pour l'ouverture guidée
-            // au doigt (degats-et-aura 7b) — seule page qui le demande.
+            // au doigt — seule page qui le demande.
             onOuvrirMenu={() => setMenuPageOuvert(true)}
           />
         ) : route === 'releases' ? (

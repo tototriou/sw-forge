@@ -1,4 +1,5 @@
-// Les PROFILS DE POOL SYNTHÉTIQUE NOMMÉS — piste 11b (§7 des extensions).
+// Les PROFILS DE POOL SYNTHÉTIQUE NOMMÉS (spec/outils/optimizer/harnais.md,
+// « Deux sources : une recette ou un pool synthétique »).
 //
 // ⚠️ **Un profil n'est PAS « la version rapide d'un cas réel ».** C'est la
 // seule configuration où l'oracle du différentiel (11a, §5.2 bis) est
@@ -51,7 +52,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 // Le PIÈGE DE TÊTE, et comment chaque profil s'en défend
 //
-// `maxNodes` n'existe plus (piste 8) : `maxMs` est désormais la SEULE borne
+// `maxNodes` n'existe plus : `maxMs` est désormais la SEULE borne
 // pouvant tronquer. Un profil synthétique tronquerait donc par le TEMPS par
 // défaut — c'est-à-dire violerait l'exigence n° 1 sans rien dire. Deux
 // défenses, dans cet ordre :

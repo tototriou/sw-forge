@@ -70,7 +70,7 @@ import { ELEMENTS, type ElementKey } from '../../types';
 import HelpPopover from '../HelpPopover';
 
 // Réglage de l'objectif « Dégâts réels » — voir spec/outils/degats-reels.md
-// pour le modèle de calcul, spec/outils/optimizer.md pour sa place à l'écran.
+// pour le modèle de calcul, spec/outils/optimizer/ecran/objectif-de-recherche.md pour sa place à l'écran.
 //
 // ⚠️ **Deux principes portent toute la mise en page de ce panneau :**
 //
@@ -196,8 +196,7 @@ function libelleSourceEffet(source: 'buffs' | 'debuffs' | 'buffsEtDebuffs'): str
 
 // Ce que la condition accorde, lu sur l'entrée elle-même — jamais supposé
 // d'après son type : une même comparaison sert un ignore DEF (Copper, Guard
-// Crush, Triss) ou un critique garanti (Jaara, Varus, Yuji et Rick),
-// degats-et-aura 15d.
+// Crush, Triss) ou un critique garanti (Jaara, Varus, Yuji et Rick).
 function effetCondition(condition: ConditionMonstreProfile['condition']): string {
   if (condition.coupsEnPlus) return libelleCoupsEnPlus(condition.coupsEnPlus);
   if (condition.critiqueGaranti) return 'critique garanti';
@@ -208,7 +207,7 @@ function effetCondition(condition: ConditionMonstreProfile['condition']): string
   return 'condition active';
 }
 
-// « +2 coups » : l'effet d'une condition qui ajoute des coups (lot P5a2).
+// « +2 coups » : l'effet d'une condition qui ajoute des coups.
 function libelleCoupsEnPlus(n: number): string {
   return `+${n} coup${n > 1 ? 's' : ''}`;
 }
@@ -270,10 +269,10 @@ function resumeCondition(condition: ConditionMonstreProfile['condition']): strin
 // décrivent que la donnée, jamais la séquence (« 2 coups · Cible unique »
 // était faux pour Blade Surge ; Head Press compte ses deux phases en `coups`). Ne lit JAMAIS la cible choisie (`cibleDegatsParSort`) : le
 // texte au-dessus des deux crans ne change pas quand on bascule, voir
-// `champCibleDegats` (degats-et-aura 8b).
+// `champCibleDegats`.
 //
 // ⚠️ `ignoreDef` n'est PAS une entrée de `reste` : c'est le cran d'ignore DEF
-// d'un Blade Dancer (degats-et-aura 10b), qui change avec le sélecteur posé
+// d'un Blade Dancer, qui change avec le sélecteur posé
 // SOUS la liste des sorts. Glissé dans le fil du résumé, une phrase qui
 // s'allonge pourrait gagner une ligne et déplacer ce sélecteur à l'instant où
 // on vient de s'en servir. Il a donc sa ligne à lui, d'une seule ligne de haut
@@ -322,7 +321,7 @@ function resumeSort(
 
 // Un effet de la rangée « Effets actifs ». Sa `description` est la SEULE
 // écrite : sa vignette la montre au survol, l'infobulle de la rangée la
-// regroupe avec les autres (degats-et-aura 11bis).
+// regroupe avec les autres.
 interface EffetActif {
   cle: string;
   icone: string;
@@ -337,7 +336,7 @@ interface EffetActif {
 // entre le sort actif et un passif : même mécanisme, même champ.
 function champCoupsVariables(profile: SkillDamageProfile, setup: DamageSetup, maj: (patch: Partial<DamageSetup>) => void) {
   // Un coup en plus qui ne dépend que d'une condition se règle par son
-  // interrupteur (lot P5a2), jamais par un compteur.
+  // interrupteur, jamais par un compteur.
   if (!profile.hitsRange || coupsEnPlusDeCondition(profile)) return null;
   return (
     <div className="mt-1 flex items-center gap-2">
@@ -359,7 +358,7 @@ function champCoupsVariables(profile: SkillDamageProfile, setup: DamageSetup, ma
 
 // Cible calculée d'un sort dont la séquence curée porte un coup de zone
 // (Blade Surge, `cibleSecondairePriseEnCharge`) : deux crans, libellés retenus
-// par l'utilisateur (degats-et-aura 8b, réponse n° 8). Absent pour tout autre
+// par l'utilisateur. Absent pour tout autre
 // sort : la MÊME table de capacité borne la recette (`optimizerRecipe.ts`),
 // jamais un cran posé sur un sort qui ne le connaît pas. Les champs de
 // l'adversaire décrivent alors l'autre ennemi : aucun champ nouveau.
@@ -434,7 +433,7 @@ export default function DamageSetupCard({
   // Ce que le sort choisi consomme réellement — pilote l'affichage.
   const utilise = (v: DamageVariable) => resolved.variables.includes(v);
   // Crans d'ignore DEF du sort choisi — `null` hors des six sorts Blade
-  // Dancers, et alors aucun sélecteur (degats-et-aura 10b).
+  // Dancers, et alors aucun sélecteur.
   const cransIgnoreDef = cransIgnoreDefAPartirDuCoup(resolved);
   // ⚠️ Via `champsDuCombat` (damage.ts) et non recalculés ici : la ligne de
   // résumé qui rouvre cette fenêtre doit dire EXACTEMENT ce qu'elle contient.
@@ -480,19 +479,17 @@ export default function DamageSetupCard({
   // Les passifs qui PEUVENT frapper après le sort choisi (`passifPeutSuivre`,
   // la porte de `passifCompte`) — les seuls affichés. Un passif choisi
   // lui-même comme sort (Tempest seul) n'est jamais ajouté à lui-même : son
-  // interrupteur est MASQUÉ (réponse n° 10 de l'utilisateur, 2026-10-02,
-  // degats-et-aura 9b) ; de même pour un passif dont les slots déclencheurs
+  // interrupteur est MASQUÉ (réponse de l'utilisateur, 2026-10-02) ; de même pour un passif dont les slots déclencheurs
   // excluent le sort choisi — un bouton sans effet possible n'est jamais
   // montré (principe 2 ci-dessus).
   const passifsSuivants = passifs.filter((p) => passifPeutSuivre(p, resolved));
-  // ⚠️ **La prose d'une compétence n'est rendue qu'UNE fois dans la carte**
-  // (degats-et-aura 11). Les huit blocs ci-dessous, sous « Passifs offensifs »,
+  // ⚠️ **La prose d'une compétence n'est rendue qu'UNE fois dans la carte**. Les huit blocs ci-dessous, sous « Passifs offensifs »,
   // la rendent déjà pour leurs compétences : « Stats acquises en combat » ne
   // la répète pas, et n'en rend qu'une par passif (`renduStatsCombat`). Un
   // bloc qui se met à rendre une prose rejoint cette liste. Pour les passifs
   // offensifs, c'est ce que leur bloc rend VRAIMENT, `passifsSuivants` : un
   // passif masqué qui porte aussi des stats de combat garde sa prose ici
-  // (degats-et-aura 9c ; jusque-là `...passifs` la perdait des deux côtés).
+  // (jusque-là `...passifs` la perdait des deux côtés).
   const renduCombat = renduStatsCombat(
     combatStats,
     clesProseDejaRendue([
@@ -517,7 +514,7 @@ export default function DamageSetupCard({
     );
 
   // ⚠️ **UNE SEULE SOURCE pour la rangée « Effets actifs » ET son infobulle**
-  // (degats-et-aura 11bis, décision de l'utilisateur du 2026-10-02 : une seule
+  // (décision de l'utilisateur du 2026-10-02 : une seule
   // infobulle, pas une par effet). Chaque effet que ce sort affiche porte ici
   // sa description : sa vignette la montre au survol, l'infobulle de la rangée
   // les regroupe toutes — seulement les effets présents. Écrite à la main,
@@ -666,8 +663,7 @@ export default function DamageSetupCard({
                     {s.nom}
                   </>
                 }
-                // ⚠️ **La prose du sort au CLIC, plus au survol** (degats-et-aura
-                // 11bis, demande de l'utilisateur du 2026-10-02) : un `title`
+                // ⚠️ **La prose du sort au CLIC, plus au survol** (demande de l'utilisateur du 2026-10-02) : un `title`
                 // natif ne s'ouvre jamais au doigt, la prose restait donc
                 // invisible sur téléphone. Le « ? » juste à droite du nom ouvre
                 // une bulle à la souris et un panneau montant au doigt
@@ -675,7 +671,7 @@ export default function DamageSetupCard({
                 // `actionTitre` d'`Option`) : le toucher ne choisit pas le sort.
                 // Un sort sans prose n'a pas de « ? » ; un sort refusé garde le
                 // sien.
-                // ⚠️ **« Calcul partiel »** (degats-et-aura P3, forme décidée par
+                // ⚠️ **« Calcul partiel »** (forme décidée par
                 // l'utilisateur le 2026-10-04) : un sort calculé dont le total
                 // omet une part connue (`calculPartielDuSort`) porte une
                 // étiquette après le « ? » de sa prose, et SON « ? » dit ce qui
@@ -774,7 +770,7 @@ export default function DamageSetupCard({
             />
           </label>
         )}
-        {/* Blade Dancers (degats-et-aura 10b) : la DEF n'y est ignorée qu'une
+        {/* Blade Dancers : la DEF n'y est ignorée qu'une
             fois la jauge d'attaque de la cible à 0, que l'app ne modélise pas
             — le premier coup qui l'ignore est donc un CHOIX. Crans et
             libellés DÉRIVÉS de la règle curée du sort
@@ -1188,11 +1184,11 @@ export default function DamageSetupCard({
               // Un passif qui frappe APRÈS certains sorts (`slotsDeclencheurs`
               // curés — Tempest) : l'interrupteur dit lui-même ce que
               // l'utilisateur suppose pour le calcul, « Tempest (S3) se
-              // déclenche après ce sort » (réponse n° 11 de l'utilisateur,
-              // 2026-10-02, degats-et-aura 9b), à la place de la phrase « Se
+              // déclenche après ce sort » (réponse de l'utilisateur,
+              // 2026-10-02), à la place de la phrase « Se
               // déclenche si … », qui n'en dirait pas plus. ⚠️ **Pas de survol
               // (`title`) sur cet interrupteur-là** (décision de l'utilisateur
-              // du 2026-10-02, degats-et-aura 9d) : un survol n'existe pas au
+              // du 2026-10-02) : un survol n'existe pas au
               // doigt. La condition du jeu reste lisible dans la prose du
               // passif, sous l'interrupteur et au « ? » de sa case dans
               // « Compétence utilisée » (11bis). Les autres interrupteurs de
@@ -1329,7 +1325,7 @@ export default function DamageSetupCard({
                 <img src={profile.icone} alt="" className="h-4 w-4 rounded" loading="lazy" />
               ) : undefined;
               const nom = profile.nom.replace(/\s*\(Passive\)\s*$/i, '');
-              // ⚠️ **La prose du jeu, une fois par passif** (degats-et-aura 11) :
+              // ⚠️ **La prose du jeu, une fois par passif** :
               // sous ce qui NOMME le passif, avant son réglage — jamais répétée
               // pour le second compteur d'Elsharion ou de Crane, jamais quand un
               // bloc des passifs offensifs la rend déjà (`renduStatsCombat`).
@@ -2002,7 +1998,7 @@ export default function DamageSetupCard({
             </p>
           )}
           {/* L'ancien mode « Moyenne » et son avertissement « purement
-              théorique » sont supprimés (degats-et-aura, lot CM) : une recette
+              théorique » sont supprimés : une recette
               qui le porte est convertie en « Critique » à l'import, et le
               message d'import le dit. */}
         </div>

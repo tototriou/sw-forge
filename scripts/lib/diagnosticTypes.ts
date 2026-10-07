@@ -1,5 +1,6 @@
 // Le vocabulaire du harnais de diagnostic — types seuls, aucune logique.
-// Cadrage complet : spec/outils/optimizer/harnais-diagnostic.md.
+// Description complète : spec/outils/optimizer/harnais.md
+// et spec/outils/optimizer/harnais-extensions.md.
 //
 // **Principe directeur, qui tranche tout ce qui suit :**
 //
@@ -55,7 +56,7 @@ export type SyntheticObjective = import('../../src/lib/runeBuildOptim').Objectiv
  * pas (ils ne sont pas exposés dans l'UI), plus `slotFilterCap` qu'elle
  * porte sous forme de préréglage.
  *
- * ⚠️ `maxNodes` N'EXISTE PLUS (piste 8) : il n'y a plus aucun plafond de
+ * ⚠️ `maxNodes` N'EXISTE PLUS : il n'y a plus aucun plafond de
  * paires, et un harnais qui en réintroduirait un dans sa propre boucle de
  * pilotage mesurerait une recherche tronquée que la production ne fait pas.
  * ⚠️ `maxMs`, lui, est désormais la SEULE borne pouvant tronquer : c'est le
@@ -217,10 +218,9 @@ export interface Fidelite {
  * ----------------------------------------------------------------------- */
 
 /**
- * ⚠️ **TROIS motifs, et trois seulement** : le budget de paires n'existe plus
- * depuis la piste 8, et `quotaTranche` (une tranche parallèle arrêtée sur sa
- * part du plafond avec des paires restantes) s'ajoute en degats-et-aura
- * 6bis-b7. Le type vit dans le moteur, qui le transmet sur le résultat
+ * ⚠️ **TROIS motifs, et trois seulement** : le budget de paires n'existe plus,
+ * et `quotaTranche` (une tranche parallèle arrêtée sur sa part du plafond
+ * avec des paires restantes) s'ajoute à `maxMs` et `maxCollected`. Le type vit dans le moteur, qui le transmet sur le résultat
  * fusionné : une seule définition.
  */
 export type { MotifTroncature };
@@ -842,7 +842,7 @@ export interface TrancheDispersion {
  *
  * ⚠️ **Rendue MÊME quand `adaptiveTrancheWeighting` est OFF**, et c'est
  * délibéré : le CV est une propriété du POOL, pas du réglage. Le lire sans
- * activer la piste B répond à « qu'est-ce que la réallocation ferait ici ? »
+ * activer `adaptiveTrancheWeighting` répond à « qu'est-ce que la réallocation ferait ici ? »
  * — la question qu'on se pose AVANT de décider d'activer quoi que ce soit.
  * ⚠️ Mais `applique` dit alors NON : rendre une répartition sans dire qu'elle
  * n'a pas été appliquée serait présenter une simulation comme un fait.
@@ -1145,8 +1145,9 @@ export interface ResultatHarnais {
    */
   decouverteBuildCible?: DecouverteBuildCible;
   /**
-   * La DISPERSION PAR TRANCHE (§5.7 des extensions) — le CV que la piste B
-   * calcule, et la répartition du budget de rétention qu'il produit, par
+   * La DISPERSION PAR TRANCHE (spec/outils/optimizer/harnais-extensions.md,
+   * « Instant de découverte et dispersion par tranche ») — le CV que
+   * `adaptiveTrancheWeighting` calcule, et la répartition du budget de rétention qu'il produit, par
    * moitié.
    *
    * ⚠️ Rendue dès que la construction a tourné et qu'il existe au moins une
@@ -1164,8 +1165,8 @@ export interface ResultatHarnais {
    */
   verdictBuildCible?: VerdictBuildCible;
   /**
-   * La trace du candidat traceur PRODUITE DANS LE MOTEUR (lot 5a,
-   * `SearchParams.traceur`) : verdict de chaque prédicat de faisabilité
+   * La trace du candidat traceur PRODUITE DANS LE MOTEUR
+   * (`SearchParams.traceur`) : verdict de chaque prédicat de faisabilité
    * traversé, présence dans chaque structure bornée, compteurs. Présente dès
    * que six identifiants sont suivis et que l'appariement a eu lieu.
    * ⚠️ `moities.*.tranches` n'est pas observable ici : le harnais construit
@@ -1180,7 +1181,7 @@ export interface ResultatHarnais {
    * Le résultat BRUT de l'appariement du dernier passage (`SearchResult` :
    * tous les candidats dans l'ordre de collecte, `explored`, `truncated`,
    * `traceur`) — pour un consommateur qui a besoin de la liste ENTIÈRE, pas
-   * du top coupé `meilleurs` (implementation-relique, lot 6 bis : le
+   * du top coupé `meilleurs` (le
    * différentiel de fidélité fusionne les N runs de l'oracle et résout TOUS
    * les candidats relâchés de A ; il passe par le harnais pour hériter du
    * régime d'appariement décidé comme la production — 4 workers au-delà du
@@ -1203,7 +1204,7 @@ export interface ResultatHarnais {
   temps?: TempsParPhase;
   /**
    * Diagnostic « quasi-succès » — voir spec/outils/optimizer/
-   * near-miss-appariement.md. Sous-produit GRATUIT de l'appariement réel
+   * moteur/diagnostics.md, « Quasi-succès à l'appariement ». Sous-produit GRATUIT de l'appariement réel
    * (`pairBuckets`), jamais recalculé : les paires EXPLORÉES qui échouent
    * le test conjoint exact, mais s'en approchent le plus. Absent si
    * `meilleurs` n'est PAS vide (rien à chercher), ou si l'arrêt a eu lieu

@@ -9,7 +9,8 @@
 //
 // bucketCap et slotFilterCap restent FIXES aux valeurs de production
 // (5000 et 80, le preset « Moyen » — bucketCap relevé une seconde fois
-// depuis, voir spec/outils/optimizer/) — seul le budget de collecte
+// depuis, voir spec/outils/optimizer/moteur/elagages.md,
+// « Pré-filtrage heuristique et compartiments ») — seul le budget de collecte
 // (`maxCollected`) varie, avec un temps de mur mesuré à chaque palier pour
 // vérifier qu'on reste bien dans l'ordre de grandeur annoncé.
 //
@@ -52,7 +53,7 @@ const SCENARIOS: Scenario[] = [
 // bucketCap et slotFilterCap FIXES aux valeurs de production — seul le budget
 // de collecte change ici. ⚠️ Un `maxNodes` très large était posé à chaque
 // palier pour ne jamais devenir le facteur limitant à la place de
-// `maxCollected` : il n'y a plus de plafond de paires du tout (piste 8), la
+// `maxCollected` : il n'y a plus de plafond de paires du tout, la
 // précaution est sans objet.
 const PRODUCTION_BUCKET_CAP = 3000; // valeur de production réelle (BUCKET_CAP, par tranche depuis la 4e recalibration — Phase 0)
 // ⚠️ Testé aux DEUX presets réels, pas seulement « Moyen » : à 300/slot

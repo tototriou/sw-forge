@@ -379,7 +379,7 @@ async function deroulerHarnais(
 
   resultat.completude = evaluerCompletude(dernier.resultat!, dernier.totalPairs!, resolue.params);
   if (dernier.resultat!.traceur) resultat.traceCandidat = dernier.resultat!.traceur;
-  // Le résultat brut, entier — voir `ResultatHarnais.brut` (lot 6 bis).
+  // Le résultat brut, entier — voir `ResultatHarnais.brut`.
   resultat.brut = dernier.resultat;
 
   // ⚠️ Le classement complet n'est payé que s'il sert : un `--arret=appariement`
@@ -441,7 +441,7 @@ async function deroulerHarnais(
     resultat.faisabilite.blocages = evaluerBlocages(resolue.params);
   }
   // ⚠️ Sous-produit GRATUIT de `pairBuckets` (voir spec/outils/optimizer/
-  // near-miss-appariement.md) — jamais recalculé, seulement mis en forme.
+  // moteur/diagnostics.md, « Quasi-succès à l'appariement ») — jamais recalculé, seulement mis en forme.
   // Rendu SEULEMENT quand `meilleurs` est vide : sinon rien à chercher.
   if (resultat.meilleurs.length === 0) {
     resultat.quasiSucces = evaluerQuasiSucces(dernier.resultat!, resolue);
@@ -994,7 +994,7 @@ async function unPassage(
   /** §5.6 — les SIX identifiants du build cible, ou `null` : sans cible, rien à découvrir. */
   cibleComplete: number[] | null = null
 ): Promise<Passage> {
-  // ⚠️ Le traceur (lot 5a) est un instrument de diagnostic posé sur une COPIE
+  // ⚠️ Le traceur est un instrument de diagnostic posé sur une COPIE
   // des paramètres — la recette reste la vérité prod ; sans cible complète,
   // `resolue.params` passe tel quel.
   const params: SearchParams = cibleComplete ? { ...resolue.params, traceur: { runeIds: cibleComplete } } : resolue.params;
@@ -1817,8 +1817,7 @@ function divergence(
  * ----------------------------------------------------------------------- */
 
 /**
- * ⚠️ **Le motif se LIT quand le résultat le porte** (`motifTroncature`,
- * depuis degats-et-aura 6bis-b7) : c'est le cas du résultat fusionné du
+ * ⚠️ **Le motif se LIT quand le résultat le porte** (`motifTroncature`) : c'est le cas du résultat fusionné du
  * régime parallèle, le seul qui puisse être tronqué par le quota d'UNE
  * tranche (`quotaTranche`) avec moins de candidats que le plafond global. Le
  * déduire ici rendait « maxMs » — faux.
@@ -2009,7 +2008,7 @@ export const TAILLE_TOP_RENDU = 20;
  *
  * ⚠️ **« Dégâts réels » exige son contexte** (sort, passifs, adversaire),
  * construit comme le CLI (`buildRealDamageContext`, `optimizer-search.ts`).
- * Il manquait ici jusqu'à degats-et-aura 6bis-b4 : `sortCandidates` laisse
+ * Sans ce contexte, `sortCandidates` laisse
  * alors l'ordre de COLLECTE, sans lever — et la sortie annonçait « classés
  * par sortCandidates » un top 20 qui n'était pas classé.
  */
@@ -2023,8 +2022,8 @@ export function classer(
     resolue.recette && resolue.monstre
       ? buildRealDamageContext(resolue.recette, resolue.monstre.com2usId, resolue.params.artifacts)
       : null;
-  // ⚠️ Le producteur MÊME du CLI et de l'écran (`optionsDeClassement`,
-  // 6bis-b5a), avec les mêmes choix que le CLI : paire de `params.artifacts`
+  // ⚠️ Le producteur MÊME du CLI et de l'écran (`optionsDeClassement`),
+  // avec les mêmes choix que le CLI : paire de `params.artifacts`
   // pour tous, relique de la fiche (`params.relic`) en `off`/`equipped`,
   // neutre en `recherche` (aucune résolution par build ici non plus).
   const setup = resolue.recette?.damageSetup ?? DEFAULT_DAMAGE_SETUP;
@@ -2034,7 +2033,7 @@ export function classer(
     runeById,
     metric: resolue.params.metric,
     damageSetup: setup,
-    // Auras propres des six runes de chaque candidat (6bis-b2), comme l'écran.
+    // Auras propres des six runes de chaque candidat, comme l'écran.
     aurasPropresDe: aurasPropresParRunes(runeById),
     artefactsDuBuild: () => null,
     etatReliqueDe: () => etatReliqueDuBuild(undefined, resolue.params.relicContext, resolue.params.relic),

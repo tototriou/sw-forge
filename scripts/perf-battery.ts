@@ -1,7 +1,7 @@
 // Batterie de cas RÉELS connus, avec suivi persistant des temps mesurés
 // (scripts/perf-baseline.json, suivi par git) — pour pouvoir juger l'impact
-// d'une modification du moteur (ex. point 4 : pondération adaptative des
-// tranches de rétention, voir spec/outils/optimizer/) par un DELTA
+// d'une modification du moteur (ex. la pondération adaptative des
+// tranches de rétention) par un DELTA
 // mesuré, pas une impression.
 //
 // Deux nombres suivis par cas, pas un seul :
@@ -37,8 +37,8 @@
 // échouer à tort Sonia deck 14 — pression mémoire/GC accumulée, pas un vrai
 // ralentissement algorithmique. Coût : le lancement de `npx tsx` par mesure
 // (~1-2 s), négligeable face à ce que ça évite. ⚠️ Cette isolation ne se
-// PARALLÉLISE PAS pour autant (voir « leçons retenues sur la
-// méthodologie de mesure » dans spec/outils/optimizer/) : la contention
+// PARALLÉLISE PAS pour autant (voir le skill
+// `optimizer-perf-testing`) : la contention
 // CPU/mémoire entre processus CONCURRENTS fausserait le temps mesuré
 // exactement comme le chaînage séquentiel le fait — les 7 cas de CETTE
 // batterie de TEMPS restent volontairement séquentiels. Seul
@@ -66,9 +66,9 @@
 //            reste de cette batterie. Rapide (buildBuckets seul, jamais
 //            pairBuckets), pas de baseline — la parallélisation est sans
 //            risque ici puisqu'aucun temps n'est comparé. Voir
-//            spec/outils/optimizer/, section « BUCKET_CAP mis à
-//            l'échelle » pour le bug que cette vérification aurait détecté
-//            plus tôt si elle avait existé avant.
+//            spec/outils/optimizer/moteur/elagages.md,
+//            « Pré-filtrage heuristique et compartiments » (`bucketCap` mis à
+//            l'échelle de `slotFilterCap`).
 //   --quick : mode INDÉPENDANT — 2 cas canari SEULEMENT (Ciri, Lushen d11 —
 //            les deux seuls dont `foundMs` reste sous 10 s en temps normal,
 //            voir scripts/perf-baseline.json), `maxMs` réduit à 45 s
@@ -84,7 +84,7 @@
 //            développement, pas pour la validation avant de committer.
 //   --relic-main=<equipped|libre|100|101|102> --relic-type=<libre|1..16>
 //   --relic-min-upgrade=<0..15> : l'intention relique posée sur CHAQUE cas
-//            du run (implementation-relique, B.6) — résolue par
+//            du run — résolue par
 //            `buildCaseSearchParams` en `relicContext`, objectif du cas
 //            inchangé, propagée telle quelle au processus `--case=` et
 //            inscrite dans le libellé du run. Sans les trois : comportement
@@ -132,7 +132,7 @@ if (RELIC_OPTION && process.argv.includes('--monotonicity')) {
 const SAVE = process.argv.includes('--save');
 // ⚠️ IDENTIQUE à HARD_TIMEOUT_MS (OptimizerSection.tsx) — le vrai filet de
 // temps que l'écran utilise, pas une valeur arbitraire plus courte. C'est
-// d'autant plus vrai depuis la suppression du budget de paires (piste 8) :
+// d'autant plus vrai depuis la suppression du budget de paires :
 // `maxMs` est désormais la SEULE borne, avec `maxCollected`, qui puisse
 // arrêter une recherche avant l'épuisement de l'espace — le raccourcir
 // rendrait la mesure directement infidèle à ce qu'un utilisateur obtient.
@@ -142,8 +142,7 @@ const BASELINE_PATH = 'scripts/perf-baseline.json';
 interface RunResult {
   found: boolean;
   // ⚠️ Total de builds VALIDES retenus à la fin (`res.candidates.length`) —
-  // pas seulement « le build cible est-il dedans ». Item 1 (voir spec/
-  // outils/optimizer/ « BUCKET_CAP mis à l'échelle ») : `found` seul ne
+  // pas seulement « le build cible est-il dedans ». `found` seul ne
   // peut PAS détecter qu'une régression a fait perdre la MOITIÉ des
   // résultats tant que le build cible reste par ailleurs présent — c'est
   // exactement ce qui a caché le bug BUCKET_CAP pendant plusieurs relevés.
@@ -219,8 +218,7 @@ interface CaseOutcome {
 // `build-half-worker.ts` LUI-MÊME avait changé — jamais si un fichier qu'il
 // IMPORTE (`runeBuildOptim.ts`, bundlé DEDANS par esbuild) changeait. Deux
 // mesures dos-à-dos prises pour chiffrer une optimisation de
-// `runeBuildOptim.ts` (précalcul par rune, voir « Suite — relecture du
-// pipeline ») se sont révélées IDENTIQUES au bit près — repéré en comparant
+// `runeBuildOptim.ts` (précalcul par rune) se sont révélées IDENTIQUES au bit près — repéré en comparant
 // les dates du bundle caché (20:19) et du source modifié (20:30, APRÈS le
 // bundle) : les deux mesures tournaient sur le MÊME bundle figé, ni l'une ni
 // l'autre ne reflétait le vrai code. Un chemin par PID élimine le risque à
@@ -258,8 +256,8 @@ function runWorker<TData, TResult>(scriptPath: string, data: TData): Promise<TRe
   });
 }
 
-// ── Vérification de MONOTONICITÉ, PARALLÉLISÉE (voir spec/outils/
-// optimizer/ « BUCKET_CAP mis à l'échelle ») ────────────────────────────
+// ── Vérification de MONOTONICITÉ, PARALLÉLISÉE (voir spec/outils/optimizer/moteur/elagages.md,
+// « Pré-filtrage heuristique et compartiments ») ────────────────────────────
 // Chaque cas dans son propre `worker_threads` (voir monotonicity-worker.ts),
 // tous lancés EN MÊME TEMPS — sans risque de précision à protéger : ce mode
 // ne mesure aucun temps comparé à une baseline, seulement un verdict de
@@ -385,7 +383,7 @@ async function runOnce(c: Case, maxMs: number = MAX_MS): Promise<CaseOutcome> {
   // EXACT où le build cible apparaît (`foundMs`/`foundExplored`), ce qu'un
   // résultat final ne dit pas. Ce fut aussi l'endroit où l'escalade du budget
   // de paires devait être reproduite, sous peine de mesurer une recherche
-  // tronquée ; ce budget n'existe plus (piste 8).
+  // tronquée ; ce budget n'existe plus.
   const gen = pairBuckets(prepared, bucketsA, bucketsB);
   let step = gen.next();
   while (!step.done) {
@@ -586,5 +584,5 @@ if (SAVE) {
 // `ensureWorkerBundle`) — un chemin par PID évite toute mesure
 // silencieusement faussée, mais laisserait sinon un dossier orphelin par
 // exécution dans %TEMP% (le même genre d'accumulation déjà nettoyée une
-// fois cette session, voir « Suite — investigation de la dérive »).
+// fois).
 rmSync(BUNDLE_DIR, { recursive: true, force: true });

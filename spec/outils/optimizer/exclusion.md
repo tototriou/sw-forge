@@ -109,7 +109,7 @@ l'écran Siège, pour lever l'ambiguïté sans avoir à cliquer.
 ⚠️ **Chaque résultat affiche aussi les icônes des sets ACTIFS** de
 l'équipement montré, entre le nom et le compte de runes — pas un simple
 comptage des sets présents parmi les runes portées : `activeSets`
-(`lib/effects.ts`), la SEULE source de vérité de l'app pour « quels sets
+(`src/lib/effects.ts`), la SEULE source de vérité de l'app pour « quels sets
 sont actifs » (un set 4 pièces à 3 runes n'est pas actif, une rune
 Intangible peut compléter le set incomplet le plus proche — un recomptage
 à côté diverge de l'affichage, voir `swiftActive`, importAccount.ts). Même fonction que celle qui alimente les icônes de set

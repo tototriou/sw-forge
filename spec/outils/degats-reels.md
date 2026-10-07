@@ -30,6 +30,7 @@ le **modèle**, pas l'interface.
 - [Dégâts réels — conditions et audit](degats-reels/conditions-et-audit.md) — état actuel
 - [Dégâts réels — catalogue des passifs](degats-reels/catalogue-des-passifs.md) — état actuel
 - [Dégâts réels — valeurs de jeu curées](degats-reels/valeurs-de-jeu-curees.md) — état actuel
-- [Dégâts réels — pistes futures](degats-reels/pistes.md) — état actuel
+- [Dégâts réels — pistes futures : coups comptés](degats-reels/pistes.md) — état actuel
+- [Dégâts réels — pistes futures : stats et modificateurs](degats-reels/pistes-stats-et-modificateurs.md) — état actuel
 - [Choix de recherche pour les dégâts réels](degats-reels/decisions/choix-de-recherche.md) — décision
 - [Historique du modèle de dégâts réels](degats-reels/archive/historique-du-modele.md) — archive

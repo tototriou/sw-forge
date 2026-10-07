@@ -286,7 +286,7 @@ raison. Celles du moteur de recherche des runes :
 
 ## Dégâts réels
 
-Les pistes du calcul des dégâts réels, dont l'arrondi de la VIT de Gold Headband et les attaques conjointes, sont dans [../degats-reels/pistes.md](../degats-reels/pistes.md).
+Les pistes du calcul des dégâts réels sont dans [../degats-reels/pistes.md](../degats-reels/pistes.md) (dont les attaques conjointes) et [../degats-reels/pistes-stats-et-modificateurs.md](../degats-reels/pistes-stats-et-modificateurs.md) (dont l'arrondi de la VIT de Gold Headband).
 
 ## Écran, recette et listes
 

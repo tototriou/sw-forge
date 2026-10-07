@@ -104,7 +104,9 @@ Ajout décidé par le mainteneur le 2026-09-26 (décision 14). Logique :
   défense importée dans l'offense) est accepté : c'est une composition, elle
   se joue des deux côtés — le message le signale.
 - Validation : un fichier qui n'est pas au format est **refusé** avec la
-  raison, rien n'est touché.
+  raison, rien n'est touché. Une version absente ou qui n'est pas un nombre
+  est un fichier abîmé (« version illisible »), distinct d'une version plus
+  récente que l'app.
 - Où : dans les actions de l'en-tête (`BarreActions` : en boutons s'il y a la
   place, sinon dans « ⋯ ») et dans le panneau « Options » au doigt.
 

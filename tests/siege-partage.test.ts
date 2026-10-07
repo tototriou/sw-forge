@@ -64,6 +64,10 @@ export default function testSiegePartage() {
   refus('pas du json', 'pas du JSON', 'pas du JSON');
   refus(JSON.stringify({ format: 'autre' }), "n'est pas un export d'équipes", 'un autre format');
   refus(JSON.stringify({ format: FORMAT_SIEGE, version: 99, equipes: [] }), 'plus récente', 'une version future');
+  // Une version absente ou illisible est un fichier abîmé, pas une version
+  // future : aucune mise à jour ne le rendrait lisible.
+  refus(JSON.stringify({ format: FORMAT_SIEGE, equipes: [] }), 'version illisible', 'une version absente');
+  refus(JSON.stringify({ format: FORMAT_SIEGE, version: '2', equipes: [] }), 'version illisible', 'une version qui n’est pas un nombre');
   refus(JSON.stringify({ format: FORMAT_SIEGE, version: 1 }), 'aucune liste', 'pas de liste d\'équipes');
 
   // Préfixe `swblacksmith-` depuis le rebranding (R2, décision 14) ; le

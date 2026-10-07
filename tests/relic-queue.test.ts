@@ -1,20 +1,20 @@
-// Lot 5b (implementation-relique) — la résolution EXACTE de l'équipement par
+// La résolution EXACTE de l'équipement par
 // build (paire d'artéfacts ET relique, ensemble), la file, le classement, et
 // le différentiel COMPLET de l'option A contre l'oracle.
 //
 // Référence de contrôle (`algo-verify`) : `oracleSearch` (scripts/lib/
-// relicOracle.ts, lot 4) — N recherches du moteur d'avant, relique FIXÉE,
+// relicOracle.ts) — N recherches du moteur d'avant, relique FIXÉE,
 // sans aucune des éliminations que l'option A introduit. Ce fichier compare
 // l'option A ENTIÈRE (moteur relâché de 5a + résolution exacte de ce lot,
 // sur la partie pure `resoudreEquipementDuBuild`) à cet oracle, sur LE corpus
 // de 5a (`CORPUS_5A`, neuf fixtures écrites à la main — pas de graine, le
-// moteur n'a aucun aléa, A.6 bis).
+// moteur n'a aucun aléa).
 //
-// Ce qu'une perte VEUT DIRE (B.5b, « Preuve ») : un build faisable de
+// Ce qu'une perte VEUT DIRE : un build faisable de
 // l'oracle absent de l'option A se CLASSE par le candidat traceur de 5a —
 // rejeté par un prédicat de faisabilité → faux négatif, ÉCHEC ; évincé par
 // une structure bornée (`filterSlot`, tranches de `bucketCap`) → dilution,
-// consignée pour B.6 ; arrêté par le budget → tronqué, à part. Le
+// consignée ; arrêté par le budget → tronqué, à part. Le
 // différentiel ne VAUT que sur un cas où aucune capacité n'est saturée —
 // l'instrumentation le prouve pour chaque fixture, jamais « petit volume ».
 
@@ -47,17 +47,17 @@ import { egal, ok, titre } from './outils';
 
 /* --------------------------------------------------------------------------
  * Les mécanismes du différentiel vivent dans `scripts/lib/relicDifferentiel.ts`
- * (lot 6, B.6 amendé) — extraits d'ici TELS QUELS ; ce test les réimporte et
+ * — extraits d'ici TELS QUELS ; ce test les réimporte et
  * garde ses assertions de corpus : ce sont elles qui prouvent que rien n'a
  * bougé. Le porteur des fixtures reste fixe (fire / attack) ; aucune paire
- * figée ici (inventaires vides, la paire vide), comme au lot 5b.
+ * figée ici (inventaires vides, la paire vide), comme à l'origine.
  * ----------------------------------------------------------------------- */
 
 const PORTEUR = { element: 'fire' as ElementKey, archetype: 'attack' as ArtifactArchetype };
 
 type Reglages = Omit<ReglagesDifferentiel, 'porteur' | 'exclusive'> & { exclusive?: ContexteExclusive };
 
-// ⚠️ 6bis-b6 : le canal exclusive est OBLIGATOIRE dans le différentiel — la
+// ⚠️ Le canal exclusive est OBLIGATOIRE dans le différentiel — la
 // résolution de production (`entreeResolutionDuBuild`) note toujours avec
 // l'effet unique de la relique essayée. Un cas qui ne le précise pas reçoit
 // le réglage par défaut de l'écran, et `differentiel` donne le MÊME objet à
@@ -97,7 +97,7 @@ interface Differentiel {
 function differentiel(fx: Fixture5a, reglages: Reglages, realDamage?: RealDamageContext | null): Differentiel {
   const nom = fx.nom;
   const p = { ...fx.p0, relicContext: fx.ctx };
-  // ⚠️ Lot 7 — le canal exclusive va aux DEUX côtés, depuis la MÊME source
+  // ⚠️ Le canal exclusive va aux DEUX côtés, depuis la MÊME source
   // (`reglages.exclusive`, complété par `complets`) : A le lit par
   // `entreeResolution`/`scoreOracle`, l'oracle par `OptionsOracle`. Un canal
   // donné d'un seul côté rendrait le différentiel vide de sens.
@@ -189,7 +189,7 @@ function total(stats: { key: string; total: number }[], k: string): number {
  * (algo-verify : une référence de contrôle, pas une réimplémentation
  * améliorée). `faire`, `calculerStats`, `respecteConditions` sont les trois
  * rappels que l'écran construisait (`faireParamsArtefacts`, `calculerStats`,
- * `respecteConditions`, OptimizerSection.tsx l. 2003–2100 au 2026-09-21).
+ * `respecteConditions`, que construisait OptimizerSection.tsx).
  * ----------------------------------------------------------------------- */
 
 function referenceBase26db0cc(
@@ -229,7 +229,7 @@ function referenceBase26db0cc(
  * ----------------------------------------------------------------------- */
 
 export default function testRelicQueue() {
-  titre('Optimizer · file relique (lot 5b — résolution exacte, classement, différentiel)');
+  titre('Optimizer · file relique (résolution exacte, classement, différentiel)');
 
   // Un pool à deux familles : ATQ % (slots 1–6, id 101–106) et PV % (201–206).
   const o = (slot: number, id: number) => rune(id, slot, [4, 63], [[10, 35]]);
@@ -248,9 +248,9 @@ export default function testRelicQueue() {
     const r = resoudre(p, c, ctx, { critere: 'ehp' });
     // Le moteur d'avant, relique fixée : les stats du candidat qu'il collecte.
     const moteur = searchBuilds({ ...p, relicContext: undefined }).candidates.find((x) => cle(x.runeIds) === cle(c.runeIds))!;
-    egal(r.stats, moteur.stats, 'G identité : candidate = équipée → stats identiques à celles du moteur avec la relique fixe');
-    egal(r.relique?.id, 900, 'G identité : la relique retenue est l’équipée');
-    egal(total(r.stats, 'def'), 600 + Math.ceil((600 * 14) / 100), 'G identité : la principale DEF % +14 est appliquée exactement UNE fois');
+    egal(r.stats, moteur.stats, 'identité : candidate = équipée → stats identiques à celles du moteur avec la relique fixe');
+    egal(r.relique?.id, 900, 'identité : la relique retenue est l’équipée');
+    egal(total(r.stats, 'def'), 600 + Math.ceil((600 * 14) / 100), 'identité : la principale DEF % +14 est appliquée exactement UNE fois');
   }
 
   /* ── Identité G — candidate différente → ancienne principale absente,
@@ -325,10 +325,11 @@ export default function testRelicQueue() {
       // Le score du couple retenu est l'UNIQUE note : celle d'`evaluer` sur
       // ses paires, égale au régime appliqué aux stats exactes.
       egal(r.paire?.score, total(r.stats, 'atk'), 'ordre (a) : une seule note — le score de la paire = le régime (ATQ) sur les stats exactes');
-      // Sans contexte (chemin d'avant), le maximum n'est PAS vérifié par la
-      // file (T11, hors chantier) : l'artéfact ATQ est retenu.
+      // Sans contexte (hors mode `recherche`), le maximum n'est PAS vérifié
+      // par la file (spec/outils/optimizer/moteur/reliques.md, « Résolution
+      // exacte par build, file, classement ») : l'artéfact ATQ est retenu.
       const avant = resoudre(p, c, undefined, { critere: 'atk', inventaireArtefacts: arts });
-      egal(avant.artefacts.map((a) => a.id), [11], 'ordre (T11, documenté) : sans contexte, la file d’avant ne lit que les minimums et garde l’artéfact ATQ');
+      egal(avant.artefacts.map((a) => a.id), [11], 'ordre (documenté) : sans contexte, la file ne lit que les minimums et garde l’artéfact ATQ');
     }
     // (b) Artéfact ATQ +100 : (PV % +14, +100) = 3446 tient le maximum et
     // bat (ATQ % +14, vide) = 3444 — la paire et la relique se résolvent
@@ -342,8 +343,7 @@ export default function testRelicQueue() {
     }
   }
 
-  /* ── BLOQUANT 1 de la revue adversariale du lot 5b (2026-09-21,
-   * `revue-diff-lot5b-2026-09-21.md`) : le préfiltre de dominance de
+  /* ── Le préfiltre de dominance de
    * `chercherPaires` éliminait le meilleur couple FAISABLE avant tout
    * contrôle du maximum — deux artéfacts ATQ de même sorte, seul le plus
    * PETIT apport tient le maximum. Sans `maxStatsActifs`, il disparaissait
@@ -362,24 +362,24 @@ export default function testRelicQueue() {
     const ctx = contexte(LIBRE, equipee, [equipee]);
     const arts = [grand, petit];
     const r = resoudre(p, candidat(p, c0), ctx, { critere: 'atk', inventaireArtefacts: arts });
-    ok(r.conforme, 'BLOQUANT 1 : un couple faisable existe — le plus petit apport');
-    egal(r.artefacts.map((a) => a.id), [22], 'BLOQUANT 1 : la paire retenue porte l’artéfact ATQ +90, jamais le +100 (dépasse le maximum)');
-    egal(total(r.stats, 'atk'), atkRunes + 90, 'BLOQUANT 1 : ATQ = runes + 90, sous le maximum');
+    ok(r.conforme, 'maximum actif : un couple faisable existe — le plus petit apport');
+    egal(r.artefacts.map((a) => a.id), [22], 'maximum actif : la paire retenue porte l’artéfact ATQ +90, jamais le +100 (dépasse le maximum)');
+    egal(total(r.stats, 'atk'), atkRunes + 90, 'maximum actif : ATQ = runes + 90, sous le maximum');
     // « faisable rejeté » (deuxième cas de la revue) : un minimum QUE SEUL
     // le couple (+90) satisfait encore — le build FAISABLE doit rester
     // CONSERVÉ, jamais rejeté.
     const pMin = { ...p, requirement: { sets: [], minStats: { atk: atkRunes + 50 }, maxStats: { atk: max } } };
     const rMin = resoudre(pMin, candidat(pMin, c0), ctx, { critere: 'atk', inventaireArtefacts: arts });
-    egal(rMin.conforme, true, 'BLOQUANT 1 : avec un minimum entre les deux apports, le build faisable (+90) reste CONSERVÉ');
-    egal(rMin.artefacts.map((a) => a.id), [22], 'BLOQUANT 1 : … toujours avec l’artéfact +90');
+    egal(rMin.conforme, true, 'maximum actif : avec un minimum entre les deux apports, le build faisable (+90) reste CONSERVÉ');
+    egal(rMin.artefacts.map((a) => a.id), [22], 'maximum actif : … toujours avec l’artéfact +90');
     // Sans maximum actif : identité — la dominance élimine encore le plus
     // petit apport, comportement d'avant, byte-identique.
     const pSansMax = { ...p, requirement: { sets: [], minStats: {} } };
     const rSansMax = resoudre(pSansMax, candidat(pSansMax, c0), ctx, { critere: 'atk', inventaireArtefacts: arts });
-    egal(rSansMax.artefacts.map((a) => a.id), [21], 'BLOQUANT 1 : sans maximum actif, le plus grand apport (+100) l’emporte — identité');
+    egal(rSansMax.artefacts.map((a) => a.id), [21], 'maximum actif : sans maximum actif, le plus grand apport (+100) l’emporte — identité');
   }
 
-  /* ── Contre-exemple B1 côté file : maximum PV actif, deux reliques PV %,
+  /* ── Contre-exemple côté file : maximum PV actif, deux reliques PV %,
    * seule la plus basse faisable ; un build que TOUTE relique fait dépasser
    * est rejeté. */
   {
@@ -390,18 +390,18 @@ export default function testRelicQueue() {
     const ctx = contexte(LIBRE, undefined, [haute, basse]);
     const c = candidat(p, c0);
     const r = resoudre(p, c, ctx, { critere: 'ehp' });
-    ok(r.conforme, 'B1 file : un couple faisable existe');
-    egal(r.relique?.id, 52, 'B1 file : seule la PV % +12 est faisable (11200 ≤ 11300 ; +14 → 11400 rejetée)');
-    egal(total(r.stats, 'hp'), 11200, 'B1 file : PV = 11200 avec la +12');
+    ok(r.conforme, 'maximum PV actif : un couple faisable existe');
+    egal(r.relique?.id, 52, 'maximum PV actif : seule la PV % +12 est faisable (11200 ≤ 11300 ; +14 → 11400 rejetée)');
+    egal(total(r.stats, 'hp'), 11200, 'maximum PV actif : PV = 11200 avec la +12');
     // Le moteur relâché (Lmin = 0 en libre) garde ce build ; la file décide.
     const relaxed = searchBuilds({ ...p, relicContext: ctx });
-    ok(relaxed.candidates.some((x) => cle(x.runeIds) === cle(c0)), 'B1 file : le moteur relâché garde le build (borne max = 0 en libre)');
+    ok(relaxed.candidates.some((x) => cle(x.runeIds) === cle(c0)), 'maximum PV actif : le moteur relâché garde le build (borne max = 0 en libre)');
     // Maximum sous la plus basse : aucun couple faisable → rejeté.
     const pRejet = { ...p, requirement: { sets: [], minStats: {}, maxStats: { hp: 11100 } } };
     const rejet = resoudre(pRejet, candidat(pRejet, c0), ctx, { critere: 'ehp' });
-    egal(rejet.conforme, false, 'B1 file : maximum 11100 → aucune relique éligible ne tient, build REJETÉ');
-    egal(etatReliqueDuBuild(rejet, ctx, undefined).etat, 'rejete', 'B1 file : état « rejeté » — jamais affiché');
-    ok(searchBuilds({ ...pRejet, relicContext: ctx }).candidates.some((x) => cle(x.runeIds) === cle(c0)), 'B1 file : … alors que le moteur relâché l’avait gardé (faux positif de la borne, filtré ici)');
+    egal(rejet.conforme, false, 'maximum PV actif : maximum 11100 → aucune relique éligible ne tient, build REJETÉ');
+    egal(etatReliqueDuBuild(rejet, ctx, undefined).etat, 'rejete', 'maximum PV actif : état « rejeté » — jamais affiché');
+    ok(searchBuilds({ ...pRejet, relicContext: ctx }).candidates.some((x) => cle(x.runeIds) === cle(c0)), 'maximum PV actif : … alors que le moteur relâché l’avait gardé (faux positif de la borne, filtré ici)');
   }
 
   /* ── Régime `aucun` (Efficience, Vitesse) : équipée si candidate et
@@ -420,7 +420,7 @@ export default function testRelicQueue() {
     egal(vit.sansEffetSurLeTri, true, 'régime aucun : le tri VIT est aussi sans effet sur le tri');
   }
 
-  /* ── Les quatre exemples du plan § 2.4 — le bouton choisit le régime
+  /* ── Les quatre exemples de résolution — le bouton choisit le régime
    * (`adapterAuTri ? sortBy : objective`) ; objectif de recherche PV
    * effectifs, tri ATQ. */
   {
@@ -433,56 +433,56 @@ export default function testRelicQueue() {
 
     // 1. tri ATQ + bouton actif : la relique maximise le tri (ATQ).
     const ex1 = resoudre(p, c, ctx, { critere: 'atk' });
-    egal(ex1.relique?.id, 2, 'plan § 2.4 ex. 1 : tri ATQ + bouton actif → la relique maximise le tri (ATQ % +14)');
+    egal(ex1.relique?.id, 2, 'exemple 1 : tri ATQ + bouton actif → la relique maximise le tri (ATQ % +14)');
     // 2. tri ATQ + bouton inactif : la relique suit l'objectif (PV effectifs).
     const ex2 = resoudre(p, c, ctx, { critere: 'ehp' });
-    egal(ex2.relique?.id, 1, 'plan § 2.4 ex. 2 : tri ATQ + bouton inactif → la relique suit l’objectif (PV % +14)');
-    // ⚠️ 6bis-b6 (C6) : la note est celle de la production, effet unique de la
+    egal(ex2.relique?.id, 1, 'exemple 2 : tri ATQ + bouton inactif → la relique suit l’objectif (PV % +14)');
+    // ⚠️ La note est celle de la production, effet unique de la
     // relique retenue compris (PV14 porte Origine·ATQ, dont les points de PV
     // entrent dans les PV effectifs) — jamais plus la note sans canal
     // exclusive, que seule la copie du différentiel rendait.
     const propres2 = aurasPropresDesRunes(runesDe(p, c));
     const apport2 = apportExclusive(PV14, ex2.stats, DEFAULT_DAMAGE_SETUP, propres2, null);
-    ok(pvEffectifs(ex2.stats, propres2) < objectiveScore({ ...c, stats: ex2.stats }, 'ehp', propres2, undefined, apport2, DEFAULT_DAMAGE_SETUP), 'plan § 2.4 ex. 2 : précondition — l’Origine de PV14 compte dans les PV effectifs');
-    egal(ex2.paire?.score, objectiveScore({ ...c, stats: ex2.stats }, 'ehp', propres2, undefined, apport2, DEFAULT_DAMAGE_SETUP), 'plan § 2.4 ex. 2 : une seule note — score de la paire = PV effectifs des stats exactes, effet unique de la relique retenue compris');
+    ok(pvEffectifs(ex2.stats, propres2) < objectiveScore({ ...c, stats: ex2.stats }, 'ehp', propres2, undefined, apport2, DEFAULT_DAMAGE_SETUP), 'exemple 2 : précondition — l’Origine de PV14 compte dans les PV effectifs');
+    egal(ex2.paire?.score, objectiveScore({ ...c, stats: ex2.stats }, 'ehp', propres2, undefined, apport2, DEFAULT_DAMAGE_SETUP), 'exemple 2 : une seule note — score de la paire = PV effectifs des stats exactes, effet unique de la relique retenue compris');
     // 3. changement de tri PV effectifs → ATQ, bouton actif : le régime
     // effectif change, la signature aussi, la file ré-optimise.
-    ok(signature(regimeArtefacts('ehp')) !== signature(regimeArtefacts('atk')), 'plan § 2.4 ex. 3 : bouton actif, changer le tri change le régime → la signature invalide le cache');
-    egal([resoudre(p, c, ctx, { critere: 'ehp' }).relique?.id, resoudre(p, c, ctx, { critere: 'atk' }).relique?.id], [1, 2], 'plan § 2.4 ex. 3 : … et la relique est ré-optimisée selon le nouveau régime');
+    ok(signature(regimeArtefacts('ehp')) !== signature(regimeArtefacts('atk')), 'exemple 3 : bouton actif, changer le tri change le régime → la signature invalide le cache');
+    egal([resoudre(p, c, ctx, { critere: 'ehp' }).relique?.id, resoudre(p, c, ctx, { critere: 'atk' }).relique?.id], [1, 2], 'exemple 3 : … et la relique est ré-optimisée selon le nouveau régime');
     // 4. même changement, bouton inactif : le régime reste l'objectif, la
     // signature ne bouge pas, la relique non plus ; seul le classement change.
-    egal(signature(regimeArtefacts('ehp')), signature(regimeArtefacts('ehp')), 'plan § 2.4 ex. 4 : bouton inactif, le régime effectif reste l’objectif → signature identique, cache conservé');
+    egal(signature(regimeArtefacts('ehp')), signature(regimeArtefacts('ehp')), 'exemple 4 : bouton inactif, le régime effectif reste l’objectif → signature identique, cache conservé');
     const c2 = candidat(p, [201, 202, 203, 204, 205, 206]);
     const cache = new Map([[cleBuild(c), resoudre(p, c, ctx, { critere: 'ehp' })], [cleBuild(c2), resoudre(p, c2, ctx, { critere: 'ehp' })]]);
-    egal([...cache.values()].map((r) => r.relique?.id), [1, 1], 'plan § 2.4 ex. 4 : les reliques ne bougent pas (PV % pour les deux)');
+    egal([...cache.values()].map((r) => r.relique?.id), [1, 1], 'exemple 4 : les reliques ne bougent pas (PV % pour les deux)');
     const enrichis = [c, c2].map((x) => candidatAvecSaPaire(x, cache));
     const aurasPropresDe = (x: BuildCandidate) => aurasPropresDesRunes(runesDe(p, x));
     const parEhp = sortCandidates(enrichis, 'ehp', { aurasPropresDe }).map((x) => cle(x.runeIds));
     const parAtk = sortCandidates(enrichis, 'atk', { aurasPropresDe }).map((x) => cle(x.runeIds));
-    egal(parEhp[0], cle(c2.runeIds), 'plan § 2.4 ex. 4 : classé par PV effectifs, le build PV % passe devant');
-    egal(parAtk[0], cle(c.runeIds), 'plan § 2.4 ex. 4 : classé par ATQ, le build ATQ % passe devant — seul le classement a changé');
+    egal(parEhp[0], cle(c2.runeIds), 'exemple 4 : classé par PV effectifs, le build PV % passe devant');
+    egal(parAtk[0], cle(c.runeIds), 'exemple 4 : classé par ATQ, le build ATQ % passe devant — seul le classement a changé');
   }
 
-  /* ── L'exemple du plan § 2.3 en Dégâts réels (Sonia, sort scalant sur
+  /* ── L'exemple de résolution en Dégâts réels (Sonia, sort scalant sur
    * l'ATQ) : ATQ % + exclusive NON offensive (Régénération, 16) l'emporte sur
    * DEF % + exclusive offensive (Conquête, 1) — l'exclusive n'entre pas dans
-   * le score (D9), la principale décide par son effet RÉEL. */
+   * le score, la principale décide par son effet RÉEL. */
   {
     const recette = { objective: 'degats_reels', damageSetup: { skillCom2usId: 15908, enemyDef: 2000, enemyHp: 60000, critMode: 'crit' } } as OptimizerRecipe;
     const realDamage = buildRealDamageContext(recette, 26113, []);
-    ok(realDamage != null, 'plan § 2.3 : contexte de dégâts réels construit (Sonia, fonction CLI partagée)');
+    ok(realDamage != null, 'Dégâts réels : contexte de dégâts réels construit (Sonia, fonction CLI partagée)');
     const p = params(pool, { sets: [], minStats: {} }, { objective: 'degats_reels' });
     const atqNonOff = relique(61, 101, 12, 16);
     const defOff = relique(62, 102, 12, 1);
     const ctx = contexte(LIBRE, undefined, [defOff, atqNonOff]);
     const c = candidat(p, [201, 202, 203, 204, 205, 206]);
     const r = resoudre(p, c, ctx, { critere: 'degats_reels', degats: realDamage });
-    egal(r.relique?.id, 61, 'plan § 2.3 : l’ATQ % à exclusive non offensive bat la DEF % à exclusive offensive (le sort scale sur l’ATQ)');
-    egal(r.paire?.score, objectiveScore({ ...c, stats: r.stats }, 'degats_reels', aurasPropresDesRunes(runesDe(p, c)), realDamage!), 'plan § 2.3 : la note est celle de computeTotalDamage sur les stats exactes, une seule fois');
+    egal(r.relique?.id, 61, 'Dégâts réels : l’ATQ % à exclusive non offensive bat la DEF % à exclusive offensive (le sort scale sur l’ATQ)');
+    egal(r.paire?.score, objectiveScore({ ...c, stats: r.stats }, 'degats_reels', aurasPropresDesRunes(runesDe(p, c)), realDamage!), 'Dégâts réels : la note est celle de computeTotalDamage sur les stats exactes, une seule fois');
     // Le régime « Dégâts réels » sans contexte de dégâts est rabattu sur
     // `aucun` par l'appelant, jamais absorbé : ici, la relique n'a pas d'effet.
     const sansSort = resoudre(p, c, ctx, { critere: 'degats_reels', degats: null });
-    egal(sansSort.sansEffetSurLeTri, true, 'plan § 2.3 : sort non calculable → régime aucun, dit par sansEffetSurLeTri');
+    egal(sansSort.sansEffetSurLeTri, true, 'Dégâts réels : sort non calculable → régime aucun, dit par sansEffetSurLeTri');
   }
 
   /* ── « Équipée meilleure mais exclue » : non-régression CONDITIONNELLE. */
@@ -530,7 +530,7 @@ export default function testRelicQueue() {
   egal(pertes.filter((x) => x.classe === 'tronqué').length, 0, 'différentiel : aucune perte par troncature (maxMs infini, MAX_COLLECTED non atteint)');
 
   /* ────────────────────────────────────────────────────────────────────────
-   * LOT 7 — (1) la GRANULARITÉ de l'oracle, prouvée AVANT de s'en servir
+   * (1) La GRANULARITÉ de l'oracle, prouvée AVANT de s'en servir
    * ──────────────────────────────────────────────────────────────────────
    * La garantie E fait reposer l'oracle sur « une recherche par couple
    * (statistique, valeur) de principale » — donc sur l'hypothèse que **deux
@@ -546,7 +546,7 @@ export default function testRelicQueue() {
    * identiques sur la principale et DIFFÉRENTS sur l'exclusive doivent
    * rendre la même recherche relâchée, le même nombre de runs d'oracle, et
    * les mêmes populations de compartiments. */
-  titre('Optimizer · relique — lot 7 : le moteur est INSENSIBLE à l’exclusive (granularité de l’oracle, garantie E)');
+  titre('Optimizer · relique — le moteur est INSENSIBLE à l’exclusive (granularité de l’oracle)');
   {
     const fx = CORPUS_5A.A;
     // Mêmes `rid`, mêmes principales, mêmes niveaux — seules les propriétés
@@ -561,12 +561,12 @@ export default function testRelicQueue() {
 
     // (a) Les bornes transportées au moteur ne dépendent que des principales.
     egal(ctx2.bornes, ctx1.bornes, 'granularité (a) : les bornes du contexte ne bougent pas quand seule l’exclusive change');
-    // (b) Depuis 6bis-b6 (constat C3), la granularité de l'oracle est le
+    // (b) La granularité de l'oracle est le
     //     couple (principale, stats de l'effet unique), pas la pièce : la
     //     dominance d'un run protège les stats de l'effet unique de SA
     //     relique. Ici une seule relique par principale : N ne bouge pas.
     //     Deux reliques de MÊME principale dont les effets protègent des
-    //     stats différentes donnent deux runs (un seul avant 6bis-b6).
+    //     stats différentes donnent deux runs (un seul auparavant).
     egal(oracleSearchRuns(p2, ctx2).length, oracleSearchRuns(p1, ctx1).length, 'granularité (b) : une relique par principale — N identique quand seule l’exclusive change');
     const memePrincipale = (inv: RelicDetail[]) => inv.map((r) => ({ ...r, main: { code: 102, value: 14 } }));
     const ctx3 = resoudreContexteRelique(LIBRE, undefined, memePrincipale(memeExclusive));
@@ -594,14 +594,14 @@ export default function testRelicQueue() {
   }
 
   /* ────────────────────────────────────────────────────────────────────────
-   * LOT 7 — (2) le différentiel de B.5b REJOUÉ avec le score complet
+   * (2) Le différentiel REJOUÉ avec le score complet
    * ──────────────────────────────────────────────────────────────────────
    * Les neuf fixtures ci-dessus portent toutes Conquête·ATQ (le défaut de
    * `relique()`), neutre en Efficience comme en PV effectifs : elles
    * prouvent la NON-RÉGRESSION du canal, pas son effet. Ici l'exclusive
    * DÉPARTAGE — deux reliques de MÊME principale dont seule l'unique
    * diffère — et A doit retrouver exactement l'optimum de l'oracle. */
-  titre('Optimizer · relique — lot 7 : différentiel avec le score complet (l’exclusive départage)');
+  titre('Optimizer · relique — différentiel avec le score complet (l’exclusive départage)');
   {
     const fx = CORPUS_5A.A;
     const exclusive = { setup: DEFAULT_DAMAGE_SETUP, element: null };
@@ -609,7 +609,7 @@ export default function testRelicQueue() {
     // question du contrat est « aucun optimum PERDU PAR L'AJOUT du canal » :
     // on compare donc chaque fixture à elle-même sans canal (`resultats`,
     // calculés plus haut), pas à un idéal — la fixture C porte une dilution
-    // connue et consignée depuis le lot 5b (`bucketCap` 10), qui doit rester
+    // connue et consignée (`bucketCap` 10), qui doit rester
     // exactement ce qu'elle était, ni plus ni moins.
     const avantPertes = pertes.length;
     for (const f of fixtures) {

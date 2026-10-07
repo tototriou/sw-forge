@@ -1,10 +1,9 @@
 // Charge et met en cache `public/data/monsters.json` — UNE SEULE lecture/
 // parsage par exécution de script, quel que soit le nombre d'appelants.
-// Centralisé ici après une revue de code externe (point 2, duplication) :
-// `loadMonster.ts` reparsait ce même fichier trois fois indépendamment
-// (`loadMonsterNames`/`loadMonsterSpeeds`/`loadAllMonstersByCom2us`), et
-// `deckMonster.ts` (préexistant) une quatrième fois — chacune de ces
-// fonctions dérive maintenant du même parsage mis en cache.
+// Centralisé ici : `loadMonster.ts`
+// (`loadMonsterNames`/`loadMonsterSpeeds`/`loadAllMonstersByCom2us`) et
+// `deckMonster.ts` ne reparsent pas ce même fichier chacun de leur côté —
+// chacune de ces fonctions dérive du même parsage mis en cache.
 
 import { readFileSync } from 'fs';
 import { Monster } from '../../src/types';

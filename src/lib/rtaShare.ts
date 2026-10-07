@@ -605,8 +605,8 @@ function cleanGear(raw: unknown, ctx: Issues, where: string): GearSet | undefine
 
   const relicRaw = o.relic as Record<string, unknown> | undefined;
   const relicMain = cleanEffect(relicRaw?.main);
-  // ⚠️ `id` et `upgrade` sont non optionnels dans `RelicDetail` depuis `75f073f`
-  // (lot 1 d'implementation-relique) : un lien émis avant cette version ne les
+  // ⚠️ `id` et `upgrade` sont non optionnels dans `RelicDetail` (commit
+  // `75f073f`) : un lien émis avant cette version ne les
   // porte pas. On ne les fabrique jamais avec `undefined` — la relique entière
   // est ignorée, avec un avertissement, plutôt que de mentir sur son typage.
   const relicId = Number(relicRaw?.id);
@@ -624,7 +624,7 @@ function cleanGear(raw: unknown, ctx: Issues, where: string): GearSet | undefine
         ...(relicUnique ? { unique: relicUnique } : {}),
       };
     } else {
-      warn(ctx, `${where} : relique sans « id » ou « upgrade » valide (fichier antérieur au lot 1) — ignorée.`);
+      warn(ctx, `${where} : relique sans « id » ou « upgrade » valide (fichier d'une version antérieure de l'application) — ignorée.`);
     }
   }
 

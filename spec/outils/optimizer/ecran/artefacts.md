@@ -20,6 +20,11 @@
    ATQ +100**, **Principale DEF +100**, **Principale PV +1500** (les trois
    statistiques principales d'artéfact du jeu).
 
+   ⚠️ **Ces cinq choix ne dépendent pas des artéfacts portés** : les deux
+   listes s'affichent dès que l'optimisation est active, toujours avec les
+   mêmes choix. Elles disent ce qu'on cherche, une entrée du choix de la
+   paire, pas une conséquence de l'équipement du monstre.
+
    ⚠️ **Le sélecteur FILTRE l'inventaire, il n'hypothèque pas.** Choisir
    « ATQ +100 » restreint la recherche aux artéfacts qu'on POSSÈDE portant
    cette principale, avec leurs sous-propriétés. Sans aucun, l'emplacement

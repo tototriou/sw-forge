@@ -18,7 +18,7 @@ import {
   unionRunesUtilisees,
 } from '../src/lib/importAccount';
 import { formatRelicUnique } from '../src/lib/effects';
-import { egal, exportReel, exportReliquesD4, exportSynthetique, ignore, ok, titre } from './outils';
+import { egal, exportReel, exportExemplairesMultiples, exportSynthetique, ignore, ok, titre } from './outils';
 
 export default function testImport() {
   titre('Import de compte');
@@ -129,7 +129,7 @@ export default function testImport() {
   egal(inv.runes.length, 8, 'inventaire : runes équipées ET en réserve, dédupliquées');
   egal(inv.artifacts.length, 3, 'inventaire : artéfacts équipés ET en réserve');
 
-  /* --- Inventaire de reliques (B.1) ------------------------------------- */
+  /* --- Inventaire de reliques ------------------------------------------- */
 
   // data.relics porte 4 pièces, dont 7001 (équipée par l'unité 101, présente
   // AUSSI dans unit.relics[0]) : le dédoublonnage par rid ne doit pas la
@@ -303,31 +303,31 @@ export default function testImport() {
   egal(parseWizardId('{"wizard_id":0}'), null, 'wizard_id à zéro → rejeté (jamais un vrai compte)');
   egal(parseWizardId('{"wizard_id":"abc"}'), null, 'wizard_id non numérique → rejeté');
 
-  /* --- D4 : l'exemplaire, pas l'espèce ---------------------------------- */
+  /* --- L'exemplaire, pas l'espèce --------------------------------------- */
 
   // Deux unit_id du MÊME com2usId (15105) portent des reliques différentes.
   // Box, RTA et défense de siège doivent chacun retrouver la BONNE relique
   // pour le BON unit_id — jamais celle de l'autre exemplaire, jamais celle
   // « du » com2usId (il n'y en a pas une seule).
-  const d4 = parseAccountSource(exportReliquesD4())!;
+  const exemplaires = parseAccountSource(exportExemplairesMultiples())!;
 
-  const boxD4 = parseAccountBox(d4).monsters;
-  egal(boxD4.length, 2, 'D4 : deux exemplaires 6★ du même com2usId, tous deux retenus');
-  const gearParUnitId = new Map(boxD4.map((m) => [m.unitId, m.gear]));
-  egal(gearParUnitId.get(201)?.relic?.id, 9101, 'D4 (Box) : unit_id 201 → sa propre relique');
-  egal(gearParUnitId.get(202)?.relic?.id, 9102, 'D4 (Box) : unit_id 202 → sa propre relique, pas celle de 201');
+  const boxExemplaires = parseAccountBox(exemplaires).monsters;
+  egal(boxExemplaires.length, 2, 'deux exemplaires 6★ du même com2usId, tous deux retenus');
+  const gearParUnitId = new Map(boxExemplaires.map((m) => [m.unitId, m.gear]));
+  egal(gearParUnitId.get(201)?.relic?.id, 9101, 'Box : unit_id 201 → sa propre relique');
+  egal(gearParUnitId.get(202)?.relic?.id, 9102, 'Box : unit_id 202 → sa propre relique, pas celle de 201');
 
-  const rtaD4 = parseAccountJson(d4);
-  egal(rtaD4.units?.length, 1, 'D4 (RTA) : seul le favori (unit_id 201) est retenu');
-  egal(rtaD4.units?.[0]?.gear?.relic?.id, 9101, 'D4 (RTA) : même relique que la Box pour ce unit_id');
+  const rtaExemplaires = parseAccountJson(exemplaires);
+  egal(rtaExemplaires.units?.length, 1, 'RTA : seul le favori (unit_id 201) est retenu');
+  egal(rtaExemplaires.units?.[0]?.gear?.relic?.id, 9101, 'RTA : même relique que la Box pour ce unit_id');
 
   // Défense de siège : le deck place 201 puis 202 (guildsiege_defense_deck_unit_list) —
   // l'ordre des slots reflète l'ordre du preset, chaque slot garde SA relique.
-  const siegeD4 = parseSiegeDefense(d4).decks!;
-  egal(siegeD4.length, 1, 'D4 (siège) : un deck configuré');
-  const slotsD4 = siegeD4[0]?.slots ?? [];
-  egal(slotsD4[0]?.gear?.relic?.id, 9101, 'D4 (siège) : premier slot (unit_id 201) → sa relique');
-  egal(slotsD4[1]?.gear?.relic?.id, 9102, 'D4 (siège) : second slot (unit_id 202) → sa relique, pas celle du premier');
+  const siegeExemplaires = parseSiegeDefense(exemplaires).decks!;
+  egal(siegeExemplaires.length, 1, 'siège : un deck configuré');
+  const slotsExemplaires = siegeExemplaires[0]?.slots ?? [];
+  egal(slotsExemplaires[0]?.gear?.relic?.id, 9101, 'siège : premier slot (unit_id 201) → sa relique');
+  egal(slotsExemplaires[1]?.gear?.relic?.id, 9102, 'siège : second slot (unit_id 202) → sa relique, pas celle du premier');
 
   /* --- Sur l'export réel, quand il est là ------------------------------ */
 

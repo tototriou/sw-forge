@@ -96,7 +96,7 @@ export function testRenduTelephoneRunes() {
   egal(dialogues(optim), 1, 'Optimisation : un panneau');
   // ⚠️ Lot 11c (décision 26) : « Gemme + meule / Meule seule » a quitté le
   // panneau pour la tête de la page (vérifié juste après).
-  // La v1.14.0 (fusionnée le 2026-10-05) ajoute « Autoriser un regemme
+  // La v1.14.0 ajoute « Autoriser un regemme
   // différent » juste après le palier ; « Marqueurs » ne s'affiche que si le
   // compte en porte, ce qui n'est pas le cas de ces données.
   ok(to.includes('Options d\'optimisation Palier % Autoriser un regemme différent Runes') && to.includes('Faisable avec ma réserve Sans les immémoriaux Runes utilisées'), 'Optimisation : palier, antiques, options');

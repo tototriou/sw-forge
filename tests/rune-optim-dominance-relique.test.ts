@@ -1,9 +1,9 @@
-// La dominance des runes face à l'effet unique de la relique (degats-et-aura,
-// lot 6bis-b3c). Discipline `algo-verify` : un ORACLE exhaustif, sur le pool
+// La dominance des runes face à l'effet unique de la relique.
+// Discipline `algo-verify` : un ORACLE exhaustif, sur le pool
 // AVANT préparation, contre le vrai moteur (`searchBuilds`, bout en bout).
 //
 // ⚠️ **La note de l'oracle est celle de la PRODUCTION** pour l'équipement
-// complet (cadrage A.6 bis, leçon de 6bis-b3b) : `objectiveScore` avec les
+// complet : `objectiveScore` avec les
 // auras propres du build (`aurasPropresDesRunes`) et l'effet unique de sa
 // relique (`apportExclusive`). Un oracle noté sans l'effet unique reste
 // d'accord avec le moteur précisément là où les deux ont tort.
@@ -19,7 +19,7 @@
 // (`resoudreEquipementDuBuild`, par `resoudreCandidat`), jamais sur les
 // candidats bruts, collectés sur des bornes relâchées.
 //
-// Depuis 6bis-b3d-2 (constat C8 de la revue technique), un cas peut porter
+// Un cas peut porter
 // une PAIRE FIXE (`SearchParams.artifacts`) et un mode critique : la note
 // lit alors sa principale et le profil de ses lignes 218–221, et
 // `verifier()` confronte la note de l'oracle à celle de la production,
@@ -176,7 +176,7 @@ interface BuildOracle {
   cle: string;
   note: number;
   relique: RelicDetail | undefined;
-  // Côté moteur : la note de PRODUCTION de ce candidat (A.6 bis), à confronter
+  // Côté moteur : la note de PRODUCTION de ce candidat, à confronter
   // à `note` — `scoreDuCandidat` en relique fixe, score du couple retenu par
   // la résolution en mode `recherche`.
   noteProduction?: number;
@@ -318,7 +318,7 @@ const fmtMotifs = (m: Map<string, number>) => (m.size === 0 ? 'aucun absent' : A
 const presque = (a: number, b: number) => Math.abs(a - b) <= 1e-9 * Math.max(1, Math.abs(a), Math.abs(b));
 
 // Les invariants d'un run COMPLET face à l'oracle — même structure que
-// `verifier()` de 6bis-b3b, avec la note de production comme critère. La
+// `verifier()` de l'oracle des coupes, avec la note de production comme critère. La
 // dominance a le droit de retirer un build valide, jamais l'optimum.
 function verifier(cas: Cas, v: Verdict): boolean {
   const { resultat, o, retenus } = v;
@@ -332,7 +332,7 @@ function verifier(cas: Cas, v: Verdict): boolean {
   const rejetesAuFiltre = [...v.bruts].filter((c) => o.valides.has(c) && !retenus.has(c));
   t(rejetesAuFiltre.length === 0, `${cas.nom} : aucun build valide rejeté par le filtre final (${rejetesAuFiltre.join(' ; ') || '—'})`);
   t((retenus.size > 0) === (o.valides.size > 0), `${cas.nom} : même verdict de faisabilité (moteur ${retenus.size}, oracle ${o.valides.size})`);
-  // A.6 bis : la note de l'oracle EST celle de la production, paire comprise.
+  // La note de l'oracle EST celle de la production, paire comprise.
   const ecartsNote = [...retenus.values()].filter((b) => !presque(b.note, b.noteProduction ?? Number.NaN));
   t(ecartsNote.length === 0,
     `${cas.nom} : note de l'oracle = note de production (${cas.eligibles ? 'score du couple retenu par la résolution' : 'scoreDuCandidat'}) pour chacun des ${retenus.size} candidat(s) retenu(s) (${ecartsNote.map((b) => `${b.cle} : ${b.note} ≠ ${b.noteProduction}`).join(' ; ') || '—'})`);
@@ -377,7 +377,7 @@ const CAS_MINIMAL: Cas = {
 };
 
 export function testDominanceReliqueCasMinimal() {
-  titre('Dominance · effet unique de la relique — cas minimal (6bis-b3c)');
+  titre('Dominance · effet unique de la relique — cas minimal');
   // Exactement la sonde du pilote : `slotFilterCap` 80, `maxMs` infini.
   const extra = { slotFilterCap: 80, maxMs: Infinity, bucketCap: undefined, maxCollected: undefined };
   const p = parametres(CAS_MINIMAL, extra);
@@ -507,7 +507,7 @@ export function couvertureDesTypes(): { echecs: string[]; tableau: string[] } {
 }
 
 export function testDominanceReliqueCouverture() {
-  titre('Dominance · effet unique de la relique — couverture des 15 types chiffrables (6bis-b3c)');
+  titre('Dominance · effet unique de la relique — couverture des 15 types chiffrables');
   const { echecs, tableau } = couvertureDesTypes();
   const types = new Set(COUVERTURE.map((c) => c.type));
   egal(types.size, 15, 'les 15 types chiffrables ont chacun au moins un cas');
@@ -548,7 +548,7 @@ function casRecherche(): Cas {
 }
 
 export function testDominanceReliqueRecherche() {
-  titre('Dominance · effet unique de la relique — mode recherche (6bis-b3c)');
+  titre('Dominance · effet unique de la relique — mode recherche');
   const cas = casRecherche();
   const [A, B] = cas.eligibles!;
   const p = parametres(cas);
@@ -580,7 +580,7 @@ export function testDominanceReliqueRecherche() {
  * ----------------------------------------------------------------------- */
 
 export function testDominanceReliqueTemoins() {
-  titre('Dominance · effet unique de la relique — témoins sans changement (6bis-b3c)');
+  titre('Dominance · effet unique de la relique — témoins sans changement');
   const sans: Cas = { ...CAS_MINIMAL, nom: 'Témoin sans relique', relique: undefined };
   const reference = apresDominance(parametres(sans));
   egal(reference, [1, 2, 3, 4, 5, 6], 'sans relique : Fight interchangeable avec Will, ses runes tombent à la dominance (comme avant)');
@@ -606,7 +606,7 @@ export function testDominanceReliqueTemoins() {
  * ----------------------------------------------------------------------- */
 
 export function testDominanceReliqueWorkers() {
-  titre('Dominance · effet unique de la relique — Workers et tranches reçoivent la relique (6bis-b3c)');
+  titre('Dominance · effet unique de la relique — Workers et tranches reçoivent la relique');
   for (const cas of [CAS_MINIMAL, casRecherche()]) {
     const p = parametres(cas);
     const attendu = apresDominance(p);
@@ -645,8 +645,8 @@ const LIGNE_STAT: Record<number, StatKey> = { 218: 'hp', 219: 'atk', 220: 'def',
 const LIGNE_MAX: Record<number, number> = { 218: 1.5, 219: 4, 220: 4, 221: 40 };
 // Mode critique tiré, parmi les deux modes restants. L'ancienne exclusion de
 // Blade des pools tirés en « Moyenne » (la dominance n'y protégeait pas le
-// Taux Crit, décision du 2026-09-29) est sans objet depuis la suppression de
-// ce mode (degats-et-aura, lot CM).
+// Taux Crit) est sans objet depuis la suppression de
+// ce mode.
 const CRIT_MODES: CritMode[] = ['crit', 'normal'];
 
 const melange = <T>(rng: () => number, xs: T[]): T[] => {
@@ -730,7 +730,7 @@ export function testDominanceReliqueDifferentiel() {
       cas.minStats = { [k]: quantile(vals, 0.3 + 0.4 * rng()) };
       cas.nom += ` min=${JSON.stringify(cas.minStats)}`;
     }
-    // Tirés APRÈS tout le reste (6bis-b3d-2) : la suite des tirages
+    // Tirés APRÈS tout le reste : la suite des tirages
     // précédents est inchangée. Une paire fixe portant zéro, une ou deux
     // lignes 218–221, et le mode critique (aucune Blade dans ces pools).
     cas.paire = paireTiree(rng, melange(rng, [218, 219, 220, 221]).slice(0, Math.floor(rng() * 3)));
@@ -752,11 +752,11 @@ export function testDominanceReliqueDifferentiel() {
 }
 
 /* --------------------------------------------------------------------------
- * Différentiel CIBLÉ (seeds fixes) — 6bis-b3d-2, constat C8
+ * Différentiel CIBLÉ (seeds fixes)
  * ----------------------------------------------------------------------- */
 
 // Le différentiel ci-dessus ne détecte pas la mutation de sa propre
-// protection (revue technique 6bis-b § 5.5) : un clone par emplacement, au
+// protection : un clone par emplacement, au
 // set tiré parmi dix, rarement porteur, et une tranche sans rapport avec lui.
 // Ici, chaque scénario est CONSTRUIT pour que la protection porte l'optimum,
 // puis noyé dans du bruit :
@@ -778,7 +778,7 @@ export function testDominanceReliqueDifferentiel() {
 //    `setPieces − 1` clones et une Intangible (formable par le joker
 //    seulement), et chaque emplacement libre a son set neutre PROPRE, que
 //    ses vraies runes ne complètent jamais.
-// Critère (contrat b3d-2) : chaque mutation — `statsDeLEffetUnique` vidé,
+// Critère : chaque mutation — `statsDeLEffetUnique` vidé,
 // `statsLuesParLesLignes` vidé — fait échouer au moins un scénario d'ici.
 const NEUTRES = ['will', 'shield', 'revenge', 'nemesis', 'destroy', 'despair', 'vampire'];
 const STAT_PORTEUR: Record<string, StatKey> = { fight: 'atk', fatal: 'atk', determination: 'def', guard: 'def', enhance: 'hp', energy: 'hp', swift: 'spd' };
@@ -937,7 +937,7 @@ function scenarioCible(seed: number): ScenarioCible | string {
 }
 
 export function testDominanceReliqueDifferentielCible() {
-  titre('Dominance · effet unique et lignes 218–221 — différentiel ciblé (seeds 6500..6559, 6bis-b3d-2)');
+  titre('Dominance · effet unique et lignes 218–221 — différentiel ciblé (seeds 6500..6559)');
   const ignores: string[] = [];
   const violations: string[] = [];
   const echecs: string[] = [];

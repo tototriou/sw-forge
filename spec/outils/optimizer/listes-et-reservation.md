@@ -28,7 +28,9 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
 - **Aucune liste fixe** — l'utilisateur en crée, renomme et supprime
   librement (`OptimizerListPicker.tsx`, menu déroulant : crayon de
   renommage, corbeille de suppression par ligne, « Nouvelle liste… »
-  précédé d'un signe plus, en bas). Supprimer une liste efface son appartenance et ses runes
+  précédé d'un signe plus, en bas). Le menu est un `Flottant` : il ne
+  pousse jamais la zone C. Ne pas le remplacer par une rangée de puces,
+  qui défilerait latéralement dès quelques listes. Supprimer une liste efface son appartenance et ses runes
   validées — **jamais les runes elles-mêmes**, toujours réelles dans le
   compte. Navigable à tout moment ; changer de liste active change
   instantanément les runes réservées vues par la recherche.
@@ -41,6 +43,17 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   libérer un build déjà validé demande toujours confirmation (« Ces 6 runes
   ET la paire d’artéfacts redeviendront disponibles pour les autres
   monstres de cette liste. »).
+
+  Un build validé (`ValidatedBuild`, optimizerExclusion.ts) est un
+  **instantané** : sa liste (`listId`, obligatoire), son exemplaire
+  (`selector`), les identifiants de ses 6 runes et de sa paire — jamais
+  une référence recalculée depuis l'équipement courant, puisqu'on réserve
+  un build trouvé, pas encore monté en jeu. Il est unique par paire
+  (liste, exemplaire) : le même exemplaire peut porter un build différent
+  dans deux listes (`useOptimizerLists.ts`). Une carte est « Validé » quand
+  ses runes et sa paire sont celles réservées, comparées comme ensembles
+  (`memesIds`, OptimizerSection.tsx : l'ordre des identifiants n'est pas
+  garanti d'un calcul à l'autre).
 
   ⚠️ **Les ARTÉFACTS du build sont réservés eux aussi**, et mémorisés avec
   lui. Un artéfact physique ne se porte que sur UN monstre à la fois,
@@ -64,7 +77,8 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   AUJOURD'HUI plutôt que celle retenue par la recherche. ⚠️ Un build validé
   sans identifiant d'artéfact (enregistré avant qu'ils en aient un) retombe
   sur les artéfacts réels ; il faut le revalider. Le jeter serait une
-  perte de données pour un simple affichage.
+  perte de données pour un simple affichage. Base et relique restent
+  celles de l'exemplaire réel : seules runes et artéfacts sont substitués.
 
   ⚠️⚠️ **LA GARDE ANTI-DOUBLE-RÉSERVATION EST SUR LES DEUX CHEMINS** : sous
   la **fiche** (`displayedRuneConflicts`) et sur la carte de résultat. Ne
@@ -191,7 +205,11 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   exemplaire réel doit encore se retrouver dans Box, RTA ou défenses de
   siège ; pour un monstre non possédé, l'espèce au bestiaire suffit.
   Limite assumée, pour les deux : une rune passée depuis sur un autre
-  monstre n'est pas détectée.
+  monstre n'est pas détectée. La revérification suit CHAQUE réimport, même
+  du même compte — contrairement aux exclusions manuelles, effacées
+  seulement par un autre `wizard_id` : c'est justement « mon compte a
+  changé depuis » qu'elle cherche. Toute entrée retirée est comptée dans
+  le message d'import (`App.tsx`), jamais en silence.
 - **Auto-exemption de la liste ACTIVE** — chercher à nouveau le même
   monstre dans la MÊME liste exempte automatiquement SES PROPRES runes déjà
   validées (sans quoi la recherche se trouverait bloquée par ses propres
@@ -286,7 +304,10 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   travail déjà fait à un simple rechargement de page. Même statut que la
   prépa RTA et les équipes de siège (voir
   [usePersistence](src/hooks/usePersistence.ts)) : soumis au même
-  interrupteur global de conservation.
+  interrupteur global de conservation. Un hook à part,
+  `useOptimizerLists.ts`, instancié dans `App.tsx` : `useOptimizerState`
+  n'écrit jamais sur disque, et y loger les listes lèverait cette garantie
+  pour tout le reste de sa saisie.
 - ⚠️ **Limite connue** : l'ajout à une liste se fait **un monstre à la
   fois** — aucun import en masse depuis un deck de siège ou une prépa RTA
   entière, aucun workflow qui enchaîne automatiquement au monstre suivant

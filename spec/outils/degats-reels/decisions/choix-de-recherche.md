@@ -1,6 +1,6 @@
 # Choix de recherche pour les dégâts réels
 
-**Statut :** DÉCISION 2026-09-24 — isole les choix qui n’influent pas sur le classement des builds
+**Statut :** DÉCISION — isole les choix qui n’influent pas sur le classement des builds
 **Remplace :** les sections de décision de spec/outils/degats-reels.md
 **Lire si :** on modifie les statistiques pertinentes ou une majoration uniforme pour la recherche
 

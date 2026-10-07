@@ -8,7 +8,8 @@
 // l'en-tête annonce lui-même « reproduit EXACTEMENT le mécanisme réel de
 // `pairSlice.worker.ts` ». Deux copies à synchroniser à la main, dont une
 // seule est expédiée : un test portant sur la copie reste vert pendant que la
-// production casse. Voir spec/outils/optimizer/parallelisation-partagee.md.
+// production casse. Voir spec/outils/optimizer/moteur/parallelisation.md
+// § Code commun aux deux plateformes.
 //
 // ⚠️ **Ce module doit rester NEUTRE** : jamais d'import de `worker_threads`
 // ni de dépendance à `self`/`postMessage`. Vite tenterait sinon de résoudre
@@ -56,8 +57,9 @@ export interface PairSliceRequest {
   // recréait son propre `PreparedSearch` via `prepareSearch(params)`, qui
   // fixe SON PROPRE `startedAt` interne — mesuré APRÈS la construction déjà
   // écoulée (jusqu'à ~1 min sur un gros compte), repoussant silencieusement
-  // l'échéance du filet de sécurité `maxMs`. Trouvé par une revue de code
-  // externe — voir spec/outils/optimizer/archive/historique/historique-dimensionnement.md.
+  // l'échéance du filet de sécurité `maxMs` (spec/outils/optimizer/
+  // interruption.md § Interruption — filet de temps, pré-filtrage et arrêt
+  // manuel).
   startedAt: number;
 }
 export type PairSliceInbound = PairSliceRequest | { stop: true };
@@ -75,8 +77,7 @@ export interface PairSliceResultMessage {
   nearMissByCondition: { key: StatKey; kind: 'min' | 'max'; miss: NearMiss }[];
   globalNearMiss: NearMiss | null;
   // Diagnostic seulement — présent ssi `SearchParams.traceur` l'était (voir
-  // `SearchResult.traceur`). Perdu par les deux adaptateurs d'appariement
-  // parallèle avant B.5a ter (revue adversariale du diff du lot 5a, MINEUR 2).
+  // `SearchResult.traceur`).
   traceur?: TraceCandidat;
 }
 export type PairSliceResponse = PairSliceProgressMessage | PairSliceResultMessage;
@@ -107,16 +108,16 @@ export async function runPairSlice(
   prepared.startedAt = startedAt;
 
   // ⚠️ **Aucun budget de paires ici — et il n'y en a plus nulle part** (voir
-  // `totalPairCount` dans runeBuildOptim.ts, piste 8). Ce worker parcourt SA
+  // `totalPairCount` dans runeBuildOptim.ts). Ce worker parcourt SA
   // tranche en entier, et ne s'arrête que sur les DEUX bornes qui restent :
   // sa part de plafond de candidats (`params.maxCollected`, déjà divisée par
   // le parent) et le même `prepared.maxMs` que le séquentiel aurait respecté,
   // couru depuis le `startedAt` GLOBAL ci-dessus.
   // ⚠️ Ce que ça préserve : la sûreté de la parallélisation en recherche
-  // NORMALE (tronquée) reposait jusqu'ici sur le fait que chaque worker
+  // NORMALE (tronquée) repose sur le fait que chaque worker
   // ESCALADAIT son propre budget au lieu d'en recevoir un figé — vérifié à
-  // grande échelle (49 essais réels sous contention volontaire, 0 perte, voir
-  // spec/outils/optimizer/pistes.md, point 9). Ne plus avoir de budget du
+  // grande échelle (49 essais réels sous contention volontaire, 0 perte). Ne
+  // plus avoir de budget du
   // tout est le cas LIMITE de cette escalade (elle convergeait vers « tout ce
   // que le temps permet »), donc strictement au moins aussi sûr : aucun
   // worker ne peut plus s'arrêter avant l'heure sur un plafond de paires.

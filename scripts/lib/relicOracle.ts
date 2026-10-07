@@ -1,4 +1,6 @@
-// Oracle de contrôle de la dimension relique (implementation-relique, lot 4).
+// Oracle de contrôle de la dimension relique (voir
+// spec/outils/optimizer/moteur/reliques.md,
+// « Oracle de la dimension relique »).
 //
 // Il ne remplace aucune étape du moteur : chaque valeur distincte de
 // principale éligible devient le `SearchParams.relic` d'un appel au vrai
@@ -40,9 +42,9 @@ export interface OracleCandidate extends BuildCandidate {
 }
 
 /**
- * La complétude de CHAQUE run de l'oracle (lot 6, revue externe de l'outil
- * F : `OracleResult` jetait `truncated`, C ne pouvait pas s'établir). Un point
- * de la grille B.6 n'est complet que si aucun des N runs n'est tronqué.
+ * La complétude de CHAQUE run de l'oracle (`OracleResult` jetait
+ * `truncated` : la complétude ne pouvait pas s'établir). Un point
+ * de la grille du différentiel de reliques n'est complet que si aucun des N runs n'est tronqué.
  */
 export interface OracleRunOutcome {
   principale: { code: number; value: number } | null;
@@ -79,10 +81,9 @@ export interface OracleSearchRun {
 
 /**
  * Les groupes de reliques de l'oracle, un run chacun : même principale
- * `(code, valeur)` ET mêmes stats d'effet unique (`statsDeLEffetUnique`) —
- * degats-et-aura 6bis-b6, constat C3 de la revue technique 6bis-b.
+ * `(code, valeur)` ET mêmes stats d'effet unique (`statsDeLEffetUnique`).
  *
- * ⚠️ Depuis 6bis-b3c, la dominance d'un run protège les stats de l'effet
+ * ⚠️ La dominance d'un run protège les stats de l'effet
  * unique de SA relique (`reliquesEquipables(relic, undefined)` = la relique
  * posée) ; la rétention ignore la relique et la fusion renote tout. Ces stats
  * sont donc la seule chose qui, dans un run, distingue deux reliques de même
@@ -130,7 +131,7 @@ export function oracleSearchRuns(params: SearchParams, relicContext: RelicContex
     reliques,
     // Remplacement, jamais cumul : c'est le même paramètre que la production.
     // ⚠️ `relicContext: undefined` — garantie E : l'oracle n'applique AUCUNE
-    // des éliminations qu'il sert à valider. Depuis le lot 5a, un
+    // des éliminations qu'il sert à valider. Un
     // `SearchParams.relicContext` en mode `recherche` RELÂCHE les bornes du
     // moteur ; le laisser passer ici ferait mesurer l'option A contre
     // elle-même. Chaque run est le moteur d'avant, relique fixée.
@@ -140,8 +141,8 @@ export function oracleSearchRuns(params: SearchParams, relicContext: RelicContex
 
 /**
  * Les options de l'oracle — `realDamage` voyage hors `SearchParams` (garantie
- * E), et `exclusive` est le contexte de l'assiette `Y` des propriétés uniques
- * (lot 7). ⚠️ **Le MÊME objet doit être donné à l'option A** : c'est ce qui
+ * E), et `exclusive` est le contexte de l'assiette `Y` des propriétés uniques.
+ * ⚠️ **Le MÊME objet doit être donné à l'option A** : c'est ce qui
  * rend les deux scores comparables.
  */
 export interface OptionsOracle {
@@ -150,8 +151,7 @@ export interface OptionsOracle {
 }
 
 /**
- * Le score d'un candidat, avec l'apport de la relique qu'on lui essaie
- * (implementation-relique, lot 7).
+ * Le score d'un candidat, avec l'apport de la relique qu'on lui essaie.
  *
  * ⚠️ **L'apport se calcule ICI, sur les stats du candidat qui incluent déjà
  * la principale de cette relique** — et par le MÊME module que l'option A
@@ -159,7 +159,7 @@ export interface OptionsOracle {
  * l'appelant aux deux côtés). Deux calculs parallèles rendraient la
  * comparaison de fidélité (F) vide de sens.
  *
- * `exclusive` absent → apport neutre : l'oracle d'avant le lot 7, à
+ * `exclusive` absent → apport neutre : l'oracle sans propriété unique, à
  * l'identique.
  */
 function scoreOracleDuCandidat(
@@ -172,7 +172,7 @@ function scoreOracleDuCandidat(
 ): number {
   const objectif = params.objective ?? 'efficience';
   if (objectif === 'efficience') return candidateMetricTotal(candidate, runeById, params.metric);
-  // Auras propres des six runes du candidat (6bis-b2), par la même porte que
+  // Auras propres des six runes du candidat, par la même porte que
   // le tri (`aurasPropresParRunes`), jamais un recomptage local.
   const propres = aurasPropresParRunes(runeById)(candidate);
   const apport = exclusive ? apportExclusive(relique, candidate.stats, exclusive.setup, propres, exclusive.element) : APPORT_NEUTRE;
@@ -220,7 +220,7 @@ function candidatAvecRelique(
   const evalue = evaluations.get(meilleure.relique.id)!;
   // ⚠️ Le score RENDU est celui de la relique RETENUE, avec son apport — le
   // même nombre que celui qui l'a fait gagner, jamais un second calcul sans
-  // exclusive (D6 : jamais deux notes).
+  // exclusive (jamais deux notes).
   return {
     ...evalue,
     rid: meilleure.relique.id,
@@ -238,9 +238,8 @@ export function oracleSearch(
   relicContext: RelicContext,
   options: OptionsOracle = {}
 ): OracleResult {
-  // Même classe de refus que le moteur, jamais un « 0 résultat » ordinaire
-  // (revue adversariale du diff du lot 5a, BLOQUANT 2) : préexistait au lot
-  // 4, ce lot raccorde l'oracle au refus nommé de `prepareSearch`/
+  // Même classe de refus que le moteur, jamais un « 0 résultat » ordinaire :
+  // l'oracle se raccorde au refus nommé de `prepareSearch`/
   // `searchBuilds`/`runSearchToCompletion`/`runPairSlice` sur le même
   // contexte.
   if (relicContext.mode === 'recherche' && relicContext.vide) {
@@ -252,8 +251,8 @@ export function oracleSearch(
 
 /**
  * La fusion des N runs — PARTAGÉE entre `oracleSearch` (les N `searchBuilds`
- * dans ce processus, la forme du lot 4, celle des tests) et l'orchestrateur
- * de B.6 (`scripts/relic-differentiel.ts` : un processus par run, résultats
+ * dans ce processus, la forme des tests) et l'orchestrateur
+ * du différentiel de fidélité (`scripts/relic-differentiel.ts` : un processus par run, résultats
  * relus depuis un JSON). Une seule fusion, une seule convention d'ex æquo
  * (score, puis `rid` croissant), jamais deux.
  */
@@ -289,8 +288,8 @@ export function fusionnerRunsOracle(
   const candidats = ordre.map((cle) => fusion.get(cle)!);
   // ⚠️ L'optimum se classe par `OracleCandidate.score` — la note qui porte
   // l'apport de la relique retenue —, jamais par `sortCandidates`, qui
-  // renotait sans l'effet unique et pouvait désigner un autre build
-  // (degats-et-aura 6bis-b6, constat C4). Ex æquo : `rid` croissant, puis
+  // renotait sans l'effet unique et pouvait désigner un autre build.
+  // Ex æquo : `rid` croissant, puis
   // ordre d'insertion — la convention de la fusion ci-dessus.
   let optimum: OracleCandidate | null = null;
   for (const c of candidats) {
@@ -300,18 +299,18 @@ export function fusionnerRunsOracle(
 }
 
 /**
- * Point d'entrée réutilisable par B.6 :
+ * Point d'entrée réutilisable par le différentiel de reliques :
  * `npx tsx scripts/lib/relicOracle.ts --case=<index> [--relic-main=<libre|100|101|102>] [--relic-type=<libre|1..16>] [--relic-min-upgrade=<0..15>] [--export-dir=<dossier>]`
  * ou `npx tsx scripts/lib/relicOracle.ts <export.json> <recette.json> [--rta] [--siege=<deckId>[:defense]]`.
  * Un appel exécute une seule mesure (les N runs), dans le processus courant ;
  * la sortie porte la complétude de chaque run.
  */
 /**
- * Un point de mesure : les `SearchParams` de production, le contexte G résolu
+ * Un point de mesure : les `SearchParams` de production, le contexte relique résolu
  * UNE fois, le contexte de dégâts, et de quoi nommer le point. PARTAGÉ entre
- * ce CLI et l'orchestrateur de B.6 (`scripts/relic-differentiel.ts`) — un
- * seul chargement pour l'oracle et pour A, jamais deux lectures des trois
- * champs (garantie G).
+ * ce CLI et l'orchestrateur du différentiel de reliques
+ * (`scripts/relic-differentiel.ts`) — un seul chargement pour l'oracle et
+ * pour A, jamais deux lectures des trois champs.
  */
 export interface PointOracle {
   params: SearchParams;
@@ -325,7 +324,7 @@ export interface PointOracle {
   // différentiel les neutralise comme l'écran quand la paire est figée.
   lignesVerrouillees: LigneVerrouillee[];
   /**
-   * Le contexte de l'assiette `Y` des propriétés uniques (lot 7) — le
+   * Le contexte de l'assiette `Y` des propriétés uniques — le
    * `DamageSetup` et l'élément de l'espèce, construits ICI, une fois, pour
    * que l'ORACLE et l'OPTION A partent du même. ⚠️ Indépendant de
    * `realDamage` : « État de mon monstre » agit sur tous les objectifs, et un
@@ -337,19 +336,18 @@ export interface PointOracle {
 
 /**
  * La paire d'artéfacts de RÉFÉRENCE désignée explicitement
- * (`--paire-reference=<id>,<id>`, forme recette seulement — lot 6 bis) :
+ * (`--paire-reference=<id>,<id>`, forme recette seulement) :
  * remplace `params.artifacts`, la paire représentative de `resolveArtifacts`,
  * quand celle-ci ne décrit pas le domaine que le différentiel doit comparer.
  *
  * ⚠️ Pourquoi : `paireRepresentative` choisit la meilleure paire AU SENS DU
  * RÉGIME sur l'équipement porté — en PV effectifs avec une principale ATQ
  * forcée, toutes les paires sont ex æquo avec la paire VIDE, qui sort la
- * première (relevé du lot 6 bis, Shihwa : `[]`). Le différentiel fige cette
- * paire des DEUX côtés (B.6 amendé, point 2) ; vide, elle rend infaisable
+ * première (relevé sur Shihwa : `[]`). Le différentiel fige cette
+ * paire des DEUX côtés ; vide, elle rend infaisable
  * tout build dont le minimum d'ATQ dépend de l'apport +100 × 2 que
- * `artifactBounds.possibles` a pourtant admis à la recherche — le cas 3 (c)
- * de la revue externe de l'outil F (« choisir et archiver explicitement la
- * paire de référence »). L'option ne touche ni `artifactBounds` (le domaine
+ * `artifactBounds.possibles` a pourtant admis à la recherche : la paire de
+ * référence se choisit et s'archive explicitement. L'option ne touche ni `artifactBounds` (le domaine
  * de la recherche) ni la recette : elle s'archive avec la commande du point.
  *
  * Contrôles, refus nommé sinon (jamais une paire partielle silencieuse) :
@@ -385,7 +383,7 @@ export function paireDeReference(ids: readonly number[], inventaire: readonly Ar
  * Charge un point depuis un `argv` : forme `--case=<i> [--relic-main=]
  * [--relic-type=] [--relic-min-upgrade=] [--export-dir=]` (l'intention vient
  * du MÊME parseur que `perf-battery`, `parseOptionsRelique` ; sans option
- * relique : `libre/libre/+6`, la forme du lot 4 — `equipped` y est refusé,
+ * relique : `libre/libre/+6`, la forme des tests — `equipped` y est refusé,
  * un oracle à N = 1 sur l'équipée est le moteur lui-même), ou forme
  * `<export> <recette> [--rta] [--siege=<deckId>[:defense]]
  * [--paire-reference=<id>,<id>]` (`paireDeReference` ci-dessus).
@@ -488,7 +486,7 @@ export function relicOracleCli(): void {
   try {
     resultat = oracleSearch(params, contexte, { realDamage, exclusive });
   } catch (e) {
-    // Refus NOMMÉ du moteur (pool de reliques vide en mode recherche, D1) :
+    // Refus NOMMÉ du moteur (pool de reliques vide en mode recherche) :
     // imprimé tel quel, comme `optimizer-search.ts`, jamais présenté comme
     // « 0 build ».
     if (e instanceof RechercheRefusee) {

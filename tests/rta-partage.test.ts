@@ -162,7 +162,7 @@ export default function testRtaPartage() {
   egal(rapport.warnings, [], 'et aucun avertissement — la relique porte bien id et upgrade');
 
   // ⚠️ Aller-retour toSnapshot → encodeSnapshot → validateRtaImport : `id` et
-  // `upgrade` sont non optionnels dans `RelicDetail` (lot 1), ils doivent donc
+  // `upgrade` sont non optionnels dans `RelicDetail`, ils doivent donc
   // arriver entiers chez le lecteur — pas seulement `main`/`unique`.
   egal(
     rapport.snapshot!.entries.find((e) => e.com2usId === 15214)?.gear?.relic,
@@ -570,7 +570,7 @@ export default function testRtaPartage() {
   egal(
     { id: avecRelique.snapshot!.entries[0].gear?.relic?.id, upgrade: avecRelique.snapshot!.entries[0].gear?.relic?.upgrade },
     { id: 34315, upgrade: 11 },
-    'relique partagée : id et upgrade arrivent aussi (non optionnels depuis le lot 1)'
+    'relique partagée : id et upgrade arrivent aussi (non optionnels)'
   );
 
   // ⚠️ Un fichier exporté AVANT cette version porte `relic.sub = { code, value }`
@@ -603,7 +603,7 @@ export default function testRtaPartage() {
     'ancien fichier : type et tranche relus, aucun pourcentage inventé'
   );
 
-  // ⚠️ Un lien émis AVANT `75f073f` (lot 1) ne porte ni `id` ni `upgrade` sur
+  // ⚠️ Un lien émis AVANT `75f073f` ne porte ni `id` ni `upgrade` sur
   // la relique — `RelicDetail` les exige pourtant. La relique est alors
   // IGNORÉE avec un avertissement, jamais fabriquée avec `undefined` : le
   // reste de l'équipement (runes, artéfacts) traverse quand même.

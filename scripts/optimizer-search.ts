@@ -3,8 +3,8 @@
 // src/lib/optimizerRecipe.ts), sur un export de compte réel — sans jamais
 // retranscrire les réglages à la main. Ferme la boucle ouverte par
 // l'investigation du cas Sonia : la recette vient de l'écran, pas d'une
-// reconstruction manuelle sujette aux mêmes erreurs de fidélité que celles
-// rencontrées cette session-là (voir le skill algo-verify).
+// reconstruction manuelle sujette à des erreurs de fidélité (voir le skill
+// algo-verify).
 //
 // Usage : optimizer-search.ts <export.json> <recipe.json> [--rta] [--siege=<deckId>[:defense]] [--resoudre-tout]
 //   --rta   : charge le monstre depuis son preset RTA (favoris/runé RTA) au
@@ -16,7 +16,7 @@
 //             l'écran (l'ordre de base jusqu'à 300 combinaisons confirmées en
 //             mode relique « recherche », 100 sinon, et lignes imprimées).
 //             Exhaustif, mais jusqu'à des dizaines de minutes avec des
-//             artéfacts « Libre » (degats-et-aura 6bis-b5c).
+//             artéfacts « Libre ».
 // Un seul mode à la fois : sans `--rta` ni `--siege`, box (« Mon compte »).
 
 import { printMonsterSummary } from './lib/loadMonster';
@@ -122,7 +122,7 @@ for (const a of chargee.avertissements) console.warn(`⚠️ ${a}`);
 console.log(
   `Recette : ${recipe.monsterName} — sets ${recipe.requirement.sets.join('+')} — objectif ${recipe.objective} — ` +
     `métrique ${recipe.metric} — préfiltrage ${recipe.slotFilterPreset} — ` +
-    `piste B ${recipe.adaptiveTrancheWeighting ? 'ON' : 'off'} — exclure les runes déjà utilisées ${
+    `prioriser les stats les plus difficiles ${recipe.adaptiveTrancheWeighting ? 'ON' : 'off'} — exclure les runes déjà utilisées ${
       recipe.excludeUsedRunes ? `ON (${recipe.excludeUsedScope})` : 'off'
     } — vérifier toutes les combinaisons trouvées ${toutVerifierDeLaRecette(recipe) ? 'ON' : 'off'}`
 );
@@ -202,18 +202,18 @@ if (recipe.objective === 'degats_reels') {
     const bonusAtqSeuil = monsterBonusSiAtqSeuil(detail);
     const critInterdit = monsterCritInterdit(detail);
     const scenarioEntreCoups = s.scenariosEffetsEntreCoups?.[profile.skillCom2usId];
-    // Blade Dancers (degats-et-aura 10b) : le cran d'ignore DEF RETENU par le
+    // Blade Dancers : le cran d'ignore DEF RETENU par le
     // calcul, dans la MÊME phrase que le résumé du sort à l'écran.
     const ignoreDefRetenu = resumeIgnoreDefRetenu(profile, s);
     // Séquence curée (Blade Surge) : la séquence ENTIÈRE et la cible calculée,
     // avec les textes mêmes de l'écran (`resumeSequenceDeCoups`,
     // `CIBLE_DEGATS_LABELS`) — `resolvedHits` et `aoe` ne décrivent que la
-    // donnée, jamais la séquence (degats-et-aura 8b).
+    // donnée, jamais la séquence.
     const sequence = profile.sequenceDeCoups;
     const cibleCalculee = cibleSecondairePriseEnCharge(profile.skillCom2usId)
       ? CIBLE_DEGATS_LABELS.find((c) => c.key === cibleDegatsRetenue(profile, s))?.label
       : undefined;
-    // Même règle que le résumé de l'écran (`coupsAffichesDuSort`, P5a3) : sans build
+    // Même règle que le résumé de l'écran (`coupsAffichesDuSort`) : sans build
     // ici, un coup en plus déduit de l'ATQ du build s'annonce en plage.
     const coupsAffiches = coupsAffichesDuSort(profile, s);
     console.log(
@@ -354,7 +354,7 @@ if (recipe.objective === 'degats_reels') {
         .map((p) => {
           const coups = ` [${resolvedHits(p.profile, s)} coup(s)]`;
           // L'état affiché est celui du CALCUL, `passifCompte` avec le sort
-          // RETENU (degats-et-aura 9b) — jamais `passifActif` seul, qui ignore
+          // RETENU — jamais `passifActif` seul, qui ignore
           // le sort. Un passif qui ne peut pas suivre ce sort dit pourquoi,
           // plutôt qu'un « désactivé » trompeur : lui-même choisi comme sort
           // (Tempest seul), ou slots déclencheurs curés qui l'excluent.
@@ -413,10 +413,10 @@ if (recipe.objective === 'degats_reels') {
 
 
 
-// Le contexte relique (lot 5a, garantie G) — la même ligne que le harnais
+// Le contexte relique — la même ligne que le harnais
 // (`diagnosticConfig.ts`) : en mode `recherche` les bornes sont RELÂCHÉES
 // et les candidats sortent SANS relique ; la relique de chaque build est
-// résolue après la recherche, comme la file de l'écran (6bis-b5c).
+// résolue après la recherche, comme la file de l'écran.
 {
   const rc = params.relicContext;
   if (rc) {
@@ -433,7 +433,7 @@ let result: ReturnType<typeof runSearchToCompletion>;
 try {
   result = runSearchToCompletion(params);
 } catch (e) {
-  // Refus NOMMÉ du moteur (pool de reliques vide en mode recherche, D1) :
+  // Refus NOMMÉ du moteur (pool de reliques vide en mode recherche) :
   // imprimé tel quel, jamais présenté comme « 0 build ».
   if (e instanceof RechercheRefusee) {
     console.error(`\n${e.message}`);
@@ -459,14 +459,14 @@ if (recipe.objective === 'degats_reels' && !realDamage) {
   console.warn(`⚠️ Aucun sort calculable pour ${loaded.monsterName} — le classement reste dans l'ordre de collecte.`);
 }
 const runeByIdPool = new Map(params.pool.map((r) => [r.id, r]));
-// ⚠️ Les producteurs MÊMES de l'écran (6bis-b5a, 6bis-b5c), assemblés dans
+// ⚠️ Les producteurs MÊMES de l'écran, assemblés dans
 // `classerCommeLEcran` (scripts/lib/classementCli.ts) : l'ordre de base
 // (`optionsDeClassement`), puis — là où l'écran a une file, optimisation
 // d'artéfacts active (`ignoreArtifacts` faux) — la résolution de
 // l'équipement et le classement de l'écran (`classementResolu`). Par défaut
 // comme la file de l'écran (`kDeLaFile` : l'ordre de base jusqu'à 300
-// combinaisons confirmées en mode relique « recherche », 100 sinon — 6bis-b18
-// —, et lignes imprimées, jusqu'au point fixe) ; tous les candidats avec
+// combinaisons confirmées en mode relique « recherche », 100 sinon,
+// et lignes imprimées, jusqu'au point fixe) ; tous les candidats avec
 // `--resoudre-tout`. Mode `recherche` : couple artéfacts/relique résolu
 // ensemble, couples infaisables rejetés ; sinon la paire seule, avec la
 // relique de la fiche.
@@ -512,7 +512,7 @@ if (resolu) {
 }
 console.log(`\nLes ${LIGNES_IMPRIMEES} meilleurs pour l'objectif « ${recipe.objective} » :`);
 // ⚠️ Le score affiché est `scoreDuCandidat` avec les options MÊMES du
-// classement (6bis-b4) : la valeur qui classe, jamais une formule recopiée.
+// classement : la valeur qui classe, jamais une formule recopiée.
 // Les sets actifs viennent d'`activeSets` et les activations d'aura propres
 // du même `aurasPropresDe` que le score — ce qui permet de lire, sur un vrai
 // compte, combien de sets d'aura CE build ajoute aux auras externes. Après
@@ -534,13 +534,12 @@ for (const c of classes.slice(0, LIGNES_IMPRIMEES)) {
 if (classes.length > LIGNES_IMPRIMEES) console.log(`  … et ${classes.length - LIGNES_IMPRIMEES} de plus.`);
 
 // ⚠️ Sous-produit GRATUIT de `pairBuckets` (voir spec/outils/optimizer/
-// near-miss-appariement.md) — jamais recalculé, seulement mis en forme.
+// moteur/diagnostics.md, « Quasi-succès à l'appariement ») — jamais recalculé, seulement mis en forme.
 // Rendu SEULEMENT quand rien n'a été trouvé : sinon rien à chercher.
 if (result.candidates.length === 0) {
   const runeById = new Map(params.pool.map((r) => [r.id, r]));
-  // ⚠️ Même vocabulaire que le bloc de blocages du harnais (« −15 suffit »)
-  // — décision explicite (2026-09-07) : un seul réflexe de lecture pour
-  // tout le diagnostic.
+  // ⚠️ Même vocabulaire que le bloc de blocages du harnais (« −15 suffit ») :
+  // un seul réflexe de lecture pour tout le diagnostic.
   const describe = (m: NearMiss) =>
     m.shortfalls
       .map((s) => {

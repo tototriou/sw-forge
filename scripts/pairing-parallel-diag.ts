@@ -27,8 +27,7 @@ import { PairingWorkerData, PairingWorkerResult } from './lib/pairing-worker';
 import { drain } from './lib/drain';
 
 // ── Bundling du worker, même patron que perf-battery.ts (répertoire par
-// RUN_ID pour ne jamais servir un bundle figé si la source a changé depuis —
-// voir « Suite — point 1 implémenté et mesuré », le bug de cache vécu). ──
+// RUN_ID pour ne jamais servir un bundle figé si la source a changé depuis). ──
 const RUN_ID = `${Date.now()}-${process.pid}`;
 const BUNDLE_DIR = join(tmpdir(), `swblacksmith-pairing-diag-${RUN_ID}`);
 async function ensureWorkerBundle(): Promise<string> {
@@ -61,7 +60,7 @@ const WORKER_COUNTS = [1, 2, 4, 8].filter((n) => n <= MAX_WORKERS);
 // n'a PAR DÉFINITION aucun plafond — donc aucun risque de troncature, quel
 // que soit le découpage. Mesure corrigée : budget de paires INFINI pour N=1
 // ET pour chaque worker à N>1 (vraie complétion, pas une approximation
-// plafonnée) — depuis la piste 8, ce budget n'existe plus du tout, il n'y a
+// plafonnée) — ce budget n'existe plus du tout, il n'y a
 // donc plus rien à neutraliser. Sur les 7 cas connus au préréglage Bas
 // (cap=40 — le plus
 // rapide à atteindre l'épuisement réel, seul moyen de couvrir les 7 cas en

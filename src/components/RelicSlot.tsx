@@ -8,7 +8,7 @@ import { ZoneCliquable } from '../ui';
 // à son deuxième usage (carte candidat de l'Optimizer, voir
 // [BuildCandidateCard.tsx](src/components/outils/BuildCandidateCard.tsx)) plutôt
 // que recopié, même principe que [ArtifactSlots.tsx](src/components/ArtifactSlots.tsx)
-// et [RuneWheel.tsx](src/components/RuneWheel.tsx) (implementation-relique, B.5c bis).
+// et [RuneWheel.tsx](src/components/RuneWheel.tsx).
 //
 // ⚠️ **Emplacement TOUJOURS affiché**, jamais absent : grisé « aucune » sans
 // relique (équipement fixe), grisé « en attente » tant que la file n'a pas
@@ -18,9 +18,9 @@ import { ZoneCliquable } from '../ui';
 // ⚠️ `encadre=false` dans un `Flottant`, qui pose déjà bord + fond + coins
 // arrondis — voir `PieceDetailBox`, même règle.
 // ⚠️ `count` : occupation par `rid` (`relicUsageById`, calculée à l'import,
-// accountStore.ts) — D3, AFFICHÉE jamais bloquante. `undefined` : appelant
-// qui n'a pas cette donnée (RTA, Siège — hors périmètre de ce lot), aucune
-// ligne rendue plutôt qu'un chiffre inventé (implementation-relique, B.5c ter).
+// accountStore.ts) — AFFICHÉE jamais bloquante. `undefined` : appelant
+// qui n'a pas cette donnée (RTA, Siège), aucune
+// ligne rendue plutôt qu'un chiffre inventé.
 export function RelicDetailBox({
   relic,
   count,
@@ -57,13 +57,12 @@ export interface RelicSlotProps {
   // La relique à afficher dans l'emplacement — `undefined` : case grisée
   // « aucune » (équipement fixe sans relique, comme `MonsterGear`).
   relic: RelicDetail | undefined;
-  // La file n'a pas encore résolu ce build (`etatReliqueDuBuild`, relicQueue.ts,
-  // implementation-relique B.5c/5c bis) : case grisée « en attente », rien de
+  // La file n'a pas encore résolu ce build (`etatReliqueDuBuild`, relicQueue.ts) : case grisée « en attente », rien de
   // cliquable — `relic` est alors ignoré (toujours `undefined` en pratique).
   enAttente?: boolean;
   selected?: boolean;
   onToggle?: () => void;
-  // Sous la case (implementation-relique, B.5c bis) : « relique sans effet sur
+  // Sous la case : « relique sans effet sur
   // ce tri » / « relique équipée exclue par le filtre » — état `resolue` de
   // `etatReliqueDuBuild` seulement.
   marques?: string[];

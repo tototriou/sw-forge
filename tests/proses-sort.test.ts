@@ -1,4 +1,4 @@
-// degats-et-aura 11bis — les proses de sort au CLIC, sur les deux formats.
+// Les proses de sort au CLIC, sur les deux formats.
 //
 // Deux vérifications, sur la source (le dépôt n'a pas d'infrastructure de test
 // React, voir tests/run.mjs) :
@@ -33,7 +33,7 @@ function entre(source: string, debut: string, fin: string): string {
 }
 
 export function testProsesSortAuClic() {
-  titre('Prose de sort au clic — l’axe `actionTitre` d’Option, hors du bouton principal (degats-et-aura 11bis)');
+  titre('Prose de sort au clic — l’axe `actionTitre` d’Option, hors du bouton principal');
 
   const option = sansCommentaires(lire('src/ui/Option.tsx'));
   ok(/\n\s*actionTitre\?: ReactNode;\n/.test(option), 'Option : axe `actionTitre?: ReactNode`');
@@ -68,7 +68,7 @@ export function testProsesSortAuClic() {
   ok(!/title=\{s\.description/.test(carte), 'plus aucun `title={s.description…}` dans la carte');
   const sorts = entre(carte, '{skills.map((s) => {', '{champCoupsVariables(');
   ok(sorts.length > 0, 'précondition : la liste des cases de sort');
-  // Deux `title=` depuis le lot P3 : celui de la prose et celui de « Calcul
+  // Deux `title=` : celui de la prose et celui de « Calcul
   // partiel » — deux titres de bulle, aucun survol.
   egal((sorts.match(/\btitle=/g) ?? []).length, 2, 'cases de sort : deux `title=`, ceux des deux HelpPopover (titres de bulle, pas un survol)');
   ok(/<HelpPopover title=\{s\.nom\} ariaLabel=\{`Description de \$\{s\.nom\}`\}>\s*\{s\.description\}\s*<\/HelpPopover>/.test(sorts),
@@ -83,7 +83,7 @@ export function testProsesSortAuClic() {
 }
 
 export function testEffetsActifsInfobulle() {
-  titre('« Effets actifs » — l’infobulle dérivée des descriptions des vignettes (degats-et-aura 11bis)');
+  titre('« Effets actifs » — l’infobulle dérivée des descriptions des vignettes');
 
   const carte = sansCommentaires(lire('src/components/outils/DamageSetupCard.tsx'));
   const bulle = carte.match(/<HelpPopover title="Effets actifs">([\s\S]*?)<\/HelpPopover>/)?.[1] ?? '';

@@ -58,7 +58,7 @@ import {
 } from '../../src/lib/runeBuildOptim';
 // ⚠️ Les DEUX fonctions que `pairBuckets` appelle pour décider d'accepter une
 // paire, prises TELLES QUELLES — l'étage 0 du build cible ne recopie aucune
-// règle de compatibilité de sets (§6.3 du cadrage).
+// règle de compatibilité de sets.
 import { activeSets } from '../../src/lib/effects';
 import { missingSets } from '../../src/lib/recoMatch';
 import { PARALLEL_PAIRING_THRESHOLD } from '../../src/workers/parallelPairing';
@@ -157,14 +157,14 @@ interface Passage {
   /** Coût interne à chaque fil : diagnostic du DÉSÉQUILIBRE entre moitiés. */
   msDemiBuildA?: number;
   msDemiBuildB?: number;
-  /** §4.1 bis — relevé mémoire de fin de fil, un tas par moitié. */
+  /** Relevé mémoire de fin de fil, un tas par moitié. */
   memoireA?: MemoireMoitie;
   memoireB?: MemoireMoitie;
-  /** §4.2 (A₂) — les intervalles bruts entre `BuildingProgress`. OPT-IN. */
+  /** A₂ — les intervalles bruts entre `BuildingProgress`. OPT-IN. */
   progressionA?: ProgressionMoitie;
   progressionB?: ProgressionMoitie;
   msAppariement: number;
-  /** §5.6 — l'instant de découverte et la courbe. Absent sans cible complète. */
+  /** L'instant de découverte et la courbe. Absent sans cible complète. */
   decouverte?: ObservateurDecouverte;
   msTotal: number;
 }
@@ -180,7 +180,7 @@ export interface OptionsHarnais {
   arretApres?: ArretApres;
   suivre?: number[];
   blocages?: boolean;
-  /** §4.2 (A₂) — OPT-IN, voir `ConfigHarnais.horodaterProgression`. */
+  /** A₂ — OPT-IN, voir `ConfigHarnais.horodaterProgression`. */
   horodaterProgression?: boolean;
   repetitions?: number;
 }
@@ -194,7 +194,7 @@ export interface OptionsHarnais {
  * compte et la recette sur le disque, qui ont pu changer entre-temps. Le
  * palier 1 pouvait alors décrire une configuration qui n'est PAS celle qui
  * s'exécute, sans que rien ne le dise — c'est-à-dire exactement la garantie
- * que le §5 du cadrage existe pour donner (« challenger la configuration
+ * que le palier 1 existe pour donner (« challenger la configuration
  * d'un run AVANT de le laisser tourner vingt minutes »).
  *
  * En mode synthétique le pool était reconstruit une seconde fois ; la seed
@@ -241,7 +241,7 @@ async function deroulerHarnais(
         bundleMoities,
         bundleTranches,
         options.horodaterProgression ?? false,
-        // §5.6 — la découverte n'a de sens qu'avec les SIX identifiants, la
+        // La découverte n'a de sens qu'avec les SIX identifiants, la
         // même condition d'entrée que `verdictBuildCible` juste en dessous.
         (options.suivre ?? []).length === 6 ? options.suivre! : null
       )
@@ -251,7 +251,7 @@ async function deroulerHarnais(
   // sont identiques par construction (mêmes paramètres, même pool) SAUF
   // l'ordre de collecte en régime parallèle, qui dépend de l'ordonnancement
   // des fils — c'est précisément pourquoi forcer le séquentiel est l'outil
-  // de la reproductibilité (§7.1).
+  // de la reproductibilité.
   const dernier = passages[passages.length - 1];
 
   const resultat: ResultatHarnais = {
@@ -281,7 +281,7 @@ async function deroulerHarnais(
   // et elle doit être rendue même sur une configuration invalide ou un arrêt
   // dans la préparation : c'est elle qui empêche d'attribuer au moteur une
   // absence causée par l'ENTRÉE. Déclenchée par SIX identifiants suivis,
-  // sans option séparée — même extension du suivi générique (§6.1 bis) que
+  // sans option séparée — même extension du suivi générique que
   // `detailDemiBuilds` pour trois.
   if ((options.suivre ?? []).length === 6) {
     resultat.admissibiliteBuildCible = admissibiliteBuild(options.suivre!, resolue.params);
@@ -297,7 +297,7 @@ async function deroulerHarnais(
     // ⚠️ `prepareSearch` renvoie `null` quand un emplacement est VIDE après
     // filtrage. Ce n'est pas un verdict sur le build : c'est une
     // configuration qui ne peut rien produire, et le dire — avec sa CAUSE —
-    // est tout l'objet du §6.2 (« jamais un 0 candidat nu »).
+    // est tout l'objet de la complétude (« jamais un 0 candidat nu »).
     resultat.completude = {
       complet: false,
       explored: 0,
@@ -313,8 +313,8 @@ async function deroulerHarnais(
   }
 
   // ⚠️ **Les temps sont rendus AUSSI sur un arrêt DANS la préparation.** Ce
-  // retour tombait auparavant AVANT l'agrégation : le harnais mesurait la
-  // préparation — N fois si `--repetitions` le demandait — puis JETAIT les N
+  // retour agrège les temps AVANT de rendre : sinon le harnais mesurerait la
+  // préparation — N fois si `--repetitions` le demande — puis JETTERAIT les N
   // relevés. `--arret=filterslot`, qui est le point d'arrêt naturel de la
   // question « que produit la préparation, et à quel prix ? », ne répondait
   // qu'à la première moitié.
@@ -347,7 +347,7 @@ async function deroulerHarnais(
   // ⚠️ Déclenché AUTOMATIQUEMENT, sans option séparée : dès que `--suivre`
   // porte exactement les 3 runes d'UNE moitié (3 emplacements distincts,
   // 1-3 ou 4-6), c'est un demi-build suivi — extension naturelle du suivi
-  // générique (§6.1 bis) plutôt qu'une deuxième surface de configuration.
+  // générique plutôt qu'une deuxième surface de configuration.
   // ⚠️ Les deux moitiés sont résolues UNE fois : `detailDemiBuilds` (le rang
   // lisible) et l'étage 4 (la paire de compartiments à évaluer) doivent
   // parler des mêmes trios, sans quoi ils pourraient se contredire.
@@ -379,7 +379,7 @@ async function deroulerHarnais(
 
   resultat.completude = evaluerCompletude(dernier.resultat!, dernier.totalPairs!, resolue.params);
   if (dernier.resultat!.traceur) resultat.traceCandidat = dernier.resultat!.traceur;
-  // Le résultat brut, entier — voir `ResultatHarnais.brut` (lot 6 bis).
+  // Le résultat brut, entier — voir `ResultatHarnais.brut`.
   resultat.brut = dernier.resultat;
 
   // ⚠️ Le classement complet n'est payé que s'il sert : un `--arret=appariement`
@@ -396,14 +396,14 @@ async function deroulerHarnais(
   // ── ÉTAGES 4-5 du build cible : la paire a-t-elle été explorée, et à quel
   // RANG la cible sort-elle ? ⚠️ Le rang est pris sur `classes`, la liste
   // ENTIÈRE — jamais sur le top rendu ci-dessous, qui est déjà coupé.
-  // ── §5.7 : la dispersion par tranche, LUE sur la fonction du moteur.
+  // ── La dispersion par tranche, LUE sur la fonction du moteur.
   if (dernier.prepared && dernier.prepared.retentionKeys.length > 0 && dernier.bucketsA) {
     resultat.dispersionTranches = (['A', 'B'] as const).map((moitie) =>
       dispersionTranches(moitie, dernier.prepared!, resolue.params.adaptiveTrancheWeighting === true)
     );
   }
 
-  // ── §5.6 : QUAND la cible est apparue, et à quel rythme les candidats se
+  // ── QUAND la cible est apparue, et à quel rythme les candidats se
   // sont accumulés. ⚠️ Lu sur le DERNIER passage, comme tout le reste des
   // grandeurs non temporelles — et rendu avec ses trois marques, jamais nu.
   if (dernier.decouverte && dernier.totalPairs != null) {
@@ -441,7 +441,7 @@ async function deroulerHarnais(
     resultat.faisabilite.blocages = evaluerBlocages(resolue.params);
   }
   // ⚠️ Sous-produit GRATUIT de `pairBuckets` (voir spec/outils/optimizer/
-  // near-miss-appariement.md) — jamais recalculé, seulement mis en forme.
+  // moteur/diagnostics.md, « Quasi-succès à l'appariement ») — jamais recalculé, seulement mis en forme.
   // Rendu SEULEMENT quand `meilleurs` est vide : sinon rien à chercher.
   if (resultat.meilleurs.length === 0) {
     resultat.quasiSucces = evaluerQuasiSucces(dernier.resultat!, resolue);
@@ -464,7 +464,7 @@ export async function executerHarnais(config: ConfigHarnais): Promise<ResultatHa
 }
 
 /* --------------------------------------------------------------------------
- * Taux de rétention de la CONSTRUCTION — §4.1 des extensions
+ * Taux de rétention de la CONSTRUCTION
  * ----------------------------------------------------------------------- */
 
 /**
@@ -495,13 +495,13 @@ function retentionConstruction(taillesParEtage: TaillesParEtage[], combosA: numb
 }
 
 /**
- * ⚠️ **La règle du §4.4, imprimée AVEC le résultat** — pas laissée à la
- * prose du cadrage, au même titre que l'`avertissementComparaison` qui
+ * ⚠️ **La règle d'interprétation, imprimée AVEC le résultat** — pas laissée
+ * à une prose à part, au même titre que l'`avertissementComparaison` qui
  * accompagne déjà toute mesure de temps. « Resserre sans démontrer » est
  * une formulation trop faible : ce taux peut produire une causalité FAUSSE.
  */
 /* --------------------------------------------------------------------------
- * Cartographie de l'ÉLAGAGE — §4.2 des extensions (A₂, A-INSTRUMENTÉ)
+ * Cartographie de l'ÉLAGAGE (A₂, A-INSTRUMENTÉ)
  * ----------------------------------------------------------------------- */
 
 /**
@@ -512,12 +512,12 @@ function retentionConstruction(taillesParEtage: TaillesParEtage[], combosA: numb
  * `yield` n'est ajouté, rien de `src/` n'est touché — mais « A » ne veut pas
  * dire « sans coût » : il y a un `performance.now()` par rune extérieure
  * dans le worker, le périmètre exact de l'horloge doit voyager avec les
- * chiffres, et le surcoût doit être MESURÉ (§4.6), jamais argumenté.
+ * chiffres, et le surcoût doit être MESURÉ, jamais argumenté.
  *
  * ⚠️ **Rien n'est recalculé** : les intervalles viennent du fil qui a
  * réellement construit la moitié, `runesExterieures` est le `total` annoncé
  * par `BuildingProgress`, et le diviseur arithmétique est pris sur le MÊME
- * tableau `filtered` que le taux de rétention (§4.1) — donc sur le pool qui
+ * tableau `filtered` que le taux de rétention — donc sur le pool qui
  * est réellement entré dans `buildBuckets`.
  */
 function progressionConstruction(
@@ -556,7 +556,7 @@ function moitieRendue(brut: ProgressionMoitie, interieurs: number[]): Progressio
 }
 
 /**
- * ⚠️ **JAMAIS un scalaire** — c'est la raison d'être d'A₂ depuis l'option (b).
+ * ⚠️ **JAMAIS un scalaire** — c'est la raison d'être d'A₂.
  * Une moyenne écraserait une série possiblement BIMODALE (une rune extérieure
  * dont l'élagage coupe tout au premier test, une autre qui force une
  * exploration profonde) ; c'est cette dispersion qui dit *où* `buildBuckets`
@@ -603,11 +603,10 @@ function distributionIntervalles(intervalles: number[], classes = 12): Distribut
 
 /**
  * ⚠️ **La phrase la plus importante d'A₂, et elle part DANS LA SORTIE.**
- * L'instrument a été CONSERVÉ (option b, tranchée le 2026-09-08) alors qu'il
- * ne répond PAS à la question qui l'avait fait proposer. Sans cette phrase,
- * quelqu'un lira un temps par rune élevé côté A comme « A est plus lent » —
- * conclusion que ces chiffres n'autorisent pas, et classe d'erreur que tout
- * ce chantier existe pour empêcher.
+ * L'instrument est CONSERVÉ bien qu'il ne réponde PAS à la question qui
+ * l'avait fait proposer. Sans cette phrase, quelqu'un lira un temps par
+ * rune élevé côté A comme « A est plus lent » — conclusion que ces chiffres
+ * n'autorisent pas, et classe d'erreur que ce harnais existe pour empêcher.
  */
 const AVERTISSEMENT_PORTEE_A2 =
   '⚠️ A₂ NE DÉPARTAGE PAS L’ASYMÉTRIE A/B — IL EN EST INCAPABLE. Le temps par rune extérieure MÉLANGE ' +
@@ -616,7 +615,7 @@ const AVERTISSEMENT_PORTEE_A2 =
   'distribution dit, et pour quoi elle est ici : OÙ `buildBuckets` coupe — une série à deux bosses ' +
   'signale des runes extérieures dont l’élagage tombe au premier test à côté d’autres qui forcent une ' +
   'exploration profonde. C’est une information sur la TOPOLOGIE du pool, jamais un verdict de performance. ' +
-  'Ce qui trancherait l’asymétrie A/B reste le compteur exact d’énumération (niveau C, §4.3).';
+  'Ce qui trancherait l’asymétrie A/B reste le compteur exact d’énumération (niveau C).';
 
 /**
  * ⚠️ **Le périmètre de l'horloge, imprimé avec la mesure** — sans quoi ces
@@ -634,9 +633,9 @@ const PERIMETRE_HORLOGE_A2 =
 
 /**
  * ⚠️ **A₂ est AUTO-VÉRIFIANT — le coût ne s'argumente pas, il se mesure.**
- * Mesuré le 2026-09-08 sur les 7 cas réels de `perfShared.ts`, préréglage
+ * Mesuré sur les 7 cas réels de `perfShared.ts`, préréglage
  * « Moyen » (80), `--arret=demi-builds`, protocole ENTRELACÉ (témoin, A₂,
- * témoin, A₂…) × 5, estimateur = MINIMUM. Détail : §4.6 des extensions.
+ * témoin, A₂…) × 5, estimateur = MINIMUM.
  *
  * ⚠️ **Le différentiel ne conclut RIEN, et c'est le résultat.** Les 14
  * écarts (7 cas × 2 moitiés) vont de −9,6 % à +11,0 %, 7 négatifs et 7
@@ -646,7 +645,7 @@ const PERIMETRE_HORLOGE_A2 =
  * borne arithmétique, qui elle tranche.
  */
 const COUT_INSTRUMENTATION_A2 =
-  '⚠️ COÛT DE L’INSTRUMENTATION, MESURÉ (2026-09-08) — pas argumenté. Différentiel entrelacé sur les 7 cas ' +
+  '⚠️ COÛT DE L’INSTRUMENTATION, MESURÉ — pas argumenté. Différentiel entrelacé sur les 7 cas ' +
   'réels (préréglage « Moyen », 5 répétitions, estimateur = minimum) : les 14 écarts vont de −9,6 % à ' +
   '+11,0 %, moyenne −0,4 %, et CHACUN tombe sous son propre plancher de bruit (2,3 % à 46,9 %) — sept ' +
   'd’entre eux sont NÉGATIFS, ce qui prouve qu’on mesure sous le plancher plutôt que de démontrer un coût ' +
@@ -678,7 +677,7 @@ const REGLE_INTERPRETATION_RETENTION =
   'demi-builds retenus, ni de la probabilité que l’optimum survive.';
 
 /**
- * §4.1 bis — ⚠️ **Caveat OBLIGATOIRE, imprimé AVEC la mesure**, de la même
+ * ⚠️ **Caveat OBLIGATOIRE, imprimé AVEC la mesure**, de la même
  * classe que la note de plateforme sur les temps. Un chiffre de mémoire
  * détaché de cette phrase se relit comme une prédiction de ce que vit
  * l'utilisateur, ce qu'il n'est pas.
@@ -717,8 +716,8 @@ function evaluerQuasiSucces(resultat: SearchResult, resolue: ConfigResolue): Non
  * de la fenêtre chronométrée de `prepareSearch` : `temps.preparation` n'est donc
  * pas un temps de `prepareSearch` PUR, et personne ne savait de combien. Le
  * mesurer depuis un script demandait de pouvoir appeler **exactement ce
- * corps-là** — retaper une copie aurait mesuré la copie, l'incident fondateur
- * de la discipline « fidélité des scripts de diagnostic ». Inline et non
+ * corps-là** — retaper une copie aurait mesuré la copie, la classe d'erreur que
+ * la discipline « fidélité des scripts de diagnostic » existe pour empêcher. Inline et non
  * exporté, c'était impossible ; nommé, ça devient une mesure honnête.
  */
 export interface RelevePreparation {
@@ -760,7 +759,7 @@ export function releverPreparation(): RelevePreparation {
 }
 
 /**
- * §5.7 — la dispersion par tranche d'une moitié.
+ * La dispersion par tranche d'une moitié.
  *
  * ⚠️ **Aucun calcul ici.** Tout vient de `trancheReallocation`, la fonction
  * que `buildBuckets` appelle lui-même : le harnais rend LE nombre du moteur,
@@ -871,8 +870,8 @@ function rendreDecouverte(
  * l'observateur de découverte a eu besoin de la même question. Deux copies
  * auraient pu diverger sans qu'aucune erreur `tsc` ne le dise — et le harnais
  * aurait alors trouvé la cible par une règle à lui, pas par celle qui décide
- * du rang. C'est l'incident fondateur de la discipline « fidélité des scripts
- * de diagnostic », appliqué au harnais lui-même.
+ * du rang. C'est la classe d'erreur que la discipline « fidélité des scripts
+ * de diagnostic » existe pour empêcher, appliquée au harnais lui-même.
  *
  * L'ordre des identifiants est indifférent : `pairBuckets` assemble une moitié
  * A et une moitié B, l'ordre dans `runeIds` suit les emplacements, jamais
@@ -886,14 +885,14 @@ export function estLeBuildCible(candidat: { runeIds: number[] }, cibles: number[
  * Les jalons de la courbe de rendement, en % de `totalPairs`.
  *
  * ⚠️ **Les mêmes que ceux de `combos-order-mode-real-account-diag`**, dont
- * cette extension reprend la grandeur (§5.6) : garder les jalons identiques
+ * cette extension reprend la grandeur : garder les jalons identiques
  * est ce qui permet de comparer un relevé du harnais à ceux déjà consignés
  * dans l'historique, au lieu de repartir de zéro.
  */
 export const JALONS_RENDEMENT = [1, 5, 10, 25, 50, 75, 100];
 
 /**
- * L'observateur de DÉCOUVERTE — §5.6.
+ * L'observateur de DÉCOUVERTE.
  *
  * ⚠️ **Niveau A-passif au sens strict** : il lit les `PairingProgress` que
  * `pairBuckets` émet DÉJÀ, n'ajoute aucun `yield`, n'appelle aucune fonction
@@ -952,7 +951,7 @@ class ObservateurDecouverte {
    * point de passage peut tomber APRÈS que la cible soit entrée dans les
    * candidats : sans ce rattrapage sur le résultat FINAL, une cible trouvée
    * entre deux points de passage serait rendue « jamais vue » — une absence
-   * fabriquée, exactement ce que le §5.1 interdit.
+   * fabriquée, exactement ce que le verdict du build cible interdit.
    */
   cloturer(resultat: SearchResult): void {
     // ⚠️ L'`explored` FINAL vient du résultat, jamais du dernier point de
@@ -989,12 +988,12 @@ async function unPassage(
   arretApres: ArretApres,
   cheminBundleMoities: string | null,
   cheminBundleTranches: string | null,
-  /** §4.2 (A₂). ⚠️ `false` par défaut : l'instrument se paie, il s'assume. */
+  /** A₂. ⚠️ `false` par défaut : l'instrument se paie, il s'assume. */
   horodaterProgression = false,
-  /** §5.6 — les SIX identifiants du build cible, ou `null` : sans cible, rien à découvrir. */
+  /** Les SIX identifiants du build cible, ou `null` : sans cible, rien à découvrir. */
   cibleComplete: number[] | null = null
 ): Promise<Passage> {
-  // ⚠️ Le traceur (lot 5a) est un instrument de diagnostic posé sur une COPIE
+  // ⚠️ Le traceur est un instrument de diagnostic posé sur une COPIE
   // des paramètres — la recette reste la vérité prod ; sans cible complète,
   // `resolue.params` passe tel quel.
   const params: SearchParams = cibleComplete ? { ...resolue.params, traceur: { runeIds: cibleComplete } } : resolue.params;
@@ -1053,7 +1052,7 @@ async function unPassage(
   if (arretApres === 'demi-builds') return passage;
 
   // ── Phase C : appariement, par le chemin que la production emprunterait.
-  // ⚠️ L'observateur de découverte (§5.6) n'existe que si une cible COMPLÈTE
+  // ⚠️ L'observateur de découverte n'existe que si une cible COMPLÈTE
   // est suivie : `null` sinon, et le chemin repasse par `drain`, strictement
   // inchangé — l'instrument ne se paie que quand il sert.
   const observateur = cibleComplete ? new ObservateurDecouverte(cibleComplete, totalPairs) : null;
@@ -1142,7 +1141,7 @@ function drainEnObservant(
 }
 
 /**
- * §6.3 — ce que le moteur PROUVE impossible.
+ * Ce que le moteur PROUVE impossible.
  *
  * ⚠️ **Réutiliser, jamais recopier**, et surtout conserver la sémantique des
  * deux fonctions : `diagnoseFeasibility` produit une PREUVE sur une stat
@@ -1196,7 +1195,7 @@ function evaluerBlocages(params: SearchParams): NonNullable<Faisabilite['blocage
 }
 
 /**
- * §6.2 — POURQUOI la configuration ne peut rien produire.
+ * POURQUOI la configuration ne peut rien produire.
  *
  * ⚠️ « Emplacement 3 vide » n'est pas un diagnostic : ça se lit comme une
  * limite de l'algorithme. La cause la plus fréquente ne l'est pas du tout —
@@ -1382,13 +1381,13 @@ function localiserDemiBuild(runeIds: number[], buckets: Bucket[]): { compartimen
 }
 
 /* --------------------------------------------------------------------------
- * ÉTAGES 4-5 du build cible — la PAIRE et le RANG — §5.1 des extensions
+ * ÉTAGES 4-5 du build cible — la PAIRE et le RANG
  * ----------------------------------------------------------------------- */
 
 /**
  * ⚠️ **Les prédicats sont ceux du moteur, appelés — jamais retapés.**
  * `satisfiesSets`, `bucketPairFeasibleMin` et `comboAFeasible` ont été
- * EXPORTÉS pour ce seul usage (§11.2 des extensions, tranché ici) : les
+ * EXPORTÉS pour ce seul usage : les
  * réécrire côté harnais aurait mesuré la copie, et une copie qui diverge du
  * moteur ressemble EXACTEMENT à un vrai bug du moteur.
  *
@@ -1498,7 +1497,7 @@ function appariementBuildCible(
 }
 
 /* --------------------------------------------------------------------------
- * ÉTAGE 0 du build cible — l'ADMISSIBILITÉ À L'ENTRÉE — §5.1 des extensions
+ * ÉTAGE 0 du build cible — l'ADMISSIBILITÉ À L'ENTRÉE
  * ----------------------------------------------------------------------- */
 
 /**
@@ -1510,7 +1509,7 @@ function appariementBuildCible(
  * exactement l'erreur commise avec l'autorité d'un diagnostic que le n° 6
  * existe pour empêcher.
  *
- * ⚠️ **Aucune règle recopiée** (§6.3, « réutiliser, jamais recopier ») :
+ * ⚠️ **Aucune règle recopiée** (« réutiliser, jamais recopier ») :
  * - l'admissibilité par emplacement est LUE sur `mainStatFilteredBySlot`, la
  *   fonction de production qui applique le verrou de rune ET la statistique
  *   principale imposée — et qui documente être « le point le plus AMONT du
@@ -1600,13 +1599,13 @@ export function admissibiliteBuild(runeIds: number[], params: SearchParams): Adm
 }
 
 /* --------------------------------------------------------------------------
- * LE VERDICT du build cible — §5.1 des extensions
+ * LE VERDICT du build cible
  * ----------------------------------------------------------------------- */
 
 /**
  * L'ÉTAT FACTUEL de la complétude — motif, `explored / totalPairs`,
  * incohérence. ⚠️ **Il part avec CHAQUE verdict, sans exception et sans
- * condition** : c'est la moitié non négociable du garde-fou du §5.1.
+ * condition** : c'est la moitié non négociable du garde-fou du verdict.
  *
  * ⚠️ La CONSÉQUENCE, elle, n'est pas ici : elle dépend du verdict rendu, et
  * chaque branche écrit la sienne (voir `Divergence.consequence`). Une phrase
@@ -1813,12 +1812,11 @@ function divergence(
 }
 
 /* --------------------------------------------------------------------------
- * Complétude — §6.2
+ * Complétude
  * ----------------------------------------------------------------------- */
 
 /**
- * ⚠️ **Le motif se LIT quand le résultat le porte** (`motifTroncature`,
- * depuis degats-et-aura 6bis-b7) : c'est le cas du résultat fusionné du
+ * ⚠️ **Le motif se LIT quand le résultat le porte** (`motifTroncature`) : c'est le cas du résultat fusionné du
  * régime parallèle, le seul qui puisse être tronqué par le quota d'UNE
  * tranche (`quotaTranche`) avec moins de candidats que le plafond global. Le
  * déduire ici rendait « maxMs » — faux.
@@ -1841,11 +1839,11 @@ export function evaluerCompletude(resultat: SearchResult, totalPairs: number, pa
   // deux comptages a divergé de l'autre, ce qui est tout aussi grave.
   const incoherent = annonceComplet && resultat.explored < totalPairs;
   const completude: Completude = {
-    // ⚠️ **`complet` et `incoherence` ne peuvent PLUS être vrais ensemble.**
-    // Le harnais disait auparavant, dans le même objet, « la recherche est
-    // complète » ET « elle n'a pas exploré tout l'espace » : un lecteur JSON
-    // qui teste `complet` était trompé, et c'est le genre de contradiction
-    // qu'un outil de diagnostic commet avec l'autorité d'un diagnostic.
+    // ⚠️ **`complet` et `incoherence` ne peuvent JAMAIS être vrais ensemble.**
+    // Dire dans le même objet « la recherche est
+    // complète » ET « elle n'a pas exploré tout l'espace » tromperait un
+    // lecteur JSON qui teste `complet` : c'est le genre de contradiction
+    // qu'un outil de diagnostic commettrait avec l'autorité d'un diagnostic.
     complet: annonceComplet && !incoherent,
     // ⚠️ **Aucun motif FABRIQUÉ dans le cas incohérent.** On sait que la
     // recherche n'est pas complète ; on ne sait PAS pourquoi — la déduction
@@ -1868,7 +1866,7 @@ export function evaluerCompletude(resultat: SearchResult, totalPairs: number, pa
 }
 
 /* --------------------------------------------------------------------------
- * Suivi d'une pièce — §6.1
+ * Suivi d'une pièce
  * ----------------------------------------------------------------------- */
 
 /**
@@ -1894,7 +1892,7 @@ export function suivrePiece(id: number, population: RuneDetail[], etages: EtageP
 }
 
 /* --------------------------------------------------------------------------
- * Temps — §6.4 bis
+ * Temps
  * ----------------------------------------------------------------------- */
 
 export function serie(valeurs: number[]): SerieTemps {
@@ -1932,9 +1930,9 @@ export function serie(valeurs: number[]): SerieTemps {
  * Le harnais observe la préparation étage par étage, et ce travail tombe DANS
  * son chronomètre : `temps.preparation` n'est pas un `prepareSearch` pur. Le
  * dire sans le chiffrer aurait laissé le lecteur estimer l'écart lui-même —
- * exactement ce que le §4.6 refuse pour A₂. Il est donc MESURÉ.
+ * exactement ce que le harnais refuse pour A₂. Il est donc MESURÉ.
  *
- * Protocole (2026-09-08, 7 cas connus, préréglage « moyen ») : différentiel
+ * Protocole (7 cas connus, préréglage « moyen ») : différentiel
  * ENTRELACÉ témoin/observé × 7, estimateur minimum, PLUS un chronométrage
  * direct de `releverPreparation().observateur` — la fonction de production du
  * harnais elle-même, jamais une copie — sur les vrais `bySlot` capturés,
@@ -1989,7 +1987,7 @@ function agregerTemps(passages: Passage[], arretApres: ArretApres, construite: b
 }
 
 /* --------------------------------------------------------------------------
- * Classement — §3, phase D
+ * Classement, phase D
  * ----------------------------------------------------------------------- */
 
 /**
@@ -2009,7 +2007,7 @@ export const TAILLE_TOP_RENDU = 20;
  *
  * ⚠️ **« Dégâts réels » exige son contexte** (sort, passifs, adversaire),
  * construit comme le CLI (`buildRealDamageContext`, `optimizer-search.ts`).
- * Il manquait ici jusqu'à degats-et-aura 6bis-b4 : `sortCandidates` laisse
+ * Sans ce contexte, `sortCandidates` laisse
  * alors l'ordre de COLLECTE, sans lever — et la sortie annonçait « classés
  * par sortCandidates » un top 20 qui n'était pas classé.
  */
@@ -2023,8 +2021,8 @@ export function classer(
     resolue.recette && resolue.monstre
       ? buildRealDamageContext(resolue.recette, resolue.monstre.com2usId, resolue.params.artifacts)
       : null;
-  // ⚠️ Le producteur MÊME du CLI et de l'écran (`optionsDeClassement`,
-  // 6bis-b5a), avec les mêmes choix que le CLI : paire de `params.artifacts`
+  // ⚠️ Le producteur MÊME du CLI et de l'écran (`optionsDeClassement`),
+  // avec les mêmes choix que le CLI : paire de `params.artifacts`
   // pour tous, relique de la fiche (`params.relic`) en `off`/`equipped`,
   // neutre en `recherche` (aucune résolution par build ici non plus).
   const setup = resolue.recette?.damageSetup ?? DEFAULT_DAMAGE_SETUP;
@@ -2034,7 +2032,7 @@ export function classer(
     runeById,
     metric: resolue.params.metric,
     damageSetup: setup,
-    // Auras propres des six runes de chaque candidat (6bis-b2), comme l'écran.
+    // Auras propres des six runes de chaque candidat, comme l'écran.
     aurasPropresDe: aurasPropresParRunes(runeById),
     artefactsDuBuild: () => null,
     etatReliqueDe: () => etatReliqueDuBuild(undefined, resolue.params.relicContext, resolue.params.relic),

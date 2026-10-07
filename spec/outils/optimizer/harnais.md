@@ -3,7 +3,7 @@
 **Statut :** ÉTAT ACTUEL — mode d'emploi du harnais de diagnostic de l'Optimizer et ce qu'il garantit, avec le code qui porte chaque garantie
 **Lire si :** on diagnostique une recherche (une rune, un demi-build, un « 0 résultat », une configuration, un temps) ou on modifie `scripts/lib/diagnosticHarness.ts` et ses voisins
 **Ne pas lire si :** on cherche seulement les règles en bref : invariants.md § Harnais
-**Voir aussi :** invariants.md, verification.md, README.md
+**Voir aussi :** harnais-extensions.md, harnais-scripts.md, invariants.md, verification.md, README.md
 
 Le harnais rejoue une recherche de l'Optimizer en Node et dit ce qu'elle a
 fait : configuration appliquée, survie d'une rune étage par étage, régime,
@@ -13,7 +13,8 @@ production et ne réimplémente **aucune** étape algorithmique
 ad hoc, qui reconstruit à la main des morceaux du pipeline et en dérive sans
 que rien ne le signale. Ses contraintes sont résumées dans
 invariants.md § Harnais ; ce fichier en est la source et dit où le code porte
-chacune (`fichier:lignes`).
+chacune (`fichier:lignes`). [harnais-extensions.md](harnais-extensions.md)
+décrit le reste : construction observée, build cible, différentiel.
 
 ## Les scripts du harnais
 
@@ -299,7 +300,8 @@ Après l'appariement, `evaluerCompletude`
   à `explored` sans troncature, vérifié par `tests/rune-optim-differential.test.ts`).
   Le harnais affiche toujours `explored / totalPairs` ; un run annoncé complet
   qui n'a pas tout exploré sort INCOHÉRENT, sans motif inventé — jamais
-  `complet` avec une incohérence.
+  `complet` avec une incohérence. Ne pas remplacer `complet` par un statut
+  à plusieurs valeurs : l'API testée changerait de type pour ce que dit déjà `incoherence`.
 - **Une configuration invalide n'est pas un verdict.** Un emplacement vide
   fait rendre `null` à `prepareSearch` : le harnais dit « préparation
   impossible » et nomme la cause lue dans le verrou et le pool
@@ -363,7 +365,7 @@ Toute mesure suit le skill `optimizer-perf-testing`
 Le harnais ne choisit pas : une fois les moitiés construites,
 `totalPairs = totalPairCount(prepared, bucketsA, bucketsB)` ; à partir de
 `PARALLEL_PAIRING_THRESHOLD` (100 M de paires, `src/workers/parallelPairing.ts:58`),
-appariement parallèle sur 4 workers, sinon séquentiel
+appariement parallèle sur au plus 4 workers, sinon séquentiel
 (`scripts/lib/diagnosticHarness.ts:1046-1051`) — la règle de
 `src/workers/runeBuildOptim.worker.ts:330-341`. Le régime s'affiche avec sa
 raison, « comme la production pour ce cas »

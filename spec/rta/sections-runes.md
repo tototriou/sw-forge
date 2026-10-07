@@ -214,8 +214,8 @@ Comme en **vue compacte du siège**, le panneau de détail (`MonsterGear`) s'ouv
     Précision** (`CAPPED_STATS` dans [effects.ts](src/lib/effects.ts)) qui
     passent en **rouge** (`text-red-500`, pas le jeton `bad` — voir la
     surbrillance du sélecteur de set dans
-    [outils/optimizer.md](../outils/optimizer.md) pour le même choix et sa
-    raison) dès que leur TOTAL atteint 100 % — leur plafond réel en jeu. Un
+    [outils/optimizer/ecran/set-et-principale.md](../outils/optimizer/ecran/set-et-principale.md)
+    pour le même choix et sa raison) dès que leur TOTAL atteint 100 % — leur plafond réel en jeu. Un
     bonus de +30 % isolé n'est pas « au plafond » en soi, c'est la somme avec
     la base qui peut l'être : le rouge n'apparaît donc qu'en mode Total,
     jamais sur la colonne bonus seule.

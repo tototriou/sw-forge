@@ -1,6 +1,5 @@
 // Résolution EXACTE de l'équipement d'UN build : la paire d'artéfacts ET la
-// relique, ensemble (implementation-relique, lot 5b — garantie G,
-// « consommation »).
+// relique, ensemble (« consommation »).
 //
 // ⚠️ **Pourquoi ensemble, et pas la relique après la paire.** La principale
 // d'une relique est un POURCENTAGE qui entre dans `computeStats` AVANT les
@@ -9,12 +8,12 @@
 // noterait un couple qui n'existe pas. Chaque candidate reçoit SES paires,
 // classées par le régime effectif avec ses stats à elle.
 //
-// ⚠️ **L'ordre du contrat est absolu** (B.5b, rév. 6 BLOC-1 — l'ordre
+// ⚠️ **L'ordre du contrat est absolu** (l'ordre
 // « meilleur puis filtre » perdait un build) : énumérer les éligibles →
 // remplacer `relic` → stats exactes du couple → éliminer par
 // `respecteConditionsAvecRelique` (minimums ET maximums) → noter par le régime
 // effectif → meilleur couple FAISABLE → aucun faisable = build rejeté. Jamais
-// deux notes indépendantes (D6) : la note d'un couple est le `score` que
+// deux notes indépendantes : la note d'un couple est le `score` que
 // `chercherPaires` lui a donné par `evaluer` — le régime effectif, construit
 // sur les stats AVEC la candidate — et rien d'autre.
 //
@@ -42,7 +41,7 @@ import { DamageSetup, aurasPropresDesRunes } from './damage';
 
 /**
  * Ce que la résolution de PLUSIEURS builds peut partager sans changer un
- * résultat (degats-et-aura 6bis-b13) : le profil de dégâts de chaque paire
+ * résultat : le profil de dégâts de chaque paire
  * (`CacheProfilsParPaire`, qui ne dépend que des deux pièces) et les
  * candidats élagués de chaque sorte (`MemoPreFiltre`, sur leurs entrées
  * réelles). Les deux sont bornés.
@@ -69,7 +68,7 @@ export function nouveauxCachesResolution(): CachesResolution {
  * relic: relique })`) — c'est l'appelant qui possède le régime effectif et le
  * contexte de dégâts (`evaluerPourRegime`, surcharges : pas de repli
  * silencieux). Hors mode `recherche`, il est appelé avec `gear.relic` : la
- * portée, exactement comme avant ce lot.
+ * portée.
  */
 export interface EntreeResolution {
   // Le build : base, ses 6 runes, les artéfacts PORTÉS, la relique PORTÉE
@@ -79,9 +78,8 @@ export interface EntreeResolution {
   /**
    * Le prédicat de conformité hors mode `recherche` —
    * `respecteConditionsPaireFixe` : les minimums, plus les seuls maximums
-   * RES/PRE, auras propres du build et toggle compris (degats-et-aura lot 6
-   * puis 6bis-b3a). Les autres maximums restent hors de ce filtre (T11,
-   * défaut préexistant côté artéfacts, hors chantier). `null` = aucune de ces
+   * RES/PRE, auras propres du build et toggle compris. Les autres maximums
+   * restent hors de ce filtre (défaut préexistant côté artéfacts, hors chantier). `null` = aucune de ces
    * conditions posée (`conditionsPaireFixePosees`), toute paire convient.
    */
   respecteConditions: ((artefacts: ArtifactDetail[]) => boolean) | null;
@@ -89,19 +87,18 @@ export interface EntreeResolution {
   // `recherche` seulement (`respecteConditionsAvecRelique`).
   requirement: Pick<BuildRequirement, 'minStats' | 'maxStats' | 'auraResPre'>;
   // Le régime effectif est-il `aucun` (Efficience, Vitesse, VIT, TC, DCC,
-  // RES, PRE) ? La relique n'a alors aucun effet sur le tri : contrat de B.3
+  // RES, PRE) ? La relique n'a alors aucun effet sur le tri 
   // (équipée si candidate et faisable, sinon première par `id`).
   regimeAucun: boolean;
   // Le régime effectif est-il `hp`, `atk` ou `def` ? La paire et la relique y
   // sont notées sur la fiche, sans l'effet unique : deux reliques de même
   // principale sont ex æquo, et la PORTÉE l'emporte si elle est parmi les
-  // meilleures (`bestRelicForBuild`, `departagePortee` — degats-et-aura
-  // 6bis-b9). Obligatoire, pour que `tsc` signale un constructeur oublié.
+  // meilleures (`bestRelicForBuild`, `departagePortee`). Obligatoire, pour que `tsc` signale un constructeur oublié.
   regimeDeStat: boolean;
   // Le contexte canonique de la recherche dont ce build est issu (garantie
-  // G) — jamais recalculé ici. Absent : chemin écran d'avant le lot 5c.
+  // G) — jamais recalculé ici. Absent : la relique portée reste fixe, rien n'est résolu.
   relicContext: RelicContext | undefined;
-  // Les caches partagés entre builds (6bis-b13) : le memo du préfiltre sert
+  // Les caches partagés entre builds : le memo du préfiltre sert
   // à chaque `chercherPaires` de la résolution. Absent : tout se recalcule.
   caches?: CachesResolution | null;
 }
@@ -111,16 +108,16 @@ function artefactsDe(p: PaireArtefacts): ArtifactDetail[] {
 }
 
 /**
- * Le chemin d'AVANT ce lot, relique FIXE (`gear.relic`) : la meilleure paire
+ * Le chemin relique FIXE (`gear.relic`), hors mode `recherche` : la meilleure paire
  * au score, la première CONFORME si un minimum est posé — recopié de
  * `useArtifactOptimQueue.tranche()` tel qu'il était, pour que le chemin écran
- * sans contexte reste byte-identique (fait relevé au brief, rév. 26).
+ * sans contexte reste byte-identique.
  */
 function resoudreReliqueFixe(e: EntreeResolution, relique: RelicDetail | undefined): ResultatArtefacts {
   // ⚠️ TOUTES les paires, pas seulement la meilleure — il faut la meilleure
   // QUI TIENT LES MINIMUMS, pas la meilleure tout court. `pairesParScore` les
   // rend dans l'ordre de `chercherPaires`, et ne trie l'ensemble que si la
-  // meilleure ne convient pas (6bis-b13).
+  // meilleure ne convient pas.
   const r = pairesParScore(e.faireParams(relique), e.caches?.preFiltre);
   // Parcours par score DÉCROISSANT, arrêt à la première conforme : dans le cas
   // courant c'est la première, et on ne recalcule les stats que pour les
@@ -166,9 +163,9 @@ interface CoupleFaisable {
 /**
  * L'équipement de CE build : sa paire et sa relique, résolues ensemble.
  *
- * Hors mode `recherche` (contexte absent — chemin écran avant 5c —, `off`,
- * `equipped`) : la relique portée est fixe, la file ne résout que la paire,
- * comportement d'avant. En mode `recherche` : le contrat des sept étapes
+ * Hors mode `recherche` (contexte absent, `off`,
+ * `equipped`) : la relique portée est fixe, la file ne résout que la paire.
+ * En mode `recherche` : le contrat des sept étapes
  * (en-tête).
  *
  * ⚠️ **Aucun couple faisable → `conforme: false`**, le build est rejeté par
@@ -180,11 +177,11 @@ export function resoudreEquipementDuBuild(e: EntreeResolution): ResultatArtefact
   const ctx = e.relicContext;
   if (ctx?.mode !== 'recherche') return resoudreReliqueFixe(e, e.gear.relic);
 
-  // (1) Le pool résolu de B.3, transporté par 5a — jamais recalculé ici.
+  // (1) Le pool résolu, transporté par le contexte — jamais recalculé ici.
   const candidates = ctx.eligibles;
   // Vide en mode `recherche` = la recherche a été REFUSÉE en amont
   // (`prepareSearch`) et n'a produit aucun candidat : arriver ici est une
-  // incohérence, jamais un « build sans relique » silencieux (D1).
+  // incohérence, jamais un « build sans relique » silencieux.
   if (candidates.length === 0) throw new RechercheRefusee(ctx.vide ?? 'inventaire');
 
   const parRelique = new Map<number, CoupleFaisable>();
@@ -197,7 +194,7 @@ export function resoudreEquipementDuBuild(e: EntreeResolution): ResultatArtefact
     (relique) => {
       // (2) La candidate REMPLACE la portée (jamais un cumul) : les paires
       // sont classées avec les stats qui l'incluent.
-      // Par score décroissant, triées seulement au-delà de la première (6bis-b13).
+      // Par score décroissant, triées seulement au-delà de la première.
       const r = pairesParScore(e.faireParams(relique), e.caches?.preFiltre);
       for (const p of r.paires) {
         const arts = artefactsDe(p);
@@ -219,8 +216,8 @@ export function resoudreEquipementDuBuild(e: EntreeResolution): ResultatArtefact
     },
     // (6) Le meilleur couple faisable entre candidates — ex æquo : `id`
     // croissant (`bestRelicForBuild`, la même convention que l'oracle),
-    // sauf en régime de stat, où la portée passe d'abord (6bis-b9) ;
-    // régime `aucun` : contrat de B.3.
+    // sauf en régime de stat, où la portée passe d'abord ;
+    // régime `aucun`.
     { regimeAucun: e.regimeAucun, equipee: ctx.equipee, departagePortee: e.regimeDeStat }
   );
 
@@ -238,7 +235,7 @@ export function resoudreEquipementDuBuild(e: EntreeResolution): ResultatArtefact
   }
 
   const retenu = parRelique.get(meilleure.relique.id)!;
-  // Garde DÉFENSIVE (rév. 5 C1, requalifiée rév. 7 CORR-4) : la faisabilité
+  // Garde DÉFENSIVE : la faisabilité
   // s'est décidée à l'étape (4) ; le couple retenu la repasse — un échec ici
   // est un bug, pas un filtre.
   if (!respecteConditionsAvecRelique({ ...e.gear, artifacts: retenu.artefacts }, meilleure.relique, e.requirement).respecte) {
@@ -260,8 +257,7 @@ export function resoudreEquipementDuBuild(e: EntreeResolution): ResultatArtefact
  * l'ordre de `runeIds` (emplacements 1 à 6) ; une rune absente de l'index est
  * omise.
  *
- * ⚠️ **Le seul producteur des deux résolutions de l'écran** (degats-et-aura
- * 6bis-b13bis-c) : la directe (`resoudreEquipement`, argument `runes` de
+ * ⚠️ **Le seul producteur des deux résolutions de l'écran** : la directe (`resoudreEquipement`, argument `runes` de
  * `entreeResolutionDuBuild`) et celle hors du fil (`resolutionHorsFil.runesDe`,
  * dont les runes voyagent avec chaque demande au Worker). Deux expressions
  * recopiées pouvaient diverger sans qu'aucun test le voie : la revue du Worker
@@ -277,7 +273,7 @@ export function runesDuBuild(c: Pick<BuildCandidate, 'runeIds'>, runeById: Reado
  * l'écran l'assemble — le producteur que l'écran (`resoudreEquipement`,
  * OptimizerSection.tsx) et le CLI (`resoudreEquipementCli`,
  * recipeToSearchParams.ts) appellent tous deux, pour que la résolution du
- * CLI soit celle de l'écran par construction (degats-et-aura 6bis-b5c).
+ * CLI soit celle de l'écran par construction.
  *
  * - `fiche` : l'équipement de la fiche (`selected.gear`, `loaded.gear`) — sa
  *   base, ses artéfacts et sa relique PORTÉS ; seules ses runes sont
@@ -285,13 +281,13 @@ export function runesDuBuild(c: Pick<BuildCandidate, 'runeIds'>, runeById: Reado
  * - `artifactParams` : le contexte de choix des paires (`artifactParams` de
  *   l'écran, `artefactsDuCli` au CLI) ; son `evaluer` est REMPLACÉ ici.
  * - `regime` : le régime EFFECTIF (`regimeEquipement`), le même pour la paire
- *   ET la relique (D7 : un seul régime pour l'équipement complet) — jamais un
+ *   ET la relique (un seul régime pour l'équipement complet) — jamais un
  *   contexte de dégâts optionnel silencieusement absorbé par le helper.
  * - `requirement` : les conditions AVEC auras (`avecAurasConditions`).
- * - `relicContext` : celui de la recherche LANCÉE (garantie G : jamais une
+ * - `relicContext` : celui de la recherche LANCÉE (jamais une
  *   relecture des trois champs de l'écran).
  * - `caches` : ceux de la file (`nouveauxCachesResolution`), partagés par tous
- *   ses builds — obligatoire, `null` pour tout recalculer (6bis-b13), pour
+ *   ses builds — obligatoire, `null` pour tout recalculer, pour
  *   que `tsc` signale un producteur qui n'a pas choisi.
  */
 export function entreeResolutionDuBuild(e: {
@@ -310,7 +306,7 @@ export function entreeResolutionDuBuild(e: {
   // les stats du monstre, donc comparer des paires sur un autre build
   // comparerait des scores faux.
   const gear: GearSet = { ...e.fiche, runes: e.runes };
-  // ⚠️ Les auras propres de CE candidat (6bis-b2), résolues sur les mêmes
+  // ⚠️ Les auras propres de CE candidat, résolues sur les mêmes
   // runes que `gear` : chaque paire et chaque relique essayées pour lui
   // sont notées avec elles, puis la paire et la relique retenues.
   const propres = aurasPropresDesRunes(gear.runes);
@@ -330,9 +326,9 @@ export function entreeResolutionDuBuild(e: {
   const conditionsPosees = conditionsPaireFixePosees(e.requirement);
   return {
     gear,
-    // ⚠️ `relique` : la candidate que la résolution exacte (lot 5b) essaie
+    // ⚠️ `relique` : la candidate que la résolution exacte essaie
     // pour ce build — elle REMPLACE la portée dans les stats qui notent chaque
-    // paire (garantie G, jamais un cumul). Hors mode `recherche`, la
+    // paire (jamais un cumul). Hors mode `recherche`, la
     // résolution passe la portée elle-même.
     faireParams: (relique) => {
       // ⚠️ **UN seul `computeStats` par build et par relique, pas un par
@@ -342,16 +338,17 @@ export function entreeResolutionDuBuild(e: {
       // calculent une fois et chaque paire ne coûte plus que trois additions
       // (voir `statsParPaire`).
       const statsAvec = statsParPaire({ ...gear, relic: relique });
-      // ⚠️ Le canal exclusive (lot 7) : la candidate qu'on essaie, plus le
+      // ⚠️ Le canal exclusive : la candidate qu'on essaie, plus le
       // contexte de son assiette `Y`. C'est la MÊME note qui choisit la
       // paire, choisit la relique et classe — jamais un score d'exclusive
-      // ajouté après coup (D6).
+      // ajouté après coup.
       const exclusive = { relique, setup: e.exclusive.setup, element: e.exclusive.element };
       // ⚠️ **La paire se choisit sur le critère RÉELLEMENT regardé** (le
       // régime effectif), pas sur une somme de statistiques principales —
       // voir `evaluerPourRegime` (`artifactEvaluation.ts`). Sur Efficience et
       // Vitesse (régime `'aucun'`), il n'y a RIEN à maximiser : le seul
-      // travail qui compte est la faisabilité (§12.6 d'artefacts.md).
+      // travail qui compte est la faisabilité (spec/outils/optimizer/moteur/
+      // artefacts.md § Régime de la paire).
       const evaluer =
         e.regime === 'degats_reels'
           ? evaluerPourRegime(e.regime, statsAvec, propres, e.degats!, exclusive, e.caches?.profils)
@@ -373,7 +370,7 @@ export function entreeResolutionDuBuild(e: {
  * La relique équipée est-elle EXCLUE du pool cherché (principale, type ou
  * seuil) ? Le candidat le porte (« relique équipée exclue par le filtre ») :
  * la meilleure relique admissible peut alors légitimement noter moins que
- * l'équipée — non-régression CONDITIONNELLE (rév. 4, MAJ-3), la version
+ * l'équipée — non-régression CONDITIONNELLE, la version
  * artéfacts de l'invariant suppose l'équipée admissible.
  */
 export function reliqueEquipeeExclue(ctx: RelicContext | undefined): boolean {
@@ -383,7 +380,7 @@ export function reliqueEquipeeExclue(ctx: RelicContext | undefined): boolean {
 }
 
 /**
- * L'état de la relique d'un candidat, tel que l'écran (5c) l'affiche — lu
+ * L'état de la relique d'un candidat, tel que l'écran l'affiche — lu
  * dans le cache de la file, jamais recalculé.
  *
  * - `fixe` : pas de dimension relique (contexte absent, `off`, `equipped`) —

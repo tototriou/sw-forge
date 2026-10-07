@@ -1,7 +1,7 @@
 // PARITÉ — le harnais de diagnostic contre les 6 scripts qu'il remplace.
 //
-// C'est le niveau 1 de la validation à trois niveaux du cadrage
-// (spec/outils/optimizer/harnais-diagnostic.md §8) : « mêmes nombres que les
+// C'est le niveau 1 de la validation à trois niveaux
+// (spec/outils/optimizer/harnais.md, « Validation du harnais ») : « mêmes nombres que les
 // 6 scripts sur leurs cas, ÉCARTS ATTENDUS DOCUMENTÉS là où l'ancien script
 // était faux ».
 //
@@ -16,8 +16,10 @@
 //     `guaranteedMin` ni `artFlatMin`, et borne l'apport d'artéfact à la
 //     paire FIGÉE du monstre au lieu de ce que l'inventaire peut donner.
 //     Ses bornes sont donc plus PESSIMISTES : elle élimine des runes qui
-//     peuvent en réalité entrer dans un build valide. C'est exactement la
-//     dette du §12.15 d'artefacts.md.
+//     peuvent en réalité entrer dans un build valide. C'est l'écart entre
+//     une borne sur la paire figée et une borne sur ce que l'inventaire peut
+//     donner (spec/outils/optimizer/moteur/artefacts.md, « Bornes d'apport
+//     pendant la recherche »).
 //
 // ⚠️ **La reconstruction ci-dessous est une COPIE LITTÉRALE de l'ancien
 // code** (`monster-search-pipeline-diag.ts`), y compris son `totalOf` maison
@@ -80,10 +82,10 @@ function pipelineHistorique(
   // d'une rune sur le cas Ciri (objectif `ehp`) qui ne venait PAS de la
   // correction mesurée — un faux positif produit par l'oracle lui-même.
   objective: Parameters<typeof filterSlot>[5],
-  // Les reliques équipables de la recherche du HARNAIS (6bis-b3c) : la
+  // Les reliques équipables de la recherche du HARNAIS : la
   // dominance protège l'effet unique de chacune.
   reliques: readonly RelicDetail[],
-  // Les stats des lignes 218–221 de la recherche du HARNAIS (6bis-b3d-1),
+  // Les stats des lignes 218–221 de la recherche du HARNAIS,
   // même provenance que `reliques`.
   lignes: ReadonlySet<StatKey>
 ): EtatsHistoriques {
@@ -140,7 +142,7 @@ async function comparerCas(index: number): Promise<boolean> {
 
   // Le harnais passe par une RECETTE — la source de vérité de l'écran. Elle
   // est fabriquée par `buildOptimizerRecipe`, donc réimportable telle quelle
-  // dans l'interface (§4.1 du cadrage).
+  // dans l'interface.
   // ⚠️ Le vrai `com2usId` du monstre chargé, pas un numéro de remplissage :
   // sinon `chargerRecette` avertit à chaque cas d'un désaccord qui n'existe
   // pas, et le bruit finirait par masquer un vrai désaccord.
@@ -179,7 +181,7 @@ async function comparerCas(index: number): Promise<boolean> {
     // RÉSOUT (recette → `recipeToSearchParams` : `equipped` si le monstre
     // porte une relique, sinon `recherche` sur l'inventaire) — la même
     // résolution que celle qu'il exécute, sinon l'étage `dominance` diverge
-    // entre les deux chemins (6bis-b3c). `executerHarnais` = cette résolution
+    // entre les deux chemins. `executerHarnais` = cette résolution
     // puis `executerHarnaisResolu`.
     const resolue = resoudreConfig(config);
     ancien = pipelineHistorique(allRunes, gear.base, requirement, statKeys, gear.artifacts, gear.relic, cap, c.objective,

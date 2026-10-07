@@ -19,13 +19,21 @@ ouvrir. Ne pas explorer `src/` à l'aveugle.
   `node scripts/spec-toc.mjs <fichier|dossier>` (sommaire compact : en-tête,
   puis niveau / plage de lignes / première phrase de chaque titre) puis la
   section utile — jamais un fichier entier de plus de 300 lignes sans raison
-  écrite. Avant un chantier Optimizer : `invariants.md` (en entier — le seul
-  fichier lu ainsi, tenu compact pour ça) et le README de routage, tous deux
-  dans `spec/outils/optimizer/`. **Modification NORMATIVE** d'un fichier
+  écrite. Avant un chantier Optimizer : `spec/outils/optimizer/invariants.md`
+  (en entier — le seul fichier lu ainsi, tenu compact pour ça) et le README
+  de routage, `spec/outils/optimizer/README.md`. **Modification NORMATIVE** d'un fichier
   listé en exception dans `spec/spec-lint.json`, ou extraction des
   invariants d'une section d'état actuel nouvelle/modifiée : skill
   `spec-hygiene` (déplacer, découper, extraire — pas pour une faute, un lien
   ou un en-tête).
+- **Public et privé.** Le dépôt est public : tout `spec/` l'est, et rien de
+  public ne renvoie aux notes privées du projet (ni chemin, ni nom de
+  dossier de notes). Restent privés le pilotage des chantiers, les
+  preuves, l'historique, les délibérations et les mesures sur des cas
+  réels. Dans le public : ni date hors date du jeu, ni identifiant de lot
+  ou de décision privée, ni « décision de l'utilisateur », ni récit ; la
+  règle et sa raison suffisent. Détail : spec/outillage/spec.md § Public
+  et privé.
 - **Pendant le travail, on ne lance QUE les vérifications de la zone touchée** :
   `node tests/run.mjs <filtre>` (ex. `node tests/run.mjs speed-tune`, plusieurs
   filtres possibles). La **suite complète** (`npm test`) est obligatoire **avant
@@ -125,13 +133,13 @@ recette pour demander un relevé en jeu exploitable.
 travaille jamais, on en part.
 
 - **Un hook `pre-commit` refuse cinq choses** : un commit sur `main`, un
-  chemin privé dans l'index (`.history/`, `.vscode/`), sous
-  `spec/outils/optimizer/` un fichier absent de
+  chemin privé dans l'index (`.history/`, `.vscode/`), dans le dossier de
+  l'Optimizer un fichier absent de
   `.githooks/optimizer-publics.txt` ou qui porte une marque de note privée
   (une spec publiée y ajoute sa ligne dans le même commit), un fichier de
   plus de 5 Mo (un export de compte), et un `spec/**.md` du périmètre de
   `spec/spec-lint.json` qui ne passe pas `spec-lint` (niveau 1, invariant
-  dépôt — spec/outillage/spec.md, ex-B.9, « Refus du `pre-commit` »).
+  dépôt — spec/outillage/spec.md § Refus du `pre-commit`).
   Il est **installé par machine**, donc actif quelle que soit la branche —
   mais jamais requis : un clone neuf n'en a pas et commite normalement.
   Il s'installe par `node scripts/installer-hooks.mjs` (`--simulation` pour
@@ -212,15 +220,18 @@ un message en ligne de `git commit`, `git merge` et `git tag` (`-m`, collé
 ou dans une grappe d'options courtes, `--message` ou son abréviation),
 derrière toute option globale de git, et rappelle la forme sûre de
 chacune, et refuse
-`node -e "…"` dont la chaîne contient un backtick ou un `$`. Raison d'être :
+`node -e "…"` dont la chaîne contient un backtick, un `$` ou une barre
+oblique inverse. Raison d'être :
 après des dizaines d'exemples réussis de la forme interdite,
 l'exemple pèse plus lourd qu'une règle lue au démarrage. Un refus au MOMENT de
 l'action ne dépend d'aucune vigilance.
 ⚠️ Le script est suivi par git, son **câblage** est dans `.claude/settings.json`
 (ignoré, propre à chaque machine) : à recopier pour en bénéficier.
 ⚠️ Portée **étroite et assumée** : `node -e`/`--eval`/`-p`/`--print` n'est
-refusé qu'en position de commande, avec un argument entre **guillemets
-doubles** contenant un backtick ou un `$`, même échappé ; entre apostrophes
+refusé qu'en position de commande, hors commentaire (`#` en début de mot,
+hors guillemets, jusqu'à la fin de la ligne), avec un argument entre
+**guillemets doubles** contenant un backtick, un `$` ou une barre oblique
+inverse (que bash réduit sans rien dire), même échappé ; entre apostrophes
 ou sans ces caractères, il passe. `gh pr create --body` n'est pas couvert.
 Couvrir la classe entière demanderait une analyse de quoting bash aux faux
 positifs permanents, `$(…)` étant une construction légitime. Test :
@@ -232,10 +243,12 @@ positifs permanents, `$(…)` étant une construction légitime. Test :
 lancé avec une option en place (`-i`, `-i.bak`, `-Ei`, `--in-place`, derrière
 `find -exec` ou `xargs` compris), jamais le texte « sed -i » cité ni un corps
 de heredoc. Raison d'être : un `sed -i` raté ne signale
-rien — décision de l'utilisateur du 2026-10-04. Test :
+rien. Test :
 `node tests/run.mjs hookrefusesedi`. Câblage dans `.claude/settings.json`
 (deux entrées : `Bash`, `PowerShell`), à recopier comme le premier. Côté
-Codex, non couvert.
+Codex, les deux parseurs de commande sont appelés par
+`scripts/hooks-codex-garde-fous.mjs`, après installation et approbation
+du hook personnel (`node scripts/installer-hooks.mjs --codex-hooks <hooks.json>`).
 
 ### Un `Read` sans offset sur une grosse spec est refusé
 
@@ -246,7 +259,8 @@ Codex, non couvert.
 d'être : même logique que `refuse-commit-m` — une consigne écrite (« jamais
 un fichier entier de plus de 300 lignes ») s'érode à l'usage, un refus au
 moment de l'action non. Portée **étroite et assumée** (niveau 2, garde-fou
-outil, pas invariant, spec/outillage/spec.md ex-B.9) : ne couvre ni `cat`
+outil, pas invariant, spec/outillage/spec.md § Niveaux d'application et
+garde-fous) : ne couvre ni `cat`
 ni un autre outil de lecture, seulement le chemin `Read` de Claude Code.
 Équivalent Codex dans `scripts/hooks-codex-garde-fous.mjs`, actif avec
 ou sans chantier (`node scripts/installer-hooks.mjs --codex-hooks

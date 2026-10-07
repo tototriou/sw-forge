@@ -1,7 +1,7 @@
 // `scripts/spec-toc.mjs` et l'extension de `spec-markdown.mjs` (plages,
 // en-tête, première phrase) qui le porte. Fixtures synthétiques pour chaque
-// cas de B.3, plus un passage sur `spec/outils/optimizer.md` réel : voir
-// `spec/outillage/spec.md`, ex-B.3.
+// cas de `spec-toc`, plus un passage sur `spec/outils/optimizer.md` réel : voir
+// `spec/outillage/spec.md`, « `spec-toc` ».
 
 import { execFileSync } from 'child_process';
 import { readFileSync } from 'fs';
@@ -71,7 +71,7 @@ export default function testSpecToc() {
   const brutLongue = lireFixture('avec-entete.md').split('\n').find((l) => l.startsWith('Ceci est'))!;
   egal(longue.premierePhrase, brutLongue.slice(0, 120), 'la troncature coupe la même phrase source, sans rien y ajouter');
 
-  titre('spec-toc · fichier sans en-tête normalisé (bootstrap, avant le lot 5)');
+  titre('spec-toc · fichier sans en-tête normalisé (bootstrap)');
 
   const sansEnTete = enTete(lireFixture('imbrique.md'));
   egal(sansEnTete, { statut: null, lireSi: null }, 'aucun en-tête normalisé — statut et lire si à null, pas une erreur');

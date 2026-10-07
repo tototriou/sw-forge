@@ -63,7 +63,8 @@ export interface StoredAccount {
   usedRuneIds: RunesUtilisees;
   // Occupation par rid de relique (nombre d'unités dont `relics[0].rid` vaut
   // ce rid) — calculée à l'import, jamais déduite de `relics.length` (une
-  // relique n'est pas exclusive, reliques.md § 1.2/§ 7). Même raison de
+  // relique n'est pas exclusive, spec/outils/optimizer/moteur/reliques.md
+  // § Ce que le moteur lit d'une relique). Même raison de
   // stockage que `usedRuneIds` : l'export brut n'est jamais conservé.
   relicUsageById: Record<number, number>;
   // Libellés des marqueurs de runes, numéro → texte saisi en jeu — voir

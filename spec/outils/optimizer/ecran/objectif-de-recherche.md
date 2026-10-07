@@ -130,7 +130,7 @@ Ce que contient ce réglage :
   « Coups variables ». Un champ **Attaques reçues avant ce sort**
   (0 par défaut) n'apparaît que pour l'unique sort connu dont le
   coefficient dépend d'un compteur de combat (Crawler/Frankenstein —
-  « Hammer Punch »). Détail : [degats-reels/catalogue-des-passifs.md#quatrième-vague--point-25--formule-bespoke-selon-un-compteur-crawler](../../degats-reels/catalogue-des-passifs.md#quatrième-vague--point-25--formule-bespoke-selon-un-compteur-crawler),
+  « Hammer Punch »). Détail : [degats-reels/catalogue-des-passifs.md#formule-selon-un-compteur-crawler](../../degats-reels/catalogue-des-passifs.md#formule-selon-un-compteur-crawler),
   « formule bespoke selon un compteur ». ⚠️ **L'ignore DEF des six
   sorts Blade Dancers se choisit** : ils n'ignorent la DEF qu'une fois
   la jauge d'attaque de la cible à 0, que l'app ne modélise pas. Pour
@@ -188,15 +188,19 @@ Ce que contient ce réglage :
   cible** (0 par défaut) n'apparaît que pour les rares sorts dont les
   dégâts augmentent par effet présent sur l'adversaire (Julie, Melissa)
   — l'app ne simule aucun effet réel sur la cible. Détail :
-  [degats-reels/catalogue-des-passifs.md#troisième-vague--points-4-et-5--bonus-selon-les-effets-sur-la-cible](../../degats-reels/catalogue-des-passifs.md#troisième-vague--points-4-et-5--bonus-selon-les-effets-sur-la-cible), « bonus selon les effets sur la
-  CIBLE ». ⚠️ **VIT adversaire** +
-  **leader skill VIT** : apparaissent pour un sort/passif qui dépend de
-  l'écart de vitesse (`{Relative SPD}`, ignore-DEF proportionnel à
-  l'écart, un monstre qui force le critique s'il est plus rapide, ou
-  majore tous ses dégâts selon cet écart — même quand le sort CHOISI ne
-  lit pas cette variable, ex. n'importe quel sort de Sonia) ; un
-  artéfact « Effet aug. VIT » équipé et un éventuel critique/bonus de
-  dégâts garanti sont, eux, **déduits et affichés**, jamais redemandés.
+  [degats-reels/catalogue-des-passifs.md#bonus-selon-les-effets-sur-la-cible](../../degats-reels/catalogue-des-passifs.md#bonus-selon-les-effets-sur-la-cible), « bonus selon les effets sur la
+  CIBLE ». ⚠️ **VIT adversaire** : apparaît pour un sort/passif qui dépend de
+  la vitesse de la cible (variable Relative SPD ou Target SPD d'une
+  formule, ignore-DEF proportionnel à l'écart, un monstre qui force le
+  critique s'il est plus rapide, majore tous ses dégâts selon cet écart,
+  ou pose une condition de vitesse propre supérieure à celle de la
+  cible — même quand le sort CHOISI ne lit pas
+  cette variable, ex. n'importe quel sort de Sonia). Un éventuel
+  critique/bonus de dégâts garanti est, lui, **déduit et affiché**,
+  jamais redemandé. L'amplification d'un artéfact « Effet aug. VIT » est
+  lue sur la paire que la recherche suppose (les pièces portées seulement
+  sans optimisation d'artéfacts), et s'affiche dans « État de mon
+  monstre » quand le buff VIT est actif.
   Détail : [degats-reels/passifs-offensifs.md#vit-de-ladversaire--relative-spd-et-lignore-def-proportionnel](../../degats-reels/passifs-offensifs.md#vit-de-ladversaire--relative-spd-et-lignore-def-proportionnel), « VIT de l'adversaire ».
 - **Effets actifs** — effets subis par la cible (réduction de défense
   ×0,3, marque +25 %, « ce sort pose le def break » — distingue
@@ -286,11 +290,13 @@ l'un de ces deux objectifs est traduite à l'import vers « Efficience »
 de portée d'un simple import).
 
 ⚠️ L'objectif choisi oriente le **pré-filtrage** (quelles runes ont une
-vraie chance d'être considérées) et le **tri par défaut** des résultats
-(modifiable ensuite) — il **n'influence pas** le classement des candidats
-pendant la recherche elle-même : seuls les minimums/maximums posés dans
-« Conditions » en décident, quel que soit l'objectif choisi
-(voir conditions-et-reglages.md § Conditions, inventaire et réglages avancés).
+vraie chance d'être considérées), la **rétention** des demi-builds (une
+tranche par stat de l'objectif dans chaque compartiment, et l'ordre des
+demi-builds) et le **tri par défaut** des résultats (modifiable ensuite).
+Il ne décide pas de ce qui est admis : seuls les minimums et maximums posés
+dans « Conditions » le font, quel que soit l'objectif choisi (voir
+conditions-et-reglages.md § Conditions, inventaire et réglages avancés ;
+limite : ../limites-connues.md § L'objectif de recherche oriente, il ne garantit pas).
 
 ⚠️⚠️ **UN OBJECTIF RETIRÉ SURVIT DANS LES SCRIPTS.** `objectiveKeysOf`
 retombe sur `[]` pour une valeur absente de la table : un script CLI/diag

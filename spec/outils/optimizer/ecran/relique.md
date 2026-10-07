@@ -36,7 +36,7 @@
      qui ouvre la zone D (plusieurs exemplaires) ne change rien tant
      qu'aucun n'est choisi.
    - **Propriété unique** : **« Libre »** (défaut) ou l'un des 16 types
-     (`RELIC_UNIQUE`, `lib/effects.ts`), avec le libellé **« `<effet>` en
+     (`RELIC_UNIQUE`, `src/lib/effects.ts`), avec le libellé **« `<effet>` en
      fonction `<stat>` »** (`relicUniqueEffectLabel`, DÉRIVÉ de
      `RELIC_UNIQUE` — effet et stat sont chacun des mots du jeu, jamais une
      table séparée) — **désactivée et sans effet** avec « Garder la relique

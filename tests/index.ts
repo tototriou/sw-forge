@@ -52,6 +52,7 @@ import testRtaPartage from './rta-partage.test';
 import { testInstallerHooks, testHooksCodexGardeFous } from './installer-hooks.test';
 import { testPreCommit } from './pre-commit.test';
 import { testRenvois, testRenvoisFormes } from './renvois.test';
+import { testEcriturePublique, testEcriturePubliqueFormes } from './ecriture-publique.test';
 import testHookRefuseSedI from './hook-refuse-sed-i.test';
 import testHookRefuseCommitM from './hook-refuse-commit-m.test';
 import testCouleursCourbes from './courbe-couleurs.test';
@@ -90,11 +91,11 @@ import {
 import { testRecetteClesIdentifiant } from './recette-cles-identifiant.test';
 import testBladeDancersIgnoreDef,{ testBladeDancersRecette, testBladeDancersEcranEtCli } from './blade-dancers.test';
 import {
-  testLot12SequenceDeCoups,
-  testLot12AttaqueDeclenchee,
-  testLot12IgnoreDefDepuisUnCoup,
-  testLot12PassifMasqueEtStatsDeCombat,
-} from './degats-lot12.test';
+  testMecanismesSequenceDeCoups,
+  testMecanismesAttaqueDeclenchee,
+  testMecanismesIgnoreDefDepuisUnCoup,
+  testMecanismesPassifMasqueEtStatsDeCombat,
+} from './degats-mecanismes-generiques.test';
 import {
   testAttaqueAppeleeApprovisionnement,
   testAttaqueAppeleeCouverture,
@@ -190,6 +191,7 @@ import { testRenduAccueil, testRenduAccueilBureau, testRenduAccueilEspace } from
 import { testRenduTelecharger } from './rendu/telecharger.test';
 import { testRenduBureauTextes } from './rendu/bureau-textes.test';
 import { testRenduBarreSession } from './rendu/barre-session.test';
+import { testRenduIcones } from './rendu/icones.test';
 import { testRenduRecosPage, testRenduRecosEnTete, testRenduRecosDeploiement, testRenduRecosEdition, testRenduRecosVueDefense, testRenduRecosTicks, testRenduRecosAnnulerEdition } from './rendu/recos.test';
 import testAnnulerEdition from './annuler-edition.test';
 import { testRenduRunesResume, testRenduRunesListe, testRenduRunesCourbes, testRenduRunesComparaison, testRenduRunesOptimisation, testRenduRunesAVenir, testRenduRunesFiltresLigne, testRenduRunesTriOnglets, testRenduRunesResumeSouris, testRenduRunesListeSouris, testRenduRunesVuesSouris } from './rendu/runes.test';
@@ -309,6 +311,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRenduTelecharger', testRenduTelecharger],
   ['testRenduBureauTextes', testRenduBureauTextes],
   ['testRenduBarreSession', testRenduBarreSession],
+  ['testRenduIcones', testRenduIcones],
   ['testRenduRtaPrepa', testRenduRtaPrepa],
   ['testRenduRtaMenu', testRenduRtaMenu],
   ['testRenduRtaVide', testRenduRtaVide],
@@ -338,6 +341,8 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testPreCommit', testPreCommit],
   ['testRenvoisFormes', testRenvoisFormes],
   ['testRenvois', testRenvois],
+  ['testEcriturePubliqueFormes', testEcriturePubliqueFormes],
+  ['testEcriturePublique', testEcriturePublique],
   ['testSetsIntangible', testSetsIntangible],
   ['testRuneTri', testRuneTri],
   ['testMonstreTri', testMonstreTri],
@@ -377,10 +382,10 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testBladeDancersIgnoreDef', testBladeDancersIgnoreDef],
   ['testBladeDancersRecette', testBladeDancersRecette],
   ['testBladeDancersEcranEtCli', testBladeDancersEcranEtCli],
-  ['testLot12SequenceDeCoups', testLot12SequenceDeCoups],
-  ['testLot12AttaqueDeclenchee', testLot12AttaqueDeclenchee],
-  ['testLot12IgnoreDefDepuisUnCoup', testLot12IgnoreDefDepuisUnCoup],
-  ['testLot12PassifMasqueEtStatsDeCombat', testLot12PassifMasqueEtStatsDeCombat],
+  ['testMecanismesSequenceDeCoups', testMecanismesSequenceDeCoups],
+  ['testMecanismesAttaqueDeclenchee', testMecanismesAttaqueDeclenchee],
+  ['testMecanismesIgnoreDefDepuisUnCoup', testMecanismesIgnoreDefDepuisUnCoup],
+  ['testMecanismesPassifMasqueEtStatsDeCombat', testMecanismesPassifMasqueEtStatsDeCombat],
   ['testAttaqueAppeleeApprovisionnement', testAttaqueAppeleeApprovisionnement],
   ['testAttaqueAppeleeCouverture', testAttaqueAppeleeCouverture],
   ['testAttaqueAppeleeEspaceDeCles', testAttaqueAppeleeEspaceDeCles],

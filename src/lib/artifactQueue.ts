@@ -72,7 +72,7 @@ export interface ResultatArtefacts {
    * Ce build tient-il encore ses minimums avec une VRAIE paire ?
    *
    * ⚠️ **Ce n'est pas une précaution, c'est la moitié d'une correction.** La
-   * recherche de runes valide désormais les minimums contre `artifactBounds`,
+   * recherche de runes valide les minimums contre `artifactBounds`,
    * une borne calculée PAR STAT ISOLÉE (voir `bornesArtefacts`). Avec des
    * minimums sur PV, ATQ et DEF à la fois, elle suppose les trois maxima
    * réunis — alors qu'une paire ne porte que deux principales. Des builds
@@ -81,16 +81,17 @@ export interface ResultatArtefacts {
    *
    * `false` = à ne PAS afficher. Un build affiché qui viole la condition
    * demandée est pire qu'un build manquant : l'utilisateur ne le vérifie pas.
-   * Voir spec/outils/optimizer/artefacts.md, §12.5.
+   * Voir spec/outils/optimizer/moteur/artefacts.md § Filtre final sur la
+   * vraie paire.
    *
-   * ⚠️ Depuis le lot 5b (implementation-relique), en mode `recherche` de la
+   * ⚠️ En mode `recherche` de la
    * relique, `false` signifie « aucun couple (paire, relique) faisable » :
    * minimums ET maximums, avec la relique réelle (`respecteConditionsAvecRelique`).
    */
   conforme: boolean;
   /**
    * La relique RETENUE pour ce build, résolue ENSEMBLE avec la paire
-   * (`resoudreEquipementDuBuild`, relicQueue.ts — lot 5b). Présente en mode
+   * (`resoudreEquipementDuBuild`, relicQueue.ts). Présente en mode
    * `recherche` seulement : hors de ce mode la relique portée est fixe
    * (`SearchParams.relic`), rien n'est résolu et le champ reste absent.
    * `stats` ci-dessus l'INCLUT : c'est elle qui classe, et c'est son `id`
@@ -99,7 +100,7 @@ export interface ResultatArtefacts {
   relique?: RelicDetail;
   // Régime `aucun` (Efficience, Vitesse…) : toute candidate faisable a le
   // même score, la relique choisie n'a pas d'effet sur le tri — transporté
-  // jusqu'à la carte (contrat de B.3, `bestRelicForBuild`).
+  // jusqu'à la carte (`bestRelicForBuild`).
   sansEffetSurLeTri?: true;
 }
 
@@ -114,14 +115,14 @@ export interface ResultatArtefacts {
  * premiers du fait de ce mécanisme. La boucle « trier → optimiser → retrier »
  * converge donc, sans emballement : la file lit l'ordre de BASE, que la
  * résolution ne touche pas, et chaque étape résout un build de plus (le cache
- * ne fait que grandir). Depuis degats-et-aura 6bis-b18, sa fenêtre s'allonge
+ * ne fait que grandir). Sa fenêtre s'allonge
  * d'un build par écarté, jusqu'à K confirmées : au plus autant d'étapes que de
  * builds trouvés.
  *
  * C'est ce qui autorise à laisser un build passer devant dans l'ordre plutôt
  * que d'afficher une inversion visible entre le rang et le total.
  *
- * ⚠️ Lot 5b : en mode `recherche` de la relique, `r.stats` INCLUT la relique
+ * ⚠️ En mode `recherche` de la relique, `r.stats` INCLUT la relique
  * retenue (`ResultatArtefacts.relique`) — un candidat non résolu garde ses
  * stats SANS relique (score non exact, « en attente »). L'argument de
  * convergence tient : une principale en % ne fait jamais baisser PV, ATQ ni
@@ -140,12 +141,12 @@ export function candidatAvecSaPaire(c: BuildCandidate, cache: ReadonlyMap<string
 // entièrement justes. Calibré AVANT le mode relique « recherche ».
 export const K_BUILDS_OPTIMISES = 100;
 
-// ⚠️ **En mode relique « recherche », 300** (degats-et-aura 6bis-b8, décision
-// utilisateur du 2026-10-01). L'ordre de base y note SANS relique : un build
+// ⚠️ **En mode relique « recherche », 300.** L'ordre de base y note SANS relique : un build
 // au-delà des 100 premiers peut remonter très haut une fois résolu (sur le
 // vrai compte, en PV effectifs, les rangs exhaustifs 16, 17 et 19 venaient
 // des rangs de base 107 à 117). 300 réduit le manque, ne l'annule pas : le
-// top affiché reste une approximation (limites-connues.md).
+// top affiché reste une approximation (spec/outils/optimizer/limites-connues.md
+// § Équipement d'un build et diagnostics de l'écran).
 export const K_BUILDS_RECHERCHE_RELIQUE = 300;
 
 /**
@@ -153,10 +154,9 @@ export const K_BUILDS_RECHERCHE_RELIQUE = 300;
  * partagée par l'écran (`useArtifactOptimQueue`) et le CLI
  * (`classerApresResolution`).
  *
- * ⚠️ **Des confirmées, plus des rangs** (degats-et-aura 6bis-b18, décision de
- * l'utilisateur du 2026-10-02). La valeur ne change pas (300 / 100) ; son sens,
- * si : la file ne s'arrête plus aux K premiers de l'ordre de base, mais quand
- * K builds y sont résolus ET conformes (voir `prochainsATraiter`).
+ * ⚠️ **Des confirmées, pas des rangs** : K vaut 300 / 100, et la file ne
+ * s'arrête pas aux K premiers de l'ordre de base mais quand K builds y sont
+ * résolus ET conformes (voir `prochainsATraiter`).
  *
  * ⚠️ L'entrée est le contexte relique de la recherche LANCÉE
  * (`relicContextRecherche` à l'écran, `params.relicContext` au CLI), jamais
@@ -172,7 +172,7 @@ export function kDeLaFile(relicContext: RelicContext | undefined): number {
  * La cible de la file que l'écran et le CLI passent à `prochainsATraiter` :
  * `kDeLaFile` confirmées, ou TOUT avec l'interrupteur « Vérifier toutes les
  * combinaisons trouvées » (`Infinity` : la fenêtre de fond ne s'arrête qu'au
- * dernier build trouvé) — degats-et-aura 6bis-b18.
+ * dernier build trouvé).
  *
  * - `relicContext` : celui de la recherche LANCÉE (voir `kDeLaFile`).
  * - `toutVerifier` : l'interrupteur (`verifierToutesLesCombinaisons`, réglage
@@ -187,8 +187,7 @@ export function cibleDeLaFile(e: { relicContext: RelicContext | undefined; toutV
 
 /**
  * Les builds à traiter ensuite, dans l'ordre de priorité : la page affichée,
- * puis l'avance de fond, qui vise `K` combinaisons CONFIRMÉES (degats-et-aura
- * 6bis-b18).
+ * puis l'avance de fond, qui vise `K` combinaisons CONFIRMÉES.
  *
  * L'avance de fond parcourt `triees` dans l'ordre et s'arrête dès que les
  * confirmées rencontrées (résolues ET conformes) plus les non résolues
@@ -197,7 +196,7 @@ export function cibleDeLaFile(e: { relicContext: RelicContext | undefined; toutV
  * écartée (`conforme: false`) ne compte pas : la fenêtre s'allonge d'autant, et
  * la file continue, dans l'ordre du classement, jusqu'à K confirmées ou
  * jusqu'au dernier build trouvé. **Sans écartée, c'est exactement « les K
- * premiers non résolus »**, la règle d'avant ce lot : rien ne change dans le cas
+ * premiers non résolus »** : rien ne change dans le cas
  * normal (« Dégâts réels » de référence : 300 conformes sur 300). `K` infini
  * (`cibleDeLaFile`, « Vérifier toutes les combinaisons trouvées ») : tous les
  * non résolus, dans l'ordre.
@@ -281,8 +280,7 @@ export function prochainsATraiter(
 }
 
 /**
- * Par quelle voie la file planifie sa prochaine tranche (degats-et-aura
- * 6bis-b11) : `page` = tâche immédiate, `fond` = temps d'inactivité,
+ * Par quelle voie la file planifie sa prochaine tranche : `page` = tâche immédiate, `fond` = temps d'inactivité,
  * `aucune` = rien à planifier.
  */
 export type VoieDeLaFile = 'page' | 'fond' | 'aucune';
@@ -299,8 +297,8 @@ export type VoieDeLaFile = 'page' | 'fond' | 'aucune';
  * Pourquoi deux voies : pendant une recherche, l'écran reçoit la progression
  * toutes les 150 ms et retrie l'aperçu. Il est rarement inactif, et chaque
  * build de la page pouvait attendre jusqu'à une seconde (`timeout` de
- * `requestIdleCallback`) — constat de l'utilisateur au navigateur, le
- * 2026-10-02. L'avance de fond, elle, peut attendre.
+ * `requestIdleCallback`), constaté au navigateur. L'avance de fond, elle,
+ * peut attendre.
  *
  * `deja` est lu par `has` seulement : le cache du hook (une `Map`) s'y passe
  * tel quel, sans copier ses clés.
@@ -327,11 +325,11 @@ export function voieDeLaFile(
 export function signatureReglages(parts: {
   monstreCom2usId: number;
   // ⚠️ **Le réglage de dégâts ENTIER, jamais quelques champs choisis à la
-  // main.** Une première version ne prenait que `skillCom2usId` et l'élément
-  // visé : changer le buff ATQ, les PV restants de la cible ou sa défense
-  // laissait alors la signature IDENTIQUE, donc le cache intact — l'écran
-  // affichait des paires optimisées pour un réglage abandonné, et le « gain »
-  // comparait un score d'avant à un total d'après. Bug rapporté à l'usage.
+  // main.** Ne prendre que `skillCom2usId` et l'élément
+  // visé laisserait la signature IDENTIQUE quand on change le buff ATQ, les PV
+  // restants de la cible ou sa défense, donc le cache intact — l'écran
+  // afficherait des paires optimisées pour un réglage abandonné, et le « gain »
+  // comparerait un score d'avant à un total d'après.
   //
   // ⚠️ Choisir les champs un par un est ici la même faute que la règle des
   // « plusieurs constructeurs » (CLAUDE.md) : `tsc` ne signalera JAMAIS un
@@ -350,22 +348,22 @@ export function signatureReglages(parts: {
   nbArtefacts: number;
   /**
    * L'empreinte du contexte relique de la recherche (`RelicContext.empreinte`,
-   * relicOptim.ts — lot 5b), `null` sans contexte. Elle est STABLE et
+   * relicOptim.ts), `null` sans contexte. Elle est STABLE et
    * SÉMANTIQUE : mode, pool éligible (`rid`, principale, upgrade, exclusive),
    * choix de principale, de type et seuil — un `rid` réimporté avec une autre
    * valeur la change. Elle vaut « signature complète » de la dimension
-   * relique (plan § 2.4 point 3, T5) ; le régime effectif est `objective`
-   * ci-dessus (D7 : un seul régime pour l'équipement complet), les données de
+   * relique ; le régime effectif est `objective`
+   * ci-dessus (un seul régime pour l'équipement complet), les données de
    * combat `damageSetup`.
    */
   empreinteRelique: string | null;
   /**
    * Les conditions ENTIÈRES (minimums ET maximums) que le résolveur consomme
-   * depuis le lot 5b (`respecteConditionsAvecRelique`, `resoudreEquipementDuBuild`)
+   * (`respecteConditionsAvecRelique`, `resoudreEquipementDuBuild`)
    * — jamais un sous-ensemble choisi à la main, même règle que `damageSetup`
    * (CLAUDE.md, « plusieurs constructeurs »). Sans ce champ, relancer avec le
    * même contexte et un autre maximum gardait un couple devenu infaisable en
-   * cache (bloquant 2, revue du lot 5b, `revue-diff-lot5b-2026-09-21.md`).
+   * cache.
    */
   requirement: Pick<BuildRequirement, 'minStats' | 'maxStats'>;
   /**
@@ -375,7 +373,7 @@ export function signatureReglages(parts: {
    * Sans ce champ, « Libérer les artéfacts » sur la ligne d'un autre monstre
    * de la liste, ou un changement de liste active, laissait en cache des
    * paires calculées avec l'ancien inventaire — même après une nouvelle
-   * recherche aux mêmes réglages (degats-et-aura 6bis-b17, défaut relevé par
+   * recherche aux mêmes réglages (défaut relevé par
    * la revue du Worker).
    *
    * ⚠️ **Obligatoire**, pour que `tsc` signale un appelant qui l'oublierait :
@@ -390,7 +388,7 @@ export function signatureReglages(parts: {
    * portée par la fiche EST le seul candidat (`candidatsParSorte`). Valider
    * un build de ce monstre, « Voir le runage réellement porté » ou changer
    * d'exemplaire de la même espèce la remplacent sans rien changer d'autre
-   * ici (degats-et-aura 6bis-b17). Sérialisées ENTIÈRES, comme la relique.
+   * ici. Sérialisées ENTIÈRES, comme la relique.
    * Obligatoire, pour la même raison qu'`artefactsReserves`.
    */
   piecesFigees: readonly unknown[];
@@ -402,11 +400,9 @@ export function signatureReglages(parts: {
    * identifiants de runes (`cleBuild`) et ne comptait que le NOMBRE
    * d'artéfacts : un réimport qui changeait le contenu d'une rune ou d'un
    * artéfact sans en changer le nombre ni les identifiants laissait des
-   * paires calculées avec l'ancien compte (degats-et-aura 6bis-b19, cas
-   * rapporté par 6bis-b17).
+   * paires calculées avec l'ancien compte.
    *
-   * ⚠️ **Une identité, pas une empreinte du contenu** (décision de
-   * l'utilisateur du 2026-10-02) : TOUT réimport vide le cache, même celui
+   * ⚠️ **Une identité, pas une empreinte du contenu** : TOUT réimport vide le cache, même celui
    * d'un fichier identique — aucun calcul du contenu à chaque rendu.
    * Obligatoire, pour la même raison qu'`artefactsReserves`.
    */
@@ -422,7 +418,7 @@ export function signatureReglages(parts: {
     .join('|');
   // ⚠️ Un ENSEMBLE trié : l'inventaire filtré ne dépend ni de l'ordre de la
   // liste ni d'un doublon. Vide, le composant est OMIS — sans réservation, la
-  // signature reste exactement celle d'avant 6bis-b17, et rien n'est vidé
+  // signature reste exactement celle d'avant les réservations, et rien n'est vidé
   // pour rien. Son préfixe le distingue de tout autre composant facultatif.
   const reserves = [...new Set(parts.artefactsReserves)].sort((a, b) => a - b).join(',');
   return [
@@ -442,18 +438,17 @@ export function signatureReglages(parts: {
     // Même règle : sans emplacement figé, composant omis, signature d'avant.
     ...(parts.piecesFigees.length > 0 ? [`figees:${JSON.stringify(parts.piecesFigees)}`] : []),
     // Même règle encore : avant tout import de la session, composant omis,
-    // signature d'avant 6bis-b19 ; chaque import la change ensuite.
+    // signature d'avant l'import ; chaque import la change ensuite.
     ...(parts.importDuCompte > 0 ? [`import:${parts.importDuCompte}`] : []),
   ].join('§');
 }
 
 /**
  * La signature de cache de LA CARTE « Artéfacts » de l'écran — la closure
- * `signatureArtefacts` d'`OptimizerSection.tsx` (implementation-relique,
- * B.5c) sortie ici pour être testable : elle ne fait qu'assembler les
+ * `signatureArtefacts` d'`OptimizerSection.tsx`, sortie ici pour être testable : elle ne fait qu'assembler les
  * réglages de l'écran dans les noms génériques de `signatureReglages`
  * ci-dessus, mais c'est CET assemblage qui a déjà divergé une fois
- * (B.5b bis, contrôle 4 : `objective` recevait le régime BRUT au lieu du
+ * (`objective` recevait le régime BRUT au lieu du
  * régime EFFECTIF, `regimeEquipement` — voir `regimeEquipementDe`,
  * artifactEvaluation.ts). `regimeEquipement` est déjà résolu par l'appelant
  * (une seule dérivation, jamais recopiée ici).
@@ -475,7 +470,7 @@ export function signatureArtefacts(parts: {
   artefactsReserves: Iterable<number>;
   // Les pièces des emplacements figés (`piecesFigeesDe`) — voir `signatureReglages`.
   piecesFigees: readonly unknown[];
-  // L'identité de l'import du compte (6bis-b19) — voir `signatureReglages`.
+  // L'identité de l'import du compte — voir `signatureReglages`.
   importDuCompte: number;
 }): string {
   return signatureReglages({
@@ -498,7 +493,7 @@ export function signatureArtefacts(parts: {
 
 /**
  * Départage CANONIQUE à score égal : `rid` de la relique retenue croissant,
- * puis `cleBuild` — la convention du contrat (B.5b bis, mineur de la revue),
+ * puis `cleBuild` — la convention du contrat,
  * la même que l'oracle (`bestRelicForBuild`, `relicOptim.ts`).
  *
  * ⚠️ **Un tri PRÉALABLE, pas un comparateur de plus dans `sortCandidates`.**
@@ -526,7 +521,7 @@ export function ordonnerParDepartage<T extends BuildCandidate>(candidats: readon
  * qu'il est connu (`parBuild`, le cache de la file), puis retrié — le
  * producteur du classement affiché de l'écran (`affichees`,
  * OptimizerSection.tsx) et du CLI (`optimizer-search.ts`), pour que les deux
- * classent un même cache de la même façon (degats-et-aura 6bis-b5c).
+ * classent un même cache de la même façon.
  *
  * - `base` : l'ordre de BASE (paire supposée), déjà trié par
  *   `sortCandidates` ; rendu tel quel tant que rien n'est résolu.
@@ -569,9 +564,9 @@ export interface CompteAffichable {
 /**
  * Le compte des builds TROUVÉS moins les écartés connus — l'unique source de la
  * ligne de progression (« … · Z trouvée(s) ») et de la ligne de raison sous un
- * zéro dû aux écartés (degats-et-aura 6bis-b10).
+ * zéro dû aux écartés.
  *
- * ⚠️ Depuis 6bis-b18, l'en-tête des résultats et le nombre de pages ne lisent
+ * ⚠️ L'en-tête des résultats et le nombre de pages ne lisent
  * plus ce compte, mais celui des CONFIRMÉES (`compteConfirme`) : celui-ci est
  * une borne optimiste, qui baisse à mesure que la vérification écarte des
  * builds.
@@ -641,8 +636,7 @@ export interface CompteConfirme {
 /**
  * Le compte des combinaisons CONFIRMÉES — l'unique source de l'en-tête des
  * résultats, du nombre de pages et des contrôles masqués sous « Aucune
- * combinaison… » (degats-et-aura 6bis-b18, décision de l'utilisateur du
- * 2026-10-02 : « ne compter qu'après vérification »).
+ * combinaison… » : on ne compte qu'après vérification.
  *
  * - `recus` : l'ordre de base (`fullSortedCandidates`), les candidats de CETTE
  *   recherche. Seules leurs entrées du cache comptent : les rejets d'une
@@ -661,7 +655,7 @@ export interface CompteConfirme {
  * « Vérification… » tant qu'il reste des non vérifiés. Le nombre de pages vaut
  * `min(⌈(confirmées + non vérifiés) / taille⌉, ⌈confirmées / taille⌉ + 1)` :
  * jamais une page vide, et une seule page au-delà des confirmées — l'ouvrir
- * les vérifie (6bis-b16).
+ * les vérifie.
  */
 export function compteConfirme(e: {
   recus: readonly BuildCandidate[];
@@ -714,15 +708,14 @@ export interface CompositionDePage {
 }
 
 /**
- * La composition d'UNE page de résultats (degats-et-aura 6bis-b16) — l'unique
+ * La composition d'UNE page de résultats — l'unique
  * source des cartes affichées, des places « Vérification… » et de la page que
  * la file résout en priorité.
  *
- * ⚠️ **Une carte n'apparaît qu'une fois vérifiée.** Avant ce lot, un build reçu
- * de la recherche s'affichait tout de suite avec sa paire SUPPOSÉE, puis
- * disparaissait à la résolution s'il n'atteignait pas les minimums : avec le
- * Worker, qui résout vite, les retraits s'enchaînaient sous les yeux (essai de
- * l'utilisateur, 2026-10-02). Désormais la page montre les vérifiés seuls, dans
+ * ⚠️ **Une carte n'apparaît qu'une fois vérifiée.** Un build affiché tout de
+ * suite avec sa paire SUPPOSÉE, puis retiré à la résolution s'il n'atteint pas
+ * les minimums, ferait s'enchaîner les retraits sous les yeux (le Worker
+ * résout vite) : la page montre les vérifiés seuls, dans
  * l'ordre réel ; un build vérifié plus tard prend sa place dans ce classement
  * — une carte peut donc DESCENDRE sous un meilleur build vérifié, jamais
  * disparaître faute de conformité.
@@ -736,7 +729,7 @@ export interface CompositionDePage {
  * - Les places attendues se comptent sur le classement (reçus moins écartés) :
  *   une page au-delà des vérifiés — page profonde, ou page 1 avant toute
  *   résolution — montre toutes ses places en attente. Le nombre de pages
- *   (`compteConfirme`, 6bis-b18) n'en ouvre qu'une au-delà des confirmées.
+ *   (`compteConfirme`) n'en ouvre qu'une au-delà des confirmées.
  * - `aVerifier` : pour remplir la page, il faut `début + attendues` vérifiés ;
  *   il en manque `manque`, pris dans l'ordre du classement parmi les non
  *   résolus — au plus une page à la fois. La file les résout, publie, l'écran

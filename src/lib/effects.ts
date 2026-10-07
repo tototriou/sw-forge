@@ -119,12 +119,11 @@ export const RELIC_MAIN: Record<number, { label: string; stat: StatKey }> = {
   102: { label: 'DEF', stat: 'def' },
 };
 
-// Options du sélecteur « Relique — principale » (implementation-relique,
-// B.5c) — qualifiées comme les entrées d'artéfact qui FILTRENT réellement
+// Options du sélecteur « Relique — principale » — qualifiées comme les entrées d'artéfact qui FILTRENT réellement
 // par stat principale (`ARTIFACT_MAIN_OPTIONS`, runeBuildOptim.ts) : « Comme
-// équipé » lu au milieu de trois statistiques se lisait « la principale,
-// comme équipé » (incident artéfacts). Le « % » distingue la relique de
-// l'artéfact (plat) — même stat, sémantique différente (A.1).
+// équipé » lu au milieu de trois statistiques se lirait « la principale,
+// comme équipé ». Le « % » distingue la relique de
+// l'artéfact (plat) — même stat, sémantique différente.
 export const RELIC_MAIN_OPTIONS: { code: 100 | 101 | 102; label: string }[] = [
   { code: 101, label: 'Principale ATQ %' },
   { code: 102, label: 'Principale DEF %' },
@@ -220,6 +219,9 @@ export const RARITY_FILTER: Record<number, string> = {
 //
 // `accentue` : légèrement plus clair quand l'entrée porte l'emphase (état actif
 // d'un filtre), un cran plus sombre au repos.
+// ⚠️ Pas sur l'aplat d'accent (`ACTIF_FILTRE_LG`, filtre de sets à la souris) :
+// éclairci sur l'orange plein, le contraste agressait l'œil ; le symbole y
+// garde le doré du repos.
 export const runeSetIconFilter = (accentue: boolean) =>
   `sepia(1) saturate(3.2) hue-rotate(-12deg) brightness(${accentue ? 1.15 : 0.95}) contrast(1.05)`;
 
@@ -245,8 +247,8 @@ export const SET_BONUS: Record<string, { pieces: number; label: string }> = {
   determination: { pieces: 2, label: 'DEF alliés +8%' },
   enhance: { pieces: 2, label: 'PV alliés +8%' },
   // ⚠️ +8 points, comme le calcul (`pointsAuraResPre`, damage.ts) : valeur
-  // curée par l'utilisateur, cadrage degats-et-aura A.2 ter. Le libellé
-  // affichait +10 % jusqu'au lot 7a.
+  // curée (spec/outils/degats-reels/valeurs-de-jeu-curees.md § Les valeurs de
+  // jeu — curées, avec leur source). Le libellé reste celui du calcul.
   accuracy: { pieces: 2, label: 'Précision alliés +8%' },
   tolerance: { pieces: 2, label: 'Résistance alliés +8%' },
   seal: { pieces: 2, label: "Réduit les PV max de l'ennemi vaincu" },
@@ -299,10 +301,10 @@ export function canAddSet(sets: string[], key: string): boolean {
 //     — voir runeBuildOptim.ts).
 //  2. Le joker ne complète RIEN dès que DEUX sets ou plus sont incomplets
 //     PARMI LES RUNES RÉELLEMENT PORTÉES — même celui qui ne lui manque
-//     qu'UNE seule pièce. Avant ce correctif, la fonction complétait
-//     silencieusement le set le plus proche de l'activation sans regarder si
-//     un AUTRE set (même non demandé par l'utilisateur) était lui aussi
-//     incomplet — un set annoncé actif alors qu'il ne l'est pas en jeu.
+//     qu'UNE seule pièce. Compléter silencieusement le set le plus proche de
+//     l'activation sans regarder si un AUTRE set (même non demandé par
+//     l'utilisateur) est lui aussi incomplet annoncerait actif un set qui ne
+//     l'est pas en jeu.
 export function activeSets(keys: string[]): string[] {
   const count = new Map<string, number>();
   let jokers = 0;
@@ -600,17 +602,17 @@ export function formatRelicMain(e: EffectLine): string {
   return def ? `${def.label} +${e.value}%` : `#${e.code} +${e.value}`;
 }
 
-// Limite de poses simultanées d'une relique sur le compte (D3,
-// ../outils/optimizer/reliques.md § 7 — AFFICHÉE, jamais opposée). Valeur de
-// jeu susceptible de rebouger (elle a déjà changé une fois) : une seule
-// constante nommée, à son seul point d'usage (`RelicDetailBox`,
-// implementation-relique B.5c ter).
+// Limite de poses simultanées d'une relique sur le compte
+// (spec/outils/optimizer/moteur/reliques.md § Ce que le moteur lit d'une relique —
+// AFFICHÉE, jamais opposée). Valeur de
+// jeu susceptible de rebouger : une seule
+// constante nommée, à son seul point d'usage (`RelicDetailBox`).
 export const RELIC_MAX_INSTANCES = 150;
 
 // Ligne de compteur affichée dans le détail d'une relique. Aucun libellé
-// relevé en jeu pour cette mécanique (reliques.md § 7 ne cite qu'un exemple
-// d'affichage, « 96 / 150 ») : phrase choisie par le lot, comme les textes
-// de refus (B.5c) et les libellés propres à l'écran (B.5c bis).
+// relevé en jeu pour cette mécanique (seul exemple d'affichage connu :
+// « 96 / 150 ») : phrase choisie ici, comme les textes
+// de refus et les libellés propres à l'écran.
 export function formatRelicUsage(count: number): string {
   return `Équipée sur ${count} exemplaire${count > 1 ? 's' : ''} / ${RELIC_MAX_INSTANCES}`;
 }
@@ -719,8 +721,7 @@ const RELIC_GROUPE_EFFET: Record<RelicGroupeNom, string> = {
   regeneration: 'Soins et boucliers accordés',
 };
 
-// Libellé de propriété unique « <effet> en fonction <stat> » (implementation-
-// relique, B.5c bis) — sélecteur « Relique — propriété unique » et carte
+// Libellé de propriété unique « <effet> en fonction <stat> » — sélecteur « Relique — propriété unique » et carte
 // candidat, MÊME libellé aux deux endroits. DÉRIVÉ de `RELIC_UNIQUE` : les
 // deux moitiés (`RELIC_GROUPE_EFFET`, `stat.phrase`) sont des mots du jeu,
 // l'assemblage lui-même (« en fonction ») est le nôtre.

@@ -18,7 +18,7 @@ voisine, et savoir demander la mesure qui tranche.
   (`coups`, `aoe`, `formule`, le NOM d'un effet, `ameliorations`…).
 - Toute règle déduite de la PROSE d'un sort ou d'un effet.
 - Reprise d'une liste de monstres/sorts fournie de mémoire (par
-  l'utilisateur ou par une session précédente).
+  l'utilisateur ou par un échange précédent).
 - ⚠️ **Tout comportement supposé par RESSEMBLANCE avec un autre** — « cet
   effet est décrit comme celui-là, donc il fait pareil ». Voir §6 ter.
 - Avant de **demander un relevé en jeu** à l'utilisateur (§6 bis) : une

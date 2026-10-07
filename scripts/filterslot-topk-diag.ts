@@ -13,14 +13,14 @@
 // PAS garanti identique). Ce script vérifie EMPIRIQUEMENT si cette
 // différence se manifeste en pratique, et sur quelle taille d'écart.
 //
-// ⚠️ **MAL CLASSÉ EN G2, ET LE RECLASSER EST LE RÉSULTAT** (vérifié le
-// 2026-09-09, §5.2 bis des extensions). Ce script ne compare PAS deux
+// ⚠️ **CE SCRIPT NE RELÈVE PAS DU DIFFÉRENTIEL, ET LE RANGER AINSI EST LE
+// RÉSULTAT.** Il ne compare PAS deux
 // CONFIGURATIONS du même code — il compare **deux IMPLÉMENTATIONS**
 // (`filterSlot` de production contre `filterSlotOld` recopié plus bas). Il
 // relève donc du domaine de `perf-battery-compare` (comparaison de VERSIONS),
 // pas de celui du différentiel `--profil=… --differentiel=…`, qui exige un
-// profil et fait varier une SURCHARGE. Même erreur de rangement que
-// `multicount`/`deck10-final` au §5.4. ⚠️ Il n'y a donc rien à absorber :
+// profil et fait varier une SURCHARGE. Même erreur de rangement à éviter
+// que pour `multicount`/`deck10-final`. ⚠️ Il n'y a donc rien à absorber :
 // chercher à le faire passer par le différentiel serait une erreur de
 // catégorie, pas un chantier restant.
 //
@@ -28,14 +28,14 @@
 // SYMÉTRIQUE des ensembles d'identifiants** retenus, avec son cardinal moyen,
 // son MAXIMUM et cinq exemples NOMMÉS avec leurs paramètres générateurs —
 // n'est dans aucun champ du harnais, qui décrit UN run et non l'écart entre
-// deux. 11a en fait d'ailleurs le MODÈLE de granularité de tout 11c. ⚠️ Il est
+// deux. ⚠️ Il est
 // aussi le SEUL consommateur de `MAX_PER_SLOT_FILL`, que
 // `src/lib/runeBuildOptim.ts` exporte explicitement pour lui (voir le
 // commentaire de l'export). Ne pas le supprimer « parce que le différentiel
 // compare deux choses » : il ne compare pas la même espèce de deux choses.
 //
-// ⚠️⚠️ **SA RÉFÉRENCE A DÉRIVÉ — relevé le 2026-09-09, et c'est le piège que
-// son propre en-tête annonce, réalisé une SECONDE fois.** L'en-tête ci-dessus
+// ⚠️⚠️ **SA RÉFÉRENCE A DÉRIVÉ, et c'est le piège que son propre en-tête
+// annonce.** L'en-tête ci-dessus
 // dit mesurer un départage d'ÉGALITÉ à la frontière du top-K. Ce n'est plus
 // ce que la sortie mesure : relancé tel quel, il rend **81/200 divergences,
 // écart moyen 34,8 ids, MAX 172**, avec des cardinaux comme
@@ -45,11 +45,10 @@
 // `pool` est filtré aux runes du combo avant tout score), que `filterSlotOld`
 // n'a jamais reçu. Les divergences mesurées sont donc dominées par une
 // fonctionnalité absente de la copie, pas par le tas contre le tri.
-// ⚠️ La copie a déjà fait mentir ce script une fois (`MAX_PER_SLOT_MATCH/FILL`
-// à 80/40) ; elle vient de recommencer sur un autre axe, et là encore aucune
-// erreur `tsc` ne l'a signalé — une référence RECOPIÉE ne se maintient pas
-// toute seule. La réparer est un chantier à part, pas un préalable à ce
-// constat (§5.4).
+// ⚠️ La copie a déjà fait mentir ce script sur `MAX_PER_SLOT_MATCH/FILL`
+// (80/40), puis sur un autre axe, et aucune erreur `tsc` ne l'a signalé —
+// une référence RECOPIÉE ne se maintient pas toute seule. La réparer est un
+// chantier à part, pas un préalable à ce constat.
 //
 // Usage : filterslot-topk-diag.ts [scenarios=200] [seed=9000]
 
@@ -134,8 +133,7 @@ const FILTER_SLOT_WIDENING_PER_CONDITION = 20;
 // ⚠️ MAX_PER_SLOT_MATCH/MAX_PER_SLOT_FILL importés de runeBuildOptim.ts
 // (pas dupliqués localement) — un ancien copié-collé à 80/40 (asymétrique,
 // jamais vrai en production, où les deux valent 40) avait faussé la mesure
-// de divergence de ce script sans qu'aucune erreur tsc ne le détecte (voir
-// archive/historique/historique-dimensionnement.md, « revue de code externe »).
+// de divergence de ce script sans qu'aucune erreur tsc ne le détecte).
 
 // Synthétique mais réaliste (mêmes ordres de grandeur qu'un vrai monstre) —
 // ce script ne teste PAS la pondération pct/flat par base (sujet d'un autre

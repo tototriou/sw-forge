@@ -2,13 +2,12 @@
 // `SearchParams` exécutable, PLUS la liste des paramètres réellement
 // effectifs avec leur ORIGINE et le drapeau de fidélité.
 //
-// ⚠️ **C'est le palier 1 du cadrage (§5) : instantané, avant toute
+// ⚠️ **C'est le palier 1 : instantané, avant toute
 // exécution.** Rien ici ne lance de recherche — c'est précisément le but,
 // pouvoir challenger la configuration d'un run AVANT de le laisser tourner
 // vingt minutes pour un résultat faux.
 //
-// ⚠️ **Deux pièges vérifiés, et c'est ce module qui les rend visibles**
-// (§4.3) :
+// ⚠️ **Deux pièges vérifiés, et c'est ce module qui les rend visibles** :
 // - **La cascade.** `bucketCap = params.bucketCap ?? bucketCapFor(slotCap)`.
 //   Surcharger `slotFilterCap` déplace donc AUSSI `bucketCap` : deux
 //   paramètres bougent, un seul a été touché. D'où l'origine « dérivé ».
@@ -71,7 +70,7 @@ export interface ConfigResolue {
    * choisit rien. Renseigné = régime forcé, donc un override marqué.
    */
   regimeForce?: RegimeAppariement;
-  /** Utile au classement (§3, phase D) et au suivi de pièces. */
+  /** Utile au classement (phase D) et au suivi de pièces. */
   poolInitial: SearchParams['pool'];
   recette?: import('../../src/lib/optimizerRecipe').OptimizerRecipe;
   monstre?: import('./loadMonster').LoadedMonster;
@@ -79,8 +78,8 @@ export interface ConfigResolue {
 
 /**
  * ⚠️ Lève une `Error` sur configuration invalide plutôt que d'appliquer un
- * repli : « aucun repli silencieux » est une règle du cadrage (§4.4, règle
- * 4), pas une préférence de style. Un repli ici produirait un run qui
+ * repli : « aucun repli silencieux » est une règle du harnais, pas une
+ * préférence de style. Un repli ici produirait un run qui
  * mesure autre chose que ce qui a été demandé, sans que rien ne le dise.
  */
 export function resoudreConfig(config: ConfigHarnais): ConfigResolue {
@@ -113,7 +112,7 @@ export function resoudreConfig(config: ConfigHarnais): ConfigResolue {
     origineCap = 'recette';
   } else {
     const s = config.source;
-    // ⚠️ Règle 4 — aucun repli silencieux. Un `slotFilterCap` omis ferait
+    // ⚠️ Aucun repli silencieux. Un `slotFilterCap` omis ferait
     // mesurer la moitié de la rétention de production sur deux axes.
     if (!Number.isFinite(s.slotFilterCap) || s.slotFilterCap <= 0) {
       throw new Error(
@@ -235,11 +234,11 @@ export function resoudreConfig(config: ConfigHarnais): ConfigResolue {
  * une conversation, détaché de son contexte.
  */
 /**
- * §6 des extensions — **les paramètres EFFECTIFS que le harnais ne sait pas
- * surcharger**, et qui n'apparaissaient donc nulle part.
+ * **Les paramètres EFFECTIFS que le harnais ne sait pas surcharger**, qu'il
+ * affiche aussi.
  *
- * ⚠️ `resoudreConfig` implémentait « chaque paramètre SURCHARGEABLE affiche
- * son origine » là où le §4.4 règle 2 dit « chaque paramètre EFFECTIF ».
+ * ⚠️ La règle est « chaque paramètre EFFECTIF affiche son origine », pas
+ * seulement chaque paramètre SURCHARGEABLE.
  * L'écart n'est pas cosmétique : un run lancé avec `adaptiveTrancheWeighting`
  * sans le savoir mesure une autre rétention, et l'aperçu annonçait
  * « conforme à la production » sans jamais montrer le réglage.
@@ -294,8 +293,8 @@ function parametresNonSurchargeables(
     effectif('artéfacts (paire représentative)', params.artifacts.length),
     effectif('bornes d’artéfact', params.artifactBounds != null ? 'inventaire' : 'repli sur la paire figée'),
     effectif('relique', params.relic != null ? 'présente' : 'absente'),
-    // Le contexte relique (garantie G, lot 5a) : en mode `recherche`, les
-    // bornes de faisabilité sont RELÂCHÉES (option A) — un « 0 build » ou un
+    // Le contexte relique : en mode `recherche`, les
+    // bornes de faisabilité sont RELÂCHÉES — un « 0 build » ou un
     // build en trop se lit aussi à cette ligne, pas seulement au pool.
     effectif(
       'contexte relique',
@@ -321,7 +320,7 @@ function parametresNonSurchargeables(
 /**
  * ⚠️ **Ce que la comparaison ne peut PAS prouver**, quelle que soit
  * l'étendue de la table des paramètres — donc à imprimer avec le verdict.
- * Cette liste est STRUCTURELLE : élargir la table (§6 des extensions) n'en
+ * Cette liste est STRUCTURELLE : élargir la table n'en
  * retire aucune ligne, parce qu'aucune de ces choses n'est un paramètre.
  */
 const HORS_PERIMETRE_FIDELITE = [
@@ -339,7 +338,7 @@ export function evaluerFidelite(parametres: ParametreEffectif[]): Fidelite {
     divergeDeLaProd: ecarts.length > 0,
     ecarts,
     horsPerimetre: HORS_PERIMETRE_FIDELITE,
-    // ⚠️ Le mot « PLANCHER » a été RETIRÉ (2026-09-07) : c'était une
+    // ⚠️ Le mot « PLANCHER » est proscrit : c'est une
     // affirmation de DIRECTION, et la direction n'est pas établie. La taxe
     // de `setTimeout(0)` est bien un terme à sens unique, mais elle n'est
     // pas le seul écart entre les deux plateformes.
@@ -363,7 +362,7 @@ export function rendreParametres(resolue: ConfigResolue): string {
   lignes.push('Paramètres effectifs (valeur — origine)');
   lignes.push('---------------------------------------');
   // ⚠️ Largeurs calculées sur les DONNÉES, jamais figées : la table s'est
-  // élargie (§6) et des noms/valeurs plus longs que les anciens gabarits
+  // élargie et des noms/valeurs plus longs que les anciens gabarits
   // cassaient l'alignement — donc la lisibilité de l'aperçu qu'on relit
   // avant de lancer un run de vingt minutes.
   const largeurNom = Math.max(...resolue.parametres.map((p) => p.nom.length));

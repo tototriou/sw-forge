@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Installateur public des garde-fous : hook Git `pre-commit` (et le lint qu'il
-// importe), garde-fou Codex de lecture. Contrat : spec/outillage/spec.md,
-// ex-B.9 (niveaux d'application, installation des garde-fous).
+// importe), garde-fous Codex. Contrat : spec/outillage/spec.md,
+// « Niveaux d'application et garde-fous », « Installation des garde-fous ».
 //
 //   node scripts/installer-hooks.mjs [--simulation] [--sans-cablage]
 //                                    [--codex-hooks <hooks.json personnel>]
@@ -26,6 +26,8 @@ const CHEMINS = [
   'scripts/spec-lint.mjs',
   'scripts/lib/spec-markdown.mjs',
   'scripts/hooks-codex-garde-fous.mjs',
+  '.claude/hooks/refuse-commit-m.mjs',
+  '.claude/hooks/refuse-sed-i.mjs',
 ];
 // Propriétaires connus, pour la seule migration d'un manifeste v1.
 const PROPRIETAIRES_V1 = {

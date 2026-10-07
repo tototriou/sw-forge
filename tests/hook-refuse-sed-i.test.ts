@@ -1,5 +1,4 @@
-// Le hook `.claude/hooks/refuse-sed-i.mjs` (décision de l'utilisateur du
-// 2026-10-04, chantier degats-et-aura) : il refuse `sed` lancé avec une option
+// Le hook `.claude/hooks/refuse-sed-i.mjs` : il refuse `sed` lancé avec une option
 // en place dans les outils Bash et PowerShell, et laisse passer tout le reste —
 // en particulier le texte « sed -i » cité dans un `grep`, un `echo` ou le corps
 // d'un message de commit en heredoc.
@@ -10,13 +9,16 @@
 import { spawnSync } from 'child_process';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
-import { egal, titre } from './outils';
+import { egal, ok, titre } from './outils';
 
 const RACINE = join(dirname(fileURLToPath(import.meta.url)), '..');
 const HOOK = join(RACINE, '.claude', 'hooks', 'refuse-sed-i.mjs');
 
+function lancer(charge: string) {
+  return spawnSync(process.execPath, [HOOK], { input: charge, encoding: 'utf8' });
+}
 function sortie(charge: string): number | null {
-  return spawnSync(process.execPath, [HOOK], { input: charge, encoding: 'utf8' }).status;
+  return lancer(charge).status;
 }
 const bash = (command: string) => JSON.stringify({ tool_name: 'Bash', tool_input: { command } });
 const powershell = (command: string) => JSON.stringify({ tool_name: 'PowerShell', tool_input: { command } });
@@ -43,6 +45,11 @@ export default function testHookRefuseSedI(): void {
   egal(sortie(powershell(`& 'C:\\Program Files\\Git\\usr\\bin\\sed.exe' -i 's/a/b/' f`)), 2,
     'PowerShell, refusé : chemin cité lancé par &');
   egal(sortie(bash(`xargs -0 sed -i 's/a/b/' < liste`)), 2, 'Bash, refusé : xargs avec ses options');
+
+  // Le message de refus renvoie à la règle publique, sans date.
+  const refus = lancer(bash(`sed -i 's/a/b/' fichier.ts`)).stderr;
+  ok(refus.includes('(CLAUDE.md)'), 'message de refus : renvoie à CLAUDE.md');
+  ok(!/\d{4}-\d{2}-\d{2}/.test(refus), 'message de refus : aucune date');
 
   const passent: [string, string][] = [
     ['sed sans -i', `sed -n '1,5p' fichier.ts`],

@@ -92,9 +92,8 @@ await page.waitForTimeout(300);
 
 console.log(`→ set ${setLabel}`);
 // ⚠️ Grille de sets TOUJOURS déployée (voir SetComboPicker.tsx) — PAS de
-// bouton « + Set » à cliquer d'abord (existait dans une version antérieure
-// de l'UI, retiré depuis ; ce driver appelait encore ce bouton fantôme
-// jusqu'à ce qu'une vérification réelle échoue dessus). Un clic = TOUT le
+// bouton « + Set » à cliquer d'abord : l'UI n'en a pas, et un driver qui
+// l'attendrait échouerait sur un bouton fantôme. Un clic = TOUT le
 // set d'un coup (le tableau `sets` contient des CLÉS de set, pas des
 // pièces individuelles — voir setsCost/canAddSet dans src/lib/effects.ts).
 // Cliquer plusieurs fois désactive le bouton dès que le set est complet et

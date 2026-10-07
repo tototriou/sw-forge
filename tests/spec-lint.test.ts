@@ -1,11 +1,11 @@
-// `scripts/spec-lint.mjs` — contrat ex-B.4 (`spec/outillage/spec.md`) sur
+// `scripts/spec-lint.mjs` — contrat « Contrat de `spec-lint` » (`spec/outillage/spec.md`) sur
 // des fixtures synthétiques. Deux cibles, au sens fixe : `testSpecLintEnTetes`
 // (en-têtes, slugs, références) et `testSpecLint` (tout ce qui précède, plus
-// les longueurs et les exceptions). Au lot 4, les deux ne tournaient QUE sur
-// les fixtures — le corpus réel n'avait pas encore ses en-têtes. Depuis le
-// lot 5, `testSpecLintEnTetesReel` rejoue le mode en-têtes sur le VRAI
+// les longueurs et les exceptions). Ces deux cibles ne tournent QUE sur
+// les fixtures ; `testSpecLintEnTetesReel`, elle, rejoue
+// le mode en-têtes sur le VRAI
 // périmètre (`spec/outils/**`, archives comprises) : c'est la preuve que les
-// en-têtes posés au lot 5 sont effectivement reconnus par le lint.
+// en-têtes du corpus réel sont effectivement reconnus par le lint.
 
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
@@ -29,7 +29,7 @@ export function testSpecLintEnTetes() {
   ok(regles(erreurs, 'ok.md').length === 0, 'ok.md : en-tête, slugs et référence valides — aucune erreur');
   ok(regles(erreurs, 'slug-duplique.md').includes('slug-duplique'), 'deux titres de même slug refusés');
   ok(regles(erreurs, 'source-cassee.md').includes('reference-cassee'), '« Source : » cassé refusé');
-  ok(regles(erreurs, 'a-preciser.md').includes('entete'), 'Statut « À préciser » refusé : ne commence par aucune des trois natures (B.5)');
+  ok(regles(erreurs, 'a-preciser.md').includes('entete'), 'Statut « À préciser » refusé : ne commence par aucune des trois natures');
   ok(regles(erreurs, 'statut-invalide.md').includes('entete'), 'Statut « n\'importe quoi » refusé');
   ok(regles(erreurs, 'sans-entete.md').includes('entete'), 'fichier dans le périmètre sans en-tête refusé');
   ok(
@@ -104,7 +104,7 @@ export default function testSpecLint() {
 
   egal(CONFIG.exceptions.length, 2, 'la fixture de config déclare deux exceptions (une périmée, une valide)');
 
-  // C6 : un cadrage (dossier chantiers/) est une quatrième nature — B.4 amendement C6.
+  // Un cadrage (dossier chantiers/) est une quatrième nature (`spec/outillage/spec.md`, « La nature CHANTIER »).
   ok(
     regles(erreurs, 'chantiers/cadrage-ok.md').length === 0,
     'cadrage de 619 lignes, blocs < 100, Statut « CHANTIER en cours » : accepté malgré > 500 lignes (exemption chantiers/)'

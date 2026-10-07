@@ -10,7 +10,7 @@ import { splitArtifactSub } from '../lib/effects';
 // Le bloc « Meilleurs artéfacts offensifs pour ce build » de l'Optimizer aplatissait les
 // quatre propriétés sur UNE ligne séparée par des « · », avec son propre
 // formatage (`artifactSubLabel(...).replace('X', …)`) — deux rendus de la même
-// donnée, dont un seul ressemblait au jeu. Un seul composant désormais : c'est
+// donnée, dont un seul ressemblait au jeu. Un seul composant : c'est
 // la règle du dépôt (« deux tables de libellés auraient divergé »).
 export default function ArtifactSubLigne({
   sub,

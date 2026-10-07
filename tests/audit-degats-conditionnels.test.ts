@@ -449,29 +449,29 @@ export default function testAuditDegatsConditionnels() {
   // exige une décision de curation, jamais une inclusion par ressemblance.
   const effetsEntreCoupsAttendus = new Set([
     'Arcane Burst',
-    'Blackout Kick', // Sia 3454 seul, par identifiant — degats-et-aura P4
+    'Blackout Kick', // Sia 3454 seul, par identifiant
     'Chain Attack',
-    'Crushed Hopes', // Cichlid 10413 — degats-et-aura P4
+    'Crushed Hopes', // Cichlid 10413
     'Death Blow',
-    'Divergent Fist', // Yuji S2 — décision de l'utilisateur du 2026-10-03 (degats-et-aura 15d)
-    'Double Strike', // Melissa 12608 — degats-et-aura P4
-    'Fast Link', // Barbara, Masha, Xiana 13606/13607/13610 — degats-et-aura P4
+    'Divergent Fist', // Yuji S2 — curé comme effet entre les coups
+    'Double Strike', // Melissa 12608
+    'Fast Link', // Barbara, Masha, Xiana 13606/13607/13610
     'Full Burst',
     'Ghost Slash',
     'Gouge',
     'Gust',
-    'Harpoon Impalement', // Eivor 17507/17509 — degats-et-aura P4
+    'Harpoon Impalement', // Eivor 17507/17509
     'Mach Crush',
     'Panda Supremacy',
     'Rain of Stones',
-    'Reelseiden・Flurry', // Übel 25206/25210 — degats-et-aura P4
+    'Reelseiden・Flurry', // Übel 25206/25210
     'Sequential Attack',
     'Shadow Blade',
     'Shinryuken',
-    'Shockwave Fist', // Rick S2 — même décision (degats-et-aura 15d)
+    'Shockwave Fist', // Rick S2 — curé comme celui de Yuji S2
     'Triple Crush',
     'Water Dragon Attack',
-    'Weakness Shot', // Carlos, Dominic, Benedict 15507/15508/15509 — degats-et-aura P4
+    'Weakness Shot', // Carlos, Dominic, Benedict 15507/15508/15509
     "Will-o'-the-Wisp",
   ]);
   const effetsEntreCoupsTrouves = new Set<string>();
@@ -1021,7 +1021,7 @@ export default function testAuditDegatsConditionnels() {
   // égale celui d'une cible sans DEF (la DEF est réellement ignorée), un point
   // au-dessus il lui reste inférieur. L'ancienne forme `seuil > seuil + 1`
   // passait encore quand la borne était devenue stricte, puisqu'une DEF plus
-  // basse augmente déjà les dégâts sans aucun ignore (mutation du lot 15d).
+  // basse augmente déjà les dégâts sans aucun ignore (mutation éprouvée).
   const ignoreAuSeuil = (profil: SkillDamageProfile, seuil: number) => {
     const degats = (enemyDef: number) => computeSkillDamage(profil, buildAudit, { ...setupAudit, enemyDef }, AUCUNE_AURA_PROPRE);
     return degats(seuil) === degats(0) && degats(seuil + 1) < degats(0);
@@ -1098,10 +1098,10 @@ export default function testAuditDegatsConditionnels() {
   egal(geraltCinq.atk, geraltTrois.atk,
     'Geralt : son passif reste plafonné à trois buffs même si le total propre atteint cinq');
 
-  // Gold Headband (`7912`) — curation de l'utilisateur (cadrage degats-et-aura,
-  // A.2 ter, 2026-09-24) : chaque cumul ajoute 20 % de l'ATQ de BASE et 12 % de
-  // la VIT de BASE, au plus 10 ; la VIT SANS arrondi, comme l'ATQ (décision
-  // n° 13 du 2026-10-02 : 13,92 par cumul pour une base 116). Les attendus sont
+  // Gold Headband (`7912`) — curation de l'utilisateur (`spec/outils/degats-reels/valeurs-de-jeu-curees.md`) :
+  // chaque cumul ajoute 20 % de l'ATQ de BASE et 12 % de
+  // la VIT de BASE, au plus 10 ; la VIT SANS arrondi, comme l'ATQ :
+  // 13,92 par cumul pour une base 116. Les attendus sont
   // écrits en clair, pas recalculés par la formule testée. Bases réelles de
   // monsters.json. L'ancien contrôle, seulement monotone, tournait sur
   // `buildAudit`, dont la base est nulle : il ne pouvait pas voir l'assiette.
@@ -1154,11 +1154,11 @@ export default function testAuditDegatsConditionnels() {
   ok(relevantesMeiHouWang.includes('atk') && relevantesMeiHouWang.includes('spd'),
     '89 — Gold Headband : ATQ et VIT restent des stats pertinentes de Mei Hou Wang (`spdBasePct` à parité avec `atkBasePct`)');
 
-  // Constat 110 — Rankyaku (`14313`, Chun-Li vent) et Accelerando (`14813`,
+  // Rankyaku (`14313`, Chun-Li vent) et Accelerando (`14813`,
   // Cordelia) : « Your Attack Power increases in proportion to the Attack
   // Speed », formule `5*{SPD}` de la donnée. La VIT lue est la VIT FINALE
-  // (cadrage degats-et-aura, A.2 ter, confirmation de l'utilisateur du
-  // 2026-10-02) : base + runes + set + lead + effet d'augmentation de vitesse,
+  // (`spec/outils/degats-reels/valeurs-de-jeu-curees.md`, confirmation de l'utilisateur) :
+  // base + runes + set + lead + effet d'augmentation de vitesse,
   // amplifié par les artéfacts. Profils extraits des données réelles, deux
   // vitesses connues (avec et sans Swift), lead et buff actifs ; attendus
   // calculés À LA MAIN depuis cette définition, jamais par `maVitCombat`, dont
@@ -1265,7 +1265,7 @@ export default function testAuditDegatsConditionnels() {
   const dyeusS1 = profilDe(28314, 18124);
   const dyeusWide = { conditionsCombat: monsterConditionsCombat(dyeus), combatStats: monsterCombatStatProfiles(dyeus) };
   // Les trois cas ci-dessous éprouvaient le critique forcé « en mode
-  // Moyenne », supprimé (degats-et-aura, lot CM) : convertis en « Non
+  // Moyenne », supprimé : convertis en « Non
   // critique », le seul mode restant où un critique forcé change le calcul.
   const dyeusSetup = { ...setupAudit, critMode: 'normal' as const };
   const dyeusSans = computeTotalDamage(dyeusS1, [], buildAudit, dyeusSetup, AUCUNE_AURA_PROPRE, 'light', ARTIFACT_DAMAGE_NEUTRE, false, null, null, dyeusWide);
@@ -1462,17 +1462,17 @@ export default function testAuditDegatsConditionnels() {
   testSuiteDuSortVoitLesPosesP4b();
 }
 
-// degats-et-aura P4b — une contribution qui SUIT le sort (passif qui frappe
+// Une contribution qui SUIT le sort (passif qui frappe
 // après lui, attaque appelée, Tempest) lit l'état de la cible après le dernier
 // coup du sort, poses du scénario comprises ; un passif qui ACCOMPAGNE chaque
 // coup (`coupsDuSortActif`, Feng Yan) garde sa lecture coup par coup ; sans
 // scénario, rien ne change. Les quatre formes jouables qui ont à la fois une
-// contribution post-sort et un sort à effet posable (inventaire de la preuve
-// `controle-p4b.md`) : Sia, Dominic, Benedict (suivent), Feng Yan (accompagne).
+// contribution post-sort et un sort à effet posable :
+// Sia, Dominic, Benedict (suivent), Feng Yan (accompagne).
 // Chemin de production : recette → `buildRealDamageContext` → `objectiveScore`.
-// Montage des témoins de P4 : ATQ 1 000, DEF cible 1 500, non critique.
+// Montage des témoins : ATQ 1 000, DEF cible 1 500, non critique.
 function testSuiteDuSortVoitLesPosesP4b() {
-  titre('Les coups qui suivent le sort voient les effets qu’il a posés (P4b)');
+  titre('Les coups qui suivent le sort voient les effets qu’il a posés');
 
   const cible: DamageSetup = { ...setupAudit, enemyDef: 1500 };
   const candidat = { stats: buildAudit, effTotal: 0 } as unknown as BuildCandidate;
@@ -1511,14 +1511,14 @@ function testSuiteDuSortVoitLesPosesP4b() {
   // « First hit ») ; Great Friends (2 coups par défaut) frappe après le sort.
   const sia = { ...cible, skillCom2usId: 3454 };
   const siaSans = score(12134, sia);
-  egal(arrondi(siaSans, 4), 1292.3077, 'Sia : sans scénario, total inchangé (témoin de P4)');
+  egal(arrondi(siaSans, 4), 1292.3077, 'Sia : sans scénario, total inchangé (témoin)');
   egal(score(12134, { ...sia, ...pose(3454, 'decrease-def') }), siaSans, 'Sia : scénario actif sans réussite, total inchangé');
   const siaPose = score(12134, { ...sia, ...pose(3454, 'decrease-def', 1) });
   const sortSans = score(12134, sia, true);
   const sortPose = score(12134, { ...sia, ...pose(3454, 'decrease-def', 1) }, true);
   egal(arrondi(sortPose / sortSans, 3), 1.682, 'Sia : la part de Blackout Kick, posée après le coup 1, vaut ×1,682 (coup 2 seul sous la réduction)');
   // La part de Great Friends sous la réduction de DEF, mesurée par le réglage
-  // manuel « réduction déjà présente » (qui existe avant P4b).
+  // manuel « réduction déjà présente » (qui existe indépendamment du scénario).
   const passifBrise = score(12134, { ...sia, defBreak: true }) - score(12134, { ...sia, defBreak: true }, true);
   ok(
     Math.abs(siaPose - (sortPose + passifBrise)) < 1e-6,
@@ -1528,7 +1528,7 @@ function testSuiteDuSortVoitLesPosesP4b() {
   egal(arrondi(siaPose / siaSans, 3), 1.935, 'Sia : total posé après le coup 1 = ×1,935 (sort ×1,682, passif ×2,364)');
 
   // Feng Yan — Winds and Clouds ACCOMPAGNE chaque coup de Sequential Attack
-  // (12003) : lecture coup par coup inchangée (totaux d'avant P4b, preuve).
+  // (12003) : lecture coup par coup inchangée (mêmes totaux que sans scénario).
   const feng = { ...cible, skillCom2usId: 12003 };
   egal(arrondi(score(21213, feng), 4), 1547.5385, 'Feng Yan : sans scénario, total inchangé');
   egal(arrondi(score(21213, { ...feng, ...pose(12003, 'decrease-def', 1) }), 4), 2954.9238, 'Feng Yan : posée après le coup 1, total inchangé (×1,909)');
@@ -1550,16 +1550,16 @@ function testSuiteDuSortVoitLesPosesP4b() {
   }
 }
 
-// degats-et-aura P4 (constat 322, preuve 13b) — treize sorts dont la donnée
+// Treize sorts dont la donnée
 // pose un `Decrease DEF` ou une `Brand` sur un coup précis sont curés PAR
 // IDENTIFIANT dans `EFFETS_ENTRE_COUPS_PAR_ID_CONNUS`, jamais par nom : un
 // nom (« Blackout Kick ») a des homonymes au texte différent. Chaque entrée a
 // son test : l'effet de la donnée, aucun changement sans scénario, et la pose
 // après le coup qui la fait réellement (coup 1, sauf Cichlid : coup 2) vaut
 // « les coups d'avant sans l'effet, les suivants avec ». Les ratios sont
-// ceux de la sonde de la preuve (DEF cible 1 500, ATQ 1 000, non critique).
+// ceux d'une sonde du chemin de production (DEF cible 1 500, ATQ 1 000, non critique).
 function testEffetsEntreCoups322() {
-  titre('Effets posés entre les coups, par identifiant — constat 322 (P4)');
+  titre('Effets posés entre les coups, par identifiant');
 
   // [forme jouable, sort, effet de la donnée, effetCombat, coup poseur, ratio « posé après le coup poseur »]
   const entrees: [number, number, string, 'defBreak' | 'brand', number, number][] = [
@@ -1632,8 +1632,7 @@ function testEffetsEntreCoups322() {
   }
 }
 
-// degats-et-aura P1 (SPC-5, DH13b-stats-passifs-corpus-02,
-// DH13b-critiques-bonus-tc-dc-01 et -02) — deux noms de passif qui
+// Deux noms de passif qui
 // débordaient sur un homonyme sont passés par identifiant : l'effet reste sur
 // la forme jouable qui le porte (témoin de non-régression), et les homonymes
 // qui ne la jouent pas ne l'ont plus. Aucune valeur de jeu n'est touchée.
@@ -1660,7 +1659,7 @@ function testHomonymesParIdentifiant() {
   ok(monsterModificateursVit(fiche(10735)).some((m) => m.skillCom2usId === 1865), '1865 : toujours affiché pour Gorgo');
 }
 
-// degats-et-aura P1 (SP-0) — la table `STATS_COMBAT_PAR_ID_CONNUS` est écrite à
+// La table `STATS_COMBAT_PAR_ID_CONNUS` est écrite à
 // la main, par identifiant : une clé mal recopiée, orpheline, ou posée sur une
 // forme que personne ne joue n'échouait nulle part (aucun test ne la lisait).
 // Ce test garde des IDENTIFIANTS ; il ne dit rien des valeurs.

@@ -43,7 +43,7 @@ export function loadDeckMonster({ exportPath, deckId, monsterName, defense }: De
   const data = parseAccountSource(raw)!;
 
   // Lecture/parsage de monsters.json mis en cache — voir `loadMonstersList`,
-  // partagée avec `loadMonster.ts` (revue de code externe, point 2).
+  // partagée avec `loadMonster.ts`.
   const nameByCom2us = new Map<number, string>();
   for (const mon of loadMonstersList()) if (mon.com2usId != null) nameByCom2us.set(mon.com2usId, mon.name);
 

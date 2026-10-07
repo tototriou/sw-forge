@@ -1,5 +1,5 @@
-// Différentiel de l'EXTRACTION de l'appariement parallèle — étape 6 du
-// chantier `spec/outils/optimizer/parallelisation-partagee.md`.
+// Différentiel de l'EXTRACTION de l'appariement parallèle — extraction décrite dans
+// `spec/outils/optimizer/moteur/parallelisation.md`.
 //
 // Question posée : `driveParallelPairing` (extrait de `runParallelPairing`,
 // avec le lancement de worker INJECTÉ) trouve-t-il EXACTEMENT les mêmes
@@ -9,7 +9,7 @@
 // ⚠️ **De VRAIS fils, jamais une simulation en processus.** Exécuter les
 // tranches séquentiellement fausserait le budget-temps de chacune
 // (`overBudget()` lit l'horloge) et ne prouverait rien sur la concurrence —
-// leçon du Chantier D, voir le skill `optimizer-perf-testing`.
+// voir le skill `optimizer-perf-testing`.
 //
 // ⚠️ **Budget INFINI des deux côtés.** C'est le seul régime où l'égalité est
 // démontrable : sous troncature, le découpage change légitimement QUELS

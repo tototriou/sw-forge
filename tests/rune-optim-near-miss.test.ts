@@ -1,5 +1,5 @@
-// Diagnostic « quasi-succès » à l'appariement — voir spec/outils/optimizer/
-// near-miss-appariement.md. `pairBuckets` retient, au moment où une paire
+// Diagnostic « quasi-succès » à l'appariement — voir spec/outils/optimizer/moteur/diagnostics.md,
+// « Quasi-succès à l'appariement ». `pairBuckets` retient, au moment où une paire
 // EXPLORÉE échoue le test conjoint exact, la MEILLEURE déjà vue — par
 // condition (satisfait tout SAUF k) et globalement (le plus petit écart
 // relatif MAX, toutes conditions confondues).
@@ -136,7 +136,7 @@ export default async function testRuneOptimNearMiss() {
 
   // ── Cas limite : condition triviale, satisfaite par TOUT candidat exploré
   // (`candidates.length > 0`, jamais un seul échec du test conjoint) — le
-  // near-miss reste calculé (coût nul, voir le cadrage) mais n’a
+  // near-miss reste calculé (coût nul) mais n’a
   // logiquement rien à y ajouter. ──
   {
     const requirementTriviale: BuildRequirement = { sets: [], minStats: { spd: 100 } }; // déjà garanti par la base seule
@@ -148,11 +148,10 @@ export default async function testRuneOptimNearMiss() {
 
   titre('Optimizer · quasi-succès — survit à un arrêt manuel (drivePairing)');
 
-  // ⚠️ Vérifie spécifiquement le correctif de spec/outils/optimizer/
-  // near-miss-appariement.md, §5 : `drivePairing` reconstruisait
-  // `SearchResult` À LA MAIN sur `isStopped()` (3 champs seulement) — sans
-  // correction, le near-miss accumulé jusqu'à l'arrêt aurait été perdu en
-  // silence. Générateur FACTICE (pas un vrai `pairBuckets`) — la question
+  // ⚠️ Vérifie spécifiquement la règle décrite dans spec/outils/optimizer/moteur/diagnostics.md,
+  // « Quasi-succès à l'appariement » : `drivePairing` doit rendre le
+  // near-miss accumulé jusqu'à l'arrêt sur `isStopped()` : un `SearchResult`
+  // reconstruit À LA MAIN (3 champs seulement) le perdrait en silence. Générateur FACTICE (pas un vrai `pairBuckets`) — la question
   // posée ici porte sur `drivePairing` seul (voir algo-verify, point 6 :
   // vérifier au bon étage), jamais sur la justesse de l'appariement lui-même
   // (couverte juste au-dessus). Un vrai `pairBuckets` ne céderait la main

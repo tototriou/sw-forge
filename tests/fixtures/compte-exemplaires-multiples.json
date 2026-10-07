@@ -1,8 +1,8 @@
 {
-  "_lisezmoi": "Export SWEX MINIATURE, dédié à D4 (implementation-relique, B.1) : deux unit_id du MÊME com2usId (15105) portent des reliques DIFFÉRENTES, et rien ne les confond par nom/com2usId seul. L'unité 201 est en plus référencée par un preset RTA et une défense de siège : les trois chemins (Box, RTA, Siège) doivent retrouver la MÊME relique pour un MÊME unit_id, jamais celle de l'autre exemplaire.",
+  "_lisezmoi": "Export SWEX MINIATURE, dédié aux exemplaires multiples d’une même espèce : deux unit_id du MÊME com2usId (15105) portent des reliques DIFFÉRENTES, et rien ne les confond par nom/com2usId seul. L'unité 201 est en plus référencée par un preset RTA et une défense de siège : les trois chemins (Box, RTA, Siège) doivent retrouver la MÊME relique pour un MÊME unit_id, jamais celle de l'autre exemplaire.",
   "tvalue": 1786261890,
   "tvaluelocal": 1786236690,
-  "wizard_info": { "wizard_id": 2, "wizard_name": "TesteurD4" },
+  "wizard_info": { "wizard_id": 2, "wizard_name": "Testeur" },
 
   "unit_list": [
     {

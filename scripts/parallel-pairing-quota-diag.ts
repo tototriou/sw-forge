@@ -1,5 +1,5 @@
-// Chantier D (voir spec/outils/optimizer/pistes.md et historique-
-// acceleration-et-outillage.md) — mesure si la répartition ÉGALE du plafond
+// Quota partagé de l'appariement parallèle (voir
+// spec/outils/optimizer/moteur/parallelisation.md) — mesure si la répartition ÉGALE du plafond
 // de candidats entre workers de pairing parallèle (`perWorkerMaxCollected =
 // maxCollected / workerCount`, runeBuildOptim.worker.ts:220) perd des
 // candidats au total sous un déséquilibre RÉEL de productivité entre
@@ -9,9 +9,8 @@
 //
 // Fidélité : réutilise le VRAI pipeline (prepareSearch → buildBuckets ×2 →
 // partitionBucketsALPT → pairBuckets), jamais une réimplémentation — voir le
-// skill algo-verify, section « Fidélité des scripts diagnostics ». (Il a
-// aussi longtemps fallu y reproduire l'escalade du budget de paires ;
-// supprimée du moteur, piste 8.) Chaque tranche simulée reconstruit sa PROPRE
+// skill algo-verify, section « Fidélité des scripts diagnostics ». (Le
+// moteur n'a pas de budget de paires à escalader.) Chaque tranche simulée reconstruit sa PROPRE
 // PreparedSearch (piège déjà documenté dans optimizer-perf-testing : un
 // `prepared` partagé entre tranches traitées séquentiellement fausse
 // `overBudget()`).

@@ -33,7 +33,7 @@ export interface Case {
   defense: boolean;
   statKeys: string[];
   objective: Objective | undefined;
-  // ⚠️ `'degats'` retiré de `Objective` (2026-08-27, voir runeBuildOptim.ts)
+  // ⚠️ `'degats'` n'est plus un `Objective` (voir runeBuildOptim.ts)
   // — les cas qui en dépendaient pour privilégier ATQ/Dgts Crit au
   // pré-filtrage passent par CET override explicite à la place
   // (`objective: 'efficience'` + `objectiveStats` ci-dessous), pour mesurer
@@ -42,12 +42,12 @@ export interface Case {
   // Sinon, les sets RÉELLEMENT actifs sur le monstre (le cas courant).
   setsOverride?: string[];
   /**
-   * L'intention relique du cas (lot 5a, garantie G) — choix de principale,
+   * L'intention relique du cas — choix de principale,
    * type, seuil — résolue contre la relique portée et l'inventaire du
    * compte par `buildCaseSearchParams`, SANS override d'objectif : tout le
    * reste du `SearchParams` est celui de perf-battery. Absent (les sept cas
    * historiques) : pas de `relicContext`, moteur byte-identique — c'est la
-   * batterie d'identité. B.6 pose ses cas avec ce champ.
+   * batterie d'identité. Les cas du différentiel de reliques posent ce champ.
    */
   relic?: { principale: RelicMainChoice; type: RelicUniqueChoice; seuil: number };
 }
@@ -55,7 +55,7 @@ export interface Case {
 // ⚠️ Eivor (défense deck 2, 7 conditions) volontairement ABSENT de cette
 // batterie : cas déjà connu comme cassé pour une raison indépendante de
 // bucketCap/des tranches (`buildBuckets` dépasse `maxMs` à lui seul, voir
-// spec/outils/optimizer/) — l'inclure ralentirait cette batterie à
+// spec/outils/optimizer/harnais.md, « Temps par phase ») — l'inclure ralentirait cette batterie à
 // chaque exécution sans mesurer ce qu'on cherche à suivre ici.
 export const CASES: Case[] = [
   { label: 'Lushen d15 (Rage+Blade, reel)', exportPath: 'ß☆Enzo-6399149.json', deckId: 15, monsterName: 'Lushen', defense: false, statKeys: ['atk', 'cr', 'cd'], objective: 'efficience', objectiveStats: ['atk', 'cd'] },
@@ -71,8 +71,8 @@ export const CASES: Case[] = [
 // partagé par la mesure de temps ET la vérification de justesse, pour ne
 // jamais faire diverger les deux méthodes sur un même cas.
 //
-// ⚠️ **Troisième des trois producteurs de `relicContext`** (lot 5a — les
-// autres : `recipeToSearchParams`, et l'écran au lot 5c) : `perf-battery.ts`
+// ⚠️ **Troisième des trois producteurs de `relicContext`** (les
+// autres : `recipeToSearchParams`, et l'écran) : `perf-battery.ts`
 // et l'oracle `--case` passent tous deux ici.
 export function buildCaseSearchParams(
   c: Case,
@@ -98,7 +98,7 @@ export function loadCaseSearchParams(c: Case, maxMs: number): SearchParams {
 
 export function loadCase(c: Case): { gear: GearSet; allRunes: RuneDetail[]; allRelics: RelicDetail[]; targetRuneIds: Set<number>; requirement: BuildRequirement; com2usId: number } {
   // `com2usId` : l'espèce, porteur des artéfacts (élément, archétype) — le
-  // différentiel de B.6 en a besoin pour figer la paire de référence par le
+  // différentiel de reliques en a besoin pour figer la paire de référence par le
   // vrai chemin (`chercherPaires`, `artifactFitsMonster`).
   const { gear, allRunes, allRelics, com2usId } = loadDeckMonster({ exportPath: c.exportPath, deckId: c.deckId, monsterName: c.monsterName, defense: c.defense, rest: [] });
   const targetRuneIds = new Set(gear.runes.map((r) => r.id));
@@ -115,8 +115,8 @@ export function loadCase(c: Case): { gear: GearSet; allRunes: RuneDetail[]; allR
   return { gear, allRunes, allRelics, targetRuneIds, requirement, com2usId };
 }
 
-// ── Vérification de MONOTONICITÉ (voir spec/outils/optimizer/ « BUCKET_CAP
-// mis à l'échelle ») — rapide : `buildBuckets` SEUL, jamais `pairBuckets`,
+// ── Vérification de MONOTONICITÉ (voir spec/outils/optimizer/moteur/elagages.md,
+// « Pré-filtrage heuristique et compartiments ») — rapide : `buildBuckets` SEUL, jamais `pairBuckets`,
 // pas besoin d'appariement complet pour savoir si les runes cible SURVIVENT
 // à la rétention. `maxMs` n'a ici aucun effet réel (jamais vérifié en dehors
 // de `pairBuckets`) — une valeur fixe suffit.

@@ -8,12 +8,9 @@ description: Boîte à outils et pièges déjà rencontrés pour TESTER/MESURER 
 Une phase de test sur ce moteur peut prendre plusieurs minutes à plusieurs
 dizaines de minutes, répétée à chaque itération, et un même genre de piège
 (contention, chemins gitignorés, spawn Windows) se redécouvre faute d'un
-endroit où le retrouver vite. Ce skill est une RÉFÉRENCE, pas un récit :
-pour l'historique complet de chaque décision, voir
-`spec/outils/optimizer/archive/historique/historique-acceleration-et-outillage.md` (sections
-« Suite — mode --quick et parallélisation… », « Suite —
-perf-battery-compare.ts… », « leçons retenues sur la méthodologie de
-mesure »).
+endroit où le retrouver vite. Ce skill est une RÉFÉRENCE, pas un récit ;
+la méthode de comparaison des temps que suit le harnais est décrite dans
+[spec/outils/optimizer/harnais.md § Séries de temps et comparaison](../../../spec/outils/optimizer/harnais.md).
 
 ⚠️ **Ne remplace PAS `algo-verify`** (`.claude/skills/algo-verify/SKILL.md`)
 — celui-ci reste la discipline à suivre pour la CORRECTION d'un algorithme
@@ -61,7 +58,7 @@ c'est-à-dire rater :
 - le **régime** d'appariement choisi comme la production le choisirait
   (seuil contre `totalPairCount`), jamais un séquentiel implicite ;
 - la **complétude** avec son motif (`maxMs`, `maxCollected`, ou
-  `quotaTranche` en régime parallèle depuis degats-et-aura 6bis-b7) et
+  `quotaTranche` en régime parallèle) et
   l'autodiagnostic `explored` contre `totalPairs` ;
 - la distinction **élagage sûr / rétention heuristique** — `filterSlot` est
   MIXTE, une disparition n'y est pas un verdict ;
@@ -88,7 +85,7 @@ intégralement.
 | **J'ai besoin d'un cas COURT et REPRODUCTIBLE pour comparer deux configurations** | `scripts/diagnostic-harness.ts --profils` puis `--profil=<nom>` — profils de pool synthétique NOMMÉS, chacun portant son BUILD CIBLE et ses grandeurs MESURÉES (complétude + motif, régime, `totalPairs`, rang + population), relues par `tests/diagnostic-profils.test.ts`. ⚠️ **Ce ne sont pas « des cas réels en plus rapide »** : un cas réel tronque par le TEMPS, ce qui rend NON_COMPARABLES le verdict, la population et le classement — la vitesse n'est pas le critère, la NATURE de la troncature l'est. ⚠️ Et un profil COMPLET peut être totalement INSENSIBLE à la configuration : lire son champ `axesSensibles` (les axes sur lesquels une divergence a été MESURÉE) et son champ `limites` AVANT de conclure « aucune divergence », et ne jamais prendre la rétention affichée pour un indicateur de sensibilité (le produit brut est un MAJORANT) | 0,13 s à 1,5 s |
 | **Ce paramètre change-t-il quelque chose ? (deux CONFIGURATIONS du même code)** | `scripts/diagnostic-harness.ts --profil=<nom> --differentiel=<axe>:<témoin>,<comparé> [--repetitions=<n>]` — deux bras ENTRELACÉS (T1 C1 T2 C2…), sept éléments d'oracle lus dans l'ordre du pipeline, et le PREMIER point de divergence nommé avec ses quatre champs (OÙ · COMBIEN · SUR COMBIEN · CE QUE ÇA AUTORISE). ⚠️ **À ne pas confondre avec `perf-battery-compare`**, qui compare deux VERSIONS DU CODE via `git worktree` : celui-ci compare deux CONFIGURATIONS du même code, et c'est un problème distinct. ⚠️ **Il REFUSE plus souvent qu'il ne conclut, et c'est sa valeur** : un motif de troncature différent ferme le PORTIER, un préfixe exploré différent rend `NON_COMPARABLE` le verdict, la population, le classement et le near-miss — des valeurs ÉGALES sur des préfixes différents ne prouvent rien. ⚠️ Il exige un PROFIL (un cas réel tronque par le TEMPS, donc son oracle n'est comparable sur rien) et il **diffe les paramètres EFFECTIFS**, pas seulement l'axe demandé : surcharger `slotFilterCap` déplace AUSSI `bucketCap`, donc fait varier deux paramètres | 2N × le coût du profil (0,3 s à 9 s) |
 | **Cette version converge-t-elle plus TÔT ? (en travail, pas en temps)** | `scripts/diagnostic-harness.ts … --suivre=<les 6 ids>` — rend `decouverteBuildCible` : l'**INSTANT DE DÉCOUVERTE** (`explored` à la première apparition de la cible) et la **COURBE DE RENDEMENT** (candidats cumulés à 1/5/10/25/50/75/100 % de l'espace). ⚠️ **À ne JAMAIS confondre avec le RANG**, qui vient de `sortCandidates` et décrit un état FINAL : les deux sont indépendants — sur `complet-sensible` la cible est découverte à 0,022 % de l'espace et sort #1424. ⚠️ C'est un COMPTE de paires, donc insensible à la dérive machine et à la contention, contrairement à tout `foundMs` — c'est ce qui le rend utilisable là où `perf-battery-compare` ne l'est pas. ⚠️ **MAJORANT, jamais la paire exacte** (points de passage tous les 500 paires), et **NON REPRODUCTIBLE en régime PARALLÈLE** (relevé temporel, `explored` sommé sur les workers) : ne comparer deux configurations dessus qu'en séquentiel. Un jalon jamais atteint s'affiche « — », jamais la dernière valeur connue | le coût du run demandé |
-| **Quelle stat DIFFÉRENCIE vraiment les demi-builds ? (piste B, « prioriser les stats les plus difficiles »)** | `scripts/diagnostic-harness.ts …` — rend `dispersionTranches` : le **CV par `retentionKey`** et la répartition du budget de rétention qu'il produit, par moitié. ⚠️ **C'est LE nombre du moteur**, lu par `trancheReallocation` que `buildBuckets` appelle lui-même — jamais une reconstitution. Un CV recalculé sur les demi-builds RETENUS, principale COMPRISE, n'en est PAS une approximation : c'est un autre nombre, qui ne pilote rien (l'exclusion de la principale est délibérée — une principale garantie noie la vraie dispersion et fait passer une stat TENDUE pour MOLLE). ⚠️ Rendu MÊME quand `adaptiveTrancheWeighting` est inactif, parce que le CV est une propriété du POOL et pas du réglage — mais `applique` dit alors NON : c'est ce que la réallocation FERAIT, pas ce qu'elle a fait | le coût d'un `--arret=demi-builds` |
+| **Quelle stat DIFFÉRENCIE vraiment les demi-builds ? (piste « prioriser les stats les plus difficiles »)** | `scripts/diagnostic-harness.ts …` — rend `dispersionTranches` : le **CV par `retentionKey`** et la répartition du budget de rétention qu'il produit, par moitié. ⚠️ **C'est LE nombre du moteur**, lu par `trancheReallocation` que `buildBuckets` appelle lui-même — jamais une reconstitution. Un CV recalculé sur les demi-builds RETENUS, principale COMPRISE, n'en est PAS une approximation : c'est un autre nombre, qui ne pilote rien (l'exclusion de la principale est délibérée — une principale garantie noie la vraie dispersion et fait passer une stat TENDUE pour MOLLE). ⚠️ Rendu MÊME quand `adaptiveTrancheWeighting` est inactif, parce que le CV est une propriété du POOL et pas du réglage — mais `applique` dit alors NON : c'est ce que la réallocation FERAIT, pas ce qu'elle a fait | le coût d'un `--arret=demi-builds` |
 | Un changement de PARALLÉLISATION de l'appariement perd-il des candidats (pas une question de temps) ? | `tests/rune-optim-parallel-pairing.test.ts` — différentiel à `maxMs` RÉALISTE (30 s, jamais un budget court juste assez long pour déclencher le chemin de code, voir `algo-verify` méthode point 2) | quelques secondes à quelques minutes selon le nombre de scénarios |
 | Une charge concurrente sur le fil PRINCIPAL (optimisation d'artéfacts au fil de l'eau) ralentit-elle la recherche ? | `scripts/artifact-contention-diag.ts` — vrais `worker_threads` pour l'appariement, répétitions ENTRELACÉES, charge témoin en calcul pur pour séparer cœurs et mémoire | quelques minutes par cas (N répétitions × 3 conditions) |
 | Un mécanisme de COORDINATION EN DIRECT entre workers (quota partagé, arrêt anticipé signalé…) respecte-t-il sa garantie sous une VRAIE latence de messages ? | ⚠️ JAMAIS une simulation séquentielle (voir piège dédié plus bas) — de VRAIS `worker_threads` Node concurrents, bundlés via esbuild : `scripts/lib/pairing-quota-worker.ts` + `scripts/parallel-pairing-real-diag.ts` (patron réutilisable, déjà utilisé pour la décision initiale de paralléliser l'appariement via `scripts/lib/pairing-worker.ts`/`scripts/pairing-parallel-diag.ts`) | quelques secondes par cas (bundling + spawn réel) |
@@ -99,7 +96,7 @@ confondre** — elles n'ont ni la même fidélité ni le même usage :
 
 | Fichier | Ce que c'est | Quand s'en servir |
 |---|---|---|
-| `scripts/lib/pair-slice-worker.ts` | ✅ **Le code de PRODUCTION**, coquille Node du même `runPairSlice` que le navigateur (voir spec/outils/optimizer/parallelisation-partagee.md) | Dès qu'on veut mesurer ou vérifier ce que la prod fait vraiment |
+| `scripts/lib/pair-slice-worker.ts` | ✅ **Le code de PRODUCTION**, coquille Node du même `runPairSlice` que le navigateur (voir [spec/outils/optimizer/moteur/parallelisation.md § Coquilles et lanceurs](../../../spec/outils/optimizer/moteur/parallelisation.md)) | Dès qu'on veut mesurer ou vérifier ce que la prod fait vraiment |
 | `scripts/lib/pairing-quota-worker.ts` | Une REPRODUCTION fidèle du mécanisme, plus un mode `shared` **qui n'est pas en production** (prototype du quota partagé, écarté) | Uniquement pour explorer la question du quota partagé |
 | `scripts/lib/pairing-worker.ts` | Un PROTOTYPE de mesure de débit brut — **budget figé, aucune escalade**, son en-tête le dit | Rien de fidèle : ne jamais en tirer une conclusion sur la prod |
 
@@ -187,10 +184,9 @@ simultanée. Il faut deux répertoires distincts (voir
    Contre-mesure : liés EXPLICITEMENT, un par un, jamais par motif global —
    `node_modules` (jonction, `symlinkSync(..., 'junction')` — n'exige PAS
    de privilège élevé sur Windows, contrairement à un symlink de dossier),
-   les comptes réels par leur nom exact (`tototriou-12889591.json`,
-   `ß☆Enzo-6399149.json` — liste `ACCOUNT_FILES` dans
-   `perf-battery-compare.ts`, ⚠️ PAS `tests/outils.ts`/`exportReel`, qui ne
-   connaît QUE `tototriou-12889591.json`).
+   les comptes réels par leur nom exact (liste `ACCOUNT_FILES` dans
+   `perf-battery-compare.ts`, ⚠️ PAS `tests/outils.ts`/`exportReel`, qui
+   n'en connaît QU'UN).
 2. **Lier en BLOC par motif peut écraser un fichier SUIVI par git** dans le
    worktree (ex. `tsconfig.json`/`package.json` remplacés par la version de
    la branche courante au lieu du commit visé). Contre-mesure : jamais de
@@ -278,10 +274,8 @@ séquentielle jusqu'ici (construction des 2 moitiés en Workers,
 `--monotonicity`) sont des ALLOCATIONS FIGÉES à l'avance (aucun message
 ne change leur comportement en cours de route) — la règle ci-dessus les
 classe du côté valide, pas suspect.
-Détail complet :
-`spec/outils/optimizer/archive/historique/historique-acceleration-et-outillage.md`, section
-« Suite — revérifié sous VRAIE concurrence : la simulation séquentielle
-était trompeuse sur le quota partagé ».
+Le quota partagé écarté pour cette raison :
+[spec/outils/optimizer/moteur/parallelisation.md § Répartition et partage du plafond](../../../spec/outils/optimizer/moteur/parallelisation.md).
 
 ### `candidats.push(...tableauEnorme)` — limite d'arguments V8
 
@@ -387,7 +381,7 @@ charge.
   détail, et sa section « Fidélité des scripts diagnostics » couvre le
   risque qu'un script qui appelle les internes du moteur diverge du vrai
   chemin de production.
-- `spec/outils/optimizer/README.md` — index de la section, avec les
-  fichiers `archive/historique/historique-*.md` (l'historique complet, chronologique, de
-  chaque décision résumée ici) et `spec/outils/optimizer/pistes.md` (état
-  des lieux des pistes sans relire l'historique).
+- `spec/outils/optimizer/README.md` — routage par tâche vers les specs de
+  l'Optimizer (vérification, harnais, parallélisation), et
+  `spec/outils/optimizer/pistes.md` (les pistes futures, à lire avant toute
+  idée « nouvelle »).

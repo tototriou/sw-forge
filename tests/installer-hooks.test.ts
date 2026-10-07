@@ -14,7 +14,7 @@ import { fileURLToPath } from 'url';
 import { egal, ignore, ok, titre } from './outils';
 
 const RACINE = join(dirname(fileURLToPath(import.meta.url)), '..');
-const PUBLICS = ['.githooks/pre-commit', 'scripts/hooks-codex-garde-fous.mjs', 'scripts/lib/spec-markdown.mjs', 'scripts/spec-lint.mjs'];
+const PUBLICS = ['.githooks/pre-commit', 'scripts/hooks-codex-garde-fous.mjs', 'scripts/lib/spec-markdown.mjs', 'scripts/spec-lint.mjs', '.claude/hooks/refuse-commit-m.mjs', '.claude/hooks/refuse-sed-i.mjs'];
 
 type Entree = { proprietaire: string; source: string; commit: string; date: string };
 type Manifeste = { version?: number; commitSource: string; fichiers: Record<string, string>; entrees?: Record<string, Entree> };
@@ -132,7 +132,7 @@ export function testInstallerHooks() {
       'core.hooksPath câblé sur l’installation');
     let m = lireManifeste(code);
     egal(m.version, 2, 'manifeste en version 2');
-    egal(Object.keys(m.fichiers).sort(), PUBLICS, 'le manifeste porte les quatre chemins publics, et eux seuls');
+    egal(Object.keys(m.fichiers).sort(), [...PUBLICS].sort(), 'le manifeste porte les six chemins publics, et eux seuls');
     ok(PUBLICS.every((rel) => m.fichiers[rel] === sha(installe(code, rel))),
       'chaque empreinte est celle des octets INSTALLÉS');
     ok(PUBLICS.every((rel) => m.entrees?.[rel]?.proprietaire === 'public' && m.entrees?.[rel]?.commit === tete &&
@@ -207,7 +207,7 @@ export function testInstallerHooks() {
 }
 
 export function testHooksCodexGardeFous() {
-  titre('Garde-fou Codex public — lecture entière d’une grosse spec');
+  titre('Garde-fous Codex publics — lectures et commandes');
   if (!gitDisponible('garde-fou Codex')) return;
   const bac = bacTemporaire('swblacksmith-garde-fous-');
   const code = join(bac, 'code');
@@ -236,6 +236,11 @@ export function testHooksCodexGardeFous() {
     ok(!refus(lancer(garde, code, 'PreToolUse', 'cat spec/petit.md')), 'spec courte : permise');
     ok(!refus(lancer(garde, code, 'PreToolUse', 'cat spec/outils/optimizer/invariants.md')), 'invariants.md : exception');
     ok(!refus(lancer(garde, code, 'PreToolUse', 'git status')), 'autre commande : permise');
+    ok(refus(lancer(garde, code, 'PreToolUse', 'git commit -m "essai"')), 'message Git en ligne : refus');
+    ok(refus(lancer(garde, code, 'PreToolUse', 'sed -i.bak s/a/b/ spec/petit.md')), 'sed en place : refus');
+    ok(refus(lancer(garde, code, 'PreToolUse', 'node -e "console.log(`essai`)"')), 'script Node cité par Bash : refus');
+    ok(!refus(lancer(garde, code, 'PreToolUse', 'git commit -F message.txt')), 'message Git en fichier : permis');
+    ok(!refus(lancer(garde, code, 'PreToolUse', 'rg "sed -i" CLAUDE.md')), 'mention de sed : permise');
     egal(lancer(garde, code, 'SessionStart'), {}, 'autre évènement : aucun effet');
 
     depotJetable(autre);

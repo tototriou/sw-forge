@@ -246,7 +246,9 @@ de heredoc. Raison d'être : un `sed -i` raté ne signale
 rien. Test :
 `node tests/run.mjs hookrefusesedi`. Câblage dans `.claude/settings.json`
 (deux entrées : `Bash`, `PowerShell`), à recopier comme le premier. Côté
-Codex, non couvert.
+Codex, les deux parseurs de commande sont appelés par
+`scripts/hooks-codex-garde-fous.mjs`, après installation et approbation
+du hook personnel (`node scripts/installer-hooks.mjs --codex-hooks <hooks.json>`).
 
 ### Un `Read` sans offset sur une grosse spec est refusé
 

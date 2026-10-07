@@ -43,7 +43,11 @@ Electron `44.5.1`, electron-builder `26.15.3`, electron-updater `6.8.9`
 1. **Avant `ready`** : `protocol.registerSchemesAsPrivileged` pour `app`
    (`standard`, `secure`, `supportFetchAPI`, `corsEnabled`, `stream`) ; avec
    `SWBLACKSMITH_PREUVE`, le dossier des données passe dans
-   `<dossier>/donnees`.
+   `<dossier>/donnees`. ⚠️ **Une seule instance par dossier de données**
+   (`app.requestSingleInstanceLock`) : un second lancement quitte et ramène
+   la fenêtre du premier au premier plan. Deux processus sur les mêmes
+   données se disputeraient le stockage de la page et réécriraient tour à
+   tour `session.json`, `swex.json` et `fenetre.json`.
 2. **À `ready`** : aucun menu (`Menu.setApplicationMenu(null)`) ;
    `protocol.handle` sert les fichiers du build ; la fenêtre est créée,
    puis branchés la navigation, la mise à jour, le dossier SW Exporter et

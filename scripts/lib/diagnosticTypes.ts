@@ -1164,8 +1164,8 @@ export interface ResultatHarnais {
    */
   verdictBuildCible?: VerdictBuildCible;
   /**
-   * La trace du candidat traceur PRODUITE DANS LE MOTEUR (lot 5a,
-   * `SearchParams.traceur`) : verdict de chaque prédicat de faisabilité
+   * La trace du candidat traceur PRODUITE DANS LE MOTEUR
+   * (`SearchParams.traceur`) : verdict de chaque prédicat de faisabilité
    * traversé, présence dans chaque structure bornée, compteurs. Présente dès
    * que six identifiants sont suivis et que l'appariement a eu lieu.
    * ⚠️ `moities.*.tranches` n'est pas observable ici : le harnais construit
@@ -1180,7 +1180,7 @@ export interface ResultatHarnais {
    * Le résultat BRUT de l'appariement du dernier passage (`SearchResult` :
    * tous les candidats dans l'ordre de collecte, `explored`, `truncated`,
    * `traceur`) — pour un consommateur qui a besoin de la liste ENTIÈRE, pas
-   * du top coupé `meilleurs` (implementation-relique, lot 6 bis : le
+   * du top coupé `meilleurs` (le
    * différentiel de fidélité fusionne les N runs de l'oracle et résout TOUS
    * les candidats relâchés de A ; il passe par le harnais pour hériter du
    * régime d'appariement décidé comme la production — 4 workers au-delà du

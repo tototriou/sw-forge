@@ -134,18 +134,17 @@ export function resolveArtifacts(recipe: OptimizerRecipe, loaded: LoadedMonster)
 
 /**
  * Construit l'intention de recherche de relique (`RelicIntent`) depuis une
- * recette — le second des deux constructeurs prévus par le lot 2 (le
- * premier, depuis `OptimizerState`, est du lot 5c : les listes de l'écran
- * n'existent pas encore). **Un seul point de lecture** (garantie G) : ni ce
+ * recette — le second des deux constructeurs (le
+ * premier, depuis `OptimizerState`, est dans l'écran). **Un seul point de lecture** (garantie G) : ni ce
  * fichier ni l'écran ne relisent `relicMainChoice`/`relicUniqueChoice`/
  * `relicMinUpgrade` séparément une fois cette fonction posée.
  *
  * ⚠️ `mode: 'off'` suit `ignoreArtifacts` (D1 : l'interrupteur « Activer
  * l'optimisation d'artéfacts » s'étend aux reliques, aucun interrupteur
- * propre — T2). Sans `relicMainChoice` (recette antérieure au lot 2, ou
+ * propre — T2). Sans `relicMainChoice` (recette antérieure à ce champ, ou
  * écran qui ne l'a pas encore posé), le défaut se CALCULE contre la relique
  * réellement portée par `loaded` (`defaultRelicMainChoice`), jamais une
- * constante — même règle que l'écran au lot 5c, pour que les deux
+ * constante — même règle que l'écran, pour que les deux
  * convergent sur la même valeur à recette égale.
  */
 export function recipeToRelicIntent(recipe: OptimizerRecipe, loaded: LoadedMonster): RelicIntent {
@@ -502,9 +501,8 @@ export function recipeToSearchParams(
     // dominance protège au-delà de la paire représentative (6bis-b3d-1).
     statsLignesArtefactsEquipables: resolveStatsLignesArtefacts(recipe, loaded),
     relic: loaded.gear.relic,
-    // ⚠️ **Deuxième des trois producteurs de `relicContext`** (lot 5a — les
-    // autres : `buildCaseSearchParams` de perfShared.ts, et l'écran au lot
-    // 5c). L'intention vient d'UN seul point de lecture (`recipeToRelicIntent`,
+    // ⚠️ **Deuxième des trois producteurs de `relicContext`** (les
+    // autres : `buildCaseSearchParams` de perfShared.ts, et l'écran). L'intention vient d'UN seul point de lecture (`recipeToRelicIntent`,
     // garantie G), résolue contre la relique portée et l'inventaire du
     // compte — exactement ce que `relicOracleCli` fait pour l'oracle.
     relicContext: resoudreContexteRelique(recipeToRelicIntent(recipe, loaded), loaded.gear.relic, loaded.allRelics),

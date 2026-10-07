@@ -42,7 +42,7 @@ export interface Case {
   // Sinon, les sets RÉELLEMENT actifs sur le monstre (le cas courant).
   setsOverride?: string[];
   /**
-   * L'intention relique du cas (lot 5a, garantie G) — choix de principale,
+   * L'intention relique du cas (garantie G) — choix de principale,
    * type, seuil — résolue contre la relique portée et l'inventaire du
    * compte par `buildCaseSearchParams`, SANS override d'objectif : tout le
    * reste du `SearchParams` est celui de perf-battery. Absent (les sept cas
@@ -71,8 +71,8 @@ export const CASES: Case[] = [
 // partagé par la mesure de temps ET la vérification de justesse, pour ne
 // jamais faire diverger les deux méthodes sur un même cas.
 //
-// ⚠️ **Troisième des trois producteurs de `relicContext`** (lot 5a — les
-// autres : `recipeToSearchParams`, et l'écran au lot 5c) : `perf-battery.ts`
+// ⚠️ **Troisième des trois producteurs de `relicContext`** (les
+// autres : `recipeToSearchParams`, et l'écran) : `perf-battery.ts`
 // et l'oracle `--case` passent tous deux ici.
 export function buildCaseSearchParams(
   c: Case,

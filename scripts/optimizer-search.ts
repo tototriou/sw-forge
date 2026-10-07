@@ -413,7 +413,7 @@ if (recipe.objective === 'degats_reels') {
 
 
 
-// Le contexte relique (lot 5a, garantie G) — la même ligne que le harnais
+// Le contexte relique (garantie G) — la même ligne que le harnais
 // (`diagnosticConfig.ts`) : en mode `recherche` les bornes sont RELÂCHÉES
 // et les candidats sortent SANS relique ; la relique de chaque build est
 // résolue après la recherche, comme la file de l'écran (6bis-b5c).

@@ -1,6 +1,6 @@
-// Le différentiel de fidélité de B.6 (implementation-relique, lot 6 — B.6
-// amendé le 2026-09-21 : « cinquième point d'entrée, le différentiel de
-// fidélité ; un processus par recherche ») : pour UN point de la grille,
+// Le différentiel de fidélité de la dimension relique (voir
+// spec/outils/optimizer/moteur/reliques.md,
+// « Oracle de la dimension relique ») : pour UN point de la grille,
 // l'oracle (N recherches, une par principale éligible) puis l'option A
 // ENTIÈRE (une recherche relâchée + la résolution exacte de TOUS ses
 // candidats), et la comparaison — N, C (complétude de chaque run ET de A),
@@ -11,7 +11,7 @@
 //   relic-differentiel.ts --case=<i> [--relic-main=] [--relic-type=] [--relic-min-upgrade=] [--export-dir=] --out=<dossier>
 //   relic-differentiel.ts <export.json> <recette.json> [--rta] [--siege=<deckId>[:defense]] [--paire-reference=<id>,<id>] --out=<dossier>
 //     (`--paire-reference` : la paire de référence désignée explicitement à la
-//     place de la représentative — lot 6 bis, `paireDeReference` dans
+//     place de la représentative — `paireDeReference` dans
 //     relicOracle.ts ; archivée dans `resultat.json.point.paireReference`)
 // Mode enfant (interne — une seule recherche, ce processus et rien d'autre) :
 //   … --run=oracle:<i> --out=<dossier>   →  <dossier>/oracle-<i>.json
@@ -41,12 +41,11 @@
 // code du différentiel de 5b). Le domaine comparé est la seule dimension
 // relique : paire de référence = `params.artifacts`, figée des deux côtés.
 //
-// ⚠️ Lot 6 bis : la recherche passait par `searchBuilds`, TOUJOURS
-// séquentiel — sur une recette relâchée réelle (Shihwa, 3,2 G paires, 32 ×
-// le seuil) l'écran apparie à 4 workers et le séquentiel coûtait 22 min par
+// ⚠️ `searchBuilds` est TOUJOURS séquentiel — sur une recette relâchée réelle (Shihwa, 3,2 G paires, 32 ×
+// le seuil) l'écran apparie à 4 workers et le séquentiel coûte 22 min par
 // recherche. Le harnais décide du régime comme la production, des DEUX
 // côtés (oracle et A) ; il est rapporté par run (`regime`). Sous le seuil
-// (les cas de batterie du lot 6, Ciri du test) rien ne change.
+// (les cas de batterie, Ciri du test) rien ne change.
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { spawnSync } from 'child_process';
@@ -152,7 +151,7 @@ function reglagesDe(point: PointOracle): ReglagesDifferentiel {
     critere: point.params.objective ?? 'efficience',
     degats: degatsSansArtefacts(point.realDamage),
     porteur: porteurDe(point.com2usId),
-    // ⚠️ Le canal exclusive (lot 7) — le MÊME objet que celui donné à
+    // ⚠️ Le canal exclusive — le MÊME objet que celui donné à
     // `fusionnerRunsOracle` plus bas : les deux côtés calculent l'apport
     // depuis le même `DamageSetup` et le même élément, sinon la comparaison
     // de fidélité ne compare plus rien.

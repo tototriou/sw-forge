@@ -1,4 +1,6 @@
-// Oracle de contrôle de la dimension relique (implementation-relique, lot 4).
+// Oracle de contrôle de la dimension relique (voir
+// spec/outils/optimizer/moteur/reliques.md,
+// « Oracle de la dimension relique »).
 //
 // Il ne remplace aucune étape du moteur : chaque valeur distincte de
 // principale éligible devient le `SearchParams.relic` d'un appel au vrai
@@ -40,8 +42,8 @@ export interface OracleCandidate extends BuildCandidate {
 }
 
 /**
- * La complétude de CHAQUE run de l'oracle (lot 6, revue externe de l'outil
- * F : `OracleResult` jetait `truncated`, C ne pouvait pas s'établir). Un point
+ * La complétude de CHAQUE run de l'oracle (`OracleResult` jetait
+ * `truncated` : la complétude ne pouvait pas s'établir). Un point
  * de la grille B.6 n'est complet que si aucun des N runs n'est tronqué.
  */
 export interface OracleRunOutcome {
@@ -130,7 +132,7 @@ export function oracleSearchRuns(params: SearchParams, relicContext: RelicContex
     reliques,
     // Remplacement, jamais cumul : c'est le même paramètre que la production.
     // ⚠️ `relicContext: undefined` — garantie E : l'oracle n'applique AUCUNE
-    // des éliminations qu'il sert à valider. Depuis le lot 5a, un
+    // des éliminations qu'il sert à valider. Un
     // `SearchParams.relicContext` en mode `recherche` RELÂCHE les bornes du
     // moteur ; le laisser passer ici ferait mesurer l'option A contre
     // elle-même. Chaque run est le moteur d'avant, relique fixée.
@@ -140,8 +142,8 @@ export function oracleSearchRuns(params: SearchParams, relicContext: RelicContex
 
 /**
  * Les options de l'oracle — `realDamage` voyage hors `SearchParams` (garantie
- * E), et `exclusive` est le contexte de l'assiette `Y` des propriétés uniques
- * (lot 7). ⚠️ **Le MÊME objet doit être donné à l'option A** : c'est ce qui
+ * E), et `exclusive` est le contexte de l'assiette `Y` des propriétés uniques.
+ * ⚠️ **Le MÊME objet doit être donné à l'option A** : c'est ce qui
  * rend les deux scores comparables.
  */
 export interface OptionsOracle {
@@ -150,8 +152,7 @@ export interface OptionsOracle {
 }
 
 /**
- * Le score d'un candidat, avec l'apport de la relique qu'on lui essaie
- * (implementation-relique, lot 7).
+ * Le score d'un candidat, avec l'apport de la relique qu'on lui essaie.
  *
  * ⚠️ **L'apport se calcule ICI, sur les stats du candidat qui incluent déjà
  * la principale de cette relique** — et par le MÊME module que l'option A
@@ -159,7 +160,7 @@ export interface OptionsOracle {
  * l'appelant aux deux côtés). Deux calculs parallèles rendraient la
  * comparaison de fidélité (F) vide de sens.
  *
- * `exclusive` absent → apport neutre : l'oracle d'avant le lot 7, à
+ * `exclusive` absent → apport neutre : l'oracle sans propriété unique, à
  * l'identique.
  */
 function scoreOracleDuCandidat(
@@ -238,9 +239,8 @@ export function oracleSearch(
   relicContext: RelicContext,
   options: OptionsOracle = {}
 ): OracleResult {
-  // Même classe de refus que le moteur, jamais un « 0 résultat » ordinaire
-  // (revue adversariale du diff du lot 5a, BLOQUANT 2) : préexistait au lot
-  // 4, ce lot raccorde l'oracle au refus nommé de `prepareSearch`/
+  // Même classe de refus que le moteur, jamais un « 0 résultat » ordinaire :
+  // l'oracle se raccorde au refus nommé de `prepareSearch`/
   // `searchBuilds`/`runSearchToCompletion`/`runPairSlice` sur le même
   // contexte.
   if (relicContext.mode === 'recherche' && relicContext.vide) {
@@ -252,8 +252,8 @@ export function oracleSearch(
 
 /**
  * La fusion des N runs — PARTAGÉE entre `oracleSearch` (les N `searchBuilds`
- * dans ce processus, la forme du lot 4, celle des tests) et l'orchestrateur
- * de B.6 (`scripts/relic-differentiel.ts` : un processus par run, résultats
+ * dans ce processus, la forme des tests) et l'orchestrateur
+ * du différentiel de fidélité (`scripts/relic-differentiel.ts` : un processus par run, résultats
  * relus depuis un JSON). Une seule fusion, une seule convention d'ex æquo
  * (score, puis `rid` croissant), jamais deux.
  */
@@ -325,7 +325,7 @@ export interface PointOracle {
   // différentiel les neutralise comme l'écran quand la paire est figée.
   lignesVerrouillees: LigneVerrouillee[];
   /**
-   * Le contexte de l'assiette `Y` des propriétés uniques (lot 7) — le
+   * Le contexte de l'assiette `Y` des propriétés uniques — le
    * `DamageSetup` et l'élément de l'espèce, construits ICI, une fois, pour
    * que l'ORACLE et l'OPTION A partent du même. ⚠️ Indépendant de
    * `realDamage` : « État de mon monstre » agit sur tous les objectifs, et un
@@ -337,14 +337,14 @@ export interface PointOracle {
 
 /**
  * La paire d'artéfacts de RÉFÉRENCE désignée explicitement
- * (`--paire-reference=<id>,<id>`, forme recette seulement — lot 6 bis) :
+ * (`--paire-reference=<id>,<id>`, forme recette seulement) :
  * remplace `params.artifacts`, la paire représentative de `resolveArtifacts`,
  * quand celle-ci ne décrit pas le domaine que le différentiel doit comparer.
  *
  * ⚠️ Pourquoi : `paireRepresentative` choisit la meilleure paire AU SENS DU
  * RÉGIME sur l'équipement porté — en PV effectifs avec une principale ATQ
  * forcée, toutes les paires sont ex æquo avec la paire VIDE, qui sort la
- * première (relevé du lot 6 bis, Shihwa : `[]`). Le différentiel fige cette
+ * première (relevé sur Shihwa : `[]`). Le différentiel fige cette
  * paire des DEUX côtés (B.6 amendé, point 2) ; vide, elle rend infaisable
  * tout build dont le minimum d'ATQ dépend de l'apport +100 × 2 que
  * `artifactBounds.possibles` a pourtant admis à la recherche — le cas 3 (c)
@@ -385,7 +385,7 @@ export function paireDeReference(ids: readonly number[], inventaire: readonly Ar
  * Charge un point depuis un `argv` : forme `--case=<i> [--relic-main=]
  * [--relic-type=] [--relic-min-upgrade=] [--export-dir=]` (l'intention vient
  * du MÊME parseur que `perf-battery`, `parseOptionsRelique` ; sans option
- * relique : `libre/libre/+6`, la forme du lot 4 — `equipped` y est refusé,
+ * relique : `libre/libre/+6`, la forme des tests — `equipped` y est refusé,
  * un oracle à N = 1 sur l'équipée est le moteur lui-même), ou forme
  * `<export> <recette> [--rta] [--siege=<deckId>[:defense]]
  * [--paire-reference=<id>,<id>]` (`paireDeReference` ci-dessus).

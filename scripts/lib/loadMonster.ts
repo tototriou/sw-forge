@@ -46,7 +46,7 @@ export interface LoadedMonster {
   allArtifacts: ArtifactDetail[];
   // Inventaire COMPLET de reliques du compte (`data.relics`, dédoublonné par
   // `rid`) — ce parmi quoi `resoudreContexteRelique` résout le pool
-  // éligible (lot 5a). Même remarque que `allArtifacts` : distinct de
+  // éligible. Même remarque que `allArtifacts` : distinct de
   // `gear.relic`, la pièce portée par CET exemplaire.
   allRelics: RelicDetail[];
 }

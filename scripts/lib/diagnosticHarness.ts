@@ -379,7 +379,7 @@ async function deroulerHarnais(
 
   resultat.completude = evaluerCompletude(dernier.resultat!, dernier.totalPairs!, resolue.params);
   if (dernier.resultat!.traceur) resultat.traceCandidat = dernier.resultat!.traceur;
-  // Le résultat brut, entier — voir `ResultatHarnais.brut` (lot 6 bis).
+  // Le résultat brut, entier — voir `ResultatHarnais.brut`.
   resultat.brut = dernier.resultat;
 
   // ⚠️ Le classement complet n'est payé que s'il sert : un `--arret=appariement`
@@ -994,7 +994,7 @@ async function unPassage(
   /** §5.6 — les SIX identifiants du build cible, ou `null` : sans cible, rien à découvrir. */
   cibleComplete: number[] | null = null
 ): Promise<Passage> {
-  // ⚠️ Le traceur (lot 5a) est un instrument de diagnostic posé sur une COPIE
+  // ⚠️ Le traceur est un instrument de diagnostic posé sur une COPIE
   // des paramètres — la recette reste la vérité prod ; sans cible complète,
   // `resolue.params` passe tel quel.
   const params: SearchParams = cibleComplete ? { ...resolue.params, traceur: { runeIds: cibleComplete } } : resolue.params;

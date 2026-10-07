@@ -465,7 +465,7 @@ function rendreResultat(r: ResultatHarnais): string {
     l.push(`  ${v.avertissementTroncature}`);
   }
 
-  // ── Lot 5a : la trace PRODUITE DANS LE MOTEUR pour le build cible —
+  // ── La trace PRODUITE DANS LE MOTEUR pour le build cible —
   // verdict de chaque prédicat traversé, présence dans chaque structure
   // bornée. Rendue brute (JSON) : c'est un relevé, pas une interprétation.
   if (r.traceCandidat) {

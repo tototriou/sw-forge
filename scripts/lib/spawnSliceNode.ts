@@ -60,7 +60,7 @@ export function makeSpawnSliceNode(workerBundlePath: string): SpawnSlice {
         // ⚠️ Reconstruction EXPLICITE, pas un spread de `msg` — jumeau Node
         // de `pairSliceInWorker` (runeBuildOptim.worker.ts), MÊME piège :
         // voir spec/outils/optimizer/near-miss-appariement.md, §5.
-        // ⚠️ `traceur` (revue adversariale du diff du lot 5a, MINEUR 2) :
+        // ⚠️ `traceur` :
         // `runPairSlice` le rend bien, cette reconstruction EXPLICITE
         // l'omettait — `combineParallelPairingResults` ne recevait alors
         // rien à fusionner sur ce chemin.

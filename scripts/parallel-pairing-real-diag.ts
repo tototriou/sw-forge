@@ -1,13 +1,12 @@
-// Chantier D, revérifié sous VRAIE concurrence — le script précédent
-// (parallel-pairing-quota-diag.ts) simulait les 4 tranches SÉQUENTIELLEMENT
-// dans un seul thread Node, ce qui teste la JUSTESSE (le total de
+// Quota partagé de l'appariement parallèle, sous VRAIE concurrence : 4 VRAIS
+// `worker_threads` Node concurrents (`scripts/lib/pairing-quota-worker.ts`,
+// bundlé via esbuild — même patron que `pairing-parallel-diag.ts`).
+// `parallel-pairing-quota-diag.ts` simule les 4 tranches SÉQUENTIELLEMENT
+// dans un seul thread Node : cela teste la JUSTESSE (le total de
 // candidats) mais ne peut RIEN dire sur le coût réel en temps d'une
-// coordination inter-workers — et surtout, teste un mécanisme différent de
+// coordination inter-workers — et teste un mécanisme différent de
 // celui qui tourne réellement en prod (4 threads concurrents, pas une
-// boucle séquentielle). Corrigé ici : 4 VRAIS `worker_threads` Node
-// concurrents (`scripts/lib/pairing-quota-worker.ts`, bundlé via esbuild —
-// même patron que `pairing-parallel-diag.ts`, déjà utilisé pour la décision
-// initiale de paralléliser l'appariement).
+// boucle séquentielle).
 //
 // Usage : parallel-pairing-real-diag.ts <export.json> <recipe.json>
 

@@ -9,11 +9,10 @@
 //
 // Usage : monster-search-multicount-diag.ts <export.json> <nomMonstre> [objective=degats]
 //
-// ⚠️ **POURQUOI CE SCRIPT SURVIT AU HARNAIS** (vérifié le 2026-09-08, §11.3
-// des extensions). Il ne pose pas une question sur UN run : il compare SEIZE
-// CONFIGURATIONS (4 préréglages × 2 métriques × `adaptiveTrancheWeighting`
-// on/off). ⚠️ Au sens de la table du §5, c'est donc un **G2** (« comparer
-// deux configurations ») rangé en G1 — mais ce n'est PAS la raison de sa
+// ⚠️ **POURQUOI CE SCRIPT SURVIT AU HARNAIS** : il ne pose pas une question
+// sur UN run, il compare SEIZE CONFIGURATIONS (4 préréglages × 2 métriques ×
+// `adaptiveTrancheWeighting` on/off). ⚠️ Comparer des configurations est le
+// rôle du différentiel du harnais, mais ce n'est PAS la raison de sa
 // survie : la raison, ce sont les deux grandeurs ci-dessous, que le harnais
 // ne produit pas, condition par condition.
 //
@@ -140,11 +139,10 @@ function runOnce(slotFilterCap: number, adaptiveTrancheWeighting: boolean, metri
     )
   );
   const tBuild = performance.now();
-  // ⚠️ Ce script reproduisait ICI l'escalade du budget de paires, sans
-  // laquelle `pairBuckets` s'arrêtait à `truncated=true` sur <0,0001 % de
-  // l'espace réellement couvert par l'app — cause du faux « 0 build trouvé »
-  // qui a fait perdre du temps. Le budget a été supprimé : un appel
-  // nu explore désormais tout ce que l'app explore.
+  // ⚠️ Le moteur n'a pas de budget de paires : un appel
+  // nu à `pairBuckets` explore tout ce que l'app explore. Une version qui
+  // s'arrêterait à `truncated=true` sur <0,0001 % de
+  // l'espace couvert par l'app donnerait un faux « 0 build trouvé ».
   const gen = pairBuckets(prepared, bucketsA, bucketsB);
   let step = gen.next();
   while (!step.done) step = gen.next();

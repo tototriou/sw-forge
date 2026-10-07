@@ -5,9 +5,8 @@
 // tranche protège ce demi-build, et à quelle taille ? » sans payer le coût
 // d'une recherche complète à chaque essai.
 //
-// ⚠️ SEUL SURVIVANT des 6 scripts à reconstruction complète que le harnais de
-// diagnostic (scripts/diagnostic-harness.ts) remplace — les 5 autres ont été
-// supprimés le 2026-09-06. Celui-ci reste : sa question porte sur la
+// ⚠️ SEUL SURVIVANT des scripts à reconstruction complète que le harnais de
+// diagnostic (scripts/diagnostic-harness.ts) remplace. Celui-ci reste : sa question porte sur la
 // rétention INTERNE de `buildBuckets` (quelle TRANCHE garde ce demi-build),
 // ce que `Bucket.combos` (déjà fusionné, dédupliqué) ne peut pas dire — c'est
 // la limite assumée de spec/outils/optimizer/harnais.md,

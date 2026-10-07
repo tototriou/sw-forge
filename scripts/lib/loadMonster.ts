@@ -9,15 +9,15 @@
 //   - `rta`  : meilleur exemplaire par vitesse de runes MAXIMALE (SPD plate
 //              + bonus Swift), même règle que `mapRtaItems` (applyAccount.ts).
 // Réutiliser une règle unique aurait été FAUSSE dans au moins un des trois
-// contextes — voir la discussion qui a mené à ce module.
+// contextes.
 //
 // ⚠️ La relique appartient à l'UNITÉ (voir `buildGear`, importAccount.ts),
 // pas au contexte de chargement — le mauvais exemplaire choisi entraîne à la
 // fois les mauvaises stats de base ET la mauvaise relique. D'où
 // `printMonsterSummary` : imprimer TOUJOURS ce qui a été choisi, jamais
 // l'utiliser en silence — une hypothèse fausse sur la relique fausse tous
-// les seuils demandés en aval sans qu'on s'en rende compte (vécu cette
-// session : +2000 ATQ n'a pas le même sens avec ou sans relique ATQ%+12%).
+// les seuils demandés en aval sans qu'on s'en rende compte (+2000 ATQ n'a
+// pas le même sens avec ou sans relique ATQ%+12%).
 
 import { readFileSync } from 'fs';
 import {
@@ -52,9 +52,9 @@ export interface LoadedMonster {
 }
 
 // Index nom ↔ com2usId — même source que deckMonster.ts et l'app elle-même
-// (public/data/monsters.json), désormais lue/parsée UNE SEULE fois par
+// (public/data/monsters.json), lue/parsée UNE SEULE fois par
 // exécution de script quel que soit le nombre d'appelants (`loadMonstersList`,
-// mise en cache — voir son commentaire, point 2 d'une revue de code externe).
+// mise en cache — voir son commentaire).
 export function loadMonsterNames(): Map<number, string> {
   const m = new Map<number, string>();
   for (const mon of loadMonstersList()) if (mon.com2usId != null) m.set(mon.com2usId, mon.name);

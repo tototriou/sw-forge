@@ -2,14 +2,13 @@
 // (runeBuildOptim.worker.ts) et scripts/perf-battery.ts : prepareSearch →
 // buildBuckets ×2 → pairBuckets.
 //
-// ⚠️ Cette factorisation existe à cause d'un incident : un script pilotait
-// `pairBuckets` sans reproduire l'escalade du budget de paires du chemin de
-// production, et n'explorait donc qu'une fraction dérisoire de l'espace réel
-// (voir le skill `algo-verify`, section « Fidélité des scripts
-// diagnostics »). Ce budget a depuis été supprimé du moteur : il
-// n'y a plus rien à reproduire de ce côté-là, mais la raison d'être de ce
-// module tient toujours — c'est ici, et pas dans chaque script, que vit la
-// séquence fidèle au chemin de prod.
+// ⚠️ Cette factorisation existe parce qu'un script qui pilote `pairBuckets`
+// sans reproduire le chemin de production peut n'explorer qu'une fraction
+// dérisoire de l'espace réel (voir le skill `algo-verify`, section
+// « Fidélité des scripts diagnostics »). Le moteur n'a plus de budget de
+// paires à escalader, mais la raison d'être de ce module tient toujours :
+// c'est ici, et pas dans chaque script, que vit la séquence fidèle au chemin
+// de prod.
 //
 // ⚠️ Écart de fidélité CONNU depuis l'extension de la parallélisation de
 // l'appariement au mode normal (voir pistes.md, point 9) : ce script reste

@@ -55,8 +55,8 @@
 //               partagent exactement le même pool filtré).
 //   seed      — graine de base du PRNG déterministe (défaut 5000 — 1000 et
 //               3000 déjà pris par differential/scale-monotonicity).
-//   combosOrderMode — 'relevance' (défaut ici ET en production depuis le
-//               2026-08-18) ou 'potential' (ancien comportement, gardé
+//   combosOrderMode — 'relevance' (défaut ici ET en production) ou
+//               'potential' (ancien comportement, gardé
 //               comme échappatoire de mesure/comparaison — voir
 //               buildBuckets/SearchParams) — appliqué explicitement, PAS
 //               via `undefined`/le défaut interne de `buildBuckets`, pour
@@ -198,13 +198,13 @@ function exactOptimum(bucketsA: Bucket[], bucketsB: Bucket[], distinctKeys: stri
     }
   }
   if (!anyCompatible) return null;
-  // ⚠️ Conservateur À DESSEIN (même correctif que optimum-speed-targets.ts,
+  // ⚠️ Conservateur À DESSEIN (voir optimum-speed-targets.ts,
   // voir son commentaire) : dès qu'UN SEUL couple de compartiments a
   // atteint le budget du tas, le résultat n'est plus une preuve
-  // d'optimalité, même si un AUTRE couple a produit un `best` — avant ce
-  // correctif, cette troncature partielle était absorbée en silence
-  // (`!best && anyBudgetExceeded` seulement), un optimum sous-optimal
-  // pouvant être écrit comme vérité terrain sans le signaler.
+  // d'optimalité, même si un AUTRE couple a produit un `best` — absorber
+  // cette troncature partielle en silence
+  // (`!best && anyBudgetExceeded` seulement) laisserait un optimum
+  // sous-optimal s'écrire comme vérité terrain sans le signaler.
   if (anyBudgetExceeded) return 'budget-exceeded';
   return best;
 }

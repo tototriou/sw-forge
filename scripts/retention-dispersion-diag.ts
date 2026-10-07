@@ -18,9 +18,9 @@
 // EXACTEMENT la métrique utilisée par le vrai classement par tranche (voir
 // `retentionScore` dans runeBuildOptim.ts), pas une reformulation.
 //
-// ⚠️⚠️ **CE BLOC EST PÉRIMÉ — ce script est désormais ABSORBABLE** (§5.5 bis
-// des extensions, 2026-09-09), et le harnais rend MIEUX que ce qu'il calcule.
-// `dispersionTranches` (§5.7) donne le CV par `retentionKey` lu sur
+// ⚠️⚠️ **CE BLOC EST PÉRIMÉ — ce script est ABSORBABLE**, et le harnais
+// rend MIEUX que ce qu'il calcule.
+// `dispersionTranches` donne le CV par `retentionKey` lu sur
 // `trancheReallocation`, la fonction que `buildBuckets` appelle lui-même.
 // ⚠️ **Ce n'est pas « la même chose en plus fiable », c'est un AUTRE nombre —
 // et c'est celui-ci qui était le mauvais** : le moteur mesure la dispersion
@@ -30,8 +30,7 @@
 // garantie noie sinon la vraie dispersion et fait passer une stat TENDUE
 // pour MOLLE, soit l'inverse de ce que la mesure cherche.
 //
-// ⚠️ **POURQUOI CE SCRIPT SURVIT AU HARNAIS** (vérifié le 2026-09-09, §5.2 bis
-// des extensions). La grandeur qu'il rend est le **COEFFICIENT DE VARIATION
+// ⚠️ **POURQUOI CE SCRIPT SURVIT AU HARNAIS** : la grandeur qu'il rend est le **COEFFICIENT DE VARIATION
 // de `retentionScore`, par `retentionKey`, sur la population générique** —
 // une STATISTIQUE AGRÉGÉE sur une population que le harnais ne rend pas.
 // Aucun champ de `ResultatHarnais` ne la porte, ni de près ni de loin :
@@ -42,24 +41,23 @@
 // ⚠️ Ne pas le supprimer « parce que le harnais rend la rétention » : le taux
 // de rétention et la dispersion d'une stat sont deux grandeurs distinctes.
 //
-// ⚠️ **DEUX DÉFAUTS CONNUS, écrits ici plutôt que laissés à découvrir**
-// (relevés le 2026-09-09) :
+// ⚠️ **DEUX DÉFAUTS CONNUS, écrits ici plutôt que laissés à découvrir** :
 //   1. **La méthode ci-dessus ment sur un point.** Elle affirme mesurer
 //      « EXACTEMENT la métrique du vrai classement, pas une reformulation » —
 //      c'est faux : `retentionScoreLocal` juste en dessous est une RECOPIE de
 //      `retentionScore`, que `runeBuildOptim.ts` n'exporte pas. Elle est
 //      fidèle aujourd'hui (pondération pct/flat par `base`), et c'est
 //      précisément le risque : rien ne la tiendra à jour, et aucune erreur
-//      `tsc` ne signalera sa dérive. C'est l'incident fondateur de la
-//      discipline « fidélité des scripts de diagnostic ».
+//      `tsc` ne signalera sa dérive. C'est la classe de dérive que la
+//      discipline « fidélité des scripts de diagnostic » existe pour empêcher.
 //   2. **La population générique est RECONSTITUÉE par approximation**
 //      (tri par `relevanceScore` + `slice(bucketCap)`), pas lue : la
 //      rétention interne de `buildBuckets` n'est pas observable — c'est la
-//      limite V1 du §9 des extensions. Les CV ci-dessous décrivent donc une
+//      limite connue du harnais. Les CV ci-dessous décrivent donc une
 //      population plausible, jamais celle que le moteur a réellement retenue.
 //
 // ⚠️ **Sa liste `CASES` est une COPIE LOCALE de `scripts/lib/perfShared.ts`,
-// et elle a DÉRIVÉ** (relevé le 2026-09-09) : elle écrit
+// et elle a DÉRIVÉ** : elle écrit
 // `objective: 'degats_reels'` là où `perfShared` écrit
 // `objective: 'efficience', objectiveStats: ['atk','cd']`. ⚠️ **Sans effet
 // numérique AUJOURD'HUI**, et c'est vérifié plutôt que supposé :
@@ -136,7 +134,7 @@ function runPrepared(label: string, params: SearchParams) {
 }
 
 // ── Les deux scénarios synthétiques (même pool réel, seul le mainstat du
-// slot 4 change) — voir la discussion sur le mainstat/TC. ──────────────────
+// slot 4 change). ──────────────────
 function runSyntheticScenarios() {
   const raw = readFileSync('ß☆Enzo-6399149.json', 'utf8');
   const data = parseAccountSource(raw)!;

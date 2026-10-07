@@ -7,20 +7,17 @@
 //
 // Usage : optimizer-deck10-final-diag.ts <export.json> <recipe.json> <deckId> [maxMs=300000]
 //
-// ⚠️⚠️ **CE BLOC EST PÉRIMÉ DEPUIS LE 2026-09-09 — la grandeur qui sauvait ce
-// script EST DÉSORMAIS DANS LE HARNAIS** (§5.6 des extensions). Il rend
-// `decouverteBuildCible` : l'INSTANT DE DÉCOUVERTE (`explored` à la première
-// apparition de la cible) ET la courbe de rendement, aux SEPT MÊMES jalons
-// que ci-dessous — et la distinction avec le rang, écrite plus bas comme une
-// mise en garde, est désormais tenue EN CODE : chaque valeur part avec un
-// avertissement qui dit qu'elle n'est pas un rang, et un test la verrouille.
-// ⚠️ Ce script est donc **ABSORBABLE**. La justification ci-dessous reste pour
-// la trace : c'est elle qui a NOMMÉ la grandeur manquante au §5.4, et c'est
-// ce qui a fini par la faire construire — l'ordre correct, une grandeur
-// manquante étant un résultat écrit avant d'être un chantier.
+// ⚠️⚠️ **CE BLOC EST PÉRIMÉ — la grandeur qui sauvait ce script EST DANS LE
+// HARNAIS.** Il rend `decouverteBuildCible` : l'INSTANT DE DÉCOUVERTE
+// (`explored` à la première apparition de la cible) ET la courbe de
+// rendement, aux SEPT MÊMES jalons que ci-dessous — et la distinction avec
+// le rang, écrite plus bas comme une mise en garde, est tenue EN CODE :
+// chaque valeur part avec un avertissement qui dit qu'elle n'est pas un
+// rang, et un test la verrouille.
+// ⚠️ Ce script est donc **ABSORBABLE**. La justification ci-dessous dit
+// quelle grandeur manquait au harnais.
 //
-// ⚠️ **POURQUOI CE SCRIPT SURVIT AU HARNAIS** (vérifié le 2026-09-08, §11.3
-// des extensions). `--combos=potential|relevance|combined|objective` EST un
+// ⚠️ **POURQUOI CE SCRIPT SURVIT AU HARNAIS** : `--combos=potential|relevance|combined|objective` EST un
 // override du harnais : les quatre conditions sont relançables une par une.
 // Mais la grandeur que ce script mesure n'est PAS dans le harnais — et c'est
 // elle, pas la comparaison, qui le sauve :
@@ -35,7 +32,7 @@
 // ⚠️ Le RANG que rend le harnais (`appariementBuildCible.rang`) est une tout
 // autre chose : c'est le rang par `sortCandidates`, donc la QUALITÉ du build
 // dans le classement final — jamais son ORDRE DE DÉCOUVERTE. Les confondre
-// mènerait exactement à la classe d'erreur que le §5.1 existe pour empêcher.
+// mènerait exactement à la classe d'erreur que ce suivi existe pour empêcher.
 // Le harnais ne porte aucun champ de progression de l'appariement : il rend
 // un état FINAL (`RangBuildCible` : rang, population, top rendu), pas la
 // trajectoire qui y mène.
@@ -76,8 +73,8 @@ const targetRuneIds = new Set(loaded.gear.runes.map((r) => r.id));
 console.log(`Cible (build réellement équipé) : [${[...targetRuneIds].join(',')}]\n`);
 
 // ⚠️ Chemin RÉEL de production — même fonction que optimizer-search.ts,
-// jamais une reconstruction manuelle de SearchParams (voir la question
-// posée cette session sur la fidélité de recipeToSearchParams.ts).
+// jamais une reconstruction manuelle de SearchParams (fidélité de
+// recipeToSearchParams.ts).
 const baseParams = recipeToSearchParams(recipe, loaded);
 console.log(`Artefacts résolus : ${JSON.stringify(baseParams.artifacts.map((a) => ({ kind: a.kind, main: a.main })))}`);
 

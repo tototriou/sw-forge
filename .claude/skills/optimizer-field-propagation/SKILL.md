@@ -165,8 +165,9 @@ champ (`undefined`).
 - **Ancienne valeur à normaliser** : dans `parseOptimizerRecipe`, que l'écran
   et `chargerRecette` lisent tous deux, une seule fois pour les deux. Y vivent
   déjà le mode critique supprimé (avec l'avertissement
-  `AVERTISSEMENT_CRIT_MOYENNE`), l'ancien cran « aucune » de `summonerSkills`
-  et le seuil de relique ramené dans ses bornes.
+  `AVERTISSEMENT_CRIT_MOYENNE`), l'ancien cran « aucune » de `summonerSkills`,
+  l'ancien `setsAura` (retiré s'il est vide, refusé sinon) et le seuil de
+  relique ramené dans ses bornes.
 - **Renommage ou inversion d'un champ EXISTANT** : traduire explicitement
   l'ANCIEN champ vers le nouveau, pour qu'une recette déjà exportée se
   comporte EXACTEMENT pareil après réimport. Exemple (`exploreAll`, coché
@@ -177,10 +178,16 @@ champ (`undefined`).
   setExcludeUsedRunes(recipe.excludeUsedRunes ?? legacy.exploreAll === false);
   setExcludeUsedScope(recipe.excludeUsedScope ?? 'box'); // seul périmètre que l'ancien champ connaissait
   ```
-  Deux replis vivent encore hors du parseur, chacun dans son lecteur :
-  l'objectif retiré (`importRecipe`, `chargerRecette` et
-  `optimizer-search-analyze.ts`, chacun sa copie) et `exploreAll`
-  (`importRecipe` seulement). Un nouveau repli va dans le parseur.
+  Trois replis vivent encore hors du parseur :
+  - l'objectif retiré : `importRecipe`, `chargerRecette` et
+    `optimizer-search-analyze.ts`, chacun sa copie ;
+  - `exploreAll` : `importRecipe` seulement ;
+  - l'ancien choix d'artéfact `'none'`, ramené à `'libre'` par
+    `mainsPourCeCompte` (optimizerRecipe.ts), que seul `importRecipe` appelle.
+
+  Le CLI ne relit ni `exploreAll` ni `'none'` : sur une recette qui les
+  porte, il ne lit pas la même chose que l'écran. Un nouveau repli va dans
+  le parseur.
 
 ## La checklist — documentation
 

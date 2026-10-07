@@ -67,7 +67,7 @@ export interface WorkerPairingMessage {
 }
 export type WorkerProgressMessage = WorkerBuildingMessage | WorkerPairingMessage;
 export type WorkerResultMessage = { type: 'result' } & SearchResult;
-// Refus NOMMÉ (pool de reliques vide en mode `recherche`, D1) — jamais un
+// Refus NOMMÉ (pool de reliques vide en mode `recherche`) — jamais un
 // `result` vide qui se présenterait comme « 0 build ». `useBuildOptimSearch.ts` le distingue de
 // `error` par un statut propre (`'refused'`).
 export interface WorkerRefusMessage {
@@ -239,7 +239,7 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
   let lastProgressPost = 0;
 
   // ⚠️ `prepareSearch` peut lever `RechercheRefusee` (pool de reliques vide
-  // en mode `recherche`, D1) — jamais un simple appel direct ICI : un rejet
+  // en mode `recherche`) — jamais un simple appel direct ICI : un rejet
   // dans un handler `async self.onmessage` non intercepté ne déclenche NI
   // réponse du Worker NI `Worker.onerror` côté parent (piège JS/navigateur
   // réel) — l'UI restait

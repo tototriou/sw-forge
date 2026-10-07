@@ -220,14 +220,14 @@ export interface SearchParams {
    */
   statsLignesArtefactsEquipables?: StatKey[];
   // La relique PORTÉE — reste ce paramètre-là même quand une relique est
-  // cherchée (garantie G : une candidate le REMPLACE au moment de la
+  // cherchée (une candidate le REMPLACE au moment de la
   // résolution exacte — jamais un cumul avec lui).
   relic?: RelicDetail; // fixe
   /**
-   * Le contexte relique canonique (`resoudreContexteRelique`, relicOptim.ts —
-   * garantie G) : intention résolue UNE FOIS contre le monstre et
+   * Le contexte relique canonique (`resoudreContexteRelique`, relicOptim.ts) :
+   * intention résolue UNE FOIS contre le monstre et
    * l'inventaire, transportée telle quelle jusqu'à `PreparedSearch` pour
-   * que la file de résolution (5b) retrouve le pool éligible, la relique
+   * que la file de résolution retrouve le pool éligible, la relique
    * équipée et l'empreinte — pas seulement les bornes.
    *
    * ⚠️ **Absent, ou `mode` ≠ `'recherche'`** : le moteur se comporte
@@ -376,11 +376,11 @@ const LIBELLE_VIDE: Record<RelicVide, string> = {
 
 /**
  * Refus NOMMÉ d'une recherche dont le pool de reliques est vide en mode
- * `recherche` (D1, « pool vide = pas de recherche ») : jamais une recherche
+ * `recherche` (« pool vide = pas de recherche ») : jamais une recherche
  * « sans relique » à la place, jamais un candidat sans relique en `libre`.
  * Levé par `prepareSearch` — donc AVANT toute construction, sur tous les
  * chemins (séquentiel, Worker navigateur, Node). Le CLI l'imprime tel quel,
- * l'écran (5c) ne lance pas la recherche dans ce cas.
+ * l'écran ne lance pas la recherche dans ce cas.
  *
  * ⚠️ `mode: 'equipped'` sans relique portée (`vide: 'equipee'`) ne refuse
  * PAS : le moteur y reste byte-identique à avant (une recherche sans relique
@@ -446,7 +446,7 @@ export function respecteConditionsPaireFixe(
 /**
  * **Le filtre final EXACT de la dimension relique** (appelé par la
  * résolution exacte) : les stats du build AVEC la relique candidate —
- * qui REMPLACE `gear.relic` (garantie G, jamais un cumul avec l'équipée) —
+ * qui REMPLACE `gear.relic` (jamais un cumul avec l'équipée) —
  * puis minimums ET maximums vérifiés sur ces stats.
  *
  * Obligatoire en aval d'une recherche en mode `recherche` : les bornes
@@ -455,7 +455,7 @@ export function respecteConditionsPaireFixe(
  * n'a qu'UNE principale — donc des candidats survivent sans qu'aucune
  * relique réelle ne leur fasse tenir leurs conditions.
  *
- * Rend aussi les `stats` calculées : l'appelant (5b) note le build dessus,
+ * Rend aussi les `stats` calculées : l'appelant note le build dessus,
  * un seul `computeStats` par candidate. Les auras propres se résolvent ici,
  * sur les six runes de `gear` : l'appelant n'a rien à transmettre.
  */
@@ -784,7 +784,7 @@ export interface RealDamageContext {
  * `DamageSetup` (leader skill, compétences d'invocateur), que cette fonction
  * ne reçoit pas hors « Dégâts réels ». C'est l'appelant qui possède le
  * contexte — l'écran, la file, l'oracle — et la MÊME valeur sert alors au
- * choix de la relique et à son classement : jamais deux notes (D6).
+ * choix de la relique et à son classement : jamais deux notes.
  * `APPORT_NEUTRE` (le défaut) = comportement sans effet unique,
  * qui est aussi ce que voit le moteur pendant la recherche relâchée, où
  * aucune relique n'est encore résolue.
@@ -3376,8 +3376,8 @@ interface MinMaxContext {
    * jamais un `ceil` séparé.
    *
    * Relique portée (mode `off`/`equipped`, ou sans contexte) : son propre
-   * pourcentage, des deux côtés — le comportement d'avant. Mode `recherche`
-   * (D5) : la MEILLEURE principale éligible de chaque statistique
+   * pourcentage, des deux côtés — le comportement d'avant. Mode `recherche` :
+   * la MEILLEURE principale éligible de chaque statistique
    * (`relicContext.bornes.max`, PV/ATQ/DEF indépendantes — permissif, jamais
    * un faux négatif : `ceil` est monotone, donc `L ≤ Lmax` ⇒
    * `ceil(B×(R+L)/100) ≤ ceil(B×(R+Lmax)/100)`).
@@ -3404,7 +3404,7 @@ interface MinMaxContext {
    * `pct` qu'on pourrait fondre) : branche minimum `ceil(B × Lmax / 100)`
    * — majorant du vrai incrément car `ceil(x + y) ≤ ceil(x) + ceil(y)` ;
    * branche maximum `floor(B × Lmin / 100)` — minorant car
-   * `ceil(x + y) − ceil(x) ≥ floor(y)` (D5 : jamais un `ceil` séparé
+   * `ceil(x + y) − ceil(x) ≥ floor(y)` (jamais un `ceil` séparé
    * côté maximum — B = 101, R = L = 1 % : réel 3, `ceil` séparé 4, un
    * maximum à 104 rejetterait un build faisable). `0` hors mode `recherche`
    * et sur toute statistique qu'une relique ne porte pas.
@@ -3427,7 +3427,7 @@ function deriveMinMaxContext(
   // d'artéfact avant la recherche (voir spec/outils/optimizer/moteur/artefacts.md
   // § Bornes d'apport pendant la recherche). Il n'existe que pour les scripts de diagnostic sans inventaire.
   artifactBounds?: SearchParams['artifactBounds'],
-  // Le contexte relique (garantie G). Absent ou `mode` ≠ `'recherche'` : la
+  // Le contexte relique. Absent ou `mode` ≠ `'recherche'` : la
   // relique PORTÉE fait les deux bornes, comme avant. Mode `recherche` : ses
   // bornes remplacent le pourcentage de `relic` — remplacement, jamais cumul.
   relicContext?: RelicContext
@@ -3457,7 +3457,7 @@ function deriveMinMaxContext(
   // Hors mode recherche : la relique portée, des deux côtés — le vecteur
   // d'avant. En mode recherche : `bornes.max` côté minimum, `bornes.min` côté
   // maximum, et `relic` n'est PAS lu (sinon l'équipée s'additionnerait à la
-  // candidate — garantie G).
+  // candidate).
   // ⚠️ Calculé SEULEMENT hors mode recherche : en mode recherche, `relPctMax`/`relPctMin`
   // valent `relicContext.bornes`, cet appel restait inutilisé.
   const relPctFige = relicRelache ? undefined : relicPctBonus(relic);
@@ -3847,8 +3847,8 @@ export interface PreparedSearch {
   base: BaseStats;
   artifacts: ArtifactDetail[];
   relic?: RelicDetail;
-  // Transporté TEL QUEL depuis `SearchParams` (garantie G) : c'est ici que
-  // la résolution exacte (5b) retrouve le pool éligible et l'empreinte.
+  // Transporté TEL QUEL depuis `SearchParams` : c'est ici que
+  // la résolution exacte retrouve le pool éligible et l'empreinte.
   relicContext?: RelicContext;
   requirement: BuildRequirement;
   metric: OptimMetric;
@@ -3946,7 +3946,7 @@ export function prepareSearch(
 ): PreparedSearch | null {
   const { base, artifacts, relic, relicContext, pool, requirement, metric } = params;
   // Pool de reliques vide en mode recherche : refus nommé, AVANT toute
-  // construction (D1). Voir `RechercheRefusee`.
+  // construction. Voir `RechercheRefusee`.
   if (relicContext?.mode === 'recherche' && relicContext.vide) throw new RechercheRefusee(relicContext.vide);
   const maxCollected = params.maxCollected ?? MAX_COLLECTED;
   const maxMs = params.maxMs ?? DEFAULT_MAX_MS;
@@ -4334,9 +4334,9 @@ export function* pairBuckets(
 
           // ⚠️ Mode recherche (`relicRelache`) : le candidat est
           // collecté SANS relique — la portée n'est pas une hypothèse de la
-          // recherche (D1 : le pool est filtré, elle peut ne pas en faire
-          // partie ; garantie G : remplacement, jamais cumul), et la candidate
-          // n'existe qu'à la résolution exacte (5b), qui remplace `relic`,
+          // recherche (le pool est filtré, elle peut ne pas en faire
+          // partie ; remplacement, jamais cumul), et la candidate
+          // n'existe qu'à la résolution exacte, qui remplace `relic`,
           // recalcule `stats` et repasse minimums ET maximums
           // (`respecteConditionsAvecRelique`). Le score qui ordonne ces
           // candidats AVANT `sortCandidates` est donc NON EXACT en mode

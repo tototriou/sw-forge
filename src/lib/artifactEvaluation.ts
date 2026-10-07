@@ -70,7 +70,7 @@ export type DegatsContext = Omit<RealDamageContext, 'artefacts'>;
  * artéfact y entre. Deux paires différentes peuvent donc franchir un palier
  * de tranche différent.
  *
- * ⚠️ **Une seule note** (D6) : le score rendu ici est celui qui choisit la
+ * ⚠️ **Une seule note** : le score rendu ici est celui qui choisit la
  * paire, celui qui choisit la relique (`PaireArtefacts.score`, lu par
  * `bestRelicForBuild`) et celui qui classe. Jamais un score de principale
  * auquel on ajouterait un score d'exclusive.
@@ -155,7 +155,7 @@ export class CacheProfilsParPaire {
 // du build dont `statsAvec` calcule les stats. Constantes pour toutes ses
 // paires et reliques (ni artéfact ni relique ne porte de set), obligatoires :
 // la note d'une paire, celle qui choisit la relique et celle qui classe les
-// voient toutes trois (D6, une seule note).
+// voient toutes trois (une seule note).
 // Surcharge 1 : `degats_reels` EXIGE le contexte de dégâts — omission =
 // erreur `tsc`, pas un repli silencieux sur la somme des principales.
 // `profils` : le profil de chaque paire est lu dans ce cache au

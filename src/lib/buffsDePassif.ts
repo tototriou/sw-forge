@@ -22,8 +22,8 @@
 //
 // Hors table, par contrat : les buffs qu'un SORT actif se pose lui-même
 //, les passifs déjà modélisés (Detect Weakspot, Miriam,
-// Euldong, Ciri, Reyka), la RES/PRE (Clear Water, Precision, décision D3),
-// Skogul (D4) et les formes transformées écartées (D2).
+// Euldong, Ciri, Reyka), la RES/PRE (Clear Water, Precision),
+// Skogul et les formes transformées écartées.
 
 import type { DetailMonstre } from './monsterSkills';
 

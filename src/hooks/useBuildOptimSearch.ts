@@ -12,7 +12,7 @@ import { WorkerResponse } from '../workers/runeBuildOptim.worker';
 // lui, n'est jamais tronqué par cette limite — seul l'aperçu EN DIRECT l'est.
 const PREVIEW_CANDIDATES_CAP = 3000;
 
-// `'refused'` : refus NOMMÉ (pool de reliques vide en mode `recherche`, D1),
+// `'refused'` : refus NOMMÉ (pool de reliques vide en mode `recherche`),
 // jamais un `'done'` avec un résultat vide — voir `refusal` ci-dessous.
 export type BuildOptimStatus = 'idle' | 'running' | 'done' | 'error' | 'refused';
 
@@ -100,8 +100,8 @@ export function useBuildOptimSearch() {
   const [progress, setProgress] = useState<BuildOptimProgress | null>(null);
   // Motif du refus (affiché par OptimizerSection.tsx).
   const [refusal, setRefusal] = useState<{ motif: 'relique-pool-vide'; vide: RelicVide } | null>(null);
-  // Le contexte relique de la recherche LANCÉE (`SearchParams.relicContext`,
-  // garantie G) : c'est lui, et pas une relecture des trois champs
+  // Le contexte relique de la recherche LANCÉE (`SearchParams.relicContext`) :
+  // c'est lui, et pas une relecture des trois champs
   // de l'écran, que la file de résolution (`resoudreEquipementDuBuild`)
   // consomme sur les candidats de CETTE recherche. `undefined` tant que
   // l'écran n'en pose pas : la file garde alors la relique portée.

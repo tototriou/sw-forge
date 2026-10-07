@@ -205,7 +205,7 @@ export interface ArtifactSearchParams {
    *
    * ⚠️ **Retire ces stats de la dominance, jamais de la pertinence ni de
    * l'obligation.** Sans maximum, une principale plus grande est toujours au
-   * moins aussi bonne (D5 : la borne d'artéfacts est optimiste pour les
+   * moins aussi bonne (la borne d'artéfacts est optimiste pour les
    * minimums) ; avec un maximum actif dessus, un artéfact « plus » peut
    * rendre un couple infaisable là où un « moins » restait sous le plafond —
    * exactement la leçon de la dominance des reliques (« aucune dominance sur
@@ -458,7 +458,7 @@ export function preFiltrerCandidats(
       // disparaître, puisque substituer un ordinaire ne restreint jamais rien.
       if (survivants[j]!.intangible && !survivants[i]!.intangible) continue;
       // ⚠️ Sous un maximum actif : deux artéfacts qui DIFFÈRENT sur la
-      // principale plafonnée ne sont jamais comparables (D6) — voir le
+      // principale plafonnée ne sont jamais comparables — voir le
       // commentaire sur `mainsExclues` ci-dessus. S'ils s'y valent, la
       // comparaison continue normalement : rien ne change.
       if (mainsExclues.some((m) => mainValue(survivants[i]!, m) !== mainValue(survivants[j]!, m))) continue;

@@ -87,7 +87,7 @@ export function mainsPourCeCompte(
 }
 
 /**
- * Miroir de `mainsPourCeCompte` pour la relique (D1 : « mêmes trois règles
+ * Miroir de `mainsPourCeCompte` pour la relique (« mêmes trois règles
  * que l'artéfact ») : `'equipped'` ne se partage pas — importé d'un AUTRE
  * `wizard_name`, il bascule sur `'libre'` et le signale ; provenance
  * inconnue (`wizardName` absent d'un côté ou de l'autre) ne touche à rien.
@@ -95,7 +95,7 @@ export function mainsPourCeCompte(
  * ⚠️ **Pas factorisée avec `mainsPourCeCompte`** : celle-ci bascule une
  * `Record<ArtifactKind, …>` (deux emplacements), ici un scalaire unique —
  * assez différent pour que partager le code coûte plus qu'il ne rend, d'où
- * le test parallèle plutôt que l'appel partagé (D1 l'autorise explicitement).
+ * le test parallèle plutôt que l'appel partagé.
  */
 export function relicMainPourCeCompte(
   recipe: Pick<OptimizerRecipe, 'relicMainChoice' | 'wizardName'>,
@@ -186,7 +186,7 @@ export interface OptimizerRecipe {
    * porte aucun — tout lecteur applique le défaut de
    * `defaultRelicMainChoice`/`'libre'`/`DEFAULT_RELIC_MIN_UPGRADE`
    * (hooks/useOptimizerState.ts), jamais une valeur devinée ici. Sans effet
-   * sur `SearchParams` hors du mode `recherche` (D1 : `libre` et le type n'ont
+   * sur `SearchParams` hors du mode `recherche` (`libre` et le type n'ont
    * d'effet qu'avec la recherche de relique).
    */
   relicMainChoice?: RelicMainChoice;
@@ -226,7 +226,7 @@ const PRESETS_ACCEPTES = new Set<string>(SLOT_FILTER_PRESETS.map((p) => p.key));
 const SETS_ACCEPTES = new Set(RUNE_SETS.map((s) => s.key));
 const STATS_ACCEPTEES = new Set(['hp', 'atk', 'def', 'spd', 'cr', 'cd', 'res', 'acc']);
 const CHOIX_ARTEFACT_ACCEPTES = new Set<unknown>(['equipped', 'libre', 'none', 100, 101, 102]);
-// ⚠️ Pas de `'none'` ici : ce cran n'a jamais existé pour la relique (D1),
+// ⚠️ Pas de `'none'` ici : ce cran n'existe pas pour la relique,
 // contrairement à l'artéfact qui le tolère encore en compatibilité arrière.
 const CHOIX_RELIC_MAIN_ACCEPTES = new Set<unknown>(['equipped', 'libre', 100, 101, 102]);
 const RELIC_UNIQUE_TYPES_ACCEPTES = new Set<number>(Object.keys(RELIC_UNIQUE).map(Number));
@@ -588,10 +588,10 @@ export function parseOptimizerRecipe(text: string): RecipeValidationResult {
       damageSetup: ['combat', 'guilde'].includes(String(setup.summonerSkills)) ? setup : { ...setup, summonerSkills: 'combat' },
     };
   }
-  // ⚠️ Le seuil est un FILTRE D'ENTRÉE, jamais un critère (D2) : une valeur
+  // ⚠️ Le seuil est un FILTRE D'ENTRÉE, jamais un critère : une valeur
   // hors bornes (fichier édité à la main, futur relâchement du jeu) est
   // NORMALISÉE plutôt que rejetée — contrairement à tout le reste de ce
-  // parseur, qui refuse. Bornes `[0, 15]`, D2.
+  // parseur, qui refuse. Bornes `[0, 15]`.
   const avecSeuilNormalise =
     d.relicMinUpgrade !== undefined
       ? { ...normalisee, relicMinUpgrade: Math.min(15, Math.max(0, d.relicMinUpgrade as number)) }

@@ -599,10 +599,10 @@ export function formatRelicMain(e: EffectLine): string {
   return def ? `${def.label} +${e.value}%` : `#${e.code} +${e.value}`;
 }
 
-// Limite de poses simultanées d'une relique sur le compte (D3,
-// spec/outils/optimizer/moteur/reliques.md § Ce que le moteur lit d'une relique —
+// Limite de poses simultanées d'une relique sur le compte
+// (spec/outils/optimizer/moteur/reliques.md § Ce que le moteur lit d'une relique —
 // AFFICHÉE, jamais opposée). Valeur de
-// jeu susceptible de rebouger (elle a déjà changé une fois) : une seule
+// jeu susceptible de rebouger : une seule
 // constante nommée, à son seul point d'usage (`RelicDetailBox`).
 export const RELIC_MAX_INSTANCES = 150;
 

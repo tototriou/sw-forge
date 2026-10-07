@@ -47,7 +47,7 @@ export type RelicMainChoice = ArtifactMainChoice;
 // `EffectLine.stat` (types.ts) le fait déjà pour les codes d'effet.
 export type RelicUniqueChoice = 'libre' | number;
 
-// Seuil de niveau par défaut d'une relique éligible (D2, +6) — nommé une
+// Seuil de niveau par défaut d'une relique éligible (+6) — nommé une
 // seule fois : repris par `optimizerRecipe.ts` pour la recette ancienne qui
 // ne porte pas encore ce champ.
 export const DEFAULT_RELIC_MIN_UPGRADE = 6;
@@ -92,12 +92,12 @@ export function relicMainChoiceApresChangementExemplaire(
 
 /**
  * L'intention de recherche de relique — interrupteur, principale, type,
- * seuil — résolue en un objet UNIQUE (garantie G) : ni l'écran, ni
+ * seuil — résolue en un objet UNIQUE : ni l'écran, ni
  * le CLI, ni la file ne relisent les trois champs séparément. Deux
  * constructeurs : côté recette (`recipeToRelicIntent`,
  * scripts/lib/recipeToSearchParams.ts) et côté écran (`relicIntentDepuisEtat`,
  * depuis `OptimizerState`) — les listes n'ont d'effet qu'avec la
- * recherche (D1).
+ * recherche.
  */
 export interface RelicIntent {
   mode: 'off' | 'equipped' | 'recherche';
@@ -112,7 +112,7 @@ export interface RelicIntent {
  * (scripts/lib/recipeToSearchParams.ts), appliquées aux quatre champs de
  * `OptimizerState` au lieu d'une `OptimizerRecipe` : `mode: 'off'` suit
  * l'interrupteur (aucun interrupteur propre à la relique),
- * `'equipped'` si la principale l'est (le type est alors sans effet, D1),
+ * `'equipped'` si la principale l'est (le type est alors sans effet),
  * `'recherche'` sinon. `run()` (OptimizerSection.tsx) l'appelle pour poser
  * `SearchParams.relicContext` — troisième producteur, à
  * côté du CLI (`recipeToRelicIntent`) et de l'oracle.
@@ -220,7 +220,7 @@ export interface OptimizerState {
   setRelicMainChoice: Dispatch<SetStateAction<RelicMainChoice>>;
   relicUniqueChoice: RelicUniqueChoice;
   setRelicUniqueChoice: Dispatch<SetStateAction<RelicUniqueChoice>>;
-  // Seuil de niveau minimum d'une relique éligible (D2, +0 à +15, +6 par
+  // Seuil de niveau minimum d'une relique éligible (+0 à +15, +6 par
   // défaut) — un RÉGLAGE AVANCÉ, pas un critère : `resetSearch` ne le remet
   // PAS à zéro au changement de monstre, comme `slotFilterPreset` ou
   // `exhaustiveSearch`. Se règle par le champ « Niveau minimum » de la carte
@@ -417,7 +417,7 @@ export function useOptimizerState(): OptimizerState {
   // (efficience, VIT, TC, DCC, RES, PRE) — voir `regimeArtefacts`.
   const [adapterArtefactsAuTri, setAdapterArtefactsAuTri] = useState(true);
   const [artifactMainByKind, setArtifactMainByKind] = useState<Partial<Record<ArtifactKind, ArtifactMainChoice>>>({});
-  // ⚠️ Défaut STATIQUE ('libre') volontairement — le vrai défaut D1
+  // ⚠️ Défaut STATIQUE ('libre') volontairement — le vrai défaut
   // ('equipped' si le monstre porte une relique) se calcule au choix du
   // monstre (`defaultRelicMainChoice`), câblé par `pickSpecies`, pas ici :
   // ce hook n'a jamais accès au monstre sélectionné.

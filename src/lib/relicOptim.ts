@@ -15,8 +15,8 @@
 // `artFlatMax`/`artFlatMin` pour les artéfacts (spec/outils/optimizer/invariants.md
 // § Artéfacts).
 //
-// ⚠️ **Dominance STRUCTURELLE seulement** (D6) : on ne compare deux reliques
-// que sur des cas où l'ordre est évident (D9) — jamais par un score inventé.
+// ⚠️ **Dominance STRUCTURELLE seulement** : on ne compare deux reliques
+// que sur des cas où l'ordre est évident — jamais par un score inventé.
 
 import { RelicDetail, RelicUnique } from '../types';
 import { RELIC_UNIQUE, StatKey } from './effects';
@@ -70,7 +70,7 @@ export type RelicNature =
  *
  * ⚠️ **Régénération** (16) est exclue à dessein : son effet est réel en jeu,
  * mais aucun objectif ne le mesure — elle n'est jamais pertinente, donc ne
- * rend jamais un score partiel (D6). Un type INCONNU n'est pas
+ * rend jamais un score partiel. Un type INCONNU n'est pas
  * chiffrable non plus, et n'est jamais pertinent : il ne rend rien partiel.
  */
 export function exclusiveChiffrable(type: number): boolean {
@@ -99,7 +99,7 @@ export function relicUniqueNature(type: number): RelicNature | undefined {
 }
 
 /* --------------------------------------------------------------------------
- * Bornes optimistes par statistique — D5, garantie C
+ * Bornes optimistes par statistique
  * ----------------------------------------------------------------------- */
 
 export function relicMainPercent(r: RelicDetail): number {
@@ -109,7 +109,7 @@ export function relicMainPercent(r: RelicDetail): number {
 // La meilleure principale de chaque statistique parmi les éligibles —
 // INDÉPENDANTES (elle accorde les trois meilleures à la fois : la borne est
 // permissive, jamais un faux négatif au test de faisabilité). `[]` → zéro
-// partout (garantie C).
+// partout.
 export function relicPctMaxByStat(eligibles: RelicDetail[]): Record<RelicStat, number> {
   const max: Record<RelicStat, number> = { hp: 0, atk: 0, def: 0 };
   for (const r of eligibles) {
@@ -119,7 +119,7 @@ export function relicPctMaxByStat(eligibles: RelicDetail[]): Record<RelicStat, n
   return max;
 }
 
-// Le `Lmin` de D5 : la PLUS PETITE principale éligible sur
+// Le `Lmin` : la PLUS PETITE principale éligible sur
 // la statistique FORCÉE, 0 sur les deux autres et si aucune principale n'est
 // forcée sur une statistique précise (`'libre'`/`'equipped'`) — c'est
 // l'appelant qui en fait des points par `floor`, jamais ce module.
@@ -133,14 +133,14 @@ export function relicPctMinByStat(eligibles: RelicDetail[], principaleForcee: Re
 }
 
 /* --------------------------------------------------------------------------
- * Le pool éligible — D1 : principale ∈ champ 1 ET type ∈ champ 2, puis seuil
+ * Le pool éligible : principale ∈ champ 1 ET type ∈ champ 2, puis seuil
  * ----------------------------------------------------------------------- */
 
 // Premier filtre qui a tout retiré (inventaire → principale → type → seuil),
 // ou `'equipee'` en mode `equipped` sans relique portée.
 export type RelicVide = 'inventaire' | 'principale' | 'type' | 'seuil' | 'equipee';
 
-// Mode recherche SEULEMENT — ne connaît pas la relique équipée (D1).
+// Mode recherche SEULEMENT — ne connaît pas la relique équipée.
 export function eligibleRelics(
   inventaire: RelicDetail[],
   principale: RelicMainChoice,
@@ -165,7 +165,7 @@ export function eligibleRelics(
 }
 
 /* --------------------------------------------------------------------------
- * Le contexte canonique — garantie G
+ * Le contexte canonique
  * ----------------------------------------------------------------------- */
 
 export interface RelicBounds {
@@ -208,7 +208,7 @@ function bornesDe(eligibles: RelicDetail[], principale: RelicMainChoice): RelicB
   return { max: relicPctMaxByStat(eligibles), min: relicPctMinByStat(eligibles, principale) };
 }
 
-// LA fonction de la garantie G : résout l'intention (interrupteur, principale,
+// LA fonction canonique : résout l'intention (interrupteur, principale,
 // type, seuil) contre le monstre et l'inventaire courants,
 // UNE SEULE FOIS, en un contexte que moteur, oracle, file, CLI et écran
 // consomment tous — jamais leur propre lecture des trois champs.
@@ -226,8 +226,8 @@ export function resoudreContexteRelique(
   };
 
   if (intention.mode === 'off') {
-    // L'équipée est appliquée UNE FOIS par le moteur (déjà `SearchParams.relic`,
-    // garantie G) : ce contexte ne fait que le documenter, il n'y touche pas.
+    // L'équipée est appliquée UNE FOIS par le moteur (déjà `SearchParams.relic`) :
+    // ce contexte ne fait que le documenter, il n'y touche pas.
     return { ...commun, eligibles: [], bornes: BORNES_NULLES, empreinte: empreinteDe([], intention) };
   }
 
@@ -258,7 +258,7 @@ export function resoudreContexteRelique(
 }
 
 /* --------------------------------------------------------------------------
- * Pertinence et dimensions — D6, garantie A
+ * Pertinence et dimensions
  * ----------------------------------------------------------------------- */
 
 const STATS: RelicStat[] = ['hp', 'atk', 'def'];
@@ -287,7 +287,7 @@ export interface RelicDimensions {
 
 // Reçoit les minimums ET maximums ACTIFS (pas seulement l'objectif) : une
 // statistique de principale sert aussi si un minimum de la recherche porte
-// dessus, même hors de l'objectif choisi (D6 — contre-exemple : dégâts sur
+// dessus, même hors de l'objectif choisi (contre-exemple : dégâts sur
 // l'ATQ, minimum DEF actif, la DEF % peut rendre faisable un runage que
 // l'ATQ % seule ne permet pas).
 //
@@ -357,7 +357,7 @@ export function dimensionsRetenues(
 }
 
 /* --------------------------------------------------------------------------
- * Dominance structurelle — D6, garantie B
+ * Dominance structurelle
  * ----------------------------------------------------------------------- */
 
 function typeConnu(u: RelicUnique | undefined): u is RelicUnique {
@@ -435,7 +435,7 @@ export interface MeilleureRelique {
 // FICHE, sans l'effet unique, et deux reliques de même principale sont ex
 // æquo : la relique PORTÉE l'emporte si elle est parmi les meilleures, sinon
 // la plus petite `id`. Ce départage ne touche que le CHOIX de la relique ;
-// les autres régimes, et l'oracle (garantie E), gardent l'`id` croissant.
+// les autres régimes, et l'oracle, gardent l'`id` croissant.
 export function bestRelicForBuild(
   candidates: RelicDetail[],
   evaluate: (relique: RelicDetail) => RelicEvaluation,

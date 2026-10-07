@@ -1,5 +1,5 @@
 // Résolution EXACTE de l'équipement d'UN build : la paire d'artéfacts ET la
-// relique, ensemble (garantie G, « consommation »).
+// relique, ensemble (« consommation »).
 //
 // ⚠️ **Pourquoi ensemble, et pas la relique après la paire.** La principale
 // d'une relique est un POURCENTAGE qui entre dans `computeStats` AVANT les
@@ -13,7 +13,7 @@
 // remplacer `relic` → stats exactes du couple → éliminer par
 // `respecteConditionsAvecRelique` (minimums ET maximums) → noter par le régime
 // effectif → meilleur couple FAISABLE → aucun faisable = build rejeté. Jamais
-// deux notes indépendantes (D6) : la note d'un couple est le `score` que
+// deux notes indépendantes : la note d'un couple est le `score` que
 // `chercherPaires` lui a donné par `evaluer` — le régime effectif, construit
 // sur les stats AVEC la candidate — et rien d'autre.
 //
@@ -163,9 +163,9 @@ interface CoupleFaisable {
 /**
  * L'équipement de CE build : sa paire et sa relique, résolues ensemble.
  *
- * Hors mode `recherche` (contexte absent — chemin écran avant 5c —, `off`,
- * `equipped`) : la relique portée est fixe, la file ne résout que la paire,
- * comportement d'avant. En mode `recherche` : le contrat des sept étapes
+ * Hors mode `recherche` (contexte absent, `off`,
+ * `equipped`) : la relique portée est fixe, la file ne résout que la paire.
+ * En mode `recherche` : le contrat des sept étapes
  * (en-tête).
  *
  * ⚠️ **Aucun couple faisable → `conforme: false`**, le build est rejeté par
@@ -181,7 +181,7 @@ export function resoudreEquipementDuBuild(e: EntreeResolution): ResultatArtefact
   const candidates = ctx.eligibles;
   // Vide en mode `recherche` = la recherche a été REFUSÉE en amont
   // (`prepareSearch`) et n'a produit aucun candidat : arriver ici est une
-  // incohérence, jamais un « build sans relique » silencieux (D1).
+  // incohérence, jamais un « build sans relique » silencieux.
   if (candidates.length === 0) throw new RechercheRefusee(ctx.vide ?? 'inventaire');
 
   const parRelique = new Map<number, CoupleFaisable>();
@@ -284,7 +284,7 @@ export function runesDuBuild(c: Pick<BuildCandidate, 'runeIds'>, runeById: Reado
  *   ET la relique (un seul régime pour l'équipement complet) — jamais un
  *   contexte de dégâts optionnel silencieusement absorbé par le helper.
  * - `requirement` : les conditions AVEC auras (`avecAurasConditions`).
- * - `relicContext` : celui de la recherche LANCÉE (garantie G : jamais une
+ * - `relicContext` : celui de la recherche LANCÉE (jamais une
  *   relecture des trois champs de l'écran).
  * - `caches` : ceux de la file (`nouveauxCachesResolution`), partagés par tous
  *   ses builds — obligatoire, `null` pour tout recalculer, pour
@@ -328,7 +328,7 @@ export function entreeResolutionDuBuild(e: {
     gear,
     // ⚠️ `relique` : la candidate que la résolution exacte essaie
     // pour ce build — elle REMPLACE la portée dans les stats qui notent chaque
-    // paire (garantie G, jamais un cumul). Hors mode `recherche`, la
+    // paire (jamais un cumul). Hors mode `recherche`, la
     // résolution passe la portée elle-même.
     faireParams: (relique) => {
       // ⚠️ **UN seul `computeStats` par build et par relique, pas un par
@@ -341,7 +341,7 @@ export function entreeResolutionDuBuild(e: {
       // ⚠️ Le canal exclusive : la candidate qu'on essaie, plus le
       // contexte de son assiette `Y`. C'est la MÊME note qui choisit la
       // paire, choisit la relique et classe — jamais un score d'exclusive
-      // ajouté après coup (D6).
+      // ajouté après coup.
       const exclusive = { relique, setup: e.exclusive.setup, element: e.exclusive.element };
       // ⚠️ **La paire se choisit sur le critère RÉELLEMENT regardé** (le
       // régime effectif), pas sur une somme de statistiques principales —
@@ -380,7 +380,7 @@ export function reliqueEquipeeExclue(ctx: RelicContext | undefined): boolean {
 }
 
 /**
- * L'état de la relique d'un candidat, tel que l'écran (5c) l'affiche — lu
+ * L'état de la relique d'un candidat, tel que l'écran l'affiche — lu
  * dans le cache de la file, jamais recalculé.
  *
  * - `fixe` : pas de dimension relique (contexte absent, `off`, `equipped`) —

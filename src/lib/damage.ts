@@ -5563,8 +5563,8 @@ export function computeSkillDamageDetail(
   const atkAvecLead = avecInvocateur('atk', pctLeaderAtkBase);
   const defAvecLead = avecInvocateur('def', pctLeaderDefBase);
   // ⚠️ Artéfact et Miriam s'ADDITIONNENT avant de multiplier la potence de
-  // base — exactement comme pour la VIT (`maVitCombat`, seul précédent
-  // jusqu'ici). Les deux « augmentent l'effet d'augmentation » : les traiter
+  // base — exactement comme pour la VIT (`maVitCombat`, seul précédent).
+  // Les deux « augmentent l'effet d'augmentation » : les traiter
   // multiplicativement l'un envers l'autre inventerait un empilement que le
   // jeu ne fait pas.
   // ⚠️ SOURCE UNIQUE — `statsDeCombat` porte toute l'arithmétique des buffs, du
@@ -6043,16 +6043,13 @@ export function computeSkillDamageDetail(
     if (profile.fixed) totalFixeProtege += Math.max(0, mult) * horsCoupIci;
     // ⚠️ Le terme brut est creusé DANS la boucle, avec le coup qui le porte —
     // c'est ce qui garde `pvRestantsPct` exact pour les passifs à seuil qui
-    // s'évaluent ensuite (le bug corrigé jadis sur l'ancien `ajoutUneFois`,
-    // creusé en bloc après la boucle, ne peut plus se reformer ici).
+    // s'évaluent ensuite (un creusement en bloc après la boucle le fausserait).
     pvCourant = creuse(degatsCoup, pvCourant);
   }
-  // ⚠️ Plus RIEN à ajouter après la boucle. L'ancien `ajoutUneFois` était
-  // appliqué ici en bloc, ce qui avait déjà valu un bug (`pvRestantsPct`
-  // surestimé, corrigé lors d'une revue de code externe : un seuil de passif
-  // « bonus si PV restants ≤ X % », Final Strike/Benedict, pouvait manquer sa
-  // cible). Le terme étant désormais PAR COUP, il est creusé dans la boucle
-  // avec le coup qui le porte — cette classe de bug ne peut plus se reformer.
+  // ⚠️ Plus RIEN à ajouter après la boucle : un terme appliqué ici en bloc
+  // surestimerait `pvRestantsPct` (un seuil de passif « bonus si PV restants
+  // ≤ X % », Final Strike/Benedict, pourrait manquer sa cible). Le terme est
+  // PAR COUP, creusé dans la boucle avec le coup qui le porte.
   return {
     total: totalDegats,
     additionnel: totalAdditionnel,

@@ -281,7 +281,7 @@ export function runesDuBuild(c: Pick<BuildCandidate, 'runeIds'>, runeById: Reado
  * - `artifactParams` : le contexte de choix des paires (`artifactParams` de
  *   l'écran, `artefactsDuCli` au CLI) ; son `evaluer` est REMPLACÉ ici.
  * - `regime` : le régime EFFECTIF (`regimeEquipement`), le même pour la paire
- *   ET la relique (D7 : un seul régime pour l'équipement complet) — jamais un
+ *   ET la relique (un seul régime pour l'équipement complet) — jamais un
  *   contexte de dégâts optionnel silencieusement absorbé par le helper.
  * - `requirement` : les conditions AVEC auras (`avecAurasConditions`).
  * - `relicContext` : celui de la recherche LANCÉE (garantie G : jamais une

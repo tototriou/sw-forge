@@ -355,7 +355,7 @@ export function signatureReglages(parts: {
    * choix de principale, de type et seuil — un `rid` réimporté avec une autre
    * valeur la change. Elle vaut « signature complète » de la dimension
    * relique ; le régime effectif est `objective`
-   * ci-dessus (D7 : un seul régime pour l'équipement complet), les données de
+   * ci-dessus (un seul régime pour l'équipement complet), les données de
    * combat `damageSetup`.
    */
   empreinteRelique: string | null;

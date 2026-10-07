@@ -409,9 +409,9 @@ export function useOptimizerState(): OptimizerState {
   const [setPickerInvalid, setSetPickerInvalid] = useState(false);
   const [minStats, setMinStats] = useState<Partial<Record<StatKey, number>>>({});
   const [maxStats, setMaxStats] = useState<Partial<Record<StatKey, number>>>({});
-  // ⚠️ Coché par défaut : demande reconfirmée après un premier aller-retour
-  // (décoché par défaut, puis revenu sur cochée) — voir
-  // spec/outils/optimizer/ecran/conditions-et-reglages.md § Grille des conditions.
+  // ⚠️ Coché par défaut — règle dans l'introduction de
+  // spec/outils/optimizer/ecran/conditions-et-reglages.md, sous son titre
+  // « Conditions, inventaire et réglages avancés ».
   const [excludeBase, setExcludeBase] = useState(true);
   // Activee par defaut : chercher les artefacts est le comportement utile,
   // et il ne coute rien a la recherche de runes (temps masque).

@@ -38,13 +38,13 @@ export function regimeArtefacts(critere: StatKey | Objective): RegimeArtefacts {
 
 /**
  * Le régime EFFECTIF de l'ÉQUIPEMENT COMPLET — paire d'artéfacts ET relique,
- * un seul régime pour les deux (D7) : rabat
+ * un seul régime pour les deux : rabat
  * `'degats_reels'` sur `'aucun'` tant qu'aucun sort n'est calculable pour ce
  * monstre, sinon le régime brut tel quel.
  *
  * ⚠️ **C'est CE régime, jamais le brut, qui doit alimenter la signature de
- * cache et le choix de paire/relique** (un bug a
- * laissé passer le régime brut dans la signature) : pendant la transition
+ * cache et le choix de paire/relique** (le régime brut dans la signature
+ * serait périmé) : pendant la transition
  * « sort indisponible → calculable » (le contexte de dégâts passe de
  * `null`/absent à disponible), le régime brut reste `'degats_reels'` dans
  * les deux cas — un cache indexé dessus resterait périmé.

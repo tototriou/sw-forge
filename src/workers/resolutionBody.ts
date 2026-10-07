@@ -57,11 +57,12 @@ export type ParametresPairesSerialisables = Omit<ArtifactSearchParams, 'evaluer'
  * - `fiche` : l'équipement de la fiche (base, artéfacts et relique PORTÉS) ;
  * - `artifactParams` : inventaire, portés, choix par sorte, verrous,
  *   amplifications, maximums actifs — sans `evaluer` ;
- * - `regime` : le régime EFFECTIF de l'équipement (D7) ;
+ * - `regime` : le régime EFFECTIF de l'équipement ;
  * - `degats` : le contexte de dégâts (`null` hors « Dégâts réels ») ;
  * - `exclusive` : l'assiette des effets uniques de relique ;
  * - `requirement` : les conditions AVEC auras (`avecAurasConditions`) ;
- * - `relicContext` : celui de la recherche LANCÉE (garantie G).
+ * - `relicContext` : celui de la recherche LANCÉE (jamais une relecture des trois
+ *   champs de l'écran).
  */
 export interface EntreesResolutionSerialisables {
   fiche: GearSet;

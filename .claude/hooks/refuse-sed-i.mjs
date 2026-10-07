@@ -119,7 +119,7 @@ const fautif = segmentsEnJetons(sansCorpsLitteraux(commande)).find((jetons) =>
 if (!fautif) process.exit(0);
 
 process.stderr.write(
-  `REFUSÉ — « sed -i » est interdit sur ce dépôt (CLAUDE.md, décision du 2026-10-04).\n\n` +
+  `REFUSÉ — « sed -i » est interdit sur ce dépôt (CLAUDE.md).\n\n` +
     `Un sed -i raté ne signale rien : motif absent → fichier intact sans erreur ;\n` +
     `motif multiple → tout remplacé ; fins de ligne et accents réécrits sous Windows.\n\n` +
     `Modifie le fichier avec l'outil Edit (il échoue si le texte est introuvable ou\n` +

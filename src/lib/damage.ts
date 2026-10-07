@@ -181,10 +181,9 @@ export type LeaderSkillStat = (typeof LEADER_SKILL_STATS)[number];
 // ⚠️ **Les leads de RES et de Précision existent et sont volontairement
 // ABSENTS** : ils n'ont aucun effet sur les dégâts, seule question à laquelle
 // ce réglage sert. Ne pas les ajouter en croyant combler un oubli.
-// ⚠️ **EXHAUSTIVE, et c'est ce qui change tout.** Cette table listait
-// auparavant quelques paliers courants — d'où un champ de saisie LIBRE à côté
-// du menu, pour les valeurs manquantes. Ce champ a disparu : la liste fournie
-// par l'utilisateur couvre toutes les valeurs du jeu, un simple menu suffit.
+// ⚠️ **EXHAUSTIVE, et c'est ce qui change tout.** Cette table couvre
+// toutes les valeurs du jeu : un simple menu suffit, sans champ de saisie
+// LIBRE pour les valeurs manquantes.
 // N'y ajouter une valeur qu'avec une source, jamais « au cas où ».
 //
 // ⚠️ **PV, ATQ et DEF ne partagent PLUS la même liste.** L'ancienne table les
@@ -342,7 +341,7 @@ const CODE_AMPLI_DEF = 205;
  * ⚠️ **Source unique** : cette table alimente le calcul lui-même
  * (`artifactDamageProfile`), la liste des codes à protéger de la dominance
  * (`codesAmplificationActifs`) ET l'avertissement de verrouillage
- * (`codesEquivalentsAuVerrou`). Une chaîne de `if` la dupliquait auparavant.
+ * (`codesEquivalentsAuVerrou`).
  *
  * ⚠️ **226 couvre ATQ ET DEF** : c'est une seule ligne du jeu qui renforce
  * les deux buffs, exactement comme 410 couvre deux compétences côté Dgts
@@ -925,14 +924,11 @@ export function monsterBonusDegatsSelonDef(detail: DetailMonstre | null): { defM
 // DÉCLENCHEUR actuel, via `DamageSetup.stackPersonnalise`.
 //
 // ⚠️ **Le DÉCLENCHEUR et le BONUS DE DÉGÂTS sont DEUX NOMBRES DIFFÉRENTS,
-// jamais confondus** — bug trouvé par l'utilisateur : le champ demandait
-// jusque-là de saisir directement le bonus (ex. Borgnine : 0 à 30 %, par
-// pas de 0,5) alors qu'il aurait dû demander le déclencheur RÉEL (les PV
-// cible détruits, 0 à 60 %, par pas de 1) puis calculer le bonus lui-même
-// (`ratio`). L'utilisateur devait faire la conversion mentalement, et le
-// libellé du champ (« PV cible détruits (%) ») ne correspondait déjà plus
-// à la plage affichée. `triggerMax`/`triggerStep` décrivent maintenant la
-// plage du DÉCLENCHEUR saisi ; `ratio` (dégâts % par unité de déclencheur)
+// jamais confondus** : le champ demande le déclencheur RÉEL (ex. Borgnine :
+// les PV cible détruits, 0 à 60 %, par pas de 1) et l'application calcule le
+// bonus (`ratio`) — l'utilisateur ne fait pas la conversion. Le libellé du
+// champ (« PV cible détruits (%) ») correspond à la plage affichée.
+// `triggerMax`/`triggerStep` décrivent la plage du DÉCLENCHEUR saisi ; `ratio` (dégâts % par unité de déclencheur)
 // et `pctMax` (plafond de dégâts, `= triggerMax × ratio`, gardé explicite
 // par sécurité) décrivent le BONUS qui en résulte — jamais mélangés.
 // `label`/`aide` décrivent le DÉCLENCHEUR (ce que l'utilisateur saisit),
@@ -1157,9 +1153,8 @@ export function resolvedStackTrigger(p: BonusDegatsStackableProfile, setup: Dama
 // Le pourcentage de dégâts qui RÉSULTE du déclencheur ci-dessus
 // (`resolvedStackTrigger(...) × p.ratio`, borné à `pctMax` par sécurité) —
 // c'est CE nombre que `computeTotalDamage` applique au TOTAL, jamais le
-// déclencheur brut directement. ⚠️ Les deux ont longtemps été confondus
-// (le déclencheur ÉTAIT directement saisi comme un pourcentage de dégâts,
-// bug signalé par l'utilisateur sur Borgnine/Trevor) — désormais deux
+// déclencheur brut directement. ⚠️ Ne pas les confondre : le
+// déclencheur n'est pas un pourcentage de dégâts (cas Borgnine/Trevor) — deux
 // fonctions séparées.
 export function resolvedStackPct(p: BonusDegatsStackableProfile, setup: DamageSetup): number {
   const ecart = resolvedStackTrigger(p, setup) - (p.offset ?? 0);
@@ -2482,27 +2477,24 @@ const BONUS_PAR_EFFET_CIBLE_CONNUS: Record<string, BonusParEffetProfile> = {
   // « Removes all beneficial effects granted on the enemy target with a
   // 70% chance, and deals damage that increases according [to] the number
   // of beneficial effects removed. » `quantite: 0` dans les données
-  // SWARFARM (contrairement à Julie/Melissa) — d'abord laissé de côté pour
-  // cette raison. Confirmé ensuite par l'utilisateur : « chaque buff sur
+  // SWARFARM (contrairement à Julie/Melissa) — la valeur ne vient donc pas
+  // de la donnée. Confirmé par l'utilisateur : « chaque buff sur
   // l'ennemi rajoute 100% au ratio du sort » — comme Julie, BUFFS
   // uniquement (le texte du jeu ne parle que de « beneficial effects »).
   // ⚠️ Le compteur saisi représente les effets RETIRÉS (70 % de chance
   // chacun), pas nécessairement tous ceux présents — à l'utilisateur de
   // renseigner le nombre RÉELLEMENT retiré, l'app ne simule pas ce tirage.
   'Suppressive Fire': { pct: 100, source: 'buffs' }, // Covenant, Sniper Mk.I
-  // Trouvé en cherchant la raison pour laquelle Brandia (signalée par
-  // l'utilisateur, « augmente ses dégâts selon le nombre d'effets néfastes
-  // sur l'ennemi ») n'apparaissait dans AUCUNE des tables existantes : le
-  // catalogue original (65 entrées) ne cherchait QUE les flags « Increase
-  // Damage »/« Increase Critical Damage »/« Buff Bonus Damage » — Brandia
-  // porte le flag « Debuff Bonus Damage », jamais cherché. « The inflicted
+  // Brandia (« augmente ses dégâts selon le nombre d'effets néfastes sur
+  // l'ennemi ») porte le flag « Debuff Bonus Damage », hors des flags
+  // « Increase Damage »/« Increase Critical Damage »/« Buff Bonus Damage »
+  // du catalogue. « The inflicted
   // damage is increased by 40% for each harmful effect OR beneficial effect
   // of the enemy. » `quantite: 40` confirmé en données — BUFFS ET DEBUFFS
-  // comptés ensemble comme Melissa, PAS « débuffs seuls » malgré la
-  // description du signalement (le texte réel du jeu compte les deux).
-  // ⚠️ Cette découverte révèle ~24 AUTRES sorts/passifs portant ce même
-  // flag « Debuff Bonus Damage », jamais examinés — catalogue séparé
-  // préparé pour l'utilisateur, PAS implémentés à l'aveugle ici.
+  // comptés ensemble comme Melissa, PAS « débuffs seuls » (le texte réel du
+  // jeu compte les deux).
+  // ⚠️ ~24 AUTRES sorts/passifs portent ce même flag « Debuff Bonus Damage » :
+  // PAS implémentés à l'aveugle (catalogue séparé).
   'Touch of Mercy': { pct: 40, source: 'buffsEtDebuffs' }, // Brandia
   // Audit exhaustif — bonus propres au sort, noms exacts du
   // corpus. Les clauses binaires réutilisent le même compteur avec
@@ -3696,7 +3688,7 @@ export function estPrisEnCharge(p: SkillDamageProfile | SkillDamageUnsupported):
 
 // ── Passifs offensifs (dégâts supplémentaires hors des 3 sorts actifs) ───
 // ⚠️ **Beaucoup de monstres infligent des dégâts par un PASSIF** (Feng Yan,
-// Sia, Roid…), jamais comptés jusqu'ici : `skillDamageProfile` exclut
+// Sia, Roid…), non comptés comme un sort : `skillDamageProfile` exclut
 // explicitement `c.passif`. Le champ `formule` de SWARFARM porte bien le
 // coefficient de certains d'entre eux (`analyser` sait les lire, exactement
 // comme un sort actif) — ce qu'il NE PORTE JAMAIS, c'est la CONDITION de
@@ -3859,12 +3851,11 @@ const PASSIFS_OFFENSIFS_CONNUS: PassifOffensifConnu[] = [
   // (annoncés en prose, `Competence.coups` vaut 1 à tort).
   { nom: 'Turning Slash (Passive)', coups: 2, categorie: { type: 'toujours' } }, // Magic Order Swordsinger, Birgitta
   { nom: 'Flash Step (Passive)', coups: 2, categorie: { type: 'toujours' } }, // Ciri (Lumière)
-  // ⚠️ D'abord passé de `bonus` à `toujours` (condition de PV de l'attaquant
-  // ignorée, comptée d'office) — la formule `2.0*{ATK} (Fixed)` correspond
-  // au cas MAJORÉ (« 100 % de l'ATQ », « +100 % si tes PV dépassent 50 % »),
-  // un bouton `bonus` naïf par-dessus aurait doublé une seconde fois. Repassé
-  // en `bonus` avec `dejaInclus: true` (demande explicite de l'utilisateur :
-  // « pouvoir activer ou non l'augmentation… comme le passif de Ezio ») —
+  // ⚠️ `bonus` avec `dejaInclus: true` : la formule `2.0*{ATK} (Fixed)`
+  // correspond au cas MAJORÉ (« 100 % de l'ATQ », « +100 % si tes PV dépassent
+  // 50 % »), un bouton `bonus` naïf par-dessus la doublerait une seconde fois,
+  // et `toujours` compterait d'office la condition de PV de l'attaquant ;
+  // l'utilisateur peut activer ou non l'augmentation, comme le passif de Ezio —
   // voir `PassifOffensifCategorie` plus haut : la MÊME formule majorée reste
   // la SOURCE, mais décoché (par défaut, jamais deviné), la contribution est
   // DIVISÉE par 2 plutôt que multipliée, retrouvant le cas de base (100 %
@@ -3924,16 +3915,16 @@ const PASSIFS_OFFENSIFS_CONNUS: PassifOffensifConnu[] = [
   // — Conditionnel, formule PROPRE (compte à 100 % activé, 0 % éteint) —
   // ⚠️ Internal Force (Paladin, Leona, 12515) n'est PLUS ici : son
   // `2.0*{DEF}` est un Bouclier, pas une attaque
-  // — il vit désormais dans `BONUS_DEGATS_CONDITIONNEL_CONNUS` (voir là-bas).
+  // — il vit dans `BONUS_DEGATS_CONDITIONNEL_CONNUS` (voir là-bas).
   // « Deals additional damage that's proportional to the enemy's MAX HP...
   // when attacking the suppressed Monster. » `formule: 0.2*{Target MAX HP}`
   // confirmé (capture du panneau de compétence, bestiaire) — ne dépend QUE
-  // de la cible, AUCUNE stat de l'attaquant. ⚠️ D'ABORD exclu à tort de
+  // de la cible, AUCUNE stat de l'attaquant. ⚠️ À ne pas exclure de
   // cette table par analogie avec `skillDamageProfile` (qui rejette un sort
   // ACTIF stat-indépendant, car inutile comme RÉFÉRENCE DE CLASSEMENT des
   // builds) — mais `monsterOffensivePassives` sert un rôle différent
   // (sommer une contribution RÉELLE au total affiché, pas classer des
-  // builds) : le filtre correspondant y a été retiré (voir
+  // builds) : le filtre correspondant n'y est pas appliqué (voir
   // `monsterOffensivePassives`, plus bas). Jamais critique, condition
   // "Suppressed" non précisée par le texte — bouton, comme demandé.
   { nom: 'Comeuppance (Passive)', critique: 'jamais', categorie: { type: 'conditionnel', condition: 'tu attaques la cible « Suppressed » (texte du jeu, condition non davantage précisée)' } }, // Onmyouji, Giou
@@ -4480,7 +4471,7 @@ export interface DamageSetup {
   // le total, statuts explicites inclus. Les buffs ne sont pas concernés.
   effetsCibleCountAutres?: boolean;
   // Ancien compte des buffs adverses pour les conditions binaires. L'écran
-  // écrit désormais 0 ou 1 ; une recette historique > 0 signifie « présent ».
+  // écrit 0 ou 1 ; une recette historique > 0 signifie « présent ».
   // Distinct des vrais bonus PAR buff (`effetsCibleCount`).
   buffsCibleCount?: Record<number, number>;
   // Nouvelle recette : AUTRES buffs propres, hors ATQ/DEF/VIT explicites.

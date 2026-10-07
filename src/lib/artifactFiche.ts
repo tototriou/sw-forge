@@ -55,8 +55,7 @@ export const AUCUN_ARTEFACT_RESERVE: ReadonlySet<number> = new Set();
  * pose le sien). Producteur PUR appelé par l'écran (`artifactParams`,
  * OptimizerSection.tsx), le CLI (`paramsArtefacts`, recipeToSearchParams.ts)
  * et le différentiel relique (`entreeResolution`, relicDifferentiel.ts) :
- * jusque-là, chacun recopiait l'assemblage, et le CLI avait perdu la
- * neutralisation des verrous.
+ * un assemblage recopié par chacun perdrait la neutralisation des verrous.
  *
  * - `reserves` : les artéfacts réservés par les autres builds validés de la
  *   liste active (écran) — un artéfact physique ne se porte que sur un

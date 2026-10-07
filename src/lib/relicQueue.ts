@@ -68,7 +68,7 @@ export function nouveauxCachesResolution(): CachesResolution {
  * relic: relique })`) — c'est l'appelant qui possède le régime effectif et le
  * contexte de dégâts (`evaluerPourRegime`, surcharges : pas de repli
  * silencieux). Hors mode `recherche`, il est appelé avec `gear.relic` : la
- * portée, exactement comme avant ce lot.
+ * portée.
  */
 export interface EntreeResolution {
   // Le build : base, ses 6 runes, les artéfacts PORTÉS, la relique PORTÉE
@@ -108,7 +108,7 @@ function artefactsDe(p: PaireArtefacts): ArtifactDetail[] {
 }
 
 /**
- * Le chemin d'AVANT ce lot, relique FIXE (`gear.relic`) : la meilleure paire
+ * Le chemin relique FIXE (`gear.relic`), hors mode `recherche` : la meilleure paire
  * au score, la première CONFORME si un minimum est posé — recopié de
  * `useArtifactOptimQueue.tranche()` tel qu'il était, pour que le chemin écran
  * sans contexte reste byte-identique.

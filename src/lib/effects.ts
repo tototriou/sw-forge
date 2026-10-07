@@ -298,10 +298,10 @@ export function canAddSet(sets: string[], key: string): boolean {
 //     — voir runeBuildOptim.ts).
 //  2. Le joker ne complète RIEN dès que DEUX sets ou plus sont incomplets
 //     PARMI LES RUNES RÉELLEMENT PORTÉES — même celui qui ne lui manque
-//     qu'UNE seule pièce. Avant ce correctif, la fonction complétait
-//     silencieusement le set le plus proche de l'activation sans regarder si
-//     un AUTRE set (même non demandé par l'utilisateur) était lui aussi
-//     incomplet — un set annoncé actif alors qu'il ne l'est pas en jeu.
+//     qu'UNE seule pièce. Compléter silencieusement le set le plus proche de
+//     l'activation sans regarder si un AUTRE set (même non demandé par
+//     l'utilisateur) est lui aussi incomplet annoncerait actif un set qui ne
+//     l'est pas en jeu.
 export function activeSets(keys: string[]): string[] {
   const count = new Map<string, number>();
   let jokers = 0;

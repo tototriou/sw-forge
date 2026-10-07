@@ -355,9 +355,7 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
       };
       (self as unknown as Worker).postMessage(message);
     };
-    // ⚠️ `try/catch` ajouté après une revue de code externe — ABSENT jusqu'ici,
-    // contrairement à la phase de construction juste au-dessus (qui, elle,
-    // l'est). Si un des workers `pairSlice.worker.ts` lève une erreur
+    // ⚠️ `try/catch`, comme pour la phase de construction juste au-dessus. Si un des workers `pairSlice.worker.ts` lève une erreur
     // (`worker.onerror = reject` dans `pairSliceInWorker`), la `Promise.all`
     // de `runParallelPairing` rejette — et une rejection de promesse NON
     // interceptée à l'intérieur d'un handler `async self.onmessage` de
@@ -391,12 +389,11 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
   // ⚠️ **Aucun budget de paires à piloter ici** (voir
   // `totalPairCount` dans runeBuildOptim.ts) : l'appariement va au bout de
   // `totalPairs`, sauf arrêt par `maxMs`, par `maxCollected` ou par le bouton
-  // « Arrêter » (`stopped`). Ce qui l'imposait auparavant, gardé comme repère
-  // de dimensionnement : sur un vrai compte (Sonia, tototriou-12889591.json),
-  // le plafond adaptatif était épuisé en 22 s (38,4M paires, 0 résultat)
-  // alors qu'un plafond 13× plus large retrouvait le build exact en 32 s
-  // (86,8M paires) — le budget-TEMPS n'était jamais sollicité. Ce cas se
-  // termine désormais par construction.
+  // « Arrêter » (`stopped`). Repère de dimensionnement : sur un vrai
+  // compte (Sonia), un plafond adaptatif s'épuiserait en 22 s (38,4M paires,
+  // 0 résultat) alors qu'un plafond 13× plus large retrouve le build exact en
+  // 32 s (86,8M paires) — le budget-TEMPS n'est jamais sollicité. Ce cas se
+  // termine par construction.
   const gen = pairBuckets(prepared, bucketsA, bucketsB);
   const result = await drivePairing(gen, () => stopped, (explored, newCandidates, foundTotal) => {
     const message: WorkerPairingMessage = {

@@ -114,7 +114,7 @@ export async function runPairSlice(
   // le parent) et le même `prepared.maxMs` que le séquentiel aurait respecté,
   // couru depuis le `startedAt` GLOBAL ci-dessus.
   // ⚠️ Ce que ça préserve : la sûreté de la parallélisation en recherche
-  // NORMALE (tronquée) reposait jusqu'ici sur le fait que chaque worker
+  // NORMALE (tronquée) repose sur le fait que chaque worker
   // ESCALADAIT son propre budget au lieu d'en recevoir un figé — vérifié à
   // grande échelle (49 essais réels sous contention volontaire, 0 perte). Ne
   // plus avoir de budget du

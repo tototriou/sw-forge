@@ -289,9 +289,9 @@ function valeurSur(art: ArtifactDetail, code: number): number {
 /**
  * Les lignes qui font réellement bouger les dégâts, ici et maintenant.
  *
- * ⚠️ **La pertinence dépend du RÉGLAGE, pas du code.** Une première version
- * testait `artifactDamageProfile` hors contexte et se trompait dans les quatre
- * cas suivants, tous relevés à l'usage :
+ * ⚠️ **La pertinence dépend du RÉGLAGE, pas du code.** Tester
+ * `artifactDamageProfile` hors contexte se trompe dans les quatre cas
+ * suivants :
  *
  *  - « Dmg crit Compétence 2 » ne sert à RIEN quand on optimise le S3 ;
  *  - « Dmg crit cible unique pendant ton tour » ne sert à rien sur une attaque
@@ -508,9 +508,9 @@ export function candidatsParSorte(params: ArtifactSearchParams, kind: ArtifactKi
   // et c'est parfois la seule (aucun candidat éligible). Sans lui, un monstre
   // sans artéfact d'attribut ne produirait aucune paire du tout.
   //
-  // ⚠️ **Aucun pré-filtrage ici.** Il a d'abord été posé à cet endroit, et il y
-  // était FAUX : `meilleurCumulParLigne` serait alors parti des candidats déjà
-  // élagués et aurait rapporté « au mieux 24 % » sur un inventaire qui monte à
+  // ⚠️ **Aucun pré-filtrage ici.** Un pré-filtrage posé ici serait FAUX :
+  // `meilleurCumulParLigne` partirait des candidats déjà
+  // élagués et rapporterait « au mieux 24 % » sur un inventaire qui monte à
   // 40 %. Un diagnostic qui ment est pire que pas de diagnostic. Cette fonction
   // reste donc la vue COMPLÈTE ; l'élagage vit dans `candidatsPourRecherche`,
   // que seule la boucle de recherche emprunte.
@@ -533,10 +533,9 @@ export function candidatsParSorte(params: ArtifactSearchParams, kind: ArtifactKi
  * builds pourtant réalisables.
  *
  * ⚠️⚠️ **Passe par `chercherPaires`, le VRAI chemin — jamais une boucle
- * maison.** Une première version prenait le meilleur 206 de chaque sorte
- * INDÉPENDAMMENT. Elle respectait bien l'éligibilité et la stat principale
- * (`candidatsParSorte` s'en charge), mais ratait deux règles, signalées à la
- * relecture :
+ * maison.** Prendre le meilleur 206 de chaque sorte
+ * INDÉPENDAMMENT respecte l'éligibilité et la stat principale
+ * (`candidatsParSorte` s'en charge), mais rate deux règles :
  *
  * 1. **La contrainte de paire de l'intangible** — un monstre ne peut porter
  *    qu'UN intangible. Si le meilleur 206 de chaque côté était un intangible,

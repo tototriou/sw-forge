@@ -98,13 +98,13 @@ export function useBuildOptimSearch() {
   const [status, setStatus] = useState<BuildOptimStatus>('idle');
   const [result, setResult] = useState<SearchResult | null>(null);
   const [progress, setProgress] = useState<BuildOptimProgress | null>(null);
-  // Motif du refus (5c l'affiche ; ce lot ne touche pas OptimizerSection.tsx).
+  // Motif du refus (affiché par OptimizerSection.tsx).
   const [refusal, setRefusal] = useState<{ motif: 'relique-pool-vide'; vide: RelicVide } | null>(null);
   // Le contexte relique de la recherche LANCÉE (`SearchParams.relicContext`,
   // garantie G) : c'est lui, et pas une relecture des trois champs
   // de l'écran, que la file de résolution (`resoudreEquipementDuBuild`)
   // consomme sur les candidats de CETTE recherche. `undefined` tant que
-  // l'écran n'en pose pas (5c) : la file garde alors la relique portée.
+  // l'écran n'en pose pas : la file garde alors la relique portée.
   const [relicContext, setRelicContext] = useState<RelicContext | undefined>(undefined);
 
   const cancel = useCallback(() => {

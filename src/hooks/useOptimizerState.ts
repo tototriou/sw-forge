@@ -18,8 +18,8 @@ export type OptimizerSortKey = StatKey | Objective;
 //
 // ⚠️ `'libre'` n'a de sens qu'avec une recherche d'artéfacts : il n'a été
 // ajouté qu'une fois celle-ci construite, pour ne pas laisser une option morte
-// dans le sélecteur. Il aligne ce type sur `ChoixPrincipale`
-// (artifactOptim.ts), dont il était jusque-là le sous-ensemble.
+// dans le sélecteur. Il est aligné sur `ChoixPrincipale`
+// (artifactOptim.ts).
 //
 // ⚠️ **`'none'` (laisser l'emplacement vide) a été RETIRÉ.** Un monstre porte
 // deux artéfacts ou n'en porte pas : vider UN emplacement pendant que l'autre
@@ -161,12 +161,10 @@ export interface OptimizerState {
    * simplement d'en chercher d'autres. C'est le sens du réglage — « je
    * compose un runage autour des artéfacts que j'ai déjà dessus ».
    *
-   * ⚠️ Ce drapeau a été INVERSÉ (il s'appelait `ignoreArtifacts`) et son
-   * comportement corrigé : il retirait auparavant TOUTE statistique
-   * d'artéfact, ce que son libellé ne disait pas et qui rendait la recherche
-   * plus stricte sans raison. La recette exportée garde, elle, le champ
-   * `ignoreArtifacts` (format stable) — la conversion se fait à la frontière,
-   * voir `exportRecipe`/`importRecipe` (OptimizerSection.tsx).
+   * ⚠️ Ce drapeau est l'INVERSE du champ `ignoreArtifacts` de la recette
+   * exportée (format stable), et il ne retire PAS toute statistique
+   * d'artéfact — la conversion se fait à la frontière, voir
+   * `exportRecipe`/`importRecipe` (OptimizerSection.tsx).
    */
   optimiserArtefacts: boolean;
   setOptimiserArtefacts: Dispatch<SetStateAction<boolean>>;
@@ -198,19 +196,17 @@ export interface OptimizerState {
   //
   // ⚠️ **Clé absente = `'libre'`**, et c'est la SEULE réponse valable : c'est
   // ce que `candidatsParSorte` (artifactOptim.ts) fait d'une clé absente, et
-  // le moteur a le dernier mot. Ce commentaire disait `'equipped'`, le
-  // sélecteur l'affichait, et la recherche cherchait pourtant librement —
-  // trois sources, deux réponses. Tout ce qui se fiait à l'affichage
-  // raisonnait donc sur un état faux.
+  // le moteur a le dernier mot. Afficher `'equipped'` alors que la recherche
+  // cherche librement ferait raisonner sur un état faux tout ce qui se fie à
+  // l'affichage.
   //
-  // ⚠️ **C'est un FILTRE sur l'inventaire, plus une hypothèse.** Ce réglage a
-  // d'abord servi de « et si j'avais un artéfact PV+1500 ? » et fabriquait pour
-  // cela une pièce à `subs: []`. En « Dégâts réels », cette pièce faisait
-  // calculer les dégâts SANS aucune ligne d'effet, quand « Comme équipé » les
-  // comptait : deux réglages voisins, deux modèles de dégâts, sans que rien ne
-  // le signale. Le cran désigne donc désormais les artéfacts RÉELLEMENT
-  // possédés portant cette principale — et sans aucun, l'emplacement reste
-  // vide. Le « et si… » est perdu, en connaissance de cause.
+  // ⚠️ **C'est un FILTRE sur l'inventaire, plus une hypothèse.** Une pièce
+  // hypothétique (« et si j'avais un artéfact PV+1500 ? », à `subs: []`)
+  // ferait calculer les dégâts SANS aucune ligne d'effet en « Dégâts réels »,
+  // quand « Comme équipé » les compte : deux réglages voisins, deux modèles de
+  // dégâts, sans que rien ne le signale. Le cran désigne donc les artéfacts
+  // RÉELLEMENT possédés portant cette principale — et sans aucun,
+  // l'emplacement reste vide.
   artifactMainByKind: Partial<Record<ArtifactKind, ArtifactMainChoice>>;
   setArtifactMainByKind: Dispatch<SetStateAction<Partial<Record<ArtifactKind, ArtifactMainChoice>>>>;
   // Principale ET propriété unique de RELIQUE demandées —

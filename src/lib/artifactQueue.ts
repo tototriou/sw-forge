@@ -72,7 +72,7 @@ export interface ResultatArtefacts {
    * Ce build tient-il encore ses minimums avec une VRAIE paire ?
    *
    * ⚠️ **Ce n'est pas une précaution, c'est la moitié d'une correction.** La
-   * recherche de runes valide désormais les minimums contre `artifactBounds`,
+   * recherche de runes valide les minimums contre `artifactBounds`,
    * une borne calculée PAR STAT ISOLÉE (voir `bornesArtefacts`). Avec des
    * minimums sur PV, ATQ et DEF à la fois, elle suppose les trois maxima
    * réunis — alors qu'une paire ne porte que deux principales. Des builds
@@ -196,7 +196,7 @@ export function cibleDeLaFile(e: { relicContext: RelicContext | undefined; toutV
  * écartée (`conforme: false`) ne compte pas : la fenêtre s'allonge d'autant, et
  * la file continue, dans l'ordre du classement, jusqu'à K confirmées ou
  * jusqu'au dernier build trouvé. **Sans écartée, c'est exactement « les K
- * premiers non résolus »**, la règle d'avant ce lot : rien ne change dans le cas
+ * premiers non résolus »** : rien ne change dans le cas
  * normal (« Dégâts réels » de référence : 300 conformes sur 300). `K` infini
  * (`cibleDeLaFile`, « Vérifier toutes les combinaisons trouvées ») : tous les
  * non résolus, dans l'ordre.
@@ -325,11 +325,11 @@ export function voieDeLaFile(
 export function signatureReglages(parts: {
   monstreCom2usId: number;
   // ⚠️ **Le réglage de dégâts ENTIER, jamais quelques champs choisis à la
-  // main.** Une première version ne prenait que `skillCom2usId` et l'élément
-  // visé : changer le buff ATQ, les PV restants de la cible ou sa défense
-  // laissait alors la signature IDENTIQUE, donc le cache intact — l'écran
-  // affichait des paires optimisées pour un réglage abandonné, et le « gain »
-  // comparait un score d'avant à un total d'après. Bug rapporté à l'usage.
+  // main.** Ne prendre que `skillCom2usId` et l'élément
+  // visé laisserait la signature IDENTIQUE quand on change le buff ATQ, les PV
+  // restants de la cible ou sa défense, donc le cache intact — l'écran
+  // afficherait des paires optimisées pour un réglage abandonné, et le « gain »
+  // comparerait un score d'avant à un total d'après.
   //
   // ⚠️ Choisir les champs un par un est ici la même faute que la règle des
   // « plusieurs constructeurs » (CLAUDE.md) : `tsc` ne signalera JAMAIS un

@@ -188,12 +188,11 @@ export default function testOptimizerExclusion() {
     egal(combined.size, 12, 'plusieurs sélecteurs : union des runes exclues (box + RTA de Camilla, aucun chevauchement)');
   }
 
-  // ── Trou trouvé par une revue de code externe : un sélecteur choisi
-  // LÉGITIMEMENT en optimisant un AUTRE monstre (« exclure les runes de
-  // Camilla » pendant qu'on optimise Lushen) devient une AUTO-exclusion si
-  // l'utilisateur change ensuite le monstre recherché pour Camilla —
-  // `excludedSelectors` (l'état de l'écran) n'était jusqu'ici jamais purgé
-  // ni revérifié à ce changement. Défendu ICI, à la résolution, pour que
+  // ── Un sélecteur choisi LÉGITIMEMENT en optimisant un AUTRE monstre
+  // (« exclure les runes de Camilla » pendant qu'on optimise Lushen) devient
+  // une AUTO-exclusion si l'utilisateur change ensuite le monstre recherché
+  // pour Camilla — `excludedSelectors` (l'état de l'écran) n'est ni purgé ni
+  // revérifié à ce changement. Défendu ICI, à la résolution, pour que
   // la garantie tienne quelle que soit la façon dont le sélecteur est
   // arrivé dans la liste (voir aussi le useEffect de purge dans
   // OptimizerSection.tsx, qui nettoie l'AFFICHAGE — cosmétique, cette
@@ -224,7 +223,7 @@ export default function testOptimizerExclusion() {
       'box : un AUTRE exemplaire de Camilla (entrée différente, même espèce) reste exclusible — granularité par entrée préservée'
     );
 
-    // Mélange : un sélecteur périmé (RTA de Camilla, désormais soi-même) ET
+    // Mélange : un sélecteur périmé (RTA de Camilla, qui est alors le monstre recherché) ET
     // un sélecteur toujours légitime (box de Lushen) dans la MÊME liste —
     // seul le premier doit être ignoré.
     const mixed = resolveExcludedRuneIds(
@@ -497,10 +496,9 @@ export default function testOptimizerExclusion() {
     // son `gear.runes` résolu est TOUJOURS vide (pas d'exemplaire réel), donc
     // la question posée diffère : « ces runes existent-elles encore dans le
     // compte », pas « sont-elles encore PORTÉES par lui ». ──
-    // ⚠️ **Un id LIBRE, vérifié.** Il valait 4 — déjà pris par `NonRune`, posé
-    // en offense siège, et par `Fran` : le monstre n'était donc PAS « possédé
-    // nulle part », et `dataAvecZaiross` écrasait l'entrée 4 de `monsterById`.
-    // Le scénario ne testait pas ce qu'il annonce, et polluait le reste.
+    // ⚠️ **Un id LIBRE, vérifié.** L'id 4 est déjà pris par `NonRune`, posé
+    // en offense siège, et par `Fran` : le monstre ne serait donc PAS « possédé
+    // nulle part », et `dataAvecZaiross` écraserait l'entrée 4 de `monsterById`.
     const zaiross = monster(9, 'Zaiross'); // absent de box/rta/siège — possédé nulle part
     const dataAvecZaiross: ExclusionSourceData = { ...data, monsterById: new Map([...monsterById, [String(zaiross.id), zaiross]]) };
     const unownedSelector = { source: 'unowned' as const, monsterId: String(zaiross.id) };
@@ -600,12 +598,12 @@ export default function testOptimizerExclusion() {
 
   // ── ⚠️⚠️ L'IDENTITÉ D'UNE ÉQUIPE DE SIÈGE SURVIT AU RÉIMPORT ──
   //
-  // Un sélecteur siège désigne un monstre par `{ teamId, slotIndex }`. Tant que
-  // `importTeams` régénérait les ids (`newId()`), plus aucun ne résolvait après
-  // un import : `revalidateMembers` supprimait DÉFINITIVEMENT tous les membres
-  // et builds venus du siège — sur le geste même qu'elle est censée servir. Ce
-  // n'était pas « mon compte a changé », c'était l'identifiant qui avait changé
-  // sous eux.
+  // Un sélecteur siège désigne un monstre par `{ teamId, slotIndex }`. Si
+  // `importTeams` régénérait les ids (`newId()`), plus aucun ne résoudrait
+  // après un import : `revalidateMembers` supprimerait DÉFINITIVEMENT tous les
+  // membres et builds venus du siège — sur le geste même qu'elle est censée
+  // servir. Ce ne serait pas « mon compte a changé », mais l'identifiant qui
+  // aurait changé sous eux.
   //
   // ⚠️ Contrôle de SOURCE, comme celui des clés collantes : `importTeams` est un
   // callback de hook React, et le dépôt ne teste pas les composants. C'est la

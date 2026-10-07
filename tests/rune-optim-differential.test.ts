@@ -57,7 +57,7 @@ function bruteForce(
               const runes = [r0, r1, r2, r3, r4, r5];
               // ⚠️ Une seule rune Intangible par monstre (règle du jeu) —
               // sans ce garde-fou, la référence compterait comme valides des
-              // combinaisons que le moteur testé rejette désormais à raison
+              // combinaisons que le moteur testé rejette à raison
               // (voir searchBuildsSteps dans runeBuildOptim.ts), créant un
               // faux écart différentiel plutôt qu'une vraie divergence.
               if (runes.filter((r) => r.set === 'intangible').length > 1) continue;
@@ -215,18 +215,17 @@ export default function testRuneOptimDifferential() {
   }
 
   // ⚠️ **Runes IMPOSÉES (`requirement.lockedRunes`), balayage aléatoire** —
-  // revue de code externe : ce chantier a ajouté `lockedRunes` (verrou de
-  // rune, `mainStatFilteredBySlot`) et `objectiveStats` (pool de
-  // pré-filtrage IMPOSÉ) à `runeBuildOptim.ts` (~270 lignes de diff sur
-  // toute la branche) sans qu'aucun différentiel dédié ne les exerce sur
-  // des données ALÉATOIRES — seulement des cas écrits à la main
-  // (`tests/rune-optim.test.ts`). Un verrou est SÛR PAR CONSTRUCTION selon
-  // sa propre documentation (réduit le pool tout en amont, avant
-  // dominance/faisabilité/pré-filtrage — rien en aval ne connaît la notion
-  // de verrou), mais « sûr par construction d'après la doc » n'est pas
-  // « vérifié » : ce balayage referme ce trou en appliquant EXACTEMENT le
-  // même filtre par avance sur la référence brute-force (`applyLockToPool`,
-  // ci-dessous) plutôt que de faire confiance à l'argument. ──
+  // `lockedRunes` (verrou de rune, `mainStatFilteredBySlot`) et
+  // `objectiveStats` (pool de pré-filtrage IMPOSÉ) de `runeBuildOptim.ts`
+  // ont besoin d'un différentiel qui les exerce sur des données ALÉATOIRES,
+  // pas seulement des cas écrits à la main (`tests/rune-optim.test.ts`). Un
+  // verrou est SÛR PAR CONSTRUCTION selon sa propre documentation (réduit le
+  // pool tout en amont, avant dominance/faisabilité/pré-filtrage — rien en
+  // aval ne connaît la notion de verrou), mais « sûr par construction
+  // d'après la doc » n'est pas « vérifié » : ce balayage applique EXACTEMENT
+  // le même filtre par avance sur la référence brute-force
+  // (`applyLockToPool`, ci-dessous) plutôt que de faire confiance à
+  // l'argument. ──
   function applyLockToPool(p: RuneDetail[], lockedRunes: Record<number, number>): RuneDetail[] {
     return p.filter((r) => {
       const locked = lockedRunes[r.slot];
@@ -344,7 +343,7 @@ export default function testRuneOptimDifferential() {
     egal(ref.count, 1, 'scénario dédié (set Blade accidentel) : la référence, qui évalue les VRAIES stats des 6 runes, trouve bien la combinaison (base cr=15 + bonus Blade +12 = 27 ≥ 20)');
 
     const res = searchBuilds({ base: BASE, artifacts: [], pool, requirement, metric: 'eff' });
-    egal(res.candidates.length, 1, 'scénario dédié (set Blade accidentel) : CORRECTIF confirmé — le moteur trouve désormais la combinaison, `guaranteedMin` anticipe le bonus Blade accidentel dès `eliminateInfeasible`');
+    egal(res.candidates.length, 1, 'scénario dédié (set Blade accidentel) : le moteur trouve la combinaison, `guaranteedMin` anticipe le bonus Blade accidentel dès `eliminateInfeasible`');
     if (res.candidates.length > 0) {
       const byId = new Map(pool.map((r) => [r.id, r]));
       const runes = res.candidates[0].runeIds.map((id) => byId.get(id)!);
@@ -354,12 +353,12 @@ export default function testRuneOptimDifferential() {
     }
   }
 
-  // ⚠️ Scénario DÉDIÉ — vérifie le correctif « activation supplémentaire d'un
+  // ⚠️ Scénario DÉDIÉ — vérifie « l'activation supplémentaire d'un
   // set DÉJÀ demandé » (voir `spec/outils/optimizer/moteur/elagages.md`, « Élagage sûr — faisabilité » ; cas réel Ciri :
   // Energy demandé UNE fois — 1 activation garantie, +15 % PV — mais le
   // build réel en active DEUX, `energy+shield+energy`, +30 % PV réels).
-  // `guaranteedSetBonus` ne comptait que l'activation MINIMALE demandée ;
-  // `additionalSetActivationHeadroom` doit désormais anticiper qu'un set
+  // `guaranteedSetBonus` ne compte que l'activation MINIMALE demandée ;
+  // `additionalSetActivationHeadroom` doit anticiper qu'un set
   // DÉJÀ demandé peut s'activer PLUS de fois si le pool le permet — pas
   // seulement un set totalement absent de la demande (cas déjà couvert
   // ci-dessus). Energy (2 pièces, +15 % PV PAR activation) est le set
@@ -402,7 +401,7 @@ export default function testRuneOptimDifferential() {
     egal(ref.count, 1, 'scénario dédié (activation Energy supplémentaire) : la référence trouve bien la combinaison (base PV=8000 + 2 activations Energy à +15 % chacune = 10400 ≥ 10000)');
 
     const res = searchBuilds({ base: BASE, artifacts: [], pool, requirement, metric: 'eff' });
-    egal(res.candidates.length, 1, "scénario dédié (activation Energy supplémentaire) : CORRECTIF confirmé — le moteur trouve désormais la combinaison, `guaranteedMin` anticipe la SECONDE activation d'Energy dès `eliminateInfeasible`");
+    egal(res.candidates.length, 1, "scénario dédié (activation Energy supplémentaire) : le moteur trouve la combinaison, `guaranteedMin` anticipe la SECONDE activation d'Energy dès `eliminateInfeasible`");
     if (res.candidates.length > 0) {
       const byId = new Map(pool.map((r) => [r.id, r]));
       const runes = res.candidates[0].runeIds.map((id) => byId.get(id)!);

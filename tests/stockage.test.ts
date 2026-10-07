@@ -144,10 +144,10 @@ export default async function testStockage() {
   await ecrireBrut({ ...compte, schema: ACCOUNT_SCHEMA, savedAt: 1, usedRuneIds: [1001] });
   egal(await loadAccount(), null, 'runes utilisées en liste plate → ignorées, sans exception');
 
-  // ⚠️ Le schéma 7 réunit deux chantiers (reliques ; marqueurs et runes
-  // utilisées par périmètre) qui avaient chacun pris le 7 pour leur seule
-  // moitié. Un navigateur qui a fait tourner l'une des deux branches garde un
-  // « 7 » incomplet : la validation, et non le numéro, doit le rejeter.
+  // ⚠️ Le schéma 7 réunit deux apports (reliques ; marqueurs et runes
+  // utilisées par périmètre). Un navigateur qui n'a reçu que l'un des deux
+  // garde un « 7 » incomplet : la validation, et non le numéro, doit le
+  // rejeter.
   const { relics: _relics, relicUsageById: _usage, ...sansReliques } = compte;
   await ecrireBrut({ ...sansReliques, schema: ACCOUNT_SCHEMA, savedAt: 1 });
   egal(await loadAccount(), null, '7 de la branche runes (sans reliques) → ignoré');

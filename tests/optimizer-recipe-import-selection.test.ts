@@ -1,21 +1,19 @@
-// Sélection d'exemplaire à l'import d'une recette Optimizer — voir
-// le défaut corrigé : l'import d'une recette ne
-// sélectionne aucun exemplaire dès qu'on en possède PLUSIEURS.
+// Sélection d'exemplaire à l'import d'une recette Optimizer : l'import
+// sélectionne un exemplaire dès qu'on en possède PLUSIEURS.
 //
 // ⚠️ Le dépôt ne teste pas les composants React (voir le commentaire de
 // `testOptimizerExclusion` sur `useSiegeState.ts`) : `sourceSelector` est un
 // état LOCAL d'`OptimizerSection`, sa résolution n'est pas une fonction pure
-// exportée. Même patron ici — contrôle de SOURCE, seule façon de voir la
-// régression revenir si un site retombe sur l'ancienne règle divergente.
+// exportée. Même patron ici — contrôle de SOURCE, seule façon de voir un
+// site retomber sur une règle divergente.
 //
-// Le bug : le picker (`pickSpecies`) prend TOUJOURS `boxCandidates[0]`, avec
+// La règle : le picker (`pickSpecies`) prend TOUJOURS `boxCandidates[0]`, avec
 // repli sur `unownedSelectorIfNoneOwned` seulement si la box n'a AUCUN
-// candidat. L'import de recette, lui, ne prenait `boxCandidates[0]` QUE si un
-// SEUL exemplaire existait — dès 2, repli sur « non possédé », donc des
-// stats de base 6★ sans runes silencieusement fausses. Un troisième site
-// (l'initialisation paresseuse de `sourceSelector` au montage) portait la
-// même faute. Décision (2026-09-04) : aligner tous les sites sur la règle du
-// picker, aucun cas spécial sur la longueur du tableau.
+// candidat. L'import de recette et l'initialisation paresseuse de
+// `sourceSelector` au montage suivent la même règle, sans cas spécial sur la
+// longueur du tableau : prendre `boxCandidates[0]` seulement pour un SEUL
+// exemplaire ferait retomber, dès 2, sur « non possédé », donc sur des stats
+// de base 6★ sans runes silencieusement fausses.
 
 import { readFileSync } from 'fs';
 import { egal, ok, titre } from './outils';
@@ -149,7 +147,7 @@ function testRecetteRelique() {
   }
 
   // Le défaut de `relicMainChoice` se CALCULE contre le monstre — jamais une
-  // constante (incident artéfacts « le défaut affiché était FAUX »).
+  // constante : un défaut affiché FAUX pour le monstre choisi est invisible.
   {
     egal(defaultRelicMainChoice(undefined), 'libre', 'monstre sans relique → défaut « libre »');
     egal(
@@ -160,7 +158,7 @@ function testRecetteRelique() {
   }
 
   // Changement d'exemplaire hors du bestiaire (liste de travail, « un autre
-  // exemplaire », réimport) : revue externe de la v1.14.0.
+  // exemplaire », réimport) : même règle que depuis le bestiaire.
   {
     const relique = { id: 7, upgrade: 6, main: { code: 100, value: 11 } };
     egal(relicMainChoiceApresChangementExemplaire('libre', relique, false), 'equipped',
@@ -196,7 +194,7 @@ function testRecetteRelique() {
   // constructeurs » — `relicIntentDepuisEtat` (le constructeur ÉCRAN, depuis
   // `OptimizerState`) doit produire EXACTEMENT le même `RelicIntent` que
   // `recipeToRelicIntent` (le constructeur CLI, depuis `OptimizerRecipe`)
-  // pour un même jeu de valeurs — la garantie G (un seul point de lecture)
+  // pour un même jeu de valeurs — l'unicité du point de lecture
   // ne tient que si les deux constructeurs convergent.
   {
     const relique = { id: 7, upgrade: 6, main: { code: 100, value: 11 } };

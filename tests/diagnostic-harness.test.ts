@@ -99,8 +99,8 @@ export default async function testDiagnosticHarness() {
     nomsParametres.some((n) => n.startsWith('stats d’objectif')),
     'les stats d’objectif aussi — le levier de rétention ×4 de filterSlot (24 gardées au lieu de 6)'
   );
-  // ⚠️ `combosOrderMode` est toujours EFFECTIF (défaut « relevance »), il
-  // n'était listé que lorsqu'il était surchargé.
+  // ⚠️ `combosOrderMode` est toujours EFFECTIF (défaut « relevance ») : il
+  // est listé même sans surcharge.
   ok(nomsParametres.includes('combosOrderMode'), 'combosOrderMode est listé même sans override — il est toujours effectif');
 
   // ⚠️ **Ce n'est PAS une infidélité, c'est un angle mort de l'aperçu** :
@@ -119,11 +119,11 @@ export default async function testDiagnosticHarness() {
     surcharge.fidelite.ecarts.some((e) => e.nom === 'bucketCap' && e.valeur === 500),
     'et l’écart nomme le paramètre, sa valeur ET celle de la prod'
   );
-  // ⚠️ §3.4 — le mot « PLANCHER » a été RETIRÉ : c'était une affirmation de
+  // ⚠️ §3.4 — le mot « PLANCHER » est absent : ce serait une affirmation de
   // DIRECTION, et la direction n'est pas établie (la taxe setTimeout(0) va
   // dans un seul sens, mais JIT, démarrage des workers et sérialisation ne
   // sont pas comptés). Le test le VERROUILLE plutôt que de le laisser
-  // revenir à la prochaine réécriture de la note.
+  // revenir à une réécriture de la note.
   ok(
     !surcharge.fidelite.noteNavigateur.includes('PLANCHER'),
     'la note de plateforme n’affirme plus une DIRECTION (« plancher pour le navigateur »)'
@@ -228,9 +228,8 @@ export default async function testDiagnosticHarness() {
   /* ── §4.1 bis : le pic de tas par moitié (A₁ bis, palier LÉGER) ─────
    *
    * ⚠️ La TROISIÈME hypothèse de l'asymétrie A/B — A alloue peut-être
-   * davantage et paie plus de ramassage de miettes. Elle manquait aux deux
-   * premières rédactions : « deux hypothèses » n'était pas une
-   * énumération close, mais celles auxquelles on avait pensé. */
+   * davantage et paie plus de ramassage de miettes. « Deux hypothèses »
+   * n'est pas une énumération close : c'est celles auxquelles on a pensé. */
   {
     const mem = arretDemiBuilds.demiBuilds!.memoire;
     ok(mem.A.heapUsed > 0 && mem.B.heapUsed > 0, 'chaque moitié rend son relevé mémoire de fin de fil');
@@ -388,10 +387,10 @@ export default async function testDiagnosticHarness() {
   const parTemps: SearchResult = { candidates: new Array(37).fill({ runeIds: [], stats: [], effTotal: 0 }), explored: 500, truncated: true, nearMissByCondition: [], globalNearMiss: null };
   egal(evaluerCompletude(parQuota, 1000, paramsFictifs).motif, 'maxCollected', 'plafond de candidats ATTEINT ⇒ motif maxCollected');
   egal(evaluerCompletude(parTemps, 1000, paramsFictifs).motif, 'maxMs', 'plafond NON atteint alors que tronqué ⇒ motif maxMs (le temps)');
-  // ⚠️ **Régression §3.3** — le harnais rendait `complet: true` EN MÊME
-  // TEMPS qu'une `incoherence` : « la recherche est complète » et « elle n'a
-  // pas exploré tout l'espace » dans le même objet. Un lecteur JSON qui
-  // teste `complet` était trompé. Le verdict PUBLIC doit basculer, pas
+  // ⚠️ **Garde §3.3** — le harnais ne doit pas rendre `complet: true` EN
+  // MÊME TEMPS qu'une `incoherence` : « la recherche est complète » et « elle
+  // n'a pas exploré tout l'espace » dans le même objet tromperait un lecteur
+  // JSON qui teste `complet`. Le verdict PUBLIC doit basculer, pas
   // seulement porter une note.
   const completSansTout: SearchResult = { candidates: [], explored: 900, truncated: false, nearMissByCondition: [], globalNearMiss: null };
   const incoherent = evaluerCompletude(completSansTout, 1000, paramsFictifs);
@@ -726,9 +725,9 @@ export default async function testDiagnosticHarness() {
 
   /* ── §5.1, ÉTAGES 4-5 : la PAIRE a-t-elle été explorée, et à quel RANG ?
    *
-   * ⚠️ C'est ici que se joue l'incident fondateur d'`algo-verify` : un
-   * diagnostic avait conclu « le moteur manque un build meilleur » en lisant
-   * `candidates[0]`, le build cherché étant au rang 6. Ce qui est vérifié :
+   * ⚠️ C'est ici que se joue le piège que décrit `algo-verify` : conclure
+   * « le moteur manque un build meilleur » en lisant `candidates[0]`, alors
+   * que le build cherché est au rang 6. Ce qui est vérifié :
    * le rang vient du classement ENTIER, jamais du top rendu. */
   {
     const base = configSynthetique({
@@ -825,7 +824,7 @@ export default async function testDiagnosticHarness() {
     }
   }
 
-  /* ── §5.1 : PRÉSENT_HORS_TOP_N sur un run COMPLET — l'incident fondateur
+  /* ── §5.1 : PRÉSENT_HORS_TOP_N sur un run COMPLET — le piège de `algo-verify`
    *
    * ⚠️ C'est LE cas que le n° 6 existe pour rendre lisible : la cible sort au
    * rang 2 915 sur 4 096, donc INVISIBLE dans un top-20. Un diagnostic qui
@@ -997,7 +996,7 @@ export default async function testDiagnosticHarness() {
   };
   const recap = rendreRecapLot(lotFactice);
 
-  // ⚠️ LE point du chantier. Une sortie qui aligne des cas en colonnes
+  // ⚠️ LE point du récapitulatif. Une sortie qui aligne des cas en colonnes
   // RESSEMBLE à une comparaison ; si elle ne dit pas laquelle des deux choses
   // elle autorise (comparer deux CAS, oui — comparer deux CONDITIONS, non),
   // elle sera lue comme autorisant l'autre.

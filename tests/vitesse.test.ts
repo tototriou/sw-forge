@@ -1,7 +1,6 @@
 // Vitesse de combat — la formule la plus scrutée de l'app : c'est le premier
 // chiffre qu'un joueur compare avec son jeu, et le premier qu'il signale s'il
-// est faux. Elle a été corrigée trois fois avant d'arriver à la bonne règle
-// (voir spec/shared/calcul-vitesse.md).
+// est faux. Règle : spec/shared/calcul-vitesse.md.
 
 import { combatSpeed, ficheSpeedForTick, pctSpeedBonus, swiftFlat, tickDanger, tickTeamMessage } from '../src/lib/speed';
 import { egal, ok, titre } from './outils';

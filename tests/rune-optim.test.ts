@@ -1004,9 +1004,9 @@ export default function testRuneOptim() {
   {
     // ⚠️ **Aucun plafond de PAIRES** — la borne exacte
     // `totalPairs` remplace `maxNodes` et son escalade
-    // (supprimés). Ce bloc vérifiait auparavant que le plafond
-    // mutable était LU EN DIRECT par le générateur ; il vérifie désormais les
-    // deux propriétés qui l'ont remplacé, et qui sont celles dont dépend tout
+    // (supprimés). Ce bloc vérifie les
+    // deux propriétés qui remplacent la lecture EN DIRECT d'un plafond
+    // mutable par le générateur, et qui sont celles dont dépend tout
     // le reste :
     //   1. un appel nu à `pairBuckets` (aucun 4ᵉ argument à oublier, il n'en
     //      existe plus) épuise TOUT l'espace, sans troncature — c'est ce qui
@@ -1075,14 +1075,14 @@ export default function testRuneOptim() {
 
   titre('Optimiseur — l’ordre des candidats n’est PAS celui de l’objectif');
 
-  // ⚠️ **Incident.** `SearchResult.candidates` sort dans l'ordre de collecte
-  // de l'appariement, jamais classé par ce qu'on a demandé de maximiser. Un
-  // diagnostic a conclu « le moteur manque un build meilleur et faisable » en
-  // lisant `candidates[0]` — le build cherché était là, au RANG 6. Et le vrai
-  // CLI affichait `slice(0, 20)` en présentant ces 20 comme des résultats.
+  // ⚠️ **Piège.** `SearchResult.candidates` sort dans l'ordre de collecte
+  // de l'appariement, jamais classé par ce qu'on a demandé de maximiser.
+  // Lire `candidates[0]` fait conclure à tort « le moteur manque un build
+  // meilleur et faisable » : le build cherché peut être là, au RANG 6 ; de
+  // même, présenter `slice(0, 20)` comme les meilleurs résultats est faux.
   //
-  // `sortCandidates` est désormais la SEULE porte, partagée par l'écran et
-  // les scripts. Ce test verrouille son contrat.
+  // `sortCandidates` est la SEULE porte, partagée par l'écran et les
+  // scripts. Ce test verrouille son contrat.
   {
     const st = (spd: number, hp: number): StatRow[] => [
       { key: 'spd', label: 'VIT', base: 0, bonus: spd, total: spd, suffix: '' },
@@ -1137,7 +1137,7 @@ export default function testRuneOptim() {
   // ⚠️ **Ce que ce test protège.** `sortCandidates` calculait le score DANS le
   // comparateur, donc ~2 n log n fois — pour « Dégâts réels », autant d'appels
   // à `computeTotalDamage` : ~3,4 millions pour 100 000 candidats, mesurés à
-  // 1 084 ms par tri sur le FIL PRINCIPAL. Il le calcule désormais UNE fois par
+  // 1 084 ms par tri sur le FIL PRINCIPAL. Il le calcule UNE fois par
   // candidat, puis trie sur des nombres.
   //
   // ⚠️ C'est censé être EXACTEMENT équivalent, parce que le score est une

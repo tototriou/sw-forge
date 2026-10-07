@@ -154,11 +154,10 @@ export function testListeExemplaires() {
   ok(/if \(id !== selectedId\) resetSearch\(\);\s*else if \(key !== ownSelectorKey\) effacerResultats\(\);/.test(chemin)
     && chemin.includes('setSourceSelector(selector);') && chemin.includes('setZoneDOpen(false);'),
   'source : choisirExemplaire porte les règles (résultats effacés, critères gardés)');
-  // Revue externe de la v1.14.0 : le défaut de relique suit
-  // l'exemplaire désigné, APRÈS le reset qui le remet à « Libre ».
+  // Le défaut de relique suit l'exemplaire désigné, APRÈS le reset qui le remet à « Libre ».
   ok(/setSelectedId\(id\);[\s\S]*if \(autreEspece \|\| key !== ownSelectorKey\) \{[^}]*setRelicMainChoice\(\(c\) => relicMainChoiceApresChangementExemplaire\(c, relique, !autreEspece\)\);/.test(chemin),
     'source : choisirExemplaire recalcule le choix de relique après le reset, jamais en recliquant l’exemplaire affiché');
-  // Seconde revue ciblée, défaut 2 : les autres sites qui désignent un
+  // Les autres sites qui désignent un
   // exemplaire de la même espèce appliquent la même règle.
   const pickSourceSrc = entre(ecran, 'function pickSource(', 'function pickSpecies(');
   ok(/setSourceSelector\(candidates\[0\]\.selector\);\s*reliqueCoherenteAvecExemplaire\(candidates\[0\]\.gear\.relic\);/.test(pickSourceSrc),

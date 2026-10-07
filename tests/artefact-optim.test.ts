@@ -814,9 +814,9 @@ export default function testArtefactOptim() {
 // « Garder l'artéfact équipé » ne se partage pas — une recette importée depuis
 // un AUTRE compte doit basculer ce choix sur « Libre ».
 //
-// ⚠️ Testé ici parce que la règle vivait dans une closure de `importRecipe`,
-// qu'aucun test ne pouvait atteindre : elle est désormais une fonction pure
-// (`mainsPourCeCompte`), et c'est précisément ce que ce test protège.
+// ⚠️ Testé ici parce que la règle est une fonction pure (`mainsPourCeCompte`),
+// et non une closure de `importRecipe` qu'aucun test ne pourrait atteindre :
+// c'est précisément ce que ce test protège.
 export function testRecettePartagee() {
   const mains = { element: 'equipped', archetype: 101 } as const;
 

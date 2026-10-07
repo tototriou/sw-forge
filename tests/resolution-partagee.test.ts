@@ -113,7 +113,7 @@ export function testResolutionProducteurPartage() {
         for (const c of candidats) {
           // La référence : l'assemblage d'avant de l'écran, recopié tel quel.
           const ref = resoudreEquipementDuBuild(entreeResolutionAvant(p, c, ctx, reglages));
-          // Le différentiel, qui passe désormais par les producteurs.
+          // Le différentiel, qui passe par les producteurs.
           if (JSON.stringify(resoudreCandidat(p, c, ctx, reglages)) !== JSON.stringify(ref)) differents.push(`différentiel ${cleBuild(c)}`);
           // Le producteur partagé, avec les mêmes paramètres de paires que
           // la référence (son `evaluer` est remplacé par le producteur).

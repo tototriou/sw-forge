@@ -345,7 +345,7 @@ export default function testDegats() {
     computeSkillDamage(s3!, build, DEFAULT_DAMAGE_SETUP, AUCUNE_AURA_PROPRE),
     'un sort qui ignore la défense ne réagit pas à la DEF ennemie'
   );
-  // ⚠️ Question directe de l'utilisateur : le def break (posé AVANT le
+  // ⚠️ Le def break (posé AVANT le
   // sort, `setup.defBreak`) n'y change rien NON PLUS — `defEff =
   // profile.ignoreDef ? 0 : …` court-circuite `facteurDefBreak` avant même
   // de l'évaluer, que Deborah l'amplifie ou non.
@@ -425,7 +425,7 @@ export default function testDegats() {
   ok(profil('2.0*{ATK}*({Relative SPD}+1)') !== null, '{Relative SPD} est maintenant une variable reconnue');
   const beastRider = fiche(23504);
   const spearOfProtector = monsterDamageSkills(beastRider).filter(estPrisEnCharge).find((s) => s.nom === 'Spear of Protector')!;
-  ok(spearOfProtector != null, 'Beast Rider : « Spear of Protector » est désormais calculable');
+  ok(spearOfProtector != null, 'Beast Rider : « Spear of Protector » est calculable');
   egal(spearOfProtector.variables, ['ATK', 'Relative SPD'], 'sa formule dépend bien de ATQ et de Relative SPD');
 
   const brStats = stats({ atk: 2000, cd: 200, cr: 100, spd: 150 });
@@ -900,9 +900,9 @@ export default function testDegats() {
     // est dans le terme DMG%, la Marque dans Réductions : 2000 × 1,12 × 1,25 =
     // 2800, et non 2000 × (1 + 0,12 + 0,25) = 2740.
     //
-    // ⚠️ Ce test figeait 2740 — une DÉDUCTION faite « par symétrie » avec les
-    // artéfacts −DMG% (305-309), qui sont bien dans Réductions. La symétrie
-    // n'existait pas. Corrigé d'après swcalc.cz/game-mechanics.
+    // ⚠️ 2740 serait une DÉDUCTION « par symétrie » avec les artéfacts
+    // −DMG% (305-309), qui sont bien dans Réductions. La symétrie n'existe
+    // pas. Source : swcalc.cz/game-mechanics.
     egal(
       Math.round(computeSkillDamageDetail(profilFixe2, st, { ...base, brand: true }, AUCUNE_AURA_PROPRE, null, undefined, ARTIFACT_DAMAGE_NEUTRE).total),
       2500,
@@ -1386,7 +1386,7 @@ export default function testDegats() {
   egal(monsterModificateursVit(fiche(LUSHEN)).length, 0, 'Lushen : aucun modificateur');
   egal(monsterModificateursVit(null).length, 0, 'fiche absente : liste vide, jamais une exception');
 
-  titre('Dégâts réels — catalogue « passifs non implémentés », réponses jusqu’au point 26');
+  titre('Dégâts réels — catalogue « passifs non implémentés », paliers et bonus confirmés');
 
   // Chun-Li (Lumière)/Leah (Lumière) — même mécanisme que Sonia, seuls les
   // paliers changent (confirmé par l'utilisateur : max 200 % à 150 pts
@@ -1589,8 +1589,8 @@ export default function testDegats() {
 
   // ⚠️ Le DÉCLENCHEUR (nombre d'attaques alliées, ici 5) et le BONUS DE
   // DÉGÂTS qui en résulte (5 × 10 % = 50 %) sont DEUX NOMBRES DIFFÉRENTS —
-  // `stackPersonnalise` porte désormais le DÉCLENCHEUR, jamais le bonus
-  // directement (bug corrigé, signalé par l'utilisateur sur Borgnine/Trevor).
+  // `stackPersonnalise` porte le DÉCLENCHEUR, jamais le bonus
+  // directement (Borgnine, Trevor).
   const momoSetup5Attaques: DamageSetup = {
     ...momoSetupSansStack,
     stackPersonnalise: { [stackMomo.skillCom2usId]: 5 },
@@ -1873,7 +1873,7 @@ export default function testDegats() {
   );
   ok(!bonusConditionnelPropreActif(touchOfMercyProfile, brandiaSetup), 'désactivé par défaut, jamais deviné actif');
 
-  // Zaiross (« Fiery Breath ») — l'audit étape 2 connaît désormais
+  // Zaiross (« Fiery Breath ») — l'audit connaît
   // l'ATQ adverse saisie. La condition ≤ 50 % est donc calculée directement,
   // et force aussi le critique annoncé par le texte du sort.
   const zaiross = fiche(14412);
@@ -2216,7 +2216,7 @@ export default function testDegats() {
   );
 
   // Dominic — « Improvisation (Passive) » : `bonus` avec `dejaInclus: true`
-  // (demande explicite de l'utilisateur : un bouton, comme Hidden Gun/Ezio).
+  // (un bouton, comme Hidden Gun/Ezio).
   // La formule `(Fixed)` porte le cas MAJORÉ (`2.0*{ATK}` = 100 % de base ×
   // (1 + 100 % si PV > 50 %)) — décoché (par défaut), la contribution est
   // DIVISÉE par 2 pour retomber au cas de base, jamais multipliée.
@@ -2256,8 +2256,8 @@ export default function testDegats() {
     ) < 1e-9,
     'bouton décoché (par défaut) : la contribution est DIVISÉE par 2, retombant au cas de base (1.0 × ATQ)'
   );
-  // Question directe de l'utilisateur : les dégâts de ce passif (`(Fixed)`)
-  // sont-ils bien insensibles à la DEF adverse ? Oui — et PLUS FORT qu'un
+  // Les dégâts de ce passif (`(Fixed)`) sont insensibles à la DEF adverse,
+  // et PLUS FORT qu'un
   // simple `ignoreDef` : `mitigation = profile.fixed ? 1 : defenseFactor(…)`
   // saute ENTIÈREMENT le facteur de défense (aucune réduction, même pas le
   // plancher `defenseFactor(0) ≈ 0,877` qu'`ignoreDef` laisserait subsister).
@@ -2444,10 +2444,10 @@ export default function testDegats() {
     egal(p?.nom, nom, `${id} : nom exact du passif détecté`);
     egal(p?.pct, pct, `${id} (${nom}) : pourcentage confirmé`);
   }
-  // ⚠️ Female Warrior : la réponse de l'utilisateur (« jusqu'à 200 % ») ne
-  // correspond PAS aux données réelles (`quantite: 20`, texte fixe) — très
-  // probablement une confusion avec Cold Brew/Iced Tea juste en dessous,
-  // répondues dans le même message. Les données réelles ont prévalu.
+  // ⚠️ Female Warrior : un relevé « jusqu'à 200 % » ne correspond PAS aux
+  // données réelles (`quantite: 20`, texte fixe) — très probablement une
+  // confusion avec Cold Brew/Iced Tea juste en dessous. Les données réelles
+  // prévalent.
   egal(monsterBonusDegatsConditionnel(fiche(22011))?.pct, 20, 'Female Warrior : 20 %, PAS 200 % — les données SWARFARM prévalent sur une réponse en aparté imprécise');
 
   // Internal Force (12515 ; Paladin 21805, Leona 21815).
@@ -2499,8 +2499,8 @@ export default function testDegats() {
   // ratio) : `skillDamageProfile` rejette parce qu'un sort stat-indépendant
   // est INUTILE comme référence de classement des builds, une raison qui
   // ne s'applique PAS à `monsterOffensivePassives` (sommer une contribution
-  // RÉELLE au total affiché, jamais utilisée pour classer). Le filtre
-  // correspondant a été retiré dans `monsterOffensivePassives`.
+  // RÉELLE au total affiché, jamais utilisée pour classer). Aucun filtre
+  // correspondant dans `monsterOffensivePassives`.
   const giou = fiche(25013);
   const comeuppancePassif = monsterOffensivePassives(giou).find((p) => p.nom === 'Comeuppance (Passive)');
   ok(comeuppancePassif != null, 'Giou : Comeuppance reconnu comme passif offensif');
@@ -2604,7 +2604,7 @@ export default function testDegats() {
   // champ de saisie de Trevor affichait « Stack actuel » avec une infobulle
   // écrite pour Momo (« nombre d'attaques alliées ») — incohérent, Trevor
   // compte ses PROPRES PV perdus, pas des attaques. Chaque entrée porte
-  // désormais son propre `label`/`aide` — vérifié qu'ils sont bien
+  // son propre `label`/`aide` — vérifié qu'ils sont bien
   // DISTINCTS entre deux mécanismes différents (Momo vs Trevor), pas un
   // texte générique partagé.
   const stackMomoLabels = monsterBonusDegatsStackable(momo)!;
@@ -2865,11 +2865,10 @@ export default function testDegats() {
 
   // ⚠️ Ce bloc existe parce que `tsc --noEmit` ne peut PAS voir ces erreurs :
   // un champ optionnel non lu reste un accès valide, même si `tsc` couvre aussi
-  // `scripts/` et `tests/` (voir le skill optimizer-field-propagation, né de
-  // trois incidents de ce type exactement).
+  // `scripts/` et `tests/` (voir le skill optimizer-field-propagation).
 
-  // Le repli doit rester STRICTEMENT le comportement d'avant pour les cinq
-  // autres objectifs : sans override, la table statique fait foi.
+  // Le repli reste STRICTEMENT la table statique pour les cinq autres
+  // objectifs : sans override, la table statique fait foi.
   for (const o of OBJECTIVE_LABELS) {
     egal(objectiveKeysOf(o.key, undefined), OBJECTIVE_RELEVANT_STATS[o.key], `sans override, « ${o.label} » garde ses stats d'origine`);
   }
@@ -2879,13 +2878,13 @@ export default function testDegats() {
   // rien »), pas retomber sur la table — un `??`/`||` mal placé confondrait
   // les deux, sans que rien ne le signale.
   egal(objectiveKeysOf('ehp', []), [], 'un override vide reste un override');
-  // ⚠️ `speed_nuker` retiré (v1.8.1 → forge/calcul-degats-reels) et `degats`
-  // retiré (2026-08-27 → approximation devenue redondante avec « Dégâts
-  // réels ») : une recette exportée pendant leur durée de vie porte encore
-  // ces valeurs, jamais validées par `parseOptimizerRecipe`. Sans repli, le
-  // spread sur `undefined` plus haut dans la pile lève une TypeError.
+  // ⚠️ `speed_nuker` et `degats` ne sont plus des objectifs (« degats » est
+  // redondant avec « Dégâts réels ») : une recette exportée quand ils
+  // existaient porte encore ces valeurs, jamais validées par
+  // `parseOptimizerRecipe`. Sans repli, le spread sur `undefined` plus haut
+  // dans la pile lève une TypeError.
   egal(objectiveKeysOf('speed_nuker' as unknown as Objective, undefined), [], 'un objectif retiré (recette ancienne) dégrade vers aucun biais, sans lever');
-  egal(objectiveKeysOf('degats' as unknown as Objective, undefined), [], "« degats », retiré à son tour, dégrade pareillement");
+  egal(objectiveKeysOf('degats' as unknown as Objective, undefined), [], "« degats », qui n'est plus un objectif, dégrade pareillement");
 
   // Sans contexte, le score échoue BRUYAMMENT — jamais un repli silencieux
   // sur une autre formule que celle affichée à l'utilisateur.
@@ -2940,7 +2939,7 @@ export default function testDegats() {
 
   // Le cran « aucune » a existé dans des recettes déjà partagées. Il reste
   // lisible pour ne pas casser ces fichiers, mais ne doit jamais ressortir du
-  // parseur ni atteindre l'écran ou le CLI : Combat est désormais le minimum
+  // parseur ni atteindre l'écran ou le CLI : Combat est le minimum
   // réel et le défaut unique.
   const recetteLegacySansInvocateur = JSON.parse(JSON.stringify(recette));
   recetteLegacySansInvocateur.damageSetup.summonerSkills = 'aucune';

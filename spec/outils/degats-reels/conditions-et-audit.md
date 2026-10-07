@@ -20,6 +20,9 @@ le compteur de débuffs, la Marque et la DEF actualisés. Une Marque, un DEF
 break ou un autre effet non cumulable déjà présent est identifié et ne
 réaugmente pas le compteur ; un DoT reste cumulable. Les profils concernés
 sont curés par identifiant quand leur nom possède un homonyme différent.
+Mach Crush d'Akhamamir 2A (`10013`) garde son exception, relue à chaque
+coup : exactement un débuff vaut +50 %, sinon +30 % par débuff
+(`exactementUnPct`, `BONUS_PAR_EFFET_CIBLE_PAR_ID_CONNUS`).
 
 Les conditions déductibles du contexte — nombre de buffs, débuffs propres,
 PV et élément de la cible — sont recalculées pour chaque build candidat. Les

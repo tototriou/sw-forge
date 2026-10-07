@@ -78,6 +78,11 @@ donc jamais des `PASSIFS_OFFENSIFS_CONNUS`) :
   an enemy ») — état de combat séquentiel (a-t-on subi une attaque ce
   tour), hors de portée d'un calcul instantané ; seule la clause dégâts est
   modélisée.
+  ⚠️ **Endless Death (Isabelle, +50 % quand son S3 est en recharge) ne
+  majore jamais le S3 lui-même** : l'entrée porte `exclutLeSortDetecteur`,
+  et le calcul écarte le sort dont l'identifiant est
+  `excludeSkillCom2usId`, même si l'interrupteur est resté allumé dans une
+  recette. Masquer le seul contrôle ne suffirait pas.
 
   Stockage : **même `Record` que `passifsOffensifs`** (clé =
   `skillCom2usId` de CE modificateur) — pas un nouveau champ dans

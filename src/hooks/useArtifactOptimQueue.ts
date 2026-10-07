@@ -383,7 +383,7 @@ export function useArtifactOptimQueue(opts: {
   // (`renoncer` rend vrai) ; quand le repli vient de lui (`basculer`), il a
   // déjà publié et `renoncer` rend faux ici.
   const basculerEnRepli = useCallback((raison: string, detail: unknown) => {
-    console.error(`File de résolution : ${raison} — repli sur le fil de l’écran (degats-et-aura 6bis-b13bis-b).`, detail);
+    console.error(`File de résolution : ${raison} — repli sur le fil de l’écran.`, detail);
     const d = distantRef.current;
     distantRef.current = null;
     if (d) {

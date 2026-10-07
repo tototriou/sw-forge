@@ -3372,13 +3372,13 @@ const IGNORE_DEF_VARIANTE_A: IgnoreDefAPartirDuCoupProfile = {
   coups: 3,
   rangsPermis: [2, 3],
   dernierCoupInconditionnel: null,
-  source: 'utilisateur, 2026-09-23 (cadrage degats-et-aura, A.2 ter et lot 10) ; note SWARFARM « If enemy ATB at 0 »',
+  source: 'utilisateur, 2026-09-23 (valeurs-de-jeu-curees.md, « Ignore DEF des Blade Dancers ») ; note SWARFARM « If enemy ATB at 0 »',
 };
 const IGNORE_DEF_VARIANTE_B: IgnoreDefAPartirDuCoupProfile = {
   coups: 7,
   rangsPermis: [2, 3, 4, 5, 6, 7],
   dernierCoupInconditionnel: 7,
-  source: 'utilisateur, 2026-09-23, confirmation de revue (cadrage degats-et-aura, A.2 ter et lot 10) ; note SWARFARM « If enemy ATB at 0 or 7th hit »',
+  source: 'utilisateur, 2026-09-23, confirmation de revue (valeurs-de-jeu-curees.md, « Défauts d\'ignore DEF ») ; note SWARFARM « If enemy ATB at 0 or 7th hit »',
 };
 export const IGNORE_DEF_A_PARTIR_DU_COUP_PAR_ID: Readonly<Record<number, IgnoreDefAPartirDuCoupProfile>> = {
   14308: IGNORE_DEF_VARIANTE_A, // Hyakuretsukyaku — CHUN-LI vent (24403, 24413)

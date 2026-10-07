@@ -224,7 +224,7 @@ export function facteurTenacite(reductionPct: number): number {
   if (reductionPct === 0) return 1;
   if (reductionPct >= 100) {
     throw new Error(
-      `facteurTenacite : réduction de ${reductionPct} % — au-delà de 100 %, le modèle de PV effectifs équivalents n'est pas défini (relevé T4 : aucun plafond connu, aucune pièce réelle n'en approche).`
+      `facteurTenacite : réduction de ${reductionPct} % — au-delà de 100 %, le modèle de PV effectifs équivalents n'est pas défini (relevé en jeu : aucun plafond connu, aucune pièce réelle n'en approche).`
     );
   }
   return 1 / (1 - reductionPct / 100);

@@ -333,7 +333,7 @@ export function configDuProfil(profil: ProfilSynthetique, commun: Partial<Config
 
 /** Le rendu de `--profils` — ce qui existe, et ce que chacun promet. */
 export function rendreProfils(): string {
-  const l: string[] = ['Profils de pool synthétique nommés (§7 — piste 11b)', '─'.repeat(72)];
+  const l: string[] = ['Profils de pool synthétique nommés', '─'.repeat(72)];
   for (const p of PROFILS) {
     const a = p.attendu;
     const troncature = a.complet ? 'COMPLET' : `tronqué par ${a.motif}`;

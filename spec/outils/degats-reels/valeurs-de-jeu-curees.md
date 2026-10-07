@@ -84,6 +84,7 @@ par invention.
 | Kiki, Start of Pain | Vol de PV **compté** : 4 % des **PV max de Kiki** par effet nocif sur la cible (8 % au plus), à **chaque coup** ; choix 0, 1 ou 2 effets ; le S1 (Magical Eye) peut poser une baisse d'ATQ à chaque coup et augmenter le compte s'il n'y en avait pas déjà 2 | utilisateur, 2026-10-03 |
 | Meteor Strike, Black Meteor | Le coup 1 ignore aussi la DEF si un effet nocif est déjà posé avant (réduction de DEF, Marque ou autre) ; choix « ignore DEF à partir du coup 1, 2, 3, ou aucun » | utilisateur, 2026-10-03 |
 | Crushed Hopes de Cichlid | Seul le **2e coup** pose la réduction de DEF : posée au coup 2 (le 3e en profite), déjà active avant le coup 1, ou aucune | utilisateur, 2026-10-03 |
+| Summary Justice de Theonia (S3) | +100 % quand l'ATQ ennemie saisie est **strictement** inférieure à l'ATQ du build (« For enemies with Attack Power lower than yours », valeur de la donnée), comme Kassandra et Eleni vent à +30 % | utilisateur, 2026-10-03 |
 | Valeurs connues par l'API seule | L'API SWARFARM **par défaut**, sauf si la prose du sort la contredit (alors relevé ou confirmation) | utilisateur, 2026-10-03 |
 | Chain Fire | Salves de **deux** flèches : le compteur avance par pas de 2, une unité = une flèche | utilisateur, 2026-10-03 |
 | Frodo — buff « all allies » du passif | Le porteur **reçoit aussi** le buff d'ATQ (le champ `surSoi: false` de la fiche est faux) ; de même Silver Tail, son jumeau collab | utilisateur, 2026-10-03 |

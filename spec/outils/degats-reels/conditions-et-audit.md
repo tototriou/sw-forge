@@ -70,7 +70,8 @@ yours ») ne garantissent pas le critique à l'égalité, conformément à leur
 prose et à la `note` de leur effet. Summary Justice
 (Theonia, S3) gagne +100 % quand l'ATQ ennemie saisie (« ATQ adverse »,
 `enemyAtk`) est strictement inférieure à l'ATQ du build (« For enemies with
-Attack Power lower than yours », valeur de la donnée), comme Kassandra et Eleni vent à +30 % ; sa
+Attack Power lower than yours », valeur de la donnée ; [valeurs curées](valeurs-de-jeu-curees.md),
+« Summary Justice de Theonia (S3) »), comme Kassandra et Eleni vent à +30 % ; sa
 clause sœur « Attack Speed lower than yours », sans valeur dans la donnée,
 n'est pas comptée. Le résumé de la condition dit ce qu'elle accorde (ignore
 DEF ou critique garanti) et sa borne (≤ ou <), lus sur l'entrée.

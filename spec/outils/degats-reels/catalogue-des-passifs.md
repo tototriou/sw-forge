@@ -25,9 +25,7 @@ donc jamais des `PASSIFS_OFFENSIFS_CONNUS`) :
   100 % se reversant en Dgts Crit **1 pour 1**, y compris le surplus
   apporté par ce même passif. ⚠️ Le reversement est un mécanisme PROPRE à
   ce passif — un monstre sans lui qui dépasse 100 % de Taux Crit (runes
-  très généreuses) reste simplement plafonné, comme avant cette
-  fonctionnalité (régression trouvée et corrigée en cours de route, voir
-  le test dédié).
+  très généreuses) reste simplement plafonné, ce que garde le test dédié.
 - **Bonus flat de Taux Crit/Dgts Crit** (`BONUS_STAT_FIXE_CONNUS`,
   `monsterBonusStatFixe`) — Lizardman (Lumière)/Glinodon, « Detect
   Weakspot » : « Increases your Critical Rate by 20% and the damage of
@@ -210,38 +208,35 @@ condition non déductible) :
   Self Repair.
 - **Female Warrior/Sabrina** (point 40) : « 20% more damage on enemies with
   no beneficial effects » — inverse conceptuel de Julie (bonus si la cible
-  N'A PAS d'effet, pas selon son nombre). ⚠️ **Écart entre données et
-  réponse utilisateur** : `quantite: 20` confirmé dans SWARFARM, mais la
-  réponse parlait de « jusqu'à 200 % » — très probablement une confusion
-  avec Cold Brew/Iced Tea juste en dessous (même lot de réponses). Les
-  données réelles ont prévalu (20 %, pas 200 %).
+  N'A PAS d'effet, pas selon son nombre). ⚠️ **20 %, pas 200 %** :
+  `quantite: 20` dans SWARFARM ; une réponse de l'utilisateur disait
+  « jusqu'à 200 % », très probablement une confusion avec Cold Brew/Iced Tea
+  juste en dessous. Les données prévalent.
 - **Cold Brew/Espresso Cookie (Eau)** et **Iced Tea/Black Tea Bunny (Eau),
   Rosemary** (point 43) : « +200% if you attack the frozen enemy on your
   turn » — confirmé en données (`quantite: 200`).
 
 **Internal Force/Paladin, Leona** (point 28, identifiant 12515) —
-`BONUS_DEGATS_CONDITIONNEL_CONNUS` depuis le lot 15b du chantier
-degats-et-aura (décision de l'utilisateur du 2026-10-02, cadrage A.8) :
+`BONUS_DEGATS_CONDITIONNEL_CONNUS` :
 « Creates a Shield equal to your Defense for 2 turns when you are attacked.
 Increases the damage dealt by 50% when you have a Shield. »
 
 - **Le Bouclier n'est pas compté.** `formule: 2.0*{DEF}` décrit le Bouclier,
-  créé « when you are attacked » : ce n'est pas une attaque (cadrage A.2
-  ter, « Une attaque se lit dans la prose »).
+  créé « when you are attacked » : ce n'est pas une attaque (A.2 ter,
+  « Une attaque se lit dans la prose »).
 - **Le +50 % est compté** : effet `Increase Damage`, `quantite: 50`, note
   « When you have a Shield. » ; `+50 %` sur les dégâts du monstre sous le
   bouton « bouclier actif », désactivé par défaut (même clé de stockage,
   `passifsOffensifs[12515]`, que l'ancien bouton). Qu'il majore le total
   comme le reste de la famille (multiplicatif, hors bucket Additionnel)
   n'est pas mesuré en jeu.
-- ⚠️ **Lecture renversée.** Jusqu'au lot 15b, le passif était un
-  `PASSIFS_OFFENSIFS_CONNUS` `conditionnel` dont le `2.0*{DEF}` s'ajoutait
-  aux dégâts bouton allumé, le +50 % étant réputé porter sur les dégâts que
-  le Bouclier absorbe ; le test qui figeait cette lecture dit désormais
-  pourquoi elle est tombée.
+- ⚠️ **Ne pas en faire un `PASSIFS_OFFENSIFS_CONNUS` `conditionnel`** dont
+  le `2.0*{DEF}` s'ajouterait aux dégâts bouton allumé, le +50 % portant sur
+  les dégâts que le Bouclier absorbe : le Bouclier n'est pas une attaque ;
+  le test dit pourquoi cette lecture est fausse.
 - L'égalisation ATQ/DEF du début de combat (« the value of the lower stat
-  will equal that of the higher ») reste hors modèle : mécanisme neuf, au
-  plan du lot 13.
+  will equal that of the higher ») reste hors modèle : mécanisme neuf,
+  marqué « Calcul partiel » ([formules-et-combat.md § Calcul partiel — l'étiquette par identifiant](formules-et-combat.md)).
 
 **Nouveau `PASSIFS_OFFENSIFS_CONNUS` `conditionnel`** (toggle, formule
 PROPRE au passif, pas un % du total) :
@@ -338,8 +333,7 @@ bonusConditionnelPropre?: { pct: number; condition: string }`) :
   partagé par trois identifiants (23306 Cecilia, 23307 Cynthia, 23310
   Elise) mais seule la fiche de Cynthia porte Emergency Drive : le bouton
   est posé **par identifiant** (23307, `BONUS_CONDITIONNEL_PROPRE_PAR_ID_CONNUS`,
-  prioritaire sur la table par nom) ; Cecilia et Elise n'ont pas ce bouton
-  (décision du 2026-10-03).
+  prioritaire sur la table par nom) ; Cecilia et Elise n'ont pas ce bouton.
 
 
 ## Cinquième vague — statistiques
@@ -359,18 +353,16 @@ pas linéaire), suit juste après :
   damage you deal to enemies by up to 100% in proportion to your Defense »
   (`quantite: 100`) — confirmé 100 % à 5000 DEF (« y compris lead, buff
   DEF »). Distinct de Martial Arts Specialist : ici c'est la DEF PROPRE,
-  sans comparaison avec la cible. Depuis le lot 6bis-b2, cette DEF de combat
-  comprend aussi les auras Determination, externes et propres au build, dans
+  sans comparaison avec la cible. Cette DEF de combat comprend aussi les auras Determination, externes et propres au build, dans
   l'arrondi du lead ([sets d'aura](effets-equipe-et-leaders.md)).
 
-⚠️ **Régression trouvée EN COURS d'implémentation de Gideon (pas signalée
-par l'utilisateur)** : la formule linéaire-plafonnée partagée par toute
-cette famille (Sonia, Chun-Li/Leah…) clampait `Math.min(pctMax, écart)` —
-correct UNIQUEMENT quand `ecartMax == pctMax` (Sonia : 50/50, coïncidence).
-Pour Chun-Li/Leah (`ecartMax: 150, pctMax: 200`, valeurs DIFFÉRENTES), un
-écart de VIT au-delà de 150 points donnait ~267 % au lieu de rester
-plafonné à 200 %. Corrigé (`Math.min(ecartMax, écart)`) et testé au-delà du
-plafond, jamais vérifié jusque-là.
+⚠️ **La formule linéaire-plafonnée partagée par toute cette famille**
+(Sonia, Chun-Li/Leah…) clampe `Math.min(ecartMax, écart)`, jamais
+`Math.min(pctMax, écart)`, qui ne serait juste que si `ecartMax == pctMax`
+(Sonia : 50/50, coïncidence). Pour Chun-Li/Leah (`ecartMax: 150,
+pctMax: 200`, valeurs DIFFÉRENTES), l'autre clamp donnerait ~267 % au-delà
+de 150 points d'écart de VIT au lieu de rester plafonné à 200 %. Testé
+au-delà du plafond.
 
 **Might of the Mercenary/Mercenary Queen, Brita** (point 30b) / **Might of
 the Clan/Eivor (Eau)** — SIXIÈME mécanique liée à une stat, mais d'une
@@ -385,8 +377,8 @@ DE COLLABORATION (`jumeauCollab`, mêmes stats et compétences sous deux
 habillages) — même mécanisme, deux noms de passif différents.
 
 Les seuils sont des totaux de combat, pas des écarts : l'ATQ comparée
-comprend donc aussi les auras Fight, externes et propres au build, depuis le
-lot 6bis-b2 ([sets d'aura](effets-equipe-et-leaders.md)). Le relevé indépendant
+comprend donc aussi les auras Fight, externes et propres au build
+([sets d'aura](effets-equipe-et-leaders.md)). Le relevé indépendant
 de Brita conserve **1671 ATQ**. Pour Eivor (Eau), le relevé le plus récent
 donne **1520 ATQ**, **1520 DEF** et **213 VIT**. L'écran montre les trois
 objectifs et leur équivalent au-dessus de la fiche : avec Combat,

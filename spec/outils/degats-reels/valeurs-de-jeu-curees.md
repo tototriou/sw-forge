@@ -5,18 +5,14 @@
 **Ne pas lire si :** on cherche comment le calcul applique une valeur (voir les autres fichiers de `degats-reels/`)
 **Voir aussi :** spec/outils/degats-reels.md, spec/outils/degats-reels/formules-et-combat.md
 
-Valeurs curées par le chantier degats-et-aura (fiche :
-[degats-et-aura.md](../../chantiers/degats-et-aura.md) ; journal archivé dans
-les notes privées du projet). Le titre ci-dessous garde l'identifiant de sa
-section d'origine, « A.2 ter », que le code et les tests citent ; les
-identifiants de lot (lot 10, lot 15g, P2…) et du questionnaire (Q03, D06…)
-renvoient à ce journal.
+Le titre ci-dessous garde l'identifiant « A.2 ter », que le code et les
+tests citent.
 
 ## Les valeurs de jeu — curées, avec leur source (ex-A.2 ter)
 
 **Les valeurs ci-dessous sont fournies.** Elles viennent de l'utilisateur
 (joueur), le 2026-09-23, sauf mention contraire. Elles ne sont pas à redemander.
-Le cas à sept coups est confirmé au lot 10 ; aucune valeur ne se complète
+Le cas à sept coups est confirmé ; aucune valeur ne se complète
 par invention.
 
 | Mécanique | Valeur retenue | Source |
@@ -29,12 +25,12 @@ par invention.
 | Tempest (Teshar) | `3.7 × ATQ`, **en zone**, déclenché après S1 **ou** S2 | utilisateur, **et** l'audit (3,7 ATQ, `other_skill=1181`) : deux sources concordantes |
 | Skillups de Tempest | Les trois améliorations `Damage +10%`, soit `+30 %`, s'appliquent aux dégâts de Tempest | utilisateur, confirmation explicite du 2026-09-23 |
 | Gold Headband (`7912`, Mei Hou Wang feu) | Chaque cumul ajoute **20 % de l'ATQ de base** et **12 % de la VIT de base** ; maximum 10. Pour Mei Hou Wang éveillé, la VIT de base vaut 116 | utilisateur, confirmation explicite du 2026-09-24 |
-| Attaques supplémentaires conditionnelles | L'Optimizer ne tire jamais la probabilité : un interrupteur utilisateur inclut ou exclut la compétence supplémentaire, comme pour Tempest. Règle confirmée pour les S2/S3 des Maîtres ivres, Shoryuken, les chaînes de Kung Fu Girls et Chain Effect de Vendhan. Pour Vendhan, la répétition vaut 50 % des dégâts ; le Silence réel à 25 % est hors calcul. Chaque famille garde ses paramètres propres et doit être classée par le lot 1 | utilisateur, décisions produit des 2026-09-23 et 2026-09-24 |
+| Attaques supplémentaires conditionnelles | L'Optimizer ne tire jamais la probabilité : un interrupteur utilisateur inclut ou exclut la compétence supplémentaire, comme pour Tempest. Règle confirmée pour les S2/S3 des Maîtres ivres, Shoryuken, les chaînes de Kung Fu Girls et Chain Effect de Vendhan. Pour Vendhan, la répétition vaut 50 % des dégâts ; le Silence réel à 25 % est hors calcul. Chaque famille garde ses paramètres propres | utilisateur, décisions produit des 2026-09-23 et 2026-09-24 |
 | Formes génériques et non éveillées | Aucune forme non éveillée d'un monstre n'est sélectionnable dans l'Optimizer. Les cinq Martial Cat 2A génériques `47601` à `47605` ne correspondent en outre à rien de jouable. Ces formes sont entièrement ignorées, sauf quand leur identifiant de compétence est aussi porté par une forme jouable : le profil est alors conservé pour cette dernière seulement | utilisateur, confirmations explicites des 2026-09-23 et 2026-09-24 |
 | Stock de dégâts de Jin/Kai ténèbres | Lorsqu'un S3 élimine sa cible, l'excédent `max(0, dégâts infligés − PV restants)` devient un dégât fixe ajouté au prochain S3. Il ignore la DEF mais subit les réductions des dégâts fixes, est entièrement consommé puis remplacé par le nouvel excédent éventuel, sans plafond de jeu. L'Optimizer demande directement un stock `0..100000` à l'utilisateur ; cette borne de saisie n'est pas un plafond du jeu | utilisateur, valeurs et décision produit du 2026-09-23 |
 | Répétitions sans plafond connu | Scratch de Raoq, Sonic Boom d'Ermeda et Chain Fire utilisent un nombre total de coups saisi de `1` à `10`. Pour Raoq, l'utilisateur choisit après quel coup le break DEF réussit | utilisateur, décision produit du 2026-09-23 |
 | Déclenchements de Hwa et Jackie | Burning Whip répète exactement la S1 ou S2 initiale une fois, sans récursion, sur interrupteur. Exploding Hands répète une fois son ratio `7.4 × ATQ`, sur interrupteur, sans nouvelle tentative d'étourdissement | utilisateur, confirmation explicite du 2026-09-23 |
-| Zeratu — Forbidden Power | L'utilisateur choisit 1, 2 ou 3 attaques, défaut 3. Les attaques 2 et 3 valent chacune 50 % du ratio initial : trois attaques valent `100 % + 50 % + 50 % = 200 %` ; **les skillups s'appliquent** à ces deux coups, et le bonus de Trample selon les PV de la cible est **recalculé à chaque coup** sur les PV restants (2026-10-03, Q03) | utilisateur, confirmation explicite du 2026-09-24 et du 2026-10-03 |
+| Zeratu — Forbidden Power | L'utilisateur choisit 1, 2 ou 3 attaques, défaut 3. Les attaques 2 et 3 valent chacune 50 % du ratio initial : trois attaques valent `100 % + 50 % + 50 % = 200 %` ; **les skillups s'appliquent** à ces deux coups, et le bonus de Trample selon les PV de la cible est **recalculé à chaque coup** sur les PV restants | utilisateur, confirmation explicite du 2026-09-24 et du 2026-10-03 |
 | Sia — Great Friends | Sélecteur 2 ou 3 coups supplémentaires, défaut 2. Les deux skillups `Damage +10 %` s'appliquent à chaque coup du passif, ajouté après la S1 ou S2 sélectionnée | utilisateur, confirmation explicite du 2026-09-24 |
 | Chaînes des Kung Fu Girls | Les formes non éveillées `8206` à `8210` n'ont pas de suite et ne sont pas sélectionnables. Sur les formes éveillées, un break DEF réussi de S1 est actif pour la S2. Les cinq Dragon Attack utilisent un sélecteur de 1 à 4 coups reçus, défaut 4 ; Fei choisit l'ignore DEF séparément pour chaque coup | utilisateur, confirmations explicites des 2026-09-23 et 2026-09-24 |
 | Calcul monocible et nouvelle cible | Une contribution obligatoirement portée sur un autre monstre est ignorée : notamment la S2 après Sword of Promise des Valkyrjas et la seconde attaque de Shadow Assault de Tanya | utilisateur, décision produit du 2026-09-23 |
@@ -54,55 +50,54 @@ par invention.
 | Lignes 224 et 400 sur Blade Surge | **224** (« D.CRIT+ comp cib uniq pdt tour ») porte sur les **coups 1 et 2** seulement ; **400** (« [Comp.1] Aug. Dgts CRIT ») porte sur les **trois coups**, coup de zone compris | utilisateur, confirmation explicite du 2026-10-02 |
 | Rankyaku — `5 × VIT` | La VIT est la **VIT finale** : base + runes + set + lead + effet d'augmentation de vitesse, éventuellement augmentée par les artéfacts | utilisateur, confirmation explicite du 2026-10-02 |
 | Tempest — coups critiques | Tempest **peut infliger un coup critique** (les lignes de Dgts CRIT 402/410 s'y appliquent une fois) | utilisateur, confirmation explicite du 2026-10-02 |
-| Une attaque se lit dans la prose | Un ratio (`formule`) et un nombre de `coups` dans SWARFARM ne prouvent pas qu'un sort attaque (le soin S2 d'Anavel ; le bouclier S2 de Frieren `24909`). Avant de traiter un sort comme offensif, vérifier dans sa prose la notion d'attaque ou de dégâts ; sans elle, ce n'est pas une attaque. **Précision du 2026-10-03** : une prose ancienne et laconique peut taire un coup réel — Sleep Spell `1161` (« ratio de 600 % × ATQ ») et Ice Ball `1206` sont jugés offensifs par l'utilisateur sans mot d'attaque dans leur prose ; un sort sans ce mot va donc à l'utilisateur, il n'est pas masqué d'office | utilisateur, 2026-10-02 et 2026-10-03 (lot 15g) |
+| Une attaque se lit dans la prose | Un ratio (`formule`) et un nombre de `coups` dans SWARFARM ne prouvent pas qu'un sort attaque (le soin S2 d'Anavel ; le bouclier S2 de Frieren `24909`). Avant de traiter un sort comme offensif, vérifier dans sa prose la notion d'attaque ou de dégâts ; sans elle, ce n'est pas une attaque. **Précision** : une prose ancienne et laconique peut taire un coup réel — Sleep Spell `1161` (« ratio de 600 % × ATQ ») et Ice Ball `1206` sont jugés offensifs par l'utilisateur sans mot d'attaque dans leur prose ; un sort sans ce mot va donc à l'utilisateur, il n'est pas masqué d'office | utilisateur, 2026-10-02 et 2026-10-03 |
 | Effets de PV sans coup | Bolverk S3, Harmonia S3, Vivachel S3, les passifs d'Aya vent (S3) et de Nobara vent (`20313`, prose identique mot pour mot) agissent sur les PV ennemis **sans infliger de coup** et ne dépendent que des stats de l'adversaire : **ignorés** par le calcul de l'Optimizer. Une perte de PV qui accompagne un coup (Hellfire de Daphnis) reste comptée | utilisateur, 2026-10-02 |
 | Chaînes des Kung Fu Girls (sens) | Une S1 peut appeler la S2 après elle, une S2 peut appeler la S3 ; une S2 n'appelle jamais la S1 et une S3 n'appelle rien. Choisir la S3 : un seul sort ; choisir la S1 : la chaîne entière possible, chaque appel sous interrupteur | utilisateur, 2026-10-03 |
 | Trinity Claymore | Le hasard (20 % par attaque, 50 % sur retrait de bonus) le **débloque pour le tour suivant** : aucun sort ne l'active en chaîne. Choisi comme sort : **toute la chaîne d'abord (son S1, puis son S2), puis ses 3 coups au ratio du sort** — Taebaek et Hwoarang ténèbres, versions Summoners War et collab | utilisateur, 2026-10-03 |
 | Chance d'ignore DEF par coup (Fei) | Chacun des 4 coups, **le premier compris**, a sa chance d'ignorer la DEF | utilisateur, 2026-10-03 |
 | Taebaek | La **prose** fait foi : 15 % / 150 (l'effet de la donnée dit 20 % / 200) | utilisateur, 2026-10-03 |
-| Bonus de Taux Crit | S'ajoute **en points** ; depuis le lot CM, il ne change un total que s'il déclenche un effet sur critique ou alimente un reversement du surplus au-delà de 100 % | utilisateur, 2026-10-03 |
+| Bonus de Taux Crit | S'ajoute **en points** ; il ne change un total que s'il déclenche un effet sur critique ou alimente un reversement du surplus au-delà de 100 % | utilisateur, 2026-10-03 |
 | Assiette des « +X % » de passif | Base ou totale **selon le passif** : aucune règle générale, à relever passif par passif | utilisateur, 2026-10-03 |
 | Energy Punch de Mina | Suit le mode critique : en « Critique », un Energy Punch par coup du sort ; en « Non critique », aucun | utilisateur, 2026-10-03 |
-| Yuji et Rick (S2) | La réduction de DEF posée par le 1er coup garantit le critique du 2e : **posée sans attendre de relevé** ; elle **baisse aussi la DEF du 2e coup** (lot 15f) | utilisateur, 2026-10-03 |
-| Dgts CRIT d'une attaque déclenchée (Q02) | Prose « attacks again » avec le ratio du passif → lignes de Dgts CRIT **du sort qui porte le passif** (son emplacement) ; prose qui nomme un sort (« attacks with [X] ») → lignes **du sort X** ; prose peu claire → soumise **sort par sort** à l'utilisateur | utilisateur, 2026-10-03 (questionnaire) |
-| Anges jumeaux (Q04) | Chaque paire a **deux jeux de sorts, un par forme** ; elle peut lancer un sort de la première forme puis un sort de la seconde **dans le même tour**. Les sorts « Horn of … » de la donnée sont ceux de la forme de soutien, qui n'inflige **aucun** dégât ; **tous** les sorts de la forme archer en infligent. Choix produit : le sort de l'archer **seul**, sans tenir compte du Horn lancé avant | utilisateur, 2026-10-03 (questionnaire) |
-| Provocation (Q05) | La Provocation **n'est pas** un effet d'incapacité (Fast Charge de Dr. Richard ne coïncide jamais avec une de ses attaques) | utilisateur, 2026-10-03 (questionnaire) |
-| Tempest Sword de Lupinus (Q06) | Le 3e coup, sur tous les ennemis, a **le même ratio** que les deux premiers (`{ATK} + 0.06*{Target MAX HP}`) ; comme pour son S1, l'écran doit pouvoir calculer les dégâts sur les ennemis non ciblés | utilisateur, 2026-10-03 (questionnaire) |
-| Stella, Blade Dance of the Reaper (Q08) | Coups selon la **VIT totale en combat** (arrondie au supérieur) : < 129 → 3 ; 129 → 4 ; 154 → 5 ; 179 → 6 ; ≥ 204 → 7 | utilisateur, 2026-10-03 (questionnaire) |
-| Lord of Hell (Q09) | Garde **les runes et l'ATQ de Liliana**, puis +50 % de dégâts | utilisateur, 2026-10-03 (questionnaire) |
-| Marque de la S2, puis S1 enchaîné (D03) | Shoryuken (RYU) et Iron Uppercut (Striker) : la Marque est posée (ou non) **avant** que le S1 se déclenche → interrupteur « Marque posée » pour le S1 enchaîné | utilisateur, 2026-10-03 (questionnaire) |
-| Bella, One More Time! (D04) | Fire! suit l'attaque, sous interrupteur **allumé par défaut** (après S1, S2 ou S4) | utilisateur, 2026-10-03 (questionnaire) |
-| Seuil de PV : un interrupteur (D06) | Ce qui dépend d'un **seuil** de PV (bonus ou déclenchement « si les PV sont au-dessus de X % ») se règle par un interrupteur, pas par la saisie exacte des PV ; une valeur continue (Brawler's Will de Trevor) garde sa saisie et affiche le bonus obtenu | utilisateur, 2026-10-03 (questionnaire, règle d'interface) |
-| Dorothy, Time of Destruction (D36) | Le bonus dépend des PV détruits **de la cible** : jauge de 15 à 60 %, bonus DMG% égal au % détruit (champ déjà présent pour le passif de Borgnine) | utilisateur, 2026-10-04 (questionnaire) |
-| Parts non calculées (D36) | Égalisation des ratios de PV (Lavender), réduction de PV en % après les dégâts du ratio (Jasmine, Daniel) : **non calculées, dit à l'écran** — rien à optimiser ; Devil's Bargain (Bael) : la prose se trompe, aucune conversion des PV perdus en dégâts | utilisateur, 2026-10-04 (questionnaire) |
+| Yuji et Rick (S2) | La réduction de DEF posée par le 1er coup garantit le critique du 2e : **posée sans attendre de relevé** ; elle **baisse aussi la DEF du 2e coup** | utilisateur, 2026-10-03 |
+| Dgts CRIT d'une attaque déclenchée | Prose « attacks again » avec le ratio du passif → lignes de Dgts CRIT **du sort qui porte le passif** (son emplacement) ; prose qui nomme un sort (« attacks with [X] ») → lignes **du sort X** ; prose peu claire → soumise **sort par sort** à l'utilisateur | utilisateur, 2026-10-03 (questionnaire) |
+| Anges jumeaux | Chaque paire a **deux jeux de sorts, un par forme** ; elle peut lancer un sort de la première forme puis un sort de la seconde **dans le même tour**. Les sorts « Horn of … » de la donnée sont ceux de la forme de soutien, qui n'inflige **aucun** dégât ; **tous** les sorts de la forme archer en infligent. Choix produit : le sort de l'archer **seul**, sans tenir compte du Horn lancé avant | utilisateur, 2026-10-03 (questionnaire) |
+| Provocation | La Provocation **n'est pas** un effet d'incapacité (Fast Charge de Dr. Richard ne coïncide jamais avec une de ses attaques) | utilisateur, 2026-10-03 (questionnaire) |
+| Tempest Sword de Lupinus | Le 3e coup, sur tous les ennemis, a **le même ratio** que les deux premiers (`{ATK} + 0.06*{Target MAX HP}`) ; comme pour son S1, l'écran doit pouvoir calculer les dégâts sur les ennemis non ciblés | utilisateur, 2026-10-03 (questionnaire) |
+| Stella, Blade Dance of the Reaper | Coups selon la **VIT totale en combat** (arrondie au supérieur) : < 129 → 3 ; 129 → 4 ; 154 → 5 ; 179 → 6 ; ≥ 204 → 7 | utilisateur, 2026-10-03 (questionnaire) |
+| Lord of Hell | Garde **les runes et l'ATQ de Liliana**, puis +50 % de dégâts | utilisateur, 2026-10-03 (questionnaire) |
+| Marque de la S2, puis S1 enchaîné | Shoryuken (RYU) et Iron Uppercut (Striker) : la Marque est posée (ou non) **avant** que le S1 se déclenche → interrupteur « Marque posée » pour le S1 enchaîné | utilisateur, 2026-10-03 (questionnaire) |
+| Bella, One More Time! | Fire! suit l'attaque, sous interrupteur **allumé par défaut** (après S1, S2 ou S4) | utilisateur, 2026-10-03 (questionnaire) |
+| Seuil de PV : un interrupteur | Ce qui dépend d'un **seuil** de PV (bonus ou déclenchement « si les PV sont au-dessus de X % ») se règle par un interrupteur, pas par la saisie exacte des PV ; une valeur continue (Brawler's Will de Trevor) garde sa saisie et affiche le bonus obtenu | utilisateur, 2026-10-03 (questionnaire, règle d'interface) |
+| Dorothy, Time of Destruction | Le bonus dépend des PV détruits **de la cible** : jauge de 15 à 60 %, bonus DMG% égal au % détruit (champ déjà présent pour le passif de Borgnine) | utilisateur, 2026-10-04 (questionnaire) |
+| Parts non calculées | Égalisation des ratios de PV (Lavender), réduction de PV en % après les dégâts du ratio (Jasmine, Daniel) : **non calculées, dit à l'écran** — rien à optimiser ; Devil's Bargain (Bael) : la prose se trompe, aucune conversion des PV perdus en dégâts | utilisateur, 2026-10-04 (questionnaire) |
 | Stormfist de Mayasura, Varuna, Danu (valeur) | 3 coups, **+1 coup par tranche de 60 % de l'ATQ de base** dans l'ATQ totale, 6 au plus : 6 coups à ATQ totale = 280 % de l'ATQ de base (base + 180 %) ; l'ATQ de base est **celle de chaque monstre**, et le passif de Mayasura (Constant Training, +100 ATQ par attaque) compte dans l'ATQ totale | utilisateur, 2026-10-04 |
-| Torrent de Leo et Ragdoll (D61) | Le ratio ne bouge pas (5,5 × ATQ) ; sous 30 % de PV, un interrupteur d'ignore DEF — état actuel du code | utilisateur, 2026-10-04 (questionnaire) |
-| Carlos, Collect Weapons (D62) | ATQ gagnée saisie **en %**, plafond de 300 % **de l'ATQ de base** | utilisateur, 2026-10-04 (questionnaire) |
-| Huga, Slaughter (D47) | « +30 % de dégâts critiques » = **+30 points** de Dégâts CRIT | utilisateur, 2026-10-04 (questionnaire) |
-| Kamatau, Exile (D49) | Ne reçoit aucun buff : ses buffs sont éteints | utilisateur, 2026-10-04 (questionnaire) |
-| Chilling, The Cunning (D53) | **+20 de VIT par buff** sur Chilling ; un champ « nombre de buffs sur Chilling » pour son S1, qui lit la VIT | utilisateur, 2026-10-04 (questionnaire) |
-| RES et PRE des passifs (D54) | Jamais comptées dans les conditions de recherche, même avec l'interrupteur des auras | utilisateur, 2026-10-04 (questionnaire) |
-| DHALSIM, Jarrett (D44) | +50 % par dégât continu sur la cible, **la prose fait foi** (la donnée dit 30) ; compteur propre des dégâts continus | utilisateur, 2026-10-04 (questionnaire) |
-| Self Repair d'Eliza (D41) | Bonus continu : 0 % à 50 % de PV ou moins, puis +2 % par point de PV, 100 % à PV pleins | utilisateur, 2026-10-04 (questionnaire) |
-| Path of the Brave Warrior de Deragron (D41) | On saisit le **soin reçu** : +1 % de dégâts par tranche de soin égale à 1 % de ses PV max, 200 % au plus — à soin égal, moins il a de PV, plus le bonus est grand | utilisateur, 2026-10-04 (questionnaire) |
-| Sword of Destruction des Démons (D36) | Champ « PV actuels de l'ennemi le plus en forme » ; dégâts de base = **370 % × ATQ + 100 % des PV retirés** par la première partie (10 % de ces PV) ; cette part peut être **critique**, comme le S3 de Lynn | utilisateur, 2026-10-04 (questionnaire) |
-| Espresso Cookie (D36) | Feu (Extraction) comme Jasmine, ténèbres (Blending) comme Lavender : part non calculée, dit à l'écran | utilisateur, 2026-10-04 (questionnaire) |
-| Lucifer, Red Battlefield (D32) | Nouvel **effet actif** (comme celui de Velaska) : +1 % de dégâts infligés par palier de 5 000 dégâts reçus auparavant, **50 % au plus**, dans le terme DMG% (comme le S3 de Zaiross) ; saisie de 0 à 50 % avec l'équivalent en dégâts reçus indiqué à côté ; valeur **fixe** pendant toute l'attaque | utilisateur, 2026-10-03 (questionnaire) |
-| Kiki, Start of Pain (D33) | Vol de PV **compté** : 4 % des **PV max de Kiki** par effet nocif sur la cible (8 % au plus), à **chaque coup** ; choix 0, 1 ou 2 effets ; le S1 (Magical Eye) peut poser une baisse d'ATQ à chaque coup et augmenter le compte s'il n'y en avait pas déjà 2 | utilisateur, 2026-10-03 (questionnaire) |
-| Meteor Strike, Black Meteor (D20) | Le coup 1 ignore aussi la DEF si un effet nocif est déjà posé avant (réduction de DEF, Marque ou autre) ; choix « ignore DEF à partir du coup 1, 2, 3, ou aucun » | utilisateur, 2026-10-03 (questionnaire) |
-| Crushed Hopes de Cichlid (D21) | Seul le **2e coup** pose la réduction de DEF : posée au coup 2 (le 3e en profite), déjà active avant le coup 1, ou aucune | utilisateur, 2026-10-03 (questionnaire) |
-| Valeurs connues par l'API seule (D12) | L'API SWARFARM **par défaut**, sauf si la prose du sort la contredit (alors relevé ou confirmation) | utilisateur, 2026-10-03 (questionnaire) |
-| Chain Fire (D09) | Salves de **deux** flèches : le compteur avance par pas de 2, une unité = une flèche | utilisateur, 2026-10-03 (questionnaire) |
-| Frodo — buff « all allies » du passif | Le porteur **reçoit aussi** le buff d'ATQ (le champ `surSoi: false` de la fiche est faux) ; de même Silver Tail, son jumeau collab | utilisateur, 2026-10-03 (lot P2) |
+| Torrent de Leo et Ragdoll | Le ratio ne bouge pas (5,5 × ATQ) ; sous 30 % de PV, un interrupteur d'ignore DEF — état actuel du code | utilisateur, 2026-10-04 (questionnaire) |
+| Carlos, Collect Weapons | ATQ gagnée saisie **en %**, plafond de 300 % **de l'ATQ de base** | utilisateur, 2026-10-04 (questionnaire) |
+| Huga, Slaughter | « +30 % de dégâts critiques » = **+30 points** de Dégâts CRIT | utilisateur, 2026-10-04 (questionnaire) |
+| Kamatau, Exile | Ne reçoit aucun buff : ses buffs sont éteints | utilisateur, 2026-10-04 (questionnaire) |
+| Chilling, The Cunning | **+20 de VIT par buff** sur Chilling ; un champ « nombre de buffs sur Chilling » pour son S1, qui lit la VIT | utilisateur, 2026-10-04 (questionnaire) |
+| RES et PRE des passifs | Jamais comptées dans les conditions de recherche, même avec l'interrupteur des auras | utilisateur, 2026-10-04 (questionnaire) |
+| DHALSIM, Jarrett | +50 % par dégât continu sur la cible, **la prose fait foi** (la donnée dit 30) ; compteur propre des dégâts continus | utilisateur, 2026-10-04 (questionnaire) |
+| Self Repair d'Eliza | Bonus continu : 0 % à 50 % de PV ou moins, puis +2 % par point de PV, 100 % à PV pleins | utilisateur, 2026-10-04 (questionnaire) |
+| Path of the Brave Warrior de Deragron | On saisit le **soin reçu** : +1 % de dégâts par tranche de soin égale à 1 % de ses PV max, 200 % au plus — à soin égal, moins il a de PV, plus le bonus est grand | utilisateur, 2026-10-04 (questionnaire) |
+| Sword of Destruction des Démons | Champ « PV actuels de l'ennemi le plus en forme » ; dégâts de base = **370 % × ATQ + 100 % des PV retirés** par la première partie (10 % de ces PV) ; cette part peut être **critique**, comme le S3 de Lynn | utilisateur, 2026-10-04 (questionnaire) |
+| Espresso Cookie | Feu (Extraction) comme Jasmine, ténèbres (Blending) comme Lavender : part non calculée, dit à l'écran | utilisateur, 2026-10-04 (questionnaire) |
+| Lucifer, Red Battlefield | Nouvel **effet actif** (comme celui de Velaska) : +1 % de dégâts infligés par palier de 5 000 dégâts reçus auparavant, **50 % au plus**, dans le terme DMG% (comme le S3 de Zaiross) ; saisie de 0 à 50 % avec l'équivalent en dégâts reçus indiqué à côté ; valeur **fixe** pendant toute l'attaque | utilisateur, 2026-10-03 (questionnaire) |
+| Kiki, Start of Pain | Vol de PV **compté** : 4 % des **PV max de Kiki** par effet nocif sur la cible (8 % au plus), à **chaque coup** ; choix 0, 1 ou 2 effets ; le S1 (Magical Eye) peut poser une baisse d'ATQ à chaque coup et augmenter le compte s'il n'y en avait pas déjà 2 | utilisateur, 2026-10-03 (questionnaire) |
+| Meteor Strike, Black Meteor | Le coup 1 ignore aussi la DEF si un effet nocif est déjà posé avant (réduction de DEF, Marque ou autre) ; choix « ignore DEF à partir du coup 1, 2, 3, ou aucun » | utilisateur, 2026-10-03 (questionnaire) |
+| Crushed Hopes de Cichlid | Seul le **2e coup** pose la réduction de DEF : posée au coup 2 (le 3e en profite), déjà active avant le coup 1, ou aucune | utilisateur, 2026-10-03 (questionnaire) |
+| Valeurs connues par l'API seule | L'API SWARFARM **par défaut**, sauf si la prose du sort la contredit (alors relevé ou confirmation) | utilisateur, 2026-10-03 (questionnaire) |
+| Chain Fire | Salves de **deux** flèches : le compteur avance par pas de 2, une unité = une flèche | utilisateur, 2026-10-03 (questionnaire) |
+| Frodo — buff « all allies » du passif | Le porteur **reçoit aussi** le buff d'ATQ (le champ `surSoi: false` de la fiche est faux) ; de même Silver Tail, son jumeau collab | utilisateur, 2026-10-03 |
 | Versions Summoners War et collab | Deux monstres reliés par `jumeauCollab` (même `skillGroupId`) ont **la même mécanique** : une valeur ou une règle fournie pour l'un vaut pour l'autre (déjà dit pour Taebaek et Hwoarang ténèbres) | utilisateur, 2026-10-03 |
 | Sindar's Volley, Sylvan Volley | **2 à 5 coups** : 2, puis jusqu'à 3 supplémentaires ; pas encore codé : [pistes.md § Plages de coups à relever et coups « au hasard »](pistes.md) | utilisateur, 2026-10-04 (questionnaire) |
 | Clear Water, Precision | +50 RES et +25 PRE en **points additifs** (utile seulement si les passifs comptent dans les conditions : voir « RES et PRE des passifs ») | utilisateur, 2026-10-03 (questionnaire) |
 
-⚠️ **La jauge d'ATB adverse n'est pas modélisée dans l'Optimizer, et ce
-chantier ne la modélise pas.** C'est précisément pourquoi la condition d'ignore
-DEF devient un **choix** de l'utilisateur, et non un état déduit : l'app ne
-sait pas où en est l'ATB de la cible. Voir lot 10.
+⚠️ **La jauge d'ATB adverse n'est pas modélisée dans l'Optimizer.** C'est
+pourquoi la condition d'ignore DEF est un **choix** de l'utilisateur, et non
+un état déduit : l'app ne sait pas où en est l'ATB de la cible.
 
 Les skillups de Blade Surge et de Tempest, ainsi que la cible du troisième
-coup de Blade Surge, sont désormais des valeurs curées fournies par
-l'utilisateur : aucune de ces trois règles ne demeure une hypothèse.
+coup de Blade Surge, sont des valeurs curées fournies par l'utilisateur :
+aucune de ces trois règles n'est une hypothèse.

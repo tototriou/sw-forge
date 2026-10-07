@@ -109,8 +109,7 @@ d'« ATQ » dans le même calcul.
 
 
 - **Rétention de recherche.** Les lignes 218–221 n’entrent jamais dans `damageRelevantStats` : elles récoltent les statistiques déjà présentes sur le build sans réorienter les statistiques recherchées.
-- **Dominance des runes.** Elle, en revanche, les compte (degats-et-aura
-  6bis-b3d-1) : un bonus de set dont la stat nourrit une de ces lignes
+- **Dominance des runes.** Elle, en revanche, les compte : un bonus de set dont la stat nourrit une de ces lignes
   (Energy pour la ligne 218, Guard pour la 220, Fight, Determination…) n’est
   pas « inutile », et la dominance, élagage **sûr**, ne doit pas le remplacer
   par un set aux mêmes stats de rune. Les stats protégées sont celles des
@@ -201,7 +200,7 @@ sont arrondies à la centaine, ce qui déplace la résolution de plusieurs
 dizaines dans chaque sens.
 
 ⚠️ **Ce que ça a coûté en structure** : `computeSkillDamageDetail` remonte
-désormais sa part additionnelle (`additionnel`), et `computeTotalDamage`
+sa part additionnelle (`additionnel`), et `computeTotalDamage`
 l'accumule — **sur le sort ET sur chaque passif** — puis la met de côté avant
 toute la chaîne de multiplicateurs, pour ne la rendre qu'à la fin. Les
 majorations propres à un passif (`bonusPvCible`, `bonus`) sont traitées pareil,

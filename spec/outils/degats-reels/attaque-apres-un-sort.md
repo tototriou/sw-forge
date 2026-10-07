@@ -1,7 +1,7 @@
 # Dégâts réels — attaque déclenchée après un sort
 
 **Statut :** ÉTAT ACTUEL — décrit le mécanisme générique d’une attaque qui frappe après certains sorts — passif (Tempest) ou compétence active appelée —, son interrupteur et son choix comme sort
-**Lire si :** on ajoute une attaque déclenchée après un sort (un des 81 identifiants de même architecture du lot 1f), ou on modifie `slotsDeclencheurs`, `selectionnableCommeSort`, `ATTAQUES_APPELEES_PAR_DECLENCHEUR`, `passifPeutSuivre` ou le choix d’un passif dans « Compétence utilisée »
+**Lire si :** on ajoute une attaque déclenchée après un sort (un des 81 identifiants de même architecture), ou on modifie `slotsDeclencheurs`, `selectionnableCommeSort`, `ATTAQUES_APPELEES_PAR_DECLENCHEUR`, `passifPeutSuivre` ou le choix d’un passif dans « Compétence utilisée »
 **Ne pas lire si :** on travaille sur un passif qui suit n’importe quel sort (Feng Yan, Sia…) ou sur les coups d’un même sort
 **Voir aussi :** spec/outils/degats-reels/passifs-offensifs.md, spec/outils/degats-reels/artefacts-critique-et-element.md, spec/outils/degats-reels/sequences-de-coups.md
 
@@ -10,7 +10,7 @@
 Certaines compétences ajoutent une attaque **après** un sort : Tempest
 (`3213`, Teshar vent `14513` et Phoenix vent `14503`) frappe tous les ennemis
 « once more … after you attack the enemy on your turn ». Le mécanisme est
-générique (cadrage `spec/chantiers/degats-et-aura.md`, lot 9) : une
+générique : une
 compétence supplémentaire **à profil propre**, déclenchée **après certains
 sorts**, **activée par un interrupteur**, et **sélectionnable seule** quand le
 produit le demande. Elle vit dans la liste curée des passifs offensifs
@@ -24,7 +24,7 @@ succession ». Elle ne peut pas vivre dans la liste des passifs, qui ne lit
 que des passifs et les reconnaît par leur nom : une table frère,
 `ATTAQUES_APPELEES_PAR_DECLENCHEUR`, la décrit par son sort déclencheur, et
 `monsterOffensivePassives` la rend au même format, en fin de liste — même
-porte (`passifCompte`), même calcul (degats-et-aura 9c, voir
+porte (`passifCompte`), même calcul (voir
 « Ce qu’il faudra fournir »). Cette table est **vide** : aucun cas n’est
 encore curé.
 
@@ -33,11 +33,10 @@ encore curé.
 | Profil : ratio, portée, coups, améliorations | formule de la fiche, ou `FORMULES_CUREES_PAR_ID` si elle manque | `3.7 × ATQ`, zone, une instance, +30 % | utilisateur et audit (A.2 ter) |
 | Sorts déclencheurs | `slotsDeclencheurs` | S1, S2 | utilisateur (A.2 ter) |
 | Inclusion | catégorie `conditionnel` : interrupteur désactivé par défaut | recharge non simulée | décision produit (A.2 ter) |
-| Choix seul | `selectionnableCommeSort` | oui | décision produit (lot 9) |
+| Choix seul | `selectionnableCommeSort` | oui | décision produit |
 
-Les valeurs de Tempest sont celles du cadrage (A.2 ter, utilisateur le
-2026-09-23) ; les lignes d’artéfact viennent de `controle-1c1-amendement.md`
-(preuve privée du lot 1c1, réponses de l’utilisateur du 2026-09-23).
+Les valeurs de Tempest sont des valeurs curées (A.2 ter, utilisateur) ; les
+lignes d’artéfact viennent des réponses de l’utilisateur.
 
 ## Après le sort — l’interrupteur
 
@@ -55,19 +54,18 @@ Les valeurs de Tempest sont celles du cadrage (A.2 ter, utilisateur le
   pour S1, 401 pour S2) ; 224 l’ignore, elle est en zone.
 - À l’écran, son interrupteur dit ce que l’utilisateur suppose pour le
   calcul : « **Tempest (S3) se déclenche après ce sort** », désactivé par
-  défaut (réponse n° 11 de l’utilisateur, 2026-10-02). Le libellé est
+  défaut. Le libellé est
   construit, `<nom> (S<slot>) se déclenche après ce sort`, pour tout passif
   `conditionnel` à slots déclencheurs. Il remplace la phrase « Se déclenche
   si … » des autres interrupteurs. Il n’a **pas de survol** (`title`) :
-  un survol n’existe pas au doigt (décision de l’utilisateur du 2026-10-02,
-  degats-et-aura 9d) ; les autres interrupteurs de passif gardent le leur.
-  La condition du jeu reste lisible dans la prose du passif : sous
-  l’interrupteur, et au « ? » de sa case dans « Compétence utilisée »
-  (degats-et-aura 11bis). La phrase curée (« après S1 ou S2 », recharge non
-  simulée) n’est plus affichée à l’écran.
+  un survol n’existe pas au doigt ; les autres interrupteurs de passif
+  gardent le leur. La condition du jeu reste lisible dans la prose du
+  passif : sous l’interrupteur, et au « ? » de sa case dans « Compétence
+  utilisée ». La phrase curée (« après S1 ou S2 », recharge non simulée)
+  n’est pas affichée à l’écran.
 - L’interrupteur n’est affiché que si le passif **peut suivre** le sort
   choisi (`passifPeutSuivre`) : il est **masqué** quand le passif est
-  lui-même la compétence choisie (réponse n° 10). Même règle pour un futur
+  lui-même la compétence choisie. Même règle pour un futur
   cas dont le sort choisi ne serait pas un déclencheur : un bouton sans effet
   possible n’est jamais montré.
 
@@ -83,14 +81,14 @@ laisse).
 
 | Règle | Tempest seul | Source |
 | --- | --- | --- |
-| Sort par défaut | jamais : `defaultDamageSkill` ne retient que les sorts actifs, Teshar reste sur S2 | réponse n° 9 de l’utilisateur (2026-10-02) |
+| Sort par défaut | jamais : `defaultDamageSkill` ne retient que les sorts actifs, Teshar reste sur S2 | réponse de l’utilisateur |
 | Contribution | une seule : le passif n’est jamais ajouté à lui-même, même interrupteur resté allumé | A.2 ter, « Tempest seul » |
 | 411 | jamais : il frappe toujours après le S1 ou le S2 qui le déclenche | A.2 ter, « Artéfact 411 » |
-| 402/410 | une fois (slot 3) | `controle-1c1-amendement.md` |
+| 402/410 | une fois (slot 3) | A.2 ter, « Tempest — coups critiques » |
 | 400/401 | jamais (lignes du S1 et du S2) | slot du profil |
 | 224 | jamais (zone) | portée du profil |
-| PV de la cible | ceux saisis : l’état avant Tempest | cadrage, lot 9 |
-| Recette | `skillCom2usId` = `3213`, l’identifiant d’un passif, se résout en Tempest (`resolveDamageSkill`), à l’écran comme au CLI | cadrage, recalage du lot 9 |
+| PV de la cible | ceux saisis : l’état avant Tempest | décision produit |
+| Recette | `skillCom2usId` = `3213`, l’identifiant d’un passif, se résout en Tempest (`resolveDamageSkill`), à l’écran comme au CLI | décision produit |
 
 Le CLI (`scripts/optimizer-search.ts`) affiche l’état de chaque passif par
 `passifCompte`, avec le sort retenu, et annonce « choisi comme sort : compté
@@ -106,10 +104,10 @@ réduction de Défense.
 
 ## Ce qu’il faudra fournir pour un autre cas
 
-Le lot 1f a classé **81 identifiants de même architecture**, qu’aucun calcul
-ne couvre encore (lot 13) : 58 de la famille `tempest`, les S2 des Kung Fu
-Girls `8216`, `8217` et `8219`, et les vingt compétences des Samouraïs `8021`
-à `8040` (cadrage, lot 9). Pour en ajouter un, sans rien déduire d’un cas
+**81 identifiants** ont la même architecture sans qu’aucun calcul ne les
+couvre encore : 58 de la famille `tempest`, les S2 des Kung Fu Girls `8216`,
+`8217` et `8219`, et les vingt compétences des Samouraïs `8021` à `8040`.
+Pour en ajouter un, sans rien déduire d’un cas
 voisin (skill `game-data-curation`), il faut d’abord savoir de quelle
 **nature** est l’attaque — deux tables, deux clés :
 
@@ -139,7 +137,7 @@ Puis, pour l’une comme pour l’autre :
    source), portée, nombre de coups, améliorations. Quand l’attaque est une
    **compétence appelée** (Rolling Punch des Maîtres ivres, Hadoken de
    Shoryuken…), son profil vient de SA fiche, jamais de celle du déclencheur :
-   ni ratio ni améliorations transférés (`controle-1c1-amendement.md`).
+   ni ratio ni améliorations transférés (réponse de l’utilisateur).
 2. **Les sorts déclencheurs** : la liste des slots, curée (passif), ou
    l’identifiant de chaque déclencheur (compétence appelée).
 3. **L’inclusion** : un interrupteur, jamais une probabilité tirée (A.2 ter,
@@ -149,7 +147,7 @@ Puis, pour l’une comme pour l’autre :
    précède — après One More Drink, un soin, Rolling Punch est la première
    attaque réelle du tour et reçoit 411 ; la compétence appelée reçoit la
    ligne de SON slot (400 pour une S1 appelée), jamais celle du déclencheur ;
-   224 suit sa portée (`controle-1c1-amendement.md`).
+   224 suit sa portée (réponses de l’utilisateur).
 6. **Ce que le déclencheur pose avant elle.** L’attaque frappe avec l’état
    saisi (buffs, Marque) et la réduction de Défense « après » ; aucun autre
    effet posé par le déclencheur n’est modélisé. Un effet dont le jeu dit
@@ -162,7 +160,7 @@ Puis, pour l’une comme pour l’autre :
    de la S2, puis S1 enchaîné ») ; il reste à coder
    ([pistes.md § Compétence active appelée par un sort](pistes.md)).
 
-### Les 17 amorces des constats 168, 178 et 179 (lot 9c)
+### Les 17 amorces examinées
 
 Examinées une par une (`testAttaqueAppeleeCouverture`) ; aucune n’est
 curée en production.
@@ -182,13 +180,13 @@ suivante garde son propre profil et son slot (A.2 ter, « Samouraïs — tour
 supplémentaire »). C’est un sélecteur de suite, pas un passif à bouton : il
 demandera son propre réglage.
 
-Hors de cette architecture : les deux lignes du constat 313, le stock de
-dégâts de Jin et Kai ténèbres (A.2 ter).
+Hors de cette architecture : le stock de dégâts de Jin et Kai ténèbres
+(A.2 ter).
 
 ## Vérification
 
 `tests/degats-tempest.test.ts` (`node tests/run.mjs tempest`) : formule
-curée et déclenchement après S1 ou S2 (lot 9a) ; Tempest dans la liste des
+curée et déclenchement après S1 ou S2 ; Tempest dans la liste des
 sorts, jamais par défaut, une seule contribution — aussi pour un passif
 générique sans slots déclencheurs —, lignes 411, 402, 410, 400, 401, 224,
 222 et 223 du cran « Tempest seul », garde du corpus

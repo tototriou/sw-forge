@@ -11,9 +11,9 @@
 décrivent qu’un seul groupe de coups. La donnée SWARFARM de Blade Surge porte
 `0.5*{ATK}`, `coups: 2`, `aoe: false` ; sa prose ajoute un troisième coup sur
 tous les ennemis (« attacks all enemies with even more powerful attack on the
-3rd attack »), **absent de l’API**. Avant le lot 8a du chantier
-degats-et-aura (constat 151 de l’audit), le calcul ne comptait donc que deux
-coups mono-cible, et la ligne 224 s’appliquait au sort entier.
+3rd attack »), **absent de l’API**. Lu tel quel, le profil ne
+compterait que deux coups mono-cible, et la ligne 224 s’appliquerait au sort
+entier.
 
 ## La séquence curée — une table par identifiant
 
@@ -30,8 +30,8 @@ de résolution.
 | 1 | 1 et 2 | `0.5*{ATK}` | mono-cible | donnée SWARFARM + confirmation |
 | 2 | 3 | `3.0*{ATK}` | zone, cible visée comprise | utilisateur, absent de l’API |
 
-Valeurs curées du cadrage `spec/chantiers/degats-et-aura.md` (A.2 ter),
-fournies par l’utilisateur le 2026-09-23 : séquence, portée de la famille,
+Valeurs curées ([valeurs-de-jeu-curees.md](valeurs-de-jeu-curees.md),
+A.2 ter), fournies par l’utilisateur : séquence, portée de la famille,
 skillups (`skillupDamagePct`, +30 %, sur les **trois** coups) et cible du
 troisième coup (la cible visée le reçoit aussi).
 
@@ -40,14 +40,14 @@ l’entrée garde la donnée de la fiche sur laquelle elle a été curée —
 `formule` (celle de la fiche, avant toute formule curée), `coups`, `aoe` —
 telle quelle. Si SWARFARM ne la porte plus (formule, nombre de coups ou
 portée), `skillDamageProfile` refuse le sort avec sa raison plutôt que de
-calculer une séquence périmée. L’empreinte est distincte des groupes
-(décision D11, lot P6 du chantier degats-et-aura) : d’une fiche à l’autre,
+calculer une séquence périmée. L’empreinte est distincte des groupes :
+d’une fiche à l’autre,
 la donnée décrit le premier groupe, toutes les phases en `coups`, ou la
 portée de la seule phase de zone, sans règle qui relie ces champs aux
 groupes. Pour Blade Surge, l’empreinte (`0.5*{ATK}`, `coups: 2`,
 `aoe: false`) coïncide avec le premier groupe.
 
-**Couverture, en trois unités (lot 1b, validé le 2026-09-23) :**
+**Couverture, en trois unités :**
 
 - **8 identifiants** : `10601`, `10602`, `10603`, `10604`, `10605`, `10616`,
   `10618`, `10620` ;
@@ -57,20 +57,19 @@ groupes. Pour Blade Surge, l’empreinte (`0.5*{ATK}`, `coups: 2`,
   `19823`. Les Magic Knights non éveillés ne sont pas sélectionnables dans
   l’Optimizer : `10601` et `10605`, portés par eux seuls, ne sont couverts que
   par la table et le test ;
-- **5 lignes d’audit** (constat 151), une par identifiant amorce : `10602`,
+- **5 amorces**, une par identifiant : `10602`,
   `10604`, `10616`, `10618`, `10620`.
 
-Les cinq candidats écartés au lot 1b (`11015`, `18314`, `23507`, `23508`,
-`23510`) restent hors table, comme les voisins de catégorie (constats 163,
-173, 180), d’une autre mécanique.
+Cinq candidats écartés (`11015`, `18314`, `23507`, `23508`, `23510`)
+restent hors table, comme les sorts voisins de même catégorie, d’une autre
+mécanique.
 
-### Séquences à valeur de l’API (lot P6, SZ-2)
+### Séquences à valeur de l’API
 
 Quatre sorts frappent d’abord l’ennemi, puis tous les ennemis ; la phase de
 zone n’est chiffrée que par la « compétence auxiliaire » (`other_skill`) de
-l’API SWARFARM, lue par l’audit des dégâts conditionnels du 2026-09-08 et
-absente de l’import du corpus. Règle D12 de l’utilisateur (2026-10-03) :
-la valeur de l’API par défaut, sauf si la prose la contredit — aucune des
+l’API SWARFARM, absente de l’import du corpus. Règle (A.2 ter, « Valeurs
+connues par l'API seule ») : la valeur de l’API par défaut, sauf si la prose la contredit — aucune des
 quatre proses ne la contredit. Phases et portées viennent de la prose
 (« Attacks the enemy … Afterwards, … all enemies »).
 
@@ -97,8 +96,7 @@ le calcul recopie le profil sur chaque groupe ; rien ne l’a confirmé pour
 ces sorts, contrairement à Blade Surge. Sur la phase 1 seule, Abigail et
 Emily vaudraient `3,5 × 1,25 + 4,5 = 8,875` × ATQ au lieu de `10`, M. BISON
 et Sagar `4,0 × 1,15 + 5,2 = 9,8` au lieu de `10,58`. Un relevé du rapport
-phase 2 / phase 1 sur la cible visée tranche (relevés R1 et R2 du contrôle
-13b-sequences-zone).
+phase 2 / phase 1 sur la cible visée tranche.
 
 ## La cible calculée — `cibleDegatsParSort`
 
@@ -122,20 +120,20 @@ retenue.
 - Le champ est classé `'sort'` (`DAMAGE_SETUP_CLASSIFICATION`) : vidé au
   changement d’espèce et à l’import de compte, conservé au changement
   d’exemplaire.
-- **Recette** (degats-et-aura 8b) : le champ voyage dans
+- **Recette** : le champ voyage dans
   `OptimizerRecipe.damageSetup`. Absent, la recette reste valide (cible
   visée, comme toute recette antérieure). Présent, `parseOptimizerRecipe`
   exige un objet dont chaque clé est l’identifiant entier positif d’un sort à
   coup de zone curé — la même table de capacité que l’écran,
   `cibleSecondairePriseEnCharge` — et chaque valeur `'visee'` ou
   `'secondaire'`. La clé s’écrit sans zéro de tête, comme celle de
-  `premierCoupIgnoreDefParSort` (degats-et-aura 8c) : « 010616 » passerait la
+  `premierCoupIgnoreDefParSort` : « 010616 » passerait la
   table de capacité, mais le calcul lit la clé « 10616 » et ne la verrait
   jamais. Tout écart est refusé avec son chemin
   (`damageSetup.cibleDegatsParSort.<identifiant>`), jamais corrigé ni ignoré
   en silence. L’import restaure la valeur telle quelle, sans reset ultérieur ;
   l’aller-retour export → import ne perd ni n’ajoute rien.
-- **Écran** (degats-et-aura 8b, réponse n° 8 de l’utilisateur) : sous la
+- **Écran** : sous la
   liste de « Compétence utilisée », au même endroit que le champ des coups
   variables, un `Segmented` à deux crans — « Dégâts sur la cible visée »
   (défaut) et « Dégâts sur les autres ennemis » (`CIBLE_DEGATS_LABELS`,
@@ -146,22 +144,21 @@ retenue.
   séquence entière (`resumeSequenceDeCoups` : « 2 coups · Cible unique, puis
   1 coup · Zone ») et ne lit jamais le cran : rien au-dessus du contrôle ne
   change de hauteur quand on bascule, il ne bouge donc pas sous le pointeur.
-- **Résumé sous l’objectif** (`resumeCombat`, degats-et-aura 8c, décision de
-  l’utilisateur) : la ligne qui remplace la fenêtre fermée ajoute « autres
+- **Résumé sous l’objectif** (`resumeCombat`) : la ligne qui remplace la fenêtre fermée ajoute « autres
   ennemis » juste après le sort quand la cible que retient le calcul pour le
   sort RÉSOLU est la cible secondaire (`resumeCibleDegatsRetenue`) — « S1
   Blade Surge · autres ennemis · … ». Rien pour la cible visée (le défaut),
   rien pour un autre sort, jamais la valeur stockée. Le texte est la fin du
   libellé du cran, écrit une seule fois dans `damage.ts`.
-- **CLI** (`scripts/optimizer-search.ts`, degats-et-aura 8b) : la recette
+- **CLI** (`scripts/optimizer-search.ts`) : la recette
   passe par le même parseur, et son `damageSetup` entier par le même
   contexte de dégâts que l’écran (`buildRealDamageContext`) — parité écran/CLI.
   La ligne « Dégâts réels : sort … » donne la séquence entière
   (`resumeSequenceDeCoups`, au lieu des coups et de la portée de la seule
   donnée SWARFARM) et, pour un sort qui le permet, le libellé du cran calculé
   (« Dégâts sur la cible visée » ou « Dégâts sur les autres ennemis »).
-- **Script de diagnostic des artéfacts** (`scripts/artifact-search.ts`,
-  degats-et-aura 8c) : sa ligne « Sort : … » donne la même séquence
+- **Script de diagnostic des artéfacts** (`scripts/artifact-search.ts`) :
+  sa ligne « Sort : … » donne la même séquence
   (`resumeSequenceDeCoups`) au lieu de « 2 coup(s) ». Il n’a aucune option de
   cran et calcule toujours la cible visée.
 
@@ -178,7 +175,7 @@ chemin d’avant.
 | 411 `Dgts CRIT 1re attaque` | coup 1 seulement | jamais | premier coup **du tour** |
 | `skillupDamagePct` | les trois coups | le coup de zone | tout le sort |
 
-224 et 400 : confirmation explicite de l’utilisateur du 2026-10-02. 411 :
+224 et 400 : confirmation explicite de l’utilisateur. 411 :
 correction de l’utilisateur en revue — la première attaque sur une nouvelle
 cible n’est pas un nouveau premier coup du tour ; si le premier coup d’une
 séquence était en zone, chaque ennemi qui le reçoit en profiterait, ce qui
@@ -208,7 +205,7 @@ sort.
 les quatre séquences à valeur de l’API sur leurs six formes — profil,
 séquence, totaux des deux crans écrits à la main, 224 et 411 par groupe,
 refus quand la fiche ne porte plus l’empreinte (dont le premier groupe de
-Head Press et de Sagar, que l’ancienne garde aurait exigé).
+Head Press et de Sagar, qu’une garde sur le premier groupe aurait exigé).
 
 `tests/degats-blade-surge.test.ts` (`node tests/run.mjs bladesurge`) :
 balayage du corpus (les 8 identifiants et 11 formes de Blade Surge, les

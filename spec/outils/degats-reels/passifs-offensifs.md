@@ -26,7 +26,7 @@ quand les données ne portent aucune formule, ou une fausse, elle vient de
 `FORMULES_CUREES_PAR_ID`, par identifiant et avec sa source — la même table,
 la même priorité et la même garde que pour un sort actif. Tempest (`3213`,
 Teshar et Phoenix vent) porte `formule: ""` et reçoit ainsi `3.7 × ATQ`
-(cadrage degats-et-aura, A.2 ter). Un passif absent de la liste (immense
+(A.2 ter, « Tempest (Teshar) »). Un passif absent de la liste (immense
 majorité du corpus) n'est simplement jamais
 proposé : pas de faux négatif dangereux, juste une couverture partielle et
 volontaire.
@@ -38,7 +38,7 @@ Quatre catégories, sur la seule question « quand ce passif compte-t-il ? » :
 | `toujours` | S'ajoute d'office, aucun bouton — le texte du jeu ne pose aucune condition de combat | Feng Yan (Winds and Clouds), Sia (Great Friends), Benedict (Final Strike) |
 | `defBreak` | **Aucun bouton non plus** : le déclenchement est ENTIÈREMENT déduit des deux réglages de réduction de Défense (voir ci-dessous) | Roid (Slash Waves / Slash Wind), Silver (Ruins) |
 | `bonus` | Les dégâts de base sont comptés **dans tous les cas** ; le bouton (désactivé par défaut) ne conditionne QUE le surplus de `pct` %, et seulement sur la contribution de ce passif | Ezio (Hidden Gun, +100 % si cible Lumière), Dominic (Improvisation, +100 % si PV > 50 %) |
-| `conditionnel` | Bouton, désactivé par défaut ; activé, le passif compte à 100 % comme un second sort. Réservé aux conditions qui ne se modélisent PAS | Giou (Comeuppance), Teshar (Tempest, recharge non simulée : voir [attaque après un sort](attaque-apres-un-sort.md)). ⚠️ Plus Leona : depuis le lot 15b de degats-et-aura (décision de l'utilisateur du 2026-10-02), le `2.0*{DEF}` d'Internal Force est un Bouclier créé « when you are attacked », pas une attaque, et ne compte plus ; son « +50 % damage dealt » sous Bouclier est un bonus conditionnel à bouton (`BONUS_DEGATS_CONDITIONNEL_CONNUS`, « bouclier actif ») : voir le [catalogue des passifs](catalogue-des-passifs.md) |
+| `conditionnel` | Bouton, désactivé par défaut ; activé, le passif compte à 100 % comme un second sort. Réservé aux conditions qui ne se modélisent PAS | Giou (Comeuppance), Teshar (Tempest, recharge non simulée : voir [attaque après un sort](attaque-apres-un-sort.md)). ⚠️ Pas Leona : le `2.0*{DEF}` d'Internal Force est un Bouclier créé « when you are attacked », pas une attaque, et ne compte pas ; son « +50 % damage dealt » sous Bouclier est un bonus conditionnel à bouton (`BONUS_DEGATS_CONDITIONNEL_CONNUS`, « bouclier actif ») : voir le [catalogue des passifs](catalogue-des-passifs.md) |
 
 En plus de la catégorie, `slotsDeclencheurs` (curé) restreint les sorts après
 lesquels le passif compte (Tempest : S1 ou S2 ; absent, tous) ; `passifCompte`
@@ -49,8 +49,8 @@ sort à lui-même ([attaque après un sort](attaque-apres-un-sort.md)).
 éteint.** Le texte de ces passifs décrit une attaque supplémentaire
 INCONDITIONNELLE (« Attacks additionally … when you attack the enemy on your
 turn »), dont seule la magnitude est conditionnée. Les confondre
-sous-estimait la base à chaque fois que la condition n'était pas remplie —
-corrigé après relecture du texte du jeu entrée par entrée.
+sous-estimerait la base chaque fois que la condition n'est pas remplie : le
+texte du jeu se relit entrée par entrée.
 
 ⚠️ **`dejaInclus` (Dominic — Improvisation) : la formule elle-même porte le
 cas MAJORÉ, pas le cas de base.** `Competence.formule` vaut `2.0*{ATK}
@@ -113,7 +113,7 @@ Le sort actif n'est JAMAIS affecté par la réduction qu'il pose lui-même (elle
 atterrit après son propre coup). Les passifs frappent **après** lui : leurs dégâts
 lisent l'état « après » (`defBreak || defBreakParLeSort`) ; sous un scénario de
 poses entre les coups, celui qui suit le dernier coup du sort, poses comprises,
-sauf un passif `coupsDuSortActif`, qui lit l'état avant chaque coup (P4b). Le
+sauf un passif `coupsDuSortActif`, qui lit l'état avant chaque coup. Le
 déclenchement d'un passif `defBreak` s'évalue au `moment` que dit son texte : `'avant'` pour Roid
 (« if you attack the enemy with[out] decreased Defense »), `'apres'` pour Silver (« if the enemy is under Defense reduction effects AFTER you attack »).
 
@@ -343,11 +343,13 @@ mécaniques ci-dessus ET pour `{SPD}` lui-même :
 3. **Leader skill d'ÉQUIPE** (`setup.leaderSkill`, type VIT — voir « Leader
    skill d'équipe » plus bas) — le sien n'agit jamais sur lui-même,
    contrairement au totem. ⚠️ Porte sur la VIT de **BASE**, pas sur le total
-   runé — signalé par l'utilisateur, incident détaillé ci-dessous.
+   runé — règle de l'utilisateur, détaillée dans
+   [effets d'équipe et leaders](effets-equipe-et-leaders.md).
 
 Le buff de VIT (%TOTAL) s'applique donc APRÈS le lead (%BASE) déjà posé,
 jamais sommé avec lui dans la même étape — voir « Leader skill d'équipe »
-pour la correction et sa justification complète.
+([effets-equipe-et-leaders.md](effets-equipe-et-leaders.md)) pour sa
+justification complète.
 
 
 ## Crit garanti si plus rapide que la cible
@@ -372,11 +374,10 @@ apparaissent aussi quand `critSiPlusRapide` OU `bonusDegatsSelonVit` sont
 présents**, même si le sort ACTIF choisi ne lit ni `{SPD}` ni
 `{Relative SPD}` (ex. Rigna S1 « Double Gash » ; ou n'importe quel sort de
 Sonia, voir ci-dessous) : la comparaison de vitesse a lieu indépendamment du
-sort sélectionné. Trouvé après coup sur le bouton « Buff VIT »
-spécifiquement (question directe de l'utilisateur, Ciri Eau/Sonia) — gaté
-sur `utilise('SPD')` seul à l'origine, corrigé à l'identique du champ « VIT
-adversaire » : `utilise('SPD') || utilise('Relative SPD') ||
-critSiPlusRapide || bonusDegatsSelonVit`.
+sort sélectionné. Le bouton « Buff VIT » suit la même condition que le
+champ « VIT adversaire », `utilise('SPD') || utilise('Relative SPD') ||
+critSiPlusRapide || bonusDegatsSelonVit`, jamais `utilise('SPD')` seul
+(Ciri Eau, Sonia).
 
 
 ## Bonus de dégâts continu selon l'écart de VIT (Sonia, Battle Angel)
@@ -405,21 +406,20 @@ au pré-filtrage MÊME si aucun sort actif de Sonia n'en dépend directement
 privilégiées [atk, spd, cd] ».
 
 
-## Les modificateurs monstre-wide s'affichent maintenant dans « Passifs offensifs »
+## Les modificateurs monstre-wide s'affichent dans « Passifs offensifs »
 
-⚠️ **Bug signalé par l'utilisateur** : `critSiPlusRapide` (Ciri Eau, Rigna,
-Magic Order Swordsinger) et `bonusDegatsSelonVit` (Sonia, Battle Angel)
-étaient CALCULÉS mais jamais AFFICHÉS — contrairement à Feng Yan ou Dominic
-(des vrais `PASSIFS_OFFENSIFS_CONNUS`), rien dans « Passifs offensifs » ne
-signalait leur existence, seule une ligne de texte discrète près du champ
-« VIT adversaire » en parlait.
+⚠️ `critSiPlusRapide` (Ciri Eau, Rigna, Magic Order Swordsinger) et
+`bonusDegatsSelonVit` (Sonia, Battle Angel) sont CALCULÉS **et** AFFICHÉS :
+comme Feng Yan ou Dominic (des vrais `PASSIFS_OFFENSIFS_CONNUS`), ils
+apparaissent dans « Passifs offensifs », sans quoi rien n'y signalerait leur
+existence.
 
-`monsterModificateursVit(detail)` (nouvelle fonction d'AFFICHAGE seule,
+`monsterModificateursVit(detail)` (fonction d'AFFICHAGE seule,
 jamais utilisée par le calcul) renvoie nom/description/icône SWARFARM de
 ces passifs, réutilisés dans la MÊME liste que `passifs`, avec le même rendu
 « toujours actif » (Jeton, pas de bouton — rien à cocher, entièrement
-automatique dès que la VIT le permet). La ligne de texte près du champ VIT
-adversaire est retirée : la liste, plus complète, ferait redite.
+automatique dès que la VIT le permet). Aucune ligne de texte près du champ
+VIT adversaire ne les répète : la liste, plus complète, ferait redite.
 
 
 ## Bonus de dégâts ACCUMULABLE en combat (Momo, Mage)
@@ -448,7 +448,7 @@ triggerStep, ratio, pctMax, label, aide, suffix }`) — `triggerMax`/
 par unité) et `pctMax` (plafond de dégâts) décrivent le BONUS qui en
 résulte. `DamageSetup.stackPersonnalise` (`Record<skillCom2usId, number>`,
 même espace de clés que `passifsOffensifs`/`coupsPersonnalises`) porte
-désormais le DÉCLENCHEUR brut, jamais le bonus directement.
+le DÉCLENCHEUR brut, jamais le bonus directement.
 `resolvedStackTrigger(profil, setup)` le résout, borné à `triggerMax` ;
 `resolvedStackPct(profil, setup)` calcule le bonus qui en résulte
 (`trigger × ratio`, borné à `pctMax` par sécurité) — c'est CE nombre que
@@ -468,8 +468,8 @@ maintenant EXACTEMENT ce qu'elle compte : « Attaques alliées » (Momo),
 l'utilisateur — ⚠️ un dé ne tombe JAMAIS sur 0 : `offset: 1` décale la
 pente du bonus, `max(0, trigger − 1) × ratio`, pour que le résultat 1
 donne bien 0 % et non 20 %, seule entrée de la table à porter un
-`offset`), « Buffs volés » (Martina — corrigé : effet SWARFARM
-« Steal Buff », PAS un vol de PV comme documenté d'abord), « État »
+`offset`), « Buffs volés » (Martina — effet SWARFARM
+« Steal Buff », PAS un vol de PV), « État »
 (Sleep Talk), « PV cible détruits » (Borgnine/Moogwang), « PV perdus »
 (Trevor — CAPÉ à 100 % côté déclencheur, confirmé par l'utilisateur ; les
 dégâts, eux, vont bien jusqu'à 200 %, `ratio: 2`).

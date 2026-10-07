@@ -1,6 +1,5 @@
-// « Annuler les modifications » d'une recommandation ou d'un deck en édition
-// (le mainteneur, 2026-10-05) — spec/siege/recommandations.md § Trois niveaux
-// d'édition.
+// « Annuler les modifications » d'une recommandation ou d'un deck en édition —
+// spec/siege/recommandations.md § Trois niveaux d'édition.
 //
 // Une édition enregistre chaque modification TOUT DE SUITE : annuler, c'est
 // donc remettre ce qu'on avait mémorisé à l'ouverture de l'édition. Ce module

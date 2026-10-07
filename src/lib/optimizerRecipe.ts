@@ -28,9 +28,9 @@ export const OPTIMIZER_RECIPE_VERSION = 1;
 // ⚠️ **Un champ ajouté ici traverse plusieurs endroits indépendants, pas un
 // seul** : l'oublier dans l'un fait diverger un script de l'écran en silence
 // (aucune erreur `tsc`, le champ manquant reste un type optionnel valide).
-// Incident vécu : `exhaustiveSearch` branché dans OptimizerSection.tsx
-// (l'écran) mais oublié dans recipeToSearchParams.ts, repéré seulement
-// parce que l'utilisateur a posé la question — voir spec/README.md,
+// Exemple : un champ comme `exhaustiveSearch`, branché dans
+// OptimizerSection.tsx (l'écran) mais oublié dans recipeToSearchParams.ts,
+// ne signale rien — voir spec/README.md,
 // « Conventions communes », pour la règle générale, et le skill
 // `optimizer-field-propagation` pour les producteurs purs qui remplacent
 // ces constructeurs et pour la checklist de ceux qui subsistent. Les deux

@@ -25,7 +25,7 @@
 // résolution saturait le fil de l'écran pendant une recherche — chaque build
 // une tâche de 35 à 100 ms, la barre de progression et le compte saccadaient.
 // Les deux voies du chemin direct rendaient la main entre deux builds, mais ne
-// rendaient pas un build moins long ; décision de l'utilisateur du 2026-10-02 :
+// rendaient pas un build moins long : le choix est
 // le Worker. Ce qu'il coûte — un fil de plus pendant la recherche, qui tourne
 // déjà dans des Workers (coordinateur, deux constructions, jusqu'à quatre fils
 // d'appariement), et l'envoi du contexte (tout l'inventaire d'artéfacts) à

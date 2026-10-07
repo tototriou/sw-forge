@@ -510,11 +510,10 @@ export interface SearchResult {
   // build, et `slice(0, 20)` n'est **pas** le top 20.
   //
   // ⚠️ Passer par `sortCandidates` avant tout affichage ou toute
-  // comparaison — c'est la SEULE porte. Incident vécu : un diagnostic a
-  // conclu « le moteur manque un build meilleur » en lisant `candidates[0]`,
-  // alors que le build cherché était présent au rang 6. Le vrai CLI
-  // (`optimizer-search.ts`) affichait lui aussi 20 candidats arbitraires en
-  // les présentant comme des résultats.
+  // comparaison — c'est la SEULE porte. Lire `candidates[0]` fait conclure à
+  // tort « le moteur manque un build meilleur » (le build cherché peut être
+  // au rang 6), et en afficher 20 sans tri présente 20 candidats arbitraires
+  // comme des résultats.
   candidates: BuildCandidate[];
   explored: number;
   truncated: boolean;
@@ -576,9 +575,9 @@ export interface SearchResult {
 // qui dépend de VIT — ex. Lagmaron, `ATQ×(VIT+70)/30` — plutôt qu'une
 // approximation qui ignorait VIT au tri final ; voir historique).
 // ⚠️ `'degats'` (formule générique ATQ×(1+TC×DC), sans sort ni adversaire) a
-// été RETIRÉ (2026-08-27) : une fois `'degats_reels'` mature, c'était une
-// approximation strictement inférieure du même besoin — garder les deux
-// faisait hésiter sur laquelle choisir. Une recette qui la porte encore
+// été RETIRÉ : `'degats_reels'` étant mature, c'est une approximation
+// strictement inférieure du même besoin — garder les deux ferait hésiter
+// sur laquelle choisir. Une recette qui la porte encore
 // retombe sur **`'efficience'`** à l'import — même repli que l'ancien
 // `'speed_nuker'`, et aux TROIS points d'import (l'écran, `optimizer-search`
 // et `optimizer-search-analyze`).
@@ -692,8 +691,7 @@ export function objectiveKeysOf(objective: Objective | undefined, override: Stat
   if (override) return override;
   // ⚠️ `?? []`, pas un accès direct : `objective` peut porter une valeur
   // ABSENTE de la table — une recette exportée pendant la durée de vie
-  // d'un objectif depuis retiré (ex. `speed_nuker`, v1.8.1 ; `degats`,
-  // 2026-08-27) est du JSON non validé, `parseOptimizerRecipe` ne vérifie
+  // d'un objectif depuis retiré (ex. `speed_nuker`, `degats`) est du JSON non validé, `parseOptimizerRecipe` ne vérifie
   // pas que `objective` fait partie du type. Sans ce repli, `[...objectiveKeysOf(...)]` plus haut dans la
   // pile lève une `TypeError` (spread sur `undefined`) au lieu de dégrader
   // proprement vers « aucun biais » — même esprit de tolérance que le reste
@@ -908,11 +906,10 @@ export function candidateMetricTotal(
  *
  * ⚠️ **`SearchResult.candidates` n'est PAS trié par l'objectif** (voir son
  * commentaire). Sans passer par ici, `candidates[0]` est un build arbitraire.
- * L'incident qui a motivé cette extraction : un diagnostic a conclu « le
- * moteur manque un build meilleur et faisable » en comparant au premier
- * candidat, alors que le build cherché était là, au rang 6. Et
- * `optimizer-search.ts` affichait 20 candidats arbitraires en les présentant
- * comme des résultats.
+ * Raison d'être : comparer au premier candidat fait conclure à tort « le
+ * moteur manque un build meilleur et faisable » (le build cherché peut être
+ * au rang 6), et afficher 20 candidats non triés les présente comme des
+ * résultats.
  *
  * ⚠️ **Ne mute pas l'entrée** — un tri en place sur le tableau du moteur
  * rendrait l'ordre dépendant de qui a affiché en premier.
@@ -1204,9 +1201,9 @@ export const DEFAULT_MAX_MS = 15_000;
 export const MAX_PER_SLOT_MATCH = 40;
 // ⚠️ Exportée (au lieu de rester privée) uniquement pour que les scripts de
 // mesure (filterslot-topk-diag.ts) important les VRAIES valeurs de
-// production plutôt que de les dupliquer localement — incident vécu : une
-// copie locale à 80/40 (asymétrique, jamais vraie en production) a produit
-// une mesure de divergence qui ne caractérisait pas le vrai comportement de
+// production plutôt que de les dupliquer localement : une copie locale (par
+// exemple 80/40, asymétrique, jamais vraie en production) produirait une
+// mesure de divergence qui ne caractérise pas le vrai comportement de
 // filterSlot.
 export const MAX_PER_SLOT_FILL = 40;
 // ⚠️ En plus des deux paquets ci-dessus : le meilleur d'un slot sur CHAQUE
@@ -1299,7 +1296,7 @@ export const PER_STAT_KEEP_OBJECTIVE = 24;
 // et trouvé à `bucketCap=3000`, exhaustivement, en 51,7 s (297M paires).
 const BUCKET_CAP = 3000;
 
-// ⚠️ **Dilution par `slotFilterCap`, découverte et mesurée cette session**
+// ⚠️ **Dilution par `slotFilterCap`, mesurée**
 // (cas Sonia, Swift 4p, ATQ/VIT/TC/DCC demandés ensemble) : `BUCKET_CAP`
 // était une constante FIXE, indépendante de `slotFilterCap` — chaque tranche
 // de rétention reçoit `bucketCap` places EN PROPRE (voir son commentaire),
@@ -1497,9 +1494,9 @@ export function weightedContribution(base: BaseStats, key: StatKey, pct: number,
   return key === 'hp' || key === 'atk' || key === 'def' ? Math.ceil((b * pct) / 100) + flat : flat;
 }
 
-// ⚠️ **Ne dépend JAMAIS de `objective`** — vérifié précisément cette session
+// ⚠️ **Ne dépend JAMAIS de `objective`** — vérifié précisément
 // (voir spec/outils/optimizer/moteur/elagages.md
-// § Variantes écartées ou gardées en réserve) après avoir supposé le contraire par erreur.
+// § Variantes écartées ou gardées en réserve).
 // Ce classement (qui alimente `matches`/`fillCap` dans `filterSlot`, ET la
 // rétention par tranche dans `buildBuckets`) n'est influencé QUE par
 // `requirement.minStats` — jamais par l'objectif choisi à l'écran.
@@ -1553,8 +1550,8 @@ export function filterSlot(
   objective?: Objective,
   // ⚠️ Paramètre AJOUTÉ en fin de liste, jamais un changement de type de
   // `objective` : les ~7 scripts de diagnostic qui appellent cette fonction
-  // ne passent pas tous par un type que `tsc --noEmit` vérifie (incident déjà
-  // vécu deux fois, voir spec/outils/optimizer/pistes-vitesse-et-verification.md
+  // ne passent pas tous par un type que `tsc --noEmit` vérifie (voir
+  // spec/outils/optimizer/pistes-vitesse-et-verification.md
   // § Tests et scripts qui ne passent pas par la production). Omis =
   // comportement strictement inchangé.
   objectiveStats?: StatKey[]
@@ -1574,7 +1571,7 @@ export function filterSlot(
   // appartenait à des sets totalement hors combo AVANT ce correctif —
   // occupant une place dans `matchCap`/`fillCap`/le top-K par stat qui
   // aurait pu revenir à une rune réellement utile (dilution, même classe
-  // de problème que `BUCKET_CAP`/`slotFilterCap` cette session).
+  // de problème que `BUCKET_CAP`/`slotFilterCap`).
   // ⚠️ SANS EFFET s'il reste un emplacement libre (ex. un set 4 pièces
   // SEUL) : la réserve garantie hors combo plus bas reste alors
   // nécessaire — voir son propre commentaire, motif ORIGINAL de son
@@ -1672,7 +1669,7 @@ export function filterSlot(
 //    que la recherche peut équiper (`statsLuesParLesLignes` —
 //    Energy nourrit la ligne 218 alors que les PV sont hors de l'objectif) ;
 //    « Efficience » (ou aucun objectif) maximise TOUTES les
-//    stats. Décisions de l'utilisateur (2026-09-29) : le Taux Crit ne compte
+//    stats. Règles : le Taux Crit ne compte
 //    que sous un minimum de Taux Crit, jamais par l'objectif (la réserve
 //    « même en mode Moyenne » est sans objet depuis la suppression de ce
 //    mode) ; un Focus sans
@@ -1719,7 +1716,7 @@ export function reliquesEquipables(relic: RelicDetail | undefined, relicContext:
  *
  * Seulement en « Dégâts réels », le seul score de recherche qui lit ces
  * lignes (`ajoutArtefactBrut`). `damageRelevantStats` ne change pas : la
- * rétention garde la décision de l'utilisateur (les artéfacts récoltent les
+ * rétention garde sa règle (les artéfacts récoltent les
  * stats du build, ils n'en font pas chercher d'autres).
  */
 export function statsLuesParLesLignes(
@@ -2223,8 +2220,7 @@ export function insertIntoSkyline(skyline: HalfCombo[], combo: HalfCombo, keys: 
 // ⚠️ Exporté UNIQUEMENT pour que les tests différentiels (voir
 // rune-optim-filterslot-topk.test.ts) puissent appeler `heapPush` RÉELLEMENT
 // utilisé par `filterSlot`/`buildBuckets`, plutôt qu'une réimplémentation
-// locale qui ne détecterait jamais une régression du vrai code (incident
-// vécu).
+// locale qui ne détecterait jamais une régression du vrai code.
 export interface ScoredEntry<T> {
   item: T;
   score: number;
@@ -2422,7 +2418,7 @@ export interface BuildBucketsContext {
  * d'être de cette fonction.** Son corps vivait en ligne, non exporté : un
  * diagnostic qui aurait voulu rendre ce CV n'avait d'autre choix que de le
  * retaper — et aurait alors mesuré SA copie, pas la valeur qui pilote
- * réellement la répartition. C'est l'incident fondateur de la discipline
+ * réellement la répartition. C'est la raison d'être de la discipline
  * « fidélité des scripts de diagnostic », et le précédent exact de
  * `releverPreparation` (spec/outils/optimizer/harnais.md § L'observateur
  * onStage) : extraire
@@ -2524,8 +2520,8 @@ export function* buildBuckets(
   // - `'relevance'` : `relevanceScore` seul — mesuré ~2× plus rapide en
   //   paires explorées pour un même objectif que l'ancien `'potential'`,
   //   sans coût de rang relatif ni de rétention (696/696 scénarios
-  //   synthétiques, 0 régression). Défaut de production du 2026-08-18 au
-  //   passage à `'combined'` (voir plus bas).
+  //   synthétiques, 0 régression). Défaut de production avant
+  //   `'combined'` (voir plus bas).
   // - `'potential'` : ancien comportement (tri par potentiel normalisé
   //   aussi au sein d'un compartiment) — conservé comme échappatoire de
   //   mesure/comparaison.
@@ -2993,8 +2989,8 @@ export function* buildBuckets(
 // il ne peut que constater que le build est absent, et « paire structurellement
 // infaisable » devient indistinguable de « test conjoint échoué ». Les
 // retaper côté harnais ferait mesurer la COPIE, ce qui est exactement
-// l'incident fondateur de la discipline « fidélité des scripts de
-// diagnostic ». ⚠️ Ces trois prédicats sont déjà partagés à l'identique par
+// ce que la discipline « fidélité des scripts de
+// diagnostic » interdit. ⚠️ Ces trois prédicats sont déjà partagés à l'identique par
 // `pairBuckets` et `totalPairCount`, dont l'égalité stricte est vérifiée par
 // `rune-optim-differential.test.ts` : les exporter n'ajoute aucun chemin.
 export function satisfiesSets(
@@ -4466,9 +4462,8 @@ export function* pairBuckets(
 // la cause est (a), et STRICTEMENT MOINS si la cause est (b) (sinon la
 // troncature par quota aurait déjà eu lieu à une itération précédente).
 //
-// ⚠️⚠️ **Mais (a) N'EST PAS « complet » pour autant** (constat de la revue
-// technique du 2026-10-01). Le correctif de 2026-08-19
-// distinguait bien le MOTIF et concluait à tort : une tranche qui atteint
+// ⚠️⚠️ **Mais (a) N'EST PAS « complet » pour autant** (le seul motif ne suffit pas
+// à conclure) : une tranche qui atteint
 // son quota S'ARRÊTE (`break outer`), le reste de SA tranche n'est jamais
 // visité. Cas réel (ATQ 3000 / DC 220, b4) : 30 M de paires jamais visitées,
 // recherche annoncée complète. Règle actuelle : (a) rend la recherche

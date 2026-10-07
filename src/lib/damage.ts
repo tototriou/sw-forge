@@ -1340,8 +1340,7 @@ function conditionCombatActive(
       const seuil = combat.atk * condition.ratio;
       // Une recette sans `enemyAtk` (ancienne recette) prend la valeur que
       // l'écran affiche (`DEFAULT_DAMAGE_SETUP.enemyAtk`, 1 000), comme
-      // `enemySpd` plus bas : décision de l'utilisateur du 2026-10-03.
-      // Avant, 0 allumait la condition à tort.
+      // `enemySpd` plus bas ; 0 allumerait la condition à tort.
       const atqCible = setup.enemyAtk ?? DEFAULT_DAMAGE_SETUP.enemyAtk!;
       return condition.inclusif ? atqCible <= seuil : atqCible < seuil;
     }
@@ -1487,7 +1486,7 @@ export function bonusConditionnelPropreActif(profile: SkillDamageProfile, setup:
 // n'aurait aucun sens pendant cet état). `quantite: 50` confirmé en
 // données. Le nom « Rending Claw » est partagé par trois identifiants
 // (23306 Cecilia, 23307 Cynthia, 23310 Elise) mais SEULE la fiche de
-// Cynthia porte Emergency Drive : décision de l'utilisateur du 2026-10-03,
+// Cynthia porte Emergency Drive :
 // le bouton n'est affiché que sur 23307.
 const BONUS_CONDITIONNEL_PROPRE_PAR_ID_CONNUS: Record<number, { pct: number; condition: string }> = {
   23307: { pct: 50, condition: 'tu es en Mechanical Frame State (Emergency Drive)' }, // Rending Claw de Cynthia (34012)
@@ -1765,9 +1764,9 @@ const STATS_COMBAT_PAR_ID_CONNUS: Record<number, CombatStatConfig[]> = {
   // Gold Headband (Mei Hou Wang / Monkey King) : chaque cumul ajoute 20 % de
   // l'ATQ de BASE et 12 % de la VIT de BASE, au plus 10 cumuls — curation de
   // l'utilisateur du 2026-09-24 (valeurs-de-jeu-curees.md, « Gold Headband »). VIT sans
-  // arrondi, comme l'ATQ : 13,92 par cumul pour une base 116
-  // (décision du 2026-10-02). L'ancienne ligne `atkPct: 20, spdFlat: 12` était fausse
-  // sur les deux assiettes (% de l'ATQ de combat, points de VIT plats).
+  // arrondi, comme l'ATQ : 13,92 par cumul pour une base 116.
+  // Les assiettes sont les bases : ni un % de l'ATQ de combat, ni des points
+  // de VIT plats.
   7912: [{ source: 'stacks', label: 'Charges de Gold Headband', max: 10, atkBasePct: 20, spdBasePct: 12 }],
   2314: [{ source: 'stacks', label: 'Charges de Punish', max: 10, atkPct: 20, defPct: 20 }],
   6314: [{ source: 'stacks', label: 'Déclenchements de Judge', max: 10, defPct: 10 }],
@@ -2004,15 +2003,14 @@ const BONUS_DEGATS_CONDITIONNEL_CONNUS: Record<string, { pct: number; condition:
   // Defense for 2 turns when you are attacked. Increases the damage dealt by
   // 50% when you have a Shield. » Effet `Increase Damage`, `quantite: 50`,
   // note « When you have a Shield. » : la valeur est dans la donnée.
-  // ⚠️ Lecture RENVERSÉE (décision de l'utilisateur du 2026-10-02,
-  // catalogue-des-passifs.md, « Internal Force ») : le passif était un
-  // `PASSIFS_OFFENSIFS_CONNUS` `conditionnel` qui ajoutait `2.0*{DEF}` (le
-  // Bouclier) aux dégâts et écartait le +50 %, réputé porter sur les dégâts
-  // absorbés. Or le Bouclier se crée « when you are attacked » : ce n'est
+  // ⚠️ Lecture RENVERSÉE d'un `PASSIFS_OFFENSIFS_CONNUS` `conditionnel`
+  // (catalogue-des-passifs.md, « Internal Force ») : le Bouclier (`2.0*{DEF}`)
+  // n'est pas ajouté aux dégâts, et le +50 % ne porte pas sur les dégâts
+  // absorbés. Le Bouclier se crée « when you are attacked » : ce n'est
   // pas une attaque (catalogue-des-passifs.md, « Une attaque se lit dans la prose »), il ne
-  // compte plus. Le +50 % « damage dealt » est compté ici, sous le bouton
-  // « bouclier actif », désactivé par défaut — même clé de stockage
-  // (`passifsOffensifs[12515]`) que l'ancien bouton, même condition.
+  // compte pas. Le +50 % « damage dealt » est compté ici, sous le bouton
+  // « bouclier actif », désactivé par défaut (clé de stockage
+  // `passifsOffensifs[12515]`).
   // Non mesuré en jeu : qu'il majore le total comme les autres entrées de
   // cette table (multiplicatif, hors bucket Additionnel) reste l'hypothèse
   // de la famille. L'égalisation ATQ/DEF du début de combat reste hors
@@ -2506,7 +2504,7 @@ const BONUS_PAR_EFFET_CIBLE_CONNUS: Record<string, BonusParEffetProfile> = {
   // flag « Debuff Bonus Damage », jamais examinés — catalogue séparé
   // préparé pour l'utilisateur, PAS implémentés à l'aveugle ici.
   'Touch of Mercy': { pct: 40, source: 'buffsEtDebuffs' }, // Brandia
-  // Audit exhaustif 2026-09-08 — bonus propres au sort, noms exacts du
+  // Audit exhaustif — bonus propres au sort, noms exacts du
   // corpus. Les clauses binaires réutilisent le même compteur avec
   // `maxCount: 1`; Akhamamir garde son exception à exactement un débuff.
   Scar: { pct: 50, source: 'debuffs' },
@@ -2616,8 +2614,7 @@ const CONDITIONS_COMBAT_PAR_ID_CONNUS: Record<number, ConditionCombatProfile[]> 
   // Summary Justice (Theonia, Justice) : « For enemies with Attack Power lower
   // than yours, the damage dealt increases by 100% » — borne STRICTE, valeur
   // de la donnée (`Increase Damage` 100, `note` « For enemies with Attack
-  // Power lower than yours »), ATQ ennemie saisie (`enemyAtk`, décision de
-  // l'utilisateur du 2026-10-03). La clause sœur « Attack Speed lower than
+  // Power lower than yours »), ATQ ennemie saisie (`enemyAtk`). La clause sœur « Attack Speed lower than
   // yours » n'a pas de valeur dans la donnée (`quantite: null`) : NON
   // modélisée, en attente d'un relevé.
   23515: [{ type: 'atkCibleSousAtkPropre', ratio: 1, pct: 100 }], // Theonia
@@ -2763,12 +2760,12 @@ const EFFETS_ENTRE_COUPS_PAR_ID_CONNUS: Record<number, EffetEntreCoupsProfile[]>
   10013: [{ id: 'unrecoverable', label: 'Irrécupérable', cumulable: false }], // Akhamamir 2A
   // Divergent Fist / Shockwave Fist (S2 de Yuji et Rick) : « The first hit
   // decreases its Defense for 2 turns » (effet `Decrease DEF`, note « 1st
-  // hit »). Décision de l'utilisateur du 2026-10-03 (valeurs-de-jeu-curees.md) :
+  // hit »). Règle retenue (valeurs-de-jeu-curees.md) :
   // cette réduction de DEF garantit le critique du coup 2,
   // posée sans relevé. Elle est comptée ici comme un DÉBUFF (la condition
   // `debuffCiblePresent` + `critiqueGaranti` du sort la lit) ET, par
   // `effetCombat: 'defBreak'`, comme une réduction de la DEF que subit le
-  // coup 2 : décision de l'utilisateur du 2026-10-03,
+  // coup 2,
   // comme les cinq sorts « decrease-def » indexés par nom plus haut. Sans
   // scénario, rien n'est supposé posé : le total ne change pas.
   20107: [{ id: 'decrease-def', label: 'Réduction de DEF', cumulable: false, effetCombat: 'defBreak' }], // Yuji feu
@@ -2917,9 +2914,8 @@ const FORMULES_CUREES_PAR_ID: Record<number, string> = {
   3213: '3.7*{ATK}',
   // S3 dont la fiche porte `formule: ""` : la formule est celle de la
   // « compétence auxiliaire » (`other_skill`) de l'API SWARFARM, lue par
-  // l'audit des dégâts conditionnels du 2026-09-08. Règle de l'utilisateur
-  // (2026-10-03) : la valeur de l'API par défaut, sauf si la prose la
-  // contredit. Les améliorations « Damage » de la fiche s'y
+  // l'audit des dégâts conditionnels. Règle : la valeur de l'API par défaut,
+  // sauf si la prose la contredit. Les améliorations « Damage » de la fiche s'y
   // appliquent comme pour tout sort.
   // Cursed Tombstone — Ramon (31414 ; 31404 non éveillé). Auxiliaire 4592.
   // « This attack will deal more damage according to your MAX HP » concorde
@@ -3069,8 +3065,8 @@ function estSoinSansDegats(c: Competence): boolean {
 // Sorts qui portent une `formule` mais N'ATTAQUENT PAS : bouclier, échange ou
 // redistribution de PV, perte de PV sans coup ; soin,
 // résurrection, gain de buff ou de tour, sceau (huit sorts « confirmé
-// par l'utilisateur »). Règle de
-// l'utilisateur du 2026-10-02 (catalogue-des-passifs.md, « Une attaque se lit
+// par l'utilisateur »). Règle
+// (catalogue-des-passifs.md, « Une attaque se lit
 // dans la prose ») : un ratio et un nombre de
 // `coups` SWARFARM ne prouvent pas qu'un sort attaque ; sans la notion
 // d'attaque ou de dégâts infligés dans sa prose, ce n'est pas une attaque. Et
@@ -3131,8 +3127,8 @@ export const SORTS_SANS_ATTAQUE_PAR_ID: ReadonlySet<number> = new Set([
 //
 // Sorts CALCULÉS dont le total omet une part connue du jeu : l'écran pose une
 // étiquette « Calcul partiel » à côté du nom du sort dans « Compétence
-// utilisée », et son « ? » affiche la phrase ci-dessous (forme décidée par
-// l'utilisateur le 2026-10-04 ; aucune mention sur les cartes de résultats).
+// utilisée », et son « ? » affiche la phrase ci-dessous (aucune mention
+// sur les cartes de résultats).
 // ⚠️ **Affichage seul : aucun calcul ne lit cette table.** Le total reste
 // celui d'avant ; la table dit seulement ce qu'il ne contient pas.
 //
@@ -3148,8 +3144,8 @@ export const SORTS_SANS_ATTAQUE_PAR_ID: ReadonlySet<number> = new Set([
 //      Jasmine, Daniel, Espresso Cookie feu et ténèbres ; Hibiscus et
 //      Espresso Cookie lumière par la règle des jumeaux collab) :
 //      « n'est pas calculée », sans « encore » ;
-//   4. deux parts connues du jeu, non modélisées, que l'utilisateur a
-//      demandé de marquer (2026-10-04) : l'équilibrage ATQ/DEF
+//   4. deux parts connues du jeu, non modélisées, à marquer :
+//      l'équilibrage ATQ/DEF
 //      d'Internal Force sur les deux sorts de dégâts de Leona, et le bonus
 //      de VIT de Summary Justice (Theonia) : « pas encore compté ».
 // Écartées, parce que le total est complet par décision : Devil's Bargain
@@ -3191,7 +3187,7 @@ const CALCUL_PARTIEL_PAR_ID: Readonly<Record<number, string>> = {
   16809: 'La perte de PV selon la jauge d’attaque retirée (jusqu’à 40 %), après les dégâts, n’est pas calculée.', // Dancing Teacup (Jasmine)
   16315: 'L’égalisation des ratios de PV des ennemis, avant les coups, n’est pas calculée.', // Blending (Espresso Cookie ténèbres)
   16815: 'L’égalisation des ratios de PV des ennemis, avant les coups, n’est pas calculée.', // Midnight Teatime (Lavender)
-  // ── Demande de l'utilisateur du 2026-10-04 : part non modélisée, reportée ──
+  // ── Part non modélisée, reportée ──
   12520: 'L’équilibrage d’Internal Force (en début de combat, la plus basse de l’ATQ et de la DEF monte au niveau de la plus haute) n’est pas encore compté.', // Justice Strike (Leona, S1)
   12510: 'L’équilibrage d’Internal Force (en début de combat, la plus basse de l’ATQ et de la DEF monte au niveau de la plus haute) n’est pas encore compté.', // Fury of Punishment (Leona, S2)
   23515: 'Le bonus de dégâts selon ta VIT, contre les ennemis plus lents que toi, n’est pas encore compté.', // Summary Justice (Theonia, S3)
@@ -3471,9 +3467,9 @@ const SEQUENCES_DE_COUPS_PAR_ID_CONNUS: Record<number, SequenceCuree> = {
 
   // Séquences dont la phase de zone n'est chiffrée que par l'API SWARFARM :
   // la « compétence auxiliaire » (`other_skill`) du sort, lue par l'audit des
-  // dégâts conditionnels du 2026-09-08 (annexes, « Compétences auxiliaires
-  // fournies par l'API ») et absente de l'import du corpus. Règle de
-  // l'utilisateur (2026-10-03) : la valeur de l'API par défaut, sauf si la
+  // dégâts conditionnels (annexes, « Compétences auxiliaires
+  // fournies par l'API ») et absente de l'import du corpus. Règle : la
+  // valeur de l'API par défaut, sauf si la
   // prose du sort la contredit — aucune des quatre proses ne la contredit.
   // Les phases et leur portée viennent de la prose (« Attacks
   // the enemy … Afterwards, … all enemies ») ; « all enemies » compte la cible
@@ -3947,8 +3943,8 @@ const PASSIFS_OFFENSIFS_CONNUS: PassifOffensifConnu[] = [
   // n'est porté que par 3213, sur Teshar vent `14513` et Phoenix vent `14503`
   // (balayage du corpus). `conditionnel` : l'Optimizer ne
   // simule ni sa recharge ni sa remise à zéro sur une élimination, un
-  // interrupteur l'inclut ou l'exclut (valeurs-de-jeu-curees.md,
-  // décision produit du 2026-09-23), désactivé par défaut. Une seule
+  // interrupteur l'inclut ou l'exclut (valeurs-de-jeu-curees.md),
+  // désactivé par défaut. Une seule
   // instance (« once more »). `critique` reste `'suit'` : les lignes
   // d'artéfact 402/410 (Dgts CRIT) s'appliquent à Tempest (utilisateur,
   // 2026-09-23), ce qui suppose qu'il critique.
@@ -3960,8 +3956,7 @@ const PASSIFS_OFFENSIFS_CONNUS: PassifOffensifConnu[] = [
   // contribution, une fois, sans 411 (valeurs-de-jeu-curees.md : « jamais sur Tempest, même
   // sélectionné seul » ; « une seule contribution, jamais un second
   // déclenchement de lui-même »), 402/410 une fois.
-  // Jamais le sort par défaut : Teshar reste sur S2 (choix de l'utilisateur,
-  // 2026-10-02). À l'écran, l'interrupteur dit « Tempest (S3) se
+  // Jamais le sort par défaut : Teshar reste sur S2. À l'écran, l'interrupteur dit « Tempest (S3) se
   // déclenche après ce sort » au lieu de la phrase de condition, sans
   // survol ; il est masqué quand Tempest est le sort choisi.
   {
@@ -4225,8 +4220,8 @@ export function monsterDamageSkills(detail: DetailMonstre | null): (SkillDamageP
  *
  * ⚠️ **Parmi les sorts ACTIFS seulement** : un passif sélectionnable comme sort
  * (`passif: true`, Tempest au slot 3) ne l'est jamais par défaut — Teshar
- * reste sur S2 (choix de l'utilisateur, 2026-10-02).
- * Sans sort actif calculable, `null`, comme avant : un passif ne devient pas
+ * reste sur S2.
+ * Sans sort actif calculable, `null` : un passif ne devient pas
  * le défaut faute de mieux.
  */
 export function defaultDamageSkill(skills: (SkillDamageProfile | SkillDamageUnsupported)[]): SkillDamageProfile | null {
@@ -4284,7 +4279,7 @@ export function resolveDamageSkill(
 // Comment traiter le coup critique dans le score : `'crit'` / `'normal'`, le
 // plafond haut / le plancher d'un coup unique.
 // ⚠️ L'ancien mode `'moyenne'` (espérance pondérée par le Taux Crit) est
-// SUPPRIMÉ (décision de l'utilisateur du 2026-10-02) :
+// SUPPRIMÉ :
 // une recette qui le porte encore est convertie en `'crit'` à l'import, avec
 // un avertissement (`parseOptimizerRecipe`, optimizerRecipe.ts) — jamais
 // refusée, jamais changée en silence.
@@ -5185,7 +5180,7 @@ export function statsDeCombat(
     hp: (baseCombat.hp * (100 + bonusCombat.hpPct)) / 100,
     // `spdBasePct` (Gold Headband) : un pourcentage de la VIT de BASE ajouté
     // tel quel, comme `atkBasePct` pour l'ATQ — SANS arrondi (13,92 par cumul
-    // pour une base 116, décision du 2026-10-02). ⚠️ Le Speed tune
+    // pour une base 116). ⚠️ Le Speed tune
     // (`pointsDeGain`, speedTunePassif.ts) arrondit chaque cumul au
     // supérieur : écart à trancher, consigné dans la spec.
     spd:

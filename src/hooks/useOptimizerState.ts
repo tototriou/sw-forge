@@ -60,7 +60,7 @@ export const DEFAULT_RELIC_MIN_UPGRADE = 6;
  * `recipeToRelicIntent` (une recette exportée sans ce champ ne le porte pas)
  * et à `pickSpecies` (OptimizerSection.tsx), qui la câblent tous deux.
  *
- * ⚠️ **Ne pas répéter l'incident artéfacts** : l'écran doit AFFICHER la
+ * ⚠️ **Le moteur fait foi pour le défaut** : l'écran doit AFFICHER la
  * valeur que le moteur applique, jamais l'inverse — cette fonction est donc
  * la source unique du calcul, pas une case à cocher qui devinerait.
  */
@@ -361,8 +361,8 @@ export interface OptimizerState {
    * (`signatureArtefacts`) : tout réimport en vide le cache, même à nombre
    * d'artéfacts et identifiants de runes égaux.
    *
-   * ⚠️ Une identité, pas une empreinte du contenu (décision de l'utilisateur
-   * du 2026-10-02) ; sans setter : rien d'autre qu'un import ne l'avance.
+   * ⚠️ Une identité, pas une empreinte du contenu ; sans setter : rien d'autre
+   * qu'un import ne l'avance.
    */
   importDuCompte: number;
   /**
@@ -395,7 +395,7 @@ export interface OptimizerState {
    * changer d'exemplaire effacent donc la même chose.
    *
    * Appelée seule par OptimizerSection.tsx quand un membre de liste de la
-   * MÊME espèce désigne un AUTRE exemplaire (décision de l'utilisateur du 2026-10-02) : la recherche affichée, faite
+   * MÊME espèce désigne un AUTRE exemplaire : la recherche affichée, faite
    * pour l'ancien exemplaire, disparaît comme au changement d'espèce ; les
    * critères restent, et l'utilisateur relance lui-même — jamais de relance
    * automatique.

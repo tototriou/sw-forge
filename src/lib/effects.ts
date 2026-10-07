@@ -121,8 +121,8 @@ export const RELIC_MAIN: Record<number, { label: string; stat: StatKey }> = {
 
 // Options du sélecteur « Relique — principale » — qualifiées comme les entrées d'artéfact qui FILTRENT réellement
 // par stat principale (`ARTIFACT_MAIN_OPTIONS`, runeBuildOptim.ts) : « Comme
-// équipé » lu au milieu de trois statistiques se lisait « la principale,
-// comme équipé » (incident artéfacts). Le « % » distingue la relique de
+// équipé » lu au milieu de trois statistiques se lirait « la principale,
+// comme équipé ». Le « % » distingue la relique de
 // l'artéfact (plat) — même stat, sémantique différente.
 export const RELIC_MAIN_OPTIONS: { code: 100 | 101 | 102; label: string }[] = [
   { code: 101, label: 'Principale ATQ %' },

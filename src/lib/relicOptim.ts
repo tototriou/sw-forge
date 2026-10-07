@@ -431,7 +431,7 @@ export interface MeilleureRelique {
 // relique déjà équipée si elle est candidate et faisable pour CE build,
 // sinon la première faisable par `id` croissant.
 //
-// `departagePortee` : régimes de stat `hp`/`atk`/`def` (décision de l'utilisateur du 2026-10-01) — `evaluate` y note la
+// `departagePortee` : régimes de stat `hp`/`atk`/`def` — `evaluate` y note la
 // FICHE, sans l'effet unique, et deux reliques de même principale sont ex
 // æquo : la relique PORTÉE l'emporte si elle est parmi les meilleures, sinon
 // la plus petite `id`. Ce départage ne touche que le CHOIX de la relique ;

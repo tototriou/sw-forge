@@ -268,8 +268,8 @@ export function testCliClassementParMode() {
       // relue sur le cache et l'ordre de base : K résolus et conformes, ou tout
       // l'ordre de base résolu, et tout build avant la K-ième confirmée résolu.
       // (« Rien après » ne se vérifie pas ici : la « page » du CLI change d'un
-      // lot à l'autre et fait résoudre des builds plus loin — 107 en `equipped`,
-      // comme avant ce lot ; prouvé sans page dans `testFileConfirmees`.)
+      // lot à l'autre et fait résoudre des builds plus loin — 107 en `equipped` ;
+      // prouvé sans page dans `testFileConfirmees`.)
       {
         let vues = 0;
         let fin = cliFile.base.length;

@@ -335,13 +335,13 @@ export default function App() {
   // le tout premier rendu (`box` encore à `[]`) — la RELECTURE du compte
   // conservé (voir l'effet d'hydratation plus bas, `setBox`/`setRunes` dans
   // le `.then()` de `loadAccount()`) arrive forcément APRÈS ce premier rendu,
-  // donc APRÈS que `boxMountedRef.current` soit déjà passé à `true` : cet
-  // effet ne pouvait pas la distinguer d'un VRAI réimport. Résultat, à CHAQUE
-  // rechargement de page avec un compte conservé : `resetSearch()` + la
-  // revérification des listes de travail se déclenchaient pour de faux, avec
-  // le message « … dans le compte réimporté » alors qu'aucun réimport n'avait
-  // eu lieu — et pouvaient faire disparaître des builds validés (voir aussi le
-  // bug corrigé dans `revalidateBuilds`, optimizerExclusion.ts).
+  // donc APRÈS que `boxMountedRef.current` soit déjà passé à `true` : sans
+  // autre garde, cet effet la prendrait pour un VRAI réimport. À CHAQUE
+  // rechargement de page avec un compte conservé, `resetSearch()` + la
+  // revérification des listes de travail se déclencheraient alors à tort, avec
+  // le message « … dans le compte réimporté » alors qu'aucun réimport n'a
+  // eu lieu — et pourraient faire disparaître des builds validés (voir aussi
+  // `revalidateBuilds`, optimizerExclusion.ts).
   // `hydrationJustAppliedRef` : posé au moment précis où l'effet d'hydratation
   // écrit `box`/`runes` depuis le stockage, consommé ICI — seule cette
   // écriture-là doit être ignorée, un VRAI réimport (même juste après) continue

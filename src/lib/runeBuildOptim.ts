@@ -188,7 +188,7 @@ export interface SearchParams {
    *
    * ⚠️ La borne étant calculée PAR STAT ISOLÉE, des builds survivent sans
    * qu'aucune paire réelle ne satisfasse leurs minimums — d'où
-   * `respecteMinimums`, OBLIGATOIRE en aval (§12.5). Mesuré sur un cas réel :
+   * `respecteMinimums`, OBLIGATOIRE en aval. Mesuré sur un cas réel :
    * 99 builds sur 105 dans ce cas.
    */
   artifactBounds?: {
@@ -2361,11 +2361,13 @@ function objectiveRetentionScore(base: BaseStats, pct: Record<string, number>, f
   return score;
 }
 
-// ⚠️ Regroupe 8 des paramètres de `buildBuckets` — tous déjà des champs de
-// `PreparedSearch` (voir plus bas), à ne pas passer SÉPARÉMENT (une signature à
-// 14 paramètres positionnels serait un vrai risque latent : la plupart des
-// sites d'appel sont dans `scripts/`, hors périmètre `tsc`, où un paramètre
-// inversé ne serait détecté qu'à l'exécution). N'importe quel objet qui a STRUCTURELLEMENT ces 9 champs
+// ⚠️ Regroupe les 11 champs (10 obligatoires, `traceur` facultatif) que
+// `buildBuckets` lit de la préparation — tous déjà des champs de
+// `PreparedSearch` (voir plus bas), à ne pas passer SÉPARÉMENT : à plat, la
+// signature compterait 17 paramètres positionnels (6 + 11) au lieu de 7.
+// `tsc` couvre `src/`, `scripts/` et `tests/` : un paramètre manquant ou de
+// mauvais type y est refusé, seul l'échange de deux paramètres de même type
+// passerait. N'importe quel objet qui a STRUCTURELLEMENT ces champs
 // convient — un `PreparedSearch` complet (le cas normal, `searchBuildsSteps`)
 // ou un objet plus étroit comme `BuildHalfRequest` (buildHalf.worker.ts, qui
 // ne peut pas recevoir un `PreparedSearch` tel quel — sa fonction `totalOf`
@@ -2380,8 +2382,8 @@ export interface BuildBucketsContext {
   jokerCredit: number;
   requiredPieces: number[];
   // ⚠️ Nécessaire à `retentionScore`/`combinedRetentionScore` (pondération
-  // pct/flat, voir `weightedContribution`) — absent avant, ces deux
-  // fonctions mélangeaient les deux échelles. Propagé à TOUS les chemins
+  // pct/flat, voir `weightedContribution`) — sans lui, ces deux
+  // fonctions mélangeraient les deux échelles. Propagé à TOUS les chemins
   // structurellement compatibles (`BuildHalfRequest`, `BuildHalfWorkerData`)
   // — voir `weightedContribution`.
   base: BaseStats;
@@ -4177,7 +4179,7 @@ export function* pairBuckets(
   function considerNearMiss(runeIds: number[], statsRow: StatRow[], effTotal: number, shortfalls: StatShortfall[]): void {
     // Par condition : seulement si CETTE tentative échoue sur UNE SEULE
     // condition — sinon desserrer cette condition seule ne suffirait pas à
-    // rendre CETTE paire valide (décision explicite).
+    // rendre CETTE paire valide.
     if (shortfalls.length === 1) {
       const s = shortfalls[0];
       const mapKey = `${s.key}-${s.kind}`;

@@ -215,8 +215,8 @@ export default function testRelicOracle() {
   egal(oracleMaximumActif.rid, basse.id, 'maximum actif : l’optimum faisable porte la PV % +12');
 
   /* ── Refus nommé : pool vide en mode recherche — même classe que le moteur
-   * (l'oracle rendait
-   * { candidats: [], optimum: null, N: 0 } au lieu de lever). */
+   * (l'oracle lève, il ne rend
+   * pas { candidats: [], optimum: null, N: 0 }). */
   {
     const contexteVide = resoudreContexteRelique({ mode: 'recherche', principale: 'libre', type: 'libre', seuil: 6 }, undefined, []);
     egal(contexteVide.vide, 'inventaire', 'refus oracle : inventaire vide → vide inventaire');

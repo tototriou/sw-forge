@@ -53,7 +53,7 @@ export default async function testDiagnosticProfils() {
     // ⚠️ La cible est posée par CONSTRUCTION, jamais laissée à l'appelant :
     // un profil dont on oublierait de suivre la cible rendrait un résultat
     // sans `rang` ni `verdictBuildCible`, donc sans les éléments 1 et 3 de
-    // l'oracle — un profil qui ne tient pas l'exigence n° 4 en l'annonçant.
+    // l'oracle — un profil qui ne tient pas la promesse du build cible en l'annonçant.
     egal(
       configDuProfil(profil).suivre,
       profil.cible,
@@ -72,12 +72,12 @@ export default async function testDiagnosticProfils() {
     const a = profil.attendu;
     const r = await executerHarnais(configDuProfil(profil));
 
-    // ── Exigences n° 1 et 2 : COMPLET, ou tronqué par QUOTA.
+    // ── Bras COMPLETS, ou tronqués par QUOTA.
     egal(r.completude?.complet, a.complet, `${profil.nom} — complétude`);
     // ⚠️ Le motif est relu, pas déduit : c'est LE piège connu du harnais. Un
     // profil à faible rendement n'atteint jamais son quota, et le run
-    // retombe alors sur `maxMs` EN SILENCE — ce qui violerait l'exigence
-    // n° 1 sans que rien ne le dise. Ici, un `maxMs` inattendu échoue.
+    // retombe alors sur `maxMs` EN SILENCE — ce qui violerait la préférence
+    // pour des bras COMPLETS sans que rien ne le dise. Ici, un `maxMs` inattendu échoue.
     egal(
       r.completude?.motif,
       a.complet ? undefined : a.motif,
@@ -88,7 +88,7 @@ export default async function testDiagnosticProfils() {
       `${profil.nom} — aucune incohérence complet/explored`
     );
 
-    // ── Exigence n° 3 : le régime, et sa MARGE au seuil.
+    // ── Le régime, et sa MARGE au seuil.
     egal(r.regime?.applique, a.regime, `${profil.nom} — régime appliqué`);
     egal(r.completude?.totalPairs, a.totalPairs, `${profil.nom} — totalPairs`);
     ok(r.regime?.force !== true, `${profil.nom} — le régime suit le seuil de PROD, il n’est pas forcé`);
@@ -105,13 +105,13 @@ export default async function testDiagnosticProfils() {
       `${profil.nom} — le régime est FRANCHEMENT ${a.regime} (×${marge.toFixed(1)} du seuil), pas à cheval sur les 100 M`
     );
 
-    // ── Exigences n° 4 et 5 : la cible existe, et n'est pas au rang 1.
+    // ── Le build cible : il existe, et n'est pas au rang 1.
     const rang = r.appariementBuildCible?.rang;
     ok(rang != null, `${profil.nom} — le build cible est situé (rang + population disponibles)`);
     if (rang) {
       egal(rang.rang, a.rang, `${profil.nom} — rang de la cible`);
       egal(rang.population, a.population, `${profil.nom} — population des candidats collectés`);
-      // ⚠️ L'exigence n° 5 n'est pas une préférence : une cible au rang 1
+      // ⚠️ Le rang 1 est exclu, ce n'est pas une préférence : une cible au rang 1
       // masque toute la sensibilité du classement à l'instant de coupe
       // (mesure de référence — verdict et rang identiques pendant que la
       // population variait de 32 %).

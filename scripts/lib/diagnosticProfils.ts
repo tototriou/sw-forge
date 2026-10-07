@@ -22,7 +22,7 @@
 // Un profil est une valeur de `ConfigHarnais`, PAS un bouquet d'arguments
 // de ligne de commande — et c'est un choix MESURÉ, pas un goût
 //
-// La question était ouverte en entrant dans 11b. Elle est tranchée par deux
+// La question se tranche par deux
 // constats, tous deux vérifiés plutôt que supposés :
 //
 // 1. **La surface du TYPE est plus large que celle du CLI.**
@@ -38,26 +38,26 @@
 //    `objective` et `combined` REPLIENT sur `relevanceScore` quand aucun
 //    objectif n'est choisi (`runeBuildOptim.ts`, tri de `buildBuckets`).
 //    Or `combosOrderMode` est précisément l'axe de
-//    `combos-order-mode-real-account-diag`, l'un des sept scripts G2 que
-//    11c doit absorber. Un profil réduit aux arguments du CLI serait donc
+//    `combos-order-mode-real-account-diag`, que le différentiel doit pouvoir
+//    mesurer. Un profil réduit aux arguments du CLI serait donc
 //    INERTE sur cet axe-là, en silence.
 //
 // ⚠️ **Ce qu'il n'a PAS fallu construire, et pourquoi c'est une bonne
 // nouvelle** : aucun générateur nouveau. Le régime `sparse` de
 // `filterslot-topk-diag` (peu de sous-stats, donc beaucoup d'égalités à 0)
-// en exigerait un — mais aucune des six exigences de 11a ne le réclame, et
-// l'exigence n° 6 interdit de toucher aux variantes existantes. Le
-// générateur partagé suffit à tenir les six.
+// en exigerait un — mais aucune promesse d'un profil (`AttenduProfil`) ne le réclame, et
+// les variantes existantes ne se touchent pas. Le
+// générateur partagé suffit à les tenir.
 //
 // ─────────────────────────────────────────────────────────────────────────
 // Le PIÈGE DE TÊTE, et comment chaque profil s'en défend
 //
 // `maxNodes` n'existe plus : `maxMs` est désormais la SEULE borne
 // pouvant tronquer. Un profil synthétique tronquerait donc par le TEMPS par
-// défaut — c'est-à-dire violerait l'exigence n° 1 sans rien dire. Deux
+// défaut — c'est-à-dire violerait sans rien dire la préférence pour des bras COMPLETS. Deux
 // défenses, dans cet ordre :
 //
-// - **Rester COMPLET** (exigence n° 1, qui prime sur la vitesse : un run
+// - **Rester COMPLET** (qui prime sur la vitesse : un run
 //   complet supprime le portier, le préfixe, le plancher et le bruit d'un
 //   seul coup) ;
 // - **à défaut, tronquer par QUOTA** — `maxCollected` fixé explicitement.
@@ -91,19 +91,19 @@ type SourceSynthetique = Extract<SourceHarnais, { type: 'synthetique' }>;
  * moteur les déplace en silence.
  */
 export interface AttenduProfil {
-  /** Exigence n° 1. */
+  /** Bras COMPLETS, de préférence. */
   complet: boolean;
   /**
-   * Exigence n° 2 — `undefined` sur un run complet. ⚠️ `maxCollected`
-   * attendu et `maxMs` obtenu, c'est le repli silencieux que 11a redoute :
+   * Troncature par quota — `undefined` sur un run complet. ⚠️ `maxCollected`
+   * attendu et `maxMs` obtenu, c'est le repli silencieux :
    * le test échoue alors au lieu de laisser passer un profil qui tronque
    * par le temps.
    */
   motif?: 'maxCollected' | 'maxMs';
-  /** Exigence n° 3 — vérifiée PAR BRAS, voir `axesVerifies`. */
+  /** Régime vérifié PAR BRAS, voir `axesVerifies`. */
   regime: RegimeAppariement;
   totalPairs: number;
-  /** Exigence n° 4 : le build cible existe et se situe. */
+  /** Le build cible existe et se situe. */
   rang: number;
   population: number;
   /**
@@ -121,20 +121,20 @@ export interface ProfilSynthetique {
   source: SourceSynthetique;
   overrides?: OverridesHarnais;
   /**
-   * Le BUILD CIBLE — exigence n° 4. Six identifiants de rune, un par
+   * Le BUILD CIBLE. Six identifiants de rune, un par
    * emplacement : sans lui, `rang.population` (élément 3 de l'oracle) et
    * tout l'élément 1 sont indisponibles.
    *
-   * ⚠️ Exigence n° 5 : **jamais au rang 1.** Une cible en tête masque toute
+   * ⚠️ **Jamais au rang 1.** Une cible en tête masque toute
    * la sensibilité du classement — `verdict` et `rang` restent identiques
-   * pendant que la population varie de 32 % (mesure I de 11a), donc un
+   * pendant que la population varie de 32 % (mesuré), donc un
    * différentiel incapable de détecter quoi que ce soit.
    */
   cible: number[];
   attendu: AttenduProfil;
   /**
    * Les bras RÉELLEMENT essayés pendant la calibration, avec ce qu'ils ont
-   * donné. ⚠️ C'est la trace de l'exigence n° 3 « à vérifier PAR BRAS » :
+   * donné. ⚠️ C'est la trace de la vérification du régime PAR BRAS :
    * c'est la configuration comparée qui peut faire basculer le régime, donc
    * un profil ne peut pas se contenter de son bras nominal.
    */
@@ -143,7 +143,7 @@ export interface ProfilSynthetique {
    * Les axes sur lesquels une divergence de l'ORACLE a été **MESURÉE** sur
    * ce profil — jamais supposée, jamais déduite de la rétention affichée.
    *
-   * ⚠️ **Ajouté par 11c, et c'est le constat n° 1 de 11b tenu en code.** Un
+   * ⚠️ **Tenu en code, pas seulement en prose.** Un
    * profil COMPLET peut être totalement INSENSIBLE à la configuration, et
    * `limites` le dit — mais en PROSE, que rien ne peut lire. Sans ce champ,
    * un différentiel rendrait « aucune divergence » sur un profil incapable
@@ -192,19 +192,19 @@ export const PROFILS: ProfilSynthetique[] = [
       tempsMsIndicatif: 130,
     },
     axesVerifies: [
-      'nominal : complet, 4 096 / 4 096 paires, cible #11 / 4 096 — l’ancrage A mesuré par 11a',
+      'nominal : complet, 4 096 / 4 096 paires, cible #11 / 4 096 — l’ancrage mesuré',
     ],
-    // ⚠️ VIDE — et c'est le résultat le plus utile de ce profil : 11b a mesuré
+    // ⚠️ VIDE — et c'est le résultat le plus utile de ce profil : la mesure établit
     // qu'AUCUN axe n'y change quoi que ce soit. Un différentiel lancé ici rend
     // donc « sensibilité non établie », jamais « aucune divergence ».
     axesSensibles: [],
     limites:
-      '⚠️ AUCUN plafond ne mord ici : 4 runes/emplacement passent sous `slotFilterCap`, et les 64 demi-builds par moitié sont très en dessous de `bucketCap`. Faire varier `slotFilterCap`, `bucketCap` ou `combosOrderMode` sur ce profil ne change RIEN — ni les paires, ni la population, ni le rang. Il ne peut donc RIEN détecter : c’est un test de fumée pour la mécanique de 11c, jamais un instrument de mesure. ⚠️ Sa rétention de construction affichée (100 %) ne dit pas le contraire — le produit brut est un MAJORANT de l’énumération, pas l’énumération.',
+      '⚠️ AUCUN plafond ne mord ici : 4 runes/emplacement passent sous `slotFilterCap`, et les 64 demi-builds par moitié sont très en dessous de `bucketCap`. Faire varier `slotFilterCap`, `bucketCap` ou `combosOrderMode` sur ce profil ne change RIEN — ni les paires, ni la population, ni le rang. Il ne peut donc RIEN détecter : c’est un test de fumée pour la mécanique du différentiel, jamais un instrument de mesure. ⚠️ Sa rétention de construction affichée (100 %) ne dit pas le contraire — le produit brut est un MAJORANT de l’énumération, pas l’énumération.',
   },
   {
     nom: 'complet-sensible',
     resume:
-      'Le profil de référence : les deux bras restent COMPLETS (exigence n° 1) ET la configuration mord vraiment — la population bouge quand `bucketCap` bouge.',
+      'Le profil de référence : les deux bras restent COMPLETS ET la configuration mord vraiment — la population bouge quand `bucketCap` bouge.',
     source: {
       type: 'synthetique',
       seed: 7,
@@ -234,8 +234,8 @@ export const PROFILS: ProfilSynthetique[] = [
       'slotFilterCap 40 : COMPLET, 6 747 981 paires, cible #1424 / 27 449',
       'régime : 6,7 M paires, soit ×15 SOUS le seuil de 100 M — et ×27 sous, même à bucketCap 500. Aucun bras ne peut basculer',
     ],
-    // ⚠️ `bucketCap` SEUL — et `slotFilterCap` en est ABSENT sur une mesure de
-    // 11c, pas par prudence. Le bras `slotFilterCap 40` de la calibration 11b
+    // ⚠️ `bucketCap` SEUL — et `slotFilterCap` en est ABSENT sur une mesure,
+    // pas par prudence. Le bras `slotFilterCap 40` de la calibration
     // rendait 6 747 981 paires au lieu de 6 752 131, ce qui ressemblait à un
     // effet propre du pré-filtrage : c'était la CASCADE (`bucketCap` dérivé
     // tombant de 6000 à 3000). À `bucketCap` FIGÉ des deux
@@ -243,7 +243,7 @@ export const PROFILS: ProfilSynthetique[] = [
     // élément, `explored` compris.
     axesSensibles: ['bucketCap'],
     limites:
-      '⚠️ Le RANG de la cible ne bouge pas sous `bucketCap` (#1424 sur les quatre bras) — seule la POPULATION bouge (27 449 → 24 108). C’est cohérent : `bucketCap` élague des demi-builds moins pertinents, donc des candidats classés APRÈS la cible, qui ne peuvent pas la déplacer. Un différentiel qui ne lirait que le rang ne verrait rien sur ce profil ; c’est exactement pourquoi l’oracle de 11a est multi-éléments. ⚠️ `combosOrderMode` y est INERTE, faute d’objectif : les quatre valeurs rendent le même résultat (voir l’en-tête).',
+      '⚠️ Le RANG de la cible ne bouge pas sous `bucketCap` (#1424 sur les quatre bras) — seule la POPULATION bouge (27 449 → 24 108). C’est cohérent : `bucketCap` élague des demi-builds moins pertinents, donc des candidats classés APRÈS la cible, qui ne peuvent pas la déplacer. Un différentiel qui ne lirait que le rang ne verrait rien sur ce profil ; c’est exactement pourquoi l’oracle est multi-éléments. ⚠️ `combosOrderMode` y est INERTE, faute d’objectif : les quatre valeurs rendent le même résultat (voir l’en-tête).',
   },
   {
     nom: 'quota-parallele',
@@ -278,9 +278,9 @@ export const PROFILS: ProfilSynthetique[] = [
       'bucketCap 12000 : quota, 2 240 624 849 paires (×22 le seuil), cible #179 / 2 000',
       'reproductibilité : 5 runs successifs, `explored` = 60 806 les 5 fois, top-1 et top-20 identiques',
     ],
-    // ⚠️ Les deux axes mesurés par 11b l'ont été CONJOINTEMENT (bucketCap 3000
+    // ⚠️ Les deux axes ont d'abord été mesurés CONJOINTEMENT (bucketCap 3000
     // + slotFilterCap 40, cible #178) : ça ne permettait d'attribuer la
-    // divergence à aucun des deux pris seul. 11c a tranché en isolant
+    // divergence à aucun des deux pris seul. En isolant
     // `bucketCap` — 6000 → 3000, sur 3 passages ENTRELACÉS : `explored` tombe
     // de 60 806 à 39 846 (−34,47 %) avec un plancher MESURÉ à 0,00 % des deux
     // côtés. ⚠️ Et c'est le SEUL élément lisible : le quota fixant la

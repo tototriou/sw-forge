@@ -161,7 +161,7 @@ export type OrigineParametre =
    * la recherche exhaustive et la composition du pool.
    *
    * ⚠️ **Ce n'est PAS une infidélité** : la valeur appliquée est bien celle
-   * de la production. C'était un ANGLE MORT de l'aperçu — le drapeau de
+   * de la production : le drapeau de
    * fidélité ne change donc pas de verdict pour ces lignes (leur
    * `valeurProd` est leur valeur), seulement de libellé.
    */

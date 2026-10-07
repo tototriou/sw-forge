@@ -1952,7 +1952,7 @@ const BONUS_DEGATS_CONDITIONNEL_CONNUS: Record<string, { pct: number; condition:
   // « increases the damage dealt by 50% if the enemy's Attack Power is
   // lower than yours. » — l'ATQ de l'adversaire existe pourtant (`enemyAtk`,
   // saisie de l'écran, lue par la condition `atkCibleSousAtkPropre` de
-  // Kassandra, Eleni, Theonia et Zaiross, lot 15f) : cette entrée reste un
+  // Kassandra, Eleni, Theonia et Zaiross) : cette entrée reste un
   // interrupteur manuel, jamais branché sur ce champ.
   'Almighty Strength (Passive)': { pct: 50, condition: 'ton ATQ dépasse celui de l’adversaire' }, // Panda Warrior (Ténèbres), Mi Ying
   // Carcano — « Strikes the [Hidden Aim] pose. Increases the damage dealing
@@ -2004,8 +2004,8 @@ const BONUS_DEGATS_CONDITIONNEL_CONNUS: Record<string, { pct: number; condition:
   // Defense for 2 turns when you are attacked. Increases the damage dealt by
   // 50% when you have a Shield. » Effet `Increase Damage`, `quantite: 50`,
   // note « When you have a Shield. » : la valeur est dans la donnée.
-  // ⚠️ Lecture RENVERSÉE au lot 15b (décision de l'utilisateur du
-  // 2026-10-02, cadrage degats-et-aura A.8) : le passif était un
+  // ⚠️ Lecture RENVERSÉE (décision de l'utilisateur du 2026-10-02,
+  // catalogue-des-passifs.md, « Internal Force ») : le passif était un
   // `PASSIFS_OFFENSIFS_CONNUS` `conditionnel` qui ajoutait `2.0*{DEF}` (le
   // Bouclier) aux dégâts et écartait le +50 %, réputé porter sur les dégâts
   // absorbés. Or le Bouclier se crée « when you are attacked » : ce n'est
@@ -2016,7 +2016,7 @@ const BONUS_DEGATS_CONDITIONNEL_CONNUS: Record<string, { pct: number; condition:
   // Non mesuré en jeu : qu'il majore le total comme les autres entrées de
   // cette table (multiplicatif, hors bucket Additionnel) reste l'hypothèse
   // de la famille. L'égalisation ATQ/DEF du début de combat reste hors
-  // modèle (mécanisme neuf, au plan du lot 13).
+  // modèle (mécanisme neuf, non modélisé).
   'Internal Force (Passive)': { pct: 50, condition: 'tu as un bouclier actif' }, // Paladin, Leona
   'Indomitable (Passive)': { pct: 50, condition: 'tes incapacités ont été dissipées au début de ce tour' }, // Ongyouki
   'Magic Power Explosion (Passive)': { pct: 30, condition: 'tu es en état Magic Power Explosion' }, // Homunculus Attaque
@@ -2101,7 +2101,7 @@ export type ConditionCombatProfile = (
   | { type: 'pvPropreSous'; seuilPct: number }
   | { type: 'pvCibleSuperieursPvPropre'; ratio: number }
   | { type: 'atkCibleSousAtkPropre'; ratio: number; inclusif?: boolean }
-  // Coups en plus par TRANCHE d'ATQ (Stormfist, lot P5a4) : +1 coup par tranche
+  // Coups en plus par TRANCHE d'ATQ (Stormfist) : +1 coup par tranche
   // de `tranchePct` % de l'ATQ de base contenue dans l'ATQ de combat, jusqu'à
   // `coupsEnPlus`. Jamais une condition booléenne (`conditionCombatActive` rend
   // faux) : seul `coupsEnPlusActifs` la lit, avec `atkBase`.
@@ -2131,7 +2131,7 @@ export type ConditionCombatProfile = (
   crPoints?: number;
   critiqueGaranti?: boolean;
   ignoreDefPct?: number;
-  // Coups en plus quand la condition est remplie (lot P5a2) : ajoutés au minimum
+  // Coups en plus quand la condition est remplie : ajoutés au minimum
   // `hits` par `resolvedHits`. Même interrupteur que les autres effets d'une
   // condition (`debuffCiblePresent`, `manuel`) ; `atkCibleSousAtkPropre` le
   // déduit du champ « ATQ adverse », sans réglage neuf (Brutal Fists, comme Theonia).
@@ -2556,9 +2556,9 @@ const BONUS_PAR_EFFET_PROPRE_CONNUS: Record<string, { pct: number; source: 'buff
 };
 
 const CONDITIONS_COMBAT_CONNUS: Record<string, ConditionCombatProfile[]> = {
-  // ── Lot P5a2 (degats-et-aura) : un coup en plus qui ne dépend que d'une
+  // ── Un coup en plus qui ne dépend que d'une
   // CONDITION se règle par un interrupteur, éteint par défaut = le minimum
-  // (`hits`, D25) ; les bornes restent celles de `COUPS_VARIABLES_CONNUS`.
+  // (`hits`) ; les bornes restent celles de `COUPS_VARIABLES_CONNUS`.
   // Chaque entrée cite la prose de la fiche.
   // « If the target is not suffering any harmful effects, 1 additional attack
   // is added » — Tractor, Bulldozer, Crane, Driller, Crawler.
@@ -2898,8 +2898,7 @@ const BOMBES_SANS_COUP_DIRECT_CONNUS = new Set(['Cursed Apple']);
 // (`monsterOffensivePassives`)**, avec la même priorité sur `Competence.formule`,
 // la même garde « formule vide » portée sur la formule RETENUE (une ligne de
 // cette table suffit donc pour une fiche à `formule: ""`, sort actif comme
-// passif — vrai pour le sort actif depuis le lot P6 du chantier
-// degats-et-aura, qui a déplacé sa garde) et la même analyse tout-ou-rien. Un
+// passif) et la même analyse tout-ou-rien. Un
 // passif n'y entre que s'il figure AUSSI dans `PASSIFS_OFFENSIFS_CONNUS`
 // (catégorie de déclenchement) : la table ne fait que fournir la formule
 // absente ou fausse des données.
@@ -2921,7 +2920,7 @@ const FORMULES_CUREES_PAR_ID: Record<number, string> = {
   // l'audit des dégâts conditionnels du 2026-09-08 et vérifiée à la source au
   // contrôle 13b-hors-tour-cooperation. Règle D12 de l'utilisateur
   // (2026-10-03) : la valeur de l'API par défaut, sauf si la prose la
-  // contredit (lot P6, HT-1). Les améliorations « Damage » de la fiche s'y
+  // contredit. Les améliorations « Damage » de la fiche s'y
   // appliquent comme pour tout sort.
   // Cursed Tombstone — Ramon (31414 ; 31404 non éveillé). Auxiliaire 4592.
   // « This attack will deal more damage according to your MAX HP » concorde
@@ -2943,7 +2942,7 @@ const FORMULES_CUREES_PAR_ID: Record<number, string> = {
 // `aoe` de la donnée (règle D12 : la prose l'emporte). Lue par
 // `skillDamageProfile` seulement ; la valeur remplace `Competence.aoe` dans le
 // profil (portée du sort, 224 compris). Un test par entrée
-// (`tests/degats-valeurs-api.test.ts`). Lot P22 : les sept sorts que la donnée
+// (`tests/degats-valeurs-api.test.ts`). Les sept sorts que la donnée
 // dit « une cible » (`aoe: false`) et que la prose dit « all enemies » ; la
 // ligne d'artéfact 224 (« D.CRIT+ comp cib uniq pdt tour ») ne s'y applique
 // plus. Crush (4211, l'inverse) est HORS de la table : un relevé en jeu dira si
@@ -3070,8 +3069,8 @@ function estSoinSansDegats(c: Competence): boolean {
 
 // Sorts qui portent une `formule` mais N'ATTAQUENT PAS : bouclier, échange ou
 // redistribution de PV, perte de PV sans coup (degats-et-aura 15c) ; soin,
-// résurrection, gain de buff ou de tour, sceau (lot 15g, huit sorts « confirmé
-// par l'utilisateur, lot 15g », ajoutés au lot 15h). Règle de
+// résurrection, gain de buff ou de tour, sceau (huit sorts « confirmé
+// par l'utilisateur »). Règle de
 // l'utilisateur du 2026-10-02 (catalogue-des-passifs.md, « Une attaque se lit
 // dans la prose ») : un ratio et un nombre de
 // `coups` SWARFARM ne prouvent pas qu'un sort attaque ; sans la notion
@@ -3092,14 +3091,14 @@ function estSoinSansDegats(c: Competence): boolean {
 // ABSORBE ou que le buff RENVOIE, jamais des dégâts infligés par le sort.
 export const SORTS_SANS_ATTAQUE_PAR_ID: ReadonlySet<number> = new Set([
   1412, // Ancestors' Blessing (Tantra) : « Creates a shield that's 50% of your MAX HP … and recovers 15% of HP at every turn. »
-  2113, // Regenerate (Lukan) : « Removes the harmful effects on itself and recovers HP accordingly to the number of effects removed. » (soin ; confirmé par l'utilisateur, lot 15g)
-  2611, // Revive (Mikene) : « Revives a dead ally with 40% HP and grants immunity for 1 turn. Grants Soul Protection for 3 turns if this skill is used on an alive ally. … » (résurrection ; confirmé par l'utilisateur, lot 15g)
-  2615, // Dark Return (Tilasha) : « Revives a dead ally with little HP and grants a turn instantly. If it's used on a living ally, decreases the current HP by 70%, grants Life Drain for 1 turn, and grants a turn instantly. » (résurrection ; confirmé par l'utilisateur, lot 15g)
+  2113, // Regenerate (Lukan) : « Removes the harmful effects on itself and recovers HP accordingly to the number of effects removed. » (soin ; confirmé par l'utilisateur)
+  2611, // Revive (Mikene) : « Revives a dead ally with 40% HP and grants immunity for 1 turn. Grants Soul Protection for 3 turns if this skill is used on an alive ally. … » (résurrection ; confirmé par l'utilisateur)
+  2615, // Dark Return (Tilasha) : « Revives a dead ally with little HP and grants a turn instantly. If it's used on a living ally, decreases the current HP by 70%, grants Life Drain for 1 turn, and grants a turn instantly. » (résurrection ; confirmé par l'utilisateur)
   2813, // Force Field (Sylphid vent) : « Casts a shield that absorbs a certain amount of damage on all allies for 3 turns. »
   2818, // Force Field (Acasis) : « Creates a shield that's proportionate to 30% of your HP on all allies … »
-  4210, // Unleashed Fury (Zeratu) : « Gains increased Attack Power and Immunity against harmful effects for 3 turns. Instantly recovers a turn when used. » (buffs et tour ; confirmé par l'utilisateur, lot 15g)
-  6713, // Soul Revival (Michelle) : « Revives a dead ally and balances the target's HP ratio to half of your HP ratio and recovers the target's HP by 15% each turn for 2 turns. » (résurrection ; confirmé par l'utilisateur, lot 15g)
-  6714, // Light of Revival (Iona) : « Recovers the target ally's HP by 60% and increases the Defense for 3 turns. When used on a dead ally, revives the ally with 60% HP … » (soin et résurrection ; confirmé par l'utilisateur, lot 15g)
+  4210, // Unleashed Fury (Zeratu) : « Gains increased Attack Power and Immunity against harmful effects for 3 turns. Instantly recovers a turn when used. » (buffs et tour ; confirmé par l'utilisateur)
+  6713, // Soul Revival (Michelle) : « Revives a dead ally and balances the target's HP ratio to half of your HP ratio and recovers the target's HP by 15% each turn for 2 turns. » (résurrection ; confirmé par l'utilisateur)
+  6714, // Light of Revival (Iona) : « Recovers the target ally's HP by 60% and increases the Defense for 3 turns. When used on a dead ally, revives the ally with 60% HP … » (soin et résurrection ; confirmé par l'utilisateur)
   7414, // Trade (Conrad) : « Changes the HP ratio and harmful effects with the enemy target … and increases the Attack Bar of all allies by 20%. »
   10406, // Air Shield (Tetra) : « Removes all harmful effects on the ally target and casts a shield that's proportionate to 25% of your MAX HP … »
   10408, // Air Shield (Cichlid) : même prose que 10406.
@@ -3110,8 +3109,8 @@ export const SORTS_SANS_ATTAQUE_PAR_ID: ReadonlySet<number> = new Set([
   12115, // Destiny Dice (Monte) : « Rolls 2 dice to redistribute the HP ratio of the enemy according to the smaller number … »
   12512, // Cry of Threat (Ophilia) : « Grants immunity on all allies …, creates a shield … and goes under Threat state … » (seuls les ennemis y attaquent)
   13111, // Forbidden Galdr (Bolverk) : « Decreases the current HP of the enemy target … by 10% for every Knowledge … heals all allies … » (effet de PV sans coup)
-  13707, // Scroll Trap (Jeogun) : « Seals the enemy in the scroll, leaving the enemy out of the battle for a designated period of time. The duration of the seal increases according to your Attack Speed. … Gains a turn instantly after using the skill. » (sceau, la formule est une durée ; confirmé par l'utilisateur, lot 15g)
-  13709, // Scroll Trap (Hanwul) : même prose que 13707 (confirmé par l'utilisateur, lot 15g).
+  13707, // Scroll Trap (Jeogun) : « Seals the enemy in the scroll, leaving the enemy out of the battle for a designated period of time. The duration of the seal increases according to your Attack Speed. … Gains a turn instantly after using the skill. » (sceau, la formule est une durée ; confirmé par l'utilisateur)
+  13709, // Scroll Trap (Hanwul) : même prose que 13707 (confirmé par l'utilisateur).
   15607, // Beneficial Hammering (Miriam) : « Increases Attack Power and Defense of all allies … creates a shield that absorbs damage … proportionate to your level. »
   15608, // Beneficial Hammering (Celine) : même prose que 15607.
   15609, // Beneficial Hammering (Madeleine) : même prose que 15607.
@@ -3141,7 +3140,7 @@ export const SORTS_SANS_ATTAQUE_PAR_ID: ReadonlySet<number> = new Set([
 // Quatre sources, et rien d'autre (preuves `controle-p3.md`, `controle-cp2.md`) :
 //   1. les six ignore DEF permanents de D63 (plan du reliquat, § 5.2) :
 //      l'effet `Ignore DEF` est compté sur tout le sort alors que le jeu le
-//      conditionne — trop favorable, gardé avec la mention jusqu'au lot P11 ;
+//      conditionne — trop favorable, gardé avec la mention ;
 //   2. les lignes à profil « calculé » de PV-2 (`controle-13b-pertes-pv.md`
 //      L230, 35 lignes) encore incomplètes au code actuel : perte de PV,
 //      bonus selon les PV détruits ou retirés, détonation de bombes déjà
@@ -3152,7 +3151,7 @@ export const SORTS_SANS_ATTAQUE_PAR_ID: ReadonlySet<number> = new Set([
 //      Espresso Cookie lumière par la règle des jumeaux collab) :
 //      « n'est pas calculée », sans « encore » ;
 //   4. deux parts connues du jeu, non modélisées, que l'utilisateur a
-//      demandé de marquer (2026-10-04, lot CP2) : l'équilibrage ATQ/DEF
+//      demandé de marquer (2026-10-04) : l'équilibrage ATQ/DEF
 //      d'Internal Force sur les deux sorts de dégâts de Leona, et le bonus
 //      de VIT de Summary Justice (Theonia) : « pas encore compté ».
 // Écartées de PV-2, parce que le total est complet par décision : Devil's
@@ -3251,7 +3250,7 @@ const COUPS_VARIABLES_CONNUS: Record<string, { min: number; max: number; defaut?
   'Comet Summoning': { min: 3, max: 4 },
   Vollzanbel: { min: 2, max: 3 },
   'Arrow Attack': { min: 4, max: 6 },
-  // ── Lot P5a (degats-et-aura) : le nombre de coups est SAISI, défaut au
+  // ── Le nombre de coups est SAISI, défaut au
   // minimum ; un coup supplémentaire vaut les autres. Bornes citées de la prose
   // de la fiche ; chaque entrée a son test (`degats-coups-saisis.test.ts`) qui
   // nomme les homonymes couverts par le nom.
@@ -3265,7 +3264,7 @@ const COUPS_VARIABLES_CONNUS: Record<string, { min: number; max: number; defaut?
   "Sura's Seal": { min: 4, max: 8 },
   // « Attacks all enemies 2 to 3 times » (Usha, Vritra). ⚠️ La donnée dit
   // `aoe: false` contre « all enemies » : portée corrigée par
-  // `PORTEE_CORRIGEE_PAR_ID` (lot P22).
+  // `PORTEE_CORRIGEE_PAR_ID`.
   "God's Weapon": { min: 2, max: 3 },
   // « Attacks all enemies 3 to 5 times … The more harmful effects granted on
   // the target, the higher the chance » (Usha). Probabilité jamais tirée.
@@ -3293,8 +3292,7 @@ const COUPS_VARIABLES_CONNUS: Record<string, { min: number; max: number; defaut?
 // (Stormfist, 18306 : par identifiant, `COUPS_VARIABLES_PAR_ID_CONNUS` plus bas.)
 
 // Même table, clée par IDENTIFIANT de compétence : pour un nom dont un
-// homonyme JOUABLE n'a pas la même mécanique (cadrage degats-et-aura, lot
-// P5a ; `controle-13b-coups-variables.md` § 2). L'identifiant l'emporte sur le
+// homonyme JOUABLE n'a pas la même mécanique. L'identifiant l'emporte sur le
 // nom (`plageDeCoupsDe`). ⚠️ Rôle : exception curée à la règle « par nom »,
 // jamais un second chemin général — un nom sans homonyme jouable à autre
 // mécanique reste dans `COUPS_VARIABLES_CONNUS`.
@@ -3311,8 +3309,8 @@ const COUPS_VARIABLES_PAR_ID_CONNUS: Record<number, { min: number; max: number; 
   // attacks increases up to 6 times according to your Attack Power » ; +1 coup
   // par tranche de 60 % de l'ATQ de base dans l'ATQ de combat (valeur de
   // l'utilisateur, 2026-10-04, `CONDITIONS_COMBAT_PAR_ID_CONNUS`). Par
-  // identifiant ; les homonymes Varuna (18307) et Danu (18309) ont la même règle
-  // depuis le lot P5a5, chacun sur sa propre ATQ de base. Le passif de Mayasura
+  // identifiant ; les homonymes Varuna (18307) et Danu (18309) ont la même règle,
+  // chacun sur sa propre ATQ de base. Le passif de Mayasura
   // (Constant Training, 18311 : +100 ATQ par attaque) compte dans l'ATQ de combat.
   18306: { min: 3, max: 6 },
   18307: { min: 3, max: 6 },
@@ -3356,7 +3354,7 @@ const IGNORE_DEF_CONDITIONNEL_PAR_ID = new Set([
 // des conditions de combat (tout le sort, sous condition) : ici, coup par coup.
 //
 // Rôle : curation par identifiant d'une famille close sur le corpus
-// (6 identifiants, 12 formes, lots 1d et 1f), protégée par
+// (6 identifiants, 12 formes), protégée par
 // `tests/blade-dancers.test.ts`, qui vérifie aussi qu'aucun autre sort ne porte
 // une note d'ignore DEF liée à l'ATB.
 export interface IgnoreDefAPartirDuCoupProfile {
@@ -3398,7 +3396,7 @@ export const IGNORE_DEF_A_PARTIR_DU_COUP_PAR_ID: Readonly<Record<number, IgnoreD
 // annonce quatre. Ce n'est pas une plage : pas de commande utilisateur.
 const COUPS_FIXES_CORRIGES: Record<string, number> = {
   'Pitch-Black Chain Attack': 4,
-  // Lot P5a (degats-et-aura). `coups: 3` en donnée ; la prose en annonce 4 :
+  // `coups: 3` en donnée ; la prose en annonce 4 :
   // « Attacks all enemies 3 times … and attacks them once more to freeze them
   // (stun them) for 1 turn with a 50% chance ». Noms exclusifs aux Espresso
   // Cookie (16306, 16308, 16310) et Tea Bunny (16806, 16808, 16810), balayage du
@@ -3431,17 +3429,16 @@ function coupsFixesCorrigesDe(c: { com2usId: number | null; nom: string }): numb
 // Chaque entrée porte en plus l'EMPREINTE de la donnée sur laquelle elle a été
 // curée (`formule`, `coups`, `aoe` de la fiche, tels quels) : `skillDamageProfile`
 // refuse le sort si la fiche ne la porte plus (données régénérées), plutôt que
-// de calculer une séquence périmée. L'empreinte est distincte des groupes
-// (décision D11 du chantier degats-et-aura, lot P6) : d'une fiche à l'autre, la
-// donnée décrit le premier groupe (Blade Surge), toutes les phases en `coups`,
+// de calculer une séquence périmée. L'empreinte est distincte des groupes :
+// d'une fiche à l'autre, la donnée décrit le premier groupe (Blade Surge), toutes les phases en `coups`,
 // ou la portée de la seule phase de zone — aucune règle ne relie ces champs
-// aux groupes (`controle-13b-sequences-zone.md` § 3, six motifs), seule une
+// aux groupes, seule une
 // empreinte par entrée tient.
 //
 // Valeurs fournies par l'utilisateur (valeurs-de-jeu-curees.md) :
 // coups 1 et 2 à `0.5 × ATQ` mono-cible (donnée + confirmation), coup 3 à
 // `3.0 × ATQ` en zone, cible visée comprise ; même séquence et mêmes skillups,
-// troisième coup inclus, pour les huit identifiants retenus au lot 1b (onze
+// troisième coup inclus, pour les huit identifiants retenus (onze
 // formes du corpus, dont les Magic Knights non éveillés, que l'écran ne
 // propose pas). Les lignes d'artéfact suivent la portée de CHAQUE groupe (voir
 // `computeSkillDamageDetail`) : 224 sur les coups 1 et 2, 400 sur les trois,
@@ -3480,8 +3477,8 @@ const SEQUENCES_DE_COUPS_PAR_ID_CONNUS: Record<number, SequenceCuree> = {
   // dégâts conditionnels du 2026-09-08 (annexes, « Compétences auxiliaires
   // fournies par l'API ») et absente de l'import du corpus. Règle D12 de
   // l'utilisateur (2026-10-03) : la valeur de l'API par défaut, sauf si la
-  // prose du sort la contredit — aucune des quatre proses ne la contredit
-  // (lot P6, SZ-2). Les phases et leur portée viennent de la prose (« Attacks
+  // prose du sort la contredit — aucune des quatre proses ne la contredit.
+  // Les phases et leur portée viennent de la prose (« Attacks
   // the enemy … Afterwards, … all enemies ») ; « all enemies » compte la cible
   // visée parmi les ennemis touchés.
   // ⚠️ Non établi, nommé : les skillups de la fiche s'appliquent ici aux deux
@@ -3561,11 +3558,11 @@ export function resumeSequenceDeCoups(sequence: readonly Pick<GroupeDeCoups, 'co
 export function skillDamageProfile(c: Competence): SkillDamageProfile | SkillDamageUnsupported | null {
   if (c.passif || c.com2usId == null || estSoinSansDegats(c)) return null;
   // Un sort sans attaque (`SORTS_SANS_ATTAQUE_PAR_ID`) est masqué, comme un
-  // soin : `null`, jamais un refus avec raison (décision A.8, lot 15c).
+  // soin : `null`, jamais un refus avec raison.
   if (SORTS_SANS_ATTAQUE_PAR_ID.has(c.com2usId)) return null;
   // Garde « formule vide » sur la formule RETENUE (même forme que
   // `monsterOffensivePassives`) : une fiche à `formule: ""` reste sans profil,
-  // sauf si `FORMULES_CUREES_PAR_ID` lui en donne une (lot P6, HT-1).
+  // sauf si `FORMULES_CUREES_PAR_ID` lui en donne une.
   const brut = (FORMULES_CUREES_PAR_ID[c.com2usId] ?? c.formule ?? '').trim();
   if (!brut) return null;
   const entete = { skillCom2usId: c.com2usId, slot: c.slot ?? 0, nom: c.nom, description: c.description };
@@ -3805,7 +3802,7 @@ interface PassifOffensifConnu {
   // les autres passifs. Comparé au `slot` du sort RETENU, dans `passifCompte`.
   slotsDeclencheurs?: readonly number[];
   // Le passif est-il AUSSI un choix de « Compétence utilisée », calculé seul ?
-  // Décision produit, jamais déduite (Tempest : cadrage degats-et-aura, lot 9).
+  // Décision produit, jamais déduite (Tempest : valeurs-de-jeu-curees.md).
   // Choisi, il est calculé avec le profil de cette liste, inchangé : une seule
   // source pour les deux usages, donc une seule valeur. Réservé à un passif
   // `conditionnel` sans ajustement propre à la boucle des passifs (`critique`
@@ -3962,7 +3959,7 @@ const PASSIFS_OFFENSIFS_CONNUS: PassifOffensifConnu[] = [
   // pas quels sorts ; la valeur retenue est « après S1 ou S2 » (utilisateur,
   // 2026-09-23, valeurs-de-jeu-curees.md). Le slot 3 est Tempest lui-même.
   // `selectionnableCommeSort` : Tempest est aussi un choix de « Compétence
-  // utilisée » (cadrage degats-et-aura, lot 9 ; degats-et-aura 9b) — sa seule
+  // utilisée » — sa seule
   // contribution, une fois, sans 411 (valeurs-de-jeu-curees.md : « jamais sur Tempest, même
   // sélectionné seul » ; « une seule contribution, jamais un second
   // déclenchement de lui-même »), 402/410 une fois (controle-1c1-amendement).
@@ -4001,8 +3998,8 @@ export interface AttaqueAppeleeConnue {
 // chemin des passifs : le calcul ne change pas (`passifCompte`,
 // `computeTotalDamage`, `damageRelevantStats`).
 //
-// ⚠️ **Vide en production** : le contrat du lot 9 « n'en code aucune ». Les 17
-// amorces des constats 168, 178 et 179 ont été examinées au lot 9c (onze
+// ⚠️ **Vide en production** : aucune entrée n'est codée. Les 17
+// amorces examinées (onze
 // acceptables par une entrée chacune, six classées avec leur raison :
 // `tests/degats-attaque-appelee.test.ts`, qui injecte ses entrées et les
 // retire). Ce qu'il faut fournir pour en ajouter une :
@@ -4056,7 +4053,7 @@ export function monsterOffensivePassives(detail: DetailMonstre | null): PassifOf
   for (const c of detail.competences) {
     if (!c.passif || c.com2usId == null) continue;
     // Un passif sans attaque n'est jamais offensif, même homonyme d'une
-    // entrée curée par nom (`SORTS_SANS_ATTAQUE_PAR_ID`, lot 15c).
+    // entrée curée par nom (`SORTS_SANS_ATTAQUE_PAR_ID`).
     if (SORTS_SANS_ATTAQUE_PAR_ID.has(c.com2usId)) continue;
     const connu = PASSIFS_OFFENSIFS_CONNUS.find((p) => p.nom === c.nom);
     if (!connu) continue;
@@ -4291,7 +4288,7 @@ export function resolveDamageSkill(
 // Comment traiter le coup critique dans le score : `'crit'` / `'normal'`, le
 // plafond haut / le plancher d'un coup unique.
 // ⚠️ L'ancien mode `'moyenne'` (espérance pondérée par le Taux Crit) est
-// SUPPRIMÉ (décision de l'utilisateur du 2026-10-02, degats-et-aura lot CM) :
+// SUPPRIMÉ (décision de l'utilisateur du 2026-10-02) :
 // une recette qui le porte encore est convertie en `'crit'` à l'import, avec
 // un avertissement (`parseOptimizerRecipe`, optimizerRecipe.ts) — jamais
 // refusée, jamais changée en silence.
@@ -4573,7 +4570,7 @@ export const DEFAULT_DAMAGE_SETUP: DamageSetup = {
   velaskaActif: false,
   // ⚠️ Demande explicite de l'utilisateur : « critique » comme valeur par
   // défaut — le plafond d'un coup isolé. C'est aussi la valeur vers laquelle
-  // une recette portant l'ancien mode « Moyenne » est convertie (lot CM).
+  // une recette portant l'ancien mode « Moyenne » est convertie.
   critMode: 'crit',
   // ⚠️ « Combat » est le seul défaut possible : ces compétences s'appliquent
   // en permanence en jeu. « Guilde » ne s'ajoute que lorsque l'utilisateur
@@ -4700,8 +4697,8 @@ export function resolvedHits(
 }
 
 /**
- * Le nombre de coups que l'AFFICHAGE annonce (résumé de l'écran, ligne du CLI) —
- * lot P5a3. Une seule règle : celle de `resolvedHits`, jamais une seconde copie.
+ * Le nombre de coups que l'AFFICHAGE annonce (résumé de l'écran, ligne du CLI).
+ * Une seule règle : celle de `resolvedHits`, jamais une seconde copie.
  *
  * - Avec `combat` (stats de combat d'un build) : le nombre exact que compte le
  *   calcul, `hits === max`.
@@ -4726,7 +4723,7 @@ export function coupsAffichesDuSort(
   return { hits, max: Math.min(profile.hitsRange.max, hits + enPlus), dependDuBuild: true };
 }
 
-/** Ce sort règle un coup en plus par une condition (lot P5a2), pas par un champ de coups ? */
+/** Ce sort règle un coup en plus par une condition, pas par un champ de coups ? */
 export function coupsEnPlusDeCondition(profile: SkillDamageProfile): boolean {
   return !!profile.conditionsCombat?.some((c) => c.coupsEnPlus);
 }
@@ -4751,7 +4748,7 @@ function coupsEnPlusActifs(
 }
 
 /**
- * Lecture d'une ANCIENNE recette : avant le lot P5a2, ces sorts portaient un
+ * Lecture d'une ANCIENNE recette : ces sorts portaient un
  * nombre de coups saisi (`coupsPersonnalises`). Il reste lu, borné à la plage,
  * tant que l'interrupteur du sort n'a pas été touché (clé absente de
  * `passifsOffensifs`) ; toucher l'interrupteur, dans un sens ou l'autre, rend la
@@ -4835,8 +4832,7 @@ export interface CranIgnoreDef {
  * règle curée du sort, jamais d'une liste par sort : sans coup inconditionnel,
  * « Aucun » (le défaut) puis « Dès le Nᵉ coup » pour chaque rang permis ; avec,
  * « Dès le Nᵉ coup » pour les rangs qui le précèdent, puis « Nᵉ coup seul »
- * (le défaut) — « aucun » n'y existe pas. Libellés retenus par l'utilisateur
- * (cadrage degats-et-aura, recalage du lot 10, choix n° 12).
+ * (le défaut) — « aucun » n'y existe pas. Libellés retenus par l'utilisateur.
  *
  * ⚠️ Source UNIQUE de ces libellés : le sélecteur de l'écran, le résumé du
  * sort et la ligne du CLI les lisent ici (`resumeIgnoreDefRetenu`).
@@ -4997,7 +4993,7 @@ export function vitTotalePourVitesseFinale(
 // pas un écart avec la cible comme `bonusEcartDef`).
 // ⚠️ Le préfixe vient de `statsDebutCombat` (6bis-b2) : c'est le même `ceil`
 // unique invocateur + lead + auras Determination, jamais une réplique qui
-// oublierait l'aura (elle l'oubliait depuis le lot 6). Aura nulle → valeur
+// oublierait l'aura (elle l'oubliait). Aura nulle → valeur
 // strictement identique à l'ancienne réplique. Pas d'amplification
 // artéfact du buff ici, comme avant (hors périmètre des auras).
 function defCombat(stats: StatRow[], setup: DamageSetup, propres: AurasPropres, element: ElementKey | null = null): number {
@@ -5421,7 +5417,7 @@ export function computeSkillDamageDetail(
   fixeProtege: number;
   pvRestantsPct: number;
 } {
-  // Coup en plus DÉDUIT de l'ATQ du build (Brutal Fists, lot P5a2) : le nombre de
+  // Coup en plus DÉDUIT de l'ATQ du build (Brutal Fists) : le nombre de
   // coups se règle ICI, une fois les stats de combat connues, puis le sort suit le
   // chemin ordinaire avec `hits` résolu et sans plage. Même `statsDeCombat` (mêmes
   // arguments) que plus bas : aucune seconde lecture de l'ATQ. Les interrupteurs,
@@ -5689,7 +5685,7 @@ export function computeSkillDamageDetail(
     (monsterWide.conditionsCombat ?? []).some((p) =>
       conditionForceCrit([p.condition], setup, p.skillCom2usId, element, pctDepart, combat)
     );
-  // Deux modes seulement (lot CM) : la part critique vaut 1 ou 0, jamais le
+  // Deux modes seulement : la part critique vaut 1 ou 0, jamais le
   // Taux Crit — qui ne pèse plus sur ce terme que par le surplus reversé en
   // Dgts Crit (`overflowVersCd`, plus haut). Toute valeur autre que
   // `'normal'` vaut « Critique », le défaut.
@@ -6505,7 +6501,7 @@ export function computeTotalDamage(
  * `bonusDegatsSelonCr`) — même raison que l'objectif « Dégâts » : il est
  * plafonné à 100 % en jeu, et ni « Critique » ni « Non critique » ne le
  * lisent dans le terme Crit (l'ancien mode « Moyenne », le seul qui le
- * lisait, est supprimé depuis le lot CM de degats-et-aura) ; donc
+ * lisait, est supprimé) ; donc
  * c'est une CONDITION à atteindre (via un minimum posé), pas une cible à
  * maximiser indéfiniment. L'y mettre pousserait la rétention à garder des
  * demi-builds pour un potentiel de crit qui ne sert plus à rien.

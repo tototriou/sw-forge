@@ -1,7 +1,7 @@
 # Qualité du code — lint et message de commit
 
 **Statut :** ÉTAT ACTUEL — décrit le lint du code (ESLint) : périmètre, ce qui bloque et ce qui avertit, où il tourne, dont le lint au commit ; et la forme imposée au message de commit
-**Lire si :** on modifie `eslint.config.js`, le script `lint` de `package.json`, l'étape « Lint » de `.github/workflows/tests.yml`, l'étape ESLint de `.githooks/pre-commit` ou `.githooks/commit-msg` ; une règle refuse un code ou un message qu'on juge correct
+**Lire si :** on modifie `eslint.config.js`, les scripts `lint` ou `prepare` de `package.json`, le mode `--automatique` de `scripts/installer-hooks.mjs`, l'étape « Lint » de `.github/workflows/tests.yml`, l'étape ESLint de `.githooks/pre-commit` ou `.githooks/commit-msg` ; une règle refuse un code ou un message qu'on juge correct
 **Voir aussi :** `spec/outillage/spec.md` § Niveaux d'application et garde-fous
 
 ## Lint
@@ -68,6 +68,27 @@ de 100, sous la limite de longueur d'une ligne de commande Windows.
   fichier propre dans l'index mais fautif sur le disque est refusé.
 
 Test : `node tests/run.mjs precommit`.
+
+## Installation automatique
+
+`npm install` et `npm ci` installent les hooks : le script `prepare` de
+`package.json` lance `node scripts/installer-hooks.mjs --automatique`, qui
+copie et câble comme l'installation manuelle (`spec/outillage/spec.md`
+§ Installation des garde-fous), avec quatre différences :
+
+- **Jamais d'échec** : hors d'un dépôt Git, source absente, argument inconnu
+  ou erreur inattendue donnent un avertissement et le code 0 ;
+  l'installation des dépendances continue.
+- **Rien en CI** (variable `CI` présente) : les vérifications y passent par
+  le workflow.
+- **Jamais de retour en arrière** : une installation existante n'est
+  remplacée que si la tête courante contient son `commitSource`. Un
+  `npm install` sur une branche plus ancienne ou divergente garde
+  l'installation, qui sert tous les worktrees du dépôt ; l'installation
+  manuelle remplace toujours.
+- Un câblage tiers reste signalé, jamais écrasé, comme à la main.
+
+Test : `node tests/run.mjs installationautomatique`.
 
 ## Message de commit
 

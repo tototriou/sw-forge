@@ -17,8 +17,8 @@
 // l'erreur ORDINAIRE, celle qu'on fait en pensant à autre chose.
 //
 // ⚠️ **Il n'est JAMAIS requis.** Son câblage est une config de machine
-// (`core.hooksPath`), absente d'un clone neuf : le critère d'acceptation du
-// cadrage veut qu'un clone neuf développe, teste et commite normalement.
+// (`core.hooksPath`), posée par `npm install` (script `prepare`) : un clone
+// sans dépendances installées développe, teste et commite normalement.
 //
 // ⚠️ **Le script SOURCE est ici ; ce qui s'exécute est son INSTALLATION** (hors
 // arbre de travail, sous le répertoire git commun). Sans quoi son contenu

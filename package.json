@@ -16,6 +16,7 @@
     "fetch-data": "node scripts/fetch-monsters.mjs && node scripts/fetch-skills.mjs && node scripts/link-collabs.mjs",
     "fetch-skills": "node scripts/fetch-skills.mjs",
     "link-collabs": "node scripts/link-collabs.mjs",
+    "prepare": "node scripts/installer-hooks.mjs --automatique",
     "test": "node tests/run.mjs",
     "lint": "eslint .",
     "benchmark:optim": "node scripts/benchmark-optim.mjs",

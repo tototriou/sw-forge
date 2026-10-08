@@ -468,8 +468,8 @@ Trois objets distincts, et les deux premiers ne se confondent pas :
 - `node scripts/installer-hooks.mjs` copie les sources dans l'installation
   (`.githooks/<nom>` sous `hooks/<nom>`, le reste à l'identique) et câble
   `core.hooksPath`. Options : `--simulation` (affiche sans écrire),
-  `--sans-cablage`, `--codex-hooks <hooks.json>`. Un câblage préexistant
-  différent est signalé, jamais écrasé.
+  `--sans-cablage`, `--codex-hooks <hooks.json>`, `--automatique` (appel de
+  `npm install`, `qualite-code.md`). Un câblage tiers est signalé, jamais écrasé.
 - **L'installation porte sa propre version de référence** : un manifeste
   (`manifeste.json`) des empreintes des octets **installés**, mis à jour
   par cette seule commande. Manifeste v2 : `fichiers {chemin: empreinte}`,
@@ -485,8 +485,8 @@ Trois objets distincts, et les deux premiers ne se confondent pas :
   est un fichier, pas un dossier.
 
 Portée du hook, assumée : ce n'est pas une exclusion mutuelle, il se
-contourne (`--no-verify`). Il n'est jamais requis : un clone neuf n'a ni
-installation ni câblage, et développe, teste et commite normalement. Pas de
+contourne (`--no-verify`). Il n'est jamais requis : sans `npm install`, un
+clone n'a ni installation ni câblage, et développe, teste et commite. Pas de
 commit automatique dans `pre-commit`. Test : `node tests/run.mjs
 installerhooks`.
 

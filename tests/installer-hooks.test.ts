@@ -5,7 +5,7 @@
 // et le garde-fou doivent fonctionner seuls. Tout se passe dans un dossier
 // temporaire ; aucune installation réelle n'est touchée.
 
-import { execFileSync } from 'child_process';
+import { execFileSync, spawnSync } from 'child_process';
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from 'fs';
 import { createHash } from 'crypto';
 import { tmpdir } from 'os';
@@ -132,7 +132,7 @@ export function testInstallerHooks() {
       'core.hooksPath câblé sur l’installation');
     let m = lireManifeste(code);
     egal(m.version, 2, 'manifeste en version 2');
-    egal(Object.keys(m.fichiers).sort(), [...PUBLICS].sort(), 'le manifeste porte les six chemins publics, et eux seuls');
+    egal(Object.keys(m.fichiers).sort(), [...PUBLICS].sort(), 'le manifeste porte les chemins publics, et eux seuls');
     ok(PUBLICS.every((rel) => m.fichiers[rel] === sha(installe(code, rel))),
       'chaque empreinte est celle des octets INSTALLÉS');
     ok(PUBLICS.every((rel) => m.entrees?.[rel]?.proprietaire === 'public' && m.entrees?.[rel]?.commit === tete &&
@@ -200,6 +200,70 @@ export function testInstallerHooks() {
     r = installerPublic(code, '--codex-hooks', config);
     ok(r.code === 0 && groupes().PreToolUse.length === 1, 'entrée retirée à la main : reposée');
     ok(readFileSync(`${config}.avant-swblacksmith`, 'utf8') === original, '.avant-swblacksmith : écrite une seule fois');
+  } finally {
+    // bac provient exclusivement de mkdtempSync sous tmpdir.
+    rmSync(bac, { recursive: true, force: true });
+  }
+}
+
+// `--automatique`, tel que l'appelle `prepare` à chaque `npm install`. La
+// variable `CI` est retirée : ce test tourne lui-même en CI.
+function installerAuto(cwd: string, script: string, env: Record<string, string> = {}): { code: number; sortie: string } {
+  const base = { ...process.env };
+  delete base.CI;
+  const r = spawnSync(process.execPath, [script, '--automatique'],
+    { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], env: { ...base, ...env } });
+  return { code: r.status ?? 1, sortie: (r.stdout ?? '') + (r.stderr ?? '') };
+}
+
+export function testInstallationAutomatique() {
+  titre('Installation automatique (`npm install`) — jamais d’échec, jamais de retour en arrière');
+  if (!gitDisponible('installation automatique')) return;
+  const bac = bacTemporaire('swblacksmith-installation-auto-');
+  const code = join(bac, 'code');
+  const script = join(code, 'scripts', 'installer-hooks.mjs');
+  const installeA = () => lireManifeste(code).commitSource;
+  try {
+    depotPublic(code);
+    const a = git(code, 'rev-parse', 'HEAD');
+
+    let r = installerAuto(code, script, { CI: 'true' });
+    ok(r.code === 0 && !existsSync(installation(code)) && cablage(code) === '', 'en CI : rien d’installé, code 0');
+
+    r = installerAuto(bac, join(RACINE, 'scripts', 'installer-hooks.mjs'));
+    ok(r.code === 0 && /non installés/.test(r.sortie), 'hors d’un dépôt Git : avertissement, code 0');
+
+    r = installerAuto(code, script);
+    ok(r.code === 0 && installeA() === a && memeChemin(cablage(code), join(installation(code), 'hooks')),
+      'premier `npm install` : installé et câblé');
+
+    // Une branche plus récente remplace ; revenir en arrière ne remplace pas.
+    // Les hooks câblés s'appliquent aux commits d'essai : branche `forge/`.
+    git(code, 'switch', '-q', '-c', 'forge/essai');
+    writeFileSync(join(code, 'nouveau.txt'), 'x\n');
+    commiter(code, 'feat: plus récent\n');
+    const b = git(code, 'rev-parse', 'HEAD');
+    r = installerAuto(code, script);
+    ok(r.code === 0 && installeA() === b, 'tête qui contient l’installation : mise à jour');
+    git(code, 'switch', '-q', '--detach', a);
+    r = installerAuto(code, script);
+    ok(r.code === 0 && installeA() === b && /installation gardée/.test(r.sortie), 'branche plus ancienne : installation gardée');
+    git(code, 'switch', '-q', '-c', 'forge/divergente');
+    writeFileSync(join(code, 'autre.txt'), 'y\n');
+    commiter(code, 'feat: autre chemin\n');
+    r = installerAuto(code, script);
+    ok(r.code === 0 && installeA() === b, 'branche divergente : installation gardée');
+    r = installerPublic(code);
+    ok(r.code === 0 && installeA() === git(code, 'rev-parse', 'HEAD'), 'installation manuelle : remplace toujours');
+
+    git(code, 'config', 'core.hooksPath', 'ailleurs');
+    r = installerAuto(code, script);
+    ok(r.code === 0 && git(code, 'config', 'core.hooksPath') === 'ailleurs', 'câblage tiers : jamais écrasé, code 0');
+    git(code, 'config', '--unset', 'core.hooksPath');
+
+    rmSync(join(code, '.githooks', 'commit-msg'));
+    r = installerAuto(code, script);
+    ok(r.code === 0 && /non installés/.test(r.sortie), 'source absente : avertissement, code 0');
   } finally {
     // bac provient exclusivement de mkdtempSync sous tmpdir.
     rmSync(bac, { recursive: true, force: true });

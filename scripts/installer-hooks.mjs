@@ -43,10 +43,25 @@ const VERT = '\x1b[32m';
 const JAUNE = '\x1b[33m';
 const FIN = '\x1b[0m';
 
+// `--automatique` : appel par le script `prepare` de `package.json`, donc à
+// chaque `npm install` ou `npm ci`. Il ne fait JAMAIS échouer l'installation
+// des dépendances : un refus ou une erreur deviennent un avertissement, code 0.
+const AUTOMATIQUE = process.argv.includes('--automatique');
+
 function refuser(titre, ...details) {
+  if (AUTOMATIQUE) {
+    console.log(`${JAUNE}⚠️ Garde-fous non installés : ${titre}${FIN}`);
+    process.exit(0);
+  }
   console.error(`${ROUGE}REFUSÉ — ${titre}${FIN}`);
   for (const d of details) console.error(`  ${d}`);
   process.exit(1);
+}
+
+if (AUTOMATIQUE) {
+  process.on('uncaughtException', (e) => refuser(`erreur inattendue (${e?.message ?? e})`));
+  // En CI, les vérifications passent par le workflow, pas par des hooks.
+  if (process.env.CI) process.exit(0);
 }
 
 function git(depot, ...args) {
@@ -99,14 +114,14 @@ function lireOptions(argv) {
   const options = {};
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
-    if (a === '--simulation' || a === '--sans-cablage') options[a.slice(2)] = true;
+    if (a === '--simulation' || a === '--sans-cablage' || a === '--automatique') options[a.slice(2)] = true;
     else if (a === '--codex-hooks') {
       const valeur = argv[++i];
       if (!valeur || valeur.startsWith('--')) refuser('--codex-hooks sans chemin');
       options['codex-hooks'] = valeur;
     } else if (a.startsWith('--codex-hooks=')) options['codex-hooks'] = a.slice('--codex-hooks='.length);
     else refuser(`argument inconnu : ${a}`,
-      'Usage : node scripts/installer-hooks.mjs [--simulation] [--sans-cablage] [--codex-hooks <hooks.json>]');
+      'Usage : node scripts/installer-hooks.mjs [--simulation] [--sans-cablage] [--automatique] [--codex-hooks <hooks.json>]');
   }
   return options;
 }
@@ -149,6 +164,21 @@ for (const rel of CHEMINS) {
 }
 
 const commit = git(depot, 'rev-parse', 'HEAD');
+
+// Jamais de retour en arrière automatique : un `npm install` sur une branche
+// ancienne remplacerait, pour tous les worktrees, l'installation par une
+// version plus vieille. On n'installe que si la tête courante CONTIENT le
+// commit installé ; sinon on garde l'existant (installation manuelle pour
+// forcer).
+if (AUTOMATIQUE && existsSync(cheminManifeste)) {
+  const installe = lireManifeste(cheminManifeste).commitSource;
+  if (installe && installe !== commit && gitOuNull(depot, 'merge-base', '--is-ancestor', installe, commit) === null) {
+    console.log(`Garde-fous : installation gardée (${installe.slice(0, 7)}), absente de la branche courante.` +
+      ' Pour la remplacer : node scripts/installer-hooks.mjs');
+    process.exit(0);
+  }
+}
+
 if (git(depot, 'status', '--porcelain') !== '') {
   console.log(`${JAUNE}⚠️ Le dépôt porte des modifications non commitées${FIN} : le manifeste` +
     ' enregistrera un commit qui ne décrit pas exactement ce qui est installé.');

@@ -146,10 +146,10 @@ travaille jamais, on en part.
   `type(portée): description`, un corps collé au sujet et un message qui
   commence par un BOM (spec/outillage/qualite-code.md § Message de commit).
 - Les deux hooks sont **installés par machine**, donc actifs quelle que soit la branche —
-  mais jamais requis : un clone neuf n'en a pas et commite normalement.
-  Il s'installe par `node scripts/installer-hooks.mjs` (`--simulation` pour
-  voir sans écrire) ; une modification du hook ne s'active qu'à cette
-  commande, lancée **sur décision de l'utilisateur**, tests verts.
+  mais jamais requis : un clone sans `npm install` n'en a pas et commite
+  normalement. **`npm install` les installe** (script `prepare`, jamais en
+  CI, jamais vers une version plus ancienne que celle installée) ; à la main :
+  `node scripts/installer-hooks.mjs` (`--simulation` pour voir sans écrire).
 
 ## Consignes pour l'agent (Claude Code)
 

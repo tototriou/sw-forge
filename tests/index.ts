@@ -49,7 +49,7 @@ import testReco, {
   testFormesJouables,
 } from './reco.test';
 import testRtaPartage from './rta-partage.test';
-import { testInstallerHooks, testHooksCodexGardeFous } from './installer-hooks.test';
+import { testInstallerHooks, testInstallationAutomatique, testHooksCodexGardeFous } from './installer-hooks.test';
 import { testPreCommit } from './pre-commit.test';
 import { testCommitMsg } from './commit-msg.test';
 import { testRenvois, testRenvoisFormes } from './renvois.test';
@@ -328,6 +328,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testHookRefuseSedI', testHookRefuseSedI],
   ['testHookRefuseCommitM', testHookRefuseCommitM],
   ['testInstallerHooks', testInstallerHooks],
+  ['testInstallationAutomatique', testInstallationAutomatique],
   ['testHooksCodexGardeFous', testHooksCodexGardeFous],
   ['testPreCommit', testPreCommit],
   ['testCommitMsg', testCommitMsg],

@@ -457,7 +457,7 @@ Trois objets distincts, et les deux premiers ne se confondent pas :
 
 | Objet | Où | Versionné ? |
 | --- | --- | --- |
-| Les **sources** (`.githooks/pre-commit`, `scripts/spec-lint.mjs`, `scripts/lib/spec-markdown.mjs`, `scripts/hooks-codex-garde-fous.mjs`, les deux hooks de commande sous `.claude/hooks/`) | dans le dépôt | ✅ relues en revue |
+| Les **sources** (`.githooks/pre-commit`, `.githooks/commit-msg`, `scripts/spec-lint.mjs`, `scripts/lib/spec-markdown.mjs`, `scripts/hooks-codex-garde-fous.mjs`, les deux hooks de commande sous `.claude/hooks/`) | dans le dépôt | ✅ relues en revue |
 | **L'installation** | `<git commun>/forge/installation/` | ❌ propre à la machine |
 | Le **câblage** | `core.hooksPath` → `<installation>/hooks` | ❌ |
 

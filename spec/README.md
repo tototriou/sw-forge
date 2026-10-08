@@ -118,7 +118,8 @@ Outillage du dépôt (pas une page de l'app) :
   formes relevées, résolution dans les fichiers suivis, exemptions, liste
   tolérée.
 - [outillage/qualite-code.md](outillage/qualite-code.md) — lint du code
-  (ESLint) : règles bloquantes et avertissements, où il tourne.
+  (ESLint) : règles bloquantes et avertissements, où il tourne ; forme du
+  message de commit (hook `commit-msg`).
 
 ## Conventions communes (toutes les pages)
 

@@ -51,6 +51,7 @@ import testReco, {
 import testRtaPartage from './rta-partage.test';
 import { testInstallerHooks, testHooksCodexGardeFous } from './installer-hooks.test';
 import { testPreCommit } from './pre-commit.test';
+import { testCommitMsg } from './commit-msg.test';
 import { testRenvois, testRenvoisFormes } from './renvois.test';
 import { testEcriturePublique, testEcriturePubliqueFormes } from './ecriture-publique.test';
 import testHookRefuseSedI from './hook-refuse-sed-i.test';
@@ -329,6 +330,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testInstallerHooks', testInstallerHooks],
   ['testHooksCodexGardeFous', testHooksCodexGardeFous],
   ['testPreCommit', testPreCommit],
+  ['testCommitMsg', testCommitMsg],
   ['testRenvoisFormes', testRenvoisFormes],
   ['testRenvois', testRenvois],
   ['testEcriturePubliqueFormes', testEcriturePubliqueFormes],

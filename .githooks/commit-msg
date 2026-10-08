@@ -1,0 +1,76 @@
+#!/usr/bin/env node
+// Garde-fou du message de commit — contrat : spec/outillage/qualite-code.md,
+// « Message de commit ».
+//
+// Refuse un sujet hors de la forme `type(portée): description` et un sujet
+// collé à la suite du message. Ne refuse que ce que l'historique respecte
+// déjà : aucune limite de longueur (des sujets légitimes dépassent 100
+// caractères). Les messages que Git écrit lui-même (fusion, revert,
+// fixup!/squash!/amend!) passent tels quels.
+//
+// Comme `pre-commit` : installé par `node scripts/installer-hooks.mjs`,
+// jamais requis, contournable par `--no-verify`.
+
+import { readFileSync } from 'fs';
+
+const ROUGE = '\x1b[31m';
+const FIN = '\x1b[0m';
+
+const TYPES = ['feat', 'fix', 'docs', 'style', 'refactor', 'perf', 'test', 'build', 'ci', 'chore', 'revert'];
+const SUJET = new RegExp(`^(${TYPES.join('|')})(\\([^()\\s][^()]*\\))?!?: \\S`);
+const ECRIT_PAR_GIT = /^(Merge |Revert "|fixup! |squash! |amend! )/;
+// Au-delà de la ligne de ciseaux (`git commit -v`), Git coupe le message.
+const CISEAUX = /^# -+ >8 -+$/;
+
+const brut = readFileSync(process.argv[2], 'utf8');
+const lignes = [];
+for (const ligne of brut.replace(/\r\n/g, '\n').split('\n')) {
+  if (CISEAUX.test(ligne)) break;
+  if (!ligne.startsWith('#')) lignes.push(ligne);
+}
+while (lignes.length > 0 && lignes[0].trim() === '') lignes.shift();
+
+// Message vide : Git l'abandonne lui-même.
+if (lignes.length === 0 || lignes.every((l) => l.trim() === '')) process.exit(0);
+
+const refus = [];
+const sujet = lignes[0];
+
+if (sujet.charCodeAt(0) === 0xfeff) {
+  refus.push({
+    titre: 'le message commence par une marque d’ordre d’octets (BOM)',
+    details: [
+      'Typique d’un here-string PowerShell envoyé par un tube à `git commit -F -`.',
+      'Écrire le message dans un fichier UTF-8 sans BOM, puis `git commit -F <fichier>`.',
+    ],
+  });
+} else if (!ECRIT_PAR_GIT.test(sujet) && !SUJET.test(sujet)) {
+  refus.push({
+    titre: 'sujet hors de la forme `type(portée): description`',
+    details: [
+      `Reçu : ${sujet}`,
+      '',
+      `Types : ${TYPES.join(', ')}. La portée est facultative,`,
+      '`!` signale un changement incompatible. Exemples :',
+      '  feat(siege): cherche une équipe par monstre',
+      '  fix: le tri des runes garde la mesure choisie',
+    ],
+  });
+}
+
+if (lignes.length > 1 && lignes[1].trim() !== '') {
+  refus.push({
+    titre: 'pas de ligne vide entre le sujet et le corps',
+    details: ['Le sujet tient sur la première ligne ; le corps commence après une ligne vide.'],
+  });
+}
+
+if (refus.length === 0) process.exit(0);
+
+console.error('');
+for (const { titre, details } of refus) {
+  console.error(`${ROUGE}REFUSÉ — ${titre}${FIN}`);
+  for (const d of details) console.error(`  ${d}`);
+  console.error('');
+}
+process.exit(1);

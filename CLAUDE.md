@@ -142,7 +142,10 @@ travaille jamais, on en part.
   plus de 5 Mo (un export de compte), et un `spec/**.md` du périmètre de
   `spec/spec-lint.json` qui ne passe pas `spec-lint` (niveau 1, invariant
   dépôt — spec/outillage/spec.md § Refus du `pre-commit`).
-  Il est **installé par machine**, donc actif quelle que soit la branche —
+- **Un hook `commit-msg` refuse** un sujet hors de la forme
+  `type(portée): description`, un corps collé au sujet et un message qui
+  commence par un BOM (spec/outillage/qualite-code.md § Message de commit).
+- Les deux hooks sont **installés par machine**, donc actifs quelle que soit la branche —
   mais jamais requis : un clone neuf n'en a pas et commite normalement.
   Il s'installe par `node scripts/installer-hooks.mjs` (`--simulation` pour
   voir sans écrire) ; une modification du hook ne s'active qu'à cette

@@ -14,7 +14,7 @@ import { fileURLToPath } from 'url';
 import { egal, ignore, ok, titre } from './outils';
 
 const RACINE = join(dirname(fileURLToPath(import.meta.url)), '..');
-const PUBLICS = ['.githooks/pre-commit', 'scripts/hooks-codex-garde-fous.mjs', 'scripts/lib/spec-markdown.mjs', 'scripts/spec-lint.mjs', '.claude/hooks/refuse-commit-m.mjs', '.claude/hooks/refuse-sed-i.mjs'];
+const PUBLICS = ['.githooks/pre-commit', '.githooks/commit-msg', 'scripts/hooks-codex-garde-fous.mjs', 'scripts/lib/spec-markdown.mjs', 'scripts/spec-lint.mjs', '.claude/hooks/refuse-commit-m.mjs', '.claude/hooks/refuse-sed-i.mjs'];
 
 type Entree = { proprietaire: string; source: string; commit: string; date: string };
 type Manifeste = { version?: number; commitSource: string; fichiers: Record<string, string>; entrees?: Record<string, Entree> };

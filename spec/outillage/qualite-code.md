@@ -1,7 +1,7 @@
-# Qualité du code — lint
+# Qualité du code — lint et message de commit
 
-**Statut :** ÉTAT ACTUEL — décrit le lint du code (ESLint) : périmètre, ce qui bloque et ce qui avertit, où il tourne, dont le lint au commit
-**Lire si :** on modifie `eslint.config.js`, le script `lint` de `package.json`, l'étape « Lint » de `.github/workflows/tests.yml` ou l'étape ESLint de `.githooks/pre-commit` ; une règle refuse un code qu'on juge correct
+**Statut :** ÉTAT ACTUEL — décrit le lint du code (ESLint) : périmètre, ce qui bloque et ce qui avertit, où il tourne, dont le lint au commit ; et la forme imposée au message de commit
+**Lire si :** on modifie `eslint.config.js`, le script `lint` de `package.json`, l'étape « Lint » de `.github/workflows/tests.yml`, l'étape ESLint de `.githooks/pre-commit` ou `.githooks/commit-msg` ; une règle refuse un code ou un message qu'on juge correct
 **Voir aussi :** `spec/outillage/spec.md` § Niveaux d'application et garde-fous
 
 ## Lint
@@ -68,3 +68,27 @@ de 100, sous la limite de longueur d'une ligne de commande Windows.
   fichier propre dans l'index mais fautif sur le disque est refusé.
 
 Test : `node tests/run.mjs precommit`.
+
+## Message de commit
+
+Le hook `commit-msg` (`.githooks/commit-msg`, même installation que
+`pre-commit`, jamais requis, contournable par `--no-verify`) lit le message
+sans ses lignes de commentaire `#` ni ce qui suit la ligne de ciseaux de
+`git commit -v`, lignes vides de tête retirées. Il refuse :
+
+- un **sujet** (première ligne) hors de la forme
+  `type(portée): description` — type parmi `feat`, `fix`, `docs`, `style`,
+  `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert` ; portée
+  facultative, non vide ; `!` facultatif avant les deux-points pour un
+  changement incompatible ; une espace puis une description non vide ;
+- une **deuxième ligne non vide** : le corps commence après une ligne vide ;
+- une **marque d'ordre d'octets** (BOM) en tête, signe d'un here-string
+  PowerShell passé par un tube : le refus nomme la cause.
+
+Passent tels quels les messages qu'écrit Git — sujet commençant par
+`Merge `, `Revert "`, `fixup! `, `squash! ` ou `amend! ` — et un message vide,
+que Git abandonne lui-même. **Aucune limite de longueur** : le hook n'impose
+que ce que l'historique respecte déjà, et des sujets légitimes dépassent
+100 caractères. La langue du message n'est pas vérifiée.
+
+Test : `node tests/run.mjs commitmsg`.

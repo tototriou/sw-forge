@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// Installateur public des garde-fous : hook Git `pre-commit` (et le lint qu'il
-// importe), garde-fous Codex. Contrat : spec/outillage/spec.md,
+// Installateur public des garde-fous : hooks Git `pre-commit` (et le lint qu'il
+// importe) et `commit-msg`, garde-fous Codex. Contrat : spec/outillage/spec.md,
 // « Niveaux d'application et garde-fous », « Installation des garde-fous ».
 //
 //   node scripts/installer-hooks.mjs [--simulation] [--sans-cablage]
@@ -23,6 +23,7 @@ const PROPRIETAIRE = 'public';
 // Chemins de cet installateur (clé du manifeste = chemin dans le dépôt).
 const CHEMINS = [
   '.githooks/pre-commit',
+  '.githooks/commit-msg',
   'scripts/spec-lint.mjs',
   'scripts/lib/spec-markdown.mjs',
   'scripts/hooks-codex-garde-fous.mjs',

@@ -1,7 +1,7 @@
 # Qualité du code — lint
 
-**Statut :** ÉTAT ACTUEL — décrit le lint du code (ESLint) : périmètre, ce qui bloque et ce qui avertit, où il tourne
-**Lire si :** on modifie `eslint.config.js`, le script `lint` de `package.json` ou l'étape « Lint » de `.github/workflows/tests.yml` ; une règle refuse un code qu'on juge correct
+**Statut :** ÉTAT ACTUEL — décrit le lint du code (ESLint) : périmètre, ce qui bloque et ce qui avertit, où il tourne, dont le lint au commit
+**Lire si :** on modifie `eslint.config.js`, le script `lint` de `package.json`, l'étape « Lint » de `.github/workflows/tests.yml` ou l'étape ESLint de `.githooks/pre-commit` ; une règle refuse un code qu'on juge correct
 **Voir aussi :** `spec/outillage/spec.md` § Niveaux d'application et garde-fous
 
 ## Lint
@@ -47,4 +47,24 @@ Choix assumés :
 
 **Où il tourne** : en local par `npm run lint` ; en CI, étape « Lint » de
 `.github/workflows/tests.yml`, entre les types et la suite complète, sur
-chaque pull request vers `main` ou `release/**`.
+chaque pull request vers `main` ou `release/**` ; au commit, par le hook
+`pre-commit` (ci-dessous).
+
+## Lint au commit
+
+Le hook `pre-commit` (`.githooks/pre-commit`, installé par
+`node scripts/installer-hooks.mjs`) lance l'ESLint du dépôt sur les fichiers
+de code indexés — ajoutés, copiés, modifiés ou renommés, d'extension `.ts`,
+`.tsx`, `.js`, `.mjs` ou `.cjs` —, avec `--quiet` : **une erreur refuse le
+commit**, un avertissement ne s'affiche pas. Les fichiers passent par paquets
+de 100, sous la limite de longueur d'une ligne de commande Windows.
+
+- Pas de `eslint.config.js` à la racine (branche antérieure au lint) : pas de
+  lint.
+- ESLint absent de `node_modules` (clone sans `npm install`) : lint sauté,
+  avec un avertissement. Le hook n'est jamais requis.
+- **Limite assumée** : ESLint lit l'**arbre de travail**, pas la version
+  indexée ; un fichier corrigé sur le disque mais pas réindexé passe, un
+  fichier propre dans l'index mais fautif sur le disque est refusé.
+
+Test : `node tests/run.mjs precommit`.

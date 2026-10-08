@@ -10,8 +10,8 @@
 // ⚠️ Les identifiants de lot des contenus d'essai sont assemblés (`LOT`) :
 // ce fichier ne porte pas lui-même le motif qu'il vérifie.
 
-import { execFileSync } from 'child_process';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs';
+import { execFileSync, spawnSync } from 'child_process';
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
@@ -32,14 +32,10 @@ function ecrire(depot: string, rel: string, contenu: string | Buffer) {
   writeFileSync(join(depot, rel), contenu);
 }
 
+// La sortie est gardée même en cas de succès : un avertissement s'y lit.
 function lancer(depot: string): { code: number; sortie: string } {
-  try {
-    execFileSync(process.execPath, [HOOK], { cwd: depot, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
-    return { code: 0, sortie: '' };
-  } catch (e) {
-    const err = e as { status?: number; stdout?: string; stderr?: string };
-    return { code: err.status ?? 1, sortie: (err.stdout ?? '') + (err.stderr ?? '') };
-  }
+  const r = spawnSync(process.execPath, [HOOK], { cwd: depot, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+  return { code: r.status ?? 1, sortie: (r.stdout ?? '') + (r.stderr ?? '') };
 }
 
 export function testPreCommit() {
@@ -191,6 +187,28 @@ export function testPreCommit() {
       'Une archive, des chantiers : [voir](#archive).',
     ].join('\n') + '\n')),
       'renvois publics homonymes, chemin normalisé hors des notes, mots et ancres : acceptés');
+
+    /* ------------------------------------------------ ESLint sur le code indexé */
+    // Configuration minimale à elle, ESLint du dépôt par une jonction vers son
+    // `node_modules`, ignoré par Git : `git clean` n'y touche jamais.
+    const LINT = /REFUSÉ — ESLint refuse le code indexé/;
+    ok(passe(cas({ 'a.js': 'debugger;\n' })), 'sans eslint.config.js (branche antérieure au lint) : pas de lint');
+    ecrire(depot, '.gitignore', 'node_modules\n');
+    ecrire(depot, 'package.json', '{ "type": "module" }\n');
+    ecrire(depot, 'eslint.config.js',
+      "export default [{ rules: { 'no-debugger': 'error', 'no-unused-vars': 'warn' } }];\n");
+    git(depot, 'add', '-A');
+    execFileSync('git', ['-C', depot, 'commit', '-q', '--no-verify', '-F', '-'], { input: 'Lint\n' });
+    r = cas({ 'a.js': 'debugger;\n' });
+    ok(passe(r) && /ESLint absent/.test(r.sortie), 'ESLint absent : lint sauté, avertissement, commit accepté');
+    symlinkSync(join(RACINE, 'node_modules'), join(depot, 'node_modules'), 'junction');
+    r = cas({ 'a.js': 'debugger;\n' });
+    ok(refuse(r, LINT) && /a\.js/.test(r.sortie) && /no-debugger/.test(r.sortie), 'erreur ESLint dans un fichier indexé : refus, fichier et règle cités');
+    ok(passe(cas({ 'a.js': 'const inutile = 1;\n' })), 'avertissement seul : accepté');
+    ok(passe(cas({ 'a.js': 'debugger;\n', 'b.js': 'export const x = 1;\n' }, ['b.js'])), 'fichier fautif non indexé : non lu');
+    ok(passe(cas({ 'notes.md': 'debugger;\n' })), 'fichier qui n’est pas du code : non lu');
+    ok(refuse(cas({ 'a.js': 'export const x = 1;\n' }, undefined, { 'a.js': 'debugger;\n' }), LINT),
+      'limite assumée : le lint lit l’arbre de travail, pas l’index');
   } finally {
     // bac provient exclusivement de mkdtempSync sous tmpdir.
     rmSync(bac, { recursive: true, force: true });

@@ -133,7 +133,8 @@ recette pour demander un relevé en jeu exploitable.
 (`git fetch origin && git switch -c forge/<sujet> origin/main`) ; on n'y
 travaille jamais, on en part.
 
-- **Un hook `pre-commit` refuse cinq choses** : un commit sur `main`, un
+- **Un hook `pre-commit` refuse six choses** : une erreur ESLint dans le
+  code indexé, un commit sur `main`, un
   chemin privé dans l'index (`.history/`, `.vscode/`), dans le dossier de
   l'Optimizer un fichier absent de
   `.githooks/optimizer-publics.txt` ou qui porte une marque de note privée

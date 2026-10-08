@@ -291,6 +291,52 @@ if (specsIndex.length > 0) {
   }
 }
 
+/* --------------------------------------------- 5. ESLint sur le code indexé */
+//
+// Les ERREURS seules (`--quiet`) : un avertissement ne bloque pas un commit.
+// ESLint du dépôt (`node_modules`), avec sa configuration : absent (clone
+// sans `npm install`), le lint est sauté avec un avertissement — le hook
+// n'est jamais requis. Contrat : spec/outillage/qualite-code.md.
+
+const CODE = /\.(ts|tsx|js|mjs|cjs)$/;
+const codeIndex = stagés.filter((c) => CODE.test(c));
+
+if (codeIndex.length > 0) {
+  const racineDepot = git('rev-parse', '--show-toplevel');
+  const eslint = join(racineDepot, 'node_modules', 'eslint', 'bin', 'eslint.js');
+  if (!existsSync(join(racineDepot, 'eslint.config.js'))) {
+    // Branche antérieure au lint : rien à appliquer.
+  } else if (!existsSync(eslint)) {
+    avertissements.push('ESLint absent (`npm install`) : lint du code indexé sauté.');
+  } else {
+    // Par paquets : une ligne de commande Windows plafonne à ~32 000 caractères.
+    const sorties = [];
+    for (let i = 0; i < codeIndex.length; i += 100) {
+      try {
+        execFileSync(process.execPath, [eslint, '--quiet', '--no-warn-ignored', ...codeIndex.slice(i, i + 100)], {
+          cwd: racineDepot,
+          encoding: 'utf8',
+          stdio: ['ignore', 'pipe', 'pipe'],
+          maxBuffer: 64 * 1024 * 1024,
+        });
+      } catch (e) {
+        sorties.push(((e.stdout ?? '') + (e.stderr ?? '')).trim());
+      }
+    }
+    if (sorties.length > 0) {
+      refus.push({
+        titre: 'ESLint refuse le code indexé',
+        details: [
+          ...sorties.join('\n').split('\n'),
+          '',
+          'Corriger, réindexer, puis recommiter. Détail sur tout le dépôt :',
+          '  npm run lint',
+        ],
+      });
+    }
+  }
+}
+
 /* ------------------------------------------------------------- verdict */
 
 for (const a of avertissements) {

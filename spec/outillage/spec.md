@@ -424,8 +424,8 @@ en ligne, `node -e` sensible et `sed -i` sont refusés avec les mêmes limites.
 Sur les chemins ajoutés, copiés, modifiés ou renommés de l'index : un
 commit sur `main` (ou `master`) ; un chemin sous `.history/` ou `.vscode/` ;
 un fichier de plus de 5 Mo ; un `spec/**.md` du périmètre que refuse
-`spec-lint`. Une branche hors `forge/<sujet>` reçoit un avertissement, pas
-un refus.
+`spec-lint` ; une erreur ESLint du code indexé (`qualite-code.md`). Une
+branche hors `forge/<sujet>` : un avertissement, pas un refus.
 
 Dans le dossier de l'Optimizer (`optimizer` sous `spec/outils/`, casse
 ignorée), un fichier absent de `.githooks/optimizer-publics.txt` (lue dans

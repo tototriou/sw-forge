@@ -155,33 +155,6 @@ référence ne se mettent jamais à jour l'un sans l'autre.** Fermer une
 entrée dans le ledger sans corriger le statut dans le fichier source (ou
 l'inverse) laisse deux sources qui se contredisent.
 
-### Un travail de plus d'une session commence par un cadrage écrit
-
-Tout travail de plus d'une session, ou confié à des sessions fraîches, se
-cadre dans un fichier — jamais dans un plan de conversation, qui ne se
-recharge pas. Skill `cadrage-chantier` (gabarit, règles de fond,
-emplacement). Un cadrage est **toujours privé**, hors du dépôt : le dépôt ne
-garde aucune doc de chantier, seulement la doc de l'app.
-
-### Déclarer l'application d'un skill avant d'agir
-
-Quand un skill (`.claude/skills/*` ou un skill intégré, ex. `artifact-design`)
-s'applique à l'action qui va suivre, dire en **une ligne** comment il
-s'applique CONCRÈTEMENT à la situation présente, juste avant d'agir — pas
-seulement l'invoquer en silence puis continuer.
-
-Exemple : *« algo-verify s'applique ici : ce script ad hoc appelle
-`buildBuckets`/`pairBuckets` directement, je vérifie sa fidélité au vrai
-chemin de prod avant de faire confiance à son résultat. »*
-
-Sans cette ligne, invoquer un skill une fois en tête de tâche peut être traité
-— à tort — comme suffisant pour toute la tâche, alors que le déclencheur d'un
-skill est souvent plus fin qu'« une fois par tâche » (ex. `algo-verify` se
-redéclenche à CHAQUE script ad hoc qui touche `runeBuildOptim.ts`, pas une
-seule fois pour la conversation). À appliquer au moment précis où une action
-qualifie pour un skill déjà invoqué ou non (nouveau script, nouvelle
-vérification, nouveau rendu visuel…), écrit AVANT l'action elle-même.
-
 ### Jamais de code entre guillemets doubles dans une commande shell
 
 Les messages de commit de ce dépôt citent du code entre backticks, et les
@@ -294,16 +267,3 @@ Stop-Process -Id <pid> -Force
 Vérifier ensuite que le port est bien libre (`try { Get-NetTCPConnection
 -LocalPort <port> -State Listen -ErrorAction Stop } catch { 'PORT_FREE' }`)
 avant de relancer `npm run dev`.
-
-### Rendu visuel demandé, aucun outil de pilotage de navigateur disponible
-
-Si l'environnement ne fournit aucun outil de pilotage de navigateur
-(Playwright/`chromium-cli`/etc.) au moment où l'utilisateur demande un rendu
-visuel (screenshot, aperçu d'un composant…) : le signaler explicitement et
-recommander `/run-skill-generator` (voir le skill `run`) au lieu de
-simplement produire une reconstitution HTML avec un disclaimer et de
-continuer comme si de rien n'était. Une reconstitution fidèle (tokens de
-design réels extraits de `tailwind.config.js`/`src/index.css`, structure de
-composant réelle) reste un repli honnête acceptable si l'utilisateur ne
-souhaite pas mettre en place l'outil, mais ne doit jamais être le choix par
-défaut silencieux.

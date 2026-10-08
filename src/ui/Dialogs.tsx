@@ -18,7 +18,7 @@ import { Bouton, BoutonIcone, Case, Champ, PiedDeDialogue } from '../ui';
  * ⚠️ **Le défaut ne perd jamais rien** : « Annuler » est le bouton mis en
  * avant et reçoit le focus, Échap et le clic à côté annulent, et l'action
  * destructrice porte la couleur d'alerte. Voir la règle générale dans
- * ../../spec/README.md.
+ * ../../docs/03-developpeur/.
  */
 
 // Coquille commune : fond, centrage, fermeture au clic extérieur et à Échap.
@@ -483,7 +483,7 @@ export function ConfirmDialog({
       // ⚠️ L'ordre d'écriture donne l'action d'abord, « Annuler » ensuite —
       // donc « Annuler » à DROITE sur écran large et EN BAS sous le pouce sur
       // téléphone. C'est voulu : le défaut ne perd jamais rien (voir
-      // spec/README.md), et c'est lui qui reçoit le focus initial.
+      // docs/03-developpeur/), et c'est lui qui reçoit le focus initial.
       actions={
         <>
           {/* ⚠️ `plein` pour le ton neutre : c'est `bg-panel2`, la surface d'un

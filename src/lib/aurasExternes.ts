@@ -15,7 +15,7 @@
 // retirer un set recherché ne crée, ne relève et ne supprime aucune aura
 // externe.
 //
-// Source des valeurs : spec/outils/degats-reels/valeurs-de-jeu-curees.md
+// Source des valeurs : docs/02-app/degats-reels/
 // § Les valeurs de jeu — curées, avec leur source — cinq autres monstres à
 // trois sets, donc 15.
 //

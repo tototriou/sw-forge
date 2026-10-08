@@ -47,7 +47,7 @@ function K({ children }: { children: ReactNode }) {
 export default function MechanicsPage() {
   // ⚠️ Colonne BORNÉE, contrairement aux autres pages : c'est du texte suivi,
   // pas une grille. Une ligne de 2 000 px se lit mal — l'œil perd le début de
-  // la suivante. Voir spec/shared/design.md.
+  // la suivante. Voir docs/03-developpeur/interface/.
   // ⚠️ **À la SOURIS, deux colonnes** (refonte graphique, lot 10, la
   // maquette) : le sommaire FIXE à gauche, qui reste sous la main pendant la
   // lecture, et l'article à droite, borné à 720 px. L'ordre du DOM ne change

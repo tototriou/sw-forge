@@ -1,6 +1,6 @@
 // Module pur `relicOptim.ts` — les sept
 // contrôles du plan, plus les compléments, plus la
-// dominance (`spec/outils/optimizer/moteur/reliques.md`, « Pertinence et dominance — écrites, non appelées en production ») et son symétrique.
+// dominance (`docs/03-developpeur/optimizer/`, « Pertinence et dominance — écrites, non appelées en production ») et son symétrique.
 
 import { RelicDetail } from '../src/types';
 import {
@@ -239,7 +239,7 @@ export default function testRelicOptim() {
   {
     // Deux exclusives pertinentes de types différents → aucune dominance,
     // dans aucun des deux sens (Éternité·PV = type 12, Origine·VIT = type 14,
-    // toutes deux pertinentes en PV effectifs — `spec/outils/optimizer/moteur/reliques.md`, « Pertinence et dominance — écrites, non appelées en production »).
+    // toutes deux pertinentes en PV effectifs — `docs/03-developpeur/optimizer/`, « Pertinence et dominance — écrites, non appelées en production »).
     const dims = dimensionsRetenues('ehp', [], {});
     const eternitePv = relic(1, 100, 12, { type: 12, tranche: 500, percent: 5 });
     const origineVit = relic(2, 100, 12, { type: 14, tranche: 500, percent: 5 });
@@ -265,7 +265,7 @@ export default function testRelicOptim() {
   }
 
   /* ------------------------------------------------------------------
-   * Le test de dominance (`spec/outils/optimizer/moteur/reliques.md`, « Pertinence et dominance — écrites, non appelées en production ») et son symétrique
+   * Le test de dominance (`docs/03-developpeur/optimizer/`, « Pertinence et dominance — écrites, non appelées en production ») et son symétrique
    * ---------------------------------------------------------------- */
   {
     // Exemple en PV effectifs : principales

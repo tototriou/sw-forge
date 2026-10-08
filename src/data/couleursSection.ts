@@ -15,7 +15,7 @@
 // ⚠️ **Des hex, pas des tokens — et c'est voulu.** Ce sont des accents
 // DÉCORATIFS d'identité, hors du système de tokens (bg/panel/ink/accent…) : ils
 // ne portent aucun ÉTAT (l'état actif reste marqué par le contour d'accent,
-// spec/shared/design.md « un seul marqueur »), ne changent pas avec le thème,
+// docs/03-developpeur/interface/ « un seul marqueur »), ne changent pas avec le thème,
 // et ne sont donc pas soumis à la règle « tout passe par les tokens ». C'est
 // l'extraction des couleurs déjà écrites en dur dans HomePage, pas une nouvelle
 // entorse.

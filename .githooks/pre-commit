@@ -144,17 +144,17 @@ for (const chemin of stagés) {
 
 /* ------------------------------------------ 4. spec-lint sur l'INDEX */
 //
-// ⚠️ Le périmètre a une seule source de vérité, `spec/spec-lint.json`, et
+// ⚠️ Le périmètre a une seule source de vérité, `scripts/spec-lint.json`, et
 // c'est `verifier()` qui l'applique — ce hook ne fait que lui SOUMETTRE les
-// `spec/**.md` de l'index et NE GARDER que les erreurs qui les concernent :
+// `docs/**.md` de l'index et NE GARDER que les erreurs qui les concernent :
 // un fichier hors périmètre (`verifier` ne le voit tout simplement pas) coûte
-// zéro et n'est jamais refusé. Voir spec/outillage/spec.md, ex-B.9.
+// zéro et n'est jamais refusé. Voir docs/03-developpeur/outillage-docs.md.
 
-const specsIndex = stagés.filter((c) => /^spec\/.*\.md$/.test(c));
+const specsIndex = stagés.filter((c) => /^docs\/.*\.md$/.test(c));
 
 if (!COMMIT && specsIndex.length > 0) {
   const racineDepot = git('rev-parse', '--show-toplevel');
-  const cheminConfig = join(racineDepot, 'spec', 'spec-lint.json');
+  const cheminConfig = join(racineDepot, 'scripts', 'spec-lint.json');
   if (existsSync(cheminConfig)) {
     // ⚠️ Import RELATIF à ce script : en installation, `spec-lint.mjs` et son
     // parseur (`lib/spec-markdown.mjs`) vivent à côté, sous

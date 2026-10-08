@@ -2,7 +2,7 @@
 // dans `filterSlot` (src/lib/runeBuildOptim.ts) — remplacée par un top-K via
 // le tas borné (`heapPush`, déjà en production pour la rétention par
 // compartiment) au lieu d'un tri complet de `candidates` suivi d'un
-// `.slice()`. Voir spec/outils/optimizer/moteur/elagages.md, « Élagage sûr — faisabilité ».
+// `.slice()`. Voir docs/03-developpeur/optimizer/, « Élagage sûr — faisabilité ».
 //
 // ⚠️ **Ce test appelle le VRAI `heapPush`** de `runeBuildOptim.ts`, jamais
 // une réimplémentation locale (array + tri complet à chaque insertion) : un

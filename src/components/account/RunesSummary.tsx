@@ -182,7 +182,7 @@ export default function RunesSummary({ runes }: Props) {
       >
         {/* Les tons reprennent la palette du résumé (`--pal-*`), qui suit le
             thème : mêmes teintes qu'avant en sombre, variante assombrie en
-            clair. Voir spec/shared/design.md § Dataviz. */}
+            clair. Voir docs/03-developpeur/interface/ § Dataviz. */}
         <Kpi label="Runes" value={s.total.toLocaleString('fr-FR')} sub={`${s.maxed} au +15`} bandeau premier />
         <Kpi
           label={s.topN < TOP_N ? 'Eff. moyenne' : `Eff. moyenne · top ${TOP_N}`}

@@ -1,6 +1,6 @@
 # RTA · Catégories de monstres
 
-Texte d'intro sur les catégories, recopié tel quel depuis `spec/rta/categories.md`.
+Texte d'intro sur les catégories, recopié tel quel depuis `docs/02-app/rta/`.
 
 ## Catégorie « Lead SPD » proposée d'office
 

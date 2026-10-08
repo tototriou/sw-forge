@@ -1,0 +1,1420 @@
+# Mon compte — Runes (`#/compte/runes`)
+
+Explorer et analyser **tout l'inventaire de runes**. Composant conteneur :
+`RunesSection` ([RunesSection.tsx](src/components/account/RunesSection.tsx)), avec
+**7 onglets internes** (« Résumé » en premier, **vue par défaut**) :
+
+| Onglet | Composant | Rôle |
+|--------|-----------|------|
+| Résumé | `RunesSummary` | Vue d'ensemble chiffrée de tout l'inventaire |
+| Liste | `RunesList` | Toutes les runes, filtrables/triables |
+| Courbes | `RunesCurve` | Courbes de qualité (actuelle + potentiels) |
+| Comparaison | `RunesCompare` | Export/import & superposition de courbes entre amis |
+| Optimisation | `RunesOptim` | Ce qu'il faut grinder/gemmer pour gagner en qualité |
+| Meules | `ComingSoon` | **En construction** — ce qui manque en meules, et où le farmer |
+| Gemmes | `ComingSoon` | **En construction** — ce qui manque en gemmes, et où le farmer |
+
+**Persistance** : les tris/filtres de chaque onglet (et l'onglet actif) sont
+conservés à la navigation via `useStickyState` ([useStickyState.ts](src/hooks/useStickyState.ts))
+— cache mémoire par clé, remis à zéro au reload (comme les données de compte).
+**Un seul détail (popover) ouvert à la fois** par section (ouvrir une rune ferme
+la précédente).
+
+> 📐 **Toutes les formules, tables (efficience, grind max, gemme max) et le
+> décodage SWEX** sont détaillés, valeurs comprises, dans
+> [feat-calcul-runes.md](feat-calcul-runes.md) — référence auto-suffisante.
+
+## Choix de la mesure — **Efficience** ou **Score SW**
+
+La qualité d'une rune peut s'afficher de deux façons, au choix :
+
+| Mesure | Ce que c'est |
+|--------|--------------|
+| **Efficience** (défaut) | convention communautaire — stat principale incluse, `/2,8` |
+| **Score SW** | le score **affiché dans le jeu** — stats secondaires uniquement |
+
+Formules et écart entre les deux : [feat-calcul-runes.md §3 et §3 bis](feat-calcul-runes.md).
+
+- ⚠️ **C'est un RÉGLAGE GLOBAL de l'application**, pas un filtre de page : il se
+  pose **une fois** dans le menu **⚙** (tout à droite de la barre de nav, voir
+  [../../03-developpeur/](../../03-developpeur/)). Aucun sélecteur n'est répété dans les pages.
+- **Persisté** dans `localStorage` (`swblacksmith-rune-metric-v1`) : un réglage
+  d'application survit au rechargement, contrairement aux filtres et tris qui
+  sont des préférences de vue jetables. Effacé par « Supprimer mes données ».
+- Implémenté par un **store externe** (`useSyncExternalStore`,
+  [useRuneMetric.ts](src/hooks/useRuneMetric.ts)) et **non** par `useStickyState` :
+  ce dernier ne relit son cache **qu'au montage**, il ne synchroniserait pas les
+  vues déjà affichées au moment du changement.
+- **Même couleur** dans les deux cas (`text-star` dans le détail, couleur de
+  rareté sur les tuiles) : c'est la même information, seule l'unité change.
+- Les deux valeurs sont calculées **une fois par import** → bascule instantanée.
+- **Portée** : **Liste**, **Courbes**, **Comparaison** et **Optimisation** suivent
+  le réglage, ainsi que le détail d'équipement en RTA/siège. Seul le **Résumé**
+  reste en efficience (ses paliers et agrégats sont calibrés dessus).
+- ⚠️ Dans l'**Optimisation** et les **Courbes de potentiel**, ce n'est pas un
+  simple changement d'unité : `runePotential` **refait le calcul** dans la mesure
+  demandée. Les stats plates ne pesant pas pareil dans les deux tables, la
+  **meilleure gemme peut différer** (typiquement entre un ATQ plat et un ATQ %).
+  Voir `OptimMetric` dans [runeOptim.ts](src/lib/runeOptim.ts).
+- **Arrondi** : en mode score, potentiels et gains sont des **entiers**
+  (`round(… × 100)`, comme la formule du jeu). L'arrondi n'intervient qu'**en
+  sortie** — les comparaisons internes du choix de gemme travaillent en pleine
+  précision, sinon deux gemmes séparées d'un centième seraient à égalité et le
+  choix deviendrait arbitraire. Les **gains** sont calculés sur les valeurs déjà
+  arrondies, pour que « gain = potentiel − actuel » soit vrai **à l'écran**.
+
+## Efficience d'une rune
+
+Formule validée (détail + tables `MAINSTAT_MAX` / `SUBSTAT_MAX` dans
+[feat-calcul-runes.md](feat-calcul-runes.md)) :
+
+```
+eff = (min(main/mainMax, 1) + Σ(substat/subMax) + innée/subMax) / 2.8 × 100
+```
+
+Substats = **valeur meule incluse**. Maxes 6★ **non antiques** → une rune antique
+peut dépasser 100 %.
+
+## Onglet Résumé — `RunesSummary`
+
+Vue d'ensemble **chiffrée** de l'inventaire : où en est le compte d'un coup d'œil,
+sans parcourir les runes. **Aucun filtre** (volontairement global), **aucune
+pagination** (rien n'est rendu par rune → un seul passage mémoïsé sur l'inventaire,
+fluide à ~2000 runes). Fichier :
+[RunesSummary.tsx](src/components/account/RunesSummary.tsx).
+
+⚠️ **À la SOURIS, la disposition de la maquette** (refonte graphique, lot
+8a-2), sans rien retirer ni ajouter :
+- un **en-tête** : « Résumé » et le nombre de runes ;
+- les six chiffres clés dans **un bandeau** (`Kpi bandeau`) : des cases
+  séparées par un filet, au lieu de six cartes ;
+- **trois colonnes** : Distribution · Qualité du stock · Marge de
+  progression, puis Par emplacement et Stats principales (sur deux
+  colonnes), puis Par set sur toute la largeur. La maquette n'a pas Par
+  set, mais il reste ;
+- **Par emplacement** en barres verticales : la hauteur suit l'efficience
+  moyenne ; le nombre de runes et le maximum sont écrits sous chaque barre.
+
+L'ordre de la souris est posé par `lg:order-*`. Au doigt, une colonne dans
+l'ordre d'avant, et les cartes par slot. ⚠️ **Au doigt, les six chiffres clés
+dans UNE carte** (lot 11c, décision 26, la maquette — qui n'en montrait que
+quatre ; les six restent) : deux colonnes (trois dès `sm`), les cases séparées
+par un filet d'1 px venu de l'écart de la grille sur fond `border-soft`
+(`CARTE_CHIFFRES_DOIGT`, `SummaryBits.tsx`) — un seul trait entre deux cases,
+aucun contre le bord. Même traitement au Résumé des artéfacts. Non repris de la
+maquette, et gardés pour le lot 13 (décision 20) :
+- le tableau des stats principales slot par slot (une information
+  nouvelle) ;
+- le lien « Voir l'optimisation » ;
+- le choix de la mesure dans la page, qui reste un réglage du ⚙.
+
+Blocs, dans l'ordre :
+
+1. **Chiffres clés** (6 tuiles) : nombre de runes (+ nb au **+15**) ·
+   **efficience moyenne du top 400** (+ médiane du même top) ·
+   **efficience moyenne du top 100** (+ `top 10 : X %`) · **meilleure**
+   (+ nb ≥ 110 %) · **nb ≥ 100 %** (+ part) · **antiques** (+ part).
+
+   > ### ⚠️ Les moyennes portent sur un TOP, jamais sur l'inventaire entier
+   >
+   > Une moyenne sur **toutes** les runes mesure surtout la **quantité de déchet
+   > stocké** : farmer sans jeter la fait baisser, jeter la fait monter — alors
+   > que le compte n'a pas bougé d'un point. Elle ne dit rien de la qualité, et
+   > n'est donc **plus affichée du tout**.
+   >
+   > `TOP_N = 400` ≈ ce qu'un compte mûr **équipe réellement** (6 runes × ~65
+   > monstres joués). En dessous de 400 runes, le top vaut l'inventaire entier —
+   > la valeur reste juste, seul le libellé perd son « top 400 ».
+   >
+   > La **médiane suit le même périmètre** que la moyenne affichée : mélanger
+   > moyenne du top et médiane globale donnerait deux nombres incomparables.
+   >
+   > ⚠️ Le sous-titre du top 100 s'écrit **« top 10 : X % »**, deux-points
+   > compris : sans lui, « top 10 126.1 % » se lit comme un seul nombre.
+2. **Distribution d'efficience** : barres par palier **≥ 110 · 100–110 · 90–100 ·
+   80–90 · 70–80 · < 70 %**, avec effectif et part du stock.
+3. **Qualité du stock** : barres *montées au +15* · *4 substats révélés* ·
+   *gemmées* (≥ 1 substat `enchant`) · *antiques* ; puis une **barre empilée des
+   raretés** aux couleurs du jeu (`RARITY_META`) + légende chiffrée.
+4. **Par emplacement** : une tuile par slot 1→6 (effectif, efficience moyenne,
+   meilleure).
+5. **Stats principales (slots 2 · 4 · 6)** : répartition des mainstats, triée par
+   volume. Les slots **impairs sont exclus** (mainstat figée : 1 ATQ, 3 DEF, 5 PV).
+6. **Marge de progression** : efficience moyenne actuelle vs **potentiel moyen
+   légendaire** (gemme + meule) avec le delta en points, **sur les mêmes 400
+   meilleures runes des deux côtés** — comparer le top 400 actuel au potentiel de
+   tout l'inventaire n'aurait aucun sens · **meules à poser**
+   (runes dont le potentiel *meule seule* dépasse l'actuel) · **gemmes à poser**
+   (runes non gemmées). Réutilise `runePotential` de
+   [runeOptim.ts](src/lib/runeOptim.ts) → cohérent avec l'onglet Optimisation.
+7. **Par set** : une tuile par set **présent** dans l'inventaire (icône + accent de
+   la couleur du set), effectif, efficience moyenne et max, **triée par volume**.
+
+## Onglet Liste — `RunesList`
+
+⚠️ **À la SOURIS, un en-tête** (refonte graphique, lot 8a-2, la maquette) :
+« Liste » et le nombre de runes de l'INVENTAIRE ; le compte FILTRÉ reste
+au-dessus des tuiles. La **pagination** (`Pager`, partagé par toutes les
+pages qui paginent) a ses flèches en `BoutonIcone` de la librairie : même
+carré de 28 px à cadre, même zone tactile de 44 px (décision 16). La
+pagination numérotée de la maquette est repoussée au lot 13 (décision 20).
+
+### ⚠️ La tuile EST la carte du jeu
+
+La tuile n'est pas un aperçu qui mènerait au détail : c'est **`RuneDetailBox`
+elle-même**, en rendu resserré (`compact`). Tout ce qu'on vient chercher dans
+l'inventaire y est d'emblée — un aperçu qui cachait les substats obligeait à
+ouvrir les runes une par une pour comparer, ce qui est exactement ce qu'on fait
+en parcourant 2 000 runes.
+
+- **En-tête sur UNE ligne** : l'**image de la rune** à gauche
+  ([RuneSlotIcon.tsx](src/components/RuneSlotIcon.tsx) — cadre orienté selon le
+  slot, symbole du set colorisé par rareté, halo si antique), la **stat
+  principale** et l'**innée** au centre, la **bannière de rareté** et la **mesure
+  choisie** à droite. Ces deux dernières occupaient auparavant leur propre bloc :
+  deux lignes rien que pour elles.
+- **Substats** : base en blanc, **part de meule en orange**, ↻ si la ligne a été
+  modifiée. ⚠️ **Alignés à gauche, valeur collée à son libellé** — et non la
+  valeur poussée au bord droit de la case : « VIT +26 +5 » se lit d'un bloc, là
+  où une valeur cadrée à droite oblige l'œil à traverser du vide sur chaque
+  ligne. C'est le rendu du jeu.
+- ⚠️ **Un clic sur la carte bascule détail ↔ total.** « VIT +26 +5 » devient
+  « VIT +31 » : la première lecture sert à **juger** une rune (ce qu'elle valait
+  d'origine, ce que la meule a ajouté), la seconde à la **comparer** à un
+  minimum, où seul le total compte. Les deux sont utiles, d'où la bascule plutôt
+  qu'un choix.
+  - ⚠️ **Le total prend la couleur du BONUS** (orange) dès qu'une meule entre
+    dedans : le nombre n'est plus la valeur d'origine, et le laisser en blanc
+    ferait croire qu'on lit toujours la base. La couleur dit « ce nombre inclut
+    la meule ».
+  - ⚠️ Une rune **sans aucune meule n'est pas cliquable** : les deux lectures y
+    sont identiques, et un clic sans effet se lit comme un défaut.
+  - L'état est **propre à chaque carte** et n'est pas mémorisé : c'est un coup
+    d'œil, pas un réglage.
+  - ⚠️ **La tuile est un VRAI `<button>`** (`RuneDetailBox imbrique={false}`), pas
+    le `<div role="button">` qu'emploie la même carte **en popover** (siège, prépa
+    RTA, optimiseur), où un `<button>` imbriqué dans le flottant cliquable serait
+    du HTML invalide. À plat dans la grille, rien n'impose ce détour — et sur
+    téléphone il **coûtait le clic** : un `<div>` rempli de texte laisse le tap
+    déclencher une **sélection de texte** (`user-select` par défaut) au lieu de la
+    bascule. Voir [interface/](../../03-developpeur/interface/) (`ZoneCliquable`).
+- La ligne **recherchée** prend un **liseré d'accent + un fond à 8 %**, avec les
+  compensations qui l'annulent exactement — sinon elle se décale par rapport aux
+  autres, et c'est ce décalage qu'on voit en premier.
+- **Bonus de set** en pied, comme dans le jeu.
+- ⚠️ **Plus de popover au clic** : il n'aurait rien montré de plus, tout étant
+  déjà sur la tuile. Le clic sert désormais à basculer détail ↔ total.
+
+#### ⚠️ Deux grilles, une par format
+
+| Format | Grille | Tuile |
+|---|---|---|
+| **Bureau** (`lg` et au-delà) | `auto-fill` à **215 px** | carte entière |
+| **Téléphone** (sous `lg`) | **deux colonnes fixes** | rendu **étroit** |
+
+- Le **215 px** du bureau est la largeur en dessous de laquelle la bannière de
+  rareté passe **sous** la stat principale — chaque tuile gagne alors une ligne,
+  l'inverse du but. En mode compact, la bannière perd son espacement de lettres
+  et se resserre **justement pour descendre jusque-là** : c'est elle qui dictait
+  la largeur minimale de toute la grille.
+- ⚠️ **Sur téléphone, `auto-fill` ne pouvait pas donner deux colonnes** : à
+  390 px d'écran il reste ~358 px utiles, soit moins que deux fois 215 px, et il
+  retombait donc toujours sur **une seule rune par rangée** — un défilement
+  interminable sur 3 000 runes. D'où deux colonnes **fixes**, et non un seuil de
+  plus.
+
+#### Le rendu ÉTROIT — le seul endroit où la carte montre moins
+
+À deux colonnes, la tuile tombe à **~175 px** (159 px de contenu). L'en-tête y
+tient sur une ligne : icône 36 px + stat principale + bloc rareté/mesure. Trois
+retraits, et trois seulement — chacun rendu nécessaire par le précédent :
+
+1. **La bannière prend son abréviation** (`RARITY_META.court` — « Lég », « Hér »,
+   « Rare », « Mag », « Com »). ⚠️ **Le seul libellé du jeu abrégé de toute
+   l'app** ; le mot entier reste en `title`. « LÉGENDAIRE » seul prenait la
+   moitié de la largeur utile.
+2. **La mesure abrège son libellé** — « Effi » / « Score », le début du mot
+   entier et non un autre mot. « Score SW » dictait la largeur du bloc de droite
+   (~66 px contre ~47 px pour la bannière abrégée). ⚠️ **Le libellé est gardé,
+   pas supprimé** : la mesure est un réglage *global*, elle ne se lit nulle part
+   ailleurs sur la page, et une valeur nue ne dirait pas ce qu'on mesure.
+3. **Le bonus de set n'est pas rendu.** C'est la ligne la plus longue de la carte
+   (« Chance de tour supplémentaire 22% »), et la seule qui se **déduit
+   d'ailleurs** : le symbole de set est déjà porté par l'icône.
+
+Et deux ajustements, qui ne sont pas des retraits :
+
+- Le **cadre de rune passe de 36 à 30 px**. ⚠️ **Pas en dessous de 30** : le
+  symbole de set gravé dans le cadre cesse alors de se reconnaître, or c'est lui
+  qui dit à quel set appartient la rune — l'abréviation de rareté ne le dit pas,
+  et le bonus de set n'est plus là.
+- **Tout l'en-tête descend au cran `nano`** : stat principale, innée, mesure et
+  bannière. C'est ce qui permet de **garder** le libellé de la mesure plutôt que
+  de le supprimer. ⚠️ La stat principale y rejoint l'innée en TAILLE, mais leur
+  hiérarchie tient toujours par le **poids** et la **couleur** (`font-black` +
+  `ink` contre `font-semibold` + `water`) — la taille n'était que le troisième
+  marqueur. La bannière resserre aussi son rembourrage (`px-1`) : à cette
+  échelle, `px-1.5` autour de « LÉG » se lisait comme une pastille de filtre.
+
+| | Bureau | Étroit |
+|---|---|---|
+| Cadre de rune | 36 px | **30 px** |
+| Stat principale | `sm` (13 px) | **`nano`** (10 px) |
+| Innée | `micro` (11 px) | **`nano`** (10 px) |
+| Mesure | `micro`, « Score SW » | **`nano`**, « Score » |
+| Bannière | `micro`, « LÉGENDAIRE » | **`nano` `px-1`**, « LÉG » |
+| Bonus de set | en pied | — |
+
+##### ⚠️ Les libellés longs restent sur deux lignes — c'est assumé
+
+À ~175 px de tuile il reste **~59 px** à gauche de la colonne rareté/mesure
+(159 de contenu − 30 de cadre − 16 d'écarts − 54 pour « Score 293 », le plus
+long des deux éléments empilés à droite). Or « Taux Crit +58% » occupe ~84 px
+même à 10 px : une ligne unique demanderait ~7 px, illisible.
+
+Ce qui la donnerait, c'est de faire **descendre rareté et mesure sous le
+texte** — 121 px alors disponibles, « Taux Crit +58% » tiendrait en 12 px.
+**Écarté volontairement** : l'en-tête resterait sur deux lignes de toute façon
+(bannière et mesure sont déjà empilées), pour un gain qui ne porte que sur les
+trois libellés de 14 caractères — « Taux Crit », « Précision », « Dmg Crit ».
+Les autres (`PV +2448`, `VIT +42`, `DEF +160`) tiennent déjà sur une ligne.
+
+⚠️ **`etroit` et `resserre` sont deux axes distincts, qui se cumulent.**
+`resserre` rogne les corps, les marges et les interlignes — il ne retire jamais
+rien. `etroit` retire. Confondre les deux aurait fait disparaître le bonus de set
+partout où la carte est déjà compacte (siège, prépa RTA), où la place ne manque
+pas.
+> La même carte sert **en popover** ailleurs dans l'app (détail d'un monstre,
+> candidat de l'Optimizer) : elle y est rendue **sans `compact`** et sans image,
+> celle-ci étant déjà sur l'élément qui a ouvert le flottant.
+
+- **Filtres** : **sets** (`SetFilter`) et **slot** (`SlotFilter`) — voir
+  ci-dessous — plus **antiques**, et la **propriété secondaire** (ci-dessous).
+- La **mesure** (réglage global, voir plus haut) pilote la valeur des tuiles, le
+  départage des tris et le repère « meilleur… » de l'en-tête.
+
+### Tri — ⚠️ les entrées DU JEU, dans SON ordre
+
+Un joueur qui trie ses runes cherche l'entrée qu'il connaît, pas une
+reformulation : les libellés sont donc **ceux du jeu**, dans l'ordre de sa liste
+déroulante (règle de vocabulaire du [conventions](../../03-developpeur/)). Calcul pur dans
+[runeSort.ts](src/lib/runeSort.ts), testé par
+[rune-tri.test.ts](tests/rune-tri.test.ts).
+
+⚠️ **Le tri de la Liste reste une LISTE DÉROULANTE**, à la hauteur des
+filtres de la ligne à la souris (32 px) — refonte graphique, lot 8a. Des
+onglets (`Segmented`) ont été essayés à la demande du mainteneur (« le tri des
+runes ne peut pas être un segmented button comme le reste ? »), puis défaits :
+neuf entrées font ~920 px (« ça fait peut-être un peu gros »). Le tri de
+l'**Optimisation**, cinq entrées (~640 px), est en onglets à la souris ; au
+doigt, les deux restent des listes déroulantes (lot 11).
+
+⚠️ **« Trier par » est AU-DESSUS de la propriété secondaire**, aux deux
+formats (le mainteneur, lot 8a : « mets le Trier par au-dessus de la propriété ») —
+trier vient avant filtrer, comme dans le panneau mobile, où le bloc de tri
+remontait déjà en tête. L'avertissement des deux tris « propriété » dit donc
+« Choisis une propriété **ci-dessous** pour trier dessus » (il disait
+« ci-dessus », faux au doigt depuis que le tri y était remonté).
+
+⚠️ **Le panneau « Filtrer mes runes » (téléphone) est rangé en deux blocs
+intitulés** (refonte graphique, lot 11c, décision 26, la maquette) :
+**« Trier »** (le sélecteur et le sens ; l'intitulé « Trier par » y est masqué,
+redondant), puis **« Filtrer »** (sets, emplacement, antiques, propriété
+secondaire), puis **« Effacer les filtres »** — le même bouton qu'au bout de la
+ligne de filtres à la souris (`EffacerFiltres`, décision 20). Le tri reste en
+tête, par l'ORDRE DU DOM ; la maquette mettait « Filtrer » d'abord. La règle
+d'`index.css` qui le remontait (`order: -1`) est retirée.
+
+| Entrée | Clé de tri |
+|--------|-----------|
+| **Grade** | rareté, puis étoiles |
+| **Propriété secondaire** | la valeur de la **1ʳᵉ propriété cherchée**, meule comprise |
+| **Sous-propriété avant meule** | la même, **meule déduite** (`grind`) |
+| **Nv. d'amélioration** | le `+X` |
+| **Obtenu** | les plus récentes d'abord |
+| **Total des sous-prop.** | somme des quatre propriétés |
+| **Score** *ou* *Efficience* | la mesure choisie dans le menu ⚙ (défaut) |
+| *Slot* | du 1 au 6 |
+
+⚠️ **Une seule entrée de mesure, celle du menu ⚙** (refonte graphique,
+décision 21, [retrait #21] — le mainteneur : « il y a Score et Efficience mais
+c'est la même chose ») : « Score » (le score du jeu) quand le ⚙ est sur
+Score SW, « Efficience » (notre mesure, %) quand il est sur Efficience. Les
+deux entrées côte à côte classaient aussi par la mesure qu'on ne voit pas sur
+les tuiles, pour un classement presque identique. Un tri mémorisé sur l'autre
+mesure suit le ⚙ (et un tri inconnu retombe sur la mesure active).
+
+« Efficience » et « Slot » n'existent pas dans le jeu et **ferment** la
+liste : l'efficience est notre mesure, le slot sert au repérage.
+
+- ⚠️ **« Avant meule » DÉDUIT la meule**, il ne l'ignore pas : deux runes à
+  20 % ne se valent pas si l'une y est arrivée seule et l'autre à coups de
+  meules. C'est toute la raison d'être de cette entrée.
+- ⚠️ **Une rune qui ne PORTE PAS la propriété passe derrière** toutes celles qui
+  la portent, quelle que soit son efficience — et **non « à 0 »**, ce qui la
+  mêlerait aux plus faibles. Absent et nul ne sont pas la même chose.
+- Les deux tris « propriété » n'ont **rien à classer sans critère posé** : ils
+  retombent sur la mesure, et **le disent** sous le sélecteur — sans ça on croit
+  le tri cassé.
+- ⚠️ **« Obtenu » se lit sur le `rune_id`**, croissant avec le temps : l'export
+  ne porte **aucune date d'obtention**. C'est une approximation, mais elle rend
+  exactement l'ordre du jeu.
+- ⚠️ **« Total des sous-prop. » additionne des unités différentes** (PV plats et
+  %), ce qui n'a mathématiquement aucun sens — mais c'est ce que fait le jeu, et
+  c'est ce total-là que le joueur reconnaît. On le reproduit tel quel plutôt que
+  d'inventer une mesure « correcte » qu'il ne retrouverait nulle part.
+- Un tri **mémorisé qui n'existe plus** retombe sur le défaut : sans ce
+  garde-fou, le comparateur serait `undefined` et la page blanche.
+
+#### Le SENS du tri — un axe à part, un bouton
+
+Un bouton collé au sélecteur retourne le classement
+([BoutonSensTri](src/components/BoutonSensTri.tsx), `SensTri` dans
+[tri.ts](src/lib/tri.ts)). Il vaut pour le **critère courant, quel qu'il soit**.
+
+- ⚠️ **Un AXE, pas deux entrées de plus par critère.** Doubler la liste
+  déroulante (« Score ↓ », « Score ↑ »…) l'aurait allongée de neuf entrées, sans
+  que rien ne dise que ce sont les mêmes classements à l'envers.
+- ⚠️ **Décroissant par défaut**, partout : une liste d'inventaire répond d'abord
+  à « qu'est-ce que j'ai de mieux ? ». L'ordre inverse sert une question précise
+  (« qu'est-ce que je peux nourrir ? »), qu'on pose en la demandant.
+- ⚠️ **L'ABSENCE reste en queue dans les DEUX sens.** Une rune qui ne porte pas
+  la propriété triée n'est pas une petite valeur : la remonter en tête là où l'on
+  cherche justement les plus faibles serait un contresens. C'est pourquoi le sens
+  est passé **dans** `comparateurRunes` plutôt qu'appliqué de l'extérieur
+  (`-cmp(a, b)`), ce qui aurait retourné cette règle avec le reste. Épinglé par
+  [rune-tri.test.ts](tests/rune-tri.test.ts).
+- L'icône dit l'**état courant** (flèche vers le bas = du plus grand au plus
+  petit), comme un tableur ; le `title` annonce l'action.
+- ⚠️ **Dans le panneau mobile, il reste À CÔTÉ du sélecteur** : tout y prend la
+  largeur, ce qui l'aurait renvoyé seul à la ligne suivante. Une règle dédiée
+  rend la largeur au sélecteur et laisse le bouton à sa taille (voir
+  `index.css`, `[data-tri-bloc] select`).
+- Le même bouton sert à l'**Optimisation** et à la **liste d'artéfacts** (voir
+  [feat-artefacts.md](feat-artefacts.md)) : un seul geste à apprendre.
+
+### Filtre par propriété secondaire — ⚠️ la MODALE du jeu
+
+Le jeu pose la question dans l'autre sens que quatre menus déroulants : au lieu
+de « quelle propriété pour la case 1 ? », il montre **toutes les propriétés** et
+on coche celles qu'on veut. On lit d'un coup ce qui est disponible, et on compare
+les bornes d'une ligne à l'autre — impossible à travers des menus qui n'en
+montrent qu'une à la fois.
+
+Deux pièces, reprises telles quelles :
+
+| Pièce | Fichier | Rôle |
+|-------|---------|------|
+| **Barre de rappel** | [SubSearchBar.tsx](src/components/account/SubSearchBar.tsx) | 2 ou 4 cases numérotées + la bascule 2 ↔ 4 |
+| **Recherche détaillée** | [SubSearchDialog.tsx](src/components/account/SubSearchDialog.tsx) | la modale : toutes les propriétés, **Min** et **Max** |
+
+- ⚠️ **Les cases sont un RAPPEL, pas un formulaire.** Elles affichent le critère
+  posé (« VIT +25 ~ +37 ») et ne servent qu'à ça. Toute la saisie vit dans la
+  modale : quatre menus déroulants occupaient toute la largeur pour n'afficher
+  que trois lettres, et un seuil unique ne savait pas dire « entre 25 et 37 ».
+- **Bascule 2 ↔ 4 cases**, par les **deux icônes du jeu** : deux barres empilées
+  (`Rows2`) pour 2 propriétés, une grille 2×2 (`Grid2x2`) pour 4. Elles disent la
+  forme de la grille qu'on obtient, sans un mot.
+  - ⚠️ L'icône montre l'état **à venir**, pas l'état courant : c'est un bouton,
+    on y lit ce qu'il va faire.
+  - ⚠️ Le mode ne fait que **cacher** des cases : les critères 3 et 4 restent
+    posés si on repasse à 2 et réapparaissent tels quels. Les effacer ferait
+    perdre une recherche en changeant simplement de vue.
+  - ⚠️ **Le mode 4 s'impose** dès qu'il y a plus de deux critères, et le bouton
+    se désactive : un critère caché filtrerait la liste sans rien montrer à
+    l'écran — on chercherait pourquoi il manque des runes.
+  - Le maximum de la **modale suit le mode** : en 2 cases, cocher une 3ᵉ
+    propriété poserait un critère invisible dans la barre.
+- ⚠️ **Min ET Max**, pas un seuil unique. « VIT entre 25 et 37 » est la recherche
+  courante quand on trie ses runes.
+  - ⚠️ Un `max` **absent** vaut « pas de plafond » — ce n'est **pas** « au plus
+    zéro ». C'est ce qui permet de ne borner que d'un côté.
+- **Cliquer une case**, vide ou pleine, ouvre la modale. ⚠️ Pas de bouton « … »
+  en plus : les cases y mènent déjà, et un second déclencheur pour le même geste
+  n'ajoutait qu'un doublon à côté de la bascule 2/4 — deux carrés voisins dont
+  un seul change la forme de la grille.
+- ⚠️ La modale travaille sur un **brouillon local**, validé par **OK** : écrire
+  directement dans l'état ferait filtrer la liste derrière à chaque frappe, et
+  « Annuler » ne voudrait plus rien dire.
+- **4 au plus** (une rune ne porte que 4 propriétés). Au-delà, les cases non
+  cochées sont **grisées et non retirées** : on voit ce qui existe et pourquoi
+  c'est refusé, plutôt qu'une liste qui rétrécit sous le curseur.
+- ⚠️ Les critères se cumulent **en ET, bornes comprises**, et la **première**
+  sert de clé aux deux tris « propriété » : la position porte du sens.
+- ⚠️ **Les bornes sont TOUJOURS affichées**, comme dans le jeu — pas seulement
+  une fois la ligne cochée. On voit d'emblée que chaque propriété se borne, et on
+  compare les intervalles d'une ligne à l'autre. Elles sont **estompées** tant
+  que la ligne est décochée, pour que la lecture reste celle des libellés.
+- ⚠️ **Saisir une borne COCHE la ligne** : taper « 25 » en face de VIT veut dire
+  qu'on cherche de la VIT. Sans ça, on remplit un champ qui ne sert à rien tant
+  qu'on n'a pas trouvé la case.
+  - **Vider les deux bornes ne décoche pas** pour autant : « cette propriété,
+    sans borne » est une recherche valide — c'est même la plus courante. On ne
+    retire une ligne que par sa case.
+  - Un **min à 0 s'affiche vide** : zéro ne filtre rien, le champ montre donc son
+    placeholder comme s'il n'était pas rempli.
+
+> L'inventaire d'**artéfacts** utilise **le même dispositif** (voir
+> [feat-artefacts.md](feat-artefacts.md)) : mêmes composants, même bascule, même modale.
+> Seule la **largeur** diffère — 520 px là-bas, 380 ici : « Dgts supp. en prop.
+> de ATQ » ne tient pas dans la largeur d'un « VIT ».
+- **Pagination** ([Pager.tsx](src/components/account/Pager.tsx)) : 60 tuiles/page
+  → DOM borné (fluide même à ~2000 runes). Composant **partagé par toutes les
+  listes paginées** de l'app.
+  - Trois éléments : flèche précédente, **champ de saisie de la page**, flèche
+    suivante. Les flèches sont de simples icônes ; c'est le champ qui compte.
+  - ⚠️ **Le champ est indispensable** : à ~2000 runes on dépasse 30 pages, et
+    avancer d'une flèche à la fois est intenable. Une liste de numéros ne
+    tiendrait pas sur une ligne à ce volume.
+  - La saisie est **séparée de la page réelle** : on doit pouvoir vider le champ
+    ou taper « 12 » **sans sauter à la page 1** au premier chiffre. Elle est
+    validée à **Entrée** ou à la **perte de focus**, bornée à `[1, N]`, annulée
+    par **Échap**, et resynchronisée quand la page change ailleurs (filtre, tri).
+- **Rotation animée** : les tuiles utilisent une **clé positionnelle** (et non
+  l'id de la rune), donc elles sont **réutilisées** d'une page/d'un filtre/d'un
+  tri à l'autre → le cadre **pivote** vers l'orientation de son nouveau slot au
+  lieu de sauter. Constante `SPIN` dans
+  [RuneSlotIcon.tsx](src/components/RuneSlotIcon.tsx) (300 ms, `ease-out`),
+  partagée avec la roue de [MonsterGear.tsx](src/components/MonsterGear.tsx).
+
+## Onglet Courbes — `RunesCurve`
+
+⚠️ **À la SOURIS** (refonte graphique, lot 8a-3, la maquette) :
+- un en-tête : « Courbes », puis ce qu'elles tracent (« Efficience de chaque
+  rune, de la meilleure à la moins bonne. », ou « Score », selon le ⚙) ;
+- le graphe et sa légende côte à côte : la légende (`CurveLegend`, en
+  colonne) passe dans une carte « Séries » à droite du graphe.
+
+Au doigt, la rangée sous le graphe d'avant (lot 11). « Ajouter un set » et
+« Voir en tableau » de la maquette sont repoussés au lot 13 (décision 20).
+
+⚠️ **L'infobulle de survol est du HTML posé sur le graphe** (lot 8a — le mainteneur :
+« revois un peu les infobulles pour que ça rende mieux ») : le gabarit des
+panneaux flottants de l'app (fond `panel`, contour, ombre, texte 12 px ; la
+maquette `.tt`), qui suit le thème. Dessinée en SVG, c'était une boîte aux
+couleurs écrites en dur, sombre même en thème clair, et les noms étaient
+coupés à 16 caractères ; ils sont maintenant tronqués à la largeur réelle.
+Mêmes informations, même place : le rang (« N runes »), puis une ligne par
+courbe, point de couleur, nom, valeur alignée à droite. La grille, les
+graduations, les titres d'axes et le liseré des points passent eux aussi aux
+tokens (`border-soft`, encres atténuées, `panel`). Vaut aussi pour la
+Comparaison, qui partage `CurveChart`.
+
+Trois courbes, chacune **triée par valeur décroissante** (ordonnée = la **mesure
+choisie** — efficience % ou score SW, l'axe et l'infobulle s'adaptent ; abscisse =
+nombre de runes) :
+
+- **Actuelle** (bleu, avec aire) — l'efficience des runes aujourd'hui.
+- **Potentiel Héro** (violet) / **Potentiel Légend** (orange) — l'efficience si
+  chaque rune recevait son optimisation maximale (voir onglet Optimisation) ;
+  identiques aux tris « Potentiel héroïque / légendaire » de l'Optimisation.
+
+Détails :
+- Rendu SVG **sobre** et **maison** (aucune dépendance) via
+  [CurveChart.tsx](src/components/account/CurveChart.tsx) : courbes **lissées**
+  (Catmull-Rom → Bézier), aire discrète sous « Actuelle », grille, graduations,
+  titres d'axes, axe Y ajusté aux données, sous-échantillonnage ~240 points.
+- **Interactif** : au survol, ligne verticale + points sur chaque courbe +
+  **infobulle**, ordonnée de la plus haute à la plus basse valeur au point
+  survolé. Chaque ligne = **pastille de couleur · NOM de la courbe · valeur**,
+  valeurs **alignées à droite** pour se comparer d'un coup d'œil.
+  - ⚠️ **Le nom est indispensable** : à trois courbes superposées, une pastille
+    de couleur seule obligeait à faire l'aller-retour avec la légende pour savoir
+    qui valait quoi.
+  - Le nom est **borné à 16 caractères** (le complet reste dans la légende) et la
+    **largeur de la boîte est mesurée sur le contenu réel** : en dur, les noms
+    débordaient.
+### ⚠️ Interactif au DOIGT, et lisible en plein écran
+
+Le graphe garde son gabarit de **820 × 380** sur les deux formats. Sur un
+téléphone de 390 px il est donc réduit à **42 %**, et ses graduations écrites en
+11 px arrivent à l'écran en **4,6**. Plutôt qu'un second graphe pour l'écran
+étroit, on donne le moyen de lire celui-ci **en grand**.
+
+- ⚠️ **`touch-action: pan-y` sur le SVG — c'est lui qui rend le graphe
+  interactif au doigt.** Sans lui le navigateur prend le glissement horizontal
+  pour un début de défilement, s'approprie le geste et n'envoie plus aucun
+  `pointermove` : le graphe était **muet sur téléphone** alors que tout le code
+  d'interaction était là. `pan-y` et non `none` : le défilement **vertical** de
+  la page doit continuer de passer, sinon on reste coincé en travers du graphe.
+- **Bouton plein écran**, en bas à **droite** du cadre, **sous `lg` seulement** :
+  à la souris, le graphe a déjà la largeur pour laquelle il est dessiné. Sur le
+  même bord que le bouton d'aide, qui occupe le haut : les deux commandes du
+  graphe se lisent sur une même verticale, du côté du pouce, plutôt que dans
+  deux angles opposés.
+- ⚠️ **Les deux boutons font 28 px, et portent `data-cible-fine` +
+  `cible-tactile` ENSEMBLE.** Le premier exempte de la règle tactile globale
+  (`min-height: 40px` au doigt), qui aurait étiré un bouton de 28 px en **ovale
+  de 28 × 40** — le piège que documente index.css. Le second lui rend ses 44 px
+  de zone touchable par un pseudo-élément qui déborde : la cible reste
+  réglementaire, le dessin reste petit. Retirer l'un des deux casse soit la
+  forme, soit la visée.
+- ⚠️ **On TOURNE le graphe, on ne force pas l'appareil.** Verrouiller
+  l'orientation (`screen.orientation.lock`) exige le plein écran natif, que
+  Safari iOS n'accorde qu'à la vidéo : le geste aurait marché sur un téléphone
+  et pas sur l'autre. Une rotation CSS donne le même résultat partout — et on ne
+  tourne **que si l'écran est encore en portrait**, l'appareil tourné
+  physiquement restant correct.
+  - La boîte tournée **échange largeur et hauteur** : après un quart de tour, la
+    largeur du dessin longe la hauteur de l'écran. Sans cet échange, le graphe
+    dépasserait des deux côtés.
+  - Centrage `translate(-50%, -50%)` **avant** la rotation — tourner d'abord
+    ferait pivoter aussi le déplacement.
+- ⚠️ **Le pointeur se convertit par `getScreenCTM()`, plus par le cadre du
+  SVG.** `getBoundingClientRect()` rend un rectangle **aligné sur l'écran** :
+  dès que le graphe est tourné, il décrit la boîte englobante de la rotation et
+  le point visé tombait n'importe où. La matrice inverse ramène un point de
+  l'écran dans le repère du dessin, quelles que soient les transformations
+  traversées.
+- Plein écran en `z-[70]`, le niveau des **dialogues** : sans quoi la barre
+  d'onglets et le panneau de navigation resteraient posés dessus.
+- ⚠️ **En plein écran, le clic n'ouvre plus de rune.** On y vient lire la courbe
+  en grand, et le geste s'y confond avec le pincement : un doigt qui se pose
+  pour zoomer ouvrait une carte de rune par-dessus le graphe. Le détail reste à
+  sa place, dans la page.
+
+#### ⚠️ Le zoom est fait DANS le graphe, pas délégué au navigateur
+
+`index.html` pose `maximum-scale=1` pour empêcher Safari iOS de zoomer tout seul
+à la mise au point d'un champ — une contrainte pesée et documentée là-bas, qu'on
+ne défait pas pour un graphe. Le pincement agit donc sur la **fenêtre de rangs**
+du dessin : même résultat à l'œil, identique sur tous les navigateurs, et rien
+n'est retiré au reste de l'application.
+
+- **Un doigt lit la courbe, deux la zooment.** C'est le nombre de pointeurs
+  posés qui départage les deux gestes.
+- ⚠️ **Le zoom porte sur l'axe des RANGS seul**, jamais sur la hauteur. Les
+  trois mille runes s'écrasent en largeur, pas en hauteur ; et une échelle
+  verticale qui bougerait ferait mentir la comparaison entre courbes — deux
+  points à la même hauteur doivent valoir la même chose.
+- Le rang sous le **milieu des doigts ne bouge pas** : on zoome là où l'on
+  regarde, et non vers le centre du graphe. Le déplacement de ce milieu fait
+  glisser la fenêtre, ce qui donne le **panoramique dans le même geste**.
+- Plancher à **5 rangs** : en dessous, la courbe n'est plus qu'un segment entre
+  deux runes et le lissage n'a plus rien à lisser.
+- ⚠️ **Détourage de l'aire de tracé** (`clipPath`) : zoomé, le classement déborde
+  des deux côtés de la fenêtre. `downsample` parcourt **toutes** les runes, et
+  celles hors fenêtre se dessinaient par-dessus les graduations Y et jusque dans
+  les marges.
+- Le zoom **se remet à plat en quittant le plein écran** : gardé, on serait
+  revenu à la page sur un graphe montrant cinquante runes sans rien qui dise
+  pourquoi.
+
+#### ⚠️ L'aide « Comment lire ce graphe ? » a DEUX supports
+
+Le texte fait une demi-page. Ancré à un bouton de 28 px, il descendait sous le
+bas de l'écran et ses dernières lignes passaient **derrière la barre
+d'onglets** (`z-40` contre le `z-20` du popover). Le plafonner à `60dvh` et le
+faire défiler n'a pas suffi : un pavé de texte dans une bulle flottante reste
+illisible sur un téléphone.
+
+| Format | Support |
+|---|---|
+| **Bureau** | popover ancré au bouton — l'écran est haut, le texte tient, et le geste (clic hors zone) est celui d'un popover |
+| **Téléphone** | **`MobileSheet`** — il monte du bas, se pose au-dessus de la barre d'onglets, prend toute la largeur et défile |
+
+- Le texte est **écrit une fois** et passé aux deux : deux copies auraient
+  divergé à la première correction.
+- ⚠️ L'écouteur de **clic extérieur** ne vaut que pour le popover : le panneau
+  a son propre voile et sa croix, et cet écouteur l'aurait refermé au premier
+  appui à l'intérieur.
+- ⚠️ **Ce patron est le composant partagé [HelpPopover.tsx](src/components/HelpPopover.tsx)** :
+  bouton `BoutonIcone` + bulle `FlottantAuto` (souris) + `MobileSheet` (doigt),
+  le tout écrit une seule fois. Il sert ici, à l'onglet **Optimisation**
+  (« Comment est-ce calculé ? ») et à l'**Optimiseur d'Outils**. Trois aides qui
+  redessinaient chacune leur bouton et leur bulle à la main — dont deux avec un
+  `z-index` et une ombre posés en dur, hors `FlottantAuto` — ont convergé dessus.
+  `title` sert de titre au panneau et d'en-tête à la bulle ; `ariaLabel` donne au
+  bouton un libellé distinct quand il diffère (« Comment lire ce graphe ? »).
+
+#### ⚠️ Pas de panneau « Options » ici — les filtres restent dans la page
+
+Les Courbes portent pourtant les mêmes filtres que la Liste (sets, slots,
+antiques). Ils ont été descendus dans le tiroir, puis **remontés** : l'écran ne
+porte alors plus qu'un graphe et deux réglages, la page paraît **vide**, et le
+bouton flottant annonce un contenu qu'on ne devine pas.
+
+La Liste, elle, a **3 000 tuiles** à montrer : chaque rangée de filtre lui prend
+un écran de résultats, et la place libérée profite immédiatement.
+
+> ⚠️ **Avoir des filtres ne suffit pas à mériter le panneau.** Il faut aussi
+> que la page ait de quoi remplir la place qu'ils libèrent. C'est ce qui décide
+> de l'appartenance à `pageAPanneau` ([App.tsx](src/App.tsx)) — au même titre
+> que l'Optimiseur, dont les réglages SONT le contenu.
+
+- ⚠️ **Cliquer un point ouvre la rune correspondante**, sous le graphe. On lit
+  « ma 12ᵉ meilleure rune vaut 78 % » ; la question suivante est toujours
+  « laquelle ? », et il fallait aller la chercher à la main dans la liste.
+  - Le rang cliqué est marqué d'une **verticale tiretée** avec un **point sur
+    chaque courbe ouverte** — ⚠️ **exactement le repère du survol**, ni plus
+    épais ni plus gros. C'est le même geste de visée, seulement **figé** : le
+    marquer davantage en faisait un autre objet, une graduation du graphe. Sa
+    seule différence est qu'il **survit au départ du pointeur**, ce qui est tout
+    son rôle — dire d'où sort le détail lu en dessous une fois la souris partie
+    vers les flèches.
+    - ⚠️ Les couleurs des attributs SVG s'écrivent **`rgb(var(--accent))`** :
+      posés nus, les tokens (des triplets) rendent l'attribut invalide et le
+      trait n'est **pas peint du tout**, sans la moindre erreur. Voir
+      [../../03-developpeur/interface/](../../03-developpeur/interface/).
+  - ⚠️ **Une carte par courbe OUVRABLE, à ce rang** — et ce que « ouvrable »
+    veut dire diffère selon l'onglet, parce que les courbes n'y disent pas la
+    même chose :
+
+    | Onglet | Ouvrables | Pourquoi |
+    |--------|-----------|----------|
+    | **Courbes** | « Actuelle » seule | Les potentiels ne sont pas d'autres runes : c'est la **même box** projetée dans une autre hypothèse. Trois cartes quasi identiques pour une seule question — « quelle est cette rune ? ». |
+    | **Comparaison** | **toutes** celles qui portent leurs runes | Chaque courbe est un **compte différent** : « à ma 12ᵉ meilleure rune, qu'ont-ils, eux ? ». N'en montrer qu'une obligeait à recliquer chaque courbe pour la même question. |
+
+    Les cartes sont ordonnées **par valeur décroissante**, comme les courbes au
+    point X et comme l'infobulle de survol : même lecture partout. Une courbe
+    **masquée** dans la légende n'apparaît pas (elle n'atteint pas le graphe).
+  - Le détail est précédé de l'**image de la rune** (cadre du slot + symbole du
+    set, `RuneSlotIcon`) puis de son **set** et de son **slot**. ⚠️ L'image
+    d'abord : c'est à elle qu'on reconnaît une rune d'un coup d'œil, le texte ne
+    fait que confirmer. **Même rendu que les tuiles de l'onglet Liste**, pour
+    retrouver la même rune sans changer de langage d'un onglet à l'autre.
+  - ⚠️ **Sous le graphe, dans le flux — pas en flottant.** La carte d'une rune
+    fait ~300 px de haut : un popover de cette taille ancré sur un point
+    recouvrirait la courbe qu'on vient de lire.
+  - Le détail est **centré**, précédé d'une **barre de navigation** : les deux
+    flèches **côte à côte, juste sous la courbe**, encadrant le rang
+    (« n° 12 / 340 »). Elles font parcourir le **classement** — l'axe du graphe
+    au-dessus —, pas la carte du dessous : les placer de part et d'autre de la
+    carte les éloignait l'une de l'autre alors qu'on les enchaîne.
+    - Le rang est à **largeur fixe**, sinon les flèches se déplacent au passage
+      de « 9 » à « 10 ». Il n'est **pas répété** dans la carte.
+    - Elles **bornent au lieu de boucler** (le classement a un début et une
+      fin ; repasser du dernier au premier ferait croire à un saut de position)
+      et sont désactivées aux extrémités. Les **touches ← →** font la même chose.
+  - Re-cliquer le même point **referme** (le geste est son propre inverse) ;
+    **Échap** et la croix ferment aussi.
+  - ⚠️ **Cliquable seulement là où la courbe porte ses runes**
+    (`CurveSeries.runes`, aligné sur `effs`, même tri). Une courbe **partagée**
+    ne porte que des valeurs : elle reste en lecture seule. Un **fichier de
+    compte**, lui, porte ses runes — ses points sont donc ouvrables, dans les
+    deux sous-onglets de Comparaison.
+  - Le **nom de la courbe** est rappelé sur chaque carte dès qu'il y a plusieurs
+    ouvrables ; masqué sinon, où il n'apprendrait rien.
+  - On mémorise le **rang seul** : c'est une **position du classement**, et
+    c'est cette position qu'on lit sur toutes les courbes à la fois. La
+    navigation porte sur le rang le plus élevé des courbes ouvrables (le
+    **max**, pas le min : une courbe plus courte cesse simplement d'être
+    affichée, elle ne bride pas les autres).
+  - On mémorise le **rang**, jamais les runes : les séries se recalculent à
+    chaque changement de filtre ou de mesure, et des runes figées désigneraient
+    un point disparu.
+- **Légende sous le graphe** : en **rangée horizontale** (les entrées côte à
+  côte), **pastille de couleur + nom** uniquement — pas de valeurs. Cliquer un
+  nom **masque/affiche** sa courbe. Composant **partagé avec la Comparaison**,
+  [CurveLegend.tsx](src/components/account/CurveLegend.tsx) (voir plus bas).
+- **Filtres** : sets (`SetFilter`), slot (`SlotFilter`), antiques (`AncientFilter`,
+  le **3 états** commun — voir l'onglet Optimisation).
+- **Nombre de runes** : champ libre (défaut **400**) + **Tout**.
+- **Mode** : **Gemme + meule** / **Meule seule** (voir Optimisation), suivi du
+  bouton **« Autoriser un regemme différent »** (éteint par défaut, grisé en
+  « Meule seule » — voir Optimisation § Modes). La rangée passe à la ligne
+  (`flex-wrap`) au lieu de déborder sur téléphone.
+- **Aide « ? »** superposée en coin du graphe (popup fermable au clic extérieur)
+  expliquant la lecture et renvoyant vers l'Optimisation.
+
+## Onglet Comparaison — `RunesCompare`
+
+Se comparer entre amis en superposant plusieurs courbes.
+
+⚠️ **À la SOURIS** (refonte graphique, lot 8a-3, la maquette) :
+- le titre « Comparaison » en tête de la rangée des sous-onglets ;
+- dans les deux sous-onglets, le graphe et sa légende côte à côte, la
+  légende dans une carte « Séries », comme l'onglet Courbes.
+
+Au doigt, rien ne change (lot 11). Le tableau chiffré entre comptes et le
+« Retirer » par ligne de la maquette sont repoussés au lot 13 (décision 20).
+
+### ⚠️ DEUX sous-onglets, parce que les deux formats ne portent pas la même chose
+
+| Sous-onglet | Ce qu'il AFFICHE | Filtres disponibles |
+|---|---|---|
+| **Courbes partagées** | **tout l'importé** : courbes partagées **et** fichiers de compte | **nombre de runes** seulement |
+| **Fichiers de compte** | **les fichiers de compte seulement** | **sets · slot · antiques · nombre de runes** |
+
+⚠️ **L'inclusion ne va que dans un sens.** Un fichier de compte se réduit
+toujours à des points, donc il a sa place dans l'onglet Courbes. L'inverse est
+impossible : une courbe partagée n'a pas les runes sur lesquelles les filtres de
+l'onglet Comptes s'appliquent. « Courbes » est donc la **vue d'ensemble**,
+« Comptes » la **vue filtrable**.
+
+Pourquoi cette séparation plutôt qu'un onglet unique :
+
+- Un **export de courbe ne contient que les points**, et c'est **volontaire** —
+  il ne doit transporter **aucune donnée de compte**. Les sets, l'emplacement et
+  la rareté n'y sont donc pas : un filtre par set y est **impossible**, pas
+  seulement « pas encore fait ».
+- Pire, l'appliquer à ma seule courbe **fausserait la comparaison** : on
+  opposerait *mon top Violent* à *tout le stock* de l'autre.
+- Avec un **fichier de compte**, les runes sont là : le **même filtre est
+  appliqué à tout le monde**, donc la comparaison reste honnête.
+- Un onglet unique aux filtres actifs une fois sur deux se lirait comme un bug.
+
+Le sous-onglet « Courbes partagées » **explique l'absence** des autres filtres,
+sinon on la prend pour un oubli.
+
+### Courbes partagées
+
+- **Exporter** (icône **Upload ↑**) : demande un nom, produit un **JSON lisible**
+  (`format: "swblacksmith/courbe-runes"`, **version 2**, voir
+  [runeCurveShare.ts](src/lib/runeCurveShare.ts) ; `sw-forge/courbe-runes`
+  avant le rebranding, toujours relu — la lecture reconnaît le contenu, pas
+  l'identifiant) — **téléchargé** en `swblacksmith-runes-<nom>.json` **et
+  copié** au presse-papier.
+  - ⚠️ Le fichier porte **LES DEUX séries** : `efficiences` **et** `scores`.
+    Celui qui l'importe la lit donc dans **sa** mesure, sans dépendre du réglage
+    de l'expéditeur.
+- **Importer une courbe** (icône **Download ↓**) : charge le fichier d'un ami.
+  **JSON uniquement** — l'ancien code compact `SWF-RUNES-1:` n'est plus ni
+  produit ni lu.
+
+### Fichiers de compte
+
+- **Importer un fichier de compte** : l'export SWEX brut d'un ami, runes
+  extraites à la volée (`parseAccountInventory`). **Lu dans la page, jamais
+  envoyé.**
+- Filtres identiques à l'onglet **Courbes** (`SetFilter`, `SlotFilter`,
+  `AncientFilter` **3 états**, nombre de runes), **appliqués à toutes les courbes
+  à la fois**.
+- ⚠️ Le filtre de sets propose les sets présents **chez moi OU chez un ami** :
+  sinon on ne pourrait pas filtrer sur un set qu'on ne possède pas encore.
+- Pas de « gemme + meule / meule seule » : la comparaison porte sur l'**état
+  actuel** des runes, pas sur un potentiel — et un potentiel comparé entre deux
+  comptes n'aurait pas de sens tant que chacun n'a pas posé ses meules.
+
+### ⚠️ RIEN de ce qui est importé ici n'est conservé
+
+Courbes partagées **et** fichiers de compte vivent **en mémoire seulement**
+(`useStickyState` — un cache par clé, **pas** `localStorage`). Ils survivent à la
+navigation entre onglets et **disparaissent au rechargement**.
+
+C'est délibéré : ce sont les données **de quelqu'un d'autre**. Elles n'ont rien à
+faire sur le disque de celui qui les consulte, et il ne doit pas avoir à y penser.
+
+⚠️ Le réglage « Garder mon compte » (menu ⚙) **ne change rien ici** : il ne
+conserve que le compte **du joueur**. On ne stocke jamais le compte d'un tiers.
+⚠️ **Ne pas** basculer cet état vers `localStorage` « pour le confort » — c'est la
+seule partie de l'app où de la donnée tierce transite.
+
+### « Tout retirer » — vider la comparaison
+
+Bouton en haut à droite, **affiché seulement s'il y a quelque chose à retirer**,
+avec le compte de ce qui partira, et une **confirmation**.
+
+⚠️ Il ne touche **QUE ce qui a été importé ici** — les deux sous-onglets à la
+fois. **Pas** le compte du joueur (box, runes, artéfacts), **pas** ses
+recommandations, **pas** sa prépa RTA ni ses équipes. Le message de confirmation
+**le dit explicitement** : sans ça, on n'ose pas cliquer, de peur d'effacer son
+propre import.
+
+> Pour tout effacer, c'est « Tout supprimer » dans le menu ⚙ — action distincte,
+> à un autre endroit, et c'est voulu.
+
+Les listes importées vivent donc dans `RunesCompare`, pas dans chaque
+sous-onglet : c'est ce qui permet un bouton unique qui les vide toutes les deux.
+
+### Communs aux deux sous-onglets
+
+- **Superposition** : ma courbe (« Moi ») en bleu, les amis en couleurs vives.
+  Bornes recalculées sur les courbes **visibles**.
+- ⚠️ **Deux courbes ne portent jamais la même couleur** — sinon on ne les
+  distingue plus, et la légende ment puisqu'elle donne un nom à chacune.
+  `couleurLibre` ([curveColors.ts](src/components/account/curveColors.ts))
+  choisit d'après les couleurs **réellement posées**, vérifié par
+  [courbe-couleurs.test.ts](tests/courbe-couleurs.test.ts).
+  - ⚠️ **La couleur du joueur (`OWN_COLOR`) est exclue de la palette d'import.**
+    Elle l'ouvrait : la **première** courbe importée — le cas le plus courant —
+    reprenait donc exactement le bleu de « Moi ». Les deux constantes vivent
+    désormais dans le **même fichier**, seule place d'où l'on voit qu'elles ne
+    doivent pas se croiser.
+  - ⚠️ **Pas un modulo sur le NOMBRE de courbes** (`[n % palette.length]`) : le
+    compte ne dit rien de ce qui est libre. Retirer la 1re puis importer
+    redonnait la couleur de la 2e, toujours affichée.
+  - Les teintes sont **espacées** : deux bleus voisins se confondaient sur un
+    tracé de 1 px. Au-delà de la palette (8 courbes), l'unicité n'est plus
+    tenable et le cycle reprend — un doublon entre la 1re et la 9e vaut mieux
+    qu'entre deux voisines.
+- **Légende** : **sous le graphe**, en **rangée horizontale** (les entrées côte à
+  côte), réduite à la **pastille de couleur + le nom** — pas de valeurs
+  (max/médiane/nb), qui se lisent au survol du graphe et alourdissaient une zone
+  servant seulement à identifier et masquer les courbes. **Cliquer le nom**
+  masque/affiche ; la croix (✕) **retire** une courbe importée.
+  - ⚠️ **Composant unique**, [CurveLegend.tsx](src/components/account/CurveLegend.tsx),
+    partagé avec l'onglet **Courbes** : les deux affichaient la même pastille,
+    écrite deux fois à la main — celle de Comparaison sans le soin responsive de
+    l'autre (troncature, corps qui suit l'écran). Une seule source évite qu'elles
+    redivergent.
+  - ⚠️ Chaque pastille est une **`ZoneCliquable`** (surface nue), pas un
+    `Bouton` : une légende n'est pas une rangée de boutons encadrés. C'est le
+    seul contrôle de la page qui échappait encore à la librairie ; il n'y a
+    **plus aucun `<button>` custom** dans la Comparaison.
+  - ⚠️ L'exemption tactile passe par **`data-cible-fine`**, pas par un `min-h-0` :
+    la règle des 40 px vit **hors `@layer`** ([index.css](src/index.css)), donc
+    elle bat toute classe utilitaire quelle que soit la spécificité — un `min-h-0`
+    n'y pouvait rien, et l'ancienne légende de Comparaison, sans exemption du
+    tout, était **étirée à 40 px au doigt**. La cible fait déjà toute la largeur
+    de son texte, on ne la rate pas à ~28 px de haut. Même exemption que les
+    boutons du graphe, sans le `cible-tactile` (la largeur du texte suffit).
+- Deux courbes homonymes sont **renommées** (« Ami (2) »), **en tenant compte des
+  deux listes à la fois** puisqu'elles cohabitent dans l'onglet Courbes : sinon
+  la légende serait illisible et la croix ambiguë.
+- ⚠️ Le retrait est **attaché à chaque ligne**, pas déduit d'un index : l'onglet
+  Courbes mélange deux listes, un index n'y désignerait plus rien de fiable.
+
+> Convention d'icônes : **Exporter = Upload ↑**, **Importer = Download ↓**.
+
+## Filtrer par set — `SetFilter`
+
+[SetFilter.tsx](src/components/account/SetFilter.tsx), partagé par **Liste**,
+**Courbes** et **Optimisation**.
+
+⚠️ **À la SOURIS, les filtres tiennent sur UNE ligne, tous VISIBLES**
+(refonte graphique, lot 8a, décision 20 précisée) —
+[FiltresRunes.tsx](../../../src/components/account/FiltresRunes.tsx) : sets ·
+emplacements · antiques, les MÊMES contrôles qu'avant (`SetFilter`,
+`SlotFilter`, `AncientFilter`, inchangés), puis **« Effacer les filtres »**.
+Ils prenaient trois rangées.
+- ⚠️ **Aucun menu déroulant** : la maquette en posait trois (« Set ▾ »,
+  « Emplacement ▾ », « Antiques ▾ »). Essayés, puis défaits par le mainteneur, pour
+  les sets d'abord (« pas très fan d'avoir des drop-down pour un set filtre
+  dedans »), puis pour le reste (« sors tout des boutons »). Un filtre fermé
+  dans un menu ne dit pas ce qu'il filtre sans qu'on l'ouvre.
+- ⚠️ **Tous au même gabarit, celui du `Segmented`** (le mainteneur : « ce serait
+  bien que les boutons aient tous la même tête ») : à la souris, les barres
+  de sets et d'emplacements prennent le cadre `panel2` de 32 px, des cases de
+  26 px et le marqueur du `Segmented` (sans contour ; un aplat de braise
+  depuis le rebranding, décision 19 — fond d'accent doux avant),
+  comme le filtre des antiques voisin —
+  [gabaritFiltre.ts](../../../src/components/account/gabaritFiltre.ts).
+  « Effacer les filtres » est à la même hauteur (32 px), et les antiques
+  reçoivent l'intitulé « Runes », comme leurs voisins « Sets » et « Slot »
+  (c'est celui que leur donne déjà l'Optimisation). Avant, trois gabarits
+  cohabitaient : barres de 38 px au fond `panel` et cases cerclées d'accent,
+  `Segmented` de 32 px, bouton de 28 px.
+- **Le symbole d'un set** est doré (`runeSetIconFilter`, `effects.ts`),
+  éclairci quand le set est actif — sauf **à la souris** : posé sur l'aplat
+  de braise, il garde le doré du repos (éclairci sur l'orange plein, le
+  contraste agressait l'œil). Au doigt, l'actif garde un fond doux et le doré
+  éclairci.
+- « Effacer les filtres » remet tous les sets, tous les emplacements et
+  toutes les runes. Il est **toujours affiché**, désactivé quand rien n'est
+  filtré (« Aucun filtre posé »).
+- L'Optimisation n'a que Set et Emplacement : ses antiques vivent dans ses
+  options, avec « Faisable avec ma réserve ».
+- **Au doigt, rien ne change** (lot 11) : la Liste garde ses rangées dans le
+  panneau « Options » ; les Courbes et l'Optimisation, dans la page.
+
+⚠️ **Règle d'interface : un filtre de set affiche l'icône du jeu, SANS le nom.**
+Partout dans l'appli. Les icônes sont reconnues d'un coup d'œil par n'importe
+quel joueur, alors qu'une rangée de libellés fait un mur de texte et réduit le
+nombre de sets visibles sans défilement. Le nom reste en `title` et en
+`aria-label`, donc rien n'est perdu pour l'accessibilité.
+
+- ⚠️ **Symboles colorisés en OR.** Les icônes du jeu sont multicolores :
+  alignées par vingt-cinq elles font une rangée bruyante où rien ne ressort.
+  Ramenées à une seule teinte, la barre se lit comme une frise et **seul l'état
+  actif se détache** (or plus clair).
+  - ⚠️ **Par un FILTRE CSS, pas par un masque.** Masquer l'alpha du PNG
+    (`tintColor` de [RuneIcon](src/components/RuneIcon.tsx)) remplit le glyphe
+    d'aplat : tout le relief interne disparaît et l'icône **paraît floue** à
+    18 px. Le filtre conserve la luminance d'origine, donc le dessin reste net.
+    Même technique que `RARITY_FILTER` ([effects.ts](src/lib/effects.ts)).
+- Rendu en **une seule barre continue** (conteneur bordé, icônes serrées),
+  et non en boutons détachés : les symboles se lisent comme une rangée
+  d'icônes du jeu, et l'ensemble tient sur une ligne même avec 25 sets. Seul
+  l'**état actif** porte un cadre ; l'inactif est simplement atténué.
+- ⚠️ **Liste BLANCHE, tout coché par défaut.** Un set coché est un set
+  **affiché** ; à l'ouverture, tous les présents le sont (tout est montré), et
+  n'en cocher **aucun** revient à **ne rien vouloir voir** (liste vide). C'est la
+  même logique partout dans l'app. (Avant : « aucun coché = aucun filtre » —
+  l'inverse.)
+- **Seuls les sets réellement présents** dans l'inventaire sont proposés : un
+  filtre qui ne peut rien renvoyer n'aide personne. ⚠️ En **Comparaison**, les
+  sets d'un compte d'ami importé **rejoignent la sélection** : sans ça, un set
+  qu'il possède et pas moi serait masqué d'emblée et sa courbe faussée.
+- Bascule **« Tous »** : sélectionne tous les sets présents, ou les
+  déselectionne tous d'un coup (indispensable à vingt-cinq sets). **Tuile EN
+  TÊTE de la même grille**, au même gabarit que les pastilles de set — comme la
+  case « Tous » du jeu — et non un bouton texte greffé à côté de la barre.
+  Icône `Layers` (lucide), pas de nom de set possible pour ce rôle.
+- ⚠️ **Au doigt (`pointer: coarse`), les symboles passent de 18 à 24 px** et leur
+  case de 28 à 36 px : 28 px se visaient mal du pouce. À la souris, inchangé.
+
+### Filtrer par slot — `SlotFilter`
+
+[SlotFilter.tsx](src/components/account/SlotFilter.tsx), même grammaire visuelle
+que `SetFilter` (hauteur 32 px, même bordure) pour que les deux se lisent comme
+une seule barre. **Même logique de liste blanche** : les six slots cochés par
+défaut, aucun coché = rien affiché.
+
+- ⚠️ **Pas de bouton « Tout / Rien ».** Six cases se cochent d'un geste ; le
+  raccourci n'y gagnait rien, là où il est utile côté SETS (vingt-cinq).
+- Différence assumée : les **six slots sont toujours proposés**, alors que les
+  sets se limitent à ceux présents. Un slot sans rune reste une information utile
+  (« je n'ai rien en 2 »), là où un set absent n'est qu'un bouton mort.
+
+### ⚠️ Dans le panneau « Options » (mobile), les filtres prennent toute la largeur
+
+Le bloc de filtres est le **même** qu'au desktop (rendu une fois, posé à deux
+endroits selon la largeur). Dans le panneau, il s'étire pour occuper toute la
+largeur, comme les autres popups — au lieu de rester compact, aligné à gauche :
+les **six emplacements se répartissent** sur la ligne (`SlotFilter`), les **cases
+de propriété** remplissent la largeur (une par ligne en mode 2, **grille 2×2** en
+mode 4), et le **tri** occupe toute la largeur. Ciblé par `data-filtres-runes`
+sous `[data-tiroir]` (voir index.css) ; le desktop garde ses contrôles à la
+largeur de leur contenu.
+
+## Onglet Optimisation — `RunesOptim`
+
+⚠️ **À la SOURIS, un en-tête** (refonte graphique, lot 8a-3, la maquette) :
+« Optimisation », puis « Ce que tes meules et gemmes permettent d'améliorer,
+rune par rune. ». Les tuiles et leur plan, qui s'ouvre au clic, ne changent
+pas. La maquette écrit le plan DANS chaque carte, toujours visible : c'est un
+changement de comportement, à décider avec le mainteneur, pas fait ici.
+
+Calcule, pour chaque rune, son **potentiel maximal** et **ce qu'il faut faire**
+pour l'atteindre. Calcul pur & linéaire dans [runeOptim.ts](src/lib/runeOptim.ts)
+(`runePotential`, `runePlan`) — réutilisable dans un Web Worker.
+
+> **Disclaimer** affiché en tête : c'est une optimisation d'**efficience**, pas
+> forcément la bonne stat pour ton monstre.
+
+### Potentiel = gemme optimale **puis** grind au max
+
+Deux scénarios calculés (héroïque & légendaire, **tables classiques et antiques
+distinctes**) :
+
+- **Meules (grinds)** : chaque substat grindable porté **exactement** à son grind
+  max (RES/Précision/Taux Crit/Dmg Crit **non grindables**). Une rune déjà grindée
+  au-delà (ex. légendaire) est **ramenée** au max du scénario en héroïque (delta
+  négatif possible).
+- **Gemme** :
+  - rune **non gemmée** → on choisit **le meilleur substat à remplacer** par la
+    **meilleure stat grindable** (PV%/ATQ%/DEF%/VIT, sinon un flat), **sans
+    doublon** (≠ principale / innée / **autres** substats) et en respectant les
+    **emplacements** (slot 1 : pas de DEF ; slot 3 : pas d'ATQ) ;
+    - ⚠️ **la stat du substat lui-même est candidate** : une ATQ% à 7 peut
+      recevoir une gemme ATQ% (base 13 en légendaire). Règle du jeu relevée par
+      l'utilisateur ; le calcul l'excluait jusque-là, ce qui **sous-estimait** le
+      potentiel quand les autres stats étaient déjà présentes ou interdites.
+      Retenue seulement si la base de gemme dépasse la base actuelle ;
+  - rune **déjà gemmée** → la stat gemmée est **figée** ; seul gain possible =
+    **procker au max** (porter la base de la gemme au max si elle n'y est pas
+    déjà). Rien si déjà au max.
+    - ⚠️ **Choix produit, pas règle du jeu.** Le jeu permet de regemmer la ligne
+      gemmée avec **une autre stat** absente de la rune. On ne le propose pas
+      **par défaut** : l'outil n'optimise que l'efficience, et le joueur a pu
+      gemmer cette stat pour une autre raison — on ne remet pas sa décision en
+      cause. Le bouton **« Autoriser un regemme différent »** (voir Modes) lève
+      ce choix ; seule la ligne **déjà gemmée** peut alors changer de stat (une
+      gemme par rune).
+  - total de la stat gemmée = `gemMax + grindMax`.
+
+**Toutes les tables de valeurs** (grind max & base max de gemme,
+classiques/antiques, héro/légend) et l'**algorithme complet** `best()` sont dans
+[feat-calcul-runes.md §4](feat-calcul-runes.md).
+
+### Modes
+
+- **Gemme + meule** (défaut) : potentiel complet ci-dessus.
+- **Meule seule** : garde les **stats actuelles** (aucune gemme), ne pousse que les
+  meules → pour repérer les runes à **grinder en priorité**.
+- **« Autoriser un regemme différent »** — bouton, **éteint par défaut**, mémorisé
+  (`optim.regemLibre`). Allumé, une rune **déjà gemmée** peut voir sa ligne
+  gemmée remplacée par **une autre stat** absente de la rune (mêmes exclusions et
+  emplacements qu'une rune vierge) ; éteint, sa stat reste figée. **Grisé en
+  « Meule seule »** : sans gemme, rien à regemmer. Même bouton dans **Courbes**,
+  réglage mémorisé à part (`runesCurve.regemLibre`), comme le mode gemme/meule.
+  - ⚠️ **Un réglage du CALCUL, pas un filtre** : il change le potentiel, le
+    gain, le plan « Actuel | Optimisé » et la faisabilité sous « Faisable avec
+    ma réserve » (la gemme réclamée peut devenir une autre). Le Résumé, lui,
+    n'a pas ce bouton et reste sur la règle par défaut.
+
+### Affichage & interactions
+
+- **Tri** (onglets à la souris, liste déroulante au doigt — voir § Tri de la
+  Liste) : Efficience actuelle (défaut) · Potentiel héroïque ·
+  Potentiel légendaire · Gain héroïque · Gain légendaire. **Gain** = potentiel −
+  efficience actuelle.
+- **Palier** : champ % — n'affiche que les runes dont l'efficience actuelle ≥ palier
+  (défaut 100 %).
+  - ⚠️ **Converti au changement de mesure** (`convertirPalier` dans
+    [useRuneMetric.ts](src/hooks/useRuneMetric.ts)) : « 100 » ne veut pas dire la
+    même chose en efficience et en score, et garder la valeur brute déplaçait la
+    coupe sans prévenir — souvent une liste vide, prise pour un bug.
+  - ⚠️ **Pas de facteur de conversion, il n'en existe pas.** Sur un compte réel
+    de 3 163 runes, le rapport score/efficience s'étale de **0,98 à 2,37** : la
+    principale compte dans l'une et pas dans l'autre, et les tables de max
+    diffèrent. Le ratio médian appliqué à un palier de 110 % laisserait passer
+    **457 runes au lieu de 139**.
+  - La conversion se fait donc **par rang** : on compte ce qui passait, on prend
+    la valeur de la n-ième meilleure dans la nouvelle mesure. Exact pour la seule
+    question que le palier pose — *où je coupe*.
+  - Un palier qui ne gardait **rien** reste au-dessus du maximum : sans ça, la
+    liste se remplirait toute seule au changement d'unité.
+- **Sets** (`SetFilter`) et **slot** (`SlotFilter`) : mêmes composants que les
+  autres onglets.
+- **Runes** — le filtre antique **commun à toutes les pages de runes**,
+  [AncientFilter](src/components/account/AncientFilter.tsx) : **Toutes** (défaut) ·
+  **Antiques uniquement** · **Aucune antique**.
+  - ⚠️ **Trois états PARTOUT, plus une bascule on/off.** La Liste, la Comparaison
+    et les Courbes portaient un simple bouton « Antiques » (garder / masquer) ; il
+    manquait « n'afficher QU'ELLES ». Les antiques ont leurs **propres tables de
+    max**, donc un potentiel et une efficience qui **ne se comparent pas** à ceux
+    d'une rune normale : pouvoir les **isoler** autant que les écarter vaut sur
+    chaque page, pas seulement ici. D'où un `Segmented` à trois crans, **unique et
+    partagé** (le type, les options et `keepAncient` vivent dans le composant).
+  - Le compteur et le message de liste vide rappellent le filtre actif
+    (« hors antiques » / « antiques seules »), pour qu'un résultat vide ne passe
+    pas pour une absence de runes.
+- **Tuiles** : efficience **actuelle**, puis **Héro** et **Légend** avec leur gain
+  et l'efficience cible.
+  - ⚠️ **Une couleur par ligne, celle de sa rareté** (le mainteneur, rebranding R8,
+    2026-09-30) : « Héro −7,1 → 133,0 % » tout en violet (`rarity-4`),
+    « Légend » tout en or (`star`). La cible était colorée **vert** / **rouge** selon
+    qu'elle passait au-dessus ou en dessous de l'actuelle, et la ligne se
+    lisait en deux couleurs. Le signe du gain porte le sens ; le vert / rouge
+    ne vit plus que dans le plan détaillé d'une rune (`OptimPlanBox`), un gain
+    négatif n'existant d'ailleurs que hors filtre de réserve (`noDowngrade`).
+  - ⚠️ **La ligne « actuelle » en braise**, mot compris, la valeur en gras
+    (`text-accent`, la braise lisible ; le mainteneur, même jour, sur planche :
+    encre, braise, bleu ciel, vert) — une couleur par ligne, comme les deux
+    autres.
+    Dans la couleur de la rareté de la rune, elle se confondait avec la ligne
+    de même rareté (violette comme « Héro » sur une héroïque, orange près de
+    l'or de « Légend » sur une légendaire).
+  Pagination 60/page.
+  - ⚠️ **DEUX grilles, une par format** (même patron que l'onglet Liste) : sous
+    `lg`, **deux colonnes fixes** ; à partir de `lg`, l'`auto-fill` à 230 px. Sur
+    téléphone, l'`auto-fill` retombait toujours sur **une** colonne (une rune par
+    écran) ; les deux colonnes tiennent jusqu'à ~360 px de large.
+  - ⚠️ **Rendu resserré `etroit`** sous `lg` — police (`text-nano` au lieu de
+    `text-xs`/`text-micro`) et cadre de rune (**34 px** au lieu de 46) réduits, pour
+    que la tuile tienne à ~175 px sans se disloquer. Pas sous 30 px : le symbole de
+    set gravé cesse de se reconnaître. `useMediaQuery(SOUS_LG)` est lu **une fois**
+    par la liste et passé en prop — un lecteur par tuile poserait soixante
+    écouteurs `matchMedia` pour la même réponse.
+- **Rotation animée** des cadres, même mécanique que l'onglet Liste (clé
+  positionnelle + `SPIN`).
+- **Détail au clic** : plan **« Actuel | Optimisé »** (`OptimPlanBox`) — substats
+  actuels à gauche (base blanche + meule orange), optimisés à droite avec **seul ce
+  qui change en violet** (grind posé ou 💎 gemme/proc max).
+- **Aide « ? »** sur la ligne des filtres — le composant partagé
+  [HelpPopover](src/components/HelpPopover.tsx) (bulle à la souris, **panneau
+  montant** au doigt), voir l'onglet Courbes § « L'aide a DEUX supports ». Elle
+  détaille les deux modes, le choix de la gemme (dont le regemme différent), le gain, **le palier** (ce qu'il
+  mesure et sa reconversion), **les icônes marteau/gemme** du plan, le filtre
+  de réserve, **« Sans les immémoriaux »**, **« Runes utilisées »** et
+  **« Marqueurs »**.
+
+#### ⚠️ Le panneau « Options » (mobile) ne prend que huit contrôles
+
+Comme la Liste, l'Optimisation gagne le bouton « Options » de la barre de nav sur
+téléphone (`pageAPanneau` dans [App.tsx](src/App.tsx) — les vues qui étalent une
+**grille de tuiles** y ont droit, pas le résumé ni les courbes). Mais **seuls
+sept** contrôles y descendent : **palier**, **« Autoriser un regemme
+différent »**, **filtre antique**, **« Faisable avec ma réserve »**, **« Sans
+les immémoriaux »**, **« Runes utilisées »** et **« Marqueurs »**. **Sets,
+slot, tri et l'aide restent dans la page**, à tous les formats.
+
+⚠️ **« Gemme + meule / Meule seule » est en TÊTE DE LA PAGE au téléphone**
+(refonte graphique, lot 11c, décision 26, la maquette), sur toute la largeur,
+avant les filtres : c'est ce qui change toute la liste — on le voit et on le
+bascule sans ouvrir le panneau. Il était le deuxième contrôle du panneau. Au
+bureau, il reste dans la rangée d'options (`modeControl`, écrit une fois,
+posé aux deux endroits).
+
+- ⚠️ **Au bureau, le groupe en ligne passe à la ligne tout seul**
+  (`lg:flex-wrap`). Il est **un seul élément** de la rangée de filtres : sans
+  retour à la ligne interne, il ne peut pas se réduire sous la largeur cumulée
+  de ses contrôles, et c'est la **page** qui déborde par la droite — la
+  rangée parente, elle, ne voit qu'un bloc et n'a rien à replier. Constaté au
+  sixième contrôle, sur un écran de bureau ordinaire.
+- Les contrôles sont écrits **une fois** (`optionsControls`) et posés à deux
+  endroits : **en ligne au bureau** (`hidden lg:flex`, les huit, mode
+  compris), **dans le panneau au doigt** (`MobileSheet`, sans le mode :
+  `avecMode` faux). L'argument `large` élargit les segmentés à toute la
+  largeur du panneau (`size="lg"`) ; en ligne ils restent serrés.
+- ⚠️ **Dans le panneau, tout occupe la largeur — les cinq boutons aussi.**
+  Les segmentés sont pleins (`size="lg"`) ; « Autoriser un regemme différent »,
+  « Faisable avec ma réserve »,
+  « Sans les immémoriaux », « Runes utilisées » et « Marqueurs » prennent donc
+  eux aussi toute la colonne (`pleineLargeur={large}`), sinon ils pendaient
+  seuls, à la largeur de leur texte, sous des contrôles pleins. En ligne au
+  bureau (`large` faux) ils restent serrés.
+- Sous « Runes utilisées » et « Marqueurs », le panneau montre **en
+  permanence** leurs cases (grisées filtre éteint). Au bureau, elles vivent dans
+  un flottant ouvert par un chevron : voir « Filtres à cases » plus bas.
+- **Les deux filtres à cases sont côte à côte, sur deux colonnes** (demande de
+  l'utilisateur). Empilés, bouton + six cases + bouton + neuf cases faisaient
+  défiler le panneau sur plus d'un écran. Mesuré à 390 px : deux boutons de
+  173 px, et chaque libellé de case tient sur une ligne. La grille porte `w-full`
+  (même raison que ci-dessous) et `items-start`, car les deux listes n'ont pas la
+  même hauteur. **Une seule colonne sans marqueurs** : « Runes utilisées » ne se
+  réduit pas à une demi-largeur pour rien.
+  ⚠️ Le conteneur bouton + cases porte `w-full` au doigt : sans lui,
+  `[data-tiroir] .flex-col` (aligné à gauche) le réduit à la largeur de son
+  contenu, et le bouton redevient plus étroit que ses voisins — constaté en
+  capture.
+- ⚠️ **Le filtre antique passe en `dense` sous le panneau.** En `lg`, ses trois
+  crans se partagent la largeur à égalité et « Antiques uniquement » débordait
+  son tiers (que `whitespace-nowrap` interdisait de couper) ; `AncientFilter`
+  active donc `dense` dès `size="lg"` (texte réduit, retour à la ligne autorisé),
+  voir [AncientFilter](src/components/account/AncientFilter.tsx).
+- ⚠️ Au **bureau, rien ne change** : les huit restent visibles dans la rangée
+  de filtres. Le panneau n'existe que sous `lg`.
+
+### Filtres à cases — `FiltreACases`
+
+« Runes utilisées » et « Marqueurs » partagent **un seul gabarit**, le
+composant `FiltreACases` de [RunesOptim.tsx](src/components/account/RunesOptim.tsx) :
+un **bouton-interrupteur** qui allume le filtre, et des **`Case`** qui
+choisissent ce qu'il garde, chacune suivie de son nombre de runes. Même geste,
+même rendu, un seul endroit où ils pourraient diverger.
+
+- ⚠️ **Deux supports, un par format, et aucun ne déplace ce qu'on clique :**
+  - **au bureau**, un `BoutonIcone` (chevron) collé au bouton ouvre les cases
+    dans un `FlottantAuto`, hors du flux. Un clic ailleurs ou Échap le ferme ;
+  - **dans le panneau « Options » au doigt**, les cases sont rendues **en
+    permanence** sous le bouton. Leur place est réservée, et aucun flottant ne
+    s'ouvre dans le tiroir (règles descendantes `[data-tiroir]`).
+- **Inactives filtre éteint** : chevron désactivé au bureau, cases grisées dans
+  le panneau. Elles n'auraient aucun effet.
+- Le filtre allumé avec tout coché ne retire rien : c'est le défaut.
+
+### « Marqueurs » — le filtre des marqueurs posés en jeu
+
+Un filtre à cases (voir ci-dessus), dans le groupe d'options : en ligne au
+bureau, dans le panneau « Options » au doigt. Il a d'abord été une rangée de
+pastilles dans la page. Avec des libellés longs et agrandis pour le doigt, elle
+prenait **quatre lignes** sur téléphone avant la première rune. L'utilisateur a
+donc demandé le même bouton que « Runes utilisées ».
+
+- **Une case par marqueur réellement posé** dans l'inventaire, plus « Sans
+  marqueur », chacune avec son nombre de runes. Le libellé est **celui saisi en
+  jeu**, tel quel. Un marqueur jamais nommé s'affiche « Marqueur N ». Données :
+  `RuneDetail.marker` et `runeMarkerLabels`, voir
+  [transverse/](../transverse/).
+- **Tout coché par défaut.** Une case **« Tous »** en tête coche ou décoche
+  l'ensemble : pour ne garder qu'un marqueur, on décoche « Tous » puis on coche
+  celui-là. Jusqu'à neuf cases, les décocher une à une serait fastidieux.
+- ⚠️ **L'état retient ce qui est EXCLU** (`optim.marqueursExclus`), pas ce qui
+  est coché, à l'inverse des périmètres. Un marqueur qui apparaît au réimport
+  suivant doit arriver coché, pas décoché en silence. Une exclusion qui ne vise
+  plus aucun marqueur présent ne compte pas. L'interrupteur est
+  `optim.markersOnly`.
+- **Masqué quand aucune rune ne porte de marqueur** (export sans marqueurs). Il
+  est masqué plutôt que grisé : aucun réimport ne le rendrait utile sur un
+  compte sans marqueurs. Un compte conservé avant la lecture des marqueurs est
+  ignoré en entier (`ACCOUNT_SCHEMA` 7), il ne s'affiche donc jamais « sans
+  marqueurs » à tort.
+- Le compteur rappelle « · marqueurs », avec « (N exclus) » dès qu'une case est
+  décochée. Le message de liste vide propose de désactiver « Marqueurs ».
+- Il **se cumule** avec tous les autres filtres.
+
+### « Runes utilisées » — le filtre qui regarde les decks
+
+Un compte de 3 000 runes n'en fait jouer qu'un tiers ; les autres dorment dans le
+sac. Améliorer l'une d'elles ne change **aucun combat**. Ce bouton restreint la
+liste aux runes **qui jouent**.
+
+⚠️ **Un filtre, pas un onglet** — même règle que « Faisable avec ma réserve »
+ci-dessous : potentiels, gains et tris restent exactement les mêmes.
+
+**Est utilisée** une rune posée sur un monstre présent :
+
+- dans un **deck enregistré**, `deck_list` **tous `deck_type` confondus** —
+  arène, donjons, ToA, labyrinthe, attaques de siège… ⚠️ **Aucune liste blanche
+  de contenus** : Com2uS en ajoute, et un type oublié ferait passer des runes qui
+  jouent pour des runes qui dorment. Sur un export réel, 19 types différents.
+- dans une **défense de siège** (`guildsiege_defense_deck_*`) ;
+- dans une **défense d'arène** — `defense_deck_info` (arène) et
+  `server_arena_defense_deck_info` (arène de serveur), qui ne sont **pas** dans
+  `deck_list`. ⚠️ Les deux n'ont pas la même forme d'`unit_id_list` : ids nus
+  d'un côté, `{ unit_id, pos_id }` de l'autre.
+- dans un **preset RTA** (`world_arena_rune_equip_list`).
+
+⚠️ **« Utilisée » ≠ « équipée ».** Les presets (RTA, siège, arène, decks) ne
+déplacent rien en jeu : une rune de l'**inventaire** peut très bien jouer en RTA,
+et une rune posée sur un monstre qui ne joue nulle part ne joue pas. Se fier au
+seul `occupied_id` aurait raté les deux cas. Pour un monstre d'un deck **sans
+preset**, ce sont ses runes **actuellement portées** qui comptent : c'est avec
+elles qu'il combat.
+
+- Extraction : `parseUsedRuneIdsParPerimetre` dans
+  [importAccount.ts](src/lib/importAccount.ts) → une liste de `rune_id` triée
+  **par périmètre** (voir
+  [transverse/](../transverse/)).
+- ⚠️ **Conservée dans IndexedDB** (`usedRuneIds`, `ACCOUNT_SCHEMA` 7) : les decks
+  ne vivent que dans l'**export brut**, jamais stocké (5 à 8 Mo). Sans ça le
+  filtre s'éteindrait à chaque rechargement d'un compte conservé.
+- **Désactivé sans decks lus** (export sans aucun deck), avec l'explication en
+  infobulle — même règle que le filtre de réserve : un bouton grisé qui dit
+  pourquoi vaut mieux qu'une liste vidée sans raison. Un compte conservé sous un
+  schéma antérieur n'arrive pas jusqu'ici : il est ignoré en entier, et l'app
+  invite à réimporter.
+- Le compteur rappelle le filtre actif (« · utilisées ») et le message de liste
+  vide propose de le désactiver.
+- Il **se cumule** avec tous les autres (palier, sets, slot, antiques, réserve) :
+  « ce que je peux améliorer ce soir, sur des runes qui jouent » est justement la
+  question qu'on pose le plus souvent.
+
+#### Les périmètres — choisir ce qui compte
+
+Six périmètres, tous **cochés par défaut** : le filtre garde alors exactement sa
+définition ci-dessus. Une rune est gardée dès qu'**un** périmètre coché la
+contient (union).
+
+| Périmètre | Contenu |
+|-----------|---------|
+| RTA | presets RTA |
+| Siège — attaque | `deck_list`, `deck_type` 22 |
+| Siège — défense | défenses de siège |
+| Arène — attaque | `deck_list`, `deck_type` 1 |
+| Arène — défense | défense d'arène et d'arène de serveur |
+| Autres decks | tout autre `deck_type` (donjons, ToA, labyrinthe…) |
+
+- Un **filtre à cases** (voir « Filtres à cases » plus haut : chevron et
+  flottant au bureau, cases permanentes au doigt, inactives filtre éteint). Chaque
+  case est suivie de son nombre de runes (« RTA (212) »). L'état est collant
+  (`optim.usedScopes`, liste blanche).
+- « Désactivé sans decks lus » se juge sur **tous** les périmètres, pas sur ceux
+  cochés : tout décocher n'est pas « aucun deck lu ». Cela donne une liste vide,
+  que le message explique (« aucun périmètre coché »).
+- Le compteur nomme les périmètres dès qu'ils ne sont pas tous cochés :
+  « · utilisées (RTA, Siège — attaque) ».
+
+### « Faisable avec ma réserve » — le filtre qui regarde le sac
+
+Un potentiel de +20 d'efficience ne vaut rien si la meule qui l'apporte n'est pas
+dans le sac. Ce bouton restreint la liste aux runes dont **le plan complet est
+couvert** par la réserve de meules et de gemmes du compte.
+
+⚠️ **Un filtre, pas un onglet.** C'est la même liste, restreinte : potentiel
+héroïque, potentiel légendaire, les deux gains et le tri restent là. En faire une
+vue séparée obligeait à tout y réimplémenter.
+
+- Le **scénario suit le tri** (gain/potentiel héroïque → grade 4, sinon 5) :
+  trier par gain héroïque tout en filtrant sur du légendaire n'aurait aucun sens.
+  Ce grade décide des runes **gardées** et du **plan** ouvert au clic.
+- ⚠️ **Mais chaque chiffre de la tuile se vérifie contre la réserve de SON
+  grade**, quel que soit le tri : **Héro** contre les consommables héroïques ou
+  mieux, **Légend** contre les légendaires (`dispoReserve` dans
+  [crafts.ts](src/lib/crafts.ts), une par scénario). Les deux chiffres étaient
+  calculés avec la seule réserve du grade du tri : trié en héroïque, une meule
+  héroïque faisait compter au chiffre légendaire la table légendaire
+  (**surestimé** — un potentiel annoncé faisable qui ne l'était pas) ; trié
+  autrement, le chiffre héroïque refusait une meule héroïque présente
+  (**sous-estimé**). Verrouillé par le test `testReserveParGrade`.
+- Les plans ne sont calculés **que si le filtre est actif** — c'est plus lourd
+  qu'un potentiel, et inutile tant qu'on ne le demande pas.
+- Une rune **sans rien à appliquer** est écartée : la question posée est « que
+  puis-je améliorer », pas « qu'est-ce qui ne bloque pas ».
+- **Désactivé sans réserve connue** (compte enregistré avant `ACCOUNT_SCHEMA` 3),
+  avec l'explication en infobulle : un bouton qui viderait la liste sans raison
+  vaut moins qu'un bouton grisé qui dit pourquoi.
+- Le compteur rappelle le filtre actif (« · faisables avec ma réserve »), pour
+  qu'une liste courte ne passe pas pour une absence de runes.
+
+⚠️ **Le plan est RESTREINT à la réserve, il n'est pas exigé en entier.** Une stat
+dont le consommable manque n'est simplement pas poussée (`CraftDispo` dans
+[runeOptim.ts](src/lib/runeOptim.ts)). Exiger le plan complet écartait des runes
+parfaitement travaillables : une Swift dont trois substats sur quatre étaient
+meulables disparaissait faute d'une seule meule VIT. Le gain affiché est donc
+**celui qu'on peut aller chercher aujourd'hui**, ni plus ni moins — et le plan du
+détail applique la même restriction, sans quoi il contredirait le chiffre.
+
+**Marquage ligne par ligne** dans le plan (`SubLine`) : chaque substat à
+travailler porte l'icône de son consommable — **marteau** pour une meule,
+**gemme** pour une gemme — en **vert s'il est en réserve**, grisé sinon. Le plan
+dit quoi faire, la réserve dit ce qui est à portée ; sans le croisement il
+fallait aller compter ses meules ailleurs pour savoir par où commencer.
+⚠️ Une seule marque par ligne, la **gemme prime** : c'est elle qui conditionne le
+reste, puisqu'elle remet le meulage du slot à zéro. Le marquage s'affiche dès
+qu'une réserve est connue, filtre actif ou non.
+
+Règles de disponibilité (grade ≥ scénario, immémoriaux valables sur tous les
+sets, antique et normal étanches) : [crafts.ts](src/lib/crafts.ts).
+
+⚠️ **Sans réserver le stock.** Deux runes qui réclament la même unique meule VIT
+sont toutes deux annoncées faisables — ce qui est vrai de chacune. Compter les
+quantités répondrait à une autre question (« que farmer pour toutes les faire »),
+et c'est le sujet des onglets Meules et Gemmes.
+
+#### « Sans les immémoriaux » — garder la pièce rare de côté
+
+Une gemme ou une meule **immémoriale** va sur **n'importe quel set** : c'est le
+consommable le plus rare du compte, celui qu'on garde pour la rune qui le
+méritera. Tant qu'il entre dans la réserve, une rune annoncée « faisable » peut
+ne l'être **qu'au prix de cette pièce-là**, sans que rien ne le dise. Ce bouton
+retire ces lignes et répond donc à : *« et sans y toucher, qu'est-ce qui reste
+faisable ? »*.
+
+- ⚠️ **Un filtre de la RÉSERVE, pas du calcul.** Les lignes `setKey === null`
+  sont écartées **en amont de `buildCraftStock`**, plutôt que d'ajouter un
+  paramètre à `ownsCraft`/`pickCraft`. Une réserve sans immémoriaux **est** une
+  réserve : la même règle de choix s'y applique, et il ne doit pas exister deux
+  façons de décider ce qui est disponible — c'est déjà la raison d'être de
+  `pickCraft` (voir [crafts.ts](src/lib/crafts.ts)).
+- ⚠️ **Il agit même si « Faisable avec ma réserve » est éteint** : le marquage
+  vert/grisé des marteaux et des gemmes du plan lit la **même** réserve. Le
+  bouton n'est donc pas asservi au précédent — il n'est grisé que si aucune
+  réserve n'a été lue.
+- ⚠️ **Le bouton « Faisable » distingue deux causes de grisement** : réserve
+  jamais lue (« réimporte ton compte ») et réserve **vidée par ce filtre-ci**.
+  Sans la nuance, il accusait l'import d'un choix fait à l'écran deux secondes
+  plus tôt.
+- Le compteur ajoute « · sans immémoriaux » **quand le filtre de réserve est
+  actif** — c'est là seulement que le nombre de runes change.
+- ⚠️ Aucun immémorial **antique** n'existe dans les données observées : le filtre
+  ne change donc jamais rien pour une rune antique.
+
+#### ⚠️ Le filtre change AUSSI le calcul — `noDowngrade`
+
+Deux questions légitimes, deux calculs :
+
+| Mode | Question posée | Conséquence |
+|------|----------------|-------------|
+| défaut | « que vaudrait cette rune si elle était **née** héroïque ? » | une rune meulée légendaire y **perd** — et ce gain négatif est l'information : l'héroïque ne lui apporte rien |
+| filtre actif | « qu'est-ce que je peux **encore lui poser** ? » | seules les stats **pas encore au max** bougent, donc **aucun gain négatif** |
+
+⚠️ Les mélanger affiche une contradiction sur la même ligne : une rune annoncée
+« faisable » avec un gain négatif. Sous le filtre on regarde ce qu'on va
+**réellement poser**, et on ne pose jamais une meule qui dégrade ce qui est là.
+
+Mesuré sur un compte réel (3 163 runes) : **424 gains héroïques négatifs** en
+mode par défaut, **0** sous le filtre.
+
+Le **plan affiché suit la même règle** (`runePlan(..., noDowngrade)`), sinon il
+contredirait le chiffre annoncé au-dessus. Sur une rune sans meule, les deux
+lectures coïncident — l'option ne change rien là où il n'y a rien à préserver.
+
+## Onglets Meules & Gemmes — **en construction**
+
+⚠️ **Ces onglets ne refont pas l'Optimisation.** « Quelles runes puis-je
+améliorer avec ce que j'ai » est un **filtre**, pas une vue : il vit dans
+l'Optimisation (bouton « Faisable avec ma réserve », voir plus haut). L'en
+extraire obligerait à y réimplémenter potentiel héroïque, potentiel légendaire
+et les deux gains — tout ce qui fait l'intérêt de la liste.
+
+Ils porteront la question **inverse**, que rien ne couvre aujourd'hui :
+
+- ce qui **manque** en meules / en gemmes pour un **top paramétrable** (10, 50,
+  100…) classé par potentiel ou par gain ;
+- et donc **où aller le chercher** : quelle faille élémentaire, quel raid.
+
+⚠️ Le second point demande une table **set de rune → donjon qui le fait tomber**,
+qui **n'est pas dans l'export** et qui ne doit pas être devinée : envoyer
+quelqu'un farmer le mauvais donjon est une erreur silencieuse et coûteuse. La
+source reste à choisir avant d'implémenter.
+
+Placeholder : [ComingSoon.tsx](src/pages/ComingSoon.tsx), le même que les pages
+d'outils à venir.
+
+> La lecture de la réserve, elle, est **déjà en place** : `parseCrafts`,
+> `CraftLine`, la persistance (`ACCOUNT_SCHEMA` 3) et
+> [crafts.ts](src/lib/crafts.ts) servent déjà le filtre de l'Optimisation.

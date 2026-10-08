@@ -1,5 +1,5 @@
 // « Annuler » une suppression — ce qui revient, et où (refonte graphique,
-// lot 13, décision 29 ; spec/shared/design.md § Notification « Annuler »).
+// lot 13, décision 29 ; docs/03-developpeur/interface/ § Notification « Annuler »).
 
 import { decksApresRestauration } from '../src/hooks/useSiegeRecos';
 import { reinsererA } from '../src/lib/reinsererA';

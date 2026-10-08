@@ -4,7 +4,7 @@
 
 /* ==========================================================================
    Système visuel — deux thèmes : Forge (sombre) et Atelier (clair).
-   Source de vérité : spec/shared/design.md
+   Source de vérité : docs/03-developpeur/interface/
    ==========================================================================
 
    ⚠️ Les tokens de COULEUR sont déclarés en CANAUX RGB (« 12 11 15 »), pas en
@@ -25,10 +25,10 @@
   /* ---- Atelier (clair) — le défaut ----
      ⚠️ Valeurs MESURÉES au contraste WCAG, pas choisies à l'œil. Seuils :
      4.5 pour le texte, 3.0 pour les bordures et éléments d'interface.
-     Voir spec/shared/design.md § Contraste. */
+     Voir docs/03-developpeur/interface/ § Contraste. */
   /* ⚠️ **Rebranding « SW Blacksmith », lot R1 (2026-09-29) : les jetons de la
      toile**, thème Atelier — un papier chaud, l'encre de l'atelier, la braise
-     en accent. Voir spec/shared/design.md.
+     en accent. Voir docs/03-developpeur/interface/.
      ⚠️ Les trois surfaces se distinguent deux à deux, mais faiblement
      (`panel2` / `bg` 1.09, `panel` / `bg` 1.12) : c'est la BORDURE qui sépare
      une surface posée sur la page, comme depuis le lot 14. */
@@ -121,7 +121,7 @@
      contenter de l'assombrir vers le gris.
      ⚠️ La TEINTE reste reconnaissable : le vent est ocre, jamais vert ; la
      lumière est dorée, jamais grise. Un joueur repère ses monstres à la volée
-     dans une liste dense. Voir spec/shared/design.md. */
+     dans une liste dense. Voir docs/03-developpeur/interface/. */
   --el-fire: 196 28 16;
   --el-water: 0 106 166;
   /* ⚠️ Vent et Lumière : ARBITRAGE ASSUMÉ entre teinte et ratio.
@@ -133,7 +133,7 @@
      `bg`, 3.74 sur `panel2` ; la lumière 5.21 / 4.66 / 4.27. Règle gardée par
      la décision 8 du rebranding.
      Ce sont des LIBELLÉS courts et gras, pas du texte courant.
-     Voir spec/shared/design.md § Contraste. */
+     Voir docs/03-developpeur/interface/ § Contraste. */
   --el-wind: 148 111 0;
   --el-light: 134 103 24;
   --el-dark: 118 36 190;
@@ -171,7 +171,7 @@
      un fond profond : sur blanc elles tombaient entre 1.22 et 3.12 de contraste
      — cinq des six étaient invisibles.
      Chaque barre porte son libellé ET sa valeur en clair : l'identité ne repose
-     jamais sur la couleur seule. Voir spec/shared/design.md § Dataviz.
+     jamais sur la couleur seule. Voir docs/03-developpeur/interface/ § Dataviz.
      `pal-1` descendu d'un cheveu au rebranding (150 112 10 → 149 111 10) :
      4.47 sur le nouveau `panel`, 4.53 après (décision 8). */
   --pal-1: 149 111 10; /* or       — ≥ 110 % */
@@ -469,7 +469,7 @@
 
 /* ---- Courbes ------------------------------------------------------------ */
 /* ⚠️ Jamais `ease-in` sur un élément d'interface : il démarre lentement, à
-   l'instant où l'utilisateur regarde. Voir spec/shared/design.md. */
+   l'instant où l'utilisateur regarde. Voir docs/03-developpeur/interface/. */
 :root {
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
@@ -590,12 +590,12 @@ html {
 /* ---- Focus : UNE règle globale ----------------------------------------- */
 /* ⚠️ Remplace 24 `outline-none` sans marqueur : en tabulant, on ne savait
    jamais où on était. Un composant peut redéfinir l'anneau, jamais le
-   supprimer. Voir spec/shared/design.md. */
+   supprimer. Voir docs/03-developpeur/interface/. */
 /* ⚠️ **1 px, comme tout contour de l'app.** Il en faisait 2, détachés de 2 px
    de plus : un halo de quatre pixels autour de chaque contrôle atteint au
    clavier, qui bavait sur ses voisins dans une rangée serrée. La couleur
    d'accent suffit à le repérer — c'est le contraste qui fait un marqueur de
-   focus, pas l'épaisseur. Voir spec/shared/librairie-ui.md § contours. */
+   focus, pas l'épaisseur. Voir docs/03-developpeur/interface/ § contours. */
 /* ⚠️ `accent-lisible`, pas `accent` : en Atelier, la braise vive fait 2.11 à
    2.57 sur les fonds — un anneau de focus doit tenir 3:1 (décision 11 du
    rebranding). */
@@ -614,7 +614,7 @@ html {
    change de couleur au moment précis où le clavier arrive. Même raisonnement
    qu'en dessous pour un champ dans un cadre qui réagit — un seul contour, celui
    qui a déjà quelque chose à dire.
-   Voir la section « UN SEUL marqueur de sélection » dans spec/shared/design.md. */
+   Voir la section « UN SEUL marqueur de sélection » dans docs/03-developpeur/interface/. */
 .focus\:border-accent:focus-visible,
 .focus\:border-ctx:focus-visible {
   outline: none;
@@ -639,7 +639,7 @@ html {
 
    Le focus reste donc parfaitement visible : il a simplement cessé d'être
    dessiné deux fois. La règle vaut pour toute l'app, pas pour un composant.
-   Voir spec/shared/design.md § « UN SEUL marqueur de sélection ». */
+   Voir docs/03-developpeur/interface/ § « UN SEUL marqueur de sélection ». */
 .focus-within\:border-accent :focus-visible,
 .focus-within\:border-ctx :focus-visible {
   outline: none;
@@ -648,7 +648,7 @@ html {
 /* ---- Pression au clic --------------------------------------------------- */
 /* ⚠️ Posée GLOBALEMENT plutôt que classe par classe sur ~200 boutons : un
    bouton qui ne bouge pas au clic laisse un doute d'un dixième de seconde
-   (« est-ce que ça a pris ? »). Voir spec/shared/design.md.
+   (« est-ce que ça a pris ? »). Voir docs/03-developpeur/interface/.
 
    Exclusions volontaires :
    - `[draggable]` : la poignée de glisser-déposer a son `cursor-grabbing`, et
@@ -678,7 +678,7 @@ a[data-bouton]:active {
 /* ---- Entrée d'un popover ------------------------------------------------ */
 /* ⚠️ Jamais depuis `scale(0)` : rien dans le monde réel n'apparaît de nulle
    part. On part de 0.96 avec une opacité nulle, et l'origine est posée sur
-   l'ancre par le composant. Voir spec/shared/design.md. */
+   l'ancre par le composant. Voir docs/03-developpeur/interface/. */
 @keyframes popover {
   from {
     opacity: 0;
@@ -1056,7 +1056,7 @@ a[data-bouton]:active {
 /* La mono ne sert qu'aux CHIFFRES : ils doivent s'aligner en colonnes d'une
    ligne à l'autre. `tabular-nums` est donc posé d'office plutôt que répété au
    cas par cas — sans lui, un « 1 » plus étroit décale toute une colonne
-   d'efficiences. Voir spec/shared/design.md.
+   d'efficiences. Voir docs/03-developpeur/interface/.
    ⚠️ Dans `@layer utilities` pour que la règle vive dans la même couche que
    l'utilitaire Tailwind qu'elle complète, et ne dépende pas de l'ordre du
    fichier. */
@@ -1075,7 +1075,7 @@ a[data-bouton]:active {
    compacte à taille égale. C'était Inter ; c'est Source Sans 3 depuis le
    rebranding (R1), lue dans `fontFamily.body` pour ne l'écrire qu'une fois.
    La mono reste réservée aux CHIFFRES, qui doivent s'aligner.
-   Voir spec/shared/design.md. */
+   Voir docs/03-developpeur/interface/. */
 @layer components {
   /* ⚠️ Les CAPITALES espacées pèsent plus lourd que leur taille ne le dit :
      à 11 px avec `letter-spacing: 0.08em`, « POSITION » occupe autant qu'un mot

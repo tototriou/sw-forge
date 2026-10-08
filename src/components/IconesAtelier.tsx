@@ -1,7 +1,7 @@
 import { CSSProperties } from 'react';
 
 // Icônes de NAVIGATION « objets d'atelier » (rebranding R4, décisions 9, 27 et
-// 28 ; spec/shared/navigation.md).
+// 28 ; docs/02-app/transverse/).
 //
 // Grille de 24, trait de 2, bouts et angles ronds, `currentColor` : le même
 // contrat que lucide, pour que chacune remplace son icône lucide sans que

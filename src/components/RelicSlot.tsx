@@ -68,7 +68,7 @@ export interface RelicSlotProps {
   marques?: string[];
   // Overlay ancré (flottant à la souris) — `undefined` au doigt, où le détail
   // s'affiche en ligne sous la pièce (même principe qu'`ArtifactSlots`/`RuneWheel`,
-  // voir spec/shared/design.md).
+  // voir docs/03-developpeur/interface/).
   renderOverlay?: (anchorRef: { current: HTMLElement | null }) => ReactNode;
   // Case plus compacte (carte de résultat de l'Optimizer) — REMPLACE
   // l'adaptation `compact:` responsive de la fiche pleine page, elle ne s'y

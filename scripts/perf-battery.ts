@@ -66,7 +66,7 @@
 //            reste de cette batterie. Rapide (buildBuckets seul, jamais
 //            pairBuckets), pas de baseline — la parallélisation est sans
 //            risque ici puisqu'aucun temps n'est comparé. Voir
-//            spec/outils/optimizer/moteur/elagages.md,
+//            docs/03-developpeur/optimizer/,
 //            « Pré-filtrage heuristique et compartiments » (`bucketCap` mis à
 //            l'échelle de `slotFilterCap`).
 //   --quick : mode INDÉPENDANT — 2 cas canari SEULEMENT (Ciri, Lushen d11 —
@@ -257,7 +257,7 @@ function runWorker<TData, TResult>(scriptPath: string, data: TData): Promise<TRe
   });
 }
 
-// ── Vérification de MONOTONICITÉ, PARALLÉLISÉE (voir spec/outils/optimizer/moteur/elagages.md,
+// ── Vérification de MONOTONICITÉ, PARALLÉLISÉE (voir docs/03-developpeur/optimizer/,
 // « Pré-filtrage heuristique et compartiments ») ────────────────────────────
 // Chaque cas dans son propre `worker_threads` (voir monotonicity-worker.ts),
 // tous lancés EN MÊME TEMPS — sans risque de précision à protéger : ce mode

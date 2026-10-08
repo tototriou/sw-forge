@@ -83,7 +83,7 @@ const SPD_ICON = `${import.meta.env.BASE_URL}stats/spd.png`;
 // Valeur du buff de vitesse du jeu (+30 %), posée d'un clic.
 const BUFF_SPD = 30;
 
-// Outils › Speed tuning — voir spec/outils/speed-tuning.md.
+// Outils › Speed tuning — voir docs/02-app/speed-tuning/.
 //
 // À chaque tick, la barre d'action monte de `vitesse × 7 %` ; un seul monstre
 // agit par tick (règle du jeu). L'écran répond à « est-ce que je joue AVANT tel
@@ -1825,7 +1825,7 @@ const LIBELLE_SOURCE: Record<DeckDispo['source'], string> = {
 // Reprendre une équipe de siège telle quelle plutôt que de retaper trois
 // monstres et trois vitesses de runes. Le bouton reste TOUJOURS affiché, même
 // sans compte chargé : désactivé, il dit que la possibilité existe (voir
-// spec/shared/design.md).
+// docs/03-developpeur/interface/).
 function ImportDeck({
   decks,
   onImporter,
@@ -1929,7 +1929,7 @@ function ImportDeck({
 const MAX_RESULTS = 25;
 
 // Combobox d'ajout — même grammaire que RtaSearch/MonsterGearPicker
-// (Champ + Flottant + useComboboxNav), voir spec/shared/recherche-clavier.md.
+// (Champ + Flottant + useComboboxNav), voir docs/02-app/transverse/.
 function RechercheMonstre({
   monsters,
   dejaAjoutes,

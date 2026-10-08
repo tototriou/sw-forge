@@ -2,7 +2,7 @@
 //
 // Le build de runes ne bouge pas : on cherche seulement quels deux artéfacts
 // de l'inventaire maximisent les dégâts du sort choisi. Voir
-// `artifactOptim.ts` pour le moteur, et spec/outils/degats-reels.md pour ce
+// `artifactOptim.ts` pour le moteur, et docs/02-app/degats-reels/ pour ce
 // que chaque ligne d'artéfact fait au calcul.
 //
 // ⚠️ **Ce script sert AUSSI de vérification de bout en bout** : c'est le

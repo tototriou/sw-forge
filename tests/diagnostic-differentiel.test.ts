@@ -1,4 +1,4 @@
-// Le DIFFÉRENTIEL ENTRELACÉ (`spec/outils/optimizer/harnais-extensions.md`, « Le différentiel : l'oracle »).
+// Le DIFFÉRENTIEL ENTRELACÉ (`docs/03-developpeur/optimizer/`, « Le différentiel : l'oracle »).
 //
 // ⚠️ **Ce test ne vérifie pas que le moteur a raison ; il vérifie que le
 // différentiel REFUSE ce qu'il doit refuser.** C'est la propriété qui compte

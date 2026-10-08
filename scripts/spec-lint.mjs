@@ -1,16 +1,16 @@
-// Vérifie les documents de `spec/` contre le contrat de rangement
-// (`spec/outillage/spec.md`, « Contrat de `spec-lint` »). Deux régimes :
+// Vérifie les documents de `docs/` contre le contrat de rangement
+// (`docs/03-developpeur/`, « Contrat de `spec-lint` »). Deux régimes :
 // documents actifs (bloc terminal ≤ 100 lignes, fichier ≤ 500 hors exception, en-tête avec Statut
 // reconnu, slugs uniques, références `fichier § section` résolues) et
 // les archives (seule la présence de `**Statut :** ARCHIVE` est exigée).
 //
 // Usage : `node scripts/spec-lint.mjs [--json]`
-// Périmètre et exceptions déclarés dans `spec/spec-lint.json`.
+// Périmètre et exceptions déclarés dans `scripts/spec-lint.json`.
 //
 // ⚠️ Le parseur (titres, blocs, en-tête, références, mode dossier) vit dans
 // `scripts/lib/spec-markdown.mjs`, partagé avec `spec-toc` — ce script ne
 // fait qu'appliquer les règles de « Contrat de `spec-lint` »
-// (`spec/outillage/spec.md`) et mettre en forme.
+// (`docs/03-developpeur/`) et mettre en forme.
 
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, relative, resolve } from 'node:path';
@@ -30,8 +30,8 @@ function estArchive(relatif) {
   return /(^|\/)archive\//.test(relatif);
 }
 
-// « La nature CHANTIER » (`spec/outillage/spec.md`) : un cadrage — tout `.md` sous un dossier `chantiers/`,
-// à toute profondeur (`spec/chantiers/**`) — n'est ni un état actuel, ni une
+// « La nature CHANTIER » (`docs/03-developpeur/`) : un cadrage — tout `.md` sous un dossier `chantiers/`,
+// à toute profondeur (`docs/**/chantiers/**`) — n'est ni un état actuel, ni une
 // décision, ni une archive : il est « en cours » puis « terminé ». Le
 // dossier `chantiers/` fait foi, pas le périmètre déclaré.
 function estChantier(relatif) {
@@ -39,7 +39,7 @@ function estChantier(relatif) {
 }
 
 // Un Statut n'est reconnu que s'il commence par une des trois natures
-// (`spec/outillage/spec.md`, « En-têtes par nature, slugs uniques ») :
+// (`docs/03-developpeur/`, « En-têtes par nature, slugs uniques ») :
 // « présent et non vide » ne suffit pas. Comparaison
 // insensible à la casse : les en-têtes existants écrivent « État actuel »,
 // pas « ÉTAT ACTUEL ».
@@ -63,7 +63,7 @@ function dateValide(annee, mois, jour) {
   return d.getUTCFullYear() === annee && d.getUTCMonth() === mois - 1 && d.getUTCDate() === jour;
 }
 
-// « La nature CHANTIER » (`spec/outillage/spec.md`) : regex stricte, deux
+// « La nature CHANTIER » (`docs/03-developpeur/`) : regex stricte, deux
 // formes acceptées — pas de préfixe libre comme pour les trois autres
 // natures. Les champs d'en-tête (« En-têtes par nature, slugs uniques » : Lire
 // si, Ne pas lire si, Voir aussi) restent facultatifs pour cette nature.
@@ -79,12 +79,12 @@ function statutChantierValide(statut) {
 }
 
 // Un lien/`Source :` peut désigner un chemin relatif au fichier qui le
-// porte, à la racine du dépôt, ou à `spec/` — le premier qui existe gagne.
+// porte, à la racine du dépôt, ou à `docs/` — le premier qui existe gagne.
 function resoudreChemin(cheminSource, racine, refFichier) {
   const candidats = [
     resolve(dirname(cheminSource), refFichier),
     resolve(racine, refFichier),
-    resolve(racine, 'spec', refFichier),
+    resolve(racine, 'docs', refFichier),
   ];
   return candidats.find((c) => existsSync(c)) ?? null;
 }
@@ -95,7 +95,7 @@ function resoudreChemin(cheminSource, racine, refFichier) {
 //
 // `options.inclureLongueurs = false` limite le contrôle aux en-têtes, aux
 // slugs et aux références — c'est la cible `spec-lint-en-tetes` de « Cibles
-// de test » (`spec/outillage/spec.md`) ;
+// de test » (`docs/03-developpeur/`) ;
 // `true` (par défaut) ajoute les longueurs et les exceptions — la cible
 // `spec-lint`.
 export function verifier(racine, config, options = {}) {
@@ -127,7 +127,7 @@ export function verifier(racine, config, options = {}) {
       if (!statut || !statut.trim().startsWith('ARCHIVE')) {
         erreurs.push({ fichier: relatif, regle: 'statut-archive', message: 'en-tête sans « **Statut :** ARCHIVE »' });
       }
-      continue; // archive/ : aucune autre règle (« Natures de documents et règles de forme », `spec/outillage/spec.md`)
+      continue; // archive/ : aucune autre règle (« Natures de documents et règles de forme », `docs/03-developpeur/`)
     }
 
     const dansChantiers = estChantier(relatif);
@@ -195,7 +195,7 @@ export function verifier(racine, config, options = {}) {
 }
 
 function main() {
-  const config = JSON.parse(readFileSync(resolve(RACINE, 'spec/spec-lint.json'), 'utf8'));
+  const config = JSON.parse(readFileSync(resolve(RACINE, 'scripts/spec-lint.json'), 'utf8'));
   const veutJson = process.argv.includes('--json');
   const veutEnTetesSeules = process.argv.includes('--en-tetes');
   const { erreurs } = verifier(RACINE, config, { inclureLongueurs: !veutEnTetesSeules });

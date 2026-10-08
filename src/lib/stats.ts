@@ -114,7 +114,7 @@ export function computeStats(gear: GearSet): StatRow[] {
 
 // Stats de base (niveau/étoiles max, SANS rune) d'un monstre du BESTIAIRE —
 // pour afficher/optimiser un monstre non possédé (voir
-// spec/outils/optimizer/listes-et-reservation.md § Monstre non possédé et
+// docs/02-app/optimizer/ § Monstre non possédé et
 // auto-exemption). `Monster.stats`
 // porte déjà les valeurs `max_lvl_*` de SWARFARM (voir fetch-monsters.mjs),
 // il ne manque qu'un renommage de champs vers `BaseStats` — un champ absent

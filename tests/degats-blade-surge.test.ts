@@ -1,5 +1,5 @@
 // Blade Surge — la séquence curée de trois coups et la cible secondaire
-// (`spec/outils/degats-reels/sequences-de-coups.md`).
+// (`docs/02-app/degats-reels/`).
 //
 // ⚠️ Ce qui serait GRAVE ET INVISIBLE ici : un troisième coup oublié (le
 // calcul d'avant ne comptait que les deux coups mono-cible de la donnée), une
@@ -7,7 +7,7 @@
 // les skillups qui l'oublieraient, 411 rouvert pour la cible secondaire), ou
 // une cible secondaire calculée par soustraction du premier cran. Chaque
 // nombre attendu est écrit à la main depuis les valeurs curées (
-// `spec/outils/degats-reels/valeurs-de-jeu-curees.md` : `0.5 × ATQ` ×2 mono-cible puis `3.0 × ATQ` en zone, +30 % de
+// `docs/02-app/degats-reels/` : `0.5 × ATQ` ×2 mono-cible puis `3.0 × ATQ` en zone, +30 % de
 // skillups sur les trois coups, 224 sur les coups 1 et 2, 400 sur les trois,
 // 411 sur le premier coup du tour) ou comparé au chemin ordinaire d'un sort
 // synthétique d'un seul groupe — jamais relu dans le code qui calcule.

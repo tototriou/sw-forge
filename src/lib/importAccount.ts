@@ -321,7 +321,7 @@ function artifactToDetail(a: any): ArtifactDetail {
   // ⚠️ `e[2]` est le nombre d'AMÉLIORATIONS posées sur la ligne — vérifié sur
   // 2 120 artéfacts : la somme par artéfact vaut exactement ce que sa rareté
   // distribue au +15 (Rare 2, Héroïque 3, Légendaire 4). C'est la mesure de
-  // qualité d'un artéfact, cf. spec/compte/calcul-artefacts.md.
+  // qualité d'un artéfact, cf. docs/02-app/compte/.
   const subs: EffectLine[] = Array.isArray(a?.sec_effects)
     ? a.sec_effects
         .filter((e: any) => Number(e?.[0]))
@@ -393,7 +393,7 @@ function relicToDetail(r: any): RelicDetail | undefined {
   return { id, upgrade, main, unique: { type, tranche, ...(percent > 0 ? { percent } : {}) } };
 }
 
-// `pri_effect[1] = upgrade_curr + 3` (spec/outils/optimizer/moteur/reliques.md § Ce que le moteur lit d'une relique,
+// `pri_effect[1] = upgrade_curr + 3` (docs/03-developpeur/optimizer/ § Ce que le moteur lit d'une relique,
 // vérifié sans exception sur 280 pièces réelles) : une RÈGLE qui SE VÉRIFIE,
 // elle ne remplace jamais la donnée — `game-data-curation`. Un écart est
 // compté, jamais corrigé silencieusement.
@@ -457,7 +457,7 @@ const indexArtifacts = memoByData((data: any): ReadonlyMap<number, any> => {
 // source première — les équipées y figurent aussi) + reliques embarquées
 // dans les unités (repli, exports anciens/incomplets). `data.relics` est
 // ajouté en premier : `!m.has(id)` lui laisse la priorité, jamais écrasé par
-// le repli (spec/shared/import-compte.md § Inventaire).
+// le repli (docs/02-app/transverse/ § Inventaire).
 const indexRelics = memoByData((data: any): ReadonlyMap<number, any> => {
   const m = new Map<number, any>();
   const add = (r: any) => {
@@ -473,7 +473,7 @@ const indexRelics = memoByData((data: any): ReadonlyMap<number, any> => {
 
 // Occupation par rid : nombre d'UNITÉS dont la relique équipée (`relics[0]`)
 // porte ce rid — jamais la taille de `data.relics` (une relique n'est pas
-// exclusive, spec/outils/optimizer/moteur/reliques.md
+// exclusive, docs/03-developpeur/optimizer/
 // § Ce que le moteur lit d'une relique ; jusqu'à 96 monstres pour un même rid).
 function computeRelicUsage(data: any): Record<number, number> {
   const usage: Record<number, number> = {};
@@ -698,7 +698,7 @@ export interface InventoryParseResult {
   crafts: CraftLine[];
   // Nombre d'unités portant chaque rid de relique (`relicUsageById`), jamais
   // déduit de `relics.length` — une relique n'est pas exclusive
-  // (spec/outils/optimizer/moteur/reliques.md § Ce que le moteur lit d'une relique).
+  // (docs/03-developpeur/optimizer/ § Ce que le moteur lit d'une relique).
   relicUsageById: Record<number, number>;
   // Pièces où `pri_effect[1] ≠ upgrade_curr + 3` — avertissement d'import,
   // jamais une correction (`game-data-curation`).

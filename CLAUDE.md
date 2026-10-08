@@ -9,20 +9,22 @@ ouvrir. Ne pas explorer `src/` à l'aveugle.
 ## Travail
 
 - **Français partout** : réponses, commits, libellés d'interface, commentaires,
-  specs (`spec/`) et skills (`.claude/skills/`) — même un diff isolé de
+  documentation (`docs/`) et skills (`.claude/skills/`) — même un diff isolé de
   quelques lignes.
-- **La spec avant le code.** Lire le `spec/` de la zone touchée avant de coder,
-  la mettre à jour dans le **même commit**. Index : [spec/README.md](spec/README.md)
+- **La spec avant le code.** Lire la documentation (`docs/`) de la zone touchée avant de coder,
+  la mettre à jour dans le **même commit**. Carte : [docs/README.md](docs/README.md) ;
+  conventions : [docs/03-developpeur/](docs/03-developpeur/)
   — c'est là que vivent les conventions produit détaillées (interface,
   persistance, releases…), pas ici : ce fichier-ci reste le résumé chargé
   automatiquement à chaque session. Ouvrir une spec =
   `node scripts/spec-toc.mjs <fichier|dossier>` (sommaire compact : en-tête,
   puis niveau / plage de lignes / première phrase de chaque titre) puis la
   section utile — jamais un fichier entier de plus de 300 lignes sans raison
-  écrite. Avant un chantier Optimizer : `spec/outils/optimizer/invariants.md`
-  (en entier — le seul fichier lu ainsi, tenu compact pour ça) et le README
-  de routage, `spec/outils/optimizer/README.md`. **Modification NORMATIVE** d'un fichier
-  listé en exception dans `spec/spec-lint.json`, ou extraction des
+  écrite. Avant un chantier Optimizer : les invariants de
+  `docs/03-developpeur/optimizer/` (en entier — le seul fichier lu ainsi,
+  tenu compact pour ça) et le routage par tâche de `docs/02-app/optimizer/`.
+  **Modification NORMATIVE** d'un fichier
+  listé en exception dans `scripts/spec-lint.json`, ou extraction des
   invariants d'une section d'état actuel nouvelle/modifiée : skill
   `spec-hygiene` (déplacer, découper, extraire — pas pour une faute, un lien
   ou un en-tête).
@@ -61,7 +63,7 @@ ouvrir. Ne pas explorer `src/` à l'aveugle.
   l'oubli reste parfaitement typé. Avant de
   considérer un champ ajouté/renommé comme terminé : `grep -rn` du nom du
   type/champ sur TOUT le dépôt (`src/` ET `scripts/` ET `tests/`), pas
-  seulement le fichier qu'on vient d'éditer. Détail : [spec/README.md](spec/README.md),
+  seulement le fichier qu'on vient d'éditer. Détail : [docs/03-developpeur/](docs/03-developpeur/),
   « Conventions communes ».
 
 ## Interface
@@ -72,7 +74,7 @@ ouvrir. Ne pas explorer `src/` à l'aveugle.
   librairie que quand un **axe** manque, jamais une variante de plus.
 - ⚠️ **Un clic ne déplace jamais ce qu'on vient de cliquer.** La place de ce qui
   s'ouvre est réservée d'avance, ou bien ce qui s'ouvre sort du flux (flottant,
-  dialogue, panneau). Détail et exceptions : [spec/shared/design.md](spec/shared/design.md).
+  dialogue, panneau). Détail et exceptions : [docs/03-developpeur/interface/](docs/03-developpeur/interface/).
 - **Contours : 1 px, et un seul.** Jamais deux superposés. Vaut pour les éléments
   d'**interface** ; runes, artéfacts et reliques se marquent comme dans le jeu.
 - **Grammaire des modales** : titre en haut à gauche, croix en haut à droite,
@@ -81,11 +83,11 @@ ouvrir. Ne pas explorer `src/` à l'aveugle.
 - **Les libellés sont ceux du jeu**, jamais reformulés.
 - **Jamais un `confirm()` dont OK détruit** : le défaut est l'action sans perte.
 - **Aucune couleur Tailwind native**, aucune valeur en dur : tout passe par les
-  tokens ([spec/shared/design.md](spec/shared/design.md)).
+  tokens ([docs/03-developpeur/interface/](docs/03-developpeur/interface/)).
 - **Passe responsive en cours** — ne pas rustiner le mobile écran par écran.
 
 Détail complet des conventions produit (persistance, réglages, champs
-numériques, etc.) : [spec/README.md](spec/README.md), section « Conventions
+numériques, etc.) : [docs/03-developpeur/](docs/03-developpeur/), section « Conventions
 communes ».
 
 ## Vérifier
@@ -132,12 +134,12 @@ travaille jamais, on en part.
 - **Un hook `pre-commit` refuse cinq choses** : une erreur ESLint dans le
   code indexé, un commit sur `main`, un
   chemin privé dans l'index (`.history/`, `.vscode/`), un fichier de
-  plus de 5 Mo (un export de compte), et un `spec/**.md` du périmètre de
-  `spec/spec-lint.json` qui ne passe pas `spec-lint` (niveau 1, invariant
-  dépôt — spec/outillage/spec.md § Refus du `pre-commit`).
+  plus de 5 Mo (un export de compte), et un `docs/**.md` du périmètre de
+  `scripts/spec-lint.json` qui ne passe pas `spec-lint` (niveau 1, invariant
+  dépôt — docs/03-developpeur/ § Refus du `pre-commit`).
 - **Un hook `commit-msg` refuse** un sujet hors de la forme
   `type(portée): description`, un corps collé au sujet et un message qui
-  commence par un BOM (spec/outillage/qualite-code.md § Message de commit).
+  commence par un BOM (docs/03-developpeur/ § Message de commit).
 - Les deux hooks sont **installés par machine**, donc actifs quelle que soit la branche —
   mais jamais requis : un clone sans `npm install` n'en a pas et commite
   normalement. **`npm install` les installe** (script `prepare`, jamais en
@@ -145,7 +147,7 @@ travaille jamais, on en part.
   `node scripts/installer-hooks.mjs` (`--simulation` pour voir sans écrire).
 - **`--no-verify` reste possible en local, pas en CI** : sur chaque pull
   request, `scripts/verifier-commits.mjs` rejoue `commit-msg` et
-  `pre-commit` sur chaque commit (spec/outillage/qualite-code.md
+  `pre-commit` sur chaque commit (docs/03-developpeur/
   § Garde-fous rejoués en CI).
 
 ## Consignes pour l'agent (Claude Code)
@@ -220,7 +222,7 @@ Ces deux défauts sont des conventions d'agent : aucun hook d'agent ne les
 applique, parce qu'une faute ici abîme la machine ou le travail de l'agent,
 pas le dépôt. Ce qui entre dans le dépôt est gardé par les hooks Git et la
 CI : `commit-msg` refuse notamment un message qui commence par un BOM
-(spec/outillage/qualite-code.md).
+(docs/03-developpeur/).
 
 ### Windows : `TaskStop` ne tue pas le vrai process
 

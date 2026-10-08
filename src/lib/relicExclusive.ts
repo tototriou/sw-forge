@@ -1,4 +1,4 @@
-// Le SCORE CHIFFRÉ d'une propriété unique de relique (spec/outils/optimizer/moteur/reliques.md
+// Le SCORE CHIFFRÉ d'une propriété unique de relique (docs/03-developpeur/optimizer/
 // § L'effet unique — score de la propriété exclusive). Module pur : il
 // traduit une pièce en APPORT, il ne note rien
 // lui-même et ne connaît ni objectif, ni régime, ni candidat.
@@ -52,7 +52,7 @@ import { exclusiveChiffrable, relicUniqueNature } from './relicOptim';
  *   **valeur de base** de la stat augmentée.
  *
  * **Régénération** (16) n'apporte rien : les soins et boucliers ne sont mesurés
- * par aucun objectif (spec/outils/optimizer/moteur/reliques.md
+ * par aucun objectif (docs/03-developpeur/optimizer/
  * § L'effet unique — score de la propriété exclusive).
  */
 export interface ApportExclusive {
@@ -137,7 +137,7 @@ export function tranchesAtteintes(Y: number, tranche: number): number {
  * `stats` sont les statistiques de ce build **avec la principale de cette
  * relique déjà posée** (c'est `computeStats({ ...gear, relic })`) : la
  * principale entre donc dans `Y`, le gain de l'exclusive non — il n'y a qu'une
- * relique, donc aucune boucle à résoudre (spec/outils/optimizer/moteur/reliques.md
+ * relique, donc aucune boucle à résoudre (docs/03-developpeur/optimizer/
  * § L'effet unique — score de la propriété exclusive).
  *
  * `setup`/`propres`/`element` servent au seul `statsDebutCombat` (leader

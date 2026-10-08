@@ -33,7 +33,7 @@ import { PRESSION } from './Bouton';
 // aplat blanc en thème sombre, écarté). Exporté pour que les filtres qui ne
 // passent pas par `Pastille` (sets, emplacements, étoiles du Bestiaire) portent
 // EXACTEMENT le même : deux marqueurs côte à côte se liraient comme deux natures
-// de filtre (spec/shared/design.md § UN SEUL marqueur). ⚠️ Le contour lit la
+// de filtre (docs/03-developpeur/interface/ § UN SEUL marqueur). ⚠️ Le contour lit la
 // braise LISIBLE (tailwind.config.js) : en Atelier, la vive ne ferait que 2.1 à
 // 2.6 comme contour.
 // ⚠️ Rebranding, décision 20 — la planche « Actions » de la toile : contour

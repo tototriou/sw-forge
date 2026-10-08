@@ -2,7 +2,7 @@
 //
 // Six sorts n'ignorent la DEF que lorsque la jauge d'attaque de la cible est à
 // 0. L'ATB adverse n'est pas modélisée : le premier coup qui ignore suit la
-// règle curée (`spec/outils/degats-reels/valeurs-de-jeu-curees.md`) — le coup 1
+// règle curée (`docs/02-app/degats-reels/`) — le coup 1
 // n'ignore jamais, une fois qu'un coup ignore tous les suivants ignorent, le
 // 7ᵉ coup de la variante B ignore toujours ; par défaut, seul ce coup
 // inconditionnel ignore (aucun en variante A).

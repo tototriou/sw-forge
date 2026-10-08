@@ -1,5 +1,5 @@
 // Dégâts RÉELS d'un sort — la formule de la page Mécaniques (voir
-// spec/mecaniques.md) appliquée à un sort précis d'un monstre précis, contre
+// docs/02-app/mecaniques/) appliquée à un sort précis d'un monstre précis, contre
 // un adversaire configuré.
 //
 // ⚠️ **Tout ce qui peut être DÉDUIT du sort ne se redemande jamais à
@@ -46,7 +46,7 @@ export function defenseFactor(def: number): number {
 
 // ── Effets de combat modélisés ───────────────────────────────────────────
 // Potences de base des buffs, tronquées vers le bas selon le bonus d'effet
-// (`⌊base × (1 + effet/100)⌋`, voir spec/mecaniques.md). v1 n'expose PAS de
+// (`⌊base × (1 + effet/100)⌋`, voir docs/02-app/mecaniques/). v1 n'expose PAS de
 // bonus d'effet : la potence de base s'applique telle quelle.
 //
 // ⚠️ Chaque effet porte ici son ICÔNE de jeu (même hébergement SWARFARM que
@@ -238,7 +238,7 @@ const GUILDE_CD_POINTS = 25;
 
 // Bonus total apporté par les compétences d'invocateur, séparé en un
 // pourcentage (appliqué à la stat de BASE, comme le totem de vitesse l'était
-// déjà — voir `pctSpeedBonus` dans speed.ts et spec/mecaniques.md) et des
+// déjà — voir `pctSpeedBonus` dans speed.ts et docs/02-app/mecaniques/) et des
 // points plats (Dgts Crit).
 export function summonerSkillBonus(
   choix: SummonerSkills,
@@ -400,7 +400,7 @@ export function codesAmplificationActifs(setup: DamageSetup): number[] {
 // plafond du 218 est 1,5 (% des PV) quand celui du 221 est 200 (% de la
 // VIT) — parce que 1,5 % de 40 000 PV et 200 % de 200 VIT donnent des
 // ordres de grandeur comparables. Ne jamais « normaliser » ces valeurs entre
-// elles. Voir spec/compte/calcul-artefacts.md.
+// elles. Voir docs/02-app/compte/.
 const CODE_BRUT_PV = 218;
 const CODE_BRUT_ATK = 219;
 const CODE_BRUT_DEF = 220;
@@ -2353,7 +2353,7 @@ export interface SkillDamageProfile {
   appliqueDefBreak: boolean;
   // Dégâts FIXES (marqueur `(Fixed)` de SWARFARM) : ne peuvent pas être
   // critiques et ne passent PAS par le facteur de défense (voir
-  // spec/mecaniques.md, terme « Additionnel »).
+  // docs/02-app/mecaniques/, terme « Additionnel »).
   fixed: boolean;
   // Composante fixe distincte d'une attaque ordinaire (Lamiella) : elle ne
   // critique pas, ignore la DEF et ne reçoit que la Marque.
@@ -3709,7 +3709,7 @@ export function estPrisEnCharge(p: SkillDamageProfile | SkillDamageUnsupported):
 // (« whenever you attack », « if the enemy is under Defense reduction… »).
 // Cette section CURE donc, à la main, PAR NOM DE SORT (jamais par monstre —
 // plusieurs monstres partagent le même passif), quels passifs à formule ont
-// été vérifiés utilisables et COMMENT — voir spec/outils/degats-reels.md
+// été vérifiés utilisables et COMMENT — voir docs/02-app/degats-reels/
 // pour la liste complète, la méthode (script jetable rejouant `analyser`
 // sur les ~2984 fiches du corpus) et le répertoire des sorts écartés.
 //
@@ -3998,7 +3998,7 @@ export interface AttaqueAppeleeConnue {
 // acceptables par une entrée chacune, six classées avec leur raison :
 // `tests/degats-attaque-appelee.test.ts`, qui injecte ses entrées et les
 // retire). Ce qu'il faut fournir pour en ajouter une :
-// spec/outils/degats-reels/attaque-apres-un-sort.md.
+// docs/02-app/degats-reels/.
 export const ATTAQUES_APPELEES_PAR_DECLENCHEUR: Readonly<Record<number, AttaqueAppeleeConnue>> = {};
 
 // Profil de dégâts d'un passif offensif CONNU (voir la liste ci-dessus),
@@ -4877,7 +4877,7 @@ export function resumeIgnoreDefRetenu(profile: SkillDamageProfile, setup: Damage
  * Dégâts totaux du sort (tous coups confondus) pour un build donné, ET les PV
  * restants de la cible une fois le sort encaissé.
  *
- * Suit l'équation de spec/mecaniques.md :
+ * Suit l'équation de docs/02-app/mecaniques/ :
  *   `(Mult × Crit × FacteurDéf + Additionnel) × Réductions`
  * — `DMG%` et `Variance` valent 1 en v1 (voir l'en-tête du fichier), et un
  * sort à dégâts FIXES passe par la branche « Additionnel » : ni critique, ni
@@ -5095,7 +5095,7 @@ function crBrutEffectif(
  *
  * ⚠️ **C'est la définition de l'assiette `Y` des propriétés uniques de
  * relique** (« tous les X pts de DEF au début du combat ») — voir
- * spec/outils/optimizer/moteur/reliques.md, « L'effet unique — score de la
+ * docs/03-developpeur/optimizer/, « L'effet unique — score de la
  * propriété exclusive », la définition qui fait foi, et
  * `relicExclusive.ts` qui la consomme.
  *
@@ -5532,7 +5532,7 @@ export function computeSkillDamageDetail(
   const bonus = summonerSkillBonus(setup.summonerSkills, element);
   // Compétences d'invocateur : un POURCENTAGE de la stat de BASE, ajouté au
   // total — même modèle que le totem de vitesse déjà en place (voir
-  // `pctSpeedBonus`, speed.ts, et spec/mecaniques.md : le totem entre dans le
+  // `pctSpeedBonus`, speed.ts, et docs/02-app/mecaniques/ : le totem entre dans le
   // `Σ%vit` appliqué à la base, pas au total runé).
   // ⚠️ Ajouté APRÈS coup plutôt que fondu dans le `Σ%` de `computeStats` (qui
   // a déjà rendu ses totaux) : l'écart tient au double arrondi supérieur, au
@@ -5612,7 +5612,7 @@ export function computeSkillDamageDetail(
 
   // Terme de dégâts critiques. Les améliorations de compétence s'y ajoutent
   // (elles s'appliquent que le coup soit critique ou non) — voir
-  // spec/mecaniques.md, terme « Crit ». Les Dgts Crit d'invocateur sont des
+  // docs/02-app/mecaniques/, terme « Crit ». Les Dgts Crit d'invocateur sont des
   // POINTS ajoutés à la stat, pas un pourcentage de celle-ci.
   // Euldong (« Triumph Over Evil ») ajoute 100 POINTS à la stat, comme les
   // points plats des compétences d'invocateur.
@@ -5979,7 +5979,7 @@ export function computeSkillDamageDetail(
   // l'utilisateur » pour le « une fois par sort » — c'était une ERREUR, levée
   // par un relevé EN JEU : Shahat ~50 000 PV, S2 sur une cible à ~3 000 DEF,
   // ~4 500 dégâts par coup relevés contre 770 à 1 760 prédits par l'ancien
-  // calcul. Voir spec/outils/degats-reels/artefacts-et-degats-bruts.md,
+  // calcul. Voir docs/02-app/degats-reels/,
   // « Dégâts BRUTS d'un passif — ni critiques, ni mitigés, à chaque coup ».
   //
   // ⚠️ Les deux familles vont EXACTEMENT au même endroit — ne pas rescinder
@@ -6159,7 +6159,7 @@ export function bonusPassifActif(p: PassifOffensifProfile, setup: DamageSetup): 
  * une seconde fois par la boucle des passifs.
  *
  * ⚠️ **Chaque passif recalculé par `computeSkillDamage`, jamais une formule
- * séparée** — même équation de spec/mecaniques.md, même adversaire : un
+ * séparée** — même équation de docs/02-app/mecaniques/, même adversaire : un
  * passif reste « une attaque de plus », pas un mécanisme à part. TROIS
  * ajustements, résolus au cas par cas dans `PASSIFS_OFFENSIFS_CONNUS`
  * (jamais un défaut générique) :
@@ -6509,7 +6509,7 @@ export function computeTotalDamage(
  * toujours ATQ et Dgts CRIT, qu'il porte ou non une ligne proportionnelle à
  * la DEF. Ces lignes RÉCOLTENT les stats que le build possède déjà, elles ne
  * justifient jamais d'en chercher d'autres — tranché avec l'utilisateur, voir
- * spec/outils/degats-reels.md.
+ * docs/02-app/degats-reels/.
  *
  * Les y mettre ferait travailler la rétention (`retentionKeys`,
  * runeBuildOptim.ts) sur des stats hors-sujet, et sortirait des builds que

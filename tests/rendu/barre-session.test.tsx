@@ -1,5 +1,5 @@
 // Tests de rendu — « Sauvegarder » et « Sauvegarder sous… » dans la barre du
-// haut (spec/shared/sauvegarde-session.md, spec/shared/navigation.md § Barre
+// haut (docs/02-app/transverse/, docs/02-app/transverse/ § Barre
 // supérieure). Sur le site, seul « Sauvegarder » ; dans l'app (pont du
 // préchargement simulé), les deux, et l'infobulle nomme la session en cours.
 

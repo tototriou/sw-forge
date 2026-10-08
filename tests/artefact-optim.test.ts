@@ -263,7 +263,7 @@ export default function testArtefactOptim() {
 
   titre('Bornes d’artéfact — deux vecteurs, jamais un seul');
 
-  // ⚠️ Pourquoi deux vecteurs (spec/outils/optimizer/moteur/artefacts.md, « Bornes d'apport pendant la recherche ») : l'apport
+  // ⚠️ Pourquoi deux vecteurs (docs/03-developpeur/optimizer/, « Bornes d'apport pendant la recherche ») : l'apport
   // de la paire REPRÉSENTATIVE ne doit pas servir de borne des DEUX côtés. Elle
   // est choisie pour son SCORE — en « Libre », deux PV+1500 —, donc elle
   // apporte `+0 DEF` alors que l'inventaire contient des artéfacts DEF : un

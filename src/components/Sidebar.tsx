@@ -5,7 +5,7 @@ import { BoutonIcone } from '../ui';
 import Logo from './Logo';
 
 // Barre de navigation LATÉRALE (bureau) — refonte graphique, lot 4
-// (maquette « Barre latérale » ; spec/shared/navigation.md).
+// (maquette « Barre latérale » ; docs/02-app/transverse/).
 //
 // De haut en bas : l'identité et le repli, le compte chargé, la recherche,
 // les groupes (Jouer, Mon compte, Outils, Ressources), Paramètres en pied.

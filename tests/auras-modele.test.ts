@@ -82,7 +82,7 @@ export function testAurasRecette() {
   // `erreur` écrit « <chemin> <attente> » : l'espace final exige le chemin exact.
   const refuse = (resultat: ReturnType<typeof lire>, chemin: string) => resultat.recipe === null && !!resultat.error?.includes(`${chemin} `);
 
-  // Plafond de saisie : cinq AUTRES monstres à trois sets (`spec/outils/degats-reels/valeurs-de-jeu-curees.md`), les
+  // Plafond de saisie : cinq AUTRES monstres à trois sets (`docs/02-app/degats-reels/`), les
   // activations propres du build s'ajoutant hors de ce champ.
   egal(avecExternes([]).recipe?.damageSetup.setsAuraExternes, [], '0 aura externe acceptée');
   egal(avecExternes([{ set: 'fight', nombre: 15 }]).recipe?.damageSetup.setsAuraExternes,
@@ -513,7 +513,7 @@ export function testAurasPropresCombatEtScore() {
     'part additionnelle (218-221) : ATQ de combat avec 5 Fight');
 
   // `atkCombatComplet` (Brita) et `defCombat` (Gideon) : dérivés de
-  // `statsDebutCombat`. ⚠️ Décision de modélisation (`spec/outils/degats-reels/effets-equipe-et-leaders.md`, « Sets d'aura d'équipe — modèle » :
+  // `statsDebutCombat`. ⚠️ Décision de modélisation (`docs/02-app/degats-reels/`, « Sets d'aura d'équipe — modèle » :
   // les auras entrent dans les passifs ; « toute source confondue » pour
   // Brita), pas un relevé en jeu.
   const seul = (propres: AurasPropres, seuilAtq: { seuil: number; pct: number } | null, selonDef: { defMax: number; pctMax: number } | null, stats = statsA) =>
@@ -657,7 +657,7 @@ export function testAurasPropresNoteDesCouples() {
 /* --------------------------------------------------------------------------
  * Conditions RES/PRE EXACTES avec les auras propres du build.
  * Candidats CONSTRUITS, jamais issus de `searchBuilds`. Attentes à la main :
- * +8 points par activation (`spec/outils/degats-reels/valeurs-de-jeu-curees.md`), externes de `SETUP` = 1 Tolerance et
+ * +8 points par activation (`docs/02-app/degats-reels/`), externes de `SETUP` = 1 Tolerance et
  * 1 Accuracy, fiche sans rune de RES/PRE (base 0). `activeSets` reste la
  * seule source des sets actifs (cohérence prouvée par
  * `testAurasPropresResolution`).

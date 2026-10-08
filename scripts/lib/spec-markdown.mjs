@@ -1,9 +1,9 @@
-// Parseur Markdown partagé pour les vérifications de rangement de `spec/`.
+// Parseur Markdown partagé pour les vérifications de rangement de `docs/`.
 //
 // ⚠️ **Une seule implémentation dans le dépôt** : tout script (contrôle de
 // slugs, de niveaux, `spec-toc`, `spec-lint`) importe ce fichier — jamais une
 // copie scratch, jamais une réimplémentation dans un hook. Voir
-// `spec/outillage/spec.md`, « Sous-titrer un fichier, parseur `spec-markdown` »,
+// `docs/03-developpeur/`, « Sous-titrer un fichier, parseur `spec-markdown` »,
 // « `spec-toc` » et « Contrat de `spec-lint` ».
 //
 // `titres(texte)` repère les lignes `^#{1,6} …`, hors blocs de code clôturés
@@ -31,7 +31,7 @@
 // pour `spec-lint`.
 //
 // `blocsTerminaux(texte)` découpe le fichier en blocs terminaux au sens de
-// « Bloc terminal et refus » de `spec/outillage/spec.md` : les lignes entre un titre (exclu) et le PROCHAIN TITRE DE N'IMPORTE
+// « Bloc terminal et refus » de `docs/03-developpeur/` : les lignes entre un titre (exclu) et le PROCHAIN TITRE DE N'IMPORTE
 // QUEL NIVEAU (exclu), ou la fin du fichier — pas jusqu'au niveau ≤ au sien
 // comme `sections()`. Le préambule (avant le premier titre) est un bloc.
 //
@@ -51,7 +51,7 @@
 //
 // `fichiersMarkdown(chemin)` liste récursivement les `.md` d'un fichier ou
 // dossier, hors `node_modules/` et `.git/` — le « mode dossier » de
-// `spec-toc` (`spec/outillage/spec.md`, « `spec-toc` »), partagé avec `spec-lint` qui en a besoin pour parcourir
+// `spec-toc` (`docs/03-developpeur/`, « `spec-toc` »), partagé avec `spec-lint` qui en a besoin pour parcourir
 // le périmètre.
 
 import { readdirSync, statSync } from 'node:fs';

@@ -771,7 +771,7 @@ export default function RecoBoard({
                 portrait, qui sert à affiner. Il vit AVEC les cases qu'il vide,
                 et non avec le sélecteur de rôle, qui ne les touche pas. */}
             {/* ⚠️ Ton NEUTRE, pas `danger` : vider une recherche se repose en un
-                geste, ça ne se confirme pas (voir spec/README.md) — la
+                geste, ça ne se confirme pas (voir docs/03-developpeur/) — la
                 surestimer en rouge permanent la ferait paraître plus grave
                 qu'elle ne l'est. */}
             {aUneRecherche && (

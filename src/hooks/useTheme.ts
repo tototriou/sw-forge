@@ -2,7 +2,7 @@ import { useSyncExternalStore } from 'react';
 import { selonSupport } from '../lib/bureau';
 
 // Thème de l'application : **Forge** (sombre) ou **Atelier** (clair).
-// Voir spec/shared/design.md.
+// Voir docs/03-developpeur/interface/.
 //
 // ⚠️ TROIS états, pas un interrupteur. Un binaire clair/sombre force à choisir
 // une valeur qui cesse alors de suivre le système : quelqu'un dont le téléphone
@@ -29,7 +29,7 @@ export const THEME_CHOICES: { key: ThemeChoice; label: string; hint: string }[] 
 // **Persisté** dans `localStorage`, même si la conservation est refusée : c'est
 // un RÉGLAGE, pas une donnée de l'utilisateur — au même titre que la mesure de
 // score ou le choix de conservation lui-même. Un thème oublié à chaque visite
-// serait un bug, pas une protection. Voir spec/README.md § Persistance.
+// serait un bug, pas une protection. Voir docs/03-developpeur/ § Persistance.
 const STORAGE_KEY = 'swblacksmith-theme-v1';
 
 function load(): ThemeChoice {

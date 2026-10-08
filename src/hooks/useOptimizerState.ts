@@ -33,7 +33,7 @@ export type ArtifactMainChoice = 'equipped' | 'libre' | 100 | 101 | 102;
 // `'equipped'`, `'libre'`), mais une sémantique différente : la principale
 // d'un artéfact est un PLAT (`ARTIFACT_MAIN`, effects.ts), celle d'une
 // relique un POURCENTAGE (`stat = B + ceil(B × (R + L) / 100) + plats`,
-// spec/outils/optimizer/moteur/reliques.md § Contexte transporté, bornes
+// docs/03-developpeur/optimizer/ § Contexte transporté, bornes
 // relâchées, filtre exact). Pas de
 // `'none'` : une relique n'a pas d'emplacement à vider, comme pour
 // l'artéfact.
@@ -146,7 +146,7 @@ export interface OptimizerState {
    * est active, et l'entrée précise (le Lushen de la box, du deck RTA, d'une
    * équipe de siège). Ici, et non dans l'écran, pour survivre au changement
    * de page — l'écran se démonte, ce hook non — et entrer dans la sauvegarde
-   * de session (spec/shared/sauvegarde-session.md).
+   * de session (docs/02-app/transverse/).
    *
    * ⚠️ Au remontage, l'écran revérifie l'entrée contre le compte affiché
    * (réimport, équipe supprimée entre-temps) : introuvable, elle retombe sur
@@ -239,7 +239,7 @@ export interface OptimizerState {
   // défaut) — un RÉGLAGE AVANCÉ, pas un critère : `resetSearch` ne le remet
   // PAS à zéro au changement de monstre, comme `slotFilterPreset` ou
   // `exhaustiveSearch`. Se règle par le champ « Niveau minimum » de la carte
-  // relique (spec/outils/optimizer/ecran/relique.md § Relique).
+  // relique (docs/02-app/optimizer/ § Relique).
   relicMinUpgrade: number;
   setRelicMinUpgrade: Dispatch<SetStateAction<number>>;
   // Sous-propriétés d'artéfact EXIGÉES, avec leur minimum.
@@ -268,7 +268,7 @@ export interface OptimizerState {
   setLockedRunes: Dispatch<SetStateAction<Partial<Record<number, number>>>>;
   objective: Objective;
   setObjective: Dispatch<SetStateAction<Objective>>;
-  // Réglage de l'objectif « Dégâts réels » (voir spec/outils/degats-reels.md) :
+  // Réglage de l'objectif « Dégâts réels » (voir docs/02-app/degats-reels/) :
   // quel sort, quel adversaire, quels effets de combat actifs. N'a d'effet
   // que si `objective === 'degats_reels'` — mais reste saisi/conservé même
   // si l'utilisateur change d'objectif puis revient, pour ne pas lui faire
@@ -299,7 +299,7 @@ export interface OptimizerState {
   excludedSelectors: ExclusionSelector[];
   setExcludedSelectors: Dispatch<SetStateAction<ExclusionSelector[]>>;
   // Toggle « Prioriser les stats les plus difficiles » (voir
-  // spec/outils/optimizer/moteur/elagages.md § Pré-filtrage heuristique et
+  // docs/03-developpeur/optimizer/ § Pré-filtrage heuristique et
   // compartiments) — désactivé par défaut, lu par `handleSearch` au moment du
   // clic sur « Rechercher », pas un bouton séparé qui lance sa propre
   // recherche.
@@ -423,7 +423,7 @@ export function useOptimizerState(): OptimizerState {
   const [minStats, setMinStats] = useState<Partial<Record<StatKey, number>>>({});
   const [maxStats, setMaxStats] = useState<Partial<Record<StatKey, number>>>({});
   // ⚠️ Coché par défaut — règle dans l'introduction de
-  // spec/outils/optimizer/ecran/conditions-et-reglages.md, sous son titre
+  // docs/02-app/optimizer/, sous son titre
   // « Conditions, inventaire et réglages avancés ».
   const [excludeBase, setExcludeBase] = useState(true);
   // Activee par defaut : chercher les artefacts est le comportement utile,

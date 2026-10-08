@@ -1,5 +1,5 @@
 // Navigation simple — chaque adresse mène à la bonne page. Garde-fou demandé
-// par le mainteneur le 2026-10-01 ; règles dans spec/shared/navigation.md § Adresses.
+// par le mainteneur le 2026-10-01 ; règles dans docs/02-app/transverse/ § Adresses.
 //
 // ⚠️ `ADRESSES` est LA table des adresses de l'app. Le test de rendu
 // `testRenduAppLiensMorts` (tests/rendu/app.test.tsx) y confronte chaque lien

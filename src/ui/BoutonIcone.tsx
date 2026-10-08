@@ -74,7 +74,7 @@ export interface BoutonIconeProps
   // ne serait ni focusable au clavier ni atteignable au doigt — on ne pouvait
   // plus retirer un monstre sur téléphone. On joue sur l'OPACITÉ (l'élément
   // reste dans le DOM), et il est rendu visible d'office là où il n'y a pas de
-  // survol (`no-hover:`) ainsi qu'au focus clavier. Voir spec/shared/design.md.
+  // survol (`no-hover:`) ainsi qu'au focus clavier. Voir docs/03-developpeur/interface/.
   auSurvol?: boolean;
   // À la SOURIS, le libellé s'écrit à côté de l'icône : le carré devient un
   // bouton `sm` à libellé (28 px). Au doigt, rien ne change — l'icône seule.

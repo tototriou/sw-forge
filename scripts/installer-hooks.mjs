@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Installateur public des garde-fous : hooks Git `pre-commit` (et le lint qu'il
-// importe) et `commit-msg`. Contrat : spec/outillage/spec.md,
+// importe) et `commit-msg`. Contrat : docs/03-developpeur/,
 // « Niveaux d'application et garde-fous », « Installation des garde-fous ».
 //
 //   node scripts/installer-hooks.mjs [--simulation] [--sans-cablage] [--automatique]

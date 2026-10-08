@@ -89,8 +89,8 @@ ou un filtre linéaire n'a pas besoin de cette discipline.
    pas par « ça semble plus malin ».
 4. **Benchmark aux échelles réelles avant de figer une constante.** Les
    volumes réels du projet sont connus (voir
-   [compte/calcul-runes.md](../../../spec/compte/calcul-runes.md) §6 et
-   [compte/runes.md](../../../spec/compte/runes.md) — comptes réels à
+   [compte/calcul-runes.md](../../../docs/02-app/compte/) §6 et
+   [compte/runes.md](../../../docs/02-app/compte/) — comptes réels à
    plusieurs milliers de runes). Toute constante ajustable (plafond par slot,
    budget de nœuds, nombre de candidats collectés…) doit être calibrée sur des
    jeux synthétiques d'au moins 500 / 1000 / 2000 / 3000+ éléments, en notant
@@ -99,8 +99,8 @@ ou un filtre linéaire n'a pas besoin de cette discipline.
 5. **Documenter, pas seulement coder.** Le résultat (constante retenue,
    pourquoi cette technique plutôt qu'une autre, limites connues — ex.
    « heuristique, pas une garantie d'optimalité globale ») va dans le fichier
-   `spec/` concerné, avec un ⚠️ si c'est un piège à ne pas retomber dedans —
-   même convention que le reste de `spec/`.
+   `docs/` concerné, avec un ⚠️ si c'est un piège à ne pas retomber dedans —
+   même convention que le reste de `docs/`.
 6. **Vérifier au bon ÉTAGE du pipeline, pas systématiquement de bout en
    bout.** Un pipeline en plusieurs phases (ex. `prepareSearch` →
    `buildBuckets` → `pairBuckets` dans `runeBuildOptim.ts`) n'a pas besoin
@@ -180,7 +180,7 @@ suit s'applique intégralement.
 incomplet.
 
 ⚠️⚠️ Le moteur n'a plus de budget de paires ni d'escalade (voir
-[spec/outils/optimizer/verification.md § Benchmarks](../../../spec/outils/optimizer/verification.md),
+[docs/03-developpeur/optimizer/ § Benchmarks](../../../docs/03-developpeur/optimizer/),
 qui en donne les seules bornes) : `pairBuckets(prepared, bucketsA, bucketsB)` prend TROIS arguments,
 et un appel nu explore exactement ce
 que la production explore. Ne pas chercher à « reproduire l'escalade » dans un
@@ -355,7 +355,7 @@ ce calcul concret à chaque fois.
 - [ ] Chaque constante ajustable a été testée à une échelle proche des
       volumes réels du projet, pas seulement sur un petit jeu de test.
 - [ ] Les limites connues (heuristique, non-exhaustivité au-delà d'un budget…)
-      sont écrites dans le fichier `spec/` correspondant.
+      sont écrites dans le fichier `docs/` correspondant.
 - [ ] Aucun script de diagnostic n'a été écrit pour une question à laquelle
       `scripts/diagnostic-harness.ts` répond déjà — et si un script était
       quand même nécessaire, sa fidélité au chemin de prod a été diffée

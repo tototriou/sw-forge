@@ -440,8 +440,8 @@ async function deroulerHarnais(
   if (resultat.meilleurs.length === 0 && resultat.faisabilite.blocages == null) {
     resultat.faisabilite.blocages = evaluerBlocages(resolue.params);
   }
-  // ⚠️ Sous-produit GRATUIT de `pairBuckets` (voir spec/outils/optimizer/
-  // moteur/diagnostics.md, « Quasi-succès à l'appariement ») — jamais recalculé, seulement mis en forme.
+  // ⚠️ Sous-produit GRATUIT de `pairBuckets` (voir docs/03-developpeur/optimizer/
+  // (diagnostics), « Quasi-succès à l'appariement ») — jamais recalculé, seulement mis en forme.
   // Rendu SEULEMENT quand `meilleurs` est vide : sinon rien à chercher.
   if (resultat.meilleurs.length === 0) {
     resultat.quasiSucces = evaluerQuasiSucces(dernier.resultat!, resolue);

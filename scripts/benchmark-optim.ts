@@ -1,5 +1,5 @@
 // Benchmark du moteur de recherche de builds (Outils · Optimizer), à des
-// tailles de pool proches de comptes réels — voir spec/compte/runes.md
+// tailles de pool proches de comptes réels — voir docs/02-app/compte/
 // (comptes réels à plusieurs milliers de runes) et
 // .claude/skills/algo-verify/SKILL.md (« toute constante ajustable doit être
 // calibrée sur des jeux synthétiques d'au moins 500/1000/2000/3000+

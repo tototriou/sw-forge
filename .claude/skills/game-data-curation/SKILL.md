@@ -186,7 +186,7 @@ résultats opposés, le discriminant est verrouillé par construction.
 
 ## Voir aussi
 
-- `spec/outils/degats-reels.md` — le modèle de dégâts et ses corrections,
+- `docs/02-app/degats-reels/` — le modèle de dégâts et ses corrections,
   avec les relevés en jeu qui les fondent.
 - `algo-verify` — discipline de correction ALGORITHMIQUE (recherche
   combinatoire) ; ce skill-ci porte sur la fidélité aux DONNÉES, pas sur

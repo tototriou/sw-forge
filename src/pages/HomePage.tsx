@@ -49,7 +49,7 @@ const SW_EXPORTER = 'https://github.com/Xzandro/sw-exporter';
 // ici en points de Bézier : Framer ne lit pas les variables CSS dans `ease`.
 // L'`'easeOut'` natif qui était posé là est plus mou — la page d'accueil
 // démarrait sur une courbe que rien d'autre n'utilise.
-// Voir la section « Mouvement » de spec/shared/design.md.
+// Voir la section « Mouvement » de docs/03-developpeur/interface/.
 const EASE_OUT = [0.23, 1, 0.32, 1] as const;
 
 const container = {
@@ -318,7 +318,7 @@ export default function HomePage({ stats, onImport }: Props) {
 // 13 et 14 : le lien du héros vers la page « Télécharger ».
 //
 // ⚠️ **Un bouton DANS le héros**, sous la promesse : la règle « aucun bouton
-// dans le héros » (spec/accueil.md) est levée pour lui seul. SECONDAIRE
+// dans le héros » (docs/02-app/accueil/) est levée pour lui seul. SECONDAIRE
 // (neutre, petit) : « Importer mon compte » reste le bouton principal, et la
 // zone de dépôt le premier geste. Les deux téléchargements, la phrase
 // SmartScreen et la version vivent sur la page.

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Garde-fou du message de commit — contrat : spec/outillage/qualite-code.md,
+// Garde-fou du message de commit — contrat : docs/03-developpeur/,
 // « Message de commit ».
 //
 // Refuse un sujet hors de la forme `type(portée): description` et un sujet

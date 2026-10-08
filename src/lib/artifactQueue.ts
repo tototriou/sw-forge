@@ -81,7 +81,7 @@ export interface ResultatArtefacts {
    *
    * `false` = à ne PAS afficher. Un build affiché qui viole la condition
    * demandée est pire qu'un build manquant : l'utilisateur ne le vérifie pas.
-   * Voir spec/outils/optimizer/moteur/artefacts.md § Filtre final sur la
+   * Voir docs/03-developpeur/optimizer/ § Filtre final sur la
    * vraie paire.
    *
    * ⚠️ En mode `recherche` de la
@@ -145,7 +145,7 @@ export const K_BUILDS_OPTIMISES = 100;
 // au-delà des 100 premiers peut remonter très haut une fois résolu (sur le
 // vrai compte, en PV effectifs, les rangs exhaustifs 16, 17 et 19 venaient
 // des rangs de base 107 à 117). 300 réduit le manque, ne l'annule pas : le
-// top affiché reste une approximation (spec/outils/optimizer/limites-connues.md
+// top affiché reste une approximation (docs/02-app/optimizer/
 // § Équipement d'un build et diagnostics de l'écran).
 export const K_BUILDS_RECHERCHE_RELIQUE = 300;
 

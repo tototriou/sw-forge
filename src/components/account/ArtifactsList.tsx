@@ -345,7 +345,7 @@ export default function ArtifactsList({ artifacts, menuOuvert, onFermerMenu }: P
                 }}
                 className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold
                   transition select-none ${
-                    // ⚠️ La BORDURE seule (voir spec/shared/design.md), et non
+                    // ⚠️ La BORDURE seule (voir docs/03-developpeur/interface/), et non
                     // un aplat : ces chips portent une icône de type, qu'un
                     // fond teinté vient concurrencer. L'outline entoure la
                     // pastille sans passer derrière le glyphe.

@@ -15,10 +15,10 @@ interface Props {
 
 // « Liste active » — menu déroulant, jamais de liste fixe (Box/RTA/
 // Défense siège ne sont pas des cas spéciaux, voir
-// spec/outils/optimizer/listes-et-reservation.md,
+// docs/02-app/optimizer/,
 // « Créer, valider et réserver dans une liste ») :
 // tout est créé, renommé, supprimé par l'utilisateur. Flotte par-dessus zone
-// C au lieu de la repousser (voir spec/shared/design.md, « un clic ne
+// C au lieu de la repousser (voir docs/03-developpeur/interface/, « un clic ne
 // déplace jamais ce qu'on vient de cliquer »).
 export default function OptimizerListPicker({ lists, activeListId, memberCounts, onSelect, onCreate, onRename, onDelete }: Props) {
   const [open, setOpen] = useState(false);

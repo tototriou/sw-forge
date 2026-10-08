@@ -7,7 +7,7 @@ import ElementIcon from './ElementIcon';
 // Plusieurs entrées portent le même nom et le même élément (formes 2A, variantes
 // d'un même monstre) — chercher « Tarq » en renvoie trois. Seul le portrait
 // permet de choisir la bonne, donc toute liste où l'on sélectionne un monstre
-// doit l'afficher. Voir ../../spec/shared/donnees-monstres.md.
+// doit l'afficher. Voir ../../docs/02-app/transverse/.
 
 const GRADIENT: Record<string, string> = {
   fire: 'from-fire to-panel2',

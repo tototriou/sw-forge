@@ -16,7 +16,7 @@
 // ⚠️ **Ces composants ne connaissent AUCUNE couleur en dur.** Ils ne parlent
 // qu'en tokens (`bg-panel`, `text-ink-dim`, `border-accent`), donc les deux
 // thèmes et les deux formats suivent sans qu'ils aient à les distinguer. Voir
-// spec/shared/design.md, qui reste la source de vérité de ces valeurs.
+// docs/03-developpeur/interface/, qui reste la source de vérité de ces valeurs.
 
 // ⚠️ **Des AXES, pas un catalogue.** `ton` (couleur), `fond` (remplissage),
 // `trait` (contour), `forme`, `taille` se choisissent SÉPARÉMENT : un bouton
@@ -103,7 +103,7 @@ export type { JetonProps } from './Jeton';
 
 // NOTIFICATION « … · Annuler » (lot 13, décision 29) : un geste qui se défait
 // au lieu de se confirmer. Un fournisseur monté par App.tsx, `useNotifier()`
-// pour annoncer. Voir spec/shared/design.md § Notification « Annuler ».
+// pour annoncer. Voir docs/03-developpeur/interface/ § Notification « Annuler ».
 export { FournisseurNotification, useNotifier } from './Notification';
 export type { Annonce } from './Notification';
 

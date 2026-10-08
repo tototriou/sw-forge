@@ -1,4 +1,4 @@
-// Exclusion MANUELLE de runes dans l'Optimizer (voir spec/outils/optimizer.md) —
+// Exclusion MANUELLE de runes dans l'Optimizer (voir docs/02-app/optimizer/) —
 // se superpose à l'exclusion AUTOMATIQUE « Exclure les runes déjà utilisées »
 // (voir `autoExcludedRuneIds` plus bas, et `excludedRuneIds` dans
 // runeBuildOptim.ts pour son cas particulier « périmètre Box »), qui ne
@@ -290,7 +290,7 @@ export function autoExcludedRuneIds(scope: AutoExclusionScope, data: ExclusionSo
 }
 
 /* --------------------------------------------------------------------------
- * Listes de travail (voir spec/outils/optimizer/listes-et-reservation.md
+ * Listes de travail (voir docs/02-app/optimizer/
  * § Créer, valider et réserver dans une liste)
  * — conteneurs LIBRES créés par l'utilisateur, PAS
  * de liste fixe (Box/RTA/Défense siège ne sont plus des cas spéciaux : c'est
@@ -313,8 +313,8 @@ export interface OptimizerListMember {
 }
 
 /* --------------------------------------------------------------------------
- * Plusieurs exemplaires Box d'une même espèce dans une liste (spec/outils/
- * optimizer/listes-et-reservation.md § Zone C — Monstres de la liste). Les
+ * Plusieurs exemplaires Box d'une même espèce dans une liste (docs/02-app/
+ * optimizer/ § Zone C — Monstres de la liste). Les
  * membres sont repérés par EXEMPLAIRE (`exclusionSelectorKey`, Box =
  * `box:<unitKey>`) : rien n'empêchait deux exemplaires dans la même liste,
  * c'est le chemin à l'écran qui manquait. Choisir l'espèce prend le premier
@@ -402,7 +402,7 @@ export function libellePuceSource(libelle: string, nombre: number): string {
  * que par UN monstre à la fois, mais SEULEMENT au sein d'un même pool réel
  * (une même liste). Deux decks d'offense siège sont deux presets appliqués
  * MOMENTANÉMENT, jamais simultanément : leurs runes validées ne se bloquent
- * pas entre elles (voir spec/outils/optimizer/listes-et-reservation.md
+ * pas entre elles (voir docs/02-app/optimizer/
  * § Listes de travail et réservation de runes pour le détail complet du
  * modèle de rareté). Upsert par PAIRE `(listId, selector)`, pas par
  * `selector` seul : le même exemplaire peut porter un build validé DIFFÉRENT
@@ -512,7 +512,7 @@ export function findValidatedBuild(validated: ValidatedBuild[], listId: string |
 // encore dans le compte ». Plus faible qu'une vérification « toujours porté
 // par CE monstre » aurait pu l'être (ne détecte pas une rune réattribuée à
 // un AUTRE monstre réel depuis la validation) — limite assumée, documentée
-// dans spec/outils/optimizer/listes-et-reservation.md § Monstre non possédé et
+// dans docs/02-app/optimizer/ § Monstre non possédé et
 // auto-exemption, pas une régression : rien dans ce fichier
 // n'a jamais pu détecter correctement ce cas plus fin.
 export function revalidateBuilds(validated: ValidatedBuild[], data: ExclusionSourceData, allRuneIds: Set<number>): { kept: ValidatedBuild[]; droppedCount: number } {

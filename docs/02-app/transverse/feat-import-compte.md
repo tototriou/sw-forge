@@ -1,0 +1,566 @@
+# Import d'un compte SWEX (transverse — RTA & Siège)
+
+Extraire des données d'un export de compte Summoners War (format SWEX). **100 %
+côté navigateur** — aucun fichier n'est envoyé. Un **seul import global** remplit
+**tout** d'un coup, via trois parseurs :
+
+- **Box RTA** → prépa RTA (`parseAccountJson`).
+- **Défenses de siège** → équipes de défense (`parseSiegeDefense`).
+- **Offense de siège** → équipes d'attaque sauvegardées (`parseSiegeOffense`).
+- **Box 6★** → page « Mon compte » (`parseAccountBox`).
+- **Inventaire runes/artéfacts** → page « Mon compte » (`parseAccountInventory`).
+
+Fichiers : [importAccount.ts](src/lib/importAccount.ts) (parseurs) ·
+[applyAccount.ts](src/lib/applyAccount.ts) (mapping monstres + vitesses) ·
+[AccountImportControl.tsx](src/components/AccountImportControl.tsx) (bouton nav) ·
+[App.tsx](src/App.tsx) (orchestration `importAccount`).
+
+## Un seul bouton d'import invariant (barre de nav)
+
+Le bouton **« Importer mon compte »** vit dans la barre de navigation (desktop à
+droite des onglets ; mobile dans le menu). Il est **toujours identique** : chaque
+clic ouvre le sélecteur de fichier ; le fichier choisi **remplace le précédent**
+et est appliqué. Un import :
+
+1. **traite la page courante** (affichage immédiat), et
+2. **remplit les autres en arrière-plan** — RTA, défense **et** offense sont
+   alimentées en une fois.
+
+Pour rendre ça possible, les états sont **remontés dans [App.tsx](src/App.tsx)**
+(`useRtaState`, `useSiegeState('defense')`, `useSiegeState('offense')`), et
+`importAccount(text)` applique les trois. Le fichier n'est **pas mémorisé** : pas
+besoin, un import couvre déjà toutes les pages. Rien n'est persisté sur le disque.
+
+À côté du bouton : un lien **« Supprimer mes données »** (efface prépa RTA,
+équipes de siège, monstres perso puis recharge).
+
+**Une seule confirmation**, si des données existent déjà (RTA/défense/offense) :
+**« L'import va remplacer toutes les données présentes. Es-tu sûr ? »** Un import
+**remplace** toujours la prépa RTA, les équipes de siège et la box.
+
+Un import complet prend une vingtaine de millisecondes depuis le passage au parse
+unique : **pas d'écran d'attente**, il n'aurait fait que clignoter.
+
+> ⚠️ **Ne jamais proposer de « fusionner » ici.** L'ancien dialogue disait
+> « OK = remplacer · Annuler = fusionner » : celui qui voulait **annuler** son
+> import cliquait Annuler… et **dédoublait tout son siège** (50 attaques → 100).
+> Un export de compte est un **instantané du jeu**, il ne se cumule pas avec le
+> précédent. Le chemin « ajouter à la suite » a été **retiré de `importTeams`**
+> pour qu'il ne puisse pas être rebranché. Voir aussi la règle générale dans
+> [siege/](../siege/).
+
+> ⚠️⚠️ **MAIS L'IDENTITÉ D'UNE ÉQUIPE SURVIT AU REMPLACEMENT.** `importTeams`
+> régénérait l'`id` de chaque équipe (`newId()`), alors que les **listes de
+> travail de l'Optimizer** désignent un monstre par `{ teamId, slotIndex }`
+> (voir [../optimizer/](../optimizer/)). Plus aucun sélecteur
+> ne résolvait après un import, et la revérification supprimait
+> **définitivement** tous les membres et builds validés venus du siège — sur le
+> geste même qu'elle est censée servir. Ce n'était pas « mon compte a changé »,
+> c'était l'identifiant qui avait changé sous eux.
+>
+> ⚠️ **L'identité, c'est la POSITION** : le siège est remplacé en bloc, et la
+> Nᵉ équipe reste la Nᵉ. Ce qui a vraiment bougé — un monstre retiré du deck —
+> est justement ce que `revalidateMembers` voit, sur des sélecteurs qui
+> résolvent encore. Une équipe sans prédécesseur à sa position reçoit un id
+> neuf. **Gardé** par un contrôle de source
+> ([tests/optimizer-exclusion.test.ts](tests/optimizer-exclusion.test.ts)).
+
+Message global récapitulatif **éphémère** (disparaît seul ~5 s ; ~9 s pour une
+erreur) : « Import : N monstres 6★ · N monstres RTA · N défenses · N attaques ».
+
+### Le dossier SW Exporter — l'app de bureau seulement
+
+Dans l'**application de bureau**, le bloc « Application » des Réglages laisse choisir le **dossier SW
+Exporter** et l'**invocateur** à suivre (ses exports `<nom>-<id>.json` à la
+racine) — l'invocateur aussi depuis la **carte du compte** de la barre
+latérale, qui devient alors un menu. Chaque nouvel export de cet invocateur — au lancement s'il est plus
+récent que le dernier lu, puis à chaque écriture tant que l'app est ouverte —
+met à jour **« Mon compte » seulement** (box 6★, inventaire, reliques, runes
+utilisées, marqueurs), annoncé par « Compte de <invocateur> mis à jour depuis
+SW Exporter ».
+
+- ⚠️ **Jamais la prépa RTA ni le siège.** L'import complet les REMPLACE
+  (classement RTA, leads et ticks remis à zéro) : le faire à chaque
+  connexion au jeu effacerait le travail de l'utilisateur. Ils restent à
+  importer à la main, comme ci-dessus.
+- **Un seul chemin** : `appliquerCompte` (App.tsx) est la moitié « Mon
+  compte » de l'import manuel, appelée par les deux — même extraction, même
+  enregistrement (selon « Garder mes données »), même remise à zéro de
+  l'exclusion de runes et du speed tuning quand l'invocateur CHANGE
+  (`wizard_id`).
+- Pas de question de conservation : le dossier est un réglage, posé une fois.
+- Détail (surveillance, réglage retenu, export illisible) :
+  [bureau/](../bureau/) § « Le dossier SW Exporter ».
+
+Helpers partagés par les deux parseurs : `runeSpeed` (SPD d'une rune : mainstat +
+prefix + substats avec meule), `indexRunes` (index rune_id → rune, inventaire +
+runes des unités), `indexUnits` (unit_id → unité), `speedFromRuneIds` (SPD plate
+cumulée + set Swift complet pour un lot de rune_id).
+
+### ⚠️ Un seul `JSON.parse` par import
+
+Un import enchaîne **cinq** extracteurs sur le même fichier. Chacun recevait le
+texte brut et le reparsait : cinq `JSON.parse` d'un export de 8 Mo. Ils acceptent
+donc aussi l'**objet déjà parsé** (`AccountSource = string | objet`) ;
+[App.tsx](src/App.tsx) parse une fois via `parseAccountSource` et passe le
+résultat aux cinq. Le texte reste accepté pour les appels isolés — la
+comparaison de comptes ([compte/](../compte/)) n'appelle qu'un
+extracteur.
+
+Les trois index sont **mémoïsés** sur l'objet parsé (`WeakMap`, donc libérés
+avec lui) : ils étaient reconstruits jusqu'à quatre fois sur des milliers
+d'entrées. Mesure sur un export réel de 7,8 Mo : **87 ms → 22 ms**.
+
+> ⚠️ **Un index mémoïsé est PARTAGÉ, donc en lecture seule** — d'où le type
+> `ReadonlyMap` en sortie. Avant, chaque extracteur avait sa copie ; un `.set()`
+> en corromprait maintenant quatre autres, et le symptôme apparaîtrait dans un
+> extracteur voisin, loin de la faute. Un extracteur qui a besoin d'un index à
+> lui écrit `new Map(index)`.
+
+## Objectif métier
+
+Récupérer **les monstres « utilisés souvent » (favoris RTA)** avec **la vitesse
+de leurs runes RTA** — et **pas** toute la box classique.
+
+Points clés découverts (à ne pas régresser) :
+- En RTA, chaque monstre a **son propre preset de runes**, stocké **à part** dans
+  `world_arena_rune_equip_list` (et **non** dans `unit_list[].runes`).
+- Les favoris (« utilisés souvent ») sont mémorisés par le jeu ; il faut cibler
+  **ces monstres-là**, pas tous ceux qui ont une rune.
+
+## Algorithme
+
+1. **Parse JSON** ; exige un `unit_list` (sinon erreur « export SWEX attendu »).
+2. **Index des runes** par `rune_id` : inventaire (`data.runes`) **+** runes
+   équipées dans chaque unité. Un preset RTA peut réutiliser n'importe laquelle.
+3. **Index des unités** par `unit_id`.
+4. **Runes RTA par monstre** : via `world_arena_rune_equip_list`, on regroupe par
+   `occupied_id` (= `unit_id` équipé en RTA). `findRtaEquipList` gère les
+   variantes de nom de clé.
+5. **Favoris** (`collectFavoriteUnitIds`), deux formats gérés :
+   - **récent** : `favorite_unit_list = [{ type, unit_id_list }, …]` — on
+     privilégie `type === 1`, avec aplatissement récursif des groupes.
+   - **ancien** : `world_arena_favorite_unit_id_list = [[…],[…]]`.
+6. **Cible** = favoris si présents, **sinon repli** sur tous les monstres runés RTA.
+7. Pour chaque unité cible → `ImportedUnit { com2usId, flatRuneSpeed, swift }` :
+   - `flatRuneSpeed` = somme des SPD (effet type **8**) sur mainstat + prefix +
+     substats (**valeur + meule/gemme**).
+   - `swift` = **`sets.includes('swift')`** (`swiftActive`), et rien d'autre.
+
+> ### ⚠️ Une seule source de vérité pour le Swift : les **sets actifs**
+>
+> Ne **jamais** recompter les runes Swift à côté (`swiftCount >= 4`). C'est ce
+> qu'on faisait, et ça divergeait de `activeSets` dès qu'une rune **Intangible**
+> servait de joker : **3 Swift + 1 Intangible** → `activeSets` renvoie bien
+> `swift`, le comptage disait non.
+>
+> Conséquence observée : le bonus de +25 % n'était pas intégré à la « SPD runes »
+> alors que l'affichage de la vitesse de combat, lui, le **retirait** (voir
+> `swiftFlat` dans [feat-calcul-vitesse.md](feat-calcul-vitesse.md)) → **26 points de
+> vitesse en moins** sur un monstre à 101 de base, et **lui seul dans son
+> équipe**. C'est ce « un seul monstre faux » qui a mis sur la piste.
+>
+> Cas réel de contrôle (compte de l'auteur) : *Chilling* (base 101, brut 195,
+> Swift complété par une Intangible) sous lead **+30 %** → **367** en jeu ;
+> l'import en donnait 341.
+
+## Constantes SW
+
+| Constante | Valeur | Sens |
+|-----------|--------|------|
+| `RUNE_EFF_SPEED` | `8` | Type d'effet « Vitesse » (com2us). |
+| `RUNE_SET_SWIFT` | `3` | `set_id` du set Swift. |
+| jointure | `unit_master_id` (SWEX) = `com2usId` (`Monster`) | Mapping unité → monstre. |
+
+## Côté RTA (consommation)
+
+Dans `handleImportFile` de [RtaPage.tsx](src/pages/RtaPage.tsx) :
+
+- Mapping `com2usId → Monster` ; les unités inconnues sont ignorées.
+- **SPD runes importée** = `flatRuneSpeed + (swift ? ceil(base × 25 / 100) : 0)`.
+  → Ici, comme on part des **runes brutes**, on **rajoute** le +25 % Swift sur la
+  base (contrairement à la saisie manuelle, voir
+  [feat-calcul-vitesse.md](feat-calcul-vitesse.md)).
+- **Déduplication** par monstre : on garde le **meilleur build** (SPD max) ; ses
+  **sets** et son **nombre de runes** sont conservés.
+- **Pré-classement par set** (`mapRtaItems`) : un monstre avec **6 runes** va dans
+  la section de son **set principal** (`primarySection` : Violent/Swift/Despair/
+  Rage/Fatal/Vampire, sinon « Autre ») ; **< 6 runes → « Non classé »**. Les sets
+  actifs (`activeSetsFromRuneIds`, 4 pièces en premier) sont stockés sur l'entrée
+  pour l'affichage.
+- Si une prépa existe déjà : `confirm` unique (importer / ne rien faire) ; l'import **remplace** (`clearAll` puis `importEntries`).
+- Messages : succès (`n monstres favoris importés`) ou erreur (aucun favori/preset
+  reconnu, JSON illisible…).
+
+## Import des équipes de siège (défense & offense)
+
+Défense et offense partagent la **même forme** : des decks de 3 monstres (index
+0 = leader) où chaque monstre a **ses propres runes de siège** (comme la box RTA,
+le siège stocke des presets de runes par monstre). D'où une logique factorisée :
+
+- `equipArrayToMap(equip)` : `[{ unit_id, rune_id_list }, …]` → `Map<unit_id, rune_id_list>`.
+- `buildSiegeDecks(defs, runeById, unitById)` : résout des `DeckDef` (3 unit_id
+  ordonnés + runes) en `SiegeImportedDeck` (mapping monstre + `speedFromRuneIds`),
+  ignore les decks totalement vides, garde les decks partiels.
+
+### Défense — `parseSiegeDefense`
+
+Jusqu'à 6 decks. Champs SWEX :
+
+| Clé | Rôle |
+|-----|------|
+| `guildsiege_defense_deck_unit_list` | `[{ deck_id, unit_id_list }, …]`. `unit_id_list` = 3 slots ; **index 0 = leader** (par position) ; `0` = slot vide. |
+| `guildsiege_defense_deck_equip_list` | Indexé par `deck_id` → `{ equip: [{ unit_id, rune_id_list }, …] }`. |
+
+### Offense — `parseSiegeOffense`
+
+Les équipes d'**attaque sauvegardées** (≈ 50 possibles). Champs SWEX :
+
+| Clé | Rôle |
+|-----|------|
+| `deck_list` filtré sur `deck_type === 22` | Chaque deck : `{ deck_seq, unit_id_list, leader_unit_id, equip }`. `equip` = runes inline par unité. |
+
+- `deck_type = 22` = équipes d'attaque de siège (constante `SIEGE_OFFENSE_DECK_TYPE`,
+  identifiée sur des exports réels : decks de 3 monstres avec presets de runes).
+- **Leader** donné par `leader_unit_id` → replacé en 1ᵉʳ (les autres unités non
+  nulles suivent).
+- Erreur claire si aucun deck de ce type (⇒ il faut avoir **sauvegardé ses
+  attaques en jeu** avant d'exporter).
+
+### Modèle retourné (commun)
+
+```ts
+interface SiegeImportedSlot { com2usId: number; flatRuneSpeed: number; swift: boolean }
+interface SiegeImportedDeck { deckId: number|string; slots: (SiegeImportedSlot|null)[] } // len 3, 0=leader
+interface SiegeParseResult { decks: SiegeImportedDeck[]; error?: string }
+```
+
+### Consommation (mapping)
+
+Dans [applyAccount.ts](src/lib/applyAccount.ts), réutilisé par `importAccount` :
+
+- `mapRtaItems(units, byCom2us)` → entrées RTA (dédup au meilleur build, SPD max).
+- `mapSiegeTeams(decks, byCom2us)` → `{ teams, missing }` ; unité inconnue → slot
+  vide + compteur `missing`.
+- **SPD runes** (les deux) = `flatRuneSpeed + (swift ? ceil(base × 25 / 100) : 0)`
+  (Swift ajouté car on part des runes brutes), avec `swift` **déduit des sets
+  actifs** — voir l'encadré « une seule source de vérité » plus haut.
+- **Sets de runes** (`slot.sets`) : extraits des runes du deck
+  (`activeSetsFromRuneIds`) — sets 4 pièces (**Swift, Rage, Fatal, Despair,
+  Vampire, Violent**) actifs à 4 runes, tous les autres (dont **Destroy**) à 2.
+  Une rune **Intangible** joue le joker — uniquement s'il y a exactement UN
+  set incomplet parmi les runes du deck (règle du jeu, voir
+  [compte/ (calcul des runes) §5.2](../compte/)). Affichés en
+  icônes dans la vue compacte du siège.
+
+Puis `importAccount` applique : `rta.importEntries` (après `clearAll`),
+`siegeDef.importTeams(_)`, `siegeOff.importTeams(_)` — qui **remplacent**. `lead`/`tick`
+des équipes à 0 ; le lead est ensuite **déduit automatiquement** du leader (slot 0).
+Seules les cibles qui ont des données sont touchées (un compte sans favoris RTA ne
+vide pas la prépa RTA).
+
+## Import « Mon compte » — box 6★ & inventaire
+
+Contrairement à RTA/siège (persistés en `localStorage`), les données de « Mon
+compte » restent **en mémoire dans [App.tsx](src/App.tsx)** (`useState` : `box`,
+`runes`, `artifacts`, `relics`) → **ré-import nécessaire à chaque session**. Choix
+assumé de sobriété : un gros compte (des milliers de runes) ne remplit pas le
+stockage.
+
+### Box 6★ — `parseAccountBox`
+
+- Parcourt `unit_list`, ne garde que les unités **montées 6★** (`class === 6`).
+- Pour chacune : `com2usId` (`unit_master_id`), `unit_level`, et un `GearSet`
+  construit depuis l'équipement **actuellement équipé** (runes/artéfacts embarqués
+  dans l'unité + relique).
+- `mapBoxMonsters` résout `com2usId → Monster` ; les unités inconnues des données
+  sont ignorées. Renvoie `{ key, monster, stars, level, gear }` (key = `unit_id`).
+
+### Inventaire — `parseAccountInventory`
+
+- **Toutes** les runes et **tous** les artéfacts possédés (inventaire + équipés,
+  dédupliqués par id via `indexRunes` / `indexArtifacts`), plus la **réserve de
+  meules et de gemmes** (`rune_craft_item_list` → `CraftLine[]`, voir
+  [compte/](../compte/), onglet Meules).
+- Chaque rune → `RuneDetail` (slot, set, rareté = `extra`, antique = `class > 10`,
+  niveau, main/innée/substats meule incluse) ; chaque artéfact → `ArtifactDetail`
+  (catégorie attribut/type, rareté = `natural_rank`, main, substats, `enchant`).
+- **Toutes** les reliques possédées (`data.relics`, source première, fusionné
+  avec `unit.relics[0]` en repli via `indexRelics`, dédupliqué par `rid`).
+  Chaque relique → `RelicDetail { id, upgrade, main, unique? }` — `id` = `rid`,
+  `upgrade` = `upgrade_curr` (filtre de niveau et affichage, jamais la valeur
+  de `main`, qui reste lue dans `pri_effect`). `relicUsageById` : occupation
+  par rid, comptée sur les unités (`unit.relics[0].rid`), jamais sur
+  `data.relics.length` — voir
+  [03-developpeur/optimizer/ § Ce que le moteur lit d'une relique](../../03-developpeur/optimizer/).
+  `relicUpgradeMismatches` : nombre de pièces où
+  `pri_effect[1] ≠ upgrade_curr + 3`, un avertissement jamais une correction.
+- Utilisé par les sous-sections **Runes** et **Artéfacts** (voir
+  [compte/](../compte/), [compte/](../compte/)),
+  et par l'Optimizer pour la relique (voir
+  [03-developpeur/optimizer/](../../03-developpeur/optimizer/)).
+
+### Marqueurs de runes — `rune_lock_list` + `markers`
+
+Les 8 marqueurs qu'on pose en jeu sur une rune. Relevé sur deux exports réels
+(164 et 563 entrées).
+
+- ⚠️ **Le marqueur n'est PAS dans l'objet rune.** Il vit dans une liste au premier
+  niveau, `rune_lock_list: [{ wizard_id, rune_id, lock_type }]`. `lock_type` est
+  le numéro du marqueur (1 à 8). Malgré le mot « lock », ce n'est pas un simple
+  verrou anti-vente : les 8 valeurs sont couvertes. La structure est la même que
+  `unit_marker_list` (marqueurs des monstres).
+- ⚠️ **Aucune valeur ne veut dire « aucun marqueur »** : une rune sans marqueur est
+  **absente** de la liste. Chaque `rune_id` y figure au plus une fois.
+- `indexRuneMarkers` (index mémoïsé `rune_id → lock_type`) est passé à
+  `runeToDetail`, qui pose `RuneDetail.marker` **seulement** pour une rune
+  marquée. Sinon le champ reste absent, jamais à 0. Le champ est posé à
+  l'**inventaire comme sur l'équipement** (box, RTA, siège) : une rune garde le
+  même marqueur où qu'on la regarde.
+- **Libellés** — `parseRuneMarkerLabels` → `{ numéro: texte }`, tiré de `markers[]`
+  (`type === 1`, `sub_type` = `lock_type`, texte dans `description`).
+  `type: 3` sert aux monstres, `type: 2` probablement aux artéfacts (non vérifié) :
+  ni l'un ni l'autre n'est lu. Les libellés sont gardés **au niveau du compte**,
+  jamais recopiés dans chaque rune : renommer un marqueur ne touche qu'une entrée.
+- ⚠️ **Un numéro peut n'avoir aucun libellé** : le joueur ne l'a jamais nommé. Relevé
+  sur un export : 7 numéros utilisés pour 6 libellés, dont un vide. Il est alors
+  absent du résultat, et l'écran affiche « Marqueur N ». Les espaces de bord sont
+  retirés (« raffinage␠ » relevé tel quel).
+
+### Runes utilisées — `parseUsedRuneIdsParPerimetre`
+
+Les `rune_id` des runes **qui jouent**, rangés **par périmètre** : l'onglet
+Optimisation laisse choisir lesquels comptent. Règles de l'écran dans
+[compte/](../compte/) (runes, « Runes utilisées »).
+
+| Périmètre | Source |
+|-----------|--------|
+| `rta` | presets RTA (`world_arena_rune_equip_list`) |
+| `siege-defense` | défenses de siège (`guildsiege_defense_deck_*`) |
+| `siege-attaque` | `deck_list`, `deck_type === 22` (`SIEGE_OFFENSE_DECK_TYPE`) |
+| `arene-attaque` | `deck_list`, `deck_type === 1` (`ARENA_OFFENSE_DECK_TYPE` — relevé utilisateur, 15 decks sur chacun de deux exports réels) |
+| `arene-defense` | `defense_deck_info` et `server_arena_defense_deck_info` |
+| `autres` | `deck_list`, **tout autre `deck_type`** (donjons, ToA, labyrinthe…) |
+
+- ⚠️ **`autres` n'est pas une liste blanche.** Tout type inconnu y tombe, y compris
+  ceux que Com2uS ajoutera. Sur deux exports réels : les types 2 à 14 et 23 à 27.
+- Une même rune peut figurer dans **plusieurs** périmètres. Chaque liste est triée.
+- `parseUsedRuneIds` est l'**union** de tous les périmètres
+  (`unionRunesUtilisees`), c'est-à-dire la définition historique de « runes
+  utilisées ».
+
+⚠️ Le preset d'un contenu **ne déplace rien en jeu** : une rune de l'inventaire
+peut jouer en RTA, et une rune posée sur un monstre qui ne joue nulle part ne
+joue pas. `occupied_id` seul se trompe dans les deux sens. Un monstre d'un deck
+**sans preset** compte, lui, ses runes actuellement portées.
+
+## Persistance optionnelle du compte — [accountStore.ts](src/lib/accountStore.ts)
+
+Stockage **IndexedDB**, pour rendre le ré-import facultatif. Déclenché par le
+réglage **« Garder mon compte »** ([useKeepAccount.ts](src/hooks/useKeepAccount.ts)),
+dans le menu ⚙.
+
+### ⚠️ Pourquoi pas `localStorage`
+
+1. **Ça ne rentre pas.** Quota ~5 Mo par origine, souvent compté en UTF-16. Le
+   modèle utile d'un gros compte pèse **2,2 Mo** (box 0,73 + runes 0,91 +
+   artéfacts 0,53), soit ~4,4 Mo de quota. L'export brut fait 5 à 8 Mo.
+2. **Le danger n'est pas de perdre le compte, c'est de perdre le reste.** Prépa
+   RTA, équipes, recommandations, catégories et monstres perso partagent ce même
+   budget — et ceux-là sont **écrits à la main**, irremplaçables. Le compte se
+   réimporte en deux secondes. Un `QuotaExceededError` doit rester impossible.
+3. `localStorage` est **synchrone** : sérialiser 2 Mo bloque le thread principal.
+
+IndexedDB n'a aucun de ces défauts, et son **structured clone** évite le
+`JSON.stringify` à l'écriture comme le re-parse à la lecture.
+
+### Ce qu'on stocke
+
+Une base `swblacksmith`, un store `account`, **une clé fixe** `current` :
+`{ schema, savedAt, box, runes, artifacts, relics, crafts, usedRuneIds, relicUsageById, runeMarkerLabels }`.
+
+- ⚠️ **La base s'appelait `sw-forge`** jusqu'au rebranding.
+  À la première ouverture, `reprendreAncienneBase` recopie son compte dans la
+  nouvelle, le RELIT, puis supprime l'ancienne — avant toute opération de la
+  file, sinon la première lecture rendrait « aucun compte ». Un compte déjà
+  présent dans la nouvelle base fait foi. Copie impossible : l'ancienne reste,
+  reprise au lancement suivant. ⚠️ `indexedDB.open` créerait une base absente :
+  la création est annulée (`oldVersion === 0`), aucune base `sw-forge` vide
+  n'apparaît.
+
+- ⚠️ **La sortie des extracteurs (`BoxMonster[]`), jamais l'état affiché
+  (`BoxItem[]`).** Un `BoxItem` embarque l'objet `Monster` complet : ça duplique
+  ~0,25 Mo, mais surtout ça **fige** la résolution `com2usId → Monster`. Le jour
+  où `monsters.json` gagne un monstre, un compte enregistré resterait aveugle.
+  En gardant la sortie brute, on re-mappe à chaque démarrage avec les données du
+  jour.
+- ⚠️ **Le compte du joueur, et lui seul.** Les JSON d'autres joueurs importés
+  dans la comparaison restent en mémoire, comme les courbes partagées.
+- ⚠️ **`usedRuneIds` est stocké, pas recalculé.** Les decks ne vivent que dans
+  l'**export brut**, qu'on ne conserve jamais (5 à 8 Mo) : sans cette liste, le
+  filtre « Runes utilisées » s'éteindrait à chaque rechargement d'un compte
+  conservé. Quelques milliers d'entiers, négligeable à côté des runes. Elle est
+  rangée **par périmètre** (un tableau par clé) : une liste plate est rejetée à
+  la lecture.
+- ⚠️ **`runeMarkerLabels` aussi** : `markers` ne vit que dans l'export brut. Le
+  marqueur de chaque rune, lui, voyage dans `runes` (`RuneDetail.marker`).
+- `schema` (`ACCOUNT_SCHEMA`, **7** : l'inventaire de reliques — `relics` et
+  `relicUsageById`, absents jusque-là —, les marqueurs de runes et les runes
+  utilisées par périmètre ; 6 : `ArtifactDetail.id` ; 5 : propriété unique des
+  reliques, qui remplace un `relic.sub` mal modélisé — voir
+  [compte/](../compte/)) est à
+  **incrémenter dès qu'un extracteur produit un champ de plus** : un enregistrement d'un autre schéma est ignoré à la lecture,
+  et l'app invite à réimporter — sinon elle affiche des chiffres incomplets en
+  silence.
+- ⚠️ **Le 7 réunit deux chantiers parallèles** (reliques ; marqueurs et runes
+  utilisées par périmètre), qui avaient chacun pris le 7 pour leur seule
+  moitié. Aucune version publiée n'a porté l'une sans l'autre (la v1.13.0 est
+  au 6), d'où un seul numéro. Un « 7 » incomplet, laissé par un navigateur qui
+  a fait tourner l'une des deux branches, est rejeté par la **validation** des
+  champs, pas par le numéro — vérifié dans `tests/stockage.test.ts`.
+- `exportedAt` est la date **de l'export** (`tvalue`), pas de l'enregistrement —
+  voir « Âge du compte » plus bas. `savedAt` ne sert qu'au diagnostic.
+
+### Concurrence
+
+Ce sont les **premières écritures asynchrones** de l'app. Toutes les opérations
+passent par une **file sérielle** : elles s'exécutent dans l'ordre où
+l'utilisateur les a déclenchées (le parse étant synchrone, cet ordre est celui
+des clics). Deux conséquences voulues :
+
+- deux imports coup sur coup → **le dernier gagne**, quel que soit l'ordre
+  d'achèvement des transactions ;
+- une purge déclenchée après un import → **l'effacement tient**. Une écriture en
+  retard ne doit jamais ressusciter un compte que l'utilisateur vient d'effacer :
+  une action explicite annulée par un effet de bord invisible, c'est le pire cas.
+
+### La question est POSÉE, pas planquée dans un réglage
+
+> ⚠️ **Le réglage vaut pour TOUTE l'app**, pas seulement pour le compte : prépa
+> RTA, siège, recommandations, catégories, monstres perso. Voir
+> [usePersistence.ts](src/hooks/usePersistence.ts) et la convention dans le
+> [README](README.md).
+>
+> ⚠️ **Trois états : oui / non / jamais demandé.** Un booléen à `false` par défaut
+> confondait « a refusé » et « n'a jamais été consulté ». Résultat observé : on
+> importe, on recharge, **le compte a disparu alors que la prépa RTA et le siège
+> sont toujours là**. Incohérence jamais expliquée, dans un menu que personne
+> n'ouvre.
+
+La question est donc posée **à la fin du premier import**
+([Dialogs.tsx](src/ui/Dialogs.tsx) → `KeepAccountDialog`),
+quand l'utilisateur vient de voir ses données arriver.
+
+Trois éléments du texte à ne jamais retirer :
+
+1. **La recommandation** — « sans ça, tu perds ton travail en fermant l'onglet ».
+   Sans elle on répond au hasard : rien ne dit ce qu'on perd en refusant. Le même
+   mot figure sur le bouton et dans le `hint` du réglage ⚙, pour que les deux
+   endroits disent la même chose.
+2. **« dans ton navigateur »** — c'est l'objection immédiate (« mes données
+   partent où ? »), la réponse doit être dans la fenêtre, pas ailleurs.
+3. **« tu pourras changer d'avis »** — sans ça la question devient un engagement,
+   et on répond non par prudence.
+
+⚠️ **Fermer sans répondre n'enregistre rien** — on redemandera plutôt que
+d'interpréter un silence.
+
+### ⚠️ La question revient à CHAQUE import — au moins une fois par session
+
+Sauf si l'utilisateur coche **« Ne plus me montrer pendant cette session »**. Un
+choix pris une fois pour toutes vieillit mal : on accepte la conservation chez
+soi, puis on ouvre le site sur le poste d'un ami sans que rien ne le rappelle.
+Reposer la question au dépôt du fichier, c'est la reposer là où le contexte a pu
+changer.
+
+⚠️ **La case vit en mémoire, jamais sur le disque.** Elle évite d'être
+resollicité quand on enchaîne plusieurs fichiers d'affilée ; elle ne fait pas
+taire la question pour toujours. Au rechargement suivant, elle est reposée — la
+garantie tenue est « **au moins une fois par session** ». Elle s'applique aux
+**deux** réponses.
+
+> ⚠️ **Refuser alors qu'on conservait déjà efface l'existant** — prépa RTA,
+> équipes, recommandations, compte. La fenêtre revenant à chaque import, un clic
+> machinal coûterait des mois de travail : une confirmation s'interpose, dont le
+> défaut est **de ne rien perdre** (« Annuler = continuer à conserver »).
+
+Le réglage ⚙ reste le point de changement d'avis :
+
+- **Activation** : enregistre immédiatement le compte déjà en mémoire (sinon il
+  faudrait réimporter le même fichier pour rien) et appelle
+  `requestPersistence()` **dans le clic**.
+- **Désactivation** : **efface** tout de suite. Un réglage décoché qui laisserait
+  le compte sur le disque serait un mensonge.
+- Stockage indisponible → l'interrupteur est **grisé**, il dit pourquoi, et la
+  question n'est pas posée à l'import.
+
+### Cycle de vie dans [App.tsx](src/App.tsx)
+
+| Moment | Ce qui se passe |
+|---|---|
+| Démarrage | Si le réglage est actif : `loadAccount()`, puis **re-mapping** `com2usId → Monster` |
+| Import | Affichage d'abord, puis `saveAccount()` **sans attendre** |
+| ⚙ « Tout supprimer » | `clearAccount()` **attendu** avant le `location.reload()` |
+| Décochage du réglage | `clearAccount()` |
+
+Trois pièges, tous traités :
+
+- ⚠️ **Attendre les données de monstres avant de relire.** La box stockée n'est
+  qu'une liste de `com2usId` : sans l'index, elle ressort **vide et sans erreur**.
+- ⚠️ **Un import manuel pendant la relecture doit gagner.** L'utilisateur qui
+  dépose un fichier ne doit pas le voir remplacé par le compte de la veille,
+  arrivé une demi-seconde plus tard (`importedManuallyRef`).
+- ⚠️ **L'écriture ne bloque pas l'affichage.** `saveAccount` est lancé après les
+  `setState` et sans `await` : 2 Mo ne doivent pas retarder l'apparition du
+  compte. Un échec laisse l'import parfaitement utilisable pour la session — on
+  ne casse pas l'usage courant pour un problème de confort.
+
+L'état **`accountHydrating`** est propagé à l'accueil (`accountLoaded` a
+**trois** valeurs : `oui` / `non` / `chargement`) et à « Mon compte ».
+
+### Âge du compte — [AccountFreshness.tsx](src/components/AccountFreshness.tsx)
+
+⚠️ **Complément indispensable de la persistance**, pas une décoration. Un compte
+conservé ne se voit plus arriver : sans date affichée, on travaille sur des runes
+d'il y a trois semaines sans le savoir. Le compte volatil n'avait pas ce problème
+— on venait de le déposer.
+
+> ### ⚠️ La date de l'EXPORT, jamais celle de l'import
+>
+> `tvalue` (heure serveur au moment de l'export SWEX), via
+> `parseAccountExportDate`. **Pas** `Date.now()` à l'import : réimporter un
+> fichier de trois semaines afficherait « aujourd'hui » sur des données périmées,
+> soit exactement le mensonge que cette ligne existe pour empêcher.
+>
+> Vérifié sur des exports réels : `tvalue` colle à la seconde près à la création
+> du fichier, et reste bien antérieur à sa date de modification quand il a été
+> recopié. Ne pas confondre avec `tvaluelocal`, décalé de l'heure du serveur.
+>
+> Garde-fou : toute valeur hors [2014, demain] est rejetée (`null`) — un champ
+> absent ou dans une autre unité afficherait sinon une date absurde.
+
+- « **Compte exporté le 9 août** » ; l'année n'apparaît que si ce n'est pas
+  l'année courante (sinon elle alourdit une ligne qu'on lit en passant).
+- Au-delà de **14 jours**, la ligne passe en orange et invite à réexporter :
+  l'ordre de grandeur où un joueur actif a refait ses runes.
+- Affiché dans le **menu ⚙**, juste sous le réglage « Garder mon compte » : c'est
+  là qu'on se pose la question de la fraîcheur, et ça n'encombre aucune page.
+- Vaut aussi pour un compte **simplement en mémoire** : c'est l'âge des DONNÉES
+  qu'on annonce, pas celui de l'enregistrement.
+
+### Repli
+
+Toute erreur (navigation privée, stockage bloqué, base corrompue, quota atteint)
+se résout en `null` ou `false`, **jamais en exception** : l'app retombe sur le
+comportement mémoire. Safari efface le stockage écrit par script après ~7 jours
+sans visite — c'est un cas **normal**, pas une erreur à signaler.
+`requestPersistence()` limite l'éviction et s'appelle **dans un geste
+utilisateur**, où les navigateurs accordent plus volontiers.
+
+## Confidentialité
+
+- Traitement local uniquement ; le fichier n'est jamais poussé/envoyé.
+- Vaut aussi pour le **JSON d'un ami** importé dans la comparaison de courbes
+  (voir [compte/](../compte/)) : lu en mémoire, jamais envoyé.
+- Les exports de compte sont **gitignorés** (`*account*.json`, `tototriou-*.json`,
+  etc.) — ne jamais committer un export réel.

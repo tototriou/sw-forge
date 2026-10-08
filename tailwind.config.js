@@ -25,7 +25,7 @@ export default {
       // dans l'app. Écrites `var(--panel)` en hexadécimal, Tailwind ne pouvait
       // pas composer l'opacité et n'émettait AUCUNE règle : voile de modale
       // absent, détail de rune transparent.
-      // Source de vérité : spec/shared/design.md
+      // Source de vérité : docs/03-developpeur/interface/
       colors: {
         bg: 'rgb(var(--bg) / <alpha-value>)',
         // Barres de l'application (latérale, du haut) — rebranding, décision 5.
@@ -144,7 +144,7 @@ export default {
         // ⚠️ **`md` est un palier de NAVIGATION, pas un cran de plus dans
         // l'échelle générale.** L'échelle en compte volontairement peu : deux
         // valeurs trop voisines ne créent pas de hiérarchie, elles créent du
-        // flou (voir spec/shared/design.md). Il existe parce que la barre
+        // flou (voir docs/03-developpeur/interface/). Il existe parce que la barre
         // latérale du BUREAU se lisait serrée à 13 et trop appuyée à 15 — une
         // colonne de neuf entrées qu'on parcourt du regard, pas du texte de
         // lecture. Un `text-[14px]` posé sur place aurait été une valeur en dur,
@@ -192,7 +192,7 @@ export default {
     plugin(function ({ addVariant }) {
       // ⚠️ `hoverable:` remplace `hover:` sur tout ce qui est cliquable.
       // Un `hover:` nu reste allumé après un tap au tactile : on croit avoir
-      // sélectionné quelque chose. Voir spec/shared/design.md.
+      // sélectionné quelque chose. Voir docs/03-developpeur/interface/.
       addVariant('hoverable', '@media (hover: hover) and (pointer: fine) { &:hover }');
       addVariant('group-hoverable', '@media (hover: hover) and (pointer: fine) { :merge(.group):hover & }');
       // Complément : ce qui doit rester visible quand il n'y a pas de survol.

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Rejoue les garde-fous de commit sur chaque commit d'une pull request —
 // étape « Garde-fous de commit » de `.github/workflows/tests.yml`. Contrat :
-// spec/outillage/qualite-code.md § Garde-fous rejoués en CI.
+// docs/03-developpeur/ § Garde-fous rejoués en CI.
 //
 //   node scripts/verifier-commits.mjs <base> <tête>
 //

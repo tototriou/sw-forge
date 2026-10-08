@@ -1,5 +1,5 @@
 // Producteurs réellement appelés par l'écran, contre des
-// attentes indépendantes. Sources de jeu : `spec/outils/degats-reels/valeurs-de-jeu-curees.md` et `spec/outils/optimizer/moteur/reliques.md`, « L'effet unique — score de la propriété exclusive ».
+// attentes indépendantes. Sources de jeu : `docs/02-app/degats-reels/` et `docs/03-developpeur/optimizer/`, « L'effet unique — score de la propriété exclusive ».
 import { readFileSync } from 'node:fs';
 import type { ArtifactDetail, GearSet, RelicDetail } from '../src/types';
 import { evaluateursArtefactsFiche } from '../src/lib/artifactFiche';

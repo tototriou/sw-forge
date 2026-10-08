@@ -5,7 +5,7 @@ import MonsterAvatar from './MonsterAvatar';
 import { GroupePalette, EntreePalette } from './palette/recherchePalette';
 
 // PALETTE Ctrl K (refonte graphique, lot 13, décision 29, la maquette) — voir
-// spec/shared/navigation.md § Palette Ctrl K. Une seule recherche pour l'app :
+// docs/02-app/transverse/ § Palette Ctrl K. Une seule recherche pour l'app :
 // pages, monstres, actions, en groupes intitulés.
 //
 // ⚠️ Le CLAVIER est géré ici, pas par `useComboboxNav` : ce hook n'ouvre sa

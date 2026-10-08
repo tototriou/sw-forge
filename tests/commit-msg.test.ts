@@ -1,5 +1,5 @@
 // Garde-fou du message de commit (`.githooks/commit-msg`) —
-// spec/outillage/qualite-code.md, « Message de commit ».
+// docs/03-developpeur/, « Message de commit ».
 //
 // Le hook source est lancé tel quel sur un fichier de message, comme Git le
 // lance une fois installé. Tout se passe dans un dossier temporaire.

@@ -62,7 +62,7 @@ développe pas directement : chaque version se prépare dans une branche
 **`forge/<sujet>`**, fusionnée en `--no-ff` puis taguée.
 
 Le **processus complet** — étapes, numérotation SemVer, conventions de branche et
-de tag — vit dans [spec/releases.md](spec/releases.md#modèle-de-branches-et-processus-de-release).
+de tag — vit dans [docs/02-app/nouveautes/](docs/02-app/nouveautes/) (« Modèle de branches et processus de release »).
 
 ## Développement
 
@@ -90,7 +90,7 @@ npm run build
 À chaque commit, les hooks refusent une erreur ESLint dans le code indexé et
 un message hors de la forme `type(portée): description` ; la CI rejoue ces
 contrôles sur chaque commit de la PR, en plus des quatre commandes ci-dessus.
-Détail : [spec/outillage/qualite-code.md](spec/outillage/qualite-code.md).
+Détail : [docs/03-developpeur/](docs/03-developpeur/) (qualité du code).
 
 `npm test` ne pilote pas de navigateur et ne simule aucun clic : ce qui suit
 une interaction se vérifie à l'écran. Voir [tests/README.md](tests/README.md).
@@ -98,7 +98,7 @@ une interaction se vérifie à l'écran. Voir [tests/README.md](tests/README.md)
 ### Structure
 
 ```
-├── spec/                  LA référence : ce que fait l'app et pourquoi
+├── docs/                  LA référence : ce que fait l'app et pourquoi (carte : docs/README.md)
 ├── tests/                 vérifications des calculs et de la conservation
 ├── src/
 │   ├── pages/             Accueil, Bestiaire, RTA, Siège, Mon compte, Outils, Mécaniques
@@ -113,20 +113,20 @@ une interaction se vérifie à l'écran. Voir [tests/README.md](tests/README.md)
 
 ### Lis la spec d'abord
 
-Le dossier [`spec/`](spec/) n'est pas de la documentation d'après-coup : c'est la
+Le dossier [`docs/`](docs/) n'est pas de la documentation d'après-coup : c'est la
 **source de vérité fonctionnelle**. Il explique non seulement ce que fait chaque
 écran, mais **pourquoi** — y compris les pièges déjà rencontrés et les décisions
 qu'il ne faut pas défaire. Quelques exemples de ce qu'on n'a pas envie de
 redécouvrir à ses dépens :
 
-- [`shared/calcul-vitesse.md`](spec/shared/calcul-vitesse.md) — le totem et le
+- [`02-app/transverse/`](docs/02-app/transverse/) (calcul de la vitesse) — le totem et le
   lead s'appliquent **séparément et chacun arrondi**, pas en somme de
   pourcentages. Cas de contrôle à l'appui.
-- [`shared/donnees-monstres.md`](spec/shared/donnees-monstres.md) — les stats de
+- [`02-app/transverse/`](docs/02-app/transverse/) (données monstres) — les stats de
   base viennent de `max_lvl_*`, **jamais** de `base_*` (qui est le grade
   d'invocation). Et le nom d'un monstre **ne l'identifie pas** : plusieurs
   entrées partagent nom et élément.
-- [`compte/calcul-runes.md`](spec/compte/calcul-runes.md) — efficience, score SW
+- [`02-app/compte/`](docs/02-app/compte/) (calcul des runes) — efficience, score SW
   officiel, optimisation gemme/meule.
 
 Toute modification de comportement met la spec à jour dans le même commit.

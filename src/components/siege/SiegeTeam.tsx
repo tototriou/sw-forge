@@ -747,7 +747,7 @@ export default function SiegeTeam({
 }
 
 // Préréglage de `Bouton` : le marqueur d'état unique de l'app (contour
-// d'accent + fond léger, voir spec/shared/design.md) vient du composant via
+// d'accent + fond léger, voir docs/03-developpeur/interface/) vient du composant via
 // `actif`. Ne reste ici que ce qui est propre à ces pastilles-là : le mono, et
 // le resserrement à trois crans au doigt (cinq pastilles côte à côte dans un
 // slot qui en fait 110).

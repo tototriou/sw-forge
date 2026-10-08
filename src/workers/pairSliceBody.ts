@@ -8,7 +8,7 @@
 // l'en-tête annonce lui-même « reproduit EXACTEMENT le mécanisme réel de
 // `pairSlice.worker.ts` ». Deux copies à synchroniser à la main, dont une
 // seule est expédiée : un test portant sur la copie reste vert pendant que la
-// production casse. Voir spec/outils/optimizer/moteur/parallelisation.md
+// production casse. Voir docs/03-developpeur/optimizer/
 // § Code commun aux deux plateformes.
 //
 // ⚠️ **Ce module doit rester NEUTRE** : jamais d'import de `worker_threads`
@@ -57,8 +57,8 @@ export interface PairSliceRequest {
   // recréait son propre `PreparedSearch` via `prepareSearch(params)`, qui
   // fixe SON PROPRE `startedAt` interne — mesuré APRÈS la construction déjà
   // écoulée (jusqu'à ~1 min sur un gros compte), repoussant silencieusement
-  // l'échéance du filet de sécurité `maxMs` (spec/outils/optimizer/
-  // interruption.md § Interruption — filet de temps, pré-filtrage et arrêt
+  // l'échéance du filet de sécurité `maxMs` (docs/02-app/optimizer/
+  // § Interruption — filet de temps, pré-filtrage et arrêt
   // manuel).
   startedAt: number;
 }

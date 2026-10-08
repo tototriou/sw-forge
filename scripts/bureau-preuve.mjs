@@ -16,7 +16,7 @@
 // `--swex` (lot 9) : le dossier SW Exporter sur des fixtures — choix, export
 // réécrit, rechargement, sous-dossier `live` ; prépa RTA et siège jamais
 // touchés.
-// `--session` (spec/shared/sauvegarde-session.md) : conservation refusée,
+// `--session` (docs/02-app/transverse/) : conservation refusée,
 // « Sauvegarder » depuis les Paramètres, Ctrl K, Ctrl+S et la barre du haut,
 // puis « Sauvegarder sous… » ; chaque fichier relu par `lireSession`.
 

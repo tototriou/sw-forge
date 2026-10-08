@@ -8,7 +8,7 @@
 // Sert à vérifier si la restriction de l'itération sur r2 (buildBuckets,
 // « sous-ensemble de secours » quand r0+r1 n'ont ni pièce ni joker d'un set
 // >3 pièces) apporte un gain mesurable AU-DELÀ du seul cas Camilla déjà
-// testé — voir spec/outils/optimizer/pistes-vitesse-et-verification.md,
+// testé — voir docs/07-pilotage/,
 // « Ce que coûte la construction des demi-builds ».
 //
 // ⚠️ **POURQUOI CE SCRIPT SURVIT AU HARNAIS** : `diagnostic-harness.ts --cas=tous
@@ -16,7 +16,7 @@
 // mais ce ne sont PAS les mêmes grandeurs : le harnais construit les deux
 // moitiés dans deux `worker_threads` SIMULTANÉS, parce que la production
 // parallélise toujours et qu'un harnais qui choisirait autrement cesserait de
-// mesurer la production (spec/outils/optimizer/harnais.md,
+// mesurer la production (docs/03-developpeur/optimizer/,
 // « Régime d'appariement : le seuil de la production »).
 // Ses deux nombres sont donc le coût de chaque moitié SOUS CONCURRENCE de
 // l'autre. Ce script-ci mesure le coût ISOLÉ d'une moitié, un fil à la fois.

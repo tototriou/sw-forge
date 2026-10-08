@@ -17,7 +17,7 @@ export default function SearchBar({ value, onChange }: Props) {
         // ⚠️ Pas de halo `focus:shadow` en plus de la bordure : il s'ajoutait à
         // l'anneau `:focus-visible` global, ce qui faisait TROIS traits d'accent
         // concentriques autour du champ. La bordure marque le champ actif,
-        // l'anneau global dit où est le clavier — voir spec/shared/design.md.
+        // l'anneau global dit où est le clavier — voir docs/03-developpeur/interface/.
         className="w-full bg-panel border border-border rounded-xl py-3.5 pl-11 pr-4 text-base
                    text-ink placeholder:text-ink-dim transition focus:border-accent"
       />

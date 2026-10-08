@@ -1,6 +1,6 @@
 // Export / import d'ÉQUIPES DE SIÈGE en fichier `.json` — Défense et Offense.
 //
-// Spec : spec/siege/README.md § Exporter et importer des équipes. 100 % local.
+// Spec : docs/02-app/siege/ § Exporter et importer des équipes. 100 % local.
 //
 // ⚠️ **Le `com2usId`, jamais l'id local.** Une équipe se range par `monsterId`
 // LOCAL, qui ne veut rien dire d'un joueur à l'autre (même règle que la prépa

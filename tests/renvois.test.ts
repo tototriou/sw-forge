@@ -1,6 +1,6 @@
 // Garde-fou des renvois — aucun texte suivi ne renvoie à un fichier que le
 // dépôt n'a pas : ni aux notes privées de l'Optimizer, ni à un chemin mort.
-// Contrat : spec/outillage/renvois.md.
+// Contrat : docs/03-developpeur/ (garde-fou des renvois).
 //
 // Lit chaque fichier texte suivi (`git ls-files`), relève les renvois sous
 // cinq formes, les résout dans la liste des fichiers suivis — jamais sur le
@@ -19,7 +19,7 @@ import { egal, ignore, ok, titre } from './outils';
 
 const RACINE = join(dirname(fileURLToPath(import.meta.url)), '..');
 const LISTE = 'tests/fixtures/renvois-toleres.json';
-const O = 'spec/outils/optimizer';
+const O = 'docs/outils/optimizer';
 
 // Notes de l'Optimizer dont le nom seul, sans chemin, ne désigne rien de
 // public. Un nom quitte le contrôle dès qu'un fichier suivi le porte.
@@ -70,7 +70,7 @@ export const CIBLES_EXEMPTEES: { chemin: string; dossier: boolean }[] = [
 // fichier le corrige et retire l'entrée.
 const PROPRIETAIRES = ['a-publier', 'a-corriger', 'refonte', 'hors-perimetre'];
 
-const RACINES = ['spec', 'src', 'scripts', 'tests', '.claude', '.agents'];
+const RACINES = ['docs', 'src', 'scripts', 'tests', '.claude', '.agents'];
 // Caractères d'un chemin : lettres et marques combinantes (accent décomposé),
 // chiffres, `_ . - / @ +`.
 const C = '\\p{L}\\p{M}\\p{N}_.\\-/@+';
@@ -168,15 +168,14 @@ export function construireResolveur(suivis: string[]) {
     let d = posix.dirname(f);
     while (d !== '.' && !dossiers.has(d)) { dossiers.add(d); d = posix.dirname(d); }
   }
-  const sousO = (c: string) => c === O || c.startsWith(O + '/');
   // Trois bases, dans l'ordre de `spec-lint` : le dossier du fichier, la
-  // racine, `spec/`. Le premier candidat qui existe gagne.
+  // racine, `docs/`. Le premier candidat qui existe gagne.
   return function resoudre(fichier: string, ref: string): { statut: Occurrence['statut']; candidats: string[] } {
     let r = ref;
     try { r = decodeURI(r); } catch { /* garde le texte brut */ }
     const absolu = r.startsWith('/');
     if (absolu) r = r.replace(/^\/+/, '');
-    const bases = absolu ? [''] : [posix.dirname(fichier), '', 'spec'];
+    const bases = absolu ? [''] : [posix.dirname(fichier), '', 'docs'];
     const candidats: string[] = [];
     for (const b of bases) {
       const n = posix.normalize(b ? b + '/' + r : r).replace(/\/+$/, '') || '.';
@@ -186,9 +185,8 @@ export function construireResolveur(suivis: string[]) {
     for (const c of candidats) {
       if (estExempte(c)) return { statut: 'exempte', candidats };
       if (fichiers.has(c)) return { statut: 'fichier', candidats };
-      // Un dossier résout s'il contient des fichiers suivis, sauf dans le
-      // dossier de l'Optimizer, où un renvoi doit nommer un fichier.
-      if (dossiers.has(c)) return { statut: sousO(c) ? 'mort' : 'dossier', candidats };
+      // Un dossier résout s'il contient des fichiers suivis.
+      if (dossiers.has(c)) return { statut: 'dossier', candidats };
     }
     return { statut: 'mort', candidats };
   };
@@ -344,38 +342,38 @@ type Entree = { fichier: string; renvoi: string; occurrences: number; proprietai
 
 export function testRenvoisFormes() {
   titre('renvois · formes détectées, résolution dans les fichiers suivis');
-  const suivis = ['spec/a.md', 'spec/outils/b.md', 'src/lib/x.ts', 'src/lib/y.ts', `${O}/publie.md`, 'tests/z.test.ts'];
+  const suivis = ['docs/a.md', 'docs/outils/b.md', 'src/lib/x.ts', 'src/lib/y.ts', `${O}/publie.md`, 'tests/z.test.ts'];
   const resoudre = construireResolveur(suivis);
   const noms = ['pistes.md'];
   const relever = (fichier: string, texte: string) => releverFichier(fichier, texte.split('\n'), resoudre, noms);
   const morts = (fichier: string, texte: string) => relever(fichier, texte).filter((o) => o.statut === 'mort').map((o) => `${o.forme}:${o.renvoi}`);
 
-  egal(morts('spec/c.md', '[a](a.md) [b](outils/b.md#titre) [x](../src/lib/x.ts:12) [m](mort.md)'), ['lien Markdown:mort.md'],
+  egal(morts('docs/c.md', '[a](a.md) [b](outils/b.md#titre) [x](../src/lib/x.ts:12) [m](mort.md)'), ['lien Markdown:mort.md'],
     'lien Markdown : trois bases, ancre et ligne retirées, lien mort relevé');
-  egal(morts('spec/c.md', '[r][n]\n\n[n]: archive/h.md'), ['lien Markdown:archive/h.md'], 'définition de lien par référence morte');
-  egal(morts('spec/c.md', 'Voir `src/lib/x.ts`, `outils/b.md`, `decisions/d.md`, `release/x.y.z`, `/api/v2/`, `a b/c.md`.'),
+  egal(morts('docs/c.md', '[r][n]\n\n[n]: archive/h.md'), ['lien Markdown:archive/h.md'], 'définition de lien par référence morte');
+  egal(morts('docs/c.md', 'Voir `src/lib/x.ts`, `outils/b.md`, `decisions/d.md`, `release/x.y.z`, `/api/v2/`, `a b/c.md`.'),
     ['backticks:decisions/d.md'], 'backticks : chemin mort relevé ; version, adresse et commande ignorées');
-  egal(morts('src/lib/x.ts', '// voir spec/outils/c.md\nconst p = "src/lib/w.ts";'), ['chemin nu:spec/outils/c.md', 'chemin nu:src/lib/w.ts'],
+  egal(morts('src/lib/x.ts', '// voir docs/outils/c.md\nconst p = "src/lib/w.ts";'), ['chemin nu:docs/outils/c.md', 'chemin nu:src/lib/w.ts'],
     'chemin nu : commentaire et chaîne');
   egal(morts('src/lib/x.ts', "import { a } from 'src/lib/w';\nconst b = await import('scripts/w.mjs');\nrequire('tests/w');\nvi.mock('src/w');"), [],
     'spécificateurs de module ignorés');
-  egal(morts('src/lib/x.ts', '// voir ../../spec/mort.md\nconst p = "../../spec/mort.md";'), ['relatif:../../spec/mort.md'],
+  egal(morts('src/lib/x.ts', '// voir ../../docs/mort.md\nconst p = "../../docs/mort.md";'), ['relatif:../../docs/mort.md'],
     'forme `../` : commentaire relevé, chaîne de code ignorée');
-  egal(morts('spec/c.md', `Dossiers : spec/outils/, ${O}/, ${O}/archive/ ; fin.`), [`chemin nu:${O}/`, `chemin nu:${O}/archive/`],
-    'dossier admis s’il porte des fichiers suivis, jamais dans le dossier de l’Optimizer');
-  egal(morts('spec/c.md', `Publié : ${O}/publie.md.`), [], 'fichier publié du dossier de l’Optimizer : résolu');
-  egal(morts('spec/c.md', 'Modèles : spec/<nom>.md, src/**/x.ts, spec/{a,b}.md, src/${x}.ts.'), [], 'chemin à <, *, { : non vérifié');
-  egal(morts('spec/c.md', 'Hors dépôt : ../../../ailleurs/x.md.'), ['relatif:../../../ailleurs/x.md'], 'chemin qui sort du dépôt : mort');
-  egal(morts('spec/c.md', 'Voir `.claude/settings.json`, `.claude/agents/x.md`, `node_modules/`.'), [], 'cibles volontairement non suivies : exemptées');
-  egal(morts('src/lib/x.ts', '// voir pistes.md et spec/pistes.md'), ['chemin nu:spec/pistes.md', 'nom seul:pistes.md'],
+  egal(morts('docs/c.md', `Dossiers : docs/outils/, ${O}/, ${O}/archive/ ; fin.`), [`chemin nu:${O}/archive/`],
+    'dossier admis s’il porte des fichiers suivis, mort sinon');
+  egal(morts('docs/c.md', `Fichier : ${O}/publie.md.`), [], 'fichier suivi : résolu');
+  egal(morts('docs/c.md', 'Modèles : docs/<nom>.md, src/**/x.ts, docs/{a,b}.md, src/${x}.ts.'), [], 'chemin à <, *, { : non vérifié');
+  egal(morts('docs/c.md', 'Hors dépôt : ../../../ailleurs/x.md.'), ['relatif:../../../ailleurs/x.md'], 'chemin qui sort du dépôt : mort');
+  egal(morts('docs/c.md', 'Voir `.claude/settings.json`, `.claude/agents/x.md`, `node_modules/`.'), [], 'cibles volontairement non suivies : exemptées');
+  egal(morts('src/lib/x.ts', '// voir pistes.md et docs/pistes.md'), ['chemin nu:docs/pistes.md', 'nom seul:pistes.md'],
     'nom seul d’une note relevé, une seule fois par mention');
-  egal(morts('spec/c.md', 'Voir pistes.md.'), [], 'nom seul : pas contrôlé hors de src/, scripts/, tests/, .claude/');
-  egal(morts('src/lib/x.ts', '// voir spec/outils/\n// b.md, puis spec/\n// outils/mort.md'), [],
-    'ligne de commentaire coupée sur `/` : recollée quand le recollage résout, sinon prise seule (`spec/` résout)');
-  egal(morts('src/lib/x.ts', '// voir spec/outils/mort-\n// suite.md'), ['chemin nu:spec/outils/mort-'],
+  egal(morts('docs/c.md', 'Voir pistes.md.'), [], 'nom seul : pas contrôlé hors de src/, scripts/, tests/, .claude/');
+  egal(morts('src/lib/x.ts', '// voir docs/outils/\n// b.md, puis docs/\n// outils/mort.md'), [],
+    'ligne de commentaire coupée sur `/` : recollée quand le recollage résout, sinon prise seule (`docs/` résout)');
+  egal(morts('src/lib/x.ts', '// voir docs/outils/mort-\n// suite.md'), ['chemin nu:docs/outils/mort-'],
     'coupure sur `-` qui ne résout pas : la ligne est prise seule');
   const seul = construireResolveur(['src/lib/x.ts']);
-  egal(releverFichier('spec/c.md', ['Voir `src/lib/ignore.ts`.'], seul, []).map((o) => o.statut), ['mort'],
+  egal(releverFichier('docs/c.md', ['Voir `src/lib/ignore.ts`.'], seul, []).map((o) => o.statut), ['mort'],
     'fichier absent de la liste des suivis : mort, même s’il existe sur le disque');
 
   // Une exception (fonction absente, Git en erreur) est un échec, pas un arrêt.
@@ -385,43 +383,43 @@ export function testRenvoisFormes() {
     egal(recu, attendu, libelle);
   };
   cas('lien Markdown relatif relevé quelle que soit son extension ou son premier dossier',
-    () => morts('spec/c.md', '[g](guide) [a](archive/absent.pdf) [n](archive.v2/absent.md)'),
+    () => morts('docs/c.md', '[g](guide) [a](archive/absent.pdf) [n](archive.v2/absent.md)'),
     ['lien Markdown:guide', 'lien Markdown:archive/absent.pdf', 'lien Markdown:archive.v2/absent.md']);
   cas('lien : `:ligne` et `#ancre` retirés avant tout test, ancre à gabarit comprise',
-    () => morts('spec/c.md', '[n](archive/absent.md:12) [m](archive/absent.md#<titre>) [o](outils/b.md:12#titre)'),
+    () => morts('docs/c.md', '[n](archive/absent.md:12) [m](archive/absent.md#<titre>) [o](outils/b.md:12#titre)'),
     ['lien Markdown:archive/absent.md', 'lien Markdown:archive/absent.md']);
   cas('lien : destination entre chevrons avec espaces, titre entre apostrophes ou parenthèses',
-    () => morts('spec/c.md', "[n](<archive/note absente.md>) [m](archive/absent.md 'Titre') [p](archive/autre.md (Titre))"),
+    () => morts('docs/c.md', "[n](<archive/note absente.md>) [m](archive/absent.md 'Titre') [p](archive/autre.md (Titre))"),
     ['lien Markdown:archive/note absente.md', 'lien Markdown:archive/absent.md', 'lien Markdown:archive/autre.md']);
   cas('« from » dans un commentaire n’est pas un spécificateur de module',
-    () => morts('src/lib/x.ts', '// copié from "spec/absent.md"'), ['chemin nu:spec/absent.md']);
+    () => morts('src/lib/x.ts', '// copié from "docs/absent.md"'), ['chemin nu:docs/absent.md']);
   const unicode = construireResolveur([...suivis, 'src/x+y.ts', 'src/café.ts']);
   cas('chemin à @, + ou accent décomposé : pris entier',
-    () => releverFichier('spec/c.md', ['Voir src/@absent.ts, src/x+y.ts et src/café.ts.'], unicode, [])
+    () => releverFichier('docs/c.md', ['Voir src/@absent.ts, src/x+y.ts et src/café.ts.'], unicode, [])
       .filter((o) => o.statut === 'mort').map((o) => o.renvoi),
     ['src/@absent.ts']);
   cas('cible exemptée comme fichier : ses descendants ne le sont pas ; cible exemptée suivie : signalée',
-    () => [morts('spec/c.md', 'Voir `.claude/settings.json/absent.md`.'),
+    () => [morts('docs/c.md', 'Voir `.claude/settings.json/absent.md`.'),
       ciblesExempteesSuivies(['src/a.ts', '.claude/agents/x.md', '.claude/settings.json'])],
     [['backticks:.claude/settings.json/absent.md'], ['.claude/settings.json', '.claude/agents']]);
   const ordre = construireResolveur([`${O}/publie.md`, 'optimizer/public.txt']);
-  cas('trois bases dans l’ordre : le dossier de l’Optimizer gagne, et il est refusé',
-    () => releverFichier('spec/outils/optimizer.md', ['[o](optimizer/)'], ordre, []).map((o) => o.statut), ['mort']);
+  cas('trois bases dans l’ordre : le dossier du fichier gagne',
+    () => releverFichier('docs/outils/optimizer.md', ['[o](optimizer/)'], ordre, []).map((o) => o.candidats[0]), [O]);
   cas('`.` et `..` préservés, la racine est un dossier',
-    () => morts('spec/probe.md', `Voir ../ et ${O}/..`), []);
+    () => morts('docs/probe.md', `Voir ../ et ${O}/..`), []);
   cas('backticks : `:ligne`, `#ancre` et `?requête` retirés avant les filtres',
-    () => morts('spec/c.md', 'Voir `archive/absent.md:12#titre` et `archive/absent.md?raw=1`.'),
+    () => morts('docs/c.md', 'Voir `archive/absent.md:12#titre` et `archive/absent.md?raw=1`.'),
     ['backticks:archive/absent.md', 'backticks:archive/absent.md']);
   cas('lien vers une URL en `//` : exclu comme un schéma',
-    () => morts('spec/c.md', '[CDN](//example.org/image.svg)'), []);
+    () => morts('docs/c.md', '[CDN](//example.org/image.svg)'), []);
   cas('lien à destination vide suivie d’un titre : exclu',
-    () => morts('spec/c.md', `[a]( "Titre") [b]( 'Titre') [c]( (Titre))`), []);
-  const parentheses = construireResolveur([...suivis, 'spec/archive/note(1).md']);
+    () => morts('docs/c.md', `[a]( "Titre") [b]( 'Titre') [c]( (Titre))`), []);
+  const parentheses = construireResolveur([...suivis, 'docs/archive/note(1).md']);
   cas('destination nue avec `(` : non vérifiée ; entre chevrons : résolue',
-    () => releverFichier('spec/c.md', ['[n](archive/note(1).md) [m](<archive/note(1).md>)'], parentheses, []).map((o) => o.statut),
+    () => releverFichier('docs/c.md', ['[n](archive/note(1).md) [m](<archive/note(1).md>)'], parentheses, []).map((o) => o.statut),
     ['non verifie', 'fichier']);
   cas('lien dans du code en ligne ou un bloc clôturé : un exemple, pas un lien',
-    () => [morts('spec/c.md', 'Exemple : `[texte](url)`.\n```\n[x](absent.md)\n```\n~~~md\n[y](autre.md)\n~~~\n[z](mort.md)'),
+    () => [morts('docs/c.md', 'Exemple : `[texte](url)`.\n```\n[x](absent.md)\n```\n~~~md\n[y](autre.md)\n~~~\n[z](mort.md)'),
       morts('src/lib/x.ts', '// un lien `[t](archive/absent.md)` en exemple')],
     [['lien Markdown:mort.md'], []]);
   cas('fichier suivi illisible relevé ; seule l’absence de `.git` est « pas de dépôt », un `.git` invalide lève', () => {

@@ -95,7 +95,7 @@ const proche = (a: number, b: number) => Math.abs(a - b) < 1e-9 * Math.max(1, Ma
 // Forme → [passif, S1 qui lit `{SPD}`, nom]. Écrite à la main, jamais dérivée
 // de la table : c'est ce qui fait échouer le test quand une ligne disparaît.
 // 29304 (Ciri, nom coréen en donnée) et 29704 (Magic Order Swordsinger) sont
-// les formes non éveillées : non sélectionnables (`spec/outils/degats-reels/valeurs-de-jeu-curees.md`), elles partagent
+// les formes non éveillées : non sélectionnables (`docs/02-app/degats-reels/`), elles partagent
 // l'identifiant du passif.
 const FORMES_VIT: [number, number, number, string][] = [
   [29314, 19014, 19004, 'Ciri'],

@@ -1,5 +1,5 @@
 // Exclusion MANUELLE de runes dans l'Optimizer (voir src/lib/
-// optimizerExclusion.ts, spec/outils/optimizer.md) — logique de résolution
+// optimizerExclusion.ts, docs/02-app/optimizer/) — logique de résolution
 // PURE, risque « grave et invisible » classique de ce dépôt (une mauvaise
 // résolution exclut les mauvaises runes, ou n'exclut rien, sans qu'aucune
 // erreur ne le signale à l'écran).

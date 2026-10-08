@@ -2,7 +2,7 @@
 // OptimizerSection.tsx) : l'exemplaire mémorisé dans `useOptimizerState` est
 // gardé tant qu'il se résout contre le compte et désigne l'espèce choisie ;
 // sinon la règle du choix d'une espèce le remplace. Voir
-// spec/outils/optimizer.md § Équipement actuel.
+// docs/02-app/optimizer/ § Équipement actuel.
 
 import { egal, titre } from './outils';
 import type { GearSet, Monster, SiegeTeam } from '../src/types';

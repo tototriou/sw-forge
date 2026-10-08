@@ -1,4 +1,4 @@
-// La sauvegarde de session — le format. Voir spec/shared/sauvegarde-session.md.
+// La sauvegarde de session — le format. Voir docs/02-app/transverse/.
 //
 // Tout l'état de l'app à un instant donné, dans UN fichier que l'utilisateur
 // place où il veut et recharge plus tard, comme une sauvegarde de jeu : le

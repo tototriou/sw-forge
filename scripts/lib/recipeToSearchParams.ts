@@ -77,7 +77,7 @@ export function resolveSlotFilterCap(preset: SlotFilterPresetKey): number {
  * les deux principales pour CHOISIR la paire n'est exact que pour l'efficience
  * et la VIT (aucun artéfact n'y entre) : pour les PV effectifs, `pvEffectifs`
  * n'est PAS une somme de PV et de DEF, voir
- * spec/outils/optimizer/moteur/artefacts.md. `evaluerPourRegime`
+ * docs/03-developpeur/optimizer/. `evaluerPourRegime`
  * (`src/lib/artifactEvaluation.ts`) note donc chaque régime sur son critère
  * réel, jamais sur une somme incommensurable.
  */
@@ -444,7 +444,7 @@ export function resolvePool(
 // **les mêmes fonctions** : `resolveDamageSkill` + `damageRelevantStats`
 // (src/lib/damage.ts). Rien n'est réimplémenté ici — c'est précisément le
 // genre de recopie qui a déjà fait diverger un script de l'écran en silence
-// (voir spec/README.md, « Conventions communes »).
+// (voir docs/03-developpeur/, « Conventions communes »).
 export function resolveObjectiveStats(recipe: OptimizerRecipe, loaded: LoadedMonster): StatKey[] | undefined {
   if (recipe.objective !== 'degats_reels') return undefined;
   const detail = loadMonsterSkills(loaded.com2usId);

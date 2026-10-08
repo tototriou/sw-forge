@@ -40,7 +40,7 @@ const TEXT: Record<string, string> = {
 // ⚠️ Seuls comptent les leads qui s'appliquent **en RTA sans condition** : un
 // lead d'élément ne profite qu'aux alliés du bon élément, or la simulation
 // applique la valeur à TOUT le monde — le proposer induirait en erreur. Même
-// règle que pour la catégorie « Lead SPD » (voir ../../spec/rta/categories.md).
+// règle que pour la catégorie « Lead SPD » (voir docs/02-app/rta/).
 const AIRES_RTA = new Set(['General', 'Arena']);
 
 function leadsDeLaPrepa(items: TurnItem[]): number[] {
@@ -73,7 +73,7 @@ interface Props {
   onRuneSpeed?: (id: string, value: number | null) => void;
   // Catégories de la prépa : l'ordre de tour doit porter les MÊMES couleurs que
   // les cartes, sinon on perd le repère au moment où il sert le plus (voir
-  // ../../spec/rta/categories.md).
+  // docs/02-app/rta/).
   categories?: RtaCategory[];
   // Interrupteur des couleurs, RÉPÉTÉ ici : l'ordre de tour est en bas de page,
   // et remonter tout en haut juste pour couper les anneaux est absurde.
@@ -176,7 +176,7 @@ export default function TurnOrder({
   // Ce qu'on protège ici est plus discret : la rangée se RÉORDONNE au retrait, et
   // le bouton voisin vient prendre la place de celui qu'on a visé. Un clic
   // légèrement à côté enlève donc le mauvais lead, et on ne s'en aperçoit
-  // qu'après. Voir spec/README.md — toute suppression se confirme.
+  // qu'après. Voir docs/03-developpeur/ — toute suppression se confirme.
   const [leadASupprimer, setLeadASupprimer] = useState<number | null>(null);
 
   const leads = useMemo(() => {
@@ -436,7 +436,7 @@ export default function TurnOrder({
                 // ⚠️ **Deux gabarits selon le POINTEUR, la refonte de cette
                 // section ne visant QUE le doigt.** Au clavier/à la souris, la
                 // carte garde son rendu d'avant, à l'identique — voir
-                // spec/shared/deux-applications.md.
+                // docs/03-developpeur/interface/.
                 className={`relative flex-none rounded-xl border border-border transition-colors ${
                   surMobile
                     ? 'w-[104px] p-1.5 flex flex-col items-center gap-1'

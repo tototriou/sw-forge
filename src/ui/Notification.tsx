@@ -4,7 +4,7 @@ import Bouton from './Bouton';
 import BoutonIcone from './BoutonIcone';
 
 // Notification « … · Annuler » (refonte graphique, lot 13, décision 29, la
-// maquette) — voir spec/shared/design.md § Notification « Annuler ».
+// maquette) — voir docs/03-developpeur/interface/ § Notification « Annuler ».
 //
 // ⚠️ **Elle REMPLACE une confirmation**, pour quatre suppressions (monstre de
 // la prépa RTA, équipe, deck, recommandation) : le geste se fait tout de suite,

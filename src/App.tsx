@@ -174,7 +174,7 @@ export type ToolSub = 'optimizer' | 'speed-tuning';
 // Route + sous-route de siège (offense/défense) + sous-section « Mon compte »
 // + sous-section « Outils » déduites du hash.
 // ⚠️ Exportée, et le hash en paramètre : c'est ce qui la rend testable seule
-// (tests/navigation-adresses.test.ts, spec/shared/navigation.md § Adresses).
+// (tests/navigation-adresses.test.ts, docs/02-app/transverse/ § Adresses).
 export function parseHash(hash: string = window.location.hash): {
   route: Route;
   rtaSub: RtaSub;
@@ -237,7 +237,7 @@ export function parseHash(hash: string = window.location.hash): {
 // bas, panneau mobile, barre supérieure, recherche. La MÊME couleur que la
 // carte de l'accueil ; elle voyage avec l'item plutôt que d'être ressaisie à
 // chaque point de rendu. Elle ne marque PAS l'état (l'actif reste le contour
-// d'accent, spec/shared/design.md « un seul marqueur ») : elle est constante,
+// d'accent, docs/03-developpeur/interface/ « un seul marqueur ») : elle est constante,
 // actif ou non.
 // ⚠️ Icônes « objets d'atelier » (rebranding R4, décisions 9 et 27) : une par
 // section, au contrat de lucide (`size`, `color`) — voir IconesAtelier.tsx.
@@ -335,7 +335,7 @@ function Application() {
 
   // Compte (box + inventaire runes/artéfacts). En mémoire, et **conservé sur
   // l'appareil** si l'utilisateur l'a demandé dans le menu ⚙ (voir
-  // spec/shared/import-compte.md).
+  // docs/02-app/transverse/).
   const [box, setBox] = useState<BoxItem[]>([]);
   const [runes, setRunes] = useState<RuneDetail[]>([]);
   const [artifacts, setArtifacts] = useState<ArtifactDetail[]>([]);
@@ -583,7 +583,7 @@ function Application() {
   // Ouverte par Ctrl/⌘ K de n'importe où, par le champ de la barre latérale, et
   // au téléphone par la loupe de la barre du haut. Ce qu'elle ouvre (fiche d'un
   // monstre, speed tuning d'une équipe) se monte ICI : on n'y change pas de
-  // page. Voir spec/shared/navigation.md § Palette Ctrl K.
+  // page. Voir docs/02-app/transverse/ § Palette Ctrl K.
   const [paletteOuverte, setPaletteOuverte] = useState(false);
   const [ficheMonstre, setFicheMonstre] = useState<Monster | null>(null);
   const [speedTuneEquipe, setSpeedTuneEquipe] = useState<DeckInitial | null>(null);
@@ -930,7 +930,7 @@ function Application() {
     });
   }
 
-  // « Sauvegarder la session » (spec/shared/sauvegarde-session.md) : tout
+  // « Sauvegarder la session » (docs/02-app/transverse/) : tout
   // l'état de l'app dans un fichier. Le compte est celui EN MÉMOIRE, pas celui
   // d'IndexedDB — conservation refusée, il n'est que là.
   // Sur le site, un fichier daté se télécharge, toujours. Dans l'app,
@@ -1154,7 +1154,7 @@ function Application() {
   //   construites.
   //
   // ⚠️ Une entrée à sous-sections les DÉROULE sous elle au lieu de naviguer
-  // (spec/shared/navigation.md), sans aperçu au survol ([retrait #12]). La
+  // (docs/02-app/transverse/), sans aperçu au survol ([retrait #12]). La
   // section de la route est déroulée d'office — la barre la déduit de
   // l'entrée active, sans qu'on la lui passe.
   const VUES_BIENTOT = new Set<AccountView>(['meules', 'gemmes']);
@@ -1636,7 +1636,7 @@ function Application() {
             // Le retour d'import se pose en fondu court plutôt que de surgir :
             // il arrive APRÈS une action (un fichier déposé), et un texte qui
             // apparaît d'un coup sous le curseur se lit comme une erreur de
-            // rendu. Voir spec/shared/design.md.
+            // rendu. Voir docs/03-developpeur/interface/.
             <p
               className={`mb-3 text-xs animate-[apparition_200ms_var(--ease-out)] ${
                 importMsg.ok ? 'text-good' : 'text-bad'

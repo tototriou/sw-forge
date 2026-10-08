@@ -1,4 +1,4 @@
-// Lint du dépôt — `npm run lint`. Contrat : spec/outillage/qualite-code.md.
+// Lint du dépôt — `npm run lint`. Contrat : docs/03-developpeur/ (qualité du code).
 //
 // ⚠️ Une ERREUR bloque le commit (hook `pre-commit`) et la CI ; un
 // AVERTISSEMENT s'affiche sans bloquer. Le code actuel passe sans erreur :

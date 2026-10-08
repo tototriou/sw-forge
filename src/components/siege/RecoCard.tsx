@@ -83,7 +83,7 @@ import {
 //
 // La vitesse de COMBAT reste affichée là où elle décide de quelque chose : sur
 // les cartes d'équipe de siège et dans le speed tuning, où l'ordre de tour se
-// joue. Voir ../../spec/siege/recommandations.md.
+// joue. Voir docs/02-app/siege/.
 
 
 // Nom d'un deck : les noms de ses monstres séparés par un tiret
@@ -493,7 +493,7 @@ export default function RecoCard({
             />
             {/* ⚠️ Pas `actif` (le marqueur d'état standard) : le ✓ DORÉ
                 (`text-star`) est la convention DOCUMENTÉE de l'édition en
-                cours sur cette page entière (voir spec/siege/recommandations.md
+                cours sur cette page entière (voir docs/02-app/siege/
                 §« icônes d'action »), reprise plus bas sur chaque deck et
                 chaque défense — la changer ici la briserait partout ailleurs.
                 La couleur est posée sur l'ICÔNE, pas sur le bouton : le bouton
@@ -1164,7 +1164,7 @@ function AnalysisSummary({
           fois), d'où des boutons indépendants et non un `Segmented`, qui dirait
           que les choix s'excluent (voir ui/Segmented.tsx).
           ⚠️ La BORDURE marque l'actif, jamais un aplat plein : c'est la règle
-          des pastilles de filtre (voir spec/shared/design.md).
+          des pastilles de filtre (voir docs/03-developpeur/interface/).
           Un verdict sans aucun deck est affiché GRISÉ et non retiré : on voit
           qu'il n'y en a aucun, au lieu de chercher un bouton disparu.
           ⚠️ **Colorées AU REPOS, comme les pastilles des decks en dessous**
@@ -1581,7 +1581,7 @@ function DeckBlock({
           >
             {/* ⚠️ Même exception que l'en-tête de la recommandation : le ✓ doré
                 est la convention documentée de l'édition en cours sur toute
-                cette page (spec/siege/recommandations.md), pas le marqueur
+                cette page (docs/02-app/siege/), pas le marqueur
                 d'état standard. Couleur posée sur l'icône, comme dans
                 l'en-tête de la recommandation. */}
             {/* « Annuler les modifications » — en édition
@@ -1718,7 +1718,7 @@ function DeckBlock({
                 // (rouge/vert), et la remplacer effacerait cette information au
                 // moment où on parcourt la page. Deux langages distincts, deux
                 // supports distincts. Même écho de filtre que les propriétés
-                // recherchées d'un artéfact — voir spec/shared/design.md.
+                // recherchées d'un artéfact — voir docs/03-developpeur/interface/.
                 hit?.slots.includes(idx) ? 'bg-accent/[0.10]' : ''
               }`}
             >
@@ -2178,7 +2178,7 @@ function CounterRow({
             Discret (il ne se montre qu'au survol) pour ne pas alourdir une
             rangée qu'on parcourt du regard, mais TOUJOURS visible au tactile,
             où il n'y a pas de survol — voir la règle « un élément atteignable
-            ne dépend jamais du survol » de spec/shared/design.md. */}
+            ne dépend jamais du survol » de docs/03-developpeur/interface/. */}
         {/* ⚠️ `taille="serre"` + `cadre` + `auSurvol` : posé SUR le coin de la
             vignette, hors du flux — agrandi par la règle tactile, il la
             déborde et recouvre le portrait, même cas que la croix de
@@ -2213,7 +2213,7 @@ function CounterRow({
             n'a rien à aligner — et il ne pousse pas la rangée, qui reste
             immobile pendant qu'on lit.
             ⚠️ `origin-top-left` : un flottant ancré grandit DEPUIS son ancre,
-            jamais depuis son centre (voir spec/shared/design.md).
+            jamais depuis son centre (voir docs/03-developpeur/interface/).
             `min-w-full` : au moins aussi large que la vignette, pour se lire
             comme sa suite ; `w-max` + plafond au-delà, la note étant courte. */}
         {/* ⚠️ **Le `Flottant` de la librairie**, comme partout dans l'app :
@@ -2298,7 +2298,7 @@ function CounterRow({
         </div>
         {/* Terminer, puis supprimer — l'ordre du geste courant d'abord.
             ⚠️ Le ✓ doré est la convention de l'édition en cours dans toute la
-            page (voir spec/siege/recommandations.md) — posé sur l'icône d'un
+            page (voir docs/02-app/siege/) — posé sur l'icône d'un
             `BoutonIcone`, comme les crayons de la recommandation et du deck,
             et de la même taille que la corbeille voisine. */}
         <div className="mt-1 flex flex-none items-center gap-1.5">
@@ -2536,7 +2536,7 @@ export function StatEditor({
   //
   // ⚠️ **Désactivé quand TOUTES les possibilités de runage portent Swift** :
   // une équipe Swift ne se cale pas au tick, elle se speed tune
-  // (spec/siege/speed-tick.md). Une seule option sans Swift suffit : le calcul
+  // (docs/02-app/siege/). Une seule option sans Swift suffit : le calcul
   // se fait alors sans lui.
   const baseVit = baseFor('spd', monster);
   const options = slot.setOptions.filter((o) => o.length > 0);

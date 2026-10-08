@@ -2,7 +2,7 @@
 // lecture que l'outil (src/lib/speedTunePassif.ts) : les deux ne peuvent donc
 // pas diverger. C'est tout l'intérêt de faire passer le script par la lib.
 //
-//   node scripts/passifs-vitesse.mjs   → spec/outils/passifs-vitesse.md
+//   node scripts/passifs-vitesse.mjs   → docs/02-app/speed-tuning/feat-passifs-vitesse.md
 
 import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -11,7 +11,7 @@ import { DetailMonstre } from '../src/lib/monsterSkills';
 
 const DOSSIER = fileURLToPath(new URL('../public/data/skills/', import.meta.url));
 const MONSTRES = fileURLToPath(new URL('../public/data/monsters.json', import.meta.url));
-const SORTIE = fileURLToPath(new URL('../spec/outils/passifs-vitesse.md', import.meta.url));
+const SORTIE = fileURLToPath(new URL('../docs/02-app/speed-tuning/feat-passifs-vitesse.md', import.meta.url));
 
 const monstres = new Map<number, { name: string }>(
   JSON.parse(readFileSync(MONSTRES, 'utf8'))
@@ -116,7 +116,7 @@ sont regroupés par passive — les cinq éléments d'une même famille la parta
 qu'en coréen.
 `;
 
-// Bloc terminal ≤ 80 lignes visées (limite dure 100, spec/outillage/spec.md,
+// Bloc terminal ≤ 80 lignes visées (limite dure 100, docs/03-developpeur/,
 // « Contrat de `spec-lint` ») : une catégorie dont les entrées dépasseraient ce budget à plat se
 // scinde en sous-titres H3 par tranche alphabétique — chaque entrée occupe 2
 // lignes (« - **cle** » + la liste de noms).
@@ -162,7 +162,7 @@ md += ecrireEntrees(entreesInconnues);
 
 md += `\n---\n\nTotal : **${total}** entrées, dont **${compteInconnu}** au montant introuvable.\n`;
 writeFileSync(SORTIE, md, 'utf8');
-console.log(`spec/outils/passifs-vitesse.md écrit — ${total} entrées, ${compteInconnu} sans montant.`);
+console.log(`docs/02-app/speed-tuning/feat-passifs-vitesse.md écrit — ${total} entrées, ${compteInconnu} sans montant.`);
 for (const cat of ORDRE) {
   const g = parCategorie.get(cat);
   if (g) console.log(`  ${LIBELLE[cat]} : ${[...g.values()].reduce((n, m) => n + m.length, 0)}`);

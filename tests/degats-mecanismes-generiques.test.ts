@@ -6,7 +6,7 @@
 // ⚠️ Deux sortes de cas, jamais mélangées :
 // - RÉEL : la fiche existe dans `public/data/skills`, ses valeurs sont celles de
 //   SWARFARM (formule, coups, améliorations) et ses décisions de produit celles
-//   des valeurs curées (`spec/outils/degats-reels/valeurs-de-jeu-curees.md`). C'est le cas de l'attaque déclenchée (sorts S2 qui appellent leur S1 :
+//   des valeurs curées (`docs/02-app/degats-reels/`). C'est le cas de l'attaque déclenchée (sorts S2 qui appellent leur S1 :
 //   RYU, Douglas, Kashmir, Vancliffe, Striker…).
 // - SYNTHÉTIQUE : aucune fiche ne porte ces coefficients ; la fixture est ANNONCÉE
 //   comme telle et ne valide AUCUNE mécanique du jeu — seulement que le

@@ -1,4 +1,4 @@
-# Empaquetage de l'application de bureau (spec/shared/application-bureau.md).
+# Empaquetage de l'application de bureau (docs/02-app/bureau/).
 #
 # `npm run bureau:paquet` : build Vite + processus principal, puis
 # l'installeur de la plateforme courante dans le dossier `paquets` (gitignoré).

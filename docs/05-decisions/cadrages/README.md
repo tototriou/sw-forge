@@ -7,4 +7,4 @@ il n'est **jamais une source de vérité**.
 
 | Document | Question |
 | --- | --- |
-| [refonte-documentation.md](refonte-documentation.md) | Comment passer de `spec/` à une documentation `docs/` en sections, lot par lot, sans perdre de contenu ? |
+| [refonte-documentation.md](refonte-documentation.md) | Comment passer de l'ancien dossier des specs à une documentation `docs/` en sections, lot par lot, sans perdre de contenu ? |

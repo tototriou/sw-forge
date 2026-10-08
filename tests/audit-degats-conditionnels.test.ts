@@ -1098,7 +1098,7 @@ export default function testAuditDegatsConditionnels() {
   egal(geraltCinq.atk, geraltTrois.atk,
     'Geralt : son passif reste plafonné à trois buffs même si le total propre atteint cinq');
 
-  // Gold Headband (`7912`) — curation de l'utilisateur (`spec/outils/degats-reels/valeurs-de-jeu-curees.md`) :
+  // Gold Headband (`7912`) — curation de l'utilisateur (`docs/02-app/degats-reels/`) :
   // chaque cumul ajoute 20 % de l'ATQ de BASE et 12 % de
   // la VIT de BASE, au plus 10 ; la VIT SANS arrondi, comme l'ATQ :
   // 13,92 par cumul pour une base 116. Les attendus sont
@@ -1157,7 +1157,7 @@ export default function testAuditDegatsConditionnels() {
   // Rankyaku (`14313`, Chun-Li vent) et Accelerando (`14813`,
   // Cordelia) : « Your Attack Power increases in proportion to the Attack
   // Speed », formule `5*{SPD}` de la donnée. La VIT lue est la VIT FINALE
-  // (`spec/outils/degats-reels/valeurs-de-jeu-curees.md`, confirmation de l'utilisateur) :
+  // (`docs/02-app/degats-reels/`, confirmation de l'utilisateur) :
   // base + runes + set + lead + effet d'augmentation de vitesse,
   // amplifié par les artéfacts. Profils extraits des données réelles, deux
   // vitesses connues (avec et sans Swift), lead et buff actifs ; attendus

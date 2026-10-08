@@ -124,14 +124,14 @@ dit pourquoi elle existe.
   aucun texte public ne cite son emplacement. Le dépôt ne garde aucune doc
   de chantier — ni cadrage, ni fiche, ni index —, seulement la doc de
   l'app.
-- **Forme** (`spec/outillage/spec.md`, « La nature CHANTIER », que ce
+- **Forme** (`docs/03-developpeur/`, « La nature CHANTIER », que ce
   dépôt ne vérifie pas sur un cadrage privé) : un cadrage est une
   **quatrième nature**, ni état actuel, ni décision, ni archive — `Statut :` reconnu seulement sous
   deux formes exactes, `CHANTIER en cours` ou `CHANTIER terminé le
   AAAA-MM-JJ` ; blocs terminaux ≤ 100 lignes toujours exigés ; **fichier
   ≤ 500 : exemption inconditionnelle** pour tout fichier sous un dossier
   `chantiers/` (codée dans le lint, pas une entrée de
-  `spec/spec-lint.json`) — un cadrage grossit avec les résultats de ses
+  `scripts/spec-lint.json`) — un cadrage grossit avec les résultats de ses
   lots et ne se lit jamais entier (A, une section B, `spec-toc`, hook
   `Read`) ; au-delà d'une taille qui gêne malgré tout, Partie B dans un
   second fichier `<sujet>-lots.md`.
@@ -143,11 +143,11 @@ dit pourquoi elle existe.
   cette nature. Au-delà de 300 lignes, `spec-toc` puis la section utile.
 - **Quand le chantier finit**, son statut passe à « `terminé le <date>` »
   et il rejoint l'archive des notes privées. Ses contrats encore en
-  vigueur passent dans la spec d'état actuel de la zone (`spec/…`), sous
+  vigueur passent dans la spec d'état actuel de la zone (`docs/…`), sous
   des titres propres, sans identifiant de section ni numéro de décision
   ou de lot du cadrage.
 
 ## Voir aussi
 
 - `spec-hygiene` — les recettes que les lots M et C d'un chantier sur
-  `spec/` appliquent (déplacer, découper, extraire des invariants).
+  `docs/` appliquent (déplacer, découper, extraire des invariants).

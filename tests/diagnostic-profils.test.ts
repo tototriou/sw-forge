@@ -1,4 +1,4 @@
-// Les profils de pool synthétique nommés (`spec/outils/optimizer/harnais.md`, « Deux sources : une recette ou un pool synthétique »).
+// Les profils de pool synthétique nommés (`docs/03-developpeur/optimizer/`, « Deux sources : une recette ou un pool synthétique »).
 //
 // ⚠️ **Ce test ne vérifie pas que le moteur a raison ; il vérifie qu'un
 // profil tient encore ce qu'il PROMET.** Chaque grandeur de `attendu` a été

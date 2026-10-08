@@ -1,9 +1,9 @@
 ---
 name: spec-hygiene
-description: "Trois recettes pour manipuler spec/ sans perdre d'information ni casser les références — déplacer un fichier entre natures (état actuel / décision) ou l'archiver (le retirer du public et le ranger dans les notes privées), découper un fichier en exception de spec-lint.json le jour où un chantier doit en modifier le contenu normatif, et extraire les invariants d'une section d'état actuel nouvelle ou modifiée. Contrat : spec/outillage/spec.md."
+description: "Trois recettes pour manipuler docs/ sans perdre d'information ni casser les références — déplacer un fichier entre natures (état actuel / décision) ou l'archiver (le retirer du public et le ranger dans les notes privées), découper un fichier en exception de spec-lint.json le jour où un chantier doit en modifier le contenu normatif, et extraire les invariants d'une section d'état actuel nouvelle ou modifiée. Contrat : docs/03-developpeur/."
 ---
 
-# Hygiène de `spec/` (SW Blacksmith)
+# Hygiène de `docs/` (SW Blacksmith)
 
 Déclencheur **opérationnel**, au sens strict : un chantier qui doit
 **modifier le contenu normatif** d'un fichier — ajouter ou changer une règle,
@@ -12,7 +12,7 @@ frappe, un lien à réparer, un en-tête à poser, un changement de statut :
 **aucune des trois recettes ci-dessous ne se déclenche**, un simple `Edit`
 suffit.
 
-Contrat de référence : `spec/outillage/spec.md` (titres cités entre
+Contrat de référence : `docs/03-developpeur/` (titres cités entre
 guillemets ci-dessous).
 
 ## (a) Déplacer ou archiver un document
@@ -25,7 +25,7 @@ du texte (« Natures de documents et règles de forme »).
   dans le dossier `decisions` de la zone, avec sa raison.
 - Un document qui n'est plus une source de vérité active (historique,
   analyse close, preuve, récit, délibération) **quitte le public** : tout
-  `spec/` est public, et ces textes sont privés (« Public et privé »).
+  `docs/` est public, et ces textes sont privés (« Public et privé »).
 
 **Déplacer** :
 
@@ -58,7 +58,7 @@ du texte (« Natures de documents et règles de forme »).
 
 ## (b) Découper un fichier listé en exception
 
-Un fichier de `spec/spec-lint.json` (`exceptions`) dépasse 500 lignes ou
+Un fichier de `scripts/spec-lint.json` (`exceptions`) dépasse 500 lignes ou
 porte un bloc > 100 — toléré tant que personne n'a besoin d'y toucher
 normativement (« Périmètre et exceptions »). Le jour où un chantier doit
 changer son contenu, ne pas ajouter au tas : découper d'abord.
@@ -76,7 +76,7 @@ changer son contenu, ne pas ajouter au tas : découper d'abord.
 3. **Poser les en-têtes** sur chaque fichier issu du découpage, selon sa
    nature (état actuel, décision) — jamais de fichier actif sans en-tête
    reconnu (`entete`).
-4. **Retirer l'exception** correspondante de `spec/spec-lint.json` une fois
+4. **Retirer l'exception** correspondante de `scripts/spec-lint.json` une fois
    qu'aucun des fichiers issus du découpage ne dépasse plus les seuils —
    sinon `exception-perimee` le signale au prochain lint : c'est le filet,
    pas le déclencheur de l'étape.
@@ -131,7 +131,7 @@ qu'un chantier qui touche à côté risque de casser sans le remarquer.
 
 ## Voir aussi
 
-- `spec/outillage/spec.md`, la référence : « Public et privé »,
+- `docs/03-developpeur/`, la référence : « Public et privé »,
   « Natures de documents et règles de forme », « Déplacer, archiver ou
   découper un document », « Contrat de `spec-lint` », « En-têtes par
   nature, slugs uniques », « Statut du fichier », « Critère des invariants ».

@@ -1,5 +1,5 @@
 // Garde-fous rejoués en CI (`scripts/verifier-commits.mjs`, et le mode
-// `--commit` de `.githooks/pre-commit`) — spec/outillage/qualite-code.md
+// `--commit` de `.githooks/pre-commit`) — docs/03-developpeur/
 // § Garde-fous rejoués en CI.
 //
 // Dépôt jetable SANS hooks câblés : chaque commit fautif y entre comme avec

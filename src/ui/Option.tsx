@@ -14,7 +14,7 @@ import { PRESSION } from './Bouton';
 // ⚠️ **La DESCRIPTION n'est pas décorative.** Ces choix engagent quelque chose
 // qu'on ne peut pas défaire d'un clic (ce qu'on publie de son compte, ce qu'on
 // écrase). Un titre seul oblige à deviner ; c'est précisément là qu'on se
-// trompe. Voir spec/README.md — le défaut ne perd jamais rien, et ce qui perd
+// trompe. Voir docs/03-developpeur/ — le défaut ne perd jamais rien, et ce qui perd
 // s'explique avant.
 
 export interface OptionProps

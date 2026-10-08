@@ -37,7 +37,7 @@ function Setting({ title, hint, repere, children }: { title: string; hint?: stri
   );
 }
 
-// ── Le dossier SW Blacksmith (spec/shared/sauvegarde-session.md) ────────────
+// ── Le dossier SW Blacksmith (docs/02-app/transverse/) ────────────
 
 // Pure : la ligne sous « Dossier SW Blacksmith » (`null` : rien reçu).
 export function presentationDossierSwblacksmith(etat: EtatSession | null): string {
@@ -74,7 +74,7 @@ function ReglageDossierSwblacksmith() {
  * ----------------------------------------------------------------------- */
 
 // Réglages GLOBAUX de l'application : on les pose une fois, ils valent partout.
-// Règle (voir spec/README.md) : un réglage qui concerne plusieurs pages vient
+// Règle (voir docs/03-developpeur/) : un réglage qui concerne plusieurs pages vient
 // ICI, jamais dupliqué en sélecteur sur chaque page.
 //
 // ⚠️ **Exportée** : la PAGE de réglages (`#/parametres`) affiche exactement la
@@ -127,7 +127,7 @@ export function SettingsList({
           donc en premier. ⚠️ TROIS options, pas un interrupteur — « Auto » doit
           rester un choix explicite, sinon quelqu'un dont le système bascule le
           soir perd ce comportement sans l'avoir demandé.
-          Voir spec/shared/design.md. */}
+          Voir docs/03-developpeur/interface/. */}
       <Setting title="Thème">
         <Segmented options={THEME_CHOICES} value={theme} onChange={setTheme} />
       </Setting>
@@ -187,7 +187,7 @@ export function SettingsList({
           aucune page. */}
       <AccountFreshness exportedAt={accountExportedAt ?? null} className="pb-2.5" />
 
-      {/* La sauvegarde de session (spec/shared/sauvegarde-session.md) :
+      {/* La sauvegarde de session (docs/02-app/transverse/) :
           avant la suppression, qui reste la dernière ligne du bloc. */}
       {onSauvegarderSession && (
         <Setting

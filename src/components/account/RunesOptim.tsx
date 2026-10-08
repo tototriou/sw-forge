@@ -1123,7 +1123,7 @@ export const OptimTile = memo(function OptimTile({
 
 // Le violet qui signale « ce qui change » dans un plan d'optimisation. Même
 // teinte que l'héroïque, donc même token : il suit le thème et reste lisible
-// sur fond clair. Voir spec/shared/design.md.
+// sur fond clair. Voir docs/03-developpeur/interface/.
 const VIOLET = 'rgb(var(--rarity-4))';
 
 // Ligne de substat façon carte de jeu : base + grind + ↻. Chaque partie peut

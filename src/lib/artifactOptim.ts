@@ -10,7 +10,7 @@
 //
 // ⚠️ Le build de runes est FIXE. Ce module ne cherche pas les deux ensemble :
 // un artéfact amplifie un build, il n'en déplace pas la cible (voir
-// spec/outils/degats-reels/artefacts-et-degats-bruts.md,
+// docs/02-app/degats-reels/,
 // « Dégâts supplémentaires proportionnels à une stat (218-221) » — ces lignes n'entrent PAS dans
 // `damageRelevantStats` »).
 
@@ -209,7 +209,7 @@ export interface ArtifactSearchParams {
    * minimums) ; avec un maximum actif dessus, un artéfact « plus » peut
    * rendre un couple infaisable là où un « moins » restait sous le plafond —
    * exactement la leçon de la dominance des reliques (« aucune dominance sur
-   * une statistique sous maximum actif », spec/outils/optimizer/moteur/reliques.md § Pertinence et dominance
+   * une statistique sous maximum actif », docs/03-developpeur/optimizer/ § Pertinence et dominance
    * — écrites, non appelées en production), transposée ici.
    *
    * Absent (ou vide) : comportement d'avant, byte-identique — les trois

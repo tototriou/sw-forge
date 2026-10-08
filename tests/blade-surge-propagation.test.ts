@@ -49,7 +49,7 @@ const BLADE_SURGE_LAPIS = 10616;
 // secondaire, la portée seule ne suffit pas.
 const MAGIC_SHOT_LAPIS = 10606;
 const RETRIEVE_MAGIC_LAPIS = 10611;
-// Les huit identifiants de `SEQUENCES_DE_COUPS_PAR_ID_CONNUS` (`spec/outils/degats-reels/valeurs-de-jeu-curees.md`).
+// Les huit identifiants de `SEQUENCES_DE_COUPS_PAR_ID_CONNUS` (`docs/02-app/degats-reels/`).
 const FAMILLE = [10601, 10602, 10603, 10604, 10605, 10616, 10618, 10620];
 
 const SECONDAIRE: DamageSetup = {

@@ -5,7 +5,7 @@
 // plateformes : même répartition LPT, même division de plafond, même fusion
 // de résultats, même corps de tranche. Seul le LANCEMENT diffère — c'est
 // exactement ce que l'injection isole. Voir
-// spec/outils/optimizer/moteur/parallelisation.md.
+// docs/03-developpeur/optimizer/.
 
 import { Worker } from 'worker_threads';
 import { existsSync, mkdirSync } from 'fs';
@@ -59,7 +59,7 @@ export function makeSpawnSliceNode(workerBundlePath: string): SpawnSlice {
         }
         // ⚠️ Reconstruction EXPLICITE, pas un spread de `msg` — jumeau Node
         // de `pairSliceInWorker` (runeBuildOptim.worker.ts), MÊME piège :
-        // voir spec/outils/optimizer/moteur/diagnostics.md,
+        // voir docs/03-developpeur/optimizer/,
         // « Types et transport du quasi-succès ».
         // ⚠️ `traceur` :
         // `runPairSlice` le rend bien, cette reconstruction EXPLICITE

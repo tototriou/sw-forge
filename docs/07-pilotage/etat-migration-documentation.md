@@ -128,6 +128,15 @@ fichiers de `docs/` indexés : le hook installé doit être celui de l'arbre
 (`node scripts/installer-hooks.mjs` s'il refuse pour une raison périmée).
 Supprimer ce fichier dans le même commit, ou juste après.
 
+### 5. Le cadrage de la refonte
+
+`docs/05-decisions/cadrages/refonte-documentation.md` est toujours au
+statut « CHANTIER en cours », mais il n'est plus suivi : la migration s'est
+faite sans lui. À trancher : le supprimer (avec sa ligne dans le README des
+cadrages), ou le clore. Dans les deux cas, retirer son exemption dans
+`tests/renvois.test.ts` (liste des fichiers exemptés, « Un cadrage décrit
+les chemins qu'il va créer »).
+
 ## Après la migration (décision à prendre)
 
 - Restructurer le contenu des docs (découpage, index README par dossier,

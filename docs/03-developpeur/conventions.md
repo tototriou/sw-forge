@@ -254,7 +254,7 @@ Outillage du dépôt (pas une page de l'app) :
     binaire se lit d'un coup d'œil sur un interrupteur, sans lire les libellés).
     Ajouter un paramètre = ajouter un `<Setting>`, rien d'autre.
   - ⚠️ `<Segmented>` a été **remonté** dans
-    [Segmented.tsx](src/components/Segmented.tsx) à son deuxième usage (filtre de
+    [Segmented.tsx](src/ui/Segmented.tsx) à son deuxième usage (filtre de
     catégorie des artéfacts) plutôt que recopié. Il sert partout où des choix
     **s'excluent** : une rangée de pastilles séparées se lit comme des filtres
     cumulables, le cadre commun dit l'exclusivité sans un mot.

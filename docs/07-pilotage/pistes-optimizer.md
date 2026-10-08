@@ -108,7 +108,7 @@ et celles des tests, du harnais et des scripts de mesure :
   est aussi plus faible côté A, et sa cause n'est pas établie : le
   plafonnement par compartiment l'explique en partie, l'énumération
   elle-même n'est pas comptée
-  ([harnais-extensions.md § La construction observée](harnais-extensions.md)).
+  ([03-developpeur/optimizer/ (harnais, extensions) § La construction observée](../03-developpeur/optimizer/)).
 - **Idée** : choisir la partition selon un modèle de coût réel, pas
   seulement le produit des tailles. Ce qui est cherché ne change pas, ce
   qui est retenu si : chaque compartiment d'une moitié (`bucketKeyOf`,

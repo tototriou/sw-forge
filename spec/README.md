@@ -117,6 +117,8 @@ Outillage du dépôt (pas une page de l'app) :
 - [outillage/renvois.md](outillage/renvois.md) — garde-fou des renvois :
   formes relevées, résolution dans les fichiers suivis, exemptions, liste
   tolérée.
+- [outillage/qualite-code.md](outillage/qualite-code.md) — lint du code
+  (ESLint) : règles bloquantes et avertissements, où il tourne.
 
 ## Conventions communes (toutes les pages)
 

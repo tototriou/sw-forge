@@ -99,6 +99,7 @@ dans cet ordre :
 
 ```
 npx tsc --noEmit                  # types — couvre src/ ET scripts/ ET tests/
+npx eslint <fichiers touchés>     # lint ; `npm run lint` pour tout le dépôt
 node tests/run.mjs <filtre>       # SEULEMENT la zone touchée (ex. speed-tune)
 npm run build                     # Tailwind n'émet que ce qu'il trouve dans le SOURCE
 ```

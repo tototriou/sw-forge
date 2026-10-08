@@ -1,7 +1,7 @@
 name: Tests
 
 # La vérification complète d'une pull request vers `main` ou une branche de
-# release : types, suite complète (`npm test`), build. Sous Windows, le
+# release : types, lint, suite complète (`npm test`), build. Sous Windows, le
 # système sur lequel l'app se développe : les tests des hooks et de Git s'y
 # comportent comme sur la machine de développement.
 #
@@ -49,6 +49,10 @@ jobs:
 
       - name: Types
         run: npx tsc --noEmit
+
+      # Les avertissements s'affichent ; seule une erreur fait échouer.
+      - name: Lint
+        run: npm run lint
 
       - name: Suite complète
         run: npm test

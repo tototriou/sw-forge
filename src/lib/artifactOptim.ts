@@ -386,7 +386,7 @@ export function preFiltrerCandidats(
 
   // ── 1. Obligation : ce qui ne peut plus former de paire faisable.
   const survivants: ArtifactDetail[] = [];
-  let videPossible = obligatoires.length === 0;
+  const videPossible = obligatoires.length === 0;
   for (const art of candidats) {
     if (!art) continue;
     if (obligatoires.some((o) => valeurSur(art, o.code) < o.seuil)) continue;

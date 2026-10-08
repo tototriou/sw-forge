@@ -236,7 +236,7 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
   stopped = false;
   const params = e.data;
   const startedAt = Date.now();
-  let lastProgressPost = 0;
+  const lastProgressPost = 0;
 
   // ⚠️ `prepareSearch` peut lever `RechercheRefusee` (pool de reliques vide
   // en mode `recherche`) — jamais un simple appel direct ICI : un rejet

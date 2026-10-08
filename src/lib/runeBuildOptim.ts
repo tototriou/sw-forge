@@ -2759,7 +2759,7 @@ export function* buildBuckets(
 
         const pct: Record<string, number> = {};
         const flat: Record<string, number> = {};
-        let score = (p0.eff + p1.eff + p2.eff) / 1000;
+        const score = (p0.eff + p1.eff + p2.eff) / 1000;
         for (let j = 0; j < trackedKeys.length; j++) {
           pct[trackedKeys[j]] = p0.contribPct[j] + p1.contribPct[j] + p2.contribPct[j];
           flat[trackedKeys[j]] = p0.contribFlat[j] + p1.contribFlat[j] + p2.contribFlat[j];

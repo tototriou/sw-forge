@@ -222,74 +222,11 @@ D'où deux défauts
   fichier du dépôt à modifier — passer par l'outil `Edit`, pas par un `sed`
   ou un `node -e` qui transporte le remplacement dans une chaîne shell.
 
-⚠️ **La première puce, et la forme dangereuse de la seconde, sont
-appliquées par un hook**, `PreToolUse` sur `Bash` :
-[.claude/hooks/refuse-commit-m.mjs](.claude/hooks/refuse-commit-m.mjs) refuse
-un message en ligne de `git commit`, `git merge` et `git tag` (`-m`, collé
-ou dans une grappe d'options courtes, `--message` ou son abréviation),
-derrière toute option globale de git, et rappelle la forme sûre de
-chacune, et refuse
-`node -e "…"` dont la chaîne contient un backtick, un `$` ou une barre
-oblique inverse. Raison d'être :
-après des dizaines d'exemples réussis de la forme interdite,
-l'exemple pèse plus lourd qu'une règle lue au démarrage. Un refus au MOMENT de
-l'action ne dépend d'aucune vigilance.
-⚠️ Le script est suivi par git, son **câblage** est dans `.claude/settings.json`
-(ignoré, propre à chaque machine) : à recopier pour en bénéficier.
-⚠️ Portée **étroite et assumée** : `node -e`/`--eval`/`-p`/`--print` n'est
-refusé qu'en position de commande, hors commentaire (`#` en début de mot,
-hors guillemets, jusqu'à la fin de la ligne), avec un argument entre
-**guillemets doubles** contenant un backtick, un `$` ou une barre oblique
-inverse (que bash réduit sans rien dire), même échappé ; entre apostrophes
-ou sans ces caractères, il passe. `gh pr create --body` n'est pas couvert.
-Couvrir la classe entière demanderait une analyse de quoting bash aux faux
-positifs permanents, `$(…)` étant une construction légitime. Test :
-`node tests/run.mjs hookrefusecommitm`.
-
-⚠️ **La seconde puce est appliquée pour `sed -i`** par un second hook,
-`PreToolUse` sur `Bash` **et** `PowerShell` :
-[.claude/hooks/refuse-sed-i.mjs](.claude/hooks/refuse-sed-i.mjs) refuse `sed`
-lancé avec une option en place (`-i`, `-i.bak`, `-Ei`, `--in-place`, derrière
-`find -exec` ou `xargs` compris), jamais le texte « sed -i » cité ni un corps
-de heredoc. Raison d'être : un `sed -i` raté ne signale
-rien. Test :
-`node tests/run.mjs hookrefusesedi`. Câblage dans `.claude/settings.json`
-(deux entrées : `Bash`, `PowerShell`), à recopier comme le premier. Côté
-Codex, les deux parseurs de commande sont appelés par
-`scripts/hooks-codex-garde-fous.mjs`, après installation et approbation
-du hook personnel (`node scripts/installer-hooks.mjs --codex-hooks <hooks.json>`).
-
-### Un `Read` sans offset sur une grosse spec est refusé
-
-[.claude/hooks/refuse-read-spec-entier.mjs](.claude/hooks/refuse-read-spec-entier.mjs)
-(`PreToolUse` sur `Read`) refuse la lecture d'un `spec/**.md` de plus de
-300 lignes sans `offset`/`limit`, avec le rappel `node scripts/spec-toc.mjs
-<fichier>` — exception : `spec/outils/optimizer/invariants.md`. Raison
-d'être : même logique que `refuse-commit-m` — une consigne écrite (« jamais
-un fichier entier de plus de 300 lignes ») s'érode à l'usage, un refus au
-moment de l'action non. Portée **étroite et assumée** (niveau 2, garde-fou
-outil, pas invariant, spec/outillage/spec.md § Niveaux d'application et
-garde-fous) : ne couvre ni `cat`
-ni un autre outil de lecture, seulement le chemin `Read` de Claude Code.
-Équivalent Codex dans `scripts/hooks-codex-garde-fous.mjs`, actif avec
-ou sans chantier (`node scripts/installer-hooks.mjs --codex-hooks
-<hooks.json>`). Câblage dans
-`.claude/settings.json` (ignoré, propre à chaque machine) :
-
-```json
-{
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Read",
-        "hooks": [
-          { "type": "command", "command": "node .claude/hooks/refuse-read-spec-entier.mjs" }
-        ]
-      }
-    ]
-  }
-}
-```
+Ces deux défauts sont des conventions d'agent : aucun hook d'agent ne les
+applique, parce qu'une faute ici abîme la machine ou le travail de l'agent,
+pas le dépôt. Ce qui entre dans le dépôt est gardé par les hooks Git et la
+CI : `commit-msg` refuse notamment un message qui commence par un BOM
+(spec/outillage/qualite-code.md).
 
 ### Windows : `TaskStop` ne tue pas le vrai process
 

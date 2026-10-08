@@ -1,7 +1,7 @@
 # Outillage des specs — natures, `spec-toc`, `spec-lint`
 
-**Statut :** ÉTAT ACTUEL — décrit la frontière entre public et privé, les natures de documents de `spec/`, le parseur `spec-markdown`, `spec-toc`, le contrat de `spec-lint`, les en-têtes, le critère des invariants et les niveaux d'application (hook `Read`, `pre-commit` et installation des garde-fous compris)
-**Lire si :** on modifie `scripts/spec-lint.mjs`, `scripts/spec-toc.mjs`, `scripts/lib/spec-markdown.mjs`, `spec/spec-lint.json`, le hook `Read`, le hook `pre-commit`, `tests/ecriture-publique.test.ts`, `scripts/installer-hooks.mjs` ou le skill `spec-hygiene` ; on crée, déplace, archive ou découpe une spec ; on se demande si un texte a sa place dans le dépôt public
+**Statut :** ÉTAT ACTUEL — décrit la frontière entre public et privé, les natures de documents de `spec/`, le parseur `spec-markdown`, `spec-toc`, le contrat de `spec-lint`, les en-têtes, le critère des invariants et les niveaux d'application (`pre-commit` et installation des garde-fous compris)
+**Lire si :** on modifie `scripts/spec-lint.mjs`, `scripts/spec-toc.mjs`, `scripts/lib/spec-markdown.mjs`, `spec/spec-lint.json`, le hook `pre-commit`, `tests/ecriture-publique.test.ts`, `scripts/installer-hooks.mjs` ou le skill `spec-hygiene` ; on crée, déplace, archive ou découpe une spec ; on se demande si un texte a sa place dans le dépôt public
 **Ne pas lire si :** on ouvre une spec pour son contenu — `node scripts/spec-toc.mjs <fichier>` suffit
 **Voir aussi :** `spec/outillage/renvois.md` (garde-fou des renvois), skills `spec-hygiene` et `cadrage-chantier`
 
@@ -342,8 +342,8 @@ impérative ou descriptive, qui dit ce qui doit rester vrai, suivie de
 **`Source : fichier § section`** (référence durable ; un `fichier:ligne`
 ne sert qu'au contrôle ponctuel). Le fichier est groupé par sujet et **se
 lit en entier au démarrage d'un chantier Optimizer** : c'est le seul
-fichier pour lequel cette lecture intégrale est assumée (le hook `Read` l'en
-exempte). Il est tenu compact pour ça ; sa longueur est un objectif de
+fichier pour lequel cette lecture intégrale est assumée. Il est tenu
+compact pour ça ; sa longueur est un objectif de
 compacité, **jamais une consigne de coupe** : une règle qui répond au
 critère y figure, quitte à en resserrer la formulation.
 
@@ -386,8 +386,8 @@ offre un **niveau de garantie** :
 
 | Niveau | Vecteur | Garantie |
 | --- | --- | --- |
-| 1 — invariant dépôt | `spec-lint` et le test des règles d'écriture dans `tests/index.ts`, `pre-commit` | refus mécanique, quel que soit l'agent |
-| 2 — garde-fou outil | hook `PreToolUse` sur `Read` (Claude Code), `hooks-codex-garde-fous.mjs` (Codex) | refuse le chemin **le plus courant** ; ne couvre ni `cat` ni un autre outil — **garde-fou ergonomique**, pas invariant |
+| 1 — invariant dépôt | `spec-lint` et le test des règles d'écriture dans `tests/index.ts`, `pre-commit`, `commit-msg`, rejoués en CI | refus mécanique, quel que soit l'agent |
+| 2 — garde-fou outil | aucun : une faute d'agent n'atteint le dépôt qu'en passant par le niveau 1 | — |
 | 3 — convention agent | `CLAUDE.md`, skill `spec-hygiene` | lue au démarrage, s'érode |
 | 4 — jugement | revue du diff de spec | humaine |
 
@@ -397,27 +397,6 @@ un `spec/**.md`, le `pre-commit` lance `verifier` sur le dépôt et ne garde
 que les erreurs des `spec/**.md` de l'index : un fichier hors périmètre
 n'est jamais refusé. `npm test` lance le lint complet sur le corpus réel
 (`testSpecLintReel`).
-
-### Hook `Read`
-
-`.claude/hooks/refuse-read-spec-entier.mjs`, même protocole que
-`.claude/hooks/refuse-commit-m.mjs` (JSON de l'outil sur l'entrée standard,
-code 2 pour refuser) : chemin `spec/**.md` relatif au dossier de travail,
-aucun `offset`/`limit`, fichier de plus de 300 lignes → refus avec le
-rappel `node scripts/spec-toc.mjs <fichier>`. Exception :
-`spec/outils/optimizer/invariants.md`. Une entrée illisible ou un fichier
-absent laissent passer. Câblage dans `.claude/settings.json` (par machine, à
-recopier).
-
-Équivalent Codex : `scripts/hooks-codex-garde-fous.mjs`, actif dans ce dépôt
-avec ou sans chantier, seulement depuis son installation. Il refuse
-`cat`, `type` ou `Get-Content` suivi du seul chemin d'un `spec/**.md` de plus
-de 300 lignes, en début de commande ou après `&&`, `||`, `;`. Il se pose par
-`node scripts/installer-hooks.mjs --codex-hooks <hooks.json>` (entrée
-`PreToolUse` à lui, distincte de tout autre hook Codex personnel) ; une
-erreur interne ne bloque jamais l'outil. Il appelle les parseurs installés
-de `.claude/hooks/refuse-commit-m.mjs` et `refuse-sed-i.mjs` : messages Git
-en ligne, `node -e` sensible et `sed -i` sont refusés avec les mêmes limites.
 
 ### Refus du `pre-commit`
 
@@ -457,7 +436,7 @@ Trois objets distincts, et les deux premiers ne se confondent pas :
 
 | Objet | Où | Versionné ? |
 | --- | --- | --- |
-| Les **sources** (`.githooks/pre-commit`, `.githooks/commit-msg`, `scripts/spec-lint.mjs`, `scripts/lib/spec-markdown.mjs`, `scripts/hooks-codex-garde-fous.mjs`, les deux hooks de commande sous `.claude/hooks/`) | dans le dépôt | ✅ relues en revue |
+| Les **sources** (`.githooks/pre-commit`, `.githooks/commit-msg`, `scripts/spec-lint.mjs`, `scripts/lib/spec-markdown.mjs`) | dans le dépôt | ✅ relues en revue |
 | **L'installation** | `<git commun>/forge/installation/` | ❌ propre à la machine |
 | Le **câblage** | `core.hooksPath` → `<installation>/hooks` | ❌ |
 
@@ -468,8 +447,10 @@ Trois objets distincts, et les deux premiers ne se confondent pas :
 - `node scripts/installer-hooks.mjs` copie les sources dans l'installation
   (`.githooks/<nom>` sous `hooks/<nom>`, le reste à l'identique) et câble
   `core.hooksPath`. Options : `--simulation` (affiche sans écrire),
-  `--sans-cablage`, `--codex-hooks <hooks.json>`, `--automatique` (appel de
-  `npm install`, `qualite-code.md`). Un câblage tiers est signalé, jamais écrasé.
+  `--sans-cablage`, `--automatique` (appel de `npm install`,
+  `qualite-code.md`). Un câblage tiers est signalé, jamais écrasé. Les
+  anciens chemins de l'installateur (`RETIRES`) qui lui appartiennent sont
+  retirés de l'installation et du manifeste.
 - **L'installation porte sa propre version de référence** : un manifeste
   (`manifeste.json`) des empreintes des octets **installés**, mis à jour
   par cette seule commande. Manifeste v2 : `fichiers {chemin: empreinte}`,

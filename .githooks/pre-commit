@@ -1,19 +1,12 @@
 #!/usr/bin/env node
-// Garde-fou de commit, commun aux deux agents — voir
-// spec/outillage/spec.md, ex-B.9 (niveaux d'application, installation).
-//
-// ⚠️ **Pourquoi un hook GIT et pas un hook d'agent.** Un `PreToolUse` de Claude
-// Code ne vaut que pour Claude Code. Codex a **aussi** un système de hooks
-// (`SessionStart`, `PreToolUse`, `Stop`) — l'affirmation contraire, écrite ici
-// dans une première version, était fausse — mais ce sont deux dispositifs
-// distincts, à configurer et à maintenir séparément. Le seul point que les deux
-// agents traversent sans configuration commune, quel que soit le CLI, reste
-// `git commit`. Des hooks d'agent VIENDRAIENT EN PLUS de celui-ci, pas à sa
-// place : eux contrôlent au moment de l'action, lui au moment du commit.
+// Garde-fou de commit, commun à tous — humains et agents, quel que soit
+// l'outil : `git commit` est le seul point que tous traversent. Voir
+// spec/outillage/spec.md (niveaux d'application, installation).
 //
 // ⚠️ **Portée volontairement ÉTROITE, et ce n'est pas une exclusion mutuelle.**
 // Ce hook n'empêche pas d'éditer, seulement de committer ; il se contourne
-// (`--no-verify`) ; il ne remplace jamais l'étape d'intégration. Il attrape
+// (`--no-verify`), et la CI rejoue ses refus sur chaque commit d'une pull
+// request (`scripts/verifier-commits.mjs`). Il attrape
 // l'erreur ORDINAIRE, celle qu'on fait en pensant à autre chose.
 //
 // ⚠️ **Il n'est JAMAIS requis.** Son câblage est une config de machine

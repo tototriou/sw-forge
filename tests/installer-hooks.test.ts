@@ -1,8 +1,8 @@
-// Installateur public des garde-fous (`scripts/installer-hooks.mjs`) et
-// garde-fou Codex de lecture (`scripts/hooks-codex-garde-fous.mjs`).
+// Installateur public des garde-fous (`scripts/installer-hooks.mjs`), à la
+// main et par `npm install` (`--automatique`).
 //
-// Le dépôt jetable ne porte que les sources publiques : l'installateur public
-// et le garde-fou doivent fonctionner seuls. Tout se passe dans un dossier
+// Le dépôt jetable ne porte que les sources publiques : l'installateur doit
+// fonctionner seul. Tout se passe dans un dossier
 // temporaire ; aucune installation réelle n'est touchée.
 
 import { execFileSync, spawnSync } from 'child_process';
@@ -14,7 +14,7 @@ import { fileURLToPath } from 'url';
 import { egal, ignore, ok, titre } from './outils';
 
 const RACINE = join(dirname(fileURLToPath(import.meta.url)), '..');
-const PUBLICS = ['.githooks/pre-commit', '.githooks/commit-msg', 'scripts/hooks-codex-garde-fous.mjs', 'scripts/lib/spec-markdown.mjs', 'scripts/spec-lint.mjs', '.claude/hooks/refuse-commit-m.mjs', '.claude/hooks/refuse-sed-i.mjs'];
+const PUBLICS = ['.githooks/pre-commit', '.githooks/commit-msg', 'scripts/lib/spec-markdown.mjs', 'scripts/spec-lint.mjs'];
 
 type Entree = { proprietaire: string; source: string; commit: string; date: string };
 type Manifeste = { version?: number; commitSource: string; fichiers: Record<string, string>; entrees?: Record<string, Entree> };
@@ -106,7 +106,7 @@ function memeChemin(a: string, b: string): boolean {
 }
 
 export function testInstallerHooks() {
-  titre('Installateur public — manifeste par entrée, câblage, hooks Codex');
+  titre('Installateur public — manifeste par entrée, câblage, anciens chemins');
   if (!gitDisponible('installateur public')) return;
   const bac = bacTemporaire('swblacksmith-installer-hooks-');
   const code = join(bac, 'code');
@@ -177,29 +177,25 @@ export function testInstallerHooks() {
     ok(m.entrees?.['scripts/chantier.mjs']?.source === 'marque' && m.fichiers['scripts/chantier.mjs'] === 'h-chantier',
       'entrée `chantier` : non réécrite par l’installateur public');
 
-    /* ------------------------------------------------------------ hooks Codex */
-    const config = join(bac, 'perso', 'hooks.json');
-    mkdirSync(dirname(config), { recursive: true });
-    const original = JSON.stringify({ hooks: { Stop: [{ hooks: [{ type: 'command', command: 'echo autre' }] }] } });
-    writeFileSync(config, original);
-    r = installerPublic(code, '--sans-cablage', '--codex-hooks', config);
-    ok(r.code === 0, '--sans-cablage --codex-hooks : l’option suivante n’est pas avalée');
-    const commande = `node "${join(installation(code), 'scripts', 'hooks-codex-garde-fous.mjs')}"`;
-    const groupes = () => JSON.parse(readFileSync(config, 'utf8')).hooks as Record<string, { matcher?: string; hooks: { command: string }[] }[]>;
-    let h = groupes();
-    ok(h.PreToolUse?.length === 1 && h.PreToolUse[0].hooks[0].command === commande, 'hooks.json : une entrée PreToolUse publique');
-    ok(h.Stop?.length === 1 && h.Stop[0].hooks[0].command === 'echo autre', 'hooks.json : hook tiers conservé');
-    ok(!h.SessionStart && !h.UserPromptSubmit, 'hooks.json : aucun autre évènement ajouté par le public');
-    ok(readFileSync(`${config}.avant-swblacksmith`, 'utf8') === original, '.avant-swblacksmith : copie de l’original');
-    r = installerPublic(code, '--codex-hooks', config);
-    h = groupes();
-    ok(r.code === 0 && h.PreToolUse.length === 1, 'réinstallation : pas de doublon');
-    // Entrée retirée à la main : la réinstallation la repose, et la copie
-    // d'avant SW Blacksmith reste l'original, pas la version déjà modifiée.
-    writeFileSync(config, JSON.stringify({ hooks: { ...h, PreToolUse: [] } }));
-    r = installerPublic(code, '--codex-hooks', config);
-    ok(r.code === 0 && groupes().PreToolUse.length === 1, 'entrée retirée à la main : reposée');
-    ok(readFileSync(`${config}.avant-swblacksmith`, 'utf8') === original, '.avant-swblacksmith : écrite une seule fois');
+    /* ------------------------------------------- anciens chemins retirés */
+    // Une installation d'avant le retrait des garde-fous d'agent : copie et
+    // entrée publiques retirées ; un homonyme d'un autre propriétaire, gardé.
+    const ancien = '.claude/hooks/refuse-commit-m.mjs';
+    mkdirSync(dirname(installe(code, ancien)), { recursive: true });
+    writeFileSync(installe(code, ancien), 'ancien\n');
+    writeFileSync(installe(code, 'scripts/hooks-codex-garde-fous.mjs'), 'ancien\n');
+    m = lireManifeste(code);
+    m.fichiers[ancien] = 'h-ancien';
+    m.entrees![ancien] = { proprietaire: 'public', source: ancien, commit: 'c0ffee', date: '2026-10-02T00:00:00.000Z' };
+    m.fichiers['scripts/hooks-codex-garde-fous.mjs'] = 'h-autre';
+    m.entrees!['scripts/hooks-codex-garde-fous.mjs'] = { ...etrangere, source: 'autre' };
+    ecrireManifeste(code, m);
+    r = installerPublic(code);
+    m = lireManifeste(code);
+    ok(r.code === 0 && !existsSync(installe(code, ancien)) && !(ancien in m.fichiers) && !(ancien in (m.entrees ?? {})),
+      'ancien chemin public : copie installée et entrée retirées');
+    ok(existsSync(installe(code, 'scripts/hooks-codex-garde-fous.mjs')) && m.fichiers['scripts/hooks-codex-garde-fous.mjs'] === 'h-autre',
+      'ancien chemin d’un autre propriétaire : gardé');
   } finally {
     // bac provient exclusivement de mkdtempSync sous tmpdir.
     rmSync(bac, { recursive: true, force: true });
@@ -264,56 +260,6 @@ export function testInstallationAutomatique() {
     rmSync(join(code, '.githooks', 'commit-msg'));
     r = installerAuto(code, script);
     ok(r.code === 0 && /non installés/.test(r.sortie), 'source absente : avertissement, code 0');
-  } finally {
-    // bac provient exclusivement de mkdtempSync sous tmpdir.
-    rmSync(bac, { recursive: true, force: true });
-  }
-}
-
-export function testHooksCodexGardeFous() {
-  titre('Garde-fous Codex publics — lectures et commandes');
-  if (!gitDisponible('garde-fou Codex')) return;
-  const bac = bacTemporaire('swblacksmith-garde-fous-');
-  const code = join(bac, 'code');
-  const autre = join(bac, 'autre');
-  try {
-    depotPublic(code);
-    const lignes = (n: number) => Array.from({ length: n }, (_, i) => `ligne ${i}`).join('\n') + '\n';
-    mkdirSync(join(code, 'spec', 'outils', 'optimizer'), { recursive: true });
-    writeFileSync(join(code, 'spec', 'gros.md'), lignes(320));
-    writeFileSync(join(code, 'spec', 'petit.md'), lignes(20));
-    writeFileSync(join(code, 'spec', 'outils', 'optimizer', 'invariants.md'), lignes(400));
-    ok(installerPublic(code).code === 0, 'installation publique, sans aucun chantier');
-    ok(!existsSync(join(code, '.git', 'forge', 'etat')), 'aucun registre de chantier');
-    const garde = join(installation(code), 'scripts', 'hooks-codex-garde-fous.mjs');
-    const lancer = (script: string, cwd: string, evenement: string, commande?: string) =>
-      JSON.parse(execFileSync(process.execPath, [script], { cwd, encoding: 'utf8',
-        input: JSON.stringify({ cwd, session_id: 's', hook_event_name: evenement,
-          ...(commande === undefined ? {} : { tool_input: { command: commande } }) }) }));
-    const refus = (o: { hookSpecificOutput?: { permissionDecision?: string; permissionDecisionReason?: string } }) =>
-      o.hookSpecificOutput?.permissionDecision === 'deny';
-
-    const gros = lancer(garde, code, 'PreToolUse', 'cat spec/gros.md');
-    ok(refus(gros), 'cat d’une spec > 300 lignes : refus');
-    ok(/spec-toc\.mjs spec\/gros\.md/.test(gros.hookSpecificOutput?.permissionDecisionReason ?? ''), 'le refus donne la commande spec-toc');
-    ok(refus(lancer(garde, code, 'PreToolUse', 'Get-Content spec/gros.md')), 'Get-Content : refus');
-    ok(!refus(lancer(garde, code, 'PreToolUse', 'cat spec/petit.md')), 'spec courte : permise');
-    ok(!refus(lancer(garde, code, 'PreToolUse', 'cat spec/outils/optimizer/invariants.md')), 'invariants.md : exception');
-    ok(!refus(lancer(garde, code, 'PreToolUse', 'git status')), 'autre commande : permise');
-    ok(refus(lancer(garde, code, 'PreToolUse', 'git commit -m "essai"')), 'message Git en ligne : refus');
-    ok(refus(lancer(garde, code, 'PreToolUse', 'sed -i.bak s/a/b/ spec/petit.md')), 'sed en place : refus');
-    ok(refus(lancer(garde, code, 'PreToolUse', 'node -e "console.log(`essai`)"')), 'script Node cité par Bash : refus');
-    ok(!refus(lancer(garde, code, 'PreToolUse', 'git commit -F message.txt')), 'message Git en fichier : permis');
-    ok(!refus(lancer(garde, code, 'PreToolUse', 'rg "sed -i" CLAUDE.md')), 'mention de sed : permise');
-    egal(lancer(garde, code, 'SessionStart'), {}, 'autre évènement : aucun effet');
-
-    depotJetable(autre);
-    mkdirSync(join(autre, 'spec'), { recursive: true });
-    writeFileSync(join(autre, 'spec', 'gros.md'), lignes(320));
-    egal(lancer(garde, autre, 'PreToolUse', 'cat spec/gros.md'), {}, 'autre dépôt : aucun effet');
-    egal(lancer(garde, bac, 'PreToolUse', 'cat code/spec/gros.md'), {}, 'hors Git : aucun effet');
-    egal(lancer(join(code, 'scripts', 'hooks-codex-garde-fous.mjs'), code, 'PreToolUse', 'cat spec/gros.md'), {},
-      'copie non installée (source du dépôt) : aucun effet');
   } finally {
     // bac provient exclusivement de mkdtempSync sous tmpdir.
     rmSync(bac, { recursive: true, force: true });

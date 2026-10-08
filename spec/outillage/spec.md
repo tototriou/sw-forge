@@ -3,7 +3,7 @@
 **Statut :** ÉTAT ACTUEL — décrit la frontière entre public et privé, les natures de documents de `spec/`, le parseur `spec-markdown`, `spec-toc`, le contrat de `spec-lint`, les en-têtes, le critère des invariants et les niveaux d'application (hook `Read`, `pre-commit` et installation des garde-fous compris)
 **Lire si :** on modifie `scripts/spec-lint.mjs`, `scripts/spec-toc.mjs`, `scripts/lib/spec-markdown.mjs`, `spec/spec-lint.json`, le hook `Read`, le hook `pre-commit`, `tests/ecriture-publique.test.ts`, `scripts/installer-hooks.mjs` ou le skill `spec-hygiene` ; on crée, déplace, archive ou découpe une spec ; on se demande si un texte a sa place dans le dépôt public
 **Ne pas lire si :** on ouvre une spec pour son contenu — `node scripts/spec-toc.mjs <fichier>` suffit
-**Voir aussi :** `spec/outillage/renvois.md` (garde-fou des renvois), skills `spec-hygiene` et `cadrage-chantier`
+**Voir aussi :** `spec/outillage/renvois.md` (garde-fou des renvois), skill `spec-hygiene`
 
 Ce fichier décrit les règles qui s'appliquent aux documents de `spec/` et les
 outils qui les vérifient. Le code fait foi : quand une règle ci-dessous et

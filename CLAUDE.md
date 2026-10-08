@@ -155,14 +155,6 @@ référence ne se mettent jamais à jour l'un sans l'autre.** Fermer une
 entrée dans le ledger sans corriger le statut dans le fichier source (ou
 l'inverse) laisse deux sources qui se contredisent.
 
-### Un travail de plus d'une session commence par un cadrage écrit
-
-Tout travail de plus d'une session, ou confié à des sessions fraîches, se
-cadre dans un fichier — jamais dans un plan de conversation, qui ne se
-recharge pas. Skill `cadrage-chantier` (gabarit, règles de fond,
-emplacement). Un cadrage est **toujours privé**, hors du dépôt : le dépôt ne
-garde aucune doc de chantier, seulement la doc de l'app.
-
 ### Déclarer l'application d'un skill avant d'agir
 
 Quand un skill (`.claude/skills/*` ou un skill intégré, ex. `artifact-design`)

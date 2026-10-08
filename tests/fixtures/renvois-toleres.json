@@ -8,12 +8,6 @@
   ],
   "entrees": [
     {
-      "fichier": ".claude/skills/cadrage-chantier/SKILL.md",
-      "renvoi": "chantiers/",
-      "occurrences": 1,
-      "proprietaire": "hors-perimetre"
-    },
-    {
       "fichier": ".agents/skills/design-taste-frontend/SKILL.md",
       "renvoi": "feature/bento-grid--material.md",
       "occurrences": 1,

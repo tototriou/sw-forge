@@ -5,7 +5,7 @@
 //
 // ⚠️ Indépendance de l'oracle : il partage `computeStats` (fiche, aucune
 // aura) et `activeSets` (sets actifs, Intangible compris), rien d'autre. Il
-// compte lui-même les activations d'aura, les +8 points RES/PRE (`spec/outils/degats-reels/valeurs-de-jeu-curees.md`),
+// compte lui-même les activations d'aura, les +8 points RES/PRE (`docs/02-app/degats-reels/`),
 // la satisfaction du combo demandé et les conditions min/max. Il n'appelle
 // ni `aurasPropres*`, ni `pointsAuraResPre*`, ni `prepareSearch`, ni aucune
 // borne ou élagage du moteur. `avecAurasConditions` ne sert qu'à construire

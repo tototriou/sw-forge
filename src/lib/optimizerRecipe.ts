@@ -30,7 +30,7 @@ export const OPTIMIZER_RECIPE_VERSION = 1;
 // (aucune erreur `tsc`, le champ manquant reste un type optionnel valide).
 // Exemple : un champ comme `exhaustiveSearch`, branché dans
 // OptimizerSection.tsx (l'écran) mais oublié dans recipeToSearchParams.ts,
-// ne signale rien — voir spec/README.md,
+// ne signale rien — voir docs/03-developpeur/,
 // « Conventions communes », pour la règle générale, et le skill
 // `optimizer-field-propagation` pour les producteurs purs qui remplacent
 // ces constructeurs et pour la checklist de ceux qui subsistent. Les deux
@@ -131,7 +131,7 @@ export interface OptimizerRecipe {
   wizardName?: string | null;
   requirement: BuildRequirement;
   objective: Objective;
-  // Réglage de l'objectif « Dégâts réels » — voir spec/outils/degats-reels.md.
+  // Réglage de l'objectif « Dégâts réels » — voir docs/02-app/degats-reels/.
   // ⚠️ Ne porte que le com2usId du SORT et les valeurs d'adversaire saisies,
   // jamais le profil de dégâts calculé : celui-ci se redéduit de la fiche du
   // monstre chez qui importe la recette, exactement comme `monsterCom2usId`

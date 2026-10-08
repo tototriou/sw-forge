@@ -27,7 +27,7 @@ import { forwardRef, ReactNode } from 'react';
 // COULEUR de l'action, indépendante de sa forme.
 //
 // ⚠️ `danger` n'est pas « rouge » : c'est « cette action perd quelque chose ».
-// Elle n'est JAMAIS le bouton mis en avant d'un dialogue — voir spec/README.md,
+// Elle n'est JAMAIS le bouton mis en avant d'un dialogue — voir docs/03-developpeur/,
 // le défaut ne perd jamais rien.
 //
 // ⚠️ `alerte` est différent : il ne dit rien de l'ACTION, il signale l'état des
@@ -67,7 +67,7 @@ export type FormeBouton = 'boite' | 'pilule';
 //
 // ⚠️ Un seul endroit à modifier, toute l'app qui accuse réception. Un bouton qui
 // ne bouge pas au clic laisse un doute d'un dixième de seconde : est-ce que ça a
-// pris ? Voir spec/shared/design.md.
+// pris ? Voir docs/03-developpeur/interface/.
 // ⚠️ Le `Bouton` lui-même ne rétrécit plus : il descend d'1 px (rebranding,
 // décision 21), par la règle `button[data-bouton]` d'index.css, posée ici par
 // l'attribut. Cette constante reste celle des autres surfaces pressables.

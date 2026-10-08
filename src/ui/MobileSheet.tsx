@@ -32,7 +32,7 @@ import { HAUTEUR_ONGLETS } from '../lib/layout';
 // et ne peut grandir que vers le HAUT : tant que sa hauteur suit le contenu,
 // déplier quoi que ce soit dedans (une catégorie RTA, une 4ᵉ propriété) fait
 // remonter d'un coup ce qu'on vient de toucher — la règle générale l'interdit
-// (spec/shared/design.md). On mesure donc à l'ouverture (bornée par le plafond),
+// (docs/03-developpeur/interface/). On mesure donc à l'ouverture (bornée par le plafond),
 // on fige, et un contenu qui grandit ensuite se lit en défilant.
 
 export default function MobileSheet({

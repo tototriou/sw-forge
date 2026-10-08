@@ -8,7 +8,7 @@
 // comme sort compté DEUX fois (lui-même, puis le passif resté allumé), ou
 // devenu le sort par défaut de Teshar à la place de son S2.
 //
-// Valeurs de jeu (`spec/outils/degats-reels/valeurs-de-jeu-curees.md`, utilisateur,
+// Valeurs de jeu (`docs/02-app/degats-reels/`, utilisateur,
 // concordant avec l'audit `other_skill=1181`) : `3.7 × ATQ`, en zone, trois
 // améliorations « Damage +10% » (+30 %) appliquées à ses dégâts ; seul, une
 // seule contribution, jamais 411 ; 402/410 une fois.

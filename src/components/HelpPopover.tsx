@@ -19,7 +19,7 @@ import { useMediaQuery, SOUS_LG } from '../hooks/useMediaQuery';
 // tactile, état actif sont ses axes), la bulle un `FlottantAuto` (bord, ombre et
 // `z-index` lui appartiennent — jamais un `<div absolute z-…>` maison). C'est ce
 // que la version manuscrite réécrivait un contrôle à la fois, chaque fois un peu
-// différemment. Voir spec/shared/librairie-ui.md.
+// différemment. Voir docs/03-developpeur/interface/.
 export default function HelpPopover({
   title,
   children,

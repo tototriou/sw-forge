@@ -1,5 +1,5 @@
 // « Sauvegardé il y a … » — la durée écoulée, en mots (refonte graphique,
-// lot 13, décision 29 ; spec/rta/sauvegarde-partage.md).
+// lot 13, décision 29 ; docs/02-app/rta/).
 
 import { depuis } from '../src/components/rta/IndicateurSauvegarde';
 import { egal, titre } from './outils';

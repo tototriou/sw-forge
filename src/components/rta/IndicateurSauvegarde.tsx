@@ -3,7 +3,7 @@ import { Check } from 'lucide-react';
 
 // « Sauvegardé il y a … » — l'heure du DERNIER CHANGEMENT de la prépa, donc de
 // son dernier enregistrement automatique (refonte graphique, lot 13, décision
-// 29, la maquette). Voir spec/rta/sauvegarde-partage.md.
+// 29, la maquette). Voir docs/02-app/rta/.
 //
 // ⚠️ Il DIT la conservation automatique, il ne l'imite pas : ce n'est pas un
 // bouton « enregistrer », qui mentirait (la prépa est déjà écrite à chaque

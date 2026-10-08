@@ -77,7 +77,7 @@ export default function RtaSection({
       // ⚠️ **1 px, et un seul** : la bordure (transparente au repos, pour que
       // son apparition ne décale rien) prend la teinte — plus d'ombre ajoutée
       // par-dessus, qui en faisait un trait de 2 px. Voir la règle du
-      // marqueur unique dans spec/shared/design.md.
+      // marqueur unique dans docs/03-developpeur/interface/.
       className={`rounded-xl border p-2 transition-colors compact:p-1.5 ${
         over ? 'bg-panel2/60' : 'border-transparent'
       }`}

@@ -43,7 +43,7 @@ export const AUTEUR_MAX = 40;
 
 // Une entrée partagée. ⚠️ **`com2usId` et non l'id local** : c'est la seule clé
 // stable d'un joueur à l'autre (même règle que les recommandations, voir
-// ../../spec/siege/recommandations.md). Le `nom` sert de repli d'affichage si le
+// ../../docs/02-app/siege/). Le `nom` sert de repli d'affichage si le
 // monstre est absent des données chargées chez celui qui importe.
 // Un monstre PERSO, décrit en entier dans le fichier.
 //
@@ -99,7 +99,7 @@ export interface RtaShareCategory {
 //
 // ⚠️ Ce qui est reçu n'est JAMAIS mélangé à ce qu'on possède : une prépa
 // consultée s'ouvre à côté de la sienne (voir
-// ../../spec/rta/sauvegarde-partage.md). Elle ne remplace rien et ne se compare
+// ../../docs/02-app/rta/). Elle ne remplace rien et ne se compare
 // à rien.
 // ⚠️ **Un NIVEAU ordonné, pas des drapeaux indépendants.** Chaque palier retire
 // une couche de plus, et chaque couche retirée l'est parce qu'elle **révèle le
@@ -280,7 +280,7 @@ export function toSnapshot(
 // ⚠️ **Rien n'est comparé à ce que je possède.** Les monstres et les runes
 // affichés sont ceux de l'auteur, tels quels. Confronter à ma box répondrait à
 // une autre question (« puis-je jouer ça ? ») — c'est le rôle des
-// [recommandations de siège](../../spec/siege/recommandations.md), qui existent
+// [recommandations de siège](../../docs/02-app/siege/), qui existent
 // précisément pour ça. Ici on regarde la prépa d'un ami comme on regarderait
 // son écran par-dessus son épaule.
 export interface RtaVueAmi {

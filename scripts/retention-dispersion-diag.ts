@@ -1,5 +1,5 @@
 // Pondération adaptative des tranches (`adaptiveTrancheWeighting`,
-// spec/outils/optimizer/harnais-extensions.md,
+// docs/03-developpeur/optimizer/,
 // « Instant de découverte et dispersion par tranche ») : mesure si une stat de
 // `retentionKeys`
 // DIFFÉRENCIE vraiment les demi-builds, ou si presque tous les demi-builds

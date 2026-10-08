@@ -1,6 +1,6 @@
 // Test différentiel pour la piste « point 2 — filterSlot : top-K via le tas
 // borné (heapPush) au lieu de 8 tris complets par stat ». Voir
-// spec/outils/optimizer/pistes.md, section « En attente ».
+// docs/07-pilotage/, section « En attente ».
 //
 // La boucle par stat de `filterSlot` (src/lib/runeBuildOptim.ts) triait
 // `candidates` en ENTIER puis prenait `.slice(0, keepN)` — remplacé par une

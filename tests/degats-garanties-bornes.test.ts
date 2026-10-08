@@ -160,7 +160,7 @@ export function testGarantieYujiRick() {
   }
 
   // La réduction de DEF du coup 1 baisse aussi la DEF que subit le coup 2
-  // (`spec/outils/degats-reels/conditions-et-audit.md`, « Correctifs de
+  // (`docs/02-app/degats-reels/`, « Correctifs de
   // contexte et de dégâts fixes »). Les
   // totaux du témoin Yuji vent (1 000 ATQ, 100 % de Dgts Crit, DEF cible
   // 1 000, « Non critique ») sont figés en valeur : 848,5363 sans scénario

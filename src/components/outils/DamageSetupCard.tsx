@@ -69,8 +69,8 @@ import Selecteur from '../../ui/Selecteur';
 import { ELEMENTS, type ElementKey } from '../../types';
 import HelpPopover from '../HelpPopover';
 
-// Réglage de l'objectif « Dégâts réels » — voir spec/outils/degats-reels.md
-// pour le modèle de calcul, spec/outils/optimizer/ecran/objectif-de-recherche.md pour sa place à l'écran.
+// Réglage de l'objectif « Dégâts réels » — voir docs/02-app/degats-reels/
+// pour le modèle de calcul, docs/02-app/optimizer/ pour sa place à l'écran.
 //
 // ⚠️ **Deux principes portent toute la mise en page de ce panneau :**
 //
@@ -85,7 +85,7 @@ import HelpPopover from '../HelpPopover';
 //    il fait croire à une action.
 //
 // ⚠️ Aucun contrôle dessiné ici : tout vient de `src/ui/` (« rien de
-// custom », voir spec/shared/design.md). Les icônes (sort, effets) sont des
+// custom », voir docs/03-developpeur/interface/). Les icônes (sort, effets) sont des
 // DONNÉES affichées dedans, pas des contrôles maison — même rendu que la
 // fiche de monstre (MonsterDetailDialog.tsx). Les effets se choisissent via
 // `Vignette` (la case sélectionnable de la librairie, déjà utilisée pour la
@@ -368,7 +368,7 @@ function champCoupsVariables(profile: SkillDamageProfile, setup: DamageSetup, ma
 // rien de ce qui le précède ne lit le cran** (`resumeSort` ne lit pas la
 // cible) : choisir Blade Surge le fait apparaître EN DESSOUS de la case
 // cliquée, et basculer ne change la hauteur de rien au-dessus de lui — il ne
-// bouge jamais sous le pointeur (spec/shared/design.md, « Un clic ne déplace
+// bouge jamais sous le pointeur (docs/03-developpeur/interface/, « Un clic ne déplace
 // JAMAIS ce qu'on vient de cliquer »).
 function champCibleDegats(profile: SkillDamageProfile, setup: DamageSetup, maj: (patch: Partial<DamageSetup>) => void) {
   if (!cibleSecondairePriseEnCharge(profile.skillCom2usId)) return null;
@@ -807,7 +807,7 @@ export default function DamageSetupCard({
 
       {/* ⚠️ **Presque toujours indépendant du sort choisi ci-dessus** — un
           passif s'applique quel que soit S1/S2/S3 en cours d'optimisation,
-          voir spec/outils/degats-reels.md, sauf s'il ne peut pas suivre ce
+          voir docs/02-app/degats-reels/, sauf s'il ne peut pas suivre ce
           sort (`passifsSuivants` : lui-même choisi comme sort, ou slots
           déclencheurs curés qui l'excluent — Tempest). Absent (la grande
           majorité des monstres) : rien ne s'affiche, pas même un « aucun
@@ -1529,7 +1529,7 @@ export default function DamageSetupCard({
                 cadre montre toujours quel cran est posé. Optimiser « contre
                 n'importe qui » est un cas d'usage à part entière, pas un
                 repli dégradé — même parti pris que le « Toutes » du filtre
-                de stat principale (spec/compte/artefacts.md). */}
+                de stat principale (docs/02-app/compte/). */}
             <Segmented<ElementKey | 'aucun'>
               value={setup.enemyElement ?? 'aucun'}
               onChange={(v) => maj({ enemyElement: v === 'aucun' ? null : v })}
@@ -1938,7 +1938,7 @@ export default function DamageSetupCard({
         {/* ⚠️ **La place est RÉSERVÉE D'AVANCE, le champ n'apparaît pas.**
             Rendu sous condition, il poussait toute la rangée de vignettes vers
             le bas au moment même où on cliquait Velaska — un clic qui déplace
-            ce qu'on vient de cliquer, interdit par spec/shared/design.md.
+            ce qu'on vient de cliquer, interdit par docs/03-developpeur/interface/.
             Signalé à l'usage.
             La rangée existe donc en permanence et garde sa hauteur ; seul son
             CONTENU apparaît. `invisible` plutôt que `hidden` : l'élément

@@ -1,5 +1,5 @@
-// Tests de rendu — deux conventions d'icônes (spec/shared/design.md,
-// « Exporter ↑, importer ↓ » ; spec/compte/runes.md, « Filtrer par set »).
+// Tests de rendu — deux conventions d'icônes (docs/03-developpeur/interface/,
+// « Exporter ↑, importer ↓ » ; docs/02-app/compte/, « Filtrer par set »).
 //
 // ⚠️ L'inversion importer / exporter est revenue plusieurs fois : chaque
 // endroit de l'accueil et de la palette qui l'a portée est gardé ici.

@@ -118,7 +118,7 @@ export default function RtaCard({
       // ⚠️ La bordure SEULE quand le détail est ouvert : elle était doublée d'un
       // `ring-1 ring-accent/50`, soit deux traits d'accent concentriques autour
       // de la même carte. Superposés, ils ne se lisent pas comme deux
-      // informations mais comme un contour flou. Voir spec/shared/design.md.
+      // informations mais comme un contour flou. Voir docs/03-developpeur/interface/.
       // ⚠️ Refonte graphique, lot 6 : le gabarit des cartes de la refonte —
       // fond de panneau, contour discret, rayon 12 —, le contour se précisant au
       // survol. L'anneau des catégories suit le même rayon.
@@ -263,7 +263,7 @@ export default function RtaCard({
           il n'était ni focusable au clavier, ni atteignable au doigt — on ne
           pouvait pas retirer un monstre sur téléphone. On joue sur l'opacité
           (l'élément reste dans le DOM) et on le laisse visible là où il n'y a
-          pas de survol. Voir spec/shared/design.md. */}
+          pas de survol. Voir docs/03-developpeur/interface/. */}
       {/* ⚠️ `taille="serre"` : la règle tactile globale (40 px, voir index.css)
           ne s'applique pas ici. Cette croix est POSÉE SUR le coin de la carte,
           pas dans un flux : agrandie, elle la déborde et recouvre le portrait.

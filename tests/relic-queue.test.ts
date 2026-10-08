@@ -326,7 +326,7 @@ export default function testRelicQueue() {
       // ses paires, égale au régime appliqué aux stats exactes.
       egal(r.paire?.score, total(r.stats, 'atk'), 'ordre (a) : une seule note — le score de la paire = le régime (ATQ) sur les stats exactes');
       // Sans contexte (hors mode `recherche`), le maximum n'est PAS vérifié
-      // par la file (spec/outils/optimizer/moteur/reliques.md, « Résolution
+      // par la file (docs/03-developpeur/optimizer/, « Résolution
       // exacte par build, file, classement ») : l'artéfact ATQ est retenu.
       const avant = resoudre(p, c, undefined, { critere: 'atk', inventaireArtefacts: arts });
       egal(avant.artefacts.map((a) => a.id), [11], 'ordre (documenté) : sans contexte, la file ne lit que les minimums et garde l’artéfact ATQ');

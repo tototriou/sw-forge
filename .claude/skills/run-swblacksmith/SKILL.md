@@ -204,7 +204,7 @@ headless — c'est le chemin agent (`driver.mjs`) qui s'applique ici.
 ## Test
 
 ```bash
-npx tsc --noEmit && npm test && npm run build
+npx tsc --noEmit && npm run lint && npm test && npm run build
 ```
 
 ⚠️ Voir `CLAUDE.md` à la racine : pendant le travail on ne lance QUE la zone

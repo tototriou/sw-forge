@@ -178,7 +178,7 @@ export function testRenduAppFil() {
   }
 }
 
-// Garde-fou de navigation (le mainteneur, 2026-10-01 ; spec/shared/navigation.md
+// Garde-fou de navigation (le mainteneur, 2026-10-01 ; docs/02-app/transverse/
 // § Adresses) : sur CHAQUE page, chaque lien `#/…` affiché — barre latérale,
 // onglets mobiles, fil d'Ariane, cartes de l'accueil, liens de page — figure
 // dans la table des adresses, et mène bien où elle le dit.

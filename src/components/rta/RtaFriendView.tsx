@@ -85,7 +85,7 @@ function CarteAmi({
     <div
       title={libelles.length > 0 ? libelles.join(' · ') : undefined}
       className={`relative rounded-xl border bg-panel transition-colors ${
-        // Bordure seule, sans anneau superposé — voir spec/shared/design.md.
+        // Bordure seule, sans anneau superposé — voir docs/03-developpeur/interface/.
         // Même gabarit que la carte de « Ma prépa » (RtaCard, lot 6).
         open ? 'border-accent' : 'border-border-soft'
       }`}

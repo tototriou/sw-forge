@@ -337,7 +337,7 @@ export default function RunesList({ runes, menuOuvert, onFermerMenu }: Props) {
           page/le filtre change, donc le cadre pivote vers son nouveau slot au
           lieu d'être remonté d'un coup. Voir SPIN dans RuneSlotIcon. */}
       {/* ⚠️ **DEUX grilles, une par format** — pas un seul `auto-fill` pour les
-          deux (voir spec/shared/deux-applications.md).
+          deux (voir docs/03-developpeur/interface/).
           - Sous `lg` (téléphone) : **deux colonnes fixes**. Une seule tuile par
             rangée ne montrait qu'une rune par écran et demandait un défilement
             interminable sur 3 000 runes. `auto-fill` ne pouvait pas y arriver :

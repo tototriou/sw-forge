@@ -69,7 +69,7 @@ interface Props {
   // tête de carte est toujours affichée, donc son écart aussi quand on compare.
   metricDelta?: number;
   // Bouton « Valider » (réservation des 6 runes de CE build, voir
-  // spec/outils/optimizer/listes-et-reservation.md,
+  // docs/02-app/optimizer/,
   // « Créer, valider et réserver dans une liste »).
   // `undefined` : aucun bouton — cas d'un monstre non réellement possédé
   // (repli stats de base, voir OptimizerSection.tsx), rien à réserver sur un
@@ -523,7 +523,7 @@ export default function BuildCandidateCard({
 
       {/* ⚠️ L'écart contre le build de RÉFÉRENCE — la fiche affichée, donc le
           build validé quand il en existe un. S'affiche SOUS les boutons : au
-          clic, rien de ce qui précède ne bouge (spec/shared/design.md).
+          clic, rien de ce qui précède ne bouge (docs/03-developpeur/interface/).
           ⚠️ Les écarts NULS sont montrés aussi, en gris. Ne garder que les
           stats qui changent ferait une liste dont la longueur varie d'une
           carte à l'autre, et laisserait croire qu'une stat absente n'a pas été

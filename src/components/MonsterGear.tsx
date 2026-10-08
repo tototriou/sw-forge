@@ -191,7 +191,7 @@ export default function MonsterGear({
   //   flottant y serait le mauvais objet — il s'ouvrirait exactement là où le
   //   doigt vient de se poser, et la main masquerait ce qu'on voulait lire.
   //
-  // Voir la règle générale dans spec/shared/design.md.
+  // Voir la règle générale dans docs/03-developpeur/interface/.
   const detail =
     sel?.kind === 'rune' && gear.runes[sel.i] ? (
       <RuneDetailBox rune={gear.runes[sel.i]} />

@@ -1,0 +1,266 @@
+# Siège · Composition d'équipe
+
+Composer et organiser une équipe de 3 monstres, avec un leader en slot 0.
+
+Fichiers : [SiegeTeam.tsx](src/components/siege/SiegeTeam.tsx) ·
+[MonsterPicker.tsx](src/components/MonsterPicker.tsx) ·
+[SiegePage.tsx](src/pages/SiegePage.tsx)
+
+## Structure d'une équipe
+
+- En-tête : **chevron déplier/replier** + « Équipe N » + (point rouge si alerte
+  vitesse) + **Supprimer**.
+- **Repliée par défaut** (vue compacte). L'état `expanded` est **remonté dans
+  [SiegeBoard.tsx](src/components/siege/SiegeBoard.tsx)** (pour donner la pleine
+  largeur à l'équipe en édition — voir [README.md](README.md)) ; le composant le
+  reçoit en prop et remonte le clic (`onToggleExpand`).
+
+### Vue compacte (repliée)
+Une ligne par équipe, très basse : les **3 monstres** côte à côte.
+
+⚠️ **Côte à côte À TOUTE largeur**, y compris sur téléphone. Ils s'y empilaient
+en colonne : trois cartes de 52 px plus les écarts, soit 170 px par équipe avant
+même l'en-tête — on voyait une équipe et demie là où le siège en compte huit à
+comparer. **Une équipe EST une rangée de trois** ; l'empiler défait ce qu'on
+vient lire. Sous `sm`, le portrait descend à 30 px et le nom à 11 px pour que
+les trois tiennent sur 348 px. Chaque monstre
+= portrait hexagonal + **icône d'élément** + (couronne si leader), puis un bloc
+texte **sur deux lignes** :
+
+```
+[hex]  Nom du monstre
+       ⚡ 307        ◆ ◆ ◆
+```
+
+- **Ligne 1** : le **nom**, seul, sur toute la largeur disponible (`truncate`).
+- **Ligne 2** : **vitesse de combat** à gauche, **icônes de sets** poussées à
+  droite (`ml-auto`, 17 px, 3 max).
+
+⚠️ **Ne pas remettre nom + vitesse + sets sur une seule ligne.** C'est ce qui
+existait, et à 2 colonnes avec 3 sets ça débordait : la carte fait ~157 px
+utiles, la disposition en demandait ~175 → le gros chiffre de vitesse (non
+réductible) passait **sous les icônes de set**. En deux lignes, la ligne la plus
+chargée demande ~106 px pour ~113 disponibles.
+
+Cliquer un monstre (ou le chevron) **déplie** le détail. Les slots en danger
+(voir [feat-speed-tick.md](feat-speed-tick.md)) ont un anneau rouge et la vitesse en rouge.
+Idéale avec beaucoup d'équipes (import offense ~50).
+
+### Vue détaillée (dépliée)
+- **3 slots** (`grid`, 1 col mobile / 3 cols ≥ sm). **Slot 0 = Leader** (couronne).
+- Dans **chaque slot** : **boutons de tick** propres au monstre (voir
+  [feat-speed-tick.md](feat-speed-tick.md)).
+
+> Les **sets de runes** (`slot.sets`, clés `RUNE_SETS`) sont renseignés à
+> **l'import** de compte (extraits des runes du deck) ; vides pour un monstre
+> ajouté à la main. Voir [../transverse/](../transverse/).
+
+## Slot vide
+
+- Marqué « Leader » (slot 0) ou « Slot », avec un **`MonsterPicker`** :
+  recherche par nom (max 25), exclut les monstres déjà utilisés dans l'équipe
+  (`usedIds`), affiche **portrait** + nom + SPD. Sélection → remplit le slot.
+- ⚠️ **Puis le curseur passe au slot vide suivant** (refonte graphique,
+  décision 18, étendue ici le 2026-09-27 — le mainteneur : « ah oui fais ça ») :
+  son champ prend le focus, en bouclant sur ceux d'avant si on a commencé
+  par le milieu ; équipe complète, le focus ne bouge pas. On compose les
+  trois d'affilée au clavier. Même règle que les decks et les défenses
+  visées des recommandations —
+  [slotVideSuivant.ts](../../../src/components/siege/slotVideSuivant.ts)
+  (testé : `siege-slot-suivant`), `jetonFocus` de `MonsterPicker`.
+
+## Slot rempli
+
+- Poignée de drag (`GripVertical`) + (si leader) couronne + hexagone image/initiales.
+- Nom + (si leader) **pastille de lead** (voir ci-dessous).
+- **Vitesse de combat** en gros (voir [feat-speed-tick.md](feat-speed-tick.md)).
+- Champ **« SPD : »** (vitesse des runes, Swift déjà inclus).
+- Croix de retrait → vide le slot.
+- **Sélecteur de position** (« 1 · Leader / 2 / 3 ») = repli tactile : intervertit
+  avec le slot cible.
+
+### ⚠️ Le slot en édition, à la souris — resserré (refonte graphique, lot 7a)
+
+Demandé par le mainteneur : « revois surtout la partie d'édition ». Deux lignes de
+moins par slot, **rien de retiré** :
+
+- la **position** se règle par **deux flèches ← →**, **en haut du slot**,
+  sur la ligne du monstre, à côté de sa croix (plus de rangée séparée par un
+  filet) — demandé par le mainteneur : échanger avec le voisin est un geste direct,
+  le sélecteur demandait d'ouvrir une liste pour choisir un numéro. Posées
+  d'abord à côté du champ SPD, elles s'y mêlaient à la saisie (« compact mais
+  confus ») : sur la ligne du monstre, elles disent qu'elles déplacent CE
+  monstre. Aux bords, la flèche reste affichée, **désactivée**, avec
+  sa raison (« Déjà en première position » / « Déjà en dernière position ») ;
+  vers le slot 1, l'infobulle dit que le monstre **devient le leader** ;
+- ⚠️ **L'ordre des lignes : le monstre, ce qu'on SAISIT, la CONCLUSION.**
+  Ligne 2 : le champ SPD puis les ticks visés, côte à côte. Ligne 3, en bas,
+  sans filet (essayé, retiré par le mainteneur — « pas besoin de séparateur dans la
+  card ») : la vitesse de combat, sa base et l'écart au tick —
+  demandé par le mainteneur : « la spd et la conclusion en bas, car c'est la
+  conclusion ». Le slot est une grille à deux colonnes (`auto 1fr`) dont les
+  lignes sont celles de la grille des slots ; les éléments y sont PLACÉS,
+  sans duplication ni changement de l'ordre du DOM — le téléphone garde le
+  sien ;
+- l'**écart au tick** (« manque 12 pour 239 », « +3 au-dessus de 286 »,
+  « pile au tick ») se pose **juste après la vitesse de combat** qu'il
+  qualifie. Posé d'abord au bout de la rangée des ticks, il y passait seul à
+  la ligne, calé à droite — relevé par le mainteneur sur capture (« ce n'est pas
+  aligné ») ;
+- **tout est centré sur sa ligne** : les flèches et la croix sur la ligne du
+  monstre (les flèches étaient collées en haut), la vitesse et le champ SPD
+  l'un sur l'autre (ils étaient calés par le bas, le gros chiffre dépassant
+  au-dessus de « SPD : ») ;
+- la vitesse de combat passe de 26 à 22 px ; plus de hauteur minimale de
+  150 px — la grille aligne déjà les trois slots sur le plus haut ;
+- ⚠️ **les lignes des trois slots sont alignées** (« ce serait bien que les
+  éléments soient alignés dans la card ») : la grille définit trois lignes —
+  le monstre, la vitesse et le SPD, les ticks — que chaque slot reprend
+  (`grid-rows-subgrid`). Chacune prend la hauteur de la plus haute des trois :
+  la pastille de lead sous le nom du leader ne décale plus sa vitesse ni ses
+  ticks. Un slot vide pose son étiquette sur la ligne du monstre et son champ
+  de recherche sur celle de la vitesse.
+
+Au doigt, la disposition ne change pas (écart et position sur leurs propres
+lignes) : chacun est rendu UNE fois et posé à deux endroits selon la largeur
+(`hidden lg:…` / `lg:hidden`). Gardé par `testRenduSiegeEdition`
+([tests/rendu/siege.test.tsx](tests/rendu/siege.test.tsx)) : écrit pendant le
+lot, il passe à l'identique sur l'édition d'avant et sur celle d'après.
+
+## Leader & pastille de lead
+
+- Le **slot 0 est le leader** : son lead alimente le calcul (voir spec vitesse).
+- Le lead est affiché **à deux endroits, qui répondent à deux questions
+  différentes** — ce n'est pas un doublon :
+  - **sur le portrait du monstre leader** → *de quel monstre vient le lead ?* ;
+  - **à côté du nom de l'équipe** (« Équipe N ») → *quelle est sa valeur ?*,
+    lisible **sans déplier**, comme dans les decks de recommandation.
+
+  [LeadPill.tsx](src/components/siege/LeadPill.tsx) exporte pour ça deux rendus :
+  - **`LeadBadge`** — icône seule (22 px par défaut) posée en **bas-gauche du
+    portrait**, montant dans l'infobulle. Utilisé quand la place manque : vue
+    **compacte** du siège et aperçu replié des decks de reco. Il **remplace la
+    couronne** — l'icône du jeu marque déjà le leader *et* dit quel est le lead
+    (la couronne ne revient que si le monstre n'a aucun lead).
+    ⚠️ **Icône nue et carrée, comme dans le jeu** : pas de pastille ronde, pas
+    de fond, pas d'anneau. Seule l'ombre portée reste, pour la détacher du
+    portrait ;
+  - **`LeadPill`** (défaut) — icône 22 px **+ le montant** (« +33 % »), dans
+    l'**en-tête de l'équipe** (donc visible aussi en vue compacte) et **sous le
+    nom** du leader dans la vue dépliée.
+- Elle affiche **n'importe quel type** de lead (SPD, ATQ, PV, DEF, crit,
+  précision, résistance) avec l'**icône officielle du jeu**, puis le montant
+  (« +33 % ») :
+  - **icône SWARFARM** servie en local depuis `public/leader-skills/`
+    (voir [../transverse/](../transverse/)).
+    ⚠️ **Rien de custom** : pas de couronne + icône de stat recomposées.
+    L'icône encode déjà **la stat ET la portée**, donc on n'écrit pas le libellé
+    de stat à côté (il reste dans l'infobulle). Elle est volontairement
+    **grande (22 px)** : à 16 px les pictogrammes du jeu sont illisibles ;
+  - **icône d'élément** en plus quand la portée est élémentaire — c'est la seule
+    information que l'icône du jeu ne distingue pas ;
+  - suffixe « (arène) » / « (donjon) » quand la portée exclut le siège.
+- ⚠️ **TOUS les leads sont en couleur (doré, `star`) — aucun n'est grisé.**
+  Un lead arène ou donjon a été rendu terne et désaturé parce qu'il ne compte
+  pas en siège. Mais le grisé se lit comme « inactif », voire « cassé », alors
+  que le monstre **a bel et bien ce lead** : ce qui ne s'applique pas, c'est le
+  contenu de jeu, pas la donnée.
+  - La nuance reste dans l'**infobulle** (« sans effet en siège ») et dans le
+    suffixe « (arène) » / « (donjon) » — du texte, qui peut la formuler, là où
+    une couleur ne fait que dévaloriser.
+  - `leadIsActive` **subsiste** pour ce libellé. C'est une question de
+    **portée, pas de stat** : `General` / `Guild` / `Element` s'appliquent
+    **quelle que soit la stat** (un lead PV ou DEF compte autant qu'un lead
+    VIT). ⚠️ Ne pas restreindre à `Attack Speed` : c'est le **calcul des
+    ticks** qui ne retient que la vitesse (voir
+    [../transverse/](../transverse/)), pas
+    l'affichage.
+- **Même pastille** dans les decks de
+  [recommandation](feat-recommandations.md), pour le monstre en slot 0.
+
+## Drag & drop / réorganisation
+
+- **Glisser un slot sur un autre** = interversion (`swapSlots`). Surbrillance du
+  slot survolé.
+- Interversion avec le slot 0 = **change le leader** → le lead auto est recalculé
+  pour toute l'équipe.
+- Repli sans drag : le **sélecteur de position** de chaque slot fait la même
+  interversion (utile au tactile).
+
+## Attendus
+
+- Un même monstre ne peut pas occuper deux slots d'une équipe (`excludeIds`).
+- Un monstre **perso** est sélectionnable comme les autres.
+- Vider/retirer un slot le remet à l'état vide (pas de décalage des autres).
+- Le nombre d'équipes est illimité ; chaque équipe est indépendante.
+
+## Retirer un monstre d'un slot
+
+La croix d'un slot demande une **confirmation**, sur les deux formats — la même
+règle que la croix d'une carte de prépa RTA (voir
+[../rta/](../rta/)).
+
+⚠️ Ce qui part avec le monstre ne se retrouve pas : sa **vitesse saisie** et son
+**tick visé**. Ni annulation ni corbeille, alors que ces deux valeurs sont
+justement ce qu'on vient régler sur cet écran.
+
+⚠️ La suppression d'une **équipe entière** en demandait déjà une ; celle d'un
+monstre n'en avait aucune. L'écart n'avait pas de justification : c'est la même
+perte, à une échelle plus petite.
+
+## Le slot en édition, sur téléphone
+
+⚠️ La **poignée de glissement est masquée au doigt** (`coarse:hidden`) : le
+glisser-déposer HTML5 n'y fonctionne pas, et le sélecteur « Position » en bas du
+slot fait déjà le travail. Elle prenait 15 px sur une ligne qui porte aussi le
+portrait, le nom, les sets et la croix. Même traitement que la poignée d'une
+carte RTA.
+
+⚠️ Le **sélecteur de position** est exempté de la règle tactile
+(`data-cible-fine`) et ramené à **20 px** : porté à 40 dans un slot qui en fait
+110, il pesait autant que la vitesse qu'on vient régler. Il occupe toute la
+largeur restante de sa ligne — rien d'autre à toucher autour, donc rien à rater.
+
+⚠️ Y parvenir demande `appearance-none` **et** une hauteur explicite : un
+`<select>` natif garde un socle imposé par le navigateur, que ni le rembourrage
+ni la classe ne franchissent. Le chevron natif part avec l'habillage ; celui qui
+le remplace est une `data:` URI (`--chevron-select`), posée en image de fond —
+il n'y a rien à cliquer dessus, le `<select>` capte tout.
+
+## Densité sur téléphone
+
+La page empile jusqu'à huit équipes : tout rembourrage s'y paie autant de fois.
+Sous `sm` :
+
+| | Bureau | Mobile |
+|---|---|---|
+| Carte d'équipe | `p-4` | `p-2.5` |
+| Écart entre équipes | `gap-4` | `gap-2` |
+| Portrait en vue compacte | 36 px | 30 px |
+| Nom du monstre | 12 px | 11 px |
+| Icônes de set | 17 px | 14 px |
+| Badge de lead | 22 px | 17 px |
+| Icône de vitesse | Affichée | Masquée |
+| Titre « Équipe N » | 17 px | 15 px |
+| « Éditer » / « Supprimer » | Libellé + icône | Icône seule |
+
+⚠️ Les libellés des deux boutons d'en-tête tombent sous `sm` : la ligne y porte
+déjà le titre, la pastille d'état et la pastille de lead. Le crayon et la
+corbeille se reconnaissent seuls, et `aria-label` porte le sens complet.
+
+⚠️ **Le budget de la ligne « vitesse + sets » est COMPTÉ**, pas estimé. Sur
+348 px, une carte compacte fait `(348 − 2×4) ÷ 3 ≈ 113 px` ; moins le
+rembourrage et le portrait de 30, il reste **~73 px**. Une icône de vitesse (12)
+plus un nombre à trois chiffres (~22) plus trois icônes de set (3×14) font déjà
+76 : l'icône de vitesse tombe, parce qu'elle est **ce qui apporte le moins** —
+le gros chiffre en gras se lit comme une vitesse sans elle, c'est la seule de la
+carte.
+
+⚠️ Le carré du slot **vide** suit exactement la taille du portrait rempli. À
+34 px fixes, une carte vide était plus haute qu'une carte pleine et la rangée de
+trois partait en dents de scie.
+
+⚠️ Le sous-onglet **« Recommandations » devient « Recos »** sous `sm`. À sa
+longueur complète, les trois onglets ne tenaient pas sur une ligne et la rangée
+passait à la ligne — une navigation à trois entrées ne doit pas occuper deux
+lignes. C'est en outre le mot qu'on emploie.

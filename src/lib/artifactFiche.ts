@@ -138,7 +138,7 @@ export function evaluateursArtefactsFiche(
     const stats = statsAvec(arts);
     // Recalcul PAR PAIRE : sa principale peut franchir une tranche de Y.
     // Seuls les points Bravoure/Éternité/Origine entrent dans 218–221
-    // (spec/outils/degats-reels/valeurs-de-jeu-curees.md § Les valeurs de jeu
+    // (docs/02-app/degats-reels/ § Les valeurs de jeu
     // — curées, avec leur source). Conquête et Ténacité ne multiplient pas ce brut.
     const apport = apportExclusive(gear.relic, stats, contexte.setup, propres, contexte.element);
     return degatsBrutsArtefactsParCoup(

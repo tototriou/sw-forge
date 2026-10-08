@@ -3,7 +3,7 @@
 // ⚠️ Les entrées sont celles du JEU, dans SON ordre et avec SES libellés (voir
 // la liste déroulante de l'inventaire de runes). Un joueur qui trie ses runes
 // cherche l'entrée qu'il connaît, pas une reformulation : c'est la règle de
-// vocabulaire du projet (voir spec/README.md).
+// vocabulaire du projet (voir docs/03-developpeur/).
 //
 // Deux entrées ferment la liste et n'existent que chez nous : « Efficience »
 // (notre mesure) et « Slot », qui sert au repérage.

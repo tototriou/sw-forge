@@ -150,7 +150,7 @@ export default function testDegatsSortsSansAttaque() {
   // identifiant de la table. ⚠️ Sa fiche porte `formule: ""` (Tempest
   // n'existe que par `FORMULES_CUREES_PAR_ID[3213]`) : rebaptisé, il perdrait
   // sa formule et sortirait de lui-même, sans la garde. D'où sa formule
-  // recopiée (`3.7*{ATK}`, `spec/outils/degats-reels/valeurs-de-jeu-curees.md`) et le témoin juste dessous, qui prouve
+  // recopiée (`3.7*{ATK}`, `docs/02-app/degats-reels/`) et le témoin juste dessous, qui prouve
   // que le maquillage SANS identifiant de la table reste offensif.
   const teshar = fiche(14513);
   ok(monsterOffensivePassives(teshar).some((p) => p.skillCom2usId === 3213), 'Teshar : Tempest est un passif offensif (témoin)');
@@ -205,7 +205,7 @@ export default function testDegatsSortsSansAttaque() {
       egal(avec, sans, `${id} : le total est le même avec et sans ce passif, interrupteurs tous allumés (${critMode}) — aucun bouclier compté`);
     }
   }
-  // Effets de PV sans coup (`spec/outils/degats-reels/valeurs-de-jeu-curees.md`) sans formule : déjà hors calcul.
+  // Effets de PV sans coup (`docs/02-app/degats-reels/`) sans formule : déjà hors calcul.
   for (const [id, forme, libelle] of [[12212, 21412, 'Harmonia S3'], [12215, 21415, 'Vivachel S3']] as const) {
     const c = fiche(forme).competences.find((x) => x.com2usId === id)!;
     ok(!c.formule, `${libelle} (${id}) : formule vide`);

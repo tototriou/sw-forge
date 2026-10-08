@@ -412,7 +412,7 @@ export default async function testDiagnosticHarness() {
    *
    * ⚠️ **INVERSÉ.**
    * Ce cas verrouillait la réfutation de deux revues
-   * externes (`spec/outils/optimizer/harnais-extensions.md`), sur un
+   * externes (`docs/03-developpeur/optimizer/`), sur un
    * scénario où `explored` égalait l'espace. Or une tranche qui remplit son
    * quota s'ARRÊTE (`pairBuckets`, `break outer`) : en général, le reste de
    * sa tranche n'est jamais visité, et la recherche était annoncée complète

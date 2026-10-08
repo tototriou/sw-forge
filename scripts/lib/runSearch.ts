@@ -11,7 +11,7 @@
 // de prod.
 //
 // ⚠️ Écart de fidélité CONNU depuis l'extension de la parallélisation de
-// l'appariement au mode normal (voir pistes.md, point 9) : ce script reste
+// l'appariement au mode normal (voir docs/07-pilotage/, pistes de l'Optimizer, point 9) : ce script reste
 // TOUJOURS séquentiel (Node n'a pas de Web Worker) — la vraie app peut
 // paralléliser l'appariement (4 workers) dès que `totalPairs ≥ 100M`, quel
 // que soit le mode. Sur une recherche NORMALE (tronquée) assez grande, le

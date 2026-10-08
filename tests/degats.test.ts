@@ -319,7 +319,7 @@ export default function testDegats() {
   // avec le minimum réel « Combat », qui ajoute 25 points de Dgts Crit.
   const critique: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, critMode: 'crit', summonerSkills: 'combat' };
   const attendu = 0.68 * 2000 * (1 + 0.3 + 2.25) * (1000 / 1142) * 3;
-  ok(s3 !== null && Math.abs(computeSkillDamage(s3, build, critique, AUCUNE_AURA_PROPRE) - attendu) < 0.01, 'le total suit l’équation de spec/mecaniques.md');
+  ok(s3 !== null && Math.abs(computeSkillDamage(s3, build, critique, AUCUNE_AURA_PROPRE) - attendu) < 0.01, 'le total suit l’équation de docs/02-app/mecaniques/');
 
   const normal = computeSkillDamage(s3!, build, { ...DEFAULT_DAMAGE_SETUP, critMode: 'normal' }, AUCUNE_AURA_PROPRE);
   const crit = computeSkillDamage(s3!, build, critique, AUCUNE_AURA_PROPRE);
@@ -1223,7 +1223,7 @@ export default function testDegats() {
   ok(modifRigna[0]?.detail.includes('critique garanti'), 'le détail affiché de Rigna mentionne le critique, pas un bonus de dégâts');
 
   // Zenitsu Agatsuma (Ténèbres)/Qilin Slasher (Ténèbres) — « Hidden Sense of
-  // Justice »/« Lethal Intent » (`spec/outils/degats-reels/catalogue-des-passifs.md`, « Statistiques ») : QUATRIÈME
+  // Justice »/« Lethal Intent » (`docs/02-app/degats-reels/`, « Statistiques ») : QUATRIÈME
   // mécanique liée à une stat (le Taux Crit cette fois, pas la VIT), même
   // famille que Sonia (multiplicatif sur le TOTAL, toujours actif). `quantite: 0`/
   // `null` en données — confirmé par l'utilisateur : « 1% de Taux critique =
@@ -2041,7 +2041,7 @@ export default function testDegats() {
 
   // ⚠️ La liste `PASSIFS_OFFENSIFS_CONNUS` (damage.ts) est une CURATION à la
   // main — jamais déduite automatiquement d'une condition en jeu (voir
-  // spec/outils/degats-reels.md, cas Roid). Ces tests épinglent le
+  // docs/02-app/degats-reels/, cas Roid). Ces tests épinglent le
   // COMPORTEMENT (toujours actif d'office / bouton désactivé par défaut /
   // bonus qui ne majore QUE la contribution du passif), pas la liste
   // elle-même — l'ajout d'un monstre à la liste n'a pas à faire échouer ceci.
@@ -2455,7 +2455,7 @@ export default function testDegats() {
   // FIGEAIT l'inverse : un `PASSIFS_OFFENSIFS_CONNUS` `conditionnel` dont la
   // formule `2.0*{DEF}` (le Bouclier) s'ajoutait aux dégâts, le +50 % étant
   // réputé porter sur les dégâts absorbés. Renversé : le Bouclier se crée
-  // « when you are attacked », ce n'est pas une attaque (`spec/outils/degats-reels/valeurs-de-jeu-curees.md`,
+  // « when you are attacked », ce n'est pas une attaque (`docs/02-app/degats-reels/`,
   // « Une attaque se lit dans la prose ») ; le +50 % « damage dealt » de la
   // donnée (`Increase Damage`, `quantite: 50`, note « When you have a
   // Shield. ») majore les dégâts du monstre sous le bouton « bouclier
@@ -2694,7 +2694,7 @@ export default function testDegats() {
   // foi d'une confirmation qui était une ERREUR. Levée par un relevé EN JEU :
   // Shahat ~50 000 PV, S2 sur une cible à ~3 000 DEF → ~4 500 par coup,
   // contre 770 à 1 760 que donnait l'ancien calcul. Voir
-  // spec/outils/degats-reels/artefacts-et-degats-bruts.md,
+  // docs/02-app/degats-reels/,
   // « Dégâts BRUTS d'un passif — ni critiques, ni mitigés, à chaque coup ».
   egal(monsterBonusFixeMaxHpPropre(fiche(27513)), { pct: 7 }, 'Bayek (Vent) : Sickle Blade, +7 % de ses PV max');
   egal(monsterBonusFixeMaxHpPropre(fiche(28013)), { pct: 7 }, 'Shahat : Sand Blade, même mécanisme, nom différent');

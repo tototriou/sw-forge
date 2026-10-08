@@ -1,5 +1,5 @@
 // Barre latérale : la clé de destination qui REPOSE son niveau (voir
-// spec/shared/navigation.md, « L'état de la barre : trois valeurs »).
+// docs/02-app/transverse/, « L'état de la barre : trois valeurs »).
 //
 // ⚠️ Défaut corrigé : la clé ne valait que le titre de SECTION. Choisir une
 // sous-section par le panneau de survol, dans la section où l'on se trouvait

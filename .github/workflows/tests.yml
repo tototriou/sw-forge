@@ -1,7 +1,8 @@
 name: Tests
 
 # La vérification complète d'une pull request vers `main` ou une branche de
-# release : types, suite complète (`npm test`), build. Sous Windows, le
+# release : garde-fous de commit rejoués sur chaque commit, types, lint,
+# suite complète (`npm test`), build. Sous Windows, le
 # système sur lequel l'app se développe : les tests des hooks et de Git s'y
 # comportent comme sur la machine de développement.
 #
@@ -44,11 +45,21 @@ jobs:
           git config --global user.name "CI SW Blacksmith"
           git config --global user.email "ci@swblacksmith.local"
 
+      # `--no-verify` reste possible en local, pas ici : chaque commit de la PR
+      # repasse par les hooks `commit-msg` et `pre-commit`.
+      - name: Garde-fous de commit
+        if: github.event_name == 'pull_request'
+        run: node scripts/verifier-commits.mjs ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }}
+
       - name: Dépendances
         run: npm ci
 
       - name: Types
         run: npx tsc --noEmit
+
+      # Les avertissements s'affichent ; seule une erreur fait échouer.
+      - name: Lint
+        run: npm run lint
 
       - name: Suite complète
         run: npm test

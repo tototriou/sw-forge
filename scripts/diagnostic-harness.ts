@@ -28,7 +28,7 @@
 //                         [--max=res:60] [--assortiment=joker|sans-joker|varies]
 //                         [--verrous=<slot:runeId,…>]  runes IMPOSÉES
 //
-// Usage — PROFIL nommé (spec/outils/optimizer/harnais.md,
+// Usage — PROFIL nommé (docs/03-developpeur/optimizer/,
 //   « Deux sources : une recette ou un pool synthétique ») :
 //   diagnostic-harness.ts --profils            liste les profils et ce qu'ils promettent
 //   diagnostic-harness.ts --profil=<nom>       exécute ce profil, cible comprise
@@ -38,7 +38,7 @@
 // est comparable : un cas réel tronque par le TEMPS, ce qui rend
 // NON_COMPARABLES le verdict, la population et le classement.
 //
-// Usage — DIFFÉRENTIEL entrelacé (spec/outils/optimizer/harnais-extensions.md,
+// Usage — DIFFÉRENTIEL entrelacé (docs/03-developpeur/optimizer/,
 //   « Le différentiel : l'oracle ») :
 //   diagnostic-harness.ts --profil=<nom> --differentiel=<axe>:<témoin>,<comparé>
 //                         [--repetitions=<n>] [--arret=…]
@@ -225,7 +225,7 @@ function lireStats(nom: string): Partial<Record<StatKey, number>> {
 }
 
 /**
- * `--differentiel=<axe>:<témoin>,<comparé>` — spec/outils/optimizer/harnais-extensions.md,
+ * `--differentiel=<axe>:<témoin>,<comparé>` — docs/03-developpeur/optimizer/,
  * « Le différentiel : l'oracle ».
  *
  * ⚠️ **La table est un `Record` sur `AxeDifferentiel`, pas une liste** : si
@@ -947,7 +947,7 @@ async function mainLot(brut: string): Promise<void> {
 }
 
 /**
- * Le DIFFÉRENTIEL (spec/outils/optimizer/harnais-extensions.md,
+ * Le DIFFÉRENTIEL (docs/03-developpeur/optimizer/,
  * « Le différentiel : l'oracle »). ⚠️ **L'inverse exact du lot** : il
  * garde le CAS constant et fait varier la CONDITION, là où le lot garde la
  * condition et fait varier le cas. D'où deux modes qui s'excluent, et deux

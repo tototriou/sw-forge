@@ -1,10 +1,10 @@
-// `scripts/spec-lint.mjs` — contrat « Contrat de `spec-lint` » (`spec/outillage/spec.md`) sur
+// `scripts/spec-lint.mjs` — contrat « Contrat de `spec-lint` » (`docs/03-developpeur/`) sur
 // des fixtures synthétiques. Deux cibles, au sens fixe : `testSpecLintEnTetes`
 // (en-têtes, slugs, références) et `testSpecLint` (tout ce qui précède, plus
 // les longueurs et les exceptions). Ces deux cibles ne tournent QUE sur
 // les fixtures ; `testSpecLintEnTetesReel`, elle, rejoue
 // le mode en-têtes sur le VRAI
-// périmètre (`spec/outils/**`, archives comprises) : c'est la preuve que les
+// périmètre (celui de `scripts/spec-lint.json`) : c'est la preuve que les
 // en-têtes du corpus réel sont effectivement reconnus par le lint.
 
 import { readFileSync } from 'fs';
@@ -15,7 +15,7 @@ import { egal, ok, titre } from './outils';
 const RACINE = resolve(new URL('..', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1'));
 const FIXTURES = resolve(RACINE, 'tests/fixtures/spec-lint');
 const CONFIG = JSON.parse(readFileSync(resolve(FIXTURES, 'spec-lint.json'), 'utf8'));
-const CONFIG_REEL = JSON.parse(readFileSync(resolve(RACINE, 'spec/spec-lint.json'), 'utf8'));
+const CONFIG_REEL = JSON.parse(readFileSync(resolve(RACINE, 'scripts/spec-lint.json'), 'utf8'));
 
 function regles(erreurs: { fichier: string; regle: string }[], fichier: string): string[] {
   return erreurs.filter((e) => e.fichier === `perimetre-fixture/${fichier}`).map((e) => e.regle);
@@ -56,9 +56,9 @@ export function testSpecLintEnTetes() {
 }
 
 export function testSpecLintEnTetesReel() {
-  titre('spec-lint-en-tetes · périmètre réel (spec/outils/**, archives comprises)');
+  titre('spec-lint-en-tetes · périmètre réel (scripts/spec-lint.json)');
 
-  const { erreurs } = verifier(RACINE, { perimetre: ['spec/outils/**'], exceptions: [] }, { inclureLongueurs: false });
+  const { erreurs } = verifier(RACINE, { perimetre: CONFIG_REEL.perimetre, exceptions: [] }, { inclureLongueurs: false });
 
   ok(
     erreurs.length === 0,
@@ -69,14 +69,14 @@ export function testSpecLintEnTetesReel() {
 }
 
 export function testSpecLintReel() {
-  titre('spec-lint · périmètre réel COMPLET (spec/outils/**, exceptions comprises)');
+  titre('spec-lint · périmètre réel COMPLET (scripts/spec-lint.json, exceptions comprises)');
 
   const { erreurs } = verifier(RACINE, CONFIG_REEL);
 
   ok(
     erreurs.length === 0,
     erreurs.length === 0
-      ? 'aucune erreur (en-têtes, slugs, références, longueurs, exceptions) sur le corpus réel — équivaut à `node scripts/spec-lint.mjs spec/outils`'
+      ? 'aucune erreur (en-têtes, slugs, références, longueurs, exceptions) sur le corpus réel — équivaut à `node scripts/spec-lint.mjs`'
       : `${erreurs.length} erreur(s) — ${erreurs.map((e) => `${e.fichier}${e.ligne ? `:${e.ligne}` : ''} [${e.regle}]`).join(', ')}`
   );
 }
@@ -104,7 +104,7 @@ export default function testSpecLint() {
 
   egal(CONFIG.exceptions.length, 2, 'la fixture de config déclare deux exceptions (une périmée, une valide)');
 
-  // Un cadrage (dossier chantiers/) est une quatrième nature (`spec/outillage/spec.md`, « La nature CHANTIER »).
+  // Un cadrage (dossier chantiers/) est une quatrième nature (`docs/03-developpeur/`, « La nature CHANTIER »).
   ok(
     regles(erreurs, 'chantiers/cadrage-ok.md').length === 0,
     'cadrage de 619 lignes, blocs < 100, Statut « CHANTIER en cours » : accepté malgré > 500 lignes (exemption chantiers/)'

@@ -1,7 +1,7 @@
 // Vue DÉFENSE d'une recommandation : les défenses visées, et pour chacune les
 // offenses de la recommandation qui la battent — l'inverse de la vue Attaque
 // (un deck, puis les défenses contre lesquelles il est fort). Spec :
-// spec/siege/recommandations.md § Vue Défense.
+// docs/02-app/siege/ § Vue Défense.
 //
 // ⚠️ **Une VUE, pas un modèle** : tout est DÉRIVÉ des `counters` de chaque
 // deck, rien n'est stocké. Le format exporté ne change pas : un ancien fichier

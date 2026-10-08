@@ -31,7 +31,7 @@ export interface HalfBuildProgress {
 // l'ancien comportement) et peut à elle seule durer jusqu'à environ une
 // minute sur un compte réel avec beaucoup de conditions — sans cette
 // distinction, l'UI n'avait AUCUNE information pendant cette phase (voir
-// spec/outils/optimizer/moteur/pipeline.md § Construction des moitiés).
+// docs/03-developpeur/optimizer/ § Construction des moitiés).
 // ⚠️ `building` garde les DEUX moitiés (`halves.A`/`halves.B`), pas une seule
 // — depuis leur construction en parallèle (deux Workers, voir
 // runeBuildOptim.worker.ts), les messages de progression des deux moitiés
@@ -85,7 +85,7 @@ export type BuildOptimProgress =
 // de la recherche EN COURS avec une valeur PÉRIMÉE. Confirmé en usage réel :
 // lancer/arrêter plusieurs recherches rapprochées pouvait figer une des deux
 // barres de la phase `building` (voir
-// spec/outils/optimizer/moteur/pipeline.md § Lancement) — plus
+// docs/03-developpeur/optimizer/ § Lancement) — plus
 // probable depuis la parallélisation des deux moitiés (deux Workers de plus
 // à chaque recherche, donc deux fois plus de messages en vol au moment d'un
 // arrêt/relance). Chaque `run()` incrémente `runId` ; tout message reçu par

@@ -3,7 +3,7 @@
 À quoi sert ce fichier : **ouvrir les bons fichiers du premier coup**. Pour une
 demande donnée, la table « Par écran » dit quoi ouvrir ; les tables suivantes
 disent ce que contient chaque brique. Le comportement attendu, lui, est dans
-`spec/` — ici on dit *où*, pas *quoi*.
+`docs/` — ici on dit *où*, pas *quoi*.
 
 ---
 
@@ -17,7 +17,7 @@ disent ce que contient chaque brique. Le comportement attendu, lui, est dans
 | Node | ≥ 24 |
 | Calcul lourd | 2 Web Workers (`src/workers/`) |
 | Stockage | `localStorage` (prépa, équipes, réglages) + **IndexedDB** (compte importé) |
-| Application de bureau | Electron, code dans **`bureau/`** (hors de `src/` : il tourne dans Node) — `main.ts` (fenêtre, protocole `app://swblacksmith/`), `protocole.ts` (règles pures, testées : fichier servi, adresse interne, lien ouvrable dehors), `navigation.ts` (liens vers le navigateur, navigations bloquées, « Enregistrer sous »), `fenetre.ts` (état mémorisé, pur), `preload.ts`, `miseAJour.ts` (mise à jour automatique, `electron-updater`), `swex.ts` + `swexPur.ts` (dossier SW Exporter : « Mon compte » suit les exports), `session.ts` + `sessionPur.ts` (session en cours : « Sauvegarder » la réécrit, « Sauvegarder sous… », `session.json` ; dossier SW Blacksmith et son sous-dossier `sessions`, `dossier-swblacksmith.json`), `preuve.ts`, `installeur.nsh` (désinstalleur Windows), `icone.ico` (générée par `scripts/generer-icone-bureau.mjs`) ; empaqueté par `electron-builder.yml`, publié au tag `v*` par `.github/workflows/bureau.yml` (installeurs attachés à la release) ; côté page `src/lib/bureau.ts` (`estBureau()`, couleurs du thème, mise à jour), `src/components/MiseAJourBureau.tsx` (la mise à jour dite par la notification) et `src/components/BlocApplication.tsx` (bloc « Application » des Réglages : version, mise à jour à portée, dossier SW Exporter), `src/components/SuiviSwex.tsx` (applique « Mon compte » à chaque export), `src/hooks/useEtatSwex.ts` (l'état du dossier, lu par les Réglages et par `SidebarCompte`, dont la carte devient le menu des invocateurs), `src/hooks/useSessionEnCours.ts` (la session en cours, « Garder mes données » redit au bureau ; `useEtatSession` pour la ligne « Dossier SW Blacksmith » de `SettingsList`, bloc « Mes données ») ; compilé par `scripts/construire-bureau.mjs` vers le dossier `dist-bureau` (non suivi). État actuel [spec/shared/application-bureau.md](spec/shared/application-bureau.md) |
+| Application de bureau | Electron, code dans **`bureau/`** (hors de `src/` : il tourne dans Node) — `main.ts` (fenêtre, protocole `app://swblacksmith/`), `protocole.ts` (règles pures, testées : fichier servi, adresse interne, lien ouvrable dehors), `navigation.ts` (liens vers le navigateur, navigations bloquées, « Enregistrer sous »), `fenetre.ts` (état mémorisé, pur), `preload.ts`, `miseAJour.ts` (mise à jour automatique, `electron-updater`), `swex.ts` + `swexPur.ts` (dossier SW Exporter : « Mon compte » suit les exports), `session.ts` + `sessionPur.ts` (session en cours : « Sauvegarder » la réécrit, « Sauvegarder sous… », `session.json` ; dossier SW Blacksmith et son sous-dossier `sessions`, `dossier-swblacksmith.json`), `preuve.ts`, `installeur.nsh` (désinstalleur Windows), `icone.ico` (générée par `scripts/generer-icone-bureau.mjs`) ; empaqueté par `electron-builder.yml`, publié au tag `v*` par `.github/workflows/bureau.yml` (installeurs attachés à la release) ; côté page `src/lib/bureau.ts` (`estBureau()`, couleurs du thème, mise à jour), `src/components/MiseAJourBureau.tsx` (la mise à jour dite par la notification) et `src/components/BlocApplication.tsx` (bloc « Application » des Réglages : version, mise à jour à portée, dossier SW Exporter), `src/components/SuiviSwex.tsx` (applique « Mon compte » à chaque export), `src/hooks/useEtatSwex.ts` (l'état du dossier, lu par les Réglages et par `SidebarCompte`, dont la carte devient le menu des invocateurs), `src/hooks/useSessionEnCours.ts` (la session en cours, « Garder mes données » redit au bureau ; `useEtatSession` pour la ligne « Dossier SW Blacksmith » de `SettingsList`, bloc « Mes données ») ; compilé par `scripts/construire-bureau.mjs` vers le dossier `dist-bureau` (non suivi). État actuel [docs/02-app/bureau/](docs/02-app/bureau/) |
 
 ⚠️ **Pas de librairie de composants.** Tout `src/ui/` est écrit à la main.
 Radix UI a été **validé mais jamais installé** — chantier en attente.
@@ -26,6 +26,8 @@ Radix UI a été **validé mais jamais installé** — chantier en attente.
 npm run dev            # serveur de dev
 npm run build          # build de prod (⚠️ seul endroit où l'on voit le CSS réellement émis)
 npm test               # = node tests/run.mjs
+npm run lint           # ESLint sur tout le dépôt (eslint.config.js)
+npm install            # installe aussi les hooks Git (script prepare → scripts/installer-hooks.mjs --automatique)
 npm run fetch-data     # régénère les données monstres/skills depuis SWARFARM
 npm run benchmark:optim
 npm run bureau         # l'application de bureau sur le serveur de dev
@@ -42,7 +44,7 @@ Fichier central, gros et volontairement : il tient tout ce qui doit être partag
 entre pages.
 
 - **Routing** `parseHash()` sur `window.location.hash` — table des adresses
-  et garde-fou : `spec/shared/navigation.md` § Adresses.
+  et garde-fou : `docs/02-app/transverse/` § Adresses.
 - **Nav** : barre latérale (`Sidebar`), barre supérieure (`TopBar`), onglets
   mobiles (`MobileTabs`), recherche de nav (`SidebarSearch`).
 - **Repli de la barre supérieure : mesuré, pas fixé à un breakpoint**
@@ -53,7 +55,7 @@ entre pages.
   d'un seul geste.
 - **Import de compte global** (`importAccount`) et **`clearAllData()`**.
 - **Sauvegarde de session** (`sauvegarderSession`, `sauvegarderSessionSous`, Ctrl+S) :
-  `spec/shared/sauvegarde-session.md`.
+  `docs/02-app/transverse/`.
 
 ⚠️ **Cycle d'imports** : `AccountPage` et `OutilsPage` importent des types depuis
 `src/App`. Conséquence pratique : un parcours automatique des dépendances depuis
@@ -69,17 +71,17 @@ fait apparaître les 16 dans n'importe quelle analyse de dépendances.
 
 | Écran | Route | Page | Composants propres | Spec |
 |---|---|---|---|---|
-| Accueil | `#/` | `pages/HomePage.tsx` | `ElementIcon`, `data/releases` | `spec/accueil.md` |
-| **RTA** | `#/rta`, `#/rta/ami` | `pages/RtaPage.tsx` | tout `components/rta/` | `spec/rta/` |
-| **Siège** | `#/siege/defense`, `/offense`, `/recommandations` | `pages/SiegePage.tsx` | tout `components/siege/` | `spec/siege/` |
-| **Mon compte** | `#/compte`, `/runes`, `/artefacts` | `pages/AccountPage.tsx` | tout `components/account/` | `spec/compte/` |
-| **Outils** | `#/outils/optimizer`, `/speed-tuning` | `pages/OutilsPage.tsx` | tout `components/outils/` | `spec/outils/` |
-| Bestiaire | `#/bestiary` | `pages/BestiaryPage.tsx` | `MonsterGrid`, `FilterBar`, `SearchBar`, `MonsterDetailDialog`, `account/Pager` | `spec/bestiaire.md` |
-| Paramètres | `#/parametres` | `pages/SettingsPage.tsx` | `SettingsMenu`, `AccountImportControl` | `spec/shared/navigation.md` |
-| Mécaniques | `#/mecaniques` | `pages/MechanicsPage.tsx` | — (page statique) | `spec/mecaniques.md` |
-| Nouveautés | `#/releases` | `pages/ReleasesPage.tsx` | `data/releases.ts` | `spec/releases.md` |
-| Télécharger (site seulement) | `#/telecharger` | `src/pages/TelechargerPage.tsx` | `src/lib/bureau.ts` (`TELECHARGEMENTS`), `src/components/IconesSystemes.tsx` | `spec/telecharger.md` |
-| Arène | `#/arene` | `pages/ComingSoon.tsx` | — | `spec/arene.md` |
+| Accueil | `#/` | `pages/HomePage.tsx` | `ElementIcon`, `data/releases` | `docs/02-app/accueil/` |
+| **RTA** | `#/rta`, `#/rta/ami` | `pages/RtaPage.tsx` | tout `components/rta/` | `docs/02-app/rta/` |
+| **Siège** | `#/siege/defense`, `/offense`, `/recommandations` | `pages/SiegePage.tsx` | tout `components/siege/` | `docs/02-app/siege/` |
+| **Mon compte** | `#/compte`, `/runes`, `/artefacts` | `pages/AccountPage.tsx` | tout `components/account/` | `docs/02-app/compte/` |
+| **Outils** | `#/outils/optimizer`, `/speed-tuning` | `pages/OutilsPage.tsx` | tout `components/outils/` | `docs/02-app/outils/`, `docs/02-app/optimizer/`, `docs/02-app/speed-tuning/`, `docs/02-app/degats-reels/` |
+| Bestiaire | `#/bestiary` | `pages/BestiaryPage.tsx` | `MonsterGrid`, `FilterBar`, `SearchBar`, `MonsterDetailDialog`, `account/Pager` | `docs/02-app/bestiaire/` |
+| Paramètres | `#/parametres` | `pages/SettingsPage.tsx` | `SettingsMenu`, `AccountImportControl` | `docs/02-app/transverse/` |
+| Mécaniques | `#/mecaniques` | `pages/MechanicsPage.tsx` | — (page statique) | `docs/02-app/mecaniques/` |
+| Nouveautés | `#/releases` | `pages/ReleasesPage.tsx` | `data/releases.ts` | `docs/02-app/nouveautes/` |
+| Télécharger (site seulement) | `#/telecharger` | `src/pages/TelechargerPage.tsx` | `src/lib/bureau.ts` (`TELECHARGEMENTS`), `src/components/IconesSystemes.tsx` | `docs/02-app/telecharger/` |
+| Arène | `#/arene` | `pages/ComingSoon.tsx` | — | `docs/02-app/arene/` |
 
 ### Détail des écrans denses
 
@@ -121,14 +123,14 @@ sont les deux racines ; dessous : `RunesList`, `RunesSummary`, `RunesCurve` +
 **Optimiseur** — `src/components/outils/OptimizerSection.tsx` (racine), `MonsterSourcePicker`
 (recherche — deux modes, bestiaire/compte réel), `OptimizerListPicker`
 (listes de travail), `SetComboPicker`, `BuildCandidateCard` — spec :
-`spec/outils/optimizer/ecran/README.md § Écran (de haut en bas)`. Hooks
+`docs/02-app/optimizer/ § Écran (de haut en bas)`. Hooks
 `useOptimizerState` + `useBuildOptimSearch` (saisie et recherche, jamais
 persistées) et `useOptimizerLists` (listes de travail créées par
 l'utilisateur + runes validées scopées par liste — seul état PERSISTÉ
-de l'écran — spec : `spec/outils/optimizer/listes-et-reservation.md § Listes de travail et
+de l'écran — spec : `docs/02-app/optimizer/ § Listes de travail et
 réservation de runes`). Moteur `lib/runeBuildOptim.ts`, exécuté dans
 `src/workers/runeBuildOptim.worker.ts` et
-`src/workers/buildHalf.worker.ts` — spec : `spec/outils/optimizer/moteur/elagages.md
+`src/workers/buildHalf.worker.ts` — spec : `docs/03-developpeur/optimizer/
 § Algorithme (résumé fonctionnel)`. ⚠️ Disposition mobile dédiée pour « Monstre &
 équipement » seul — le reste de l'écran n'est pas encore audité en
 mobile.
@@ -156,7 +158,7 @@ même moteur. Tout est testé dans `tests/speed-tune.test.ts`.
 
 ## 4. `src/ui/` — la librairie partagée
 
-Spec : [`spec/shared/librairie-ui.md`](spec/shared/librairie-ui.md).
+Spec : [`docs/03-developpeur/interface/`](docs/03-developpeur/interface/).
 **Rien ne se redessine ailleurs.** Ces composants combinent des **axes**
 (`ton` × `fond` × `trait` × `forme` × `taille`) plutôt que des variantes nommées.
 
@@ -240,7 +242,7 @@ dans un composant.
 
 ## 7. Style — `index.css` + `tailwind.config.js`
 
-Source de vérité du rendu : [`spec/shared/design.md`](spec/shared/design.md).
+Source de vérité du rendu : [`docs/03-developpeur/interface/`](docs/03-developpeur/interface/).
 
 - ⚠️ **Les tokens sont des TRIPLETS RGB**, consommés avec `<alpha-value>`. Écrits
   en hexadécimal, Tailwind n'émet **aucune** règle pour `bg-panel/50`.

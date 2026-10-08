@@ -77,7 +77,7 @@ const Flottant = forwardRef<HTMLDivElement, FlottantProps>(function Flottant(
 ) {
   // ⚠️ L'ORIGINE de l'animation suit le point d'ancrage : la surface grandit du
   // coin d'où elle sort, jamais depuis son centre — sinon elle paraît arriver de
-  // nulle part. Et jamais depuis `scale(0)`, voir spec/shared/design.md.
+  // nulle part. Et jamais depuis `scale(0)`, voir docs/03-developpeur/interface/.
   //
   // ⚠️ Les quatre classes sont écrites EN TOUTES LETTRES : Tailwind lit le code
   // source comme du texte, il ne l'exécute pas. Une classe assemblée à la volée

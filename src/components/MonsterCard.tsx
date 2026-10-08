@@ -11,7 +11,7 @@ import CollabPortrait from './CollabPortrait';
 // Délicieux sur vingt cartes, saccadé sur des centaines — la box d'un compte
 // entier n'est pas paginée. Le parent compare la taille de sa grille à ce seuil
 // et passe `anime={false}` au-dessus : le filtrage redevient instantané, on
-// garde le fondu pour les petites listes. Voir spec/compte/monstres.md.
+// garde le fondu pour les petites listes. Voir docs/02-app/compte/.
 export const SEUIL_ANIMATION_GRILLE = 48;
 
 const BORDER: Record<string, string> = {

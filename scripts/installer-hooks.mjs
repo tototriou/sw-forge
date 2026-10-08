@@ -1,10 +1,9 @@
 #!/usr/bin/env node
-// Installateur public des garde-fous : hook Git `pre-commit` (et le lint qu'il
-// importe), garde-fous Codex. Contrat : spec/outillage/spec.md,
+// Installateur public des garde-fous : hooks Git `pre-commit` (et le lint qu'il
+// importe) et `commit-msg`. Contrat : docs/03-developpeur/,
 // « Niveaux d'application et garde-fous », « Installation des garde-fous ».
 //
-//   node scripts/installer-hooks.mjs [--simulation] [--sans-cablage]
-//                                    [--codex-hooks <hooks.json personnel>]
+//   node scripts/installer-hooks.mjs [--simulation] [--sans-cablage] [--automatique]
 //
 // ⚠️ Ce qui s'exécute est l'INSTALLATION (`<git commun>/forge/installation/`),
 // jamais `scripts/` ni `.githooks/` du worktree : leur contenu dépendrait de la
@@ -15,7 +14,7 @@
 // quelle. Un manifeste v1
 // (`fichiers` seul) est migré en mémoire : ses empreintes sont gardées.
 import { execFileSync } from 'node:child_process';
-import { chmodSync, copyFileSync, existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
+import { chmodSync, copyFileSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { dirname, join, resolve } from 'node:path';
 
@@ -23,8 +22,14 @@ const PROPRIETAIRE = 'public';
 // Chemins de cet installateur (clé du manifeste = chemin dans le dépôt).
 const CHEMINS = [
   '.githooks/pre-commit',
+  '.githooks/commit-msg',
   'scripts/spec-lint.mjs',
   'scripts/lib/spec-markdown.mjs',
+];
+// Anciens chemins de cet installateur : leur copie installée et leur entrée
+// du manifeste sont retirées à l'installation, sans quoi elles resteraient
+// pour toujours sous l'installation.
+const RETIRES = [
   'scripts/hooks-codex-garde-fous.mjs',
   '.claude/hooks/refuse-commit-m.mjs',
   '.claude/hooks/refuse-sed-i.mjs',
@@ -33,19 +38,33 @@ const CHEMINS = [
 const PROPRIETAIRES_V1 = {
   'scripts/chantier.mjs': 'chantier',
   'scripts/hooks-codex.mjs': 'chantier',
-  ...Object.fromEntries(CHEMINS.map((c) => [c, PROPRIETAIRE])),
+  ...Object.fromEntries([...CHEMINS, ...RETIRES].map((c) => [c, PROPRIETAIRE])),
 };
-const GARDE_FOU_CODEX = 'scripts/hooks-codex-garde-fous.mjs';
 
 const ROUGE = '\x1b[31m';
 const VERT = '\x1b[32m';
 const JAUNE = '\x1b[33m';
 const FIN = '\x1b[0m';
 
+// `--automatique` : appel par le script `prepare` de `package.json`, donc à
+// chaque `npm install` ou `npm ci`. Il ne fait JAMAIS échouer l'installation
+// des dépendances : un refus ou une erreur deviennent un avertissement, code 0.
+const AUTOMATIQUE = process.argv.includes('--automatique');
+
 function refuser(titre, ...details) {
+  if (AUTOMATIQUE) {
+    console.log(`${JAUNE}⚠️ Garde-fous non installés : ${titre}${FIN}`);
+    process.exit(0);
+  }
   console.error(`${ROUGE}REFUSÉ — ${titre}${FIN}`);
   for (const d of details) console.error(`  ${d}`);
   process.exit(1);
+}
+
+if (AUTOMATIQUE) {
+  process.on('uncaughtException', (e) => refuser(`erreur inattendue (${e?.message ?? e})`));
+  // En CI, les vérifications passent par le workflow, pas par des hooks.
+  if (process.env.CI) process.exit(0);
 }
 
 function git(depot, ...args) {
@@ -98,42 +117,11 @@ function lireOptions(argv) {
   const options = {};
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
-    if (a === '--simulation' || a === '--sans-cablage') options[a.slice(2)] = true;
-    else if (a === '--codex-hooks') {
-      const valeur = argv[++i];
-      if (!valeur || valeur.startsWith('--')) refuser('--codex-hooks sans chemin');
-      options['codex-hooks'] = valeur;
-    } else if (a.startsWith('--codex-hooks=')) options['codex-hooks'] = a.slice('--codex-hooks='.length);
+    if (a === '--simulation' || a === '--sans-cablage' || a === '--automatique') options[a.slice(2)] = true;
     else refuser(`argument inconnu : ${a}`,
-      'Usage : node scripts/installer-hooks.mjs [--simulation] [--sans-cablage] [--codex-hooks <hooks.json>]');
+      'Usage : node scripts/installer-hooks.mjs [--simulation] [--sans-cablage] [--automatique]');
   }
   return options;
-}
-
-function installerHooksCodex(chemin, installation, simulation) {
-  // Opt-in personnel : aucun fichier .codex imposé aux autres contributeurs.
-  const config = existsSync(chemin) ? JSON.parse(readFileSync(chemin, 'utf8')) : {};
-  config.hooks ??= {};
-  const commande = `node "${emplacement(installation, GARDE_FOU_CODEX)}"`;
-  const groupes = config.hooks.PreToolUse ?? [];
-  if (groupes.some((g) => g.hooks?.some((h) => h.command === commande))) {
-    console.log(`Hooks Codex : garde-fou déjà présent dans ${chemin}.`);
-    return;
-  }
-  if (simulation) {
-    console.log(`  simulation : ajouterait le garde-fou PreToolUse à ${chemin}`);
-    return;
-  }
-  groupes.push({ matcher: 'Bash', hooks: [{ type: 'command', command: commande, timeout: 10,
-    statusMessage: 'SW Blacksmith : garde-fous' }] });
-  config.hooks.PreToolUse = groupes;
-  mkdirSync(dirname(chemin), { recursive: true });
-  // La copie d'avant SW Blacksmith s'écrit une seule fois : la refaire à
-  // chaque passage remplacerait l'original par une version déjà modifiée.
-  const copie = `${chemin}.avant-swblacksmith`;
-  if (existsSync(chemin) && !existsSync(copie)) copyFileSync(chemin, copie);
-  writeFileSync(chemin, JSON.stringify(config, null, 2) + '\n');
-  console.log(`Hooks Codex configurés : ${chemin}. Les approuver dans /hooks avant utilisation.`);
 }
 
 const options = lireOptions(process.argv.slice(2));
@@ -148,6 +136,21 @@ for (const rel of CHEMINS) {
 }
 
 const commit = git(depot, 'rev-parse', 'HEAD');
+
+// Jamais de retour en arrière automatique : un `npm install` sur une branche
+// ancienne remplacerait, pour tous les worktrees, l'installation par une
+// version plus vieille. On n'installe que si la tête courante CONTIENT le
+// commit installé ; sinon on garde l'existant (installation manuelle pour
+// forcer).
+if (AUTOMATIQUE && existsSync(cheminManifeste)) {
+  const installe = lireManifeste(cheminManifeste).commitSource;
+  if (installe && installe !== commit && gitOuNull(depot, 'merge-base', '--is-ancestor', installe, commit) === null) {
+    console.log(`Garde-fous : installation gardée (${installe.slice(0, 7)}), absente de la branche courante.` +
+      ' Pour la remplacer : node scripts/installer-hooks.mjs');
+    process.exit(0);
+  }
+}
+
 if (git(depot, 'status', '--porcelain') !== '') {
   console.log(`${JAUNE}⚠️ Le dépôt porte des modifications non commitées${FIN} : le manifeste` +
     ' enregistrera un commit qui ne décrit pas exactement ce qui est installé.');
@@ -167,6 +170,13 @@ if (simulation) {
     if (rel.startsWith('.githooks/')) chmodSync(dest, 0o755);
     manifeste.fichiers[rel] = empreinteFichier(dest);
     manifeste.entrees[rel] = { proprietaire: PROPRIETAIRE, source: source.replace(/\\/g, '/'), commit, date };
+  }
+  // Un ancien chemin n'est retiré que s'il est bien à cet installateur.
+  for (const rel of RETIRES) {
+    if (manifeste.entrees[rel]?.proprietaire !== PROPRIETAIRE) continue;
+    rmSync(emplacement(installation, rel), { force: true });
+    delete manifeste.fichiers[rel];
+    delete manifeste.entrees[rel];
   }
   manifeste.version = 2;
   manifeste.commitSource = commit;
@@ -200,6 +210,3 @@ if (actuel && normaliser(resolve(depot, actuel)) !== normaliser(cheminHooks)) {
   git(depot, 'config', 'core.hooksPath', cheminHooks);
   console.log(`  hooks câblés : ${cheminHooks}`);
 }
-
-// Indépendant du câblage Git : le garde-fou Codex ne passe pas par `pre-commit`.
-if (options['codex-hooks']) installerHooksCodex(resolve(options['codex-hooks']), installation, simulation);

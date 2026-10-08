@@ -9,7 +9,7 @@ import { ACTIF_FILTRE_LG, CADRE_FILTRE_LG, CASE_FILTRE_LG } from './gabaritFiltr
 
 // Filtre multi-sélection par set de runes, **icônes seules**.
 //
-// Règle d'interface (voir ../../spec/compte/runes.md) : partout où l'on filtre
+// Règle d'interface (voir docs/02-app/compte/) : partout où l'on filtre
 // sur les sets, on montre **l'icône du jeu sans le nom**. Les icônes sont
 // reconnues d'un coup d'œil par n'importe quel joueur, alors que les libellés
 // alignés sur une ligne font un mur de texte et limitent le nombre de sets
@@ -99,7 +99,7 @@ export default function SetFilter({
               data-cible-fine
               className={`flex items-center justify-center w-7 h-7 coarse:w-9 coarse:h-9 rounded-md border transition select-none ${CASE_FILTRE_LG}
                 ${
-                  // ⚠️ Fond seul (voir spec/shared/design.md). La bordure reste
+                  // ⚠️ Fond seul (voir docs/03-developpeur/interface/). La bordure reste
                   // TRANSPARENTE et non `border`, comme au repos : ces pastilles
                   // n'ont pas de contour, en faire apparaître un à la sélection
                   // ajouterait un second marqueur — c'est le fond qui parle.

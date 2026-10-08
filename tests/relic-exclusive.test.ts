@@ -1,5 +1,5 @@
 // Score chiffré des propriétés uniques de relique
-// (`spec/outils/optimizer/moteur/reliques.md`, « L'effet unique — score de la
+// (`docs/03-developpeur/optimizer/`, « L'effet unique — score de la
 // propriété exclusive »). Un test par GROUPE, contre des valeurs calculées À LA
 // MAIN depuis des pièces RÉELLES des deux exports de compte (le `rid` et le
 // `sec_effect = [type, tranche, percent]` de chacune sont cités en
@@ -8,7 +8,7 @@
 // ⚠️ **`game-data-curation` s'applique intégralement.** La formule
 // `⌊Y / t⌋ × percent` et le placement des groupes Conquête (terme `DMG%`),
 // Bravoure / Éternité / Origine (valeur de BASE) sont un RELEVÉ EN JEU, décrit
-// dans la section de `reliques.md` citée ci-dessus, pas une déduction. La
+// dans la section de `docs/03-developpeur/optimizer/` citée ci-dessus, pas une déduction. La
 // Ténacité fait exception : sa traduction en PV effectifs équivalents est une
 // SIMPLIFICATION, pas un relevé, et son test fige cette simplification. Deux
 // analogies de `damage.ts` s'étant déjà révélées fausses, aucune valeur n'est
@@ -63,7 +63,7 @@ const BASE: BaseStats = { hp: 25000, atk: 2000, def: 1800, spd: 200, cr: 15, cd:
 
 // ⚠️ `summonerSkills: 'combat'` est le DÉFAUT du jeu et de l'app (il n'existe
 // pas de cran « aucun ») : +20 % ATQ/DEF/PV et +15 % VIT, appliqués à la
-// BASE. Ils font partie de l'assiette `Y` (`spec/outils/optimizer/moteur/reliques.md`, « L'effet unique — score de la propriété exclusive »), donc chaque
+// BASE. Ils font partie de l'assiette `Y` (`docs/03-developpeur/optimizer/`, « L'effet unique — score de la propriété exclusive »), donc chaque
 // valeur attendue ci-dessous les inclut. `element: null` écarte en revanche
 // le +21 % ATQ de la compétence élémentaire, qu'un test dédié vérifie.
 const SETUP: DamageSetup = { ...DEFAULT_DAMAGE_SETUP };

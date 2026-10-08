@@ -116,7 +116,7 @@ export default function EtatMonstre({
           groupes-ci sont en `flex-wrap` : dès qu'un passe à la ligne, sa barre
           se retrouve à pendre dans le vide au bout d'une rangée. Un contour
           ferme le groupe où qu'il aille.
-          ⚠️ Un SEUL contour, jamais deux superposés (spec/shared/design.md) :
+          ⚠️ Un SEUL contour, jamais deux superposés (docs/03-developpeur/interface/) :
           ces boîtes sont à l'intérieur de la carte, elles ne longent pas son
           bord. Même patron que les groupes du panneau « Options » mobile.
           ⚠️ `items-stretch` : les trois boîtes prennent la hauteur de la plus
@@ -240,7 +240,7 @@ export default function EtatMonstre({
           groupes — un seul contour, à l'intérieur de la carte.
           ⚠️ **En dernier dans la carte** : ajouter une ligne ne pousse que
           vers le BAS, rien de ce qui précède — ni le bouton d'ajout, fixe en
-          tête de sa boîte (spec/shared/design.md, réponse n° 3). */}
+          tête de sa boîte (docs/03-developpeur/interface/, réponse n° 3). */}
       <AurasExternesSaisie setup={setup} maj={maj} rappel={rappelAuras} onGuiderResPre={onGuiderResPre} />
     </div>
   );
@@ -257,7 +257,7 @@ export default function EtatMonstre({
  * ⚠️ **Le bouton d'ajout est FIXE, en tête** (demande explicite) : les lignes
  * s'ajoutent SOUS lui, il ne bouge jamais sous le clic. Désactivé à somme 15
  * ou quand les cinq sets ont leur ligne, avec la raison en `title` — jamais
- * retiré du rendu (spec/shared/design.md, « un bouton d'action ne disparaît
+ * retiré du rendu (docs/03-developpeur/interface/, « un bouton d'action ne disparaît
  * jamais »).
  *
  * ⚠️ **Un champ vidé revient à 1 à la sortie du champ** (demande explicite) :
@@ -277,7 +277,7 @@ export default function EtatMonstre({
  * `panel2` — toujours un seul contour de 1 px. Son message occupe la MÊME
  * case de grille que l'en-tête (libellé, aide, total), invisible le reste du
  * temps : la case a donc déjà la hauteur du plus haut des deux, et rien ne
- * bouge quand il paraît (spec/shared/design.md, réponse n° 1). Pendant les
+ * bouge quand il paraît (docs/03-developpeur/interface/, réponse n° 1). Pendant les
  * 3 s, l'en-tête s'efface derrière lui.
  *
  * ⚠️ **L'ouverture guidée (7b) part d'`ecrire`, et de lui seul** : c'est le
@@ -345,7 +345,7 @@ function AurasExternesSaisie({
           réserve sa place (voir l'en-tête de ce composant). `aria-live` sur
           un conteneur toujours visible : le message qui y devient visible est
           annoncé. `apparition` : un message qui se pose en place
-          (spec/shared/design.md, Mouvement). */}
+          (docs/03-developpeur/interface/, Mouvement). */}
       <div className="col-start-1 row-start-1 self-center" aria-live="polite">
         <p
           className={`text-xs font-semibold text-warn ${
@@ -449,7 +449,7 @@ function LeaderSkillPicker({ setup, maj }: { setup: DamageSetup; maj: (patch: Pa
     /* ⚠️ **Une GRILLE de trois colonnes — libellé, icône, menus — dont TOUTES
         les places sont tenues d'avance.**
         Trois choses bougeaient ici au moindre clic, et c'est le même défaut
-        trois fois (spec/shared/design.md, « un clic ne déplace jamais ce qu'on
+        trois fois (docs/03-developpeur/interface/, « un clic ne déplace jamais ce qu'on
         vient de cliquer ») :
         1. le menu de la valeur se dépliait À DROITE du type, élargissant le
            groupe et poussant « Invocateur » ;
@@ -514,7 +514,7 @@ function LeaderSkillPicker({ setup, maj }: { setup: DamageSetup; maj: (patch: Pa
             palier, et un `<select>` natif se dimensionne sur le texte de
             l'option SÉLECTIONNÉE — il s'élargissait donc d'un coup et poussait
             le champ voisin. Un clic qui déplace ce qu'on vient de cliquer,
-            interdit par spec/shared/design.md. */
+            interdit par docs/03-developpeur/interface/. */
         <Selecteur
           value={String(lead.pct)}
           onChange={(e) => maj({ leaderSkill: { stat: lead.stat, pct: Number(e.target.value) } })}

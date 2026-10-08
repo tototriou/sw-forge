@@ -9,7 +9,7 @@
 // `rune-optim-parallel-pairing.test.ts`, qui vérifie le VOLUME de candidats
 // retrouvé sous vraie concurrence, pas la justesse du signal `truncated`.
 //
-// Étendu (voir spec/outils/optimizer/moteur/diagnostics.md,
+// Étendu (voir docs/03-developpeur/optimizer/,
 // « Quasi-succès à l'appariement ») : `combineParallelPairingResults` fusionne aussi
 // le near-miss de N tranches — vérifie qu'elle garde le MEILLEUR entre
 // elles, pas juste celui de la première/dernière, y compris quand une

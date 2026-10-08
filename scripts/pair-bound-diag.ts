@@ -7,7 +7,7 @@
 // ⚠️ Conclusion mesurée (voir estimatePairBound, runeBuildOptim.ts) : écart
 // de ×6 à ×300 000 000 selon le cas — le majorant n'est PAS affiché à
 // l'écran. Script conservé pour rejouer la mesure si le calcul est affiné un
-// jour (voir spec/outils/optimizer/pistes.md).
+// jour (voir docs/07-pilotage/).
 //
 // ⚠️ **POURQUOI CE SCRIPT SURVIT AU HARNAIS** : il est le seul porteur
 // d'`estimatePairBound`, dont l'intégration au palier 1 du harnais est

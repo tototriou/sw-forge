@@ -42,7 +42,7 @@ export function useEtatSession() {
 //
 // ⚠️ « Garder mes données » est redit au bureau au chargement et à chaque
 // changement : c'est lui qui décide si la session en cours survit à la
-// fermeture de l'app (spec/shared/sauvegarde-session.md). Un seul appelant :
+// fermeture de l'app (docs/02-app/transverse/). Un seul appelant :
 // `App.tsx`.
 export function useSessionEnCours(): EtatSession | null {
   const conserver = usePersistence();

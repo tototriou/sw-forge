@@ -1,7 +1,7 @@
 import type { Monster, SiegeTeam } from '../../types';
 
 // Recherche d'équipe de siège par monstre — ajout décidé par le mainteneur
-// (refonte graphique, décision 14) ; spec : spec/siege/README.md § Recherche
+// (refonte graphique, décision 14) ; spec : docs/02-app/siege/ § Recherche
 // d'équipe par monstre. Affichage seulement : un filtre de liste.
 
 // Insensible aux accents et à la casse : « chasun » trouve Chasun, « eleonore »

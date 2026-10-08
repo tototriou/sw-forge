@@ -107,7 +107,7 @@ export interface EffectLine {
   // Substats d'ARTÉFACT : nombre d'améliorations tombées sur cette ligne
   // (`sec_effects[i][2]`). ⚠️ Ne pas confondre avec `enchant`, qui vient de
   // `[4]` : celui-là marque un substat modifié et monte jusqu'à 87 — il ne
-  // compte aucun roll. Voir spec/compte/calcul-artefacts.md §1.
+  // compte aucun roll. Voir docs/02-app/compte/ §1.
   rolls?: number;
 }
 
@@ -215,7 +215,7 @@ export interface ArtifactDetail {
 //
 // ⚠️ **Ce que l'effet FAIT n'est nulle part dans l'export** : `type` est un
 // numéro, et aucune table ne l'accompagne. On affiche donc la formule, jamais
-// un libellé inventé — voir spec/compte/calcul-runes.md § Relique.
+// un libellé inventé — voir docs/02-app/compte/ § Relique.
 export interface RelicUnique {
   type: number; // identifiant de la propriété unique (= `type` de la relique)
   tranche: number; // taille de la tranche de stat (elle DIMINUE quand la relique monte)
@@ -381,7 +381,7 @@ export interface RecoSlot {
   //
   // ⚠️ La liste contient **toujours au moins une possibilité** (éventuellement
   // vide = « aucun set exigé »), et la confrontation est satisfaite dès qu'**UNE
-  // SEULE** l'est. Voir ../spec/siege/recommandations.md.
+  // SEULE** l'est. Voir ../docs/02-app/siege/.
   setOptions: string[][];
   // Propriétés secondaires d'artéfact exigées, **par sorte d'artéfact** : jusqu'à
   // 4 sur celui d'attribut et 4 sur celui de type (les 4 emplacements du jeu).

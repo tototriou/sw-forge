@@ -12,7 +12,7 @@
 //
 // Valeurs de jeu : formules, coups et améliorations des fiches SWARFARM
 // (`public/data/skills`), recopiées ici à la main ; inclusion par interrupteur,
-// lignes d'artéfact et ordre des effets des Maîtres ivres : `spec/outils/degats-reels/valeurs-de-jeu-curees.md`,
+// lignes d'artéfact et ordre des effets des Maîtres ivres : `docs/02-app/degats-reels/`,
 // réponses de
 // l'utilisateur. Aucun nombre attendu n'est relu dans le code
 // qui calcule, aucun cas n'est déduit d'un voisin.

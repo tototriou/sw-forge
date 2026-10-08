@@ -1,5 +1,5 @@
 // Palette Ctrl K — ce qu'elle propose pour une saisie (refonte graphique,
-// lot 13, décision 29 ; spec/shared/navigation.md § Palette Ctrl K).
+// lot 13, décision 29 ; docs/02-app/transverse/ § Palette Ctrl K).
 
 import { MAX_EQUIPES, MAX_MONSTRES, resultatsPalette, type EntreePalette } from '../src/components/palette/recherchePalette';
 import type { Monster, SiegeTeam } from '../src/types';

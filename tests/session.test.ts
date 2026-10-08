@@ -1,5 +1,5 @@
 // La sauvegarde de session — le format (src/lib/session.ts,
-// spec/shared/sauvegarde-session.md).
+// docs/02-app/transverse/).
 //
 // ⚠️ Ce que le format promet : un aller-retour composer → écrire → relire
 // rend EXACTEMENT ce qui a été sauvegardé (le compte, le travail, les

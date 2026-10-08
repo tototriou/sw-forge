@@ -5,7 +5,7 @@
 // ~3 000 monstres pèse une vingtaine de mégaoctets : tout embarquer ferait
 // télécharger 20 Mo à qui vient consulter UN monstre. Découpé, la fiche ne
 // charge que le sien (~6 Ko), et une fois vu il reste en cache — donc lisible
-// hors ligne, ce à quoi le projet tient (voir spec/README.md).
+// hors ligne, ce à quoi le projet tient (voir docs/03-developpeur/).
 //
 // ⚠️ **Pré-généré en CI, jamais appelé depuis le navigateur.** Interroger
 // SWARFARM à l'exécution ajouterait une dépendance réseau, du CORS et une panne

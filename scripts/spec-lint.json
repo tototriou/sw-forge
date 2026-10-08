@@ -1,0 +1,25 @@
+{
+  "perimetre": [
+    "docs/02-app/outils/**",
+    "docs/02-app/speed-tuning/**",
+    "docs/02-app/degats-reels/**",
+    "docs/02-app/optimizer/**",
+    "docs/03-developpeur/optimizer/**",
+    "docs/03-developpeur/qualite-code.md",
+    "docs/03-developpeur/renvois.md",
+    "docs/03-developpeur/outillage-docs.md",
+    "docs/05-decisions/adr/choix-de-recherche-degats-reels.md",
+    "docs/07-pilotage/pistes-degats-reels.md",
+    "docs/07-pilotage/pistes-degats-reels-stats.md",
+    "docs/07-pilotage/pistes-optimizer.md",
+    "docs/07-pilotage/pistes-optimizer-vitesse.md"
+  ],
+  "exceptions": [
+    {
+      "fichier": "docs/02-app/speed-tuning/README.md",
+      "raison": "fichier > 500 lignes, préexistant au lint",
+      "condition_de_suppression": "prochain chantier speed tuning",
+      "chantier_responsable": "speed-tuning"
+    }
+  ]
+}

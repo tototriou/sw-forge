@@ -585,7 +585,7 @@ export default function CurveChart({
             simplement pas peint — invisible, sans erreur.
             ⚠️ `accent-lisible`, pas `accent` : c'est un TRAIT, et la braise vive
             tombe à 2.1-2.6 sur les fonds clairs (rebranding, décision 11).
-            Voir spec/shared/design.md. */}
+            Voir docs/03-developpeur/interface/. */}
         {choisi && runesChoisies.length > 0 && (
           <g pointerEvents="none">
             <line

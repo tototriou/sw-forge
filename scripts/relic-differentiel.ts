@@ -1,5 +1,5 @@
 // Le différentiel de fidélité de la dimension relique (voir
-// spec/outils/optimizer/moteur/reliques.md,
+// docs/03-developpeur/optimizer/,
 // « Oracle de la dimension relique ») : pour UN point de la grille,
 // l'oracle (N recherches, une par principale éligible) puis l'option A
 // ENTIÈRE (une recherche relâchée + la résolution exacte de TOUS ses

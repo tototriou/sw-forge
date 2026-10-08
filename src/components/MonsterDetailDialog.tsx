@@ -200,7 +200,7 @@ export default function MonsterDetailDialog({
             <LeadPill ls={forme.leaderSkill} size="lg" pleineLargeur />
           )}
           {/* Stats du monstre 6★ nu — les mêmes que celles qui servent aux calculs
-              de l'app (voir spec/shared/donnees-monstres.md).
+              de l'app (voir docs/02-app/transverse/).
               ⚠️ **UNE colonne, une stat par ligne**, et non une grille 2×4 : les
               valeurs s'alignent alors les unes SOUS les autres, ce qui permet de les
               comparer d'un monstre à l'autre et de repérer un ordre de grandeur d'un

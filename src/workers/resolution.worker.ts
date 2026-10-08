@@ -8,7 +8,7 @@
 // `self.onmessage`/`postMessage` dessus. Les types du protocole vivent avec
 // le corps.
 //
-// Branchée par la file (`useArtifactOptimQueue`, spec/outils/optimizer/moteur/parallelisation.md
+// Branchée par la file (`useArtifactOptimQueue`, docs/03-developpeur/optimizer/
 // § Worker de résolution) : un Worker pour la vie du hook, piloté par `ResolutionDistante`
 // (resolutionDistante.ts) — au plus deux demandes à la fois, réponses périmées
 // ignorées, chemin direct en repli. Comme pour les autres coquilles, son

@@ -2,7 +2,7 @@
 // l'usage EXCLUSIF de scripts/perf-battery.ts — pour que la mesure de
 // construction reflète le vrai comportement de l'app (les deux moitiés A/B
 // construites EN PARALLÈLE sur deux fils séparés, voir
-// spec/outils/optimizer/moteur/pipeline.md,
+// docs/03-developpeur/optimizer/,
 // « Construction des moitiés »), pas une simulation séquentielle dans le même processus qui
 // gonflerait artificiellement le temps de construction mesuré.
 //
@@ -60,8 +60,8 @@ export interface BuildHalfWorkerData {
   horodaterProgression?: boolean;
 }
 /**
- * Relevé mémoire de FIN de moitié — spec/outils/optimizer/
- * harnais-extensions.md, « La construction observée », palier **LÉGER**.
+ * Relevé mémoire de FIN de moitié — docs/03-developpeur/optimizer/
+ * (harnais, extensions), « La construction observée », palier **LÉGER**.
  *
  * ⚠️ **Pourquoi la mesure est propre ici et nulle part ailleurs** : chaque
  * moitié tourne dans son PROPRE `worker_threads`, donc dans son propre tas.

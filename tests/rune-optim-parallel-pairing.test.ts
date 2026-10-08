@@ -1,5 +1,5 @@
 // Test différentiel de la parallélisation de l'APPARIEMENT (voir
-// runeBuildOptim.worker.ts, `runParallelPairing`, et spec/outils/optimizer/moteur/parallelisation.md,
+// runeBuildOptim.worker.ts, `runParallelPairing`, et docs/03-developpeur/optimizer/,
 // « Répartition et partage du plafond »). Deux régimes, PAS un seul depuis que la
 // parallélisation s'applique aussi en recherche normale :
 // 1. Budget INFINI (mode exhaustif) : découper `bucketsA` et appareiller
@@ -26,7 +26,7 @@
 //        plafond GLOBAL entier, non divisé — un écart de fidélité qui
 //        empêcherait de détecter le genre de perte par famine de quota
 //        confirmée sur un cas réel (Camilla ;
-//        spec/outils/optimizer/moteur/parallelisation.md). Avec de vrais
+//        docs/03-developpeur/optimizer/). Avec de vrais
 //        workers ET la vraie division du
 //        plafond, l'égalité stricte n'est PAS attendue (le parallèle peut
 //        trouver PLUS ou MOINS que le séquentiel selon la répartition
@@ -197,7 +197,7 @@ export default async function testRuneOptimParallelPairing() {
   // attribué au mécanisme d'ESCALADE du budget de paires, depuis supprimé,
   // la valeur de 30 s reste vérifiée telle quelle ci-dessous,
   // sans plus dépendre de lui.
-  // Voir spec/outils/optimizer/moteur/parallelisation.md, « Répartition et partage du plafond ». ──
+  // Voir docs/03-developpeur/optimizer/, « Répartition et partage du plafond ». ──
   {
     let scenariosTronques = 0;
     let auMoinsUneQuotaTronque = false;
@@ -246,7 +246,7 @@ export default async function testRuneOptimParallelPairing() {
       // confirmé sur un cas réel (Camilla, 25 % de perte), ce n'est plus un
       // bug à détecter mais une conséquence attendue de la division
       // (voir
-      // spec/outils/optimizer/moteur/parallelisation.md, « Répartition et partage du plafond »).
+      // docs/03-developpeur/optimizer/, « Répartition et partage du plafond »).
       // ⚠️ S'appelait `runWithEscalation` : elle reproduisait à la main
       // l'escalade de budget du chemin de production, sans laquelle un
       // pilotage pas à pas explorait une fraction dérisoire de l'espace. Le

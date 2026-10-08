@@ -1,0 +1,833 @@
+# Librairie UI — le vocabulaire visuel commun
+
+> **Source de vérité** pour la façon dont un contrôle se dessine. Les VALEURS
+> (couleurs, échelle de texte, rayons) restent dans
+> [design.md](design.md) ; ce document dit **quels composants existent** et
+> **comment on choisit entre eux**.
+>
+> Code : [`src/ui/`](../../../src/ui/), point d'entrée unique
+> [`src/ui/index.ts`](../../../src/ui/index.ts).
+
+## Le problème que ce dossier résout
+
+Avant lui, chaque écran redessinait ses boutons. Un même bouton d'action existait
+en une quarantaine d'exemplaires, chacun avec ses classes recopiées puis
+divaguées : rembourrages différents à deux pixels près, deux rayons de coin,
+trois façons de dire « désactivé ».
+
+La conséquence n'était pas esthétique mais **économique** : demander « réduis les
+boutons sur téléphone » voulait dire refaire le même travail dans dix-sept
+fichiers, et en oublier trois.
+
+Une tentative avait déjà eu lieu, sous forme d'un fichier de **constantes de
+classes** (`buttonStyles.ts`). Elle a échoué, et il faut savoir pourquoi :
+
+> ⚠️ **Une constante de classes se contourne, un composant non.** Sept fichiers
+> importaient `BOUTON_PRIMAIRE`, quarante dessinaient des boutons à la main. Rien
+> ne s'opposait à recopier la chaîne en y ajoutant « juste un `px-2` pour ce
+> cas » — et la divergence repartait. Un composant impose sa structure : la
+> hauteur tactile, la pression au clic, l'état désactivé ne sont plus négociables
+> au point d'appel.
+
+## La règle qui gouverne tout le reste
+
+> ⚠️ **Un composant dessiné dans `src/ui/` ne se redessine nulle part ailleurs.**
+> Si un écran a besoin d'un bouton, il importe `Bouton`. S'il a besoin d'un
+> bouton qui n'existe pas, on ajoute **un axe** au bouton — jamais un bouton de
+> plus dans un dossier de page.
+
+## Des AXES, pas un catalogue de variantes
+
+C'est la décision structurante de cette librairie, et elle a été prise **contre**
+un premier jet qui nommait ses styles par intention (`principal`, `discret`,
+`destructeur`…).
+
+Ce premier jet ne tient pas : dès qu'un écran veut un bouton d'ajout **en
+pointillés**, il faut une cinquième entrée. Puis une sixième pour la même chose
+en rouge. Puis une septième pour la version sans fond. Le catalogue grossit d'une
+ligne à chaque écran neuf, et les combinaisons manquantes se règlent en
+`className` — c'est-à-dire par le contournement qu'on cherchait à empêcher.
+
+Les axes se **choisissent séparément et se combinent** :
+
+| Axe | Valeurs | Ce qu'il décide |
+|-----|---------|-----------------|
+| `ton` | `neutre`, `accent`, `danger` | La **couleur** de l'action |
+| `fond` | `vide`, `doux`, `plein` | Le **remplissage** |
+| `trait` | `aucun`, `plein`, `pointille` | Le **contour** |
+| `forme` | `boite`, `pilule` | Le **rayon des coins** |
+| `taille` | `xs`, `sm`, `md`, `carre` | L'**encombrement** |
+
+> ⚠️ **À la souris, le gabarit des boutons de la maquette** (refonte
+> graphique, décision 16 — « le même rendu que sur la maquette au niveau des
+> boutons ») : `md` = `.btn`, **32 px** de haut, 12 px de côté, 13 px de
+> texte ; `sm` = `.btn-sm`, **28 px**, 10 px, 12 px ; rayon 8 px. Un bouton
+> d'icône est un carré de la même hauteur : `BoutonIcone` = 28 px
+> (`.btn-icon.btn-sm`), le « ⋯ » d'en-tête = 32 px (`.btn-icon`).
+> `Segmented` = `.seg` : cadre de 32 px, crans de 26. `min-h` et non `h` :
+> un libellé qui passe à la ligne agrandit le bouton au lieu de déborder.
+> `xs` et `serre` restent hors échelle — ils vivent DANS un contenant plus
+> petit qu'elle. **Le survol peint le fond** : `panel2` (l'équivalent du
+> `--hover` de la maquette, même écart au panneau dans les deux thèmes) sur
+> un bouton neutre, `bad-soft` sur un `danger` sans fond — et plus le contour
+> d'accent, ni le voile noir propre à `BoutonIcone`. Au doigt, rien ne change
+> (lot 11) : tailles en `lg:`, survol en `hoverable:`.
+
+> ⚠️ **Les états de la toile, sans ses hauteurs** (rebranding, R3a — décisions
+> 17 et 21). Le bouton principal (`accent` + `plein`) prend le **survol**
+> `accent-hover` et l'**appui** `accent-appui` (le filtre `brightness-110`
+> disparaît) ; **désactivé**, il devient un aplat gris (`panel2`, encre
+> `ink-dimmer`) au lieu d'une braise à 40 % d'opacité, boueuse. Tout `Bouton`
+> **descend d'1 px** à l'appui (`data-bouton`, voir design.md § Pression).
+> Les hauteurs restent les nôtres (28 / 32 au bureau, 40 au doigt), pas les
+> 36 / 44 / 52 de la toile : notre densité est gardée.
+> Le **« fantôme »** de la toile est `ton="accent"` + `fond="vide"` : texte en
+> braise lisible, fond braise sombre au survol (R3c). Personne n'employait
+> cette combinaison avant ; elle porte l'action d'une notification.
+> ⚠️ `active:!bg-accent-appui` et `disabled:!bg-panel2` portent un
+> `!important`, à dessein : les variantes du plugin (`hoverable:`) sont émises
+> APRÈS `active:` et `disabled:` dans le CSS construit, et le survol
+> l'emportait à spécificité égale — pas d'appui visible à la souris, une
+> braise qui se rallumait sur un bouton désactivé.
+
+> ⚠️ **`fond` décide aussi de la COULEUR DU CONTENU**, pas seulement du
+> remplissage. Un bouton sans fond prend une icône qui vire à la teinte de son
+> ton au survol — juste sur une surface neutre. Sur un fond peint de cette même
+> teinte, cela donnait une **croix rouge sur fond rouge** : l'icône disparaissait
+> exactement au moment où on la vise. D'où trois cas de texte (`nu`, `doux`,
+> `plein`) et non deux, et d'où un `fond="plein"` **opaque** pour le ton
+> `danger` : c'est le cran des actions posées SUR autre chose, où un fond
+> translucide laisse passer l'image dessous.
+>
+> ⚠️ **`ton="accent"` + `fond="plein"` est le BOUTON PRINCIPAL** : un aplat
+> d'accent, texte `accent-ink` (blanc en Atelier, fond sombre en Forge —
+> mesurés, `design.md` § Accent). **Un seul par écran** : l'action qu'on vient
+> faire. Il valait `accent-soft` comme `doux` jusqu'à la refonte graphique
+> (décision 4 du mainteneur, 2026-09-24) — l'app n'avait aucun bouton principal
+> qui ressorte. `BoutonGroupe` suit la même règle.
+>
+> ⚠️ Corollaire : **ne jamais peindre un fond en `className`.** Le composant ne
+> peut pas le savoir, et choisit alors la couleur de contenu du fond nu.
+
+> ⚠️ **`taille="carre"` n'a aucun rembourrage, dans aucune direction.** Elle
+> existe parce qu'un `p-0` posé en `className` par-dessus une taille qui
+> rembourre **ne marche pas de façon fiable** : l'ordre des classes dans
+> l'attribut ne décide de rien, c'est leur ordre dans la feuille de style qui
+> tranche. Les boutons-icônes s'affichaient vides — colorés, cliquables, sans
+> icône — parce que le `py-1` de la taille `sm` mangeait les 20 px de hauteur.
+> Une annulation après coup marche ou ne marche pas selon ce que Tailwind a émis
+> en premier ; une taille à part ne peut pas entrer en conflit.
+
+Trois axes de couleur × trois de fond × trois de trait couvrent ce que douze
+variantes nommées n'auraient pas couvert. Et surtout :
+
+> ⚠️ **La librairie ne grossit que si un AXE manque**, jamais parce qu'un écran
+> de plus a un besoin de plus. « Bouton d'ajout » n'est pas une variante : c'est
+> `trait="pointille"`, et le pointillé dit « contenant pas encore rempli » dans
+> toute l'app, pas seulement là où on l'a écrit.
+
+### Le piège de la règle tactile
+
+> ⚠️ **Un bouton natif POSÉ DANS un contenant y impose sa hauteur.** La règle
+> globale porte tout `<button>` à 40 px au doigt (voir `index.css`). Sur un
+> bouton qui vit dans une pilule, une carte ou une rangée dense, ce n'est pas lui
+> qui grandit : c'est **son contenant**, qui double de hauteur sans que rien dans
+> son propre code ne l'explique. La rangée des leads SPD y prenait deux fois la
+> place nécessaire, et le fautif était un bouton intérieur de 20 px.
+>
+> La sortie est `data-cible-fine`, et elle se justifie à chaque fois : elle ne
+> s'emploie que si **la cible reste atteignable autrement** — parce que le
+> contenant entier est touchable, ou parce que rien d'autre n'est cliquable
+> autour. Les composants de la librairie la posent déjà (`BoutonIcone`
+> `taille="serre"`, `Selecteur` `taille="dense"`, `Pastille` via
+> `data-hauteur-fixe`) ; **un `<button>` écrit à la main ne la pose pas**, et
+> c'est exactement là que le bug revient.
+
+### Axes de comportement
+
+Quatre axes ne touchent pas à l'apparence au repos mais à ce que le bouton fait
+selon le contexte, ou à ce qu'il est :
+
+- **`nuAuDoigt`** — le bouton se déshabille au tactile : plus de cadre, plus de
+  fond, plus de rembourrage, il ne reste que l'icône. ⚠️ **Réservé aux barres où
+  le même geste se répète cinq ou six fois.** Six boutons encadrés font six
+  carrés dans une barre qu'on cherche à compacter, et le cadre n'apprend rien :
+  l'icône dit l'action, sa présence dit qu'on peut la toucher. Il pose
+  `cible-tactile`, qui rend 44 px touchables **sans qu'un pixel du dessin ne
+  bouge** — sinon la règle des 40 px regonflerait ce qu'on vient de déshabiller.
+- **`libelleAuDoigt`** — le libellé tombe et ne reste que l'icône. ⚠️ Sans effet
+  s'il n'y a pas d'icône : un bouton muet n'est plus un bouton.
+- **`actif`** — bouton à **deux états**. Il prend le fond de son ton et pose
+  `aria-pressed` : sans quoi un lecteur d'écran annonce « bouton » là où
+  l'utilisateur voit un interrupteur.
+- **`href`** — un **lien** au dessin de bouton (application de bureau, lot 6 :
+  « Télécharger pour Windows ») : rendu en `<a href>`, mêmes classes, même
+  appui (`[data-bouton]` d'`index.css`). Un téléchargement, une page externe
+  sont des liens — on peut en copier l'adresse, le lecteur d'écran dit
+  « lien ». ⚠️ Jamais un `<button onClick={() => location.href = …}>` : il
+  ressemblerait au lien sans en être un.
+
+> ⚠️ **Le libellé se masque, il ne DISPARAÎT pas.** C'est pourquoi l'API est
+> `icone` + `libelle` et non un `children` libre : le panneau d'actions mobile
+> **rend les mots** quand la place existe (règle `[data-tiroir]` dans
+> `index.css`), et il ne peut le faire que si le libellé est dans un `<span>`
+> repérable. Un texte écrit en dur dans `children` n'est plus rattrapable, et la
+> rangée d'icônes nues du panneau redevient un rébus.
+
+## Les composants
+
+### Fondation
+
+**`Bouton`** — toute pression qui n'est pas une pastille de filtre. Porte les
+cinq axes ci-dessus.
+
+### Préréglages
+
+Ils n'ont **pas de style propre** : ce sont des `Bouton` dont certains axes sont
+fixés. Un changement dans `Bouton` les traverse tous sans qu'on y touche.
+
+**`BoutonGroupe`** — **le** bouton des rangées : un libellé, une icône
+**optionnelle** à gauche, des actions **optionnelles** accolées à droite. Une
+pilule de catégorie (puce + nom + éditer + supprimer), une pilule de lead
+(pourcentage + retirer), un filtre (« Sans lead »), un interrupteur d'affichage
+(« Vitesses »), un bouton d'ajout en pointillés.
+
+> ⚠️ **Un seul composant pour ces cinq-là**, alors qu'ils étaient cinq écritures
+> différentes. Ce qui les distingue n'est pas leur nature — ce sont tous des
+> boutons d'une même rangée, à la même hauteur — mais la seule présence ou
+> absence de décorations. Cela se dit avec deux props facultatives, pas avec cinq
+> composants. Et une rangée qui les mélange ne fait plus de **dents de scie**,
+> puisque la hauteur est écrite à un seul endroit.
+
+> ⚠️ **Le cadre porte le style, les boutons sont transparents dedans.** C'est une
+> contrainte du HTML avant d'être un choix : un `<button>` dans un `<button>` est
+> invalide. Le conteneur n'est donc pas un bouton — il dessine, ses enfants
+> agissent. Bénéfice au passage : aucune couture entre le bouton principal et ses
+> actions, là où trois boutons côte à côte laissent deux traits.
+
+> ⚠️ **UN SEUL MARQUEUR d'état : le fond.** Il cumulait fond + bordure teintée +
+> ombre — trois signaux pour dire une seule chose. Le bouton se surlignait deux
+> fois et bavait sur ses voisins. L'ombre part aussi : un bouton actif ne
+> **décolle** pas de la page, l'élévation est réservée à ce qui flotte.
+
+> ⚠️ Il pose `data-cible-fine` sur son bouton principal, et **c'est son cœur** :
+> sans lui, la règle tactile ne gonflerait pas ce bouton mais le **cadre** qui
+> l'enveloppe. Rien n'est perdu — le bouton occupe toute la surface du groupe
+> sauf les actions.
+
+**`BoutonIcone`** — réduit à son icône. ⚠️ `libelle` est **obligatoire et jamais
+dessiné** : il alimente `aria-label` et `title` à la fois. L'app comptait une
+dizaine de boutons muets pour un lecteur d'écran ; le rendre obligatoire dans le
+type est la seule façon de ne plus avoir à y penser.
+
+- `taille="serre"` n'est **pas « plus petit »**, c'est une **exemption tactile** :
+  un bouton posé DANS un contenant plus petit que la cible de 40 px (les deux
+  boutons d'une pilule de 28 px). Portés à 40 px ils la débordent ; dotés en plus
+  d'une zone étendue de 44 px ils se chevauchent, et **on supprime la catégorie
+  en voulant l'éditer**.
+- `zoneEtendue` — **le dessin reste petit, la cible fait 44 px.** C'est
+  l'INVERSE de `serre`, et les deux ne se confondent pas :
+
+  | | `serre` | `zoneEtendue` |
+  |---|---|---|
+  | Pour | un bouton **dans** un contenant plus petit que 40 px | un bouton **isolé**, posé sur une surface |
+  | Dessin | 20 px | inchangé (28 px) |
+  | Zone touchable | celle du dessin | **44 px** |
+  | Pourquoi pas l'autre | une zone étendue chevaucherait le voisin | sans zone étendue, on vise 28 px au pouce |
+
+  ⚠️ Il pose `data-cible-fine` **et** `cible-tactile` **ensemble**, et c'est
+  tout l'intérêt d'en faire un seul axe : le premier seul laisse la cible sous
+  les 44 px réglementaires, le second seul laisse la règle globale étirer le
+  bouton en **ovale de 28 × 40**. Les séparer casse soit la visée, soit la forme
+  — c'est arrivé deux fois avant que l'axe existe.
+  ⚠️ **Incident réel, corrigé** : `zoneEtendue` posait `cible-tactile` sans que
+  l'élément soit `position: relative` — utilisé par `HelpPopover` (donc
+  quasiment partout dans l'app), ça a produit une zone tactile invisible de la
+  taille de LA PAGE ENTIÈRE (le référentiel du pseudo-élément remontait jusqu'à
+  `<body>`), interceptant clics/survols ailleurs sur l'écran. Corrigé à la
+  source (`.cible-tactile { position: relative }` dans `index.css`, plus
+  seulement sur `::after`) — voir [design.md](design.md), section
+  « cible-tactile », pour le détail complet de l'incident et la mesure.
+- `forme` — **transmise, alors qu'elle était seulement annoncée.** L'en-tête du
+  composant dit depuis toujours que les axes du bouton restent ouverts, `forme`
+  comprise ; elle ne l'était pas, et se déduisait de `taille`. Un bouton d'icône
+  **rond de taille normale** était donc impossible sans réécrire son rayon
+  par-dessus. Défaut inchangé : `pilule` quand `serre`, `boite` sinon.
+- `auSurvol` — n'apparaît qu'au survol du conteneur (qui porte `group`).
+  ⚠️ **JAMAIS `hidden group-hover:flex`** : l'élément sortirait du flux, donc ne
+  serait ni focusable au clavier ni atteignable au doigt — on ne pouvait plus
+  retirer un monstre sur téléphone. On joue sur l'**opacité**, et il est visible
+  d'office là où il n'y a pas de survol.
+- `libelleALaSouris` — **à la souris, le libellé s'écrit à côté de l'icône** :
+  le carré devient un bouton `sm` à libellé (28 px, 10 px de côté). Au doigt,
+  l'icône seule, inchangée. Né au lot 7b de la refonte (Recommandations) : la
+  maquette écrit « Éditer ce deck » en pied du détail, le téléphone garde le
+  crayon. ⚠️ **Un seul élément, deux dessins** — et non une icône `lg:hidden`
+  plus un bouton `hidden lg:inline-flex` : deux éléments pour un geste, c'est
+  deux cibles au clavier et deux annonces au lecteur d'écran.
+  ⚠️ **À CADRE à la souris** (`.btn-secondary` : fond `panel`, contour
+  `border`, survol `panel2` ; `danger` : contour et texte `bad`, survol
+  `bad-soft`) — un bouton à libellé posé parmi d'autres boutons à libellé
+  doit leur ressembler. Nu, il ne ressortait pas (le mainteneur, 2026-09-27).
+
+### Composants à part entière
+
+**`BarreActions`** — les actions d'un EN-TÊTE d'écran : **toutes en boutons
+quand elles tiennent sur la ligne, sinon les actions `toujours` + un `Menu`
+« ⋯ »** pour les `autres`. Les entrées sont les mêmes `ElementMenu` dans les
+deux formes (libellé, icône, désactivation et raison, `danger` rangé en
+dernier derrière un filet) : aucune action n'existe que dans l'une. Demandé par
+Le mainteneur (RTA, lot 6) : « sur PC, afficher ces boutons si on a la place ».
+⚠️ **La place se MESURE** : une copie invisible et `inert` de la rangée complète
+est comparée à la largeur disponible, à chaque redimensionnement. Un point de
+rupture fixe se tromperait — la place dépend aussi de la barre latérale
+(dépliée ou repliée) et du titre de l'écran. ⚠️ En rendu serveur et au premier
+rendu, c'est le **menu** (la forme qui tient partout) ; le basculement se fait
+dans un `useLayoutEffect`, avant la première peinture. Tous ses boutons ont la
+hauteur d'en-tête (`HAUTEUR_EN_TETE`).
+Un axe d'entrée en plus de `danger` (lot 7a, Siège) : **`actif`** — un
+bouton à deux états (`aria-pressed`, fond d'accent enclenché), qui devient une
+entrée à cocher (`menuitemcheckbox`) s'il tombe dans le menu.
+⚠️ **Pas d'axe « principal »** : aucune action n'est mise en avant dans un
+en-tête d'écran. Un aplat d'accent a été essayé sur « Vérifier mes speed » et
+retiré par le mainteneur (« ça rend pas bien ») — décision 4 précisée.
+
+**`Menu`** — un bouton « ⋯ » (nommé par `libelle`) qui ouvre sous lui,
+ancrée à droite, une liste d'actions (`Flottant`, `role="menu"`).
+⚠️ **Le « ⋯ » a la hauteur des boutons d'EN-TÊTE, 36 px au doigt, 32 px à
+la souris** (`HAUTEUR_EN_TETE`, exportée ; 32 = un bouton `md`, décision 16) — pas les 28 px d'un `BoutonIcone` : posé à côté
+d'un bouton d'action (« Exporter » dans la RTA), il faisait deux hauteurs
+voisines, lues comme deux familles de boutons (relevé par le mainteneur). Les
+boutons voisins s'y alignent en reprenant la constante. C'est un `Bouton`
+carré dimensionné, pas un `BoutonIcone` dont on écraserait le `h-7` : deux
+hauteurs dans la même classe, l'ordre de la feuille de style trancherait. Chaque entrée : icône, libellé, `disabled` + `title` pour dire
+pourquoi, et `danger` pour un geste qui perd quelque chose — rangé en dernier,
+derrière un filet, en `bad`. Clavier : flèches, Début / Fin, Échap (rend le
+focus au bouton), Tab referme ; un clic dehors aussi.
+⚠️ **Les entrées restent dans le DOM, menu fermé** (`hidden`) : un bouton ne
+quitte jamais le DOM selon l'état de l'écran, et c'est ce qui laisse les tests
+de rendu retrouver chaque action, son état et sa raison.
+⚠️ **Monté à son PREMIER usage** (la RTA, refonte graphique lot 6, décision
+13), contre la règle du deuxième (« Quand ajouter quelque chose ») : l'écrire
+dans l'écran aurait fait un contrôle MAISON — ce que la règle qui gouverne tout
+le reste interdit — et les maquettes en posent un dans plusieurs écrans.
+**Deux axes** nés de la carte du compte (application de bureau, lot 9 : le
+choix de l'invocateur « au niveau du menu principal ») : `declencheur` — le
+bouton qui ouvre le menu, quand ce n'est pas le « ⋯ » ; il reçoit ce qu'il doit
+poser sur son bouton (`ref`, `aria-haspopup`, `aria-expanded`,
+`aria-controls`, `onClick`), et le menu prend alors toute la largeur ; `cote`
+— le bord auquel la liste s'aligne (droite par défaut ; gauche pour la carte
+en tête de barre latérale). Une entrée `actif` (`menuitemcheckbox`) ne se
+dessine pas cochée d'elle-même : l'appelant met la coche en icône.
+
+⚠️ **Pas de `Deroulant` (filtre fermé dans un menu)** : ajouté au lot 8a pour
+les filtres des runes (la maquette), puis retiré le même jour, sans autre
+usage — le mainteneur n'a voulu aucun filtre fermé dans un menu (« sors tout des
+boutons »). Un filtre fermé ne dit pas ce qu'il filtre sans qu'on l'ouvre.
+Voir spec/compte/runes.md § Filtrer par set.
+
+**`Champ`** — saisie texte. ⚠️ `compact:text-base` n'est **pas un choix de
+taille, c'est un correctif** : sous 16 px, iOS **zoome** sur le champ à la mise
+au point, et la page ne revient pas seule de ce zoom. C'est la seule raison pour
+laquelle un champ grossit au doigt alors que tout le reste rétrécit. Écrit une
+fois ici, ce piège ne peut plus être oublié dans un formulaire neuf.
+
+**`NumberField`** — saisie numérique, deux boutons − / + encadrant la valeur
+(jamais `type="number"` : les flèches natives sont hors charte). ⚠️ Axe
+**`sansBoutons`** pour les **grilles denses** — une cellule numérique par case
+d'un tableau (les mods de speed tuning) : les boutons disparaissent, il ne reste
+que le champ (on saisit au pavé numérique). Deux boutons de 24 px par cellule
+rendraient la grille illisible ; le cadre et la logique de frappe restent ceux du
+composant, ce n'est pas un input nu.
+⚠️ Axe **`ton`** (`neutre` / `good` / `bad`) : ce que la valeur **veut dire**, pas
+un habillage. Une grille de modificateurs mêle des gains et des pertes, et le
+signe seul — en mono 12 px au milieu de quarante colonnes — ne saute pas aux
+yeux. Il teinte le **texte et le contour**, jamais le fond : un fond plein par
+cellule ferait un damier, et ces tableaux portent déjà des surlignages.
+
+**`Selecteur`** — liste déroulante. ⚠️ `appearance-none` + notre propre chevron :
+le contrôle natif dessine sa flèche avec les couleurs du **système**, qui ne
+suivent aucun des deux thèmes — sur fond sombre, une flèche noire disparaît. La
+**liste ouverte** reste celle du système : c'est le seul morceau de l'app qu'on
+ne dessine pas, et le remplacer coûterait un menu flottant complet à claviériser.
+
+**`Interrupteur`** — glissière avec libellé. ⚠️ `role="switch"` et non `button` :
+un lecteur d'écran annonce « interrupteur, activé » plutôt que « bouton » — la
+différence entre savoir dans quel état on est et devoir l'essayer pour le
+découvrir.
+
+> ⚠️ **Interrupteur ou Pastille ?** Ils ont le même rôle logique, et le choix
+> n'est pas affaire de goût. La **pastille** vit dans une RANGÉE de ses
+> semblables, où seul le fond peut porter l'état sans que trois voisines se
+> disputent le regard. La **glissière** vit SEULE, avec une phrase à côté : elle
+> a la place de dessiner son état, et le mouvement du curseur dit dans quel sens
+> on va.
+
+**`Segmented`** — choix UNIQUE, options côte à côte dans un même cadre, une
+seule enfoncée. À préférer à une rangée de pastilles quand les options
+**s'excluent** : des pastilles indépendantes se lisent comme des filtres
+cumulables, rien dans leur forme ne dit qu'en activer une désactive les
+autres — le cadre commun le dit sans un mot. L'option enfoncée est un
+**aplat de braise**, texte `accent-ink` (rebranding, décision 19 ; fond
+d'accent doux avant).
+
+> ⚠️ **Il se resserre TOUT SEUL** (`dense` laissé à `undefined`, le défaut) :
+> le contrôle mesure la place qu'il reçoit **réellement** et bascule en texte/
+> rembourrage réduits uniquement quand il déborderait. Ce fut d'abord un
+> `dense={etroit}` piloté par un seuil de **fenêtre**
+> (`useMediaQuery(SOUS_SM)`, 639 px) — faux dès qu'un contrôle vit dans une
+> colonne qui partage son espace avec un voisin : un sélecteur à 4 options
+> longues débordait sur un écran **1080p** sans que le seuil ne se déclenche
+> jamais, la fenêtre étant large alors que sa colonne ne l'était pas. La
+> largeur de la FENÊTRE ne dit rien de la largeur d'un CONTENEUR.
+>
+> ⚠️ **Pourquoi une copie de mesure invisible, et pas `scrollWidth` du contenu
+> réel** : une fois resserré, le contenu réel ne déborde plus — on repasserait
+> au cran normal, donc il déborderait de nouveau, sans fin. La copie reste
+> toujours au cran NORMAL : sa largeur naturelle ne dépend pas de l'état
+> courant, donc la comparaison est stable. Elle est `flex-none w-max` et non
+> `w-full` : une copie en `w-full` PREND la largeur de son parent au lieu de la
+> RAPPORTER — dans un conteneur `absolute` sans largeur propre, c'est une
+> dépendance circulaire dont la spec CSS ne garantit pas le résultat.
+>
+> Passer `dense={true|false}` **force** le rendu, à réserver aux cas où l'on
+> sait mieux que la mesure — `AncientFilter` resserre par cohérence avec une
+> rangée voisine, pas par manque de place.
+
+**`Pastille`** — pilule de filtre à deux états, posée en RANGÉE de critères :
+l'élément, la rareté naturelle, les doublons de la box (les mêmes au Bestiaire).
+On l'enclenche pour restreindre une liste, et plusieurs le sont souvent à la
+fois.
+
+> ⚠️ **Distincte d'un `Bouton actif`.** Un bouton à état signale un MODE ou une
+> option et se lit seul ; une pastille POSE UN FILTRE et se lit en rangée. La
+> forme serrée (pilule `text-xs`) et l'usage (une grille de critères) en font une
+> brique à part — c'est celle que `Bouton` annonçait en tête (« toute pression
+> qui n'est pas une pastille de filtre passe par ici ») avant qu'elle existe.
+
+> ⚠️ **Un seul marqueur d'état, deux schémas jamais mêlés dans une rangée.** Sans
+> `couleurs`, l'état actif prend le marqueur de filtre de l'app — c'est le cas de
+> filtres qui n'ont pas de couleur propre (Nat, Doublons, 2A) : un seul style les
+> rassemble, là où trois surbrillances se liraient comme trois natures de filtre.
+> Ce marqueur est la **couleur d'accent teintée** (contour d'accent, fond
+> `accent-soft` — le « braise sombre » de la toile depuis le rebranding,
+> décision 20, sans sa coche ; refonte graphique, décision 9 du mainteneur,
+> 2026-09-24 — la couleur inversée, essayée d'abord, a été écartée) et vit dans une constante
+> exportée, `MARQUEUR_FILTRE_ACTIF` : les filtres qui ne passent pas par
+> `Pastille` (sets, emplacements, étoiles du Bestiaire) l'importent, pour porter
+> EXACTEMENT le même.
+> Avec `couleurs`, l'**appelant porte la teinte** (l'élément a la sienne, un
+> token partagé avec le Bestiaire via `elementStyles.ts`), exactement comme la
+> `teinte` d'une `Vignette` : la couleur est une DONNÉE de l'appelant, jamais une
+> valeur en dur dans la librairie. La bordure colorée reste visible au repos, le
+> fond teinté ne fait que confirmer l'état posé.
+
+**`Jeton`** — pilule qui NOMME un choix déjà posé, avec une croix pour le
+retirer : un set ajouté à un combo (SetComboPicker), un monstre exclu d'une
+recherche (RuneExclusionPicker). Icône optionnelle à gauche, `detail` atténué
+après le libellé (« · Box »), `onRetirer` qui décide de la présence de la croix.
+
+> ⚠️ **Distinct de `Pastille`.** Une pastille est un FILTRE à deux états qu'on
+> enclenche et relâche en place, dans une grille de critères fixes ; un jeton
+> représente une entrée AJOUTÉE, qui n'existe que tant qu'elle est là et
+> disparaît quand on la retire — d'où la croix, qui n'a de sens que sur lui, et
+> une liste qui grandit au lieu d'une rangée figée.
+
+> ⚠️ **La croix est un `BoutonIcone` `serre`**, pas une croix dessinée à la
+> main : sa cible tactile et son `aria-label` viennent de la librairie, comme les
+> deux boutons d'une pilule de catégorie. `serre` parce qu'elle vit DANS le
+> jeton, plus petit que la cible de 40 px.
+
+**`Option`** — choix riche : icône, titre, description. ⚠️ Distinct de `Bouton`
+parce qu'il **ne se lit pas pareil** : un bouton s'identifie d'un coup d'œil, une
+option se LIT. D'où le texte aligné à gauche et l'icône calée en haut — sur deux
+lignes de description, une icône centrée verticalement flotte en face de rien.
+
+> ⚠️ **La description n'est pas décorative.** Ces choix engagent ce qu'on ne peut
+> pas défaire d'un clic (ce qu'on publie de son compte, ce qu'on écrase). Un
+> titre seul oblige à deviner, et c'est précisément là qu'on se trompe. Voir la
+> règle du [conventions](../) : le défaut ne perd jamais rien, et ce qui perd
+> s'explique avant.
+
+- `actionTitre` — une action posée **juste à droite du titre**, dans la case
+  mais **hors du bouton principal** : le « ? » qui ouvre la prose d'un sort
+  dans « Dégâts réels » (`HelpPopover`). ⚠️ **Un axe qui
+  change la structure, pas une variante.** Posée dans `titre`, l'action ferait
+  un bouton dans un bouton (HTML invalide) et un clic sur elle choisirait aussi
+  l'option. Avec elle, la case devient un **cadre qui dessine** — le patron de
+  `BoutonGroupe` : le bouton principal, vide, couvre toute la case (bordure
+  comprise, pour que le contour de focus tombe où il tombait) et se nomme par
+  le titre et la description (`aria-labelledby`, qu'un `aria-hidden` empêche
+  d'être lus une seconde fois) ; l'action, posée après lui et positionnée sans
+  `z-index`, passe devant. Cliquer l'action ne choisit pas l'option ; partout
+  ailleurs la case se choisit comme avant, et elle s'enfonce à l'appui de son
+  seul bouton principal (`:has(> button:active)` — `:active` gagne aussi les
+  ancêtres, l'action ferait sinon enfoncer la case).
+  ⚠️ **L'action reste vive quand l'option est désactivée** (un sort refusé
+  garde le « ? » de sa prose) : seuls l'icône, le titre et la description
+  s'estompent, et le cadre prend l'opacité du `<button>` désactivé par ses
+  couleurs (`border-border/40 bg-panel2/40`) — une opacité sur le cadre
+  estomperait aussi l'action. **Sans action, l'option reste le `<button>`
+  d'avant, au caractère près.**
+
+**`Flottant`** — surface posée au-dessus de la page, ancrée à ce qui l'a ouverte :
+popup d'édition, formulaire ancré, liste de résultats d'une recherche.
+
+> ⚠️ **C'est la seule chose de l'app qui ait droit à une OMBRE.** L'élévation dit
+> « je suis au-dessus, et je vais repartir » — ce qui est faux d'un bouton actif
+> ou d'une carte sélectionnée, qui appartiennent à la page. Trois écrans
+> recopiaient les mêmes `shadow-glow shadow-black/60`.
+
+> ⚠️ **Le `z-index` est un ORDRE, pas un nombre libre.** L'échelle de l'app —
+> contenu → barre du haut (20) → **flottants (30)** → onglets mobiles (40) →
+> panneau montant (50) → panneau de second niveau (60) → dialogues (70) — se
+> règle ici pour tout ce qui flotte. Un `z-40` écrit à la main « pour que ça
+> passe devant » se retrouve un jour derrière la barre d'onglets. La liste de
+> résultats de la recherche RTA était d'ailleurs à `z-20`, à égalité avec la
+> barre du haut.
+
+> ⚠️ Il ne s'occupe **pas du placement** : le recalage à l'écran reste au hook
+> `useRecalageEcran`, qui a besoin de mesurer. Mais il pose `left-0`, sans quoi
+> une valeur négative de recalage ne décale pas — elle repositionne depuis un
+> bord que le navigateur choisit seul.
+
+> ⚠️ `rembourrage="aucun"` pour une **liste** : ses entrées doivent toucher les
+> bords, sinon le survol laisse une bande morte et l'entrée surlignée paraît
+> décalée de son propre cadre. C'est pourquoi le flottant porte
+> `overflow-hidden` — sans lui, les coins carrés du contenu dépassent de
+> l'arrondi du cadre, en quatre petits ergots aux angles.
+
+> ⚠️ **`ancrage="cote"` est un AXE, pas une variante de plus.** Les deux
+> ancrages d'origine (`dessous`, `dessus`) placent la surface **au-dessus ou en
+> dessous** de son ancre ; `cote:` ne fait que choisir de quel bord elle
+> s'aligne. Une surface qui sort sur le **flanc** — les sous-sections au survol
+> d'une entrée de la barre latérale ([02-app/transverse/](../../02-app/transverse/)) — ne
+> s'exprime par aucune combinaison des deux : elle s'aligne sur le **haut** de
+> l'ancre et se pose à sa **droite**. D'où la troisième valeur, plutôt qu'un
+> composant de plus. Elle ignore `cote:`, qui n'a plus de sens quand c'est
+> l'axe horizontal lui-même qui porte l'ancrage, et son animation part de
+> `origin-top-left` — du bord par lequel elle sort.
+
+**`FlottantAuto`** — le même, mais qui **choisit son côté** en mesurant la place
+autour de son ancre : vers la gauche si l'ancre est près du bord droit, vers le
+haut si elle est près du bas. Puis il **borne sa position au viewport**, en
+gardant la surface ancrée à ce qui l'a ouverte.
+
+> ⚠️ **Sans rembourrage par défaut** (`rembourrage="aucun"`), à la différence
+> de `Flottant` : il sert aussi aux LISTES, dont les entrées touchent le bord.
+> Un TEXTE posé dedans demande donc `rembourrage="md"` — la bulle d'aide
+> `HelpPopover` l'oubliait, son texte collait au cadre (lot 8a de la refonte,
+> capture du mainteneur). Un texte LONG demande aussi une hauteur bornée avec
+> défilement (`max-h-[…] overflow-y-auto`), sans quoi il sort de l'écran par
+> le bas. `HelpPopover` pose les deux, et détache son titre (13 px, filet
+> dessous) du corps (12 px).
+
+> ⚠️ Pour ce qui est ancré à un élément **dont la position varie** : une tuile
+> dans une grille, une carte de monstre, un badge au bout d'une ligne. Ces ancres
+> vont jusqu'aux bords de la page, et un flottant posé toujours du même côté s'y
+> trouvait coupé — exactement là où l'on venait de cliquer pour lire quelque
+> chose.
+
+> ⚠️ **Le côté seul ne suffit pas près d'un bord.** Ancrée à un élément étroit
+> (une tuile de la grille à deux colonnes du téléphone), une surface large alignée
+> sur un côté déborde de l'AUTRE, que `html { overflow-x: hidden }` coupe : le
+> détail de rune de l'onglet Optimisation devenait invisible au doigt. `FlottantAuto`
+> mesure donc sa boîte réelle (`maxWidth: 90vw` compris) et **borne sa position
+> horizontale à l'écran** via un `left` explicite. Sans débordement — le cas du
+> bureau — la position calculée est **identique** à l'ancien `left-0`/`right-0` :
+> le bornage n'agit que quand la surface sortirait, il ne change rien ailleurs.
+
+> ⚠️ **Distinct de `useRecalageEcran`**, qui *tire* une surface débordante vers
+> l'intérieur après coup. Ici on choisit le bon côté **avant** de peindre : pas
+> de saut visible, et la surface reste alignée sur son ancre au lieu de flotter à
+> une position corrigée. Le recalage reste utile quand la surface doit garder son
+> côté (le formulaire de catégorie, ancré à sa pilule).
+
+> ⚠️ `useLayoutEffect` et non `useEffect` : la mesure doit précéder la peinture.
+> Avec `useEffect`, la surface apparaissait un instant du mauvais côté puis
+> sautait — un scintillement d'une frame, mais visible.
+
+**`Modale`** — la coquille de **toute** boîte modale : voile, centrage, fermeture
+au clic extérieur et à Échap. `ConfirmDialog`, `PromptDialog` et
+`KeepAccountDialog` en dérivent.
+
+> ⚠️ **Elle est montée dans `<body>` par un portail, jamais là où elle est
+> écrite.** C'est ce qui manquait, et le bug était instructif : sur téléphone, une
+> modale s'ouvre souvent depuis le panneau « Options », dont le contenu porte
+> `data-tiroir`. La règle `[data-tiroir] .flex-col { align-items: flex-start }`,
+> écrite pour aligner les boutons empilés du panneau, tombait donc sur la boîte de
+> la modale — son en-tête, son corps et son pied se rétrécissaient sur leur
+> contenu. La croix se collait au titre, les champs n'atteignaient plus le bord,
+> les boutons restaient à gauche.
+>
+> **Trois symptômes, une cause, et rien dans le code de la modale ne pouvait
+> l'expliquer** puisque la règle venait d'un ancêtre. `position: fixed` ne protège
+> pas de cela : il détache la **position**, pas l'héritage des sélecteurs
+> descendants. Seul un portail sort du sous-arbre.
+>
+> Le portail règle deux autres pièges au passage : plus de contexte d'empilement
+> parent qui puisse coincer le `z-index`, et plus de découpage par un
+> `overflow: hidden` d'ancêtre.
+
+### Une seule grammaire, trois bandes
+
+Toutes les modales de l'app ont la même structure, et l'appelant ne la compose
+pas — il remplit trois emplacements :
+
+| Bande | Contenu | Rendue par |
+|-------|---------|------------|
+| **En-tête** | icône, `titre` à gauche, `sousTitre`, croix à **droite** | la coquille |
+| **Corps** | `children` — le seul à défiler | l'appelant |
+| **Pied** | `actions` — les boutons, toujours en bas | la coquille |
+
+> ⚠️ **Le titre est rendu PAR la coquille**, pas écrit dans le contenu. Chaque
+> dialogue posait son propre `<h2>` avec sa taille et sa marge : quatre écrans,
+> quatre en-têtes légèrement différents. Il porte aussi l'`id` de `labelledBy`,
+> donc un lecteur d'écran annonce le bon titre sans que l'appelant ait à faire
+> correspondre les deux à la main.
+
+> ⚠️ **La croix est toujours en haut à droite.** On cherche la sortie d'une
+> fenêtre au même endroit à chaque fois ; une croix qui se déplace d'un écran à
+> l'autre se cherche.
+
+> ⚠️ **Les actions sont toujours en bas, et le pied ne défile pas.** C'est
+> l'objet de la structure en trois bandes : sur une fiche longue, des boutons
+> écrits dans le corps se retrouvaient au bout du défilement, là où personne ne
+> les cherche.
+
+> ⚠️ **Rangée taquée à droite par défaut ; empilée quand les libellés sont des
+> PHRASES.** « Non, ne rien garder de mes informations » face à « Garder mes
+> données (recommandé) » : deux phrases ne tiennent pas sur une ligne.
+>
+> ⚠️ **Une rangée qui se replie ne vaut jamais mieux qu'une colonne assumée.**
+> Repliés, les boutons gardent chacun sa largeur propre et s'alignent à droite —
+> on obtient un escalier de boutons de tailles différentes. `actionsEmpilees` les
+> met donc en colonne **à toutes les largeurs**, chacun occupant toute la boîte.
+> Un « Valider » ou un « Créer », lui, n'a rien à gagner à s'étaler d'un bord à
+> l'autre : il reste en rangée.
+>
+> ⚠️ `flex-col` et non `flex-col-reverse` : les enfants s'écrivent secondaire
+> d'abord, mis en avant ensuite. En colonne simple, le mis en avant tombe donc en
+> bas — sous le pouce, et au même rang que le « à droite » d'une rangée.
+
+> ⚠️ **`noteFinale` se pose SOUS les boutons**, centrée. Sa place fait son rôle :
+> elle désamorce l'engagement une fois les choix sous les yeux (« tu pourras
+> changer d'avis »). Remontée dans le corps, elle devient une consigne de plus à
+> lire avant de décider — je l'avais déplacée, la fenêtre y a perdu.
+
+> ⚠️ **Le corps prend TOUTE la largeur de la boîte** (`[&>*]:w-full` sur ses
+> enfants directs). C'est la règle qui manquait : dans un conteneur flex en
+> colonne, un `<form>` ou un `<div>` ne prend que la largeur de son contenu — les
+> formulaires flottaient donc à gauche avec du vide à droite. Un contenu qui ne
+> *peut* pas s'étirer sans devenir laid (une image, une grille à pas fixe) passe
+> `corpsCentre` et se centre au lieu de s'étirer.
+
+### La croix : une seule exception
+
+`croix` est posée partout **sauf sur les confirmations** (`ConfirmDialog`,
+`KeepAccountDialog`).
+
+> ⚠️ **Confirmation DESTRUCTIVE : l'action en aplat rouge, « Annuler » à
+> contour** (`ConfirmDialog` `destructif` ; rebranding, décision 22 — la
+> planche « Retours et fenêtres »). L'action était un `danger` doux et
+> « Annuler » une braise douce. Le focus initial reste sur « Annuler » : le
+> défaut ne perd jamais rien, l'aplat dit seulement ce que l'action coûte.
+> Encre sur l'aplat : `bad-ink`. Une confirmation NON destructive ne change
+> pas (action neutre pleine, « Annuler » en braise douce).
+
+> ⚠️ Sur une confirmation, **« Annuler » EST la sortie**. Une croix à côté ferait
+> deux portes pour un choix qui n'en a qu'une, et l'on hésiterait sur ce qu'elle
+> ferme — annuler, ou fermer sans répondre ? Échap et le clic à côté restent
+> disponibles, comme partout.
+>
+> À l'inverse, un dialogue de **choix** (l'export RTA, dont les options *sont*
+> les actions) n'a aucun bouton d'annulation : la croix y est la seule porte
+> visible, et c'est exactement le cas où elle est nécessaire.
+
+> ⚠️ **Elle porte quatre choses invisibles**, et c'est pour elles qu'elle
+> existe : le **piège à focus** (Tab boucle dans la boîte au lieu de tabuler dans
+> la page derrière, invisible et toujours cliquable), le **retour du focus** à
+> l'élément qui a ouvert la modale, la **fermeture à Échap**, et le **blocage du
+> défilement** de la page.
+>
+> Deux écrans la recopiaient au lieu de l'importer — le dialogue d'export RTA et
+> la question de conservation des données. Ils perdaient donc ces quatre-là
+> **en silence** : rien ne le signalait à l'écran, et sur la seule fenêtre de
+> l'app qui demande si l'on conserve ses données, c'est la pire des fenêtres à
+> pouvoir contourner par accident.
+
+> ⚠️ **`z-[70]` : au-dessus de tout, panneaux mobiles compris.** À `z-50`, une
+> confirmation ouverte depuis le panneau d'actions se retrouvait *derrière* lui —
+> on cliquait, rien ne semblait se produire, et le geste paraissait sans
+> confirmation. Une confirmation est le dernier mot de l'interface : rien ne se
+> met devant elle.
+
+> ⚠️ Le voile est un **fondu seul**, sans flou. `KeepAccountDialog` portait un
+> `backdrop-blur-sm` que les autres n'avaient pas ; écart abandonné à la
+> migration — un seul dialogue floutant le fond se lisait comme un objet d'une
+> autre nature.
+
+**`MobileSheet`** — panneau montant du téléphone. ⚠️ **Ce n'est pas une modale** :
+il coexiste avec la page, monte du bas, et se pose **sous** les dialogues dans
+l'échelle des `z-index`. Il porte son propre voile pour cette raison.
+
+> ⚠️ **Portalisé dans `<body>`, comme la `Modale`.** Un MobileSheet peut s'ouvrir
+> DEPUIS un autre — l'aide « ? » ou le formulaire de catégorie, ouverts depuis le
+> panneau « Options ». Rendu en place, il hériterait des règles descendantes de
+> `[data-tiroir]` du panneau parent (`align-items: flex-start` rabotait son
+> en-tête : barrette décentrée, croix collée au titre au lieu d'être poussée à
+> droite), et son `position: fixed` se calerait sur le `transform` du parent
+> plutôt que sur le viewport. Le portail le détache des deux — transparent pour
+> les usages non imbriqués, le panneau étant déjà `fixed`.
+
+**`Case`** — case à cocher avec son libellé. ⚠️ **La case native est là, seulement
+invisible** (`sr-only`) — jamais remplacée par un `<div>` cliquable. C'est elle
+qui porte l'état, le focus clavier, la barre d'espace et l'annonce du lecteur
+d'écran ; le carré dessiné n'est qu'une peinture posée dessus. Une fausse case en
+`div` oblige à réimplémenter tout cela, et on n'en réimplémente jamais que la
+moitié. Le tout est enveloppé dans un `<label>`, ce qui rend le **texte**
+cliquable : viser un carré de 15 px au doigt est un exercice, viser une phrase
+ne l'est pas.
+
+**`PiedDeDialogue`** — rangée d'actions au bas d'un dialogue.
+⚠️ `flex-col-reverse` sous `sm`, et **l'inversion n'est pas un détail** : les
+enfants s'écrivent dans l'ordre de lecture (secondaire, puis mis en avant), ce
+qui place le bouton attendu à droite sur écran large. Sur téléphone l'ordre
+s'inverse pour que la mise en avant tombe **en bas, sous le pouce**. Empilés dans
+l'ordre d'écriture, on aurait « Annuler » sous le pouce — l'inverse exact de ce
+qu'on veut. C'est un composant plutôt qu'une classe recopiée parce que le bug ne
+se voit **que** sur un téléphone, donc jamais pendant qu'on écrit le code.
+
+**`Vignette`** — case sélectionnable d'une grille (les monstres d'une catégorie).
+⚠️ **La teinte vient de l'appelant.** C'est ce qui la distingue d'un bouton à
+état : la couleur de sélection est ici une **donnée** (la couleur de la catégorie
+qu'on remplit), pas une décision d'apparence. Trois écrans la recalculaient à la
+main, avec trois opacités différentes.
+
+- Elle porte **le liseré ET le fond**, contrairement à la règle du marqueur
+  unique : celle-ci vaut pour un état d'**interface**, alors qu'ici la teinte est
+  l'identité de ce qu'on coche — et le fond seul ne se voit pas sur une case qui
+  porte déjà une image.
+- `bloque` n'est pas `disabled` au sens visuel : une case refusée reste
+  **affichée** et très estompée plutôt que cachée. Disparue on la cherche ;
+  grisée on comprend qu'un plafond est atteint — à condition que le `title` le
+  dise.
+
+## Les contours : 1 px, et UN SEUL
+
+> ⚠️ **Aucun contour d'INTERFACE ne dépasse 1 px, et jamais deux superposés.** Un
+> contour cerne ce qu'il désigne, il ne l'encadre pas.
+
+> ⚠️ **La règle ne vaut PAS pour l'équipement** — runes, artéfacts, reliques. Ces
+> objets-là appartiennent au jeu, pas à l'interface : sélectionnés, ils se
+> mettent en valeur **comme dans le jeu**, avec halo doré, éclat et liseré
+> appuyé. C'est ce qui les distingue d'un bouton au milieu de la même page. La
+> roue de runes et les emplacements d'artéfacts font de même, et il ne faut pas
+> les « corriger ».
+>
+> La frontière est celle-ci : un composant de `src/ui/` suit la règle ; un objet
+> que le joueur reconnaît de sa partie ne la suit pas. Aucun ton de la librairie
+> ne porte le doré du jeu — j'en avais ajouté un (`precieux`), il n'a jamais
+> servi et invitait à ramener ces objets dans le système d'interface.
+
+Le piège n'est presque jamais l'épaisseur d'un trait : c'est le **cumul**. Une
+bordure *et* un anneau, une bordure *et* une ombre portée — l'épaisseur réelle
+n'est alors celle d'aucun des deux, et les traits concentriques se lisent comme
+un contour flou plutôt que comme deux informations.
+
+| Où | Avant | Épaisseur réelle |
+|----|-------|------------------|
+| Palette de couleurs | `ring-2` + `ring-offset-2` | **4 px** autour d'une case de 24 |
+| Recommandations, équipes de siège | `border-X` + `ring-2 ring-X/50` | 3 px, en deux traits |
+| Doublon de l'Optimiseur | `border-2` + `ring-4` | **6 px** |
+| Relique, lead | `border-star` + `ring-1` | 2 px, en deux traits |
+| Section, au survol du dépôt | `borderColor` + ombre 2 px | 3 px |
+| Puce de légende | `border-2` sur un disque de 10 px | le trait mangeait la moitié |
+
+> ⚠️ **Avant d'ajouter un trait, vérifier que celui d'en dessous n'est pas déjà
+> teinté.** C'est l'erreur qui revient : on colore une bordure existante, puis on
+> ajoute un anneau pour « que ça se voie mieux ».
+
+⚠️ **Un `Flottant` posant déjà un cadre, ce qu'il contient n'en pose pas un
+second.** Une carte qui a SON PROPRE cadre (`PieceDetailBox`, `OptimPlanBox` —
+bord + fond + coins arrondis) ouverte dans un `Flottant`/`FlottantAuto` donnait
+une carte dans une carte : deux bords à un pixel l'un de l'autre, à des rayons
+de coin différents (`rounded-xl` du flottant contre `rounded-lg` de la carte),
+qui se lisent comme un contour flou plutôt que comme deux informations.
+`DesyncBadge` a posé la règle en premier ; `PieceDetailBox` la porte comme un
+axe (`encadre`, `false` dans un flottant) plutôt que par une copie retouchée. Le
+rembourrage passe alors au flottant (`rembourrage="md"`) : sans cadre, la carte
+n'a plus de bord à en tenir éloigné.
+
+**Deux exceptions, et elles ne sont pas des contours :**
+
+- Le **`ring-offset`** de la palette est un *écart*, pas un second trait : sans
+  lui, l'anneau d'encre touche l'aplat de couleur et devient illisible sur les
+  teintes sombres.
+- L'**anneau de focus clavier** (`outline: 2px`, dans `index.css`) reste à 2 px.
+  Il n'apparaît qu'en tabulant — jamais à la souris ni au doigt — et sa taille
+  est ce qui le rend repérable quand on ne sait plus où l'on est dans la page.
+  Voir la règle de focus dans [design.md](design.md).
+
+## Quand ajouter quelque chose
+
+> ⚠️ **Un composant monte ici au DEUXIÈME usage, jamais au premier.** Remonter
+> trop tôt fabrique une abstraction taillée pour un seul appelant, que le second
+> fait éclater en options. C'est le trajet qu'ont suivi `Segmented` et
+> `elementStyles` avant ce dossier.
+
+Et l'inverse est vrai : **tout ne monte pas**. Restent délibérément hors
+librairie —
+
+- **Rien.** Cette liste a compté jusqu'à six entrées ; elle est vide. Chacune se
+  ramenait à un manque de la librairie, pas à une singularité de l'écran :
+  l'interrupteur d'affichage voulait un accent inversé (`actif={!actif}`), la
+  pilule de lead une teinte du jeu (`classNameActif`), la palette un marqueur en
+  anneau (`Vignette aplat`), le badge de désync et la relique des tons qui
+  n'existaient pas (`alerte`, `precieux`), les surfaces de carte un composant
+  volontairement nu (`ZoneCliquable`).
+- **Sauf ce qui n'est pas un contrôle** : un `<input type="file">` masqué, qui
+  n'est jamais dessiné — c'est un déclencheur technique, pas un bouton. C'est le
+  dernier élément natif de la page RTA.
+- **Les cases de la palette de couleurs** : un aplat sans contenu ni libellé, dont
+  le marqueur est un anneau et non une teinte. Un seul usage.
+- **Les entrées de la barre latérale** : ce sont des liens de NAVIGATION, pas des
+  actions — pleine largeur, alignées à gauche, fond au survol seul, sans pression
+  au clic. Les faire passer par `Bouton` (centré, `flex-none`, pressé au clic)
+  demanderait d'annuler la moitié de ses axes au point d'appel.
+- **La case de relique** (`MonsterGear`) et **la pilule de lead** : leur marqueur
+  est la couleur `star`, un code du JEU et non un ton d'interface.
+
+Et **les contrôles qui ne sont pas des contrôles** ne comptent pas : un
+`<input type="file">` masqué (déclencheur technique jamais dessiné), une poignée
+qui porte `draggable`, une surface de carte rendue cliquable. Ce sont des
+mécanismes, pas des boutons.
+
+> ⚠️ **Ces exceptions doivent rester rares et JUSTIFIÉES ici.** Une exception non
+> écrite est une divergence qui recommence.
+
+## Ce qui n'est pas dans cette librairie
+
+**Les composants de JEU.** Une roue de runes, un portrait de monstre, la fiche
+d'une pièce équipée ne sont pas du vocabulaire d'interface : ils rendent des
+données Summoners War et suivent les codes du jeu, pas la règle du contour unique
+de 1 px. Ils vivent dans `src/components/`.
+
+Ils obéissent en revanche à la **même exigence d'unicité** : un rendu se dessine
+une fois. ⚠️ La fiche d'une **rune** et celle d'un **artéfact** étaient deux
+composants indépendants, écrits à six mois d'écart, et cela se voyait dès qu'on
+les ouvrait l'une après l'autre au même endroit — rareté en colonne d'un côté, en
+bandeau au-dessus de l'autre ; « Efficience 98,4 % » ici, une jauge et un nombre
+nu là ; deux largeurs, deux hauteurs, pour la même question. Elles partagent
+désormais une coquille unique
+([PieceDetail.tsx](../../../src/components/PieceDetail.tsx)) : cadre, en-tête
+(image, stat principale, rareté, mesure), bloc de lignes, pied. Ne reste propre à
+chaque pièce que **ce qu'elle a de différent** — la meule et la gemme d'un côté,
+les procs de l'autre ; le bonus de set d'un côté, l'attribut ou le type de
+l'autre. **La rune est la référence** : sa disposition est celle du jeu.
+
+**Aucune dépendance externe.** La question d'adopter Radix UI s'est posée pour
+`Dialog`, `Popover`, `Select` et `Switch`. Elle reste **ouverte** et concerne le
+comportement (piège de focus, empilement, clavier), pas l'apparence — ces
+composants-ci sont à nous et le resteraient. Voir
+[02-app/transverse/](../../02-app/transverse/) pour ce qui flotte au-dessus de la page.

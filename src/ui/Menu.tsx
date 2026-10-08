@@ -15,12 +15,12 @@ import Flottant from './Flottant';
 // boutons qui repoussaient le contenu.
 //
 // ⚠️ **Monté dans la librairie à son PREMIER usage**, contre la règle du
-// deuxième (spec/shared/librairie-ui.md) : l'écrire dans l'écran aurait été un
+// deuxième (docs/03-developpeur/interface/) : l'écrire dans l'écran aurait été un
 // contrôle MAISON, ce que « rien de custom » interdit, et les maquettes en
 // posent un dans plusieurs écrans. Justifié dans la spec.
 //
 // ⚠️ **Les entrées restent dans le DOM, menu fermé** (`hidden`). Un bouton ne
-// quitte jamais le DOM selon l'état de l'écran (spec/shared/design.md) : fermé,
+// quitte jamais le DOM selon l'état de l'écran (docs/03-developpeur/interface/) : fermé,
 // le menu est masqué, pas vidé. C'est aussi ce qui laisse les tests de rendu
 // retrouver chaque action, son état désactivé et sa raison.
 //

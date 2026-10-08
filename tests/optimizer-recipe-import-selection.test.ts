@@ -52,7 +52,7 @@ export default function testOptimizerRecipeImportSelection() {
 
 // Trois champs (`relicMainChoice`,
 // `relicUniqueChoice`, `relicMinUpgrade`) dans `OptimizerRecipe`, sans écran
-// — voir spec/outils/optimizer/moteur/reliques.md.
+// — voir docs/03-developpeur/optimizer/.
 function recetteDeBase(extra: Partial<Parameters<typeof buildOptimizerRecipe>[0]> = {}) {
   return buildOptimizerRecipe({
     monsterCom2usId: 14104,

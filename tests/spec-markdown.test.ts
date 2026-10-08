@@ -1,8 +1,8 @@
 // Parseur Markdown partagé (`scripts/lib/spec-markdown.mjs`) — utilisé par les
-// futurs contrôles de rangement de `spec/` (slugs uniques, sommaire). La
+// futurs contrôles de rangement de `docs/` (slugs uniques, sommaire). La
 // fixture est un montage de titres RÉELS du dépôt (accents, guillemets
 // français, backticks, emoji, doublons volontaires), pas des exemples
-// inventés : voir `spec/outillage/spec.md`, « Sous-titrer un fichier, parseur `spec-markdown` ».
+// inventés : voir `docs/03-developpeur/`, « Sous-titrer un fichier, parseur `spec-markdown` ».
 
 import { readFileSync } from 'fs';
 import { resolve } from 'path';

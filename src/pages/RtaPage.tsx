@@ -112,7 +112,7 @@ export default function RtaPage({
   const addedIds = useMemo(() => new Set(Object.keys(rta.state.entries)), [rta.state.entries]);
 
   // Catégories libres (« Striper », « Lead SPD »…) : lecture transversale de la
-  // box, en plus du classement par set. Voir ../../spec/rta/categories.md.
+  // box, en plus du classement par set. Voir ../../docs/02-app/rta/.
   const cats = useRtaCategories();
   // Point de restauration manuel (« Sauvegarder » / « Reprendre »), distinct de
   // la conservation automatique. Voir hooks/useRtaBackup.ts.

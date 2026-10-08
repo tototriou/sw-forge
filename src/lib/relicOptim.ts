@@ -9,10 +9,10 @@
 //
 // ⚠️ **La principale d'une relique est un POURCENTAGE**, pas un plat comme un
 // artéfact : `stat = B + ceil(B × (R + L) / 100) + plats`
-// (spec/outils/optimizer/moteur/reliques.md § Contexte transporté, bornes relâchées, filtre exact). Elle
+// (docs/03-developpeur/optimizer/ § Contexte transporté, bornes relâchées, filtre exact). Elle
 // change donc la FAISABILITÉ des minimums, pas seulement le classement — d'où
 // les bornes par statistique ci-dessous, qui jouent le même rôle que
-// `artFlatMax`/`artFlatMin` pour les artéfacts (spec/outils/optimizer/invariants.md
+// `artFlatMax`/`artFlatMin` pour les artéfacts (docs/03-developpeur/optimizer/
 // § Artéfacts).
 //
 // ⚠️ **Dominance STRUCTURELLE seulement** : on ne compare deux reliques
@@ -53,7 +53,7 @@ function statDePrincipale(choix: RelicMainChoice): RelicStat | undefined {
 export type RelicNature =
   | { sorte: 'degatsInfliges' } // Conquête (1,2,3)
   | { sorte: 'degatsReduits' } // Ténacité (4,5,6)
-  | { sorte: 'soins' } // Régénération (16) — jamais pertinente (spec/outils/optimizer/moteur/reliques.md § Pertinence et dominance — écrites, non appelées en production)
+  | { sorte: 'soins' } // Régénération (16) — jamais pertinente (docs/03-developpeur/optimizer/ § Pertinence et dominance — écrites, non appelées en production)
   | { sorte: 'buffStat'; stat: RelicStat }; // Bravoure→atk (7,8,9) · Éternité→def (10,11,12) · Origine→hp (13,14,15)
 
 /**
@@ -317,7 +317,7 @@ export function dimensionsRetenues(
     // Le scaling du sort (dimension directe) + Conquête, TOUJOURS pertinente
     // (elle augmente les dégâts infligés quel que soit le scaling) + le
     // groupe dont le buff correspond au scaling (Bravoure→atk, Éternité→def,
-    // Origine→hp) — spec/outils/optimizer/moteur/reliques.md
+    // Origine→hp) — docs/03-developpeur/optimizer/
     // § Pertinence et dominance — écrites, non appelées en production.
     objectifStats = sort;
     typePertinent = (type) => {
@@ -330,7 +330,7 @@ export function dimensionsRetenues(
   } else if (objectif === 'ehp') {
     // PV et DEF entrent toujours (elles nourrissent les PV effectifs) ; les
     // exclusives qui les augmentent, plus Ténacité (dégâts reçus réduits) —
-    // spec/outils/optimizer/moteur/reliques.md
+    // docs/03-developpeur/optimizer/
     // § Pertinence et dominance — écrites, non appelées en production.
     objectifStats = ['hp', 'def'];
     typePertinent = (type) => {

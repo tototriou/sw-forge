@@ -500,7 +500,7 @@ export function ArtifactDetailBox({
       rarete={{ label: rarity.label, bg: rarity.bg, color: rarity.color }}
       // ⚠️ Le même libellé que pour une rune (« Efficience » / « Score SW »), et
       // non une jauge muette suivie d'un nombre : les deux mesures sont la même
-      // somme à un facteur près (spec/compte/calcul-artefacts.md §3), et rien ne
+      // somme à un facteur près (docs/02-app/compte/ §3), et rien ne
       // justifiait de les nommer autrement d'une pièce à l'autre. L'autre valeur
       // reste en infobulle.
       mesure={{

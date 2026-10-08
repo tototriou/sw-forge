@@ -5,7 +5,7 @@
 // CONDITIONNELS hétérogènes (« vol de vie », « dégâts de bombe », « dmg crit
 // Compétence 2 ») qu'aucun dénominateur commun ne relie. La formule ci-dessous
 // ne les met donc pas sur une échelle unique : elle rapporte **chaque ligne au
-// plafond de sa propre famille**. Voir spec/compte/calcul-artefacts.md.
+// plafond de sa propre famille**. Voir docs/02-app/compte/.
 //
 // ⚠️ Aucun potentiel au-delà de l'état actuel : il n'existe **ni meule ni gemme**
 // pour les artéfacts. Un artéfact au +15 a épuisé sa marge, ce qu'il vaut est

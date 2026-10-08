@@ -12,7 +12,7 @@ interface Props {
   // ⚠️ Pas de vue « Optimisation » côté artéfacts, et il n'y en aura pas : il
   // n'existe ni meule ni gemme pour eux. Une ligne tombée est définitive, le
   // seul levier est de monter la pièce au +15.
-  // Voir spec/compte/calcul-artefacts.md.
+  // Voir docs/02-app/compte/.
   vue: AccountView;
   // Panneau d'actions mobile — piloté par le bouton « Options » (voir App.tsx).
   menuOuvert: boolean;

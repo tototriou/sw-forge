@@ -1,6 +1,6 @@
 // Le vocabulaire du harnais de diagnostic — types seuls, aucune logique.
-// Description complète : spec/outils/optimizer/harnais.md
-// et spec/outils/optimizer/harnais-extensions.md.
+// Description complète : docs/03-developpeur/optimizer/
+// et docs/03-developpeur/optimizer/.
 //
 // **Principe directeur, qui tranche tout ce qui suit :**
 //
@@ -1144,7 +1144,7 @@ export interface ResultatHarnais {
    */
   decouverteBuildCible?: DecouverteBuildCible;
   /**
-   * La DISPERSION PAR TRANCHE (spec/outils/optimizer/harnais-extensions.md,
+   * La DISPERSION PAR TRANCHE (docs/03-developpeur/optimizer/,
    * « Instant de découverte et dispersion par tranche ») — le CV que
    * `adaptiveTrancheWeighting` calcule, et la répartition du budget de rétention qu'il produit, par
    * moitié.
@@ -1202,8 +1202,8 @@ export interface ResultatHarnais {
   meilleurs?: { runeIds: number[]; total: number }[];
   temps?: TempsParPhase;
   /**
-   * Diagnostic « quasi-succès » — voir spec/outils/optimizer/
-   * moteur/diagnostics.md, « Quasi-succès à l'appariement ». Sous-produit GRATUIT de l'appariement réel
+   * Diagnostic « quasi-succès » — voir docs/03-developpeur/optimizer/
+   * (diagnostics), « Quasi-succès à l'appariement ». Sous-produit GRATUIT de l'appariement réel
    * (`pairBuckets`), jamais recalculé : les paires EXPLORÉES qui échouent
    * le test conjoint exact, mais s'en approchent le plus. Absent si
    * `meilleurs` n'est PAS vide (rien à chercher), ou si l'arrêt a eu lieu

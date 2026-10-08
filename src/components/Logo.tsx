@@ -10,7 +10,7 @@ import { NOM_APP } from '../marque';
 // Forge et l'autre en Atelier. Le cristal a ses deux jetons (`logo-cristal`,
 // `logo-cristal-clair`, voir index.css).
 // ⚠️ `rgb(var(--…))` et non `var(--…)` : les jetons sont des TRIPLETS (voir
-// spec/shared/design.md, « Les tokens sont des TRIPLETS »).
+// docs/03-developpeur/interface/, « Les tokens sont des TRIPLETS »).
 //
 // Tracés sur une grille de 120 : le symbole occupe x 8-112, y 16-96.
 export const TRACES_LOGO = {

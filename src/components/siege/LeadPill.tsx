@@ -2,7 +2,7 @@ import { ELEMENTS, ElementKey, LeaderSkill } from '../../types';
 import ElementIcon from '../ElementIcon';
 
 // Icônes officielles des leader skills (SWARFARM), servies en local depuis
-// public/leader-skills/. Voir ../../spec/shared/donnees-monstres.md.
+// public/leader-skills/. Voir docs/02-app/transverse/.
 const ICON_BASE = `${import.meta.env.BASE_URL}leader-skills/`;
 
 // Attributs pour lesquels SWARFARM fournit une icône déclinée par portée.
@@ -51,7 +51,7 @@ function elementLabel(el: ElementKey | null): string {
 // la stat (un lead PV ou DEF compte autant qu'un lead VIT). Seules les portées
 // Arène et Donjon ne concernent pas le contenu de guilde.
 // (Le calcul des ticks, lui, ne retient que la vitesse — voir
-// ../../spec/shared/calcul-vitesse.md.)
+// docs/02-app/transverse/.)
 export function leadIsActive(ls: LeaderSkill): boolean {
   return ls.area === 'General' || ls.area === 'Guild' || ls.area === 'Element';
 }
@@ -70,7 +70,7 @@ function leadTitle(ls: LeaderSkill): string {
 // Badge posé SUR le portrait du leader (coin bas-gauche), là où la place manque
 // pour la pastille complète (vue compacte). Il remplace la couronne : l'icône du
 // jeu marque déjà le leader ET dit quel est son lead. Le montant reste dans
-// l'infobulle. Voir ../../spec/siege/equipes.md.
+// l'infobulle. Voir docs/02-app/siege/.
 export function LeadBadge({ ls, size = 22 }: { ls: LeaderSkill; size?: number }) {
   const icon = leadIconUrl(ls);
   if (!icon) return null;

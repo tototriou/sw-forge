@@ -533,8 +533,8 @@ for (const c of classes.slice(0, LIGNES_IMPRIMEES)) {
 }
 if (classes.length > LIGNES_IMPRIMEES) console.log(`  … et ${classes.length - LIGNES_IMPRIMEES} de plus.`);
 
-// ⚠️ Sous-produit GRATUIT de `pairBuckets` (voir spec/outils/optimizer/
-// moteur/diagnostics.md, « Quasi-succès à l'appariement ») — jamais recalculé, seulement mis en forme.
+// ⚠️ Sous-produit GRATUIT de `pairBuckets` (voir docs/03-developpeur/optimizer/
+// (diagnostics), « Quasi-succès à l'appariement ») — jamais recalculé, seulement mis en forme.
 // Rendu SEULEMENT quand rien n'a été trouvé : sinon rien à chercher.
 if (result.candidates.length === 0) {
   const runeById = new Map(params.pool.map((r) => [r.id, r]));

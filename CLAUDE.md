@@ -9,31 +9,29 @@ ouvrir. Ne pas explorer `src/` à l'aveugle.
 ## Travail
 
 - **Français partout** : réponses, commits, libellés d'interface, commentaires,
-  specs (`spec/`) et skills (`.claude/skills/`) — même un diff isolé de
+  documentation (`docs/`) et skills (`.claude/skills/`) — même un diff isolé de
   quelques lignes.
-- **La spec avant le code.** Lire le `spec/` de la zone touchée avant de coder,
-  la mettre à jour dans le **même commit**. Index : [spec/README.md](spec/README.md)
+- **La spec avant le code.** Lire la documentation (`docs/`) de la zone touchée avant de coder,
+  la mettre à jour dans le **même commit**. Carte : [docs/README.md](docs/README.md) ;
+  conventions : [docs/03-developpeur/](docs/03-developpeur/)
   — c'est là que vivent les conventions produit détaillées (interface,
   persistance, releases…), pas ici : ce fichier-ci reste le résumé chargé
   automatiquement à chaque session. Ouvrir une spec =
   `node scripts/spec-toc.mjs <fichier|dossier>` (sommaire compact : en-tête,
   puis niveau / plage de lignes / première phrase de chaque titre) puis la
   section utile — jamais un fichier entier de plus de 300 lignes sans raison
-  écrite. Avant un chantier Optimizer : `spec/outils/optimizer/invariants.md`
-  (en entier — le seul fichier lu ainsi, tenu compact pour ça) et le README
-  de routage, `spec/outils/optimizer/README.md`. **Modification NORMATIVE** d'un fichier
-  listé en exception dans `spec/spec-lint.json`, ou extraction des
+  écrite. Avant un chantier Optimizer : les invariants de
+  `docs/03-developpeur/optimizer/` (en entier — le seul fichier lu ainsi,
+  tenu compact pour ça) et le routage par tâche de `docs/02-app/optimizer/`.
+  **Modification NORMATIVE** d'un fichier
+  listé en exception dans `scripts/spec-lint.json`, ou extraction des
   invariants d'une section d'état actuel nouvelle/modifiée : skill
   `spec-hygiene` (déplacer, découper, extraire — pas pour une faute, un lien
   ou un en-tête).
-- **Public et privé.** Le dépôt est public : tout `spec/` l'est, et rien de
-  public ne renvoie aux notes privées du projet (ni chemin, ni nom de
-  dossier de notes). Restent privés le pilotage des chantiers, les
-  preuves, l'historique, les délibérations et les mesures sur des cas
-  réels. Dans le public : ni date hors date du jeu, ni identifiant de lot
-  ou de décision privée, ni « décision de l'utilisateur », ni récit ; la
-  règle et sa raison suffisent. Détail : spec/outillage/spec.md § Public
-  et privé.
+- **Documentation : [docs/README.md](docs/README.md)** — la carte et les
+  règles. Le dépôt est public : décisions (ADR), cadrages et pilotage y
+  vivent (`docs/05-decisions/`, `docs/07-pilotage/`). Restent hors du dépôt
+  un export de compte, des données personnelles, des captures d'écran.
 - **Pendant le travail, on ne lance QUE les vérifications de la zone touchée** :
   `node tests/run.mjs <filtre>` (ex. `node tests/run.mjs speed-tune`, plusieurs
   filtres possibles). La **suite complète** (`npm test`) est obligatoire **avant
@@ -65,7 +63,7 @@ ouvrir. Ne pas explorer `src/` à l'aveugle.
   l'oubli reste parfaitement typé. Avant de
   considérer un champ ajouté/renommé comme terminé : `grep -rn` du nom du
   type/champ sur TOUT le dépôt (`src/` ET `scripts/` ET `tests/`), pas
-  seulement le fichier qu'on vient d'éditer. Détail : [spec/README.md](spec/README.md),
+  seulement le fichier qu'on vient d'éditer. Détail : [docs/03-developpeur/](docs/03-developpeur/),
   « Conventions communes ».
 
 ## Interface
@@ -76,7 +74,7 @@ ouvrir. Ne pas explorer `src/` à l'aveugle.
   librairie que quand un **axe** manque, jamais une variante de plus.
 - ⚠️ **Un clic ne déplace jamais ce qu'on vient de cliquer.** La place de ce qui
   s'ouvre est réservée d'avance, ou bien ce qui s'ouvre sort du flux (flottant,
-  dialogue, panneau). Détail et exceptions : [spec/shared/design.md](spec/shared/design.md).
+  dialogue, panneau). Détail et exceptions : [docs/03-developpeur/interface/](docs/03-developpeur/interface/).
 - **Contours : 1 px, et un seul.** Jamais deux superposés. Vaut pour les éléments
   d'**interface** ; runes, artéfacts et reliques se marquent comme dans le jeu.
 - **Grammaire des modales** : titre en haut à gauche, croix en haut à droite,
@@ -85,11 +83,11 @@ ouvrir. Ne pas explorer `src/` à l'aveugle.
 - **Les libellés sont ceux du jeu**, jamais reformulés.
 - **Jamais un `confirm()` dont OK détruit** : le défaut est l'action sans perte.
 - **Aucune couleur Tailwind native**, aucune valeur en dur : tout passe par les
-  tokens ([spec/shared/design.md](spec/shared/design.md)).
+  tokens ([docs/03-developpeur/interface/](docs/03-developpeur/interface/)).
 - **Passe responsive en cours** — ne pas rustiner le mobile écran par écran.
 
 Détail complet des conventions produit (persistance, réglages, champs
-numériques, etc.) : [spec/README.md](spec/README.md), section « Conventions
+numériques, etc.) : [docs/03-developpeur/](docs/03-developpeur/), section « Conventions
 communes ».
 
 ## Vérifier
@@ -99,6 +97,7 @@ dans cet ordre :
 
 ```
 npx tsc --noEmit                  # types — couvre src/ ET scripts/ ET tests/
+npx eslint <fichiers touchés>     # lint ; `npm run lint` pour tout le dépôt
 node tests/run.mjs <filtre>       # SEULEMENT la zone touchée (ex. speed-tune)
 npm run build                     # Tailwind n'émet que ce qu'il trouve dans le SOURCE
 ```
@@ -132,19 +131,24 @@ recette pour demander un relevé en jeu exploitable.
 (`git fetch origin && git switch -c forge/<sujet> origin/main`) ; on n'y
 travaille jamais, on en part.
 
-- **Un hook `pre-commit` refuse cinq choses** : un commit sur `main`, un
-  chemin privé dans l'index (`.history/`, `.vscode/`), dans le dossier de
-  l'Optimizer un fichier absent de
-  `.githooks/optimizer-publics.txt` ou qui porte une marque de note privée
-  (une spec publiée y ajoute sa ligne dans le même commit), un fichier de
-  plus de 5 Mo (un export de compte), et un `spec/**.md` du périmètre de
-  `spec/spec-lint.json` qui ne passe pas `spec-lint` (niveau 1, invariant
-  dépôt — spec/outillage/spec.md § Refus du `pre-commit`).
-  Il est **installé par machine**, donc actif quelle que soit la branche —
-  mais jamais requis : un clone neuf n'en a pas et commite normalement.
-  Il s'installe par `node scripts/installer-hooks.mjs` (`--simulation` pour
-  voir sans écrire) ; une modification du hook ne s'active qu'à cette
-  commande, lancée **sur décision de l'utilisateur**, tests verts.
+- **Un hook `pre-commit` refuse cinq choses** : une erreur ESLint dans le
+  code indexé, un commit sur `main`, un
+  chemin privé dans l'index (`.history/`, `.vscode/`), un fichier de
+  plus de 5 Mo (un export de compte), et un `docs/**.md` du périmètre de
+  `scripts/spec-lint.json` qui ne passe pas `spec-lint` (niveau 1, invariant
+  dépôt — docs/03-developpeur/ § Refus du `pre-commit`).
+- **Un hook `commit-msg` refuse** un sujet hors de la forme
+  `type(portée): description`, un corps collé au sujet et un message qui
+  commence par un BOM (docs/03-developpeur/ § Message de commit).
+- Les deux hooks sont **installés par machine**, donc actifs quelle que soit la branche —
+  mais jamais requis : un clone sans `npm install` n'en a pas et commite
+  normalement. **`npm install` les installe** (script `prepare`, jamais en
+  CI, jamais vers une version plus ancienne que celle installée) ; à la main :
+  `node scripts/installer-hooks.mjs` (`--simulation` pour voir sans écrire).
+- **`--no-verify` reste possible en local, pas en CI** : sur chaque pull
+  request, `scripts/verifier-commits.mjs` rejoue `commit-msg` et
+  `pre-commit` sur chaque commit (docs/03-developpeur/
+  § Garde-fous rejoués en CI).
 
 ## Consignes pour l'agent (Claude Code)
 
@@ -186,74 +190,11 @@ D'où deux défauts
   fichier du dépôt à modifier — passer par l'outil `Edit`, pas par un `sed`
   ou un `node -e` qui transporte le remplacement dans une chaîne shell.
 
-⚠️ **La première puce, et la forme dangereuse de la seconde, sont
-appliquées par un hook**, `PreToolUse` sur `Bash` :
-[.claude/hooks/refuse-commit-m.mjs](.claude/hooks/refuse-commit-m.mjs) refuse
-un message en ligne de `git commit`, `git merge` et `git tag` (`-m`, collé
-ou dans une grappe d'options courtes, `--message` ou son abréviation),
-derrière toute option globale de git, et rappelle la forme sûre de
-chacune, et refuse
-`node -e "…"` dont la chaîne contient un backtick, un `$` ou une barre
-oblique inverse. Raison d'être :
-après des dizaines d'exemples réussis de la forme interdite,
-l'exemple pèse plus lourd qu'une règle lue au démarrage. Un refus au MOMENT de
-l'action ne dépend d'aucune vigilance.
-⚠️ Le script est suivi par git, son **câblage** est dans `.claude/settings.json`
-(ignoré, propre à chaque machine) : à recopier pour en bénéficier.
-⚠️ Portée **étroite et assumée** : `node -e`/`--eval`/`-p`/`--print` n'est
-refusé qu'en position de commande, hors commentaire (`#` en début de mot,
-hors guillemets, jusqu'à la fin de la ligne), avec un argument entre
-**guillemets doubles** contenant un backtick, un `$` ou une barre oblique
-inverse (que bash réduit sans rien dire), même échappé ; entre apostrophes
-ou sans ces caractères, il passe. `gh pr create --body` n'est pas couvert.
-Couvrir la classe entière demanderait une analyse de quoting bash aux faux
-positifs permanents, `$(…)` étant une construction légitime. Test :
-`node tests/run.mjs hookrefusecommitm`.
-
-⚠️ **La seconde puce est appliquée pour `sed -i`** par un second hook,
-`PreToolUse` sur `Bash` **et** `PowerShell` :
-[.claude/hooks/refuse-sed-i.mjs](.claude/hooks/refuse-sed-i.mjs) refuse `sed`
-lancé avec une option en place (`-i`, `-i.bak`, `-Ei`, `--in-place`, derrière
-`find -exec` ou `xargs` compris), jamais le texte « sed -i » cité ni un corps
-de heredoc. Raison d'être : un `sed -i` raté ne signale
-rien. Test :
-`node tests/run.mjs hookrefusesedi`. Câblage dans `.claude/settings.json`
-(deux entrées : `Bash`, `PowerShell`), à recopier comme le premier. Côté
-Codex, les deux parseurs de commande sont appelés par
-`scripts/hooks-codex-garde-fous.mjs`, après installation et approbation
-du hook personnel (`node scripts/installer-hooks.mjs --codex-hooks <hooks.json>`).
-
-### Un `Read` sans offset sur une grosse spec est refusé
-
-[.claude/hooks/refuse-read-spec-entier.mjs](.claude/hooks/refuse-read-spec-entier.mjs)
-(`PreToolUse` sur `Read`) refuse la lecture d'un `spec/**.md` de plus de
-300 lignes sans `offset`/`limit`, avec le rappel `node scripts/spec-toc.mjs
-<fichier>` — exception : `spec/outils/optimizer/invariants.md`. Raison
-d'être : même logique que `refuse-commit-m` — une consigne écrite (« jamais
-un fichier entier de plus de 300 lignes ») s'érode à l'usage, un refus au
-moment de l'action non. Portée **étroite et assumée** (niveau 2, garde-fou
-outil, pas invariant, spec/outillage/spec.md § Niveaux d'application et
-garde-fous) : ne couvre ni `cat`
-ni un autre outil de lecture, seulement le chemin `Read` de Claude Code.
-Équivalent Codex dans `scripts/hooks-codex-garde-fous.mjs`, actif avec
-ou sans chantier (`node scripts/installer-hooks.mjs --codex-hooks
-<hooks.json>`). Câblage dans
-`.claude/settings.json` (ignoré, propre à chaque machine) :
-
-```json
-{
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Read",
-        "hooks": [
-          { "type": "command", "command": "node .claude/hooks/refuse-read-spec-entier.mjs" }
-        ]
-      }
-    ]
-  }
-}
-```
+Ces deux défauts sont des conventions d'agent : aucun hook d'agent ne les
+applique, parce qu'une faute ici abîme la machine ou le travail de l'agent,
+pas le dépôt. Ce qui entre dans le dépôt est gardé par les hooks Git et la
+CI : `commit-msg` refuse notamment un message qui commence par un BOM
+(docs/03-developpeur/).
 
 ### Windows : `TaskStop` ne tue pas le vrai process
 

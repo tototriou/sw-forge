@@ -2,7 +2,7 @@
 // Calcul pur : une équipe de siège → les monstres à poser dans « Ton équipe »,
 // avec leur vitesse de runes, et le lead à appliquer au camp.
 //
-// Voir spec/outils/speed-tuning.md, « Importer un deck de siège ».
+// Voir docs/02-app/speed-tuning/, « Importer un deck de siège ».
 
 import { Monster, SiegeSlot, SiegeTeam } from '../types';
 import { LeadInfo, isSiegeLeadActive, siegeLeadFor, speedLeadOf } from './speed';
@@ -28,7 +28,7 @@ function arteBuffDeSlot(slot: SiegeSlot): number | null {
 export interface DeckImporte {
   // Dans l'ordre des slots (0 = leader), slots vides et monstres inconnus
   // écartés. `runeSpeed` vient du slot de siège : d'après la convention de
-  // l'app, il contient DÉJÀ le Swift à plat (voir spec/shared/calcul-vitesse.md).
+  // l'app, il contient DÉJÀ le Swift à plat (voir docs/02-app/transverse/).
   monstres: {
     monster: Monster;
     runeSpeed: number | null;

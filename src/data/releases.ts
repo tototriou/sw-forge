@@ -56,7 +56,7 @@ export const CHANGE_META: Record<ChangeKind, { label: string; color: string }> =
 //
 // ⚠️ **Style : une phrase courte, lisible par un joueur.** Ce qui change POUR
 // LUI, jamais comment c'est fait. Pas de nom de fonction, pas de formule, pas de
-// détail d'implémentation — tout ça vit dans les commits et dans `spec/`.
+// détail d'implémentation — tout ça vit dans les commits et dans `docs/`.
 // Si une ligne dépasse ~15 mots, c'est qu'elle raconte l'implémentation.
 export const RELEASES: Release[] = [
   {

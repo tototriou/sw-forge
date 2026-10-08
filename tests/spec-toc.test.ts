@@ -1,7 +1,8 @@
 // `scripts/spec-toc.mjs` et l'extension de `spec-markdown.mjs` (plages,
 // en-tête, première phrase) qui le porte. Fixtures synthétiques pour chaque
-// cas de `spec-toc`, plus un passage sur `spec/outils/optimizer.md` réel : voir
-// `spec/outillage/spec.md`, « `spec-toc` ».
+// cas de `spec-toc`, plus un passage sur la page d'entrée réelle de
+// l'Optimizer (`docs/02-app/optimizer/README.md`) : voir
+// `docs/03-developpeur/`, « `spec-toc` ».
 
 import { execFileSync } from 'child_process';
 import { readFileSync } from 'fs';
@@ -89,9 +90,9 @@ export default function testSpecToc() {
     'parcours récursif du sous-dossier, et node_modules/ ignoré malgré son .md'
   );
 
-  titre('spec-toc · spec/outils/optimizer.md réel');
+  titre('spec-toc · page d’entrée réelle de l’Optimizer');
 
-  const optimizerPath = resolve(RACINE, 'spec/outils/optimizer.md');
+  const optimizerPath = resolve(RACINE, 'docs/02-app/optimizer/README.md');
   const optimizerTexte = readFileSync(optimizerPath, 'utf8');
   const optimizerSections = sections(optimizerTexte);
   const h2 = optimizerSections.filter((s) => s.niveau === 2).map((s) => s.titre);
@@ -99,13 +100,13 @@ export default function testSpecToc() {
     'Où vit le reste de la spec',
   ], 'le seul H2 de la page d\'entrée est présent dans le sommaire');
 
-  const sortieJson = execFileSync(process.execPath, [SCRIPT, 'spec/outils/optimizer.md', '--json'], {
+  const sortieJson = execFileSync(process.execPath, [SCRIPT, 'docs/02-app/optimizer/README.md', '--json'], {
     cwd: RACINE,
     encoding: 'utf8',
   });
   const parsed = JSON.parse(sortieJson);
   ok(Array.isArray(parsed) && parsed.length === 1, '--json produit un tableau d’un seul fichier pour un fichier unique');
-  egal(parsed[0].fichier, 'spec/outils/optimizer.md', 'chemin relatif à la racine du dépôt, avec des « / »');
+  egal(parsed[0].fichier, 'docs/02-app/optimizer/README.md', 'chemin relatif à la racine du dépôt, avec des « / »');
   egal(parsed[0].sections.map((s: any) => s.titre), optimizerSections.map((s) => s.titre),
     'les sections du --json portent les mêmes titres, dans le même ordre, que sections() appelé directement');
 }

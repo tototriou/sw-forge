@@ -10,7 +10,7 @@ dizaines de minutes, répétée à chaque itération, et un même genre de pièg
 (contention, chemins gitignorés, spawn Windows) se redécouvre faute d'un
 endroit où le retrouver vite. Ce skill est une RÉFÉRENCE, pas un récit ;
 la méthode de comparaison des temps que suit le harnais est décrite dans
-[spec/outils/optimizer/harnais.md § Séries de temps et comparaison](../../../spec/outils/optimizer/harnais.md).
+[docs/03-developpeur/optimizer/ § Séries de temps et comparaison](../../../docs/03-developpeur/optimizer/).
 
 ⚠️ **Ne remplace PAS `algo-verify`** (`.claude/skills/algo-verify/SKILL.md`)
 — celui-ci reste la discipline à suivre pour la CORRECTION d'un algorithme
@@ -96,7 +96,7 @@ confondre** — elles n'ont ni la même fidélité ni le même usage :
 
 | Fichier | Ce que c'est | Quand s'en servir |
 |---|---|---|
-| `scripts/lib/pair-slice-worker.ts` | ✅ **Le code de PRODUCTION**, coquille Node du même `runPairSlice` que le navigateur (voir [spec/outils/optimizer/moteur/parallelisation.md § Coquilles et lanceurs](../../../spec/outils/optimizer/moteur/parallelisation.md)) | Dès qu'on veut mesurer ou vérifier ce que la prod fait vraiment |
+| `scripts/lib/pair-slice-worker.ts` | ✅ **Le code de PRODUCTION**, coquille Node du même `runPairSlice` que le navigateur (voir [docs/03-developpeur/optimizer/ § Coquilles et lanceurs](../../../docs/03-developpeur/optimizer/)) | Dès qu'on veut mesurer ou vérifier ce que la prod fait vraiment |
 | `scripts/lib/pairing-quota-worker.ts` | Une REPRODUCTION fidèle du mécanisme, plus un mode `shared` **qui n'est pas en production** (prototype du quota partagé, écarté) | Uniquement pour explorer la question du quota partagé |
 | `scripts/lib/pairing-worker.ts` | Un PROTOTYPE de mesure de débit brut — **budget figé, aucune escalade**, son en-tête le dit | Rien de fidèle : ne jamais en tirer une conclusion sur la prod |
 
@@ -275,7 +275,7 @@ séquentielle jusqu'ici (construction des 2 moitiés en Workers,
 ne change leur comportement en cours de route) — la règle ci-dessus les
 classe du côté valide, pas suspect.
 Le quota partagé écarté pour cette raison :
-[spec/outils/optimizer/moteur/parallelisation.md § Répartition et partage du plafond](../../../spec/outils/optimizer/moteur/parallelisation.md).
+[docs/03-developpeur/optimizer/ § Répartition et partage du plafond](../../../docs/03-developpeur/optimizer/).
 
 ### `candidats.push(...tableauEnorme)` — limite d'arguments V8
 
@@ -381,7 +381,7 @@ charge.
   détail, et sa section « Fidélité des scripts diagnostics » couvre le
   risque qu'un script qui appelle les internes du moteur diverge du vrai
   chemin de production.
-- `spec/outils/optimizer/README.md` — routage par tâche vers les specs de
+- `docs/02-app/optimizer/` — routage par tâche vers les specs de
   l'Optimizer (vérification, harnais, parallélisation), et
-  `spec/outils/optimizer/pistes.md` (les pistes futures, à lire avant toute
+  `docs/07-pilotage/` (les pistes futures, à lire avant toute
   idée « nouvelle »).

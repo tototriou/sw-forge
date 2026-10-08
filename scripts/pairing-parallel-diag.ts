@@ -1,5 +1,5 @@
 // Mesure si paralléliser la boucle d'APPARIEMENT (au-delà des 2 Workers déjà
-// utilisés pour la CONSTRUCTION, voir spec/outils/optimizer/pistes.md,
+// utilisés pour la CONSTRUCTION, voir docs/07-pilotage/,
 // « point 9 ») réduit réellement le temps mur — avant de choisir un nombre
 // de Workers par défaut, ou d'exposer quoi que ce soit à l'écran.
 //
@@ -54,7 +54,7 @@ const WORKER_COUNTS = [1, 2, 4, 8].filter((n) => n <= MAX_WORKERS);
 // ⚠️ Deuxième itération de ce prototype. La première comparait à budget de
 // paires FIXE (100M) — ce qui, pour les cas dont le total réel dépasse ce
 // plafond (Sonia d14), mesurait en fait une recherche TRONQUÉE : régime déjà
-// prouvé risqué (voir pistes.md, « point 9 », round-robin par rang ET
+// prouvé risqué (voir docs/07-pilotage/, pistes de l'Optimizer, « point 9 », round-robin par rang ET
 // équilibrage par charge perdent tous les deux des candidats valides sous
 // troncature). Le mode visé ici (« Rechercher jusqu'à épuisement complet »)
 // n'a PAR DÉFINITION aucun plafond — donc aucun risque de troncature, quel

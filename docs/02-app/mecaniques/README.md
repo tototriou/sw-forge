@@ -1,0 +1,64 @@
+# Mécaniques (`#/mecaniques`)
+
+Page de **documentation des mécaniques de jeu** Summoners War (référence
+utilisateur, façon `swcalc.cz`). Pas d'état, pas de données chargées : contenu
+statique + sommaire cliquable.
+
+Fichier : [MechanicsPage.tsx](src/pages/MechanicsPage.tsx)
+
+## Contenu
+
+Le contenu se limite **strictement à ce que couvre swcalc.cz/game-mechanics**
+(pas d'ajout). Sommaire (ancres, scroll interne via `goTo(id)` — **pas** de
+changement de hash pour ne pas casser le routing) puis sections en panneaux :
+
+1. **Vitesse de combat** — `⌈ base × (1 + Σ%vit) + Σvit_plate ⌉ × Slow × BuffVit`, avec
+   correction de troncature pour les runes Swift (perte à l'arrondi de `base × 0,25`).
+2. **Barre d'action & ordre de tour** — `ΔATB/tick = vitesse × 7/100` (7 % par tick) ; action à 100.
+3. **Équation finale des dégâts** — `(Mult × Crit × DMG% × FacteurDéf × Variance + Additionnel) × Réductions`.
+   Buffs ATQ/DEF (comme VIT) tronqués vers le bas selon le bonus d'effet ; les dégâts fixes
+   (`Additionnel`) ignorent crit **et** FacteurDéf.
+4. **Facteur de défense** — `1000 / (1142 + 3.572 × DEF)`, **aligné sur swcalc.cz**. Les valeurs
+   arrondies du wiki fandom (`1140 + 3.5`) ont été employées un temps, l'écart étant négligeable
+   en valeur absolue (~0,3 % à 3 000 de DEF) ; rien ne justifiait de garder un arrondi quand la
+   source de référence donne les vraies constantes. Def break ×0.3, ignore def (plancher ≈ 0,876).
+5. **Coups critiques** — taux vs dégâts crit ; glancing ne crit pas ; certaines lignes d'artefact
+   ont une portée limitée (par compétence, cible primaire seule, etc.).
+6. **Variance** — ±2.8 % (stats), ±2.35 % (PV max), tirage triangulaire.
+7. **Cas particuliers** — mécaniques de monstres liées à la vitesse/défense (non modélisées dans l'outil).
+
+> Volontairement **exclus** (non présents sur swcalc/game-mechanics) : efficacité
+> des runes, sets de runes, précision/résistance, avantage élémentaire.
+
+⚠️ **Deux écarts connus entre la page et cette spec, à corriger** (relevés au
+lot 10 de la refonte graphique, le 2026-09-28 ; le mainteneur : « on le fera plus
+tard ») :
+
+- la page affiche encore `1000 / (1140 + 3.5 × DEF)`, les valeurs arrondies
+  du wiki, alors que le point 4 ci-dessus retient `1142 + 3.572` (swcalc.cz) ;
+- le point 2 et la page disent « 7 % par tick » sans réserve : c'est vrai
+  partout **sauf en raid (4,5 %) et en RTA (1,5 %)** — voir
+  [speed-tuning/](../speed-tuning/) § Mode RTA.
+
+## Règles / attendus
+
+- **Formules = modèle communautaire** (prédictif), annoncé dans l'intro (pas de
+  crédit de source affiché).
+- Cohérent avec les calculs réels de l'app : vitesse/ticks (voir
+  [siege/](../siege/)), efficacité & sets (voir
+  [transverse/](../transverse/)).
+- Composants internes : `Section`, `F` (bloc formule mono défilable), `K` (terme
+  inline). Titres sans en-tête d'action ; la page **garde** son titre (contrairement
+  aux pages outils) car c'est une doc.
+- Ancres de sommaire via `scrollIntoView` (pas de `href="#..."` qui modifierait le
+  hash de routing).
+- ⚠️ **À la souris, deux colonnes** (refonte graphique, lot 10, la maquette) :
+  le sommaire **fixe** à gauche (220 px, `sticky`), sans cadre ni numéros,
+  chaque entrée surlignée au survol ; l'article à droite, borné à 720 px, ses
+  sections séparées par un filet au lieu d'être des panneaux. L'ordre du DOM ne
+  change pas (titre, sommaire, sections) : seule la grille les place. **Au
+  doigt** (lot 11d, décision 27), une colonne : le sommaire en tête, dans sa
+  carte — **gardé**, alors que la maquette téléphone le retirait —, puis les
+  sections séparées par un filet, comme à la souris. La section en cours
+  surlignée dans le sommaire est un ajout de la maquette, reporté au lot 13
+  (décision 23).

@@ -54,7 +54,7 @@ export async function drivePairing(
       const progress = step.value;
       // ⚠️ Le near-miss accumulé jusqu'à cet instant DOIT survivre à l'arrêt
       // — sans ces deux champs, un arrêt manuel perdrait silencieusement ce
-      // que `pairBuckets` avait déjà trouvé (voir spec/outils/optimizer/moteur/diagnostics.md
+      // que `pairBuckets` avait déjà trouvé (voir docs/03-developpeur/optimizer/
       // § Types et transport du quasi-succès : ce site est un de ceux qui
       // reconstruisent `SearchResult` à la main).
       return {

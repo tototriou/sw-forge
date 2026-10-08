@@ -1,7 +1,7 @@
 /// <reference lib="webworker" />
 // Premier Worker de l'app. Le calcul lui-même (pur, sans React) vit dans
 // lib/runeBuildOptim.ts et reste réutilisable dans les tests sans passer par
-// un Worker. Voir spec/compte/calcul-runes.md §6 (Perf).
+// un Worker. Voir docs/02-app/compte/ §6 (Perf).
 //
 // ⚠️ Orchestre `prepareSearch` → `buildBuckets` (×2, EN PARALLÈLE, chacune
 // dans son propre Worker enfant — buildHalf.worker.ts) → `pairBuckets`,
@@ -9,7 +9,7 @@
 // moitiés A et B sont indépendantes (aucune ne dépend du résultat construit
 // de l'autre, seulement de bornes calculées d'avance par `prepareSearch`),
 // donc les construire sur deux cœurs plutôt qu'un seul accélère cette phase
-// d'environ 2× — voir spec/outils/optimizer/moteur/pipeline.md § Construction des moitiés.
+// d'environ 2× — voir docs/03-developpeur/optimizer/ § Construction des moitiés.
 // La phase d'appariement (`pairBuckets`)
 // reste, elle, pilotée PAS À PAS dans CE Worker, exactement comme avant :
 // c'est ce qui permet de rendre la main à la boucle d'évènements entre deux
@@ -33,7 +33,7 @@ export type WorkerRequest = SearchParams | { stop: true };
 // prendre jusqu'à environ une minute sur un compte réel avec beaucoup de
 // conditions à la fois, ENTIÈREMENT AVANT que `phase: 'pairing'` (l'ancien
 // comportement, inchangé) ne commence — sans cette distinction, l'UI n'avait
-// aucune information pendant cette phase (voir spec/outils/optimizer/moteur/pipeline.md
+// aucune information pendant cette phase (voir docs/03-developpeur/optimizer/
 // § Construction des moitiés).
 export interface WorkerBuildingMessage {
   type: 'progress';
@@ -57,7 +57,7 @@ export interface WorkerPairingMessage {
   // que le Worker ait à transmettre.
   totalPairs: number;
   // ⚠️ Les candidats NOUVEAUX depuis le dernier message, PAS la liste
-  // entière accumulée jusqu'ici (voir spec/outils/optimizer/moteur/pipeline.md
+  // entière accumulée jusqu'ici (voir docs/03-developpeur/optimizer/
   // § Appariement séquentiel) : `progress.candidates` peut
   // grossir jusqu'à `maxCollected` (100 000 par défaut) sur une recherche
   // lâche — le retransmettre EN ENTIER à chaque point de passage throttlé
@@ -91,7 +91,7 @@ export type WorkerResponse = WorkerProgressMessage | WorkerResultMessage | Worke
 // ⚠️ Contre `totalPairs` (l'espace RÉEL à épuiser, voir `totalPairCount`) —
 // c'était DÉJÀ le cas quand un plafond de nœuds existait encore à côté (il
 // grandissait avec l'escalade et n'avait plus grand-chose à voir avec la
-// taille réelle du travail restant, voir spec/outils/optimizer/interruption.md
+// taille réelle du travail restant, voir docs/02-app/optimizer/
 // § Barre de progression) ; ce choix de l'interface est l'un des arguments qui
 // ont mené à sa suppression. Affiché à
 // l'écran comme `X / totalPairs`, cohérent avec la ligne « Espace de
@@ -125,7 +125,7 @@ let stopBuildReject: (() => void) | null = null;
 // meilleur trouvé jusque-là »).
 let activePairingWorkers: SliceHandle[] = [];
 
-// ⚠️ Parallélisation de l'APPARIEMENT — voir spec/outils/optimizer/moteur/parallelisation.md
+// ⚠️ Parallélisation de l'APPARIEMENT — voir docs/03-developpeur/optimizer/
 // § Choix du régime. Historique en trois temps :
 // 1. Mesuré sur 3 itérations (scripts/pairing-parallel-diag.ts) : un
 //    découpage STATIQUE de bucketsA à budget INFINI (mode exhaustif
@@ -175,7 +175,7 @@ function pairSliceInWorker(
       }
       // ⚠️ Reconstruction EXPLICITE, pas un spread de `msg` — un champ ajouté
       // à `SearchResult` sans être listé ICI serait perdu en silence. Voir
-      // spec/outils/optimizer/moteur/diagnostics.md
+      // docs/03-developpeur/optimizer/
       // § Types et transport du quasi-succès : un des sites qui reconstruisent
       // un résultat champ par champ pour cette raison précise.
       // ⚠️ `traceur` : sans lui ici, `combineParallelPairingResults` ne
@@ -236,7 +236,7 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
   stopped = false;
   const params = e.data;
   const startedAt = Date.now();
-  let lastProgressPost = 0;
+  const lastProgressPost = 0;
 
   // ⚠️ `prepareSearch` peut lever `RechercheRefusee` (pool de reliques vide
   // en mode `recherche`) — jamais un simple appel direct ICI : un rejet

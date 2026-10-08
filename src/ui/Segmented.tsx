@@ -195,7 +195,7 @@ export default function Segmented<T extends string>({
                               // propre cadre : deux signaux pour un seul état, et
                               // une élévation qui ne veut rien dire ici (le cran
                               // ne flotte pas au-dessus du contrôle qui le
-                              // contient). Voir spec/shared/design.md.
+                              // contient). Voir docs/03-developpeur/interface/.
                               // ⚠️ Un APLAT de braise, texte `accent-ink`
                               // (rebranding, décision 19 — la planche
                               // « Actions » de la toile) : il valait le fond

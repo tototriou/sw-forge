@@ -143,7 +143,7 @@ Ordre d'exécution = ordre des numéros.
 
 | Lot | Cat. | Statut | Commit / date |
 | --- | --- | --- | --- |
-| 0 — Charte et squelette | J | à faire | |
+| 0 — Charte et squelette | J | fait | 2026-10-08 |
 | 1 — Plan de migration | C | à faire | |
 | 2 — Garde-fous public/privé caducs | M | à faire | |
 | 3 — Déplacement `spec/` → `docs/` | M | à faire | |
@@ -176,6 +176,17 @@ Ordre d'exécution = ordre des numéros.
 - **Preuve** : `node tests/run.mjs renvois` vert ; diff de CLAUDE.md limité
   aux deux règles.
 - **Ne fait pas** : aucun déplacement de `spec/`.
+
+#### Résultat (2026-10-08)
+
+`docs/README.md` (carte des sept sections, règles 1 à 11, conventions de
+rédaction), un README par section et pour `05-decisions/adr/`,
+`07-pilotage/questions-ouvertes.md` vide. CLAUDE.md : la règle « Public et
+privé » devient un renvoi à la carte ; la règle du cadrage le place dans
+`docs/05-decisions/cadrages/`. Écart : un dossier ou une ressource à venir
+s'écrit sans barre finale entre backticks (`transverse`, `assets`), sans
+quoi le test des renvois le lit comme un chemin mort.
+`node tests/run.mjs renvois` : 38 passées.
 
 ### Lot 1 — Plan de migration
 

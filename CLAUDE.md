@@ -26,14 +26,10 @@ ouvrir. Ne pas explorer `src/` à l'aveugle.
   invariants d'une section d'état actuel nouvelle/modifiée : skill
   `spec-hygiene` (déplacer, découper, extraire — pas pour une faute, un lien
   ou un en-tête).
-- **Public et privé.** Le dépôt est public : tout `spec/` l'est, et rien de
-  public ne renvoie aux notes privées du projet (ni chemin, ni nom de
-  dossier de notes). Restent privés le pilotage des chantiers, les
-  preuves, l'historique, les délibérations et les mesures sur des cas
-  réels. Dans le public : ni date hors date du jeu, ni identifiant de lot
-  ou de décision privée, ni « décision de l'utilisateur », ni récit ; la
-  règle et sa raison suffisent. Détail : spec/outillage/spec.md § Public
-  et privé.
+- **Documentation : [docs/README.md](docs/README.md)** — la carte et les
+  règles. Le dépôt est public : décisions (ADR), cadrages et pilotage y
+  vivent (`docs/05-decisions/`, `docs/07-pilotage/`). Restent hors du dépôt
+  un export de compte, des données personnelles, des captures d'écran.
 - **Pendant le travail, on ne lance QUE les vérifications de la zone touchée** :
   `node tests/run.mjs <filtre>` (ex. `node tests/run.mjs speed-tune`, plusieurs
   filtres possibles). La **suite complète** (`npm test`) est obligatoire **avant
@@ -168,9 +164,10 @@ l'inverse) laisse deux sources qui se contredisent.
 
 Tout travail de plus d'une session, ou confié à des sessions fraîches, se
 cadre dans un fichier — jamais dans un plan de conversation, qui ne se
-recharge pas. Skill `cadrage-chantier` (gabarit, règles de fond,
-emplacement). Un cadrage est **toujours privé**, hors du dépôt : le dépôt ne
-garde aucune doc de chantier, seulement la doc de l'app.
+recharge pas. Skill `cadrage-chantier` (gabarit, règles de fond). Un
+cadrage vit dans `docs/05-decisions/cadrages/`, indexé par le README de ce
+dossier et cité par aucun autre document ; il disparaît une fois son
+contenu passé dans la documentation (docs/README.md, règle 11).
 
 ### Déclarer l'application d'un skill avant d'agir
 

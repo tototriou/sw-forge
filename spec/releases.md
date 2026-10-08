@@ -156,8 +156,8 @@ numéro est connu** (c'est ce qui la distingue des anciennes `release/x.y.z`
 nommées avant de savoir), on y fusionne chaque `forge/<sujet>` en merge
 commit, on y fait l'étape 4 **une seule fois** (entrée unique dans
 `releases.ts` — deux entrées `version: null` deviennent une, pas deux
-entrées au même numéro — numéro dans `package.json`, `tsc`, `npm test`,
-`build`), et c'est **elle** qui part en PR vers `main`. Vécu pour la
+entrées au même numéro — numéro dans `package.json`, `tsc`, lint,
+`npm test`, `build`), et c'est **elle** qui part en PR vers `main`. Vécu pour la
 v1.13.0 (2026-09-17) : deux branches `forge/<sujet>`
 fusionnées dans `release/v1.13.0`, par-dessus
 la version en préparation du speed tuning déjà sur `main`.
@@ -177,7 +177,7 @@ la version en préparation du speed tuning déjà sur `main`.
      numérotation ci-dessous) ;
    - l'écrire dans `version` de [`package.json`](package.json) **et** dans
      l'entrée de `releases.ts`, à la place du `null` ;
-   - vérifier `npx tsc --noEmit`, `npm test` et `npm run build`.
+   - vérifier `npx tsc --noEmit`, `npm run lint`, `npm test` et `npm run build`.
 
    ⚠️ **ENTIÈREMENT avant d’ouvrir la PR, et l’ordre n’est pas indicatif.**
    Tout commit poussé après l’ouverture fait TOMBER les approbations déjà

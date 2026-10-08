@@ -26,6 +26,8 @@ Radix UI a été **validé mais jamais installé** — chantier en attente.
 npm run dev            # serveur de dev
 npm run build          # build de prod (⚠️ seul endroit où l'on voit le CSS réellement émis)
 npm test               # = node tests/run.mjs
+npm run lint           # ESLint sur tout le dépôt (eslint.config.js)
+npm install            # installe aussi les hooks Git (script prepare → scripts/installer-hooks.mjs --automatique)
 npm run fetch-data     # régénère les données monstres/skills depuis SWARFARM
 npm run benchmark:optim
 npm run bureau         # l'application de bureau sur le serveur de dev

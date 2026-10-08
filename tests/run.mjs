@@ -1,11 +1,9 @@
 // Lanceur des vérifications : bundle `tests/index.ts` avec esbuild (déjà
 // présent, c'est une dépendance de Vite), puis exécute le résultat avec Node.
 //
-// ⚠️ **Pas de framework de test, et c'est un choix.** Ce qui est vérifié ici,
-// ce sont des fonctions pures et une base de données — des assertions suffisent.
-// Vitest ou Jest apporteraient une configuration, des versions à suivre et une
-// couche de magie (mocks, transformations) pour un bénéfice nul à cette échelle.
-// Le jour où il faudra tester des composants React, la question se reposera.
+// Pas de framework de test : assertions de `tests/outils.ts`, une seule
+// exécution dans l'ordre de `tests/index.ts`. Ce que la suite couvre, et ce
+// qu'elle ne couvre pas : tests/README.md.
 
 import { build } from 'esbuild';
 import { spawn } from 'child_process';

@@ -223,13 +223,14 @@ Après avoir coché les deux checklists ci-dessus, dans l'ordre de `CLAUDE.md`
 1. `npx tsc --noEmit` — vide. Il prouve la FORME partout, `scripts/` et
    `tests/` compris ; rien sur un champ optionnel oublié ni sur un sens mal
    lu.
-2. `node tests/run.mjs <filtre…>` — seulement la zone touchée : la
+2. `npx eslint <fichiers touchés>` — aucune erreur.
+3. `node tests/run.mjs <filtre…>` — seulement la zone touchée : la
    vérification du champ, et celles des producteurs et constructeurs
    traversés, par exemple `recette`, `optimizerrecipe`,
    `artefactsficheparams`, `resolution`, `cliclassement`, `verifiertoutes`,
    `relicdifferentiel`. Un filtre qui ne correspond à rien échoue en
    listant les noms (registre : `tests/index.ts`).
-3. `npm run build`.
+4. `npm run build`.
 
 La suite complète (`npm test`) ne tourne qu'avant une fusion sur `main`.
 

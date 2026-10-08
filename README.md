@@ -73,7 +73,7 @@ la CI. Développer sur une version et vérifier sur une autre laisse passer des
 
 ```bash
 nvm use              # lit .nvmrc
-npm install
+npm install          # installe aussi les hooks Git (pre-commit, commit-msg)
 npm run fetch-data   # monsters.json + le détail des compétences (mode démo si l'API est KO)
 npm run dev          # http://localhost:5173
 ```
@@ -82,14 +82,18 @@ Avant d'ouvrir une PR :
 
 ```bash
 npx tsc --noEmit     # le projet est en TypeScript strict
-npm test             # vérifications sur les calculs et la conservation
+npm run lint         # ESLint : une erreur bloque, un avertissement s'affiche
+npm test             # vérifications : calculs, intégration, rendu, outillage
 npm run build
 ```
 
-`npm test` ne couvre **pas** l'interface, volontairement : elle se vérifie à
-l'œil. Il cible les quatre endroits où une erreur serait à la fois grave et
-invisible — vitesse de combat, lecture d'un export, stockage du compte,
-conservation des données. Voir [tests/README.md](tests/README.md).
+À chaque commit, les hooks refusent une erreur ESLint dans le code indexé et
+un message hors de la forme `type(portée): description` ; la CI rejoue ces
+contrôles sur chaque commit de la PR, en plus des quatre commandes ci-dessus.
+Détail : [spec/outillage/qualite-code.md](spec/outillage/qualite-code.md).
+
+`npm test` ne pilote pas de navigateur et ne simule aucun clic : ce qui suit
+une interaction se vérifie à l'écran. Voir [tests/README.md](tests/README.md).
 
 ### Structure
 

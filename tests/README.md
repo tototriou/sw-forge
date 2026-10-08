@@ -8,15 +8,26 @@ Affiche une ligne par vérification et sort en code 1 si l'une échoue. Les
 échecs sont répétés à la fin, avec le nom de leur vérification : un journal
 tronqué (celui de la CI) les montre quand même.
 
-## Ce qui est couvert, et pourquoi seulement ça
+`node tests/run.mjs <filtre>` ne lance que les vérifications dont le nom
+correspond (voir [index.ts](index.ts)).
 
-La plupart des bugs de SW Blacksmith sont **visibles** : une icône manquante, une
-carte mal placée, un filtre qui ne filtre pas. On les voit en ouvrant la page, et
-c'est très bien comme ça — il n'y a **aucun test d'interface ici, et il ne faut
-pas en ajouter** sans raison sérieuse.
+## Ce qui est couvert
 
-Ces vérifications ciblent les quatre endroits où une erreur est à la fois
-**grave et invisible** :
+| Nature | Où | Ce qui est vérifié |
+|---|---|---|
+| Calculs | la plupart des `*.test.ts` | fonctions pures de `src/lib/` : dégâts, optimiseur, speed tuning, tris, filtres |
+| Intégration | import, stockage, persistance, session, workers… | plusieurs modules ensemble : un export d'exemple importé, IndexedDB (`fake-indexeddb`), vrais `worker_threads` |
+| Rendu | [rendu/](rendu/) | un composant affiché avec `react-dom/server` : présence d'un bouton, d'un libellé, d'un état désactivé — le sens, jamais la forme ([rendu/outils-rendu.tsx](rendu/outils-rendu.tsx)) |
+| Outillage | hooks, `spec-lint`, `spec-toc`, renvois | les garde-fous du dépôt, dans des dépôts jetables |
+| Bureau | `bureau-*.test.ts` | les modules purs de l'application de bureau |
+
+**Ce qui ne l'est pas** : aucune vérification ne pilote un navigateur ni ne
+simule une interaction (clic, saisie). Un rendu serveur n'exécute ni effet ni
+gestionnaire d'évènement : ce qui se passe *après* un clic ne se vérifie
+qu'à l'écran.
+
+Les premières vérifications ciblaient les endroits où une erreur est à la
+fois **grave et invisible** — ils restent le cœur de la suite :
 
 | Fichier | Ce qui casserait sans bruit |
 |---|---|
@@ -30,13 +41,15 @@ remonté correctement par un utilisateur. C'est ce qui justifie de les figer ici
 
 ## Choix d'outillage
 
-- **Pas de framework.** Ce qui est vérifié, ce sont des fonctions pures et une
-  base de données : des assertions suffisent. Vitest ou Jest apporteraient une
-  configuration, des versions à suivre et une couche de magie pour un bénéfice
-  nul à cette échelle. Le jour où il faudra tester des composants React, la
-  question se reposera.
+- **Pas de framework de test.** Les assertions sont celles de
+  [outils.ts](outils.ts) (`ok`, `egal`, `ignore`) ; toutes les vérifications
+  tournent à la suite, dans un seul processus, dans l'ordre de
+  [index.ts](index.ts). ⚠️ `egal` compare par `JSON.stringify` : deux `Map` ou
+  deux `Set` différents s'y écrivent `{}` et passent pour égaux — comparer
+  leur contenu converti en tableau.
 - **esbuild**, déjà présent comme dépendance de Vite, bundle `index.ts` ; Node
-  exécute le résultat. C'est tout ce que fait [run.mjs](run.mjs).
+  exécute le résultat. C'est tout ce que fait [run.mjs](run.mjs), qui reprend à
+  la main ce que Vite injecte (`import.meta.env`, `__APP_VERSION__`).
 - ✅ **Les tests passent par `tsc`** : `tsconfig.json` couvre `src`, `scripts`
   ET `tests`. Ça n'a pas toujours été le cas — l'élargissement a révélé d'un
   coup une vingtaine d'appels de test périmés. ⚠️ Ce filet reste partiel :
@@ -55,18 +68,22 @@ remonté correctement par un utilisateur. C'est ce qui justifie de les figer ici
 
 ## Les fichiers d'exemple
 
-- [fixtures/export-synthetique.json](fixtures/export-synthetique.json) — un
+- [fixtures/compte-miniature.json](fixtures/compte-miniature.json) — un
   export SWEX **miniature écrit à la main**, commité, sans la moindre donnée
-  réelle : trois unités, six runes, deux artéfacts, mais **chaque chemin** des
-  extracteurs est exercé (box 6★, inventaire, favoris RTA, défense, attaque).
+  réelle, mais qui exerce **chaque chemin** des extracteurs (box 6★,
+  inventaire, favoris RTA, défense, attaque).
+  [fixtures/compte-exemplaires-multiples.json](fixtures/compte-exemplaires-multiples.json)
+  y ajoute deux exemplaires d'un même monstre.
 - L'**export réel** du développeur (`tototriou-*.json`) est **gitignoré**. Les
   quelques vérifications qui s'en servent s'affichent en `--` (ignorées) quand il
   est absent, au lieu d'échouer sur les autres machines.
 
 ## Ajouter une vérification
 
-1. Un fichier `nom.test.ts` exportant une fonction par défaut.
-2. L'appeler depuis [index.ts](index.ts).
+1. Un fichier `nom.test.ts`, ou `nom.test.tsx` dans [rendu/](rendu/), qui
+   exporte une fonction de vérification.
+2. L'inscrire dans `VERIFICATIONS` de [index.ts](index.ts) : son nom sert de
+   filtre à `node tests/run.mjs <filtre>`.
 3. **Vérifier qu'elle sait échouer** : casser volontairement le code testé,
    constater le `KO`, puis restaurer. Un test qui ne peut pas échouer est pire
    qu'aucun test — il rassure à tort.

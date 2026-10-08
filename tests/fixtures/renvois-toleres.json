@@ -476,12 +476,6 @@
       "proprietaire": "hors-perimetre"
     },
     {
-      "fichier": "tests/README.md",
-      "renvoi": "fixtures/export-synthetique.json",
-      "occurrences": 1,
-      "proprietaire": "hors-perimetre"
-    },
-    {
       "fichier": "tests/rendu/ressources.test.tsx",
       "renvoi": "data/releases.ts",
       "occurrences": 1,

@@ -119,9 +119,10 @@ Le dossier [`docs/`](docs/) n'est pas de la documentation d'après-coup : c'est 
 qu'il ne faut pas défaire. Quelques exemples de ce qu'on n'a pas envie de
 redécouvrir à ses dépens :
 
-- [`02-app/transverse/`](docs/02-app/transverse/) (calcul de la vitesse) — le totem et le
-  lead s'appliquent **séparément et chacun arrondi**, pas en somme de
-  pourcentages. Cas de contrôle à l'appui.
+- [`02-app/transverse/`](docs/02-app/transverse/) (calcul de la vitesse) — le totem, le
+  lead et Swift portent sur la vitesse de **base** : leurs pourcentages sont
+  **sommés, puis arrondis une seule fois** au supérieur, jamais bonus par
+  bonus. Cas de contrôle à l'appui.
 - [`02-app/transverse/`](docs/02-app/transverse/) (données monstres) — les stats de
   base viennent de `max_lvl_*`, **jamais** de `base_*` (qui est le grade
   d'invocation). Et le nom d'un monstre **ne l'identifie pas** : plusieurs

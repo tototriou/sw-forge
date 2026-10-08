@@ -1,7 +1,7 @@
 # Qualité du code — lint et message de commit
 
-**Statut :** ÉTAT ACTUEL — décrit le lint du code (ESLint) : périmètre, ce qui bloque et ce qui avertit, où il tourne, dont le lint au commit ; et la forme imposée au message de commit
-**Lire si :** on modifie `eslint.config.js`, les scripts `lint` ou `prepare` de `package.json`, le mode `--automatique` de `scripts/installer-hooks.mjs`, l'étape « Lint » de `.github/workflows/tests.yml`, l'étape ESLint de `.githooks/pre-commit` ou `.githooks/commit-msg` ; une règle refuse un code ou un message qu'on juge correct
+**Statut :** ÉTAT ACTUEL — décrit le lint du code (ESLint) : périmètre, ce qui bloque et ce qui avertit, où il tourne, dont le lint au commit ; la forme imposée au message de commit ; l'installation automatique des hooks et leur reprise en CI
+**Lire si :** on modifie `eslint.config.js`, les scripts `lint` ou `prepare` de `package.json`, le mode `--automatique` de `scripts/installer-hooks.mjs`, l'étape « Lint » de `.github/workflows/tests.yml`, l'étape ESLint ou le mode `--commit` de `.githooks/pre-commit`, `.githooks/commit-msg`, `scripts/verifier-commits.mjs` ou l'étape « Garde-fous de commit » ; une règle refuse un code ou un message qu'on juge correct
 **Voir aussi :** `spec/outillage/spec.md` § Niveaux d'application et garde-fous
 
 ## Lint
@@ -113,3 +113,29 @@ que ce que l'historique respecte déjà, et des sujets légitimes dépassent
 100 caractères. La langue du message n'est pas vérifiée.
 
 Test : `node tests/run.mjs commitmsg`.
+
+## Garde-fous rejoués en CI
+
+`--no-verify` reste possible en local, pas dans la CI : l'étape « Garde-fous
+de commit » de `.github/workflows/tests.yml`, sur chaque pull request, lance
+`node scripts/verifier-commits.mjs <base> <tête>` avant l'installation des
+dépendances. Pour **chaque commit** de `<base>..<tête>` :
+
+- son message passe par `.githooks/commit-msg` ;
+- hors fusion, son contenu passe par `.githooks/pre-commit --commit <sha>` :
+  les refus de chemin privé, de fichier de plus de 5 Mo et du dossier de
+  l'Optimizer, sur les fichiers ajoutés, copiés, modifiés ou renommés par ce
+  commit, lus dans le commit au lieu de l'index. Le contrôle de branche,
+  spec-lint et ESLint n'y tournent pas : la CI vérifie l'état final par
+  `npm test` et `npm run lint`.
+
+Chaque commit compte, pas seulement l'état final : l'historique d'un dépôt
+public l'est aussi, et un fichier ajouté puis retiré dans la même pull
+request y reste. Une fusion n'apporte pas de contenu à elle : seuls ses
+parents sont lus. Un refus cite chaque commit fautif et ses diagnostics, et
+fait échouer l'étape ; on corrige l'historique de la branche.
+
+Limite assumée : les hooks rejoués sont ceux de la pull request elle-même ;
+une pull request qui affaiblit un hook se juge en revue.
+
+Test : `node tests/run.mjs verifiercommits`.

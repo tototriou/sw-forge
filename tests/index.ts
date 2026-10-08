@@ -52,6 +52,7 @@ import testRtaPartage from './rta-partage.test';
 import { testInstallerHooks, testInstallationAutomatique, testHooksCodexGardeFous } from './installer-hooks.test';
 import { testPreCommit } from './pre-commit.test';
 import { testCommitMsg } from './commit-msg.test';
+import { testVerifierCommits } from './verifier-commits.test';
 import { testRenvois, testRenvoisFormes } from './renvois.test';
 import { testEcriturePublique, testEcriturePubliqueFormes } from './ecriture-publique.test';
 import testHookRefuseSedI from './hook-refuse-sed-i.test';
@@ -332,6 +333,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testHooksCodexGardeFous', testHooksCodexGardeFous],
   ['testPreCommit', testPreCommit],
   ['testCommitMsg', testCommitMsg],
+  ['testVerifierCommits', testVerifierCommits],
   ['testRenvoisFormes', testRenvoisFormes],
   ['testRenvois', testRenvois],
   ['testEcriturePubliqueFormes', testEcriturePubliqueFormes],

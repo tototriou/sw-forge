@@ -81,6 +81,15 @@ function git(...args) {
 const refus = [];
 const avertissements = [];
 
+// `--commit <sha>` : la CI rejoue les refus 2 et 3 sur un commit déjà fait,
+// dont le contenu tient lieu d'index (`scripts/verifier-commits.mjs`). La
+// branche, spec-lint et ESLint n'y tournent pas : la CI vérifie l'état final
+// par `npm test` et `npm run lint`.
+const iCommit = process.argv.indexOf('--commit');
+const COMMIT = iCommit > 1 ? process.argv[iCommit + 1] : null;
+// Préfixe d'objet Git : `:<chemin>` lit l'index, `<sha>:<chemin>` le commit.
+const OBJET = COMMIT ? `${COMMIT}:` : ':';
+
 /* ---------------------------------------------------- 1. jamais sur `main` */
 
 let branche = '';
@@ -91,7 +100,9 @@ try {
   process.exit(0);
 }
 
-if (branche === 'main' || branche === 'master') {
+if (COMMIT) {
+  // Commit déjà fait : la branche où il a été écrit ne se juge plus.
+} else if (branche === 'main' || branche === 'master') {
   refus.push({
     titre: `commit direct sur ${branche}`,
     details: [
@@ -117,7 +128,11 @@ if (branche === 'main' || branche === 'master') {
 // octets échappés, et aucun motif ancré ne le reconnaît plus.
 let stagés = [];
 try {
-  stagés = git('diff', '--cached', '--name-only', '-z', '--diff-filter=ACMR').split('\0').filter(Boolean);
+  stagés = (COMMIT
+    // `--root` : un premier commit se compare à l'arbre vide.
+    ? git('diff-tree', '--root', '-r', '--no-commit-id', '--name-only', '-z', '--diff-filter=ACMR', COMMIT)
+    : git('diff', '--cached', '--name-only', '-z', '--diff-filter=ACMR')
+  ).split('\0').filter(Boolean);
 } catch {
   process.exit(0);
 }
@@ -145,7 +160,7 @@ for (const chemin of stagés) {
 // Version de l'index, jamais l'arbre de travail : c'est elle qui part.
 function lireIndex(chemin) {
   try {
-    return execFileSync('git', ['show', `:${chemin}`],
+    return execFileSync('git', ['show', `${OBJET}${chemin}`],
       { maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe'] });
   } catch {
     return null;
@@ -237,7 +252,7 @@ if (optimizer.length > 0) {
 for (const chemin of stagés) {
   let taille = 0;
   try {
-    taille = Number(git('cat-file', '-s', `:${chemin}`));
+    taille = Number(git('cat-file', '-s', `${OBJET}${chemin}`));
   } catch {
     continue;
   }
@@ -266,7 +281,7 @@ for (const chemin of stagés) {
 
 const specsIndex = stagés.filter((c) => /^spec\/.*\.md$/.test(c));
 
-if (specsIndex.length > 0) {
+if (!COMMIT && specsIndex.length > 0) {
   const racineDepot = git('rev-parse', '--show-toplevel');
   const cheminConfig = join(racineDepot, 'spec', 'spec-lint.json');
   if (existsSync(cheminConfig)) {
@@ -301,7 +316,7 @@ if (specsIndex.length > 0) {
 const CODE = /\.(ts|tsx|js|mjs|cjs)$/;
 const codeIndex = stagés.filter((c) => CODE.test(c));
 
-if (codeIndex.length > 0) {
+if (!COMMIT && codeIndex.length > 0) {
   const racineDepot = git('rev-parse', '--show-toplevel');
   const eslint = join(racineDepot, 'node_modules', 'eslint', 'bin', 'eslint.js');
   if (!existsSync(join(racineDepot, 'eslint.config.js'))) {

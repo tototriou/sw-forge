@@ -150,6 +150,10 @@ travaille jamais, on en part.
   normalement. **`npm install` les installe** (script `prepare`, jamais en
   CI, jamais vers une version plus ancienne que celle installée) ; à la main :
   `node scripts/installer-hooks.mjs` (`--simulation` pour voir sans écrire).
+- **`--no-verify` reste possible en local, pas en CI** : sur chaque pull
+  request, `scripts/verifier-commits.mjs` rejoue `commit-msg` et
+  `pre-commit` sur chaque commit (spec/outillage/qualite-code.md
+  § Garde-fous rejoués en CI).
 
 ## Consignes pour l'agent (Claude Code)
 

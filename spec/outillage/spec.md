@@ -485,8 +485,8 @@ Trois objets distincts, et les deux premiers ne se confondent pas :
   est un fichier, pas un dossier.
 
 Portée du hook, assumée : ce n'est pas une exclusion mutuelle, il se
-contourne (`--no-verify`). Il n'est jamais requis : sans `npm install`, un
-clone n'a ni installation ni câblage, et développe, teste et commite. Pas de
+contourne (`--no-verify`), la CI le rejoue (`qualite-code.md`). Jamais requis :
+sans `npm install`, un clone n'a ni installation ni câblage, et commite. Pas de
 commit automatique dans `pre-commit`. Test : `node tests/run.mjs
 installerhooks`.
 

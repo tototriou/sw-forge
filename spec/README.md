@@ -119,7 +119,8 @@ Outillage du dépôt (pas une page de l'app) :
   tolérée.
 - [outillage/qualite-code.md](outillage/qualite-code.md) — lint du code
   (ESLint) : règles bloquantes et avertissements, où il tourne ; forme du
-  message de commit (hook `commit-msg`).
+  message de commit (hook `commit-msg`) ; installation des hooks à
+  `npm install` ; garde-fous rejoués sur chaque commit en CI.
 
 ## Conventions communes (toutes les pages)
 

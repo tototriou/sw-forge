@@ -1,7 +1,7 @@
 # Outillage des specs — natures, `spec-toc`, `spec-lint`
 
 **Statut :** ÉTAT ACTUEL — décrit la frontière entre public et privé, les natures de documents de `spec/`, le parseur `spec-markdown`, `spec-toc`, le contrat de `spec-lint`, les en-têtes, le critère des invariants et les niveaux d'application (`pre-commit` et installation des garde-fous compris)
-**Lire si :** on modifie `scripts/spec-lint.mjs`, `scripts/spec-toc.mjs`, `scripts/lib/spec-markdown.mjs`, `spec/spec-lint.json`, le hook `pre-commit`, `tests/ecriture-publique.test.ts`, `scripts/installer-hooks.mjs` ou le skill `spec-hygiene` ; on crée, déplace, archive ou découpe une spec ; on se demande si un texte a sa place dans le dépôt public
+**Lire si :** on modifie `scripts/spec-lint.mjs`, `scripts/spec-toc.mjs`, `scripts/lib/spec-markdown.mjs`, `spec/spec-lint.json`, le hook `pre-commit`, `scripts/installer-hooks.mjs` ou le skill `spec-hygiene` ; on crée, déplace, archive ou découpe une spec ; on se demande si un texte a sa place dans le dépôt public
 **Ne pas lire si :** on ouvre une spec pour son contenu — `node scripts/spec-toc.mjs <fichier>` suffit
 **Voir aussi :** `spec/outillage/renvois.md` (garde-fou des renvois), skills `spec-hygiene` et `cadrage-chantier`
 
@@ -11,30 +11,11 @@ outils qui les vérifient. Le code fait foi : quand une règle ci-dessous et
 
 ## Public et privé
 
-Le dépôt est public : tout fichier suivi par Git l'est, et **tout `spec/`
-l'est**. Un texte y a sa place quand il **décrit l'actuel** (comportement,
-règle, contrat d'un outil) **ou explique comment le modifier** (recette,
-conduite à tenir, écueil connu).
-
-Le reste vit dans les **notes privées du projet**, un dépôt séparé, non
-publié : méthode de travail et outillage d'orchestration, cadrages pilotés
-avec cet outillage, preuves, archives, historique et récits, mesures,
-délibération des décisions, exports de compte.
-
-- **Le public ne renvoie jamais au privé** : ni lien, ni chemin, ni nom de
-  note. Une information utile au public y est réécrite ; sinon elle reste
-  privée sans être citée. Vérifié par `tests/renvois.test.ts`
-  (`spec/outillage/renvois.md`) et, dans le dossier de l'Optimizer, par le
-  `pre-commit` (« Refus du `pre-commit` »).
-- **Règles d'écriture du public** : aucune date de décision (une date qui a
-  un sens dans le jeu reste) ; aucun cheminement, sauf l'écueil qu'un
-  contributeur réessaierait, en une ligne avec sa raison ; aucun identifiant
-  de lot ; jamais « décision de l'utilisateur ». La provenance d'une valeur
-  de jeu (relevé en jeu, déduction) reste. Vérifiées dans deux dossiers
-  par un test (« Test des règles d'écriture »), ailleurs en revue.
-- Un passage retiré du public pour ces raisons est rangé dans les notes
-  privées s'il doit être gardé ; l'historique Git garde de toute façon le
-  texte retiré.
+Le dépôt est public, et tout ce qu'il suit l'est : documentation,
+décisions (ADR), cadrages et pilotage (`docs/README.md`). Restent hors du
+dépôt un export de compte, des données personnelles, des captures
+d'écran. Aucun texte suivi ne renvoie à un fichier que le dépôt n'a pas :
+vérifié par `tests/renvois.test.ts` (`spec/outillage/renvois.md`).
 
 ## Natures de documents et règles de forme
 
@@ -386,7 +367,7 @@ offre un **niveau de garantie** :
 
 | Niveau | Vecteur | Garantie |
 | --- | --- | --- |
-| 1 — invariant dépôt | `spec-lint` et le test des règles d'écriture dans `tests/index.ts`, `pre-commit`, `commit-msg`, rejoués en CI | refus mécanique, quel que soit l'agent |
+| 1 — invariant dépôt | `spec-lint` et le test des renvois dans `tests/index.ts`, `pre-commit`, `commit-msg`, rejoués en CI | refus mécanique, quel que soit l'agent |
 | 2 — garde-fou outil | aucun : une faute d'agent n'atteint le dépôt qu'en passant par le niveau 1 | — |
 | 3 — convention agent | `CLAUDE.md`, skill `spec-hygiene` | lue au démarrage, s'érode |
 | 4 — jugement | revue du diff de spec | humaine |
@@ -406,29 +387,9 @@ un fichier de plus de 5 Mo ; un `spec/**.md` du périmètre que refuse
 `spec-lint` ; une erreur ESLint du code indexé (`qualite-code.md`). Une
 branche hors `forge/<sujet>` : un avertissement, pas un refus.
 
-Dans le dossier de l'Optimizer (`optimizer` sous `spec/outils/`, casse
-ignorée), un fichier absent de `.githooks/optimizer-publics.txt` (lue dans
-l'index ; un chemin par ligne depuis la racine, `#` en commentaire ;
-absente = vide), ou dont la version de l'index est illisible ou porte une
-marque de note privée : renvoi résolu dans les dossiers `archive`,
-`chantiers` ou `decisions` de ce dossier (le dossier lui-même compris),
-renvoi vers `a-publier`, identifiant de lot. Un fichier
-publié et sa ligne de liste vont dans le même commit. Limite assumée : une
-note privée sans aucune de ces marques, sous un nom de la liste, passe.
-
 Limite : le lint du `pre-commit` lit les fichiers de l'**arbre de
 travail**, pas leur version de l'index ; un fichier corrigé sur le disque
 mais pas réindexé passe. Test : `node tests/run.mjs precommit`.
-
-### Test des règles d'écriture
-
-`tests/ecriture-publique.test.ts` (`node tests/run.mjs ecriturepublique`)
-refuse, par ligne des `.md` de `spec/outils/optimizer/**` et
-`spec/outils/degats-reels/**` : une date hors de la colonne « Source » des
-valeurs de jeu curées, un identifiant de lot avec ou sans le mot « lot »,
-« décision de l'utilisateur », et deux marques de récit, « incident » et
-la session de travail. Chaque exception porte sa raison ; une exception qui
-ne sert plus fait échouer. Le reste du cheminement relève de la revue.
 
 ### Installation des garde-fous
 

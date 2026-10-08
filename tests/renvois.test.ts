@@ -36,7 +36,6 @@ const NOMS_DE_NOTES = [
 // à dessein, tests qui montent des arborescences jetables aux chemins factices.
 export const FICHIERS_EXEMPTES = [
   '.githooks/pre-commit',
-  '.githooks/optimizer-publics.txt',
   '.gitignore',
   'scripts/installer-hooks.mjs',
   'tests/pre-commit.test.ts',

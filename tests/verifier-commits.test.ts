@@ -79,9 +79,6 @@ export function testVerifierCommits() {
     });
     ok(r.code === 1 && /Mo dans l’index : gros\.json/.test(r.sortie) && /1 commit\(s\) sur 3 refusé/.test(r.sortie),
       'fichier ajouté puis retiré dans la même PR : l’historique compte, refusé');
-    // Chemin assemblé : le test des renvois le lirait comme un lien mort.
-    r = cas(() => commiter('docs: note\n', { [['spec', 'outils', 'optimizer', 'note.md'].join('/')]: '# Note\n' }));
-    ok(r.code === 1 && /fichier non publié/.test(r.sortie), 'note de l’Optimizer non publiée : refusée');
     r = cas(() => commiter('feat: x\nCorps collé.\n', { '.history/a.md': 'x\n' }));
     ok(r.code === 1 && /pas de ligne vide/.test(r.sortie) && /chemin privé/.test(r.sortie),
       'message et contenu fautifs dans un même commit : les deux cités');

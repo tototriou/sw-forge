@@ -123,8 +123,8 @@ dépendances. Pour **chaque commit** de `<base>..<tête>` :
 
 - son message passe par `.githooks/commit-msg` ;
 - hors fusion, son contenu passe par `.githooks/pre-commit --commit <sha>` :
-  les refus de chemin privé, de fichier de plus de 5 Mo et du dossier de
-  l'Optimizer, sur les fichiers ajoutés, copiés, modifiés ou renommés par ce
+  les refus de chemin privé et de fichier de plus de 5 Mo, sur les
+  fichiers ajoutés, copiés, modifiés ou renommés par ce
   commit, lus dans le commit au lieu de l'index. Le contrôle de branche,
   spec-lint et ESLint n'y tournent pas : la CI vérifie l'état final par
   `npm test` et `npm run lint`.

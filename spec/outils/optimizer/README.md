@@ -80,7 +80,7 @@ Publiés :
 | les cartes de résultat (tri, moyenne par rune, popover de rune) | [ecran/resultats.md § Résultats](ecran/resultats.md) ; [invariants.md § UI](invariants.md) | [../../rta/sections-runes.md](../../rta/sections-runes.md) pour `StatPanel`/`RuneWheel`/`ArtifactSlots` partagés |
 | une piste de perf ou une idée « nouvelle » | [pistes.md](pistes.md) ; [pistes-vitesse-et-verification.md](pistes-vitesse-et-verification.md) | la spec du mécanisme concerné, qui dit une piste écartée avec sa raison |
 | la vitesse (speed tune, ordre des tours) | [../speed-tuning.md](../speed-tuning.md) (le modèle réel) | — |
-| une spec de ce dossier (en-têtes, lint, publication) | [../../outillage/spec.md](../../outillage/spec.md) ; `node scripts/spec-lint.mjs` | [../../outillage/renvois.md](../../outillage/renvois.md) ; un fichier publié ici a sa ligne dans `.githooks/optimizer-publics.txt`, dans le même commit |
+| une spec de ce dossier (en-têtes, lint, publication) | [../../outillage/spec.md](../../outillage/spec.md) ; `node scripts/spec-lint.mjs` | [../../outillage/renvois.md](../../outillage/renvois.md) |
 
 Pas dans ce tableau : les fichiers de code de l'écran et du moteur, listés en
 tête de [../optimizer.md](../optimizer.md) (« Fichiers : … »).

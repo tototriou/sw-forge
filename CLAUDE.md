@@ -129,12 +129,9 @@ recette pour demander un relevé en jeu exploitable.
 (`git fetch origin && git switch -c forge/<sujet> origin/main`) ; on n'y
 travaille jamais, on en part.
 
-- **Un hook `pre-commit` refuse six choses** : une erreur ESLint dans le
+- **Un hook `pre-commit` refuse cinq choses** : une erreur ESLint dans le
   code indexé, un commit sur `main`, un
-  chemin privé dans l'index (`.history/`, `.vscode/`), dans le dossier de
-  l'Optimizer un fichier absent de
-  `.githooks/optimizer-publics.txt` ou qui porte une marque de note privée
-  (une spec publiée y ajoute sa ligne dans le même commit), un fichier de
+  chemin privé dans l'index (`.history/`, `.vscode/`), un fichier de
   plus de 5 Mo (un export de compte), et un `spec/**.md` du périmètre de
   `spec/spec-lint.json` qui ne passe pas `spec-lint` (niveau 1, invariant
   dépôt — spec/outillage/spec.md § Refus du `pre-commit`).

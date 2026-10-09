@@ -57,6 +57,7 @@ moteur et sa vérification vivent côté développeur :
   - [Lancer la recherche](feat-ecran-lancer-la-recherche.md)
   - [Résultats](feat-ecran-resultats.md)
 - [Listes de travail et réservation de runes](feat-listes-et-reservation.md)
+- [Stockage des membres et des équipes](feat-listes-equipes-et-sauvegarde.md)
 - [Exclusion des runes déjà portées ailleurs](feat-exclusion.md)
 - [Interruption — filet de temps, pré-filtrage et arrêt manuel](feat-interruption.md)
 - **Algorithme** (le chemin d'une recherche, les élagages, le choix des artéfacts, la vérification) — [03-developpeur/optimizer/](../../03-developpeur/optimizer/)

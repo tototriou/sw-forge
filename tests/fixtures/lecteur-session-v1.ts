@@ -1,3 +1,4 @@
+// Lecteur de session précédent, figé : vérifie qu'une session récente est refusée avant toute reprise.
 // La sauvegarde de session — le format. Voir docs/02-app/transverse/.
 //
 // Tout l'état de l'app à un instant donné, dans UN fichier que l'utilisateur
@@ -14,15 +15,14 @@
 // ignoré ; une version PLUS RÉCENTE que celle-ci est refusée, avec un
 // message, plutôt que lue de travers.
 
-import { ACCOUNT_SCHEMA, compteValide, StoredAccount } from './accountStore';
-import { formatExport, formatReconnu } from './formatsExport';
-import { CHAMPS_OPTIMIZER_SESSION } from './sessionOptimizer';
-import { jourLocal } from './telechargement';
-import { PREFIXE_FICHIER } from '../marque';
-import { OPTIMIZER_MEMBERS_STORAGE_KEY } from './optimizerMemberStorage';
+import { ACCOUNT_SCHEMA, compteValide, StoredAccount } from '../../src/lib/accountStore';
+import { formatExport, formatReconnu } from '../../src/lib/formatsExport';
+import { CHAMPS_OPTIMIZER_SESSION } from '../../src/lib/sessionOptimizer';
+import { jourLocal } from '../../src/lib/telechargement';
+import { PREFIXE_FICHIER } from '../../src/marque';
 
 export const FORMAT_SESSION = formatExport('session');
-export const VERSION_SESSION = 2;
+export const VERSION_SESSION = 1;
 
 // Le travail et les réglages : les clés du stockage local qui entrent dans
 // une session, et elles seules — à la relecture, une clé hors de
@@ -39,7 +39,6 @@ export const CLES_SESSION = [
   'swblacksmith-siege-recos-v1',
   'swblacksmith-custom-monsters-v1',
   'swblacksmith-optimizer-lists-v1',
-  OPTIMIZER_MEMBERS_STORAGE_KEY,
   // Les réglages.
   'swblacksmith-theme-v1',
   'swblacksmith-rune-metric-v1',
@@ -176,7 +175,7 @@ export function composerSession(s: SourcesSession): Session {
 }
 
 // Compact : le compte pèse quelques Mo, l'indentation les doublerait.
-export const ecrireSession = (session: Session): string => JSON.stringify({ ...session, version: VERSION_SESSION });
+export const ecrireSession = (session: Session): string => JSON.stringify(session);
 
 // `swblacksmith-session-2026-10-06-15h42.json`, à l'heure locale.
 export function nomFichierSession(d: Date): string {
@@ -270,3 +269,4 @@ export function lireSession(texte: string): LectureSession {
     },
   };
 }
+

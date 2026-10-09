@@ -103,7 +103,7 @@ function sources(): SourcesSession {
   };
 }
 
-export default function testSession() {
+export default function testSession(avecCompteReel = true) {
   titre('session · aller-retour composer → écrire → relire');
   const src = sources();
   const texte = ecrireSession(composerSession(src));
@@ -112,7 +112,7 @@ export default function testSession() {
   if (!lu.ok) return;
   const s = lu.session;
   egal(s.format, FORMAT_SESSION, 'format swblacksmith/session');
-  egal(s.version, 1, 'version 1');
+  egal(s.version, 2, 'version 2');
   egal(s.enregistreeLe, '2026-10-06T13:42:00.000Z', 'date de sauvegarde');
   egal(s.versionApp, '2.0.0', 'version de l’app');
   egal(lu.avertissements, [], 'aucun avertissement');
@@ -146,7 +146,7 @@ export default function testSession() {
   refus('pas du json', 'illisible', 'texte illisible');
   refus([1, 2], 'illisible', 'un tableau');
   refus({ ...base, format: 'swblacksmith/prepa-rta' }, 'pas une sauvegarde de session', 'un autre export de l’app');
-  refus({ ...base, version: 2 }, 'version plus récente', 'une version plus récente');
+  refus({ ...base, version: 3 }, 'version plus récente', 'une version plus récente');
   refus({ ...base, version: '1' }, 'version illisible', 'une version qui n’est pas un nombre');
   refus({ ...base, stockage: [] }, 'travail est illisible', 'le stockage n’est pas un objet');
   refus({ ...base, stockage: { ...base.stockage, 'swblacksmith-theme-v1': 'violet' } }, 'swblacksmith-theme-v1', 'un thème inconnu');
@@ -195,9 +195,9 @@ export default function testSession() {
   egal(nomFichierSession(new Date(2026, 0, 5, 9, 7)), 'swblacksmith-session-2026-01-05-09h07.json', 'chiffres sur deux positions');
 
   titre('session · la taille, avec un vrai compte');
-  const reel = exportReel();
+  const reel = avecCompteReel ? exportReel() : null;
   if (!reel) {
-    ignore('taille avec l’export réel du développeur', 'export réel absent');
+    ignore('taille avec l’export réel du développeur', avecCompteReel ? 'export réel absent' : 'mesure réelle non demandée');
     return;
   }
   const avecReel = ecrireSession(composerSession({ ...src, compte: compteDe(reel) }));

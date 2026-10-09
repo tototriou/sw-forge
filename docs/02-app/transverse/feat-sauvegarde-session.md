@@ -154,7 +154,7 @@ compact (`composerSession`, `ecrireSession`, `src/lib/session.ts`) :
 
 | Champ | Contenu | Lu dans l'app par |
 |-------|---------|-------------------|
-| `format`, `version` | `swblacksmith/session`, `1` | — |
+| `format`, `version` | `swblacksmith/session`, `2` pour toute session écrite | — |
 | `enregistreeLe`, `versionApp` | date ISO du clic ; version de l'app | — |
 | `stockage` | clé → valeur brute, pour les clés de `CLES_SESSION` : prépa RTA, ses catégories, ses deux points de retour ; siège défense et offense ; recommandations ; monstres perso ; listes de l'Optimizer ; thème, score, overcap, adversaire de référence | `lireTravail` (`usePersistence.ts`) : la dernière valeur écrite par `saveLocal`, gardée en mémoire même conservation refusée (`saveLocal` n'écrit alors rien sur le disque), sinon le stockage local ; `oublierLocal` efface les deux |
 | `compte` | le compte importé (`StoredAccount`, schéma 7), ou `null` | le compte en mémoire de `App.tsx`, pas IndexedDB |
@@ -173,6 +173,13 @@ compact (`composerSession`, `ecrireSession`, `src/lib/session.ts`) :
 - Une clé de stockage ou un état `useStickyState` ajoutés entrent dans
   `CLES_SESSION`, ou dans `STICKY_HORS_SESSION` s'ils ne doivent pas
   voyager.
+
+Les mémoires de critères par membre et les équipes de l’Optimizer voyagent dans
+`swblacksmith-optimizer-members-v1`, en plus de la clé historique des listes.
+Toute session écrite porte la version 2, même sans mémoire ni équipe : un lecteur
+de version 1 la refuse avec la demande de mise à jour existante, au lieu de
+reprendre une partie du travail. Une session de version 1 reste relue par le
+lecteur actuel ; réécrite, elle porte la version 2.
 
 ## Relire
 

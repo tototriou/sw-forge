@@ -91,7 +91,8 @@ import { useSiegeState } from './hooks/useSiegeState';
 import { useSiegeRecos } from './hooks/useSiegeRecos';
 import { useOptimizerState } from './hooks/useOptimizerState';
 import { useOptimizerLists } from './hooks/useOptimizerLists';
-import { comptePeutJuger, ExclusionSourceData, revalidateBuilds, revalidateMembers } from './lib/optimizerExclusion';
+import { ExclusionSourceData } from './lib/optimizerExclusion';
+import { reverifierStockageOptimizer } from './lib/optimizerMemberStorage';
 import { collectOwnedBuilds, collectOwnedTeams, countCopiesByCom2us } from './lib/ownedBuilds';
 import {
   BoxMonster,
@@ -402,7 +403,7 @@ function Application() {
     // `excludedSelectors` plus bas — ici on veut justement détecter « mon
     // propre compte a changé depuis »).
     // ⚠️ Jamais silencieux : averti dans `importMsg`, jamais juste retiré.
-    if (optimizerLists.members.length > 0 || optimizerLists.validated.length > 0) {
+    if (optimizerLists.members.length > 0 || optimizerLists.validated.length > 0 || optimizerLists.memories.size > 0 || optimizerLists.teams.length > 0) {
       const monsterById = new Map<string, Monster>();
       for (const mon of allMonsters) monsterById.set(String(mon.id), mon);
       const data: ExclusionSourceData = {
@@ -420,17 +421,14 @@ function Application() {
       // disque. Les listes restaient, leur contenu partait à chaque
       // rechargement.
       const runeIds = new Set(runes.map((r) => r.id));
-      if (!comptePeutJuger(data, runeIds)) return;
-      const membersResult = revalidateMembers(optimizerLists.members, data);
-      const buildsResult = revalidateBuilds(optimizerLists.validated, data, runeIds);
-      const droppedCount = membersResult.droppedCount + buildsResult.droppedCount;
-      if (droppedCount > 0) {
-        optimizerLists.replaceMembersAndValidated(membersResult.kept, buildsResult.kept);
+      const resultat = reverifierStockageOptimizer(optimizerLists, data, runeIds);
+      if (resultat.rapport.compteVide) return;
+      optimizerLists.replaceAfterRevalidation(resultat.stockage);
+      if (resultat.rapport.messages.length > 0) {
         setImportMsg((prev) => ({
           ok: prev?.ok ?? true,
           text:
-            `${prev?.text ?? ''} ⚠️ ${droppedCount} monstre(s) retiré(s) de tes listes de travail : ` +
-            `exemplaire introuvable ou runes validées qui ne s'y trouvent plus, dans le compte réimporté.`,
+            `${prev?.text ?? ''} ⚠️ ${resultat.rapport.messages.join(' ')}`,
         }));
       }
     }

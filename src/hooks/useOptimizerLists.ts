@@ -6,7 +6,14 @@ import {
   ValidatedBuild,
   exclusionSelectorKey,
 } from '../lib/optimizerExclusion';
-import { saveLocal, usePersistence } from './usePersistence';
+import { loadLocal, saveLocal, usePersistence } from './usePersistence';
+import type { CriteresOptimizer } from '../lib/criteresOptimizer';
+import type { ExclusionSourceData } from '../lib/optimizerExclusion';
+import {
+  OPTIMIZER_MEMBERS_STORAGE_KEY, cleMemoireMembre, ecrireMembresOptimizer, lireMembresOptimizer,
+  enregistrerMemoireMembre, validerEquipesOptimizer,
+  type DonneesMembresOptimizer, type EquipeOptimizer, type MemoireMembreOptimizer, type StockageOptimizer,
+} from '../lib/optimizerMemberStorage';
 
 // « Listes de travail » de l'Optimizer (docs/02-app/optimizer/
 // § Créer, valider et réserver dans une liste) :
@@ -45,7 +52,7 @@ function isSelector(v: unknown): v is ExclusionSelector {
   return false;
 }
 
-function load(): StoredState {
+export function loadOptimizerLists(): StoredState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return defaultState();
@@ -127,16 +134,32 @@ export interface UseOptimizerLists {
   /** Réserve une paire d’artéfacts sur un build DÉJÀ validé, sans toucher aux runes. */
   validateArtifacts: (listId: string, selector: ExclusionSelector, artifactIds: number[]) => void;
   releaseAllInList: (listId: string) => void;
-  /** Remplace membres + validés — utilisé UNIQUEMENT par App.tsx pour purger les entrées invalides après un réimport de compte (voir revalidateBuilds/revalidateMembers, optimizerExclusion.ts). */
-  replaceMembersAndValidated: (members: OptimizerListMember[], validated: ValidatedBuild[]) => void;
+  memories: DonneesMembresOptimizer['memories'];
+  teams: EquipeOptimizer[];
+  rapportStockage: string[];
+  writeMemory: (membre: Omit<MemoireMembreOptimizer, 'criteres'>, criteres: CriteresOptimizer, data: ExclusionSourceData) => void;
+  setTeams: (teams: EquipeOptimizer[]) => void;
+  /** Applique en une mise à jour le résultat de la revérification commune. */
+  replaceAfterRevalidation: (stockage: StockageOptimizer) => void;
+}
+
+interface MemberStorage extends DonneesMembresOptimizer { rapport: string[]; raw: string | null }
+interface State extends StoredState { memberStorage: MemberStorage }
+function loadState(): State {
+  const raw = loadLocal(OPTIMIZER_MEMBERS_STORAGE_KEY);
+  return { ...loadOptimizerLists(), memberStorage: { ...lireMembresOptimizer(raw), raw } };
 }
 
 export function useOptimizerLists(): UseOptimizerLists {
-  const [state, setState] = useState<StoredState>(load);
+  const [state, setState] = useState<State>(loadState);
 
   const persist = usePersistence();
   useEffect(() => {
-    saveLocal(STORAGE_KEY, JSON.stringify(state));
+    const { memberStorage, ...historique } = state;
+    saveLocal(STORAGE_KEY, JSON.stringify(historique));
+    // Garder le brut initial évite de purger au chargement des entrées rejetées
+    // ou de futurs champs inconnus. Seul un geste ou un réimport le remplace.
+    saveLocal(OPTIMIZER_MEMBERS_STORAGE_KEY, memberStorage.raw ?? ecrireMembresOptimizer(memberStorage));
   }, [state, persist]);
 
   const setActiveListId = useCallback((id: string | null) => {
@@ -155,10 +178,14 @@ export function useOptimizerLists(): UseOptimizerLists {
 
   const deleteList = useCallback((id: string) => {
     setState((s) => ({
+      ...s,
       lists: s.lists.filter((l) => l.id !== id),
       members: s.members.filter((m) => m.listId !== id),
       validated: s.validated.filter((v) => v.listId !== id),
       activeListId: s.activeListId === id ? null : s.activeListId,
+      memberStorage: { ...s.memberStorage, raw: null,
+        memories: new Map([...s.memberStorage.memories].filter(([, m]) => m.listId !== id)),
+        teams: s.memberStorage.teams.filter((e) => e.listId !== id) },
     }));
   }, []);
 
@@ -177,6 +204,14 @@ export function useOptimizerLists(): UseOptimizerLists {
       ...s,
       members: s.members.filter((m) => !(m.listId === listId && exclusionSelectorKey(m.selector) === key)),
       validated: s.validated.filter((v) => !(v.listId === listId && exclusionSelectorKey(v.selector) === key)),
+      memberStorage: { ...s.memberStorage, raw: null,
+        memories: new Map([...s.memberStorage.memories].filter(([k]) => k !== cleMemoireMembre(listId, selector))),
+        teams: s.memberStorage.teams.flatMap((e) => {
+          if (e.listId !== listId) return [e];
+          const members = e.members.filter((m) => exclusionSelectorKey(m) !== key);
+          const { leader, ...reste } = e;
+          return members.length < 2 ? [] : [{ ...reste, members, ...(leader && exclusionSelectorKey(leader) !== key ? { leader } : {}) }];
+        }) },
     }));
   }, []);
 
@@ -259,8 +294,31 @@ export function useOptimizerLists(): UseOptimizerLists {
     setState((s) => ({ ...s, validated: s.validated.filter((v) => v.listId !== listId) }));
   }, []);
 
-  const replaceMembersAndValidated = useCallback((members: OptimizerListMember[], validated: ValidatedBuild[]) => {
-    setState((s) => ({ ...s, members, validated }));
+  const replaceAfterRevalidation = useCallback((stockage: StockageOptimizer) => {
+    setState((s) => ({ ...s, members: stockage.members, validated: stockage.validated,
+      memberStorage: { ...s.memberStorage, raw: null, memories: new Map(stockage.memories), teams: stockage.teams } }));
+  }, []);
+
+  const writeMemory = useCallback((membre: Omit<MemoireMembreOptimizer, 'criteres'>, criteres: CriteresOptimizer, data: ExclusionSourceData) => {
+    setState((s) => {
+      if (!s.members.some((m) => cleMemoireMembre(m.listId, m.selector) === cleMemoireMembre(membre.listId, membre.selector))) {
+        return { ...s, memberStorage: { ...s.memberStorage, rapport: [...s.memberStorage.rapport, 'Mémoire non écrite : membre absent de la liste.'] } };
+      }
+      const r = enregistrerMemoireMembre(s.memberStorage.memories, membre, criteres, data);
+      return { ...s, memberStorage: { ...s.memberStorage, memories: r.memories,
+        raw: r.rapport.length ? s.memberStorage.raw : null, rapport: [...s.memberStorage.rapport, ...r.rapport] } };
+    });
+  }, []);
+
+  const setTeams = useCallback((teams: EquipeOptimizer[]) => {
+    setState((s) => {
+      const r = validerEquipesOptimizer(teams);
+      const horsListe = teams.some((e) => !s.lists.some((l) => l.id === e.listId)
+        || e.members.some((sel) => !s.members.some((m) => cleMemoireMembre(m.listId, m.selector) === cleMemoireMembre(e.listId, sel))));
+      const rapport = [...r.rapport, ...(horsListe ? ['Équipe non écrite : membre absent de la liste.'] : [])];
+      return { ...s, memberStorage: { ...s.memberStorage, teams: rapport.length ? s.memberStorage.teams : structuredClone(r.teams),
+        raw: rapport.length ? s.memberStorage.raw : null, rapport: [...s.memberStorage.rapport, ...rapport] } };
+    });
   }, []);
 
   return {
@@ -279,6 +337,11 @@ export function useOptimizerLists(): UseOptimizerLists {
     releaseArtifacts,
     validateArtifacts,
     releaseAllInList,
-    replaceMembersAndValidated,
+    memories: state.memberStorage.memories,
+    teams: state.memberStorage.teams,
+    rapportStockage: state.memberStorage.rapport,
+    writeMemory,
+    setTeams,
+    replaceAfterRevalidation,
   };
 }

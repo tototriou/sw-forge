@@ -22,6 +22,8 @@ Dans ce dossier (l'application) :
   routage vers un fichier par bloc de l'écran.
 - [feat-listes-et-reservation.md](feat-listes-et-reservation.md) — listes de
   travail, builds validés, réservation de runes et d'artéfacts.
+- [feat-listes-equipes-et-sauvegarde.md](feat-listes-equipes-et-sauvegarde.md) —
+  mémoires des membres, équipes stockées, conservation et revérification.
 - [feat-exclusion.md](feat-exclusion.md) — exclusion automatique et manuelle,
   runes imposées.
 - [feat-interruption.md](feat-interruption.md) — filet de temps, arrêt

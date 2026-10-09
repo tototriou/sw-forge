@@ -9,6 +9,13 @@ import testImport from './import.test';
 import testNavigation from './navigation.test';
 import { testNavigationAdresses, testNavigationAdressesDefauts, testNavigationVuesCompte } from './navigation-adresses.test';
 import testPersistance from './persistance.test';
+import {
+  testMemoireOptimizerJson, testMemoireOptimizerCopie, testMemoireOptimizerLecteurListes,
+  testMemoireOptimizerListesIllisibles, testMemoireOptimizerMalformed, testEquipeOptimizerValidation,
+  testMemoireOptimizerConservationSession, testSessionOptimizerVersionDeux, testMemoireOptimizerEffacement,
+  testMemoireOptimizerReimport, testMemoireOptimizerEspeceSelecteur, testMemoireOptimizerBranchement,
+  testEquipeOptimizerMembreRetire, testMemoireOptimizerSuppressionExplicite,
+} from './optimizer-member-storage.test';
 import testMeules, { testGemmeMemeStat, testRegemmeDifferent, testReserveParGrade, testPalier, testRegistre, testSansDowngrade } from './meules.test';
 import testArtefacts from './artefacts.test';
 import testArtefactOptim, {
@@ -526,6 +533,23 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testSession', testSession],
   ['testStockage', async () => { await testStockage(); }],
   ['testPersistance', async () => { await testPersistance(); }],
+  // ⚠️ APRÈS `testPersistance` : ces tests changent l'état du module
+  // `usePersistence` (choix de conservation), partagé par tout le bundle, et
+  // `testPersistance` exige un navigateur vierge.
+  ['testMemoireOptimizerJson', testMemoireOptimizerJson],
+  ['testMemoireOptimizerCopie', testMemoireOptimizerCopie],
+  ['testMemoireOptimizerLecteurListes', testMemoireOptimizerLecteurListes],
+  ['testMemoireOptimizerListesIllisibles', testMemoireOptimizerListesIllisibles],
+  ['testMemoireOptimizerMalformed', testMemoireOptimizerMalformed],
+  ['testEquipeOptimizerValidation', testEquipeOptimizerValidation],
+  ['testMemoireOptimizerConservationSession', testMemoireOptimizerConservationSession],
+  ['testSessionOptimizerVersionDeux', testSessionOptimizerVersionDeux],
+  ['testMemoireOptimizerEffacement', testMemoireOptimizerEffacement],
+  ['testMemoireOptimizerReimport', testMemoireOptimizerReimport],
+  ['testMemoireOptimizerEspeceSelecteur', testMemoireOptimizerEspeceSelecteur],
+  ['testMemoireOptimizerBranchement', testMemoireOptimizerBranchement],
+  ['testEquipeOptimizerMembreRetire', testEquipeOptimizerMembreRetire],
+  ['testMemoireOptimizerSuppressionExplicite', testMemoireOptimizerSuppressionExplicite],
 ];
 
 // Un filtre passé en argument : on compare sur le nom mis à plat (sans tirets ni

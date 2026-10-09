@@ -23,6 +23,10 @@ import {
   testEquipeOptimizerTextesStricts,
 } from './optimizer-member-storage.test';
 import { testMemoireOptimizerRejetsConserves, testMemoireOptimizerTextesCriteresStricts } from './optimizer-member-rejections.test';
+import { testOptimizerRattachementReferenceConservee } from './optimizer-rattachement-attribution.test';
+import { testOptimizerRattachementIdentites, verificationsOptimizerRattachementOrdres, testOptimizerRattachementDepartageEtPrises,
+  testOptimizerRattachementCopiesSansExemplaire, testOptimizerRattachementPermutationEtProprietaire,
+  testOptimizerRattachementRuneVendue, testOptimizerRattachementDefensesComplet, testOptimizerRattachementBranchement } from './optimizer-rattachement.test';
 import testMeules, { testGemmeMemeStat, testRegemmeDifferent, testReserveParGrade, testPalier, testRegistre, testSansDowngrade } from './meules.test';
 import testArtefacts from './artefacts.test';
 import testArtefactOptim, {
@@ -210,7 +214,7 @@ import { testRenduRunesResume, testRenduRunesListe, testRenduRunesCourbes, testR
 import { testRenduCompteMonstres, testRenduCompteArtefactsResume, testRenduCompteArtefactsListe, testRenduCompteSouris, testRenduCompteEffacerFiltres } from './rendu/compte.test';
 import { testRenduSpeedTuneVide, testRenduSpeedTuneCamps, testRenduSpeedTuneAnalyse } from './rendu/speed-tune.test';
 import { testRenduOptimizerVide, testRenduOptimizerMonstre, testRenduOptimizerReglages, testRenduTelephoneOptimizer } from './rendu/optimizer.test';
-import { testRenduMemoireOptimizerSelection, testRenduMemoireOptimizerSansMemoire, testRenduMemoireOptimizerListes,
+import { testRenduMemoireOptimizerSelection, testRenduMemoireOptimizerIdentiteEnregistree, testRenduMemoireOptimizerSansMemoire, testRenduMemoireOptimizerListes,
   testRenduMemoireOptimizerRetrait, testRenduMemoireOptimizerInclusion, testRenduMemoireOptimizerHorsListe,
   testRenduMemoireOptimizerIdentite, testRenduMemoireOptimizerRecette, testRenduMemoireOptimizerNavigation, testRenduTelephoneMemoireOptimizer,
   testRenduMemoireOptimizerSaisies, testRenduMemoireOptimizerAutomatismes, testRenduMemoireOptimizerRappelAurasDestination,
@@ -218,7 +222,8 @@ import { testRenduMemoireOptimizerSelection, testRenduMemoireOptimizerSansMemoir
   testRenduMemoireOptimizerListeInactive, testRenduMemoireOptimizerRecetteSansSelection, testRenduMemoireOptimizerGlobauxAvantRestauration,
   testRenduMemoireOptimizerSourceRta, testRenduMemoireOptimizerSourceSiege, testRenduMemoireOptimizerClicAjouter,
   testRenduMemoireOptimizerClicValiderFiche, testRenduMemoireOptimizerClicValiderInclut,
-  testRenduTelephoneMemoireOptimizerClicAjouter, testRenduTelephoneMemoireOptimizerClicValiderFiche } from './rendu/optimizer-memoire.test';
+  testRenduTelephoneMemoireOptimizerClicAjouter, testRenduTelephoneMemoireOptimizerClicValiderFiche,
+  testRenduRattachementOptimizer, testRenduTelephoneRattachementOptimizer, testRenduRattachementOptimizerDemonte } from './rendu/optimizer-memoire.test';
 import { testRenduBestiaire, testRenduMecaniques, testRenduNouveautes, testRenduParametres, testRenduBientot } from './rendu/ressources.test';
 import { testRenduTelephoneAccueil, testRenduTelephoneRta, testRenduTelephoneRtaAmi, testRenduTelephoneRtaFiltre } from './rendu/telephone-accueil-rta.test';
 import { testRenduTelephoneSiege, testRenduTelephoneRecos } from './rendu/telephone-siege.test';
@@ -240,6 +245,10 @@ import testSkillAdapters from './skill-adapters.test';
 // faire avant une fusion sur `main` (voir CLAUDE.md).
 const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRenduMemoireOptimizerSelection', testRenduMemoireOptimizerSelection],
+  ['testRenduMemoireOptimizerIdentiteEnregistree', testRenduMemoireOptimizerIdentiteEnregistree],
+  ['testRenduRattachementOptimizer', testRenduRattachementOptimizer],
+  ['testRenduTelephoneRattachementOptimizer', testRenduTelephoneRattachementOptimizer],
+  ['testRenduRattachementOptimizerDemonte', testRenduRattachementOptimizerDemonte],
   ['testRenduMemoireOptimizerSansMemoire', testRenduMemoireOptimizerSansMemoire],
   ['testRenduMemoireOptimizerListes', testRenduMemoireOptimizerListes],
   ['testRenduMemoireOptimizerRetrait', testRenduMemoireOptimizerRetrait],
@@ -597,6 +606,15 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   // `usePersistence` (choix de conservation), partagé par tout le bundle, et
   // `testPersistance` exige un navigateur vierge.
   ['testMemoireOptimizerJson', testMemoireOptimizerJson],
+  ['testOptimizerRattachementIdentites', testOptimizerRattachementIdentites],
+  ['testOptimizerRattachementReferenceConservee', testOptimizerRattachementReferenceConservee],
+  ...verificationsOptimizerRattachementOrdres,
+  ['testOptimizerRattachementDepartageEtPrises', testOptimizerRattachementDepartageEtPrises],
+  ['testOptimizerRattachementCopiesSansExemplaire', testOptimizerRattachementCopiesSansExemplaire],
+  ['testOptimizerRattachementPermutationEtProprietaire', testOptimizerRattachementPermutationEtProprietaire],
+  ['testOptimizerRattachementRuneVendue', testOptimizerRattachementRuneVendue],
+  ['testOptimizerRattachementDefensesComplet', testOptimizerRattachementDefensesComplet],
+  ['testOptimizerRattachementBranchement', testOptimizerRattachementBranchement],
   ['testMemoireOptimizerCopie', testMemoireOptimizerCopie],
   ['testMemoireOptimizerLecteurListes', testMemoireOptimizerLecteurListes],
   ['testMemoireOptimizerListesIllisibles', testMemoireOptimizerListesIllisibles],

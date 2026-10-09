@@ -38,7 +38,7 @@ function stockage(): StockageOptimizer {
   const criteres = baseCompleteCriteres(undefined);
   criteres.comboSets = ['violent']; criteres.minStats = { hp: 50000 }; criteres.maxStats = { spd: 150 };
   criteres.damageSetup.leaderSkill = { stat: 'HP', pct: 33 }; criteres.objective = 'ehp';
-  return { lists: [{ id: 'ancienne', name: 'Prépa RTA' }, { id: 'autre', name: 'Prépa RTA (2)' }],
+  return { identities: new Map(), lists: [{ id: 'ancienne', name: 'Prépa RTA' }, { id: 'autre', name: 'Prépa RTA (2)' }],
     members: [{ listId: 'ancienne', selector }, { listId: 'ancienne', selector: { source: 'rta', monsterId: '2' } }],
     validated: [{ listId: 'ancienne', selector, runeIds: [11, 12, 13, 14, 15, 16], artifactIds: [21, 22] }],
     memories: new Map([[cleMemoireMembre('ancienne', selector), { listId: 'ancienne', selector, com2usId: 1001, criteres }]]),

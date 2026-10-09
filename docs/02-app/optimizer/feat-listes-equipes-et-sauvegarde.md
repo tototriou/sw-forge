@@ -10,7 +10,7 @@
 réservations dans la clé historique `swblacksmith-optimizer-lists-v1`. Son
 format reste inchangé : `lists`, `members`, `validated`, `activeListId`.
 
-Les mémoires des membres, les équipes et les contenus de liste sont dans une seconde clé,
+Les identités, mémoires des membres, équipes et contenus de liste sont dans une seconde clé,
 `swblacksmith-optimizer-members-v1`. Une version de l’application qui ne connaît
 que les listes laisse cette clé intacte. Les deux clés passent exclusivement
 par `saveLocal`, sous l’interrupteur global de conservation. Sans conservation,
@@ -29,6 +29,10 @@ séparée des entrées utilisables à chaque relecture : un doublon rejeté ne s
 réactive jamais parce que l’entrée valide a disparu. Les rejets ne sont jamais
 appliqués ni affichés comme des mémoires, équipes ou contenus valides.
 
+Les identités malformées ou dupliquées suivent la même règle, dans
+`rejets.identities`. Un rattachement vers une clé occupée par une mémoire ou
+identité orpheline conserve cette entrée dans les rejets et le dit, sans écrasement.
+
 Seul un geste visant une entrée rejetée la retire : supprimer une liste emporte
 ses rejets dont le `listId` est une chaîne lisible, sans déduire la liste d’une
 clé abîmée. Retirer un membre ou écrire une mémoire acceptée pour ce membre
@@ -44,12 +48,35 @@ n’annonce aucune suppression de rejets puisqu’il les conserve.
 Le rapport du hook est affiché dans la zone C, dans un espace réservé et
 défilant commun aux deux formats. Le clic d’un membre restaure ses critères.
 
+## Identité indépendante des critères
+
+`identities` est une `Map` à clé `listId|exclusionSelectorKey(selector)`.
+Chaque valeur porte `listId`, `selector` et l’espèce `com2usId`. Le JSON de la
+clé des membres contient ses paires ; la clé historique des listes ne reçoit
+aucun champ d’identité. L’identité est acquise dès l’ajout manuel, la validation
+qui inclut le monstre ou la consommation d’un import, sans créer de mémoire de
+critères. Retirer explicitement le membre ou supprimer sa liste retire son identité.
+
+Pour les membres antérieurs sans identité, `acquerirIdentitesMembres` résout la
+référence sur le compte déjà présent : au chargement du compte conservé et
+avant tout remplacement par un réimport, manuel ou depuis le dossier suivi.
+Une identité déjà connue ne change jamais parce que le slot change d’espèce.
+Les runes d’un build ne servent jamais à établir cette identité.
+
+Limite : si l’identité manque encore au réimport, l’espèce résolue dans le
+nouveau compte est acquise et le rapport le dit. Sans identité et sans référence
+résolue, le membre, ses données et son build restent conservés, avec un message ;
+l’espèce d’origine ne peut pas être reconstituée depuis ces seules données.
+
 ## Mémoires des membres
 
 `OptimizerState.proprietaireCriteres` désigne le membre dont les critères sont
 affichés. `validerProprietaireCriteres` vérifie, avant toute restauration et
 écriture, l’existence de la liste active et du membre, le sélecteur affiché,
-l’espèce résolue et l’espèce sélectionnée. Une saisie sans propriétaire ne
+l’espèce résolue, l’espèce sélectionnée et l’identité enregistrée du membre
+quand elle existe. Si cette identité diffère de l’espèce résolue, aucun critère
+n’est restauré, aucun propriétaire n’est attribué et le refus est affiché.
+Une saisie sans propriétaire ne
 crée aucune mémoire. Le propriétaire et les messages de restauration sont
 hors de la photo de session. La photo est sérialisée, mais aucun chemin dans
 `App.tsx` ne la réapplique actuellement : le chargement des critères depuis un
@@ -73,7 +100,10 @@ la destination ; sans elle, aucun propriétaire. Retirer le membre affiché ou
 supprimer sa liste efface l’attribution. Le bestiaire, les puces de source et
 la zone D l’effacent aussi. L’import de recette l’efface au moment où sa lecture
 se résout, avant d’appliquer ses valeurs, même si un membre a été choisi entre-temps.
-Le réimport de compte l’efface avant la remise à zéro. Une résolution devenue
+Le réimport de compte rattache ce propriétaire et la sélection avec les autres
+données, en conservant ses critères personnels, sans photographie automatique.
+Sans propriétaire valide après rattachement, les critères sont remis au défaut.
+Une résolution devenue
 introuvable ou une identité différente invalide l’attribution, y compris quand
 l’écran est démonté. Un retour d’onglet conserve les critères et le cran des
 artéfacts lorsque l’exemplaire reste valide.
@@ -231,20 +261,53 @@ affichée telle quelle, jamais remplacée en silence.
 
 `reverifierStockageOptimizer` est pure et exportée pour le réimport du compte
 et la reprise d’un état sauvegardé. Elle renvoie le stockage revérifié et un
-rapport : membres et builds retirés, mémoires inactives ou suivant leur
-sélecteur, équipes modifiées ou dissoutes, messages explicites.
+rapport de rattachements individuels, identités acquises depuis le nouveau
+compte, builds incomplets et mémoires inactives. Aucun membre ni build n’est
+retiré au réimport. La garde `comptePeutJuger` interdit toute modification tant
+que Box et runes sont vides.
 
-La garde `comptePeutJuger` interdit toute purge tant que Box et runes sont vides.
-Les membres et builds suivent les règles existantes : sélecteur résolu, et pour
-un build, runes toujours présentes dans l’inventaire du compte. Le contrôle
-d’identité des builds au réimport reste inchangé.
+Une référence qui résout encore l’espèce du membre est conservée. Toute
+référence conservée est réservée avant de rattacher les autres, y compris
+celle d’un membre sans identité ou sans destination possible. Un membre non
+rattachable garde sa référence et la bloque, même si elle résout une autre
+espèce. Les rattachements suivent l’ordre des membres de la liste.
+Un exemplaire pris dans cette liste ne peut plus être
+choisi ; son occupation dans une autre liste n’intervient pas. Ordres par contenu :
 
-Un membre retiré laisse sa mémoire conservée et inactive. Son équipe perd ce
-membre ; sous deux membres, elle est dissoute. Un leader retiré n’est pas
-remplacé automatiquement. `App.tsx` appelle cette fonction au réimport, applique
-le résultat ensemble par `replaceAfterRevalidation` seulement s’il a changé,
-et affiche ses messages. Sans changement, la fonction rend le stockage reçu ;
-les mémoires inactives restent signalées sans provoquer de réécriture.
-Les contenus des listes et leurs rejets restent intacts, avec ou sans changement.
-La reprise d’un point de sauvegarde et ses contrôles d’identité propres ne sont
-pas encore branchés dans l’écran.
+| Contenu | Ordre des sources |
+| --- | --- |
+| Guilde | Défense, offense, Box, RTA |
+| Arène | RTA, Box, défense, offense |
+| Donjon ou contenu absent | Box, RTA, défense, offense |
+
+Dans la première source disponible, choisir l’exemplaire portant le plus de
+runes du build validé ; à égalité ou sans build, le premier. Cela départage les
+exemplaires, sans exiger que le build validé soit porté en jeu. Un exemplaire nu
+reste candidat. Sans exemplaire disponible, utiliser `unowned` avec l’espèce du
+bestiaire ; si sa clé est prise, ajouter `copie` (2, 3…). La résolution ignore
+ce champ, la clé du sélecteur l’inclut. Une référence `unowned` déjà valide reste.
+
+Une ancienne version garde le champ `copie` dans le sélecteur, mais voit des
+clés identiques pour ces copies : sélection et actions sont dégradées ; la
+simple relecture garde tous les membres et builds. La clé indépendante des
+membres reste ignorée par une version qui ne la connaît pas.
+
+Limite d’un retour à une version publiée antérieure : lors d’un réimport,
+son ancien comportement retire encore les membres introuvables et les builds
+dont une rune a disparu, dans la clé historique des listes. La conservation
+à la simple relecture ne garantit donc pas leur conservation après réimport
+dans cette version. Elle ignore la clé indépendante des membres.
+
+Le rattachement migre simultanément identité, mémoire, place et leader dans
+l’équipe, builds et propriétaire affiché, y compris lors d’une permutation de
+slots. Aucun lead ni critère personnel n’est réécrit. Les contenus et rejets
+existants restent conservés. `App.tsx` applique le résultat par
+`replaceAfterRevalidation`, migre le propriétaire par
+`appliquerReverificationMembres` et affiche un message par membre rattaché.
+Sans changement, la fonction rend le stockage reçu, sans réécriture des clés.
+
+Un build dont des runes ont disparu garde tous ses identifiants et artéfacts ;
+`runesManquantes` marque les absentes, seules les présentes restent réservées.
+La marque est retirée si ces runes reviennent. La fiche affiche les seules
+pièces présentes, avec un avertissement, sans comparaison au runage porté.
+La reprise d’un point de sauvegarde n’est pas encore branchée dans l’écran.

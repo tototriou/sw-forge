@@ -323,22 +323,18 @@ des conditions qui ne sont plus celles de l'app, et **rien ne le dirait**.
 
 ⚠️⚠️ **ON NE REVALIDE JAMAIS LES LISTES CONTRE UN COMPTE VIDE**
 (`comptePeutJuger`, [optimizerExclusion.ts](src/lib/optimizerExclusion.ts)).
-La revérification répond à « mon compte a-t-il changé depuis » ; face à un
-compte sans monstre ni rune, elle ne peut répondre qu'une chose — plus rien
-ne résout, donc **tout est jeté** — et cette réponse-là n'est jamais la
-bonne : un compte vide veut dire « pas encore chargé », pas « tes monstres
-ont disparu ». Le résultat étant **écrit sur disque**, la perte est
-définitive : les listes survivraient mais leur CONTENU disparaîtrait —
-`replaceMembersAndValidated` vide les membres et les builds sans toucher
-aux listes elles-mêmes.
+Un compte sans Box ni rune signifie « pas encore chargé ». Sans cette garde,
+la fonction de rattachement pourrait déplacer les membres vers « non possédé »
+et marquer les runes de tous leurs builds comme absentes. La garde rend le
+stockage reçu intact, sans acquisition d'identité ni migration ni marque.
 - ⚠️ **La garde vit sur la DONNÉE, pas sur un compteur de rendus.**
   `React.StrictMode` monte le composant **deux fois** en développement : le
   garde-fou d'`App.tsx` (`boxMountedRef`) ne protège que le PREMIER passage
-  de l'effet, le second revaliderait avec `box` et `runes` encore vides. Un
+  de l'effet, le second peut être appelé avec `box` et `runes` encore vides. Un
   garde-fou qui compte les passages d'un effet est battu par StrictMode, par
   un remontage, ou par le prochain qui réorganise les effets. Celui-ci tient
-  quoi qu'il arrive en amont — et il est **testable**, donc testé (dont le
-  contrôle qui montre que sans lui, tout part).
+  quoi qu'il arrive en amont — et il est **testable**, donc testé sur le stockage
+  complet (membres, builds, identités, mémoires et équipes).
 - ⚠️⚠️ **« Le compte » = LA BOX ET LES RUNES, jamais RTA ni le siège.**
   « N'importe quelle source non vide » passerait toujours : RTA et le
   siège sont des états persistés **à part**, rendus dès le premier rendu,

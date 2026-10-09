@@ -35,7 +35,7 @@ function sources(): ExclusionSourceData {
 }
 const ligne = (id: number, swift = false, runeSpeed: number | null = 100): Ligne => ({ ...ligneVierge(monstre(id), 'allie'), runeSpeed, swift });
 function stockage(): StockageOptimizer {
-  return { lists: [], members: [], validated: [], memories: new Map(), teams: [], listContents: new Map(), rejets: { memories: [], teams: [], listContents: [] } };
+  return { identities: new Map(), lists: [], members: [], validated: [], memories: new Map(), teams: [], listContents: new Map(), rejets: { memories: [], teams: [], listContents: [] } };
 }
 const consommer = (p: ReturnType<typeof importerSpeedTuneOptimizer>, data: ExclusionSourceData) =>
   consommerImportOptimizer(stockage(), null, p, data, 'nouvelle');

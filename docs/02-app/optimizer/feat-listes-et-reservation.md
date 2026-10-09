@@ -209,22 +209,18 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   d'essayer un runage d'ÉQUIPE (plusieurs monstres, certains possédés,
   certains non) sans qu'un même jeu de runes soit proposé deux fois. Ne
   s'affiche QUE quand l'espèce n'a d'exemplaire dans AUCUNE des 4 sources
-  — possédée ne serait-ce que quelque part (même ambiguë), la
+  pour l'ajout manuel — possédée ne serait-ce que quelque part (même ambiguë), la
   désambiguïsation normale (zone D / puces) garde toujours la main, jamais
   masquée par ce sélecteur. Aucune puce ne s'allume pour ce cas (comme un
-  build validé, voir l'auto-exemption ci-dessous). ⚠️ Revérification au réimport (comme tout
-  le reste de cette section) : un build validé reste valable tant que ses
-  runes existent encore QUELQUE PART dans le compte réimporté, équipées
-  ou non (`revalidateBuilds`) — même règle pour un exemplaire réel, dont
-  le build validé n'est justement pas porté en jeu. Seule différence : un
-  exemplaire réel doit encore se retrouver dans Box, RTA ou défenses de
-  siège ; pour un monstre non possédé, l'espèce au bestiaire suffit.
-  Limite assumée, pour les deux : une rune passée depuis sur un autre
-  monstre n'est pas détectée. La revérification suit CHAQUE réimport, même
-  du même compte — contrairement aux exclusions manuelles, effacées
-  seulement par un autre `wizard_id` : c'est justement « mon compte a
-  changé depuis » qu'elle cherche. Toute entrée retirée est comptée dans
-  le message d'import (`App.tsx`), jamais en silence.
+  build validé, voir l'auto-exemption ci-dessous). Au réimport, aucun membre
+  ni build n'est retiré : une référence d'une autre espèce ou introuvable se
+  rattache par l'identité indépendante du membre, jusqu'à `unowned` si aucun
+  exemplaire n'est disponible. Plusieurs membres de même espèce sans exemplaire
+  restent distincts par le champ facultatif `copie`. Voir
+  [feat-listes-equipes-et-sauvegarde.md](feat-listes-equipes-et-sauvegarde.md)
+  § Revérification commune pour l'ordre, la compatibilité et les messages.
+  Un build garde les runes disparues dans son instantané, les marque et ne
+  réserve plus ces runes. Le runage validé n'est jamais comparé au runage porté.
 - **Auto-exemption de la liste ACTIVE** — chercher à nouveau le même
   monstre dans la MÊME liste exempte automatiquement SES PROPRES runes déjà
   validées (sans quoi la recherche se trouverait bloquée par ses propres
@@ -247,6 +243,10 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   runage correspond bien à l'une des 4 sources. Réinitialisée à chaque
   changement d'exemplaire — revenir sur ce monstre plus tard réaffiche le
   build validé par défaut.
+  Si des runes ont disparu, la fiche et la ligne de la zone C l'indiquent au
+  jeton `warn`, au bureau et au téléphone. La fiche affiche seulement les
+  pièces présentes, sans erreur. Le bandeau réserve la hauteur des deux
+  messages de bascule : cliquer son icône ne la déplace pas.
 
 ## Comparer, valider sans recherche et persistance
 
@@ -338,10 +338,10 @@ stockage indépendante garde cet index et les équipes sans modifier le JSON
 historique des listes. Le clic d'un membre restaure ses critères mémorisés
 ou, sans mémoire applicable, la base complète de ses critères personnels.
 
-Le réimport revérifie ensemble membres, builds, mémoires et équipes. Un membre
-introuvable est retiré, sa mémoire reste conservée sans application, et son
-équipe perd ce membre (dissoute sous deux). Une autre espèce rend sa mémoire
-inapplicable. RTA et siège suivent leur entrée ou slot entre copies de la même
+Le réimport rattache ensemble membres, identités, builds, mémoires, équipes et
+propriétaire affiché. Aucun membre ni build n'est retiré ; une référence devenue
+introuvable ou d'une autre espèce est remplacée selon l'espèce enregistrée.
+RTA et siège suivent leur entrée ou slot entre copies de la même
 espèce : ce remplacement n'est pas détectable. Le rapport de revérification
 liste ces mémoires, sans message systématique à chaque réimport.
 

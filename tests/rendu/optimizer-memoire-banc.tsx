@@ -12,6 +12,7 @@ import type { BoxItem } from '../../src/lib/applyAccount';
 import type { ExclusionSelector, ExclusionSourceData } from '../../src/lib/optimizerExclusion';
 import { buildOptimizerRecipe } from '../../src/lib/optimizerRecipe';
 import { preuvesSupplementaires, preparerClicInclusion, verifierClicInclusion } from './optimizer-memoire-preuves';
+import { preuvesRattachementOptimizer, preuvesIdentiteEnregistree } from './optimizer-rattachement-preuves';
 
 export const premier: ExclusionSelector = { source: 'box', unitKey: '11' };
 export const second: ExclusionSelector = { source: 'box', unitKey: '22' };
@@ -31,6 +32,7 @@ const box: BoxItem[] = [
 ];
 let etat: OptimizerState, listes: UseOptimizerLists, root: Root;
 let afficher: (oui: boolean) => void, changerBox: (box: BoxItem[]) => void;
+let changerRunes: (runes: RuneDetail[]) => void, compteActuel: ExclusionSourceData, runesActuelles: RuneDetail[];
 const runesInclusion: RuneDetail[] = Array.from({ length: 6 }, (_, i) => ({
   id: 101 + i, slot: i + 1, set: 'energy', rank: 6, rarity: 5, level: 15,
   main: { code: i === 1 ? 8 : 1, value: i === 1 ? 42 : 100 }, subs: [],
@@ -46,10 +48,13 @@ function Banc() {
   const [compte, setCompte] = useState(() => box.map(item => avecRunes && item.key === '22'
     ? { ...item, gear: { ...item.gear!, runes: runesInclusion } } : item));
   afficher = setVisible; changerBox = setCompte;
+  const [inventaire, setInventaire] = useState(() => avecRunes ? runesInclusion : []);
+  changerRunes = setInventaire; runesActuelles = inventaire;
   listes = useOptimizerLists();
   const data: ExclusionSourceData = { box: compte, rtaEntries, siegeDefenseTeams, siegeOffenseTeams: [], monsterById: new Map(monstres.map(m => [String(m.id), m])) };
-  etat = useOptimizerState({ lists: listes, data, runeIds: new Set(avecRunes ? runesInclusion.map(r => r.id) : []) });
-  return visible ? <OptimizerSection box={compte} runes={avecRunes ? runesInclusion : []} artifacts={[]} relics={[]} relicUsageById={{}}
+  compteActuel = data;
+  etat = useOptimizerState({ lists: listes, data, runeIds: new Set(inventaire.map(r => r.id)) });
+  return visible ? <OptimizerSection box={compte} runes={inventaire} artifacts={[]} relics={[]} relicUsageById={{}}
     optimizer={etat} lists={listes} allMonsters={monstres} rtaEntries={rtaEntries} siegeDefenseTeams={siegeDefenseTeams} siegeOffenseTeams={[]}
     accountName="Synthétique" menuOuvert={false} onFermerMenu={() => {}} onOuvrirMenu={() => {}} /> : <div>Autre onglet</div>;
 }
@@ -70,6 +75,7 @@ export async function monter(avecRapport = false) {
     members: ['a', 'b'].flatMap(listId => [premier, second, troisieme, rta, siege].map(selector => ({ listId, selector }))),
   }));
   localStorage.setItem(OPTIMIZER_MEMBERS_STORAGE_KEY, ecrireMembresOptimizer({
+    identities: new Map(),
     memories: new Map<string, MemoireMembreOptimizer>([
       [cleMemoireMembre('a', premier), { listId: 'a', selector: premier, com2usId: 10101, criteres }],
       [cleMemoireMembre('b', premier), { listId: 'b', selector: premier, com2usId: 10101, criteres: { ...criteres, minStats: { spd: 190 } } }],
@@ -90,12 +96,17 @@ export async function monter(avecRapport = false) {
 }
 
 export async function scenario(nom: string): Promise<[boolean, string][]> {
+  avecRunes = nom.startsWith('rattachement');
   await monter(nom === 'zone-c');
+  if (nom.startsWith('rattachement')) return preuvesRattachementOptimizer({ etat: () => etat, listes: () => listes,
+    data: () => compteActuel, runes: () => runesActuelles, changerBox, changerRunes, afficher, geste, premier }, nom === 'rattachement-demonte');
   const preuves: [boolean, string][] = [];
   const verifier = (condition: boolean, texte: string) => preuves.push([condition, condition ? texte : `${texte} — ${JSON.stringify({ selectedId: etat.selectedId, selector: etat.sourceSelector, proprietaire: etat.proprietaireCriteres, min: etat.minStats, compter: etat.compterAurasResPre, cran: etat.critereArtefacts, rapport: etat.rapportCriteres, stockage: listes.rapportStockage })}`]);
   const choisir = (selector = premier) => geste(() => etat.choisirMembre('a', selector));
   const memoire = (listId: string, selector = premier) => listes.memories.get(cleMemoireMembre(listId, selector));
   await choisir();
+  if (nom === 'identite-enregistree') return preuvesIdentiteEnregistree({ etat: () => etat, listes: () => listes,
+    data: () => compteActuel, changerBox, geste, premier });
   const supplement = await preuvesSupplementaires(nom, { etat: () => etat, listes: () => listes, geste, premier, second, rta, siege });
   if (supplement) return supplement;
   if (nom === 'selection') {
@@ -133,17 +144,17 @@ export async function scenario(nom: string): Promise<[boolean, string][]> {
     await choisir(second);
     await geste(() => { listes.removeMember('a', second); etat.setMinStats({ spd: 180 }); });
     verifier(!memoire('a', second), 'retrait et modification groupés : garde du stockage avant écriture');
-    await geste(() => listes.addMember('a', second));
+    await geste(() => listes.addMember('a', second, monstres[1].com2usId!));
     await choisir(second); await geste(() => listes.deleteList('a'));
     verifier(etat.proprietaireCriteres === null, 'suppression de sa liste : aucun propriétaire');
   } else if (nom === 'inclusion') {
     await geste(() => { etat.setSourceSelector(second); etat.setSelectedId('2'); etat.setMinStats({ spd: 160 }); listes.removeMember('a', second); });
-    await geste(() => { listes.addMember('a', second); etat.capturerMembre('a', second); });
+    await geste(() => { listes.addMember('a', second, monstres[1].com2usId!); etat.capturerMembre('a', second); });
     verifier(memoire('a', second)?.criteres.minStats.spd === 160 && etat.proprietaireCriteres?.com2usId === 10102, 'ajout : capture et propriétaire');
     await geste(() => { etat.setSourceSelector(troisieme); etat.setSelectedId('1'); listes.removeMember('a', troisieme); });
-    await geste(() => { listes.validateBuild('a', troisieme, [1, 2, 3, 4, 5, 6], []); etat.capturerMembre('a', troisieme); });
+    await geste(() => { listes.validateBuild('a', troisieme, [1, 2, 3, 4, 5, 6], [], monstres[0].com2usId!); etat.capturerMembre('a', troisieme); });
     verifier(!!memoire('a', troisieme), 'validation avec inclusion : capture');
-    await geste(() => { const id = listes.createList('Nouvelle'); listes.addMember(id, troisieme); etat.capturerMembre(id, troisieme); });
+    await geste(() => { const id = listes.createList('Nouvelle'); listes.addMember(id, troisieme, monstres[0].com2usId!); etat.capturerMembre(id, troisieme); });
     verifier(etat.proprietaireCriteres?.listId === listes.activeListId && !!memoire(listes.activeListId!, troisieme), 'création et ajout : capture au même geste');
   } else if (nom === 'hors-liste') {
     for (const action of [() => etat.setSelectedId('1'), () => etat.setGearSource('box'), () => etat.setSourceSelector(premier)]) {

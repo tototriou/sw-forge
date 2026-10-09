@@ -3,6 +3,7 @@ import { completerCriteresImport, type CriteresPartielsOptimizer } from './crite
 import { equipeApresFiltrageOptimizer, leadEffectifMembreOptimizer } from './equipesOptimizer';
 import { exclusionSelectorKey, resolveExclusionEntry, type ExclusionSelector, type ExclusionSourceData } from './optimizerExclusion';
 import { contenuListeValide, enregistrerMemoireMembre, type ContenuListeOptimizer, type StockageOptimizer } from './optimizerMemberStorage';
+import { enregistrerIdentiteMembre } from './optimizerRattachement';
 
 export interface MembreImportOptimizer {
   selector: ExclusionSelector;
@@ -134,6 +135,7 @@ export function consommerImportOptimizer(
   const name = suffixer(proposition.nomListe.trim() || 'Équipe importée', new Set(stockage.lists.map(l => l.name)));
   const acceptes = new Map<string, MembreImportOptimizer>(), vus = new Set<string>();
   let memories = stockage.memories;
+  let identities = stockage.identities;
   for (const membre of proposition.membres) {
     const cle = exclusionSelectorKey(membre.selector);
     const resolu = resolveExclusionEntry(membre.selector, data);
@@ -148,6 +150,7 @@ export function consommerImportOptimizer(
       if (ecriture.rapport.length) raison = ecriture.rapport.join(' ');
       else {
         memories = ecriture.memories;
+        identities = enregistrerIdentiteMembre(identities, { listId, selector: membre.selector, com2usId: membre.com2usId });
         acceptes.set(cle, membre);
       }
     }
@@ -156,7 +159,7 @@ export function consommerImportOptimizer(
   rapport.membresImportes = acceptes.size;
   const nouveau: StockageOptimizer = { ...stockage, lists: [...stockage.lists, { id: listId, name }],
     members: [...stockage.members, ...[...acceptes.values()].map(m => ({ listId, selector: { ...m.selector } }))],
-    memories, teams: [...stockage.teams], listContents: new Map([...stockage.listContents, [listId, proposition.contenu]]) };
+    memories, identities, teams: [...stockage.teams], listContents: new Map([...stockage.listContents, [listId, proposition.contenu]]) };
   const idsEquipes = identifiantsOccupes(stockage, 'id');
   proposition.equipes.forEach((equipe, i) => {
     const members = equipe.members.filter(s => acceptes.has(exclusionSelectorKey(s)));

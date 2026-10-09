@@ -1,8 +1,10 @@
 import type { LeaderSkill } from '../types';
 import { baseCompleteCriteres, photoCriteres, type CriteresOptimizer } from './criteresOptimizer';
 import { OPTIMIZER_RECIPE_VERSION, parseOptimizerRecipe } from './optimizerRecipe';
+import { rattacherStockageOptimizer } from './optimizerRattachement';
+export type { RapportReverificationOptimizer } from './optimizerRattachement';
 import {
-  comptePeutJuger, exclusionSelectorKey, resolveExclusionEntry, revalidateBuilds, revalidateMembers,
+  exclusionSelectorKey, resolveExclusionEntry,
   type ExclusionSelector, type ExclusionSourceData, type OptimizerList, type OptimizerListMember, type ValidatedBuild,
 } from './optimizerExclusion';
 
@@ -22,12 +24,14 @@ export interface MemoireMembreOptimizer {
   com2usId: number;
   criteres: CriteresOptimizer;
 }
+export type IdentiteMembreOptimizer = Omit<MemoireMembreOptimizer, 'criteres'>;
 export interface DonneesMembresOptimizer {
+  identities: Map<string, IdentiteMembreOptimizer>;
   memories: Map<string, MemoireMembreOptimizer>;
   teams: EquipeOptimizer[];
   listContents: Map<string, ContenuListeOptimizer>;
   /** Valeurs JSON rejetées : conservées à part, jamais promues en entrées utilisables. */
-  rejets: { memories: unknown[]; teams: unknown[]; listContents: unknown[] };
+  rejets: { memories: unknown[]; teams: unknown[]; listContents: unknown[]; identities?: unknown[] };
 }
 export interface StockageOptimizer extends DonneesMembresOptimizer {
   lists: OptimizerList[];
@@ -43,7 +47,9 @@ const entierPositif = (v: unknown): v is number => typeof v === 'number' && Numb
 function selecteurValide(v: unknown): v is ExclusionSelector {
   if (!objet(v) || typeof v.source !== 'string') return false;
   if (v.source === 'box') return texte(v.unitKey);
-  if (v.source === 'rta' || v.source === 'unowned') return texte(v.monsterId);
+  if (v.source === 'rta') return texte(v.monsterId);
+  if (v.source === 'unowned') return texte(v.monsterId) && (v.copie === undefined
+    || typeof v.copie === 'number' && Number.isSafeInteger(v.copie) && v.copie >= 2);
   return (v.source === 'siege-defense' || v.source === 'siege-offense') && texte(v.teamId)
     && typeof v.slotIndex === 'number' && Number.isInteger(v.slotIndex) && v.slotIndex >= 0 && v.slotIndex <= 2;
 }
@@ -101,17 +107,19 @@ export function validerEquipesOptimizer(valeur: unknown): { teams: EquipeOptimiz
 /** Seule paire de conversion JSON de ce stockage ; la Map ne voyage jamais comme un objet vide. */
 export function ecrireMembresOptimizer(donnees: DonneesMembresOptimizer): string {
   return JSON.stringify({ memories: [...donnees.memories], teams: donnees.teams,
+    ...(donnees.identities.size ? { identities: [...donnees.identities] } : {}),
     listContents: [...donnees.listContents].map(([listId, contenu]) => ({ listId, contenu })),
-    ...(donnees.rejets.memories.length || donnees.rejets.teams.length || donnees.rejets.listContents.length ? { rejets: donnees.rejets } : {}) });
+    ...(donnees.rejets.memories.length || donnees.rejets.teams.length || donnees.rejets.listContents.length || donnees.rejets.identities?.length ? { rejets: donnees.rejets } : {}) });
 }
 export function lireMembresOptimizer(brut: string | null): DonneesMembresOptimizer & { rapport: string[] } {
   const memories = new Map<string, MemoireMembreOptimizer>(), rapport: string[] = [];
+  const identities = new Map<string, IdentiteMembreOptimizer>();
   const listContents = new Map<string, ContenuListeOptimizer>();
   const rejets: DonneesMembresOptimizer['rejets'] = { memories: [], teams: [], listContents: [] };
-  if (brut === null) return { memories, listContents, teams: [], rejets, rapport };
+  if (brut === null) return { identities, memories, listContents, teams: [], rejets, rapport };
   let v: unknown;
-  try { v = JSON.parse(brut); } catch { return { memories, listContents, teams: [], rejets, rapport: ['Le stockage des membres de l’Optimizer est illisible.'] }; }
-  if (!objet(v)) return { memories, listContents, teams: [], rejets: { memories: [v], teams: [], listContents: [] }, rapport: ['Le stockage des membres de l’Optimizer est malformé.'] };
+  try { v = JSON.parse(brut); } catch { return { identities, memories, listContents, teams: [], rejets, rapport: ['Le stockage des membres de l’Optimizer est illisible.'] }; }
+  if (!objet(v)) return { identities, memories, listContents, teams: [], rejets: { memories: [v], teams: [], listContents: [] }, rapport: ['Le stockage des membres de l’Optimizer est malformé.'] };
   // Ne jamais revalider la section des rejets : un doublon devenu seul ne doit
   // pas se réactiver parce qu'une autre entrée a été supprimée entre-temps.
   if (objet(v.rejets)) {
@@ -122,6 +130,21 @@ export function lireMembresOptimizer(brut: string | null): DonneesMembresOptimiz
     }
   } else if (v.rejets !== undefined) {
     rejets.memories.push(v.rejets); rapport.push('La section des rejets est malformée : conservée sans application.');
+  }
+  if (objet(v.rejets) && v.rejets.identities !== undefined) {
+    rejets.identities = Array.isArray(v.rejets.identities) ? v.rejets.identities : [v.rejets.identities];
+    rapport.push('Identités rejetées conservées sans application.');
+  }
+  if (v.identities !== undefined) {
+    const valeurs = Array.isArray(v.identities) ? v.identities : [v.identities];
+    for (const paire of valeurs) {
+      const m = Array.isArray(paire) ? paire[1] : undefined;
+      if (!Array.isArray(v.identities) || !Array.isArray(paire) || paire.length !== 2 || !objet(m)
+        || !texte(m.listId) || !selecteurValide(m.selector) || !entierPositif(m.com2usId)
+        || paire[0] !== cleMemoireMembre(m.listId, m.selector) || identities.has(paire[0])) {
+        (rejets.identities ??= []).push(paire); rapport.push('Identité malformée ou dupliquée : conservée sans application.');
+      } else identities.set(paire[0], { listId: m.listId, selector: m.selector, com2usId: m.com2usId });
+    }
   }
   if (!Array.isArray(v.memories)) {
     if (v.memories !== undefined) rejets.memories.push(v.memories);
@@ -149,7 +172,7 @@ export function lireMembresOptimizer(brut: string | null): DonneesMembresOptimiz
       rapport.push(`Contenu de liste ${index + 1} malformé ou dupliqué : conservé sans application.`);
     } else listContents.set(entree.listId, entree.contenu);
   }
-  return { memories, listContents, teams: equipes.teams, rejets, rapport: [...rapport, ...equipes.rapport] };
+  return { identities, memories, listContents, teams: equipes.teams, rejets, rapport: [...rapport, ...equipes.rapport] };
 }
 
 export function contenuListeValide(v: unknown): v is ContenuListeOptimizer {
@@ -164,6 +187,7 @@ export function retirerRejetsOptimizer(rejets: DonneesMembresOptimizer['rejets']
       || (memoire && selecteurValide(contenu.selector) && exclusionSelectorKey(contenu.selector) === exclusionSelectorKey(selector)));
   };
   return { memories: rejets.memories.filter(v => !vise(v, true)), teams: rejets.teams.filter(v => !vise(v, false)),
+    ...(rejets.identities ? { identities: rejets.identities.filter(v => !vise(v, true)) } : {}),
     listContents: selector === undefined ? rejets.listContents.filter(v => !vise(v, false)) : rejets.listContents };
 }
 
@@ -186,56 +210,8 @@ export function enregistrerMemoireMembre(memories: DonneesMembresOptimizer['memo
   return { memories: copie, rapport: [] };
 }
 
-export interface RapportReverificationOptimizer {
-  compteVide: boolean;
-  membresRetires: number;
-  buildsRetires: number;
-  memoiresInactives: string[];
-  memoiresSuivantSelecteur: string[];
-  equipesModifiees: string[];
-  equipesDissoutes: string[];
-  messages: string[];
-}
-
 /** Même revérification pure pour un réimport et la reprise d'un état sauvegardé. */
 export function reverifierStockageOptimizer(stockage: StockageOptimizer, data: ExclusionSourceData, runeIds: Set<number>):
-  { stockage: StockageOptimizer; rapport: RapportReverificationOptimizer } {
-  const rapport: RapportReverificationOptimizer = { compteVide: false, membresRetires: 0, buildsRetires: 0,
-    memoiresInactives: [], memoiresSuivantSelecteur: [], equipesModifiees: [], equipesDissoutes: [], messages: [] };
-  if (!comptePeutJuger(data, runeIds)) { rapport.compteVide = true; return { stockage, rapport }; }
-  const membres = revalidateMembers(stockage.members, data), builds = revalidateBuilds(stockage.validated, data, runeIds);
-  rapport.membresRetires = membres.droppedCount; rapport.buildsRetires = builds.droppedCount;
-  const clesMembres = new Set(membres.kept.map((m) => cleMemoireMembre(m.listId, m.selector)));
-  const lists = new Set(stockage.lists.map((l) => l.id));
-  const nomsListes = new Map(stockage.lists.map((l) => [l.id, l.name]));
-  for (const [cle, m] of stockage.memories) {
-    const resolu = resolveExclusionEntry(m.selector, data);
-    if (!lists.has(m.listId) || !clesMembres.has(cle) || resolu?.monster.com2usId !== m.com2usId) {
-      rapport.memoiresInactives.push(cle);
-      rapport.messages.push(`Mémoire d’un membre de « ${nomsListes.get(m.listId) ?? 'Liste introuvable'} » conservée sans application : membre absent ou espèce différente.`);
-    } else if (m.selector.source === 'rta' || m.selector.source.startsWith('siege-')) {
-      // RTA et siège ne portent pas l'identifiant de l'exemplaire : une autre
-      // copie de la même espèce reprend la mémoire. Un message par mémoire à
-      // chaque réimport ne dirait rien de plus que la spec ; on la liste
-      // seulement dans le rapport.
-      rapport.memoiresSuivantSelecteur.push(cle);
-    }
-  }
-  const teams: EquipeOptimizer[] = [];
-  for (const [index, equipe] of stockage.teams.entries()) {
-    const nom = `Équipe ${index + 1} de « ${nomsListes.get(equipe.listId) ?? 'Liste introuvable'} »`;
-    const members = equipe.members.filter((s) => lists.has(equipe.listId) && clesMembres.has(cleMemoireMembre(equipe.listId, s)));
-    if (members.length < 2) {
-      rapport.equipesDissoutes.push(equipe.id); rapport.messages.push(`${nom} dissoute : moins de deux membres.`); continue;
-    }
-    if (members.length !== equipe.members.length) {
-      rapport.equipesModifiees.push(equipe.id); rapport.messages.push(`${nom} : membre introuvable retiré.`);
-    }
-    const { leader, ...reste } = equipe;
-    teams.push({ ...reste, members, ...(leader && members.some((s) => exclusionSelectorKey(s) === exclusionSelectorKey(leader)) ? { leader } : {}) });
-  }
-  if (rapport.membresRetires || rapport.buildsRetires) rapport.messages.unshift(`${rapport.membresRetires} membre(s) et ${rapport.buildsRetires} build(s) retiré(s) : exemplaire introuvable ou runes absentes du compte.`);
-  const modifie = rapport.membresRetires || rapport.buildsRetires || rapport.equipesModifiees.length || rapport.equipesDissoutes.length;
-  if (!modifie) return { stockage, rapport };
-  return { stockage: { ...stockage, members: membres.kept, validated: builds.kept, memories: new Map(stockage.memories), teams }, rapport };
+  ReturnType<typeof rattacherStockageOptimizer> {
+  return rattacherStockageOptimizer(stockage, data, runeIds);
 }

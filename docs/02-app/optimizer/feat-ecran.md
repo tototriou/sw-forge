@@ -240,12 +240,17 @@ conditions saisies, résultats…) au moindre aller-retour vers RTA ou une autre
 page. `useOptimizerState` centralise donc cette saisie et est instancié
 **dans `App.tsx`**, qui ne se démonte jamais tant que l'onglet du navigateur
 reste ouvert — même principe que `useRtaState`/`useSiegeState` pour la prépa
-RTA et les équipes de siège. ⚠️ **Sans écriture disque**, à la différence de
-ces deux-là : cette saisie n'a rien à voir avec le compte importé ni le
-système de conservation (voir [usePersistence](src/hooks/usePersistence.ts))
-— fermer l'onglet ou recharger la page la perd, seule la navigation ENTRE
-onglets de la session en cours la préserve ; « Sauvegarder la session » en
-garde une copie à la demande. Le Worker de recherche lui-même
+RTA et les équipes de siège. Le cran « Dégâts supplémentaires » / « Dégâts
+réels » de « Meilleurs artéfacts offensifs pour ce build » fait partie de
+cet état partagé : il est retrouvé au retour dans l'Optimizer.
+La saisie libre et les résultats ne sont pas conservés automatiquement sur
+disque : fermer l'onglet ou recharger la page les perd. « Sauvegarder la
+session » sérialise une photo à la demande, mais aucun chemin de `App.tsx`
+ne la réapplique actuellement. Les critères personnels d'un membre de liste
+peuvent en revanche être mémorisés par `useOptimizerLists`, sous
+l'interrupteur global de conservation (voir
+[feat-listes-equipes-et-sauvegarde.md](feat-listes-equipes-et-sauvegarde.md)
+§ Mémoires des membres). Le Worker de recherche lui-même
 suit ce cycle de vie : une recherche en cours **continue de tourner** en
 arrière-plan si on change d'onglet, et son résultat est toujours là au
 retour.

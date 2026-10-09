@@ -243,6 +243,14 @@ et son élément ; un premier lead est général. L’écran dit cette écriture
 partagée et le motif d’un lead inactif. Délier rend aussitôt le lead personnel,
 y compris son ancien champ de VIT ; les champs personnels restent inchangés.
 
+L’export de recette transmet ce **combat effectif**, avec le lead d’équipe
+actif ou aucun lead s’il est inactif : la recette reproduit les valeurs de
+la recherche de l’écran pour sa relance, y compris par un script. Exporter
+ne réécrit ni le lead personnel du membre ni sa mémoire. Au réimport, ce
+lead s’applique comme toute valeur de recette, sans équipe ni propriétaire
+des critères ; aucune mémoire de membre ni équipe existante n’est écrasée.
+Voir feat-ecran-lancer-la-recherche.md § Lancer la recherche.
+
 Le contenu est lu dans `listContents` pour la liste du membre, commun à toutes
 ses équipes. Une liste sans contenu défini n’applique aucun lead d’équipe,
 avec le motif « contenu de combat de la liste non défini » ; aucun repli sur

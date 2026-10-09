@@ -23,7 +23,15 @@
     contenant la RECETTE de cette recherche (set, minimums, objectif,
     préréglage, exclusion des runes déjà utilisées, choix d'artéfacts) —
     **jamais le pool de runes ni le compte**, ce qui la rend partageable
-    entre joueurs. L'import remplit tous les réglages et sélectionne
+    entre joueurs. Le combat exporté est le **combat effectif de l’écran** :
+    pour un membre lié, le lead actif de son équipe (ou aucun lead s’il est
+    inactif), afin de reproduire les valeurs de sa recherche dans l’écran
+    ou un script. Exporter garde le lead personnel et la mémoire du membre
+    intacts. Le réimport applique ce lead comme une valeur de recette,
+    sans équipe ni propriétaire des critères et sans écraser les mémoires
+    ou équipes existantes. Voir feat-listes-equipes-et-sauvegarde.md
+    § Lead effectif d’un membre.
+    L'import remplit tous les réglages et sélectionne
     automatiquement le monstre par son `com2usId` — **résolu dans TOUT le
     bestiaire**, pas seulement parmi les monstres possédés : importer la recette
     de quelqu'un d'autre pour un monstre qu'on ne possède pas reste

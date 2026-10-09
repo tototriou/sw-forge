@@ -176,8 +176,8 @@ ici.
 ## Harnais de diagnostic
 
 Ce que les instruments du harnais ne mesurent pas, chacun décrit dans
-[harnais-extensions.md § La construction observée](harnais-extensions.md)
-et [harnais-extensions.md § Le différentiel : l'oracle](harnais-extensions.md) :
+[03-developpeur/optimizer/ (harnais-extensions.md) § La construction observée](../../03-developpeur/optimizer/)
+et [03-developpeur/optimizer/ (harnais-extensions.md) § Le différentiel : l'oracle](../../03-developpeur/optimizer/) :
 
 - aucun compteur des combinaisons réellement énumérées par `buildBuckets` :
   la rétention se rapporte au produit brut des pools, un majorant ;
@@ -222,10 +222,10 @@ Ce que le harnais ne sait pas faire, ou dit de travers :
 - **la source synthétique** ne force pas de principale par emplacement,
   n'injecte pas de rune et ne porte aucun artéfact ;
   `adaptiveTrancheWeighting` ne se règle ni par elle ni par un override
-  (`scripts/lib/diagnosticTypes.ts`) : [harnais-extensions.md § Configuration : une résolution, des arguments refusés, une fidélité bornée](harnais-extensions.md) ;
+  (`scripts/lib/diagnosticTypes.ts`) : [03-developpeur/optimizer/ (harnais-extensions.md) § Configuration : une résolution, des arguments refusés, une fidélité bornée](../../03-developpeur/optimizer/) ;
 - **trois scripts conservés ne reproduisent plus leur référence**, chacun
   le dit dans son en-tête : `scripts/bucket-cap-scaling-diag.ts`,
   `scripts/stress-tranche-weighting-attainable-diag.ts` et
   `scripts/filterslot-topk-diag.ts`, dont la copie `filterSlotOld` n'a pas
   l'élagage sûr de la production à combo de coût complet
-  ([harnais-scripts.md § Les scripts voisins](harnais-scripts.md)).
+  ([03-developpeur/optimizer/ (harnais-scripts.md) § Les scripts voisins](../../03-developpeur/optimizer/)).

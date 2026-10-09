@@ -101,7 +101,7 @@ Ce que contient ce réglage :
   bouger ni le texte au-dessus, ni le contrôle (réglage
   `cibleDegatsParSort`) ; la ligne de résumé sous l'objectif,
   elle, dit « autres ennemis » quand ce cran est retenu
-  (voir objectif-de-recherche.md § Les quatre objectifs disponibles ; détail :
+  (voir feat-ecran-objectif-de-recherche.md § Les quatre objectifs disponibles ; détail :
   [degats-reels/ (séquences de coups)](../degats-reels/)). Par
   défaut, le dernier slot calculable parmi les sorts actifs (S3 avant
   S2 avant S1). Un passif curé « sélectionnable comme sort » figure
@@ -231,9 +231,9 @@ Ce que contient ce réglage :
 
   ⚠️ **Les buffs ATQ/DEF/VIT et le leader skill n'y sont pas** : ils
   sont dans « État de mon monstre »
-  (voir etat-de-mon-monstre.md § État de mon monstre).
+  (voir feat-ecran-etat-de-mon-monstre.md § État de mon monstre).
 - ⚠️ **Compétences d'invocateur : dans « État de mon monstre »**
-  (voir etat-de-mon-monstre.md § État de mon monstre). Rappel de ce
+  (voir feat-ecran-etat-de-mon-monstre.md § État de mon monstre). Rappel de ce
   qu'elles font : **Combat** (défaut) /
   **Combat + Guilde**, toujours supposées maxées. **Un choix unique, pas deux
   cases** : l'onglet Guilde ne s'applique qu'en contenu de guilde, où
@@ -295,8 +295,8 @@ tranche par stat de l'objectif dans chaque compartiment, et l'ordre des
 demi-builds) et le **tri par défaut** des résultats (modifiable ensuite).
 Il ne décide pas de ce qui est admis : seuls les minimums et maximums posés
 dans « Conditions » le font, quel que soit l'objectif choisi (voir
-conditions-et-reglages.md § Conditions, inventaire et réglages avancés ;
-limite : ../limites-connues.md § L'objectif de recherche oriente, il ne garantit pas).
+feat-ecran-conditions-et-reglages.md § Conditions, inventaire et réglages avancés ;
+limite : limites-connues.md § L'objectif de recherche oriente, il ne garantit pas).
 
 ⚠️⚠️ **UN OBJECTIF RETIRÉ SURVIT DANS LES SCRIPTS.** `objectiveKeysOf`
 retombe sur `[]` pour une valeur absente de la table : un script CLI/diag

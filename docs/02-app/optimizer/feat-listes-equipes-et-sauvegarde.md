@@ -2,7 +2,7 @@
 
 **Statut :** ÉTAT ACTUEL — décrit le stockage des mémoires, des équipes et leur revérification
 **Lire si :** on modifie la persistance des listes, la validation d’une équipe ou la reprise d’un état sauvegardé
-**Voir aussi :** [feat-listes-et-reservation.md](feat-listes-et-reservation.md), [../transverse/feat-sauvegarde-session.md](../transverse/feat-sauvegarde-session.md)
+**Voir aussi :** [feat-listes-et-reservation.md](feat-listes-et-reservation.md), [transverse/ (feat-sauvegarde-session.md)](../transverse/)
 
 ## Stockage indépendant des listes
 
@@ -188,10 +188,10 @@ pour toutes les statistiques. « Élément » exige l’élément identique du m
 
 Sources par case : Siège, `src/lib/speed.ts:189–193` (General/Guild,
 Element, Arena/Dungeon) ; RTA,
-[catégories](../rta/feat-categories.md) lignes 24–30 (General/Arena,
+[rta/ (feat-categories.md)](../rta/) lignes 24–30 (General/Arena,
 Guild/Dungeon, Element) ; Arène et Donjon General,
 `src/hooks/useRtaCategories.ts:69` (« partout ») ; Arène Arena,
-[calcul de vitesse](../transverse/feat-calcul-vitesse.md) lignes 107–108.
+[transverse/ (feat-calcul-vitesse.md)](../transverse/) lignes 107–108.
 Les sept autres cases Arène/Donjon sont sans source : aucun lead effectif,
 avec le motif « activité non établie », même pour un élément identique.
 

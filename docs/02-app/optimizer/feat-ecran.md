@@ -24,7 +24,7 @@ passeraient à la ligne, cette dernière hors du cadre visible) ; en `fr`, elle
 suit la largeur réelle de l'écran au lieu d'un plafond deviné. La barre
 d'actions, la progression et les résultats restent **pleine largeur, hors de
 cette grille** — la grille de cartes de résultat profite directement de la
-largeur gagnée (`auto-fill`, voir resultats.md § Résultats).
+largeur gagnée (`auto-fill`, voir feat-ecran-resultats.md § Résultats).
 
 ## Contrôles et largeur
 
@@ -60,7 +60,7 @@ cartes optionnelles. Entre `lg` et `xl`, la grille n'a qu'une colonne et
 les cartes s'empilent dans l'ordre du DOM, qui place « Réglages avancés »
 avant « Exclusion de runes » : l'inverse de l'ordre d'usage. L'objectif,
 lui, vit dans la carte du bouton Rechercher, sous la grille (voir
-objectif-de-recherche.md § Objectif de recherche).
+feat-ecran-objectif-de-recherche.md § Objectif de recherche).
 
 Depuis `xl`, **une seule grille** (deux colonnes, six rangées) porte tout
 l'écran de réglages, en placement EXPLICITE (`col-start`/`row-start`/
@@ -80,17 +80,17 @@ l'écran de réglages, en placement EXPLICITE (`col-start`/`row-start`/
    juste après — séparés, ils passeraient à la ligne dans une colonne
    étroite. Un **sélecteur de source** (Box / RTA / Défenses siège /
    Offenses siège, même contrôle qu'« Exclure les runes d'un monstre »,
-   voir ../exclusion.md § Exclusion manuelle — un monstre précis, dans n'importe quelle source) apparaît entre le libellé « Monstre à optimiser » et son champ de
+   voir feat-exclusion.md § Exclusion manuelle — un monstre précis, dans n'importe quelle source) apparaît entre le libellé « Monstre à optimiser » et son champ de
    recherche — mais **désambiguïse un EXEMPLAIRE, pas un premier choix
    obligatoire** : la recherche résout d'abord une ESPÈCE dans tout le
-   bestiaire (voir recherche-du-monstre.md § Recherche du monstre à optimiser).
+   bestiaire (voir feat-ecran-recherche-du-monstre.md § Recherche du monstre à optimiser).
    ⚠️ **La fiche reste TOUJOURS affichée**,
    vide (stats à zéro, artéfacts grisés, roue vide) tant qu'aucun monstre
    n'est choisi, plutôt que de n'apparaître qu'au clic — l'espace qu'elle
    occupe est réservé d'avance (voir [03-developpeur/interface/ (design)](../../03-developpeur/interface/),
    « un clic ne déplace jamais ce qu'on vient de cliquer »). Juste en
    dessous des puces de source : **zone C**, « Monstres de la liste »
-   (voir ../listes-et-reservation.md § Zone C — Monstres de la liste).
+   (voir feat-listes-et-reservation.md § Zone C — Monstres de la liste).
 2. **Rangée 2 : Critères de recherche (colonne 1, `row-span-4` — occupe
    aussi les rangées 3, 4 et 5).** ⚠️ Ce nombre suit la colonne d'EN FACE
    (Artéfacts, État de mon monstre, Exclusion de runes, Réglages avancés),
@@ -98,7 +98,7 @@ l'écran de réglages, en placement EXPLICITE (`col-start`/`row-start`/
    retirée à droite se répercute ici **et** sur la rangée de la ligne
    d'estimation, qui reste toujours la dernière.
    « Objectif de recherche » n'est pas dans la grille : il est en tête de la
-   carte du bouton Rechercher (voir objectif-de-recherche.md § Objectif de recherche).
+   carte du bouton Rechercher (voir feat-ecran-objectif-de-recherche.md § Objectif de recherche).
    Le contenu de « Critères de
    recherche », en **DEUX colonnes internes** : à
    **gauche**, **Set de runes recherché** puis **Statistique principale
@@ -121,12 +121,12 @@ l'écran de réglages, en placement EXPLICITE (`col-start`/`row-start`/
    principal** (4 pièces) s'affiche sur **deux lignes de trois** en
    permanence (comme au doigt), pour laisser plus de largeur au set
    secondaire.
-3. **Rangée 2, colonne 2 : Artéfacts** (voir artefacts.md § Artéfacts) — sous « Exemplaire »,
+3. **Rangée 2, colonne 2 : Artéfacts** (voir feat-ecran-artefacts.md § Artéfacts) — sous « Exemplaire »,
    le bloc se lisant « ces artéfacts, sur CE build ». **Rangée 3, colonne 2 :
-   État de mon monstre** (voir etat-de-mon-monstre.md § État de mon monstre).
+   État de mon monstre** (voir feat-ecran-etat-de-mon-monstre.md § État de mon monstre).
 4. **Rangée 4, colonne 2 : Exclusion de runes** (carte à bordure
    accentuée, fonctionnalité vedette — regroupe aussi **Runes imposées**,
-   voir ../exclusion.md § Runes imposées — verrouiller un emplacement sur une rune précise).
+   voir feat-exclusion.md § Runes imposées — verrouiller un emplacement sur une rune précise).
 5. **Rangée 5, colonne 2 : Réglages avancés** — SOUS Exclusion de runes,
    pas au-dessus.
 6. **Rangée 6, pleine largeur : ligne d'estimation** — ni dans la colonne

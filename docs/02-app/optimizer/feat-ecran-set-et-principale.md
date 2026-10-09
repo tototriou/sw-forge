@@ -10,7 +10,7 @@
    Compteur `N/6 runes`, sets qui ne rentrent plus grisés. Y choisir
    **Accuracy** ou **Tolerance** guide vers l'interrupteur des auras RES/PRE
    des réglages avancés, sans toucher aux auras externes (voir
-   etat-de-mon-monstre.md § Ouverture guidée vers l'interrupteur des auras RES/PRE).
+   feat-ecran-etat-de-mon-monstre.md § Ouverture guidée vers l'interrupteur des auras RES/PRE).
 
    ⚠️ **L'Intangible ne figure PAS dans la grille.** C'est un **joker à une
    pièce** qui complète n'importe quel set : on ne le vise jamais pour

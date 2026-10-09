@@ -16,7 +16,7 @@
     recherche ne relance rien automatiquement : il faut recliquer. Un bouton
     **« Arrêter »** apparaît pendant le calcul — il interrompt la recherche
     et garde le **meilleur trouvé jusque-là**, plutôt que de tout perdre
-    (voir ../interruption.md § Interruption — filet de temps, pré-filtrage et arrêt manuel).
+    (voir feat-interruption.md § Interruption — filet de temps, pré-filtrage et arrêt manuel).
     ⚠️ **« Exporter les paramètres de recherche » / « Importer
     les paramètres de recherche »** (« Exporter » / « Importer » quand la
     place manque), juste à côté : télécharge/relit un fichier `.json`

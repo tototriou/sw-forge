@@ -3,11 +3,11 @@
 **Statut :** ÉTAT ACTUEL — décrit les listes de travail et la réservation de runes
 **Lire si :** on modifie les listes de monstres, la validation d'un build ou la réservation de runes
 
-Un 3ᵉ mécanisme d'exclusion, distinct des deux d'exclusion.md : ni
+Un 3ᵉ mécanisme d'exclusion, distinct des deux d'feat-exclusion.md : ni
 l'automatique (« Exclure les runes déjà utilisées », voir
-exclusion.md § Exclusion des runes déjà portées ailleurs) ni le manuel
+feat-exclusion.md § Exclusion des runes déjà portées ailleurs) ni le manuel
 (« Exclure les runes d'un monstre », voir
-exclusion.md § Exclusion manuelle — un monstre précis, dans n'importe quelle source) ne savent exclure les runes d'un build
+feat-exclusion.md § Exclusion manuelle — un monstre précis, dans n'importe quelle source) ne savent exclure les runes d'un build
 qui n'existe **pas encore** dans le compte — le résultat d'une recherche.
 Résout un vrai problème de rareté : optimiser plusieurs monstres d'affilée
 sans que chaque nouvelle recherche re-propose les runes déjà attribuées au
@@ -101,10 +101,10 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   statut (« Validé » + bouton libérer, ou « pas encore validé »), cliquable
   pour rappeler son exemplaire dans la recherche — un autre exemplaire de
   l'espèce déjà choisie efface les résultats affichés, sans toucher aux
-  critères (voir ecran/recherche-du-monstre.md § Recherche du monstre à optimiser). Avec des
+  critères (voir feat-ecran-recherche-du-monstre.md § Recherche du monstre à optimiser). Avec des
   auras externes renseignées, choisir ici une autre espèce ou un autre
   exemplaire les rappelle 3 s dans « État de mon monstre » (voir
-  ecran/etat-de-mon-monstre.md § Sets d'aura des autres monstres) **et sous la liste** (voir plus bas) : c'est
+  feat-ecran-etat-de-mon-monstre.md § Sets d'aura des autres monstres) **et sous la liste** (voir plus bas) : c'est
   la seule voie qui le fasse. **Corbeille** à droite de
   chaque ligne pour retirer un monstre de la liste — sans confirmation s'il
   n'est pas encore validé (rien à perdre), avec confirmation s'il l'est (le
@@ -124,7 +124,7 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   `<monstre>` à « `<liste>` » ». Un clic choisit le **premier exemplaire Box,
   dans l'ordre de la zone D, absent de la liste**, l'affiche (résultats
   affichés effacés, critères gardés, aucun rappel des auras externes —
-  voir ecran/recherche-du-monstre.md § Recherche du monstre à optimiser) puis
+  voir feat-ecran-recherche-du-monstre.md § Recherche du monstre à optimiser) puis
   l'ajoute ; un clic, un exemplaire. Tous les exemplaires Box déjà
   membres : « Déjà dans « `<liste>` » », désactivé. Exemplaire affiché
   venu de RTA ou du siège, déjà membre : « Déjà dans », désactivé, sans
@@ -163,7 +163,7 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
     planifié. Affiché seulement s’il y a une paire à rendre. Les paires
     déjà calculées pour le monstre recherché se refont alors avec
     l’inventaire libéré (voir
-    moteur/artefacts.md § Recalcul quand la paire peut changer).
+    ../../03-developpeur/optimizer/moteur-artefacts.md § Recalcul quand la paire peut changer).
 
   ⚠️ **Pas de « libérer les runes seules », et c’est délibéré.** Un build
   validé porte TOUJOURS 6 runes : sans elles il n’y a plus de build à qui
@@ -183,7 +183,7 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
 - ⚠️ **Ajouter un monstre qu'on ne possède PAS** — pour le joueur qui a
   obtenu le monstre et veut essayer des runages d'équipe sans avoir mis à
   jour son export. Une ESPÈCE choisie via la recherche
-  bestiaire (voir ecran/recherche-du-monstre.md § Recherche du monstre à optimiser) mais absente des 4 sources du compte
+  bestiaire (voir feat-ecran-recherche-du-monstre.md § Recherche du monstre à optimiser) mais absente des 4 sources du compte
   reste ajoutable à une liste ET « validable » exactement comme un
   exemplaire réel — un sélecteur `unowned` (`ExclusionSelector`, distinct
   des 4 sources réelles) porte cette entrée, sur ses stats de base 6★
@@ -299,7 +299,7 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   réservées » dès qu'il y en a plusieurs), pas juste un bouton désactivé
   sans explication.
 - **Persisté**, contrairement au reste de la saisie de l'écran (voir
-  ecran/README.md § Survie à un changement d'onglet) — un flux de plusieurs
+  feat-ecran.md § Survie à un changement d'onglet) — un flux de plusieurs
   dizaines de minutes à travers toute une liste ne doit pas perdre le
   travail déjà fait à un simple rechargement de page. Même statut que la
   prépa RTA et les équipes de siège (voir

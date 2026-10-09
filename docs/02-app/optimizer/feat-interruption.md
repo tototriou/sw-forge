@@ -14,7 +14,7 @@ plus du plafond de candidats collectés :
   combinaisons à examiner (ou du plafond de candidats collectés, voir
   ci-dessous), sans limite de temps automatique.
 - **Pré-filtrage par emplacement** — les presets « Réglages avancés »
-  (voir ecran/conditions-et-reglages.md § Réglages avancés) : plus le preset est
+  (voir feat-ecran-conditions-et-reglages.md § Réglages avancés) : plus le preset est
   large, plus le pool considéré par emplacement grandit, et plus la
   recherche peut prendre de temps. Valeurs
   (`SLOT_FILTER_PRESETS`, `runeBuildOptim.ts` — runes gardées par
@@ -25,7 +25,7 @@ plus du plafond de candidats collectés :
   jusque-là** plutôt que de tout jeter. Pendant la construction des
   moitiés, avant qu'aucune paire n'ait été évaluée, il n'y a rien à
   rendre : les Workers enfants sont terminés et le résultat est vide,
-  tronqué (voir moteur/pipeline.md § Interruption).
+  tronqué (voir ../../03-developpeur/optimizer/moteur-pipeline.md § Interruption).
 
 Les cas de troncature se distinguent dans le message affiché : un arrêt
 manuel dit « voici le meilleur trouvé jusque-là » (un choix assumé), un
@@ -73,7 +73,7 @@ pct = max(explored / totalPairs, found / maxCollected, tempsÉcoulé / maxMs)
 Le troisième terme vaut 0 quand le filet de temps est retiré
 (« Rechercher jusqu'à épuisement complet »). Sous la barre : le compteur
 `explored`/`totalPairs`/`found`, puis le message doré (point 12 de
-ecran/lancer-la-recherche.md § Lancer la recherche) — et rien d'autre : un second chiffre
+feat-ecran-lancer-la-recherche.md § Lancer la recherche) — et rien d'autre : un second chiffre
 « espace de recherche à épuiser (au pire) » doublerait le dénominateur de
 la ligne du dessus.
 

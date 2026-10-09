@@ -5,7 +5,7 @@
 
 ⚠️ **Au doigt, dans le panneau « Options »** (bouton de la barre de nav),
 EN TÊTE — avant « Réglages avancés » (voir
-ecran/conditions-et-reglages.md § Réglages avancés) : fonctionnalité
+feat-ecran-conditions-et-reglages.md § Réglages avancés) : fonctionnalité
 vedette, mise en avant côté bureau par sa carte à bordure accentuée.
 
 **« Exclure les runes déjà utilisées »**, interrupteur DÉSACTIVÉ par

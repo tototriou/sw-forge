@@ -110,7 +110,7 @@
 
    **Rappel au changement de monstre** — choisir un
    autre monstre **depuis la liste de travail** (voir
-   ../listes-et-reservation.md § Zone C — Monstres de la liste) — autre espèce, ou autre exemplaire de la même espèce —
+   feat-listes-et-reservation.md § Zone C — Monstres de la liste) — autre espèce, ou autre exemplaire de la même espèce —
    alors que des auras externes sont renseignées passe leur boîte au token
    d'attention : contour `warn` et fond `warn-soft` à la place de ses
    couleurs, toujours un seul contour de 1 px, et l'en-tête de la boîte
@@ -131,7 +131,7 @@
    ni dans un effet sur le monstre sélectionné, que l'import pose aussi.
    Le même message paraît aussi sous la liste de la zone C, du même état et
    pour la même durée (voir
-   ../listes-et-reservation.md § Zone C — Monstres de la liste).
+   feat-listes-et-reservation.md § Zone C — Monstres de la liste).
 
 ## Ouverture guidée vers l'interrupteur des auras RES/PRE
 
@@ -140,7 +140,7 @@
    externes (nouvelle ligne, ou ligne passée à ce set), ou le choisir comme
    **set recherché** (sans toucher aux auras externes), guide vers « Compter
    les effets d'auras Tolerance et Précision dans les conditions » (point 9,
-   voir conditions-et-reglages.md § Réglages avancés). Fight, Determination et Enhance n'ouvrent
+   voir feat-ecran-conditions-et-reglages.md § Réglages avancés). Fight, Determination et Enhance n'ouvrent
    rien : leurs auras n'entrent dans aucune condition, aucun réglage ne leur
    est associé. Un nombre changé sur une ligne déjà présente, une seconde
    activation du même set ou un retrait ne guident pas non plus ; le

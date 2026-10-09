@@ -16,7 +16,7 @@
    l'app). Un **sélecteur de source** (Box, par défaut / RTA / Défenses
    siège / Offenses siège, `Segmented size="lg"` — même contrôle qu'« Exclure
    les runes d'un monstre »,
-   voir ../exclusion.md § Exclusion manuelle — un monstre précis, dans n'importe quelle source) apparaît entre le libellé et le champ
+   voir feat-exclusion.md § Exclusion manuelle — un monstre précis, dans n'importe quelle source) apparaît entre le libellé et le champ
    de recherche, mais ne filtre pas la recherche elle-même : il choisit
    dans QUELLE source résoudre l'**exemplaire**, une fois l'espèce trouvée.
    ⚠️ **Mode compact déclenché par la largeur RÉELLE de sa colonne, pas par
@@ -86,7 +86,7 @@
      retombe dans `pickSpecies` seulement. Un membre de liste d'une autre
      espèce (`choisirExemplaire`) laisse le cran tel quel ; sur « Dégâts
      réels », la légende du bloc, dès qu'il propose une paire, nomme alors
-     le sort par défaut du nouveau monstre (voir meilleurs-artefacts-offensifs.md § Deux crans : dégâts supplémentaires ou dégâts réels).
+     le sort par défaut du nouveau monstre (voir feat-ecran-meilleurs-artefacts-offensifs.md § Deux crans : dégâts supplémentaires ou dégâts réels).
    - Ces remises à zéro vivent dans les gestionnaires du geste, jamais dans
      un effet sur le monstre sélectionné : `importRecipe` pose le monstre et
      l'objectif sans passer par eux, et un effet, déclenché après l'import,
@@ -134,7 +134,7 @@ ouvert). Critères, tri et combat décrit restent, comme le dit la table, et
 rien n'est relancé : l'utilisateur relance lui-même. Recliquer
 l'exemplaire déjà affiché n'efface rien. Le bouton « Ajouter un autre
 exemplaire de … » de la zone C
-(voir ../listes-et-reservation.md § Zone C — Monstres de la liste) change
+(voir feat-listes-et-reservation.md § Zone C — Monstres de la liste) change
 d'exemplaire par le **même chemin** (`choisirExemplaire`,
 OptimizerSection.tsx) : résultats affichés effacés, critères gardés,
 sans rappel des auras externes, qui reste au seul clic d'un membre. Naviguer entre listes sans

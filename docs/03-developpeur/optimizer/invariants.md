@@ -270,6 +270,8 @@ Une entrée = une règle qu'un chantier qui l'ignore casse, avec sa source. Ce f
 
 ## UI
 
+- Le rapport d’import appartient à l’écran et est partagé par les deux formats jusqu’au choix suivant ou au démontage. Sans aucune source utilisable, il reste conservé : ouvert, il est lisible ; fermé, son rappel attend le retour d’une source, le bouton restant désactivé avec sa raison. Source : ../../02-app/optimizer/feat-import-equipes.md § F1 — Importer depuis l’Optimizer
+
 - L’action commune d’import, instanciée dans `App.tsx`, appelle le producteur sur les sources courantes puis le consommateur unique ; import vide = aucun changement. La préparation voit les écritures des listes en attente dans le même geste et choisit un identifiant libre. La publication fonctionnelle n’ajoute que la nouvelle liste et ses données ; toutes les données existantes et écritures précédentes sont conservées. Elle efface le propriétaire avant l’écriture puis choisit son premier membre par `choisirMembre`, utilisable écran démonté. La réconciliation garde ce propriétaire et les résultats sont effacés sans recherche ; aucun point de sauvegarde ne change. Source : ../../02-app/optimizer/feat-import-equipes.md § F1 — Importer depuis l’Optimizer
 - « Importer une équipe » reste affiché près du sélecteur de listes dans les deux formats, désactivé avec raison en `title` sans source utilisable ; sa disponibilité se dérive des producteurs. La recherche et le monstre choisi restent contigus, la hauteur du monstre choisi est réservée même vide. Sources et rapport flottent hors du flux ; l’ancre ne bouge ni à l’ouverture ni au rapport. Source : ../../02-app/optimizer/feat-import-equipes.md § F1 — Importer depuis l’Optimizer
 

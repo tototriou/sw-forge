@@ -9,7 +9,7 @@ import testImport from './import.test';
 import { verificationsImportEquipes } from './import-equipes.test';
 import { testOptimizerImportActionDemontee, testOptimizerImportEcrituresGroupees, testRenduOptimizerImportDefenses, testRenduTelephoneOptimizerImportDefenses,
   testRenduOptimizerImportOffense, testRenduTelephoneOptimizerImportOffense, testRenduOptimizerImportRta,
-  testRenduTelephoneOptimizerImportRta, testRenduOptimizerImportIndisponible, testRenduTelephoneOptimizerImportIndisponible } from './rendu/optimizer-import.test';
+  testRenduTelephoneOptimizerImportRta, testRenduOptimizerImportIndisponible, testRenduTelephoneOptimizerImportIndisponible, testRenduOptimizerImportRapportPartage } from './rendu/optimizer-import.test';
 import { testRenduOptimizerLeadEquipePersonnel, testRenduTelephoneOptimizerLeadEquipePersonnel,
   testRenduOptimizerDialogueEquipe, testRenduTelephoneOptimizerDialogueEquipe,
   testRenduOptimizerCreationContenu, testRenduTelephoneOptimizerCreationContenu,
@@ -630,6 +630,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRenduTelephoneOptimizerImportRta', testRenduTelephoneOptimizerImportRta],
   ['testRenduOptimizerImportIndisponible', testRenduOptimizerImportIndisponible],
   ['testRenduTelephoneOptimizerImportIndisponible', testRenduTelephoneOptimizerImportIndisponible],
+  ['testRenduOptimizerImportRapportPartage', testRenduOptimizerImportRapportPartage],
   // ⚠️ APRÈS `testPersistance` : ces tests changent l'état du module
   // `usePersistence` (choix de conservation), partagé par tout le bundle, et
   // `testPersistance` exige un navigateur vierge.

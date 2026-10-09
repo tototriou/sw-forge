@@ -9,11 +9,11 @@ import type { OptimizerState } from '../../hooks/useOptimizerState';
 interface Props {
   data: ExclusionSourceData;
   onImporter: OptimizerState['importerEquipe'];
+  rapport: RapportImportOptimizer | null;
 }
 
-export default function OptimizerImportButton({ data, onImporter }: Props) {
+export default function OptimizerImportButton({ data, onImporter, rapport }: Props) {
   const [ouvert, setOuvert] = useState(false);
-  const [rapport, setRapport] = useState<RapportImportOptimizer | null>(null);
   const ancre = useRef<HTMLDivElement>(null);
   // La disponibilité suit les mêmes producteurs que le geste d'import.
   const sources = [
@@ -46,7 +46,7 @@ export default function OptimizerImportButton({ data, onImporter }: Props) {
         {sources.map(source => <ZoneCliquable key={source.libelle} disabled={!source.utilisable}
           title={source.utilisable ? 'Importer dans une nouvelle liste.' : 'Aucun membre résolvable dans cette source.'}
           className="w-full px-3 py-2 text-sm text-ink hoverable:bg-accent-soft disabled:text-ink-dimmer"
-          onClick={() => setRapport(onImporter(source.produire))}>{source.libelle}</ZoneCliquable>)}
+          onClick={() => onImporter(source.produire)}>{source.libelle}</ZoneCliquable>)}
       </div>
       {rapport && <div role="status" aria-label="Rapport d’import" className="border-t border-border-soft px-3 py-2 text-xs text-ink-dim">
         <p>{rapport.listeCreee ? `Liste « ${rapport.listeCreee.name} » créée : ${rapport.membresImportes} monstre(s), ${rapport.equipesCreees} équipe(s).` : 'Aucune liste créée.'}</p>

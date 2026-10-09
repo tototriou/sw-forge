@@ -6,6 +6,7 @@ import OptimizerEquipeDialog from './OptimizerEquipeDialog';
 import OptimizerCreateListDialog from './OptimizerCreateListDialog';
 import OptimizerBackupBar from './OptimizerBackupBar';
 import OptimizerImportButton from './OptimizerImportButton';
+import type { RapportImportOptimizer } from '../../lib/importEquipes';
 import {
   Search,
   Square,
@@ -444,6 +445,12 @@ const LARGEUR_SELECTEUR_LISTE = 'w-44 truncate';
 const LARGEUR_LIBELLE_LISTE = 'w-28';
 
 export default function OptimizerSection({ box, runes, artifacts, relics, relicUsageById, optimizer, onImporterEquipe, allMonsters, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, lists, accountName, menuOuvert, onFermerMenu, onOuvrirMenu }: Props) {
+  const [rapportImport, setRapportImport] = useState<RapportImportOptimizer | null>(null);
+  const importerDepuisEcran = useCallback((produire: Parameters<OptimizerState['importerEquipe']>[0]) => {
+    const rapport = onImporterEquipe(produire);
+    setRapportImport(rapport);
+    return rapport;
+  }, [onImporterEquipe]);
   const metric = useRuneMetric();
   // ⚠️ Ne sert PAS aux `Segmented` — ils se resserrent tout seuls
   // en mesurant la place qu'ils reçoivent (voir `Segmented.tsx`), ce qu'un
@@ -3633,7 +3640,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
                 <span className="min-w-0 line-clamp-1 font-semibold text-[14px]" title={selected.monster.name}>{selected.monster.name}</span>
               </>}
             </div>
-            <OptimizerImportButton data={exclusionData} onImporter={onImporterEquipe} />
+            <OptimizerImportButton data={exclusionData} onImporter={importerDepuisEcran} rapport={rapportImport} />
             {/* ⚠️ Aucune liste FIXE (Box/RTA/Défense siège ne sont pas des
                 cas spéciaux, voir
                 docs/02-app/optimizer/,
@@ -3727,7 +3734,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
               Monstres à optimiser
               <ChevronDown size={13} className={`ml-auto transition-transform ${zoneCOpen ? 'rotate-180' : ''}`} />
             </ZoneCliquable>
-            <OptimizerImportButton data={exclusionData} onImporter={onImporterEquipe} />
+            <OptimizerImportButton data={exclusionData} onImporter={importerDepuisEcran} rapport={rapportImport} />
             {zoneCOpen && (
               <div className="mt-2 space-y-3">
                 <OptimizerListPicker

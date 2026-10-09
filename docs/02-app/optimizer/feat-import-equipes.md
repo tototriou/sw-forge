@@ -55,7 +55,12 @@ geste reste conservée ; aucun état existant n’est republié depuis un ancien
 Le rapport reste dans le flottant ouvert après le choix : nom de la liste,
 nombre de monstres et d’équipes, membres ignorés et raisons, messages du
 consommateur, dont les leads non appliqués. Il se conserve jusqu’au choix
-suivant ou au démontage de l’écran et se relit en rouvrant les sources.
+suivant ou au démontage de l’écran. Un seul rapport appartient à l’écran :
+passer du bureau au téléphone le conserve et permet de le relire en rouvrant
+les sources. Si toutes les sources deviennent inutilisables, le bouton reste
+désactivé avec sa raison : le rapport déjà ouvert reste lisible, mais une fois
+fermé il ne peut être rouvert avant le retour d’une source utilisable. Le rapport
+reste conservé pendant cette indisponibilité.
 Au bureau et au téléphone, le bouton précède le sélecteur de listes,
 après la recherche et le monstre choisi ; au téléphone, il reste sous
 « Monstres à optimiser », hors de son dépliement. La ligne du monstre

@@ -53,6 +53,10 @@ const photographierExistant = (stockage: StockageOptimizer, ids: Set<string>) =>
     teams: stockage.rejets.teams, listContents: stockage.rejets.listContents },
 });
 
+export async function changerDisponibiliteImport(disponible: boolean) {
+  await geste(() => changerSources(disponible ? dataInitiales : { ...data, rtaEntries: {}, siegeDefenseTeams: [], siegeOffenseTeams: [] }));
+}
+
 export async function scenario(nom: string): Promise<[boolean, string][]> {
   const preuves: [boolean, string][] = [], verifier = (oui: boolean, libelle: string) => preuves.push([oui, libelle]);
   localStorage.clear(); setPersistence(true);

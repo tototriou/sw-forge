@@ -26,7 +26,7 @@ function deck(id: string, ids: (number | null)[] = [1, 2, 1]): SiegeTeam {
   })) };
 }
 function sources(): ExclusionSourceData {
-  return { box: [], rtaEntries: {
+  return { box: [{ key: 'copie-box-1', monster: monstre(1), stars: 6, level: 40, gear: gear() }], rtaEntries: {
     '1': { monsterId: '1', section: 'swift', runeSpeed: 126, gear: gear(true), sets: ['swift'] },
     '2': { monsterId: '2', section: 'Non classé', runeSpeed: null, gear: gear() },
   }, siegeDefenseTeams: [deck('d1'), deck('d2', [1, 2, null])],
@@ -67,7 +67,11 @@ export function testImportEquipesDefensesSiege() {
 export function testImportEquipesOffenseSiege() {
   titre('Import · un deck d’offense et aucun remplacement par Box ou défense');
   const data = sources(), p = importerOffenseSiegeOptimizer('o1', data), r = consommer(p, data);
+  egal(data.box[0].monster.com2usId, p.membres[0].com2usId, 'copie Box de la même espèce présente');
+  ok(!isDeepStrictEqual(data.box[0].gear, data.siegeOffenseTeams[0].slots[0].gear), 'équipement Box distinct de celui du deck');
   egal(p.membres.map(m => exclusionSelectorKey(m.selector)), ['siege-offense:o1:0', 'siege-offense:o1:1', 'siege-offense:o1:2'], 'uniquement les exemplaires du deck demandé');
+  egal(memoiresNouvelles(r)[0].selector, { source: 'siege-offense', teamId: 'o1', slotIndex: 0 }, 'sélecteur du deck conservé jusqu’à la mémoire');
+  egal(memoiresNouvelles(r)[0].criteres.relicMainChoice, 'equipped', 'défaut de relique du deck, pas celui de la copie Box sans relique');
   egal(r.rapport.equipesCreees, 1, 'une seule équipe');
   egal(p.equipes[0].lead, lead, 'team.lead = 99 n’est pas importé');
   const absent = consommer(importerOffenseSiegeOptimizer('absent', data), data);

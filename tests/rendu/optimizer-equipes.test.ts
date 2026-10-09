@@ -23,3 +23,5 @@ export const testRenduOptimizerRecetteLeadEquipe = () => verifier('recette-lead-
 export const testRenduTelephoneOptimizerRecetteLeadEquipe = () => verifier('recette-lead-equipe', true);
 export const testRenduOptimizerLeadAncienHorsEquipe = () => verifier('lead-ancien-hors-equipe');
 export const testRenduTelephoneOptimizerLeadAncienHorsEquipe = () => verifier('lead-ancien-hors-equipe', true);
+export const testRenduOptimizerContenuSansDeplacement = () => verifier('contenu-sans-deplacement');
+export const testRenduTelephoneOptimizerContenuSansDeplacement = () => verifier('contenu-sans-deplacement', true);

@@ -56,7 +56,9 @@ export default function OptimizerListPicker({ lists, activeListId, memberCounts,
       />
       {active && <div className="mt-2">
         <ContenuListePicker contenu={listContents.get(active.id)} onChange={contenu => onContent(active.id, contenu)} />
-        {!listContents.has(active.id) && <p className="text-xs text-warn">Sans contenu : aucun lead d’équipe appliqué.</p>}
+        <p className={`text-xs text-warn ${listContents.has(active.id) ? 'invisible' : ''}`} aria-hidden={listContents.has(active.id)}>
+          Sans contenu : aucun lead d’équipe appliqué.
+        </p>
       </div>}
 
       {open && (

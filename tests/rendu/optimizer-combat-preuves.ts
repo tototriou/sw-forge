@@ -99,3 +99,33 @@ export async function preuvesLeadAncienHorsEquipe(b: Banc): Promise<[boolean, st
     'membre lié, même geste : ancien champ et lead personnel conservés dans les critères et la mémoire');
   return preuves;
 }
+
+export async function preuvesContenuSansDeplacement(b: Banc): Promise<[boolean, string][]> {
+  const preuves: [boolean, string][] = [], verifier = (oui: boolean, texte: string) => preuves.push([oui, texte]);
+  const pli = bouton(['Monstres à optimiser']);
+  if (pli) await b.geste(() => pli.click());
+  const contenu = [...document.querySelectorAll<HTMLSelectElement>('[aria-label="Contenu de la liste"]')].find(visible)!;
+  const liste = [...document.querySelectorAll<HTMLButtonElement>('button[aria-expanded]')]
+    .find(e => visible(e) && e.textContent?.trim() === 'Alpha')!;
+  const message = [...document.querySelectorAll<HTMLParagraphElement>('p')]
+    .find(e => visible(e) && e.textContent === 'Sans contenu : aucun lead d’équipe appliqué.')!;
+  const zone = [...document.querySelectorAll<HTMLElement>('[aria-label="Rapport des critères"]')].find(visible)!.parentElement!;
+  const controles = [...zone.querySelectorAll<HTMLElement>('button, [role="button"]')].filter(visible);
+  const position = (e: Element) => {
+    const { x, y, width, height } = e.getBoundingClientRect();
+    return { x, y, width, height };
+  };
+  const cibles = [liste, contenu, ...controles], avant = cibles.map(position);
+  verifier(!b.listes().listContents.has('a') && visible(message) && controles.length >= 7,
+    'liste historique : message visible et sélecteurs ainsi que contrôles de la zone C mesurés');
+  for (const valeur of ['guilde', 'donjon', 'arene']) {
+    await b.geste(() => { contenu.value = valeur; contenu.dispatchEvent(new Event('change', { bubbles: true })); });
+    const apres = cibles.map(position);
+    verifier(contenu.value === valeur && b.listes().listContents.get('a') === valeur, `contenu ${valeur} choisi par le menu`);
+    verifier(cibles.every(e => e.isConnected) && JSON.stringify(avant) === JSON.stringify(apres),
+      `choix ${valeur} : mêmes positions et dimensions des deux sélecteurs et des ${controles.length} contrôles de la zone C — ${JSON.stringify({ avant, apres })}`);
+    verifier(message.isConnected && getComputedStyle(message).visibility === 'hidden' && message.getAttribute('aria-hidden') === 'true',
+      `contenu ${valeur} : message toujours monté, invisible et absent de l’arbre accessible`);
+  }
+  return preuves;
+}

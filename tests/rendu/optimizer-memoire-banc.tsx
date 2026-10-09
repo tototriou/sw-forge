@@ -15,7 +15,7 @@ import { preuvesSupplementaires, preparerClicInclusion, verifierClicInclusion } 
 import { preuvesRattachementOptimizer, preuvesIdentiteEnregistree } from './optimizer-rattachement-preuves';
 import { preuvesLeadEquipeOptimizer, preuvesDialogueEquipeOptimizer, preuvesContenuCreationOptimizer } from './optimizer-equipes-preuves';
 import { preuvesRefusIdentitePerime } from './optimizer-refus-identite-preuves';
-import { preuvesRecetteLeadEquipe, preuvesLeadAncienHorsEquipe } from './optimizer-combat-preuves';
+import { preuvesRecetteLeadEquipe, preuvesLeadAncienHorsEquipe, preuvesContenuSansDeplacement } from './optimizer-combat-preuves';
 
 export const premier: ExclusionSelector = { source: 'box', unitKey: '11' };
 export const second: ExclusionSelector = { source: 'box', unitKey: '22' };
@@ -111,6 +111,7 @@ export async function scenario(nom: string): Promise<[boolean, string][]> {
   const bancEquipes = { etat: () => etat, listes: () => listes, geste, premier, second };
   if (nom === 'recette-lead-equipe') return preuvesRecetteLeadEquipe(bancEquipes);
   if (nom === 'lead-ancien-hors-equipe') return preuvesLeadAncienHorsEquipe(bancEquipes);
+  if (nom === 'contenu-sans-deplacement') return preuvesContenuSansDeplacement(bancEquipes);
   if (nom === 'refus-identite-perime') return preuvesRefusIdentitePerime(bancEquipes);
   if (nom === 'lead-equipe') return preuvesLeadEquipeOptimizer(bancEquipes);
   if (nom === 'dialogue-equipe') return preuvesDialogueEquipeOptimizer(bancEquipes);

@@ -1,7 +1,7 @@
 import { isDeepStrictEqual } from 'node:util';
 import { readFileSync } from 'node:fs';
 import { photographierPointOptimizer, lirePointOptimizer, preparerRepriseOptimizer, OPTIMIZER_BACKUP_STORAGE_KEY } from '../src/lib/optimizerBackup';
-import { cleMemoireMembre, lireMembresOptimizer, reverifierStockageOptimizer, type StockageOptimizer } from '../src/lib/optimizerMemberStorage';
+import { cleMemoireMembre, ecrireMembresOptimizer, lireMembresOptimizer, reverifierStockageOptimizer, OPTIMIZER_MEMBERS_STORAGE_KEY, type StockageOptimizer } from '../src/lib/optimizerMemberStorage';
 import { otherValidatedArtifactIds, otherValidatedRuneIds, resolveExclusionEntry, type ExclusionSourceData } from '../src/lib/optimizerExclusion';
 import type { Monster } from '../src/types';
 import { monterListesOptimizer } from './optimizer-lists-harness';
@@ -73,6 +73,36 @@ export function testOptimizerPointSessionRelue() {
   ok(!ancienne.ok && ancienne.erreur.includes('mets-la à jour'), 'session contenant le point refusée par le lecteur précédent');
   egal(lireSession(ecrireSession({ ...session, version: 1 })).ok, true, 'réécriture ancienne session relisible');
   egal(JSON.parse(ecrireSession({ ...session, version: 1 })).version, 2, 'réécriture de version 1 en version 2');
+}
+
+export function testOptimizerPointSessionIllisibleConserve() {
+  titre('Point Optimizer · texte cassé transporté sans rendre la session illisible');
+  const s = donneesPointOptimizer(), brut = '{';
+  const cleListes = 'swblacksmith-optimizer-lists-v1', cleRta = 'swblacksmith-rta-v1';
+  const session = composerSession({ maintenant: new Date('2026-10-09T12:00:00Z'), versionApp: 'test', compte: null,
+    stockage: { [OPTIMIZER_BACKUP_STORAGE_KEY]: brut, [cleListes]: JSON.stringify(s),
+      [OPTIMIZER_MEMBERS_STORAGE_KEY]: ecrireMembresOptimizer(s), [cleRta]: '{"entries":{}}', 'swblacksmith-theme-v1': 'dark' },
+    memoire: {}, optimizer: null });
+  const relue = lireSession(ecrireSession(session));
+  ok(relue.ok, 'session contenant un point au JSON cassé relue');
+  if (!relue.ok) return;
+  egal(relue.session.stockage[OPTIMIZER_BACKUP_STORAGE_KEY], brut, 'texte opaque du point gardé octet pour octet');
+  egal(relue.session.stockage[cleRta], '{"entries":{}}', 'prépa RTA transportée malgré le point cassé');
+  egal(relue.session.stockage['swblacksmith-theme-v1'], 'dark', 'réglage transporté malgré le point cassé');
+  const mem = faussLocalStorage(relue.session.stockage as Record<string, string>);
+  setPersistence(true);
+  const listes = monterListesOptimizer().render();
+  egal(listes.lists, s.lists, 'listes de travail reprises');
+  egal(listes.members, s.members, 'membres repris');
+  egal(listes.validated, s.validated, 'builds repris');
+  ok(isDeepStrictEqual(listes.memories, s.memories) && isDeepStrictEqual(listes.teams, s.teams), 'mémoires et équipes reprises');
+  ok(listes.pointExiste && !listes.point && listes.rapportPoint.some(m => m.includes('illisible')),
+    'lecteur spécialisé : point toujours signalé, reprise indisponible');
+  egal(mem.get(OPTIMIZER_BACKUP_STORAGE_KEY), brut, 'point cassé conservé après rechargement du hook');
+  ok(!lireSession(JSON.stringify({ ...session, stockage: { ...session.stockage, [cleListes]: brut } })).ok,
+    'autre clé JSON cassée : validation de session toujours stricte');
+  ok(!lireSession(JSON.stringify({ ...session, stockage: { ...session.stockage, [OPTIMIZER_BACKUP_STORAGE_KEY]: {} } })).ok,
+    'point non textuel : session toujours refusée');
 }
 
 function comptePoint(): ExclusionSourceData {

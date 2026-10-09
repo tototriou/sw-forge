@@ -64,6 +64,8 @@ Les entrées supplémentaires inutilisables suivent le lecteur commun des membre
 gardées dans les rejets et dites, jamais appliquées. Une sélection absente
 reste admise sans attribuer de critères à un autre membre.
 La clé entre dans `CLES_SESSION` ; toute session écrite porte la version 2.
+Son texte voyage intact dans la session, même avec un JSON cassé : le lecteur
+spécialisé décide de la reprise du point sans empêcher la relecture des autres données.
 
 La reprise prépare le rattachement avec le compte courant avant de publier.
 Elle efface le propriétaire des critères, remplace les listes et leurs données

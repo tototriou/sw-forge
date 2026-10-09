@@ -178,6 +178,9 @@ Les mémoires de critères par membre et les équipes de l’Optimizer voyagent 
 `swblacksmith-optimizer-members-v1`, en plus de la clé historique des listes.
 Le point unique de toutes les listes voyage aussi, dans
 `swblacksmith-optimizer-backup-v1`, avec ses identités, contenus et rejets conservés.
+Cette clé voyage comme texte opaque, même avec un JSON cassé : les listes et
+les autres clés de la session restent relisibles. Le lecteur spécialisé du point
+le conserve tel quel, le signale et désactive sa reprise s’il est illisible.
 Toute session écrite porte la version 2, même sans mémoire ni équipe : un lecteur
 de version 1 la refuse avec la demande de mise à jour existante, au lieu de
 reprendre une partie du travail. Une session de version 1 reste relue par le
@@ -194,7 +197,7 @@ avec ses avertissements, ou une erreur.
   qui n'est pas un objet ; une valeur de stockage qui n'est pas un texte de
   la forme que son hook relit (`valeurStockageValide` : thème `auto`,
   `light`, `dark` ; score `eff`, `score` ; overcap et adversaire `0`, `1` ;
-  le reste du JSON).
+  le reste du JSON, sauf le texte opaque du point de sauvegarde Optimizer).
 - **Lu, avec un avertissement** : un compte qui ne passe pas `compteValide`
   (schéma périmé) devient `null` ; un `outils.optimizer` qui n'est pas un
   objet devient `null`.

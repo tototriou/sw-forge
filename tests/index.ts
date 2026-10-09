@@ -201,7 +201,8 @@ import testBureauSwex from './bureau-swex.test';
 import testBureauSession from './bureau-session.test';
 import testSession from './session.test';
 import { testOptimizerPointAllerRetourComplet, testOptimizerPointLectureDefensive, testOptimizerPointSessionRelue,
-  testOptimizerPointRepriseRattachement, testOptimizerPointRepriseCompteVide, testOptimizerPointSuppressionConservation } from './optimizer-backup.test';
+  testOptimizerPointRepriseRattachement, testOptimizerPointRepriseCompteVide, testOptimizerPointSuppressionConservation,
+  testOptimizerPointSessionIllisibleConserve } from './optimizer-backup.test';
 import testVitesse from './vitesse.test';
 import testSiegeStatut from './siege-statut.test';
 import testSiegePastille from './siege-pastille.test';
@@ -622,6 +623,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testOptimizerPointAllerRetourComplet', testOptimizerPointAllerRetourComplet],
   ['testOptimizerPointLectureDefensive', testOptimizerPointLectureDefensive],
   ['testOptimizerPointSessionRelue', testOptimizerPointSessionRelue],
+  ['testOptimizerPointSessionIllisibleConserve', testOptimizerPointSessionIllisibleConserve],
   ['testOptimizerPointRepriseRattachement', testOptimizerPointRepriseRattachement],
   ['testOptimizerPointRepriseCompteVide', testOptimizerPointRepriseCompteVide],
   ['testOptimizerPointSuppressionConservation', testOptimizerPointSuppressionConservation],

@@ -59,8 +59,10 @@ const VALEURS_PERMISES: Partial<Record<(typeof CLES_SESSION)[number], readonly s
 };
 
 // Une valeur du stockage est-elle de la forme que son hook relit ? Les
-// réglages : une valeur permise ; le travail : du JSON.
+// réglages : une valeur permise ; le travail : du JSON, sauf le point dont
+// le lecteur spécialisé conserve aussi un texte cassé sans l'appliquer.
 export function valeurStockageValide(cle: (typeof CLES_SESSION)[number], valeur: string): boolean {
+  if (cle === OPTIMIZER_BACKUP_STORAGE_KEY) return true;
   const permises = VALEURS_PERMISES[cle];
   if (permises) return permises.includes(valeur);
   try {
@@ -217,7 +219,8 @@ export function lireSession(texte: string): LectureSession {
 
   // Le stockage : chaque valeur est le TEXTE que l'app écrit. Une valeur qui
   // n'a pas la forme que son hook relit fait refuser le fichier : la charger
-  // casserait la page qui la relit.
+  // casserait la page qui la relit. Le point voyage comme texte opaque ; son
+  // lecteur décide séparément s'il permet une reprise.
   const stockage: Session['stockage'] = {};
   const st = o.stockage;
   if (st !== undefined && (!st || typeof st !== 'object' || Array.isArray(st))) {

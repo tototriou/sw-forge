@@ -145,7 +145,7 @@ export function testListeExemplaires() {
     'source : libellé et désactivation du bouton viennent de cet état');
   const ajout = entre(ecran, 'function handleAddToList(', 'const displayedRuneIds');
   ok(/const suivant = ajoutListe\.exemplaireSuivant;/.test(ajout)
-    && /choisirExemplaire\(suivant\.selector, suivant\.monster\);\s*lists\.addMember\(lists\.activeListId, suivant\.selector\);/.test(ajout),
+    && /choisirExemplaire\(suivant\.selector, suivant\.monster\);\s*lists\.addMember\(lists\.activeListId, suivant\.selector, suivant\.monster\.com2usId!\);/.test(ajout),
   'source : le clic change d’exemplaire PUIS ajoute l’exemplaire suivant, jamais celui déjà membre');
   ok(ajout.length > 0 && !/doitRappeler|setRappelAuras/.test(ajout), 'source : le bouton ne rappelle pas les auras externes');
 

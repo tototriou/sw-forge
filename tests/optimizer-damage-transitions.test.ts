@@ -55,7 +55,7 @@ export default function testOptimizerDamageTransitions() {
   ok(ecran.includes('const id = lists.createList(nom);'), 'création et ajout depuis la fenêtre sans reset');
   ok(ecran.includes('setDamageSetup(recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP)'), 'recette : import direct');
   ok(app.includes("optimizer.resetSearch('compte')"), 'compte : motif explicite');
-  ok(hook.includes("motif === 'compte' ? DEFAULT_DAMAGE_SETUP : damageSetupApresChangementMonstre(s)"), 'resetSearch : deux branches de production');
+  ok(hook.includes("motif === 'compte' ? 'compte' : 'membre'") && hook.includes('criteresApresChangementEspece({ damageSetup: s, compterAurasResPre, critereArtefacts }, raison, undefined).damageSetup'), 'resetSearch : deux motifs transmis au producteur pur');
   ok(!hook.includes('resetDamageSkill'), 'hook : aucune transition superflue sur les listes ou exemplaires');
 
   titre('Optimizer · changement d’exemplaire de la même espèce');

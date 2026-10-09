@@ -245,8 +245,9 @@ export function testAurasEcranInterrupteur() {
   titre('Auras à l’écran · interrupteur « Compter les effets d’auras Tolerance et Précision dans les conditions »');
 
   const lire = (f: string) => readFileSync(f, 'utf8').replace(/\r\n/g, '\n');
-  ok(/const \[compterAurasResPre, setCompterAurasResPre\] = useState\(true\);/.test(lire('src/hooks/useOptimizerState.ts')),
-    'état : activé par défaut');
+  ok(/const \[compterAurasResPre, setCompterAurasResPre\] = useState\(base.compterAurasResPre\);/.test(lire('src/hooks/useOptimizerState.ts'))
+    && lire('src/lib/criteresOptimizer.ts').includes("compterAurasResPre: true, critereArtefacts: 'brut'"),
+    'état : activé par la base complète');
 
   const ecran = lire('src/components/outils/OptimizerSection.tsx');
   const sansCommentaires = ecran.replace(/\{\/\*[\s\S]*?\*\/\}/g, '').replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');

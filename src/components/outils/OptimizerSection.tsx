@@ -150,6 +150,7 @@ import {
   RelicUniqueChoice,
   DEFAULT_RELIC_MIN_UPGRADE,
   defaultRelicMainChoice,
+  criteresApresChangementEspece,
   relicIntentDepuisEtat,
   relicMainChoiceApresChangementExemplaire,
 } from '../../hooks/useOptimizerState';
@@ -482,6 +483,8 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
     setDamageSetup,
     compterAurasResPre,
     setCompterAurasResPre,
+    critereArtefacts,
+    setCritereArtefacts,
     excludeUsedRunes,
     setExcludeUsedRunes,
     excludeUsedScope,
@@ -598,19 +601,6 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
   // La description du combat sort du flux (voir DamageSetupModale.tsx) : cet
   // état dit seulement si elle est ouverte.
   const [setupOuvert, setSetupOuvert] = useState(false);
-  /**
-   * Sur quoi « Meilleurs artéfacts offensifs pour ce build » optimise.
-   *
-   * ⚠️ **Un segmenté, PAS un bouton qui déclenche.** La qualité première de ce
-   * bloc est d'apparaître sans qu'on l'ait demandé : un bouton le ferait
-   * disparaître par défaut. Le cran « Dégâts supplémentaires » est donc
-   * calculé en permanence — il est bon marché (ni sort, ni cible, ni
-   * critique) ; « Dégâts réels » ne coûte que quand on le choisit.
-   *
-   * ⚠️ Défaut sur le brut, et il le REDEVIENT à chaque changement de monstre
-   * (voir `pickSpecies`) : un sort appartient à un monstre.
-   */
-  const [critereArtefacts, setCritereArtefacts] = useState<'brut' | 'reel'>('brut');
   // `EtatMonstre` écrit un PATCH, là où `DamageSetupCard` reçoit le `setState`
   // entier — même état, deux vues (voir EtatMonstre.tsx).
   const majDamageSetup = (patch: Partial<DamageSetup>) => setDamageSetup((s) => ({ ...s, ...patch }));
@@ -1048,13 +1038,14 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
     const boxCandidates = speciesCandidatesBySource(monster.com2usId, box, exclusionData).box;
     if (id !== selectedId) {
       resetSearch();
+      const defauts = criteresApresChangementEspece(optimizer, 'bestiaire', boxCandidates[0]?.gear);
       // ⚠️ **Le défaut affiché doit être celui qui s'applique — jamais un
       // défaut faux, comme cela s'est vu pour les artéfacts** : `defaultRelicMainChoice` (useOptimizerState.ts)
       // est la SOURCE du défaut, câblée ici parce que c'est le seul site qui
       // connaît le monstre choisi (le hook n'y a pas accès) — comme
       // `objective` juste en dessous, remis à zéro puis surchargé au même
       // endroit.
-      setRelicMainChoice(defaultRelicMainChoice(boxCandidates[0]?.gear.relic));
+      setRelicMainChoice(defauts.relicMainChoice);
       /**
        * ⚠️ **Un sort appartient à un MONSTRE.** `skillCom2usId` désigne un
        * sort précis ; après un changement de monstre, `resolveDamageSkill`
@@ -1079,8 +1070,8 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
        * ⚠️ Granularité : l'ESPÈCE. Passer de Box à RTA ne passe pas par ici,
        * et c'est voulu — les sorts restent les mêmes.
        */
-      setObjective('efficience');
-      setCritereArtefacts('brut');
+      setObjective(defauts.objective);
+      setCritereArtefacts(defauts.critereArtefacts);
     }
     else reliqueCoherenteAvecExemplaire(boxCandidates[0]?.gear.relic);
     setSelectedId(id);

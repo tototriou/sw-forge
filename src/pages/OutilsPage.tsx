@@ -23,6 +23,8 @@ interface Props {
   relicUsageById: Record<number, number>;
   loadState: LoadState;
   hydrating?: boolean;
+  // L'objet entier reste dans App : critères et cran des artéfacts survivent
+  // au démontage de cette page pendant la navigation.
   optimizer: OptimizerState;
   allMonsters: Monster[];
   rtaEntries: Record<string, RtaEntry>;

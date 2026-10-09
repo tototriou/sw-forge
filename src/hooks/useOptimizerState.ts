@@ -1,14 +1,16 @@
 import { Dispatch, MutableRefObject, SetStateAction, useRef, useState } from 'react';
 import { StatKey } from '../lib/effects';
 import { Objective, SlotFilterPresetKey } from '../lib/runeBuildOptim';
-import { DamageSetup, DEFAULT_DAMAGE_SETUP } from '../lib/damage';
-import { damageSetupApresChangementMonstre } from '../lib/damageSetupTransition';
+import { DamageSetup } from '../lib/damage';
+import { baseCompleteCriteres, criteresApresChangementEspece } from '../lib/criteresOptimizer';
 import { AutoExclusionScope, ExclusionSelector, ExclusionSource } from '../lib/optimizerExclusion';
-import { ArtifactKind, RelicDetail } from '../types';
+import { ArtifactKind } from '../types';
 import { LigneVerrouillee } from '../lib/artifactOptim';
 import { useBuildOptimSearch } from './useBuildOptimSearch';
 
 export type { SlotFilterPresetKey };
+// API historique conservée pour l'écran, les recettes et les scripts.
+export { defaultRelicMainChoice, relicMainChoiceApresChangementExemplaire, criteresApresChangementEspece, baseCompleteCriteres } from '../lib/criteresOptimizer';
 export type OptimizerSortKey = StatKey | Objective;
 // Choix de statistique principale d'artéfact pour la recherche : les trois
 // valeurs de jeu standard (voir ARTIFACT_MAIN dans effects.ts — 100=PV,
@@ -50,44 +52,6 @@ export type RelicUniqueChoice = 'libre' | number;
 // seule fois : repris par `optimizerRecipe.ts` pour la recette ancienne qui
 // ne porte pas encore ce champ.
 export const DEFAULT_RELIC_MIN_UPGRADE = 6;
-
-/**
- * Le défaut de `relicMainChoice`, calculé au choix du MONSTRE — jamais une
- * constante : `'equipped'` s'il porte déjà une relique,
- * `'libre'` sinon. Fonction PURE et exportée exprès (même raison que
- * `mainsPourCeCompte`, optimizerRecipe.ts) : elle sert à la fois à
- * `recipeToRelicIntent` (une recette exportée sans ce champ ne le porte pas)
- * et à `pickSpecies` (OptimizerSection.tsx), qui la câblent tous deux.
- *
- * ⚠️ **Le moteur fait foi pour le défaut** : l'écran doit AFFICHER la
- * valeur que le moteur applique, jamais l'inverse — cette fonction est donc
- * la source unique du calcul, pas une case à cocher qui devinerait.
- */
-export function defaultRelicMainChoice(relic: RelicDetail | undefined): RelicMainChoice {
-  return relic ? 'equipped' : 'libre';
-}
-
-/**
- * Le choix de relique après un changement d'EXEMPLAIRE optimisé, hors du
- * bestiaire (membre de la liste de travail, « un autre exemplaire »,
- * réimport du compte).
- *
- * - Autre espèce, ou compte réimporté : les critères repartent de zéro, le
- *   défaut se recalcule contre la relique du nouvel exemplaire, comme dans
- *   `pickSpecies`.
- * - Même espèce : les critères sont conservés, sauf l'incohérence
- *   « Garder la relique équipée » sur un exemplaire qui n'en porte pas :
- *   le mode `equipped` ne refuse pas la recherche, il la ferait tourner SANS
- *   relique, sans rien en dire — elle redevient « Libre ».
- */
-export function relicMainChoiceApresChangementExemplaire(
-  choixActuel: RelicMainChoice,
-  relic: RelicDetail | undefined,
-  conserverCriteres: boolean
-): RelicMainChoice {
-  if (!conserverCriteres) return defaultRelicMainChoice(relic);
-  return choixActuel === 'equipped' && !relic ? 'libre' : choixActuel;
-}
 
 /**
  * L'intention de recherche de relique — interrupteur, principale, type,
@@ -280,6 +244,9 @@ export interface OptimizerState {
   setDamageSetup: Dispatch<SetStateAction<DamageSetup>>;
   compterAurasResPre: boolean;
   setCompterAurasResPre: Dispatch<SetStateAction<boolean>>;
+  // Cran de « Meilleurs artéfacts offensifs », personnel au membre.
+  critereArtefacts: 'brut' | 'reel';
+  setCritereArtefacts: Dispatch<SetStateAction<'brut' | 'reel'>>;
   // « Exclure les runes déjà utilisées » — DÉCOCHÉ par défaut (inversion du
   // comportement historique de l'ancienne case « Utiliser tout l'inventaire »,
   // qui était COCHÉE par défaut avec la signification opposée : les deux
@@ -415,45 +382,61 @@ export interface OptimizerState {
 }
 
 export function useOptimizerState(): OptimizerState {
+  const [base] = useState(() => baseCompleteCriteres(undefined));
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [gearSource, setGearSource] = useState<ExclusionSource>('box');
   const [sourceSelector, setSourceSelector] = useState<ExclusionSelector | null>(null);
-  const [comboSets, setComboSets] = useState<string[]>([]);
+  const [comboSets, setComboSets] = useState<string[]>(base.comboSets);
   const [setPickerInvalid, setSetPickerInvalid] = useState(false);
-  const [minStats, setMinStats] = useState<Partial<Record<StatKey, number>>>({});
-  const [maxStats, setMaxStats] = useState<Partial<Record<StatKey, number>>>({});
+  const [minStats, setMinStats] = useState<Partial<Record<StatKey, number>>>(base.minStats);
+  const [maxStats, setMaxStats] = useState<Partial<Record<StatKey, number>>>(base.maxStats);
   // ⚠️ Coché par défaut — règle dans l'introduction de
   // docs/02-app/optimizer/, sous son titre
   // « Conditions, inventaire et réglages avancés ».
-  const [excludeBase, setExcludeBase] = useState(true);
+  const [excludeBase, setExcludeBase] = useState(base.excludeBase);
   // Activee par defaut : chercher les artefacts est le comportement utile,
   // et il ne coute rien a la recherche de runes (temps masque).
-  const [optimiserArtefacts, setOptimiserArtefacts] = useState(true);
+  const [optimiserArtefacts, setOptimiserArtefacts] = useState(base.optimiserArtefacts);
   // Activé par défaut : ce qu’on affiche reste le meilleur pour ce qu’on
   // regarde. Ne coûte rien sur les tris qu’aucun artéfact ne touche
   // (efficience, VIT, TC, DCC, RES, PRE) — voir `regimeArtefacts`.
-  const [adapterArtefactsAuTri, setAdapterArtefactsAuTri] = useState(true);
-  const [artifactMainByKind, setArtifactMainByKind] = useState<Partial<Record<ArtifactKind, ArtifactMainChoice>>>({});
+  const [adapterArtefactsAuTri, setAdapterArtefactsAuTri] = useState(base.adapterArtefactsAuTri);
+  const [artifactMainByKind, setArtifactMainByKind] = useState<Partial<Record<ArtifactKind, ArtifactMainChoice>>>(base.artifactMainByKind);
   // ⚠️ Défaut STATIQUE ('libre') volontairement — le vrai défaut
   // ('equipped' si le monstre porte une relique) se calcule au choix du
   // monstre (`defaultRelicMainChoice`), câblé par `pickSpecies`, pas ici :
   // ce hook n'a jamais accès au monstre sélectionné.
-  const [relicMainChoice, setRelicMainChoice] = useState<RelicMainChoice>('libre');
-  const [relicUniqueChoice, setRelicUniqueChoice] = useState<RelicUniqueChoice>('libre');
+  const [relicMainChoice, setRelicMainChoice] = useState<RelicMainChoice>(base.relicMainChoice);
+  const [relicUniqueChoice, setRelicUniqueChoice] = useState<RelicUniqueChoice>(base.relicUniqueChoice);
   const [relicMinUpgrade, setRelicMinUpgrade] = useState(DEFAULT_RELIC_MIN_UPGRADE);
-  const [lignesVerrouillees, setLignesVerrouillees] = useState<LigneVerrouillee[]>([]);
-  const [mainStatsBySlot, setMainStatsBySlot] = useState<Partial<Record<2 | 4 | 6, number[]>>>({});
-  const [lockedRunes, setLockedRunes] = useState<Partial<Record<number, number>>>({});
-  const [objective, setObjective] = useState<Objective>('efficience');
-  const [damageSetup, setDamageSetup] = useState<DamageSetup>(DEFAULT_DAMAGE_SETUP);
-  const [compterAurasResPre, setCompterAurasResPre] = useState(true);
+  const [lignesVerrouillees, setLignesVerrouillees] = useState<LigneVerrouillee[]>(base.lignesVerrouillees);
+  const [mainStatsBySlot, setMainStatsBySlot] = useState<Partial<Record<2 | 4 | 6, number[]>>>(base.mainStatsBySlot);
+  const [lockedRunes, setLockedRunes] = useState<Partial<Record<number, number>>>(base.lockedRunes);
+  const [objective, setObjective] = useState<Objective>(base.objective);
+  const [damageSetup, setDamageSetup] = useState<DamageSetup>(base.damageSetup);
+  const [compterAurasResPre, setCompterAurasResPre] = useState(base.compterAurasResPre);
+  /**
+   * Sur quoi « Meilleurs artéfacts offensifs pour ce build » optimise.
+   *
+   * ⚠️ **Un segmenté, PAS un bouton qui déclenche.** La qualité première de ce
+   * bloc est d'apparaître sans qu'on l'ait demandé : un bouton le ferait
+   * disparaître par défaut. Le cran « Dégâts supplémentaires » est donc
+   * calculé en permanence — il est bon marché (ni sort, ni cible, ni
+   * critique) ; « Dégâts réels » ne coûte que quand on le choisit.
+   *
+   * ⚠️ Défaut sur le brut, et il le REDEVIENT à chaque changement de monstre
+   * dans le bestiaire (voir `pickSpecies`) : un sort appartient à un monstre.
+   * Il vit ici, pas dans `OptimizerSection`, pour survivre au changement
+   * d'onglet.
+   */
+  const [critereArtefacts, setCritereArtefacts] = useState<'brut' | 'reel'>(base.critereArtefacts);
   const [excludeUsedRunes, setExcludeUsedRunes] = useState(false);
   const [excludeUsedScope, setExcludeUsedScope] = useState<AutoExclusionScope>('rta');
   const [excludedSelectors, setExcludedSelectors] = useState<ExclusionSelector[]>([]);
   const [adaptiveTrancheWeighting, setAdaptiveTrancheWeighting] = useState(false);
   const [exhaustiveSearch, setExhaustiveSearch] = useState(false);
   const [verifierToutesLesCombinaisons, setVerifierToutesLesCombinaisons] = useState(false);
-  const [sortBy, setSortBy] = useState<OptimizerSortKey>('efficience');
+  const [sortBy, setSortBy] = useState<OptimizerSortKey>(base.sortBy);
   const [resultsPage, setResultsPage] = useState(1);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [slotFilterPreset, setSlotFilterPreset] = useState<SlotFilterPresetKey>('moyen');
@@ -465,35 +448,37 @@ export function useOptimizerState(): OptimizerState {
   const search = useBuildOptimSearch();
 
   function resetSearch(motif: 'monstre' | 'compte' = 'monstre') {
-    setComboSets([]);
+    const raison = motif === 'compte' ? 'compte' : 'membre';
+    const suivant = criteresApresChangementEspece({ damageSetup, compterAurasResPre, critereArtefacts }, raison, undefined);
+    setComboSets(suivant.comboSets);
     setSetPickerInvalid(false);
-    setMinStats({});
-    setMaxStats({});
-    setExcludeBase(true);
-    setOptimiserArtefacts(true);
-    setAdapterArtefactsAuTri(true);
-    setArtifactMainByKind({});
+    setMinStats(suivant.minStats);
+    setMaxStats(suivant.maxStats);
+    setExcludeBase(suivant.excludeBase);
+    setOptimiserArtefacts(suivant.optimiserArtefacts);
+    setAdapterArtefactsAuTri(suivant.adapterArtefactsAuTri);
+    setArtifactMainByKind(suivant.artifactMainByKind);
     // ⚠️ Défaut statique ici — voir le commentaire du `useState` ci-dessus ;
     // `pickSpecies` surcharge avec `defaultRelicMainChoice` juste après cet
     // appel, comme il le fait déjà pour `objective`.
-    setRelicMainChoice('libre');
-    setRelicUniqueChoice('libre');
+    setRelicMainChoice(suivant.relicMainChoice);
+    setRelicUniqueChoice(suivant.relicUniqueChoice);
     // ⚠️ Remis à zéro au changement de monstre, comme les runes imposées : une
     // ligne verrouillée exclusive à une sorte (« Précision Compétence 3 »)
     // n'a de sens que pour le monstre pour lequel on l'a choisie, et une
     // exigence oubliée d'un monstre précédent rendrait « 0 build » sans que
     // rien ne rappelle d'où elle vient.
-    setLignesVerrouillees([]);
-    setMainStatsBySlot({});
+    setLignesVerrouillees(suivant.lignesVerrouillees);
+    setMainStatsBySlot(suivant.mainStatsBySlot);
     // ⚠️ Une rune imposée référence un `runeId` PRÉCIS, choisi pour l'ancien
     // monstre — le garder verrouillerait la recherche du nouveau sur une
     // rune qui n'a plus rien à voir (et la rendrait probablement vide).
-    setLockedRunes({});
-    setObjective('efficience');
+    setLockedRunes(suivant.lockedRunes);
+    setObjective(suivant.objective);
     // Un compte importé efface tout ; un changement de monstre conserve le
     // contexte commun et vide les réglages indexés par sort ou passif.
-    setDamageSetup((s) => motif === 'compte' ? DEFAULT_DAMAGE_SETUP : damageSetupApresChangementMonstre(s));
-    if (motif === 'compte') setCompterAurasResPre(true);
+    setDamageSetup((s) => criteresApresChangementEspece({ damageSetup: s, compterAurasResPre, critereArtefacts }, raison, undefined).damageSetup);
+    if (motif === 'compte') setCompterAurasResPre(suivant.compterAurasResPre);
     // ⚠️ Chaque import est un NOUVEL import : remettre les réglages
     // par défaut ne changeait pas toujours la signature de la file (réglages
     // déjà par défaut, même monstre, même relique, même nombre d'artéfacts),
@@ -502,7 +487,7 @@ export function useOptimizerState(): OptimizerState {
     if (motif === 'compte') setImportDuCompte((n) => n + 1);
     // Le tri suit l'objectif (`handleSearch` le repose dessus au lancement) :
     // il retombe avec lui ici, et reste avec lui au changement d'exemplaire.
-    setSortBy('efficience');
+    setSortBy(suivant.sortBy);
     effacerResultats();
   }
 
@@ -558,6 +543,8 @@ export function useOptimizerState(): OptimizerState {
     setDamageSetup,
     compterAurasResPre,
     setCompterAurasResPre,
+    critereArtefacts,
+    setCritereArtefacts,
     excludeUsedRunes,
     setExcludeUsedRunes,
     excludeUsedScope,

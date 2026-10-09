@@ -49,6 +49,8 @@ export const CHAMPS_OPTIMIZER_HORS_SESSION = [
   'showAdvanced',
   'resultsPage',
   'openDetailKey',
+  // Cran remonté pour la navigation seulement ; format de session inchangé.
+  'critereArtefacts',
   // Passager : diagnostic, arrêt manuel, compteurs d'import.
   'diagnoseBlockingEnabled',
   'stoppedManually',

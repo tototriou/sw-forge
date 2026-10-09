@@ -137,17 +137,19 @@ export interface UseOptimizerLists {
   memories: DonneesMembresOptimizer['memories'];
   teams: EquipeOptimizer[];
   rapportStockage: string[];
+  rapportChargement: string[];
   writeMemory: (membre: Omit<MemoireMembreOptimizer, 'criteres'>, criteres: CriteresOptimizer, data: ExclusionSourceData) => void;
   setTeams: (teams: EquipeOptimizer[]) => void;
   /** Applique en une mise à jour le résultat de la revérification commune. */
   replaceAfterRevalidation: (stockage: StockageOptimizer) => void;
 }
 
-interface MemberStorage extends DonneesMembresOptimizer { rapport: string[]; raw: string | null }
+interface MemberStorage extends DonneesMembresOptimizer { rapport: string[]; rapportChargement: string[]; raw: string | null }
 interface State extends StoredState { memberStorage: MemberStorage }
 function loadState(): State {
   const raw = loadLocal(OPTIMIZER_MEMBERS_STORAGE_KEY);
-  return { ...loadOptimizerLists(), memberStorage: { ...lireMembresOptimizer(raw), raw } };
+  const lu = lireMembresOptimizer(raw);
+  return { ...loadOptimizerLists(), memberStorage: { ...lu, raw, rapportChargement: lu.rapport } };
 }
 
 export function useOptimizerLists(): UseOptimizerLists {
@@ -295,8 +297,12 @@ export function useOptimizerLists(): UseOptimizerLists {
   }, []);
 
   const replaceAfterRevalidation = useCallback((stockage: StockageOptimizer) => {
-    setState((s) => ({ ...s, members: stockage.members, validated: stockage.validated,
-      memberStorage: { ...s.memberStorage, raw: null, memories: new Map(stockage.memories), teams: stockage.teams } }));
+    setState((s) => {
+      if (stockage.members === s.members && stockage.validated === s.validated
+        && stockage.memories === s.memberStorage.memories && stockage.teams === s.memberStorage.teams) return s;
+      return { ...s, members: stockage.members, validated: stockage.validated,
+        memberStorage: { ...s.memberStorage, raw: null, rapportChargement: [], memories: new Map(stockage.memories), teams: stockage.teams } };
+    });
   }, []);
 
   const writeMemory = useCallback((membre: Omit<MemoireMembreOptimizer, 'criteres'>, criteres: CriteresOptimizer, data: ExclusionSourceData) => {
@@ -340,6 +346,7 @@ export function useOptimizerLists(): UseOptimizerLists {
     memories: state.memberStorage.memories,
     teams: state.memberStorage.teams,
     rapportStockage: state.memberStorage.rapport,
+    rapportChargement: state.memberStorage.raw === null ? [] : state.memberStorage.rapportChargement,
     writeMemory,
     setTeams,
     replaceAfterRevalidation,

@@ -423,7 +423,7 @@ function Application() {
       const runeIds = new Set(runes.map((r) => r.id));
       const resultat = reverifierStockageOptimizer(optimizerLists, data, runeIds);
       if (resultat.rapport.compteVide) return;
-      optimizerLists.replaceAfterRevalidation(resultat.stockage);
+      if (resultat.stockage !== optimizerLists) optimizerLists.replaceAfterRevalidation(resultat.stockage);
       if (resultat.rapport.messages.length > 0) {
         setImportMsg((prev) => ({
           ok: prev?.ok ?? true,

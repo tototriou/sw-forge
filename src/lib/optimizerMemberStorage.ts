@@ -31,6 +31,8 @@ export interface StockageOptimizer extends DonneesMembresOptimizer {
   lists: OptimizerList[];
   members: OptimizerListMember[];
   validated: ValidatedBuild[];
+  /** Rejets du chargement encore conservés dans le brut, distincts des gestes refusés. */
+  rapportChargement: string[];
 }
 export const cleMemoireMembre = (listId: string, selector: ExclusionSelector): string =>
   `${listId}|${exclusionSelectorKey(selector)}`;
@@ -190,5 +192,10 @@ export function reverifierStockageOptimizer(stockage: StockageOptimizer, data: E
     teams.push({ ...reste, members, ...(leader && members.some((s) => exclusionSelectorKey(s) === exclusionSelectorKey(leader)) ? { leader } : {}) });
   }
   if (rapport.membresRetires || rapport.buildsRetires) rapport.messages.unshift(`${rapport.membresRetires} membre(s) et ${rapport.buildsRetires} build(s) retiré(s) : exemplaire introuvable ou runes absentes du compte.`);
-  return { stockage: { ...stockage, members: membres.kept, validated: builds.kept, memories: new Map(stockage.memories), teams }, rapport };
+  const modifie = rapport.membresRetires || rapport.buildsRetires || rapport.equipesModifiees.length || rapport.equipesDissoutes.length;
+  if (!modifie) return { stockage, rapport };
+  for (const rejet of stockage.rapportChargement) {
+    rapport.messages.push(`Réécriture du stockage : cette entrée écartée au chargement ne sera plus conservée dans le brut. ${rejet}`);
+  }
+  return { stockage: { ...stockage, members: membres.kept, validated: builds.kept, memories: new Map(stockage.memories), teams, rapportChargement: [] }, rapport };
 }

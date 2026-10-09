@@ -23,7 +23,12 @@ Au chargement, le stockage supplémentaire se valide indépendamment des listes 
 des listes illisibles ne provoquent aucune purge de mémoire ou d’équipe. Les
 entrées malformées sont écartées de l’état utilisable et signalées dans
 `rapportStockage`. Le texte brut initial reste conservé tant qu’aucun geste ni
-réimport ne modifie ce stockage. Le rapport est disponible dans le hook ; son
+réimport ne modifie ce stockage. Un réimport sans changement ne réécrit aucune
+clé et conserve le brut, y compris les entrées écartées au chargement. Si la
+revérification modifie l’état et entraîne une réécriture, ses messages annoncent
+les rejets du chargement dont le brut ne sera plus conservé. Ces rejets sont
+transmis séparément dans `rapportChargement`, sans inclure les gestes refusés.
+Le rapport est disponible dans le hook ; son
 affichage et le choix d’un membre avec restauration ne sont pas encore branchés
 dans l’écran.
 
@@ -80,6 +85,8 @@ d’identité des builds au réimport reste inchangé.
 Un membre retiré laisse sa mémoire conservée et inactive. Son équipe perd ce
 membre ; sous deux membres, elle est dissoute. Un leader retiré n’est pas
 remplacé automatiquement. `App.tsx` appelle cette fonction au réimport, applique
-le résultat ensemble par `replaceAfterRevalidation` et affiche ses messages.
+le résultat ensemble par `replaceAfterRevalidation` seulement s’il a changé,
+et affiche ses messages. Sans changement, la fonction rend le stockage reçu ;
+les mémoires inactives restent signalées sans provoquer de réécriture.
 La reprise d’un point de sauvegarde et ses contrôles d’identité propres ne sont
 pas encore branchés dans l’écran.

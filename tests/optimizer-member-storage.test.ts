@@ -30,7 +30,7 @@ function compte(): ExclusionSourceData {
 function stockage(): StockageOptimizer {
   const criteres = baseCompleteCriteres(undefined); criteres.minStats.spd = 200;
   const memories = new Map([box, rta, siege].map((selector) => [cleMemoireMembre('l1', selector), { listId: 'l1', selector, com2usId: 10001, criteres }]));
-  return { lists: [{ id: 'l1', name: 'Liste' }], members: [box, rta, siege].map((selector) => ({ listId: 'l1', selector })),
+  return { rapportChargement: [], lists: [{ id: 'l1', name: 'Liste' }], members: [box, rta, siege].map((selector) => ({ listId: 'l1', selector })),
     validated: [{ listId: 'l1', selector: siege, runeIds: [1, 2, 3, 4, 5, 6], artifactIds: [7] }], memories,
     teams: [{ id: 'e1', listId: 'l1', members: [box, siege], leader: siege,
       lead: { stat: 'Attack Speed', amount: 24, area: 'Guild', element: null }, contenu: 'siege' }] };
@@ -38,7 +38,7 @@ function stockage(): StockageOptimizer {
 function sourceSession(stockage: Record<string, string> = {}) {
   return { maintenant: new Date('2026-10-09T10:00:00Z'), versionApp: 'test', stockage, compte: null, memoire: {}, optimizer: null };
 }
-function installer(brut = ecrireMembresOptimizer(stockage()), listes = JSON.stringify({ ...stockage(), memories: undefined, teams: undefined, activeListId: 'l1' })) {
+function installer(brut = ecrireMembresOptimizer(stockage()), listes = JSON.stringify({ ...stockage(), memories: undefined, teams: undefined, rapportChargement: undefined, activeListId: 'l1' })) {
   return faussLocalStorage({ 'swblacksmith-persist-v1': '1', 'swblacksmith-optimizer-lists-v1': listes, [CLE]: brut });
 }
 
@@ -236,4 +236,38 @@ export function testMemoireOptimizerSuppressionExplicite() {
   egal(lu.memories.size, 0, 'supprimer la liste efface ses mémoires');
   egal(lu.teams, [], 'supprimer la liste efface ses équipes');
   setPersistence(false);
+}
+
+export function testMemoireOptimizerReimportBrutPreserve() {
+  titre('Réimport · brut conservé sans changement et rejets annoncés à la réécriture');
+  const s = stockage(), brut = JSON.parse(ecrireMembresOptimizer(s));
+  brut.memories.push(['malformee', { com2usId: '10001' }]);
+  brut.teams.push({ ...s.teams[0], id: 'invalide', members: [box] });
+  const initial = JSON.stringify(brut, null, 2), mem = installer(initial);
+  setPersistence(true);
+  const h = monterListesOptimizer(); let lu = h.render();
+  egal(lu.teams.length, 1, 'l’équipe valide du scénario est chargée');
+  egal(lu.rapportStockage.length, 2, 'la mémoire et l’équipe malformées sont signalées au chargement');
+  const initialStorage = localStorage;
+  let ecritures = 0;
+  globalThis.localStorage = new Proxy(initialStorage, {
+    get: (cible, cle) => cle === 'setItem'
+      ? (nom: string, valeur: string) => { ecritures++; cible.setItem(nom, valeur); }
+      : Reflect.get(cible, cle),
+  });
+  try {
+    const identique = reverifierStockageOptimizer(lu, compte(), new Set([1, 2, 3, 4, 5, 6]));
+    lu.replaceAfterRevalidation(identique.stockage); lu = h.render();
+    ok(mem.get(CLE) === initial, 'réimport identique : octets bruts conservés, y compris les entrées écartées');
+    ok(lireTravail(CLE) === initial, 'réimport identique : le miroir conserve aussi le brut');
+    egal(ecritures, 0, 'réimport identique : aucune réécriture des clés de stockage');
+    const data = compte(); data.siegeDefenseTeams = [];
+    const modifie = reverifierStockageOptimizer(lu, data, new Set([1, 2, 3, 4, 5, 6]));
+    ok(modifie.rapport.messages.some((m) => m.includes('Mémoire 4 malformée')), 'réimport modifié : la mémoire écartée au chargement est annoncée');
+    ok(modifie.rapport.messages.some((m) => m.includes('Équipe 2 malformée')), 'réimport modifié : l’équipe écartée au chargement est annoncée');
+    lu.replaceAfterRevalidation(modifie.stockage); lu = h.render();
+    ok(mem.get(CLE) !== initial, 'une modification réelle autorise la réécriture');
+    const prochain = reverifierStockageOptimizer(lu, data, new Set([1, 2, 3, 4, 5, 6]));
+    ok(!prochain.rapport.messages.some((m) => m.includes('malformée')), 'les rejets déjà annoncés ne sont pas répétés après réécriture');
+  } finally { globalThis.localStorage = initialStorage; setPersistence(false); }
 }

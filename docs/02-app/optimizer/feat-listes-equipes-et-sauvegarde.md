@@ -41,11 +41,56 @@ Le texte brut initial reste conservé tant qu’aucun geste ni réimport ne modi
 ce stockage. Un réimport sans changement ne réécrit aucune clé et conserve ses
 octets. Un réimport avec changement réécrit les valeurs des rejets à part ; il
 n’annonce aucune suppression de rejets puisqu’il les conserve.
-Le rapport est disponible dans le hook ; son
-affichage et le choix d’un membre avec restauration ne sont pas encore branchés
-dans l’écran.
+Le rapport du hook est affiché dans la zone C, dans un espace réservé et
+défilant commun aux deux formats. Le clic d’un membre restaure ses critères.
 
 ## Mémoires des membres
+
+`OptimizerState.proprietaireCriteres` désigne le membre dont les critères sont
+affichés. `validerProprietaireCriteres` vérifie, avant toute restauration et
+écriture, l’existence de la liste active et du membre, le sélecteur affiché,
+l’espèce résolue et l’espèce sélectionnée. Une saisie sans propriétaire ne
+crée aucune mémoire. Le propriétaire et les messages de restauration sont
+hors de la photo de session. La photo est sérialisée, mais aucun chemin dans
+`App.tsx` ne la réapplique actuellement : le chargement des critères depuis un
+fichier de session n’est pas implémenté. Une nouvelle instance de l’état démarre
+sans propriétaire ; les mémoires restent disponibles au choix d’un membre.
+
+L’action `choisirMembre`, portée par `useOptimizerState` dans `App.tsx`, fonctionne
+même quand l’écran est démonté. Elle restaure une mémoire de même espèce ;
+une mémoire d’une autre espèce reste conservée et son refus est affiché. Sans
+mémoire applicable, elle pose la base complète des critères personnels,
+indépendante du membre précédent, même pour une autre copie de la même espèce.
+Les réglages globaux restent. Choisir ne capture rien : la première modification
+faite par l’utilisateur photographie l’affichage. Chaque modification suivante
+écrit vers ce propriétaire seulement. Les résultats affichés sont effacés,
+sans relancer de recherche ni ouvrir la fenêtre du combat ou le guide RES/PRE.
+Les runes imposées absentes de l’inventaire sont retirées de l’affichage et dites,
+sans modifier la mémoire originale par cette seule restauration.
+
+Changer de liste applique la mémoire valide de l’exemplaire déjà affiché dans
+la destination ; sans elle, aucun propriétaire. Retirer le membre affiché ou
+supprimer sa liste efface l’attribution. Le bestiaire, les puces de source et
+la zone D l’effacent aussi. L’import de recette l’efface au moment où sa lecture
+se résout, avant d’appliquer ses valeurs, même si un membre a été choisi entre-temps.
+Le réimport de compte l’efface avant la remise à zéro. Une résolution devenue
+introuvable ou une identité différente invalide l’attribution, y compris quand
+l’écran est démonté. Un retour d’onglet conserve les critères et le cran des
+artéfacts lorsque l’exemplaire reste valide.
+
+« Ajouter à la liste » et une validation qui inclut le monstre photographient
+immédiatement les critères du geste. L’écriture de cette photo passe par le
+validateur après publication de l’appartenance par le hook des listes, dans le
+même geste, y compris « Créer et ajouter ». Une mémoire refusée reste intacte
+et le rapport du stockage dit la raison. Le lancement d’une recherche peut
+reposer le tri sur l’objectif ; cette dérivation ne crée pas de mémoire.
+
+Les poses automatiques passent par `poserCriteresAutomatiques`, séparé des
+setters de saisie : défauts, cohérence de relique et valeurs d’une recette ne
+photographient jamais une mémoire. Après réimport écran démonté, le traitement
+différé de la relique marque l’import traité au remontage. Si un membre valide
+a été choisi entre-temps, ses critères restaurés et sa mémoire restent intacts ;
+sinon le défaut est calculé contre la relique de l’exemplaire affiché.
 
 L’index en mémoire est une `Map`, à clé texte
 `listId|exclusionSelectorKey(selector)`. Chaque écriture acceptée crée une

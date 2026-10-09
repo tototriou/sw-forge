@@ -2,9 +2,12 @@
 // Il observe les transitions synchrones ; ni rendu, ni effets, ni Worker.
 import { readFileSync } from 'node:fs';
 import ts from 'typescript';
-import * as transitions from '../src/hooks/useOptimizerState';
+import * as criteres from '../src/lib/criteresOptimizer';
 import * as degats from '../src/lib/damage';
 import * as transitionsDegats from '../src/lib/damageSetupTransition';
+import * as proprietaires from '../src/lib/optimizerCriteriaOwner';
+import * as memoires from '../src/lib/optimizerMemberStorage';
+import * as exemplaires from '../src/lib/optimizerExclusion';
 import type { OptimizerState } from '../src/hooks/useOptimizerState';
 
 export function fonctionDeSource(fichier: string, nom: string, contexte: Record<string, unknown>) {
@@ -36,8 +39,12 @@ export async function bancOptimizer() {
     // statiquement : le banc marche aussi dans le bundle du lanceur normal.
     '../lib/damage': degats,
     '../lib/damageSetupTransition': transitionsDegats,
-    '../lib/criteresOptimizer': transitions,
+    '../lib/optimizerCriteriaOwner': proprietaires,
+    '../lib/optimizerMemberStorage': memoires,
+    '../lib/optimizerExclusion': exemplaires,
+    '../lib/criteresOptimizer': criteres,
     react: {
+      useEffect() {},
       useState(initial: unknown) {
         const i = curseur++;
         if (!(i in cellules)) cellules[i] = typeof initial === 'function' ? initial() : initial;

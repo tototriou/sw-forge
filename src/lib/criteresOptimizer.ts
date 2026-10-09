@@ -24,6 +24,7 @@ export const CLASSEMENT_CHAMPS_OPTIMIZER = {
   setPickerInvalid: 'global', resultsPage: 'global', openDetailKey: 'global',
   diagnoseBlockingEnabled: 'global', stoppedManually: 'global', importDuCompte: 'global',
   importReliqueTraite: 'global', search: 'global',
+  proprietaireCriteres: 'global', rapportCriteres: 'global',
 } as const satisfies Record<ChampDonnee, 'personnel' | 'global'>;
 
 type ChampPersonnel = {

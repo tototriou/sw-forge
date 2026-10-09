@@ -302,11 +302,10 @@ export function testAurasEcranRappel() {
   const ecran = lireSansCommentaires('src/components/outils/OptimizerSection.tsx');
   const zoneC = ecran.slice(Math.max(0, ecran.indexOf('const zoneCContent = (')));
   const clic = entre(zoneC, 'onClick={() => {', 'className="flex min-w-0 flex-1 items-center gap-2 text-left"');
-  // Le changement d'exemplaire vit dans `choisirExemplaire`,
-  // partagé avec le bouton « Ajouter un autre exemplaire » ; le rappel, lui,
-  // reste dans ce onClick (contrôles suivants).
+  // La restauration est l'action de l'état partagé ; le rappel reste
+  // uniquement dans le geste explicite de cette ligne.
   const chemin = entre(ecran, 'function choisirExemplaire(', 'function handleAddToList(');
-  ok(clic.includes('if (!resolved) return;') && clic.includes('choisirExemplaire(m.selector, resolved.monster);')
+  ok(clic.includes('if (!resolved) return;') && clic.includes('optimizer.choisirMembre(m.listId, m.selector);')
     && chemin.includes('setSelectedId(id);') && chemin.includes('effacerResultats()'),
   'source : le geste d’un membre de la liste de travail (zone C) est localisé');
   ok(/doitRappeler\(\s*'liste',/.test(clic), 'source : le rappel est décidé DANS ce onClick, voie « liste »');

@@ -155,7 +155,7 @@ export function testListeExemplaires() {
     && chemin.includes('setSourceSelector(selector);') && chemin.includes('setZoneDOpen(false);'),
   'source : choisirExemplaire porte les règles (résultats effacés, critères gardés)');
   // Le défaut de relique suit l'exemplaire désigné, APRÈS le reset qui le remet à « Libre ».
-  ok(/setSelectedId\(id\);[\s\S]*if \(autreEspece \|\| key !== ownSelectorKey\) \{[^}]*setRelicMainChoice\(\(c\) => relicMainChoiceApresChangementExemplaire\(c, relique, !autreEspece\)\);/.test(chemin),
+  ok(/setSelectedId\(id\);[\s\S]*if \(autreEspece \|\| key !== ownSelectorKey\) \{[\s\S]*?optimizer\.poserCriteresAutomatiques\(\(c\) => \(\{ relicMainChoice: relicMainChoiceApresChangementExemplaire\(c\.relicMainChoice, relique, !autreEspece\)/.test(chemin),
     'source : choisirExemplaire recalcule le choix de relique après le reset, jamais en recliquant l’exemplaire affiché');
   // Les autres sites qui désignent un
   // exemplaire de la même espèce appliquent la même règle.
@@ -168,14 +168,17 @@ export function testListeExemplaires() {
     'source : la même espèce rechoisie au bestiaire applique la règle de relique');
   // Le recalcul au réimport se fait UNE fois par
   // import, jamais à un simple remontage de l'écran (changement d'onglet).
-  ok(/if \(importDuCompte === importReliqueTraite\.current\) return;\s*importReliqueTraite\.current = importDuCompte;\s*setRelicMainChoice\(defaultRelicMainChoice\(reliqueAffichee\.current\)\);/.test(ecran),
+  ok(ecran.includes('traiterReliqueImportee(reliqueAffichee.current);'),
     'source : le défaut de relique du réimport ne se réapplique pas au remontage de l’écran');
   const hookEtat = readFileSync('src/hooks/useOptimizerState.ts', 'utf8');
+  ok(/if \(importReliqueTraite\.current === v\.importDuCompte\) return;\s*importReliqueTraite\.current = v\.importDuCompte;/.test(hookEtat)
+    && hookEtat.includes('poserCriteresAutomatiques({ relicMainChoice: defaultRelicMainChoice(relique) });'),
+    'source : traitement unique de l’import et pose automatique sans saisie');
   ok(/const importReliqueTraite = useRef\(0\);/.test(hookEtat),
     'source : le suivi de l’import traité vit dans l’état partagé, qui survit au démontage de l’écran');
   ok(chemin.length > 0 && !/doitRappeler|setRappelAuras/.test(chemin), 'source : ce chemin ne rappelle rien par lui-même');
   const zoneC = ecran.slice(Math.max(0, ecran.indexOf('const zoneCContent = (')));
   const clic = entre(zoneC, 'onClick={() => {', 'className="flex min-w-0 flex-1 items-center gap-2 text-left"');
-  ok(/choisirExemplaire\(m\.selector, resolved\.monster\);/.test(clic), 'source : la zone C passe par le même chemin');
+  ok(/optimizer\.choisirMembre\(m\.listId, m\.selector\);/.test(clic), 'source : la zone C restaure les critères du membre par l’action partagée');
   egal(ecran.match(/effacerResultats\(\)/g)?.length ?? 0, 1, 'source : effacerResultats n’est appelé qu’à un endroit (pas de seconde écriture)');
 }

@@ -1,9 +1,12 @@
-import { Dispatch, MutableRefObject, SetStateAction, useRef, useState } from 'react';
+import { Dispatch, MutableRefObject, SetStateAction, useEffect, useRef, useState } from 'react';
 import { StatKey } from '../lib/effects';
 import { Objective, SlotFilterPresetKey } from '../lib/runeBuildOptim';
 import { DamageSetup } from '../lib/damage';
-import { baseCompleteCriteres, criteresApresChangementEspece } from '../lib/criteresOptimizer';
-import { AutoExclusionScope, ExclusionSelector, ExclusionSource } from '../lib/optimizerExclusion';
+import { appliquerCriteres, baseCompleteCriteres, criteresApresChangementEspece, defaultRelicMainChoice, photoCriteres, type CriteresOptimizer } from '../lib/criteresOptimizer';
+import { validerProprietaireCriteres, type ProprietaireCriteresOptimizer } from '../lib/optimizerCriteriaOwner';
+import { cleMemoireMembre } from '../lib/optimizerMemberStorage';
+import type { UseOptimizerLists } from './useOptimizerLists';
+import { AutoExclusionScope, ExclusionSelector, ExclusionSource, resolveExclusionEntry, type ExclusionSourceData } from '../lib/optimizerExclusion';
 import { ArtifactKind } from '../types';
 import { LigneVerrouillee } from '../lib/artifactOptim';
 import { useBuildOptimSearch } from './useBuildOptimSearch';
@@ -99,10 +102,18 @@ export function relicIntentDepuisEtat(
 // autres pages de l'app, OptimizerSection est démontée à chaque navigation —
 // un `useState` local y perdrait tout à la moindre visite d'un autre onglet.
 // Même principe que useRtaState/useSiegeState, mais SANS écriture disque :
-// cette saisie n'a rien à voir avec le compte importé ni le système de
-// conservation (voir usePersistence) — elle ne doit survivre qu'à la session
-// en cours (onglet fermé = repartir de zéro), pas à un rechargement de page.
+// Les critères affichés restent en mémoire ; leurs photos personnelles sont
+// confiées au hook des listes seulement par un geste de saisie ou d'inclusion.
+// La sélection et le propriétaire ne sont jamais persistés par ce hook.
 export interface OptimizerState {
+  proprietaireCriteres: ProprietaireCriteresOptimizer | null;
+  rapportCriteres: string[];
+  effacerProprietaireCriteres: () => void;
+  choisirMembre: (listId: string, selector: ExclusionSelector) => void;
+  capturerMembre: (listId: string, selector: ExclusionSelector) => void;
+  poserTriRecherche: (tri: OptimizerSortKey) => void;
+  poserCriteresAutomatiques: (patch: Partial<CriteresOptimizer> | ((courants: CriteresOptimizer) => Partial<CriteresOptimizer>)) => void;
+  traiterReliqueImportee: (relique: Parameters<typeof defaultRelicMainChoice>[0]) => void;
   selectedId: string | null;
   setSelectedId: Dispatch<SetStateAction<string | null>>;
   /**
@@ -372,16 +383,20 @@ export interface OptimizerState {
    * « résultats » de `resetSearch`, qui l'appelle : changer d'espèce et
    * changer d'exemplaire effacent donc la même chose.
    *
-   * Appelée seule par OptimizerSection.tsx quand un membre de liste de la
-   * MÊME espèce désigne un AUTRE exemplaire : la recherche affichée, faite
-   * pour l'ancien exemplaire, disparaît comme au changement d'espèce ; les
-   * critères restent, et l'utilisateur relance lui-même — jamais de relance
-   * automatique.
+   * Appelée par le choix d’un membre après sa restauration et par la
+   * sélection hors liste d’un autre exemplaire : la recherche affichée
+   * disparaît ; l’utilisateur relance lui-même, jamais automatiquement.
    */
   effacerResultats: () => void;
 }
 
-export function useOptimizerState(): OptimizerState {
+export interface ContexteMembresOptimizer {
+  lists: UseOptimizerLists;
+  data: ExclusionSourceData;
+  runeIds: Set<number>;
+}
+
+export function useOptimizerState(contexte?: ContexteMembresOptimizer): OptimizerState {
   const [base] = useState(() => baseCompleteCriteres(undefined));
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [gearSource, setGearSource] = useState<ExclusionSource>('box');
@@ -404,8 +419,8 @@ export function useOptimizerState(): OptimizerState {
   const [artifactMainByKind, setArtifactMainByKind] = useState<Partial<Record<ArtifactKind, ArtifactMainChoice>>>(base.artifactMainByKind);
   // ⚠️ Défaut STATIQUE ('libre') volontairement — le vrai défaut
   // ('equipped' si le monstre porte une relique) se calcule au choix du
-  // monstre (`defaultRelicMainChoice`), câblé par `pickSpecies`, pas ici :
-  // ce hook n'a jamais accès au monstre sélectionné.
+  // monstre (`defaultRelicMainChoice`), câblé par `pickSpecies` hors liste et
+  // par la base complète d’un membre ; pas à l’initialisation de ce hook.
   const [relicMainChoice, setRelicMainChoice] = useState<RelicMainChoice>(base.relicMainChoice);
   const [relicUniqueChoice, setRelicUniqueChoice] = useState<RelicUniqueChoice>(base.relicUniqueChoice);
   const [relicMinUpgrade, setRelicMinUpgrade] = useState(DEFAULT_RELIC_MIN_UPGRADE);
@@ -446,10 +461,148 @@ export function useOptimizerState(): OptimizerState {
   const [importDuCompte, setImportDuCompte] = useState(0);
   const importReliqueTraite = useRef(0);
   const search = useBuildOptimSearch();
+  const [proprietaireCriteres, setProprietaireCriteres] = useState<ProprietaireCriteresOptimizer | null>(null);
+  const [rapportCriteres, setRapportCriteres] = useState<string[]>([]);
+  const captureEnAttente = useRef<{ proprietaire: ProprietaireCriteresOptimizer; criteres: CriteresOptimizer } | null>(null);
+  // Les callbacks retardés lisent le dernier affichage, jamais la fermeture
+  // du membre qui était sélectionné au début d'une lecture de fichier.
+  const criteresAffiches: CriteresOptimizer = { comboSets, minStats, maxStats, excludeBase, optimiserArtefacts, adapterArtefactsAuTri,
+      artifactMainByKind, relicMainChoice, relicUniqueChoice, lignesVerrouillees, mainStatsBySlot,
+      lockedRunes, objective, damageSetup, sortBy, compterAurasResPre, critereArtefacts };
+  const vivant = useRef({ contexte, selectedId, sourceSelector, proprietaire: proprietaireCriteres, criteres: criteresAffiches, importDuCompte });
+  vivant.current = { contexte, selectedId, sourceSelector, proprietaire: proprietaireCriteres, criteres: criteresAffiches, importDuCompte };
+
+  function effacerProprietaireCriteres() {
+    captureEnAttente.current = null;
+    vivant.current.proprietaire = null;
+    setProprietaireCriteres(null);
+  }
+
+  function appliquerPhoto(photo: CriteresOptimizer) {
+    const suivante = appliquerCriteres(photo, { type: 'personnel' });
+    vivant.current.criteres = suivante;
+    setComboSets(suivante.comboSets); setMinStats(suivante.minStats); setMaxStats(suivante.maxStats);
+    setExcludeBase(suivante.excludeBase); setOptimiserArtefacts(suivante.optimiserArtefacts);
+    setAdapterArtefactsAuTri(suivante.adapterArtefactsAuTri); setArtifactMainByKind(suivante.artifactMainByKind);
+    setRelicMainChoice(suivante.relicMainChoice); setRelicUniqueChoice(suivante.relicUniqueChoice);
+    setLignesVerrouillees(suivante.lignesVerrouillees); setMainStatsBySlot(suivante.mainStatsBySlot);
+    setLockedRunes(suivante.lockedRunes); setObjective(suivante.objective); setDamageSetup(suivante.damageSetup);
+    setSortBy(suivante.sortBy); setCompterAurasResPre(suivante.compterAurasResPre); setCritereArtefacts(suivante.critereArtefacts);
+  }
+
+  // Défauts et restaurations modifient l'affichage, jamais la mémoire :
+  // seuls les setters de saisie et l'inclusion photographient des critères.
+  function poserCriteresAutomatiques(patch: Partial<CriteresOptimizer> | ((courants: CriteresOptimizer) => Partial<CriteresOptimizer>)) {
+    const courants = vivant.current.criteres;
+    appliquerPhoto({ ...courants, ...(typeof patch === 'function' ? patch(courants) : patch) });
+  }
+
+  function traiterReliqueImportee(relique: Parameters<typeof defaultRelicMainChoice>[0]) {
+    const v = vivant.current;
+    if (importReliqueTraite.current === v.importDuCompte) return;
+    importReliqueTraite.current = v.importDuCompte;
+    // Un choix de membre écran démonté prime sur le défaut différé du compte.
+    if (v.contexte && validerProprietaireCriteres(v.proprietaire, v.contexte.lists, v, v.contexte.data)) return;
+    poserCriteresAutomatiques({ relicMainChoice: defaultRelicMainChoice(relique) });
+  }
+
+  function restaurerMembre(listId: string, selector: ExclusionSelector, choisir: boolean) {
+    if (choisir) captureEnAttente.current = null;
+    const v = vivant.current, c = v.contexte;
+    if (!c) return;
+    const resolu = resolveExclusionEntry(selector, c.data);
+    if (!resolu?.monster.com2usId) {
+      effacerProprietaireCriteres(); setRapportCriteres(['Membre introuvable : critères non restaurés.']); return;
+    }
+    const affichage = choisir ? { selectedId: String(resolu.monster.id), sourceSelector: selector } : v;
+    const candidat = { listId, selector, com2usId: resolu.monster.com2usId };
+    const valide = validerProprietaireCriteres(candidat, c.lists, affichage, c.data);
+    if (!valide) { effacerProprietaireCriteres(); return; }
+    const memoire = c.lists.memories.get(cleMemoireMembre(listId, selector));
+    const messages: string[] = [];
+    if (memoire && memoire.com2usId !== valide.com2usId) {
+      messages.push('Mémoire conservée sans application : l’espèce du membre ne correspond pas.');
+    }
+    const photo = memoire?.com2usId === valide.com2usId ? appliquerCriteres(memoire.criteres, { type: 'personnel' }) : null;
+    // Une navigation de liste n'attribue jamais les critères courants à un
+    // membre sans mémoire ; le clic explicite lui donne la base complète.
+    if (!choisir && !photo) { effacerProprietaireCriteres(); setRapportCriteres(messages); return; }
+    const suivante = photo ?? baseCompleteCriteres(resolu.gear);
+    const locks = Object.entries(suivante.lockedRunes);
+    suivante.lockedRunes = Object.fromEntries(locks.filter(([, id]) => id != null && c.runeIds.has(id)));
+    const ignores = locks.length - Object.keys(suivante.lockedRunes).length;
+    if (ignores) messages.push(`${ignores} rune(s) imposée(s) ignorée(s) : absentes de ton inventaire.`);
+    effacerResultats(); setSetPickerInvalid(false);
+    if (choisir) {
+      v.selectedId = affichage.selectedId; v.sourceSelector = selector;
+      setSelectedId(affichage.selectedId); setSourceSelector(selector);
+      if (selector.source !== 'unowned') setGearSource(selector.source);
+    }
+    appliquerPhoto(suivante);
+    v.proprietaire = valide; setProprietaireCriteres(valide); setRapportCriteres(messages);
+  }
+
+  function choisirMembre(listId: string, selector: ExclusionSelector) {
+    restaurerMembre(listId, selector, true);
+  }
+
+  function capturerMembre(listId: string, selector: ExclusionSelector) {
+    const v = vivant.current, c = v.contexte;
+    if (!c) return;
+    const resolu = resolveExclusionEntry(selector, c.data);
+    if (!resolu?.monster.com2usId) return;
+    // Photographier au geste, puis valider contre l'appartenance réellement
+    // publiée par les listes. Cela couvre aussi « créer et ajouter ».
+    captureEnAttente.current = { proprietaire: { listId, selector, com2usId: resolu.monster.com2usId },
+      criteres: photoCriteres(v.criteres, { type: 'personnel' }) };
+  }
+
+  function saisie<K extends keyof CriteresOptimizer>(champ: K, setter: Dispatch<SetStateAction<CriteresOptimizer[K]>>): Dispatch<SetStateAction<CriteresOptimizer[K]>> {
+    return (valeur) => {
+      const v = vivant.current;
+      const suivante = typeof valeur === 'function' ? (valeur as (a: CriteresOptimizer[K]) => CriteresOptimizer[K])(v.criteres[champ]) : valeur;
+      v.criteres = { ...v.criteres, [champ]: suivante };
+      setter(suivante);
+      const c = v.contexte;
+      const p = c ? validerProprietaireCriteres(v.proprietaire, c.lists, v, c.data) : null;
+      if (p && c) c.lists.writeMemory(p, photoCriteres(v.criteres, { type: 'personnel' }), c.data);
+      else if (v.proprietaire) effacerProprietaireCriteres();
+    };
+  }
+
+  const listePrecedente = useRef(contexte?.lists.activeListId);
+  function reconcilierMembre() {
+    const v = vivant.current, c = v.contexte;
+    if (!c) return;
+    const capture = captureEnAttente.current;
+    if (capture) {
+      // Un effet du rendu précédent peut être vidé avant les mises à jour
+      // du geste. Attendre son appartenance publiée, sans consommer la photo.
+      if (c.lists.activeListId !== capture.proprietaire.listId
+        || !c.lists.members.some(m => cleMemoireMembre(m.listId, m.selector) === cleMemoireMembre(capture.proprietaire.listId, capture.proprietaire.selector))) return;
+      captureEnAttente.current = null;
+      const p = validerProprietaireCriteres(capture.proprietaire, c.lists, v, c.data);
+      if (p) {
+        v.proprietaire = p; setProprietaireCriteres(p);
+        c.lists.writeMemory(p, capture.criteres, c.data);
+        listePrecedente.current = c.lists.activeListId;
+      } else setRapportCriteres(['Critères non mémorisés : le membre affiché ou son espèce a changé.']);
+    }
+    if (listePrecedente.current !== c.lists.activeListId) {
+      listePrecedente.current = c.lists.activeListId;
+      if (c.lists.activeListId && v.sourceSelector) restaurerMembre(c.lists.activeListId, v.sourceSelector, false);
+      else effacerProprietaireCriteres();
+    } else if (v.proprietaire && !validerProprietaireCriteres(v.proprietaire, c.lists, v, c.data)) effacerProprietaireCriteres();
+  }
+  // Les callbacks utilisent le dernier contexte publié, y compris lorsqu'un
+  // geste a été groupé avec une mutation des listes dans le même rendu.
+  useEffect(() => { reconcilierMembre(); });
 
   function resetSearch(motif: 'monstre' | 'compte' = 'monstre') {
+    effacerProprietaireCriteres();
     const raison = motif === 'compte' ? 'compte' : 'membre';
     const suivant = criteresApresChangementEspece({ damageSetup, compterAurasResPre, critereArtefacts }, raison, undefined);
+    vivant.current.criteres = suivant;
     setComboSets(suivant.comboSets);
     setSetPickerInvalid(false);
     setMinStats(suivant.minStats);
@@ -503,48 +656,56 @@ export function useOptimizerState(): OptimizerState {
   }
 
   return {
+    proprietaireCriteres: contexte ? validerProprietaireCriteres(proprietaireCriteres, contexte.lists, { selectedId, sourceSelector }, contexte.data) : null,
+    rapportCriteres,
+    effacerProprietaireCriteres,
+    choisirMembre,
+    capturerMembre,
+    poserCriteresAutomatiques,
+    traiterReliqueImportee,
+    poserTriRecherche: (tri) => poserCriteresAutomatiques({ sortBy: tri }),
     selectedId,
-    setSelectedId,
+    setSelectedId: (valeur) => { effacerProprietaireCriteres(); const v = vivant.current; v.selectedId = typeof valeur === 'function' ? valeur(v.selectedId) : valeur; setSelectedId(v.selectedId); },
     gearSource,
-    setGearSource,
+    setGearSource: (valeur) => { effacerProprietaireCriteres(); setGearSource(valeur); },
     sourceSelector,
-    setSourceSelector,
+    setSourceSelector: (valeur) => { effacerProprietaireCriteres(); const v = vivant.current; v.sourceSelector = typeof valeur === 'function' ? valeur(v.sourceSelector) : valeur; setSourceSelector(v.sourceSelector); },
     comboSets,
-    setComboSets,
+    setComboSets: saisie('comboSets', setComboSets),
     setPickerInvalid,
     setSetPickerInvalid,
     minStats,
-    setMinStats,
+    setMinStats: saisie('minStats', setMinStats),
     maxStats,
-    setMaxStats,
+    setMaxStats: saisie('maxStats', setMaxStats),
     excludeBase,
-    setExcludeBase,
+    setExcludeBase: saisie('excludeBase', setExcludeBase),
     optimiserArtefacts,
-    setOptimiserArtefacts,
+    setOptimiserArtefacts: saisie('optimiserArtefacts', setOptimiserArtefacts),
     adapterArtefactsAuTri,
-    setAdapterArtefactsAuTri,
+    setAdapterArtefactsAuTri: saisie('adapterArtefactsAuTri', setAdapterArtefactsAuTri),
     artifactMainByKind,
-    setArtifactMainByKind,
+    setArtifactMainByKind: saisie('artifactMainByKind', setArtifactMainByKind),
     relicMainChoice,
-    setRelicMainChoice,
+    setRelicMainChoice: saisie('relicMainChoice', setRelicMainChoice),
     relicUniqueChoice,
-    setRelicUniqueChoice,
+    setRelicUniqueChoice: saisie('relicUniqueChoice', setRelicUniqueChoice),
     relicMinUpgrade,
     setRelicMinUpgrade,
     lignesVerrouillees,
-    setLignesVerrouillees,
+    setLignesVerrouillees: saisie('lignesVerrouillees', setLignesVerrouillees),
     mainStatsBySlot,
-    setMainStatsBySlot,
+    setMainStatsBySlot: saisie('mainStatsBySlot', setMainStatsBySlot),
     lockedRunes,
-    setLockedRunes,
+    setLockedRunes: saisie('lockedRunes', setLockedRunes),
     objective,
-    setObjective,
+    setObjective: saisie('objective', setObjective),
     damageSetup,
-    setDamageSetup,
+    setDamageSetup: saisie('damageSetup', setDamageSetup),
     compterAurasResPre,
-    setCompterAurasResPre,
+    setCompterAurasResPre: saisie('compterAurasResPre', setCompterAurasResPre),
     critereArtefacts,
-    setCritereArtefacts,
+    setCritereArtefacts: saisie('critereArtefacts', setCritereArtefacts),
     excludeUsedRunes,
     setExcludeUsedRunes,
     excludeUsedScope,
@@ -558,7 +719,7 @@ export function useOptimizerState(): OptimizerState {
     verifierToutesLesCombinaisons,
     setVerifierToutesLesCombinaisons,
     sortBy,
-    setSortBy,
+    setSortBy: saisie('sortBy', setSortBy),
     resultsPage,
     setResultsPage,
     showAdvanced,

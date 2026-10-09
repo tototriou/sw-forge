@@ -328,7 +328,6 @@ function Application() {
   const siegeDef = useSiegeState('defense');
   const siegeOff = useSiegeState('offense');
   const recos = useSiegeRecos();
-  const optimizer = useOptimizerState();
   // Listes de travail de l'Optimizer — SÉPARÉES de `useOptimizerState`,
   // voir useOptimizerLists.ts : c'est la seule part de l'écran Optimizer qui
   // persiste sur disque.
@@ -569,6 +568,14 @@ function Application() {
     () => [...data.monsters, ...custom.customMonsters],
     [data.monsters, custom.customMonsters]
   );
+
+  const optimizerData = useMemo<ExclusionSourceData>(() => ({ box,
+    rtaEntries: rta.state.entries, siegeDefenseTeams: siegeDef.state.teams,
+    siegeOffenseTeams: siegeOff.state.teams,
+    monsterById: new Map(allMonsters.map(mon => [String(mon.id), mon])),
+  }), [box, rta.state.entries, siegeDef.state.teams, siegeOff.state.teams, allMonsters]);
+  const optimizerRuneIds = useMemo(() => new Set(runes.map(r => r.id)), [runes]);
+  const optimizer = useOptimizerState({ lists: optimizerLists, data: optimizerData, runeIds: optimizerRuneIds });
 
   // Index com2usId → monstre, pour mapper les unités d'un export de compte.
   const monsterByCom2us = useMemo(() => {

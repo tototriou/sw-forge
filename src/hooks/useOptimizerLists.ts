@@ -310,7 +310,8 @@ export function useOptimizerLists(): UseOptimizerLists {
 
   const writeMemory = useCallback((membre: Omit<MemoireMembreOptimizer, 'criteres'>, criteres: CriteresOptimizer, data: ExclusionSourceData) => {
     setState((s) => {
-      if (!s.members.some((m) => cleMemoireMembre(m.listId, m.selector) === cleMemoireMembre(membre.listId, membre.selector))) {
+      if (s.activeListId !== membre.listId || !s.lists.some(l => l.id === membre.listId)
+        || !s.members.some((m) => cleMemoireMembre(m.listId, m.selector) === cleMemoireMembre(membre.listId, membre.selector))) {
         return { ...s, memberStorage: { ...s.memberStorage, rapport: [...s.memberStorage.rapport, 'Mémoire non écrite : membre absent de la liste.'] } };
       }
       const r = enregistrerMemoireMembre(s.memberStorage.memories, membre, criteres, data);

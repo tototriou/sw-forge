@@ -1,4 +1,5 @@
 import { Fragment, useCallback, useLayoutEffect, useMemo, useRef, useState, useEffect } from 'react';
+import { cleMemoireMembre } from '../../lib/optimizerMemberStorage';
 import {
   Search,
   Square,
@@ -512,7 +513,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
     openDetailKey,
     setOpenDetailKey,
     importDuCompte,
-    importReliqueTraite,
+    traiterReliqueImportee,
     search,
     resetSearch,
     effacerResultats,
@@ -998,10 +999,11 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
   // exemplaire qui n'en porte pas — la recherche tournerait alors sans
   // relique, sans rien en dire.
   function reliqueCoherenteAvecExemplaire(relique: RelicDetail | undefined) {
-    setRelicMainChoice((c) => relicMainChoiceApresChangementExemplaire(c, relique, true));
+    optimizer.poserCriteresAutomatiques((c) => ({ relicMainChoice: relicMainChoiceApresChangementExemplaire(c.relicMainChoice, relique, true) }));
   }
 
   function pickSource(source: ExclusionSource) {
+    optimizer.effacerProprietaireCriteres();
     setGearSource(source);
     const candidates = candidatesBySource[source];
     if (candidates.length === 1) {
@@ -1030,6 +1032,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
   // « Ajouter à la liste »/« Valider ce build » sur ses stats de base 6★
   // seules (demande explicite, voir ExclusionSelector « unowned »).
   function pickSpecies(monster: Monster) {
+    optimizer.effacerProprietaireCriteres();
     const id = String(monster.id);
     // ⚠️ Calculé AVANT le `if` : le défaut de
     // relique (ci-dessous) a besoin du premier exemplaire Box pour
@@ -1045,7 +1048,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
       // connaît le monstre choisi (le hook n'y a pas accès) — comme
       // `objective` juste en dessous, remis à zéro puis surchargé au même
       // endroit.
-      setRelicMainChoice(defauts.relicMainChoice);
+      optimizer.poserCriteresAutomatiques({ relicMainChoice: defauts.relicMainChoice });
       /**
        * ⚠️ **Un sort appartient à un MONSTRE.** `skillCom2usId` désigne un
        * sort précis ; après un changement de monstre, `resolveDamageSkill`
@@ -1070,8 +1073,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
        * ⚠️ Granularité : l'ESPÈCE. Passer de Box à RTA ne passe pas par ici,
        * et c'est voulu — les sorts restent les mêmes.
        */
-      setObjective(defauts.objective);
-      setCritereArtefacts(defauts.critereArtefacts);
+      optimizer.poserCriteresAutomatiques({ objective: defauts.objective, critereArtefacts: defauts.critereArtefacts });
     }
     else reliqueCoherenteAvecExemplaire(boxCandidates[0]?.gear.relic);
     setSelectedId(id);
@@ -1212,16 +1214,13 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
   // Un réimport du compte remet les critères à zéro (`resetSearch('compte')`,
   // App.tsx) sans connaître le monstre resté sélectionné : le défaut de
   // relique se recalcule ici, contre la relique qu'il porte dans le compte
-  // réimporté — UNE fois par import. ⚠️ L'écran se démonte à chaque
-  // changement d'onglet : sans `importReliqueTraite` (état partagé), chaque
-  // remontage réappliquait le défaut et écrasait le choix de l'utilisateur.
+  // réimporté — UNE fois par import. Le traitement partagé garde aussi les
+  // critères d'un membre choisi après le réimport pendant l'absence de l'écran.
   const reliqueAffichee = useRef<RelicDetail | undefined>(undefined);
   reliqueAffichee.current = selected?.gear.relic;
   useEffect(() => {
-    if (importDuCompte === importReliqueTraite.current) return;
-    importReliqueTraite.current = importDuCompte;
-    setRelicMainChoice(defaultRelicMainChoice(reliqueAffichee.current));
-  }, [importDuCompte, importReliqueTraite]);
+    traiterReliqueImportee(reliqueAffichee.current);
+  }, [importDuCompte, traiterReliqueImportee]);
 
   /**
    * Les stats de RÉFÉRENCE du bouton « Comparer » — celles de la fiche.
@@ -1835,7 +1834,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
     }
     setSetPickerInvalid(false);
     setStoppedManually(false);
-    setSortBy(objective);
+    optimizer.poserTriRecherche(objective);
     setResultsPage(1);
     run({
       base: selected.gear.base,
@@ -2102,10 +2101,9 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
         setImportMsg({ text: `Import refusé : ${error}`, error: true });
         return;
       }
-      setComboSets(recipe.requirement.sets);
-      setMinStats(recipe.requirement.minStats);
-      setMaxStats(recipe.requirement.maxStats ?? {});
-      setMainStatsBySlot(recipe.requirement.mainStats ?? {});
+      optimizer.effacerProprietaireCriteres();
+      optimizer.poserCriteresAutomatiques({ comboSets: recipe.requirement.sets, minStats: recipe.requirement.minStats,
+        maxStats: recipe.requirement.maxStats ?? {}, mainStatsBySlot: recipe.requirement.mainStats ?? {} });
       // ⚠️ **Runes imposées : gardées SEULEMENT si elles existent dans CET
       // inventaire.** Un `runeId` est propre à un compte — une recette reçue
       // d'un autre joueur en porte forcément d'inconnus, et les garder
@@ -2121,7 +2119,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
         if (runeId != null && runeById.has(runeId)) locksValides[Number(slot)] = runeId;
         else locksIgnores++;
       }
-      setLockedRunes(locksValides);
+      optimizer.poserCriteresAutomatiques({ lockedRunes: locksValides });
       // ⚠️ Repli sur « Efficience » pour DEUX valeurs devenues invalides :
       // `speed_nuker` (retiré, remplacé par « Dégâts réels ») et `degats`
       // (formule générique sans sort ni adversaire, retirée —
@@ -2134,14 +2132,14 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
       // (`objectiveScore` lève sans contexte, voir runeBuildOptim.ts) — une
       // recette ancienne n'en a pas forcément un valide pour CE compte-ci.
       const legacyObjective = recipe.objective as unknown as string;
-      setObjective(legacyObjective === 'speed_nuker' || legacyObjective === 'degats' ? 'efficience' : recipe.objective);
+      optimizer.poserCriteresAutomatiques({ objective: legacyObjective === 'speed_nuker' || legacyObjective === 'degats' ? 'efficience' : recipe.objective });
       // ⚠️ `?? DEFAULT_DAMAGE_SETUP` : une recette exportée AVANT ce champ n'a
       // pas de `damageSetup`. Le `skillCom2usId` qu'elle porte, lui, peut
       // désigner un sort d'un AUTRE monstre que celui de cette box — c'est
       // `resolveDamageSkill` qui retombe alors sur le sort par défaut, pas
       // une erreur d'import (même tolérance que le monstre lui-même, plus bas).
-      setDamageSetup(recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP);
-      setCompterAurasResPre(recipe.compterAurasResPre ?? true);
+      optimizer.poserCriteresAutomatiques({ damageSetup: recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP,
+        compterAurasResPre: recipe.compterAurasResPre ?? true });
       setSlotFilterPreset(recipe.slotFilterPreset);
       setAdaptiveTrancheWeighting(recipe.adaptiveTrancheWeighting);
       // ⚠️ `?? false` : une recette exportée AVANT ce réglage ne porte pas ce
@@ -2165,15 +2163,15 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
       // contre CE compte au moment de la recherche (voir optimizerExclusion.
       // ts) — un monstre absent ici est silencieusement ignoré, pas une erreur.
       setExcludedSelectors(recipe.excludedSelectors ?? []);
-      setOptimiserArtefacts(!recipe.ignoreArtifacts);
+      optimizer.poserCriteresAutomatiques({ optimiserArtefacts: !recipe.ignoreArtifacts });
       // ⚠️ « Garder l'artéfact équipé » ne se partage pas — la règle, son
       // pourquoi et le repli sur une provenance inconnue vivent dans
       // `mainsPourCeCompte` (optimizerRecipe.ts), fonction pure et testée.
       const { mains, bascules } = mainsPourCeCompte(recipe, accountName);
-      setArtifactMainByKind(mains);
+      optimizer.poserCriteresAutomatiques({ artifactMainByKind: mains });
       // ⚠️ `?? []` : une recette exportée AVANT ce champ ne le porte pas (voir
       // `OptimizerRecipe.lignesVerrouillees`, optionnel exprès).
-      setLignesVerrouillees(recipe.lignesVerrouillees ?? []);
+      optimizer.poserCriteresAutomatiques({ lignesVerrouillees: recipe.lignesVerrouillees ?? [] });
       // ⚠️ **Même canal que la bascule artéfact** (« mêmes trois
       // règles ») : `relicMainPourCeCompte` (optimizerRecipe.ts) applique la
       // bascule « equipped » → « libre » sur compte différent ; le défaut
@@ -2181,7 +2179,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
       // ne s'applique QUE si la recette ne porte pas le champ (recette
       // antérieure à ce champ) — résolu plus bas, une fois le monstre trouvé.
       const { main: relicMainResolu, bascule: relicBascule } = relicMainPourCeCompte(recipe, accountName);
-      setRelicUniqueChoice(recipe.relicUniqueChoice ?? 'libre');
+      optimizer.poserCriteresAutomatiques({ relicUniqueChoice: recipe.relicUniqueChoice ?? 'libre' });
       setRelicMinUpgrade(recipe.relicMinUpgrade ?? DEFAULT_RELIC_MIN_UPGRADE);
 
       // Les runes imposées ignorées (voir plus haut) sont signalées en
@@ -2223,7 +2221,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
         // ⚠️ Défaut calculé contre la relique de l'EXEMPLAIRE résolu ici
         // (même source que `pickSpecies`), jamais une constante — seulement
         // si la recette ne porte pas le champ (`relicMainResolu` absent).
-        setRelicMainChoice(relicMainResolu ?? defaultRelicMainChoice(boxCandidates[0]?.gear.relic));
+        optimizer.poserCriteresAutomatiques({ relicMainChoice: relicMainResolu ?? defaultRelicMainChoice(boxCandidates[0]?.gear.relic) });
         setImportMsg({ text: `Réglages importés pour ${recipe.monsterName} — monstre sélectionné automatiquement.${suffixeLocks}`, avertissement: avecAvertissement });
       } else {
         // Cas limite : le `com2usId` de la recette ne correspond à AUCUN
@@ -2234,7 +2232,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
         // ⚠️ Aucun exemplaire résolu : pas de relique connue pour calculer le
         // défaut, repli sur « libre » (même situation que `pickSpecies`
         // sur une espèce possédée nulle part).
-        setRelicMainChoice(relicMainResolu ?? 'libre');
+        optimizer.poserCriteresAutomatiques({ relicMainChoice: relicMainResolu ?? 'libre' });
         setImportMsg({
           text: `Réglages importés (${recipe.monsterName}), mais ce monstre est introuvable dans les données actuelles — choisis-en un manuellement.${suffixeLocks}`,
           avertissement: avecAvertissement,
@@ -2785,6 +2783,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
   // affiché n'efface rien. ⚠️ Aucun rappel des auras externes ici : il reste
   // décidé dans le seul `onClick` d'un membre de la zone C (7b).
   function choisirExemplaire(selector: ExclusionSelector, monster: Monster) {
+    optimizer.effacerProprietaireCriteres();
     const id = String(monster.id);
     const key = exclusionSelectorKey(selector);
     const autreEspece = id !== selectedId;
@@ -2797,7 +2796,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
     // dans l'ordre des appels.
     if (autreEspece || key !== ownSelectorKey) {
       const relique = resolveExclusionEntry(selector, exclusionData)?.gear.relic;
-      setRelicMainChoice((c) => relicMainChoiceApresChangementExemplaire(c, relique, !autreEspece));
+      optimizer.poserCriteresAutomatiques((c) => ({ relicMainChoice: relicMainChoiceApresChangementExemplaire(c.relicMainChoice, relique, !autreEspece) }));
     }
     // ⚠️ `unowned` n'est PAS une `ExclusionSource` (pas une des 4 puces) —
     // `gearSource` reste sur sa dernière valeur réelle, la puce active se
@@ -2817,9 +2816,11 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
     if (suivant) {
       choisirExemplaire(suivant.selector, suivant.monster);
       lists.addMember(lists.activeListId, suivant.selector);
+      optimizer.capturerMembre(lists.activeListId, suivant.selector);
       return;
     }
     lists.addMember(lists.activeListId, sourceSelector);
+    optimizer.capturerMembre(lists.activeListId, sourceSelector);
   }
   const unowned = sourceSelector?.source === 'unowned';
 
@@ -2932,7 +2933,10 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
     if (!sourceSelector || !lists.activeListId || !modeArtefactsSeuls) return;
     const ids = modeArtefactsSeuls.paire.map((a) => a.id);
     if (ownValidatedBuild) lists.validateArtifacts(lists.activeListId, sourceSelector, ids);
-    else if (canValidateDisplayed) lists.validateBuild(lists.activeListId, sourceSelector, displayedRuneIds, ids);
+    else if (canValidateDisplayed) {
+      lists.validateBuild(lists.activeListId, sourceSelector, displayedRuneIds, ids);
+      optimizer.capturerMembre(lists.activeListId, sourceSelector);
+    }
   }
 
   function handleValidateDisplayed() {
@@ -2942,6 +2946,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
       return;
     }
     lists.validateBuild(lists.activeListId, sourceSelector, displayedRuneIds, displayedArtifactIds);
+    optimizer.capturerMembre(lists.activeListId, sourceSelector);
   }
 
   // Bandeau « build validé », devenu une BASCULE — demande explicite : en
@@ -3280,6 +3285,10 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
         className="mb-2"
       />
 
+      <div className="h-16 overflow-y-auto text-[11px] text-warn" role="status" aria-label="Rapport des critères">
+        {[...lists.rapportStockage, ...optimizer.rapportCriteres].map((message, index) => <p key={index}>{message}</p>)}
+      </div>
+
       {activeMembers.length === 0 ? (
         <p className="px-0.5 py-3 text-center text-[12px] italic text-ink-dim">
           {activeList ? "Aucun monstre dans cette liste pour l'instant." : 'Choisis ou crée une liste ci-dessus.'}
@@ -3298,19 +3307,18 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
                   onClick={() => {
                     if (!resolved) return;
                     const id = String(resolved.monster.id);
-                    // Règles du choix d'exemplaire (autre espèce : `resetSearch` ; même
-                    // espèce, autre exemplaire : résultats effacés) — voir
-                    // `choisirExemplaire`, chemin partagé avec le bouton
-                    // « Ajouter un autre exemplaire ».
-                    choisirExemplaire(m.selector, resolved.monster);
+                    // L'action partagée valide l'identité puis restaure la
+                    // mémoire ou la base complète, sans déclencher de guide.
+                    optimizer.choisirMembre(m.listId, m.selector);
+                    setZoneDOpen(false);
                     // ⚠️ **Rappel des auras externes — ICI,
                     // dans le geste de la liste de travail, et nulle part
                     // ailleurs** : ni dans `resetSearch`, ni dans un effet sur
                     // `selectedId` — l'import d'une recette ou d'un compte pose
                     // aussi le monstre, et le bestiaire, les puces de source et
                     // la zone D restent sans rappel. Autre espèce OU autre exemplaire de la
-                    // même espèce ; `damageSetup` est celui du clic, et ses
-                    // auras externes survivent au changement de monstre.
+                    // même espèce ; la décision actuelle lit les auras du
+                    // rendu au moment du clic, indépendamment de la restauration.
                     if (
                       doitRappeler(
                         'liste',
@@ -3329,6 +3337,9 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
                     {m.selector.source === 'unowned' && (
                       <span className="ml-1 text-[10px] font-normal text-ink-dimmer">(non possédé)</span>
                     )}
+                  </span>
+                  <span className="w-4 flex-none text-center text-[12px] text-ink-dim" title={lists.memories.has(cleMemoireMembre(m.listId, m.selector)) ? 'Critères mémorisés' : undefined}>
+                    {lists.memories.has(cleMemoireMembre(m.listId, m.selector)) ? <span aria-label="Critères mémorisés">●</span> : null}
                   </span>
                 </ZoneCliquable>
                 {build ? (
@@ -5556,6 +5567,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
                           c.runeIds,
                           (fileArtefacts.parBuild.get(cleBuild(c))?.artefacts ?? searchArtifacts).map((a) => a.id)
                         );
+                        optimizer.capturerMembre(lists.activeListId!, sourceSelector);
                       }
                     : undefined
                 }
@@ -5715,6 +5727,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
             } else {
               lists.addMember(id, sourceSelector);
             }
+            if (intent !== 'validate' || canValidateDisplayed) optimizer.capturerMembre(id, sourceSelector);
           }}
           onCancel={() => setAddListPromptOpen(null)}
         />

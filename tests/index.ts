@@ -206,6 +206,10 @@ import { testRenduRunesResume, testRenduRunesListe, testRenduRunesCourbes, testR
 import { testRenduCompteMonstres, testRenduCompteArtefactsResume, testRenduCompteArtefactsListe, testRenduCompteSouris, testRenduCompteEffacerFiltres } from './rendu/compte.test';
 import { testRenduSpeedTuneVide, testRenduSpeedTuneCamps, testRenduSpeedTuneAnalyse } from './rendu/speed-tune.test';
 import { testRenduOptimizerVide, testRenduOptimizerMonstre, testRenduOptimizerReglages, testRenduTelephoneOptimizer } from './rendu/optimizer.test';
+import { testRenduMemoireOptimizerSelection, testRenduMemoireOptimizerSansMemoire, testRenduMemoireOptimizerListes,
+  testRenduMemoireOptimizerRetrait, testRenduMemoireOptimizerInclusion, testRenduMemoireOptimizerHorsListe,
+  testRenduMemoireOptimizerIdentite, testRenduMemoireOptimizerRecette, testRenduMemoireOptimizerNavigation, testRenduTelephoneMemoireOptimizer,
+  testRenduMemoireOptimizerSaisies, testRenduMemoireOptimizerAutomatismes, testRenduMemoireOptimizerZoneC, testRenduTelephoneMemoireOptimizerZoneC } from './rendu/optimizer-memoire.test';
 import { testRenduBestiaire, testRenduMecaniques, testRenduNouveautes, testRenduParametres, testRenduBientot } from './rendu/ressources.test';
 import { testRenduTelephoneAccueil, testRenduTelephoneRta, testRenduTelephoneRtaAmi, testRenduTelephoneRtaFiltre } from './rendu/telephone-accueil-rta.test';
 import { testRenduTelephoneSiege, testRenduTelephoneRecos } from './rendu/telephone-siege.test';
@@ -226,6 +230,20 @@ import testSkillAdapters from './skill-adapters.test';
 // Sans argument, tout tourne — c'est ce que fait `npm test`, et ce qu'il FAUT
 // faire avant une fusion sur `main` (voir CLAUDE.md).
 const VERIFICATIONS: [string, () => void | Promise<void>][] = [
+  ['testRenduMemoireOptimizerSelection', testRenduMemoireOptimizerSelection],
+  ['testRenduMemoireOptimizerSansMemoire', testRenduMemoireOptimizerSansMemoire],
+  ['testRenduMemoireOptimizerListes', testRenduMemoireOptimizerListes],
+  ['testRenduMemoireOptimizerRetrait', testRenduMemoireOptimizerRetrait],
+  ['testRenduMemoireOptimizerInclusion', testRenduMemoireOptimizerInclusion],
+  ['testRenduMemoireOptimizerHorsListe', testRenduMemoireOptimizerHorsListe],
+  ['testRenduMemoireOptimizerIdentite', testRenduMemoireOptimizerIdentite],
+  ['testRenduMemoireOptimizerRecette', testRenduMemoireOptimizerRecette],
+  ['testRenduMemoireOptimizerNavigation', testRenduMemoireOptimizerNavigation],
+  ['testRenduTelephoneMemoireOptimizer', testRenduTelephoneMemoireOptimizer],
+  ['testRenduMemoireOptimizerSaisies', testRenduMemoireOptimizerSaisies],
+  ['testRenduMemoireOptimizerAutomatismes', testRenduMemoireOptimizerAutomatismes],
+  ['testRenduMemoireOptimizerZoneC', testRenduMemoireOptimizerZoneC],
+  ['testRenduTelephoneMemoireOptimizerZoneC', testRenduTelephoneMemoireOptimizerZoneC],
   ['testVitesse', testVitesse],
   ['testSpeedTune', testSpeedTune],
   ['testSpeedTuneDeck', testSpeedTuneDeck],

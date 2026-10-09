@@ -1,6 +1,6 @@
 // L'Optimizer dans une sauvegarde de session : une photo de ses champs de
-// DONNÉES (`useOptimizerState`), rendue telle quelle au chargement — la
-// sélection et son exemplaire, les critères, le tri.
+// DONNÉES (`useOptimizerState`) : sélection, exemplaire, critères et tri.
+// La photo est sérialisée ; App ne la réapplique pas actuellement.
 //
 // ⚠️ **Chaque champ de données de `OptimizerState` est classé** : dans la
 // session, ou hors session (interface, état passager, résultats qui se
@@ -44,6 +44,9 @@ export const CHAMPS_OPTIMIZER_SESSION = [
 ] as const;
 
 export const CHAMPS_OPTIMIZER_HORS_SESSION = [
+  // Attribution à reconstruire seulement par un geste, jamais à la reprise.
+  'proprietaireCriteres',
+  'rapportCriteres',
   // Interface et validation de l'écran.
   'setPickerInvalid',
   'showAdvanced',

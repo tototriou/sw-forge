@@ -53,7 +53,7 @@ export default function testOptimizerDamageTransitions() {
   ok(!ecran.includes('resetDamageSkill'), 'exemplaire et listes : aucun reset propre au sort');
   ok(ecran.includes('onSelect={lists.setActiveListId}') && ecran.includes('onCreate={lists.createList}') && ecran.includes('onDelete={lists.deleteList}'), 'navigation et gestion des listes sans reset');
   ok(ecran.includes('const id = lists.createList(nom);'), 'création et ajout depuis la fenêtre sans reset');
-  ok(ecran.includes('setDamageSetup(recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP)'), 'recette : import direct');
+  ok(ecran.includes('damageSetup: recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP'), 'recette : import direct sans capture');
   ok(app.includes("optimizer.resetSearch('compte')"), 'compte : motif explicite');
   ok(hook.includes("motif === 'compte' ? 'compte' : 'membre'") && hook.includes('criteresApresChangementEspece({ damageSetup: s, compterAurasResPre, critereArtefacts }, raison, undefined).damageSetup'), 'resetSearch : deux motifs transmis au producteur pur');
   ok(!hook.includes('resetDamageSkill'), 'hook : aucune transition superflue sur les listes ou exemplaires');

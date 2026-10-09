@@ -65,12 +65,12 @@ export default async function testOptimizerCriteresCaracterisation() {
   for (const geste of ['pickSpecies', 'choisirExemplaire'] as const) {
     for (const espece of ['1', '2']) for (const avecRelique of [false, true]) for (const memeCle of [false, true]) {
       const banc = await bancOptimizer(); remplirCriteres(banc.etat);
+      banc.etat.setCritereArtefacts('reel');
       const avant = banc.rendre();
       const selector: ExclusionSelector = { source: 'box', unitKey: memeCle ? '10' : '20' };
       // Seule la résolution de l'exemplaire est substituée ; le gestionnaire
       // et les transitions de relique exécutés sont ceux de production.
       const relic = avecRelique ? { id: 1 } : undefined;
-      const cran = { valeur: 'reel' };
       let zoneOuverte = true;
       const contexte = {
         ...transitions, ...avant, optimizer: avant, box: [], exclusionData: {}, ownSelectorKey: 'box:10',
@@ -79,7 +79,6 @@ export default async function testOptimizerCriteresCaracterisation() {
         resolveExclusionEntry: () => ({ gear: { relic } }), exclusionSelectorKey,
         defaultRelicMainChoice, relicMainChoiceApresChangementExemplaire,
         reliqueCoherenteAvecExemplaire: () => avant.setRelicMainChoice((c) => relicMainChoiceApresChangementExemplaire(c, relic as never, true)),
-        setCritereArtefacts: (v: string) => { cran.valeur = v; },
         setZoneDOpen: (v: boolean) => { zoneOuverte = v; },
       };
       const fonction = fonctionDeSource(ECRAN, geste, contexte);
@@ -96,7 +95,7 @@ export default async function testOptimizerCriteresCaracterisation() {
       egal(apres.comboSets, autreEspece ? [] : ['Swift'], `${libelle} : set`);
       egal(apres.objective, autreEspece ? 'efficience' : 'degats_reels', `${libelle} : objectif`);
       egal(apres.compterAurasResPre, false, `${libelle} : auras conservées`);
-      egal(cran.valeur, geste === 'pickSpecies' && autreEspece ? 'brut' : 'reel', `${libelle} : cran d’artéfacts`);
+      egal(apres.critereArtefacts, geste === 'pickSpecies' && autreEspece ? 'brut' : 'reel', `${libelle} : cran d’artéfacts`);
       egal(banc.effacements(), autreEspece || (geste === 'choisirExemplaire' && !memeCle) ? 1 : 0, `${libelle} : effacement`);
       egal(valeurs(apres, GLOBAUX), valeurs(avant, GLOBAUX), `${libelle} : globaux conservés`);
       ok(!zoneOuverte, `${libelle} : zone D fermée`);
@@ -106,7 +105,7 @@ export default async function testOptimizerCriteresCaracterisation() {
   banc.etat.setRelicMainChoice('equipped');
   const avant = banc.rendre();
   fonctionDeSource(ECRAN, 'choisirExemplaire', {
-    ...avant, selectedId: '1', ownSelectorKey: 'box:10', exclusionData: {}, exclusionSelectorKey,
+    ...avant, optimizer: avant, selectedId: '1', ownSelectorKey: 'box:10', exclusionData: {}, exclusionSelectorKey,
     resolveExclusionEntry: () => ({ gear: {} }), relicMainChoiceApresChangementExemplaire, setZoneDOpen: () => {},
   })({ source: 'unowned', com2usId: 101 }, { id: 1 });
   egal(banc.rendre().relicMainChoice, 'libre', 'même espèce : équipée sans relique devient libre');

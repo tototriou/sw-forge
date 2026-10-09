@@ -91,6 +91,67 @@ se vérifie à l’écriture et au réimport, pas au chargement contre des liste
 potentiellement illisibles. Le lead de RES ou Précision peut être conservé.
 Le stockage ne calcule aucun lead effectif et n’ajoute aucun contrôle d’écran.
 
+## Modèle pur des équipes
+
+`equipesOptimizer.ts` crée une équipe, ajoute ou retire un membre, délie un
+membre ou dissout une équipe, sans toucher aux listes, aux builds ni aux
+mémoires. Les identifiants sont fournis par l’appelant ; le contenu par défaut
+est `siege`, le lead par défaut est `null` et le leader reste facultatif.
+Chaque création ou ajout vérifie la forme du stockage, l’existence de la liste
+et l’appartenance de chaque membre à cette liste. Un refus rend les équipes
+initiales et un rapport explicite, sans déplacement implicite d’un membre.
+L’exclusivité d’un membre est propre à sa liste : le même sélecteur peut être
+lié indépendamment dans deux listes.
+
+Retirer ou délier un membre d’une équipe de deux dissout cette équipe. Au-delà,
+seul ce membre sort ; s’il était leader, la désignation disparaît sans
+remplacement automatique. Dissoudre laisse les membres dans leur liste et
+leurs critères personnels intacts. Une opération visant une équipe ou un
+membre absent est sans changement et le rapporte.
+
+`equipeApresFiltrageOptimizer` reçoit les membres déjà filtrés d’une source :
+0, 1 ou plus de 5 membres ne produisent aucune équipe, avec un motif explicite
+et l’annonce que le lead de la source n’est appliqué à personne. Les membres
+gardent leur base complète de critères ; le producteur ne copie jamais ce
+lead dans leurs critères personnels. De 2 à 5 membres, la création suit les
+mêmes validations que la création manuelle.
+
+## Lead effectif d’un membre
+
+`leadEffectifMembreOptimizer` rend un `LeadEffectifOptimizer` : hors équipe,
+`personnel` ; dans une équipe, `equipe` avec `{stat, pct}` si le lead est actif,
+sinon `aucun` avec un motif. La donnée du jeu reste entière dans l’équipe.
+Le lead personnel n’est jamais un repli d’un lead d’équipe inactif ; délier
+rend le lead personnel disponible sans modifier sa mémoire.
+
+La table `ACTIVITE_LEADS_OPTIMIZER` distingue actif, inactif et sans source.
+Une portée inconnue reste sans effet, avec un motif. Les sources ci-dessous
+décrivent le modèle existant ; elles ne constituent pas un relevé en combat
+pour toutes les statistiques. « Élément » exige l’élément identique du membre.
+
+| Contenu | General | Element | Arena | Guild | Dungeon |
+| --- | --- | --- | --- | --- | --- |
+| Siège | actif | élément | inactif | actif | inactif |
+| RTA | actif | élément | actif | inactif | inactif |
+| Arène | actif | sans source | actif | sans source | sans source |
+| Donjon | actif | sans source | sans source | sans source | sans source |
+
+Sources par case : Siège, `src/lib/speed.ts:189–193` (General/Guild,
+Element, Arena/Dungeon) ; RTA,
+[catégories](../rta/feat-categories.md) lignes 24–30 (General/Arena,
+Guild/Dungeon, Element) ; Arène et Donjon General,
+`src/hooks/useRtaCategories.ts:69` (« partout ») ; Arène Arena,
+[calcul de vitesse](../transverse/feat-calcul-vitesse.md) lignes 107–108.
+Les sept autres cases Arène/Donjon sont sans source : aucun lead effectif,
+avec le motif « activité non établie », même pour un élément identique.
+
+Seules HP, Attack Power, Defense, Attack Speed, Critical Rate et Critical DMG
+sont calculables (`LEADER_SKILL_STATS`, `damage.ts`). Resistance et Accuracy
+restent conservées comme données sans application, avec un motif explicite.
+Une statistique non calculable ou un montant non fini/négatif reste sans
+effet. Un montant numérique valide hors des paliers proposés est conservé
+tel quel : les paliers du menu ne sont pas une validation de lead importé.
+
 ## Revérification commune
 
 `reverifierStockageOptimizer` est pure et exportée pour le réimport du compte

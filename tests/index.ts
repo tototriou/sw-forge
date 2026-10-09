@@ -18,6 +18,7 @@ import {
   testMemoireOptimizerReimportBrutPreserve,
   testEquipeOptimizerTextesStricts,
 } from './optimizer-member-storage.test';
+import { testMemoireOptimizerRejetsConserves } from './optimizer-member-rejections.test';
 import testMeules, { testGemmeMemeStat, testRegemmeDifferent, testReserveParGrade, testPalier, testRegistre, testSansDowngrade } from './meules.test';
 import testArtefacts from './artefacts.test';
 import testArtefactOptim, {
@@ -554,6 +555,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testMemoireOptimizerSuppressionExplicite', testMemoireOptimizerSuppressionExplicite],
   ['testMemoireOptimizerReimportBrutPreserve', testMemoireOptimizerReimportBrutPreserve],
   ['testEquipeOptimizerTextesStricts', testEquipeOptimizerTextesStricts],
+  ['testMemoireOptimizerRejetsConserves', testMemoireOptimizerRejetsConserves],
 ];
 
 // Un filtre passé en argument : on compare sur le nom mis à plat (sans tirets ni

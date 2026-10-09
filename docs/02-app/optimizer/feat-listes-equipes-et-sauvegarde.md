@@ -21,13 +21,26 @@ jusqu’à la fermeture de la session.
 
 Au chargement, le stockage supplémentaire se valide indépendamment des listes :
 des listes illisibles ne provoquent aucune purge de mémoire ou d’équipe. Les
-entrées malformées sont écartées de l’état utilisable et signalées dans
-`rapportStockage`. Le texte brut initial reste conservé tant qu’aucun geste ni
-réimport ne modifie ce stockage. Un réimport sans changement ne réécrit aucune
-clé et conserve le brut, y compris les entrées écartées au chargement. Si la
-revérification modifie l’état et entraîne une réécriture, ses messages annoncent
-les rejets du chargement dont le brut ne sera plus conservé. Ces rejets sont
-transmis séparément dans `rapportChargement`, sans inclure les gestes refusés.
+entrées malformées ou dupliquées sont écartées de l’état utilisable et signalées
+dans `rapportStockage`. Le lecteur garde leurs valeurs JSON brutes dans `rejets`
+(`memories` et `teams`) ; l’écrivain réécrit cette section intacte à chaque
+mutation. Elle est vide quand absente d’un stockage plus ancien. Elle reste
+séparée des entrées utilisables à chaque relecture : un doublon rejeté ne se
+réactive jamais parce que l’entrée valide a disparu. Les rejets ne sont jamais
+appliqués ni affichés comme des mémoires ou équipes valides.
+
+Seul un geste visant une entrée rejetée la retire : supprimer une liste emporte
+ses rejets dont le `listId` est une chaîne lisible, sans déduire la liste d’une
+clé abîmée. Retirer un membre ou écrire une mémoire acceptée pour ce membre
+retire les mémoires rejetées dont la liste et le sélecteur lisibles correspondent.
+Une écriture refusée conserve ces rejets. `setTeams` conserve les équipes rejetées,
+qui ne font pas partie des équipes utilisables remplacées par ce geste.
+« Supprimer mes données » efface tous les rejets, sur disque et dans le miroir.
+
+Le texte brut initial reste conservé tant qu’aucun geste ni réimport ne modifie
+ce stockage. Un réimport sans changement ne réécrit aucune clé et conserve ses
+octets. Un réimport avec changement réécrit les valeurs des rejets à part ; il
+n’annonce aucune suppression de rejets puisqu’il les conserve.
 Le rapport est disponible dans le hook ; son
 affichage et le choix d’un membre avec restauration ne sont pas encore branchés
 dans l’écran.

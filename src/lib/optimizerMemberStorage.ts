@@ -26,13 +26,13 @@ export interface MemoireMembreOptimizer {
 export interface DonneesMembresOptimizer {
   memories: Map<string, MemoireMembreOptimizer>;
   teams: EquipeOptimizer[];
+  /** Valeurs JSON rejetées : conservées à part, jamais promues en entrées utilisables. */
+  rejets: { memories: unknown[]; teams: unknown[] };
 }
 export interface StockageOptimizer extends DonneesMembresOptimizer {
   lists: OptimizerList[];
   members: OptimizerListMember[];
   validated: ValidatedBuild[];
-  /** Rejets du chargement encore conservés dans le brut, distincts des gestes refusés. */
-  rapportChargement: string[];
 }
 export const cleMemoireMembre = (listId: string, selector: ExclusionSelector): string =>
   `${listId}|${exclusionSelectorKey(selector)}`;
@@ -77,9 +77,9 @@ function leadValide(v: unknown): v is LeaderSkill | null {
 }
 
 /** Valide seulement la forme : aucune équipe ne disparaît parce que les listes sont illisibles. */
-export function validerEquipesOptimizer(valeur: unknown): { teams: EquipeOptimizer[]; rapport: string[] } {
-  const teams: EquipeOptimizer[] = [], rapport: string[] = [];
-  if (!Array.isArray(valeur)) return { teams, rapport: ['Les équipes de l’Optimizer sont illisibles.'] };
+export function validerEquipesOptimizer(valeur: unknown): { teams: EquipeOptimizer[]; rejets: unknown[]; rapport: string[] } {
+  const teams: EquipeOptimizer[] = [], rejets: unknown[] = [], rapport: string[] = [];
+  if (!Array.isArray(valeur)) return { teams, rejets: valeur === undefined ? [] : [valeur], rapport: ['Les équipes de l’Optimizer sont illisibles.'] };
   const ids = new Set<string>(), affectes = new Set<string>();
   for (const [index, v] of valeur.entries()) {
     const contenu = objet(v) ? v.contenu === undefined ? 'siege' : v.contenu : undefined;
@@ -87,41 +87,68 @@ export function validerEquipesOptimizer(valeur: unknown): { teams: EquipeOptimiz
       || !v.members.every(selecteurValide) || !leadValide(v.lead)
       || typeof contenu !== 'string' || !['siege', 'rta', 'arene', 'donjon'].includes(contenu)
       || (v.leader !== undefined && (!selecteurValide(v.leader) || !v.members.some((s) => exclusionSelectorKey(s) === exclusionSelectorKey(v.leader as ExclusionSelector))))) {
-      rapport.push(`Équipe ${index + 1} malformée : ignorée.`); continue;
+      rejets.push(v); rapport.push(`Équipe ${index + 1} malformée : ignorée.`); continue;
     }
     const cles = v.members.map((s) => cleMemoireMembre(v.listId as string, s));
     if (ids.has(v.id) || new Set(cles).size !== cles.length || cles.some((k) => affectes.has(k))) {
-      rapport.push(`Équipe ${index + 1} : identifiant ou membre déjà affecté, ignorée.`); continue;
+      rejets.push(v); rapport.push(`Équipe ${index + 1} : identifiant ou membre déjà affecté, ignorée.`); continue;
     }
     ids.add(v.id); cles.forEach((k) => affectes.add(k));
     teams.push({ id: v.id, listId: v.listId, members: v.members, lead: v.lead, contenu: contenu as ContenuEquipeOptimizer,
       ...(v.leader === undefined ? {} : { leader: v.leader as ExclusionSelector }) });
   }
-  return { teams, rapport };
+  return { teams, rejets, rapport };
 }
 
 /** Seule paire de conversion JSON de ce stockage ; la Map ne voyage jamais comme un objet vide. */
 export function ecrireMembresOptimizer(donnees: DonneesMembresOptimizer): string {
-  return JSON.stringify({ memories: [...donnees.memories], teams: donnees.teams });
+  return JSON.stringify({ memories: [...donnees.memories], teams: donnees.teams,
+    ...(donnees.rejets.memories.length || donnees.rejets.teams.length ? { rejets: donnees.rejets } : {}) });
 }
 export function lireMembresOptimizer(brut: string | null): DonneesMembresOptimizer & { rapport: string[] } {
   const memories = new Map<string, MemoireMembreOptimizer>(), rapport: string[] = [];
-  if (brut === null) return { memories, teams: [], rapport };
+  const rejets: DonneesMembresOptimizer['rejets'] = { memories: [], teams: [] };
+  if (brut === null) return { memories, teams: [], rejets, rapport };
   let v: unknown;
-  try { v = JSON.parse(brut); } catch { return { memories, teams: [], rapport: ['Le stockage des membres de l’Optimizer est illisible.'] }; }
-  if (!objet(v)) return { memories, teams: [], rapport: ['Le stockage des membres de l’Optimizer est malformé.'] };
-  if (!Array.isArray(v.memories)) rapport.push('L’index des mémoires est illisible.');
+  try { v = JSON.parse(brut); } catch { return { memories, teams: [], rejets, rapport: ['Le stockage des membres de l’Optimizer est illisible.'] }; }
+  if (!objet(v)) return { memories, teams: [], rejets: { memories: [v], teams: [] }, rapport: ['Le stockage des membres de l’Optimizer est malformé.'] };
+  // Ne jamais revalider la section des rejets : un doublon devenu seul ne doit
+  // pas se réactiver parce qu'une autre entrée a été supprimée entre-temps.
+  if (objet(v.rejets)) {
+    for (const genre of ['memories', 'teams'] as const) {
+      const valeurs = v.rejets[genre];
+      rejets[genre] = Array.isArray(valeurs) ? valeurs : valeurs === undefined ? [] : [valeurs];
+      for (const [index] of rejets[genre].entries()) rapport.push(`${genre === 'memories' ? 'Mémoire' : 'Équipe'} rejetée ${index + 1} conservée sans application.`);
+    }
+  } else if (v.rejets !== undefined) {
+    rejets.memories.push(v.rejets); rapport.push('La section des rejets est malformée : conservée sans application.');
+  }
+  if (!Array.isArray(v.memories)) {
+    if (v.memories !== undefined) rejets.memories.push(v.memories);
+    rapport.push('L’index des mémoires est illisible.');
+  }
   else for (const [index, paire] of v.memories.entries()) {
     const m = Array.isArray(paire) ? paire[1] : undefined;
     if (!Array.isArray(paire) || paire.length !== 2 || !texte(paire[0]) || !objet(m) || !texte(m.listId)
       || !selecteurValide(m.selector) || !entierPositif(m.com2usId) || !criteresValides(m.criteres)
       || paire[0] !== cleMemoireMembre(m.listId, m.selector) || memories.has(paire[0])) {
-      rapport.push(`Mémoire ${index + 1} malformée ou dupliquée : ignorée.`); continue;
+      rejets.memories.push(paire); rapport.push(`Mémoire ${index + 1} malformée ou dupliquée : ignorée.`); continue;
     }
     memories.set(paire[0], { listId: m.listId, selector: m.selector, com2usId: m.com2usId, criteres: m.criteres });
   }
   const equipes = validerEquipesOptimizer(v.teams);
-  return { memories, teams: equipes.teams, rapport: [...rapport, ...equipes.rapport] };
+  rejets.teams.push(...equipes.rejets);
+  return { memories, teams: equipes.teams, rejets, rapport: [...rapport, ...equipes.rapport] };
+}
+
+/** Retirer seulement les valeurs dont la cible est lisible, sans interpréter une clé abîmée. */
+export function retirerRejetsOptimizer(rejets: DonneesMembresOptimizer['rejets'], listId: string, selector?: ExclusionSelector): DonneesMembresOptimizer['rejets'] {
+  const vise = (valeur: unknown, memoire: boolean) => {
+    const contenu = memoire && Array.isArray(valeur) ? valeur[1] : valeur;
+    return objet(contenu) && typeof contenu.listId === 'string' && contenu.listId === listId && (selector === undefined
+      || (memoire && selecteurValide(contenu.selector) && exclusionSelectorKey(contenu.selector) === exclusionSelectorKey(selector)));
+  };
+  return { memories: rejets.memories.filter(v => !vise(v, true)), teams: rejets.teams.filter(v => !vise(v, false)) };
 }
 
 export function lireMemoireMembre(memories: DonneesMembresOptimizer['memories'], listId: string, selector: ExclusionSelector, data: ExclusionSourceData): CriteresOptimizer | null {
@@ -194,8 +221,5 @@ export function reverifierStockageOptimizer(stockage: StockageOptimizer, data: E
   if (rapport.membresRetires || rapport.buildsRetires) rapport.messages.unshift(`${rapport.membresRetires} membre(s) et ${rapport.buildsRetires} build(s) retiré(s) : exemplaire introuvable ou runes absentes du compte.`);
   const modifie = rapport.membresRetires || rapport.buildsRetires || rapport.equipesModifiees.length || rapport.equipesDissoutes.length;
   if (!modifie) return { stockage, rapport };
-  for (const rejet of stockage.rapportChargement) {
-    rapport.messages.push(`Réécriture du stockage : cette entrée écartée au chargement ne sera plus conservée dans le brut. ${rejet}`);
-  }
-  return { stockage: { ...stockage, members: membres.kept, validated: builds.kept, memories: new Map(stockage.memories), teams, rapportChargement: [] }, rapport };
+  return { stockage: { ...stockage, members: membres.kept, validated: builds.kept, memories: new Map(stockage.memories), teams }, rapport };
 }

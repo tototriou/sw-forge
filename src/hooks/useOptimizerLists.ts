@@ -11,7 +11,7 @@ import type { CriteresOptimizer } from '../lib/criteresOptimizer';
 import type { ExclusionSourceData } from '../lib/optimizerExclusion';
 import {
   OPTIMIZER_MEMBERS_STORAGE_KEY, cleMemoireMembre, ecrireMembresOptimizer, lireMembresOptimizer,
-  enregistrerMemoireMembre, validerEquipesOptimizer,
+  enregistrerMemoireMembre, validerEquipesOptimizer, retirerRejetsOptimizer,
   type DonneesMembresOptimizer, type EquipeOptimizer, type MemoireMembreOptimizer, type StockageOptimizer,
 } from '../lib/optimizerMemberStorage';
 
@@ -137,19 +137,19 @@ export interface UseOptimizerLists {
   memories: DonneesMembresOptimizer['memories'];
   teams: EquipeOptimizer[];
   rapportStockage: string[];
-  rapportChargement: string[];
+  rejets: DonneesMembresOptimizer['rejets'];
   writeMemory: (membre: Omit<MemoireMembreOptimizer, 'criteres'>, criteres: CriteresOptimizer, data: ExclusionSourceData) => void;
   setTeams: (teams: EquipeOptimizer[]) => void;
   /** Applique en une mise à jour le résultat de la revérification commune. */
   replaceAfterRevalidation: (stockage: StockageOptimizer) => void;
 }
 
-interface MemberStorage extends DonneesMembresOptimizer { rapport: string[]; rapportChargement: string[]; raw: string | null }
+interface MemberStorage extends DonneesMembresOptimizer { rapport: string[]; raw: string | null }
 interface State extends StoredState { memberStorage: MemberStorage }
 function loadState(): State {
   const raw = loadLocal(OPTIMIZER_MEMBERS_STORAGE_KEY);
   const lu = lireMembresOptimizer(raw);
-  return { ...loadOptimizerLists(), memberStorage: { ...lu, raw, rapportChargement: lu.rapport } };
+  return { ...loadOptimizerLists(), memberStorage: { ...lu, raw } };
 }
 
 export function useOptimizerLists(): UseOptimizerLists {
@@ -159,8 +159,8 @@ export function useOptimizerLists(): UseOptimizerLists {
   useEffect(() => {
     const { memberStorage, ...historique } = state;
     saveLocal(STORAGE_KEY, JSON.stringify(historique));
-    // Garder le brut initial évite de purger au chargement des entrées rejetées
-    // ou de futurs champs inconnus. Seul un geste ou un réimport le remplace.
+    // Garder le texte initial préserve ses octets et ses futurs champs inconnus
+    // tant qu'aucun geste ou réimport ne modifie le stockage.
     saveLocal(OPTIMIZER_MEMBERS_STORAGE_KEY, memberStorage.raw ?? ecrireMembresOptimizer(memberStorage));
   }, [state, persist]);
 
@@ -186,6 +186,7 @@ export function useOptimizerLists(): UseOptimizerLists {
       validated: s.validated.filter((v) => v.listId !== id),
       activeListId: s.activeListId === id ? null : s.activeListId,
       memberStorage: { ...s.memberStorage, raw: null,
+        rejets: retirerRejetsOptimizer(s.memberStorage.rejets, id),
         memories: new Map([...s.memberStorage.memories].filter(([, m]) => m.listId !== id)),
         teams: s.memberStorage.teams.filter((e) => e.listId !== id) },
     }));
@@ -207,6 +208,7 @@ export function useOptimizerLists(): UseOptimizerLists {
       members: s.members.filter((m) => !(m.listId === listId && exclusionSelectorKey(m.selector) === key)),
       validated: s.validated.filter((v) => !(v.listId === listId && exclusionSelectorKey(v.selector) === key)),
       memberStorage: { ...s.memberStorage, raw: null,
+        rejets: retirerRejetsOptimizer(s.memberStorage.rejets, listId, selector),
         memories: new Map([...s.memberStorage.memories].filter(([k]) => k !== cleMemoireMembre(listId, selector))),
         teams: s.memberStorage.teams.flatMap((e) => {
           if (e.listId !== listId) return [e];
@@ -299,9 +301,10 @@ export function useOptimizerLists(): UseOptimizerLists {
   const replaceAfterRevalidation = useCallback((stockage: StockageOptimizer) => {
     setState((s) => {
       if (stockage.members === s.members && stockage.validated === s.validated
-        && stockage.memories === s.memberStorage.memories && stockage.teams === s.memberStorage.teams) return s;
+        && stockage.memories === s.memberStorage.memories && stockage.teams === s.memberStorage.teams
+        && stockage.rejets === s.memberStorage.rejets) return s;
       return { ...s, members: stockage.members, validated: stockage.validated,
-        memberStorage: { ...s.memberStorage, raw: null, rapportChargement: [], memories: new Map(stockage.memories), teams: stockage.teams } };
+        memberStorage: { ...s.memberStorage, raw: null, rejets: stockage.rejets, memories: new Map(stockage.memories), teams: stockage.teams } };
     });
   }, []);
 
@@ -312,6 +315,7 @@ export function useOptimizerLists(): UseOptimizerLists {
       }
       const r = enregistrerMemoireMembre(s.memberStorage.memories, membre, criteres, data);
       return { ...s, memberStorage: { ...s.memberStorage, memories: r.memories,
+        rejets: r.rapport.length ? s.memberStorage.rejets : retirerRejetsOptimizer(s.memberStorage.rejets, membre.listId, membre.selector),
         raw: r.rapport.length ? s.memberStorage.raw : null, rapport: [...s.memberStorage.rapport, ...r.rapport] } };
     });
   }, []);
@@ -346,7 +350,7 @@ export function useOptimizerLists(): UseOptimizerLists {
     memories: state.memberStorage.memories,
     teams: state.memberStorage.teams,
     rapportStockage: state.memberStorage.rapport,
-    rapportChargement: state.memberStorage.raw === null ? [] : state.memberStorage.rapportChargement,
+    rejets: state.memberStorage.rejets,
     writeMemory,
     setTeams,
     replaceAfterRevalidation,

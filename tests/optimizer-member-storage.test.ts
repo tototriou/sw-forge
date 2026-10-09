@@ -30,7 +30,7 @@ function compte(): ExclusionSourceData {
 function stockage(): StockageOptimizer {
   const criteres = baseCompleteCriteres(undefined); criteres.minStats.spd = 200;
   const memories = new Map([box, rta, siege].map((selector) => [cleMemoireMembre('l1', selector), { listId: 'l1', selector, com2usId: 10001, criteres }]));
-  return { rapportChargement: [], lists: [{ id: 'l1', name: 'Liste' }], members: [box, rta, siege].map((selector) => ({ listId: 'l1', selector })),
+  return { rejets: { memories: [], teams: [] }, lists: [{ id: 'l1', name: 'Liste' }], members: [box, rta, siege].map((selector) => ({ listId: 'l1', selector })),
     validated: [{ listId: 'l1', selector: siege, runeIds: [1, 2, 3, 4, 5, 6], artifactIds: [7] }], memories,
     teams: [{ id: 'e1', listId: 'l1', members: [box, siege], leader: siege,
       lead: { stat: 'Attack Speed', amount: 24, area: 'Guild', element: null }, contenu: 'siege' }] };
@@ -38,7 +38,7 @@ function stockage(): StockageOptimizer {
 function sourceSession(stockage: Record<string, string> = {}) {
   return { maintenant: new Date('2026-10-09T10:00:00Z'), versionApp: 'test', stockage, compte: null, memoire: {}, optimizer: null };
 }
-function installer(brut = ecrireMembresOptimizer(stockage()), listes = JSON.stringify({ ...stockage(), memories: undefined, teams: undefined, rapportChargement: undefined, activeListId: 'l1' })) {
+function installer(brut = ecrireMembresOptimizer(stockage()), listes = JSON.stringify({ ...stockage(), memories: undefined, teams: undefined, rejets: undefined, activeListId: 'l1' })) {
   return faussLocalStorage({ 'swblacksmith-persist-v1': '1', 'swblacksmith-optimizer-lists-v1': listes, [CLE]: brut });
 }
 
@@ -239,7 +239,7 @@ export function testMemoireOptimizerSuppressionExplicite() {
 }
 
 export function testMemoireOptimizerReimportBrutPreserve() {
-  titre('Réimport · brut conservé sans changement et rejets annoncés à la réécriture');
+  titre('Réimport · brut conservé sans changement et rejets conservés à la réécriture');
   const s = stockage(), brut = JSON.parse(ecrireMembresOptimizer(s));
   brut.memories.push(['malformee', { com2usId: '10001' }]);
   brut.teams.push({ ...s.teams[0], id: 'invalide', members: [box] });
@@ -263,9 +263,10 @@ export function testMemoireOptimizerReimportBrutPreserve() {
     egal(ecritures, 0, 'réimport identique : aucune réécriture des clés de stockage');
     const data = compte(); data.siegeDefenseTeams = [];
     const modifie = reverifierStockageOptimizer(lu, data, new Set([1, 2, 3, 4, 5, 6]));
-    ok(modifie.rapport.messages.some((m) => m.includes('Mémoire 4 malformée')), 'réimport modifié : la mémoire écartée au chargement est annoncée');
-    ok(modifie.rapport.messages.some((m) => m.includes('Équipe 2 malformée')), 'réimport modifié : l’équipe écartée au chargement est annoncée');
     lu.replaceAfterRevalidation(modifie.stockage); lu = h.render();
+    const reecrit = JSON.parse(mem.get(CLE)!);
+    egal(reecrit.rejets.memories, [brut.memories[3]], 'réimport modifié : mémoire rejetée conservée telle quelle');
+    egal(reecrit.rejets.teams, [brut.teams[1]], 'réimport modifié : équipe rejetée conservée telle quelle');
     ok(mem.get(CLE) !== initial, 'une modification réelle autorise la réécriture');
     const prochain = reverifierStockageOptimizer(lu, data, new Set([1, 2, 3, 4, 5, 6]));
     ok(!prochain.rapport.messages.some((m) => m.includes('malformée')), 'les rejets déjà annoncés ne sont pas répétés après réécriture');

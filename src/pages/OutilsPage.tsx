@@ -58,6 +58,9 @@ export default function OutilsPage({ recommandations, sub, box, runes, artifacts
   if (sub === 'speed-tuning') {
     return (
       <SpeedTuningSection
+        onImporterEquipe={onImporterEquipe}
+        sourcesOptimizer={{ box, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, monsterById: new Map(allMonsters.map(m => [String(m.id), m])) }}
+        compteCharge={box.length > 0 || runes.length > 0}
         allMonsters={allMonsters}
         siegeDefenseTeams={siegeDefenseTeams}
         siegeOffenseTeams={siegeOffenseTeams}

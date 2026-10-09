@@ -1959,6 +1959,9 @@ function Application() {
         )}
         {speedTuneEquipe && (
           <SpeedTuneModale
+            onImporterEquipe={importerEquipe}
+            sourcesOptimizer={optimizerData}
+            compteCharge={box.length > 0 || runes.length > 0}
             deck={speedTuneEquipe}
             allMonsters={allMonsters}
             siegeDefenseTeams={siegeDef.state.teams}

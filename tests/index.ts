@@ -12,6 +12,7 @@ import { testRenduRtaExportOptimizer, testRenduTelephoneRtaExportOptimizer, test
   testRenduTelephoneRecoExportOptimizer, testRenduOptimizerImportRecommandation, testRenduTelephoneOptimizerImportRecommandation,
   testOptimizerImportRtaRecoBranchement } from './rendu/rta-reco-export.test';
 import { testRenduSiegeExportOptimizer, testRenduTelephoneSiegeExportOptimizer, testOptimizerImportSiegeBranchement } from './rendu/siege-export.test';
+import { testRenduSpeedTuneExportOptimizer, testRenduTelephoneSpeedTuneExportOptimizer, testOptimizerImportSpeedTuneBranchement } from './rendu/speed-tune-export.test';
 import { testOptimizerImportActionDemontee, testOptimizerImportEcrituresGroupees, testOptimizerImportReverificationEnAttente, testOptimizerImportCollision, testRenduOptimizerImportDefenses, testRenduTelephoneOptimizerImportDefenses,
   testRenduOptimizerImportOffense, testRenduTelephoneOptimizerImportOffense, testRenduOptimizerImportRta,
   testRenduTelephoneOptimizerImportRta, testRenduOptimizerImportIndisponible, testRenduTelephoneOptimizerImportIndisponible, testRenduOptimizerImportRapportPartage, testRenduOptimizerImportDisponibiliteMemoisee } from './rendu/optimizer-import.test';
@@ -637,6 +638,9 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testOptimizerImportSiegeBranchement', testOptimizerImportSiegeBranchement],
   ['testRenduSiegeExportOptimizer', testRenduSiegeExportOptimizer],
   ['testRenduTelephoneSiegeExportOptimizer', testRenduTelephoneSiegeExportOptimizer],
+  ['testOptimizerImportSpeedTuneBranchement', testOptimizerImportSpeedTuneBranchement],
+  ['testRenduSpeedTuneExportOptimizer', testRenduSpeedTuneExportOptimizer],
+  ['testRenduTelephoneSpeedTuneExportOptimizer', testRenduTelephoneSpeedTuneExportOptimizer],
   ['testOptimizerImportEcrituresGroupees', testOptimizerImportEcrituresGroupees],
   ['testOptimizerImportReverificationEnAttente', testOptimizerImportReverificationEnAttente],
   ['testOptimizerImportCollision', testOptimizerImportCollision],

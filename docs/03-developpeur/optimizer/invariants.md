@@ -271,6 +271,7 @@ Une entrée = une règle qu'un chantier qui l'ignore casse, avec sa source. Ce f
 ## UI
 
 - L’export de « Ma prépa » prend toute la prépa et ses vitesses, indépendamment des filtres ; l’export d’un deck recommandé prend ce seul deck, avec les exemplaires de la confrontation commune. Les deux réutilisent les producteurs et l’action commune avec navigation ; sans compte ou membre importable, ils se désactivent avec raison, dérivée des sources. Source : ../../02-app/optimizer/feat-import-equipes.md § Exporter la prépa RTA et un deck recommandé
+- L’export du speed tuning dérive sa disponibilité du producteur sur les lignes et sources actuelles, avec désactivation motivée sans compte ou membre importable. La page et la modale appellent la même action commune ; la modale transmet son `DeckInitial` et se ferme seulement après création de la liste, jamais sur refus. Source : ../../02-app/speed-tuning/feat-export-optimizer.md § Action et disponibilité ; ../../02-app/speed-tuning/feat-export-optimizer.md § Page et modale
 
 - La navigation commune vers `#/outils/optimizer` suit seulement un import accepté par `importerEquipe` ; import vide, collision et revérification en attente gardent la route courante. Source : ../../02-app/optimizer/feat-import-equipes.md § F1 — Importer depuis l’Optimizer
 

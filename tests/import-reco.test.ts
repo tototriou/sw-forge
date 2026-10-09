@@ -8,8 +8,8 @@ import { leadEffectifMembreOptimizer } from '../src/lib/equipesOptimizer';
 import { consommerImportOptimizer } from '../src/lib/importEquipes';
 import { importerRecoOptimizer } from '../src/lib/importRecoOptimizer';
 import { exclusionSelectorKey, resolveExclusionEntry, type ExclusionSourceData } from '../src/lib/optimizerExclusion';
-import { collectOwnedBuilds, collectOwnedTeams, indexBuildsByCom2us } from '../src/lib/ownedBuilds';
-import { matchDeck } from '../src/lib/recoMatch';
+import { collectOwnedBuilds, collectOwnedTeams, countCopiesByCom2us } from '../src/lib/ownedBuilds';
+import { contexteConfrontationReco, matchDeck } from '../src/lib/recoMatch';
 import { computeStats } from '../src/lib/stats';
 import { deckComposition, gearComposition, recommandationComposition, sourcesComposition, stockageComposition } from './import-composition-fixtures';
 import { egal, ok, titre } from './outils';
@@ -21,7 +21,7 @@ const consommer = (deck: RecoDeck, data = sourcesComposition()) => {
 function confrontation(deck: RecoDeck, data: ExclusionSourceData) {
   const args = { box: data.box, rta: Object.values(data.rtaEntries), defense: data.siegeDefenseTeams,
     offense: data.siegeOffenseTeams, monsterById: data.monsterById };
-  return matchDeck(deck, { builds: indexBuildsByCom2us(collectOwnedBuilds(args)), teams: collectOwnedTeams({ ...args, defense: [] }) });
+  return matchDeck(deck, contexteConfrontationReco(collectOwnedBuilds(args), collectOwnedTeams(args), countCopiesByCom2us(data.box)));
 }
 function runage(sets: string[]) {
   const deck = recommandationComposition(); deck.slots[0].setOptions = [sets, ['rage', 'blade']];
@@ -145,7 +145,7 @@ export function testImportRecoCompositionRetrouvee() {
   egal(retrouve?.team.id, 'o2', 'fonction commune conserve le deck choisi par la confrontation');
   const p = importerRecoOptimizer(deck, data);
   egal(p.membres.map(m => exclusionSelectorKey(m.selector)), ['siege-offense:o2:1', 'siege-offense:o2:2', 'siege-offense:o2:0'], 'slots de l’offense retenue, attribués par espèce');
-  p.membres.forEach((m, i) => ok(resolveExclusionEntry(m.selector, data)!.gear === match.slots[i].owned!.gear, 'exactement le build confronté, pas la copie Box'));
+  p.membres.forEach((m, i) => ok(resolveExclusionEntry(m.selector, data)!.gear === match.slots[i].owned!.gear, 'espèces sans répétition : build du slot confronté'));
 }
 export function testImportRecoCompositionAmbigue() {
   titre('Import recommandation · première offense à égalité');
@@ -163,12 +163,21 @@ function repli(source: 'box' | 'rta' | 'siege-defense' | 'unowned') {
   const data = sourcesComposition(), deck = recommandationComposition(); data.siegeOffenseTeams = [];
   if (source !== 'box') data.box = data.box.filter(b => b.monster.com2usId !== 1001);
   if (source !== 'box' && source !== 'rta') data.rtaEntries = {};
+  if (source === 'siege-defense') data.siegeDefenseTeams = [deckComposition('d1')];
   if (source === 'unowned') data.siegeDefenseTeams = [];
   egal(importerRecoOptimizer(deck, data).membres[0].selector.source, source, 'source réelle choisie seulement après les offenses');
   const { rapport } = consommer(deck, data); egal(rapport.membresImportes, 3, 'sélecteur accepté par le consommateur');
 }
 export function testImportRecoRepliBox() { titre('Import recommandation · espèce absente des offenses, en Box'); repli('box'); }
-export function testImportRecoRepliRta() { titre('Import recommandation · espèce en RTA seule'); repli('rta'); }
+export function testImportRecoRepliRta() {
+  titre('Import recommandation · espèce en RTA seule');
+  const data = sourcesComposition();
+  data.box = data.box.filter(b => b.monster.com2usId !== 1001); data.siegeOffenseTeams = [];
+  ok(data.siegeDefenseTeams.every(t => t.slots.every(s => data.monsterById.get(s.monsterId!)?.com2usId !== 1001)), 'aucune défense ne contient l’espèce');
+  const { p, rapport } = consommer(recommandationComposition(), data);
+  egal(p.membres[0].selector, { source: 'rta', monsterId: '1' }, 'RTA est la seule source réelle de cette espèce');
+  egal(rapport.membresImportes, 3, 'sélecteur RTA accepté par le consommateur');
+}
 export function testImportRecoRepliDefense() { titre('Import recommandation · espèce en défense seule'); repli('siege-defense'); }
 export function testImportRecoAbsentePartout() { titre('Import recommandation · espèce absente partout'); repli('unowned'); }
 export function testImportRecoPureteEtExemplaireInutilisable() {

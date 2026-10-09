@@ -1,7 +1,7 @@
 import type { RecoDeck, SiegeTeam } from '../types';
-import { collectOwnedBuilds, collectOwnedTeams, indexBuildsByCom2us, SOURCE_LABEL } from './ownedBuilds';
-import { exclusionCandidatesFor, type ExclusionSelector, type ExclusionSourceData } from './optimizerExclusion';
-import { matchDeck } from './recoMatch';
+import { collectOwnedBuilds, collectOwnedTeams, countCopiesByCom2us, SOURCE_LABEL } from './ownedBuilds';
+import { exclusionCandidatesFor, exclusionSelectorKey, type ExclusionSelector, type ExclusionSourceData } from './optimizerExclusion';
+import { contexteConfrontationReco, matchDeck } from './recoMatch';
 
 type RechercheDeck =
   | { type: 'recommandation'; deck: RecoDeck }
@@ -19,12 +19,16 @@ export function retrouverDeckCompositionOptimizer(
   if (recherche.type === 'recommandation') {
     const args = { box: data.box, rta: Object.values(data.rtaEntries), defense: data.siegeDefenseTeams,
       offense: data.siegeOffenseTeams, monsterById: data.monsterById };
-    const retenu = matchDeck(recherche.deck, {
-      builds: indexBuildsByCom2us(collectOwnedBuilds(args)),
-      teams: collectOwnedTeams({ ...args, defense: [] }),
-    });
-    const index = data.siegeOffenseTeams.findIndex((_, i) => retenu.team === `${SOURCE_LABEL.offense} ${i + 1}`);
-    return index < 0 ? null : { team: data.siegeOffenseTeams[index], source: 'siege-offense' };
+    const retenu = matchDeck(recherche.deck, contexteConfrontationReco(
+      collectOwnedBuilds(args), collectOwnedTeams(args), countCopiesByCom2us(data.box)
+    ));
+    for (const source of ['siege-defense', 'siege-offense'] as const) {
+      const teams = source === 'siege-defense' ? data.siegeDefenseTeams : data.siegeOffenseTeams;
+      const label = SOURCE_LABEL[source === 'siege-defense' ? 'defense' : 'offense'];
+      const index = teams.findIndex((_, i) => retenu.team === `${label} ${i + 1}`);
+      if (index >= 0) return { team: teams[index], source };
+    }
+    return null;
   }
   const composition = recherche.composition;
   if (!composition.length || composition.some(id => id === null || !Number.isSafeInteger(id) || id <= 0)) return null;
@@ -42,19 +46,21 @@ export function retrouverDeckCompositionOptimizer(
 
 // Une entrée réelle sans équipement résolvable ne devient jamais « non possédé ».
 export function selecteurRepliCompositionOptimizer(
-  monsterId: string, com2usId: number, data: ExclusionSourceData, priorite: 'box' | 'offense'
+  monsterId: string, com2usId: number, data: ExclusionSourceData, priorite: 'box' | 'offense',
+  dejaPris: ReadonlySet<string> = new Set()
 ): ExclusionSelector | null {
   const sources = priorite === 'offense'
     ? ['siege-offense', 'box', 'rta', 'siege-defense'] as const
     : ['box', 'rta', 'siege-defense', 'siege-offense'] as const;
   for (const source of sources) {
     const candidat = exclusionCandidatesFor(source, data, null, null, false)
-      .find(c => c.monster.com2usId === com2usId);
+      .find(c => c.monster.com2usId === com2usId && !dejaPris.has(exclusionSelectorKey(c.selector)));
     if (candidat) return { ...candidat.selector };
   }
   const possede = data.box.some(b => b.monster.com2usId === com2usId)
     || Object.values(data.rtaEntries).some(e => data.monsterById.get(e.monsterId)?.com2usId === com2usId)
     || [...data.siegeDefenseTeams, ...data.siegeOffenseTeams].some(t =>
       t.slots.some(s => s.monsterId !== null && data.monsterById.get(s.monsterId)?.com2usId === com2usId));
-  return possede ? null : { source: 'unowned', monsterId };
+  const nonPossede: ExclusionSelector = { source: 'unowned', monsterId };
+  return possede || dejaPris.has(exclusionSelectorKey(nonPossede)) ? null : nonPossede;
 }

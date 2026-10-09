@@ -3,7 +3,7 @@ import type { CriteresPartielsOptimizer } from './criteresOptimizer';
 import { retrouverDeckCompositionOptimizer, selecteurRepliCompositionOptimizer } from './deckCompositionOptimizer';
 import { artifactSubKinds, artifactSubName, isArtifactSub, SET_BONUS, setsCost, MAX_SET_PIECES } from './effects';
 import type { ImportOptimizer } from './importEquipes';
-import { resolveExclusionEntry, type ExclusionSelector, type ExclusionSourceData } from './optimizerExclusion';
+import { exclusionSelectorKey, resolveExclusionEntry, type ExclusionSelector, type ExclusionSourceData } from './optimizerExclusion';
 
 function criteresDuSlot(slot: RecoSlot, libelle: string, messages: string[]): CriteresPartielsOptimizer {
   const criteres: CriteresPartielsOptimizer = { minStats: {}, comboSets: [], lignesVerrouillees: [] };
@@ -57,7 +57,9 @@ export function importerRecoOptimizer(deck: RecoDeck, data: ExclusionSourceData)
   const nom = deck.name.trim() || 'Deck recommandé';
   const resultat: ImportOptimizer = { nomListe: nom, contenu: 'guilde', membres: [], equipes: [], ignores: [], messages: [] };
   const retrouve = retrouverDeckCompositionOptimizer({ type: 'recommandation', deck }, data);
+  const offenseRetenue = retrouve?.source === 'siege-offense' ? retrouve : null;
   const slotsUtilises = new Set<number>();
+  const selecteursPris = new Set<string>();
   let leader: ExclusionSelector | undefined;
   deck.slots.forEach((slot, index) => {
     if (slot.com2usId === null) return;
@@ -69,19 +71,16 @@ export function importerRecoOptimizer(deck: RecoDeck, data: ExclusionSourceData)
       ignorer('Monstre inconnu ou identité d’espèce inutilisable.');
       return;
     }
-    if (retrouve) {
-      const slotIndex = retrouve.team.slots.findIndex((s, i) => !slotsUtilises.has(i) && s.monsterId !== null
+    const slotIndex = offenseRetenue?.team.slots.findIndex((s, i) => !slotsUtilises.has(i) && s.monsterId !== null
         && data.monsterById.get(s.monsterId)?.com2usId === slot.com2usId);
-      if (slotIndex < 0) {
-        ignorer('Aucun exemplaire disponible dans les slots du deck retenu.');
-        return;
-      }
+    if (offenseRetenue && slotIndex !== undefined && slotIndex >= 0) {
       slotsUtilises.add(slotIndex);
-      selector = { source: retrouve.source, teamId: retrouve.team.id, slotIndex };
+      selector = { source: offenseRetenue.source, teamId: offenseRetenue.team.id, slotIndex };
     } else {
-      const choisi = selecteurRepliCompositionOptimizer(String(monstre.id), slot.com2usId, data, 'offense');
+      if (offenseRetenue) resultat.messages.push(`${libelle} : aucun slot distinct disponible dans l’offense retenue ; repli dans le compte en excluant les exemplaires déjà pris.`);
+      const choisi = selecteurRepliCompositionOptimizer(String(monstre.id), slot.com2usId, data, 'offense', selecteursPris);
       if (!choisi) {
-        ignorer('Exemplaire réel sans équipement résolvable.');
+        ignorer('Aucun exemplaire distinct résolvable disponible dans le compte.');
         return;
       }
       selector = choisi;
@@ -90,6 +89,15 @@ export function importerRecoOptimizer(deck: RecoDeck, data: ExclusionSourceData)
     if (!resolu || resolu.monster.com2usId !== slot.com2usId) {
       ignorer('Exemplaire introuvable ou d’une autre espèce.');
       return;
+    }
+    selecteursPris.add(exclusionSelectorKey(selector));
+    if (retrouve) {
+      // collectOwnedTeams garde le dernier slot résolvable de chaque espèce.
+      const slotJuge = retrouve.team.slots.reduce((dernier, s, i) => s.gear && s.monsterId !== null
+        && data.monsterById.get(s.monsterId)?.com2usId === slot.com2usId ? i : dernier, -1);
+      if (slotJuge >= 0 && exclusionSelectorKey(selector) !== exclusionSelectorKey({ source: retrouve.source, teamId: retrouve.team.id, slotIndex: slotJuge })) {
+        resultat.messages.push(`${libelle} : l’exemplaire importé diffère de celui jugé par la confrontation ; les critères sont attribués au slot distinct choisi pour l’import.`);
+      }
     }
     resultat.membres.push({ selector: { ...selector }, com2usId: slot.com2usId, libelle,
       criteres: criteresDuSlot(slot, libelle, resultat.messages) });

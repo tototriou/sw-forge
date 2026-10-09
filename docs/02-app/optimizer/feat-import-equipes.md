@@ -110,14 +110,23 @@ ignoré avec sa raison. Après filtrage, 0 membre ne crée rien ; 1 ou plus de
 appliqué à quiconque. Aucun lead n’entre dans les critères personnels.
 
 La fonction commune `retrouverDeckCompositionOptimizer` appelle `matchDeck`
-sur les offenses pour reprendre l’équipe retenue par la confrontation :
-la meilleure selon les critères, la première en cas d’égalité. Les espèces
-retrouvent les slots de cette offense, copies consommées dans l’ordre des
-slots. Sans offense réunissant la composition, chaque espèce choisit son
-premier exemplaire résolvable dans l’ordre offense, Box, RTA, défense, même
-sans rune. `unowned` ne sert que si l’espèce est absente de toutes les sources.
+avec `contexteConfrontationReco`, le constructeur que l’écran des
+recommandations utilise aussi : tous les builds, défenses et offenses,
+réserve 6★ de la Box. Elle reprend la meilleure équipe selon les critères,
+la première en cas d’égalité. Si cette équipe est une offense, les espèces
+retrouvent ses slots, copies consommées dans l’ordre des slots. Sans offense
+retenue, ou pour une occurrence qui n’a plus de slot distinct dans cette
+offense, le repli choisit le premier exemplaire résolvable dans l’ordre
+offense, Box, RTA, défense, même sans rune, en excluant les sélecteurs déjà pris.
+Le repli faute de slot est dit au rapport. La confrontation garde le dernier
+build résolvable par espèce dans une équipe ; l’import garde une occurrence
+par slot distinct. Quand le sélecteur importé diffère de celui jugé par la
+confrontation, y compris si elle retenait une défense, le rapport le dit.
+`unowned` ne sert que si l’espèce est absente de toutes les sources ; un
+sélecteur non possédé déjà pris ne se réutilise pas non plus.
 Une espèce possédée sans équipement résolvable est ignorée, jamais déclarée
-non possédée. Un slot indisponible du deck retenu n’est pas remplacé par la Box.
+non possédée ; des copies épuisées sont ignorées avec raison. Un slot existant
+mais sans équipement résolvable du deck retenu n’est pas remplacé par la Box.
 
 Les minimums strictement positifs de `RecoSlot.stats` sont des **totaux de
 fiche**, comme dans `recoMatch.ts` : aucune base soustraite. La VIT passe par

@@ -7,11 +7,11 @@ import { UseSiegeState } from '../../hooks/useSiegeState';
 import { useStickyState } from '../../hooks/useStickyState';
 import { teamSummary, isTeamUsable } from '../../lib/recoFromSiege';
 import { encodeRecosJson, validateRecosImport, ImportReport, slugify } from '../../lib/recoShare';
-import { matchReco, RecoMatch } from '../../lib/recoMatch';
+import { contexteConfrontationReco, matchReco, RecoMatch } from '../../lib/recoMatch';
 import { chercheMonstre, RecoHit, RecoSearchMode } from '../../lib/recoSearch';
 import type { VueRecos } from '../../lib/recoDefenses';
 import { ConfirmDialog } from '../../ui/Dialogs';
-import { OwnedBuild, OwnedTeam, indexBuildsByCom2us } from '../../lib/ownedBuilds';
+import { OwnedBuild, OwnedTeam } from '../../lib/ownedBuilds';
 import { formesJouables } from '../../lib/monsterForms';
 import { telechargerTexte } from '../../lib/telechargement';
 import Segmented from '../../ui/Segmented';
@@ -203,7 +203,7 @@ export default function RecoBoard({
   );
 
   const matchCtx = useMemo(
-    () => ({ builds: indexBuildsByCom2us(builds), teams, copies6 }),
+    () => contexteConfrontationReco(builds, teams, copies6),
     [builds, teams, copies6]
   );
 

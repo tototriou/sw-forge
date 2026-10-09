@@ -7,7 +7,7 @@
 // Calcul pur — aucune dépendance React.
 
 import { ARTIFACT_KINDS, ArtifactKind, Reco, RecoDeck, RecoSlot, RecoStatKey, RECO_STATS } from '../types';
-import { OwnedBuild, OwnedTeam } from './ownedBuilds';
+import { OwnedBuild, OwnedTeam, indexBuildsByCom2us } from './ownedBuilds';
 import { computeStats } from './stats';
 import { activeSets, artifactSubLabel } from './effects';
 
@@ -244,6 +244,14 @@ export interface MatchContext {
   // Exemplaires 6★ réellement possédés (box seule) → « combien de fois puis-je
   // monter ce deck en parallèle ». Absent = information indisponible.
   copies6?: Map<number, number>;
+}
+
+// L'écran et les conversions confrontent les mêmes builds et équipes,
+// sans retirer un camp ni modifier la réserve de copies.
+export function contexteConfrontationReco(
+  builds: OwnedBuild[], teams: OwnedTeam[], copies6: Map<number, number>
+): MatchContext {
+  return { builds: indexBuildsByCom2us(builds), teams, copies6 };
 }
 
 // Combien de fois ce deck peut être monté EN PARALLÈLE avec la réserve 6★.

@@ -22,7 +22,7 @@ export function recommandationComposition(ids: (number | null)[] = [1, 2, 3]): R
 export function sourcesComposition(): ExclusionSourceData {
   return { box: [1, 2, 3, 4].map(id => ({ key: `box-${id}`, monster: monstreComposition(id), stars: 6, level: 40, gear: gearComposition() })),
     rtaEntries: { '1': { monsterId: '1', section: 'swift', runeSpeed: 999, gear: gearComposition() } },
-    siegeDefenseTeams: [deckComposition('d1')], siegeOffenseTeams: [deckComposition('o1')],
+    siegeDefenseTeams: [deckComposition('d1', [4, 5, 6])], siegeOffenseTeams: [deckComposition('o1')],
     monsterById: new Map([1, 2, 3, 4, 5, 6].map(id => [String(id), monstreComposition(id)])) };
 }
 export function stockageComposition(): StockageOptimizer {

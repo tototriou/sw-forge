@@ -19,6 +19,7 @@ async function verifier(nom: string, telephone = false) {
   } finally { await browser.close(); }
 }
 export const testOptimizerImportActionDemontee = () => verifier('action');
+export const testOptimizerImportEcrituresGroupees = () => verifier('groupe');
 export const testRenduOptimizerImportDefenses = () => verifier('defenses');
 export const testRenduTelephoneOptimizerImportDefenses = () => verifier('defenses', true);
 export const testRenduOptimizerImportOffense = () => verifier('offense');

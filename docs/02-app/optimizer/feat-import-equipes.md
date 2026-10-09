@@ -45,6 +45,12 @@ résultats, progression, page, arrêt manuel et détail ouvert, sans lancer
 de recherche. La réconciliation garde le propriétaire établi par le
 geste ; la prochaine saisie écrit vers ce premier membre seulement.
 Aucune liste existante ni aucun point de sauvegarde n’est modifié.
+La préparation lit aussi les écritures des listes en attente dans le même
+geste React pour attribuer un identifiant libre. La publication ajoute seulement
+la nouvelle liste, ses membres, identités, mémoires, équipes et contenu par une
+mise à jour fonctionnelle de l’état courant. Une saisie mémorisée, une création,
+une modification de liste ou une revérification précédant l’import dans le même
+geste reste conservée ; aucun état existant n’est republié depuis un ancien rendu.
 
 Le rapport reste dans le flottant ouvert après le choix : nom de la liste,
 nombre de monstres et d’équipes, membres ignorés et raisons, messages du

@@ -581,11 +581,12 @@ export function useOptimizerState(contexte?: ContexteMembresOptimizer): Optimize
   function importerEquipe(produire: (data: ExclusionSourceData) => ImportOptimizer): RapportImportOptimizer {
     const v = vivant.current, c = v.contexte;
     if (!c) throw new Error('Import impossible sans le contexte des listes.');
-    const resultat = consommerImportOptimizer(c.lists, c.lists.activeListId, produire(c.data), c.data, 'import');
+    const courant = c.lists.lireStockageCourant();
+    const resultat = consommerImportOptimizer(courant, courant.activeListId, produire(c.data), c.data, 'import');
     if (!resultat.rapport.listeCreee) return resultat.rapport;
     effacerProprietaireCriteres();
     const listId = resultat.rapport.listeCreee.id;
-    c.lists.remplacerParImport(resultat.stockage, listId);
+    c.lists.ajouterParImport(resultat.stockage, listId);
     // Le choix juge la destination publiée par ce geste, avant le prochain rendu.
     v.contexte = { ...c, lists: { ...c.lists, ...resultat.stockage, activeListId: listId } };
     const premier = resultat.stockage.members.find(m => m.listId === listId)!;

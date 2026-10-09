@@ -6,7 +6,7 @@ import { useOptimizerLists, type UseOptimizerLists } from '../../src/hooks/useOp
 import { setPersistence } from '../../src/hooks/usePersistence';
 import OptimizerSection from '../../src/components/outils/OptimizerSection';
 import { baseCompleteCriteres, photoCriteres } from '../../src/lib/criteresOptimizer';
-import { cleMemoireMembre, ecrireMembresOptimizer, OPTIMIZER_MEMBERS_STORAGE_KEY } from '../../src/lib/optimizerMemberStorage';
+import { cleMemoireMembre, ecrireMembresOptimizer, reverifierStockageOptimizer, OPTIMIZER_MEMBERS_STORAGE_KEY, type StockageOptimizer } from '../../src/lib/optimizerMemberStorage';
 import { OPTIMIZER_BACKUP_STORAGE_KEY } from '../../src/lib/optimizerBackup';
 import { importerDefensesSiegeOptimizer, importerPrepaRtaOptimizer, type RapportImportOptimizer } from '../../src/lib/importEquipes';
 import { exclusionSelectorKey, type ExclusionSourceData } from '../../src/lib/optimizerExclusion';
@@ -20,6 +20,7 @@ const monstres: Monster[] = [1, 2].map(id => ({ id, com2usId: 10100 + id, name: 
   leaderSkill: id === 1 ? { stat: 'HP', amount: 33, area: 'Guild', element: null } : null }));
 const box = [{ key: '11', monster: monstres[0], stars: 6, level: 40, gear }];
 const selector = { source: 'box' as const, unitKey: '11' };
+const autreSelector = { source: 'rta' as const, monsterId: '1' };
 const deck = (id: string): SiegeTeam => ({ id, lead: 0, tickAlertDismissed: false,
   slots: [1, 2, 1].map((m, i) => ({ monsterId: String(m), runeSpeed: 120 + i, tick: 0, gear })) });
 const dataInitiales: ExclusionSourceData = { box, monsterById: new Map(monstres.map(m => [String(m.id), m])),
@@ -42,23 +43,68 @@ const visible = (e: Element) => e.getBoundingClientRect().width > 0 && getComput
 const bouton = (nom: string) => [...document.querySelectorAll<HTMLButtonElement>('button')].find(e => visible(e) && e.textContent?.trim() === nom)!;
 const position = (e: Element) => { const { x, y, width, height } = e.getBoundingClientRect(); return { x, y, width, height }; };
 const texte = () => document.getElementById('racine')!.innerText;
+const photographierExistant = (stockage: StockageOptimizer, ids: Set<string>) => JSON.stringify({
+  lists: stockage.lists.filter(l => ids.has(l.id)), members: stockage.members.filter(m => ids.has(m.listId)),
+  validated: stockage.validated.filter(v => ids.has(v.listId)),
+  identities: [...stockage.identities].filter(([, m]) => ids.has(m.listId)),
+  memories: [...stockage.memories].filter(([, m]) => ids.has(m.listId)),
+  teams: stockage.teams.filter(e => ids.has(e.listId)), listContents: [...stockage.listContents].filter(([id]) => ids.has(id)),
+  rejets: { memories: stockage.rejets.memories, identities: stockage.rejets.identities,
+    teams: stockage.rejets.teams, listContents: stockage.rejets.listContents },
+});
 
 export async function scenario(nom: string): Promise<[boolean, string][]> {
   const preuves: [boolean, string][] = [], verifier = (oui: boolean, libelle: string) => preuves.push([oui, libelle]);
   localStorage.clear(); setPersistence(true);
   const criteres = baseCompleteCriteres(undefined); criteres.comboSets = ['violent']; criteres.minStats = { spd: 999 }; criteres.objective = 'ehp';
   localStorage.setItem('swblacksmith-optimizer-lists-v1', JSON.stringify({ lists: [{ id: 'a', name: 'Ancienne' }], activeListId: 'a',
-    members: [{ listId: 'a', selector }], validated: [{ listId: 'a', selector, runeIds: [91], artifactIds: [92] }] }));
-  localStorage.setItem(OPTIMIZER_MEMBERS_STORAGE_KEY, ecrireMembresOptimizer({ identities: new Map(),
-    memories: new Map([[cleMemoireMembre('a', selector), { listId: 'a', selector, com2usId: 10101, criteres }]]),
-    teams: [], listContents: new Map([['a', 'guilde']]), rejets: { memories: [], teams: [], listContents: [] } }));
+    members: [selector, autreSelector].map(selector => ({ listId: 'a', selector })), validated: [{ listId: 'a', selector, runeIds: [91], artifactIds: [92] }] }));
+  localStorage.setItem(OPTIMIZER_MEMBERS_STORAGE_KEY, ecrireMembresOptimizer({
+    identities: new Map([selector, autreSelector].map(selector => [cleMemoireMembre('a', selector), { listId: 'a', selector, com2usId: 10101 }])),
+    memories: new Map([selector, autreSelector].map(selector => [cleMemoireMembre('a', selector), { listId: 'a', selector, com2usId: 10101, criteres }])),
+    teams: [{ id: 'ancienne-equipe', listId: 'a', members: [selector, autreSelector], leader: selector, lead: monstres[0].leaderSkill! }],
+    listContents: new Map([['a', 'guilde']]), rejets: { memories: [{ listId: 'rejete', valeur: 'mémoire brute' }],
+      teams: [{ listId: 'rejete', valeur: 'équipe brute' }], listContents: [{ listId: 'rejete', contenu: 'inconnu' }],
+      identities: [{ listId: 'rejete', com2usId: 'inconnu' }] } }));
   globalThis.fetch = async () => new Response('{}', { status: 404 });
   const root = createRoot(document.getElementById('racine')!);
   await geste(() => root.render(<Banc />));
   await geste(() => etat.choisirMembre('a', selector));
   await geste(() => listes.sauvegarderPoint({ listId: 'a', selector }, data));
   const point = localStorage.getItem(OPTIMIZER_BACKUP_STORAGE_KEY), ancienne = JSON.stringify(listes.memories.get(cleMemoireMembre('a', selector)));
-  if (nom === 'action') {
+  const idsAvant = new Set(listes.lists.map(l => l.id));
+  let avant = photographierExistant(listes, idsAvant);
+  verifier(listes.memories.size === 2 && listes.identities.size === 2 && listes.teams.length === 1
+    && Object.values(listes.rejets).every(r => r.length > 0), 'précondition : mémoires, identités, équipe, contenu et chaque catégorie de rejets non vides');
+  if (nom === 'groupe') {
+    let creee = '', rapport!: RapportImportOptimizer, attente = '';
+    const uuid = Object.getOwnPropertyDescriptor(crypto, 'randomUUID');
+    Object.defineProperty(crypto, 'randomUUID', { configurable: true, value: () => 'import' });
+    try {
+      await geste(() => {
+        etat.setMinStats({ spd: 321 });
+        listes.renameList('a', 'Ancienne modifiée');
+        listes.setListContent('a', 'arene');
+        creee = listes.createList('Créée dans le geste', 'donjon');
+        listes.addMember(creee, autreSelector, 10101);
+        listes.replaceAfterRevalidation(reverifierStockageOptimizer(listes.lireStockageCourant(), data, new Set(), new Set()).stockage);
+        const courant = listes.lireStockageCourant();
+        idsAvant.add(creee);
+        attente = photographierExistant(courant, idsAvant);
+        rapport = etat.importerEquipe(importerDefensesSiegeOptimizer);
+      });
+    } finally {
+      if (uuid) Object.defineProperty(crypto, 'randomUUID', uuid); else delete (crypto as Partial<Crypto>).randomUUID;
+    }
+    verifier(creee === 'import' && listes.lists.length === 3 && listes.lists.some(l => l.id === creee), 'création et import groupés : les deux listes ajoutées sont conservées');
+    verifier(rapport.listeCreee?.id === listes.activeListId && listes.activeListId !== creee
+      && new Set(listes.lists.map(l => l.id)).size === 3, 'identifiant importé libre dans l’état courant, création en attente comprise');
+    verifier(listes.memories.get(cleMemoireMembre('a', selector))?.criteres.minStats.spd === 321,
+      'saisie mémorisée groupée avec création et import : valeur conservée');
+    verifier(photographierExistant(listes, idsAvant) === attente, 'toutes les écritures en attente et toutes les anciennes données restent identiques après import');
+    verifier(etat.proprietaireCriteres?.listId === listes.activeListId && exclusionSelectorKey(etat.proprietaireCriteres.selector) === 'siege-defense:d1:0',
+      'après le geste groupé et la réconciliation : premier membre importé propriétaire');
+  } else if (nom === 'action') {
     await geste(() => afficher(false));
     // Le transport injecte un résultat synthétique dans le vrai hook ; aucun moteur n'est lancé.
     globalThis.Worker = class {
@@ -70,12 +116,13 @@ export async function scenario(nom: string): Promise<[boolean, string][]> {
     await geste(() => etat.search.run({} as never));
     await geste(() => { etat.setResultsPage(4); etat.setStoppedManually(true); etat.setOpenDetailKey('ancien'); });
     verifier(etat.search.result !== null && etat.search.status === 'done', 'précondition : résultat reçu par le vrai hook, écran démonté');
+    avant = photographierExistant(listes, idsAvant);
     let rapport!: RapportImportOptimizer;
     await geste(() => { rapport = etat.importerEquipe(importerDefensesSiegeOptimizer); });
     const id = listes.activeListId!;
     verifier(rapport.listeCreee?.id === id && listes.lists.length === 2, 'action démontée : nouvelle liste active publiée');
-    verifier(listes.teams.length === 2 && listes.teams.every(e => e.lead?.amount === 33 && e.members.length === 3), 'action : deux équipes et leads conservés');
-    verifier(listes.listContents.get(id) === 'guilde' && listes.identities.size === 6, 'action : contenu Guilde et six identités indépendantes');
+    verifier(listes.teams.filter(e => e.listId === id).length === 2 && listes.teams.filter(e => e.listId === id).every(e => e.lead?.amount === 33 && e.members.length === 3), 'action : deux équipes et leads conservés');
+    verifier(listes.listContents.get(id) === 'guilde' && [...listes.identities.values()].filter(m => m.listId === id).length === 6, 'action : contenu Guilde et six identités indépendantes');
     verifier(listes.members.filter(m => m.listId === id).map(m => exclusionSelectorKey(m.selector)).join(',') === 'siege-defense:d1:0,siege-defense:d1:1,siege-defense:d1:2,siege-defense:d2:0,siege-defense:d2:1,siege-defense:d2:2', 'action : tous les exemplaires des deux défenses, copies distinctes');
     verifier(etat.proprietaireCriteres?.listId === id && exclusionSelectorKey(etat.proprietaireCriteres.selector) === 'siege-defense:d1:0'
       && etat.proprietaireCriteres.com2usId === 10101, 'après réconciliation : propriétaire exact du premier membre gardé');
@@ -145,10 +192,12 @@ export async function scenario(nom: string): Promise<[boolean, string][]> {
       verifier(minimum?.value === String(nom === 'rta' ? 140 : 120), 'vitesse importée lue dans le champ réel de l’écran');
       verifier(etat.sourceSelector?.source === (nom === 'defenses' ? 'siege-defense' : nom === 'rta' ? 'rta' : 'siege-offense')
         && (nom !== 'offense' || etat.sourceSelector.source === 'siege-offense' && etat.sourceSelector.teamId === 'o2'), 'exemplaire de la source choisie, second deck d’offense distingué');
-      verifier(nom === 'rta' ? listes.teams.length === 0 : !!bouton('Modifier l’équipe'), 'équipes importées visibles, prépa RTA sans équipe');
+      verifier(nom === 'rta' ? listes.teams.every(e => e.listId !== listes.activeListId) : !!bouton('Modifier l’équipe'), 'équipes importées visibles, prépa RTA sans équipe');
     }
     verifier(document.documentElement.scrollWidth <= window.innerWidth, 'format sans débordement horizontal');
   }
+  if (nom !== 'groupe') verifier(photographierExistant(listes, idsAvant) === avant,
+    'toutes les anciennes listes, appartenances, builds, mémoires, identités, équipes, contenus et rejets sont conservés');
   verifier(localStorage.getItem(OPTIMIZER_BACKUP_STORAGE_KEY) === point, 'point de sauvegarde intact');
   return preuves;
 }

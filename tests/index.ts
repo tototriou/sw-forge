@@ -7,7 +7,7 @@
 import { bilan, debutVerification } from './outils';
 import testImport from './import.test';
 import { verificationsImportEquipes } from './import-equipes.test';
-import { testOptimizerImportActionDemontee, testRenduOptimizerImportDefenses, testRenduTelephoneOptimizerImportDefenses,
+import { testOptimizerImportActionDemontee, testOptimizerImportEcrituresGroupees, testRenduOptimizerImportDefenses, testRenduTelephoneOptimizerImportDefenses,
   testRenduOptimizerImportOffense, testRenduTelephoneOptimizerImportOffense, testRenduOptimizerImportRta,
   testRenduTelephoneOptimizerImportRta, testRenduOptimizerImportIndisponible, testRenduTelephoneOptimizerImportIndisponible } from './rendu/optimizer-import.test';
 import { testRenduOptimizerLeadEquipePersonnel, testRenduTelephoneOptimizerLeadEquipePersonnel,
@@ -621,6 +621,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testStockage', async () => { await testStockage(); }],
   ['testPersistance', async () => { await testPersistance(); }],
   ['testOptimizerImportActionDemontee', testOptimizerImportActionDemontee],
+  ['testOptimizerImportEcrituresGroupees', testOptimizerImportEcrituresGroupees],
   ['testRenduOptimizerImportDefenses', testRenduOptimizerImportDefenses],
   ['testRenduTelephoneOptimizerImportDefenses', testRenduTelephoneOptimizerImportDefenses],
   ['testRenduOptimizerImportOffense', testRenduOptimizerImportOffense],

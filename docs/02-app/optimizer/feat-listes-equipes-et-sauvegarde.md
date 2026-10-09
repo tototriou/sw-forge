@@ -64,7 +64,10 @@ se relit comme `siege`.
 La validation au chargement impose 2 à 5 membres distincts, tous rattachés à la
 liste indiquée par l’équipe ; un membre ne figure que dans une équipe par liste.
 Un leader désigné appartient à ses membres. Les identifiants d’équipes sont
-uniques ; portée, élément et contenu sont validés. Un conflit ou une entrée
+uniques ; portée, élément et contenu sont validés. Chaque champ texte doit être
+une chaîne : aucun tableau ou objet n’est converti en texte pour être accepté.
+Les valeurs `null` prévues pour le lead, sa statistique et son élément restent
+admises. Un conflit ou une entrée
 malformée est signalé et écarté. La cohérence avec les listes et leurs membres
 se vérifie à l’écriture et au réimport, pas au chargement contre des listes
 potentiellement illisibles. Le lead de RES ou Précision peut être conservé.

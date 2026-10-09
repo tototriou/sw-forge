@@ -271,3 +271,26 @@ export function testMemoireOptimizerReimportBrutPreserve() {
     ok(!prochain.rapport.messages.some((m) => m.includes('malformée')), 'les rejets déjà annoncés ne sont pas répétés après réécriture');
   } finally { globalThis.localStorage = initialStorage; setPersistence(false); }
 }
+
+export function testEquipeOptimizerTextesStricts() {
+  titre('Équipes · tableaux refusés pour chaque champ texte au chargement');
+  const equipe = stockage().teams[0];
+  const variantes: [string, unknown][] = [
+    ['id', { ...equipe, id: ['e1'] }],
+    ['listId', { ...equipe, listId: ['l1'] }],
+    ['contenu', { ...equipe, contenu: ['rta'] }],
+    ['lead.stat', { ...equipe, lead: { ...equipe.lead, stat: ['Attack Speed'] } }],
+    ['lead.area', { ...equipe, lead: { ...equipe.lead, area: ['Guild'] } }],
+    ['lead.element', { ...equipe, lead: { ...equipe.lead, element: ['fire'] } }],
+    ['members.source', { ...equipe, members: [{ source: ['box'], unitKey: '11' }, siege] }],
+    ['members.unitKey', { ...equipe, members: [{ source: 'box', unitKey: ['11'] }, siege] }],
+    ['members.monsterId', { ...equipe, members: [{ source: 'rta', monsterId: ['1'] }, siege] }],
+    ['members.teamId', { ...equipe, members: [box, { ...siege, teamId: ['d1'] }] }],
+    ['leader.unitKey', { ...equipe, leader: { source: 'box', unitKey: ['11'] } }],
+  ];
+  for (const [nom, v] of variantes) {
+    const lu = lireMembresOptimizer(JSON.stringify({ memories: [], teams: [v] }));
+    egal(lu.teams.length, 0, `${nom} : équipe écartée`);
+    egal(lu.rapport, ['Équipe 1 malformée : ignorée.'], `${nom} : rejet annoncé au chargement`);
+  }
+}

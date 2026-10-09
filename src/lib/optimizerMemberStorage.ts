@@ -41,7 +41,7 @@ const texte = (v: unknown): v is string => typeof v === 'string' && v.length > 0
 const entierPositif = (v: unknown): v is number => typeof v === 'number' && Number.isSafeInteger(v) && v > 0;
 
 function selecteurValide(v: unknown): v is ExclusionSelector {
-  if (!objet(v)) return false;
+  if (!objet(v) || typeof v.source !== 'string') return false;
   if (v.source === 'box') return texte(v.unitKey);
   if (v.source === 'rta' || v.source === 'unowned') return texte(v.monsterId);
   return (v.source === 'siege-defense' || v.source === 'siege-offense') && texte(v.teamId)
@@ -71,8 +71,8 @@ function criteresValides(v: unknown): v is CriteresOptimizer {
 function leadValide(v: unknown): v is LeaderSkill | null {
   if (v === null) return true;
   return objet(v) && (v.stat === null || texte(v.stat)) && typeof v.amount === 'number' && Number.isFinite(v.amount) && v.amount >= 0
-    && ['General', 'Element', 'Arena', 'Guild', 'Dungeon'].includes(String(v.area))
-    && (v.element === null || ['fire', 'water', 'wind', 'light', 'dark'].includes(String(v.element)))
+    && typeof v.area === 'string' && ['General', 'Element', 'Arena', 'Guild', 'Dungeon'].includes(v.area)
+    && (v.element === null || (typeof v.element === 'string' && ['fire', 'water', 'wind', 'light', 'dark'].includes(v.element)))
     && (v.area !== 'Element' || v.element !== null);
 }
 
@@ -85,7 +85,7 @@ export function validerEquipesOptimizer(valeur: unknown): { teams: EquipeOptimiz
     const contenu = objet(v) ? v.contenu === undefined ? 'siege' : v.contenu : undefined;
     if (!objet(v) || !texte(v.id) || !texte(v.listId) || !Array.isArray(v.members) || v.members.length < 2 || v.members.length > 5
       || !v.members.every(selecteurValide) || !leadValide(v.lead)
-      || !['siege', 'rta', 'arene', 'donjon'].includes(String(contenu))
+      || typeof contenu !== 'string' || !['siege', 'rta', 'arene', 'donjon'].includes(contenu)
       || (v.leader !== undefined && (!selecteurValide(v.leader) || !v.members.some((s) => exclusionSelectorKey(s) === exclusionSelectorKey(v.leader as ExclusionSelector))))) {
       rapport.push(`Équipe ${index + 1} malformée : ignorée.`); continue;
     }

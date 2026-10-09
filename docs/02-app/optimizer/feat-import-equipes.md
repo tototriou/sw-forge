@@ -26,7 +26,9 @@ près du sélecteur de liste, au bureau et au téléphone, même lorsque
 « Monstres à optimiser » est replié. Sans membre résolvable dans aucune
 source, le bouton est désactivé et son `title` en donne la raison.
 La disponibilité est dérivée des producteurs, y compris pour une source
-non vide mais inutilisable.
+non vide mais inutilisable. Les propositions sont mémorisées sur les données
+sources et partagées entre les deux formats ; un rendu sans changement de
+ces données ne rappelle pas les producteurs, flottant fermé compris.
 
 Le bouton ouvre un `FlottantAuto`, de la largeur de son ancre : toutes les
 défenses de siège, chaque deck d’offense identifié par son numéro et sa

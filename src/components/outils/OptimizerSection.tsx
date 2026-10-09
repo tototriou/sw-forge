@@ -6,7 +6,7 @@ import OptimizerEquipeDialog from './OptimizerEquipeDialog';
 import OptimizerCreateListDialog from './OptimizerCreateListDialog';
 import OptimizerBackupBar from './OptimizerBackupBar';
 import OptimizerImportButton from './OptimizerImportButton';
-import type { RapportImportOptimizer } from '../../lib/importEquipes';
+import { importerDefensesSiegeOptimizer, importerOffenseSiegeOptimizer, importerPrepaRtaOptimizer, type RapportImportOptimizer } from '../../lib/importEquipes';
 import {
   Search,
   Square,
@@ -958,6 +958,15 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
     () => ({ box, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, monsterById }),
     [box, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, monsterById]
   );
+  // Les deux formats partagent les propositions calculées sur les seules sources.
+  const sourcesImport = useMemo(() => [
+    { libelle: 'Défenses de siège', produire: importerDefensesSiegeOptimizer },
+    ...exclusionData.siegeOffenseTeams.map((team, i) => ({
+      libelle: `Offense de siège ${i + 1} · ${team.slots.map(s => s.monsterId && exclusionData.monsterById.get(s.monsterId)?.name).filter(Boolean).join(', ') || 'Deck vide'}`,
+      produire: (courantes: ExclusionSourceData) => importerOffenseSiegeOptimizer(team.id, courantes),
+    })),
+    { libelle: 'Prépa RTA', produire: importerPrepaRtaOptimizer },
+  ].map(source => ({ ...source, utilisable: source.produire(exclusionData).membres.length > 0 })), [exclusionData]);
 
   // Candidats de compte pour l'ESPÈCE COURANTE, un tableau par source —
   // pilote À LA FOIS l'état actif/grisé/désactivé de chaque puce et le contenu de la désambiguïsation d'exemplaire (zone
@@ -3640,7 +3649,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
                 <span className="min-w-0 line-clamp-1 font-semibold text-[14px]" title={selected.monster.name}>{selected.monster.name}</span>
               </>}
             </div>
-            <OptimizerImportButton data={exclusionData} onImporter={importerDepuisEcran} rapport={rapportImport} />
+            <OptimizerImportButton sources={sourcesImport} onImporter={importerDepuisEcran} rapport={rapportImport} />
             {/* ⚠️ Aucune liste FIXE (Box/RTA/Défense siège ne sont pas des
                 cas spéciaux, voir
                 docs/02-app/optimizer/,
@@ -3734,7 +3743,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
               Monstres à optimiser
               <ChevronDown size={13} className={`ml-auto transition-transform ${zoneCOpen ? 'rotate-180' : ''}`} />
             </ZoneCliquable>
-            <OptimizerImportButton data={exclusionData} onImporter={importerDepuisEcran} rapport={rapportImport} />
+            <OptimizerImportButton sources={sourcesImport} onImporter={importerDepuisEcran} rapport={rapportImport} />
             {zoneCOpen && (
               <div className="mt-2 space-y-3">
                 <OptimizerListPicker

@@ -9,6 +9,7 @@ import { baseCompleteCriteres, photoCriteres } from '../../src/lib/criteresOptim
 import { cleMemoireMembre, ecrireMembresOptimizer, reverifierStockageOptimizer, OPTIMIZER_MEMBERS_STORAGE_KEY, type StockageOptimizer } from '../../src/lib/optimizerMemberStorage';
 import { OPTIMIZER_BACKUP_STORAGE_KEY } from '../../src/lib/optimizerBackup';
 import { importerDefensesSiegeOptimizer, importerPrepaRtaOptimizer, type RapportImportOptimizer } from '../../src/lib/importEquipes';
+import * as importsEquipes from '../../src/lib/importEquipes';
 import { exclusionSelectorKey, type ExclusionSourceData } from '../../src/lib/optimizerExclusion';
 import type { GearSet, Monster, SiegeTeam } from '../../src/types';
 
@@ -55,6 +56,36 @@ const photographierExistant = (stockage: StockageOptimizer, ids: Set<string>) =>
 
 export async function changerDisponibiliteImport(disponible: boolean) {
   await geste(() => changerSources(disponible ? dataInitiales : { ...data, rtaEntries: {}, siegeDefenseTeams: [], siegeOffenseTeams: [] }));
+}
+
+export async function scenarioDisponibiliteMemoisee(): Promise<[boolean, string][]> {
+  const noms = ['importerDefensesSiegeOptimizer', 'importerOffenseSiegeOptimizer', 'importerPrepaRtaOptimizer'] as const;
+  const appels = new Map<string, number>();
+  const descripteurs = noms.map(nom => Object.getOwnPropertyDescriptor(importsEquipes, nom)!);
+  try {
+    for (const nom of noms) {
+      const original = importsEquipes[nom];
+      Object.defineProperty(importsEquipes, nom, { configurable: true, value: (...args: unknown[]) => {
+        appels.set(nom, (appels.get(nom) ?? 0) + 1);
+        return (original as (...args: unknown[]) => unknown)(...args);
+      } });
+    }
+    const preuves = await scenario('rta');
+    appels.clear();
+    await geste(() => etat.setResultsPage(3));
+    preuves.push([appels.size === 0, 'rendu sans changement des sources, flottant fermé : aucun producteur rappelé']);
+    await geste(() => bouton('Importer une équipe').click());
+    await geste(() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })));
+    preuves.push([appels.size === 0, 'ouverture et fermeture sans changement des sources : propositions réutilisées']);
+    await geste(() => changerSources({ ...data, rtaEntries: {} }));
+    preuves.push([noms.every((nom, i) => appels.get(nom) === (i === 1 ? 2 : 1)),
+      'sources modifiées : chaque proposition recalculée une fois pour les deux formats']);
+    appels.clear();
+    await changerDisponibiliteImport(false);
+    preuves.push([appels.get(noms[0]) === 1 && !appels.has(noms[1]) && appels.get(noms[2]) === 1
+      && bouton('Importer une équipe').disabled, 'nouvelles sources vides : disponibilité actualisée sans double calcul']);
+    return preuves;
+  } finally { noms.forEach((nom, i) => Object.defineProperty(importsEquipes, nom, descripteurs[i])); }
 }
 
 export async function scenario(nom: string): Promise<[boolean, string][]> {

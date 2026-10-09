@@ -2,28 +2,18 @@ import { useEffect, useRef, useState } from 'react';
 import { Download } from 'lucide-react';
 import { Bouton, BoutonIcone, FlottantAuto, ZoneCliquable } from '../../ui';
 import { X } from 'lucide-react';
-import { importerDefensesSiegeOptimizer, importerOffenseSiegeOptimizer, importerPrepaRtaOptimizer, type RapportImportOptimizer } from '../../lib/importEquipes';
-import type { ExclusionSourceData } from '../../lib/optimizerExclusion';
+import type { RapportImportOptimizer } from '../../lib/importEquipes';
 import type { OptimizerState } from '../../hooks/useOptimizerState';
 
 interface Props {
-  data: ExclusionSourceData;
+  sources: { libelle: string; produire: Parameters<OptimizerState['importerEquipe']>[0]; utilisable: boolean }[];
   onImporter: OptimizerState['importerEquipe'];
   rapport: RapportImportOptimizer | null;
 }
 
-export default function OptimizerImportButton({ data, onImporter, rapport }: Props) {
+export default function OptimizerImportButton({ sources, onImporter, rapport }: Props) {
   const [ouvert, setOuvert] = useState(false);
   const ancre = useRef<HTMLDivElement>(null);
-  // La disponibilité suit les mêmes producteurs que le geste d'import.
-  const sources = [
-    { libelle: 'Défenses de siège', produire: importerDefensesSiegeOptimizer },
-    ...data.siegeOffenseTeams.map((team, i) => ({
-      libelle: `Offense de siège ${i + 1} · ${team.slots.map(s => s.monsterId && data.monsterById.get(s.monsterId)?.name).filter(Boolean).join(', ') || 'Deck vide'}`,
-      produire: (courantes: ExclusionSourceData) => importerOffenseSiegeOptimizer(team.id, courantes),
-    })),
-    { libelle: 'Prépa RTA', produire: importerPrepaRtaOptimizer },
-  ].map(source => ({ ...source, utilisable: source.produire(data).membres.length > 0 }));
   const disponible = sources.some(s => s.utilisable);
   useEffect(() => {
     if (!ouvert) return;

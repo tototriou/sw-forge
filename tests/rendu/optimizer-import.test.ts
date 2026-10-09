@@ -29,6 +29,17 @@ export const testRenduTelephoneOptimizerImportRta = () => verifier('rta', true);
 export const testRenduOptimizerImportIndisponible = () => verifier('indisponible');
 export const testRenduTelephoneOptimizerImportIndisponible = () => verifier('indisponible', true);
 
+export async function testRenduOptimizerImportDisponibiliteMemoisee() {
+  titre('Import Optimizer · propositions mémorisées sur les sources');
+  const { browser, page } = await navigateurOptimizer(false, 'tests/rendu/optimizer-import-banc.tsx');
+  try {
+    const preuves = await page.evaluate(() => (globalThis as unknown as {
+      bancOptimizer: { scenarioDisponibiliteMemoisee: () => Promise<[boolean, string][]> };
+    }).bancOptimizer.scenarioDisponibiliteMemoisee());
+    for (const [condition, texte] of preuves) ok(condition, texte);
+  } finally { await browser.close(); }
+}
+
 export async function testRenduOptimizerImportRapportPartage() {
   titre('Import Optimizer · rapport partagé entre bureau et téléphone');
   const { browser, page } = await navigateurOptimizer(false, 'tests/rendu/optimizer-import-banc.tsx');

@@ -75,7 +75,7 @@ export async function monter(avecRapport = false) {
       [cleMemoireMembre('b', premier), { listId: 'b', selector: premier, com2usId: 10101, criteres: { ...criteres, minStats: { spd: 190 } } }],
       ...[rta, siege].map((selector, i) => [cleMemoireMembre('a', selector), { listId: 'a', selector, com2usId: 10101,
         criteres: { ...criteres, minStats: { spd: 270 + i * 10 } } }] as const),
-    ]), teams: [], rejets: { memories: [], teams: [] },
+    ]), teams: [], listContents: new Map(), rejets: { memories: [], teams: [], listContents: [] },
   }));
   if (avecRapport) {
     const brut = JSON.parse(localStorage.getItem(OPTIMIZER_MEMBERS_STORAGE_KEY)!);

@@ -2,42 +2,36 @@ import type { ElementKey, LeaderSkill } from '../types';
 import type { LeadEffectifOptimizer } from './criteresOptimizer';
 import { LEADER_SKILL_STATS, type LeaderSkillStat } from './damage';
 import { exclusionSelectorKey, type ExclusionSelector } from './optimizerExclusion';
-import { validerEquipesOptimizer, type ContenuEquipeOptimizer, type EquipeOptimizer, type StockageOptimizer } from './optimizerMemberStorage';
+import { validerEquipesOptimizer, type ContenuListeOptimizer, type EquipeOptimizer, type StockageOptimizer } from './optimizerMemberStorage';
 
 type PorteeLead = 'General' | 'Element' | 'Arena' | 'Guild' | 'Dungeon';
-type ActiviteLead = 'actif' | 'element' | 'inactif' | 'sans-source';
+type ActiviteLead = 'actif' | 'element' | 'inactif';
 
-// Sources du modèle existant, pas un relevé en combat pour toutes les stats.
+// Chaque case suit la table de contenu de combat de la spec :
+// docs/02-app/optimizer/feat-listes-equipes-et-sauvegarde.md § Lead effectif d’un membre.
 export const ACTIVITE_LEADS_OPTIMIZER = {
-  siege: {
-    General: 'actif', // speed.ts:191 : General en siège.
-    Element: 'element', // speed.ts:192 : même élément seulement.
-    Arena: 'inactif', // speed.ts:193 : autre portée en siège.
-    Guild: 'actif', // speed.ts:191 : Guild en siège.
-    Dungeon: 'inactif', // speed.ts:193 : autre portée en siège.
-  },
-  rta: {
-    General: 'actif', // docs/02-app/rta/feat-categories.md:24–25.
-    Element: 'element', // docs/02-app/rta/feat-categories.md:30.
-    Arena: 'actif', // docs/02-app/rta/feat-categories.md:24–25.
-    Guild: 'inactif', // docs/02-app/rta/feat-categories.md:29.
-    Dungeon: 'inactif', // docs/02-app/rta/feat-categories.md:29.
+  guilde: {
+    General: 'actif',
+    Element: 'element',
+    Arena: 'inactif',
+    Guild: 'actif',
+    Dungeon: 'inactif',
   },
   arene: {
-    General: 'actif', // useRtaCategories.ts:69 : « partout ».
-    Element: 'sans-source', // Activité non établie en Arène.
-    Arena: 'actif', // docs/02-app/transverse/feat-calcul-vitesse.md:107–108.
-    Guild: 'sans-source', // Activité non établie en Arène.
-    Dungeon: 'sans-source', // Activité non établie en Arène.
+    General: 'actif',
+    Element: 'element',
+    Arena: 'actif',
+    Guild: 'inactif',
+    Dungeon: 'inactif',
   },
   donjon: {
-    General: 'actif', // useRtaCategories.ts:69 : « partout ».
-    Element: 'sans-source', // Activité non établie en Donjon.
-    Arena: 'sans-source', // Activité non établie en Donjon.
-    Guild: 'sans-source', // Activité non établie en Donjon.
-    Dungeon: 'sans-source', // Activité non établie en Donjon.
+    General: 'actif',
+    Element: 'element',
+    Arena: 'inactif',
+    Guild: 'inactif',
+    Dungeon: 'actif',
   },
-} as const satisfies Record<ContenuEquipeOptimizer, Record<PorteeLead, ActiviteLead>>;
+} as const satisfies Record<ContenuListeOptimizer, Record<PorteeLead, ActiviteLead>>;
 
 // Compatible avec appliquerCriteres ; tout « aucun » porte sa raison.
 export type LeadMembreOptimizer = Exclude<LeadEffectifOptimizer, { type: 'aucun' }> | { type: 'aucun'; motif: string };
@@ -45,15 +39,17 @@ const aucun = (motif: string): LeadMembreOptimizer => ({ type: 'aucun', motif })
 const memeMembre = (a: ExclusionSelector, b: ExclusionSelector): boolean => exclusionSelectorKey(a) === exclusionSelectorKey(b);
 
 export function leadEffectifMembreOptimizer(
-  teams: readonly EquipeOptimizer[], listId: string, selector: ExclusionSelector, element: ElementKey
+  stockage: Pick<StockageOptimizer, 'teams' | 'listContents'>, listId: string, selector: ExclusionSelector, element: ElementKey
 ): LeadMembreOptimizer {
-  const equipe = teams.find(e => e.listId === listId && e.members.some(s => memeMembre(s, selector)));
+  const equipe = stockage.teams.find(e => e.listId === listId && e.members.some(s => memeMembre(s, selector)));
   if (!equipe) return { type: 'personnel' };
+  const contenu = stockage.listContents.get(listId);
+  if (!contenu) return aucun('Le contenu de combat de la liste n’est pas défini : aucun lead d’équipe appliqué.');
   const lead = equipe.lead;
   if (!lead) return aucun('L’équipe ne porte aucun lead.');
-  const ligne = ACTIVITE_LEADS_OPTIMIZER[equipe.contenu] as Record<string, ActiviteLead> | undefined;
+  const ligne = ACTIVITE_LEADS_OPTIMIZER[contenu] as Record<string, ActiviteLead> | undefined;
   const activite = ligne && Object.prototype.hasOwnProperty.call(ligne, lead.area) ? ligne[lead.area] : undefined;
-  if (!activite || activite === 'sans-source') return aucun('L’activité de cette portée de lead n’est pas établie pour ce contenu.');
+  if (!activite) return aucun('L’activité de cette portée de lead n’est pas établie pour ce contenu.');
   if (activite === 'inactif') return aucun('Cette portée de lead est inactive pour ce contenu.');
   if (activite === 'element' && (!lead.element || lead.element !== element)) return aucun('Le lead ne concerne pas l’élément de ce membre.');
   // damage.ts : RES et Précision n’entrent pas dans les stats de lead calculées.
@@ -69,7 +65,6 @@ export interface CreationEquipeOptimizer {
   members: ExclusionSelector[];
   leader?: ExclusionSelector;
   lead?: LeaderSkill | null;
-  contenu?: ContenuEquipeOptimizer;
 }
 export interface ResultatEquipesOptimizer {
   teams: EquipeOptimizer[];
@@ -90,7 +85,7 @@ function accepterEquipes(contexte: ContexteEquipesOptimizer, teams: EquipeOptimi
 }
 
 export function creerEquipeOptimizer(contexte: ContexteEquipesOptimizer, creation: CreationEquipeOptimizer): ResultatEquipesOptimizer {
-  const equipe: EquipeOptimizer = { ...creation, lead: creation.lead ?? null, contenu: creation.contenu ?? 'siege' };
+  const equipe: EquipeOptimizer = { ...creation, lead: creation.lead ?? null };
   // Une création ne revérifie pas les références des équipes conservées :
   // une liste ou un membre ancien disparu ne doit pas bloquer la nouvelle équipe.
   const resultat = accepterEquipes(contexte, [equipe]);

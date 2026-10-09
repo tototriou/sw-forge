@@ -42,8 +42,9 @@ function stockage(): StockageOptimizer {
     members: [{ listId: 'ancienne', selector }, { listId: 'ancienne', selector: { source: 'rta', monsterId: '2' } }],
     validated: [{ listId: 'ancienne', selector, runeIds: [11, 12, 13, 14, 15, 16], artifactIds: [21, 22] }],
     memories: new Map([[cleMemoireMembre('ancienne', selector), { listId: 'ancienne', selector, com2usId: 1001, criteres }]]),
-    teams: [{ id: 'ancienne-equipe', listId: 'ancienne', members: [selector, { source: 'rta', monsterId: '2' }], lead, contenu: 'rta' }],
-    rejets: { memories: [['orpheline|rta:1', { listId: 'orpheline' }]], teams: [{ id: 'nouvelle:equipe:1', listId: 'rejete' }] } };
+    teams: [{ id: 'ancienne-equipe', listId: 'ancienne', members: [selector, { source: 'rta', monsterId: '2' }], lead }],
+    listContents: new Map([['ancienne', 'arene']]),
+    rejets: { listContents: [], memories: [['orpheline|rta:1', { listId: 'orpheline' }]], teams: [{ id: 'nouvelle:equipe:1', listId: 'rejete' }] } };
 }
 const consommer = (p: ImportOptimizer, data = sources(), etat = stockage(), id = 'nouvelle') =>
   consommerImportOptimizer(etat, 'ancienne', p, data, id);
@@ -55,18 +56,22 @@ export function testImportEquipesDefensesSiege() {
   titre('Import · défenses, slots précis, même espèce et lead du slot 0');
   const data = sources(), avant = structuredClone(data);
   const p = importerDefensesSiegeOptimizer(data), r = consommer(p, data);
+  egal(p.contenu, 'guilde', 'défenses : contenu Guilde proposé');
+  egal(r.stockage.listContents.get(r.activeListId!), 'guilde', 'défenses : contenu Guilde stocké sur la liste');
   egal(p.equipes.length, 2, 'une proposition par défense');
   egal(p.membres.map(m => exclusionSelectorKey(m.selector)), ['siege-defense:d1:0', 'siege-defense:d1:1', 'siege-defense:d1:2', 'siege-defense:d2:0', 'siege-defense:d2:1'], 'slots et exemplaires gardés, même sans rune');
   egal(r.rapport.membresImportes, 5, 'deux copies de la même espèce restent distinctes');
   egal(r.rapport.equipesCreees, 2, 'une équipe par défense');
   egal(r.stockage.teams[1].id, 'nouvelle:equipe:1 (2)', 'identifiant d’équipe suffixé contre un rejet préexistant');
-  egal(r.stockage.teams.slice(1).map(e => [e.lead, e.contenu, e.leader]), p.equipes.map(e => [lead, 'siege', e.leader]), 'lead du jeu entier, contenu Siège, leader 0');
+  egal(r.stockage.teams.slice(1).map(e => [e.lead, e.leader]), p.equipes.map(e => [lead, e.leader]), 'lead du jeu entier, leader 0');
   ok(isDeepStrictEqual(data, avant), 'producteur et consommateur sans mutation de la source');
 }
 
 export function testImportEquipesOffenseSiege() {
   titre('Import · un deck d’offense et aucun remplacement par Box ou défense');
   const data = sources(), p = importerOffenseSiegeOptimizer('o1', data), r = consommer(p, data);
+  egal(p.contenu, 'guilde', 'offense : contenu Guilde proposé');
+  egal(r.stockage.listContents.get(r.activeListId!), 'guilde', 'offense : contenu Guilde stocké sur la liste');
   egal(data.box[0].monster.com2usId, p.membres[0].com2usId, 'copie Box de la même espèce présente');
   ok(!isDeepStrictEqual(data.box[0].gear, data.siegeOffenseTeams[0].slots[0].gear), 'équipement Box distinct de celui du deck');
   egal(p.membres.map(m => exclusionSelectorKey(m.selector)), ['siege-offense:o1:0', 'siege-offense:o1:1', 'siege-offense:o1:2'], 'uniquement les exemplaires du deck demandé');
@@ -100,6 +105,8 @@ export function testImportEquipesAnciennesOrphelines() {
 export function testImportEquipesPrepaRtaVitesses() {
   titre('Import · toute la prépa RTA, VIT de fiche et base de l’exemplaire');
   const data = sources(), p = importerPrepaRtaOptimizer(data), r = consommer(p, data);
+  egal(p.contenu, 'arene', 'prépa RTA : contenu Arène proposé');
+  egal(r.stockage.listContents.get(r.activeListId!), 'arene', 'prépa RTA : contenu Arène stocké même sans équipe');
   egal(p.membres.map(m => m.selector), [{ source: 'rta', monsterId: '1' }, { source: 'rta', monsterId: '2' }], 'toutes les sections, exemplaires RTA');
   egal(p.equipes, [], 'aucune équipe RTA');
   egal(p.membres.map(m => m.criteres), [{ vitesse: { minimum: 227 } }, {}], 'base 101 + vitesse 126, Swift déjà compris, vitesse absente sans minimum');
@@ -230,7 +237,7 @@ export function testImportEquipesFiltrageEtCardinalites() {
     const d = sources(), q = importerPrepaRtaOptimizer(d);
     for (let i = 3; i <= n; i++) d.rtaEntries[String(i)] = { monsterId: String(i), section: 'autre', runeSpeed: null, gear: gear() };
     q.membres = importerPrepaRtaOptimizer(d).membres;
-    q.equipes = [{ libelle: 'Équipe proposée', members: q.membres.map(m => m.selector), lead, contenu: 'siege' }];
+    q.equipes = [{ libelle: 'Équipe proposée', members: q.membres.map(m => m.selector), lead }];
     const rr = consommer(q, d);
     egal(rr.rapport.equipesCreees, n === 6 ? 0 : 1, `${n} membres : cardinalité du modèle`);
     egal(rr.rapport.membresImportes, n, `${n} membres restent importés`);
@@ -247,7 +254,7 @@ export function testImportEquipesLeadsEtRelecture() {
   const data = sources(); data.monsterById.get('1')!.leaderSkill = { ...lead, area: 'Element', element: 'fire' };
   const r = consommer(importerOffenseSiegeOptimizer('o1', data), data);
   const m = memoiresNouvelles(r)[0];
-  egal(appliquerCriteres(m.criteres, leadEffectifMembreOptimizer(r.stockage.teams, r.activeListId!, m.selector, 'fire')).damageSetup.leaderSkill, { stat: 'Attack Speed', pct: 24 }, 'lead effectif dérivé pour l’élément');
+  egal(appliquerCriteres(m.criteres, leadEffectifMembreOptimizer(r.stockage, r.activeListId!, m.selector, 'fire')).damageSetup.leaderSkill, { stat: 'Attack Speed', pct: 24 }, 'lead effectif dérivé pour l’élément');
   ok(r.rapport.messages.some(m => m.includes('élément')), 'autre élément sans effet dit');
   const lu = lireMembresOptimizer(ecrireMembresOptimizer(r.stockage));
   egal(lu.rapport.length, 2, 'seuls les deux rejets préexistants sont annoncés');

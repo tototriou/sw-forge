@@ -8,14 +8,13 @@ import {
 
 // Le lecteur des listes historiques ignore cette clé et ne peut pas la réécrire.
 export const OPTIMIZER_MEMBERS_STORAGE_KEY = 'swblacksmith-optimizer-members-v1';
-export type ContenuEquipeOptimizer = 'siege' | 'rta' | 'arene' | 'donjon';
+export type ContenuListeOptimizer = 'guilde' | 'donjon' | 'arene';
 export interface EquipeOptimizer {
   id: string;
   listId: string;
   members: ExclusionSelector[];
   leader?: ExclusionSelector;
   lead: LeaderSkill | null;
-  contenu: ContenuEquipeOptimizer;
 }
 export interface MemoireMembreOptimizer {
   listId: string;
@@ -26,8 +25,9 @@ export interface MemoireMembreOptimizer {
 export interface DonneesMembresOptimizer {
   memories: Map<string, MemoireMembreOptimizer>;
   teams: EquipeOptimizer[];
+  listContents: Map<string, ContenuListeOptimizer>;
   /** Valeurs JSON rejetées : conservées à part, jamais promues en entrées utilisables. */
-  rejets: { memories: unknown[]; teams: unknown[] };
+  rejets: { memories: unknown[]; teams: unknown[]; listContents: unknown[] };
 }
 export interface StockageOptimizer extends DonneesMembresOptimizer {
   lists: OptimizerList[];
@@ -82,10 +82,8 @@ export function validerEquipesOptimizer(valeur: unknown): { teams: EquipeOptimiz
   if (!Array.isArray(valeur)) return { teams, rejets: valeur === undefined ? [] : [valeur], rapport: ['Les équipes de l’Optimizer sont illisibles.'] };
   const ids = new Set<string>(), affectes = new Set<string>();
   for (const [index, v] of valeur.entries()) {
-    const contenu = objet(v) ? v.contenu === undefined ? 'siege' : v.contenu : undefined;
     if (!objet(v) || !texte(v.id) || !texte(v.listId) || !Array.isArray(v.members) || v.members.length < 2 || v.members.length > 5
       || !v.members.every(selecteurValide) || !leadValide(v.lead)
-      || typeof contenu !== 'string' || !['siege', 'rta', 'arene', 'donjon'].includes(contenu)
       || (v.leader !== undefined && (!selecteurValide(v.leader) || !v.members.some((s) => exclusionSelectorKey(s) === exclusionSelectorKey(v.leader as ExclusionSelector))))) {
       rejets.push(v); rapport.push(`Équipe ${index + 1} malformée : ignorée.`); continue;
     }
@@ -94,7 +92,7 @@ export function validerEquipesOptimizer(valeur: unknown): { teams: EquipeOptimiz
       rejets.push(v); rapport.push(`Équipe ${index + 1} : identifiant ou membre déjà affecté, ignorée.`); continue;
     }
     ids.add(v.id); cles.forEach((k) => affectes.add(k));
-    teams.push({ id: v.id, listId: v.listId, members: v.members, lead: v.lead, contenu: contenu as ContenuEquipeOptimizer,
+    teams.push({ id: v.id, listId: v.listId, members: v.members, lead: v.lead,
       ...(v.leader === undefined ? {} : { leader: v.leader as ExclusionSelector }) });
   }
   return { teams, rejets, rapport };
@@ -103,22 +101,24 @@ export function validerEquipesOptimizer(valeur: unknown): { teams: EquipeOptimiz
 /** Seule paire de conversion JSON de ce stockage ; la Map ne voyage jamais comme un objet vide. */
 export function ecrireMembresOptimizer(donnees: DonneesMembresOptimizer): string {
   return JSON.stringify({ memories: [...donnees.memories], teams: donnees.teams,
-    ...(donnees.rejets.memories.length || donnees.rejets.teams.length ? { rejets: donnees.rejets } : {}) });
+    listContents: [...donnees.listContents].map(([listId, contenu]) => ({ listId, contenu })),
+    ...(donnees.rejets.memories.length || donnees.rejets.teams.length || donnees.rejets.listContents.length ? { rejets: donnees.rejets } : {}) });
 }
 export function lireMembresOptimizer(brut: string | null): DonneesMembresOptimizer & { rapport: string[] } {
   const memories = new Map<string, MemoireMembreOptimizer>(), rapport: string[] = [];
-  const rejets: DonneesMembresOptimizer['rejets'] = { memories: [], teams: [] };
-  if (brut === null) return { memories, teams: [], rejets, rapport };
+  const listContents = new Map<string, ContenuListeOptimizer>();
+  const rejets: DonneesMembresOptimizer['rejets'] = { memories: [], teams: [], listContents: [] };
+  if (brut === null) return { memories, listContents, teams: [], rejets, rapport };
   let v: unknown;
-  try { v = JSON.parse(brut); } catch { return { memories, teams: [], rejets, rapport: ['Le stockage des membres de l’Optimizer est illisible.'] }; }
-  if (!objet(v)) return { memories, teams: [], rejets: { memories: [v], teams: [] }, rapport: ['Le stockage des membres de l’Optimizer est malformé.'] };
+  try { v = JSON.parse(brut); } catch { return { memories, listContents, teams: [], rejets, rapport: ['Le stockage des membres de l’Optimizer est illisible.'] }; }
+  if (!objet(v)) return { memories, listContents, teams: [], rejets: { memories: [v], teams: [], listContents: [] }, rapport: ['Le stockage des membres de l’Optimizer est malformé.'] };
   // Ne jamais revalider la section des rejets : un doublon devenu seul ne doit
   // pas se réactiver parce qu'une autre entrée a été supprimée entre-temps.
   if (objet(v.rejets)) {
-    for (const genre of ['memories', 'teams'] as const) {
+    for (const genre of ['memories', 'teams', 'listContents'] as const) {
       const valeurs = v.rejets[genre];
       rejets[genre] = Array.isArray(valeurs) ? valeurs : valeurs === undefined ? [] : [valeurs];
-      for (const [index] of rejets[genre].entries()) rapport.push(`${genre === 'memories' ? 'Mémoire' : 'Équipe'} rejetée ${index + 1} conservée sans application.`);
+      for (const [index] of rejets[genre].entries()) rapport.push(`${genre === 'memories' ? 'Mémoire' : genre === 'teams' ? 'Équipe' : 'Contenu de liste'} rejeté(e) ${index + 1} conservé(e) sans application.`);
     }
   } else if (v.rejets !== undefined) {
     rejets.memories.push(v.rejets); rapport.push('La section des rejets est malformée : conservée sans application.');
@@ -138,7 +138,22 @@ export function lireMembresOptimizer(brut: string | null): DonneesMembresOptimiz
   }
   const equipes = validerEquipesOptimizer(v.teams);
   rejets.teams.push(...equipes.rejets);
-  return { memories, teams: equipes.teams, rejets, rapport: [...rapport, ...equipes.rapport] };
+  // Aucun défaut ni validation contre les listes : un stockage historique ou
+  // des listes illisibles ne permettent pas de déduire le contenu de combat.
+  if (v.listContents !== undefined && !Array.isArray(v.listContents)) {
+    rejets.listContents.push(v.listContents);
+    rapport.push('L’index des contenus de liste est illisible : conservé sans application.');
+  } else if (Array.isArray(v.listContents)) for (const [index, entree] of v.listContents.entries()) {
+    if (!objet(entree) || !texte(entree.listId) || !contenuListeValide(entree.contenu) || listContents.has(entree.listId)) {
+      rejets.listContents.push(entree);
+      rapport.push(`Contenu de liste ${index + 1} malformé ou dupliqué : conservé sans application.`);
+    } else listContents.set(entree.listId, entree.contenu);
+  }
+  return { memories, listContents, teams: equipes.teams, rejets, rapport: [...rapport, ...equipes.rapport] };
+}
+
+export function contenuListeValide(v: unknown): v is ContenuListeOptimizer {
+  return typeof v === 'string' && ['guilde', 'donjon', 'arene'].includes(v);
 }
 
 /** Retirer seulement les valeurs dont la cible est lisible, sans interpréter une clé abîmée. */
@@ -148,7 +163,8 @@ export function retirerRejetsOptimizer(rejets: DonneesMembresOptimizer['rejets']
     return objet(contenu) && typeof contenu.listId === 'string' && contenu.listId === listId && (selector === undefined
       || (memoire && selecteurValide(contenu.selector) && exclusionSelectorKey(contenu.selector) === exclusionSelectorKey(selector)));
   };
-  return { memories: rejets.memories.filter(v => !vise(v, true)), teams: rejets.teams.filter(v => !vise(v, false)) };
+  return { memories: rejets.memories.filter(v => !vise(v, true)), teams: rejets.teams.filter(v => !vise(v, false)),
+    listContents: selector === undefined ? rejets.listContents.filter(v => !vise(v, false)) : rejets.listContents };
 }
 
 export function lireMemoireMembre(memories: DonneesMembresOptimizer['memories'], listId: string, selector: ExclusionSelector, data: ExclusionSourceData): CriteresOptimizer | null {

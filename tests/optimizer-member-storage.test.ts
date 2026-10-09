@@ -30,15 +30,15 @@ function compte(): ExclusionSourceData {
 function stockage(): StockageOptimizer {
   const criteres = baseCompleteCriteres(undefined); criteres.minStats.spd = 200;
   const memories = new Map([box, rta, siege].map((selector) => [cleMemoireMembre('l1', selector), { listId: 'l1', selector, com2usId: 10001, criteres }]));
-  return { rejets: { memories: [], teams: [] }, lists: [{ id: 'l1', name: 'Liste' }], members: [box, rta, siege].map((selector) => ({ listId: 'l1', selector })),
+  return { listContents: new Map([['l1', 'guilde']]), rejets: { memories: [], teams: [], listContents: [] }, lists: [{ id: 'l1', name: 'Liste' }], members: [box, rta, siege].map((selector) => ({ listId: 'l1', selector })),
     validated: [{ listId: 'l1', selector: siege, runeIds: [1, 2, 3, 4, 5, 6], artifactIds: [7] }], memories,
     teams: [{ id: 'e1', listId: 'l1', members: [box, siege], leader: siege,
-      lead: { stat: 'Attack Speed', amount: 24, area: 'Guild', element: null }, contenu: 'siege' }] };
+      lead: { stat: 'Attack Speed', amount: 24, area: 'Guild', element: null } }] };
 }
 function sourceSession(stockage: Record<string, string> = {}) {
   return { maintenant: new Date('2026-10-09T10:00:00Z'), versionApp: 'test', stockage, compte: null, memoire: {}, optimizer: null };
 }
-function installer(brut = ecrireMembresOptimizer(stockage()), listes = JSON.stringify({ ...stockage(), memories: undefined, teams: undefined, rejets: undefined, activeListId: 'l1' })) {
+function installer(brut = ecrireMembresOptimizer(stockage()), listes = JSON.stringify({ ...stockage(), memories: undefined, teams: undefined, listContents: undefined, rejets: undefined, activeListId: 'l1' })) {
   return faussLocalStorage({ 'swblacksmith-persist-v1': '1', 'swblacksmith-optimizer-lists-v1': listes, [CLE]: brut });
 }
 
@@ -47,7 +47,8 @@ export function testMemoireOptimizerJson() {
   const s = stockage(), lu = lireMembresOptimizer(ecrireMembresOptimizer(s));
   ok(lu.memories instanceof Map, 'la relecture rend une Map');
   egal([...lu.memories], [...s.memories], 'toutes les paires, identités et critères sont conservés');
-  ok(isDeepStrictEqual(lu.teams, s.teams), 'les équipes, le leader, le lead et le contenu reviennent');
+  ok(isDeepStrictEqual(lu.teams, s.teams), 'les équipes, le leader et le lead reviennent');
+  egal([...lu.listContents], [...s.listContents], 'le contenu de liste revient dans son index');
   egal(lu.rapport, [], 'aucune entrée valide signalée comme malformée');
 }
 export function testMemoireOptimizerCopie() {
@@ -70,6 +71,7 @@ export function testMemoireOptimizerLecteurListes() {
   const h = monterListesOptimizer(), lu = h.render();
   egal([...lu.memories], [...stockage().memories], 'la nouvelle version retrouve les mémoires');
   ok(isDeepStrictEqual(lu.teams, stockage().teams), 'la nouvelle version retrouve les équipes');
+  egal([...lu.listContents], [['l1', 'guilde']], 'la nouvelle version retrouve le contenu de liste après le lecteur historique');
   egal(Object.keys(JSON.parse(mem.get('swblacksmith-optimizer-lists-v1')!)), ['lists', 'members', 'validated', 'activeListId'], 'la clé historique conserve exactement ses quatre champs');
 }
 export function testMemoireOptimizerListesIllisibles() {
@@ -100,16 +102,16 @@ export function testEquipeOptimizerValidation() {
   const variantes: [string, unknown][] = [
     ['un membre', { ...equipe, members: [box] }], ['six membres', { ...equipe, members: Array(6).fill(box) }],
     ['membre répété', { ...equipe, members: [box, box] }], ['leader extérieur', { ...equipe, leader: rta }],
-    ['portée inconnue', { ...equipe, lead: { ...equipe.lead, area: 'Inconnue' } }], ['contenu inconnu', { ...equipe, contenu: 'inconnu' }],
+    ['portée inconnue', { ...equipe, lead: { ...equipe.lead, area: 'Inconnue' } }],
     ['slot invalide', { ...equipe, members: [box, { ...siege, slotIndex: -1 }] }],
   ];
   for (const [nom, v] of variantes) { const r = validerEquipesOptimizer([v]); egal(r.teams.length, 0, `${nom} : refus`); egal(r.rapport.length, 1, `${nom} : signalé`); }
   const conflit = validerEquipesOptimizer([equipe, { ...equipe, id: 'e2' }]);
   egal(conflit.teams.length, 1, 'un membre dans une seule équipe par liste');
   egal(validerEquipesOptimizer([equipe, { ...equipe, id: 'e2', listId: 'l2' }]).teams.length, 2, 'les listes restent indépendantes');
-  const { contenu: _contenu, leader: _leader, ...sans } = equipe;
-  egal(validerEquipesOptimizer([sans]).teams[0]?.contenu, 'siege', 'contenu absent : Siège par défaut ; leader facultatif');
-  egal(validerEquipesOptimizer([{ ...sans, contenu: 'rta', lead: { stat: 'Resistance', amount: 40, area: 'General', element: null } }]).teams.length, 1, 'lead RES conservé sans calcul d’effet');
+  const { leader: _leader, ...sans } = equipe;
+  egal(validerEquipesOptimizer([sans]).teams.length, 1, 'équipe sans contenu ni leader acceptée');
+  egal(validerEquipesOptimizer([{ ...sans, lead: { stat: 'Resistance', amount: 40, area: 'General', element: null } }]).teams.length, 1, 'lead RES conservé sans calcul d’effet');
 }
 export function testMemoireOptimizerConservationSession() {
   titre('Mémoire des membres · refus du disque → session → activation → rechargement');
@@ -229,7 +231,7 @@ export function testMemoireOptimizerSuppressionExplicite() {
   const origine = stockage().teams;
   lu.setTeams(origine); lu = h.render();
   egal(lu.teams, [], 'une équipe ne peut pas ressusciter un membre retiré');
-  lu.setTeams([{ ...origine[0], members: [box, rta], leader: rta, contenu: 'rta' }]);
+  lu.setTeams([{ ...origine[0], members: [box, rta], leader: rta }]);
   lu = h.render();
   egal(lu.teams.length, 1, 'une équipe valide de membres existants est enregistrée');
   lu.deleteList('l1'); lu = h.render();
@@ -279,7 +281,6 @@ export function testEquipeOptimizerTextesStricts() {
   const variantes: [string, unknown][] = [
     ['id', { ...equipe, id: ['e1'] }],
     ['listId', { ...equipe, listId: ['l1'] }],
-    ['contenu', { ...equipe, contenu: ['rta'] }],
     ['lead.stat', { ...equipe, lead: { ...equipe.lead, stat: ['Attack Speed'] } }],
     ['lead.area', { ...equipe, lead: { ...equipe.lead, area: ['Guild'] } }],
     ['lead.element', { ...equipe, lead: { ...equipe.lead, element: ['fire'] } }],

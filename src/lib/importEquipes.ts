@@ -2,7 +2,7 @@ import type { LeaderSkill, SiegeTeam } from '../types';
 import { completerCriteresImport, type CriteresPartielsOptimizer } from './criteresOptimizer';
 import { equipeApresFiltrageOptimizer, leadEffectifMembreOptimizer } from './equipesOptimizer';
 import { exclusionSelectorKey, resolveExclusionEntry, type ExclusionSelector, type ExclusionSourceData } from './optimizerExclusion';
-import { enregistrerMemoireMembre, type ContenuEquipeOptimizer, type StockageOptimizer } from './optimizerMemberStorage';
+import { contenuListeValide, enregistrerMemoireMembre, type ContenuListeOptimizer, type StockageOptimizer } from './optimizerMemberStorage';
 
 export interface MembreImportOptimizer {
   selector: ExclusionSelector;
@@ -15,7 +15,6 @@ export interface EquipeImportOptimizer {
   members: ExclusionSelector[];
   leader?: ExclusionSelector;
   lead: LeaderSkill | null;
-  contenu: ContenuEquipeOptimizer;
 }
 export interface MonstreIgnoreImportOptimizer {
   selector: ExclusionSelector;
@@ -24,6 +23,7 @@ export interface MonstreIgnoreImportOptimizer {
 }
 export interface ImportOptimizer {
   nomListe: string;
+  contenu: ContenuListeOptimizer;
   membres: MembreImportOptimizer[];
   equipes: EquipeImportOptimizer[];
   ignores: MonstreIgnoreImportOptimizer[];
@@ -38,7 +38,7 @@ export interface RapportImportOptimizer {
   messages: string[];
 }
 
-const vide = (nomListe: string): ImportOptimizer => ({ nomListe, membres: [], equipes: [], ignores: [], messages: [] });
+const vide = (nomListe: string, contenu: ContenuListeOptimizer): ImportOptimizer => ({ nomListe, contenu, membres: [], equipes: [], ignores: [], messages: [] });
 const identiteValide = (id: number | null): id is number => id !== null && Number.isSafeInteger(id) && id > 0;
 
 function ajouterMembre(
@@ -75,17 +75,17 @@ function ajouterDeck(resultat: ImportOptimizer, team: SiegeTeam, source: 'siege-
   const leader = members.find(s => (s.source === 'siege-defense' || s.source === 'siege-offense') && s.slotIndex === 0);
   const monstreLeader = team.slots[0]?.monsterId ? data.monsterById.get(team.slots[0].monsterId) : undefined;
   resultat.equipes.push({ libelle, members, ...(leader ? { leader } : {}),
-    lead: structuredClone(monstreLeader?.leaderSkill ?? null), contenu: 'siege' });
+    lead: structuredClone(monstreLeader?.leaderSkill ?? null) });
 }
 
 export function importerDefensesSiegeOptimizer(data: ExclusionSourceData): ImportOptimizer {
-  const resultat = vide('Défenses de siège');
+  const resultat = vide('Défenses de siège', 'guilde');
   data.siegeDefenseTeams.forEach((team, i) => ajouterDeck(resultat, team, 'siege-defense', `Défense ${i + 1}`, data));
   return resultat;
 }
 
 export function importerOffenseSiegeOptimizer(teamId: string, data: ExclusionSourceData): ImportOptimizer {
-  const resultat = vide('Offense de siège');
+  const resultat = vide('Offense de siège', 'guilde');
   const team = data.siegeOffenseTeams.find(t => t.id === teamId);
   if (team) ajouterDeck(resultat, team, 'siege-offense', 'Offense de siège', data);
   else resultat.messages.push('Deck d’offense introuvable : aucun membre importé.');
@@ -93,7 +93,7 @@ export function importerOffenseSiegeOptimizer(teamId: string, data: ExclusionSou
 }
 
 export function importerPrepaRtaOptimizer(data: ExclusionSourceData): ImportOptimizer {
-  const resultat = vide('Prépa RTA');
+  const resultat = vide('Prépa RTA', 'arene');
   for (const entry of Object.values(data.rtaEntries)) {
     ajouterMembre(resultat, { source: 'rta', monsterId: entry.monsterId }, entry.monsterId, entry.runeSpeed, data);
   }
@@ -111,7 +111,8 @@ function suffixer(propose: string, occupes: Set<string>): string {
 function identifiantsOccupes(stockage: StockageOptimizer, champ: 'id' | 'listId'): Set<string> {
   const valeurs: unknown[] = [...stockage.lists.map(l => ({ listId: l.id })), ...stockage.members,
     ...stockage.validated, ...stockage.memories.values(), ...stockage.teams,
-    ...stockage.rejets.memories.map(v => Array.isArray(v) ? v[1] : v), ...stockage.rejets.teams];
+    ...stockage.rejets.memories.map(v => Array.isArray(v) ? v[1] : v), ...stockage.rejets.teams,
+    ...[...stockage.listContents.keys()].map(listId => ({ listId })), ...stockage.rejets.listContents];
   return new Set(valeurs.flatMap(v => {
     if (!v || typeof v !== 'object') return [];
     const valeur = (v as Record<string, unknown>)[champ];
@@ -125,6 +126,10 @@ export function consommerImportOptimizer(
 ): { stockage: StockageOptimizer; activeListId: string | null; rapport: RapportImportOptimizer } {
   const rapport: RapportImportOptimizer = { listeCreee: null, membresImportes: 0, equipesCreees: 0,
     ignores: structuredClone(proposition.ignores), equipesNonCreees: [], messages: [...proposition.messages] };
+  if (!contenuListeValide(proposition.contenu)) {
+    rapport.messages.push('Import refusé : contenu de combat de la liste inconnu.');
+    return { stockage, activeListId, rapport };
+  }
   const listId = suffixer(idPropose.trim() || 'import', identifiantsOccupes(stockage, 'listId'));
   const name = suffixer(proposition.nomListe.trim() || 'Équipe importée', new Set(stockage.lists.map(l => l.name)));
   const acceptes = new Map<string, MembreImportOptimizer>(), vus = new Set<string>();
@@ -151,14 +156,14 @@ export function consommerImportOptimizer(
   rapport.membresImportes = acceptes.size;
   const nouveau: StockageOptimizer = { ...stockage, lists: [...stockage.lists, { id: listId, name }],
     members: [...stockage.members, ...[...acceptes.values()].map(m => ({ listId, selector: { ...m.selector } }))],
-    memories, teams: [...stockage.teams] };
+    memories, teams: [...stockage.teams], listContents: new Map([...stockage.listContents, [listId, proposition.contenu]]) };
   const idsEquipes = identifiantsOccupes(stockage, 'id');
   proposition.equipes.forEach((equipe, i) => {
     const members = equipe.members.filter(s => acceptes.has(exclusionSelectorKey(s)));
     const leader = equipe.leader && members.find(s => exclusionSelectorKey(s) === exclusionSelectorKey(equipe.leader!));
     const id = suffixer(`${listId}:equipe:${i + 1}`, idsEquipes);
     const creation = equipeApresFiltrageOptimizer(nouveau, { id, listId, members,
-      ...(leader ? { leader } : {}), lead: equipe.lead, contenu: equipe.contenu });
+      ...(leader ? { leader } : {}), lead: equipe.lead });
     if (!creation.equipe) {
       rapport.equipesNonCreees.push({ libelle: equipe.libelle, lead: structuredClone(equipe.lead), raisons: creation.rapport });
       const lead = equipe.lead ? `${equipe.lead.stat ?? 'statistique inconnue'} ${equipe.lead.amount} % (${equipe.lead.area})` : 'aucun';
@@ -170,7 +175,7 @@ export function consommerImportOptimizer(
       for (const selector of members) {
         const membre = acceptes.get(exclusionSelectorKey(selector))!;
         const monstre = resolveExclusionEntry(selector, data)!.monster;
-        const effectif = leadEffectifMembreOptimizer(nouveau.teams, listId, selector, monstre.element);
+        const effectif = leadEffectifMembreOptimizer(nouveau, listId, selector, monstre.element);
         if (effectif.type === 'aucun') rapport.messages.push(`${equipe.libelle} — ${membre.libelle} : ${effectif.motif}`);
       }
     }

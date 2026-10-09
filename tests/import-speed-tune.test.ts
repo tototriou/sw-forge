@@ -35,7 +35,7 @@ function sources(): ExclusionSourceData {
 }
 const ligne = (id: number, swift = false, runeSpeed: number | null = 100): Ligne => ({ ...ligneVierge(monstre(id), 'allie'), runeSpeed, swift });
 function stockage(): StockageOptimizer {
-  return { lists: [], members: [], validated: [], memories: new Map(), teams: [], rejets: { memories: [], teams: [] } };
+  return { lists: [], members: [], validated: [], memories: new Map(), teams: [], listContents: new Map(), rejets: { memories: [], teams: [], listContents: [] } };
 }
 const consommer = (p: ReturnType<typeof importerSpeedTuneOptimizer>, data: ExclusionSourceData) =>
   consommerImportOptimizer(stockage(), null, p, data, 'nouvelle');
@@ -85,14 +85,15 @@ export function testImportSpeedTuneLigne206() {
   }
 }
 export function testImportSpeedTuneLeadElement() {
-  titre('Import speed tuning · lead du camp, Siège et membre d’un autre élément');
+  titre('Import speed tuning · lead du camp, Guilde et membre d’un autre élément');
   const data = sources(), p = importerSpeedTuneOptimizer([ligne(1), ligne(2)], lead, data), r = consommer(p, data);
   egal(r.rapport.equipesCreees, 1, 'une équipe de deux membres');
-  egal(r.stockage.teams[0].contenu, 'siege', 'contenu Siège');
+  egal(p.contenu, 'guilde', 'contenu Guilde proposé');
+  egal(r.stockage.listContents.get('nouvelle'), 'guilde', 'contenu Guilde stocké pour la liste');
   egal(r.stockage.teams[0].lead, { stat: 'Attack Speed', amount: 30, area: 'Element', element: 'fire' }, 'portée et élément conservés');
   for (const m of p.membres) {
     const photo = r.stockage.memories.get(cleMemoireMembre('nouvelle', m.selector))!.criteres;
-    const effectif = leadEffectifMembreOptimizer(r.stockage.teams, 'nouvelle', m.selector, data.monsterById.get(m.com2usId === 1001 ? '1' : '2')!.element);
+    const effectif = leadEffectifMembreOptimizer(r.stockage, 'nouvelle', m.selector, data.monsterById.get(m.com2usId === 1001 ? '1' : '2')!.element);
     egal(photo.damageSetup, baseCompleteCriteres(undefined).damageSetup, 'lead absent de la mémoire personnelle');
     egal(appliquerCriteres(photo, effectif).damageSetup.leaderSkill, m.com2usId === 1001 ? { stat: 'Attack Speed', pct: 30 } : undefined,
       'lead effectif seulement sur le membre feu');

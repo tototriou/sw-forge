@@ -10,7 +10,7 @@
 réservations dans la clé historique `swblacksmith-optimizer-lists-v1`. Son
 format reste inchangé : `lists`, `members`, `validated`, `activeListId`.
 
-Les mémoires des membres et les équipes sont dans une seconde clé,
+Les mémoires des membres, les équipes et les contenus de liste sont dans une seconde clé,
 `swblacksmith-optimizer-members-v1`. Une version de l’application qui ne connaît
 que les listes laisse cette clé intacte. Les deux clés passent exclusivement
 par `saveLocal`, sous l’interrupteur global de conservation. Sans conservation,
@@ -20,14 +20,14 @@ le disque et le miroir ; refuser la conservation garde le travail en mémoire
 jusqu’à la fermeture de la session.
 
 Au chargement, le stockage supplémentaire se valide indépendamment des listes :
-des listes illisibles ne provoquent aucune purge de mémoire ou d’équipe. Les
+des listes illisibles ne provoquent aucune purge de mémoire, d’équipe ou de contenu. Les
 entrées malformées ou dupliquées sont écartées de l’état utilisable et signalées
 dans `rapportStockage`. Le lecteur garde leurs valeurs JSON brutes dans `rejets`
-(`memories` et `teams`) ; l’écrivain réécrit cette section intacte à chaque
+(`memories`, `teams` et `listContents`) ; l’écrivain réécrit cette section intacte à chaque
 mutation. Elle est vide quand absente d’un stockage plus ancien. Elle reste
 séparée des entrées utilisables à chaque relecture : un doublon rejeté ne se
 réactive jamais parce que l’entrée valide a disparu. Les rejets ne sont jamais
-appliqués ni affichés comme des mémoires ou équipes valides.
+appliqués ni affichés comme des mémoires, équipes ou contenus valides.
 
 Seul un geste visant une entrée rejetée la retire : supprimer une liste emporte
 ses rejets dont le `listId` est une chaîne lisible, sans déduire la liste d’une
@@ -121,13 +121,13 @@ mémoires (`memoiresSuivantSelecteur`) sans les annoncer à chaque réimport.
 
 Une équipe porte `id`, `listId`, `members` (sélecteurs), un `leader` facultatif,
 `lead` (le `LeaderSkill` du jeu, avec statistique, montant, portée et élément,
-ou `null`) et `contenu` : `siege`, `rta`, `arene` ou `donjon`. Le contenu absent
-se relit comme `siege`.
+ou `null`). Elle ne porte aucun contenu de combat ; l’ancien champ d’équipe
+est ignoré à la lecture, sans rejeter l’équipe ni inventer un contenu de liste.
 
 La validation au chargement impose 2 à 5 membres distincts, tous rattachés à la
 liste indiquée par l’équipe ; un membre ne figure que dans une équipe par liste.
 Un leader désigné appartient à ses membres. Les identifiants d’équipes sont
-uniques ; portée, élément et contenu sont validés. Chaque champ texte doit être
+uniques ; portée et élément sont validés. Chaque champ texte doit être
 une chaîne : aucun tableau ou objet n’est converti en texte pour être accepté.
 Les valeurs `null` prévues pour le lead, sa statistique et son élément restent
 admises. Un conflit ou une entrée
@@ -136,12 +136,30 @@ se vérifie à l’écriture et au réimport, pas au chargement contre des liste
 potentiellement illisibles. Le lead de RES ou Précision peut être conservé.
 Le stockage ne calcule aucun lead effectif et n’ajoute aucun contrôle d’écran.
 
+## Contenu de combat des listes
+
+`ContenuListeOptimizer` admet `guilde`, `donjon` et `arene`. Le contenu vit dans
+`listContents`, une `Map` indexée par identifiant de liste, dans le stockage des
+membres. Le JSON contient un tableau d’objets `{ listId, contenu }` ; chaque
+identifiant est une chaîne non vide et chaque contenu une chaîne admise.
+Une entrée inconnue, mal typée ou dupliquée est signalée et conservée brute dans
+`rejets.listContents`, sans application ni réactivation automatique à la relecture.
+Un index malformé est conservé de la même façon. Le chargement ne contrôle pas
+ces références contre les listes : un contenu orphelin reste conservé.
+
+Le stockage antérieur sans cet index se relit avec une `Map` vide, sans défaut.
+Retirer un membre, écrire sa mémoire, modifier les équipes ou revérifier le compte
+conserve les contenus et leurs rejets. Supprimer une liste retire son contenu et
+les rejets dont le `listId` lisible la désigne ; les autres restent.
+Le sélecteur de contenu et la définition du contenu à la création manuelle
+ne sont pas encore branchés à l’écran.
+
 ## Modèle pur des équipes
 
 `equipesOptimizer.ts` crée une équipe, ajoute ou retire un membre, délie un
 membre ou dissout une équipe, sans toucher aux listes, aux builds ni aux
-mémoires. Les identifiants sont fournis par l’appelant ; le contenu par défaut
-est `siege`, le lead par défaut est `null` et le leader reste facultatif.
+mémoires. Les identifiants sont fournis par l’appelant ; le lead par défaut
+est `null` et le leader reste facultatif.
 La création vérifie la forme de l’équipe proposée, l’existence de sa liste
 et l’appartenance de chacun de ses membres à cette liste. Elle contrôle les
 collisions d’identifiant et l’exclusivité des membres contre les équipes
@@ -174,26 +192,26 @@ sinon `aucun` avec un motif. La donnée du jeu reste entière dans l’équipe.
 Le lead personnel n’est jamais un repli d’un lead d’équipe inactif ; délier
 rend le lead personnel disponible sans modifier sa mémoire.
 
-La table `ACTIVITE_LEADS_OPTIMIZER` distingue actif, inactif et sans source.
-Une portée inconnue reste sans effet, avec un motif. Les sources ci-dessous
-décrivent le modèle existant ; elles ne constituent pas un relevé en combat
-pour toutes les statistiques. « Élément » exige l’élément identique du membre.
+Le contenu est lu dans `listContents` pour la liste du membre, commun à toutes
+ses équipes. Une liste sans contenu défini n’applique aucun lead d’équipe,
+avec le motif « contenu de combat de la liste non défini » ; aucun repli sur
+le lead personnel. Une modification du contenu change l’effet dérivé, sans
+modifier le lead stocké ni les critères personnels.
+
+La table `ACTIVITE_LEADS_OPTIMIZER` distingue actif, inactif et élément.
+Une portée inconnue reste sans effet, avec un motif. « Élément » exige
+l’élément identique du membre. Les règles de contenu sont :
 
 | Contenu | General | Element | Arena | Guild | Dungeon |
 | --- | --- | --- | --- | --- | --- |
-| Siège | actif | élément | inactif | actif | inactif |
-| RTA | actif | élément | actif | inactif | inactif |
-| Arène | actif | sans source | actif | sans source | sans source |
-| Donjon | actif | sans source | sans source | sans source | sans source |
+| Guilde | actif | élément | inactif | actif | inactif |
+| Donjon | actif | élément | inactif | inactif | actif |
+| Arène | actif | élément | actif | inactif | inactif |
 
-Sources par case : Siège, `src/lib/speed.ts:189–193` (General/Guild,
-Element, Arena/Dungeon) ; RTA,
-[rta/ (feat-categories.md)](../rta/) lignes 24–30 (General/Arena,
-Guild/Dungeon, Element) ; Arène et Donjon General,
-`src/hooks/useRtaCategories.ts:69` (« partout ») ; Arène Arena,
-[transverse/ (feat-calcul-vitesse.md)](../transverse/) lignes 107–108.
-Les sept autres cases Arène/Donjon sont sans source : aucun lead effectif,
-avec le motif « activité non établie », même pour un élément identique.
+General agit dans les trois contenus ; Element seulement sur son élément.
+Guild agit exclusivement en Guilde, Dungeon exclusivement en Donjon et Arena
+exclusivement en Arène. Toute autre portée est inactive. La prépa RTA utilise
+le contenu Arène, avec les mêmes portées actives.
 
 Seules HP, Attack Power, Defense, Attack Speed, Critical Rate et Critical DMG
 sont calculables (`LEADER_SKILL_STATS`, `damage.ts`). Resistance et Accuracy
@@ -227,5 +245,6 @@ remplacé automatiquement. `App.tsx` appelle cette fonction au réimport, appliq
 le résultat ensemble par `replaceAfterRevalidation` seulement s’il a changé,
 et affiche ses messages. Sans changement, la fonction rend le stockage reçu ;
 les mémoires inactives restent signalées sans provoquer de réécriture.
+Les contenus des listes et leurs rejets restent intacts, avec ou sans changement.
 La reprise d’un point de sauvegarde et ses contrôles d’identité propres ne sont
 pas encore branchés dans l’écran.

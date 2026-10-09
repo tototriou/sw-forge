@@ -8,98 +8,95 @@ import {
   leadEffectifMembreOptimizer, type ContexteEquipesOptimizer,
 } from '../src/lib/equipesOptimizer';
 import type { ExclusionSelector } from '../src/lib/optimizerExclusion';
-import type { ContenuEquipeOptimizer, EquipeOptimizer } from '../src/lib/optimizerMemberStorage';
+import type { ContenuListeOptimizer, EquipeOptimizer } from '../src/lib/optimizerMemberStorage';
 
 const membres: ExclusionSelector[] = Array.from({ length: 6 }, (_, i) => ({ source: 'box', unitKey: String(i) }));
 const lead: LeaderSkill = { stat: 'Attack Speed', amount: 24, area: 'General', element: null };
-const equipe = (contenu: ContenuEquipeOptimizer = 'siege', skill: LeaderSkill | null = lead): EquipeOptimizer =>
-  ({ id: 'e1', listId: 'l1', members: membres.slice(0, 2), lead: skill && { ...skill }, contenu });
+const equipe = (skill: LeaderSkill | null = lead): EquipeOptimizer =>
+  ({ id: 'e1', listId: 'l1', members: membres.slice(0, 2), lead: skill && { ...skill } });
+const stockageLead = (teams: EquipeOptimizer[], contenu: ContenuListeOptimizer = 'guilde') =>
+  ({ teams, listContents: new Map<string, ContenuListeOptimizer>([['l1', contenu]]) });
 const contexte = (teams: EquipeOptimizer[] = []): ContexteEquipesOptimizer => ({
   lists: [{ id: 'l1', name: 'Liste' }, { id: 'l2', name: 'Autre liste' }],
   members: ['l1', 'l2'].flatMap(listId => membres.map(selector => ({ listId, selector }))), teams,
 });
 
-// Attendus indépendants de la table de production ; « inconnu » reste un refus.
-const casesActivite: [string, ContenuEquipeOptimizer, string, 'oui' | 'non' | 'inconnu'][] = [
-  ['SiegeGeneral', 'siege', 'General', 'oui'],
-  ['SiegeElement', 'siege', 'Element', 'oui'],
-  ['SiegeArena', 'siege', 'Arena', 'non'],
-  ['SiegeGuild', 'siege', 'Guild', 'oui'],
-  ['SiegeDungeon', 'siege', 'Dungeon', 'non'],
-  ['RtaGeneral', 'rta', 'General', 'oui'],
-  ['RtaElement', 'rta', 'Element', 'oui'],
-  ['RtaArena', 'rta', 'Arena', 'oui'],
-  ['RtaGuild', 'rta', 'Guild', 'non'],
-  ['RtaDungeon', 'rta', 'Dungeon', 'non'],
+// Attendus indépendants de la table de production.
+const casesActivite: [string, ContenuListeOptimizer, string, 'oui' | 'non'][] = [
+  ['GuildeGeneral', 'guilde', 'General', 'oui'],
+  ['GuildeElement', 'guilde', 'Element', 'oui'],
+  ['GuildeArena', 'guilde', 'Arena', 'non'],
+  ['GuildeGuild', 'guilde', 'Guild', 'oui'],
+  ['GuildeDungeon', 'guilde', 'Dungeon', 'non'],
   ['AreneGeneral', 'arene', 'General', 'oui'],
-  ['AreneElementSansSource', 'arene', 'Element', 'inconnu'],
+  ['AreneElement', 'arene', 'Element', 'oui'],
   ['AreneArena', 'arene', 'Arena', 'oui'],
-  ['AreneGuildSansSource', 'arene', 'Guild', 'inconnu'],
-  ['AreneDungeonSansSource', 'arene', 'Dungeon', 'inconnu'],
+  ['AreneGuild', 'arene', 'Guild', 'non'],
+  ['AreneDungeon', 'arene', 'Dungeon', 'non'],
   ['DonjonGeneral', 'donjon', 'General', 'oui'],
-  ['DonjonElementSansSource', 'donjon', 'Element', 'inconnu'],
-  ['DonjonArenaSansSource', 'donjon', 'Arena', 'inconnu'],
-  ['DonjonGuildSansSource', 'donjon', 'Guild', 'inconnu'],
-  ['DonjonDungeonSansSource', 'donjon', 'Dungeon', 'inconnu'],
+  ['DonjonElement', 'donjon', 'Element', 'oui'],
+  ['DonjonArena', 'donjon', 'Arena', 'non'],
+  ['DonjonGuild', 'donjon', 'Guild', 'non'],
+  ['DonjonDungeon', 'donjon', 'Dungeon', 'oui'],
 ];
 export const verificationsOptimizerEquipesActivite: [string, () => void][] = casesActivite.map(([nom, contenu, area, attendu]) =>
   [`testOptimizerEquipesActivite${nom}`, () => {
-    titre(`Optimizer · activité ${contenu}/${area}${attendu === 'inconnu' ? ' sans source' : ''}`);
-    const e = equipe(contenu, { ...lead, area, element: area === 'Element' ? 'fire' : null });
+    titre(`Optimizer · activité ${contenu}/${area}`);
+    const e = equipe({ ...lead, area, element: area === 'Element' ? 'fire' : null });
     // Les six statistiques suivent la portée ; le modèle sourcé reste distinct d’un relevé en jeu.
     for (const stat of LEADER_SKILL_STATS) {
       e.lead!.stat = stat;
-      const effectif = leadEffectifMembreOptimizer([e], 'l1', { ...membres[0] }, 'fire');
+      const effectif = leadEffectifMembreOptimizer(stockageLead([e], contenu), 'l1', { ...membres[0] }, 'fire');
       if (attendu === 'oui') egal(effectif, { type: 'equipe', lead: { stat, pct: 24 } }, `${stat} : lead actif`);
       else {
         egal(effectif.type, 'aucun', `${stat} : aucun lead`);
-        ok(effectif.type === 'aucun' && effectif.motif.includes(attendu === 'inconnu' ? 'pas établie' : 'inactive'), `${stat} : motif explicite`);
+        ok(effectif.type === 'aucun' && effectif.motif.includes('inactive'), `${stat} : motif explicite`);
       }
     }
   }]);
 
 export function testOptimizerEquipesElementsEtLeadPersonnel() {
   titre('Optimizer · élément du membre et restitution du lead personnel');
-  const e = equipe('siege', { ...lead, area: 'Element', element: 'fire' });
+  const e = equipe({ ...lead, area: 'Element', element: 'fire' });
   const personnel = baseCompleteCriteres(undefined);
   personnel.damageSetup.leaderSkill = { stat: 'HP', pct: 33 };
   personnel.damageSetup.leaderSpeedPct = 19;
   const initial = structuredClone(personnel);
-  const meme = leadEffectifMembreOptimizer([e], 'l1', membres[0], 'fire');
+  const meme = leadEffectifMembreOptimizer(stockageLead([e]), 'l1', membres[0], 'fire');
   egal(resolvedLeaderSkill(appliquerCriteres(personnel, meme).damageSetup), { stat: 'Attack Speed', pct: 24 }, 'même élément : superposition du lead');
-  const autre = leadEffectifMembreOptimizer([e], 'l1', membres[0], 'water');
+  const autre = leadEffectifMembreOptimizer(stockageLead([e]), 'l1', membres[0], 'water');
   ok(autre.type === 'aucun' && autre.motif.includes('élément'), 'élément différent : aucun avec motif');
   egal(resolvedLeaderSkill(appliquerCriteres(personnel, autre).damageSetup), null, 'aucun repli sur le moderne ou le legacy personnel');
-  egal(leadEffectifMembreOptimizer([e], 'l2', membres[0], 'fire'), { type: 'personnel' }, 'autre liste : lead personnel');
-  egal(leadEffectifMembreOptimizer([e], 'l1', membres[3], 'fire'), { type: 'personnel' }, 'membre hors équipe : personnel');
+  egal(leadEffectifMembreOptimizer(stockageLead([e]), 'l2', membres[0], 'fire'), { type: 'personnel' }, 'autre liste : lead personnel');
+  egal(leadEffectifMembreOptimizer(stockageLead([e]), 'l1', membres[3], 'fire'), { type: 'personnel' }, 'membre hors équipe : personnel');
   const delie = delierMembreOptimizer([e], 'l1', membres[0]);
-  egal(resolvedLeaderSkill(appliquerCriteres(personnel, leadEffectifMembreOptimizer(delie.teams, 'l1', membres[0], 'fire')).damageSetup), { stat: 'HP', pct: 33 }, 'délier rend le lead personnel');
+  egal(resolvedLeaderSkill(appliquerCriteres(personnel, leadEffectifMembreOptimizer(stockageLead(delie.teams), 'l1', membres[0], 'fire')).damageSetup), { stat: 'HP', pct: 33 }, 'délier rend le lead personnel');
   egal(personnel, initial, 'les critères personnels ne sont jamais modifiés');
 }
 
 export function testOptimizerEquipesLeadsNonCalculablesEtHorsListe() {
   titre('Optimizer · leads conservés sans calcul et valeur hors liste');
   for (const stat of ['Accuracy', 'Resistance', 'Inconnue', null]) {
-    const e = equipe('siege', { ...lead, stat });
-    const effectif = leadEffectifMembreOptimizer([e], 'l1', membres[0], 'fire');
+    const e = equipe({ ...lead, stat });
+    const effectif = leadEffectifMembreOptimizer(stockageLead([e]), 'l1', membres[0], 'fire');
     ok(effectif.type === 'aucun' && effectif.motif.includes('sans effet calculé'), `${stat} : aucun avec motif`);
     const cree = creerEquipeOptimizer(contexte(), e);
     egal(cree.teams[0].lead, e.lead, `${stat} : donnée entière conservée`);
   }
-  const e = equipe('siege', { ...lead, amount: 27 });
+  const e = equipe({ ...lead, amount: 27 });
   ok(!LEADER_SKILL_VALEURS['Attack Speed'].includes(27), 'fixture : valeur hors liste');
-  egal(leadEffectifMembreOptimizer([e], 'l1', membres[0], 'fire'), { type: 'equipe', lead: { stat: 'Attack Speed', pct: 27 } }, 'hors liste : aucun remplacement ni rejet');
+  egal(leadEffectifMembreOptimizer(stockageLead([e]), 'l1', membres[0], 'fire'), { type: 'equipe', lead: { stat: 'Attack Speed', pct: 27 } }, 'hors liste : aucun remplacement ni rejet');
   for (const amount of [NaN, Infinity, -1]) {
     e.lead!.amount = amount;
-    const resultat = leadEffectifMembreOptimizer([e], 'l1', membres[0], 'fire');
+    const resultat = leadEffectifMembreOptimizer(stockageLead([e]), 'l1', membres[0], 'fire');
     ok(resultat.type === 'aucun' && resultat.motif.includes('montant'), 'montant invalide : aucun avec motif');
   }
   for (const area of ['Inconnue', 'toString']) {
     e.lead = { ...lead, area };
-    const resultat = leadEffectifMembreOptimizer([e], 'l1', membres[0], 'fire');
+    const resultat = leadEffectifMembreOptimizer(stockageLead([e]), 'l1', membres[0], 'fire');
     ok(resultat.type === 'aucun' && resultat.motif.includes('pas établie'), `${area} : portée inconnue sans effet`);
   }
-  ok(leadEffectifMembreOptimizer([equipe('siege', null)], 'l1', membres[0], 'fire').type === 'aucun', 'équipe sans lead : aucun');
+  ok(leadEffectifMembreOptimizer(stockageLead([equipe(null)]), 'l1', membres[0], 'fire').type === 'aucun', 'équipe sans lead : aucun');
 }
 
 export const verificationsOptimizerEquipesCardinalites: [string, () => void][] = [0, 1, 2, 5, 6].map(nombre =>
@@ -110,7 +107,7 @@ export const verificationsOptimizerEquipesCardinalites: [string, () => void][] =
     egal(resultat.equipe !== null, nombre >= 2 && nombre <= 5, 'équipe créée seulement de 2 à 5 membres');
     if (resultat.equipe) {
       egal(resultat.equipe.members.length, nombre, 'tous les membres sont liés');
-      egal(resultat.equipe.contenu, 'siege', 'contenu par défaut : siège');
+      ok(!('contenu' in resultat.equipe), 'le contenu appartient à la liste');
       egal(resultat.equipe.lead, lead, 'portée du lead conservée');
       egal(resultat.rapport, [], 'aucun refus');
     } else {
@@ -118,7 +115,7 @@ export const verificationsOptimizerEquipesCardinalites: [string, () => void][] =
       const direct = creerEquipeOptimizer(c, { id: 'e1', listId: 'l1', members: membres.slice(0, nombre), lead });
       egal(direct.teams, [], 'création manuelle hors cardinalité refusée');
       ok(direct.rapport.length > 0, 'refus de cardinalité explicite');
-      for (const membre of membres.slice(0, nombre)) egal(leadEffectifMembreOptimizer([], 'l1', membre, 'fire'), { type: 'personnel' }, 'sans équipe : aucun lead de source superposé');
+      for (const membre of membres.slice(0, nombre)) egal(leadEffectifMembreOptimizer(stockageLead([]), 'l1', membre, 'fire'), { type: 'personnel' }, 'sans équipe : aucun lead de source superposé');
     }
     egal(c.teams, [], 'le producteur ne modifie pas les équipes reçues');
   }]);

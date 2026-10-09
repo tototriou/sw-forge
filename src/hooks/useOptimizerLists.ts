@@ -136,6 +136,7 @@ export interface UseOptimizerLists {
   releaseAllInList: (listId: string) => void;
   memories: DonneesMembresOptimizer['memories'];
   teams: EquipeOptimizer[];
+  listContents: DonneesMembresOptimizer['listContents'];
   rapportStockage: string[];
   rejets: DonneesMembresOptimizer['rejets'];
   writeMemory: (membre: Omit<MemoireMembreOptimizer, 'criteres'>, criteres: CriteresOptimizer, data: ExclusionSourceData) => void;
@@ -188,6 +189,7 @@ export function useOptimizerLists(): UseOptimizerLists {
       memberStorage: { ...s.memberStorage, raw: null,
         rejets: retirerRejetsOptimizer(s.memberStorage.rejets, id),
         memories: new Map([...s.memberStorage.memories].filter(([, m]) => m.listId !== id)),
+        listContents: new Map([...s.memberStorage.listContents].filter(([listId]) => listId !== id)),
         teams: s.memberStorage.teams.filter((e) => e.listId !== id) },
     }));
   }, []);
@@ -302,9 +304,10 @@ export function useOptimizerLists(): UseOptimizerLists {
     setState((s) => {
       if (stockage.members === s.members && stockage.validated === s.validated
         && stockage.memories === s.memberStorage.memories && stockage.teams === s.memberStorage.teams
-        && stockage.rejets === s.memberStorage.rejets) return s;
+        && stockage.listContents === s.memberStorage.listContents && stockage.rejets === s.memberStorage.rejets) return s;
       return { ...s, members: stockage.members, validated: stockage.validated,
-        memberStorage: { ...s.memberStorage, raw: null, rejets: stockage.rejets, memories: new Map(stockage.memories), teams: stockage.teams } };
+        memberStorage: { ...s.memberStorage, raw: null, rejets: stockage.rejets, memories: new Map(stockage.memories), teams: stockage.teams,
+          listContents: new Map(stockage.listContents) } };
     });
   }, []);
 
@@ -350,6 +353,7 @@ export function useOptimizerLists(): UseOptimizerLists {
     releaseAllInList,
     memories: state.memberStorage.memories,
     teams: state.memberStorage.teams,
+    listContents: state.memberStorage.listContents,
     rapportStockage: state.memberStorage.rapport,
     rejets: state.memberStorage.rejets,
     writeMemory,

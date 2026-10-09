@@ -10,9 +10,9 @@
 les producteurs purs et le consommateur unique `consommerImportOptimizer`. Ces fonctions ne sont pas
 encore branchées sur un bouton ou un écran.
 
-Un `ImportOptimizer` propose un nom de liste, des membres (sélecteur précis,
+Un `ImportOptimizer` propose un nom et un contenu de liste, des membres (sélecteur précis,
 identité d’espèce `com2usId`, libellé et critères partiels), des équipes
-(libellé, membres, leader facultatif, lead du jeu entier et contenu) et les
+(libellé, membres, leader facultatif et lead du jeu entier) et les
 monstres ignorés avec leur raison. Les messages accompagnent les valeurs
 qui ne peuvent pas être converties. Les critères partiels utilisent l’objet
 `vitesse.minimum` pour une VIT minimum de fiche.
@@ -25,13 +25,14 @@ et propose « Offense de siège ». Les sélecteurs restent ceux des slots de
 leur source, même sans rune équipée ; aucun exemplaire Box ne les remplace.
 Le slot 0 désigne le leader et fournit son `leaderSkill`, jamais le nombre
 `SiegeTeam.lead`. Le lead conserve sa portée et son élément, y compris
-s’il est inactif en Siège ou sans effet calculé. Le contenu est `siege`.
+s’il est inactif en Guilde ou sans effet calculé. Le contenu de liste est `guilde`.
 Un slot vide n’est pas un monstre ignoré ; une espèce inconnue, une identité
 inutilisable ou un exemplaire sans équipement résolvable est signalé.
 
 `importerPrepaRtaOptimizer` propose « Prépa RTA », prend toutes les entrées
 et leurs sélecteurs RTA, sans aucune équipe ni lead importé. Les sections
-ne filtrent pas la prépa. Le consommateur dédoublonne par sélecteur,
+ne filtrent pas la prépa. Son contenu de liste est `arene`, même sans équipe.
+Le consommateur dédoublonne par sélecteur,
 jamais par espèce : deux slots d’une même espèce restent deux membres.
 
 Pour RTA et chaque slot de siège, la vitesse saisie est `runeSpeed` :
@@ -47,8 +48,8 @@ le rapport le dit. Aucun set ni équipement porté n’est imposé comme critèr
 
 `importerSpeedTuneOptimizer` reçoit les lignes, le lead de « Ton équipe »,
 les sources du compte et, facultativement, le `DeckInitial` de la modale.
-Il propose une liste « Speed tuning » et une équipe « Ton équipe », de
-contenu Siège. Toutes les lignes du camp allié sont prises, même masquées ;
+Il propose une liste « Speed tuning » de contenu `guilde` et une équipe
+« Ton équipe ». Toutes les lignes du camp allié sont prises, même masquées ;
 les adversaires ne sont pas exportés. Une ligne sans monstre résolu ou sans
 vitesse saisie valide est ignorée et comptée avec sa raison. Zéro est une
 vitesse saisie. Après filtrage, 0 membre ne crée rien ; 1 ou plus de 5 membres
@@ -94,9 +95,11 @@ Le consommateur reçoit le stockage, la liste active, l’import, les sources
 actuelles du compte et un identifiant proposé par l’appelant. Il rend le
 nouveau stockage, la nouvelle liste active et un rapport, sans effet de bord.
 Le nom et les identifiants sont suffixés en cas de collision ; les identifiants
-occupés par des mémoires, des équipes ou des rejets sont aussi réservés.
+occupés par des mémoires, des équipes, des contenus de liste ou des rejets sont aussi réservés.
 Un import sans membre accepté ne crée rien et conserve la liste active,
-avec un message explicite.
+avec un message explicite. Un contenu d’import inconnu est refusé explicitement,
+sans modifier le stockage. Le contenu accepté est ajouté à `listContents` pour
+la nouvelle liste seulement, même sans équipe.
 
 Chaque sélecteur est résolu et son espèce vérifiée avant écriture. Un doublon
 garde la première occurrence ; une identité différente ou un sélecteur
@@ -108,9 +111,9 @@ refusés n’ajoutent pas le membre. RTA et siège suivent leur sélecteur : une
 autre copie de la même espèce dans la même entrée reçoit les critères ;
 le remplacement de copie n’est pas détectable.
 
-Seule une nouvelle liste et ses membres, mémoires et équipes sont ajoutés.
-Aucune liste existante, mémoire existante, équipe existante, valeur rejetée
-ou build validé n’est remplacé ni supprimé. Aucun build n’est validé par
+Seule une nouvelle liste et ses membres, mémoires, équipes et contenu sont ajoutés.
+Aucune liste existante, mémoire existante, équipe existante, valeur rejetée,
+contenu existant ou build validé n’est remplacé ni supprimé. Aucun build n’est validé par
 l’import ; aucune rune ni paire d’artéfacts n’est réservée.
 
 ## Équipes et leads après filtrage
@@ -125,5 +128,5 @@ lead de la source non appliqué, même si aucun membre ne reste. Un leader
 Le lead d’une source n’est jamais copié dans les critères personnels de ses
 membres. Sans équipe, ils gardent donc leur base complète complétée seulement
 par les critères importés. Dans une équipe, le lead effectif reste dérivé par
-`leadEffectifMembreOptimizer`, selon le contenu et l’élément du membre. Un
+`leadEffectifMembreOptimizer`, selon le contenu de sa liste et l’élément du membre. Un
 lead conservé mais sans effet calculé porte son motif dans le rapport.

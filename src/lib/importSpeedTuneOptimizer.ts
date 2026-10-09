@@ -23,7 +23,7 @@ function selecteurSansDeck(monsterId: string, com2usId: number, data: ExclusionS
 export function importerSpeedTuneOptimizer(
   lignes: readonly Ligne[], lead: LeadInfo | null, data: ExclusionSourceData, deckInitial?: DeckInitial
 ): ImportOptimizer {
-  const resultat: ImportOptimizer = { nomListe: 'Speed tuning', membres: [], equipes: [], ignores: [],
+  const resultat: ImportOptimizer = { nomListe: 'Speed tuning', contenu: 'guilde', membres: [], equipes: [], ignores: [],
     messages: ['La VIT minimum de fiche ne garantit pas l’ordre des tours ; les fenêtres de l’analyse ne sont pas importées.'] };
   let deck: SiegeTeam | undefined;
   if (deckInitial) {
@@ -90,6 +90,6 @@ export function importerSpeedTuneOptimizer(
   const leader = deck && deckInitial ? members.find(s => exclusionSelectorKey(s)
     === exclusionSelectorKey({ source: deckInitial.source === 'defense' ? 'siege-defense' : 'siege-offense', teamId: deck.id, slotIndex: 0 })) : undefined;
   resultat.equipes.push({ libelle: 'Ton équipe', members, ...(leader ? { leader: { ...leader } } : {}),
-    lead: lead ? { stat: 'Attack Speed', amount: lead.amount, area: lead.area, element: lead.element } : null, contenu: 'siege' });
+    lead: lead ? { stat: 'Attack Speed', amount: lead.amount, area: lead.area, element: lead.element } : null });
   return resultat;
 }

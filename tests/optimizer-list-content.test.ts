@@ -96,6 +96,7 @@ export function testOptimizerContenuListeRejetsConserves() {
     ok(isDeepStrictEqual(r.stockage.listContents, lu.listContents), 'revérification modifiée : contenus inchangés');
     lu.replaceAfterRevalidation(r.stockage); lu = h.render();
     const relu = lireMembresOptimizer(disque.get(CLE)!);
+    egal([...relu.listContents], [['l2', 'donjon']], 'contenu valide relu après le remplacement');
     egal(relu.rejets.listContents, [rejete, opaque, doublon], 'rejets relus à part sans perte');
     ok(!relu.listContents.has('l1'), 'contenu inconnu jamais réactivé');
     const sansValide = lireMembresOptimizer(ecrireMembresOptimizer({ ...relu, listContents: new Map() }));

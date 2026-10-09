@@ -8,8 +8,9 @@
 
 `src/lib/importEquipes.ts`, `src/lib/importSpeedTuneOptimizer.ts` et
 `src/lib/importRecoOptimizer.ts` fournissent
-les producteurs purs et le consommateur unique `consommerImportOptimizer`. Ces fonctions ne sont pas
-encore branchées sur un bouton ou un écran.
+les producteurs purs et le consommateur unique `consommerImportOptimizer`.
+L’action commune `importerEquipe` de `useOptimizerState`, instancié dans
+`App.tsx`, reçoit un producteur et reste utilisable sans écran monté.
 
 Un `ImportOptimizer` propose un nom et un contenu de liste, des membres (sélecteur précis,
 identité d’espèce `com2usId`, libellé et critères partiels), des équipes
@@ -17,6 +18,41 @@ identité d’espèce `com2usId`, libellé et critères partiels), des équipes
 monstres ignorés avec leur raison. Les messages accompagnent les valeurs
 qui ne peuvent pas être converties. Les critères partiels utilisent l’objet
 `vitesse.minimum` pour une VIT minimum de fiche.
+
+## F1 — Importer depuis l’Optimizer
+
+« Importer une équipe » est toujours affiché dans « Monstre & équipement »,
+près du sélecteur de liste, au bureau et au téléphone, même lorsque
+« Monstres à optimiser » est replié. Sans membre résolvable dans aucune
+source, le bouton est désactivé et son `title` en donne la raison.
+La disponibilité est dérivée des producteurs, y compris pour une source
+non vide mais inutilisable.
+
+Le bouton ouvre un `FlottantAuto`, de la largeur de son ancre : toutes les
+défenses de siège, chaque deck d’offense identifié par son numéro et sa
+composition, toute la prépa RTA avec ses vitesses. Une source sans membre
+résolvable reste affichée désactivée avec sa raison. Échap, la croix ou
+le clic extérieur ferment le flottant. Ses choix sont des contrôles de
+`src/ui/`, sans second contour autour des rangées.
+
+L’action appelle le producteur sur les sources courantes, puis le
+consommateur unique. Si aucun membre n’est accepté, elle rend le rapport
+sans changer la liste, la sélection, les critères ni les résultats.
+Sinon elle efface le propriétaire avant l’écriture, publie ensemble la
+nouvelle liste active et toutes ses données, puis appelle `choisirMembre`
+sur son premier membre. Ce choix restaure ses critères et efface les
+résultats, progression, page, arrêt manuel et détail ouvert, sans lancer
+de recherche. La réconciliation garde le propriétaire établi par le
+geste ; la prochaine saisie écrit vers ce premier membre seulement.
+Aucune liste existante ni aucun point de sauvegarde n’est modifié.
+
+Le rapport reste dans le flottant ouvert après le choix : nom de la liste,
+nombre de monstres et d’équipes, membres ignorés et raisons, messages du
+consommateur, dont les leads non appliqués. Il se conserve jusqu’au choix
+suivant ou au démontage de l’écran et se relit en rouvrant les sources.
+Au bureau et au téléphone, l’ouverture et le rapport sortent du flux ;
+le bouton précède l’affichage du monstre sélectionné pour que le choix
+du premier membre ne déplace pas son ancre.
 
 ## Conversions du siège et de la prépa RTA
 

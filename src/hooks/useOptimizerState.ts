@@ -6,6 +6,7 @@ import { appliquerCriteres, baseCompleteCriteres, criteresApresChangementEspece,
 import { rattacherProprietaireCriteres, validerProprietaireCriteres, type ProprietaireCriteresOptimizer } from '../lib/optimizerCriteriaOwner';
 import { cleMemoireMembre, type StockageOptimizer, type RapportReverificationOptimizer } from '../lib/optimizerMemberStorage';
 import type { UseOptimizerLists } from './useOptimizerLists';
+import { consommerImportOptimizer, type ImportOptimizer, type RapportImportOptimizer } from '../lib/importEquipes';
 import { preparerRepriseOptimizer } from '../lib/optimizerBackup';
 import { AutoExclusionScope, ExclusionSelector, ExclusionSource, resolveExclusionEntry, type ExclusionSourceData } from '../lib/optimizerExclusion';
 import { ArtifactKind, type LeaderSkill } from '../types';
@@ -118,6 +119,7 @@ export interface OptimizerState {
   effacerProprietaireCriteres: () => void;
   choisirMembre: (listId: string, selector: ExclusionSelector) => CriteresOptimizer | null;
   reprendrePoint: (artifactIds: Set<number>) => void;
+  importerEquipe: (produire: (data: ExclusionSourceData) => ImportOptimizer) => RapportImportOptimizer;
   capturerMembre: (listId: string, selector: ExclusionSelector) => void;
   poserTriRecherche: (tri: OptimizerSortKey) => void;
   poserCriteresAutomatiques: (patch: Partial<CriteresOptimizer> | ((courants: CriteresOptimizer) => Partial<CriteresOptimizer>)) => void;
@@ -576,6 +578,24 @@ export function useOptimizerState(contexte?: ContexteMembresOptimizer): Optimize
     return restaurerMembre(listId, selector, true);
   }
 
+  function importerEquipe(produire: (data: ExclusionSourceData) => ImportOptimizer): RapportImportOptimizer {
+    const v = vivant.current, c = v.contexte;
+    if (!c) throw new Error('Import impossible sans le contexte des listes.');
+    const resultat = consommerImportOptimizer(c.lists, c.lists.activeListId, produire(c.data), c.data, 'import');
+    if (!resultat.rapport.listeCreee) return resultat.rapport;
+    effacerProprietaireCriteres();
+    const listId = resultat.rapport.listeCreee.id;
+    c.lists.remplacerParImport(resultat.stockage, listId);
+    // Le choix juge la destination publiée par ce geste, avant le prochain rendu.
+    v.contexte = { ...c, lists: { ...c.lists, ...resultat.stockage, activeListId: listId } };
+    const premier = resultat.stockage.members.find(m => m.listId === listId)!;
+    choisirMembre(listId, premier.selector);
+    // La sélection est déjà établie : la réconciliation ne la traite pas
+    // comme une navigation indépendante et ne réapplique pas sa mémoire.
+    listePrecedente.current = listId;
+    return resultat.rapport;
+  }
+
   function reprendrePoint(artifactIds: Set<number>) {
     const v = vivant.current, c = v.contexte;
     if (!c?.lists.point) return;
@@ -773,6 +793,7 @@ export function useOptimizerState(contexte?: ContexteMembresOptimizer): Optimize
     effacerProprietaireCriteres,
     choisirMembre,
     reprendrePoint,
+    importerEquipe,
     capturerMembre,
     poserCriteresAutomatiques,
     traiterReliqueImportee,

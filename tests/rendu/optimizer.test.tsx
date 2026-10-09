@@ -41,6 +41,7 @@ function Banc({ etat, menuOuvert }: { etat: Record<string, unknown>; menuOuvert:
       relics={INVENTAIRE.relics}
       relicUsageById={INVENTAIRE.relicUsageById}
       optimizer={optimizer}
+      onImporterEquipe={optimizer.importerEquipe}
       allMonsters={MONSTRES}
       rtaEntries={{}}
       siegeDefenseTeams={[]}
@@ -82,6 +83,7 @@ export function testRenduOptimizerVide() {
         relicUsageById={{}}
         loadState="live"
         optimizer={{} as never}
+        onImporterEquipe={() => { throw new Error('Écran vide sans import.'); }}
         allMonsters={MONSTRES}
         rtaEntries={{}}
         siegeDefenseTeams={[]}

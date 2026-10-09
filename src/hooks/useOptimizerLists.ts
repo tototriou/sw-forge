@@ -122,6 +122,7 @@ function newId(): string {
 }
 
 export interface UseOptimizerLists {
+  remplacerParImport: (stockage: StockageOptimizer, activeListId: string) => void;
   point: PointOptimizer | null;
   pointExiste: boolean;
   rapportPoint: string[];
@@ -206,6 +207,12 @@ export function useOptimizerLists(): UseOptimizerLists {
 
   const setActiveListId = useCallback((id: string | null) => {
     setState((s) => ({ ...s, activeListId: id }));
+  }, []);
+
+  const remplacerParImport = useCallback((s: StockageOptimizer, activeListId: string) => {
+    setState({ lists: s.lists, members: s.members, validated: s.validated, activeListId,
+      memberStorage: { identities: s.identities, memories: s.memories, teams: s.teams, listContents: s.listContents,
+        rejets: s.rejets, raw: null, rapport: [] } });
   }, []);
 
   const createList = useCallback((name: string, contenu: ContenuListeOptimizer = 'guilde') => {
@@ -391,6 +398,7 @@ export function useOptimizerLists(): UseOptimizerLists {
   }, []);
 
   return {
+    remplacerParImport,
     point: pointStocke.point,
     pointExiste: pointStocke.brut !== null,
     rapportPoint: pointStocke.rapport,

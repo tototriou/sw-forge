@@ -341,12 +341,11 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   `useOptimizerLists.ts`, instancié dans `App.tsx`, porte les listes,
   les réservations, les mémoires et les équipes ; la saisie libre et les
   résultats de recherche restent dans `useOptimizerState`.
-- ⚠️ **Limite connue de l'écran** : l'ajout manuel se fait **un monstre à la
-  fois**, sans workflow qui enchaîne automatiquement au monstre suivant
-  après validation. Le modèle pur d'import depuis le siège, la prépa RTA
-  ou le speed tuning crée une nouvelle liste ; il n'est pas encore branché
-  sur un bouton ou un écran (voir
-  [feat-import-equipes.md](feat-import-equipes.md) § Modèle d'import).
+- **Importer une équipe** remplit une nouvelle liste depuis les défenses
+  de siège, un deck d’offense ou toute la prépa RTA ; cette liste devient
+  active et son premier membre est choisi. L’ajout manuel reste disponible.
+  La validation n’enchaîne pas automatiquement au membre suivant. Voir
+  [feat-import-equipes.md](feat-import-equipes.md) § F1 — Importer depuis l’Optimizer.
 
 ## Mémoire des membres et revérification
 

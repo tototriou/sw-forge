@@ -8,7 +8,7 @@ import type { Browser, Page } from 'playwright';
 
 let cssConstruit: string | undefined;
 
-export async function navigateurOptimizer(telephone = false): Promise<{ browser: Browser; page: Page }> {
+export async function navigateurOptimizer(telephone = false, entreeBanc = 'tests/rendu/optimizer-memoire-banc.tsx'): Promise<{ browser: Browser; page: Page }> {
   const requireLocal = createRequire(resolve('package.json'));
   const { chromium } = requireLocal('playwright') as typeof import('playwright');
   if (cssConstruit === undefined) {
@@ -52,7 +52,7 @@ export async function navigateurOptimizer(telephone = false): Promise<{ browser:
     modules[id] = { code, liens };
     return id;
   }
-  const entree = ajouter(resolve('tests/rendu/optimizer-memoire-banc.tsx'));
+  const entree = ajouter(resolve(entreeBanc));
   const browser = await chromium.launch({ headless: true });
   try {
     const page = await browser.newPage({ viewport: telephone ? { width: 390, height: 844 } : { width: 1440, height: 1000 }, isMobile: telephone, hasTouch: telephone });

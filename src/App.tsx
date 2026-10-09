@@ -1736,6 +1736,7 @@ function Application() {
             loadState={data.loadState}
             hydrating={accountHydrating}
             optimizer={optimizer}
+            onImporterEquipe={optimizer.importerEquipe}
             allMonsters={allMonsters}
             rtaEntries={rta.state.entries}
             siegeDefenseTeams={siegeDef.state.teams}

@@ -74,7 +74,7 @@ function Banc() {
   compteActuel = data;
   etat = useOptimizerState({ lists: listes, data, runeIds: new Set(inventaire.map(r => r.id)) });
   return visible ? <OptimizerSection box={compte} runes={inventaire} artifacts={arts} relics={[]} relicUsageById={{}}
-    optimizer={etat} lists={listes} allMonsters={monstres} rtaEntries={rtaEntries} siegeDefenseTeams={defenses} siegeOffenseTeams={siegeOffenseTeams}
+    optimizer={etat} onImporterEquipe={etat.importerEquipe} lists={listes} allMonsters={monstres} rtaEntries={rtaEntries} siegeDefenseTeams={defenses} siegeOffenseTeams={siegeOffenseTeams}
     accountName="Synthétique" menuOuvert={false} onFermerMenu={() => {}} onOuvrirMenu={() => {}} /> : <div>Autre onglet</div>;
 }
 

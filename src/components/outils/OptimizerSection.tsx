@@ -5,6 +5,7 @@ import LeadPill, { STAT_LABEL } from '../siege/LeadPill';
 import OptimizerEquipeDialog from './OptimizerEquipeDialog';
 import OptimizerCreateListDialog from './OptimizerCreateListDialog';
 import OptimizerBackupBar from './OptimizerBackupBar';
+import OptimizerImportButton from './OptimizerImportButton';
 import {
   Search,
   Square,
@@ -218,6 +219,7 @@ interface Props {
   // remontée, toute la saisie (monstre, conditions, résultats…) serait
   // perdue au moindre aller-retour vers un autre onglet.
   optimizer: OptimizerState;
+  onImporterEquipe: OptimizerState['importerEquipe'];
   // Pour l'exclusion manuelle de runes (RuneExclusionPicker) — RTA/Siège
   // n'étaient jusqu'ici jamais lus par cet écran, voir optimizerExclusion.ts.
   allMonsters: Monster[];
@@ -441,7 +443,7 @@ const LARGEUR_SELECTEUR_LISTE = 'w-44 truncate';
 // « Type » et « Propriété unique » doivent être alignés (demande explicite).
 const LARGEUR_LIBELLE_LISTE = 'w-28';
 
-export default function OptimizerSection({ box, runes, artifacts, relics, relicUsageById, optimizer, allMonsters, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, lists, accountName, menuOuvert, onFermerMenu, onOuvrirMenu }: Props) {
+export default function OptimizerSection({ box, runes, artifacts, relics, relicUsageById, optimizer, onImporterEquipe, allMonsters, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, lists, accountName, menuOuvert, onFermerMenu, onOuvrirMenu }: Props) {
   const metric = useRuneMetric();
   // ⚠️ Ne sert PAS aux `Segmented` — ils se resserrent tout seuls
   // en mesurant la place qu'ils reçoivent (voir `Segmented.tsx`), ce qu'un
@@ -3624,6 +3626,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
                 silencieuse (`pickSpecies`, jamais en cas d'ambiguïté — voir
                 sa définition). */}
             <MonsterSourcePicker mode="bestiary" candidates={allMonsters} onPick={pickSpecies} />
+            <OptimizerImportButton data={exclusionData} onImporter={onImporterEquipe} />
             {selected && (
               <div className="mt-3 flex items-center gap-2">
                 <MonsterAvatar monster={selected.monster} size={32} />
@@ -3709,6 +3712,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
           <div>
             <p className="label mb-1.5">Monstre à optimiser</p>
             <MonsterSourcePicker mode="bestiary" candidates={allMonsters} onPick={pickSpecies} />
+            <OptimizerImportButton data={exclusionData} onImporter={onImporterEquipe} />
             {selected && (
               <div className="mt-3 flex items-center gap-2">
                 <MonsterAvatar monster={selected.monster} size={32} />

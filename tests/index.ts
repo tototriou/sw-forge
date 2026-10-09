@@ -612,17 +612,17 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testBureauSwex', testBureauSwex],
   ['testBureauSession', async () => { await testBureauSession(); }],
   ['testSession', testSession],
+  ['testStockage', async () => { await testStockage(); }],
+  ['testPersistance', async () => { await testPersistance(); }],
+  // ⚠️ APRÈS `testPersistance` : ces tests changent l'état du module
+  // `usePersistence` (choix de conservation), partagé par tout le bundle, et
+  // `testPersistance` exige un navigateur vierge.
   ['testOptimizerPointAllerRetourComplet', testOptimizerPointAllerRetourComplet],
   ['testOptimizerPointLectureDefensive', testOptimizerPointLectureDefensive],
   ['testOptimizerPointSessionRelue', testOptimizerPointSessionRelue],
   ['testOptimizerPointRepriseRattachement', testOptimizerPointRepriseRattachement],
   ['testOptimizerPointRepriseCompteVide', testOptimizerPointRepriseCompteVide],
   ['testOptimizerPointSuppressionConservation', testOptimizerPointSuppressionConservation],
-  ['testStockage', async () => { await testStockage(); }],
-  ['testPersistance', async () => { await testPersistance(); }],
-  // ⚠️ APRÈS `testPersistance` : ces tests changent l'état du module
-  // `usePersistence` (choix de conservation), partagé par tout le bundle, et
-  // `testPersistance` exige un navigateur vierge.
   ['testMemoireOptimizerJson', testMemoireOptimizerJson],
   ['testOptimizerRattachementIdentites', testOptimizerRattachementIdentites],
   ['testOptimizerRattachementReferenceConservee', testOptimizerRattachementReferenceConservee],

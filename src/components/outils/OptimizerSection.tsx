@@ -3309,7 +3309,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
                     const id = String(resolved.monster.id);
                     // L'action partagée valide l'identité puis restaure la
                     // mémoire ou la base complète, sans déclencher de guide.
-                    optimizer.choisirMembre(m.listId, m.selector);
+                    const criteres = optimizer.choisirMembre(m.listId, m.selector);
                     setZoneDOpen(false);
                     // ⚠️ **Rappel des auras externes — ICI,
                     // dans le geste de la liste de travail, et nulle part
@@ -3317,17 +3317,17 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
                     // `selectedId` — l'import d'une recette ou d'un compte pose
                     // aussi le monstre, et le bestiaire, les puces de source et
                     // la zone D restent sans rappel. Autre espèce OU autre exemplaire de la
-                    // même espèce ; la décision actuelle lit les auras du
-                    // rendu au moment du clic, indépendamment de la restauration.
+                    // même espèce ; la décision lit la destination réellement
+                    // appliquée, jamais les auras du membre précédent.
                     if (
-                      doitRappeler(
+                      criteres && doitRappeler(
                         'liste',
                         { espece: selectedId, exemplaire: ownSelectorKey, aurasExternes: damageSetup.setsAuraExternes },
-                        { espece: id, exemplaire: key, aurasExternes: damageSetup.setsAuraExternes }
+                        { espece: id, exemplaire: key, aurasExternes: criteres.damageSetup.setsAuraExternes }
                       )
                     ) {
                       setRappelAuras((n) => (n ?? 0) + 1);
-                    }
+                    } else setRappelAuras(null);
                   }}
                   className="flex min-w-0 flex-1 items-center gap-2 text-left"
                 >

@@ -179,6 +179,34 @@ export async function scenario(nom: string): Promise<[boolean, string][]> {
       verifier(etat.proprietaireCriteres === null && etat.minStats.spd === 310, 'recette retardée : effacement et application à la résolution');
       verifier(memoire('a')?.criteres.minStats.spd === 230 && memoire('a', second)?.criteres.minStats.spd === 185, 'recette : aucune mémoire écrasée entre deux choix de membre');
     } finally { File.prototype.text = textOriginal; }
+  } else if (nom === 'auras-destination') {
+    await choisir(troisieme);
+    await geste(() => etat.setDamageSetup({ ...etat.damageSetup, setsAuraExternes: [{ set: 'accuracy', nombre: 1 }] }));
+    await choisir();
+    const visible = (e: Element) => e.getBoundingClientRect().width > 0 && getComputedStyle(e).visibility !== 'hidden';
+    const pli = [...document.querySelectorAll<HTMLButtonElement>('button')].find(e => visible(e) && e.textContent?.includes('Monstres à optimiser'));
+    if (pli) await geste(() => pli.click());
+    const zone = [...document.querySelectorAll<HTMLElement>('[aria-label="Rapport des critères"]')].find(visible)!.parentElement!;
+    const cliquer = (index: number) => geste(() => zone.querySelectorAll<HTMLElement>('[role="button"]')[index].click());
+    const rappel = () => [...document.querySelectorAll('p')].some(e => visible(e) && e.textContent?.includes('Pense à vérifier les sets'));
+    const memoireAvant = JSON.stringify(memoire('a', troisieme));
+    await cliquer(2);
+    verifier(rappel() && etat.damageSetup.setsAuraExternes?.[0]?.set === 'accuracy',
+      'clic autre exemplaire : rappel des auras de la destination, même si le membre précédent n’en avait aucune');
+    verifier(JSON.stringify(memoire('a', troisieme)) === memoireAvant && !etat.showAdvanced && !document.querySelector('[role="dialog"]'),
+      'rappel : mémoire intacte, aucune ouverture guidée ni fenêtre du combat');
+    await cliquer(1);
+    verifier(!rappel() && !etat.damageSetup.setsAuraExternes?.length, 'destination sans auras : aucun rappel, précédent rappel effacé');
+    await choisir(troisieme);
+    verifier(!rappel(), 'restauration autonome avec auras : aucun rappel');
+    await geste(() => listes.setActiveListId('b')); await geste(() => listes.setActiveListId('a'));
+    verifier(!rappel(), 'restauration par changement de liste : aucun rappel');
+    await cliquer(2);
+    verifier(!rappel(), 'recliquer le même exemplaire : aucun rappel');
+    await cliquer(0); await cliquer(2);
+    verifier(rappel(), 'nouveau clic vers la destination avec auras : rappel');
+    await new Promise(r => setTimeout(r, 3100));
+    verifier(!rappel(), 'rappel effacé après sa minuterie de trois secondes');
   } else if (nom === 'automatismes') {
     const origine = JSON.stringify(memoire('a'));
     await geste(() => etat.poserCriteresAutomatiques({ relicMainChoice: 101, minStats: { spd: 210 }, lockedRunes: {} }));

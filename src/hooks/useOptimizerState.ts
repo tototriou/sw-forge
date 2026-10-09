@@ -109,7 +109,7 @@ export interface OptimizerState {
   proprietaireCriteres: ProprietaireCriteresOptimizer | null;
   rapportCriteres: string[];
   effacerProprietaireCriteres: () => void;
-  choisirMembre: (listId: string, selector: ExclusionSelector) => void;
+  choisirMembre: (listId: string, selector: ExclusionSelector) => CriteresOptimizer | null;
   capturerMembre: (listId: string, selector: ExclusionSelector) => void;
   poserTriRecherche: (tri: OptimizerSortKey) => void;
   poserCriteresAutomatiques: (patch: Partial<CriteresOptimizer> | ((courants: CriteresOptimizer) => Partial<CriteresOptimizer>)) => void;
@@ -506,18 +506,18 @@ export function useOptimizerState(contexte?: ContexteMembresOptimizer): Optimize
     poserCriteresAutomatiques({ relicMainChoice: defaultRelicMainChoice(relique) });
   }
 
-  function restaurerMembre(listId: string, selector: ExclusionSelector, choisir: boolean) {
+  function restaurerMembre(listId: string, selector: ExclusionSelector, choisir: boolean): CriteresOptimizer | null {
     if (choisir) captureEnAttente.current = null;
     const v = vivant.current, c = v.contexte;
-    if (!c) return;
+    if (!c) return null;
     const resolu = resolveExclusionEntry(selector, c.data);
     if (!resolu?.monster.com2usId) {
-      effacerProprietaireCriteres(); setRapportCriteres(['Membre introuvable : critères non restaurés.']); return;
+      effacerProprietaireCriteres(); setRapportCriteres(['Membre introuvable : critères non restaurés.']); return null;
     }
     const affichage = choisir ? { selectedId: String(resolu.monster.id), sourceSelector: selector } : v;
     const candidat = { listId, selector, com2usId: resolu.monster.com2usId };
     const valide = validerProprietaireCriteres(candidat, c.lists, affichage, c.data);
-    if (!valide) { effacerProprietaireCriteres(); return; }
+    if (!valide) { effacerProprietaireCriteres(); return null; }
     const memoire = c.lists.memories.get(cleMemoireMembre(listId, selector));
     const messages: string[] = [];
     if (memoire && memoire.com2usId !== valide.com2usId) {
@@ -526,7 +526,7 @@ export function useOptimizerState(contexte?: ContexteMembresOptimizer): Optimize
     const photo = memoire?.com2usId === valide.com2usId ? appliquerCriteres(memoire.criteres, { type: 'personnel' }) : null;
     // Une navigation de liste n'attribue jamais les critères courants à un
     // membre sans mémoire ; le clic explicite lui donne la base complète.
-    if (!choisir && !photo) { effacerProprietaireCriteres(); setRapportCriteres(messages); return; }
+    if (!choisir && !photo) { effacerProprietaireCriteres(); setRapportCriteres(messages); return null; }
     const suivante = photo ?? baseCompleteCriteres(resolu.gear);
     const locks = Object.entries(suivante.lockedRunes);
     suivante.lockedRunes = Object.fromEntries(locks.filter(([, id]) => id != null && c.runeIds.has(id)));
@@ -540,10 +540,13 @@ export function useOptimizerState(contexte?: ContexteMembresOptimizer): Optimize
     }
     appliquerPhoto(suivante);
     v.proprietaire = valide; setProprietaireCriteres(valide); setRapportCriteres(messages);
+    // Le geste peut lire la destination réellement appliquée sans attendre
+    // un rendu, ni résoudre une seconde fois la mémoire ou sa base.
+    return photoCriteres(v.criteres, { type: 'personnel' });
   }
 
   function choisirMembre(listId: string, selector: ExclusionSelector) {
-    restaurerMembre(listId, selector, true);
+    return restaurerMembre(listId, selector, true);
   }
 
   function capturerMembre(listId: string, selector: ExclusionSelector) {

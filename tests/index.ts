@@ -209,7 +209,8 @@ import { testRenduOptimizerVide, testRenduOptimizerMonstre, testRenduOptimizerRe
 import { testRenduMemoireOptimizerSelection, testRenduMemoireOptimizerSansMemoire, testRenduMemoireOptimizerListes,
   testRenduMemoireOptimizerRetrait, testRenduMemoireOptimizerInclusion, testRenduMemoireOptimizerHorsListe,
   testRenduMemoireOptimizerIdentite, testRenduMemoireOptimizerRecette, testRenduMemoireOptimizerNavigation, testRenduTelephoneMemoireOptimizer,
-  testRenduMemoireOptimizerSaisies, testRenduMemoireOptimizerAutomatismes, testRenduMemoireOptimizerZoneC, testRenduTelephoneMemoireOptimizerZoneC } from './rendu/optimizer-memoire.test';
+  testRenduMemoireOptimizerSaisies, testRenduMemoireOptimizerAutomatismes, testRenduMemoireOptimizerRappelAurasDestination,
+  testRenduTelephoneMemoireOptimizerRappelAurasDestination, testRenduMemoireOptimizerZoneC, testRenduTelephoneMemoireOptimizerZoneC } from './rendu/optimizer-memoire.test';
 import { testRenduBestiaire, testRenduMecaniques, testRenduNouveautes, testRenduParametres, testRenduBientot } from './rendu/ressources.test';
 import { testRenduTelephoneAccueil, testRenduTelephoneRta, testRenduTelephoneRtaAmi, testRenduTelephoneRtaFiltre } from './rendu/telephone-accueil-rta.test';
 import { testRenduTelephoneSiege, testRenduTelephoneRecos } from './rendu/telephone-siege.test';
@@ -242,6 +243,8 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRenduTelephoneMemoireOptimizer', testRenduTelephoneMemoireOptimizer],
   ['testRenduMemoireOptimizerSaisies', testRenduMemoireOptimizerSaisies],
   ['testRenduMemoireOptimizerAutomatismes', testRenduMemoireOptimizerAutomatismes],
+  ['testRenduMemoireOptimizerRappelAurasDestination', testRenduMemoireOptimizerRappelAurasDestination],
+  ['testRenduTelephoneMemoireOptimizerRappelAurasDestination', testRenduTelephoneMemoireOptimizerRappelAurasDestination],
   ['testRenduMemoireOptimizerZoneC', testRenduMemoireOptimizerZoneC],
   ['testRenduTelephoneMemoireOptimizerZoneC', testRenduTelephoneMemoireOptimizerZoneC],
   ['testVitesse', testVitesse],

@@ -310,8 +310,9 @@ export function testAurasEcranRappel() {
   'source : le geste d’un membre de la liste de travail (zone C) est localisé');
   ok(/doitRappeler\(\s*'liste',/.test(clic), 'source : le rappel est décidé DANS ce onClick, voie « liste »');
   ok(/\{ espece: selectedId, exemplaire: ownSelectorKey, aurasExternes: damageSetup\.setsAuraExternes \}/.test(clic)
-    && /\{ espece: id, exemplaire: key, aurasExternes: damageSetup\.setsAuraExternes \}/.test(clic),
-  '… avant = l’espèce et l’exemplaire affichés, après = le membre cliqué (espèce ET exemplaire)');
+    && /\{ espece: id, exemplaire: key, aurasExternes: criteres\.damageSetup\.setsAuraExternes \}/.test(clic)
+    && clic.includes('const criteres = optimizer.choisirMembre(m.listId, m.selector);') && clic.includes('criteres && doitRappeler('),
+  '… avant = l’espèce et l’exemplaire affichés, après = le membre cliqué et ses critères réellement restaurés');
   ok(/setRappelAuras\(\(n\) => \(n \?\? 0\) \+ 1\)/.test(clic), '… et déclenché là, par un jeton qui relance la minuterie');
   egal(ecran.match(/doitRappeler\(/g)?.length ?? 0, 1, 'source : UN seul appel de doitRappeler dans l’écran');
   egal(ecran.match(/setRappelAuras\((?!null\))/g)?.length ?? 0, 1,

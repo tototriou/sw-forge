@@ -27,5 +27,7 @@ export const testRenduMemoireOptimizerNavigation = () => transition('navigation'
 export const testRenduTelephoneMemoireOptimizer = () => transition('navigation', true);
 export const testRenduMemoireOptimizerSaisies = () => transition('saisies');
 export const testRenduMemoireOptimizerAutomatismes = () => transition('automatismes');
+export const testRenduMemoireOptimizerRappelAurasDestination = () => transition('auras-destination');
+export const testRenduTelephoneMemoireOptimizerRappelAurasDestination = () => transition('auras-destination', true);
 export const testRenduMemoireOptimizerZoneC = () => transition('zone-c');
 export const testRenduTelephoneMemoireOptimizerZoneC = () => transition('zone-c', true);

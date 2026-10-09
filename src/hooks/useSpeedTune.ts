@@ -315,8 +315,8 @@ export function useSpeedTune({
       ...prev.filter((l) => l.camp !== camp && !l.reference),
       ...lignesDeDeck(deck, camp),
     ]);
-    // Le lead du leader du deck, s'il vaut pour tout le camp (voir
-    // speedTuneDeck.ts).
+    // Le lead du leader du deck, avec sa portée : un lead d'élément ne vaut
+    // que pour les monstres de cet élément (voir speedTuneDeck.ts).
     //
     // ⚠️ **Toujours écrit, « Sans » compris.** Un deck sans lead de vitesse
     // laissait en place celui du deck précédent : on calculait la nouvelle

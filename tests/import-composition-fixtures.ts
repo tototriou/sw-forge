@@ -26,6 +26,6 @@ export function sourcesComposition(): ExclusionSourceData {
     monsterById: new Map([1, 2, 3, 4, 5, 6].map(id => [String(id), monstreComposition(id)])) };
 }
 export function stockageComposition(): StockageOptimizer {
-  return { lists: [], members: [], validated: [], memories: new Map(), teams: [], listContents: new Map(),
+  return { identities: new Map(), lists: [], members: [], validated: [], memories: new Map(), teams: [], listContents: new Map(),
     rejets: { memories: [], teams: [], listContents: [] } };
 }

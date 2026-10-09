@@ -34,6 +34,9 @@ export async function preuvesPointOptimizer(b: Banc, nom: string): Promise<[bool
     b.etat().setExcludeBase(false);
     b.listes().validateBuild('a', b.premier, b.runes().map(r => r.id), b.arts().map(a => a.id), 10101);
   });
+  const sansMemoire = nom.startsWith('point-sans-memoire');
+  if (sansMemoire) await b.geste(() => b.etat().choisirMembre('a', b.second));
+  const minimumSansMemoire = minimum();
   const barre = annonce().parentElement!;
   barre.scrollIntoView({ block: 'center' });
   verifier(bouton('Reprendre', barre).disabled && annonce().textContent === 'Aucun point de sauvegarde.', 'sans point : annonce visible et reprise désactivée');
@@ -53,7 +56,41 @@ export async function preuvesPointOptimizer(b: Banc, nom: string): Promise<[bool
     verifier(document.activeElement?.textContent === 'Annuler', 'reprise : Annuler est le défaut au clavier');
     return dialog;
   }
-  if (nom === 'point-gestes') {
+  if (sansMemoire) {
+    const cle = cleMemoireMembre('a', b.second);
+    verifier(!b.listes().memories.has(cle), 'point sauvegardé sur le membre sélectionné sans mémoire');
+    await b.geste(() => b.listes().setActiveListId('b'));
+    await b.geste(() => b.etat().choisirMembre('b', b.premier));
+    verifier(barre.parentElement!.textContent!.includes('Monstres de « Bêta »') && minimum() === '90',
+      'avant reprise : liste Bêta et ses critères lus à l’écran');
+    if (nom === 'point-sans-memoire-liste-supprimee') {
+      await b.geste(() => b.listes().deleteList('a'));
+      verifier(!b.listes().lists.some(l => l.id === 'a') && barre.parentElement!.textContent!.includes('Monstres de « Bêta »'),
+        'Alpha supprimée avant reprise, Bêta reste affichée');
+    }
+    const dialog = await ouvrirReprise(); await b.geste(() => bouton('Reprendre', dialog).click());
+    verifier(barre.parentElement!.textContent!.includes('Monstres de « Alpha »') && minimum() === minimumSansMemoire,
+      'reprise depuis Bêta : Alpha et la base du membre sans mémoire affichées');
+    const p = b.etat().proprietaireCriteres;
+    verifier(p?.listId === 'a' && exclusionSelectorKey(p.selector) === exclusionSelectorKey(b.second) && p.com2usId === 10102,
+      'après réconciliation : propriétaire du membre repris gardé');
+    verifier(!b.listes().memories.has(cle), 'reprise seule : aucune mémoire créée');
+    const menu = (label: string) => [...document.querySelectorAll<HTMLSelectElement>(`select[aria-label="${label}"]`)].find(visible);
+    verifier(menu('Type de leader skill')?.value === 'HP' && menu('Valeur du leader skill')?.value === '33',
+      'membre sans mémoire repris : lead PV +33 % de l’équipe affiché');
+    await b.geste(() => {
+      const champ = [...document.querySelectorAll<HTMLInputElement>('[aria-label="VIT minimum"]')].find(visible)!;
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(champ, '195');
+      champ.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    verifier(minimum() === '195' && typeof b.listes().memories.get(cle)?.criteres.minStats.spd === 'number',
+      'saisie VIT dans le champ réel : valeur affichée et mémoire du membre créée');
+    await b.geste(() => b.etat().choisirMembre('a', b.premier));
+    await b.geste(() => b.etat().choisirMembre('a', b.second));
+    verifier(minimum() === '195' && menu('Type de leader skill')?.value === 'HP' && menu('Valeur du leader skill')?.value === '33',
+      'retour au membre : saisie mémorisée restaurée à l’écran et lead d’équipe toujours appliqué');
+    verifier(localStorage.getItem(OPTIMIZER_BACKUP_STORAGE_KEY) === brut, 'reprise et saisie gardent le point intact');
+  } else if (nom === 'point-gestes') {
     await b.geste(() => b.etat().setMinStats({ spd: 250 }));
     verifier(minimum() === '250', 'modification avant reprise lue dans le champ VIT de l’écran');
     await b.geste(() => bouton('Sauvegarder', barre).click());

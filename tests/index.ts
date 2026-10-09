@@ -17,7 +17,9 @@ import { testRenduOptimizerLeadEquipePersonnel, testRenduTelephoneOptimizerLeadE
   testRenduOptimizerCombatEffectifAffiche, testRenduTelephoneOptimizerCombatEffectifAffiche } from './rendu/optimizer-equipes.test';
 import { verificationsImportSpeedTune } from './import-speed-tune.test';
 import { testRenduOptimizerPointGestes, testRenduTelephoneOptimizerPointGestes, testRenduOptimizerPointReimport,
-  testRenduTelephoneOptimizerPointReimport, testRenduOptimizerPointCompteVide, testRenduTelephoneOptimizerPointCompteVide } from './rendu/optimizer-backup.test';
+  testRenduTelephoneOptimizerPointReimport, testRenduOptimizerPointCompteVide, testRenduTelephoneOptimizerPointCompteVide,
+  testRenduOptimizerPointSansMemoireChangementListe, testRenduTelephoneOptimizerPointSansMemoireChangementListe,
+  testRenduOptimizerPointSansMemoireListeSupprimee, testRenduTelephoneOptimizerPointSansMemoireListeSupprimee } from './rendu/optimizer-backup.test';
 import { verificationsImportReco } from './import-reco.test';
 import { verificationsImportRecoCopies } from './import-reco-copies.test';
 import testNavigation from './navigation.test';
@@ -676,6 +678,10 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRenduTelephoneOptimizerPointReimport', testRenduTelephoneOptimizerPointReimport],
   ['testRenduOptimizerPointCompteVide', testRenduOptimizerPointCompteVide],
   ['testRenduTelephoneOptimizerPointCompteVide', testRenduTelephoneOptimizerPointCompteVide],
+  ['testRenduOptimizerPointSansMemoireChangementListe', testRenduOptimizerPointSansMemoireChangementListe],
+  ['testRenduTelephoneOptimizerPointSansMemoireChangementListe', testRenduTelephoneOptimizerPointSansMemoireChangementListe],
+  ['testRenduOptimizerPointSansMemoireListeSupprimee', testRenduOptimizerPointSansMemoireListeSupprimee],
+  ['testRenduTelephoneOptimizerPointSansMemoireListeSupprimee', testRenduTelephoneOptimizerPointSansMemoireListeSupprimee],
   ['testOptimizerEquipesHookModificationAvecOrpheline', testOptimizerEquipesHookModificationAvecOrpheline],
   ['testOptimizerEquipesAjoutEquipeOrphelineNeBloquePasEquipeSaine', testOptimizerEquipesAjoutEquipeOrphelineNeBloquePasEquipeSaine],
 ];

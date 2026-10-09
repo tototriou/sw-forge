@@ -18,3 +18,7 @@ export const testRenduOptimizerPointReimport = () => verifier('point-reimport');
 export const testRenduTelephoneOptimizerPointReimport = () => verifier('point-reimport', true);
 export const testRenduOptimizerPointCompteVide = () => verifier('point-vide');
 export const testRenduTelephoneOptimizerPointCompteVide = () => verifier('point-vide', true);
+export const testRenduOptimizerPointSansMemoireChangementListe = () => verifier('point-sans-memoire-changement-liste');
+export const testRenduTelephoneOptimizerPointSansMemoireChangementListe = () => verifier('point-sans-memoire-changement-liste', true);
+export const testRenduOptimizerPointSansMemoireListeSupprimee = () => verifier('point-sans-memoire-liste-supprimee');
+export const testRenduTelephoneOptimizerPointSansMemoireListeSupprimee = () => verifier('point-sans-memoire-liste-supprimee', true);

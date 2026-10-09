@@ -590,6 +590,9 @@ export function useOptimizerState(contexte?: ContexteMembresOptimizer): Optimize
     setSelectedId(null); setSourceSelector(null);
     const membre = reprise.selection ?? reprise.stockage.members.find(m => m.listId === reprise.activeListId);
     if (membre) choisirMembre(membre.listId, membre.selector);
+    // La reprise a déjà établi la liste et la sélection : une navigation
+    // implicite ne doit pas effacer le propriétaire du membre sans mémoire.
+    listePrecedente.current = reprise.activeListId;
   }
 
   function appliquerReverificationMembres(stockage: StockageOptimizer, rapport: RapportReverificationOptimizer, data: ExclusionSourceData, runeIds: Set<number>) {

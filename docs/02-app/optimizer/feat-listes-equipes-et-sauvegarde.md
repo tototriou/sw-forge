@@ -70,6 +70,9 @@ Elle efface le propriétaire des critères, remplace les listes et leurs donnée
 ensemble, puis rétablit l’affichage par `choisirMembre` sur la sélection
 sauvegardée et rattachée (ou le premier membre de la liste active sans sélection).
 Restaurer n’écrit aucune mémoire ; une modification suivante vise le membre repris.
+La liste et la sélection établies par le geste sont déjà reconnues par la
+réconciliation : elle garde le propriétaire même sans mémoire, depuis une autre
+liste ou après suppression de la liste sauvegardée. Le lead d’équipe reste appliqué.
 Un compte vide reprend les données sans revérification et le dit.
 Supprimer une liste ou réimporter le compte ne modifie jamais le point.
 

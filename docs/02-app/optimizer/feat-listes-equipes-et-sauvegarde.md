@@ -48,6 +48,12 @@ n’annonce aucune suppression de rejets puisqu’il les conserve.
 Le rapport du hook est affiché dans la zone C, dans un espace réservé et
 défilant commun aux deux formats. Le clic d’un membre restaure ses critères.
 
+Toutes les écritures des listes et de leurs données dans `useOptimizerLists`
+passent par son `setState` enveloppé et s’appliquent dans l’ordre d’envoi.
+La lecture courante anticipe ces écritures avant le rendu suivant. Aucune
+ne passe par une transition (`startTransition`) : une priorité différée
+casserait cet ordre et l’état courant anticipé.
+
 ## Point de sauvegarde de toutes les listes
 
 `optimizerBackup.ts` photographie toutes les listes dans un instantané unique,
@@ -57,6 +63,8 @@ d’artéfacts, marques de pièces absentes), liste active, sélection du membre
 identités, critères personnels, équipes, leads, contenus et rejets conservés.
 Elle est détachée des données courantes : les modifier ne modifie pas le point.
 Le texte du stockage indépendant conserve aussi ses champs inconnus.
+La sauvegarde lit l’état courant du hook, y compris une mémoire écrite plus
+tôt dans le même geste, sans attendre un rendu intermédiaire.
 
 Le lecteur valide la photo historique entière avant toute reprise. Une photo
 abîmée reste conservée et signalée, sans remplacement partiel du travail.

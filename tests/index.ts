@@ -203,7 +203,7 @@ import testBureauMiseAJour from './bureau-mise-a-jour.test';
 import testBureauSwex from './bureau-swex.test';
 import testBureauSession from './bureau-session.test';
 import testSession from './session.test';
-import { testOptimizerPointAllerRetourComplet, testOptimizerPointLectureDefensive, testOptimizerPointSessionRelue,
+import { testOptimizerPointAllerRetourComplet, testOptimizerPointMemoireMemeGeste, testOptimizerPointLectureDefensive, testOptimizerPointSessionRelue,
   testOptimizerPointRepriseRattachement, testOptimizerPointRepriseCompteVide, testOptimizerPointSuppressionConservation,
   testOptimizerPointSessionIllisibleConserve } from './optimizer-backup.test';
 import testVitesse from './vitesse.test';
@@ -638,6 +638,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   // `usePersistence` (choix de conservation), partagé par tout le bundle, et
   // `testPersistance` exige un navigateur vierge.
   ['testOptimizerPointAllerRetourComplet', testOptimizerPointAllerRetourComplet],
+  ['testOptimizerPointMemoireMemeGeste', testOptimizerPointMemoireMemeGeste],
   ['testOptimizerPointLectureDefensive', testOptimizerPointLectureDefensive],
   ['testOptimizerPointSessionRelue', testOptimizerPointSessionRelue],
   ['testOptimizerPointSessionIllisibleConserve', testOptimizerPointSessionIllisibleConserve],

@@ -41,6 +41,28 @@ export function testOptimizerPointAllerRetourComplet() {
   egal(lireMembresOptimizer(p.membres).memories.values().next().value?.criteres.minStats.spd, 230, 'mémoire de la photo indépendante');
 }
 
+export function testOptimizerPointMemoireMemeGeste() {
+  titre('Point Optimizer · écriture de mémoire puis sauvegarde dans le même geste');
+  const s = donneesPointOptimizer(), data = comptePoint(), membre = s.members[0];
+  data.box = data.box.map(item => ({ ...item, key: '11' }));
+  faussLocalStorage({ 'swblacksmith-optimizer-lists-v1': JSON.stringify(s),
+    [OPTIMIZER_MEMBERS_STORAGE_KEY]: ecrireMembresOptimizer(s) });
+  setPersistence(true);
+  const h = monterListesOptimizer(); let listes = h.render();
+  const criteres = { ...baseCompleteCriteres(undefined), minStats: { spd: 321 } };
+  listes.writeMemory({ ...membre, com2usId: 10101 }, criteres, data);
+  listes.sauvegarderPoint(membre, data);
+  listes = h.render();
+  const point = listes.point!, memorise = lireMembresOptimizer(point.membres), cle = cleMemoireMembre(membre.listId, membre.selector);
+  egal(listes.memories.get(cle)?.criteres.minStats.spd, 321, 'précondition : écriture de mémoire acceptée');
+  egal(memorise.memories.get(cle)?.criteres.minStats.spd, 321, 'point : mémoire écrite avant la sauvegarde, sans rendu intermédiaire');
+  ok(isDeepStrictEqual(memorise.memories, listes.memories), 'point : toutes les mémoires courantes photographiées');
+  egal(point.historique.activeListId, 'a', 'point : liste active courante');
+  egal(point.selection, membre, 'point : sélection conservée');
+  listes.writeMemory({ ...membre, com2usId: 10101 }, { ...criteres, minStats: { spd: 444 } }, data);
+  egal(lireMembresOptimizer(point.membres).memories.get(cle)?.criteres.minStats.spd, 321, 'point détaché : une écriture suivante ne change pas la photo');
+}
+
 export function testOptimizerPointLectureDefensive() {
   titre('Point Optimizer · aucune reprise partielle d’une photo abîmée');
   const p = photographierPointOptimizer(donneesPointOptimizer(), null, new Date('2026-10-09T12:00:00Z'));

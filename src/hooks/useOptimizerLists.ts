@@ -177,6 +177,8 @@ export function useOptimizerLists(): UseOptimizerLists {
   const courant = useRef(state);
   // Les gestes groupés doivent lire les écritures déjà envoyées à React.
   // Les transformations restent pures : React peut les rejouer sans effet de bord.
+  // Toutes les écritures des listes passent ici dans l'ordre d'envoi, sans
+  // startTransition : une priorité différée invaliderait l'état courant anticipé.
   const setState = useCallback((miseAJour: SetStateAction<State>) => {
     const transformer = typeof miseAJour === 'function' ? miseAJour : () => miseAJour;
     // Partager le résultat par état d'entrée garde les mêmes références pour
@@ -211,13 +213,14 @@ export function useOptimizerLists(): UseOptimizerLists {
   }, [state, persist]);
 
   const sauvegarderPoint = useCallback((selection: SelectionPointOptimizer | null, data: ExclusionSourceData) => {
-    const courant = { ...state, ...state.memberStorage };
-    const acquis = acquerirIdentitesMembres(courant, data);
-    const point = photographierPointOptimizer({ ...acquis, activeListId: state.activeListId }, selection, new Date(),
-      acquis === courant ? state.memberStorage.raw : null);
+    const etatCourant = courant.current;
+    const stockageCourant = { ...etatCourant, ...etatCourant.memberStorage };
+    const acquis = acquerirIdentitesMembres(stockageCourant, data);
+    const point = photographierPointOptimizer({ ...acquis, activeListId: etatCourant.activeListId }, selection, new Date(),
+      acquis === stockageCourant ? etatCourant.memberStorage.raw : null);
     const brut = JSON.stringify(point);
     setPointStocke({ brut, ...lirePointOptimizer(brut) });
-  }, [state]);
+  }, []);
 
   const remplacerParPoint = useCallback((reprise: ReturnType<typeof import('../lib/optimizerBackup').preparerRepriseOptimizer>) => {
     const s = reprise.stockage;

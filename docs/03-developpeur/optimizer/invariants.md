@@ -270,6 +270,8 @@ Une entrée = une règle qu'un chantier qui l'ignore casse, avec sa source. Ce f
 
 ## UI
 
+- Toutes les écritures de l’état des listes de `useOptimizerLists` passent par son `setState` enveloppé et s’appliquent dans l’ordre d’envoi, sans transition (`startTransition`) : une priorité différée casserait l’état courant anticipé. La sauvegarde du point photographie cet état courant, mémoire écrite dans le même geste comprise. Sources : ../../02-app/optimizer/feat-listes-equipes-et-sauvegarde.md § Stockage indépendant des listes ; ../../02-app/optimizer/feat-listes-equipes-et-sauvegarde.md § Point de sauvegarde de toutes les listes
+
 - Avant le remplacement du compte, la photo de réimport lit l’état courant des listes, écritures déjà envoyées comprises. Tant que sa revérification est en attente, l’import d’équipe refuse au rapport avant le producteur, sans changer listes, sélection, propriétaire, critères ni résultats ; après revérification, il redevient possible. Sources : ../../02-app/optimizer/feat-import-equipes.md § F1 — Importer depuis l’Optimizer ; ../../02-app/optimizer/feat-listes-equipes-et-sauvegarde.md § Revérification commune
 
 - Les propositions d’import dérivées des producteurs sont mémorisées sur les données sources, partagées par les deux formats et actualisées lorsque ces données changent ; un rendu sans changement des sources, flottant fermé compris, ne rappelle pas les producteurs. Source : ../../02-app/optimizer/feat-import-equipes.md § F1 — Importer depuis l’Optimizer

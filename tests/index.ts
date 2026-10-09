@@ -16,6 +16,8 @@ import { testRenduOptimizerLeadEquipePersonnel, testRenduTelephoneOptimizerLeadE
   testRenduOptimizerContenuSansDeplacement, testRenduTelephoneOptimizerContenuSansDeplacement,
   testRenduOptimizerCombatEffectifAffiche, testRenduTelephoneOptimizerCombatEffectifAffiche } from './rendu/optimizer-equipes.test';
 import { verificationsImportSpeedTune } from './import-speed-tune.test';
+import { testRenduOptimizerPointGestes, testRenduTelephoneOptimizerPointGestes, testRenduOptimizerPointReimport,
+  testRenduTelephoneOptimizerPointReimport, testRenduOptimizerPointCompteVide, testRenduTelephoneOptimizerPointCompteVide } from './rendu/optimizer-backup.test';
 import { verificationsImportReco } from './import-reco.test';
 import { verificationsImportRecoCopies } from './import-reco-copies.test';
 import testNavigation from './navigation.test';
@@ -668,6 +670,12 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRenduTelephoneOptimizerContenuSansDeplacement', testRenduTelephoneOptimizerContenuSansDeplacement],
   ['testRenduOptimizerCombatEffectifAffiche', testRenduOptimizerCombatEffectifAffiche],
   ['testRenduTelephoneOptimizerCombatEffectifAffiche', testRenduTelephoneOptimizerCombatEffectifAffiche],
+  ['testRenduOptimizerPointGestes', testRenduOptimizerPointGestes],
+  ['testRenduTelephoneOptimizerPointGestes', testRenduTelephoneOptimizerPointGestes],
+  ['testRenduOptimizerPointReimport', testRenduOptimizerPointReimport],
+  ['testRenduTelephoneOptimizerPointReimport', testRenduTelephoneOptimizerPointReimport],
+  ['testRenduOptimizerPointCompteVide', testRenduOptimizerPointCompteVide],
+  ['testRenduTelephoneOptimizerPointCompteVide', testRenduTelephoneOptimizerPointCompteVide],
   ['testOptimizerEquipesHookModificationAvecOrpheline', testOptimizerEquipesHookModificationAvecOrpheline],
   ['testOptimizerEquipesAjoutEquipeOrphelineNeBloquePasEquipeSaine', testOptimizerEquipesAjoutEquipeOrphelineNeBloquePasEquipeSaine],
 ];

@@ -23,6 +23,8 @@ saisie de l'écran, remontée dans App.tsx, JAMAIS écrite sur disque) ·
 membres, builds validés — PERSISTÉ,
 voir feat-listes-et-reservation.md § Listes de travail et réservation de runes) ·
 [OptimizerListPicker.tsx](src/components/outils/OptimizerListPicker.tsx) ·
+[OptimizerBackupBar.tsx](src/components/outils/OptimizerBackupBar.tsx)
+(point de sauvegarde de toutes les listes) ·
 [MonsterSourcePicker.tsx](src/components/outils/MonsterSourcePicker.tsx)
 (mode `bestiary` pour « Monstre à optimiser », mode `account` ailleurs) ·
 [ExclusionCandidateRow.tsx](src/components/outils/ExclusionCandidateRow.tsx)
@@ -57,7 +59,7 @@ moteur et sa vérification vivent côté développeur :
   - [Lancer la recherche](feat-ecran-lancer-la-recherche.md)
   - [Résultats](feat-ecran-resultats.md)
 - [Listes de travail et réservation de runes](feat-listes-et-reservation.md)
-- [Stockage des membres et des équipes](feat-listes-equipes-et-sauvegarde.md)
+- [Stockage des membres, des équipes et du point de sauvegarde](feat-listes-equipes-et-sauvegarde.md)
 - [Import d’équipes : modèle et conversions](feat-import-equipes.md)
 - [Exclusion des runes déjà portées ailleurs](feat-exclusion.md)
 - [Interruption — filet de temps, pré-filtrage et arrêt manuel](feat-interruption.md)

@@ -4,6 +4,7 @@ import { leadEffectifMembreOptimizer } from '../../lib/equipesOptimizer';
 import LeadPill, { STAT_LABEL } from '../siege/LeadPill';
 import OptimizerEquipeDialog from './OptimizerEquipeDialog';
 import OptimizerCreateListDialog from './OptimizerCreateListDialog';
+import OptimizerBackupBar from './OptimizerBackupBar';
 import {
   Search,
   Square,
@@ -3322,6 +3323,8 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
       />
       <Bouton libelle="Lier une team" taille="sm" pleineLargeur disabled={!activeList || activeMembers.length < 2}
         onClick={() => activeList && setEquipeOuverte({ listId: activeList.id, equipe: null })} />
+
+      <OptimizerBackupBar listes={lists} optimizer={optimizer} data={exclusionData} artifactIds={new Set(artifacts.map(a => a.id))} />
 
       <div className="h-16 overflow-y-auto text-[11px] text-warn" role="status" aria-label="Rapport des critères">
         {[...lists.rapportStockage, ...optimizer.rapportCriteres].map((message, index) => <p key={index}>{message}</p>)}

@@ -23,7 +23,7 @@ Dans ce dossier (l'application) :
 - [feat-listes-et-reservation.md](feat-listes-et-reservation.md) — listes de
   travail, builds validés, réservation de runes et d'artéfacts.
 - [feat-listes-equipes-et-sauvegarde.md](feat-listes-equipes-et-sauvegarde.md) —
-  mémoires des membres, équipes stockées, conservation et revérification.
+  mémoires des membres, équipes stockées, point de sauvegarde, conservation et revérification.
 - [feat-import-equipes.md](feat-import-equipes.md) — modèle pur d’import,
   conversions du siège et de la prépa RTA, consommation dans une nouvelle liste.
 - [feat-exclusion.md](feat-exclusion.md) — exclusion automatique et manuelle,

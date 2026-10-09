@@ -7,7 +7,7 @@ import { setPersistence } from '../../src/hooks/usePersistence';
 import OptimizerSection from '../../src/components/outils/OptimizerSection';
 import { baseCompleteCriteres, photoCriteres } from '../../src/lib/criteresOptimizer';
 import { cleMemoireMembre, ecrireMembresOptimizer, OPTIMIZER_MEMBERS_STORAGE_KEY, type MemoireMembreOptimizer } from '../../src/lib/optimizerMemberStorage';
-import type { Monster, RtaEntry, SiegeTeam, RuneDetail } from '../../src/types';
+import type { Monster, RtaEntry, SiegeTeam, RuneDetail, ArtifactDetail } from '../../src/types';
 import type { BoxItem } from '../../src/lib/applyAccount';
 import type { ExclusionSelector, ExclusionSourceData } from '../../src/lib/optimizerExclusion';
 import { buildOptimizerRecipe } from '../../src/lib/optimizerRecipe';
@@ -17,6 +17,7 @@ import { preuvesLeadEquipeOptimizer, preuvesDialogueEquipeOptimizer, preuvesCont
 import { preuvesRefusIdentitePerime } from './optimizer-refus-identite-preuves';
 import { preuvesRecetteLeadEquipe, preuvesLeadAncienHorsEquipe, preuvesContenuSansDeplacement } from './optimizer-combat-preuves';
 import { preuvesCombatAfficheOptimizer } from './optimizer-combat-affiche-preuves';
+import { preuvesPointOptimizer } from './optimizer-backup-preuves';
 
 export const premier: ExclusionSelector = { source: 'box', unitKey: '11' };
 export const second: ExclusionSelector = { source: 'box', unitKey: '22' };
@@ -37,6 +38,13 @@ const box: BoxItem[] = [
 let etat: OptimizerState, listes: UseOptimizerLists, root: Root;
 let afficher: (oui: boolean) => void, changerBox: (box: BoxItem[]) => void;
 let changerRunes: (runes: RuneDetail[]) => void, compteActuel: ExclusionSourceData, runesActuelles: RuneDetail[];
+let changerArtefacts: (arts: ArtifactDetail[]) => void, artefactsActuels: ArtifactDetail[];
+let changerDefenses: (teams: SiegeTeam[]) => void;
+let avecPoint = false;
+const artefactsPoint: ArtifactDetail[] = [
+  { id: 71, kind: 'element', element: 'fire', level: 15, rarity: 5, main: { code: 100, value: 1500 }, subs: [] },
+  { id: 72, kind: 'archetype', archetype: 'attack', level: 15, rarity: 5, main: { code: 101, value: 100 }, subs: [] },
+];
 const runesInclusion: RuneDetail[] = Array.from({ length: 6 }, (_, i) => ({
   id: 101 + i, slot: i + 1, set: 'energy', rank: 6, rarity: 5, level: 15,
   main: { code: i === 1 ? 8 : 1, value: i === 1 ? 42 : 100 }, subs: [],
@@ -57,12 +65,16 @@ function Banc() {
   afficher = setVisible; changerBox = setCompte;
   const [inventaire, setInventaire] = useState(() => avecRunes ? runesInclusion : []);
   changerRunes = setInventaire; runesActuelles = inventaire;
+  const [arts, setArts] = useState(() => avecPoint ? artefactsPoint : []);
+  changerArtefacts = setArts; artefactsActuels = arts;
+  const [defenses, setDefenses] = useState(siegeDefenseTeams);
+  changerDefenses = setDefenses;
   listes = useOptimizerLists();
-  const data: ExclusionSourceData = { box: compte, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, monsterById: new Map(monstres.map(m => [String(m.id), m])) };
+  const data: ExclusionSourceData = { box: compte, rtaEntries, siegeDefenseTeams: defenses, siegeOffenseTeams, monsterById: new Map(monstres.map(m => [String(m.id), m])) };
   compteActuel = data;
   etat = useOptimizerState({ lists: listes, data, runeIds: new Set(inventaire.map(r => r.id)) });
-  return visible ? <OptimizerSection box={compte} runes={inventaire} artifacts={[]} relics={[]} relicUsageById={{}}
-    optimizer={etat} lists={listes} allMonsters={monstres} rtaEntries={rtaEntries} siegeDefenseTeams={siegeDefenseTeams} siegeOffenseTeams={siegeOffenseTeams}
+  return visible ? <OptimizerSection box={compte} runes={inventaire} artifacts={arts} relics={[]} relicUsageById={{}}
+    optimizer={etat} lists={listes} allMonsters={monstres} rtaEntries={rtaEntries} siegeDefenseTeams={defenses} siegeOffenseTeams={siegeOffenseTeams}
     accountName="Synthétique" menuOuvert={false} onFermerMenu={() => {}} onOuvrirMenu={() => {}} /> : <div>Autre onglet</div>;
 }
 
@@ -103,7 +115,8 @@ export async function monter(avecRapport = false) {
 }
 
 export async function scenario(nom: string): Promise<[boolean, string][]> {
-  avecRunes = nom.startsWith('rattachement');
+  avecPoint = nom.startsWith('point-');
+  avecRunes = nom.startsWith('rattachement') || avecPoint;
   await monter(nom === 'zone-c');
   if (nom.startsWith('rattachement')) return preuvesRattachementOptimizer({ etat: () => etat, listes: () => listes,
     data: () => compteActuel, runes: () => runesActuelles, changerBox, changerRunes, afficher, geste, premier }, nom === 'rattachement-demonte');
@@ -112,6 +125,8 @@ export async function scenario(nom: string): Promise<[boolean, string][]> {
   const choisir = (selector = premier) => geste(() => etat.choisirMembre('a', selector));
   const memoire = (listId: string, selector = premier) => listes.memories.get(cleMemoireMembre(listId, selector));
   await choisir();
+  if (avecPoint) return preuvesPointOptimizer({ etat: () => etat, listes: () => listes, data: () => compteActuel,
+    runes: () => runesActuelles, arts: () => artefactsActuels, changerBox, changerRunes, changerArtefacts, changerDefenses, geste, premier, second, siege }, nom);
   const bancEquipes = { etat: () => etat, listes: () => listes, geste, premier, second, troisieme };
   if (nom === 'combat-affiche') return preuvesCombatAfficheOptimizer(bancEquipes);
   if (nom === 'recette-lead-equipe') return preuvesRecetteLeadEquipe(bancEquipes);

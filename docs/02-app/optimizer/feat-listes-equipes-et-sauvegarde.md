@@ -73,6 +73,21 @@ Restaurer n’écrit aucune mémoire ; une modification suivante vise le membre 
 Un compte vide reprend les données sans revérification et le dit.
 Supprimer une liste ou réimporter le compte ne modifie jamais le point.
 
+« Sauvegarder » et « Reprendre » sont dans la zone des membres, aux deux formats :
+dans la colonne de bureau, dans le dépliement « Monstres à optimiser » au téléphone.
+Les boutons restent montés ; « Reprendre » est désactivé sans point lisible,
+avec la raison en infobulle. « Sauvegarder » rappelle que la conservation
+automatique existe déjà. L’annonce sous les boutons donne le nombre de listes
+et de membres et la date du point. Sa hauteur est réservée dès le départ,
+avec défilement interne : poser le point ne déplace aucun contrôle.
+
+Remplacer un point, même illisible, ouvre « Remplacer le point de sauvegarde ? »
+et annonce la perte de l’ancien point. « Reprendre » annonce le remplacement de
+toutes les listes courantes et la perte des listes, membres, builds, mémoires,
+équipes et contenus créés ou modifiés depuis le point. Les deux confirmations
+utilisent `ConfirmDialog`, hors du flux ; le focus initial est sur « Annuler ».
+Annuler ne change ni le point ni le travail courant. La reprise garde le point.
+
 ## Identité indépendante des critères
 
 `identities` est une `Map` à clé `listId|exclusionSelectorKey(selector)`.

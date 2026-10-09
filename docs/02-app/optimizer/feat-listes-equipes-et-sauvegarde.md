@@ -97,9 +97,14 @@ Le stockage ne calcule aucun lead effectif et n’ajoute aucun contrôle d’éc
 membre ou dissout une équipe, sans toucher aux listes, aux builds ni aux
 mémoires. Les identifiants sont fournis par l’appelant ; le contenu par défaut
 est `siege`, le lead par défaut est `null` et le leader reste facultatif.
-Chaque création ou ajout vérifie la forme du stockage, l’existence de la liste
-et l’appartenance de chaque membre à cette liste. Un refus rend les équipes
-initiales et un rapport explicite, sans déplacement implicite d’un membre.
+La création vérifie la forme de l’équipe proposée, l’existence de sa liste
+et l’appartenance de chacun de ses membres à cette liste. Elle contrôle les
+collisions d’identifiant et l’exclusivité des membres contre les équipes
+existantes, conservées telles quelles. Une équipe ancienne dont la liste ou
+un membre a disparu ne bloque pas la création d’une équipe indépendante.
+L’ajout d’un membre conserve sa validation du stockage et des références.
+Un refus rend les équipes initiales et un rapport explicite, sans déplacement
+implicite d’un membre.
 L’exclusivité d’un membre est propre à sa liste : le même sélecteur peut être
 lié indépendamment dans deux listes.
 

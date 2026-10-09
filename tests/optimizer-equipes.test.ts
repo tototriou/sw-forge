@@ -182,3 +182,22 @@ export function testOptimizerEquipesRetraitEquipeDeDeux() {
   egal(delierMembreOptimizer(teams, 'l1', membres[0]), retire, 'délier utilise la même règle');
   egal(teams, initial, 'équipes initiales intactes');
 }
+
+export function testOptimizerEquipesCreationAvecOrphelines() {
+  titre('Optimizer · création isolée et conflits contre les équipes orphelines');
+  const ancienne = { ...equipe(), id: 'orpheline', listId: 'absente' };
+  const c = contexte([ancienne]);
+  const creation = { ...equipe(), id: 'nouvelle' };
+  const r = creerEquipeOptimizer(c, creation);
+  egal(r.rapport, [], 'liste ancienne absente sans blocage de la création');
+  egal(r.teams.length, 2, 'nouvelle équipe ajoutée');
+  ok(r.teams[0] === ancienne, 'équipe ancienne conservée par référence');
+  const collisionId = creerEquipeOptimizer(c, { ...creation, id: ancienne.id });
+  ok(collisionId.teams === c.teams && collisionId.rapport.length > 0, 'identifiant réservé même par une équipe orpheline');
+  const membreAbsent = { ...ancienne, listId: 'l1', members: [membres[0], { source: 'box' as const, unitKey: 'absent' }] };
+  const conflit = creerEquipeOptimizer(contexte([membreAbsent]), creation);
+  ok(conflit.rapport.some(m => m.includes('déjà affecté')), 'membre existant réservé malgré un coéquipier absent');
+  const independante = creerEquipeOptimizer(contexte([membreAbsent]), { ...creation, members: membres.slice(2, 4) });
+  egal(independante.rapport, [], 'membre ancien absent sans blocage d’une équipe indépendante');
+  ok(independante.teams[0] === membreAbsent, 'équipe avec membre absent conservée telle quelle');
+}

@@ -75,6 +75,24 @@ export function testImportEquipesOffenseSiege() {
   ok(absent.rapport.messages.some(m => m.includes('introuvable')), 'deck absent nommé au rapport');
 }
 
+export function testImportEquipesAnciennesOrphelines() {
+  titre('Import · les équipes anciennes orphelines ne bloquent pas une défense valide');
+  for (const disparu of ['liste', 'membre']) {
+    const data = sources(), etat = stockage();
+    data.siegeDefenseTeams = [data.siegeDefenseTeams[0]];
+    if (disparu === 'liste') etat.lists = etat.lists.filter(l => l.id !== 'ancienne');
+    else etat.members = etat.members.slice(0, 1);
+    const avant = structuredClone(etat), ancienneEquipe = etat.teams[0];
+    const r = consommer(importerDefensesSiegeOptimizer(data), data, etat);
+    egal(r.rapport.membresImportes, 3, `${disparu} introuvable : trois membres importés`);
+    egal(r.rapport.equipesCreees, 1, `${disparu} introuvable : nouvelle équipe créée`);
+    egal(r.rapport.equipesNonCreees, [], 'aucun refus hérité d’une équipe ancienne');
+    ok(r.stockage.teams[0] === ancienneEquipe, 'ancienne équipe conservée telle quelle');
+    egal(r.stockage.teams.slice(1).map(e => [e.members.length, e.lead]), [[3, lead]], 'nouvelle équipe complète et lead du slot 0');
+    ok(isDeepStrictEqual(etat, avant), 'aucune mutation de l’état initial');
+  }
+}
+
 export function testImportEquipesPrepaRtaVitesses() {
   titre('Import · toute la prépa RTA, VIT de fiche et base de l’exemplaire');
   const data = sources(), p = importerPrepaRtaOptimizer(data), r = consommer(p, data);
@@ -242,7 +260,7 @@ export function testImportEquipesLeadsEtRelecture() {
 }
 
 export const verificationsImportEquipes: [string, () => void][] = [
-  testImportEquipesDefensesSiege, testImportEquipesOffenseSiege, testImportEquipesPrepaRtaVitesses,
+  testImportEquipesDefensesSiege, testImportEquipesOffenseSiege, testImportEquipesAnciennesOrphelines, testImportEquipesPrepaRtaVitesses,
   testImportEquipesMonstresInconnus, testImportEquipesVitessesInvalides, testImportEquipesNomsEtPreservation,
   testImportEquipesDoublons, testImportEquipesIdentiteEtVide, testImportEquipesCriteresRefuses,
   testImportEquipesSansEquipeBaseComplete, testImportEquipesFiltrageEtCardinalites, testImportEquipesLeadsEtRelecture,

@@ -91,7 +91,15 @@ function accepterEquipes(contexte: ContexteEquipesOptimizer, teams: EquipeOptimi
 
 export function creerEquipeOptimizer(contexte: ContexteEquipesOptimizer, creation: CreationEquipeOptimizer): ResultatEquipesOptimizer {
   const equipe: EquipeOptimizer = { ...creation, lead: creation.lead ?? null, contenu: creation.contenu ?? 'siege' };
-  return accepterEquipes(contexte, [...contexte.teams, equipe]);
+  // Une création ne revérifie pas les références des équipes conservées :
+  // une liste ou un membre ancien disparu ne doit pas bloquer la nouvelle équipe.
+  const resultat = accepterEquipes(contexte, [equipe]);
+  if (resultat.rapport.length) return resultat;
+  if (contexte.teams.some(e => e.id === equipe.id
+    || (e.listId === equipe.listId && e.members.some(s => equipe.members.some(m => memeMembre(s, m)))))) {
+    return { teams: contexte.teams, rapport: ['Équipe refusée : identifiant ou membre déjà affecté.'] };
+  }
+  return { teams: [...contexte.teams, ...resultat.teams], rapport: [] };
 }
 
 export function ajouterMembreEquipeOptimizer(

@@ -25,10 +25,11 @@
      **Principale PV %**, **« Libre »** (cherche parmi toutes les reliques
      éligibles). **Défaut : « Garder la relique équipée » si le monstre
      choisi porte une relique, « Libre » sinon** — calculé au choix du
-     monstre, comme pour l'artéfact, par **tous** les chemins qui en
-     désignent un : bestiaire, recette importée, membre de la liste de
-     travail, « un autre exemplaire », puce de source, zone D et réimport
-     du compte. Entre deux exemplaires de la **même espèce**, le choix de
+     monstre, comme pour l'artéfact : bestiaire, « un autre exemplaire »,
+     puce de source, zone D et réimport du compte. Un membre de liste
+     restaure son choix mémorisé ; ce défaut n'est posé que sans mémoire
+     applicable. Une recette pose son propre choix après validation.
+     Entre deux exemplaires de la **même espèce** choisis hors liste, le choix de
      l'utilisateur est conservé, sauf « Garder la relique équipée » sur un
      exemplaire qui n'en porte pas, qui redevient « Libre »
      (`relicMainChoiceApresChangementExemplaire`) : ce mode ne refuse pas la

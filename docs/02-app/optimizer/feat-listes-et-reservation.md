@@ -99,13 +99,22 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
 - **Zone C, « Monstres de la liste »** — juste sous les puces de source
   dans « Monstre & équipement » : chaque monstre de la liste active, son
   statut (« Validé » + bouton libérer, ou « pas encore validé »), cliquable
-  pour rappeler son exemplaire dans la recherche — un autre exemplaire de
-  l'espèce déjà choisie efface les résultats affichés, sans toucher aux
-  critères (voir feat-ecran-recherche-du-monstre.md § Recherche du monstre à optimiser). Avec des
-  auras externes renseignées, choisir ici une autre espèce ou un autre
-  exemplaire les rappelle 3 s dans « État de mon monstre » (voir
+  pour rappeler son exemplaire et ses critères personnels mémorisés dans la
+  recherche. Sans mémoire applicable, les critères prennent les défauts
+  complets de l'Optimizer, même pour la même espèce ; les résultats affichés
+  sont effacés. Voir
+  [feat-listes-equipes-et-sauvegarde.md](feat-listes-equipes-et-sauvegarde.md)
+  § Mémoires des membres.
+  Le clic rappelle les auras externes de la **destination**, celles de ses
+  critères effectivement restaurés après validation, jamais celles du membre
+  précédent. Si l'espèce ou l'exemplaire change et que la destination porte des
+  auras externes, le rappel paraît 3 s dans « État de mon monstre » (voir
   feat-ecran-etat-de-mon-monstre.md § Sets d'aura des autres monstres) **et sous la liste** (voir plus bas) : c'est
-  la seule voie qui le fasse. **Corbeille** à droite de
+  la seule voie qui le fasse. Une destination sans auras, un choix refusé ou
+  un clic sur le même exemplaire efface le rappel précédent sans en créer.
+  Restaurer par l'action seule, naviguer entre listes, importer ou remonter
+  l'écran ne déclenche jamais de rappel ni d'ouverture guidée. Les nombres
+  restaurés ne sont pas réécrits par le rappel. **Corbeille** à droite de
   chaque ligne pour retirer un monstre de la liste — sans confirmation s'il
   n'est pas encore validé (rien à perdre), avec confirmation s'il l'est (le
   retrait libère aussi ses runes). Bouton **« Ajouter à la liste »**, dont
@@ -115,6 +124,12 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   réel, voir plus bas). Sans liste active, « Créer une liste et y ajouter
   `<monstre>` » crée une liste (prompt du nom) ET y ajoute le monstre dans
   le même geste.
+  Une marque « Critères mémorisés » occupe un emplacement réservé sur chaque
+  ligne ; elle apparaît dès qu'une mémoire existe pour ce membre dans cette
+  liste, sans déplacer la ligne. Le rapport du chargement et les messages de
+  restauration occupent un espace réservé défilant de la zone C, commun au
+  bureau et au téléphone. Une mémoire conservée mais inapplicable reste marquée
+  et son refus est dit lorsqu'on choisit le membre.
   ⚠️ **Plusieurs exemplaires Box d'une même espèce** : les membres sont repérés
   par exemplaire (`exclusionSelectorKey`, Box = `box:<unitKey>`), deux
   exemplaires peuvent donc entrer dans la même liste. Quand l'exemplaire

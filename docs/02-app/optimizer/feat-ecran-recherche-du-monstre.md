@@ -55,23 +55,24 @@
    **slot RÉELLEMENT vide** (aucun monstre assigné) est absent des
    candidats, pas un monstre présent sans rune.
    **Choisir un résultat fixe l'exemplaire RÉELLEMENT optimisé** — pas
-   seulement prévisualisé. **Changer d'ESPÈCE** réinitialise « Critères de
+   seulement prévisualisé. **Hors liste, changer d'ESPÈCE** réinitialise « Critères de
    recherche » et les résultats affichés (set, statistique principale
    imposée, objectif, artéfacts, conditions min/max, tri, pagination) — des
    critères posés pour l'ancien monstre n'ont pas de raison de valoir pour
-   le nouveau. Re-choisir le même exemplaire, ou un AUTRE exemplaire de la
+   le nouveau. Hors liste, re-choisir le même exemplaire, ou un AUTRE exemplaire de la
    MÊME espèce, conserve les critères de recherche, le sort et ses réglages :
    aucun nouveau sort n'est à choisir pour cette espèce. Un autre
    exemplaire choisi par un membre de la
-   liste de travail efface en revanche les **résultats affichés**, faits
-   pour l'ancien (voir la table ci-dessous). Les **réglages avancés**
+   liste de travail rappelle ses critères mémorisés ou la base complète s'il
+   n'en a pas, puis efface les **résultats affichés** (voir la table ci-dessous).
+   Les **réglages avancés**
    (préfiltrage, exclusions, recherche exhaustive…) ne sont jamais
    concernés : préférences générales, pas critères propres à un monstre.
    **Importer un nouveau compte** déclenche la réinitialisation complète,
    pour la même raison (autre box, autre pool de runes possible) — même en
    étant sur un autre onglet au moment de l'import.
 
-   ⚠️ **Changer d'espèce ramène l'objectif à « Efficience »** et vide le
+   ⚠️ **Au bestiaire, changer d'espèce ramène l'objectif à « Efficience »** et vide le
    sort choisi ; **choisie dans le bestiaire**, l'espèce ramène aussi le cran
    des artéfacts à « Dégâts supplémentaires ». Un sort appartient à un
    monstre : après un changement, le calcul retomberait silencieusement sur
@@ -82,22 +83,21 @@
    réoptimiser en dégâts demande de recliquer « Dégâts réels », dont la
    fenêtre présélectionne le sort par défaut du nouveau monstre.
    - L'objectif et le sort retombent dans `resetSearch`, donc pour toute
-     espèce différente, bestiaire ou membre de liste ; le cran des artéfacts
-     retombe dans `pickSpecies` seulement. Un membre de liste d'une autre
-     espèce (`choisirExemplaire`) laisse le cran tel quel ; sur « Dégâts
-     réels », la légende du bloc, dès qu'il propose une paire, nomme alors
-     le sort par défaut du nouveau monstre (voir feat-ecran-meilleurs-artefacts-offensifs.md § Deux crans : dégâts supplémentaires ou dégâts réels).
+     espèce différente au bestiaire ; le cran des artéfacts retombe dans
+     `pickSpecies`. Le clic d'un membre passe par `choisirMembre` et restaure
+     son objectif, son sort et son cran mémorisés, ou leurs défauts complets.
+     Cette restauration n'ouvre jamais la fenêtre du combat.
    - Ces remises à zéro vivent dans les gestionnaires du geste, jamais dans
      un effet sur le monstre sélectionné : `importRecipe` pose le monstre et
      l'objectif sans passer par eux, et un effet, déclenché après l'import,
      écraserait l'objectif de la recette qu'on vient de charger.
 
-   ⚠️ **La description du combat, elle, SURVIT** : défense, PV et élément de
+   ⚠️ **Hors liste, la description du combat SURVIT** : défense, PV et élément de
    l'adversaire, buffs, lead ne sont pas propres au monstre, et ce sont les
    plus longs à ressaisir. Recliquer « Dégâts réels » rouvre la fenêtre avec
    le combat déjà décrit. Les sélecteurs et réglages propres au sort ne
-   retombent au défaut que lorsque l'espèce optimisée change ou qu'un nouveau
-   compte est importé, selon la table ci-dessous.
+   retombent au défaut lorsque l'espèce optimisée change ou qu'un nouveau
+   compte est importé. Un membre rappelle son combat mémorisé ou la base complète, selon la table ci-dessous.
 
 ## Classement des champs de DamageSetup au changement de monstre
 
@@ -105,7 +105,8 @@
 l'adversaire, l'équipe ou l'état de combat réutilisable ; « sort » désigne
 un choix lié au monstre, au sort ou à son passif. Un champ de compatibilité
 suit le champ auquel il est associé. Toute nouvelle clé doit être classée
-dans cette table et dans `DAMAGE_SETUP_CLASSIFICATION` avant usage.
+dans cette table et dans `DAMAGE_SETUP_CLASSIFICATION` avant usage. Ce classement
+décrit les transitions hors liste ; la mémoire d'un membre contient le combat entier.
 
 | Sens | Champs actuels | Changement de monstre |
 | --- | --- | --- |
@@ -116,29 +117,35 @@ dans cette table et dans `DAMAGE_SETUP_CLASSIFICATION` avant usage.
 
 | Événement | Contexte partagé et legacy associé | Sort, passifs et marqueurs associés | Autres critères de recherche |
 | --- | --- | --- | --- |
-| Espèce différente | Conservés | Défauts | `resetSearch` habituel |
-| Autre exemplaire de la même espèce, y compris après une nouvelle recherche bestiaire | Conservés | Conservés | Conservés |
-| Navigation entre listes, création ou suppression de la liste active sans choisir un autre monstre | Conservés | Conservés | Conservés |
-| Choix d'un membre de liste d'une espèce différente | Conservés | Défauts | `resetSearch` habituel |
-| Choix d'un membre de liste de la même espèce | Conservés | Conservés | Conservés |
+| Espèce différente hors liste | Conservés | Défauts | `resetSearch` habituel |
+| Autre exemplaire de la même espèce, y compris après une nouvelle recherche bestiaire | Conservés | Conservés | Conservés, sous la garde de cohérence de relique ci-dessous |
+| Navigation entre listes sans choisir un autre monstre | Mémoire valide du membre affiché dans la destination ; sinon conservés sans propriétaire | Même règle | Même règle |
+| Création ou suppression de la liste active sans inclusion | Conservés sans propriétaire | Conservés sans propriétaire | Conservés sans propriétaire |
+| Choix d'un membre de liste, quelle que soit son espèce | Mémoire valide, sinon base complète | Mémoire valide, sinon base complète | Mémoire valide, sinon base complète |
 | Import de recette | Valeurs de la recette | Valeurs de la recette | Valeurs de la recette |
 | Import de compte | Défauts | Défauts | `resetSearch` habituel |
 
-Cliquer un autre membre de la liste garde les autres effets de `resetSearch`
-quand son espèce change. **Quand il désigne un autre exemplaire de la même
-espèce**, les résultats affichés, faits pour l'ancien exemplaire, sont
-effacés comme au changement d'espèce et par la même fonction
+La conservation hors liste garde la règle de cohérence de la relique :
+« Garder la relique équipée » redevient « Libre » si l'exemplaire choisi
+n'en porte pas (voir feat-ecran-relique.md § Relique). Cette pose automatique
+ne crée aucune mémoire.
+
+Cliquer un membre restaure ses critères personnels puis efface les résultats
+affichés par la même fonction
 (`effacerResultats`, useOptimizerState.ts, la partie « résultats » de
 `resetSearch` : résultat et progression, page, arrêt manuel, détail
-ouvert). Critères, tri et combat décrit restent, comme le dit la table, et
-rien n'est relancé : l'utilisateur relance lui-même. Recliquer
-l'exemplaire déjà affiché n'efface rien. Le bouton « Ajouter un autre
+ouvert). Rien n'est relancé : l'utilisateur relance lui-même. La restauration
+ne crée aucune mémoire et ne déclenche ni rappel des auras ni ouverture guidée.
+Le rappel reste réservé au geste explicite sur une ligne de la liste.
+Le bouton « Ajouter un autre
 exemplaire de … » de la zone C
 (voir feat-listes-et-reservation.md § Zone C — Monstres de la liste) change
-d'exemplaire par le **même chemin** (`choisirExemplaire`,
+d'exemplaire par le **chemin de sélection hors liste** (`choisirExemplaire`,
 OptimizerSection.tsx) : résultats affichés effacés, critères gardés,
-sans rappel des auras externes, qui reste au seul clic d'un membre. Naviguer entre listes sans
-choisir un autre monstre ne change pas le monstre optimisé ; la simple
+sans rappel des auras externes, qui reste au seul clic d'un membre ; l'inclusion
+photographie immédiatement les critères conservés. Naviguer entre listes sans
+choisir un autre monstre ne change pas le monstre optimisé, mais rappelle sa
+mémoire valide dans la destination ; sans mémoire, aucun propriétaire. La simple
 re-sélection de la même espèce dans le bestiaire, ou d'un exemplaire par
 les puces de source et la zone D, ne vide rien, et n'efface pas non plus
 les résultats affichés. L'import de

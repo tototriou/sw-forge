@@ -21,3 +21,5 @@ export const testRenduOptimizerRefusIdentitePerime = () => verifier('refus-ident
 export const testRenduTelephoneOptimizerRefusIdentitePerime = () => verifier('refus-identite-perime', true);
 export const testRenduOptimizerRecetteLeadEquipe = () => verifier('recette-lead-equipe');
 export const testRenduTelephoneOptimizerRecetteLeadEquipe = () => verifier('recette-lead-equipe', true);
+export const testRenduOptimizerLeadAncienHorsEquipe = () => verifier('lead-ancien-hors-equipe');
+export const testRenduTelephoneOptimizerLeadAncienHorsEquipe = () => verifier('lead-ancien-hors-equipe', true);

@@ -82,6 +82,14 @@
    revient dès que le membre quitte l’équipe. Voir
    feat-listes-equipes-et-sauvegarde.md § Lead effectif d’un membre.
 
+   Hors équipe, changer le lead depuis cette carte efface aussi l’ancien
+   champ de VIT (`leaderSpeedPct`) des critères personnels : choisir
+   « Aucun » ne doit pas réactiver ce lead ancien. Si les critères ont un
+   propriétaire valide, sa mémoire reçoit ce changement. Pour un membre
+   lié, le même geste change seulement le lead partagé ; le lead personnel
+   moderne et l’ancien champ de VIT restent intacts dans les critères et
+   la mémoire du membre.
+
 ## Sets d'aura des autres monstres
 
    **Sets d'aura des autres monstres** — une quatrième

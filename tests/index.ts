@@ -11,7 +11,8 @@ import { testRenduOptimizerLeadEquipePersonnel, testRenduTelephoneOptimizerLeadE
   testRenduOptimizerDialogueEquipe, testRenduTelephoneOptimizerDialogueEquipe,
   testRenduOptimizerCreationContenu, testRenduTelephoneOptimizerCreationContenu,
   testRenduOptimizerRefusIdentitePerime, testRenduTelephoneOptimizerRefusIdentitePerime,
-  testRenduOptimizerRecetteLeadEquipe, testRenduTelephoneOptimizerRecetteLeadEquipe } from './rendu/optimizer-equipes.test';
+  testRenduOptimizerRecetteLeadEquipe, testRenduTelephoneOptimizerRecetteLeadEquipe,
+  testRenduOptimizerLeadAncienHorsEquipe, testRenduTelephoneOptimizerLeadAncienHorsEquipe } from './rendu/optimizer-equipes.test';
 import { verificationsImportSpeedTune } from './import-speed-tune.test';
 import { verificationsImportReco } from './import-reco.test';
 import { verificationsImportRecoCopies } from './import-reco-copies.test';
@@ -651,6 +652,8 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRenduTelephoneOptimizerRefusIdentitePerime', testRenduTelephoneOptimizerRefusIdentitePerime],
   ['testRenduOptimizerRecetteLeadEquipe', testRenduOptimizerRecetteLeadEquipe],
   ['testRenduTelephoneOptimizerRecetteLeadEquipe', testRenduTelephoneOptimizerRecetteLeadEquipe],
+  ['testRenduOptimizerLeadAncienHorsEquipe', testRenduOptimizerLeadAncienHorsEquipe],
+  ['testRenduTelephoneOptimizerLeadAncienHorsEquipe', testRenduTelephoneOptimizerLeadAncienHorsEquipe],
   ['testOptimizerEquipesHookModificationAvecOrpheline', testOptimizerEquipesHookModificationAvecOrpheline],
   ['testOptimizerEquipesAjoutEquipeOrphelineNeBloquePasEquipeSaine', testOptimizerEquipesAjoutEquipeOrphelineNeBloquePasEquipeSaine],
 ];

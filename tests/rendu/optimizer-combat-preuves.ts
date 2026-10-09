@@ -3,6 +3,7 @@ import type { UseOptimizerLists } from '../../src/hooks/useOptimizerLists';
 import type { ExclusionSelector } from '../../src/lib/optimizerExclusion';
 import { cleMemoireMembre } from '../../src/lib/optimizerMemberStorage';
 import { parseOptimizerRecipe } from '../../src/lib/optimizerRecipe';
+import { resolvedLeaderSkill } from '../../src/lib/damage';
 
 interface Banc {
   etat: () => OptimizerState;
@@ -21,6 +22,13 @@ async function lier(b: Banc) {
     b.listes().setListContent('a', 'guilde');
     b.listes().setTeams([{ id: 'ea', listId: 'a', members: [b.premier, b.second],
       lead: { stat: 'Attack Speed', amount: 24, area: 'Guild', element: null } }]);
+  });
+}
+
+async function choisirLead(b: Banc, valeur: string) {
+  await b.geste(() => {
+    const menu = [...document.querySelectorAll<HTMLSelectElement>('[aria-label="Type de leader skill"]')].find(visible)!;
+    menu.value = valeur; menu.dispatchEvent(new Event('change', { bubbles: true }));
   });
 }
 
@@ -64,5 +72,30 @@ export async function preuvesRecetteLeadEquipe(b: Banc): Promise<[boolean, strin
     'réimport : le lead effectif exporté devient une valeur de recette');
   verifier(JSON.stringify(memoire(b)) === photo && JSON.stringify(b.listes().teams) === teams,
     'réimport : aucune mémoire ni équipe existante écrasée');
+  return preuves;
+}
+
+export async function preuvesLeadAncienHorsEquipe(b: Banc): Promise<[boolean, string][]> {
+  const preuves: [boolean, string][] = [], verifier = (oui: boolean, texte: string) => preuves.push([oui, texte]);
+  const poserPersonnel = () => b.geste(() => b.etat().setDamageSetup(s => ({ ...s,
+    leaderSkill: { stat: 'HP', pct: 33 }, leaderSpeedPct: 19 })));
+  await poserPersonnel();
+  verifier(b.etat().proprietaireCriteres?.com2usId === 10101 && resolvedLeaderSkill(b.etat().damageSetup)?.stat === 'HP',
+    'hors équipe : propriétaire valide, critères avec lead moderne et ancien lead de VIT');
+  await choisirLead(b, '');
+  verifier(resolvedLeaderSkill(b.etat().damageSetup) === null && b.etat().damageSetup.leaderSpeedPct === undefined,
+    'hors équipe, choix Aucun : aucun lead résolu, ancien champ de VIT effacé');
+  verifier(b.etat().proprietaireCriteres?.com2usId === 10101 && memoire(b).com2usId === 10101
+    && resolvedLeaderSkill(memoire(b).criteres.damageSetup) === null && memoire(b).criteres.damageSetup.leaderSpeedPct === undefined,
+    'hors équipe : choix Aucun écrit la mémoire du propriétaire valide en conséquence');
+  await poserPersonnel();
+  await lier(b);
+  const personnel = JSON.stringify(b.etat().damageSetup), photo = JSON.stringify(memoire(b));
+  await choisirLead(b, '');
+  verifier(b.listes().teams[0].lead === null && resolvedLeaderSkill(b.etat().lireCombatMembre().setup) === null,
+    'membre lié, choix Aucun : lead partagé retiré, aucun repli sur le lead personnel');
+  verifier(b.etat().damageSetup.leaderSpeedPct === 19 && b.etat().damageSetup.leaderSkill?.pct === 33
+    && JSON.stringify(b.etat().damageSetup) === personnel && JSON.stringify(memoire(b)) === photo,
+    'membre lié, même geste : ancien champ et lead personnel conservés dans les critères et la mémoire');
   return preuves;
 }

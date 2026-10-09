@@ -232,6 +232,8 @@ Pour l’identifiant de la nouvelle liste, les identités réservent aussi leur
 rejets d’identité dont le `listId` reste lisible. Ces données restent intactes ;
 le nouveau membre reçoit une identité de son espèce dans la liste suffixée,
 sans reprendre une identité orpheline ni réactiver un rejet.
+Un rejet d’identité sans `listId` lisible reste conservé tel quel et ne réserve
+aucun identifiant de liste ; sa clé brute ne sert jamais à déduire cette cible.
 Un import sans membre accepté ne crée rien et conserve la liste active,
 avec un message explicite. Un contenu d’import inconnu est refusé explicitement,
 sans modifier le stockage. Le contenu accepté est ajouté à `listContents` pour

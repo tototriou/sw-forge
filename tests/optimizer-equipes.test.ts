@@ -198,3 +198,19 @@ export function testOptimizerEquipesCreationAvecOrphelines() {
   egal(independante.rapport, [], 'membre ancien absent sans blocage d’une équipe indépendante');
   ok(independante.teams[0] === membreAbsent, 'équipe avec membre absent conservée telle quelle');
 }
+
+export function testOptimizerEquipesAjoutEquipeOrphelineNeBloquePasEquipeSaine() {
+  titre('Optimizer · une équipe orpheline ne bloque pas un geste sur une équipe saine');
+  for (const orpheline of [
+    { ...equipe(), id: 'ancienne', listId: 'absente' },
+    { ...equipe(), id: 'ancienne', members: [membres[4], { source: 'box' as const, unitKey: 'absent' }] },
+  ]) {
+    const saine = equipe(), c = contexte([orpheline, saine]);
+    const r = ajouterMembreEquipeOptimizer(c, saine.id, membres[2]);
+    egal(r.rapport, [], 'ajout accepté sur la cible saine');
+    egal(r.teams[1].members, membres.slice(0, 3), 'membre ajouté à la bonne équipe');
+    ok(r.teams[0] === orpheline, 'équipe orpheline conservée telle quelle');
+    const conflit = ajouterMembreEquipeOptimizer(c, saine.id, membres[4]);
+    if (orpheline.listId === saine.listId) ok(conflit.rapport.length > 0 && conflit.teams === c.teams, 'exclusivité contre une équipe orpheline maintenue');
+  }
+}

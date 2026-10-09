@@ -156,3 +156,41 @@ export function testOptimizerContenuListeImportPreserveEtCollisions() {
   const vide = consommerImportOptimizer(stockage, 'l1', { ...proposition, membres: [] }, compte(), 'nouvelle');
   ok(vide.stockage === stockage, 'import vide : aucun contenu ajouté');
 }
+
+export function testOptimizerContenuListeCreationEtModification() {
+  titre('Contenu de liste · création manuelle et modification ciblée persistées');
+  const disque = installer(JSON.stringify({ memories: [], teams: [equipe],
+    rejets: { listContents: [{ listId: 'l1', contenu: 'inconnu' }] } }));
+  try {
+    const h = monterListesOptimizer(); let lu = h.render();
+    const initial = JSON.stringify({ teams: lu.teams, memories: [...lu.memories], rejets: lu.rejets });
+    for (const contenu of ['guilde', 'donjon', 'arene'] as const) {
+      const id = lu.createList(contenu, contenu); lu = h.render();
+      egal(lu.activeListId, id, 'nouvelle liste active');
+      egal(lu.listContents.get(id), contenu, 'contenu choisi stocké dès la création');
+      egal(lireMembresOptimizer(disque.get(CLE)!).listContents.get(id), contenu, 'contenu de création relu sur disque');
+    }
+    lu.setListContent('l1', 'donjon'); lu = h.render();
+    egal(lu.listContents.get('l1'), 'donjon', 'contenu historique défini explicitement');
+    lu.setListContent('l1', 'arene'); lu = h.render();
+    egal(lireMembresOptimizer(disque.get(CLE)!).listContents.get('l1'), 'arene', 'modification persistée');
+    egal(JSON.stringify({ teams: lu.teams, memories: [...lu.memories], rejets: lu.rejets }), initial, 'équipes, critères personnels et rejets intacts');
+    lu.setListContent('absente', 'guilde'); lu.setListContent('l1', 'inconnu' as ContenuListeOptimizer); lu = h.render();
+    ok(!lu.listContents.has('absente') && lu.listContents.get('l1') === 'arene', 'cible absente et contenu inconnu refusés');
+  } finally { setPersistence(false); }
+}
+
+export function testOptimizerEquipesHookModificationAvecOrpheline() {
+  titre('Optimizer · écriture d’une équipe saine avec une équipe orpheline conservée');
+  installer(JSON.stringify({ memories: [], teams: [equipe, { ...equipe, id: 'orpheline', listId: 'absente' }] }));
+  try {
+    const h = monterListesOptimizer(); let lu = h.render();
+    const orpheline = structuredClone(lu.teams[1]);
+    lu.setTeams(lu.teams.map(e => e.id === equipe.id ? { ...e, lead: null } : e)); lu = h.render();
+    egal(lu.teams[0].lead, null, 'lead de la cible modifié par le vrai hook');
+    egal(lu.teams[1], orpheline, 'équipe orpheline inchangée');
+    const avant = lu.teams;
+    lu.setTeams(lu.teams.map(e => e.id === equipe.id ? { ...e, members: [a, { source: 'box', unitKey: 'absent' }] } : e)); lu = h.render();
+    egal(lu.teams, avant, 'référence absente dans la cible refusée sans perte');
+  } finally { setPersistence(false); }
+}

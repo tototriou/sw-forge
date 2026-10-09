@@ -13,6 +13,7 @@ import { enregistrerIdentiteMembre } from '../lib/optimizerRattachement';
 import {
   OPTIMIZER_MEMBERS_STORAGE_KEY, cleMemoireMembre, ecrireMembresOptimizer, lireMembresOptimizer,
   enregistrerMemoireMembre, validerEquipesOptimizer, retirerRejetsOptimizer,
+  contenuListeValide, type ContenuListeOptimizer,
   type DonneesMembresOptimizer, type EquipeOptimizer, type MemoireMembreOptimizer, type StockageOptimizer,
 } from '../lib/optimizerMemberStorage';
 
@@ -121,7 +122,8 @@ export interface UseOptimizerLists {
   activeListId: string | null;
   setActiveListId: (id: string | null) => void;
   /** Crée une liste, la rend active, renvoie son id (pour y ajouter un membre dans le même geste). */
-  createList: (name: string) => string;
+  createList: (name: string, contenu?: ContenuListeOptimizer) => string;
+  setListContent: (id: string, contenu: ContenuListeOptimizer) => void;
   renameList: (id: string, name: string) => void;
   /** Supprime la liste ET tout ce qui lui appartient (membres, builds validés). */
   deleteList: (id: string) => void;
@@ -174,10 +176,16 @@ export function useOptimizerLists(): UseOptimizerLists {
     setState((s) => ({ ...s, activeListId: id }));
   }, []);
 
-  const createList = useCallback((name: string) => {
+  const createList = useCallback((name: string, contenu: ContenuListeOptimizer = 'guilde') => {
     const id = newId();
-    setState((s) => ({ ...s, lists: [...s.lists, { id, name }], activeListId: id }));
+    setState((s) => ({ ...s, lists: [...s.lists, { id, name }], activeListId: id,
+      memberStorage: { ...s.memberStorage, raw: null, listContents: new Map(s.memberStorage.listContents).set(id, contenu) } }));
     return id;
+  }, []);
+
+  const setListContent = useCallback((id: string, contenu: ContenuListeOptimizer) => {
+    setState(s => !s.lists.some(l => l.id === id) || !contenuListeValide(contenu) ? s : { ...s,
+      memberStorage: { ...s.memberStorage, raw: null, listContents: new Map(s.memberStorage.listContents).set(id, contenu) } });
   }, []);
 
   const renameList = useCallback((id: string, name: string) => {
@@ -339,7 +347,10 @@ export function useOptimizerLists(): UseOptimizerLists {
   const setTeams = useCallback((teams: EquipeOptimizer[]) => {
     setState((s) => {
       const r = validerEquipesOptimizer(teams);
-      const horsListe = teams.some((e) => !s.lists.some((l) => l.id === e.listId)
+      // Les références des équipes inchangées peuvent être orphelines : seule
+      // une équipe ajoutée ou modifiée doit encore appartenir à sa liste.
+      const modifiees = teams.filter(e => !s.memberStorage.teams.some(ancienne => JSON.stringify(ancienne) === JSON.stringify(e)));
+      const horsListe = modifiees.some((e) => !s.lists.some((l) => l.id === e.listId)
         || e.members.some((sel) => !s.members.some((m) => cleMemoireMembre(m.listId, m.selector) === cleMemoireMembre(e.listId, sel))));
       const rapport = [...r.rapport, ...(horsListe ? ['Équipe non écrite : membre absent de la liste.'] : [])];
       return { ...s, memberStorage: { ...s.memberStorage, teams: rapport.length ? s.memberStorage.teams : structuredClone(r.teams),
@@ -352,6 +363,7 @@ export function useOptimizerLists(): UseOptimizerLists {
     activeListId: state.activeListId,
     setActiveListId,
     createList,
+    setListContent,
     renameList,
     deleteList,
     members: state.members,

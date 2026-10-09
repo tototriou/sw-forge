@@ -100,8 +100,20 @@ export function creerEquipeOptimizer(contexte: ContexteEquipesOptimizer, creatio
 export function ajouterMembreEquipeOptimizer(
   contexte: ContexteEquipesOptimizer, equipeId: string, selector: ExclusionSelector
 ): ResultatEquipesOptimizer {
-  if (!contexte.teams.some(e => e.id === equipeId)) return { teams: contexte.teams, rapport: ['Équipe introuvable : aucun membre ajouté.'] };
-  return accepterEquipes(contexte, contexte.teams.map(e => e.id === equipeId ? { ...e, members: [...e.members, selector] } : e));
+  const equipe = contexte.teams.find(e => e.id === equipeId);
+  if (!equipe) return { teams: contexte.teams, rapport: ['Équipe introuvable : aucun membre ajouté.'] };
+  return modifierEquipeOptimizer(contexte, { ...equipe, members: [...equipe.members, selector] });
+}
+
+/** Valider seulement la cible, tout en contrôlant les collisions avec les équipes conservées. */
+export function modifierEquipeOptimizer(contexte: ContexteEquipesOptimizer, equipe: EquipeOptimizer): ResultatEquipesOptimizer {
+  if (!contexte.teams.some(e => e.id === equipe.id && e.listId === equipe.listId)) {
+    return { teams: contexte.teams, rapport: ['Équipe introuvable : aucun changement.'] };
+  }
+  const resultat = creerEquipeOptimizer({ ...contexte, teams: contexte.teams.filter(e => e.id !== equipe.id) }, equipe);
+  if (resultat.rapport.length) return { teams: contexte.teams, rapport: resultat.rapport };
+  const valide = resultat.teams.find(e => e.id === equipe.id)!;
+  return { teams: contexte.teams.map(e => e.id === equipe.id ? valide : e), rapport: [] };
 }
 
 export function retirerMembreEquipeOptimizer(

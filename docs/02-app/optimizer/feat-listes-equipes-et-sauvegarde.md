@@ -181,8 +181,9 @@ Le stockage antérieur sans cet index se relit avec une `Map` vide, sans défaut
 Retirer un membre, écrire sa mémoire, modifier les équipes ou revérifier le compte
 conserve les contenus et leurs rejets. Supprimer une liste retire son contenu et
 les rejets dont le `listId` lisible la désigne ; les autres restent.
-Le sélecteur de contenu et la définition du contenu à la création manuelle
-ne sont pas encore branchés à l’écran.
+`createList` reçoit le contenu choisi (Guilde par défaut pour un appel sans
+choix) et le stocke avec la nouvelle liste. `setListContent` modifie seulement
+une liste existante avec un contenu admis, sans toucher aux rejets conservés.
 
 ## Modèle pur des équipes
 
@@ -195,7 +196,10 @@ et l’appartenance de chacun de ses membres à cette liste. Elle contrôle les
 collisions d’identifiant et l’exclusivité des membres contre les équipes
 existantes, conservées telles quelles. Une équipe ancienne dont la liste ou
 un membre a disparu ne bloque pas la création d’une équipe indépendante.
-L’ajout d’un membre conserve sa validation du stockage et des références.
+L’ajout d’un membre et la modification d’une équipe ne contrôlent que la
+forme et les références de cette équipe, avec les collisions contre les
+autres équipes. `setTeams` contrôle les références ajoutées ou modifiées ;
+une équipe orpheline inchangée ne bloque pas un geste sur une équipe saine.
 Un refus rend les équipes initiales et un rapport explicite, sans déplacement
 implicite d’un membre.
 L’exclusivité d’un membre est propre à sa liste : le même sélecteur peut être

@@ -60,6 +60,11 @@ inapplicable, sans la supprimer ni la remplacer lors d’une écriture refusée.
 La lecture rend une copie ; modifier l’affichage ne peut pas modifier la mémoire
 sans passer par une écriture.
 
+Les critères textuels contrôlés hors du lecteur de recette, `sortBy` et
+`critereArtefacts`, sont obligatoirement des chaînes appartenant aux valeurs
+admises. Un tableau contenant une valeur admise est rejeté, signalé dans le
+rapport et conservé parmi les valeurs brutes inutilisables.
+
 Le membre suit son sélecteur : exemplaire Box par `unitKey`, entrée RTA par
 `monsterId`, slot de siège par `teamId` et `slotIndex`. RTA et siège ne conservent
 pas l’identifiant de la copie : une autre copie de la même espèce occupant la

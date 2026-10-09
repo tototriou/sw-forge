@@ -54,8 +54,8 @@ function criteresValides(v: unknown): v is CriteresOptimizer {
   const base = baseCompleteCriteres(undefined);
   if (Object.keys(base).some((k) => !(k in v))) return false;
   if (['excludeBase', 'optimiserArtefacts', 'adapterArtefactsAuTri', 'compterAurasResPre'].some((k) => typeof v[k] !== 'boolean')) return false;
-  if (!['brut', 'reel'].includes(String(v.critereArtefacts))) return false;
-  if (!['hp', 'atk', 'def', 'spd', 'cr', 'cd', 'res', 'acc', 'efficience', 'ehp', 'vitesse', 'degats_reels'].includes(String(v.sortBy))) return false;
+  if (typeof v.critereArtefacts !== 'string' || !['brut', 'reel'].includes(v.critereArtefacts)) return false;
+  if (typeof v.sortBy !== 'string' || !['hp', 'atk', 'def', 'spd', 'cr', 'cd', 'res', 'acc', 'efficience', 'ehp', 'vitesse', 'degats_reels'].includes(v.sortBy)) return false;
   if (!objet(v.damageSetup) || !objet(v.maxStats) || !objet(v.mainStatsBySlot) || !objet(v.lockedRunes) || !Array.isArray(v.lignesVerrouillees)) return false;
   // La validation des critères partagés réutilise le lecteur de recette, jamais une deuxième règle.
   const lu = parseOptimizerRecipe(JSON.stringify({

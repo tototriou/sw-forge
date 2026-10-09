@@ -91,3 +91,16 @@ export async function testMemoireOptimizerRejetsConserves() {
     ok(sansValides.includes('l1|box:11') && sansValides.includes('valide'), 'les valeurs brutes des doublons restent enregistrées');
   } finally { setPersistence(false); }
 }
+
+export function testMemoireOptimizerTextesCriteresStricts() {
+  titre('Mémoires · tableaux refusés pour les critères textuels au chargement');
+  const base = baseCompleteCriteres(undefined);
+  for (const champ of ['sortBy', 'critereArtefacts'] as const) {
+    const paire = ['l1|box:11', { listId: 'l1', selector: box, com2usId: 10001, criteres: { ...base, [champ]: [base[champ]] } }];
+    const lu = lireMembresOptimizer(JSON.stringify({ memories: [paire], teams: [] }));
+    egal(lu.memories.size, 0, `${champ} : mémoire écartée`);
+    egal(lu.rapport, ['Mémoire 1 malformée ou dupliquée : ignorée.'], `${champ} : rejet signalé`);
+    ok(lireMemoireMembre(lu.memories, 'l1', box, compte()) === null, `${champ} : aucune application`);
+    ok(isDeepStrictEqual(lu.rejets.memories, [paire]), `${champ} : valeur JSON brute conservée parmi les rejets`);
+  }
+}

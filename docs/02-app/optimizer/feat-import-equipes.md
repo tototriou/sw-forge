@@ -1,12 +1,13 @@
 # Import d’équipes dans l’Optimizer
 
-**Statut :** ÉTAT ACTUEL — modèle pur d’import et conversions du siège, de la prépa RTA et du speed tuning
+**Statut :** ÉTAT ACTUEL — modèle pur d’import et conversions du siège, de la prépa RTA, du speed tuning et des recommandations
 **Lire si :** on convertit une source en liste de travail ou on modifie le consommateur d’import
 **Voir aussi :** [feat-listes-equipes-et-sauvegarde.md](feat-listes-equipes-et-sauvegarde.md), [feat-listes-et-reservation.md](feat-listes-et-reservation.md)
 
 ## Modèle d’import
 
-`src/lib/importEquipes.ts` et `src/lib/importSpeedTuneOptimizer.ts` fournissent
+`src/lib/importEquipes.ts`, `src/lib/importSpeedTuneOptimizer.ts` et
+`src/lib/importRecoOptimizer.ts` fournissent
 les producteurs purs et le consommateur unique `consommerImportOptimizer`. Ces fonctions ne sont pas
 encore branchées sur un bouton ou un écran.
 
@@ -95,6 +96,50 @@ l’espèce est absente de ces quatre sources.
 
 Le lead reste exclusivement sur l’équipe ; ses effets par élément sont dérivés
 par `leadEffectifMembreOptimizer`, jamais copiés dans les critères personnels.
+
+## F3b — Conversion d’un deck recommandé
+
+`importerRecoOptimizer` reçoit un `RecoDeck` et les sources du compte. Il
+propose une liste de contenu `guilde`, nommée comme le deck (« Deck recommandé »
+si le nom est vide), et une équipe. Le slot 0 de la recommandation désigne
+le leader et fournit son `leaderSkill` entier, avec sa portée et son élément ;
+le leader n’est pas déduit de l’ordre du deck réel. Un slot vide ne compte
+pas comme ignoré. Un monstre inconnu ou une identité inutilisable est
+ignoré avec sa raison. Après filtrage, 0 membre ne crée rien ; 1 ou plus de
+5 membres restent sans équipe, avec le lead de la source nommé comme non
+appliqué à quiconque. Aucun lead n’entre dans les critères personnels.
+
+La fonction commune `retrouverDeckCompositionOptimizer` appelle `matchDeck`
+sur les offenses pour reprendre l’équipe retenue par la confrontation :
+la meilleure selon les critères, la première en cas d’égalité. Les espèces
+retrouvent les slots de cette offense, copies consommées dans l’ordre des
+slots. Sans offense réunissant la composition, chaque espèce choisit son
+premier exemplaire résolvable dans l’ordre offense, Box, RTA, défense, même
+sans rune. `unowned` ne sert que si l’espèce est absente de toutes les sources.
+Une espèce possédée sans équipement résolvable est ignorée, jamais déclarée
+non possédée. Un slot indisponible du deck retenu n’est pas remplacé par la Box.
+
+Les minimums strictement positifs de `RecoSlot.stats` sont des **totaux de
+fiche**, comme dans `recoMatch.ts` : aucune base soustraite. La VIT passe par
+`vitesse.minimum`, les sept autres statistiques par `minStats`. Une valeur
+non finie ou une statistique inconnue n’est pas importée et figure au rapport.
+RES et Précision peuvent compter les auras dans l’Optimizer selon son réglage,
+alors que la confrontation juge la fiche seule ; le rapport dit cet écart.
+Seul `setOptions[0]` est importé, répétitions comprises, y compris 4+2,
+2+2+2 et 4 seul. Un premier runage vide laisse le membre sans set et le dit ;
+les autres possibilités ne le remplacent pas. Un set inconnu, le joker
+Intangible demandé ou une combinaison de plus de six pièces ne se convertit pas.
+
+Les propriétés d’artéfact deviennent des `LigneVerrouillee` : minimum **0,1
+pour le code 218**, **1 pour tous les autres codes reconnus**, anciennes
+lignes comprises. Ces seuils incluent les anciennes valeurs ; ils ne se
+déduisent pas des minima de tirage actuels. Le code et la sorte sont vérifiés
+par `isArtifactSub` puis `artifactSubKinds` avant conversion ; une principale,
+un code inconnu ou une sorte impossible n’est pas importé et le rapport le dit.
+Chaque code commun est importé une seule fois sur le cumul de la paire.
+Demandé sur les deux pièces, **une seule présence sur la paire suffit** à
+l’import, et le rapport le précise : un build peut satisfaire le verrou
+importé tout en échouant à la recommandation, qui exige la présence par sorte.
 
 ## Consommation dans une nouvelle liste
 

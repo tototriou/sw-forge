@@ -8,6 +8,7 @@ import { bilan, debutVerification } from './outils';
 import testImport from './import.test';
 import { verificationsImportEquipes } from './import-equipes.test';
 import { verificationsImportSpeedTune } from './import-speed-tune.test';
+import { verificationsImportReco } from './import-reco.test';
 import testNavigation from './navigation.test';
 import { testNavigationAdresses, testNavigationAdressesDefauts, testNavigationVuesCompte } from './navigation-adresses.test';
 import testPersistance from './persistance.test';
@@ -463,6 +464,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ...verificationsOptimizerEquipesActivite,
   ...verificationsImportEquipes,
   ...verificationsImportSpeedTune,
+  ...verificationsImportReco,
   ...verificationsOptimizerEquipesCardinalites,
   ['testOptimizerEquipesElementsEtLeadPersonnel', testOptimizerEquipesElementsEtLeadPersonnel],
   ['testOptimizerEquipesLeadsNonCalculablesEtHorsListe', testOptimizerEquipesLeadsNonCalculablesEtHorsListe],

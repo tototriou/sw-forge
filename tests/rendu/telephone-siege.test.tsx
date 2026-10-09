@@ -62,7 +62,9 @@ function Recos({ menuOuvert }: { menuOuvert: boolean }) {
   const recos = useSiegeRecos();
   const offense = useSiegeState('offense');
   return (
-    <RecoBoard recos={recos} monsters={MONSTRES} builds={[]} teams={[]} copies6={new Map()} offense={offense} menuOuvert={menuOuvert} onFermerMenu={() => {}} />
+    <RecoBoard recos={recos} monsters={MONSTRES} builds={[]} teams={[]} copies6={new Map()} offense={offense} menuOuvert={menuOuvert} onFermerMenu={() => {}}
+      onImporterEquipe={() => { throw new Error('Action non attendue dans le rendu serveur.'); }} compteCharge={false}
+      sourcesOptimizer={{ box: [], rtaEntries: {}, siegeDefenseTeams: [], siegeOffenseTeams: [], monsterById: new Map(MONSTRES.map(m => [String(m.id), m])) }} />
   );
 }
 const rendreRecos = (menuOuvert: boolean) =>

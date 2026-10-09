@@ -1676,6 +1676,9 @@ function Application() {
 
         {route === 'rta' ? (
           <RtaPage
+            onImporterEquipe={importerEquipe}
+            sourcesOptimizer={optimizerData}
+            compteCharge={box.length > 0 || runes.length > 0}
             sub={rtaSub}
             rta={rta}
             monsters={allMonsters}
@@ -1744,6 +1747,7 @@ function Application() {
           />
         ) : route === 'outils' ? (
           <OutilsPage
+            recommandations={recos.state.recos}
             sub={toolSub}
             box={box}
             runes={runes}

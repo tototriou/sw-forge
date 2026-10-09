@@ -6,6 +6,7 @@ import OptimizerEquipeDialog from './OptimizerEquipeDialog';
 import OptimizerCreateListDialog from './OptimizerCreateListDialog';
 import OptimizerBackupBar from './OptimizerBackupBar';
 import OptimizerImportButton from './OptimizerImportButton';
+import { importerRecoOptimizer } from '../../lib/importRecoOptimizer';
 import { importerDefensesSiegeOptimizer, importerOffenseSiegeOptimizer, importerPrepaRtaOptimizer, type RapportImportOptimizer } from '../../lib/importEquipes';
 import {
   Search,
@@ -28,7 +29,7 @@ import {
   Swords,
   Pencil,
 } from 'lucide-react';
-import { ArtifactDetail, ArtifactKind, ARTIFACT_KINDS, ELEMENTS, GearSet, RECO_STATS, RelicDetail, RuneDetail, Monster, RtaEntry, SiegeTeam } from '../../types';
+import { ArtifactDetail, ArtifactKind, ARTIFACT_KINDS, ELEMENTS, GearSet, RECO_STATS, RelicDetail, RuneDetail, Monster, RtaEntry, SiegeTeam, Reco } from '../../types';
 import { computeStats } from '../../lib/stats';
 import ArtifactLinesEditor from './ArtifactLinesEditor';
 import { cibleDeLaFile, classementResolu, cleBuild, compositionDePage, compteAffichable, compteConfirme, signatureArtefacts as calculerSignatureArtefacts } from '../../lib/artifactQueue';
@@ -201,6 +202,7 @@ import EtatMonstre from './EtatMonstre';
 import { PREFIXE_FICHIER } from '../../marque';
 
 interface Props {
+  recommandations?: Reco[];
   box: BoxItem[];
   runes: RuneDetail[];
   // Inventaire COMPLET d’artéfacts, pas seulement ceux du monstre affiché :
@@ -444,7 +446,9 @@ const LARGEUR_SELECTEUR_LISTE = 'w-44 truncate';
 // « Type » et « Propriété unique » doivent être alignés (demande explicite).
 const LARGEUR_LIBELLE_LISTE = 'w-28';
 
-export default function OptimizerSection({ box, runes, artifacts, relics, relicUsageById, optimizer, onImporterEquipe, allMonsters, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, lists, accountName, menuOuvert, onFermerMenu, onOuvrirMenu }: Props) {
+const AUCUNE_RECOMMANDATION: Reco[] = [];
+
+export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATION, box, runes, artifacts, relics, relicUsageById, optimizer, onImporterEquipe, allMonsters, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, lists, accountName, menuOuvert, onFermerMenu, onOuvrirMenu }: Props) {
   const [rapportImport, setRapportImport] = useState<RapportImportOptimizer | null>(null);
   const importerDepuisEcran = useCallback((produire: Parameters<OptimizerState['importerEquipe']>[0]) => {
     const rapport = onImporterEquipe(produire);
@@ -966,7 +970,11 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
       produire: (courantes: ExclusionSourceData) => importerOffenseSiegeOptimizer(team.id, courantes),
     })),
     { libelle: 'Prépa RTA', produire: importerPrepaRtaOptimizer },
-  ].map(source => ({ ...source, utilisable: source.produire(exclusionData).membres.length > 0 })), [exclusionData]);
+    ...recommandations.flatMap((reco, ri) => reco.decks.map((deck, di) => ({
+      libelle: `Recommandation ${ri + 1} · ${reco.name || 'Sans nom'} · Deck ${di + 1} · ${deck.slots.map(s => s.com2usId != null && [...exclusionData.monsterById.values()].find(m => m.com2usId === s.com2usId)?.name || s.name).filter(Boolean).join(', ') || 'Deck vide'}`,
+      produire: (courantes: ExclusionSourceData) => importerRecoOptimizer(deck, courantes),
+    }))),
+  ].map(source => ({ ...source, utilisable: source.produire(exclusionData).membres.length > 0 })), [exclusionData, recommandations]);
 
   // Candidats de compte pour l'ESPÈCE COURANTE, un tableau par source —
   // pilote À LA FOIS l'état actif/grisé/désactivé de chaque puce et le contenu de la désambiguïsation d'exemplaire (zone

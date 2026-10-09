@@ -63,6 +63,9 @@ export default function SiegePage({
 
       {tab === 'recos' ? (
         <RecoBoard
+          onImporterEquipe={boardProps.onImporterEquipe}
+          sourcesOptimizer={boardProps.sourcesOptimizer}
+          compteCharge={boardProps.compteCharge}
           recos={recos}
           monsters={boardProps.monsters}
           builds={builds}

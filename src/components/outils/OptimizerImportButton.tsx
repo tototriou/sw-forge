@@ -24,7 +24,7 @@ export default function OptimizerImportButton({ sources, onImporter, rapport }: 
   }, [ouvert]);
   return <div ref={ancre} className="relative mt-3">
     <Bouton pleineLargeur icone={<Download size={14} />} libelle="Importer une équipe"
-      disabled={!disponible} title={disponible ? 'Créer une nouvelle liste depuis le siège ou la prépa RTA.' : 'Aucune source utilisable dans les défenses de siège, les offenses de siège ou la prépa RTA.'}
+      disabled={!disponible} title={disponible ? 'Créer une nouvelle liste depuis le siège, la prépa RTA ou un deck recommandé.' : 'Aucune source utilisable dans les défenses de siège, les offenses de siège, la prépa RTA ou les recommandations.'}
       aria-expanded={ouvert} onClick={() => setOuvert(v => !v)} />
     <FlottantAuto ouvert={ouvert} ancre={ancre} largeurAncre hauteur={320} rembourrage="aucun"
       className="max-h-80 overflow-y-auto">

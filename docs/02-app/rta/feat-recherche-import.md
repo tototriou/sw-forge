@@ -30,6 +30,13 @@ avance au suivant disponible.
 
 ## Barre d'actions
 
+« Exporter vers l'Optimizer » transmet toute la prépa avec ses vitesses,
+indépendamment des sections ou filtres : barre d’en-tête au bureau,
+« Options » au téléphone. Sans compte ou sans monstre importable, l’action
+reste désactivée avec sa raison. Un refus garde la page ; un import accepté
+ouvre l’Optimizer avec le rapport en modale. Voir
+[l’import d’équipes](../optimizer/feat-import-equipes.md#exporter-la-pr%C3%A9pa-rta-et-un-deck-recommand%C3%A9).
+
 - **Compteur** : « N monstre(s) en prépa ».
 - **Créer un monstre** : composant `CreateMonster` (voir ci-dessous). Le monstre
   créé est **ajouté directement en « Non classé »** (`handleCreateMonster`).

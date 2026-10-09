@@ -35,7 +35,12 @@ ces données ne rappelle pas les producteurs, flottant fermé compris.
 Le bouton ouvre un `FlottantAuto`, de la largeur de son ancre : toutes les
 défenses de siège, chaque deck d’offense identifié par son numéro et sa
 composition, toute la prépa RTA avec ses vitesses. Une source sans membre
-résolvable reste affichée désactivée avec sa raison. Échap, la croix ou
+résolvable reste affichée désactivée avec sa raison. Les recommandations ajoutent
+un choix par deck, identifié par le numéro et le nom de la recommandation,
+le numéro du deck et sa composition. Elles utilisent `importerRecoOptimizer`,
+comme l’export du deck ; leurs disponibilités suivent aussi les modifications
+des recommandations.
+Échap, la croix ou
 le clic extérieur ferment le flottant. Ses choix sont des contrôles de
 `src/ui/`, sans second contour autour des rangées.
 
@@ -111,6 +116,26 @@ Le rapport de l’export est une modale portée par `App.tsx`, lisible au bureau
 et au téléphone après la navigation comme après un refus : comptes, membres
 ignorés et messages. La croix, Échap ou le clic extérieur le ferment.
 Son ouverture sort du flux et ne déplace aucun bouton de siège.
+
+## Exporter la prépa RTA et un deck recommandé
+
+La page « Ma prépa » propose « Exporter vers l'Optimizer » dans sa barre
+d’actions au bureau et dans « Options » au téléphone. Elle transmet toute
+la prépa avec ses vitesses à `importerPrepaRtaOptimizer`, indépendamment
+des sections et des filtres affichés : liste Arène, sans équipe ni lead.
+
+Chaque deck recommandé propose la même action dans sa ligne, repliée ou
+dépliée, et dans les offenses de la vue Défense. Un clic transmet uniquement
+ce deck à `importerRecoOptimizer` : liste Guilde, équipe, minimums, premier
+runage, propriétés d’artéfact et lead du slot 0. Les exemplaires suivent
+la confrontation commune décrite dans la conversion du deck recommandé.
+
+Ces actions réutilisent `importerEquipe` avec navigation et la modale du
+rapport portée par `App.tsx`. Sans compte (Box et runes vides) ou sans membre
+importable, elles restent présentes, désactivées avec leur raison en `title`.
+Leur disponibilité se dérive du producteur sur les sources courantes ; au
+geste, l’action rappelle ce même producteur. Un refus garde la route et
+les contrôles en place ; le rapport sort du flux dans les deux formats.
 
 ## Conversions du siège et de la prépa RTA
 

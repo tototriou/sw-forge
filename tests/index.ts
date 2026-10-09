@@ -8,6 +8,9 @@ import { bilan, debutVerification } from './outils';
 import testImport from './import.test';
 import { verificationsImportEquipes } from './import-equipes.test';
 import { testOptimizerImportNavigation } from './optimizer-import-navigation.test';
+import { testRenduRtaExportOptimizer, testRenduTelephoneRtaExportOptimizer, testRenduRecoExportOptimizer,
+  testRenduTelephoneRecoExportOptimizer, testRenduOptimizerImportRecommandation, testRenduTelephoneOptimizerImportRecommandation,
+  testOptimizerImportRtaRecoBranchement } from './rendu/rta-reco-export.test';
 import { testRenduSiegeExportOptimizer, testRenduTelephoneSiegeExportOptimizer, testOptimizerImportSiegeBranchement } from './rendu/siege-export.test';
 import { testOptimizerImportActionDemontee, testOptimizerImportEcrituresGroupees, testOptimizerImportReverificationEnAttente, testOptimizerImportCollision, testRenduOptimizerImportDefenses, testRenduTelephoneOptimizerImportDefenses,
   testRenduOptimizerImportOffense, testRenduTelephoneOptimizerImportOffense, testRenduOptimizerImportRta,
@@ -624,6 +627,13 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testPersistance', async () => { await testPersistance(); }],
   ['testOptimizerImportActionDemontee', testOptimizerImportActionDemontee],
   ['testOptimizerImportNavigation', testOptimizerImportNavigation],
+  ['testOptimizerImportRtaRecoBranchement', testOptimizerImportRtaRecoBranchement],
+  ['testRenduRtaExportOptimizer', testRenduRtaExportOptimizer],
+  ['testRenduTelephoneRtaExportOptimizer', testRenduTelephoneRtaExportOptimizer],
+  ['testRenduRecoExportOptimizer', testRenduRecoExportOptimizer],
+  ['testRenduTelephoneRecoExportOptimizer', testRenduTelephoneRecoExportOptimizer],
+  ['testRenduOptimizerImportRecommandation', testRenduOptimizerImportRecommandation],
+  ['testRenduTelephoneOptimizerImportRecommandation', testRenduTelephoneOptimizerImportRecommandation],
   ['testOptimizerImportSiegeBranchement', testOptimizerImportSiegeBranchement],
   ['testRenduSiegeExportOptimizer', testRenduSiegeExportOptimizer],
   ['testRenduTelephoneSiegeExportOptimizer', testRenduTelephoneSiegeExportOptimizer],

@@ -270,6 +270,8 @@ Une entrée = une règle qu'un chantier qui l'ignore casse, avec sa source. Ce f
 
 ## UI
 
+- L’export de « Ma prépa » prend toute la prépa et ses vitesses, indépendamment des filtres ; l’export d’un deck recommandé prend ce seul deck, avec les exemplaires de la confrontation commune. Les deux réutilisent les producteurs et l’action commune avec navigation ; sans compte ou membre importable, ils se désactivent avec raison, dérivée des sources. Source : ../../02-app/optimizer/feat-import-equipes.md § Exporter la prépa RTA et un deck recommandé
+
 - La navigation commune vers `#/outils/optimizer` suit seulement un import accepté par `importerEquipe` ; import vide, collision et revérification en attente gardent la route courante. Source : ../../02-app/optimizer/feat-import-equipes.md § F1 — Importer depuis l’Optimizer
 
 - Le rapport d’un import depuis toute route autre que `#/outils/optimizer` appartient à la modale d’`App.tsx`, acceptation ou refus compris ; depuis l’Optimizer, il reste dans le flottant des sources, sans double rapport. Source : ../../02-app/optimizer/feat-import-equipes.md § F1 — Importer depuis l’Optimizer

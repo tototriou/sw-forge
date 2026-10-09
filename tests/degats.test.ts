@@ -1103,13 +1103,13 @@ export default function testDegats() {
     'un lead Dégâts Crit ajoute 25 POINTS à la stat, même famille qu’Euldong'
   );
 
-  // Valeurs de lead RÉELLES du jeu, liste EXHAUSTIVE fournie par
-  // l'utilisateur — jamais une formule générique, elles ne suivent aucune
+  // Liste des paliers complétée et couverte contre le corpus local des
+  // monstres — jamais une formule générique, ils ne suivent aucune
   // progression régulière et diffèrent d'une statistique à l'autre.
   egal(LEADER_SKILL_VALEURS.HP, [15, 17, 18, 21, 22, 25, 28, 30, 33, 38, 40, 44, 45, 50], 'valeurs PV');
   egal(LEADER_SKILL_VALEURS['Attack Power'], [15, 18, 20, 21, 22, 25, 28, 30, 33, 35, 38, 40, 44, 45, 50], 'valeurs ATQ');
   egal(LEADER_SKILL_VALEURS.Defense, [20, 21, 22, 25, 28, 30, 33, 38, 40, 44, 50], 'valeurs DEF');
-  egal(LEADER_SKILL_VALEURS['Attack Speed'], [10, 15, 16, 19, 20, 21, 23, 24, 28, 30, 33], 'valeurs VIT');
+  egal(LEADER_SKILL_VALEURS['Attack Speed'], [10, 15, 16, 17, 19, 20, 21, 23, 24, 28, 30, 33], 'valeurs VIT');
   egal(LEADER_SKILL_VALEURS['Critical Rate'], [10, 15, 16, 17, 19, 21, 23, 24, 28, 30, 33, 38], 'valeurs Taux Crit');
   egal(LEADER_SKILL_VALEURS['Critical DMG'], [25], 'Dégâts Crit — une seule valeur, un seul monstre la porte');
 

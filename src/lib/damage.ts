@@ -163,7 +163,7 @@ export const VELASKA_ICON = 'https://swarfarm.com/static/herders/images/monsters
 export const LEADER_SKILL_STATS = ['HP', 'Attack Power', 'Defense', 'Attack Speed', 'Critical Rate', 'Critical DMG'] as const;
 export type LeaderSkillStat = (typeof LEADER_SKILL_STATS)[number];
 
-// Valeurs de palier RÉELLES du jeu, confirmées par l'utilisateur — jamais une
+// Valeurs de palier du corpus local public/data/monsters.json — jamais une
 // formule générique : ces paliers ne suivent aucune progression régulière, et
 // le maximum diffère d'une statistique à l'autre (33 % en VIT contre 50 % en
 // ATQ).
@@ -181,9 +181,9 @@ export type LeaderSkillStat = (typeof LEADER_SKILL_STATS)[number];
 // ⚠️ **Les leads de RES et de Précision existent et sont volontairement
 // ABSENTS** : ils n'ont aucun effet sur les dégâts, seule question à laquelle
 // ce réglage sert. Ne pas les ajouter en croyant combler un oubli.
-// ⚠️ **EXHAUSTIVE, et c'est ce qui change tout.** Cette table couvre
-// toutes les valeurs du jeu : un simple menu suffit, sans champ de saisie
-// LIBRE pour les valeurs manquantes.
+// La couverture des valeurs du corpus est vérifiée par
+// tests/leader-skill-paliers.test.ts ; une valeur enregistrée hors liste
+// reste acceptée par le modèle et affichée par l'écran.
 // N'y ajouter une valeur qu'avec une source, jamais « au cas où ».
 //
 // ⚠️ **PV, ATQ et DEF ne partagent PLUS la même liste.** L'ancienne table les
@@ -195,7 +195,7 @@ export const LEADER_SKILL_VALEURS: Record<LeaderSkillStat, number[]> = {
   HP: [15, 17, 18, 21, 22, 25, 28, 30, 33, 38, 40, 44, 45, 50],
   'Attack Power': [15, 18, 20, 21, 22, 25, 28, 30, 33, 35, 38, 40, 44, 45, 50],
   Defense: [20, 21, 22, 25, 28, 30, 33, 38, 40, 44, 50],
-  'Attack Speed': [10, 15, 16, 19, 20, 21, 23, 24, 28, 30, 33],
+  'Attack Speed': [10, 15, 16, 17, 19, 20, 21, 23, 24, 28, 30, 33],
   'Critical Rate': [10, 15, 16, 17, 19, 21, 23, 24, 28, 30, 33, 38],
   'Critical DMG': [25],
 };

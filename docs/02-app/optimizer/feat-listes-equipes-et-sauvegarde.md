@@ -202,6 +202,13 @@ Une statistique non calculable ou un montant non fini/négatif reste sans
 effet. Un montant numérique valide hors des paliers proposés est conservé
 tel quel : les paliers du menu ne sont pas une validation de lead importé.
 
+## Paliers de lead
+
+`LEADER_SKILL_VALEURS` couvre les paliers du corpus local `monsters.json`, dont
+VIT 17 ; un test balaie toutes ses entrées pour contrôler cette couverture.
+Le menu n’offre pas de saisie libre ; une valeur enregistrée hors liste reste
+affichée telle quelle, jamais remplacée en silence.
+
 ## Revérification commune
 
 `reverifierStockageOptimizer` est pure et exportée pour le réimport du compte

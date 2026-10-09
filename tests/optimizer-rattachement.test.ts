@@ -206,7 +206,12 @@ export function testOptimizerRattachementDefensesComplet() {
 export function testOptimizerRattachementBranchement() {
   titre('Rattachement · import manuel et dossier, acquisition sur le compte précédent');
   const app = readFileSync('src/App.tsx', 'utf8'), compte = app.slice(app.indexOf('function appliquerCompte('), app.indexOf('function rafraichirCompte('));
-  ok(compte.indexOf('acquerirIdentitesMembres(optimizerLists, optimizerData)') < compte.indexOf('setBox(boxItems)'), 'acquisition avant remplacement de la Box, chemin partagé manuel et dossier');
+  const lecture = compte.indexOf('const stockageCourant = optimizerLists.lireStockageCourant();'),
+    acquisition = compte.indexOf('acquerirIdentitesMembres(stockageCourant, optimizerData)');
+  ok(lecture >= 0 && acquisition > lecture && acquisition < compte.indexOf('setBox(boxItems)'),
+    'acquisition sur l’état courant des listes, avant remplacement de la Box, chemin partagé manuel et dossier');
+  ok(app.includes('reverificationEnAttente: () => stockageAvantImportRef.current !== null'),
+    'import d’équipe refusé tant que la revérification du réimport attend');
   ok(app.includes('reverifierStockageOptimizer(stockageAvantImportRef.current ?? optimizerLists, data, runeIds, new Set(artifacts.map(a => a.id)))'), 'revérification du stockage enrichi avant import, inventaire complet des artéfacts compris');
   ok(app.includes('optimizer.appliquerReverificationMembres(resultat.stockage, resultat.rapport, data, runeIds)'), 'propriétaire et sélection suivent le résultat commun');
   ok(app.includes('const acquis = acquerirIdentitesMembres(optimizerLists, optimizerData)'), 'compte conservé : acquisition au chargement');

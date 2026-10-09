@@ -1,13 +1,13 @@
 # Import d’équipes dans l’Optimizer
 
-**Statut :** ÉTAT ACTUEL — modèle pur d’import et conversions du siège et de la prépa RTA
+**Statut :** ÉTAT ACTUEL — modèle pur d’import et conversions du siège, de la prépa RTA et du speed tuning
 **Lire si :** on convertit une source en liste de travail ou on modifie le consommateur d’import
 **Voir aussi :** [feat-listes-equipes-et-sauvegarde.md](feat-listes-equipes-et-sauvegarde.md), [feat-listes-et-reservation.md](feat-listes-et-reservation.md)
 
 ## Modèle d’import
 
-`src/lib/importEquipes.ts` fournit un producteur pur par source et le
-consommateur unique `consommerImportOptimizer`. Ces fonctions ne sont pas
+`src/lib/importEquipes.ts` et `src/lib/importSpeedTuneOptimizer.ts` fournissent
+les producteurs purs et le consommateur unique `consommerImportOptimizer`. Ces fonctions ne sont pas
 encore branchées sur un bouton ou un écran.
 
 Un `ImportOptimizer` propose un nom de liste, des membres (sélecteur précis,
@@ -42,6 +42,51 @@ buff, tick cible ou gain de passif. Source de cette convention :
 la vitesse de combat. Une vitesse absente ne pose aucun minimum ; une
 vitesse ou une base non finie, négative ou absente ne se convertit pas et
 le rapport le dit. Aucun set ni équipement porté n’est imposé comme critère.
+
+## F3 — Conversion du speed tuning
+
+`importerSpeedTuneOptimizer` reçoit les lignes, le lead de « Ton équipe »,
+les sources du compte et, facultativement, le `DeckInitial` de la modale.
+Il propose une liste « Speed tuning » et une équipe « Ton équipe », de
+contenu Siège. Toutes les lignes du camp allié sont prises, même masquées ;
+les adversaires ne sont pas exportés. Une ligne sans monstre résolu ou sans
+vitesse saisie valide est ignorée et comptée avec sa raison. Zéro est une
+vitesse saisie. Après filtrage, 0 membre ne crée rien ; 1 ou plus de 5 membres
+restent sans équipe. Le rapport nomme le lead du camp appliqué à personne.
+
+Le minimum `vitesse.minimum` est la VIT de fiche :
+`ligne.monster.stats.speed + ligne.runeSpeed`. La saisie contient déjà Swift
+à plat, arrondi au supérieur, comme `computeStats` ; ni totem, lead, buff,
+gain de passif ni fenêtre de l’analyse n’entrent dans ce minimum. Une ligne
+Swift sélectionne seulement `['swift']` (quatre pièces, deux libres).
+Sinon, aucun set n’est sélectionné et le rapport demande d’en choisir un.
+« Effet aug. VIT » positif pose le verrou `{ code: 206, min: valeurSaisie }`
+sur le cumul de la paire d’artéfacts. Une valeur nulle ou zéro ne pose aucun
+verrou ; une valeur invalide n’est pas importée et le rapport le dit.
+
+La VIT minimum **ne garantit pas l’ordre des tours** : aucun maximum ni
+couple vitesse/amplification n’est exporté. Un build peut dépasser le minimum,
+changer d’amplification ou différer en Swift. Exemple chiffré avec base 101,
+lead 0 et totem 15 % : 100 points plats de runes avec Swift donnent une saisie
+126 et une fiche 227. `combatSpeed` donne 242, car il retire les 26 points
+Swift plats puis arrondit une seule fois 40 % de la base (41 points).
+Sans Swift, 126 points plats donnent la même fiche 227 mais un combat à 243
+(totem arrondi à 16). L’écart est **un point**, malgré un même minimum de fiche.
+
+Avec un deck d’origine, chaque espèce retrouve le premier slot disponible
+de ce deck ; les slots sont consommés dans leur ordre pour les copies d’une
+même espèce. Le slot 0 désigne le leader s’il est retenu. Le lead importé est
+toutefois celui du camp actuel, avec portée et élément, même s’il a été changé.
+Un deck introuvable ou un slot sans équipement résolvable fait ignorer la ligne,
+sans la remplacer silencieusement par une copie Box. Une ligne ajoutée qui ne
+correspond à aucun slot disponible utilise la règle sans deck et le rapport
+le signale. Sans deck, le premier exemplaire résolvable est choisi dans
+l’ordre Box, RTA, défense, offense, même sans rune. `unowned` ne sert que si
+l’espèce est absente de ces quatre sources. La page n’a aucune provenance de
+deck conservée dans ses lignes, même après y avoir importé un deck.
+
+Le lead reste exclusivement sur l’équipe ; ses effets par élément sont dérivés
+par `leadEffectifMembreOptimizer`, jamais copiés dans les critères personnels.
 
 ## Consommation dans une nouvelle liste
 

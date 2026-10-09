@@ -270,6 +270,8 @@ Une entrée = une règle qu'un chantier qui l'ignore casse, avec sa source. Ce f
 
 ## UI
 
+- Avant le remplacement du compte, la photo de réimport lit l’état courant des listes, écritures déjà envoyées comprises. Tant que sa revérification est en attente, l’import d’équipe refuse au rapport avant le producteur, sans changer listes, sélection, propriétaire, critères ni résultats ; après revérification, il redevient possible. Sources : ../../02-app/optimizer/feat-import-equipes.md § F1 — Importer depuis l’Optimizer ; ../../02-app/optimizer/feat-listes-equipes-et-sauvegarde.md § Revérification commune
+
 - Les propositions d’import dérivées des producteurs sont mémorisées sur les données sources, partagées par les deux formats et actualisées lorsque ces données changent ; un rendu sans changement des sources, flottant fermé compris, ne rappelle pas les producteurs. Source : ../../02-app/optimizer/feat-import-equipes.md § F1 — Importer depuis l’Optimizer
 
 - Le rapport d’import appartient à l’écran et est partagé par les deux formats jusqu’au choix suivant ou au démontage. Sans aucune source utilisable, il reste conservé : ouvert, il est lisible ; fermé, son rappel attend le retour d’une source, le bouton restant désactivé avec sa raison. Source : ../../02-app/optimizer/feat-import-equipes.md § F1 — Importer depuis l’Optimizer

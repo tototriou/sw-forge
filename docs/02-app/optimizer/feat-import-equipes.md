@@ -42,6 +42,12 @@ le clic extérieur ferment le flottant. Ses choix sont des contrôles de
 L’action appelle le producteur sur les sources courantes, puis le
 consommateur unique. Si aucun membre n’est accepté, elle rend le rapport
 sans changer la liste, la sélection, les critères ni les résultats.
+Tant que la revérification d’un compte réimporté est en attente, l’action
+refuse avant le producteur et le dit au rapport, sans changer les listes,
+la sélection, le propriétaire, les critères ni les résultats. L’état d’attente
+est lu au moment du geste depuis `App.tsx`, même sans nouveau rendu ou avec
+un compte arrivé par le dossier SW Exporter. L’import redevient possible
+après la revérification.
 Sinon elle efface le propriétaire avant l’écriture, publie ensemble la
 nouvelle liste active et toutes ses données, puis appelle `choisirMembre`
 sur son premier membre. Ce choix restaure ses critères et efface les

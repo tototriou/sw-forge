@@ -571,7 +571,8 @@ function Application() {
     monsterById: new Map(allMonsters.map(mon => [String(mon.id), mon])),
   }), [box, rta.state.entries, siegeDef.state.teams, siegeOff.state.teams, allMonsters]);
   const optimizerRuneIds = useMemo(() => new Set(runes.map(r => r.id)), [runes]);
-  const optimizer = useOptimizerState({ lists: optimizerLists, data: optimizerData, runeIds: optimizerRuneIds });
+  const optimizer = useOptimizerState({ lists: optimizerLists, data: optimizerData, runeIds: optimizerRuneIds,
+    reverificationEnAttente: () => stockageAvantImportRef.current !== null });
   useEffect(() => {
     // L'hydratation du compte conservé acquiert les identités historiques.
     // Un réimport a déjà acquis ses identités avant le remplacement du compte.
@@ -807,8 +808,9 @@ function Application() {
   function appliquerCompte(data: Record<string, any>, compte: ReturnType<typeof preparerCompte>) {
     // La résolution doit précéder toutes les écritures du nouveau compte,
     // y compris lorsqu'il arrive du dossier SW Exporter, écran démonté.
+    const stockageCourant = optimizerLists.lireStockageCourant();
     stockageAvantImportRef.current = box.length || runes.length
-      ? acquerirIdentitesMembres(optimizerLists, optimizerData) : optimizerLists;
+      ? acquerirIdentitesMembres(stockageCourant, optimizerData) : stockageCourant;
     const { exporte, nomJoueur, boxRes, invRes, boxItems, usedRunes, markerLabels } = compte;
     // Exclusion manuelle de runes de l'Optimizer (excludedSelectors) : à
     // effacer sur un compte VRAIMENT DIFFÉRENT (autre wizard_id — voir

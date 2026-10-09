@@ -406,6 +406,11 @@ existants restent conservés. `App.tsx` applique le résultat par
 `appliquerReverificationMembres` et affiche un message par membre rattaché.
 Sans changement, la fonction rend le stockage reçu, sans réécriture des clés.
 
+Avant de remplacer le compte, `appliquerCompte` photographie l’état courant
+des listes par `lireStockageCourant`, y compris les écritures déjà envoyées
+dans le même geste. Tant que cette photo attend sa revérification, l’import
+d’équipe est refusé explicitement ; cela vaut aussi pour le dossier SW Exporter.
+
 Un build dont des runes ou artéfacts ont disparu garde tous ses identifiants ;
 `runesManquantes` marque les absentes, seules les présentes restent réservées.
 `artefactsManquants` suit la même règle pour la paire : l’inventaire complet

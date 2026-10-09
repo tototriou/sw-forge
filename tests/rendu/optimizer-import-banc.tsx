@@ -28,12 +28,13 @@ const dataInitiales: ExclusionSourceData = { box, monsterById: new Map(monstres.
   rtaEntries: { '1': { monsterId: '1', runeSpeed: 140, section: 'swift', gear } },
   siegeDefenseTeams: [deck('d1'), deck('d2')], siegeOffenseTeams: [deck('o1'), deck('o2')] };
 let etat: OptimizerState, listes: UseOptimizerLists, data: ExclusionSourceData;
+let reverificationEnAttente = false;
 let afficher: (v: boolean) => void, changerSources: (v: ExclusionSourceData) => void;
 function Banc() {
   const [visible, setVisible] = useState(true), [sources, setSources] = useState(dataInitiales);
   afficher = setVisible; changerSources = setSources; data = sources;
   listes = useOptimizerLists();
-  etat = useOptimizerState({ lists: listes, data, runeIds: new Set() });
+  etat = useOptimizerState({ lists: listes, data, runeIds: new Set(), reverificationEnAttente: () => reverificationEnAttente });
   return visible ? <OptimizerSection box={box} runes={[]} artifacts={[]} relics={[]} relicUsageById={{}}
     allMonsters={monstres} rtaEntries={data.rtaEntries} siegeDefenseTeams={data.siegeDefenseTeams} siegeOffenseTeams={data.siegeOffenseTeams}
     optimizer={etat} onImporterEquipe={etat.importerEquipe} lists={listes} accountName="Synthétique"
@@ -53,6 +54,25 @@ const photographierExistant = (stockage: StockageOptimizer, ids: Set<string>) =>
   rejets: { memories: stockage.rejets.memories, identities: stockage.rejets.identities,
     teams: stockage.rejets.teams, listContents: stockage.rejets.listContents },
 });
+
+const photographierAffichage = () => JSON.stringify({ selectedId: etat.selectedId, sourceSelector: etat.sourceSelector,
+  proprietaire: etat.proprietaireCriteres, criteres: photoCriteres(etat, { type: 'personnel' }),
+  result: etat.search.result, progress: etat.search.progress, status: etat.search.status,
+  page: etat.resultsPage, arret: etat.stoppedManually, detail: etat.openDetailKey });
+
+async function preparerResultatsRefus() {
+  // Un transport synthétique remplit le vrai hook pour vérifier qu'un refus
+  // conserve aussi un résultat déjà reçu, sans exécuter le moteur.
+  globalThis.Worker = class {
+    onmessage: ((e: MessageEvent) => void) | null = null; onerror = null;
+    postMessage() { queueMicrotask(() => this.onmessage?.(new MessageEvent('message', { data: { type: 'result', candidates: [], explored: 1,
+      truncated: false, durationMs: 1, nearMissByCondition: {}, globalNearMiss: null } }))); }
+    terminate() { this.onmessage = null; }
+  } as unknown as typeof Worker;
+  await geste(() => etat.search.run({} as never));
+  await geste(() => { etat.setResultsPage(4); etat.setStoppedManually(true); etat.setOpenDetailKey('à conserver'); });
+  if (!etat.search.result || etat.search.status !== 'done' || !etat.proprietaireCriteres) throw new Error('Précondition de refus manquante.');
+}
 
 export async function changerDisponibiliteImport(disponible: boolean) {
   await geste(() => changerSources(disponible ? dataInitiales : { ...data, rtaEntries: {}, siegeDefenseTeams: [], siegeOffenseTeams: [] }));
@@ -90,7 +110,7 @@ export async function scenarioDisponibiliteMemoisee(): Promise<[boolean, string]
 
 export async function scenario(nom: string): Promise<[boolean, string][]> {
   const preuves: [boolean, string][] = [], verifier = (oui: boolean, libelle: string) => preuves.push([oui, libelle]);
-  localStorage.clear(); setPersistence(true);
+  localStorage.clear(); setPersistence(true); reverificationEnAttente = false;
   const criteres = baseCompleteCriteres(undefined); criteres.comboSets = ['violent']; criteres.minStats = { spd: 999 }; criteres.objective = 'ehp';
   localStorage.setItem('swblacksmith-optimizer-lists-v1', JSON.stringify({ lists: [{ id: 'a', name: 'Ancienne' }], activeListId: 'a',
     members: [selector, autreSelector].map(selector => ({ listId: 'a', selector })), validated: [{ listId: 'a', selector, runeIds: [91], artifactIds: [92] }] }));
@@ -111,7 +131,38 @@ export async function scenario(nom: string): Promise<[boolean, string][]> {
   let avant = photographierExistant(listes, idsAvant);
   verifier(listes.memories.size === 2 && listes.identities.size === 2 && listes.teams.length === 1
     && Object.values(listes.rejets).every(r => r.length > 0), 'précondition : mémoires, identités, équipe, contenu et chaque catégorie de rejets non vides');
-  if (nom === 'groupe') {
+  if (nom === 'attente') {
+    await preparerResultatsRefus();
+    const affichageAvant = photographierAffichage(), resultatAvant = etat.search.result;
+    let rapport!: RapportImportOptimizer, appels = 0;
+    await geste(() => {
+      reverificationEnAttente = true;
+      rapport = etat.importerEquipe(courantes => { appels++; return importerDefensesSiegeOptimizer(courantes); });
+    });
+    verifier(rapport.listeCreee === null && rapport.membresImportes === 0 && rapport.equipesCreees === 0
+      && rapport.messages.some(m => m.includes('refusé') && m.includes('revérification') && m.includes('en attente')), 'réimport en attente : refus explicite au rapport');
+    verifier(appels === 0, 'refus avant le producteur et toute écriture');
+    verifier(listes.activeListId === 'a' && photographierExistant(listes, idsAvant) === avant, 'refus : liste active et toutes les données intactes');
+    verifier(photographierAffichage() === affichageAvant && etat.search.result === resultatAvant,
+      'refus : sélection, propriétaire après réconciliation, critères et tous les résultats conservés');
+    await geste(() => bouton('Importer une équipe').click());
+    await geste(() => bouton('Défenses de siège').click());
+    verifier([...document.querySelectorAll('[aria-label="Rapport d’import"]')].some(e => visible(e)
+      && e.textContent?.includes('revérification') && e.textContent.includes('en attente')), 'refus de revérification lu dans le rapport à l’écran');
+    verifier(photographierAffichage() === affichageAvant && etat.search.result === resultatAvant,
+      'clic refusé : affichage et résultat toujours intacts');
+    await geste(() => {
+      const runeIds = new Set<number>(), rev = reverifierStockageOptimizer(listes.lireStockageCourant(), data, runeIds, new Set());
+      listes.replaceAfterRevalidation(rev.stockage);
+      etat.appliquerReverificationMembres(rev.stockage, rev.rapport, data, runeIds);
+      reverificationEnAttente = false;
+    });
+    avant = photographierExistant(listes, idsAvant);
+    await geste(() => { rapport = etat.importerEquipe(importerDefensesSiegeOptimizer); });
+    verifier(rapport.listeCreee?.id === listes.activeListId && listes.lists.length === 2, 'revérification terminée : import accepté');
+    verifier(etat.proprietaireCriteres?.listId === listes.activeListId && exclusionSelectorKey(etat.proprietaireCriteres.selector) === 'siege-defense:d1:0',
+      'après revérification et réconciliation : premier membre importé propriétaire');
+  } else if (nom === 'groupe') {
     let creee = '', rapport!: RapportImportOptimizer, attente = '';
     const uuid = Object.getOwnPropertyDescriptor(crypto, 'randomUUID');
     Object.defineProperty(crypto, 'randomUUID', { configurable: true, value: () => 'import' });

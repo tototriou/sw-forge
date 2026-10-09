@@ -405,6 +405,7 @@ export interface ContexteMembresOptimizer {
   lists: UseOptimizerLists;
   data: ExclusionSourceData;
   runeIds: Set<number>;
+  reverificationEnAttente?: () => boolean;
 }
 
 export function useOptimizerState(contexte?: ContexteMembresOptimizer): OptimizerState {
@@ -581,6 +582,10 @@ export function useOptimizerState(contexte?: ContexteMembresOptimizer): Optimize
   function importerEquipe(produire: (data: ExclusionSourceData) => ImportOptimizer): RapportImportOptimizer {
     const v = vivant.current, c = v.contexte;
     if (!c) throw new Error('Import impossible sans le contexte des listes.');
+    // Le réimport publie une photo préparée avant le remplacement du compte :
+    // ajouter entre cette photo et sa revérification ferait perdre la nouvelle liste.
+    if (c.reverificationEnAttente?.()) return { listeCreee: null, membresImportes: 0, equipesCreees: 0,
+      ignores: [], equipesNonCreees: [], messages: ['Import refusé : la revérification du compte réimporté est en attente. Réessayez après sa fin.'] };
     const courant = c.lists.lireStockageCourant();
     const resultat = consommerImportOptimizer(courant, courant.activeListId, produire(c.data), c.data, 'import');
     if (!resultat.rapport.listeCreee) return resultat.rapport;
@@ -625,7 +630,7 @@ export function useOptimizerState(contexte?: ContexteMembresOptimizer): Optimize
     if (!p || !listes || !validerProprietaireCriteres(p, listes, affichage, data)) { resetSearch('compte'); return; }
     // Publier aussi le contexte immédiat : l'effet de cohérence du rendu
     // précédent ne doit pas juger la nouvelle clé contre les anciennes listes.
-    v.contexte = { lists: listes, data, runeIds };
+    v.contexte = { ...c, lists: listes, data, runeIds };
     captureEnAttente.current = null;
     v.proprietaire = p; v.selectedId = affichage.selectedId; v.sourceSelector = p.selector;
     setProprietaireCriteres(p); setSelectedId(affichage.selectedId); setSourceSelector(p.selector);

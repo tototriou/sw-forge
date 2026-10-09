@@ -50,9 +50,12 @@ Le rapport reste dans le flottant ouvert après le choix : nom de la liste,
 nombre de monstres et d’équipes, membres ignorés et raisons, messages du
 consommateur, dont les leads non appliqués. Il se conserve jusqu’au choix
 suivant ou au démontage de l’écran et se relit en rouvrant les sources.
-Au bureau et au téléphone, l’ouverture et le rapport sortent du flux ;
-le bouton précède l’affichage du monstre sélectionné pour que le choix
-du premier membre ne déplace pas son ancre.
+Au bureau et au téléphone, le bouton précède le sélecteur de listes,
+après la recherche et le monstre choisi ; au téléphone, il reste sous
+« Monstres à optimiser », hors de son dépliement. La ligne du monstre
+choisi garde sa hauteur lorsqu’elle est vide ; un nom long reste sur une
+ligne, tronqué avec son texte complet en `title`, pour que le premier import
+ne déplace pas l’ancre. L’ouverture des sources et le rapport sortent du flux.
 
 ## Conversions du siège et de la prépa RTA
 

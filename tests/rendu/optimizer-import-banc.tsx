@@ -98,7 +98,21 @@ export async function scenario(nom: string): Promise<[boolean, string][]> {
     await geste(() => etat.importerEquipe(importerDefensesSiegeOptimizer));
     verifier(listes.lists[listes.lists.length - 1]?.name === 'Défenses de siège (2)' && listes.lists.length === 3, 'second import : nouvelle liste au nom suffixé');
   } else {
+    const ancre = bouton('Importer une équipe');
+    const recherche = [...document.querySelectorAll<HTMLInputElement>('input[placeholder="Rechercher un monstre…"]')].find(visible)!;
+    const choisi = [...document.querySelectorAll('span')].find(e => visible(e) && e.textContent === 'Monstre 1'
+      && position(e).y >= position(recherche).y + position(recherche).height && position(e).y + position(e).height <= position(ancre).y);
+    verifier(!!choisi, 'le monstre choisi reste entre sa recherche et les contrôles de liste, sans bouton intercalé');
+    const pliListe = bouton('Monstres à optimiser');
+    if (pliListe) await geste(() => pliListe.click());
+    const selecteurListe = bouton('Ancienne');
+    const ecartListe = position(selecteurListe).y - position(ancre).y - position(ancre).height;
+    verifier(ecartListe >= 0 && ecartListe <= 42 && position(selecteurListe).x === position(ancre).x
+      && position(selecteurListe).width === position(ancre).width, 'import immédiatement au-dessus du sélecteur de listes dans le format visible');
+    if (pliListe) await geste(() => pliListe.click());
+    const avantDeselection = JSON.stringify(position(ancre));
     await geste(() => { etat.setSelectedId(null); etat.setSourceSelector(null); });
+    verifier(JSON.stringify(position(ancre)) === avantDeselection, 'place du monstre réservée : la désélection ne déplace pas l’ancre');
     if (nom === 'defenses') await geste(() => changerSources({ ...data, siegeDefenseTeams: [...data.siegeDefenseTeams,
       { ...deck('d3'), slots: [
         { monsterId: '1', runeSpeed: 120, tick: 0, gear },
@@ -106,7 +120,6 @@ export async function scenario(nom: string): Promise<[boolean, string][]> {
         { monsterId: null, runeSpeed: null, tick: 0 },
       ] },
     ] }));
-    const ancre = bouton('Importer une équipe');
     if (nom === 'indisponible') {
       await geste(() => changerSources({ ...data, rtaEntries: {}, siegeDefenseTeams: [deck('inconnu')].map(e => ({ ...e, slots: e.slots.map(s => ({ ...s, monsterId: 'inconnu' })) })), siegeOffenseTeams: [] }));
       verifier(ancre.disabled && ancre.title.includes('Aucune source utilisable'), 'bouton toujours visible, source non vide mais inutilisable : désactivé avec raison');

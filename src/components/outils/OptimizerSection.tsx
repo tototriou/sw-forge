@@ -3626,13 +3626,14 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
                 silencieuse (`pickSpecies`, jamais en cas d'ambiguïté — voir
                 sa définition). */}
             <MonsterSourcePicker mode="bestiary" candidates={allMonsters} onPick={pickSpecies} />
-            <OptimizerImportButton data={exclusionData} onImporter={onImporterEquipe} />
-            {selected && (
-              <div className="mt-3 flex items-center gap-2">
+            {/* La sélection garde sa place même vide : l'import ne déplace pas les contrôles de liste. */}
+            <div className="mt-3 h-8 flex items-center gap-2">
+              {selected && <>
                 <MonsterAvatar monster={selected.monster} size={32} />
-                <span className="font-semibold text-[14px]">{selected.monster.name}</span>
-              </div>
-            )}
+                <span className="min-w-0 line-clamp-1 font-semibold text-[14px]" title={selected.monster.name}>{selected.monster.name}</span>
+              </>}
+            </div>
+            <OptimizerImportButton data={exclusionData} onImporter={onImporterEquipe} />
             {/* ⚠️ Aucune liste FIXE (Box/RTA/Défense siège ne sont pas des
                 cas spéciaux, voir
                 docs/02-app/optimizer/,
@@ -3712,13 +3713,12 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
           <div>
             <p className="label mb-1.5">Monstre à optimiser</p>
             <MonsterSourcePicker mode="bestiary" candidates={allMonsters} onPick={pickSpecies} />
-            <OptimizerImportButton data={exclusionData} onImporter={onImporterEquipe} />
-            {selected && (
-              <div className="mt-3 flex items-center gap-2">
+            <div className="mt-3 h-8 flex items-center gap-2">
+              {selected && <>
                 <MonsterAvatar monster={selected.monster} size={32} />
-                <span className="font-semibold text-[14px]">{selected.monster.name}</span>
-              </div>
-            )}
+                <span className="min-w-0 line-clamp-1 font-semibold text-[14px]" title={selected.monster.name}>{selected.monster.name}</span>
+              </>}
+            </div>
             <ZoneCliquable
               onClick={() => setZoneCOpen((v) => !v)}
               aria-expanded={zoneCOpen}
@@ -3727,6 +3727,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
               Monstres à optimiser
               <ChevronDown size={13} className={`ml-auto transition-transform ${zoneCOpen ? 'rotate-180' : ''}`} />
             </ZoneCliquable>
+            <OptimizerImportButton data={exclusionData} onImporter={onImporterEquipe} />
             {zoneCOpen && (
               <div className="mt-2 space-y-3">
                 <OptimizerListPicker

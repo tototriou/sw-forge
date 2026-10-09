@@ -130,7 +130,10 @@ export async function scenario(s: Source, mobile: boolean, motif = 'accepte', co
   await geste(() => { listes.addMember(ancienne, { source: 'box', unitKey: '11' }, 10101); etat.choisirMembre(ancienne, { source: 'box', unitKey: '11' }); });
   await geste(() => { etat.setMinStats({ spd: 999 }); listes.sauvegarderPoint({ listId: ancienne, selector: { source: 'box', unitKey: '11' } }, data); });
   const point = localStorage.getItem(OPTIMIZER_BACKUP_STORAGE_KEY), stockage = JSON.stringify(listes.lireStockageCourant()), avantAffichage = affichage();
-  const ancre = s === 'flottant' ? boutons().find(b => b.textContent?.startsWith('Recommandation 1 · Contres · Deck 1'))! : boutonsExport()[0];
+  // « second » vise le deuxième deck : chaque action doit exporter son propre deck.
+  const second = motif === 'second';
+  const ancre = s === 'flottant' ? boutons().find(b => b.textContent?.startsWith(`Recommandation 1 · Contres · Deck ${second ? 2 : 1}`))!
+    : boutonsExport()[second ? 1 : 0];
   if (!ancre) throw new Error(`Action absente : ${s}`);
   ancre.scrollIntoView({ block: 'center' });
   // La mesure commence après l’animation d’entrée de la liste des decks.
@@ -154,7 +157,13 @@ export async function scenario(s: Source, mobile: boolean, motif = 'accepte', co
     attente = motif === 'attente'; refus = ['collision', 'vide'].includes(motif) ? motif : '';
     await geste(() => ancre.click());
     const rapport = document.querySelector<HTMLElement>('[aria-label="Rapport d’import"]')?.innerText ?? '';
-    if (motif !== 'accepte') {
+    if (second) {
+      const id = listes.activeListId!, membres = listes.members.filter(m => m.listId === id);
+      verifier(location.hash === '#/outils/optimizer' && listes.lists.find(l => l.id === id)?.name === 'Autre deck',
+        'le deuxième deck exporte sa propre liste, jamais le premier');
+      verifier(membres.length === 3 && membres.every(m => listes.memories.get(cleMemoireMembre(id, m.selector))?.criteres.minStats.spd === 999),
+        'vitesses du deuxième deck importées pour ses trois membres');
+    } else if (motif !== 'accepte') {
       verifier(location.hash === route, 'refus sans navigation');
       verifier(rapport.includes(motif === 'attente' ? 'revérification' : motif === 'collision' ? 'déjà occupé' : 'Aucune liste créée'), 'refus lu à l’écran');
       verifier(JSON.stringify(position(repere)) === geometrie, `repère immobile à l’ouverture du rapport (${geometrie} → ${JSON.stringify(position(repere))})`);

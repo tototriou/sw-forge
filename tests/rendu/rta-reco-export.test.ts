@@ -13,7 +13,7 @@ async function verifier(source: 'rta' | 'reco' | 'flottant', telephone: boolean)
       await page.waitForTimeout(300);
       await page.screenshot({ path: `${process.env.CAPTURES}/export-${source}-source-${telephone ? 'telephone' : 'bureau'}.png`, fullPage: !telephone, animations: 'disabled' });
     }
-    for (const motif of ['accepte', 'indisponible', 'attente', 'collision', 'vide']) {
+    for (const motif of ['accepte', ...(source === 'rta' ? [] : ['second']), 'indisponible', 'attente', 'collision', 'vide']) {
       const preuves = await page.evaluate(async ({ source, telephone, motif, capture }) => (globalThis as unknown as {
         bancOptimizer: { scenario: (source: string, telephone: boolean, motif: string, conserverRapport: boolean) => Promise<[boolean, string][]> };
       }).bancOptimizer.scenario(source, telephone, motif, capture), { source, telephone, motif, capture: !!process.env.CAPTURES });

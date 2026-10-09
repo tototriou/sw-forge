@@ -47,7 +47,9 @@ refuse avant le producteur et le dit au rapport, sans changer les listes,
 la sélection, le propriétaire, les critères ni les résultats. L’état d’attente
 est lu au moment du geste depuis `App.tsx`, même sans nouveau rendu ou avec
 un compte arrivé par le dossier SW Exporter. L’import redevient possible
-après la revérification.
+après la revérification. Un import de compte regroupé dans le même rendu
+que la relecture du compte conservé est revérifié comme un réimport : la
+relecture ne le masque pas, et l’attente se termine.
 Sinon l’ajout vérifie l’identifiant sur l’état courant avant toute écriture,
 y compris les cibles orphelines ou rejetées réservées par le consommateur.
 Une collision rend un refus explicite au rapport, avec aucun monstre ni équipe

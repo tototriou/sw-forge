@@ -811,6 +811,9 @@ function Application() {
     const stockageCourant = optimizerLists.lireStockageCourant();
     stockageAvantImportRef.current = box.length || runes.length
       ? acquerirIdentitesMembres(stockageCourant, optimizerData) : stockageCourant;
+    // Regroupé avec la relecture du compte conservé, ce vrai import doit
+    // être revérifié : sinon la photo resterait posée et bloquerait l'import d'équipe.
+    hydrationJustAppliedRef.current = false;
     const { exporte, nomJoueur, boxRes, invRes, boxItems, usedRunes, markerLabels } = compte;
     // Exclusion manuelle de runes de l'Optimizer (excludedSelectors) : à
     // effacer sur un compte VRAIMENT DIFFÉRENT (autre wizard_id — voir

@@ -212,6 +212,9 @@ export function testOptimizerRattachementBranchement() {
     'acquisition sur l’état courant des listes, avant remplacement de la Box, chemin partagé manuel et dossier');
   ok(app.includes('reverificationEnAttente: () => stockageAvantImportRef.current !== null'),
     'import d’équipe refusé tant que la revérification du réimport attend');
+  const relecture = compte.indexOf('hydrationJustAppliedRef.current = false;');
+  ok(relecture > acquisition && relecture < compte.indexOf('setBox(boxItems)'),
+    'un vrai import regroupé avec la relecture du compte conservé reste revérifié : la garde se libère');
   ok(app.includes('reverifierStockageOptimizer(stockageAvantImportRef.current ?? optimizerLists, data, runeIds, new Set(artifacts.map(a => a.id)))'), 'revérification du stockage enrichi avant import, inventaire complet des artéfacts compris');
   ok(app.includes('optimizer.appliquerReverificationMembres(resultat.stockage, resultat.rapport, data, runeIds)'), 'propriétaire et sélection suivent le résultat commun');
   ok(app.includes('const acquis = acquerirIdentitesMembres(optimizerLists, optimizerData)'), 'compte conservé : acquisition au chargement');

@@ -21,6 +21,7 @@ import {
   testEquipeOptimizerTextesStricts,
 } from './optimizer-member-storage.test';
 import { testMemoireOptimizerRejetsConserves, testMemoireOptimizerTextesCriteresStricts } from './optimizer-member-rejections.test';
+import { testOptimizerRattachementReferenceConservee } from './optimizer-rattachement-attribution.test';
 import { testOptimizerRattachementIdentites, verificationsOptimizerRattachementOrdres, testOptimizerRattachementDepartageEtPrises,
   testOptimizerRattachementCopiesSansExemplaire, testOptimizerRattachementPermutationEtProprietaire,
   testOptimizerRattachementRuneVendue, testOptimizerRattachementDefensesComplet, testOptimizerRattachementBranchement } from './optimizer-rattachement.test';
@@ -211,7 +212,7 @@ import { testRenduRunesResume, testRenduRunesListe, testRenduRunesCourbes, testR
 import { testRenduCompteMonstres, testRenduCompteArtefactsResume, testRenduCompteArtefactsListe, testRenduCompteSouris, testRenduCompteEffacerFiltres } from './rendu/compte.test';
 import { testRenduSpeedTuneVide, testRenduSpeedTuneCamps, testRenduSpeedTuneAnalyse } from './rendu/speed-tune.test';
 import { testRenduOptimizerVide, testRenduOptimizerMonstre, testRenduOptimizerReglages, testRenduTelephoneOptimizer } from './rendu/optimizer.test';
-import { testRenduMemoireOptimizerSelection, testRenduMemoireOptimizerSansMemoire, testRenduMemoireOptimizerListes,
+import { testRenduMemoireOptimizerSelection, testRenduMemoireOptimizerIdentiteEnregistree, testRenduMemoireOptimizerSansMemoire, testRenduMemoireOptimizerListes,
   testRenduMemoireOptimizerRetrait, testRenduMemoireOptimizerInclusion, testRenduMemoireOptimizerHorsListe,
   testRenduMemoireOptimizerIdentite, testRenduMemoireOptimizerRecette, testRenduMemoireOptimizerNavigation, testRenduTelephoneMemoireOptimizer,
   testRenduMemoireOptimizerSaisies, testRenduMemoireOptimizerAutomatismes, testRenduMemoireOptimizerRappelAurasDestination,
@@ -242,6 +243,7 @@ import testSkillAdapters from './skill-adapters.test';
 // faire avant une fusion sur `main` (voir CLAUDE.md).
 const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRenduMemoireOptimizerSelection', testRenduMemoireOptimizerSelection],
+  ['testRenduMemoireOptimizerIdentiteEnregistree', testRenduMemoireOptimizerIdentiteEnregistree],
   ['testRenduRattachementOptimizer', testRenduRattachementOptimizer],
   ['testRenduTelephoneRattachementOptimizer', testRenduTelephoneRattachementOptimizer],
   ['testRenduRattachementOptimizerDemonte', testRenduRattachementOptimizerDemonte],
@@ -601,6 +603,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   // `testPersistance` exige un navigateur vierge.
   ['testMemoireOptimizerJson', testMemoireOptimizerJson],
   ['testOptimizerRattachementIdentites', testOptimizerRattachementIdentites],
+  ['testOptimizerRattachementReferenceConservee', testOptimizerRattachementReferenceConservee],
   ...verificationsOptimizerRattachementOrdres,
   ['testOptimizerRattachementDepartageEtPrises', testOptimizerRattachementDepartageEtPrises],
   ['testOptimizerRattachementCopiesSansExemplaire', testOptimizerRattachementCopiesSansExemplaire],

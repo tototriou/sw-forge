@@ -66,8 +66,8 @@ export function rattacherStockageOptimizer(stockage: StockageOptimizer, data: Ex
     if (!prises.has(listId)) prises.set(listId, new Set());
     return prises.get(listId)!;
   };
-  // Réserver d'abord toutes les références encore valides : un membre à
-  // rattacher ne peut pas prendre l'exemplaire d'un membre placé après lui.
+  // Réserver d'abord les références valides ; les références sans destination
+  // seront bloquées avant de publier les rattachements.
   for (const membre of acquis.members) {
     const cle = cleMemoireMembre(membre.listId, membre.selector), identite = acquis.identities.get(cle);
     const resolu = resolveExclusionEntry(membre.selector, data), key = exclusionSelectorKey(membre.selector);
@@ -75,14 +75,9 @@ export function rattacherStockageOptimizer(stockage: StockageOptimizer, data: Ex
       clesGardees.add(cle); occupees(membre.listId).add(key);
     }
   }
-  const migrations = new Map<string, ExclusionSelector>();
-  const members = acquis.members.map(membre => {
+  function destinationPour(membre: StockageOptimizer['members'][number]): ExclusionSelector | undefined {
     const cle = cleMemoireMembre(membre.listId, membre.selector), identite = acquis.identities.get(cle);
-    if (clesGardees.has(cle)) return membre;
-    if (!identite) {
-      rapport.messages.push(`« ${noms.get(membre.listId) ?? 'Liste introuvable'} » — membre ${exclusionSelectorKey(membre.selector)} conservé : espèce inconnue et référence introuvable.`);
-      return membre;
-    }
+    if (!identite) return undefined;
     const prisesListe = occupees(membre.listId);
     const runesBuild = new Set(acquis.validated.filter(b => cleMemoireMembre(b.listId, b.selector) === cle).flatMap(b => b.runeIds));
     let selector: ExclusionSelector | undefined;
@@ -101,11 +96,41 @@ export function rattacherStockageOptimizer(stockage: StockageOptimizer, data: Ex
       let copie = 2;
       while (prisesListe.has(exclusionSelectorKey(selector))) selector = { source: 'unowned', monsterId: String(monstre.id), copie: copie++ };
     }
+    return selector;
+  }
+  const clesBloquees = new Set(clesGardees), migrations = new Map<string, ExclusionSelector>();
+  // Une référence gardée faute de destination reste occupée. Recalculer le
+  // plan avec cette réservation évite qu'un autre membre l'ait déjà prise.
+  // Chaque reprise bloque au moins une clé supplémentaire : au plus autant
+  // de reprises que de membres, sans publier de stockage ni de rapport provisoire.
+  let nouvellesReferencesGardees: boolean;
+  do {
+    nouvellesReferencesGardees = false; prises.clear(); migrations.clear();
+    for (const membre of acquis.members) if (clesBloquees.has(cleMemoireMembre(membre.listId, membre.selector))) {
+      occupees(membre.listId).add(exclusionSelectorKey(membre.selector));
+    }
+    for (const membre of acquis.members) {
+      const cle = cleMemoireMembre(membre.listId, membre.selector);
+      if (clesBloquees.has(cle)) continue;
+      const selector = destinationPour(membre);
+      if (selector) {
+        occupees(membre.listId).add(exclusionSelectorKey(selector)); migrations.set(cle, selector);
+      } else { clesBloquees.add(cle); nouvellesReferencesGardees = true; }
+    }
+  } while (nouvellesReferencesGardees);
+  const members = acquis.members.map(membre => {
+    const cle = cleMemoireMembre(membre.listId, membre.selector), identite = acquis.identities.get(cle);
+    if (clesGardees.has(cle)) return membre;
+    if (!identite) {
+      rapport.messages.push(`« ${noms.get(membre.listId) ?? 'Liste introuvable'} » — membre ${exclusionSelectorKey(membre.selector)} conservé : espèce inconnue et référence introuvable.`);
+      return membre;
+    }
+    const selector = migrations.get(cle);
     if (!selector) {
       rapport.messages.push(`« ${noms.get(membre.listId) ?? 'Liste introuvable'} » — espèce ${identite.com2usId} conservée : absente du bestiaire, rattachement impossible.`);
       return membre;
     }
-    prisesListe.add(exclusionSelectorKey(selector)); migrations.set(cle, selector);
+    const monstre = [...data.monsterById.values()].find(m => m.com2usId === identite.com2usId);
     rapport.rattachements.push({ listId: membre.listId, avant: membre.selector, apres: selector, com2usId: identite.com2usId });
     rapport.messages.push(`« ${noms.get(membre.listId) ?? 'Liste introuvable'} » — ${monstre?.name ?? identite.com2usId} : rattaché de ${exclusionSelectorKey(membre.selector)} à ${exclusionSelectorKey(selector)} ; identité, mémoire, équipe et build conservés.`);
     return { ...membre, selector };

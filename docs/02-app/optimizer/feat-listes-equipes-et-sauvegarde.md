@@ -73,7 +73,10 @@ l’espèce d’origine ne peut pas être reconstituée depuis ces seules donné
 `OptimizerState.proprietaireCriteres` désigne le membre dont les critères sont
 affichés. `validerProprietaireCriteres` vérifie, avant toute restauration et
 écriture, l’existence de la liste active et du membre, le sélecteur affiché,
-l’espèce résolue et l’espèce sélectionnée. Une saisie sans propriétaire ne
+l’espèce résolue, l’espèce sélectionnée et l’identité enregistrée du membre
+quand elle existe. Si cette identité diffère de l’espèce résolue, aucun critère
+n’est restauré, aucun propriétaire n’est attribué et le refus est affiché.
+Une saisie sans propriétaire ne
 crée aucune mémoire. Le propriétaire et les messages de restauration sont
 hors de la photo de session. La photo est sérialisée, mais aucun chemin dans
 `App.tsx` ne la réapplique actuellement : le chargement des critères depuis un
@@ -263,9 +266,12 @@ compte, builds incomplets et mémoires inactives. Aucun membre ni build n’est
 retiré au réimport. La garde `comptePeutJuger` interdit toute modification tant
 que Box et runes sont vides.
 
-Une référence qui résout encore l’espèce du membre est conservée. Toutes ces
-références sont réservées avant de rattacher les autres, dans l’ordre des
-membres de la liste. Un exemplaire pris dans cette liste ne peut plus être
+Une référence qui résout encore l’espèce du membre est conservée. Toute
+référence conservée est réservée avant de rattacher les autres, y compris
+celle d’un membre sans identité ou sans destination possible. Un membre non
+rattachable garde sa référence et la bloque, même si elle résout une autre
+espèce. Les rattachements suivent l’ordre des membres de la liste.
+Un exemplaire pris dans cette liste ne peut plus être
 choisi ; son occupation dans une autre liste n’intervient pas. Ordres par contenu :
 
 | Contenu | Ordre des sources |
@@ -285,6 +291,12 @@ Une ancienne version garde le champ `copie` dans le sélecteur, mais voit des
 clés identiques pour ces copies : sélection et actions sont dégradées ; la
 simple relecture garde tous les membres et builds. La clé indépendante des
 membres reste ignorée par une version qui ne la connaît pas.
+
+Limite d’un retour à une version publiée antérieure : lors d’un réimport,
+son ancien comportement retire encore les membres introuvables et les builds
+dont une rune a disparu, dans la clé historique des listes. La conservation
+à la simple relecture ne garantit donc pas leur conservation après réimport
+dans cette version. Elle ignore la clé indépendante des membres.
 
 Le rattachement migre simultanément identité, mémoire, place et leader dans
 l’équipe, builds et propriétaire affiché, y compris lors d’une permutation de

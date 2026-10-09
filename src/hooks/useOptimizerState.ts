@@ -518,7 +518,14 @@ export function useOptimizerState(contexte?: ContexteMembresOptimizer): Optimize
     const affichage = choisir ? { selectedId: String(resolu.monster.id), sourceSelector: selector } : v;
     const candidat = { listId, selector, com2usId: resolu.monster.com2usId };
     const valide = validerProprietaireCriteres(candidat, c.lists, affichage, c.data);
-    if (!valide) { effacerProprietaireCriteres(); return null; }
+    if (!valide) {
+      effacerProprietaireCriteres();
+      const identite = c.lists.identities.get(cleMemoireMembre(listId, selector));
+      if (identite && identite.com2usId !== resolu.monster.com2usId) {
+        setRapportCriteres(['Critères non restaurés : l’identité enregistrée du membre diffère de l’espèce résolue.']);
+      }
+      return null;
+    }
     const memoire = c.lists.memories.get(cleMemoireMembre(listId, selector));
     const messages: string[] = [];
     if (memoire && memoire.com2usId !== valide.com2usId) {

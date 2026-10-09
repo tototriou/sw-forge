@@ -71,3 +71,4 @@ export const testRenduTelephoneMemoireOptimizerClicValiderFiche = () => inclusio
 export const testRenduRattachementOptimizer = () => transition('rattachement');
 export const testRenduTelephoneRattachementOptimizer = () => transition('rattachement', true);
 export const testRenduRattachementOptimizerDemonte = () => transition('rattachement-demonte');
+export const testRenduMemoireOptimizerIdentiteEnregistree = () => transition('identite-enregistree');

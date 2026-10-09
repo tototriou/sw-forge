@@ -1,5 +1,5 @@
 import { exclusionSelectorKey, resolveExclusionEntry, type ExclusionSelector, type ExclusionSourceData, type OptimizerList, type OptimizerListMember } from './optimizerExclusion';
-import type { MemoireMembreOptimizer } from './optimizerMemberStorage';
+import { cleMemoireMembre, type IdentiteMembreOptimizer, type MemoireMembreOptimizer } from './optimizerMemberStorage';
 import type { RattachementMembreOptimizer } from './optimizerRattachement';
 
 export type ProprietaireCriteresOptimizer = Omit<MemoireMembreOptimizer, 'criteres'>;
@@ -12,10 +12,10 @@ export function rattacherProprietaireCriteres(proprietaire: ProprietaireCriteres
 }
 
 // La même garde protège la restauration et l'écriture : liste active,
-// appartenance, exemplaire affiché et espèce réellement résolue.
+// appartenance, exemplaire affiché, identité enregistrée et espèce résolue.
 export function validerProprietaireCriteres(
   proprietaire: ProprietaireCriteresOptimizer | null,
-  listes: { lists: OptimizerList[]; members: OptimizerListMember[]; activeListId: string | null },
+  listes: { lists: OptimizerList[]; members: OptimizerListMember[]; activeListId: string | null; identities: Map<string, IdentiteMembreOptimizer> },
   affichage: { selectedId: string | null; sourceSelector: ExclusionSelector | null },
   data: ExclusionSourceData,
 ): ProprietaireCriteresOptimizer | null {
@@ -26,6 +26,8 @@ export function validerProprietaireCriteres(
   if (cle !== exclusionSelectorKey(affichage.sourceSelector)
     || !listes.members.some(m => m.listId === proprietaire.listId && exclusionSelectorKey(m.selector) === cle)) return null;
   const resolu = resolveExclusionEntry(proprietaire.selector, data);
+  const identite = listes.identities.get(cleMemoireMembre(proprietaire.listId, proprietaire.selector));
+  if (identite && identite.com2usId !== resolu?.monster.com2usId) return null;
   return resolu?.monster.com2usId === proprietaire.com2usId
     && String(resolu.monster.id) === affichage.selectedId ? proprietaire : null;
 }

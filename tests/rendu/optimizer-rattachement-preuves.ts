@@ -4,6 +4,7 @@ import type { BoxItem } from '../../src/lib/applyAccount';
 import type { RuneDetail } from '../../src/types';
 import { exclusionSelectorKey, otherValidatedRuneIds, type ExclusionSelector, type ExclusionSourceData } from '../../src/lib/optimizerExclusion';
 import { cleMemoireMembre, reverifierStockageOptimizer } from '../../src/lib/optimizerMemberStorage';
+import { baseCompleteCriteres } from '../../src/lib/criteresOptimizer';
 import { acquerirIdentitesMembres } from '../../src/lib/optimizerRattachement';
 
 interface Contexte {
@@ -59,5 +60,37 @@ export async function preuvesRattachementOptimizer(c: Contexte, demonte = false)
   const apres = bouton.getBoundingClientRect();
   verifier(avant.x === apres.x && avant.y === apres.y, 'bascule de la fiche : le clic ne déplace pas le bouton');
   verifier(document.documentElement.scrollWidth <= window.innerWidth, 'aucun débordement horizontal du format');
+  return preuves;
+}
+
+export async function preuvesIdentiteEnregistree(c: Pick<Contexte, 'etat' | 'listes' | 'data' | 'changerBox' | 'geste' | 'premier'>): Promise<[boolean, string][]> {
+  const preuves: [boolean, string][] = [], verifier = (condition: boolean, texte: string) => preuves.push([condition, texte]);
+  const cle = cleMemoireMembre('a', c.premier), autre = c.data().box.find(b => b.key === '22')!.monster;
+  const identites = new Map(c.listes().identities);
+  identites.set(cle, { listId: 'a', selector: c.premier, com2usId: 10101 });
+  await c.geste(() => {
+    c.listes().replaceAfterRevalidation({ ...c.listes(), identities: identites });
+    c.changerBox(c.data().box.map(b => b.key === '11' ? { ...b, monster: autre } : b));
+  });
+  for (const avecMemoire of [true, false]) {
+    const memories = new Map(c.listes().memories), criteres = baseCompleteCriteres(undefined);
+    criteres.minStats.spd = 290;
+    if (avecMemoire) memories.set(cle, { listId: 'a', selector: c.premier, com2usId: autre.com2usId!, criteres });
+    else memories.delete(cle);
+    await c.geste(() => {
+      c.listes().replaceAfterRevalidation({ ...c.listes(), memories });
+      c.etat().setSelectedId(null); c.etat().setMinStats({ spd: 310 });
+    });
+    const avant = JSON.stringify(c.listes().memories.get(cle));
+    let restauree: ReturnType<OptimizerState['choisirMembre']> | undefined;
+    await c.geste(() => { restauree = c.etat().choisirMembre('a', c.premier); });
+    verifier(restauree === null, `identité enregistrée différente : restauration refusée, mémoire ${avecMemoire ? 'présente et de même espèce que le slot' : 'absente'}`);
+    verifier(c.etat().proprietaireCriteres === null && c.etat().selectedId === null, 'aucun propriétaire ni changement de sélection');
+    verifier(c.etat().minStats.spd === 310, 'ni mémoire ni base par défaut appliquée à la place des critères affichés');
+    verifier(c.etat().rapportCriteres.some(m => m.includes('identité enregistrée') && m.includes('non restaurés')), 'refus de restauration explicitement dit');
+    await c.geste(() => c.etat().setMinStats({ spd: 320 }));
+    verifier(JSON.stringify(c.listes().memories.get(cle)) === avant, 'saisie sans propriétaire : mémoire inchangée ou toujours absente');
+    verifier(c.listes().identities.get(cle)?.com2usId === 10101, 'identité enregistrée indépendante de la mémoire, inchangée');
+  }
   return preuves;
 }

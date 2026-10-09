@@ -12,7 +12,7 @@ import type { BoxItem } from '../../src/lib/applyAccount';
 import type { ExclusionSelector, ExclusionSourceData } from '../../src/lib/optimizerExclusion';
 import { buildOptimizerRecipe } from '../../src/lib/optimizerRecipe';
 import { preuvesSupplementaires, preparerClicInclusion, verifierClicInclusion } from './optimizer-memoire-preuves';
-import { preuvesRattachementOptimizer } from './optimizer-rattachement-preuves';
+import { preuvesRattachementOptimizer, preuvesIdentiteEnregistree } from './optimizer-rattachement-preuves';
 
 export const premier: ExclusionSelector = { source: 'box', unitKey: '11' };
 export const second: ExclusionSelector = { source: 'box', unitKey: '22' };
@@ -105,6 +105,8 @@ export async function scenario(nom: string): Promise<[boolean, string][]> {
   const choisir = (selector = premier) => geste(() => etat.choisirMembre('a', selector));
   const memoire = (listId: string, selector = premier) => listes.memories.get(cleMemoireMembre(listId, selector));
   await choisir();
+  if (nom === 'identite-enregistree') return preuvesIdentiteEnregistree({ etat: () => etat, listes: () => listes,
+    data: () => compteActuel, changerBox, geste, premier });
   const supplement = await preuvesSupplementaires(nom, { etat: () => etat, listes: () => listes, geste, premier, second, rta, siege });
   if (supplement) return supplement;
   if (nom === 'selection') {

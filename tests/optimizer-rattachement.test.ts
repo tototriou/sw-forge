@@ -102,7 +102,7 @@ export function testOptimizerRattachementDepartageEtPrises() {
 }
 
 export function testOptimizerRattachementCopiesSansExemplaire() {
-  titre('Rattachement · copies sans exemplaire distinctes et ancien lecteur sans perte');
+  titre('Rattachement · copies sans exemplaire distinctes, lecteur actuel conservant copie');
   const selectors: ExclusionSelector[] = [ancien, { ...ancien, slotIndex: 1 }, { source: 'unowned', monsterId: '1' }];
   const s = stockage(selectors);
   selectors.forEach((selector, i) => {
@@ -121,7 +121,7 @@ export function testOptimizerRattachementCopiesSansExemplaire() {
   }
   const brut = JSON.stringify({ lists: s.lists, members: r.stockage.members, validated: r.stockage.validated, activeListId: 'l' });
   faussLocalStorage({ 'swblacksmith-optimizer-lists-v1': brut });
-  egal(loadOptimizerLists().members, r.stockage.members, 'champ copie passé tel quel par le lecteur historique');
+  egal(loadOptimizerLists().members, r.stockage.members, 'champ copie conservé par le lecteur actuel des listes');
   const anciennesCles = r.stockage.members.map(m => `unowned:${(m.selector as { monsterId: string }).monsterId}`);
   egal(new Set(anciennesCles).size, 1, 'limite documentée : anciennes clés identiques, tableaux toujours conservés');
 }

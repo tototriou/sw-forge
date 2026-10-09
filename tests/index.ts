@@ -219,7 +219,8 @@ import { testRenduMemoireOptimizerSelection, testRenduMemoireOptimizerSansMemoir
   testRenduMemoireOptimizerListeInactive, testRenduMemoireOptimizerRecetteSansSelection, testRenduMemoireOptimizerGlobauxAvantRestauration,
   testRenduMemoireOptimizerSourceRta, testRenduMemoireOptimizerSourceSiege, testRenduMemoireOptimizerClicAjouter,
   testRenduMemoireOptimizerClicValiderFiche, testRenduMemoireOptimizerClicValiderInclut,
-  testRenduTelephoneMemoireOptimizerClicAjouter, testRenduTelephoneMemoireOptimizerClicValiderFiche } from './rendu/optimizer-memoire.test';
+  testRenduTelephoneMemoireOptimizerClicAjouter, testRenduTelephoneMemoireOptimizerClicValiderFiche,
+  testRenduRattachementOptimizer, testRenduTelephoneRattachementOptimizer, testRenduRattachementOptimizerDemonte } from './rendu/optimizer-memoire.test';
 import { testRenduBestiaire, testRenduMecaniques, testRenduNouveautes, testRenduParametres, testRenduBientot } from './rendu/ressources.test';
 import { testRenduTelephoneAccueil, testRenduTelephoneRta, testRenduTelephoneRtaAmi, testRenduTelephoneRtaFiltre } from './rendu/telephone-accueil-rta.test';
 import { testRenduTelephoneSiege, testRenduTelephoneRecos } from './rendu/telephone-siege.test';
@@ -241,6 +242,9 @@ import testSkillAdapters from './skill-adapters.test';
 // faire avant une fusion sur `main` (voir CLAUDE.md).
 const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRenduMemoireOptimizerSelection', testRenduMemoireOptimizerSelection],
+  ['testRenduRattachementOptimizer', testRenduRattachementOptimizer],
+  ['testRenduTelephoneRattachementOptimizer', testRenduTelephoneRattachementOptimizer],
+  ['testRenduRattachementOptimizerDemonte', testRenduRattachementOptimizerDemonte],
   ['testRenduMemoireOptimizerSansMemoire', testRenduMemoireOptimizerSansMemoire],
   ['testRenduMemoireOptimizerListes', testRenduMemoireOptimizerListes],
   ['testRenduMemoireOptimizerRetrait', testRenduMemoireOptimizerRetrait],

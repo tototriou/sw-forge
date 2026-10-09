@@ -68,3 +68,6 @@ export const testRenduMemoireOptimizerClicValiderFiche = () => inclusion('fiche'
 export const testRenduMemoireOptimizerClicValiderInclut = () => inclusion('carte');
 export const testRenduTelephoneMemoireOptimizerClicAjouter = () => inclusion('ajout', true);
 export const testRenduTelephoneMemoireOptimizerClicValiderFiche = () => inclusion('fiche', true);
+export const testRenduRattachementOptimizer = () => transition('rattachement');
+export const testRenduTelephoneRattachementOptimizer = () => transition('rattachement', true);
+export const testRenduRattachementOptimizerDemonte = () => transition('rattachement-demonte');

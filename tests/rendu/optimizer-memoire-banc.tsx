@@ -12,6 +12,7 @@ import type { BoxItem } from '../../src/lib/applyAccount';
 import type { ExclusionSelector, ExclusionSourceData } from '../../src/lib/optimizerExclusion';
 import { buildOptimizerRecipe } from '../../src/lib/optimizerRecipe';
 import { preuvesSupplementaires, preparerClicInclusion, verifierClicInclusion } from './optimizer-memoire-preuves';
+import { preuvesRattachementOptimizer } from './optimizer-rattachement-preuves';
 
 export const premier: ExclusionSelector = { source: 'box', unitKey: '11' };
 export const second: ExclusionSelector = { source: 'box', unitKey: '22' };
@@ -31,6 +32,7 @@ const box: BoxItem[] = [
 ];
 let etat: OptimizerState, listes: UseOptimizerLists, root: Root;
 let afficher: (oui: boolean) => void, changerBox: (box: BoxItem[]) => void;
+let changerRunes: (runes: RuneDetail[]) => void, compteActuel: ExclusionSourceData, runesActuelles: RuneDetail[];
 const runesInclusion: RuneDetail[] = Array.from({ length: 6 }, (_, i) => ({
   id: 101 + i, slot: i + 1, set: 'energy', rank: 6, rarity: 5, level: 15,
   main: { code: i === 1 ? 8 : 1, value: i === 1 ? 42 : 100 }, subs: [],
@@ -46,10 +48,13 @@ function Banc() {
   const [compte, setCompte] = useState(() => box.map(item => avecRunes && item.key === '22'
     ? { ...item, gear: { ...item.gear!, runes: runesInclusion } } : item));
   afficher = setVisible; changerBox = setCompte;
+  const [inventaire, setInventaire] = useState(() => avecRunes ? runesInclusion : []);
+  changerRunes = setInventaire; runesActuelles = inventaire;
   listes = useOptimizerLists();
   const data: ExclusionSourceData = { box: compte, rtaEntries, siegeDefenseTeams, siegeOffenseTeams: [], monsterById: new Map(monstres.map(m => [String(m.id), m])) };
-  etat = useOptimizerState({ lists: listes, data, runeIds: new Set(avecRunes ? runesInclusion.map(r => r.id) : []) });
-  return visible ? <OptimizerSection box={compte} runes={avecRunes ? runesInclusion : []} artifacts={[]} relics={[]} relicUsageById={{}}
+  compteActuel = data;
+  etat = useOptimizerState({ lists: listes, data, runeIds: new Set(inventaire.map(r => r.id)) });
+  return visible ? <OptimizerSection box={compte} runes={inventaire} artifacts={[]} relics={[]} relicUsageById={{}}
     optimizer={etat} lists={listes} allMonsters={monstres} rtaEntries={rtaEntries} siegeDefenseTeams={siegeDefenseTeams} siegeOffenseTeams={[]}
     accountName="Synthétique" menuOuvert={false} onFermerMenu={() => {}} onOuvrirMenu={() => {}} /> : <div>Autre onglet</div>;
 }
@@ -91,7 +96,10 @@ export async function monter(avecRapport = false) {
 }
 
 export async function scenario(nom: string): Promise<[boolean, string][]> {
+  avecRunes = nom.startsWith('rattachement');
   await monter(nom === 'zone-c');
+  if (nom.startsWith('rattachement')) return preuvesRattachementOptimizer({ etat: () => etat, listes: () => listes,
+    data: () => compteActuel, runes: () => runesActuelles, changerBox, changerRunes, afficher, geste, premier }, nom === 'rattachement-demonte');
   const preuves: [boolean, string][] = [];
   const verifier = (condition: boolean, texte: string) => preuves.push([condition, condition ? texte : `${texte} — ${JSON.stringify({ selectedId: etat.selectedId, selector: etat.sourceSelector, proprietaire: etat.proprietaireCriteres, min: etat.minStats, compter: etat.compterAurasResPre, cran: etat.critereArtefacts, rapport: etat.rapportCriteres, stockage: listes.rapportStockage })}`]);
   const choisir = (selector = premier) => geste(() => etat.choisirMembre('a', selector));

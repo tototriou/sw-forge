@@ -640,6 +640,9 @@ export default function SiegeBoard({
           on le demande : il charge les kits des monstres à l'ouverture. */}
       {speedTune && (
         <SpeedTuneModale
+          onImporterEquipe={onImporterEquipe}
+          sourcesOptimizer={sourcesOptimizer}
+          compteCharge={compteCharge}
           deck={{ source: side, teamId: speedTune }}
           allMonsters={monsters}
           siegeDefenseTeams={siegeDefenseTeams}

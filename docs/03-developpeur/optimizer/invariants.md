@@ -270,6 +270,8 @@ Une entrée = une règle qu'un chantier qui l'ignore casse, avec sa source. Ce f
 
 ## UI
 
+- L’export du speed tuning dérive sa disponibilité du producteur sur les lignes et sources actuelles, avec désactivation motivée sans compte ou membre importable. La page et la modale appellent la même action commune ; la modale transmet son `DeckInitial` et se ferme seulement après création de la liste, jamais sur refus. Source : ../../02-app/speed-tuning/feat-export-optimizer.md § Action et disponibilité ; ../../02-app/speed-tuning/feat-export-optimizer.md § Page et modale
+
 - La navigation commune vers `#/outils/optimizer` suit seulement un import accepté par `importerEquipe` ; import vide, collision et revérification en attente gardent la route courante. Source : ../../02-app/optimizer/feat-import-equipes.md § F1 — Importer depuis l’Optimizer
 
 - L’export depuis le siège appelle les mêmes producteurs et la même action que l’import dans l’Optimizer, sur les sources courantes au geste ; sa disponibilité est dérivée des producteurs, et un compte sans Box ni runes le désactive avec raison. L’export de la page Défense prend toutes les défenses, indépendamment du filtre. Son rapport, porté par `App.tsx`, reste lisible après navigation et sort du flux dans les deux formats. Source : ../../02-app/optimizer/feat-import-equipes.md § F4 — Exporter depuis le siège

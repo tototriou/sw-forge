@@ -1,5 +1,5 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
-import { Search, Plus, Users, Swords, X, Zap, Gauge, Eye, EyeOff, Download, Check, Scissors, Play, ChevronUp, ChevronDown, Sparkles, CopyPlus } from 'lucide-react';
+import { Search, Plus, Users, Swords, X, Zap, Gauge, Eye, EyeOff, Download, Upload, Check, Scissors, Play, ChevronUp, ChevronDown, Sparkles, CopyPlus } from 'lucide-react';
 // Le chronomètre de l'entrée « Speed tuning » de la nav (rebranding, décision 44).
 import { IconeSpeedTuning } from '../IconesAtelier';
 import { ELEMENTS, Monster, SiegeTeam } from '../../types';
@@ -58,6 +58,9 @@ import { formesJouables } from '../../lib/monsterForms';
 import LeadPill from '../siege/LeadPill';
 import { useComboboxNav } from '../../hooks/useComboboxNav';
 import { useSpeedTune, DeckDispo, ChampMod, DeckInitial } from '../../hooks/useSpeedTune';
+import type { ActionImportOptimizer } from '../../lib/actionImportOptimizer';
+import type { ExclusionSourceData } from '../../lib/optimizerExclusion';
+import { importerSpeedTuneOptimizer } from '../../lib/importSpeedTuneOptimizer';
 
 import { useAdversaireReference } from '../../hooks/useAdversaireReference';
 import { useStickyState } from '../../hooks/useStickyState';
@@ -94,6 +97,9 @@ const BUFF_SPD = 30;
 // lib/speedTune.ts (pur, testé) ; ce composant assemble saisie et affichage.
 
 interface Props {
+  onImporterEquipe?: ActionImportOptimizer;
+  sourcesOptimizer?: ExclusionSourceData;
+  compteCharge?: boolean;
   allMonsters: Monster[];
   // Équipes de siège du compte : elles s'importent dans « Ton équipe » (voir
   // DECKS plus bas). Vides tant qu'aucun compte n'est chargé — le reste de
@@ -215,6 +221,9 @@ function TeteTicks({ premiere }: { premiere: string }) {
 }
 
 export default function SpeedTuningSection({
+  onImporterEquipe,
+  sourcesOptimizer,
+  compteCharge = false,
   allMonsters,
   siegeDefenseTeams,
   siegeOffenseTeams,
@@ -326,6 +335,14 @@ export default function SpeedTuningSection({
     toujoursReference,
     tune,
   } = useSpeedTune({ allMonsters, siegeDefenseTeams, siegeOffenseTeams, deckInitial });
+
+  const raisonExportOptimizer = useMemo(() => {
+    if (!compteCharge) return 'Charge un compte pour exporter vers l’Optimizer.';
+    if (!onImporterEquipe || !sourcesOptimizer) return 'Export vers l’Optimizer indisponible.';
+    return importerSpeedTuneOptimizer(lignes, leadAllie, sourcesOptimizer, deckInitial ?? undefined).membres.length
+      ? undefined : 'Aucun monstre importable dans ton équipe : choisis un monstre et sa vitesse de runes.';
+  }, [compteCharge, onImporterEquipe, sourcesOptimizer, lignes, leadAllie, deckInitial]);
+  const exporterOptimizer = () => onImporterEquipe?.(data => importerSpeedTuneOptimizer(lignes, leadAllie, data, deckInitial ?? undefined));
 
   function besoin(l: Ligne, combatCible: number | null, arteCible: number | null, arteActuel: number) {
     const runes = combatCible == null ? null : runesPour(l, combatCible);
@@ -503,6 +520,8 @@ export default function SpeedTuningSection({
           onArtefact={setArtefact}
           decks={decks}
           onImporterDeck={(team) => importerDeck('allie', team)}
+          onExporterOptimizer={exporterOptimizer}
+          raisonExportOptimizer={raisonExportOptimizer}
         />
         <CampPanneau
           camp="ennemi"
@@ -1054,6 +1073,8 @@ interface CampProps {
   // propre compo d'un côté, la défense qu'on affronte de l'autre.
   decks?: DeckDispo[];
   onImporterDeck?: (team: SiegeTeam) => void;
+  onExporterOptimizer?: () => void;
+  raisonExportOptimizer?: string;
 }
 
 function CampPanneau({
@@ -1081,6 +1102,8 @@ function CampPanneau({
   onArtefact,
   decks,
   onImporterDeck,
+  onExporterOptimizer,
+  raisonExportOptimizer,
 }: CampProps) {
   const adv = camp === 'ennemi';
   const dejaAjoutes = useMemo(() => new Set(lignes.map((l) => String(l.monster.id))), [lignes]);
@@ -1468,6 +1491,11 @@ function CampPanneau({
           <div className="lg:hidden">
             <ImportDeck decks={decks} onImporter={onImporterDeck} adv={adv} />
           </div>
+        )}
+        {onExporterOptimizer && (
+          <Bouton pleineLargeur icone={<Upload size={14} />} libelle="Exporter vers l'Optimizer"
+            disabled={!!raisonExportOptimizer} title={raisonExportOptimizer ?? 'Exporter ton équipe et ses critères, puis ouvrir l’Optimizer.'}
+            onClick={onExporterOptimizer} />
         )}
       </div>
     </section>

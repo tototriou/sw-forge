@@ -24,6 +24,8 @@ Dans ce dossier (l'application) :
   travail, builds validés, réservation de runes et d'artéfacts.
 - [feat-listes-equipes-et-sauvegarde.md](feat-listes-equipes-et-sauvegarde.md) —
   mémoires des membres, équipes stockées, conservation et revérification.
+- [feat-import-equipes.md](feat-import-equipes.md) — modèle pur d’import,
+  conversions du siège et de la prépa RTA, consommation dans une nouvelle liste.
 - [feat-exclusion.md](feat-exclusion.md) — exclusion automatique et manuelle,
   runes imposées.
 - [feat-interruption.md](feat-interruption.md) — filet de temps, arrêt
@@ -68,6 +70,7 @@ scripts de mesure.
 | la mise en page de l'écran (grille bureau, panneau « Options » au doigt, dépliants) | [feat-ecran.md § Écran (de haut en bas)](feat-ecran.md) ; [dev/ (invariants) § UI](../../03-developpeur/optimizer/) ; [03-developpeur/interface/ (design)](../../03-developpeur/interface/) | [feat-ecran.md](feat-ecran.md) ; [03-developpeur/interface/ (deux formats)](../../03-developpeur/interface/) |
 | la recherche du monstre, l'exemplaire, la fiche « Équipement actuel » | [feat-ecran-recherche-du-monstre.md § Recherche du monstre à optimiser](feat-ecran-recherche-du-monstre.md) ; [feat-ecran-equipement-actuel.md § Équipement actuel](feat-ecran-equipement-actuel.md) ; [dev/ (invariants) § UI](../../03-developpeur/optimizer/) | [feat-ecran.md](feat-ecran.md) |
 | les listes de travail, les builds validés, la réservation de runes | [feat-listes-et-reservation.md § Listes de travail et réservation de runes](feat-listes-et-reservation.md) ; [dev/ (invariants) § UI](../../03-developpeur/optimizer/) | [feat-listes-et-reservation.md](feat-listes-et-reservation.md) |
+| les conversions d’équipes et leur import dans une liste | [feat-import-equipes.md](feat-import-equipes.md) ; [dev/ (invariants) § UI](../../03-developpeur/optimizer/) | [feat-listes-equipes-et-sauvegarde.md](feat-listes-equipes-et-sauvegarde.md) |
 | l'objectif de recherche, « Dégâts réels », un passif ou une mécanique de sort | [feat-ecran-objectif-de-recherche.md § Objectif de recherche](feat-ecran-objectif-de-recherche.md) ; [degats-reels/](../degats-reels/) (par section) ; [dev/ (invariants) § Dégâts réels](../../03-developpeur/optimizer/) | skill `game-data-curation` |
 | les conditions min/max, « Exclure les runes déjà utilisées », les réglages avancés | [feat-ecran-conditions-et-reglages.md § Conditions, inventaire et réglages avancés](feat-ecran-conditions-et-reglages.md) ; [dev/ (invariants) § Stats et slots](../../03-developpeur/optimizer/) | — |
 | les artéfacts (optimisation, carte Artéfacts, « État de mon monstre ») | [feat-ecran-artefacts.md § Artéfacts](feat-ecran-artefacts.md) ; [feat-ecran-etat-de-mon-monstre.md § État de mon monstre](feat-ecran-etat-de-mon-monstre.md) ; [dev/ (moteur-artefacts) § Le choix des artéfacts — un second problème, séparé](../../03-developpeur/optimizer/) ; [dev/ (invariants) § Artéfacts](../../03-developpeur/optimizer/) | [dev/ (moteur-artefacts, moteur-optimiseur-artefacts)](../../03-developpeur/optimizer/) |

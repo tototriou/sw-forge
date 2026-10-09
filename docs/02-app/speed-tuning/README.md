@@ -198,11 +198,10 @@ trois vitesses de runes. Calcul pur dans
   le camp qui reçoit l'import — ⚠️ **toujours, « Sans » compris** : un deck sans
   lead de vitesse laissait en place celui du deck précédent, et l'on calculait la
   nouvelle équipe avec un bonus qui n'existait plus (le siège, lui, lit `lead ?? 0`,
-  d'où deux réponses sur la même compo). Il n'est repris **que s'il vaut pour tout
-  le monde** (`General` / `Guild`). ⚠️ Un
-  lead d'**élément** ne se transpose PAS — le speed tuning n'a qu'un lead par
-  camp, l'appliquer à tous gonflerait la vitesse des monstres d'un autre
-  élément : le lead saisi reste alors inchangé. Un lead absent des raccourcis de
+  d'où deux réponses sur la même compo). Sa **portée est conservée** :
+  `General` / `Guild` valent pour tout le camp ; un lead d'**élément** ne vaut
+  que pour les monstres de cet élément (`siegeLeadFor`). Un lead Arène ou Donjon,
+  inactif en Siège, devient « Sans ». Un lead absent des raccourcis de
   `SPEED_LEADS` est **ajouté au menu** du camp, sinon il s'afficherait vide.
 - **Le set Rapidité est repris** du slot (`sets` contient `swift`) : la vitesse
   de combat importée est alors identique à celle qu'affiche le siège.

@@ -18,6 +18,9 @@ function Banc({ side }: { side: SiegeSide }) {
   const siege = useSiegeState(side);
   return (
     <SiegeBoard
+      compteCharge={false}
+      sourcesOptimizer={{ box: [], rtaEntries: {}, siegeDefenseTeams: [], siegeOffenseTeams: [], monsterById: new Map() }}
+      onImporterEquipe={() => { throw new Error('Export désactivé sans compte.'); }}
       side={side}
       siege={siege}
       monsters={MONSTRES}
@@ -111,6 +114,8 @@ export function testRenduSiegeEdition() {
   const rien = () => {};
   const html = rendre(
     <SiegeTeam
+      onExporterOptimizer={rien}
+      raisonExportOptimizer="Charge un compte pour exporter vers l’Optimizer."
       team={team}
       index={0}
       monsters={MONSTRES}

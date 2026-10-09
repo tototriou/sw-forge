@@ -6,11 +6,16 @@ import { OwnedBuild, OwnedTeam } from '../lib/ownedBuilds';
 import SiegeBoard from '../components/siege/SiegeBoard';
 import RecoBoard from '../components/siege/RecoBoard';
 import { CustomLead } from '../hooks/useCustomMonsters';
+import type { ActionImportOptimizer } from '../lib/actionImportOptimizer';
+import type { ExclusionSourceData } from '../lib/optimizerExclusion';
 
 // Onglet de siège : les deux côtés jouables + les recommandations partagées.
 export type SiegeTab = 'defense' | 'offense' | 'recos';
 
 interface Props {
+  onImporterEquipe: ActionImportOptimizer;
+  sourcesOptimizer: ExclusionSourceData;
+  compteCharge: boolean;
   tab: SiegeTab;
   siege: UseSiegeState;
   offense: UseSiegeState; // toujours l'offense, quel que soit l'onglet actif

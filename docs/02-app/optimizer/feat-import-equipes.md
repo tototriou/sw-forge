@@ -89,6 +89,26 @@ choisi garde sa hauteur lorsqu’elle est vide ; un nom long reste sur une
 ligne, tronqué avec son texte complet en `title`, pour que le premier import
 ne déplace pas l’ancre. L’ouverture des sources et le rapport sortent du flux.
 
+## F4 — Exporter depuis le siège
+
+« Exporter vers l'Optimizer » appelle la même action que l’import interne :
+toutes les défenses depuis la page Défense, une défense ou une offense depuis
+sa carte, repliée comme dépliée. Le filtre de recherche du siège ne réduit pas
+l’export de la page. Les producteurs de siège et le consommateur sont communs.
+Un clic crée la liste, choisit le premier membre, restaure ses critères puis
+ouvre l’Optimizer. Les données existantes et le point de sauvegarde restent intacts.
+
+Sans compte chargé (Box et inventaire de runes vides), ou sans monstre
+importable selon le producteur, le contrôle reste affiché, désactivé avec
+la raison en `title`. La disponibilité utilise les sources du compte et se
+recalcule à leur changement ; le geste rappelle le producteur sur les sources
+courantes. Un refus de revérification, une collision ou un import devenu vide
+gardent la page et ses contrôles en place.
+Le rapport de l’export est une modale portée par `App.tsx`, lisible au bureau
+et au téléphone après la navigation comme après un refus : comptes, membres
+ignorés et messages. La croix, Échap ou le clic extérieur le ferment.
+Son ouverture sort du flux et ne déplace aucun bouton de siège.
+
 ## Conversions du siège et de la prépa RTA
 
 `importerDefensesSiegeOptimizer` propose « Défenses de siège » et une équipe

@@ -20,6 +20,9 @@ function Banc({ side, menuOuvert }: { side: SiegeSide; menuOuvert: boolean }) {
   const siege = useSiegeState(side);
   return (
     <SiegeBoard
+      compteCharge={false}
+      sourcesOptimizer={{ box: [], rtaEntries: {}, siegeDefenseTeams: [], siegeOffenseTeams: [], monsterById: new Map() }}
+      onImporterEquipe={() => { throw new Error('Export désactivé sans compte.'); }}
       side={side}
       siege={siege}
       monsters={MONSTRES}
@@ -75,8 +78,8 @@ export function testRenduTelephoneSiege() {
   const ferme = rendreCamp('defense', false);
   const t = texteVisible(ferme);
   egal(dialogues(ferme), 0, 'panneau « Options » fermé : aucun dialogue');
-  ok(t.includes('Équipe 1 +33% (donjon) Éditer Supprimer Lushen 239 Veromos 245 Chasun 256 Speed tune Voir le speed tune'), 'équipe 1 : lead, actions, monstres et vitesses, speed tune');
-  ok(t.includes('Équipe 2 +24% Éditer Supprimer Galleon 261 Belladeon 151 + vide Speed tune Voir le speed tune'), 'équipe 2 : l\'emplacement vide, à remplir');
+  ok(t.includes("Équipe 1 +33% (donjon) Exporter vers l'Optimizer Éditer Supprimer Lushen 239 Veromos 245 Chasun 256 Speed tune Voir le speed tune"), 'équipe 1 : lead, actions, monstres et vitesses, speed tune');
+  ok(t.includes("Équipe 2 +24% Exporter vers l'Optimizer Éditer Supprimer Galleon 261 Belladeon 151 + vide Speed tune Voir le speed tune"), 'équipe 2 : l\'emplacement vide, à remplir');
   ok(valeurs(ferme, 'aria-label').includes('Chercher une équipe par monstre'), 'la recherche d\'équipe');
   // Lot 11b (décision 25) : ajouté avec l'interrupteur.
   ok(t.includes('2 équipes Vérifier mes speed') && valeurs(ferme, 'aria-label').includes('Vérifier mes speed'), '« Vérifier mes speed » : un interrupteur sur la page, à côté du compteur');
@@ -90,7 +93,9 @@ export function testRenduTelephoneSiege() {
     // ⚠️ Lot 11b (décision 25) : « Vérifier mes speed » a quitté le panneau
     // pour un interrupteur sur la page (vérifié plus bas) ; le reste du
     // panneau, dans le même ordre.
-    ok(to.includes('Équipe Ajouter une équipe Exporter Importer Monstre Créer un monstre Tout effacer'), `${side} : ses actions, groupées, dans l'ordre`);
+    ok(to.includes(side === 'defense'
+      ? "Équipe Ajouter une équipe Exporter Importer Monstre Créer un monstre Exporter vers l'Optimizer Tout effacer"
+      : 'Équipe Ajouter une équipe Exporter Importer Monstre Créer un monstre Tout effacer'), `${side} : ses actions, groupées, dans l'ordre`);
     ok(b.some((x) => x.texte === 'Exporter' && x.title === 'Exporter les équipes affichées en fichier .json'), `${side} : « Exporter », et ce qu'il exporte`);
     ok(b.some((x) => x.texte === 'Importer' && x.title === 'Ajouter les équipes d\'un fichier .json exporté par SW Blacksmith — les tiennes ne sont pas touchées'), `${side} : « Importer », et ce qu'il ne touche pas`);
   }

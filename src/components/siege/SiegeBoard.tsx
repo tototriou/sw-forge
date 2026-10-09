@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Plus, Trash2, Gauge, Wand2, Upload, Download } from 'lucide-react';
 import { IconeDefense, IconeOffense } from '../IconesAtelier';
 import { Monster, ElementKey, SiegeTeam as SiegeTeamData } from '../../types';
@@ -18,8 +18,14 @@ import { exporterEquipes, lireEquipes, nomFichierSiege } from '../../lib/siegeSh
 import { telechargerTexte } from '../../lib/telechargement';
 import { NOM_APP } from '../../marque';
 import { CustomLead } from '../../hooks/useCustomMonsters';
+import type { ActionImportOptimizer } from '../../lib/actionImportOptimizer';
+import type { ExclusionSourceData } from '../../lib/optimizerExclusion';
+import { importerDefensesSiegeOptimizer, importerOffenseSiegeOptimizer } from '../../lib/importEquipes';
 
 interface Props {
+  onImporterEquipe: ActionImportOptimizer;
+  sourcesOptimizer: ExclusionSourceData;
+  compteCharge: boolean;
   side: SiegeSide;
   siege: UseSiegeState;
   monsters: Monster[];
@@ -42,6 +48,9 @@ interface Props {
 // un seul import alimente RTA + défense + offense. Ce board ne gère que la
 // composition/édition des équipes de son côté.
 export default function SiegeBoard({
+  onImporterEquipe,
+  sourcesOptimizer,
+  compteCharge,
   side,
   siege,
   monsters,
@@ -54,6 +63,18 @@ export default function SiegeBoard({
   menuOuvert,
   onFermerMenu,
 }: Props) {
+  const produireEquipe = useCallback((teamId: string, data: ExclusionSourceData) => side === 'defense'
+    ? importerDefensesSiegeOptimizer({ ...data, siegeDefenseTeams: data.siegeDefenseTeams.filter(t => t.id === teamId) })
+    : importerOffenseSiegeOptimizer(teamId, data), [side]);
+  const disponibiliteExport = useMemo(() => {
+    const raisonCompte = 'Charge un compte pour exporter vers l’Optimizer.';
+    const equipes = new Map(siege.state.teams.map(t => [t.id, !compteCharge ? raisonCompte
+      : produireEquipe(t.id, sourcesOptimizer).membres.length ? undefined : 'Aucun monstre importable dans cette équipe.']));
+    const defenses = !compteCharge ? raisonCompte : importerDefensesSiegeOptimizer(sourcesOptimizer).membres.length
+      ? undefined : 'Aucun monstre importable dans les défenses de siège.';
+    return { equipes, defenses };
+  }, [compteCharge, produireEquipe, siege.state.teams, sourcesOptimizer]);
+  const exporterDefensesOptimizer = () => onImporterEquipe(importerDefensesSiegeOptimizer);
   // ⚠️ **Éteint par défaut** : les équipes s'affichent telles quelles, et c'est
   // un geste délibéré qui demande la vérification. Tout ce que l'app calcule
   // ensuite est automatique — statut, message, ordre d'une équipe Swift : le
@@ -345,6 +366,12 @@ export default function SiegeBoard({
                 setScrollToLast(true);
               },
             },
+            ...(side === 'defense' ? [{
+              cle: 'optimizer', libelle: "Exporter vers l'Optimizer", icone: <Upload size={15} />,
+              disabled: !!disponibiliteExport.defenses,
+              title: disponibiliteExport.defenses ?? 'Créer une liste avec toutes les défenses de siège.',
+              onClick: exporterDefensesOptimizer,
+            }] : []),
           ]}
           autres={[
             // Export / import d'équipes — ajout décidé par le mainteneur (décision 14).
@@ -480,6 +507,11 @@ export default function SiegeBoard({
 
       <MobileSheet ouvert={menuOuvert} onFermer={onFermerMenu} titre={`Actions — ${noun}`}>
         <div data-rangee-actions>{actions}</div>
+        {side === 'defense' && <Bouton className="mt-3" pleineLargeur
+          libelle="Exporter vers l'Optimizer" icone={<Upload size={15} />}
+          disabled={!!disponibiliteExport.defenses}
+          title={disponibiliteExport.defenses ?? 'Créer une liste avec toutes les défenses de siège.'}
+          onClick={exporterDefensesOptimizer} />}
         <div data-zone-destructive className="mt-4 border-t border-border pt-3">
           {effacer(true)}
         </div>
@@ -551,6 +583,8 @@ export default function SiegeBoard({
             >
             <SiegeTeam
               team={team}
+              onExporterOptimizer={() => onImporterEquipe(data => produireEquipe(team.id, data))}
+              raisonExportOptimizer={disponibiliteExport.equipes.get(team.id)}
               index={rang}
               monsters={monsters}
               monsterById={monsterById}

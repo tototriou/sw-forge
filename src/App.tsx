@@ -40,6 +40,7 @@ import ReleasesPage from './pages/ReleasesPage';
 import TelechargerPage from './pages/TelechargerPage';
 import AccountPage from './pages/AccountPage';
 import OutilsPage from './pages/OutilsPage';
+import OptimizerImportRapport from './components/outils/OptimizerImportRapport';
 import ComingSoon from './pages/ComingSoon';
 import SettingsPage from './pages/SettingsPage';
 import AccountImportControl from './components/AccountImportControl';
@@ -91,6 +92,7 @@ import { useSiegeState } from './hooks/useSiegeState';
 import { useSiegeRecos } from './hooks/useSiegeRecos';
 import { useOptimizerState } from './hooks/useOptimizerState';
 import { avecNavigationImportOptimizer } from './lib/actionImportOptimizer';
+import type { RapportImportOptimizer } from './lib/importEquipes';
 import { useOptimizerLists } from './hooks/useOptimizerLists';
 import { ExclusionSourceData } from './lib/optimizerExclusion';
 import { reverifierStockageOptimizer, type StockageOptimizer } from './lib/optimizerMemberStorage';
@@ -574,8 +576,11 @@ function Application() {
   const optimizerRuneIds = useMemo(() => new Set(runes.map(r => r.id)), [runes]);
   const optimizer = useOptimizerState({ lists: optimizerLists, data: optimizerData, runeIds: optimizerRuneIds,
     reverificationEnAttente: () => stockageAvantImportRef.current !== null });
+  const [rapportExportOptimizer, setRapportExportOptimizer] = useState<RapportImportOptimizer | null>(null);
   const importerEquipe = avecNavigationImportOptimizer(optimizer.importerEquipe, () => {
     window.location.hash = '#/outils/optimizer';
+  }, rapport => {
+    if (route === 'siege') setRapportExportOptimizer(rapport);
   });
   useEffect(() => {
     // L'hydratation du compte conservé acquiert les identités historiques.
@@ -1691,6 +1696,9 @@ function Application() {
         ) : route === 'siege' ? (
           <SiegePage
             tab={siegeTab}
+            onImporterEquipe={importerEquipe}
+            sourcesOptimizer={optimizerData}
+            compteCharge={box.length > 0 || runes.length > 0}
             siege={siegeTab === 'offense' ? siegeOff : siegeDef}
             offense={siegeOff}
             siegeDefenseTeams={siegeDef.state.teams}
@@ -1954,6 +1962,7 @@ function Application() {
             onClose={() => setSpeedTuneEquipe(null)}
           />
         )}
+        {rapportExportOptimizer && <OptimizerImportRapport rapport={rapportExportOptimizer} onFermer={() => setRapportExportOptimizer(null)} />}
         {/* « Importer mon compte » de la palette : le choix de fichier. */}
         <input
           ref={fichierCompte}

@@ -8,6 +8,7 @@ import { bilan, debutVerification } from './outils';
 import testImport from './import.test';
 import { verificationsImportEquipes } from './import-equipes.test';
 import { testOptimizerImportNavigation } from './optimizer-import-navigation.test';
+import { testRenduSiegeExportOptimizer, testRenduTelephoneSiegeExportOptimizer, testOptimizerImportSiegeBranchement } from './rendu/siege-export.test';
 import { testOptimizerImportActionDemontee, testOptimizerImportEcrituresGroupees, testOptimizerImportReverificationEnAttente, testOptimizerImportCollision, testRenduOptimizerImportDefenses, testRenduTelephoneOptimizerImportDefenses,
   testRenduOptimizerImportOffense, testRenduTelephoneOptimizerImportOffense, testRenduOptimizerImportRta,
   testRenduTelephoneOptimizerImportRta, testRenduOptimizerImportIndisponible, testRenduTelephoneOptimizerImportIndisponible, testRenduOptimizerImportRapportPartage, testRenduOptimizerImportDisponibiliteMemoisee } from './rendu/optimizer-import.test';
@@ -623,6 +624,9 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testPersistance', async () => { await testPersistance(); }],
   ['testOptimizerImportActionDemontee', testOptimizerImportActionDemontee],
   ['testOptimizerImportNavigation', testOptimizerImportNavigation],
+  ['testOptimizerImportSiegeBranchement', testOptimizerImportSiegeBranchement],
+  ['testRenduSiegeExportOptimizer', testRenduSiegeExportOptimizer],
+  ['testRenduTelephoneSiegeExportOptimizer', testRenduTelephoneSiegeExportOptimizer],
   ['testOptimizerImportEcrituresGroupees', testOptimizerImportEcrituresGroupees],
   ['testOptimizerImportReverificationEnAttente', testOptimizerImportReverificationEnAttente],
   ['testOptimizerImportCollision', testOptimizerImportCollision],

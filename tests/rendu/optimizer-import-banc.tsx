@@ -162,6 +162,30 @@ export async function scenario(nom: string): Promise<[boolean, string][]> {
     verifier(rapport.listeCreee?.id === listes.activeListId && listes.lists.length === 2, 'revérification terminée : import accepté');
     verifier(etat.proprietaireCriteres?.listId === listes.activeListId && exclusionSelectorKey(etat.proprietaireCriteres.selector) === 'siege-defense:d1:0',
       'après revérification et réconciliation : premier membre importé propriétaire');
+  } else if (nom === 'collision') {
+    await preparerResultatsRefus();
+    const affichageAvant = photographierAffichage(), resultatAvant = etat.search.result;
+    let rapport!: RapportImportOptimizer;
+    await geste(() => {
+      rapport = etat.importerEquipe(courantes => {
+        // Simuler une publication concurrente entre la préparation et l'ajout,
+        // en gardant la liste active et le propriétaire existants.
+        const uuid = Object.getOwnPropertyDescriptor(crypto, 'randomUUID');
+        Object.defineProperty(crypto, 'randomUUID', { configurable: true, value: () => 'import' });
+        try { listes.createList('Concurrente', 'donjon'); listes.setActiveListId('a'); }
+        finally {
+          if (uuid) Object.defineProperty(crypto, 'randomUUID', uuid); else delete (crypto as Partial<Crypto>).randomUUID;
+        }
+        idsAvant.add('import'); avant = photographierExistant(listes.lireStockageCourant(), idsAvant);
+        return importerDefensesSiegeOptimizer(courantes);
+      });
+    });
+    verifier(rapport.listeCreee === null && rapport.membresImportes === 0 && rapport.equipesCreees === 0
+      && rapport.messages.some(m => m.includes('refusé') && m.includes('identifiant') && m.includes('occupé')), 'collision : refus contrôlé et dit au rapport, sans exception');
+    verifier(listes.activeListId === 'a' && photographierExistant(listes, idsAvant) === avant,
+      'collision : état courant conservé, liste concurrente comprise');
+    verifier(photographierAffichage() === affichageAvant && etat.search.result === resultatAvant,
+      'collision : sélection, propriétaire après réconciliation, critères et tous les résultats conservés');
   } else if (nom === 'groupe') {
     let creee = '', rapport!: RapportImportOptimizer, attente = '';
     const uuid = Object.getOwnPropertyDescriptor(crypto, 'randomUUID');

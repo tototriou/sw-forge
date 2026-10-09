@@ -48,8 +48,14 @@ la sélection, le propriétaire, les critères ni les résultats. L’état d’
 est lu au moment du geste depuis `App.tsx`, même sans nouveau rendu ou avec
 un compte arrivé par le dossier SW Exporter. L’import redevient possible
 après la revérification.
-Sinon elle efface le propriétaire avant l’écriture, publie ensemble la
-nouvelle liste active et toutes ses données, puis appelle `choisirMembre`
+Sinon l’ajout vérifie l’identifiant sur l’état courant avant toute écriture,
+y compris les cibles orphelines ou rejetées réservées par le consommateur.
+Une collision rend un refus explicite au rapport, avec aucun monstre ni équipe
+importé, sans changer liste, sélection, propriétaire, critères ou résultats.
+La transformation rejouée par React sur un état d’entrée inattendu conserve
+cet état sans lever d’exception. L’ajout accepté publie ensemble la nouvelle
+liste active et toutes ses données ; l’action efface ensuite le propriétaire,
+puis appelle `choisirMembre`
 sur son premier membre. Ce choix restaure ses critères et efface les
 résultats, progression, page, arrêt manuel et détail ouvert, sans lancer
 de recherche. La réconciliation garde le propriétaire établi par le

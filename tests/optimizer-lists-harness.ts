@@ -9,11 +9,15 @@ export function monterListesOptimizer() {
   } }).__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
   const valeurs: unknown[] = [], dependances: (readonly unknown[] | undefined)[] = [];
   let index = 0, effets: (() => void)[] = [];
+  let derniereEcriture: ((ancien: unknown) => unknown) | null = null;
   const dispatcher = {
     useState<T>(initial: T | (() => T)): [T, (v: T | ((ancien: T) => T)) => void] {
       const place = index++;
       if (!(place in valeurs)) valeurs[place] = typeof initial === 'function' ? (initial as () => T)() : initial;
-      return [valeurs[place] as T, (v) => { valeurs[place] = typeof v === 'function' ? (v as (ancien: T) => T)(valeurs[place] as T) : v; }];
+      return [valeurs[place] as T, (v) => {
+        if (place === 0 && typeof v === 'function') derniereEcriture = v as (ancien: unknown) => unknown;
+        valeurs[place] = typeof v === 'function' ? (v as (ancien: T) => T)(valeurs[place] as T) : v;
+      }];
     },
     useCallback<T>(callback: T) { return callback; },
     useRef<T>(initial: T) {
@@ -29,6 +33,11 @@ export function monterListesOptimizer() {
     },
   };
   return {
+    rejouerDerniereEcriture<T>(modifierEntree: (s: T) => T) {
+      if (!derniereEcriture) throw new Error('Aucune écriture à rejouer.');
+      const avant = modifierEntree(valeurs[0] as T);
+      return { avant, apres: derniereEcriture(avant) as T };
+    },
     render(): UseOptimizerLists {
       index = 0; effets = [];
       const avant = internes.ReactCurrentDispatcher.current;

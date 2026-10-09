@@ -125,6 +125,10 @@ function identifiantsOccupes(stockage: StockageOptimizer, champ: 'id' | 'listId'
   }));
 }
 
+export function identifiantListeImportOccupe(stockage: StockageOptimizer, id: string): boolean {
+  return identifiantsOccupes(stockage, 'listId').has(id);
+}
+
 export function consommerImportOptimizer(
   stockage: StockageOptimizer, activeListId: string | null, proposition: ImportOptimizer,
   data: ExclusionSourceData, idPropose: string

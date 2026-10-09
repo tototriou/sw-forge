@@ -589,9 +589,11 @@ export function useOptimizerState(contexte?: ContexteMembresOptimizer): Optimize
     const courant = c.lists.lireStockageCourant();
     const resultat = consommerImportOptimizer(courant, courant.activeListId, produire(c.data), c.data, 'import');
     if (!resultat.rapport.listeCreee) return resultat.rapport;
-    effacerProprietaireCriteres();
     const listId = resultat.rapport.listeCreee.id;
-    c.lists.ajouterParImport(resultat.stockage, listId);
+    if (!c.lists.ajouterParImport(resultat.stockage, listId)) return { ...resultat.rapport,
+      listeCreee: null, membresImportes: 0, equipesCreees: 0,
+      messages: [...resultat.rapport.messages, 'Import refusé : identifiant de liste déjà occupé. Réessayez pour créer une autre liste.'] };
+    effacerProprietaireCriteres();
     // Le choix juge la destination publiée par ce geste, avant le prochain rendu.
     v.contexte = { ...c, lists: { ...c.lists, ...resultat.stockage, activeListId: listId } };
     const premier = resultat.stockage.members.find(m => m.listId === listId)!;

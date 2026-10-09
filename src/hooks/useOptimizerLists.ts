@@ -8,6 +8,7 @@ import {
 } from '../lib/optimizerExclusion';
 import { loadLocal, saveLocal, usePersistence } from './usePersistence';
 import type { CriteresOptimizer } from '../lib/criteresOptimizer';
+import { identifiantListeImportOccupe } from '../lib/importEquipes';
 import type { ExclusionSourceData } from '../lib/optimizerExclusion';
 import { acquerirIdentitesMembres, enregistrerIdentiteMembre } from '../lib/optimizerRattachement';
 import { lirePointOptimizer, photographierPointOptimizer, OPTIMIZER_BACKUP_STORAGE_KEY, type PointOptimizer, type SelectionPointOptimizer } from '../lib/optimizerBackup';
@@ -123,7 +124,7 @@ function newId(): string {
 
 export interface UseOptimizerLists {
   lireStockageCourant: () => StockageOptimizer & { activeListId: string | null };
-  ajouterParImport: (stockage: StockageOptimizer, activeListId: string) => void;
+  ajouterParImport: (stockage: StockageOptimizer, activeListId: string) => boolean;
   point: PointOptimizer | null;
   pointExiste: boolean;
   rapportPoint: string[];
@@ -230,9 +231,12 @@ export function useOptimizerLists(): UseOptimizerLists {
   }, [setState]);
 
   const ajouterParImport = useCallback((importe: StockageOptimizer, activeListId: string) => {
-    const liste = importe.lists.find(l => l.id === activeListId)!;
+    const liste = importe.lists.find(l => l.id === activeListId);
+    if (!liste || identifiantListeImportOccupe(lireStockageCourant(), activeListId)) return false;
     setState(s => {
-      if (s.lists.some(l => l.id === activeListId)) throw new Error('Import refusé : identifiant de liste déjà occupé.');
+      // Un état d'entrée inattendu ne doit ni écraser des données ni faire
+      // lever la transformation que React peut rejouer.
+      if (identifiantListeImportOccupe({ ...s, ...s.memberStorage }, activeListId)) return s;
       return { ...s, lists: [...s.lists, liste], activeListId,
         members: [...s.members, ...importe.members.filter(m => m.listId === activeListId)],
         memberStorage: { ...s.memberStorage, raw: null,
@@ -241,7 +245,8 @@ export function useOptimizerLists(): UseOptimizerLists {
           teams: [...s.memberStorage.teams, ...importe.teams.filter(e => e.listId === activeListId)],
           listContents: new Map([...s.memberStorage.listContents, ...[...importe.listContents].filter(([id]) => id === activeListId)]) } };
     });
-  }, [setState]);
+    return true;
+  }, [setState, lireStockageCourant]);
 
   const createList = useCallback((name: string, contenu: ContenuListeOptimizer = 'guilde') => {
     const id = newId();

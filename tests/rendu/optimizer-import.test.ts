@@ -1,4 +1,7 @@
 import { navigateurOptimizer } from './optimizer-navigable-banc';
+import { monterListesOptimizer } from '../optimizer-lists-harness';
+import { donneesPointOptimizer } from '../optimizer-backup.test';
+import { faussLocalStorage } from '../outils';
 import { ok, titre } from '../outils';
 async function verifier(nom: string, telephone = false) {
   titre(`Import Optimizer · ${nom} · ${telephone ? 'téléphone' : 'bureau'}`);
@@ -21,6 +24,15 @@ async function verifier(nom: string, telephone = false) {
 export const testOptimizerImportActionDemontee = () => verifier('action');
 export const testOptimizerImportEcrituresGroupees = () => verifier('groupe');
 export const testOptimizerImportReverificationEnAttente = () => verifier('attente');
+export async function testOptimizerImportCollision() {
+  await verifier('collision');
+  faussLocalStorage();
+  const h = monterListesOptimizer(), listes = h.render(), importe = donneesPointOptimizer();
+  ok(listes.ajouterParImport(importe, 'a'), 'précondition : ajout accepté sur un état libre');
+  const rejeu = h.rejouerDerniereEcriture<{ lists: { id: string; name: string }[] }>(s => ({ ...s,
+    lists: [...s.lists, { id: 'a', name: 'Collision au rejeu' }] }));
+  ok(rejeu.apres === rejeu.avant, 'transformation React rejouée sur une collision : état inchangé, sans exception');
+}
 export const testRenduOptimizerImportDefenses = () => verifier('defenses');
 export const testRenduTelephoneOptimizerImportDefenses = () => verifier('defenses', true);
 export const testRenduOptimizerImportOffense = () => verifier('offense');

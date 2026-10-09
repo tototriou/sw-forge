@@ -137,6 +137,10 @@ déduisent pas des minima de tirage actuels. Le code et la sorte sont vérifiés
 par `isArtifactSub` puis `artifactSubKinds` avant conversion ; une principale,
 un code inconnu ou une sorte impossible n’est pas importé et le rapport le dit.
 Chaque code commun est importé une seule fois sur le cumul de la paire.
+Demandé sur une seule sorte, le rapport nomme cette sorte et explique que
+le verrou porte sur le cumul : un code commun peut désormais être porté
+par l’une ou l’autre pièce. Un code propre conserve la seule sorte compatible
+avec le jeu ; le rapport la nomme, sans inventer une compatibilité.
 Demandé sur les deux pièces, **une seule présence sur la paire suffit** à
 l’import, et le rapport le précise : un build peut satisfaire le verrou
 importé tout en échouant à la recommandation, qui exige la présence par sorte.

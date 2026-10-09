@@ -41,6 +41,13 @@ function criteresDuSlot(slot: RecoSlot, libelle: string, messages: string[]): Cr
     // Ces seuils incluent les anciennes lignes ; ils ne sont pas les minima de tirage actuels.
     criteres.lignesVerrouillees!.push({ code, min: code === 218 ? 0.1 : 1 });
     if (sortes.size === 2) messages.push(`${libelle} — ${artifactSubName(code)} : demandée sur les deux pièces ; une présence sur la paire suffit à l’import.`);
+    else {
+      const piece = sortes.has('element') ? 'd’attribut' : 'de type';
+      const portee = artifactSubKinds(code).length === 2
+        ? 'elle peut désormais être portée par l’une ou l’autre pièce'
+        : `seule la pièce ${piece} peut porter ce code`;
+      messages.push(`${libelle} — ${artifactSubName(code)} : demandée sur l’artéfact ${piece} ; verrou sur le cumul de la paire, ${portee}.`);
+    }
   }
   if (criteres.minStats!.res || criteres.minStats!.acc) messages.push(`${libelle} : les minimums RES/Précision viennent de la fiche ; l’Optimizer peut y compter les auras selon son réglage.`);
   return criteres;

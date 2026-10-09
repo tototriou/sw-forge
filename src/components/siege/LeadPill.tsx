@@ -118,6 +118,7 @@ export default function LeadPill({
   ls,
   size = 'sm',
   pleineLargeur = false,
+  titre,
 }: {
   ls: LeaderSkill;
   // `lg` : version agrandie pour la FICHE d'un monstre, où le lead n'est plus un
@@ -130,6 +131,8 @@ export default function LeadPill({
   // elle laissait un bord flottant au milieu de la colonne, sans alignement avec
   // rien. Alignée sur les stats, la colonne redevient un bloc.
   pleineLargeur?: boolean;
+  /** Contexte autre que le siège : l'appelant donne l'activité propre à sa liste. */
+  titre?: string;
 }) {
   const scope = ls.area === 'Arena' ? ' (arène)' : ls.area === 'Dungeon' ? ' (donjon)' : '';
   const icon = leadIconUrl(ls);
@@ -137,7 +140,7 @@ export default function LeadPill({
 
   return (
     <span
-      title={leadTitle(ls)}
+      title={titre ?? leadTitle(ls)}
       className={`items-center gap-1 font-bold leading-none
         ${pleineLargeur ? 'flex w-full justify-center' : 'inline-flex'}
         ${lg ? 'rounded-xl py-1.5 pl-1.5 pr-3 text-base' : 'rounded-full py-0.5 pl-0.5 pr-2 text-xs'}

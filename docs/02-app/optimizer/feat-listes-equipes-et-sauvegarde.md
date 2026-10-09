@@ -226,6 +226,16 @@ sinon `aucun` avec un motif. La donnée du jeu reste entière dans l’équipe.
 Le lead personnel n’est jamais un repli d’un lead d’équipe inactif ; délier
 rend le lead personnel disponible sans modifier sa mémoire.
 
+`useOptimizerState.lireCombatMembre` vérifie le propriétaire des critères et
+dérive le combat effectif par `leadEffectifMembreOptimizer` puis `appliquerCriteres`.
+L’écran utilise ce combat pour tous ses calculs, résumés et contrôles ;
+`damageSetup` dans le hook et les photos reste personnel. Modifier un autre
+critère ne copie donc jamais le lead d’équipe dans la mémoire. Depuis « État
+de mon monstre », `modifierLeadMembre` écrit le lead partagé en gardant sa portée
+et son élément ; un premier lead est général. L’écran dit cette écriture
+partagée et le motif d’un lead inactif. Délier rend aussitôt le lead personnel,
+y compris son ancien champ de VIT ; les champs personnels restent inchangés.
+
 Le contenu est lu dans `listContents` pour la liste du membre, commun à toutes
 ses équipes. Une liste sans contenu défini n’applique aucun lead d’équipe,
 avec le motif « contenu de combat de la liste non défini » ; aucun repli sur
@@ -260,6 +270,29 @@ tel quel : les paliers du menu ne sont pas une validation de lead importé.
 VIT 17 ; un test balaie toutes ses entrées pour contrôler cette couverture.
 Le menu n’offre pas de saisie libre ; une valeur enregistrée hors liste reste
 affichée telle quelle, jamais remplacée en silence.
+
+## Équipes à l’écran
+
+« Lier une team » ouvre `OptimizerEquipeDialog`, hors du flux, au bureau comme
+au téléphone. Il propose les membres de la liste, de deux à cinq, un leader
+facultatif et le lead (type, valeur, portée et élément). Les membres déjà liés
+ailleurs sont désactivés. Le leader désigné n’impose pas automatiquement son
+lead : la désignation et le lead se règlent séparément. Les types calculables
+reprennent les paliers du menu existant ; un autre type déjà stocké reste
+affiché avec son montant, sans effet calculé.
+
+Les choix sont un brouillon : « Lier » ou « Enregistrer » publie l’équipe et
+ferme le dialogue ; croix, Échap, clic extérieur et « Annuler » abandonnent
+les changements. « Délier » dissout l’équipe à la fermeture, en gardant ses
+membres et leurs critères dans la liste. Enregistrer moins de deux membres
+dissout aussi l’équipe, annoncé dans le dialogue. Rien n’est regroupé pendant
+qu’on coche les membres. Les actions restent dans le pied de la modale.
+
+La zone C groupe les membres par équipe et affiche `LeadPill`, le leader
+éventuel et « Modifier l’équipe ». Les membres libres restent ensemble sans
+équipe. Chaque membre lié réserve la place du motif de lead inactif ; changer
+le lead ou le contenu ne pousse pas les contrôles. La carte « État de mon
+monstre » réserve aussi la place de son explication et de ce motif.
 
 ## Revérification commune
 

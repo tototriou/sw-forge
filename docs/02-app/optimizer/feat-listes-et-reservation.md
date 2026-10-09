@@ -34,6 +34,12 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   validées — **jamais les runes elles-mêmes**, toujours réelles dans le
   compte. Navigable à tout moment ; changer de liste active change
   instantanément les runes réservées vues par la recherche.
+  À chaque création manuelle, le dialogue demande le nom et le contenu
+  (Guilde proposé, Donjon, Arène), y compris « Créer et ajouter » et
+  « Créer et valider ». Le contenu est affiché avec chaque liste dans le
+  menu et modifiable sous la liste active. Une liste antérieure sans
+  contenu affiche « Sans contenu : aucun lead d’équipe appliqué. » ;
+  aucun contenu n’est choisi pour elle automatiquement.
 - **« Valider ce build »**, sur chaque carte de résultat — réserve les 6
   runes de CE résultat dans la liste active : elles n'apparaissent plus
   dans les recherches suivantes de la MÊME liste (les autres listes n'en
@@ -130,6 +136,14 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   restauration occupent un espace réservé défilant de la zone C, commun au
   bureau et au téléphone. Une mémoire conservée mais inapplicable reste marquée
   et son refus est dit lorsqu'on choisit le membre.
+  Les membres sont regroupés par équipe, avec le leader facultatif et la
+  pastille `LeadPill`. « Lier une team » et « Modifier l’équipe » ouvrent
+  un dialogue hors du flux ; les cases ne changent pas les groupes avant
+  validation et fermeture. « Délier » dans ce dialogue garde les membres
+  et leurs critères personnels. Ces mêmes actions existent au bureau et
+  dans la zone C dépliée du téléphone. Le motif d’un lead inactif occupe
+  une place réservée sur chaque membre lié. Voir
+  feat-listes-equipes-et-sauvegarde.md § Équipes à l’écran.
   ⚠️ **Plusieurs exemplaires Box d'une même espèce** : les membres sont repérés
   par exemplaire (`exclusionSelectorKey`, Box = `box:<unitKey>`), deux
   exemplaires peuvent donc entrer dans la même liste. Quand l'exemplaire

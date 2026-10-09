@@ -1,4 +1,4 @@
-import { Dispatch, MutableRefObject, SetStateAction, useEffect, useRef, useState } from 'react';
+import { Dispatch, MutableRefObject, SetStateAction, useCallback, useEffect, useRef, useState } from 'react';
 import { StatKey } from '../lib/effects';
 import { Objective, SlotFilterPresetKey } from '../lib/runeBuildOptim';
 import { DamageSetup } from '../lib/damage';
@@ -7,7 +7,9 @@ import { rattacherProprietaireCriteres, validerProprietaireCriteres, type Propri
 import { cleMemoireMembre, type StockageOptimizer, type RapportReverificationOptimizer } from '../lib/optimizerMemberStorage';
 import type { UseOptimizerLists } from './useOptimizerLists';
 import { AutoExclusionScope, ExclusionSelector, ExclusionSource, resolveExclusionEntry, type ExclusionSourceData } from '../lib/optimizerExclusion';
-import { ArtifactKind } from '../types';
+import { ArtifactKind, type LeaderSkill } from '../types';
+import { leadEffectifMembreOptimizer, modifierEquipeOptimizer } from '../lib/equipesOptimizer';
+import type { EquipeOptimizer } from '../lib/optimizerMemberStorage';
 import { LigneVerrouillee } from '../lib/artifactOptim';
 import { useBuildOptimSearch } from './useBuildOptimSearch';
 
@@ -108,6 +110,8 @@ export function relicIntentDepuisEtat(
 export interface OptimizerState {
   proprietaireCriteres: ProprietaireCriteresOptimizer | null;
   rapportCriteres: string[];
+  lireCombatMembre: () => { setup: DamageSetup; equipe: EquipeOptimizer | null; motif: string | null };
+  modifierLeadMembre: (lead: DamageSetup['leaderSkill']) => void;
   effacerProprietaireCriteres: () => void;
   choisirMembre: (listId: string, selector: ExclusionSelector) => CriteresOptimizer | null;
   capturerMembre: (listId: string, selector: ExclusionSelector) => void;
@@ -606,6 +610,34 @@ export function useOptimizerState(contexte?: ContexteMembresOptimizer): Optimize
     };
   }
 
+  const lireCombatMembre = useCallback(() => {
+    const v = vivant.current, c = v.contexte;
+    const p = c ? validerProprietaireCriteres(v.proprietaire, c.lists, v, c.data) : null;
+    const resolu = p && c ? resolveExclusionEntry(p.selector, c.data) : null;
+    if (!p || !c || !resolu) return { setup: v.criteres.damageSetup, equipe: null, motif: null };
+    const equipe = c.lists.teams.find(e => e.listId === p.listId && e.members.some(s => cleMemoireMembre(e.listId, s) === cleMemoireMembre(p.listId, p.selector))) ?? null;
+    if (!equipe) return { setup: v.criteres.damageSetup, equipe: null, motif: null };
+    const effectif = leadEffectifMembreOptimizer(c.lists, p.listId, p.selector, resolu.monster.element);
+    return { setup: appliquerCriteres(v.criteres, effectif).damageSetup, equipe,
+      motif: effectif.type === 'aucun' ? effectif.motif : null };
+  }, []);
+
+  function modifierLeadMembre(lead: DamageSetup['leaderSkill']) {
+    const v = vivant.current, c = v.contexte;
+    const { equipe } = lireCombatMembre();
+    if (!equipe || !c) {
+      saisie('damageSetup', setDamageSetup)({ ...v.criteres.damageSetup, leaderSkill: lead, leaderSpeedPct: undefined });
+      return;
+    }
+    // Le contrôle d'état modifie le lead partagé, jamais le lead personnel.
+    // Sa portée reste celle de l'équipe ; un premier choix est global.
+    const nouveau: LeaderSkill | null = lead ? { stat: lead.stat, amount: lead.pct,
+      area: equipe.lead?.area ?? 'General', element: equipe.lead?.element ?? null } : null;
+    const resultat = modifierEquipeOptimizer(c.lists, { ...equipe, lead: nouveau });
+    if (resultat.rapport.length) setRapportCriteres(resultat.rapport);
+    else c.lists.setTeams(resultat.teams);
+  }
+
   const listePrecedente = useRef(contexte?.lists.activeListId);
   function reconcilierMembre() {
     const v = vivant.current, c = v.contexte;
@@ -694,6 +726,8 @@ export function useOptimizerState(contexte?: ContexteMembresOptimizer): Optimize
   return {
     proprietaireCriteres: contexte ? validerProprietaireCriteres(proprietaireCriteres, contexte.lists, { selectedId, sourceSelector }, contexte.data) : null,
     rapportCriteres,
+    lireCombatMembre,
+    modifierLeadMembre,
     effacerProprietaireCriteres,
     choisirMembre,
     capturerMembre,

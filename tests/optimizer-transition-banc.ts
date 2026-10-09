@@ -8,6 +8,7 @@ import * as transitionsDegats from '../src/lib/damageSetupTransition';
 import * as proprietaires from '../src/lib/optimizerCriteriaOwner';
 import * as memoires from '../src/lib/optimizerMemberStorage';
 import * as exemplaires from '../src/lib/optimizerExclusion';
+import * as equipes from '../src/lib/equipesOptimizer';
 import type { OptimizerState } from '../src/hooks/useOptimizerState';
 
 export function fonctionDeSource(fichier: string, nom: string, contexte: Record<string, unknown>) {
@@ -43,7 +44,9 @@ export async function bancOptimizer() {
     '../lib/optimizerMemberStorage': memoires,
     '../lib/optimizerExclusion': exemplaires,
     '../lib/criteresOptimizer': criteres,
+    '../lib/equipesOptimizer': equipes,
     react: {
+      useCallback<T>(callback: T) { return callback; },
       useEffect() {},
       useState(initial: unknown) {
         const i = curseur++;

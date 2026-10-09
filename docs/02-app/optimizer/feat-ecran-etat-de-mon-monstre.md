@@ -72,6 +72,16 @@
    se déduit donc du plus large des deux — aucune valeur en dur à tenir à jour
    quand un libellé change.
 
+   Pour un membre lié, le menu montre le **lead effectif**, ou « Aucun » avec
+   son motif si le lead n’agit pas sur lui. La phrase sous les trois groupes
+   dit que le modifier change le lead de toute l’équipe et garde le lead
+   personnel en mémoire. Le type et la valeur changent le lead partagé ;
+   portée et élément se règlent dans le dialogue d’équipe. Cette explication
+   et le motif ont une place réservée, au bureau comme au téléphone.
+   Le lead personnel reste dans les critères du hook et les mémoires ; il
+   revient dès que le membre quitte l’équipe. Voir
+   feat-listes-equipes-et-sauvegarde.md § Lead effectif d’un membre.
+
 ## Sets d'aura des autres monstres
 
    **Sets d'aura des autres monstres** — une quatrième

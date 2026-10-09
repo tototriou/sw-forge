@@ -1,5 +1,9 @@
 import { Fragment, useCallback, useLayoutEffect, useMemo, useRef, useState, useEffect } from 'react';
-import { cleMemoireMembre } from '../../lib/optimizerMemberStorage';
+import { cleMemoireMembre, type EquipeOptimizer } from '../../lib/optimizerMemberStorage';
+import { leadEffectifMembreOptimizer } from '../../lib/equipesOptimizer';
+import LeadPill, { STAT_LABEL } from '../siege/LeadPill';
+import OptimizerEquipeDialog from './OptimizerEquipeDialog';
+import OptimizerCreateListDialog from './OptimizerCreateListDialog';
 import {
   Search,
   Square,
@@ -179,7 +183,6 @@ import {
   MobileSheet,
   NumberField,
   Pastille,
-  PromptDialog,
   Selecteur,
   ZoneCliquable,
 } from '../../ui';
@@ -481,7 +484,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
     setLockedRunes,
     objective,
     setObjective,
-    damageSetup,
+    damageSetup: damageSetupPersonnel,
     setDamageSetup,
     compterAurasResPre,
     setCompterAurasResPre,
@@ -518,7 +521,14 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
     search,
     resetSearch,
     effacerResultats,
+    lireCombatMembre,
   } = optimizer;
+  const combatMembre = useMemo(() => lireCombatMembre(),
+    // Le getter lit les refs vivantes du hook ; ces dépendances publient
+    // leurs changements sans recopier le lead d'équipe dans l'état personnel.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [lireCombatMembre, damageSetupPersonnel, lists.teams, lists.listContents, optimizer.proprietaireCriteres, box, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, allMonsters]);
+  const damageSetup = combatMembre.setup;
   // `relicContextRecherche` : le contexte relique de la recherche LANCÉE
   // — `undefined` tant que l'écran n'en pose pas dans `run()` ; la file de
   // résolution le lit ici, jamais dans les trois champs.
@@ -605,7 +615,11 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
   const [setupOuvert, setSetupOuvert] = useState(false);
   // `EtatMonstre` écrit un PATCH, là où `DamageSetupCard` reçoit le `setState`
   // entier — même état, deux vues (voir EtatMonstre.tsx).
-  const majDamageSetup = (patch: Partial<DamageSetup>) => setDamageSetup((s) => ({ ...s, ...patch }));
+  const majDamageSetup = (patch: Partial<DamageSetup>) => {
+    const { leaderSkill, ...personnel } = patch;
+    if ('leaderSkill' in patch) optimizer.modifierLeadMembre(leaderSkill);
+    if (Object.keys(personnel).length) setDamageSetup(s => ({ ...s, ...personnel }));
+  };
   /**
    * Ce que l'état du monstre suppose, en une ligne — l'écho posé dans le
    * sous-titre de la fenêtre « Dégâts réels ».
@@ -1134,6 +1148,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
   // `handleAddToList`/`handleValidateDisplayed` plus bas), pas juste un
   // booléen — les deux boutons partagent ce même prompt.
   const [addListPromptOpen, setAddListPromptOpen] = useState<'add' | 'validate' | null>(null);
+  const [equipeOuverte, setEquipeOuverte] = useState<{ listId: string; equipe: EquipeOptimizer | null } | null>(null);
 
   // L'exemplaire RÉELLEMENT optimisé — l'entrée choisie explicitement (ou
   // résolue sans ambiguïté, voir `pickSource`/la revérification au montage
@@ -2750,6 +2765,11 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
   // « Zone C — Monstres de la liste »).
   const activeList = lists.lists.find((l) => l.id === lists.activeListId) ?? null;
   const activeMembers = lists.activeListId ? lists.members.filter((m) => m.listId === lists.activeListId) : [];
+  const equipesActives = lists.teams.filter(e => e.listId === lists.activeListId);
+  const groupesMembres = [
+    ...equipesActives.map(equipe => ({ equipe, members: activeMembers.filter(m => equipe.members.some(s => exclusionSelectorKey(s) === exclusionSelectorKey(m.selector))) })),
+    { equipe: null, members: activeMembers.filter(m => !equipesActives.some(e => e.members.some(s => exclusionSelectorKey(s) === exclusionSelectorKey(m.selector)))) },
+  ];
   const listHasValidated = activeList != null && lists.validated.some((v) => v.listId === activeList.id);
 
   // « Ajouter à la liste » — agit sur `sourceSelector`, qui porte soit un
@@ -3295,6 +3315,8 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
         onClick={handleAddToList}
         className="mb-2"
       />
+      <Bouton libelle="Lier une team" taille="sm" pleineLargeur disabled={!activeList || activeMembers.length < 2}
+        onClick={() => activeList && setEquipeOuverte({ listId: activeList.id, equipe: null })} />
 
       <div className="h-16 overflow-y-auto text-[11px] text-warn" role="status" aria-label="Rapport des critères">
         {[...lists.rapportStockage, ...optimizer.rapportCriteres].map((message, index) => <p key={index}>{message}</p>)}
@@ -3306,13 +3328,22 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
         </p>
       ) : (
         <div className="max-h-[220px] space-y-1 overflow-y-auto">
-          {activeMembers.map((m) => {
+          {groupesMembres.filter(g => g.members.length > 0).map((g, numero) => <section key={g.equipe?.id ?? 'sans-equipe'} aria-label={g.equipe ? `Équipe ${numero + 1}` : 'Sans équipe'} className="space-y-1">
+            {g.equipe && <div className="flex flex-wrap items-center justify-between gap-2 py-1">
+              <span className="text-xs font-semibold text-ink">Équipe {numero + 1}
+                {g.equipe.leader && <span className="ml-1 font-normal text-ink-dim">· Leader : {resolveExclusionEntry(g.equipe.leader, exclusionData)?.monster.name ?? 'Introuvable'}</span>}
+              </span>
+              {g.equipe.lead ? <LeadPill ls={g.equipe.lead} titre={`Lead de l’équipe : +${g.equipe.lead.amount} % ${STAT_LABEL[g.equipe.lead.stat ?? ''] ?? g.equipe.lead.stat ?? ''} · ${g.equipe.lead.area === 'Guild' ? 'Guilde' : g.equipe.lead.area === 'Dungeon' ? 'Donjon' : g.equipe.lead.area === 'Arena' ? 'Arène' : g.equipe.lead.area === 'Element' ? 'Élément' : 'Général'}`} /> : <span className="text-xs text-ink-dim">Sans lead</span>}
+              <Bouton taille="xs" fond="vide" libelle="Modifier l’équipe" onClick={() => setEquipeOuverte({ listId: g.equipe!.listId, equipe: g.equipe })} />
+            </div>}
+          {g.members.map((m) => {
             const key = exclusionSelectorKey(m.selector);
             const resolved = resolveExclusionEntry(m.selector, exclusionData);
             const build = findValidatedBuild(lists.validated, lists.activeListId, key);
             const absentes = build ? runesManquantesDuBuild(build, runeById) : [];
+            const lead = resolved ? leadEffectifMembreOptimizer(lists, m.listId, m.selector, resolved.monster.element) : null;
             return (
-              <div key={key} className="flex items-center gap-2 rounded-lg border border-border-soft bg-panel/60 px-2 py-1.5">
+              <div key={key} className="flex flex-wrap items-center gap-x-2 rounded-lg border border-border-soft bg-panel/60 px-2 py-1.5">
                 <ZoneCliquable
                   imbrique
                   disabled={!resolved}
@@ -3413,9 +3444,11 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
                   }
                   className="h-6 w-6 flex-none"
                 />
+              {g.equipe && <p className={`h-8 w-full overflow-y-auto text-[11px] text-warn ${lead?.type === 'aucun' ? '' : 'invisible'}`}>{lead?.type === 'aucun' ? lead.motif : 'Aucun lead inactif.'}</p>}
               </div>
             );
           })}
+          </section>)}
         </div>
       )}
 
@@ -3599,6 +3632,8 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
                 lists={lists.lists}
                 activeListId={lists.activeListId}
                 memberCounts={memberCountsByList}
+                listContents={lists.listContents}
+                onContent={lists.setListContent}
                 onSelect={lists.setActiveListId}
                 onCreate={lists.createList}
                 onRename={lists.renameList}
@@ -3684,6 +3719,8 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
                   lists={lists.lists}
                   activeListId={lists.activeListId}
                   memberCounts={memberCountsByList}
+                  listContents={lists.listContents}
+                  onContent={lists.setListContent}
                   onSelect={lists.setActiveListId}
                   onCreate={lists.createList}
                   onRename={lists.renameList}
@@ -4298,6 +4335,8 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
         <EtatMonstre
           setup={damageSetup}
           maj={majDamageSetup}
+          equipe={combatMembre.equipe !== null}
+          motifLead={combatMembre.motif}
           etroit={etroit}
           artefacts={artefactsDegats}
           rappelAuras={rappelAuras !== null}
@@ -5726,16 +5765,14 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
         />
       )}
       {addListPromptOpen && (
-        <PromptDialog
-          titre="Nouvelle liste"
-          placeholder="ex. Deck A, Mon RTA…"
+        <OptimizerCreateListDialog
           libelleAction={addListPromptOpen === 'validate' ? 'Créer et valider' : 'Créer et ajouter'}
-          onValider={(valeur) => {
+          onValider={(valeur, contenu) => {
             const nom = valeur.trim();
             const intent = addListPromptOpen;
             setAddListPromptOpen(null);
             if (!nom || !sourceSelector || !selected?.monster.com2usId) return;
-            const id = lists.createList(nom);
+            const id = lists.createList(nom, contenu);
             if (intent === 'validate') {
               if (canValidateDisplayed) lists.validateBuild(id, sourceSelector, displayedRuneIds, displayedArtifactIds, selected.monster.com2usId);
             } else {
@@ -5746,6 +5783,8 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
           onCancel={() => setAddListPromptOpen(null)}
         />
       )}
+      {equipeOuverte && <OptimizerEquipeDialog contexte={lists} listId={equipeOuverte.listId} equipe={equipeOuverte.equipe}
+        data={exclusionData} onValider={lists.setTeams} onClose={() => setEquipeOuverte(null)} />}
     </div>
   );
 }

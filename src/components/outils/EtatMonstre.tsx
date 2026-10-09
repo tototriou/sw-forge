@@ -68,9 +68,13 @@ export default function EtatMonstre({
   rappelAuras,
   onGuiderResPre,
   rappelsBuffs,
+  equipe = false,
+  motifLead,
 }: {
   setup: DamageSetup;
   maj: (patch: Partial<DamageSetup>) => void;
+  equipe?: boolean;
+  motifLead?: string | null;
   etroit: boolean;
   artefacts: ArtifactDamageProfile;
   // Passifs du monstre choisi qui posent un buff standard (`rappelsBuffsDePassif`, buffsDePassif.ts) : un rappel, jamais un
@@ -192,6 +196,9 @@ export default function EtatMonstre({
         />
       </div>
       </div>
+      {equipe && <p className="h-20 overflow-y-auto text-xs text-ink-dim">Lead effectif de l’équipe : le modifier change le lead de toute l’équipe. Ton lead personnel reste mémorisé.
+        {motifLead && <span className="block text-warn">{motifLead}</span>}
+      </p>}
       {/* ⚠️ **Rappel des buffs posés par un passif** :
           même grammaire que les lignes d'amplification juste dessous (texte
           `xs` atténué sous la rangée des buffs) ; le passif est nommé comme

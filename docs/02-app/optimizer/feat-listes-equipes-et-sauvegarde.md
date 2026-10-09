@@ -394,6 +394,9 @@ son ancien comportement retire encore les membres introuvables et les builds
 dont une rune a disparu, dans la clé historique des listes. La conservation
 à la simple relecture ne garantit donc pas leur conservation après réimport
 dans cette version. Elle ignore la clé indépendante des membres.
+Une version qui ignore `artefactsManquants` peut perdre cette marque en réécrivant
+le stockage et compter un artéfact absent comme réservé, jusqu’à la prochaine
+revérification dans une version actuelle, qui recalcule la marque.
 
 Le rattachement migre simultanément identité, mémoire, place et leader dans
 l’équipe, builds et propriétaire affiché, y compris lors d’une permutation de

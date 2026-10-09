@@ -1,24 +1,10 @@
 import type { DeckInitial } from '../hooks/useSpeedTune';
 import type { SiegeTeam } from '../types';
 import type { ImportOptimizer } from './importEquipes';
-import { exclusionCandidatesFor, exclusionSelectorKey, resolveExclusionEntry, type ExclusionSelector, type ExclusionSourceData } from './optimizerExclusion';
+import { exclusionSelectorKey, resolveExclusionEntry, type ExclusionSelector, type ExclusionSourceData } from './optimizerExclusion';
+import { retrouverDeckCompositionOptimizer, selecteurRepliCompositionOptimizer } from './deckCompositionOptimizer';
 import type { LeadInfo } from './speed';
 import type { Ligne } from './speedTuneLignes';
-
-// Sans provenance dans les lignes, l'ordre des sources est explicite ; une
-// entrée réelle sans équipement résolvable ne devient jamais « non possédé ».
-function selecteurSansDeck(monsterId: string, com2usId: number, data: ExclusionSourceData): ExclusionSelector | null {
-  for (const source of ['box', 'rta', 'siege-defense', 'siege-offense'] as const) {
-    const candidat = exclusionCandidatesFor(source, data, null, null, false)
-      .find(c => c.monster.com2usId === com2usId);
-    if (candidat) return candidat.selector;
-  }
-  const possede = data.box.some(b => b.monster.com2usId === com2usId)
-    || Object.values(data.rtaEntries).some(e => data.monsterById.get(e.monsterId)?.com2usId === com2usId)
-    || [...data.siegeDefenseTeams, ...data.siegeOffenseTeams].some(t =>
-      t.slots.some(s => s.monsterId !== null && data.monsterById.get(s.monsterId)?.com2usId === com2usId));
-  return possede ? null : { source: 'unowned', monsterId };
-}
 
 export function importerSpeedTuneOptimizer(
   lignes: readonly Ligne[], lead: LeadInfo | null, data: ExclusionSourceData, deckInitial?: DeckInitial
@@ -26,10 +12,20 @@ export function importerSpeedTuneOptimizer(
   const resultat: ImportOptimizer = { nomListe: 'Speed tuning', contenu: 'guilde', membres: [], equipes: [], ignores: [],
     messages: ['La VIT minimum de fiche ne garantit pas l’ordre des tours ; les fenêtres de l’analyse ne sont pas importées.'] };
   let deck: SiegeTeam | undefined;
+  let sourceDeck: 'siege-defense' | 'siege-offense' | undefined;
   if (deckInitial) {
     const teams = deckInitial.source === 'defense' ? data.siegeDefenseTeams : data.siegeOffenseTeams;
     // Même résolution que l'ouverture du speed tuning depuis un deck.
     deck = teams.find(t => t.id === deckInitial.teamId) ?? teams[Number(deckInitial.teamId)];
+    sourceDeck = deckInitial.source === 'defense' ? 'siege-defense' : 'siege-offense';
+  } else {
+    const composition = lignes.filter(l => l.camp === 'allie').map(l => {
+      const monstre = data.monsterById.get(String(l.monster.id));
+      return monstre?.com2usId === l.monster.com2usId ? monstre?.com2usId ?? null : null;
+    });
+    const retrouve = retrouverDeckCompositionOptimizer({ type: 'speed-tuning', composition }, data);
+    deck = retrouve?.team;
+    sourceDeck = retrouve?.source;
   }
   const slotsUtilises = new Set<number>();
   for (const ligne of lignes) {
@@ -48,11 +44,11 @@ export function importerSpeedTuneOptimizer(
     }
     const slotIndex = deck?.slots.findIndex((s, i) => !slotsUtilises.has(i) && s.monsterId !== null
       && data.monsterById.get(s.monsterId)?.com2usId === monstre.com2usId) ?? -1;
-    if (deck && deckInitial && slotIndex >= 0) {
-      selector = { source: deckInitial.source === 'defense' ? 'siege-defense' : 'siege-offense', teamId: deck.id, slotIndex };
+    if (deck && sourceDeck && slotIndex >= 0) {
+      selector = { source: sourceDeck, teamId: deck.id, slotIndex };
       slotsUtilises.add(slotIndex);
     } else {
-      const choisi = selecteurSansDeck(monsterId, monstre.com2usId, data);
+      const choisi = selecteurRepliCompositionOptimizer(monsterId, monstre.com2usId, data, 'box');
       if (!choisi) {
         ignorer('Exemplaire réel sans équipement résolvable.');
         continue;
@@ -87,8 +83,8 @@ export function importerSpeedTuneOptimizer(
   // La cardinalité se juge dans le consommateur après sa revérification. Le
   // lead reste sur la proposition pour être nommé même si l'équipe est refusée.
   const members = resultat.membres.map(m => m.selector);
-  const leader = deck && deckInitial ? members.find(s => exclusionSelectorKey(s)
-    === exclusionSelectorKey({ source: deckInitial.source === 'defense' ? 'siege-defense' : 'siege-offense', teamId: deck.id, slotIndex: 0 })) : undefined;
+  const leader = deck && sourceDeck ? members.find(s => exclusionSelectorKey(s)
+    === exclusionSelectorKey({ source: sourceDeck, teamId: deck.id, slotIndex: 0 })) : undefined;
   resultat.equipes.push({ libelle: 'Ton équipe', members, ...(leader ? { leader: { ...leader } } : {}),
     lead: lead ? { stat: 'Attack Speed', amount: lead.amount, area: lead.area, element: lead.element } : null });
   return resultat;

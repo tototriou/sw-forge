@@ -197,10 +197,62 @@ export function testImportSpeedTunePureteEtAnalyse() {
   egal(lead.amount, 30, 'lead importé copié'); egal(l.runeSpeed, 126, 'saisie inchangée');
 }
 
+export function testImportSpeedTuneCompositionRetrouvee() {
+  titre('Import speed tuning · composition exacte du camp, hors ordre et adversaires');
+  const data = sources(); data.siegeDefenseTeams = [];
+  const p = importerSpeedTuneOptimizer([ligne(3), ligne(1), ligne(2), { ...ligne(4), camp: 'ennemi' }], lead, data);
+  egal(p.membres.map(m => exclusionSelectorKey(m.selector)), ['siege-offense:o1:2', 'siege-offense:o1:0', 'siege-offense:o1:1'],
+    'camp complet retrouvé dans l’offense, avant les copies Box');
+  egal(p.equipes[0].leader, p.membres[1].selector, 'leader du deck retrouvé, même après permutation');
+  egal([...consommer(p, data).stockage.memories.values()].map(m => m.criteres.relicMainChoice), ['equipped', 'equipped', 'equipped'],
+    'défauts construits sur les exemplaires du deck retrouvé');
+}
+export function testImportSpeedTuneCompositionAmbigue() {
+  titre('Import speed tuning · première composition exacte, défense puis offense');
+  const data = sources(); data.siegeDefenseTeams.push(deck('d2'));
+  const p = importerSpeedTuneOptimizer([ligne(1), ligne(2), ligne(3)], lead, data);
+  egal(p.membres.map(m => exclusionSelectorKey(m.selector)), ['siege-defense:d1:0', 'siege-defense:d1:1', 'siege-defense:d1:2'],
+    'premier deck, pas la seconde défense ni l’offense');
+  data.siegeDefenseTeams = [];
+  data.siegeOffenseTeams.push(deck('o2'));
+  egal(importerSpeedTuneOptimizer([ligne(1), ligne(2), ligne(3)], lead, data).membres[0].selector,
+    { source: 'siege-offense', teamId: 'o1', slotIndex: 0 }, 'première offense entre deux identiques');
+}
+export function testImportSpeedTuneCompositionModifiee() {
+  titre('Import speed tuning · composition modifiée ou incomplète, repli Box');
+  const data = sources();
+  for (const ids of [[1, 2, 4], [1, 2], [1, 2, 3, 4]]) {
+    const p = importerSpeedTuneOptimizer(ids.map(id => ligne(id)), lead, data);
+    egal(p.membres.map(m => m.selector), ids.map(id => ({ source: 'box', unitKey: `box-${id}` })),
+      'ni sous-ensemble ni sur-ensemble du deck ne conserve sa provenance');
+    egal(p.equipes[0].leader, undefined, 'pas de leader de deck inventé');
+  }
+  const p = importerSpeedTuneOptimizer([ligne(1), ligne(2), ligne(3), ligne(99, false, null)], lead, data);
+  egal(p.membres[0].selector, { source: 'box', unitKey: 'box-1' }, 'composition évaluée avant filtrage des lignes invalides');
+  const q = importerSpeedTuneOptimizer([ligne(1), ligne(2), ligne(3, false, null)], lead, data);
+  egal(q.membres[0].selector, { source: 'siege-defense', teamId: 'd1', slotIndex: 0 }, 'vitesse absente ne change pas la composition du camp');
+}
+export function testImportSpeedTuneCompositionCopies() {
+  titre('Import speed tuning · composition exacte avec copies et slots sans équipement');
+  const data = sources(); data.siegeDefenseTeams = [deck('copies', [1, 2, 1])]; data.siegeOffenseTeams = [];
+  const p = importerSpeedTuneOptimizer([ligne(1), ligne(1), ligne(2)], lead, data);
+  egal(p.membres.map(m => exclusionSelectorKey(m.selector)), ['siege-defense:copies:0', 'siege-defense:copies:2', 'siege-defense:copies:1'],
+    'copies distinctes consommées dans l’ordre des slots');
+  egal(consommer(p, data).rapport.membresImportes, 3, 'trois exemplaires conservés');
+  const modifie = importerSpeedTuneOptimizer([ligne(1), ligne(2), ligne(2)], lead, data);
+  ok(modifie.membres.every(m => m.selector.source === 'box'), 'multiplicités différentes refusées malgré les mêmes espèces');
+  delete data.siegeDefenseTeams[0].slots[0].gear;
+  const invalide = importerSpeedTuneOptimizer([ligne(1), ligne(1), ligne(2)], lead, data);
+  egal(invalide.ignores.length, 1, 'slot du deck retrouvé sans équipement signalé');
+  ok(invalide.membres.every(m => m.selector.source === 'siege-defense'), 'aucune copie Box substituée au slot introuvable');
+}
+
 export const verificationsImportSpeedTune: [string, () => void][] = [
   testImportSpeedTuneFicheSwift, testImportSpeedTuneFicheSansSwift, testImportSpeedTuneEcartSwift,
   testImportSpeedTuneLigne206, testImportSpeedTuneLeadElement, testImportSpeedTuneLignesIgnorees,
   testImportSpeedTuneZeroMembre, testImportSpeedTuneUnMembre, testImportSpeedTuneSixMembres,
   testImportSpeedTuneAvecDeckOrigine, testImportSpeedTuneSansDeckOrigine, testImportSpeedTunePureteEtAnalyse,
   testImportSpeedTuneCopiesDeckEtReverification,
+  testImportSpeedTuneCompositionRetrouvee, testImportSpeedTuneCompositionAmbigue,
+  testImportSpeedTuneCompositionModifiee, testImportSpeedTuneCompositionCopies,
 ].map(test => [test.name, test]);

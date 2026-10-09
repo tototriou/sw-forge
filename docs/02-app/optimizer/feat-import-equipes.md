@@ -81,10 +81,17 @@ toutefois celui du camp actuel, avec portée et élément, même s’il a été 
 Un deck introuvable ou un slot sans équipement résolvable fait ignorer la ligne,
 sans la remplacer silencieusement par une copie Box. Une ligne ajoutée qui ne
 correspond à aucun slot disponible utilise la règle sans deck et le rapport
-le signale. Sans deck, le premier exemplaire résolvable est choisi dans
+le signale. En page, sans deck d’origine, `retrouverDeckCompositionOptimizer`
+cherche la composition exacte du camp allié actuel, hors ordre mais avec le
+nombre de copies de chaque espèce. Toutes les lignes alliées comptent avant
+filtrage des vitesses ; les adversaires sont exclus. Une identité non résolue
+empêche de retrouver un deck. Le premier deck convient : défenses dans leur
+ordre, puis offenses dans leur ordre. Ses slots fournissent les exemplaires
+et son slot 0 le leader ; un slot sans équipement résolvable est ignoré,
+sans remplacement Box. La page ne conserve aucune provenance dans ses lignes.
+Sans composition retrouvée, le premier exemplaire résolvable est choisi dans
 l’ordre Box, RTA, défense, offense, même sans rune. `unowned` ne sert que si
-l’espèce est absente de ces quatre sources. La page n’a aucune provenance de
-deck conservée dans ses lignes, même après y avoir importé un deck.
+l’espèce est absente de ces quatre sources.
 
 Le lead reste exclusivement sur l’équipe ; ses effets par élément sont dérivés
 par `leadEffectifMembreOptimizer`, jamais copiés dans les critères personnels.

@@ -170,6 +170,50 @@ export function testImportEquipesDoublons() {
   ok(r.rapport.ignores.some(m => m.raison.includes('doublon')), 'doublon rapporté');
 }
 
+export function testImportEquipesIdentiteOrphelineSeule() {
+  titre('Import · une identité orpheline seule réserve sa liste');
+  const data = sources(), etat = stockage(), cible = 'nouvelle';
+  const selector = { source: 'rta' as const, monsterId: '1' }, cle = cleMemoireMembre(cible, selector);
+  const orpheline = { listId: cible, selector, com2usId: 9001 };
+  etat.identities.set(cle, orpheline);
+  const avant = structuredClone(etat);
+  const r = consommer(importerPrepaRtaOptimizer(data), data, etat, cible);
+  egal(r.rapport.listeCreee?.id, 'nouvelle (2)', 'identité seule : nouvelle liste suffixée');
+  egal(r.activeListId, 'nouvelle (2)', 'la liste suffixée devient active');
+  const nouvelleCle = cleMemoireMembre(r.activeListId!, selector);
+  egal(r.stockage.identities.get(nouvelleCle)?.com2usId, 1001, 'identité du nouveau membre égale à son espèce importée');
+  egal(r.stockage.memories.get(nouvelleCle)?.com2usId, 1001, 'mémoire et identité importées cohérentes');
+  ok(r.stockage.identities.get(cle) === orpheline, 'identité orpheline intacte, même référence');
+  ok(isDeepStrictEqual(etat, avant), 'stockage initial sans mutation');
+}
+
+export function testImportEquipesRejetIdentiteLisible() {
+  titre('Import · un rejet d’identité lisible réserve sa liste');
+  for (const format of ['paire', 'objet'] as const) {
+    const data = sources(), etat = stockage(), cible = 'nouvelle';
+    const selector = { source: 'rta' as const, monsterId: '1' }, cle = cleMemoireMembre(cible, selector);
+    const rejet = { listId: cible, selector, com2usId: 'inconnu', id: 'nouvelle (2):equipe:1' };
+    etat.rejets.identities = [format === 'paire' ? [cle, rejet] : rejet];
+    const orpheline = { listId: 'identite-seule', selector, com2usId: 9001 };
+    const cleOrpheline = cleMemoireMembre(orpheline.listId, selector);
+    etat.identities.set(cleOrpheline, orpheline);
+    const avant = structuredClone(etat);
+    const proposition = importerPrepaRtaOptimizer(data);
+    proposition.equipes = [{ libelle: 'Équipe importée', members: proposition.membres.map(m => m.selector), lead: null }];
+    const r = consommer(proposition, data, etat, cible);
+    egal(r.rapport.listeCreee?.id, 'nouvelle (2)', `${format} : rejet lisible, nouvelle liste suffixée`);
+    egal(r.activeListId, 'nouvelle (2)', 'la liste suffixée devient active');
+    const nouvelleCle = cleMemoireMembre(r.activeListId!, selector);
+    egal(r.stockage.identities.get(nouvelleCle)?.com2usId, 1001, 'identité du nouveau membre égale à son espèce importée');
+    egal(r.stockage.memories.get(nouvelleCle)?.com2usId, 1001, 'mémoire et identité importées cohérentes');
+    ok(!r.stockage.identities.has(cle), 'identité rejetée non réactivée');
+    ok(r.stockage.identities.get(cleOrpheline) === orpheline, 'autre identité orpheline intacte, même référence');
+    ok(r.stockage.rejets === etat.rejets && isDeepStrictEqual(r.stockage.rejets, avant.rejets), 'rejet brut conservé sans modification');
+    egal(r.stockage.teams[r.stockage.teams.length - 1]?.id, rejet.id, 'le rejet d’identité ne réserve pas un identifiant d’équipe');
+    ok(isDeepStrictEqual(etat, avant), 'stockage initial sans mutation');
+  }
+}
+
 export function testImportEquipesIdentiteEtVide() {
   titre('Import · résolution et identité revérifiées avant toute écriture');
   const data = sources(), p = importerPrepaRtaOptimizer(data), etat = stockage();
@@ -273,6 +317,7 @@ export function testImportEquipesLeadsEtRelecture() {
 export const verificationsImportEquipes: [string, () => void][] = [
   testImportEquipesDefensesSiege, testImportEquipesOffenseSiege, testImportEquipesAnciennesOrphelines, testImportEquipesPrepaRtaVitesses,
   testImportEquipesMonstresInconnus, testImportEquipesVitessesInvalides, testImportEquipesNomsEtPreservation,
+  testImportEquipesIdentiteOrphelineSeule, testImportEquipesRejetIdentiteLisible,
   testImportEquipesDoublons, testImportEquipesIdentiteEtVide, testImportEquipesCriteresRefuses,
   testImportEquipesSansEquipeBaseComplete, testImportEquipesFiltrageEtCardinalites, testImportEquipesLeadsEtRelecture,
 ].map(test => [test.name, test]);

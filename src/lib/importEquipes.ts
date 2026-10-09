@@ -109,9 +109,13 @@ function suffixer(propose: string, occupes: Set<string>): string {
 
 // Les données inactives réservent aussi leur cible : un nouvel import ne doit
 // jamais écraser une mémoire orpheline ni réactiver un rejet par collision.
+// Une ancienne suppression de liste peut laisser ses identités seules :
+// réserver leur liste évite de les attribuer aux nouveaux membres.
 function identifiantsOccupes(stockage: StockageOptimizer, champ: 'id' | 'listId'): Set<string> {
   const valeurs: unknown[] = [...stockage.lists.map(l => ({ listId: l.id })), ...stockage.members,
     ...stockage.validated, ...stockage.memories.values(), ...stockage.teams,
+    ...(champ === 'listId' ? [...stockage.identities.values(),
+      ...(stockage.rejets.identities ?? []).map(v => Array.isArray(v) ? v[1] : v)] : []),
     ...stockage.rejets.memories.map(v => Array.isArray(v) ? v[1] : v), ...stockage.rejets.teams,
     ...[...stockage.listContents.keys()].map(listId => ({ listId })), ...stockage.rejets.listContents];
   return new Set(valeurs.flatMap(v => {

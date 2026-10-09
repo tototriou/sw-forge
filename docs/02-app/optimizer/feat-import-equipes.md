@@ -215,6 +215,11 @@ actuelles du compte et un identifiant proposé par l’appelant. Il rend le
 nouveau stockage, la nouvelle liste active et un rapport, sans effet de bord.
 Le nom et les identifiants sont suffixés en cas de collision ; les identifiants
 occupés par des mémoires, des équipes, des contenus de liste ou des rejets sont aussi réservés.
+Pour l’identifiant de la nouvelle liste, les identités réservent aussi leur
+`listId`, même seules après une ancienne suppression de liste, ainsi que les
+rejets d’identité dont le `listId` reste lisible. Ces données restent intactes ;
+le nouveau membre reçoit une identité de son espèce dans la liste suffixée,
+sans reprendre une identité orpheline ni réactiver un rejet.
 Un import sans membre accepté ne crée rien et conserve la liste active,
 avec un message explicite. Un contenu d’import inconnu est refusé explicitement,
 sans modifier le stockage. Le contenu accepté est ajouté à `listContents` pour

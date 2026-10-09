@@ -66,6 +66,9 @@ Aucune liste existante ni aucun point de sauvegarde n’est modifié.
 Après acceptation, l’action commune ouvre l’Optimizer par la route
 `#/outils/optimizer`. Un import vide, une collision ou une revérification
 en attente rendent leur rapport sans navigation.
+Toute origine autre que `#/outils/optimizer` reçoit son rapport dans la modale
+portée par `App.tsx`, après acceptation comme après refus. Depuis l’Optimizer,
+le rapport reste dans le flottant des sources, sans seconde modale.
 La préparation lit aussi les écritures des listes en attente dans le même
 geste React pour attribuer un identifiant libre. La publication ajoute seulement
 la nouvelle liste, ses membres, identités, mémoires, équipes et contenu par une

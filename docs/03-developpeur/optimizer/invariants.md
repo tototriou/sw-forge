@@ -272,6 +272,8 @@ Une entrée = une règle qu'un chantier qui l'ignore casse, avec sa source. Ce f
 
 - La navigation commune vers `#/outils/optimizer` suit seulement un import accepté par `importerEquipe` ; import vide, collision et revérification en attente gardent la route courante. Source : ../../02-app/optimizer/feat-import-equipes.md § F1 — Importer depuis l’Optimizer
 
+- Le rapport d’un import depuis toute route autre que `#/outils/optimizer` appartient à la modale d’`App.tsx`, acceptation ou refus compris ; depuis l’Optimizer, il reste dans le flottant des sources, sans double rapport. Source : ../../02-app/optimizer/feat-import-equipes.md § F1 — Importer depuis l’Optimizer
+
 - L’export depuis le siège appelle les mêmes producteurs et la même action que l’import dans l’Optimizer, sur les sources courantes au geste ; sa disponibilité est dérivée des producteurs, et un compte sans Box ni runes le désactive avec raison. L’export de la page Défense prend toutes les défenses, indépendamment du filtre. Son rapport, porté par `App.tsx`, reste lisible après navigation et sort du flux dans les deux formats. Source : ../../02-app/optimizer/feat-import-equipes.md § F4 — Exporter depuis le siège
 
 - Toutes les écritures de l’état des listes de `useOptimizerLists` passent par son `setState` enveloppé et s’appliquent dans l’ordre d’envoi, sans transition (`startTransition`) : une priorité différée casserait l’état courant anticipé. La sauvegarde du point photographie cet état courant, mémoire écrite dans le même geste comprise. Sources : ../../02-app/optimizer/feat-listes-equipes-et-sauvegarde.md § Stockage indépendant des listes ; ../../02-app/optimizer/feat-listes-equipes-et-sauvegarde.md § Point de sauvegarde de toutes les listes

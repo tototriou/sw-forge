@@ -580,7 +580,7 @@ function Application() {
   const importerEquipe = avecNavigationImportOptimizer(optimizer.importerEquipe, () => {
     window.location.hash = '#/outils/optimizer';
   }, rapport => {
-    if (route === 'siege') setRapportExportOptimizer(rapport);
+    if (route !== 'outils' || toolSub !== 'optimizer') setRapportExportOptimizer(rapport);
   });
   useEffect(() => {
     // L'hydratation du compte conservé acquiert les identités historiques.

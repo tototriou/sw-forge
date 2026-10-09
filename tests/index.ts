@@ -210,7 +210,11 @@ import { testRenduMemoireOptimizerSelection, testRenduMemoireOptimizerSansMemoir
   testRenduMemoireOptimizerRetrait, testRenduMemoireOptimizerInclusion, testRenduMemoireOptimizerHorsListe,
   testRenduMemoireOptimizerIdentite, testRenduMemoireOptimizerRecette, testRenduMemoireOptimizerNavigation, testRenduTelephoneMemoireOptimizer,
   testRenduMemoireOptimizerSaisies, testRenduMemoireOptimizerAutomatismes, testRenduMemoireOptimizerRappelAurasDestination,
-  testRenduTelephoneMemoireOptimizerRappelAurasDestination, testRenduMemoireOptimizerZoneC, testRenduTelephoneMemoireOptimizerZoneC } from './rendu/optimizer-memoire.test';
+  testRenduTelephoneMemoireOptimizerRappelAurasDestination, testRenduMemoireOptimizerZoneC, testRenduTelephoneMemoireOptimizerZoneC,
+  testRenduMemoireOptimizerListeInactive, testRenduMemoireOptimizerRecetteSansSelection, testRenduMemoireOptimizerGlobauxAvantRestauration,
+  testRenduMemoireOptimizerSourceRta, testRenduMemoireOptimizerSourceSiege, testRenduMemoireOptimizerClicAjouter,
+  testRenduMemoireOptimizerClicValiderFiche, testRenduMemoireOptimizerClicValiderInclut,
+  testRenduTelephoneMemoireOptimizerClicAjouter, testRenduTelephoneMemoireOptimizerClicValiderFiche } from './rendu/optimizer-memoire.test';
 import { testRenduBestiaire, testRenduMecaniques, testRenduNouveautes, testRenduParametres, testRenduBientot } from './rendu/ressources.test';
 import { testRenduTelephoneAccueil, testRenduTelephoneRta, testRenduTelephoneRtaAmi, testRenduTelephoneRtaFiltre } from './rendu/telephone-accueil-rta.test';
 import { testRenduTelephoneSiege, testRenduTelephoneRecos } from './rendu/telephone-siege.test';
@@ -247,6 +251,16 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRenduTelephoneMemoireOptimizerRappelAurasDestination', testRenduTelephoneMemoireOptimizerRappelAurasDestination],
   ['testRenduMemoireOptimizerZoneC', testRenduMemoireOptimizerZoneC],
   ['testRenduTelephoneMemoireOptimizerZoneC', testRenduTelephoneMemoireOptimizerZoneC],
+  ['testRenduMemoireOptimizerListeInactive', testRenduMemoireOptimizerListeInactive],
+  ['testRenduMemoireOptimizerRecetteSansSelection', testRenduMemoireOptimizerRecetteSansSelection],
+  ['testRenduMemoireOptimizerGlobauxAvantRestauration', testRenduMemoireOptimizerGlobauxAvantRestauration],
+  ['testRenduMemoireOptimizerSourceRta', testRenduMemoireOptimizerSourceRta],
+  ['testRenduMemoireOptimizerSourceSiege', testRenduMemoireOptimizerSourceSiege],
+  ['testRenduMemoireOptimizerClicAjouter', testRenduMemoireOptimizerClicAjouter],
+  ['testRenduMemoireOptimizerClicValiderFiche', testRenduMemoireOptimizerClicValiderFiche],
+  ['testRenduMemoireOptimizerClicValiderInclut', testRenduMemoireOptimizerClicValiderInclut],
+  ['testRenduTelephoneMemoireOptimizerClicAjouter', testRenduTelephoneMemoireOptimizerClicAjouter],
+  ['testRenduTelephoneMemoireOptimizerClicValiderFiche', testRenduTelephoneMemoireOptimizerClicValiderFiche],
   ['testVitesse', testVitesse],
   ['testSpeedTune', testSpeedTune],
   ['testSpeedTuneDeck', testSpeedTuneDeck],

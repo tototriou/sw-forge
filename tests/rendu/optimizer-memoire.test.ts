@@ -31,3 +31,40 @@ export const testRenduMemoireOptimizerRappelAurasDestination = () => transition(
 export const testRenduTelephoneMemoireOptimizerRappelAurasDestination = () => transition('auras-destination', true);
 export const testRenduMemoireOptimizerZoneC = () => transition('zone-c');
 export const testRenduTelephoneMemoireOptimizerZoneC = () => transition('zone-c', true);
+export const testRenduMemoireOptimizerListeInactive = () => transition('liste-inactive');
+export const testRenduMemoireOptimizerRecetteSansSelection = () => transition('recette-sans-selection');
+export const testRenduMemoireOptimizerGlobauxAvantRestauration = () => transition('globaux-restauration');
+export const testRenduMemoireOptimizerSourceRta = () => transition('source-rta');
+export const testRenduMemoireOptimizerSourceSiege = () => transition('source-siege');
+
+async function inclusion(genre: 'ajout' | 'fiche' | 'carte', telephone = false) {
+  titre(`rendu · Optimizer mémoire — inclusion par clic ${genre}${telephone ? ' au téléphone' : ''}`);
+  const { browser, page } = await navigateurOptimizer(telephone);
+  type Banc = { preparerInclusion: (genre: string) => Promise<[boolean, string][]>; verifierInclusion: () => Promise<[boolean, string][]> };
+  try {
+    const avant = await page.evaluate(async genre => (globalThis as unknown as { bancOptimizer: Banc }).bancOptimizer.preparerInclusion(genre), genre);
+    for (const [condition, texte] of avant) ok(condition, texte);
+    if (genre === 'ajout') {
+      if (telephone) await page.getByRole('button', { name: 'Monstres à optimiser' }).click();
+      await page.getByRole('button', { name: 'Ajouter Second à « Alpha »', exact: true }).click();
+    } else {
+      if (genre === 'carte') await page.getByRole('button', { name: 'Rechercher', exact: true }).click();
+      const boutons = page.getByRole('button', { name: 'Valider ce build', exact: true });
+      if (genre === 'carte') {
+        await boutons.nth(1).waitFor();
+        ok(await boutons.count() === 2, 'fiche et carte distinctes : clic sur la carte de résultat');
+        await boutons.nth(1).click();
+      } else await boutons.first().click();
+    }
+    const apres = await page.evaluate(() => (globalThis as unknown as { bancOptimizer: Banc }).bancOptimizer.verifierInclusion());
+    for (const [condition, texte] of apres) ok(condition, texte);
+    if (genre !== 'ajout') {
+      ok(await page.getByRole('button', { name: 'Validé', exact: true }).count() > 0, 'validation effective indiquée dans le rendu');
+    }
+  } finally { await browser.close(); }
+}
+export const testRenduMemoireOptimizerClicAjouter = () => inclusion('ajout');
+export const testRenduMemoireOptimizerClicValiderFiche = () => inclusion('fiche');
+export const testRenduMemoireOptimizerClicValiderInclut = () => inclusion('carte');
+export const testRenduTelephoneMemoireOptimizerClicAjouter = () => inclusion('ajout', true);
+export const testRenduTelephoneMemoireOptimizerClicValiderFiche = () => inclusion('fiche', true);

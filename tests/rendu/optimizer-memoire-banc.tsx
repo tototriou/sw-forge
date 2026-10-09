@@ -14,6 +14,7 @@ import { buildOptimizerRecipe } from '../../src/lib/optimizerRecipe';
 import { preuvesSupplementaires, preparerClicInclusion, verifierClicInclusion } from './optimizer-memoire-preuves';
 import { preuvesRattachementOptimizer, preuvesIdentiteEnregistree } from './optimizer-rattachement-preuves';
 import { preuvesLeadEquipeOptimizer, preuvesDialogueEquipeOptimizer, preuvesContenuCreationOptimizer } from './optimizer-equipes-preuves';
+import { preuvesRefusIdentitePerime } from './optimizer-refus-identite-preuves';
 
 export const premier: ExclusionSelector = { source: 'box', unitKey: '11' };
 export const second: ExclusionSelector = { source: 'box', unitKey: '22' };
@@ -107,6 +108,7 @@ export async function scenario(nom: string): Promise<[boolean, string][]> {
   const memoire = (listId: string, selector = premier) => listes.memories.get(cleMemoireMembre(listId, selector));
   await choisir();
   const bancEquipes = { etat: () => etat, listes: () => listes, geste, premier, second };
+  if (nom === 'refus-identite-perime') return preuvesRefusIdentitePerime(bancEquipes);
   if (nom === 'lead-equipe') return preuvesLeadEquipeOptimizer(bancEquipes);
   if (nom === 'dialogue-equipe') return preuvesDialogueEquipeOptimizer(bancEquipes);
   if (nom === 'contenu-creation') return preuvesContenuCreationOptimizer(bancEquipes);

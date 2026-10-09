@@ -63,6 +63,13 @@ avant tout remplacement par un réimport, manuel ou depuis le dossier suivi.
 Une identité déjà connue ne change jamais parce que le slot change d’espèce.
 Les runes d’un build ne servent jamais à établir cette identité.
 
+Le refus de restauration pour identité incompatible reste visible tant que
+son membre est présent dans la liste active avec cette incompatibilité.
+Il s’efface si ce contexte disparaît (changement de liste, retrait du membre,
+changement de sélection ou résolution redevenue compatible), sans effacer
+« Critères non mémorisés » produit par la même réconciliation. Aucune mémoire
+ni identité n’est réattribuée par cet effacement du message.
+
 Limite : si l’identité manque encore au réimport, l’espèce résolue dans le
 nouveau compte est acquise et le rapport le dit. Sans identité et sans référence
 résolue, le membre, ses données et son build restent conservés, avec un message ;

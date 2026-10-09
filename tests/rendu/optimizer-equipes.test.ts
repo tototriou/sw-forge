@@ -17,3 +17,5 @@ export const testRenduOptimizerDialogueEquipe = () => verifier('dialogue-equipe'
 export const testRenduTelephoneOptimizerDialogueEquipe = () => verifier('dialogue-equipe', true);
 export const testRenduOptimizerCreationContenu = () => verifier('contenu-creation');
 export const testRenduTelephoneOptimizerCreationContenu = () => verifier('contenu-creation', true);
+export const testRenduOptimizerRefusIdentitePerime = () => verifier('refus-identite-perime');
+export const testRenduTelephoneOptimizerRefusIdentitePerime = () => verifier('refus-identite-perime', true);

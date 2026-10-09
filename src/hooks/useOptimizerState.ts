@@ -13,6 +13,8 @@ import type { EquipeOptimizer } from '../lib/optimizerMemberStorage';
 import { LigneVerrouillee } from '../lib/artifactOptim';
 import { useBuildOptimSearch } from './useBuildOptimSearch';
 
+const REFUS_IDENTITE_MEMBRE = 'Critères non restaurés : l’identité enregistrée du membre diffère de l’espèce résolue.';
+
 export type { SlotFilterPresetKey };
 // API historique conservée pour l'écran, les recettes et les scripts.
 export { defaultRelicMainChoice, relicMainChoiceApresChangementExemplaire, criteresApresChangementEspece, baseCompleteCriteres } from '../lib/criteresOptimizer';
@@ -469,6 +471,7 @@ export function useOptimizerState(contexte?: ContexteMembresOptimizer): Optimize
   const [proprietaireCriteres, setProprietaireCriteres] = useState<ProprietaireCriteresOptimizer | null>(null);
   const [rapportCriteres, setRapportCriteres] = useState<string[]>([]);
   const captureEnAttente = useRef<{ proprietaire: ProprietaireCriteresOptimizer; criteres: CriteresOptimizer } | null>(null);
+  const refusIdentite = useRef<ProprietaireCriteresOptimizer | null>(null);
   // Les callbacks retardés lisent le dernier affichage, jamais la fermeture
   // du membre qui était sélectionné au début d'une lecture de fichier.
   const criteresAffiches: CriteresOptimizer = { comboSets, minStats, maxStats, excludeBase, optimiserArtefacts, adapterArtefactsAuTri,
@@ -477,7 +480,14 @@ export function useOptimizerState(contexte?: ContexteMembresOptimizer): Optimize
   const vivant = useRef({ contexte, selectedId, sourceSelector, proprietaire: proprietaireCriteres, criteres: criteresAffiches, importDuCompte });
   vivant.current = { contexte, selectedId, sourceSelector, proprietaire: proprietaireCriteres, criteres: criteresAffiches, importDuCompte };
 
+  function effacerRefusIdentite() {
+    if (!refusIdentite.current) return;
+    refusIdentite.current = null;
+    setRapportCriteres(messages => messages.filter(m => m !== REFUS_IDENTITE_MEMBRE));
+  }
+
   function effacerProprietaireCriteres() {
+    effacerRefusIdentite();
     captureEnAttente.current = null;
     vivant.current.proprietaire = null;
     setProprietaireCriteres(null);
@@ -525,8 +535,10 @@ export function useOptimizerState(contexte?: ContexteMembresOptimizer): Optimize
     if (!valide) {
       effacerProprietaireCriteres();
       const identite = c.lists.identities.get(cleMemoireMembre(listId, selector));
-      if (identite && identite.com2usId !== resolu.monster.com2usId) {
-        setRapportCriteres(['Critères non restaurés : l’identité enregistrée du membre diffère de l’espèce résolue.']);
+      if (identite && identite.com2usId !== resolu.monster.com2usId
+        && c.lists.members.some(m => cleMemoireMembre(m.listId, m.selector) === cleMemoireMembre(listId, selector))) {
+        refusIdentite.current = candidat;
+        setRapportCriteres([REFUS_IDENTITE_MEMBRE]);
       }
       return null;
     }
@@ -551,6 +563,7 @@ export function useOptimizerState(contexte?: ContexteMembresOptimizer): Optimize
       if (selector.source !== 'unowned') setGearSource(selector.source);
     }
     appliquerPhoto(suivante);
+    refusIdentite.current = null;
     v.proprietaire = valide; setProprietaireCriteres(valide); setRapportCriteres(messages);
     // Le geste peut lire la destination réellement appliquée sans attendre
     // un rendu, ni résoudre une seconde fois la mémoire ou sa base.
@@ -641,7 +654,15 @@ export function useOptimizerState(contexte?: ContexteMembresOptimizer): Optimize
   const listePrecedente = useRef(contexte?.lists.activeListId);
   function reconcilierMembre() {
     const v = vivant.current, c = v.contexte;
-    if (!c) return;
+    if (!c) { effacerRefusIdentite(); return; }
+    const refus = refusIdentite.current;
+    if (refus) {
+      const cle = cleMemoireMembre(refus.listId, refus.selector);
+      const identite = c.lists.identities.get(cle);
+      const resolu = resolveExclusionEntry(refus.selector, c.data);
+      if (c.lists.activeListId !== refus.listId || !c.lists.members.some(m => cleMemoireMembre(m.listId, m.selector) === cle)
+        || !identite || !resolu || identite.com2usId === resolu.monster.com2usId) effacerRefusIdentite();
+    }
     const capture = captureEnAttente.current;
     if (capture) {
       // Un effet du rendu précédent peut être vidé avant les mises à jour

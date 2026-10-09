@@ -13,7 +13,7 @@ a lieu pendant une recherche de runes, et pourquoi la paire n'est pas figée
 avant elle :
 [moteur-artefacts.md § Le choix des artéfacts — un second problème, séparé](moteur-artefacts.md).
 Ce que chaque ligne fait au calcul des dégâts lui-même : les fichiers de
-`../../degats-reels/` cités dans la section des lignes.
+`../../02-app/degats-reels/` cités dans la section des lignes.
 
 ## Le build est fixe, les artéfacts se posent ensuite
 
@@ -109,7 +109,7 @@ tout autre code vaut 0 aux dégâts.
   Les termes de dégâts que ces lignes exigent (accumulateur brut par coup
   hors `horsCoup`, terme de Dgts CRIT affine sur les PV de la cible, premier
   coup distingué) sont décrits avec le calcul, dans les sections de
-  `../../degats-reels/` que cite le tableau.
+  `../../02-app/degats-reels/` que cite le tableau.
 
 ## Focus élémentaire
 
@@ -130,7 +130,7 @@ tout autre code vaut 0 aux dégâts.
 - Ces lignes vivent dans le terme DMG% de la formule, la Marque dans les
   Réductions : les deux se multiplient, elles ne s'additionnent pas. Ni sur
   une bombe, ni sur le bucket Additionnel. Détail et provenance dans le même
-  fichier de `../../degats-reels/`.
+  fichier de `../../02-app/degats-reels/`.
 
 ## Le moteur — double boucle exhaustive
 

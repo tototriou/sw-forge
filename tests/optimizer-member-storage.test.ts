@@ -200,7 +200,7 @@ export function testMemoireOptimizerEspeceSelecteur() {
 export function testMemoireOptimizerBranchement() {
   titre('Revérification · branchement du réimport');
   const source = readFileSync(resolve(process.cwd(), 'src/App.tsx'), 'utf8');
-  ok(source.includes('reverifierStockageOptimizer(stockageAvantImportRef.current ?? optimizerLists, data, runeIds)'), 'App appelle le producteur commun après acquisition sur le compte présent');
+  ok(source.includes('reverifierStockageOptimizer(stockageAvantImportRef.current ?? optimizerLists, data, runeIds, new Set(artifacts.map(a => a.id)))'), 'App appelle le producteur commun après acquisition sur le compte présent, avec l’inventaire des artéfacts');
   ok(source.includes('optimizerLists.replaceAfterRevalidation(resultat.stockage)'), 'App applique les quatre catégories ensemble');
   ok(source.includes("resultat.rapport.messages.join(' ')"), 'App affiche le rapport commun');
 }

@@ -196,7 +196,8 @@ import testBureauMiseAJour from './bureau-mise-a-jour.test';
 import testBureauSwex from './bureau-swex.test';
 import testBureauSession from './bureau-session.test';
 import testSession from './session.test';
-import { testOptimizerPointAllerRetourComplet, testOptimizerPointLectureDefensive, testOptimizerPointSessionRelue } from './optimizer-backup.test';
+import { testOptimizerPointAllerRetourComplet, testOptimizerPointLectureDefensive, testOptimizerPointSessionRelue,
+  testOptimizerPointRepriseRattachement, testOptimizerPointRepriseCompteVide, testOptimizerPointSuppressionConservation } from './optimizer-backup.test';
 import testVitesse from './vitesse.test';
 import testSiegeStatut from './siege-statut.test';
 import testSiegePastille from './siege-pastille.test';
@@ -612,6 +613,9 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testOptimizerPointAllerRetourComplet', testOptimizerPointAllerRetourComplet],
   ['testOptimizerPointLectureDefensive', testOptimizerPointLectureDefensive],
   ['testOptimizerPointSessionRelue', testOptimizerPointSessionRelue],
+  ['testOptimizerPointRepriseRattachement', testOptimizerPointRepriseRattachement],
+  ['testOptimizerPointRepriseCompteVide', testOptimizerPointRepriseCompteVide],
+  ['testOptimizerPointSuppressionConservation', testOptimizerPointSuppressionConservation],
   ['testStockage', async () => { await testStockage(); }],
   ['testPersistance', async () => { await testPersistance(); }],
   // ⚠️ APRÈS `testPersistance` : ces tests changent l'état du module

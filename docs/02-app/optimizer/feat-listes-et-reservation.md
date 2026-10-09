@@ -237,8 +237,8 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   restent distincts par le champ facultatif `copie`. Voir
   [feat-listes-equipes-et-sauvegarde.md](feat-listes-equipes-et-sauvegarde.md)
   § Revérification commune pour l'ordre, la compatibilité et les messages.
-  Un build garde les runes disparues dans son instantané, les marque et ne
-  réserve plus ces runes. Le runage validé n'est jamais comparé au runage porté.
+  Un build garde les runes et artéfacts disparus dans son instantané, les marque et ne
+  réserve plus ces pièces. Le runage validé n'est jamais comparé au runage porté.
 - **Auto-exemption de la liste ACTIVE** — chercher à nouveau le même
   monstre dans la MÊME liste exempte automatiquement SES PROPRES runes déjà
   validées (sans quoi la recherche se trouverait bloquée par ses propres
@@ -261,7 +261,7 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   runage correspond bien à l'une des 4 sources. Réinitialisée à chaque
   changement d'exemplaire — revenir sur ce monstre plus tard réaffiche le
   build validé par défaut.
-  Si des runes ont disparu, la fiche et la ligne de la zone C l'indiquent au
+  Si des runes ou artéfacts ont disparu, la fiche et la ligne de la zone C l'indiquent au
   jeton `warn`, au bureau et au téléphone. La fiche affiche seulement les
   pièces présentes, sans erreur. Le bandeau réserve la hauteur des deux
   messages de bascule : cliquer son icône ne la déplace pas.

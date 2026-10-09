@@ -421,6 +421,8 @@ export interface ValidatedBuild {
   runeIds: number[];
   /** Identifiants conservés dans le build, mais absents de l'inventaire. */
   runesManquantes?: number[];
+  /** Identifiants gardés dans la paire, sans réservation tant qu'ils sont absents. */
+  artefactsManquants?: number[];
   /**
    * La PAIRE D'ARTÉFACTS du build validé, même instantané que les runes.
    *
@@ -458,7 +460,7 @@ export function otherValidatedArtifactIds(
   for (const v of validated) {
     if (v.listId !== listId) continue;
     if (ownSelectorKey != null && exclusionSelectorKey(v.selector) === ownSelectorKey) continue;
-    for (const id of v.artifactIds ?? []) if (id > 0) out.add(id);
+    for (const id of v.artifactIds ?? []) if (id > 0 && !v.artefactsManquants?.includes(id)) out.add(id);
   }
   return out;
 }
@@ -496,13 +498,20 @@ export function runesManquantesDuBuild(build: ValidatedBuild, inventaire: { has:
   return build.runeIds.filter(id => !inventaire.has(id));
 }
 
-export function revalidateBuilds(validated: ValidatedBuild[], data: ExclusionSourceData, allRuneIds: Set<number>): { kept: ValidatedBuild[]; droppedCount: number } {
+export function artefactsManquantsDuBuild(build: ValidatedBuild, inventaire: { has: (id: number) => boolean }): number[] {
+  return (build.artifactIds ?? []).filter(id => id > 0 && !inventaire.has(id));
+}
+
+export function revalidateBuilds(validated: ValidatedBuild[], data: ExclusionSourceData, allRuneIds: Set<number>, allArtifactIds?: Set<number>): { kept: ValidatedBuild[]; droppedCount: number } {
   if (!comptePeutJuger(data, allRuneIds)) return { kept: validated, droppedCount: 0 };
   const kept = validated.map(v => {
     const absentes = runesManquantesDuBuild(v, allRuneIds);
-    if (absentes.length === (v.runesManquantes?.length ?? 0) && absentes.every((id, i) => id === v.runesManquantes?.[i])) return v;
-    const { runesManquantes: _ancienneMarque, ...build } = v;
-    return absentes.length ? { ...build, runesManquantes: absentes } : build;
+    // Sans inventaire d'artéfacts, leur absence ne peut pas être jugée.
+    const arts = allArtifactIds ? artefactsManquantsDuBuild(v, allArtifactIds) : v.artefactsManquants ?? [];
+    if (absentes.length === (v.runesManquantes?.length ?? 0) && absentes.every((id, i) => id === v.runesManquantes?.[i])
+      && arts.length === (v.artefactsManquants?.length ?? 0) && arts.every((id, i) => id === v.artefactsManquants?.[i])) return v;
+    const { runesManquantes: _ancienneMarque, artefactsManquants: _anciennePaire, ...build } = v;
+    return { ...build, ...(absentes.length ? { runesManquantes: absentes } : {}), ...(arts.length ? { artefactsManquants: arts } : {}) };
   });
   return { kept: kept.every((v, i) => v === validated[i]) ? validated : kept, droppedCount: 0 };
 }

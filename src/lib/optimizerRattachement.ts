@@ -48,7 +48,7 @@ const ORDRES: Record<ContenuListeOptimizer | 'absent', readonly ExclusionSource[
 };
 
 /** Préserver chaque membre ; les clés migrent simultanément, y compris en cas de permutation. */
-export function rattacherStockageOptimizer(stockage: StockageOptimizer, data: ExclusionSourceData, runeIds: Set<number>) {
+export function rattacherStockageOptimizer(stockage: StockageOptimizer, data: ExclusionSourceData, runeIds: Set<number>, artifactIds?: Set<number>) {
   const rapport: RapportReverificationOptimizer = { compteVide: false, membresRetires: 0, buildsRetires: 0,
     rattachements: [], identitesAcquises: [], buildsIncomplets: [], memoiresInactives: [], memoiresSuivantSelecteur: [],
     equipesModifiees: [], equipesDissoutes: [], messages: [] };
@@ -164,11 +164,13 @@ export function rattacherStockageOptimizer(stockage: StockageOptimizer, data: Ex
     const selector = migrer(build.listId, build.selector);
     return selector === build.selector ? build : { ...build, selector };
   });
-  const validated = revalidateBuilds(builds, data, runeIds).kept;
-  for (const build of validated) if (build.runesManquantes?.length) {
+  const validated = revalidateBuilds(builds, data, runeIds, artifactIds).kept;
+  for (const build of validated) if (build.runesManquantes?.length || build.artefactsManquants?.length) {
     const cle = cleMemoireMembre(build.listId, build.selector);
     rapport.buildsIncomplets.push(cle);
-    rapport.messages.push(`« ${noms.get(build.listId) ?? 'Liste introuvable'} » — ${resolveExclusionEntry(build.selector, data)?.monster.name ?? exclusionSelectorKey(build.selector)} : build conservé, ${build.runesManquantes.length} rune(s) absente(s) du compte, sans réservation pour ces runes.`);
+    const absences = [build.runesManquantes?.length ? `${build.runesManquantes.length} rune(s) absente(s)` : '',
+      build.artefactsManquants?.length ? `${build.artefactsManquants.length} artéfact(s) absent(s)` : ''].filter(Boolean).join(' et ');
+    rapport.messages.push(`« ${noms.get(build.listId) ?? 'Liste introuvable'} » — ${resolveExclusionEntry(build.selector, data)?.monster.name ?? exclusionSelectorKey(build.selector)} : build conservé, ${absences} du compte, sans réservation pour ces pièces.`);
   }
   const clesMembres = new Set(members.map(m => cleMemoireMembre(m.listId, m.selector)));
   for (const [cle, memoire] of memories) {

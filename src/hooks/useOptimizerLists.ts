@@ -9,7 +9,8 @@ import {
 import { loadLocal, saveLocal, usePersistence } from './usePersistence';
 import type { CriteresOptimizer } from '../lib/criteresOptimizer';
 import type { ExclusionSourceData } from '../lib/optimizerExclusion';
-import { enregistrerIdentiteMembre } from '../lib/optimizerRattachement';
+import { acquerirIdentitesMembres, enregistrerIdentiteMembre } from '../lib/optimizerRattachement';
+import { lirePointOptimizer, photographierPointOptimizer, OPTIMIZER_BACKUP_STORAGE_KEY, type PointOptimizer, type SelectionPointOptimizer } from '../lib/optimizerBackup';
 import {
   OPTIMIZER_MEMBERS_STORAGE_KEY, cleMemoireMembre, ecrireMembresOptimizer, lireMembresOptimizer,
   enregistrerMemoireMembre, validerEquipesOptimizer, retirerRejetsOptimizer,
@@ -85,12 +86,13 @@ export function loadOptimizerLists(): StoredState {
     if (Array.isArray(parsed.validated)) {
       for (const item of parsed.validated) {
         if (!item || typeof item !== 'object') continue;
-        const { listId, selector, runeIds, artifactIds, runesManquantes } = item as {
+        const { listId, selector, runeIds, artifactIds, runesManquantes, artefactsManquants } = item as {
           listId?: unknown;
           selector?: unknown;
           runeIds?: unknown;
           artifactIds?: unknown;
           runesManquantes?: unknown;
+          artefactsManquants?: unknown;
         };
         if (typeof listId !== 'string' || !listIds.has(listId)) continue;
         if (!isSelector(selector)) continue;
@@ -101,7 +103,9 @@ export function loadOptimizerLists(): StoredState {
         // stricte a déjà commise ici (voir `revalidateBuilds`).
         const arts = Array.isArray(artifactIds) && artifactIds.every((id) => typeof id === 'number') ? artifactIds : undefined;
         const absentes = Array.isArray(runesManquantes) && runesManquantes.every(id => typeof id === 'number' && runeIds.includes(id)) ? runesManquantes : undefined;
-        validated.push({ listId, selector, runeIds, ...(arts ? { artifactIds: arts } : {}), ...(absentes?.length ? { runesManquantes: absentes } : {}) });
+        const artsAbsents = Array.isArray(artefactsManquants) && artefactsManquants.every(id => typeof id === 'number' && arts?.includes(id)) ? artefactsManquants : undefined;
+        validated.push({ listId, selector, runeIds, ...(arts ? { artifactIds: arts } : {}), ...(absentes?.length ? { runesManquantes: absentes } : {}),
+          ...(artsAbsents?.length ? { artefactsManquants: artsAbsents } : {}) });
       }
     }
     const activeListId = typeof parsed.activeListId === 'string' && listIds.has(parsed.activeListId) ? parsed.activeListId : null;
@@ -118,6 +122,11 @@ function newId(): string {
 }
 
 export interface UseOptimizerLists {
+  point: PointOptimizer | null;
+  pointExiste: boolean;
+  rapportPoint: string[];
+  sauvegarderPoint: (selection: SelectionPointOptimizer | null, data: ExclusionSourceData) => void;
+  remplacerParPoint: (reprise: ReturnType<typeof import('../lib/optimizerBackup').preparerRepriseOptimizer>) => void;
   lists: OptimizerList[];
   activeListId: string | null;
   setActiveListId: (id: string | null) => void;
@@ -162,8 +171,15 @@ function loadState(): State {
 
 export function useOptimizerLists(): UseOptimizerLists {
   const [state, setState] = useState<State>(loadState);
+  const [pointStocke, setPointStocke] = useState(() => {
+    const brut = loadLocal(OPTIMIZER_BACKUP_STORAGE_KEY);
+    return { brut, ...lirePointOptimizer(brut) };
+  });
 
   const persist = usePersistence();
+  useEffect(() => {
+    if (pointStocke.brut !== null) saveLocal(OPTIMIZER_BACKUP_STORAGE_KEY, pointStocke.brut);
+  }, [pointStocke, persist]);
   useEffect(() => {
     const { memberStorage, ...historique } = state;
     saveLocal(STORAGE_KEY, JSON.stringify(historique));
@@ -171,6 +187,22 @@ export function useOptimizerLists(): UseOptimizerLists {
     // tant qu'aucun geste ou réimport ne modifie le stockage.
     saveLocal(OPTIMIZER_MEMBERS_STORAGE_KEY, memberStorage.raw ?? ecrireMembresOptimizer(memberStorage));
   }, [state, persist]);
+
+  const sauvegarderPoint = useCallback((selection: SelectionPointOptimizer | null, data: ExclusionSourceData) => {
+    const courant = { ...state, ...state.memberStorage };
+    const acquis = acquerirIdentitesMembres(courant, data);
+    const point = photographierPointOptimizer({ ...acquis, activeListId: state.activeListId }, selection, new Date(),
+      acquis === courant ? state.memberStorage.raw : null);
+    const brut = JSON.stringify(point);
+    setPointStocke({ brut, ...lirePointOptimizer(brut) });
+  }, [state]);
+
+  const remplacerParPoint = useCallback((reprise: ReturnType<typeof import('../lib/optimizerBackup').preparerRepriseOptimizer>) => {
+    const s = reprise.stockage;
+    setState({ lists: s.lists, members: s.members, validated: s.validated, activeListId: reprise.activeListId,
+      memberStorage: { identities: s.identities, memories: s.memories, teams: s.teams, listContents: s.listContents,
+        rejets: s.rejets, raw: reprise.brutMembres, rapport: reprise.messages } });
+  }, []);
 
   const setActiveListId = useCallback((id: string | null) => {
     setState((s) => ({ ...s, activeListId: id }));
@@ -284,7 +316,7 @@ export function useOptimizerLists(): UseOptimizerLists {
     setState((s) => ({
       ...s,
       validated: s.validated.map((v) =>
-        v.listId === listId && exclusionSelectorKey(v.selector) === key ? { ...v, artifactIds: [] } : v
+        v.listId === listId && exclusionSelectorKey(v.selector) === key ? { ...v, artifactIds: [], artefactsManquants: undefined } : v
       ),
     }));
   }, []);
@@ -308,7 +340,7 @@ export function useOptimizerLists(): UseOptimizerLists {
       ...s,
       validated: s.validated.map((v) =>
         v.listId === listId && exclusionSelectorKey(v.selector) === key
-          ? { ...v, artifactIds: artifactIds.filter((id) => id > 0) }
+          ? { ...v, artifactIds: artifactIds.filter((id) => id > 0), artefactsManquants: undefined }
           : v
       ),
     }));
@@ -359,6 +391,11 @@ export function useOptimizerLists(): UseOptimizerLists {
   }, []);
 
   return {
+    point: pointStocke.point,
+    pointExiste: pointStocke.brut !== null,
+    rapportPoint: pointStocke.rapport,
+    sauvegarderPoint,
+    remplacerParPoint,
     lists: state.lists,
     activeListId: state.activeListId,
     setActiveListId,

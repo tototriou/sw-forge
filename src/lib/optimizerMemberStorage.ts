@@ -211,7 +211,7 @@ export function enregistrerMemoireMembre(memories: DonneesMembresOptimizer['memo
 }
 
 /** Même revérification pure pour un réimport et la reprise d'un état sauvegardé. */
-export function reverifierStockageOptimizer(stockage: StockageOptimizer, data: ExclusionSourceData, runeIds: Set<number>):
+export function reverifierStockageOptimizer(stockage: StockageOptimizer, data: ExclusionSourceData, runeIds: Set<number>, artifactIds?: Set<number>):
   ReturnType<typeof rattacherStockageOptimizer> {
-  return rattacherStockageOptimizer(stockage, data, runeIds);
+  return rattacherStockageOptimizer(stockage, data, runeIds, artifactIds);
 }

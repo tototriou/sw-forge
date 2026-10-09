@@ -409,7 +409,7 @@ function Application() {
       // La garde du compte vide porte sur les données Box/runes ; elle reste
       // valable au second montage de StrictMode et pendant l'hydratation.
       const runeIds = new Set(runes.map((r) => r.id));
-      const resultat = reverifierStockageOptimizer(stockageAvantImportRef.current ?? optimizerLists, data, runeIds);
+      const resultat = reverifierStockageOptimizer(stockageAvantImportRef.current ?? optimizerLists, data, runeIds, new Set(artifacts.map(a => a.id)));
       stockageAvantImportRef.current = null;
       if (resultat.rapport.compteVide) return;
       compteReimporteRef.current = { box, runes };
@@ -427,7 +427,7 @@ function Application() {
       compteReimporteRef.current = { box, runes };
       optimizer.resetSearch('compte');
     }
-  }, [box, runes]);
+  }, [box, runes, artifacts]);
 
   // Identité du DERNIER compte importé cette session (`wizard_id`, voir
   // parseWizardId) — comparée dans `appliquerImport` pour réinitialiser

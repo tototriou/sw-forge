@@ -6,6 +6,7 @@ import { appliquerCriteres, baseCompleteCriteres, criteresApresChangementEspece,
 import { rattacherProprietaireCriteres, validerProprietaireCriteres, type ProprietaireCriteresOptimizer } from '../lib/optimizerCriteriaOwner';
 import { cleMemoireMembre, type StockageOptimizer, type RapportReverificationOptimizer } from '../lib/optimizerMemberStorage';
 import type { UseOptimizerLists } from './useOptimizerLists';
+import { preparerRepriseOptimizer } from '../lib/optimizerBackup';
 import { AutoExclusionScope, ExclusionSelector, ExclusionSource, resolveExclusionEntry, type ExclusionSourceData } from '../lib/optimizerExclusion';
 import { ArtifactKind, type LeaderSkill } from '../types';
 import { leadEffectifMembreOptimizer, modifierEquipeOptimizer } from '../lib/equipesOptimizer';
@@ -116,6 +117,7 @@ export interface OptimizerState {
   modifierLeadMembre: (lead: DamageSetup['leaderSkill']) => void;
   effacerProprietaireCriteres: () => void;
   choisirMembre: (listId: string, selector: ExclusionSelector) => CriteresOptimizer | null;
+  reprendrePoint: (artifactIds: Set<number>) => void;
   capturerMembre: (listId: string, selector: ExclusionSelector) => void;
   poserTriRecherche: (tri: OptimizerSortKey) => void;
   poserCriteresAutomatiques: (patch: Partial<CriteresOptimizer> | ((courants: CriteresOptimizer) => Partial<CriteresOptimizer>)) => void;
@@ -574,6 +576,22 @@ export function useOptimizerState(contexte?: ContexteMembresOptimizer): Optimize
     return restaurerMembre(listId, selector, true);
   }
 
+  function reprendrePoint(artifactIds: Set<number>) {
+    const v = vivant.current, c = v.contexte;
+    if (!c?.lists.point) return;
+    const reprise = preparerRepriseOptimizer(c.lists.point, c.data, c.runeIds, artifactIds);
+    effacerProprietaireCriteres();
+    c.lists.remplacerParPoint(reprise);
+    // Le même geste doit juger la photo reprise, avant le prochain rendu.
+    v.contexte = { ...c, lists: { ...c.lists, ...reprise.stockage, activeListId: reprise.activeListId } };
+    appliquerPhoto(baseCompleteCriteres(undefined));
+    setRapportCriteres([]); effacerResultats();
+    v.selectedId = null; v.sourceSelector = null;
+    setSelectedId(null); setSourceSelector(null);
+    const membre = reprise.selection ?? reprise.stockage.members.find(m => m.listId === reprise.activeListId);
+    if (membre) choisirMembre(membre.listId, membre.selector);
+  }
+
   function appliquerReverificationMembres(stockage: StockageOptimizer, rapport: RapportReverificationOptimizer, data: ExclusionSourceData, runeIds: Set<number>) {
     const v = vivant.current, c = v.contexte;
     const p = rattacherProprietaireCriteres(v.proprietaire, rapport.rattachements);
@@ -751,6 +769,7 @@ export function useOptimizerState(contexte?: ContexteMembresOptimizer): Optimize
     modifierLeadMembre,
     effacerProprietaireCriteres,
     choisirMembre,
+    reprendrePoint,
     capturerMembre,
     poserCriteresAutomatiques,
     traiterReliqueImportee,

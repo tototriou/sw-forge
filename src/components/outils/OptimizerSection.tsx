@@ -141,6 +141,7 @@ import {
   otherValidatedArtifactIds,
   otherValidatedRuneIds,
   runesManquantesDuBuild,
+  artefactsManquantsDuBuild,
   resolveExcludedRuneIds,
   resolveExclusionEntry,
 } from '../../lib/optimizerExclusion';
@@ -1169,6 +1170,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
   const ownSelectorKey = sourceSelector ? exclusionSelectorKey(sourceSelector) : null;
   const ownValidatedBuild = findValidatedBuild(lists.validated, lists.activeListId, ownSelectorKey);
   const runesAbsentesValidees = ownValidatedBuild ? runesManquantesDuBuild(ownValidatedBuild, runeById) : [];
+  const artefactsAbsentsValides = ownValidatedBuild ? artefactsManquantsDuBuild(ownValidatedBuild, artifactById) : [];
 
   // Bascule d'affichage de la fiche quand un build VALIDÉ existe pour
   // l'exemplaire actif — demande explicite : « une fois le runage validé,
@@ -2994,6 +2996,9 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
         {runesAbsentesValidees.length > 0 && <span role="status" className="text-warn">
           Build conservé : {runesAbsentesValidees.length} rune(s) absente(s) du compte. Seules les runes présentes sont affichées et réservées.
         </span>}
+        {artefactsAbsentsValides.length > 0 && <span role="status" className="text-warn">
+          Build conservé : {artefactsAbsentsValides.length} artéfact(s) absent(s) du compte. Seuls les artéfacts présents sont affichés et réservés.
+        </span>}
       </span>
       <BoutonIcone
         cadre
@@ -3341,6 +3346,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
             const resolved = resolveExclusionEntry(m.selector, exclusionData);
             const build = findValidatedBuild(lists.validated, lists.activeListId, key);
             const absentes = build ? runesManquantesDuBuild(build, runeById) : [];
+            const artsAbsents = build ? artefactsManquantsDuBuild(build, artifactById) : [];
             const lead = resolved ? leadEffectifMembreOptimizer(lists, m.listId, m.selector, resolved.monster.element) : null;
             return (
               <div key={key} className="flex flex-wrap items-center gap-x-2 rounded-lg border border-border-soft bg-panel/60 px-2 py-1.5">
@@ -3387,10 +3393,11 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
                 </ZoneCliquable>
                 {build ? (
                   <>
-                    <span className={`flex flex-none items-center gap-1 text-[10.5px] font-semibold ${absentes.length ? 'text-warn' : 'text-accent'}`}
-                      title={absentes.length ? 'Build conservé ; les runes absentes du compte ne sont plus réservées.' : undefined}>
+                    <span className={`flex flex-none items-center gap-1 text-[10.5px] font-semibold ${absentes.length || artsAbsents.length ? 'text-warn' : 'text-accent'}`}
+                      title={absentes.length || artsAbsents.length ? 'Build conservé ; les pièces absentes du compte ne sont plus réservées.' : undefined}>
                       <CheckCircle2 size={12} />
-                      {absentes.length ? `${absentes.length} rune(s) absente(s)` : 'Validé'}
+                      {absentes.length || artsAbsents.length ? [absentes.length ? `${absentes.length} rune(s) absente(s)` : '',
+                        artsAbsents.length ? `${artsAbsents.length} artéfact(s) absent(s)` : ''].filter(Boolean).join(' · ') : 'Validé'}
                     </span>
                     {/* ⚠️ **L’icône disait le contraire de l’action.** Ce
                         bouton LIBÈRE, et portait le `CheckCircle2` de la

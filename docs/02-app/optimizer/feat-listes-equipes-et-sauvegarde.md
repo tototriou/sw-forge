@@ -65,6 +65,14 @@ gardées dans les rejets et dites, jamais appliquées. Une sélection absente
 reste admise sans attribuer de critères à un autre membre.
 La clé entre dans `CLES_SESSION` ; toute session écrite porte la version 2.
 
+La reprise prépare le rattachement avec le compte courant avant de publier.
+Elle efface le propriétaire des critères, remplace les listes et leurs données
+ensemble, puis rétablit l’affichage par `choisirMembre` sur la sélection
+sauvegardée et rattachée (ou le premier membre de la liste active sans sélection).
+Restaurer n’écrit aucune mémoire ; une modification suivante vise le membre repris.
+Un compte vide reprend les données sans revérification et le dit.
+Supprimer une liste ou réimporter le compte ne modifie jamais le point.
+
 ## Identité indépendante des critères
 
 `identities` est une `Map` à clé `listId|exclusionSelectorKey(selector)`.
@@ -375,8 +383,9 @@ existants restent conservés. `App.tsx` applique le résultat par
 `appliquerReverificationMembres` et affiche un message par membre rattaché.
 Sans changement, la fonction rend le stockage reçu, sans réécriture des clés.
 
-Un build dont des runes ont disparu garde tous ses identifiants et artéfacts ;
+Un build dont des runes ou artéfacts ont disparu garde tous ses identifiants ;
 `runesManquantes` marque les absentes, seules les présentes restent réservées.
-La marque est retirée si ces runes reviennent. La fiche affiche les seules
+`artefactsManquants` suit la même règle pour la paire : l’inventaire complet
+du compte est transmis par le réimport et la reprise au même rattachement.
+Les marques sont retirées si ces pièces reviennent. La fiche affiche les seules
 pièces présentes, avec un avertissement, sans comparaison au runage porté.
-La reprise d’un point de sauvegarde n’est pas encore branchée dans l’écran.

@@ -1,5 +1,5 @@
-import { exclusionSelectorKey, type ExclusionSelector, type OptimizerList, type OptimizerListMember, type ValidatedBuild } from './optimizerExclusion';
-import { ecrireMembresOptimizer, selecteurValide, type StockageOptimizer } from './optimizerMemberStorage';
+import { exclusionSelectorKey, type ExclusionSelector, type ExclusionSourceData, type OptimizerList, type OptimizerListMember, type ValidatedBuild } from './optimizerExclusion';
+import { ecrireMembresOptimizer, lireMembresOptimizer, reverifierStockageOptimizer, selecteurValide, type StockageOptimizer } from './optimizerMemberStorage';
 
 export const OPTIMIZER_BACKUP_STORAGE_KEY = 'swblacksmith-optimizer-backup-v1';
 export interface SelectionPointOptimizer { listId: string; selector: ExclusionSelector }
@@ -67,4 +67,15 @@ export function lirePointOptimizer(brut: string | null): LecturePointOptimizer {
   const selection = cibleValide(v.selection) && v.selection.listId === h.activeListId
     && membres.has(`${v.selection.listId}|${exclusionSelectorKey(v.selection.selector)}`) ? v.selection : null;
   return { point: { version: 1, date: v.date, historique: h as unknown as HistoriquePointOptimizer, membres: v.membres, selection }, rapport: [] };
+}
+
+/** Tout préparer avant de publier : lecture, rattachement et sélection utilisent la même photo. */
+export function preparerRepriseOptimizer(point: PointOptimizer, data: ExclusionSourceData, runeIds: Set<number>, artifactIds: Set<number>) {
+  const lu = lireMembresOptimizer(point.membres);
+  const resultat = reverifierStockageOptimizer({ ...lu, ...point.historique }, data, runeIds, artifactIds);
+  const selection = point.selection ? { ...point.selection, selector: resultat.rapport.rattachements.find(r =>
+    r.listId === point.selection!.listId && exclusionSelectorKey(r.avant) === exclusionSelectorKey(point.selection!.selector))?.apres ?? point.selection.selector } : null;
+  return { ...resultat, activeListId: point.historique.activeListId, selection, brutMembres: resultat.stockage.memories === lu.memories
+    && resultat.stockage.identities === lu.identities && resultat.stockage.teams === lu.teams && resultat.stockage.rejets === lu.rejets ? point.membres : null,
+    messages: [...lu.rapport, ...(resultat.rapport.compteVide ? ['Compte vide : les données du point sont reprises sans revérification.'] : resultat.rapport.messages)] };
 }

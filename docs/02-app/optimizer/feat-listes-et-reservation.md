@@ -3,7 +3,7 @@
 **Statut :** ÉTAT ACTUEL — décrit les listes de travail et la réservation de runes
 **Lire si :** on modifie les listes de monstres, la validation d'un build ou la réservation de runes
 
-Un 3ᵉ mécanisme d'exclusion, distinct des deux d'feat-exclusion.md : ni
+Un 3ᵉ mécanisme d'exclusion, distinct des deux de feat-exclusion.md : ni
 l'automatique (« Exclure les runes déjà utilisées », voir
 feat-exclusion.md § Exclusion des runes déjà portées ailleurs) ni le manuel
 (« Exclure les runes d'un monstre », voir
@@ -298,18 +298,36 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   liste : emplacement 2 (Camilla) », accordé en nombre — « Runes déjà
   réservées » dès qu'il y en a plusieurs), pas juste un bouton désactivé
   sans explication.
-- **Persisté**, contrairement au reste de la saisie de l'écran (voir
+- **Persisté**, comme les mémoires de critères des membres (voir
   feat-ecran.md § Survie à un changement d'onglet) — un flux de plusieurs
   dizaines de minutes à travers toute une liste ne doit pas perdre le
   travail déjà fait à un simple rechargement de page. Même statut que la
   prépa RTA et les équipes de siège (voir
   [usePersistence](src/hooks/usePersistence.ts)) : soumis au même
   interrupteur global de conservation. Un hook à part,
-  `useOptimizerLists.ts`, instancié dans `App.tsx` : `useOptimizerState`
-  n'écrit jamais sur disque, et y loger les listes lèverait cette garantie
-  pour tout le reste de sa saisie.
+  `useOptimizerLists.ts`, instancié dans `App.tsx`, porte les listes,
+  les réservations, les mémoires et les équipes ; la saisie libre et les
+  résultats de recherche restent dans `useOptimizerState`.
 - ⚠️ **Limite connue** : l'ajout à une liste se fait **un monstre à la
   fois** — aucun import en masse depuis un deck de siège ou une prépa RTA
   entière, aucun workflow qui enchaîne automatiquement au monstre suivant
   après validation.
+
+## Mémoire des membres et revérification
+
+Le hook des listes porte aussi un index de mémoires par liste et sélecteur,
+avec l'espèce `com2usId` et les critères personnels photographiés. Une clé de
+stockage indépendante garde cet index et les équipes sans modifier le JSON
+historique des listes. Le clic d'un membre restaure ses critères mémorisés
+ou, sans mémoire applicable, la base complète de ses critères personnels.
+
+Le réimport revérifie ensemble membres, builds, mémoires et équipes. Un membre
+introuvable est retiré, sa mémoire reste conservée sans application, et son
+équipe perd ce membre (dissoute sous deux). Une autre espèce rend sa mémoire
+inapplicable. RTA et siège suivent leur entrée ou slot entre copies de la même
+espèce : ce remplacement n'est pas détectable. Le rapport de revérification
+liste ces mémoires, sans message systématique à chaque réimport.
+
+Forme, validation, conservation et rapport :
+[feat-listes-equipes-et-sauvegarde.md](feat-listes-equipes-et-sauvegarde.md).
 

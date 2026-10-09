@@ -13,7 +13,8 @@ import { testRenduOptimizerLeadEquipePersonnel, testRenduTelephoneOptimizerLeadE
   testRenduOptimizerRefusIdentitePerime, testRenduTelephoneOptimizerRefusIdentitePerime,
   testRenduOptimizerRecetteLeadEquipe, testRenduTelephoneOptimizerRecetteLeadEquipe,
   testRenduOptimizerLeadAncienHorsEquipe, testRenduTelephoneOptimizerLeadAncienHorsEquipe,
-  testRenduOptimizerContenuSansDeplacement, testRenduTelephoneOptimizerContenuSansDeplacement } from './rendu/optimizer-equipes.test';
+  testRenduOptimizerContenuSansDeplacement, testRenduTelephoneOptimizerContenuSansDeplacement,
+  testRenduOptimizerCombatEffectifAffiche, testRenduTelephoneOptimizerCombatEffectifAffiche } from './rendu/optimizer-equipes.test';
 import { verificationsImportSpeedTune } from './import-speed-tune.test';
 import { verificationsImportReco } from './import-reco.test';
 import { verificationsImportRecoCopies } from './import-reco-copies.test';
@@ -657,6 +658,8 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRenduTelephoneOptimizerLeadAncienHorsEquipe', testRenduTelephoneOptimizerLeadAncienHorsEquipe],
   ['testRenduOptimizerContenuSansDeplacement', testRenduOptimizerContenuSansDeplacement],
   ['testRenduTelephoneOptimizerContenuSansDeplacement', testRenduTelephoneOptimizerContenuSansDeplacement],
+  ['testRenduOptimizerCombatEffectifAffiche', testRenduOptimizerCombatEffectifAffiche],
+  ['testRenduTelephoneOptimizerCombatEffectifAffiche', testRenduTelephoneOptimizerCombatEffectifAffiche],
   ['testOptimizerEquipesHookModificationAvecOrpheline', testOptimizerEquipesHookModificationAvecOrpheline],
   ['testOptimizerEquipesAjoutEquipeOrphelineNeBloquePasEquipeSaine', testOptimizerEquipesAjoutEquipeOrphelineNeBloquePasEquipeSaine],
 ];

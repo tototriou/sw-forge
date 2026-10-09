@@ -16,6 +16,7 @@ import { preuvesRattachementOptimizer, preuvesIdentiteEnregistree } from './opti
 import { preuvesLeadEquipeOptimizer, preuvesDialogueEquipeOptimizer, preuvesContenuCreationOptimizer } from './optimizer-equipes-preuves';
 import { preuvesRefusIdentitePerime } from './optimizer-refus-identite-preuves';
 import { preuvesRecetteLeadEquipe, preuvesLeadAncienHorsEquipe, preuvesContenuSansDeplacement } from './optimizer-combat-preuves';
+import { preuvesCombatAfficheOptimizer } from './optimizer-combat-affiche-preuves';
 
 export const premier: ExclusionSelector = { source: 'box', unitKey: '11' };
 export const second: ExclusionSelector = { source: 'box', unitKey: '22' };
@@ -45,6 +46,9 @@ const siegeDefenseTeams: SiegeTeam[] = [{ id: 'defense', lead: 0, tickAlertDismi
   slots: [{ monsterId: '1', runeSpeed: 0, tick: 0, gear: { base, runes: [], artifacts: [] } },
     { monsterId: null, runeSpeed: null, tick: 0 }, { monsterId: null, runeSpeed: null, tick: 0 }] }];
 let avecRunes = false;
+// Une source inchangée garde son identité : recréer un tableau vide à chaque
+// rendu masquerait une dépendance manquante du combat aux équipes ou au contenu.
+const siegeOffenseTeams: SiegeTeam[] = [];
 
 function Banc() {
   const [visible, setVisible] = useState(true);
@@ -54,11 +58,11 @@ function Banc() {
   const [inventaire, setInventaire] = useState(() => avecRunes ? runesInclusion : []);
   changerRunes = setInventaire; runesActuelles = inventaire;
   listes = useOptimizerLists();
-  const data: ExclusionSourceData = { box: compte, rtaEntries, siegeDefenseTeams, siegeOffenseTeams: [], monsterById: new Map(monstres.map(m => [String(m.id), m])) };
+  const data: ExclusionSourceData = { box: compte, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, monsterById: new Map(monstres.map(m => [String(m.id), m])) };
   compteActuel = data;
   etat = useOptimizerState({ lists: listes, data, runeIds: new Set(inventaire.map(r => r.id)) });
   return visible ? <OptimizerSection box={compte} runes={inventaire} artifacts={[]} relics={[]} relicUsageById={{}}
-    optimizer={etat} lists={listes} allMonsters={monstres} rtaEntries={rtaEntries} siegeDefenseTeams={siegeDefenseTeams} siegeOffenseTeams={[]}
+    optimizer={etat} lists={listes} allMonsters={monstres} rtaEntries={rtaEntries} siegeDefenseTeams={siegeDefenseTeams} siegeOffenseTeams={siegeOffenseTeams}
     accountName="Synthétique" menuOuvert={false} onFermerMenu={() => {}} onOuvrirMenu={() => {}} /> : <div>Autre onglet</div>;
 }
 
@@ -108,7 +112,8 @@ export async function scenario(nom: string): Promise<[boolean, string][]> {
   const choisir = (selector = premier) => geste(() => etat.choisirMembre('a', selector));
   const memoire = (listId: string, selector = premier) => listes.memories.get(cleMemoireMembre(listId, selector));
   await choisir();
-  const bancEquipes = { etat: () => etat, listes: () => listes, geste, premier, second };
+  const bancEquipes = { etat: () => etat, listes: () => listes, geste, premier, second, troisieme };
+  if (nom === 'combat-affiche') return preuvesCombatAfficheOptimizer(bancEquipes);
   if (nom === 'recette-lead-equipe') return preuvesRecetteLeadEquipe(bancEquipes);
   if (nom === 'lead-ancien-hors-equipe') return preuvesLeadAncienHorsEquipe(bancEquipes);
   if (nom === 'contenu-sans-deplacement') return preuvesContenuSansDeplacement(bancEquipes);

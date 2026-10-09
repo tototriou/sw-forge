@@ -25,3 +25,5 @@ export const testRenduOptimizerLeadAncienHorsEquipe = () => verifier('lead-ancie
 export const testRenduTelephoneOptimizerLeadAncienHorsEquipe = () => verifier('lead-ancien-hors-equipe', true);
 export const testRenduOptimizerContenuSansDeplacement = () => verifier('contenu-sans-deplacement');
 export const testRenduTelephoneOptimizerContenuSansDeplacement = () => verifier('contenu-sans-deplacement', true);
+export const testRenduOptimizerCombatEffectifAffiche = () => verifier('combat-affiche');
+export const testRenduTelephoneOptimizerCombatEffectifAffiche = () => verifier('combat-affiche', true);

@@ -2,7 +2,7 @@
 
 **Statut :** ÉTAT ACTUEL — décrit le chemin d'une recherche de runes dans le code, de la recherche lancée par l'écran au résultat affiché : préparation, construction des moitiés, appariement, résolution de l'équipement, file, interruption
 **Lire si :** on modifie une étape de la recherche de runes, de la résolution de l'équipement d'un build ou leurs Workers, et on cherche le fichier et la fonction qui la portent
-**Voir aussi :** elagages.md, artefacts.md, ../interruption.md, ../ecran/resultats.md, ../invariants.md
+**Voir aussi :** moteur-elagages.md, moteur-artefacts.md, ../../02-app/optimizer/ (feat-interruption.md, feat-ecran-resultats.md), invariants.md
 
 Ce fichier suit une recherche dans l'ordre où le code l'exécute, une section
 par étape : ce qu'elle fait, le fichier et la fonction qui la portent, et le
@@ -14,24 +14,24 @@ d'entre eux (paire d'artéfacts et relique), dans un Worker dédié quand il est
 disponible. L'écran n'affiche que les builds ainsi vérifiés, sauf quand
 l'optimisation d'artéfacts est coupée. La dernière section dit ce qu'un arrêt
 avant terme rend. Les contraintes à ne pas casser sont dans
-[../invariants.md § Algorithme](../invariants.md),
-[../invariants.md § Artéfacts](../invariants.md) et
-[../invariants.md § Workers](../invariants.md).
+[invariants.md § Algorithme](invariants.md),
+[invariants.md § Artéfacts](invariants.md) et
+[invariants.md § Workers](invariants.md).
 
 | Étape | Fichier | Fonction | Détail |
 | --- | --- | --- | --- |
-| Lancement | `src/hooks/useBuildOptimSearch.ts` | `useBuildOptimSearch` (`run`, `stop`, `cancel`) | [interruption.md](../interruption.md) |
-| Préparation | `src/workers/prepareForSearch.ts`, `src/lib/runeBuildOptim.ts` | `prepareOrRefuse`, `prepareSearch` | [elagages.md](elagages.md) |
-| Construction des moitiés | `src/workers/runeBuildOptim.worker.ts`, `src/workers/buildHalf.worker.ts`, `src/lib/runeBuildOptim.ts` | `buildHalfInWorker`, `buildBuckets` | [elagages.md](elagages.md) |
-| Choix du régime | `src/workers/runeBuildOptim.worker.ts`, `src/lib/runeBuildOptim.ts` | `totalPairCount` | [parallelisation.md](parallelisation.md) |
-| Appariement séquentiel | `src/workers/pairingDriver.ts`, `src/lib/runeBuildOptim.ts` | `drivePairing`, `pairBuckets` | [elagages.md](elagages.md), [interruption.md](../interruption.md) |
-| Appariement parallèle | `src/workers/parallelPairing.ts`, `src/workers/pairSliceBody.ts`, `src/workers/pairSlice.worker.ts` | `driveParallelPairing`, `runPairSlice`, `combineParallelPairingResults` | [parallelisation.md](parallelisation.md) |
+| Lancement | `src/hooks/useBuildOptimSearch.ts` | `useBuildOptimSearch` (`run`, `stop`, `cancel`) | [02-app/optimizer/ (feat-interruption.md)](../../02-app/optimizer/) |
+| Préparation | `src/workers/prepareForSearch.ts`, `src/lib/runeBuildOptim.ts` | `prepareOrRefuse`, `prepareSearch` | [moteur-elagages.md](moteur-elagages.md) |
+| Construction des moitiés | `src/workers/runeBuildOptim.worker.ts`, `src/workers/buildHalf.worker.ts`, `src/lib/runeBuildOptim.ts` | `buildHalfInWorker`, `buildBuckets` | [moteur-elagages.md](moteur-elagages.md) |
+| Choix du régime | `src/workers/runeBuildOptim.worker.ts`, `src/lib/runeBuildOptim.ts` | `totalPairCount` | [moteur-parallelisation.md](moteur-parallelisation.md) |
+| Appariement séquentiel | `src/workers/pairingDriver.ts`, `src/lib/runeBuildOptim.ts` | `drivePairing`, `pairBuckets` | [moteur-elagages.md](moteur-elagages.md), [02-app/optimizer/ (feat-interruption.md)](../../02-app/optimizer/) |
+| Appariement parallèle | `src/workers/parallelPairing.ts`, `src/workers/pairSliceBody.ts`, `src/workers/pairSlice.worker.ts` | `driveParallelPairing`, `runPairSlice`, `combineParallelPairingResults` | [moteur-parallelisation.md](moteur-parallelisation.md) |
 | Fin de l'appariement | `src/workers/runeBuildOptim.worker.ts`, `src/hooks/useBuildOptimSearch.ts` | `useBuildOptimSearch` | — |
-| Résolution de l'équipement d'un build | `src/lib/relicQueue.ts` | `entreeResolutionDuBuild`, `resoudreEquipementDuBuild` | [artefacts.md](artefacts.md), [reliques.md](reliques.md) |
-| Worker de résolution | `src/workers/resolution.worker.ts`, `src/workers/resolutionBody.ts`, `src/workers/resolutionDistante.ts` | `CorpsResolution`, `ResolutionDistante` | [parallelisation.md](parallelisation.md) |
-| File de résolution | `src/hooks/useArtifactOptimQueue.ts`, `src/lib/artifactQueue.ts` | `useArtifactOptimQueue`, `prochainsATraiter`, `voieDeLaFile` | [artefacts.md](artefacts.md) |
-| Résultat affiché | `src/lib/artifactQueue.ts`, `src/components/outils/OptimizerSection.tsx` | `classementResolu`, `compositionDePage`, `compteConfirme` | [../ecran/resultats.md](../ecran/resultats.md) |
-| Interruption | `src/hooks/useBuildOptimSearch.ts`, `src/workers/runeBuildOptim.worker.ts`, `src/workers/pairingDriver.ts` | `stop`, `drivePairing` | [../interruption.md](../interruption.md) |
+| Résolution de l'équipement d'un build | `src/lib/relicQueue.ts` | `entreeResolutionDuBuild`, `resoudreEquipementDuBuild` | [moteur-artefacts.md](moteur-artefacts.md), [moteur-reliques.md](moteur-reliques.md) |
+| Worker de résolution | `src/workers/resolution.worker.ts`, `src/workers/resolutionBody.ts`, `src/workers/resolutionDistante.ts` | `CorpsResolution`, `ResolutionDistante` | [moteur-parallelisation.md](moteur-parallelisation.md) |
+| File de résolution | `src/hooks/useArtifactOptimQueue.ts`, `src/lib/artifactQueue.ts` | `useArtifactOptimQueue`, `prochainsATraiter`, `voieDeLaFile` | [moteur-artefacts.md](moteur-artefacts.md) |
+| Résultat affiché | `src/lib/artifactQueue.ts`, `src/components/outils/OptimizerSection.tsx` | `classementResolu`, `compositionDePage`, `compteConfirme` | [02-app/optimizer/ (feat-ecran-resultats.md)](../../02-app/optimizer/) |
+| Interruption | `src/hooks/useBuildOptimSearch.ts`, `src/workers/runeBuildOptim.worker.ts`, `src/workers/pairingDriver.ts` | `stop`, `drivePairing` | [02-app/optimizer/ (feat-interruption.md)](../../02-app/optimizer/) |
 
 ## Lancement
 
@@ -51,7 +51,7 @@ progression, résultat, refus, erreur. Le statut (`BuildOptimStatus`) passe à
 `running`, puis à `done`, `refused` ou `error` ; `reset` revient à `idle`
 sans relancer. `stop` poste `{ stop: true }` au Worker : l'arrêt coopératif,
 décrit dans
-[../interruption.md § Interruption — filet de temps, pré-filtrage et arrêt manuel](../interruption.md).
+[02-app/optimizer/ (feat-interruption.md) § Interruption — filet de temps, pré-filtrage et arrêt manuel](../../02-app/optimizer/).
 
 ## Préparation
 
@@ -96,9 +96,9 @@ maximal de pièces de chaque set que l'AUTRE moitié peut apporter
 (`maxSetCountsForSlots` : `maxSetsForA` sur les indices 3 à 5, `maxSetsForB`
 sur 0 à 2) et capacité des compartiments (`bucketCap`, `bucketCapFor` de la
 taille du pré-filtrage sauf valeur passée). Les élagages et le pré-filtrage
-eux-mêmes : [elagages.md § Élagages sûrs](elagages.md),
-[elagages.md § Élagage sûr — faisabilité](elagages.md) et
-[elagages.md § Pré-filtrage heuristique et compartiments](elagages.md).
+eux-mêmes : [moteur-elagages.md § Élagages sûrs](moteur-elagages.md),
+[moteur-elagages.md § Élagage sûr — faisabilité](moteur-elagages.md) et
+[moteur-elagages.md § Pré-filtrage heuristique et compartiments](moteur-elagages.md).
 
 ## Construction des moitiés
 
@@ -126,7 +126,7 @@ porterait deux jokers ou qui ne peut plus compléter un set demandé
 (`heapPush`), bornés à partir de `bucketCap`, et rend les compartiments triés
 par potentiel décroissant ; `combosOrderMode` ordonne les combinaisons à
 l'intérieur d'un compartiment. Détail :
-[elagages.md § Pré-filtrage heuristique et compartiments](elagages.md).
+[moteur-elagages.md § Pré-filtrage heuristique et compartiments](moteur-elagages.md).
 
 Un arrêt pendant cette phase termine les deux Workers enfants
 (`terminate()`) et rejette l'attente (`stopBuildReject`) : la recherche rend
@@ -148,7 +148,7 @@ Ce total sert de dénominateur à la progression et décide du régime : sous
 `PARALLEL_PAIRING_THRESHOLD` (`src/workers/parallelPairing.ts`), appariement
 séquentiel dans ce Worker ; à partir du seuil, appariement parallèle. Le
 seuil est le seul critère. Détail du régime parallèle :
-[parallelisation.md § Choix du régime](parallelisation.md).
+[moteur-parallelisation.md § Choix du régime](moteur-parallelisation.md).
 
 ## Appariement séquentiel
 
@@ -162,7 +162,7 @@ précédent ; il rend la main à la boucle d'événements au plus une fois par
 quasi-succès déjà accumulés. Le Worker ajoute à chaque message `found`,
 `totalPairs` et un pourcentage (`estimatePct`) ; le hook accumule les
 candidats reçus pour l'aperçu, dans la limite de `PREVIEW_CANDIDATES_CAP`.
-Barre et pourcentage : [../interruption.md § Barre de progression](../interruption.md).
+Barre et pourcentage : [02-app/optimizer/ (feat-interruption.md) § Barre de progression](../../02-app/optimizer/).
 
 `pairBuckets` parcourt toutes les paires de compartiments, par potentiel
 combiné décroissant (`orderedCompartmentPairs`). Pour chaque paire de
@@ -194,8 +194,8 @@ temps, le plafond de candidats, l'épuisement de l'espace ; aucun plafond de
 paires. Le résultat (`SearchResult`) porte les candidats dans l'ordre de
 leur découverte, `explored`, `truncated`, le quasi-succès, et la trace de
 diagnostic si elle a été demandée (`traceur`). Détail des tests :
-[elagages.md § Élagage sûr — faisabilité](elagages.md) et
-[elagages.md § Faisabilité de set, groupage par compte et jokers](elagages.md).
+[moteur-elagages.md § Élagage sûr — faisabilité](moteur-elagages.md) et
+[moteur-elagages.md § Faisabilité de set, groupage par compte et jokers](moteur-elagages.md).
 
 ## Appariement parallèle
 
@@ -215,9 +215,9 @@ Les progressions des tranches s'additionnent ; les résultats se fusionnent
 par `combineParallelPairingResults`, qui reçoit `totalPairs`. Un arrêt poste
 `{ stop: true }` à chaque tranche ; les Workers sont terminés une fois les
 résultats reçus. Une erreur d'une tranche est rattrapée : Workers terminés,
-résultat vide tronqué. Détail : [parallelisation.md § Répartition et partage du plafond](parallelisation.md),
-[parallelisation.md § Fusion des résultats](parallelisation.md) et
-[parallelisation.md § Arrêt, erreur et nettoyage](parallelisation.md).
+résultat vide tronqué. Détail : [moteur-parallelisation.md § Répartition et partage du plafond](moteur-parallelisation.md),
+[moteur-parallelisation.md § Fusion des résultats](moteur-parallelisation.md) et
+[moteur-parallelisation.md § Arrêt, erreur et nettoyage](moteur-parallelisation.md).
 
 ## Fin de l'appariement
 
@@ -269,9 +269,9 @@ conforme (§ Résultat affiché ci-dessous). Les caches qu'une file partage
 entre ses builds (`CachesResolution`, créés par `nouveauxCachesResolution`)
 ne changent aucun résultat ; l'écran les recrée quand `signatureArtefacts`
 ou `artifactParams` change. Détail du choix de la paire :
-[artefacts.md § Quand ce choix a lieu](artefacts.md) et
-[artefacts.md § Partage entre les builds d'une file](artefacts.md) ; de la
-relique : [reliques.md § Résolution exacte par build, file, classement](reliques.md).
+[moteur-artefacts.md § Quand ce choix a lieu](moteur-artefacts.md) et
+[moteur-artefacts.md § Partage entre les builds d'une file](moteur-artefacts.md) ; de la
+relique : [moteur-reliques.md § Résolution exacte par build, file, classement](moteur-reliques.md).
 
 ## Worker de résolution
 
@@ -315,8 +315,8 @@ une erreur du Worker ou une réponse illisible font renoncer (`renoncer`) :
 le Worker est terminé, l'erreur journalisée (`console.error`), et la file
 repasse sur le fil de l'écran avec le cache tel qu'il est. Un Worker
 impossible à créer bascule la file de la même façon (`basculerEnRepli`),
-l'erreur journalisée, mais sans demande à abandonner ni Worker à terminer. Détail : [parallelisation.md § Worker de résolution](parallelisation.md) et
-[artefacts.md § Résolution hors du fil de l'écran](artefacts.md).
+l'erreur journalisée, mais sans demande à abandonner ni Worker à terminer. Détail : [moteur-parallelisation.md § Worker de résolution](moteur-parallelisation.md) et
+[moteur-artefacts.md § Résolution hors du fil de l'écran](moteur-artefacts.md).
 
 ## File de résolution
 
@@ -364,7 +364,7 @@ Le cache (`parBuild`, clé `cleBuild` : les identifiants des six runes, triés)
 ne fait que grandir sous une même signature. Il se vide quand
 `signatureArtefacts` change, c'est-à-dire pour tout réglage qui change le
 score d'une paire, l'inventaire ou les conditions : détail dans
-[artefacts.md § Recalcul quand la paire peut changer](artefacts.md). Une
+[moteur-artefacts.md § Recalcul quand la paire peut changer](moteur-artefacts.md). Une
 recherche relancée aux mêmes réglages garde donc ce que la précédente a
 résolu. L'écran ne voit le cache qu'à sa publication, au plus une par
 `PUBLICATION_MS`. Elle est forcée quand la file se vide, et quand le dernier
@@ -395,13 +395,13 @@ sert la file. `compteConfirme` donne l'en-tête, en combinaisons confirmées,
 et le nombre de pages ; `compteAffichable` donne le compte de la ligne de
 progression. Sans file (optimisation d'artéfacts coupée), la page est la
 tranche du classement. Détail de l'écran :
-[../ecran/resultats.md § Compte des combinaisons confirmées et pagination](../ecran/resultats.md).
+[02-app/optimizer/ (feat-ecran-resultats.md) § Compte des combinaisons confirmées et pagination](../../02-app/optimizer/).
 
 ## Interruption
 
 Une recherche s'arrête avant d'avoir tout examiné par le filet de temps, par
 le plafond de candidats ou par l'arrêt manuel. Valeurs, réglages et
-messages : [../interruption.md § Interruption — filet de temps, pré-filtrage et arrêt manuel](../interruption.md).
+messages : [02-app/optimizer/ (feat-interruption.md) § Interruption — filet de temps, pré-filtrage et arrêt manuel](../../02-app/optimizer/).
 
 Le filet de temps, `maxMs` (défaut `DEFAULT_MAX_MS`), court depuis
 `prepared.startedAt`. `pairBuckets` le teste à chaque point de passage

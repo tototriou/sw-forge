@@ -2,7 +2,7 @@
 
 **Statut :** ÉTAT ACTUEL — décrit l'optimiseur d'artéfacts tel que le code l'exécute : éligibilité, effet de chaque ligne pour le moteur, focus élémentaire, moteur `artifactOptim.ts`, script CLI et ses deux usages
 **Lire si :** on modifie artifactOptim.ts, l'éligibilité d'un artéfact, la prise en compte d'une ligne d'artéfact par le choix de la paire, ou scripts/artifact-search.ts
-**Voir aussi :** artefacts.md, ../ecran/artefacts.md, ../ecran/meilleurs-artefacts-offensifs.md, ../ecran/sous-proprietes-verrouillees.md, ../invariants.md, ../../degats-reels/artefacts-et-degats-bruts.md, ../../degats-reels/artefacts-critique-et-element.md
+**Voir aussi :** moteur-artefacts.md, ../../02-app/optimizer/ (feat-ecran-artefacts.md, feat-ecran-meilleurs-artefacts-offensifs.md, feat-ecran-sous-proprietes-verrouillees.md), invariants.md, ../../02-app/degats-reels/ (feat-artefacts-et-degats-bruts.md, feat-artefacts-critique-et-element.md)
 
 Code : `src/lib/artifactOptim.ts` (le moteur), `src/lib/artifacts.ts`
 (éligibilité, plafonds des lignes), `src/lib/artifactFiche.ts` (paramètres
@@ -11,7 +11,7 @@ et évaluateurs construits pour l'écran et le CLI de l'Optimizer),
 meilleure paire d'artéfacts est choisie pour un build donné. Quand ce choix
 a lieu pendant une recherche de runes, et pourquoi la paire n'est pas figée
 avant elle :
-[artefacts.md § Le choix des artéfacts — un second problème, séparé](artefacts.md).
+[moteur-artefacts.md § Le choix des artéfacts — un second problème, séparé](moteur-artefacts.md).
 Ce que chaque ligne fait au calcul des dégâts lui-même : les fichiers de
 `../../degats-reels/` cités dans la section des lignes.
 
@@ -27,14 +27,14 @@ Ce que chaque ligne fait au calcul des dégâts lui-même : les fichiers de
   dans `damageRelevantStats`, qui oriente la rétention. Les y mettre ferait
   chercher de la DEF à un monstre qui n'en a que faire. ⚠️ La dominance des
   runes, élagage sûr, protège en revanche les stats qu'elles lisent :
-  [elagages.md § Dominance — lignes d'artéfact 218–221](elagages.md).
+  [moteur-elagages.md § Dominance — lignes d'artéfact 218–221](moteur-elagages.md).
 - Le cas où l'optimiseur sert le plus est un monstre dont l'objectif premier
   n'est **pas** les dégâts (tank, support) : son build est déjà figé par un
   autre objectif, et les lignes 218–221 convertissent ses PV, sa DEF ou sa
   VIT en dégâts. Poser les artéfacts après les runes y est le modèle exact,
   pas un compromis — d'où le bloc « Meilleurs artéfacts offensifs pour ce
   build », valable pour tous les objectifs
-  ([optimiseur-artefacts.md § Deux usages : un build donné, ou les builds d'une recherche](optimiseur-artefacts.md)).
+  ([moteur-optimiseur-artefacts.md § Deux usages : un build donné, ou les builds d'une recherche](moteur-optimiseur-artefacts.md)).
 - Ne pas réunir runes et artéfacts en une recherche jointe : l'espace se
   multiplierait alors qu'un artéfact ne change pas les stats qu'un build
   doit viser.
@@ -44,7 +44,7 @@ Ce que chaque ligne fait au calcul des dégâts lui-même : les fichiers de
 - Un monstre porte au plus un artéfact de chaque sorte, et chacun doit lui
   correspondre : l'**Attribut** suit son élément, le **Type** son archétype
   (`artifactFitsMonster`, `eligibleArtifacts`). Règle du jeu, côté compte :
-  [../../../compte/calcul-artefacts.md § 4 bis. Éligibilité — quel monstre peut porter quel artéfact](../../../compte/calcul-artefacts.md).
+  [02-app/compte/ (feat-calcul-artefacts.md) § 4 bis. Éligibilité — quel monstre peut porter quel artéfact](../../02-app/compte/).
 - Un archétype absent ou `null` (monstre de matériau, liste de monstres
   antérieure au champ) n'est éligible à **aucun** artéfact de Type : ne rien
   proposer se voit, proposer une pièce inéquipable non.
@@ -77,14 +77,14 @@ tout autre code vaut 0 aux dégâts.
 
 | Codes | Champ du profil | Effet au calcul | Détail |
 | --- | --- | --- | --- |
-| 218–221 | `brutPctPv`, `brutPctAtk`, `brutPctDef`, `brutPctVit` | dégâts BRUTS, ni critiques ni mitigés, à chaque coup, proportionnels à une stat du monstre | [../../degats-reels/artefacts-et-degats-bruts.md § Dégâts supplémentaires proportionnels à une stat (218-221)](../../degats-reels/artefacts-et-degats-bruts.md) |
-| 204, 205, 206, 226 | `ampliAtkPct`, `ampliDefPct`, `ampliVitPct` | magnitude d'un buff ATQ, DEF ou VIT déjà actif ; 226 compte pour ATQ et DEF | [../../degats-reels/artefacts-et-degats-bruts.md § Amplification de buff par artéfact — ATQ, DEF, VIT](../../degats-reels/artefacts-et-degats-bruts.md) |
-| 222, 223 | `cdPointsPvCibleHauts`, `cdPointsPvCibleBas` | points de Dgts CRIT, interpolation linéaire pure sur les PV restants de la cible : 222 plein à 100 % des PV, 223 plein à 0 %, sans palier ni seuil | [../../degats-reels/artefacts-critique-et-element.md § Dgts CRIT qui VARIENT d'un coup à l'autre (411, 222, 223)](../../degats-reels/artefacts-critique-et-element.md) |
+| 218–221 | `brutPctPv`, `brutPctAtk`, `brutPctDef`, `brutPctVit` | dégâts BRUTS, ni critiques ni mitigés, à chaque coup, proportionnels à une stat du monstre | [02-app/degats-reels/ (feat-artefacts-et-degats-bruts.md) § Dégâts supplémentaires proportionnels à une stat (218-221)](../../02-app/degats-reels/) |
+| 204, 205, 206, 226 | `ampliAtkPct`, `ampliDefPct`, `ampliVitPct` | magnitude d'un buff ATQ, DEF ou VIT déjà actif ; 226 compte pour ATQ et DEF | [02-app/degats-reels/ (feat-artefacts-et-degats-bruts.md) § Amplification de buff par artéfact — ATQ, DEF, VIT](../../02-app/degats-reels/) |
+| 222, 223 | `cdPointsPvCibleHauts`, `cdPointsPvCibleBas` | points de Dgts CRIT, interpolation linéaire pure sur les PV restants de la cible : 222 plein à 100 % des PV, 223 plein à 0 %, sans palier ni seuil | [02-app/degats-reels/ (feat-artefacts-critique-et-element.md) § Dgts CRIT qui VARIENT d'un coup à l'autre (411, 222, 223)](../../02-app/degats-reels/) |
 | 411 | `cdPointsPremiereAttaque` | points de Dgts CRIT sur le premier coup seulement | même section |
-| 400–403, 410 | `cdPointsParSlot` | points de Dgts CRIT sur le sort du slot visé ; 410 compte en entier pour les slots 3 et 4 | [../../degats-reels/artefacts-critique-et-element.md § Dgts CRIT conditionnels au SORT (400-403, 410, 224)](../../degats-reels/artefacts-critique-et-element.md) |
+| 400–403, 410 | `cdPointsParSlot` | points de Dgts CRIT sur le sort du slot visé ; 410 compte en entier pour les slots 3 et 4 | [02-app/degats-reels/ (feat-artefacts-critique-et-element.md) § Dgts CRIT conditionnels au SORT (400-403, 410, 224)](../../02-app/degats-reels/) |
 | 224 | `cdPointsMonoCible` | points de Dgts CRIT sur un sort, ou un groupe de coups, mono-cible | même section |
-| 210 | `degatsBombePct` | majoration propre aux bombes | [../../degats-reels/artefacts-critique-et-element.md § Dégâts de bombe (210)](../../degats-reels/artefacts-critique-et-element.md) |
-| 300–304 | `degatsElementPct` | dégâts infligés à un élément, selon l'élément visé | [optimiseur-artefacts.md § Focus élémentaire](optimiseur-artefacts.md) |
+| 210 | `degatsBombePct` | majoration propre aux bombes | [02-app/degats-reels/ (feat-artefacts-critique-et-element.md) § Dégâts de bombe (210)](../../02-app/degats-reels/) |
+| 300–304 | `degatsElementPct` | dégâts infligés à un élément, selon l'élément visé | [moteur-optimiseur-artefacts.md § Focus élémentaire](moteur-optimiseur-artefacts.md) |
 
 - **Hors modèle : 208, 209, 225** (contre-attaque, attaque conjointe,
   contre-attaque ou attaque conjointe). L'application ne modélise aucune
@@ -98,14 +98,14 @@ tout autre code vaut 0 aux dégâts.
   ni sonde de pertinence, et valent 0. Elles sont décrites comme des
   propriétés que le jeu ne fait plus obtenir ; aucun relevé ne l'atteste
   ici, et le code ne s'appuie que sur l'absence de fourchette. Côté compte :
-  [../../../compte/calcul-artefacts.md](../../../compte/calcul-artefacts.md),
+  [02-app/compte/ (feat-calcul-artefacts.md)](../../02-app/compte/),
   « Cinq propriétés n'ont PAS de plafond ».
 - Les autres codes (200–202, 214–217, 305–309, 404–409) n'entrent pas dans le
   profil et valent 0 au score de dégâts ; ils gardent un plafond et restent
   verrouillables.
 - Le moteur ne lit **jamais** cette table pour décider qu'une ligne compte :
   il le sonde contre le vrai calcul
-  ([optimiseur-artefacts.md § Pré-filtrage exact — pertinence, obligation, dominance](optimiseur-artefacts.md)).
+  ([moteur-optimiseur-artefacts.md § Pré-filtrage exact — pertinence, obligation, dominance](moteur-optimiseur-artefacts.md)).
   Les termes de dégâts que ces lignes exigent (accumulateur brut par coup
   hors `horsCoup`, terme de Dgts CRIT affine sur les PV de la cible, premier
   coup distingué) sont décrits avec le calcul, dans les sections de
@@ -126,7 +126,7 @@ tout autre code vaut 0 aux dégâts.
 - Porté par la recette (`OptimizerRecipe.damageSetup`), validé à l'import
   (`optimizerRecipe.ts`) ; `--element` au script CLI. Le contrôle est
   toujours affiché, il décrit l'adversaire :
-  [../../degats-reels/artefacts-critique-et-element.md § Dégâts infligés par élément (300-304) — et le choix de la cible](../../degats-reels/artefacts-critique-et-element.md).
+  [02-app/degats-reels/ (feat-artefacts-critique-et-element.md) § Dégâts infligés par élément (300-304) — et le choix de la cible](../../02-app/degats-reels/).
 - Ces lignes vivent dans le terme DMG% de la formule, la Marque dans les
   Réductions : les deux se multiplient, elles ne s'additionnent pas. Ni sur
   une bombe, ni sur le bucket Additionnel. Détail et provenance dans le même
@@ -160,7 +160,7 @@ pendant que l'autre cherche ne correspond à rien en jeu. Désactiver
 l'optimisation d'artéfacts ne veut pas dire « sans artéfact » : le monstre
 garde les pièces qu'il porte (`'equipped'` des deux côtés, ci-dessous), et
 seule la recherche de paires est sautée. Le sélecteur de l'écran (`ArtifactMainChoice`, mêmes valeurs) :
-[../ecran/artefacts.md § Artéfacts](../ecran/artefacts.md).
+[02-app/optimizer/ (feat-ecran-artefacts.md) § Artéfacts](../../02-app/optimizer/).
 
 `parametresArtefactsFiche` (artifactFiche.ts) construit ces paramètres pour
 l'écran, pour le CLI de l'Optimizer et pour le différentiel relique, en une
@@ -226,7 +226,7 @@ complète de `candidatsParSorte`, élaguée par `preFiltrerCandidats`. N'est
 
 Les listes élaguées se mémoïsent d'un build à l'autre d'une même file
 (`MemoPreFiltre`) :
-[artefacts.md § Partage entre les builds d'une file](artefacts.md).
+[moteur-artefacts.md § Partage entre les builds d'une file](moteur-artefacts.md).
 
 ### La double boucle
 
@@ -255,7 +255,7 @@ Les listes élaguées se mémoïsent d'un build à l'autre d'une même file
 ### Lignes verrouillées
 
 Le comportement à l'écran :
-[../ecran/sous-proprietes-verrouillees.md § Sous-propriétés verrouillées](../ecran/sous-proprietes-verrouillees.md).
+[02-app/optimizer/ (feat-ecran-sous-proprietes-verrouillees.md) § Sous-propriétés verrouillées](../../02-app/optimizer/).
 Côté moteur :
 
 - `LigneVerrouillee` (`code`, `min`) : un minimum **cumulé sur la paire**,
@@ -305,7 +305,7 @@ Côté moteur :
 - La paire finale, qui peut porter une autre principale que la paire
   supposée, est revérifiée par le filtre final de la file
   (`respecteConditionsPaireFixe`, `respecteConditionsAvecRelique`) :
-  [artefacts.md](artefacts.md). `respecteMinimums`, qui ne juge que les
+  [moteur-artefacts.md](moteur-artefacts.md). `respecteMinimums`, qui ne juge que les
   minimums, n'a plus d'appelant hors des tests.
 - `ampliVitMaxAtteignable` : la plus forte amplification de VIT (206) que la
   paire puisse atteindre, par `chercherPaires` avec un évaluateur qui somme
@@ -319,10 +319,10 @@ Côté moteur :
   seulement des tests : l'écran n'offre aucune condition de vitesse finale.
   Ne pas en réintroduire une, parce que la vitesse finale ne décide pas de
   l'ordre des tours, qui se joue tick par tick sur la vitesse de combat
-  ([../../speed-tuning.md § Formule (modèle partagé)](../../speed-tuning.md)) :
+  ([02-app/speed-tuning/ (README.md) § Formule (modèle partagé)](../../02-app/speed-tuning/)) :
   viser une vitesse finale ne garantit aucun speed tune.
 - Les bornes d'apport par stat (`bornesArtefacts`) et le choix de la paire
-  par build : [artefacts.md](artefacts.md).
+  par build : [moteur-artefacts.md](moteur-artefacts.md).
 
 ## Le script CLI
 
@@ -373,7 +373,7 @@ Une seule primitive, `chercherPaires`, sert deux entrées.
   (`regimeArtefacts`) et ne note des dégâts que sous « Dégâts réels ». La
   paire proposée diverge donc de la paire supposée dès que
   l'objectif n'est pas les dégâts, et le libellé le dit (« offensifs »).
-  L'écran : [../ecran/meilleurs-artefacts-offensifs.md § Deux crans : dégâts supplémentaires ou dégâts réels](../ecran/meilleurs-artefacts-offensifs.md).
+  L'écran : [02-app/optimizer/ (feat-ecran-meilleurs-artefacts-offensifs.md) § Deux crans : dégâts supplémentaires ou dégâts réels](../../02-app/optimizer/).
 - **Sur les builds d'une recherche** : le moteur de runes tourne inchangé
   avec la paire supposée, puis chaque build de la file reçoit sa propre
   paire (`resoudreEquipementDuBuild`) et le classement suit le score avec
@@ -381,7 +381,7 @@ Une seule primitive, `chercherPaires`, sert deux entrées.
   bons builds sont retenus par la recherche, seul l'ordre final bouge. Le
   nombre de builds vérifiés, la priorité de la page affichée et le régime de
   notation de la paire :
-  [artefacts.md § Quand ce choix a lieu](artefacts.md).
+  [moteur-artefacts.md § Quand ce choix a lieu](moteur-artefacts.md).
 - Le même sélecteur de principale sert les deux : sans optimisation
   d'artéfacts, l'écran impose « Garder l'artéfact équipé » des deux côtés ;
   avec, `'libre'` et les principales deviennent des filtres de candidats.

@@ -2,8 +2,8 @@
 
 **Statut :** ÉTAT ACTUEL — décrit la relique dans le moteur : ce qu'il lit d'une pièce, le contexte relique, les bornes relâchées pendant la recherche, la résolution exacte par build, le score de l'effet unique, la pertinence et la dominance non branchées, l'oracle
 **Lire si :** on modifie la relique dans runeBuildOptim.ts, relicOptim.ts, relicQueue.ts, relicExclusive.ts ou l'oracle relicOracle.ts
-**Ne pas lire si :** on cherche le bloc « Relique » de l'écran (../ecran/relique.md) ou la lecture d'une relique dans l'export (../../../compte/calcul-runes.md)
-**Voir aussi :** pipeline.md, elagages.md, artefacts.md, ../ecran/relique.md, ../verification.md, ../invariants.md
+**Ne pas lire si :** on cherche le bloc « Relique » de l'écran (../../02-app/optimizer/feat-ecran-relique.md) ou la lecture d'une relique dans l'export (../../02-app/compte/feat-calcul-runes.md)
+**Voir aussi :** moteur-pipeline.md, moteur-elagages.md, moteur-artefacts.md, ../../02-app/optimizer/ (feat-ecran-relique.md), verification.md, invariants.md
 
 La principale d'une relique est un pourcentage de PV, d'ATQ ou de DEF
 (codes 100, 101, 102), sommé avec les pourcentages des runes et des sets
@@ -23,7 +23,7 @@ La propriété exclusive de la relique (son effet unique) n'entre jamais dans
 Le moteur procède en deux temps, comme pour les artéfacts : une recherche de
 runes aux bornes relâchées, puis une résolution exacte, build par build, de
 la paire d'artéfacts et de la relique ensemble. Le chemin complet d'une
-recherche : [pipeline.md § Pipeline de la recherche de runes](pipeline.md).
+recherche : [moteur-pipeline.md § Pipeline de la recherche de runes](moteur-pipeline.md).
 
 ## Ce que le moteur lit d'une relique
 
@@ -35,7 +35,7 @@ recherche : [pipeline.md § Pipeline de la recherche de runes](pipeline.md).
   une version antérieure. Rien d'autre n'est lu : `durability`, `extra`,
   `source` (sens inconnu) et `locked` restent dans l'export. La lecture du
   champ `sec_effect` et la table des seize types :
-  [../../../compte/calcul-runes.md § Les 16 propriétés uniques — table OFFICIELLE](../../../compte/calcul-runes.md).
+  [02-app/compte/ (feat-calcul-runes.md) § Les 16 propriétés uniques — table OFFICIELLE](../../02-app/compte/).
 - **La valeur de la principale vaut niveau + 3** (relevé dans l'export) :
   +0 donne 3 %, +11 donne 14 %. Le moteur lit `main.value`, jamais une
   valeur recalculée depuis `upgrade` ; un écart est compté à l'import
@@ -60,7 +60,7 @@ recherche : [pipeline.md § Pipeline de la recherche de runes](pipeline.md).
   déjà changé une fois). Le moteur ne l'oppose jamais : il retient la
   meilleure relique sans vérifier la place restante. Seul le détail de la
   relique affiche l'occupation (`formatRelicUsage`, `RelicDetailBox`) :
-  [../ecran/resultats.md § Validation d'un build et relique](../ecran/resultats.md).
+  [02-app/optimizer/ (feat-ecran-resultats.md) § Validation d'un build et relique](../../02-app/optimizer/).
 
 ## Le contexte relique
 
@@ -112,7 +112,7 @@ recherche : [pipeline.md § Pipeline de la recherche de runes](pipeline.md).
   `RechercheRefusee` (`motif: 'relique-pool-vide'`, `vide`) avant toute
   construction, jamais une recherche sans relique à la place. Le Worker le
   transmet par `prepareOrRefuse` comme message `refus`, et le hook passe en
-  `refused` ([pipeline.md § Préparation](pipeline.md)) ; le CLI
+  `refused` ([moteur-pipeline.md § Préparation](moteur-pipeline.md)) ; le CLI
   (`scripts/optimizer-search.ts`), `perf-battery` et l'oracle l'impriment.
   `resoudreEquipementDuBuild` lève la même erreur si on l'appelle sur un
   contexte sans éligible.
@@ -139,7 +139,7 @@ recherche : [pipeline.md § Pipeline de la recherche de runes](pipeline.md).
   `quickOk` de `pairBuckets`, à `totalPairCount` et aux diagnostics
   (`diagnoseFeasibility`, `poolMinSlotSafe`, `rankBlockingConditions`), qui
   reçoivent tous `params.relicContext`. Ces bornes et celles des artéfacts :
-  [elagages.md § Élagage sûr — faisabilité](elagages.md).
+  [moteur-elagages.md § Élagage sûr — faisabilité](moteur-elagages.md).
 - **En mode `recherche`, le candidat est collecté sans relique**
   (`GearSet.relic = undefined`, `pairBuckets`) : la relique portée n'est
   pas une hypothèse de la recherche, elle peut être hors du pool. Le test
@@ -165,7 +165,7 @@ recherche : [pipeline.md § Pipeline de la recherche de runes](pipeline.md).
   (`reliquesEquipables` : la relique portée hors mode `recherche`, tout
   `relicContext.eligibles` en mode `recherche`) y protègent les stats de
   leur effet unique (`statsDeLEffetUnique`) :
-  [elagages.md § Élagages sûrs](elagages.md). Le score, lui, le lit une
+  [moteur-elagages.md § Élagages sûrs](moteur-elagages.md). Le score, lui, le lit une
   fois la relique connue : `objectiveScore` reçoit son apport, neutre
   (`APPORT_NEUTRE`) tant qu'aucune relique n'est résolue.
 - **Le filtre final exact** est `respecteConditionsAvecRelique(gear,
@@ -220,7 +220,7 @@ différentiel relique pour classer une perte
   la paire avec la relique portée puis ajouter une relique, parce que le
   couple noté n'existerait pas. Ce module ne dit que COMMENT résoudre ;
   QUAND et QUI relèvent de la file :
-  [pipeline.md § File de résolution](pipeline.md).
+  [moteur-pipeline.md § File de résolution](moteur-pipeline.md).
 - **L'entrée** (`EntreeResolution`) est assemblée par
   `entreeResolutionDuBuild`, pour l'écran, le CLI, le Worker de résolution
   et le différentiel (`scripts/lib/relicDifferentiel.ts`) : `gear`
@@ -269,7 +269,7 @@ différentiel relique pour classer une perte
   `recherche` la relique retenue (`relique`, son `id` est le `rid`) et
   `sansEffetSurLeTri`. Le classement (`affichees`, par `classementResolu`)
   écarte un build non conforme et classe sur ces stats, qui incluent la
-  relique : [pipeline.md § Résultat affiché](pipeline.md).
+  relique : [moteur-pipeline.md § Résultat affiché](moteur-pipeline.md).
 - **Non-régression conditionnelle** : une principale en pourcentage ne fait
   jamais baisser PV, ATQ ni DEF, donc un build résolu monte ou reste par
   rapport à son état collecté. Mais si la relique portée est exclue du pool
@@ -286,7 +286,7 @@ différentiel relique pour classer une perte
   effacé par `reset` ; l'écran le lit (`relicContextRecherche`), jamais les
   réglages courants. Il fixe aussi le nombre de combinaisons que la file
   confirme (`kDeLaFile`, 300 en mode `recherche`, 100 sinon) :
-  [artefacts.md § Le choix des artéfacts — un second problème, séparé](artefacts.md).
+  [moteur-artefacts.md § Le choix des artéfacts — un second problème, séparé](moteur-artefacts.md).
 - **Le cache de la file** (`parBuild`) est vidé par la signature des
   réglages (`signatureReglages`), dont la part relique est
   `empreinteRelique`, l'empreinte du contexte lancé (`null` sans contexte),
@@ -335,7 +335,7 @@ Relevé en jeu, `src/lib/relicExclusive.ts` :
   des autres monstres et ceux que forment les runes du build), sans aucun
   buff d'ATQ, de DEF ou de VIT ni bonus de passif. Sur PV, ATQ et DEF,
   invocateur, lead et auras entrent dans un seul `ceil` :
-  [../../degats-reels/effets-equipe-et-leaders.md § Sets d'aura d'équipe — modèle](../../degats-reels/effets-equipe-et-leaders.md).
+  [02-app/degats-reels/ (feat-effets-equipe-et-leaders.md) § Sets d'aura d'équipe — modèle](../../02-app/degats-reels/).
 - **La principale de la relique essayée entre dans `Y`, son gain non** :
   une seule relique, aucune boucle. Par construction de `RELIC_UNIQUE`, la
   stat améliorée n'est jamais la stat de référence (Bravoure améliore l'ATQ
@@ -351,7 +351,7 @@ Relevé en jeu, `src/lib/relicExclusive.ts` :
   - Conquête (types 1 à 3) : pourcentage additif dans le terme DMG% de
     `computeTotalDamage` (`reliqueDmgPct`), pour le sort et chaque passif
     offensif ; jamais dans le terme Additionnel :
-    [../../degats-reels/valeurs-de-jeu-curees.md § Les valeurs de jeu — curées, avec leur source](../../degats-reels/valeurs-de-jeu-curees.md) ;
+    [02-app/degats-reels/ (valeurs-de-jeu-curees.md) § Les valeurs de jeu — curées, avec leur source](../../02-app/degats-reels/) ;
   - Ténacité (4 à 6) : réduction des dégâts reçus. Les PV effectifs
     deviennent des PV effectifs équivalents, `pvEffectifs / (1 − X / 100)`
     (`facteurTenacite`), dérivé de l'équation des dégâts en posant
@@ -455,4 +455,4 @@ configuration. Elle ne prouve pas l'exactitude du moteur de runes.
   `tests/relic-search.test.ts`), et classe toute perte : faux négatif
   (échec), dilution ou troncature. Aucune perte n'y est un faux négatif ;
   sur la fixture C (`bucketCap` 10), l'optimum est perdu par dilution.
-  Registre des contrôles : [../verification.md § Les contrôles, par nom de registre](../verification.md).
+  Registre des contrôles : [verification.md § Les contrôles, par nom de registre](verification.md).

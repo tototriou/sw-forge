@@ -1,6 +1,6 @@
 # Stockage des membres et des équipes de l’Optimizer
 
-**Statut :** ÉTAT ACTUEL — décrit le stockage des mémoires, des équipes et leur revérification
+**Statut :** ÉTAT ACTUEL — décrit le stockage des membres, des équipes et du point de sauvegarde
 **Lire si :** on modifie la persistance des listes, la validation d’une équipe ou la reprise d’un état sauvegardé
 **Voir aussi :** [feat-listes-et-reservation.md](feat-listes-et-reservation.md), [transverse/ (feat-sauvegarde-session.md)](../transverse/)
 
@@ -47,6 +47,23 @@ octets. Un réimport avec changement réécrit les valeurs des rejets à part ; 
 n’annonce aucune suppression de rejets puisqu’il les conserve.
 Le rapport du hook est affiché dans la zone C, dans un espace réservé et
 défilant commun aux deux formats. Le clic d’un membre restaure ses critères.
+
+## Point de sauvegarde de toutes les listes
+
+`optimizerBackup.ts` photographie toutes les listes dans un instantané unique,
+distinct de leur conservation automatique : `swblacksmith-optimizer-backup-v1`.
+La photo porte listes, membres, builds validés (identifiants de runes et
+d’artéfacts, marques de pièces absentes), liste active, sélection du membre,
+identités, critères personnels, équipes, leads, contenus et rejets conservés.
+Elle est détachée des données courantes : les modifier ne modifie pas le point.
+Le texte du stockage indépendant conserve aussi ses champs inconnus.
+
+Le lecteur valide la photo historique entière avant toute reprise. Une photo
+abîmée reste conservée et signalée, sans remplacement partiel du travail.
+Les entrées supplémentaires inutilisables suivent le lecteur commun des membres :
+gardées dans les rejets et dites, jamais appliquées. Une sélection absente
+reste admise sans attribuer de critères à un autre membre.
+La clé entre dans `CLES_SESSION` ; toute session écrite porte la version 2.
 
 ## Identité indépendante des critères
 

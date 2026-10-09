@@ -20,6 +20,7 @@ import { CHAMPS_OPTIMIZER_SESSION } from './sessionOptimizer';
 import { jourLocal } from './telechargement';
 import { PREFIXE_FICHIER } from '../marque';
 import { OPTIMIZER_MEMBERS_STORAGE_KEY } from './optimizerMemberStorage';
+import { OPTIMIZER_BACKUP_STORAGE_KEY } from './optimizerBackup';
 
 export const FORMAT_SESSION = formatExport('session');
 export const VERSION_SESSION = 2;
@@ -40,6 +41,7 @@ export const CLES_SESSION = [
   'swblacksmith-custom-monsters-v1',
   'swblacksmith-optimizer-lists-v1',
   OPTIMIZER_MEMBERS_STORAGE_KEY,
+  OPTIMIZER_BACKUP_STORAGE_KEY,
   // Les réglages.
   'swblacksmith-theme-v1',
   'swblacksmith-rune-metric-v1',

@@ -196,6 +196,7 @@ import testBureauMiseAJour from './bureau-mise-a-jour.test';
 import testBureauSwex from './bureau-swex.test';
 import testBureauSession from './bureau-session.test';
 import testSession from './session.test';
+import { testOptimizerPointAllerRetourComplet, testOptimizerPointLectureDefensive, testOptimizerPointSessionRelue } from './optimizer-backup.test';
 import testVitesse from './vitesse.test';
 import testSiegeStatut from './siege-statut.test';
 import testSiegePastille from './siege-pastille.test';
@@ -608,6 +609,9 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testBureauSwex', testBureauSwex],
   ['testBureauSession', async () => { await testBureauSession(); }],
   ['testSession', testSession],
+  ['testOptimizerPointAllerRetourComplet', testOptimizerPointAllerRetourComplet],
+  ['testOptimizerPointLectureDefensive', testOptimizerPointLectureDefensive],
+  ['testOptimizerPointSessionRelue', testOptimizerPointSessionRelue],
   ['testStockage', async () => { await testStockage(); }],
   ['testPersistance', async () => { await testPersistance(); }],
   // ⚠️ APRÈS `testPersistance` : ces tests changent l'état du module

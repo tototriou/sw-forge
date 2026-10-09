@@ -176,6 +176,8 @@ compact (`composerSession`, `ecrireSession`, `src/lib/session.ts`) :
 
 Les mémoires de critères par membre et les équipes de l’Optimizer voyagent dans
 `swblacksmith-optimizer-members-v1`, en plus de la clé historique des listes.
+Le point unique de toutes les listes voyage aussi, dans
+`swblacksmith-optimizer-backup-v1`, avec ses identités, contenus et rejets conservés.
 Toute session écrite porte la version 2, même sans mémoire ni équipe : un lecteur
 de version 1 la refuse avec la demande de mise à jour existante, au lieu de
 reprendre une partie du travail. Une session de version 1 reste relue par le

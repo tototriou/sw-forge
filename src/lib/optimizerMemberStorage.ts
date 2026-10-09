@@ -44,7 +44,7 @@ const objet = (v: unknown): v is Record<string, unknown> => v !== null && typeof
 const texte = (v: unknown): v is string => typeof v === 'string' && v.length > 0;
 const entierPositif = (v: unknown): v is number => typeof v === 'number' && Number.isSafeInteger(v) && v > 0;
 
-function selecteurValide(v: unknown): v is ExclusionSelector {
+export function selecteurValide(v: unknown): v is ExclusionSelector {
   if (!objet(v) || typeof v.source !== 'string') return false;
   if (v.source === 'box') return texte(v.unitKey);
   if (v.source === 'rta') return texte(v.monsterId);

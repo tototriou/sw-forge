@@ -16,6 +16,11 @@ export function monterListesOptimizer() {
       return [valeurs[place] as T, (v) => { valeurs[place] = typeof v === 'function' ? (v as (ancien: T) => T)(valeurs[place] as T) : v; }];
     },
     useCallback<T>(callback: T) { return callback; },
+    useRef<T>(initial: T) {
+      const place = index++;
+      if (!(place in valeurs)) valeurs[place] = { current: initial };
+      return valeurs[place] as { current: T };
+    },
     useSyncExternalStore(_subscribe: unknown, snapshot: () => boolean) { return snapshot(); },
     useEffect(effet: () => void, deps?: readonly unknown[]) {
       const place = index++, ancien = dependances[place];

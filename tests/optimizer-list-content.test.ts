@@ -3,7 +3,7 @@ import type { Monster } from '../src/types';
 import { appliquerCriteres, baseCompleteCriteres } from '../src/lib/criteresOptimizer';
 import { leadEffectifMembreOptimizer } from '../src/lib/equipesOptimizer';
 import { consommerImportOptimizer, type ImportOptimizer } from '../src/lib/importEquipes';
-import { ecrireMembresOptimizer, lireMembresOptimizer, reverifierStockageOptimizer,
+import { cleMemoireMembre, ecrireMembresOptimizer, lireMembresOptimizer, reverifierStockageOptimizer,
   OPTIMIZER_MEMBERS_STORAGE_KEY as CLE, type ContenuListeOptimizer, type EquipeOptimizer } from '../src/lib/optimizerMemberStorage';
 import type { ExclusionSelector, ExclusionSourceData } from '../src/lib/optimizerExclusion';
 import { lireTravail, purgeDonneesConservees, setPersistence } from '../src/hooks/usePersistence';
@@ -75,7 +75,8 @@ export function testOptimizerContenuListeRejetsConserves() {
   const rejete = { listId: 'l1', contenu: 'inconnu', futur: [1, null] };
   const opaque = { listId: ['l1'], contenu: ['guilde'] };
   const doublon = { listId: 'l2', contenu: 'arene' };
-  const initial = JSON.stringify({ memories: [], teams: [equipe], listContents: [rejete, opaque, { listId: 'l2', contenu: 'donjon' }, doublon] }, null, 2);
+  const identities = [a, b].map(selector => [cleMemoireMembre('l1', selector), { listId: 'l1', selector, com2usId: 101 }]);
+  const initial = JSON.stringify({ identities, memories: [], teams: [equipe], listContents: [rejete, opaque, { listId: 'l2', contenu: 'donjon' }, doublon] }, null, 2);
   const disque = installer(initial);
   try {
     const h = monterListesOptimizer(); let lu = h.render();
@@ -92,7 +93,7 @@ export function testOptimizerContenuListeRejetsConserves() {
     egal(JSON.parse(disque.get(CLE)!).rejets.listContents, [rejete, opaque, doublon], 'écriture acceptée d’un membre : tous les contenus rejetés restent');
     const data = compte(); data.box = data.box.slice(0, 1);
     const r = reverifierStockageOptimizer(lu, data, new Set());
-    egal(r.stockage.teams, [], 'revérification modifiée : équipe dissoute');
+    egal(r.stockage.teams[0].members, [a, { source: 'unowned', monsterId: '1' }], 'ancienne attente de dissolution remplacée : équipe conservée par rattachement');
     ok(isDeepStrictEqual(r.stockage.listContents, lu.listContents), 'revérification modifiée : contenus inchangés');
     lu.replaceAfterRevalidation(r.stockage); lu = h.render();
     const relu = lireMembresOptimizer(disque.get(CLE)!);

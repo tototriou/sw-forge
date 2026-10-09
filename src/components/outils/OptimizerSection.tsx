@@ -136,6 +136,7 @@ import {
   libellePuceSource,
   otherValidatedArtifactIds,
   otherValidatedRuneIds,
+  runesManquantesDuBuild,
   resolveExcludedRuneIds,
   resolveExclusionEntry,
 } from '../../lib/optimizerExclusion';
@@ -1152,6 +1153,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
   // a déjà un build validé (`findValidatedBuild`).
   const ownSelectorKey = sourceSelector ? exclusionSelectorKey(sourceSelector) : null;
   const ownValidatedBuild = findValidatedBuild(lists.validated, lists.activeListId, ownSelectorKey);
+  const runesAbsentesValidees = ownValidatedBuild ? runesManquantesDuBuild(ownValidatedBuild, runeById) : [];
 
   // Bascule d'affichage de la fiche quand un build VALIDÉ existe pour
   // l'exemplaire actif — demande explicite : « une fois le runage validé,
@@ -2815,11 +2817,12 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
     const suivant = ajoutListe.exemplaireSuivant;
     if (suivant) {
       choisirExemplaire(suivant.selector, suivant.monster);
-      lists.addMember(lists.activeListId, suivant.selector);
+      lists.addMember(lists.activeListId, suivant.selector, suivant.monster.com2usId!);
       optimizer.capturerMembre(lists.activeListId, suivant.selector);
       return;
     }
-    lists.addMember(lists.activeListId, sourceSelector);
+    if (!selected?.monster.com2usId) return;
+    lists.addMember(lists.activeListId, sourceSelector, selected.monster.com2usId);
     optimizer.capturerMembre(lists.activeListId, sourceSelector);
   }
   const unowned = sourceSelector?.source === 'unowned';
@@ -2934,7 +2937,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
     const ids = modeArtefactsSeuls.paire.map((a) => a.id);
     if (ownValidatedBuild) lists.validateArtifacts(lists.activeListId, sourceSelector, ids);
     else if (canValidateDisplayed) {
-      lists.validateBuild(lists.activeListId, sourceSelector, displayedRuneIds, ids);
+      lists.validateBuild(lists.activeListId, sourceSelector, displayedRuneIds, ids, selected!.monster.com2usId!);
       optimizer.capturerMembre(lists.activeListId, sourceSelector);
     }
   }
@@ -2945,7 +2948,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
       setAddListPromptOpen('validate');
       return;
     }
-    lists.validateBuild(lists.activeListId, sourceSelector, displayedRuneIds, displayedArtifactIds);
+    lists.validateBuild(lists.activeListId, sourceSelector, displayedRuneIds, displayedArtifactIds, selected!.monster.com2usId!);
     optimizer.capturerMembre(lists.activeListId, sourceSelector);
   }
 
@@ -2961,8 +2964,16 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
   const validatedBadge = ownValidatedBuild ? (
     <div className="mb-2 flex items-center gap-1.5 rounded-lg bg-accent-soft px-2 py-1 text-[11px] font-semibold text-accent">
       <CheckCircle2 size={13} className="flex-none" />
-      <span className="flex-1">
-        {showRealGear ? "Équipement réellement porté affiché" : "Build validé affiché — pas l'équipement réellement porté"}
+      <span className="grid min-w-0 flex-1">
+        <span className={`col-start-1 row-start-1 ${showRealGear ? 'invisible' : ''}`} aria-hidden={showRealGear}>
+          Build validé affiché — pas l'équipement réellement porté
+        </span>
+        <span className={`col-start-1 row-start-1 ${showRealGear ? '' : 'invisible'}`} aria-hidden={!showRealGear}>
+          Équipement réellement porté affiché
+        </span>
+        {runesAbsentesValidees.length > 0 && <span role="status" className="text-warn">
+          Build conservé : {runesAbsentesValidees.length} rune(s) absente(s) du compte. Seules les runes présentes sont affichées et réservées.
+        </span>}
       </span>
       <BoutonIcone
         cadre
@@ -3299,6 +3310,7 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
             const key = exclusionSelectorKey(m.selector);
             const resolved = resolveExclusionEntry(m.selector, exclusionData);
             const build = findValidatedBuild(lists.validated, lists.activeListId, key);
+            const absentes = build ? runesManquantesDuBuild(build, runeById) : [];
             return (
               <div key={key} className="flex items-center gap-2 rounded-lg border border-border-soft bg-panel/60 px-2 py-1.5">
                 <ZoneCliquable
@@ -3344,9 +3356,10 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
                 </ZoneCliquable>
                 {build ? (
                   <>
-                    <span className="flex flex-none items-center gap-1 text-[10.5px] font-semibold text-accent">
+                    <span className={`flex flex-none items-center gap-1 text-[10.5px] font-semibold ${absentes.length ? 'text-warn' : 'text-accent'}`}
+                      title={absentes.length ? 'Build conservé ; les runes absentes du compte ne sont plus réservées.' : undefined}>
                       <CheckCircle2 size={12} />
-                      Validé
+                      {absentes.length ? `${absentes.length} rune(s) absente(s)` : 'Validé'}
                     </span>
                     {/* ⚠️ **L’icône disait le contraire de l’action.** Ce
                         bouton LIBÈRE, et portait le `CheckCircle2` de la
@@ -5565,7 +5578,8 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
                           lists.activeListId!,
                           sourceSelector,
                           c.runeIds,
-                          (fileArtefacts.parBuild.get(cleBuild(c))?.artefacts ?? searchArtifacts).map((a) => a.id)
+                          (fileArtefacts.parBuild.get(cleBuild(c))?.artefacts ?? searchArtifacts).map((a) => a.id),
+                          selected!.monster.com2usId!
                         );
                         optimizer.capturerMembre(lists.activeListId!, sourceSelector);
                       }
@@ -5720,12 +5734,12 @@ export default function OptimizerSection({ box, runes, artifacts, relics, relicU
             const nom = valeur.trim();
             const intent = addListPromptOpen;
             setAddListPromptOpen(null);
-            if (!nom || !sourceSelector) return;
+            if (!nom || !sourceSelector || !selected?.monster.com2usId) return;
             const id = lists.createList(nom);
             if (intent === 'validate') {
-              if (canValidateDisplayed) lists.validateBuild(id, sourceSelector, displayedRuneIds, displayedArtifactIds);
+              if (canValidateDisplayed) lists.validateBuild(id, sourceSelector, displayedRuneIds, displayedArtifactIds, selected.monster.com2usId);
             } else {
-              lists.addMember(id, sourceSelector);
+              lists.addMember(id, sourceSelector, selected.monster.com2usId);
             }
             if (intent !== 'validate' || canValidateDisplayed) optimizer.capturerMembre(id, sourceSelector);
           }}

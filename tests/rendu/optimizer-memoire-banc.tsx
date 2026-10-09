@@ -70,6 +70,7 @@ export async function monter(avecRapport = false) {
     members: ['a', 'b'].flatMap(listId => [premier, second, troisieme, rta, siege].map(selector => ({ listId, selector }))),
   }));
   localStorage.setItem(OPTIMIZER_MEMBERS_STORAGE_KEY, ecrireMembresOptimizer({
+    identities: new Map(),
     memories: new Map<string, MemoireMembreOptimizer>([
       [cleMemoireMembre('a', premier), { listId: 'a', selector: premier, com2usId: 10101, criteres }],
       [cleMemoireMembre('b', premier), { listId: 'b', selector: premier, com2usId: 10101, criteres: { ...criteres, minStats: { spd: 190 } } }],
@@ -133,17 +134,17 @@ export async function scenario(nom: string): Promise<[boolean, string][]> {
     await choisir(second);
     await geste(() => { listes.removeMember('a', second); etat.setMinStats({ spd: 180 }); });
     verifier(!memoire('a', second), 'retrait et modification groupés : garde du stockage avant écriture');
-    await geste(() => listes.addMember('a', second));
+    await geste(() => listes.addMember('a', second, monstres[1].com2usId!));
     await choisir(second); await geste(() => listes.deleteList('a'));
     verifier(etat.proprietaireCriteres === null, 'suppression de sa liste : aucun propriétaire');
   } else if (nom === 'inclusion') {
     await geste(() => { etat.setSourceSelector(second); etat.setSelectedId('2'); etat.setMinStats({ spd: 160 }); listes.removeMember('a', second); });
-    await geste(() => { listes.addMember('a', second); etat.capturerMembre('a', second); });
+    await geste(() => { listes.addMember('a', second, monstres[1].com2usId!); etat.capturerMembre('a', second); });
     verifier(memoire('a', second)?.criteres.minStats.spd === 160 && etat.proprietaireCriteres?.com2usId === 10102, 'ajout : capture et propriétaire');
     await geste(() => { etat.setSourceSelector(troisieme); etat.setSelectedId('1'); listes.removeMember('a', troisieme); });
-    await geste(() => { listes.validateBuild('a', troisieme, [1, 2, 3, 4, 5, 6], []); etat.capturerMembre('a', troisieme); });
+    await geste(() => { listes.validateBuild('a', troisieme, [1, 2, 3, 4, 5, 6], [], monstres[0].com2usId!); etat.capturerMembre('a', troisieme); });
     verifier(!!memoire('a', troisieme), 'validation avec inclusion : capture');
-    await geste(() => { const id = listes.createList('Nouvelle'); listes.addMember(id, troisieme); etat.capturerMembre(id, troisieme); });
+    await geste(() => { const id = listes.createList('Nouvelle'); listes.addMember(id, troisieme, monstres[0].com2usId!); etat.capturerMembre(id, troisieme); });
     verifier(etat.proprietaireCriteres?.listId === listes.activeListId && !!memoire(listes.activeListId!, troisieme), 'création et ajout : capture au même geste');
   } else if (nom === 'hors-liste') {
     for (const action of [() => etat.setSelectedId('1'), () => etat.setGearSource('box'), () => etat.setSourceSelector(premier)]) {

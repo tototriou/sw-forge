@@ -9,6 +9,7 @@ import {
 import { loadLocal, saveLocal, usePersistence } from './usePersistence';
 import type { CriteresOptimizer } from '../lib/criteresOptimizer';
 import type { ExclusionSourceData } from '../lib/optimizerExclusion';
+import { enregistrerIdentiteMembre } from '../lib/optimizerRattachement';
 import {
   OPTIMIZER_MEMBERS_STORAGE_KEY, cleMemoireMembre, ecrireMembresOptimizer, lireMembresOptimizer,
   enregistrerMemoireMembre, validerEquipesOptimizer, retirerRejetsOptimizer,
@@ -48,7 +49,8 @@ function isSelector(v: unknown): v is ExclusionSelector {
   if (s.source === 'siege-defense' || s.source === 'siege-offense') {
     return typeof s.teamId === 'string' && typeof s.slotIndex === 'number';
   }
-  if (s.source === 'unowned') return typeof s.monsterId === 'string';
+  if (s.source === 'unowned') return typeof s.monsterId === 'string' && (s.copie === undefined
+    || typeof s.copie === 'number' && Number.isSafeInteger(s.copie) && s.copie >= 2);
   return false;
 }
 
@@ -82,11 +84,12 @@ export function loadOptimizerLists(): StoredState {
     if (Array.isArray(parsed.validated)) {
       for (const item of parsed.validated) {
         if (!item || typeof item !== 'object') continue;
-        const { listId, selector, runeIds, artifactIds } = item as {
+        const { listId, selector, runeIds, artifactIds, runesManquantes } = item as {
           listId?: unknown;
           selector?: unknown;
           runeIds?: unknown;
           artifactIds?: unknown;
+          runesManquantes?: unknown;
         };
         if (typeof listId !== 'string' || !listIds.has(listId)) continue;
         if (!isSelector(selector)) continue;
@@ -96,7 +99,8 @@ export function loadOptimizerLists(): StoredState {
         // une perte de données pure — la même faute qu'une revérification trop
         // stricte a déjà commise ici (voir `revalidateBuilds`).
         const arts = Array.isArray(artifactIds) && artifactIds.every((id) => typeof id === 'number') ? artifactIds : undefined;
-        validated.push({ listId, selector, runeIds, ...(arts ? { artifactIds: arts } : {}) });
+        const absentes = Array.isArray(runesManquantes) && runesManquantes.every(id => typeof id === 'number' && runeIds.includes(id)) ? runesManquantes : undefined;
+        validated.push({ listId, selector, runeIds, ...(arts ? { artifactIds: arts } : {}), ...(absentes?.length ? { runesManquantes: absentes } : {}) });
       }
     }
     const activeListId = typeof parsed.activeListId === 'string' && listIds.has(parsed.activeListId) ? parsed.activeListId : null;
@@ -122,12 +126,12 @@ export interface UseOptimizerLists {
   /** Supprime la liste ET tout ce qui lui appartient (membres, builds validés). */
   deleteList: (id: string) => void;
   members: OptimizerListMember[];
-  addMember: (listId: string, selector: ExclusionSelector) => void;
+  addMember: (listId: string, selector: ExclusionSelector, com2usId: number) => void;
   /** Retire un monstre de la liste — libère AUSSI son build validé s'il en avait un (jamais de réservation orpheline, invisible dans « Monstres de la liste »). */
   removeMember: (listId: string, selector: ExclusionSelector) => void;
   validated: ValidatedBuild[];
   /** Valide un build pour cet exemplaire DANS cette liste — REMPLACE l'entrée existante pour la même paire (liste, sélecteur) s'il y en a une. */
-  validateBuild: (listId: string, selector: ExclusionSelector, runeIds: number[], artifactIds: number[]) => void;
+  validateBuild: (listId: string, selector: ExclusionSelector, runeIds: number[], artifactIds: number[], com2usId: number) => void;
   releaseBuild: (listId: string, selector: ExclusionSelector) => void;
   /** Rend les artéfacts d’un build validé, ses runes restant réservées. */
   releaseArtifacts: (listId: string, selector: ExclusionSelector) => void;
@@ -135,6 +139,7 @@ export interface UseOptimizerLists {
   validateArtifacts: (listId: string, selector: ExclusionSelector, artifactIds: number[]) => void;
   releaseAllInList: (listId: string) => void;
   memories: DonneesMembresOptimizer['memories'];
+  identities: DonneesMembresOptimizer['identities'];
   teams: EquipeOptimizer[];
   listContents: DonneesMembresOptimizer['listContents'];
   rapportStockage: string[];
@@ -189,17 +194,19 @@ export function useOptimizerLists(): UseOptimizerLists {
       memberStorage: { ...s.memberStorage, raw: null,
         rejets: retirerRejetsOptimizer(s.memberStorage.rejets, id),
         memories: new Map([...s.memberStorage.memories].filter(([, m]) => m.listId !== id)),
+        identities: new Map([...s.memberStorage.identities].filter(([, m]) => m.listId !== id)),
         listContents: new Map([...s.memberStorage.listContents].filter(([listId]) => listId !== id)),
         teams: s.memberStorage.teams.filter((e) => e.listId !== id) },
     }));
   }, []);
 
-  const addMember = useCallback((listId: string, selector: ExclusionSelector) => {
+  const addMember = useCallback((listId: string, selector: ExclusionSelector, com2usId: number) => {
     const key = exclusionSelectorKey(selector);
     setState((s) => {
       const already = s.members.some((m) => m.listId === listId && exclusionSelectorKey(m.selector) === key);
       if (already) return s;
-      return { ...s, members: [...s.members, { listId, selector }] };
+      return { ...s, members: [...s.members, { listId, selector }], memberStorage: { ...s.memberStorage, raw: null,
+        identities: enregistrerIdentiteMembre(s.memberStorage.identities, { listId, selector, com2usId }) } };
     });
   }, []);
 
@@ -212,6 +219,7 @@ export function useOptimizerLists(): UseOptimizerLists {
       memberStorage: { ...s.memberStorage, raw: null,
         rejets: retirerRejetsOptimizer(s.memberStorage.rejets, listId, selector),
         memories: new Map([...s.memberStorage.memories].filter(([k]) => k !== cleMemoireMembre(listId, selector))),
+        identities: new Map([...s.memberStorage.identities].filter(([k]) => k !== cleMemoireMembre(listId, selector))),
         teams: s.memberStorage.teams.flatMap((e) => {
           if (e.listId !== listId) return [e];
           const members = e.members.filter((m) => exclusionSelectorKey(m) !== key);
@@ -221,10 +229,12 @@ export function useOptimizerLists(): UseOptimizerLists {
     }));
   }, []);
 
-  const validateBuild = useCallback((listId: string, selector: ExclusionSelector, runeIds: number[], artifactIds: number[] = []) => {
+  const validateBuild = useCallback((listId: string, selector: ExclusionSelector, runeIds: number[], artifactIds: number[], com2usId: number) => {
     const key = exclusionSelectorKey(selector);
     setState((s) => ({
       ...s,
+      memberStorage: { ...s.memberStorage, raw: null,
+        identities: enregistrerIdentiteMembre(s.memberStorage.identities, { listId, selector, com2usId }) },
       // Valider inclut aussi implicitement le monstre dans la liste — pas
       // besoin d'un « Inclure » préalable pour pouvoir valider.
       members: s.members.some((m) => m.listId === listId && exclusionSelectorKey(m.selector) === key)
@@ -303,10 +313,12 @@ export function useOptimizerLists(): UseOptimizerLists {
   const replaceAfterRevalidation = useCallback((stockage: StockageOptimizer) => {
     setState((s) => {
       if (stockage.members === s.members && stockage.validated === s.validated
+        && stockage.identities === s.memberStorage.identities
         && stockage.memories === s.memberStorage.memories && stockage.teams === s.memberStorage.teams
         && stockage.listContents === s.memberStorage.listContents && stockage.rejets === s.memberStorage.rejets) return s;
       return { ...s, members: stockage.members, validated: stockage.validated,
         memberStorage: { ...s.memberStorage, raw: null, rejets: stockage.rejets, memories: new Map(stockage.memories), teams: stockage.teams,
+          identities: new Map(stockage.identities),
           listContents: new Map(stockage.listContents) } };
     });
   }, []);
@@ -352,6 +364,7 @@ export function useOptimizerLists(): UseOptimizerLists {
     validateArtifacts,
     releaseAllInList,
     memories: state.memberStorage.memories,
+    identities: state.memberStorage.identities,
     teams: state.memberStorage.teams,
     listContents: state.memberStorage.listContents,
     rapportStockage: state.memberStorage.rapport,

@@ -54,7 +54,7 @@ export type ExclusionSelector =
   | { source: 'rta'; monsterId: string }
   | { source: 'siege-defense'; teamId: string; slotIndex: number }
   | { source: 'siege-offense'; teamId: string; slotIndex: number }
-  | { source: 'unowned'; monsterId: string };
+  | { source: 'unowned'; monsterId: string; copie?: number };
 
 export interface ExclusionCandidate {
   selector: ExclusionSelector;
@@ -81,7 +81,7 @@ export function exclusionSelectorKey(sel: ExclusionSelector): string {
     case 'siege-offense':
       return `siege-offense:${sel.teamId}:${sel.slotIndex}`;
     case 'unowned':
-      return `unowned:${sel.monsterId}`;
+      return `unowned:${sel.monsterId}${sel.copie === undefined ? '' : `:${sel.copie}`}`;
   }
 }
 
@@ -419,6 +419,8 @@ export interface ValidatedBuild {
   // pour les AUTRES recherches sans dépendre de ce que porte CET exemplaire
   // dans le compte en ce moment (il n'a pas été réellement réruné en jeu).
   runeIds: number[];
+  /** Identifiants conservés dans le build, mais absents de l'inventaire. */
+  runesManquantes?: number[];
   /**
    * La PAIRE D'ARTÉFACTS du build validé, même instantané que les runes.
    *
@@ -473,7 +475,7 @@ export function otherValidatedRuneIds(validated: ValidatedBuild[], listId: strin
   for (const v of validated) {
     if (v.listId !== listId) continue;
     if (ownSelectorKey != null && exclusionSelectorKey(v.selector) === ownSelectorKey) continue;
-    for (const id of v.runeIds) out.add(id);
+    for (const id of v.runeIds) if (!v.runesManquantes?.includes(id)) out.add(id);
   }
   return out;
 }
@@ -487,94 +489,36 @@ export function findValidatedBuild(validated: ValidatedBuild[], listId: string |
   return validated.find((v) => v.listId === listId && exclusionSelectorKey(v.selector) === selectorKey);
 }
 
-// Revérifie chaque build validé contre le compte ACTUELLEMENT chargé (après
-// réimport, voir App.tsx) — un sélecteur qui ne résout plus (monstre
-// fusionné/retiré de RTA/deck modifié) OU dont une rune validée n'existe
-// PLUS DU TOUT dans le compte (vendue, reforgée, décomposée depuis) est
-// abandonné : le garder afficherait un build « validé » qui n'a plus rien à
-// voir avec le compte réel. ⚠️ Jamais silencieux — voir son appelant
-// (App.tsx), qui avertit l'utilisateur du nombre abandonné plutôt que de les
-// perdre sans un mot (point bloquant).
-// ⚠️ **BUG CORRIGÉ** (revue de code externe) : la version précédente exigeait,
-// pour un exemplaire RÉEL (box/RTA/siège), que les runes validées soient
-// ENCORE PORTÉES par CET exemplaire (`resolved.gear.runes`) — contradiction
-// directe avec la définition même d'un build validé (« n'est PAS réellement
-// reruné en jeu », voir l'en-tête de `ValidatedBuild` plus haut) : ce
-// build-là n'est justement PAS censé être déjà équipé. Résultat, en
-// pratique : quasiment TOUT build validé sur un exemplaire réel échouait
-// cette vérification et se faisait abandonner dès la revérification
-// suivante (silencieusement, sauf le message d'avertissement) — perte de
-// données pure, pas une correction légitime.
-// ⚠️ `allRuneIds` (le POOL COMPLET du compte, équipé et non équipé — voir
-// OptimizerSection.tsx, `runes`) — LA seule question qui a un sens pour un
-// build validé, qu'il soit `unowned` ou un exemplaire réel : pas « ces runes
-// sont-elles encore PORTÉES par lui », mais « ces runes EXISTENT-elles
-// encore dans le compte ». Plus faible qu'une vérification « toujours porté
-// par CE monstre » aurait pu l'être (ne détecte pas une rune réattribuée à
-// un AUTRE monstre réel depuis la validation) — limite assumée, documentée
-// dans docs/02-app/optimizer/ § Monstre non possédé et
-// auto-exemption, pas une régression : rien dans ce fichier
-// n'a jamais pu détecter correctement ce cas plus fin.
-export function revalidateBuilds(validated: ValidatedBuild[], data: ExclusionSourceData, allRuneIds: Set<number>): { kept: ValidatedBuild[]; droppedCount: number } {
-  const kept: ValidatedBuild[] = [];
-  let droppedCount = 0;
-  for (const v of validated) {
-    const resolved = resolveExclusionEntry(v.selector, data);
-    const stillValid = resolved != null && v.runeIds.every((id) => allRuneIds.has(id));
-    if (stillValid) kept.push(v);
-    else droppedCount++;
-  }
-  return { kept, droppedCount };
+// L'inventaire complet, équipé ou non, détermine la marque des runes absentes.
+// Le build reste un instantané prévu : ses runes n'ont pas à être portées
+// par son membre, et leur disparition ne supprime jamais cet instantané.
+export function runesManquantesDuBuild(build: ValidatedBuild, inventaire: { has: (id: number) => boolean }): number[] {
+  return build.runeIds.filter(id => !inventaire.has(id));
 }
 
-// Même principe que `revalidateBuilds`, mais pour l'appartenance à une liste
-// (`OptimizerListMember`) — plus léger : seul le sélecteur doit encore
-// résoudre, aucune rune à comparer (être MEMBRE d'une liste n'implique pas
-// d'avoir un build validé, voir OptimizerListMember). Réutilisée telle
-// quelle par App.tsx au réimport, à côté de `revalidateBuilds`.
-// ⚠️⚠️ **ON NE REVALIDE JAMAIS CONTRE UN COMPTE VIDE.**
-//
-// La revérification répond à « mon compte a-t-il changé depuis ». Face à un
-// compte SANS aucun monstre ni aucune rune, elle ne peut répondre qu'une seule
-// chose — plus rien ne résout, donc tout est jeté — et cette réponse-là n'est
-// jamais la bonne : un compte vide veut dire « pas encore chargé », pas « tes
-// monstres ont disparu ». Et le résultat est ÉCRIT sur disque, donc définitif.
-//
-// C'est exactement ce qui se produisait au rechargement : `React.StrictMode`
-// monte le composant DEUX FOIS en développement, le garde-fou d'App.tsx
-// (`boxMountedRef`) ne protégeait que le premier passage, et le second
-// revalidait avec `box = []` / `runes = []`. Les listes restaient, leur contenu
-// partait.
-//
-// ⚠️ **La garde vit sur la DONNÉE, pas sur un compteur de rendus.** Un
-// garde-fou qui compte les passages d'un effet est battu par StrictMode, par
-// un remontage, ou par le prochain qui réorganise les effets — celui-ci tient
-// quoi qu'il arrive en amont.
+export function revalidateBuilds(validated: ValidatedBuild[], data: ExclusionSourceData, allRuneIds: Set<number>): { kept: ValidatedBuild[]; droppedCount: number } {
+  if (!comptePeutJuger(data, allRuneIds)) return { kept: validated, droppedCount: 0 };
+  const kept = validated.map(v => {
+    const absentes = runesManquantesDuBuild(v, allRuneIds);
+    if (absentes.length === (v.runesManquantes?.length ?? 0) && absentes.every((id, i) => id === v.runesManquantes?.[i])) return v;
+    const { runesManquantes: _ancienneMarque, ...build } = v;
+    return absentes.length ? { ...build, runesManquantes: absentes } : build;
+  });
+  return { kept: kept.every((v, i) => v === validated[i]) ? validated : kept, droppedCount: 0 };
+}
+
+// La garde porte sur les données, jamais sur un compteur de rendus : un
+// compte encore vide ne permet ni de rattacher ni de marquer les builds.
 export function comptePeutJuger(data: ExclusionSourceData, runeIds: Set<number>): boolean {
-  // ⚠️⚠️ **LA BOX ET LES RUNES SEULES, jamais RTA ni le siège.**
-  //
-  // C'est LE COMPTE qui arrive en retard : il se relit en asynchrone
-  // (`loadAccount()`), tandis que RTA et le siège sont des états persistés à
-  // part, rendus dès le premier rendu. Une première version acceptait
-  // « n'importe quelle source non vide » — elle passait donc toujours, puisque
-  // RTA (40 entrées) et le siège (52 équipes) étaient déjà là quand la box
-  // valait encore `0`. Mesuré sur le cas réel :
-  //
-  //     revalidation lancée — box=0 runes=0 rta=40 siegeDef=3 siegeOff=49
-  //
-  // Or c'est bien contre la BOX que les sélecteurs se résolvent, et contre les
-  // RUNES que les builds se vérifient. Une source annexe chargée ne dit
-  // strictement rien sur la disponibilité de celles-là.
+  // RTA et siège se relisent séparément : leur présence ne prouve pas
+  // l'arrivée du compte conservé, dont la Box et les runes sont asynchrones.
   return data.box.length > 0 || runeIds.size > 0;
 }
 
 export function revalidateMembers(members: OptimizerListMember[], data: ExclusionSourceData): { kept: OptimizerListMember[]; droppedCount: number } {
-  const kept: OptimizerListMember[] = [];
-  let droppedCount = 0;
-  for (const m of members) {
-    if (resolveExclusionEntry(m.selector, data)) kept.push(m);
-    else droppedCount++;
-  }
-  return { kept, droppedCount };
+  // L'identité indépendante et le rattachement sont traités par le stockage
+  // commun. Une référence introuvable ne constitue jamais un retrait.
+  void data;
+  return { kept: members, droppedCount: 0 };
 }
 

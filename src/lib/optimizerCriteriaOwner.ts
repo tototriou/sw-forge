@@ -1,7 +1,15 @@
 import { exclusionSelectorKey, resolveExclusionEntry, type ExclusionSelector, type ExclusionSourceData, type OptimizerList, type OptimizerListMember } from './optimizerExclusion';
 import type { MemoireMembreOptimizer } from './optimizerMemberStorage';
+import type { RattachementMembreOptimizer } from './optimizerRattachement';
 
 export type ProprietaireCriteresOptimizer = Omit<MemoireMembreOptimizer, 'criteres'>;
+
+export function rattacherProprietaireCriteres(proprietaire: ProprietaireCriteresOptimizer | null, rattachements: readonly RattachementMembreOptimizer[]) {
+  if (!proprietaire) return null;
+  const rattachement = rattachements.find(r => r.listId === proprietaire.listId
+    && exclusionSelectorKey(r.avant) === exclusionSelectorKey(proprietaire.selector) && r.com2usId === proprietaire.com2usId);
+  return rattachement ? { ...proprietaire, selector: rattachement.apres } : proprietaire;
+}
 
 // La même garde protège la restauration et l'écriture : liste active,
 // appartenance, exemplaire affiché et espèce réellement résolue.

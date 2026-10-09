@@ -92,7 +92,8 @@ import { useSiegeRecos } from './hooks/useSiegeRecos';
 import { useOptimizerState } from './hooks/useOptimizerState';
 import { useOptimizerLists } from './hooks/useOptimizerLists';
 import { ExclusionSourceData } from './lib/optimizerExclusion';
-import { reverifierStockageOptimizer } from './lib/optimizerMemberStorage';
+import { reverifierStockageOptimizer, type StockageOptimizer } from './lib/optimizerMemberStorage';
+import { acquerirIdentitesMembres } from './lib/optimizerRattachement';
 import { collectOwnedBuilds, collectOwnedTeams, countCopiesByCom2us } from './lib/ownedBuilds';
 import {
   BoxMonster,
@@ -332,6 +333,8 @@ function Application() {
   // voir useOptimizerLists.ts : c'est la seule part de l'écran Optimizer qui
   // persiste sur disque.
   const optimizerLists = useOptimizerLists();
+  const stockageAvantImportRef = useRef<StockageOptimizer | null>(null);
+  const compteReimporteRef = useRef<{ box: BoxItem[]; runes: RuneDetail[] } | null>(null);
 
   // Compte (box + inventaire runes/artéfacts). En mémoire, et **conservé sur
   // l'appareil** si l'utilisateur l'a demandé dans le menu ⚙ (voir
@@ -374,8 +377,7 @@ function Application() {
   // rechargement de page avec un compte conservé, `resetSearch()` + la
   // revérification des listes de travail se déclencheraient alors à tort, avec
   // le message « … dans le compte réimporté » alors qu'aucun réimport n'a
-  // eu lieu — et pourraient faire disparaître des builds validés (voir aussi
-  // `revalidateBuilds`, optimizerExclusion.ts).
+  // eu lieu. L'acquisition des identités au chargement est traitée séparément.
   // `hydrationJustAppliedRef` : posé au moment précis où l'effet d'hydratation
   // écrit `box`/`runes` depuis le stockage, consommé ICI — seule cette
   // écriture-là doit être ignorée, un VRAI réimport (même juste après) continue
@@ -390,18 +392,10 @@ function Application() {
       hydrationJustAppliedRef.current = false;
       return;
     }
-    optimizer.resetSearch('compte');
 
-    // Listes de travail — un build validé porte un INSTANTANÉ de
-    // runes (voir ValidatedBuild, optimizerExclusion.ts), pas une référence
-    // recalculée : un réimport (même compte réexporté, runes déplacées/
-    // vendues entre-temps) peut le rendre périmé — même chose pour la simple
-    // APPARTENANCE à une liste (`OptimizerListMember`, un sélecteur qui ne
-    // résout plus si le monstre a été fusionné/retiré). Revérifié à CHAQUE
-    // réimport (pas seulement sur un wizard_id différent, contrairement à
-    // `excludedSelectors` plus bas — ici on veut justement détecter « mon
-    // propre compte a changé depuis »).
-    // ⚠️ Jamais silencieux : averti dans `importMsg`, jamais juste retiré.
+    // À chaque réimport, rattacher les membres par leur espèce connue,
+    // conserver les instantanés des builds et annoncer chaque déplacement
+    // ainsi que les runes disparues dans le message d'import.
     if (optimizerLists.members.length > 0 || optimizerLists.validated.length > 0 || optimizerLists.memories.size > 0 || optimizerLists.teams.length > 0) {
       const monsterById = new Map<string, Monster>();
       for (const mon of allMonsters) monsterById.set(String(mon.id), mon);
@@ -412,17 +406,15 @@ function Application() {
         siegeOffenseTeams: siegeOff.state.teams,
         monsterById,
       };
-      // ⚠️⚠️ **Rien à juger sur un compte vide** — voir `comptePeutJuger`. Le
-      // garde-fou `boxMountedRef` ci-dessus ne protège QUE le premier passage
-      // de l'effet : `React.StrictMode` monte le composant deux fois en
-      // développement, et le second revalidait avec `box`/`runes` encore
-      // vides. Plus rien ne résolvait, tout était jeté — puis ÉCRIT sur
-      // disque. Les listes restaient, leur contenu partait à chaque
-      // rechargement.
+      // La garde du compte vide porte sur les données Box/runes ; elle reste
+      // valable au second montage de StrictMode et pendant l'hydratation.
       const runeIds = new Set(runes.map((r) => r.id));
-      const resultat = reverifierStockageOptimizer(optimizerLists, data, runeIds);
+      const resultat = reverifierStockageOptimizer(stockageAvantImportRef.current ?? optimizerLists, data, runeIds);
+      stockageAvantImportRef.current = null;
       if (resultat.rapport.compteVide) return;
+      compteReimporteRef.current = { box, runes };
       if (resultat.stockage !== optimizerLists) optimizerLists.replaceAfterRevalidation(resultat.stockage);
+      optimizer.appliquerReverificationMembres(resultat.stockage, resultat.rapport, data, runeIds);
       if (resultat.rapport.messages.length > 0) {
         setImportMsg((prev) => ({
           ok: prev?.ok ?? true,
@@ -430,6 +422,10 @@ function Application() {
             `${prev?.text ?? ''} ⚠️ ${resultat.rapport.messages.join(' ')}`,
         }));
       }
+    } else {
+      stockageAvantImportRef.current = null;
+      compteReimporteRef.current = { box, runes };
+      optimizer.resetSearch('compte');
     }
   }, [box, runes]);
 
@@ -576,6 +572,14 @@ function Application() {
   }), [box, rta.state.entries, siegeDef.state.teams, siegeOff.state.teams, allMonsters]);
   const optimizerRuneIds = useMemo(() => new Set(runes.map(r => r.id)), [runes]);
   const optimizer = useOptimizerState({ lists: optimizerLists, data: optimizerData, runeIds: optimizerRuneIds });
+  useEffect(() => {
+    // L'hydratation du compte conservé acquiert les identités historiques.
+    // Un réimport a déjà acquis ses identités avant le remplacement du compte.
+    if (!box.length && !runes.length || stockageAvantImportRef.current
+      || compteReimporteRef.current?.box === box && compteReimporteRef.current.runes === runes) return;
+    const acquis = acquerirIdentitesMembres(optimizerLists, optimizerData);
+    if (acquis !== optimizerLists) optimizerLists.replaceAfterRevalidation(acquis);
+  }, [optimizerData, optimizerLists, box, runes]);
 
   // Index com2usId → monstre, pour mapper les unités d'un export de compte.
   const monsterByCom2us = useMemo(() => {
@@ -801,6 +805,10 @@ function Application() {
   // ⚠️ C'est tout ce que fait le dossier SW Exporter (décision 15) : il suit
   // les exports sans jamais toucher au travail de l'utilisateur.
   function appliquerCompte(data: Record<string, any>, compte: ReturnType<typeof preparerCompte>) {
+    // La résolution doit précéder toutes les écritures du nouveau compte,
+    // y compris lorsqu'il arrive du dossier SW Exporter, écran démonté.
+    stockageAvantImportRef.current = box.length || runes.length
+      ? acquerirIdentitesMembres(optimizerLists, optimizerData) : optimizerLists;
     const { exporte, nomJoueur, boxRes, invRes, boxItems, usedRunes, markerLabels } = compte;
     // Exclusion manuelle de runes de l'Optimizer (excludedSelectors) : à
     // effacer sur un compte VRAIMENT DIFFÉRENT (autre wizard_id — voir

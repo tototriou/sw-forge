@@ -21,6 +21,9 @@ import {
   testEquipeOptimizerTextesStricts,
 } from './optimizer-member-storage.test';
 import { testMemoireOptimizerRejetsConserves, testMemoireOptimizerTextesCriteresStricts } from './optimizer-member-rejections.test';
+import { testOptimizerRattachementIdentites, verificationsOptimizerRattachementOrdres, testOptimizerRattachementDepartageEtPrises,
+  testOptimizerRattachementCopiesSansExemplaire, testOptimizerRattachementPermutationEtProprietaire,
+  testOptimizerRattachementRuneVendue, testOptimizerRattachementDefensesComplet, testOptimizerRattachementBranchement } from './optimizer-rattachement.test';
 import testMeules, { testGemmeMemeStat, testRegemmeDifferent, testReserveParGrade, testPalier, testRegistre, testSansDowngrade } from './meules.test';
 import testArtefacts from './artefacts.test';
 import testArtefactOptim, {
@@ -593,6 +596,14 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   // `usePersistence` (choix de conservation), partagé par tout le bundle, et
   // `testPersistance` exige un navigateur vierge.
   ['testMemoireOptimizerJson', testMemoireOptimizerJson],
+  ['testOptimizerRattachementIdentites', testOptimizerRattachementIdentites],
+  ...verificationsOptimizerRattachementOrdres,
+  ['testOptimizerRattachementDepartageEtPrises', testOptimizerRattachementDepartageEtPrises],
+  ['testOptimizerRattachementCopiesSansExemplaire', testOptimizerRattachementCopiesSansExemplaire],
+  ['testOptimizerRattachementPermutationEtProprietaire', testOptimizerRattachementPermutationEtProprietaire],
+  ['testOptimizerRattachementRuneVendue', testOptimizerRattachementRuneVendue],
+  ['testOptimizerRattachementDefensesComplet', testOptimizerRattachementDefensesComplet],
+  ['testOptimizerRattachementBranchement', testOptimizerRattachementBranchement],
   ['testMemoireOptimizerCopie', testMemoireOptimizerCopie],
   ['testMemoireOptimizerLecteurListes', testMemoireOptimizerLecteurListes],
   ['testMemoireOptimizerListesIllisibles', testMemoireOptimizerListesIllisibles],

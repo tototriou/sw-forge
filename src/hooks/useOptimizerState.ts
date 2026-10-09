@@ -3,8 +3,8 @@ import { StatKey } from '../lib/effects';
 import { Objective, SlotFilterPresetKey } from '../lib/runeBuildOptim';
 import { DamageSetup } from '../lib/damage';
 import { appliquerCriteres, baseCompleteCriteres, criteresApresChangementEspece, defaultRelicMainChoice, photoCriteres, type CriteresOptimizer } from '../lib/criteresOptimizer';
-import { validerProprietaireCriteres, type ProprietaireCriteresOptimizer } from '../lib/optimizerCriteriaOwner';
-import { cleMemoireMembre } from '../lib/optimizerMemberStorage';
+import { rattacherProprietaireCriteres, validerProprietaireCriteres, type ProprietaireCriteresOptimizer } from '../lib/optimizerCriteriaOwner';
+import { cleMemoireMembre, type StockageOptimizer, type RapportReverificationOptimizer } from '../lib/optimizerMemberStorage';
 import type { UseOptimizerLists } from './useOptimizerLists';
 import { AutoExclusionScope, ExclusionSelector, ExclusionSource, resolveExclusionEntry, type ExclusionSourceData } from '../lib/optimizerExclusion';
 import { ArtifactKind } from '../types';
@@ -114,6 +114,7 @@ export interface OptimizerState {
   poserTriRecherche: (tri: OptimizerSortKey) => void;
   poserCriteresAutomatiques: (patch: Partial<CriteresOptimizer> | ((courants: CriteresOptimizer) => Partial<CriteresOptimizer>)) => void;
   traiterReliqueImportee: (relique: Parameters<typeof defaultRelicMainChoice>[0]) => void;
+  appliquerReverificationMembres: (stockage: StockageOptimizer, rapport: RapportReverificationOptimizer, data: ExclusionSourceData, runeIds: Set<number>) => void;
   selectedId: string | null;
   setSelectedId: Dispatch<SetStateAction<string | null>>;
   /**
@@ -549,6 +550,31 @@ export function useOptimizerState(contexte?: ContexteMembresOptimizer): Optimize
     return restaurerMembre(listId, selector, true);
   }
 
+  function appliquerReverificationMembres(stockage: StockageOptimizer, rapport: RapportReverificationOptimizer, data: ExclusionSourceData, runeIds: Set<number>) {
+    const v = vivant.current, c = v.contexte;
+    const p = rattacherProprietaireCriteres(v.proprietaire, rapport.rattachements);
+    const resolu = p ? resolveExclusionEntry(p.selector, data) : null;
+    const affichage = { selectedId: resolu ? String(resolu.monster.id) : null, sourceSelector: p?.selector ?? null };
+    const listes = c ? { ...c.lists, ...stockage } : null;
+    if (!p || !listes || !validerProprietaireCriteres(p, listes, affichage, data)) { resetSearch('compte'); return; }
+    // Publier aussi le contexte immédiat : l'effet de cohérence du rendu
+    // précédent ne doit pas juger la nouvelle clé contre les anciennes listes.
+    v.contexte = { lists: listes, data, runeIds };
+    captureEnAttente.current = null;
+    v.proprietaire = p; v.selectedId = affichage.selectedId; v.sourceSelector = p.selector;
+    setProprietaireCriteres(p); setSelectedId(affichage.selectedId); setSourceSelector(p.selector);
+    if (p.selector.source !== 'unowned') setGearSource(p.selector.source);
+    const locks = Object.entries(v.criteres.lockedRunes);
+    const lockedRunes = Object.fromEntries(locks.filter(([, id]) => id != null && runeIds.has(id)));
+    const ignores = locks.length - Object.keys(lockedRunes).length;
+    poserCriteresAutomatiques({ lockedRunes,
+      ...(v.criteres.relicMainChoice === 'equipped' && !resolu?.gear.relic ? { relicMainChoice: 'libre' } : {}) });
+    setRapportCriteres(ignores ? [`${ignores} rune(s) imposée(s) ignorée(s) : absentes de ton inventaire.`] : []);
+    setImportDuCompte(n => n + 1);
+    importReliqueTraite.current = v.importDuCompte + 1;
+    effacerResultats();
+  }
+
   function capturerMembre(listId: string, selector: ExclusionSelector) {
     const v = vivant.current, c = v.contexte;
     if (!c) return;
@@ -666,6 +692,7 @@ export function useOptimizerState(contexte?: ContexteMembresOptimizer): Optimize
     capturerMembre,
     poserCriteresAutomatiques,
     traiterReliqueImportee,
+    appliquerReverificationMembres,
     poserTriRecherche: (tri) => poserCriteresAutomatiques({ sortBy: tri }),
     selectedId,
     setSelectedId: (valeur) => { effacerProprietaireCriteres(); const v = vivant.current; v.selectedId = typeof valeur === 'function' ? valeur(v.selectedId) : valeur; setSelectedId(v.selectedId); },

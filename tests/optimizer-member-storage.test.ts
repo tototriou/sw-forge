@@ -30,7 +30,7 @@ function compte(): ExclusionSourceData {
 function stockage(): StockageOptimizer {
   const criteres = baseCompleteCriteres(undefined); criteres.minStats.spd = 200;
   const memories = new Map([box, rta, siege].map((selector) => [cleMemoireMembre('l1', selector), { listId: 'l1', selector, com2usId: 10001, criteres }]));
-  return { listContents: new Map([['l1', 'guilde']]), rejets: { memories: [], teams: [], listContents: [] }, lists: [{ id: 'l1', name: 'Liste' }], members: [box, rta, siege].map((selector) => ({ listId: 'l1', selector })),
+  return { identities: new Map([box, rta, siege].map(selector => [cleMemoireMembre('l1', selector), { listId: 'l1', selector, com2usId: 10001 }])), listContents: new Map([['l1', 'guilde']]), rejets: { memories: [], teams: [], listContents: [] }, lists: [{ id: 'l1', name: 'Liste' }], members: [box, rta, siege].map((selector) => ({ listId: 'l1', selector })),
     validated: [{ listId: 'l1', selector: siege, runeIds: [1, 2, 3, 4, 5, 6], artifactIds: [7] }], memories,
     teams: [{ id: 'e1', listId: 'l1', members: [box, siege], leader: siege,
       lead: { stat: 'Attack Speed', amount: 24, area: 'Guild', element: null } }] };
@@ -156,18 +156,19 @@ export async function testMemoireOptimizerEffacement() {
   egal(lireTravail(CLE), null, 'effacement aussi sans conservation préalable sur disque');
 }
 export function testMemoireOptimizerReimport() {
-  titre('Revérification · membre retiré, mémoire conservée, équipe dissoute');
+  titre('Revérification · membre rattaché, mémoire et équipe conservées');
   const s = stockage(), data = compte(); data.siegeDefenseTeams = [];
   const r = reverifierStockageOptimizer(s, data, new Set([1, 2, 3, 4, 5, 6]));
-  egal(r.rapport.membresRetires, 1, 'le membre introuvable est retiré');
-  egal(r.rapport.buildsRetires, 1, 'le build introuvable est retiré comme auparavant');
-  egal([...r.stockage.memories], [...s.memories], 'toutes les mémoires restent conservées');
-  egal(r.rapport.memoiresInactives, ['l1|siege-defense:d1:0'], 'la mémoire du membre retiré est signalée inactive');
-  egal(r.stockage.teams, [], 'moins de deux membres : dissolution');
-  egal(r.rapport.equipesDissoutes, ['e1'], 'dissolution signalée');
+  // Les anciennes attentes de retrait et dissolution deviennent un rattachement.
+  egal(r.rapport.membresRetires, 0, 'le membre introuvable reste conservé');
+  egal(r.rapport.buildsRetires, 0, 'le build suit le rattachement');
+  egal(r.stockage.memories.size, s.memories.size, 'toutes les mémoires restent conservées');
+  egal(r.rapport.memoiresInactives, [], 'mémoire appliquée au membre rattaché');
+  egal(r.stockage.teams[0].members, [box, { source: 'unowned', monsterId: '1' }], 'équipe conservée avec sa nouvelle référence');
+  egal(r.rapport.equipesDissoutes, [], 'aucune dissolution au réimport');
   egal(lireMemoireMembre(r.stockage.memories, 'l1', siege, data), null, 'aucune application au sélecteur introuvable');
   const h = (installer(), setPersistence(true), monterListesOptimizer()); h.render().replaceAfterRevalidation(r.stockage);
-  const lu = h.render(); egal(lu.teams, [], 'le hook applique la dissolution'); egal(lu.memories.size, 3, 'le hook conserve la mémoire inactive');
+  const lu = h.render(); egal(lu.teams, r.stockage.teams, 'le hook applique le rattachement'); egal(lu.memories.size, 3, 'le hook conserve les mémoires');
   const vide = reverifierStockageOptimizer(s, { ...data, box: [] }, new Set());
   ok(vide.rapport.compteVide && vide.stockage === s, 'compte vide : aucune purge');
   setPersistence(false);
@@ -199,18 +200,18 @@ export function testMemoireOptimizerEspeceSelecteur() {
 export function testMemoireOptimizerBranchement() {
   titre('Revérification · branchement du réimport');
   const source = readFileSync(resolve(process.cwd(), 'src/App.tsx'), 'utf8');
-  ok(source.includes('reverifierStockageOptimizer(optimizerLists, data, runeIds)'), 'App appelle le producteur commun avec tout le stockage');
+  ok(source.includes('reverifierStockageOptimizer(stockageAvantImportRef.current ?? optimizerLists, data, runeIds)'), 'App appelle le producteur commun après acquisition sur le compte présent');
   ok(source.includes('optimizerLists.replaceAfterRevalidation(resultat.stockage)'), 'App applique les quatre catégories ensemble');
   ok(source.includes("resultat.rapport.messages.join(' ')"), 'App affiche le rapport commun');
 }
 
 export function testEquipeOptimizerMembreRetire() {
-  titre('Revérification · équipe conservée à deux, sans remplacement du leader');
+  titre('Revérification · équipe et leader suivent le membre rattaché');
   const s = stockage(), data = compte();
   s.teams[0].members.push(rta); data.siegeDefenseTeams = [];
   const r = reverifierStockageOptimizer(s, data, new Set([1, 2, 3, 4, 5, 6]));
-  egal(r.stockage.teams[0]?.members, [box, rta], 'les deux membres retrouvés restent dans l’équipe');
-  ok(!('leader' in r.stockage.teams[0]), 'aucun autre leader désigné automatiquement');
+  egal(r.stockage.teams[0]?.members, [box, { source: 'unowned', monsterId: '1' }, rta], 'les trois membres restent dans l’équipe');
+  egal(r.stockage.teams[0].leader, { source: 'unowned', monsterId: '1' }, 'leader conservé sous sa nouvelle référence');
   egal(r.stockage.teams[0]?.lead, s.teams[0].lead, 'le lead éditable de l’équipe reste conservé');
   egal(r.rapport.equipesModifiees, ['e1'], 'l’équipe modifiée figure dans le rapport');
   egal(s.teams[0].members.length, 3, 'le stockage d’entrée reste intact');

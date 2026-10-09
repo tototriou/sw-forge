@@ -68,7 +68,7 @@
    Les **réglages avancés**
    (préfiltrage, exclusions, recherche exhaustive…) ne sont jamais
    concernés : préférences générales, pas critères propres à un monstre.
-   **Importer un nouveau compte** déclenche la réinitialisation complète,
+   **Importer un nouveau compte sans propriétaire valide** déclenche la réinitialisation complète,
    pour la même raison (autre box, autre pool de runes possible) — même en
    étant sur un autre onglet au moment de l'import.
 
@@ -123,7 +123,8 @@ décrit les transitions hors liste ; la mémoire d'un membre contient le combat 
 | Création ou suppression de la liste active sans inclusion | Conservés sans propriétaire | Conservés sans propriétaire | Conservés sans propriétaire |
 | Choix d'un membre de liste, quelle que soit son espèce | Mémoire valide, sinon base complète | Mémoire valide, sinon base complète | Mémoire valide, sinon base complète |
 | Import de recette | Valeurs de la recette | Valeurs de la recette | Valeurs de la recette |
-| Import de compte | Défauts | Défauts | `resetSearch` habituel |
+| Import de compte sans propriétaire valide | Défauts | Défauts | `resetSearch` habituel |
+| Réimport avec propriétaire valide après rattachement | Conservés | Conservés | Conservés ; runes imposées absentes retirées de l'affichage et dites, cohérence de relique conservée |
 
 La conservation hors liste garde la règle de cohérence de la relique :
 « Garder la relique équipée » redevient « Libre » si l'exemplaire choisi

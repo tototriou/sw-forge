@@ -7,6 +7,7 @@
 import { bilan, debutVerification } from './outils';
 import testImport from './import.test';
 import { verificationsImportEquipes } from './import-equipes.test';
+import { testOptimizerImportNavigation } from './optimizer-import-navigation.test';
 import { testOptimizerImportActionDemontee, testOptimizerImportEcrituresGroupees, testOptimizerImportReverificationEnAttente, testOptimizerImportCollision, testRenduOptimizerImportDefenses, testRenduTelephoneOptimizerImportDefenses,
   testRenduOptimizerImportOffense, testRenduTelephoneOptimizerImportOffense, testRenduOptimizerImportRta,
   testRenduTelephoneOptimizerImportRta, testRenduOptimizerImportIndisponible, testRenduTelephoneOptimizerImportIndisponible, testRenduOptimizerImportRapportPartage, testRenduOptimizerImportDisponibiliteMemoisee } from './rendu/optimizer-import.test';
@@ -621,6 +622,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testStockage', async () => { await testStockage(); }],
   ['testPersistance', async () => { await testPersistance(); }],
   ['testOptimizerImportActionDemontee', testOptimizerImportActionDemontee],
+  ['testOptimizerImportNavigation', testOptimizerImportNavigation],
   ['testOptimizerImportEcrituresGroupees', testOptimizerImportEcrituresGroupees],
   ['testOptimizerImportReverificationEnAttente', testOptimizerImportReverificationEnAttente],
   ['testOptimizerImportCollision', testOptimizerImportCollision],

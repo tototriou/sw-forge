@@ -63,6 +63,9 @@ résultats, progression, page, arrêt manuel et détail ouvert, sans lancer
 de recherche. La réconciliation garde le propriétaire établi par le
 geste ; la prochaine saisie écrit vers ce premier membre seulement.
 Aucune liste existante ni aucun point de sauvegarde n’est modifié.
+Après acceptation, l’action commune ouvre l’Optimizer par la route
+`#/outils/optimizer`. Un import vide, une collision ou une revérification
+en attente rendent leur rapport sans navigation.
 La préparation lit aussi les écritures des listes en attente dans le même
 geste React pour attribuer un identifiant libre. La publication ajoute seulement
 la nouvelle liste, ses membres, identités, mémoires, équipes et contenu par une

@@ -270,6 +270,8 @@ Une entrée = une règle qu'un chantier qui l'ignore casse, avec sa source. Ce f
 
 ## UI
 
+- La navigation commune vers `#/outils/optimizer` suit seulement un import accepté par `importerEquipe` ; import vide, collision et revérification en attente gardent la route courante. Source : ../../02-app/optimizer/feat-import-equipes.md § F1 — Importer depuis l’Optimizer
+
 - Toutes les écritures de l’état des listes de `useOptimizerLists` passent par son `setState` enveloppé et s’appliquent dans l’ordre d’envoi, sans transition (`startTransition`) : une priorité différée casserait l’état courant anticipé. La sauvegarde du point photographie cet état courant, mémoire écrite dans le même geste comprise. Sources : ../../02-app/optimizer/feat-listes-equipes-et-sauvegarde.md § Stockage indépendant des listes ; ../../02-app/optimizer/feat-listes-equipes-et-sauvegarde.md § Point de sauvegarde de toutes les listes
 
 - Avant le remplacement du compte, la photo de réimport lit l’état courant des listes, écritures déjà envoyées comprises. Tant que sa revérification est en attente, l’import d’équipe refuse au rapport avant le producteur, sans changer listes, sélection, propriétaire, critères ni résultats ; après revérification, il redevient possible. Un import de compte regroupé avec la relecture du compte conservé annule le drapeau de cette relecture : il est revérifié et l'attente se termine. Sources : ../../02-app/optimizer/feat-import-equipes.md § F1 — Importer depuis l’Optimizer ; ../../02-app/optimizer/feat-listes-equipes-et-sauvegarde.md § Revérification commune

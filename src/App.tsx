@@ -90,6 +90,7 @@ import { useRtaState } from './hooks/useRtaState';
 import { useSiegeState } from './hooks/useSiegeState';
 import { useSiegeRecos } from './hooks/useSiegeRecos';
 import { useOptimizerState } from './hooks/useOptimizerState';
+import { avecNavigationImportOptimizer } from './lib/actionImportOptimizer';
 import { useOptimizerLists } from './hooks/useOptimizerLists';
 import { ExclusionSourceData } from './lib/optimizerExclusion';
 import { reverifierStockageOptimizer, type StockageOptimizer } from './lib/optimizerMemberStorage';
@@ -573,6 +574,9 @@ function Application() {
   const optimizerRuneIds = useMemo(() => new Set(runes.map(r => r.id)), [runes]);
   const optimizer = useOptimizerState({ lists: optimizerLists, data: optimizerData, runeIds: optimizerRuneIds,
     reverificationEnAttente: () => stockageAvantImportRef.current !== null });
+  const importerEquipe = avecNavigationImportOptimizer(optimizer.importerEquipe, () => {
+    window.location.hash = '#/outils/optimizer';
+  });
   useEffect(() => {
     // L'hydratation du compte conservé acquiert les identités historiques.
     // Un réimport a déjà acquis ses identités avant le remplacement du compte.
@@ -1741,7 +1745,7 @@ function Application() {
             loadState={data.loadState}
             hydrating={accountHydrating}
             optimizer={optimizer}
-            onImporterEquipe={optimizer.importerEquipe}
+            onImporterEquipe={importerEquipe}
             allMonsters={allMonsters}
             rtaEntries={rta.state.entries}
             siegeDefenseTeams={siegeDef.state.teams}

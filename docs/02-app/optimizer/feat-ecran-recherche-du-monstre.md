@@ -158,7 +158,8 @@ différé de changement d'espèce ne les écrase.
 Un rendu à part (`lg:hidden`), pas un réagencement du bureau :
 
 1. la recherche, toujours visible, avec en dessous la liste active et la
-   zone C dans un dépliement replié par défaut (`zoneCOpen`) ;
+   zone C dans le dépliement « Gérer mes listes », replié par défaut
+   (`zoneCOpen`) ;
 2. les puces, toujours visibles, avec la zone D **en ligne** dessous (le
    même `zoneDOpen` qu'au bureau ; un flottant se prête mal à un écran
    étroit) ;

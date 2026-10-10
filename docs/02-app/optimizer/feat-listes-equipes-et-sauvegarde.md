@@ -87,7 +87,7 @@ Un compte vide reprend les données sans revérification et le dit.
 Supprimer une liste ou réimporter le compte ne modifie jamais le point.
 
 « Sauvegarder » et « Reprendre » sont dans la zone des membres, aux deux formats :
-dans la colonne de bureau, dans le dépliement « Monstres à optimiser » au téléphone.
+dans la colonne de bureau, dans le dépliement « Gérer mes listes » au téléphone.
 Les boutons restent montés ; « Reprendre » est désactivé sans point lisible,
 avec la raison en infobulle. « Sauvegarder » rappelle que la conservation
 automatique existe déjà. L’annonce sous les boutons donne le nombre de listes

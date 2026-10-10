@@ -35,7 +35,7 @@ export async function preuvesCombatAfficheOptimizer(b: Banc): Promise<[boolean, 
     b.etat().setDamageSetup(s => ({ ...s, leaderSkill: { stat: 'HP', pct: 44 }, leaderSpeedPct: 19 }));
     b.etat().setObjective('degats_reels');
   });
-  const pli = bouton('Monstres à optimiser');
+  const pli = bouton('Gérer mes listes');
   if (pli) await b.geste(() => pli.click());
   const selection = () => JSON.stringify([b.etat().selectedId, b.etat().sourceSelector]);
   const membre = selection();

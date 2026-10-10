@@ -12,7 +12,7 @@ const visible = (e: Element) => e.getBoundingClientRect().width > 0 && getComput
 
 export async function preuvesBandesEquipes(b: Banc): Promise<[boolean, string][]> {
   const preuves: [boolean, string][] = [], verifier = (oui: boolean, texte: string) => preuves.push([oui, texte]);
-  const pli = [...document.querySelectorAll<HTMLButtonElement>('button')].find(e => visible(e) && e.textContent?.trim() === 'Monstres à optimiser');
+  const pli = [...document.querySelectorAll<HTMLButtonElement>('button')].find(e => visible(e) && e.textContent?.trim() === 'Gérer mes listes');
   if (pli) await b.geste(() => pli.click());
   await b.geste(() => {
     b.listes().setListContent('a', 'guilde');

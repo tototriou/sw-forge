@@ -3763,7 +3763,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
               aria-expanded={zoneCOpen}
               className="mt-2 flex w-full items-center gap-1.5 text-[12.5px] font-semibold text-ink-dim"
             >
-              Monstres à optimiser
+              Gérer mes listes
               <ChevronDown size={13} className={`ml-auto transition-transform ${zoneCOpen ? 'rotate-180' : ''}`} />
             </ZoneCliquable>
             <OptimizerImportButton sources={sourcesImport} onImporter={importerDepuisEcran} rapport={rapportImport} />

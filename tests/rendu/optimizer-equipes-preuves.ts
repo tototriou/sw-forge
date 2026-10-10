@@ -14,7 +14,7 @@ interface Banc {
 const visible = (e: Element) => e.getBoundingClientRect().width > 0 && getComputedStyle(e).visibility !== 'hidden';
 const bouton = (texte: string, racine: ParentNode = document) => [...racine.querySelectorAll<HTMLButtonElement>('button')].find(b => visible(b) && (b.textContent?.trim() === texte || b.getAttribute('aria-label') === texte))!;
 async function ouvrirListe(b: Banc) {
-  const pli = bouton('Monstres à optimiser');
+  const pli = bouton('Gérer mes listes');
   if (pli) await b.geste(() => pli.click());
 }
 async function choisirMenu(b: Banc, label: string, valeur: string) {

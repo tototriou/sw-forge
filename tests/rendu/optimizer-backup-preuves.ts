@@ -24,7 +24,7 @@ const position = (e: Element) => { const { x, y, width, height } = e.getBounding
 
 export async function preuvesPointOptimizer(b: Banc, nom: string): Promise<[boolean, string][]> {
   const preuves: [boolean, string][] = [], verifier = (oui: boolean, texte: string) => preuves.push([oui, texte]);
-  const pli = bouton('Monstres à optimiser');
+  const pli = bouton('Gérer mes listes');
   if (pli) await b.geste(() => pli.click());
   await b.geste(() => {
     b.listes().setListContent('a', 'guilde');

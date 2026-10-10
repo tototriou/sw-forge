@@ -245,7 +245,7 @@ export async function scenario(nom: string): Promise<[boolean, string][]> {
     await geste(() => etat.setDamageSetup({ ...etat.damageSetup, setsAuraExternes: [{ set: 'accuracy', nombre: 1 }] }));
     await choisir();
     const visible = (e: Element) => e.getBoundingClientRect().width > 0 && getComputedStyle(e).visibility !== 'hidden';
-    const pli = [...document.querySelectorAll<HTMLButtonElement>('button')].find(e => visible(e) && e.textContent?.includes('Monstres à optimiser'));
+    const pli = [...document.querySelectorAll<HTMLButtonElement>('button')].find(e => visible(e) && e.textContent?.includes('Gérer mes listes'));
     if (pli) await geste(() => pli.click());
     const zone = [...document.querySelectorAll<HTMLElement>('[aria-label="Rapport des critères"]')].find(visible)!.parentElement!;
     const cliquer = (index: number) => geste(() => zone.querySelectorAll<HTMLElement>('[role="button"]')[index].click());
@@ -300,7 +300,7 @@ export async function scenario(nom: string): Promise<[boolean, string][]> {
     }
   } else if (nom === 'zone-c') {
     const visible = (e: Element) => e.getBoundingClientRect().width > 0 && getComputedStyle(e).visibility !== 'hidden';
-    const pli = [...document.querySelectorAll<HTMLButtonElement>('button')].find(e => visible(e) && e.textContent?.includes('Monstres à optimiser'));
+    const pli = [...document.querySelectorAll<HTMLButtonElement>('button')].find(e => visible(e) && e.textContent?.includes('Gérer mes listes'));
     if (pli) await geste(() => pli.click());
     const zone = [...document.querySelectorAll<HTMLElement>('[aria-label="Rapport des critères"]')].find(visible)!;
     verifier(zone.textContent!.includes('malformée'), 'rapport du stockage chargé affiché dans la zone C');

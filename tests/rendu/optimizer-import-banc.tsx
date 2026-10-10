@@ -262,7 +262,7 @@ export async function scenario(nom: string): Promise<[boolean, string][]> {
     const choisi = [...document.querySelectorAll('span')].find(e => visible(e) && e.textContent === 'Monstre 1'
       && position(e).y >= position(recherche).y + position(recherche).height && position(e).y + position(e).height <= position(ancre).y);
     verifier(!!choisi, 'le monstre choisi reste entre sa recherche et les contrôles de liste, sans bouton intercalé');
-    const pliListe = bouton('Monstres à optimiser');
+    const pliListe = bouton('Gérer mes listes');
     if (pliListe) await geste(() => pliListe.click());
     const selecteurListe = bouton('Ancienne');
     const ecartListe = position(selecteurListe).y - position(ancre).y - position(ancre).height;
@@ -298,7 +298,7 @@ export async function scenario(nom: string): Promise<[boolean, string][]> {
       verifier(getComputedStyle(rapport.parentElement!).position === 'absolute' && getComputedStyle(rapport.parentElement!).borderTopWidth === '1px', 'rapport hors du flux dans la surface au contour de 1 px');
       await geste(() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })));
       verifier(ancre.getAttribute('aria-expanded') === 'false', 'Échap ferme les sources sans import supplémentaire');
-      const pli = bouton('Monstres à optimiser'); if (pli) await geste(() => pli.click());
+      const pli = bouton('Gérer mes listes'); if (pli) await geste(() => pli.click());
       verifier(texte().includes(nom === 'defenses' ? 'Monstres de « Défenses de siège »' : nom === 'rta' ? 'Monstres de « Prépa RTA »' : 'Monstres de « Offense de siège »'), 'liste active importée lue à l’écran');
       const minimum = [...document.querySelectorAll<HTMLInputElement>('[aria-label="VIT minimum"]')].find(visible);
       verifier(minimum?.value === String(nom === 'rta' ? 140 : 120), 'vitesse importée lue dans le champ réel de l’écran');

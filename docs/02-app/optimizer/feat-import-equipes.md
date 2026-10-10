@@ -24,7 +24,7 @@ qui ne peuvent pas être converties. Les critères partiels utilisent l’objet
 Lorsque l’Optimizer est monté avec un compte, « Importer une équipe » est
 toujours affiché dans « Monstre & équipement »,
 près du sélecteur de liste, au bureau et au téléphone, même lorsque
-« Monstres à optimiser » est replié. Sans membre résolvable dans aucune
+« Gérer mes listes » est replié. Sans membre résolvable dans aucune
 source, le bouton est désactivé et son `title` en donne la raison.
 Sans compte, l’écran vide existant remplace l’Optimizer et ne montre pas ce bouton.
 La disponibilité est dérivée des producteurs, y compris pour une source
@@ -97,7 +97,7 @@ fermé il ne peut être rouvert avant le retour d’une source utilisable. Le ra
 reste conservé pendant cette indisponibilité.
 Au bureau et au téléphone, le bouton précède le sélecteur de listes,
 après la recherche et le monstre choisi ; au téléphone, il reste sous
-« Monstres à optimiser », hors de son dépliement. La ligne du monstre
+« Gérer mes listes », hors de son dépliement. La ligne du monstre
 choisi garde sa hauteur lorsqu’elle est vide ; un nom long reste sur une
 ligne, tronqué avec son texte complet en `title`, pour que le premier import
 ne déplace pas l’ancre. L’ouverture des sources et le rapport sortent du flux.

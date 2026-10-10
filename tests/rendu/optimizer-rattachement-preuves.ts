@@ -49,7 +49,7 @@ export async function preuvesRattachementOptimizer(c: Contexte, demonte = false)
     && !c.listes().memories.has(cleMemoireMembre('a', c.premier)), 'saisie après rattachement vers la nouvelle clé uniquement');
   if (demonte) await c.geste(() => c.afficher(true));
   const visible = (element: Element) => element.getBoundingClientRect().width > 0 && getComputedStyle(element).visibility !== 'hidden';
-  const pli = [...document.querySelectorAll<HTMLButtonElement>('button')].find(b => visible(b) && b.textContent?.includes('Monstres à optimiser'));
+  const pli = [...document.querySelectorAll<HTMLButtonElement>('button')].find(b => visible(b) && b.textContent?.includes('Gérer mes listes'));
   if (pli) await c.geste(() => pli.click());
   verifier([...document.querySelectorAll('[role="status"]')].some(e => visible(e) && e.textContent?.includes('1 rune(s) absente(s)')), 'fiche : marque explicite du build incomplet');
   verifier(document.body.textContent!.includes('Build conservé ;') || [...document.querySelectorAll('[title]')].some(e => e.getAttribute('title')?.includes('Build conservé ;')),

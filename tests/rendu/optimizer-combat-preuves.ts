@@ -106,7 +106,7 @@ export async function preuvesLeadAncienHorsEquipe(b: Banc): Promise<[boolean, st
 
 export async function preuvesContenuSansDeplacement(b: Banc): Promise<[boolean, string][]> {
   const preuves: [boolean, string][] = [], verifier = (oui: boolean, texte: string) => preuves.push([oui, texte]);
-  const pli = bouton(['Monstres à optimiser']);
+  const pli = bouton(['Gérer mes listes']);
   if (pli) await b.geste(() => pli.click());
   const contenu = [...document.querySelectorAll<HTMLSelectElement>('[aria-label="Contenu de la liste"]')].find(visible)!;
   const liste = [...document.querySelectorAll<HTMLButtonElement>('button[aria-expanded]')]

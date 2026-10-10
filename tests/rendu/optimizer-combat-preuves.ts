@@ -49,9 +49,10 @@ export async function preuvesRecetteLeadEquipe(b: Banc): Promise<[boolean, strin
     texte = await textes[0];
   } finally { URL.createObjectURL = creerUrl; HTMLAnchorElement.prototype.click = cliquerLien; }
   const { recipe } = parseOptimizerRecipe(texte);
-  verifier(recipe?.damageSetup?.leaderSkill?.stat === 'Attack Speed' && recipe.damageSetup.leaderSkill.pct === 24,
-    'recette exportée depuis le membre lié : lead effectif de l’équipe');
-  verifier(recipe?.damageSetup?.leaderSpeedPct === undefined, 'recette : aucun ancien lead personnel superposé');
+  verifier(recipe?.damageSetup?.leaderSkill?.stat === 'HP' && recipe.damageSetup.leaderSkill.pct === 33,
+    'recette exportée depuis le membre lié : lead personnel, jamais celui de l’équipe');
+  verifier(!!recipe?.damageSetup && resolvedLeaderSkill(recipe.damageSetup)?.stat === 'HP',
+    'recette : le lead résolu reste le lead personnel');
   verifier(JSON.stringify(b.etat().damageSetup) === personnel && JSON.stringify(memoire(b)) === photo,
     'exporter garde les critères personnels et la mémoire du membre intacts');
   const donnees = JSON.parse(texte) as Record<string, unknown>;
@@ -68,8 +69,8 @@ export async function preuvesRecetteLeadEquipe(b: Banc): Promise<[boolean, strin
   } finally { File.prototype.text = lireFichier; }
   verifier(b.etat().proprietaireCriteres === null && b.etat().lireCombatMembre().equipe === null,
     'réimport : aucune attribution à une équipe ou à un propriétaire');
-  verifier(b.etat().damageSetup.leaderSkill?.stat === 'Attack Speed' && b.etat().damageSetup.leaderSkill?.pct === 24,
-    'réimport : le lead effectif exporté devient une valeur de recette');
+  verifier(b.etat().damageSetup.leaderSkill?.stat === 'HP' && b.etat().damageSetup.leaderSkill?.pct === 33,
+    'réimport : le lead personnel exporté devient une valeur de recette');
   verifier(JSON.stringify(memoire(b)) === photo && JSON.stringify(b.listes().teams) === teams,
     'réimport : aucune mémoire ni équipe existante écrasée');
   return preuves;

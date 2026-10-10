@@ -1936,7 +1936,9 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
       wizardName: accountName,
       requirement,
       objective,
-      damageSetup,
+      // Les critères personnels du membre, lead personnel compris : le lead
+      // d'une équipe appartient à la liste, pas à la recette.
+      damageSetup: damageSetupPersonnel,
       compterAurasResPre,
       metric,
       slotFilterPreset,

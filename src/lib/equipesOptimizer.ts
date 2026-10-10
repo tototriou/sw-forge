@@ -1,8 +1,11 @@
 import type { ElementKey, LeaderSkill } from '../types';
-import type { LeadEffectifOptimizer } from './criteresOptimizer';
-import { LEADER_SKILL_STATS, type LeaderSkillStat } from './damage';
-import { exclusionSelectorKey, type ExclusionSelector } from './optimizerExclusion';
-import { validerEquipesOptimizer, type ContenuListeOptimizer, type EquipeOptimizer, type StockageOptimizer } from './optimizerMemberStorage';
+import { appliquerCriteres, baseCompleteCriteres, type LeadEffectifOptimizer } from './criteresOptimizer';
+import { LEADER_SKILL_STATS, type DamageSetup, type LeaderSkillStat } from './damage';
+import { exclusionSelectorKey, resolveExclusionEntry, type ExclusionSelector, type ExclusionSourceData } from './optimizerExclusion';
+import {
+  cleMemoireMembre, enregistrerMemoireMembre, validerEquipesOptimizer,
+  type ContenuListeOptimizer, type EquipeOptimizer, type StockageOptimizer,
+} from './optimizerMemberStorage';
 
 type PorteeLead = 'General' | 'Element' | 'Arena' | 'Guild' | 'Dungeon';
 type ActiviteLead = 'actif' | 'element' | 'inactif';
@@ -56,6 +59,38 @@ export function leadEffectifMembreOptimizer(
   if (!LEADER_SKILL_STATS.includes(lead.stat as LeaderSkillStat)) return aucun('La statistique de ce lead est conservée, sans effet calculé.');
   if (!Number.isFinite(lead.amount) || lead.amount < 0) return aucun('Le montant de ce lead est invalide.');
   return { type: 'equipe', lead: { stat: lead.stat as LeaderSkillStat, pct: lead.amount } };
+}
+
+export const memeLeadOptimizer = (a: DamageSetup, b: DamageSetup): boolean =>
+  a.leaderSkill?.stat === b.leaderSkill?.stat && a.leaderSkill?.pct === b.leaderSkill?.pct && a.leaderSpeedPct === b.leaderSpeedPct;
+
+/**
+ * Le lead personnel d'un membre d'équipe est écrasé par son lead effectif,
+ * « aucun » compris, et le reste quand le membre quitte l'équipe : rien ne
+ * le restaure. Un membre sans mémoire en reçoit une depuis la base complète,
+ * comme à l'import. Les mémoires restent la même référence si rien ne change.
+ */
+export function synchroniserLeadsMembresOptimizer(
+  stockage: Pick<StockageOptimizer, 'teams' | 'listContents' | 'members' | 'memories' | 'identities'>,
+  listId: string, data: ExclusionSourceData
+): { memories: StockageOptimizer['memories']; ecrits: ExclusionSelector[] } {
+  let memories = stockage.memories;
+  const ecrits: ExclusionSelector[] = [];
+  for (const selector of stockage.teams.filter(e => e.listId === listId).flatMap(e => e.members)) {
+    const cle = cleMemoireMembre(listId, selector), resolu = resolveExclusionEntry(selector, data);
+    const com2usId = resolu?.monster.com2usId, identite = stockage.identities.get(cle), memoire = memories.get(cle);
+    // Un exemplaire qui a changé d'espèce garde sa mémoire sans application.
+    if (!resolu || !com2usId || !stockage.members.some(m => m.listId === listId && memeMembre(m.selector, selector))
+      || (identite && identite.com2usId !== com2usId) || (memoire && memoire.com2usId !== com2usId)) continue;
+    const suivante = appliquerCriteres(memoire?.criteres ?? baseCompleteCriteres(resolu.gear),
+      leadEffectifMembreOptimizer(stockage, listId, selector, resolu.monster.element));
+    if (memoire && memeLeadOptimizer(memoire.criteres.damageSetup, suivante.damageSetup)) continue;
+    const ecriture = enregistrerMemoireMembre(memories, { listId, selector, com2usId }, suivante, data);
+    if (ecriture.rapport.length) continue;
+    memories = ecriture.memories;
+    ecrits.push(selector);
+  }
+  return { memories, ecrits };
 }
 
 export type ContexteEquipesOptimizer = Pick<StockageOptimizer, 'lists' | 'members' | 'teams'>;

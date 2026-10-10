@@ -196,7 +196,7 @@ export default function EtatMonstre({
         />
       </div>
       </div>
-      {equipe && <p className="h-20 overflow-y-auto text-xs text-ink-dim">Lead effectif de l’équipe : le modifier change le lead de toute l’équipe. Ton lead personnel reste mémorisé.
+      {equipe && <p className="h-20 overflow-y-auto text-xs text-ink-dim">Lead effectif de l’équipe : le modifier change le lead de toute l’équipe. Chaque membre le garde en quittant l’équipe.
         {motifLead && <span className="block text-warn">{motifLead}</span>}
       </p>}
       {/* ⚠️ **Rappel des buffs posés par un passif** :

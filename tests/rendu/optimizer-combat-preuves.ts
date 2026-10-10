@@ -49,10 +49,12 @@ export async function preuvesRecetteLeadEquipe(b: Banc): Promise<[boolean, strin
     texte = await textes[0];
   } finally { URL.createObjectURL = creerUrl; HTMLAnchorElement.prototype.click = cliquerLien; }
   const { recipe } = parseOptimizerRecipe(texte);
-  verifier(recipe?.damageSetup?.leaderSkill?.stat === 'HP' && recipe.damageSetup.leaderSkill.pct === 33,
-    'recette exportée depuis le membre lié : lead personnel, jamais celui de l’équipe');
-  verifier(!!recipe?.damageSetup && resolvedLeaderSkill(recipe.damageSetup)?.stat === 'HP',
-    'recette : le lead résolu reste le lead personnel');
+  verifier(b.etat().damageSetup.leaderSkill?.stat === 'Attack Speed' && b.etat().damageSetup.leaderSkill?.pct === 24
+    && b.etat().damageSetup.leaderSpeedPct === undefined, 'lier : le lead d’équipe a écrasé le lead personnel');
+  verifier(recipe?.damageSetup?.leaderSkill?.stat === 'Attack Speed' && recipe.damageSetup.leaderSkill.pct === 24
+    && recipe.damageSetup.leaderSpeedPct === undefined, 'recette exportée depuis le membre lié : son lead personnel, qui porte le lead d’équipe');
+  verifier(!!recipe?.damageSetup && resolvedLeaderSkill(recipe.damageSetup)?.stat === 'Attack Speed',
+    'recette : le lead résolu est le lead personnel');
   verifier(JSON.stringify(b.etat().damageSetup) === personnel && JSON.stringify(memoire(b)) === photo,
     'exporter garde les critères personnels et la mémoire du membre intacts');
   const donnees = JSON.parse(texte) as Record<string, unknown>;
@@ -69,7 +71,7 @@ export async function preuvesRecetteLeadEquipe(b: Banc): Promise<[boolean, strin
   } finally { File.prototype.text = lireFichier; }
   verifier(b.etat().proprietaireCriteres === null && b.etat().lireCombatMembre().equipe === null,
     'réimport : aucune attribution à une équipe ou à un propriétaire');
-  verifier(b.etat().damageSetup.leaderSkill?.stat === 'HP' && b.etat().damageSetup.leaderSkill?.pct === 33,
+  verifier(b.etat().damageSetup.leaderSkill?.stat === 'Attack Speed' && b.etat().damageSetup.leaderSkill?.pct === 24,
     'réimport : le lead personnel exporté devient une valeur de recette');
   verifier(JSON.stringify(memoire(b)) === photo && JSON.stringify(b.listes().teams) === teams,
     'réimport : aucune mémoire ni équipe existante écrasée');
@@ -91,13 +93,14 @@ export async function preuvesLeadAncienHorsEquipe(b: Banc): Promise<[boolean, st
     'hors équipe : choix Aucun écrit la mémoire du propriétaire valide en conséquence');
   await poserPersonnel();
   await lier(b);
-  const personnel = JSON.stringify(b.etat().damageSetup), photo = JSON.stringify(memoire(b));
+  verifier(resolvedLeaderSkill(b.etat().damageSetup)?.stat === 'Attack Speed' && b.etat().damageSetup.leaderSpeedPct === undefined,
+    'lier un membre au lead ancien : le lead d’équipe l’écrase, ancien champ de VIT effacé');
   await choisirLead(b, '');
   verifier(b.listes().teams[0].lead === null && resolvedLeaderSkill(b.etat().lireCombatMembre().setup) === null,
-    'membre lié, choix Aucun : lead partagé retiré, aucun repli sur le lead personnel');
-  verifier(b.etat().damageSetup.leaderSpeedPct === 19 && b.etat().damageSetup.leaderSkill?.pct === 33
-    && JSON.stringify(b.etat().damageSetup) === personnel && JSON.stringify(memoire(b)) === photo,
-    'membre lié, même geste : ancien champ et lead personnel conservés dans les critères et la mémoire');
+    'membre lié, choix Aucun : lead partagé retiré, aucun repli sur un lead antérieur');
+  verifier(resolvedLeaderSkill(b.etat().damageSetup) === null && b.etat().damageSetup.leaderSpeedPct === undefined
+    && resolvedLeaderSkill(memoire(b).criteres.damageSetup) === null && memoire(b).criteres.damageSetup.leaderSpeedPct === undefined,
+    'membre lié, même geste : lead personnel « Aucun » dans les critères et la mémoire');
   return preuves;
 }
 

@@ -8,6 +8,7 @@ import {
 } from '../lib/optimizerExclusion';
 import { loadLocal, saveLocal, usePersistence } from './usePersistence';
 import type { CriteresOptimizer } from '../lib/criteresOptimizer';
+import { synchroniserLeadsMembresOptimizer } from '../lib/equipesOptimizer';
 import { identifiantListeImportOccupe } from '../lib/importEquipes';
 import type { ExclusionSourceData } from '../lib/optimizerExclusion';
 import { acquerirIdentitesMembres, enregistrerIdentiteMembre } from '../lib/optimizerRattachement';
@@ -160,6 +161,8 @@ export interface UseOptimizerLists {
   rejets: DonneesMembresOptimizer['rejets'];
   writeMemory: (membre: Omit<MemoireMembreOptimizer, 'criteres'>, criteres: CriteresOptimizer, data: ExclusionSourceData) => void;
   setTeams: (teams: EquipeOptimizer[]) => void;
+  /** Écrit le lead effectif des membres d’équipe de la liste active dans leur mémoire. */
+  synchroniserLeadsEquipes: (data: ExclusionSourceData) => void;
   /** Applique en une mise à jour le résultat de la revérification commune. */
   replaceAfterRevalidation: (stockage: StockageOptimizer) => void;
 }
@@ -433,6 +436,20 @@ export function useOptimizerLists(): UseOptimizerLists {
     });
   }, [setState]);
 
+  const synchroniserLeadsEquipes = useCallback((data: ExclusionSourceData) => {
+    const synchroniser = (s: State) => s.activeListId
+      ? synchroniserLeadsMembresOptimizer({ ...s.memberStorage, members: s.members }, s.activeListId, data) : null;
+    // Appelée après chaque rendu : aucune mise à jour envoyée sans écriture.
+    if (!synchroniser(courant.current)?.ecrits.length) return;
+    setState((s) => {
+      const resultat = synchroniser(s);
+      if (!resultat?.ecrits.length) return s;
+      const { memories, ecrits } = resultat;
+      const rejets = ecrits.reduce((r, selector) => retirerRejetsOptimizer(r, s.activeListId!, selector), s.memberStorage.rejets);
+      return { ...s, memberStorage: { ...s.memberStorage, memories, rejets, raw: null } };
+    });
+  }, [setState]);
+
   return {
     lireStockageCourant,
     ajouterParImport,
@@ -465,6 +482,7 @@ export function useOptimizerLists(): UseOptimizerLists {
     rejets: state.memberStorage.rejets,
     writeMemory,
     setTeams,
+    synchroniserLeadsEquipes,
     replaceAfterRevalidation,
   };
 }

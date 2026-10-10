@@ -1,3 +1,4 @@
+import { ajouterLeadEquipe } from './import-lead-equipe';
 import { useEffect, useMemo, useState } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { flushSync } from 'react-dom';
@@ -183,6 +184,7 @@ export async function scenario(s: Source, mobile: boolean, motif = 'accepte', co
       const attendus = baseCompleteCriteres(gear);
       attendus.minStats = s === 'rta' ? { spd: 241 } : { hp: 25001, spd: 201 };
       if (s !== 'rta') { attendus.comboSets = ['violent', 'will']; attendus.lignesVerrouillees = [{ code: 218, min: 0.1 }, { code: 206, min: 1 }]; }
+      if (s !== 'rta') ajouterLeadEquipe(attendus, { stat: 'HP', pct: 33 });
       verifier(JSON.stringify(photoCriteres(etat, { type: 'personnel' })) === JSON.stringify(attendus), 'critères complets de la source, aucun minimum précédent');
       verifier(membres.every(m => s === 'rta' ? m.selector.source === 'rta' : m.selector.source === 'siege-offense' && m.selector.teamId === 'o2'), 'exemplaires précis de toute la source');
       verifier(membres.every((m, i) => listes.memories.get(cleMemoireMembre(id, m.selector))?.criteres.minStats.spd === (s === 'rta' ? 241 + i : 201 + i)), 'vitesses importées et mémorisées pour les trois membres');

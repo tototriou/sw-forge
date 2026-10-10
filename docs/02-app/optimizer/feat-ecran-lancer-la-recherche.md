@@ -24,8 +24,8 @@
     préréglage, exclusion des runes déjà utilisées, choix d'artéfacts) —
     **jamais le pool de runes ni le compte**, ce qui la rend partageable
     entre joueurs. Le combat exporté porte le **lead personnel** du
-    monstre, jamais le lead de son équipe : pour un membre lié, la recette
-    ne reproduit donc pas une recherche lancée avec le lead d’équipe.
+    monstre ; pour un membre lié, c’est le lead de son équipe tel qu’il
+    agit sur lui, puisque ce lead écrase le lead personnel.
     Exporter ne réécrit ni le lead personnel ni la mémoire du membre. Le
     réimport applique ce lead comme une valeur de recette, sans équipe ni
     propriétaire des critères et sans écraser les mémoires ou équipes

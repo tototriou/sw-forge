@@ -1,3 +1,4 @@
+import { ajouterLeadEquipe } from './import-lead-equipe';
 import { useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { flushSync } from 'react-dom';
@@ -237,6 +238,7 @@ export async function scenario(nom: string): Promise<[boolean, string][]> {
     verifier(etat.proprietaireCriteres?.listId === id && exclusionSelectorKey(etat.proprietaireCriteres.selector) === 'siege-defense:d1:0'
       && etat.proprietaireCriteres.com2usId === 10101, 'après réconciliation : propriétaire exact du premier membre gardé');
     const attendus = baseCompleteCriteres(gear); attendus.minStats = { spd: 220 };
+    ajouterLeadEquipe(attendus, { stat: 'HP', pct: 33 });
     verifier(JSON.stringify(photoCriteres(etat, { type: 'personnel' })) === JSON.stringify(attendus), 'action : base complète et vitesse importée, aucun critère contraignant précédent');
     verifier(etat.search.result === null && etat.search.progress === null && etat.search.status === 'idle' && etat.resultsPage === 1
       && !etat.stoppedManually && etat.openDetailKey === null, 'action : résultats, progression, page, arrêt et détail effacés');

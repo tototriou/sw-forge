@@ -27,50 +27,56 @@ async function choisirMenu(b: Banc, label: string, valeur: string) {
 
 export async function preuvesLeadEquipeOptimizer(b: Banc): Promise<[boolean, string][]> {
   const preuves: [boolean, string][] = [], verifier = (oui: boolean, texte: string) => preuves.push([oui, texte]);
-  const memoire = () => b.listes().memories.get(cleMemoireMembre('a', b.premier))!.criteres.damageSetup;
+  const memoire = (selector = b.premier, listId = 'a') => b.listes().memories.get(cleMemoireMembre(listId, selector))?.criteres.damageSetup;
+  const porte = (setup: { leaderSkill?: { stat: string; pct: number } | null; leaderSpeedPct?: number } | undefined, stat: string | null, pct?: number) =>
+    !!setup && (stat === null ? !setup.leaderSkill : setup.leaderSkill?.stat === stat && setup.leaderSkill.pct === pct) && setup.leaderSpeedPct === undefined;
+  // Le membre affiché, sa mémoire et le combat lu portent le même lead.
+  const partout = (stat: string | null, pct?: number) => porte(memoire(), stat, pct) && porte(b.etat().damageSetup, stat, pct)
+    && porte(b.etat().lireCombatMembre().setup, stat, pct);
   await ouvrirListe(b);
   await b.geste(() => b.etat().setDamageSetup(s => ({ ...s, leaderSkill: { stat: 'HP', pct: 33 }, leaderSpeedPct: 19 })));
-  const personnel = JSON.stringify(memoire());
+  verifier(memoire()?.leaderSkill?.pct === 33 && memoire()?.leaderSpeedPct === 19, 'hors équipe : lead personnel moderne et ancien en mémoire');
   const creer = (id: string, listId: string, amount: number) => ({ id, listId, members: [b.premier, b.second], lead: { stat: 'Attack Speed', amount, area: 'Guild', element: null } });
   await b.geste(() => {
     b.listes().setListContent('a', 'guilde'); b.listes().setListContent('b', 'guilde');
     b.listes().setTeams([creer('ea', 'a', 24), creer('eb', 'b', 33)]);
   });
-  verifier(b.etat().lireCombatMembre().setup.leaderSkill?.pct === 24 && b.etat().lireCombatMembre().setup.leaderSpeedPct === undefined, 'lead effectif de l’équipe, champ ancien neutralisé');
-  verifier(b.etat().damageSetup.leaderSkill?.pct === 33 && JSON.stringify(memoire()) === personnel, 'lier garde le lead personnel moderne et ancien');
+  verifier(partout('Attack Speed', 24), 'rejoindre l’équipe écrase le lead personnel : mémoire, critères et combat portent le lead d’équipe, ancien champ effacé');
+  verifier(porte(memoire(b.second), 'Attack Speed', 24), 'membre sans mémoire : la synchronisation lui en crée une qui porte le lead d’équipe');
   await b.geste(() => b.etat().setMinStats({ spd: 245 }));
-  verifier(JSON.stringify(memoire()) === personnel, 'modifier un autre critère photographie le lead personnel');
+  verifier(partout('Attack Speed', 24), 'modifier un autre critère garde le lead d’équipe en mémoire');
   await choisirMenu(b, 'Type de leader skill', 'HP');
   await choisirMenu(b, 'Valeur du leader skill', '44');
   verifier(b.listes().teams[0].lead?.stat === 'HP' && b.listes().teams[0].lead?.amount === 44 && b.listes().teams[0].lead?.area === 'Guild', 'État de mon monstre écrit dans le lead partagé en gardant sa portée');
-  verifier(JSON.stringify(memoire()) === personnel, 'modifier le lead effectif laisse le lead personnel intact');
+  verifier(partout('HP', 44) && porte(memoire(b.second), 'HP', 44), 'le lead personnel de chaque membre suit le changement du lead d’équipe');
   verifier(document.body.textContent!.includes('le modifier change le lead de toute l’équipe'), 'écriture partagée annoncée à l’écran');
   await b.geste(() => b.etat().choisirMembre('a', b.second));
-  verifier(b.etat().lireCombatMembre().setup.leaderSkill?.pct === 44, 'autre membre : même lead partagé');
-  await b.geste(() => b.etat().setMinStats({ spd: 195 }));
-  verifier(!b.listes().memories.get(cleMemoireMembre('a', b.second))!.criteres.damageSetup.leaderSkill, 'membre sans lead personnel : aucun lead effectif copié dans sa première mémoire');
+  verifier(porte(b.etat().damageSetup, 'HP', 44) && porte(b.etat().lireCombatMembre().setup, 'HP', 44), 'autre membre : même lead partagé, affiché comme le sien');
   await b.geste(() => b.listes().setActiveListId('b'));
   await b.geste(() => b.etat().choisirMembre('b', b.premier));
-  verifier(b.etat().lireCombatMembre().setup.leaderSkill?.pct === 33, 'même exemplaire dans deux listes : lead propre à Bêta');
+  verifier(porte(b.etat().lireCombatMembre().setup, 'Attack Speed', 33) && porte(memoire(b.premier, 'b'), 'Attack Speed', 33),
+    'même exemplaire dans deux listes : lead propre à Bêta, écrit dans la mémoire de Bêta');
   await b.geste(() => b.listes().setActiveListId('a'));
   await b.geste(() => b.etat().choisirMembre('a', b.premier));
+  verifier(partout('HP', 44), 'retour sur Alpha : la mémoire d’Alpha n’a pas pris le lead de Bêta');
   const changerLead = (lead: NonNullable<UseOptimizerLists['teams'][number]['lead']>) => b.geste(() => b.listes().setTeams(b.listes().teams.map(e => e.id === 'ea' ? { ...e, lead } : e)));
   await changerLead({ stat: 'Attack Speed', amount: 24, area: 'Element', element: 'water' });
-  verifier(!b.etat().lireCombatMembre().setup.leaderSkill && !b.etat().lireCombatMembre().setup.leaderSpeedPct && b.etat().lireCombatMembre().motif?.includes('élément') === true, 'autre élément : aucun lead ni repli personnel, raison explicite');
+  verifier(partout(null) && b.etat().lireCombatMembre().motif?.includes('élément') === true, 'autre élément : lead personnel « Aucun », raison explicite');
   verifier([...document.querySelectorAll('section[aria-label="Équipe 1"] button')].some(e => visible(e)
     && e.getAttribute('aria-label') === 'Lead inactif : Le lead ne concerne pas l’élément de ce membre.'), 'lead d’élément inactif : motif sur l’icône de la carte');
   await changerLead({ stat: 'Attack Speed', amount: 24, area: 'Guild', element: null });
+  verifier(partout('Attack Speed', 24), 'lead de nouveau actif : le lead personnel le reprend');
   await b.geste(() => b.listes().setListContent('a', 'donjon'));
-  verifier(!b.etat().lireCombatMembre().setup.leaderSkill && b.etat().lireCombatMembre().motif?.includes('inactive') === true, 'contenu incompatible : lead inactif');
+  verifier(partout(null) && b.etat().lireCombatMembre().motif?.includes('inactive') === true, 'contenu incompatible : lead inactif, lead personnel « Aucun »');
   await b.geste(() => b.listes().replaceAfterRevalidation({ ...b.listes(), listContents: new Map([['b', 'guilde']]) }));
-  verifier(!b.etat().lireCombatMembre().setup.leaderSkill && document.body.textContent!.includes('Sans contenu : aucun lead d’équipe appliqué.'), 'liste historique sans contenu : aucun lead et message visible');
+  verifier(partout(null) && document.body.textContent!.includes('Sans contenu : aucun lead d’équipe appliqué.'), 'liste historique sans contenu : aucun lead et message visible');
   await b.geste(() => b.listes().setListContent('a', 'guilde'));
   await changerLead({ stat: 'Resistance', amount: 41, area: 'General', element: null });
-  verifier(!b.etat().lireCombatMembre().setup.leaderSkill && document.body.textContent!.includes('sans effet calculé'), 'lead de RES conservé et affiché, sans effet calculé');
-  verifier(JSON.stringify(memoire()) === personnel, 'tous les changements de contenu et de lead laissent les critères personnels intacts');
+  verifier(partout(null) && document.body.textContent!.includes('sans effet calculé'), 'lead de RES conservé et affiché, sans effet calculé ni lead personnel');
+  await changerLead({ stat: 'Attack Speed', amount: 24, area: 'Guild', element: null });
   await b.geste(() => b.listes().setTeams(retirerMembreEquipeOptimizer(b.listes().teams, 'ea', b.premier).teams));
   verifier(b.listes().teams.length === 1 && b.listes().teams[0].id === 'eb', 'retirer un membre d’une équipe de deux dissout seulement cette équipe');
-  verifier(b.etat().lireCombatMembre().setup.leaderSkill?.pct === 33 && b.etat().lireCombatMembre().setup.leaderSpeedPct === 19, 'délier rend immédiatement le lead personnel moderne et ancien');
+  verifier(partout('Attack Speed', 24) && porte(memoire(b.second), 'Attack Speed', 24), 'quitter l’équipe garde le dernier lead d’équipe : rien n’est restauré');
   return preuves;
 }
 

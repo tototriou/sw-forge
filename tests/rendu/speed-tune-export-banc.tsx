@@ -1,3 +1,4 @@
+import { ajouterLeadEquipe } from './import-lead-equipe';
 import { useEffect, useState } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { flushSync } from 'react-dom';
@@ -156,6 +157,7 @@ export async function scenario(nom: string, telephone: boolean): Promise<[boolea
         && (repli ? !equipe.leader : exclusionSelectorKey(equipe.leader!) === `${prefixe}0`), 'équipe, lead actuel et leader exacts');
       verifier(exclusionSelectorKey(etat.sourceSelector!) === `${prefixe}${repli ? 1 : 0}` && etat.proprietaireCriteres?.listId === id, 'premier membre choisi et propriétaire après réconciliation');
       const attendus = baseCompleteCriteres(gear); attendus.minStats = { spd: 250 }; attendus.comboSets = ['swift']; attendus.lignesVerrouillees = [{ code: 206, min: 8 }];
+      ajouterLeadEquipe(attendus, { stat: 'Attack Speed', pct: 24 });
       verifier(JSON.stringify(photoCriteres(etat, { type: 'personnel' })) === JSON.stringify(attendus), 'VIT, Swift, ligne 206 et tous les critères personnels de base');
       verifier(membres.every((m, i) => {
         const photo = [...listes.memories.values()].find(p => p.listId === id && exclusionSelectorKey(p.selector) === exclusionSelectorKey(m.selector));

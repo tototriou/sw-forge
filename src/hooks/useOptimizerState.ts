@@ -10,7 +10,7 @@ import { consommerImportOptimizer, type ImportOptimizer, type RapportImportOptim
 import { preparerRepriseOptimizer } from '../lib/optimizerBackup';
 import { AutoExclusionScope, ExclusionSelector, ExclusionSource, resolveExclusionEntry, type ExclusionSourceData } from '../lib/optimizerExclusion';
 import { ArtifactKind, type LeaderSkill } from '../types';
-import { leadEffectifMembreOptimizer, modifierEquipeOptimizer } from '../lib/equipesOptimizer';
+import { leadEffectifMembreOptimizer, memeLeadOptimizer, modifierEquipeOptimizer } from '../lib/equipesOptimizer';
 import type { EquipeOptimizer } from '../lib/optimizerMemberStorage';
 import { LigneVerrouillee } from '../lib/artifactOptim';
 import { useBuildOptimSearch } from './useBuildOptimSearch';
@@ -691,8 +691,9 @@ export function useOptimizerState(contexte?: ContexteMembresOptimizer): Optimize
       saisie('damageSetup', setDamageSetup)({ ...v.criteres.damageSetup, leaderSkill: lead, leaderSpeedPct: undefined });
       return;
     }
-    // Le contrôle d'état modifie le lead partagé, jamais le lead personnel.
-    // Sa portée reste celle de l'équipe ; un premier choix est global.
+    // Le contrôle d'état modifie le lead partagé, que synchroniserLeads
+    // recopie ensuite dans le lead personnel de chaque membre. Sa portée
+    // reste celle de l'équipe ; un premier choix est global.
     const nouveau: LeaderSkill | null = lead ? { stat: lead.stat, amount: lead.pct,
       area: equipe.lead?.area ?? 'General', element: equipe.lead?.element ?? null } : null;
     const resultat = modifierEquipeOptimizer(c.lists, { ...equipe, lead: nouveau });
@@ -732,9 +733,19 @@ export function useOptimizerState(contexte?: ContexteMembresOptimizer): Optimize
       else effacerProprietaireCriteres();
     } else if (v.proprietaire && !validerProprietaireCriteres(v.proprietaire, c.lists, v, c.data)) effacerProprietaireCriteres();
   }
+  // Le lead d'équipe écrase le lead personnel de ses membres, « aucun »
+  // compris, et leur reste au départ : mémoires et affichage le suivent à
+  // chaque changement d'équipe, de lead ou de contenu, quel que soit le geste.
+  function synchroniserLeads() {
+    const v = vivant.current, c = v.contexte;
+    if (!c || c.reverificationEnAttente?.()) return;
+    c.lists.synchroniserLeadsEquipes(c.data);
+    const { equipe, setup } = lireCombatMembre();
+    if (equipe && !memeLeadOptimizer(setup, v.criteres.damageSetup)) poserCriteresAutomatiques({ damageSetup: setup });
+  }
   // Les callbacks utilisent le dernier contexte publié, y compris lorsqu'un
   // geste a été groupé avec une mutation des listes dans le même rendu.
-  useEffect(() => { reconcilierMembre(); });
+  useEffect(() => { reconcilierMembre(); synchroniserLeads(); });
 
   function resetSearch(motif: 'monstre' | 'compte' = 'monstre') {
     effacerProprietaireCriteres();

@@ -74,21 +74,20 @@
 
    Pour un membre lié, le menu montre le **lead effectif**, ou « Aucun » avec
    son motif si le lead n’agit pas sur lui. La phrase sous les trois groupes
-   dit que le modifier change le lead de toute l’équipe et garde le lead
-   personnel en mémoire. Le type et la valeur changent le lead partagé ;
-   portée et élément se règlent dans le dialogue d’équipe. Cette explication
-   et le motif ont une place réservée, au bureau comme au téléphone.
-   Le lead personnel reste dans les critères du hook et les mémoires ; il
-   revient dès que le membre quitte l’équipe. Voir
+   dit que le modifier change le lead de toute l’équipe et que chaque membre
+   le garde en quittant l’équipe. Le type et la valeur changent le lead
+   partagé ; portée et élément se règlent dans le dialogue d’équipe. Cette
+   explication et le motif ont une place réservée, au bureau comme au
+   téléphone. Le lead effectif écrase le lead personnel du membre, dans ses
+   critères et sa mémoire, et lui reste quand il quitte l’équipe. Voir
    feat-listes-equipes-et-sauvegarde.md § Lead effectif d’un membre.
 
    Hors équipe, changer le lead depuis cette carte efface aussi l’ancien
    champ de VIT (`leaderSpeedPct`) des critères personnels : choisir
    « Aucun » ne doit pas réactiver ce lead ancien. Si les critères ont un
    propriétaire valide, sa mémoire reçoit ce changement. Pour un membre
-   lié, le même geste change seulement le lead partagé ; le lead personnel
-   moderne et l’ancien champ de VIT restent intacts dans les critères et
-   la mémoire du membre.
+   lié, le même geste change le lead partagé, que chaque membre reçoit
+   ensuite comme lead personnel, ancien champ de VIT effacé.
 
 ## Sets d'aura des autres monstres
 

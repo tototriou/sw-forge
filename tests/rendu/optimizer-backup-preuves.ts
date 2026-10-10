@@ -12,7 +12,7 @@ interface Banc {
   changerBox: (box: BoxItem[]) => void; changerRunes: (runes: RuneDetail[]) => void;
   changerArtefacts: (arts: ArtifactDetail[]) => void; changerDefenses: (teams: SiegeTeam[]) => void;
   geste: (action: () => void) => Promise<void>;
-  premier: ExclusionSelector; second: ExclusionSelector; siege: ExclusionSelector;
+  premier: ExclusionSelector; second: ExclusionSelector; troisieme: ExclusionSelector; siege: ExclusionSelector;
 }
 const visible = (e: Element) => e.getBoundingClientRect().width > 0 && getComputedStyle(e).visibility !== 'hidden';
 const bouton = (texte: string, racine: ParentNode = document) => [...racine.querySelectorAll<HTMLButtonElement>('button')]
@@ -35,7 +35,10 @@ export async function preuvesPointOptimizer(b: Banc, nom: string): Promise<[bool
     b.listes().validateBuild('a', b.premier, b.runes().map(r => r.id), b.arts().map(a => a.id), 10101);
   });
   const sansMemoire = nom.startsWith('point-sans-memoire');
-  if (sansMemoire) await b.geste(() => b.etat().choisirMembre('a', b.second));
+  const leadSecond = () => b.listes().memories.get(cleMemoireMembre('a', b.second))?.criteres.damageSetup.leaderSkill;
+  verifier(leadSecond()?.stat === 'HP' && leadSecond()?.pct === 33, 'lier : le membre sans mémoire en reçoit une qui porte le lead d’équipe');
+  // Seul un membre hors équipe reste sans mémoire.
+  if (sansMemoire) await b.geste(() => b.etat().choisirMembre('a', b.troisieme));
   const minimumSansMemoire = minimum();
   const barre = annonce().parentElement!;
   barre.scrollIntoView({ block: 'center' });
@@ -57,7 +60,7 @@ export async function preuvesPointOptimizer(b: Banc, nom: string): Promise<[bool
     return dialog;
   }
   if (sansMemoire) {
-    const cle = cleMemoireMembre('a', b.second);
+    const cle = cleMemoireMembre('a', b.troisieme);
     verifier(!b.listes().memories.has(cle), 'point sauvegardé sur le membre sélectionné sans mémoire');
     await b.geste(() => b.listes().setActiveListId('b'));
     await b.geste(() => b.etat().choisirMembre('b', b.premier));
@@ -72,12 +75,12 @@ export async function preuvesPointOptimizer(b: Banc, nom: string): Promise<[bool
     verifier(barre.parentElement!.textContent!.includes('Monstres de « Alpha »') && minimum() === minimumSansMemoire,
       'reprise depuis Bêta : Alpha et la base du membre sans mémoire affichées');
     const p = b.etat().proprietaireCriteres;
-    verifier(p?.listId === 'a' && exclusionSelectorKey(p.selector) === exclusionSelectorKey(b.second) && p.com2usId === 10102,
+    verifier(p?.listId === 'a' && exclusionSelectorKey(p.selector) === exclusionSelectorKey(b.troisieme) && p.com2usId === 10101,
       'après réconciliation : propriétaire du membre repris gardé');
     verifier(!b.listes().memories.has(cle), 'reprise seule : aucune mémoire créée');
     const menu = (label: string) => [...document.querySelectorAll<HTMLSelectElement>(`select[aria-label="${label}"]`)].find(visible);
-    verifier(menu('Type de leader skill')?.value === 'HP' && menu('Valeur du leader skill')?.value === '33',
-      'membre sans mémoire repris : lead PV +33 % de l’équipe affiché');
+    verifier(menu('Type de leader skill')?.value === '', 'membre hors équipe repris : aucun lead affiché');
+    verifier(leadSecond()?.stat === 'HP' && leadSecond()?.pct === 33, 'reprise : le membre lié garde la mémoire qui porte le lead d’équipe');
     await b.geste(() => {
       const champ = [...document.querySelectorAll<HTMLInputElement>('[aria-label="VIT minimum"]')].find(visible)!;
       Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(champ, '195');
@@ -86,9 +89,9 @@ export async function preuvesPointOptimizer(b: Banc, nom: string): Promise<[bool
     verifier(minimum() === '195' && typeof b.listes().memories.get(cle)?.criteres.minStats.spd === 'number',
       'saisie VIT dans le champ réel : valeur affichée et mémoire du membre créée');
     await b.geste(() => b.etat().choisirMembre('a', b.premier));
-    await b.geste(() => b.etat().choisirMembre('a', b.second));
-    verifier(minimum() === '195' && menu('Type de leader skill')?.value === 'HP' && menu('Valeur du leader skill')?.value === '33',
-      'retour au membre : saisie mémorisée restaurée à l’écran et lead d’équipe toujours appliqué');
+    await b.geste(() => b.etat().choisirMembre('a', b.troisieme));
+    verifier(minimum() === '195' && menu('Type de leader skill')?.value === '',
+      'retour au membre : saisie mémorisée restaurée à l’écran, toujours sans lead');
     verifier(localStorage.getItem(OPTIMIZER_BACKUP_STORAGE_KEY) === brut, 'reprise et saisie gardent le point intact');
   } else if (nom === 'point-gestes') {
     await b.geste(() => b.etat().setMinStats({ spd: 250 }));

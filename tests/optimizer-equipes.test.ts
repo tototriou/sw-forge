@@ -5,10 +5,11 @@ import { LEADER_SKILL_STATS, LEADER_SKILL_VALEURS, resolvedLeaderSkill } from '.
 import {
   creerEquipeOptimizer, ajouterMembreEquipeOptimizer, retirerMembreEquipeOptimizer,
   delierMembreOptimizer, dissoudreEquipeOptimizer, equipeApresFiltrageOptimizer,
-  leadEffectifMembreOptimizer, type ContexteEquipesOptimizer,
+  leadEffectifMembreOptimizer, synchroniserLeadsMembresOptimizer, type ContexteEquipesOptimizer,
 } from '../src/lib/equipesOptimizer';
 import type { ExclusionSelector } from '../src/lib/optimizerExclusion';
-import type { ContenuListeOptimizer, EquipeOptimizer } from '../src/lib/optimizerMemberStorage';
+import { cleMemoireMembre, type ContenuListeOptimizer, type EquipeOptimizer, type StockageOptimizer } from '../src/lib/optimizerMemberStorage';
+import { sourcesComposition, stockageComposition } from './import-composition-fixtures';
 
 const membres: ExclusionSelector[] = Array.from({ length: 6 }, (_, i) => ({ source: 'box', unitKey: String(i) }));
 const lead: LeaderSkill = { stat: 'Attack Speed', amount: 24, area: 'General', element: null };
@@ -56,7 +57,7 @@ export const verificationsOptimizerEquipesActivite: [string, () => void][] = cas
   }]);
 
 export function testOptimizerEquipesElementsEtLeadPersonnel() {
-  titre('Optimizer · élément du membre et restitution du lead personnel');
+  titre('Optimizer · élément du membre et retour aux critères personnels');
   const e = equipe({ ...lead, area: 'Element', element: 'fire' });
   const personnel = baseCompleteCriteres(undefined);
   personnel.damageSetup.leaderSkill = { stat: 'HP', pct: 33 };
@@ -70,7 +71,7 @@ export function testOptimizerEquipesElementsEtLeadPersonnel() {
   egal(leadEffectifMembreOptimizer(stockageLead([e]), 'l2', membres[0], 'fire'), { type: 'personnel' }, 'autre liste : lead personnel');
   egal(leadEffectifMembreOptimizer(stockageLead([e]), 'l1', membres[3], 'fire'), { type: 'personnel' }, 'membre hors équipe : personnel');
   const delie = delierMembreOptimizer([e], 'l1', membres[0]);
-  egal(resolvedLeaderSkill(appliquerCriteres(personnel, leadEffectifMembreOptimizer(stockageLead(delie.teams), 'l1', membres[0], 'fire')).damageSetup), { stat: 'HP', pct: 33 }, 'délier rend le lead personnel');
+  egal(resolvedLeaderSkill(appliquerCriteres(personnel, leadEffectifMembreOptimizer(stockageLead(delie.teams), 'l1', membres[0], 'fire')).damageSetup), { stat: 'HP', pct: 33 }, 'délié : le membre suit de nouveau ses critères personnels');
   egal(personnel, initial, 'les critères personnels ne sont jamais modifiés');
 }
 
@@ -213,4 +214,39 @@ export function testOptimizerEquipesAjoutEquipeOrphelineNeBloquePasEquipeSaine()
     const conflit = ajouterMembreEquipeOptimizer(c, saine.id, membres[4]);
     if (orpheline.listId === saine.listId) ok(conflit.rapport.length > 0 && conflit.teams === c.teams, 'exclusivité contre une équipe orpheline maintenue');
   }
+}
+
+export function testOptimizerEquipesSynchronisationLeadPersonnel() {
+  titre('Optimizer · le lead d’équipe écrase le lead personnel et reste au départ');
+  const data = sourcesComposition(), box = (n: number): ExclusionSelector => ({ source: 'box', unitKey: `box-${n}` });
+  const personnel = baseCompleteCriteres(undefined);
+  personnel.minStats = { spd: 200 };
+  personnel.damageSetup.leaderSkill = { stat: 'HP', pct: 33 };
+  personnel.damageSetup.leaderSpeedPct = 19;
+  const memoire = (n: number, com2usId = 1000 + n) => [cleMemoireMembre('l1', box(n)),
+    { listId: 'l1', selector: box(n), com2usId, criteres: structuredClone(personnel) }] as const;
+  const stockage: StockageOptimizer = { ...stockageComposition(), lists: [{ id: 'l1', name: 'Liste' }, { id: 'l2', name: 'Autre' }],
+    members: ['l1', 'l2'].flatMap(listId => [1, 2, 3, 4].map(n => ({ listId, selector: box(n) }))),
+    memories: new Map([memoire(1), memoire(2), memoire(4, 9999)]),
+    teams: [{ id: 'e1', listId: 'l1', members: [1, 2, 3, 4].map(box), lead: { ...lead, area: 'Element', element: 'fire' } },
+      { id: 'e2', listId: 'l2', members: [box(1), box(2)], lead: { ...lead } }],
+    listContents: new Map<string, ContenuListeOptimizer>([['l1', 'guilde'], ['l2', 'guilde']]) };
+  const avant = structuredClone(stockage);
+  const r = synchroniserLeadsMembresOptimizer(stockage, 'l1', data);
+  const setup = (n: number, listId = 'l1') => r.memories.get(cleMemoireMembre(listId, box(n)))?.criteres.damageSetup;
+  egal(setup(1)?.leaderSkill, { stat: 'Attack Speed', pct: 24 }, 'même élément : le lead d’équipe écrase le lead personnel');
+  egal(setup(1)?.leaderSpeedPct, undefined, 'ancien champ de VIT effacé avec lui');
+  egal(r.memories.get(cleMemoireMembre('l1', box(1)))?.criteres.minStats, { spd: 200 }, 'les autres critères personnels restent');
+  ok(!setup(2)?.leaderSkill && setup(2)?.leaderSpeedPct === undefined, 'lead inactif pour ce membre : lead personnel « Aucun »');
+  const cree = r.memories.get(cleMemoireMembre('l1', box(3)));
+  ok(cree?.com2usId === 1003 && cree.criteres.minStats.spd === undefined && cree.criteres.damageSetup.leaderSkill?.pct === 24,
+    'membre sans mémoire : base complète créée avec le lead d’équipe');
+  egal(r.memories.get(cleMemoireMembre('l1', box(4))), stockage.memories.get(cleMemoireMembre('l1', box(4))), 'espèce différente : mémoire conservée sans application');
+  egal(r.ecrits, [box(1), box(2), box(3)], 'membres écrits, dans l’ordre de l’équipe');
+  ok(!r.memories.has(cleMemoireMembre('l2', box(1))), 'une autre liste n’est pas synchronisée');
+  egal(stockage, avant, 'stockage reçu jamais modifié');
+  const encore = synchroniserLeadsMembresOptimizer({ ...stockage, memories: r.memories }, 'l1', data);
+  ok(encore.memories === r.memories && encore.ecrits.length === 0, 'seconde synchronisation sans écriture ni nouvelle référence');
+  const depart = synchroniserLeadsMembresOptimizer({ ...stockage, memories: r.memories, teams: stockage.teams.slice(1) }, 'l1', data);
+  ok(depart.memories === r.memories && setup(1)?.leaderSkill?.pct === 24, 'quitter l’équipe ne restaure rien : le dernier lead d’équipe reste');
 }

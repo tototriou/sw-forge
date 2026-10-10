@@ -1,3 +1,4 @@
+import { ajouterLeadEquipe } from './import-lead-equipe';
 import { useEffect, useState } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { flushSync } from 'react-dom';
@@ -155,6 +156,7 @@ export async function scenario(nom: string, telephone: boolean): Promise<[boolea
       verifier(listes.listContents.get(listId) === 'guilde' && exclusionSelectorKey(etat.sourceSelector!) === `${source}:${id}:0`
         && etat.proprietaireCriteres?.listId === listId, 'Guilde et premier membre exact après réconciliation');
       const attendus = baseCompleteCriteres(gear); attendus.minStats = { spd: 100 + vitesse };
+      ajouterLeadEquipe(attendus, { stat: 'HP', pct: 33 });
       verifier(JSON.stringify(photoCriteres(etat, { type: 'personnel' })) === JSON.stringify(attendus), 'critères complets importés, aucun critère précédent');
       verifier(texteRapport().includes(`${toutes ? 6 : 3} monstre(s), ${toutes ? 2 : 1} équipe(s)`), 'rapport lisible après navigation');
       await geste(() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })));

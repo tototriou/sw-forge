@@ -218,8 +218,10 @@ Sans composition retrouvée, le premier exemplaire résolvable est choisi dans
 l’ordre Box, RTA, défense, offense, même sans rune. `unowned` ne sert que si
 l’espèce est absente de ces quatre sources.
 
-Le lead reste exclusivement sur l’équipe ; ses effets par élément sont dérivés
-par `leadEffectifMembreOptimizer`, jamais copiés dans les critères personnels.
+Le producteur garde le lead sur l’équipe ; ses effets par élément sont dérivés
+par `leadEffectifMembreOptimizer`, puis l’écran les écrit dans le lead
+personnel de chaque membre. Voir
+feat-listes-equipes-et-sauvegarde.md § Lead effectif d’un membre.
 
 ## F3b — Conversion d’un deck recommandé
 
@@ -231,7 +233,8 @@ le leader n’est pas déduit de l’ordre du deck réel. Un slot vide ne compte
 pas comme ignoré. Un monstre inconnu ou une identité inutilisable est
 ignoré avec sa raison. Après filtrage, 0 membre ne crée rien ; 1 ou plus de
 5 membres restent sans équipe, avec le lead de la source nommé comme non
-appliqué à quiconque. Aucun lead n’entre dans les critères personnels.
+appliqué à quiconque. Le producteur n’écrit aucun lead dans les critères
+personnels.
 
 La fonction commune `retrouverDeckCompositionOptimizer` appelle `matchDeck`
 avec `contexteConfrontationReco`, le constructeur que l’écran des
@@ -321,8 +324,10 @@ acceptés restent dans la nouvelle liste. Le rapport nomme l’équipe et le
 lead de la source non appliqué, même si aucun membre ne reste. Un leader
 écarté n’est pas remplacé automatiquement.
 
-Le lead d’une source n’est jamais copié dans les critères personnels de ses
-membres. Sans équipe, ils gardent donc leur base complète complétée seulement
-par les critères importés. Dans une équipe, le lead effectif reste dérivé par
-`leadEffectifMembreOptimizer`, selon le contenu de sa liste et l’élément du membre. Un
-lead conservé mais sans effet calculé porte son motif dans le rapport.
+Le producteur ne copie jamais le lead d’une source dans les critères
+personnels de ses membres. Sans équipe, ils gardent donc leur base complète
+complétée seulement par les critères importés. Dans une équipe, le lead
+effectif est dérivé par `leadEffectifMembreOptimizer`, selon le contenu de sa
+liste et l’élément du membre, puis écrit comme lead personnel de chaque membre
+par la synchronisation de l’écran. Un lead conservé mais sans effet calculé
+porte son motif dans le rapport.

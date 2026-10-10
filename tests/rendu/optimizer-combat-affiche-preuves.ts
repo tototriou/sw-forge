@@ -29,8 +29,8 @@ export async function preuvesCombatAfficheOptimizer(b: Banc): Promise<[boolean, 
     b.listes().setTeams([{ id: 'ea', listId: 'a', members: [b.premier, b.second, b.troisieme],
       lead: { stat: 'Attack Speed', amount: 24, area: 'Guild', element: null } }]);
   });
-  // La préparation publie les critères après l'équipe pour établir le lead
-  // initial affiché ; les étapes suivantes ne changent plus ces critères.
+  // Un lead personnel posé sur un membre déjà lié est aussitôt écrasé par
+  // le lead d'équipe ; les étapes suivantes ne changent que ce lead.
   await b.geste(() => {
     b.etat().setDamageSetup(s => ({ ...s, leaderSkill: { stat: 'HP', pct: 44 }, leaderSpeedPct: 19 }));
     b.etat().setObjective('degats_reels');
@@ -39,9 +39,16 @@ export async function preuvesCombatAfficheOptimizer(b: Banc): Promise<[boolean, 
   if (pli) await b.geste(() => pli.click());
   const selection = () => JSON.stringify([b.etat().selectedId, b.etat().sourceSelector]);
   const membre = selection();
-  const personnel = JSON.stringify(b.etat().damageSetup);
-  const memoire = () => JSON.stringify(b.listes().memories.get(cleMemoireMembre('a', b.premier)));
-  const photo = memoire();
+  // Tout sauf le lead reste identique d'une étape à l'autre.
+  type Lead = { leaderSkill?: { stat: string; pct: number } | null; leaderSpeedPct?: number };
+  const sansLead = (setup: Lead) => JSON.stringify({ ...setup, leaderSkill: undefined, leaderSpeedPct: undefined });
+  const lead = (setup: Lead | undefined) => !setup ? 'absent' : setup.leaderSpeedPct !== undefined ? 'ancien champ'
+    : setup.leaderSkill ? `${setup.leaderSkill.stat} ${setup.leaderSkill.pct}` : 'aucun';
+  const memoire = () => b.listes().memories.get(cleMemoireMembre('a', b.premier));
+  const memoireSansLead = () => { const m = memoire(); return m && JSON.stringify({ ...m, criteres: { ...m.criteres, damageSetup: sansLead(m.criteres.damageSetup) } }); };
+  const personnel = sansLead(b.etat().damageSetup), photo = memoireSansLead();
+  verifier(lead(b.etat().damageSetup) === 'Attack Speed 24' && lead(memoire()?.criteres.damageSetup) === 'Attack Speed 24',
+    'lead personnel posé sur un membre lié : écrasé par le lead d’équipe dans les critères et la mémoire');
   const carte = [...document.querySelectorAll('p')].find(e => visible(e) && e.textContent === 'État de mon monstre')!.parentElement!.parentElement!;
   const menuType = carte.querySelector<HTMLSelectElement>('select[aria-label="Type de leader skill"]')!;
   const lireAffichage = () => ({ type: menuType.value, libelle: menuType.selectedOptions[0]?.textContent,
@@ -64,8 +71,11 @@ export async function preuvesCombatAfficheOptimizer(b: Banc): Promise<[boolean, 
     verifier(menuType.isConnected && visible(menuType) && affiche.type === type && affiche.libelle === libelle
       && affiche.valeur === valeur, `${etape} : menus d’État de mon monstre — ${JSON.stringify(affiche)}`);
     verifier(inactif ? affiche.motif !== null : affiche.motif === null, `${etape} : motif affiché seulement quand le lead est inactif`);
-    verifier(selection() === membre && JSON.stringify(b.etat().damageSetup) === personnel && memoire() === photo,
-      `${etape} : même membre affiché, critères personnels et mémoire intacts`);
+    const attendu = valeur ? `${type} ${valeur}` : 'aucun';
+    verifier(selection() === membre && lead(b.etat().damageSetup) === attendu && lead(memoire()?.criteres.damageSetup) === attendu,
+      `${etape} : même membre affiché, son lead personnel et sa mémoire portent le lead affiché — ${lead(b.etat().damageSetup)} / ${lead(memoire()?.criteres.damageSetup)}`);
+    verifier(sansLead(b.etat().damageSetup) === personnel && memoireSansLead() === photo,
+      `${etape} : hors lead, critères personnels et mémoire intacts`);
     await b.geste(() => bouton('Modifier la description du combat').click());
     const dialogue = document.querySelector<HTMLElement>('[role="dialog"]')!;
     const echo = [...dialogue.querySelectorAll('p')].find(e => visible(e) && e.textContent?.includes('État du monstre :'))?.textContent ?? '';
@@ -88,13 +98,16 @@ export async function preuvesCombatAfficheOptimizer(b: Banc): Promise<[boolean, 
     await constater('Lead changé dans le dialogue', 'Attack Speed', 'VIT', '33');
     await choisirMenu(b, 'Contenu de la liste', 'donjon');
     await constater('Contenu incompatible', '', 'Aucun', null, true);
+    await choisirMenu(b, 'Contenu de la liste', 'guilde');
+    await constater('Contenu de nouveau compatible', 'Attack Speed', 'VIT', '33');
     dialogue = await ouvrirEquipe();
     await b.geste(() => dialogue.querySelectorAll<HTMLInputElement>('input[type="checkbox"]')[0].click());
     await b.geste(() => bouton('Enregistrer', dialogue).click());
     verifier(b.listes().teams.length === 1 && b.listes().teams[0].members.length === 2
       && !b.listes().teams[0].members.some(s => JSON.stringify(s) === JSON.stringify(b.premier)),
       'retrait par le dialogue : équipe des deux autres membres conservée');
-    await constater('Membre retiré de l’équipe', 'HP', 'PV', '44');
+    // Quitter l'équipe garde son dernier lead : le lead posé avant le lien ne revient pas.
+    await constater('Membre retiré de l’équipe', 'Attack Speed', 'VIT', '33');
   } finally {
     await b.geste(() => b.etat().effacerResultats());
     globalThis.Worker = vraiWorker;

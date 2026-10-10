@@ -283,33 +283,41 @@ mêmes validations que la création manuelle.
 `leadEffectifMembreOptimizer` rend un `LeadEffectifOptimizer` : hors équipe,
 `personnel` ; dans une équipe, `equipe` avec `{stat, pct}` si le lead est actif,
 sinon `aucun` avec un motif. La donnée du jeu reste entière dans l’équipe.
-Le lead personnel n’est jamais un repli d’un lead d’équipe inactif ; délier
-rend le lead personnel disponible sans modifier sa mémoire.
+
+**Le lead d’équipe écrase le lead personnel de ses membres.** Rejoindre une
+équipe, changer son lead ou le contenu de la liste écrit le lead effectif du
+membre dans ses critères personnels et sa mémoire : « Aucun » quand le lead
+n’agit pas sur lui, et l’ancien champ de VIT est effacé. Quitter l’équipe ne
+restaure rien : le membre garde son dernier lead d’équipe. Cette écriture,
+`synchroniserLeadsMembresOptimizer`, vise les équipes de la liste active et
+suit chaque rendu de `useOptimizerState`, quel que soit le geste (dialogue,
+import, reprise, contenu). Un membre sans mémoire en reçoit une depuis la
+base complète, comme à l’import ; un exemplaire d’une autre espèce garde sa
+mémoire sans application. Rien ne s’écrit pendant la revérification d’un
+compte réimporté.
 
 `useOptimizerState.lireCombatMembre` vérifie le propriétaire des critères et
 dérive le combat effectif par `leadEffectifMembreOptimizer` puis `appliquerCriteres`.
-L’écran utilise ce combat pour tous ses calculs, résumés et contrôles ;
-`damageSetup` dans le hook et les photos reste personnel. Modifier un autre
-critère ne copie donc jamais le lead d’équipe dans la mémoire. Depuis « État
-de mon monstre », `modifierLeadMembre` écrit le lead partagé en gardant sa portée
-et son élément ; un premier lead est général. L’écran dit cette écriture
-partagée et le motif d’un lead inactif. Délier rend aussitôt le lead personnel,
-y compris son ancien champ de VIT ; les champs personnels restent inchangés.
+L’écran utilise ce combat pour tous ses calculs, résumés et contrôles. Depuis
+« État de mon monstre », `modifierLeadMembre` écrit le lead partagé en gardant
+sa portée et son élément ; un premier lead est général. L’écran dit cette
+écriture partagée et le motif d’un lead inactif ; la synchronisation recopie
+ensuite le nouveau lead chez chaque membre.
 
 L’export de recette transmet les **critères personnels** du membre, lead
-personnel compris, jamais le lead d’équipe : le lead d’une équipe appartient
-à la liste. Pour un membre lié, la recette ne reproduit donc pas une
-recherche lancée avec le lead d’équipe. Exporter ne réécrit ni le lead
-personnel du membre ni sa mémoire. Au réimport, ce lead s’applique comme
+personnel compris : pour un membre lié, c’est le lead de l’équipe tel qu’il
+agit sur lui. Exporter ne réécrit ni le lead personnel du membre ni sa
+mémoire. Au réimport, ce lead s’applique comme
 toute valeur de recette, sans équipe ni propriétaire des critères ; aucune
 mémoire de membre ni équipe existante n’est écrasée.
 Voir feat-ecran-lancer-la-recherche.md § Lancer la recherche.
 
 Le contenu est lu dans `listContents` pour la liste du membre, commun à toutes
 ses équipes. Une liste sans contenu défini n’applique aucun lead d’équipe,
-avec le motif « contenu de combat de la liste non défini » ; aucun repli sur
-le lead personnel. Une modification du contenu change l’effet dérivé, sans
-modifier le lead stocké ni les critères personnels.
+avec le motif « contenu de combat de la liste non défini » ; le lead
+personnel de ses membres devient « Aucun ». Une modification du contenu
+change l’effet dérivé et, par lui, le lead personnel des membres ; le lead
+stocké de l’équipe ne change pas.
 
 La table `ACTIVITE_LEADS_OPTIMIZER` distingue actif, inactif et élément.
 Une portée inconnue reste sans effet, avec un motif. « Élément » exige

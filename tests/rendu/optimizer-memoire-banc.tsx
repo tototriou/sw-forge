@@ -127,7 +127,7 @@ export async function scenario(nom: string): Promise<[boolean, string][]> {
   const memoire = (listId: string, selector = premier) => listes.memories.get(cleMemoireMembre(listId, selector));
   await choisir();
   if (avecPoint) return preuvesPointOptimizer({ etat: () => etat, listes: () => listes, data: () => compteActuel,
-    runes: () => runesActuelles, arts: () => artefactsActuels, changerBox, changerRunes, changerArtefacts, changerDefenses, geste, premier, second, siege }, nom);
+    runes: () => runesActuelles, arts: () => artefactsActuels, changerBox, changerRunes, changerArtefacts, changerDefenses, geste, premier, second, troisieme, siege }, nom);
   const bancEquipes = { etat: () => etat, listes: () => listes, geste, premier, second, troisieme };
   if (nom === 'bandes-equipes') return preuvesBandesEquipes(bancEquipes);
   if (nom === 'combat-affiche') return preuvesCombatAfficheOptimizer(bancEquipes);

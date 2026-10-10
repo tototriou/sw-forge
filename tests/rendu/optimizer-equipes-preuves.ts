@@ -84,7 +84,7 @@ export async function preuvesDialogueEquipeOptimizer(b: Banc): Promise<[boolean,
   const preuves: [boolean, string][] = [], verifier = (oui: boolean, texte: string) => preuves.push([oui, texte]);
   await ouvrirListe(b);
   await choisirMenu(b, 'Contenu de la liste', 'guilde');
-  const ancre = bouton('Lier une team'), avant = ancre.getBoundingClientRect();
+  const ancre = bouton('Lier une équipe'), avant = ancre.getBoundingClientRect();
   await b.geste(() => ancre.click());
   const apres = ancre.getBoundingClientRect();
   verifier(avant.x === apres.x && avant.y === apres.y, 'ouvrir le dialogue ne déplace pas son déclencheur');

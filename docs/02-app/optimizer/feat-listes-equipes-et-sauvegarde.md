@@ -350,7 +350,7 @@ affichée telle quelle, jamais remplacée en silence.
 
 ## Équipes à l’écran
 
-« Lier une team » ouvre `OptimizerEquipeDialog`, hors du flux, au bureau comme
+« Lier une équipe » ouvre `OptimizerEquipeDialog`, hors du flux, au bureau comme
 au téléphone. Il propose les membres de la liste, de deux à cinq, un leader
 facultatif et le lead (type, valeur, portée et élément). Les membres déjà liés
 à une autre équipe de cette liste sont absents des propositions, à la création

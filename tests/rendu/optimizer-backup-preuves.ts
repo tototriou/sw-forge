@@ -44,7 +44,7 @@ export async function preuvesPointOptimizer(b: Banc, nom: string): Promise<[bool
   barre.scrollIntoView({ block: 'center' });
   verifier(bouton('Reprendre', barre).disabled && annonce().textContent === 'Aucun point de sauvegarde.', 'sans point : annonce visible et reprise désactivée');
   verifier(bouton('Sauvegarder', barre).title.includes('automatiquement'), 'bouton : conservation automatique expliquée');
-  const cibles = [bouton('Sauvegarder', barre), bouton('Reprendre', barre), annonce(), bouton('Lier une team')];
+  const cibles = [bouton('Sauvegarder', barre), bouton('Reprendre', barre), annonce(), bouton('Lier une équipe')];
   const avant = cibles.map(position);
   verifier(annonce().getBoundingClientRect().height >= 48 && getComputedStyle(annonce()).overflowY === 'auto',
     `place de l’annonce réservée avant le point, avec défilement interne — ${JSON.stringify(position(annonce()))}`);

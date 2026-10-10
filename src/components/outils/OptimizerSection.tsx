@@ -3350,7 +3350,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
         onClick={handleAddToList}
         className="mb-2"
       />
-      <Bouton libelle="Lier une team" taille="sm" pleineLargeur disabled={!activeList || activeMembers.length < 2}
+      <Bouton libelle="Lier une équipe" taille="sm" pleineLargeur disabled={!activeList || activeMembers.length < 2}
         onClick={() => activeList && setEquipeOuverte({ listId: activeList.id, equipe: null })} />
 
       <OptimizerBackupBar listes={lists} optimizer={optimizer} data={exclusionData} artifactIds={new Set(artifacts.map(a => a.id))} />

@@ -143,7 +143,7 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   Les membres sont regroupés par équipe dans des bandes teintées sans contour,
   avec le numéro, le leader facultatif, la pastille `LeadPill` et le compte des
   leads inactifs. Les cartes gardent l’aspect et la hauteur des cartes libres,
-  qui suivent sous « Sans équipe ». « Lier une team » et « Modifier l’équipe » ouvrent
+  qui suivent sous « Sans équipe ». « Lier une équipe » et « Modifier l’équipe » ouvrent
   un dialogue hors du flux ; les cases ne changent pas les groupes avant
   validation et fermeture. « Délier » dans ce dialogue garde les membres
   et leurs critères personnels. Ces mêmes actions existent au bureau et

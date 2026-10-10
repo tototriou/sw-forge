@@ -85,7 +85,7 @@ export default function OptimizerEquipeDialog({ contexte, listId, equipe, data, 
         {rapport.map((m, i) => <p key={i}>{m}</p>)}
       </div>
     </>;
-  return <Modale titre={equipe ? 'Modifier l’équipe' : 'Lier une team'} labelledBy="equipe-optimizer" croix onClose={onClose}
+  return <Modale titre={equipe ? 'Modifier l’équipe' : 'Lier une équipe'} labelledBy="equipe-optimizer" croix onClose={onClose}
     sousTitre="Deux à cinq membres de cette liste. Le lead se partage dans l’équipe ; les critères personnels restent mémorisés."
     corpsFixeBas={telephone ? undefined : <div className="space-y-3">{champsLead}</div>}
     actions={<>

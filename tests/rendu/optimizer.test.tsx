@@ -109,7 +109,7 @@ export function testRenduOptimizerVide() {
   for (const carte of ['Monstre & équipement', 'Critères de recherche', 'Artéfacts', 'Sous-propriétés verrouillées', 'État de mon monstre', 'Réglages avancés', 'Exclusion de runes', 'Objectif de recherche'])
     ok(t.includes(carte), `la carte « ${carte} »`);
   ok(valeurs(html, 'placeholder').includes('Rechercher un monstre…'), 'la recherche du monstre à optimiser');
-  ok(t.includes(`Liste active Aucune liste — choisir ou créer Monstres de la liste`), 'les listes de travail');
+  ok(/Liste active Aucune liste — choisir ou créer Contenu .*Importer une équipe.* Monstres de la liste/.test(t), 'les listes de travail : liste active, contenu et import sur une ligne, puis la zone des membres');
   ok(t.includes(`Exemplaire ${SOURCES}`), 'l\'exemplaire, avec ses quatre sources');
   ok(bouton(html, 'Valider ce build')?.desactive === true, '« Valider ce build » désactivé sans résultat');
   ok(bouton(html, 'Rechercher')?.desactive === true, '« Rechercher » désactivé sans monstre');

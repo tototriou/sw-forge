@@ -5,6 +5,8 @@
 // rien d'autre.
 
 import { bilan, debutVerification } from './outils';
+import { testRenduOptimizerAlerteDefilement, testRenduOptimizerAlerteCycleDeVie,
+  testRenduTelephoneOptimizerAlerteCycleDeVie, testRenduTelephoneOptimizerAlerteFermetures } from './rendu/optimizer-alerte.test';
 import { testRenduOptimizerBandesEquipesClair, testRenduOptimizerBandesEquipesSombre,
   testRenduTelephoneOptimizerBandesEquipesClair, testRenduTelephoneOptimizerBandesEquipesSombre,
   testOptimizerEquipesJetons } from './rendu/optimizer-bandes.test';
@@ -722,6 +724,10 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRenduOptimizerBandesEquipesSombre', testRenduOptimizerBandesEquipesSombre],
   ['testRenduTelephoneOptimizerBandesEquipesClair', testRenduTelephoneOptimizerBandesEquipesClair],
   ['testRenduTelephoneOptimizerBandesEquipesSombre', testRenduTelephoneOptimizerBandesEquipesSombre],
+  ['testRenduOptimizerAlerteDefilement', testRenduOptimizerAlerteDefilement],
+  ['testRenduOptimizerAlerteCycleDeVie', testRenduOptimizerAlerteCycleDeVie],
+  ['testRenduTelephoneOptimizerAlerteCycleDeVie', testRenduTelephoneOptimizerAlerteCycleDeVie],
+  ['testRenduTelephoneOptimizerAlerteFermetures', testRenduTelephoneOptimizerAlerteFermetures],
   ['testRenduOptimizerPointGestes', testRenduOptimizerPointGestes],
   ['testRenduTelephoneOptimizerPointGestes', testRenduTelephoneOptimizerPointGestes],
   ['testRenduOptimizerPointReimport', testRenduOptimizerPointReimport],

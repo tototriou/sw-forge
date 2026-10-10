@@ -324,6 +324,13 @@ export async function scenario(nom: string): Promise<[boolean, string][]> {
   return preuves;
 }
 
+/** Gestes sur les vrais hooks pour observer le cycle de vie de l'alerte affichée. */
+export async function piloterAlerte(action: 'retirer-motif' | 'retablir-motif' | 'demonter') {
+  if (action === 'demonter') return geste(() => afficher(false));
+  await geste(() => listes.setTeams(listes.teams.map(e => e.id === 'ea' ? { ...e,
+    lead: { stat: 'Attack Speed', amount: 24, area: action === 'retirer-motif' ? 'General' : 'Element', element: 'fire' } } : e)));
+}
+
 const contextePreuves = () => ({ etat: () => etat, listes: () => listes, geste, premier, second, rta, siege });
 export async function preparerInclusion(genre: string) {
   avecRunes = true;

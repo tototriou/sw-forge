@@ -367,8 +367,12 @@ Le compte des leads inactifs dérive des motifs des membres affichés, avec une
 place réservée dans l’en-tête. Chaque carte réserve une cible d’icône ⚠ sur
 sa ligne ; sans motif, la cible reste vide et inaccessible. Le motif sort du
 flux : bulle au survol et au focus au bureau, dialogue au toucher au téléphone,
-fermé par sa croix, Échap ou clic extérieur. Changer le lead ou le contenu ne
-déplace ni les cartes ni leurs contrôles. La carte « État de mon monstre »
+fermé par sa croix, Échap ou clic extérieur, avec le focus rendu à l’icône.
+La bulle de bureau se ferme au défilement de la liste ou de tout ancêtre.
+La disparition du motif ferme et démonte son contenu ; son retour n’ouvre
+rien automatiquement. Démonter l’écran retire aussi la bulle ou le dialogue.
+Changer le lead ou le contenu ne déplace ni les cartes ni leurs contrôles.
+La carte « État de mon monstre »
 réserve aussi la place de son explication et de ce motif.
 
 ## Revérification commune

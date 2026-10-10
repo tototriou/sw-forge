@@ -46,6 +46,8 @@ const visible = (e: Element) => e.getBoundingClientRect().width > 0 && getComput
 const bouton = (nom: string) => [...document.querySelectorAll<HTMLButtonElement>('button')].find(e => visible(e) && e.textContent?.trim() === nom)!;
 const position = (e: Element) => { const { x, y, width, height } = e.getBoundingClientRect(); return { x, y, width, height }; };
 const texte = () => document.getElementById('racine')!.innerText;
+const source = (nom: string) => [...document.querySelectorAll<HTMLButtonElement>('[aria-label="Sources d’import"] button')].find(e => visible(e) && e.getAttribute('aria-label') === nom)!;
+const sourceDebut = (debut: string) => [...document.querySelectorAll<HTMLButtonElement>('[aria-label="Sources d’import"] button')].find(e => visible(e) && e.getAttribute('aria-label')?.startsWith(debut));
 const photographierExistant = (stockage: StockageOptimizer, ids: Set<string>) => JSON.stringify({
   lists: stockage.lists.filter(l => ids.has(l.id)), members: stockage.members.filter(m => ids.has(m.listId)),
   validated: stockage.validated.filter(v => ids.has(v.listId)),
@@ -147,7 +149,7 @@ export async function scenario(nom: string): Promise<[boolean, string][]> {
     verifier(photographierAffichage() === affichageAvant && etat.search.result === resultatAvant,
       'refus : sélection, propriétaire après réconciliation, critères et tous les résultats conservés');
     await geste(() => bouton('Importer une équipe').click());
-    await geste(() => bouton('Défenses de siège').click());
+    await geste(() => source('Défenses de siège').click());
     verifier([...document.querySelectorAll('[aria-label="Rapport d’import"]')].some(e => visible(e)
       && e.textContent?.includes('revérification') && e.textContent.includes('en attente')), 'refus de revérification lu dans le rapport à l’écran');
     verifier(photographierAffichage() === affichageAvant && etat.search.result === resultatAvant,
@@ -290,9 +292,15 @@ export async function scenario(nom: string): Promise<[boolean, string][]> {
       const avant = JSON.stringify(position(ancre));
       await geste(() => ancre.click());
       verifier(JSON.stringify(position(ancre)) === avant, `ouverture : géométrie de l’ancre intacte ${avant}`);
-      verifier(['Défenses de siège', 'Prépa RTA', 'Offense de siège 1', 'Offense de siège 2'].every(t => texte().includes(t)), 'flottant : défenses, chaque deck distinct et toute la prépa RTA');
+      verifier(['Défenses de siège', 'Prépa RTA', 'Offense de siège 2 · Monstre 1, Monstre 2, Monstre 1'].every(t => !!source(t)) && !!sourceDebut('Offense de siège 1 · '),
+        'flottant : défenses, chaque deck distinct et toute la prépa RTA, désignés par leur nom complet');
+      verifier(['Défenses de siège', 'Offenses de siège', 'Prépa RTA', 'Toutes les défenses', 'Offense 2', 'Tous les monstres'].every(t => document.getElementById('racine')!.textContent!.includes(t)),
+        'flottant : en-têtes de section et libellés courts lus à l’écran');
+      const offense = source('Offense de siège 2 · Monstre 1, Monstre 2, Monstre 1');
+      verifier(offense.firstElementChild?.childElementCount === 3 && offense.lastElementChild?.previousElementSibling?.textContent === 'Offense 2',
+        'chaque deck montre ses trois monstres avant son libellé');
       const cible = nom === 'defenses' ? 'Défenses de siège' : nom === 'rta' ? 'Prépa RTA' : 'Offense de siège 2 · Monstre 1, Monstre 2, Monstre 1';
-      await geste(() => bouton(cible).click());
+      await geste(() => source(cible).click());
       verifier(JSON.stringify(position(ancre)) === avant, `rapport : géométrie de l’ancre intacte ${JSON.stringify(position(ancre))}`);
       const rapport = [...document.querySelectorAll<HTMLElement>('[aria-label="Rapport d’import"]')].find(visible)!;
       verifier(!!rapport && rapport.textContent!.includes('créée') && rapport.textContent!.includes(nom === 'defenses' ? '7 monstre(s), 2 équipe(s)' : nom === 'rta' ? '1 monstre(s), 0 équipe(s)' : '3 monstre(s), 1 équipe(s)'), 'rapport de création lu à l’écran');

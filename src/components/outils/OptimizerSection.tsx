@@ -5,7 +5,7 @@ import LeadPill, { STAT_LABEL } from '../siege/LeadPill';
 import OptimizerEquipeDialog from './OptimizerEquipeDialog';
 import OptimizerCreateListDialog from './OptimizerCreateListDialog';
 import OptimizerBackupBar from './OptimizerBackupBar';
-import OptimizerImportButton from './OptimizerImportButton';
+import OptimizerImportButton, { type SourceImportOptimizer } from './OptimizerImportButton';
 import { importerRecoOptimizer } from '../../lib/importRecoOptimizer';
 import { importerDefensesSiegeOptimizer, importerOffenseSiegeOptimizer, importerPrepaRtaOptimizer, type RapportImportOptimizer } from '../../lib/importEquipes';
 import {
@@ -964,18 +964,26 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     [box, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, monsterById]
   );
   // Les deux formats partagent les propositions calculées sur les seules sources.
-  const sourcesImport = useMemo(() => [
-    { libelle: 'Défenses de siège', produire: importerDefensesSiegeOptimizer },
+  // Le nom complet reste le nom accessible ; l'écran montre les monstres
+  // importés puis un libellé court, sous l'en-tête de leur section.
+  const sourcesImport = useMemo<SourceImportOptimizer[]>(() => [
+    { groupe: 'Défenses de siège', libelle: 'Toutes les défenses', nom: 'Défenses de siège', produire: importerDefensesSiegeOptimizer },
     ...exclusionData.siegeOffenseTeams.map((team, i) => ({
-      libelle: `Offense de siège ${i + 1} · ${team.slots.map(s => s.monsterId && exclusionData.monsterById.get(s.monsterId)?.name).filter(Boolean).join(', ') || 'Deck vide'}`,
+      groupe: 'Offenses de siège', libelle: `Offense ${i + 1}`,
+      nom: `Offense de siège ${i + 1} · ${team.slots.map(s => s.monsterId && exclusionData.monsterById.get(s.monsterId)?.name).filter(Boolean).join(', ') || 'Deck vide'}`,
       produire: (courantes: ExclusionSourceData) => importerOffenseSiegeOptimizer(team.id, courantes),
     })),
-    { libelle: 'Prépa RTA', produire: importerPrepaRtaOptimizer },
+    { groupe: 'Prépa RTA', libelle: 'Tous les monstres', nom: 'Prépa RTA', produire: importerPrepaRtaOptimizer },
     ...recommandations.flatMap((reco, ri) => reco.decks.map((deck, di) => ({
-      libelle: `Recommandation ${ri + 1} · ${reco.name || 'Sans nom'} · Deck ${di + 1} · ${deck.slots.map(s => s.com2usId != null && [...exclusionData.monsterById.values()].find(m => m.com2usId === s.com2usId)?.name || s.name).filter(Boolean).join(', ') || 'Deck vide'}`,
+      groupe: 'Recommandations', libelle: `${reco.name || `Recommandation ${ri + 1}`} · Deck ${di + 1}`,
+      nom: `Recommandation ${ri + 1} · ${reco.name || 'Sans nom'} · Deck ${di + 1} · ${deck.slots.map(s => s.com2usId != null && [...exclusionData.monsterById.values()].find(m => m.com2usId === s.com2usId)?.name || s.name).filter(Boolean).join(', ') || 'Deck vide'}`,
       produire: (courantes: ExclusionSourceData) => importerRecoOptimizer(deck, courantes),
     }))),
-  ].map(source => ({ ...source, utilisable: source.produire(exclusionData).membres.length > 0 })), [exclusionData, recommandations]);
+  ].map(source => {
+    const { membres } = source.produire(exclusionData);
+    return { ...source, utilisable: membres.length > 0,
+      monstres: membres.flatMap(m => resolveExclusionEntry(m.selector, exclusionData)?.monster ?? []) };
+  }), [exclusionData, recommandations]);
 
   // Candidats de compte pour l'ESPÈCE COURANTE, un tableau par source —
   // pilote À LA FOIS l'état actif/grisé/désactivé de chaque puce et le contenu de la désambiguïsation d'exemplaire (zone

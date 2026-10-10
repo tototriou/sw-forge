@@ -32,14 +32,20 @@ non vide mais inutilisable. Les propositions sont mémorisées sur les données
 sources et partagées entre les deux formats ; un rendu sans changement de
 ces données ne rappelle pas les producteurs, flottant fermé compris.
 
-Le bouton ouvre un `FlottantAuto`, de la largeur de son ancre : toutes les
-défenses de siège, chaque deck d’offense identifié par son numéro et sa
-composition, toute la prépa RTA avec ses vitesses. Une source sans membre
+Le bouton ouvre un `FlottantAuto`, de la largeur de son ancre au téléphone,
+de 320 px au bureau : toutes les défenses de siège, chaque deck d’offense,
+toute la prépa RTA avec ses vitesses. Une source sans membre
 résolvable reste affichée désactivée avec sa raison. Les recommandations ajoutent
-un choix par deck, identifié par le numéro et le nom de la recommandation,
-le numéro du deck et sa composition. Elles utilisent `importerRecoOptimizer`,
+un choix par deck. Elles utilisent `importerRecoOptimizer`,
 comme l’export du deck ; leurs disponibilités suivent aussi les modifications
-des recommandations.
+des recommandations. La liste reprend la grammaire de l’import de deck du
+Speed tuning : un en-tête par section (« Défenses de siège », « Offenses de
+siège », « Prépa RTA », « Recommandations »), puis, sur chaque ligne, les
+icônes des monstres importés (cinq au plus, puis leur nombre restant) et un
+libellé court (« Toutes les défenses », « Offense 2 », « Tous les monstres »,
+nom de la recommandation et numéro du deck). Le nom complet de chaque choix,
+numéro, nom de la recommandation et composition compris, reste son nom
+accessible et son infobulle.
 Échap, la croix ou
 le clic extérieur ferment le flottant. Ses choix sont des contrôles de
 `src/ui/`, sans second contour autour des rangées.

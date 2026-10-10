@@ -123,7 +123,7 @@ export async function scenario(s: Source, mobile: boolean, motif = 'accepte', co
     const avant = JSON.stringify(position(ancre));
     await geste(() => ancre.click());
     verifier(JSON.stringify(position(ancre)) === avant, 'flottant sans déplacement de l’ancre');
-    verifier(boutons().filter(b => b.textContent?.startsWith('Recommandation 1 · Contres · Deck')).length === 2, 'un choix nommé par deck recommandé');
+    verifier(boutons().filter(b => b.getAttribute('aria-label')?.startsWith('Recommandation 1 · Contres · Deck')).length === 2, 'un choix nommé par deck recommandé');
   }
   if (motif === 'apercu') return preuves;
   let ancienne = '';
@@ -133,7 +133,7 @@ export async function scenario(s: Source, mobile: boolean, motif = 'accepte', co
   const point = localStorage.getItem(OPTIMIZER_BACKUP_STORAGE_KEY), stockage = JSON.stringify(listes.lireStockageCourant()), avantAffichage = affichage();
   // « second » vise le deuxième deck : chaque action doit exporter son propre deck.
   const second = motif === 'second';
-  const ancre = s === 'flottant' ? boutons().find(b => b.textContent?.startsWith(`Recommandation 1 · Contres · Deck ${second ? 2 : 1}`))!
+  const ancre = s === 'flottant' ? boutons().find(b => b.getAttribute('aria-label')?.startsWith(`Recommandation 1 · Contres · Deck ${second ? 2 : 1}`))!
     : boutonsExport()[second ? 1 : 0];
   if (!ancre) throw new Error(`Action absente : ${s}`);
   ancre.scrollIntoView({ block: 'center' });
@@ -150,7 +150,7 @@ export async function scenario(s: Source, mobile: boolean, motif = 'accepte', co
       verifier(boutonsExport().length > 0 && boutonsExport().every(b => b.disabled && b.title.includes('Aucun monstre importable')), 'source inutilisable : actions désactivées avec raison');
     } else {
       await geste(() => changerSources({ ...data, monsterById: new Map() }));
-      const choix = boutons().filter(b => b.textContent?.startsWith('Recommandation 1'));
+      const choix = boutons().filter(b => b.getAttribute('aria-label')?.startsWith('Recommandation 1'));
       verifier(choix.length === 2 && choix.every(b => b.disabled && b.title.includes('Aucun membre résolvable')), 'recommandations inutilisables affichées avec raison');
     }
     verifier(location.hash === route && JSON.stringify(listes.lireStockageCourant()) === stockage, 'indisponibilité sans écriture ni navigation');

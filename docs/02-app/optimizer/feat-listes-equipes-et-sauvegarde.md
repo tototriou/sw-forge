@@ -370,6 +370,11 @@ corps réservent leur épaisseur pour garder ces positions au défilement. Au
 téléphone, les champs restent après les membres dans le corps défilant, avec
 l’en-tête et les actions fixes.
 
+Changer de format pendant que le dialogue est ouvert conserve le brouillon.
+Les champs de leader et de lead passent toutefois du corps à la zone fixe,
+ou inversement : ils sont remontés et perdent le focus. Celui-ci n’est pas
+restauré automatiquement.
+
 La zone C groupe les membres par équipe et affiche `LeadPill`, le leader
 éventuel et « Modifier l’équipe ». Les membres libres restent ensemble sans
 équipe. Chaque membre lié réserve la place du motif de lead inactif ; changer

@@ -38,7 +38,8 @@ import { testRenduOptimizerDialogueLeaderSkill, testRenduTelephoneOptimizerDialo
   testRenduOptimizerDialogueMembresDisponibles, testRenduTelephoneOptimizerDialogueMembresDisponibles,
   testRenduOptimizerDialogueDefilement, testRenduTelephoneOptimizerDialogueDefilement,
   testRenduOptimizerDialogueHauteur400, testRenduOptimizerDialogueHauteur600,
-  testRenduOptimizerDialogueReferencesLeader, testRenduTelephoneOptimizerDialogueReferencesLeader } from './rendu/optimizer-dialogue.test';
+  testRenduOptimizerDialogueReferencesLeader, testRenduTelephoneOptimizerDialogueReferencesLeader,
+  testRenduOptimizerDialogueChangementFormat } from './rendu/optimizer-dialogue.test';
 import {
   testMemoireOptimizerJson, testMemoireOptimizerCopie, testMemoireOptimizerLecteurListes,
   testMemoireOptimizerListesIllisibles, testMemoireOptimizerMalformed, testEquipeOptimizerValidation,
@@ -717,6 +718,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRenduOptimizerDialogueHauteur600', testRenduOptimizerDialogueHauteur600],
   ['testRenduOptimizerDialogueReferencesLeader', testRenduOptimizerDialogueReferencesLeader],
   ['testRenduTelephoneOptimizerDialogueReferencesLeader', testRenduTelephoneOptimizerDialogueReferencesLeader],
+  ['testRenduOptimizerDialogueChangementFormat', testRenduOptimizerDialogueChangementFormat],
   ['testRenduOptimizerCreationContenu', testRenduOptimizerCreationContenu],
   ['testRenduTelephoneOptimizerCreationContenu', testRenduTelephoneOptimizerCreationContenu],
   ['testRenduOptimizerRefusIdentitePerime', testRenduOptimizerRefusIdentitePerime],

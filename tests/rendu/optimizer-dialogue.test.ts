@@ -67,3 +67,39 @@ export const testRenduOptimizerDialogueHauteur400 = () => verifierHauteur(400);
 export const testRenduOptimizerDialogueHauteur600 = () => verifierHauteur(600);
 export const testRenduOptimizerDialogueReferencesLeader = () => verifier('references-leader');
 export const testRenduTelephoneOptimizerDialogueReferencesLeader = () => verifier('references-leader', true);
+
+export async function testRenduOptimizerDialogueChangementFormat() {
+  titre('rendu · dialogue d’équipe — brouillon et focus au changement de format');
+  const { browser, page } = await navigateurOptimizer(false, 'tests/rendu/optimizer-dialogue-banc.tsx');
+  try {
+    await page.evaluate(() => (globalThis as unknown as {
+      bancOptimizer: { preparer: (modification: boolean) => Promise<void> };
+    }).bancOptimizer.preparer(true));
+    await page.getByLabel('Leader de l’équipe', { exact: true }).selectOption('box:3');
+    await page.getByLabel('Type de lead de l’équipe', { exact: true }).selectOption('HP');
+    await page.getByLabel('Valeur du lead de l’équipe', { exact: true }).selectOption('44');
+    await page.getByLabel('Portée du lead de l’équipe', { exact: true }).selectOption('Element');
+    await page.getByLabel('Élément du lead de l’équipe', { exact: true }).selectOption('wind');
+    const lire = () => page.evaluate(() => {
+      const d = document.querySelector('[role="dialog"]')!;
+      return { champs: [...d.querySelectorAll<HTMLSelectElement>('select')].map(e => e.value),
+        selection: [...d.querySelectorAll<HTMLInputElement>('input:checked')].map(e => e.parentElement!.textContent),
+        disque: localStorage.getItem('swblacksmith-optimizer-members-v1') };
+    });
+    const brouillon = await lire();
+    for (const telephone of [true, false]) {
+      await page.getByLabel('Type de lead de l’équipe', { exact: true }).focus();
+      ok(await page.getByLabel('Type de lead de l’équipe', { exact: true }).evaluate(e => e === document.activeElement), 'le champ a le focus avant le changement de format');
+      await page.setViewportSize(telephone ? { width: 390, height: 844 } : { width: 1440, height: 1000 });
+      await page.waitForFunction(telephone => {
+        const d = document.querySelector('[role="dialog"]')!;
+        const corps = [...d.children].find(e => getComputedStyle(e).overflowY === 'auto');
+        return corps?.contains(d.querySelector('[aria-label="Type de lead de l’équipe"]')) === telephone;
+      }, telephone);
+      ok(JSON.stringify(await lire()) === JSON.stringify(brouillon), 'le brouillon et le stockage sont conservés dans le nouveau format');
+      ok(await page.getByLabel('Type de lead de l’équipe', { exact: true }).evaluate(e => e !== document.activeElement), 'déplacer les champs leur fait perdre le focus, sans restauration automatique');
+    }
+    await page.getByRole('button', { name: 'Enregistrer', exact: true }).click();
+    ok(await page.getByRole('dialog').count() === 0, 'le brouillon reste validable après les deux changements de format');
+  } finally { await browser.close(); }
+}

@@ -1,7 +1,7 @@
 // Compilation TypeScript de sources réelles pour un rendu React au navigateur.
 // Aucun serveur de l'application, ni moteur de recherche, n'est lancé.
 import { readFileSync, existsSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { dirname, resolve, sep } from 'node:path';
 import { createRequire } from 'node:module';
 import ts from 'typescript';
 import type { Browser, Page } from 'playwright';
@@ -58,7 +58,16 @@ export async function navigateurOptimizer(telephone = false, entreeBanc = 'tests
     const page = await browser.newPage({ viewport: telephone ? { width: 390, height: 844 } : { width: 1440, height: 1000 }, isMobile: telephone, hasTouch: telephone });
     const erreurs: string[] = [];
     page.on('pageerror', erreur => erreurs.push(erreur.stack ?? erreur.message));
-    await page.route('http://optimizer.test/**', route => route.fulfill({ contentType: 'text/html', body: '<meta name="viewport" content="width=device-width, initial-scale=1.0"><div id="racine"></div>' }));
+    const publicRoot = resolve('public');
+    await page.route('http://optimizer.test/**', route => {
+      const chemin = new URL(route.request().url()).pathname;
+      if (chemin === '/') return route.fulfill({ contentType: 'text/html', body: '<meta name="viewport" content="width=device-width, initial-scale=1.0"><div id="racine"></div>' });
+      const fichier = resolve(publicRoot, `.${decodeURIComponent(chemin)}`);
+      if (!fichier.startsWith(publicRoot + sep) || !existsSync(fichier)) return route.fulfill({ status: 404, body: '' });
+      const contentType = fichier.endsWith('.svg') ? 'image/svg+xml' : fichier.endsWith('.png') ? 'image/png' :
+        fichier.endsWith('.webp') ? 'image/webp' : fichier.endsWith('.woff2') ? 'font/woff2' : 'application/octet-stream';
+      return route.fulfill({ contentType, body: readFileSync(fichier) });
+    });
     await page.goto('http://optimizer.test/');
     await page.addStyleTag({ content: cssConstruit });
     await page.addScriptTag({ content: `

@@ -18,6 +18,7 @@ import { preuvesRefusIdentitePerime } from './optimizer-refus-identite-preuves';
 import { preuvesRecetteLeadEquipe, preuvesLeadAncienHorsEquipe, preuvesContenuSansDeplacement } from './optimizer-combat-preuves';
 import { preuvesCombatAfficheOptimizer } from './optimizer-combat-affiche-preuves';
 import { preuvesPointOptimizer } from './optimizer-backup-preuves';
+import { preuvesBandesEquipes } from './optimizer-bandes-preuves';
 
 export const premier: ExclusionSelector = { source: 'box', unitKey: '11' };
 export const second: ExclusionSelector = { source: 'box', unitKey: '22' };
@@ -128,6 +129,7 @@ export async function scenario(nom: string): Promise<[boolean, string][]> {
   if (avecPoint) return preuvesPointOptimizer({ etat: () => etat, listes: () => listes, data: () => compteActuel,
     runes: () => runesActuelles, arts: () => artefactsActuels, changerBox, changerRunes, changerArtefacts, changerDefenses, geste, premier, second, siege }, nom);
   const bancEquipes = { etat: () => etat, listes: () => listes, geste, premier, second, troisieme };
+  if (nom === 'bandes-equipes') return preuvesBandesEquipes(bancEquipes);
   if (nom === 'combat-affiche') return preuvesCombatAfficheOptimizer(bancEquipes);
   if (nom === 'recette-lead-equipe') return preuvesRecetteLeadEquipe(bancEquipes);
   if (nom === 'lead-ancien-hors-equipe') return preuvesLeadAncienHorsEquipe(bancEquipes);
@@ -320,6 +322,13 @@ export async function scenario(nom: string): Promise<[boolean, string][]> {
     verifier(getComputedStyle(groupe).borderTopWidth === '1px' && getComputedStyle(ligne.parentElement!).borderTopWidth === '1px', 'contours de la zone et des lignes : 1 px');
   }
   return preuves;
+}
+
+/** Gestes sur les vrais hooks pour observer le cycle de vie de l'alerte affichée. */
+export async function piloterAlerte(action: 'retirer-motif' | 'retablir-motif' | 'demonter') {
+  if (action === 'demonter') return geste(() => afficher(false));
+  await geste(() => listes.setTeams(listes.teams.map(e => e.id === 'ea' ? { ...e,
+    lead: { stat: 'Attack Speed', amount: 24, area: action === 'retirer-motif' ? 'General' : 'Element', element: 'fire' } } : e)));
 }
 
 const contextePreuves = () => ({ etat: () => etat, listes: () => listes, geste, premier, second, rta, siege });

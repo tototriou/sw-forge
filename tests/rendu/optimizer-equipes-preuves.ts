@@ -57,7 +57,8 @@ export async function preuvesLeadEquipeOptimizer(b: Banc): Promise<[boolean, str
   const changerLead = (lead: NonNullable<UseOptimizerLists['teams'][number]['lead']>) => b.geste(() => b.listes().setTeams(b.listes().teams.map(e => e.id === 'ea' ? { ...e, lead } : e)));
   await changerLead({ stat: 'Attack Speed', amount: 24, area: 'Element', element: 'water' });
   verifier(!b.etat().lireCombatMembre().setup.leaderSkill && !b.etat().lireCombatMembre().setup.leaderSpeedPct && b.etat().lireCombatMembre().motif?.includes('élément') === true, 'autre élément : aucun lead ni repli personnel, raison explicite');
-  verifier(document.body.textContent!.includes('Le lead ne concerne pas l’élément de ce membre.'), 'lead d’élément inactif dit dans le rendu');
+  verifier([...document.querySelectorAll('section[aria-label="Équipe 1"] button')].some(e => visible(e)
+    && e.getAttribute('aria-label') === 'Lead inactif : Le lead ne concerne pas l’élément de ce membre.'), 'lead d’élément inactif : motif sur l’icône de la carte');
   await changerLead({ stat: 'Attack Speed', amount: 24, area: 'Guild', element: null });
   await b.geste(() => b.listes().setListContent('a', 'donjon'));
   verifier(!b.etat().lireCombatMembre().setup.leaderSkill && b.etat().lireCombatMembre().motif?.includes('inactive') === true, 'contenu incompatible : lead inactif');

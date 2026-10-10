@@ -266,8 +266,11 @@ export async function scenario(nom: string): Promise<[boolean, string][]> {
     if (pliListe) await geste(() => pliListe.click());
     const selecteurListe = bouton('Ancienne');
     const ecartListe = position(selecteurListe).y - position(ancre).y - position(ancre).height;
-    verifier(ecartListe >= 0 && ecartListe <= 42 && position(selecteurListe).x === position(ancre).x
-      && position(selecteurListe).width === position(ancre).width, 'import immédiatement au-dessus du sélecteur de listes dans le format visible');
+    // Bureau : au bout de la ligne des menus ; téléphone : juste au-dessus, libellés compris.
+    verifier(pliListe ? ecartListe >= 0 && ecartListe <= 60 && position(selecteurListe).x === position(ancre).x
+      : position(selecteurListe).y === position(ancre).y && position(selecteurListe).height === position(ancre).height
+        && position(ancre).x > position(selecteurListe).x + position(selecteurListe).width,
+    pliListe ? 'téléphone : import juste au-dessus des menus de liste' : 'bureau : import au bout de la ligne de la liste active, à sa hauteur');
     if (pliListe) await geste(() => pliListe.click());
     const avantDeselection = JSON.stringify(position(ancre));
     await geste(() => { etat.setSelectedId(null); etat.setSourceSelector(null); });

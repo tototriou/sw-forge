@@ -37,7 +37,10 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   À chaque création manuelle, le dialogue demande le nom et le contenu
   (Guilde proposé, Donjon, Arène), y compris « Créer et ajouter » et
   « Créer et valider ». Le contenu est affiché avec chaque liste dans le
-  menu et modifiable sous la liste active. Une liste antérieure sans
+  menu et modifiable à côté de la liste active : « Liste active » et
+  « Contenu » partagent une ligne, chacun avec son libellé au-dessus, au
+  bureau comme au téléphone ; le menu du contenu garde une largeur fixe et
+  reste affiché, désactivé, sans liste active. Une liste antérieure sans
   contenu affiche « Sans contenu : aucun lead d’équipe appliqué. » ;
   aucun contenu n’est choisi pour elle automatiquement.
   Cette phrase reste montée avec sa place réservée et devient invisible

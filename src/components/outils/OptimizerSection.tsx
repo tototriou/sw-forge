@@ -3673,7 +3673,6 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
                 <span className="min-w-0 line-clamp-1 font-semibold text-[14px]" title={selected.monster.name}>{selected.monster.name}</span>
               </>}
             </div>
-            <OptimizerImportButton sources={sourcesImport} onImporter={importerDepuisEcran} rapport={rapportImport} />
             {/* ⚠️ Aucune liste FIXE (Box/RTA/Défense siège ne sont pas des
                 cas spéciaux, voir
                 docs/02-app/optimizer/,
@@ -3681,8 +3680,8 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
                 tout est créé/renommé/supprimé par l'utilisateur. Flotte par-
                 dessus zone C, ne la pousse jamais (voir OptimizerListPicker.tsx). */}
             <div className="mt-3">
-              <p className="label mb-1.5">Liste active</p>
               <OptimizerListPicker
+                action={<OptimizerImportButton enLigne sources={sourcesImport} onImporter={importerDepuisEcran} rapport={rapportImport} />}
                 lists={lists.lists}
                 activeListId={lists.activeListId}
                 memberCounts={memberCountsByList}
@@ -3767,7 +3766,9 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
               Gérer mes listes
               <ChevronDown size={13} className={`ml-auto transition-transform ${zoneCOpen ? 'rotate-180' : ''}`} />
             </ZoneCliquable>
-            <OptimizerImportButton sources={sourcesImport} onImporter={importerDepuisEcran} rapport={rapportImport} />
+            <div className="mt-3">
+              <OptimizerImportButton sources={sourcesImport} onImporter={importerDepuisEcran} rapport={rapportImport} />
+            </div>
             {zoneCOpen && (
               <div className="mt-2 space-y-3">
                 <OptimizerListPicker

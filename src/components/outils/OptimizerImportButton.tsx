@@ -9,9 +9,11 @@ interface Props {
   sources: { libelle: string; produire: Parameters<OptimizerState['importerEquipe']>[0]; utilisable: boolean }[];
   onImporter: OptimizerState['importerEquipe'];
   rapport: RapportImportOptimizer | null;
+  /** Au bout d'une ligne de menus : bouton à sa largeur, sources sur une largeur propre. */
+  enLigne?: boolean;
 }
 
-export default function OptimizerImportButton({ sources, onImporter, rapport }: Props) {
+export default function OptimizerImportButton({ sources, onImporter, rapport, enLigne = false }: Props) {
   const [ouvert, setOuvert] = useState(false);
   const ancre = useRef<HTMLDivElement>(null);
   const disponible = sources.some(s => s.utilisable);
@@ -22,11 +24,11 @@ export default function OptimizerImportButton({ sources, onImporter, rapport }: 
     document.addEventListener('mousedown', dehors); document.addEventListener('keydown', clavier);
     return () => { document.removeEventListener('mousedown', dehors); document.removeEventListener('keydown', clavier); };
   }, [ouvert]);
-  return <div ref={ancre} className="relative mt-3">
-    <Bouton pleineLargeur icone={<Download size={14} />} libelle="Importer une équipe"
+  return <div ref={ancre} className="relative">
+    <Bouton pleineLargeur={!enLigne} icone={<Download size={14} />} libelle="Importer une équipe"
       disabled={!disponible} title={disponible ? 'Créer une nouvelle liste depuis le siège, la prépa RTA ou un deck recommandé.' : 'Aucune source utilisable dans les défenses de siège, les offenses de siège, la prépa RTA ou les recommandations.'}
       aria-expanded={ouvert} onClick={() => setOuvert(v => !v)} />
-    <FlottantAuto ouvert={ouvert} ancre={ancre} largeurAncre hauteur={320} rembourrage="aucun"
+    <FlottantAuto ouvert={ouvert} ancre={ancre} largeurAncre={!enLigne} largeur={320} hauteur={320} rembourrage="aucun"
       className="max-h-80 overflow-y-auto">
       <div className="flex items-center justify-between gap-2 px-3 py-2">
         <p className="text-sm font-semibold text-ink">Importer une équipe</p>

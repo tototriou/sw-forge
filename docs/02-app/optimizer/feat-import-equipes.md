@@ -95,9 +95,10 @@ les sources. Si toutes les sources deviennent inutilisables, le bouton reste
 désactivé avec sa raison : le rapport déjà ouvert reste lisible, mais une fois
 fermé il ne peut être rouvert avant le retour d’une source utilisable. Le rapport
 reste conservé pendant cette indisponibilité.
-Au bureau et au téléphone, le bouton précède le sélecteur de listes,
-après la recherche et le monstre choisi ; au téléphone, il reste sous
-« Gérer mes listes », hors de son dépliement. La ligne du monstre
+Au bureau, le bouton termine la ligne de « Liste active » et « Contenu »,
+à leur hauteur, et ses sources s’ouvrent sur une largeur propre. Au
+téléphone, il suit la recherche et le monstre choisi, sous « Gérer mes
+listes », hors de son dépliement, sur toute la largeur. La ligne du monstre
 choisi garde sa hauteur lorsqu’elle est vide ; un nom long reste sur une
 ligne, tronqué avec son texte complet en `title`, pour que le premier import
 ne déplace pas l’ancre. L’ouverture des sources et le rapport sortent du flux.

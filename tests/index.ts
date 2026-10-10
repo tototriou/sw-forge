@@ -28,6 +28,7 @@ import { testRenduOptimizerLeadEquipePersonnel, testRenduTelephoneOptimizerLeadE
   testRenduOptimizerRecetteLeadEquipe, testRenduTelephoneOptimizerRecetteLeadEquipe,
   testRenduOptimizerLeadAncienHorsEquipe, testRenduTelephoneOptimizerLeadAncienHorsEquipe,
   testRenduOptimizerContenuSansDeplacement, testRenduTelephoneOptimizerContenuSansDeplacement,
+  testRenduOptimizerLigneListe, testRenduTelephoneOptimizerLigneListe,
   testRenduOptimizerCombatEffectifAffiche, testRenduTelephoneOptimizerCombatEffectifAffiche } from './rendu/optimizer-equipes.test';
 import { verificationsImportSpeedTune } from './import-speed-tune.test';
 import { testRenduOptimizerPointGestes, testRenduTelephoneOptimizerPointGestes, testRenduOptimizerPointReimport,
@@ -738,6 +739,8 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRenduTelephoneOptimizerLeadAncienHorsEquipe', testRenduTelephoneOptimizerLeadAncienHorsEquipe],
   ['testRenduOptimizerContenuSansDeplacement', testRenduOptimizerContenuSansDeplacement],
   ['testRenduTelephoneOptimizerContenuSansDeplacement', testRenduTelephoneOptimizerContenuSansDeplacement],
+  ['testRenduOptimizerLigneListe', testRenduOptimizerLigneListe],
+  ['testRenduTelephoneOptimizerLigneListe', testRenduTelephoneOptimizerLigneListe],
   ['testRenduOptimizerCombatEffectifAffiche', testRenduOptimizerCombatEffectifAffiche],
   ['testRenduTelephoneOptimizerCombatEffectifAffiche', testRenduTelephoneOptimizerCombatEffectifAffiche],
   ['testOptimizerEquipesJetons', testOptimizerEquipesJetons],

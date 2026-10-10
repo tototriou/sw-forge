@@ -4,18 +4,22 @@ import type { ContenuListeOptimizer } from '../../lib/optimizerMemberStorage';
 
 export const CONTENUS_LISTE_OPTIMIZER = { guilde: 'Guilde', donjon: 'Donjon', arene: 'Arène' } as const;
 
-export function ContenuListePicker({ contenu, onChange }: {
+// `enLigne` : le libellé est posé au-dessus par l'appelant, et le menu prend
+// à la souris la hauteur d'un `Bouton` md (32 px) voisin, que `Selecteur` md
+// dépasse encore (37,5 px).
+export function ContenuListePicker({ contenu, onChange, enLigne = false, disabled = false }: {
   contenu: ContenuListeOptimizer | undefined;
   onChange: (contenu: ContenuListeOptimizer) => void;
+  enLigne?: boolean;
+  disabled?: boolean;
 }) {
-  return <label className="flex items-center gap-2 text-xs text-ink-dim">
-    Contenu
-    <Selecteur aria-label="Contenu de la liste" taille="sm" value={contenu ?? ''}
+  const menu = <Selecteur aria-label="Contenu de la liste" taille={enLigne ? 'md' : 'sm'} className={enLigne ? 'lg:min-h-8 lg:py-0' : ''}
+      value={contenu ?? ''} disabled={disabled}
       onChange={e => onChange(e.target.value as ContenuListeOptimizer)}>
       {!contenu && <option value="" disabled>Sans contenu</option>}
       {Object.entries(CONTENUS_LISTE_OPTIMIZER).map(([cle, nom]) => <option key={cle} value={cle}>{nom}</option>)}
-    </Selecteur>
-  </label>;
+    </Selecteur>;
+  return enLigne ? menu : <label className="flex items-center gap-2 text-xs text-ink-dim">Contenu{menu}</label>;
 }
 
 export default function OptimizerCreateListDialog({ libelleAction = 'Créer', onValider, onCancel }: {

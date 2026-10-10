@@ -133,3 +133,26 @@ export async function preuvesContenuSansDeplacement(b: Banc): Promise<[boolean, 
   }
   return preuves;
 }
+
+export async function preuvesLigneListe(b: Banc): Promise<[boolean, string][]> {
+  const preuves: [boolean, string][] = [], verifier = (oui: boolean, texte: string) => preuves.push([oui, texte]);
+  const pli = bouton(['Gérer mes listes']);
+  const telephone = !!pli;
+  if (pli) await b.geste(() => pli.click());
+  const liste = [...document.querySelectorAll<HTMLButtonElement>('button[aria-expanded]')].find(e => visible(e) && e.textContent?.trim() === 'Alpha')!;
+  const contenu = [...document.querySelectorAll<HTMLSelectElement>('[aria-label="Contenu de la liste"]')].find(visible)!;
+  const libelle = (texte: string) => [...document.querySelectorAll<HTMLParagraphElement>('p')].find(e => visible(e) && e.textContent === texte)!;
+  const r = (e: Element) => e.getBoundingClientRect();
+  const memeLigne = (a: Element, c: Element) => Math.abs(r(a).top - r(c).top) < 1 && Math.abs(r(a).bottom - r(c).bottom) < 1;
+  verifier(!!liste && !!contenu && memeLigne(liste, contenu) && r(liste).right <= r(contenu).left,
+    `« Liste active » puis « Contenu » sur une même ligne, même hauteur — ${JSON.stringify([r(liste), r(contenu)].map(x => [x.left, x.top, x.width, x.height]))}`);
+  verifier([[libelle('Liste active'), liste], [libelle('Contenu'), contenu]].every(([l, c]) => !!l && r(l).bottom <= r(c).top
+    && r(l).left >= r(c).left - 1 && r(l).left < r(c).right), 'chaque menu a son libellé au-dessus de lui');
+  const importer = [...document.querySelectorAll<HTMLButtonElement>('button')].find(e => visible(e) && e.textContent?.trim() === 'Importer une équipe')!;
+  verifier(telephone ? r(importer).bottom <= r(libelle('Liste active')).top || r(importer).top >= r(liste).bottom
+    : memeLigne(importer, liste) && r(contenu).right <= r(importer).left,
+    telephone ? 'téléphone : « Importer une équipe » reste hors de la ligne des menus'
+      : `bureau : « Importer une équipe » au bout de la même ligne, même hauteur — ${JSON.stringify([r(importer).top, r(importer).height])}`);
+  verifier(document.documentElement.scrollWidth <= window.innerWidth, 'ligne contenue dans la largeur, sans défilement horizontal');
+  return preuves;
+}

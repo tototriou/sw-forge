@@ -7,6 +7,7 @@ import type { EquipeOptimizer } from '../../lib/optimizerMemberStorage';
 import { creerEquipeOptimizer, modifierEquipeOptimizer, dissoudreEquipeOptimizer, type ContexteEquipesOptimizer } from '../../lib/equipesOptimizer';
 import { STAT_LABEL } from '../siege/LeadPill';
 import ExclusionCandidateRow from './ExclusionCandidateRow';
+import { SOUS_LG, useMediaQuery } from '../../hooks/useMediaQuery';
 
 export default function OptimizerEquipeDialog({ contexte, listId, equipe, data, onValider, onClose }: {
   contexte: ContexteEquipesOptimizer;
@@ -21,10 +22,11 @@ export default function OptimizerEquipeDialog({ contexte, listId, equipe, data, 
   const [leader, setLeader] = useState(() => equipe?.leader ? exclusionSelectorKey(equipe.leader) : '');
   const [lead, setLead] = useState<LeaderSkill | null>(() => equipe?.lead ?? null);
   const [rapport, setRapport] = useState<string[]>([]);
+  const telephone = useMediaQuery(SOUS_LG);
   const [id] = useState(() => equipe?.id ?? globalThis.crypto?.randomUUID?.() ?? `equipe_${Date.now()}_${Math.floor(Math.random() * 1e6)}`);
   const selection = new Set(members.map(exclusionSelectorKey));
-  const options = contexte.members.filter(m => m.listId === listId);
   const autreEquipe = (s: ExclusionSelector) => contexte.teams.some(e => e.id !== equipe?.id && e.listId === listId && e.members.some(m => exclusionSelectorKey(m) === exclusionSelectorKey(s)));
+  const options = contexte.members.filter(m => m.listId === listId && !autreEquipe(m.selector));
   const nom = (s: ExclusionSelector) => resolveExclusionEntry(s, data)?.monster.name ?? 'Introuvable';
   const source = (s: ExclusionSelector) => SOURCE_OPTIONS.find(o => o.key === s.source)?.label ?? 'Non possédé';
   const candidats = new Map(SOURCE_OPTIONS.flatMap(o => exclusionCandidatesFor(o.key, data, null, null, false)).map(c => [exclusionSelectorKey(c.selector), c]));
@@ -36,26 +38,17 @@ export default function OptimizerEquipeDialog({ contexte, listId, equipe, data, 
     if (resultat.teams === contexte.teams) { setRapport(resultat.rapport); return; }
     onValider(resultat.teams); onClose();
   }
-  return <Modale titre={equipe ? 'Modifier l’équipe' : 'Lier une team'} labelledBy="equipe-optimizer" croix onClose={onClose}
-    sousTitre="Deux à cinq membres de cette liste. Le lead se partage dans l’équipe ; les critères personnels restent mémorisés."
-    actions={<>
-      {equipe && <Bouton libelle="Délier" onClick={() => { onValider(dissoudreEquipeOptimizer(contexte.teams, equipe.id).teams); onClose(); }} />}
-      <Bouton libelle="Annuler" fond="plein" onClick={onClose} />
-      <Bouton libelle={equipe ? 'Enregistrer' : 'Lier'} ton="accent" fond="doux" disabled={members.length > 5 || (!equipe && members.length < 2)} onClick={appliquer} />
-    </>}>
-    <div className="space-y-3">
-      <p className="text-xs text-ink-dim">{members.length} / 5 membres{equipe && members.length < 2 ? ' — enregistrer dissoudra l’équipe.' : ''}</p>
-      <div className="space-y-2">
-        {options.map(m => { const cle = exclusionSelectorKey(m.selector), prise = autreEquipe(m.selector), resolu = resolveExclusionEntry(m.selector, data);
-          const candidat = candidats.get(cle) ?? (resolu ? { selector: m.selector, ...resolu } : null);
-          return <Case key={cle} className="items-start"
-          libelle={<span className="min-w-0 flex-1 space-y-1"><span className="block text-xs">{source(m.selector)}{prise ? ' — déjà dans une équipe' : ''}</span>
-            <span className="flex min-w-0 items-center gap-2">{candidat ? <ExclusionCandidateRow candidate={candidat} /> : nom(m.selector)}</span></span>} checked={selection.has(cle)}
-          disabled={prise || (!selection.has(cle) && members.length >= 5)}
-          onChange={e => setMembers(e.target.checked ? [...members, m.selector] : members.filter(s => exclusionSelectorKey(s) !== cle))} />; })}
-      </div>
+  const champsLead = <>
       <label className="flex flex-col gap-1 text-xs text-ink-dim">Leader (facultatif)
-        <Selecteur aria-label="Leader de l’équipe" value={selection.has(leader) ? leader : ''} onChange={e => setLeader(e.target.value)}>
+        <Selecteur aria-label="Leader de l’équipe" value={selection.has(leader) ? leader : ''} onChange={e => {
+          const cle = e.target.value;
+          setLeader(cle);
+          if (cle) {
+            const membre = members.find(s => exclusionSelectorKey(s) === cle);
+            const skill = membre && resolveExclusionEntry(membre, data)?.monster.leaderSkill;
+            setLead(skill ? { ...skill } : null);
+          }
+        }}>
           <option value="">Aucun</option>{members.map(s => <option key={exclusionSelectorKey(s)} value={exclusionSelectorKey(s)}>{nom(s)} · {source(s)}</option>)}
         </Selecteur>
       </label>
@@ -87,7 +80,31 @@ export default function OptimizerEquipeDialog({ contexte, listId, equipe, data, 
           </Selecteur>
         </label>
       </div>
-      <div className="h-12 overflow-y-auto text-xs text-warn" role="status">{rapport.map((m, i) => <p key={i}>{m}</p>)}</div>
+      <div className="h-12 overflow-y-auto text-xs text-warn" role="status">
+        {lead?.stat && !LEADER_SKILL_STATS.includes(lead.stat as LeaderSkillStat) && <p>Ce lead est conservé sans effet calculé.</p>}
+        {rapport.map((m, i) => <p key={i}>{m}</p>)}
+      </div>
+    </>;
+  return <Modale titre={equipe ? 'Modifier l’équipe' : 'Lier une team'} labelledBy="equipe-optimizer" croix onClose={onClose}
+    sousTitre="Deux à cinq membres de cette liste. Le lead se partage dans l’équipe ; les critères personnels restent mémorisés."
+    corpsFixeBas={telephone ? undefined : <div className="space-y-3">{champsLead}</div>}
+    actions={<>
+      {equipe && <Bouton libelle="Délier" onClick={() => { onValider(dissoudreEquipeOptimizer(contexte.teams, equipe.id).teams); onClose(); }} />}
+      <Bouton libelle="Annuler" fond="plein" onClick={onClose} />
+      <Bouton libelle={equipe ? 'Enregistrer' : 'Lier'} ton="accent" fond="doux" disabled={members.length > 5 || (!equipe && members.length < 2)} onClick={appliquer} />
+    </>}>
+    <div className="space-y-3">
+      <p className="text-xs text-ink-dim">{members.length} / 5 membres{equipe && members.length < 2 ? ' — enregistrer dissoudra l’équipe.' : ''}</p>
+      <div className="space-y-2">
+        {options.map(m => { const cle = exclusionSelectorKey(m.selector), resolu = resolveExclusionEntry(m.selector, data);
+          const candidat = candidats.get(cle) ?? (resolu ? { selector: m.selector, ...resolu } : null);
+          return <Case key={cle} className="items-start"
+          libelle={<span className="min-w-0 flex-1 space-y-1"><span className="block text-xs">{source(m.selector)}</span>
+            <span className="flex min-w-0 items-center gap-2">{candidat ? <ExclusionCandidateRow candidate={candidat} /> : nom(m.selector)}</span></span>} checked={selection.has(cle)}
+          disabled={!selection.has(cle) && members.length >= 5}
+          onChange={e => setMembers(e.target.checked ? [...members, m.selector] : members.filter(s => exclusionSelectorKey(s) !== cle))} />; })}
+      </div>
+      {telephone && champsLead}
     </div>
   </Modale>;
 }

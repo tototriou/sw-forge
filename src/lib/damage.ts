@@ -172,8 +172,8 @@ export type LeaderSkillStat = (typeof LEADER_SKILL_STATS)[number];
 // valeur de lead dépend de sa portée (33 % réservés à un contenu — guilde,
 // arène —, 24 % universels, 30 % élémentaires…), du monstre qui la porte et
 // de son nombre d'étoiles naturel. Sans importance ici : c'est l'utilisateur
-// qui choisit le lead posé sur son équipe, l'app ne le déduit d'aucun
-// monstre. Une seule dimension, donc — une liste de valeurs par statistique.
+// qui choisit le lead posé sur son équipe, même après son initialisation par
+// le leader désigné. Une seule dimension — une liste de valeurs par statistique.
 //
 // ⚠️ **Un seul palier en Dégâts Crit est CORRECT**, pas un trou de la table :
 // un seul monstre du jeu porte ce leader skill.

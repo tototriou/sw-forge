@@ -344,10 +344,15 @@ affichée telle quelle, jamais remplacée en silence.
 « Lier une team » ouvre `OptimizerEquipeDialog`, hors du flux, au bureau comme
 au téléphone. Il propose les membres de la liste, de deux à cinq, un leader
 facultatif et le lead (type, valeur, portée et élément). Les membres déjà liés
-ailleurs sont désactivés. Le leader désigné n’impose pas automatiquement son
-lead : la désignation et le lead se règlent séparément. Les types calculables
-reprennent les paliers du menu existant ; un autre type déjà stocké reste
-affiché avec son montant, sans effet calculé.
+à une autre équipe de cette liste sont absents des propositions, à la création
+comme à la modification ; ceux de l’équipe modifiée restent proposés.
+Choisir un leader remplit les quatre champs depuis son leader skill ; sans
+leader skill, le lead devient « Aucun ». Revenir à « Aucun » leader conserve
+les champs. Ceux-ci restent ensuite modifiables, indépendamment du leader.
+Les types calculables reprennent les paliers du menu existant ; un autre type
+fourni par le leader ou déjà stocké reste
+affiché avec son montant, sans effet calculé ; une phrase dans la zone de
+rapport réservée garde cette mention lisible même si le menu tronque le libellé.
 
 Les choix sont un brouillon : « Lier » ou « Enregistrer » publie l’équipe et
 ferme le dialogue ; croix, Échap, clic extérieur et « Annuler » abandonnent
@@ -355,6 +360,12 @@ les changements. « Délier » dissout l’équipe à la fermeture, en gardant s
 membres et leurs critères dans la liste. Enregistrer moins de deux membres
 dissout aussi l’équipe, annoncé dans le dialogue. Rien n’est regroupé pendant
 qu’on coche les membres. Les actions restent dans le pied de la modale.
+
+Au bureau, l’en-tête (titre et phrase), les champs de leader et de lead et les
+actions restent fixes ; seule la liste des membres défile. Les séparations du
+corps réservent leur épaisseur pour garder ces positions au défilement. Au
+téléphone, les champs restent après les membres dans le corps défilant, avec
+l’en-tête et les actions fixes.
 
 La zone C groupe les membres par équipe et affiche `LeadPill`, le leader
 éventuel et « Modifier l’équipe ». Les membres libres restent ensemble sans

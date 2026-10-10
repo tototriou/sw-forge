@@ -40,6 +40,7 @@ import testNavigation from './navigation.test';
 import { testNavigationAdresses, testNavigationAdressesDefauts, testNavigationVuesCompte } from './navigation-adresses.test';
 import testPersistance from './persistance.test';
 import { testRenduOptimizerDialogueLeaderSkill, testRenduTelephoneOptimizerDialogueLeaderSkill,
+  testRenduOptimizerDialogueLeaderEspece, testRenduTelephoneOptimizerDialogueLeaderEspece,
   testRenduOptimizerDialogueMembresDisponibles, testRenduTelephoneOptimizerDialogueMembresDisponibles,
   testRenduOptimizerDialogueDefilement, testRenduTelephoneOptimizerDialogueDefilement,
   testRenduOptimizerDialogueHauteur400, testRenduOptimizerDialogueHauteur600,
@@ -716,6 +717,8 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRenduTelephoneOptimizerDialogueEquipe', testRenduTelephoneOptimizerDialogueEquipe],
   ['testRenduOptimizerDialogueLeaderSkill', testRenduOptimizerDialogueLeaderSkill],
   ['testRenduTelephoneOptimizerDialogueLeaderSkill', testRenduTelephoneOptimizerDialogueLeaderSkill],
+  ['testRenduOptimizerDialogueLeaderEspece', testRenduOptimizerDialogueLeaderEspece],
+  ['testRenduTelephoneOptimizerDialogueLeaderEspece', testRenduTelephoneOptimizerDialogueLeaderEspece],
   ['testRenduOptimizerDialogueMembresDisponibles', testRenduOptimizerDialogueMembresDisponibles],
   ['testRenduTelephoneOptimizerDialogueMembresDisponibles', testRenduTelephoneOptimizerDialogueMembresDisponibles],
   ['testRenduOptimizerDialogueDefilement', testRenduOptimizerDialogueDefilement],

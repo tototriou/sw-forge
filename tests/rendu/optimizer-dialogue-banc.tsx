@@ -21,6 +21,8 @@ const box: BoxItem[] = Array.from({ length: 28 }, (_, i) => {
 const membres: ExclusionSelector[] = box.map(b => ({ source: 'box', unitKey: b.key }));
 const espece: Monster = { ...box[2].monster, id: 101, name: 'Espèce non possédée' };
 const references: ExclusionSelector[] = [{ source: 'unowned', monsterId: '101', copie: 2 }, { source: 'box', unitKey: 'absente' }];
+// Le leader se choisit par espèce : la valeur d'une option est son com2usId.
+const especeDe = (i: number) => String(box[i].monster.com2usId);
 const autre: EquipeOptimizer = { id: 'autre', listId: 'a', members: membres.slice(-2), lead: null };
 const cible: EquipeOptimizer = { id: 'cible', listId: 'a', members: membres.slice(0, 3),
   lead: { stat: 'HP', amount: 44, area: 'Arena', element: null }, leader: membres[0] };
@@ -70,20 +72,20 @@ export async function scenario(nom: string): Promise<[boolean, string][]> {
       if (!modification) for (const i of [0, 1, 2]) await cocher(i);
       else verifier(valeurs()[0] === 'HP' && valeurs()[1] === '44', 'ouvrir conserve le lead déjà édité malgré le leader désigné');
       const initial = JSON.stringify(listes.teams), disque = localStorage.getItem(OPTIMIZER_MEMBERS_STORAGE_KEY);
-      await choisir('Leader de l’équipe', exclusionSelectorKey(membres[2]));
+      await choisir('Leader de l’équipe', especeDe(2));
       verifier(JSON.stringify(valeurs()) === JSON.stringify(['Resistance', '41', 'Element', 'water']), 'leader élémentaire : les quatre menus reprennent son skill');
       verifier(menu(labels[0]).selectedOptions[0].textContent!.includes('sans effet calculé'), 'Résistance : valeur conservée et sans effet calculé affiché');
       verifier(dialogue().querySelector('[role="status"]')!.textContent!.includes('sans effet calculé'), 'la mention est lisible dans le corps, même si le menu tronque son libellé');
-      await choisir('Leader de l’équipe', exclusionSelectorKey(membres[0]));
+      await choisir('Leader de l’équipe', especeDe(0));
       verifier(valeurs()[0] === 'Attack Speed' && valeurs()[1] === '24' && valeurs()[2] === 'Guild' && menu(labels[3]).disabled, 'autre leader : type, montant et portée remplacés, élément désactivé');
       await choisir(labels[0], 'HP'); await choisir(labels[1], '44'); await choisir(labels[2], 'Element'); await choisir(labels[3], 'wind');
       verifier(JSON.stringify(valeurs()) === JSON.stringify(['HP', '44', 'Element', 'wind']), 'les quatre champs restent modifiables après le choix du leader');
       await choisir('Leader de l’équipe', '');
       verifier(JSON.stringify(valeurs()) === JSON.stringify(['HP', '44', 'Element', 'wind']), 'Aucun leader conserve les quatre champs édités');
-      await choisir('Leader de l’équipe', exclusionSelectorKey(membres[1]));
+      await choisir('Leader de l’équipe', especeDe(1));
       verifier(valeurs()[0] === '' && valeurs()[1] === '' && labels.slice(1).every(l => menu(l).disabled), 'leader sans skill : Aucun, menus dépendants désactivés');
       verifier(JSON.stringify(listes.teams) === initial && localStorage.getItem(OPTIMIZER_MEMBERS_STORAGE_KEY) === disque, 'tous les choix restent locaux : équipe et stockage inchangés');
-      await choisir('Leader de l’équipe', exclusionSelectorKey(membres[2]));
+      await choisir('Leader de l’équipe', especeDe(2));
       await geste(() => bouton(modification ? 'Enregistrer' : 'Lier').click());
       const publiee = listes.teams.find(e => e.listId === 'a' && e.id !== 'autre')!;
       verifier(fermee && publiee.lead?.stat === 'Resistance' && publiee.lead.amount === 41 && publiee.lead.area === 'Element' && publiee.lead.element === 'water', 'validation : skill complet publié et dialogue fermé');
@@ -92,20 +94,31 @@ export async function scenario(nom: string): Promise<[boolean, string][]> {
   } else if (nom === 'references-leader') {
     for (const modification of [false, true]) {
       await preparer(modification, true);
+      // Seules les références restent cochées : Membre 03 partage l'espèce de la copie.
+      if (modification) for (const i of [0, 1, 2]) await cocher(i);
       await cocher(26); await cocher(27);
       const initial = JSON.stringify(listes.teams), disque = localStorage.getItem(OPTIMIZER_MEMBERS_STORAGE_KEY);
-      await choisir('Leader de l’équipe', exclusionSelectorKey(references[0]));
-      verifier(menu('Leader de l’équipe').selectedOptions[0].textContent!.includes('Espèce non possédée'), 'la copie non possédée est résolue depuis une espèce absente de la box');
+      verifier([...menu('Leader de l’équipe').options].map(o => o.textContent).join('|') === 'Aucun|Espèce non possédée',
+        'une référence introuvable, sans espèce, n’est pas proposée comme leader');
+      await choisir('Leader de l’équipe', String(espece.com2usId));
+      verifier(menu('Leader de l’équipe').selectedOptions[0].textContent === 'Espèce non possédée', 'la copie non possédée est résolue depuis une espèce absente de la box');
       verifier(JSON.stringify(valeurs()) === JSON.stringify(['Resistance', '41', 'Element', 'water']), 'copie non possédée : les quatre menus reprennent le skill de son espèce');
-      await choisir('Leader de l’équipe', exclusionSelectorKey(references[1]));
-      verifier(menu('Leader de l’équipe').selectedOptions[0].textContent!.includes('Introuvable'), 'la référence introuvable reste désignée comme leader');
-      verifier(menu(labels[0]).selectedOptions[0].textContent === 'Aucun' && valeurs()[1] === '' && labels.slice(1).every(l => menu(l).disabled), 'référence introuvable : l’ancien lead est effacé, Aucun et champs dépendants désactivés');
       verifier(JSON.stringify(listes.teams) === initial && localStorage.getItem(OPTIMIZER_MEMBERS_STORAGE_KEY) === disque, 'ces références ne publient rien pendant l’édition');
-      await choisir('Leader de l’équipe', exclusionSelectorKey(references[0]));
       await geste(() => bouton(modification ? 'Enregistrer' : 'Lier').click());
       const publiee = listes.teams.find(e => e.listId === 'a' && e.id !== 'autre')!;
       verifier(fermee && publiee.leader?.source === 'unowned' && publiee.leader.copie === 2 && publiee.lead?.stat === 'Resistance' && publiee.lead.amount === 41 && publiee.lead.area === 'Element' && publiee.lead.element === 'water', 'validation : la copie désignée et son skill complet sont publiés');
     }
+  } else if (nom === 'leader-espece') {
+    await preparer(false, true);
+    // Membre 03 et la copie non possédée sont deux exemplaires de la même espèce.
+    await cocher(2); await cocher(26); await cocher(27);
+    const options = [...menu('Leader de l’équipe').options].map(o => o.textContent);
+    verifier(options.join('|') === 'Aucun|Membre 03', `une seule option par espèce, nommée sans origine — ${options.join(' | ')}`);
+    await choisir('Leader de l’équipe', especeDe(2));
+    verifier(JSON.stringify(valeurs()) === JSON.stringify(['Resistance', '41', 'Element', 'water']), 'l’espèce choisie remplit le lead depuis son leader skill');
+    await geste(() => bouton('Lier').click());
+    const publiee = listes.teams.find(e => e.listId === 'a' && e.id !== 'autre')!;
+    verifier(fermee && exclusionSelectorKey(publiee.leader!) === exclusionSelectorKey(membres[2]), 'l’équipe retient le premier exemplaire coché de l’espèce');
   } else if (nom === 'membres') {
     for (const modification of [false, true]) {
       await preparer(modification);

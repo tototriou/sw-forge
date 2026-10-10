@@ -19,7 +19,12 @@ export default function OptimizerEquipeDialog({ contexte, listId, equipe, data, 
 }) {
   // L'éditeur garde un brouillon : la liste ne se regroupe qu'à sa fermeture.
   const [members, setMembers] = useState<ExclusionSelector[]>(() => equipe?.members ?? []);
-  const [leader, setLeader] = useState(() => equipe?.leader ? exclusionSelectorKey(equipe.leader) : '');
+  const espece = (s: ExclusionSelector) => resolveExclusionEntry(s, data)?.monster;
+  // Le leader se choisit par espèce ; la clé est son com2usId.
+  const [leader, setLeader] = useState(() => {
+    const id = equipe?.leader && espece(equipe.leader)?.com2usId;
+    return id ? String(id) : '';
+  });
   const [lead, setLead] = useState<LeaderSkill | null>(() => equipe?.lead ?? null);
   const [rapport, setRapport] = useState<string[]>([]);
   const telephone = useMediaQuery(SOUS_LG);
@@ -31,8 +36,21 @@ export default function OptimizerEquipeDialog({ contexte, listId, equipe, data, 
   const source = (s: ExclusionSelector) => SOURCE_OPTIONS.find(o => o.key === s.source)?.label ?? 'Non possédé';
   const candidats = new Map(SOURCE_OPTIONS.flatMap(o => exclusionCandidatesFor(o.key, data, null, null, false)).map(c => [exclusionSelectorKey(c.selector), c]));
   const valeurs = lead && LEADER_SKILL_STATS.includes(lead.stat as LeaderSkillStat) ? LEADER_SKILL_VALEURS[lead.stat as LeaderSkillStat] : [];
+  // Une option par espèce cochée, nommée par son premier exemplaire coché.
+  const parEspece = new Map<string, NonNullable<ReturnType<typeof espece>>>();
+  for (const s of members) {
+    const m = espece(s);
+    if (m?.com2usId && !parEspece.has(String(m.com2usId))) parEspece.set(String(m.com2usId), m);
+  }
+  const especes = [...parEspece.values()];
+  // L'exemplaire leader déjà désigné reste retenu si son espèce l'est encore.
+  const memeEspece = (s: ExclusionSelector) => String(espece(s)?.com2usId) === leader;
+  const leaderRetenu = !leader ? undefined
+    : equipe?.leader && members.some(s => exclusionSelectorKey(s) === exclusionSelectorKey(equipe.leader!)) && memeEspece(equipe.leader)
+      ? members.find(s => exclusionSelectorKey(s) === exclusionSelectorKey(equipe.leader!))
+      : members.find(memeEspece);
   function appliquer() {
-    const proposition = { id, listId, members, lead, ...(leader && members.find(s => exclusionSelectorKey(s) === leader) ? { leader: members.find(s => exclusionSelectorKey(s) === leader)! } : {}) };
+    const proposition = { id, listId, members, lead, ...(leaderRetenu ? { leader: leaderRetenu } : {}) };
     const resultat = equipe && members.length < 2 ? dissoudreEquipeOptimizer(contexte.teams, equipe.id)
       : equipe ? modifierEquipeOptimizer(contexte, proposition) : creerEquipeOptimizer(contexte, proposition);
     if (resultat.teams === contexte.teams) { setRapport(resultat.rapport); return; }
@@ -40,16 +58,15 @@ export default function OptimizerEquipeDialog({ contexte, listId, equipe, data, 
   }
   const champsLead = <>
       <label className="flex flex-col gap-1 text-xs text-ink-dim">Leader (facultatif)
-        <Selecteur aria-label="Leader de l’équipe" value={selection.has(leader) ? leader : ''} onChange={e => {
+        <Selecteur aria-label="Leader de l’équipe" value={leaderRetenu ? leader : ''} onChange={e => {
           const cle = e.target.value;
           setLeader(cle);
           if (cle) {
-            const membre = members.find(s => exclusionSelectorKey(s) === cle);
-            const skill = membre && resolveExclusionEntry(membre, data)?.monster.leaderSkill;
+            const skill = especes.find(m => String(m.com2usId) === cle)?.leaderSkill;
             setLead(skill ? { ...skill } : null);
           }
         }}>
-          <option value="">Aucun</option>{members.map(s => <option key={exclusionSelectorKey(s)} value={exclusionSelectorKey(s)}>{nom(s)} · {source(s)}</option>)}
+          <option value="">Aucun</option>{especes.map(m => <option key={m.com2usId} value={String(m.com2usId)}>{m.name}</option>)}
         </Selecteur>
       </label>
       <div className="grid grid-cols-2 gap-2">

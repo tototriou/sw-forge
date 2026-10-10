@@ -14,6 +14,8 @@ async function verifier(nom: string, telephone = false) {
 }
 export const testRenduOptimizerDialogueLeaderSkill = () => verifier('leader');
 export const testRenduTelephoneOptimizerDialogueLeaderSkill = () => verifier('leader', true);
+export const testRenduOptimizerDialogueLeaderEspece = () => verifier('leader-espece');
+export const testRenduTelephoneOptimizerDialogueLeaderEspece = () => verifier('leader-espece', true);
 export const testRenduOptimizerDialogueMembresDisponibles = () => verifier('membres');
 export const testRenduTelephoneOptimizerDialogueMembresDisponibles = () => verifier('membres', true);
 export const testRenduOptimizerDialogueDefilement = () => verifier('defilement');
@@ -75,7 +77,7 @@ export async function testRenduOptimizerDialogueChangementFormat() {
     await page.evaluate(() => (globalThis as unknown as {
       bancOptimizer: { preparer: (modification: boolean) => Promise<void> };
     }).bancOptimizer.preparer(true));
-    await page.getByLabel('Leader de l’équipe', { exact: true }).selectOption('box:3');
+    await page.getByLabel('Leader de l’équipe', { exact: true }).selectOption('10103');
     await page.getByLabel('Type de lead de l’équipe', { exact: true }).selectOption('HP');
     await page.getByLabel('Valeur du lead de l’équipe', { exact: true }).selectOption('44');
     await page.getByLabel('Portée du lead de l’équipe', { exact: true }).selectOption('Element');

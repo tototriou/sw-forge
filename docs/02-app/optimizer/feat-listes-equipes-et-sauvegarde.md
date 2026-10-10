@@ -355,6 +355,11 @@ au téléphone. Il propose les membres de la liste, de deux à cinq, un leader
 facultatif et le lead (type, valeur, portée et élément). Les membres déjà liés
 à une autre équipe de cette liste sont absents des propositions, à la création
 comme à la modification ; ceux de l’équipe modifiée restent proposés.
+Le leader se choisit par **espèce** : une seule option par espèce cochée,
+libellée de son seul nom, même si la liste en porte plusieurs exemplaires ;
+un membre introuvable, sans espèce, n’est pas proposé. L’équipe retient le
+leader déjà désigné s’il reste coché et de cette espèce, sinon le premier
+exemplaire coché de l’espèce.
 Choisir un leader remplit les quatre champs depuis son leader skill ; sans
 leader skill, le lead devient « Aucun ». Revenir à « Aucun » leader conserve
 les champs. Ceux-ci restent ensuite modifiables, indépendamment du leader.

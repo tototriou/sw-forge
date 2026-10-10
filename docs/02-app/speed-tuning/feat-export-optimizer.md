@@ -25,6 +25,10 @@ active, son premier membre est choisi avec ses critères et la route passe à
 `#/outils/optimizer`. Aucun build n’est validé et aucune recherche n’est lancée.
 Un refus ne navigue pas ; son rapport donne la raison. Le rapport sort du flux,
 sans déplacer le bouton, au bureau comme au téléphone.
+La page et les deux modales reçoivent l’action qui ouvre le rapport global
+porté par `App.tsx`, après acceptation comme après refus. Cet aiguillage dépend
+du point d’entrée : ouvrir la modale par la palette alors que la route est
+l’Optimizer conserve ses avertissements et ses motifs de refus à l’écran.
 
 ## Page et modale
 

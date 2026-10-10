@@ -26,6 +26,20 @@ async function verifier(telephone: boolean) {
 export const testRenduSpeedTuneExportOptimizer = () => verifier(false);
 export const testRenduTelephoneSpeedTuneExportOptimizer = () => verifier(true);
 
+async function verifierApp(telephone: boolean) {
+  titre(`App · speed tuning par la palette au-dessus de l’Optimizer · ${telephone ? 'téléphone' : 'bureau'}`);
+  const { browser, page } = await navigateurOptimizer(telephone, 'tests/rendu/speed-tune-export-app-banc.tsx');
+  try {
+    const preuves = await page.evaluate(() => (globalThis as unknown as {
+      bancOptimizer: { scenario: () => Promise<[boolean, string][]> };
+    }).bancOptimizer.scenario());
+    ok(preuves.length > 0, 'App monté : acceptation puis refus et rapport lus à l’écran');
+    for (const [condition, texte] of preuves) ok(condition, texte);
+  } finally { await browser.close(); }
+}
+export const testRenduSpeedTuneExportAppOptimizer = () => verifierApp(false);
+export const testRenduTelephoneSpeedTuneExportAppOptimizer = () => verifierApp(true);
+
 export function testOptimizerImportSpeedTuneBranchement() {
   titre('Speed tuning · passage de l’action commune par les parents');
   const montage = (fichier: string, balise: string) => {
@@ -40,7 +54,15 @@ export function testOptimizerImportSpeedTuneBranchement() {
     const texte = montage(fichier, 'SpeedTuneModale');
     for (const prop of [`onImporterEquipe={${action}}`, `sourcesOptimizer={${sources}}`, `compteCharge={${compte}}`]) ok(texte.includes(prop), `${fichier} → modale : ${prop}`);
   }
-  ok(montage('src/App.tsx', 'OutilsPage').includes('onImporterEquipe={importerEquipe}'), 'App → page : action avec navigation');
+  const outils = montage('src/App.tsx', 'OutilsPage');
+  ok(outils.includes('onImporterEquipe={importerEquipeFlottant}') && outils.includes('onExporterEquipe={importerEquipe}'),
+    'App → outils : deux actions préparées selon le point d’entrée');
   const page = montage('src/pages/OutilsPage.tsx', 'SpeedTuningSection');
-  ok(page.includes('onImporterEquipe={onImporterEquipe}') && page.includes('sourcesOptimizer=') && page.includes('compteCharge={box.length > 0 || runes.length > 0}'), 'page → outil : action, sources et disponibilité du compte');
+  ok(page.includes('onImporterEquipe={onExporterEquipe}') && page.includes('sourcesOptimizer=') && page.includes('compteCharge={box.length > 0 || runes.length > 0}'), 'page → outil : action du rapport global, sources et disponibilité du compte');
+  ok(montage('src/pages/OutilsPage.tsx', 'OptimizerSection').includes('onImporterEquipe={onImporterEquipe}'), 'page → flottant : action du rapport interne');
+  const app = readFileSync('src/App.tsx', 'utf8').replace(/\r\n/g, '\n');
+  ok(app.includes("const importerEquipeFlottant = avecNavigationImportOptimizer(optimizer.importerEquipe, () => {\n    window.location.hash = '#/outils/optimizer';\n  });"),
+    'action du flottant : navigation commune sans rapport global');
+  ok(app.includes("const importerEquipe = avecNavigationImportOptimizer(optimizer.importerEquipe, () => {\n    window.location.hash = '#/outils/optimizer';\n  }, setRapportExportOptimizer);"),
+    'action externe : rapport global sans condition de route');
 }

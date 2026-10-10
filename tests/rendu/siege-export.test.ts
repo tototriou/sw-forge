@@ -42,6 +42,6 @@ export function testOptimizerImportSiegeBranchement() {
   ok(board.includes("? importerDefensesSiegeOptimizer({ ...data, siegeDefenseTeams: data.siegeDefenseTeams.filter(t => t.id === teamId) })")
     && board.includes(': importerOffenseSiegeOptimizer(teamId, data)'), 'producteurs existants : une défense ou une offense ciblée');
   ok(board.includes('const exporterDefensesOptimizer = () => onImporterEquipe(importerDefensesSiegeOptimizer);'), 'page Défense : toutes les défenses, sans filtre d’affichage');
-  ok(app.includes("if (route !== 'outils' || toolSub !== 'optimizer') setRapportExportOptimizer(rapport);")
+  ok(app.includes('}, setRapportExportOptimizer);')
     && app.includes('<OptimizerImportRapport rapport={rapportExportOptimizer}'), 'rapport porté par App, conservé après navigation et rendu');
 }

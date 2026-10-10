@@ -23,6 +23,7 @@ export function testOptimizerImportNavigation() {
   ok(app.includes("const importerEquipe = avecNavigationImportOptimizer(optimizer.importerEquipe, () => {\n    window.location.hash = '#/outils/optimizer';"),
     'App branche la navigation sur la seule action commune');
   const debut = app.indexOf('<OutilsPage'), fin = app.indexOf('/>', debut);
-  ok(debut >= 0 && fin > debut && app.slice(debut, fin).includes('onImporterEquipe={importerEquipe}'),
-    'l’Optimizer reçoit la même action avec navigation');
+  ok(debut >= 0 && fin > debut && app.slice(debut, fin).includes('onImporterEquipe={importerEquipeFlottant}')
+    && app.slice(debut, fin).includes('onExporterEquipe={importerEquipe}'),
+    'les outils reçoivent les deux actions avec navigation selon le point d’entrée');
 }

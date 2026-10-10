@@ -28,6 +28,7 @@ interface Props {
   // au démontage de cette page pendant la navigation.
   optimizer: OptimizerState;
   onImporterEquipe: OptimizerState['importerEquipe'];
+  onExporterEquipe?: OptimizerState['importerEquipe'];
   allMonsters: Monster[];
   rtaEntries: Record<string, RtaEntry>;
   siegeDefenseTeams: SiegeTeam[];
@@ -51,14 +52,14 @@ interface Props {
 // Shell fin, miroir d'AccountPage.tsx : un seul outil aujourd'hui
 // (Optimizer), structuré pour en accueillir d'autres sans retoucher la nav
 // ni ce fichier (ajouter une branche = ajouter un outil).
-export default function OutilsPage({ recommandations, sub, box, runes, artifacts, relics, relicUsageById, loadState, hydrating, optimizer, onImporterEquipe, allMonsters, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, lists, accountName, menuOuvert, onFermerMenu, onOuvrirMenu }: Props) {
+export default function OutilsPage({ recommandations, sub, box, runes, artifacts, relics, relicUsageById, loadState, hydrating, optimizer, onImporterEquipe, onExporterEquipe, allMonsters, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, lists, accountName, menuOuvert, onFermerMenu, onOuvrirMenu }: Props) {
   // Speed tuning ne dépend PAS d'un compte importé : on ajoute n'importe quel
   // monstre du bestiaire et on saisit sa vitesse de runes à la main. Il passe
   // donc AVANT la garde « aucune donnée de compte » (propre à l'Optimizer).
   if (sub === 'speed-tuning') {
     return (
       <SpeedTuningSection
-        onImporterEquipe={onImporterEquipe}
+        onImporterEquipe={onExporterEquipe}
         sourcesOptimizer={{ box, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, monsterById: new Map(allMonsters.map(m => [String(m.id), m])) }}
         compteCharge={box.length > 0 || runes.length > 0}
         allMonsters={allMonsters}

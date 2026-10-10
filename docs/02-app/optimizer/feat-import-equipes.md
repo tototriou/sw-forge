@@ -71,9 +71,14 @@ Aucune liste existante ni aucun point de sauvegarde n’est modifié.
 Après acceptation, l’action commune ouvre l’Optimizer par la route
 `#/outils/optimizer`. Un import vide, une collision ou une revérification
 en attente rendent leur rapport sans navigation.
-Toute origine autre que `#/outils/optimizer` reçoit son rapport dans la modale
-portée par `App.tsx`, après acceptation comme après refus. Depuis l’Optimizer,
-le rapport reste dans le flottant des sources, sans seconde modale.
+Le point d’entrée décide où rendre le rapport, indépendamment de la route.
+Seul le flottant « Importer une équipe » de l’Optimizer garde son rapport
+interne, sans seconde modale. Tous les autres points d’entrée (siège, RTA,
+recommandations, speed tuning en page et ses deux modales) reçoivent la modale
+portée par `App.tsx`, après acceptation comme après refus, même lorsque la
+modale du speed tuning est ouverte au-dessus de l’Optimizer. `App.tsx` prépare
+deux actions avec la même navigation : celle du flottant et celle qui ouvre
+le rapport global ; les parents relaient chacune à son point d’entrée.
 La préparation lit aussi les écritures des listes en attente dans le même
 geste React pour attribuer un identifiant libre. La publication ajoute seulement
 la nouvelle liste, ses membres, identités, mémoires, équipes et contenu par une

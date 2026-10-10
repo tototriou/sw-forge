@@ -577,11 +577,13 @@ function Application() {
   const optimizer = useOptimizerState({ lists: optimizerLists, data: optimizerData, runeIds: optimizerRuneIds,
     reverificationEnAttente: () => stockageAvantImportRef.current !== null });
   const [rapportExportOptimizer, setRapportExportOptimizer] = useState<RapportImportOptimizer | null>(null);
+  const importerEquipeFlottant = avecNavigationImportOptimizer(optimizer.importerEquipe, () => {
+    window.location.hash = '#/outils/optimizer';
+  });
+  // Le point d'entrée possède le rapport, même si une modale couvre l'Optimizer.
   const importerEquipe = avecNavigationImportOptimizer(optimizer.importerEquipe, () => {
     window.location.hash = '#/outils/optimizer';
-  }, rapport => {
-    if (route !== 'outils' || toolSub !== 'optimizer') setRapportExportOptimizer(rapport);
-  });
+  }, setRapportExportOptimizer);
   useEffect(() => {
     // L'hydratation du compte conservé acquiert les identités historiques.
     // Un réimport a déjà acquis ses identités avant le remplacement du compte.
@@ -1757,7 +1759,8 @@ function Application() {
             loadState={data.loadState}
             hydrating={accountHydrating}
             optimizer={optimizer}
-            onImporterEquipe={importerEquipe}
+            onImporterEquipe={importerEquipeFlottant}
+            onExporterEquipe={importerEquipe}
             allMonsters={allMonsters}
             rtaEntries={rta.state.entries}
             siegeDefenseTeams={siegeDef.state.teams}

@@ -46,6 +46,6 @@ export function testOptimizerImportRtaRecoBranchement() {
   ok(montage('src/App.tsx', 'OutilsPage').includes('recommandations={recos.state.recos}'), 'App → outils : recommandations courantes');
   ok(montage('src/pages/OutilsPage.tsx', 'OptimizerSection').includes('recommandations={recommandations}'), 'outils → Optimizer : recommandations relayées');
   const app = lire('src/App.tsx');
-  ok(app.includes("if (route !== 'outils' || toolSub !== 'optimizer') setRapportExportOptimizer(rapport);")
+  ok(app.includes('}, setRapportExportOptimizer);')
     && app.includes('<OptimizerImportRapport rapport={rapportExportOptimizer}'), 'rapport de toute origine externe en modale, interne dans le flottant');
 }

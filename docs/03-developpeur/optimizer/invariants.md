@@ -275,7 +275,7 @@ Une entrée = une règle qu'un chantier qui l'ignore casse, avec sa source. Ce f
 
 - La navigation commune vers `#/outils/optimizer` suit seulement un import accepté par `importerEquipe` ; import vide, collision et revérification en attente gardent la route courante. Source : ../../02-app/optimizer/feat-import-equipes.md § F1 — Importer depuis l’Optimizer
 
-- Le rapport d’un import depuis toute route autre que `#/outils/optimizer` appartient à la modale d’`App.tsx`, acceptation ou refus compris ; depuis l’Optimizer, il reste dans le flottant des sources, sans double rapport. Source : ../../02-app/optimizer/feat-import-equipes.md § F1 — Importer depuis l’Optimizer
+- Le point d’entrée décide où rendre le rapport, jamais la route : seul le flottant « Importer une équipe » de l’Optimizer garde son rapport interne, sans double rapport ; tous les autres points d’entrée reçoivent la modale d’`App.tsx`, acceptation ou refus compris, même si la modale du speed tuning couvre l’Optimizer. Source : ../../02-app/optimizer/feat-import-equipes.md § F1 — Importer depuis l’Optimizer
 
 - L’export depuis le siège appelle les mêmes producteurs et la même action que l’import dans l’Optimizer, sur les sources courantes au geste ; sa disponibilité est dérivée des producteurs, et un compte sans Box ni runes le désactive avec raison. L’export de la page Défense prend toutes les défenses, indépendamment du filtre. Son rapport, porté par `App.tsx`, reste lisible après navigation et sort du flux dans les deux formats. Source : ../../02-app/optimizer/feat-import-equipes.md § F4 — Exporter depuis le siège
 

@@ -43,7 +43,7 @@ function Banc() {
     window.addEventListener('hashchange', naviguer);
     return () => window.removeEventListener('hashchange', naviguer);
   }, []);
-  const importer = avecNavigationImportOptimizer(produire => {
+  const importerFlottant = avecNavigationImportOptimizer(produire => {
     appels++;
     return etat.importerEquipe(courantes => {
       if (refus === 'collision') {
@@ -54,15 +54,21 @@ function Banc() {
       }
       return produire(refus === 'vide' ? { ...courantes, monsterById: new Map() } : courantes);
     });
-  }, () => { location.hash = '#/outils/optimizer'; }, setRapport);
+  }, () => { location.hash = '#/outils/optimizer'; });
+  const exporterEquipe: OptimizerState['importerEquipe'] = produire => {
+    const resultat = importerFlottant(produire);
+    setRapport(resultat);
+    return resultat;
+  };
   return <>
     <OutilsPage sub={route === '#/outils/optimizer' ? 'optimizer' : 'speed-tuning'} box={charge ? box : []}
-      runes={[]} artifacts={[]} relics={[]} relicUsageById={{}} loadState="live" optimizer={etat} onImporterEquipe={importer}
+      runes={[]} artifacts={[]} relics={[]} relicUsageById={{}} loadState="live" optimizer={etat}
+      onImporterEquipe={importerFlottant} onExporterEquipe={exporterEquipe}
       allMonsters={monstres} rtaEntries={{}} siegeDefenseTeams={data.siegeDefenseTeams} siegeOffenseTeams={data.siegeOffenseTeams}
       lists={listes} accountName="Synthétique" menuOuvert={false} onFermerMenu={() => {}} onOuvrirMenu={() => {}} />
     {ouverte && <SpeedTuneModale deck={{ source: 'offense', teamId: 'o1' }} allMonsters={monstres}
       siegeDefenseTeams={data.siegeDefenseTeams} siegeOffenseTeams={data.siegeOffenseTeams}
-      sourcesOptimizer={data} compteCharge={charge} onImporterEquipe={importer}
+      sourcesOptimizer={data} compteCharge={charge} onImporterEquipe={exporterEquipe}
       onClose={() => { fermetures++; setOuverte(false); }} />}
     {rapport && <OptimizerImportRapport rapport={rapport} onFermer={() => setRapport(null)} />}
   </>;

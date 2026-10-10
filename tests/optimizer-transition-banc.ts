@@ -9,6 +9,8 @@ import * as proprietaires from '../src/lib/optimizerCriteriaOwner';
 import * as memoires from '../src/lib/optimizerMemberStorage';
 import * as exemplaires from '../src/lib/optimizerExclusion';
 import * as equipes from '../src/lib/equipesOptimizer';
+import * as imports from '../src/lib/importEquipes';
+import * as sauvegardes from '../src/lib/optimizerBackup';
 import type { OptimizerState } from '../src/hooks/useOptimizerState';
 
 export function fonctionDeSource(fichier: string, nom: string, contexte: Record<string, unknown>) {
@@ -45,6 +47,8 @@ export async function bancOptimizer() {
     '../lib/optimizerExclusion': exemplaires,
     '../lib/criteresOptimizer': criteres,
     '../lib/equipesOptimizer': equipes,
+    '../lib/importEquipes': imports,
+    '../lib/optimizerBackup': sauvegardes,
     react: {
       useCallback<T>(callback: T) { return callback; },
       useEffect() {},

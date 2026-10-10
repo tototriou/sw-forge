@@ -356,11 +356,20 @@ membres et leurs critères dans la liste. Enregistrer moins de deux membres
 dissout aussi l’équipe, annoncé dans le dialogue. Rien n’est regroupé pendant
 qu’on coche les membres. Les actions restent dans le pied de la modale.
 
-La zone C groupe les membres par équipe et affiche `LeadPill`, le leader
-éventuel et « Modifier l’équipe ». Les membres libres restent ensemble sans
-équipe. Chaque membre lié réserve la place du motif de lead inactif ; changer
-le lead ou le contenu ne pousse pas les contrôles. La carte « État de mon
-monstre » réserve aussi la place de son explication et de ce motif.
+La zone C groupe chaque équipe dans une bande teintée sans contour : numéro,
+leader éventuel, `LeadPill`, compte des leads inactifs et « Modifier l’équipe »
+occupent son en-tête. Les fonds alternent entre les jetons `equipe-a` et
+`equipe-b`, définis dans les deux thèmes. Les cartes liées et libres gardent
+le même aspect et la même hauteur, au bureau comme au téléphone ; les libres
+suivent sous « Sans équipe ».
+
+Le compte des leads inactifs dérive des motifs des membres affichés, avec une
+place réservée dans l’en-tête. Chaque carte réserve une cible d’icône ⚠ sur
+sa ligne ; sans motif, la cible reste vide et inaccessible. Le motif sort du
+flux : bulle au survol et au focus au bureau, dialogue au toucher au téléphone,
+fermé par sa croix, Échap ou clic extérieur. Changer le lead ou le contenu ne
+déplace ni les cartes ni leurs contrôles. La carte « État de mon monstre »
+réserve aussi la place de son explication et de ce motif.
 
 ## Revérification commune
 

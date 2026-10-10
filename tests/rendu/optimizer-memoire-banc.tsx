@@ -18,6 +18,7 @@ import { preuvesRefusIdentitePerime } from './optimizer-refus-identite-preuves';
 import { preuvesRecetteLeadEquipe, preuvesLeadAncienHorsEquipe, preuvesContenuSansDeplacement } from './optimizer-combat-preuves';
 import { preuvesCombatAfficheOptimizer } from './optimizer-combat-affiche-preuves';
 import { preuvesPointOptimizer } from './optimizer-backup-preuves';
+import { preuvesBandesEquipes } from './optimizer-bandes-preuves';
 
 export const premier: ExclusionSelector = { source: 'box', unitKey: '11' };
 export const second: ExclusionSelector = { source: 'box', unitKey: '22' };
@@ -128,6 +129,7 @@ export async function scenario(nom: string): Promise<[boolean, string][]> {
   if (avecPoint) return preuvesPointOptimizer({ etat: () => etat, listes: () => listes, data: () => compteActuel,
     runes: () => runesActuelles, arts: () => artefactsActuels, changerBox, changerRunes, changerArtefacts, changerDefenses, geste, premier, second, siege }, nom);
   const bancEquipes = { etat: () => etat, listes: () => listes, geste, premier, second, troisieme };
+  if (nom === 'bandes-equipes') return preuvesBandesEquipes(bancEquipes);
   if (nom === 'combat-affiche') return preuvesCombatAfficheOptimizer(bancEquipes);
   if (nom === 'recette-lead-equipe') return preuvesRecetteLeadEquipe(bancEquipes);
   if (nom === 'lead-ancien-hors-equipe') return preuvesLeadAncienHorsEquipe(bancEquipes);

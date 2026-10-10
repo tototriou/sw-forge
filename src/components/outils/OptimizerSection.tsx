@@ -177,6 +177,7 @@ import ArtifactSubLigne from '../ArtifactSubLigne';
 import { WHEEL_IMG } from '../RuneWheel';
 import Segmented from '../../ui/Segmented';
 import HelpPopover from '../HelpPopover';
+import OptimizerLeadInactif from './OptimizerLeadInactif';
 import {
   Bouton,
   BoutonIcone,
@@ -3362,21 +3363,33 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
         </p>
       ) : (
         <div className="max-h-[220px] space-y-1 overflow-y-auto">
-          {groupesMembres.filter(g => g.members.length > 0).map((g, numero) => <section key={g.equipe?.id ?? 'sans-equipe'} aria-label={g.equipe ? `Équipe ${numero + 1}` : 'Sans équipe'} className="space-y-1">
-            {g.equipe && <div className="flex flex-wrap items-center justify-between gap-2 py-1">
-              <span className="text-xs font-semibold text-ink">Équipe {numero + 1}
+          {groupesMembres.filter(g => g.members.length > 0).map((g, numero) => {
+            const membres = g.members.map(m => {
+              const resolved = resolveExclusionEntry(m.selector, exclusionData);
+              const lead = resolved ? leadEffectifMembreOptimizer(lists, m.listId, m.selector, resolved.monster.element) : null;
+              return { m, resolved, motif: g.equipe?.lead && lead?.type === 'aucun' ? lead.motif : undefined };
+            });
+            const inactifs = membres.filter(m => m.motif).length;
+            return <section key={g.equipe?.id ?? 'sans-equipe'} aria-label={g.equipe ? `Équipe ${numero + 1}` : 'Sans équipe'} className={`space-y-1 ${g.equipe ? `rounded-lg p-1.5 ${numero % 2 === 0 ? 'bg-equipe-a' : 'bg-equipe-b'}` : ''}`}>
+            {g.equipe && <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-1 py-1">
+              <span className="min-w-0 truncate text-xs font-semibold text-ink">Équipe {numero + 1}
                 {g.equipe.leader && <span className="ml-1 font-normal text-ink-dim">· Leader : {resolveExclusionEntry(g.equipe.leader, exclusionData)?.monster.name ?? 'Introuvable'}</span>}
               </span>
-              {g.equipe.lead ? <LeadPill ls={g.equipe.lead} titre={`Lead de l’équipe : +${g.equipe.lead.amount} % ${STAT_LABEL[g.equipe.lead.stat ?? ''] ?? g.equipe.lead.stat ?? ''} · ${g.equipe.lead.area === 'Guild' ? 'Guilde' : g.equipe.lead.area === 'Dungeon' ? 'Donjon' : g.equipe.lead.area === 'Arena' ? 'Arène' : g.equipe.lead.area === 'Element' ? 'Élément' : 'Général'}`} /> : <span className="text-xs text-ink-dim">Sans lead</span>}
               <Bouton taille="xs" fond="vide" libelle="Modifier l’équipe" onClick={() => setEquipeOuverte({ listId: g.equipe!.listId, equipe: g.equipe })} />
+              <span className="flex h-7 items-center whitespace-nowrap">
+                {g.equipe.lead ? <LeadPill ls={g.equipe.lead} titre={`Lead de l’équipe : +${g.equipe.lead.amount} % ${STAT_LABEL[g.equipe.lead.stat ?? ''] ?? g.equipe.lead.stat ?? ''} · ${g.equipe.lead.area === 'Guild' ? 'Guilde' : g.equipe.lead.area === 'Dungeon' ? 'Donjon' : g.equipe.lead.area === 'Arena' ? 'Arène' : g.equipe.lead.area === 'Element' ? 'Élément' : 'Général'}`} /> : <span className="text-xs text-ink-dim">Sans lead</span>}
+              </span>
+              <span className="inline-grid text-micro text-warn">
+                <span className="invisible col-start-1 row-start-1" aria-hidden>⚠ 5 leads inactifs</span>
+                <span className={`col-start-1 row-start-1 ${inactifs ? '' : 'invisible'}`} aria-hidden={!inactifs}>⚠ {inactifs} lead{inactifs > 1 ? 's' : ''} inactif{inactifs > 1 ? 's' : ''}</span>
+              </span>
             </div>}
-          {g.members.map((m) => {
+            {!g.equipe && <p className="py-1 text-xs font-semibold text-ink-dim">Sans équipe</p>}
+          {membres.map(({ m, resolved, motif }) => {
             const key = exclusionSelectorKey(m.selector);
-            const resolved = resolveExclusionEntry(m.selector, exclusionData);
             const build = findValidatedBuild(lists.validated, lists.activeListId, key);
             const absentes = build ? runesManquantesDuBuild(build, runeById) : [];
             const artsAbsents = build ? artefactsManquantsDuBuild(build, artifactById) : [];
-            const lead = resolved ? leadEffectifMembreOptimizer(lists, m.listId, m.selector, resolved.monster.element) : null;
             return (
               <div key={key} className="flex flex-wrap items-center gap-x-2 rounded-lg border border-border-soft bg-panel/60 px-2 py-1.5">
                 <ZoneCliquable
@@ -3420,6 +3433,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
                     {lists.memories.has(cleMemoireMembre(m.listId, m.selector)) ? <span aria-label="Critères mémorisés">●</span> : null}
                   </span>
                 </ZoneCliquable>
+                <OptimizerLeadInactif motif={motif} />
                 {build ? (
                   <>
                     <span className={`flex flex-none items-center gap-1 text-[10.5px] font-semibold ${absentes.length || artsAbsents.length ? 'text-warn' : 'text-accent'}`}
@@ -3480,11 +3494,10 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
                   }
                   className="h-6 w-6 flex-none"
                 />
-              {g.equipe && <p className={`h-8 w-full overflow-y-auto text-[11px] text-warn ${lead?.type === 'aucun' ? '' : 'invisible'}`}>{lead?.type === 'aucun' ? lead.motif : 'Aucun lead inactif.'}</p>}
               </div>
             );
           })}
-          </section>)}
+          </section>; })}
         </div>
       )}
 

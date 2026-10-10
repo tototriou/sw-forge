@@ -140,13 +140,17 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   restauration occupent un espace réservé défilant de la zone C, commun au
   bureau et au téléphone. Une mémoire conservée mais inapplicable reste marquée
   et son refus est dit lorsqu'on choisit le membre.
-  Les membres sont regroupés par équipe, avec le leader facultatif et la
-  pastille `LeadPill`. « Lier une team » et « Modifier l’équipe » ouvrent
+  Les membres sont regroupés par équipe dans des bandes teintées sans contour,
+  avec le numéro, le leader facultatif, la pastille `LeadPill` et le compte des
+  leads inactifs. Les cartes gardent l’aspect et la hauteur des cartes libres,
+  qui suivent sous « Sans équipe ». « Lier une team » et « Modifier l’équipe » ouvrent
   un dialogue hors du flux ; les cases ne changent pas les groupes avant
   validation et fermeture. « Délier » dans ce dialogue garde les membres
   et leurs critères personnels. Ces mêmes actions existent au bureau et
-  dans la zone C dépliée du téléphone. Le motif d’un lead inactif occupe
-  une place réservée sur chaque membre lié. Voir
+  dans la zone C dépliée du téléphone. Une place d’icône ⚠ est réservée sur
+  la ligne de chaque carte, invisible sans motif. Le motif se lit au survol
+  ou au focus au bureau, dans une bulle hors du défilement, et au toucher
+  dans un dialogue au téléphone ; aucune ligne supplémentaire ne paraît. Voir
   feat-listes-equipes-et-sauvegarde.md § Équipes à l’écran.
   ⚠️ **Plusieurs exemplaires Box d'une même espèce** : les membres sont repérés
   par exemplaire (`exclusionSelectorKey`, Box = `box:<unitKey>`), deux

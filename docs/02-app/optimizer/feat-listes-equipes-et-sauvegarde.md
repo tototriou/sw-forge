@@ -362,7 +362,10 @@ dissout aussi l’équipe, annoncé dans le dialogue. Rien n’est regroupé pen
 qu’on coche les membres. Les actions restent dans le pied de la modale.
 
 Au bureau, l’en-tête (titre et phrase), les champs de leader et de lead et les
-actions restent fixes ; seule la liste des membres défile. Les séparations du
+actions restent fixes ; seule la liste des membres défile tant que la hauteur
+suffit. En faible hauteur, la zone de leader et de lead se resserre et défile
+elle-même pour garder tous ses champs accessibles ; les actions restent visibles
+et utilisables et la liste garde sa propre zone de défilement. Les séparations du
 corps réservent leur épaisseur pour garder ces positions au défilement. Au
 téléphone, les champs restent après les membres dans le corps défilant, avec
 l’en-tête et les actions fixes.

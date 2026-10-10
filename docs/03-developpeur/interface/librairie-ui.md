@@ -588,6 +588,10 @@ le trait est transparent, et les rembourrages ne varient pas au défilement :
 l’en-tête, les champs fixes et les actions gardent leur position. Le trait
 visible reste conditionné au contenu masqué ; celui du bas se pose avant les
 champs fixes, sans second trait au-dessus des actions.
+Quand la hauteur manque, ces champs occupent au plus la moitié de la hauteur
+disponible après l’en-tête et le pied ; leur zone défile alors elle-même.
+La limite se recalcule au redimensionnement et au changement de taille des
+bandes. La liste reste accessible, et les actions restent visibles et utilisables.
 
 > ⚠️ **Le titre est rendu PAR la coquille**, pas écrit dans le contenu. Chaque
 > dialogue posait son propre `<h2>` avec sa taille et sa marge : quatre écrans,

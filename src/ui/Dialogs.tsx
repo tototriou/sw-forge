@@ -149,6 +149,10 @@ export function Modale({
   const bandeHaut = serre ? 'px-4 pt-2' : padding;
   const bandeBas = serre ? 'px-4 pb-2' : padding;
   const corps = useRef<HTMLDivElement>(null);
+  const enTete = useRef<HTMLDivElement>(null);
+  const pied = useRef<HTMLDivElement>(null);
+  const avecCorpsFixe = corpsFixeBas != null;
+  const [hauteurFixeMax, setHauteurFixeMax] = useState<number>();
   const [cacheHaut, setCacheHaut] = useState(false);
   const [cacheBas, setCacheBas] = useState(false);
   const [cible] = useState(() => (typeof document === 'undefined' ? null : document.body));
@@ -156,6 +160,23 @@ export function Modale({
   // La modale est toujours ouverte quand elle est montée : le verrou vaut donc
   // toute sa durée de vie.
   useScrollBloque(true);
+
+  // Le pied reste accessible en faible hauteur. La zone de champs prend au
+  // plus la moitié de l'espace disponible, pour laisser aussi défiler la liste.
+  useEffect(() => {
+    const el = boite.current;
+    if (!avecCorpsFixe || !el) return;
+    const mesurer = () => {
+      const limite = parseFloat(getComputedStyle(el).maxHeight);
+      const bordures = el.offsetHeight - el.clientHeight;
+      setHauteurFixeMax(Math.max(0, (limite - bordures - (enTete.current?.offsetHeight ?? 0) - (pied.current?.offsetHeight ?? 0)) / 2));
+    };
+    mesurer();
+    const obs = new ResizeObserver(mesurer);
+    for (const bande of [el, enTete.current, pied.current]) if (bande) obs.observe(bande);
+    window.addEventListener('resize', mesurer);
+    return () => { obs.disconnect(); window.removeEventListener('resize', mesurer); };
+  }, [avecCorpsFixe]);
 
   // ⚠️ Trois manques corrigés ICI, dans la coquille : les quatre dialogues en
   // héritent d'un coup.
@@ -323,6 +344,7 @@ export function Modale({
             ⚠️ `flex-none` : l'en-tête ne défile pas et ne se comprime pas. */}
         {(titre || croix) && (
           <div
+            ref={enTete}
             className={`flex flex-none items-start gap-3 ${
               // `compactes` remplace le rembourrage de la bande (voir la prop) —
               // il ne s'y ajoute pas.
@@ -418,7 +440,7 @@ export function Modale({
         )}
 
         {corpsFixeBas != null && (
-          <div className={`flex-none ${padding} pt-3 pb-2 border-t ${cacheBas ? 'border-border' : 'border-transparent'}`}>
+          <div style={{ maxHeight: hauteurFixeMax }} className={`min-h-0 flex-none overflow-y-auto ${padding} pt-3 pb-2 border-t ${cacheBas ? 'border-border' : 'border-transparent'}`}>
             {corpsFixeBas}
           </div>
         )}
@@ -434,6 +456,7 @@ export function Modale({
             sinon les boutons touchent le message. */}
         {actions && (
           <div
+            ref={pied}
             className={`flex-none ${bandeBas} ${
               corpsFixeBas != null ? 'pt-0' : children != null ? (cacheBas ? (serre ? 'pt-2' : 'pt-3') : 'pt-0') : 'pt-3'
             } ${corpsFixeBas == null && cacheBas ? 'border-t border-border' : ''}`}

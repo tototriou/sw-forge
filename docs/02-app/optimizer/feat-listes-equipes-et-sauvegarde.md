@@ -390,9 +390,9 @@ Les champs de leader et de lead passent toutefois du corps à la zone fixe,
 ou inversement : ils sont remontés et perdent le focus. Celui-ci n’est pas
 restauré automatiquement.
 
-La zone C groupe chaque équipe dans une bande teintée sans contour : numéro,
-leader éventuel, `LeadPill`, compte des leads inactifs et « Modifier l’équipe »
-occupent son en-tête. Les fonds alternent entre les jetons `equipe-a` et
+La zone C groupe chaque équipe dans une bande teintée sans contour. Son
+en-tête porte sur une seule ligne `LeadPill`, numéro, leader éventuel et
+« Modifier l’équipe », puis dessous le compte des leads inactifs. Les fonds alternent entre les jetons `equipe-a` et
 `equipe-b`, définis dans les deux thèmes. Les cartes liées et libres gardent
 le même aspect et la même hauteur, au bureau comme au téléphone ; les libres
 suivent sous « Sans équipe ».

@@ -32,6 +32,11 @@ export async function preuvesBandesEquipes(b: Banc): Promise<[boolean, string][]
   verifier(cartes(libres).every(e => e.className === cartes(a)[0].className), 'cartes liées et libres : même aspect');
   verifier(a.contains(a.querySelector('img[src*="leader_skill_"]')) && a.textContent!.includes('Leader : Premier')
     && cartes(a).length === 2 && [...a.querySelectorAll('button')].some(e => e.textContent === 'Modifier l’équipe'), 'bande : numéro, leader, LeadPill, modifier et deux cartes');
+  const centre = (e: Element) => { const r = e.getBoundingClientRect(); return r.top + r.height / 2; };
+  const titre = [...a.querySelectorAll('span')].find(e => e.textContent?.startsWith('Équipe 1'))!;
+  const modifier = [...a.querySelectorAll('button')].find(e => e.textContent === 'Modifier l’équipe')!;
+  verifier([a.querySelector('img[src*="leader_skill_"]')!, modifier].every(e => Math.abs(centre(e) - centre(titre)) < 2),
+    `en-tête : LeadPill, numéro, leader et modifier sur une seule ligne — ${[titre, modifier].map(centre).join(' / ')}`);
   verifier(libres.firstElementChild?.textContent === 'Sans équipe' && !!(a.compareDocumentPosition(libres) & Node.DOCUMENT_POSITION_FOLLOWING), 'les libres suivent sous Sans équipe');
   const styleA = getComputedStyle(a), styleB = getComputedStyle(autre);
   const jeton = (nom: string) => `rgb(${getComputedStyle(document.documentElement).getPropertyValue(nom).trim().split(/\s+/).join(', ')})`;

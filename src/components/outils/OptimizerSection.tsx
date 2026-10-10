@@ -3373,15 +3373,16 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
             });
             const inactifs = membres.filter(m => m.motif).length;
             return <section key={g.equipe?.id ?? 'sans-equipe'} aria-label={g.equipe ? `Équipe ${numero + 1}` : 'Sans équipe'} className={`space-y-1 ${g.equipe ? `rounded-lg p-1.5 ${numero % 2 === 0 ? 'bg-equipe-a' : 'bg-equipe-b'}` : ''}`}>
-            {g.equipe && <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-1 py-1">
+            {g.equipe && <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2 py-1">
+              {/* Lead, numéro et leader se lisent sur une seule ligne. */}
+              <span className="flex h-7 items-center whitespace-nowrap">
+                {g.equipe.lead ? <LeadPill ls={g.equipe.lead} titre={`Lead de l’équipe : +${g.equipe.lead.amount} % ${STAT_LABEL[g.equipe.lead.stat ?? ''] ?? g.equipe.lead.stat ?? ''} · ${g.equipe.lead.area === 'Guild' ? 'Guilde' : g.equipe.lead.area === 'Dungeon' ? 'Donjon' : g.equipe.lead.area === 'Arena' ? 'Arène' : g.equipe.lead.area === 'Element' ? 'Élément' : 'Général'}`} /> : <span className="text-xs text-ink-dim">Sans lead</span>}
+              </span>
               <span className="min-w-0 truncate text-xs font-semibold text-ink">Équipe {numero + 1}
                 {g.equipe.leader && <span className="ml-1 font-normal text-ink-dim">· Leader : {resolveExclusionEntry(g.equipe.leader, exclusionData)?.monster.name ?? 'Introuvable'}</span>}
               </span>
               <Bouton taille="xs" fond="vide" libelle="Modifier l’équipe" onClick={() => setEquipeOuverte({ listId: g.equipe!.listId, equipe: g.equipe })} />
-              <span className="flex h-7 items-center whitespace-nowrap">
-                {g.equipe.lead ? <LeadPill ls={g.equipe.lead} titre={`Lead de l’équipe : +${g.equipe.lead.amount} % ${STAT_LABEL[g.equipe.lead.stat ?? ''] ?? g.equipe.lead.stat ?? ''} · ${g.equipe.lead.area === 'Guild' ? 'Guilde' : g.equipe.lead.area === 'Dungeon' ? 'Donjon' : g.equipe.lead.area === 'Arena' ? 'Arène' : g.equipe.lead.area === 'Element' ? 'Élément' : 'Général'}`} /> : <span className="text-xs text-ink-dim">Sans lead</span>}
-              </span>
-              <span className="inline-grid text-micro text-warn">
+              <span className="col-span-3 inline-grid justify-self-start text-micro text-warn">
                 <span className="invisible col-start-1 row-start-1" aria-hidden>⚠ 5 leads inactifs</span>
                 <span className={`col-start-1 row-start-1 ${inactifs ? '' : 'invisible'}`} aria-hidden={!inactifs}>⚠ {inactifs} lead{inactifs > 1 ? 's' : ''} inactif{inactifs > 1 ? 's' : ''}</span>
               </span>

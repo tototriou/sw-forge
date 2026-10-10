@@ -33,6 +33,7 @@ export function Modale({
   sousTitre,
   icone,
   actions,
+  corpsFixeBas,
   actionsEmpilees = false,
   bandes = 'normales',
   noteFinale,
@@ -60,6 +61,9 @@ export function Modale({
   // retrouvaient au bout du défilement, là où personne ne les cherche.
   // L'ordre d'écriture est celui de PiedDeDialogue — secondaire d'abord.
   actions?: ReactNode;
+  // Champs fixes entre le corps défilant et les actions. L'appelant choisit
+  // les formats qui en ont besoin ; sans cet emplacement, rien ne change.
+  corpsFixeBas?: ReactNode;
   // Les boutons du pied s'EMPILENT au doigt, pleine largeur. ⚠️ Pour des
   // libellés qui sont des PHRASES et non des verbes — voir PiedDeDialogue.
   actionsEmpilees?: boolean;
@@ -331,7 +335,7 @@ export function Modale({
             } ${
               // Le trait n'apparaît que si du contenu passe dessous — et jamais
               // sur une bande en `h-0`, qui n'a pas de bord à souligner.
-              cacheHaut && titre ? 'border-b border-border' : ''
+              corpsFixeBas != null && titre ? `border-b ${cacheHaut ? 'border-border' : 'border-transparent'}` : cacheHaut && titre ? 'border-b border-border' : ''
             }`}
           >
             {icone}
@@ -396,8 +400,8 @@ export function Modale({
             // ⚠️ Le corps reprend son propre rembourrage haut dès qu'un TRAIT le
             // sépare de l'en-tête : sans lui, le contenu viendrait toucher le
             // trait, et une bordure collée à une card en fait deux superposées.
-            titre ? (cacheHaut ? (serre ? 'pt-2' : 'pt-3') : 'pt-0') : ''
-          } ${actions ? (cacheBas ? (serre ? 'pb-2' : 'pb-3') : 'pb-2') : ''} ${
+            titre ? (corpsFixeBas != null || cacheHaut ? (serre ? 'pt-2' : 'pt-3') : 'pt-0') : ''
+          } ${corpsFixeBas != null ? (serre ? 'pb-2' : 'pb-3') : actions ? (cacheBas ? (serre ? 'pb-2' : 'pb-3') : 'pb-2') : ''} ${
             // ⚠️ **`items-stretch` explicite, et non un variant arbitraire.**
             // J'avais écrit `[&>*]:w-full` : Tailwind ne l'a JAMAIS émis, parce
             // qu'il lit le source comme du texte et n'y reconnaît pas `>` et `*`
@@ -413,6 +417,12 @@ export function Modale({
         </div>
         )}
 
+        {corpsFixeBas != null && (
+          <div className={`flex-none ${padding} pt-3 pb-2 border-t ${cacheBas ? 'border-border' : 'border-transparent'}`}>
+            {corpsFixeBas}
+          </div>
+        )}
+
         {/* ── PIED : les actions, toujours en bas ──────────────────────────
             ⚠️ `flex-none` : il reste visible quand le corps défile. C'est tout
             l'objet de la structure en trois bandes — sur une fiche longue, les
@@ -425,8 +435,8 @@ export function Modale({
         {actions && (
           <div
             className={`flex-none ${bandeBas} ${
-              children != null ? (cacheBas ? (serre ? 'pt-2' : 'pt-3') : 'pt-0') : 'pt-3'
-            } ${cacheBas ? 'border-t border-border' : ''}`}
+              corpsFixeBas != null ? 'pt-0' : children != null ? (cacheBas ? (serre ? 'pt-2' : 'pt-3') : 'pt-0') : 'pt-3'
+            } ${corpsFixeBas == null && cacheBas ? 'border-t border-border' : ''}`}
           >
             <PiedDeDialogue className="mt-0" empile={actionsEmpilees}>
               {actions}

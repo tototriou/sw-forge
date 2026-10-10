@@ -580,6 +580,15 @@ pas — il remplit trois emplacements :
 | **Corps** | `children` — le seul à défiler | l'appelant |
 | **Pied** | `actions` — les boutons, toujours en bas | la coquille |
 
+`corpsFixeBas` est un axe facultatif : il place des champs fixes entre le
+corps défilant et les actions, avec le même rembourrage horizontal. L’appelant
+choisit les formats qui l’utilisent ; sans cet emplacement, la disposition
+reste identique. Avec lui, l’épaisseur des séparations est réservée même quand
+le trait est transparent, et les rembourrages ne varient pas au défilement :
+l’en-tête, les champs fixes et les actions gardent leur position. Le trait
+visible reste conditionné au contenu masqué ; celui du bas se pose avant les
+champs fixes, sans second trait au-dessus des actions.
+
 > ⚠️ **Le titre est rendu PAR la coquille**, pas écrit dans le contenu. Chaque
 > dialogue posait son propre `<h2>` avec sa taille et sa marge : quatre écrans,
 > quatre en-têtes légèrement différents. Il porte aussi l'`id` de `labelledBy`,

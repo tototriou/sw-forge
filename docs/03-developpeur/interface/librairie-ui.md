@@ -577,7 +577,7 @@ pas — il remplit trois emplacements :
 | Bande | Contenu | Rendue par |
 |-------|---------|------------|
 | **En-tête** | icône, `titre` à gauche, `sousTitre`, croix à **droite** | la coquille |
-| **Corps** | `children` — le seul à défiler | l'appelant |
+| **Corps** | `children` — la bande qui défile (avec `corpsFixeBas`, voir plus bas) | l'appelant |
 | **Pied** | `actions` — les boutons, toujours en bas | la coquille |
 
 `corpsFixeBas` est un axe facultatif : il place des champs fixes entre le
@@ -591,7 +591,10 @@ champs fixes, sans second trait au-dessus des actions.
 Quand la hauteur manque, ces champs occupent au plus la moitié de la hauteur
 disponible après l’en-tête et le pied ; leur zone défile alors elle-même.
 La limite se recalcule au redimensionnement et au changement de taille des
-bandes. La liste reste accessible, et les actions restent visibles et utilisables.
+bandes. La liste reste accessible, et les actions restent visibles et utilisables
+tant que la boîte peut contenir l’en-tête et le pied (fenêtre de 400 px de haut
+et plus, vérifiée à 400 et 600 px) ; en deçà, l’en-tête et le pied, qui ne se
+compriment pas, peuvent dépasser la boîte.
 
 > ⚠️ **Le titre est rendu PAR la coquille**, pas écrit dans le contenu. Chaque
 > dialogue posait son propre `<h2>` avec sa taille et sa marge : quatre écrans,

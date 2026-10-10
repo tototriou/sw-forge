@@ -365,7 +365,8 @@ Au bureau, l’en-tête (titre et phrase), les champs de leader et de lead et le
 actions restent fixes ; seule la liste des membres défile tant que la hauteur
 suffit. En faible hauteur, la zone de leader et de lead se resserre et défile
 elle-même pour garder tous ses champs accessibles ; les actions restent visibles
-et utilisables et la liste garde sa propre zone de défilement. Les séparations du
+et utilisables, dans une fenêtre de 400 px de haut et plus, et la liste garde sa
+propre zone de défilement. Les séparations du
 corps réservent leur épaisseur pour garder ces positions au défilement. Au
 téléphone, les champs restent après les membres dans le corps défilant, avec
 l’en-tête et les actions fixes.
@@ -387,7 +388,8 @@ place réservée dans l’en-tête. Chaque carte réserve une cible d’icône �
 sa ligne ; sans motif, la cible reste vide et inaccessible. Le motif sort du
 flux : bulle au survol et au focus au bureau, dialogue au toucher au téléphone,
 fermé par sa croix, Échap ou clic extérieur, avec le focus rendu à l’icône.
-La bulle de bureau se ferme au défilement de la liste ou de tout ancêtre.
+La bulle de bureau se ferme à tout défilement de la page, y compris celui
+d’une zone qui ne la contient pas : elle ne reste jamais détachée de son icône.
 La disparition du motif ferme et démonte son contenu ; son retour n’ouvre
 rien automatiquement. Démonter l’écran retire aussi la bulle ou le dialogue.
 Changer le lead ou le contenu ne déplace ni les cartes ni leurs contrôles.

@@ -6,12 +6,14 @@ import { COMPACT, useMediaQuery } from '../../hooks/useMediaQuery';
 /** Le motif sort du flux et du défilement de la liste ; la cible garde sa place. */
 export default function OptimizerLeadInactif({ motif }: { motif?: string }) {
   return <span className="inline-flex h-6 w-6 flex-none compact:h-10 compact:w-10">
-    {motif && <MotifLead motif={motif} />}
+    {motif && <MotifHorsFlux titre="Lead inactif" libelle={`Lead inactif : ${motif}`} messages={[motif]} />}
   </span>;
 }
 
 // L'absence du motif démonte son contenu : aucune ouverture ni position ne survit.
-function MotifLead({ motif }: { motif: string }) {
+// Icône ⚠ dont les messages se lisent hors du flux : bulle au survol et au
+// focus à la souris, dialogue au toucher.
+export function MotifHorsFlux({ titre, libelle, messages }: { titre: string; libelle: string; messages: string[] }) {
   const auDoigt = useMediaQuery(COMPACT);
   const [ouvert, setOuvert] = useState(false);
   const [position, setPosition] = useState<DOMRect | null>(null);
@@ -33,9 +35,10 @@ function MotifLead({ motif }: { motif: string }) {
     setPosition(cible.current?.getBoundingClientRect() ?? null);
     setOuvert(true);
   };
+  const texte = messages.map((m, i) => <p key={i}>{m}</p>);
 
   return <>
-    <BoutonIcone ref={cible} libelle={`Lead inactif : ${motif}`} sansInfobulle
+    <BoutonIcone ref={cible} libelle={libelle} sansInfobulle
       ton="alerte" icone={<span aria-hidden>⚠</span>} className="h-full w-full"
       aria-expanded={ouvert} aria-describedby={ouvert ? id : undefined}
       onMouseEnter={() => { if (!auDoigt) ouvrir(); }}
@@ -45,13 +48,13 @@ function MotifLead({ motif }: { motif: string }) {
       onKeyDown={e => { if (e.key === 'Escape') setOuvert(false); }}
       onClick={() => { if (auDoigt) ouvrir(); else setOuvert(v => !v); }} />
     {ouvert && (auDoigt
-      ? <Modale onClose={() => setOuvert(false)} labelledBy={`${id}-titre`} titre="Lead inactif" croix>
-        <p id={id} className="text-sm text-ink">{motif}</p>
+      ? <Modale onClose={() => setOuvert(false)} labelledBy={`${id}-titre`} titre={titre} croix>
+        <div id={id} className="space-y-1 text-sm text-ink">{texte}</div>
       </Modale>
       : position && createPortal(<span ref={ancre} className="fixed pointer-events-none"
         style={{ left: position.left, top: position.top, width: position.width, height: position.height }}>
         <FlottantAuto ouvert ancre={ancre} rembourrage="sm">
-          <p id={id} role="tooltip" className="text-xs text-ink">{motif}</p>
+          <div id={id} role="tooltip" className="space-y-1 text-xs text-ink">{texte}</div>
         </FlottantAuto>
       </span>, document.body))}
   </>;

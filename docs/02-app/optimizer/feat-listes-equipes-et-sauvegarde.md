@@ -45,8 +45,9 @@ Le texte brut initial reste conservé tant qu’aucun geste ni réimport ne modi
 ce stockage. Un réimport sans changement ne réécrit aucune clé et conserve ses
 octets. Un réimport avec changement réécrit les valeurs des rejets à part ; il
 n’annonce aucune suppression de rejets puisqu’il les conserve.
-Le rapport du hook est affiché dans la zone C, dans un espace réservé et
-défilant commun aux deux formats. Le clic d’un membre restaure ses critères.
+Le rapport du hook se lit dans la zone C, depuis l’icône ⚠ du rapport des
+critères (voir « Point de sauvegarde » plus bas), aux deux formats. Le clic
+d’un membre restaure ses critères.
 
 Toutes les écritures des listes et de leurs données dans `useOptimizerLists`
 passent par son `setState` enveloppé et s’appliquent dans l’ordre d’envoi.
@@ -90,9 +91,15 @@ Supprimer une liste ou réimporter le compte ne modifie jamais le point.
 dans la colonne de bureau, dans le dépliement « Gérer mes listes » au téléphone.
 Les boutons restent montés ; « Reprendre » est désactivé sans point lisible,
 avec la raison en infobulle. « Sauvegarder » rappelle que la conservation
-automatique existe déjà. L’annonce sous les boutons donne le nombre de listes
-et de membres et la date du point. Sa hauteur est réservée dès le départ,
-avec défilement interne : poser le point ne déplace aucun contrôle.
+automatique existe déjà. Sous les boutons, une seule ligne est réservée dès le
+départ : l’annonce donne le nombre de listes et de membres et la date du
+point, tronquée avec son texte complet en infobulle ; au bout de la ligne,
+une place réservée reçoit l’icône ⚠ du rapport des critères dès qu’il porte
+un message. Ce rapport se lit hors du flux, comme le motif d’un lead
+inactif : bulle au survol et au focus à la souris, dialogue au toucher ; ses
+messages restent annoncés aux lecteurs d’écran. Poser le point ou recevoir
+un message ne déplace aucun contrôle, et la liste des membres commence juste
+sous cette ligne.
 
 Remplacer un point, même illisible, ouvre « Remplacer le point de sauvegarde ? »
 et annonce la perte de l’ancien point. « Reprendre » annonce le remplacement de
@@ -116,7 +123,7 @@ avant tout remplacement par un réimport, manuel ou depuis le dossier suivi.
 Une identité déjà connue ne change jamais parce que le slot change d’espèce.
 Les runes d’un build ne servent jamais à établir cette identité.
 
-Le refus de restauration pour identité incompatible reste visible tant que
+Le refus de restauration pour identité incompatible reste signalé tant que
 son membre est présent dans la liste active avec cette incompatibilité.
 Il s’efface si ce contexte disparaît (changement de liste, retrait du membre,
 changement de sélection ou résolution redevenue compatible), sans effacer

@@ -40,17 +40,21 @@ export async function preuvesPointOptimizer(b: Banc, nom: string): Promise<[bool
   // Seul un membre hors équipe reste sans mémoire.
   if (sansMemoire) await b.geste(() => b.etat().choisirMembre('a', b.troisieme));
   const minimumSansMemoire = minimum();
-  const barre = annonce().parentElement!;
+  const barre = annonce().closest<HTMLElement>('[aria-label="Point de sauvegarde des listes"]')!;
   barre.scrollIntoView({ block: 'center' });
   verifier(bouton('Reprendre', barre).disabled && annonce().textContent === 'Aucun point de sauvegarde.', 'sans point : annonce visible et reprise désactivée');
   verifier(bouton('Sauvegarder', barre).title.includes('automatiquement'), 'bouton : conservation automatique expliquée');
   const cibles = [bouton('Sauvegarder', barre), bouton('Reprendre', barre), annonce(), bouton('Lier une équipe')];
   const avant = cibles.map(position);
-  verifier(annonce().getBoundingClientRect().height >= 48 && getComputedStyle(annonce()).overflowY === 'auto',
-    `place de l’annonce réservée avant le point, avec défilement interne — ${JSON.stringify(position(annonce()))}`);
+  verifier(annonce().getBoundingClientRect().height <= 26 && getComputedStyle(annonce()).textOverflow === 'ellipsis'
+    && annonce().title === annonce().textContent, `annonce sur une seule ligne réservée, texte complet en infobulle — ${JSON.stringify(position(annonce()))}`);
+  // La liste commence juste sous la ligne d'annonce : plus de réserve de 112 px.
+  const reprendre = bouton('Reprendre', barre), groupe = [...barre.parentElement!.querySelectorAll('section[aria-label]')].find(visible)!;
+  const ecart = position(groupe).y - position(reprendre).y - position(reprendre).height;
+  verifier(ecart >= 0 && ecart <= 64, `liste juste sous « Sauvegarder » et « Reprendre » — écart de ${ecart} px`);
   await b.geste(() => bouton('Sauvegarder', barre).click());
   verifier(annonce().textContent!.includes('Point de sauvegarde : 2 liste(s)') && !bouton('Reprendre', barre).disabled, 'point posé annoncé avec son étendue');
-  verifier(JSON.stringify(cibles.map(position)) === JSON.stringify(avant), 'poser le point garde la position et la taille des contrôles et de l’annonce');
+  verifier(JSON.stringify(cibles.map(position)) === JSON.stringify(avant), `poser le point garde la position et la taille des contrôles et de l’annonce — ${JSON.stringify({ avant, apres: cibles.map(position) })}`);
   const brut = localStorage.getItem(OPTIMIZER_BACKUP_STORAGE_KEY);
   async function ouvrirReprise() {
     await b.geste(() => bouton('Reprendre', barre).click());
@@ -138,7 +142,17 @@ export async function preuvesPointOptimizer(b: Banc, nom: string): Promise<[bool
     await b.geste(() => b.etat().setMinStats({ spd: 300 }));
     const dialog = await ouvrirReprise(); await b.geste(() => bouton('Reprendre', dialog).click());
     verifier(minimum() === '275', 'après réimport : VIT du bon membre sauvegardé affichée');
-    verifier(rapport().textContent!.includes('rattaché') && rapport().textContent!.includes('1 artéfact(s) absent(s)'), 'rapport affiché : rattachement, rune et artéfact absents');
+    verifier(rapport().textContent!.includes('rattaché') && rapport().textContent!.includes('1 artéfact(s) absent(s)'), 'rapport annoncé : rattachement, rune et artéfact absents');
+    const alerte = [...barre.querySelectorAll<HTMLButtonElement>('button')].find(e => visible(e) && e.getAttribute('aria-label')?.startsWith('Rapport des critères : '));
+    verifier(!!alerte && JSON.stringify(position(annonce())) === JSON.stringify(avant[2]),
+      'rapport : icône ⚠ au bout de la ligne d’annonce, sans déplacer l’annonce');
+    // Bulle au focus à la souris, dialogue au toucher.
+    const ouvertes = () => [...document.querySelectorAll('[role="tooltip"], [role="dialog"]')];
+    if (alerte) await b.geste(() => alerte.focus());
+    if (alerte && !ouvertes().length) await b.geste(() => alerte.click());
+    const lu = ouvertes().map(e => e.textContent).join(' ');
+    verifier(lu.includes('rattaché') && lu.includes('1 rune(s) absente(s)'), 'rapport lu hors du flux depuis l’icône');
+    if (alerte) await b.geste(() => { alerte.blur(); document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); });
     verifier(rapport().textContent!.includes('1 rune(s) absente(s)'), 'rapport affiché : rune disparue gardée');
     const selector = b.etat().sourceSelector!;
     verifier(selector.source === 'unowned' && b.etat().selectedId === '1', 'autre occupant du slot : sélection de l’espèce sauvegardée sans collision');

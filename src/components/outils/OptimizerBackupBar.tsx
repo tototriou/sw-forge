@@ -1,17 +1,21 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Save, RotateCcw } from 'lucide-react';
 import { Bouton, ConfirmDialog } from '../../ui';
 import type { UseOptimizerLists } from '../../hooks/useOptimizerLists';
 import type { OptimizerState } from '../../hooks/useOptimizerState';
 import type { ExclusionSourceData } from '../../lib/optimizerExclusion';
 
-export default function OptimizerBackupBar({ listes, optimizer, data, artifactIds }: {
+export default function OptimizerBackupBar({ listes, optimizer, data, artifactIds, fin }: {
   listes: UseOptimizerLists; optimizer: OptimizerState; data: ExclusionSourceData; artifactIds: Set<number>;
+  /** Posé au bout de la ligne d'annonce, dans une place réservée par l'appelant. */
+  fin?: ReactNode;
 }) {
   const [confirmation, setConfirmation] = useState<'remplacer' | 'reprendre' | null>(null);
   const point = listes.point;
   const date = point ? new Date(point.date).toLocaleString('fr-FR') : '';
   const sauvegarder = () => listes.sauvegarderPoint(optimizer.proprietaireCriteres, data);
+  const annonce = point ? `Point de sauvegarde : ${point.historique.lists.length} liste(s) · ${point.historique.members.length} membre(s) · ${date}`
+    : listes.pointExiste ? listes.rapportPoint.join(' ') : 'Aucun point de sauvegarde.';
   return <div aria-label="Point de sauvegarde des listes" className="mt-2">
     <div className="grid grid-cols-2 gap-2 compact:gap-1">
       <Bouton taille="sm" pleineLargeur icone={<Save size={14} />} libelle="Sauvegarder"
@@ -22,10 +26,13 @@ export default function OptimizerBackupBar({ listes, optimizer, data, artifactId
           : listes.pointExiste ? 'Le point est illisible : reprise impossible.' : 'Aucun point de sauvegarde.'}
         onClick={() => setConfirmation('reprendre')} />
     </div>
-    {/* La place de l'annonce existe avant le premier point, aux deux formats. */}
-    <div role="status" aria-label="Annonce du point de sauvegarde" className="h-12 overflow-y-auto py-1 text-[11px] text-ink-dim">
-      {point ? `Point de sauvegarde : ${point.historique.lists.length} liste(s) · ${point.historique.members.length} membre(s) · ${date}`
-        : listes.pointExiste ? listes.rapportPoint.join(' ') : 'Aucun point de sauvegarde.'}
+    {/* Une seule ligne, réservée avant le premier point aux deux formats :
+        l'annonce tronquée garde son texte complet en infobulle. La colonne
+        minmax(0, 1fr) empêche son texte d'élargir la page au téléphone. */}
+    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
+      <p role="status" aria-label="Annonce du point de sauvegarde" title={annonce}
+        className="truncate py-1 text-[11px] text-ink-dim">{annonce}</p>
+      {fin}
     </div>
     {confirmation === 'remplacer' && <ConfirmDialog titre="Remplacer le point de sauvegarde ?" destructif libelleAction="Remplacer"
       message={<>{point ? `Le point du ${date} (${point.historique.lists.length} liste(s))` : 'Le point conservé mais illisible'} sera remplacé par tes listes actuelles. Tu ne pourras plus revenir à cet ancien point.</>}

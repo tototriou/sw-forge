@@ -177,7 +177,7 @@ import ArtifactSubLigne from '../ArtifactSubLigne';
 import { WHEEL_IMG } from '../RuneWheel';
 import Segmented from '../../ui/Segmented';
 import HelpPopover from '../HelpPopover';
-import OptimizerLeadInactif from './OptimizerLeadInactif';
+import OptimizerLeadInactif, { MotifHorsFlux } from './OptimizerLeadInactif';
 import {
   Bouton,
   BoutonIcone,
@@ -3339,6 +3339,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     </>
   );
 
+  const rapportZoneC = [...lists.rapportStockage, ...optimizer.rapportCriteres];
   const zoneCContent = (
     <div className="rounded-lg border border-border-soft bg-panel2/60 p-2.5">
       <div className="mb-1.5 flex items-baseline justify-between gap-2">
@@ -3361,10 +3362,15 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
       <Bouton libelle="Lier une équipe" taille="sm" pleineLargeur disabled={!activeList || activeMembers.length < 2}
         onClick={() => activeList && setEquipeOuverte({ listId: activeList.id, equipe: null })} />
 
-      <OptimizerBackupBar listes={lists} optimizer={optimizer} data={exclusionData} artifactIds={new Set(artifacts.map(a => a.id))} />
-
-      <div className="h-16 overflow-y-auto text-[11px] text-warn" role="status" aria-label="Rapport des critères">
-        {[...lists.rapportStockage, ...optimizer.rapportCriteres].map((message, index) => <p key={index}>{message}</p>)}
+      {/* Le rapport des critères se lit hors du flux, depuis une icône à place
+          réservée au bout de la ligne d'annonce ; la liste garde la hauteur. */}
+      <OptimizerBackupBar listes={lists} optimizer={optimizer} data={exclusionData} artifactIds={new Set(artifacts.map(a => a.id))}
+        fin={<span className="inline-flex h-6 w-6 flex-none compact:h-10 compact:w-10">
+          {rapportZoneC.length > 0 && <MotifHorsFlux titre="Rapport des critères" messages={rapportZoneC}
+            libelle={`Rapport des critères : ${rapportZoneC.length} message${rapportZoneC.length > 1 ? 's' : ''}`} />}
+        </span>} />
+      <div className="sr-only" role="status" aria-label="Rapport des critères">
+        {rapportZoneC.map((message, index) => <p key={index}>{message}</p>)}
       </div>
 
       {activeMembers.length === 0 ? (
@@ -3372,7 +3378,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
           {activeList ? "Aucun monstre dans cette liste pour l'instant." : 'Choisis ou crée une liste ci-dessus.'}
         </p>
       ) : (
-        <div className="max-h-[220px] space-y-1 overflow-y-auto">
+        <div className="mt-1 max-h-[308px] space-y-1 overflow-y-auto">
           {groupesMembres.filter(g => g.members.length > 0).map((g, numero) => {
             const membres = g.members.map(m => {
               const resolved = resolveExclusionEntry(m.selector, exclusionData);

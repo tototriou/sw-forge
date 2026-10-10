@@ -140,8 +140,9 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   Une marque « Critères mémorisés » occupe un emplacement réservé sur chaque
   ligne ; elle apparaît dès qu'une mémoire existe pour ce membre dans cette
   liste, sans déplacer la ligne. Le rapport du chargement et les messages de
-  restauration occupent un espace réservé défilant de la zone C, commun au
-  bureau et au téléphone. Une mémoire conservée mais inapplicable reste marquée
+  restauration se lisent depuis l’icône ⚠ à place réservée au bout de la
+  ligne d’annonce du point de sauvegarde, au bureau et au téléphone. Une
+  mémoire conservée mais inapplicable reste marquée
   et son refus est dit lorsqu'on choisit le membre.
   Les membres sont regroupés par équipe dans des bandes teintées sans contour,
   avec le numéro, le leader facultatif, la pastille `LeadPill` et le compte des

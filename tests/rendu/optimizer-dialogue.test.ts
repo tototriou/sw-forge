@@ -65,3 +65,5 @@ async function verifierHauteur(hauteur: number) {
 }
 export const testRenduOptimizerDialogueHauteur400 = () => verifierHauteur(400);
 export const testRenduOptimizerDialogueHauteur600 = () => verifierHauteur(600);
+export const testRenduOptimizerDialogueReferencesLeader = () => verifier('references-leader');
+export const testRenduTelephoneOptimizerDialogueReferencesLeader = () => verifier('references-leader', true);

@@ -19,6 +19,8 @@ const box: BoxItem[] = Array.from({ length: 28 }, (_, i) => {
   return { key: String(i + 1), monster, stars: 6, level: 40, gear: { base, runes: [], artifacts: [] } };
 });
 const membres: ExclusionSelector[] = box.map(b => ({ source: 'box', unitKey: b.key }));
+const espece: Monster = { ...box[2].monster, id: 101, name: 'Espèce non possédée' };
+const references: ExclusionSelector[] = [{ source: 'unowned', monsterId: '101', copie: 2 }, { source: 'box', unitKey: 'absente' }];
 const autre: EquipeOptimizer = { id: 'autre', listId: 'a', members: membres.slice(-2), lead: null };
 const cible: EquipeOptimizer = { id: 'cible', listId: 'a', members: membres.slice(0, 3),
   lead: { stat: 'HP', amount: 44, area: 'Arena', element: null }, leader: membres[0] };
@@ -28,18 +30,18 @@ function Banc({ modification }: { modification: boolean }) {
   listes = useOptimizerLists();
   const [ouvert, setOuvert] = useState(true);
   return ouvert ? <OptimizerEquipeDialog contexte={listes} listId="a" equipe={modification ? cible : null}
-    data={{ box, rtaEntries: {}, siegeDefenseTeams: [], siegeOffenseTeams: [], monsterById: new Map() }}
+    data={{ box, rtaEntries: {}, siegeDefenseTeams: [], siegeOffenseTeams: [], monsterById: new Map([['101', espece]]) }}
     onValider={listes.setTeams} onClose={() => { fermee = true; setOuvert(false); }} /> : <p>Dialogue fermé</p>;
 }
 async function geste(action: () => void) {
   flushSync(action); await new Promise(r => setTimeout(r, 0)); flushSync(() => {});
 }
-export async function preparer(modification = false) {
+export async function preparer(modification = false, avecReferences = false) {
   if (root) await geste(() => root.unmount());
   fermee = false; localStorage.clear(); setPersistence(true);
   localStorage.setItem('swblacksmith-optimizer-lists-v1', JSON.stringify({
     lists: [{ id: 'a', name: 'Alpha' }, { id: 'b', name: 'Bêta' }], activeListId: 'a', validated: [],
-    members: ['a', 'b'].flatMap(listId => membres.map(selector => ({ listId, selector }))),
+    members: ['a', 'b'].flatMap(listId => [...membres, ...(avecReferences ? references : [])].map(selector => ({ listId, selector }))),
   }));
   localStorage.setItem(OPTIMIZER_MEMBERS_STORAGE_KEY, ecrireMembresOptimizer({
     identities: new Map(), memories: new Map(), listContents: new Map([['a', 'guilde']]),
@@ -86,6 +88,23 @@ export async function scenario(nom: string): Promise<[boolean, string][]> {
       const publiee = listes.teams.find(e => e.listId === 'a' && e.id !== 'autre')!;
       verifier(fermee && publiee.lead?.stat === 'Resistance' && publiee.lead.amount === 41 && publiee.lead.area === 'Element' && publiee.lead.element === 'water', 'validation : skill complet publié et dialogue fermé');
       verifier(box[2].monster.leaderSkill?.amount === 41, 'le skill source reste intact');
+    }
+  } else if (nom === 'references-leader') {
+    for (const modification of [false, true]) {
+      await preparer(modification, true);
+      await cocher(26); await cocher(27);
+      const initial = JSON.stringify(listes.teams), disque = localStorage.getItem(OPTIMIZER_MEMBERS_STORAGE_KEY);
+      await choisir('Leader de l’équipe', exclusionSelectorKey(references[0]));
+      verifier(menu('Leader de l’équipe').selectedOptions[0].textContent!.includes('Espèce non possédée'), 'la copie non possédée est résolue depuis une espèce absente de la box');
+      verifier(JSON.stringify(valeurs()) === JSON.stringify(['Resistance', '41', 'Element', 'water']), 'copie non possédée : les quatre menus reprennent le skill de son espèce');
+      await choisir('Leader de l’équipe', exclusionSelectorKey(references[1]));
+      verifier(menu('Leader de l’équipe').selectedOptions[0].textContent!.includes('Introuvable'), 'la référence introuvable reste désignée comme leader');
+      verifier(menu(labels[0]).selectedOptions[0].textContent === 'Aucun' && valeurs()[1] === '' && labels.slice(1).every(l => menu(l).disabled), 'référence introuvable : l’ancien lead est effacé, Aucun et champs dépendants désactivés');
+      verifier(JSON.stringify(listes.teams) === initial && localStorage.getItem(OPTIMIZER_MEMBERS_STORAGE_KEY) === disque, 'ces références ne publient rien pendant l’édition');
+      await choisir('Leader de l’équipe', exclusionSelectorKey(references[0]));
+      await geste(() => bouton(modification ? 'Enregistrer' : 'Lier').click());
+      const publiee = listes.teams.find(e => e.listId === 'a' && e.id !== 'autre')!;
+      verifier(fermee && publiee.leader?.source === 'unowned' && publiee.leader.copie === 2 && publiee.lead?.stat === 'Resistance' && publiee.lead.amount === 41 && publiee.lead.area === 'Element' && publiee.lead.element === 'water', 'validation : la copie désignée et son skill complet sont publiés');
     }
   } else if (nom === 'membres') {
     for (const modification of [false, true]) {

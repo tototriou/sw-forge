@@ -175,7 +175,8 @@ import { testRenduOptimizerCreationObligatoire, testRenduTelephoneOptimizerCreat
   testRenduOptimizerContenuInvocateur, testRenduTelephoneOptimizerContenuInvocateur,
   testRenduOptimizerEtatAurasEnLigne, testRenduTelephoneOptimizerEtatAurasEnLigne,
   testRenduOptimizerEnteteEquipeCompact, testRenduTelephoneOptimizerEnteteEquipeCompact,
-  testRenduOptimizerDialogueElementVide, testRenduTelephoneOptimizerDialogueElementVide } from './rendu/optimizer-retouches.test';
+  testRenduOptimizerDialogueElementVide, testRenduTelephoneOptimizerDialogueElementVide,
+  testRenduOptimizerActionsZoneC, testRenduTelephoneOptimizerActionsZoneC } from './rendu/optimizer-retouches.test';
 import { testOptimizerContenuInvocateurCompatibilite } from './optimizer-invocateur-compatibilite.test';
 import { testRenduOptimizerRechercheBoxResolu, testRenduTelephoneOptimizerRechercheBoxResolu,
   testRenduOptimizerRechercheDejaMembre, testRenduTelephoneOptimizerRechercheDejaMembre,
@@ -302,6 +303,8 @@ import testSkillAdapters from './skill-adapters.test';
 // faire avant une fusion sur `main` (voir CLAUDE.md).
 const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRenduOptimizerCreationObligatoire', testRenduOptimizerCreationObligatoire],
+  ['testRenduOptimizerActionsZoneC', testRenduOptimizerActionsZoneC],
+  ['testRenduTelephoneOptimizerActionsZoneC', testRenduTelephoneOptimizerActionsZoneC],
   ['testRenduOptimizerDialogueElementVide', testRenduOptimizerDialogueElementVide],
   ['testRenduTelephoneOptimizerDialogueElementVide', testRenduTelephoneOptimizerDialogueElementVide],
   ['testRenduOptimizerEnteteEquipeCompact', testRenduOptimizerEnteteEquipeCompact],

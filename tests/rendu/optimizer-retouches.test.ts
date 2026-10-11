@@ -21,3 +21,5 @@ export const testRenduOptimizerEnteteEquipeCompact = () => verifier('entete-equi
 export const testRenduTelephoneOptimizerEnteteEquipeCompact = () => verifier('entete-equipe', true);
 export const testRenduOptimizerDialogueElementVide = () => verifier('dialogue-element');
 export const testRenduTelephoneOptimizerDialogueElementVide = () => verifier('dialogue-element', true);
+export const testRenduOptimizerActionsZoneC = () => verifier('actions-zone-c');
+export const testRenduTelephoneOptimizerActionsZoneC = () => verifier('actions-zone-c', true);

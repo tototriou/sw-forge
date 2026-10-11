@@ -158,6 +158,10 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   `<monstre>` » crée une liste (dialogue du nom et du contenu) ET y ajoute le monstre dans
   le même geste.
   Les lignes ne portent aucune marque de mémoire ni place réservée à celle-ci.
+  Ajouter, Lier une équipe, Sauvegarder et Reprendre partagent une ligne au
+  bureau, et deux lignes compactes au téléphone, sans débordement. Le libellé
+  d'ajout se tronque avec son texte complet en infobulle. Leur place ne change
+  pas lors de l'ajout d'un exemplaire ni de la pose d'un point de sauvegarde.
   Le rapport du chargement et les messages de
   restauration se lisent depuis l’icône ⚠ à place réservée au bout de la
   ligne d’annonce du point de sauvegarde, au bureau et au téléphone. Une

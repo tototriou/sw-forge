@@ -281,6 +281,8 @@ Une entrée = une règle qu'un chantier qui l'ignore casse, avec sa source. Ce f
 
 ### Disposition des cartes et équipes
 
+- Ajouter, Lier une équipe, Sauvegarder et Reprendre occupent une ligne au bureau et deux au téléphone. Le libellé d'ajout tronqué garde le texte complet en infobulle ; ajout et sauvegarde ne déplacent pas l'action cliquée. Source : ../../02-app/optimizer/feat-listes-et-reservation.md § Créer, valider et réserver dans une liste
+
 - Dans le dialogue d'équipe, « Leader » reste facultatif. Le menu Élément conserve sa place, mais est désactivé et visuellement vide hors portée Element. Source : ../../02-app/optimizer/feat-listes-equipes-et-sauvegarde.md § Équipes à l'écran
 
 - L'en-tête d'équipe réserve une place au compteur de leads inactifs entre le nom tronqué (texte complet en infobulle) et « Modifier l’équipe ». Le compteur ne crée aucune ligne et ne déplace pas l'action lorsqu'il disparaît. Source : ../../02-app/optimizer/feat-listes-equipes-et-sauvegarde.md § Équipes à l'écran

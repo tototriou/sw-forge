@@ -117,3 +117,36 @@ export async function preuvesDialogueElement(b: BancRetouches): Promise<[boolean
   preuves.push([document.documentElement.scrollWidth<=innerWidth, 'dialogue sans débordement']);
   return preuves;
 }
+
+export async function preuvesActionsZoneC(b: BancRetouches): Promise<[boolean, string][]> {
+  await deplierListes(b);
+  await b.geste(() => b.listes().renameList('a', 'Une liste au nom suffisamment long pour exiger une troncature des actions'));
+  const ligne = [...document.querySelectorAll<HTMLElement>('[aria-label="Actions de la liste"]')].find(visible)!;
+  const actions = [...ligne.querySelectorAll<HTMLButtonElement>('button')];
+  const [ajout,lier,sauver,reprendre] = actions;
+  const rects=actions.map(e=>e.getBoundingClientRect()), texte=ajout.querySelector('span')!;
+  const preuves: [boolean,string][] = [
+    [actions.length===4 && lier.textContent==='Lier une équipe' && sauver.textContent?.trim()==='Sauvegarder' && reprendre.textContent?.trim()==='Reprendre', 'quatre actions réunies dans leur ordre'],
+    [innerWidth>=1024 ? rects.every(r=>r.y===rects[0].y) : new Set(rects.map(r=>r.y)).size===2, 'actions : une ligne au bureau, deux lignes compactes au téléphone'],
+    [ajout.title===ajout.textContent?.trim() && getComputedStyle(texte).textOverflow==='ellipsis' && texte.scrollWidth>texte.clientWidth, 'libellé long tronqué avec texte complet en infobulle'],
+  ];
+  const avant=ajout.getBoundingClientRect();
+  await b.geste(()=>ajout.click());
+  const apres=ajout.getBoundingClientRect();
+  preuves.push([avant.x===apres.x && avant.y===apres.y, 'ajouter le prochain exemplaire garde son bouton immobile']);
+  const a=sauver.getBoundingClientRect();
+  await b.geste(()=>sauver.click());
+  const z=sauver.getBoundingClientRect();
+  preuves.push([a.x===z.x && a.y===z.y && !reprendre.disabled, 'Sauvegarder immobile et Reprendre activé à sa place']);
+  for (const action of [lier, reprendre]) {
+    const avant=action.getBoundingClientRect();
+    await b.geste(()=>action.click());
+    await new Promise(r=>setTimeout(r,250));
+    const dialogue=document.querySelector<HTMLElement>('[role="dialog"]')!;
+    await b.geste(()=>bouton('Annuler',dialogue).click());
+    const apres=action.getBoundingClientRect();
+    preuves.push([avant.x===apres.x && avant.y===apres.y, `${action.textContent?.trim()} garde sa place après ouverture et annulation`]);
+  }
+  preuves.push([document.documentElement.scrollWidth<=innerWidth, 'actions sans débordement horizontal']);
+  return preuves;
+}

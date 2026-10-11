@@ -3376,22 +3376,21 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
         {activeList && <span className="flex-none text-[11px] text-ink-dimmer">{activeMembers.length}</span>}
       </div>
 
-      <Bouton
+      {/* Le rapport des critères se lit hors du flux, depuis une icône à place
+          réservée au bout de la ligne d'annonce ; la liste garde la hauteur. */}
+      <OptimizerBackupBar debut={<><Bouton
         trait="pointille"
         taille="sm"
         pleineLargeur
         icone={<Plus size={14} />}
         libelle={ajoutListe.libelle}
+        title={ajoutListe.libelle}
         disabled={!ajoutListe.actif}
         onClick={handleAddToList}
-        className="mb-2"
+        className="min-w-0 [&>span]:min-w-0 [&>span]:truncate"
       />
-      <Bouton libelle="Lier une équipe" taille="sm" pleineLargeur disabled={!activeList || activeMembers.length < 2}
-        onClick={() => activeList && setEquipeOuverte({ listId: activeList.id, equipe: null })} />
-
-      {/* Le rapport des critères se lit hors du flux, depuis une icône à place
-          réservée au bout de la ligne d'annonce ; la liste garde la hauteur. */}
-      <OptimizerBackupBar listes={lists} optimizer={optimizer} data={exclusionData} artifactIds={new Set(artifacts.map(a => a.id))}
+      <Bouton libelle="Lier une équipe" title="Lier une équipe" taille="sm" pleineLargeur disabled={!activeList || activeMembers.length < 2}
+        onClick={() => activeList && setEquipeOuverte({ listId: activeList.id, equipe: null })} /></>} listes={lists} optimizer={optimizer} data={exclusionData} artifactIds={new Set(artifacts.map(a => a.id))}
         fin={<span className="inline-flex h-6 w-6 flex-none compact:h-10 compact:w-10">
           {rapportZoneC.length > 0 && <MotifHorsFlux titre="Rapport des critères" messages={rapportZoneC}
             libelle={`Rapport des critères : ${rapportZoneC.length} message${rapportZoneC.length > 1 ? 's' : ''}`} />}

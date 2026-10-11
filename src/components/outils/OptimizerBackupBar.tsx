@@ -5,10 +5,12 @@ import type { UseOptimizerLists } from '../../hooks/useOptimizerLists';
 import type { OptimizerState } from '../../hooks/useOptimizerState';
 import type { ExclusionSourceData } from '../../lib/optimizerExclusion';
 
-export default function OptimizerBackupBar({ listes, optimizer, data, artifactIds, fin }: {
+export default function OptimizerBackupBar({ listes, optimizer, data, artifactIds, debut, fin }: {
   listes: UseOptimizerLists; optimizer: OptimizerState; data: ExclusionSourceData; artifactIds: Set<number>;
   /** Posé au bout de la ligne d'annonce, dans une place réservée par l'appelant. */
   fin?: ReactNode;
+  /** Actions de la liste, dans la même rangée que Sauvegarder et Reprendre. */
+  debut?: ReactNode;
 }) {
   const [confirmation, setConfirmation] = useState<'remplacer' | 'reprendre' | null>(null);
   const point = listes.point;
@@ -16,8 +18,9 @@ export default function OptimizerBackupBar({ listes, optimizer, data, artifactId
   const sauvegarder = () => listes.sauvegarderPoint(optimizer.proprietaireCriteres, data);
   const annonce = point ? `Point de sauvegarde : ${point.historique.lists.length} liste(s) · ${point.historique.members.length} membre(s) · ${date}`
     : listes.pointExiste ? listes.rapportPoint.join(' ') : 'Aucun point de sauvegarde.';
-  return <div aria-label="Point de sauvegarde des listes" className="mt-2">
-    <div className="grid grid-cols-2 gap-2 compact:gap-1">
+  return <div aria-label="Point de sauvegarde des listes">
+    <div aria-label="Actions de la liste" className="grid grid-cols-2 gap-1 lg:grid-cols-[minmax(0,1fr)_auto_auto_auto]">
+      {debut}
       <Bouton taille="sm" pleineLargeur icone={<Save size={14} />} libelle="Sauvegarder"
         title="Les listes sont déjà conservées automatiquement. Pose un point pour essayer et revenir ici."
         onClick={() => listes.pointExiste ? setConfirmation('remplacer') : sauvegarder()} />

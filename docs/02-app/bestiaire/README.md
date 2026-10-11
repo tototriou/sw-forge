@@ -232,8 +232,8 @@ et le détail des compétences — coefficients, effets, améliorations. Voir
 pour le détail du rendu et de la source des données.
 
 - ⚠️ **Le même composant**, pas une copie : deux fiches auraient divergé au
-  premier ajustement. Elle a d'ailleurs été **remontée** de `components/account/`
-  vers `components/` au deuxième usage.
+  premier ajustement. Elle a d'ailleurs été **remontée** de `src/components/account/`
+  vers `src/components/` au deuxième usage.
 - C'est ici qu'elle sert le plus : le bestiaire couvre **tous** les monstres, y
   compris ceux qu'on ne possède pas — et c'est justement avant d'invoquer qu'on
   va lire des coefficients.

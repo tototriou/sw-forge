@@ -928,7 +928,7 @@ les autres **sans ça**. Compter le −30 % de barre d'une Madeleine Cookie revi
 frein rate, se voit résisté, ou tombe sur un monstre déjà passé, l'équipe se
 coupe.
 
-Concrètement : `sansReductionAdverse` (dans `lib/speedTune.ts`) retire
+Concrètement : `sansReductionAdverse` (dans `src/lib/speedTune.ts`) retire
 `atbEnnemi`, `atbEnnemiTous`, `ralenti` et `ralentiTous` du sort avant que
 l'analyse ne le donne au moteur. Un sort qui fait **les deux** — remplir la
 barre du camp ET vider celle d'en face — garde la moitié qui nous fait jouer et
@@ -1185,13 +1185,13 @@ cuivre — « ton équipe » y virait à l'orange, à un cheveu du `warn` voisin
 rendu ; toute la logique est ailleurs, et c'est ce qui garantit que l'outil et
 le siège répondent la MÊME chose :
 
-- `lib/speedTuneLignes.ts` — le modèle, pur et testé : la `Ligne` (un monstre
+- `src/lib/speedTuneLignes.ts` — le modèle, pur et testé : la `Ligne` (un monstre
   posé dans un camp), sa vitesse de combat, son sort actif, la **seule**
   fabrique de l'entrée du moteur (`tuneDe` — c'est là, et nulle part ailleurs,
   qu'on ajoute un champ comme l'amplification de Miriam, sinon un des deux
   écrans l'oublie), la référence copiée sur le plus rapide, l'écriture des
   résultats dans les grilles, l'oubli d'un camp à l'import d'un deck.
-- `hooks/useSpeedTune.ts` — l'état (persistant), les actions et les dérivées.
+- `src/hooks/useSpeedTune.ts` — l'état (persistant), les actions et les dérivées.
   Ne rend aucun JSX.
 
 De haut en bas :

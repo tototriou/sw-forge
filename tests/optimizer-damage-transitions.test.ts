@@ -43,7 +43,7 @@ export default function testOptimizerDamageTransitions() {
   const relue = parseOptimizerRecipe(JSON.stringify(recette));
   ok(!!relue.recipe, 'recette : import de production accepté');
   egal(relue.recipe!.damageSetup, avant, 'recette : valeurs transportées intactes');
-  egal(DEFAULT_DAMAGE_SETUP.enemyDef, 1000, 'compte : retour au défaut complet');
+  egal(DEFAULT_DAMAGE_SETUP.enemyDef, 1500, 'compte : retour au défaut complet');
 
   const ecran = readFileSync('src/components/outils/OptimizerSection.tsx', 'utf8');
   const hook = readFileSync('src/hooks/useOptimizerState.ts', 'utf8');

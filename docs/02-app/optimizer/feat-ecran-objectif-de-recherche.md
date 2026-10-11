@@ -36,8 +36,8 @@
   ([DamageSetupModale.tsx](src/components/outils/DamageSetupModale.tsx),
   qui porte la carte `DamageSetupCard`) — et rien ailleurs à l'écran ne
   change. Une fois la fenêtre fermée, une **ligne de résumé** prend sa
-  place sous l'objectif : `S1 Flying Cards · élément ignoré · PV 30 000 ·
-  DEF 1 000 · Critique`. On la clique pour rouvrir.
+  place sous l'objectif : `S1 Flying Cards · élément ignoré · PV 40 000 ·
+  DEF 1 500 · Critique`. On la clique pour rouvrir.
   Cette fenêtre porte aussi les PV propres, les
   ennemis vivants, la réserve de Sacrifice, les comparaisons de stats et
   les états de combat propres au monstre choisi. Les compteurs de débuffs
@@ -56,15 +56,15 @@
   - ⚠️ **Le résumé ne montre QUE ce que le sort consomme**, exactement
     comme la fenêtre. Sur un sort qui **ignore la défense**, le champ DEF
     n'existe pas dans la fenêtre — et il disparaît donc du résumé : `S3
-    Amputation Magic · élément ignoré · PV 30 000 · Critique`. Les deux
+    Amputation Magic · élément ignoré · PV 40 000 · Critique`. Les deux
     lectures viennent d'un seul prédicat (`champsDuCombat`,
     [damage.ts](src/lib/damage.ts)) : deux copies divergent, et un résumé
-    écrit en dur afficherait « DEF 1 000 » sur un sort qui n'en tient
+    écrit en dur afficherait « DEF 1 500 » sur un sort qui n'en tient
     aucun compte.
   - **La cible calculée de Blade Surge, quand ce n'est pas la cible
     visée.** Le cran « Dégâts sur les autres ennemis » ajoute un bout
     juste après le sort : `S1 Blade Surge · autres ennemis · élément
-    ignoré · PV 30 000 · DEF 1 000 · Critique`. Comme pour le sort, c'est
+    ignoré · PV 40 000 · DEF 1 500 · Critique`. Comme pour le sort, c'est
     la cible que RETIENT le calcul pour le sort résolu
     (`resumeCibleDegatsRetenue`, qui lit `cibleDegatsRetenue`), jamais
     la valeur stockée : rien pour la cible visée (le défaut), rien pour

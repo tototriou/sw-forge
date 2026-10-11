@@ -1688,8 +1688,8 @@ export default function testDegats() {
   const deborahBase: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, skillCom2usId: s1p.skillCom2usId, summonerSkills: 'normal', defBreak: true };
   const deborahOff = computeTotalDamage(s1p, [], equipeStats, deborahBase, AUCUNE_AURA_PROPRE, null);
   const deborahOn = computeTotalDamage(s1p, [], equipeStats, { ...deborahBase, deborahActif: true }, AUCUNE_AURA_PROPRE, null);
-  const mitigationSansDeborah = defenseFactor(1000 * DEF_BREAK_FACTOR);
-  const mitigationAvecDeborah = defenseFactor(1000 * (1 - (1 - DEF_BREAK_FACTOR) * DEBORAH_AMPLIFY));
+  const mitigationSansDeborah = defenseFactor(DEFAULT_DAMAGE_SETUP.enemyDef * DEF_BREAK_FACTOR);
+  const mitigationAvecDeborah = defenseFactor(DEFAULT_DAMAGE_SETUP.enemyDef * (1 - (1 - DEF_BREAK_FACTOR) * DEBORAH_AMPLIFY));
   ok(
     Math.abs(deborahOn / deborahOff - mitigationAvecDeborah / mitigationSansDeborah) < 1e-9,
     'Deborah amplifie la réduction de DEF de 30 % (70 % → 91 % de DEF en moins), jamais une réduction à elle seule'

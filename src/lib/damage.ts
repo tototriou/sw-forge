@@ -4530,15 +4530,14 @@ export interface DamageSetup {
   pvActuelsAvantSacrificePct?: Record<number, number>;
 }
 
-// Adversaire de référence : ni un boss ni une cible nue. 1000 DEF et 30 000
+// Adversaire de référence : ni un boss ni une cible nue. 1500 DEF et 40 000
 // PV correspondent à une cible d'arène/siège ordinaire — le point de
-// comparaison le plus courant, et les mêmes ordres de grandeur que les
-// outils de référence de la communauté.
+// comparaison le plus courant (valeurs choisies par l'utilisateur).
 export const DEFAULT_DAMAGE_SETUP: DamageSetup = {
   setsAuraExternes: [],
   skillCom2usId: null,
-  enemyDef: 1000,
-  enemyHp: 30000,
+  enemyDef: 1500,
+  enemyHp: 40000,
   enemyHpPct: 100,
   ownHpPct: 100,
   livingAlliesPct: 100,

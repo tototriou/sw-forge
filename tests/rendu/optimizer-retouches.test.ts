@@ -15,3 +15,9 @@ export const testRenduOptimizerCreationObligatoire = () => verifier('creation-ob
 export const testRenduTelephoneOptimizerCreationObligatoire = () => verifier('creation-obligatoire', true);
 export const testRenduOptimizerContenuInvocateur = () => verifier('competences-liste');
 export const testRenduTelephoneOptimizerContenuInvocateur = () => verifier('competences-liste', true);
+export const testRenduOptimizerEtatAurasEnLigne = () => verifier('etat-auras');
+export const testRenduTelephoneOptimizerEtatAurasEnLigne = () => verifier('etat-auras', true);
+export const testRenduOptimizerEnteteEquipeCompact = () => verifier('entete-equipe');
+export const testRenduTelephoneOptimizerEnteteEquipeCompact = () => verifier('entete-equipe', true);
+export const testRenduOptimizerDialogueElementVide = () => verifier('dialogue-element');
+export const testRenduTelephoneOptimizerDialogueElementVide = () => verifier('dialogue-element', true);

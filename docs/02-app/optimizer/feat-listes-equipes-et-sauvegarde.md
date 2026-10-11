@@ -376,7 +376,9 @@ affichée telle quelle, jamais remplacée en silence.
 
 « Lier une équipe » ouvre `OptimizerEquipeDialog`, hors du flux, au bureau comme
 au téléphone. Il propose les membres de la liste, de deux à cinq, un leader
-facultatif et le lead (type, valeur, portée et élément). Les membres déjà liés
+facultatif, libellé « Leader », et le lead (type, valeur, portée et élément).
+Hors portée « Élément », le menu Élément reste affiché, désactivé et sans texte.
+Les membres déjà liés
 à une autre équipe de cette liste sont absents des propositions, à la création
 comme à la modification ; ceux de l’équipe modifiée restent proposés.
 Le leader se choisit par **espèce** : une seule option par espèce cochée,
@@ -410,14 +412,13 @@ téléphone, les champs restent après les membres dans le corps défilant, avec
 l’en-tête et les actions fixes.
 
 Changer de format pendant que le dialogue est ouvert conserve le brouillon.
-Les champs de leader et de lead passent toutefois du corps à la zone fixe,
-ou inversement : ils sont remontés et perdent le focus. Celui-ci n’est pas
-restauré automatiquement.
+Les champs de leader et de lead passent toutefois du corps à la zone fixe, ou inversement : ils sont remontés et perdent le focus. Celui-ci n’est pas restauré automatiquement.
 
 La zone C groupe chaque équipe dans une bande teintée sans contour. Son
 en-tête porte sur une seule ligne `LeadPill`, numéro, leader éventuel et
-« Modifier l’équipe », puis dessous le compte des leads inactifs. Les fonds alternent entre les jetons `equipe-a` et
-`equipe-b`, définis dans les deux thèmes. Les cartes liées et libres gardent
+le compte des leads inactifs à place réservée, puis « Modifier l’équipe » tout à droite.
+Le nom tronqué garde son texte complet en infobulle ; l'écart avant les cartes est réduit.
+Les fonds alternent entre les jetons `equipe-a` et `equipe-b`, définis dans les deux thèmes. Les cartes liées et libres gardent
 le même aspect et la même hauteur, au bureau comme au téléphone ; les libres
 suivent sous « Sans équipe ».
 
@@ -431,8 +432,7 @@ d’une zone qui ne la contient pas : elle ne reste jamais détachée de son ic�
 La disparition du motif ferme et démonte son contenu ; son retour n’ouvre
 rien automatiquement. Démonter l’écran retire aussi la bulle ou le dialogue.
 Changer le lead ou le contenu ne déplace ni les cartes ni leurs contrôles.
-La carte « État de mon monstre »
-réserve aussi la place de son explication et de ce motif.
+La carte « État de mon monstre » réserve aussi la place de son explication et de ce motif.
 
 ## Revérification commune
 

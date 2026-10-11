@@ -161,6 +161,7 @@ export default function EtatMonstre({
         <LeaderSkillPicker setup={setup} maj={maj} />
       </div>
 
+      <AurasExternesSaisie setup={setup} maj={maj} rappel={rappelAuras} onGuiderResPre={onGuiderResPre} />
       </div>
       {equipe && <p className="h-20 overflow-y-auto text-xs text-ink-dim">Lead effectif de l’équipe : le modifier change le lead de toute l’équipe. Chaque membre le garde en quittant l’équipe.
         {motifLead && <span className="block text-warn">{motifLead}</span>}
@@ -207,14 +208,7 @@ export default function EtatMonstre({
         </div>
       ) : null}
 
-      {/* ⚠️ **Sous la rangée des deux groupes, pas à côté** : la saisie des
-          auras grandit d'une ligne par set, et la rangée « une seule ligne »
-          (demande explicite) n'a pas à la porter. Même boîte que les deux
-          groupes — un seul contour, à l'intérieur de la carte.
-          ⚠️ **En dernier dans la carte** : ajouter une ligne ne pousse que
-          vers le BAS, rien de ce qui précède — ni le bouton d'ajout, fixe en
-          tête de sa boîte (docs/03-developpeur/interface/, réponse n° 3). */}
-      <AurasExternesSaisie setup={setup} maj={maj} rappel={rappelAuras} onGuiderResPre={onGuiderResPre} />
+
     </div>
   );
 }
@@ -287,7 +281,7 @@ function AurasExternesSaisie({
 
   return (
     <div
-      className={`flex flex-col gap-1.5 rounded-lg border px-2 py-1.5 transition-colors duration-200 ${
+      className={`min-w-0 flex-1 basis-full lg:basis-0 flex flex-col gap-1.5 rounded-lg border px-2 py-1.5 transition-colors duration-200 ${
         rappel ? 'border-warn bg-warn-soft' : 'border-border-soft bg-panel2'
       }`}
     >

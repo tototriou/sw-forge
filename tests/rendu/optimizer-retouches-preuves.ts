@@ -48,3 +48,72 @@ export async function preuvesCreationObligatoire(b: BancRetouches): Promise<[boo
   preuves.push([document.documentElement.scrollWidth <= innerWidth, 'création sans débordement horizontal']);
   return preuves;
 }
+
+export async function preuvesEtatAuras(b: BancRetouches): Promise<[boolean, string][]> {
+  const ajout = bouton("Ajouter un set d'aura");
+  const buffs = bouton('Buff ATQ')?.parentElement;
+  const lead = document.querySelector('[aria-label="Type de leader skill"]')?.parentElement?.parentElement;
+  const aura = ajout?.parentElement;
+  if (!aura || !buffs || !lead) return [[false, 'trois cartes de contexte présentes']];
+  const a = aura.getBoundingClientRect(), l = lead.getBoundingClientRect(), f = buffs.getBoundingClientRect();
+  const avant = ajout.getBoundingClientRect();
+  await b.geste(() => ajout.click());
+  const apres = ajout.getBoundingClientRect();
+  return [
+    [innerWidth >= 1024 ? a.y === f.y && a.y === l.y : a.y >= Math.max(f.bottom, l.bottom),
+      `auras : même rangée au bureau, empilement au téléphone (${JSON.stringify({a:a.y,l:l.y,f:f.y})})`],
+    [avant.x === apres.x && avant.y === apres.y, 'ajouter une aura garde le bouton immobile'],
+    [document.documentElement.scrollWidth <= innerWidth, 'cartes de contexte sans débordement'],
+  ];
+}
+
+export async function preparerEquipe(b: BancRetouches) {
+  await deplierListes(b);
+  await b.geste(() => {
+    b.listes().setListContent('a', 'arene');
+    b.listes().setTeams([{ id: 'retouches', listId: 'a', members: [b.premier, b.second], leader: b.premier,
+      lead: { stat: 'Attack Speed', amount: 24, area: 'Guild', element: null } }]);
+  });
+}
+export async function preuvesEnteteEquipe(b: BancRetouches): Promise<[boolean, string][]> {
+  await preparerEquipe(b);
+  const equipe = [...document.querySelectorAll<HTMLElement>('section[aria-label="Équipe 1"]')].find(visible)!;
+  const modifier = bouton('Modifier l’équipe', equipe), nom = equipe.querySelector<HTMLElement>('[title^="Équipe 1"]')!;
+  const compte = [...equipe.querySelectorAll<HTMLElement>('span')].find(e => e.textContent === '⚠ 2 leads inactifs')!;
+  if (!nom || !compte) return [[false, 'nom avec infobulle et compteur présents']];
+  const n=nom.getBoundingClientRect(), c=compte.getBoundingClientRect(), m=modifier.getBoundingClientRect();
+  const titres = nom.title.replace(/\s*·\s*/g, '·') === nom.textContent?.trim().replace(/\s*·\s*/g, '·');
+  await b.geste(() => b.listes().setListContent('a', 'guilde'));
+  const apres = modifier.getBoundingClientRect();
+  return [
+    [Math.abs(n.y-c.y) < Math.max(n.height,c.height) && Math.abs(c.y-m.y) < Math.max(c.height,m.height) && c.x>=n.right && m.x>=c.right,
+      'en-tête : compteur entre le nom et Modifier sur la même ligne'],
+    [titres, 'nom tronqué : texte complet en infobulle'],
+    [m.x === apres.x && m.y === apres.y, 'compte inactif à place réservée, Modifier immobile'],
+    [document.documentElement.scrollWidth<=innerWidth, 'en-tête sans débordement'],
+  ];
+}
+
+export async function preuvesDialogueElement(b: BancRetouches): Promise<[boolean, string][]> {
+  await preparerEquipe(b);
+  await b.geste(() => bouton('Modifier l’équipe').click());
+  await new Promise(r => setTimeout(r, 250));
+  const dialogue = document.querySelector<HTMLElement>('[role="dialog"]')!;
+  const menu = dialogue.querySelector<HTMLSelectElement>('[aria-label="Élément du lead de l’équipe"]')!;
+  const portee = dialogue.querySelector<HTMLSelectElement>('[aria-label="Portée du lead de l’équipe"]')!;
+  const position = menu.getBoundingClientRect();
+  const preuves: [boolean,string][] = [
+    [dialogue.querySelector('[aria-label="Leader de l’équipe"]')?.parentElement?.firstChild?.textContent?.trim() === 'Leader', 'libellé Leader sans facultatif'],
+    [menu.disabled && menu.value === '' && menu.selectedOptions[0].textContent === '', 'portée Guilde : Élément désactivé et sans texte'],
+  ];
+  const changer = (v:string) => b.geste(() => { portee.value=v; portee.dispatchEvent(new Event('change',{bubbles:true})); });
+  await changer('Element');
+  preuves.push([!menu.disabled && menu.value==='fire', 'portée Élément : choix actif et renseigné']);
+  await changer('Arena');
+  const apres=menu.getBoundingClientRect();
+  preuves.push([menu.disabled && menu.value === '' && menu.selectedOptions[0].textContent === '', 'retour Arène : aucune valeur visible']);
+  preuves.push([position.x===apres.x && position.y===apres.y && position.width===apres.width, 'menu toujours affiché à la même place']);
+  preuves.push([b.listes().teams[0].lead?.area==='Guild', 'changement de portée limité au brouillon']);
+  preuves.push([document.documentElement.scrollWidth<=innerWidth, 'dialogue sans débordement']);
+  return preuves;
+}

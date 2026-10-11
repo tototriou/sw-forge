@@ -21,7 +21,7 @@ import { preuvesPointOptimizer } from './optimizer-backup-preuves';
 import { preuvesBandesEquipes } from './optimizer-bandes-preuves';
 import { preuvesRechercheCreationOptimizer, preuvesEditionListeOptimizer, preuvesCompetencesListeOptimizer } from './optimizer-listes-preuves';
 import { preuvesRechercheOptimizer } from './optimizer-recherche-preuves';
-import { preuvesCreationObligatoire } from './optimizer-retouches-preuves';
+import { preuvesCreationObligatoire, preuvesEtatAuras, preuvesEnteteEquipe, preuvesDialogueElement } from './optimizer-retouches-preuves';
 
 export const premier: ExclusionSelector = { source: 'box', unitKey: '11' };
 export const second: ExclusionSelector = { source: 'box', unitKey: '22' };
@@ -135,6 +135,9 @@ export async function scenario(nom: string): Promise<[boolean, string][]> {
     runes: () => runesActuelles, arts: () => artefactsActuels, changerBox, changerRunes, changerArtefacts, changerDefenses, geste, premier, second, troisieme, siege }, nom);
   const bancEquipes = { etat: () => etat, listes: () => listes, geste, premier, second, troisieme };
   if (nom === 'creation-obligatoire') return preuvesCreationObligatoire(bancEquipes);
+  if (nom === 'etat-auras') return preuvesEtatAuras(bancEquipes);
+  if (nom === 'entete-equipe') return preuvesEnteteEquipe(bancEquipes);
+  if (nom === 'dialogue-element') return preuvesDialogueElement(bancEquipes);
   if (nom === 'recherche-creation') return preuvesRechercheCreationOptimizer(bancEquipes);
   if (nom === 'edition-liste') return preuvesEditionListeOptimizer(bancEquipes);
   if (nom === 'competences-liste') return preuvesCompetencesListeOptimizer(bancEquipes);

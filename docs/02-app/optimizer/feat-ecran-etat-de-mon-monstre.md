@@ -92,8 +92,9 @@
 ## Sets d'aura des autres monstres
 
    **Sets d'aura des autres monstres** — une troisième
-   boîte, **sous** la rangée des deux groupes et **en dernier** dans la
-   carte, qui saisit `DamageSetup.setsAuraExternes` : les sets Fight,
+   boîte, sur la même rangée que les buffs et le lead au bureau ; au
+   téléphone elle reste sous les groupes pour éviter le débordement.
+   Elle saisit `DamageSetup.setsAuraExternes` : les sets Fight,
    Determination, Enhance, Accuracy et Tolerance portés par les **autres**
    monstres de l'équipe (voir
    [effets d'équipe](../degats-reels/)). En tête,

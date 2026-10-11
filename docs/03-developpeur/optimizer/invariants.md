@@ -279,6 +279,14 @@ Une entrée = une règle qu'un chantier qui l'ignore casse, avec sa source. Ce f
 
 - « Éditer la liste » garde un brouillon de nom et de contenu jusqu’à « Enregistrer », qui les publie ensemble sans retirer membres, mémoires, équipes ni rejets. La liste active et le menu affichent « Nom - Contenu », ou « Sans contenu » pour une liste antérieure ; le contenu se règle seulement dans le dialogue. Sources : ../../02-app/optimizer/feat-listes-et-reservation.md § Créer, valider et réserver dans une liste ; ../../02-app/optimizer/feat-listes-equipes-et-sauvegarde.md § Contenu de combat des listes
 
+### Disposition des cartes et équipes
+
+- Dans le dialogue d'équipe, « Leader » reste facultatif. Le menu Élément conserve sa place, mais est désactivé et visuellement vide hors portée Element. Source : ../../02-app/optimizer/feat-listes-equipes-et-sauvegarde.md § Équipes à l'écran
+
+- L'en-tête d'équipe réserve une place au compteur de leads inactifs entre le nom tronqué (texte complet en infobulle) et « Modifier l’équipe ». Le compteur ne crée aucune ligne et ne déplace pas l'action lorsqu'il disparaît. Source : ../../02-app/optimizer/feat-listes-equipes-et-sauvegarde.md § Équipes à l'écran
+
+- Les cartes buffs, lead et auras externes partagent une rangée au bureau ; au téléphone les auras passent dessous sans débordement. Ajouter une aura ne déplace pas son bouton. Source : ../../02-app/optimizer/feat-ecran-etat-de-mon-monstre.md § Sets d'aura des autres monstres
+
 ### Interface et gestes
 
 - L’export de « Ma prépa » prend toute la prépa et ses vitesses, indépendamment des filtres ; l’export d’un deck recommandé prend ce seul deck, avec les exemplaires de la confrontation commune. Les deux réutilisent les producteurs et l’action commune avec navigation ; sans compte ou membre importable, ils se désactivent avec raison, dérivée des sources. Source : ../../02-app/optimizer/feat-import-equipes.md § Exporter la prépa RTA et un deck recommandé

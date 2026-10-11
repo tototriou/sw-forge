@@ -57,7 +57,7 @@ export default function OptimizerEquipeDialog({ contexte, listId, equipe, data, 
     onValider(resultat.teams); onClose();
   }
   const champsLead = <>
-      <label className="flex flex-col gap-1 text-xs text-ink-dim">Leader (facultatif)
+      <label className="flex flex-col gap-1 text-xs text-ink-dim">Leader
         <Selecteur aria-label="Leader de l’équipe" value={leaderRetenu ? leader : ''} onChange={e => {
           const cle = e.target.value;
           setLeader(cle);
@@ -92,7 +92,8 @@ export default function OptimizerEquipeDialog({ contexte, listId, equipe, data, 
           </Selecteur>
         </label>
         <label className="flex flex-col gap-1 text-xs text-ink-dim">Élément
-          <Selecteur aria-label="Élément du lead de l’équipe" disabled={!lead || lead.area !== 'Element'} value={lead?.element ?? 'fire'} onChange={e => lead && setLead({ ...lead, element: e.target.value as LeaderSkill['element'] })}>
+          <Selecteur aria-label="Élément du lead de l’équipe" disabled={!lead || lead.area !== 'Element'} value={lead?.area === 'Element' ? lead.element ?? 'fire' : ''} onChange={e => lead && setLead({ ...lead, element: e.target.value as LeaderSkill['element'] })}>
+            <option value=""></option>
             {ELEMENTS.map(el => <option key={el.key} value={el.key}>{el.label}</option>)}
           </Selecteur>
         </label>

@@ -281,6 +281,8 @@ Une entrée = une règle qu'un chantier qui l'ignore casse, avec sa source. Ce f
 
 ### Disposition des cartes et équipes
 
+- La rangée de contexte garde les contrôles d'auras dans la carte, y compris dans une colonne de bureau étroite ; les buffs s'empilent alors dans leur propre boîte. Source : ../../02-app/optimizer/feat-ecran-etat-de-mon-monstre.md § Sets d'aura des autres monstres
+
 - Ajouter, Lier une équipe, Sauvegarder et Reprendre occupent une ligne au bureau et deux au téléphone. Le libellé d'ajout tronqué garde le texte complet en infobulle ; ajout et sauvegarde ne déplacent pas l'action cliquée. Source : ../../02-app/optimizer/feat-listes-et-reservation.md § Créer, valider et réserver dans une liste
 
 - Dans le dialogue d'équipe, « Leader » reste facultatif. Le menu Élément conserve sa place, mais est désactivé et visuellement vide hors portée Element. Source : ../../02-app/optimizer/feat-listes-equipes-et-sauvegarde.md § Équipes à l'écran

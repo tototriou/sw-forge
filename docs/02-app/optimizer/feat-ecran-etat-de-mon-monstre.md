@@ -94,6 +94,8 @@
    **Sets d'aura des autres monstres** — une troisième
    boîte, sur la même rangée que les buffs et le lead au bureau ; au
    téléphone elle reste sous les groupes pour éviter le débordement.
+   Dans une colonne de bureau étroite, les buffs s'empilent dans leur boîte
+   pour laisser place au lead et aux auras, sans comprimer leurs contrôles.
    Elle saisit `DamageSetup.setsAuraExternes` : les sets Fight,
    Determination, Enhance, Accuracy et Tolerance portés par les **autres**
    monstres de l'équipe (voir

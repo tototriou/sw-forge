@@ -128,7 +128,7 @@ export default function EtatMonstre({
           boîte de deux, et l'œil lisait un décalage plutôt qu'un groupe. */}
       <div className="flex flex-wrap items-stretch gap-2">
       {/* Mêmes vignettes qu'avant, même composant : l'ICÔNE est le contrôle. */}
-      <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-border-soft bg-panel2 px-2 py-1.5">
+      <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-border-soft bg-panel2 px-2 py-1.5 lg:w-20 lg:flex-col 2xl:w-auto 2xl:flex-row">
         <EffetVignette
           icone={ATK_BUFF_ICON}
           libelle="Buff ATQ"

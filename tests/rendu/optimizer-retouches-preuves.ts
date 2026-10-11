@@ -50,6 +50,10 @@ export async function preuvesCreationObligatoire(b: BancRetouches): Promise<[boo
 }
 
 export async function preuvesEtatAuras(b: BancRetouches): Promise<[boolean, string][]> {
+  const titre = [...document.querySelectorAll<HTMLElement>('p')].find(e=>visible(e) && e.textContent==='État de mon monstre')!;
+  const carte=titre.parentElement!.parentElement!;
+  // La page réelle conserve une colonne à côté des critères et de la navigation.
+  if (innerWidth>=1024) carte.style.width='27rem';
   const ajout = bouton("Ajouter un set d'aura");
   const buffs = bouton('Buff ATQ')?.parentElement;
   const lead = document.querySelector('[aria-label="Type de leader skill"]')?.parentElement?.parentElement;
@@ -64,6 +68,8 @@ export async function preuvesEtatAuras(b: BancRetouches): Promise<[boolean, stri
       `auras : même rangée au bureau, empilement au téléphone (${JSON.stringify({a:a.y,l:l.y,f:f.y})})`],
     [avant.x === apres.x && avant.y === apres.y, 'ajouter une aura garde le bouton immobile'],
     [document.documentElement.scrollWidth <= innerWidth, 'cartes de contexte sans débordement'],
+    [[...aura.querySelectorAll<HTMLElement>('*')].filter(visible).every(e=>e.getBoundingClientRect().right<=carte.getBoundingClientRect().right),
+      'colonne réelle : les contrôles des auras restent dans la carte'],
   ];
 }
 

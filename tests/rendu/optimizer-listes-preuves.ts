@@ -103,14 +103,14 @@ export async function preuvesCompetencesListeOptimizer(b: Banc): Promise<[boolea
   const preuves: [boolean, string][] = [], verifier = (oui: boolean, texte: string) => preuves.push([oui, texte]);
   await b.geste(() => { b.etat().effacerProprietaireCriteres(); b.etat().setObjective('degats_reels'); b.etat().setDamageSetup(s => ({ ...s, summonerSkills: 'guilde' })); });
   const memorise = JSON.stringify([...b.listes().memories]);
-  async function constater(mode: 'combat' | 'guilde', etape: string) {
+  async function constater(mode: 'normal' | 'guilde', etape: string) {
     verifier(b.etat().lireCombatMembre().setup.summonerSkills === mode, `${etape} : combat lu depuis le contenu, sans propriétaire`);
     const carte = [...document.querySelectorAll('p')].find(e => visible(e) && e.textContent === 'État de mon monstre')!.parentElement!.parentElement!;
     verifier(!carte.textContent?.includes('Invocateur') && !carte.querySelector('[aria-label="Compétences d’invocateur"]'), `${etape} : aucun choix des compétences dans État de mon monstre`);
     await b.geste(() => bouton('Modifier la description du combat').click());
     const dialogue = document.querySelector<HTMLElement>('[role="dialog"]')!;
     const echo = [...dialogue.querySelectorAll('p')].find(e => e.textContent?.includes('État du monstre :'))?.textContent ?? '';
-    verifier(mode === 'guilde' ? echo.includes('Combat + Guilde') : echo.includes('Combat') && !echo.includes('Combat + Guilde'), `${etape} : écran du combat sous le même mode effectif`);
+    verifier(mode === 'guilde' ? echo.includes('Contenu de guilde') : echo.includes('Contenu normal') && !echo.includes('Contenu de guilde'), `${etape} : écran du combat sous le même mode effectif`);
     await b.geste(() => bouton('Fermer', dialogue).click());
     const textes: Promise<string>[] = [], creerUrl = URL.createObjectURL, cliquer = HTMLAnchorElement.prototype.click;
     try {
@@ -124,10 +124,10 @@ export async function preuvesCompetencesListeOptimizer(b: Banc): Promise<[boolea
     } finally { URL.createObjectURL = creerUrl; HTMLAnchorElement.prototype.click = cliquer; }
     verifier(JSON.stringify([...b.listes().memories]) === memorise, `${etape} : mémoires conservées intactes`);
   }
-  await constater('combat', 'Liste historique sans contenu');
+  await constater('normal', 'Liste historique sans contenu');
   await editerContenuListe(b, 'guilde'); await constater('guilde', 'Guilde');
-  await editerContenuListe(b, 'donjon'); await constater('combat', 'Donjon');
-  await editerContenuListe(b, 'arene'); await constater('combat', 'Arène');
+  await editerContenuListe(b, 'donjon'); await constater('normal', 'Donjon');
+  await editerContenuListe(b, 'arene'); await constater('normal', 'Arène');
   const recette = buildOptimizerRecipe({ monsterCom2usId: 10101, monsterName: 'Premier', damageSetup: { ...DEFAULT_DAMAGE_SETUP, summonerSkills: 'guilde' },
     requirement: { sets: ['swift'], minStats: { spd: 240 } }, objective: 'vitesse', metric: 'eff', slotFilterPreset: 'moyen',
     adaptiveTrancheWeighting: false, exhaustiveSearch: false, excludeUsedRunes: false, excludeUsedScope: 'box', excludedSelectors: [], ignoreArtifacts: false, artifactMainByKind: {} });
@@ -139,15 +139,15 @@ export async function preuvesCompetencesListeOptimizer(b: Banc): Promise<[boolea
     await b.geste(() => { input.files = fichiers.files; input.dispatchEvent(new Event('change', { bubbles: true })); });
   } finally { File.prototype.text = lire; }
   verifier(b.etat().damageSetup.summonerSkills === 'guilde' && b.etat().minStats.spd === 240 && b.etat().proprietaireCriteres === null,
-    'recette Combat + Guilde réellement importée sur liste Arène, sans propriétaire');
+    'recette Contenu de guilde réellement importée sur liste Arène, sans propriétaire');
   await b.geste(() => b.etat().setObjective('degats_reels'));
-  await constater('combat', 'Recette importée sur Arène');
+  await constater('normal', 'Recette importée sur Arène');
   // Les index orphelins restent conservés, sans décider d’un combat hors liste.
   await b.geste(() => {
     b.listes().setActiveListId(null);
     b.listes().replaceAfterRevalidation({ ...b.listes(),
       listContents: new Map([...b.listes().listContents, ['orpheline', 'guilde']]) });
   });
-  await constater('combat', 'Sans liste active');
+  await constater('normal', 'Sans liste active');
   return preuves;
 }

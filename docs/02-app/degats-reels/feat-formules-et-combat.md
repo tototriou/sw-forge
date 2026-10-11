@@ -258,12 +258,12 @@ Remplacent, dans le jeu, les anciens **totems** de guilde (onglet
 **Toujours supposées maxées** (Lv.20), même parti pris que les améliorations
 de compétence.
 
-⚠️ **Deux états, pas deux interrupteurs indépendants** — **Combat** s'applique
-toujours ; **Combat + Guilde** ajoute l'onglet Guilde dans le contenu concerné.
-Deux cases séparées permettraient de demander Guilde sans Combat, autre
+⚠️ **Deux états, pas deux interrupteurs indépendants** — **Contenu normal** s'applique
+toujours ; **Contenu de guilde** ajoute l'onglet Guilde dans le contenu concerné.
+Deux cases séparées permettraient de demander Guilde sans les bonus normaux, autre
 combinaison qui n'existe pas en jeu.
 
-| | Combat | + Guilde |
+| | Contenu normal | Contenu de guilde |
 |---|---|---|
 | ATQ | +20 % | +40 % |
 | ATQ de l'élément du monstre | +21 % | +21 % |
@@ -287,10 +287,10 @@ monstre perso) ne reçoit aucune des cinq compétences élémentaires.
 totaux), d'où un double arrondi supérieur : au plus 1 point d'écart sur la
 statistique, sans effet sur un classement de builds.
 
-**Défaut et minimum : « Combat »** — le cran « Aucune » a été retiré, car ces
+**Défaut et minimum : « Contenu normal »** — le cran « Aucune » a été retiré, car ces
 compétences s'appliquent dans toute situation réelle du jeu. Une recette
 exportée avant ce retrait reste lisible : « Aucune » y est normalisée vers
-« Combat » avant d'atteindre l'écran ou le CLI.
+« Contenu normal » avant d'atteindre l'écran ou le CLI.
 
 
 ## Calcul partiel — l'étiquette par identifiant

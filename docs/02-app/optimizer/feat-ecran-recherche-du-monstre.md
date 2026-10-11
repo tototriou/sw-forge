@@ -141,7 +141,7 @@ dans cette table et dans `DAMAGE_SETUP_CLASSIFICATION` avant usage. Ce classemen
 décrit les transitions hors liste ; la mémoire d'un membre contient le combat entier.
 Les compétences d’invocateur enregistrées suivent ce classement de
 compatibilité, mais leur mode effectif se dérive toujours du contenu de la
-liste active : Guilde → « Combat + Guilde », sinon « Combat », y compris à
+liste active : Guilde → « Contenu de guilde », sinon « Contenu normal », y compris à
 l’import d’une recette. Cette dérivation ne réécrit aucune mémoire.
 
 | Sens | Champs actuels | Changement de monstre |

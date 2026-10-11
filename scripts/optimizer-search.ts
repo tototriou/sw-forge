@@ -28,6 +28,7 @@ import { loadMonstersList } from './lib/monstersData';
 import {
   CIBLE_DEGATS_LABELS,
   DEFAULT_DAMAGE_SETUP,
+  SUMMONER_SKILLS_LABELS,
   bonusDegatsConditionnelActif,
   bonusPassifActif,
   cibleDegatsRetenue,
@@ -235,7 +236,7 @@ if (recipe.objective === 'degats_reels') {
         `${bonusConditionnel && bonusDegatsConditionnelActif(bonusConditionnel, s) ? ` — ${bonusConditionnel.nom.replace(/\s*\(Passive\)\s*$/i, '')} (+${bonusConditionnel.pct}%)` : ''} — ` +
         // ⚠️ `?? DEFAULT` : une recette exportée AVANT ce champ n'en a pas.
         // L'élément vient du monstre CHARGÉ, jamais de la recette.
-        `comp. invocateur ${s.summonerSkills ?? DEFAULT_DAMAGE_SETUP.summonerSkills} (${monsterElement ?? 'élément inconnu'}) — ` +
+        `comp. invocateur ${SUMMONER_SKILLS_LABELS.find(v => v.key === s.summonerSkills)?.label ?? SUMMONER_SKILLS_LABELS[0].label} (${monsterElement ?? 'élément inconnu'}) — ` +
         `stats privilégiées [${damageRelevantStats(
           profile,
           passifs,

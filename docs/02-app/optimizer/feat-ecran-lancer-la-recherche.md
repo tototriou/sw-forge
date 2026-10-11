@@ -27,10 +27,10 @@
     monstre ; pour un membre lié, c’est le lead de son équipe tel qu’il
     agit sur lui, puisque ce lead écrase le lead personnel.
     Les compétences d’invocateur exportées sont celles effectives de la
-    liste active : « Combat + Guilde » en Guilde, « Combat » sinon.
+    liste active : « Contenu de guilde » en Guilde, « Contenu normal » sinon.
     Le CLI sans liste reproduit ce mode depuis la recette. À l’import dans
     l’écran, le contenu de la liste active décide du mode effectif, même si
-    la recette en porte un autre ; sans liste ou contenu, « Combat ».
+    la recette en porte un autre ; sans liste ou contenu, « Contenu normal ».
     Exporter ne réécrit ni le lead personnel ni la mémoire du membre. Le
     réimport applique ce lead comme une valeur de recette, sans équipe ni
     propriétaire des critères et sans écraser les mémoires ou équipes

@@ -49,8 +49,8 @@
    les contrôles sous leur taille de cible.
 
    Les **compétences d’invocateur** sont dérivées du contenu de la liste
-   active : Guilde → « Combat + Guilde », Arène et Donjon → « Combat ».
-   Sans liste active ou sans contenu, elles valent « Combat ». Elles restent
+   active : Guilde → « Contenu de guilde », Arène et Donjon → « Contenu normal ».
+   Sans liste active ou sans contenu, elles valent « Contenu normal ». Elles restent
    supposées au maximum, selon l’élément du monstre. Aucun choix ne figure
    dans cette carte, au bureau comme au téléphone. L’écran, la recherche et
    la recette lisent ce même mode effectif ; une valeur mémorisée ou importée
@@ -223,8 +223,8 @@
    le sort, l'adversaire, et comment traiter le critique. », puis l'écho :
    « État du monstre : » suivi des buffs actifs (« buff ATQ », « buff DEF »,
    « buff VIT »), du lead (`lead <stat> +<valeur> %`, la stat nommée comme
-   dans le jeu, `LEADER_SKILL_STATS`) et du cran d'invocateur (« Combat » ou
-   « Combat + Guilde »), séparés par « · » (`echoEtatMonstre`,
+   dans le jeu, `LEADER_SKILL_STATS`) et du cran d'invocateur (« Contenu normal » ou
+   « Contenu de guilde »), séparés par « · » (`echoEtatMonstre`,
    OptimizerSection.tsx). L'écho ne nomme aucun sort : le sort se choisit
    dans la fenêtre elle-même (« Compétence utilisée »). L'écho **nomme les auras
    externes** par set, avec leur nombre (« auras externes : 2 sets Fight,

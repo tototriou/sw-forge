@@ -61,7 +61,7 @@ import { egal, ok, titre } from './outils';
 
 const BASE: BaseStats = { hp: 25000, atk: 2000, def: 1800, spd: 200, cr: 15, cd: 50, res: 15, acc: 0 };
 
-// ⚠️ `summonerSkills: 'combat'` est le DÉFAUT du jeu et de l'app (il n'existe
+// ⚠️ `summonerSkills: 'normal'` est le DÉFAUT du jeu et de l'app (il n'existe
 // pas de cran « aucun ») : +20 % ATQ/DEF/PV et +15 % VIT, appliqués à la
 // BASE. Ils font partie de l'assiette `Y` (`docs/03-developpeur/optimizer/`, « L'effet unique — score de la propriété exclusive »), donc chaque
 // valeur attendue ci-dessous les inclut. `element: null` écarte en revanche

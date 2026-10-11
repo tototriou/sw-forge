@@ -263,8 +263,8 @@ une liste existante avec un contenu admis, sans toucher aux rejets conservés.
 en une seule écriture ; membres, mémoires, équipes et rejets sont conservés.
 
 Le combat effectif dérive aussi les compétences d’invocateur du contenu de
-la liste active, même sans propriétaire des critères : Guilde → « Combat +
-Guilde » ; Arène, Donjon, absence de liste ou de contenu → « Combat ».
+la liste active, même sans propriétaire des critères : Guilde → « Contenu de
+guilde » ; Arène, Donjon, absence de liste ou de contenu → « Contenu normal ».
 `combatSelonContenuListeOptimizer` est le producteur pur commun au combat lu
 par l’écran et au mode exporté dans la recette. Les valeurs enregistrées dans
 les critères et mémoires ne sont pas réécrites par cette dérivation.

@@ -2,6 +2,7 @@ import type { OptimizerState, RelicMainChoice } from '../hooks/useOptimizerState
 import type { GearSet, RelicDetail } from '../types';
 import { DEFAULT_DAMAGE_SETUP, type DamageSetup } from './damage';
 import { damageSetupApresChangementMonstre } from './damageSetupTransition';
+import { normaliserCompetencesInvocateur } from './competencesInvocateur';
 
 type ChampDonnee = {
   [K in keyof OptimizerState]: OptimizerState[K] extends (...args: never[]) => unknown ? never : K
@@ -78,6 +79,7 @@ export function photoCriteres(etat: CriteresOptimizer, origine: OrigineLeadPhoto
     if ('leaderSkill' in origine.personnel) photo.damageSetup.leaderSkill = copie(origine.personnel.leaderSkill);
     if ('leaderSpeedPct' in origine.personnel) photo.damageSetup.leaderSpeedPct = origine.personnel.leaderSpeedPct;
   }
+  photo.damageSetup = normaliserCompetencesInvocateur(photo.damageSetup);
   return photo;
 }
 

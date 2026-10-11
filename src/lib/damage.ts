@@ -20,6 +20,8 @@
 // et les mécaniques propres à certains monstres (Deborah, Herteit…).
 
 import type { Competence, DetailMonstre } from './monsterSkills';
+import type { SummonerSkills } from './competencesInvocateur';
+export type { SummonerSkills } from './competencesInvocateur';
 import type { ArtifactDetail, ElementKey } from '../types';
 import { StatRow } from './stats';
 import { StatKey, activeSets } from './effects';
@@ -214,11 +216,10 @@ export const LEADER_SKILL_VALEURS: Record<LeaderSkillStat, number[]> = {
 // guilde, où Combat compte AUSSI. « Guilde » implique donc toujours « Combat ».
 // Il n'existe volontairement aucun état « aucune » : il ne correspond à aucune
 // situation du jeu et sous-estimerait silencieusement toutes les statistiques.
-export type SummonerSkills = 'combat' | 'guilde';
 
 export const SUMMONER_SKILLS_LABELS: { key: SummonerSkills; label: string }[] = [
-  { key: 'combat', label: 'Combat' },
-  { key: 'guilde', label: 'Combat + Guilde' },
+  { key: 'normal', label: 'Contenu normal' },
+  { key: 'guilde', label: 'Contenu de guilde' },
 ];
 
 // Onglet « Combat » — s'applique partout.
@@ -4569,7 +4570,7 @@ export const DEFAULT_DAMAGE_SETUP: DamageSetup = {
   // ⚠️ « Combat » est le seul défaut possible : ces compétences s'appliquent
   // en permanence en jeu. « Guilde » ne s'ajoute que lorsque l'utilisateur
   // décrit explicitement un contenu de guilde.
-  summonerSkills: 'combat',
+  summonerSkills: 'normal',
   passifsOffensifs: {},
   effetsCibleCountAutres: true,
   buffsPropresCountAutres: true,

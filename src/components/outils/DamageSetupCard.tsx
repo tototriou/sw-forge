@@ -1425,7 +1425,7 @@ export default function DamageSetupCard({
               {seuilsPassifEivor.spd} VIT (<b className="text-ink">+{requis.spd}</b>)
             </p>
             <p className="mt-1 text-micro text-ink-dim">
-              Valeurs +stat avec {setup.summonerSkills === 'guilde' ? 'Combat + Guilde' : 'Combat'}.
+              Valeurs +stat avec {setup.summonerSkills === 'guilde' ? 'Contenu de guilde' : 'Contenu normal'}.
             </p>
           </div>
         );
@@ -1969,7 +1969,7 @@ export default function DamageSetupCard({
 
       {/* ⚠️ « Compétences d'invocateur » est partie ENTIÈRE dans « État de mon
           monstre » (EtatMonstre.tsx) : elle majore les statistiques de base du
-          monstre, elle ne décrit pas le combat. Elle valait `'combat'` par
+          monstre, elle ne décrit pas le combat. Elle valait `'normal'` par
           défaut — donc le calcul des dégâts d'artéfact la supposait déjà, sans
           que rien ne le dise à qui n'ouvrait jamais cette carte. */}
 

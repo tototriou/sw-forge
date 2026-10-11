@@ -232,15 +232,16 @@ Ce que contient ce réglage :
   ⚠️ **Les buffs ATQ/DEF/VIT et le leader skill n'y sont pas** : ils
   sont dans « État de mon monstre »
   (voir feat-ecran-etat-de-mon-monstre.md § État de mon monstre).
-- ⚠️ **Compétences d'invocateur : dans « État de mon monstre »**
+- ⚠️ **Compétences d'invocateur : dérivées du contenu de la liste**
   (voir feat-ecran-etat-de-mon-monstre.md § État de mon monstre). Rappel de ce
-  qu'elles font : **Combat** (défaut) /
-  **Combat + Guilde**, toujours supposées maxées. **Un choix unique, pas deux
-  cases** : l'onglet Guilde ne s'applique qu'en contenu de guilde, où
-  Combat compte aussi — « Guilde » implique donc toujours « Combat ».
+  qu'elles font : **Contenu normal** (défaut) /
+  **Contenu de guilde**, toujours supposées maxées. Aucun menu manuel :
+  le contenu de la liste décide. En guilde, les bonus de l’onglet Guilde
+  s’ajoutent à ceux de l’onglet Combat du jeu.
   Il n'existe pas de cran « Aucune » : les compétences de Combat
   s'appliquent dans toute situation réelle du jeu. Une ancienne recette
-  qui portait ce cran est normalisée vers **Combat** à l'import.
+  qui portait ce cran ou la valeur historique `combat` est normalisée vers
+  **Contenu normal** (`normal`) à l’import, sans changer les bonus.
   La compétence « Puis. d'att. de <élément> » suit l'élément du
   monstre, sans rien demander. Détail des valeurs :
   [degats-reels/ (effets d'équipe et leaders) § Leader skill d'équipe](../degats-reels/).

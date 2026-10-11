@@ -21,6 +21,7 @@ import { jourLocal } from './telechargement';
 import { PREFIXE_FICHIER } from '../marque';
 import { OPTIMIZER_MEMBERS_STORAGE_KEY } from './optimizerMemberStorage';
 import { OPTIMIZER_BACKUP_STORAGE_KEY } from './optimizerBackup';
+import { lireCompetencesInvocateur } from './competencesInvocateur';
 
 export const FORMAT_SESSION = formatExport('session');
 export const VERSION_SESSION = 2;
@@ -146,6 +147,11 @@ export function decoder(valeur: unknown): unknown {
 function garderChampsOptimizer(o: Record<string, unknown>): Record<string, unknown> {
   const garde: Record<string, unknown> = {};
   for (const champ of CHAMPS_OPTIMIZER_SESSION) if (champ in o) garde[champ] = o[champ];
+  if (garde.damageSetup && typeof garde.damageSetup === 'object' && !Array.isArray(garde.damageSetup)) {
+    const setup = garde.damageSetup as Record<string, unknown>;
+    const mode = lireCompetencesInvocateur(setup.summonerSkills);
+    if (mode !== null) garde.damageSetup = { ...setup, summonerSkills: mode };
+  }
   return garde;
 }
 

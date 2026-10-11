@@ -6,12 +6,12 @@ import { egal, ok, titre } from './outils';
 
 export function testOptimizerCompetencesContenu() {
   titre('Optimizer · compétences effectives selon le contenu et recette au CLI');
-  for (const ancien of ['combat', 'guilde'] as const) {
+  for (const ancien of ['normal', 'guilde'] as const) {
     const personnel = { ...DEFAULT_DAMAGE_SETUP, summonerSkills: ancien, enemyDef: 2345, leaderSkill: { stat: 'HP' as const, pct: 33 } };
     const initial = JSON.stringify(personnel);
     for (const contenu of ['arene', 'donjon', 'guilde', undefined] as const) {
       const combat = combatSelonContenuListeOptimizer(personnel, contenu);
-      egal(combat.summonerSkills, contenu === 'guilde' ? 'guilde' : 'combat', `${ancien}, contenu ${contenu} : mode dérivé`);
+      egal(combat.summonerSkills, contenu === 'guilde' ? 'guilde' : 'normal', `${ancien}, contenu ${contenu} : mode dérivé`);
       egal(combat.enemyDef, 2345, 'contexte du combat conservé');
       egal(combat.leaderSkill, personnel.leaderSkill, 'lead personnel conservé');
       egal(JSON.stringify(personnel), initial, 'critères enregistrés intacts');

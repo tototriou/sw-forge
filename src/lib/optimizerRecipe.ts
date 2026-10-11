@@ -22,6 +22,7 @@ import { ArtifactMainChoice, RelicMainChoice, RelicUniqueChoice, SlotFilterPrese
 import { LigneVerrouillee } from './artifactOptim';
 import { RuneMetric } from '../hooks/useRuneMetric';
 import { RELIC_UNIQUE, setsCost } from './effects';
+import { lireCompetencesInvocateur, normaliserCompetencesInvocateur } from './competencesInvocateur';
 
 export const OPTIMIZER_RECIPE_VERSION = 1;
 
@@ -195,7 +196,7 @@ export interface OptimizerRecipe {
 }
 
 export function buildOptimizerRecipe(input: Omit<OptimizerRecipe, 'version'>): OptimizerRecipe {
-  return { version: OPTIMIZER_RECIPE_VERSION, ...input };
+  return { version: OPTIMIZER_RECIPE_VERSION, ...input, damageSetup: normaliserCompetencesInvocateur(input.damageSetup) };
 }
 
 export interface RecipeValidationResult {
@@ -361,8 +362,8 @@ function validerDamageSetup(value: unknown): string | null {
   }
   // ⚠️ « aucune » n'existe plus dans l'écran ni dans `SummonerSkills`, mais
   // reste accepté ICI uniquement pour migrer une recette déjà exportée. Le
-  // parseur le transforme en « combat » avant de rendre la recette.
-  if (setup.summonerSkills !== undefined && !['aucune', 'combat', 'guilde'].includes(String(setup.summonerSkills))) {
+  // lecteur traduit aussi l'ancien mode « combat » vers « normal ».
+  if (lireCompetencesInvocateur(setup.summonerSkills) === null) {
     return erreur('damageSetup.summonerSkills', "contient un mode de compétences d'invocateur inconnu");
   }
   if (setup.enemyElement !== undefined && setup.enemyElement !== null && !['fire', 'water', 'wind', 'light', 'dark'].includes(String(setup.enemyElement))) {
@@ -566,7 +567,7 @@ export function parseOptimizerRecipe(text: string): RecipeValidationResult {
   }
   // Compatibilité arrière : l'ancien cran « aucune » décrivait une situation
   // impossible en jeu. Une recette qui le porte repart donc sur le défaut
-  // réel « combat » ; cette normalisation centrale protège autant l'écran que
+  // réel « normal » ; cette normalisation centrale protège autant l'écran que
   // le CLI, tous deux consommateurs du résultat de ce parseur.
   // L'ancien `setsAura`, accepté seulement absent ou vide (voir
   // `validerDamageSetup`), est retiré : aucune clé hors de `DamageSetup` ne
@@ -585,7 +586,7 @@ export function parseOptimizerRecipe(text: string): RecipeValidationResult {
     }
     normalisee = {
       ...d,
-      damageSetup: ['combat', 'guilde'].includes(String(setup.summonerSkills)) ? setup : { ...setup, summonerSkills: 'combat' },
+      damageSetup: normaliserCompetencesInvocateur(setup as unknown as DamageSetup),
     };
   }
   // ⚠️ Le seuil est un FILTRE D'ENTRÉE, jamais un critère : une valeur

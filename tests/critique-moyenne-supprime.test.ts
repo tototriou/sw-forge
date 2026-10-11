@@ -57,7 +57,7 @@ export function testCritiqueMoyenneImport() {
   );
   egal(
     { ...lue.recipe?.damageSetup, critMode: 'crit' },
-    { ...DEFAULT_DAMAGE_SETUP, summonerSkills: 'combat' },
+    { ...DEFAULT_DAMAGE_SETUP, summonerSkills: 'normal' },
     'aucun autre champ du réglage ne change'
   );
 

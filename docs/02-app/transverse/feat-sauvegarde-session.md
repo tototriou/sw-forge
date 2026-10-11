@@ -207,6 +207,10 @@ avec ses avertissements, ou une erreur.
 
 Le chargement d'une session dans l'app n'existe pas encore.
 
+Les compétences d'invocateur de l'Optimizer sont enregistrées sous `normal`
+ou `guilde` (« Contenu normal » ou « Contenu de guilde »). La lecture traduit
+l'ancienne valeur `combat` en `normal`, comme les recettes et mémoires de membres.
+
 ## Vérifier
 
 ```

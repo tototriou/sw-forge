@@ -171,7 +171,9 @@ import { testListeExemplaires } from './liste-exemplaires.test';
 import { testOptimizerCreationNomParDefaut } from './optimizer-list-names.test';
 import { testOptimizerCompetencesContenu } from './optimizer-summoner-content.test';
 import { testRenduOptimizerRechercheCreation, testRenduTelephoneOptimizerRechercheCreation } from './rendu/optimizer-equipes.test';
-import { testRenduOptimizerCreationObligatoire, testRenduTelephoneOptimizerCreationObligatoire } from './rendu/optimizer-retouches.test';
+import { testRenduOptimizerCreationObligatoire, testRenduTelephoneOptimizerCreationObligatoire,
+  testRenduOptimizerContenuInvocateur, testRenduTelephoneOptimizerContenuInvocateur } from './rendu/optimizer-retouches.test';
+import { testOptimizerContenuInvocateurCompatibilite } from './optimizer-invocateur-compatibilite.test';
 import { testRenduOptimizerRechercheBoxResolu, testRenduTelephoneOptimizerRechercheBoxResolu,
   testRenduOptimizerRechercheDejaMembre, testRenduTelephoneOptimizerRechercheDejaMembre,
   testRenduOptimizerRechercheExemplaireSuivant, testRenduTelephoneOptimizerRechercheExemplaireSuivant } from './rendu/optimizer-recherche.test';
@@ -297,6 +299,9 @@ import testSkillAdapters from './skill-adapters.test';
 // faire avant une fusion sur `main` (voir CLAUDE.md).
 const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRenduOptimizerCreationObligatoire', testRenduOptimizerCreationObligatoire],
+  ['testOptimizerContenuInvocateurCompatibilite', testOptimizerContenuInvocateurCompatibilite],
+  ['testRenduOptimizerContenuInvocateur', testRenduOptimizerContenuInvocateur],
+  ['testRenduTelephoneOptimizerContenuInvocateur', testRenduTelephoneOptimizerContenuInvocateur],
   ['testRenduTelephoneOptimizerCreationObligatoire', testRenduTelephoneOptimizerCreationObligatoire],
   ['testRenduOptimizerRechercheSourceRta', testRenduOptimizerRechercheSourceRta],
   ['testRenduTelephoneOptimizerRechercheSourceRta', testRenduTelephoneOptimizerRechercheSourceRta],

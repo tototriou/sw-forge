@@ -13,3 +13,5 @@ async function verifier(nom: string, telephone = false) {
 }
 export const testRenduOptimizerCreationObligatoire = () => verifier('creation-obligatoire');
 export const testRenduTelephoneOptimizerCreationObligatoire = () => verifier('creation-obligatoire', true);
+export const testRenduOptimizerContenuInvocateur = () => verifier('competences-liste');
+export const testRenduTelephoneOptimizerContenuInvocateur = () => verifier('competences-liste', true);

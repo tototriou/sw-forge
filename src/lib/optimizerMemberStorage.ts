@@ -1,6 +1,7 @@
 import type { LeaderSkill } from '../types';
 import { baseCompleteCriteres, photoCriteres, type CriteresOptimizer } from './criteresOptimizer';
 import { OPTIMIZER_RECIPE_VERSION, parseOptimizerRecipe } from './optimizerRecipe';
+import { normaliserCompetencesInvocateur } from './competencesInvocateur';
 import { rattacherStockageOptimizer } from './optimizerRattachement';
 export type { RapportReverificationOptimizer } from './optimizerRattachement';
 import {
@@ -157,7 +158,8 @@ export function lireMembresOptimizer(brut: string | null): DonneesMembresOptimiz
       || paire[0] !== cleMemoireMembre(m.listId, m.selector) || memories.has(paire[0])) {
       rejets.memories.push(paire); rapport.push(`Mémoire ${index + 1} malformée ou dupliquée : ignorée.`); continue;
     }
-    memories.set(paire[0], { listId: m.listId, selector: m.selector, com2usId: m.com2usId, criteres: m.criteres });
+    const criteres = { ...m.criteres, damageSetup: normaliserCompetencesInvocateur(m.criteres.damageSetup) };
+    memories.set(paire[0], { listId: m.listId, selector: m.selector, com2usId: m.com2usId, criteres });
   }
   const equipes = validerEquipesOptimizer(v.teams);
   rejets.teams.push(...equipes.rejets);

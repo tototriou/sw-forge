@@ -74,7 +74,7 @@ const setupAudit: DamageSetup = {
   enemyHp: 1_000_000,
   enemyHpPct: 100,
   critMode: 'normal',
-  summonerSkills: 'combat',
+  summonerSkills: 'normal',
 };
 
 export default function testAuditDegatsConditionnels() {

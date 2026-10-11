@@ -10,6 +10,7 @@
 // voit jamais ailleurs, devient une erreur de compilation.
 
 import type { OptimizerState } from '../hooks/useOptimizerState';
+import { normaliserCompetencesInvocateur } from './competencesInvocateur';
 
 export const CHAMPS_OPTIMIZER_SESSION = [
   'selectedId',
@@ -79,5 +80,6 @@ void GARDES;
 export function photoOptimizer(etat: OptimizerState): Record<string, unknown> {
   const photo: Record<string, unknown> = {};
   for (const champ of CHAMPS_OPTIMIZER_SESSION) photo[champ] = etat[champ];
+  photo.damageSetup = normaliserCompetencesInvocateur(etat.damageSetup);
   return photo;
 }

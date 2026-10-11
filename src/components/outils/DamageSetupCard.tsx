@@ -1523,7 +1523,9 @@ export default function DamageSetupCard({
               C'est la différence avec `montreDefEnnemie` ou « PV restants » :
               ceux-là sont pilotés par ce que le SORT consomme, connu d'avance
               et immuable. */}
-          <label className="flex items-center gap-2">
+          {/* Au format étroit, six crans ne tiennent pas à côté du libellé :
+              libellé au-dessus, crans en pleine largeur, qui se resserrent. */}
+          <label className={etroit ? 'flex flex-col gap-1' : 'flex items-center gap-2'}>
             <span className="text-xs text-ink-dim">Élément visé</span>
             {/* ⚠️ « Ignorer » est une OPTION, pas l'absence de choix : le
                 cadre montre toujours quel cran est posé. Optimiser « contre
@@ -1531,6 +1533,7 @@ export default function DamageSetupCard({
                 repli dégradé — même parti pris que le « Toutes » du filtre
                 de stat principale (docs/02-app/compte/). */}
             <Segmented<ElementKey | 'aucun'>
+              size={etroit ? 'lg' : undefined}
               value={setup.enemyElement ?? 'aucun'}
               onChange={(v) => maj({ enemyElement: v === 'aucun' ? null : v })}
               options={[

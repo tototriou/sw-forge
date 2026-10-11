@@ -39,8 +39,8 @@ résolvable reste affichée désactivée avec sa raison. Les recommandations ajo
 un choix par deck. Elles utilisent `importerRecoOptimizer`,
 comme l’export du deck ; leurs disponibilités suivent aussi les modifications
 des recommandations. La liste reprend la grammaire de l’import de deck du
-Speed tuning : un en-tête par section (« Défenses de siège », « Offenses de
-siège », « Prépa RTA », « Recommandations »), puis, sur chaque ligne, les
+Speed tuning : un en-tête par section, dans cet ordre (« Prépa RTA »,
+« Défenses de siège », « Offenses de siège », « Recommandations »), puis, sur chaque ligne, les
 icônes des monstres importés (cinq au plus, puis leur nombre restant) et un
 libellé court (« Toutes les défenses », « Offense 2 », « Tous les monstres »,
 nom de la recommandation et numéro du deck). Le nom complet de chaque choix,

@@ -65,7 +65,9 @@ export default function OptimizerListPicker({ lists, activeListId, memberCounts,
         {action && <div ref={actionRef}>{action}</div>}
 
       {open && (
-        <Flottant aria-label="Listes" rembourrage="aucun" className="max-h-[320px] overflow-y-auto">
+        <Flottant aria-label="Listes" rembourrage="aucun" className="flex max-h-[320px] flex-col">
+          {/* Seules les listes défilent : « Nouvelle liste… » reste au pied. */}
+          <div className="min-h-0 flex-1 overflow-y-auto">
           {lists.length === 0 && (
             <p className="px-3 py-2 text-[12px] text-ink-dim">Aucune liste — crée-en une pour commencer.</p>
           )}
@@ -96,7 +98,8 @@ export default function OptimizerListPicker({ lists, activeListId, memberCounts,
               />
             </div>
           ))}
-          <div className="border-t border-border-soft">
+          </div>
+          <div className="flex-none border-t border-border-soft">
             <Bouton pleineLargeur fond="vide" ton="accent" icone={<Plus size={14} />} libelle="Nouvelle liste…"
               onClick={() => setPromptFor('create')}
             />

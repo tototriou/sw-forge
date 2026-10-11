@@ -500,6 +500,8 @@ function Application() {
   // bouton (barre d'onglets) et le contenu (la page) sont deux sous-arbres
   // distincts : seul leur ancêtre commun peut les relier.
   const [menuPageOuvert, setMenuPageOuvert] = useState(false);
+  // Monstre de l'Optimizer dont la ligne est sortie de l'écran (téléphone).
+  const [monstreOptions, setMonstreOptions] = useState<Monster | null>(null);
 
   // Navigation de second niveau sur téléphone : le TITRE de la section dont on
   // choisit la sous-section, `null` si le panneau est fermé (voir
@@ -1574,6 +1576,7 @@ function Application() {
           pageAPanneau ? () => setMenuPageOuvert(true) : undefined
         }
         actionsOuvertes={menuPageOuvert}
+        monstre={route === 'outils' ? monstreOptions : null}
       />
 
       {/* Choix de la sous-section, sur téléphone. Alimenté par les MÊMES
@@ -1772,6 +1775,7 @@ function Application() {
             // L'Optimizer ouvre lui-même ce panneau pour l'ouverture guidée
             // au doigt — seule page qui le demande.
             onOuvrirMenu={() => setMenuPageOuvert(true)}
+            onMonstreHorsVue={setMonstreOptions}
           />
         ) : route === 'releases' ? (
           <ReleasesPage />

@@ -202,3 +202,9 @@ Un rendu à part (`lg:hidden`), pas un réagencement du bureau :
    un ajout agrandit la liste sous les puces sans déplacer celle qu’on vient de cliquer ;
 3. la fiche `MonsterGear`, même composant qu'au bureau.
 
+Dès que la ligne du monstre choisi, sous la recherche, sort de l'écran
+(passée sous l'en-tête), le bouton flottant « Options » prend l'icône du
+monstre devant la sienne ; elle s'en retire quand on remonte jusqu'à la
+ligne. Aucun autre élément n'apparaît à l'écran ; sans monstre choisi, ou
+hors de l'Optimizer, le bouton garde sa seule icône.
+

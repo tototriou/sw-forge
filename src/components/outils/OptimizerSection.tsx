@@ -249,6 +249,8 @@ interface Props {
   // piloté par App.tsx (son bouton vit dans la barre de nav) : l'écran ne
   // peut que le DEMANDER.
   onOuvrirMenu: () => void;
+  /** Monstre à montrer dans le bouton « Options » quand sa ligne sort de l'écran. */
+  onMonstreHorsVue?: (monstre: Monster | null) => void;
 }
 
 // ⚠️ Le plafond de CAPPED_STATS (voir lib/effects.ts) ne s'applique QU'À la
@@ -449,7 +451,7 @@ const LARGEUR_LIBELLE_LISTE = 'w-28';
 
 const AUCUNE_RECOMMANDATION: Reco[] = [];
 
-export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATION, box, runes, artifacts, relics, relicUsageById, optimizer, onImporterEquipe, allMonsters, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, lists, accountName, menuOuvert, onFermerMenu, onOuvrirMenu }: Props) {
+export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATION, box, runes, artifacts, relics, relicUsageById, optimizer, onImporterEquipe, allMonsters, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, lists, accountName, menuOuvert, onFermerMenu, onOuvrirMenu, onMonstreHorsVue }: Props) {
   const [rapportImport, setRapportImport] = useState<RapportImportOptimizer | null>(null);
   // Zone C du téléphone (« Gérer mes listes »), repliée par défaut.
   const [zoneCOpen, setZoneCOpen] = useState(false);
@@ -2916,6 +2918,19 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     lists.addMember(lists.activeListId, sourceSelector, selected.monster.com2usId);
     optimizer.capturerMembre(lists.activeListId, sourceSelector);
   }
+  // Au téléphone, la ligne du monstre choisi est observée : hors de l'écran,
+  // le bouton « Options » prend son icône (aucun élément de plus à l'écran).
+  const ligneMonstreTelephoneRef = useRef<HTMLDivElement>(null);
+  const monstreAffiche = selected?.monster ?? null;
+  useEffect(() => {
+    const ligne = ligneMonstreTelephoneRef.current;
+    if (!onMonstreHorsVue || !ligne || !monstreAffiche) { onMonstreHorsVue?.(null); return; }
+    // La marge haute retire l'en-tête collant : la ligne passée dessous est hors de vue.
+    const observateur = new IntersectionObserver(([e]) => onMonstreHorsVue(e.isIntersecting ? null : monstreAffiche),
+      { rootMargin: '-64px 0px 0px 0px' });
+    observateur.observe(ligne);
+    return () => { observateur.disconnect(); onMonstreHorsVue(null); };
+  }, [onMonstreHorsVue, monstreAffiche]);
   const unowned = sourceSelector?.source === 'unowned';
 
   // « Valider ce build » (sous la fiche stats+artéfacts+runes+relique,
@@ -3795,7 +3810,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
           <div>
             <p className="label mb-1.5">Monstre à optimiser</p>
             <MonsterSourcePicker mode="bestiary" candidates={allMonsters} onPick={pickSpecies} />
-            <div className="mt-3 h-8 flex items-center gap-2">
+            <div ref={ligneMonstreTelephoneRef} className="mt-3 h-8 flex items-center gap-2">
               {selected && <>
                 <MonsterAvatar monster={selected.monster} size={32} />
                 <span className="min-w-0 line-clamp-1 font-semibold text-[14px]" title={selected.monster.name}>{selected.monster.name}</span>

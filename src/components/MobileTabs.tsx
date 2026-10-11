@@ -2,6 +2,8 @@ import { ReactNode } from 'react';
 import { SlidersHorizontal } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Bouton } from '../ui';
+import MonsterAvatar from './MonsterAvatar';
+import type { Monster } from '../types';
 import { useClavierOuvert } from '../hooks/useClavierOuvert';
 import { HAUTEUR_ONGLETS } from '../lib/layout';
 
@@ -43,6 +45,7 @@ export default function MobileTabs({
   sectionOuverte = null,
   onOuvrirActions,
   actionsOuvertes = false,
+  monstre = null,
 }: {
   onglets: OngletMobile[];
   // Ouvre le panneau de choix de sous-section, pour un onglet qui porte `ouvre`.
@@ -54,6 +57,9 @@ export default function MobileTabs({
   // a pas, et le bouton ne s'affiche pas — voir `PAGES_AVEC_MENU` dans App.tsx.
   onOuvrirActions?: () => void;
   actionsOuvertes?: boolean;
+  // Monstre optimisé dont la ligne est sortie de l'écran : son icône passe
+  // dans le bouton, pour savoir en bas de page sur quel monstre on travaille.
+  monstre?: Monster | null;
 }) {
   // ⚠️ **La barre s'efface pendant la SAISIE.** Fixée en bas, le navigateur la
   // recolle juste au-dessus du clavier quand celui-ci monte : elle remonte donc
@@ -85,7 +91,9 @@ export default function MobileTabs({
           fond="plein"
           forme="pilule"
           taille="sm"
-          icone={<SlidersHorizontal size={15} />}
+          icone={monstre
+            ? <span className="flex items-center gap-1.5"><MonsterAvatar monster={monstre} size={22} element={false} /><SlidersHorizontal size={15} /></span>
+            : <SlidersHorizontal size={15} />}
           libelle="Options"
           // ⚠️ L'OMBRE est ici justifiée, contrairement à la règle générale : ce
           // bouton FLOTTE réellement au-dessus de la page qui défile dessous.

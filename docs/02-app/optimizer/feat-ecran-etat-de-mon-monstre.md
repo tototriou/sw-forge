@@ -67,10 +67,12 @@
    met à la hauteur de la plus haute, sinon une boîte d'une rangée flotterait
    au milieu d'une boîte de deux et l'œil lirait un décalage.
 
-   Dans le groupe **Lead**, les deux menus (type et valeur) ont la **même
-   largeur** : ils occupent la même colonne de grille, en `w-full`. La largeur
-   se déduit donc du plus large des deux — aucune valeur en dur à tenir à jour
-   quand un libellé change.
+   Dans le groupe **Lead**, au bureau, les deux menus (type et valeur) ont la
+   **même largeur** : la valeur se pose sous le type, dans la même colonne de
+   grille, en `w-full`. La largeur se déduit donc du plus large des deux —
+   aucune valeur en dur à tenir à jour quand un libellé change. Au téléphone,
+   la valeur se pose à droite du type, sur la même rangée, pour tenir moins de
+   hauteur ; sa place reste réservée avant le choix d'un lead.
 
    Pour un membre lié, le menu montre le **lead effectif**, ou « Aucun » avec
    son motif si le lead n’agit pas sur lui. La phrase sous les deux groupes

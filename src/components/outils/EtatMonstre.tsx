@@ -428,8 +428,10 @@ function LeaderSkillPicker({ setup, maj }: { setup: DamageSetup; maj: (patch: Pa
         rangée existe même sans lead, et la valeur se pose en `col-start-3`,
         donc exactement sous le type. L'alignement se DÉDUIT des colonnes — il
         n'est pas reproduit à coups de marges qui dériveraient au prochain
-        changement de libellé. */
-    <div className="grid w-fit grid-cols-[auto_auto_auto] items-center gap-x-2 gap-y-1">
+        changement de libellé.
+        Au téléphone, la valeur prend une quatrième colonne de la même rangée :
+        elle tient moins de hauteur, et sa place reste réservée de même. */
+    <div className="grid w-fit grid-cols-[auto_auto_auto_auto] items-center gap-x-2 gap-y-1 lg:grid-cols-[auto_auto_auto]">
       {/* « Lead » et non « Leader skill » : le libellé long mangeait la
           largeur d'une carte en colonne étroite, pour un mot que tout joueur
           abrège de toute façon. */}
@@ -469,7 +471,7 @@ function LeaderSkillPicker({ setup, maj }: { setup: DamageSetup; maj: (patch: Pa
           non un rendu conditionnel — l'élément tient sa place sans se voir,
           avec `aria-hidden` et `disabled`, sinon on tabulerait dans un menu
           invisible. */}
-      <div className={`col-start-3 ${lead ? '' : 'invisible'}`} aria-hidden={!lead}>
+      <div className={`col-start-4 row-start-1 lg:col-start-3 lg:row-start-2 ${lead ? '' : 'invisible'}`} aria-hidden={!lead}>
       {lead ? (
         /* ⚠️ **Un seul menu, plus de saisie libre.** Il y avait avant un menu
             de « paliers courants » ET un champ numérique, parce que la table

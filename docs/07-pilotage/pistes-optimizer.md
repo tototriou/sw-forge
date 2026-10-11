@@ -343,16 +343,17 @@ Les pistes du calcul des dégâts réels sont dans [pistes-degats-reels.md](pist
 - **Bloque** : un format à concevoir, avec son écran d'import et la
   résolution contre un autre compte que celui d'origine.
 
-### Listes : import en masse, enchaînement, préréglages par entrée
+### Listes : enchaîner les membres
 
-- **Constat** : « Ajouter à la liste » ajoute un monstre à la fois, et
-  rien n'enchaîne au monstre suivant après une validation
+- **Constat** : une équipe s'importe désormais d'un clic (siège, prépa RTA,
+  recommandations, speed tuning), et chaque membre garde ses propres
+  critères ([02-app/optimizer/ § Import d'équipes](../02-app/optimizer/)).
+  Mais rien n'enchaîne au membre suivant après une validation
   ([02-app/optimizer/ § Créer, valider et réserver dans une liste](../02-app/optimizer/)).
-- **Idée** : importer d'un clic un deck de siège, une recommandation ou une
-  équipe RTA ; enchaîner « optimiser puis passer au suivant » ; porter des
-  critères par entrée de liste, qui remplissent la recherche.
-- **Bloque** : jamais construit ; les préréglages par entrée dépendent de
-  l'enchaînement.
+- **Idée** : enchaîner « optimiser puis passer au membre suivant » sur la
+  liste active.
+- **Bloque** : jamais construit ; ordre des membres et comportement après
+  un dernier membre à décider.
 
 ### La recette ne garde pas l'exemplaire choisi
 

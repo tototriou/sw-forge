@@ -408,6 +408,9 @@ export default function DamageSetupCard({
   critInterdit,
 }: Props) {
   const maj = (patch: Partial<DamageSetup>) => setSetup((prev) => ({ ...prev, ...patch }));
+  // Au doigt, les champs de l'adversaire s'empilent : une largeur commune de
+  // libellé (celle du plus long, « PV restants ») les aligne.
+  const libelleAdversaire = `text-xs text-ink-dim${etroit ? ' w-[4.5rem] flex-none' : ''}`;
   const majBuffsPropres = (skillCom2usId: number, total: number) => {
     const autres = autresBuffsPropresDepuisTotal(total, setup);
     maj({ buffsPropresCount: { ...(setup.buffsPropresCount ?? {}), [skillCom2usId]: autres } });
@@ -1442,10 +1445,12 @@ export default function DamageSetupCard({
           </HelpPopover>
         </div>
         {/* `flex-wrap` : les deux champs passent l'un sous l'autre au doigt
-            plutôt que de comprimer les boutons − / + sous la taille de cible. */}
+            plutôt que de comprimer les boutons − / + sous la taille de cible.
+            Empilés, leurs libellés prennent une largeur commune
+            (`libelleAdversaire`) pour que les champs s'alignent. */}
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <label className="flex items-center gap-2">
-            <span className="text-xs text-ink-dim">PV</span>
+            <span className={libelleAdversaire}>PV</span>
             <NumberField
               value={setup.enemyHp}
               onChange={(v) => maj({ enemyHp: v ?? 0 })}
@@ -1457,7 +1462,7 @@ export default function DamageSetupCard({
           </label>
           {montreDefEnnemie && (
             <label className="flex items-center gap-2">
-              <span className="text-xs text-ink-dim">DEF</span>
+              <span className={libelleAdversaire}>DEF</span>
               <NumberField
                 value={setup.enemyDef}
                 onChange={(v) => maj({ enemyDef: v ?? 0 })}
@@ -1470,7 +1475,7 @@ export default function DamageSetupCard({
           )}
           {demandeAtkCible && (
             <label className="flex items-center gap-2">
-              <span className="text-xs text-ink-dim">ATQ adverse</span>
+              <span className={libelleAdversaire}>ATQ adverse</span>
               <NumberField
                 value={setup.enemyAtk ?? DEFAULT_DAMAGE_SETUP.enemyAtk!}
                 onChange={(v) => maj({ enemyAtk: v ?? 0 })}
@@ -1487,7 +1492,7 @@ export default function DamageSetupCard({
               puisque les coups du sort creusent la cible avant qu'il frappe. */}
           {(utilise('Target Current HP %') || passifsSuivants.some((p) => p.bonusPvCible) || demandePvCible) && (
             <label className="flex items-center gap-2">
-              <span className="text-xs text-ink-dim">PV restants</span>
+              <span className={libelleAdversaire}>PV restants</span>
               <NumberField
                 value={setup.enemyHpPct}
                 onChange={(v) => maj({ enemyHpPct: v ?? 0 })}

@@ -38,6 +38,8 @@
   change. Une fois la fenêtre fermée, une **ligne de résumé** prend sa
   place sous l'objectif : `S1 Flying Cards · élément ignoré · PV 40 000 ·
   DEF 1 500 · Critique`. On la clique pour rouvrir.
+  Au téléphone, les champs de l'adversaire (PV, DEF…) s'empilent sur une
+  largeur de libellé commune : leurs cases s'alignent.
   Cette fenêtre porte aussi les PV propres, les
   ennemis vivants, la réserve de Sacrifice, les comparaisons de stats et
   les états de combat propres au monstre choisi. Les compteurs de débuffs

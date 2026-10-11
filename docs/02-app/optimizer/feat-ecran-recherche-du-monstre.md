@@ -99,6 +99,14 @@
    retombent au défaut lorsque l'espèce optimisée change ou qu'un nouveau
    compte est importé. Un membre rappelle son combat mémorisé ou la base complète, selon la table ci-dessous.
 
+## Création depuis la recherche
+
+Sans liste active, choisir un résultat ouvre « Nouvelle liste » avec nom
+et contenu obligatoire, sans présélection. « Créer » crée la liste et y
+ajoute l’exemplaire affiché avec ses critères ; un nom vide devient le
+premier « Liste N » libre. Annuler garde le monstre affiché sans liste.
+Une liste active existante n’ouvre aucun dialogue de création.
+
 ## Classement des champs de DamageSetup au changement de monstre
 
 **Classement exhaustif de `DamageSetup`.** « Contexte » désigne

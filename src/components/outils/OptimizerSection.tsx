@@ -1132,6 +1132,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     setGearSource('box');
     setSourceSelector(boxCandidates[0]?.selector ?? unownedSelectorIfNoneOwned(monster, box, exclusionData));
     setZoneDOpen(false);
+    if (!lists.activeListId) setAddListPromptOpen('recherche');
   }
 
   // Bureau uniquement : ferme la désambiguïsation d'exemplaire (zone D) au
@@ -1184,7 +1185,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
   // laquelle des deux actions relancer une fois la liste créée (voir
   // `handleAddToList`/`handleValidateDisplayed` plus bas), pas juste un
   // booléen — les deux boutons partagent ce même prompt.
-  const [addListPromptOpen, setAddListPromptOpen] = useState<'add' | 'validate' | null>(null);
+  const [addListPromptOpen, setAddListPromptOpen] = useState<'add' | 'validate' | 'recherche' | null>(null);
   const [equipeOuverte, setEquipeOuverte] = useState<{ listId: string; equipe: EquipeOptimizer | null } | null>(null);
 
   // L'exemplaire RÉELLEMENT optimisé — l'entrée choisie explicitement (ou
@@ -5833,12 +5834,13 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
       )}
       {addListPromptOpen && (
         <OptimizerCreateListDialog
-          libelleAction={addListPromptOpen === 'validate' ? 'Créer et valider' : 'Créer et ajouter'}
+          listes={lists.lists}
+          libelleAction={addListPromptOpen === 'validate' ? 'Créer et valider' : addListPromptOpen === 'recherche' ? 'Créer' : 'Créer et ajouter'}
           onValider={(valeur, contenu) => {
             const nom = valeur.trim();
             const intent = addListPromptOpen;
             setAddListPromptOpen(null);
-            if (!nom || !sourceSelector || !selected?.monster.com2usId) return;
+            if (!sourceSelector || !selected?.monster.com2usId) return;
             const id = lists.createList(nom, contenu);
             if (intent === 'validate') {
               if (canValidateDisplayed) lists.validateBuild(id, sourceSelector, displayedRuneIds, displayedArtifactIds, selected.monster.com2usId);

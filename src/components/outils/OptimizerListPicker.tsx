@@ -118,6 +118,7 @@ export default function OptimizerListPicker({ lists, activeListId, memberCounts,
       </p>}
 
       {promptFor === 'create' && <OptimizerCreateListDialog
+        listes={lists}
         onValider={(nom, contenu) => { onCreate(nom, contenu); setPromptFor(null); setOpen(false); }}
         onCancel={() => setPromptFor(null)} />}
       {promptFor && promptFor !== 'create' && (

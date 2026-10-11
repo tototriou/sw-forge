@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Bouton, Champ, Modale, Selecteur } from '../../ui';
 import type { ContenuListeOptimizer } from '../../lib/optimizerMemberStorage';
+import type { OptimizerList } from '../../lib/optimizerExclusion';
+import { nomNouvelleListeOptimizer } from '../../lib/optimizerListNames';
 
 export const CONTENUS_LISTE_OPTIMIZER = { guilde: 'Guilde', donjon: 'Donjon', arene: 'Arène' } as const;
 
@@ -22,20 +24,21 @@ export function ContenuListePicker({ contenu, onChange, enLigne = false, disable
   return enLigne ? menu : <label className="flex items-center gap-2 text-xs text-ink-dim">Contenu{menu}</label>;
 }
 
-export default function OptimizerCreateListDialog({ libelleAction = 'Créer', onValider, onCancel }: {
+export default function OptimizerCreateListDialog({ listes, libelleAction = 'Créer', onValider, onCancel }: {
+  listes: OptimizerList[];
   libelleAction?: string;
   onValider: (nom: string, contenu: ContenuListeOptimizer) => void;
   onCancel: () => void;
 }) {
   const [nom, setNom] = useState('');
-  const [contenu, setContenu] = useState<ContenuListeOptimizer>('guilde');
+  const [contenu, setContenu] = useState<ContenuListeOptimizer>();
   return <Modale titre="Nouvelle liste" labelledBy="creer-liste-optimizer" croix onClose={onCancel}
     actions={<>
       <Bouton libelle="Annuler" fond="plein" onClick={onCancel} />
-      <Bouton type="submit" form="creer-liste-optimizer-form" ton="accent" fond="doux" libelle={libelleAction} disabled={!nom.trim()} />
+      <Bouton type="submit" form="creer-liste-optimizer-form" ton="accent" fond="doux" libelle={libelleAction} disabled={!contenu} />
     </>}>
-    <form id="creer-liste-optimizer-form" className="space-y-3" onSubmit={e => { e.preventDefault(); if (nom.trim()) onValider(nom.trim(), contenu); }}>
-      <Champ aria-label="Nom de la liste" placeholder="ex. Deck A, Mon RTA…" value={nom} onChange={e => setNom(e.target.value)} autoFocus />
+    <form id="creer-liste-optimizer-form" className="space-y-3" onSubmit={e => { e.preventDefault(); if (contenu) onValider(nom.trim(), contenu); }}>
+      <Champ aria-label="Nom de la liste" placeholder={nomNouvelleListeOptimizer(listes)} value={nom} onChange={e => setNom(e.target.value)} autoFocus />
       <ContenuListePicker contenu={contenu} onChange={setContenu} />
     </form>
   </Modale>;

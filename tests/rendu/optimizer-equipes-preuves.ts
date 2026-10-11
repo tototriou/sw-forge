@@ -119,11 +119,16 @@ export async function preuvesContenuCreationOptimizer(b: Banc): Promise<[boolean
   await b.geste(() => selecteur.click()); await b.geste(() => bouton('Nouvelle liste…').click());
   const dialogue = document.querySelector<HTMLElement>('[role="dialog"]')!;
   const champ = dialogue.querySelector<HTMLInputElement>('[aria-label="Nom de la liste"]')!;
+  verifier(bouton('Créer', dialogue).disabled && dialogue.querySelector<HTMLSelectElement>('[aria-label="Contenu de la liste"]')!.value === '',
+    'création : aucun contenu présélectionné et Créer désactivé');
+  await b.geste(() => dialogue.querySelector('form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })));
+  verifier(b.listes().lists.length === 2, 'soumettre sans contenu ne crée aucune liste');
   await b.geste(() => {
     Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(champ, 'Donjon manuel');
     champ.dispatchEvent(new Event('input', { bubbles: true }));
   });
   await choisirMenu(b, 'Contenu de la liste', 'donjon');
+  verifier(!bouton('Créer', dialogue).disabled, 'contenu choisi : Créer actif');
   verifier(b.listes().lists.length === 2, 'création en brouillon : aucune liste avant validation');
   await b.geste(() => bouton('Créer', dialogue).click());
   const id = b.listes().activeListId!;

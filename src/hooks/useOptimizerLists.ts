@@ -9,6 +9,7 @@ import {
 import { loadLocal, saveLocal, usePersistence } from './usePersistence';
 import type { CriteresOptimizer } from '../lib/criteresOptimizer';
 import { synchroniserLeadsMembresOptimizer } from '../lib/equipesOptimizer';
+import { nomNouvelleListeOptimizer } from '../lib/optimizerListNames';
 import { identifiantListeImportOccupe } from '../lib/importEquipes';
 import type { ExclusionSourceData } from '../lib/optimizerExclusion';
 import { acquerirIdentitesMembres, enregistrerIdentiteMembre } from '../lib/optimizerRattachement';
@@ -135,7 +136,7 @@ export interface UseOptimizerLists {
   activeListId: string | null;
   setActiveListId: (id: string | null) => void;
   /** Crée une liste, la rend active, renvoie son id (pour y ajouter un membre dans le même geste). */
-  createList: (name: string, contenu?: ContenuListeOptimizer) => string;
+  createList: (name: string, contenu: ContenuListeOptimizer) => string;
   setListContent: (id: string, contenu: ContenuListeOptimizer) => void;
   renameList: (id: string, name: string) => void;
   /** Supprime la liste ET tout ce qui lui appartient (membres, builds validés). */
@@ -254,9 +255,9 @@ export function useOptimizerLists(): UseOptimizerLists {
     return true;
   }, [setState, lireStockageCourant]);
 
-  const createList = useCallback((name: string, contenu: ContenuListeOptimizer = 'guilde') => {
+  const createList = useCallback((name: string, contenu: ContenuListeOptimizer) => {
     const id = newId();
-    setState((s) => ({ ...s, lists: [...s.lists, { id, name }], activeListId: id,
+    setState((s) => ({ ...s, lists: [...s.lists, { id, name: name.trim() || nomNouvelleListeOptimizer(s.lists) }], activeListId: id,
       memberStorage: { ...s.memberStorage, raw: null, listContents: new Map(s.memberStorage.listContents).set(id, contenu) } }));
     return id;
   }, [setState]);

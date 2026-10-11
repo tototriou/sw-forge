@@ -35,8 +35,10 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   compte. Navigable à tout moment ; changer de liste active change
   instantanément les runes réservées vues par la recherche.
   À chaque création manuelle, le dialogue demande le nom et le contenu
-  (Guilde proposé, Donjon, Arène), y compris « Créer et ajouter » et
-  « Créer et valider ». Le contenu est affiché avec chaque liste dans le
+  (Guilde, Donjon, Arène), sans contenu présélectionné, y compris « Créer et ajouter » et
+  « Créer et valider ». L’action reste désactivée sans contenu. Un nom vide
+  devient « Liste N », avec le premier entier positif libre parmi les noms
+  existants ; le champ vide propose ce nom. Le contenu est affiché avec chaque liste dans le
   menu et modifiable à côté de la liste active : « Liste active » et
   « Contenu » partagent une ligne, chacun avec son libellé au-dessus, au
   bureau comme au téléphone ; le menu du contenu garde une largeur fixe et
@@ -135,7 +137,7 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   déjà dans la liste active → voir ci-dessous ; sinon → « Ajouter `<monstre>` à
   « `<liste>` » », suffixé « (non possédé) » pour une espèce sans exemplaire
   réel, voir plus bas). Sans liste active, « Créer une liste et y ajouter
-  `<monstre>` » crée une liste (prompt du nom) ET y ajoute le monstre dans
+  `<monstre>` » crée une liste (dialogue du nom et du contenu) ET y ajoute le monstre dans
   le même geste.
   Les lignes ne portent aucune marque de mémoire ni place réservée à celle-ci.
   Le rapport du chargement et les messages de

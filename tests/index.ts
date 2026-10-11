@@ -168,6 +168,8 @@ import testRuneOptimDeadHalfPruning from './rune-optim-dead-half-pruning.test';
 import testFilterSlotTopK from './rune-optim-filterslot-topk.test';
 import testOptimizerExclusion from './optimizer-exclusion.test';
 import { testListeExemplaires } from './liste-exemplaires.test';
+import { testOptimizerCreationNomParDefaut } from './optimizer-list-names.test';
+import { testRenduOptimizerRechercheCreation, testRenduTelephoneOptimizerRechercheCreation } from './rendu/optimizer-equipes.test';
 import { testOptimizerExemplaireMontage } from './optimizer-exemplaire-montage.test';
 import testOptimizerRecipeImportSelection from './optimizer-recipe-import-selection.test';
 import testOptimizerDamageTransitions from './optimizer-damage-transitions.test';
@@ -281,6 +283,8 @@ import testSkillAdapters from './skill-adapters.test';
 // Sans argument, tout tourne — c'est ce que fait `npm test`, et ce qu'il FAUT
 // faire avant une fusion sur `main` (voir CLAUDE.md).
 const VERIFICATIONS: [string, () => void | Promise<void>][] = [
+  ['testRenduOptimizerRechercheCreation', testRenduOptimizerRechercheCreation],
+  ['testRenduTelephoneOptimizerRechercheCreation', testRenduTelephoneOptimizerRechercheCreation],
   ['testRenduMemoireOptimizerSelection', testRenduMemoireOptimizerSelection],
   ['testRenduMemoireOptimizerIdentiteEnregistree', testRenduMemoireOptimizerIdentiteEnregistree],
   ['testRenduRattachementOptimizer', testRenduRattachementOptimizer],
@@ -673,6 +677,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   // ⚠️ APRÈS `testPersistance` : ces tests changent l'état du module
   // `usePersistence` (choix de conservation), partagé par tout le bundle, et
   // `testPersistance` exige un navigateur vierge.
+  ['testOptimizerCreationNomParDefaut', testOptimizerCreationNomParDefaut],
   ['testOptimizerPointAllerRetourComplet', testOptimizerPointAllerRetourComplet],
   ['testOptimizerPointMemoireMemeGeste', testOptimizerPointMemoireMemeGeste],
   ['testOptimizerPointLectureDefensive', testOptimizerPointLectureDefensive],

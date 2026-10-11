@@ -19,6 +19,7 @@ import { preuvesRecetteLeadEquipe, preuvesLeadAncienHorsEquipe, preuvesContenuSa
 import { preuvesCombatAfficheOptimizer } from './optimizer-combat-affiche-preuves';
 import { preuvesPointOptimizer } from './optimizer-backup-preuves';
 import { preuvesBandesEquipes } from './optimizer-bandes-preuves';
+import { preuvesRechercheCreationOptimizer } from './optimizer-listes-preuves';
 
 export const premier: ExclusionSelector = { source: 'box', unitKey: '11' };
 export const second: ExclusionSelector = { source: 'box', unitKey: '22' };
@@ -129,6 +130,7 @@ export async function scenario(nom: string): Promise<[boolean, string][]> {
   if (avecPoint) return preuvesPointOptimizer({ etat: () => etat, listes: () => listes, data: () => compteActuel,
     runes: () => runesActuelles, arts: () => artefactsActuels, changerBox, changerRunes, changerArtefacts, changerDefenses, geste, premier, second, troisieme, siege }, nom);
   const bancEquipes = { etat: () => etat, listes: () => listes, geste, premier, second, troisieme };
+  if (nom === 'recherche-creation') return preuvesRechercheCreationOptimizer(bancEquipes);
   if (nom === 'bandes-equipes') return preuvesBandesEquipes(bancEquipes);
   if (nom === 'combat-affiche') return preuvesCombatAfficheOptimizer(bancEquipes);
   if (nom === 'recette-lead-equipe') return preuvesRecetteLeadEquipe(bancEquipes);
@@ -188,7 +190,7 @@ export async function scenario(nom: string): Promise<[boolean, string][]> {
     await geste(() => { etat.setSourceSelector(troisieme); etat.setSelectedId('1'); listes.removeMember('a', troisieme); });
     await geste(() => { listes.validateBuild('a', troisieme, [1, 2, 3, 4, 5, 6], [], monstres[0].com2usId!); etat.capturerMembre('a', troisieme); });
     verifier(!!memoire('a', troisieme), 'validation avec inclusion : capture');
-    await geste(() => { const id = listes.createList('Nouvelle'); listes.addMember(id, troisieme, monstres[0].com2usId!); etat.capturerMembre(id, troisieme); });
+    await geste(() => { const id = listes.createList('Nouvelle', 'guilde'); listes.addMember(id, troisieme, monstres[0].com2usId!); etat.capturerMembre(id, troisieme); });
     verifier(etat.proprietaireCriteres?.listId === listes.activeListId && !!memoire(listes.activeListId!, troisieme), 'création et ajout : capture au même geste');
   } else if (nom === 'hors-liste') {
     for (const action of [() => etat.setSelectedId('1'), () => etat.setGearSource('box'), () => etat.setSourceSelector(premier)]) {

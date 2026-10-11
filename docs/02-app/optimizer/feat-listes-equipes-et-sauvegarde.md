@@ -248,8 +248,9 @@ Le stockage antérieur sans cet index se relit avec une `Map` vide, sans défaut
 Retirer un membre, écrire sa mémoire, modifier les équipes ou revérifier le compte
 conserve les contenus et leurs rejets. Supprimer une liste retire son contenu et
 les rejets dont le `listId` lisible la désigne ; les autres restent.
-`createList` reçoit le contenu choisi (Guilde par défaut pour un appel sans
-choix) et le stocke avec la nouvelle liste. `setListContent` modifie seulement
+`createList` reçoit obligatoirement le contenu choisi et le stocke avec la
+nouvelle liste. Un nom vide devient le premier « Liste N » libre parmi les
+noms existants. `setListContent` modifie seulement
 une liste existante avec un contenu admis, sans toucher aux rejets conservés.
 
 ## Modèle pur des équipes

@@ -4,12 +4,15 @@ import { buildOptimizerRecipe, parseOptimizerRecipe } from '../src/lib/optimizer
 import { baseCompleteCriteres, photoCriteres } from '../src/lib/criteresOptimizer';
 import { cleMemoireMembre, lireMembresOptimizer } from '../src/lib/optimizerMemberStorage';
 import { composerSession, lireSession } from '../src/lib/session';
+import { photoOptimizer } from '../src/lib/sessionOptimizer';
+import type { OptimizerState } from '../src/hooks/useOptimizerState';
 import { buildRealDamageContext } from '../scripts/lib/realDamageCli';
 import { egal, ok, titre } from './outils';
 
 export function testOptimizerContenuInvocateurCompatibilite() {
   titre('Optimizer · ancienne valeur invocateur : recette, mémoire, session et script');
   const ancien = { ...DEFAULT_DAMAGE_SETUP, summonerSkills: 'combat' } as unknown as DamageSetup;
+  egal((photoOptimizer({ damageSetup: ancien } as OptimizerState).damageSetup as DamageSetup).summonerSkills, 'normal', 'photo session : ancienne valeur normalisée');
   egal(lireCompetencesInvocateur('combat'), 'normal', 'ancien mode traduit');
   egal(lireCompetencesInvocateur('inconnu'), null, 'mode inconnu refusé');
   const recette = buildOptimizerRecipe({ monsterCom2usId: 14104, monsterName: 'Lushen', damageSetup: ancien,

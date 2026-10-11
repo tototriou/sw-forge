@@ -179,11 +179,11 @@ export default function testSession(avecCompteReel = true) {
   ok(dedans.has('gearSource') && dedans.has('sourceSelector'), 'l’exemplaire (source et entrée) est dans la session');
   ok(!dedans.has('search'), 'la recherche et ses résultats n’y sont pas');
   // Un faux état : chaque champ classé porte une valeur reconnaissable, plus
-  // une fonction ; la photo ne garde que les champs de la session, tels quels.
+  // une fonction ; les données canoniques gardent leur identité dans la photo.
   const valeurs = new Map<string, object>();
   const etat: Record<string, unknown> = { setSortBy: () => {} };
   for (const c of [...CHAMPS_OPTIMIZER_SESSION, ...CHAMPS_OPTIMIZER_HORS_SESSION]) {
-    valeurs.set(c, { champ: c });
+    valeurs.set(c, c === 'damageSetup' ? { ...DEFAULT_DAMAGE_SETUP } : { champ: c });
     etat[c] = valeurs.get(c);
   }
   const photoPrise = photoOptimizer(etat as unknown as OptimizerState);

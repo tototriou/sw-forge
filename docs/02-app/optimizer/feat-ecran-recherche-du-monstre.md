@@ -206,7 +206,7 @@ Dès que la ligne du monstre choisi, sous la recherche, sort de l'écran
 (passée sous l'en-tête), le bouton flottant « Options » prend l'icône du
 monstre devant la sienne ; elle s'en retire quand on remonte jusqu'à la
 ligne. Elle entre en glissant depuis la gauche pendant que le bouton
-s'élargit (300 ms), et ressort de même ; sans animation si le téléphone
+s'élargit (500 ms), et ressort de même ; sans animation si le téléphone
 demande moins de mouvement. Aucun autre élément n'apparaît à l'écran ; sans monstre choisi, ou
 hors de l'Optimizer, le bouton garde sa seule icône.
 

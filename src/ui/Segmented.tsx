@@ -146,27 +146,29 @@ export default function Segmented<T extends string>({
           parent au lieu de la RAPPORTER, ce qui, dans un conteneur `absolute`
           sans largeur propre, crée une dépendance circulaire dont le résultat
           n'est pas garanti par la spec CSS. `invisible` et non `hidden` : un
-          élément non affiché n'a aucune dimension à mesurer. */}
+          élément non affiché n'a aucune dimension à mesurer.
+          ⚠️ Enveloppée dans un cadre `overflow-hidden` aux dimensions de la
+          racine : plus large que sa place (c'est le cas qu'elle détecte), une
+          copie `absolute` agrandit quand même la zone défilable de l'ancêtre
+          qui défile — une modale au téléphone glissait alors de côté. */}
       {auto && (
-        <div
-          ref={mesureRef}
-          aria-hidden
-          className="pointer-events-none invisible absolute left-0 top-0 flex w-max flex-none items-center gap-0"
-        >
-          {options.map((o, i) => (
-            <div key={o.key} className="flex flex-none items-stretch">
-              {size === 'lg' && i > 0 && <span className="w-px self-stretch" />}
-              <span
-                className={`flex flex-none items-center justify-center gap-1.5 font-semibold ${
-                  large ? CRAN_LARGE : CRAN_PETIT
-                }`}
-              >
-                {o.icon}
-                {o.label}
-                {o.suffix}
-              </span>
-            </div>
-          ))}
+        <div aria-hidden className="pointer-events-none invisible absolute inset-0 overflow-hidden">
+          <div ref={mesureRef} className="absolute left-0 top-0 flex w-max flex-none items-center gap-0">
+            {options.map((o, i) => (
+              <div key={o.key} className="flex flex-none items-stretch">
+                {size === 'lg' && i > 0 && <span className="w-px self-stretch" />}
+                <span
+                  className={`flex flex-none items-center justify-center gap-1.5 font-semibold ${
+                    large ? CRAN_LARGE : CRAN_PETIT
+                  }`}
+                >
+                  {o.icon}
+                  {o.label}
+                  {o.suffix}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

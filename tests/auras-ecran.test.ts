@@ -257,9 +257,9 @@ export function testAurasEcranInterrupteur() {
   // Depuis 7b, la rangée porte un cadre intérieur — la cible de l'ouverture
   // guidée (voir `testAurasEcranGuidage`) — autour du libellé et de l'interrupteur.
   const rangee = avances.match(
-    /<div className="py-2 last:pb-0">\s*<div\s+ref=\{[^}]*\}\s+className=\{`[^`]*`\}\s*>\s*<div className="flex items-center gap-1\.5">\s*<span className="text-\[11\.5px\] text-ink-dim">\s*Compter les effets[\s\S]*?<Interrupteur[\s\S]*?\/>\s*<\/div>\s*<\/div>/,
+    /<div className="py-2 last:pb-0">\s*<div\s+ref=\{[^}]*\}\s+className=\{`[^`]*`\}\s*>\s*<div className="flex min-w-0 flex-1 items-center gap-1\.5">\s*<span className="min-w-0 text-\[11\.5px\] text-ink-dim">\s*Compter les effets[\s\S]*?<Interrupteur[\s\S]*?\/>\s*<\/span>\s*<\/div>\s*<\/div>/,
   )?.[0] ?? '';
-  ok(new RegExp(`<span className="text-\\[11\\.5px\\] text-ink-dim">\\s*${libelle}\\s*</span>`).test(rangee),
+  ok(new RegExp(`<span className="min-w-0 text-\\[11\\.5px\\] text-ink-dim">\\s*${libelle}\\s*</span>`).test(rangee),
     'Réglages avancés : une rangée au libellé exact de l’utilisateur');
   ok(rangee.includes(`<HelpPopover title="${libelle}">`), 'avec une aide');
   ok(rangee.includes('<Interrupteur\n') && new RegExp(`<Interrupteur\\s+actif=\\{compterAurasResPre\\}\\s+onChange=\\{setCompterAurasResPre\\}\\s+aria-label="${libelle}"\\s*/>`).test(rangee),
@@ -351,7 +351,8 @@ export function testAurasEcranRappel() {
   // haut (un seul `doitRappeler`, un seul `setRappelAuras` hors effacement)
   // le prouvent déjà.
   const corpsZoneC = entre(ecran, 'const zoneCContent = (', '\n  return (');
-  const finListe = corpsZoneC.indexOf('activeMembers.map(');
+  // La liste est rendue par équipe (`groupesMembres`), dans son conteneur qui défile.
+  const finListe = corpsZoneC.indexOf('groupesMembres.filter(');
   const liberer = corpsZoneC.indexOf('Libérer toutes les runes');
   const sousLaListe = corpsZoneC.match(
     /\{activeMembers\.length > 0 && \(\s*<p\s+className=\{`([^`$]*)\$\{\s*([^?]*?)\s*\?\s*'([^']*)'\s*:\s*'([^']*)'\s*\}`\}\s*>\s*([^<]*?)\s*<\/p>/
@@ -457,7 +458,7 @@ export function testAurasEcranGuidage() {
   const avances = entre(ecran, 'const reglagesAvancesInner = ', 'const reglagesAvancesTitre = ');
   ok(/ref=\{dansPanneau \? interrupteurResPrePanneauRef : interrupteurResPreFlottantRef\}/.test(avances),
     'cible : une ref par surface (flottant du bureau, panneau au doigt)');
-  ok(/className=\{`-mx-1 flex items-center justify-between gap-2 rounded-md border [^`]*\$\{\s*attentionResPre !== null \? 'border-warn bg-warn-soft' : 'border-transparent'\s*\}`\}/.test(avances),
+  ok(/className=\{`-mx-1 flex items-center justify-between gap-3 rounded-md border [^`]*\$\{\s*attentionResPre !== null \? 'border-warn bg-warn-soft' : 'border-transparent'\s*\}`\}/.test(avances),
     'cible : cadre PERMANENT (bord transparent hors guidage), au même token que le rappel — rien ne bouge quand il se colore');
   egal(ecran.match(/const reglagesAvancesInner = /g)?.length ?? 0, 1, 'un seul `reglagesAvancesInner` : l’interrupteur reste rendu, sans condition, dans les deux surfaces');
 

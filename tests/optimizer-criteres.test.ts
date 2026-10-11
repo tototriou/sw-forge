@@ -85,7 +85,7 @@ export async function testOptimizerCriteresBase() {
     egal(suivant.compterAurasResPre, motif === 'compte', `${motif} : distinction des auras`);
     egal(suivant.critereArtefacts, motif === 'bestiaire' ? 'brut' : 'reel', `${motif} : cran historique conservé`);
     egal(suivant.damageSetup.skillCom2usId, null, `${motif} : sort vidé`);
-    egal(suivant.damageSetup.enemyDef, motif === 'compte' ? 1000 : 2222, `${motif} : contexte`);
+    egal(suivant.damageSetup.enemyDef, motif === 'compte' ? DEFAULT_DAMAGE_SETUP.enemyDef : 2222, `${motif} : contexte`);
     egal(resolvedLeaderSkill(suivant.damageSetup), motif === 'compte' ? null : { stat: 'Attack Speed', pct: 24 }, `${motif} : lead personnel`);
   }
 }

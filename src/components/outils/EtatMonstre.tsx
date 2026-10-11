@@ -126,7 +126,8 @@ export default function EtatMonstre({
           ⚠️ `items-stretch` : les deux boîtes prennent la hauteur de la plus
           haute. Sans lui, une boîte d'une rangée flottait au milieu d'une
           boîte de deux, et l'œil lisait un décalage plutôt qu'un groupe. */}
-      <div className="flex flex-wrap items-stretch gap-2">
+      {/* Au téléphone, buffs et lead se centrent dans la carte ; au bureau, calés à gauche. */}
+      <div className="flex flex-wrap items-stretch justify-center gap-2 lg:justify-start">
       {/* Mêmes vignettes qu'avant, même composant : l'ICÔNE est le contrôle. */}
       <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-border-soft bg-panel2 px-2 py-1.5 lg:w-20 lg:flex-col 2xl:w-auto 2xl:flex-row">
         <EffetVignette

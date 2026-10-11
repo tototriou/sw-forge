@@ -178,6 +178,9 @@ import { testRenduOptimizerCreationObligatoire, testRenduTelephoneOptimizerCreat
   testRenduOptimizerDialogueElementVide, testRenduTelephoneOptimizerDialogueElementVide,
   testRenduOptimizerActionsZoneC, testRenduTelephoneOptimizerActionsZoneC } from './rendu/optimizer-retouches.test';
 import { testOptimizerContenuInvocateurCompatibilite } from './optimizer-invocateur-compatibilite.test';
+import { testRenduOptimizerEquipeImpossibleZeroLibre, testRenduTelephoneOptimizerEquipeImpossibleZeroLibre,
+  testRenduOptimizerEquipeImpossibleUnLibre, testRenduTelephoneOptimizerEquipeImpossibleUnLibre,
+  testRenduOptimizerEquipeImpossibleDeuxDontUnLie, testRenduTelephoneOptimizerEquipeImpossibleDeuxDontUnLie } from './rendu/optimizer-equipe-impossible.test';
 import { testRenduOptimizerRechercheBoxResolu, testRenduTelephoneOptimizerRechercheBoxResolu,
   testRenduOptimizerRechercheDejaMembre, testRenduTelephoneOptimizerRechercheDejaMembre,
   testRenduOptimizerRechercheExemplaireSuivant, testRenduTelephoneOptimizerRechercheExemplaireSuivant } from './rendu/optimizer-recherche.test';
@@ -303,6 +306,12 @@ import testSkillAdapters from './skill-adapters.test';
 // faire avant une fusion sur `main` (voir CLAUDE.md).
 const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRenduOptimizerCreationObligatoire', testRenduOptimizerCreationObligatoire],
+  ['testRenduOptimizerEquipeImpossibleZeroLibre', testRenduOptimizerEquipeImpossibleZeroLibre],
+  ['testRenduTelephoneOptimizerEquipeImpossibleZeroLibre', testRenduTelephoneOptimizerEquipeImpossibleZeroLibre],
+  ['testRenduOptimizerEquipeImpossibleUnLibre', testRenduOptimizerEquipeImpossibleUnLibre],
+  ['testRenduTelephoneOptimizerEquipeImpossibleUnLibre', testRenduTelephoneOptimizerEquipeImpossibleUnLibre],
+  ['testRenduOptimizerEquipeImpossibleDeuxDontUnLie', testRenduOptimizerEquipeImpossibleDeuxDontUnLie],
+  ['testRenduTelephoneOptimizerEquipeImpossibleDeuxDontUnLie', testRenduTelephoneOptimizerEquipeImpossibleDeuxDontUnLie],
   ['testRenduOptimizerActionsZoneC', testRenduOptimizerActionsZoneC],
   ['testRenduTelephoneOptimizerActionsZoneC', testRenduTelephoneOptimizerActionsZoneC],
   ['testRenduOptimizerDialogueElementVide', testRenduOptimizerDialogueElementVide],

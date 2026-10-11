@@ -3389,7 +3389,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
         onClick={handleAddToList}
         className="min-w-0 [&>span]:min-w-0 [&>span]:truncate"
       />
-      <Bouton libelle="Lier une équipe" title="Lier une équipe" taille="sm" pleineLargeur disabled={!activeList || activeMembers.length < 2}
+      <Bouton libelle="Lier une équipe" title="Lier une équipe" taille="sm" pleineLargeur disabled={!activeList}
         onClick={() => activeList && setEquipeOuverte({ listId: activeList.id, equipe: null })} /></>} listes={lists} optimizer={optimizer} data={exclusionData} artifactIds={new Set(artifacts.map(a => a.id))}
         fin={<span className="inline-flex h-6 w-6 flex-none compact:h-10 compact:w-10">
           {rapportZoneC.length > 0 && <MotifHorsFlux titre="Rapport des critères" messages={rapportZoneC}

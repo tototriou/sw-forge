@@ -32,6 +32,7 @@ export default function OptimizerEquipeDialog({ contexte, listId, equipe, data, 
   const selection = new Set(members.map(exclusionSelectorKey));
   const autreEquipe = (s: ExclusionSelector) => contexte.teams.some(e => e.id !== equipe?.id && e.listId === listId && e.members.some(m => exclusionSelectorKey(m) === exclusionSelectorKey(s)));
   const options = contexte.members.filter(m => m.listId === listId && !autreEquipe(m.selector));
+  const creationImpossible = !equipe && options.length < 2;
   const nom = (s: ExclusionSelector) => resolveExclusionEntry(s, data)?.monster.name ?? 'Introuvable';
   const source = (s: ExclusionSelector) => SOURCE_OPTIONS.find(o => o.key === s.source)?.label ?? 'Non possédé';
   const candidats = new Map(SOURCE_OPTIONS.flatMap(o => exclusionCandidatesFor(o.key, data, null, null, false)).map(c => [exclusionSelectorKey(c.selector), c]));
@@ -109,11 +110,12 @@ export default function OptimizerEquipeDialog({ contexte, listId, equipe, data, 
     actions={<>
       {equipe && <Bouton libelle="Délier" onClick={() => { onValider(dissoudreEquipeOptimizer(contexte.teams, equipe.id).teams); onClose(); }} />}
       <Bouton libelle="Annuler" fond="plein" onClick={onClose} />
-      <Bouton libelle={equipe ? 'Enregistrer' : 'Lier'} ton="accent" fond="doux" disabled={members.length > 5 || (!equipe && members.length < 2)} onClick={appliquer} />
+      <Bouton libelle={equipe ? 'Enregistrer' : 'Lier'} ton="accent" fond="doux" disabled={creationImpossible || members.length > 5 || (!equipe && members.length < 2)} onClick={appliquer} />
     </>}>
     <div className="space-y-3">
       <p className="text-xs text-ink-dim">{members.length} / 5 membres{equipe && members.length < 2 ? ' — enregistrer dissoudra l’équipe.' : ''}</p>
       <div className="space-y-2">
+        {creationImpossible && <p role="status" className="text-sm text-ink-dim">Pas assez de monstres pour faire une équipe : rajoute des monstres dans la liste.</p>}
         {options.map(m => { const cle = exclusionSelectorKey(m.selector), resolu = resolveExclusionEntry(m.selector, data);
           const candidat = candidats.get(cle) ?? (resolu ? { selector: m.selector, ...resolu } : null);
           return <Case key={cle} className="items-start"

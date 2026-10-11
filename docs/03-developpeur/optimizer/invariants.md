@@ -281,6 +281,8 @@ Une entrée = une règle qu'un chantier qui l'ignore casse, avec sa source. Ce f
 
 ### Disposition des cartes et équipes
 
+- « Lier une équipe » est actif dès qu'une liste est active. Le dialogue compte les membres libres de cette liste, exclut ceux des autres équipes et, si moins de deux restent, affiche « Pas assez de monstres pour faire une équipe : rajoute des monstres dans la liste. » au-dessus du membre restant ou à la place des propositions vides. Lier est désactivé ; Annuler et la croix ferment. La modification garde ses membres proposés sans ce message. Source : ../../02-app/optimizer/feat-listes-equipes-et-sauvegarde.md § Équipes à l'écran
+
 - La rangée de contexte garde les contrôles d'auras dans la carte, y compris dans une colonne de bureau étroite ; les buffs s'empilent alors dans leur propre boîte. Source : ../../02-app/optimizer/feat-ecran-etat-de-mon-monstre.md § Sets d'aura des autres monstres
 
 - Ajouter, Lier une équipe, Sauvegarder et Reprendre occupent une ligne au bureau et deux au téléphone. Le libellé d'ajout tronqué garde le texte complet en infobulle ; ajout et sauvegarde ne déplacent pas l'action cliquée. Source : ../../02-app/optimizer/feat-listes-et-reservation.md § Créer, valider et réserver dans une liste

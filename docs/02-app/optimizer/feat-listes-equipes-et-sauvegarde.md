@@ -374,13 +374,11 @@ affichée telle quelle, jamais remplacée en silence.
 
 ## Équipes à l’écran
 
-« Lier une équipe » ouvre `OptimizerEquipeDialog`, hors du flux, au bureau comme
-au téléphone. Il propose les membres de la liste, de deux à cinq, un leader
-facultatif, libellé « Leader », et le lead (type, valeur, portée et élément).
+« Lier une équipe » reste actif dès qu'une liste est active, quel que soit son nombre de membres, et ouvre `OptimizerEquipeDialog` hors du flux aux deux formats.
+Avec moins de deux membres libres, le corps affiche « Pas assez de monstres pour faire une équipe : rajoute des monstres dans la liste. » à la place des propositions vides, ou au-dessus du membre restant visible. « Lier » est désactivé ; Annuler et la croix ferment. La modification d'une équipe existante n'affiche pas ce message.
+La fenêtre propose deux à cinq membres, un leader facultatif (« Leader ») et le lead (type, valeur, portée et élément).
 Hors portée « Élément », le menu Élément reste affiché, désactivé et sans texte.
-Les membres déjà liés
-à une autre équipe de cette liste sont absents des propositions, à la création
-comme à la modification ; ceux de l’équipe modifiée restent proposés.
+Les membres déjà liés à une autre équipe de cette liste sont absents des propositions, à la création comme à la modification ; ceux de l’équipe modifiée restent proposés.
 Le leader se choisit par **espèce** : une seule option par espèce cochée,
 libellée de son seul nom, même si la liste en porte plusieurs exemplaires ;
 un membre introuvable, sans espèce, n’est pas proposé. L’équipe retient le

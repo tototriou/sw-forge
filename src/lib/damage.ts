@@ -2745,6 +2745,9 @@ const EFFETS_ENTRE_COUPS_CONNUS: Record<string, EffetEntreCoupsProfile[]> = {
   'Full Burst': [{ id: 'continuous-damage', label: 'Dégâts continus', cumulable: true }],
   Gouge: [{ id: 'continuous-damage', label: 'Dégâts continus', cumulable: true }],
   Gust: [{ id: 'stun', label: 'Étourdissement', cumulable: false }],
+  // Shihwa S3 (2212, seul sort de ce nom) : « Each attack has a 50% chance to
+  // leave a Branding effect » — comme Will-o'-the-Wisp, son S1.
+  'Phantom Light': [{ id: 'brand', label: 'Marque', cumulable: false, effetCombat: 'brand' }],
   'Panda Supremacy': [
     { id: 'increase-glancing', label: 'Chances de coup glancing augmentées', cumulable: false },
     { id: 'decrease-atk', label: 'Réduction d’ATQ', cumulable: false },

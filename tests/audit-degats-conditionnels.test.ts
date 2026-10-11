@@ -295,6 +295,18 @@ export default function testAuditDegatsConditionnels() {
   }, AUCUNE_AURA_PROPRE, 'wind');
   ok(willBase < willPose(2) && willPose(2) < willPose(1), "Will-o'-the-Wisp — une Marque réussie amplifie seulement les coups suivants");
 
+  // Shihwa S3 : cinq coups, chacun peut poser la Marque.
+  const phantomLight = profilDe(11212, 2212);
+  ok(phantomLight.effetsEntreCoups?.some((e) => e.effetCombat === 'brand') ?? false, 'Phantom Light — la Marque se pose entre les coups');
+  const phantomBase = computeSkillDamage(phantomLight, buildAudit, setupAudit, AUCUNE_AURA_PROPRE, 'fire');
+  const phantomPose = (hit: number) => computeSkillDamage(phantomLight, buildAudit, {
+    ...setupAudit,
+    scenariosEffetsEntreCoups: {
+      [phantomLight.skillCom2usId]: { actif: true, apresCoup: { brand: hit } },
+    },
+  }, AUCUNE_AURA_PROPRE, 'fire');
+  ok(phantomBase < phantomPose(4) && phantomPose(4) < phantomPose(1), 'Phantom Light — une Marque réussie amplifie seulement les coups suivants');
+
   const fengYan = fiche(21213);
   const fengS1 = profilDe(21213, 12003);
   const passifsFeng = monsterOffensivePassives(fengYan);
@@ -463,6 +475,7 @@ export default function testAuditDegatsConditionnels() {
     'Harpoon Impalement', // Eivor 17507/17509
     'Mach Crush',
     'Panda Supremacy',
+    'Phantom Light', // Shihwa S3 2212
     'Rain of Stones',
     'Reelseiden・Flurry', // Übel 25206/25210
     'Sequential Attack',

@@ -137,6 +137,9 @@ export async function preuvesCompetencesListeOptimizer(b: Banc): Promise<[boolea
     const fichiers = new DataTransfer(); fichiers.items.add(new File([''], 'recette.json', { type: 'application/json' }));
     const input = document.querySelector<HTMLInputElement>('input[type="file"][accept=".json,application/json"]')!;
     await b.geste(() => { input.files = fichiers.files; input.dispatchEvent(new Event('change', { bubbles: true })); });
+    // La lecture du fichier est asynchrone : sous charge, elle peut finir
+    // après le geste. Attendre son application, borné, avant de constater.
+    for (let essai = 0; essai < 50 && b.etat().minStats.spd !== 240; essai++) await b.geste(() => {});
   } finally { File.prototype.text = lire; }
   verifier(b.etat().damageSetup.summonerSkills === 'guilde' && b.etat().minStats.spd === 240 && b.etat().proprietaireCriteres === null,
     'recette Contenu de guilde réellement importée sur liste Arène, sans propriétaire');

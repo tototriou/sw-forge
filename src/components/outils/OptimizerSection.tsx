@@ -4629,12 +4629,12 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
             <div className="py-2 last:pb-0">
               <div
                 ref={dansPanneau ? interrupteurResPrePanneauRef : interrupteurResPreFlottantRef}
-                className={`-mx-1 flex items-center justify-between gap-2 rounded-md border px-[3px] py-[3px] transition-colors duration-200 ${
+                className={`-mx-1 flex items-center justify-between gap-3 rounded-md border px-[3px] py-[3px] transition-colors duration-200 ${
                   attentionResPre !== null ? 'border-warn bg-warn-soft' : 'border-transparent'
                 }`}
               >
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[11.5px] text-ink-dim">
+                <div className="flex min-w-0 flex-1 items-center gap-1.5">
+                  <span className="min-w-0 text-[11.5px] text-ink-dim">
                     Compter les effets d'auras Tolerance et Précision dans les conditions
                   </span>
                   <HelpPopover title="Compter les effets d'auras Tolerance et Précision dans les conditions">
@@ -4648,11 +4648,13 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
                     effectifs comptent les auras dans les deux cas.
                   </HelpPopover>
                 </div>
-                <Interrupteur
-                  actif={compterAurasResPre}
-                  onChange={setCompterAurasResPre}
-                  aria-label="Compter les effets d'auras Tolerance et Précision dans les conditions"
-                />
+                <span className="flex-none">
+                  <Interrupteur
+                    actif={compterAurasResPre}
+                    onChange={setCompterAurasResPre}
+                    aria-label="Compter les effets d'auras Tolerance et Précision dans les conditions"
+                  />
+                </span>
               </div>
             </div>
           </div>

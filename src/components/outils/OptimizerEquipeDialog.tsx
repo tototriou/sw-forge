@@ -105,7 +105,7 @@ export default function OptimizerEquipeDialog({ contexte, listId, equipe, data, 
       </div>
     </>;
   return <Modale titre={equipe ? 'Modifier l’équipe' : 'Lier une équipe'} labelledBy="equipe-optimizer" croix onClose={onClose}
-    sousTitre="Deux à cinq membres de cette liste. Le lead se partage dans l’équipe ; les critères personnels restent mémorisés."
+    sousTitre="Deux à cinq membres de cette liste. Le lead de l’équipe devient celui de chaque membre."
     corpsFixeBas={telephone ? undefined : <div className="space-y-3">{champsLead}</div>}
     actions={<>
       {equipe && <Bouton libelle="Délier" onClick={() => { onValider(dissoudreEquipeOptimizer(contexte.teams, equipe.id).teams); onClose(); }} />}

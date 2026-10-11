@@ -685,7 +685,10 @@ compriment pas, peuvent dépasser la boîte.
 
 **`MobileSheet`** — panneau montant du téléphone. ⚠️ **Ce n'est pas une modale** :
 il coexiste avec la page, monte du bas, et se pose **sous** les dialogues dans
-l'échelle des `z-index`. Il porte son propre voile pour cette raison.
+l'échelle des `z-index`. Il porte son propre voile pour cette raison. Seul un
+panneau **feuille**, qui n'ouvre rien lui-même, passe devant les dialogues
+(`devantLesDialogues`, `z-[80]`) : l'aide « ? », ouverte depuis une `Modale`,
+restait sinon invisible derrière elle.
 
 > ⚠️ **Portalisé dans `<body>`, comme la `Modale`.** Un MobileSheet peut s'ouvrir
 > DEPUIS un autre — l'aide « ? » ou le formulaire de catégorie, ouverts depuis le

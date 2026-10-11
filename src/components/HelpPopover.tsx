@@ -91,7 +91,8 @@ export default function HelpPopover({
       </FlottantAuto>
 
       {/* AU DOIGT : panneau montant, pleine largeur, défilant, au-dessus des onglets. */}
-      <MobileSheet ouvert={open && auDoigt} onFermer={() => setOpen(false)} titre={title}>
+      {/* Feuille : l'aide n'ouvre rien, elle passe devant une Modale ouverte. */}
+      <MobileSheet ouvert={open && auDoigt} onFermer={() => setOpen(false)} titre={title} devantLesDialogues>
         <div className="text-xs leading-relaxed text-ink-dim">{children}</div>
       </MobileSheet>
     </div>

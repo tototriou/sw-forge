@@ -41,6 +41,7 @@ export default function MobileSheet({
   titre,
   centre = false,
   surLesOnglets = false,
+  devantLesDialogues = false,
   mesureCle,
   children,
 }: {
@@ -76,6 +77,11 @@ export default function MobileSheet({
   // parcourt du pouce, mais un formulaire court qu'on remplit. Collé en bas
   // sous le clavier, il n'en restait qu'une bande.
   centre?: boolean;
+  // ⚠️ **Au-dessus des dialogues** (`z-[80]` contre `z-[70]` pour la
+  // `Modale`) : pour un panneau FEUILLE, qui n'ouvre rien lui-même, comme
+  // l'aide « ? ». Ouverte depuis une Modale, elle passait dessous et restait
+  // invisible.
+  devantLesDialogues?: boolean;
   children: ReactNode;
 }) {
   // ⚠️ **Le panneau n'existe qu'en dessous de `lg`.** `lg:hidden` le masquait
@@ -152,7 +158,9 @@ export default function MobileSheet({
         <>
           <motion.div
             className={`fixed inset-0 lg:hidden ${
-              centre
+              devantLesDialogues
+                ? 'z-[80] bg-bg/70'
+                : centre
                 ? 'z-[60] bg-bg/95'
                 : surLesOnglets
                   ? 'z-30 bg-bg/70'
@@ -187,7 +195,9 @@ export default function MobileSheet({
             // laisser dépasser inviterait à quitter la page au milieu d'un
             // réglage.
             className={`fixed flex flex-col border-border bg-panel lg:hidden ${
-              centre
+              devantLesDialogues
+                ? 'inset-x-0 bottom-0 z-[80] max-h-[80dvh] rounded-t-2xl border-t'
+                : centre
                 ? 'inset-x-3 top-1/2 z-[60] max-h-[80dvh] -translate-y-1/2 rounded-2xl border shadow-glow shadow-black/60'
                 : surLesOnglets
                   ? // ⚠️ `bottom` en `style` (voir plus bas), pas `bottom-0` :

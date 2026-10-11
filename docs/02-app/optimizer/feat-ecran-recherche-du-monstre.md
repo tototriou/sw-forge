@@ -8,6 +8,9 @@
    reste vrai tant que l'outil est en rodage). Rappelle que le moteur de
    recherche peut être lent sur des critères serrés ou manquer un build sur
    un cas inhabituel, et qu'il faut vérifier le résultat avant de re-runer.
+
+## Choix du monstre et de l’exemplaire
+
 1. **Recherche bestiaire, puis puces d'exemplaire** — la recherche
    « Monstre à optimiser » résout d'abord une **ESPÈCE** (nom, icône, stats
    de base 6★ niveau max, sorts) dans **TOUT le bestiaire**, possédé ou
@@ -35,12 +38,18 @@
    zone D. Le compte ne dépend que de l'espèce, jamais d'un clic, et les
    puces se partagent la largeur à égalité : rien ne bouge
    (`libellePuceSource`, optimizerExclusion.ts).
-   ⚠️ **Choisir une espèce résout automatiquement le PREMIER exemplaire
+   **Avec une liste active, rechercher une espèce déjà membre sélectionne
+   le premier membre résolu de cette espèce dans l’ordre de la liste**, avec
+   ses critères mémorisés ou la base complète ; aucun doublon ni erreur.
+   Sinon, **choisir une espèce résout automatiquement le PREMIER exemplaire
    Box** dès qu'il y en a au moins un (pour ne pas rouvrir
    la désambiguïsation pour tout monstre possédé en double) — la fiche
    d'équipement affiche directement ce build, prête à optimiser sans clic
-   de plus. Aucun exemplaire Box : repli sur les stats de base 6★ seules
-   (monstre non possédé, ou possédé sans jamais avoir été équipé).
+   de plus. Aucun exemplaire Box : la fiche montre les stats de base 6★.
+   Si l’espèce est présente en RTA ou siège, l’exemplaire reste non résolu
+   jusqu’au choix explicite d’une puce ou d’une ligne de désambiguïsation.
+   Une espèce absente des quatre sources est déjà résolue par son sélecteur
+   non possédé (`unowned`), sur les seules stats de base.
    **Cliquer une puce** (`pickSource`) résout l'unique candidat de cette
    source s'il n'y en a qu'un, sinon ouvre la **zone D** — un panneau
    flottant (bureau) / bloc en ligne (mobile) listant chaque candidat
@@ -103,9 +112,24 @@
 
 Sans liste active, choisir un résultat ouvre « Nouvelle liste » avec nom
 et contenu obligatoire, sans présélection. « Créer » crée la liste et y
-ajoute l’exemplaire affiché avec ses critères ; un nom vide devient le
+ajoute l’exemplaire résolu avec ses critères ; un nom vide devient le
 premier « Liste N » libre. Annuler garde le monstre affiché sans liste.
 Une liste active existante n’ouvre aucun dialogue de création.
+L’exemplaire résolu est automatiquement ajouté à cette liste avec la même
+capture des critères qu’un ajout ordinaire. Une recherche répétée sélectionne
+le membre présent. Pour ajouter une autre copie Box de la même espèce, le
+bouton « Ajouter un autre exemplaire de … » reste disponible.
+
+Si l’espèce est seulement présente en RTA ou siège et que l’exemplaire
+n’est pas encore résolu, la création reste possible : la nouvelle liste
+est active et vide. Aucun candidat n’est choisi à sa place. Le choix d’une
+puce avec un candidat unique, ou d’une ligne de désambiguïsation, ajoute
+ensuite cet exemplaire à la liste active et capture les critères de ce
+geste. La même règle s’applique avec une liste déjà active. Choisir une
+puce ambiguë n’ajoute rien avant le choix de la ligne. Un exemplaire déjà
+membre est seulement sélectionné, avec restauration de ses critères et
+sans doublon ni erreur. Sans liste active, ces choix de source n’ajoutent rien.
+Le sélecteur non possédé, déjà résolu, suit l’ajout immédiat ordinaire.
 
 ## Classement des champs de DamageSetup au changement de monstre
 
@@ -130,10 +154,10 @@ l’import d’une recette. Cette dérivation ne réécrit aucune mémoire.
 | Événement | Contexte partagé et legacy associé | Sort, passifs et marqueurs associés | Autres critères de recherche |
 | --- | --- | --- | --- |
 | Espèce différente hors liste | Conservés | Défauts | `resetSearch` habituel |
-| Autre exemplaire de la même espèce, y compris après une nouvelle recherche bestiaire | Conservés | Conservés | Conservés, sous la garde de cohérence de relique ci-dessous |
+| Autre exemplaire de la même espèce, hors liste ou avant sa première inclusion | Conservés | Conservés | Conservés, sous la garde de cohérence de relique ci-dessous |
 | Navigation entre listes sans choisir un autre monstre | Mémoire valide du membre affiché dans la destination ; sinon conservés sans propriétaire | Même règle | Même règle |
 | Création ou suppression de la liste active sans inclusion | Conservés sans propriétaire | Conservés sans propriétaire | Conservés sans propriétaire |
-| Choix d'un membre de liste, quelle que soit son espèce | Mémoire valide, sinon base complète | Mémoire valide, sinon base complète | Mémoire valide, sinon base complète |
+| Choix d'un membre de liste, par sa carte, la recherche ou un exemplaire déjà membre | Mémoire valide, sinon base complète | Mémoire valide, sinon base complète | Mémoire valide, sinon base complète |
 | Import de recette | Valeurs de la recette | Valeurs de la recette | Valeurs de la recette |
 | Import de compte sans propriétaire valide | Défauts | Défauts | `resetSearch` habituel |
 | Réimport avec propriétaire valide après rattachement | Conservés | Conservés | Conservés ; runes imposées absentes retirées de l'affichage et dites, cohérence de relique conservée |
@@ -158,7 +182,7 @@ OptimizerSection.tsx) : résultats affichés effacés, critères gardés,
 sans rappel des auras externes, qui reste au seul clic d'un membre ; l'inclusion
 photographie immédiatement les critères conservés. Naviguer entre listes sans
 choisir un autre monstre ne change pas le monstre optimisé, mais rappelle sa
-mémoire valide dans la destination ; sans mémoire, aucun propriétaire. La simple
+mémoire valide dans la destination ; sans mémoire, aucun propriétaire. Hors liste, la simple
 re-sélection de la même espèce dans le bestiaire, ou d'un exemplaire par
 les puces de source et la zone D, ne vide rien, et n'efface pas non plus
 les résultats affichés. L'import de
@@ -169,11 +193,12 @@ différé de changement d'espèce ne les écrase.
 
 Un rendu à part (`lg:hidden`), pas un réagencement du bureau :
 
-1. la recherche, toujours visible, avec en dessous la liste active et la
-   zone C dans le dépliement « Gérer mes listes », replié par défaut
+1. la recherche, toujours visible, avec en dessous la liste active dans le
+   dépliement « Gérer mes listes », replié par défaut
    (`zoneCOpen`) ;
 2. les puces, toujours visibles, avec la zone D **en ligne** dessous (le
    même `zoneDOpen` qu'au bureau ; un flottant se prête mal à un écran
-   étroit) ;
+   étroit), puis les cartes de la zone C quand « Gérer mes listes » est ouvert :
+   un ajout agrandit la liste sous les puces sans déplacer celle qu’on vient de cliquer ;
 3. la fiche `MonsterGear`, même composant qu'au bureau.
 

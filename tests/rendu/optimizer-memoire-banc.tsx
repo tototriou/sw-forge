@@ -20,6 +20,7 @@ import { preuvesCombatAfficheOptimizer } from './optimizer-combat-affiche-preuve
 import { preuvesPointOptimizer } from './optimizer-backup-preuves';
 import { preuvesBandesEquipes } from './optimizer-bandes-preuves';
 import { preuvesRechercheCreationOptimizer, preuvesEditionListeOptimizer, preuvesCompetencesListeOptimizer } from './optimizer-listes-preuves';
+import { preuvesRechercheOptimizer } from './optimizer-recherche-preuves';
 
 export const premier: ExclusionSelector = { source: 'box', unitKey: '11' };
 export const second: ExclusionSelector = { source: 'box', unitKey: '22' };
@@ -120,6 +121,8 @@ export async function scenario(nom: string): Promise<[boolean, string][]> {
   avecPoint = nom.startsWith('point-');
   avecRunes = nom.startsWith('rattachement') || avecPoint;
   await monter(nom === 'zone-c');
+  if (nom.startsWith('recherche-auto-')) return preuvesRechercheOptimizer({ etat: () => etat, listes: () => listes,
+    data: () => compteActuel, changerBox, changerDefenses, geste, premier, second, troisieme }, nom.slice('recherche-auto-'.length));
   if (nom.startsWith('rattachement')) return preuvesRattachementOptimizer({ etat: () => etat, listes: () => listes,
     data: () => compteActuel, runes: () => runesActuelles, changerBox, changerRunes, afficher, geste, premier }, nom === 'rattachement-demonte');
   const preuves: [boolean, string][] = [];

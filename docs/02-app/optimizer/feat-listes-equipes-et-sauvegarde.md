@@ -164,8 +164,15 @@ sans modifier la mémoire originale par cette seule restauration.
 
 Changer de liste applique la mémoire valide de l’exemplaire déjà affiché dans
 la destination ; sans elle, aucun propriétaire. Retirer le membre affiché ou
-supprimer sa liste efface l’attribution. Le bestiaire, les puces de source et
-la zone D l’effacent aussi. L’import de recette l’efface au moment où sa lecture
+supprimer sa liste efface l’attribution. Avec une liste active, le bestiaire
+rappelle le membre présent de l’espèce ou ajoute l’exemplaire résolu avec la
+capture ordinaire, qui attribue ses critères. Sans liste active, il efface
+l’attribution avant la création. Une puce ambiguë efface l’attribution sans
+ajouter de membre. Avec une liste active, le choix d’une puce unique ou d’une
+ligne de zone D ajoute l’exemplaire et capture les critères au geste ; s’il
+est déjà membre, `choisirMembre` restaure ses critères sans capture ni doublon.
+Sans liste active, ces gestes effacent seulement l’attribution. Une création depuis la recherche peut précéder la résolution RTA ou siège : la liste reste vide jusqu’au choix explicite de l’exemplaire.
+L’import de recette l’efface au moment où sa lecture
 se résout, avant d’appliquer ses valeurs, même si un membre a été choisi entre-temps.
 Le réimport de compte rattache ce propriétaire et la sélection avec les autres
 données, en conservant ses critères personnels, sans photographie automatique.

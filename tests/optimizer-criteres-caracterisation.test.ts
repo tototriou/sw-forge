@@ -74,7 +74,7 @@ export default async function testOptimizerCriteresCaracterisation() {
       let zoneOuverte = true;
       const contexte = {
         ...transitions, ...avant, optimizer: avant, box: [], exclusionData: {}, ownSelectorKey: 'box:10',
-        lists: { activeListId: 'a' }, setAddListPromptOpen: () => {},
+        lists: { activeListId: 'a', members: [] }, setAddListPromptOpen: () => {}, inclureSelectionRecherche: () => {},
         speciesCandidatesBySource: () => ({ box: [{ selector, gear: { relic } }] }),
         unownedSelectorIfNoneOwned: () => null,
         resolveExclusionEntry: () => ({ gear: { relic } }), exclusionSelectorKey,

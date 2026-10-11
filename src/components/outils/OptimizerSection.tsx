@@ -1063,6 +1063,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
       setSourceSelector(candidates[0].selector);
       reliqueCoherenteAvecExemplaire(candidates[0].gear.relic);
       setZoneDOpen(false);
+      inclureSelectionRecherche(candidates[0].selector, candidates[0].monster);
     } else if (candidates.length > 1) {
       setSourceSelector(null);
       setZoneDOpen(true);
@@ -1073,8 +1074,8 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
   }
 
   // Choisit l'ESPÈCE (recherche bestiaire, voir `MonsterSourcePicker mode=
-  // "bestiary"` plus bas) — remet TOUJOURS la source à Box (valeur par
-  // défaut) et résout directement le PREMIER
+  // "bestiary"` plus bas) — rappelle d'abord le membre présent de l'espèce
+  // dans la liste active ; sinon remet la source à Box et résout le PREMIER
   // exemplaire Box (demande explicite : plutôt qu'ouvrir la désambiguïsation
   // dès qu'il y en a plusieurs, choisir un exemplaire par défaut — l'utilisateur
   // reste libre de changer via la zone D). Aucun exemplaire Box, mais possédée
@@ -1085,6 +1086,13 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
   // « Ajouter à la liste »/« Valider ce build » sur ses stats de base 6★
   // seules (demande explicite, voir ExclusionSelector « unowned »).
   function pickSpecies(monster: Monster) {
+    const membrePresent = lists.activeListId && monster.com2usId ? lists.members.find(m => m.listId === lists.activeListId
+      && resolveExclusionEntry(m.selector, exclusionData)?.monster.com2usId === monster.com2usId) : null;
+    if (membrePresent) {
+      optimizer.choisirMembre(membrePresent.listId, membrePresent.selector);
+      setZoneDOpen(false);
+      return;
+    }
     optimizer.effacerProprietaireCriteres();
     const id = String(monster.id);
     // ⚠️ Calculé AVANT le `if` : le défaut de
@@ -1131,9 +1139,25 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     else reliqueCoherenteAvecExemplaire(boxCandidates[0]?.gear.relic);
     setSelectedId(id);
     setGearSource('box');
-    setSourceSelector(boxCandidates[0]?.selector ?? unownedSelectorIfNoneOwned(monster, box, exclusionData));
+    const selector = boxCandidates[0]?.selector ?? unownedSelectorIfNoneOwned(monster, box, exclusionData);
+    setSourceSelector(selector);
     setZoneDOpen(false);
     if (!lists.activeListId) setAddListPromptOpen('recherche');
+    else inclureSelectionRecherche(selector, monster);
+  }
+
+  // Une résolution explicite partage l'inclusion ordinaire : capture au geste,
+  // puis attribution après publication ; un membre présent rappelle sa mémoire.
+  function inclureSelectionRecherche(selector: ExclusionSelector | null, monster: Monster, listId = lists.activeListId) {
+    if (!listId || !selector || !monster.com2usId) return;
+    const resolu = resolveExclusionEntry(selector, exclusionData);
+    if (resolu?.monster.com2usId !== monster.com2usId) return;
+    const present = lists.members.some(m => m.listId === listId && exclusionSelectorKey(m.selector) === exclusionSelectorKey(selector));
+    if (present) optimizer.choisirMembre(listId, selector);
+    else {
+      lists.addMember(listId, selector, monster.com2usId);
+      optimizer.capturerMembre(listId, selector);
+    }
   }
 
   // Bureau uniquement : ferme la désambiguïsation d'exemplaire (zone D) au
@@ -2790,6 +2814,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
             setSourceSelector(c.selector);
             reliqueCoherenteAvecExemplaire(c.gear.relic);
             setZoneDOpen(false);
+            inclureSelectionRecherche(c.selector, c.monster);
           }}
           className={`flex w-full items-center gap-3 px-3 text-left transition hoverable:bg-accent-soft ${
             c.teamContext ? 'py-1' : 'py-1.5'
@@ -3758,8 +3783,8 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
         {/* Mobile : 3 blocs empilés, chacun son propre
             dépliement — pas les zones fixes ci-dessus. */}
         <div className="lg:hidden space-y-3">
-          {/* Bloc 1 — recherche TOUJOURS visible, liste active + zone C
-              rattachées EN DESSOUS en dépliement (`zoneCOpen`, repliée par
+          {/* Bloc 1 — recherche TOUJOURS visible, liste active
+              rattachée EN DESSOUS en dépliement (`zoneCOpen`, repliée par
               défaut). */}
           <div>
             <p className="label mb-1.5">Monstre à optimiser</p>
@@ -3793,7 +3818,6 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
                   onEdit={lists.editList}
                   onDelete={lists.deleteList}
                 />
-                {zoneCContent}
               </div>
             )}
           </div>
@@ -3811,6 +3835,8 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
               size="lg"
             />
             {zoneDOpen && <div className="mt-2 rounded-lg border border-border-soft overflow-hidden">{zoneDList}</div>}
+            {/* Les ajouts ne déplacent pas la puce qui les déclenche. */}
+            {zoneCOpen && <div className="mt-3">{zoneCContent}</div>}
           </div>
 
           {/* Bloc 3 — fiche stats/artéfacts/runes/relique (même composant
@@ -5839,8 +5865,13 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
             const nom = valeur.trim();
             const intent = addListPromptOpen;
             setAddListPromptOpen(null);
-            if (!sourceSelector || !selected?.monster.com2usId) return;
+            if (!selected?.monster.com2usId || (!sourceSelector && intent !== 'recherche')) return;
             const id = lists.createList(nom, contenu);
+            if (intent === 'recherche') {
+              inclureSelectionRecherche(sourceSelector, selected.monster, id);
+              return;
+            }
+            if (!sourceSelector) return;
             if (intent === 'validate') {
               if (canValidateDisplayed) lists.validateBuild(id, sourceSelector, displayedRuneIds, displayedArtifactIds, selected.monster.com2usId);
             } else {

@@ -171,6 +171,15 @@ import { testListeExemplaires } from './liste-exemplaires.test';
 import { testOptimizerCreationNomParDefaut } from './optimizer-list-names.test';
 import { testOptimizerCompetencesContenu } from './optimizer-summoner-content.test';
 import { testRenduOptimizerRechercheCreation, testRenduTelephoneOptimizerRechercheCreation } from './rendu/optimizer-equipes.test';
+import { testRenduOptimizerRechercheBoxResolu, testRenduTelephoneOptimizerRechercheBoxResolu,
+  testRenduOptimizerRechercheDejaMembre, testRenduTelephoneOptimizerRechercheDejaMembre,
+  testRenduOptimizerRechercheExemplaireSuivant, testRenduTelephoneOptimizerRechercheExemplaireSuivant } from './rendu/optimizer-recherche.test';
+import { testRenduOptimizerRechercheSourceRta, testRenduTelephoneOptimizerRechercheSourceRta,
+  testRenduOptimizerRechercheSourceSiege, testRenduTelephoneOptimizerRechercheSourceSiege,
+  testRenduOptimizerRechercheDesambiguise, testRenduTelephoneOptimizerRechercheDesambiguise,
+  testRenduOptimizerRechercheCreationSansSource, testRenduTelephoneOptimizerRechercheCreationSansSource,
+  testRenduOptimizerRechercheNonPossede, testRenduTelephoneOptimizerRechercheNonPossede,
+  testRenduOptimizerRechercheSansListeBox, testRenduTelephoneOptimizerRechercheSansListeBox } from './rendu/optimizer-recherche.test';
 import { testRenduOptimizerEditionListe, testRenduTelephoneOptimizerEditionListe } from './rendu/optimizer-equipes.test';
 import { testRenduOptimizerCompetencesListe, testRenduTelephoneOptimizerCompetencesListe } from './rendu/optimizer-equipes.test';
 import { testOptimizerExemplaireMontage } from './optimizer-exemplaire-montage.test';
@@ -286,6 +295,24 @@ import testSkillAdapters from './skill-adapters.test';
 // Sans argument, tout tourne — c'est ce que fait `npm test`, et ce qu'il FAUT
 // faire avant une fusion sur `main` (voir CLAUDE.md).
 const VERIFICATIONS: [string, () => void | Promise<void>][] = [
+  ['testRenduOptimizerRechercheSourceRta', testRenduOptimizerRechercheSourceRta],
+  ['testRenduTelephoneOptimizerRechercheSourceRta', testRenduTelephoneOptimizerRechercheSourceRta],
+  ['testRenduOptimizerRechercheSourceSiege', testRenduOptimizerRechercheSourceSiege],
+  ['testRenduTelephoneOptimizerRechercheSourceSiege', testRenduTelephoneOptimizerRechercheSourceSiege],
+  ['testRenduOptimizerRechercheDesambiguise', testRenduOptimizerRechercheDesambiguise],
+  ['testRenduTelephoneOptimizerRechercheDesambiguise', testRenduTelephoneOptimizerRechercheDesambiguise],
+  ['testRenduOptimizerRechercheCreationSansSource', testRenduOptimizerRechercheCreationSansSource],
+  ['testRenduTelephoneOptimizerRechercheCreationSansSource', testRenduTelephoneOptimizerRechercheCreationSansSource],
+  ['testRenduOptimizerRechercheNonPossede', testRenduOptimizerRechercheNonPossede],
+  ['testRenduTelephoneOptimizerRechercheNonPossede', testRenduTelephoneOptimizerRechercheNonPossede],
+  ['testRenduOptimizerRechercheSansListeBox', testRenduOptimizerRechercheSansListeBox],
+  ['testRenduTelephoneOptimizerRechercheSansListeBox', testRenduTelephoneOptimizerRechercheSansListeBox],
+  ['testRenduOptimizerRechercheBoxResolu', testRenduOptimizerRechercheBoxResolu],
+  ['testRenduTelephoneOptimizerRechercheBoxResolu', testRenduTelephoneOptimizerRechercheBoxResolu],
+  ['testRenduOptimizerRechercheDejaMembre', testRenduOptimizerRechercheDejaMembre],
+  ['testRenduTelephoneOptimizerRechercheDejaMembre', testRenduTelephoneOptimizerRechercheDejaMembre],
+  ['testRenduOptimizerRechercheExemplaireSuivant', testRenduOptimizerRechercheExemplaireSuivant],
+  ['testRenduTelephoneOptimizerRechercheExemplaireSuivant', testRenduTelephoneOptimizerRechercheExemplaireSuivant],
   ['testOptimizerCompetencesContenu', testOptimizerCompetencesContenu],
   ['testRenduOptimizerRechercheCreation', testRenduOptimizerRechercheCreation],
   ['testRenduTelephoneOptimizerRechercheCreation', testRenduTelephoneOptimizerRechercheCreation],

@@ -113,6 +113,18 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
 
 ## Zone C — Monstres de la liste
 
+- Avec une liste active, le résultat de la recherche ajoute automatiquement
+  l’exemplaire résolu et capture ses critères comme un ajout ordinaire. Une
+  espèce déjà représentée sélectionne son premier membre résolu, sans
+  doublon ni erreur ; ses critères sont restaurés sans nouvelle capture.
+  Le bouton d’ajout d’un autre exemplaire Box garde le comportement ci-dessous.
+  Sans Box ni membre présent, une espèce présente seulement en RTA ou siège
+  attend le choix explicite de l’exemplaire : puce unique ou ligne de
+  désambiguïsation. L’ajout et la capture ont lieu à ce choix, jamais avant.
+  Sans liste active, la recherche permet de créer la liste vide avant ce choix.
+  Une espèce non possédée, résolue par `unowned`, est ajoutée immédiatement.
+  Au téléphone, le sélecteur de liste reste au-dessus des puces et les cartes
+  de la zone C se déplient dessous : l’ajout ne déplace pas la puce cliquée.
 - **Zone C, « Monstres de la liste »** — juste sous les puces de source
   dans « Monstre & équipement » : chaque monstre de la liste active, son
   statut (« Validé » + bouton libérer, ou « pas encore validé »), cliquable

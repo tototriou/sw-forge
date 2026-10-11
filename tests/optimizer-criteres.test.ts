@@ -105,7 +105,7 @@ export async function testOptimizerCritereArtefactsNavigation() {
   // Vérifie le branchement du geste, et non seulement le producteur pur.
   fonctionDeSource('src/components/outils/OptimizerSection.tsx', 'pickSpecies', {
     ...apres, optimizer: apres, selectedId: '1', box: [], exclusionData: {},
-    lists: { activeListId: 'a' }, setAddListPromptOpen: () => {},
+    lists: { activeListId: 'a', members: [] }, setAddListPromptOpen: () => {}, inclureSelectionRecherche: () => {},
     speciesCandidatesBySource: () => ({ box: [] }), unownedSelectorIfNoneOwned: () => null,
     criteresApresChangementEspece, setZoneDOpen: () => {},
   })({ id: 2, com2usId: 101 });

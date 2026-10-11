@@ -345,7 +345,7 @@ signe seul — en mono 12 px au milieu de quarante colonnes — ne saute pas aux
 yeux. Il teinte le **texte et le contour**, jamais le fond : un fond plein par
 cellule ferait un damier, et ces tableaux portent déjà des surlignages.
 
-**`Selecteur`** — liste déroulante. ⚠️ `appearance-none` + notre propre chevron :
+**`Selecteur`** — liste déroulante ([ton du sélecteur](selecteur.md)). ⚠️ `appearance-none` + notre propre chevron :
 le contrôle natif dessine sa flèche avec les couleurs du **système**, qui ne
 suivent aucun des deux thèmes — sur fond sombre, une flèche noire disparaît. La
 **liste ouverte** reste celle du système : c'est le seul morceau de l'app qu'on

@@ -270,6 +270,8 @@ Une entrée = une règle qu'un chantier qui l'ignore casse, avec sa source. Ce f
 
 ## UI
 
+- À la création, le contenu reste obligatoire sans présélection : menu « Choisis le contenu de la liste », contour accent unique de 1 px jusqu’au choix et aide explicite ; l’action grisée dit « Choisis d'abord le contenu. ». Source : ../../02-app/optimizer/feat-listes-et-reservation.md § Créer, valider et réserver dans une liste
+
 ### Listes et contenu
 
 - Écran, recherche et export de recette lisent le même mode effectif de compétences d’invocateur, produit par `combatSelonContenuListeOptimizer`, sans réécrire les critères ni mémoires. Le CLI sans liste lit le mode exporté ; à l’import dans l’écran, le contenu actif décide, y compris sur une recette qui porte un autre mode. Sources : ../../02-app/optimizer/feat-listes-equipes-et-sauvegarde.md § Contenu de combat des listes ; ../../02-app/optimizer/feat-ecran-lancer-la-recherche.md § Lancer la recherche

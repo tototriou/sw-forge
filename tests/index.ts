@@ -171,6 +171,7 @@ import { testListeExemplaires } from './liste-exemplaires.test';
 import { testOptimizerCreationNomParDefaut } from './optimizer-list-names.test';
 import { testOptimizerCompetencesContenu } from './optimizer-summoner-content.test';
 import { testRenduOptimizerRechercheCreation, testRenduTelephoneOptimizerRechercheCreation } from './rendu/optimizer-equipes.test';
+import { testRenduOptimizerCreationObligatoire, testRenduTelephoneOptimizerCreationObligatoire } from './rendu/optimizer-retouches.test';
 import { testRenduOptimizerRechercheBoxResolu, testRenduTelephoneOptimizerRechercheBoxResolu,
   testRenduOptimizerRechercheDejaMembre, testRenduTelephoneOptimizerRechercheDejaMembre,
   testRenduOptimizerRechercheExemplaireSuivant, testRenduTelephoneOptimizerRechercheExemplaireSuivant } from './rendu/optimizer-recherche.test';
@@ -295,6 +296,8 @@ import testSkillAdapters from './skill-adapters.test';
 // Sans argument, tout tourne — c'est ce que fait `npm test`, et ce qu'il FAUT
 // faire avant une fusion sur `main` (voir CLAUDE.md).
 const VERIFICATIONS: [string, () => void | Promise<void>][] = [
+  ['testRenduOptimizerCreationObligatoire', testRenduOptimizerCreationObligatoire],
+  ['testRenduTelephoneOptimizerCreationObligatoire', testRenduTelephoneOptimizerCreationObligatoire],
   ['testRenduOptimizerRechercheSourceRta', testRenduOptimizerRechercheSourceRta],
   ['testRenduTelephoneOptimizerRechercheSourceRta', testRenduTelephoneOptimizerRechercheSourceRta],
   ['testRenduOptimizerRechercheSourceSiege', testRenduOptimizerRechercheSourceSiege],

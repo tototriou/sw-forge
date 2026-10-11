@@ -267,12 +267,12 @@ export async function scenario(nom: string): Promise<[boolean, string][]> {
     const pliListe = bouton('Gérer mes listes');
     if (pliListe) await geste(() => pliListe.click());
     const selecteurListe = bouton('Ancienne - Guilde');
-    const ecartListe = position(selecteurListe).y - position(ancre).y - position(ancre).height;
-    // Bureau : au bout de la ligne des menus ; téléphone : juste au-dessus, libellés compris.
-    verifier(pliListe ? ecartListe >= 0 && ecartListe <= 60 && position(selecteurListe).x === position(ancre).x
+    // Bureau : au bout de la ligne des menus ; téléphone : au-dessus de « Gérer mes listes ».
+    verifier(pliListe ? position(ancre).y + position(ancre).height <= position(pliListe).y
+      && position(pliListe).y + position(pliListe).height <= position(selecteurListe).y && position(selecteurListe).x === position(ancre).x
       : position(selecteurListe).y === position(ancre).y && position(selecteurListe).height === position(ancre).height
         && position(ancre).x > position(selecteurListe).x + position(selecteurListe).width,
-    pliListe ? 'téléphone : import juste au-dessus des menus de liste' : 'bureau : import au bout de la ligne de la liste active, à sa hauteur');
+    pliListe ? 'téléphone : import au-dessus de « Gérer mes listes », puis les menus de liste' : 'bureau : import au bout de la ligne de la liste active, à sa hauteur');
     if (pliListe) await geste(() => pliListe.click());
     const avantDeselection = JSON.stringify(position(ancre));
     await geste(() => { etat.setSelectedId(null); etat.setSourceSelector(null); });
@@ -309,7 +309,9 @@ export async function scenario(nom: string): Promise<[boolean, string][]> {
       verifier(getComputedStyle(rapport.parentElement!).position === 'absolute' && getComputedStyle(rapport.parentElement!).borderTopWidth === '1px', 'rapport hors du flux dans la surface au contour de 1 px');
       await geste(() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })));
       verifier(ancre.getAttribute('aria-expanded') === 'false', 'Échap ferme les sources sans import supplémentaire');
-      const pli = bouton('Gérer mes listes'); if (pli) await geste(() => pli.click());
+      // Au téléphone, l'import déplie « Gérer mes listes » de lui-même.
+      const pli = bouton('Gérer mes listes');
+      verifier(!pli || pli.getAttribute('aria-expanded') === 'true', 'téléphone : « Gérer mes listes » déplié par l’import');
       verifier(texte().includes(nom === 'defenses' ? 'Monstres de « Défenses de siège »' : nom === 'rta' ? 'Monstres de « Prépa RTA »' : 'Monstres de « Offense de siège »'), 'liste active importée lue à l’écran');
       const minimum = [...document.querySelectorAll<HTMLInputElement>('[aria-label="VIT minimum"]')].find(visible);
       verifier(minimum?.value === String(nom === 'rta' ? 140 : 120), 'vitesse importée lue dans le champ réel de l’écran');

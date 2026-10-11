@@ -451,9 +451,13 @@ const AUCUNE_RECOMMANDATION: Reco[] = [];
 
 export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATION, box, runes, artifacts, relics, relicUsageById, optimizer, onImporterEquipe, allMonsters, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, lists, accountName, menuOuvert, onFermerMenu, onOuvrirMenu }: Props) {
   const [rapportImport, setRapportImport] = useState<RapportImportOptimizer | null>(null);
+  // Zone C du téléphone (« Gérer mes listes »), repliée par défaut.
+  const [zoneCOpen, setZoneCOpen] = useState(false);
   const importerDepuisEcran = useCallback((produire: Parameters<OptimizerState['importerEquipe']>[0]) => {
     const rapport = onImporterEquipe(produire);
     setRapportImport(rapport);
+    // La liste créée s'affiche aussitôt au téléphone, dépliée.
+    if (rapport.listeCreee) setZoneCOpen(true);
     return rapport;
   }, [onImporterEquipe]);
   const metric = useRuneMetric();
@@ -1180,8 +1184,8 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
   // toujours visible. La zone D, elle, n'a pas besoin
   // d'un second état : `zoneDOpen` ci-dessus pilote déjà sa visibilité des
   // deux côtés, seule sa PRÉSENTATION change (`Flottant` flottant vs bloc
-  // en ligne, voir le rendu plus bas).
-  const [zoneCOpen, setZoneCOpen] = useState(false);
+  // en ligne, voir le rendu plus bas). État déclaré plus haut : l'import
+  // l'ouvre.
 
   // Confirmation avant de libérer un build validé — demande explicite de
   // l'utilisateur. Porte la PAIRE (liste, sélecteur) à libérer (`null` =
@@ -3797,17 +3801,17 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
                 <span className="min-w-0 line-clamp-1 font-semibold text-[14px]" title={selected.monster.name}>{selected.monster.name}</span>
               </>}
             </div>
+            <div className="mt-3">
+              <OptimizerImportButton sources={sourcesImport} onImporter={importerDepuisEcran} rapport={rapportImport} />
+            </div>
             <ZoneCliquable
               onClick={() => setZoneCOpen((v) => !v)}
               aria-expanded={zoneCOpen}
-              className="mt-2 flex w-full items-center gap-1.5 text-[12.5px] font-semibold text-ink-dim"
+              className="mt-3 flex w-full items-center gap-1.5 text-[12.5px] font-semibold text-ink-dim"
             >
               Gérer mes listes
               <ChevronDown size={13} className={`ml-auto transition-transform ${zoneCOpen ? 'rotate-180' : ''}`} />
             </ZoneCliquable>
-            <div className="mt-3">
-              <OptimizerImportButton sources={sourcesImport} onImporter={importerDepuisEcran} rapport={rapportImport} />
-            </div>
             {zoneCOpen && (
               <div className="mt-2 space-y-3">
                 <OptimizerListPicker

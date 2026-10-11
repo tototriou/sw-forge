@@ -103,8 +103,9 @@ fermé il ne peut être rouvert avant le retour d’une source utilisable. Le ra
 reste conservé pendant cette indisponibilité.
 Au bureau, le bouton termine la ligne de « Liste active » et « Contenu »,
 à leur hauteur, et ses sources s’ouvrent sur une largeur propre. Au
-téléphone, il suit la recherche et le monstre choisi, sous « Gérer mes
-listes », hors de son dépliement, sur toute la largeur. La ligne du monstre
+téléphone, il suit la recherche et le monstre choisi, au-dessus de « Gérer
+mes listes », hors de son dépliement, sur toute la largeur ; un import qui
+crée une liste déplie « Gérer mes listes » pour la montrer. La ligne du monstre
 choisi garde sa hauteur lorsqu’elle est vide ; un nom long reste sur une
 ligne, tronqué avec son texte complet en `title`, pour que le premier import
 ne déplace pas l’ancre. L’ouverture des sources et le rapport sortent du flux.

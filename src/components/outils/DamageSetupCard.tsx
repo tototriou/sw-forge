@@ -633,15 +633,6 @@ export default function DamageSetupCard({
       <div>
         <div className="mb-2 flex items-center gap-1.5">
           <p className="label">Compétence utilisée</p>
-          <HelpPopover title="Compétence utilisée">
-            Le coefficient, le nombre de coups, la portée, l&apos;ignore défense et le bonus des
-            améliorations sont <b className="text-ink">lus dans les données du sort</b> — jamais à saisir.
-            Une compétence est toujours supposée <b className="text-ink">maxée</b>, comme partout ailleurs
-            dans l&apos;app. Pour un sort qui frappe sa cible puis tous les ennemis (Blade Surge), tu
-            choisis seulement la cible calculée : <b className="text-ink">Dégâts sur la cible visée</b> (tous
-            ses coups) ou <b className="text-ink">Dégâts sur les autres ennemis</b> (le coup de zone seul, sur
-            un autre ennemi) — les champs de l&apos;adversaire décrivent alors cet autre ennemi.
-          </HelpPopover>
         </div>
         <div className="flex flex-col gap-1.5">
           {skills.map((s) => {
@@ -829,14 +820,8 @@ export default function DamageSetupCard({
           <div className="mb-2 flex items-center gap-1.5">
             <p className="label">Passifs offensifs</p>
             <HelpPopover title="Passifs offensifs">
-              Certains monstres infligent des dégâts supplémentaires par un passif (Feng Yan, Sia, Roid…),
-              en plus du sort choisi ci-dessus. <b className="text-ink">Toujours actif</b> : le texte du jeu ne
-              pose aucune condition de combat, compté d&apos;office.{' '}
-              <b className="text-ink">Selon le def break</b> : la condition porte sur la réduction de défense —
-              entièrement déduite des deux réglages d&apos;effets, rien à cocher ici.{' '}
-              <b className="text-ink">Bouton</b> : une condition à juger toi-même (attribut de la cible, tes
-              PV…) — désactivé par défaut, jamais deviné. Un bouton de <b className="text-ink">bonus</b> ne
-              conditionne que le SURPLUS : l&apos;attaque de base du passif, elle, est comptée dans tous les cas.
+              Un <b className="text-ink">bouton</b> est une condition à juger toi-même (attribut de la cible,
+              tes PV…) : désactivé par défaut.
             </HelpPopover>
           </div>
           <div className="space-y-2">
@@ -1241,10 +1226,6 @@ export default function DamageSetupCard({
         <div>
           <div className="mb-2 flex items-center gap-1.5">
             <p className="label">Contexte du combat</p>
-            <HelpPopover title="Contexte du combat">
-              Ces valeurs décrivent l&apos;instant où le coup part. Les PV absolus
-              sont recalculés depuis les PV max de chaque build candidat.
-            </HelpPopover>
           </div>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
             {(utilise('Current HP %') || utilise('Current HP') || utilise('Missing HP') || demandePvPropres) && (
@@ -1314,11 +1295,6 @@ export default function DamageSetupCard({
         <div>
           <div className="mb-2 flex items-center gap-1.5">
             <p className="label">Stats acquises en combat</p>
-            <HelpPopover title="Stats acquises en combat">
-              Ces cumuls et états modifient les stats du build avant d&apos;évaluer le sort et les lignes
-              de dégâts additionnels des artéfacts. Ils restent à zéro ou désactivés tant que tu ne les
-              renseignes pas.
-            </HelpPopover>
           </div>
           <div className="space-y-2">
             {combatStats.map((profile, index) => {
@@ -1983,10 +1959,6 @@ export default function DamageSetupCard({
         <div>
           <div className="mb-2 flex items-center gap-1.5">
             <p className="label">Coup critique</p>
-            <HelpPopover title="Coup critique">
-              <b className="text-ink">Critique</b> et <b className="text-ink">Non critique</b>{' '}
-              donnent le plafond et le plancher d&apos;un coup isolé.
-            </HelpPopover>
           </div>
           <Segmented<CritMode>
             options={CRIT_MODE_LABELS.map((option) => ({

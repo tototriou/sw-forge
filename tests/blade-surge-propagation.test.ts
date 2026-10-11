@@ -236,13 +236,6 @@ export function testBladeSurgeEcran() {
     'ratio : la formule de chaque groupe, dans l’ordre des coups');
   egal(resumeSequenceDeCoups(bladeSurgeDeLapis().sequenceDeCoups ?? []), '2 coups · Cible unique, puis 1 coup · Zone',
     'Blade Surge : la séquence entière — l’ancien « 2 coups · Cible unique » oubliait le coup de zone');
-
-  // L'aide : la portée reste lue, seule la cible se choisit.
-  const aide = (code.match(/<HelpPopover title="Compétence utilisée">([\s\S]*?)<\/HelpPopover>/)?.[1] ?? '').replace(/\s+/g, ' ');
-  ok(aide.includes('jamais à saisir'), 'aide : les paramètres du sort restent lus, jamais saisis');
-  ok(CIBLE_DEGATS_LABELS.every(({ label }) => aide.includes(label)), 'aide : les libellés exacts des deux crans');
-  ok(aide.includes('les champs de l&apos;adversaire décrivent alors cet autre ennemi'),
-    'aide : les champs de l’adversaire décrivent l’autre ennemi, aucun champ nouveau');
 }
 
 const proche = (a: number, b: number) => Math.abs(a - b) <= 1e-9 * Math.max(1, Math.abs(a), Math.abs(b));

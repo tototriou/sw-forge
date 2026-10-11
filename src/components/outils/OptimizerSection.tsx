@@ -4368,12 +4368,14 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
                   ))}
                 </Selecteur>
               </div>
+              {/* Groupés : « Niveau minimum » reste à côté de « Propriété unique » quand la carte le permet. */}
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-3">
               <div className="flex items-center gap-1.5">
                 <span className={`text-xs text-ink ${LARGEUR_LIBELLE_LISTE}`}>Propriété unique</span>
                 {/* ⚠️ **Sans effet avec « Garder la relique équipée »** (la
-                    pièce est fixée) — désactivé plutôt que retiré, et le
-                    dit, même règle que les sous-propriétés verrouillées sans
-                    effet. */}
+                    pièce est fixée) — désactivé plutôt que retiré ; la raison
+                    reste dans l'infobulle, sans texte à côté qui prendrait
+                    la place de « Niveau minimum ». */}
                 <Selecteur
                   value={String(relicUniqueChoice)}
                   onChange={(e) => {
@@ -4402,12 +4404,13 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
                       </option>
                     ))}
                 </Selecteur>
-                {relicMainChoice === 'equipped' && (
-                  <span className="text-nano text-ink-dimmer">sans effet : relique équipée fixée</span>
-                )}
               </div>
               <div className="flex items-center gap-1.5">
-                <span className={`text-xs text-ink ${LARGEUR_LIBELLE_LISTE}`}>Niveau minimum</span>
+                {/* Au bureau, libellé court et champ à deux chiffres : la rangée
+                    tient à côté de « Propriété unique ». */}
+                <span className={`text-xs text-ink ${LARGEUR_LIBELLE_LISTE} lg:w-auto`} title="Niveau minimum">
+                  <span className="lg:hidden">Niveau minimum</span><span className="hidden lg:inline">Niveau min.</span>
+                </span>
                 {/* ⚠️ Filtre d'ENTRÉE sur le pool de reliques cherché, jamais
                     un critère de classement (la dominance départage les
                     reliques qui passent le seuil). Sans effet tant que
@@ -4423,8 +4426,10 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
                   onChange={(v) => setRelicMinUpgrade(v ?? DEFAULT_RELIC_MIN_UPGRADE)}
                   min={0}
                   max={15}
+                  width="w-8"
                   title="Niveau minimum de la relique — filtre d'entrée sur le pool cherché, jamais un critère de classement"
                 />
+              </div>
               </div>
             </div>
           </div>

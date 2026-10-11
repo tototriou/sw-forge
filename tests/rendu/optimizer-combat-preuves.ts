@@ -118,6 +118,8 @@ export async function preuvesContenuSansDeplacement(b: Banc): Promise<[boolean, 
     const { x, y, width, height } = e.getBoundingClientRect();
     return { x, y, width, height };
   };
+  // Le contenu se choisit dans « Éditer la liste », hors du flux : le message
+  // d'une liste antérieure n'a plus de place réservée, il disparaît au choix.
   const cibles = [liste, ...controles], avant = cibles.map(position);
   verifier(!b.listes().listContents.has('a') && visible(message) && controles.length >= 7,
     'liste historique : message visible et liste ainsi que contrôles de la zone C mesurés');
@@ -125,10 +127,9 @@ export async function preuvesContenuSansDeplacement(b: Banc): Promise<[boolean, 
     await editerContenuListe(b, valeur);
     const apres = cibles.map(position);
     verifier(b.listes().listContents.get('a') === valeur, `contenu ${valeur} choisi par l’édition`);
-    verifier(cibles.every(e => e.isConnected) && JSON.stringify(avant) === JSON.stringify(apres),
-      `choix ${valeur} : mêmes positions et dimensions de la liste et des ${controles.length} contrôles de la zone C — ${JSON.stringify({ avant, apres })}`);
-    verifier(message.isConnected && getComputedStyle(message).visibility === 'hidden' && message.getAttribute('aria-hidden') === 'true',
-      `contenu ${valeur} : message toujours monté, invisible et absent de l’arbre accessible`);
+    verifier(cibles.every(e => e.isConnected) && JSON.stringify(avant[0]) === JSON.stringify(apres[0]),
+      `choix ${valeur} : la liste active ne bouge pas — ${JSON.stringify({ avant: avant[0], apres: apres[0] })}`);
+    verifier(!message.isConnected, `contenu ${valeur} : message retiré, sans place réservée`);
   }
   return preuves;
 }

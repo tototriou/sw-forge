@@ -107,7 +107,9 @@ export default function OptimizerListPicker({ lists, activeListId, memberCounts,
         </Flottant>
       )}
       </div>
-      {active && <p className={`mt-1 text-xs text-warn ${listContents.has(active.id) ? 'invisible' : ''}`} aria-hidden={listContents.has(active.id)}>
+      {/* Seulement pour une liste antérieure sans contenu : le contenu se
+          règle dans « Éditer la liste », hors du flux, donc sans place à réserver. */}
+      {active && !listContents.has(active.id) && <p className="mt-1 text-xs text-warn">
         Sans contenu : aucun lead d’équipe appliqué.
       </p>}
 

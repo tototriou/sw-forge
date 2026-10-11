@@ -51,10 +51,9 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   fenêtre ; aucun sélecteur de contenu ne reste sur la page. Une liste antérieure sans
   contenu affiche « Sans contenu : aucun lead d’équipe appliqué. » ;
   aucun contenu n’est choisi pour elle automatiquement.
-  Cette phrase reste montée avec sa place réservée et devient invisible
-  dès qu’un contenu est choisi, au bureau comme au téléphone : le choix
-  ne déplace ni le sélecteur de liste ni les contrôles
-  de la zone C.
+  Cette phrase disparaît dès qu’un contenu est choisi ; elle n’a pas de
+  place réservée, puisque le choix se fait dans « Éditer la liste », hors
+  du flux : le sélecteur de liste ne bouge pas.
 - **« Valider ce build »**, sur chaque carte de résultat — réserve les 6
   runes de CE résultat dans la liste active : elles n'apparaissent plus
   dans les recherches suivantes de la MÊME liste (les autres listes n'en

@@ -188,4 +188,12 @@ export function testRenduTelephoneOptimizer() {
   ok(t.includes('Réglages avancés Pré-filtrage par emplacement') && t.includes('Pool de runes = 8'), 'les réglages avancés et le pool');
   ok(t.includes('Objectif de recherche Efficience'), 'l\'objectif de recherche');
   ok(b.some((x) => x.texte === 'Rechercher') && !!bouton(html, 'Exporter les paramètres de recherche') && !!bouton(html, 'Importer les paramètres de recherche'), 'rechercher, exporter, importer');
+  // Au téléphone, « Meilleurs artéfacts offensifs » est replié par défaut :
+  // son titre reste, ses crans et sa paire attendent le dépliement.
+  const fiche = auTelephone(() => rendreOptimizer(AVEC_MONSTRE));
+  ok(
+    fiche.includes('aria-expanded="false"') && texteVisible(fiche).includes('Meilleurs artéfacts offensifs pour ce build')
+      && !boutons(fiche).some((x) => x.texte === 'Dégâts supplémentaires'),
+    'les meilleurs artéfacts offensifs, repliés par défaut au téléphone',
+  );
 }

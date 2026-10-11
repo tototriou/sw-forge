@@ -455,6 +455,8 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
   const [rapportImport, setRapportImport] = useState<RapportImportOptimizer | null>(null);
   // Zone C du téléphone (« Gérer mes listes »), repliée par défaut.
   const [zoneCOpen, setZoneCOpen] = useState(false);
+  // « Meilleurs artéfacts offensifs pour ce build » au téléphone, replié par défaut.
+  const [artefactsOuverts, setArtefactsOuverts] = useState(false);
   // Éclat bref de « Gérer mes listes » et de la liste active après un import.
   const [eclatImport, setEclatImport] = useState(false);
   useEffect(() => {
@@ -3123,7 +3125,8 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
    */
   const blocArtefactsSeuls = modeArtefactsSeuls && (
     <div className="mt-2.5 rounded-lg border border-border-soft bg-panel2/60 px-2 py-1.5">
-      <div className="flex items-baseline justify-between gap-2">
+      {(() => {
+        const enTete = (<>
         {/* ⚠️ **« offensifs » reste dans le titre** : le segmenté
             ci-dessous dit précisément ce que le bloc maximise, mais le mot
             dit autre chose : ce bloc ne
@@ -3172,7 +3175,23 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
             )}
           </span>
         )}
-      </div>
+        </>);
+        // Au téléphone, le bloc se replie derrière son titre (replié par
+        // défaut), comme « Gérer mes listes » ; le chiffre reste lisible.
+        return etroit ? (
+          <ZoneCliquable
+            onClick={() => setArtefactsOuverts((v) => !v)}
+            aria-expanded={artefactsOuverts}
+            className="flex w-full items-center gap-2 text-left"
+          >
+            <span className="flex min-w-0 flex-1 items-baseline justify-between gap-2">{enTete}</span>
+            <ChevronDown size={13} className={`flex-none text-ink-dim transition-transform ${artefactsOuverts ? 'rotate-180' : ''}`} />
+          </ZoneCliquable>
+        ) : (
+          <div className="flex items-baseline justify-between gap-2">{enTete}</div>
+        );
+      })()}
+      {(!etroit || artefactsOuverts) && <>
       {/* ⚠️ Choisir « Dégâts réels » OUVRE la fenêtre du combat, comme le cran
           homonyme de l'objectif de recherche : sans ce geste, le classement
           reposerait sur un sort, une cible et un critique jamais choisis —
@@ -3356,6 +3375,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
             className="mt-2"
           />
         )}
+      </>}
     </div>
   );
 

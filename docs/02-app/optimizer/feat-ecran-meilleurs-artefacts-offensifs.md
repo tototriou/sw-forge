@@ -13,6 +13,10 @@
    runé pour un autre objectif (un tank fait pour survivre) à qui les artéfacts
    ajoutent des dégâts par-dessus.
 
+   Au téléphone, le bloc est **replié par défaut**, comme « Gérer mes
+   listes » : son titre et le chiffre absolu (avec l'écart) restent
+   visibles, et un toucher sur le titre déplie les crans et la paire.
+
 ## Emplacements figés
 
 ⚠️ **Ce bloc RESPECTE les réglages de la carte, et le DIT** — il ne cherche

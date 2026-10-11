@@ -3649,7 +3649,10 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
           suit la largeur réelle de l'écran (≈ 700 px à `xl`, ≈ 965 px sur un
           1920), et « Critères de recherche » (`w-fit`, même colonne) se
           serre sur son contenu. */}
-      <div className="grid gap-5 items-start xl:grid-cols-[1.35fr_1fr]">
+      {/* `minmax(0,1fr)` sous `xl` : la colonne unique suit l'écran. Une
+          colonne implicite grandissait jusqu'au contenu le plus large (la
+          roue de la fiche, `w-max`), décentrant la page au téléphone. */}
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-5 items-start xl:grid-cols-[1.35fr_1fr]">
       {/* Étape 1 — carte À PART, en tête du DOM. ⚠️ **La fiche reste
           TOUJOURS affichée, vide (`EMPTY_GEAR`) tant qu'aucun monstre n'est
           choisi**, plutôt que de n'apparaître qu'au clic : l'espace qu'elle

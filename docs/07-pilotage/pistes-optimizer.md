@@ -425,6 +425,64 @@ Les pistes du calcul des dégâts réels sont dans [pistes-degats-reels.md](pist
   `useSpeedTune` avant toute proposition
   ([02-app/speed-tuning/ § Formule (modèle partagé)](../02-app/speed-tuning/)).
 
+### Import d'une équipe : les sets d'aura des coéquipiers
+
+- **Constat** : l'import d'une équipe reprend le lead (`lead` de
+  `EquipeImportOptimizer`, `src/lib/importEquipes.ts`) et les critères de
+  chaque membre, mais n'écrit aucun set d'aura externe : ces sets vivent
+  dans le réglage de combat du membre (`setsAuraExternes`,
+  `src/lib/aurasExternes.ts`) et restent à saisir à la main.
+- **Idée** : déduire, des runes des coéquipiers de l'équipe importée, les
+  sets d'aura que chaque membre reçoit, et les poser dans son réglage.
+- **Bloque** : une décision de produit (quels runages comptent : portés,
+  ou ceux que l'import propose) ; les sets d'aura sont aujourd'hui une
+  saisie, jamais une dérivation.
+
+### Import depuis le speed tuning : l'ordre des tours n'est pas garanti
+
+- **Constat** : l'import pose pour chaque membre une VIT minimum de fiche
+  (base + vitesse de runes saisie) et, si l'Effet aug. VIT est saisi, une
+  ligne verrouillée de code 206
+  (`importerSpeedTuneOptimizer`, `src/lib/importSpeedTuneOptimizer.ts`).
+  Un minimum par membre ne garantit pas l'ordre des tours, et le rapport le
+  dit. Les fenêtres de vitesse de l'analyse du speed tuning ne sont pas
+  transmises à l'Optimizer, et aucune condition de recherche ne porte sur
+  l'ordre des tours.
+- **Idée** : transmettre les fenêtres de l'analyse sous forme de couples :
+  un intervalle de vitesse de runes et un intervalle d'Effet aug. VIT par
+  membre, deux contraintes distinctes ; puis contrôler, depuis le speed
+  tuning, l'ordre des tours des builds trouvés. Voir aussi « Viser un ordre
+  de tours plutôt qu'une VIT runée ».
+- **Bloque** : non cadré ; l'Optimizer n'a pas de condition en intervalle
+  sur ces deux valeurs, et le speed tuning ne relit pas les builds de
+  l'Optimizer.
+
+### Un membre importé sans set
+
+- **Constat** : un membre importé sans set (premier runage vide d'une
+  recommandation, set autre que Swift au speed tuning) est seulement
+  signalé dans le rapport : « aucun set sélectionné ; choisir un set avant
+  de rechercher » (`src/lib/importRecoOptimizer.ts`,
+  `src/lib/importSpeedTuneOptimizer.ts`). L'Optimizer n'a pas de mode
+  « aucun set » : le rapport demande d'en choisir un.
+- **Idée** : un mode « aucun set » (ou « tout set accepté ») que l'import
+  puisse poser.
+- **Bloque** : une décision de produit, puis un changement du moteur et de
+  la recette.
+
+### Identité des builds validés au réimport du compte
+
+- **Constat** : au réimport, un membre est rattaché à un exemplaire de la
+  même espèce, source par source, en retenant celui qui porte le plus de
+  runes communes avec ses builds validés ; sans build validé, le premier
+  candidat libre l'emporte (`destinationPour`,
+  `src/lib/optimizerRattachement.ts`). Un build validé ne garde que ses
+  identifiants de runes et d'artéfacts, jamais l'exemplaire visé.
+- **Idée** : une identité d'exemplaire stable d'un export à l'autre, pour
+  que le membre et ses builds suivent leur monstre au lieu d'une heuristique.
+- **Bloque** : un relevé sur deux exports successifs d'un même compte, pour
+  savoir quel identifiant d'exemplaire reste stable ; non fait.
+
 ## Ajouter une piste
 
 1. Vérifier dans le code que l'idée n'est pas déjà faite, et dans la spec du

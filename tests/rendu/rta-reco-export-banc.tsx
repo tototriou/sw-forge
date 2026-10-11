@@ -5,6 +5,7 @@ import { flushSync } from 'react-dom';
 import RtaPage from '../../src/pages/RtaPage';
 import SiegePage from '../../src/pages/SiegePage';
 import OutilsPage from '../../src/pages/OutilsPage';
+import { FournisseurNotification } from '../../src/ui/Notification';
 import OptimizerImportRapport from '../../src/components/outils/OptimizerImportRapport';
 import { useRtaState } from '../../src/hooks/useRtaState';
 import { useSiegeState } from '../../src/hooks/useSiegeState';
@@ -101,7 +102,8 @@ export async function scenario(s: Source, mobile: boolean, motif = 'accepte', co
   location.hash = s === 'rta' ? '#/rta' : s === 'reco' ? '#/siege/recommandations' : '#/outils/optimizer';
   globalThis.fetch = async () => new Response('{}', { status: 404 });
   racine = createRoot(document.getElementById('racine')!);
-  await geste(() => racine!.render(<Banc />));
+  // Le fournisseur de bandeaux d'App.tsx : l'import réussi s'y confirme.
+  await geste(() => racine!.render(<FournisseurNotification><Banc /></FournisseurNotification>));
   verifier(matchMedia('(pointer: coarse)').matches === mobile, 'pointage du format attendu');
   if (s === 'reco') {
     await geste(() => (trouver('Consulter') ?? trouver('Contres'))!.click());
@@ -157,6 +159,15 @@ export async function scenario(s: Source, mobile: boolean, motif = 'accepte', co
   } else {
     attente = motif === 'attente'; refus = ['collision', 'vide'].includes(motif) ? motif : '';
     await geste(() => ancre.click());
+    // Réussi depuis le flottant, l'import replie les sources et un bandeau le
+    // confirme ; le rapport se relit en rouvrant les sources.
+    const bandeau = [...document.querySelectorAll<HTMLElement>('[role="status"]')].map(e => e.innerText).join(' ');
+    if (s === 'flottant' && motif === 'accepte' && !second) {
+      const importer = trouver('Importer une équipe')!;
+      verifier(importer.getAttribute('aria-expanded') === 'false' && bandeau.includes('créée'),
+        `flottant/accepte : sources repliées, bandeau de confirmation — ${bandeau.slice(0, 120)}`);
+      await geste(() => importer.click());
+    }
     const rapport = document.querySelector<HTMLElement>('[aria-label="Rapport d’import"]')?.innerText ?? '';
     if (second) {
       const id = listes.activeListId!, membres = listes.members.filter(m => m.listId === id);

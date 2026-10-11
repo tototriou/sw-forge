@@ -92,9 +92,14 @@ mise à jour fonctionnelle de l’état courant. Une saisie mémorisée, une cr�
 une modification de liste ou une revérification précédant l’import dans le même
 geste reste conservée ; aucun état existant n’est republié depuis un ancien rendu.
 
-Le rapport reste dans le flottant ouvert après le choix : nom de la liste,
+Le rapport se lit dans le flottant : nom de la liste,
 nombre de monstres et d’équipes, membres ignorés et raisons, messages du
-consommateur, dont les leads non appliqués. Il se conserve jusqu’au choix
+consommateur, dont les leads non appliqués. Un import refusé laisse le
+flottant ouvert sur son rapport. Un import réussi le replie, et un bandeau de
+notification confirme « Liste « … » créée · N monstres · N équipes », aux
+deux formats ; au téléphone, « Gérer mes listes » se déplie et s’illumine un
+instant avec la liste active. Le rapport complet se relit en rouvrant les
+sources. Il se conserve jusqu’au choix
 suivant ou au démontage de l’écran. Un seul rapport appartient à l’écran :
 passer du bureau au téléphone le conserve et permet de le relire en rouvrant
 les sources. Si toutes les sources deviennent inutilisables, le bouton reste

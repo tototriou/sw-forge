@@ -90,6 +90,8 @@ export async function scenario(): Promise<[boolean, string][]> {
     if (!source) throw new Error('Source du flottant Optimizer absente.');
     await geste(() => source.click());
     verifier(!rapport(), 'import par le flottant : aucune modale globale');
+    // Réussi, l'import replie les sources ; le rapport se relit en les rouvrant.
+    await geste(() => bouton(document.body, 'Importer une équipe')!.click());
     verifier(document.querySelector<HTMLElement>('[aria-label="Rapport d’import"]')?.innerText.includes('3 monstre(s), 1 équipe(s)') ?? false,
       'import par le flottant : rapport interne lu à l’écran');
   } finally {

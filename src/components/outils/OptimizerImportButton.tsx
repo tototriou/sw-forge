@@ -62,7 +62,9 @@ export default function OptimizerImportButton({ sources, onImporter, rapport, en
           <ZoneCliquable disabled={!source.utilisable} aria-label={source.nom}
             title={source.utilisable ? `${source.nom} — importer dans une nouvelle liste.` : 'Aucun membre résolvable dans cette source.'}
             className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-ink hoverable:bg-accent-soft disabled:text-ink-dimmer"
-            onClick={() => onImporter(source.produire)}>
+            // Réussi, l'import replie les sources (le bandeau le confirme) ;
+            // un refus reste lisible dans le rapport, sources ouvertes.
+            onClick={() => { if (onImporter(source.produire).listeCreee) setOuvert(false); }}>
             <span className="flex flex-none items-center gap-1">
               {source.monstres.slice(0, ICONES_MAX).map((m, j) => <MonsterAvatar key={`${m.id}-${j}`} monster={m} size={26} element={false} />)}
               {source.monstres.length > ICONES_MAX && <span className="text-micro text-ink-dim">+{source.monstres.length - ICONES_MAX}</span>}

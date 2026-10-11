@@ -302,6 +302,9 @@ export async function scenario(nom: string): Promise<[boolean, string][]> {
       const cible = nom === 'defenses' ? 'Défenses de siège' : nom === 'rta' ? 'Prépa RTA' : 'Offense de siège 2 · Monstre 1, Monstre 2, Monstre 1';
       await geste(() => source(cible).click());
       verifier(JSON.stringify(position(ancre)) === avant, `rapport : géométrie de l’ancre intacte ${JSON.stringify(position(ancre))}`);
+      // Réussi, l'import replie les sources ; le rapport se relit en les rouvrant.
+      verifier(ancre.getAttribute('aria-expanded') === 'false', 'import réussi : sources repliées');
+      await geste(() => ancre.click());
       const rapport = [...document.querySelectorAll<HTMLElement>('[aria-label="Rapport d’import"]')].find(visible)!;
       verifier(!!rapport && rapport.textContent!.includes('créée') && rapport.textContent!.includes(nom === 'defenses' ? '7 monstre(s), 2 équipe(s)' : nom === 'rta' ? '1 monstre(s), 0 équipe(s)' : '3 monstre(s), 1 équipe(s)'), 'rapport de création lu à l’écran');
       if (nom === 'defenses') verifier(rapport.textContent!.includes('inconnu : Monstre inconnu.')

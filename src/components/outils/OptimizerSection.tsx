@@ -191,6 +191,7 @@ import {
   Pastille,
   Selecteur,
   ZoneCliquable,
+  useNotifier,
 } from '../../ui';
 import MonsterSourcePicker from './MonsterSourcePicker';
 import OptimizerListPicker from './OptimizerListPicker';
@@ -455,13 +456,26 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
   const [rapportImport, setRapportImport] = useState<RapportImportOptimizer | null>(null);
   // Zone C du téléphone (« Gérer mes listes »), repliée par défaut.
   const [zoneCOpen, setZoneCOpen] = useState(false);
+  const notifier = useNotifier();
+  // Éclat bref de « Gérer mes listes » et de la liste active après un import.
+  const [eclatImport, setEclatImport] = useState(false);
+  useEffect(() => {
+    if (!eclatImport) return;
+    const id = setTimeout(() => setEclatImport(false), 1400);
+    return () => clearTimeout(id);
+  }, [eclatImport]);
   const importerDepuisEcran = useCallback((produire: Parameters<OptimizerState['importerEquipe']>[0]) => {
     const rapport = onImporterEquipe(produire);
     setRapportImport(rapport);
-    // La liste créée s'affiche aussitôt au téléphone, dépliée.
-    if (rapport.listeCreee) setZoneCOpen(true);
+    if (rapport.listeCreee) {
+      // La liste créée s'affiche aussitôt au téléphone, dépliée et illuminée ;
+      // le bandeau dit ce qui a été créé, aux deux formats.
+      setZoneCOpen(true);
+      setEclatImport(true);
+      notifier({ message: `Liste « ${rapport.listeCreee.name} » créée · ${rapport.membresImportes} monstre${rapport.membresImportes > 1 ? 's' : ''} · ${rapport.equipesCreees} équipe${rapport.equipesCreees > 1 ? 's' : ''}` });
+    }
     return rapport;
-  }, [onImporterEquipe]);
+  }, [onImporterEquipe, notifier]);
   const metric = useRuneMetric();
   // ⚠️ Ne sert PAS aux `Segmented` — ils se resserrent tout seuls
   // en mesurant la place qu'ils reçoivent (voir `Segmented.tsx`), ce qu'un
@@ -3822,13 +3836,13 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
             <ZoneCliquable
               onClick={() => setZoneCOpen((v) => !v)}
               aria-expanded={zoneCOpen}
-              className="mt-3 flex w-full items-center gap-1.5 text-[12.5px] font-semibold text-ink-dim"
+              className={`-mx-1 mt-3 flex w-[calc(100%+0.5rem)] items-center gap-1.5 rounded-md px-1 text-[12.5px] font-semibold transition-colors duration-300 motion-reduce:transition-none ${eclatImport ? 'bg-accent-soft text-ink' : 'text-ink-dim'}`}
             >
               Gérer mes listes
               <ChevronDown size={13} className={`ml-auto transition-transform ${zoneCOpen ? 'rotate-180' : ''}`} />
             </ZoneCliquable>
             {zoneCOpen && (
-              <div className="mt-2 space-y-3">
+              <div className={`-mx-1 mt-2 space-y-3 rounded-lg px-1 py-1 transition-colors duration-300 motion-reduce:transition-none ${eclatImport ? 'bg-accent-soft' : ''}`}>
                 <OptimizerListPicker
                   lists={lists.lists}
                   activeListId={lists.activeListId}

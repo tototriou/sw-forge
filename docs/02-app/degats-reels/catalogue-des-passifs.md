@@ -231,7 +231,7 @@ Increases the damage dealt by 50% when you have a Shield. »
   le test dit pourquoi cette lecture est fausse.
 - L'égalisation ATQ/DEF du début de combat (« the value of the lower stat
   will equal that of the higher ») reste hors modèle : mécanisme neuf,
-  marqué « Calcul partiel » ([formules-et-combat.md § Calcul partiel — l'étiquette par identifiant](feat-formules-et-combat.md)).
+  marqué « Calcul partiel » ([feat-formules-et-combat.md § Calcul partiel — l'étiquette par identifiant](feat-formules-et-combat.md)).
 
 **Nouveau `PASSIFS_OFFENSIFS_CONNUS` `conditionnel`** (toggle, formule
 PROPRE au passif, pas un % du total) :

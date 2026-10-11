@@ -158,10 +158,6 @@ ici.
   `StoredAccount` ne garde pas le `wizard_id` : après un rechargement, le
   premier import d'un autre compte que celui conservé ne vide pas
   `excludedSelectors`.
-- **Une liste de travail se remplit un monstre à la fois** : chaque clic
-  sur « Ajouter à la liste » ajoute un exemplaire, sans import d'un deck de
-  siège ou d'une prépa RTA entière :
-  [feat-listes-et-reservation.md § Comparer, valider sans recherche et persistance](feat-listes-et-reservation.md).
 
 ## Dégâts réels
 

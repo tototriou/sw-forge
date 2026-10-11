@@ -135,6 +135,15 @@ réservation de runes`). Moteur `lib/runeBuildOptim.ts`, exécuté dans
 équipement » seul — le reste de l'écran n'est pas encore audité en
 mobile.
 
+Autour de la liste, dans le même dossier : `OptimizerBackupBar` (point de
+sauvegarde des listes : sauvegarder, reprendre), `OptimizerCreateListDialog`
+(création d'une liste et choix de son contenu Guilde / Donjon / Arène),
+`OptimizerEquipeDialog` (édition des membres et du leader d'une équipe de la
+liste), `OptimizerImportButton` (« Importer une équipe » depuis le siège, la
+prépa RTA, les recommandations ou le speed tuning), `OptimizerImportRapport`
+(modale du rapport d'un import, montée par `App`), `OptimizerLeadInactif`
+(l'icône ⚠ qui dit pourquoi le lead d'un membre ne s'applique pas).
+
 **Speed tuning** — `outils/SpeedTuningSection.tsx` (racine) ne fait que
 **rendre** : aucune règle métier n'y vit. Le modèle de l'écran (une `Ligne` =
 un monstre posé dans un camp, et tout ce qu'on en déduit — vitesse de combat,
@@ -234,6 +243,8 @@ dans un composant.
 | Import de compte | `importAccount.ts` (parse SWEX), `applyAccount.ts` (→ états), `accountStore.ts` (IndexedDB), `accountViews.ts` |
 | Monstres | `monsterForms.ts`, `monsterSkills.ts`, `monsterSort.ts`, `collabPairs.ts` |
 | Siège / recos | `recoMatch.ts`, `recoSearch.ts`, `recoShare.ts`, `recoFromSiege.ts`, `recoDefenses.ts`, `ownedBuilds.ts`, `annulerEdition.ts` (« Annuler les modifications » d'une reco ou d'un deck en édition), `reinsererA.ts` (« Annuler » une suppression : l'élément revient à sa place, équipes et recos) |
+| Optimiseur — listes et équipes | `optimizerMemberStorage.ts` (stockage indépendant des membres, de leurs identités et des équipes ; contenu de liste), `equipesOptimizer.ts` (équipes, lead effectif d'un membre selon le contenu), `criteresOptimizer.ts` (classement des champs en critères personnels du membre ou globaux), `optimizerCriteriaOwner.ts` (à quel membre appartiennent les critères affichés), `optimizerRattachement.ts` (re-rattachement des membres et revérification au réimport du compte), `optimizerBackup.ts` (point de sauvegarde des listes), `optimizerListNames.ts` (premier nom « Liste N » libre), `combatListeOptimizer.ts` + `competencesInvocateur.ts` (le contenu de la liste décide des compétences d'invocateur ; lecture commune de ce réglage) |
+| Optimiseur — import d'équipes | `importEquipes.ts` (import commun : rapport, création de liste et d'équipes), `actionImportOptimizer.ts` (action d'import et navigation après acceptation), `importRecoOptimizer.ts` (deck recommandé → membres), `importSpeedTuneOptimizer.ts` (lignes du speed tuning → membres), `deckCompositionOptimizer.ts` (retrouve le deck de siège d'une recommandation ou d'un speed tuning) |
 | Session | `session.ts` (format `swblacksmith/session` : composer, écrire, relire), `sessionOptimizer.ts` (photo de l'Optimiseur), `telechargement.ts` (un texte téléchargé en fichier) |
 | Fichiers exportés | `formatsExport.ts` (identifiant `swblacksmith/<nom>` écrit, l'ancien `sw-forge/<nom>` relu — lu par `rtaShare`, `recoShare`, `siegeShare`, `runeCurveShare`) |
 | Divers | `effects.ts` (codes com2us → libellés), `crafts.ts`, `gearSync.ts`, `detecteurDebordement.ts` (dev seulement), `migrationStockage.ts` (clés de stockage de l'ancien nom) |

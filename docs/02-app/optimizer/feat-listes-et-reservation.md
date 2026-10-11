@@ -137,12 +137,11 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   réel, voir plus bas). Sans liste active, « Créer une liste et y ajouter
   `<monstre>` » crée une liste (prompt du nom) ET y ajoute le monstre dans
   le même geste.
-  Une marque « Critères mémorisés » occupe un emplacement réservé sur chaque
-  ligne ; elle apparaît dès qu'une mémoire existe pour ce membre dans cette
-  liste, sans déplacer la ligne. Le rapport du chargement et les messages de
+  Les lignes ne portent aucune marque de mémoire ni place réservée à celle-ci.
+  Le rapport du chargement et les messages de
   restauration se lisent depuis l’icône ⚠ à place réservée au bout de la
   ligne d’annonce du point de sauvegarde, au bureau et au téléphone. Une
-  mémoire conservée mais inapplicable reste marquée
+  mémoire conservée mais inapplicable reste conservée
   et son refus est dit lorsqu'on choisit le membre.
   Les membres sont regroupés par équipe dans des bandes teintées sans contour,
   avec le numéro, le leader facultatif, la pastille `LeadPill` et le compte des

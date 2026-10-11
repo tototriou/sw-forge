@@ -309,7 +309,7 @@ export async function scenario(nom: string): Promise<[boolean, string][]> {
     const cadre = groupe.getBoundingClientRect();
     verifier(cadre.left >= 0 && cadre.right <= window.innerWidth, 'zone C contenue dans la largeur de l’écran');
     const marque = groupe.querySelector('[aria-label="Critères mémorisés"]');
-    verifier(!!marque && visible(marque), 'marque des membres à mémoire visible');
+    verifier(!marque, 'zone C : aucune marque de mémoire ni place réservée à une marque');
     const ligne = [...groupe.querySelectorAll<HTMLElement>('[role="button"]')].find(e => e.textContent?.includes('Second'))!;
     verifier(!ligne.querySelector('[aria-label="Critères mémorisés"]'), 'membre sans mémoire : marque absente');
     const avant = ligne.getBoundingClientRect();
@@ -319,7 +319,7 @@ export async function scenario(nom: string): Promise<[boolean, string][]> {
     await geste(() => etat.setMinStats({ spd: 175 }));
     const marqueNouvelle = ligne.querySelector('[aria-label="Critères mémorisés"]');
     const fin = ligne.getBoundingClientRect();
-    verifier(!!marqueNouvelle && fin.x === avant.x && fin.y === avant.y && fin.width === avant.width, 'première saisie : marque présente sans déplacer la ligne');
+    verifier(!marqueNouvelle && fin.x === avant.x && fin.y === avant.y && fin.width === avant.width, 'première saisie : aucune marque et ligne toujours à la même place');
     verifier(getComputedStyle(groupe).borderTopWidth === '1px' && getComputedStyle(ligne.parentElement!).borderTopWidth === '1px', 'contours de la zone et des lignes : 1 px');
   }
   return preuves;

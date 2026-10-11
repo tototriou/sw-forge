@@ -1,5 +1,5 @@
 import { Fragment, useCallback, useLayoutEffect, useMemo, useRef, useState, useEffect } from 'react';
-import { cleMemoireMembre, type EquipeOptimizer } from '../../lib/optimizerMemberStorage';
+import type { EquipeOptimizer } from '../../lib/optimizerMemberStorage';
 import { leadEffectifMembreOptimizer } from '../../lib/equipesOptimizer';
 import LeadPill, { STAT_LABEL } from '../siege/LeadPill';
 import OptimizerEquipeDialog from './OptimizerEquipeDialog';
@@ -3445,9 +3445,6 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
                     {m.selector.source === 'unowned' && (
                       <span className="ml-1 text-[10px] font-normal text-ink-dimmer">(non possédé)</span>
                     )}
-                  </span>
-                  <span className="w-4 flex-none text-center text-[12px] text-ink-dim" title={lists.memories.has(cleMemoireMembre(m.listId, m.selector)) ? 'Critères mémorisés' : undefined}>
-                    {lists.memories.has(cleMemoireMembre(m.listId, m.selector)) ? <span aria-label="Critères mémorisés">●</span> : null}
                   </span>
                 </ZoneCliquable>
                 <OptimizerLeadInactif motif={motif} />

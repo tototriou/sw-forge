@@ -170,6 +170,7 @@ import testOptimizerExclusion from './optimizer-exclusion.test';
 import { testListeExemplaires } from './liste-exemplaires.test';
 import { testOptimizerCreationNomParDefaut } from './optimizer-list-names.test';
 import { testRenduOptimizerRechercheCreation, testRenduTelephoneOptimizerRechercheCreation } from './rendu/optimizer-equipes.test';
+import { testRenduOptimizerEditionListe, testRenduTelephoneOptimizerEditionListe } from './rendu/optimizer-equipes.test';
 import { testOptimizerExemplaireMontage } from './optimizer-exemplaire-montage.test';
 import testOptimizerRecipeImportSelection from './optimizer-recipe-import-selection.test';
 import testOptimizerDamageTransitions from './optimizer-damage-transitions.test';
@@ -285,6 +286,8 @@ import testSkillAdapters from './skill-adapters.test';
 const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRenduOptimizerRechercheCreation', testRenduOptimizerRechercheCreation],
   ['testRenduTelephoneOptimizerRechercheCreation', testRenduTelephoneOptimizerRechercheCreation],
+  ['testRenduOptimizerEditionListe', testRenduOptimizerEditionListe],
+  ['testRenduTelephoneOptimizerEditionListe', testRenduTelephoneOptimizerEditionListe],
   ['testRenduMemoireOptimizerSelection', testRenduMemoireOptimizerSelection],
   ['testRenduMemoireOptimizerIdentiteEnregistree', testRenduMemoireOptimizerIdentiteEnregistree],
   ['testRenduRattachementOptimizer', testRenduRattachementOptimizer],

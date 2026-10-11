@@ -4,6 +4,7 @@ import type { ExclusionSelector } from '../../src/lib/optimizerExclusion';
 import { cleMemoireMembre } from '../../src/lib/optimizerMemberStorage';
 import { parseOptimizerRecipe } from '../../src/lib/optimizerRecipe';
 import { resolvedLeaderSkill } from '../../src/lib/damage';
+import { boutonListeActive, editerContenuListe } from './optimizer-listes-preuves';
 
 interface Banc {
   etat: () => OptimizerState;
@@ -108,9 +109,7 @@ export async function preuvesContenuSansDeplacement(b: Banc): Promise<[boolean, 
   const preuves: [boolean, string][] = [], verifier = (oui: boolean, texte: string) => preuves.push([oui, texte]);
   const pli = bouton(['Gérer mes listes']);
   if (pli) await b.geste(() => pli.click());
-  const contenu = [...document.querySelectorAll<HTMLSelectElement>('[aria-label="Contenu de la liste"]')].find(visible)!;
-  const liste = [...document.querySelectorAll<HTMLButtonElement>('button[aria-expanded]')]
-    .find(e => visible(e) && e.textContent?.trim() === 'Alpha')!;
+  const liste = boutonListeActive();
   const message = [...document.querySelectorAll<HTMLParagraphElement>('p')]
     .find(e => visible(e) && e.textContent === 'Sans contenu : aucun lead d’équipe appliqué.')!;
   const zone = [...document.querySelectorAll<HTMLElement>('[aria-label="Rapport des critères"]')].find(visible)!.parentElement!;
@@ -119,15 +118,15 @@ export async function preuvesContenuSansDeplacement(b: Banc): Promise<[boolean, 
     const { x, y, width, height } = e.getBoundingClientRect();
     return { x, y, width, height };
   };
-  const cibles = [liste, contenu, ...controles], avant = cibles.map(position);
+  const cibles = [liste, ...controles], avant = cibles.map(position);
   verifier(!b.listes().listContents.has('a') && visible(message) && controles.length >= 7,
-    'liste historique : message visible et sélecteurs ainsi que contrôles de la zone C mesurés');
+    'liste historique : message visible et liste ainsi que contrôles de la zone C mesurés');
   for (const valeur of ['guilde', 'donjon', 'arene']) {
-    await b.geste(() => { contenu.value = valeur; contenu.dispatchEvent(new Event('change', { bubbles: true })); });
+    await editerContenuListe(b, valeur);
     const apres = cibles.map(position);
-    verifier(contenu.value === valeur && b.listes().listContents.get('a') === valeur, `contenu ${valeur} choisi par le menu`);
+    verifier(b.listes().listContents.get('a') === valeur, `contenu ${valeur} choisi par l’édition`);
     verifier(cibles.every(e => e.isConnected) && JSON.stringify(avant) === JSON.stringify(apres),
-      `choix ${valeur} : mêmes positions et dimensions des deux sélecteurs et des ${controles.length} contrôles de la zone C — ${JSON.stringify({ avant, apres })}`);
+      `choix ${valeur} : mêmes positions et dimensions de la liste et des ${controles.length} contrôles de la zone C — ${JSON.stringify({ avant, apres })}`);
     verifier(message.isConnected && getComputedStyle(message).visibility === 'hidden' && message.getAttribute('aria-hidden') === 'true',
       `contenu ${valeur} : message toujours monté, invisible et absent de l’arbre accessible`);
   }
@@ -139,18 +138,16 @@ export async function preuvesLigneListe(b: Banc): Promise<[boolean, string][]> {
   const pli = bouton(['Gérer mes listes']);
   const telephone = !!pli;
   if (pli) await b.geste(() => pli.click());
-  const liste = [...document.querySelectorAll<HTMLButtonElement>('button[aria-expanded]')].find(e => visible(e) && e.textContent?.trim() === 'Alpha')!;
-  const contenu = [...document.querySelectorAll<HTMLSelectElement>('[aria-label="Contenu de la liste"]')].find(visible)!;
+  const liste = boutonListeActive();
   const libelle = (texte: string) => [...document.querySelectorAll<HTMLParagraphElement>('p')].find(e => visible(e) && e.textContent === texte)!;
   const r = (e: Element) => e.getBoundingClientRect();
   const memeLigne = (a: Element, c: Element) => Math.abs(r(a).top - r(c).top) < 1 && Math.abs(r(a).bottom - r(c).bottom) < 1;
-  verifier(!!liste && !!contenu && memeLigne(liste, contenu) && r(liste).right <= r(contenu).left,
-    `« Liste active » puis « Contenu » sur une même ligne, même hauteur — ${JSON.stringify([r(liste), r(contenu)].map(x => [x.left, x.top, x.width, x.height]))}`);
-  verifier([[libelle('Liste active'), liste], [libelle('Contenu'), contenu]].every(([l, c]) => !!l && r(l).bottom <= r(c).top
-    && r(l).left >= r(c).left - 1 && r(l).left < r(c).right), 'chaque menu a son libellé au-dessus de lui');
+  verifier(!!liste && liste.textContent === 'Alpha - Sans contenu' && ![...document.querySelectorAll('[aria-label="Contenu de la liste"]')].some(visible),
+    'liste active : Nom - Sans contenu et aucun sélecteur de contenu sur la page');
+  verifier(r(libelle('Liste active')).bottom <= r(liste).top, 'liste active : libellé au-dessus');
   const importer = [...document.querySelectorAll<HTMLButtonElement>('button')].find(e => visible(e) && e.textContent?.trim() === 'Importer une équipe')!;
   verifier(telephone ? r(importer).bottom <= r(libelle('Liste active')).top || r(importer).top >= r(liste).bottom
-    : memeLigne(importer, liste) && r(contenu).right <= r(importer).left,
+    : memeLigne(importer, liste) && r(liste).right <= r(importer).left,
     telephone ? 'téléphone : « Importer une équipe » reste hors de la ligne des menus'
       : `bureau : « Importer une équipe » au bout de la même ligne, même hauteur — ${JSON.stringify([r(importer).top, r(importer).height])}`);
   verifier(document.documentElement.scrollWidth <= window.innerWidth, 'ligne contenue dans la largeur, sans défilement horizontal');

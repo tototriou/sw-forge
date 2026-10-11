@@ -266,7 +266,7 @@ export async function scenario(nom: string): Promise<[boolean, string][]> {
     verifier(!!choisi, 'le monstre choisi reste entre sa recherche et les contrôles de liste, sans bouton intercalé');
     const pliListe = bouton('Gérer mes listes');
     if (pliListe) await geste(() => pliListe.click());
-    const selecteurListe = bouton('Ancienne');
+    const selecteurListe = bouton('Ancienne - Guilde');
     const ecartListe = position(selecteurListe).y - position(ancre).y - position(ancre).height;
     // Bureau : au bout de la ligne des menus ; téléphone : juste au-dessus, libellés compris.
     verifier(pliListe ? ecartListe >= 0 && ecartListe <= 60 && position(selecteurListe).x === position(ancre).x

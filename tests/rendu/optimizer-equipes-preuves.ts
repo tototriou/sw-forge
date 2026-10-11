@@ -3,6 +3,7 @@ import type { UseOptimizerLists } from '../../src/hooks/useOptimizerLists';
 import type { ExclusionSelector } from '../../src/lib/optimizerExclusion';
 import { cleMemoireMembre } from '../../src/lib/optimizerMemberStorage';
 import { retirerMembreEquipeOptimizer } from '../../src/lib/equipesOptimizer';
+import { editerContenuListe } from './optimizer-listes-preuves';
 
 interface Banc {
   etat: () => OptimizerState;
@@ -83,7 +84,7 @@ export async function preuvesLeadEquipeOptimizer(b: Banc): Promise<[boolean, str
 export async function preuvesDialogueEquipeOptimizer(b: Banc): Promise<[boolean, string][]> {
   const preuves: [boolean, string][] = [], verifier = (oui: boolean, texte: string) => preuves.push([oui, texte]);
   await ouvrirListe(b);
-  await choisirMenu(b, 'Contenu de la liste', 'guilde');
+  await editerContenuListe(b, 'guilde');
   const ancre = bouton('Lier une équipe'), avant = ancre.getBoundingClientRect();
   await b.geste(() => ancre.click());
   const apres = ancre.getBoundingClientRect();
@@ -133,7 +134,7 @@ export async function preuvesContenuCreationOptimizer(b: Banc): Promise<[boolean
   await b.geste(() => bouton('Créer', dialogue).click());
   const id = b.listes().activeListId!;
   verifier(b.listes().lists.length === 3 && b.listes().listContents.get(id) === 'donjon', 'création manuelle depuis le menu : contenu choisi et liste active');
-  await choisirMenu(b, 'Contenu de la liste', 'arene');
+  await editerContenuListe(b, 'arene');
   verifier(b.listes().listContents.get(id) === 'arene', 'contenu modifiable depuis la liste affichée');
   verifier(document.documentElement.scrollWidth <= window.innerWidth, 'création et sélecteur contenus dans le format');
   return preuves;

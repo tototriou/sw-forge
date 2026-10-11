@@ -3698,10 +3698,9 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
                 activeListId={lists.activeListId}
                 memberCounts={memberCountsByList}
                 listContents={lists.listContents}
-                onContent={lists.setListContent}
                 onSelect={lists.setActiveListId}
                 onCreate={lists.createList}
-                onRename={lists.renameList}
+                onEdit={lists.editList}
                 onDelete={lists.deleteList}
               />
             </div>
@@ -3788,10 +3787,9 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
                   activeListId={lists.activeListId}
                   memberCounts={memberCountsByList}
                   listContents={lists.listContents}
-                  onContent={lists.setListContent}
                   onSelect={lists.setActiveListId}
                   onCreate={lists.createList}
-                  onRename={lists.renameList}
+                  onEdit={lists.editList}
                   onDelete={lists.deleteList}
                 />
                 {zoneCContent}

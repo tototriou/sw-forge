@@ -252,6 +252,8 @@ les rejets dont le `listId` lisible la désigne ; les autres restent.
 nouvelle liste. Un nom vide devient le premier « Liste N » libre parmi les
 noms existants. `setListContent` modifie seulement
 une liste existante avec un contenu admis, sans toucher aux rejets conservés.
+`editList` publie le nom non vide et le contenu choisi d’une liste existante
+en une seule écriture ; membres, mémoires, équipes et rejets sont conservés.
 
 ## Modèle pur des équipes
 

@@ -175,6 +175,13 @@ export function testOptimizerContenuListeCreationEtModification() {
     lu.setListContent('l1', 'arene'); lu = h.render();
     egal(lireMembresOptimizer(disque.get(CLE)!).listContents.get('l1'), 'arene', 'modification persistée');
     egal(JSON.stringify({ teams: lu.teams, memories: [...lu.memories], rejets: lu.rejets }), initial, 'équipes, critères personnels et rejets intacts');
+    lu.editList('l1', '  Liste éditée  ', 'guilde'); lu = h.render();
+    egal(lu.lists.find(l => l.id === 'l1')?.name, 'Liste éditée', 'édition : nom choisi');
+    egal(lu.listContents.get('l1'), 'guilde', 'édition : contenu choisi dans le même geste');
+    egal(JSON.stringify({ teams: lu.teams, memories: [...lu.memories], rejets: lu.rejets }), initial, 'édition : équipes, critères personnels et rejets intacts');
+    lu.editList('absente', 'Nom', 'donjon'); lu.editList('l1', '', 'donjon'); lu = h.render();
+    ok(!lu.listContents.has('absente') && lu.listContents.get('l1') === 'guilde', 'édition refusée avec cible absente ou nom vide');
+    lu.setListContent('l1', 'arene'); lu = h.render();
     lu.setListContent('absente', 'guilde'); lu.setListContent('l1', 'inconnu' as ContenuListeOptimizer); lu = h.render();
     ok(!lu.listContents.has('absente') && lu.listContents.get('l1') === 'arene', 'cible absente et contenu inconnu refusés');
   } finally { setPersistence(false); }

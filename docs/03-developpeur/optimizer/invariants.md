@@ -270,6 +270,8 @@ Une entrée = une règle qu'un chantier qui l'ignore casse, avec sa source. Ce f
 
 ## UI
 
+- « Éditer la liste » garde un brouillon de nom et de contenu jusqu’à « Enregistrer », qui les publie ensemble sans retirer membres, mémoires, équipes ni rejets. La liste active et le menu affichent « Nom - Contenu », ou « Sans contenu » pour une liste antérieure ; le contenu se règle seulement dans le dialogue. Sources : ../../02-app/optimizer/feat-listes-et-reservation.md § Créer, valider et réserver dans une liste ; ../../02-app/optimizer/feat-listes-equipes-et-sauvegarde.md § Contenu de combat des listes
+
 - L’export de « Ma prépa » prend toute la prépa et ses vitesses, indépendamment des filtres ; l’export d’un deck recommandé prend ce seul deck, avec les exemplaires de la confrontation commune. Les deux réutilisent les producteurs et l’action commune avec navigation ; sans compte ou membre importable, ils se désactivent avec raison, dérivée des sources. Source : ../../02-app/optimizer/feat-import-equipes.md § Exporter la prépa RTA et un deck recommandé
 - L’export du speed tuning dérive sa disponibilité du producteur sur les lignes et sources actuelles, avec désactivation motivée sans compte ou membre importable. La page et la modale appellent la même action commune ; la modale transmet son `DeckInitial` et se ferme seulement après création de la liste, jamais sur refus. Source : ../../02-app/speed-tuning/feat-export-optimizer.md § Action et disponibilité ; ../../02-app/speed-tuning/feat-export-optimizer.md § Page et modale
 

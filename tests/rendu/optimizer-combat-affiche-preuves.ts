@@ -3,6 +3,7 @@ import type { UseOptimizerLists } from '../../src/hooks/useOptimizerLists';
 import type { ExclusionSelector } from '../../src/lib/optimizerExclusion';
 import type { SearchParams } from '../../src/lib/runeBuildOptim';
 import { cleMemoireMembre } from '../../src/lib/optimizerMemberStorage';
+import { editerContenuListe } from './optimizer-listes-preuves';
 
 interface Banc {
   etat: () => OptimizerState;
@@ -96,9 +97,9 @@ export async function preuvesCombatAfficheOptimizer(b: Banc): Promise<[boolean, 
     await choisirMenu(b, 'Valeur du lead de l’équipe', '33', dialogue);
     await b.geste(() => bouton('Enregistrer', dialogue).click());
     await constater('Lead changé dans le dialogue', 'Attack Speed', 'VIT', '33');
-    await choisirMenu(b, 'Contenu de la liste', 'donjon');
+    await editerContenuListe(b, 'donjon');
     await constater('Contenu incompatible', '', 'Aucun', null, true);
-    await choisirMenu(b, 'Contenu de la liste', 'guilde');
+    await editerContenuListe(b, 'guilde');
     await constater('Contenu de nouveau compatible', 'Attack Speed', 'VIT', '33');
     dialogue = await ouvrirEquipe();
     await b.geste(() => dialogue.querySelectorAll<HTMLInputElement>('input[type="checkbox"]')[0].click());

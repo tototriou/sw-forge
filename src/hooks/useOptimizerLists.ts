@@ -139,6 +139,7 @@ export interface UseOptimizerLists {
   createList: (name: string, contenu: ContenuListeOptimizer) => string;
   setListContent: (id: string, contenu: ContenuListeOptimizer) => void;
   renameList: (id: string, name: string) => void;
+  editList: (id: string, name: string, contenu: ContenuListeOptimizer) => void;
   /** Supprime la liste ET tout ce qui lui appartient (membres, builds validés). */
   deleteList: (id: string) => void;
   members: OptimizerListMember[];
@@ -269,6 +270,13 @@ export function useOptimizerLists(): UseOptimizerLists {
 
   const renameList = useCallback((id: string, name: string) => {
     setState((s) => ({ ...s, lists: s.lists.map((l) => (l.id === id ? { ...l, name } : l)) }));
+  }, [setState]);
+
+  const editList = useCallback((id: string, name: string, contenu: ContenuListeOptimizer) => {
+    if (!name.trim() || !contenuListeValide(contenu)) return;
+    setState(s => !s.lists.some(l => l.id === id) ? s : { ...s,
+      lists: s.lists.map(l => l.id === id ? { ...l, name: name.trim() } : l),
+      memberStorage: { ...s.memberStorage, raw: null, listContents: new Map(s.memberStorage.listContents).set(id, contenu) } });
   }, [setState]);
 
   const deleteList = useCallback((id: string) => {
@@ -465,6 +473,7 @@ export function useOptimizerLists(): UseOptimizerLists {
     createList,
     setListContent,
     renameList,
+    editList,
     deleteList,
     members: state.members,
     addMember,

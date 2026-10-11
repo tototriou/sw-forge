@@ -25,9 +25,9 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
 
 ## Créer, valider et réserver dans une liste
 
-- **Aucune liste fixe** — l'utilisateur en crée, renomme et supprime
+- **Aucune liste fixe** — l'utilisateur en crée, édite et supprime
   librement (`OptimizerListPicker.tsx`, menu déroulant : crayon de
-  renommage, corbeille de suppression par ligne, « Nouvelle liste… »
+  édition, corbeille de suppression par ligne, « Nouvelle liste… »
   précédé d'un signe plus, en bas). Le menu est un `Flottant` : il ne
   pousse jamais la zone C. Ne pas le remplacer par une rangée de puces,
   qui défilerait latéralement dès quelques listes. Supprimer une liste efface son appartenance et ses runes
@@ -38,16 +38,18 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   (Guilde, Donjon, Arène), sans contenu présélectionné, y compris « Créer et ajouter » et
   « Créer et valider ». L’action reste désactivée sans contenu. Un nom vide
   devient « Liste N », avec le premier entier positif libre parmi les noms
-  existants ; le champ vide propose ce nom. Le contenu est affiché avec chaque liste dans le
-  menu et modifiable à côté de la liste active : « Liste active » et
-  « Contenu » partagent une ligne, chacun avec son libellé au-dessus, au
-  bureau comme au téléphone ; le menu du contenu garde une largeur fixe et
-  reste affiché, désactivé, sans liste active. Une liste antérieure sans
+  existants ; le champ vide propose ce nom. « Éditer la liste » ouvre une
+  fenêtre avec nom et contenu préremplis, modifiables ensemble. Le brouillon
+  ne change rien avant « Enregistrer » ; annuler le laisse sans effet.
+  En édition, l’enregistrement exige un nom non vide et un contenu choisi.
+  La liste active et les lignes du menu affichent « Nom - Contenu », au
+  bureau comme au téléphone. Le contenu se modifie seulement dans cette
+  fenêtre ; aucun sélecteur de contenu ne reste sur la page. Une liste antérieure sans
   contenu affiche « Sans contenu : aucun lead d’équipe appliqué. » ;
   aucun contenu n’est choisi pour elle automatiquement.
   Cette phrase reste montée avec sa place réservée et devient invisible
   dès qu’un contenu est choisi, au bureau comme au téléphone : le choix
-  ne déplace ni le sélecteur de liste, ni celui du contenu, ni les contrôles
+  ne déplace ni le sélecteur de liste ni les contrôles
   de la zone C.
 - **« Valider ce build »**, sur chaque carte de résultat — réserve les 6
   runes de CE résultat dans la liste active : elles n'apparaissent plus

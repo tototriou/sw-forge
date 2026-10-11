@@ -169,8 +169,10 @@ import testFilterSlotTopK from './rune-optim-filterslot-topk.test';
 import testOptimizerExclusion from './optimizer-exclusion.test';
 import { testListeExemplaires } from './liste-exemplaires.test';
 import { testOptimizerCreationNomParDefaut } from './optimizer-list-names.test';
+import { testOptimizerCompetencesContenu } from './optimizer-summoner-content.test';
 import { testRenduOptimizerRechercheCreation, testRenduTelephoneOptimizerRechercheCreation } from './rendu/optimizer-equipes.test';
 import { testRenduOptimizerEditionListe, testRenduTelephoneOptimizerEditionListe } from './rendu/optimizer-equipes.test';
+import { testRenduOptimizerCompetencesListe, testRenduTelephoneOptimizerCompetencesListe } from './rendu/optimizer-equipes.test';
 import { testOptimizerExemplaireMontage } from './optimizer-exemplaire-montage.test';
 import testOptimizerRecipeImportSelection from './optimizer-recipe-import-selection.test';
 import testOptimizerDamageTransitions from './optimizer-damage-transitions.test';
@@ -284,10 +286,13 @@ import testSkillAdapters from './skill-adapters.test';
 // Sans argument, tout tourne — c'est ce que fait `npm test`, et ce qu'il FAUT
 // faire avant une fusion sur `main` (voir CLAUDE.md).
 const VERIFICATIONS: [string, () => void | Promise<void>][] = [
+  ['testOptimizerCompetencesContenu', testOptimizerCompetencesContenu],
   ['testRenduOptimizerRechercheCreation', testRenduOptimizerRechercheCreation],
   ['testRenduTelephoneOptimizerRechercheCreation', testRenduTelephoneOptimizerRechercheCreation],
   ['testRenduOptimizerEditionListe', testRenduOptimizerEditionListe],
   ['testRenduTelephoneOptimizerEditionListe', testRenduTelephoneOptimizerEditionListe],
+  ['testRenduOptimizerCompetencesListe', testRenduOptimizerCompetencesListe],
+  ['testRenduTelephoneOptimizerCompetencesListe', testRenduTelephoneOptimizerCompetencesListe],
   ['testRenduMemoireOptimizerSelection', testRenduMemoireOptimizerSelection],
   ['testRenduMemoireOptimizerIdentiteEnregistree', testRenduMemoireOptimizerIdentiteEnregistree],
   ['testRenduRattachementOptimizer', testRenduRattachementOptimizer],

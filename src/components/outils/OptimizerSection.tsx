@@ -543,7 +543,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     // Le getter lit les refs vivantes du hook ; ces dépendances publient
     // leurs changements sans recopier le lead d'équipe dans l'état personnel.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [lireCombatMembre, damageSetupPersonnel, lists.teams, lists.listContents, optimizer.proprietaireCriteres, box, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, allMonsters]);
+    [lireCombatMembre, damageSetupPersonnel, lists.teams, lists.listContents, lists.activeListId, lists.lists, optimizer.proprietaireCriteres, box, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, allMonsters]);
   const damageSetup = combatMembre.setup;
   // `relicContextRecherche` : le contexte relique de la recherche LANCÉE
   // — `undefined` tant que l'écran n'en pose pas dans `run()` ; la file de
@@ -640,8 +640,9 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
    * Ce que l'état du monstre suppose, en une ligne — l'écho posé dans le
    * sous-titre de la fenêtre « Dégâts réels ».
    *
-   * ⚠️ **En lecture seule, jamais des contrôles.** Ces réglages vivent dans
-   * la carte « État de mon monstre » ; les rendre AUSSI dans la fenêtre en
+   * ⚠️ **En lecture seule, jamais des contrôles.** Les réglages manuels vivent dans
+   * la carte « État de mon monstre » ; les compétences viennent du contenu
+   * de la liste. Rendre ces réglages AUSSI dans la fenêtre en
    * ferait deux exemplaires vivants du même interrupteur, visibles en même
    * temps. Qui ouvre la fenêtre pour décrire un combat doit néanmoins savoir
    * sous quelles hypothèses il travaille — d'où la phrase, et rien de plus.
@@ -1945,9 +1946,9 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
       wizardName: accountName,
       requirement,
       objective,
-      // Les critères personnels du membre, lead personnel compris : le lead
-      // d'une équipe appartient à la liste, pas à la recette.
-      damageSetup: damageSetupPersonnel,
+      // Le lead reste personnel ; les compétences portent le mode effectif
+      // décidé par le contenu, pour reproduire la recherche sans liste au CLI.
+      damageSetup: { ...damageSetupPersonnel, summonerSkills: damageSetup.summonerSkills },
       compterAurasResPre,
       metric,
       slotFilterPreset,

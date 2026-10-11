@@ -19,7 +19,7 @@ import { preuvesRecetteLeadEquipe, preuvesLeadAncienHorsEquipe, preuvesContenuSa
 import { preuvesCombatAfficheOptimizer } from './optimizer-combat-affiche-preuves';
 import { preuvesPointOptimizer } from './optimizer-backup-preuves';
 import { preuvesBandesEquipes } from './optimizer-bandes-preuves';
-import { preuvesRechercheCreationOptimizer, preuvesEditionListeOptimizer } from './optimizer-listes-preuves';
+import { preuvesRechercheCreationOptimizer, preuvesEditionListeOptimizer, preuvesCompetencesListeOptimizer } from './optimizer-listes-preuves';
 
 export const premier: ExclusionSelector = { source: 'box', unitKey: '11' };
 export const second: ExclusionSelector = { source: 'box', unitKey: '22' };
@@ -132,6 +132,7 @@ export async function scenario(nom: string): Promise<[boolean, string][]> {
   const bancEquipes = { etat: () => etat, listes: () => listes, geste, premier, second, troisieme };
   if (nom === 'recherche-creation') return preuvesRechercheCreationOptimizer(bancEquipes);
   if (nom === 'edition-liste') return preuvesEditionListeOptimizer(bancEquipes);
+  if (nom === 'competences-liste') return preuvesCompetencesListeOptimizer(bancEquipes);
   if (nom === 'bandes-equipes') return preuvesBandesEquipes(bancEquipes);
   if (nom === 'combat-affiche') return preuvesCombatAfficheOptimizer(bancEquipes);
   if (nom === 'recette-lead-equipe') return preuvesRecetteLeadEquipe(bancEquipes);

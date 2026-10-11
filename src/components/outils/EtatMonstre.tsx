@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
-import { ArtifactDamageProfile, DamageSetup, LEADER_SKILL_STATS, LEADER_SKILL_VALEURS, LeaderSkillStat, SUMMONER_SKILLS_LABELS, SummonerSkills, type SetAura } from '../../lib/damage';
+import { ArtifactDamageProfile, DamageSetup, LEADER_SKILL_STATS, LEADER_SKILL_VALEURS, LeaderSkillStat, type SetAura } from '../../lib/damage';
 import { leadIconUrl, STAT_LABEL } from '../siege/LeadPill';
-import { Bouton, BoutonIcone, Jeton, NumberField, Segmented, Selecteur } from '../../ui';
+import { Bouton, BoutonIcone, Jeton, NumberField, Selecteur } from '../../ui';
 import type { RappelBuffDePassif } from '../../lib/buffsDePassif';
 import HelpPopover from '../HelpPopover';
 import EffetVignette from './EffetVignette';
@@ -32,10 +32,10 @@ import {
  * dégâts supplémentaires bruts des artéfacts (codes 218-221), affichés quel
  * que soit l'objectif. Un joueur optimisant l'efficience subissait donc des
  * buffs qu'il ne pouvait ni voir ni régler. Aucun champ n'est créé ici : ce
- * sont les mêmes `DamageSetup.atkBuff`/`defBuff`/`spdBuff`/`leaderSkill`/
- * `summonerSkills`, montrés ailleurs.
+ * sont les mêmes `DamageSetup.atkBuff`/`defBuff`/`spdBuff`/`leaderSkill`
+ * montrés ici. Les compétences d'invocateur sont dérivées du contenu de la liste.
  *
- * Un sixième contexte s'y ajoute : les sets
+ * Un contexte d'équipe s'y ajoute : les sets
  * d'aura des AUTRES monstres de l'équipe (`DamageSetup.setsAuraExternes`),
  * jusque-là saisissables seulement dans une recette — voir
  * `AurasExternesSaisie` plus bas.
@@ -105,17 +105,17 @@ export default function EtatMonstre({
         </HelpPopover>
       </div>
 
-      {/* ⚠️ **Les trois groupes sur UNE rangée** (demande explicite) : buffs,
-          leader skill et invocateur décrivent la même chose — l'état du
-          monstre — et les empiler sur trois lignes donnait à la carte une
+      {/* ⚠️ **Les deux groupes sur UNE rangée** : buffs et
+          leader skill décrivent la même chose — l'état du
+          monstre — et les empiler sur deux lignes donnait à la carte une
           hauteur sans rapport avec le peu qu'elle contient.
           ⚠️ `flex-wrap` et non une rangée rigide : au doigt, ou dans une
           colonne étroite, ils repassent à la ligne d'eux-mêmes plutôt que de
           comprimer les contrôles sous leur taille de cible. `gap-x-4` sépare
           les groupes plus franchement que `gap-y-2` ne sépare les lignes, pour
-          qu'on lise trois groupes et non une file de contrôles. */}
-      {/* ⚠️ **Trois BOÎTES, pas des barres verticales.** Une barre (`border-r`
-          sur les deux premiers groupes) aurait été plus légère — c'est le
+          qu'on lise deux groupes et non une file de contrôles. */}
+      {/* ⚠️ **Deux BOÎTES, pas des barres verticales.** Une barre (`border-r`
+          sur le premier groupe) aurait été plus légère — c'est le
           patron des deux colonnes de « Critères de recherche ». Mais ces
           groupes-ci sont en `flex-wrap` : dès qu'un passe à la ligne, sa barre
           se retrouve à pendre dans le vide au bout d'une rangée. Un contour
@@ -123,7 +123,7 @@ export default function EtatMonstre({
           ⚠️ Un SEUL contour, jamais deux superposés (docs/03-developpeur/interface/) :
           ces boîtes sont à l'intérieur de la carte, elles ne longent pas son
           bord. Même patron que les groupes du panneau « Options » mobile.
-          ⚠️ `items-stretch` : les trois boîtes prennent la hauteur de la plus
+          ⚠️ `items-stretch` : les deux boîtes prennent la hauteur de la plus
           haute. Sans lui, une boîte d'une rangée flottait au milieu d'une
           boîte de deux, et l'œil lisait un décalage plutôt qu'un groupe. */}
       <div className="flex flex-wrap items-stretch gap-2">
@@ -155,46 +155,12 @@ export default function EtatMonstre({
         />
       </div>
 
-      {/* La boîte est posée ICI et non dans le composant : les trois contours
+      {/* La boîte est posée ICI et non dans le composant : les deux contours
           se lisent alors d'un coup dans ce fichier, et se corrigent ensemble. */}
       <div className="flex items-center rounded-lg border border-border-soft bg-panel2 px-2 py-1.5">
         <LeaderSkillPicker setup={setup} maj={maj} />
       </div>
 
-      {/* ⚠️ **Libellé AU-DESSUS des crans, pas à leur gauche** (demande
-          explicite) : côte à côte, « Invocateur » et ses deux crans
-          formaient le groupe le plus large des trois et poussaient la rangée
-          à se replier plus tôt. Empilé, le groupe ne fait plus que la largeur
-          du segmenté.
-          ⚠️ **Sans changer la hauteur de la carte** : le groupe passe à deux
-          rangées, mais le voisin « Lead » en fait déjà deux et `items-stretch`
-          aligne les trois boîtes sur la plus haute. Celle-ci reste donc celle
-          du lead — l'invocateur se contente de remplir la place qui existait
-          déjà. */}
-      <div className="flex flex-col gap-1 rounded-lg border border-border-soft bg-panel2 px-2 py-1.5">
-        {/* `justify-center` : le libellé se centre sur le segmenté en dessous,
-            qui est plus large que lui (demande explicite). */}
-        <div className="flex items-center justify-center gap-1.5">
-        <span className="text-xs text-ink-dim">Invocateur</span>
-        <HelpPopover title="Compétences d'invocateur">
-          Remplacent les anciens <b className="text-ink">totems</b> (onglet Combat) et{' '}
-          <b className="text-ink">drapeaux</b> de Guerre de Guilde (onglet Guilde), toujours supposées{' '}
-          <b className="text-ink">maxées</b>. <b className="text-ink">Combat</b> s&apos;applique partout ;{' '}
-          <b className="text-ink">Combat + Guilde</b> n&apos;a de sens qu&apos;en contenu de guilde, où les
-          compétences de Combat comptent aussi — d&apos;où un choix unique plutôt que deux cases. La
-          compétence <b className="text-ink">« Puis. d&apos;att. de {'<'}élément{'>'} »</b> est appliquée selon
-          l&apos;élément du monstre, sans rien demander.
-        </HelpPopover>
-        </div>
-        {/* `size="sm"` et non `lg` : dans une carte étroite,
-            la taille d'origine (héritée d'une carte pleine largeur) débordait. */}
-        <Segmented<SummonerSkills>
-          options={SUMMONER_SKILLS_LABELS}
-          value={setup.summonerSkills}
-          onChange={(v) => maj({ summonerSkills: v })}
-          size="sm"
-        />
-      </div>
       </div>
       {equipe && <p className="h-20 overflow-y-auto text-xs text-ink-dim">Lead effectif de l’équipe : le modifier change le lead de toute l’équipe. Chaque membre le garde en quittant l’équipe.
         {motifLead && <span className="block text-warn">{motifLead}</span>}
@@ -241,9 +207,9 @@ export default function EtatMonstre({
         </div>
       ) : null}
 
-      {/* ⚠️ **Sous la rangée des trois groupes, pas à côté** : la saisie des
+      {/* ⚠️ **Sous la rangée des deux groupes, pas à côté** : la saisie des
           auras grandit d'une ligne par set, et la rangée « une seule ligne »
-          (demande explicite) n'a pas à la porter. Même boîte que les trois
+          (demande explicite) n'a pas à la porter. Même boîte que les deux
           groupes — un seul contour, à l'intérieur de la carte.
           ⚠️ **En dernier dans la carte** : ajouter une ligne ne pousse que
           vers le BAS, rien de ce qui précède — ni le bouton d'ajout, fixe en

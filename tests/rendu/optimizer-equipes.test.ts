@@ -21,6 +21,8 @@ export const testRenduOptimizerRechercheCreation = () => verifier('recherche-cre
 export const testRenduTelephoneOptimizerRechercheCreation = () => verifier('recherche-creation', true);
 export const testRenduOptimizerEditionListe = () => verifier('edition-liste');
 export const testRenduTelephoneOptimizerEditionListe = () => verifier('edition-liste', true);
+export const testRenduOptimizerCompetencesListe = () => verifier('competences-liste');
+export const testRenduTelephoneOptimizerCompetencesListe = () => verifier('competences-liste', true);
 export const testRenduOptimizerRefusIdentitePerime = () => verifier('refus-identite-perime');
 export const testRenduTelephoneOptimizerRefusIdentitePerime = () => verifier('refus-identite-perime', true);
 export const testRenduOptimizerRecetteLeadEquipe = () => verifier('recette-lead-equipe');

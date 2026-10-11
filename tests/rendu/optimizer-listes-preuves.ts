@@ -1,6 +1,8 @@
 import type { OptimizerState } from '../../src/hooks/useOptimizerState';
 import type { UseOptimizerLists } from '../../src/hooks/useOptimizerLists';
 import { cleMemoireMembre } from '../../src/lib/optimizerMemberStorage';
+import { buildOptimizerRecipe, parseOptimizerRecipe } from '../../src/lib/optimizerRecipe';
+import { DEFAULT_DAMAGE_SETUP } from '../../src/lib/damage';
 
 interface Banc {
   etat: () => OptimizerState;
@@ -94,5 +96,58 @@ export async function preuvesRechercheCreationOptimizer(b: Banc): Promise<[boole
     'exemplaire choisi ajouté avec sa mémoire et le bon propriétaire');
   await rechercher(b);
   verifier(!document.querySelector('[role="dialog"]') && b.listes().lists.length === 3, 'recherche avec liste active : aucune création');
+  return preuves;
+}
+
+export async function preuvesCompetencesListeOptimizer(b: Banc): Promise<[boolean, string][]> {
+  const preuves: [boolean, string][] = [], verifier = (oui: boolean, texte: string) => preuves.push([oui, texte]);
+  await b.geste(() => { b.etat().effacerProprietaireCriteres(); b.etat().setObjective('degats_reels'); b.etat().setDamageSetup(s => ({ ...s, summonerSkills: 'guilde' })); });
+  const memorise = JSON.stringify([...b.listes().memories]);
+  async function constater(mode: 'combat' | 'guilde', etape: string) {
+    verifier(b.etat().lireCombatMembre().setup.summonerSkills === mode, `${etape} : combat lu depuis le contenu, sans propriétaire`);
+    const carte = [...document.querySelectorAll('p')].find(e => visible(e) && e.textContent === 'État de mon monstre')!.parentElement!.parentElement!;
+    verifier(!carte.textContent?.includes('Invocateur') && !carte.querySelector('[aria-label="Compétences d’invocateur"]'), `${etape} : aucun choix des compétences dans État de mon monstre`);
+    await b.geste(() => bouton('Modifier la description du combat').click());
+    const dialogue = document.querySelector<HTMLElement>('[role="dialog"]')!;
+    const echo = [...dialogue.querySelectorAll('p')].find(e => e.textContent?.includes('État du monstre :'))?.textContent ?? '';
+    verifier(mode === 'guilde' ? echo.includes('Combat + Guilde') : echo.includes('Combat') && !echo.includes('Combat + Guilde'), `${etape} : écran du combat sous le même mode effectif`);
+    await b.geste(() => bouton('Fermer', dialogue).click());
+    const textes: Promise<string>[] = [], creerUrl = URL.createObjectURL, cliquer = HTMLAnchorElement.prototype.click;
+    try {
+      URL.createObjectURL = blob => { textes.push((blob as Blob).text()); return creerUrl(blob); };
+      HTMLAnchorElement.prototype.click = function () { if (!this.download) cliquer.call(this); };
+      const exporter = [...document.querySelectorAll<HTMLButtonElement>('button')].find(e => visible(e)
+        && [...e.querySelectorAll('span')].some(s => visible(s) && ['Exporter', 'Exporter les paramètres de recherche'].includes(s.textContent?.trim() ?? '')))!;
+      await b.geste(() => exporter.click());
+      const recette = parseOptimizerRecipe(await textes[0]).recipe;
+      verifier(recette?.damageSetup.summonerSkills === mode, `${etape} : vrai export sous le même mode effectif que l’écran`);
+    } finally { URL.createObjectURL = creerUrl; HTMLAnchorElement.prototype.click = cliquer; }
+    verifier(JSON.stringify([...b.listes().memories]) === memorise, `${etape} : mémoires conservées intactes`);
+  }
+  await constater('combat', 'Liste historique sans contenu');
+  await editerContenuListe(b, 'guilde'); await constater('guilde', 'Guilde');
+  await editerContenuListe(b, 'donjon'); await constater('combat', 'Donjon');
+  await editerContenuListe(b, 'arene'); await constater('combat', 'Arène');
+  const recette = buildOptimizerRecipe({ monsterCom2usId: 10101, monsterName: 'Premier', damageSetup: { ...DEFAULT_DAMAGE_SETUP, summonerSkills: 'guilde' },
+    requirement: { sets: ['swift'], minStats: { spd: 240 } }, objective: 'vitesse', metric: 'eff', slotFilterPreset: 'moyen',
+    adaptiveTrancheWeighting: false, exhaustiveSearch: false, excludeUsedRunes: false, excludeUsedScope: 'box', excludedSelectors: [], ignoreArtifacts: false, artifactMainByKind: {} });
+  const lire = File.prototype.text;
+  try {
+    File.prototype.text = async () => JSON.stringify(recette);
+    const fichiers = new DataTransfer(); fichiers.items.add(new File([''], 'recette.json', { type: 'application/json' }));
+    const input = document.querySelector<HTMLInputElement>('input[type="file"][accept=".json,application/json"]')!;
+    await b.geste(() => { input.files = fichiers.files; input.dispatchEvent(new Event('change', { bubbles: true })); });
+  } finally { File.prototype.text = lire; }
+  verifier(b.etat().damageSetup.summonerSkills === 'guilde' && b.etat().minStats.spd === 240 && b.etat().proprietaireCriteres === null,
+    'recette Combat + Guilde réellement importée sur liste Arène, sans propriétaire');
+  await b.geste(() => b.etat().setObjective('degats_reels'));
+  await constater('combat', 'Recette importée sur Arène');
+  // Les index orphelins restent conservés, sans décider d’un combat hors liste.
+  await b.geste(() => {
+    b.listes().setActiveListId(null);
+    b.listes().replaceAfterRevalidation({ ...b.listes(),
+      listContents: new Map([...b.listes().listContents, ['orpheline', 'guilde']]) });
+  });
+  await constater('combat', 'Sans liste active');
   return preuves;
 }

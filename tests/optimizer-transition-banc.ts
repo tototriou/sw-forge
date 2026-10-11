@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import ts from 'typescript';
 import * as criteres from '../src/lib/criteresOptimizer';
 import * as degats from '../src/lib/damage';
+import * as combatListe from '../src/lib/combatListeOptimizer';
 import * as transitionsDegats from '../src/lib/damageSetupTransition';
 import * as proprietaires from '../src/lib/optimizerCriteriaOwner';
 import * as memoires from '../src/lib/optimizerMemberStorage';
@@ -41,6 +42,7 @@ export async function bancOptimizer() {
     // Les dépendances sont les vrais exports de production, importés
     // statiquement : le banc marche aussi dans le bundle du lanceur normal.
     '../lib/damage': degats,
+    '../lib/combatListeOptimizer': combatListe,
     '../lib/damageSetupTransition': transitionsDegats,
     '../lib/optimizerCriteriaOwner': proprietaires,
     '../lib/optimizerMemberStorage': memoires,

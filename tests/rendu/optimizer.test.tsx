@@ -145,7 +145,7 @@ export function testRenduOptimizerMonstre() {
   ok(t.includes('Sous-propriétés verrouillées 0 / 8 + Sous-propriété…'), 'les sous-propriétés verrouillées, compteur sur 8');
   ok(t.includes('Meilleurs artéfacts offensifs pour ce build') && b.find((x) => x.texte === 'Dégâts supplémentaires')?.presse === true, 'les meilleurs artéfacts offensifs, en dégâts supplémentaires');
   ok(b.find((x) => x.ariaLabel === 'Buff ATQ — inactif')?.title === 'Augmente l’ATQ du monstre de 50 %.', 'l\'état du monstre : buffs, et ce qu\'ils font');
-  ok(t.includes('Lead Aucun') && t.includes('Invocateur Combat Combat + Guilde'), 'lead et compétences d\'invocateur');
+  ok(t.includes('Lead Aucun') && !t.includes('Invocateur Combat Combat + Guilde'), 'lead présent et choix des compétences d’invocateur retiré');
   ok(t.includes('8 runes gardées après pré-filtrage (pool par emplacement : 1 + 2 + 1 + 2 + 1 + 1)'), 'l\'estimation du pool');
   ok(bouton(html, 'Rechercher')?.desactive === false, '« Rechercher » actif');
 }

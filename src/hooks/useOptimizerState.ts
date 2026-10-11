@@ -14,6 +14,7 @@ import { leadEffectifMembreOptimizer, memeLeadOptimizer, modifierEquipeOptimizer
 import type { EquipeOptimizer } from '../lib/optimizerMemberStorage';
 import { LigneVerrouillee } from '../lib/artifactOptim';
 import { useBuildOptimSearch } from './useBuildOptimSearch';
+import { combatSelonContenuListeOptimizer } from '../lib/combatListeOptimizer';
 
 const REFUS_IDENTITE_MEMBRE = 'Critères non restaurés : l’identité enregistrée du membre diffère de l’espèce résolue.';
 
@@ -674,13 +675,15 @@ export function useOptimizerState(contexte?: ContexteMembresOptimizer): Optimize
 
   const lireCombatMembre = useCallback(() => {
     const v = vivant.current, c = v.contexte;
+    const liste = c?.lists.lists.find(l => l.id === c.lists.activeListId);
+    const setup = combatSelonContenuListeOptimizer(v.criteres.damageSetup, liste ? c?.lists.listContents.get(liste.id) : undefined);
     const p = c ? validerProprietaireCriteres(v.proprietaire, c.lists, v, c.data) : null;
     const resolu = p && c ? resolveExclusionEntry(p.selector, c.data) : null;
-    if (!p || !c || !resolu) return { setup: v.criteres.damageSetup, equipe: null, motif: null };
+    if (!p || !c || !resolu) return { setup, equipe: null, motif: null };
     const equipe = c.lists.teams.find(e => e.listId === p.listId && e.members.some(s => cleMemoireMembre(e.listId, s) === cleMemoireMembre(p.listId, p.selector))) ?? null;
-    if (!equipe) return { setup: v.criteres.damageSetup, equipe: null, motif: null };
+    if (!equipe) return { setup, equipe: null, motif: null };
     const effectif = leadEffectifMembreOptimizer(c.lists, p.listId, p.selector, resolu.monster.element);
-    return { setup: appliquerCriteres(v.criteres, effectif).damageSetup, equipe,
+    return { setup: combatSelonContenuListeOptimizer(appliquerCriteres(v.criteres, effectif).damageSetup, liste ? c.lists.listContents.get(liste.id) : undefined), equipe,
       motif: effectif.type === 'aucun' ? effectif.motif : null };
   }, []);
 
@@ -741,7 +744,9 @@ export function useOptimizerState(contexte?: ContexteMembresOptimizer): Optimize
     if (!c || c.reverificationEnAttente?.()) return;
     c.lists.synchroniserLeadsEquipes(c.data);
     const { equipe, setup } = lireCombatMembre();
-    if (equipe && !memeLeadOptimizer(setup, v.criteres.damageSetup)) poserCriteresAutomatiques({ damageSetup: setup });
+    if (equipe && !memeLeadOptimizer(setup, v.criteres.damageSetup)) poserCriteresAutomatiques({
+      damageSetup: { ...v.criteres.damageSetup, leaderSkill: setup.leaderSkill, leaderSpeedPct: setup.leaderSpeedPct },
+    });
   }
   // Les callbacks utilisent le dernier contexte publié, y compris lorsqu'un
   // geste a été groupé avec une mutation des listes dans le même rendu.

@@ -115,6 +115,10 @@ un choix lié au monstre, au sort ou à son passif. Un champ de compatibilité
 suit le champ auquel il est associé. Toute nouvelle clé doit être classée
 dans cette table et dans `DAMAGE_SETUP_CLASSIFICATION` avant usage. Ce classement
 décrit les transitions hors liste ; la mémoire d'un membre contient le combat entier.
+Les compétences d’invocateur enregistrées suivent ce classement de
+compatibilité, mais leur mode effectif se dérive toujours du contenu de la
+liste active : Guilde → « Combat + Guilde », sinon « Combat », y compris à
+l’import d’une recette. Cette dérivation ne réécrit aucune mémoire.
 
 | Sens | Champs actuels | Changement de monstre |
 | --- | --- | --- |

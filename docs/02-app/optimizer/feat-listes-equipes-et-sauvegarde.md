@@ -255,6 +255,13 @@ une liste existante avec un contenu admis, sans toucher aux rejets conservés.
 `editList` publie le nom non vide et le contenu choisi d’une liste existante
 en une seule écriture ; membres, mémoires, équipes et rejets sont conservés.
 
+Le combat effectif dérive aussi les compétences d’invocateur du contenu de
+la liste active, même sans propriétaire des critères : Guilde → « Combat +
+Guilde » ; Arène, Donjon, absence de liste ou de contenu → « Combat ».
+`combatSelonContenuListeOptimizer` est le producteur pur commun au combat lu
+par l’écran et au mode exporté dans la recette. Les valeurs enregistrées dans
+les critères et mémoires ne sont pas réécrites par cette dérivation.
+
 ## Modèle pur des équipes
 
 `equipesOptimizer.ts` crée une équipe, ajoute ou retire un membre, délie un

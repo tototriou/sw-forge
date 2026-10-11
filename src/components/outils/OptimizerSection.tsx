@@ -968,13 +968,13 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
   // Le nom complet reste le nom accessible ; l'écran montre les monstres
   // importés puis un libellé court, sous l'en-tête de leur section.
   const sourcesImport = useMemo<SourceImportOptimizer[]>(() => [
+    { groupe: 'Prépa RTA', libelle: 'Tous les monstres', nom: 'Prépa RTA', produire: importerPrepaRtaOptimizer },
     { groupe: 'Défenses de siège', libelle: 'Toutes les défenses', nom: 'Défenses de siège', produire: importerDefensesSiegeOptimizer },
     ...exclusionData.siegeOffenseTeams.map((team, i) => ({
       groupe: 'Offenses de siège', libelle: `Offense ${i + 1}`,
       nom: `Offense de siège ${i + 1} · ${team.slots.map(s => s.monsterId && exclusionData.monsterById.get(s.monsterId)?.name).filter(Boolean).join(', ') || 'Deck vide'}`,
       produire: (courantes: ExclusionSourceData) => importerOffenseSiegeOptimizer(team.id, courantes),
     })),
-    { groupe: 'Prépa RTA', libelle: 'Tous les monstres', nom: 'Prépa RTA', produire: importerPrepaRtaOptimizer },
     ...recommandations.flatMap((reco, ri) => reco.decks.map((deck, di) => ({
       groupe: 'Recommandations', libelle: `${reco.name || `Recommandation ${ri + 1}`} · Deck ${di + 1}`,
       nom: `Recommandation ${ri + 1} · ${reco.name || 'Sans nom'} · Deck ${di + 1} · ${deck.slots.map(s => s.com2usId != null && [...exclusionData.monsterById.values()].find(m => m.com2usId === s.com2usId)?.name || s.name).filter(Boolean).join(', ') || 'Deck vide'}`,

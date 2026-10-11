@@ -38,6 +38,8 @@
   change. Une fois la fenêtre fermée, une **ligne de résumé** prend sa
   place sous l'objectif : `S1 Flying Cards · élément ignoré · PV 40 000 ·
   DEF 1 500 · Critique`. On la clique pour rouvrir.
+  Les PV et la DEF de l'adversaire sont ses **totaux** (stats de base,
+  runes, lead…), ce que dit l'aide de « Adversaire ».
   Au téléphone, les champs de l'adversaire (PV, DEF…) s'empilent sur une
   largeur de libellé commune : leurs cases s'alignent.
   Cette fenêtre porte aussi les PV propres, les

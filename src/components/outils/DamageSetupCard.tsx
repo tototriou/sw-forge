@@ -1438,10 +1438,8 @@ export default function DamageSetupCard({
         <div className="mb-2 flex items-center gap-1.5">
           <p className="label">Adversaire</p>
           <HelpPopover title="Adversaire">
-            Les <b className="text-ink">PV</b> servent à lire le résultat (part des PV de la cible
-            emportée), jamais à classer les builds. La <b className="text-ink">DEF</b>, elle, change
-            réellement les dégâts — sauf pour un sort qui l&apos;ignore, auquel cas le champ
-            n&apos;apparaît pas.
+            Ce sont les PV et la DEF totaux de l&apos;adversaire, y compris stats de base, runes,
+            lead…
           </HelpPopover>
         </div>
         {/* `flex-wrap` : les deux champs passent l'un sous l'autre au doigt

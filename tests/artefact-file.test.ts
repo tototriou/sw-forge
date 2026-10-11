@@ -466,12 +466,21 @@ export default function testArtefactFile() {
       (reset?.[1] ?? '').includes("if (motif === 'compte') setImportDuCompte((n) => n + 1);"),
       'état : CHAQUE resetSearch(\'compte\') avance l’identité d’une unité — deux imports, deux identités'
     );
-    egal(hook.split('setImportDuCompte(').length - 1, 1, 'état : rien d’autre ne l’avance (un changement de monstre garde la même identité)');
-    // App.tsx appelle `resetSearch('compte')` à chaque import réel, jamais à
-    // la relecture du compte conservé (`hydrationJustAppliedRef`).
+    // Seul autre point d'avance : la revérification des listes après un
+    // réimport réel, quand le propriétaire des critères est conservé (sinon
+    // elle passe elle-même par resetSearch('compte')).
+    const reverif = /function appliquerReverificationMembres\([\s\S]*?\r?\n  \}\r?\n/.exec(hook)?.[0] ?? '';
+    egal(hook.split('setImportDuCompte(').length - 1, 2, 'état : rien d’autre ne l’avance (un changement de monstre garde la même identité)');
     ok(
-      /if \(hydrationJustAppliedRef\.current\) \{\s*hydrationJustAppliedRef\.current = false;\s*return;\s*\}\s*optimizer\.resetSearch\('compte'\);/.test(app),
-      'App : resetSearch(\'compte\') à chaque import réel, pas à la relecture du compte conservé'
+      reverif.includes('setImportDuCompte(n => n + 1);') && reverif.includes("resetSearch('compte'); return;"),
+      'état : la revérification d’un réimport avance l’identité une fois, propriétaire conservé ou non'
+    );
+    // App.tsx traite chaque import réel — revérification des listes, ou
+    // resetSearch('compte') sans liste —, jamais la relecture du compte
+    // conservé (`hydrationJustAppliedRef`).
+    ok(
+      /if \(hydrationJustAppliedRef\.current\) \{\s*hydrationJustAppliedRef\.current = false;\s*return;\s*\}[\s\S]*?optimizer\.appliquerReverificationMembres\([\s\S]*?\} else \{[\s\S]*?optimizer\.resetSearch\('compte'\);/.test(app),
+      'App : chaque import réel avance l’identité, pas la relecture du compte conservé'
     );
   }
 

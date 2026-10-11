@@ -76,6 +76,9 @@ function Page() {
   const offense = useSiegeState('offense');
   return (
     <RecoBoard
+      onImporterEquipe={() => { throw new Error('Action non attendue dans le rendu serveur.'); }}
+      compteCharge={false}
+      sourcesOptimizer={{ box: [], rtaEntries: {}, siegeDefenseTeams: [], siegeOffenseTeams: [], monsterById: new Map(MONSTRES.map(m => [String(m.id), m])) }}
       recos={recos}
       monsters={MONSTRES}
       builds={[]}
@@ -105,6 +108,8 @@ function Carte({ ouverte, edition, cherche, vue }: { ouverte: boolean; edition: 
     : undefined;
   return (
     <RecoCard
+      raisonsExportOptimizer={recos.state.recos[0].decks.map(() => 'Importe un compte pour exporter vers l’Optimizer.')}
+      onExporterDeckOptimizer={() => {}}
       reco={recos.state.recos[0]}
       index={0}
       monsters={MONSTRES}

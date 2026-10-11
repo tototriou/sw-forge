@@ -2,8 +2,13 @@ import { Monster, SiegeTeam } from '../../types';
 import { DeckInitial } from '../../hooks/useSpeedTune';
 import { Modale } from '../../ui/Dialogs';
 import SpeedTuningSection, { REGLE_TICKS } from './SpeedTuningSection';
+import type { ActionImportOptimizer } from '../../lib/actionImportOptimizer';
+import type { ExclusionSourceData } from '../../lib/optimizerExclusion';
 
 interface Props {
+  onImporterEquipe: ActionImportOptimizer;
+  sourcesOptimizer: ExclusionSourceData;
+  compteCharge: boolean;
   deck: DeckInitial;
   allMonsters: Monster[];
   siegeDefenseTeams: SiegeTeam[];
@@ -24,6 +29,9 @@ interface Props {
 // l'outil, avec les mêmes réglages persistants — ce qu'on y change se retrouve
 // dans la page d'outil, et l'inverse. Deux vues d'un seul état.
 export default function SpeedTuneModale({
+  onImporterEquipe,
+  sourcesOptimizer,
+  compteCharge,
   deck,
   allMonsters,
   siegeDefenseTeams,
@@ -55,6 +63,13 @@ export default function SpeedTuneModale({
       // habituelle, en haut à droite.
     >
       <SpeedTuningSection
+        onImporterEquipe={produire => {
+          const rapport = onImporterEquipe(produire);
+          if (rapport.listeCreee) onClose();
+          return rapport;
+        }}
+        sourcesOptimizer={sourcesOptimizer}
+        compteCharge={compteCharge}
         allMonsters={allMonsters}
         siegeDefenseTeams={siegeDefenseTeams}
         siegeOffenseTeams={siegeOffenseTeams}

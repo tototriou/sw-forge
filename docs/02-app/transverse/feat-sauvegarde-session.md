@@ -154,7 +154,7 @@ compact (`composerSession`, `ecrireSession`, `src/lib/session.ts`) :
 
 | Champ | Contenu | Lu dans l'app par |
 |-------|---------|-------------------|
-| `format`, `version` | `swblacksmith/session`, `1` | — |
+| `format`, `version` | `swblacksmith/session`, `2` pour toute session écrite | — |
 | `enregistreeLe`, `versionApp` | date ISO du clic ; version de l'app | — |
 | `stockage` | clé → valeur brute, pour les clés de `CLES_SESSION` : prépa RTA, ses catégories, ses deux points de retour ; siège défense et offense ; recommandations ; monstres perso ; listes de l'Optimizer ; thème, score, overcap, adversaire de référence | `lireTravail` (`usePersistence.ts`) : la dernière valeur écrite par `saveLocal`, gardée en mémoire même conservation refusée (`saveLocal` n'écrit alors rien sur le disque), sinon le stockage local ; `oublierLocal` efface les deux |
 | `compte` | le compte importé (`StoredAccount`, schéma 7), ou `null` | le compte en mémoire de `App.tsx`, pas IndexedDB |
@@ -174,6 +174,18 @@ compact (`composerSession`, `ecrireSession`, `src/lib/session.ts`) :
   `CLES_SESSION`, ou dans `STICKY_HORS_SESSION` s'ils ne doivent pas
   voyager.
 
+Les mémoires de critères par membre et les équipes de l’Optimizer voyagent dans
+`swblacksmith-optimizer-members-v1`, en plus de la clé historique des listes.
+Le point unique de toutes les listes voyage aussi, dans
+`swblacksmith-optimizer-backup-v1`, avec ses identités, contenus et rejets conservés.
+Cette clé voyage comme texte opaque, même avec un JSON cassé : les listes et
+les autres clés de la session restent relisibles. Le lecteur spécialisé du point
+le conserve tel quel, le signale et désactive sa reprise s’il est illisible.
+Toute session écrite porte la version 2, même sans mémoire ni équipe : un lecteur
+de version 1 la refuse avec la demande de mise à jour existante, au lieu de
+reprendre une partie du travail. Une session de version 1 reste relue par le
+lecteur actuel ; réécrite, elle porte la version 2.
+
 ## Relire
 
 `lireSession(texte)` lit et valide le fichier entier, et rend une session
@@ -185,7 +197,7 @@ avec ses avertissements, ou une erreur.
   qui n'est pas un objet ; une valeur de stockage qui n'est pas un texte de
   la forme que son hook relit (`valeurStockageValide` : thème `auto`,
   `light`, `dark` ; score `eff`, `score` ; overcap et adversaire `0`, `1` ;
-  le reste du JSON).
+  le reste du JSON, sauf le texte opaque du point de sauvegarde Optimizer).
 - **Lu, avec un avertissement** : un compte qui ne passe pas `compteValide`
   (schéma périmé) devient `null` ; un `outils.optimizer` qui n'est pas un
   objet devient `null`.
@@ -194,6 +206,10 @@ avec ses avertissements, ou une erreur.
   hors `CHAMPS_OPTIMIZER_SESSION`.
 
 Le chargement d'une session dans l'app n'existe pas encore.
+
+Les compétences d'invocateur de l'Optimizer sont enregistrées sous `normal`
+ou `guilde` (« Contenu normal » ou « Contenu de guilde »). La lecture traduit
+l'ancienne valeur `combat` en `normal`, comme les recettes et mémoires de membres.
 
 ## Vérifier
 

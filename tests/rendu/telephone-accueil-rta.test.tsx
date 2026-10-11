@@ -31,6 +31,9 @@ function Page({ sub, menuOuvert }: { sub: RtaSub; menuOuvert: boolean }) {
   const rta = useRtaState();
   return (
     <RtaPage
+      onImporterEquipe={() => { throw new Error('Action non attendue dans le rendu serveur.'); }}
+      compteCharge={false}
+      sourcesOptimizer={{ box: [], rtaEntries: rta.state.entries, siegeDefenseTeams: [], siegeOffenseTeams: [], monsterById: new Map(MONSTRES.map(m => [String(m.id), m])) }}
       sub={sub}
       rta={rta}
       monsters={MONSTRES}
@@ -81,7 +84,7 @@ export function testRenduTelephoneRta() {
   const b = boutons(ouvert);
   egal((ouvert.match(/role="dialog"/g) ?? []).length, 1, 'panneau « Options » ouvert : un dialogue');
   ok(valeurs(ouvert, 'aria-label').includes('Ma prépa RTA'), 'le panneau est nommé');
-  ok(to.includes('Ma prépa RTA Monstre Créer un monstre Sauvegarder Reprendre Exporter Importer Catégories Catégorie Vitesses Modifiés Catégories Tout effacer'), 'le panneau : ses actions, dans l\'ordre');
+  ok(to.includes("Ma prépa RTA Monstre Créer un monstre Exporter vers l'Optimizer Sauvegarder Reprendre Exporter Importer Catégories Catégorie Vitesses Modifiés Catégories Tout effacer"), 'le panneau : ses actions, dans l\'ordre');
   ok(b.some((x) => x.ariaLabel === 'Reprendre' && x.desactive && x.title === 'Aucun point de sauvegarde : clique d\'abord sur « Sauvegarder »'), '« Reprendre » désactivé, et pourquoi');
   ok(b.some((x) => x.ariaLabel === 'Exporter' && x.title === 'Télécharger ta prépa en fichier .json, pour la partager ou la garder de côté'), '« Exporter », et ce qu\'il fait');
   ok(b.some((x) => x.ariaLabel === 'Importer' && x.title === 'Reprendre une prépa exportée : une archive, ou celle d\'un autre navigateur. Elle remplacera la tienne.'), '« Importer », et ce qu\'il remplace');

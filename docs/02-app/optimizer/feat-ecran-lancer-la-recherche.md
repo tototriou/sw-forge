@@ -16,14 +16,27 @@
     recherche ne relance rien automatiquement : il faut recliquer. Un bouton
     **« Arrêter »** apparaît pendant le calcul — il interrompt la recherche
     et garde le **meilleur trouvé jusque-là**, plutôt que de tout perdre
-    (voir ../interruption.md § Interruption — filet de temps, pré-filtrage et arrêt manuel).
+    (voir feat-interruption.md § Interruption — filet de temps, pré-filtrage et arrêt manuel).
     ⚠️ **« Exporter les paramètres de recherche » / « Importer
     les paramètres de recherche »** (« Exporter » / « Importer » quand la
     place manque), juste à côté : télécharge/relit un fichier `.json`
     contenant la RECETTE de cette recherche (set, minimums, objectif,
     préréglage, exclusion des runes déjà utilisées, choix d'artéfacts) —
     **jamais le pool de runes ni le compte**, ce qui la rend partageable
-    entre joueurs. L'import remplit tous les réglages et sélectionne
+    entre joueurs. Le combat exporté porte le **lead personnel** du
+    monstre ; pour un membre lié, c’est le lead de son équipe tel qu’il
+    agit sur lui, puisque ce lead écrase le lead personnel.
+    Les compétences d’invocateur exportées sont celles effectives de la
+    liste active : « Contenu de guilde » en Guilde, « Contenu normal » sinon.
+    Le CLI sans liste reproduit ce mode depuis la recette. À l’import dans
+    l’écran, le contenu de la liste active décide du mode effectif, même si
+    la recette en porte un autre ; sans liste ou contenu, « Contenu normal ».
+    Exporter ne réécrit ni le lead personnel ni la mémoire du membre. Le
+    réimport applique ce lead comme une valeur de recette, sans équipe ni
+    propriétaire des critères et sans écraser les mémoires ou équipes
+    existantes. Voir feat-listes-equipes-et-sauvegarde.md
+    § Lead effectif d’un membre.
+    L'import remplit tous les réglages et sélectionne
     automatiquement le monstre par son `com2usId` — **résolu dans TOUT le
     bestiaire**, pas seulement parmi les monstres possédés : importer la recette
     de quelqu'un d'autre pour un monstre qu'on ne possède pas reste

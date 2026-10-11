@@ -79,7 +79,7 @@ suite :
   (avec leur borne exacte), ou un message neutre orientant vers la
   conjonction des contraintes ou un pré-filtrage plus large.
 - **Si « Diagnostic approfondi sur 0 résultat » est coché** (décoché par
-  défaut, plus coûteux — voir conditions-et-reglages.md § Réglages avancés) : pour chaque
+  défaut, plus coûteux — voir feat-ecran-conditions-et-reglages.md § Réglages avancés) : pour chaque
   condition posée, DE COMBIEN la desserrer suffit à faire grandir le pool
   pré-filtré (« VIT −15 suffit (≥ 160) »), ou « aucun gain, même
   desserrée entièrement » si ce n'est pas la stat qui bloque à ce stade.
@@ -147,7 +147,7 @@ avancés) va jusqu'au bout.
 **« Aucune combinaison ne répond à ces critères »** ne s'affiche qu'une
 fois la recherche finie et tout vérifié sans aucune confirmée — la file
 va jusqu'au dernier build trouvé faute de K confirmées (voir
-../moteur/artefacts.md § Quand ce choix a lieu) ; alors seulement « Trier par » et « Adapter les
+../../03-developpeur/optimizer/moteur-artefacts.md § Quand ce choix a lieu) ; alors seulement « Trier par » et « Adapter les
 artéfacts et reliques au tri » se masquent, comme sur un moteur vide.
 **Les pages suivent les confirmées** : les pages des confirmées, plus
 une tant qu'il reste des builds non vérifiés qui n'ont pas de place sur
@@ -184,7 +184,7 @@ la grille et la pagination ne sautent pas quand la carte arrive. La file
 résout d'abord les builds qui rempliront ces places (les premiers non
 résolus du classement, au plus une page à la fois), puis l'avance de
 fond, qui vise K combinaisons **confirmées** (voir
-../moteur/artefacts.md § Quand ce choix a lieu). Une page au-delà des vérifiés (au-delà des K
+../../03-developpeur/optimizer/moteur-artefacts.md § Quand ce choix a lieu). Une page au-delà des vérifiés (au-delà des K
 confirmées, après la recherche) montre ses places et se résout quand on
 l'ouvre — au prix de
 tous les builds non résolus classés avant elle, puisque le rang d'un
@@ -204,7 +204,7 @@ Un sélecteur **« Trier par »** re-trie **côté
 client, instantanément**, sans relancer la recherche : le moteur a déjà
 calculé les stats complètes de chaque combinaison retenue. Deux groupes
 d'options — les 8 stats brutes, et les mêmes objectifs que l'objectif de
-recherche (voir objectif-de-recherche.md § Les quatre objectifs disponibles ;
+recherche (voir feat-ecran-objectif-de-recherche.md § Les quatre objectifs disponibles ;
 « Dégâts réels » n'y figure que si un sort est réellement calculable
 pour ce monstre).
 
@@ -259,14 +259,14 @@ Bravoure/Éternité/Origine pour les PV effectifs). Recopier
 en mode relique `recherche`, à un build classé premier par sa Conquête un
 chiffre inférieur à celui du suivant. L'écart « Comparer » note la fiche
 de la même façon, avec SA paire et SA relique : voir
-../listes-et-reservation.md § Comparer, valider sans recherche et persistance.
+feat-listes-et-reservation.md § Comparer, valider sans recherche et persistance.
 ⚠️ **Aucun écart « grâce aux artéfacts » sur une carte.** Ne pas en
 afficher un qui compare la paire retenue à la paire supposée par la
 recherche : cette référence est un détail interne que rien ne nomme, et le
 chiffre, même exact, resterait illisible. Une comparaison n'a de sens que si
 sa référence se nomme ; celle qui se nomme, contre les artéfacts que le
 monstre porte, vit dans « Meilleurs artéfacts offensifs pour ce build »
-(voir meilleurs-artefacts-offensifs.md § Deux crans : dégâts supplémentaires ou dégâts réels). La carte, elle, se suffit : ses
+(voir feat-ecran-meilleurs-artefacts-offensifs.md § Deux crans : dégâts supplémentaires ou dégâts réels). La carte, elle, se suffit : ses
 statistiques et son chiffre comptent déjà la paire retenue, affichée à côté.
 ⚠️ **L'effet unique compte dans les trois modes de relique** — la
 relique est celle que la carte affiche
@@ -330,7 +330,7 @@ Origine, acquis au début du combat comme les auras, le lead et
 l'invocateur, qu'il ne compte pas non plus. Ajouter ces seuls points au
 tri le ferait classer sur une valeur que la carte ne montre pas. La même
 valeur note la paire d'artéfacts dans ces régimes (voir
-../moteur/elagages.md § Recherche des runes — meet-in-the-middle et élagages). Les tris « Dégâts réels » et « PV
+../../03-developpeur/optimizer/moteur-elagages.md § Recherche des runes — meet-in-the-middle et élagages). Les tris « Dégâts réels » et « PV
 effectifs » gardent l'effet unique, comme ci-dessus.
 
 ## Validation d'un build et relique
@@ -338,7 +338,7 @@ effectifs » gardent l'effet unique, comme ci-dessus.
 ⚠️ **« Valider ce build »**, sur chaque carte — réserve les 6 runes de CE
 résultat (elles n'apparaissent plus dans les recherches suivantes de la
 même liste de travail), jusqu'à libération explicite : voir
-../listes-et-reservation.md § Listes de travail et réservation de runes.
+feat-listes-et-reservation.md § Listes de travail et réservation de runes.
 
 ⚠️ **Relique, un emplacement, quatre états** — un emplacement « Relique »,
 sous la roue à la souris, à sa droite au doigt (voir plus haut), même

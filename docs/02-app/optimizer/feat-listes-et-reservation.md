@@ -3,11 +3,11 @@
 **Statut :** ÉTAT ACTUEL — décrit les listes de travail et la réservation de runes
 **Lire si :** on modifie les listes de monstres, la validation d'un build ou la réservation de runes
 
-Un 3ᵉ mécanisme d'exclusion, distinct des deux d'exclusion.md : ni
+Un 3ᵉ mécanisme d'exclusion, distinct des deux de feat-exclusion.md : ni
 l'automatique (« Exclure les runes déjà utilisées », voir
-exclusion.md § Exclusion des runes déjà portées ailleurs) ni le manuel
+feat-exclusion.md § Exclusion des runes déjà portées ailleurs) ni le manuel
 (« Exclure les runes d'un monstre », voir
-exclusion.md § Exclusion manuelle — un monstre précis, dans n'importe quelle source) ne savent exclure les runes d'un build
+feat-exclusion.md § Exclusion manuelle — un monstre précis, dans n'importe quelle source) ne savent exclure les runes d'un build
 qui n'existe **pas encore** dans le compte — le résultat d'une recherche.
 Résout un vrai problème de rareté : optimiser plusieurs monstres d'affilée
 sans que chaque nouvelle recherche re-propose les runes déjà attribuées au
@@ -25,15 +25,35 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
 
 ## Créer, valider et réserver dans une liste
 
-- **Aucune liste fixe** — l'utilisateur en crée, renomme et supprime
+- **Aucune liste fixe** — l'utilisateur en crée, édite et supprime
   librement (`OptimizerListPicker.tsx`, menu déroulant : crayon de
-  renommage, corbeille de suppression par ligne, « Nouvelle liste… »
+  édition, corbeille de suppression par ligne, « Nouvelle liste… »
   précédé d'un signe plus, en bas). Le menu est un `Flottant` : il ne
   pousse jamais la zone C. Ne pas le remplacer par une rangée de puces,
   qui défilerait latéralement dès quelques listes. Supprimer une liste efface son appartenance et ses runes
   validées — **jamais les runes elles-mêmes**, toujours réelles dans le
   compte. Navigable à tout moment ; changer de liste active change
   instantanément les runes réservées vues par la recherche.
+  À chaque création manuelle, le dialogue demande le nom et le contenu
+  (Guilde, Donjon, Arène), sans présélection, y compris « Créer et ajouter » et
+  « Créer et valider ». Le menu vide dit « Choisis le contenu de la liste » et son
+  contour unique de 1 px prend l’accent jusqu’au choix. Sous le champ :
+  « Obligatoire : le contenu décide des leads actifs et des compétences d'invocateur. »
+  L’action grisée explique « Choisis d'abord le contenu. » en infobulle.
+  L’action reste désactivée sans contenu. Un nom vide
+  devient « Liste N », avec le premier entier positif libre parmi les noms
+  existants ; le champ vide propose ce nom. « Éditer la liste » ouvre une
+  fenêtre avec nom et contenu préremplis, modifiables ensemble. Le brouillon
+  ne change rien avant « Enregistrer » ; annuler le laisse sans effet.
+  En édition, l’enregistrement exige un nom non vide et un contenu choisi.
+  La liste active et les lignes du menu affichent « Nom - Contenu », au
+  bureau comme au téléphone. Le contenu se modifie seulement dans cette
+  fenêtre ; aucun sélecteur de contenu ne reste sur la page. Une liste antérieure sans
+  contenu affiche « Sans contenu : aucun lead d’équipe appliqué. » ;
+  aucun contenu n’est choisi pour elle automatiquement.
+  Cette phrase disparaît dès qu’un contenu est choisi ; elle n’a pas de
+  place réservée, puisque le choix se fait dans « Éditer la liste », hors
+  du flux : le sélecteur de liste ne bouge pas.
 - **« Valider ce build »**, sur chaque carte de résultat — réserve les 6
   runes de CE résultat dans la liste active : elles n'apparaissent plus
   dans les recherches suivantes de la MÊME liste (les autres listes n'en
@@ -96,16 +116,37 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
 
 ## Zone C — Monstres de la liste
 
+- Avec une liste active, le résultat de la recherche ajoute automatiquement
+  l’exemplaire résolu et capture ses critères comme un ajout ordinaire. Une
+  espèce déjà représentée sélectionne son premier membre résolu, sans
+  doublon ni erreur ; ses critères sont restaurés sans nouvelle capture.
+  Le bouton d’ajout d’un autre exemplaire Box garde le comportement ci-dessous.
+  Sans Box ni membre présent, une espèce présente seulement en RTA ou siège
+  attend le choix explicite de l’exemplaire : puce unique ou ligne de
+  désambiguïsation. L’ajout et la capture ont lieu à ce choix, jamais avant.
+  Sans liste active, la recherche permet de créer la liste vide avant ce choix.
+  Une espèce non possédée, résolue par `unowned`, est ajoutée immédiatement.
+  Au téléphone, le sélecteur de liste reste au-dessus des puces et les cartes
+  de la zone C se déplient dessous : l’ajout ne déplace pas la puce cliquée.
 - **Zone C, « Monstres de la liste »** — juste sous les puces de source
   dans « Monstre & équipement » : chaque monstre de la liste active, son
   statut (« Validé » + bouton libérer, ou « pas encore validé »), cliquable
-  pour rappeler son exemplaire dans la recherche — un autre exemplaire de
-  l'espèce déjà choisie efface les résultats affichés, sans toucher aux
-  critères (voir ecran/recherche-du-monstre.md § Recherche du monstre à optimiser). Avec des
-  auras externes renseignées, choisir ici une autre espèce ou un autre
-  exemplaire les rappelle 3 s dans « État de mon monstre » (voir
-  ecran/etat-de-mon-monstre.md § Sets d'aura des autres monstres) **et sous la liste** (voir plus bas) : c'est
-  la seule voie qui le fasse. **Corbeille** à droite de
+  pour rappeler son exemplaire et ses critères personnels mémorisés dans la
+  recherche. Sans mémoire applicable, les critères prennent les défauts
+  complets de l'Optimizer, même pour la même espèce ; les résultats affichés
+  sont effacés. Voir
+  [feat-listes-equipes-et-sauvegarde.md](feat-listes-equipes-et-sauvegarde.md)
+  § Mémoires des membres.
+  Le clic rappelle les auras externes de la **destination**, celles de ses
+  critères effectivement restaurés après validation, jamais celles du membre
+  précédent. Si l'espèce ou l'exemplaire change et que la destination porte des
+  auras externes, le rappel paraît 3 s dans « État de mon monstre » (voir
+  feat-ecran-etat-de-mon-monstre.md § Sets d'aura des autres monstres) **et sous la liste** (voir plus bas) : c'est
+  la seule voie qui le fasse. Une destination sans auras, un choix refusé ou
+  un clic sur le même exemplaire efface le rappel précédent sans en créer.
+  Restaurer par l'action seule, naviguer entre listes, importer ou remonter
+  l'écran ne déclenche jamais de rappel ni d'ouverture guidée. Les nombres
+  restaurés ne sont pas réécrits par le rappel. **Corbeille** à droite de
   chaque ligne pour retirer un monstre de la liste — sans confirmation s'il
   n'est pas encore validé (rien à perdre), avec confirmation s'il l'est (le
   retrait libère aussi ses runes). Bouton **« Ajouter à la liste »**, dont
@@ -113,8 +154,30 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   déjà dans la liste active → voir ci-dessous ; sinon → « Ajouter `<monstre>` à
   « `<liste>` » », suffixé « (non possédé) » pour une espèce sans exemplaire
   réel, voir plus bas). Sans liste active, « Créer une liste et y ajouter
-  `<monstre>` » crée une liste (prompt du nom) ET y ajoute le monstre dans
+  `<monstre>` » crée une liste (dialogue du nom et du contenu) ET y ajoute le monstre dans
   le même geste.
+  Les lignes ne portent aucune marque de mémoire ni place réservée à celle-ci.
+  Ajouter, Lier une équipe, Sauvegarder et Reprendre partagent une ligne au
+  bureau, et deux lignes compactes au téléphone, sans débordement. Le libellé
+  d'ajout se tronque avec son texte complet en infobulle. Leur place ne change
+  pas lors de l'ajout d'un exemplaire ni de la pose d'un point de sauvegarde.
+  Le rapport du chargement et les messages de
+  restauration se lisent depuis l’icône ⚠ à place réservée au bout de la
+  ligne d’annonce du point de sauvegarde, au bureau et au téléphone. Une
+  mémoire conservée mais inapplicable reste conservée
+  et son refus est dit lorsqu'on choisit le membre.
+  Les membres sont regroupés par équipe dans des bandes teintées sans contour,
+  avec le numéro, le leader facultatif, la pastille `LeadPill` et le compte des
+  leads inactifs. Les cartes gardent l’aspect et la hauteur des cartes libres,
+  qui suivent sous « Sans équipe ». « Lier une équipe » et « Modifier l’équipe » ouvrent
+  un dialogue hors du flux ; les cases ne changent pas les groupes avant
+  validation et fermeture. « Délier » dans ce dialogue garde les membres
+  et leurs critères personnels. Ces mêmes actions existent au bureau et
+  dans la zone C dépliée du téléphone. Une place d’icône ⚠ est réservée sur
+  la ligne de chaque carte, invisible sans motif. Le motif se lit au survol
+  ou au focus au bureau, dans une bulle hors du défilement, et au toucher
+  dans un dialogue au téléphone ; aucune ligne supplémentaire ne paraît. Voir
+  feat-listes-equipes-et-sauvegarde.md § Équipes à l’écran.
   ⚠️ **Plusieurs exemplaires Box d'une même espèce** : les membres sont repérés
   par exemplaire (`exclusionSelectorKey`, Box = `box:<unitKey>`), deux
   exemplaires peuvent donc entrer dans la même liste. Quand l'exemplaire
@@ -124,7 +187,7 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   `<monstre>` à « `<liste>` » ». Un clic choisit le **premier exemplaire Box,
   dans l'ordre de la zone D, absent de la liste**, l'affiche (résultats
   affichés effacés, critères gardés, aucun rappel des auras externes —
-  voir ecran/recherche-du-monstre.md § Recherche du monstre à optimiser) puis
+  voir feat-ecran-recherche-du-monstre.md § Recherche du monstre à optimiser) puis
   l'ajoute ; un clic, un exemplaire. Tous les exemplaires Box déjà
   membres : « Déjà dans « `<liste>` » », désactivé. Exemplaire affiché
   venu de RTA ou du siège, déjà membre : « Déjà dans », désactivé, sans
@@ -163,7 +226,7 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
     planifié. Affiché seulement s’il y a une paire à rendre. Les paires
     déjà calculées pour le monstre recherché se refont alors avec
     l’inventaire libéré (voir
-    moteur/artefacts.md § Recalcul quand la paire peut changer).
+    ../../03-developpeur/optimizer/moteur-artefacts.md § Recalcul quand la paire peut changer).
 
   ⚠️ **Pas de « libérer les runes seules », et c’est délibéré.** Un build
   validé porte TOUJOURS 6 runes : sans elles il n’y a plus de build à qui
@@ -183,7 +246,7 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
 - ⚠️ **Ajouter un monstre qu'on ne possède PAS** — pour le joueur qui a
   obtenu le monstre et veut essayer des runages d'équipe sans avoir mis à
   jour son export. Une ESPÈCE choisie via la recherche
-  bestiaire (voir ecran/recherche-du-monstre.md § Recherche du monstre à optimiser) mais absente des 4 sources du compte
+  bestiaire (voir feat-ecran-recherche-du-monstre.md § Recherche du monstre à optimiser) mais absente des 4 sources du compte
   reste ajoutable à une liste ET « validable » exactement comme un
   exemplaire réel — un sélecteur `unowned` (`ExclusionSelector`, distinct
   des 4 sources réelles) porte cette entrée, sur ses stats de base 6★
@@ -194,22 +257,18 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   d'essayer un runage d'ÉQUIPE (plusieurs monstres, certains possédés,
   certains non) sans qu'un même jeu de runes soit proposé deux fois. Ne
   s'affiche QUE quand l'espèce n'a d'exemplaire dans AUCUNE des 4 sources
-  — possédée ne serait-ce que quelque part (même ambiguë), la
+  pour l'ajout manuel — possédée ne serait-ce que quelque part (même ambiguë), la
   désambiguïsation normale (zone D / puces) garde toujours la main, jamais
   masquée par ce sélecteur. Aucune puce ne s'allume pour ce cas (comme un
-  build validé, voir l'auto-exemption ci-dessous). ⚠️ Revérification au réimport (comme tout
-  le reste de cette section) : un build validé reste valable tant que ses
-  runes existent encore QUELQUE PART dans le compte réimporté, équipées
-  ou non (`revalidateBuilds`) — même règle pour un exemplaire réel, dont
-  le build validé n'est justement pas porté en jeu. Seule différence : un
-  exemplaire réel doit encore se retrouver dans Box, RTA ou défenses de
-  siège ; pour un monstre non possédé, l'espèce au bestiaire suffit.
-  Limite assumée, pour les deux : une rune passée depuis sur un autre
-  monstre n'est pas détectée. La revérification suit CHAQUE réimport, même
-  du même compte — contrairement aux exclusions manuelles, effacées
-  seulement par un autre `wizard_id` : c'est justement « mon compte a
-  changé depuis » qu'elle cherche. Toute entrée retirée est comptée dans
-  le message d'import (`App.tsx`), jamais en silence.
+  build validé, voir l'auto-exemption ci-dessous). Au réimport, aucun membre
+  ni build n'est retiré : une référence d'une autre espèce ou introuvable se
+  rattache par l'identité indépendante du membre, jusqu'à `unowned` si aucun
+  exemplaire n'est disponible. Plusieurs membres de même espèce sans exemplaire
+  restent distincts par le champ facultatif `copie`. Voir
+  [feat-listes-equipes-et-sauvegarde.md](feat-listes-equipes-et-sauvegarde.md)
+  § Revérification commune pour l'ordre, la compatibilité et les messages.
+  Un build garde les runes et artéfacts disparus dans son instantané, les marque et ne
+  réserve plus ces pièces. Le runage validé n'est jamais comparé au runage porté.
 - **Auto-exemption de la liste ACTIVE** — chercher à nouveau le même
   monstre dans la MÊME liste exempte automatiquement SES PROPRES runes déjà
   validées (sans quoi la recherche se trouverait bloquée par ses propres
@@ -232,6 +291,10 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   runage correspond bien à l'une des 4 sources. Réinitialisée à chaque
   changement d'exemplaire — revenir sur ce monstre plus tard réaffiche le
   build validé par défaut.
+  Si des runes ou artéfacts ont disparu, la fiche et la ligne de la zone C l'indiquent au
+  jeton `warn`, au bureau et au téléphone. La fiche affiche seulement les
+  pièces présentes, sans erreur. Le bandeau réserve la hauteur des deux
+  messages de bascule : cliquer son icône ne la déplace pas.
 
 ## Comparer, valider sans recherche et persistance
 
@@ -298,18 +361,37 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   liste : emplacement 2 (Camilla) », accordé en nombre — « Runes déjà
   réservées » dès qu'il y en a plusieurs), pas juste un bouton désactivé
   sans explication.
-- **Persisté**, contrairement au reste de la saisie de l'écran (voir
-  ecran/README.md § Survie à un changement d'onglet) — un flux de plusieurs
+- **Persisté**, comme les mémoires de critères des membres (voir
+  feat-ecran.md § Survie à un changement d'onglet) — un flux de plusieurs
   dizaines de minutes à travers toute une liste ne doit pas perdre le
   travail déjà fait à un simple rechargement de page. Même statut que la
   prépa RTA et les équipes de siège (voir
   [usePersistence](src/hooks/usePersistence.ts)) : soumis au même
   interrupteur global de conservation. Un hook à part,
-  `useOptimizerLists.ts`, instancié dans `App.tsx` : `useOptimizerState`
-  n'écrit jamais sur disque, et y loger les listes lèverait cette garantie
-  pour tout le reste de sa saisie.
-- ⚠️ **Limite connue** : l'ajout à une liste se fait **un monstre à la
-  fois** — aucun import en masse depuis un deck de siège ou une prépa RTA
-  entière, aucun workflow qui enchaîne automatiquement au monstre suivant
-  après validation.
+  `useOptimizerLists.ts`, instancié dans `App.tsx`, porte les listes,
+  les réservations, les mémoires et les équipes ; la saisie libre et les
+  résultats de recherche restent dans `useOptimizerState`.
+- **Importer une équipe** remplit une nouvelle liste depuis les défenses
+  de siège, un deck d’offense ou toute la prépa RTA ; cette liste devient
+  active et son premier membre est choisi. L’ajout manuel reste disponible.
+  La validation n’enchaîne pas automatiquement au membre suivant. Voir
+  [feat-import-equipes.md](feat-import-equipes.md) § F1 — Importer depuis l’Optimizer.
+
+## Mémoire des membres et revérification
+
+Le hook des listes porte aussi un index de mémoires par liste et sélecteur,
+avec l'espèce `com2usId` et les critères personnels photographiés. Une clé de
+stockage indépendante garde cet index et les équipes sans modifier le JSON
+historique des listes. Le clic d'un membre restaure ses critères mémorisés
+ou, sans mémoire applicable, la base complète de ses critères personnels.
+
+Le réimport rattache ensemble membres, identités, builds, mémoires, équipes et
+propriétaire affiché. Aucun membre ni build n'est retiré ; une référence devenue
+introuvable ou d'une autre espèce est remplacée selon l'espèce enregistrée.
+RTA et siège suivent leur entrée ou slot entre copies de la même
+espèce : ce remplacement n'est pas détectable. Le rapport de revérification
+liste ces mémoires, sans message systématique à chaque réimport.
+
+Forme, validation, conservation et rapport :
+[feat-listes-equipes-et-sauvegarde.md](feat-listes-equipes-et-sauvegarde.md).
 

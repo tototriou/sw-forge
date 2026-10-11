@@ -185,7 +185,7 @@ export default function testDegatsSortsSansAttaque() {
   const build: StatRow[] = (['hp', 'atk', 'def', 'spd', 'cr', 'cd', 'res', 'acc'] as StatKey[]).map((key) => ({
     key, label: key, base: 0, bonus: valeurs[key] ?? 0, total: valeurs[key] ?? 0, suffix: '',
   }));
-  const setup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, enemyDef: 1000, enemyHp: 1_000_000, enemyHpPct: 100, critMode: 'normal', summonerSkills: 'combat' };
+  const setup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, enemyDef: 1000, enemyHp: 1_000_000, enemyHpPct: 100, critMode: 'normal', summonerSkills: 'normal' };
   for (const [id, forme] of [[16113, 26313], [16613, 26813]] as const) {
     const d = fiche(forme);
     const c = d.competences.find((x) => x.com2usId === id)!;

@@ -2,14 +2,14 @@
 
 **Statut :** ÉTAT ACTUEL — décrit les diagnostics du moteur de recherche de runes : preuve d'impossibilité par stat (`diagnoseFeasibility`), conditions bloquantes du pré-filtrage sûr (`rankBlockingConditions`), quasi-succès à l'appariement, et ce que l'estimation du pool n'affirme pas
 **Lire si :** on modifie `diagnoseFeasibility`, `rankBlockingConditions`, `poolMinSlotSafe`, le quasi-succès de `pairBuckets` (`NearMiss`, `nearMissByCondition`, `globalNearMiss`) ou `estimateSearchSpace`, ou on se demande ce qu'un diagnostic « 0 résultat » prouve
-**Ne pas lire si :** on cherche la disposition des encadrés à l'écran (../ecran/resultats.md) ou le mode d'emploi du harnais (../harnais.md)
-**Voir aussi :** ../ecran/resultats.md, ../harnais.md, elagages.md, pipeline.md, ../invariants.md
+**Ne pas lire si :** on cherche la disposition des encadrés à l'écran (../../02-app/optimizer/feat-ecran-resultats.md) ou le mode d'emploi du harnais (harnais.md)
+**Voir aussi :** ../../02-app/optimizer/ (feat-ecran-resultats.md), harnais.md, moteur-elagages.md, moteur-pipeline.md, invariants.md
 
 Calcul pur dans `src/lib/runeBuildOptim.ts`. Les trois diagnostics lisent
 les conditions par les mêmes bornes que la recherche (`deriveMinMaxContext` :
 `guaranteed`, `guaranteedMin`, `artFlatMax`, `artFlatMin`, `relPctMax`,
 `relPctMin`, `totalOf`), décrites dans
-[elagages.md § Élagage sûr — faisabilité](elagages.md) ; ils n'en sont
+[moteur-elagages.md § Élagage sûr — faisabilité](moteur-elagages.md) ; ils n'en sont
 fidèles que s'ils reçoivent les mêmes paramètres qu'elle (§ Paramètres
 reçus par les diagnostics de l'écran).
 
@@ -23,8 +23,8 @@ reçus par les diagnostics de l'écran).
 
 Les deux premiers ne regardent que le pool de runes, avant toute recherche ;
 le troisième vient de la recherche elle-même. La disposition à l'écran est
-dans [../ecran/resultats.md § Diagnostic sur 0 résultat](../ecran/resultats.md) ;
-le harnais : [../harnais.md § Faisabilité et blocages](../harnais.md).
+dans [02-app/optimizer/ (feat-ecran-resultats.md) § Diagnostic sur 0 résultat](../../02-app/optimizer/) ;
+le harnais : [harnais.md § Faisabilité et blocages](harnais.md).
 Un libellé ne confond jamais preuve et indice.
 
 ## Preuve d'impossibilité par stat isolée
@@ -61,7 +61,7 @@ Un libellé ne confond jamais preuve et indice.
   `src/lib/effects.ts`). Pour les sets demandés, ce sont la construction des
   moitiés et l'appariement qui le comptent (`jokerCredit`, `satisfiesSets`),
   voir
-  [elagages.md § Faisabilité de set, groupage par compte et jokers](elagages.md).
+  [moteur-elagages.md § Faisabilité de set, groupage par compte et jokers](moteur-elagages.md).
 
 ## Conditions bloquantes du pré-filtrage sûr
 
@@ -159,7 +159,7 @@ d'être jetés. Jamais recalculé ailleurs, seulement fusionné et mis en forme.
   joker, borne des minimums par compartiments (`bucketPairFeasibleMin`),
   `comboAFeasible`, le test rapide `quickOk`, la revérification des sets sur
   les six runes (`activeSets`, `missingSets`), puis `computeStats`. Détail :
-  [pipeline.md § Appariement séquentiel](pipeline.md).
+  [moteur-pipeline.md § Appariement séquentiel](moteur-pipeline.md).
 - **Aucune fiche en plus** : le quasi-succès ne compare que des totaux déjà
   calculés, pour les seules paires qui atteignent le test conjoint.
 - **Ne voit que ce que la recherche examine réellement** : une paire coupée
@@ -199,7 +199,7 @@ d'être jetés. Jamais recalculé ailleurs, seulement fusionné et mis en forme.
   relative, même formule que `pairBuckets`. En cas d'égalité, la tranche la
   plus tôt dans la liste. Une tranche sans quasi-succès n'efface rien. Le
   reste de l'appariement parallèle :
-  [pipeline.md § Appariement parallèle](pipeline.md).
+  [moteur-pipeline.md § Appariement parallèle](moteur-pipeline.md).
 
 ### Rendu du quasi-succès — écran, harnais, CLI
 
@@ -250,17 +250,17 @@ Le harnais leur passe les `SearchParams` complets de la recherche.
 ## Ce que l'estimation du pool n'affirme pas
 
 - `estimateSearchSpace`, affichée avant de lancer
-  ([../ecran/lancer-la-recherche.md § Lancer la recherche](../ecran/lancer-la-recherche.md)),
+  ([02-app/optimizer/ (feat-ecran-lancer-la-recherche.md) § Lancer la recherche](../../02-app/optimizer/)),
   est le produit des tailles de pool après statistique principale imposée
   et `filterSlot`, sans dominance ni faisabilité : un ordre de grandeur
-  ([elagages.md § Pré-filtrage heuristique et compartiments](elagages.md)).
+  ([moteur-elagages.md § Pré-filtrage heuristique et compartiments](moteur-elagages.md)).
   Elle ne dit rien de la faisabilité : un grand produit n'annonce aucun
   build.
 - Elle ne se compare pas à `baselineMinSlot` : l'une mesure après
   pré-filtrage heuristique sans élagage sûr, l'autre après élagages sûrs
   sans pré-filtrage heuristique. Ni au nombre de paires examinées
   (`totalPairCount`, que suit la barre de progression :
-  [../interruption.md § Barre de progression](../interruption.md)).
+  [02-app/optimizer/ (feat-interruption.md) § Barre de progression](../../02-app/optimizer/)).
 - `estimatePairBound` est un majorant du nombre de paires, calculable avant
   les compartiments. Il n'est pas affiché : trop au-dessus de la réalité
   pour informer (commentaire du code). Seuls des scripts de mesure et le

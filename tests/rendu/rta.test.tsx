@@ -39,6 +39,9 @@ function Page({ sub }: { sub: RtaSub }) {
   const rta = useRtaState();
   return (
     <RtaPage
+      onImporterEquipe={() => { throw new Error('Action non attendue dans le rendu serveur.'); }}
+      compteCharge={false}
+      sourcesOptimizer={{ box: [], rtaEntries: rta.state.entries, siegeDefenseTeams: [], siegeOffenseTeams: [], monsterById: new Map(MONSTRES.map(m => [String(m.id), m])) }}
       sub={sub}
       rta={rta}
       monsters={MONSTRES}
@@ -130,7 +133,7 @@ export function testRenduRtaMenu() {
   ok(!!bouton(html, "Plus d'actions"), 'bouton « Plus d\'actions »');
   const menu = html.match(/<div[^>]*role="menu"[\s\S]*?<\/div><\/div>/)?.[0] ?? '';
   const entrees = boutons(menu).map((b) => b.texte);
-  egal(entrees, ['Sauvegarder', 'Reprendre', 'Importer une prépa', 'Créer un monstre', 'Réinitialiser', 'Tout effacer'], 'le menu, dans l\'ordre : construction, puis les deux gestes destructeurs');
+  egal(entrees, ['Sauvegarder', 'Reprendre', 'Importer une prépa', "Exporter vers l'Optimizer", 'Créer un monstre', 'Réinitialiser', 'Tout effacer'], 'le menu, dans l\'ordre : construction, puis les deux gestes destructeurs');
   ok(!entrees.includes('Exporter') && !!bouton(html, 'Exporter'), '« Exporter » reste visible, hors du menu');
 }
 

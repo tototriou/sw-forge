@@ -2,8 +2,8 @@
 
 **Statut :** ÉTAT ACTUEL — décrit l'appariement parallèle tel que le code l'exécute, au navigateur et en Node (tranches, partage du temps et du plafond de candidats, code commun aux deux plateformes), et le Worker de résolution de l'équipement d'un build
 **Lire si :** on modifie `parallelPairing.ts`, `pairSliceBody.ts`, une coquille ou un lanceur de tranche (navigateur ou Node), le seuil du régime parallèle, ou le Worker de résolution (`resolutionBody.ts`, `resolution.worker.ts`, `resolutionDistante.ts`)
-**Ne pas lire si :** on cherche l'enchaînement complet d'une recherche (pipeline.md) ou la file de résolution côté écran, ses deux voies et ses mesures (artefacts.md)
-**Voir aussi :** pipeline.md, ../interruption.md, ../harnais.md, ../verification.md, artefacts.md, ../invariants.md
+**Ne pas lire si :** on cherche l'enchaînement complet d'une recherche (moteur-pipeline.md) ou la file de résolution côté écran, ses deux voies et ses mesures (moteur-artefacts.md)
+**Voir aussi :** moteur-pipeline.md, ../../02-app/optimizer/ (feat-interruption.md), harnais.md, verification.md, moteur-artefacts.md, invariants.md
 
 Deux usages des Workers suivent le même patron : un corps neutre, qui porte
 toute la logique et ne connaît aucune plateforme, et une coquille par
@@ -11,9 +11,9 @@ plateforme, qui ne fait que brancher la messagerie. L'appariement parallèle
 répartit l'appariement d'une grosse recherche sur plusieurs fils ; le Worker
 de résolution sort du fil de l'écran la résolution de l'équipement des
 builds trouvés. Leur place dans une recherche :
-[pipeline.md § Appariement parallèle](pipeline.md) et
-[pipeline.md § Worker de résolution](pipeline.md). Les contraintes à ne pas
-casser : [../invariants.md § Workers](../invariants.md).
+[moteur-pipeline.md § Appariement parallèle](moteur-pipeline.md) et
+[moteur-pipeline.md § Worker de résolution](moteur-pipeline.md). Les contraintes à ne pas
+casser : [invariants.md § Workers](invariants.md).
 
 | Fichier | Rôle | Plateforme |
 | --- | --- | --- |
@@ -38,7 +38,7 @@ plus `PARALLEL_PAIRING_WORKERS` (4) tranches. Le seuil est le seul critère :
 ni le mode exhaustif, ni le filet de temps, ni le plafond de candidats
 n'entrent dans le choix. La construction des moitiés, elle, se fait toujours
 dans deux Workers, quelle que soit la taille du cas
-([pipeline.md § Construction des moitiés](pipeline.md)).
+([moteur-pipeline.md § Construction des moitiés](moteur-pipeline.md)).
 
 - Le nombre de tranches est fixe, jamais dérivé du nombre de cœurs
   (`navigator.hardwareConcurrency`) : ne pas le rendre automatique,
@@ -92,9 +92,9 @@ Ce que le partage du plafond change :
   plafond global.
 - Une tranche qui remplit sa part s'arrête et laisse le reste de sa tranche
   non visité : la recherche est alors tronquée, motif `quotaTranche`
-  ([parallelisation.md § Fusion des résultats](parallelisation.md)). Ce que
+  ([moteur-parallelisation.md § Fusion des résultats](moteur-parallelisation.md)). Ce que
   l'écran en dit :
-  [../interruption.md § Interruption — filet de temps, pré-filtrage et arrêt manuel](../interruption.md).
+  [02-app/optimizer/ (feat-interruption.md) § Interruption — filet de temps, pré-filtrage et arrêt manuel](../../02-app/optimizer/).
 - Ne pas remplacer la part fixe par un quota partagé que les fils se
   signaleraient par messages : sans mémoire partagée, le signal d'arrêt
   arrive en retard, et sous vraie concurrence le total dépasse le plafond.
@@ -126,7 +126,7 @@ exécute une tranche et rend son résultat (`PairSliceResultMessage`) ;
    `drivePairing`, le pilote du séquentiel : progression au plus une fois
    par `PROGRESS_THROTTLE_MS`, main rendue au plus une fois par
    `YIELD_THROTTLE_MS`, et à l'arrêt un résultat tronqué fait de ce que la
-   tranche a déjà trouvé ([pipeline.md § Appariement séquentiel](pipeline.md)).
+   tranche a déjà trouvé ([moteur-pipeline.md § Appariement séquentiel](moteur-pipeline.md)).
 
 Une tranche n'a aucune borne propre au parallèle : elle s'arrête sur le
 filet de temps global, sur sa part du plafond de candidats, à la fin de sa
@@ -182,7 +182,7 @@ résultat ; `stop`, l'arrêt coopératif ; `terminate`, l'arrêt brutal.
   que la production choisirait.
 - Un outil Node qui veut reproduire la production apparie par ce code
   commun, `driveParallelPairing` avec `makeSpawnSliceNode`, comme le harnais
-  ([../harnais.md § Régime d'appariement : le seuil de la production](../harnais.md)).
+  ([harnais.md § Régime d'appariement : le seuil de la production](harnais.md)).
   Apparier en séquentiel là où la production parallélise, ou par une copie
   de la tranche, mesure un comportement qui n'existe pas. Les autres fils
   Node du dépôt ne sont pas le code de production :
@@ -207,7 +207,7 @@ résultat ; `stop`, l'arrêt coopératif ; `terminate`, l'arrêt brutal.
    `PROGRESS_THROTTLE_MS`, avec la somme des `explored`, le nombre de
    candidats reçus et ceux pas encore transmis. Le Worker principal y
    ajoute `totalPairs` et le pourcentage (`estimatePct`) :
-   [../interruption.md § Barre de progression](../interruption.md) ;
+   [02-app/optimizer/ (feat-interruption.md) § Barre de progression](../../02-app/optimizer/) ;
 3. attend toutes les tranches (`Promise.all` sur `done`), les termine
    toutes, rappelle `onHandles` avec un tableau vide, puis fusionne par
    `combineParallelPairingResults(results, perWorkerMaxCollected, prepared.maxCollected, totalPairs)`.
@@ -257,7 +257,7 @@ servent qu'à l'aperçu ; le résultat qui compte est celui de la fusion.
   interchangeables : terminer une tranche avant sa réponse perd ses
   candidats, et « Arrêter » rendrait moins que ce qui a été trouvé.
 - Arrêt pendant la construction des moitiés :
-  [pipeline.md § Interruption](pipeline.md).
+  [moteur-pipeline.md § Interruption](moteur-pipeline.md).
 - Erreur d'une tranche : sa promesse `done` est rejetée, `Promise.all`
   aussi, et `driveParallelPairing` sort sans terminer les autres tranches.
   Le Worker principal l'attrape : il termine les poignées encore inscrites
@@ -283,9 +283,9 @@ la file branche. Le corps et le module ne touchent ni `self` ni
 les exécutent tels quels. Le corps ne réimplémente rien : il reconstruit
 l'entrée de production par `entreeResolutionDuBuild` et résout par
 `resoudreEquipementDuBuild`, comme le fil de l'écran et le CLI
-([pipeline.md § Résolution de l'équipement d'un build](pipeline.md)).
+([moteur-pipeline.md § Résolution de l'équipement d'un build](moteur-pipeline.md)).
 Pourquoi la file passe par ce Worker, ses deux voies de repli et ce qui a
-été mesuré : [artefacts.md § Résolution hors du fil de l'écran](artefacts.md).
+été mesuré : [moteur-artefacts.md § Résolution hors du fil de l'écran](moteur-artefacts.md).
 
 ### Entrées sérialisables
 
@@ -347,7 +347,7 @@ d'abord) se décide sur le fil de l'écran, par `prochainsATraiter`.
 
 `ResolutionDistante` décide quoi envoyer (`planifier`, dans l'ordre :
 contexte, annulations, demandes ; détail dans
-[pipeline.md § Worker de résolution](pipeline.md)), quoi écrire
+[moteur-pipeline.md § Worker de résolution](moteur-pipeline.md)), quoi écrire
 (`recevoir`), quand publier et quand renoncer.
 
 - Le contexte courant (`ContexteCourant`) est l'objet des entrées et la
@@ -407,7 +407,7 @@ contexte, annulations, demandes ; détail dans
   `scripts/lib/pairing-quota-worker.ts`, en mode `fixed`, qui reproduit la
   division du plafond. Un changement de `runPairSlice` ou de
   `driveParallelPairing` ne s'y voit pas. Ses deux régimes :
-  [../verification.md § Échelle réelle et appariement parallèle](../verification.md).
+  [verification.md § Échelle réelle et appariement parallèle](verification.md).
 - L'égalité exacte avec le séquentiel ne se démontre que sans troncature.
   Ne jamais simuler séquentiellement, dans un seul processus, ce qui dépend
   de l'horloge ou de la concurrence : le test du temps lit l'horloge, chaque

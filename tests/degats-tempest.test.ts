@@ -144,7 +144,7 @@ export function testDegatsTempestFormule() {
   }
   const s2 = sortDe(teshar, LIGHTNING_NOVA);
   const st = stats({ atk: 3000, cr: 100, cd: 150 });
-  const base: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, skillCom2usId: LIGHTNING_NOVA, summonerSkills: 'combat' };
+  const base: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, skillCom2usId: LIGHTNING_NOVA, summonerSkills: 'normal' };
   const passifs = monsterOffensivePassives(teshar);
 
   ok(!passifActif(tempest, base), 'Tempest désactivé par défaut, jamais deviné actif');
@@ -202,7 +202,7 @@ export function testDegatsTempestDeclenchement() {
   const st = stats({ atk: 3000, cr: 100, cd: 150 });
   const actif: DamageSetup = {
     ...DEFAULT_DAMAGE_SETUP,
-    summonerSkills: 'combat',
+    summonerSkills: 'normal',
     critMode: 'crit',
     enemyHp: 100_000_000,
     passifsOffensifs: { [TEMPEST]: true },
@@ -409,7 +409,7 @@ export function testDegatsTempestCommeSort() {
   // pour autant une seconde fois.
   const actif: DamageSetup = {
     ...DEFAULT_DAMAGE_SETUP,
-    summonerSkills: 'combat',
+    summonerSkills: 'normal',
     critMode: 'crit',
     enemyHp: 100_000_000,
     passifsOffensifs: { [TEMPEST]: true },

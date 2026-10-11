@@ -25,10 +25,11 @@
      **Principale PV %**, **« Libre »** (cherche parmi toutes les reliques
      éligibles). **Défaut : « Garder la relique équipée » si le monstre
      choisi porte une relique, « Libre » sinon** — calculé au choix du
-     monstre, comme pour l'artéfact, par **tous** les chemins qui en
-     désignent un : bestiaire, recette importée, membre de la liste de
-     travail, « un autre exemplaire », puce de source, zone D et réimport
-     du compte. Entre deux exemplaires de la **même espèce**, le choix de
+     monstre, comme pour l'artéfact : bestiaire, « un autre exemplaire »,
+     puce de source, zone D et réimport du compte. Un membre de liste
+     restaure son choix mémorisé ; ce défaut n'est posé que sans mémoire
+     applicable. Une recette pose son propre choix après validation.
+     Entre deux exemplaires de la **même espèce** choisis hors liste, le choix de
      l'utilisateur est conservé, sauf « Garder la relique équipée » sur un
      exemplaire qui n'en porte pas, qui redevient « Libre »
      (`relicMainChoiceApresChangementExemplaire`) : ce mode ne refuse pas la
@@ -43,7 +44,7 @@
      équipée » (la pièce est fixée), le bloc le dit. La carte candidat, elle,
      donne la phrase complète de la fiche d'objet (`formatRelicUnique`,
      `RelicSlot.tsx`), trop longue pour un sélecteur (voir
-     resultats.md § Validation d'un build et relique).
+     feat-ecran-resultats.md § Validation d'un build et relique).
    - **Niveau minimum** (`NumberField`, +0 à +15, +6 par défaut,
      `relicMinUpgrade`) : filtre d'ENTRÉE sur le pool cherché, jamais un
      critère de classement.

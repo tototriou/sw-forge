@@ -135,7 +135,10 @@ export function lireTravail(key: string): string | null {
 }
 
 // Efface tout ce qui a été conservé, réglages exclus (voir `CLES_DE_REGLAGE`).
-export async function purgeDonneesConservees() {
+export async function purgeDonneesConservees(oublierTravail = true) {
+  // Refuser le disque garde le travail de la session ; « Tout supprimer »
+  // oublie aussi le miroir, y compris les valeurs jamais écrites sur disque.
+  if (oublierTravail) for (const k of miroir.keys()) if (estUneCleDeDonnees(k)) miroir.delete(k);
   for (const k of clesDeDonnees()) {
     try {
       localStorage.removeItem(k);
@@ -173,7 +176,7 @@ export function setPersistence(actif: boolean, onEnable?: () => void) {
   } else {
     // ⚠️ Refuser **efface**, ça n'arrête pas seulement d'écrire. Un réglage
     // décoché qui laisserait les données sur le disque serait un mensonge.
-    void purgeDonneesConservees();
+    void purgeDonneesConservees(false);
   }
 }
 

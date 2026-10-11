@@ -13,6 +13,10 @@
    runé pour un autre objectif (un tank fait pour survivre) à qui les artéfacts
    ajoutent des dégâts par-dessus.
 
+   Au téléphone, le bloc est **replié par défaut**, comme « Gérer mes
+   listes » : son titre et le chiffre absolu (avec l'écart) restent
+   visibles, et un toucher sur le titre déplie les crans et la paire.
+
 ## Emplacements figés
 
 ⚠️ **Ce bloc RESPECTE les réglages de la carte, et le DIT** — il ne cherche
@@ -105,7 +109,7 @@ liste.
     En dégâts réels, elle nomme le sort que le calcul a RÉELLEMENT retenu
     (`resolvedSkill`, issu de `resolveDamageSkill`), jamais l'identifiant
     stocké : « Dégâts totaux de « … » contre l’adversaire décrit », comme
-    le résumé sous l'objectif (voir objectif-de-recherche.md § Les quatre objectifs disponibles).
+    le résumé sous l'objectif (voir feat-ecran-objectif-de-recherche.md § Les quatre objectifs disponibles).
 - **Dégâts réels** — les dégâts **totaux** du sort visé contre l'adversaire
   décrit. ⚠️ **Le moteur choisit une AUTRE paire**, il ne réaffiche pas la
   même autrement : une paire chargée en Dgts CRIT bat une paire chargée en

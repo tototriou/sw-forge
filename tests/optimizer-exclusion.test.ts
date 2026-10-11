@@ -463,8 +463,10 @@ export default function testOptimizerExclusion() {
       siegeDefenseTeams.flatMap((t) => t.slots.flatMap((s) => s.gear?.runes.map((r) => r.id) ?? []))
     ));
     const { kept, droppedCount } = revalidateBuilds(validated, data, allRuneIds);
-    egal(droppedCount, 2, 'revalidateBuilds : les 2 builds périmés (sélecteur introuvable, rune manquante) sont comptés');
-    egal(kept.length, 1, 'revalidateBuilds : le build encore intact (box Camilla) est conservé');
+    // L'ancienne attente de retrait devient une conservation avec marque.
+    egal(droppedCount, 0, 'revalidateBuilds : aucun build retiré, même introuvable ou incomplet');
+    egal(kept.length, 3, 'revalidateBuilds : tous les builds restent conservés');
+    egal(kept[2].runesManquantes, [999], 'rune absente signalée dans le build');
     egal(kept[0]?.selector, { source: 'box', unitKey: 'unit-camilla' }, 'revalidateBuilds : conserve le bon sélecteur');
 
     const allValid = revalidateBuilds([validated[0]], data, allRuneIds);
@@ -525,7 +527,8 @@ export default function testOptimizerExclusion() {
       { listId: 'deck-a', selector: unownedSelector, runeIds: [1, 2, 999999] }, // 999999 n'existe nulle part
     ];
     const unownedDropped = revalidateBuilds(unownedStale, dataAvecZaiross, allRuneIds);
-    egal(unownedDropped.droppedCount, 1, "revalidateBuilds (unowned) : abandonné si une rune n'existe plus du tout dans le compte");
+    egal(unownedDropped.droppedCount, 0, 'revalidateBuilds (unowned) : conservé si une rune a disparu');
+    egal(unownedDropped.kept[0].runesManquantes, [999999], 'build non possédé incomplet : rune manquante marquée');
   }
 
   // ── revalidateMembers — même principe que revalidateBuilds, mais
@@ -537,8 +540,9 @@ export default function testOptimizerExclusion() {
       { listId: 'deck-a', selector: { source: 'box', unitKey: 'unit-jamais-vu' } }, // sélecteur introuvable → abandonné
     ];
     const { kept, droppedCount } = revalidateMembers(members, data);
-    egal(droppedCount, 1, 'revalidateMembers : le membre au sélecteur introuvable est abandonné');
-    egal(kept.length, 1, 'revalidateMembers : le membre encore valide est conservé');
+    // Le rattachement commun remplace le retrait d'un membre introuvable.
+    egal(droppedCount, 0, 'revalidateMembers : aucun membre abandonné');
+    egal(kept.length, 2, 'revalidateMembers : les deux membres restent conservés');
     egal(kept[0]?.selector, { source: 'box', unitKey: 'unit-camilla' }, 'revalidateMembers : conserve le bon sélecteur');
   }
 
@@ -587,8 +591,8 @@ export default function testOptimizerExclusion() {
     ];
     egal(
       revalidateMembers(membres, vide).kept.length,
-      0,
-      'sur un compte vide, la revérification jetterait TOUT — d’où la garde en amont'
+      1,
+      'sur un compte vide, les membres restent conservés'
     );
   }
 

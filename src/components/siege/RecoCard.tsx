@@ -114,6 +114,8 @@ export interface OffenseChoice {
 }
 
 interface Props {
+  raisonsExportOptimizer: (string | undefined)[];
+  onExporterDeckOptimizer: (deck: RecoDeck) => void;
   reco: Reco;
   index: number;
   monsters: Monster[];
@@ -152,6 +154,8 @@ const AURA: Record<string, string> = {
 };
 
 export default function RecoCard({
+  raisonsExportOptimizer,
+  onExporterDeckOptimizer,
   reco,
   index,
   monsters,
@@ -710,6 +714,8 @@ export default function RecoCard({
       {/* Vue Défense : les défenses visées, et les offenses qui les battent. */}
       {expanded && enVueDefense && (
         <TableauDefenses
+          raisonsExportOptimizer={raisonsExportOptimizer}
+          onExporterDeckOptimizer={onExporterDeckOptimizer}
           reco={reco}
           vue={defenses}
           match={match}
@@ -794,6 +800,8 @@ export default function RecoCard({
                   }}
                 >
                   <DeckBlock
+                    raisonExportOptimizer={raisonsExportOptimizer[di]}
+                    onExporterOptimizer={() => onExporterDeckOptimizer(deck)}
                     reco={reco}
                     deck={deck}
                     deckIndex={di}
@@ -1369,6 +1377,8 @@ const BOUTON_LG = 'lg:h-7';
 // ressortaient pas. Ils gardent le fond d'un bouton et le bord POINTILLÉ d'un ajout.
 
 function DeckBlock({
+  raisonExportOptimizer,
+  onExporterOptimizer,
   reco,
   deck,
   deckIndex,
@@ -1385,6 +1395,8 @@ function DeckBlock({
   recos,
   onSupprime,
 }: {
+  raisonExportOptimizer?: string;
+  onExporterOptimizer: () => void;
   reco: Reco;
   deck: RecoDeck;
   deckIndex: number;
@@ -1546,6 +1558,7 @@ function DeckBlock({
               composer, À revoir, Monstre manquant), la phrase complète en
               infobulle, et combien de fois le deck est montable. Avant
               l'analyse : rien. */}
+          <span className="flex flex-none items-center gap-1 lg:justify-end">
           <span className="hidden min-w-0 flex-col items-start gap-0.5 lg:flex lg:items-end">
             {!editing && match && !empty && verdictLigne && (
               <>
@@ -1561,6 +1574,10 @@ function DeckBlock({
                 <CopiesBadge copies={match.copies} />
               </>
             )}
+          </span>
+          <Bouton aria-label="Exporter vers l'Optimizer" icone={<Upload size={14} />} taille="carre" trait="aucun" fond="vide"
+            disabled={!!raisonExportOptimizer} title={raisonExportOptimizer ?? "Exporter vers l'Optimizer"}
+            onClick={onExporterOptimizer} className={`h-7 w-7 ${ICONE_LG}`} />
           </span>
           {/* Le lead n'est pas dans l'en-tête : il est posé sur le leader lui-même
               (aperçu replié ci-dessous, ou slot 0 déplié) — comme en siège. */}
@@ -2365,11 +2382,15 @@ function defenseLabel(monsters: RecoCounter['monsters'], byCom2us: Map<number, M
 // d'intitulés que le tableau des decks, pour qu'une vue se lise comme l'autre.
 // Au doigt, chaque défense s'empile au-dessus de ses offenses.
 function TableauDefenses({
+  raisonsExportOptimizer,
+  onExporterDeckOptimizer,
   reco,
   vue,
   match,
   monsterByCom2us,
 }: {
+  raisonsExportOptimizer: (string | undefined)[];
+  onExporterDeckOptimizer: (deck: RecoDeck) => void;
   reco: Reco;
   vue: VueDefenses;
   match: RecoMatch | null;
@@ -2399,6 +2420,9 @@ function TableauDefenses({
           ))}
         </span>
         <span className="text-xs text-ink">{deckLabel(deck, monsterByCom2us, deckIndex)}</span>
+        <Bouton aria-label="Exporter vers l'Optimizer" icone={<Upload size={14} />} taille="carre" trait="aucun" fond="vide"
+          disabled={!!raisonsExportOptimizer[deckIndex]} title={raisonsExportOptimizer[deckIndex] ?? "Exporter vers l'Optimizer"}
+          onClick={() => onExporterDeckOptimizer(deck)} className={`h-7 w-7 ${ICONE_LG}`} />
         {note && <span className="text-micro text-ink-dim">— {note}</span>}
       </li>
     );

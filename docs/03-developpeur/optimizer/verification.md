@@ -2,8 +2,8 @@
 
 **Statut :** ÉTAT ACTUEL — décrit les contrôles qui couvrent l'algorithme de recherche : référence exhaustive, oracles, différentiels tirés et ciblés, benchmarks et validation sur un compte réel
 **Lire si :** on modifie l'algorithme de recherche et qu'il faut savoir quels contrôles le couvrent, ou en écrire un
-**Ne pas lire si :** on cherche comment l'algorithme coupe l'espace (moteur/elagages.md) ou comment diagnostiquer une recherche (harnais.md)
-**Voir aussi :** invariants.md, harnais.md, moteur/elagages.md, README.md
+**Ne pas lire si :** on cherche comment l'algorithme coupe l'espace (moteur-elagages.md) ou comment diagnostiquer une recherche (harnais.md)
+**Voir aussi :** invariants.md, harnais.md, moteur-elagages.md, ../../02-app/optimizer/ (routage-par-tache.md)
 
 Tout changement de `src/lib/runeBuildOptim.ts` suit la discipline du skill
 `algo-verify` (`.claude/skills/algo-verify/SKILL.md`) : une référence de

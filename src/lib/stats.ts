@@ -4,14 +4,14 @@
 // arrondit immédiatement à l'entier SUPÉRIEUR** (`Math.ceil`) — jamais un
 // `floor`/`round` en fin de chaîne. Elle vaut ici pour tous les bonus en %.
 //
-// Seule exception connue : le bonus % de VITESSE (totem + lead), où le jeu
-// applique et **arrondit au plus proche** chaque bonus séparément — voir
-// `pctSpeedBonus` dans speed.ts, cas de contrôle à l'appui.
+// La VIT de COMBAT somme totem + lead + Swift dans un seul `ceil` ; le Swift
+// déjà porté à plat par la fiche est retiré avant ce calcul — voir
+// `combatSpeed` et `pctSpeedBonus` dans speed.ts, cas de contrôle à l'appui.
 //
 //   stat = base + ceil(base × Σ% / 100) + Σplat
 //
 // Les pourcentages sont d'abord SOMMÉS (runes + relique + sets), puis un seul
-// `ceil` est appliqué — comme pour `ceil(base × (totem + lead) / 100)`.
+// `ceil` est appliqué — comme pour `ceil(base × (totem + lead + Swift) / 100)`.
 // Les stats sans % (crit, RES, précision) restent purement additives.
 //
 // Contributions prises en compte :
@@ -93,8 +93,8 @@ export function computeStats(gear: GearSet): StatRow[] {
         pct[bonus.stat] += bonus.pct; // entre dans le × (1 + Σ%)
       } else {
         // VIT : % de la base, ajouté à plat — arrondi au supérieur, comme à
-        // l'import Swift (`applyAccount`). À vérifier en jeu : le totem/lead,
-        // lui, arrondit au plus proche (voir `pctSpeedBonus`).
+        // l'import Swift (`applyAccount`). En combat, ce Swift plat est retiré
+        // puis totem + lead + Swift entrent dans un seul ceil (`combatSpeed`).
         flat[bonus.stat] += Math.ceil((baseVal[bonus.stat] * bonus.pct) / 100);
       }
     }

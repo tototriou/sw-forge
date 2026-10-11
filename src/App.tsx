@@ -40,6 +40,7 @@ import ReleasesPage from './pages/ReleasesPage';
 import TelechargerPage from './pages/TelechargerPage';
 import AccountPage from './pages/AccountPage';
 import OutilsPage from './pages/OutilsPage';
+import OptimizerImportRapport from './components/outils/OptimizerImportRapport';
 import ComingSoon from './pages/ComingSoon';
 import SettingsPage from './pages/SettingsPage';
 import AccountImportControl from './components/AccountImportControl';
@@ -90,8 +91,12 @@ import { useRtaState } from './hooks/useRtaState';
 import { useSiegeState } from './hooks/useSiegeState';
 import { useSiegeRecos } from './hooks/useSiegeRecos';
 import { useOptimizerState } from './hooks/useOptimizerState';
+import { avecNavigationImportOptimizer } from './lib/actionImportOptimizer';
+import type { RapportImportOptimizer } from './lib/importEquipes';
 import { useOptimizerLists } from './hooks/useOptimizerLists';
-import { comptePeutJuger, ExclusionSourceData, revalidateBuilds, revalidateMembers } from './lib/optimizerExclusion';
+import { ExclusionSourceData } from './lib/optimizerExclusion';
+import { reverifierStockageOptimizer, type StockageOptimizer } from './lib/optimizerMemberStorage';
+import { acquerirIdentitesMembres } from './lib/optimizerRattachement';
 import { collectOwnedBuilds, collectOwnedTeams, countCopiesByCom2us } from './lib/ownedBuilds';
 import {
   BoxMonster,
@@ -327,11 +332,12 @@ function Application() {
   const siegeDef = useSiegeState('defense');
   const siegeOff = useSiegeState('offense');
   const recos = useSiegeRecos();
-  const optimizer = useOptimizerState();
   // Listes de travail de l'Optimizer — SÉPARÉES de `useOptimizerState`,
   // voir useOptimizerLists.ts : c'est la seule part de l'écran Optimizer qui
   // persiste sur disque.
   const optimizerLists = useOptimizerLists();
+  const stockageAvantImportRef = useRef<StockageOptimizer | null>(null);
+  const compteReimporteRef = useRef<{ box: BoxItem[]; runes: RuneDetail[] } | null>(null);
 
   // Compte (box + inventaire runes/artéfacts). En mémoire, et **conservé sur
   // l'appareil** si l'utilisateur l'a demandé dans le menu ⚙ (voir
@@ -374,8 +380,7 @@ function Application() {
   // rechargement de page avec un compte conservé, `resetSearch()` + la
   // revérification des listes de travail se déclencheraient alors à tort, avec
   // le message « … dans le compte réimporté » alors qu'aucun réimport n'a
-  // eu lieu — et pourraient faire disparaître des builds validés (voir aussi
-  // `revalidateBuilds`, optimizerExclusion.ts).
+  // eu lieu. L'acquisition des identités au chargement est traitée séparément.
   // `hydrationJustAppliedRef` : posé au moment précis où l'effet d'hydratation
   // écrit `box`/`runes` depuis le stockage, consommé ICI — seule cette
   // écriture-là doit être ignorée, un VRAI réimport (même juste après) continue
@@ -390,19 +395,11 @@ function Application() {
       hydrationJustAppliedRef.current = false;
       return;
     }
-    optimizer.resetSearch('compte');
 
-    // Listes de travail — un build validé porte un INSTANTANÉ de
-    // runes (voir ValidatedBuild, optimizerExclusion.ts), pas une référence
-    // recalculée : un réimport (même compte réexporté, runes déplacées/
-    // vendues entre-temps) peut le rendre périmé — même chose pour la simple
-    // APPARTENANCE à une liste (`OptimizerListMember`, un sélecteur qui ne
-    // résout plus si le monstre a été fusionné/retiré). Revérifié à CHAQUE
-    // réimport (pas seulement sur un wizard_id différent, contrairement à
-    // `excludedSelectors` plus bas — ici on veut justement détecter « mon
-    // propre compte a changé depuis »).
-    // ⚠️ Jamais silencieux : averti dans `importMsg`, jamais juste retiré.
-    if (optimizerLists.members.length > 0 || optimizerLists.validated.length > 0) {
+    // À chaque réimport, rattacher les membres par leur espèce connue,
+    // conserver les instantanés des builds et annoncer chaque déplacement
+    // ainsi que les runes disparues dans le message d'import.
+    if (optimizerLists.members.length > 0 || optimizerLists.validated.length > 0 || optimizerLists.memories.size > 0 || optimizerLists.teams.length > 0) {
       const monsterById = new Map<string, Monster>();
       for (const mon of allMonsters) monsterById.set(String(mon.id), mon);
       const data: ExclusionSourceData = {
@@ -412,29 +409,28 @@ function Application() {
         siegeOffenseTeams: siegeOff.state.teams,
         monsterById,
       };
-      // ⚠️⚠️ **Rien à juger sur un compte vide** — voir `comptePeutJuger`. Le
-      // garde-fou `boxMountedRef` ci-dessus ne protège QUE le premier passage
-      // de l'effet : `React.StrictMode` monte le composant deux fois en
-      // développement, et le second revalidait avec `box`/`runes` encore
-      // vides. Plus rien ne résolvait, tout était jeté — puis ÉCRIT sur
-      // disque. Les listes restaient, leur contenu partait à chaque
-      // rechargement.
+      // La garde du compte vide porte sur les données Box/runes ; elle reste
+      // valable au second montage de StrictMode et pendant l'hydratation.
       const runeIds = new Set(runes.map((r) => r.id));
-      if (!comptePeutJuger(data, runeIds)) return;
-      const membersResult = revalidateMembers(optimizerLists.members, data);
-      const buildsResult = revalidateBuilds(optimizerLists.validated, data, runeIds);
-      const droppedCount = membersResult.droppedCount + buildsResult.droppedCount;
-      if (droppedCount > 0) {
-        optimizerLists.replaceMembersAndValidated(membersResult.kept, buildsResult.kept);
+      const resultat = reverifierStockageOptimizer(stockageAvantImportRef.current ?? optimizerLists, data, runeIds, new Set(artifacts.map(a => a.id)));
+      stockageAvantImportRef.current = null;
+      if (resultat.rapport.compteVide) return;
+      compteReimporteRef.current = { box, runes };
+      if (resultat.stockage !== optimizerLists) optimizerLists.replaceAfterRevalidation(resultat.stockage);
+      optimizer.appliquerReverificationMembres(resultat.stockage, resultat.rapport, data, runeIds);
+      if (resultat.rapport.messages.length > 0) {
         setImportMsg((prev) => ({
           ok: prev?.ok ?? true,
           text:
-            `${prev?.text ?? ''} ⚠️ ${droppedCount} monstre(s) retiré(s) de tes listes de travail : ` +
-            `exemplaire introuvable ou runes validées qui ne s'y trouvent plus, dans le compte réimporté.`,
+            `${prev?.text ?? ''} ⚠️ ${resultat.rapport.messages.join(' ')}`,
         }));
       }
+    } else {
+      stockageAvantImportRef.current = null;
+      compteReimporteRef.current = { box, runes };
+      optimizer.resetSearch('compte');
     }
-  }, [box, runes]);
+  }, [box, runes, artifacts]);
 
   // Identité du DERNIER compte importé cette session (`wizard_id`, voir
   // parseWizardId) — comparée dans `appliquerImport` pour réinitialiser
@@ -504,6 +500,8 @@ function Application() {
   // bouton (barre d'onglets) et le contenu (la page) sont deux sous-arbres
   // distincts : seul leur ancêtre commun peut les relier.
   const [menuPageOuvert, setMenuPageOuvert] = useState(false);
+  // Monstre de l'Optimizer dont la ligne est sortie de l'écran (téléphone).
+  const [monstreOptions, setMonstreOptions] = useState<Monster | null>(null);
 
   // Navigation de second niveau sur téléphone : le TITRE de la section dont on
   // choisit la sous-section, `null` si le panneau est fermé (voir
@@ -571,6 +569,31 @@ function Application() {
     () => [...data.monsters, ...custom.customMonsters],
     [data.monsters, custom.customMonsters]
   );
+
+  const optimizerData = useMemo<ExclusionSourceData>(() => ({ box,
+    rtaEntries: rta.state.entries, siegeDefenseTeams: siegeDef.state.teams,
+    siegeOffenseTeams: siegeOff.state.teams,
+    monsterById: new Map(allMonsters.map(mon => [String(mon.id), mon])),
+  }), [box, rta.state.entries, siegeDef.state.teams, siegeOff.state.teams, allMonsters]);
+  const optimizerRuneIds = useMemo(() => new Set(runes.map(r => r.id)), [runes]);
+  const optimizer = useOptimizerState({ lists: optimizerLists, data: optimizerData, runeIds: optimizerRuneIds,
+    reverificationEnAttente: () => stockageAvantImportRef.current !== null });
+  const [rapportExportOptimizer, setRapportExportOptimizer] = useState<RapportImportOptimizer | null>(null);
+  const importerEquipeFlottant = avecNavigationImportOptimizer(optimizer.importerEquipe, () => {
+    window.location.hash = '#/outils/optimizer';
+  });
+  // Le point d'entrée possède le rapport, même si une modale couvre l'Optimizer.
+  const importerEquipe = avecNavigationImportOptimizer(optimizer.importerEquipe, () => {
+    window.location.hash = '#/outils/optimizer';
+  }, setRapportExportOptimizer);
+  useEffect(() => {
+    // L'hydratation du compte conservé acquiert les identités historiques.
+    // Un réimport a déjà acquis ses identités avant le remplacement du compte.
+    if (!box.length && !runes.length || stockageAvantImportRef.current
+      || compteReimporteRef.current?.box === box && compteReimporteRef.current.runes === runes) return;
+    const acquis = acquerirIdentitesMembres(optimizerLists, optimizerData);
+    if (acquis !== optimizerLists) optimizerLists.replaceAfterRevalidation(acquis);
+  }, [optimizerData, optimizerLists, box, runes]);
 
   // Index com2usId → monstre, pour mapper les unités d'un export de compte.
   const monsterByCom2us = useMemo(() => {
@@ -796,6 +819,14 @@ function Application() {
   // ⚠️ C'est tout ce que fait le dossier SW Exporter (décision 15) : il suit
   // les exports sans jamais toucher au travail de l'utilisateur.
   function appliquerCompte(data: Record<string, any>, compte: ReturnType<typeof preparerCompte>) {
+    // La résolution doit précéder toutes les écritures du nouveau compte,
+    // y compris lorsqu'il arrive du dossier SW Exporter, écran démonté.
+    const stockageCourant = optimizerLists.lireStockageCourant();
+    stockageAvantImportRef.current = box.length || runes.length
+      ? acquerirIdentitesMembres(stockageCourant, optimizerData) : stockageCourant;
+    // Regroupé avec la relecture du compte conservé, ce vrai import doit
+    // être revérifié : sinon la photo resterait posée et bloquerait l'import d'équipe.
+    hydrationJustAppliedRef.current = false;
     const { exporte, nomJoueur, boxRes, invRes, boxItems, usedRunes, markerLabels } = compte;
     // Exclusion manuelle de runes de l'Optimizer (excludedSelectors) : à
     // effacer sur un compte VRAIMENT DIFFÉRENT (autre wizard_id — voir
@@ -1545,6 +1576,7 @@ function Application() {
           pageAPanneau ? () => setMenuPageOuvert(true) : undefined
         }
         actionsOuvertes={menuPageOuvert}
+        monstre={route === 'outils' ? monstreOptions : null}
       />
 
       {/* Choix de la sous-section, sur téléphone. Alimenté par les MÊMES
@@ -1649,6 +1681,9 @@ function Application() {
 
         {route === 'rta' ? (
           <RtaPage
+            onImporterEquipe={importerEquipe}
+            sourcesOptimizer={optimizerData}
+            compteCharge={box.length > 0 || runes.length > 0}
             sub={rtaSub}
             rta={rta}
             monsters={allMonsters}
@@ -1669,6 +1704,9 @@ function Application() {
         ) : route === 'siege' ? (
           <SiegePage
             tab={siegeTab}
+            onImporterEquipe={importerEquipe}
+            sourcesOptimizer={optimizerData}
+            compteCharge={box.length > 0 || runes.length > 0}
             siege={siegeTab === 'offense' ? siegeOff : siegeDef}
             offense={siegeOff}
             siegeDefenseTeams={siegeDef.state.teams}
@@ -1714,6 +1752,7 @@ function Application() {
           />
         ) : route === 'outils' ? (
           <OutilsPage
+            recommandations={recos.state.recos}
             sub={toolSub}
             box={box}
             runes={runes}
@@ -1723,6 +1762,8 @@ function Application() {
             loadState={data.loadState}
             hydrating={accountHydrating}
             optimizer={optimizer}
+            onImporterEquipe={importerEquipeFlottant}
+            onExporterEquipe={importerEquipe}
             allMonsters={allMonsters}
             rtaEntries={rta.state.entries}
             siegeDefenseTeams={siegeDef.state.teams}
@@ -1734,6 +1775,7 @@ function Application() {
             // L'Optimizer ouvre lui-même ce panneau pour l'ouverture guidée
             // au doigt — seule page qui le demande.
             onOuvrirMenu={() => setMenuPageOuvert(true)}
+            onMonstreHorsVue={setMonstreOptions}
           />
         ) : route === 'releases' ? (
           <ReleasesPage />
@@ -1924,6 +1966,9 @@ function Application() {
         )}
         {speedTuneEquipe && (
           <SpeedTuneModale
+            onImporterEquipe={importerEquipe}
+            sourcesOptimizer={optimizerData}
+            compteCharge={box.length > 0 || runes.length > 0}
             deck={speedTuneEquipe}
             allMonsters={allMonsters}
             siegeDefenseTeams={siegeDef.state.teams}
@@ -1931,6 +1976,7 @@ function Application() {
             onClose={() => setSpeedTuneEquipe(null)}
           />
         )}
+        {rapportExportOptimizer && <OptimizerImportRapport rapport={rapportExportOptimizer} onFermer={() => setRapportExportOptimizer(null)} />}
         {/* « Importer mon compte » de la palette : le choix de fichier. */}
         <input
           ref={fichierCompte}

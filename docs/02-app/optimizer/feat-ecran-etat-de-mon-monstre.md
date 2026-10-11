@@ -10,7 +10,7 @@
    Le trait ne suffit pas à dire « autre métier » — une carte, si.
    Contenu : **buff ATQ**, **buff DEF**, **buff
    VIT**, **leader skill** d'équipe (type puis valeur, icône officielle du
-   jeu), **compétences d'invocateur** et les
+   jeu) et les
    **sets d'aura des autres monstres** de l'équipe. Ce qui rend le monstre
    plus fort, quel que soit l'adversaire.
    Si un buff actif est amplifié par une ligne d'artéfact, le pourcentage
@@ -20,7 +20,7 @@
    **Rappel des buffs posés par un passif** (rappel à l'écran, réglage manuel
    conservé) — quand le
    monstre choisi porte un passif qui se pose un buff standard, une ligne
-   s'affiche sous la rangée des trois groupes, avant les lignes
+   s'affiche sous la rangée des deux groupes, avant les lignes
    d'amplification et dans la même grammaire (texte `xs` atténué) : le
    passif nommé comme dans « Stats acquises en combat » (`Jeton` en lecture
    seule, icône et nom du jeu sans « (Passive) »), puis « pose Buff ATQ —
@@ -42,19 +42,19 @@
    (garde d'identité : la fiche précédente, encore en mémoire pendant le
    chargement, n'en donne aucun).
 
-   Les trois groupes tiennent sur **une seule rangée** :
+   Les deux groupes tiennent sur **une seule rangée** :
    empilés, ils donneraient à la carte une hauteur sans rapport avec le peu
    qu'elle contient. ⚠️ En `flex-wrap`, pas en rangée rigide — au doigt ou
    dans une colonne étroite, ils repassent à la ligne plutôt que de comprimer
    les contrôles sous leur taille de cible.
 
-   Dans le groupe **Invocateur**, le libellé et son aide sont **au-dessus**
-   des deux crans, pas à leur gauche : côte à côte, ils
-   formeraient le groupe le plus large des trois et feraient replier la rangée
-   plus tôt. ⚠️ **Sans changer la hauteur de la carte** — le groupe passe à
-   deux rangées, mais « Lead » en fait déjà deux et `items-stretch` aligne les
-   trois boîtes sur la plus haute : l'invocateur ne fait que remplir une place
-   qui existait déjà.
+   Les **compétences d’invocateur** sont dérivées du contenu de la liste
+   active : Guilde → « Contenu de guilde », Arène et Donjon → « Contenu normal ».
+   Sans liste active ou sans contenu, elles valent « Contenu normal ». Elles restent
+   supposées au maximum, selon l’élément du monstre. Aucun choix ne figure
+   dans cette carte, au bureau comme au téléphone. L’écran, la recherche et
+   la recette lisent ce même mode effectif ; une valeur mémorisée ou importée
+   différente reste conservée, mais le contenu décide de son application.
 
    Chacun porte son **contour**. ⚠️ **Des boîtes et non des barres**, alors
    qu'une barre serait
@@ -67,16 +67,38 @@
    met à la hauteur de la plus haute, sinon une boîte d'une rangée flotterait
    au milieu d'une boîte de deux et l'œil lirait un décalage.
 
-   Dans le groupe **Lead**, les deux menus (type et valeur) ont la **même
-   largeur** : ils occupent la même colonne de grille, en `w-full`. La largeur
-   se déduit donc du plus large des deux — aucune valeur en dur à tenir à jour
-   quand un libellé change.
+   Dans le groupe **Lead**, au bureau, les deux menus (type et valeur) ont la
+   **même largeur** : la valeur se pose sous le type, dans la même colonne de
+   grille, en `w-full`. La largeur se déduit donc du plus large des deux —
+   aucune valeur en dur à tenir à jour quand un libellé change. Au téléphone,
+   la valeur se pose à droite du type, sur la même rangée, pour tenir moins de
+   hauteur ; sa place reste réservée avant le choix d'un lead.
+
+   Pour un membre lié, le menu montre le **lead effectif**, ou « Aucun » avec
+   son motif si le lead n’agit pas sur lui. La phrase sous les deux groupes
+   dit que le modifier change le lead de toute l’équipe et que chaque membre
+   le garde en quittant l’équipe. Le type et la valeur changent le lead
+   partagé ; portée et élément se règlent dans le dialogue d’équipe. Cette
+   explication et le motif ont une place réservée, au bureau comme au
+   téléphone. Le lead effectif écrase le lead personnel du membre, dans ses
+   critères et sa mémoire, et lui reste quand il quitte l’équipe. Voir
+   feat-listes-equipes-et-sauvegarde.md § Lead effectif d’un membre.
+
+   Hors équipe, changer le lead depuis cette carte efface aussi l’ancien
+   champ de VIT (`leaderSpeedPct`) des critères personnels : choisir
+   « Aucun » ne doit pas réactiver ce lead ancien. Si les critères ont un
+   propriétaire valide, sa mémoire reçoit ce changement. Pour un membre
+   lié, le même geste change le lead partagé, que chaque membre reçoit
+   ensuite comme lead personnel, ancien champ de VIT effacé.
 
 ## Sets d'aura des autres monstres
 
-   **Sets d'aura des autres monstres** — une quatrième
-   boîte, **sous** la rangée des trois groupes et **en dernier** dans la
-   carte, qui saisit `DamageSetup.setsAuraExternes` : les sets Fight,
+   **Sets d'aura des autres monstres** — une troisième
+   boîte, sur la même rangée que les buffs et le lead au bureau ; au
+   téléphone elle reste sous les groupes pour éviter le débordement.
+   Dans une colonne de bureau étroite, les buffs s'empilent dans leur boîte
+   pour laisser place au lead et aux auras, sans comprimer leurs contrôles.
+   Elle saisit `DamageSetup.setsAuraExternes` : les sets Fight,
    Determination, Enhance, Accuracy et Tolerance portés par les **autres**
    monstres de l'équipe (voir
    [effets d'équipe](../degats-reels/)). En tête,
@@ -110,7 +132,7 @@
 
    **Rappel au changement de monstre** — choisir un
    autre monstre **depuis la liste de travail** (voir
-   ../listes-et-reservation.md § Zone C — Monstres de la liste) — autre espèce, ou autre exemplaire de la même espèce —
+   feat-listes-et-reservation.md § Zone C — Monstres de la liste) — autre espèce, ou autre exemplaire de la même espèce —
    alors que des auras externes sont renseignées passe leur boîte au token
    d'attention : contour `warn` et fond `warn-soft` à la place de ses
    couleurs, toujours un seul contour de 1 px, et l'en-tête de la boîte
@@ -131,7 +153,7 @@
    ni dans un effet sur le monstre sélectionné, que l'import pose aussi.
    Le même message paraît aussi sous la liste de la zone C, du même état et
    pour la même durée (voir
-   ../listes-et-reservation.md § Zone C — Monstres de la liste).
+   feat-listes-et-reservation.md § Zone C — Monstres de la liste).
 
 ## Ouverture guidée vers l'interrupteur des auras RES/PRE
 
@@ -140,7 +162,7 @@
    externes (nouvelle ligne, ou ligne passée à ce set), ou le choisir comme
    **set recherché** (sans toucher aux auras externes), guide vers « Compter
    les effets d'auras Tolerance et Précision dans les conditions » (point 9,
-   voir conditions-et-reglages.md § Réglages avancés). Fight, Determination et Enhance n'ouvrent
+   voir feat-ecran-conditions-et-reglages.md § Réglages avancés). Fight, Determination et Enhance n'ouvrent
    rien : leurs auras n'entrent dans aucune condition, aucun réglage ne leur
    est associé. Un nombre changé sur une ligne déjà présente, une seconde
    activation du même set ou un retrait ne guident pas non plus ; le
@@ -206,8 +228,8 @@
    le sort, l'adversaire, et comment traiter le critique. », puis l'écho :
    « État du monstre : » suivi des buffs actifs (« buff ATQ », « buff DEF »,
    « buff VIT »), du lead (`lead <stat> +<valeur> %`, la stat nommée comme
-   dans le jeu, `LEADER_SKILL_STATS`) et du cran d'invocateur (« Combat » ou
-   « Combat + Guilde »), séparés par « · » (`echoEtatMonstre`,
+   dans le jeu, `LEADER_SKILL_STATS`) et du cran d'invocateur (« Contenu normal » ou
+   « Contenu de guilde »), séparés par « · » (`echoEtatMonstre`,
    OptimizerSection.tsx). L'écho ne nomme aucun sort : le sort se choisit
    dans la fenêtre elle-même (« Compétence utilisée »). L'écho **nomme les auras
    externes** par set, avec leur nombre (« auras externes : 2 sets Fight,

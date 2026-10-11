@@ -19,9 +19,12 @@ import { formatExport, formatReconnu } from './formatsExport';
 import { CHAMPS_OPTIMIZER_SESSION } from './sessionOptimizer';
 import { jourLocal } from './telechargement';
 import { PREFIXE_FICHIER } from '../marque';
+import { OPTIMIZER_MEMBERS_STORAGE_KEY } from './optimizerMemberStorage';
+import { OPTIMIZER_BACKUP_STORAGE_KEY } from './optimizerBackup';
+import { lireCompetencesInvocateur } from './competencesInvocateur';
 
 export const FORMAT_SESSION = formatExport('session');
-export const VERSION_SESSION = 1;
+export const VERSION_SESSION = 2;
 
 // Le travail et les réglages : les clés du stockage local qui entrent dans
 // une session, et elles seules — à la relecture, une clé hors de
@@ -38,6 +41,8 @@ export const CLES_SESSION = [
   'swblacksmith-siege-recos-v1',
   'swblacksmith-custom-monsters-v1',
   'swblacksmith-optimizer-lists-v1',
+  OPTIMIZER_MEMBERS_STORAGE_KEY,
+  OPTIMIZER_BACKUP_STORAGE_KEY,
   // Les réglages.
   'swblacksmith-theme-v1',
   'swblacksmith-rune-metric-v1',
@@ -55,8 +60,10 @@ const VALEURS_PERMISES: Partial<Record<(typeof CLES_SESSION)[number], readonly s
 };
 
 // Une valeur du stockage est-elle de la forme que son hook relit ? Les
-// réglages : une valeur permise ; le travail : du JSON.
+// réglages : une valeur permise ; le travail : du JSON, sauf le point dont
+// le lecteur spécialisé conserve aussi un texte cassé sans l'appliquer.
 export function valeurStockageValide(cle: (typeof CLES_SESSION)[number], valeur: string): boolean {
+  if (cle === OPTIMIZER_BACKUP_STORAGE_KEY) return true;
   const permises = VALEURS_PERMISES[cle];
   if (permises) return permises.includes(valeur);
   try {
@@ -140,6 +147,11 @@ export function decoder(valeur: unknown): unknown {
 function garderChampsOptimizer(o: Record<string, unknown>): Record<string, unknown> {
   const garde: Record<string, unknown> = {};
   for (const champ of CHAMPS_OPTIMIZER_SESSION) if (champ in o) garde[champ] = o[champ];
+  if (garde.damageSetup && typeof garde.damageSetup === 'object' && !Array.isArray(garde.damageSetup)) {
+    const setup = garde.damageSetup as Record<string, unknown>;
+    const mode = lireCompetencesInvocateur(setup.summonerSkills);
+    if (mode !== null) garde.damageSetup = { ...setup, summonerSkills: mode };
+  }
   return garde;
 }
 
@@ -174,7 +186,7 @@ export function composerSession(s: SourcesSession): Session {
 }
 
 // Compact : le compte pèse quelques Mo, l'indentation les doublerait.
-export const ecrireSession = (session: Session): string => JSON.stringify(session);
+export const ecrireSession = (session: Session): string => JSON.stringify({ ...session, version: VERSION_SESSION });
 
 // `swblacksmith-session-2026-10-06-15h42.json`, à l'heure locale.
 export function nomFichierSession(d: Date): string {
@@ -213,7 +225,8 @@ export function lireSession(texte: string): LectureSession {
 
   // Le stockage : chaque valeur est le TEXTE que l'app écrit. Une valeur qui
   // n'a pas la forme que son hook relit fait refuser le fichier : la charger
-  // casserait la page qui la relit.
+  // casserait la page qui la relit. Le point voyage comme texte opaque ; son
+  // lecteur décide séparément s'il permet une reprise.
   const stockage: Session['stockage'] = {};
   const st = o.stockage;
   if (st !== undefined && (!st || typeof st !== 'object' || Array.isArray(st))) {

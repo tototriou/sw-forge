@@ -2,17 +2,17 @@
 
 **Statut :** ÉTAT ACTUEL — décrit la paire d'artéfacts non figée : la paire supposée qui note la recherche de runes, les bornes d'inventaire qui décident de la faisabilité, le test conjoint exact, la vraie paire de chaque build et son régime, la file qui la résout
 **Lire si :** on modifie bornesArtefacts, SearchParams.artifactBounds, la paire représentative, le filtre final d'un build, le régime de la paire ou ce qui fait recalculer les paires
-**Ne pas lire si :** on cherche l'optimiseur d'artéfacts lui-même — éligibilité, effet des lignes, double boucle, script CLI (optimiseur-artefacts.md)
-**Voir aussi :** optimiseur-artefacts.md, elagages.md, pipeline.md, reliques.md, ../ecran/resultats.md, ../invariants.md
+**Ne pas lire si :** on cherche l'optimiseur d'artéfacts lui-même — éligibilité, effet des lignes, double boucle, script CLI (moteur-optimiseur-artefacts.md)
+**Voir aussi :** moteur-optimiseur-artefacts.md, moteur-elagages.md, moteur-pipeline.md, moteur-reliques.md, ../../02-app/optimizer/ (feat-ecran-resultats.md), invariants.md
 
 Choisir la paire d'un build donné est un problème exact et sans
 heuristique : le build de runes est fixe pendant ce choix, et une double
 boucle exhaustive sur les deux emplacements le résout, contrainte
 d'intangible comprise —
-[optimiseur-artefacts.md § Le build est fixe, les artéfacts se posent ensuite](optimiseur-artefacts.md),
-[optimiseur-artefacts.md § Éligibilité et contrainte de paire](optimiseur-artefacts.md)
+[moteur-optimiseur-artefacts.md § Le build est fixe, les artéfacts se posent ensuite](moteur-optimiseur-artefacts.md),
+[moteur-optimiseur-artefacts.md § Éligibilité et contrainte de paire](moteur-optimiseur-artefacts.md)
 et
-[optimiseur-artefacts.md § Pré-filtrage exact — pertinence, obligation, dominance](optimiseur-artefacts.md).
+[moteur-optimiseur-artefacts.md § Pré-filtrage exact — pertinence, obligation, dominance](moteur-optimiseur-artefacts.md).
 Ce fichier dit comment ce second problème s'articule avec la recherche de
 runes : la paire n'est pas figée avant la recherche.
 
@@ -67,7 +67,7 @@ runes : la paire n'est pas figée avant la recherche.
    `recherche` parce que l'ordre de base y note sans relique : un build
    classé au-delà du centième peut remonter dans la première page une fois
    sa relique résolue. Trois cents réduit ce manque sans l'annuler. Détail
-   de la file : [pipeline.md § File de résolution](pipeline.md).
+   de la file : [moteur-pipeline.md § File de résolution](moteur-pipeline.md).
 
 Sans optimisation d'artéfacts, les paramètres de paires restent construits,
 avec « Garder l'artéfact équipé » imposé des deux côtés
@@ -137,7 +137,7 @@ admissibles. Ce repli ne garantit pas l'optimum sur l'inventaire entier.
   `comboAFeasible`, `totalPairCount` (mêmes prédicats que l'appariement),
   le repli rapide `quickOk` de `pairBuckets`, `diagnoseFeasibility`,
   `rankBlockingConditions` et `poolMinSlotSafe`. Le détail de chaque
-  élagage : [elagages.md § Élagage sûr — faisabilité](elagages.md).
+  élagage : [moteur-elagages.md § Élagage sûr — faisabilité](moteur-elagages.md).
 - **Repli** : `artifactBounds` absent, `artFlatMax` et `artFlatMin` valent
   tous deux `artifactFlatBonus(artifacts)`, l'apport de la paire
   représentative, et `artPossibles` est vide ; `eliminateInfeasible` fait
@@ -180,16 +180,16 @@ admissibles. Ce repli ne garantit pas l'optimum sur l'inventaire entier.
   `preFiltrerCandidats` : la dominance y garde inconditionnellement les
   trois principales, et rend deux artéfacts incomparables sous un maximum
   actif sur leur principale
-  ([optimiseur-artefacts.md § Pré-filtrage exact — pertinence, obligation, dominance](optimiseur-artefacts.md)).
+  ([moteur-optimiseur-artefacts.md § Pré-filtrage exact — pertinence, obligation, dominance](moteur-optimiseur-artefacts.md)).
 - **En mode relique `recherche`**, les stats du candidat sont sans relique
   et le terme de relique s'ajoute en majorant côté minimum, en minorant
   côté maximum : le test reste une borne, et l'exactitude vient de la
   résolution avec la relique réelle —
-  [reliques.md § Contexte transporté, bornes relâchées, filtre exact](reliques.md).
+  [moteur-reliques.md § Contexte transporté, bornes relâchées, filtre exact](moteur-reliques.md).
 
 ## Filtre final sur la vraie paire
 
-La résolution d'un build ([pipeline.md § Résolution de l'équipement d'un build](pipeline.md))
+La résolution d'un build ([moteur-pipeline.md § Résolution de l'équipement d'un build](moteur-pipeline.md))
 repasse les conditions avec la paire qu'elle retient. Ce filtre est
 obligatoire : sans lui, un build retenu sur une borne s'afficherait avec une
 paire qui viole ses conditions, ce qui est pire qu'un build manquant.
@@ -203,7 +203,7 @@ paire qui viole ses conditions, ce qui est pire qu'un build manquant.
   (`conditionsPaireFixePosees`), toute paire convient.
 - **Mode `recherche`** : chaque couple (paire, relique) est jugé par
   `respecteConditionsAvecRelique`, minimums et maximums avec la relique
-  réelle — [reliques.md § Résolution exacte par build, file, classement](reliques.md).
+  réelle — [moteur-reliques.md § Résolution exacte par build, file, classement](moteur-reliques.md).
 - La première paire conforme dans l'ordre décroissant du score est la paire
   conforme qui maximise la note du régime (§ Régime de la paire).
 - ⚠️ **Hors mode `recherche`, un maximum de PV, d'ATQ ou de DEF n'est pas
@@ -221,7 +221,7 @@ paire qui viole ses conditions, ce qui est pire qu'un build manquant.
   écarte les builds non conformes, et `compositionDePage` n'affiche que les
   builds résolus et conformes — un build pas encore résolu occupe une place
   « Vérification… », jamais une carte provisoire
-  ([pipeline.md § Résultat affiché](pipeline.md)).
+  ([moteur-pipeline.md § Résultat affiché](moteur-pipeline.md)).
 - Les stats d'une carte sont celles de sa vraie paire, pas seulement son
   total : la principale d'un artéfact entre dans les stats du monstre, et un
   tri par ATQ porterait sinon sur une valeur périmée.
@@ -239,8 +239,8 @@ paire qui viole ses conditions, ce qui est pire qu'un build manquant.
   `regimeArtefacts` (`src/lib/artifactEvaluation.ts`) : `aucun`, `hp`,
   `atk`, `def`, `ehp`, `degats_reels`. Ce que chacun maximise, et comment
   il départage les reliques :
-  [elagages.md § Paire d'artéfacts d'un build](elagages.md) et
-  [reliques.md § Régimes : ce qui note la relique](reliques.md).
+  [moteur-elagages.md § Paire d'artéfacts d'un build](moteur-elagages.md) et
+  [moteur-reliques.md § Régimes : ce qui note la relique](moteur-reliques.md).
 - **Une seule définition de la note**, `evaluerPourRegime`, appelée par
   `evaluateursArtefactsFiche` (la représentative, à l'écran et au CLI) et
   par `entreeResolutionDuBuild` (la résolution, à l'écran, au CLI et dans le
@@ -272,7 +272,7 @@ paire qui viole ses conditions, ce qui est pire qu'un build manquant.
   et reste stable pendant toute l'exploration — ce n'est pas « pas
   d'optimisation ». L'interrupteur est masqué sans optimisation
   d'artéfacts (une seule paire possible) :
-  [../ecran/resultats.md § Tri des résultats](../ecran/resultats.md).
+  [02-app/optimizer/ (feat-ecran-resultats.md) § Tri des résultats](../../02-app/optimizer/).
 
 ## Recalcul quand la paire peut changer
 
@@ -336,8 +336,8 @@ résolution directe. Ce qui compte pour la paire :
   fil de l'écran, avec le cache tel qu'il est.
 
 Le protocole, l'annulation, la cadence de publication et le repli :
-[pipeline.md § Worker de résolution](pipeline.md) et
-[pipeline.md § File de résolution](pipeline.md). La logique côté écran est
+[moteur-pipeline.md § Worker de résolution](moteur-pipeline.md) et
+[moteur-pipeline.md § File de résolution](moteur-pipeline.md). La logique côté écran est
 un module pur, `ResolutionDistante` (`src/workers/resolutionDistante.ts`) :
 `tests/resolution-distante.test.ts` y fait tourner une file simulée — le
 corps derrière `structuredClone`, des entrelacements aléatoires de messages,

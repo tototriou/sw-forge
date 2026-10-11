@@ -60,7 +60,7 @@ const base: DamageSetup = {
   enemyHp: 1_000_000,
   enemyHpPct: 100,
   critMode: 'normal',
-  summonerSkills: 'combat',
+  summonerSkills: 'normal',
 };
 
 // Le chemin du moteur : recette → contexte du CLI → `objectiveScore`.

@@ -1,0 +1,497 @@
+# Stockage des membres et des équipes de l’Optimizer
+
+**Statut :** ÉTAT ACTUEL — décrit le stockage des membres, des équipes et du point de sauvegarde
+**Lire si :** on modifie la persistance des listes, la validation d’une équipe ou la reprise d’un état sauvegardé
+**Voir aussi :** [feat-listes-et-reservation.md](feat-listes-et-reservation.md), [transverse/ (feat-sauvegarde-session.md)](../transverse/)
+
+## Stockage indépendant des listes
+
+`useOptimizerLists.ts`, instancié dans `App.tsx`, porte les listes et leurs
+réservations dans la clé historique `swblacksmith-optimizer-lists-v1`. Son
+format reste inchangé : `lists`, `members`, `validated`, `activeListId`.
+
+Les identités, mémoires des membres, équipes et contenus de liste sont dans une seconde clé,
+`swblacksmith-optimizer-members-v1`. Une version de l’application qui ne connaît
+que les listes laisse cette clé intacte. Les deux clés passent exclusivement
+par `saveLocal`, sous l’interrupteur global de conservation. Sans conservation,
+le miroir de session reçoit quand même la dernière valeur. Réactiver la
+conservation réécrit les deux clés depuis le hook. « Tout supprimer » efface
+le disque et le miroir ; refuser la conservation garde le travail en mémoire
+jusqu’à la fermeture de la session.
+
+Au chargement, le stockage supplémentaire se valide indépendamment des listes :
+des listes illisibles ne provoquent aucune purge de mémoire, d’équipe ou de contenu. Les
+entrées malformées ou dupliquées sont écartées de l’état utilisable et signalées
+dans `rapportStockage`. Le lecteur garde leurs valeurs JSON brutes dans `rejets`
+(`memories`, `teams` et `listContents`) ; l’écrivain réécrit cette section intacte à chaque
+mutation. Elle est vide quand absente d’un stockage plus ancien. Elle reste
+séparée des entrées utilisables à chaque relecture : un doublon rejeté ne se
+réactive jamais parce que l’entrée valide a disparu. Les rejets ne sont jamais
+appliqués ni affichés comme des mémoires, équipes ou contenus valides.
+
+Les identités malformées ou dupliquées suivent la même règle, dans
+`rejets.identities`. Un rattachement vers une clé occupée par une mémoire ou
+identité orpheline conserve cette entrée dans les rejets et le dit, sans écrasement.
+
+Seul un geste visant une entrée rejetée la retire : supprimer une liste emporte
+ses rejets dont le `listId` est une chaîne lisible, sans déduire la liste d’une
+clé abîmée. Retirer un membre ou écrire une mémoire acceptée pour ce membre
+retire les mémoires rejetées dont la liste et le sélecteur lisibles correspondent.
+Une écriture refusée conserve ces rejets. `setTeams` conserve les équipes rejetées,
+qui ne font pas partie des équipes utilisables remplacées par ce geste.
+« Supprimer mes données » efface tous les rejets, sur disque et dans le miroir.
+
+Le texte brut initial reste conservé tant qu’aucun geste ni réimport ne modifie
+ce stockage. Un réimport sans changement ne réécrit aucune clé et conserve ses
+octets. Un réimport avec changement réécrit les valeurs des rejets à part ; il
+n’annonce aucune suppression de rejets puisqu’il les conserve.
+Le rapport du hook se lit dans la zone C, depuis l’icône ⚠ du rapport des
+critères (voir « Point de sauvegarde » plus bas), aux deux formats. Le clic
+d’un membre restaure ses critères.
+
+Toutes les écritures des listes et de leurs données dans `useOptimizerLists`
+passent par son `setState` enveloppé et s’appliquent dans l’ordre d’envoi.
+La lecture courante anticipe ces écritures avant le rendu suivant. Aucune
+ne passe par une transition (`startTransition`) : une priorité différée
+casserait cet ordre et l’état courant anticipé.
+
+## Point de sauvegarde de toutes les listes
+
+`optimizerBackup.ts` photographie toutes les listes dans un instantané unique,
+distinct de leur conservation automatique : `swblacksmith-optimizer-backup-v1`.
+La photo porte listes, membres, builds validés (identifiants de runes et
+d’artéfacts, marques de pièces absentes), liste active, sélection du membre,
+identités, critères personnels, équipes, leads, contenus et rejets conservés.
+Elle est détachée des données courantes : les modifier ne modifie pas le point.
+Le texte du stockage indépendant conserve aussi ses champs inconnus.
+La sauvegarde lit l’état courant du hook, y compris une mémoire écrite plus
+tôt dans le même geste, sans attendre un rendu intermédiaire.
+
+Le lecteur valide la photo historique entière avant toute reprise. Une photo
+abîmée reste conservée et signalée, sans remplacement partiel du travail.
+Les entrées supplémentaires inutilisables suivent le lecteur commun des membres :
+gardées dans les rejets et dites, jamais appliquées. Une sélection absente
+reste admise sans attribuer de critères à un autre membre.
+La clé entre dans `CLES_SESSION` ; toute session écrite porte la version 2.
+Son texte voyage intact dans la session, même avec un JSON cassé : le lecteur
+spécialisé décide de la reprise du point sans empêcher la relecture des autres données.
+
+La reprise prépare le rattachement avec le compte courant avant de publier.
+Elle efface le propriétaire des critères, remplace les listes et leurs données
+ensemble, puis rétablit l’affichage par `choisirMembre` sur la sélection
+sauvegardée et rattachée (ou le premier membre de la liste active sans sélection).
+Restaurer n’écrit aucune mémoire ; une modification suivante vise le membre repris.
+La liste et la sélection établies par le geste sont déjà reconnues par la
+réconciliation : elle garde le propriétaire même sans mémoire, depuis une autre
+liste ou après suppression de la liste sauvegardée. Le lead d’équipe reste appliqué.
+Un compte vide reprend les données sans revérification et le dit.
+Supprimer une liste ou réimporter le compte ne modifie jamais le point.
+
+« Sauvegarder » et « Reprendre » sont dans la zone des membres, aux deux formats :
+dans la colonne de bureau, dans le dépliement « Gérer mes listes » au téléphone.
+Les boutons restent montés ; « Reprendre » est désactivé sans point lisible,
+avec la raison en infobulle. « Sauvegarder » rappelle que la conservation
+automatique existe déjà. Sous les boutons, une seule ligne est réservée dès le
+départ : l’annonce donne le nombre de listes et de membres et la date du
+point, tronquée avec son texte complet en infobulle ; au bout de la ligne,
+une place réservée reçoit l’icône ⚠ du rapport des critères dès qu’il porte
+un message. Ce rapport se lit hors du flux, comme le motif d’un lead
+inactif : bulle au survol et au focus à la souris, dialogue au toucher ; ses
+messages restent annoncés aux lecteurs d’écran. Poser le point ou recevoir
+un message ne déplace aucun contrôle, et la liste des membres commence juste
+sous cette ligne.
+
+Remplacer un point, même illisible, ouvre « Remplacer le point de sauvegarde ? »
+et annonce la perte de l’ancien point. « Reprendre » annonce le remplacement de
+toutes les listes courantes et la perte des listes, membres, builds, mémoires,
+équipes et contenus créés ou modifiés depuis le point. Les deux confirmations
+utilisent `ConfirmDialog`, hors du flux ; le focus initial est sur « Annuler ».
+Annuler ne change ni le point ni le travail courant. La reprise garde le point.
+
+## Identité indépendante des critères
+
+`identities` est une `Map` à clé `listId|exclusionSelectorKey(selector)`.
+Chaque valeur porte `listId`, `selector` et l’espèce `com2usId`. Le JSON de la
+clé des membres contient ses paires ; la clé historique des listes ne reçoit
+aucun champ d’identité. L’identité est acquise dès l’ajout manuel, la validation
+qui inclut le monstre ou la consommation d’un import, sans créer de mémoire de
+critères. Retirer explicitement le membre ou supprimer sa liste retire son identité.
+
+Pour les membres antérieurs sans identité, `acquerirIdentitesMembres` résout la
+référence sur le compte déjà présent : au chargement du compte conservé et
+avant tout remplacement par un réimport, manuel ou depuis le dossier suivi.
+Une identité déjà connue ne change jamais parce que le slot change d’espèce.
+Les runes d’un build ne servent jamais à établir cette identité.
+
+Le refus de restauration pour identité incompatible reste signalé tant que
+son membre est présent dans la liste active avec cette incompatibilité.
+Il s’efface si ce contexte disparaît (changement de liste, retrait du membre,
+changement de sélection ou résolution redevenue compatible), sans effacer
+« Critères non mémorisés » produit par la même réconciliation. Aucune mémoire
+ni identité n’est réattribuée par cet effacement du message.
+
+Limite : si l’identité manque encore au réimport, l’espèce résolue dans le
+nouveau compte est acquise et le rapport le dit. Sans identité et sans référence
+résolue, le membre, ses données et son build restent conservés, avec un message ;
+l’espèce d’origine ne peut pas être reconstituée depuis ces seules données.
+
+## Mémoires des membres
+
+`OptimizerState.proprietaireCriteres` désigne le membre dont les critères sont
+affichés. `validerProprietaireCriteres` vérifie, avant toute restauration et
+écriture, l’existence de la liste active et du membre, le sélecteur affiché,
+l’espèce résolue, l’espèce sélectionnée et l’identité enregistrée du membre
+quand elle existe. Si cette identité diffère de l’espèce résolue, aucun critère
+n’est restauré, aucun propriétaire n’est attribué et le refus est affiché.
+Une saisie sans propriétaire ne
+crée aucune mémoire. Le propriétaire et les messages de restauration sont
+hors de la photo de session. La photo est sérialisée, mais aucun chemin dans
+`App.tsx` ne la réapplique actuellement : le chargement des critères depuis un
+fichier de session n’est pas implémenté. Une nouvelle instance de l’état démarre
+sans propriétaire ; les mémoires restent disponibles au choix d’un membre.
+
+L’action `choisirMembre`, portée par `useOptimizerState` dans `App.tsx`, fonctionne
+même quand l’écran est démonté. Elle restaure une mémoire de même espèce ;
+une mémoire d’une autre espèce reste conservée et son refus est affiché. Sans
+mémoire applicable, elle pose la base complète des critères personnels,
+indépendante du membre précédent, même pour une autre copie de la même espèce.
+Les réglages globaux restent. Choisir ne capture rien : la première modification
+faite par l’utilisateur photographie l’affichage. Chaque modification suivante
+écrit vers ce propriétaire seulement. Les résultats affichés sont effacés,
+sans relancer de recherche ni ouvrir la fenêtre du combat ou le guide RES/PRE.
+Les runes imposées absentes de l’inventaire sont retirées de l’affichage et dites,
+sans modifier la mémoire originale par cette seule restauration.
+
+Changer de liste applique la mémoire valide de l’exemplaire déjà affiché dans
+la destination ; sans elle, aucun propriétaire. Retirer le membre affiché ou
+supprimer sa liste efface l’attribution. Avec une liste active, le bestiaire
+rappelle le membre présent de l’espèce ou ajoute l’exemplaire résolu avec la
+capture ordinaire, qui attribue ses critères. Sans liste active, il efface
+l’attribution avant la création. Une puce ambiguë efface l’attribution sans
+ajouter de membre. Avec une liste active, le choix d’une puce unique ou d’une
+ligne de zone D ajoute l’exemplaire et capture les critères au geste ; s’il
+est déjà membre, `choisirMembre` restaure ses critères sans capture ni doublon.
+Sans liste active, ces gestes effacent seulement l’attribution. Une création depuis la recherche peut précéder la résolution RTA ou siège : la liste reste vide jusqu’au choix explicite de l’exemplaire.
+L’import de recette l’efface au moment où sa lecture
+se résout, avant d’appliquer ses valeurs, même si un membre a été choisi entre-temps.
+Le réimport de compte rattache ce propriétaire et la sélection avec les autres
+données, en conservant ses critères personnels, sans photographie automatique.
+Sans propriétaire valide après rattachement, les critères sont remis au défaut.
+Une résolution devenue
+introuvable ou une identité différente invalide l’attribution, y compris quand
+l’écran est démonté. Un retour d’onglet conserve les critères et le cran des
+artéfacts lorsque l’exemplaire reste valide.
+
+« Ajouter à la liste » et une validation qui inclut le monstre photographient
+immédiatement les critères du geste. L’écriture de cette photo passe par le
+validateur après publication de l’appartenance par le hook des listes, dans le
+même geste, y compris « Créer et ajouter ». Une mémoire refusée reste intacte
+et le rapport du stockage dit la raison. Le lancement d’une recherche peut
+reposer le tri sur l’objectif ; cette dérivation ne crée pas de mémoire.
+
+Les poses automatiques passent par `poserCriteresAutomatiques`, séparé des
+setters de saisie : défauts, cohérence de relique et valeurs d’une recette ne
+photographient jamais une mémoire. Après réimport écran démonté, le traitement
+différé de la relique marque l’import traité au remontage. Si un membre valide
+a été choisi entre-temps, ses critères restaurés et sa mémoire restent intacts ;
+sinon le défaut est calculé contre la relique de l’exemplaire affiché.
+
+L’index en mémoire est une `Map`, à clé texte
+`listId|exclusionSelectorKey(selector)`. Chaque écriture acceptée crée une
+nouvelle `Map` et copie la photo des critères personnels. La seule paire de
+conversion JSON est `ecrireMembresOptimizer` / `lireMembresOptimizer`, dans
+`optimizerMemberStorage.ts` ; le JSON porte les paires de la `Map` et les équipes.
+
+Une mémoire porte le sélecteur, la liste, l’espèce `com2usId` et une photo complète
+des critères personnels. L’espèce résolue est comparée avant chaque lecture et
+écriture. Un sélecteur introuvable ou une autre espèce rend la mémoire
+inapplicable, sans la supprimer ni la remplacer lors d’une écriture refusée.
+La lecture rend une copie ; modifier l’affichage ne peut pas modifier la mémoire
+sans passer par une écriture.
+
+Les critères textuels contrôlés hors du lecteur de recette, `sortBy` et
+`critereArtefacts`, sont obligatoirement des chaînes appartenant aux valeurs
+admises. Un tableau contenant une valeur admise est rejeté, signalé dans le
+rapport et conservé parmi les valeurs brutes inutilisables.
+
+Le membre suit son sélecteur : exemplaire Box par `unitKey`, entrée RTA par
+`monsterId`, slot de siège par `teamId` et `slotIndex`. RTA et siège ne conservent
+pas l’identifiant de la copie : une autre copie de la même espèce occupant la
+même entrée ou le même slot reçoit donc cette mémoire, sans message : ce
+remplacement n’est pas détectable. Le rapport de revérification liste ces
+mémoires (`memoiresSuivantSelecteur`) sans les annoncer à chaque réimport.
+
+## Équipes stockées
+
+Une équipe porte `id`, `listId`, `members` (sélecteurs), un `leader` facultatif,
+`lead` (le `LeaderSkill` du jeu, avec statistique, montant, portée et élément,
+ou `null`). Elle ne porte aucun contenu de combat ; l’ancien champ d’équipe
+est ignoré à la lecture, sans rejeter l’équipe ni inventer un contenu de liste.
+
+La validation au chargement impose 2 à 5 membres distincts, tous rattachés à la
+liste indiquée par l’équipe ; un membre ne figure que dans une équipe par liste.
+Un leader désigné appartient à ses membres. Les identifiants d’équipes sont
+uniques ; portée et élément sont validés. Chaque champ texte doit être
+une chaîne : aucun tableau ou objet n’est converti en texte pour être accepté.
+Les valeurs `null` prévues pour le lead, sa statistique et son élément restent
+admises. Un conflit ou une entrée
+malformée est signalé et écarté. La cohérence avec les listes et leurs membres
+se vérifie à l’écriture et au réimport, pas au chargement contre des listes
+potentiellement illisibles. Le lead de RES ou Précision peut être conservé.
+Le stockage ne calcule aucun lead effectif et n’ajoute aucun contrôle d’écran.
+
+## Contenu de combat des listes
+
+`ContenuListeOptimizer` admet `guilde`, `donjon` et `arene`. Le contenu vit dans
+`listContents`, une `Map` indexée par identifiant de liste, dans le stockage des
+membres. Le JSON contient un tableau d’objets `{ listId, contenu }` ; chaque
+identifiant est une chaîne non vide et chaque contenu une chaîne admise.
+Une entrée inconnue, mal typée ou dupliquée est signalée et conservée brute dans
+`rejets.listContents`, sans application ni réactivation automatique à la relecture.
+Un index malformé est conservé de la même façon. Le chargement ne contrôle pas
+ces références contre les listes : un contenu orphelin reste conservé.
+
+Le stockage antérieur sans cet index se relit avec une `Map` vide, sans défaut.
+Retirer un membre, écrire sa mémoire, modifier les équipes ou revérifier le compte
+conserve les contenus et leurs rejets. Supprimer une liste retire son contenu et
+les rejets dont le `listId` lisible la désigne ; les autres restent.
+`createList` reçoit obligatoirement le contenu choisi et le stocke avec la
+nouvelle liste. Un nom vide devient le premier « Liste N » libre parmi les
+noms existants. `setListContent` modifie seulement
+une liste existante avec un contenu admis, sans toucher aux rejets conservés.
+`editList` publie le nom non vide et le contenu choisi d’une liste existante
+en une seule écriture ; membres, mémoires, équipes et rejets sont conservés.
+
+Le combat effectif dérive aussi les compétences d’invocateur du contenu de
+la liste active, même sans propriétaire des critères : Guilde → « Contenu de
+guilde » ; Arène, Donjon, absence de liste ou de contenu → « Contenu normal ».
+`combatSelonContenuListeOptimizer` est le producteur pur commun au combat lu
+par l’écran et au mode exporté dans la recette. Les valeurs enregistrées dans
+les critères et mémoires ne sont pas réécrites par cette dérivation.
+
+## Modèle pur des équipes
+
+`equipesOptimizer.ts` crée une équipe, ajoute ou retire un membre, délie un
+membre ou dissout une équipe, sans toucher aux listes, aux builds ni aux
+mémoires. Les identifiants sont fournis par l’appelant ; le lead par défaut
+est `null` et le leader reste facultatif.
+La création vérifie la forme de l’équipe proposée, l’existence de sa liste
+et l’appartenance de chacun de ses membres à cette liste. Elle contrôle les
+collisions d’identifiant et l’exclusivité des membres contre les équipes
+existantes, conservées telles quelles. Une équipe ancienne dont la liste ou
+un membre a disparu ne bloque pas la création d’une équipe indépendante.
+L’ajout d’un membre et la modification d’une équipe ne contrôlent que la
+forme et les références de cette équipe, avec les collisions contre les
+autres équipes. `setTeams` contrôle les références ajoutées ou modifiées ;
+une équipe orpheline inchangée ne bloque pas un geste sur une équipe saine.
+Un refus rend les équipes initiales et un rapport explicite, sans déplacement
+implicite d’un membre.
+L’exclusivité d’un membre est propre à sa liste : le même sélecteur peut être
+lié indépendamment dans deux listes.
+
+Retirer ou délier un membre d’une équipe de deux dissout cette équipe. Au-delà,
+seul ce membre sort ; s’il était leader, la désignation disparaît sans
+remplacement automatique. Dissoudre laisse les membres dans leur liste et
+leurs critères personnels intacts. Une opération visant une équipe ou un
+membre absent est sans changement et le rapporte.
+
+`equipeApresFiltrageOptimizer` reçoit les membres déjà filtrés d’une source :
+0, 1 ou plus de 5 membres ne produisent aucune équipe, avec un motif explicite
+et l’annonce que le lead de la source n’est appliqué à personne. Les membres
+gardent leur base complète de critères ; le producteur ne copie jamais ce
+lead dans leurs critères personnels. De 2 à 5 membres, la création suit les
+mêmes validations que la création manuelle.
+
+## Lead effectif d’un membre
+
+`leadEffectifMembreOptimizer` rend un `LeadEffectifOptimizer` : hors équipe,
+`personnel` ; dans une équipe, `equipe` avec `{stat, pct}` si le lead est actif,
+sinon `aucun` avec un motif. La donnée du jeu reste entière dans l’équipe.
+
+**Le lead d’équipe écrase le lead personnel de ses membres.** Rejoindre une
+équipe, changer son lead ou le contenu de la liste écrit le lead effectif du
+membre dans ses critères personnels et sa mémoire : « Aucun » quand le lead
+n’agit pas sur lui, et l’ancien champ de VIT est effacé. Quitter l’équipe ne
+restaure rien : le membre garde son dernier lead d’équipe. Cette écriture,
+`synchroniserLeadsMembresOptimizer`, vise les équipes de la liste active et
+suit chaque rendu de `useOptimizerState`, quel que soit le geste (dialogue,
+import, reprise, contenu). Un membre sans mémoire en reçoit une depuis la
+base complète, comme à l’import ; un exemplaire d’une autre espèce garde sa
+mémoire sans application. Rien ne s’écrit pendant la revérification d’un
+compte réimporté.
+
+`useOptimizerState.lireCombatMembre` vérifie le propriétaire des critères et
+dérive le combat effectif par `leadEffectifMembreOptimizer` puis `appliquerCriteres`.
+L’écran utilise ce combat pour tous ses calculs, résumés et contrôles. Depuis
+« État de mon monstre », `modifierLeadMembre` écrit le lead partagé en gardant
+sa portée et son élément ; un premier lead est général. L’écran dit cette
+écriture partagée et le motif d’un lead inactif ; la synchronisation recopie
+ensuite le nouveau lead chez chaque membre.
+
+L’export de recette transmet les **critères personnels** du membre, lead
+personnel compris : pour un membre lié, c’est le lead de l’équipe tel qu’il
+agit sur lui. Exporter ne réécrit ni le lead personnel du membre ni sa
+mémoire. Au réimport, ce lead s’applique comme
+toute valeur de recette, sans équipe ni propriétaire des critères ; aucune
+mémoire de membre ni équipe existante n’est écrasée.
+Voir feat-ecran-lancer-la-recherche.md § Lancer la recherche.
+
+Le contenu est lu dans `listContents` pour la liste du membre, commun à toutes
+ses équipes. Une liste sans contenu défini n’applique aucun lead d’équipe,
+avec le motif « contenu de combat de la liste non défini » ; le lead
+personnel de ses membres devient « Aucun ». Une modification du contenu
+change l’effet dérivé et, par lui, le lead personnel des membres ; le lead
+stocké de l’équipe ne change pas.
+
+La table `ACTIVITE_LEADS_OPTIMIZER` distingue actif, inactif et élément.
+Une portée inconnue reste sans effet, avec un motif. « Élément » exige
+l’élément identique du membre. Les règles de contenu sont :
+
+| Contenu | General | Element | Arena | Guild | Dungeon |
+| --- | --- | --- | --- | --- | --- |
+| Guilde | actif | élément | inactif | actif | inactif |
+| Donjon | actif | élément | inactif | inactif | actif |
+| Arène | actif | élément | actif | inactif | inactif |
+
+General agit dans les trois contenus ; Element seulement sur son élément.
+Guild agit exclusivement en Guilde, Dungeon exclusivement en Donjon et Arena
+exclusivement en Arène. Toute autre portée est inactive. La prépa RTA utilise
+le contenu Arène, avec les mêmes portées actives.
+
+Seules HP, Attack Power, Defense, Attack Speed, Critical Rate et Critical DMG
+sont calculables (`LEADER_SKILL_STATS`, `damage.ts`). Resistance et Accuracy
+restent conservées comme données sans application, avec un motif explicite.
+Une statistique non calculable ou un montant non fini/négatif reste sans
+effet. Un montant numérique valide hors des paliers proposés est conservé
+tel quel : les paliers du menu ne sont pas une validation de lead importé.
+
+## Paliers de lead
+
+`LEADER_SKILL_VALEURS` couvre les paliers du corpus local `monsters.json`, dont
+VIT 17 ; un test balaie toutes ses entrées pour contrôler cette couverture.
+Le menu n’offre pas de saisie libre ; une valeur enregistrée hors liste reste
+affichée telle quelle, jamais remplacée en silence.
+
+## Équipes à l’écran
+
+« Lier une équipe » reste actif dès qu'une liste est active, quel que soit son nombre de membres, et ouvre `OptimizerEquipeDialog` hors du flux aux deux formats.
+Avec moins de deux membres libres, le corps affiche « Pas assez de monstres pour faire une équipe : rajoute des monstres dans la liste. » à la place des propositions vides, ou au-dessus du membre restant visible. « Lier » est désactivé ; Annuler et la croix ferment. La modification d'une équipe existante n'affiche pas ce message.
+La fenêtre propose deux à cinq membres, un leader facultatif (« Leader ») et le lead (type, valeur, portée et élément).
+Hors portée « Élément », le menu Élément reste affiché, désactivé et sans texte.
+Les membres déjà liés à une autre équipe de cette liste sont absents des propositions, à la création comme à la modification ; ceux de l’équipe modifiée restent proposés.
+Le leader se choisit par **espèce** : une seule option par espèce cochée,
+libellée de son seul nom, même si la liste en porte plusieurs exemplaires ;
+un membre introuvable, sans espèce, n’est pas proposé. L’équipe retient le
+leader déjà désigné s’il reste coché et de cette espèce, sinon le premier
+exemplaire coché de l’espèce.
+Choisir un leader remplit les quatre champs depuis son leader skill ; sans
+leader skill, le lead devient « Aucun ». Revenir à « Aucun » leader conserve
+les champs. Ceux-ci restent ensuite modifiables, indépendamment du leader.
+Les types calculables reprennent les paliers du menu existant ; un autre type
+fourni par le leader ou déjà stocké reste
+affiché avec son montant, sans effet calculé ; une phrase dans la zone de
+rapport réservée garde cette mention lisible même si le menu tronque le libellé.
+
+Les choix sont un brouillon : « Lier » ou « Enregistrer » publie l’équipe et
+ferme le dialogue ; croix, Échap, clic extérieur et « Annuler » abandonnent
+les changements. « Délier » dissout l’équipe à la fermeture, en gardant ses
+membres et leurs critères dans la liste. Enregistrer moins de deux membres
+dissout aussi l’équipe, annoncé dans le dialogue. Rien n’est regroupé pendant
+qu’on coche les membres. Les actions restent dans le pied de la modale.
+
+Au bureau, l’en-tête (titre et phrase), les champs de leader et de lead et les
+actions restent fixes ; seule la liste des membres défile tant que la hauteur
+suffit. En faible hauteur, la zone de leader et de lead se resserre et défile
+elle-même pour garder tous ses champs accessibles ; les actions restent visibles
+et utilisables, dans une fenêtre de 400 px de haut et plus, et la liste garde sa
+propre zone de défilement. Les séparations du
+corps réservent leur épaisseur pour garder ces positions au défilement. Au
+téléphone, les champs restent après les membres dans le corps défilant, avec
+l’en-tête et les actions fixes.
+
+Changer de format pendant que le dialogue est ouvert conserve le brouillon.
+Les champs de leader et de lead passent toutefois du corps à la zone fixe, ou inversement : ils sont remontés et perdent le focus. Celui-ci n’est pas restauré automatiquement.
+
+La zone C groupe chaque équipe dans une bande teintée sans contour. Son
+en-tête porte sur une seule ligne `LeadPill`, numéro, leader éventuel et
+le compte des leads inactifs à place réservée, puis « Modifier l’équipe » tout à droite.
+Le nom tronqué garde son texte complet en infobulle ; l'écart avant les cartes est réduit.
+Les fonds alternent entre les jetons `equipe-a` et `equipe-b`, définis dans les deux thèmes. Les cartes liées et libres gardent
+le même aspect et la même hauteur, au bureau comme au téléphone ; les libres
+suivent sous « Sans équipe ».
+
+Le compte des leads inactifs dérive des motifs des membres affichés, avec une
+place réservée dans l’en-tête. Chaque carte réserve une cible d’icône ⚠ sur
+sa ligne ; sans motif, la cible reste vide et inaccessible. Le motif sort du
+flux : bulle au survol et au focus au bureau, dialogue au toucher au téléphone,
+fermé par sa croix, Échap ou clic extérieur, avec le focus rendu à l’icône.
+La bulle de bureau se ferme à tout défilement de la page, y compris celui
+d’une zone qui ne la contient pas : elle ne reste jamais détachée de son icône.
+La disparition du motif ferme et démonte son contenu ; son retour n’ouvre
+rien automatiquement. Démonter l’écran retire aussi la bulle ou le dialogue.
+Changer le lead ou le contenu ne déplace ni les cartes ni leurs contrôles.
+La carte « État de mon monstre » réserve aussi la place de son explication et de ce motif.
+
+## Revérification commune
+
+`reverifierStockageOptimizer` est pure et exportée pour le réimport du compte
+et la reprise d’un état sauvegardé. Elle renvoie le stockage revérifié et un
+rapport de rattachements individuels, identités acquises depuis le nouveau
+compte, builds incomplets et mémoires inactives. Aucun membre ni build n’est
+retiré au réimport. La garde `comptePeutJuger` interdit toute modification tant
+que Box et runes sont vides.
+
+Une référence qui résout encore l’espèce du membre est conservée. Toute
+référence conservée est réservée avant de rattacher les autres, y compris
+celle d’un membre sans identité ou sans destination possible. Un membre non
+rattachable garde sa référence et la bloque, même si elle résout une autre
+espèce. Les rattachements suivent l’ordre des membres de la liste.
+Un exemplaire pris dans cette liste ne peut plus être
+choisi ; son occupation dans une autre liste n’intervient pas. Ordres par contenu :
+
+| Contenu | Ordre des sources |
+| --- | --- |
+| Guilde | Défense, offense, Box, RTA |
+| Arène | RTA, Box, défense, offense |
+| Donjon ou contenu absent | Box, RTA, défense, offense |
+
+Dans la première source disponible, choisir l’exemplaire portant le plus de
+runes du build validé ; à égalité ou sans build, le premier. Cela départage les
+exemplaires, sans exiger que le build validé soit porté en jeu. Un exemplaire nu
+reste candidat. Sans exemplaire disponible, utiliser `unowned` avec l’espèce du
+bestiaire ; si sa clé est prise, ajouter `copie` (2, 3…). La résolution ignore
+ce champ, la clé du sélecteur l’inclut. Une référence `unowned` déjà valide reste.
+
+Une ancienne version garde le champ `copie` dans le sélecteur, mais voit des
+clés identiques pour ces copies : sélection et actions sont dégradées ; la
+simple relecture garde tous les membres et builds. La clé indépendante des
+membres reste ignorée par une version qui ne la connaît pas.
+
+Limite d’un retour à une version publiée antérieure : lors d’un réimport,
+son ancien comportement retire encore les membres introuvables et les builds
+dont une rune a disparu, dans la clé historique des listes. La conservation
+à la simple relecture ne garantit donc pas leur conservation après réimport
+dans cette version. Elle ignore la clé indépendante des membres.
+Une version qui ignore `artefactsManquants` peut perdre cette marque en réécrivant
+le stockage et compter un artéfact absent comme réservé, jusqu’à la prochaine
+revérification dans une version actuelle, qui recalcule la marque.
+
+Le rattachement migre simultanément identité, mémoire, place et leader dans
+l’équipe, builds et propriétaire affiché, y compris lors d’une permutation de
+slots. Aucun lead ni critère personnel n’est réécrit. Les contenus et rejets
+existants restent conservés. `App.tsx` applique le résultat par
+`replaceAfterRevalidation`, migre le propriétaire par
+`appliquerReverificationMembres` et affiche un message par membre rattaché.
+Sans changement, la fonction rend le stockage reçu, sans réécriture des clés.
+
+Avant de remplacer le compte, `appliquerCompte` photographie l’état courant
+des listes par `lireStockageCourant`, y compris les écritures déjà envoyées
+dans le même geste. Tant que cette photo attend sa revérification, l’import
+d’équipe est refusé explicitement ; cela vaut aussi pour le dossier SW Exporter.
+
+Un build dont des runes ou artéfacts ont disparu garde tous ses identifiants ;
+`runesManquantes` marque les absentes, seules les présentes restent réservées.
+`artefactsManquants` suit la même règle pour la paire : l’inventaire complet
+du compte est transmis par le réimport et la reprise au même rattachement.
+Les marques sont retirées si ces pièces reviennent. La fiche affiche les seules
+pièces présentes, avec un avertissement, sans comparaison au runage porté.

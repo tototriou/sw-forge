@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type SetStateAction } from 'react';
 import {
   ExclusionSelector,
   OptimizerList,
@@ -6,7 +6,20 @@ import {
   ValidatedBuild,
   exclusionSelectorKey,
 } from '../lib/optimizerExclusion';
-import { saveLocal, usePersistence } from './usePersistence';
+import { loadLocal, saveLocal, usePersistence } from './usePersistence';
+import type { CriteresOptimizer } from '../lib/criteresOptimizer';
+import { synchroniserLeadsMembresOptimizer } from '../lib/equipesOptimizer';
+import { nomNouvelleListeOptimizer } from '../lib/optimizerListNames';
+import { identifiantListeImportOccupe } from '../lib/importEquipes';
+import type { ExclusionSourceData } from '../lib/optimizerExclusion';
+import { acquerirIdentitesMembres, enregistrerIdentiteMembre } from '../lib/optimizerRattachement';
+import { lirePointOptimizer, photographierPointOptimizer, OPTIMIZER_BACKUP_STORAGE_KEY, type PointOptimizer, type SelectionPointOptimizer } from '../lib/optimizerBackup';
+import {
+  OPTIMIZER_MEMBERS_STORAGE_KEY, cleMemoireMembre, ecrireMembresOptimizer, lireMembresOptimizer,
+  enregistrerMemoireMembre, validerEquipesOptimizer, retirerRejetsOptimizer,
+  contenuListeValide, type ContenuListeOptimizer,
+  type DonneesMembresOptimizer, type EquipeOptimizer, type MemoireMembreOptimizer, type StockageOptimizer,
+} from '../lib/optimizerMemberStorage';
 
 // « Listes de travail » de l'Optimizer (docs/02-app/optimizer/
 // § Créer, valider et réserver dans une liste) :
@@ -41,11 +54,12 @@ function isSelector(v: unknown): v is ExclusionSelector {
   if (s.source === 'siege-defense' || s.source === 'siege-offense') {
     return typeof s.teamId === 'string' && typeof s.slotIndex === 'number';
   }
-  if (s.source === 'unowned') return typeof s.monsterId === 'string';
+  if (s.source === 'unowned') return typeof s.monsterId === 'string' && (s.copie === undefined
+    || typeof s.copie === 'number' && Number.isSafeInteger(s.copie) && s.copie >= 2);
   return false;
 }
 
-function load(): StoredState {
+export function loadOptimizerLists(): StoredState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return defaultState();
@@ -75,11 +89,13 @@ function load(): StoredState {
     if (Array.isArray(parsed.validated)) {
       for (const item of parsed.validated) {
         if (!item || typeof item !== 'object') continue;
-        const { listId, selector, runeIds, artifactIds } = item as {
+        const { listId, selector, runeIds, artifactIds, runesManquantes, artefactsManquants } = item as {
           listId?: unknown;
           selector?: unknown;
           runeIds?: unknown;
           artifactIds?: unknown;
+          runesManquantes?: unknown;
+          artefactsManquants?: unknown;
         };
         if (typeof listId !== 'string' || !listIds.has(listId)) continue;
         if (!isSelector(selector)) continue;
@@ -89,7 +105,10 @@ function load(): StoredState {
         // une perte de données pure — la même faute qu'une revérification trop
         // stricte a déjà commise ici (voir `revalidateBuilds`).
         const arts = Array.isArray(artifactIds) && artifactIds.every((id) => typeof id === 'number') ? artifactIds : undefined;
-        validated.push({ listId, selector, runeIds, ...(arts ? { artifactIds: arts } : {}) });
+        const absentes = Array.isArray(runesManquantes) && runesManquantes.every(id => typeof id === 'number' && runeIds.includes(id)) ? runesManquantes : undefined;
+        const artsAbsents = Array.isArray(artefactsManquants) && artefactsManquants.every(id => typeof id === 'number' && arts?.includes(id)) ? artefactsManquants : undefined;
+        validated.push({ listId, selector, runeIds, ...(arts ? { artifactIds: arts } : {}), ...(absentes?.length ? { runesManquantes: absentes } : {}),
+          ...(artsAbsents?.length ? { artefactsManquants: artsAbsents } : {}) });
       }
     }
     const activeListId = typeof parsed.activeListId === 'string' && listIds.has(parsed.activeListId) ? parsed.activeListId : null;
@@ -106,70 +125,185 @@ function newId(): string {
 }
 
 export interface UseOptimizerLists {
+  lireStockageCourant: () => StockageOptimizer & { activeListId: string | null };
+  ajouterParImport: (stockage: StockageOptimizer, activeListId: string) => boolean;
+  point: PointOptimizer | null;
+  pointExiste: boolean;
+  rapportPoint: string[];
+  sauvegarderPoint: (selection: SelectionPointOptimizer | null, data: ExclusionSourceData) => void;
+  remplacerParPoint: (reprise: ReturnType<typeof import('../lib/optimizerBackup').preparerRepriseOptimizer>) => void;
   lists: OptimizerList[];
   activeListId: string | null;
   setActiveListId: (id: string | null) => void;
   /** Crée une liste, la rend active, renvoie son id (pour y ajouter un membre dans le même geste). */
-  createList: (name: string) => string;
+  createList: (name: string, contenu: ContenuListeOptimizer) => string;
+  setListContent: (id: string, contenu: ContenuListeOptimizer) => void;
   renameList: (id: string, name: string) => void;
+  editList: (id: string, name: string, contenu: ContenuListeOptimizer) => void;
   /** Supprime la liste ET tout ce qui lui appartient (membres, builds validés). */
   deleteList: (id: string) => void;
   members: OptimizerListMember[];
-  addMember: (listId: string, selector: ExclusionSelector) => void;
+  addMember: (listId: string, selector: ExclusionSelector, com2usId: number) => void;
   /** Retire un monstre de la liste — libère AUSSI son build validé s'il en avait un (jamais de réservation orpheline, invisible dans « Monstres de la liste »). */
   removeMember: (listId: string, selector: ExclusionSelector) => void;
   validated: ValidatedBuild[];
   /** Valide un build pour cet exemplaire DANS cette liste — REMPLACE l'entrée existante pour la même paire (liste, sélecteur) s'il y en a une. */
-  validateBuild: (listId: string, selector: ExclusionSelector, runeIds: number[], artifactIds: number[]) => void;
+  validateBuild: (listId: string, selector: ExclusionSelector, runeIds: number[], artifactIds: number[], com2usId: number) => void;
   releaseBuild: (listId: string, selector: ExclusionSelector) => void;
   /** Rend les artéfacts d’un build validé, ses runes restant réservées. */
   releaseArtifacts: (listId: string, selector: ExclusionSelector) => void;
   /** Réserve une paire d’artéfacts sur un build DÉJÀ validé, sans toucher aux runes. */
   validateArtifacts: (listId: string, selector: ExclusionSelector, artifactIds: number[]) => void;
   releaseAllInList: (listId: string) => void;
-  /** Remplace membres + validés — utilisé UNIQUEMENT par App.tsx pour purger les entrées invalides après un réimport de compte (voir revalidateBuilds/revalidateMembers, optimizerExclusion.ts). */
-  replaceMembersAndValidated: (members: OptimizerListMember[], validated: ValidatedBuild[]) => void;
+  memories: DonneesMembresOptimizer['memories'];
+  identities: DonneesMembresOptimizer['identities'];
+  teams: EquipeOptimizer[];
+  listContents: DonneesMembresOptimizer['listContents'];
+  rapportStockage: string[];
+  rejets: DonneesMembresOptimizer['rejets'];
+  writeMemory: (membre: Omit<MemoireMembreOptimizer, 'criteres'>, criteres: CriteresOptimizer, data: ExclusionSourceData) => void;
+  setTeams: (teams: EquipeOptimizer[]) => void;
+  /** Écrit le lead effectif des membres d’équipe de la liste active dans leur mémoire. */
+  synchroniserLeadsEquipes: (data: ExclusionSourceData) => void;
+  /** Applique en une mise à jour le résultat de la revérification commune. */
+  replaceAfterRevalidation: (stockage: StockageOptimizer) => void;
+}
+
+interface MemberStorage extends DonneesMembresOptimizer { rapport: string[]; raw: string | null }
+interface State extends StoredState { memberStorage: MemberStorage }
+function loadState(): State {
+  const raw = loadLocal(OPTIMIZER_MEMBERS_STORAGE_KEY);
+  const lu = lireMembresOptimizer(raw);
+  return { ...loadOptimizerLists(), memberStorage: { ...lu, raw } };
 }
 
 export function useOptimizerLists(): UseOptimizerLists {
-  const [state, setState] = useState<StoredState>(load);
+  const [state, publierEtat] = useState<State>(loadState);
+  const courant = useRef(state);
+  // Les gestes groupés doivent lire les écritures déjà envoyées à React.
+  // Les transformations restent pures : React peut les rejouer sans effet de bord.
+  // Toutes les écritures des listes passent ici dans l'ordre d'envoi, sans
+  // startTransition : une priorité différée invaliderait l'état courant anticipé.
+  const setState = useCallback((miseAJour: SetStateAction<State>) => {
+    const transformer = typeof miseAJour === 'function' ? miseAJour : () => miseAJour;
+    // Partager le résultat par état d'entrée garde les mêmes références pour
+    // la lecture immédiate et React, notamment lors d'une revérification sans changement.
+    const resultats = new WeakMap<State, State>();
+    const appliquer = (avant: State) => {
+      const connu = resultats.get(avant);
+      if (connu) return connu;
+      const apres = transformer(avant);
+      resultats.set(avant, apres);
+      return apres;
+    };
+    courant.current = appliquer(courant.current);
+    publierEtat(appliquer);
+  }, []);
+  const lireStockageCourant = useCallback(() => ({ ...courant.current, ...courant.current.memberStorage }), []);
+  const [pointStocke, setPointStocke] = useState(() => {
+    const brut = loadLocal(OPTIMIZER_BACKUP_STORAGE_KEY);
+    return { brut, ...lirePointOptimizer(brut) };
+  });
 
   const persist = usePersistence();
   useEffect(() => {
-    saveLocal(STORAGE_KEY, JSON.stringify(state));
+    if (pointStocke.brut !== null) saveLocal(OPTIMIZER_BACKUP_STORAGE_KEY, pointStocke.brut);
+  }, [pointStocke, persist]);
+  useEffect(() => {
+    const { memberStorage, ...historique } = state;
+    saveLocal(STORAGE_KEY, JSON.stringify(historique));
+    // Garder le texte initial préserve ses octets et ses futurs champs inconnus
+    // tant qu'aucun geste ou réimport ne modifie le stockage.
+    saveLocal(OPTIMIZER_MEMBERS_STORAGE_KEY, memberStorage.raw ?? ecrireMembresOptimizer(memberStorage));
   }, [state, persist]);
+
+  const sauvegarderPoint = useCallback((selection: SelectionPointOptimizer | null, data: ExclusionSourceData) => {
+    const etatCourant = courant.current;
+    const stockageCourant = { ...etatCourant, ...etatCourant.memberStorage };
+    const acquis = acquerirIdentitesMembres(stockageCourant, data);
+    const point = photographierPointOptimizer({ ...acquis, activeListId: etatCourant.activeListId }, selection, new Date(),
+      acquis === stockageCourant ? etatCourant.memberStorage.raw : null);
+    const brut = JSON.stringify(point);
+    setPointStocke({ brut, ...lirePointOptimizer(brut) });
+  }, []);
+
+  const remplacerParPoint = useCallback((reprise: ReturnType<typeof import('../lib/optimizerBackup').preparerRepriseOptimizer>) => {
+    const s = reprise.stockage;
+    setState({ lists: s.lists, members: s.members, validated: s.validated, activeListId: reprise.activeListId,
+      memberStorage: { identities: s.identities, memories: s.memories, teams: s.teams, listContents: s.listContents,
+        rejets: s.rejets, raw: reprise.brutMembres, rapport: reprise.messages } });
+  }, [setState]);
 
   const setActiveListId = useCallback((id: string | null) => {
     setState((s) => ({ ...s, activeListId: id }));
-  }, []);
+  }, [setState]);
 
-  const createList = useCallback((name: string) => {
+  const ajouterParImport = useCallback((importe: StockageOptimizer, activeListId: string) => {
+    const liste = importe.lists.find(l => l.id === activeListId);
+    if (!liste || identifiantListeImportOccupe(lireStockageCourant(), activeListId)) return false;
+    setState(s => {
+      // Un état d'entrée inattendu ne doit ni écraser des données ni faire
+      // lever la transformation que React peut rejouer.
+      if (identifiantListeImportOccupe({ ...s, ...s.memberStorage }, activeListId)) return s;
+      return { ...s, lists: [...s.lists, liste], activeListId,
+        members: [...s.members, ...importe.members.filter(m => m.listId === activeListId)],
+        memberStorage: { ...s.memberStorage, raw: null,
+          identities: new Map([...s.memberStorage.identities, ...[...importe.identities].filter(([, m]) => m.listId === activeListId)]),
+          memories: new Map([...s.memberStorage.memories, ...[...importe.memories].filter(([, m]) => m.listId === activeListId)]),
+          teams: [...s.memberStorage.teams, ...importe.teams.filter(e => e.listId === activeListId)],
+          listContents: new Map([...s.memberStorage.listContents, ...[...importe.listContents].filter(([id]) => id === activeListId)]) } };
+    });
+    return true;
+  }, [setState, lireStockageCourant]);
+
+  const createList = useCallback((name: string, contenu: ContenuListeOptimizer) => {
     const id = newId();
-    setState((s) => ({ ...s, lists: [...s.lists, { id, name }], activeListId: id }));
+    setState((s) => ({ ...s, lists: [...s.lists, { id, name: name.trim() || nomNouvelleListeOptimizer(s.lists) }], activeListId: id,
+      memberStorage: { ...s.memberStorage, raw: null, listContents: new Map(s.memberStorage.listContents).set(id, contenu) } }));
     return id;
-  }, []);
+  }, [setState]);
+
+  const setListContent = useCallback((id: string, contenu: ContenuListeOptimizer) => {
+    setState(s => !s.lists.some(l => l.id === id) || !contenuListeValide(contenu) ? s : { ...s,
+      memberStorage: { ...s.memberStorage, raw: null, listContents: new Map(s.memberStorage.listContents).set(id, contenu) } });
+  }, [setState]);
 
   const renameList = useCallback((id: string, name: string) => {
     setState((s) => ({ ...s, lists: s.lists.map((l) => (l.id === id ? { ...l, name } : l)) }));
-  }, []);
+  }, [setState]);
+
+  const editList = useCallback((id: string, name: string, contenu: ContenuListeOptimizer) => {
+    if (!name.trim() || !contenuListeValide(contenu)) return;
+    setState(s => !s.lists.some(l => l.id === id) ? s : { ...s,
+      lists: s.lists.map(l => l.id === id ? { ...l, name: name.trim() } : l),
+      memberStorage: { ...s.memberStorage, raw: null, listContents: new Map(s.memberStorage.listContents).set(id, contenu) } });
+  }, [setState]);
 
   const deleteList = useCallback((id: string) => {
     setState((s) => ({
+      ...s,
       lists: s.lists.filter((l) => l.id !== id),
       members: s.members.filter((m) => m.listId !== id),
       validated: s.validated.filter((v) => v.listId !== id),
       activeListId: s.activeListId === id ? null : s.activeListId,
+      memberStorage: { ...s.memberStorage, raw: null,
+        rejets: retirerRejetsOptimizer(s.memberStorage.rejets, id),
+        memories: new Map([...s.memberStorage.memories].filter(([, m]) => m.listId !== id)),
+        identities: new Map([...s.memberStorage.identities].filter(([, m]) => m.listId !== id)),
+        listContents: new Map([...s.memberStorage.listContents].filter(([listId]) => listId !== id)),
+        teams: s.memberStorage.teams.filter((e) => e.listId !== id) },
     }));
-  }, []);
+  }, [setState]);
 
-  const addMember = useCallback((listId: string, selector: ExclusionSelector) => {
+  const addMember = useCallback((listId: string, selector: ExclusionSelector, com2usId: number) => {
     const key = exclusionSelectorKey(selector);
     setState((s) => {
       const already = s.members.some((m) => m.listId === listId && exclusionSelectorKey(m.selector) === key);
       if (already) return s;
-      return { ...s, members: [...s.members, { listId, selector }] };
+      return { ...s, members: [...s.members, { listId, selector }], memberStorage: { ...s.memberStorage, raw: null,
+        identities: enregistrerIdentiteMembre(s.memberStorage.identities, { listId, selector, com2usId }) } };
     });
-  }, []);
+  }, [setState]);
 
   const removeMember = useCallback((listId: string, selector: ExclusionSelector) => {
     const key = exclusionSelectorKey(selector);
@@ -177,13 +311,25 @@ export function useOptimizerLists(): UseOptimizerLists {
       ...s,
       members: s.members.filter((m) => !(m.listId === listId && exclusionSelectorKey(m.selector) === key)),
       validated: s.validated.filter((v) => !(v.listId === listId && exclusionSelectorKey(v.selector) === key)),
+      memberStorage: { ...s.memberStorage, raw: null,
+        rejets: retirerRejetsOptimizer(s.memberStorage.rejets, listId, selector),
+        memories: new Map([...s.memberStorage.memories].filter(([k]) => k !== cleMemoireMembre(listId, selector))),
+        identities: new Map([...s.memberStorage.identities].filter(([k]) => k !== cleMemoireMembre(listId, selector))),
+        teams: s.memberStorage.teams.flatMap((e) => {
+          if (e.listId !== listId) return [e];
+          const members = e.members.filter((m) => exclusionSelectorKey(m) !== key);
+          const { leader, ...reste } = e;
+          return members.length < 2 ? [] : [{ ...reste, members, ...(leader && exclusionSelectorKey(leader) !== key ? { leader } : {}) }];
+        }) },
     }));
-  }, []);
+  }, [setState]);
 
-  const validateBuild = useCallback((listId: string, selector: ExclusionSelector, runeIds: number[], artifactIds: number[] = []) => {
+  const validateBuild = useCallback((listId: string, selector: ExclusionSelector, runeIds: number[], artifactIds: number[], com2usId: number) => {
     const key = exclusionSelectorKey(selector);
     setState((s) => ({
       ...s,
+      memberStorage: { ...s.memberStorage, raw: null,
+        identities: enregistrerIdentiteMembre(s.memberStorage.identities, { listId, selector, com2usId }) },
       // Valider inclut aussi implicitement le monstre dans la liste — pas
       // besoin d'un « Inclure » préalable pour pouvoir valider.
       members: s.members.some((m) => m.listId === listId && exclusionSelectorKey(m.selector) === key)
@@ -197,7 +343,7 @@ export function useOptimizerLists(): UseOptimizerLists {
         { listId, selector, runeIds, artifactIds: artifactIds.filter((id) => id > 0) },
       ],
     }));
-  }, []);
+  }, [setState]);
 
   const releaseBuild = useCallback((listId: string, selector: ExclusionSelector) => {
     const key = exclusionSelectorKey(selector);
@@ -205,7 +351,7 @@ export function useOptimizerLists(): UseOptimizerLists {
       ...s,
       validated: s.validated.filter((v) => !(v.listId === listId && exclusionSelectorKey(v.selector) === key)),
     }));
-  }, []);
+  }, [setState]);
 
   /**
    * Rend les ARTÉFACTS d’un build validé, en gardant ses runes réservées.
@@ -225,10 +371,10 @@ export function useOptimizerLists(): UseOptimizerLists {
     setState((s) => ({
       ...s,
       validated: s.validated.map((v) =>
-        v.listId === listId && exclusionSelectorKey(v.selector) === key ? { ...v, artifactIds: [] } : v
+        v.listId === listId && exclusionSelectorKey(v.selector) === key ? { ...v, artifactIds: [], artefactsManquants: undefined } : v
       ),
     }));
-  }, []);
+  }, [setState]);
 
   /**
    * Réserve une PAIRE d’artéfacts sans toucher aux runes.
@@ -249,26 +395,85 @@ export function useOptimizerLists(): UseOptimizerLists {
       ...s,
       validated: s.validated.map((v) =>
         v.listId === listId && exclusionSelectorKey(v.selector) === key
-          ? { ...v, artifactIds: artifactIds.filter((id) => id > 0) }
+          ? { ...v, artifactIds: artifactIds.filter((id) => id > 0), artefactsManquants: undefined }
           : v
       ),
     }));
-  }, []);
+  }, [setState]);
 
   const releaseAllInList = useCallback((listId: string) => {
     setState((s) => ({ ...s, validated: s.validated.filter((v) => v.listId !== listId) }));
-  }, []);
+  }, [setState]);
 
-  const replaceMembersAndValidated = useCallback((members: OptimizerListMember[], validated: ValidatedBuild[]) => {
-    setState((s) => ({ ...s, members, validated }));
-  }, []);
+  const replaceAfterRevalidation = useCallback((stockage: StockageOptimizer) => {
+    setState((s) => {
+      if (stockage.members === s.members && stockage.validated === s.validated
+        && stockage.identities === s.memberStorage.identities
+        && stockage.memories === s.memberStorage.memories && stockage.teams === s.memberStorage.teams
+        && stockage.listContents === s.memberStorage.listContents && stockage.rejets === s.memberStorage.rejets) return s;
+      return { ...s, members: stockage.members, validated: stockage.validated,
+        memberStorage: { ...s.memberStorage, raw: null, rejets: stockage.rejets, memories: new Map(stockage.memories), teams: stockage.teams,
+          identities: new Map(stockage.identities),
+          listContents: new Map(stockage.listContents) } };
+    });
+  }, [setState]);
+
+  const writeMemory = useCallback((membre: Omit<MemoireMembreOptimizer, 'criteres'>, criteres: CriteresOptimizer, data: ExclusionSourceData) => {
+    setState((s) => {
+      if (s.activeListId !== membre.listId || !s.lists.some(l => l.id === membre.listId)
+        || !s.members.some((m) => cleMemoireMembre(m.listId, m.selector) === cleMemoireMembre(membre.listId, membre.selector))) {
+        return { ...s, memberStorage: { ...s.memberStorage, rapport: [...s.memberStorage.rapport, 'Mémoire non écrite : membre absent de la liste.'] } };
+      }
+      const r = enregistrerMemoireMembre(s.memberStorage.memories, membre, criteres, data);
+      return { ...s, memberStorage: { ...s.memberStorage, memories: r.memories,
+        rejets: r.rapport.length ? s.memberStorage.rejets : retirerRejetsOptimizer(s.memberStorage.rejets, membre.listId, membre.selector),
+        raw: r.rapport.length ? s.memberStorage.raw : null, rapport: [...s.memberStorage.rapport, ...r.rapport] } };
+    });
+  }, [setState]);
+
+  const setTeams = useCallback((teams: EquipeOptimizer[]) => {
+    setState((s) => {
+      const r = validerEquipesOptimizer(teams);
+      // Les références des équipes inchangées peuvent être orphelines : seule
+      // une équipe ajoutée ou modifiée doit encore appartenir à sa liste.
+      const modifiees = teams.filter(e => !s.memberStorage.teams.some(ancienne => JSON.stringify(ancienne) === JSON.stringify(e)));
+      const horsListe = modifiees.some((e) => !s.lists.some((l) => l.id === e.listId)
+        || e.members.some((sel) => !s.members.some((m) => cleMemoireMembre(m.listId, m.selector) === cleMemoireMembre(e.listId, sel))));
+      const rapport = [...r.rapport, ...(horsListe ? ['Équipe non écrite : membre absent de la liste.'] : [])];
+      return { ...s, memberStorage: { ...s.memberStorage, teams: rapport.length ? s.memberStorage.teams : structuredClone(r.teams),
+        raw: rapport.length ? s.memberStorage.raw : null, rapport: [...s.memberStorage.rapport, ...rapport] } };
+    });
+  }, [setState]);
+
+  const synchroniserLeadsEquipes = useCallback((data: ExclusionSourceData) => {
+    const synchroniser = (s: State) => s.activeListId
+      ? synchroniserLeadsMembresOptimizer({ ...s.memberStorage, members: s.members }, s.activeListId, data) : null;
+    // Appelée après chaque rendu : aucune mise à jour envoyée sans écriture.
+    if (!synchroniser(courant.current)?.ecrits.length) return;
+    setState((s) => {
+      const resultat = synchroniser(s);
+      if (!resultat?.ecrits.length) return s;
+      const { memories, ecrits } = resultat;
+      const rejets = ecrits.reduce((r, selector) => retirerRejetsOptimizer(r, s.activeListId!, selector), s.memberStorage.rejets);
+      return { ...s, memberStorage: { ...s.memberStorage, memories, rejets, raw: null } };
+    });
+  }, [setState]);
 
   return {
+    lireStockageCourant,
+    ajouterParImport,
+    point: pointStocke.point,
+    pointExiste: pointStocke.brut !== null,
+    rapportPoint: pointStocke.rapport,
+    sauvegarderPoint,
+    remplacerParPoint,
     lists: state.lists,
     activeListId: state.activeListId,
     setActiveListId,
     createList,
+    setListContent,
     renameList,
+    editList,
     deleteList,
     members: state.members,
     addMember,
@@ -279,6 +484,15 @@ export function useOptimizerLists(): UseOptimizerLists {
     releaseArtifacts,
     validateArtifacts,
     releaseAllInList,
-    replaceMembersAndValidated,
+    memories: state.memberStorage.memories,
+    identities: state.memberStorage.identities,
+    teams: state.memberStorage.teams,
+    listContents: state.memberStorage.listContents,
+    rapportStockage: state.memberStorage.rapport,
+    rejets: state.memberStorage.rejets,
+    writeMemory,
+    setTeams,
+    synchroniserLeadsEquipes,
+    replaceAfterRevalidation,
   };
 }

@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
-import { Crown, X, GripVertical, Trash2, AlertTriangle, Pencil, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Crown, X, GripVertical, Trash2, AlertTriangle, Pencil, ChevronLeft, ChevronRight, Upload } from 'lucide-react';
 import { IconeSpeedTuning } from '../IconesAtelier';
 
 const SPD_ICON = `${import.meta.env.BASE_URL}stats/spd.png`; // icône vitesse du jeu (SWARFARM)
@@ -51,6 +51,8 @@ function initials(name: string) {
 }
 
 interface Props {
+  onExporterOptimizer: () => void;
+  raisonExportOptimizer?: string;
   team: SiegeTeamType;
   index: number;
   monsters: Monster[];
@@ -71,6 +73,8 @@ interface Props {
 }
 
 export default function SiegeTeam({
+  onExporterOptimizer,
+  raisonExportOptimizer,
   team,
   index,
   monsters,
@@ -351,6 +355,10 @@ export default function SiegeTeam({
             de quel monstre vient le lead — les deux répondent à deux questions
             différentes, ce n'est pas un doublon. */}
         {leaderMonster?.leaderSkill && <LeadPill ls={leaderMonster.leaderSkill} />}
+        <Bouton onClick={onExporterOptimizer} disabled={!!raisonExportOptimizer}
+          title={raisonExportOptimizer ?? 'Créer une liste avec cette équipe de siège.'}
+          aria-label="Exporter vers l'Optimizer" libelle="Exporter vers l'Optimizer"
+          icone={<Upload size={13} />} taille="sm" nuAuDoigt libelleAuDoigt={false} />
 
         {/* ⚠️ **Icône nue au doigt** (`nuAuDoigt`) — ni cadre, ni bordure, ni
             fond. L'en-tête d'équipe porte déjà le titre, la pastille d'état et

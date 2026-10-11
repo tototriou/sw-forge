@@ -59,7 +59,7 @@ export function buildRealDamageContext(
   return {
     profile,
     passifs: monsterOffensivePassives(detail),
-    setup: recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP,
+    setup: normaliserCompetencesInvocateur(recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP),
     element: loadMonstersList().find((m) => m.com2usId === com2usId)?.element ?? null,
     artefacts: artifactDamageProfile(artifacts),
     critSiPlusRapide: monsterCritSiPlusRapide(detail),
@@ -84,3 +84,4 @@ export function buildRealDamageContext(
     bonusSiAtqSeuil: monsterBonusSiAtqSeuil(detail),
   };
 }
+import { normaliserCompetencesInvocateur } from '../../src/lib/competencesInvocateur';

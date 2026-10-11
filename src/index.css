@@ -35,6 +35,9 @@
   --bg: 246 240 228;
   --panel: 255 253 248;
   --panel2: 239 230 213;
+  /* Bandes d'équipes alternées, indépendantes de la sélection et de l'élément. */
+  --equipe-a: 255 237 221;
+  --equipe-b: 220 234 239;
   /* Barres de l'application (barre latérale, barre du haut) — décision 5 du
      rebranding. En Atelier, la toile la confond avec `panel` : elle se
      détache du fond de page par sa bordure. */
@@ -260,6 +263,8 @@
   --forge-bar: 27 26 25;
   --forge-panel: 35 33 32;
   --forge-panel2: 46 44 42;
+  --forge-equipe-a: 58 36 21;
+  --forge-equipe-b: 27 45 56;
   --forge-border: 90 84 77;
   --forge-border-soft: 58 55 52;
   --forge-ink: 237 227 209;
@@ -361,6 +366,8 @@
     --bar: var(--forge-bar);
     --panel: var(--forge-panel);
     --panel2: var(--forge-panel2);
+    --equipe-a: var(--forge-equipe-a);
+    --equipe-b: var(--forge-equipe-b);
     --border: var(--forge-border);
     --border-soft: var(--forge-border-soft);
     --ink: var(--forge-ink);
@@ -419,6 +426,8 @@
   --bar: var(--forge-bar);
   --panel: var(--forge-panel);
   --panel2: var(--forge-panel2);
+  --equipe-a: var(--forge-equipe-a);
+  --equipe-b: var(--forge-equipe-b);
   --border: var(--forge-border);
   --border-soft: var(--forge-border-soft);
   --ink: var(--forge-ink);

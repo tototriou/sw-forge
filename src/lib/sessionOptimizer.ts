@@ -1,6 +1,6 @@
 // L'Optimizer dans une sauvegarde de session : une photo de ses champs de
-// DONNÉES (`useOptimizerState`), rendue telle quelle au chargement — la
-// sélection et son exemplaire, les critères, le tri.
+// DONNÉES (`useOptimizerState`) : sélection, exemplaire, critères et tri.
+// La photo est sérialisée ; App ne la réapplique pas actuellement.
 //
 // ⚠️ **Chaque champ de données de `OptimizerState` est classé** : dans la
 // session, ou hors session (interface, état passager, résultats qui se
@@ -10,6 +10,7 @@
 // voit jamais ailleurs, devient une erreur de compilation.
 
 import type { OptimizerState } from '../hooks/useOptimizerState';
+import { normaliserCompetencesInvocateur } from './competencesInvocateur';
 
 export const CHAMPS_OPTIMIZER_SESSION = [
   'selectedId',
@@ -44,11 +45,16 @@ export const CHAMPS_OPTIMIZER_SESSION = [
 ] as const;
 
 export const CHAMPS_OPTIMIZER_HORS_SESSION = [
+  // Attribution à reconstruire seulement par un geste, jamais à la reprise.
+  'proprietaireCriteres',
+  'rapportCriteres',
   // Interface et validation de l'écran.
   'setPickerInvalid',
   'showAdvanced',
   'resultsPage',
   'openDetailKey',
+  // Cran remonté pour la navigation seulement ; format de session inchangé.
+  'critereArtefacts',
   // Passager : diagnostic, arrêt manuel, compteurs d'import.
   'diagnoseBlockingEnabled',
   'stoppedManually',
@@ -74,5 +80,6 @@ void GARDES;
 export function photoOptimizer(etat: OptimizerState): Record<string, unknown> {
   const photo: Record<string, unknown> = {};
   for (const champ of CHAMPS_OPTIMIZER_SESSION) photo[champ] = etat[champ];
+  photo.damageSetup = normaliserCompetencesInvocateur(etat.damageSetup);
   return photo;
 }

@@ -231,7 +231,7 @@ Increases the damage dealt by 50% when you have a Shield. »
   le test dit pourquoi cette lecture est fausse.
 - L'égalisation ATQ/DEF du début de combat (« the value of the lower stat
   will equal that of the higher ») reste hors modèle : mécanisme neuf,
-  marqué « Calcul partiel » ([formules-et-combat.md § Calcul partiel — l'étiquette par identifiant](feat-formules-et-combat.md)).
+  marqué « Calcul partiel » ([feat-formules-et-combat.md § Calcul partiel — l'étiquette par identifiant](feat-formules-et-combat.md)).
 
 **Nouveau `PASSIFS_OFFENSIFS_CONNUS` `conditionnel`** (toggle, formule
 PROPRE au passif, pas un % du total) :
@@ -377,7 +377,7 @@ comprend donc aussi les auras Fight, externes et propres au build
 de Brita conserve **1671 ATQ**. Pour Eivor (Eau), le relevé le plus récent
 donne **1520 ATQ**, **1520 DEF** et **213 VIT**. L'écran montre les trois
 objectifs et leur équivalent au-dessus de la fiche : avec Combat,
-`+628 ATQ`, `+720 DEF`, `+111 VIT` ; avec Combat + Guilde, `+501 ATQ`,
+`+628 ATQ`, `+720 DEF`, `+111 VIT` ; avec Contenu de guilde, `+501 ATQ`,
 `+634 DEF`, `+111 VIT`. Seule la branche ATQ entre dans le score de dégâts ;
 DEF et VIT sont néanmoins affichées pour permettre de construire les trois
 parties du passif.

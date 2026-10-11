@@ -5,7 +5,7 @@
 
 ⚠️ **Au doigt, dans le panneau « Options »** (bouton de la barre de nav),
 EN TÊTE — avant « Réglages avancés » (voir
-ecran/conditions-et-reglages.md § Réglages avancés) : fonctionnalité
+feat-ecran-conditions-et-reglages.md § Réglages avancés) : fonctionnalité
 vedette, mise en avant côté bureau par sa carte à bordure accentuée.
 
 **« Exclure les runes déjà utilisées »**, interrupteur DÉSACTIVÉ par
@@ -136,6 +136,10 @@ sélection peut-être périmée qu'une sélection valide perdue. Ce n'est pas
 `resetSearch`, qui part à chaque import, réexport compris.
 
 ## Runes imposées — verrouiller un emplacement sur une rune précise
+
+Intitulé à l'écran : **« Conserver ces slots dans l'optimisation »**,
+affiché aussi dans le panneau « Options » du téléphone, qui masque
+pourtant les autres intitulés de section.
 
 **Regroupée dans la même carte** que les deux exclusions ci-dessus — même
 thème (agir sur le pool de runes à partir de l'exemplaire recherché),

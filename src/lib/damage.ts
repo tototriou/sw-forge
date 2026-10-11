@@ -20,6 +20,8 @@
 // et les mécaniques propres à certains monstres (Deborah, Herteit…).
 
 import type { Competence, DetailMonstre } from './monsterSkills';
+import type { SummonerSkills } from './competencesInvocateur';
+export type { SummonerSkills } from './competencesInvocateur';
 import type { ArtifactDetail, ElementKey } from '../types';
 import { StatRow } from './stats';
 import { StatKey, activeSets } from './effects';
@@ -163,7 +165,7 @@ export const VELASKA_ICON = 'https://swarfarm.com/static/herders/images/monsters
 export const LEADER_SKILL_STATS = ['HP', 'Attack Power', 'Defense', 'Attack Speed', 'Critical Rate', 'Critical DMG'] as const;
 export type LeaderSkillStat = (typeof LEADER_SKILL_STATS)[number];
 
-// Valeurs de palier RÉELLES du jeu, confirmées par l'utilisateur — jamais une
+// Valeurs de palier du corpus local public/data/monsters.json — jamais une
 // formule générique : ces paliers ne suivent aucune progression régulière, et
 // le maximum diffère d'une statistique à l'autre (33 % en VIT contre 50 % en
 // ATQ).
@@ -172,8 +174,8 @@ export type LeaderSkillStat = (typeof LEADER_SKILL_STATS)[number];
 // valeur de lead dépend de sa portée (33 % réservés à un contenu — guilde,
 // arène —, 24 % universels, 30 % élémentaires…), du monstre qui la porte et
 // de son nombre d'étoiles naturel. Sans importance ici : c'est l'utilisateur
-// qui choisit le lead posé sur son équipe, l'app ne le déduit d'aucun
-// monstre. Une seule dimension, donc — une liste de valeurs par statistique.
+// qui choisit le lead posé sur son équipe, même après son initialisation par
+// le leader désigné. Une seule dimension — une liste de valeurs par statistique.
 //
 // ⚠️ **Un seul palier en Dégâts Crit est CORRECT**, pas un trou de la table :
 // un seul monstre du jeu porte ce leader skill.
@@ -181,9 +183,9 @@ export type LeaderSkillStat = (typeof LEADER_SKILL_STATS)[number];
 // ⚠️ **Les leads de RES et de Précision existent et sont volontairement
 // ABSENTS** : ils n'ont aucun effet sur les dégâts, seule question à laquelle
 // ce réglage sert. Ne pas les ajouter en croyant combler un oubli.
-// ⚠️ **EXHAUSTIVE, et c'est ce qui change tout.** Cette table couvre
-// toutes les valeurs du jeu : un simple menu suffit, sans champ de saisie
-// LIBRE pour les valeurs manquantes.
+// La couverture des valeurs du corpus est vérifiée par
+// tests/leader-skill-paliers.test.ts ; une valeur enregistrée hors liste
+// reste acceptée par le modèle et affichée par l'écran.
 // N'y ajouter une valeur qu'avec une source, jamais « au cas où ».
 //
 // ⚠️ **PV, ATQ et DEF ne partagent PLUS la même liste.** L'ancienne table les
@@ -195,7 +197,7 @@ export const LEADER_SKILL_VALEURS: Record<LeaderSkillStat, number[]> = {
   HP: [15, 17, 18, 21, 22, 25, 28, 30, 33, 38, 40, 44, 45, 50],
   'Attack Power': [15, 18, 20, 21, 22, 25, 28, 30, 33, 35, 38, 40, 44, 45, 50],
   Defense: [20, 21, 22, 25, 28, 30, 33, 38, 40, 44, 50],
-  'Attack Speed': [10, 15, 16, 19, 20, 21, 23, 24, 28, 30, 33],
+  'Attack Speed': [10, 15, 16, 17, 19, 20, 21, 23, 24, 28, 30, 33],
   'Critical Rate': [10, 15, 16, 17, 19, 21, 23, 24, 28, 30, 33, 38],
   'Critical DMG': [25],
 };
@@ -214,11 +216,10 @@ export const LEADER_SKILL_VALEURS: Record<LeaderSkillStat, number[]> = {
 // guilde, où Combat compte AUSSI. « Guilde » implique donc toujours « Combat ».
 // Il n'existe volontairement aucun état « aucune » : il ne correspond à aucune
 // situation du jeu et sous-estimerait silencieusement toutes les statistiques.
-export type SummonerSkills = 'combat' | 'guilde';
 
 export const SUMMONER_SKILLS_LABELS: { key: SummonerSkills; label: string }[] = [
-  { key: 'combat', label: 'Combat' },
-  { key: 'guilde', label: 'Combat + Guilde' },
+  { key: 'normal', label: 'Contenu normal' },
+  { key: 'guilde', label: 'Contenu de guilde' },
 ];
 
 // Onglet « Combat » — s'applique partout.
@@ -2744,6 +2745,9 @@ const EFFETS_ENTRE_COUPS_CONNUS: Record<string, EffetEntreCoupsProfile[]> = {
   'Full Burst': [{ id: 'continuous-damage', label: 'Dégâts continus', cumulable: true }],
   Gouge: [{ id: 'continuous-damage', label: 'Dégâts continus', cumulable: true }],
   Gust: [{ id: 'stun', label: 'Étourdissement', cumulable: false }],
+  // Shihwa S3 (2212, seul sort de ce nom) : « Each attack has a 50% chance to
+  // leave a Branding effect » — comme Will-o'-the-Wisp, son S1.
+  'Phantom Light': [{ id: 'brand', label: 'Marque', cumulable: false, effetCombat: 'brand' }],
   'Panda Supremacy': [
     { id: 'increase-glancing', label: 'Chances de coup glancing augmentées', cumulable: false },
     { id: 'decrease-atk', label: 'Réduction d’ATQ', cumulable: false },
@@ -4529,15 +4533,14 @@ export interface DamageSetup {
   pvActuelsAvantSacrificePct?: Record<number, number>;
 }
 
-// Adversaire de référence : ni un boss ni une cible nue. 1000 DEF et 30 000
+// Adversaire de référence : ni un boss ni une cible nue. 1500 DEF et 40 000
 // PV correspondent à une cible d'arène/siège ordinaire — le point de
-// comparaison le plus courant, et les mêmes ordres de grandeur que les
-// outils de référence de la communauté.
+// comparaison le plus courant (valeurs choisies par l'utilisateur).
 export const DEFAULT_DAMAGE_SETUP: DamageSetup = {
   setsAuraExternes: [],
   skillCom2usId: null,
-  enemyDef: 1000,
-  enemyHp: 30000,
+  enemyDef: 1500,
+  enemyHp: 40000,
   enemyHpPct: 100,
   ownHpPct: 100,
   livingAlliesPct: 100,
@@ -4569,7 +4572,7 @@ export const DEFAULT_DAMAGE_SETUP: DamageSetup = {
   // ⚠️ « Combat » est le seul défaut possible : ces compétences s'appliquent
   // en permanence en jeu. « Guilde » ne s'ajoute que lorsque l'utilisateur
   // décrit explicitement un contenu de guilde.
-  summonerSkills: 'combat',
+  summonerSkills: 'normal',
   passifsOffensifs: {},
   effetsCibleCountAutres: true,
   buffsPropresCountAutres: true,

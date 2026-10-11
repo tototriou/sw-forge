@@ -345,7 +345,7 @@ signe seul — en mono 12 px au milieu de quarante colonnes — ne saute pas aux
 yeux. Il teinte le **texte et le contour**, jamais le fond : un fond plein par
 cellule ferait un damier, et ces tableaux portent déjà des surlignages.
 
-**`Selecteur`** — liste déroulante. ⚠️ `appearance-none` + notre propre chevron :
+**`Selecteur`** — liste déroulante ([ton du sélecteur](selecteur.md)). ⚠️ `appearance-none` + notre propre chevron :
 le contrôle natif dessine sa flèche avec les couleurs du **système**, qui ne
 suivent aucun des deux thèmes — sur fond sombre, une flèche noire disparaît. La
 **liste ouverte** reste celle du système : c'est le seul morceau de l'app qu'on
@@ -577,8 +577,24 @@ pas — il remplit trois emplacements :
 | Bande | Contenu | Rendue par |
 |-------|---------|------------|
 | **En-tête** | icône, `titre` à gauche, `sousTitre`, croix à **droite** | la coquille |
-| **Corps** | `children` — le seul à défiler | l'appelant |
+| **Corps** | `children` — la bande qui défile (avec `corpsFixeBas`, voir plus bas) | l'appelant |
 | **Pied** | `actions` — les boutons, toujours en bas | la coquille |
+
+`corpsFixeBas` est un axe facultatif : il place des champs fixes entre le
+corps défilant et les actions, avec le même rembourrage horizontal. L’appelant
+choisit les formats qui l’utilisent ; sans cet emplacement, la disposition
+reste identique. Avec lui, l’épaisseur des séparations est réservée même quand
+le trait est transparent, et les rembourrages ne varient pas au défilement :
+l’en-tête, les champs fixes et les actions gardent leur position. Le trait
+visible reste conditionné au contenu masqué ; celui du bas se pose avant les
+champs fixes, sans second trait au-dessus des actions.
+Quand la hauteur manque, ces champs occupent au plus la moitié de la hauteur
+disponible après l’en-tête et le pied ; leur zone défile alors elle-même.
+La limite se recalcule au redimensionnement et au changement de taille des
+bandes. La liste reste accessible, et les actions restent visibles et utilisables
+tant que la boîte peut contenir l’en-tête et le pied (fenêtre de 400 px de haut
+et plus, vérifiée à 400 et 600 px) ; en deçà, l’en-tête et le pied, qui ne se
+compriment pas, peuvent dépasser la boîte.
 
 > ⚠️ **Le titre est rendu PAR la coquille**, pas écrit dans le contenu. Chaque
 > dialogue posait son propre `<h2>` avec sa taille et sa marge : quatre écrans,
@@ -669,7 +685,10 @@ pas — il remplit trois emplacements :
 
 **`MobileSheet`** — panneau montant du téléphone. ⚠️ **Ce n'est pas une modale** :
 il coexiste avec la page, monte du bas, et se pose **sous** les dialogues dans
-l'échelle des `z-index`. Il porte son propre voile pour cette raison.
+l'échelle des `z-index`. Il porte son propre voile pour cette raison. Seul un
+panneau **feuille**, qui n'ouvre rien lui-même, passe devant les dialogues
+(`devantLesDialogues`, `z-[80]`) : l'aide « ? », ouverte depuis une `Modale`,
+restait sinon invisible derrière elle.
 
 > ⚠️ **Portalisé dans `<body>`, comme la `Modale`.** Un MobileSheet peut s'ouvrir
 > DEPUIS un autre — l'aide « ? » ou le formulaire de catégorie, ouverts depuis le

@@ -1,7 +1,9 @@
-import { ReactNode } from 'react';
+import { ReactNode, useRef } from 'react';
 import { SlidersHorizontal } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Bouton } from '../ui';
+import MonsterAvatar from './MonsterAvatar';
+import type { Monster } from '../types';
 import { useClavierOuvert } from '../hooks/useClavierOuvert';
 import { HAUTEUR_ONGLETS } from '../lib/layout';
 
@@ -43,6 +45,7 @@ export default function MobileTabs({
   sectionOuverte = null,
   onOuvrirActions,
   actionsOuvertes = false,
+  monstre = null,
 }: {
   onglets: OngletMobile[];
   // Ouvre le panneau de choix de sous-section, pour un onglet qui porte `ouvre`.
@@ -54,6 +57,9 @@ export default function MobileTabs({
   // a pas, et le bouton ne s'affiche pas — voir `PAGES_AVEC_MENU` dans App.tsx.
   onOuvrirActions?: () => void;
   actionsOuvertes?: boolean;
+  // Monstre optimisé dont la ligne est sortie de l'écran : son icône passe
+  // dans le bouton, pour savoir en bas de page sur quel monstre on travaille.
+  monstre?: Monster | null;
 }) {
   // ⚠️ **La barre s'efface pendant la SAISIE.** Fixée en bas, le navigateur la
   // recolle juste au-dessus du clavier quand celui-ci monte : elle remonte donc
@@ -62,6 +68,9 @@ export default function MobileTabs({
   // d'outils. La seule sortie est de la retirer, ce qui rend au passage une
   // quarantaine de pixels à un écran qui en manque.
   const clavierOuvert = useClavierOuvert();
+  // Le dernier monstre reste rendu pendant que son icône glisse hors du bouton.
+  const dernierMonstre = useRef<Monster | null>(null);
+  if (monstre) dernierMonstre.current = monstre;
 
   // ⚠️ **Démontée, pas masquée.** Un `opacity-0` la laisserait cliquable et
   // dans le parcours de tabulation, derrière le clavier — on quitterait la page
@@ -85,7 +94,18 @@ export default function MobileTabs({
           fond="plein"
           forme="pilule"
           taille="sm"
-          icone={<SlidersHorizontal size={15} />}
+          // L'icône du monstre entre en glissant depuis la gauche pendant que
+          // le bouton s'élargit, et ressort de même ; rien sans mouvement réduit.
+          icone={<span className="flex items-center">
+            <span className={`inline-flex overflow-hidden transition-[width] duration-500 ease-out motion-reduce:transition-none ${monstre ? 'w-7' : 'w-0'}`}>
+              {dernierMonstre.current && (
+                <span className={`flex flex-none transition duration-500 ease-out motion-reduce:transition-none ${monstre ? 'translate-x-0 opacity-100' : '-translate-x-5 opacity-0'}`}>
+                  <MonsterAvatar monster={dernierMonstre.current} size={22} element={false} />
+                </span>
+              )}
+            </span>
+            <SlidersHorizontal size={15} />
+          </span>}
           libelle="Options"
           // ⚠️ L'OMBRE est ici justifiée, contrairement à la règle générale : ce
           // bouton FLOTTE réellement au-dessus de la page qui défile dessous.

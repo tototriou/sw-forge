@@ -1527,6 +1527,13 @@ illisible tout déplié. Chaque carte est donc **repliée par défaut** :
 
 ### Repli deck par deck
 
+« Exporter vers l'Optimizer » est présent sur chaque ligne de deck, repliée
+ou dépliée, aux deux formats, ainsi que sur les offenses de la vue Défense.
+Il importe ce seul deck avec les exemplaires retenus par la confrontation,
+ouvre l’Optimizer et présente le rapport en modale. Sans compte ou sans
+membre importable, il reste désactivé avec sa raison ; un refus garde la page.
+Voir [l’import d’équipes](../optimizer/feat-import-equipes.md#exporter-la-pr%C3%A9pa-rta-et-un-deck-recommand%C3%A9).
+
 Indépendamment du repli de la carte, **chaque deck a son propre chevron**.
 
 - ⚠️ **Les decks sont repliés par défaut** : déplier une recommandation montre la

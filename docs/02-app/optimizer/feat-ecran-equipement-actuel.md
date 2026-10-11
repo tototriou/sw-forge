@@ -7,7 +7,7 @@
    (pas réimplémenté), le même qu'en RTA/Siège quand on clique un monstre :
    stats base/bonus, artéfacts, roue de runes et relique **tels
    qu'ACTUELLEMENT équipés** sur l'exemplaire choisi dans la recherche du
-   monstre (voir recherche-du-monstre.md § Recherche du monstre à optimiser) — **c'est
+   monstre (voir feat-ecran-recherche-du-monstre.md § Recherche du monstre à optimiser) — **c'est
    CET exemplaire que la recherche optimise**, pas systématiquement la box.
    L'exemplaire choisi (`gearSource`, la puce de source ; `sourceSelector`,
    l'entrée précise) vit dans `useOptimizerState` : il **reste choisi quand
@@ -20,7 +20,7 @@
    ou n'est pas de l'espèce choisie, il est remplacé par le **PREMIER
    exemplaire Box** de l'espèce (`boxCandidates[0]`), source Box — la même
    règle que la recherche bestiaire
-   (voir recherche-du-monstre.md § Recherche du monstre à optimiser)
+   (voir feat-ecran-recherche-du-monstre.md § Recherche du monstre à optimiser)
    —, ou par `unownedSelectorIfNoneOwned` si la box n'en compte aucun.
    ⚠️ **Limite connue** : ce choix
    d'exemplaire ne fait PAS partie de la recette exportée (`OptimizerRecipe`
@@ -30,11 +30,11 @@
    `RelicDetailBox`, tous dans [MonsterGear.tsx](src/components/MonsterGear.tsx)),
    affiché en **popover flottant** ancré sur l'élément cliqué — même
    dispositif que les cartes de résultat (`BuildCandidateCard`,
-   voir resultats.md § Résultats), pas un bloc qui pousserait le reste de la fiche vers le bas. Ce que
+   voir feat-ecran-resultats.md § Résultats), pas un bloc qui pousserait le reste de la fiche vers le bas. Ce que
    l'outil part optimiser, visible d'un coup d'œil avant de lancer quoi que
    ce soit — y compris les artéfacts et la relique, qui ne sont eux jamais
    modifiés par la recherche
-   (voir ../moteur/elagages.md § Algorithme (résumé fonctionnel)). ⚠️ **Artéfacts : toujours
+   (voir ../../03-developpeur/optimizer/moteur-elagages.md § Algorithme (résumé fonctionnel)). ⚠️ **Artéfacts : toujours
    2 emplacements affichés** (Attribut puis Type), même si le monstre choisi
    n'en porte qu'un seul ou aucun — un emplacement vide est montré grisé
    plutôt que simplement absent. ⚠️ **Relique : emplacement TOUJOURS affiché

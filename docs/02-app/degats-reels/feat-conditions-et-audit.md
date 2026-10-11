@@ -82,7 +82,8 @@ binaires « au moins un effet néfaste » (Tesarion, Manannan, Arang et analogue
 utilisent un interrupteur ; Brise DEF ou Marque l'activent aussi sans clic.
 Lorsqu'une pose est choisie entre les coups, seuls les coups suivants
 reçoivent le nouvel état. Cette règle couvre Triple Crush,
-Will-o'-the-Wisp et les dommages passifs par coup de Feng Yan.
+Will-o'-the-Wisp et Phantom Light (S1 et S3 de Shihwa, une Marque possible
+à chaque coup) et les dommages passifs par coup de Feng Yan.
 Les nouvelles recettes marquent explicitement cette sémantique « autres
 débuffs » ; une ancienne recette sans marqueur conserve son compteur total
 historique, qui incluait déjà Brise DEF et Marque.

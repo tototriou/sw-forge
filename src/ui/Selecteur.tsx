@@ -26,6 +26,7 @@ export interface SelecteurProps extends React.SelectHTMLAttributes<HTMLSelectEle
   // dans un même formulaire se lisent comme deux natures de contrôle. `panel`
   // le pose sur une carte, déjà en `panel2`, où il s'y confondrait.
   surface?: 'panel' | 'panel2';
+  ton?: 'neutre' | 'accent';
   children: ReactNode;
 }
 
@@ -36,7 +37,7 @@ const TAILLES = {
 } as const;
 
 const Selecteur = forwardRef<HTMLSelectElement, SelecteurProps>(function Selecteur(
-  { taille = 'md', pleineLargeur = true, surface = 'panel2', className = '', children, ...reste },
+  { taille = 'md', pleineLargeur = true, surface = 'panel2', ton = 'neutre', className = '', children, ...reste },
   ref,
 ) {
   return (
@@ -49,7 +50,7 @@ const Selecteur = forwardRef<HTMLSelectElement, SelecteurProps>(function Selecte
       // choisir — encre pleine. Posé sur une carte (`panel`), il montre un
       // classement au milieu d'autres informations — encre atténuée, sans quoi
       // il pèse plus lourd que le monstre qu'il classe.
-      className={`appearance-none border border-border ${
+      className={`appearance-none border ${ton === 'accent' ? 'border-accent' : 'border-border'} ${
         surface === 'panel' ? 'bg-panel text-ink-dim' : 'bg-panel2 text-ink'
       } bg-[image:var(--chevron-select)]
         bg-[length:12px] bg-[right_0.4rem_center] bg-no-repeat pr-6 outline-none

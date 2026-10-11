@@ -8,6 +8,17 @@ Fichiers : [SiegeTeam.tsx](src/components/siege/SiegeTeam.tsx) ·
 
 ## Structure d'une équipe
 
+« Exporter vers l'Optimizer » sur la page Défense exporte toutes les défenses,
+même avec une recherche active : une liste, une équipe par défense admissible.
+Le bouton se trouve dans la barre d’en-tête au bureau et, pleine largeur,
+dans « Options » au téléphone.
+Chaque carte de défense ou d’offense porte aussi « Exporter vers l'Optimizer »
+près du lead, repliée comme dépliée : libellé et icône au bureau, icône au doigt
+avec libellé accessible, selon les boutons d’en-tête existants.
+Voir [feat-import-equipes.md](../optimizer/feat-import-equipes.md)
+§ F4 — Exporter depuis le siège pour la disponibilité, les critères,
+la navigation, les refus et le rapport en modale hors du flux.
+
 - En-tête : **chevron déplier/replier** + « Équipe N » + (point rouge si alerte
   vitesse) + **Supprimer**.
 - **Repliée par défaut** (vue compacte). L'état `expanded` est **remonté dans

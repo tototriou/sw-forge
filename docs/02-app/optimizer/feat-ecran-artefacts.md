@@ -101,7 +101,7 @@
 
    La **relique** vit dans un **bloc séparé de cette même carte**, le bloc
    qui **ferme la carte**, sous « Meilleurs artéfacts offensifs pour ce
-   build » (voir relique.md § Relique).
+   build » (voir feat-ecran-relique.md § Relique).
    L'interrupteur ci-dessus masque d'un seul geste les deux listes
    d'artéfacts ET le bloc Relique.
 

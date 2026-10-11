@@ -36,8 +36,12 @@
   ([DamageSetupModale.tsx](src/components/outils/DamageSetupModale.tsx),
   qui porte la carte `DamageSetupCard`) — et rien ailleurs à l'écran ne
   change. Une fois la fenêtre fermée, une **ligne de résumé** prend sa
-  place sous l'objectif : `S1 Flying Cards · élément ignoré · PV 30 000 ·
-  DEF 1 000 · Critique`. On la clique pour rouvrir.
+  place sous l'objectif : `S1 Flying Cards · élément ignoré · PV 40 000 ·
+  DEF 1 500 · Critique`. On la clique pour rouvrir.
+  Les PV et la DEF de l'adversaire sont ses **totaux** (stats de base,
+  runes, lead…), ce que dit l'aide de « Adversaire ».
+  Au téléphone, les champs de l'adversaire (PV, DEF…) s'empilent sur une
+  largeur de libellé commune : leurs cases s'alignent.
   Cette fenêtre porte aussi les PV propres, les
   ennemis vivants, la réserve de Sacrifice, les comparaisons de stats et
   les états de combat propres au monstre choisi. Les compteurs de débuffs
@@ -56,15 +60,15 @@
   - ⚠️ **Le résumé ne montre QUE ce que le sort consomme**, exactement
     comme la fenêtre. Sur un sort qui **ignore la défense**, le champ DEF
     n'existe pas dans la fenêtre — et il disparaît donc du résumé : `S3
-    Amputation Magic · élément ignoré · PV 30 000 · Critique`. Les deux
+    Amputation Magic · élément ignoré · PV 40 000 · Critique`. Les deux
     lectures viennent d'un seul prédicat (`champsDuCombat`,
     [damage.ts](src/lib/damage.ts)) : deux copies divergent, et un résumé
-    écrit en dur afficherait « DEF 1 000 » sur un sort qui n'en tient
+    écrit en dur afficherait « DEF 1 500 » sur un sort qui n'en tient
     aucun compte.
   - **La cible calculée de Blade Surge, quand ce n'est pas la cible
     visée.** Le cran « Dégâts sur les autres ennemis » ajoute un bout
     juste après le sort : `S1 Blade Surge · autres ennemis · élément
-    ignoré · PV 30 000 · DEF 1 000 · Critique`. Comme pour le sort, c'est
+    ignoré · PV 40 000 · DEF 1 500 · Critique`. Comme pour le sort, c'est
     la cible que RETIENT le calcul pour le sort résolu
     (`resumeCibleDegatsRetenue`, qui lit `cibleDegatsRetenue`), jamais
     la valeur stockée : rien pour la cible visée (le défaut), rien pour
@@ -101,7 +105,7 @@ Ce que contient ce réglage :
   bouger ni le texte au-dessus, ni le contrôle (réglage
   `cibleDegatsParSort`) ; la ligne de résumé sous l'objectif,
   elle, dit « autres ennemis » quand ce cran est retenu
-  (voir objectif-de-recherche.md § Les quatre objectifs disponibles ; détail :
+  (voir feat-ecran-objectif-de-recherche.md § Les quatre objectifs disponibles ; détail :
   [degats-reels/ (séquences de coups)](../degats-reels/)). Par
   défaut, le dernier slot calculable parmi les sorts actifs (S3 avant
   S2 avant S1). Un passif curé « sélectionnable comme sort » figure
@@ -231,16 +235,17 @@ Ce que contient ce réglage :
 
   ⚠️ **Les buffs ATQ/DEF/VIT et le leader skill n'y sont pas** : ils
   sont dans « État de mon monstre »
-  (voir etat-de-mon-monstre.md § État de mon monstre).
-- ⚠️ **Compétences d'invocateur : dans « État de mon monstre »**
-  (voir etat-de-mon-monstre.md § État de mon monstre). Rappel de ce
-  qu'elles font : **Combat** (défaut) /
-  **Combat + Guilde**, toujours supposées maxées. **Un choix unique, pas deux
-  cases** : l'onglet Guilde ne s'applique qu'en contenu de guilde, où
-  Combat compte aussi — « Guilde » implique donc toujours « Combat ».
+  (voir feat-ecran-etat-de-mon-monstre.md § État de mon monstre).
+- ⚠️ **Compétences d'invocateur : dérivées du contenu de la liste**
+  (voir feat-ecran-etat-de-mon-monstre.md § État de mon monstre). Rappel de ce
+  qu'elles font : **Contenu normal** (défaut) /
+  **Contenu de guilde**, toujours supposées maxées. Aucun menu manuel :
+  le contenu de la liste décide. En guilde, les bonus de l’onglet Guilde
+  s’ajoutent à ceux de l’onglet Combat du jeu.
   Il n'existe pas de cran « Aucune » : les compétences de Combat
   s'appliquent dans toute situation réelle du jeu. Une ancienne recette
-  qui portait ce cran est normalisée vers **Combat** à l'import.
+  qui portait ce cran ou la valeur historique `combat` est normalisée vers
+  **Contenu normal** (`normal`) à l’import, sans changer les bonus.
   La compétence « Puis. d'att. de <élément> » suit l'élément du
   monstre, sans rien demander. Détail des valeurs :
   [degats-reels/ (effets d'équipe et leaders) § Leader skill d'équipe](../degats-reels/).
@@ -295,8 +300,8 @@ tranche par stat de l'objectif dans chaque compartiment, et l'ordre des
 demi-builds) et le **tri par défaut** des résultats (modifiable ensuite).
 Il ne décide pas de ce qui est admis : seuls les minimums et maximums posés
 dans « Conditions » le font, quel que soit l'objectif choisi (voir
-conditions-et-reglages.md § Conditions, inventaire et réglages avancés ;
-limite : ../limites-connues.md § L'objectif de recherche oriente, il ne garantit pas).
+feat-ecran-conditions-et-reglages.md § Conditions, inventaire et réglages avancés ;
+limite : limites-connues.md § L'objectif de recherche oriente, il ne garantit pas).
 
 ⚠️⚠️ **UN OBJECTIF RETIRÉ SURVIT DANS LES SCRIPTS.** `objectiveKeysOf`
 retombe sur `[]` pour une valeur absente de la table : un script CLI/diag
@@ -323,22 +328,18 @@ des conditions qui ne sont plus celles de l'app, et **rien ne le dirait**.
 
 ⚠️⚠️ **ON NE REVALIDE JAMAIS LES LISTES CONTRE UN COMPTE VIDE**
 (`comptePeutJuger`, [optimizerExclusion.ts](src/lib/optimizerExclusion.ts)).
-La revérification répond à « mon compte a-t-il changé depuis » ; face à un
-compte sans monstre ni rune, elle ne peut répondre qu'une chose — plus rien
-ne résout, donc **tout est jeté** — et cette réponse-là n'est jamais la
-bonne : un compte vide veut dire « pas encore chargé », pas « tes monstres
-ont disparu ». Le résultat étant **écrit sur disque**, la perte est
-définitive : les listes survivraient mais leur CONTENU disparaîtrait —
-`replaceMembersAndValidated` vide les membres et les builds sans toucher
-aux listes elles-mêmes.
+Un compte sans Box ni rune signifie « pas encore chargé ». Sans cette garde,
+la fonction de rattachement pourrait déplacer les membres vers « non possédé »
+et marquer les runes de tous leurs builds comme absentes. La garde rend le
+stockage reçu intact, sans acquisition d'identité ni migration ni marque.
 - ⚠️ **La garde vit sur la DONNÉE, pas sur un compteur de rendus.**
   `React.StrictMode` monte le composant **deux fois** en développement : le
   garde-fou d'`App.tsx` (`boxMountedRef`) ne protège que le PREMIER passage
-  de l'effet, le second revaliderait avec `box` et `runes` encore vides. Un
+  de l'effet, le second peut être appelé avec `box` et `runes` encore vides. Un
   garde-fou qui compte les passages d'un effet est battu par StrictMode, par
   un remontage, ou par le prochain qui réorganise les effets. Celui-ci tient
-  quoi qu'il arrive en amont — et il est **testable**, donc testé (dont le
-  contrôle qui montre que sans lui, tout part).
+  quoi qu'il arrive en amont — et il est **testable**, donc testé sur le stockage
+  complet (membres, builds, identités, mémoires et équipes).
 - ⚠️⚠️ **« Le compte » = LA BOX ET LES RUNES, jamais RTA ni le siège.**
   « N'importe quelle source non vide » passerait toujours : RTA et le
   siège sont des états persistés **à part**, rendus dès le premier rendu,

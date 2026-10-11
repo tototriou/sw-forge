@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Plus, Trash2, Swords, Wand2 } from 'lucide-react';
+import { Plus, Trash2, Swords, Wand2, Upload } from 'lucide-react';
 import {
   Monster,
   ElementKey,
@@ -35,8 +35,14 @@ import RuneIcon from '../components/RuneIcon';
 import IndicateurSauvegarde from '../components/rta/IndicateurSauvegarde';
 import { useNotifier } from '../ui/Notification';
 import type { RtaSub } from '../App';
+import type { ActionImportOptimizer } from '../lib/actionImportOptimizer';
+import type { ExclusionSourceData } from '../lib/optimizerExclusion';
+import { importerPrepaRtaOptimizer } from '../lib/importEquipes';
 
 interface Props {
+  onImporterEquipe: ActionImportOptimizer;
+  sourcesOptimizer: ExclusionSourceData;
+  compteCharge: boolean;
   // Sous-onglet courant, déduit du hash (voir App.tsx). « Ma prépa » est la
   // sienne ; « Ami » consulte celle de quelqu'un d'autre, en lecture.
   sub: RtaSub;
@@ -58,6 +64,9 @@ function totalSpeed(it: TurnItem): number | null {
 }
 
 export default function RtaPage({
+  onImporterEquipe,
+  sourcesOptimizer,
+  compteCharge,
   sub,
   rta,
   monsters,
@@ -68,6 +77,10 @@ export default function RtaPage({
   menuOuvert,
   onFermerMenu,
 }: Props) {
+  const exportDisponible = useMemo(() => importerPrepaRtaOptimizer(sourcesOptimizer).membres.length > 0, [sourcesOptimizer]);
+  const raisonExport = !compteCharge ? 'Importe un compte pour exporter vers l’Optimizer.'
+    : !exportDisponible ? 'Aucun monstre importable dans la prépa RTA.' : undefined;
+  const exporterOptimizer = () => onImporterEquipe(importerPrepaRtaOptimizer);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [newSection, setNewSection] = useState('');
   // Un seul détail de runes ouvert à la fois, toutes sections confondues.
@@ -353,6 +366,8 @@ export default function RtaPage({
           onCreateMonster={onCreateMonster}
           disposition="menu"
           entreesEnPlus={[
+            { cle: 'optimizer', libelle: "Exporter vers l'Optimizer", icone: <Upload size={14} />,
+              disabled: !!raisonExport, title: raisonExport, onClick: exporterOptimizer },
             {
               cle: 'creer',
               libelle: 'Créer un monstre',
@@ -452,6 +467,9 @@ export default function RtaPage({
               Elle garde le gabarit des autres — même hauteur, même corps — pour
               qu'aucune ne paraisse plus importante. */}
           {creation}
+
+          <Bouton libelle="Exporter vers l'Optimizer" icone={<Upload size={14} />}
+            disabled={!!raisonExport} title={raisonExport} onClick={exporterOptimizer} />
 
           <div data-grille-actions className="flex flex-col gap-1.5">
             <RtaBackupBar

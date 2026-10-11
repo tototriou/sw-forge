@@ -43,7 +43,7 @@ export default function testOptimizerDamageTransitions() {
   const relue = parseOptimizerRecipe(JSON.stringify(recette));
   ok(!!relue.recipe, 'recette : import de production accepté');
   egal(relue.recipe!.damageSetup, avant, 'recette : valeurs transportées intactes');
-  egal(DEFAULT_DAMAGE_SETUP.enemyDef, 1000, 'compte : retour au défaut complet');
+  egal(DEFAULT_DAMAGE_SETUP.enemyDef, 1500, 'compte : retour au défaut complet');
 
   const ecran = readFileSync('src/components/outils/OptimizerSection.tsx', 'utf8');
   const hook = readFileSync('src/hooks/useOptimizerState.ts', 'utf8');
@@ -52,10 +52,10 @@ export default function testOptimizerDamageTransitions() {
   ok(ecran.includes('if (id !== selectedId) resetSearch();'), 'membre de liste : seule une autre espèce provoque le reset');
   ok(!ecran.includes('resetDamageSkill'), 'exemplaire et listes : aucun reset propre au sort');
   ok(ecran.includes('onSelect={lists.setActiveListId}') && ecran.includes('onCreate={lists.createList}') && ecran.includes('onDelete={lists.deleteList}'), 'navigation et gestion des listes sans reset');
-  ok(ecran.includes('const id = lists.createList(nom);'), 'création et ajout depuis la fenêtre sans reset');
-  ok(ecran.includes('setDamageSetup(recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP)'), 'recette : import direct');
+  ok(ecran.includes('const id = lists.createList(nom, contenu);'), 'création avec contenu et ajout depuis la fenêtre sans reset');
+  ok(ecran.includes('damageSetup: recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP'), 'recette : import direct sans capture');
   ok(app.includes("optimizer.resetSearch('compte')"), 'compte : motif explicite');
-  ok(hook.includes("motif === 'compte' ? DEFAULT_DAMAGE_SETUP : damageSetupApresChangementMonstre(s)"), 'resetSearch : deux branches de production');
+  ok(hook.includes("motif === 'compte' ? 'compte' : 'membre'") && hook.includes('criteresApresChangementEspece({ damageSetup: s, compterAurasResPre, critereArtefacts }, raison, undefined).damageSetup'), 'resetSearch : deux motifs transmis au producteur pur');
   ok(!hook.includes('resetDamageSkill'), 'hook : aucune transition superflue sur les listes ou exemplaires');
 
   titre('Optimizer · changement d’exemplaire de la même espèce');

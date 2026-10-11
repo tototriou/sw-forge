@@ -7,11 +7,11 @@ import { UseSiegeState } from '../../hooks/useSiegeState';
 import { useStickyState } from '../../hooks/useStickyState';
 import { teamSummary, isTeamUsable } from '../../lib/recoFromSiege';
 import { encodeRecosJson, validateRecosImport, ImportReport, slugify } from '../../lib/recoShare';
-import { matchReco, RecoMatch } from '../../lib/recoMatch';
+import { contexteConfrontationReco, matchReco, RecoMatch } from '../../lib/recoMatch';
 import { chercheMonstre, RecoHit, RecoSearchMode } from '../../lib/recoSearch';
 import type { VueRecos } from '../../lib/recoDefenses';
 import { ConfirmDialog } from '../../ui/Dialogs';
-import { OwnedBuild, OwnedTeam, indexBuildsByCom2us } from '../../lib/ownedBuilds';
+import { OwnedBuild, OwnedTeam } from '../../lib/ownedBuilds';
 import { formesJouables } from '../../lib/monsterForms';
 import { telechargerTexte } from '../../lib/telechargement';
 import Segmented from '../../ui/Segmented';
@@ -21,8 +21,14 @@ import MonsterPicker from '../MonsterPicker';
 import RecoCard from './RecoCard';
 import { BarreActions, Bouton, BoutonIcone, Selecteur, ZoneCliquable } from '../../ui';
 import { PREFIXE_FICHIER } from '../../marque';
+import type { ActionImportOptimizer } from '../../lib/actionImportOptimizer';
+import type { ExclusionSourceData } from '../../lib/optimizerExclusion';
+import { importerRecoOptimizer } from '../../lib/importRecoOptimizer';
 
 interface Props {
+  onImporterEquipe: ActionImportOptimizer;
+  sourcesOptimizer: ExclusionSourceData;
+  compteCharge: boolean;
   recos: UseRecoState;
   monsters: Monster[];
   builds: OwnedBuild[]; // tous les builds connus (box + RTA + siège) → « je possède ce monstre »
@@ -79,6 +85,9 @@ const LIBELLE_VIDE: Record<RecoSearchMode, string> = {
 };
 
 export default function RecoBoard({
+  onImporterEquipe,
+  sourcesOptimizer,
+  compteCharge,
   recos,
   monsters,
   builds,
@@ -88,6 +97,10 @@ export default function RecoBoard({
   menuOuvert,
   onFermerMenu,
 }: Props) {
+  const disponibilitesExport = useMemo(() => new Map(recos.state.recos.map(reco => [reco.id,
+    reco.decks.map(deck => !compteCharge ? 'Importe un compte pour exporter vers l’Optimizer.'
+      : importerRecoOptimizer(deck, sourcesOptimizer).membres.length ? undefined : 'Aucun monstre importable dans ce deck recommandé.')
+  ])), [recos.state.recos, sourcesOptimizer, compteCharge]);
   // Mémorisée comme l'était le filtre qu'elle remplace : on retrouve la vue
   // qu'on avait choisie. Clé NEUVE — l'ancienne (`recos.filter`) portait une
   // origine, pas une vue.
@@ -203,7 +216,7 @@ export default function RecoBoard({
   );
 
   const matchCtx = useMemo(
-    () => ({ builds: indexBuildsByCom2us(builds), teams, copies6 }),
+    () => contexteConfrontationReco(builds, teams, copies6),
     [builds, teams, copies6]
   );
 
@@ -883,6 +896,8 @@ export default function RecoBoard({
           {list.map((reco, i) => (
             <div key={reco.id} ref={i === list.length - 1 ? lastRef : undefined}>
               <RecoCard
+                raisonsExportOptimizer={disponibilitesExport.get(reco.id)!}
+                onExporterDeckOptimizer={deck => onImporterEquipe(data => importerRecoOptimizer(deck, data))}
                 reco={reco}
                 index={i}
                 monsters={monsters}

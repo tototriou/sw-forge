@@ -2,18 +2,18 @@
 
 **Statut :** ÉTAT ACTUEL — décrit la recherche des runes : meet-in-the-middle, élagages sûrs, pré-filtrage, compartiments et bornes de la recherche
 **Lire si :** on modifie runeBuildOptim.ts : énumération, regroupement, élagages, rétention ou bornes de la recherche
-**Voir aussi :** pipeline.md, artefacts.md, ../interruption.md, ../verification.md, ../invariants.md
+**Voir aussi :** moteur-pipeline.md, moteur-artefacts.md, ../../02-app/optimizer/ (feat-interruption.md), verification.md, invariants.md
 
 Calcul pur dans `src/lib/runeBuildOptim.ts`, exécuté dans un Web Worker
 (`src/workers/runeBuildOptim.worker.ts`) pour ne jamais geler l'interface.
 Le chemin d'une recherche, du lancement au résultat affiché, est décrit dans
-[pipeline.md § Pipeline de la recherche de runes](pipeline.md) ; ce fichier
+[moteur-pipeline.md § Pipeline de la recherche de runes](moteur-pipeline.md) ; ce fichier
 dit ce que le moteur garde, coupe et retient, et lesquelles de ces coupes
 sont sûres. Lancer une **nouvelle** recherche termine sèchement celle en
 cours (`cancel`, `terminate()` sur le Worker), et la réponse de l'ancienne
 n'écrase jamais la nouvelle demande. Arrêter la recherche **en cours** pour
 en garder le résultat passe par un canal différent, coopératif :
-[../interruption.md § Interruption — filet de temps, pré-filtrage et arrêt manuel](../interruption.md).
+[02-app/optimizer/ (feat-interruption.md) § Interruption — filet de temps, pré-filtrage et arrêt manuel](../../02-app/optimizer/).
 
 ## Recherche des runes — meet-in-the-middle et élagages
 
@@ -40,7 +40,7 @@ en garder le résultat passe par un canal différent, coopératif :
   emplacement verrouillé ne garde que la rune choisie, et le reste du moteur
   travaille sur un pool simplement plus petit, sans connaître la notion de
   verrou
-  ([../exclusion.md § Runes imposées — verrouiller un emplacement sur une rune précise](../exclusion.md)).
+  ([02-app/optimizer/ (feat-exclusion.md) § Runes imposées — verrouiller un emplacement sur une rune précise](../../02-app/optimizer/)).
 
 ### Élagages sûrs
 
@@ -52,7 +52,7 @@ en garder le résultat passe par un canal différent, coopératif :
   vérifient : `tests/rune-optim-auras-coupes.test.ts`,
   `tests/rune-optim-dominance-relique.test.ts` et
   `tests/rune-optim-dominance-lignes.test.ts` (auras : voir
-  [../../degats-reels/effets-equipe-et-leaders.md § Sets d'aura d'équipe — modèle](../../degats-reels/effets-equipe-et-leaders.md)).
+  [02-app/degats-reels/ (feat-effets-equipe-et-leaders.md) § Sets d'aura d'équipe — modèle](../../02-app/degats-reels/)).
 - **Dominance** (`pruneDominated`, `isDominated`) : une rune A est retirée
   quand une rune B du **même** emplacement l'égale ou la dépasse sur le
   pourcentage **et** le plat de chacune des 8 stats, et sur l'efficience
@@ -82,7 +82,7 @@ en garder le résultat passe par un canal différent, coopératif :
       `src/lib/relicExclusive.ts` : sa stat de référence ou la stat qu'il
       améliore, sans restriction par objectif), ou, en « Dégâts réels », une
       stat lue par une ligne d'artéfact 218–221
-      ([elagages.md § Dominance — lignes d'artéfact 218–221](elagages.md)).
+      ([moteur-elagages.md § Dominance — lignes d'artéfact 218–221](moteur-elagages.md)).
       En « Efficience », ou sans objectif, toutes les stats comptent ;
     - **il compte pour le joker** : dès qu'une Intangible est disponible,
       un set qui peut être complet avec ses seules vraies runes
@@ -157,7 +157,7 @@ porte la ligne 218, même si les PV ne sont pas une stat du sort.
 - Ces lignes ne changent ni le pré-filtrage ni la rétention : un artéfact
   récolte les stats que le build possède déjà, il n'en fait pas chercher
   d'autres
-  ([../../degats-reels/artefacts-et-degats-bruts.md § Dégâts supplémentaires proportionnels à une stat (218-221)](../../degats-reels/artefacts-et-degats-bruts.md)).
+  ([02-app/degats-reels/ (feat-artefacts-et-degats-bruts.md) § Dégâts supplémentaires proportionnels à une stat (218-221)](../../02-app/degats-reels/)).
 
 ### Élagage sûr — faisabilité
 
@@ -218,7 +218,7 @@ porte la ligne 218, même si les PV ne sont pas une stat du sort.
   mêmes pièces que trier par Dégâts réels : un artéfact change les
   statistiques du monstre, donc le meilleur dépend de ce qu'on cherche. Le
   choix lui-même :
-  [artefacts.md § Le choix des artéfacts — un second problème, séparé](artefacts.md).
+  [moteur-artefacts.md § Le choix des artéfacts — un second problème, séparé](moteur-artefacts.md).
 - ⚠️ **Un artéfact ne fait varier que PV, ATQ et DEF** (sa principale est
   plate, `artifactFlatBonus`). D'où quatre régimes (`regimeArtefacts`,
   `src/lib/artifactEvaluation.ts`) :
@@ -278,9 +278,9 @@ porte la ligne 218, même si les PV ne sont pas une stat du sort.
 - ⚠️ **Heuristique malgré tout** : au-delà de ce pré-filtrage, le résultat
   est « le meilleur trouvé parmi le pool retenu », pas une preuve
   d'optimalité sur l'inventaire entier
-  ([../limites-connues.md § Limites connues](../limites-connues.md)).
+  ([02-app/optimizer/ (limites-connues.md) § Limites connues](../../02-app/optimizer/)).
 - **L'estimation affichée avant de lancer** (`estimateSearchSpace`,
-  [../ecran/lancer-la-recherche.md § Lancer la recherche](../ecran/lancer-la-recherche.md))
+  [02-app/optimizer/ (feat-ecran-lancer-la-recherche.md) § Lancer la recherche](../../02-app/optimizer/))
   est le produit des tailles de pool par emplacement après statistique
   principale imposée et pré-filtrage, par le même `filterSlot`
   (`buildFilteredBySlot`). Elle saute la dominance et la faisabilité : c'est
@@ -355,7 +355,7 @@ porte la ligne 218, même si les PV ne sont pas une stat du sort.
   `missingSets`) avant d'être retenu.
 - **Au plus 1 rune Intangible par proposition** : le jeu n'autorise à en
   sertir qu'une seule par monstre (voir
-  [compte/calcul-runes.md § 5.2 Bonus de set — **à ne pas oublier**](../../../compte/calcul-runes.md)).
+  [02-app/compte/ (feat-calcul-runes.md) § 5.2 Bonus de set — **à ne pas oublier**](../../02-app/compte/)).
   Une paire de compartiments dont les jokers additionnés dépassent 1 est
   écartée **avant** d'ouvrir la boucle des combinaisons
   (`bA.jokers + bB.jokers > 1`) : ce compte, exact, définit le compartiment
@@ -389,13 +389,13 @@ porte la ligne 218, même si les PV ne sont pas une stat du sort.
   y entrent comme **paire représentative**, qui note les candidats
   (`SearchParams.artifacts`), et comme **bornes d'inventaire** pour la
   faisabilité (`artifactBounds`) ; leur choix est un second problème,
-  séparé ([elagages.md § Paire d'artéfacts d'un build](elagages.md)). La relique portée
+  séparé ([moteur-elagages.md § Paire d'artéfacts d'un build](moteur-elagages.md)). La relique portée
   (`SearchParams.relic`) reste fixe hors mode `recherche`. En mode
   `recherche`, les bornes du contexte relique la remplacent pendant la
   recherche, le candidat est collecté sans relique, et la relique n'est
   choisie qu'à la résolution de l'équipement du build, qui repasse
   minimums et maximums avec elle :
-  [pipeline.md § Résolution de l'équipement d'un build](pipeline.md). Dans
+  [moteur-pipeline.md § Résolution de l'équipement d'un build](moteur-pipeline.md). Dans
   les deux cas, une borne pendant la recherche, une pièce réelle après.
 - Toutes les valeurs sont recalculées avec `computeStats`
   (`src/lib/stats.ts`), la même fonction que partout ailleurs dans l'app.
@@ -407,7 +407,7 @@ porte la ligne 218, même si les PV ne sont pas une stat du sort.
   par les tests et les scripts, ne fait que le drainer d'un bloc. Le Worker,
   lui, pilote ces étapes pas à pas et poste sa progression par paliers de
   temps :
-  [../interruption.md § Barre de progression](../interruption.md).
+  [02-app/optimizer/ (feat-interruption.md) § Barre de progression](../../02-app/optimizer/).
 - **Parallélisme, invisible à l'écran** : les deux moitiés se construisent
   en même temps dans deux Web Workers dédiés
   (`src/workers/buildHalf.worker.ts`), et l'appariement se répartit sur
@@ -416,19 +416,19 @@ porte la ligne 218, même si les PV ne sont pas une stat du sort.
   normale comme en mode « Rechercher jusqu'à épuisement complet ». Mêmes
   garanties : `tests/rune-optim-parallel-pairing.test.ts` compare le
   découpage au chemin séquentiel. Détail :
-  [pipeline.md § Appariement parallèle](pipeline.md).
+  [moteur-pipeline.md § Appariement parallèle](moteur-pipeline.md).
 
 ### Variantes écartées ou gardées en réserve
 
 Chaque ligne dit une variante déjà essayée ou raisonnée, et pourquoi elle
 n'est pas en production. Les pistes encore ouvertes sont dans
-[../pistes.md](../pistes.md).
+[07-pilotage/ (pistes-optimizer.md)](../../07-pilotage/).
 
 - Ne pas ajouter de dominance entre demi-builds (frontière de Pareto par
   compartiment, `skylineKeys`) : mesurée sur des comptes réels, son coût
   croît bien plus vite que linéairement avec le nombre de stats suivies,
   au point de ne pas finir à sept. Le prototype est resté dans le code,
-  inutilisé ([../pistes.md § Prototypes de `buildBuckets`](../pistes.md)).
+  inutilisé ([07-pilotage/ (pistes-optimizer.md) § Prototypes de `buildBuckets`](../../07-pilotage/)).
 - Ne pas rendre la dominance directionnelle sur une stat qui n'a qu'un
   maximum (y tenir « moins » pour « mieux ») : un tri après coup par cette
   stat cherche les valeurs proches du plafond, pas les plus basses ; seule

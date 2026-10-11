@@ -3990,11 +3990,6 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
       <div className="mt-4 border-t border-border-soft pt-4">
         <div className="mb-2.5 flex items-center gap-1.5">
           <p className="label">Statistique principale imposée (slots pairs)</p>
-          <HelpPopover title="Statistique principale imposée (slots pairs)">
-            Aucune coche sur un slot = pas de contrainte. Pour un{' '}
-            <b className="text-ink">Lushen</b> classique par exemple : <b className="text-ink">ATQ%</b> en 2,{' '}
-            <b className="text-ink">Dmg Crit</b> en 4, <b className="text-ink">ATQ%</b> en 6.
-          </HelpPopover>
         </div>
         <div className="flex flex-col gap-1.5">
           {CONFIGURABLE_SLOTS.map((slot) => (
@@ -4228,19 +4223,8 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
             build affiché ci-dessus, sans rien chercher.
             <br />
             <br />
-            <b className="text-ink">« Libre » ne donne jamais moins de résultats</b> qu&apos;une principale
-            imposée : un build n&apos;est retenu que s&apos;il existe vraiment, chez toi, une paire qui lui fait
-            tenir toutes tes conditions.
-            <br />
-            <br />
             La paire retenue suit le <b className="text-ink">tri</b> affiché — trier par PV effectifs ne choisit
             pas les mêmes artéfacts que trier par dégâts.
-            <br />
-            <br />
-            La <b className="text-ink">relique</b> suit la même grammaire : une principale ET une propriété unique
-            se combinent, et la propriété unique compte pour retenir ou écarter une relique{' '}
-            <b className="text-ink">comme pour la noter</b> — son gain vaut un palier entier par tranche de
-            statistique atteinte au début du combat.
           </HelpPopover>
           {/* `ml-auto` plutôt qu'un `justify-between` sur la rangée : le titre
               et son aide restent collés, l'interrupteur part à droite — même
@@ -4363,11 +4347,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
             <div className="flex items-center gap-1">
               <span className="label">Relique</span>
               <HelpPopover title="Relique">
-                Une <b className="text-ink">principale</b> ET une <b className="text-ink">propriété unique</b>{' '}
-                se combinent. La propriété unique compte pour retenir ou écarter une relique, et{' '}
-                <b className="text-ink">sa valeur entre dans la note</b> : le gain vaut un palier entier par
-                tranche de statistique atteinte au début du combat, lu sur la pièce. Les soins et boucliers
-                (Régénération) ne sont mesurés par aucun objectif, donc jamais notés.
+                Les soins et boucliers (Régénération) ne sont mesurés par aucun objectif, donc jamais notés.
                 <br />
                 <br />
                 <b className="text-ink">« Garder la relique équipée »</b> conserve la pièce entière portée sur
@@ -4594,8 +4574,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
                 <span className="text-[11.5px] text-ink-dim">Diagnostic approfondi sur 0 résultat</span>
                 <HelpPopover title="Diagnostic approfondi sur 0 résultat">
                   Après une recherche à 0 résultat, identifie quelle condition posée libère le plus de candidats si
-                  on la retire — <b className="text-ink">un indice, pas une preuve</b>. Coûte plusieurs passes de
-                  pré-filtrage au lieu d'une seule, jamais une recherche complète.
+                  on la retire — <b className="text-ink">un indice, pas une preuve</b>.
                 </HelpPopover>
               </div>
               <Interrupteur
@@ -4613,11 +4592,8 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
                 <Target size={15} className="text-ink-dim" />
                 <span className="text-[11.5px] text-ink-dim">Prioriser les stats les plus difficiles</span>
                 <HelpPopover title="Prioriser les stats les plus difficiles">
-                  Par défaut, le budget de recherche est réparti également entre toutes les stats demandées en
-                  même temps. Une stat rare (peu de runes candidates en apportent beaucoup) peut alors être
-                  étouffée par une stat plus commune. Ce réglage réalloue davantage de budget vers{' '}
-                  <b className="text-ink">les stats les plus difficiles à combiner</b> — peut retrouver un build
-                  qu'une recherche normale rate, au prix d'une recherche plus longue.
+                  Peut trouver un build qu'une recherche normale rate quand une stat est rare, au prix d'une
+                  recherche plus longue.
                 </HelpPopover>
               </div>
               <Interrupteur
@@ -4781,11 +4757,6 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
                 <GameIcon name="monster" size={13} className="-translate-x-[1.5px]" />
               </IconeInterdite>
               <span className="text-[12.5px] font-semibold text-ink-dim">Exclure les runes d'un monstre</span>
-              <HelpPopover title="Exclure les runes d'un monstre">
-                Choisis un monstre (box, RTA, défenses ou offenses de siège) pour retirer SES runes actuellement
-                équipées de la recherche — utile pour un build que tu ne veux pas défaire, en plus de{' '}
-                <b className="text-ink">« Exclure les runes déjà utilisées »</b>.
-              </HelpPopover>
             </div>
             <RuneExclusionPicker
               data={exclusionData}
@@ -5102,11 +5073,8 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
           <div className="mb-1.5 flex items-center gap-1.5">
             <p className="label">Objectif de recherche</p>
             <HelpPopover title="Objectif de recherche">
-              Élargit la sélection de runes candidates pour ses stats dès le pré-filtrage, avant même de
-              lancer la recherche — les minimums posés plus haut (Conditions) restent ce qui décide quels
-              demi-builds sont conservés pendant la recherche elle-même. <b className="text-ink">Dégâts réels</b>{' '}
-              va plus loin que les autres : la vraie formule d&apos;un sort précis contre un adversaire
-              configuré.
+              Ce que la recherche maximise. <b className="text-ink">Dégâts réels</b> : les dégâts d&apos;un sort
+              précis contre l&apos;adversaire décrit.
             </HelpPopover>
           </div>
           {/* ⚠️ Choisir « Dégâts réels » OUVRE la description du combat, il ne

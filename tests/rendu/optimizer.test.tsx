@@ -182,8 +182,8 @@ export function testRenduTelephoneOptimizer() {
   const b = boutons(html);
   ok(t.includes('Options de recherche Exclusion de runes Deux réglages indépendants, qui se superposent.'), 'le panneau, et l\'exclusion en tête');
   ok(b.some((x) => x.ariaLabel === 'Fermer'), 'le panneau se ferme');
-  for (const r of ["Exclure les runes d'un monstre", 'Exclure les runes déjà utilisées'])
-    ok(b.some((x) => x.ariaLabel === r), `l'interrupteur « ${r} »`);
+  ok(t.includes("Exclure les runes d'un monstre"), "l'exclusion des runes d'un monstre");
+  ok(b.some((x) => x.ariaLabel === 'Exclure les runes déjà utilisées'), 'l\'interrupteur « Exclure les runes déjà utilisées »');
   ok(t.includes('Runes imposées Slot 1 · ATQ Slot 2 · VIT Slot 3 — Slot 4 · Dmg Crit Slot 5 — Slot 6 · RES'), 'les runes imposées, slot par slot');
   ok(t.includes('Réglages avancés Pré-filtrage par emplacement') && t.includes('Pool de runes = 8'), 'les réglages avancés et le pool');
   ok(t.includes('Objectif de recherche Efficience'), 'l\'objectif de recherche');

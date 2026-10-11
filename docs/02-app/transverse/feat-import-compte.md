@@ -357,7 +357,7 @@ joue pas. `occupied_id` seul se trompe dans les deux sens. Un monstre d'un deck
 ## Persistance optionnelle du compte — [accountStore.ts](src/lib/accountStore.ts)
 
 Stockage **IndexedDB**, pour rendre le ré-import facultatif. Déclenché par le
-réglage **« Garder mon compte »** ([useKeepAccount.ts](src/hooks/useKeepAccount.ts)),
+réglage **« Garder mon compte »** ([usePersistence.ts](src/hooks/usePersistence.ts)),
 dans le menu ⚙.
 
 ### ⚠️ Pourquoi pas `localStorage`

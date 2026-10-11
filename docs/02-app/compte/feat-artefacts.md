@@ -22,7 +22,7 @@ les libellés ne sont pas réécrits dans chaque écran.
   rareté. Tuiles mémoïsées.
 - **Détail au clic** : carte récap façon jeu (`ArtifactDetailBox`) en **popover
   flottant à placement automatique** (même composant que les runes,
-  [DetailPopover.tsx](src/components/account/DetailPopover.tsx)) — stat principale,
+  [FlottantAuto.tsx](src/ui/FlottantAuto.tsx)) — stat principale,
   substats (↻ orange si modifié), type.
 - **Tri** : par **critères posés** (le premier classe, les suivants départagent),
   puis score, rareté et niveau décroissants.

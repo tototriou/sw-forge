@@ -249,7 +249,7 @@ Comme en **vue compacte du siège**, le panneau de détail (`MonsterGear`) s'ouv
   (cartes de résultat de l'Optimizer, voir
   [optimizer/](../optimizer/)) : `RuneWheel`
   et `ArtifactSlots` reçoivent désormais un `renderOverlay` qui ancre un
-  `DetailPopover` (voir [account/DetailPopover.tsx](src/components/account/DetailPopover.tsx))
+  `FlottantAuto` (voir [FlottantAuto.tsx](src/ui/FlottantAuto.tsx), ex-`DetailPopover`)
   sur l'élément cliqué ; la relique (pas de composant partagé, un seul
   emplacement) porte le même dispositif posé à la main dans `MonsterGear.tsx`
   (`useRef` + `DetailPopover` dans un wrapper `relative`). Le cadre entier

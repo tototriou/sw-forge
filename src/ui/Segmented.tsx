@@ -112,7 +112,13 @@ export default function Segmented<T extends string>({
     // — une fois resserré il ne déborde plus, donc on repasserait au cran
     // normal, donc il déborderait de nouveau. La copie, elle, garde toujours
     // la même largeur naturelle, indépendante de l'état courant.
-    const verifier = () => setSerre(mesure.scrollWidth > racine.clientWidth);
+    // En `lg`, les crans se partagent la largeur à égalité : c'est le plus
+    // large qui doit tenir dans sa part, pas seulement la somme des crans.
+    const verifier = () => {
+      const crans = [...mesure.children].map(c => (c as HTMLElement).offsetWidth);
+      const besoin = size === 'lg' && crans.length ? Math.max(...crans) * crans.length : mesure.scrollWidth;
+      setSerre(besoin > racine.clientWidth);
+    };
     verifier();
     const ro = new ResizeObserver(verifier);
     // Les DEUX : la racine (la place disponible change) ET la copie (les
@@ -120,7 +126,7 @@ export default function Segmented<T extends string>({
     ro.observe(racine);
     ro.observe(mesure);
     return () => ro.disconnect();
-  }, [auto]);
+  }, [auto, size]);
 
   const compact = dense ?? serre;
 

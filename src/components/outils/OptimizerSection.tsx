@@ -191,7 +191,6 @@ import {
   Pastille,
   Selecteur,
   ZoneCliquable,
-  useNotifier,
 } from '../../ui';
 import MonsterSourcePicker from './MonsterSourcePicker';
 import OptimizerListPicker from './OptimizerListPicker';
@@ -456,7 +455,6 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
   const [rapportImport, setRapportImport] = useState<RapportImportOptimizer | null>(null);
   // Zone C du téléphone (« Gérer mes listes »), repliée par défaut.
   const [zoneCOpen, setZoneCOpen] = useState(false);
-  const notifier = useNotifier();
   // Éclat bref de « Gérer mes listes » et de la liste active après un import.
   const [eclatImport, setEclatImport] = useState(false);
   useEffect(() => {
@@ -469,13 +467,12 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     setRapportImport(rapport);
     if (rapport.listeCreee) {
       // La liste créée s'affiche aussitôt au téléphone, dépliée et illuminée ;
-      // le bandeau dit ce qui a été créé, aux deux formats.
+      // le bouton d'import confirme lui-même (OptimizerImportButton).
       setZoneCOpen(true);
       setEclatImport(true);
-      notifier({ message: `Liste « ${rapport.listeCreee.name} » créée · ${rapport.membresImportes} monstre${rapport.membresImportes > 1 ? 's' : ''} · ${rapport.equipesCreees} équipe${rapport.equipesCreees > 1 ? 's' : ''}` });
     }
     return rapport;
-  }, [onImporterEquipe, notifier]);
+  }, [onImporterEquipe]);
   const metric = useRuneMetric();
   // ⚠️ Ne sert PAS aux `Segmented` — ils se resserrent tout seuls
   // en mesurant la place qu'ils reçoivent (voir `Segmented.tsx`), ce qu'un

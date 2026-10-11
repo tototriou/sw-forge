@@ -43,7 +43,7 @@ function Banc() {
 }
 async function geste(action: () => void) { flushSync(action); await new Promise(r => setTimeout(r, 0)); flushSync(() => {}); }
 const visible = (e: Element) => e.getBoundingClientRect().width > 0 && getComputedStyle(e).visibility !== 'hidden';
-const bouton = (nom: string) => [...document.querySelectorAll<HTMLButtonElement>('button')].find(e => visible(e) && e.textContent?.trim() === nom)!;
+const bouton = (nom: string) => [...document.querySelectorAll<HTMLButtonElement>('button')].find(e => visible(e) && (e.textContent?.trim() === nom || e.getAttribute('aria-label') === nom))!;
 const position = (e: Element) => { const { x, y, width, height } = e.getBoundingClientRect(); return { x, y, width, height }; };
 const texte = () => document.getElementById('racine')!.innerText;
 const source = (nom: string) => [...document.querySelectorAll<HTMLButtonElement>('[aria-label="Sources d’import"] button')].find(e => visible(e) && e.getAttribute('aria-label') === nom)!;

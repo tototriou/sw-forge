@@ -22,7 +22,7 @@ async function attendre(lire: () => boolean) {
 const rapport = () => document.querySelector<HTMLElement>('[aria-labelledby="rapport-export-optimizer"]');
 const modale = () => document.querySelector<HTMLElement>('[aria-labelledby="speed-tune-modale"]');
 const visible = (e: Element) => e.getBoundingClientRect().width > 0 && getComputedStyle(e).visibility !== 'hidden';
-const bouton = (racine: Element, texte: string) => [...racine.querySelectorAll<HTMLButtonElement>('button')].find(b => visible(b) && b.textContent?.trim() === texte);
+const bouton = (racine: Element, texte: string) => [...racine.querySelectorAll<HTMLButtonElement>('button')].find(b => visible(b) && (b.textContent?.trim() === texte || b.getAttribute('aria-label') === texte));
 
 async function ouvrirParPalette() {
   await geste(() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true })));

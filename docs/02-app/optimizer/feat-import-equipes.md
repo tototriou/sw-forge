@@ -95,9 +95,9 @@ geste reste conservée ; aucun état existant n’est republié depuis un ancien
 Le rapport se lit dans le flottant : nom de la liste,
 nombre de monstres et d’équipes, membres ignorés et raisons, messages du
 consommateur, dont les leads non appliqués. Un import refusé laisse le
-flottant ouvert sur son rapport. Un import réussi le replie, et un bandeau de
-notification confirme « Liste « … » créée · N monstres · N équipes », aux
-deux formats ; au téléphone, « Gérer mes listes » se déplie et s’illumine un
+flottant ouvert sur son rapport. Un import réussi le replie, et le bouton « Importer une
+équipe » affiche « ✓ Liste créée » pendant deux secondes, aux deux formats,
+sans changer de largeur (les deux libellés occupent la même case) ; au téléphone, « Gérer mes listes » se déplie et s’illumine un
 instant avec la liste active. Le rapport complet se relit en rouvrant les
 sources. Il se conserve jusqu’au choix
 suivant ou au démontage de l’écran. Un seul rapport appartient à l’écran :

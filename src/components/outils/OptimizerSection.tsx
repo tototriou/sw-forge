@@ -4786,8 +4786,8 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
         const runesImposeesBlock = (
           <div>
             <div className="mb-2.5 flex items-center gap-1.5">
-              <p className="label">Runes imposées</p>
-              <HelpPopover title="Runes imposées">
+              <p className="label" data-intitule-conserve>Conserver ces slots dans l'optimisation</p>
+              <HelpPopover title="Conserver ces slots dans l'optimisation">
                 Verrouille un emplacement sur la rune que le monstre porte déjà : la recherche gardera
                 <b className="text-ink"> exactement cette rune</b> et n'optimisera que les autres. Utile pour
                 conserver une rune que tu ne veux pas déruner. Les emplacements laissés libres sont optimisés
@@ -4795,7 +4795,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
               </HelpPopover>
             </div>
             {!selected || selected.gear.runes.length === 0 ? (
-              <p className="text-micro text-ink-dim">Aucune rune équipée sur cet exemplaire — rien à imposer.</p>
+              <p className="text-micro text-ink-dim">Aucune rune équipée sur cet exemplaire — rien à conserver.</p>
             ) : (
               <div className="flex flex-wrap gap-1.5">
                 {[1, 2, 3, 4, 5, 6].map((slot) => {

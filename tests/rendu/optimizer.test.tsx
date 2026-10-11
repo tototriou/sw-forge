@@ -184,7 +184,9 @@ export function testRenduTelephoneOptimizer() {
   ok(b.some((x) => x.ariaLabel === 'Fermer'), 'le panneau se ferme');
   ok(t.includes("Exclure les runes d'un monstre"), "l'exclusion des runes d'un monstre");
   ok(b.some((x) => x.ariaLabel === 'Exclure les runes déjà utilisées'), 'l\'interrupteur « Exclure les runes déjà utilisées »');
-  ok(t.includes('Runes imposées Slot 1 · ATQ Slot 2 · VIT Slot 3 — Slot 4 · Dmg Crit Slot 5 — Slot 6 · RES'), 'les runes imposées, slot par slot');
+  ok(t.includes("Conserver ces slots dans l'optimisation Slot 1 · ATQ Slot 2 · VIT Slot 3 — Slot 4 · Dmg Crit Slot 5 — Slot 6 · RES"), 'les runes imposées, slot par slot');
+  // Le panneau masque les intitulés (`[data-tiroir] .label`) ; celui-ci reste.
+  ok(/data-intitule-conserve[^>]*>Conserver ces slots dans l(&#x27;|&#39;|')optimisation/.test(html), 'les runes imposées gardent leur intitulé dans le panneau');
   ok(t.includes('Réglages avancés Pré-filtrage par emplacement') && t.includes('Pool de runes = 8'), 'les réglages avancés et le pool');
   ok(t.includes('Objectif de recherche Efficience'), 'l\'objectif de recherche');
   ok(b.some((x) => x.texte === 'Rechercher') && !!bouton(html, 'Exporter les paramètres de recherche') && !!bouton(html, 'Importer les paramètres de recherche'), 'rechercher, exporter, importer');

@@ -26,7 +26,8 @@ export default function EffetVignette({
     <Vignette
       choisi={actif}
       onClick={onClick}
-      largeur="w-16"
+      // Au format étroit, vignettes plus serrées : plus d'effets par rangée.
+      largeur={etroit ? 'w-14' : 'w-16'}
       aria-label={`${libelle} — ${actif ? 'actif' : 'inactif'}`}
       // ⚠️ `libelle` est tronqué (`truncate`, `Vignette.tsx`) à cette largeur
       // fixe — « Ce sort pose le def break » devient « Ce sort... », illisible

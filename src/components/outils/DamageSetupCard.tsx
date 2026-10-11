@@ -1525,7 +1525,7 @@ export default function DamageSetupCard({
               et immuable. */}
           {/* Au format étroit, six crans ne tiennent pas à côté du libellé :
               libellé au-dessus, crans en pleine largeur, qui se resserrent. */}
-          <label className={etroit ? 'flex flex-col gap-1' : 'flex items-center gap-2'}>
+          <label className={etroit ? 'flex w-full flex-col gap-1' : 'flex items-center gap-2'}>
             <span className="text-xs text-ink-dim">Élément visé</span>
             {/* ⚠️ « Ignorer » est une OPTION, pas l'absence de choix : le
                 cadre montre toujours quel cran est posé. Optimiser « contre
@@ -1920,7 +1920,7 @@ export default function DamageSetupCard({
             Réduction de DEF et Marque décrivent la CIBLE, les six effets
             d'alliés sont des multiplicateurs de dégâts (voir 7798557 et
             e26118c). La coupe se vérifie donc, elle ne s'interprète pas. */}
-        <div className="flex flex-wrap gap-1.5">
+        <div className={`flex flex-wrap ${etroit ? 'gap-1' : 'gap-1.5'}`}>
           {effetsActifs.map((e) => (
             <EffetVignette
               key={e.cle}

@@ -149,7 +149,7 @@ offre un **niveau de garantie** :
 | --- | --- | --- |
 | 1 — invariant dépôt | le test des renvois dans `tests/index.ts`, `pre-commit`, `commit-msg`, rejoués en CI | refus mécanique, quel que soit l'agent |
 | 2 — garde-fou outil | aucun : une faute d'agent n'atteint le dépôt qu'en passant par le niveau 1 | — |
-| 3 — convention | `CLAUDE.md`, la charte de `docs/README.md`, `documentation.md` | lue au démarrage, s'érode |
+| 3 — convention | `AGENTS.md`, `CLAUDE.md`, la charte de `docs/README.md`, `documentation.md` | lue au démarrage, s'érode |
 | 4 — jugement | revue du diff | humaine |
 
 La documentation n'a pas de vérificateur à elle : ses règles sont des

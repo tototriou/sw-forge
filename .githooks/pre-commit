@@ -81,7 +81,7 @@ if (COMMIT) {
   // signale la convention, on ne bloque pas un travail légitime.
   avertissements.push(
     `branche « ${branche} » hors convention — le dépôt nomme ses chantiers ` +
-      '`forge/<sujet>` (CLAUDE.md).'
+      '`forge/<sujet>` (AGENTS.md).'
   );
 }
 

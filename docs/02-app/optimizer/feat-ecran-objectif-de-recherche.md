@@ -322,7 +322,7 @@ des conditions qui ne sont plus celles de l'app, et **rien ne le dirait**.
   obligatoire. Reste hors de portée de `tsc` le
   champ **OPTIONNEL** ajouté ou renommé, où l'oubli reste parfaitement
   typé : **`grep` du nom sur tout le dépôt** (`src/`, `scripts/`,
-  `tests/`), voir CLAUDE.md, « Un type partagé… ».
+  `tests/`), voir AGENTS.md, « Un type partagé… ».
 
 ## Garde-fou de revalidation contre un compte vide
 

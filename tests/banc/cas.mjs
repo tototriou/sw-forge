@@ -42,7 +42,7 @@ try {
   for (const fichier of readdirSync(DOSSIER).filter((f) => f.endsWith('.html')).sort()) {
     await page.goto(pathToFileURL(join(DOSSIER, fichier)).href);
     const attentes = await page.evaluate(lireAttentes);
-    const mesure = await page.evaluate(mesurer);
+    const mesure = await page.evaluate(mesurer, { detail: true });
     const ecarts = [];
     if (attentes.page === 'oui' || attentes.page === 'non') {
       const attendu = attentes.page === 'oui';

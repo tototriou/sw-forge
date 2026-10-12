@@ -71,11 +71,17 @@
 export type Regle = 'contenu' | 'geometrie';
 
 export interface DescriptionElement {
-  /** Chemin depuis `body`, par rang parmi les frères (`div:nth-child(2)`), tronqué à gauche. */
+  /**
+   * Chemin depuis `body`, par rang parmi les frères (`div:nth-child(2)`),
+   * tronqué à gauche ; l'`id` n'y figure qu'avec `detail`.
+   */
   chemin: string;
   balise: string;
   id: string | null;
-  /** Attribut `class`, tronqué. Jamais le texte de l'élément : il peut venir du compte. */
+  /**
+   * Attribut `class`, tronqué ; vide sans `detail` (compte réel). Jamais le
+   * texte de l'élément : il peut venir du compte.
+   */
   classes: string;
   profondeur: number;
 }
@@ -109,8 +115,14 @@ export interface Mesure {
   deborde: boolean;
 }
 
-export function mesurer(): Mesure {
+/**
+ * `detail` : décrire les éléments par `id` et classes (compte d'exemple). Sans
+ * lui, le chemin n'est que structurel (balise et rang) : avec un compte réel,
+ * un `id` ou une classe peut porter une donnée du compte.
+ */
+export function mesurer(options: { detail: boolean }): Mesure {
   const TOLERANCE = 1;
+  const detail = options.detail;
   const largeur = document.documentElement.clientWidth;
   const styles = new Map<Element, CSSStyleDeclaration>();
   const style = (el: Element) => {
@@ -175,14 +187,14 @@ export function mesurer(): Mesure {
       const parent = e.parentElement;
       const rang = parent ? Array.prototype.indexOf.call(parent.children, e) + 1 : 1;
       const balise = e.tagName.toLowerCase();
-      segments.unshift(e === document.body ? 'body' : `${balise}${e.id ? `#${e.id}` : ''}:nth-child(${rang})`);
+      segments.unshift(e === document.body ? 'body' : `${balise}${detail && e.id ? `#${e.id}` : ''}:nth-child(${rang})`);
     }
     const chemin = segments.length > 8 ? `… > ${segments.slice(-8).join(' > ')}` : segments.join(' > ');
-    const classes = (el.getAttribute('class') ?? '').replace(/\s+/g, ' ').trim();
+    const classes = detail ? (el.getAttribute('class') ?? '').replace(/\s+/g, ' ').trim() : '';
     return {
       chemin,
       balise: el.tagName.toLowerCase(),
-      id: el.id || null,
+      id: detail ? el.id || null : null,
       classes: classes.length > 160 ? `${classes.slice(0, 160)}…` : classes,
       profondeur,
     };

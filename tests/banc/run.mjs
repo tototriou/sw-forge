@@ -396,7 +396,9 @@ async function principal(etat) {
             console.log(`${nom.padEnd(64)} NON ATTEINT : ${resultat.cause}`);
             continue;
           }
-          const { posee, mesure } = await mesurerEtCapturer(page, join(sortie, capture));
+          // Compte réel : descriptions structurelles seulement (ni `id` ni
+          // classes), dans le manifeste comme sur la sortie standard.
+          const { posee, mesure } = await mesurerEtCapturer(page, join(sortie, capture), { detail: garderTextes });
           resultat.statut = 'mesure';
           resultat.capture = capture;
           resultat.posee = posee;

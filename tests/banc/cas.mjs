@@ -13,6 +13,11 @@
 // `data-attendu-avec="<id>,…"` exige que ses signalements « chevauchement »
 // nomment exactement ces éléments coupés (`avec`), ni plus ni moins.
 //
+// Sur chaque page, sans attribut : la mesure rend la page telle quelle —
+// l'attribut `style` de chaque élément identique, présence comprise, et
+// aucune animation (transition comprise) de plus qu'avant (mesure.ts, second
+// passage).
+//
 // Codes : 0 tous les cas conformes ; 1 un cas non conforme ; 2 le script n'a
 // pas pu mesurer.
 
@@ -39,6 +44,17 @@ function lireAttentes() {
   };
 }
 
+// Exécutée dans la page : ce que la mesure doit rendre tel quel.
+function lireEtat() {
+  return {
+    styles: Array.from(globalThis.document.querySelectorAll('*')).map((el) => [
+      el.id || `${el.tagName.toLowerCase()}#${Array.prototype.indexOf.call(el.parentElement?.children ?? [], el)}`,
+      el.getAttribute('style'),
+    ]),
+    animations: globalThis.document.getAnimations().length,
+  };
+}
+
 let code = 0;
 let navigateur;
 try {
@@ -48,8 +64,16 @@ try {
   for (const fichier of readdirSync(DOSSIER).filter((f) => f.endsWith('.html')).sort()) {
     await page.goto(pathToFileURL(join(DOSSIER, fichier)).href);
     const attentes = await page.evaluate(lireAttentes);
+    const avant = await page.evaluate(lireEtat);
     const mesure = await page.evaluate(mesurer, { detail: true });
+    const apres = await page.evaluate(lireEtat);
     const ecarts = [];
+    if (avant.styles.length !== apres.styles.length) ecarts.push(`état rendu : ${avant.styles.length} éléments avant, ${apres.styles.length} après`);
+    avant.styles.forEach(([qui, s], i) => {
+      const t = apres.styles[i]?.[1];
+      if (t !== s) ecarts.push(`état rendu : style de ${qui} ${JSON.stringify(s)} → ${JSON.stringify(t ?? null)}`);
+    });
+    if (apres.animations > avant.animations) ecarts.push(`état rendu : ${apres.animations - avant.animations} animation(s) lancée(s) par la mesure`);
     if (attentes.page === 'oui' || attentes.page === 'non') {
       const attendu = attentes.page === 'oui';
       if (mesure.page.deborde !== attendu) ecarts.push(`page : ${mesure.page.deborde ? 'signalée' : 'non signalée'}, attendu ${attentes.page}`);

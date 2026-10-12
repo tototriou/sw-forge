@@ -190,6 +190,17 @@
 // coin, `right: 0` en ligne avec `!important` (voir plus haut). Le
 // signalement garde ses valeurs du premier passage ;
 // `depassement` porte celui qui reste, `page.relue` la largeur de page relue.
+// Remise en état : chaque neutralisation en ligne pose aussi `transition:
+// none !important` — une transition sur la propriété neutralisée (`transition:
+// translate 1s`) ferait lire une valeur intermédiaire. Chaque élément touché
+// garde son attribut `style` d'avant (présence comprise) et le retrouve à
+// l'identique : rendre propriété par propriété perdait des déclarations
+// (`transition-duration` seule, effacée avec le raccourci `transition`) et
+// laissait un `style=""` neuf. Le rendu se fait en deux temps — l'attribut
+// d'avant avec les transitions coupées, un rendu forcé, puis l'attribut
+// d'avant seul — sinon rendre ensemble la valeur et sa transition relance
+// celle-ci depuis la valeur neutralisée (relecture Codex n° 8 à 10 ;
+// tests/banc/cas/restauration.html, et `cas.mjs` vérifie chaque page).
 // ⚠️ Limite nommée : un décoratif EN FLUX retiré peut déplacer ses frères
 // (rangée flex, ligne de texte) ; la relecture porte alors sur une
 // disposition sans lui. Le halo est absolu : son retrait ne déplace rien.
@@ -531,13 +542,28 @@ export function mesurer(options: { detail: boolean }): Mesure {
   const leves = new Set<Signalement>();
   if (aRelire.length > 0 || relirePage) {
     const restaurer: (() => void)[] = [];
-    // Pose une valeur en ligne, `!important` ; rend de quoi la défaire.
-    const poser = (el: Element, propriete: string, valeur: string) => {
+    // Remise en état (tête) : une pose garde l'attribut `style` d'avant, tel
+    // quel, et coupe les transitions de l'élément le temps de la relecture.
+    type Pose = { el: Element; avant: string | null };
+    const poses: Pose[] = [];
+    const poser = (el: Element, declarations: Record<string, string>): Pose => {
+      const pose = { el, avant: el.getAttribute('style') };
       const st = (el as HTMLElement).style;
-      const avant = st.getPropertyValue(propriete);
-      const priorite = st.getPropertyPriority(propriete);
-      st.setProperty(propriete, valeur, 'important');
-      return () => (avant ? st.setProperty(propriete, avant, priorite) : st.removeProperty(propriete));
+      for (const [propriete, valeur] of Object.entries(declarations)) st.setProperty(propriete, valeur, 'important');
+      st.setProperty('transition', 'none', 'important');
+      return pose;
+    };
+    // Rend les poses, la plus récente d'abord : l'attribut d'avant avec les
+    // transitions encore coupées, un rendu forcé, puis l'attribut d'avant à
+    // l'identique — seule `transition` change alors, aucune ne part.
+    const rendre = (liste: Pose[]) => {
+      const ordre = [...liste].reverse();
+      for (const { el, avant } of ordre) el.setAttribute('style', `${avant ?? ''};transition:none !important`);
+      void document.documentElement.offsetWidth;
+      for (const { el, avant } of ordre) {
+        if (avant === null) el.removeAttribute('style');
+        else el.setAttribute('style', avant);
+      }
     };
     const relire = (s: Signalement) => {
       const el = elementDe.get(s) as Element;
@@ -547,23 +573,18 @@ export function mesurer(options: { detail: boolean }): Mesure {
     };
     // Ramène le décalage droit des icônes données à 0 ; rend de quoi les remettre.
     const decalerCoins = (liste: typeof coins) => {
-      const defaire: (() => void)[] = [];
-      for (const c of liste) {
-        defaire.push(poser(c.el, 'transition', 'none'));
-        if (c.largeurFigee !== null) defaire.push(poser(c.el, 'width', c.largeurFigee));
-        defaire.push(poser(c.el, 'right', '0px'));
-      }
-      return () => {
-        for (const d of defaire.reverse()) d();
-      };
+      const siennes = liste.map((c) =>
+        poser(c.el, c.largeurFigee !== null ? { width: c.largeurFigee, right: '0px' } : { right: '0px' }),
+      );
+      return () => rendre(siennes);
     };
     try {
       // (1) La page : marges négatives seules (D9 ne vaut pas pour elle, un
       // décoratif est coupé avant `html`, une icône en coin s'arrête à son bloc).
-      for (const { el, marge } of margesNegatives) restaurer.push(poser(el, 'translate', `${-marge}px 0px`));
+      for (const { el, marge } of margesNegatives) poses.push(poser(el, { translate: `${-marge}px 0px` }));
       if (relirePage) pageRelue = document.documentElement.scrollWidth;
       // (2) Les éléments qui ne sont le bloc d'aucune icône en coin.
-      for (const d of decoratifsVus) restaurer.push(poser(d, 'display', 'none'));
+      for (const d of decoratifsVus) poses.push(poser(d, { display: 'none' }));
       if (ciblesTactiles) {
         const zones = document.createElement('style');
         zones.textContent = '.cible-tactile::after { display: none !important; }';
@@ -595,6 +616,7 @@ export function mesurer(options: { detail: boolean }): Mesure {
       }
     } finally {
       for (const r of restaurer.reverse()) r();
+      rendre(poses);
     }
   }
   const retenus = signalements.filter((s) => !leves.has(s));

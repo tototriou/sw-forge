@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="fr" data-attendu-page="non">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover">
+<title>Décoratif en flux</title>
+<style>
+  body { margin: 8px; font: 14px sans-serif; }
+  .rangee { display: flex; width: 150px; height: 20px; margin: 8px 0; overflow: hidden; background: #eee; }
+  .deco { flex: none; width: 50px; height: 20px; background: #9cf; }
+  .frere { flex: none; width: 120px; height: 20px; background: #ccc; }
+</style>
+</head>
+<body>
+<!-- Relecture n° 1 (Codex) : le décoratif (aria-hidden, non cliquable, coupé par la rangée) tient dans la rangée ;
+     c'est son frère qui la dépasse de 20 px. Le retirer ramènerait la rangée à 120 px : la relecture n'est pas
+     exacte, la rangée reste signalée. -->
+<div id="rangee-flux" class="rangee" data-attendu="contenu" data-attendu-depassement="20">
+  <div id="deco-flux" class="deco" aria-hidden="true" style="pointer-events: none" data-attendu=""></div>
+  <div id="frere-flux" class="frere" data-attendu=""></div>
+</div>
+</body>
+</html>

@@ -29,7 +29,6 @@ par tâche.
 | une **mesure** du moteur : temps, budget, benchmark (`scripts/perf-battery*.ts`, `scripts/benchmark-*.mjs`) | `optimizer-perf-testing` |
 | une **mécanique de jeu** modélisée : tables `*_CONNUS` de `src/lib/damage.ts`, règle déduite des données SWARFARM, comportement supposé par ressemblance avec un autre ; demander un relevé en jeu | `game-data-curation` |
 | piloter l'app dans un navigateur sans tête — **seulement** à distance et sur demande explicite, jamais par réflexe pour vérifier une interface | `run-swblacksmith` |
-| une maquette ou une refonte visuelle (inspiration seulement : les règles d'interface d'AGENTS.md et de `docs/03-developpeur/interface/` priment) | `design-taste-frontend`, `mobile-app-ui-design` |
 
 - **Formatage et lint** : ESLint au `pre-commit` et en CI — ne pas refaire à la main ce qu'il
   vérifie.

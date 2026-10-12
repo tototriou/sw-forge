@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="fr" data-attendu-page="non">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover">
+<title>Marge négative et translate</title>
+<style>
+  body { margin: 8px; font: 14px sans-serif; }
+  .bloc { margin: 8px 0; width: 300px; }
+  .-mx-1 { margin-left: -0.25rem; margin-right: -0.25rem; }
+  .ligne { height: 20px; width: calc(100% + 0.5rem); background: #9cf; }
+</style>
+</head>
+<body>
+<!-- Relecture n° 11 (Codex) : la ligne `-mx-1` conforme porte un `translate` nul ; sa géométrie ne change pas, ses
+     4 px restent excusés. -->
+<div id="nul-parent" class="bloc" data-attendu="">
+  <div id="nul-ligne" class="-mx-1 ligne" style="translate: 0px 0px" data-attendu=""></div>
+</div>
+<!-- Signalé (2 px) : un `translate` de 2 px pousse la ligne au-delà de sa marge ; seuls les 4 px de la marge
+     s'excusent. -->
+<div id="deux-parent" class="bloc" data-attendu="contenu" data-attendu-depassement="2">
+  <div id="deux-ligne" class="-mx-1 ligne" style="translate: 2px 0px" data-attendu=""></div>
+</div>
+</body>
+</html>

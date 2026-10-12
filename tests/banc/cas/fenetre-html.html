@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="fr" data-attendu-page="oui" style="overflow-x: hidden">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover">
+<title>Fenêtre : overflow de html</title>
+<style>
+  body { margin: 8px; font: 14px sans-serif; }
+</style>
+</head>
+<body>
+<!-- Signalé : `overflow-x: hidden` sur `html` s'applique à la fenêtre, il ne
+     fait pas de `html` un ancêtre qui coupe (comme l'app, src/index.css). -->
+<div id="sous-html" data-attendu="geometrie" style="width: 500px; height: 20px; background: #ccc"></div>
+</body>
+</html>

@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="fr" data-attendu-page="non">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover">
+<title>Marge négative au bord de la fenêtre</title>
+<style>
+  body { margin: 0; font: 14px sans-serif; }
+  .-mx-1 { margin-left: -0.25rem; margin-right: -0.25rem; }
+</style>
+</head>
+<body>
+<!-- La marge diminue ce que la ligne impose à ses ancêtres (page comprise), pas sa géométrie : elle sort de 4 px
+     de chaque côté de la fenêtre, ce qui reste signalé. -->
+<div id="ligne-bord" class="-mx-1" style="width: calc(100% + 0.5rem); height: 20px; background: #9cf" data-attendu="geometrie"></div>
+</body>
+</html>

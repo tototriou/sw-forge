@@ -73,8 +73,11 @@ dossier) à la racine, le test est ignoré ; sinon, toute erreur de Git le fait
 - **Fichiers dont les renvois ne sont pas contrôlés** : les garde-fous qui
   citent un chemin privé à dessein (`.githooks/pre-commit`, sa liste des
   fichiers publiés, `.gitignore`, `scripts/installer-hooks.mjs`, leurs tests,
-  ce test et sa liste) et les tests qui montent des arborescences jetables
-  aux chemins factices. Le test vérifie que chacun est suivi.
+  ce test et sa liste), les tests qui montent des arborescences jetables
+  aux chemins factices, et la table de motifs du banc d'affichage
+  (`tests/banc/ecrans.ts`, `tests/banc/selection.ts`) : un motif n'est pas
+  un renvoi, et `tests/banc-selection.test.ts` refuse un motif qui ne couvre
+  plus aucun fichier. Le test vérifie que chacun est suivi.
 
 ## Liste tolérée
 

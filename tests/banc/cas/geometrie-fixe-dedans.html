@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="fr" data-attendu-page="non">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover">
+<title>Règle géométrie : fixe non signalé</title>
+<style>
+  body { margin: 8px; font: 14px sans-serif; }
+  .bloc { margin: 8px 0; }
+  .overflow-x-auto { overflow-x: auto; }
+  .sm\:overflow-x-auto { overflow-x: auto; }
+  .overflow-y-auto { overflow-y: auto; }
+  .overflow-hidden { overflow: hidden; }
+</style>
+</head>
+<body>
+<!-- Non signalé : un élément fixe collé au bord droit d'une page qui ne déborde pas.
+     (Sur une page qui déborde, Chromium mobile élargit la fenêtre de mise en page :
+     un fixe à `right: 0` y suit le contenu et sort de L — conséquence du débordement
+     de la page, signalé de toute façon.) -->
+<div id="fixe-dedans" data-attendu="" style="position: fixed; top: 240px; right: 0; width: 100px; height: 20px; background: #ccc"></div>
+</body>
+</html>

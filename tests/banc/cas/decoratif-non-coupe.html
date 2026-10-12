@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="fr" data-attendu-page="oui">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover">
+<title>Décoratif non coupé</title>
+<style>
+  body { margin: 8px; font: 14px sans-serif; }
+  .carte { position: relative; width: 150px; height: 60px; margin-left: 200px; background: #eee; }
+  .halo { position: absolute; right: -40px; top: 0; width: 112px; height: 112px; border-radius: 50%; background: #9cf; }
+</style>
+</head>
+<body>
+<!-- Signalé : aria-hidden et non cliquable, mais rien ne le coupe — il sort de l'écran (8 + 200 + 150 + 40 > 360).
+     La carte aussi : le halo, décalé de −40 px, n'est pas une icône d'élément (exception « icône en coin »). -->
+<div id="carte-ouverte" class="carte" data-attendu="contenu">
+  <div id="halo-non-coupe" class="halo" aria-hidden="true" style="pointer-events: none" data-attendu="geometrie"></div>
+</div>
+</body>
+</html>

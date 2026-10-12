@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="fr" data-attendu-page="non">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover">
+<title>Marge négative et descendant absolu</title>
+<style>
+  body { margin: 8px; font: 14px sans-serif; }
+  .parent { position: relative; width: 100px; height: 40px; background: #eee; }
+  .bloc { width: 50px; height: 20px; margin-right: -4px; background: #9cf; }
+  .absolu { position: absolute; top: 0; right: -3px; width: 10px; height: 10px; background: #f90; }
+</style>
+</head>
+<body>
+<!-- Relecture n° 3 (Codex) : le bloc statique porte une marge droite négative ; son descendant absolu a pour bloc
+     contenant le PARENT, qu'il dépasse de 3 px — la marge n'y est pour rien. Neutraliser la marge ne doit pas faire
+     du bloc le bloc contenant du descendant : le parent reste signalé (3 px). -->
+<div id="parent-absolu" class="parent" data-attendu="contenu" data-attendu-depassement="3">
+  <div id="bloc-marge" class="bloc" data-attendu="">
+    <div id="descendant-absolu" class="absolu" data-attendu=""></div>
+  </div>
+</div>
+</body>
+</html>

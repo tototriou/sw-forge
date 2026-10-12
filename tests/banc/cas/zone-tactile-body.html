@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="fr" data-attendu-page="non">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover">
+<title>Zone de toucher portée par body</title>
+<style>
+  body { margin: 8px; width: 20px; height: 20px; font: 14px sans-serif; background: #9cf; }
+  .cible-tactile { position: relative; }
+  .cible-tactile::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    min-width: 44px;
+    min-height: 44px;
+    width: 100%;
+    height: 100%;
+    transform: translate(-50%, -50%);
+  }
+</style>
+</head>
+<!-- Relecture n° 13 (Codex) : `body` porte lui-même `cible-tactile` ; son `::after` le dépasse de 12 px, sans autre
+     cible descendante. D9 vaut pour l'élément : `body` n'est pas signalé. -->
+<body id="corps" class="cible-tactile" data-attendu="">
+</body>
+</html>

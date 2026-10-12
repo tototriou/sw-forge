@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="fr" data-attendu-page="non">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover">
+<title>Remise en état après la mesure</title>
+<style>
+  body { margin: 8px; font: 14px sans-serif; }
+  .bloc { margin: 16px 0; width: 300px; padding: 8px 0; }
+  .-mx-1 { margin-left: -0.25rem; margin-right: -0.25rem; }
+  .ligne { height: 20px; width: calc(100% + 0.5rem); background: #9cf; }
+  .lente { transition: translate 1s linear, margin 1s linear; }
+  .avatar { position: relative; display: inline-flex; width: 40px; height: 40px; flex: none; }
+  .image { display: block; width: 40px; height: 40px; background: #9cf; }
+  .icone { position: absolute; top: -0.25rem; right: -0.25rem; width: 16px; height: 16px; background: #f90; }
+  /* Une règle sur l'attribut : un `style=""` laissé par la mesure changerait la disposition. */
+  [style] .temoin-style { outline: 1px solid red; }
+</style>
+</head>
+<body>
+<!-- Relecture n° 10 (Codex) : une ligne `-mx-1` SANS attribut `style` ; la mesure ne doit pas lui en laisser un. -->
+<div id="sans-style-parent" class="bloc" data-attendu="">
+  <div id="sans-style-ligne" class="-mx-1 ligne" data-attendu=""><span class="temoin-style"></span></div>
+</div>
+<!-- Relecture n° 9 (Codex), premier temps : une ligne `-mx-1` dont le décalage et la marge sont en transition ; la
+     relecture ne lit pas une valeur intermédiaire — le parent n'est pas signalé. -->
+<div id="lente-parent" class="bloc" data-attendu="">
+  <div id="lente-ligne" class="-mx-1 ligne lente" data-attendu=""></div>
+</div>
+<!-- Relecture n° 8 (Codex) : l'icône ne déclare que `transition-duration` ; la remise en état ne la perd pas. -->
+<div class="bloc">
+  <span id="duree-avatar" class="avatar" data-attendu="">
+    <span class="image"></span>
+    <img id="duree-icone" class="icone" src="elements/fire.png" alt="" style="transition-duration: 200ms" data-attendu="">
+  </span>
+</div>
+<!-- Relecture n° 9 (Codex), second temps : l'icône a `transition: right 1s` ; la remise en état ne relance aucune
+     transition (vérifié par cas.mjs : aucune animation de plus). -->
+<div class="bloc">
+  <span id="transition-avatar" class="avatar" data-attendu="">
+    <span class="image"></span>
+    <img id="transition-icone" class="icone" src="elements/water.png" alt="" style="transition: right 1s linear" data-attendu="">
+  </span>
+</div>
+</body>
+</html>

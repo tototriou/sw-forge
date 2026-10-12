@@ -74,7 +74,7 @@ npm run build                  # build de production (Tailwind n'émet que ce qu
 npm run lint                   # ESLint sur tout le dépôt
 npx tsc --noEmit               # types : src/, scripts/ et tests/
 node tests/run.mjs <filtre>    # les vérifications d'une zone (ex. speed-tune) ; plusieurs filtres possibles
-npm test                       # TOUTES les vérifications — seulement avant une fusion sur main
+npm test                       # TOUTES les vérifications — seulement avant une fusion sur main ou dans une release
 npm run fetch-data             # régénère les données SWARFARM de public/data
 npm run bureau                 # l'application de bureau en développement
 npm run bureau:preuve          # la vérification de l'application de bureau
@@ -158,9 +158,10 @@ npm run bureau:preuve          # la vérification de l'application de bureau
 - **Branches `<type>/<sujet>`**, nommées comme un commit : le type dit ce que la branche va
   faire (`feat`, `fix`, `docs`, `refactor`, `perf`, `test`, `style`, `build`, `ci`, `chore`,
   `revert`), le sujet ce qu'elle contient — `feat/prepa-rta`, `fix/tri-runes`,
-  `refactor/listes-optimizer`. Parties de `main`
-  (`git fetch origin && git switch -c <type>/<sujet> origin/main`), jamais `release/x.y.z` : le
-  numéro se décide à la fusion. On ne travaille jamais sur `main`.
+  `refactor/listes-optimizer`. ⚠️ **Toute nouvelle branche part de `main` ou de la branche de
+  release visée** (`git fetch origin && git switch -c <type>/<sujet> origin/<base>`) ; elle
+  fusionne dans la release, qui fusionne dans `main`. On ne travaille jamais sur `main` ni sur
+  une release : on en part. Le numéro de version se décide à la fusion.
 - **Commits atomiques** : un commit = une chose reviewable. L'atomicité se juge sur la cohérence du
   **pourquoi**, pas sur le nombre de fichiers ; plusieurs sujets traités ensemble font plusieurs
   commits.
@@ -183,7 +184,8 @@ node tests/run.mjs <filtre>       # SEULEMENT la zone touchée
 npm run build                     # une classe Tailwind « correcte » peut n'être jamais émise
 ```
 
-⚠️ **La suite complète (`npm test`) ne se lance qu'avant une fusion sur `main`** — et seulement là.
+⚠️ **La suite complète (`npm test`) ne se lance qu'avant une fusion sur `main` ou dans une
+branche `release/*`** — et seulement là.
 Le filtre se compare au nom de la vérification, mis à plat (`speed-tune`, `speedtune`, `SpeedTune`) ;
 un filtre qui ne correspond à rien échoue en listant ce qui existe. Quand un style ne s'applique pas,
 vérifier dans le **CSS construit**, pas dans le composant.

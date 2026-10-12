@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="fr" data-attendu-page="non">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover">
+<title>Règle contenu</title>
+<style>
+  body { margin: 8px; font: 14px sans-serif; }
+  .bloc { margin: 8px 0; }
+  .overflow-x-auto { overflow-x: auto; }
+  .sm\:overflow-x-auto { overflow-x: auto; }
+  .overflow-y-auto { overflow-y: auto; }
+  .overflow-hidden { overflow: hidden; }
+</style>
+</head>
+<body>
+<!-- Signalé : un enfant de 300 px dans un parent de 200 px (overflow visible), le tout dans la fenêtre. -->
+<div id="parent-deborde" class="bloc" data-attendu="contenu" style="width: 200px">
+  <div id="enfant-large" data-attendu="" style="width: 300px; height: 20px; background: #ccc"></div>
+</div>
+<!-- Non signalé : l'enfant tient. -->
+<div id="parent-tient" class="bloc" data-attendu="" style="width: 200px">
+  <div id="enfant-tient" data-attendu="" style="width: 150px; height: 20px; background: #ccc"></div>
+</div>
+</body>
+</html>

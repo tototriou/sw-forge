@@ -1,0 +1,92 @@
+// Sélection des écrans du banc d'affichage d'après des fichiers modifiés
+// (tests/banc/selection.ts, table tests/banc/ecrans.ts). Sans navigateur ni
+// Git : le lanceur donne les chemins, la vérification en donne d'autres.
+
+import { readdirSync } from 'fs';
+import { ECRANS, MOTIFS_TOUS } from './banc/ecrans';
+import { couvre, ecransPourFichiers, motifsPartages } from './banc/selection';
+import { egal, ok } from './outils';
+
+const ids = (fichiers: string[]) => ecransPourFichiers(fichiers).ecrans.map((e) => e.id);
+
+export default function testBancSelection() {
+  // Trois fichiers d'exemple, trois formes de motif.
+  egal(ids(['src/components/outils/SpeedTuningSection.tsx']), ['optimizer', 'speed-tuning'], 'dossier partagé (outils/) : les deux écrans d’Outils');
+  egal(ids(['src/pages/HomePage.tsx']), ['accueil'], 'page propre à un écran : cet écran seul');
+  egal(
+    ids(['src/components/rta/RtaCard.tsx']),
+    ['rta', 'rta-ami'],
+    'dossier de composants d’une section à deux routes : les deux routes',
+  );
+  egal(ids(['src/lib/speedTuneLignes.ts']), ['speed-tuning'], 'motif à préfixe (speedTune*) : le fichier de lignes du speed tuning');
+
+  // Un fichier dans plusieurs motifs de plusieurs écrans les sélectionne tous.
+  egal(
+    ids(['src/data/releases.ts']),
+    ['accueil', 'nouveautes'],
+    'un fichier lu par deux écrans (journal des versions) : les deux',
+  );
+  const siege = ids(['src/components/outils/SpeedTuneModale.tsx']);
+  ok(
+    ['optimizer', 'speed-tuning', 'siege-defense', 'siege-offense', 'siege-recommandations'].every((i) => siege.includes(i)),
+    'la modale de speed tuning est montée par le siège : ses trois écrans y sont aussi',
+  );
+
+  // Règle « tous ».
+  for (const f of ['src/ui/Button.tsx', 'src/ui/index.ts', 'src/index.css', 'tailwind.config.js']) {
+    egal(ids([f]).length, ECRANS.length, `règle « tous » : ${f}`);
+    egal(ecransPourFichiers([f]).details[0].regle, 'tous', `règle « tous » : ${f} est étiquetée « tous »`);
+  }
+
+  // Le coquillage enveloppe chaque page.
+  for (const f of ['src/App.tsx', 'src/components/Sidebar.tsx', 'src/components/TopBar.tsx', 'src/components/MobileTabs.tsx', 'src/components/palette/recherchePalette.ts']) {
+    egal(ecransPourFichiers([f]).details[0].regle, 'tous', `coquillage : ${f} sélectionne tous les écrans`);
+  }
+
+  // Repli : un fichier de src/ que nul motif ne couvre sélectionne tous les écrans.
+  for (const f of ['src/lib/damage.ts', 'src/hooks/useMonsters.ts', 'src/main.tsx']) {
+    const rep = ecransPourFichiers([f]);
+    egal(rep.details[0].regle, 'repli', `repli : ${f} hors table`);
+    egal(rep.ecrans.length, ECRANS.length, `repli : ${f} sélectionne tous les écrans`);
+    egal(rep.horsTable, [], `repli : ${f} n'est pas « hors table » sans écran`);
+  }
+
+  // Un fichier hors de toute table : aucun écran, signalé.
+  const hors = ecransPourFichiers(['docs/README.md', 'scripts/spec-toc.mjs']);
+  egal(hors.ecrans.length, 0, 'fichiers hors table : aucun écran');
+  egal(hors.horsTable, ['docs/README.md', 'scripts/spec-toc.mjs'], 'fichiers hors table (hors de src/) : signalés');
+  egal(hors.details.map((d) => d.regle), ['aucun', 'aucun'], 'fichiers hors table : règle « aucun »');
+
+  // Mélange : l'union, dans l'ordre de la table, les fichiers hors table signalés à part.
+  const melange = ecransPourFichiers(['src/pages/MechanicsPage.tsx', 'src/pages/ComingSoon.tsx', 'README.md']);
+  egal(melange.ecrans.map((e) => e.id), ['mecaniques', 'arene'], 'union des écrans, dans l’ordre de la table');
+  egal(melange.horsTable, ['README.md'], 'le fichier hors table reste signalé à côté des autres');
+
+  // Normalisation et doublons.
+  egal(ids(['.\x5csrc\x5cpages\x5cHomePage.tsx', 'src/pages/HomePage.tsx']), ['accueil'], 'séparateurs Windows et doublon normalisés');
+  egal(ecransPourFichiers([]).ecrans.length, 0, 'aucun fichier : aucun écran');
+
+  // Forme des motifs : un nom sans extension ne couvre pas un voisin au nom plus long.
+  ok(couvre('src/lib/crafts', 'src/lib/crafts.ts'), 'motif sans extension : le fichier');
+  ok(!couvre('src/lib/crafts', 'src/lib/craftsExtra.ts'), 'motif sans extension : pas le voisin au nom plus long');
+  ok(couvre('src/ui/', 'src/ui/a/b.tsx'), 'motif de dossier : tout ce qui est dessous');
+  ok(!couvre('src/ui/', 'src/uiX/a.tsx'), 'motif de dossier : pas un dossier voisin');
+
+  // Table : identifiants et routes distincts, motifs partagés dits.
+  egal(new Set(ECRANS.map((e) => e.id)).size, ECRANS.length, 'identifiants d’écran distincts');
+  const hashs = ECRANS.flatMap((e) => [e.hash, ...(e.alias ?? [])]);
+  egal(new Set(hashs).size, hashs.length, 'chaque adresse (route ou alias) n’appartient qu’à un écran');
+  ok(ECRANS.every((e) => e.motifs.length > 0), 'chaque écran a au moins un motif');
+  // Un motif qui ne couvre aucun fichier du dépôt est une faute de frappe ou un
+  // fichier disparu : la table ne verrait plus rien changer.
+  const fichiersSrc = readdirSync('src', { recursive: true })
+    .map((f) => 'src/' + String(f).split(String.fromCharCode(92)).join('/'));
+  const tous = [...fichiersSrc, 'tailwind.config.js'];
+  const orphelins = [...new Set(ECRANS.flatMap((e) => e.motifs)), ...MOTIFS_TOUS].filter(
+    (m) => !tous.some((f) => couvre(m, f)),
+  );
+  egal(orphelins, [], 'chaque motif de la table couvre au moins un fichier du dépôt');
+  const partages = motifsPartages();
+  const rta = partages.find((p) => p.motif === 'src/components/rta/');
+  egal(rta?.ecrans, ['rta', 'rta-ami'], 'motifsPartages dit les écrans d’un motif commun');
+}

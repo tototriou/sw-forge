@@ -134,6 +134,16 @@ composant affiché avec `react-dom/server` et des données d'exemple, interrogé
 `aria-label`, `title`, `disabled`), jamais sur les classes ou la disposition — ils vérifient
 qu'une fonctionnalité est là, pas à quoi elle ressemble.
 
+Seconde exception, qui ne fige pas davantage le rendu : le **banc d'affichage** (`tests/banc/`,
+`node tests/banc/run.mjs`). Il construit l'app, l'ouvre dans Chromium sans fenêtre au téléphone
+(360 × 800, tactile) et à l'ordinateur (1400 × 1000), amène chaque écran dans les états de
+`tests/banc/ecrans.ts` et vérifie un **invariant** : rien ne déborde à l'horizontale, et une
+pastille posée en coin d'un portrait de monstre ne recouvre rien d'autre que son portrait (règle et
+limites connues : tête de `tests/banc/mesure.ts`). Il capture chaque état pour qu'on regarde ce qui
+a été mesuré, mais ne compare **aucune** capture. Il ne tourne ni dans `npm test` ni en CI ; `tsc`
+et ESLint couvrent en revanche ses fichiers, CI comprise. Mode d'emploi :
+[tests/README.md](../../tests/README.md).
+
 ## Versions et releases
 
 `main` est **toujours la version stable en ligne**, déployée sur Vercel. On n'y développe pas

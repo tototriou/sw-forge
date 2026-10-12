@@ -20,7 +20,7 @@ Les deux côtés **jouables** (défense/offense) partagent **exactement la même
 mécanique** (composition, lead auto, ticks) — voir [feat-equipes.md](feat-equipes.md) et
 [feat-speed-tick.md](feat-speed-tick.md). Seules diffèrent les données d'import (voir
 ci-dessous). L'onglet **Recommandations** a son propre modèle et sa propre
-persistance : voir [feat-recommandations.md](feat-recommandations.md).
+persistance : voir [feat-recommandations/](feat-recommandations/README.md).
 
 ## Vue d'ensemble
 
@@ -167,7 +167,7 @@ rien, « Chilling, Susano, Tarq » si — et rappelle que les autres équipes ne
 pas touchées. Voir la convention des modales dans le [README](README.md).
 
 Même règle pour les **decks de recommandation** et les recommandations
-elles-mêmes (voir [feat-recommandations.md](feat-recommandations.md)).
+elles-mêmes (voir [feat-recommandations/](feat-recommandations/README.md)).
 
 ### Bouton « Vérifier mes speed »
 
@@ -207,7 +207,7 @@ d'attaque sauvegardées).
 |--------------|------|
 | Composition d'équipe, slots, leader, drag & drop | [feat-equipes.md](feat-equipes.md) |
 | Vitesse de combat, lead auto, ticks & retour manque/surplus | [feat-speed-tick.md](feat-speed-tick.md) |
-| Recommandations : lots de decks (création, partage, confrontation à la box) | [feat-recommandations.md](feat-recommandations.md) |
+| Recommandations : lots de decks (création, partage, confrontation à la box) | [feat-recommandations/](feat-recommandations/README.md) |
 
 ## Modèle d'état
 

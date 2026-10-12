@@ -187,7 +187,7 @@ lot, il passe à l'identique sur l'édition d'avant et sur celle d'après.
     [../transverse/](../transverse/)), pas
     l'affichage.
 - **Même pastille** dans les decks de
-  [recommandation](feat-recommandations.md), pour le monstre en slot 0.
+  [recommandation](feat-recommandations/README.md), pour le monstre en slot 0.
 
 ## Drag & drop / réorganisation
 

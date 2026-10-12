@@ -51,7 +51,7 @@ combat = base + runes + ceil( base × (15 + lead) / 100 )
 - Les mêmes ticks servent de **raccourci de saisie** dans une
   recommandation, sous les libellés « Tick rapide » / « Tick lent » : là, ils
   écrivent la VIT de fiche qui tombe sur le tick, et ne stockent aucun tick
-  ([feat-recommandations.md](feat-recommandations.md), « Raccourci « Tick rapide / Tick
+  ([feat-recommandations/consignes.md](feat-recommandations/consignes.md), « Raccourci « Tick rapide / Tick
   lent » sur la VIT »).
 - Migration : l'ancien tick d'équipe est repris comme tick par défaut de chaque
   slot au chargement.

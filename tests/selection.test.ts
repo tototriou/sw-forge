@@ -168,11 +168,26 @@ export async function testSelectionFichiersCasReels(): Promise<void> {
   ok(statut(s, 'docs/README.md') === 'sans effet' && s.transversalesSeulement && s.retenues.length > 0 && s.retenues.every((r) => /^(depot|opaque)/.test(r.raisons[0])) && !!retenu(s, 'testRenvois'),
     'docs/README.md : sans effet, seules les vérifications depot et opaque retenues, et la sortie le dit');
 
-  // Non couvert → complet, même quand une transversale est déjà retenue (D8).
+  // Fichiers sans effet sous les racines : la documentation, le banc d'affichage
+  // (sauf ses deux modules importés par banc-selection.test.ts).
   s = sel(['tests/README.md']);
-  ok(s.complet && statut(s, 'tests/README.md') === 'non couvert', 'tests/README.md, sans lien spécifique → suite complète');
-  s = sel(['src/components/outils/OptimizerSection.tsx', 'tests/README.md']);
-  ok(s.complet && s.causes.some((c) => c.startsWith('tests/README.md')), 'non couvert alors que des transversales sont retenues → suite complète');
+  ok(!s.complet && statut(s, 'tests/README.md') === 'sans effet', 'tests/README.md → sans effet');
+  s = sel(['src/lib/notes-essai.md']);
+  // Un lien spécifique prime sur la liste : des tests parcourent le dossier src/.
+  ok(!s.complet && statut(s, 'src/lib/notes-essai.md') === 'couvert' && s.retenues.some((r) => r.raisons.some((x) => /^dossier src lu/.test(x))),
+    '*.md sous src/ → couvert par les tests qui parcourent src/, jamais la suite complète');
+  s = sel(['bureau/notes-essai.md']);
+  ok(!s.complet && statut(s, 'bureau/notes-essai.md') === 'sans effet', '*.md sous une racine, sans lien spécifique → sans effet');
+  s = sel(['tests/banc/run.mjs']);
+  ok(!s.complet && statut(s, 'tests/banc/run.mjs') === 'sans effet', 'tests/banc/run.mjs → sans effet');
+  s = sel(['tests/banc/selection.ts']);
+  ok(!s.complet && statut(s, 'tests/banc/selection.ts') === 'couvert' && /module de son graphe/.test(raisons(s, 'testBancSelection')), 'tests/banc/selection.ts → couvert par le graphe de banc-selection.test.ts');
+
+  // Non couvert → complet, même quand une transversale est déjà retenue (D8).
+  s = sel(['tests/fichier-inconnu.txt']);
+  ok(s.complet && statut(s, 'tests/fichier-inconnu.txt') === 'non couvert', 'fichier de tests/ sans lien spécifique → suite complète');
+  s = sel(['src/components/outils/OptimizerSection.tsx', 'tests/fichier-inconnu.txt']);
+  ok(s.complet && s.causes.some((c) => c.startsWith('tests/fichier-inconnu.txt')), 'non couvert alors que des transversales sont retenues → suite complète');
   s = sel(['outil-inconnu.cfg']);
   ok(s.complet && statut(s, 'outil-inconnu.cfg') === 'non couvert', 'fichier hors racines non listé → suite complète');
 

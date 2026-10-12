@@ -29,8 +29,8 @@ import type ts from 'typescript';
  * Tables écrites à la main
  * ----------------------------------------------------------------------- */
 
-// Racines des sources : un fichier modifié ici sans lien spécifique déclenche la
-// suite complète.
+// Racines des sources : un fichier modifié ici sans lien spécifique, et absent
+// de la liste des fichiers sans effet, déclenche la suite complète.
 export const RACINES_SOURCES = ['src/', 'scripts/', 'public/', 'tests/', '.githooks/'];
 
 // Infrastructure des tests : toute modification relance tout. `tests/index.ts`
@@ -38,18 +38,19 @@ export const RACINES_SOURCES = ['src/', 'scripts/', 'public/', 'tests/', '.githo
 export const INFRASTRUCTURE = ['tests/run.mjs', 'tests/outils.ts', 'tests/selection.ts', 'package.json', 'package-lock.json'];
 const RE_TSCONFIG = /^tsconfig[^/]*\.json$/;
 
-// Fichiers hors des racines des sources qu'aucune vérification ne lit par un
-// lien spécifique sans qu'il soit relevé. Un fichier listé qui a un lien
-// spécifique reste « couvert » ; sinon il est « sans effet » et ne retient que
-// les vérifications `depot` et `opaque`, retenues pour tout fichier.
-export const SANS_EFFET: { motif: string; justification: string }[] = [
+// Fichiers qu'aucune vérification ne lit par un lien spécifique sans qu'il soit
+// relevé, où qu'ils soient. Un fichier listé qui a un lien spécifique reste
+// « couvert » ; sinon il est « sans effet » et ne retient que les vérifications
+// `depot` et `opaque`, retenues pour tout fichier.
+export const SANS_EFFET: { motif: string; sauf?: string[]; justification: string }[] = [
   {
-    motif: 'docs/**/*.md',
-    justification: 'la spec ne se charge pas dans les tests : elle est lue par des vérifications `depot` (git ls-files, parcours de la racine) ou par une cible relevée, qui la couvre alors',
+    motif: '**/*.md',
+    justification: 'documentation, jamais importée : lue par des vérifications `depot` (git ls-files, parcours de la racine) ou `opaque`, toujours retenues, ou par une cible relevée, qui la couvre alors',
   },
   {
-    motif: '*.md',
-    justification: 'documents de la racine (CLAUDE.md, README.md…) : même lecture que docs/, jamais importés',
+    motif: 'tests/banc/**',
+    sauf: ['tests/banc/selection.ts', 'tests/banc/ecrans.ts'],
+    justification: 'le banc d\'affichage ne tourne pas dans la suite (son lanceur est tests/banc/run.mjs) ; tsc et ESLint le couvrent. Ses deux modules importés par banc-selection.test.ts en sont exclus : le graphe les couvre',
   },
 ];
 
@@ -1023,9 +1024,9 @@ export function selectionner(inv: Inventaire, modifies: string[], indexAvant: st
       else if (info.opaque.length) noter(parFichierTest, ft, `opaque (${info.opaque[0]}) : ${f}`);
     }
     if (specifiques > 0) { fichiers.push({ chemin: f, statut: 'couvert', detail: `${specifiques} fichier(s) de test par un lien spécifique` }); continue; }
-    if (sousRacines(f)) { fichiers.push({ chemin: f, statut: 'non couvert', detail: 'aucun lien spécifique' }); causes.push(`${f} : non couvert (aucun lien spécifique ; une retenue depot ou opaque ne couvre pas)`); continue; }
-    const se = SANS_EFFET_RE.find((s) => s.re.test(f));
+    const se = SANS_EFFET_RE.find((s) => s.re.test(f) && !s.sauf?.includes(f));
     if (se) { fichiers.push({ chemin: f, statut: 'sans effet', detail: `${se.motif} : ${se.justification}` }); continue; }
+    if (sousRacines(f)) { fichiers.push({ chemin: f, statut: 'non couvert', detail: 'aucun lien spécifique' }); causes.push(`${f} : non couvert (aucun lien spécifique ; une retenue depot ou opaque ne couvre pas)`); continue; }
     fichiers.push({ chemin: f, statut: 'non couvert', detail: 'hors des racines des sources, absent de la liste des fichiers sans effet' });
     causes.push(`${f} : hors des racines des sources, absent de la liste des fichiers sans effet`);
   }

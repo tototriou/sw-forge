@@ -187,6 +187,11 @@
 //     contenu qui défile sous eux : leurs boîtes se coupent sans que l'icône
 //     y soit pour rien (relevé du lot 5 : 81 coupes de ce genre dans l'app,
 //     barre basse du bestiaire, en-tête, modales de « Dégâts réels »).
+//     ⚠️ Limite acceptée (relecture Codex n° 12) : un bloc `sticky` est un
+//     plan à part même quand il n'est pas collé et reste à sa place normale,
+//     et deux blocs `sticky` distincts sont deux plans ; une collision réelle
+//     entre eux, ou avec le contenu ordinaire, n'est pas comparée. Le banc ne
+//     lit pas quelle boîte passe au-dessus.
 //     Signalé sur l'élément, avec l'autre élément (`avec`) et l'aire coupée
 //     (`aire`, px²) ; parmi les éléments coupés, seuls les plus profonds (un
 //     élément coupé dont un descendant est coupé aussi n'est pas repris).

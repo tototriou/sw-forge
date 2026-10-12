@@ -501,7 +501,7 @@ export default function SiegeTeam({
                 className={`flex-1 min-w-0 flex items-center gap-2 rounded-lg border
                   px-2 py-1.5 compact:gap-1 compact:px-1 compact:py-1 transition hoverable:border-accent ${
                   active
-                    ? // Bordure seule, sans anneau superposé — voir design.md.
+                    ? // Bordure seule, sans anneau superposé — voir docs/03-developpeur/interface/design/tokens-couleurs.md.
                       'border-accent bg-panel2'
                     : danger
                       ? // Fond DOUX du rouge d'état : la VIT fautive, écrite

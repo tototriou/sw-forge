@@ -2,7 +2,7 @@
 
 > **Source de vérité** pour la façon dont un contrôle se dessine. Les VALEURS
 > (couleurs, échelle de texte, rayons) restent dans
-> [design.md](design.md) ; ce document dit **quels composants existent** et
+> [design/](design/README.md) ; ce document dit **quels composants existent** et
 > **comment on choisit entre eux**.
 >
 > Code : [`src/ui/`](../../../src/ui/), point d'entrée unique
@@ -78,7 +78,7 @@ Les axes se **choisissent séparément et se combinent** :
 > `accent-hover` et l'**appui** `accent-appui` (le filtre `brightness-110`
 > disparaît) ; **désactivé**, il devient un aplat gris (`panel2`, encre
 > `ink-dimmer`) au lieu d'une braise à 40 % d'opacité, boueuse. Tout `Bouton`
-> **descend d'1 px** à l'appui (`data-bouton`, voir design.md § Pression).
+> **descend d'1 px** à l'appui (`data-bouton`, voir design/regles-transverses.md § Pression).
 > Les hauteurs restent les nôtres (28 / 32 au bureau, 40 au doigt), pas les
 > 36 / 44 / 52 de la toile : notre densité est gardée.
 > Le **« fantôme »** de la toile est `ton="accent"` + `fond="vide"` : texte en
@@ -101,7 +101,7 @@ Les axes se **choisissent séparément et se combinent** :
 >
 > ⚠️ **`ton="accent"` + `fond="plein"` est le BOUTON PRINCIPAL** : un aplat
 > d'accent, texte `accent-ink` (blanc en Atelier, fond sombre en Forge —
-> mesurés, `design.md` § Accent). **Un seul par écran** : l'action qu'on vient
+> mesurés, `design/tokens-couleurs.md` § Accent). **Un seul par écran** : l'action qu'on vient
 > faire. Il valait `accent-soft` comme `doux` jusqu'à la refonte graphique
 > (décision 4 du mainteneur, 2026-09-24) — l'app n'avait aucun bouton principal
 > qui ressorte. `BoutonGroupe` suit la même règle.
@@ -246,7 +246,7 @@ type est la seule façon de ne plus avoir à y penser.
   taille de LA PAGE ENTIÈRE (le référentiel du pseudo-élément remontait jusqu'à
   `<body>`), interceptant clics/survols ailleurs sur l'écran. Corrigé à la
   source (`.cible-tactile { position: relative }` dans `index.css`, plus
-  seulement sur `::after`) — voir [design.md](design.md), section
+  seulement sur `::after`) — voir [design/regles-transverses.md](design/regles-transverses.md), section
   « cible-tactile », pour le détail complet de l'incident et la mesure.
 - `forme` — **transmise, alors qu'elle était seulement annoncée.** L'en-tête du
   composant dit depuis toujours que les axes du bouton restent ouverts, `forme`
@@ -786,7 +786,7 @@ n'a plus de bord à en tenir éloigné.
 - L'**anneau de focus clavier** (`outline: 2px`, dans `index.css`) reste à 2 px.
   Il n'apparaît qu'en tabulant — jamais à la souris ni au doigt — et sa taille
   est ce qui le rend repérable quand on ne sait plus où l'on est dans la page.
-  Voir la règle de focus dans [design.md](design.md).
+  Voir la règle de focus dans [design/regles-transverses.md](design/regles-transverses.md).
 
 ## Quand ajouter quelque chose
 

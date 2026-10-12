@@ -664,7 +664,7 @@ export function KeepAccountDialog({
   // qui pose une question de CONSERVATION DES DONNÉES, c'est-à-dire celle qu'il
   // faut le moins pouvoir contourner par accident.
   // ⚠️ Son voile portait en plus un `backdrop-blur-sm` que les autres n'ont pas.
-  // Écart abandonné : la spec ne prévoit qu'un fondu (voir design.md), et un
+  // Écart abandonné : la spec ne prévoit qu'un fondu (voir docs/03-developpeur/interface/design/mouvement-et-gestes.md), et un
   // seul dialogue floutant le fond se lisait comme un objet d'une autre nature.
   return (
     // ⚠️ **PAS de croix**, comme les confirmations : cette fenêtre pose une

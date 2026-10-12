@@ -206,7 +206,7 @@
      2 du mainteneur : Forge perd l'angle vif). Quatre crans, chacun un rôle :
      petit élément (pastille, badge) · bouton et champ · carte · fenêtre.
      `rounded-xl` et `rounded-2xl` étaient les valeurs figées de Tailwind
-     (12 et 16 px) : ils passent sous token. Voir design.md § Rayons.
+     (12 et 16 px) : ils passent sous token. Voir docs/03-developpeur/interface/design/typographie-et-rayons.md § Rayons.
      Rebranding R1 : les crans de la toile, 6 / 10 / 14 / 20 (ils valaient
      6 / 8 / 12 / 14). */
   --radius: 6px;

@@ -3683,7 +3683,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
           hauteur repliée, donc aucune rangée ne bouge quand on déplie, quel
           que soit l'endroit où le bloc vit dans la grille. Voir
           `avancesRef`/`showAdvanced` plus bas, et
-          [design.md](../../../docs/03-developpeur/interface/) : « un clic ne déplace
+          [design/mouvement-et-gestes.md](../../../docs/03-developpeur/interface/design/mouvement-et-gestes.md) : « un clic ne déplace
           jamais ce qu'on vient de cliquer » — un panneau replié par défaut
           ne peut pas réserver sa place à l'avance sans perdre l'intérêt
           d'être replié, donc il sort du flux (flottant), l'autre option

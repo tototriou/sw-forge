@@ -139,7 +139,7 @@ export default function MobileTabs({
             aria-expanded={o.ouvre ? o.ouvre === sectionOuverte : undefined}
             aria-current={o.actif && !o.ouvre ? 'page' : undefined}
             // ⚠️ `px-0.5` et non `px-1` : à 11 px (le plancher de l'échelle,
-            // voir design.md), « Accueil » remplit une colonne de 64 px sur un
+            // voir docs/03-developpeur/interface/design/typographie-et-rayons.md), « Accueil » remplit une colonne de 64 px sur un
             // écran de 320. Le libellé était à 9,5 px — sous le plancher, donc
             // flou au doigt. On resserre la marge plutôt que le texte.
             className={`relative flex flex-col items-center gap-1 px-0.5 pt-2.5 pb-2.5 text-micro

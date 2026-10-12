@@ -70,7 +70,7 @@ export default {
         'bad-ink': 'rgb(var(--bad-ink) / <alpha-value>)',
 
         // Éléments — vocabulaire Summoners War. Deux valeurs par élément
-        // (voir design.md) : le Vent et la Lumière sont illisibles sur clair.
+        // (voir docs/03-developpeur/interface/design/tokens-couleurs.md) : le Vent et la Lumière sont illisibles sur clair.
         fire: 'rgb(var(--el-fire) / <alpha-value>)',
         water: 'rgb(var(--el-water) / <alpha-value>)',
         wind: 'rgb(var(--el-wind) / <alpha-value>)',
@@ -168,7 +168,7 @@ export default {
         // ⚠️ `xl` et `2xl` REDÉFINIS : c'étaient les valeurs figées de Tailwind
         // (12 et 16 px), hors tokens. Refonte graphique, décision 2, puis
         // rebranding R1 : cartes 14 px, fenêtres 20 px — voir index.css et
-        // design.md § Rayons.
+        // docs/03-developpeur/interface/design/typographie-et-rayons.md § Rayons.
         xl: 'var(--radius-xl)',
         '2xl': 'var(--radius-2xl)',
         // ⚠️ Rayon INTÉRIEUR d'un panneau `rounded-lg` à contour 1 px : un

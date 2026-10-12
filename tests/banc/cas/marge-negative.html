@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="fr" data-attendu-page="non">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover">
+<title>Marge négative</title>
+<style>
+  body { margin: 8px; font: 14px sans-serif; }
+  .bloc { margin: 8px 0; }
+  .contenant { width: 300px; }
+  /* `-mx-1` de Tailwind : 0.25rem de chaque côté. */
+  .-mx-1 { margin-left: -0.25rem; margin-right: -0.25rem; }
+  .ligne { height: 20px; background: #9cf; }
+</style>
+</head>
+<body>
+<!-- Non signalés : la ligne déborde de 4 px de chaque côté, exactement sa marge négative ; son contenu tient. -->
+<div id="tient-grand-parent" class="bloc contenant" data-attendu="">
+  <div id="tient-parent" data-attendu="">
+    <div id="tient-ligne" class="-mx-1 ligne" style="width: calc(100% + 0.5rem)" data-attendu=""></div>
+  </div>
+</div>
+<!-- Signalés (3 px) : la même ligne, avec 3 px de contenu en trop. -->
+<div id="contenu-grand-parent" class="bloc contenant" data-attendu="contenu" data-attendu-depassement="3">
+  <div id="contenu-parent" data-attendu="contenu" data-attendu-depassement="3">
+    <div id="contenu-ligne" class="-mx-1 ligne" style="width: calc(100% + 0.5rem)" data-attendu="contenu" data-attendu-depassement="3">
+      <div style="width: calc(100% + 3px); height: 20px; background: #ccc"></div>
+    </div>
+  </div>
+</div>
+<!-- Signalés (3 px) : la ligne elle-même trop large de 3 px ; elle dépasse son parent de 7 px, sa marge en
+     excuse 4. -->
+<div id="large-grand-parent" class="bloc contenant" data-attendu="contenu" data-attendu-depassement="3">
+  <div id="large-parent" data-attendu="contenu" data-attendu-depassement="3">
+    <div id="large-ligne" class="-mx-1 ligne" style="width: calc(100% + 0.5rem + 3px)" data-attendu=""></div>
+  </div>
+</div>
+<!-- Signalés (4 px) : côté par côté — seule la marge GAUCHE est négative ; le dépassement à droite n'est diminué
+     de rien. -->
+<div id="gauche-grand-parent" class="bloc contenant" data-attendu="contenu" data-attendu-depassement="4">
+  <div id="gauche-parent" data-attendu="contenu" data-attendu-depassement="4">
+    <div id="gauche-ligne" class="ligne" style="margin-left: -0.25rem; width: calc(100% + 0.5rem)" data-attendu=""></div>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="fr" data-attendu-page="oui">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover">
+<title>Exclusion display none</title>
+<style>
+  body { margin: 8px; font: 14px sans-serif; }
+  .bloc { margin: 8px 0; }
+  .overflow-x-auto { overflow-x: auto; }
+  .sm\:overflow-x-auto { overflow-x: auto; }
+  .overflow-y-auto { overflow-y: auto; }
+  .overflow-hidden { overflow: hidden; }
+</style>
+</head>
+<body>
+<!-- Non signalé : display none, aucune boîte. -->
+<div id="absent" data-attendu="" style="display: none; width: 600px; height: 20px; background: #ccc"></div>
+<!-- Signalé : le même bloc affiché. -->
+<div id="present" data-attendu="geometrie" style="width: 600px; height: 20px; background: #ccc"></div>
+</body>
+</html>

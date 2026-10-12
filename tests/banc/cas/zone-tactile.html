@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="fr" data-attendu-page="non">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover">
+<title>Zone de toucher agrandie</title>
+<style>
+  body { margin: 8px; font: 14px sans-serif; }
+  .bloc { margin: 24px 0; }
+  .rangee { display: flex; justify-content: flex-end; width: 100px; height: 20px; background: #eee; }
+  button { width: 20px; height: 20px; padding: 0; border: 0; background: #9cf; }
+  /* Copie de src/index.css : la zone touchable atteint 44 px, le dessin ne bouge pas. */
+  .cible-tactile { position: relative; }
+  .cible-tactile::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    min-width: 44px;
+    min-height: 44px;
+    width: 100%;
+    height: 100%;
+    transform: translate(-50%, -50%);
+  }
+  /* Le même pseudo-élément, sous une autre classe. */
+  .autre-zone { position: relative; }
+  .autre-zone::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    min-width: 44px;
+    min-height: 44px;
+    width: 100%;
+    height: 100%;
+    transform: translate(-50%, -50%);
+  }
+  /* Un `::before` qui déborde, sur un élément `cible-tactile`. */
+  .avant::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 40px;
+    height: 20px;
+  }
+</style>
+</head>
+<body>
+<!-- Non signalés : la zone de toucher dépasse de 12 px à droite de la rangée, sans un pixel de dessin. -->
+<div id="rangee-tactile" class="bloc rangee" data-attendu="">
+  <button id="bouton-tactile" class="cible-tactile" data-attendu=""></button>
+</div>
+<!-- Signalés : le même ::after, sous une autre classe. -->
+<div id="rangee-autre" class="bloc rangee" data-attendu="contenu">
+  <button id="bouton-autre" class="autre-zone" data-attendu="contenu"></button>
+</div>
+<!-- Signalés : un ::before qui déborde, sur un élément cible-tactile — seul ::after est exclu. -->
+<div id="rangee-avant" class="bloc rangee" data-attendu="contenu">
+  <button id="bouton-avant" class="cible-tactile avant" data-attendu="contenu"></button>
+</div>
+<!-- Signalée : la rangée déborde AUSSI par un vrai enfant de 30 px de trop. -->
+<div id="rangee-double" class="bloc rangee" style="justify-content: flex-start" data-attendu="contenu">
+  <div style="flex: none; width: 110px; height: 20px; background: #ccc"></div>
+  <button id="bouton-double" class="cible-tactile" style="flex: none" data-attendu=""></button>
+</div>
+</body>
+</html>

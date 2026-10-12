@@ -38,6 +38,7 @@ import { testRenduOptimizerPointGestes, testRenduTelephoneOptimizerPointGestes, 
 import { verificationsImportReco } from './import-reco.test';
 import { verificationsImportRecoCopies } from './import-reco-copies.test';
 import testNavigation from './navigation.test';
+import testBancSelection from './banc-selection.test';
 import { testNavigationAdresses, testNavigationAdressesDefauts, testNavigationVuesCompte } from './navigation-adresses.test';
 import testPersistance from './persistance.test';
 import { testRenduOptimizerDialogueLeaderSkill, testRenduTelephoneOptimizerDialogueLeaderSkill,
@@ -479,6 +480,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRenduRtaAmi', testRenduRtaAmi],
   ['testSkillAdapters', testSkillAdapters],
   ['testImport', testImport],
+  ['testBancSelection', testBancSelection],
   ['testNavigation', testNavigation],
   ['testNavigationAdresses', testNavigationAdresses],
   ['testNavigationAdressesDefauts', testNavigationAdressesDefauts],

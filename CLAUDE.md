@@ -35,7 +35,8 @@ ouvrir. Ne pas explorer `src/` à l'aveugle.
 - **Pendant le travail, on ne lance QUE les vérifications de la zone touchée** :
   `node tests/run.mjs <filtre>` (ex. `node tests/run.mjs speed-tune`, plusieurs
   filtres possibles). La **suite complète** (`npm test`) est obligatoire **avant
-  une fusion sur `main`** — et **seulement là**. Détail dans « Vérifier ».
+  une fusion sur `main` ou dans une branche `release/*`** — et **seulement
+  là**. Détail dans « Vérifier ».
 - **Branches `forge/<sujet>`**, jamais `release/x.y.z` : le numéro se décide à la
   fusion.
 - **Toute page ou section ajoutée / renommée / supprimée** se répercute sur
@@ -102,7 +103,8 @@ node tests/run.mjs <filtre>       # SEULEMENT la zone touchée (ex. speed-tune)
 npm run build                     # Tailwind n'émet que ce qu'il trouve dans le SOURCE
 ```
 
-⚠️ **La suite complète ne se lance qu'avant une fusion sur `main`** :
+⚠️ **La suite complète ne se lance qu'avant une fusion sur `main` ou dans
+une branche `release/*`** :
 
 ```
 npm test                          # toutes les vérifications, rien de moins

@@ -360,4 +360,6 @@ ce calcul concret à chaque fois.
       `scripts/diagnostic-harness.ts` répond déjà — et si un script était
       quand même nécessaire, sa fidélité au chemin de prod a été diffée
       explicitement.
-- [ ] `npx tsc --noEmit`, `npm run lint`, `npm test` et `npm run build` passent.
+- [ ] `npx tsc --noEmit`, `npm run lint`, `node tests/run.mjs <filtre>` (la
+      zone touchée) et `npm run build` passent ; `npm test` seulement avant une
+      fusion sur `main` ou dans une branche `release/*` (`CLAUDE.md`).

@@ -10,6 +10,8 @@
 // conclure au débordement. Un élément sans `data-attendu` n'est pas vérifié.
 // `data-attendu-depassement="<px>"` exige en plus que son signalement
 // « contenu » retienne exactement ce dépassement (`depassement`, mesure.ts).
+// `data-attendu-avec="<id>,…"` exige que ses signalements « chevauchement »
+// nomment exactement ces éléments coupés (`avec`), ni plus ni moins.
 //
 // Codes : 0 tous les cas conformes ; 1 un cas non conforme ; 2 le script n'a
 // pas pu mesurer.
@@ -32,6 +34,7 @@ function lireAttentes() {
       id: el.id,
       regles: el.getAttribute('data-attendu').split(',').map((s) => s.trim()).filter(Boolean).sort(),
       depassement: el.getAttribute('data-attendu-depassement'),
+      avec: el.getAttribute('data-attendu-avec'),
     })),
   };
 }
@@ -52,7 +55,7 @@ try {
       if (mesure.page.deborde !== attendu) ecarts.push(`page : ${mesure.page.deborde ? 'signalée' : 'non signalée'}, attendu ${attentes.page}`);
     }
     const lignes = [];
-    for (const { id, regles, depassement } of attentes.elements) {
+    for (const { id, regles, depassement, avec } of attentes.elements) {
       if (!id) {
         ecarts.push('un élément porte data-attendu sans id');
         continue;
@@ -65,6 +68,13 @@ try {
         const vu = siens.find((s) => s.regle === 'contenu')?.depassement;
         conforme &&= vu === Number(depassement);
         px = ` ; dépassement attendu ${depassement} px, retenu ${vu ?? 'aucun'}`;
+      }
+      if (avec !== null) {
+        const attendus = avec.split(',').map((s) => s.trim()).filter(Boolean).sort();
+        const coupes = siens.filter((s) => s.regle === 'chevauchement');
+        const vus = coupes.map((s) => s.avec?.id ?? '?').sort();
+        conforme &&= vus.join(',') === attendus.join(',');
+        px += ` ; coupe attendue [${attendus.join(', ')}], vue [${coupes.map((s) => `${s.avec?.id ?? '?'} ${s.aire} px²`).join(', ')}]`;
       }
       lignes.push(`    ${conforme ? 'ok' : 'KO'}  #${id} : attendu [${regles.join(', ') || 'aucune'}], signalé [${vues.join(', ') || 'aucune'}]${px}`);
       if (!conforme) ecarts.push(`#${id}`);

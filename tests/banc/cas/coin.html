@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="fr" data-attendu-page="non">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover">
+<title>Icône en coin</title>
+<style>
+  body { margin: 8px; font: 14px sans-serif; }
+  .bloc { margin: 16px 0; width: 200px; }
+  /* Copie de MonsterAvatar : un avatar `relative`, son image, l'icône d'élément `absolute -top-1 -right-1`. */
+  .avatar { position: relative; display: inline-flex; width: 40px; height: 40px; flex: none; }
+  .image { display: block; width: 40px; height: 40px; background: #9cf; }
+  .-top-1 { top: -0.25rem; }
+  .-right-1 { right: -0.25rem; }
+  .icone { position: absolute; width: 16px; height: 16px; background: #f90; }
+</style>
+</head>
+<body>
+<!-- Non signalés : l'avatar entouré de place ; l'icône le dépasse de 4 px, exactement son décalage, et couvre son
+     image, qui est un descendant du bloc contenant. -->
+<div id="place-parent" class="bloc" style="padding: 8px" data-attendu="">
+  <span id="place-avatar" class="avatar" data-attendu="">
+    <span id="place-image" class="image" data-attendu=""></span>
+    <span id="place-icone" class="icone -top-1 -right-1" data-attendu=""></span>
+  </span>
+</div>
+<!-- Signalé (4 px) : le même avatar collé au bord droit de son parent ; le parent est au-delà du bloc contenant,
+     rien ne lui est soustrait. -->
+<div id="bord-parent" class="bloc" style="display: flex; justify-content: flex-end; padding-top: 8px" data-attendu="contenu" data-attendu-depassement="4">
+  <span id="bord-avatar" class="avatar" data-attendu="">
+    <span class="image"></span>
+    <span id="bord-icone" class="icone -top-1 -right-1" data-attendu=""></span>
+  </span>
+</div>
+<!-- Chevauchement : un texte voisin, collé à l'avatar, passe sous l'icône (4 px × 16 px). Ni son parent (ancêtre de
+     l'icône) ni l'image de l'avatar (descendant du bloc contenant) ne comptent. -->
+<div id="voisin-parent" class="bloc" style="display: flex; padding: 8px" data-attendu="">
+  <span id="voisin-avatar" class="avatar" data-attendu="">
+    <span class="image"></span>
+    <span id="voisin-icone" class="icone -top-1 -right-1" data-attendu="chevauchement" data-attendu-avec="voisin-texte"></span>
+  </span>
+  <span id="voisin-texte" data-attendu="">Nom du monstre</span>
+</div>
+<!-- Signalé (3 px) : l'icône dépasse son décalage de 3 px (`transform`), l'avatar en retient 3. -->
+<div class="bloc" style="padding: 8px">
+  <span id="decale-avatar" class="avatar" data-attendu="contenu" data-attendu-depassement="3">
+    <span class="image"></span>
+    <span id="decale-icone" class="icone -top-1 -right-1" style="transform: translateX(3px)" data-attendu=""></span>
+  </span>
+</div>
+<!-- Signalés (3 px) : le contenu de l'icône la dépasse de 3 px ; l'icône et l'avatar en retiennent 3. -->
+<div class="bloc" style="padding: 8px">
+  <span id="large-avatar" class="avatar" data-attendu="contenu" data-attendu-depassement="3">
+    <span class="image"></span>
+    <span id="large-icone" class="icone -top-1 -right-1" data-attendu="contenu" data-attendu-depassement="3">
+      <span style="display: block; width: calc(100% + 3px); height: 16px"></span>
+    </span>
+  </span>
+</div>
+<!-- Signalé (6 px) : `right` vaut `auto` (`left: 0` et une largeur trop grande) ; sa valeur utilisée est négative,
+     mais aucun décalage n'est déclaré : rien ne se soustrait, et pas de chevauchement à vérifier. -->
+<div class="bloc" style="padding: 8px">
+  <span id="auto-avatar" class="avatar" data-attendu="contenu" data-attendu-depassement="6">
+    <span class="image"></span>
+    <span id="auto-icone" class="icone" style="top: 0; left: 0; width: calc(100% + 6px); height: 4px" data-attendu=""></span>
+  </span>
+</div>
+<!-- Non signalé : `left: 0` et `right: -0.25rem`, largeur `auto` ; l'élément s'étire de 4 px au-delà de l'avatar,
+     exactement son décalage. -->
+<div class="bloc" style="padding: 8px">
+  <span id="etire-avatar" class="avatar" data-attendu="">
+    <span class="image"></span>
+    <span id="etire-icone" class="icone -top-1" style="left: 0; right: -0.25rem; width: auto" data-attendu=""></span>
+  </span>
+</div>
+<!-- Signalé (10 px) : `left`, `right` et `width` déclarés ; le navigateur ignore `right`, l'élément dépasse de 10 px
+     par sa position et sa largeur, rien ne vient du décalage. -->
+<div class="bloc" style="padding: 8px">
+  <span id="surcontraint-avatar" class="avatar" data-attendu="contenu" data-attendu-depassement="10">
+    <span class="image"></span>
+    <span id="surcontraint-icone" class="icone -top-1" style="left: 30px; right: -0.25rem; width: 20px" data-attendu=""></span>
+  </span>
+</div>
+<!-- Signalé (4 px) : un bloc qui porte sa propre icône ET un avatar collé à son bord droit ; on lui soustrait sa
+     propre icône, pas celle de l'avatar (dont il est un ancêtre au-delà du bloc contenant). -->
+<div class="bloc" style="padding: 8px">
+  <span id="mele-bloc" style="position: relative; display: flex; justify-content: flex-end; align-items: flex-start; width: 100px; height: 80px; padding-top: 8px; box-sizing: border-box; background: #eee" data-attendu="contenu" data-attendu-depassement="4">
+    <span id="mele-avatar" class="avatar" data-attendu="">
+      <span class="image"></span>
+      <span id="mele-icone-avatar" class="icone -top-1 -right-1" data-attendu=""></span>
+    </span>
+    <span id="mele-icone-bloc" class="icone" style="bottom: -0.25rem; right: -0.25rem" data-attendu=""></span>
+  </span>
+</div>
+</body>
+</html>

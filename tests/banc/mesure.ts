@@ -1,14 +1,16 @@
 // Règle de mesure du banc d'affichage — « rien ne déborde », axe horizontal
 // seul, tolérance de 1 px partout.
 //
-// Un écran DÉBORDE si l'une de ces trois conditions est vraie :
+// Un écran DÉBORDE si l'une de ces quatre conditions est vraie :
 //
 // - page : `documentElement.scrollWidth > L` ;
 // - contenu : un élément visible dont `scrollWidth` dépasse `clientWidth`,
 //   sauf si l'élément est lui-même un défilement voulu ;
 // - géométrie : un élément visible dont le rectangle sort de la fenêtre, à
 //   droite (`right > L`) ou à gauche (`left < 0`), sauf s'il est dans un
-//   défilement voulu ou dans un ancêtre qui le coupe.
+//   défilement voulu ou dans un ancêtre qui le coupe ;
+// - chevauchement : réservée aux éléments qui bénéficient de l'exception
+//   « icône en coin » (plus bas), sa contrepartie.
 //
 // Définitions :
 //
@@ -111,19 +113,71 @@
 //   sa géométrie : sortir de la fenêtre reste signalé. Rien ne se soustrait
 //   en `direction: rtl`, ni sur un élément qui porte déjà la propriété
 //   `translate` (signalement conservé). ⚠️ Un descendant `position: fixed`
-//   de l'élément prend celui-ci pour bloc contenant le temps du décalage.
+//   de l'élément prend celui-ci pour bloc contenant le temps du décalage ;
+// - icône en coin (l'icône d'élément de `MonsterAvatar`, `absolute -top-1
+//   -right-1`) : son contact avec SON bloc contenant (l'avatar) est permis,
+//   jamais avec le reste.
+//   · Qui en bénéficie : un élément `position: absolute` dont le décalage
+//     `right` est DÉCLARÉ négatif — valeur calculée qui n'est pas le mot-clé
+//     `auto` (`computedStyleMap`) ; sa valeur en px est celle de
+//     `getComputedStyle`. Relevé (sonde du lot 5, Chromium du banc) : un
+//     `right: auto` dont la valeur utilisée est négative (`left: 0` et une
+//     largeur trop grande) rend `-6px` par `getComputedStyle` mais `auto` par
+//     `computedStyleMap` — ce n'est pas un décalage voulu, son dépassement
+//     reste entier. Son bloc contenant doit être `body` ou un descendant, de
+//     direction `ltr`, et ne doit ni couper ni défiler (`overflow-x` calculé
+//     `visible`) : ce qui dépasse d'un bloc qui coupe ne touche rien, il est
+//     coupé — c'est le domaine du décoratif coupé, que l'utilisateur a voulu
+//     étroit (le halo cliquable d'une carte `overflow-hidden`, décalé de
+//     −40 px, reste signalé). Sinon, rien ne se soustrait et la règle
+//     « chevauchement » ne s'applique pas.
+//   · Côté par côté : document LTR, seul le côté droit entre dans
+//     `scrollWidth` ; un `left` négatif ne diminue rien (le dépassement à
+//     gauche n'est pas compté), et `top`/`bottom` sont hors de l'axe mesuré.
+//   · Contact : le dépassement que l'élément impose à son bloc contenant est
+//     diminué EXACTEMENT de son décalage droit ; ce qui dépasse encore est
+//     signalé (tolérance de 1 px). Au second passage, pour la seule relecture
+//     de son bloc contenant, son décalage est ramené à 0 (`right: 0`, avec
+//     `transition: none`, et sa largeur figée à sa valeur calculée quand
+//     `left` vaut `auto`, pour qu'une largeur `auto` ne prenne pas la place
+//     rendue). `translate` ne convient pas ici : relevé (sonde du lot 5),
+//     quand plusieurs icônes en reçoivent un ensemble, Chromium ne recalcule
+//     pas le `scrollWidth` du bloc de celle qui porte déjà un `transform`
+//     (47 px au lieu de 43) ; `right: 0` donne 43. Valeur surcontrainte (`left`,
+//     `right` et `width` déclarés) : le navigateur ignore `right` en LTR, le
+//     ramener à 0 ne change rien, et rien ne se soustrait — ce dépassement
+//     ne vient pas du décalage.
+//   · Jamais avec le reste : aucun ancêtre AU-DELÀ du bloc contenant, `html`
+//     compris, n'en profite — son dépassement se compte en entier ; la
+//     géométrie de l'élément ne change pas. Et la règle « chevauchement » :
+//     la boîte de l'élément (`getBoundingClientRect`, premier passage) ne
+//     coupe celle d'aucun élément visible (au sens plus haut, `visibility`
+//     visible) qui n'est ni un de ses ancêtres ni un descendant de son bloc
+//     contenant — coupe : intersection de plus de 1 px de large ET de haut.
+//     Signalé sur l'élément, avec l'autre élément (`avec`) et l'aire coupée
+//     (`aire`, px²) ; parmi les éléments coupés, seuls les plus profonds (un
+//     élément coupé dont un descendant est coupé aussi n'est pas repris).
+//     Elle ne porte pas sur un élément exclu (`visibility: hidden`,
+//     décoratif coupé, ellipsis). ⚠️ Limite nommée : les boîtes sont celles
+//     de la mise en page, sans la coupe d'un ancêtre `overflow` ni l'ordre
+//     d'empilement.
 //
 // Second passage : chaque signalement « contenu » d'un élément concerné par
-// une exception se relit une fois, toutes les neutralisations posées
-// ensemble ; la page, si elle déborde et qu'une marge négative y porte, se
-// relit avant, marges négatives seules. Puis tout est rendu tel quel avant
-// la fin de `mesurer` (la capture suit la mesure).
-// Neutralisations : décoratif coupé, `display: none` posé en ligne avec
-// `!important` ; zone de toucher, une feuille de style ajoutée le temps de la
-// lecture (`.cible-tactile::after { display: none !important }`) ; marge
-// négative, `translate` posé en ligne avec `!important`. Le signalement
-// garde ses valeurs du premier passage ; `depassement` porte celui qui
-// reste, `page.relue` la largeur de page relue.
+// une exception (et la page, si elle déborde et qu'une marge négative y
+// porte) se relit une fois, puis tout est rendu tel quel avant la fin de
+// `mesurer` (la capture suit la mesure). Trois temps, chacun ne posant que
+// les neutralisations qui valent pour ce qu'il relit : (1) marges négatives
+// seules, la page ; (2) en plus décoratifs coupés et zones de toucher, les
+// éléments qui ne sont le bloc contenant d'aucune icône en coin ; (3) en plus
+// les icônes en coin, chaque bloc contenant d'une icône — avec les seules
+// icônes dont il est le bloc (relu à part s'il contient une icône d'un autre
+// bloc). Neutralisations : décoratif coupé, `display: none` posé en ligne
+// avec `!important` ; zone de toucher, une feuille de style ajoutée le temps
+// de la lecture (`.cible-tactile::after { display: none !important }`) ;
+// marge négative, `translate` posé en ligne avec `!important` ; icône en
+// coin, `right: 0` en ligne avec `!important` (voir plus haut). Le
+// signalement garde ses valeurs du premier passage ;
+// `depassement` porte celui qui reste, `page.relue` la largeur de page relue.
 // ⚠️ Limite nommée : un décoratif EN FLUX retiré peut déplacer ses frères
 // (rangée flex, ligne de texte) ; la relecture porte alors sur une
 // disposition sans lui. Le halo est absolu : son retrait ne déplace rien.
@@ -132,7 +186,7 @@
 // envoie le texte. Elle ne référence donc rien hors d'elle-même — pas une
 // constante du module, pas un import.
 
-export type Regle = 'contenu' | 'geometrie';
+export type Regle = 'contenu' | 'geometrie' | 'chevauchement';
 
 export interface DescriptionElement {
   /**
@@ -169,6 +223,10 @@ export interface Signalement {
    * pseudo-élément ou de texte. Aide à la lecture, sans effet sur le verdict.
    */
   causes?: DescriptionElement[];
+  /** Règle « chevauchement » : l'élément dont la boîte est coupée (voir la tête). */
+  avec?: DescriptionElement;
+  /** Règle « chevauchement » : l'aire de l'intersection des deux boîtes, en px². */
+  aire?: number;
 }
 
 export interface Mesure {
@@ -187,9 +245,10 @@ export interface Mesure {
   elementsMesures: number;
   /**
    * `decoratifs` : éléments exclus comme décoratif coupé ; `leves` :
-   * signalements « contenu » levés au second passage (voir la tête).
+   * signalements « contenu » levés au second passage ; `coins` : éléments
+   * qui bénéficient de l'exception « icône en coin » (voir la tête).
    */
-  exclus: { ellipsis: number; invisibles: number; decoratifs: number; leves: number };
+  exclus: { ellipsis: number; invisibles: number; decoratifs: number; leves: number; coins: number };
   deborde: boolean;
 }
 
@@ -276,6 +335,26 @@ export function mesurer(options: { detail: boolean }): Mesure {
     return coupeur;
   };
 
+  // Icône en coin (tête) : le bloc contenant d'un élément au décalage droit
+  // déclaré négatif, et la largeur à figer pendant la relecture (`left`
+  // `auto`) ; `null` si l'élément n'en bénéficie pas.
+  const coinDe = (
+    el: Element,
+    s: CSSStyleDeclaration,
+  ): { bloc: Element; largeurFigee: string | null } | null => {
+    if (s.position !== 'absolute' || typeof el.computedStyleMap !== 'function') return null;
+    const carte = el.computedStyleMap();
+    const valeur = carte.get('right');
+    if (!valeur || valeur instanceof CSSKeywordValue) return null;
+    const droite = parseFloat(s.right);
+    if (!(droite < 0)) return null;
+    const bloc = suivant(el);
+    if (!bloc || bloc === racine) return null;
+    const sB = style(bloc);
+    if (sB.direction !== 'ltr' || sB.overflowX !== 'visible') return null;
+    return { bloc, largeurFigee: carte.get('left') instanceof CSSKeywordValue ? s.width : null };
+  };
+
   const decrire = (el: Element): DescriptionElement => {
     const segments: string[] = [];
     let profondeur = 0;
@@ -302,9 +381,25 @@ export function mesurer(options: { detail: boolean }): Mesure {
   const decoratifsVus: Element[] = [];
   // Marge négative (tête) : l'élément et la valeur absolue de sa marge droite.
   const margesNegatives: { el: Element; marge: number }[] = [];
+  // Icône en coin (tête) : l'élément et son bloc contenant.
+  const coins: { el: Element; bloc: Element; largeurFigee: string | null }[] = [];
+  // Règle « chevauchement » : les éléments visibles, leur boîte au premier
+  // passage, et ceux qui ont passé les exclusions.
+  const visibles: Element[] = [];
+  const boites = new Map<Element, DOMRect>();
+  const mesures = new Set<Element>();
   let elementsMesures = 0;
   let ellipsis = 0;
   let invisibles = 0;
+  const releve = (el: Element, r: DOMRect, regle: Regle): Signalement => ({
+    regle,
+    element: decrire(el),
+    gauche: Math.round(r.left * 10) / 10,
+    droite: Math.round(r.right * 10) / 10,
+    largeur: Math.round(r.width * 10) / 10,
+    scrollWidth: el.scrollWidth,
+    clientWidth: el.clientWidth,
+  });
   // `body` compris : un dépassement qu'il porte lui-même (marge négative…)
   // ne se voit sur aucun de ses descendants.
   for (const el of [document.body, ...Array.from(document.body.querySelectorAll('*'))]) {
@@ -314,10 +409,15 @@ export function mesurer(options: { detail: boolean }): Mesure {
     // dépassement à ses ancêtres.
     const margeDroite = parseFloat(s.marginRight);
     if (margeDroite < 0 && s.direction === 'ltr' && s.translate === 'none') margesNegatives.push({ el, marge: -margeDroite });
+    const coin = coinDe(el, s);
+    if (coin) coins.push({ el, ...coin });
     if (s.visibility === 'hidden' || s.visibility === 'collapse') {
       invisibles++;
       continue;
     }
+    const r = el.getBoundingClientRect();
+    visibles.push(el);
+    boites.set(el, r);
     if (coupeurDecoratif(el)) {
       decoratifsVus.push(el);
       continue;
@@ -329,16 +429,7 @@ export function mesurer(options: { detail: boolean }): Mesure {
       continue;
     }
     elementsMesures++;
-    const r = el.getBoundingClientRect();
-    const releve = (regle: Regle): Signalement => ({
-      regle,
-      element: decrire(el),
-      gauche: Math.round(r.left * 10) / 10,
-      droite: Math.round(r.right * 10) / 10,
-      largeur: Math.round(r.width * 10) / 10,
-      scrollWidth: el.scrollWidth,
-      clientWidth: el.clientWidth,
-    });
+    mesures.add(el);
     if (el.scrollWidth - el.clientWidth > TOLERANCE && !defilementVoulu(el)) {
       // Pour lire le signalement, pas pour le décider : les descendants les
       // plus hauts dont la boîte sort de celle de l'élément. Aucun : ce qui
@@ -361,51 +452,118 @@ export function mesurer(options: { detail: boolean }): Mesure {
         while (parent && parent !== el && !sort(parent)) parent = parent.parentElement;
         if (parent === el) causes.push(decrire(d));
       }
-      const signalement: Signalement = { ...releve('contenu'), depassement: el.scrollWidth - el.clientWidth, causes };
+      const signalement: Signalement = { ...releve(el, r, 'contenu'), depassement: el.scrollWidth - el.clientWidth, causes };
       signalements.push(signalement);
       elementDe.set(signalement, el);
     }
     const sort = r.right > largeur + TOLERANCE || r.left < -TOLERANCE;
-    if (sort && !abrite(suivant(el))) signalements.push(releve('geometrie'));
+    if (sort && !abrite(suivant(el))) signalements.push(releve(el, r, 'geometrie'));
+  }
+
+  // Règle « chevauchement » (tête) : contrepartie de l'icône en coin.
+  for (const { el, bloc } of coins) {
+    if (!mesures.has(el)) continue;
+    const r = boites.get(el) as DOMRect;
+    const aires = new Map<Element, number>();
+    for (const autre of visibles) {
+      if (autre.contains(el) || bloc.contains(autre)) continue;
+      const q = boites.get(autre) as DOMRect;
+      const l = Math.min(r.right, q.right) - Math.max(r.left, q.left);
+      const h = Math.min(r.bottom, q.bottom) - Math.max(r.top, q.top);
+      if (l > TOLERANCE && h > TOLERANCE) aires.set(autre, l * h);
+    }
+    const coupes = Array.from(aires.keys());
+    for (const autre of coupes) {
+      if (coupes.some((d) => d !== autre && autre.contains(d))) continue;
+      signalements.push({
+        ...releve(el, r, 'chevauchement'),
+        avec: decrire(autre),
+        aire: Math.round((aires.get(autre) as number) * 10) / 10,
+      });
+    }
   }
 
   // Second passage (tête) : les ancêtres concernés par une exception.
   const scrollWidth = document.documentElement.scrollWidth;
   let pageRelue: number | undefined;
   const ciblesTactiles = document.body.querySelector('.cible-tactile') !== null;
+  // Icône en coin : ses blocs contenants, et ceux qui contiennent en plus
+  // l'icône d'un autre bloc (relus à part : cette icône-là ne leur est pas
+  // soustraite).
+  const blocsCoins = new Set(coins.map((c) => c.bloc));
+  const estBlocCoin = (a: Element) => blocsCoins.has(a);
+  const blocMele = (a: Element) => coins.some((c) => c.bloc !== a && a.contains(c.el));
   const concerne = (a: Element) =>
     (ciblesTactiles && (a.classList.contains('cible-tactile') || a.querySelector('.cible-tactile') !== null)) ||
     decoratifsVus.some((d) => d !== a && a.contains(d) && (coupeurDecoratif(d) as Element).contains(a)) ||
-    margesNegatives.some(({ el }) => el !== a && a.contains(el));
+    margesNegatives.some(({ el }) => el !== a && a.contains(el)) ||
+    estBlocCoin(a);
   const aRelire = signalements.filter((s) => s.regle === 'contenu' && concerne(elementDe.get(s) as Element));
   const relirePage = scrollWidth > largeur + TOLERANCE && margesNegatives.length > 0;
   const leves = new Set<Signalement>();
   if (aRelire.length > 0 || relirePage) {
     const restaurer: (() => void)[] = [];
+    // Pose une valeur en ligne, `!important` ; rend de quoi la défaire.
     const poser = (el: Element, propriete: string, valeur: string) => {
       const st = (el as HTMLElement).style;
       const avant = st.getPropertyValue(propriete);
       const priorite = st.getPropertyPriority(propriete);
       st.setProperty(propriete, valeur, 'important');
-      restaurer.push(() => (avant ? st.setProperty(propriete, avant, priorite) : st.removeProperty(propriete)));
+      return () => (avant ? st.setProperty(propriete, avant, priorite) : st.removeProperty(propriete));
+    };
+    const relire = (s: Signalement) => {
+      const el = elementDe.get(s) as Element;
+      const reste = el.scrollWidth - el.clientWidth;
+      if (reste > TOLERANCE) s.depassement = reste;
+      else leves.add(s);
+    };
+    // Ramène le décalage droit des icônes données à 0 ; rend de quoi les remettre.
+    const decalerCoins = (liste: typeof coins) => {
+      const defaire: (() => void)[] = [];
+      for (const c of liste) {
+        defaire.push(poser(c.el, 'transition', 'none'));
+        if (c.largeurFigee !== null) defaire.push(poser(c.el, 'width', c.largeurFigee));
+        defaire.push(poser(c.el, 'right', '0px'));
+      }
+      return () => {
+        for (const d of defaire.reverse()) d();
+      };
     };
     try {
-      // La page d'abord, marges négatives seules : D9 ne vaut pas pour elle,
-      // et un décoratif est coupé avant `html`.
-      for (const { el, marge } of margesNegatives) poser(el, 'translate', `${-marge}px 0px`);
+      // (1) La page : marges négatives seules (D9 ne vaut pas pour elle, un
+      // décoratif est coupé avant `html`, une icône en coin s'arrête à son bloc).
+      for (const { el, marge } of margesNegatives) restaurer.push(poser(el, 'translate', `${-marge}px 0px`));
       if (relirePage) pageRelue = document.documentElement.scrollWidth;
-      for (const d of decoratifsVus) poser(d, 'display', 'none');
+      // (2) Les éléments qui ne sont le bloc d'aucune icône en coin.
+      for (const d of decoratifsVus) restaurer.push(poser(d, 'display', 'none'));
       if (ciblesTactiles) {
         const zones = document.createElement('style');
         zones.textContent = '.cible-tactile::after { display: none !important; }';
         (document.head ?? document.documentElement).appendChild(zones);
         restaurer.push(() => zones.remove());
       }
-      for (const s of aRelire) {
-        const el = elementDe.get(s) as Element;
-        const reste = el.scrollWidth - el.clientWidth;
-        if (reste > TOLERANCE) s.depassement = reste;
-        else leves.add(s);
+      for (const s of aRelire) if (!estBlocCoin(elementDe.get(s) as Element)) relire(s);
+      // (3) Les blocs d'icônes en coin : toutes les icônes ensemble pour un
+      // bloc qui ne contient que les siennes (décaler une icône hors d'un bloc
+      // ne change pas son `scrollWidth`), les siennes seules pour les autres.
+      const blocs = aRelire.filter((s) => estBlocCoin(elementDe.get(s) as Element));
+      const purs = blocs.filter((s) => !blocMele(elementDe.get(s) as Element));
+      if (purs.length > 0) {
+        const remettre = decalerCoins(coins);
+        try {
+          for (const s of purs) relire(s);
+        } finally {
+          remettre();
+        }
+      }
+      for (const s of blocs.filter((b) => !purs.includes(b))) {
+        const bloc = elementDe.get(s) as Element;
+        const remettre = decalerCoins(coins.filter((c) => c.bloc === bloc));
+        try {
+          relire(s);
+        } finally {
+          remettre();
+        }
       }
     } finally {
       for (const r of restaurer.reverse()) r();
@@ -413,11 +571,11 @@ export function mesurer(options: { detail: boolean }): Mesure {
   }
   const retenus = signalements.filter((s) => !leves.has(s));
   // Ordre de lecture, sans effet sur le verdict : la géométrie d'abord (ce
-  // qui sort de l'écran se voit), puis le plus profond d'abord — c'est le
-  // plus souvent la cause, ses ancêtres n'en sont que la conséquence.
-  retenus.sort(
-    (a, b) => (a.regle === b.regle ? 0 : a.regle === 'geometrie' ? -1 : 1) || b.element.profondeur - a.element.profondeur,
-  );
+  // qui sort de l'écran se voit), puis le chevauchement, puis le contenu ; le
+  // plus profond d'abord — c'est le plus souvent la cause, ses ancêtres n'en
+  // sont que la conséquence.
+  const rang: Record<Regle, number> = { geometrie: 0, chevauchement: 1, contenu: 2 };
+  retenus.sort((a, b) => rang[a.regle] - rang[b.regle] || b.element.profondeur - a.element.profondeur);
 
   const pageDeborde = (pageRelue ?? scrollWidth) > largeur + TOLERANCE;
   return {
@@ -427,7 +585,7 @@ export function mesurer(options: { detail: boolean }): Mesure {
     page: { scrollWidth, ...(pageRelue !== undefined ? { relue: pageRelue } : {}), deborde: pageDeborde },
     signalements: retenus,
     elementsMesures,
-    exclus: { ellipsis, invisibles, decoratifs: decoratifsVus.length, leves: leves.size },
+    exclus: { ellipsis, invisibles, decoratifs: decoratifsVus.length, leves: leves.size, coins: coins.length },
     deborde: pageDeborde || retenus.length > 0,
   };
 }

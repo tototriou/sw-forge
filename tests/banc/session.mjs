@@ -1,0 +1,161 @@
+// Session de navigateur du banc d'affichage : Chromium sans fenêtre, un
+// contexte par format, l'import du compte, les étapes de préparation d'un
+// état, la mesure et la capture.
+//
+// Distincte de la session du skill run-swblacksmith, dont elle reprend le
+// patron d'import : le banc possède son navigateur et son serveur, sert une
+// construction (pas le serveur de dev) et ne doit rien écrire sur la sortie
+// standard qui vienne de la page — avec un compte réel, un message de la
+// page peut porter un nom de monstre ou de joueur.
+
+import { chromium } from 'playwright';
+import { existsSync } from 'fs';
+import { FORMATS } from './ecrans.ts';
+import { medias, mesurer, stabiliser } from './mesure.ts';
+
+export { medias };
+
+// Conteneur Linux (claude.ai/code) : Chromium y est préinstallé pour une
+// autre version de Playwright. Même repli que la session du skill.
+const CHROMIUM_PREINSTALLE = '/opt/pw-browsers/chromium';
+
+export async function lancerNavigateur() {
+  return chromium.launch().catch((err) => {
+    if (!existsSync(CHROMIUM_PREINSTALLE)) throw err;
+    return chromium.launch({ executablePath: CHROMIUM_PREINSTALLE });
+  });
+}
+
+/** Options du contexte Playwright d'un format. */
+export function optionsFormat(format) {
+  const f = FORMATS[format];
+  return {
+    viewport: { width: f.largeur, height: f.hauteur },
+    deviceScaleFactor: 1,
+    isMobile: f.tactile,
+    hasTouch: f.tactile,
+  };
+}
+
+/**
+ * Un contexte au format voulu, avec un compteur des messages d'erreur de ses
+ * pages : on en garde le NOMBRE, et le texte seulement si `garderTextes`.
+ */
+export async function ouvrirContexte(navigateur, format, { etatStockage, garderTextes }) {
+  const contexte = await navigateur.newContext({
+    ...optionsFormat(format),
+    ...(etatStockage ? { storageState: etatStockage } : {}),
+  });
+  const messages = { erreursPage: 0, erreursConsole: 0, textes: [] };
+  contexte.on('page', (page) => suivreMessages(page, messages, garderTextes));
+  return { contexte, messages };
+}
+
+function suivreMessages(page, messages, garderTextes) {
+  page.on('pageerror', (err) => {
+    messages.erreursPage++;
+    if (garderTextes) messages.textes.push(`[pageerror] ${err.message}`);
+  });
+  page.on('console', (msg) => {
+    if (msg.type() !== 'error') return;
+    messages.erreursConsole++;
+    if (garderTextes) messages.textes.push(`[console.error] ${msg.text()}`);
+  });
+}
+
+/** Erreur du banc dont le message est écrit par le banc, jamais par la page. */
+export class ErreurBanc extends Error {}
+
+/**
+ * Importe `compte` et ferme la boîte de consentement, puis rend l'état du
+ * stockage (IndexedDB compris) : chaque état mesuré repart de lui.
+ *
+ * ⚠️ Pas par le premier `input[type=file]` de l'accueil : c'est l'import RTA.
+ * À l'ordinateur, bouton « Importer un compte » de la barre latérale ; au
+ * téléphone la barre est repliée, on vise l'input `accept=json` du pied.
+ * Un import refusé ne lève rien : on le détecte à l'écran.
+ */
+export async function importerCompte(page, base, compte) {
+  await page.goto(`${base}/#/compte/runes`, { waitUntil: 'networkidle' });
+  const bouton = page.getByRole('button', { name: 'Importer un compte', exact: true }).filter({ visible: true });
+  if ((await bouton.count()) === 1) {
+    const [selecteur] = await Promise.all([page.waitForEvent('filechooser'), bouton.click()]);
+    await selecteur.setFiles(compte);
+  } else {
+    const champ = page.locator('input[type="file"][accept*="json"]').last();
+    if ((await champ.count()) === 0) throw new ErreurBanc('import du compte : aucun champ d’import trouvé');
+    await champ.setInputFiles(compte);
+  }
+  // Boîte de consentement (IndexedDB) au tout premier import : on l'attend,
+  // bornée — son absence n'est pas une erreur, l'import refusé en est une.
+  const garder = page.getByRole('button', { name: /Garder mes données/ });
+  await garder.waitFor({ state: 'visible', timeout: 5000 }).catch(() => {});
+  if (await garder.isVisible().catch(() => false)) await garder.click();
+  await page.waitForLoadState('networkidle');
+  if (await compteAbsent(page)) throw new ErreurBanc('import du compte refusé : l’app n’a chargé aucune donnée');
+  // L'app écrit le compte dans IndexedDB APRÈS le consentement, sans rien
+  // afficher : un état pris trop tôt n'a que localStorage, et chaque état
+  // mesuré ensuite s'ouvrirait sans compte. On attend un état du stockage qui
+  // porte au moins un enregistrement IndexedDB et ne change plus pendant 1 s.
+  const debut = Date.now();
+  let precedent = null;
+  let stableDepuis = Date.now();
+  while (Date.now() - debut < 15000) {
+    const etat = await page.context().storageState({ indexedDB: true });
+    const texte = JSON.stringify(etat);
+    const enregistrements = etat.origins.flatMap((o) => o.indexedDB ?? []).flatMap((d) => d.stores).reduce((n, s) => n + s.records.length, 0);
+    if (texte !== precedent) {
+      precedent = texte;
+      stableDepuis = Date.now();
+    } else if (enregistrements > 0 && Date.now() - stableDepuis >= 1000) {
+      return etat;
+    }
+    await page.waitForTimeout(250);
+  }
+  throw new ErreurBanc('import du compte : le stockage du navigateur ne s’est pas stabilisé (IndexedDB vide ou en écriture)');
+}
+
+/** L'app dit qu'aucun compte n'est chargé (message de l'Optimizer et des écrans de compte). */
+export async function compteAbsent(page) {
+  return page.getByText('Aucune donnée de compte chargée').isVisible().catch(() => false);
+}
+
+/** Attend que la page se pose (voir `stabiliser`). */
+export async function attendrePose(page) {
+  return page.evaluate(stabiliser, { calmeMs: 400, maxMs: 6000 });
+}
+
+function decrireCible(c) {
+  return `${c.role} « ${c.nom} »`;
+}
+
+/**
+ * Joue les étapes d'un état. Une cible doit désigner exactement un élément
+ * visible : sinon l'état est inatteignable, avec la cause.
+ */
+export async function preparer(page, etapes) {
+  for (const etape of etapes) {
+    const cible = 'cliquer' in etape ? etape.cliquer : etape.attendre;
+    const loc = page.getByRole(cible.role, { name: cible.nom, exact: true }).filter({ visible: true });
+    if ('attendre' in etape) {
+      await loc.first().waitFor({ state: 'visible', timeout: 5000 }).catch(() => {});
+    }
+    const n = await loc.count();
+    if (n !== 1) {
+      throw new ErreurBanc(`${'cliquer' in etape ? 'cliquer' : 'attendre'} ${decrireCible(cible)} : ${n} élément(s) visible(s), 1 attendu`);
+    }
+    if ('cliquer' in etape) await loc.click();
+  }
+}
+
+/** Attend que la page se pose, mesure, capture. */
+export async function mesurerEtCapturer(page, capture) {
+  const posee = await attendrePose(page);
+  const mesure = await page.evaluate(mesurer);
+  // ⚠️ La fenêtre seule, pas `fullPage` : Playwright agrandit alors la
+  // fenêtre le temps de la capture, la page se recompose (éléments fixes au
+  // milieu, panneau flottant repositionné en plein fondu) et l'image ne
+  // montre plus ce qui a été mesuré.
+  await page.screenshot({ path: capture });
+  return { posee, mesure };
+}

@@ -21,8 +21,9 @@ correspond (voir [index.ts](index.ts)).
 | Outillage | hooks, `spec-lint`, `spec-toc`, renvois | les garde-fous du dépôt, dans des dépôts jetables |
 | Bureau | `bureau-*.test.ts` | les modules purs de l'application de bureau |
 
-**Ce qui ne l'est pas** : aucune vérification ne pilote un navigateur ni ne
-simule une interaction (clic, saisie). Un rendu serveur n'exécute ni effet ni
+**Ce qui ne l'est pas** : aucune vérification de `npm test` ne pilote un
+navigateur ni ne simule une interaction (clic, saisie) — le banc
+d'affichage, plus bas, le fait hors de la suite. Un rendu serveur n'exécute ni effet ni
 gestionnaire d'évènement : ce qui se passe *après* un clic ne se vérifie
 qu'à l'écran.
 
@@ -38,6 +39,47 @@ fois **grave et invisible** — ils restent le cœur de la suite :
 
 Aucun de ces symptômes n'est reproductible à la demande, et aucun ne sera
 remonté correctement par un utilisateur. C'est ce qui justifie de les figer ici.
+
+## Le banc d'affichage
+
+[banc/](banc/) — **hors de `npm test` et de la CI**, lancé à la main :
+
+```bash
+node tests/banc/run.mjs --tous --compte tests/fixtures/compte-miniature.json
+node tests/banc/run.mjs --ecrans optimizer      # un seul écran
+node tests/banc/cas.mjs                         # la règle sur ses pages de cas
+```
+
+Il construit l'app (`vite build` dans un dossier temporaire), la sert
+(`vite preview`), l'ouvre dans Chromium sans fenêtre (Playwright) au
+téléphone (360 × 800, tactile) et à l'ordinateur (1400 × 1000), amène chaque
+écran dans chacun de ses états ([banc/ecrans.ts](banc/ecrans.ts)) et vérifie
+un **invariant** : rien ne déborde à l'horizontale. La règle, ses définitions
+et ses exclusions sont écrites en tête de [banc/mesure.ts](banc/mesure.ts) ;
+chaque règle et chaque exclusion a une page de [banc/cas/](banc/cas/), un cas
+signalé et un cas non signalé, que vérifie [banc/cas.mjs](banc/cas.mjs).
+
+- **Ce qu'il ne fait pas** : comparer des captures. Il en prend une par
+  écran, état et format, pour qu'on voie ce qui a été mesuré ; aucune n'est
+  une référence.
+- **Codes** : 0 rien ne déborde, 1 un débordement, 2 le banc n'a pas pu
+  mesurer (Chromium absent, construction ou serveur en échec, état
+  inatteignable, compte ou sortie refusés). Il ferme son navigateur et son
+  serveur dans tous les cas, puis vérifie que le port est rendu.
+- **Sortie** : `--sortie <dossier>` (ou `SWB_BANC_SORTIE`), sinon un dossier
+  temporaire : les captures et `manifeste.json` (révision et empreinte de
+  l'état de travail de l'arbre construit, révision du banc, formats et
+  médias du pointeur, résultats, ce qui n'a pas été exercé, empreinte du
+  compte).
+- **Compte** : `--compte <fichier>` seulement, jamais une variable
+  d'environnement ; sans lui, le compte d'exemple. Un fichier hors de
+  `tests/fixtures/` est traité comme un **compte réel** : sortie obligatoirement
+  hors de tout dépôt Git, et aucun message de la page sur la sortie standard
+  (seulement leur nombre).
+- `--racine <dossier>` mesure un autre arbre (un worktree, un vieux commit) ;
+  ses dépendances doivent être installées.
+- Ses fichiers passent par `tsc` et ESLint comme le reste de `tests/`, CI
+  comprise : seul son lancement est manuel.
 
 ## Choix d'outillage
 

@@ -40,7 +40,7 @@ trop gros et mal routés au lieu d'en corriger la cause.
   `05-decisions`, `06-exploitation`, `07-pilotage` ; carte
   `docs/README.md` avec les règles de la documentation (charte, lot 0).
 - Chaque dossier sous `docs/` a un `README.md` qui liste chacun de ses
-  documents en une ligne : « quelle question ce fichier répond-il ».
+  documents en une ligne : ce qu'on y trouve.
 - Un contenu à un seul endroit : les autres pointent.
 - Profondeur de 3 niveaux au plus sous `docs/` (`assets/` non compté).
 - `README.md` racine court ; `ARCHITECTURE.md` et `tests/README.md` absorbés

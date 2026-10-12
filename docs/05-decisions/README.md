@@ -2,7 +2,7 @@
 
 Pourquoi c'est comme ça : les décisions durables (ADR) et les cadrages de chantier en cours.
 
-| Dossier | Question |
+| Dossier | Contenu |
 | --- | --- |
-| [adr/](adr/README.md) | Quelles décisions durables ont été prises, et pourquoi ? |
-| [cadrages/](cadrages/README.md) | Quels chantiers sont en cours, et comment sont-ils découpés ? |
+| [adr/](adr/README.md) | Les décisions durables (ADR) : contexte, choix, conséquences. |
+| [cadrages/](cadrages/README.md) | Les cadrages des chantiers en cours : diagnostic, lots, arbitrages ouverts. |

@@ -3,7 +3,7 @@
 > Statut : **documentation vivante** — mise à jour dans le **même commit** que le code qu'elle
 > décrit. La vérité = le code + la documentation vivante + les ADR. Cette page est la **carte** :
 > une ligne par section ; chaque section a son propre `README.md`, avec une ligne par document
-> (« quelle question ce fichier répond-il »). Parcours : cette carte → le README de section → le
+> (ce qu'on y trouve). Parcours : cette carte → le README de section → le README du dossier → le
 > document.
 
 ## Sections
@@ -38,8 +38,8 @@
 
 ### Sommaires et découvrabilité
 
-6. **Un `README.md` par dossier, une ligne par document** : la question à laquelle il répond.
-   On ne compte jamais sur le seul nom de fichier.
+6. **Un `README.md` par dossier, une ligne par document ou sous-dossier** : ce qu'on y trouve,
+   de quoi choisir le bon fichier sans l'ouvrir. On ne compte jamais sur le seul nom de fichier.
 7. **Tout nouveau document entre dans le README de son dossier, dans le même commit.**
 
 ### Schémas
@@ -62,6 +62,15 @@
     car un lien vers lui mourrait à sa disparition ; **(b)** un cadrage n'est **pas une source de
     vérité** : une décision ou une convention vit dans un ADR ou dans la documentation, jamais
     seulement dans un cadrage.
+
+### Taille
+
+12. **500 lignes au plus par document**, et un bloc sous un titre de 80 lignes visées, 100 au
+    plus. Au-delà, le document se découpe en documents frères, chacun listé dans le README de son
+    dossier : on segmente autant qu'il faut, et ce sont les README qui guident jusqu'au bon
+    fichier. Un découpage ne perd aucune règle : la compacité ne passe jamais avant le contenu.
+    Le contrat détaillé et le périmètre vérifié par `spec-lint` sont dans
+    [03-developpeur/outillage-docs.md](03-developpeur/outillage-docs.md).
 
 ### Conventions de rédaction
 

@@ -165,9 +165,13 @@
 //     géométrie de l'élément ne change pas. Et la règle « chevauchement » :
 //     la boîte de l'élément (`getBoundingClientRect`, premier passage) ne
 //     coupe celle d'aucun élément visible (au sens plus haut, `visibility`
-//     visible) DU MÊME PLAN qui n'est ni un de ses ancêtres ni un descendant
-//     de son bloc contenant — coupe : intersection de plus de 1 px de large
-//     ET de haut. Même plan : le même ancêtre (l'élément compris) le plus
+//     visible) DU MÊME PLAN qui n'est ni un de ses ancêtres ni le contenu en
+//     flux de son bloc contenant — coupe : intersection de plus de 1 px de
+//     large ET de haut. Contenu en flux : un descendant du bloc dont ni lui
+//     ni aucun ancêtre jusqu'au bloc n'est `absolute` ou `fixed` (le
+//     portrait) ; une pastille ou un badge positionné dans l'avatar (passé en
+//     `children` à `MonsterAvatar`) est « le reste » et se compare (relecture
+//     Codex n° 5, tests/banc/cas/coin-pastille.html). Même plan : le même ancêtre (l'élément compris) le plus
 //     proche en `position: fixed` ou `sticky`, ou aucun pour les deux. Une
 //     barre ou un en-tête fixe ou collant, une modale, passent au-dessus du
 //     contenu qui défile sous eux : leurs boîtes se coupent sans que l'icône
@@ -507,13 +511,19 @@ export function mesurer(options: { detail: boolean }): Mesure {
     plans.set(e, plan);
     return plan;
   };
+  // Le contenu en flux du bloc (le portrait) : un descendant du bloc dont ni
+  // lui ni aucun ancêtre jusqu'au bloc n'est `absolute` ou `fixed`.
+  const enFluxDe = (e: Element, bloc: Element) => {
+    for (let a: Element | null = e; a && a !== bloc; a = a.parentElement) if (mode(style(a)) !== 'flux') return false;
+    return true;
+  };
   for (const { el, bloc } of coins) {
     if (!mesures.has(el)) continue;
     const r = boites.get(el) as DOMRect;
     const plan = planDe(el);
     const aires = new Map<Element, number>();
     for (const autre of visibles) {
-      if (autre.contains(el) || bloc.contains(autre)) continue;
+      if (autre.contains(el) || (bloc.contains(autre) && enFluxDe(autre, bloc))) continue;
       if (planDe(autre) !== plan) continue;
       const q = boites.get(autre) as DOMRect;
       const l = Math.min(r.right, q.right) - Math.max(r.left, q.left);

@@ -27,14 +27,15 @@
 2. **Numéroter seulement là où l'ordre de lecture compte** (les sections, la présentation).
    Ailleurs, des noms stables : une séquence numérotée force des renommages en cascade à chaque
    insertion, donc des liens cassés.
-3. **Trois niveaux au plus** sous `docs/` (`docs/<section>/<dossier>/<fichier>.md`) ; un dossier
-   `assets` ne compte pas, ce sont des ressources.
+3. **Autant de niveaux qu'il en faut** sous `docs/` : la profondeur n'est pas limitée, parce que
+   chaque dossier a son `README.md` qui guide vers le bon fichier (règle 6). Un dossier `assets`
+   contient des ressources, pas des documents.
 4. **Une page ou un outil de l'app = un dossier avec `README.md`** (sa fiche), même quand une page
    suffirait : passer d'un fichier à un dossier casserait les renvois, et l'uniformité donne un
    motif de découverte unique (`02-app/*/README.md`).
-5. **Une fonctionnalité : `feat-<slug>.md`**, à plat dans le dossier de sa page — pas de
-   quatrième niveau. **Le slug reprend le nom du code** quand il existe. Une fonctionnalité qui
-   sert plusieurs pages va dans le dossier `transverse` de `02-app`.
+5. **Une fonctionnalité : `feat-<slug>.md`**, dans le dossier de sa page. **Le slug reprend le
+   nom du code** quand il existe. Une fonctionnalité qui sert plusieurs pages va dans le dossier
+   `transverse` de `02-app`.
 
 ### Sommaires et découvrabilité
 
@@ -66,9 +67,10 @@
 ### Taille
 
 12. **500 lignes au plus par document**, et un bloc sous un titre de 80 lignes visées, 100 au
-    plus. Au-delà, le document se découpe en documents frères, chacun listé dans le README de son
-    dossier : on segmente autant qu'il faut, et ce sont les README qui guident jusqu'au bon
-    fichier. Un découpage ne perd aucune règle : la compacité ne passe jamais avant le contenu.
+    plus. Au-delà, le document **devient un dossier à son nom** (`feat-<slug>.md` devient le dossier `feat-<slug>`) : son
+    `README.md` garde l'introduction et liste les parties, une par fichier. On segmente autant
+    qu'il faut ; ce sont les README qui guident jusqu'au bon fichier. Un découpage ne perd aucune
+    règle : la compacité ne passe jamais avant le contenu.
     Le contrat détaillé et le périmètre vérifié par `spec-lint` sont dans
     [03-developpeur/outillage-docs.md](03-developpeur/outillage-docs.md).
 

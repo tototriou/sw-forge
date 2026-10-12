@@ -42,7 +42,8 @@ trop gros et mal routés au lieu d'en corriger la cause.
 - Chaque dossier sous `docs/` a un `README.md` qui liste chacun de ses
   documents en une ligne : ce qu'on y trouve.
 - Un contenu à un seul endroit : les autres pointent.
-- Profondeur de 3 niveaux au plus sous `docs/` (`assets/` non compté).
+- Profondeur libre sous `docs/` : chaque dossier a son README qui guide
+  (décidé le 2026-10-12, à la place de 3 niveaux au plus).
 - `README.md` racine court ; `ARCHITECTURE.md` et `tests/README.md` absorbés
   dans `docs/` (ils pointent ou disparaissent).
 - Liens internes relatifs, vérifiés en CI ; plus aucun `spec/` dans le dépôt.

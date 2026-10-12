@@ -84,7 +84,6 @@ ouvrir. Ne pas explorer `src/` à l'aveugle.
 - **Jamais un `confirm()` dont OK détruit** : le défaut est l'action sans perte.
 - **Aucune couleur Tailwind native**, aucune valeur en dur : tout passe par les
   tokens ([docs/03-developpeur/interface/](docs/03-developpeur/interface/)).
-- **Passe responsive en cours** — ne pas rustiner le mobile écran par écran.
 
 Détail complet des conventions produit (persistance, réglages, champs
 numériques, etc.) : [docs/03-developpeur/](docs/03-developpeur/), section « Conventions

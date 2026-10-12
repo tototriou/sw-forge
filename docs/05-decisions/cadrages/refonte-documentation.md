@@ -48,8 +48,9 @@ trop gros et mal routés au lieu d'en corriger la cause.
   dans `docs/` (ils pointent ou disparaissent).
 - Liens internes relatifs, vérifiés en CI ; plus aucun `spec/` dans le dépôt.
 - `spec-lint`, `spec-toc`, `spec-markdown`, le test d'écriture publique et
-  la liste des publiés de l'Optimizer retirés ; markdownlint avec deux
-  règles maison les remplace (lot 9).
+  la liste des publiés de l'Optimizer retirés, sans remplaçant : les règles
+  de forme sont des conventions écrites dans la documentation (décidé le
+  2026-10-12, à la place de markdownlint ; lot 9).
 
 **Hors périmètre** (chacun a sa ligne dans `07-pilotage`, lot 8) :
 
@@ -142,9 +143,9 @@ Notation : `A → B : B requiert A`.
 - 2 → 3 (les garde-fous public/privé visent des chemins `spec/` que le
   déplacement ferait mentir)
 - 3 → 4, 5, 6, 7, 8 (le contenu se réécrit à sa place définitive)
-- 4, 5, 6, 7, 8 → 9 (markdownlint et ses règles de taille et d'index
-  supposent la structure finale ; `spec-toc` ne disparaît qu'une fois les
-  gros fichiers découpés)
+- 6 → 9 (`spec-toc` ne disparaît qu'une fois les gros fichiers découpés ;
+  sans outil de remplacement à configurer, le lot 9 n'attend plus la
+  structure finale et passe avant les lots 5, 7 et 8)
 
 Ordre d'exécution = ordre des numéros.
 
@@ -161,7 +162,7 @@ Ordre d'exécution = ordre des numéros.
 | 6c — `02-app` : Optimizer | J | en cours (README) | 2026-10-12, voir Résultat |
 | 7 — `04-conformite` et `06-exploitation` | J | à faire | |
 | 8 — `05-decisions` et `07-pilotage` | J | à faire | |
-| 9 — markdownlint, retrait de l'outillage maison | M | à faire | |
+| 9 — retrait de l'outillage maison | M | fait | `cd1367d0`, 2026-10-12 |
 
 ## Partie B — un contrat par lot
 
@@ -369,7 +370,7 @@ qui pourraient viser directement la partie citée.
   rétrospectif ne s'écrit que pour un choix encore en vigueur et cité.
 - **Ne fait pas** : ne corrige aucune dette.
 
-### Lot 9 — markdownlint, retrait de l'outillage maison
+### Lot 9 — retrait de l'outillage maison
 
 - **Intrant** : la structure finale ; `scripts/spec-lint.mjs`,
   `scripts/spec-toc.mjs`, `scripts/lib/spec-markdown.mjs` et leurs tests.
@@ -384,3 +385,25 @@ qui pourraient viser directement la partie citée.
   'spec-lint|spec-toc|spec-markdown'` vide hors historique ;
   `npm test` complet vert.
 - **Ne fait pas** : aucun contenu réécrit.
+
+#### Résultat (2026-10-12)
+
+Écart au contrat, décidé par Thomas : **pas de markdownlint ni de règle
+maison**. La documentation doit se suffire : ses règles de forme sont des
+conventions, écrites dans la charte et dans
+`docs/03-developpeur/documentation.md` (bonnes pratiques), tenues à
+l'écriture et en relecture. Seuls les liens restent vérifiés, par le test
+des renvois.
+
+`cd1367d0` : retrait de `spec-lint`, `spec-toc`, `spec-markdown`,
+`scripts/spec-lint.json`, de leurs tests et fixtures, de l'étape du
+`pre-commit` et du skill `spec-hygiene` ; l'installateur retire leurs
+copies installées. Le contenu encore valable de l'ancien document de
+l'outillage passe dans `documentation.md`, le README du moteur de
+l'Optimizer (critère des invariants) et `qualite-code.md` (niveaux
+d'application, refus du `pre-commit`, installation des hooks).
+`git grep -E 'spec-lint|spec-toc|spec-markdown'` ne rend plus que ce
+cadrage et la liste des chemins retirés de l'installateur. Vérifié :
+`npx tsc --noEmit` ; `node tests/run.mjs renvois precommit installerhooks
+installationautomatique verifiercommits skilladapters commitmsg` (176
+passées). `npm test` complet : avant la fusion.

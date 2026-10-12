@@ -15,7 +15,7 @@
 
 import { spawn } from 'child_process';
 import { createHash } from 'crypto';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'fs';
+import { existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'fs';
 import net from 'net';
 import { tmpdir } from 'os';
 import { dirname, join, relative, resolve, sep, isAbsolute } from 'path';
@@ -52,8 +52,10 @@ Options :
                        hors de tests/fixtures/, il est traité comme un compte réel :
                        sortie obligatoirement hors de tout dépôt Git, aucun message
                        de la page sur la sortie standard
-  --sortie <dossier>   captures et manifeste.json (défaut : SWB_BANC_SORTIE, sinon
-                       un dossier temporaire)
+  --sortie <dossier>   où créer le sous-dossier neuf de l'exécution (banc-…), qui
+                       reçoit captures et manifeste.json (défaut : SWB_BANC_SORTIE,
+                       sinon le dossier temporaire du système) ; une destination
+                       liée (lien, jonction) est refusée
   --aide               cette aide
 
 Codes : 0 rien ne déborde · 1 débordement · 2 le banc n'a pas pu mesurer.`;
@@ -102,6 +104,23 @@ function depotGitContenant(chemin) {
     if (existsSync(join(d, '.git'))) return d;
     if (dirname(d) === d) return null;
   }
+}
+
+/** Le chemin, ou le premier de ses ancêtres existants, qui est un lien (jonction comprise), ou null. */
+function premierLien(chemin) {
+  for (let d = resolve(chemin); ; d = dirname(d)) {
+    try {
+      if (lstatSync(d).isSymbolicLink()) return d;
+    } catch {
+      // n'existe pas encore : rien à suivre
+    }
+    if (dirname(d) === d) return null;
+  }
+}
+
+/** Écrit un fichier en création exclusive : jamais par-dessus un fichier existant. */
+function ecrireExclusif(chemin, donnees) {
+  writeFileSync(chemin, donnees, { flag: 'wx' });
 }
 
 function git(racine, args) {
@@ -266,15 +285,23 @@ async function principal(etat) {
   const compteEmpreinte = sha256(readFileSync(compte));
 
   // ── Sortie ──
-  const sortieDemandee = args.sortie ?? process.env.SWB_BANC_SORTIE ?? null;
+  // La destination reçoit un sous-dossier NEUF, créé par le banc en
+  // exclusif (`mkdtemp`) : une exécution n'écrase jamais une autre, ni un
+  // fichier qui l'attendait. Une destination liée (lien symbolique,
+  // jonction), elle ou un de ses ancêtres, est refusée : la sortie d'un
+  // compte réel ne doit pas pouvoir être redirigée dans un dépôt.
+  const destination = resolve(args.sortie ?? process.env.SWB_BANC_SORTIE ?? tmpdir());
+  const lien = premierLien(destination);
+  if (lien) throw new Refus(`--sortie : destination liée (lien ou jonction : ${lien})`);
+  mkdirSync(destination, { recursive: true });
+  if (premierLien(destination)) throw new Refus('--sortie : destination liée (lien ou jonction)');
   if (nature === 'reel') {
-    const depot = depotGitContenant(sortieDemandee ?? tmpdir());
+    const depot = depotGitContenant(destination);
     if (depot) {
       throw new Refus(`compte réel : la sortie doit être hors de tout dépôt Git (dépôt trouvé : ${depot})`);
     }
   }
-  const sortie = sortieDemandee ? resolve(sortieDemandee) : mkdtempSync(join(tmpdir(), 'swb-banc-'));
-  mkdirSync(sortie, { recursive: true });
+  const sortie = mkdtempSync(join(destination, 'banc-'));
   etat.sortie = sortie;
 
   const manifeste = {
@@ -391,14 +418,17 @@ async function principal(etat) {
             // La capture de l'écran où la préparation s'est arrêtée : de quoi
             // voir ce qui manquait, sans relancer.
             resultat.capture = `${ecran.id}--${st.id}--${format}--non-atteint.png`;
-            await page.screenshot({ path: join(sortie, resultat.capture) }).catch(() => (resultat.capture = null));
+            const image = await page.screenshot({ timeout: 15000 }).catch(() => null);
+            if (image) ecrireExclusif(join(sortie, resultat.capture), image);
+            else resultat.capture = null;
             resultat.messages = compter(messages, garderTextes);
             console.log(`${nom.padEnd(64)} NON ATTEINT : ${resultat.cause}`);
             continue;
           }
           // Compte réel : descriptions structurelles seulement (ni `id` ni
           // classes), dans le manifeste comme sur la sortie standard.
-          const { posee, mesure } = await mesurerEtCapturer(page, join(sortie, capture), { detail: garderTextes });
+          const { posee, mesure, image } = await mesurerEtCapturer(page, { detail: garderTextes });
+          ecrireExclusif(join(sortie, capture), image);
           resultat.statut = 'mesure';
           resultat.capture = capture;
           resultat.posee = posee;
@@ -485,7 +515,7 @@ try {
 if (etat.manifeste && etat.sortie) {
   etat.manifeste.durees.totaleMs = Date.now() - debut;
   etat.manifeste.code = code;
-  writeFileSync(join(etat.sortie, 'manifeste.json'), `${JSON.stringify(etat.manifeste, null, 2)}\n`);
+  ecrireExclusif(join(etat.sortie, 'manifeste.json'), `${JSON.stringify(etat.manifeste, null, 2)}\n`);
   console.log(`sortie : ${etat.sortie}${sep}`);
 }
 console.log(`durée : ${secondes(Date.now() - debut)} ; code ${code}`);

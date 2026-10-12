@@ -66,8 +66,11 @@ signalé et un cas non signalé, que vérifie [banc/cas.mjs](banc/cas.mjs).
   mesurer (Chromium absent, construction ou serveur en échec, état
   inatteignable, compte ou sortie refusés). Il ferme son navigateur et son
   serveur dans tous les cas, puis vérifie que le port est rendu.
-- **Sortie** : `--sortie <dossier>` (ou `SWB_BANC_SORTIE`), sinon un dossier
-  temporaire : les captures et `manifeste.json` (révision et empreinte de
+- **Sortie** : chaque exécution crée son propre sous-dossier, neuf
+  (`banc-…`), dans `--sortie <dossier>` (ou `SWB_BANC_SORTIE`), sinon dans
+  le dossier temporaire du système ; une destination liée (lien, jonction)
+  est refusée, et aucun fichier n'est écrit par-dessus un autre. Il reçoit
+  les captures et `manifeste.json` (révision et empreinte de
   l'état de travail de l'arbre construit, révision du banc, formats et
   médias du pointeur, résultats, ce qui n'a pas été exercé, empreinte du
   compte).

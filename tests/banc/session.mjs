@@ -212,15 +212,16 @@ export async function verifierAtteint(page, cibles) {
 
 /**
  * Attend que la page se pose, mesure, capture. `detail` : garder `id` et
- * classes dans les descriptions (compte d'exemple seulement).
+ * classes dans les descriptions (compte d'exemple seulement). Rend l'image
+ * en mémoire : le lanceur l'écrit lui-même, en création exclusive.
  */
-export async function mesurerEtCapturer(page, capture, { detail }) {
+export async function mesurerEtCapturer(page, { detail }) {
   const posee = await attendrePose(page);
   const mesure = await page.evaluate(mesurer, { detail });
   // ⚠️ La fenêtre seule, pas `fullPage` : Playwright agrandit alors la
   // fenêtre le temps de la capture, la page se recompose (éléments fixes au
   // milieu, panneau flottant repositionné en plein fondu) et l'image ne
   // montre plus ce qui a été mesuré.
-  await page.screenshot({ path: capture });
-  return { posee, mesure };
+  const image = await page.screenshot({ timeout: 15000 });
+  return { posee, mesure, image };
 }

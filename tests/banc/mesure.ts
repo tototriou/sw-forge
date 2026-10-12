@@ -88,6 +88,26 @@
 //   n'est exclu : un `::before` de la même classe, ou le `::after` d'une
 //   autre, compte. Le pseudo est absolu : le retirer ne déplace rien. La
 //   géométrie n'en dépend pas (un pseudo-élément n'a pas de rectangle) ;
+// - marge négative (`-mx-1` et voisines) : pour un élément dont la marge
+//   droite calculée (`getComputedStyle`, en px) est négative, le dépassement
+//   qu'il impose à son parent — et, par lui, à chaque ancêtre qui le
+//   contient, `html` compris — est diminué EXACTEMENT de cette marge ; ce
+//   qui dépasse encore est signalé avec la tolérance commune de 1 px, sans
+//   autre seuil (une exception « ≤ 4 px » laisserait passer un vrai
+//   débordement porté par le même élément). Au second passage, l'élément est
+//   décalé vers la gauche de la valeur de sa marge (propriété `translate`,
+//   qui ne déplace aucune autre boîte) : son bord droit, et tout ce qu'il
+//   porte, revient au bord de sa boîte de marge. Côté par côté : document
+//   LTR, seul le côté droit entre dans `scrollWidth` (un dépassement à
+//   gauche n'est pas atteignable au défilement), donc seule la marge droite
+//   s'y soustrait ; une marge gauche négative ne diminue rien. Relevé :
+//   Chromium rend par `getComputedStyle` la marge déclarée (−4 px) même
+//   quand la boîte est trop large et que la marge utilisée diffère
+//   (tests/banc/cas/marge-negative.html, ligne « large »). L'élément garde
+//   sa géométrie : sortir de la fenêtre reste signalé. Rien ne se soustrait
+//   en `direction: rtl`, ni sur un élément qui porte déjà la propriété
+//   `translate` (signalement conservé). ⚠️ Un descendant `position: fixed`
+//   de l'élément prend celui-ci pour bloc contenant le temps du décalage.
 //
 // Second passage : chaque signalement « contenu » d'un élément concerné par
 // une exception (et la page, si elle déborde et qu'une exception y porte) se
@@ -95,9 +115,10 @@
 // rendu tel quel avant la fin de `mesurer` (la capture suit la mesure).
 // Neutralisations : décoratif coupé, `display: none` posé en ligne avec
 // `!important` ; zone de toucher, une feuille de style ajoutée le temps de la
-// lecture (`.cible-tactile::after { display: none !important }`). Le
-// signalement garde ses valeurs du premier passage ; `depassement` porte
-// celui qui reste, `page.relue` la largeur de page relue.
+// lecture (`.cible-tactile::after { display: none !important }`) ; marge
+// négative, `translate` posé en ligne avec `!important`. Le signalement
+// garde ses valeurs du premier passage ; `depassement` porte celui qui
+// reste, `page.relue` la largeur de page relue.
 // ⚠️ Limite nommée : un décoratif EN FLUX retiré peut déplacer ses frères
 // (rangée flex, ligne de texte) ; la relecture porte alors sur une
 // disposition sans lui. Le halo est absolu : son retrait ne déplace rien.
@@ -274,6 +295,8 @@ export function mesurer(options: { detail: boolean }): Mesure {
   const signalements: Signalement[] = [];
   const elementDe = new Map<Signalement, Element>();
   const decoratifsVus: Element[] = [];
+  // Marge négative (tête) : l'élément et la valeur absolue de sa marge droite.
+  const margesNegatives: { el: Element; marge: number }[] = [];
   let elementsMesures = 0;
   let ellipsis = 0;
   let invisibles = 0;
@@ -282,6 +305,10 @@ export function mesurer(options: { detail: boolean }): Mesure {
   for (const el of [document.body, ...Array.from(document.body.querySelectorAll('*'))]) {
     if (el.getClientRects().length === 0) continue; // display: none, display: contents
     const s = style(el);
+    // Avant toute exclusion : un élément exclu impose quand même son
+    // dépassement à ses ancêtres.
+    const margeDroite = parseFloat(s.marginRight);
+    if (margeDroite < 0 && s.direction === 'ltr' && s.translate === 'none') margesNegatives.push({ el, marge: -margeDroite });
     if (s.visibility === 'hidden' || s.visibility === 'collapse') {
       invisibles++;
       continue;
@@ -343,9 +370,10 @@ export function mesurer(options: { detail: boolean }): Mesure {
   const ciblesTactiles = document.body.querySelector('.cible-tactile') !== null;
   const concerne = (a: Element) =>
     (ciblesTactiles && (a.classList.contains('cible-tactile') || a.querySelector('.cible-tactile') !== null)) ||
-    decoratifsVus.some((d) => d !== a && a.contains(d) && (coupeurDecoratif(d) as Element).contains(a));
+    decoratifsVus.some((d) => d !== a && a.contains(d) && (coupeurDecoratif(d) as Element).contains(a)) ||
+    margesNegatives.some(({ el }) => el !== a && a.contains(el));
   const aRelire = signalements.filter((s) => s.regle === 'contenu' && concerne(elementDe.get(s) as Element));
-  const relirePage = scrollWidth > largeur + TOLERANCE && ciblesTactiles;
+  const relirePage = scrollWidth > largeur + TOLERANCE && (ciblesTactiles || margesNegatives.length > 0);
   const leves = new Set<Signalement>();
   if (aRelire.length > 0 || relirePage) {
     const restaurer: (() => void)[] = [];
@@ -358,6 +386,7 @@ export function mesurer(options: { detail: boolean }): Mesure {
     };
     try {
       for (const d of decoratifsVus) poser(d, 'display', 'none');
+      for (const { el, marge } of margesNegatives) poser(el, 'translate', `${-marge}px 0px`);
       if (ciblesTactiles) {
         const zones = document.createElement('style');
         zones.textContent = '.cible-tactile::after { display: none !important; }';

@@ -8,6 +8,8 @@
 // règles qui doivent le signaler, ni plus ni moins (`""` : aucune) ;
 // `data-attendu-page="oui|non"` sur `<html>` dit si la règle « page » doit
 // conclure au débordement. Un élément sans `data-attendu` n'est pas vérifié.
+// `data-attendu-depassement="<px>"` exige en plus que son signalement
+// « contenu » retienne exactement ce dépassement (`depassement`, mesure.ts).
 //
 // Codes : 0 tous les cas conformes ; 1 un cas non conforme ; 2 le script n'a
 // pas pu mesurer.
@@ -29,6 +31,7 @@ function lireAttentes() {
     elements: Array.from(globalThis.document.querySelectorAll('[data-attendu]')).map((el) => ({
       id: el.id,
       regles: el.getAttribute('data-attendu').split(',').map((s) => s.trim()).filter(Boolean).sort(),
+      depassement: el.getAttribute('data-attendu-depassement'),
     })),
   };
 }
@@ -49,14 +52,21 @@ try {
       if (mesure.page.deborde !== attendu) ecarts.push(`page : ${mesure.page.deborde ? 'signalée' : 'non signalée'}, attendu ${attentes.page}`);
     }
     const lignes = [];
-    for (const { id, regles } of attentes.elements) {
+    for (const { id, regles, depassement } of attentes.elements) {
       if (!id) {
         ecarts.push('un élément porte data-attendu sans id');
         continue;
       }
-      const vues = [...new Set(mesure.signalements.filter((s) => s.element.id === id).map((s) => s.regle))].sort();
-      const conforme = vues.join(',') === regles.join(',');
-      lignes.push(`    ${conforme ? 'ok' : 'KO'}  #${id} : attendu [${regles.join(', ') || 'aucune'}], signalé [${vues.join(', ') || 'aucune'}]`);
+      const siens = mesure.signalements.filter((s) => s.element.id === id);
+      const vues = [...new Set(siens.map((s) => s.regle))].sort();
+      let conforme = vues.join(',') === regles.join(',');
+      let px = '';
+      if (depassement !== null) {
+        const vu = siens.find((s) => s.regle === 'contenu')?.depassement;
+        conforme &&= vu === Number(depassement);
+        px = ` ; dépassement attendu ${depassement} px, retenu ${vu ?? 'aucun'}`;
+      }
+      lignes.push(`    ${conforme ? 'ok' : 'KO'}  #${id} : attendu [${regles.join(', ') || 'aucune'}], signalé [${vues.join(', ') || 'aucune'}]${px}`);
       if (!conforme) ecarts.push(`#${id}`);
     }
     console.log(

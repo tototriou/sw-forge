@@ -42,8 +42,6 @@ export const FICHIERS_EXEMPTES = [
   'tests/installer-hooks.test.ts',
   'tests/skill-adapters.test.ts',
   'tests/renvois.test.ts',
-  // Un cadrage décrit les chemins qu'il va créer.
-  'docs/04-decisions/cadrages/refonte-documentation.md',
   LISTE,
 ];
 

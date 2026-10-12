@@ -7,4 +7,6 @@ il n'est **jamais une source de vérité**.
 
 | Document | Contenu |
 | --- | --- |
-| [refonte-documentation.md](refonte-documentation.md) | La refonte de l'ancien dossier des specs en documentation `docs/` par sections : cible, lots, suivi, résultats. |
+
+Aucun cadrage en cours. Le dernier, la refonte de la documentation, a été clos le 2026-10-12 ; ce
+qu'il laissait ouvert est dans [05-pilotage/reste-documentation.md](../../05-pilotage/reste-documentation.md).

@@ -129,9 +129,10 @@ recette pour demander un relevé en jeu exploitable.
 
 ## Branches et worktrees
 
-⚠️ **Toute nouvelle branche part de main**
-(`git fetch origin && git switch -c forge/<sujet> origin/main`) ; on n'y
-travaille jamais, on en part.
+⚠️ **Toute nouvelle branche part de `main` ou de la branche de release
+visée** (`git fetch origin && git switch -c forge/<sujet> origin/<base>`) ;
+elle fusionne dans la release, qui fusionne dans `main`. On ne travaille
+jamais sur `main` ni sur une release : on en part.
 
 - **Un hook `pre-commit` refuse cinq choses** : une erreur ESLint dans le
   code indexé, un commit sur `main`, un

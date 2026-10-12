@@ -295,6 +295,7 @@ import { testRenduRtaPrepa, testRenduRtaMenu, testRenduRtaVide, testRenduRtaSauv
 import { testIndicateurSauvegarde } from './indicateur-sauvegarde.test';
 import { testRestauration } from './restauration.test';
 import testSkillAdapters from './skill-adapters.test';
+import { testSelectionFichiersInventaire, testSelectionFichiersChargeur, testSelectionFichiersCasReels, testSelectionFichiersGit } from './selection.test';
 
 // Chaque vérification sous son NOM, dans l'ordre d'exécution.
 //
@@ -835,6 +836,10 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRenduTelephoneOptimizerPointSansMemoireListeSupprimee', testRenduTelephoneOptimizerPointSansMemoireListeSupprimee],
   ['testOptimizerEquipesHookModificationAvecOrpheline', testOptimizerEquipesHookModificationAvecOrpheline],
   ['testOptimizerEquipesAjoutEquipeOrphelineNeBloquePasEquipeSaine', testOptimizerEquipesAjoutEquipeOrphelineNeBloquePasEquipeSaine],
+  ['testSelectionFichiersInventaire', testSelectionFichiersInventaire],
+  ['testSelectionFichiersChargeur', testSelectionFichiersChargeur],
+  ['testSelectionFichiersCasReels', testSelectionFichiersCasReels],
+  ['testSelectionFichiersGit', testSelectionFichiersGit],
 ];
 
 // Un filtre passé en argument : on compare sur le nom mis à plat (sans tirets ni

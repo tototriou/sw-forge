@@ -30,7 +30,7 @@ import type ts from 'typescript';
  * ----------------------------------------------------------------------- */
 
 // Racines des sources : un fichier modifié ici sans lien spécifique déclenche la
-// suite complète ; une vérification `opaque` est retenue dès que l'un d'eux change.
+// suite complète.
 export const RACINES_SOURCES = ['src/', 'scripts/', 'public/', 'tests/', '.githooks/'];
 
 // Infrastructure des tests : toute modification relance tout. `tests/index.ts`
@@ -41,7 +41,7 @@ const RE_TSCONFIG = /^tsconfig[^/]*\.json$/;
 // Fichiers hors des racines des sources qu'aucune vérification ne lit par un
 // lien spécifique sans qu'il soit relevé. Un fichier listé qui a un lien
 // spécifique reste « couvert » ; sinon il est « sans effet » et ne retient que
-// les vérifications `depot`, retenues pour tout fichier.
+// les vérifications `depot` et `opaque`, retenues pour tout fichier.
 export const SANS_EFFET: { motif: string; justification: string }[] = [
   {
     motif: 'docs/**/*.md',
@@ -132,7 +132,7 @@ export interface Selection {
   complet: boolean;
   causes: string[];
   retenues: Retenue[];
-  depotSeulement: boolean;
+  transversalesSeulement: boolean;
   // Ce que le point d'entrée exécute : des noms, et pour chaque groupe
   // d'étalements retenu, les noms d'entrées qui le bornent dans le registre.
   execution: { complet: boolean; noms: string[]; groupes: { avant: string | null; apres: string | null; etalements: string[] }[] };
@@ -1019,7 +1019,8 @@ export function selectionner(inv: Inventaire, modifies: string[], indexAvant: st
       const liens = liensSpecifiques(ft, info, f);
       if (liens.length) { specifiques++; for (const l of liens) noter(parFichierTest, ft, l); }
       if (info.depot.length) noter(parFichierTest, ft, `depot (${info.depot[0]}) : ${f}`);
-      else if (info.opaque.length && sousRacines(f)) noter(parFichierTest, ft, `opaque (${info.opaque[0]}) : ${f}`);
+      // Une lecture opaque peut viser n'importe quel fichier, docs/ et la racine compris.
+      else if (info.opaque.length) noter(parFichierTest, ft, `opaque (${info.opaque[0]}) : ${f}`);
     }
     if (specifiques > 0) { fichiers.push({ chemin: f, statut: 'couvert', detail: `${specifiques} fichier(s) de test par un lien spécifique` }); continue; }
     if (sousRacines(f)) { fichiers.push({ chemin: f, statut: 'non couvert', detail: 'aucun lien spécifique' }); causes.push(`${f} : non couvert (aucun lien spécifique ; une retenue depot ou opaque ne couvre pas)`); continue; }
@@ -1063,9 +1064,9 @@ export function selectionner(inv: Inventaire, modifies: string[], indexAvant: st
     if (e.genre !== 'etalement' && e.nom) noms.push(e.nom);
     return { index: i, nom: e.nom, identifiant: e.identifiant, genre: e.genre, raisons: complet ? ['suite complète'] : parEntree.get(i) ?? [] };
   });
-  const depotSeulement = !complet && fichiers.length > 0 && fichiers.every((f) => f.statut === 'sans effet');
+  const transversalesSeulement = !complet && fichiers.length > 0 && fichiers.every((f) => f.statut === 'sans effet');
   return {
-    base, fichiers, complet, causes, retenues, depotSeulement,
+    base, fichiers, complet, causes, retenues, transversalesSeulement,
     execution: complet ? { complet: true, noms: [], groupes: [] } : { complet: false, noms, groupes },
     dureeMs: Date.now() - debut,
   };
@@ -1158,7 +1159,7 @@ export function formater(sel: Selection, total: number): string {
     for (const c of sel.causes) l.push(`  - ${c}`);
     return l.join('\n');
   }
-  if (sel.depotSeulement) l.push('Tous les fichiers sont sans effet : la sélection ne contient que les vérifications `depot`, retenues pour tout fichier modifié.');
+  if (sel.transversalesSeulement) l.push('Tous les fichiers sont sans effet : la sélection ne contient que les vérifications `depot` et `opaque`, retenues pour tout fichier modifié.');
   if (sel.fichiers.length === 0) l.push('Aucun fichier modifié : sélection vide.');
   l.push(`Entrées retenues (${sel.retenues.length}/${total}) :`);
   for (const r of sel.retenues) l.push(`  ${r.nom ?? '...' + r.identifiant} — ${r.raisons.join(' ; ')}`);

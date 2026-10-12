@@ -158,14 +158,15 @@ export async function testSelectionFichiersCasReels(): Promise<void> {
   s = sel(['.claude/skills/algo-verify/SKILL.md']);
   ok(!s.complet && /dossier \.claude\/skills lu/.test(raisons(s, 'testSkillAdapters')), 'dossier cité (.claude/skills) → testSkillAdapters retenue');
 
-  // Opaque : retenue pour un fichier des racines, pas pour la documentation.
+  // Opaque : retenue pour tout fichier, docs/ compris (une lecture opaque peut
+  // viser n'importe quoi).
   s = sel(['src/ui/Bouton.tsx']);
   ok(!s.complet && /(^| ; )opaque/.test(raisons(s, 'testAurasRecette')), 'opaque retenue pour un fichier de src/');
   s = sel(['docs/README.md']);
-  ok(!s.complet && !retenu(s, 'testAurasRecette'), 'opaque non retenue pour un fichier de docs/');
-  // `depot` retenue sur un changement de docs/, et seulement elle.
-  ok(statut(s, 'docs/README.md') === 'sans effet' && s.depotSeulement && s.retenues.length > 0 && s.retenues.every((r) => /^depot/.test(r.raisons[0])) && !!retenu(s, 'testRenvois'),
-    'docs/README.md : sans effet, seules les vérifications depot retenues, et la sortie le dit');
+  ok(!s.complet && /^opaque/.test(raisons(s, 'testAurasRecette')), 'opaque retenue pour un fichier de docs/');
+  // Sur docs/, seules les transversales (depot, opaque) sont retenues.
+  ok(statut(s, 'docs/README.md') === 'sans effet' && s.transversalesSeulement && s.retenues.length > 0 && s.retenues.every((r) => /^(depot|opaque)/.test(r.raisons[0])) && !!retenu(s, 'testRenvois'),
+    'docs/README.md : sans effet, seules les vérifications depot et opaque retenues, et la sortie le dit');
 
   // Non couvert → complet, même quand une transversale est déjà retenue (D8).
   s = sel(['tests/README.md']);
@@ -342,7 +343,7 @@ export async function testSelectionFichiersGit(): Promise<void> {
     git(r, 'reset', '-q', '--hard');
     git(r, 'rm', '-q', 'docs/a.md');
     s = await depuisHead(r);
-    ok(!s.complet && statut(s, 'docs/a.md') === 'sans effet' && s.depotSeulement, 'suppression : l\'ancien chemin est lu et classé');
+    ok(!s.complet && statut(s, 'docs/a.md') === 'sans effet' && s.transversalesSeulement, 'suppression : l\'ancien chemin est lu et classé');
   });
 
   // tests/index.ts : registre et imports, par Git.
@@ -390,11 +391,11 @@ export async function testSelectionFichiersGit(): Promise<void> {
     s = await essai('src/profond.ts', 'export function profond(): number { return 5; }\n');
     ok(!s.complet && /^opaque/.test(raisons(s, 'verificationsC')), 'lecture non résolue → opaque, retenue pour un fichier de src/');
     s = await essai('docs/a.md', '# a modifié\n');
-    ok(!s.complet && !retenu(s, 'verificationsC'), '… et pas pour docs/');
+    ok(!s.complet && /^opaque/.test(raisons(s, 'verificationsC')) && s.transversalesSeulement, '… et pour docs/ (sans effet : seules les transversales)');
     ecrire(r, 'tests/c.test.ts', "import { execFileSync } from 'node:child_process';\nexport const verificationsC: [string, () => void][] = [['testC1', () => { execFileSync('git', ['ls-files']); }]];\n");
     commit(r, 'lecture du dépôt');
     s = await essai('docs/a.md', '# a modifié\n');
-    ok(!s.complet && /^depot/.test(raisons(s, 'verificationsC')) && s.depotSeulement, 'git ls-files → depot, retenue pour docs/');
+    ok(!s.complet && /^depot/.test(raisons(s, 'verificationsC')) && s.transversalesSeulement, 'git ls-files → depot, retenue pour docs/');
   });
 
   // --plage : commit de fusion contre son premier parent ; arbre lu contrôlé.

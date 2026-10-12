@@ -523,7 +523,7 @@ async function principal(etat) {
             console.log(`${nom.padEnd(64)} DÉBORDE : ${parPage}${mesure.signalements.length} signalement(s)${suffixe}`);
             for (const s of mesure.signalements.slice(0, 6)) {
               console.log(
-                `    ${s.regle === 'contenu' ? 'contenu  ' : 'géométrie'} ${s.element.chemin}` +
+                `    ${{ contenu: 'contenu  ', geometrie: 'géométrie', chevauchement: 'chevauchement' }[s.regle] ?? s.regle} ${s.element.chemin}` +
                   `\n              [${s.gauche} → ${s.droite}] scroll ${s.scrollWidth} / client ${s.clientWidth}` +
                   (s.element.classes ? ` · ${s.element.classes}` : '') +
                   (s.causes

@@ -15,7 +15,7 @@ prop depuis [App.tsx](src/App.tsx) : `box` (6★), `runes`, `artifacts`.
 | Sous-section | Route | Spec |
 |--------------|-------|------|
 | Monstres (box 6★) | `#/compte` | [feat-monstres.md](feat-monstres.md) |
-| Runes | `#/compte/runes` | [feat-runes.md](feat-runes.md) |
+| Runes | `#/compte/runes` | [feat-runes/](feat-runes/README.md) |
 | Artéfacts | `#/compte/artefacts` | [feat-artefacts.md](feat-artefacts.md) |
 
 **Référence de calcul** (auto-suffisante : formules, tables, décodage SWEX,

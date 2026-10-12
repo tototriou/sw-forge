@@ -124,7 +124,7 @@ doigt, les rangées restent empilées dans le panneau « Options » (lot 11).
     le jeu n'a pas de symbole pour « Attribut » ou « Type » pris globalement.
 - **Rareté** : chips (Légendaire → Commun), aux couleurs du jeu (`RARITY_META`).
   - ⚠️ **Liste BLANCHE, tout coché par défaut** — même règle que les filtres de
-    runes ([feat-runes.md](feat-runes.md)) : une rareté cochée est **affichée**, n'en
+    runes ([feat-runes/filtres-set-et-slot.md](feat-runes/filtres-set-et-slot.md)) : une rareté cochée est **affichée**, n'en
     cocher **aucune** revient à **ne rien vouloir voir**.
   - ⚠️ **Même typographie que les autres chips de la page** (`font-semibold`,
     casse normale). Le gras majuscule espacé qu'elles portaient venait de la
@@ -153,7 +153,7 @@ doigt, les rangées restent empilées dans le panneau « Options » (lot 11).
 
 - **Propriété** : la **barre de rappel + modale** du jeu — le **même dispositif
   que les runes**, décrit en détail dans
-  [feat-runes.md](feat-runes.md#filtre-par-propriété-secondaire--%EF%B8%8F-la-modale-du-jeu) :
+  [feat-runes/liste.md](feat-runes/liste.md#filtre-par-propriété-secondaire--%EF%B8%8F-la-modale-du-jeu) :
   2 ou 4 cases montrant chacune son critère (« Vol de vie +8 ~ +12 »), la
   bascule 2 ↔ 4 (`Rows2` / `Grid2x2`), et une modale listant toutes les
   propriétés avec **Min** et **Max**.
@@ -191,7 +191,7 @@ runes) : un en-tête « Résumé » et le nombre d'artéfacts, puis les six
 chiffres clés en **un bandeau** (`Kpi bandeau`, cases séparées par un
 filet) au lieu de six cartes. Au doigt, les six chiffres clés forment **une
 carte** sur deux colonnes (lot 11c, décision 26 — même traitement que le
-Résumé des runes, voir [feat-runes.md](feat-runes.md)).
+Résumé des runes, voir [feat-runes/resume.md](feat-runes/resume.md)).
 
 ## Données sous-jacentes
 

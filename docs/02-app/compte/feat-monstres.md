@@ -243,7 +243,7 @@ main — le même JSX sert dans la page (desktop) et dans le tiroir « Options �
 (mobile).
 
 ⚠️ **Liste BLANCHE, tout coché par défaut** (Élément et Nat) — même règle que
-les filtres de runes ([feat-runes.md](feat-runes.md)) : une chip cochée est **affichée**,
+les filtres de runes ([feat-runes/filtres-set-et-slot.md](feat-runes/filtres-set-et-slot.md)) : une chip cochée est **affichée**,
 n'en cocher **aucune** revient à **ne rien vouloir voir**. Les interrupteurs
 **Doublons** et **2A**, eux, restent des restrictions qu'on ajoute.
 
@@ -263,7 +263,7 @@ n'en cocher **aucune** revient à **ne rien vouloir voir**. Les interrupteurs
 Les filtres se combinent avec la recherche.
 
 **« Effacer les filtres »** (refonte graphique, lot 13, décision 28 — le même
-bouton que les runes, `feat-runes.md`) : au bout des filtres, à la
+bouton que les runes, `feat-runes/filtres-set-et-slot.md`) : au bout des filtres, à la
 souris comme dans le panneau « Filtrer ma box ». Il remet **tous les
 éléments, toutes les étoiles**, et coupe **Doublons** et **2A**. Il ne touche
 ni à la recherche ni au tri. ⚠️ **Toujours affiché, désactivé** quand rien

@@ -244,7 +244,7 @@ pour une rune antique (⇒ potentiels/efficiences > 100 % normaux).
 ## 3 bis. Score SW (celui affiché dans le jeu)
 
 Deuxième mesure, proposée **au choix** à côté de l'efficience (voir
-[feat-runes.md](feat-runes.md)). Deux différences avec l'efficience :
+[feat-runes/mesure.md](feat-runes/mesure.md)). Deux différences avec l'efficience :
 
 1. **La stat principale ne compte pas** — le score ne mesure que les stats
    **secondaires** (innée + substats, meule incluse) ;
@@ -312,7 +312,7 @@ Total d'une stat gemmée = **`gemMax + grindMax`** (même code).
 3. **Gemme** :
    - Rune **déjà gemmée** (un substat a `enchant`) : la stat est **figée** —
      **choix produit** : le jeu autoriserait de la regemmer vers une autre stat
-     absente de la rune, voir [feat-runes.md](feat-runes.md) ; l'option `regemLibre`
+     absente de la rune, voir [feat-runes/optimisation.md](feat-runes/optimisation.md) ; l'option `regemLibre`
      (« Autoriser un regemme différent ») lève ce choix : la **ligne gemmée seule**
      est alors traitée comme le *slot* d'une rune non gemmée ci-dessous (toute stat
      `Y` candidate, base `max(base, gemMax)` si `Y` = sa stat). Sans l'option, seule option = **proc max** : base du gemmé =

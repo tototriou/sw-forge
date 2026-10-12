@@ -90,7 +90,7 @@ ou un filtre linéaire n'a pas besoin de cette discipline.
 4. **Benchmark aux échelles réelles avant de figer une constante.** Les
    volumes réels du projet sont connus (voir
    [compte/feat-calcul-runes.md](../../../docs/02-app/compte/feat-calcul-runes.md) §6 et
-   [compte/feat-runes.md](../../../docs/02-app/compte/feat-runes.md) — comptes réels à
+   [compte/feat-runes/](../../../docs/02-app/compte/feat-runes/README.md) — comptes réels à
    plusieurs milliers de runes). Toute constante ajustable (plafond par slot,
    budget de nœuds, nombre de candidats collectés…) doit être calibrée sur des
    jeux synthétiques d'au moins 500 / 1000 / 2000 / 3000+ éléments, en notant

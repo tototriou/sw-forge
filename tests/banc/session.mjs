@@ -151,11 +151,15 @@ export async function preparer(page, etapes) {
     // cible « hors de la fenêtre » : le clic échoue à cause du défaut même
     // que le banc doit mesurer. La préparation amène un état, elle ne teste
     // pas le geste : ce clic est rejoué par `element.click()`, et compté.
+    // L'élément est pris AVANT le clic : une tentative ratée peut faire
+    // défiler la page, et le localisateur filtré sur « visible » ne plus le
+    // retrouver.
+    const element = await loc.elementHandle({ timeout: 5000 });
     try {
       await loc.click({ timeout: 5000 });
     } catch (err) {
       if (!/outside of the viewport|Timeout/i.test(String(err?.message))) throw err;
-      await loc.evaluate((el) => el.click());
+      await element.evaluate((el) => el.click());
       clicsRejoues++;
     }
   }

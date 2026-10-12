@@ -52,7 +52,8 @@ Sélection (une seule, obligatoire) :
   --ecrans <id,…>      les écrans nommés
 
 Options :
-  --racine <dossier>   l'arbre à construire et mesurer (défaut : ce dépôt)
+  --racine <dossier>   l'arbre à construire et mesurer (défaut : le dépôt qui contient
+                       ce lanceur, quel que soit le dossier courant)
   --compte <fichier>   l'export importé (défaut : tests/fixtures/compte-miniature.json) ;
                        hors de tests/fixtures/, il est traité comme un compte réel :
                        sortie obligatoirement hors de tout dépôt Git, aucun message
@@ -130,7 +131,13 @@ function ecrireExclusif(chemin, donnees) {
 
 function git(racine, args) {
   return new Promise((ok) => {
-    const p = spawn('git', ['-C', racine, ...args], { stdio: ['ignore', 'pipe', 'ignore'] });
+    // `GIT_OPTIONAL_LOCKS=0` : `git status` ne rafraîchit pas l'index de
+    // l'arbre mesuré, donc ne prend pas son verrou — le banc lit, il n'écrit
+    // pas dans un dépôt où un autre outil travaille peut-être.
+    const p = spawn('git', ['-C', racine, ...args], {
+      stdio: ['ignore', 'pipe', 'ignore'],
+      env: { ...process.env, GIT_OPTIONAL_LOCKS: '0' },
+    });
     const morceaux = [];
     p.stdout.on('data', (d) => morceaux.push(d));
     p.on('error', () => ok(null));

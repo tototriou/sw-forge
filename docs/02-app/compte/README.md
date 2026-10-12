@@ -19,7 +19,9 @@ prop depuis [App.tsx](src/App.tsx) : `box` (6★), `runes`, `artifacts`.
 | Artéfacts | `#/compte/artefacts` | [feat-artefacts.md](feat-artefacts.md) |
 
 **Référence de calcul** (auto-suffisante : formules, tables, décodage SWEX,
-algorithme d'optimisation) : [feat-calcul-runes.md](feat-calcul-runes.md).
+algorithme d'optimisation) : [feat-calcul-runes.md](feat-calcul-runes.md) ; pour
+les artéfacts (score et efficience, sans lire le code) :
+[feat-calcul-artefacts.md](feat-calcul-artefacts.md).
 
 La sous-section courante est déduite du hash (`parseHash` dans
 [App.tsx](src/App.tsx)) et passée en prop `sub` ; `AccountPage` rend la section

@@ -45,6 +45,7 @@ partagés avec `MonsterGear.tsx` (RTA/Siège/« Équipement actuel »), voir
 Chaque sujet de l'application vit dans son fichier, dans ce dossier ; le
 moteur et sa vérification vivent côté développeur :
 
+- **Par où commencer** — [routage-par-tache.md](routage-par-tache.md) : quelles sections lire d'abord selon ce qu'on touche
 - **Écran** — [feat-ecran.md](feat-ecran.md) (contrôles, grille, panneaux dépliants, adaptation à la largeur, survie à un changement d'onglet), puis une page par carte :
   - [Recherche du monstre à optimiser](feat-ecran-recherche-du-monstre.md)
   - [Meilleurs artéfacts offensifs pour ce build](feat-ecran-meilleurs-artefacts-offensifs.md)

@@ -16,6 +16,13 @@ Fichiers : [SpeedTuningSection.tsx](src/components/outils/SpeedTuningSection.tsx
 [speed.ts](src/lib/speed.ts). Rendu depuis [OutilsPage.tsx](src/pages/OutilsPage.tsx)
 (`sub === 'speed-tuning'`).
 
+## Documents du dossier
+
+| Document | Contenu |
+| --- | --- |
+| [feat-export-optimizer.md](feat-export-optimizer.md) | L'export de « Ton équipe » vers l'Optimizer, depuis la page et la modale. |
+| [feat-passifs-vitesse.md](feat-passifs-vitesse.md) | L'inventaire des passifs qui pèsent sur un speed tune, par catégorie. Fichier généré, à ne pas éditer. |
+
 ## Formule (modèle partagé)
 
 Même modèle que la page Mécaniques et que les ticks de siège :

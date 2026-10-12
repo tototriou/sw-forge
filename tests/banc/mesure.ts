@@ -181,10 +181,17 @@
 //     (`aire`, px²) ; parmi les éléments coupés, seuls les plus profonds (un
 //     élément coupé dont un descendant est coupé aussi n'est pas repris).
 //     Elle ne porte pas sur un élément exclu (`visibility: hidden`,
-//     décoratif coupé, ellipsis). ⚠️ Limite nommée : dans un même plan, les
-//     boîtes sont celles de la mise en page, sans la coupe d'un ancêtre
-//     `overflow` ni l'ordre d'empilement (`z-index`, `absolute` hors de la
-//     chaîne `fixed`/`sticky`).
+//     décoratif coupé, ellipsis), et un décoratif coupé n'est jamais l'autre
+//     élément. Les boîtes comparées sont les boîtes VISIBLES : la boîte de
+//     mise en page (`getBoundingClientRect`, premier passage) coupée, axe par
+//     axe, par la boîte de remplissage de chaque ancêtre de sa chaîne de blocs
+//     contenants qui coupe ou défile sur cet axe (`overflow` calculé autre que
+//     `visible`, ou `contain: paint`) — une boîte entièrement coupée ne touche
+//     rien, l'aire retenue est celle de la partie visible (relecture Codex
+//     n° 7, tests/banc/cas/coin-coupe.html). ⚠️ Limites nommées : dans un même
+//     plan, l'ordre d'empilement n'est pas lu (`z-index`, `absolute`), ni
+//     `clip-path` ni un masque ; une boîte dans un défilement est comparée à
+//     sa position défilée du moment.
 //
 // Second passage : chaque signalement « contenu » d'un élément concerné par
 // une exception (et la page, si elle déborde et qu'une marge négative y
@@ -517,17 +524,54 @@ export function mesurer(options: { detail: boolean }): Mesure {
     for (let a: Element | null = e; a && a !== bloc; a = a.parentElement) if (mode(style(a)) !== 'flux') return false;
     return true;
   };
+  // La boîte visible : la boîte coupée, axe par axe, par la boîte de
+  // remplissage de chaque ancêtre de sa chaîne de blocs contenants qui coupe
+  // ou défile sur cet axe (`contain: paint` sur les deux) ; `html` et `body`
+  // propagé ne coupent pas une boîte (voir plus haut).
+  type Zone = { gauche: number; haut: number; droite: number; bas: number };
+  const zones = new Map<Element, Zone>();
+  const visibleDe = (e: Element): Zone => {
+    const connue = zones.get(e);
+    if (connue) return connue;
+    const q = boites.get(e) ?? e.getBoundingClientRect();
+    const z = { gauche: q.left, haut: q.top, droite: q.right, bas: q.bottom };
+    for (let a = suivant(e); a; a = suivant(a)) {
+      if (fenetre(a)) continue;
+      const s = style(a);
+      const peint = /paint|strict|content/.test(s.contain);
+      const x = peint || s.overflowX !== 'visible';
+      const y = peint || s.overflowY !== 'visible';
+      if (!x && !y) continue;
+      const p = boites.get(a) ?? a.getBoundingClientRect();
+      // Un élément SVG intérieur n'a pas de `clientWidth` : sa boîte entière.
+      const svg = a instanceof SVGElement && !(a instanceof SVGSVGElement);
+      const gauche = svg ? p.left : p.left + a.clientLeft;
+      const haut = svg ? p.top : p.top + a.clientTop;
+      if (x) {
+        z.gauche = Math.max(z.gauche, gauche);
+        z.droite = Math.min(z.droite, svg ? p.right : gauche + a.clientWidth);
+      }
+      if (y) {
+        z.haut = Math.max(z.haut, haut);
+        z.bas = Math.min(z.bas, svg ? p.bottom : haut + a.clientHeight);
+      }
+    }
+    zones.set(e, z);
+    return z;
+  };
+  const exclusD8 = new Set(decoratifsVus);
   for (const { el, bloc } of coins) {
     if (!mesures.has(el)) continue;
     const r = boites.get(el) as DOMRect;
+    const v = visibleDe(el);
     const plan = planDe(el);
     const aires = new Map<Element, number>();
     for (const autre of visibles) {
       if (autre.contains(el) || (bloc.contains(autre) && enFluxDe(autre, bloc))) continue;
-      if (planDe(autre) !== plan) continue;
-      const q = boites.get(autre) as DOMRect;
-      const l = Math.min(r.right, q.right) - Math.max(r.left, q.left);
-      const h = Math.min(r.bottom, q.bottom) - Math.max(r.top, q.top);
+      if (exclusD8.has(autre) || planDe(autre) !== plan) continue;
+      const q = visibleDe(autre);
+      const l = Math.min(v.droite, q.droite) - Math.max(v.gauche, q.gauche);
+      const h = Math.min(v.bas, q.bas) - Math.max(v.haut, q.haut);
       if (l > TOLERANCE && h > TOLERANCE) aires.set(autre, l * h);
     }
     const coupes = Array.from(aires.keys());

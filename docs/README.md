@@ -43,6 +43,9 @@
 
 6. **Un `README.md` par dossier, une ligne par document ou sous-dossier** : ce qu'on y trouve,
    de quoi choisir le bon fichier sans l'ouvrir. On ne compte jamais sur le seul nom de fichier.
+   Quand les documents décrivent du code, le README ouvre sur une table **« Le changement
+   touche… »** : les fichiers ou les notions qu'on va modifier, et le document à lire avant. Le
+   point d'entrée depuis le code est la table du même nom d'[AGENTS.md](../AGENTS.md).
 7. **Tout nouveau document entre dans le README de son dossier, dans le même commit.**
 
 ### Schémas

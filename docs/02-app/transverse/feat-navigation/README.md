@@ -15,6 +15,22 @@ Fichiers : [Sidebar.tsx](src/components/Sidebar.tsx),
 [SidebarCompte.tsx](src/components/SidebarCompte.tsx), assemblés dans
 [App.tsx](src/App.tsx).
 
+## Le changement touche…
+
+| Le changement touche… | Lire |
+| --- | --- |
+| `parseHash` et les routes de `src/App.tsx`, `src/lib/accountViews.ts` | [barre-laterale-et-adresses.md](barre-laterale-et-adresses.md), [niveaux-et-repli.md](niveaux-et-repli.md) |
+| ce que fait un clic dans la barre (ouvrir une section, naviguer) | [navigation-seule.md](navigation-seule.md) |
+| `src/components/Sidebar.tsx` : repli, niveaux, survol | [niveaux-et-repli.md](niveaux-et-repli.md) |
+| `src/components/SidebarSearch.tsx`, `src/components/Palette.tsx`, `src/components/palette/recherchePalette.ts` | [recherche-et-palette.md](recherche-et-palette.md) |
+| `src/components/TopBar.tsx` | [barre-superieure.md](barre-superieure.md) |
+| `src/components/MobileTabs.tsx`, `src/components/MobileNavSheet.tsx`, `src/lib/layout.ts` | [barre-onglets.md](barre-onglets.md) |
+| l'accent `--ctx`, l'animation de la nav, le contour au focus | [accent-animation-focus.md](accent-animation-focus.md) |
+| `src/components/SidebarCompte.tsx`, `src/pages/SettingsPage.tsx` | [compte-et-parametres.md](compte-et-parametres.md) |
+| la largeur maximale du contenu | [largeur-du-contenu.md](largeur-du-contenu.md) |
+| le bouton « Options » et le panneau d'actions au téléphone, `src/ui/MobileSheet.tsx` | [panneau-actions-mobile.md](panneau-actions-mobile.md) |
+| la règle tactile de `src/index.css` | [densite-au-doigt.md](densite-au-doigt.md) |
+
 ## Parties
 
 | Document | Contenu |

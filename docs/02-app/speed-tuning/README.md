@@ -16,6 +16,21 @@ Fichiers : [SpeedTuningSection.tsx](src/components/outils/SpeedTuningSection.tsx
 [speed.ts](src/lib/speed.ts). Rendu depuis [OutilsPage.tsx](src/pages/OutilsPage.tsx)
 (`sub === 'speed-tuning'`).
 
+## Le changement touche…
+
+| Le changement touche… | Lire |
+| --- | --- |
+| la formule ATB, le totem, les leads, le mode RTA | [feat-formule.md](feat-formule.md) |
+| `src/lib/speedTuneDeck.ts`, « Voir le speed tune » d'un deck de siège | [feat-import-deck-siege.md](feat-import-deck-siege.md) |
+| `diagnostiquerChaine` et la recherche du réglage (`src/lib/speedTune.ts`) | [feat-chaine-ouverture.md](feat-chaine-ouverture.md) |
+| l'ordre des sorts, un monstre qui joue plusieurs fois, les fenêtres de vitesse | [feat-ordre-des-sorts.md](feat-ordre-des-sorts.md) |
+| `src/lib/speedTuneAuto.ts`, `src/lib/speedTuneKit.ts`, `src/lib/speedTunePassif.ts`, ce qu'un sort fait | [feat-competences.md](feat-competences.md) |
+| `simulerOrdre`, la règle « un seul monstre par tick » | [feat-un-monstre-par-tick.md](feat-un-monstre-par-tick.md) |
+| le camp d'en face, « Copier en face », l'adversaire de référence, les égalités de barre | [feat-deux-camps.md](feat-deux-camps.md) |
+| `src/components/outils/SpeedTuningSection.tsx`, `src/hooks/useSpeedTune.ts`, `src/lib/speedTuneLignes.ts`, l'état de l'outil | [feat-ecran.md](feat-ecran.md) |
+| l'export de « Ton équipe » vers l'Optimizer, `src/lib/importSpeedTuneOptimizer.ts` | [feat-export-optimizer.md](feat-export-optimizer.md) |
+| `scripts/passifs-vitesse.ts` (l'inventaire généré) | [feat-passifs-vitesse.md](feat-passifs-vitesse.md) |
+
 ## Documents du dossier
 
 | Document | Contenu |

@@ -6,6 +6,19 @@ des agents et contributeurs (stack, commandes, règles de travail, doc à lire s
 est [AGENTS.md](../../AGENTS.md) ; ce qui ne vaut que pour Claude Code (skills, pièges d'outil) est
 dans [CLAUDE.md](../../CLAUDE.md), qui importe AGENTS.md — pas ici.
 
+## Le changement touche…
+
+| Le changement touche… | Lire |
+| --- | --- |
+| du code, quel qu'il soit | [conventions.md](conventions.md), [qualite-code.md](qualite-code.md) |
+| `src/ui/`, `src/index.css`, `tailwind.config.js`, un écran ou un composant | [interface/](interface/README.md) |
+| le moteur de l'Optimizer : `src/lib/runeBuildOptim.ts`, `src/lib/artifactOptim.ts`, les `relic…` de `src/lib/`, `src/workers/`, le harnais de `scripts/` | [optimizer/](optimizer/README.md) |
+| `eslint.config.js`, `.githooks/`, `scripts/installer-hooks.mjs`, `scripts/verifier-commits.mjs`, `.github/workflows/tests.yml` | [qualite-code.md](qualite-code.md) |
+| `tests/renvois.test.ts`, `tests/fixtures/renvois-toleres.json`, un fichier déplacé ou renommé | [renvois.md](renvois.md) |
+| `docs/` | [documentation.md](documentation.md) |
+
+## Documents
+
 | Document | Contenu |
 | --- | --- |
 | [conventions.md](conventions.md) | Les règles valables pour toutes les pages : règle de cadre, conventions communes (saisie, persistance, réglages, champs numériques…), shell applicatif. |

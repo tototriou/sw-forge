@@ -40,6 +40,31 @@ voir feat-listes-et-reservation.md § Listes de travail et réservation de runes
 partagés avec `MonsterGear.tsx` (RTA/Siège/« Équipement actuel »), voir
 [03-developpeur/](../../03-developpeur/).
 
+## Le changement touche…
+
+| Le changement touche… | Lire |
+| --- | --- |
+| la mise en page de `src/components/outils/OptimizerSection.tsx` : grille, panneaux dépliants, largeur, changement d'onglet | [feat-ecran.md](feat-ecran.md) |
+| « Monstre à optimiser », `src/components/outils/MonsterSourcePicker.tsx` | [feat-ecran-recherche-du-monstre.md](feat-ecran-recherche-du-monstre.md) |
+| « Meilleurs artéfacts offensifs pour ce build », `src/components/ArtifactSubLigne.tsx` | [feat-ecran-meilleurs-artefacts-offensifs.md](feat-ecran-meilleurs-artefacts-offensifs.md) |
+| « Équipement actuel » | [feat-ecran-equipement-actuel.md](feat-ecran-equipement-actuel.md) |
+| l'objectif de recherche, `src/components/outils/DamageSetupCard.tsx`, `src/components/outils/DamageSetupModale.tsx` | [feat-ecran-objectif-de-recherche.md](feat-ecran-objectif-de-recherche.md) |
+| le set recherché et les principales imposées, `src/components/outils/SetComboPicker.tsx` | [feat-ecran-set-et-principale.md](feat-ecran-set-et-principale.md) |
+| la carte « Artéfacts » | [feat-ecran-artefacts.md](feat-ecran-artefacts.md) |
+| la carte « Relique », `src/components/RelicSlot.tsx` | [feat-ecran-relique.md](feat-ecran-relique.md) |
+| « État de mon monstre », `src/components/outils/EtatMonstre.tsx`, `src/lib/aurasExternes.ts`, `src/lib/buffsDePassif.ts` | [feat-ecran-etat-de-mon-monstre.md](feat-ecran-etat-de-mon-monstre.md) |
+| les sous-propriétés verrouillées | [feat-ecran-sous-proprietes-verrouillees.md](feat-ecran-sous-proprietes-verrouillees.md) |
+| les conditions, l'inventaire et les réglages avancés | [feat-ecran-conditions-et-reglages.md](feat-ecran-conditions-et-reglages.md) |
+| « Lancer la recherche » | [feat-ecran-lancer-la-recherche.md](feat-ecran-lancer-la-recherche.md) |
+| les résultats, `src/components/outils/BuildCandidateCard.tsx` | [feat-ecran-resultats.md](feat-ecran-resultats.md) |
+| `src/hooks/useOptimizerLists.ts`, `src/components/outils/OptimizerListPicker.tsx`, la réservation de runes | [feat-listes-et-reservation.md](feat-listes-et-reservation.md) |
+| `src/lib/optimizerMemberStorage.ts`, `src/lib/equipesOptimizer.ts`, `src/lib/optimizerBackup.ts`, `src/components/outils/OptimizerBackupBar.tsx`, `src/components/outils/OptimizerEquipeDialog.tsx`, `src/components/outils/OptimizerCreateListDialog.tsx` | [feat-listes-equipes-et-sauvegarde.md](feat-listes-equipes-et-sauvegarde.md) |
+| `src/lib/importEquipes.ts`, `src/lib/actionImportOptimizer.ts`, `src/lib/importRecoOptimizer.ts`, `src/lib/importSpeedTuneOptimizer.ts`, `src/components/outils/OptimizerImportButton.tsx`, `src/components/outils/OptimizerImportRapport.tsx` | [feat-import-equipes.md](feat-import-equipes.md) |
+| `src/lib/optimizerExclusion.ts`, `src/components/outils/RuneExclusionPicker.tsx`, `src/components/outils/ExclusionCandidateRow.tsx` | [feat-exclusion.md](feat-exclusion.md) |
+| `src/hooks/useBuildOptimSearch.ts`, le filet de temps, la barre de progression, l'arrêt | [feat-interruption.md](feat-interruption.md) |
+| `src/lib/runeBuildOptim.ts`, `src/lib/artifactOptim.ts`, les `relic…` de `src/lib/`, `src/workers/` | [03-developpeur/optimizer/](../../03-developpeur/optimizer/README.md) |
+| on ne sait pas encore quoi lire | [routage-par-tache.md](routage-par-tache.md) |
+
 ## Où vit le reste de la spec
 
 Chaque sujet de l'application vit dans son fichier, dans ce dossier ; le

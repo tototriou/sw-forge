@@ -22,6 +22,15 @@ mécanique** (composition, lead auto, ticks) — voir [feat-equipes.md](feat-equ
 ci-dessous). L'onglet **Recommandations** a son propre modèle et sa propre
 persistance : voir [feat-recommandations/](feat-recommandations/README.md).
 
+## Le changement touche…
+
+| Le changement touche… | Lire |
+| --- | --- |
+| `src/pages/SiegePage.tsx`, `src/components/siege/SiegeBoard.tsx`, `src/hooks/useSiegeState.ts`, `src/lib/siegeShare.ts` | ce README |
+| `src/components/siege/SiegeTeam.tsx`, `src/components/siege/LeadPill.tsx`, `src/components/siege/slotVideSuivant.ts`, `src/components/MonsterPicker.tsx` | [feat-equipes.md](feat-equipes.md) |
+| la vitesse d'une équipe, les ticks, `src/components/siege/pastilleStatut.ts`, `src/lib/siegeStatut.ts`, `src/components/outils/SpeedTuneModale.tsx` | [feat-speed-tick.md](feat-speed-tick.md), [../transverse/feat-calcul-vitesse.md](../transverse/feat-calcul-vitesse.md) |
+| `src/components/siege/RecoBoard.tsx`, `src/components/siege/RecoCard.tsx`, `src/hooks/useSiegeRecos.ts`, les `reco…` de `src/lib/`, `src/lib/ownedBuilds.ts` | [feat-recommandations/](feat-recommandations/README.md) |
+
 ## Vue d'ensemble
 
 1. **En-tête BUREAU** (refonte graphique, lot 7a — même règle que la RTA,

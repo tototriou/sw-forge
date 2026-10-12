@@ -7,6 +7,17 @@ recalculé selon les leads de vitesse.
 Fichier racine : [RtaPage.tsx](src/pages/RtaPage.tsx) · État :
 [useRtaState.ts](src/hooks/useRtaState.ts) (`localStorage` `swblacksmith-rta-v1`).
 
+## Le changement touche…
+
+| Le changement touche… | Lire |
+| --- | --- |
+| `src/pages/RtaPage.tsx`, `src/components/rta/RtaSearch.tsx`, la création d'un monstre | [feat-recherche-import.md](feat-recherche-import.md) |
+| `src/components/rta/RtaSection.tsx`, `src/components/rta/RtaCard.tsx`, `src/components/AccordionGrid.tsx`, l'équipement affiché d'une carte | [feat-sections-runes.md](feat-sections-runes.md) |
+| `src/components/rta/TurnOrder.tsx`, `src/components/rta/DesyncBadge.tsx`, `src/lib/gearSync.ts`, les leads de vitesse | [feat-ordre-de-tour.md](feat-ordre-de-tour.md), [../transverse/feat-calcul-vitesse.md](../transverse/feat-calcul-vitesse.md) |
+| `src/components/rta/CategoryBar.tsx`, `src/components/rta/CategoryRing.tsx`, `src/hooks/useRtaCategories.ts` | [feat-categories.md](feat-categories.md) |
+| `src/components/rta/RtaBackupBar.tsx`, `src/components/rta/RtaAmiSection.tsx`, `src/components/rta/RtaFriendView.tsx`, `src/components/rta/RtaValidationReport.tsx`, `src/hooks/useRtaBackup.ts`, `src/lib/rtaShare.ts` | [feat-sauvegarde-partage.md](feat-sauvegarde-partage.md) |
+| `src/hooks/useRtaState.ts`, l'écran dans son ensemble | ce README |
+
 ## Deux sous-sections
 
 | Sous-section | Route | Ce qu'on y fait |

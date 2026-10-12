@@ -3,6 +3,17 @@
 Comment un écran se dessine, sur les deux formats. ⚠️ La règle de cadre prime sur tout arbitrage
 d'interface : lire [deux-formats.md](deux-formats.md) **avant** de modifier un écran.
 
+## Le changement touche…
+
+| Le changement touche… | Lire |
+| --- | --- |
+| un écran, au téléphone ou à l'ordinateur | [deux-formats.md](deux-formats.md), d'abord |
+| une couleur, une taille de texte, un rayon, une animation, `src/index.css`, `tailwind.config.js` | [design/](design/README.md) |
+| un contrôle de `src/ui/`, ou un contrôle à ajouter | [librairie-ui/](librairie-ui/README.md) |
+| `src/ui/Selecteur.tsx` et un champ obligatoire | [selecteur.md](selecteur.md) |
+
+## Documents
+
 | Document | Contenu |
 | --- | --- |
 | [deux-formats.md](deux-formats.md) | **Mobile et bureau, deux formats de premier rang** : où passe la frontière, comment l'écrire, ce qui reste global, ce qu'on vérifie avant de livrer. Prime en cas de doute. |

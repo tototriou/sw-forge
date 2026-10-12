@@ -15,6 +15,16 @@ Fichiers : [importAccount.ts](src/lib/importAccount.ts) (parseurs) ·
 [AccountImportControl.tsx](src/components/AccountImportControl.tsx) (bouton nav) ·
 [App.tsx](src/App.tsx) (orchestration `importAccount`).
 
+## Le changement touche…
+
+| Le changement touche… | Lire |
+| --- | --- |
+| `src/components/AccountImportControl.tsx`, `importAccount` de `src/App.tsx`, le dossier SW Exporter (`bureau/swex.ts`) | [bouton-import.md](bouton-import.md) |
+| `parseAccountJson` de `src/lib/importAccount.ts`, la box RTA importée | [box-rta.md](box-rta.md) |
+| `parseSiegeDefense`, `parseSiegeOffense`, le mapping de `src/lib/applyAccount.ts` | [equipes-siege.md](equipes-siege.md) |
+| `parseAccountBox`, `parseAccountInventory`, les marqueurs et les runes utilisées | [mon-compte.md](mon-compte.md) |
+| `src/lib/accountStore.ts`, « Garder mon compte », `src/components/AccountFreshness.tsx` | [persistance.md](persistance.md) |
+
 ## Parties
 
 | Document | Contenu |

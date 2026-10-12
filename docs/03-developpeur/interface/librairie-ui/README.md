@@ -8,6 +8,17 @@
 > Code : [`src/ui/`](../../../../src/ui/), point d'entrée unique
 > [`src/ui/index.ts`](../../../../src/ui/index.ts).
 
+## Le changement touche…
+
+| Le changement touche… | Lire |
+| --- | --- |
+| un axe d'un contrôle, la règle tactile, un nouveau contrôle à imaginer | [principes-et-axes.md](principes-et-axes.md) |
+| `src/ui/Bouton.tsx`, `src/ui/BoutonGroupe.tsx`, `src/ui/BoutonIcone.tsx` | [fondation-et-prereglages.md](fondation-et-prereglages.md) |
+| `src/ui/BarreActions.tsx`, `src/ui/Menu.tsx`, `src/ui/Champ.tsx`, `src/ui/NumberField.tsx`, `src/ui/Selecteur.tsx`, `src/ui/Interrupteur.tsx`, `src/ui/Segmented.tsx`, `src/ui/Pastille.tsx`, `src/ui/Jeton.tsx`, `src/ui/Option.tsx`, `src/ui/Flottant.tsx`, `src/ui/FlottantAuto.tsx` | [composants.md](composants.md) |
+| `src/ui/Dialogs.tsx`, `src/ui/MobileSheet.tsx`, `src/ui/Case.tsx`, `src/ui/PiedDeDialogue.tsx`, `src/ui/Vignette.tsx` | [modales-et-panneaux.md](modales-et-panneaux.md) |
+| un contour, une bordure | [contours.md](contours.md) |
+| un composant à faire monter dans `src/ui/` | [quand-ajouter.md](quand-ajouter.md) |
+
 ## Parties
 
 | Document | Contenu |

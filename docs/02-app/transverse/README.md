@@ -3,6 +3,19 @@
 Les fonctionnalités partagées par plusieurs pages, documentées une seule fois ; chaque page y
 renvoie au lieu de les redécrire.
 
+## Le changement touche…
+
+| Le changement touche… | Lire |
+| --- | --- |
+| `src/lib/speed.ts`, la vitesse de combat, un lead de vitesse | [feat-calcul-vitesse.md](feat-calcul-vitesse.md) |
+| `src/hooks/useMonsters.ts`, `src/hooks/useCustomMonsters.ts`, `src/components/CreateMonster.tsx`, `src/components/MonsterAvatar.tsx`, le modèle `Monster` de `src/types.ts`, `scripts/fetch-monsters.mjs` | [feat-donnees-monstres.md](feat-donnees-monstres.md) |
+| `src/lib/importAccount.ts`, `src/lib/applyAccount.ts`, `src/lib/accountStore.ts`, `src/components/AccountImportControl.tsx`, `src/components/AccountFreshness.tsx` | [feat-import-compte/](feat-import-compte/README.md) |
+| `src/components/Sidebar.tsx`, `src/components/TopBar.tsx`, `src/components/MobileTabs.tsx`, `src/components/Palette.tsx`, `src/pages/SettingsPage.tsx`, le routage par hash de `src/App.tsx` | [feat-navigation/](feat-navigation/README.md) |
+| `src/hooks/useComboboxNav.ts`, une barre de recherche à suggestions | [feat-recherche-clavier.md](feat-recherche-clavier.md) |
+| `src/lib/session.ts`, `src/lib/sessionOptimizer.ts`, `src/hooks/useSessionEnCours.ts`, « Sauvegarder la session » | [feat-sauvegarde-session.md](feat-sauvegarde-session.md) |
+
+## Documents
+
 | Document | Contenu |
 | --- | --- |
 | [feat-calcul-vitesse.md](feat-calcul-vitesse.md) | Le modèle de vitesse SW (base, runes, totem, lead, ticks) et son API `speed.ts`. **Source de vérité** pour RTA et Siège. |

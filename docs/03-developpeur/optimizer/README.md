@@ -1,14 +1,27 @@
 # Optimizer — moteur et vérification
 
-**Statut :** ÉTAT ACTUEL — index des documents du moteur de l'Optimizer ; ne décrit rien lui-même
-**Lire si :** on cherche quel document du moteur ouvrir
-**Ne pas lire si :** on cherche le comportement de l'écran : ../../02-app/optimizer/
-**Voir aussi :** ../../02-app/optimizer/ (routage-par-tache.md), invariants.md
-
 Le moteur de recherche de l'Optimizer, côté code ; le comportement de l'écran vit dans
 [02-app/optimizer/](../../02-app/optimizer/README.md), et
 [routage-par-tache.md](../../02-app/optimizer/routage-par-tache.md) dit quelles sections lire
 selon ce qu'on touche. Avant un chantier Optimizer : [invariants.md](invariants.md), en entier.
+
+## Le changement touche…
+
+| Le changement touche… | Lire |
+| --- | --- |
+| quoi que ce soit du moteur | [invariants.md](invariants.md), en entier, d'abord |
+| `src/workers/runeBuildOptim.worker.ts`, `src/workers/prepareForSearch.ts`, `src/hooks/useBuildOptimSearch.ts`, l'enchaînement d'une recherche | [moteur-pipeline.md](moteur-pipeline.md) |
+| l'énumération, les élagages, le pré-filtrage, les bornes de `src/lib/runeBuildOptim.ts` | [moteur-elagages.md](moteur-elagages.md) |
+| `src/workers/parallelPairing.ts`, `src/workers/pairSliceBody.ts`, `src/workers/pairSlice.worker.ts`, `src/workers/resolutionBody.ts`, `src/workers/resolutionDistante.ts` | [moteur-parallelisation.md](moteur-parallelisation.md) |
+| `diagnoseFeasibility`, `rankBlockingConditions`, le « 0 résultat » | [moteur-diagnostics.md](moteur-diagnostics.md) |
+| `src/lib/artifactQueue.ts`, `src/lib/artifactFiche.ts`, `src/lib/artifactEvaluation.ts`, la paire d'artéfacts d'un build | [moteur-artefacts.md](moteur-artefacts.md) |
+| `src/lib/artifactOptim.ts`, l'éligibilité ou l'effet d'une ligne d'artéfact | [moteur-optimiseur-artefacts.md](moteur-optimiseur-artefacts.md) |
+| `src/lib/relicOptim.ts`, `src/lib/relicQueue.ts`, `src/lib/relicExclusive.ts` | [moteur-reliques.md](moteur-reliques.md) |
+| un contrôle de l'algorithme : oracle, différentiel, benchmark | [verification.md](verification.md) |
+| `scripts/lib/diagnosticHarness.ts`, `scripts/diagnostic-harness.ts` | [harnais.md](harnais.md), [harnais-extensions.md](harnais-extensions.md) |
+| un script de diagnostic de `scripts/`, le harnais sur les cas réels (`--cas`) | [harnais-scripts.md](harnais-scripts.md) |
+
+## Documents
 
 | Document | Contenu |
 | --- | --- |

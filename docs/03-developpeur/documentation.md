@@ -36,6 +36,10 @@ encore en vigueur, avec sa raison, va en ADR dans
 - **Le document entre dans le README de son dossier**, dans le même commit,
   en une ligne : ce qu'on y trouve (règles 6 et 7). Un dossier créé reçoit
   son README dans le même commit, et une ligne dans le README parent.
+- **Il entre aussi dans la table « Le changement touche… »** du README quand
+  il décrit du code : les fichiers (chemin depuis la racine, `src/…`) ou la
+  notion qu'on modifie, et le lien vers lui. Un fichier de code qui change de
+  document, ou un nouveau dossier de code, met à jour la table d'AGENTS.md.
 
 ## Titres
 

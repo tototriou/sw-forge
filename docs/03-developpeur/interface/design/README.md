@@ -13,6 +13,19 @@ l'interface le montrait — **248 couleurs en dur** dans le TSX, **21 tailles de
 texte** de 9 px à 76 px, **aucune règle de focus**. Chaque composant réarbitrait
 au pixel ce qu'aucun document ne fixait.
 
+## Le changement touche…
+
+| Le changement touche… | Lire |
+| --- | --- |
+| `data-theme`, Forge ou Atelier | [themes.md](themes.md) |
+| une variable de couleur de `src/index.css`, les `colors` de `tailwind.config.js`, la sélection, une couleur d'élément | [tokens-couleurs.md](tokens-couleurs.md) |
+| `fontSize`, `fontFamily`, `borderRadius` de `tailwind.config.js` | [typographie-et-rayons.md](typographie-et-rayons.md) |
+| une transition ou une animation, ce qui s'ouvre au clic, un bouton désactivé, une confirmation | [mouvement-et-gestes.md](mouvement-et-gestes.md) |
+| `src/ui/Notification.tsx`, un flottant, un `z-index`, le défilement, iOS | [flottants-et-defilement.md](flottants-et-defilement.md) |
+| une valeur de couleur nouvelle ou changée (ratio de contraste), `RARITY_META` | [contraste.md](contraste.md) |
+| le focus, le survol, la pression, la croix ou les bandes d'une modale, une cible tactile, l'icône d'export ou d'import | [regles-transverses.md](regles-transverses.md) |
+| le réglage du thème dans `src/components/SettingsMenu.tsx` | [reglage-du-theme.md](reglage-du-theme.md) |
+
 ## Parties
 
 | Document | Contenu |

@@ -16,6 +16,22 @@ Fichiers :
 - [recoFromSiege.ts](src/lib/recoFromSiege.ts) — deck pré-rempli depuis une équipe d'offense.
 - [recoSearch.ts](src/lib/recoSearch.ts) — recherche d'un monstre dans les recos (calcul pur).
 
+## Le changement touche…
+
+| Le changement touche… | Lire |
+| --- | --- |
+| l'en-tête, la barre d'outils, les boutons et couleurs de `src/components/siege/RecoCard.tsx` ou `src/components/siege/RecoBoard.tsx` | [rendu-de-la-page.md](rendu-de-la-page.md) |
+| le type d'une recommandation, l'origine, la vue Attaque / Défense, `src/lib/recoDefenses.ts` | [modele.md](modele.md) |
+| `src/lib/recoSearch.ts`, la recherche par monstre | [recherche-par-monstre.md](recherche-par-monstre.md) |
+| les consignes, l'affichage ou la saisie des stats d'un monstre recommandé | [consignes.md](consignes.md) |
+| les sets de runes recommandés | [sets-de-runes.md](sets-de-runes.md) |
+| les défenses visées (« Fort contre ») | [defenses-visees.md](defenses-visees.md) |
+| les propriétés d'artéfact recommandées | [proprietes-artefact.md](proprietes-artefact.md) |
+| `src/lib/recoShare.ts`, `src/hooks/useSiegeRecos.ts`, l'export, l'import et sa validation | [persistance-et-partage.md](persistance-et-partage.md) |
+| `src/lib/recoMatch.ts`, `src/lib/ownedBuilds.ts`, « Analyser mes decks » | [confrontation.md](confrontation.md) |
+| le repli, l'édition, `src/lib/annulerEdition.ts` | [interactions.md](interactions.md) |
+| `src/lib/recoFromSiege.ts`, « Importer un deck d'offense » | [import-deck-offense.md](import-deck-offense.md) |
+
 ## Parties
 
 | Document | Contenu |

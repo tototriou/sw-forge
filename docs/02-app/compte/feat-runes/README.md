@@ -24,6 +24,19 @@ la précédente).
 > décodage SWEX** sont détaillés, valeurs comprises, dans
 > [feat-calcul-runes.md](../feat-calcul-runes.md) — référence auto-suffisante.
 
+## Le changement touche…
+
+| Le changement touche… | Lire |
+| --- | --- |
+| `src/hooks/useRuneMetric.ts`, le choix Efficience / Score SW | [mesure.md](mesure.md) |
+| `src/components/account/RunesSummary.tsx`, `src/components/account/SummaryBits.tsx` | [resume.md](resume.md) |
+| `src/components/account/RunesList.tsx`, `src/components/account/Pager.tsx`, `src/components/account/SubSearchBar.tsx`, `src/components/account/SubSearchDialog.tsx`, `src/lib/runeSort.ts` | [liste.md](liste.md) |
+| `src/components/account/RunesCurve.tsx`, `src/components/account/CurveChart.tsx`, `src/components/account/CurveLegend.tsx` | [courbes.md](courbes.md) |
+| `src/components/account/RunesCompare.tsx`, `src/lib/runeCurveShare.ts`, `src/components/account/curveColors.ts` | [comparaison.md](comparaison.md) |
+| `src/components/account/SetFilter.tsx`, `src/components/account/SlotFilter.tsx`, `src/components/account/FiltresRunes.tsx`, `src/components/account/gabaritFiltre.ts` | [filtres-set-et-slot.md](filtres-set-et-slot.md) |
+| `src/components/account/RunesOptim.tsx`, `src/components/account/AncientFilter.tsx`, `src/lib/crafts.ts` | [optimisation.md](optimisation.md) |
+| les onglets Meules et Gemmes | [meules-et-gemmes.md](meules-et-gemmes.md) |
+
 ## Parties
 
 | Document | Contenu |

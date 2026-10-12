@@ -11,7 +11,8 @@
 // `data-attendu-depassement="<px>"` exige en plus que son signalement
 // « contenu » retienne exactement ce dépassement (`depassement`, mesure.ts).
 // `data-attendu-avec="<id>,…"` exige que ses signalements « chevauchement »
-// nomment exactement ces éléments coupés (`avec`), ni plus ni moins.
+// nomment exactement ces éléments coupés (`avec`), ni plus ni moins ;
+// `data-attendu-aire="<px²>,…"`, dans le même ordre, l'aire coupée de chacun.
 //
 // Sur chaque page, sans attribut : la mesure rend la page telle quelle —
 // l'attribut `style` de chaque élément identique, présence comprise, et
@@ -40,6 +41,7 @@ function lireAttentes() {
       regles: el.getAttribute('data-attendu').split(',').map((s) => s.trim()).filter(Boolean).sort(),
       depassement: el.getAttribute('data-attendu-depassement'),
       avec: el.getAttribute('data-attendu-avec'),
+      aire: el.getAttribute('data-attendu-aire'),
     })),
   };
 }
@@ -79,7 +81,7 @@ try {
       if (mesure.page.deborde !== attendu) ecarts.push(`page : ${mesure.page.deborde ? 'signalée' : 'non signalée'}, attendu ${attentes.page}`);
     }
     const lignes = [];
-    for (const { id, regles, depassement, avec } of attentes.elements) {
+    for (const { id, regles, depassement, avec, aire } of attentes.elements) {
       if (!id) {
         ecarts.push('un élément porte data-attendu sans id');
         continue;
@@ -94,9 +96,11 @@ try {
         px = ` ; dépassement attendu ${depassement} px, retenu ${vu ?? 'aucun'}`;
       }
       if (avec !== null) {
-        const attendus = avec.split(',').map((s) => s.trim()).filter(Boolean).sort();
+        const ids = avec.split(',').map((s) => s.trim()).filter(Boolean);
+        const aires = aire === null ? null : aire.split(',').map((s) => Number(s.trim()));
+        const attendus = ids.map((i, k) => `${i}${aires ? ` ${aires[k]}` : ''}`).sort();
         const coupes = siens.filter((s) => s.regle === 'chevauchement');
-        const vus = coupes.map((s) => s.avec?.id ?? '?').sort();
+        const vus = coupes.map((s) => `${s.avec?.id ?? '?'}${aires ? ` ${s.aire}` : ''}`).sort();
         conforme &&= vus.join(',') === attendus.join(',');
         px += ` ; coupe attendue [${attendus.join(', ')}], vue [${coupes.map((s) => `${s.avec?.id ?? '?'} ${s.aire} px²`).join(', ')}]`;
       }

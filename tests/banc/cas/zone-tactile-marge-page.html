@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="fr" data-attendu-page="oui">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover">
+<title>Zone de toucher et marge négative au bord de la page</title>
+<style>
+  body { margin: 0; font: 14px sans-serif; }
+  button { width: 20px; height: 20px; padding: 0; border: 0; background: #9cf; }
+  .-mx-1 { margin-left: -0.25rem; margin-right: -0.25rem; }
+  .cible-tactile { position: relative; }
+  .cible-tactile::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    min-width: 44px;
+    min-height: 44px;
+    width: 100%;
+    height: 100%;
+    transform: translate(-50%, -50%);
+  }
+</style>
+</head>
+<body>
+<!-- Relecture n° 14 (Codex) : D9 et D10 ensemble. La marge négative déclenche la relecture de la page ; celle-ci se
+     fait avec la marge neutralisée, jamais la zone de toucher : ses 12 px au-delà de la fenêtre restent comptés. -->
+<div id="ligne-marge" class="-mx-1" style="width: calc(100% + 0.5rem); height: 20px; background: #ccc" data-attendu="geometrie"></div>
+<div style="display: flex; justify-content: flex-end">
+  <button id="bouton-bord" class="cible-tactile" data-attendu=""></button>
+</div>
+</body>
+</html>

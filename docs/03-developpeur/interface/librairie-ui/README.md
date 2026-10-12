@@ -1,0 +1,46 @@
+# Librairie UI — le vocabulaire visuel commun
+
+> **Source de vérité** pour la façon dont un contrôle se dessine. Les VALEURS
+> (couleurs, échelle de texte, rayons) restent dans
+> [design/](../design/README.md) ; ce document dit **quels composants existent** et
+> **comment on choisit entre eux**.
+>
+> Code : [`src/ui/`](../../../../src/ui/), point d'entrée unique
+> [`src/ui/index.ts`](../../../../src/ui/index.ts).
+
+## Parties
+
+| Document | Contenu |
+| --- | --- |
+| [principes-et-axes.md](principes-et-axes.md) | Le problème que la librairie résout, la règle qui gouverne tout le reste, des axes plutôt qu'un catalogue de variantes, le piège de la règle tactile, les axes de comportement. |
+| [fondation-et-prereglages.md](fondation-et-prereglages.md) | `Bouton`, la fondation, et ses préréglages `BoutonGroupe` et `BoutonIcone`. |
+| [composants.md](composants.md) | `BarreActions`, `Menu`, `Champ`, `NumberField`, `Selecteur`, `Interrupteur`, `Segmented`, `Pastille`, `Jeton`, `Option`, `Flottant`, `FlottantAuto`, `Modale`. |
+| [modales-et-panneaux.md](modales-et-panneaux.md) | Une seule grammaire de modale en trois bandes, la croix et sa seule exception, puis `MobileSheet`, `Case`, `PiedDeDialogue` et `Vignette`. |
+| [contours.md](contours.md) | Les contours d'interface : 1 px, et un seul. |
+| [quand-ajouter.md](quand-ajouter.md) | Quand un composant monte dans la librairie : au deuxième usage, jamais au premier, et seulement quand un axe manque. |
+
+## Ce qui n'est pas dans cette librairie
+
+**Les composants de JEU.** Une roue de runes, un portrait de monstre, la fiche
+d'une pièce équipée ne sont pas du vocabulaire d'interface : ils rendent des
+données Summoners War et suivent les codes du jeu, pas la règle du contour unique
+de 1 px. Ils vivent dans `src/components/`.
+
+Ils obéissent en revanche à la **même exigence d'unicité** : un rendu se dessine
+une fois. ⚠️ La fiche d'une **rune** et celle d'un **artéfact** étaient deux
+composants indépendants, écrits à six mois d'écart, et cela se voyait dès qu'on
+les ouvrait l'une après l'autre au même endroit — rareté en colonne d'un côté, en
+bandeau au-dessus de l'autre ; « Efficience 98,4 % » ici, une jauge et un nombre
+nu là ; deux largeurs, deux hauteurs, pour la même question. Elles partagent
+désormais une coquille unique
+([PieceDetail.tsx](../../../../src/components/PieceDetail.tsx)) : cadre, en-tête
+(image, stat principale, rareté, mesure), bloc de lignes, pied. Ne reste propre à
+chaque pièce que **ce qu'elle a de différent** — la meule et la gemme d'un côté,
+les procs de l'autre ; le bonus de set d'un côté, l'attribut ou le type de
+l'autre. **La rune est la référence** : sa disposition est celle du jeu.
+
+**Aucune dépendance externe.** La question d'adopter Radix UI s'est posée pour
+`Dialog`, `Popover`, `Select` et `Switch`. Elle reste **ouverte** et concerne le
+comportement (piège de focus, empilement, clavier), pas l'apparence — ces
+composants-ci sont à nous et le resteraient. Voir
+[02-app/transverse/](../../../02-app/transverse/) pour ce qui flotte au-dessus de la page.

@@ -132,7 +132,7 @@
 ## Réglages avancés
 
 9. **« Réglages avancés »** (repliés par défaut). ⚠️ **Au bureau, un
-   `FlottantAuto`** (`../../03-developpeur/interface/librairie-ui.md`), PAS un bloc qui grandit la
+   `FlottantAuto`** (`../../03-developpeur/interface/librairie-ui/composants.md`), PAS un bloc qui grandit la
    carte — dépliée, la carte reste sous « Exclusion de runes » (colonne 2,
    rangée 5, sous Exclusion en rangée 4 — voir
    feat-ecran.md § Ordre d'usage et grille) à sa hauteur repliée, le

@@ -165,7 +165,7 @@ filtres sont posés.
 `SlotFilter`, les sets de `SetFilter`, les étoiles du Bestiaire et les filtres
 de Ma box (Nat / Doublons / 2A) portent tous **le même fond d'accent teinté** —
 deux marqueurs différents côte à côte se liraient comme deux natures de
-filtre. C'est la brique `Pastille` ([librairie-ui.md](../librairie-ui.md)) qui le
+filtre. C'est la brique `Pastille` ([librairie-ui/composants.md](../librairie-ui/composants.md)) qui le
 définit, dans `MARQUEUR_FILTRE_ACTIF`, une fois pour toutes.
 
 **Corollaires :**

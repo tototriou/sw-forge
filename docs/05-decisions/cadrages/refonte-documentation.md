@@ -56,7 +56,9 @@ trop gros et mal routés au lieu d'en corriger la cause.
   chantier ne modifie dans `CLAUDE.md` que les phrases que ses lots rendent
   fausses (chemins `spec/`, `spec-toc`, règle public/privé).
 - Le code mort (153 variables inutilisées signalées par ESLint) et les
-  mentions « lot N / décision N » dans les commentaires du code.
+  mentions « lot N / décision N » et de date dans les commentaires du code.
+- Le cadre de tests (Vitest, tests de bout en bout, couverture) : question
+  ouverte dans `07-pilotage`.
 - Les 9 points de la revue de `release/v2.0.0` (bugs) : ils entrent dans
   `07-pilotage` comme dette, pas corrigés ici.
 
@@ -89,6 +91,10 @@ effort élevé.
   réorganiser comprend `spec/outillage/qualite-code.md` et le retrait des
   hooks d'agent, absents de `main`. Fusion dans `release/v2.0.1` après
   `forge/lint-et-hooks`.
+- Lots 0 à 3 fusionnés dans `release/v2.0.1` le 2026-10-08 (`789fd86c`).
+  À partir du lot 4 : branche `forge/segmentation-docs`, partie de
+  `origin/release/v2.0.1`, pour découper la documentation telle que les
+  chantiers suivants l'ont modifiée.
 - Fichiers transverses portés par ce chantier : `docs/**`, `README.md`,
   `ARCHITECTURE.md`, `tests/README.md`, `spec/spec-lint.json`,
   `.githooks/pre-commit` (refus du dossier de l'Optimizer),
@@ -144,9 +150,9 @@ Ordre d'exécution = ordre des numéros.
 | Lot | Cat. | Statut | Commit / date |
 | --- | --- | --- | --- |
 | 0 — Charte et squelette | J | fait | 2026-10-08 |
-| 1 — Plan de migration | C | à faire | |
-| 2 — Garde-fous public/privé caducs | M | à faire | |
-| 3 — Déplacement `spec/` → `docs/` | M | à faire | |
+| 1 — Plan de migration | C | abandonné | voir son Résultat |
+| 2 — Garde-fous public/privé caducs | M | fait | `1646e2e2`, 2026-10-08 |
+| 3 — Déplacement `spec/` → `docs/` | M | fait | `817aab9e`, 2026-10-08 ; renvois jusqu'au 2026-10-12 |
 | 4 — `03-developpeur` | J | à faire | |
 | 5 — `01-presentation` et README racine | J | à faire | |
 | 6a — `02-app` : compte, siège, RTA | J | à faire | |
@@ -205,6 +211,13 @@ quoi le test des renvois le lit comme un chemin mort.
   'spec/*.md'` + les trois fichiers racine, ni plus ni moins.
 - **Ne fait pas** : aucun fichier déplacé. Validé par Thomas avant le lot 3.
 
+#### Résultat (2026-10-12)
+
+Abandonné : le lot 3 s'est fait sans plan écrit, fichier par fichier. Les
+découpages prévus par ce lot (fichiers de plus de 300 lignes, titre par
+titre) reviennent aux lots 4 à 8, chacun pour sa section, avant de
+découper.
+
 ### Lot 2 — Garde-fous public/privé caducs
 
 - **Intrant** : `.githooks/pre-commit` (section « sous
@@ -221,6 +234,14 @@ quoi le test des renvois le lit comme un chemin mort.
   speclint` vert ; `git grep optimizer-publics` vide.
 - **Ne fait pas** : ne touche pas à `spec-lint` ni à `spec-toc` (lot 9).
 
+#### Résultat (2026-10-08)
+
+`1646e2e2` : `.githooks/optimizer-publics.txt` et
+`tests/ecriture-publique.test.ts` retirés, le refus du dossier de
+l'Optimizer retiré du `pre-commit`, specs de l'outillage et CLAUDE.md
+mis à jour. Vérifié le 2026-10-12 : `git grep optimizer-publics` ne rend
+que ce cadrage.
+
 ### Lot 3 — Déplacement `spec/` → `docs/`
 
 - **Intrant** : le plan validé du lot 1.
@@ -236,6 +257,26 @@ quoi le test des renvois le lit comme un chemin mort.
   `node tests/run.mjs renvois speclint` verts ; `git diff -M --stat` :
   renommages à 100 %.
 - **Ne fait pas** : aucune réécriture de contenu.
+
+#### Résultat (2026-10-12)
+
+`817aab9e` (2026-10-08) : 87 fichiers déplacés et 230 fichiers aux renvois
+réécrits, dans le même commit. Écarts au contrat :
+
+- les renvois sont corrigés **à la main**, fichier par fichier, sans
+  script de correspondance (pas de plan, lot 1) ;
+- le déplacement et la réécriture des liens partagent un commit : les
+  renommages ne sont pas à 100 % (`git show -M --name-status` : 22 à
+  100 %, les autres entre 91 et 99 %) ;
+- un lien vers un autre dossier pointe sur le **dossier**, le nom de
+  l'ancien fichier et la section passant dans le libellé.
+
+Renvois restés morts ou faux, corrigés ensuite : `4133a3d7` (2026-10-08),
+`6b74a947` (2026-10-11, liste des tolérés passée aux chemins `docs/`),
+`0c4cee4c` (2026-10-12, dernières mentions `spec/` et un lien qui se
+résolvait vers le mauvais README). `git grep 'spec/'` ne rend plus que ce
+cadrage. `node tests/run.mjs testrenvois speclint precommit` : 79
+passées ; `node scripts/spec-lint.mjs` : aucune erreur.
 
 ### Lot 4 — `03-developpeur`
 

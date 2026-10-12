@@ -5,3 +5,4 @@ tranchée quitte ce registre ; sa réponse vit dans la documentation ou dans un 
 
 | Question | Où | Depuis |
 | --- | --- | --- |
+| Quel cadre de tests adopter (Vitest, tests de bout en bout, couverture) en plus du lanceur `tests/run.mjs` ? | [tests/README.md](../../tests/README.md) | 2026-10-08 |

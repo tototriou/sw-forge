@@ -114,9 +114,21 @@ const DEFAUT: Etat = { id: 'defaut', libelle: 'à l’ouverture', preparation: [
 
 /**
  * Motifs qui sélectionnent TOUS les écrans : la librairie d'interface, la
- * feuille de style et la configuration Tailwind touchent chaque page.
+ * feuille de style, la configuration Tailwind et le coquillage (App, barres
+ * et panneaux de navigation, palette) enveloppent chaque page.
  */
-export const MOTIFS_TOUS: string[] = ['src/ui/', 'src/index.css', 'tailwind.config.js'];
+export const MOTIFS_TOUS: string[] = [
+  'src/ui/',
+  'src/index.css',
+  'tailwind.config.js',
+  'src/App',
+  'src/components/Sidebar',
+  'src/components/TopBar',
+  'src/components/MobileTabs',
+  'src/components/MobileNavSheet',
+  'src/components/Palette',
+  'src/components/palette/',
+];
 
 /** Écran sans état préparé : l'état unique « à l'ouverture ». */
 function ouverture(id: string, libelle: string, hash: string, motifs: string[], alias?: string[]): Ecran {

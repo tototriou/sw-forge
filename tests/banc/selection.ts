@@ -11,9 +11,9 @@
 //      `tailwind.config.js`) sélectionne tous les écrans ;
 //   2. sinon il sélectionne chaque écran dont un motif le couvre — un motif
 //      partagé les sélectionne tous (`motifsPartages`) ;
-//   3. sinon il est « hors table » : aucun écran, signalé. Ce n'est pas
-//      « rien à vérifier », c'est « la table ne sait pas » : le lanceur le
-//      dit sur la sortie standard.
+//   3. sinon, sous `src/` : REPLI, tous les écrans (une modification de
+//      l'app qu'aucun motif ne connaît ne doit jamais passer sans banc) ;
+//   4. sinon (docs, tests, scripts…) : « hors table », aucun écran, signalé.
 
 import { ECRANS, MOTIFS_TOUS } from './ecrans.ts';
 import type { Ecran } from './ecrans.ts';
@@ -22,7 +22,7 @@ export interface DetailFichier {
   fichier: string;
   /** Identifiants des écrans sélectionnés par ce fichier, dans l'ordre de la table. */
   ecrans: string[];
-  regle: 'tous' | 'motif' | 'aucun';
+  regle: 'tous' | 'motif' | 'repli' | 'aucun';
 }
 
 export interface Selection {
@@ -56,7 +56,9 @@ export function ecransPourFichiers(fichiers: string[], ecrans: Ecran[] = ECRANS)
       return { fichier, ecrans: ecrans.map((e) => e.id), regle: 'tous' };
     }
     const ids = ecrans.filter((e) => e.motifs.some((m) => couvre(m, fichier))).map((e) => e.id);
-    return { fichier, ecrans: ids, regle: ids.length > 0 ? 'motif' : 'aucun' };
+    if (ids.length > 0) return { fichier, ecrans: ids, regle: 'motif' };
+    if (fichier.startsWith('src/')) return { fichier, ecrans: ecrans.map((e) => e.id), regle: 'repli' };
+    return { fichier, ecrans: [], regle: 'aucun' };
   });
   const choisis = new Set(details.flatMap((d) => d.ecrans));
   return {

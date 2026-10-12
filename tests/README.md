@@ -65,8 +65,10 @@ signalé et un cas non signalé, que vérifie [banc/cas.mjs](banc/cas.mjs).
   modifiés (`git diff --name-only`) à [banc/selection.ts](banc/selection.ts),
   qui les rapproche des motifs de chemins de chaque écran
   ([banc/ecrans.ts](banc/ecrans.ts)). `src/ui/`, `src/index.css` et
-  `tailwind.config.js` sélectionnent tous les écrans ; un fichier qu'aucun
-  motif ne couvre ne sélectionne rien et est signalé « hors table ». La
+  `tailwind.config.js` et le coquillage (`App.tsx`, barres de navigation,
+  palette) sélectionnent tous les écrans, comme tout fichier de `src/` qu'aucun
+  motif ne couvre (repli, dit sur la sortie) ; un fichier hors de `src/` que
+  nul motif ne couvre ne sélectionne rien et est signalé « hors table ». La
   vérification `banc-selection` (sans navigateur, dans `npm test`) garde la
   correspondance.
 - **Ce qu'il ne fait pas** : comparer des captures. Il en prend une par

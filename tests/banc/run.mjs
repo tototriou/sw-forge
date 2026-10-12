@@ -314,8 +314,8 @@ async function principal(etat) {
     selection = choix.ecrans;
     console.log(`banc : ${fichiers.length} fichier(s) modifié(s) entre ${bornes.join(' et ')}, ${selection.length} écran(s) sélectionné(s)`);
     for (const d of choix.details) {
-      const dit = d.regle === 'tous' ? 'tous les écrans' : d.regle === 'aucun' ? 'aucun écran (HORS TABLE)' : d.ecrans.join(', ');
-      console.log(`  ${d.fichier} → ${dit}`);
+      if (d.regle === 'repli') console.log(`  repli : ${d.fichier} hors table → tous`);
+      else console.log(`  ${d.fichier} → ${d.regle === 'tous' ? 'tous les écrans' : d.regle === 'aucun' ? 'aucun écran (HORS TABLE)' : d.ecrans.join(', ')}`);
     }
     if (choix.horsTable.length > 0) {
       console.log(`banc : ${choix.horsTable.length} fichier(s) hors de la table des écrans — ils ne sélectionnent rien ; à vérifier à la main, ou --ecrans / --tous.`);

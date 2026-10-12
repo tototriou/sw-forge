@@ -37,12 +37,24 @@ export default function testBancSelection() {
     egal(ids([f]).length, ECRANS.length, `règle « tous » : ${f}`);
     egal(ecransPourFichiers([f]).details[0].regle, 'tous', `règle « tous » : ${f} est étiquetée « tous »`);
   }
-  ok(MOTIFS_TOUS.length === 3, 'la règle « tous » tient en trois motifs');
+
+  // Le coquillage enveloppe chaque page.
+  for (const f of ['src/App.tsx', 'src/components/Sidebar.tsx', 'src/components/TopBar.tsx', 'src/components/MobileTabs.tsx', 'src/components/palette/recherchePalette.ts']) {
+    egal(ecransPourFichiers([f]).details[0].regle, 'tous', `coquillage : ${f} sélectionne tous les écrans`);
+  }
+
+  // Repli : un fichier de src/ que nul motif ne couvre sélectionne tous les écrans.
+  for (const f of ['src/lib/damage.ts', 'src/hooks/useMonsters.ts', 'src/main.tsx']) {
+    const rep = ecransPourFichiers([f]);
+    egal(rep.details[0].regle, 'repli', `repli : ${f} hors table`);
+    egal(rep.ecrans.length, ECRANS.length, `repli : ${f} sélectionne tous les écrans`);
+    egal(rep.horsTable, [], `repli : ${f} n'est pas « hors table » sans écran`);
+  }
 
   // Un fichier hors de toute table : aucun écran, signalé.
-  const hors = ecransPourFichiers(['docs/README.md', 'src/lib/damage.ts']);
+  const hors = ecransPourFichiers(['docs/README.md', 'scripts/spec-toc.mjs']);
   egal(hors.ecrans.length, 0, 'fichiers hors table : aucun écran');
-  egal(hors.horsTable, ['docs/README.md', 'src/lib/damage.ts'], 'fichiers hors table : signalés');
+  egal(hors.horsTable, ['docs/README.md', 'scripts/spec-toc.mjs'], 'fichiers hors table (hors de src/) : signalés');
   egal(hors.details.map((d) => d.regle), ['aucun', 'aucun'], 'fichiers hors table : règle « aucun »');
 
   // Mélange : l'union, dans l'ordre de la table, les fichiers hors table signalés à part.

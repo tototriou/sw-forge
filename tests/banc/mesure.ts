@@ -177,11 +177,15 @@
 //     coupe celle d'aucun élément visible (au sens plus haut, `visibility`
 //     visible) DU MÊME PLAN qui n'est ni un de ses ancêtres ni le contenu en
 //     flux de son bloc contenant — coupe : intersection de plus de 1 px de
-//     large ET de haut. Contenu en flux : un descendant du bloc dont ni lui
-//     ni aucun ancêtre jusqu'au bloc n'est `absolute` ou `fixed` (le
-//     portrait) ; une pastille ou un badge positionné dans l'avatar (passé en
-//     `children` à `MonsterAvatar`) est « le reste » et se compare (relecture
-//     Codex n° 5, tests/banc/cas/coin-pastille.html). Même plan : le même ancêtre (l'élément compris) le plus
+//     large ET de haut. Contenu en flux (le portrait) : un descendant du bloc
+//     qu'on rejoint sans passer par un élément `absolute` ou `fixed`
+//     positionné par rapport au bloc lui-même ou au-delà — en flux, ou
+//     positionné dans un cadre qui est lui-même contenu du portrait (la
+//     seconde moitié du portrait d'un jumeau collab, `absolute inset-0` dans
+//     le cadre `relative` du portrait, `CollabPortrait.tsx`). Une pastille ou
+//     un badge positionné contre l'avatar (passé en `children` à
+//     `MonsterAvatar`) est « le reste » et se compare (relecture Codex n° 5,
+//     tests/banc/cas/coin-pastille.html). Même plan : le même ancêtre (l'élément compris) le plus
 //     proche en `position: fixed` ou `sticky`, ou aucun pour les deux. Une
 //     barre ou un en-tête fixe ou collant, une modale, passent au-dessus du
 //     contenu qui défile sous eux : leurs boîtes se coupent sans que l'icône
@@ -534,10 +538,19 @@ export function mesurer(options: { detail: boolean }): Mesure {
     plans.set(e, plan);
     return plan;
   };
-  // Le contenu en flux du bloc (le portrait) : un descendant du bloc dont ni
-  // lui ni aucun ancêtre jusqu'au bloc n'est `absolute` ou `fixed`.
+  // Le contenu du portrait (tête) : un descendant du bloc qu'on rejoint sans
+  // passer par un élément positionné PAR RAPPORT AU BLOC (ou au-delà) — en
+  // flux, ou positionné dans un cadre lui-même contenu du portrait.
   const enFluxDe = (e: Element, bloc: Element) => {
-    for (let a: Element | null = e; a && a !== bloc; a = a.parentElement) if (mode(style(a)) !== 'flux') return false;
+    for (let a: Element | null = e; a && a !== bloc; ) {
+      if (mode(style(a)) === 'flux') {
+        a = a.parentElement;
+        continue;
+      }
+      const cadre = suivant(a);
+      if (!cadre || cadre === bloc || !bloc.contains(cadre)) return false;
+      a = cadre;
+    }
     return true;
   };
   // La boîte visible : la boîte coupée, axe par axe, par la boîte de

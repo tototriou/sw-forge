@@ -23,5 +23,17 @@
     <img id="pastille-icone" class="icone" src="elements/fire.png" alt="" data-attendu="chevauchement" data-attendu-avec="pastille-badge" data-attendu-aire="144">
   </span>
 </div>
+<!-- Non signalée : la seconde moitié du portrait d'un jumeau collab (CollabPortrait.tsx), `absolute inset-0` dans
+     le cadre `relative overflow-hidden` du portrait (MonsterCard.tsx) — positionnée par rapport au cadre, pas au
+     bloc : elle fait partie du portrait. -->
+<div class="bloc">
+  <div id="jumeau-bloc" style="position: relative; width: 64px" data-attendu="">
+    <div id="jumeau-cadre" style="position: relative; width: 64px; height: 64px; overflow: hidden; background: #9cf" data-attendu="">
+      <img id="jumeau-portrait" src="portraits/a.png" alt="" style="display: block; width: 64px; height: 64px" data-attendu="">
+      <img id="jumeau-moitie" src="portraits/b.png" alt="" style="position: absolute; inset: 0; width: 64px; height: 64px" data-attendu="">
+    </div>
+    <img id="jumeau-icone" class="icone" src="elements/dark.png" alt="" data-attendu="">
+  </div>
+</div>
 </body>
 </html>

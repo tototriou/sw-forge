@@ -202,7 +202,10 @@ async function arreterServeur(serveur) {
   } else {
     serveur.p.kill('SIGTERM');
   }
-  return Promise.race([serveur.fin.then(() => true), attendre(10000).then(() => false)]);
+  // `unref` : le délai de garde ne doit pas retenir le processus 10 s de plus
+  // une fois le serveur arrêté.
+  const garde = new Promise((ok) => setTimeout(ok, 10000, false).unref());
+  return Promise.race([serveur.fin.then(() => true), garde]);
 }
 
 async function attendrePortLibre(port, maxMs) {

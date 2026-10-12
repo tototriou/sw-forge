@@ -101,9 +101,16 @@
 //   qui dépasse encore est signalé avec la tolérance commune de 1 px, sans
 //   autre seuil (une exception « ≤ 4 px » laisserait passer un vrai
 //   débordement porté par le même élément). Au second passage, l'élément est
-//   décalé vers la gauche de la valeur de sa marge (propriété `translate`,
-//   qui ne déplace aucune autre boîte) : son bord droit, et tout ce qu'il
-//   porte, revient au bord de sa boîte de marge. Côté par côté : document
+//   décalé vers la gauche de la valeur de sa marge en reportant celle-ci de
+//   droite à gauche (`margin-left` diminuée de la marge, `margin-right: 0`) :
+//   sa largeur et son encombrement (marge gauche + largeur + marge droite) ne
+//   changent pas, aucune autre boîte ne bouge, et son bord droit, avec tout ce
+//   qu'il porte, revient au bord de sa boîte de marge. Pas `translate` : il
+//   ferait de l'élément le bloc contenant de ses descendants `absolute` et
+//   `fixed`, qui se replaceraient contre lui (relecture Codex n° 3 ;
+//   tests/banc/cas/marge-negative-bloc.html), et il excluait un élément qui
+//   portait déjà un `translate`, même nul (n° 11 ;
+//   marge-negative-translate.html). Côté par côté : document
 //   LTR, seul le côté droit entre dans `scrollWidth` (un dépassement à
 //   gauche n'est pas atteignable au défilement), donc seule la marge droite
 //   s'y soustrait ; une marge gauche négative ne diminue rien. Relevé :
@@ -111,9 +118,8 @@
 //   quand la boîte est trop large et que la marge utilisée diffère
 //   (tests/banc/cas/marge-negative.html, ligne « large »). L'élément garde
 //   sa géométrie : sortir de la fenêtre reste signalé. Rien ne se soustrait
-//   en `direction: rtl`, ni sur un élément qui porte déjà la propriété
-//   `translate` (signalement conservé). ⚠️ Un descendant `position: fixed`
-//   de l'élément prend celui-ci pour bloc contenant le temps du décalage ;
+//   en `direction: rtl`. Un `translate` que l'élément porte déjà reste en
+//   place et compte (un décalage de 2 px au-delà de la marge reste signalé) ;
 // - icône en coin (l'icône d'élément de `MonsterAvatar`, `absolute -top-1
 //   -right-1`) : son contact avec SON bloc contenant (l'avatar) est permis,
 //   jamais avec le reste. Elle SEULE : décision D11 de l'utilisateur, aucune
@@ -186,7 +192,7 @@
 // bloc). Neutralisations : décoratif coupé, `display: none` posé en ligne
 // avec `!important` ; zone de toucher, une feuille de style ajoutée le temps
 // de la lecture (`.cible-tactile::after { display: none !important }`) ;
-// marge négative, `translate` posé en ligne avec `!important` ; icône en
+// marge négative, `margin-left`/`margin-right` en ligne avec `!important` ; icône en
 // coin, `right: 0` en ligne avec `!important` (voir plus haut). Le
 // signalement garde ses valeurs du premier passage ;
 // `depassement` porte celui qui reste, `page.relue` la largeur de page relue.
@@ -405,8 +411,9 @@ export function mesurer(options: { detail: boolean }): Mesure {
   const signalements: Signalement[] = [];
   const elementDe = new Map<Signalement, Element>();
   const decoratifsVus: Element[] = [];
-  // Marge négative (tête) : l'élément et la valeur absolue de sa marge droite.
-  const margesNegatives: { el: Element; marge: number }[] = [];
+  // Marge négative (tête) : l'élément, la valeur absolue de sa marge droite et
+  // sa marge gauche calculée.
+  const margesNegatives: { el: Element; marge: number; gauche: number }[] = [];
   // Icône en coin (tête) : l'élément et son bloc contenant.
   const coins: { el: Element; bloc: Element; largeurFigee: string | null }[] = [];
   // Règle « chevauchement » : les éléments visibles, leur boîte au premier
@@ -434,7 +441,7 @@ export function mesurer(options: { detail: boolean }): Mesure {
     // Avant toute exclusion : un élément exclu impose quand même son
     // dépassement à ses ancêtres.
     const margeDroite = parseFloat(s.marginRight);
-    if (margeDroite < 0 && s.direction === 'ltr' && s.translate === 'none') margesNegatives.push({ el, marge: -margeDroite });
+    if (margeDroite < 0 && s.direction === 'ltr') margesNegatives.push({ el, marge: -margeDroite, gauche: parseFloat(s.marginLeft) || 0 });
     const coin = coinDe(el, s);
     if (coin) coins.push({ el, ...coin });
     if (s.visibility === 'hidden' || s.visibility === 'collapse') {
@@ -581,7 +588,9 @@ export function mesurer(options: { detail: boolean }): Mesure {
     try {
       // (1) La page : marges négatives seules (D9 ne vaut pas pour elle, un
       // décoratif est coupé avant `html`, une icône en coin s'arrête à son bloc).
-      for (const { el, marge } of margesNegatives) poses.push(poser(el, { translate: `${-marge}px 0px` }));
+      for (const { el, marge, gauche } of margesNegatives) {
+        poses.push(poser(el, { 'margin-left': `${gauche - marge}px`, 'margin-right': '0px' }));
+      }
       if (relirePage) pageRelue = document.documentElement.scrollWidth;
       // (2) Les éléments qui ne sont le bloc d'aucune icône en coin.
       for (const d of decoratifsVus) poses.push(poser(d, { display: 'none' }));

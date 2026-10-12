@@ -243,6 +243,26 @@
 // chacun, retiré seul, ne déplace rien sont supposés ne rien déplacer
 // ensemble.
 //
+// Limites connues : des cas où le banc peut se TAIRE à tort. Ils viennent de
+// la relecture du code, ne sont pas reproduits, et sont rares ou absents
+// dans l'app. Le banc est un outil de mesure, pas une garde : un écran sans
+// signalement n'est pas une preuve.
+// - Décoratif : le contrôle « son retrait ne déplace aucune boîte » ne voit
+//   ni le texte nu ni les pseudo-éléments ; retirer le décoratif peut faire
+//   tenir un texte voisin qui débordait.
+// - Icône en coin, reconnue par son image et non par un repère du portrait :
+//   une icône d'élément hors d'un portrait en bénéficie aussi ; une pastille
+//   enveloppée dans un cadre `relative` de l'avatar compte comme portrait.
+//   Un rognage par `contain: paint` n'exclut pas l'exception.
+// - Chevauchement : sous `transform: scale`, les zones de coupe sont
+//   calculées en dimensions de mise en page et non transformées ; un bloc
+//   `sticky` non collé forme un plan à part (aucune comparaison avec ses
+//   voisins ordinaires).
+// - Marge négative : le report de la marge déplace la forme d'exclusion d'un
+//   flottant à `shape-outside`, donc le texte qui l'entoure.
+// - Remise en état : une transition ou une animation déjà en cours peut être
+//   annulée ou relancée ; seul le nombre d'animations est contrôlé.
+//
 // ⚠️ `mesurer` est exécutée DANS la page (`page.evaluate`) : Playwright en
 // envoie le texte. Elle ne référence donc rien hors d'elle-même — pas une
 // constante du module, pas un import.

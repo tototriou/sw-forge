@@ -19,6 +19,8 @@
 //   disparaît de la mesure qui devait le voir. `documentElement.clientWidth`
 //   reste à 360 (relevé : tests/banc/cas/page-oui.html). À l'ordinateur, les
 //   deux valeurs coïncident (barres de défilement superposées) ;
+// - élément mesuré : `body` et chacun de ses descendants (`html` relève de
+//   la règle « page ») ;
 // - visible : l'élément a une boîte (`getClientRects()` non vide — un
 //   élément sous `display: none`, ou en `display: contents`, n'en a pas) ;
 // - défilement voulu : `overflow-x` calculé `auto` ou `scroll`, ET une classe
@@ -188,7 +190,9 @@ export function mesurer(): Mesure {
   let elementsMesures = 0;
   let ellipsis = 0;
   let invisibles = 0;
-  for (const el of Array.from(document.body.querySelectorAll('*'))) {
+  // `body` compris : un dépassement qu'il porte lui-même (marge négative…)
+  // ne se voit sur aucun de ses descendants.
+  for (const el of [document.body, ...Array.from(document.body.querySelectorAll('*'))]) {
     if (el.getClientRects().length === 0) continue; // display: none, display: contents
     const s = style(el);
     if (s.visibility === 'hidden' || s.visibility === 'collapse') {

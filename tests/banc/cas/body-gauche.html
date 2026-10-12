@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="fr" data-attendu-page="non">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover">
+<title>body mesuré</title>
+<style>
+  body { margin: 8px 8px 8px -50px; font: 14px sans-serif; }
+</style>
+</head>
+<!-- Signalé : `body` lui-même sort à gauche (marge négative). Un dépassement à
+     gauche n'agrandit pas le défilement du document : seule la géométrie de
+     `body` le voit. -->
+<body id="corps" data-attendu="geometrie">
+<p id="texte" data-attendu="geometrie">Le corps commence hors de l'écran.</p>
+</body>
+</html>

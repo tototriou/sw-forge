@@ -138,8 +138,10 @@
 //     `getComputedStyle` mais `auto` par `computedStyleMap` — ce n'est pas
 //     un décalage voulu, son dépassement reste entier. Son bloc contenant
 //     doit être `body` ou un descendant, de direction `ltr`, et ne doit ni
-//     couper ni défiler (`overflow-x` calculé `visible`) : une icône rognée
-//     par son avatar est un vrai défaut, il reste signalé (décision de
+//     couper ni défiler sur AUCUN des deux axes (`overflow-x` et `overflow-y`
+//     calculés `visible` ; `overflow-y: clip` seul rogne le haut de l'icône —
+//     relecture Codex n° 6, tests/banc/cas/coin-rogne-y.html) : une icône
+//     rognée par son avatar est un vrai défaut, il reste signalé (décision de
 //     l'utilisateur). Sinon, rien ne se soustrait et la règle
 //     « chevauchement » ne s'applique pas.
 //   · Côté par côté : document LTR, seul le côté droit entre dans
@@ -383,7 +385,7 @@ export function mesurer(options: { detail: boolean }): Mesure {
     const bloc = suivant(el);
     if (!bloc || bloc === racine) return null;
     const sB = style(bloc);
-    if (sB.direction !== 'ltr' || sB.overflowX !== 'visible') return null;
+    if (sB.direction !== 'ltr' || sB.overflowX !== 'visible' || sB.overflowY !== 'visible') return null;
     return { bloc, largeurFigee: carte.get('left') instanceof CSSKeywordValue ? s.width : null };
   };
 

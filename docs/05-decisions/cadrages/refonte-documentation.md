@@ -154,11 +154,11 @@ Ordre d'exécution = ordre des numéros.
 | 1 — Plan de migration | C | abandonné | voir son Résultat |
 | 2 — Garde-fous public/privé caducs | M | fait | `1646e2e2`, 2026-10-08 |
 | 3 — Déplacement `spec/` → `docs/` | M | fait | `817aab9e`, 2026-10-08 ; renvois jusqu'au 2026-10-12 |
-| 4 — `03-developpeur` | J | à faire | |
+| 4 — `03-developpeur` | J | en cours (README, découpage) | voir lots 6, Résultat |
 | 5 — `01-presentation` et README racine | J | à faire | |
-| 6a — `02-app` : compte, siège, RTA | J | à faire | |
-| 6b — `02-app` : outils hors Optimizer | J | à faire | |
-| 6c — `02-app` : Optimizer | J | à faire | |
+| 6a — `02-app` : compte, siège, RTA | J | en cours (README, découpage) | 2026-10-12, voir Résultat |
+| 6b — `02-app` : outils hors Optimizer | J | en cours (README, découpage) | 2026-10-12, voir Résultat |
+| 6c — `02-app` : Optimizer | J | en cours (README) | 2026-10-12, voir Résultat |
 | 7 — `04-conformite` et `06-exploitation` | J | à faire | |
 | 8 — `05-decisions` et `07-pilotage` | J | à faire | |
 | 9 — markdownlint, retrait de l'outillage maison | M | à faire | |
@@ -318,6 +318,34 @@ par dossier, avant de commencer.
   section au-delà de la taille fixée par la charte.
 - **Ne fait pas** : ne corrige aucune règle de comportement ; une
   incohérence trouvée va en question ouverte.
+
+#### Résultat (2026-10-12) — README et découpage au-delà de 500 lignes
+
+Fait sur `forge/segmentation-docs`, pour toute la documentation (lots 4 et
+6 confondus sur ce point) :
+
+- chaque dossier de `docs/` a un README qui liste chacun de ses documents
+  et sous-dossiers, une ligne par contenu (`b06becc2`, `f6475d40`) ;
+  l'index de l'ancien `spec/` a quitté `conventions.md` pour ces README ;
+- charte : 500 lignes au plus par document (`8d483708`), profondeur
+  libre, un document trop long devient un dossier à son nom (`c2575086`) ;
+- les sept fichiers de plus de 500 lignes découpés : recommandations du
+  siège (`acf84e70`), fiche speed tuning (`47929831`), runes (`a001d05e`),
+  système visuel (`fc7a1a52`), navigation (`958393d8`), librairie UI
+  (`8082913a`), import de compte (`93d3dea6`).
+
+Méthode : un script copie les lignes telles quelles selon un plan de
+découpe par titres, recalcule les liens relatifs et les ancres internes,
+et vérifie que chaque paragraphe de la source (hors titres, cibles de
+liens neutralisées) se retrouve textuellement dans le dossier : 988
+paragraphes au total, aucun absent. Les liens entrants sont repointés à
+la main vers la partie qui porte le sujet cité.
+
+Écart : quatre parties du speed tuning gardent un bloc de plus de 100
+lignes, déjà couvert par l'ancienne exception de la fiche ; elles en
+héritent dans `scripts/spec-lint.json`. Reste à faire : les fichiers de
+300 à 500 lignes (non requis par la charte), les liens vers un dossier
+qui pourraient viser directement la partie citée.
 
 ### Lot 7 — `04-conformite` et `06-exploitation`
 

@@ -220,9 +220,12 @@ export function mesurer(): Mesure {
     const sort = r.right > largeur + TOLERANCE || r.left < -TOLERANCE;
     if (sort && !abrite(suivant(el))) signalements.push(releve('geometrie'));
   }
-  // Le plus profond d'abord : c'est le plus souvent la cause, ses ancêtres
-  // n'en sont que la conséquence.
-  signalements.sort((a, b) => b.element.profondeur - a.element.profondeur);
+  // Ordre de lecture, sans effet sur le verdict : la géométrie d'abord (ce
+  // qui sort de l'écran se voit), puis le plus profond d'abord — c'est le
+  // plus souvent la cause, ses ancêtres n'en sont que la conséquence.
+  signalements.sort(
+    (a, b) => (a.regle === b.regle ? 0 : a.regle === 'geometrie' ? -1 : 1) || b.element.profondeur - a.element.profondeur,
+  );
 
   const scrollWidth = document.documentElement.scrollWidth;
   const pageDeborde = scrollWidth > largeur + TOLERANCE;

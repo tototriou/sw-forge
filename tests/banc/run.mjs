@@ -7,7 +7,7 @@
 //
 // Codes de sortie : 0 rien ne déborde ; 1 un débordement ; 2 le banc n'a pas
 // pu mesurer (Chromium absent, construction ou serveur en échec, état
-// inatteignable, compte ou sortie refusés).
+// non atteint, compte ou sortie refusés).
 //
 // Le banc vérifie un invariant, il ne compare aucune capture : les captures
 // servent à regarder ce qui a été mesuré. Il ne tourne ni dans `npm test` ni
@@ -20,7 +20,7 @@ import net from 'net';
 import { tmpdir } from 'os';
 import { dirname, join, relative, resolve, sep, isAbsolute } from 'path';
 import { fileURLToPath } from 'url';
-import { ECRANS, FORMATS, ORDRE_FORMATS, preparationPour } from './ecrans.ts';
+import { atteintPour, ECRANS, FORMATS, ORDRE_FORMATS, preparationPour } from './ecrans.ts';
 import {
   attendrePose,
   compteAbsent,
@@ -31,6 +31,7 @@ import {
   mesurerEtCapturer,
   ouvrirContexte,
   preparer,
+  verifierAtteint,
 } from './session.mjs';
 
 const ICI = dirname(fileURLToPath(import.meta.url));
@@ -379,16 +380,20 @@ async function principal(etat) {
             await attendrePose(page);
             if (await compteAbsent(page)) throw new ErreurBanc('le compte importé n’est pas chargé sur cet écran');
             resultat.clicsRejoues = (await preparer(page, prep)).clicsRejoues;
+            // Postcondition : l'état montre bien ce qu'il déclare (panneau,
+            // modale ouverts). Un clic rejoué qui n'a rien ouvert s'arrête ici.
+            await attendrePose(page);
+            await verifierAtteint(page, atteintPour(st, format));
           } catch (err) {
-            resultat.statut = 'inatteignable';
+            resultat.statut = 'non atteint';
             resultat.cause =
               err instanceof ErreurBanc ? err.message : `préparation en échec${garderTextes ? ` (${String(err.message).split('\n')[0]})` : ''}`;
             // La capture de l'écran où la préparation s'est arrêtée : de quoi
             // voir ce qui manquait, sans relancer.
-            resultat.capture = `${ecran.id}--${st.id}--${format}--inatteignable.png`;
+            resultat.capture = `${ecran.id}--${st.id}--${format}--non-atteint.png`;
             await page.screenshot({ path: join(sortie, resultat.capture) }).catch(() => (resultat.capture = null));
             resultat.messages = compter(messages, garderTextes);
-            console.log(`${nom.padEnd(64)} INATTEIGNABLE : ${resultat.cause}`);
+            console.log(`${nom.padEnd(64)} NON ATTEINT : ${resultat.cause}`);
             continue;
           }
           const { posee, mesure } = await mesurerEtCapturer(page, join(sortie, capture));
@@ -429,15 +434,17 @@ async function principal(etat) {
   }
   manifeste.durees.mesuresMs = Date.now() - debutMesures;
 
-  const inatteignables = manifeste.resultats.filter((r) => r.statut === 'inatteignable').length;
+  // Un état demandé et non atteint : le banc n'a pas mesuré ce qu'on lui a
+  // demandé, code 2 même si le reste déborde.
+  const nonAtteints = manifeste.resultats.filter((r) => r.statut === 'non atteint').length;
   const debordements = manifeste.resultats.filter((r) => r.deborde).length;
   const mesures = manifeste.resultats.filter((r) => r.statut === 'mesure').length;
   console.log(
     `résultat : ${debordements} débordement(s) sur ${mesures} mesure(s)` +
-      (inatteignables ? ` ; ${inatteignables} état(s) inatteignable(s)` : '') +
+      (nonAtteints ? ` ; ${nonAtteints} état(s) non atteint(s)` : '') +
       (manifeste.nonExerces.length ? ` ; ${manifeste.nonExerces.length} non exercé(s) (voir manifeste)` : ''),
   );
-  if (inatteignables) return 2;
+  if (nonAtteints) return 2;
   return debordements ? 1 : 0;
 }
 

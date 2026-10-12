@@ -126,44 +126,62 @@ export async function attendrePose(page) {
 }
 
 function decrireCible(c) {
-  return `${c.role} « ${c.nom} »`;
+  return `${c.role} « ${c.nom} »${c.etendu === undefined ? '' : c.etendu ? ' (déplié)' : ' (replié)'}`;
+}
+
+/** L'élément unique et visible que désigne `cible`, ou une ErreurBanc. */
+async function localiser(page, cible, attenteMs = 0) {
+  const options = { name: cible.nom, exact: true, ...(cible.etendu === undefined ? {} : { expanded: cible.etendu }) };
+  const loc = page.getByRole(cible.role, options).filter({ visible: true });
+  if (attenteMs) await loc.first().waitFor({ state: 'visible', timeout: attenteMs }).catch(() => {});
+  const n = await loc.count();
+  if (n !== 1) throw new ErreurBanc(`${decrireCible(cible)} : ${n} élément(s) visible(s), 1 attendu`);
+  return loc.elementHandle({ timeout: 5000 });
 }
 
 /**
  * Joue les étapes d'un état. Une cible doit désigner exactement un élément
- * visible : sinon l'état est inatteignable, avec la cause.
+ * visible : sinon l'état n'est pas atteint, avec la cause.
  */
 export async function preparer(page, etapes) {
   let clicsRejoues = 0;
   for (const etape of etapes) {
-    const cible = 'cliquer' in etape ? etape.cliquer : etape.attendre;
-    const loc = page.getByRole(cible.role, { name: cible.nom, exact: true }).filter({ visible: true });
     if ('attendre' in etape) {
-      await loc.first().waitFor({ state: 'visible', timeout: 5000 }).catch(() => {});
+      await localiser(page, etape.attendre, 5000);
+      continue;
     }
-    const n = await loc.count();
-    if (n !== 1) {
-      throw new ErreurBanc(`${'cliquer' in etape ? 'cliquer' : 'attendre'} ${decrireCible(cible)} : ${n} élément(s) visible(s), 1 attendu`);
-    }
-    if (!('cliquer' in etape)) continue;
-    // ⚠️ Sur une page qui déborde, Chromium mobile élargit la fenêtre de mise
-    // en page au-delà de la fenêtre visible, et Playwright juge alors la
-    // cible « hors de la fenêtre » : le clic échoue à cause du défaut même
-    // que le banc doit mesurer. La préparation amène un état, elle ne teste
-    // pas le geste : ce clic est rejoué par `element.click()`, et compté.
     // L'élément est pris AVANT le clic : une tentative ratée peut faire
-    // défiler la page, et le localisateur filtré sur « visible » ne plus le
+    // défiler la page, et un localisateur filtré sur « visible » ne plus le
     // retrouver.
-    const element = await loc.elementHandle({ timeout: 5000 });
+    const element = await localiser(page, etape.cliquer, 5000);
     try {
-      await loc.click({ timeout: 5000 });
+      await element.click({ timeout: 5000 });
     } catch (err) {
-      if (!/outside of the viewport|Timeout/i.test(String(err?.message))) throw err;
+      // ⚠️ Sur une page qui déborde, Chromium mobile élargit la fenêtre de
+      // mise en page au-delà de la fenêtre visible, et Playwright juge la
+      // cible « hors de la fenêtre » : le clic échoue à cause du défaut même
+      // que le banc doit mesurer. Ce cas SEUL est rejoué par
+      // `element.click()`, et compté ; tout autre échec rend l'état non
+      // atteint. La postcondition de l'état dit ensuite si le rejeu a suffi.
+      if (!/outside of the viewport/i.test(String(err?.message))) {
+        throw new ErreurBanc(`cliquer ${decrireCible(etape.cliquer)} : clic impossible`);
+      }
       await element.evaluate((el) => el.click());
       clicsRejoues++;
     }
   }
   return { clicsRejoues };
+}
+
+/** La postcondition d'un état : chaque cible unique et visible. */
+export async function verifierAtteint(page, cibles) {
+  for (const cible of cibles) {
+    try {
+      await localiser(page, cible, 5000);
+    } catch (err) {
+      throw new ErreurBanc(`postcondition : ${err instanceof ErreurBanc ? err.message : decrireCible(cible)}`);
+    }
+  }
 }
 
 /** Attend que la page se pose, mesure, capture. */

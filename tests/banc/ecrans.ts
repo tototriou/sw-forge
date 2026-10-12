@@ -41,12 +41,14 @@ export type Role = 'button' | 'dialog' | 'switch' | 'tab' | 'link' | 'heading';
 /**
  * Un élément visé par son rôle et son nom accessible, comme Playwright
  * `getByRole`. Le nom est comparé EXACTEMENT. Une cible doit désigner un seul
- * élément visible : zéro ou plusieurs, et l'état est déclaré inatteignable,
+ * élément visible : zéro ou plusieurs, et l'état est déclaré non atteint,
  * plutôt que de cliquer le premier venu.
  */
 export interface Cible {
   role: Role;
   nom: string;
+  /** `aria-expanded` exigé (Playwright `expanded`). */
+  etendu?: boolean;
 }
 
 export type Etape =
@@ -65,6 +67,13 @@ export interface Etat {
   libelle: string;
   /** Étapes communes aux deux formats, ou une suite par format. */
   preparation: Etape[] | Record<Format, Etape[] | NonExerce>;
+  /**
+   * Postcondition : ce que l'état doit montrer une fois la page posée, chaque
+   * cible unique et visible — sinon l'état est « non atteint » et rien n'est
+   * mesuré. Liste vide : l'état n'ouvre rien ; le lanceur vérifie toujours
+   * que le compte est chargé.
+   */
+  atteint: Cible[] | Record<Format, Cible[]>;
 }
 
 export interface Ecran {
@@ -75,7 +84,7 @@ export interface Ecran {
   etats: Etat[];
 }
 
-const DEFAUT: Etat = { id: 'defaut', libelle: 'à l’ouverture', preparation: [] };
+const DEFAUT: Etat = { id: 'defaut', libelle: 'à l’ouverture', preparation: [], atteint: [] };
 
 export const ECRANS: Ecran[] = [
   { id: 'accueil', libelle: 'Accueil', hash: '#/', etats: [DEFAUT] },
@@ -92,22 +101,22 @@ export const ECRANS: Ecran[] = [
         // recherche », ouvert par le bouton de la barre d'onglets ; à
         // l'ordinateur, c'est une carte repliée qui s'ouvre d'un clic.
         preparation: {
-          telephone: [
-            { cliquer: { role: 'button', nom: 'Filtres et actions de la page' } },
-            { attendre: { role: 'dialog', nom: 'Options de recherche' } },
-          ],
+          telephone: [{ cliquer: { role: 'button', nom: 'Filtres et actions de la page' } }],
           ordinateur: [{ cliquer: { role: 'button', nom: 'Réglages avancés' } }],
+        },
+        atteint: {
+          telephone: [{ role: 'dialog', nom: 'Options de recherche' }],
+          ordinateur: [{ role: 'button', nom: 'Réglages avancés', etendu: true }],
         },
       },
       {
         id: 'degats-reels',
         libelle: 'modale « Dégâts réels » ouverte',
         // Choisir l'objectif « Dégâts réels » ouvre la fenêtre du combat
-        // (OptimizerSection.tsx, `setSetupOuvert(true)`).
-        preparation: [
-          { cliquer: { role: 'button', nom: 'Dégâts réels' } },
-          { attendre: { role: 'dialog', nom: 'Dégâts réels' } },
-        ],
+        // (OptimizerSection.tsx, `setSetupOuvert(true)`). Sans monstre
+        // choisi, elle ne dit que « aucun sort calculable ».
+        preparation: [{ cliquer: { role: 'button', nom: 'Dégâts réels' } }],
+        atteint: [{ role: 'dialog', nom: 'Dégâts réels' }],
       },
     ],
   },
@@ -116,4 +125,9 @@ export const ECRANS: Ecran[] = [
 /** La suite d'étapes d'un état pour un format, ou son motif de non-exercice. */
 export function preparationPour(etat: Etat, format: Format): Etape[] | NonExerce {
   return Array.isArray(etat.preparation) ? etat.preparation : etat.preparation[format];
+}
+
+/** La postcondition d'un état pour un format. */
+export function atteintPour(etat: Etat, format: Format): Cible[] {
+  return Array.isArray(etat.atteint) ? etat.atteint : etat.atteint[format];
 }

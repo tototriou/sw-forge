@@ -319,7 +319,7 @@ Côté moteur :
   seulement des tests : l'écran n'offre aucune condition de vitesse finale.
   Ne pas en réintroduire une, parce que la vitesse finale ne décide pas de
   l'ordre des tours, qui se joue tick par tick sur la vitesse de combat
-  ([02-app/speed-tuning/ (README.md) § Formule (modèle partagé)](../../02-app/speed-tuning/)) :
+  ([02-app/speed-tuning/ (feat-formule.md) § Formule (modèle partagé)](../../02-app/speed-tuning/feat-formule.md)) :
   viser une vitesse finale ne garantit aucun speed tune.
 - Les bornes d'apport par stat (`bornesArtefacts`) et le choix de la paire
   par build : [moteur-artefacts.md](moteur-artefacts.md).

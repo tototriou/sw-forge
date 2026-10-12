@@ -424,7 +424,7 @@ Les pistes du calcul des dégâts réels sont dans [pistes-degats-reels.md](pist
   contraintes distinctes, pas un scalaire.
 - **Bloque** : non cadré ; exige de lire `speedTuneDeck.ts` et
   `useSpeedTune` avant toute proposition
-  ([02-app/speed-tuning/ § Formule (modèle partagé)](../02-app/speed-tuning/)).
+  ([02-app/speed-tuning/ (feat-formule.md) § Formule (modèle partagé)](../02-app/speed-tuning/feat-formule.md)).
 
 ### Import d'une équipe : les sets d'aura des coéquipiers
 

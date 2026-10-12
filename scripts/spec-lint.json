@@ -16,8 +16,26 @@
   ],
   "exceptions": [
     {
-      "fichier": "docs/02-app/speed-tuning/README.md",
-      "raison": "fichier > 500 lignes, préexistant au lint",
+      "fichier": "docs/02-app/speed-tuning/feat-chaine-ouverture.md",
+      "raison": "bloc > 100 lignes, préexistant au lint (découpage de l'ancienne fiche speed tuning)",
+      "condition_de_suppression": "prochain chantier speed tuning",
+      "chantier_responsable": "speed-tuning"
+    },
+    {
+      "fichier": "docs/02-app/speed-tuning/feat-competences.md",
+      "raison": "bloc > 100 lignes, préexistant au lint (découpage de l'ancienne fiche speed tuning)",
+      "condition_de_suppression": "prochain chantier speed tuning",
+      "chantier_responsable": "speed-tuning"
+    },
+    {
+      "fichier": "docs/02-app/speed-tuning/feat-ecran.md",
+      "raison": "bloc > 100 lignes, préexistant au lint (découpage de l'ancienne fiche speed tuning) : une seule liste numérotée, qu'un sous-titre couperait",
+      "condition_de_suppression": "prochain chantier speed tuning",
+      "chantier_responsable": "speed-tuning"
+    },
+    {
+      "fichier": "docs/02-app/speed-tuning/feat-ordre-des-sorts.md",
+      "raison": "bloc > 100 lignes, préexistant au lint (découpage de l'ancienne fiche speed tuning)",
       "condition_de_suppression": "prochain chantier speed tuning",
       "chantier_responsable": "speed-tuning"
     }

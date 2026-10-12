@@ -38,7 +38,7 @@ tard ») :
   du wiki, alors que le point 4 ci-dessus retient `1142 + 3.572` (swcalc.cz) ;
 - le point 2 et la page disent « 7 % par tick » sans réserve : c'est vrai
   partout **sauf en raid (4,5 %) et en RTA (1,5 %)** — voir
-  [speed-tuning/](../speed-tuning/) § Mode RTA.
+  [speed-tuning/feat-formule.md](../speed-tuning/feat-formule.md) § Mode RTA.
 
 ## Règles / attendus
 

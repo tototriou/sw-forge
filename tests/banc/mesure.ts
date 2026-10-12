@@ -79,13 +79,25 @@
 //   « contenu » se relit au second passage, décoratifs retirés, et ne reste
 //   que si un dépassement subsiste. Ses descendants se mesurent comme les
 //   autres ;
+// - zone de toucher agrandie : le pseudo-élément `::after` d'un élément de
+//   classe `cible-tactile` (src/index.css : 44 px touchables, centrés sur
+//   l'élément, sans un pixel de dessin) ne compte ni dans la mesure de son
+//   élément ni dans celle de ses ancêtres, `html` compris (règle « page »).
+//   Au second passage, sa règle « contenu », celle de ses ancêtres et la
+//   page se relisent ce pseudo-élément retiré. Aucun autre pseudo-élément
+//   n'est exclu : un `::before` de la même classe, ou le `::after` d'une
+//   autre, compte. Le pseudo est absolu : le retirer ne déplace rien. La
+//   géométrie n'en dépend pas (un pseudo-élément n'a pas de rectangle) ;
 //
-// Second passage : chaque signalement « contenu » d'un ancêtre concerné par
-// une exception se relit une fois, toutes les neutralisations posées
-// ensemble, puis tout est rendu tel quel avant la fin de `mesurer` (la
-// capture suit la mesure). Neutralisations : décoratif coupé, `display:
-// none` posé en ligne avec `!important`. Le signalement garde ses valeurs du
-// premier passage ; `depassement` porte celui qui reste.
+// Second passage : chaque signalement « contenu » d'un élément concerné par
+// une exception (et la page, si elle déborde et qu'une exception y porte) se
+// relit une fois, toutes les neutralisations posées ensemble, puis tout est
+// rendu tel quel avant la fin de `mesurer` (la capture suit la mesure).
+// Neutralisations : décoratif coupé, `display: none` posé en ligne avec
+// `!important` ; zone de toucher, une feuille de style ajoutée le temps de la
+// lecture (`.cible-tactile::after { display: none !important }`). Le
+// signalement garde ses valeurs du premier passage ; `depassement` porte
+// celui qui reste, `page.relue` la largeur de page relue.
 // ⚠️ Limite nommée : un décoratif EN FLUX retiré peut déplacer ses frères
 // (rangée flex, ligne de texte) ; la relecture porte alors sur une
 // disposition sans lui. Le halo est absolu : son retrait ne déplace rien.
@@ -139,7 +151,12 @@ export interface Mesure {
   /** Relevée pour le manifeste, jamais comparée (voir la tête). */
   innerWidth: number;
   largeurVisuelle: number | null;
-  page: { scrollWidth: number; deborde: boolean };
+  /**
+   * `scrollWidth` : premier passage ; `relue` : relecture au second passage,
+   * quand une exception porte sur la page (voir la tête) — c'est elle qui
+   * décide alors de `deborde`.
+   */
+  page: { scrollWidth: number; relue?: number; deborde: boolean };
   signalements: Signalement[];
   elementsMesures: number;
   /**
@@ -321,11 +338,16 @@ export function mesurer(options: { detail: boolean }): Mesure {
   }
 
   // Second passage (tête) : les ancêtres concernés par une exception.
+  const scrollWidth = document.documentElement.scrollWidth;
+  let pageRelue: number | undefined;
+  const ciblesTactiles = document.body.querySelector('.cible-tactile') !== null;
   const concerne = (a: Element) =>
+    (ciblesTactiles && (a.classList.contains('cible-tactile') || a.querySelector('.cible-tactile') !== null)) ||
     decoratifsVus.some((d) => d !== a && a.contains(d) && (coupeurDecoratif(d) as Element).contains(a));
   const aRelire = signalements.filter((s) => s.regle === 'contenu' && concerne(elementDe.get(s) as Element));
+  const relirePage = scrollWidth > largeur + TOLERANCE && ciblesTactiles;
   const leves = new Set<Signalement>();
-  if (aRelire.length > 0) {
+  if (aRelire.length > 0 || relirePage) {
     const restaurer: (() => void)[] = [];
     const poser = (el: Element, propriete: string, valeur: string) => {
       const st = (el as HTMLElement).style;
@@ -336,12 +358,19 @@ export function mesurer(options: { detail: boolean }): Mesure {
     };
     try {
       for (const d of decoratifsVus) poser(d, 'display', 'none');
+      if (ciblesTactiles) {
+        const zones = document.createElement('style');
+        zones.textContent = '.cible-tactile::after { display: none !important; }';
+        (document.head ?? document.documentElement).appendChild(zones);
+        restaurer.push(() => zones.remove());
+      }
       for (const s of aRelire) {
         const el = elementDe.get(s) as Element;
         const reste = el.scrollWidth - el.clientWidth;
         if (reste > TOLERANCE) s.depassement = reste;
         else leves.add(s);
       }
+      if (relirePage) pageRelue = document.documentElement.scrollWidth;
     } finally {
       for (const r of restaurer.reverse()) r();
     }
@@ -354,13 +383,12 @@ export function mesurer(options: { detail: boolean }): Mesure {
     (a, b) => (a.regle === b.regle ? 0 : a.regle === 'geometrie' ? -1 : 1) || b.element.profondeur - a.element.profondeur,
   );
 
-  const scrollWidth = document.documentElement.scrollWidth;
-  const pageDeborde = scrollWidth > largeur + TOLERANCE;
+  const pageDeborde = (pageRelue ?? scrollWidth) > largeur + TOLERANCE;
   return {
     largeur,
     innerWidth: window.innerWidth,
     largeurVisuelle: window.visualViewport ? window.visualViewport.width : null,
-    page: { scrollWidth, deborde: pageDeborde },
+    page: { scrollWidth, ...(pageRelue !== undefined ? { relue: pageRelue } : {}), deborde: pageDeborde },
     signalements: retenus,
     elementsMesures,
     exclus: { ellipsis, invisibles, decoratifs: decoratifsVus.length, leves: leves.size },

@@ -60,7 +60,8 @@ try {
       if (!conforme) ecarts.push(`#${id}`);
     }
     console.log(
-      `${ecarts.length ? 'KO' : 'ok'}  ${fichier} — page ${mesure.page.scrollWidth} / L ${mesure.largeur} (innerWidth ${mesure.innerWidth})` +
+      `${ecarts.length ? 'KO' : 'ok'}  ${fichier} — page ${mesure.page.scrollWidth}` +
+        `${mesure.page.relue !== undefined ? ` (relue ${mesure.page.relue})` : ''} / L ${mesure.largeur} (innerWidth ${mesure.innerWidth})` +
         ` (attendu ${attentes.page ?? 'non vérifié'}) ; ${mesure.signalements.length} signalement(s) en tout`,
     );
     for (const l of lignes) console.log(l);

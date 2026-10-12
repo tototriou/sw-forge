@@ -12,7 +12,7 @@ disent ce que contient chaque brique. Le comportement attendu, lui, est dans
 | | |
 |---|---|
 | Framework | React 18 + TypeScript 5, **sans router** (routing par `window.location.hash`) |
-| Build | Vite 5, Tailwind 3, PostCSS + autoprefixer |
+| Build | Vite 5, Tailwind 3 (+ `@tailwindcss/container-queries`, requêtes de conteneur `@container`), PostCSS + autoprefixer |
 | Dépendances runtime | `lucide-react` (icônes), `framer-motion` — aucune mesure d'audience (retirée le 2026-10-05) |
 | Node | ≥ 24 |
 | Calcul lourd | 2 Web Workers (`src/workers/`) |

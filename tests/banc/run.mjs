@@ -21,6 +21,7 @@ import { tmpdir } from 'os';
 import { dirname, join, relative, resolve, sep, isAbsolute } from 'path';
 import { fileURLToPath } from 'url';
 import { atteintPour, ECRANS, FORMATS, ORDRE_FORMATS, preparationPour } from './ecrans.ts';
+import { ecransPourFichiers } from './selection.ts';
 import {
   attendrePose,
   borne,
@@ -45,11 +46,15 @@ const DELAI_FERMETURE_NAVIGATEUR_MS = 15000;
 
 const AIDE = `Banc d'affichage — rien ne déborde, aux deux formats.
 
-  node tests/banc/run.mjs (--tous | --ecrans <id,…>) [options]
+  node tests/banc/run.mjs (--tous | --ecrans <id,…> | --depuis <réf> | --plage <a>..<b>) [options]
 
 Sélection (une seule, obligatoire) :
   --tous               tous les écrans de tests/banc/ecrans.ts
   --ecrans <id,…>      les écrans nommés
+  --depuis <réf>       les écrans que touchent les fichiers de « git diff --name-only <réf> HEAD »
+                       (dans l'arbre --racine)
+  --plage <a>..<b>     les écrans que touchent les fichiers de « git diff --name-only <a> <b> »,
+                       quel que soit l'arbre construit ; deux bornes obligatoires
 
 Options :
   --racine <dossier>   l'arbre à construire et mesurer (défaut : le dépôt qui contient
@@ -70,8 +75,15 @@ Codes : 0 rien ne déborde · 1 débordement · 2 le banc n'a pas pu mesurer.`;
 class Refus extends Error {}
 
 function lireArguments(argv) {
-  const args = { tous: false, ecrans: null, racine: null, compte: null, sortie: null, aide: false };
-  const AVEC_VALEUR = { '--ecrans': 'ecrans', '--racine': 'racine', '--compte': 'compte', '--sortie': 'sortie' };
+  const args = { tous: false, ecrans: null, depuis: null, plage: null, racine: null, compte: null, sortie: null, aide: false };
+  const AVEC_VALEUR = {
+    '--ecrans': 'ecrans',
+    '--depuis': 'depuis',
+    '--plage': 'plage',
+    '--racine': 'racine',
+    '--compte': 'compte',
+    '--sortie': 'sortie',
+  };
   for (let i = 0; i < argv.length; i++) {
     const brut = argv[i];
     const egal = brut.indexOf('=');
@@ -269,12 +281,46 @@ async function principal(etat) {
     console.log(AIDE);
     return 0;
   }
-  if (args.tous && args.ecrans) throw new Refus(`--tous et --ecrans s'excluent\n\n${AIDE}`);
-  if (!args.tous && !args.ecrans) throw new Refus(`aucune sélection d'écrans\n\n${AIDE}`);
+  const modes = [args.tous && '--tous', args.ecrans && '--ecrans', args.depuis && '--depuis', args.plage && '--plage'].filter(Boolean);
+  if (modes.length > 1) throw new Refus(`${modes.join(', ')} s'excluent : une seule sélection\n\n${AIDE}`);
+  if (modes.length === 0) throw new Refus(`aucune sélection d'écrans\n\n${AIDE}`);
+
+  // ── Arbre construit ──
+  // Résolu avant la sélection : --depuis et --plage interrogent le Git de cet
+  // arbre.
+  const racineDemandee = resolve(args.racine ?? DEPOT_BANC);
+  if (!existsSync(racineDemandee)) throw new Refus(`--racine : dossier introuvable (${racineDemandee})`);
+  const racine = realpathSync(racineDemandee);
 
   // ── Sélection ──
   let selection = ECRANS;
-  if (args.ecrans) {
+  if (args.depuis || args.plage) {
+    let bornes;
+    if (args.depuis) bornes = [args.depuis, 'HEAD'];
+    else {
+      bornes = args.plage.split('..');
+      if (bornes.length !== 2 || bornes.some((b) => b === '' || b.startsWith('.'))) {
+        throw new Refus(`--plage attend <a>..<b> (deux bornes), reçu : ${args.plage}`);
+      }
+    }
+    // Une borne qui commencerait par « - » serait lue comme une option de git.
+    if (bornes.some((b) => b.startsWith('-'))) throw new Refus(`borne de révision refusée : ${bornes.join('..')}`);
+    // `-z` et `core.quotepath` : chemins bruts, sans guillemets ni octal ;
+    // `--no-renames` : un fichier renommé compte aux deux endroits.
+    const brutDiff = await git(racine, ['-c', 'core.quotepath=false', 'diff', '--name-only', '-z', '--no-renames', ...bornes, '--']);
+    if (brutDiff === null) throw new Refus(`git diff ${bornes.join(' ')} a échoué dans ${racine} (révision inconnue ?)`);
+    const fichiers = brutDiff.toString('utf8').split('\0').filter(Boolean);
+    const choix = ecransPourFichiers(fichiers);
+    selection = choix.ecrans;
+    console.log(`banc : ${fichiers.length} fichier(s) modifié(s) entre ${bornes.join(' et ')}, ${selection.length} écran(s) sélectionné(s)`);
+    for (const d of choix.details) {
+      const dit = d.regle === 'tous' ? 'tous les écrans' : d.regle === 'aucun' ? 'aucun écran (HORS TABLE)' : d.ecrans.join(', ');
+      console.log(`  ${d.fichier} → ${dit}`);
+    }
+    if (choix.horsTable.length > 0) {
+      console.log(`banc : ${choix.horsTable.length} fichier(s) hors de la table des écrans — ils ne sélectionnent rien ; à vérifier à la main, ou --ecrans / --tous.`);
+    }
+  } else if (args.ecrans) {
     const ids = args.ecrans.split(',').map((s) => s.trim()).filter(Boolean);
     const inconnus = ids.filter((id) => !ECRANS.some((e) => e.id === id));
     if (inconnus.length) {
@@ -287,10 +333,7 @@ async function principal(etat) {
     return 0;
   }
 
-  // ── Arbre construit ──
-  const racineDemandee = resolve(args.racine ?? DEPOT_BANC);
-  if (!existsSync(racineDemandee)) throw new Refus(`--racine : dossier introuvable (${racineDemandee})`);
-  const racine = realpathSync(racineDemandee);
+  // ── Construction ──
   const vite = join(racine, 'node_modules', 'vite', 'bin', 'vite.js');
   if (!existsSync(join(racine, 'package.json'))) throw new Refus(`--racine : pas de package.json dans ${racine}`);
   if (!existsSync(vite)) throw new Refus(`--racine : Vite introuvable (${vite}) — dépendances non installées ?`);

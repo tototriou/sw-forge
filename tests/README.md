@@ -47,6 +47,8 @@ remonté correctement par un utilisateur. C'est ce qui justifie de les figer ici
 ```bash
 node tests/banc/run.mjs --tous --compte tests/fixtures/compte-miniature.json
 node tests/banc/run.mjs --ecrans optimizer      # un seul écran
+node tests/banc/run.mjs --depuis origin/main    # les écrans que touchent les fichiers modifiés
+node tests/banc/run.mjs --plage <a>..<b>        # idem, entre deux révisions
 node tests/banc/cas.mjs                         # la règle sur ses pages de cas
 ```
 
@@ -59,6 +61,14 @@ et ses exclusions sont écrites en tête de [banc/mesure.ts](banc/mesure.ts) ;
 chaque règle et chaque exclusion a une page de [banc/cas/](banc/cas/), un cas
 signalé et un cas non signalé, que vérifie [banc/cas.mjs](banc/cas.mjs).
 
+- **Sélection par fichiers** : `--depuis` et `--plage` passent les fichiers
+  modifiés (`git diff --name-only`) à [banc/selection.ts](banc/selection.ts),
+  qui les rapproche des motifs de chemins de chaque écran
+  ([banc/ecrans.ts](banc/ecrans.ts)). `src/ui/`, `src/index.css` et
+  `tailwind.config.js` sélectionnent tous les écrans ; un fichier qu'aucun
+  motif ne couvre ne sélectionne rien et est signalé « hors table ». La
+  vérification `banc-selection` (sans navigateur, dans `npm test`) garde la
+  correspondance.
 - **Ce qu'il ne fait pas** : comparer des captures. Il en prend une par
   écran, état et format, pour qu'on voie ce qui a été mesuré ; aucune n'est
   une référence.

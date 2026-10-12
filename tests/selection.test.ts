@@ -53,7 +53,10 @@ export async function testSelectionFichiersInventaire(): Promise<void> {
   // fichiers du dépôt que celle de tests/run.mjs.
   const complete = await build({ ...optionsConstruction(racineDepot, join(racineDepot, 'selection-essai.cjs')), write: false, metafile: true });
   const autonome = await build({ ...optionsConstruction(racineDepot, join(racineDepot, 'selection-essai.cjs')), write: false, metafile: true, packages: 'external' });
-  const duDepot = (m: Record<string, unknown>) => Object.keys(m).filter((f) => !f.startsWith('node_modules/')).sort();
+  // Les fichiers que Git liste : `node_modules` peut être une jonction (worktree
+  // de mesure), dont esbuild écrit les chemins réels hors du dépôt.
+  const listes = new Set(git(racineDepot, 'ls-files', '-z', '--cached', '--others', '--exclude-standard').split('\0'));
+  const duDepot = (m: Record<string, unknown>) => Object.keys(m).filter((f) => listes.has(f)).sort();
   egal(duDepot(autonome.metafile.inputs), duDepot(complete.metafile.inputs), 'métafichier autonome = métafichier de tests/run.mjs, fichiers du dépôt');
   ok(inv.dureeMs < 15000, `inventaire recalculé en ${inv.dureeMs} ms`);
 }

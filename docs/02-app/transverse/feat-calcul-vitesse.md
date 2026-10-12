@@ -63,7 +63,7 @@ C'etait la piece manquante. Le Swift est un pourcentage de la base **comme les
 autres** : il rejoint la somme avant l'arrondi.
 
 Mais la **convention de l'app** est que le champ « SPD : » -- saisi a la main ou
-reconstitue a l'[import de compte](feat-import-compte.md) -- **contient deja le Swift
+reconstitue a l'[import de compte](feat-import-compte/box-rta.md) -- **contient deja le Swift
 a plat**. `combatSpeed` le **retire donc** (`swiftFlat`) avant de le reinjecter
 dans la somme, sinon il compterait deux fois.
 

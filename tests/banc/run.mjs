@@ -378,7 +378,7 @@ async function principal(etat) {
             // sans compte passerait pour « rien ne déborde » sur un écran vide.
             await attendrePose(page);
             if (await compteAbsent(page)) throw new ErreurBanc('le compte importé n’est pas chargé sur cet écran');
-            await preparer(page, prep);
+            resultat.clicsRejoues = (await preparer(page, prep)).clicsRejoues;
           } catch (err) {
             resultat.statut = 'inatteignable';
             resultat.cause =
@@ -400,6 +400,7 @@ async function principal(etat) {
           resultat.messages = compter(messages, garderTextes);
           const notes = [
             posee ? null : 'page encore en mouvement',
+            resultat.clicsRejoues ? `${resultat.clicsRejoues} clic(s) rejoué(s) par element.click()` : null,
             messages.erreursPage + messages.erreursConsole > 0 ? `${messages.erreursPage + messages.erreursConsole} message(s) d'erreur de la page` : null,
           ].filter(Boolean);
           const suffixe = notes.length ? ` (${notes.join(' ; ')})` : '';

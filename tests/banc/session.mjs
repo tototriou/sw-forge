@@ -134,6 +134,7 @@ function decrireCible(c) {
  * visible : sinon l'état est inatteignable, avec la cause.
  */
 export async function preparer(page, etapes) {
+  let clicsRejoues = 0;
   for (const etape of etapes) {
     const cible = 'cliquer' in etape ? etape.cliquer : etape.attendre;
     const loc = page.getByRole(cible.role, { name: cible.nom, exact: true }).filter({ visible: true });
@@ -144,8 +145,21 @@ export async function preparer(page, etapes) {
     if (n !== 1) {
       throw new ErreurBanc(`${'cliquer' in etape ? 'cliquer' : 'attendre'} ${decrireCible(cible)} : ${n} élément(s) visible(s), 1 attendu`);
     }
-    if ('cliquer' in etape) await loc.click();
+    if (!('cliquer' in etape)) continue;
+    // ⚠️ Sur une page qui déborde, Chromium mobile élargit la fenêtre de mise
+    // en page au-delà de la fenêtre visible, et Playwright juge alors la
+    // cible « hors de la fenêtre » : le clic échoue à cause du défaut même
+    // que le banc doit mesurer. La préparation amène un état, elle ne teste
+    // pas le geste : ce clic est rejoué par `element.click()`, et compté.
+    try {
+      await loc.click({ timeout: 5000 });
+    } catch (err) {
+      if (!/outside of the viewport|Timeout/i.test(String(err?.message))) throw err;
+      await loc.evaluate((el) => el.click());
+      clicsRejoues++;
+    }
   }
+  return { clicsRejoues };
 }
 
 /** Attend que la page se pose, mesure, capture. */

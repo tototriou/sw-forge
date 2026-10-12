@@ -82,9 +82,13 @@
 // - zone de toucher agrandie : le pseudo-élément `::after` d'un élément de
 //   classe `cible-tactile` (src/index.css : 44 px touchables, centrés sur
 //   l'élément, sans un pixel de dessin) ne compte ni dans la mesure de son
-//   élément ni dans celle de ses ancêtres, `html` compris (règle « page »).
-//   Au second passage, sa règle « contenu », celle de ses ancêtres et la
-//   page se relisent ce pseudo-élément retiré. Aucun autre pseudo-élément
+//   élément ni dans celle de ses ancêtres hors `html`. La règle « page », elle,
+//   le COMPTE : un `::after` qui élargit la page laisse un défilement latéral
+//   au téléphone (décision D9 de l'utilisateur ; relevé
+//   tests/banc/cas/zone-tactile-page.html : `isMobile` élargit la fenêtre de
+//   mise en page à 373 px pour 360). Au second passage, sa règle « contenu »
+//   et celle de ses ancêtres se relisent ce pseudo-élément retiré ; la page,
+//   jamais. Aucun autre pseudo-élément
 //   n'est exclu : un `::before` de la même classe, ou le `::after` d'une
 //   autre, compte. Le pseudo est absolu : le retirer ne déplace rien. La
 //   géométrie n'en dépend pas (un pseudo-élément n'a pas de rectangle) ;
@@ -110,9 +114,10 @@
 //   de l'élément prend celui-ci pour bloc contenant le temps du décalage.
 //
 // Second passage : chaque signalement « contenu » d'un élément concerné par
-// une exception (et la page, si elle déborde et qu'une exception y porte) se
-// relit une fois, toutes les neutralisations posées ensemble, puis tout est
-// rendu tel quel avant la fin de `mesurer` (la capture suit la mesure).
+// une exception se relit une fois, toutes les neutralisations posées
+// ensemble ; la page, si elle déborde et qu'une marge négative y porte, se
+// relit avant, marges négatives seules. Puis tout est rendu tel quel avant
+// la fin de `mesurer` (la capture suit la mesure).
 // Neutralisations : décoratif coupé, `display: none` posé en ligne avec
 // `!important` ; zone de toucher, une feuille de style ajoutée le temps de la
 // lecture (`.cible-tactile::after { display: none !important }`) ; marge
@@ -373,7 +378,7 @@ export function mesurer(options: { detail: boolean }): Mesure {
     decoratifsVus.some((d) => d !== a && a.contains(d) && (coupeurDecoratif(d) as Element).contains(a)) ||
     margesNegatives.some(({ el }) => el !== a && a.contains(el));
   const aRelire = signalements.filter((s) => s.regle === 'contenu' && concerne(elementDe.get(s) as Element));
-  const relirePage = scrollWidth > largeur + TOLERANCE && (ciblesTactiles || margesNegatives.length > 0);
+  const relirePage = scrollWidth > largeur + TOLERANCE && margesNegatives.length > 0;
   const leves = new Set<Signalement>();
   if (aRelire.length > 0 || relirePage) {
     const restaurer: (() => void)[] = [];
@@ -385,8 +390,11 @@ export function mesurer(options: { detail: boolean }): Mesure {
       restaurer.push(() => (avant ? st.setProperty(propriete, avant, priorite) : st.removeProperty(propriete)));
     };
     try {
-      for (const d of decoratifsVus) poser(d, 'display', 'none');
+      // La page d'abord, marges négatives seules : D9 ne vaut pas pour elle,
+      // et un décoratif est coupé avant `html`.
       for (const { el, marge } of margesNegatives) poser(el, 'translate', `${-marge}px 0px`);
+      if (relirePage) pageRelue = document.documentElement.scrollWidth;
+      for (const d of decoratifsVus) poser(d, 'display', 'none');
       if (ciblesTactiles) {
         const zones = document.createElement('style');
         zones.textContent = '.cible-tactile::after { display: none !important; }';
@@ -399,7 +407,6 @@ export function mesurer(options: { detail: boolean }): Mesure {
         if (reste > TOLERANCE) s.depassement = reste;
         else leves.add(s);
       }
-      if (relirePage) pageRelue = document.documentElement.scrollWidth;
     } finally {
       for (const r of restaurer.reverse()) r();
     }

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="fr" data-attendu-page="non">
+<html lang="fr" data-attendu-page="oui">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover">
@@ -22,7 +22,8 @@
 </style>
 </head>
 <body>
-<!-- Non signalée : la zone de toucher sort de 12 px à droite de la fenêtre ; `html` est un ancêtre, la page ne déborde pas à son titre. -->
+<!-- La zone de toucher sort de 12 px à droite de la fenêtre. Le bouton n'est pas signalé (D9 vaut pour l'élément) ;
+     la page l'est : D9 ne vaut pas pour elle, un `::after` qui l'élargit laisse un défilement latéral au téléphone. -->
 <div style="display: flex; justify-content: flex-end">
   <button id="bouton-bord" class="cible-tactile" data-attendu=""></button>
 </div>

@@ -13,7 +13,7 @@ décisions (ADR), cadrages et pilotage. Restent hors du dépôt un export de
 compte, des données personnelles, des captures d'écran. Ce qui n'est plus
 vrai sort du dépôt (une archive vit dans les notes privées) ; une décision
 encore en vigueur, avec sa raison, va en ADR dans
-[05-decisions/](../05-decisions/README.md).
+[04-decisions/](../04-decisions/README.md).
 
 ## Avant d'écrire
 

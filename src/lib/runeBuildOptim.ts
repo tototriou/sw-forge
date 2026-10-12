@@ -1547,7 +1547,7 @@ export function filterSlot(
   // ⚠️ Paramètre AJOUTÉ en fin de liste, jamais un changement de type de
   // `objective` : les ~7 scripts de diagnostic qui appellent cette fonction
   // ne passent pas tous par un type que `tsc --noEmit` vérifie (voir
-  // docs/07-pilotage/
+  // docs/05-pilotage/
   // § Tests et scripts qui ne passent pas par la production). Omis =
   // comportement strictement inchangé.
   objectiveStats?: StatKey[]
@@ -4068,7 +4068,7 @@ export function prepareSearch(
 // arrêt à la première paire faisable : ici on veut visiter TOUTES les
 // paires, juste dans un meilleur ordre, pour rester compatible avec le
 // produit actuel (collecter jusqu'à maxCollected sur tout l'espace, pas une
-// preuve d'optimalité avec arrêt anticipé — voir docs/07-pilotage/
+// preuve d'optimalité avec arrêt anticipé — voir docs/05-pilotage/
 // § Optimalité prouvée : Branch & Bound sur les paires, statuts du résultat,
 // gated derrière une décision produit non prise). `bucketsA`/`bucketsB` DOIVENT déjà être
 // triés par potentiel décroissant (comportement existant de `buildBuckets`,

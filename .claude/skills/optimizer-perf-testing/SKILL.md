@@ -383,5 +383,5 @@ charge.
   chemin de production.
 - `docs/02-app/optimizer/` — routage par tâche vers les specs de
   l'Optimizer (vérification, harnais, parallélisation), et
-  `docs/07-pilotage/` (les pistes futures, à lire avant toute
+  `docs/05-pilotage/` (les pistes futures, à lire avant toute
   idée « nouvelle »).

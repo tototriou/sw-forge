@@ -6,7 +6,7 @@ compte dans le navigateur et n'envoie rien. La même app existe en **application
 (Electron, Windows et Linux). Le dépôt est **public**.
 
 > Documentation : [`docs/`](docs/) (carte : [docs/README.md](docs/README.md)). Où se trouve quoi,
-> par écran : [docs/01-presentation/02-architecture.md](docs/01-presentation/02-architecture.md). Décisions : [`docs/05-decisions/`](docs/05-decisions/README.md).
+> par écran : [docs/01-presentation/02-architecture.md](docs/01-presentation/02-architecture.md). Décisions : [`docs/04-decisions/`](docs/04-decisions/README.md).
 
 ## ⚠️ Avant tout travail : lire la documentation de ce qui va être touché
 
@@ -61,7 +61,7 @@ bureau/          # application de bureau Electron (main, protocole, session, SW 
 public/          # icônes, portraits, données SWARFARM (public/data, régénérées par npm run fetch-data)
 scripts/         # outillage Node : données, benchmarks, harnais de diagnostic, hooks, bureau
 tests/           # vérifications (run.mjs + index.ts), fixtures, tests de rendu (tests/rendu/)
-docs/            # documentation en sections (01-presentation … 07-pilotage)
+docs/            # documentation en sections (01-presentation … 05-pilotage)
 .githooks/       # sources des hooks pre-commit et commit-msg (installés par npm install)
 ```
 
@@ -166,7 +166,7 @@ npm run bureau:preuve          # la vérification de l'application de bureau
 - **Un registre de suivi (`pistes-*.md` et équivalents) et le fichier qu'il référence** se mettent à
   jour ensemble, jamais l'un sans l'autre.
 - **Un travail de plus d'une session** se cadre dans un fichier de
-  [docs/05-decisions/cadrages/](docs/05-decisions/cadrages/README.md), jamais dans un plan de
+  [docs/04-decisions/cadrages/](docs/04-decisions/cadrages/README.md), jamais dans un plan de
   conversation.
 
 ## Vérifier

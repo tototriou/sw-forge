@@ -422,13 +422,13 @@ porte la ligne 218, même si les PV ne sont pas une stat du sort.
 
 Chaque ligne dit une variante déjà essayée ou raisonnée, et pourquoi elle
 n'est pas en production. Les pistes encore ouvertes sont dans
-[07-pilotage/ (pistes-optimizer.md)](../../07-pilotage/).
+[05-pilotage/ (pistes-optimizer.md)](../../05-pilotage/).
 
 - Ne pas ajouter de dominance entre demi-builds (frontière de Pareto par
   compartiment, `skylineKeys`) : mesurée sur des comptes réels, son coût
   croît bien plus vite que linéairement avec le nombre de stats suivies,
   au point de ne pas finir à sept. Le prototype est resté dans le code,
-  inutilisé ([07-pilotage/ (pistes-optimizer.md) § Prototypes de `buildBuckets`](../../07-pilotage/)).
+  inutilisé ([05-pilotage/ (pistes-optimizer.md) § Prototypes de `buildBuckets`](../../05-pilotage/)).
 - Ne pas rendre la dominance directionnelle sur une stat qui n'a qu'un
   maximum (y tenir « moins » pour « mieux ») : un tri après coup par cette
   stat cherche les valeurs proches du plafond, pas les plus basses ; seule

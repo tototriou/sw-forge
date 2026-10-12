@@ -3,7 +3,7 @@
 **Statut :** ÉTAT ACTUEL — décrit les conditions livrées par l’audit des dégâts
 **Lire si :** on modifie une condition ou un correctif issu de l’audit des dégâts
 **Ne pas lire si :** on qualifie le reliquat encore non implémenté de l’audit
-**Voir aussi :** feat-passifs-offensifs.md, [../../07-pilotage/](../../07-pilotage/) (pistes des dégâts réels)
+**Voir aussi :** feat-passifs-offensifs.md, [../../05-pilotage/](../../05-pilotage/) (pistes des dégâts réels)
 
 ## Audit des dégâts conditionnels — partie 1
 
@@ -118,7 +118,7 @@ dix cumuls pour la base 116, contre +13,92 et +139,2 dans les dégâts. Pour
 une base de 100 (Monkey King), les deux donnent +12 et +120. Les deux
 lectures restent en place ; un relevé en jeu de la VIT affichée par Mei Hou
 Wang après un puis dix cumuls trancherait. Piste :
-docs/07-pilotage/ (pistes des dégâts réels, stats) § Gold Headband : arrondi de la VIT par cumul
+docs/05-pilotage/ (pistes des dégâts réels, stats) § Gold Headband : arrondi de la VIT par cumul
 -->
 
 Flash Step (Ciri lumière) et Turning Slash (Birgitta lumière) : un compteur
@@ -260,7 +260,7 @@ Brise DEF du coup 1, ×1,188 pour Weakness Shot, ×1,125 pour Eivor). Le
 sélecteur propose toujours tous les rangs, y compris un coup qui ne pose rien ;
 ne proposer que les coups qui posent l'effet (Cichlid : [valeurs curées](valeurs-de-jeu-curees.md), « Crushed
 Hopes de Cichlid ») reste à coder
-([07-pilotage/ § Poses entre les coups : rang, buff posé par le sort, Eightfold](../../07-pilotage/)).
+([05-pilotage/ § Poses entre les coups : rang, buff posé par le sort, Eightfold](../../05-pilotage/)).
 Les autres effets de ces sorts
 (Decrease ATK, Étourdissement, Irrécupérable) ne sont pas curés ; Solveig et
 Berghild (18007, 18009 : la Marque n'est que dans la prose) attendent un
@@ -347,7 +347,7 @@ l'identifiant l'emporte (`plageDeCoupsDe`, `coupsFixesCorrigesDe`, lues par
 identifiant quand un homonyme **jouable** a une autre mécanique : une entrée
 par nom s'étendrait à lui en silence. `COUPS_FIXES_CORRIGES_PAR_ID` est vide :
 Crow Hunt de Prilea (1618) attend un relevé en jeu
-([07-pilotage/ § Crow Hunt de Prilea : deux coups annoncés pour un](../../07-pilotage/)), ses homonymes
+([05-pilotage/ § Crow Hunt de Prilea : deux coups annoncés pour un](../../05-pilotage/)), ses homonymes
 jouables 1607 et 1609 portent `coups: 4`.
 
 | Sort · identifiant · formes | Plage | Clé | Citation |
@@ -376,7 +376,7 @@ Stormfist de Mayasura (18306…) : coups selon l'ATQ, valeur de
 l'utilisateur dans [valeurs-de-jeu-curees.md](valeurs-de-jeu-curees.md).
 Non couverts : Crow Hunt (relevé attendu, ci-dessus), Lala, Coco, Stella,
 Cleave, les coups tirés au hasard
-([07-pilotage/ § Plages de coups à relever et coups « au hasard »](../../07-pilotage/)).
+([05-pilotage/ § Plages de coups à relever et coups « au hasard »](../../05-pilotage/)).
 Test : `testDegatsCoupsSaisis`
 (`node tests/run.mjs coupssaisis`).
 

@@ -37,7 +37,7 @@ trop gros et mal routés au lieu d'en corriger la cause.
 - `docs/` remplace `spec/`, en sections numérotées sur le modèle de
   référence (une documentation d'entreprise, hors dépôt) :
   `01-presentation`, `02-app`, `03-developpeur`, `04-conformite`,
-  `05-decisions`, `06-exploitation`, `07-pilotage` ; carte
+  `04-decisions`, `06-exploitation`, `05-pilotage` ; carte
   `docs/README.md` avec les règles de la documentation (charte, lot 0).
 - Chaque dossier sous `docs/` a un `README.md` qui liste chacun de ses
   documents en une ligne : ce qu'on y trouve.
@@ -52,7 +52,7 @@ trop gros et mal routés au lieu d'en corriger la cause.
   de forme sont des conventions écrites dans la documentation (décidé le
   2026-10-12, à la place de markdownlint ; lot 9).
 
-**Hors périmètre** (chacun a sa ligne dans `07-pilotage`, lot 8) :
+**Hors périmètre** (chacun a sa ligne dans `05-pilotage`, lot 8) :
 
 - `CLAUDE.md` et `.claude/skills/` : chantier séparé, après celui-ci. Ce
   chantier ne modifie dans `CLAUDE.md` que les phrases que ses lots rendent
@@ -60,9 +60,9 @@ trop gros et mal routés au lieu d'en corriger la cause.
 - Le code mort (153 variables inutilisées signalées par ESLint) et les
   mentions « lot N / décision N » et de date dans les commentaires du code.
 - Le cadre de tests (Vitest, tests de bout en bout, couverture) : question
-  ouverte dans `07-pilotage`.
+  ouverte dans `05-pilotage`.
 - Les 9 points de la revue de `release/v2.0.0` (bugs) : ils entrent dans
-  `07-pilotage` comme dette, pas corrigés ici.
+  `05-pilotage` comme dette, pas corrigés ici.
 
 ### A.3 Hiérarchie des priorités
 
@@ -114,7 +114,7 @@ effort élevé.
   « Résultat » du lot et on le signale à Thomas.
 - Un contenu dont la destination est ambiguë : on le **garde** à sa place
   la plus proche, avec `<!-- À trancher : … -->`, et une ligne dans
-  `docs/07-pilotage/questions-ouvertes.md`.
+  `docs/05-pilotage/questions-ouvertes.md`.
 - Deux textes qui se contredisent : aucun n'est retenu au jugé ; le code
   tranche quand il le peut (lire le fichier cité), sinon question ouverte.
 - Validation par lot : deux arrêts, après le relevé et avant le commit.
@@ -161,7 +161,7 @@ Ordre d'exécution = ordre des numéros.
 | 6b — `02-app` : outils hors Optimizer | J | en cours (README, découpage) | 2026-10-12, voir Résultat |
 | 6c — `02-app` : Optimizer | J | en cours (README) | 2026-10-12, voir Résultat |
 | 7 — `04-conformite` et `06-exploitation` | J | à faire | |
-| 8 — `05-decisions` et `07-pilotage` | J | à faire | |
+| 8 — `04-decisions` et `05-pilotage` | J | à faire | |
 | 9 — retrait de l'outillage maison | M | fait | `cd1367d0`, 2026-10-12 |
 
 ## Partie B — un contrat par lot
@@ -173,7 +173,7 @@ Ordre d'exécution = ordre des numéros.
   Thomas) ; `spec/README.md` (index actuel).
 - **Sortie** : `docs/README.md` (carte des sept sections + règles de la
   documentation) ; un `README.md` par section, vide de documents ;
-  `docs/07-pilotage/questions-ouvertes.md` vide ; CLAUDE.md : la règle
+  `docs/05-pilotage/questions-ouvertes.md` vide ; CLAUDE.md : la règle
   « Public et privé » et celle du cadrage (« toujours privé ») réécrites
   pour le nouveau modèle.
 - **Contrat** : les règles 1 à 11 du modèle et ses conventions de rédaction,
@@ -188,10 +188,10 @@ Ordre d'exécution = ordre des numéros.
 #### Résultat (2026-10-08)
 
 `docs/README.md` (carte des sept sections, règles 1 à 11, conventions de
-rédaction), un README par section et pour `05-decisions/adr/`,
-`07-pilotage/questions-ouvertes.md` vide. CLAUDE.md : la règle « Public et
+rédaction), un README par section et pour `04-decisions/adr/`,
+`05-pilotage/questions-ouvertes.md` vide. CLAUDE.md : la règle « Public et
 privé » devient un renvoi à la carte ; la règle du cadrage le place dans
-`docs/05-decisions/cadrages/`. Écart : un dossier ou une ressource à venir
+`docs/04-decisions/cadrages/`. Écart : un dossier ou une ressource à venir
 s'écrit sans barre finale entre backticks (`transverse`, `assets`), sans
 quoi le test des renvois le lit comme un chemin mort.
 `node tests/run.mjs renvois` : 38 passées.
@@ -357,13 +357,13 @@ qui pourraient viser directement la partie citée.
   `06-exploitation` (déploiement, publication, workflows, CI).
 - **Contrat, preuve, ne fait pas** : comme les lots 6.
 
-### Lot 8 — `05-decisions` et `07-pilotage`
+### Lot 8 — `04-decisions` et `05-pilotage`
 
 - **Intrant** : `spec/outils/degats-reels/decisions/` (déplacé au lot 3) ;
   les 49 notes de `sw-forge-notes` (liste seulement) ; les points hors
   périmètre de A.2.
-- **Sortie** : `05-decisions/adr/` ; rapatriement des notes que Thomas
-  retient, fichier par fichier ; `07-pilotage/dette.md` (code mort,
+- **Sortie** : `04-decisions/adr/` ; rapatriement des notes que Thomas
+  retient, fichier par fichier ; `05-pilotage/dette.md` (code mort,
   avertissements ESLint, 9 points de revue, mentions « lot N » du code) et
   `questions-ouvertes.md`.
 - **Contrat** : aucune note rapatriée sans décision de Thomas ; un ADR

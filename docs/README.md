@@ -15,10 +15,8 @@
 | [01-presentation/](01-presentation/README.md) | Vue d'ensemble pour un nouveau venu : ce que fait l'app, son architecture, sa technique — ordre de lecture numéroté |
 | [02-app/](02-app/README.md) | Une fiche par page ou outil de l'app, ses fonctionnalités `feat-*.md` ; le dossier `transverse` pour ce qui sert plusieurs pages, `bureau` pour l'application de bureau |
 | [03-developpeur/](03-developpeur/README.md) | Travailler sur le dépôt : conventions, qualité du code et hooks, tests, interface (design, librairie UI), deep-dives techniques |
-| [04-conformite/](04-conformite/README.md) | Données et confidentialité : tout reste local, consentement à la conservation, licence et droits du jeu |
-| [05-decisions/](05-decisions/README.md) | Pourquoi c'est comme ça : ADR, cadrages de chantier |
-| [06-exploitation/](06-exploitation/README.md) | Publier et faire tourner : site, application de bureau, données SWARFARM, CI |
-| [07-pilotage/](07-pilotage/README.md) | Registres vivants : dette, questions ouvertes, pistes futures |
+| [04-decisions/](04-decisions/README.md) | Pourquoi c'est comme ça : ADR, cadrages de chantier |
+| [05-pilotage/](05-pilotage/README.md) | Registres vivants : dette, questions ouvertes, pistes futures |
 
 ## Règles de la documentation
 
@@ -57,11 +55,11 @@
 ### Frontières de contenu
 
 9. **Un contenu ne vit qu'à un seul endroit** ; les autres pointent vers lui.
-   `01-presentation` donne la vue d'ensemble et **renvoie** aux fiches ; `05-decisions` porte le
+   `01-presentation` donne la vue d'ensemble et **renvoie** aux fiches ; `04-decisions` porte le
    *pourquoi* et l'historique ; `03-developpeur` les pratiques courantes.
-10. **Les registres vivants** (dette, questions ouvertes, pistes) restent dans `07-pilotage` : ils
+10. **Les registres vivants** (dette, questions ouvertes, pistes) restent dans `05-pilotage` : ils
     n'encombrent pas les parcours de lecture.
-11. **Cadrages éphémères** ([05-decisions/cadrages/](05-decisions/cadrages/README.md)) : documents
+11. **Cadrages éphémères** ([04-decisions/cadrages/](04-decisions/cadrages/README.md)) : documents
     de travail d'un chantier (diagnostic, lots, arbitrages ouverts), destinés à disparaître une
     fois leur contenu passé dans la documentation pérenne. Deux règles en découlent : **(a)** un
     cadrage n'est **jamais cité** par un autre document — seul le README de son dossier l'indexe,
@@ -82,7 +80,7 @@
 - **Français partout** : documentation, commentaires et messages de commit.
 - Dates **absolues** (jamais « récemment », « la semaine dernière »).
 - **[à valider]** = proposition en attente d'arbitrage ; **[à préciser]** = renvoie à une question
-  de [07-pilotage/questions-ouvertes.md](07-pilotage/questions-ouvertes.md).
+  de [05-pilotage/questions-ouvertes.md](05-pilotage/questions-ouvertes.md).
 - Liens internes **relatifs**, vérifiés en CI par `node tests/run.mjs renvois`.
 - **Hors du dépôt**, qui est public : un export de compte, des données personnelles, des captures
   d'écran.

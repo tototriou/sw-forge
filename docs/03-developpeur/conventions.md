@@ -302,7 +302,7 @@ shell applicatif. La carte des pages et leur ordre sont dans
   texte, l'historique, les preuves et les récits quittent le public, et
   vont dans ces notes s'il faut les garder ; l'historique Git garde de
   toute façon le texte remplacé. Une conclusion encore en vigueur qu'un
-  chantier peut devoir rouvrir va en ADR dans `05-decisions`, avec sa
+  chantier peut devoir rouvrir va en ADR dans `04-decisions`, avec sa
   raison. Taille, titres, découpage et liens : la charte
   ([../README.md](../README.md)) et ses bonnes pratiques
   ([documentation.md](documentation.md)). `invariants.md` est un index :

@@ -182,6 +182,8 @@ export async function testSelectionFichiersCasReels(): Promise<void> {
   ok(!s.complet && statut(s, 'tests/banc/run.mjs') === 'sans effet', 'tests/banc/run.mjs → sans effet');
   s = sel(['tests/banc/selection.ts']);
   ok(!s.complet && statut(s, 'tests/banc/selection.ts') === 'couvert' && /module de son graphe/.test(raisons(s, 'testBancSelection')), 'tests/banc/selection.ts → couvert par le graphe de banc-selection.test.ts');
+  s = sel(['bureau/fichier-inconnu.ts']);
+  ok(s.complet && s.fichiers[0]?.detail === 'aucun lien spécifique', 'bureau/ est une racine : un fichier sans lien → non couvert, suite complète');
 
   // Non couvert → complet, même quand une transversale est déjà retenue (D8).
   s = sel(['tests/fichier-inconnu.txt']);

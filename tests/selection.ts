@@ -31,7 +31,7 @@ import type ts from 'typescript';
 
 // Racines des sources : un fichier modifié ici sans lien spécifique, et absent
 // de la liste des fichiers sans effet, déclenche la suite complète.
-export const RACINES_SOURCES = ['src/', 'scripts/', 'public/', 'tests/', '.githooks/'];
+export const RACINES_SOURCES = ['src/', 'scripts/', 'public/', 'tests/', '.githooks/', 'bureau/'];
 
 // Infrastructure des tests : toute modification relance tout. `tests/index.ts`
 // a son propre traitement (registre et imports), plus bas.

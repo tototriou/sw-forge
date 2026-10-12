@@ -1,56 +1,10 @@
-# SW Blacksmith — Spécifications
+# Conventions communes
 
-Boîte à outils Summoners War (React + TypeScript + Vite + Tailwind). Ce dossier
-documente **le comportement attendu de chaque page** : ce que l'utilisateur voit,
-ce qu'il peut faire, et les règles de calcul appliquées.
-
-> Ces specs décrivent l'existant. Elles servent de référence pour faire évoluer
-> l'outil sans casser les comportements établis.
-
-> 📐 **Où se trouve quoi** : [ARCHITECTURE.md](../../ARCHITECTURE.md) — la carte
-> des fichiers, par écran. Ce dossier-ci dit le **comportement attendu**,
-> `ARCHITECTURE.md` dit **quels fichiers ouvrir** pour le changer.
->
-> Ce dossier documente le **produit** (ce que l'utilisateur voit/fait). Les
-> instructions destinées à l'agent Claude Code lui-même (comment travailler
-> sur ce dépôt — déclencheurs de skills, gotchas d'environnement,
-> conventions de vérification…) vivent dans [CLAUDE.md](../../CLAUDE.md), à la
-> racine, chargé automatiquement à chaque session — pas ici.
-
-## Carte des pages
-
-| Page | Route | Statut | Spec |
-|------|-------|--------|------|
-| Accueil | `#/` | Live | [02-app/accueil/](../02-app/accueil/) |
-| RTA — Préparation (Ma prépa / Ami) | `#/rta`, `#/rta/ami` | Live | [02-app/rta/](../02-app/rta/) |
-| Siège (Défense / Offense / Recommandations) | `#/siege/defense`, `#/siege/offense`, `#/siege/recommandations` | Live | [02-app/siege/](../02-app/siege/) |
-| Mon compte | `#/compte`, `#/compte/runes`, `#/compte/artefacts` | Live | [02-app/compte/](../02-app/compte/) |
-| Outils (Optimizer / Speed tuning) | `#/outils/optimizer`, `#/outils/speed-tuning` | Live | [02-app/outils/](../02-app/outils/) |
-| Arène | `#/arene` | À venir | [02-app/arene/](../02-app/arene/) |
-| Bestiaire | `#/bestiary` | Live | [02-app/bestiaire/](../02-app/bestiaire/) |
-| Mécaniques | `#/mecaniques` | Live | [02-app/mecaniques/](../02-app/mecaniques/) |
-| Nouveautés | `#/releases` | Live | [02-app/nouveautes/](../02-app/nouveautes/) |
-| Télécharger (site seulement) | `#/telecharger` | Live | [02-app/telecharger/](../02-app/telecharger/) |
-
-Points d'entrée de l'Optimizer, avant un chantier qui le touche :
-
-- [optimizer/](optimizer/) (invariants) — les
-  contraintes critiques, chacune avec sa source ; se lit en entier.
-- [02-app/optimizer/](../02-app/optimizer/) — routage par
-  tâche : quelle spec lire selon ce qu'on touche.
-
-Ordre d'importance (nav & cartes d'accueil) : **Accueil → RTA → Siège → Mon
-compte → Outils → Arène**. Arène se positionne dans la barre entre le
-dropdown Outils et le dropdown Ressources — pas dans le groupe des onglets
-directs (Accueil/RTA/Siège), pour ne pas allonger cette rangée-là. Bestiaire,
-Mécaniques, Nouveautés et Télécharger sont regroupés sous « Ressources » (les
-moins centraux de l'outil) ; Télécharger n'existe que sur le site (application
-de bureau, décision 14).
-
-> ⚠️ **Règle permanente** : toute page ou section **ajoutée, renommée ou
-> supprimée** doit être répercutée sur **l'accueil** ([02-app/accueil/](../02-app/accueil/) —
-> carte + ordre) **et** dans la nav de [App.tsx](src/App.tsx), **dans le même
-> commit** que la fonctionnalité.
+Les règles qui valent pour toutes les pages : la règle de cadre, les conventions communes, le
+shell applicatif. La carte des pages et leur ordre sont dans
+[02-app/](../02-app/README.md) ; les fonctionnalités partagées dans
+[02-app/transverse/](../02-app/transverse/README.md) ; l'interface dans
+[interface/](interface/README.md).
 
 ## Règle de cadre
 
@@ -60,66 +14,6 @@ de bureau, décision 14).
 > format ne touche pas l'autre.** Cette règle prime sur tout arbitrage
 > d'interface : lire [interface/](interface/)
 > **avant** de modifier un écran.
-
-## Briques transverses
-
-Concepts partagés par plusieurs pages, documentés une seule fois :
-
-- [interface/](interface/) — **mobile et
-  bureau, deux formats de premier rang** : où passe la frontière, comment
-  l'écrire, ce qui reste global
-- [02-app/transverse/](../02-app/transverse/) — le modèle de vitesse SW
-  (base, runes, totem, lead, ticks). **Source de vérité** pour RTA et Siège.
-- [02-app/transverse/](../02-app/transverse/) — d'où viennent les
-  monstres (SWARFARM), leur normalisation, le modèle `Monster`, et les monstres
-  perso créés à la main.
-- [02-app/transverse/](../02-app/transverse/) — extraction depuis un export
-  de compte SWEX : box RTA, équipes de siège, **et** box 6★ + inventaire
-  runes/artéfacts (page « Mon compte »).
-- [02-app/compte/](../02-app/compte/) §6 — anticipait déjà le
-  moteur de recherche de builds (branch-and-bound, Web Worker) qu'utilise
-  [02-app/optimizer/](../02-app/optimizer/).
-- [02-app/transverse/](../02-app/transverse/) — la navigation au
-  clavier des **barres de recherche à suggestions** (↑/↓, Entrée sur l'élément
-  surligné, Échap). Implémentation unique dans
-  [useComboboxNav.ts](src/hooks/useComboboxNav.ts), partagée par tous les champs
-  de recherche.
-- [interface/](interface/) — le **système visuel** : les deux thèmes
-  (Forge sombre / Atelier clair), les tokens de couleur, l'échelle typographique,
-  les règles de focus, de survol et de mouvement. **Source de vérité** pour toute
-  décision d'apparence : une valeur qui n'y est pas n'a pas à être écrite en dur
-  dans un composant.
-- [interface/](interface/) — les **composants partagés**
-  (`src/ui/`) : bouton, pastille, champ, sélecteur, interrupteur, option,
-  vignette. Dit **quels composants existent** et **comment choisir entre eux**,
-  là où `design.md` dit quelles valeurs ils emploient. ⚠️ Un composant dessiné
-  là-bas ne se redessine nulle part ailleurs — c'est ce qui permet de changer un
-  bouton une fois pour toute l'app.
-- [02-app/transverse/](../02-app/transverse/) — la **barre latérale** et les
-  **onglets mobiles**, et l'**accent contextuel** (`--ctx`) qui prend la couleur
-  de l'élément du monstre consulté.
-- [02-app/bureau/](../02-app/bureau/) — l'**application
-  de bureau** (Electron, Windows et Linux) : ce qui diffère du site, la fenêtre,
-  l'installeur, la publication au tag, la mise à jour, les données — et comment
-  la vérifier (`bureau:preuve`).
-- [02-app/transverse/](../02-app/transverse/) — la
-  **sauvegarde de session** : ses accès (barre du haut, Ctrl+S, Paramètres,
-  palette), la session en cours de l'application de bureau, le format
-  `swblacksmith/session` (compte, travail, réglages, état des outils), ce
-  qu'il refuse à la relecture, et où déclarer une clé nouvelle.
-
-Outillage du dépôt (pas une page de l'app) :
-
-- [outillage-docs.md](outillage-docs.md) — natures des specs, `spec-markdown`,
-  `spec-toc`, contrat de `spec-lint`, en-têtes, critère des invariants, niveaux
-  d'application et installation des garde-fous (hook `pre-commit`).
-- [renvois.md](renvois.md) — garde-fou des renvois :
-  formes relevées, résolution dans les fichiers suivis, exemptions, liste
-  tolérée.
-- [qualite-code.md](qualite-code.md) — lint du code
-  (ESLint) : règles bloquantes et avertissements, où il tourne ; forme du
-  message de commit (hook `commit-msg`) ; installation des hooks à
-  `npm install` ; garde-fous rejoués sur chaque commit en CI.
 
 ## Conventions communes (toutes les pages)
 

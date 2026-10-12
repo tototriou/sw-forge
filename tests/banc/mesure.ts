@@ -116,20 +116,25 @@
 //   de l'élément prend celui-ci pour bloc contenant le temps du décalage ;
 // - icône en coin (l'icône d'élément de `MonsterAvatar`, `absolute -top-1
 //   -right-1`) : son contact avec SON bloc contenant (l'avatar) est permis,
-//   jamais avec le reste.
-//   · Qui en bénéficie : un élément `position: absolute` dont le décalage
-//     `right` est DÉCLARÉ négatif — valeur calculée qui n'est pas le mot-clé
-//     `auto` (`computedStyleMap`) ; sa valeur en px est celle de
-//     `getComputedStyle`. Relevé (sonde du lot 5, Chromium du banc) : un
-//     `right: auto` dont la valeur utilisée est négative (`left: 0` et une
-//     largeur trop grande) rend `-6px` par `getComputedStyle` mais `auto` par
-//     `computedStyleMap` — ce n'est pas un décalage voulu, son dépassement
-//     reste entier. Son bloc contenant doit être `body` ou un descendant, de
-//     direction `ltr`, et ne doit ni couper ni défiler (`overflow-x` calculé
-//     `visible`) : ce qui dépasse d'un bloc qui coupe ne touche rien, il est
-//     coupé — c'est le domaine du décoratif coupé, que l'utilisateur a voulu
-//     étroit (le halo cliquable d'une carte `overflow-hidden`, décalé de
-//     −40 px, reste signalé). Sinon, rien ne se soustrait et la règle
+//   jamais avec le reste. Elle SEULE : décision D11 de l'utilisateur, aucune
+//   généralisation à un autre élément absolu à décalage négatif (bouton en
+//   coin, halo, superposition `-inset-px`), qui se mesure comme les autres.
+//   · Qui en bénéficie : l'icône d'élément, reconnue ici sans toucher
+//     `src/` — un `<img>` dont la source résolue (`img.src`, URL absolue) se
+//     termine par `/elements/<nom>.png` (src/components/ElementIcon.tsx). Si le chemin
+//     d'image change, la signature ne la reconnaît plus et ses signalements
+//     reviennent : la panne va du côté prudent. Elle doit être en
+//     `position: absolute`, avec un décalage `right` DÉCLARÉ négatif —
+//     valeur calculée qui n'est pas le mot-clé `auto` (`computedStyleMap`) ;
+//     sa valeur en px est celle de `getComputedStyle`. Relevé (sonde du
+//     lot 5, Chromium du banc) : un `right: auto` dont la valeur utilisée est
+//     négative (`left: 0` et une largeur trop grande) rend `-6px` par
+//     `getComputedStyle` mais `auto` par `computedStyleMap` — ce n'est pas
+//     un décalage voulu, son dépassement reste entier. Son bloc contenant
+//     doit être `body` ou un descendant, de direction `ltr`, et ne doit ni
+//     couper ni défiler (`overflow-x` calculé `visible`) : une icône rognée
+//     par son avatar est un vrai défaut, il reste signalé (décision de
+//     l'utilisateur). Sinon, rien ne se soustrait et la règle
 //     « chevauchement » ne s'applique pas.
 //   · Côté par côté : document LTR, seul le côté droit entre dans
 //     `scrollWidth` ; un `left` négatif ne diminue rien (le dépassement à
@@ -335,13 +340,16 @@ export function mesurer(options: { detail: boolean }): Mesure {
     return coupeur;
   };
 
-  // Icône en coin (tête) : le bloc contenant d'un élément au décalage droit
-  // déclaré négatif, et la largeur à figer pendant la relecture (`left`
+  // Icône en coin (tête) : le bloc contenant de l'icône d'élément au décalage
+  // droit déclaré négatif, et la largeur à figer pendant la relecture (`left`
   // `auto`) ; `null` si l'élément n'en bénéficie pas.
+  const iconeElement = (el: Element) =>
+    el instanceof HTMLImageElement && /\/elements\/[^/?#]+\.png$/.test(el.src);
   const coinDe = (
     el: Element,
     s: CSSStyleDeclaration,
   ): { bloc: Element; largeurFigee: string | null } | null => {
+    if (!iconeElement(el)) return null;
     if (s.position !== 'absolute' || typeof el.computedStyleMap !== 'function') return null;
     const carte = el.computedStyleMap();
     const valeur = carte.get('right');

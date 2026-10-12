@@ -157,15 +157,22 @@
 //     géométrie de l'élément ne change pas. Et la règle « chevauchement » :
 //     la boîte de l'élément (`getBoundingClientRect`, premier passage) ne
 //     coupe celle d'aucun élément visible (au sens plus haut, `visibility`
-//     visible) qui n'est ni un de ses ancêtres ni un descendant de son bloc
-//     contenant — coupe : intersection de plus de 1 px de large ET de haut.
+//     visible) DU MÊME PLAN qui n'est ni un de ses ancêtres ni un descendant
+//     de son bloc contenant — coupe : intersection de plus de 1 px de large
+//     ET de haut. Même plan : le même ancêtre (l'élément compris) le plus
+//     proche en `position: fixed` ou `sticky`, ou aucun pour les deux. Une
+//     barre ou un en-tête fixe ou collant, une modale, passent au-dessus du
+//     contenu qui défile sous eux : leurs boîtes se coupent sans que l'icône
+//     y soit pour rien (relevé du lot 5 : 81 coupes de ce genre dans l'app,
+//     barre basse du bestiaire, en-tête, modales de « Dégâts réels »).
 //     Signalé sur l'élément, avec l'autre élément (`avec`) et l'aire coupée
 //     (`aire`, px²) ; parmi les éléments coupés, seuls les plus profonds (un
 //     élément coupé dont un descendant est coupé aussi n'est pas repris).
 //     Elle ne porte pas sur un élément exclu (`visibility: hidden`,
-//     décoratif coupé, ellipsis). ⚠️ Limite nommée : les boîtes sont celles
-//     de la mise en page, sans la coupe d'un ancêtre `overflow` ni l'ordre
-//     d'empilement.
+//     décoratif coupé, ellipsis). ⚠️ Limite nommée : dans un même plan, les
+//     boîtes sont celles de la mise en page, sans la coupe d'un ancêtre
+//     `overflow` ni l'ordre d'empilement (`z-index`, `absolute` hors de la
+//     chaîne `fixed`/`sticky`).
 //
 // Second passage : chaque signalement « contenu » d'un élément concerné par
 // une exception (et la page, si elle déborde et qu'une marge négative y
@@ -468,13 +475,26 @@ export function mesurer(options: { detail: boolean }): Mesure {
     if (sort && !abrite(suivant(el))) signalements.push(releve(el, r, 'geometrie'));
   }
 
-  // Règle « chevauchement » (tête) : contrepartie de l'icône en coin.
+  // Règle « chevauchement » (tête) : contrepartie de l'icône en coin. Le plan
+  // d'un élément : lui-même ou son ancêtre le plus proche en `fixed` ou
+  // `sticky`, `null` s'il n'en a aucun.
+  const plans = new Map<Element, Element | null>();
+  const planDe = (e: Element): Element | null => {
+    const connu = plans.get(e);
+    if (connu !== undefined) return connu;
+    const p = style(e).position;
+    const plan = p === 'fixed' || p === 'sticky' ? e : e.parentElement ? planDe(e.parentElement) : null;
+    plans.set(e, plan);
+    return plan;
+  };
   for (const { el, bloc } of coins) {
     if (!mesures.has(el)) continue;
     const r = boites.get(el) as DOMRect;
+    const plan = planDe(el);
     const aires = new Map<Element, number>();
     for (const autre of visibles) {
       if (autre.contains(el) || bloc.contains(autre)) continue;
+      if (planDe(autre) !== plan) continue;
       const q = boites.get(autre) as DOMRect;
       const l = Math.min(r.right, q.right) - Math.max(r.left, q.left);
       const h = Math.min(r.bottom, q.bottom) - Math.max(r.top, q.top);

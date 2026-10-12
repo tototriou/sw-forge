@@ -11,17 +11,31 @@ ouvrir. Ne pas explorer `src/` à l'aveugle.
 - **Français partout** : réponses, commits, libellés d'interface, commentaires,
   documentation (`docs/`) et skills (`.claude/skills/`) — même un diff isolé de
   quelques lignes.
-- **La spec avant le code.** Lire la documentation (`docs/`) de la zone touchée avant de coder,
-  la mettre à jour dans le **même commit**. Carte : [docs/README.md](docs/README.md) ;
-  conventions : [docs/03-developpeur/](docs/03-developpeur/)
-  — c'est là que vivent les conventions produit détaillées (interface,
-  persistance, releases…), pas ici : ce fichier-ci reste le résumé chargé
-  automatiquement à chaque session. Trouver une spec = suivre les README :
-  la carte, le README de la section, celui du dossier, puis le document,
-  dont on ne lit que la section utile.
-  Avant un chantier Optimizer : les invariants de
-  `docs/03-developpeur/optimizer/` (en entier — le seul fichier lu ainsi,
-  tenu compact pour ça) et le routage par tâche de `docs/02-app/optimizer/`.
+- ⚠️ **AVANT TOUT TRAVAIL, lire la documentation de ce qui va être touché.**
+  Pas après, pas en cours de route : avant la première ligne écrite, code
+  ou doc. Deux lectures, toujours :
+  1. **Les bonnes pratiques du travail à faire** :
+     - produire du code → [docs/03-developpeur/conventions.md](docs/03-developpeur/conventions.md)
+       (règles communes à toutes les pages) et
+       [docs/03-developpeur/qualite-code.md](docs/03-developpeur/qualite-code.md)
+       (lint, hooks, commits) ; un écran ou un composant en plus →
+       [docs/03-developpeur/interface/](docs/03-developpeur/interface/README.md)
+       (deux formats, système visuel, librairie UI) ;
+     - écrire ou réorganiser la documentation →
+       [docs/03-developpeur/documentation.md](docs/03-developpeur/documentation.md).
+  2. **La documentation du code qui va être touché** : la fiche de la page
+     ou de l'outil, et la partie qui décrit le comportement modifié. On la
+     trouve en suivant les README — la carte [docs/README.md](docs/README.md),
+     le README de la section, celui du dossier, puis le document, dont on lit
+     la section utile. Avant un chantier Optimizer, en plus : les invariants
+     de `docs/03-developpeur/optimizer/` (en entier — le seul fichier lu
+     ainsi, tenu compact pour ça) et le routage par tâche de
+     `docs/02-app/optimizer/`.
+
+  Si la doc contredit le code ou manque, le dire avant de coder. La doc se
+  met à jour dans le **même commit** que le code. Les conventions
+  détaillées vivent dans `docs/`, pas ici : ce fichier-ci reste le résumé
+  chargé automatiquement à chaque session.
 - **Documentation : [docs/README.md](docs/README.md)** — la carte et les
   règles ; comment les appliquer (écrire, découper, déplacer, lier) :
   [docs/03-developpeur/documentation.md](docs/03-developpeur/documentation.md).

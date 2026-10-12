@@ -24,3 +24,51 @@ selon ce qu'on touche. Avant un chantier Optimizer : [invariants.md](invariants.
 | [harnais.md](harnais.md) | Le mode d'emploi du harnais de diagnostic (une rune, un demi-build, un « 0 résultat », un temps) et ce qu'il garantit. |
 | [harnais-extensions.md](harnais-extensions.md) | Les extensions du harnais : niveaux de coût, build cible, instant de découverte, dispersion par tranche, différentiel et ses profils. |
 | [harnais-scripts.md](harnais-scripts.md) | Le harnais sur les cas réels connus (`--cas`), et les scripts de diagnostic qui restent à côté de lui. |
+
+## Tenir `invariants.md`
+
+### Statut du fichier
+
+[invariants.md](invariants.md) est un **index de contraintes critiques**,
+pas une source normative. Chaque entrée : une contrainte, impérative ou
+descriptive, qui dit ce qui doit rester vrai, suivie de
+**`Source : fichier § section`** (référence durable ; un `fichier:ligne`
+ne sert qu'au contrôle ponctuel). Le fichier est groupé par sujet et **se
+lit en entier au démarrage d'un chantier Optimizer** : c'est le seul
+fichier pour lequel cette lecture intégrale est assumée. Il est tenu
+compact pour ça ; sa longueur est un objectif de compacité, **jamais une
+consigne de coupe** : une règle qui répond au critère y figure, quitte à en
+resserrer la formulation.
+
+Maintenance : **une règle normative modifiée se modifie dans sa source ET
+dans `invariants.md`, dans le même commit**. Aucun outil ne vérifie qu'une
+`Source : fichier § section` vise encore un titre existant : qui renomme ou
+déplace une section cherche son ancien intitulé dans `invariants.md`
+([../documentation.md](../documentation.md), « Renommer un titre »).
+
+### Critère des invariants
+
+Entre dans `invariants.md` une règle qu'**un chantier qui l'ignore casse**,
+y compris une règle de méthode dont l'oubli fausse une conclusion (mesure,
+harnais) ; pas un résumé de ce qui est vrai, pas une raison. Une relecture
+des sections d'état actuel cherche explicitement trois familles, souvent
+formulées en description, sans en faire une liste fermée :
+
+- **dérivé de** : une valeur se déduit d'autre chose, jamais saisie ni
+  listée à la main ;
+- **ordre fixe** : une séquence d'étapes dont l'ordre change le résultat ;
+- **constante** : un seuil ou une valeur qui ne découle d'aucune règle plus
+  générale et casserait silencieusement si on la changeait ailleurs.
+
+Conduite :
+
+- Se lisent **toutes** les sections d'état actuel touchées, pas seulement
+  celles qui semblent candidates : un invariant est souvent une phrase
+  perdue dans une description.
+- **Aucun fichier d'un dossier `decisions`** n'est une source d'invariants : une
+  décision se cite, elle ne se réextrait pas.
+- Une règle connue d'un agent (mémoire, habitude) ne **prouve** jamais un
+  invariant : elle n'entre que si elle est retrouvée dans une source
+  normative du dépôt, avec son `Source : fichier § section`.
+- Une règle ajoutée se compare à `invariants.md` existant, pour n'écrire
+  que les absentes.

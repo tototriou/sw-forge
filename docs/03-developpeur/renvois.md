@@ -2,7 +2,7 @@
 
 **Statut :** ÉTAT ACTUEL — décrit le test qui refuse un renvoi mort dans un fichier suivi : formes relevées, résolution, exemptions et liste tolérée
 **Lire si :** un test `renvois` échoue ; on déplace, renomme ou supprime un fichier cité ailleurs ; on publie ou retire une note de l'Optimizer ; on modifie `tests/renvois.test.ts` ou `tests/fixtures/renvois-toleres.json`
-**Voir aussi :** `outillage-docs.md` (natures des specs, `spec-lint`)
+**Voir aussi :** `documentation.md` (écrire et déplacer un document, repointer ses liens)
 
 Un texte suivi ne renvoie qu'à ce que le dépôt contient : ni aux notes privées
 de l'Optimizer, ni à un fichier déplacé ou supprimé. Le test
@@ -48,8 +48,8 @@ sinon elle est prise seule.
 
 Le chemin perd d'abord `#ancre`, `?requête` et `:ligne`, puis la ponctuation
 finale qui suit un caractère de nom ; `.` et `..` restent des composants. Il
-est normalisé puis cherché depuis trois bases, dans l'ordre de
-`scripts/spec-lint.mjs` : le dossier du fichier, la racine, `docs/`. Le
+est normalisé puis cherché depuis trois bases, dans cet ordre : le
+dossier du fichier, la racine, `docs/`. Le
 premier candidat qui existe gagne : un fichier de `git ls-files`, ou un
 dossier qui contient des fichiers suivis (la racine en est un). L'existence
 ne se juge jamais sur le disque : un fichier ignoré présent localement, ou

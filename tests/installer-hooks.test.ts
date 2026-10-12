@@ -14,7 +14,7 @@ import { fileURLToPath } from 'url';
 import { egal, ignore, ok, titre } from './outils';
 
 const RACINE = join(dirname(fileURLToPath(import.meta.url)), '..');
-const PUBLICS = ['.githooks/pre-commit', '.githooks/commit-msg', 'scripts/lib/spec-markdown.mjs', 'scripts/spec-lint.mjs'];
+const PUBLICS = ['.githooks/pre-commit', '.githooks/commit-msg'];
 
 type Entree = { proprietaire: string; source: string; commit: string; date: string };
 type Manifeste = { version?: number; commitSource: string; fichiers: Record<string, string>; entrees?: Record<string, Entree> };
@@ -183,6 +183,7 @@ export function testInstallerHooks() {
     const ancien = '.claude/hooks/refuse-commit-m.mjs';
     mkdirSync(dirname(installe(code, ancien)), { recursive: true });
     writeFileSync(installe(code, ancien), 'ancien\n');
+    mkdirSync(dirname(installe(code, 'scripts/hooks-codex-garde-fous.mjs')), { recursive: true });
     writeFileSync(installe(code, 'scripts/hooks-codex-garde-fous.mjs'), 'ancien\n');
     m = lireManifeste(code);
     m.fichiers[ancien] = 'h-ancien';

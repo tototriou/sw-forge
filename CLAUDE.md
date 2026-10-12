@@ -16,22 +16,20 @@ ouvrir. Ne pas explorer `src/` à l'aveugle.
   conventions : [docs/03-developpeur/](docs/03-developpeur/)
   — c'est là que vivent les conventions produit détaillées (interface,
   persistance, releases…), pas ici : ce fichier-ci reste le résumé chargé
-  automatiquement à chaque session. Ouvrir une spec =
-  `node scripts/spec-toc.mjs <fichier|dossier>` (sommaire compact : en-tête,
-  puis niveau / plage de lignes / première phrase de chaque titre) puis la
-  section utile — jamais un fichier entier de plus de 300 lignes sans raison
-  écrite. Avant un chantier Optimizer : les invariants de
+  automatiquement à chaque session. Trouver une spec = suivre les README :
+  la carte, le README de la section, celui du dossier, puis le document,
+  dont on ne lit que la section utile.
+  Avant un chantier Optimizer : les invariants de
   `docs/03-developpeur/optimizer/` (en entier — le seul fichier lu ainsi,
   tenu compact pour ça) et le routage par tâche de `docs/02-app/optimizer/`.
-  **Modification NORMATIVE** d'un fichier
-  listé en exception dans `scripts/spec-lint.json`, ou extraction des
-  invariants d'une section d'état actuel nouvelle/modifiée : skill
-  `spec-hygiene` (déplacer, découper, extraire — pas pour une faute, un lien
-  ou un en-tête).
 - **Documentation : [docs/README.md](docs/README.md)** — la carte et les
-  règles. Le dépôt est public : décisions (ADR), cadrages et pilotage y
-  vivent (`docs/05-decisions/`, `docs/07-pilotage/`). Restent hors du dépôt
-  un export de compte, des données personnelles, des captures d'écran.
+  règles ; comment les appliquer (écrire, découper, déplacer, lier) :
+  [docs/03-developpeur/documentation.md](docs/03-developpeur/documentation.md).
+  Aucun outil ne vérifie la forme de la doc, seulement ses liens : ses
+  règles se tiennent à l'écriture. Le dépôt est public : décisions (ADR),
+  cadrages et pilotage y vivent (`docs/05-decisions/`, `docs/07-pilotage/`).
+  Restent hors du dépôt un export de compte, des données personnelles, des
+  captures d'écran.
 - **Pendant le travail, on ne lance QUE les vérifications de la zone touchée** :
   `node tests/run.mjs <filtre>` (ex. `node tests/run.mjs speed-tune`, plusieurs
   filtres possibles). La **suite complète** (`npm test`) est obligatoire **avant
@@ -131,12 +129,11 @@ recette pour demander un relevé en jeu exploitable.
 (`git fetch origin && git switch -c forge/<sujet> origin/main`) ; on n'y
 travaille jamais, on en part.
 
-- **Un hook `pre-commit` refuse cinq choses** : une erreur ESLint dans le
+- **Un hook `pre-commit` refuse quatre choses** : une erreur ESLint dans le
   code indexé, un commit sur `main`, un
-  chemin privé dans l'index (`.history/`, `.vscode/`), un fichier de
-  plus de 5 Mo (un export de compte), et un `docs/**.md` du périmètre de
-  `scripts/spec-lint.json` qui ne passe pas `spec-lint` (niveau 1, invariant
-  dépôt — docs/03-developpeur/ § Refus du `pre-commit`).
+  chemin privé dans l'index (`.history/`, `.vscode/`), et un fichier de
+  plus de 5 Mo (un export de compte) (niveau 1, invariant dépôt —
+  docs/03-developpeur/qualite-code.md § Refus du `pre-commit`).
 - **Un hook `commit-msg` refuse** un sujet hors de la forme
   `type(portée): description`, un corps collé au sujet et un message qui
   commence par un BOM (docs/03-developpeur/ § Message de commit).

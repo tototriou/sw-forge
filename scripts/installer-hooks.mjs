@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-// Installateur public des garde-fous : hooks Git `pre-commit` (et le lint qu'il
-// importe) et `commit-msg`. Contrat : docs/03-developpeur/,
-// « Niveaux d'application et garde-fous », « Installation des garde-fous ».
+// Installateur public des garde-fous : hooks Git `pre-commit` et `commit-msg`.
+// Contrat : docs/03-developpeur/qualite-code.md, « Niveaux d'application et
+// garde-fous », « Installation des garde-fous ».
 //
 //   node scripts/installer-hooks.mjs [--simulation] [--sans-cablage] [--automatique]
 //
@@ -23,8 +23,6 @@ const PROPRIETAIRE = 'public';
 const CHEMINS = [
   '.githooks/pre-commit',
   '.githooks/commit-msg',
-  'scripts/spec-lint.mjs',
-  'scripts/lib/spec-markdown.mjs',
 ];
 // Anciens chemins de cet installateur : leur copie installée et leur entrée
 // du manifeste sont retirées à l'installation, sans quoi elles resteraient
@@ -33,6 +31,8 @@ const RETIRES = [
   'scripts/hooks-codex-garde-fous.mjs',
   '.claude/hooks/refuse-commit-m.mjs',
   '.claude/hooks/refuse-sed-i.mjs',
+  'scripts/spec-lint.mjs',
+  'scripts/lib/spec-markdown.mjs',
 ];
 // Propriétaires connus, pour la seule migration d'un manifeste v1.
 const PROPRIETAIRES_V1 = {

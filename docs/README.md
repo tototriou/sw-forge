@@ -4,7 +4,9 @@
 > décrit. La vérité = le code + la documentation vivante + les ADR. Cette page est la **carte** :
 > une ligne par section ; chaque section a son propre `README.md`, avec une ligne par document
 > (ce qu'on y trouve). Parcours : cette carte → le README de section → le README du dossier → le
-> document.
+> document. Ces règles se tiennent à l'écriture et en relecture, sans outil qui les vérifie ; la
+> façon de les appliquer est dans
+> [03-developpeur/documentation.md](03-developpeur/documentation.md).
 
 ## Sections
 
@@ -71,8 +73,6 @@
     `README.md` garde l'introduction et liste les parties, une par fichier. On segmente autant
     qu'il faut ; ce sont les README qui guident jusqu'au bon fichier. Un découpage ne perd aucune
     règle : la compacité ne passe jamais avant le contenu.
-    Le contrat détaillé et le périmètre vérifié par `spec-lint` sont dans
-    [03-developpeur/outillage-docs.md](03-developpeur/outillage-docs.md).
 
 ### Conventions de rédaction
 

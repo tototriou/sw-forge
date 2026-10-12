@@ -2,7 +2,7 @@
 
 **Statut :** ÉTAT ACTUEL — routage par tâche vers les specs de l'Optimizer ; ne décrit rien lui-même
 **Lire si :** on démarre un chantier Optimizer et on cherche QUELLES sections lire d'abord
-**Ne pas lire si :** on sait déjà quel fichier ouvrir — y aller directement, `node scripts/spec-toc.mjs <fichier>` d'abord
+**Ne pas lire si :** on sait déjà quel fichier ouvrir — y aller directement
 **Voir aussi :** ../../03-developpeur/optimizer/ (invariants, se lisent en entier), README.md
 
 [README.md](README.md) présente l'Optimizer et ses fichiers de code ; le
@@ -10,8 +10,7 @@ comportement de l'écran est décrit dans les fichiers de ce dossier, celui du
 moteur dans [03-developpeur/optimizer/](../../03-developpeur/optimizer/),
 listés ci-dessous ; les contraintes critiques dans les invariants
 ([03-developpeur/optimizer/](../../03-developpeur/optimizer/)), le seul
-fichier qui se lit en entier. Tout le reste se lit **par section**, après
-`node scripts/spec-toc.mjs <fichier>`.
+fichier qui se lit en entier. Tout le reste se lit **par section**.
 
 ## Fichiers de l'Optimizer
 
@@ -86,7 +85,7 @@ scripts de mesure.
 | les cartes de résultat (tri, moyenne par rune, popover de rune) | [feat-ecran-resultats.md § Résultats](feat-ecran-resultats.md) ; [dev/ (invariants) § UI](../../03-developpeur/optimizer/) | [rta/ (sections runes)](../rta/) pour `StatPanel`/`RuneWheel`/`ArtifactSlots` partagés |
 | une piste de perf ou une idée « nouvelle » | [07-pilotage/ (pistes de l'Optimizer, vitesse et vérification)](../../07-pilotage/) | la spec du mécanisme concerné, qui dit une piste écartée avec sa raison |
 | la vitesse (speed tune, ordre des tours) | [speed-tuning/](../speed-tuning/) (le modèle réel) | — |
-| une spec de ce dossier (en-têtes, lint, publication) | [03-developpeur/ (outillage de la doc)](../../03-developpeur/) ; `node scripts/spec-lint.mjs` | [03-developpeur/ (renvois)](../../03-developpeur/) |
+| une spec de ce dossier (écriture, découpage, liens) | [03-developpeur/documentation.md](../../03-developpeur/documentation.md) | [03-developpeur/ (renvois)](../../03-developpeur/) |
 
 Pas dans ce tableau : les fichiers de code de l'écran et du moteur, listés en
 tête de [README.md](README.md) (« Fichiers : … »).

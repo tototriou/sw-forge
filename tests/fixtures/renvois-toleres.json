@@ -290,18 +290,6 @@
       "proprietaire": "hors-perimetre"
     },
     {
-      "fichier": "docs/03-developpeur/outillage-docs.md",
-      "renvoi": "chantiers/",
-      "occurrences": 6,
-      "proprietaire": "hors-perimetre"
-    },
-    {
-      "fichier": "scripts/spec-lint.mjs",
-      "renvoi": "chantiers/",
-      "occurrences": 2,
-      "proprietaire": "hors-perimetre"
-    },
-    {
       "fichier": "src/components/ArtifactIcon.tsx",
       "renvoi": "artifacts/",
       "occurrences": 1,

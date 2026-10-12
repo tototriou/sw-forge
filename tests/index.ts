@@ -257,9 +257,6 @@ import testRecoDefenses from './reco-defenses.test';
 import testSiegePartage from './siege-partage.test';
 import testMarque from './marque.test';
 import testSpeedTune, { testSpeedTuneDeck, testSpeedTuneChaine, testSpeedTuneKit, testSpeedTuneSequence, testSpeedTuneReference, testSpeedTunePassif, testSpeedTuneAuto, testSpeedTuneModele } from './speed-tune.test';
-import testSpecMarkdown from './spec-markdown.test';
-import testSpecToc from './spec-toc.test';
-import testSpecLint, { testSpecLintEnTetes, testSpecLintEnTetesReel, testSpecLintReel } from './spec-lint.test';
 import { testRenduSiegeDefense, testRenduSiegeOffense, testRenduSiegeEnTete, testRenduSiegeEdition } from './rendu/siege.test';
 import { testRenduUiBouton, testRenduUiEtats, testRenduUiMenu, testRenduUiNotification, testRenduPalette } from './rendu/ui.test';
 import { testPalette } from './palette.test';
@@ -395,12 +392,6 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRecoDefenses', testRecoDefenses],
   ['testSiegePartage', testSiegePartage],
   ['testMarque', testMarque],
-  ['testSpecMarkdown', testSpecMarkdown],
-  ['testSpecToc', testSpecToc],
-  ['testSpecLintEnTetes', testSpecLintEnTetes],
-  ['testSpecLintEnTetesReel', testSpecLintEnTetesReel],
-  ['testSpecLint', testSpecLint],
-  ['testSpecLintReel', testSpecLintReel],
   ['testRenduSiegeDefense', testRenduSiegeDefense],
   ['testRenduSiegeOffense', testRenduSiegeOffense],
   ['testRenduSiegeEnTete', testRenduSiegeEnTete],

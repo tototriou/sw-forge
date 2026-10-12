@@ -1,8 +1,8 @@
-# Qualité du code — lint et message de commit
+# Qualité du code — lint, hooks et message de commit
 
 **Statut :** ÉTAT ACTUEL — décrit le lint du code (ESLint) : périmètre, ce qui bloque et ce qui avertit, où il tourne, dont le lint au commit ; la forme imposée au message de commit ; l'installation automatique des hooks et leur reprise en CI
 **Lire si :** on modifie `eslint.config.js`, les scripts `lint` ou `prepare` de `package.json`, le mode `--automatique` de `scripts/installer-hooks.mjs`, l'étape « Lint » de `.github/workflows/tests.yml`, l'étape ESLint ou le mode `--commit` de `.githooks/pre-commit`, `.githooks/commit-msg`, `scripts/verifier-commits.mjs` ou l'étape « Garde-fous de commit » ; une règle refuse un code ou un message qu'on juge correct
-**Voir aussi :** `outillage-docs.md` § Niveaux d'application et garde-fous
+**Voir aussi :** `renvois.md` (le test des renvois), `documentation.md` (écrire la documentation)
 
 ## Lint
 
@@ -73,8 +73,8 @@ Test : `node tests/run.mjs precommit`.
 
 `npm install` et `npm ci` installent les hooks : le script `prepare` de
 `package.json` lance `node scripts/installer-hooks.mjs --automatique`, qui
-copie et câble comme l'installation manuelle (`outillage-docs.md`
-§ Installation des garde-fous), avec quatre différences :
+copie et câble comme l'installation manuelle (« Installation des
+garde-fous », plus bas), avec quatre différences :
 
 - **Jamais d'échec** : hors d'un dépôt Git, source absente, argument inconnu
   ou erreur inattendue donnent un avertissement et le code 0 ;
@@ -125,9 +125,9 @@ dépendances. Pour **chaque commit** de `<base>..<tête>` :
 - hors fusion, son contenu passe par `.githooks/pre-commit --commit <sha>` :
   les refus de chemin privé et de fichier de plus de 5 Mo, sur les
   fichiers ajoutés, copiés, modifiés ou renommés par ce
-  commit, lus dans le commit au lieu de l'index. Le contrôle de branche,
-  spec-lint et ESLint n'y tournent pas : la CI vérifie l'état final par
-  `npm test` et `npm run lint`.
+  commit, lus dans le commit au lieu de l'index. Le contrôle de branche et
+  ESLint n'y tournent pas : la CI vérifie l'état final par `npm test` et
+  `npm run lint`.
 
 Chaque commit compte, pas seulement l'état final : l'historique d'un dépôt
 public l'est aussi, et un fichier ajouté puis retiré dans la même pull
@@ -139,3 +139,68 @@ Limite assumée : les hooks rejoués sont ceux de la pull request elle-même ;
 une pull request qui affaiblit un hook se juge en revue.
 
 Test : `node tests/run.mjs verifiercommits`.
+
+## Niveaux d'application et garde-fous
+
+Une règle écrite s'érode. Chaque règle reçoit un vecteur, et chaque vecteur
+offre un **niveau de garantie** :
+
+| Niveau | Vecteur | Garantie |
+| --- | --- | --- |
+| 1 — invariant dépôt | le test des renvois dans `tests/index.ts`, `pre-commit`, `commit-msg`, rejoués en CI | refus mécanique, quel que soit l'agent |
+| 2 — garde-fou outil | aucun : une faute d'agent n'atteint le dépôt qu'en passant par le niveau 1 | — |
+| 3 — convention | `CLAUDE.md`, la charte de `docs/README.md`, `documentation.md` | lue au démarrage, s'érode |
+| 4 — jugement | revue du diff | humaine |
+
+La documentation n'a pas de vérificateur à elle : ses règles sont des
+conventions (niveau 3), tenues à l'écriture et en revue. Seuls ses liens
+sont vérifiés, par le test des renvois.
+
+### Refus du `pre-commit`
+
+Sur les chemins ajoutés, copiés, modifiés ou renommés de l'index : un
+commit sur `main` (ou `master`) ; un chemin sous `.history/` ou `.vscode/` ;
+un fichier de plus de 5 Mo ; une erreur ESLint du code indexé (« Lint au
+commit »). Une branche hors `forge/<sujet>` : un avertissement, pas un refus.
+Test : `node tests/run.mjs precommit`.
+
+### Installation des garde-fous
+
+Trois objets distincts, et les deux premiers ne se confondent pas :
+
+| Objet | Où | Versionné ? |
+| --- | --- | --- |
+| Les **sources** (`.githooks/pre-commit`, `.githooks/commit-msg`) | dans le dépôt | ✅ relues en revue |
+| **L'installation** | `<git commun>/forge/installation/` | ❌ propre à la machine |
+| Le **câblage** | `core.hooksPath` → `<installation>/hooks` | ❌ |
+
+- Un `core.hooksPath` **relatif** se résout à l'exécution : chaque worktree
+  prendrait **son** `.githooks`, tel que checkouté sur sa branche. Un
+  chemin absolu vers le `.githooks` du worktree principal ne résout rien
+  non plus : son contenu dépend encore de la branche qui y est checkoutée.
+- `node scripts/installer-hooks.mjs` copie les sources dans l'installation
+  (`.githooks/<nom>` sous `hooks/<nom>`, le reste à l'identique) et câble
+  `core.hooksPath`. Options : `--simulation` (affiche sans écrire),
+  `--sans-cablage`, `--automatique` (appel de `npm install`, « Installation
+  automatique »). Un câblage tiers est signalé, jamais écrasé. Les
+  anciens chemins de l'installateur (`RETIRES`) qui lui appartiennent sont
+  retirés de l'installation et du manifeste.
+- **L'installation porte sa propre version de référence** : un manifeste
+  (`manifeste.json`) des empreintes des octets **installés**, mis à jour
+  par cette seule commande. Manifeste v2 : `fichiers {chemin: empreinte}`,
+  `entrees {chemin: {proprietaire, source, commit, date}}`, `commitSource`,
+  `brancheSource`, `installeLe`, `version: 2`. Dans `fichiers` et
+  `entrees`, l'installateur ne réécrit **que ses chemins** et garde toute
+  autre entrée telle quelle ; `commitSource`, `brancheSource`,
+  `installeLe` et `version` sont réécrits à chaque installation. Un
+  manifeste v1 (`fichiers`, `commitSource`, `installeLe`) se lit en
+  mémoire, empreintes gardées, et s'écrit en v2 à l'installation suivante.
+- Le chemin de l'installation se calcule depuis le répertoire Git commun
+  (`git rev-parse --git-common-dir`) : dans un worktree secondaire, `.git`
+  est un fichier, pas un dossier.
+
+Portée du hook, assumée : ce n'est pas une exclusion mutuelle, il se
+contourne (`--no-verify`), la CI le rejoue (« Garde-fous rejoués en CI »).
+Jamais requis : sans `npm install`, un clone n'a ni installation ni câblage,
+et commite. Pas de commit automatique dans `pre-commit`. Test :
+`node tests/run.mjs installerhooks`.

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Garde-fou de commit, commun à tous — humains et agents, quel que soit
 // l'outil : `git commit` est le seul point que tous traversent. Voir
-// docs/03-developpeur/outillage-docs.md (niveaux d'application, installation).
+// docs/03-developpeur/qualite-code.md (niveaux d'application, installation).
 //
 // ⚠️ **Portée volontairement ÉTROITE, et ce n'est pas une exclusion mutuelle.**
 // Ce hook n'empêche pas d'éditer, seulement de committer ; il se contourne
@@ -19,7 +19,7 @@
 // fait la copie.
 
 import { execFileSync } from 'child_process';
-import { existsSync, readFileSync } from 'fs';
+import { existsSync } from 'fs';
 import { join } from 'path';
 
 const ROUGE = '\x1b[31m';
@@ -46,7 +46,7 @@ const avertissements = [];
 // `--commit <sha>` : la CI rejoue les refus 2 (chemin privé) et 3 (fichier
 // démesuré) sur un commit déjà fait,
 // dont le contenu tient lieu d'index (`scripts/verifier-commits.mjs`). La
-// branche, spec-lint et ESLint n'y tournent pas : la CI vérifie l'état final
+// branche et ESLint n'y tournent pas : la CI vérifie l'état final
 // par `npm test` et `npm run lint`.
 const iCommit = process.argv.indexOf('--commit');
 const COMMIT = iCommit > 1 ? process.argv[iCommit + 1] : null;
@@ -142,42 +142,7 @@ for (const chemin of stagés) {
   }
 }
 
-/* ------------------------------------------ 4. spec-lint sur l'INDEX */
-//
-// ⚠️ Le périmètre a une seule source de vérité, `scripts/spec-lint.json`, et
-// c'est `verifier()` qui l'applique — ce hook ne fait que lui SOUMETTRE les
-// `docs/**.md` de l'index et NE GARDER que les erreurs qui les concernent :
-// un fichier hors périmètre (`verifier` ne le voit tout simplement pas) coûte
-// zéro et n'est jamais refusé. Voir docs/03-developpeur/outillage-docs.md.
-
-const specsIndex = stagés.filter((c) => /^docs\/.*\.md$/.test(c));
-
-if (!COMMIT && specsIndex.length > 0) {
-  const racineDepot = git('rev-parse', '--show-toplevel');
-  const cheminConfig = join(racineDepot, 'scripts', 'spec-lint.json');
-  if (existsSync(cheminConfig)) {
-    // ⚠️ Import RELATIF à ce script : en installation, `spec-lint.mjs` et son
-    // parseur (`lib/spec-markdown.mjs`) vivent à côté, sous
-    // `<installation>/scripts/` — voir `installer-hooks.mjs`, `CHEMINS`.
-    const { verifier } = await import(new URL('../scripts/spec-lint.mjs', import.meta.url));
-    const config = JSON.parse(readFileSync(cheminConfig, 'utf8'));
-    const { erreurs } = verifier(racineDepot, config);
-    const enJeu = erreurs.filter((e) => specsIndex.includes(e.fichier));
-    if (enJeu.length > 0) {
-      refus.push({
-        titre: `spec-lint refuse ${enJeu.length} point(s) sur les specs de l’index`,
-        details: [
-          ...enJeu.map((e) => `${e.fichier}${e.ligne ? `:${e.ligne}` : ''} [${e.regle}] ${e.message}`),
-          '',
-          'Revoir le fichier, puis relire le détail :',
-          '  node scripts/spec-lint.mjs',
-        ],
-      });
-    }
-  }
-}
-
-/* --------------------------------------------- 5. ESLint sur le code indexé */
+/* --------------------------------------------- 4. ESLint sur le code indexé */
 //
 // Les ERREURS seules (`--quiet`) : un avertissement ne bloque pas un commit.
 // ESLint du dépôt (`node_modules`), avec sa configuration : absent (clone

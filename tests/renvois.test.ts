@@ -168,8 +168,8 @@ export function construireResolveur(suivis: string[]) {
     let d = posix.dirname(f);
     while (d !== '.' && !dossiers.has(d)) { dossiers.add(d); d = posix.dirname(d); }
   }
-  // Trois bases, dans l'ordre de `spec-lint` : le dossier du fichier, la
-  // racine, `docs/`. Le premier candidat qui existe gagne.
+  // Trois bases, dans cet ordre : le dossier du fichier, la racine,
+  // `docs/`. Le premier candidat qui existe gagne.
   return function resoudre(fichier: string, ref: string): { statut: Occurrence['statut']; candidats: string[] } {
     let r = ref;
     try { r = decodeURI(r); } catch { /* garde le texte brut */ }

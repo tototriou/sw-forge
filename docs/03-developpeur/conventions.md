@@ -302,16 +302,12 @@ shell applicatif. La carte des pages et leur ordre sont dans
   texte, l'historique, les preuves et les récits quittent le public, et
   vont dans ces notes s'il faut les garder ; l'historique Git garde de
   toute façon le texte remplacé. Une conclusion encore en vigueur qu'un
-  chantier peut devoir rouvrir va dans le dossier `decisions` de sa zone,
-  avec sa raison. Pour les documents actifs : aucun bloc terminal de plus
-  de 80 lignes (le lint refuse à 100) ; aucun fichier de plus de 500
-  lignes hors exceptions déclarées et hors dossiers `chantiers` ; slugs de
-  titres uniques. Un fichier en exception se découpe **avant** qu'un chantier
-  modifie son contenu normatif — pas pour une faute, un lien ou un
-  en-tête. Chaque fichier commence par l'en-tête de sa nature (état
-  actuel / décision / chantier). `invariants.md` est un index : une règle
-  modifiée se modifie dans sa source ET dans l'index, dans le même commit.
-  Contrat : [outillage-docs.md](outillage-docs.md).
+  chantier peut devoir rouvrir va en ADR dans `05-decisions`, avec sa
+  raison. Taille, titres, découpage et liens : la charte
+  ([../README.md](../README.md)) et ses bonnes pratiques
+  ([documentation.md](documentation.md)). `invariants.md` est un index :
+  une règle modifiée se modifie dans sa source ET dans l'index, dans le
+  même commit.
 
 ## Shell applicatif
 

@@ -18,7 +18,7 @@ correspond (voir [index.ts](index.ts)).
 | Calculs | la plupart des `*.test.ts` | fonctions pures de `src/lib/` : dégâts, optimiseur, speed tuning, tris, filtres |
 | Intégration | import, stockage, persistance, session, workers… | plusieurs modules ensemble : un export d'exemple importé, IndexedDB (`fake-indexeddb`), vrais `worker_threads` |
 | Rendu | [rendu/](rendu/) | un composant affiché avec `react-dom/server` : présence d'un bouton, d'un libellé, d'un état désactivé — le sens, jamais la forme ([rendu/outils-rendu.tsx](rendu/outils-rendu.tsx)) |
-| Outillage | hooks, `spec-lint`, `spec-toc`, renvois | les garde-fous du dépôt, dans des dépôts jetables |
+| Outillage | hooks, renvois | les garde-fous du dépôt, dans des dépôts jetables |
 | Bureau | `bureau-*.test.ts` | les modules purs de l'application de bureau |
 
 **Ce qui ne l'est pas** : aucune vérification ne pilote un navigateur ni ne

@@ -116,8 +116,8 @@ sont regroupés par passive — les cinq éléments d'une même famille la parta
 qu'en coréen.
 `;
 
-// Bloc terminal ≤ 80 lignes visées (limite dure 100, docs/03-developpeur/,
-// « Contrat de `spec-lint` ») : une catégorie dont les entrées dépasseraient ce budget à plat se
+// Bloc sous un titre ≤ 80 lignes visées (100 au plus, docs/README.md,
+// règle 12) : une catégorie dont les entrées dépasseraient ce budget à plat se
 // scinde en sous-titres H3 par tranche alphabétique — chaque entrée occupe 2
 // lignes (« - **cle** » + la liste de noms).
 const LIGNES_PAR_ENTREE = 2;

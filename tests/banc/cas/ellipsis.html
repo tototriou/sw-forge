@@ -20,5 +20,7 @@
 <div id="coupe-sans-ellipsis" class="bloc" data-attendu="contenu" style="width: 100px; overflow: hidden; white-space: nowrap">Un libellé bien trop long pour sa case</div>
 <!-- Signalé : ellipsis demandée mais overflow visible — rien n'est coupé, le texte dépasse. -->
 <div id="ellipsis-visible" class="bloc" data-attendu="contenu" style="width: 100px; text-overflow: ellipsis; white-space: nowrap">Un libellé trop long</div>
+<!-- Signalé : les propriétés de l'ellipsis sans texte coupé n'excluent rien — la boîte sort à gauche. -->
+<div id="ellipsis-sans-coupe" class="bloc" data-attendu="geometrie" style="margin-left: -60px; width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">Court</div>
 </body>
 </html>

@@ -52,8 +52,10 @@
 // Exclusions, chacune LOCALE (l'élément exclu n'est signalé par aucune règle ;
 // ses ancêtres restent mesurés, et sont signalés s'il les élargit) :
 //
-// - texte coupé par ellipsis : `text-overflow: ellipsis` avec `overflow-x`
-//   calculé `hidden` ou `clip` — la coupe est voulue et se voit ;
+// - texte EFFECTIVEMENT coupé par ellipsis : `text-overflow: ellipsis` avec
+//   `overflow-x` calculé `hidden` ou `clip`, ET `scrollWidth > clientWidth`
+//   sur l'élément — la coupe est voulue et se voit. Les propriétés sans
+//   texte coupé n'excluent rien ;
 // - `visibility: hidden` (ou `collapse`) : une copie invisible sert à
 //   réserver une place, elle ne se voit pas ;
 // - `display: none` : aucune boîte, rien à mesurer.
@@ -199,7 +201,9 @@ export function mesurer(): Mesure {
       invisibles++;
       continue;
     }
-    if (s.textOverflow === 'ellipsis' && coupe(s)) {
+    // Ellipsis EFFECTIVE seulement : une boîte qui a les propriétés sans
+    // texte coupé n'a rien de voulu à excuser, elle se mesure comme les autres.
+    if (s.textOverflow === 'ellipsis' && coupe(s) && el.scrollWidth - el.clientWidth > TOLERANCE) {
       ellipsis++;
       continue;
     }

@@ -38,6 +38,14 @@
 //   cherche sur la même chaîne. Sans cela, un élément fixe qui sort de
 //   l'écran passerait pour coupé par un `overflow-hidden` qui ne le coupe
 //   pas.
+//   ⚠️ `html` n'en est jamais un, ni `body` quand le navigateur lui emprunte
+//   son `overflow` pour la fenêtre (celui de `html` est `visible`) : le
+//   navigateur applique cet `overflow` à la FENÊTRE, pas à une boîte. Ce
+//   qu'il coupe est ce qui sort de l'écran — exactement ce que la règle doit
+//   voir. L'app pose `overflow-x: hidden` sur `html` comme « filet de
+//   sécurité » (src/index.css : « le masquer rend le contenu coupé
+//   inatteignable ») ; compté comme ancêtre qui coupe, il abriterait tout
+//   élément en flux, et la règle ne signalerait plus rien.
 //
 // Exclusions, chacune LOCALE (l'élément exclu n'est signalé par aucune règle ;
 // ses ancêtres restent mesurés, et sont signalés s'il les élargit) :
@@ -141,11 +149,16 @@ export function mesurer(): Mesure {
     }
     return null;
   };
+  // `html`, et `body` quand son `overflow` passe à la fenêtre : voir la tête.
+  const racine = document.documentElement;
+  const sR = style(racine);
+  const fenetre = (a: Element) =>
+    a === racine || (a === document.body && sR.overflowX === 'visible' && sR.overflowY === 'visible');
   const abrite = (a: Element | null): boolean => {
     if (!a) return false;
     const connu = abris.get(a);
     if (connu !== undefined) return connu;
-    const r = coupe(style(a)) || defilementVoulu(a) || abrite(suivant(a));
+    const r = (!fenetre(a) && (coupe(style(a)) || defilementVoulu(a))) || abrite(suivant(a));
     abris.set(a, r);
     return r;
   };

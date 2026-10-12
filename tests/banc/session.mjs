@@ -126,17 +126,38 @@ export async function attendrePose(page) {
 }
 
 function decrireCible(c) {
-  return `${c.role} « ${c.nom} »${c.etendu === undefined ? '' : c.etendu ? ' (déplié)' : ' (replié)'}`;
+  return `${c.role} « ${c.nom} »${c.etendu === undefined ? '' : c.etendu ? ' (déplié)' : ' (replié)'}${c.pres ? ` près de ${decrireCible(c.pres)}` : ''}`;
 }
 
-/** L'élément unique et visible que désigne `cible`, ou une ErreurBanc. */
+/**
+ * L'élément unique et visible que désigne `cible`, ou une ErreurBanc.
+ * Avec `pres`, parmi plusieurs candidats, celui dont le plus petit contenant
+ * commun avec le repère est le plus profond ; une égalité est une ambiguïté.
+ */
 async function localiser(page, cible, attenteMs = 0) {
   const options = { name: cible.nom, exact: true, ...(cible.etendu === undefined ? {} : { expanded: cible.etendu }) };
   const loc = page.getByRole(cible.role, options).filter({ visible: true });
   if (attenteMs) await loc.first().waitFor({ state: 'visible', timeout: attenteMs }).catch(() => {});
   const n = await loc.count();
-  if (n !== 1) throw new ErreurBanc(`${decrireCible(cible)} : ${n} élément(s) visible(s), 1 attendu`);
-  return loc.elementHandle({ timeout: 5000 });
+  if (n === 1 && !cible.pres) return loc.elementHandle({ timeout: 5000 });
+  if (n === 0 || !cible.pres) throw new ErreurBanc(`${decrireCible(cible)} : ${n} élément(s) visible(s), 1 attendu`);
+  const repere = await localiser(page, cible.pres);
+  const candidats = await loc.elementHandles();
+  const profondeurs = await page.evaluate(
+    ([els, r]) =>
+      els.map((e) => {
+        let a = e;
+        while (a && !a.contains(r)) a = a.parentElement;
+        let d = 0;
+        for (let x = a; x; x = x.parentElement) d++;
+        return d;
+      }),
+    [candidats, repere],
+  );
+  const max = Math.max(...profondeurs);
+  const retenus = profondeurs.flatMap((d, i) => (d === max ? [i] : []));
+  if (retenus.length !== 1) throw new ErreurBanc(`${decrireCible(cible)} : ${retenus.length} candidat(s) à égalité près du repère`);
+  return candidats[retenus[0]];
 }
 
 /**
@@ -144,10 +165,15 @@ async function localiser(page, cible, attenteMs = 0) {
  * visible : sinon l'état n'est pas atteint, avec la cause.
  */
 export async function preparer(page, etapes) {
-  let clicsRejoues = 0;
+  const clicsRejoues = [];
   for (const etape of etapes) {
     if ('attendre' in etape) {
       await localiser(page, etape.attendre, 5000);
+      continue;
+    }
+    if ('saisir' in etape) {
+      const champ = await localiser(page, etape.saisir, 5000);
+      await champ.fill(etape.texte, { timeout: 5000 });
       continue;
     }
     // L'élément est pris AVANT le clic : une tentative ratée peut faire
@@ -167,7 +193,7 @@ export async function preparer(page, etapes) {
         throw new ErreurBanc(`cliquer ${decrireCible(etape.cliquer)} : clic impossible`);
       }
       await element.evaluate((el) => el.click());
-      clicsRejoues++;
+      clicsRejoues.push(decrireCible(etape.cliquer));
     }
   }
   return { clicsRejoues };

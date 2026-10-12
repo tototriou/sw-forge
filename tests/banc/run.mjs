@@ -405,7 +405,7 @@ async function principal(etat) {
           resultat.messages = compter(messages, garderTextes);
           const notes = [
             posee ? null : 'page encore en mouvement',
-            resultat.clicsRejoues ? `${resultat.clicsRejoues} clic(s) rejoué(s) par element.click()` : null,
+            resultat.clicsRejoues.length ? `clic rejoué par element.click() : ${resultat.clicsRejoues.join(' ; ')}` : null,
             messages.erreursPage + messages.erreursConsole > 0 ? `${messages.erreursPage + messages.erreursConsole} message(s) d'erreur de la page` : null,
           ].filter(Boolean);
           const suffixe = notes.length ? ` (${notes.join(' ; ')})` : '';

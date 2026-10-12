@@ -36,7 +36,7 @@ export const FORMATS: Record<Format, DefinitionFormat> = {
 export const ORDRE_FORMATS: Format[] = ['telephone', 'ordinateur'];
 
 /** Rôles ARIA qu'une étape peut viser. */
-export type Role = 'button' | 'dialog' | 'switch' | 'tab' | 'link' | 'heading';
+export type Role = 'button' | 'dialog' | 'switch' | 'tab' | 'link' | 'heading' | 'combobox' | 'option';
 
 /**
  * Un élément visé par son rôle et son nom accessible, comme Playwright
@@ -49,11 +49,19 @@ export interface Cible {
   nom: string;
   /** `aria-expanded` exigé (Playwright `expanded`). */
   etendu?: boolean;
+  /**
+   * Deux éléments portent le même rôle et le même nom : on garde celui qui
+   * partage le plus petit contenant avec ce REPÈRE (lui-même une cible
+   * unique). Égalité : ambiguïté, état non atteint.
+   */
+  pres?: Cible;
 }
 
 export type Etape =
   /** Cliquer la cible. */
   | { cliquer: Cible }
+  /** Remplacer le texte d'un champ. */
+  | { saisir: Cible; texte: string }
   /** Attendre que la cible soit visible (bornée). */
   | { attendre: Cible };
 
@@ -86,6 +94,15 @@ export interface Ecran {
 
 const DEFAUT: Etat = { id: 'defaut', libelle: 'à l’ouverture', preparation: [], atteint: [] };
 
+// « Dégâts réels » existe deux fois une fois un monstre choisi : objectif de
+// recherche et critère des artéfacts. Le bouton d'aide « Objectif de
+// recherche » sert de repère au premier.
+const OBJECTIF_DEGATS_REELS: Cible = {
+  role: 'button',
+  nom: 'Dégâts réels',
+  pres: { role: 'button', nom: 'Objectif de recherche' },
+};
+
 export const ECRANS: Ecran[] = [
   { id: 'accueil', libelle: 'Accueil', hash: '#/', etats: [DEFAUT] },
   {
@@ -115,8 +132,25 @@ export const ECRANS: Ecran[] = [
         // Choisir l'objectif « Dégâts réels » ouvre la fenêtre du combat
         // (OptimizerSection.tsx, `setSetupOuvert(true)`). Sans monstre
         // choisi, elle ne dit que « aucun sort calculable ».
-        preparation: [{ cliquer: { role: 'button', nom: 'Dégâts réels' } }],
+        preparation: [{ cliquer: OBJECTIF_DEGATS_REELS }],
         atteint: [{ role: 'dialog', nom: 'Dégâts réels' }],
+      },
+      {
+        id: 'degats-reels-rempli',
+        libelle: 'modale « Dégâts réels » remplie (Cassie)',
+        // Cassie est le monstre du compte d'exemple qui a des sorts ; la
+        // fenêtre montre alors le sort, l'adversaire et le critique.
+        preparation: [
+          { saisir: { role: 'combobox', nom: 'Rechercher un monstre…' }, texte: 'Cassie' },
+          { cliquer: { role: 'option', nom: 'Cassie dark Cassie' } },
+          { cliquer: OBJECTIF_DEGATS_REELS },
+        ],
+        // « Non critique » n'existe que dans la fenêtre remplie (choix du
+        // traitement du critique) : sans sort, elle n'en a pas.
+        atteint: [
+          { role: 'dialog', nom: 'Dégâts réels' },
+          { role: 'button', nom: 'Non critique' },
+        ],
       },
     ],
   },

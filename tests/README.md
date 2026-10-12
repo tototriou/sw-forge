@@ -56,8 +56,10 @@ Il construit l'app (`vite build` dans un dossier temporaire), la sert
 (`vite preview`), l'ouvre dans Chromium sans fenêtre (Playwright) au
 téléphone (360 × 800, tactile) et à l'ordinateur (1400 × 1000), amène chaque
 écran dans chacun de ses états ([banc/ecrans.ts](banc/ecrans.ts)) et vérifie
-un **invariant** : rien ne déborde à l'horizontale. La règle, ses définitions
-et ses exclusions sont écrites en tête de [banc/mesure.ts](banc/mesure.ts) ;
+un **invariant** : rien ne déborde à l'horizontale, et une pastille posée en
+coin d'un portrait de monstre ne recouvre rien d'autre que son portrait. La
+règle, ses définitions, ses exclusions et ses limites connues sont écrites
+en tête de [banc/mesure.ts](banc/mesure.ts) ;
 chaque règle et chaque exclusion a une page de [banc/cas/](banc/cas/), un cas
 signalé et un cas non signalé, que vérifie [banc/cas.mjs](banc/cas.mjs).
 

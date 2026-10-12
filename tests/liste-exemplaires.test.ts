@@ -10,7 +10,7 @@
 // La décision est pure (`etatAjoutListe`, `exemplaireBoxHorsListe`,
 // `libellePuceSource`, optimizerExclusion.ts) ; l'écran ne fait que la
 // brancher, ce que vérifient les contrôles de source plus bas (pas de test de
-// rendu, ARCHITECTURE.md § 9).
+// rendu, docs/01-presentation/03-technique.md § Tests).
 
 import { readFileSync } from 'node:fs';
 import { egal, ok, titre } from './outils';

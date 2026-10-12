@@ -3,8 +3,8 @@
 // La logique vit dans `src/lib/aurasExternes.ts` (fonctions pures), que la
 // carte « État de mon monstre » appelle pour CHAQUE écriture : c'est ici
 // qu'on prouve les bornes, l'ajout, le retrait et le partage de la validation
-// avec la recette. Le composant n'a pas de test de rendu (ARCHITECTURE.md
-// § 9) : quelques contrôles de source vérifient qu'il passe bien par ces
+// avec la recette. Le composant n'a pas de test de rendu
+// (docs/01-presentation/03-technique.md § Tests) : quelques contrôles de source vérifient qu'il passe bien par ces
 // fonctions, et rien d'autre.
 
 import { readFileSync } from 'node:fs';

@@ -11,7 +11,7 @@ sur la machine.
 Code : **`bureau/`** (processus principal, hors de `src/` : il tourne dans
 Node), `src/lib/bureau.ts` (ce que la page en sait), `electron-builder.yml`
 (l'empaquetage), `.github/workflows/bureau.yml` (la publication). Carte des
-fichiers : [ARCHITECTURE.md](../../../ARCHITECTURE.md).
+fichiers : [01-presentation/03-technique.md](../../01-presentation/03-technique.md) (application de bureau).
 
 ## Construire et lancer
 

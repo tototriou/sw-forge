@@ -6,7 +6,7 @@ compte dans le navigateur et n'envoie rien. La même app existe en **application
 (Electron, Windows et Linux). Le dépôt est **public**.
 
 > Documentation : [`docs/`](docs/) (carte : [docs/README.md](docs/README.md)). Où se trouve quoi,
-> par écran : [ARCHITECTURE.md](ARCHITECTURE.md). Décisions : [`docs/05-decisions/`](docs/05-decisions/README.md).
+> par écran : [docs/01-presentation/02-architecture.md](docs/01-presentation/02-architecture.md). Décisions : [`docs/05-decisions/`](docs/05-decisions/README.md).
 
 ## ⚠️ Avant tout travail : lire la documentation de ce qui va être touché
 

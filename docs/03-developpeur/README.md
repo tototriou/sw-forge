@@ -1,7 +1,7 @@
 # Développeur
 
 Travailler sur le dépôt : conventions, qualité du code et hooks, tests, interface, deep-dives
-techniques. Les fichiers de code, par écran : [ARCHITECTURE.md](../../ARCHITECTURE.md). Le guide
+techniques. Les fichiers de code, par écran : [01-presentation/02-architecture.md](../01-presentation/02-architecture.md). Le guide
 des agents et contributeurs (stack, commandes, règles de travail, doc à lire selon le code touché)
 est [AGENTS.md](../../AGENTS.md) ; ce qui ne vaut que pour Claude Code (skills, pièges d'outil) est
 dans [CLAUDE.md](../../CLAUDE.md), qui importe AGENTS.md — pas ici.

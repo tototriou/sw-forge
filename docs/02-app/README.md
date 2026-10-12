@@ -7,7 +7,7 @@ pour faire évoluer l'outil sans casser les comportements établis.
 Une fiche par page ou outil (`<page>/README.md`) et ses fonctionnalités (`feat-*.md`), listées
 dans la fiche ; le dossier `transverse` pour ce qui sert plusieurs pages, `bureau` pour
 l'application de bureau. Les fichiers de code à ouvrir pour changer une page :
-[ARCHITECTURE.md](../../ARCHITECTURE.md).
+[01-presentation/02-architecture.md](../01-presentation/02-architecture.md).
 
 ## Pages
 

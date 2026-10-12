@@ -324,7 +324,7 @@ dessine pas cochée d'elle-même : l'appelant met la coche en icône.
 les filtres des runes (la maquette), puis retiré le même jour, sans autre
 usage — le mainteneur n'a voulu aucun filtre fermé dans un menu (« sors tout des
 boutons »). Un filtre fermé ne dit pas ce qu'il filtre sans qu'on l'ouvre.
-Voir spec/compte/runes.md § Filtrer par set.
+Voir [02-app/compte/](../../02-app/compte/) (feat-runes.md) § Filtrer par set.
 
 **`Champ`** — saisie texte. ⚠️ `compact:text-base` n'est **pas un choix de
 taille, c'est un correctif** : sous 16 px, iOS **zoome** sur le champ à la mise

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Garde-fou de commit, commun à tous — humains et agents, quel que soit
 // l'outil : `git commit` est le seul point que tous traversent. Voir
-// spec/outillage/spec.md (niveaux d'application, installation).
+// docs/03-developpeur/outillage-docs.md (niveaux d'application, installation).
 //
 // ⚠️ **Portée volontairement ÉTROITE, et ce n'est pas une exclusion mutuelle.**
 // Ce hook n'empêche pas d'éditer, seulement de committer ; il se contourne
@@ -182,7 +182,7 @@ if (!COMMIT && specsIndex.length > 0) {
 // Les ERREURS seules (`--quiet`) : un avertissement ne bloque pas un commit.
 // ESLint du dépôt (`node_modules`), avec sa configuration : absent (clone
 // sans `npm install`), le lint est sauté avec un avertissement — le hook
-// n'est jamais requis. Contrat : spec/outillage/qualite-code.md.
+// n'est jamais requis. Contrat : docs/03-developpeur/qualite-code.md.
 
 const CODE = /\.(ts|tsx|js|mjs|cjs)$/;
 const codeIndex = stagés.filter((c) => CODE.test(c));

@@ -232,7 +232,8 @@ Après avoir coché les deux checklists ci-dessus, dans l'ordre de `CLAUDE.md`
    listant les noms (registre : `tests/index.ts`).
 4. `npm run build`.
 
-La suite complète (`npm test`) ne tourne qu'avant une fusion sur `main`.
+La suite complète (`npm test`) ne tourne qu'avant une fusion sur `main` ou
+dans une branche `release/*`.
 
 **Un contrôle exprimable en vérification nommée va dans `tests/`**, appelé
 depuis `tests/index.ts`, et on le voit échouer une fois sur le code cassé

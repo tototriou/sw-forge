@@ -155,7 +155,7 @@ export async function testSelectionFichiersCasReels(): Promise<void> {
   s = sel(['public/data/skills/1000.json']);
   ok(!s.complet && statut(s, 'public/data/skills/1000.json') === 'couvert' && /dossier public\/data\/skills lu \(.*chemin construit public\/data\/skills\/\*/.test(raisons(s, 'testDegats')),
     'public/data/skills/<id>.json (chemin construit) → testDegats retenue');
-  s = sel(['.claude/skills/essai/SKILL.md']);
+  s = sel(['.claude/skills/algo-verify/SKILL.md']);
   ok(!s.complet && /dossier \.claude\/skills lu/.test(raisons(s, 'testSkillAdapters')), 'dossier cité (.claude/skills) → testSkillAdapters retenue');
 
   // Opaque : retenue pour un fichier des racines, pas pour la documentation.
@@ -168,10 +168,10 @@ export async function testSelectionFichiersCasReels(): Promise<void> {
     'docs/README.md : sans effet, seules les vérifications depot retenues, et la sortie le dit');
 
   // Non couvert → complet, même quand une transversale est déjà retenue (D8).
-  s = sel(['tests/fichier-inconnu.txt']);
-  ok(s.complet && statut(s, 'tests/fichier-inconnu.txt') === 'non couvert', 'fichier de tests/ sans lien spécifique → suite complète');
-  s = sel(['src/components/outils/OptimizerSection.tsx', 'tests/fichier-inconnu.txt']);
-  ok(s.complet && s.causes.some((c) => c.startsWith('tests/fichier-inconnu.txt')), 'non couvert alors que des transversales sont retenues → suite complète');
+  s = sel(['tests/README.md']);
+  ok(s.complet && statut(s, 'tests/README.md') === 'non couvert', 'tests/README.md, sans lien spécifique → suite complète');
+  s = sel(['src/components/outils/OptimizerSection.tsx', 'tests/README.md']);
+  ok(s.complet && s.causes.some((c) => c.startsWith('tests/README.md')), 'non couvert alors que des transversales sont retenues → suite complète');
   s = sel(['outil-inconnu.cfg']);
   ok(s.complet && statut(s, 'outil-inconnu.cfg') === 'non couvert', 'fichier hors racines non listé → suite complète');
 

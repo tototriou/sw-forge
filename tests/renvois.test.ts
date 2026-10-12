@@ -42,6 +42,8 @@ export const FICHIERS_EXEMPTES = [
   'tests/installer-hooks.test.ts',
   'tests/skill-adapters.test.ts',
   'tests/renvois.test.ts',
+  // Dépôts d'essai de la sélection par fichiers modifiés.
+  'tests/selection.test.ts',
   // Le banc d'affichage : sa table et son lecteur de motifs écrivent des
   // motifs de chemins (fichier sans extension, préfixe), pas des renvois ; un
   // motif qui ne couvre plus aucun fichier fait échouer son propre test

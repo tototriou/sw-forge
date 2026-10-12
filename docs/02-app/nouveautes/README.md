@@ -127,7 +127,7 @@ refuse, avec `GH013`.
 ```
 main ──●─────────────────────────●──────────► (stable, déployée sur Vercel)
         \                       /
-         └── forge/<sujet> ────┘   (développement d'une version)
+         └── <type>/<sujet> ───┘   (développement d'une version)
 ```
 
 ### ⚠️ Une branche porte un SUJET, pas un numéro
@@ -137,10 +137,14 @@ fallait renommer la branche **et** supprimer l'ancien nom sur le dépôt, sinon
 elle y figurait deux fois. On nommait la version avant de savoir ce qu'elle
 serait.
 
-Une branche s'appelle donc **`forge/<sujet>`** — ce qu'elle contient, en deux ou
-trois mots, en français : `forge/prepa-rta`, `forge/import-artefacts`,
-`forge/bestiaire-filtres`. **Le numéro se décide à la fusion**, quand on voit ce
-qu'il y a dedans. C'est le pendant, côté Git, du `version: null` ci-dessus.
+Une branche s'appelle donc **`<type>/<sujet>`**, comme un message de commit : le
+**type** dit ce que la branche va faire, avec les mots des commits (`feat`,
+`fix`, `docs`, `refactor`, `perf`, `test`, `style`, `build`, `ci`, `chore`,
+`revert`), et le **sujet** ce qu'elle contient, en deux ou trois mots, en
+français : `feat/prepa-rta`, `fix/import-artefacts`, `refactor/listes-optimizer`.
+**Le numéro se décide à la fusion**, quand on voit ce qu'il y a dedans. C'est le
+pendant, côté Git, du `version: null` ci-dessus. Le hook `pre-commit` avertit
+sur une branche hors de cette forme, sans la refuser.
 
 Si le sujet lui-même dérive au point que le nom ment (la branche « filtres »
 finit par refondre le bestiaire), renommer reste possible — mais c'est rare,
@@ -148,12 +152,12 @@ alors qu'un numéro devenait faux au premier `feat`.
 
 ### ⚠️ Plusieurs sujets pour une même version : la branche d'intégration
 
-Quand **plusieurs branches `forge/<sujet>`** doivent partir ensemble — et
+Quand **plusieurs branches `<type>/<sujet>`** doivent partir ensemble — et
 que `main` porte déjà une version en préparation fusionnée par un autre
 contributeur — on ne les empile pas l'une sur l'autre : on crée une **branche
 d'intégration `release/vX.Y.Z`** depuis `origin/main`, **au moment où le
 numéro est connu** (c'est ce qui la distingue des anciennes `release/x.y.z`
-nommées avant de savoir), on y fusionne chaque `forge/<sujet>` en merge
+nommées avant de savoir), on y fusionne chaque `<type>/<sujet>` en merge
 commit, on y fait l'étape 4 **une seule fois** (entrée unique dans
 `releases.ts` — deux entrées `version: null` deviennent une, pas deux
 entrées au même numéro — numéro dans `package.json`, `tsc`, lint,
@@ -164,7 +168,8 @@ la version en préparation du speed tuning déjà sur `main`.
 
 ### Les cinq étapes
 
-1. **Créer la branche** sur son sujet : `git switch -c forge/prepa-rta`
+1. **Créer la branche** sur son sujet, depuis `main` :
+   `git fetch origin && git switch -c feat/prepa-rta origin/main`
 2. **Développer dessus**, commits conventionnels (`feat(scope):`, `fix(scope):`,
    `docs(spec):`).
 3. **Dès le début**, ajouter l'entrée **en tête** de
@@ -196,9 +201,9 @@ la version en préparation du speed tuning déjà sur `main`.
 5. **Ouvrir la PR**, la faire approuver, fusionner en **merge commit**, taguer,
    publier :
    ```bash
-   gh pr create --base main --head forge/prepa-rta --title "…" --body-file …
+   gh pr create --base main --head feat/prepa-rta --title "…" --body-file …
    # … puis, une fois approuvée par QUELQU’UN D’AUTRE (voir ci-dessous) :
-   gh pr merge <n> --merge --subject "Merge forge/prepa-rta — v1.5.0 …"
+   gh pr merge <n> --merge --subject "Merge feat/prepa-rta — v1.5.0 …"
    git fetch origin && git switch main && git merge --ff-only origin/main
    git tag -a v1.5.0 <commit de merge> -m "…" && git push origin v1.5.0
    gh release create v1.5.0 --title "v1.5.0 — …" --notes "…"
@@ -235,14 +240,14 @@ la version en préparation du speed tuning déjà sur `main`.
    vaut à l’identique pour le bouton de l’interface GitHub.
 
 ⚠️ **Le message de merge fait le lien** entre le sujet et le numéro : c'est la
-seule trace qui relie `forge/prepa-rta` à `v1.5.0`. Sans lui, retrouver la
+seule trace qui relie `feat/prepa-rta` à `v1.5.0`. Sans lui, retrouver la
 branche d'une version demande de fouiller les dates.
 
 ⚠️ **Un MERGE COMMIT, jamais un squash** — `gh pr merge --merge`, ou « Create a
 merge commit » dans l’interface, jamais « Squash and merge ». Un squash
 **recopie le contenu sans enregistrer la parenté** : Git ignore alors que la
 branche a été fusionnée. Elle
-n'apparaît pas dans `git branch --merged`, et `git log main..forge/<sujet>`
+n'apparaît pas dans `git branch --merged`, et `git log main..<type>/<sujet>`
 ressort ses commits comme s'ils manquaient — alors que tout est bien dans `main`.
 On ne peut plus distinguer une branche publiée d'une branche oubliée. Le merge
 classique enregistre ce lien : c'est ce qui rend l'état vérifiable.
@@ -254,12 +259,14 @@ l'historique de `main`. Le point de retour est le **tag**.
 Les branches `release/1.3.0`, `release/1.4.0` et `release/1.5.0` gardent leur
 ancien nom : les deux premières sont publiées et taguées, la troisième était
 commencée quand la convention a changé. La renommer n'aurait rien appris à
-personne — `forge/<sujet>` vaut pour les branches **créées ensuite**.
+personne — `forge/<sujet>` a valu pour les branches **créées ensuite**, puis
+`<type>/<sujet>` depuis le 2026-10-12 ; les branches `forge/…` déjà créées
+gardent leur nom.
 
 ### Numérotation
 
 SemVer, lue **du point de vue du joueur** — choisie à l'**étape 4**, une fois la
-branche terminée, en regardant ce qu'elle contient (`git log main..forge/<sujet>`) :
+branche terminée, en regardant ce qu'elle contient (`git log main..<type>/<sujet>`) :
 
 | Incrément | Quand |
 |---|---|

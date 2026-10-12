@@ -94,7 +94,7 @@ shell applicatif. La carte des pages et leur ordre sont dans
   reste valide, juste incomplet. Les constructeurs connus : skill
   `optimizer-field-propagation`.
 - **Versions & releases** — `main` reste **stable et déployée** ; on développe
-  dans une branche **`forge/<sujet>`**, qui porte l'entrée du journal
+  dans une branche **`<type>/<sujet>`** (`feat/…`, `fix/…`, `docs/…`, comme un commit), qui porte l'entrée du journal
   ([02-app/nouveautes/](../02-app/nouveautes/)) puis, à la fin, l'incrément de `package.json`.
   ⚠️ **Une branche porte un sujet, pas un numéro** : le numéro se décide à la
   fusion, quand on voit ce que la version contient — d'ici là l'entrée du

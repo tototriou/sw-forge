@@ -5,7 +5,7 @@
 // ⚠️ **Source de vérité du contenu des releases.** Il est tenu À LA MAIN, et
 // non dérivé de l'API GitHub : le site est statique et doit rester lisible hors
 // ligne, sans dépendre d'un service tiers ni de ses quotas. Une release = une
-// entrée ici, ajoutée dans la branche `forge/<sujet>` (voir README).
+// entrée ici, ajoutée dans la branche `<type>/<sujet>` (voir README).
 //
 // La version affichée dans le pied de page vient, elle, de `package.json`
 // (`__APP_VERSION__`, injecté par Vite) : les deux doivent rester alignées.

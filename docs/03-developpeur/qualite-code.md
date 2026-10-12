@@ -161,7 +161,8 @@ sont vérifiés, par le test des renvois.
 Sur les chemins ajoutés, copiés, modifiés ou renommés de l'index : un
 commit sur `main` (ou `master`) ; un chemin sous `.history/` ou `.vscode/` ;
 un fichier de plus de 5 Mo ; une erreur ESLint du code indexé (« Lint au
-commit »). Une branche hors `forge/<sujet>` : un avertissement, pas un refus.
+commit »). Une branche hors de la forme `<type>/<sujet>` (mêmes types que le
+message de commit) : un avertissement, pas un refus.
 Test : `node tests/run.mjs precommit`.
 
 ### Installation des garde-fous

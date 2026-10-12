@@ -137,7 +137,8 @@ qu'une fonctionnalité est là, pas à quoi elle ressemble.
 ## Versions et releases
 
 `main` est **toujours la version stable en ligne**, déployée sur Vercel. On n'y développe pas
-directement : chaque version se prépare dans une branche **`forge/<sujet>`**, fusionnée en
+directement : chaque version se prépare dans une branche **`<type>/<sujet>`** (le type comme
+pour un commit : `feat/…`, `fix/…`, `docs/…`), fusionnée en
 `--no-ff` puis taguée. Le processus complet — étapes, numérotation SemVer, conventions de branche
 et de tag — vit dans [nouveautes/](../02-app/nouveautes/README.md) (« Modèle de branches et
 processus de release »).

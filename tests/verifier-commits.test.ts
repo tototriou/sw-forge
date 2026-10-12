@@ -53,7 +53,7 @@ export function testVerifierCommits() {
       cpSync(join(RACINE, rel), join(depot, rel));
     }
     const base = commiter('chore: base\n');
-    git('switch', '-q', '-c', 'forge/essai');
+    git('switch', '-q', '-c', 'feat/essai');
 
     commiter('feat: un bon commit\n\nCorps.\n', { 'a.txt': 'a\n' });
     let r = verifier(base);
@@ -85,10 +85,10 @@ export function testVerifierCommits() {
 
     // Une fusion écrite par Git passe ; son contenu est celui de ses parents.
     r = cas(() => {
-      git('switch', '-q', '-c', 'forge/autre', base);
+      git('switch', '-q', '-c', 'feat/autre', base);
       commiter('feat: autre\n', { 'c.txt': 'c\n' });
-      git('switch', '-q', 'forge/essai');
-      git('merge', '-q', '--no-ff', '--no-edit', 'forge/autre');
+      git('switch', '-q', 'feat/essai');
+      git('merge', '-q', '--no-ff', '--no-edit', 'feat/autre');
     });
     ok(r.code === 0 && /3 commit\(s\) vérifié/.test(r.sortie), 'fusion au message de Git : acceptée');
   } finally {

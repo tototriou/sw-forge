@@ -31,6 +31,11 @@ const FIN = '\x1b[0m';
 // de marge. Un export de compte SW pèse ~9,5 Mo : c'est la cible.
 const TAILLE_MAX = 5 * 1024 * 1024;
 
+// Une branche se nomme comme un commit : `<type>/<sujet>`, le type disant ce
+// qu'elle va faire. Mêmes types que `.githooks/commit-msg`.
+const TYPES_BRANCHE = ['feat', 'fix', 'docs', 'style', 'refactor', 'perf', 'test', 'build', 'ci', 'chore', 'revert'];
+const BRANCHE = new RegExp(`^(${TYPES_BRANCHE.join('|')})/[^/\\s]+$`);
+
 const CHEMINS_PRIVES = [
   { motif: /(^|\/)\.history\//, quoi: 'révisions locales de l’éditeur' },
   { motif: /(^|\/)\.vscode\//, quoi: 'réglages VS Code propres à la machine' },
@@ -69,19 +74,19 @@ if (COMMIT) {
   refus.push({
     titre: `commit direct sur ${branche}`,
     details: [
-      'Trois incidents déjà. Le travail se fait sur une branche `forge/<sujet>`,',
+      'Trois incidents déjà. Le travail se fait sur une branche `<type>/<sujet>`,',
       'et `main` ne reçoit que des fusions décidées explicitement.',
       '',
       'Créer une branche sans rien perdre :',
-      '  git checkout -b forge/<sujet>',
+      '  git checkout -b feat/<sujet>',
     ],
   });
-} else if (!/^forge\//.test(branche)) {
-  // Les branches `feat/…` et `release/…` existent dans l'historique : on
+} else if (!BRANCHE.test(branche)) {
+  // Les branches `forge/…` et `release/…` existent dans l'historique : on
   // signale la convention, on ne bloque pas un travail légitime.
   avertissements.push(
-    `branche « ${branche} » hors convention — le dépôt nomme ses chantiers ` +
-      '`forge/<sujet>` (AGENTS.md).'
+    `branche « ${branche} » hors convention — le dépôt nomme ses branches ` +
+      `\`<type>/<sujet>\`, type comme un commit (${TYPES_BRANCHE.join(', ')}) — AGENTS.md.`
   );
 }
 

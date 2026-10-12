@@ -2,7 +2,7 @@
 // démesuré, commit sur `main`, erreur ESLint dans le code indexé.
 //
 // Le hook source est lancé tel quel dans un dépôt jetable, sur une branche
-// `forge/…` : c'est ce que Git exécute, une fois installé. Tout se passe
+// `feat/…` : c'est ce que Git exécute, une fois installé. Tout se passe
 // dans un dossier temporaire.
 
 import { execFileSync, spawnSync } from 'child_process';
@@ -63,7 +63,7 @@ export function testPreCommit() {
     ok(refuse(lancer(depot), /REFUSÉ — commit direct sur main/), 'commit sur main : refus');
     git(depot, 'reset', '-q', '--hard', 'HEAD');
     git(depot, 'clean', '-q', '-fd');
-    git(depot, 'switch', '-q', '-c', 'forge/essai');
+    git(depot, 'switch', '-q', '-c', 'feat/essai');
 
     // Un cas : fichiers écrits, chemins nommés indexés, puis, si demandé,
     // l'arbre de travail réécrit SANS réindexer ; hook lancé, dépôt remis à
@@ -79,7 +79,20 @@ export function testPreCommit() {
       return r;
     };
 
-    ok(passe(cas({ 'a.txt': 'a\n' })), 'branche forge/, fichier ordinaire : accepté');
+    const HORS_CONVENTION = /hors convention/;
+    const accepte = cas({ 'a.txt': 'a\n' });
+    ok(passe(accepte) && !HORS_CONVENTION.test(accepte.sortie), 'branche feat/, fichier ordinaire : accepté, sans avertissement');
+
+    /* ---------------------------------------------- nom de la branche */
+    // Le nom ne refuse jamais : il avertit, pour ne pas bloquer une branche
+    // ancienne légitime.
+    for (const [nom, conforme] of [['docs/segmentation', true], ['forge/essai', false], ['essai', false], ['feat/a/b', false]] as const) {
+      git(depot, 'switch', '-q', '-c', nom);
+      const r = cas({ 'a.txt': 'a\n' });
+      ok(passe(r) && HORS_CONVENTION.test(r.sortie) === !conforme,
+        `branche ${nom} : ${conforme ? 'aucun avertissement' : 'avertissement, pas de refus'}`);
+      git(depot, 'switch', '-q', 'feat/essai');
+    }
 
     /* ------------------------------------------------------ chemin privé */
     const PRIVE = /REFUSÉ — chemin privé/;

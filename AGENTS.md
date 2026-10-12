@@ -155,8 +155,11 @@ npm run bureau:preuve          # la vérification de l'application de bureau
 
 ## Travail
 
-- **Branches `forge/<sujet>`**, parties de `main`
-  (`git fetch origin && git switch -c forge/<sujet> origin/main`), jamais `release/x.y.z` : le
+- **Branches `<type>/<sujet>`**, nommées comme un commit : le type dit ce que la branche va
+  faire (`feat`, `fix`, `docs`, `refactor`, `perf`, `test`, `style`, `build`, `ci`, `chore`,
+  `revert`), le sujet ce qu'elle contient — `feat/prepa-rta`, `fix/tri-runes`,
+  `refactor/listes-optimizer`. Parties de `main`
+  (`git fetch origin && git switch -c <type>/<sujet> origin/main`), jamais `release/x.y.z` : le
   numéro se décide à la fusion. On ne travaille jamais sur `main`.
 - **Commits atomiques** : un commit = une chose reviewable. L'atomicité se juge sur la cohérence du
   **pourquoi**, pas sur le nombre de fichiers ; plusieurs sujets traités ensemble font plusieurs

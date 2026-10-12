@@ -235,8 +235,8 @@ export function testInstallationAutomatique() {
       'premier `npm install` : installé et câblé');
 
     // Une branche plus récente remplace ; revenir en arrière ne remplace pas.
-    // Les hooks câblés s'appliquent aux commits d'essai : branche `forge/`.
-    git(code, 'switch', '-q', '-c', 'forge/essai');
+    // Les hooks câblés s'appliquent aux commits d'essai : branche `feat/`.
+    git(code, 'switch', '-q', '-c', 'feat/essai');
     writeFileSync(join(code, 'nouveau.txt'), 'x\n');
     commiter(code, 'feat: plus récent\n');
     const b = git(code, 'rev-parse', 'HEAD');
@@ -245,7 +245,7 @@ export function testInstallationAutomatique() {
     git(code, 'switch', '-q', '--detach', a);
     r = installerAuto(code, script);
     ok(r.code === 0 && installeA() === b && /installation gardée/.test(r.sortie), 'branche plus ancienne : installation gardée');
-    git(code, 'switch', '-q', '-c', 'forge/divergente');
+    git(code, 'switch', '-q', '-c', 'feat/divergente');
     writeFileSync(join(code, 'autre.txt'), 'y\n');
     commiter(code, 'feat: autre chemin\n');
     r = installerAuto(code, script);

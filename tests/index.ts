@@ -4,6 +4,7 @@
 // global et le laisse en place. On le passe en dernier pour qu'il ne perturbe
 // rien d'autre.
 
+import { readFileSync } from 'node:fs';
 import { bilan, debutVerification } from './outils';
 import { testRenduOptimizerAlerteDefilement, testRenduOptimizerAlerteCycleDeVie,
   testRenduTelephoneOptimizerAlerteCycleDeVie, testRenduTelephoneOptimizerAlerteFermetures } from './rendu/optimizer-alerte.test';
@@ -304,6 +305,7 @@ import { testSelectionFichiersInventaire, testSelectionFichiersChargeur, testSel
 // Ce registre permet de ne lancer QUE ce qu'on touche :
 //     node tests/run.mjs speed-tune       (tout ce dont le nom contient « speedtune »)
 //     node tests/run.mjs rune-optim vitesse
+//     node tests/run.mjs --depuis main     (ce que touchent les fichiers modifiés : tests/selection.ts)
 // Sans argument, tout tourne — c'est ce que fait `npm test`, et ce qu'il FAUT
 // faire avant une fusion sur `main` (voir CLAUDE.md).
 const VERIFICATIONS: [string, () => void | Promise<void>][] = [
@@ -851,10 +853,46 @@ function retenues(filtres: string[]): [string, () => void | Promise<void>][] {
   return VERIFICATIONS.filter(([nom]) => cibles.some((c) => plat(nom).includes(c)));
 }
 
+// Options à valeur : leur valeur n'est pas un filtre.
+const OPTIONS_A_VALEUR = new Set(['--selection']);
+
+function lireArguments(args: string[]): { filtres: string[]; selection: string | null } {
+  const filtres: string[] = [];
+  let selection: string | null = null;
+  for (let i = 0; i < args.length; i++) {
+    if (OPTIONS_A_VALEUR.has(args[i])) { if (args[i] === '--selection') selection = args[i + 1] ?? null; i++; continue; }
+    if (!args[i].startsWith('-')) filtres.push(args[i]);
+  }
+  return { filtres, selection };
+}
+
+// Sélection par fichiers modifiés, écrite par `tests/run.mjs --depuis/--plage`
+// (tests/selection.ts). Les noms d'un étalement ne se connaissent qu'ici : un
+// groupe d'étalements se retrouve entre les entrées nommées qui le bornent.
+function nomsSelectionnes(fichier: string): Set<string> | 'tout' {
+  const { execution } = JSON.parse(readFileSync(fichier, 'utf8')) as
+    { execution: { complet: boolean; noms: string[]; groupes: { avant: string | null; apres: string | null }[] } };
+  if (execution.complet) return 'tout';
+  const position = new Map(VERIFICATIONS.map(([n], i) => [n, i]));
+  if (position.size !== VERIFICATIONS.length) throw new Error('sélection : noms en double dans le registre');
+  const noms = new Set<string>();
+  for (const n of execution.noms) {
+    if (!position.has(n)) throw new Error(`sélection incohérente avec le registre : ${n} inconnu`);
+    noms.add(n);
+  }
+  for (const g of execution.groupes) {
+    const debut = g.avant === null ? -1 : position.get(g.avant);
+    const fin = g.apres === null ? VERIFICATIONS.length : position.get(g.apres);
+    if (debut === undefined || fin === undefined) throw new Error(`sélection incohérente avec le registre : bornes ${g.avant} / ${g.apres}`);
+    for (let i = debut + 1; i < fin; i++) noms.add(VERIFICATIONS[i][0]);
+  }
+  return noms;
+}
+
 async function main() {
-  const filtres = process.argv.slice(2).filter((a) => !a.startsWith('-'));
-  const liste = retenues(filtres);
-  if (liste.length === 0) {
+  const { filtres, selection } = lireArguments(process.argv.slice(2));
+  const parNom = filtres.length > 0 ? retenues(filtres) : [];
+  if (filtres.length > 0 && parNom.length === 0) {
     console.error(
       `
 [31mAucune vérification ne correspond à[0m ${filtres.join(' ')}
@@ -863,7 +901,21 @@ async function main() {
     );
     process.exit(1);
   }
-  if (filtres.length > 0) {
+  // Avec une sélection, l'union de la sélection et des filtres, dans l'ordre du
+  // registre (les prérequis d'ordre en dépendent).
+  let liste = filtres.length > 0 ? parNom : VERIFICATIONS;
+  if (selection !== null) {
+    const choisis = nomsSelectionnes(selection);
+    if (choisis !== 'tout') {
+      for (const [n] of parNom) choisis.add(n);
+      liste = VERIFICATIONS.filter(([n]) => choisis.has(n));
+      if (liste.length === 0) {
+        console.log('Sélection vide : aucune vérification à lancer.');
+        process.exit(0);
+      }
+    } else liste = VERIFICATIONS;
+  }
+  if (filtres.length > 0 || liste.length < VERIFICATIONS.length) {
     console.log(
       `[33mVérifications ciblées[0m (${liste.length}/${VERIFICATIONS.length}) : ` +
         liste.map(([n]) => n).join(', ') +

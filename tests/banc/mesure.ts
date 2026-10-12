@@ -532,7 +532,9 @@ export function mesurer(options: { detail: boolean }): Mesure {
   // Second passage (tête) : les ancêtres concernés par une exception.
   const scrollWidth = document.documentElement.scrollWidth;
   let pageRelue: number | undefined;
-  const ciblesTactiles = document.body.querySelector('.cible-tactile') !== null;
+  // `body` compris : `querySelector` ne cherche que dans ses descendants.
+  const ciblesTactiles =
+    document.body.classList.contains('cible-tactile') || document.body.querySelector('.cible-tactile') !== null;
   // Icône en coin : ses blocs contenants, et ceux qui contiennent en plus
   // l'icône d'un autre bloc (relus à part : cette icône-là ne leur est pas
   // soustraite).

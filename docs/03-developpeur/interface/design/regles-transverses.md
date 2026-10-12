@@ -168,7 +168,7 @@ sur une rangée de filtres serrée on active le **voisin**.
   pour les délimiter, six icônes à 8 px d'intervalle se lisent comme une frise
   continue — c'est l'espace qui remplace le trait.
 - ⚠️ …mais dans le **panneau d'actions mobile**, le libellé revient (voir
-  02-app/transverse/feat-navigation.md) : la règle `[data-tiroir] button.aspect-square` relâche alors la
+  02-app/transverse/feat-navigation/panneau-actions-mobile.md) : la règle `[data-tiroir] button.aspect-square` relâche alors la
   contrainte de forme, sinon le mot déborderait d'un carré. Le marqueur est
   `aspect-square` et non `.h-8` — un sélecteur sur le nom de classe Tailwind
   aurait cassé au premier ajustement de taille.

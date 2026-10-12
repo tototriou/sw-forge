@@ -80,7 +80,17 @@
 //   compris, ne le sont pas AU TITRE DE CE SEUL ÉLÉMENT : leur règle
 //   « contenu » se relit au second passage, décoratifs retirés, et ne reste
 //   que si un dépassement subsiste. Ses descendants se mesurent comme les
-//   autres ;
+//   autres. Le retrait (`display: none`) n'est fait que s'il est EXACT, ce
+//   que vérifie un essai sur la page intacte, décoratif par décoratif : tout
+//   son sous-arbre est non cliquable (`pointer-events: none` calculé —
+//   `aria-hidden` vaut pour le sous-arbre), et le retirer ne déplace ni ne
+//   redimensionne aucune autre boîte de son coupeur (tolérance 0,5 px). Sinon
+//   il reste en place à la relecture : un frère qu'il retiendrait dans une
+//   rangée flex, ou un descendant cliquable qui partirait avec lui, aurait
+//   son dépassement levé à tort (relecture Codex n° 1 et 2 ;
+//   tests/banc/cas/decoratif-flux.html, decoratif-descendant.html). Le
+//   signalement de ses ancêtres est alors celui du premier passage, son
+//   propre dépassement compris : du côté prudent, jamais exact au pixel ;
 // - zone de toucher agrandie : le pseudo-élément `::after` d'un élément de
 //   classe `cible-tactile` (src/index.css : 44 px touchables, centrés sur
 //   l'élément, sans un pixel de dessin) ne compte ni dans la mesure de son
@@ -220,9 +230,9 @@
 // d'avant seul — sinon rendre ensemble la valeur et sa transition relance
 // celle-ci depuis la valeur neutralisée (relecture Codex n° 8 à 10 ;
 // tests/banc/cas/restauration.html, et `cas.mjs` vérifie chaque page).
-// ⚠️ Limite nommée : un décoratif EN FLUX retiré peut déplacer ses frères
-// (rangée flex, ligne de texte) ; la relecture porte alors sur une
-// disposition sans lui. Le halo est absolu : son retrait ne déplace rien.
+// ⚠️ Limite nommée : chaque décoratif est essayé seul ; deux décoratifs dont
+// chacun, retiré seul, ne déplace rien sont supposés ne rien déplacer
+// ensemble.
 //
 // ⚠️ `mesurer` est exécutée DANS la page (`page.evaluate`) : Playwright en
 // envoie le texte. Elle ne référence donc rien hors d'elle-même — pas une
@@ -286,11 +296,12 @@ export interface Mesure {
   signalements: Signalement[];
   elementsMesures: number;
   /**
-   * `decoratifs` : éléments exclus comme décoratif coupé ; `leves` :
+   * `decoratifs` : éléments exclus comme décoratif coupé, dont
+   * `decoratifsEnPlace` laissés en place à la relecture ; `leves` :
    * signalements « contenu » levés au second passage ; `coins` : éléments
    * qui bénéficient de l'exception « icône en coin » (voir la tête).
    */
-  exclus: { ellipsis: number; invisibles: number; decoratifs: number; leves: number; coins: number };
+  exclus: { ellipsis: number; invisibles: number; decoratifs: number; decoratifsEnPlace: number; leves: number; coins: number };
   deborde: boolean;
 }
 
@@ -605,6 +616,7 @@ export function mesurer(options: { detail: boolean }): Mesure {
   const aRelire = signalements.filter((s) => s.regle === 'contenu' && concerne(elementDe.get(s) as Element));
   const relirePage = scrollWidth > largeur + TOLERANCE && margesNegatives.length > 0;
   const leves = new Set<Signalement>();
+  let decoratifsEnPlace = 0;
   if (aRelire.length > 0 || relirePage) {
     const restaurer: (() => void)[] = [];
     // Remise en état (tête) : une pose garde l'attribut `style` d'avant, tel
@@ -643,6 +655,32 @@ export function mesurer(options: { detail: boolean }): Mesure {
       );
       return () => rendre(siennes);
     };
+    // Décoratif coupé (tête) : retiré à la relecture seulement si son retrait
+    // est exact — tout son sous-arbre non cliquable, et aucune autre boîte de
+    // son coupeur déplacée par son retrait (essayé seul, sur la page intacte).
+    const bouge = (a: DOMRect, b: DOMRect) =>
+      Math.abs(a.left - b.left) > 0.5 ||
+      Math.abs(a.top - b.top) > 0.5 ||
+      Math.abs(a.width - b.width) > 0.5 ||
+      Math.abs(a.height - b.height) > 0.5;
+    const retirable = (d: Element) => {
+      for (const x of Array.from(d.querySelectorAll('*'))) {
+        if (x.getClientRects().length > 0 && style(x).pointerEvents !== 'none') return false;
+      }
+      const coupeur = coupeurDecoratif(d) as Element;
+      const essai = poser(d, { display: 'none' });
+      try {
+        for (const e of [coupeur, ...Array.from(coupeur.querySelectorAll('*'))]) {
+          const avant = boites.get(e);
+          if (avant && !d.contains(e) && bouge(avant, e.getBoundingClientRect())) return false;
+        }
+        return true;
+      } finally {
+        rendre([essai]);
+      }
+    };
+    const retirables = decoratifsVus.filter(retirable);
+    decoratifsEnPlace = decoratifsVus.length - retirables.length;
     try {
       // (1) La page : marges négatives seules (D9 ne vaut pas pour elle, un
       // décoratif est coupé avant `html`, une icône en coin s'arrête à son bloc).
@@ -651,7 +689,7 @@ export function mesurer(options: { detail: boolean }): Mesure {
       }
       if (relirePage) pageRelue = document.documentElement.scrollWidth;
       // (2) Les éléments qui ne sont le bloc d'aucune icône en coin.
-      for (const d of decoratifsVus) poses.push(poser(d, { display: 'none' }));
+      for (const d of retirables) poses.push(poser(d, { display: 'none' }));
       if (ciblesTactiles) {
         const zones = document.createElement('style');
         zones.textContent = '.cible-tactile::after { display: none !important; }';
@@ -702,7 +740,7 @@ export function mesurer(options: { detail: boolean }): Mesure {
     page: { scrollWidth, ...(pageRelue !== undefined ? { relue: pageRelue } : {}), deborde: pageDeborde },
     signalements: retenus,
     elementsMesures,
-    exclus: { ellipsis, invisibles, decoratifs: decoratifsVus.length, leves: leves.size, coins: coins.length },
+    exclus: { ellipsis, invisibles, decoratifs: decoratifsVus.length, decoratifsEnPlace, leves: leves.size, coins: coins.length },
     deborde: pageDeborde || retenus.length > 0,
   };
 }

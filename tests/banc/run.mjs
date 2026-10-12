@@ -439,7 +439,9 @@ async function principal(etat) {
             resultat.clicsRejoues = (await preparer(page, prep)).clicsRejoues;
             // Postcondition : l'état montre bien ce qu'il déclare (panneau,
             // modale ouverts). Un clic rejoué qui n'a rien ouvert s'arrête ici.
-            await attendrePose(page);
+            // Sans préparation, la page est déjà posée : pas de seconde attente
+            // (l'accueil, toujours en mouvement, y perdrait 6 s par format).
+            if (prep.length) await attendrePose(page);
             await verifierAtteint(page, atteintPour(st, format));
           } catch (err) {
             resultat.statut = 'non atteint';

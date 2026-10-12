@@ -3,7 +3,7 @@
 // dans le dossier temporaire (renommage, fusion, non suivis…).
 
 import { build } from 'esbuild';
-import { execFileSync, spawnSync } from 'node:child_process';
+import { execFileSync, spawn } from 'node:child_process';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, relative, resolve } from 'node:path';
@@ -98,9 +98,18 @@ export async function testSelectionFichiersChargeur(): Promise<void> {
       '  process.stdout.write(JSON.stringify(sortie));',
       '})();',
     ].join('\n'));
-    const r = spawnSync(process.execPath, [harnais, JSON.stringify([...bancs.keys()])], { cwd: racineDepot, encoding: 'utf8', maxBuffer: 1 << 26 });
-    let releve: Record<string, { charges?: string[]; erreur?: string }> = {};
-    try { releve = JSON.parse(r.stdout); } catch { ok(false, `relevé illisible : ${r.stderr.slice(0, 300)}`); return; }
+    // Un processus par banc, en parallèle : chacun transpile ses modules.
+    const releve: Record<string, { charges?: string[]; erreur?: string }> = {};
+    await Promise.all([...bancs.keys()].map((banc) => new Promise<void>((fini) => {
+      const p = spawn(process.execPath, [harnais, JSON.stringify([banc])], { cwd: racineDepot, stdio: ['ignore', 'pipe', 'pipe'] });
+      let sortie = '', erreurs = '';
+      p.stdout.on('data', (d) => { sortie += d; });
+      p.stderr.on('data', (d) => { erreurs += d; });
+      p.on('close', () => {
+        try { Object.assign(releve, JSON.parse(sortie)); } catch { releve[banc] = { erreur: `relevé illisible : ${erreurs.slice(0, 300)}` }; }
+        fini();
+      });
+    })));
     for (const [banc, graphe] of bancs) {
       const rel = releve[banc];
       if (!rel?.charges) { ok(false, `${banc} : relevé impossible (${rel?.erreur?.slice(0, 200)})`); continue; }

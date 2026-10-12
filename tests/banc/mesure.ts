@@ -60,9 +60,35 @@
 //   réserver une place, elle ne se voit pas ;
 // - `display: none` : aucune boîte, rien à mesurer.
 //
-// `aria-hidden` n'est PAS une exclusion : un élément caché aux lecteurs
+// `aria-hidden` SEUL n'est PAS une exclusion : un élément caché aux lecteurs
 // d'écran reste visible à l'œil. Toute autre exclusion s'écrit ici, avec son
 // motif.
+//
+// Exceptions décidées, qui portent AUSSI sur les ancêtres (chacune est
+// étroite : s'il manque une de ses conditions, rien n'est exclu) :
+//
+// - décoratif coupé (le halo des cartes de l'accueil) : un élément à la fois
+//   `aria-hidden="true"` (l'attribut, valeur `true`), `pointer-events: none`
+//   CALCULÉ (hérité compris) et coupé par un ancêtre. « Coupé » : sur sa
+//   chaîne de blocs contenants, le premier ancêtre dont l'`overflow-x`
+//   calculé n'est pas `visible` vaut `hidden` ou `clip` — un `auto` ou un
+//   `scroll` le laisse atteignable au défilement, il n'est pas coupé ; `html`
+//   et `body` propagé ne coupent pas (voir plus haut). Le décoratif n'est
+//   signalé par aucune règle, et ses ancêtres, jusqu'à celui qui le coupe
+//   compris, ne le sont pas AU TITRE DE CE SEUL ÉLÉMENT : leur règle
+//   « contenu » se relit au second passage, décoratifs retirés, et ne reste
+//   que si un dépassement subsiste. Ses descendants se mesurent comme les
+//   autres ;
+//
+// Second passage : chaque signalement « contenu » d'un ancêtre concerné par
+// une exception se relit une fois, toutes les neutralisations posées
+// ensemble, puis tout est rendu tel quel avant la fin de `mesurer` (la
+// capture suit la mesure). Neutralisations : décoratif coupé, `display:
+// none` posé en ligne avec `!important`. Le signalement garde ses valeurs du
+// premier passage ; `depassement` porte celui qui reste.
+// ⚠️ Limite nommée : un décoratif EN FLUX retiré peut déplacer ses frères
+// (rangée flex, ligne de texte) ; la relecture porte alors sur une
+// disposition sans lui. Le halo est absolu : son retrait ne déplace rien.
 //
 // ⚠️ `mesurer` est exécutée DANS la page (`page.evaluate`) : Playwright en
 // envoie le texte. Elle ne référence donc rien hors d'elle-même — pas une
@@ -95,6 +121,11 @@ export interface Signalement {
   scrollWidth: number;
   clientWidth: number;
   /**
+   * Règle « contenu » : le dépassement retenu, en px — `scrollWidth −
+   * clientWidth`, ou sa relecture au second passage (voir la tête).
+   */
+  depassement?: number;
+  /**
    * Règle « contenu » : les descendants les plus hauts qui sortent de la
    * boîte de l'élément (3 au plus). Vide : le dépassement vient d'un
    * pseudo-élément ou de texte. Aide à la lecture, sans effet sur le verdict.
@@ -111,7 +142,11 @@ export interface Mesure {
   page: { scrollWidth: number; deborde: boolean };
   signalements: Signalement[];
   elementsMesures: number;
-  exclus: { ellipsis: number; invisibles: number };
+  /**
+   * `decoratifs` : éléments exclus comme décoratif coupé ; `leves` :
+   * signalements « contenu » levés au second passage (voir la tête).
+   */
+  exclus: { ellipsis: number; invisibles: number; decoratifs: number; leves: number };
   deborde: boolean;
 }
 
@@ -179,6 +214,25 @@ export function mesurer(options: { detail: boolean }): Mesure {
     return r;
   };
 
+  // Décoratif coupé (tête) : rend l'ancêtre qui le coupe, `null` si
+  // l'élément n'en est pas un.
+  const decoratifs = new Map<Element, Element | null>();
+  const coupeurDecoratif = (el: Element): Element | null => {
+    const connu = decoratifs.get(el);
+    if (connu !== undefined) return connu;
+    let coupeur: Element | null = null;
+    if (el.getAttribute('aria-hidden') === 'true' && style(el).pointerEvents === 'none') {
+      for (let a = suivant(el); a; a = suivant(a)) {
+        if (fenetre(a)) continue;
+        const s = style(a);
+        if (coupe(s)) coupeur = a;
+        if (s.overflowX !== 'visible') break;
+      }
+    }
+    decoratifs.set(el, coupeur);
+    return coupeur;
+  };
+
   const decrire = (el: Element): DescriptionElement => {
     const segments: string[] = [];
     let profondeur = 0;
@@ -201,6 +255,8 @@ export function mesurer(options: { detail: boolean }): Mesure {
   };
 
   const signalements: Signalement[] = [];
+  const elementDe = new Map<Signalement, Element>();
+  const decoratifsVus: Element[] = [];
   let elementsMesures = 0;
   let ellipsis = 0;
   let invisibles = 0;
@@ -211,6 +267,10 @@ export function mesurer(options: { detail: boolean }): Mesure {
     const s = style(el);
     if (s.visibility === 'hidden' || s.visibility === 'collapse') {
       invisibles++;
+      continue;
+    }
+    if (coupeurDecoratif(el)) {
+      decoratifsVus.push(el);
       continue;
     }
     // Ellipsis EFFECTIVE seulement : une boîte qui a les propriétés sans
@@ -238,7 +298,11 @@ export function mesurer(options: { detail: boolean }): Mesure {
       const interieurDroite = interieurGauche + el.clientWidth;
       const sort = (d: Element) => {
         const q = d.getBoundingClientRect();
-        return d.getClientRects().length > 0 && (q.right > interieurDroite + TOLERANCE || q.left < interieurGauche - TOLERANCE);
+        return (
+          d.getClientRects().length > 0 &&
+          !coupeurDecoratif(d) &&
+          (q.right > interieurDroite + TOLERANCE || q.left < interieurGauche - TOLERANCE)
+        );
       };
       const causes: DescriptionElement[] = [];
       for (const d of Array.from(el.querySelectorAll('*'))) {
@@ -248,15 +312,45 @@ export function mesurer(options: { detail: boolean }): Mesure {
         while (parent && parent !== el && !sort(parent)) parent = parent.parentElement;
         if (parent === el) causes.push(decrire(d));
       }
-      signalements.push({ ...releve('contenu'), causes });
+      const signalement: Signalement = { ...releve('contenu'), depassement: el.scrollWidth - el.clientWidth, causes };
+      signalements.push(signalement);
+      elementDe.set(signalement, el);
     }
     const sort = r.right > largeur + TOLERANCE || r.left < -TOLERANCE;
     if (sort && !abrite(suivant(el))) signalements.push(releve('geometrie'));
   }
+
+  // Second passage (tête) : les ancêtres concernés par une exception.
+  const concerne = (a: Element) =>
+    decoratifsVus.some((d) => d !== a && a.contains(d) && (coupeurDecoratif(d) as Element).contains(a));
+  const aRelire = signalements.filter((s) => s.regle === 'contenu' && concerne(elementDe.get(s) as Element));
+  const leves = new Set<Signalement>();
+  if (aRelire.length > 0) {
+    const restaurer: (() => void)[] = [];
+    const poser = (el: Element, propriete: string, valeur: string) => {
+      const st = (el as HTMLElement).style;
+      const avant = st.getPropertyValue(propriete);
+      const priorite = st.getPropertyPriority(propriete);
+      st.setProperty(propriete, valeur, 'important');
+      restaurer.push(() => (avant ? st.setProperty(propriete, avant, priorite) : st.removeProperty(propriete)));
+    };
+    try {
+      for (const d of decoratifsVus) poser(d, 'display', 'none');
+      for (const s of aRelire) {
+        const el = elementDe.get(s) as Element;
+        const reste = el.scrollWidth - el.clientWidth;
+        if (reste > TOLERANCE) s.depassement = reste;
+        else leves.add(s);
+      }
+    } finally {
+      for (const r of restaurer.reverse()) r();
+    }
+  }
+  const retenus = signalements.filter((s) => !leves.has(s));
   // Ordre de lecture, sans effet sur le verdict : la géométrie d'abord (ce
   // qui sort de l'écran se voit), puis le plus profond d'abord — c'est le
   // plus souvent la cause, ses ancêtres n'en sont que la conséquence.
-  signalements.sort(
+  retenus.sort(
     (a, b) => (a.regle === b.regle ? 0 : a.regle === 'geometrie' ? -1 : 1) || b.element.profondeur - a.element.profondeur,
   );
 
@@ -267,10 +361,10 @@ export function mesurer(options: { detail: boolean }): Mesure {
     innerWidth: window.innerWidth,
     largeurVisuelle: window.visualViewport ? window.visualViewport.width : null,
     page: { scrollWidth, deborde: pageDeborde },
-    signalements,
+    signalements: retenus,
     elementsMesures,
-    exclus: { ellipsis, invisibles },
-    deborde: pageDeborde || signalements.length > 0,
+    exclus: { ellipsis, invisibles, decoratifs: decoratifsVus.length, leves: leves.size },
+    deborde: pageDeborde || retenus.length > 0,
   };
 }
 

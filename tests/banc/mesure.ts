@@ -287,10 +287,14 @@ export function medias(): { pointeurGrossier: boolean; sansSurvol: boolean } {
  * la disposition (position de chaque boîte) identique pendant `calmeMs`.
  * Les animations de l'app (framer-motion) tournent en JavaScript, hors de
  * `document.getAnimations()` : seule la disposition dit qu'elles ont fini.
- * Rend `false` si la page bouge encore après `maxMs`. Exécutée dans la page.
+ * Rend `false` si les polices ne sont pas chargées après `policesMs`, ou si
+ * la page bouge encore après `maxMs`. Exécutée dans la page.
  */
-export async function stabiliser(bornes: { calmeMs: number; maxMs: number }): Promise<boolean> {
-  await document.fonts.ready;
+export async function stabiliser(bornes: { calmeMs: number; maxMs: number; policesMs: number }): Promise<boolean> {
+  const polices = await Promise.race([
+    document.fonts.ready.then(() => true),
+    new Promise<boolean>((r) => setTimeout(() => r(false), bornes.policesMs)),
+  ]);
   const empreinte = () => {
     let somme = 0;
     let n = 0;
@@ -311,7 +315,7 @@ export async function stabiliser(bornes: { calmeMs: number; maxMs: number }): Pr
       precedente = e;
       calmeDepuis = performance.now();
     } else if (performance.now() - calmeDepuis >= bornes.calmeMs) {
-      return true;
+      return polices;
     }
   }
   return false;

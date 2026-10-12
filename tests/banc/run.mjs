@@ -23,6 +23,7 @@ import { fileURLToPath } from 'url';
 import { atteintPour, ECRANS, FORMATS, ORDRE_FORMATS, preparationPour } from './ecrans.ts';
 import {
   attendrePose,
+  borne,
   compteAbsent,
   ErreurBanc,
   importerCompte,
@@ -37,6 +38,10 @@ import {
 const ICI = dirname(fileURLToPath(import.meta.url));
 const DEPOT_BANC = resolve(ICI, '../..');
 const COMPTE_EXEMPLE = join(DEPOT_BANC, 'tests', 'fixtures', 'compte-miniature.json');
+// Bornes de temps : une étape qui ne rend pas la main arrête le banc en
+// code 2, jamais en attente sans fin.
+const DELAI_CONSTRUCTION_MS = 180000;
+const DELAI_FERMETURE_NAVIGATEUR_MS = 15000;
 
 const AIDE = `Banc d'affichage — rien ne déborde, aux deux formats.
 
@@ -166,11 +171,15 @@ function lancer(args, cwd) {
   const sortie = [];
   p.stdout.on('data', (d) => sortie.push(d));
   p.stderr.on('data', (d) => sortie.push(d));
-  const fin = new Promise((ok) => {
+  const proc = { p, termine: false, fin: null, texte: () => Buffer.concat(sortie).toString('utf8') };
+  proc.fin = new Promise((ok) => {
     p.on('error', () => ok(-1));
     p.on('exit', (code) => ok(code ?? -1));
+  }).then((code) => {
+    proc.termine = true;
+    return code;
   });
-  return { p, fin, texte: () => Buffer.concat(sortie).toString('utf8') };
+  return proc;
 }
 
 function portLibre(port) {
@@ -194,6 +203,9 @@ function portAuHasard() {
 
 const attendre = (ms) => new Promise((ok) => setTimeout(ok, ms));
 
+/** Un délai de garde qui ne retient pas le processus (`unref`). */
+const garde = (ms, valeur) => new Promise((ok) => setTimeout(ok, ms, valeur).unref());
+
 async function attendreServeur(base, serveur, maxMs) {
   const debut = Date.now();
   let fini = false;
@@ -201,31 +213,36 @@ async function attendreServeur(base, serveur, maxMs) {
   while (Date.now() - debut < maxMs) {
     if (fini) return false;
     try {
-      const r = await fetch(base);
+      const r = await fetch(base, { signal: AbortSignal.timeout(2000) });
       if (r.ok) return true;
     } catch {
-      // pas encore à l'écoute
+      // pas encore à l'écoute, ou réponse trop lente
     }
     await attendre(200);
   }
   return false;
 }
 
-/** Arrête le serveur et tout ce qu'il a lancé, puis attend sa fin (bornée). */
-async function arreterServeur(serveur) {
+/**
+ * Arrête un processus lancé par le banc et tout ce qu'il a lancé, puis
+ * attend sa fin. Chaque attente est bornée : rend `false` si le processus
+ * vit encore.
+ */
+async function arreterProcessus(proc) {
+  if (proc.termine) return true;
   if (process.platform === 'win32') {
-    const k = spawn('taskkill.exe', ['/PID', String(serveur.p.pid), '/T', '/F'], { stdio: 'ignore', windowsHide: true });
-    await new Promise((ok) => {
-      k.on('error', ok);
-      k.on('exit', ok);
-    });
+    const k = spawn('taskkill.exe', ['/PID', String(proc.p.pid), '/T', '/F'], { stdio: 'ignore', windowsHide: true });
+    await Promise.race([
+      new Promise((ok) => {
+        k.on('error', ok);
+        k.on('exit', ok);
+      }),
+      garde(10000),
+    ]);
   } else {
-    serveur.p.kill('SIGTERM');
+    proc.p.kill('SIGTERM');
   }
-  // `unref` : le délai de garde ne doit pas retenir le processus 10 s de plus
-  // une fois le serveur arrêté.
-  const garde = new Promise((ok) => setTimeout(ok, 10000, false).unref());
-  return Promise.race([serveur.fin.then(() => true), garde]);
+  return Promise.race([proc.fin.then(() => true), garde(10000, false)]);
 }
 
 async function attendrePortLibre(port, maxMs) {
@@ -333,8 +350,13 @@ async function principal(etat) {
   const debutConstruction = Date.now();
   const construction = mkdtempSync(join(tmpdir(), 'swb-banc-construction-'));
   etat.construction = construction;
+  // La construction est un processus du banc comme le serveur : une
+  // interruption l'arrête aussi (nettoyage).
   const build = lancer([vite, 'build', '--outDir', construction], racine);
-  if ((await build.fin) !== 0) {
+  etat.processus.push(build);
+  const codeConstruction = await Promise.race([build.fin, garde(DELAI_CONSTRUCTION_MS, 'délai')]);
+  if (codeConstruction === 'délai') throw new Refus(`construction : délai de ${DELAI_CONSTRUCTION_MS / 1000} s dépassé`);
+  if (codeConstruction !== 0) {
     console.error(build.texte().split('\n').slice(-30).join('\n'));
     throw new Refus('construction en échec');
   }
@@ -351,6 +373,7 @@ async function principal(etat) {
   etat.port = port;
   const serveur = lancer([vite, 'preview', '--outDir', construction, '--port', String(port), '--strictPort', '--host', '127.0.0.1'], racine);
   etat.serveur = serveur;
+  etat.processus.push(serveur);
   if (!(await attendreServeur(base, serveur, 30000))) {
     throw new Refus(`serveur : démarrage en échec sur le port ${port}`);
   }
@@ -488,35 +511,116 @@ function compter(messages, garderTextes) {
   };
 }
 
-const debut = Date.now();
-const etat = { reel: true, sortie: null, manifeste: null, navigateur: null, serveur: null, port: null, construction: null };
+/**
+ * Nettoyage : le banc possède le navigateur, la construction et le serveur ;
+ * il les ferme quoi qu'il arrive (import raté, interruption), vérifie que le
+ * port est rendu, puis écrit le manifeste. Idempotent : la fin normale et un
+ * signal partagent la même promesse. Rend les causes d'échec, écrites par le
+ * banc (jamais un message de la page) ; une seule suffit pour le code 2.
+ */
+function nettoyer(etat) {
+  etat.nettoyage ??= (async () => {
+    const echecs = [];
+    if (etat.navigateur) {
+      try {
+        await borne(etat.navigateur.close(), DELAI_FERMETURE_NAVIGATEUR_MS, 'fermeture du navigateur');
+      } catch (err) {
+        echecs.push(err instanceof ErreurBanc ? err.message : 'fermeture du navigateur en échec');
+      }
+    }
+    for (const proc of etat.processus) {
+      if (!(await arreterProcessus(proc))) echecs.push(`un processus du banc (pid ${proc.p.pid}) n'a pas pu être arrêté`);
+    }
+    if (etat.serveur) {
+      const libre = await attendrePortLibre(etat.port, 10000);
+      if (etat.manifeste) etat.manifeste.port.libreApresArret = libre;
+      console.log(`serveur arrêté : ${etat.serveur.termine ? 'oui' : 'NON'} ; port ${etat.port} libre : ${libre ? 'oui' : 'NON'}`);
+      if (!libre) echecs.push(`port ${etat.port} encore occupé`);
+    }
+    if (etat.construction) {
+      try {
+        rmSync(etat.construction, { recursive: true, force: true });
+      } catch {
+        echecs.push('dossier de construction non supprimé');
+      }
+    }
+    return echecs;
+  })();
+  return etat.nettoyage;
+}
+
+/** Fin commune : nettoyage, manifeste, code. Une erreur ici donne 2, jamais 1. */
+async function terminer(etat, codeMesure) {
+  let code = codeMesure;
+  const echecs = await nettoyer(etat);
+  for (const e of echecs) console.error(`banc : ${e}`);
+  if (echecs.length) code = 2;
+  if (etat.manifeste && etat.sortie) {
+    etat.manifeste.durees.totaleMs = Date.now() - etat.debut;
+    etat.manifeste.nettoyage = echecs;
+    etat.manifeste.code = code;
+    try {
+      ecrireExclusif(join(etat.sortie, 'manifeste.json'), `${JSON.stringify(etat.manifeste, null, 2)}\n`);
+      console.log(`sortie : ${etat.sortie}${sep}`);
+    } catch {
+      console.error('banc : écriture du manifeste en échec');
+      code = 2;
+    }
+  }
+  console.log(`durée : ${secondes(Date.now() - etat.debut)} ; code ${code}`);
+  return code;
+}
+
+const etat = {
+  debut: Date.now(),
+  reel: true,
+  sortie: null,
+  manifeste: null,
+  navigateur: null,
+  serveur: null,
+  processus: [],
+  port: null,
+  construction: null,
+  nettoyage: null,
+  fini: false,
+};
+
+// Une interruption (Ctrl+C, arrêt demandé) passe par le même nettoyage :
+// sans lui, le serveur et Chromium resteraient en vie, le port pris.
+// ⚠️ Sous Windows, un SIGTERM envoyé par `process.kill` termine le processus
+// sans passer par ici ; Ctrl+C (SIGINT) et la fermeture de la console
+// (SIGBREAK/SIGHUP) y passent.
+for (const signal of ['SIGINT', 'SIGTERM', 'SIGHUP', 'SIGBREAK']) {
+  process.on(signal, () => {
+    if (etat.fini) return;
+    etat.fini = true;
+    console.error(`banc : interrompu (${signal})`);
+    terminer(etat, 2).then(
+      () => process.exit(2),
+      () => process.exit(2),
+    );
+  });
+}
+// Filet : la boucle d'évènements se vide sans être passée par la fin
+// normale (une promesse jamais tenue) — on nettoie quand même, en code 2.
+process.on('beforeExit', () => {
+  if (etat.fini) return;
+  etat.fini = true;
+  console.error('banc : arrêt inattendu (plus rien à exécuter)');
+  terminer(etat, 2).then((c) => (process.exitCode = c));
+});
+
 let code;
 try {
   code = await principal(etat);
 } catch (err) {
-  if (err instanceof Refus) console.error(`banc : ${err.message}`);
+  if (err instanceof Refus || err instanceof ErreurBanc) console.error(`banc : ${err.message}`);
   // Une erreur imprévue peut citer la page : avec un compte réel, on n'en
   // écrit que la nature.
   else console.error(`banc : erreur imprévue${etat.reel ? '' : ` — ${err?.stack ?? err}`}`);
   code = 2;
-} finally {
-  // Le banc possède le navigateur et le serveur : il les ferme quoi qu'il
-  // arrive, import raté compris, puis vérifie que le port est rendu.
-  if (etat.navigateur) await etat.navigateur.close().catch(() => {});
-  if (etat.serveur) {
-    const arrete = await arreterServeur(etat.serveur);
-    const libre = await attendrePortLibre(etat.port, 10000);
-    if (etat.manifeste) etat.manifeste.port.libreApresArret = libre;
-    console.log(`serveur arrêté : ${arrete ? 'oui' : 'NON'} ; port ${etat.port} libre : ${libre ? 'oui' : 'NON'}`);
-    if (!arrete || !libre) code = 2;
-  }
-  if (etat.construction) rmSync(etat.construction, { recursive: true, force: true });
 }
-if (etat.manifeste && etat.sortie) {
-  etat.manifeste.durees.totaleMs = Date.now() - debut;
-  etat.manifeste.code = code;
-  ecrireExclusif(join(etat.sortie, 'manifeste.json'), `${JSON.stringify(etat.manifeste, null, 2)}\n`);
-  console.log(`sortie : ${etat.sortie}${sep}`);
+if (!etat.fini) {
+  etat.fini = true;
+  process.exitCode = await terminer(etat, code);
 }
-console.log(`durée : ${secondes(Date.now() - debut)} ; code ${code}`);
-process.exitCode = code;

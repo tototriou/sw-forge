@@ -19,10 +19,14 @@ export { medias };
 // autre version de Playwright. Même repli que la session du skill.
 const CHROMIUM_PREINSTALLE = '/opt/pw-browsers/chromium';
 
+// Les signaux sont au lanceur : il ferme le navigateur dans son propre
+// nettoyage, et Playwright ne doit pas le fermer avant lui.
+const SANS_SIGNAUX = { handleSIGINT: false, handleSIGTERM: false, handleSIGHUP: false, timeout: 60000 };
+
 export async function lancerNavigateur() {
-  return chromium.launch().catch((err) => {
+  return chromium.launch(SANS_SIGNAUX).catch((err) => {
     if (!existsSync(CHROMIUM_PREINSTALLE)) throw err;
-    return chromium.launch({ executablePath: CHROMIUM_PREINSTALLE });
+    return chromium.launch({ ...SANS_SIGNAUX, executablePath: CHROMIUM_PREINSTALLE });
   });
 }
 
@@ -122,7 +126,17 @@ export async function compteAbsent(page) {
 
 /** Attend que la page se pose (voir `stabiliser`). */
 export async function attendrePose(page) {
-  return page.evaluate(stabiliser, { calmeMs: 400, maxMs: 6000 });
+  return borne(page.evaluate(stabiliser, { calmeMs: 400, maxMs: 6000, policesMs: 5000 }), 20000, 'attente de la page');
+}
+
+/** Une promesse bornée : au-delà de `ms`, une ErreurBanc avec `cause`. */
+export function borne(promesse, ms, cause) {
+  let minuterie;
+  const delai = new Promise((_, ko) => {
+    minuterie = setTimeout(() => ko(new ErreurBanc(`${cause} : délai de ${ms / 1000} s dépassé`)), ms);
+    minuterie.unref?.();
+  });
+  return Promise.race([promesse, delai]).finally(() => clearTimeout(minuterie));
 }
 
 function decrireCible(c) {
@@ -217,7 +231,7 @@ export async function verifierAtteint(page, cibles) {
  */
 export async function mesurerEtCapturer(page, { detail }) {
   const posee = await attendrePose(page);
-  const mesure = await page.evaluate(mesurer, { detail });
+  const mesure = await borne(page.evaluate(mesurer, { detail }), 30000, 'mesure');
   // ⚠️ La fenêtre seule, pas `fullPage` : Playwright agrandit alors la
   // fenêtre le temps de la capture, la page se recompose (éléments fixes au
   // milieu, panneau flottant repositionné en plein fondu) et l'image ne

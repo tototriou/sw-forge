@@ -2215,12 +2215,11 @@ function CounterRow({
     // cliquable. Un bouton qui ne fait rien au clic se lit comme un défaut.
     const aUneNote = counter.note.trim() !== '';
 
-    // `pr-1 -mr-1` sans note : la rangée finit sur un portrait, dont l'icône
-    // d'élément dépasse de 4 px à droite (`-right-1`, MonsterAvatar) ; la
-    // place entre dans la rangée, la marge négative la rend au rembourrage de
-    // la vignette : rien ne bouge. Avec une note, le chevron finit la rangée.
+    // La rangée finit toujours par le chevron ou, sans note, par une place
+    // vide de même taille : le crayon posé en coin tombe dessus, jamais sur
+    // l'icône d'élément du dernier portrait, qui reste dans la rangée.
     const portraits = (
-      <div className={`flex flex-none items-center gap-1 ${aUneNote ? '' : 'pr-1 -mr-1'}`}>
+      <div className="flex flex-none items-center gap-1">
         {counter.monsters.map((m, i) =>
           m.com2usId == null ? null : (
             <MiniMonster
@@ -2234,13 +2233,15 @@ function CounterRow({
         {/* ⚠️ Le repère de note est TOUJOURS là quand il y en a une, ouverte ou
             non : sans lui, rien ne distingue une vignette qui cache une
             précision d'une vignette qui n'en a pas — on cliquerait au hasard. */}
-        {aUneNote && (
+        {aUneNote ? (
           <ChevronDown
             size={12}
             className={`ml-0.5 flex-none text-ink-dim transition-transform ${
               noteOuverte ? 'rotate-180' : ''
             }`}
           />
+        ) : (
+          <span aria-hidden className="ml-0.5 h-3 w-3 flex-none" />
         )}
       </div>
     );

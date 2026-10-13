@@ -20,15 +20,14 @@ Partie de [Navigation](README.md).
 panneau où l'on choisit la sous-section.** C'est la règle « la barre navigue SEULE » portée
 au tactile — on choisit d'abord **où**, la page ne change qu'ensuite.
 
-Avant, chaque page à sous-sections portait **ses propres rangées d'onglets** sous
-`lg` (`lg:hidden`) :
+Sans ce panneau, chaque page à sous-sections devrait porter **ses propres
+rangées d'onglets** sous `lg` :
 
-- « Compte » menait droit à l'inventaire de monstres, et ses **dix autres vues**
-  n'étaient atteignables que par **deux rangées** posées en haut de la page —
-  onze destinations empilées avant le premier résultat, et **invisibles tant
-  qu'on n'était pas déjà sur la page**. « Siège » ouvrait la Défense, ses deux
-  autres vues idem.
-- Ces rangées étaient écrites **page par page**, chacune avec son rendu : deux
+- « Compte » mènerait droit à l'inventaire de monstres, et ses **dix autres
+  vues** ne seraient atteignables que par **deux rangées** posées en haut de
+  la page — onze destinations empilées avant le premier résultat, et
+  **invisibles tant qu'on n'est pas déjà sur la page** ;
+- ces rangées seraient écrites **page par page**, chacune avec son rendu : deux
   jeux de contrôles à tenir d'accord avec la barre latérale.
 
 Le panneau les remplace toutes.
@@ -38,51 +37,46 @@ Le panneau les remplace toutes.
 Sur « Mon compte », on choisit **l'inventaire** (Monstres · Runes · Artéfacts),
 **puis** sa vue.
 
-Les dix destinations ont d'abord été posées **à plat**, groupes et intitulés
-compris — c'est la liste de la barre latérale, qui tient sur un écran de bureau
-de 900 px de haut et **pas** dans un panneau qui s'arrête au tiers de l'écran.
-On y défilait pour trouver, alors que les trois inventaires suffisent à
-s'orienter.
+Posées **à plat**, groupes et intitulés compris, les dix destinations font la
+liste de la barre latérale, qui tient sur un écran de bureau de 900 px de haut
+et **pas** dans un panneau qui s'arrête au tiers de l'écran : on y défilerait
+pour trouver, alors que les trois inventaires suffisent à s'orienter.
 
 - ⚠️ **Un seul temps quand il n'y a rien à trancher.** « Siège » n'a qu'un
   groupe, sans intitulé : ses trois vues s'affichent directement. Faire choisir
   un groupe unique ajoute un geste sans rien donner à décider.
 - ⚠️ **Un groupe à VUE UNIQUE mène directement à elle.** « Monstres » n'a que
-  « Ma box » : il devient un lien, sans chevron. Il garde le libellé du
+  « Ma box » : c'est un lien, sans chevron. Il garde le libellé du
   **groupe** — c'est la liste des inventaires qu'on lit, et « Ma box » n'y aurait
   pas le même sens que ses deux voisins.
 - Le **titre du panneau suit le temps** où l'on est (« Mon compte », puis
   « Runes ») : c'est la seule chose qui dise ce qu'on est en train de choisir. Le
   retour, en tête du second temps, ramène au premier **sans refermer**.
 - Le **groupe courant porte le marqueur d'état**, comme les destinations : sans
-  lui, le premier temps ne disait pas dans quel inventaire on se trouve déjà.
+  lui, le premier temps ne dirait pas dans quel inventaire on se trouve déjà.
 - On repart **toujours du premier temps** à l'ouverture. Rouvrir « Compte » sur
   les vues de Runes parce qu'on y était la fois d'avant ferait apparaître une
   liste dont le titre ne dit pas d'où elle sort.
 - ⚠️ **Le passage d'un temps à l'autre GLISSE**, du même mouvement que les deux
   niveaux de la barre latérale — `GLISSEMENT` et `COURBE` sont **importés de
   `Sidebar`**, pas réécrits : descendre d'un niveau est le même geste quel que
-  soit le format, et deux définitions auraient dérivé au premier réglage. On
+  soit le format, et deux définitions dériveraient au premier réglage. On
   entre par la droite, on ressort par la gauche (8 px, 180 ms) : un fondu seul
   dirait « ça a changé » sans dire « tu es descendu ».
   - ⚠️ **`mode="popLayout"`** : le niveau sortant quitte le **flux** au lieu de
     rester empilé sous l'entrant. C'est ce qui permet de re-mesurer la hauteur
-    sur le seul niveau entrant — les deux en flux, elle aurait relevé la **somme
-    des deux** et le panneau se serait figé à une hauteur qui n'existe à aucun
+    sur le seul niveau entrant — les deux en flux, elle relèverait la **somme
+    des deux** et le panneau se figerait à une hauteur qui n'existe à aucun
     moment. Le conteneur est `relative` : sans ancêtre positionné, le sortant se
-    calait sur le panneau `fixed` entier, donc en travers du titre.
+    calerait sur le panneau `fixed` entier, donc en travers du titre.
 
 #### ⚠️ Une LISTE, une rangée par entrée
 
-Refonte graphique, lot 11a, **décision 24** (le mainteneur, la maquette) : une
-colonne de rangées au lieu d'une grille de cases encadrées.
+Une colonne de rangées, pas une grille de cases encadrées.
 
-- **Historique, à ne pas perdre de vue.** Le panneau a d'abord été une liste
-  à filets — « trois libellés séparés par des traits, dont on ne voyait pas où
-  commençait la cible » —, puis une **grille de deux colonnes** de cases
-  encadrées (`repeat(auto-fit, minmax(max(140px, calc(50% - 4px)), 1fr))`,
-  deux colonnes dès 320 px d'écran). Le mainteneur a choisi la liste de la maquette
-  en connaissance de cause ; ce qui répond au défaut d'alors :
+- **Une liste dont chaque rangée est la cible** — ni des libellés séparés par
+  des traits, dont on ne verrait pas où commence la cible, ni une grille de
+  cases encadrées :
   - chaque rangée prend **toute la largeur**, sur **52 px** exactement (au-delà
     des 44 de la règle tactile) : la cible est la rangée entière, pas le
     libellé ;
@@ -101,21 +95,19 @@ colonne de rangées au lieu d'une grille de cases encadrées.
   son encombrement.
 - La **colonne d'icône est à largeur fixe** (18 px) : sans elle les libellés se
   décalent d'une rangée à l'autre au gré de la largeur des symboles.
-- Meules et Gemmes n'y reviennent pas (la maquette les montre avec
-  « Bientôt ») : elles ont quitté le menu par décision du mainteneur, [retrait #6]
-  du cadrage de la refonte.
+- Meules et Gemmes n'y figurent pas.
 - ⚠️ La hauteur du panneau est **re-mesurée au changement de temps**
   (`mesureCle`). Elle est figée à l'ouverture pour qu'un dépliage interne ne
   fasse pas remonter ce qu'on vient de toucher ; mais ici tout le contenu est
   **remplacé** — figée sur les trois inventaires, la liste des sept vues se
-  serait lue en défilant dans une fenêtre trois fois trop courte. Ce n'est pas
+  lirait en défilant dans une fenêtre trois fois trop courte. Ce n'est pas
   un dépliage : rien de ce qu'on vient de toucher n'est encore là.
 
 Le reste :
 
 - ⚠️ **Alimenté par les mêmes `SidebarSection` que la barre latérale**, pas une
-  seconde liste — elle aurait divergé au premier écran ajouté, et le manque
-  serait passé inaperçu. Même règle que la recherche de navigation.
+  seconde liste — elle divergerait au premier écran ajouté, et le manque
+  passerait inaperçu. Même règle que la recherche de navigation.
 - ⚠️ **`MobileSheet`, le composant déjà en place**, monté depuis le BAS : son
   déclencheur est un onglet de la barre du bas, et un menu qui surgirait en haut
   obligerait à refaire le lien entre les deux à chaque fois.
@@ -123,12 +115,10 @@ Le reste :
   va nulle part, il n'a rien à faire dans l'historique. Même distinction que la
   barre latérale.
 - ⚠️ **« Outils » OUVRE ses sous-sections** (Optimizer, Speed tuning), comme
-  Siège et Compte. Tant qu'il n'y en avait qu'une, il restait un lien direct — un
-  panneau pour un seul choix n'ajoutait qu'un geste.
-- ⚠️ **« RTA » aussi, depuis qu'il en a deux** (Ma prépa · Ami). Même règle : la
-  consultation de la prépa d'un ami s'ouvrait par un bouton perdu dans la barre
-  de fichiers de sa propre prépa, et s'affichait par-dessus elle. C'est une
-  destination, elle se choisit comme les autres.
+  Siège et Compte. Une section à une seule sous-section reste un lien direct —
+  un panneau pour un seul choix n'ajouterait qu'un geste.
+- ⚠️ **« RTA » aussi** (Ma prépa · Ami) : la consultation de la prépa d'un
+  ami est une destination, elle se choisit comme les autres.
 - ⚠️ **La barre d'onglets RESTE VISIBLE sous le panneau** — l'inverse du panneau
   d'actions, qui la recouvre à dessein (`z-50` contre son `z-40`) parce qu'elle
   mène ailleurs alors qu'on règle la page où l'on est. Ici le panneau **est** la
@@ -139,36 +129,32 @@ Le reste :
   `z-30`, tous deux **sous** les onglets, et le panneau décalé de leur hauteur.
   - ⚠️ **Pas d'`aria-modal` dans cette variante.** L'attribut annonce que tout
     le reste de la page est inerte ; les onglets, eux, restent cliquables — un
-    lecteur d'écran aurait masqué la seule chose qu'on laisse délibérément
+    lecteur d'écran masquerait la seule chose qu'on laisse délibérément
     visible.
   - La hauteur des onglets vit dans [layout.ts](src/lib/layout.ts), pas dans
     `MobileTabs` : trois pièces la lisent, et la déclarer dans le composant
-    forçait `src/ui/` à importer `src/components/` — un **cycle**, puisque
+    forcerait `src/ui/` à importer `src/components/` — un **cycle**, puisque
     `MobileTabs` importe déjà la librairie. La librairie est la couche du
     dessous, elle ne connaît pas les écrans.
 - ⚠️ **Retoucher l'onglet déjà ouvert REFERME le panneau.** Le geste qui ouvre
-  doit pouvoir défaire ce qu'il vient de faire : sans la bascule, on ouvrait
-  « Compte » par erreur et il fallait viser la croix ou le voile pour en sortir
+  doit pouvoir défaire ce qu'il vient de faire : sans la bascule, on ouvrirait
+  « Compte » par erreur et il faudrait viser la croix ou le voile pour en sortir
   — deux cibles ailleurs sur l'écran, alors que le doigt est encore sur
   l'onglet.
 - Le panneau se ferme au **choix d'une destination**, et aussi à tout changement
   de route (retour arrière, lien depuis l'accueil, recherche de navigation) —
-  sinon il restait ouvert par-dessus l'écran qu'on vient d'atteindre.
+  sinon il resterait ouvert par-dessus l'écran qu'on vient d'atteindre.
 - ⚠️ **Cibles pleine hauteur (44 px)** : c'est une liste qu'on vise du pouce, pas
   une rangée de pastilles serrées. La règle tactile s'y applique sans exception.
 
-⚠️ **Le titre de la barre du haut nomme désormais la VUE** sur « Mon compte »
-(« Runes · Liste »), et non plus le seul inventaire : les rangées d'onglets
-disaient la vue, et rien d'autre à l'écran ne la disait à leur place. La vue
-n'est ajoutée que s'il y a un **choix** — « Monstres · Ma box » répéterait deux
-fois la même chose.
+⚠️ **Le titre de la barre du haut nomme la VUE** sur « Mon compte »
+(« Runes · Liste »), pas le seul inventaire : rien d'autre à l'écran ne la
+dit. La vue n'est ajoutée que s'il y a un **choix** — « Monstres · Ma box »
+répéterait deux fois la même chose.
 
-### ⚠️ Le responsive était quasi inexistant
+### ⚠️ Quatre pièges du petit écran
 
-Avant cette refonte, **toute l'application comptait 8 occurrences de
-breakpoints** et aucune barre de navigation mobile.
-
-La passe qui a suivi a corrigé quatre familles de défauts :
+Quatre familles de défauts à éviter :
 
 - ⚠️ **`minmax(360px, 1fr)` déborde** sur 348 px utiles : une colonne ne peut
   pas descendre sous son minimum. `minmax(min(360px, 100%), 1fr)` prend la plus
@@ -180,7 +166,7 @@ La passe qui a suivi a corrigé quatre familles de défauts :
   roue de runes tiennent sur une ligne à partir de 360 px de carte, pas en
   dessous.
 - ⚠️ **Les popovers ancrés à droite** ont besoin d'un `max-w-[calc(100vw-2rem)]` :
-  `min-w` seul ne borne rien, et le menu sortait de l'écran.
+  `min-w` seul ne borne rien, et le menu sortirait de l'écran.
 
 ⚠️ **`overflow-x: hidden` sur le `body` n'est PAS une correction** : il masque
 le débordement au lieu de le résoudre, et rend le contenu coupé inatteignable.

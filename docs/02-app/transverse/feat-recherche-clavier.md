@@ -3,10 +3,10 @@
 > **Source de vérité** pour toute barre de recherche à suggestions.
 > Implémentation unique : [useComboboxNav](../../../src/hooks/useComboboxNav.ts).
 
-⚠️ **Une seule implémentation, jamais une par composant.** Chaque barre avait la
-sienne, et toutes la même faute : Entrée agissait sur « le premier résultat »
-sans que rien à l'écran ne dise lequel — on validait à l'aveugle. Le hook a été
-extrait au deuxième usage plutôt que recopié, comme
+⚠️ **Une seule implémentation, jamais une par composant.** Sans elle, chaque
+barre referait la même faute : Entrée agirait sur « le premier résultat »
+sans que rien à l'écran ne dise lequel — on validerait à l'aveugle. Le hook
+est partagé, comme
 [Segmented](../../../src/ui/Segmented.tsx) et
 [buttonStyles](../../../src/components/buttonStyles.ts).
 
@@ -58,8 +58,8 @@ pickers coexistent (un par slot d'équipe de siège), et des `id` partagés fera
 pointer `aria-activedescendant` sur l'option d'un autre champ.
 
 ⚠️ **Aucun `setTimeout` pour retarder le blur.** Les options agissent en
-`onMouseDown`, donc **avant** le blur. Le délai de 150 ms qui traînait était une
-course que rien ne garantissait de gagner.
+`onMouseDown`, donc **avant** le blur. Un délai de 150 ms serait une
+course que rien ne garantit de gagner.
 
 ## Où c'est utilisé
 

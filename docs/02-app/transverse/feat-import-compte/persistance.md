@@ -28,14 +28,14 @@ IndexedDB n'a aucun de ces défauts, et son **structured clone** évite le
 Une base `swblacksmith`, un store `account`, **une clé fixe** `current` :
 `{ schema, savedAt, box, runes, artifacts, relics, crafts, usedRuneIds, relicUsageById, runeMarkerLabels }`.
 
-- ⚠️ **La base s'appelait `sw-forge`** jusqu'au rebranding.
+- ⚠️ **Une base nommée `sw-forge` est reprise.**
   À la première ouverture, `reprendreAncienneBase` recopie son compte dans la
-  nouvelle, le RELIT, puis supprime l'ancienne — avant toute opération de la
+  base courante, le RELIT, puis la supprime — avant toute opération de la
   file, sinon la première lecture rendrait « aucun compte ». Un compte déjà
-  présent dans la nouvelle base fait foi. Copie impossible : l'ancienne reste,
-  reprise au lancement suivant. ⚠️ `indexedDB.open` créerait une base absente :
-  la création est annulée (`oldVersion === 0`), aucune base `sw-forge` vide
-  n'apparaît.
+  présent dans la base courante fait foi. Copie impossible : la base
+  `sw-forge` reste, reprise au lancement suivant. ⚠️ `indexedDB.open` créerait
+  une base absente : la création est annulée (`oldVersion === 0`), aucune base
+  `sw-forge` vide n'apparaît.
 
 - ⚠️ **La sortie des extracteurs (`BoxMonster[]`), jamais l'état affiché
   (`BoxItem[]`).** Un `BoxItem` embarque l'objet `Monster` complet : ça duplique
@@ -53,20 +53,15 @@ Une base `swblacksmith`, un store `account`, **une clé fixe** `current` :
   la lecture.
 - ⚠️ **`runeMarkerLabels` aussi** : `markers` ne vit que dans l'export brut. Le
   marqueur de chaque rune, lui, voyage dans `runes` (`RuneDetail.marker`).
-- `schema` (`ACCOUNT_SCHEMA`, **7** : l'inventaire de reliques — `relics` et
-  `relicUsageById`, absents jusque-là —, les marqueurs de runes et les runes
-  utilisées par périmètre ; 6 : `ArtifactDetail.id` ; 5 : propriété unique des
-  reliques, qui remplace un `relic.sub` mal modélisé — voir
-  [compte/](../../compte/)) est à
-  **incrémenter dès qu'un extracteur produit un champ de plus** : un enregistrement d'un autre schéma est ignoré à la lecture,
-  et l'app invite à réimporter — sinon elle affiche des chiffres incomplets en
-  silence.
-- ⚠️ **Le 7 réunit deux chantiers parallèles** (reliques ; marqueurs et runes
-  utilisées par périmètre), qui avaient chacun pris le 7 pour leur seule
-  moitié. Aucune version publiée n'a porté l'une sans l'autre (la v1.13.0 est
-  au 6), d'où un seul numéro. Un « 7 » incomplet, laissé par un navigateur qui
-  a fait tourner l'une des deux branches, est rejeté par la **validation** des
-  champs, pas par le numéro — vérifié dans `tests/stockage.test.ts`.
+- `schema` (`ACCOUNT_SCHEMA`, **7**) est à **incrémenter dès qu'un extracteur
+  produit un champ de plus** : un enregistrement d'un autre schéma est ignoré à
+  la lecture, et l'app invite à réimporter — sinon elle afficherait des
+  chiffres incomplets en silence. Le 7 porte l'inventaire de reliques
+  (`relics`, `relicUsageById`), les marqueurs de runes et les runes utilisées
+  par périmètre (voir [compte/](../../compte/)).
+- ⚠️ Un enregistrement au schéma 7 mais incomplet est rejeté par la
+  **validation** des champs, pas par le numéro — vérifié dans
+  `tests/stockage.test.ts`.
 - `exportedAt` est la date **de l'export** (`tvalue`), pas de l'enregistrement —
   voir « Âge du compte » plus bas. `savedAt` ne sert qu'au diagnostic.
 
@@ -90,10 +85,9 @@ des clics). Deux conséquences voulues :
 > « Un seul interrupteur pour toute l'app », plus bas.
 >
 > ⚠️ **Trois états : oui / non / jamais demandé.** Un booléen à `false` par défaut
-> confondait « a refusé » et « n'a jamais été consulté ». Résultat observé : on
-> importe, on recharge, **le compte a disparu alors que la prépa RTA et le siège
-> sont toujours là**. Incohérence jamais expliquée, dans un menu que personne
-> n'ouvre.
+> confondrait « a refusé » et « n'a jamais été consulté » : on importerait, on
+> rechargerait, et **le compte aurait disparu alors que la prépa RTA et le
+> siège sont toujours là**.
 
 La question est donc posée **à la fin du premier import**
 ([Dialogs.tsx](src/ui/Dialogs.tsx) → `KeepAccountDialog`),
@@ -169,9 +163,9 @@ L'état **`accountHydrating`** est propagé à l'accueil (`accountLoaded` a
 ### Âge du compte — [AccountFreshness.tsx](src/components/AccountFreshness.tsx)
 
 ⚠️ **Complément indispensable de la persistance**, pas une décoration. Un compte
-conservé ne se voit plus arriver : sans date affichée, on travaille sur des runes
-d'il y a trois semaines sans le savoir. Le compte volatil n'avait pas ce problème
-— on venait de le déposer.
+conservé ne se voit pas arriver : sans date affichée, on travaillerait sur des
+runes d'il y a trois semaines sans le savoir. Un compte qu'on vient de déposer
+n'a pas ce problème.
 
 > ### ⚠️ La date de l'EXPORT, jamais celle de l'import
 >

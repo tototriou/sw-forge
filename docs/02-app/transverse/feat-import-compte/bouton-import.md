@@ -34,25 +34,24 @@ RTA, tes équipes de siège et ta box par le contenu du fichier. Tes
 recommandations enregistrées ne sont pas touchées. » Un import **remplace**
 toujours la prépa RTA, les équipes de siège et la box.
 
-Un import complet prend une vingtaine de millisecondes depuis le passage au parse
-unique : **pas d'écran d'attente**, il n'aurait fait que clignoter.
+Un import complet prend une vingtaine de millisecondes (un seul parse) : **pas
+d'écran d'attente**, il ne ferait que clignoter.
 
-> ⚠️ **Ne jamais proposer de « fusionner » ici.** L'ancien dialogue disait
-> « OK = remplacer · Annuler = fusionner » : celui qui voulait **annuler** son
-> import cliquait Annuler… et **dédoublait tout son siège** (50 attaques → 100).
-> Un export de compte est un **instantané du jeu**, il ne se cumule pas avec le
-> précédent. Le chemin « ajouter à la suite » a été **retiré de `importTeams`**
-> pour qu'il ne puisse pas être rebranché. Voir aussi la règle générale dans
-> [siege/](../../siege/).
+> ⚠️ **Ne jamais proposer de « fusionner » ici.** Avec un dialogue
+> « OK = remplacer · Annuler = fusionner », celui qui veut **annuler** son
+> import cliquerait Annuler… et **dédoublerait tout son siège** (50 attaques →
+> 100). Un export de compte est un **instantané du jeu**, il ne se cumule pas
+> avec le précédent : `importTeams` n'a pas de chemin « ajouter à la suite ».
+> Voir aussi la règle générale dans [siege/](../../siege/).
 
-> ⚠️⚠️ **MAIS L'IDENTITÉ D'UNE ÉQUIPE SURVIT AU REMPLACEMENT.** `importTeams`
-> régénérait l'`id` de chaque équipe (`newId()`), alors que les **listes de
+> ⚠️⚠️ **MAIS L'IDENTITÉ D'UNE ÉQUIPE SURVIT AU REMPLACEMENT.** Les **listes de
 > travail de l'Optimizer** désignent un monstre par `{ teamId, slotIndex }`
-> (voir [../optimizer/](../../optimizer/)). Plus aucun sélecteur
-> ne résolvait après un import, et la revérification supprimait
-> **définitivement** tous les membres et builds validés venus du siège — sur le
-> geste même qu'elle est censée servir. Ce n'était pas « mon compte a changé »,
-> c'était l'identifiant qui avait changé sous eux.
+> (voir [../optimizer/](../../optimizer/)). Si `importTeams` régénérait l'`id`
+> de chaque équipe (`newId()`), aucun sélecteur ne résoudrait après un import,
+> et la revérification supprimerait **définitivement** tous les membres et
+> builds validés venus du siège — sur le geste même qu'elle est censée
+> servir : ce ne serait pas « mon compte a changé », mais l'identifiant qui
+> aurait changé sous eux.
 >
 > ⚠️ **L'identité, c'est la POSITION** : le siège est remplacé en bloc, et la
 > Nᵉ équipe reste la Nᵉ. Ce qui a vraiment bougé — un monstre retiré du deck —
@@ -95,20 +94,20 @@ cumulée + set Swift complet pour un lot de rune_id).
 
 ### ⚠️ Un seul `JSON.parse` par import
 
-Un import enchaîne **cinq** extracteurs sur le même fichier. Chacun recevait le
-texte brut et le reparsait : cinq `JSON.parse` d'un export de 8 Mo. Ils acceptent
-donc aussi l'**objet déjà parsé** (`AccountSource = string | objet`) ;
+Un import enchaîne **cinq** extracteurs sur le même fichier. Pour éviter cinq
+`JSON.parse` d'un export de 8 Mo, ils acceptent
+aussi l'**objet déjà parsé** (`AccountSource = string | objet`) ;
 [App.tsx](src/App.tsx) parse une fois via `parseAccountSource` et passe le
 résultat aux cinq. Le texte reste accepté pour les appels isolés — la
 comparaison de comptes ([compte/](../../compte/)) n'appelle qu'un
 extracteur.
 
 Les trois index sont **mémoïsés** sur l'objet parsé (`WeakMap`, donc libérés
-avec lui) : ils étaient reconstruits jusqu'à quatre fois sur des milliers
-d'entrées. Mesure sur un export réel de 7,8 Mo : **87 ms → 22 ms**.
+avec lui), au lieu d'être reconstruits jusqu'à quatre fois sur des milliers
+d'entrées. Mesure sur un export réel de 7,8 Mo : **22 ms** (87 ms sans
+mémoïsation).
 
 > ⚠️ **Un index mémoïsé est PARTAGÉ, donc en lecture seule** — d'où le type
-> `ReadonlyMap` en sortie. Avant, chaque extracteur avait sa copie ; un `.set()`
-> en corromprait maintenant quatre autres, et le symptôme apparaîtrait dans un
-> extracteur voisin, loin de la faute. Un extracteur qui a besoin d'un index à
-> lui écrit `new Map(index)`.
+> `ReadonlyMap` en sortie. Un `.set()` en corromprait quatre autres, et le
+> symptôme apparaîtrait dans un extracteur voisin, loin de la faute. Un
+> extracteur qui a besoin d'un index à lui écrit `new Map(index)`.

@@ -39,14 +39,14 @@ RTA et Siège.
   (`/api/v2/monsters/`), paginée.
 - Écrites dans `public/data/monsters.json` (`{ meta, monsters }`). Le chemin de
   sortie passe par `fileURLToPath` : sous **Windows**, `URL.pathname` donne
-  `/C:/…` et `mkdir` fabriquait un `C:\C:\…` — le script se lance donc aussi en
+  `/C:/…` et `mkdir` fabriquerait un `C:\C:\…` — le script se lance donc aussi en
   local, pas seulement en CI Linux.
 - **Fallback démo** : si l'API échoue, un jeu de démo déterministe est généré
   (labellisé `source: 'demo'`) pour que le site reste déployable et testable.
 - Rafraîchissement planifié via GitHub Actions (cron hebdo + manuel) → **PR**
   ouverte sur `forge/donnees-swarfarm` → redéploiement Vercel à la fusion.
-  ⚠️ **Une PR, pas un commit sur `main`** : la branche est protégée, le job y
-  poussait directement et échouait en silence toutes les semaines. Le job
+  ⚠️ **Une PR, pas un commit sur `main`** : la branche est protégée, un job
+  qui y pousserait directement échouerait en silence toutes les semaines. Le job
   n'ouvre **que** la PR — il ne fusionne rien, et son token n'en a pas le droit.
 - ⚠️ **Le corps de la PR est un RAPPORT de ce qui a changé**
   ([rapport-donnees.mjs](scripts/rapport-donnees.mjs)) : les **vitesses de base
@@ -56,27 +56,26 @@ RTA et Siège.
   vraisemblablement une moisson partielle). Sans lui, la PR est un diff JSON de
   milliers de lignes où personne ne voit qu'une collaboration est arrivée.
 
-### ⚠️ La pagination de l'API, et comment elle nous a coûté une collaboration
+### ⚠️ La pagination de l'API : une moisson incomplète échoue
 
 L'API **plafonne une page à 100** résultats quel que soit le `limit` demandé, et
 elle **truque le lien `next` de la première page** (`?limit=1&page=2`) : le
 `limit` de l'URL ne veut rien dire, seul `page` compte. On ne peut donc pas
 déduire le nombre de pages de la taille demandée.
 
-Le garde-fou anti-boucle du script valait **30 pages** — soit exactement 3 000
-monstres, quand l'API en sert 3 089. La **dernière page n'était jamais lue** :
-les monstres ajoutés en dernier manquaient, c'est-à-dire toute la collaboration
-**Frieren** (Himmel, Frieren, Fern, Stark, Übel) et Lob Ear. Un compte qui les
-possède affichait des monstres inconnus, et le speed tuning n'avait ni leur
-vitesse de base ni leur kit.
+Le garde-fou anti-boucle du script ne doit pas borner la moisson sous le
+nombre de pages de l'API : à 30 pages — 3 000 monstres, quand l'API en sert
+3 089 —, la **dernière page ne serait jamais lue**, et les monstres ajoutés en
+dernier manqueraient (une collaboration entière). Un compte qui les possède
+afficherait des monstres inconnus, et le speed tuning n'aurait ni leur vitesse
+de base ni leur kit.
 
-⚠️ **Une moisson incomplète ÉCHOUE maintenant**, elle ne se publie pas : si la
-boucle s'arrête alors que l'API annonce une suite, ou si le nombre de monstres
-lus est inférieur au `count` annoncé, le script lève. Le job tournait au vert
-depuis des semaines avec 89 monstres manquants — un fichier partiel est pire
-qu'un fichier vieux d'une semaine, il fait disparaître des monstres que les
-comptes possèdent. Les résultats sont en outre **dédoublonnés par `com2us_id`**,
-pour qu'une page servie deux fois ne masque pas le trou.
+⚠️ **Une moisson incomplète ÉCHOUE**, elle ne se publie pas : si la boucle
+s'arrête alors que l'API annonce une suite, ou si le nombre de monstres lus
+est inférieur au `count` annoncé, le script lève. Un fichier partiel est pire
+qu'un fichier vieux d'une semaine : il fait disparaître des monstres que les
+comptes possèdent. Les résultats sont en outre **dédoublonnés par
+`com2us_id`**, pour qu'une page servie deux fois ne masque pas le trou.
 
 Normalisations notables dans le script :
 - ⚠️ **PV / ATQ / DEF = `max_lvl_*`**, c'est-à-dire les stats du monstre **6★
@@ -136,7 +135,7 @@ dans [LeadPill.tsx](src/components/siege/LeadPill.tsx) (`leadIconUrl`).
 `monsters`, `loadState` (`loading | live | demo | error`), `generatedAt`.
 
 ⚠️ **Dans l'application de bureau, les données sont celles de son
-installeur** (chantier application-bureau, décision 1) : le build Vite, et
+installeur** : le build Vite, et
 donc `public/data/`, est empaqueté avec l'app, et servi par son protocole
 `app://swblacksmith/` — même `fetch`, même chemin, aucun réseau. Elles se
 rafraîchissent **à chaque version publiée**, avec la mise à jour de l'app.

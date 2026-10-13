@@ -34,20 +34,19 @@ Points clés découverts (à ne pas régresser) :
 
 > ### ⚠️ Une seule source de vérité pour le Swift : les **sets actifs**
 >
-> Ne **jamais** recompter les runes Swift à côté (`swiftCount >= 4`). C'est ce
-> qu'on faisait, et ça divergeait de `activeSets` dès qu'une rune **Intangible**
-> servait de joker : **3 Swift + 1 Intangible** → `activeSets` renvoie bien
-> `swift`, le comptage disait non.
+> Ne **jamais** recompter les runes Swift à côté (`swiftCount >= 4`) : le
+> comptage diverge de `activeSets` dès qu'une rune **Intangible** sert de
+> joker — **3 Swift + 1 Intangible** → `activeSets` renvoie bien `swift`, le
+> comptage dit non.
 >
-> Conséquence observée : le bonus de +25 % n'était pas intégré à la « SPD runes »
-> alors que l'affichage de la vitesse de combat, lui, le **retirait** (voir
+> Conséquence : le bonus de +25 % ne serait pas intégré à la « SPD runes »
+> alors que l'affichage de la vitesse de combat, lui, le **retire** (voir
 > `swiftFlat` dans [feat-calcul-vitesse.md](../feat-calcul-vitesse.md)) → **26 points de
 > vitesse en moins** sur un monstre à 101 de base, et **lui seul dans son
-> équipe**. C'est ce « un seul monstre faux » qui a mis sur la piste.
+> équipe**.
 >
-> Cas réel de contrôle (compte de l'auteur) : *Chilling* (base 101, brut 195,
-> Swift complété par une Intangible) sous lead **+30 %** → **367** en jeu ;
-> l'import en donnait 341.
+> Cas de contrôle : *Chilling* (base 101, brut 195, Swift complété par une
+> Intangible) sous lead **+30 %** → **367** en jeu.
 
 ## Constantes SW
 

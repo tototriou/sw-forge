@@ -52,14 +52,14 @@ doit continuer a les reproduire.
 | Susano | 107 | **75** | `ceil(74,90)` |
 | Tarq | 115 | **81** | `ceil(80,50)` -- **385** en jeu |
 
-> **Tarq est le test discriminant** : arrondir separement donnait 80 (384) chez
+> **Tarq est le test discriminant** : arrondir separement donnerait 80 (384) chez
 > lui tout en tombant juste sur les deux autres *par hasard*. Un seul monstre
 > faux sur trois : c'est le symptome typique d'un probleme d'ordre de calcul,
 > pas d'un mauvais arrondi.
 
 ### Le Swift entre dans la SOMME, il ne s'ajoute pas a cote
 
-C'etait la piece manquante. Le Swift est un pourcentage de la base **comme les
+Le Swift est un pourcentage de la base **comme les
 autres** : il rejoint la somme avant l'arrondi.
 
 Mais la **convention de l'app** est que le champ « SPD : » -- saisi a la main ou

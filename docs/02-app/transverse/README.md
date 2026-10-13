@@ -30,7 +30,7 @@ Voir aussi, hors de ce dossier :
 - [../bureau/](../bureau/README.md) — l'**application de bureau** (Electron, Windows et Linux) :
   ce qui diffère du site, la fenêtre, l'installeur, la publication au tag, la mise à jour, les
   données — et comment la vérifier (`bureau:preuve`).
-- [../compte/feat-calcul-runes.md](../compte/feat-calcul-runes.md) §6 — anticipait déjà le
+- [../compte/feat-calcul-runes.md](../compte/feat-calcul-runes.md) §6 — le
   moteur de recherche de builds (branch-and-bound, Web Worker) qu'utilise
   [../optimizer/](../optimizer/README.md).
 - [03-developpeur/interface/](../../03-developpeur/interface/README.md) — mobile et bureau, le

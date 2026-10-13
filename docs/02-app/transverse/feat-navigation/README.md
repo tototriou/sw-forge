@@ -4,7 +4,7 @@
 > barre latérale sur bureau, barre d'onglets et panneau montant sur mobile. Voir
 > [03-developpeur/interface/](../../../03-developpeur/interface/) pour la règle de cadre.
 
-Depuis la refonte UI, la navigation repose sur trois pièces :
+La navigation repose sur trois pièces :
 une **barre latérale** (au-dessus de `lg`), une **barre supérieure** fixe, et
 une **barre d'onglets en bas** (sous `lg`).
 

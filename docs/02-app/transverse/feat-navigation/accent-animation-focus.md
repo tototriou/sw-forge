@@ -4,8 +4,8 @@ Partie de [Navigation](README.md).
 
 ## Accent contextuel — `--ctx`
 
-L'idée directrice de la refonte : **l'élément du monstre consulté teinte
-l'écran**. On sait de quel monstre on parle avant d'avoir lu son nom.
+**L'élément du monstre consulté teinte l'écran** : on sait de quel monstre on
+parle avant d'avoir lu son nom.
 
 ```css
 --ctx: var(--accent);        /* par défaut : l'accent de l'app */
@@ -51,22 +51,22 @@ Framer Motion, déjà présent — pas de keyframes écrites à la main.
 - **Glissement entre niveaux** : on entre par la droite, on ressort par la
   gauche, comme on tourne une page. 8 px, 180 ms : la liste doit sembler
   *glisser*, pas voler à travers l'écran.
-- ⚠️ **Pas de `mode="wait"`.** Essayé et retiré : le niveau sortant devait finir
-  avant que l'entrant commence, mais une navigation rapide interrompait la
-  sortie et l'entrant ne montait jamais — **la barre restait vide**. Les deux
+- ⚠️ **Pas de `mode="wait"`** : le niveau sortant devrait finir avant que
+  l'entrant commence, et une navigation rapide interromprait la sortie —
+  l'entrant ne monterait jamais, **la barre resterait vide**. Les deux
   niveaux se superposent dans une même cellule de grille.
-- ⚠️ **La clé désigne le NIVEAU, pas la section.** Elle a contenu le titre
-  (`section:Siège`) : passer d'une section à l'autre changeait la clé alors
-  qu'on reste au niveau 2, et deux transitions se chevauchaient.
+- ⚠️ **La clé désigne le NIVEAU, pas la section.** Avec le titre dans la clé
+  (`section:Siège`), passer d'une section à l'autre la changerait alors
+  qu'on reste au niveau 2, et deux transitions se chevaucheraient.
 - ⚠️ **Pas de `layoutId` sur le fond de l'entrée active.** Un fond qui glisse
-  d'une ligne à l'autre est joli, mais ce nœud traversait le changement de
-  niveau géré par `AnimatePresence` : Framer le déplaçait entre deux parents
-  dont l'un se démontait, et **les icônes disparaissaient en naviguant**. Une
+  d'une ligne à l'autre est joli, mais ce nœud traverserait le changement de
+  niveau géré par `AnimatePresence` : Framer le déplacerait entre deux parents
+  dont l'un se démonte, et **les icônes disparaîtraient en naviguant**. Une
   transition d'opacité ne peut pas casser.
 - ⚠️ **`MotionConfig reducedMotion="user"`** à la racine
   ([main.tsx](src/main.tsx)) : Framer Motion ne respecte **pas**
-  `prefers-reduced-motion` par défaut. Sans cette ligne, chaque animation aurait
-  dû le gérer une par une, et la première oubliée serait passée inaperçue.
+  `prefers-reduced-motion` par défaut. Sans cette ligne, chaque animation
+  devrait le gérer une par une, et la première oubliée passerait inaperçue.
 
 ## ⚠️ Un seul contour au focus
 
@@ -76,8 +76,8 @@ Framer Motion, déjà présent — pas de keyframes écrites à la main.
 ```
 
 Un champ posé dans un cadre qui réagit déjà au focus ne porte **pas** son propre
-anneau : on obtenait un contour **dans** un contour, à 2 px l'un de l'autre.
+anneau : on obtiendrait un contour **dans** un contour, à 2 px l'un de l'autre.
 C'est le cadre qui marque le focus, le champ le remplit.
 
-Règle **globale**, pas propre à un composant : elle corrige aussi
-[NumberField](src/ui/NumberField.tsx), qui avait le même défaut.
+Règle **globale**, pas propre à un composant : elle vaut aussi pour
+[NumberField](src/ui/NumberField.tsx).

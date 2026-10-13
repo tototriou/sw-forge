@@ -6,39 +6,30 @@ Partie de [Navigation](README.md).
 
 Un champ en tête de la barre, `⌘K` depuis n'importe où.
 
-⚠️ **Depuis le lot 13 (décision 29), ce champ OUVRE LA PALETTE** (section
-suivante) : toucher le champ ou `Ctrl K` ouvre la même palette, qui cherche
-pages, monstres et actions. Il n'existe qu'**une** recherche — le contrat du
-lot 13 interdisait d'en ajouter une seconde à côté de celle-ci. Ce qui suit
-décrit ce qu'elle garde de la recherche de pages d'avant.
+⚠️ **Ce champ OUVRE LA PALETTE** (section suivante) : toucher le champ ou
+`Ctrl K` ouvre la même palette, qui cherche pages, monstres et actions. Il
+n'existe qu'**une** recherche.
 
-- ⚠️ **Elle ne cherchait QUE des destinations** — les quinze de l'app,
-  sous-sections comprises. « Pas les monstres : un champ répondant aux deux
-  obligerait à trier du regard deux natures de résultats. » La palette y
-  répond par des **groupes intitulés** (Pages, Monstres, Actions) : les
-  natures sont séparées, pas mêlées.
+- ⚠️ **Des groupes intitulés** (Pages, Monstres, Actions) : un champ répondant
+  à plusieurs natures de résultats sans les séparer obligerait à les trier du
+  regard.
 - ⚠️ **Dérivée des mêmes constantes que la barre**, pas ressaisie : une seconde
-  liste aurait divergé au premier écran ajouté, et le manque serait passé
+  liste divergerait au premier écran ajouté, et le manque passerait
   inaperçu — on ne cherche pas ce dont on ignore l'existence.
 - La navigation au clavier vient de `useComboboxNav`, comme toute barre à
   suggestions — voir [feat-recherche-clavier.md](../feat-recherche-clavier.md).
 - Comparaison **insensible aux accents** : « arene » doit trouver « Arène ».
-- L'indication **`Ctrl K`** à droite du champ (décision 11, la maquette). Elle
-  avait été remplacée par un chevron — un raccourci qu'on lit une fois, jugé
-  encombrant ; le mainteneur a retenu la maquette, qui l'affiche. Le raccourci marche
-  avec Ctrl comme avec ⌘.
+- L'indication **`Ctrl K`** à droite du champ. Le raccourci marche avec Ctrl
+  comme avec ⌘.
 - ⚠️ **Un résultat a le rendu exact d'une entrée du menu** : 32 px, icône
   NEUTRE de 16, texte 14, rayon 8, voile d'encre pour le résultat choisi
   (`bg-ink/10`) et au survol (`bg-ink/5`) ; la section en contexte à droite,
-  en petit. Le mainteneur l'a relevé (2026-09-24) : les résultats avaient gardé
-  l'ancien gabarit (texte 13, icônes colorées, fond `ctx-soft`) et se
-  lisaient comme une autre sorte de liste.
+  en petit. Avec un autre gabarit, les résultats se liraient comme une autre
+  sorte de liste.
 
 ## Palette Ctrl K
 
-Refonte graphique, lot 13, décision 29 du mainteneur, la maquette (planche
-« Palette »). Composant `src/components/Palette.tsx`, monté une fois par
-`App.tsx`.
+Composant `src/components/Palette.tsx`, monté une fois par `App.tsx`.
 
 - **S'ouvre** par `Ctrl K` / `⌘K` de n'importe où, par le champ de recherche
   de la barre latérale (bureau), et au téléphone par une **loupe** dans la
@@ -48,7 +39,7 @@ Refonte graphique, lot 13, décision 29 du mainteneur, la maquette (planche
   en **trois groupes intitulés** — **Pages** (les destinations du menu, comme
   avant, dérivées des mêmes constantes), **Monstres** (le bestiaire ; choisir
   ouvre la **fiche** du monstre, sans changer de page), **Actions**.
-- **Actions** (décision 29) — aucune destructrice : **Importer mon compte**
+- **Actions** — aucune destructrice : **Importer mon compte**
   (le choix de fichier des Paramètres) ; **Sauvegarder la session** (le
   bouton des Paramètres, [feat-sauvegarde-session.md](../feat-sauvegarde-session.md)) ;
   **Sauvegarder sous…**, dans l'application de bureau seulement ;

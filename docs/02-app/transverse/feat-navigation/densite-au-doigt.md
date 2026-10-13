@@ -12,9 +12,9 @@ Partie de [Navigation](README.md).
 | Imbriquée dans une carte (`data-carte-dense`) | 32 px | Rater est improbable : le contrôle occupe toute la largeur de sa carte, rien d'autre à toucher sur la ligne |
 | Posée sur un coin (`data-cible-fine`) | libre | Agrandie, elle déborde la carte et recouvre le contenu |
 
-⚠️ Le palier unique à 40 px avait un effet qu'on ne voit qu'à l'usage : le
-sélecteur de section d'une carte RTA pesait plus lourd que le monstre qu'il
-classe, et deux cartes ne tenaient plus dans un écran. **Une règle
+⚠️ Un palier unique à 40 px a un effet qu'on ne voit qu'à l'usage : le
+sélecteur de section d'une carte RTA pèserait plus lourd que le monstre qu'il
+classe, et deux cartes ne tiendraient pas dans un écran. **Une règle
 d'accessibilité appliquée sans discernement finit par coûter en lisibilité ce
 qu'elle gagne en visée.**
 

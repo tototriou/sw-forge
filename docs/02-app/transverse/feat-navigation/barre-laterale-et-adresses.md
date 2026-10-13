@@ -8,13 +8,12 @@ Partie de [Navigation](README.md).
 latérale plutôt qu'une rangée d'onglets :
 [barre-laterale.md](../../../04-decisions/adr/barre-laterale.md).
 
-### ⚠️ L'ordre d'importance ne change pas
+### L'ordre d'importance
 
 **Accueil → RTA → Siège → Mon compte → Outils → Arène**, puis les ressources.
-C'est celui de [02-app/README.md](../../README.md) (« Ordre des pages »), issu de l'usage : la refonte change la
-**forme** de la navigation, pas la hiérarchie.
+C'est celui de [02-app/README.md](../../README.md) (« Ordre des pages »), issu de l'usage.
 
-**Sur bureau, le premier niveau est REGROUPÉ** (refonte graphique) :
+**Sur bureau, le premier niveau est REGROUPÉ** :
 
 ```
 Accueil
@@ -24,18 +23,17 @@ OUTILS       Optimizer  Speed tuning
 RESSOURCES   Bestiaire  Mécaniques  Nouveautés  Télécharger
 ```
 
-« Télécharger » (application de bureau, décision 14) n'existe que sur le
+« Télécharger » n'existe que sur le
 **site** : `RESOURCES` d'App.tsx l'omet dans l'app de bureau (`estBureau()`),
 et la barre latérale, le panneau mobile, la palette et le titre, qui en
 dérivent tous, le perdent d'un coup. Voir [telecharger/](../../telecharger/).
 
-L'ordre est gardé, à une exception près : **Arène rejoint « Jouer »**, à côté
-du siège — c'est un mode de jeu. Les inventaires et les outils deviennent des
-entrées DIRECTES : Monstres (une seule vue) et les deux outils mènent à leur
-page ; Runes et Artéfacts (plusieurs vues) ouvrent leur niveau, comme RTA et
-Siège. Aucune destination ne disparaît — vérifié par
-`tests/rendu/app.test.tsx`. Les onglets mobiles gardent leurs cinq entrées
-(le téléphone a son propre lot).
+Une exception à cet ordre : **Arène est dans « Jouer »**, à côté du siège —
+c'est un mode de jeu. Les inventaires et les outils sont des entrées
+DIRECTES : Monstres (une seule vue) et les deux outils mènent à leur page ;
+Runes et Artéfacts (plusieurs vues) ouvrent leur niveau, comme RTA et Siège.
+Toutes les destinations y sont — vérifié par `tests/rendu/app.test.tsx`. Les
+onglets mobiles ont cinq entrées.
 
 ## Adresses — ce que lit la barre d'adresse
 
@@ -58,7 +56,7 @@ l'adresse et en déduit la page et ses sous-niveaux.
 - ⚠️ **Une sous-page inconnue retombe sur le défaut de SA section**
   (`#/compte/artefacts/courbes` → Artéfacts · Résumé, par `vueValide`) ; une
   **section inconnue** retombe sur l'accueil. Jamais d'exception.
-- ⚠️ **Garde-fou** (le mainteneur, 2026-10-01) : `tests/navigation-adresses.test.ts`
+- ⚠️ **Garde-fou** : `tests/navigation-adresses.test.ts`
   tient la table de toutes les adresses et de leur page. Tout lien `#/…`
   affiché par l'app doit y figurer — un lien ajouté sans y être inscrit, ou qui
   ne mène plus où la table le dit, fait échouer `npm test`.

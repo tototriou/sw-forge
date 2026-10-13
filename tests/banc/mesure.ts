@@ -69,6 +69,26 @@
 //   comme partout. ⚠️ Limites nommées : un `<svg>` imbriqué n'est pas un
 //   graphe (seul le plus extérieur compte), et un texte coupé à gauche, ou en
 //   haut et en bas, n'est pas vu (tests/banc/cas/svg-texte.html).
+// - espacement final (`letter-spacing`) : Chromium ajoute l'espacement après
+//   CHAQUE lettre, la dernière comprise ; ce dernier espacement entre dans
+//   la largeur du texte (`scrollWidth`) sans que rien y soit dessiné (un
+//   libellé `label` de 52 px lisait 54 pour 53 dessinés). Pour un élément
+//   HTML dont le SEUL contenu est un nœud texte (aucun élément enfant), qui
+//   n'est pas `inline` (son texte a ses lignes à lui), `ltr`, d'espacement
+//   calculé positif, et dont le texte finit par une lettre (pas un blanc) :
+//   au second passage, la dernière lettre passe dans un `span` à
+//   `letter-spacing: 0`, et l'élément et ses ancêtres se relisent ainsi.
+//   Retrait gardé seulement s'il est EXACT : la boîte de l'élément ne bouge
+//   pas (tolérance 0,5 px — un libellé de largeur automatique qui
+//   rétrécirait déplacerait ses voisins, que cet espacement place
+//   réellement), et son texte garde sa hauteur et son haut et perd
+//   exactement l'espacement en largeur (0,05 px ; un crénage perdu à la
+//   coupure fait échouer le contrôle). Sinon rien ne se retire. Le texte est
+//   remis à l'identique (même nœud, même valeur) avant la fin de `mesurer`.
+//   ⚠️ Limites nommées : seule la fin de la DERNIÈRE ligne est retirée (un
+//   texte sur plusieurs lignes garde l'espacement de fin des autres) ; un
+//   texte suivi d'un élément, ou dans un `inline`, se mesure comme avant
+//   (tests/banc/cas/espacement-final.html).
 //
 // Exclusions, chacune LOCALE (l'élément exclu n'est signalé par aucune règle ;
 // ses ancêtres restent mesurés, et sont signalés s'il les élargit) :
@@ -283,7 +303,9 @@
 // porte) se relit une fois, puis tout est rendu tel quel avant la fin de
 // `mesurer` (la capture suit la mesure). Trois temps, chacun ne posant que
 // les neutralisations qui valent pour ce qu'il relit : (1) marges négatives
-// seules, la page ; (2) en plus décoratifs coupés et zones de toucher, les
+// seules, la page ; (2) en plus décoratifs coupés, zones de toucher et
+// espacements finals (aucun ne vaut pour la page : l'espacement final, s'il
+// n'est pas dessiné, élargit réellement ce qu'on peut faire défiler), les
 // éléments qui ne sont le portrait d'aucune pastille à décalage droit ; (3) en
 // plus ces pastilles, chacun de leurs portraits — avec les seules pastilles
 // dont il est le portrait (relu à part s'il contient une pastille d'un autre
@@ -292,6 +314,8 @@
 // avec `!important` ; zone de toucher, une feuille de style ajoutée le temps
 // de la lecture (`.cible-tactile::after { display: none !important }`) ;
 // marge négative, `margin-left`/`margin-right` en ligne avec `!important` ;
+// espacement final, un `span` ajouté et le nœud texte raccourci, défaits
+// avant les poses ;
 // pastille, `right: 0` en ligne avec `!important` (voir plus haut). Le
 // signalement garde ses valeurs du premier passage ;
 // `depassement` porte celui qui reste, `page.relue` la largeur de page relue.
@@ -568,6 +592,21 @@ export function mesurer(options: { detail: boolean }): Mesure {
     return Math.round(el.getBoundingClientRect().right - (g.left + graphe.clientLeft + graphe.clientWidth));
   };
 
+  // Espacement final (tête) : un élément dont le seul contenu est un texte, à
+  // lui seul sur ses lignes, qui finit par une lettre suivie d'un espacement
+  // positif ; `null` sinon.
+  type Espacement = { el: Element; texte: Text; ls: number };
+  const espacements: Espacement[] = [];
+  const espacementFinal = (el: Element, s: CSSStyleDeclaration): Espacement | null => {
+    const texte = el.firstChild;
+    if (!(el instanceof HTMLElement) || el.childNodes.length !== 1 || !(texte instanceof Text)) return null;
+    const ls = parseFloat(s.letterSpacing);
+    if (!(ls > 0) || s.display === 'inline' || s.direction !== 'ltr') return null;
+    const lettres = Array.from(texte.data);
+    if (lettres.length === 0 || /\s/.test(lettres[lettres.length - 1])) return null;
+    return { el, texte, ls };
+  };
+
   const signalements: Signalement[] = [];
   const elementDe = new Map<Signalement, Element>();
   const decoratifsVus: Element[] = [];
@@ -604,6 +643,8 @@ export function mesurer(options: { detail: boolean }): Mesure {
     if (margeDroite < 0 && s.direction === 'ltr') margesNegatives.push({ el, marge: -margeDroite, gauche: parseFloat(s.marginLeft) || 0 });
     const coin = coinDe(el, s);
     if (coin) coins.push({ el, ...coin });
+    const espacement = espacementFinal(el, s);
+    if (espacement) espacements.push(espacement);
     if (s.visibility === 'hidden' || s.visibility === 'collapse') {
       invisibles++;
       continue;
@@ -747,6 +788,7 @@ export function mesurer(options: { detail: boolean }): Mesure {
     (ciblesTactiles && (a.classList.contains('cible-tactile') || a.querySelector('.cible-tactile') !== null)) ||
     decoratifsVus.some((d) => d !== a && a.contains(d) && (coupeurDecoratif(d) as Element).contains(a)) ||
     margesNegatives.some(({ el }) => el !== a && a.contains(el)) ||
+    espacements.some(({ el }) => a.contains(el)) ||
     estBlocCoin(a);
   const aRelire = signalements.filter((s) => s.regle === 'contenu' && concerne(elementDe.get(s) as Element));
   const relirePage = scrollWidth > largeur + TOLERANCE && margesNegatives.length > 0;
@@ -830,6 +872,38 @@ export function mesurer(options: { detail: boolean }): Mesure {
         zones.textContent = '.cible-tactile::after { display: none !important; }';
         (document.head ?? document.documentElement).appendChild(zones);
         restaurer.push(() => zones.remove());
+      }
+      // Espacement final (tête) : la dernière lettre passe dans un `span` sans
+      // espacement ; gardé seulement si le retrait est exact — la boîte de
+      // l'élément ne bouge pas, et son texte, sur les mêmes lignes, perd
+      // exactement l'espacement.
+      for (const { el, texte, ls } of espacements) {
+        if (!aRelire.some((s) => (elementDe.get(s) as Element).contains(el))) continue;
+        const contenu = document.createRange();
+        contenu.selectNodeContents(el);
+        const boite = el.getBoundingClientRect();
+        const avant = contenu.getBoundingClientRect();
+        const data = texte.data;
+        const lettres = Array.from(data);
+        const derniere = lettres.pop() as string;
+        const enveloppe = document.createElement('span');
+        enveloppe.style.setProperty('letter-spacing', '0px', 'important');
+        enveloppe.textContent = derniere;
+        texte.data = lettres.join('');
+        el.appendChild(enveloppe);
+        const remettre = () => {
+          enveloppe.remove();
+          texte.data = data;
+        };
+        contenu.selectNodeContents(el);
+        const apres = contenu.getBoundingClientRect();
+        const exact =
+          !bouge(boite, el.getBoundingClientRect()) &&
+          Math.abs(apres.top - avant.top) <= 0.05 &&
+          Math.abs(apres.height - avant.height) <= 0.05 &&
+          Math.abs(avant.width - apres.width - ls) <= 0.05;
+        if (exact) restaurer.push(remettre);
+        else remettre();
       }
       for (const s of aRelire) if (!estBlocCoin(elementDe.get(s) as Element)) relire(s);
       // (3) Les portraits de ces pastilles : toutes ensemble pour un portrait

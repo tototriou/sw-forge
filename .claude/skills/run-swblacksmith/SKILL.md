@@ -275,29 +275,28 @@ ici, le lire dans la sortie de `npm test` du jour.
   une copie bureau et une copie téléphone, la seconde masquée par CSS.**
   Pas un accident : bureau et mobile sont deux dispositions de premier rang
   (voir `CLAUDE.md`), écrites en deux blocs `hidden lg:*` / `lg:hidden`
-  distincts, pas l'une déclinée de l'autre — le commentaire d'en-tête de
-  `OptimizerSection.tsx` (~l. 2138) le dit explicitement. C'est la vraie
+  distincts, pas l'une déclinée de l'autre — le commentaire qui précède ces
+  deux blocs dans `OptimizerSection.tsx` le dit explicitement. C'est la vraie
   cause du doublon de placeholders, et elle vaut pour **tout** sélecteur sur
   cet écran, pas seulement le champ de recherche :
   - `getByPlaceholder('Rechercher un monstre…')` matche **2 nœuds** — le
-    MÊME `MonsterSourcePicker mode="bestiary"`, rendu en
-    `OptimizerSection.tsx` l. 2172 (bloc bureau) **et** l. 2251 (bloc
-    mobile) — et lève « strict mode violation ». ⚠️ `{ exact: true }` n'y
+    MÊME `MonsterSourcePicker mode="bestiary"`, rendu dans le bloc bureau
+    **et** dans le bloc mobile (`grep -n MonsterSourcePicker
+    src/components/outils/OptimizerSection.tsx`) — et lève « strict mode
+    violation ». ⚠️ `{ exact: true }` n'y
     change RIEN : c'est deux fois le même littéral, pas un préfixe commun.
   - ⚠️ Ce n'est **PAS** un conflit avec le picker d'exclusion de runes, qui
     porte toujours un placeholder distinct (« Rechercher un monstre à
-    exclure… », `RuneExclusionPicker.tsx` l. 103).
+    exclure… », `RuneExclusionPicker.tsx`).
   - **`.first()`, jamais `.last()`** : la copie bureau vient en premier dans
     le DOM. `.last()` vise l'INVISIBLE — `fill`/`click` partent alors en
     timeout, et une capture d'élément sort vide ou tronquée **sans lever
     d'erreur**.
-  - ⚠️ **Un grep du libellé ne révèle PAS le doublon.** Les blocs partagés
-    sont écrits une seule fois dans une variable JSX, puis interpolés dans
-    les DEUX branches de disposition — `blocArtefactsSeuls` est déclaré en
-    `OptimizerSection.tsx` l. 1828 et utilisé l. 2237 (bureau) **et** l. 2304
-    (mobile). Chercher « Artéfacts les plus offensifs » ne sort qu'UNE ligne,
-    et laisse conclure à tort que le bloc est unique. Pour trancher : grep du
-    **nom de la variable**, pas du texte affiché.
+  - ⚠️ **Un grep du libellé ne révèle PAS un doublon.** Un bloc partagé peut
+    être écrit une seule fois dans une variable JSX, puis interpolé dans les
+    DEUX branches de disposition : chercher son texte affiché ne sort qu'UNE
+    ligne. Pour trancher : grep du **nom de la variable**, pas du texte
+    affiché, et compter ses usages.
   - `.first()` n'est correct que parce qu'on ouvre une fenêtre LARGE (voir
     la gotcha suivante). Pour un sélecteur qui doit tenir aux deux formats,
     viser la visibilité plutôt que la position :
@@ -311,7 +310,7 @@ ici, le lire dans la sortie de `npm test` du jour.
   manœuvre est l'inverse — fenêtre large + capture d'ÉLÉMENT (voir
   « Cadrer une capture sur un bloc précis »).
 - **La recherche prend plusieurs secondes une fois lancée** (~4-10 s sur un
-  compte de plusieurs milliers de runes, budget adaptatif — voir
+  compte de plusieurs milliers de runes — voir
   `algo-verify`/`optimizer-perf-testing`). Attendre le texte
   `combinaison(s) trouvée(s)` PUIS que le bouton redevienne littéralement
   « Rechercher » (pas « Recherche… ») — le texte peut apparaître pendant

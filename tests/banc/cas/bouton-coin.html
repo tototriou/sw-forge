@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="fr" data-attendu-page="non">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover">
+<title>Bouton en coin</title>
+<style>
+  body { margin: 8px; font: 12px sans-serif; }
+  .bloc { margin: 16px 0; width: 200px; }
+  /* Copie de RtaCard : la carte `relative`, son contenu, puis la croix « Retirer » `absolute -top-1.5 -right-1.5`
+     de 20 px (`data-bouton-coin="retirer-rta"`, posé sur le bouton positionné). */
+  .carte { position: relative; width: 150px; height: 40px; box-sizing: border-box; background: #eee; }
+  /* La rangée s'arrête avant le coin : sa boîte, et non seulement son texte, reste hors de la croix. */
+  .rangee { display: flex; align-items: center; width: 110px; height: 100%; padding-left: 8px; box-sizing: border-box; }
+  .croix { position: absolute; top: -0.375rem; right: -0.375rem; width: 20px; height: 20px; padding: 0; border: 0; background: #c33; }
+  .icone { display: block; width: 16px; height: 16px; flex: none; background: #f90; }
+</style>
+</head>
+<body>
+<!-- Non signalés : la croix dépasse la carte de 6 px, exactement son décalage ; la carte est entourée de place, et
+     le contenu de la carte s'arrête avant le coin. -->
+<div id="place-parent" class="bloc" style="padding: 8px" data-attendu="">
+  <div id="place-carte" class="carte" data-attendu="">
+    <div id="place-rangee" class="rangee" data-attendu=""><span id="place-texte" data-attendu="">Nom</span></div>
+    <button id="place-croix" class="croix" data-bouton-coin="retirer-rta" aria-label="Retirer" data-attendu=""></button>
+  </div>
+</div>
+<!-- Signalé (6 px) : la même carte collée au bord droit de son parent ; le parent est au-delà de la carte, rien ne
+     lui est soustrait. -->
+<div id="bord-parent" class="bloc" style="display: flex; justify-content: flex-end; padding-top: 8px" data-attendu="contenu" data-attendu-depassement="6">
+  <div id="bord-carte" class="carte" data-attendu="">
+    <div class="rangee"><span>Nom</span></div>
+    <button id="bord-croix" class="croix" data-bouton-coin="retirer-rta" aria-label="Retirer" data-attendu=""></button>
+  </div>
+</div>
+<!-- Signalé (chevauchement) : une icône de la carte va jusqu'à son coin, sous la croix (14 × 14 px). Le contenu de
+     la carte n'est pas permis, contrairement au cadre d'un portrait. -->
+<div class="bloc" style="padding: 8px">
+  <div id="dessous-carte" class="carte" style="display: flex; justify-content: flex-end; align-items: flex-start" data-attendu="">
+    <span id="dessous-icone" class="icone" data-attendu=""></span>
+    <button id="dessous-croix" class="croix" data-bouton-coin="retirer-rta" aria-label="Retirer" data-attendu="chevauchement" data-attendu-avec="dessous-icone" data-attendu-aire="196"></button>
+  </div>
+</div>
+<!-- Signalé (chevauchement) : la carte voisine, à 4 px, passe sous la croix (2 × 14 px). -->
+<div class="bloc" style="display: flex; gap: 4px; width: 320px; padding: 8px">
+  <div id="voisine-gauche" class="carte" data-attendu="">
+    <div class="rangee"><span>Nom</span></div>
+    <button id="voisine-croix" class="croix" data-bouton-coin="retirer-rta" aria-label="Retirer" data-attendu="chevauchement" data-attendu-avec="voisine-droite" data-attendu-aire="28"></button>
+  </div>
+  <div id="voisine-droite" class="carte" data-attendu=""></div>
+</div>
+<!-- Signalé (6 px) : sans repère, la croix se mesure comme tout élément. -->
+<div class="bloc" style="padding: 8px">
+  <div id="sans-repere-carte" class="carte" data-attendu="contenu" data-attendu-depassement="6">
+    <div class="rangee"><span>Nom</span></div>
+    <button class="croix" aria-label="Retirer"></button>
+  </div>
+</div>
+<!-- Signalé (6 px) : un repère dont la valeur n'est pas dans la liste des membres. -->
+<div class="bloc" style="padding: 8px">
+  <div id="autre-membre-carte" class="carte" data-attendu="contenu" data-attendu-depassement="6">
+    <div class="rangee"><span>Nom</span></div>
+    <button class="croix" data-bouton-coin="crayon" aria-label="Modifier"></button>
+  </div>
+</div>
+<!-- Signalé (6 px) : la carte coupe (`overflow: hidden`) et rogne la croix — rien ne se soustrait. -->
+<div class="bloc" style="padding: 8px">
+  <div id="rogne-carte" class="carte" style="overflow: hidden" data-attendu="contenu" data-attendu-depassement="6">
+    <div class="rangee"><span>Nom</span></div>
+    <button class="croix" data-bouton-coin="retirer-rta" aria-label="Retirer"></button>
+  </div>
+</div>
+<!-- Signalé (3 px) : la croix dépasse son décalage de 3 px (`transform`), la carte en retient 3. -->
+<div class="bloc" style="padding: 8px">
+  <div id="decale-carte" class="carte" data-attendu="contenu" data-attendu-depassement="3">
+    <div class="rangee"><span>Nom</span></div>
+    <button class="croix" data-bouton-coin="retirer-rta" aria-label="Retirer" style="transform: translateX(3px)"></button>
+  </div>
+</div>
+</body>
+</html>

@@ -286,6 +286,10 @@ par nom. (Le tri ne dépend pas des leads.)
 La croix du coin haut-droit d'une carte demande une **confirmation**
 (`ConfirmDialog`), sur les deux formats.
 
+**Repère dans le DOM**, pour le banc d'affichage : `data-bouton-coin="retirer-rta"`
+sur le `<button>` positionné de la croix (exception « bouton en coin » de
+`tests/banc/mesure.ts` : son dépassement sur la carte est voulu).
+
 ⚠️ Elle n'en demandait aucune : le monstre partait au premier contact. Or cette
 croix est posée **sur le coin de la carte**, à quelques pixels du portrait qu'on
 touche pour ouvrir le détail des runes — au doigt, on la déclenche par accident

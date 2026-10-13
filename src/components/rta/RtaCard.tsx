@@ -240,6 +240,10 @@ export default function RtaCard({
         fond="plein"
         auSurvol
         icone={<X size={12} />}
+        // Repère du banc d'affichage (tests/banc/mesure.ts, « bouton en
+        // coin ») : le dépassement de ce coin sur la carte est voulu. Posé sur
+        // le `<button>` positionné lui-même ; le retirer rend ses signalements.
+        data-bouton-coin="retirer-rta"
         className="absolute -top-1.5 -right-1.5 shadow"
       />
       </div>

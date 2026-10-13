@@ -9,8 +9,9 @@
 // - géométrie : un élément visible dont le rectangle sort de la fenêtre, à
 //   droite (`right > L`) ou à gauche (`left < 0`), sauf s'il est dans un
 //   défilement voulu ou dans un ancêtre qui le coupe ;
-// - chevauchement : réservée aux éléments qui bénéficient de l'exception
-//   « pastille du portrait » (plus bas), sa contrepartie.
+// - chevauchement : réservée aux éléments qui bénéficient des exceptions
+//   « pastille du portrait » et « bouton en coin » (plus bas), leur
+//   contrepartie.
 //
 // Définitions :
 //
@@ -135,8 +136,9 @@
 //   avec le reste — ni un ancêtre au-delà du portrait, ni une autre pastille,
 //   ni la couronne, ni rien d'autre que ce qui est dessiné dans le cadre du
 //   portrait. Décisions D11 et D15 de l'utilisateur ; aucune généralisation à
-//   un autre élément absolu à décalage négatif (bouton en coin, halo,
-//   superposition `-inset-px`), qui se mesure comme les autres.
+//   un autre élément absolu à décalage négatif (halo, superposition
+//   `-inset-px`, bouton en coin hors de sa liste — exception suivante), qui
+//   se mesure comme les autres.
 //   · Qui en bénéficie : un élément qui porte le repère `data-pastille` posé
 //     par `src/` (MonsterAvatar.tsx, ElementIcon.tsx, siege/LeadPill.tsx),
 //     sur l'élément positionné lui-même, avec une valeur de la liste
@@ -232,6 +234,31 @@
 //     plan, l'ordre d'empilement n'est pas lu (`z-index`, `absolute`), ni
 //     `clip-path` ni un masque ; une boîte dans un défilement est comparée à
 //     sa position défilée du moment.
+// - bouton en coin (la croix « Retirer » de la carte RTA, posée sur son coin) :
+//   son contact avec SA CARTE est permis, jamais avec le reste. Décision de
+//   l'utilisateur du 2026-10-13, calquée sur la pastille du portrait ; un
+//   seul membre.
+//   · Qui en bénéficie : un élément qui porte le repère `data-bouton-coin`
+//     posé par `src/` (rta/RtaCard.tsx, transmis par BoutonIcone et Bouton
+//     jusqu'au `<button>` positionné), avec une valeur de la liste explicite
+//     BOUTONS_EN_COIN : `retirer-rta`, et rien d'autre. Un autre bouton en
+//     coin (le crayon d'une vignette de défense) n'y est pas : il se mesure
+//     comme les autres. Un repère retiré de `src/`, ou un nom retiré de la
+//     liste, rend ses signalements.
+//   · Sa carte : son bloc contenant, quel qu'il soit (ni `html`, ni `body`
+//     propagé) ; aucun repère de carte n'est exigé — un bouton enveloppé dans
+//     un cadre positionné voit son exception portée par ce cadre, et la carte
+//     compte alors son dépassement en entier.
+//   · Conditions, contact, et « jamais avec le reste » : celles de la
+//     pastille (`position: absolute`, décalage déclaré négatif, carte `ltr`
+//     qui ne coupe ni ne défile sur aucun axe ; dépassement imposé à la carte
+//     diminué EXACTEMENT de son décalage droit ; aucun ancêtre au-delà de la
+//     carte n'en profite ; relecture par `right: 0`). Une différence, voulue :
+//     la carte n'a pas de « contenu » permis. Tout élément du même plan qui
+//     n'est ni un ancêtre ni un descendant du bouton se compare, y compris ce
+//     que la carte porte (icônes, texte, rangées) — la croix ne couvre rien
+//     (tests/banc/cas/bouton-coin.html). La carte elle-même, ancêtre, n'est
+//     jamais coupée.
 //
 // Second passage : chaque signalement « contenu » d'un élément concerné par
 // une exception (et la page, si elle déborde et qu'une marge négative y
@@ -242,7 +269,8 @@
 // éléments qui ne sont le portrait d'aucune pastille à décalage droit ; (3) en
 // plus ces pastilles, chacun de leurs portraits — avec les seules pastilles
 // dont il est le portrait (relu à part s'il contient une pastille d'un autre
-// portrait). Neutralisations : décoratif coupé, `display: none` posé en ligne
+// portrait) ; un bouton en coin y est une pastille, sa carte un portrait.
+// Neutralisations : décoratif coupé, `display: none` posé en ligne
 // avec `!important` ; zone de toucher, une feuille de style ajoutée le temps
 // de la lecture (`.cible-tactile::after { display: none !important }`) ;
 // marge négative, `margin-left`/`margin-right` en ligne avec `!important` ;
@@ -349,7 +377,8 @@ export interface Mesure {
    * `decoratifs` : éléments exclus comme décoratif coupé, dont
    * `decoratifsEnPlace` laissés en place à la relecture ; `leves` :
    * signalements « contenu » levés au second passage ; `coins` : éléments
-   * qui bénéficient de l'exception « pastille du portrait » (voir la tête).
+   * qui bénéficient des exceptions « pastille du portrait » et « bouton en
+   * coin » (voir la tête).
    */
   exclus: { ellipsis: number; invisibles: number; decoratifs: number; decoratifsEnPlace: number; leves: number; coins: number };
   deborde: boolean;
@@ -441,9 +470,12 @@ export function mesurer(options: { detail: boolean }): Mesure {
   // Pastille du portrait (tête) : la liste explicite des repères reconnus —
   // pas `couronne` (D15).
   const PASTILLES_RECONNUES = new Set(['element', 'lead', 'exemplaires']);
-  // Rend le portrait de la pastille (son bloc contenant), si son décalage
-  // droit déclaré négatif se soustrait, et la largeur à figer pendant la
-  // relecture (`left` `auto`) ; `null` si l'élément n'en bénéficie pas.
+  // Bouton en coin (tête) : la liste explicite de ses membres, un seul.
+  const BOUTONS_EN_COIN = new Set(['retirer-rta']);
+  // Rend le bloc de la pastille ou du bouton en coin (son bloc contenant :
+  // le portrait, la carte), si son décalage droit déclaré négatif se
+  // soustrait, et la largeur à figer pendant la relecture (`left` `auto`) ;
+  // `null` si l'élément n'en bénéficie pas.
   const decalageDeclare = (carte: StylePropertyMapReadOnly, cote: 'left' | 'right', px: string) => {
     const valeur = carte.get(cote);
     return Boolean(valeur) && !(valeur instanceof CSSKeywordValue) && parseFloat(px) < 0;
@@ -451,17 +483,19 @@ export function mesurer(options: { detail: boolean }): Mesure {
   const coinDe = (
     el: Element,
     s: CSSStyleDeclaration,
-  ): { bloc: Element; soustrait: boolean; largeurFigee: string | null } | null => {
-    if (!PASTILLES_RECONNUES.has(el.getAttribute('data-pastille') ?? '')) return null;
+  ): { bloc: Element; soustrait: boolean; largeurFigee: string | null; pastille: boolean } | null => {
+    const pastille = PASTILLES_RECONNUES.has(el.getAttribute('data-pastille') ?? '');
+    if (!pastille && !BOUTONS_EN_COIN.has(el.getAttribute('data-bouton-coin') ?? '')) return null;
     if (s.position !== 'absolute' || typeof el.computedStyleMap !== 'function') return null;
     const carte = el.computedStyleMap();
     const droite = decalageDeclare(carte, 'right', s.right);
     if (!droite && !decalageDeclare(carte, 'left', s.left)) return null;
     const bloc = suivant(el);
-    if (!bloc || bloc === racine || bloc !== el.parentElement?.closest('[data-portrait]')) return null;
+    if (!bloc || fenetre(bloc)) return null;
+    if (pastille && bloc !== el.parentElement?.closest('[data-portrait]')) return null;
     const sB = style(bloc);
     if (sB.direction !== 'ltr' || sB.overflowX !== 'visible' || sB.overflowY !== 'visible') return null;
-    return { bloc, soustrait: droite, largeurFigee: carte.get('left') instanceof CSSKeywordValue ? s.width : null };
+    return { bloc, soustrait: droite, largeurFigee: carte.get('left') instanceof CSSKeywordValue ? s.width : null, pastille };
   };
   // Le contenu du portrait (tête) : son cadre — premier élément enfant, en
   // flux, sans repère de pastille — et ce qu'il contient, hors pastilles.
@@ -510,8 +544,8 @@ export function mesurer(options: { detail: boolean }): Mesure {
   // Marge négative (tête) : l'élément, la valeur absolue de sa marge droite et
   // sa marge gauche calculée.
   const margesNegatives: { el: Element; marge: number; gauche: number }[] = [];
-  // Pastille du portrait (tête) : l'élément et son portrait.
-  const coins: { el: Element; bloc: Element; soustrait: boolean; largeurFigee: string | null }[] = [];
+  // Pastille du portrait et bouton en coin (tête) : l'élément et son bloc.
+  const coins: { el: Element; bloc: Element; soustrait: boolean; largeurFigee: string | null; pastille: boolean }[] = [];
   // Règle « chevauchement » : les éléments visibles, leur boîte au premier
   // passage, et ceux qui ont passé les exclusions.
   const visibles: Element[] = [];
@@ -589,7 +623,8 @@ export function mesurer(options: { detail: boolean }): Mesure {
     if (sort && !abrite(suivant(el))) signalements.push(releve(el, r, 'geometrie'));
   }
 
-  // Règle « chevauchement » (tête) : contrepartie de la pastille du portrait.
+  // Règle « chevauchement » (tête) : contrepartie de la pastille du portrait
+  // et du bouton en coin.
   // Le plan d'un élément : lui-même ou son ancêtre le plus proche en `fixed`
   // ou `sticky`, `null` s'il n'en a aucun.
   const plans = new Map<Element, Element | null>();
@@ -637,14 +672,16 @@ export function mesurer(options: { detail: boolean }): Mesure {
     return z;
   };
   const exclusD8 = new Set(decoratifsVus);
-  for (const { el, bloc } of coins) {
+  for (const { el, bloc, pastille } of coins) {
     if (!mesures.has(el)) continue;
     const r = boites.get(el) as DOMRect;
     const v = visibleDe(el);
     const plan = planDe(el);
     const aires = new Map<Element, number>();
     for (const autre of visibles) {
-      if (autre.contains(el) || el.contains(autre) || contenuDe(autre, bloc)) continue;
+      // Le bouton en coin n'a pas de « contenu » permis : tout ce que porte
+      // la carte se compare, la carte elle-même (un ancêtre) exceptée.
+      if (autre.contains(el) || el.contains(autre) || (pastille && contenuDe(autre, bloc))) continue;
       if (exclusD8.has(autre) || planDe(autre) !== plan) continue;
       const q = visibleDe(autre);
       const l = Math.min(v.droite, q.droite) - Math.max(v.gauche, q.gauche);

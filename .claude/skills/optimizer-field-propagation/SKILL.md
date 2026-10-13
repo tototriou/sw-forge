@@ -217,8 +217,7 @@ qui n'en touche qu'un a de bonnes chances d'en avoir oublié un autre :
 
 ## Vérification
 
-Après avoir coché les deux checklists ci-dessus, dans l'ordre de `CLAUDE.md`
-(« Vérifier ») :
+Après avoir coché les deux checklists ci-dessus :
 
 1. `npx tsc --noEmit` — vide. Il prouve la FORME partout, `scripts/` et
    `tests/` compris ; rien sur un champ optionnel oublié ni sur un sens mal

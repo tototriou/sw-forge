@@ -74,6 +74,8 @@ npm run build                  # build de production (Tailwind n'émet que ce qu
 npm run lint                   # ESLint sur tout le dépôt
 npx tsc --noEmit               # types : src/, scripts/ et tests/
 node tests/run.mjs <filtre>    # les vérifications d'une zone (ex. speed-tune) ; plusieurs filtres possibles
+node tests/run.mjs --depuis origin/<base>   # celles que touchent les fichiers modifiés depuis la base
+node tests/banc/run.mjs --ecrans <id>       # le banc d'affichage, aux deux formats (il construit l'app)
 npm test                       # TOUTES les vérifications — seulement avant une fusion sur main ou dans une release
 npm run fetch-data             # régénère les données SWARFARM de public/data
 npm run bureau                 # l'application de bureau en développement
@@ -82,6 +84,8 @@ npm run bureau:preuve          # la vérification de l'application de bureau
 
 ## Données et persistance
 
+- ⚠️ **Le dépôt est public** : jamais d'export de compte, de données personnelles ni de capture
+  d'écran dans un commit.
 - **Rien ne quitte le navigateur** : l'export de compte (SWEX) se lit en local, aucune requête ne
   l'envoie. Les données de jeu viennent de SWARFARM, figées dans `public/data`.
 - **Un seul interrupteur de conservation** : `usePersistence` — aucun hook n'appelle
@@ -187,7 +191,9 @@ npm run build                     # une classe Tailwind « correcte » peut n'ê
 ⚠️ **La suite complète (`npm test`) ne se lance qu'avant une fusion sur `main` ou dans une
 branche `release/*`** — et seulement là.
 Le filtre se compare au nom de la vérification, mis à plat (`speed-tune`, `speedtune`, `SpeedTune`) ;
-un filtre qui ne correspond à rien échoue en listant ce qui existe. Quand un style ne s'applique pas,
+un filtre qui ne correspond à rien échoue en listant ce qui existe. La sélection par fichiers
+modifiés (`--depuis`, `--plage`), le manifeste et le banc d'affichage :
+[tests/README.md](tests/README.md). Quand un style ne s'applique pas,
 vérifier dans le **CSS construit**, pas dans le composant.
 
 ## Hooks Git et CI

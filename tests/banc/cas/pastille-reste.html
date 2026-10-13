@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="fr" data-attendu-page="non">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover">
+<title>Pastille et reste du portrait</title>
+<style>
+  body { margin: 8px; font: 10px sans-serif; }
+  .bloc { margin: 16px 0; width: 200px; padding: 8px; }
+  /* Copie de MonsterAvatar (voir pastille-portrait.html). `.empile` : la racine en bloc, pour qu'un enfant ajouté
+     après le cadre puisse remonter sur lui. */
+  .portrait { position: relative; display: inline-flex; width: 50px; height: 50px; flex: none; }
+  .empile { display: block; }
+  .cadre { display: block; width: 100%; height: 100%; background: #9cf; }
+  .element { position: absolute; top: -0.25rem; right: -0.25rem; width: 16px; height: 16px; background: #f90; }
+  .badge { position: absolute; top: 0; right: 0; width: 12px; height: 12px; background: #c33; }
+  .enveloppe { position: relative; margin-top: -50px; height: 50px; }
+  .moitie { position: absolute; inset: 0; width: 50px; height: 50px; background: #69c; }
+</style>
+</head>
+<body>
+<!-- (d) Signalé : un badge sans repère, posé dans le portrait hors de son cadre, passe sous l'icône (12 × 12). -->
+<div class="bloc">
+  <span id="d-portrait" class="portrait" data-portrait data-attendu="">
+    <span class="cadre"></span>
+    <span id="d-badge" class="badge" data-attendu=""></span>
+    <img id="d-element" data-pastille="element" class="element" src="elements/fire.png" alt="" data-attendu="chevauchement" data-attendu-avec="d-badge" data-attendu-aire="144">
+  </span>
+</div>
+<!-- (d) Signalé (relecture Codex n° 17) : le même badge enveloppé dans un cadre `relative` du portrait, posé
+     après le cadre de l'image — l'enveloppe n'est pas le cadre : il reste « le reste ». L'enveloppe, coupée elle
+     aussi, n'est pas reprise : son descendant l'est. -->
+<div class="bloc">
+  <span id="d-env-portrait" class="portrait empile" data-portrait data-attendu="">
+    <span class="cadre"></span>
+    <span id="d-env-enveloppe" class="enveloppe" style="display: block" data-attendu="">
+      <span id="d-env-badge" class="badge" data-attendu=""></span>
+    </span>
+    <img id="d-env-element" data-pastille="element" class="element" src="elements/fire.png" alt="" data-attendu="chevauchement" data-attendu-avec="d-env-badge" data-attendu-aire="144">
+  </span>
+</div>
+<!-- (d) Non signalé : le même badge dessiné DANS le cadre du portrait (le cadre `relative` le positionne) fait
+     partie du portrait. -->
+<div class="bloc">
+  <span id="d-cadre-portrait" class="portrait" data-portrait data-attendu="">
+    <span class="cadre" style="position: relative">
+      <span id="d-cadre-badge" class="badge" data-attendu=""></span>
+    </span>
+    <img id="d-cadre-element" data-pastille="element" class="element" src="elements/fire.png" alt="" data-attendu="">
+  </span>
+</div>
+<!-- (f) Non signalé (D14) : jumeau collab — la seconde moitié (`absolute inset-0`) et le trait de séparation sont
+     dessinés dans le cadre `relative overflow-hidden` du portrait (CollabPortrait.tsx, MonsterAvatar `cadreRelatif`). -->
+<div class="bloc">
+  <span id="f-portrait" class="portrait" data-portrait data-attendu="">
+    <span id="f-cadre" class="cadre" style="position: relative; overflow: hidden" data-attendu="">
+      <img id="f-image" src="portraits/a.png" alt="" style="display: block; width: 50px; height: 50px" data-attendu="">
+      <img id="f-moitie" class="moitie" src="portraits/b.png" alt="" style="clip-path: polygon(50% 0, 100% 0, 100% 100%, 50% 100%)" data-attendu="">
+      <span id="f-trait" aria-hidden="true" style="position: absolute; top: 0; bottom: 0; left: 50%; width: 1px; background: #fff" data-attendu=""></span>
+    </span>
+    <img id="f-element" data-pastille="element" class="element" src="elements/dark.png" alt="" data-attendu="">
+  </span>
+</div>
+<!-- (f) Signalé : la même seconde moitié posée hors du cadre, enfant direct du portrait, n'est pas dessinée dans
+     le cadre : elle est « le reste » (12 × 12). -->
+<div class="bloc">
+  <span id="f-hors-portrait" class="portrait" data-portrait data-attendu="">
+    <span class="cadre"></span>
+    <img id="f-hors-moitie" class="moitie" src="portraits/b.png" alt="" data-attendu="">
+    <img id="f-hors-element" data-pastille="element" class="element" src="elements/dark.png" alt="" data-attendu="chevauchement" data-attendu-avec="f-hors-moitie" data-attendu-aire="144">
+  </span>
+</div>
+</body>
+</html>

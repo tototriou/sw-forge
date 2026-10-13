@@ -18,18 +18,18 @@
 <body>
 <!-- Chevauchement : dans un en-tête collant, un texte voisin passe sous l'icône — même plan (l'en-tête). -->
 <header id="entete" class="entete" data-attendu="">
-  <span id="entete-avatar" class="avatar" data-attendu="">
+  <span id="entete-avatar" class="avatar" data-portrait data-attendu="">
     <span class="image"></span>
-    <img id="entete-icone" class="icone" src="elements/fire.png" alt="" data-attendu="chevauchement" data-attendu-avec="entete-texte" data-attendu-aire="48">
+    <img data-pastille="element" id="entete-icone" class="icone" src="elements/fire.png" alt="" data-attendu="chevauchement" data-attendu-avec="entete-texte" data-attendu-aire="48">
   </span>
   <span id="entete-texte" data-attendu="">Nom du monstre</span>
 </header>
 <div style="height: 700px"></div>
 <!-- Pas de chevauchement : l'avatar défile sous la barre fixe ; la barre est d'un autre plan. -->
 <div style="padding: 8px">
-  <span id="dessous-avatar" class="avatar" data-attendu="">
+  <span id="dessous-avatar" class="avatar" data-portrait data-attendu="">
     <span class="image"></span>
-    <img id="dessous-icone" class="icone" src="elements/water.png" alt="" data-attendu="">
+    <img data-pastille="element" id="dessous-icone" class="icone" src="elements/water.png" alt="" data-attendu="">
   </span>
 </div>
 <nav id="barre" class="barre" data-attendu="">

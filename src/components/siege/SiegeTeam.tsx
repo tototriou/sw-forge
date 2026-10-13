@@ -15,7 +15,7 @@ import {
 } from '../../lib/speed';
 import MonsterPicker from '../MonsterPicker';
 import { JetonSlot, prochainFocus } from './slotVideSuivant';
-import ElementIcon from '../ElementIcon';
+import MonsterAvatar from '../MonsterAvatar';
 import RuneIcon from '../RuneIcon';
 import MonsterGear from '../MonsterGear';
 import { statutEquipe, raisonSansVerdict } from '../../lib/siegeStatut';
@@ -23,32 +23,11 @@ import { analyseAutomatique, combatAuto, EntreeAuto } from '../../lib/speedTuneA
 import { deckPourSpeedTune } from '../../lib/speedTuneDeck';
 import { useDonneesKit } from '../../hooks/useDonneesKit';
 import NumberField from '../../ui/NumberField';
-import LeadPill, { LeadBadge } from './LeadPill';
+import LeadPill from './LeadPill';
 import { ConfirmDialog } from '../../ui/Dialogs';
 import { pastilleStatut } from './pastilleStatut';
 import { Bouton, BoutonIcone, Selecteur, ZoneCliquable } from '../../ui';
 import { useMediaQuery, COMPACT } from '../../hooks/useMediaQuery';
-
-const GRADIENT: Record<string, string> = {
-  fire: 'from-fire to-panel2',
-  water: 'from-water to-panel2',
-  wind: 'from-wind to-panel2',
-  light: 'from-light to-panel2',
-  dark: 'from-dark to-panel2',
-  unknown: 'from-unknown to-panel2',
-};
-const TEXT: Record<string, string> = {
-  fire: 'text-fire',
-  water: 'text-water',
-  wind: 'text-wind',
-  light: 'text-light',
-  dark: 'text-dark',
-  unknown: 'text-unknown',
-};
-
-function initials(name: string) {
-  return name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
-}
 
 interface Props {
   onExporterOptimizer: () => void;
@@ -513,36 +492,21 @@ export default function SiegeTeam({
               >
                 {monster ? (
                   <>
-                    <div className="relative flex-none">
-                      <div
-                        className={`hex-frame w-[36px] h-[36px] compact:w-[30px] compact:h-[30px] p-[2px]
-                          bg-gradient-to-br ${GRADIENT[monster.element]}`}
-                      >
-                        <div className="hex-frame w-full h-full bg-panel flex items-center justify-center overflow-hidden">
-                          {monster.image ? (
-                            <img src={monster.image} alt={monster.name} className="w-full h-full object-cover" />
-                          ) : (
-                            <span className={`font-display font-bold text-micro ${TEXT[monster.element]}`}>
-                              {initials(monster.name)}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <ElementIcon
-                        element={monster.element}
-                        size={13}
-                        className="absolute -top-1 -right-1 drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)]"
-                      />
-                      {/* Lead sur le portrait du leader : la carte compacte n'a
-                          pas la place d'une pastille (voir spec), et le badge
-                          dit à la fois « c'est lui le leader » et quel lead. */}
-                      {/* ⚠️ Réduit avec le portrait : à 22 px sur un portrait
-                          de 30, il en couvrait les deux tiers et l'on ne
-                          reconnaissait plus le monstre. */}
-                      {idx === 0 && monster.leaderSkill && (
-                        <LeadBadge ls={monster.leaderSkill} size={petitEcran ? 17 : 22} />
-                      )}
-                    </div>
+                    {/* Lead sur le portrait du leader : la carte compacte n'a
+                        pas la place d'une pastille (voir spec), et le badge
+                        dit à la fois « c'est lui le leader » et quel lead. */}
+                    {/* ⚠️ Réduit avec le portrait : à 22 px sur un portrait
+                        de 30, il en couvrait les deux tiers et l'on ne
+                        reconnaissait plus le monstre. */}
+                    <MonsterAvatar
+                      monster={monster}
+                      gabarit="div"
+                      classeTaille="w-[36px] h-[36px] compact:w-[30px] compact:h-[30px]"
+                      classeInitiales="text-micro"
+                      tailleElement={13}
+                      lead={idx === 0 ? monster.leaderSkill : null}
+                      tailleLead={petitEcran ? 17 : 22}
+                    />
                     {/* Le nom occupe SA ligne : nom, vitesse et sets se
                         disputaient la même, et le gros chiffre (non réductible)
                         finissait sous les icônes de set. Ligne 2 = vitesse à
@@ -958,23 +922,14 @@ function SlotContent({
           <GripVertical size={15} />
         </ZoneCliquable>
         {isLeader && !monster.leaderSkill && <Crown size={13} className="text-star flex-none" />}
-        <div className="relative flex-none">
-          <div
-            className={`hex-frame w-[38px] h-[38px] p-[2px] bg-gradient-to-br
-              compact:w-[32px] compact:h-[32px] ${GRADIENT[monster.element]}`}
-          >
-            <div className="hex-frame w-full h-full bg-panel flex items-center justify-center overflow-hidden">
-              {monster.image ? (
-                <img src={monster.image} alt={monster.name} className="w-full h-full object-cover" />
-              ) : (
-                <span className={`font-display font-bold text-xs ${TEXT[monster.element]}`}>
-                  {initials(monster.name)}
-                </span>
-              )}
-            </div>
-          </div>
-          {isLeader && monster.leaderSkill && <LeadBadge ls={monster.leaderSkill} />}
-        </div>
+        <MonsterAvatar
+          monster={monster}
+          gabarit="div"
+          classeTaille="w-[38px] h-[38px] compact:w-[32px] compact:h-[32px]"
+          classeInitiales="text-xs"
+          element={false}
+          lead={isLeader ? monster.leaderSkill : null}
+        />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
             <span className="truncate text-sm font-semibold leading-tight compact:text-xs">

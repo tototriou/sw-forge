@@ -14,25 +14,25 @@
 </style>
 </head>
 <body>
-<!-- Relecture n° 5 (Codex) : l'icône ne touche que le contenu EN FLUX de son avatar (le portrait). Une pastille
-     absolue du même avatar (un badge passé en `children` à MonsterAvatar) qu'elle recouvre est signalée : 12 × 12. -->
+<!-- Relecture n° 5 (Codex) : l'icône ne touche que le contenu de son portrait (son cadre, premier enfant). Un badge
+     absolu sans repère du même portrait, qu'elle recouvre, est signalé : 12 × 12. -->
 <div class="bloc">
-  <span id="pastille-avatar" class="avatar" data-attendu="">
+  <span id="pastille-avatar" class="avatar" data-portrait data-attendu="">
     <span id="pastille-portrait" class="image" data-attendu=""></span>
     <span id="pastille-badge" class="pastille" data-attendu=""></span>
-    <img id="pastille-icone" class="icone" src="elements/fire.png" alt="" data-attendu="chevauchement" data-attendu-avec="pastille-badge" data-attendu-aire="144">
+    <img data-pastille="element" id="pastille-icone" class="icone" src="elements/fire.png" alt="" data-attendu="chevauchement" data-attendu-avec="pastille-badge" data-attendu-aire="144">
   </span>
 </div>
-<!-- Non signalée : la seconde moitié du portrait d'un jumeau collab (CollabPortrait.tsx), `absolute inset-0` dans
-     le cadre `relative overflow-hidden` du portrait (MonsterCard.tsx) — positionnée par rapport au cadre, pas au
-     bloc : elle fait partie du portrait. -->
+<!-- Non signalée (D14) : la seconde moitié du portrait d'un jumeau collab (CollabPortrait.tsx), `absolute inset-0`
+     dans le cadre `relative overflow-hidden` du portrait (MonsterAvatar, `cadreRelatif`) — dessinée dans le cadre,
+     elle fait partie du portrait. -->
 <div class="bloc">
-  <div id="jumeau-bloc" style="position: relative; width: 64px" data-attendu="">
+  <div id="jumeau-bloc" data-portrait style="position: relative; width: 64px" data-attendu="">
     <div id="jumeau-cadre" style="position: relative; width: 64px; height: 64px; overflow: hidden; background: #9cf" data-attendu="">
       <img id="jumeau-portrait" src="portraits/a.png" alt="" style="display: block; width: 64px; height: 64px" data-attendu="">
       <img id="jumeau-moitie" src="portraits/b.png" alt="" style="position: absolute; inset: 0; width: 64px; height: 64px" data-attendu="">
     </div>
-    <img id="jumeau-icone" class="icone" src="elements/dark.png" alt="" data-attendu="">
+    <img data-pastille="element" id="jumeau-icone" class="icone" src="elements/dark.png" alt="" data-attendu="">
   </div>
 </div>
 </body>

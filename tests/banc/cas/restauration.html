@@ -29,17 +29,17 @@
 </div>
 <!-- Relecture n° 8 (Codex) : l'icône ne déclare que `transition-duration` ; la remise en état ne la perd pas. -->
 <div class="bloc">
-  <span id="duree-avatar" class="avatar" data-attendu="">
+  <span id="duree-avatar" class="avatar" data-portrait data-attendu="">
     <span class="image"></span>
-    <img id="duree-icone" class="icone" src="elements/fire.png" alt="" style="transition-duration: 200ms" data-attendu="">
+    <img data-pastille="element" id="duree-icone" class="icone" src="elements/fire.png" alt="" style="transition-duration: 200ms" data-attendu="">
   </span>
 </div>
 <!-- Relecture n° 9 (Codex), second temps : l'icône a `transition: right 1s` ; la remise en état ne relance aucune
      transition (vérifié par cas.mjs : aucune animation de plus). -->
 <div class="bloc">
-  <span id="transition-avatar" class="avatar" data-attendu="">
+  <span id="transition-avatar" class="avatar" data-portrait data-attendu="">
     <span class="image"></span>
-    <img id="transition-icone" class="icone" src="elements/water.png" alt="" style="transition: right 1s linear" data-attendu="">
+    <img data-pastille="element" id="transition-icone" class="icone" src="elements/water.png" alt="" style="transition: right 1s linear" data-attendu="">
   </span>
 </div>
 </body>

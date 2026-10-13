@@ -1588,7 +1588,8 @@ Indépendamment du repli de la carte, **chaque deck a son propre chevron**.
   d'une pastille de deux sets, 42 px, tient sous chacun) ; la rangée garde
   ses 40 px de haut, et la colonne (trois icônes de 20 px) tient dans la
   rangée et les sets : la carte ne grandit pas. L'export y prend la taille
-  de ses voisins (`taille="serre"`, exemptée de la règle des 40 px) ; en
+  de ses voisins (20 px, `data-cible-fine` : exempté de la règle des 40 px)
+  et garde sa raison de désactivation en infobulle ; en
   édition, « Annuler les modifications » se place sous le ✓, que la colonne
   ne déplace pas. À la souris, rien ne change.
   L'ancienne disposition à la souris — une grille de cartes sur deux colonnes

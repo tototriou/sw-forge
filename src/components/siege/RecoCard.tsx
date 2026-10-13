@@ -1681,18 +1681,14 @@ function DeckBlock({
           />
           {/* ⚠️ **Au doigt seulement** (`lg:hidden`) : le même export que
               celui de la colonne Verdict, à la souris (masqué, lui, au
-              doigt). `taille="serre"`, comme ses deux voisins de colonne :
-              20 px, exempté de la règle tactile des 40 px — à 40 px de haut,
-              la colonne (84 px) dépassait la rangée et les sets, et la carte
-              grandissait. */}
-          <BoutonIcone
-            onClick={onExporterOptimizer}
-            disabled={!!raisonExportOptimizer}
-            taille="serre"
-            icone={<Upload size={12} />}
-            libelle="Exporter vers l'Optimizer"
-            className="order-last lg:hidden"
-          />
+              doigt), avec sa raison de désactivation en `title`. 20 px et
+              `data-cible-fine`, comme ses deux voisins de colonne
+              (`taille="serre"`) : exempté de la règle tactile des 40 px — à
+              40 px de haut, la colonne (84 px) dépassait la rangée et les
+              sets, et la carte grandissait. */}
+          <Bouton aria-label="Exporter vers l'Optimizer" icone={<Upload size={12} />} taille="carre" trait="aucun" fond="vide"
+            disabled={!!raisonExportOptimizer} title={raisonExportOptimizer ?? "Exporter vers l'Optimizer"}
+            onClick={onExporterOptimizer} data-cible-fine className="order-last h-5 w-5 lg:hidden" />
         </div>
 
         {/* ⚠️ `basis-full` sur mobile, PAS un simple `flex-wrap` sur le

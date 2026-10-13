@@ -83,15 +83,6 @@ partagées, dont la navigation et le pied de page, dans
   vient d'éditer ; un `tsc` propre ne le détecte jamais, puisque l'appel
   reste valide, juste incomplet. Les constructeurs connus : skill
   `optimizer-field-propagation`.
-- **Versions & releases** — `main` reste **stable et déployée** ; on développe
-  dans une branche **`<type>/<sujet>`** (`feat/…`, `fix/…`, `docs/…`, comme un commit), qui porte l'entrée du journal
-  ([02-app/nouveautes/](../02-app/nouveautes/)) puis, à la fin, l'incrément de `package.json`.
-  ⚠️ **Une branche porte un sujet, pas un numéro** : le numéro se décide à la
-  fusion, quand on voit ce que la version contient — d'ici là l'entrée du
-  journal a `version: null`. Processus détaillé dans
-  [02-app/nouveautes/README.md](../02-app/nouveautes/README.md#modèle-de-branches-et-processus-de-release) (« Modèle de branches et processus de release »).
-  ⚠️ **Un changement de calcul se note toujours** dans le journal : c'est ce
-  qu'un joueur remarque en premier.
 - **Footer** — trois informations, dans cet ordre :
   0. **Version** `vX.Y.Z` (depuis `package.json`), **cliquable** vers `#/releases`.
   1. **Signature** : lien vers le dépôt GitHub (`github.com/tototriou/sw-forge`)

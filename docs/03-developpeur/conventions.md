@@ -65,6 +65,10 @@ partagées, dont la navigation et le pied de page, dans
   - ⚠️ **Utilisateur déjà installé** : des données déjà présentes sur le disque
     valent **consentement**. Sans cette reprise, la mise à jour retirerait en
     silence une conservation dont il dispose depuis toujours.
+  - ⚠️ **Toute nouvelle clé prend le préfixe `swblacksmith-`** ; un test refuse
+    un littéral de l'ancien nom (`sw-forge-…`, `sky-arena-…`) hors du module de
+    migration. La migration des clés et « Tout supprimer » :
+    [persistance.md](../02-app/transverse/feat-import-compte/persistance.md).
 - **Aucune statistique de fréquentation.** La mesure d'audience Vercel Web
   Analytics a été **retirée, du site comme de l'application de bureau** :
   rien ne quitte le navigateur, ce que dit le « 100 % local ». ⚠️ Ne pas la réintroduire sans
@@ -83,26 +87,6 @@ partagées, dont la navigation et le pied de page, dans
   vient d'éditer ; un `tsc` propre ne le détecte jamais, puisque l'appel
   reste valide, juste incomplet. Les constructeurs connus : skill
   `optimizer-field-propagation`.
-- **Données 100 % locales** : le footer rappelle que toutes les données restent
-  en local. **« Tout supprimer »** efface les clés `localStorage`
-  `swblacksmith-*` (prépa RTA, équipes de siège, recommandations, catégories,
-  monstres perso) — et celles des anciens noms `sw-forge*` / `sky-arena*` qui
-  traîneraient — puis recharge. Voir [App.tsx](src/App.tsx).
-  - **Clés renommées au rebranding, avec migration** :
-    au premier lancement, [migrationStockage.ts](src/lib/migrationStockage.ts)
-    — premier import de `main.tsx`, avant tout module qui lit le stockage —
-    recopie chaque `sw-forge-…` / `sky-arena-…` sous `swblacksmith-…`, RELIT la
-    copie, puis efface l'ancienne. Une nouvelle clé déjà présente fait foi.
-    Quota plein : l'ancienne place est libérée avant de réécrire ; en cas
-    d'échec, l'ancienne valeur est remise, intacte, et reprise au lancement
-    suivant. Le script de thème d'`index.html`, qui passe avant, lit l'ancienne
-    clé en repli. ⚠️ Toute nouvelle clé prend le préfixe `swblacksmith-` ; un
-    test refuse un littéral de l'ancien nom hors du module de migration.
-  - ⚠️ Le stockage d'un navigateur est lié à l'**adresse** du site : un
-    changement de domaine ne se migre pas, il passe par les exports.
-  - ⚠️ Cette action vit **dans le menu ⚙**, pas à côté du bouton d'import : une
-    action destructrice collée au bouton le plus utilisé finit par être cliquée
-    de travers. Dans un menu qu'on ouvre exprès, le geste est délibéré.
 - **Fenêtres modales** — [Dialogs.tsx](src/ui/Dialogs.tsx) :
   `ConfirmDialog` (confirmation) et `PromptDialog` (saisie).
   - ⚠️ **Aucun `confirm()` ni `prompt()` du navigateur.** La boîte native

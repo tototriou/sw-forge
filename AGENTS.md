@@ -108,7 +108,7 @@ npm run bureau:preuve          # la vérification de l'application de bureau
 | `src/lib/damage.ts`, `src/components/outils/DamageSetupCard.tsx` | [degats-reels/](docs/02-app/degats-reels/README.md) |
 | `src/components/outils/SpeedTuningSection.tsx`, `src/hooks/useSpeedTune.ts`, les `speedTune…` de `src/lib/` | [speed-tuning/](docs/02-app/speed-tuning/README.md) |
 | `src/lib/speed.ts`, `src/lib/stats.ts` | [transverse/feat-calcul-vitesse.md](docs/02-app/transverse/feat-calcul-vitesse.md) |
-| `src/lib/importAccount.ts`, `src/lib/applyAccount.ts`, `src/lib/accountStore.ts`, `src/components/AccountImportControl.tsx` | [transverse/feat-import-compte/](docs/02-app/transverse/feat-import-compte/README.md) |
+| `src/lib/importAccount.ts`, `src/lib/applyAccount.ts`, `src/lib/accountStore.ts`, `src/hooks/usePersistence.ts`, `src/lib/migrationStockage.ts`, `src/components/AccountImportControl.tsx` | [transverse/feat-import-compte/](docs/02-app/transverse/feat-import-compte/README.md) |
 | `src/lib/session.ts`, `src/lib/sessionOptimizer.ts`, `src/hooks/useSessionEnCours.ts` | [transverse/feat-sauvegarde-session.md](docs/02-app/transverse/feat-sauvegarde-session.md) |
 | `src/hooks/useMonsters.ts`, `src/components/CreateMonster.tsx`, `src/components/MonsterAvatar.tsx`, `public/data/` | [transverse/feat-donnees-monstres.md](docs/02-app/transverse/feat-donnees-monstres.md) |
 | `src/hooks/useComboboxNav.ts`, une barre de recherche à suggestions | [transverse/feat-recherche-clavier.md](docs/02-app/transverse/feat-recherche-clavier.md) |

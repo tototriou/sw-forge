@@ -205,3 +205,49 @@ comportement mémoire. Safari efface le stockage écrit par script après ~7 jou
 sans visite — c'est un cas **normal**, pas une erreur à signaler.
 `requestPersistence()` limite l'éviction et s'appelle **dans un geste
 utilisateur**, où les navigateurs accordent plus volontiers.
+
+## « Tout supprimer » — `clearAllData` dans [App.tsx](src/App.tsx)
+
+Le bouton est la dernière ligne du bloc « Mes données » des Paramètres
+([compte-et-parametres.md](../feat-navigation/compte-et-parametres.md)). Il
+ouvre une confirmation dont le défaut est « Annuler », puis recharge la page.
+
+Ce qui part :
+
+- **toutes les clés de données de `localStorage`** : prépa RTA, équipes de
+  siège, recommandations, catégories, monstres perso, listes de l'Optimizer, et
+  les réglages qui y sont rangés (thème, overcap, adversaire de référence) ;
+- ⚠️ **les clés des anciens noms aussi** (`sw-forge…`, `sky-arena…`) : une clé
+  que la migration n'a pas pu renommer reste une donnée de l'utilisateur ;
+- **le travail en mémoire**, y compris ce qui n'a jamais été écrit sur le
+  disque (`purgeDonneesConservees` de
+  [usePersistence.ts](src/hooks/usePersistence.ts)) ;
+- **le compte importé**, en IndexedDB (`clearAccount()`, attendu avant le
+  rechargement) ;
+- dans l'**application de bureau**, la **session en cours** est oubliée : l'app
+  repart vide, et un Ctrl+S réécrirait le fichier avec ce vide.
+
+Ce qui reste :
+
+- les deux **clés de réglage** : le choix de conservation et la mesure de
+  score ;
+- les **fichiers** : sessions de l'application de bureau, exports.
+
+## Clés renommées au rebranding — [migrationStockage.ts](src/lib/migrationStockage.ts)
+
+Les clés s'appelaient `sw-forge-…` (et `sky-arena-…` pour la toute première
+prépa RTA) ; elles s'appellent `swblacksmith-…`.
+
+- Au premier lancement, le module — **premier import de `main.tsx`**, avant
+  tout module qui lit le stockage — recopie chaque `sw-forge-…` /
+  `sky-arena-…` sous `swblacksmith-…`, RELIT la copie, puis efface l'ancienne.
+- Une nouvelle clé déjà présente fait foi.
+- **Quota plein** : l'ancienne place est libérée avant de réécrire ; en cas
+  d'échec, l'ancienne valeur est remise, intacte, et reprise au lancement
+  suivant.
+- Le script de thème d'`index.html`, qui passe avant, lit l'ancienne clé en
+  repli.
+- ⚠️ Toute nouvelle clé prend le préfixe `swblacksmith-` ; un test refuse un
+  littéral de l'ancien nom hors du module de migration.
+- ⚠️ Le stockage d'un navigateur est lié à l'**adresse** du site : un
+  changement de domaine ne se migre pas, il passe par les exports.

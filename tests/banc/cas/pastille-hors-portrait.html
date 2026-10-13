@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="fr" data-attendu-page="non">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover">
+<title>Pastille hors de son portrait</title>
+<style>
+  body { margin: 8px; font: 10px sans-serif; }
+  .bloc { margin: 16px 0; width: 200px; padding: 8px; }
+  /* Copie de MonsterAvatar (voir pastille-portrait.html). */
+  .portrait { position: relative; display: inline-flex; width: 50px; height: 50px; flex: none; }
+  .empile { display: block; }
+  .cadre { display: block; width: 100%; height: 100%; background: #9cf; }
+  .element { position: absolute; top: -0.25rem; right: -0.25rem; width: 16px; height: 16px; background: #f90; }
+  .enveloppe { display: block; position: relative; margin-top: -50px; height: 50px; }
+</style>
+</head>
+<body>
+<!-- (e) Signalé (4 px) (relecture Codex n° 4) : une icône d'élément à décalage négatif, sans repère, dans une boîte
+     `relative` qui n'est pas un portrait — rien n'est reconnu par l'image : son dépassement compte. -->
+<div class="bloc">
+  <span id="e-boite" class="portrait" data-attendu="contenu" data-attendu-depassement="4">
+    <span class="cadre"></span>
+    <img id="e-icone" class="element" src="elements/fire.png" alt="" data-attendu="">
+  </span>
+</div>
+<!-- (e) Non signalé : la même icône, repère posé, dans un portrait balisé. -->
+<div class="bloc">
+  <span id="e-portrait" class="portrait" data-portrait data-attendu="">
+    <span class="cadre"></span>
+    <img id="e-pastille" data-pastille="element" class="element" src="elements/fire.png" alt="" data-attendu="">
+  </span>
+</div>
+<!-- (i) Signalé (4 px, deux fois) : la pastille est enveloppée dans un cadre `relative` du portrait ; son bloc
+     contenant est l'enveloppe, pas son portrait : aucune exception, ni pour l'enveloppe ni pour le portrait. -->
+<div class="bloc">
+  <span id="i-portrait" class="portrait empile" data-portrait data-attendu="contenu" data-attendu-depassement="4">
+    <span class="cadre"></span>
+    <span id="i-enveloppe" class="enveloppe" data-attendu="contenu" data-attendu-depassement="4">
+      <img id="i-pastille" data-pastille="element" class="element" src="elements/fire.png" alt="" data-attendu="">
+    </span>
+  </span>
+</div>
+<!-- (i) Signalé (4 px) : une pastille repérée, mais sans portrait parmi ses ancêtres. -->
+<div class="bloc">
+  <span id="i-sans-boite" class="portrait" data-attendu="contenu" data-attendu-depassement="4">
+    <span class="cadre"></span>
+    <img id="i-sans-pastille" data-pastille="element" class="element" src="elements/fire.png" alt="" data-attendu="">
+  </span>
+</div>
+</body>
+</html>

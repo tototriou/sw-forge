@@ -15,9 +15,9 @@
 <!-- L'exception s'arrête au bloc contenant : la rangée, `body` et la page retiennent les 4 px du décalage, et l'icône
      qui sort de la fenêtre reste signalée par la géométrie. L'avatar, lui, n'est pas signalé. -->
 <div id="rangee" style="display: flex; justify-content: flex-end; padding-top: 8px" data-attendu="contenu" data-attendu-depassement="4">
-  <span id="avatar" class="avatar" data-attendu="">
+  <span id="avatar" class="avatar" data-portrait data-attendu="">
     <span class="image"></span>
-    <img id="icone" class="icone" src="elements/fire.png" alt="" data-attendu="geometrie">
+    <img data-pastille="element" id="icone" class="icone" src="elements/fire.png" alt="" data-attendu="geometrie">
   </span>
 </div>
 </body>

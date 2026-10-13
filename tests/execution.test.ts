@@ -16,6 +16,9 @@ import { emplacementManifeste, etatContenu, RefusManifeste } from './execution';
 import { egal, ok, titre } from './outils';
 
 const racineDepot = resolve('.');
+// Chemins factices sous tests/, qui n'existent jamais : construits par
+// morceaux, ce ne sont pas des renvois (tests/renvois.test.ts).
+const factice = (...morceaux: string[]) => ['tests', ...morceaux].join('/');
 const versImport = (p: string) => JSON.stringify(p.split('\\').join('/'));
 
 // Les entrées du faux registre : une par comportement à provoquer.
@@ -139,11 +142,11 @@ export async function testExecutionProuveeCas(): Promise<void> {
 export function testExecutionProuveeEmplacement(): void {
   titre('Exécution prouvée — emplacement du manifeste');
   const refuse = (chemin: string) => { try { emplacementManifeste(racineDepot, chemin); return false; } catch (e) { return e instanceof RefusManifeste; } };
-  ok(refuse('tests/manifeste-essai.json'), 'dans un dossier suivi, non ignoré : refusé');
+  ok(refuse(factice('manifeste-essai.json')), 'dans un dossier suivi, non ignoré : refusé');
   ok(refuse('manifeste-essai.json'), 'à la racine du worktree : refusé');
-  ok(refuse('tests/neuf/manifeste-essai.json'), 'dans un dossier inexistant sous un dossier non ignoré : refusé');
+  ok(refuse(factice('neuf', 'manifeste-essai.json')), 'dans un dossier inexistant sous un dossier non ignoré : refusé');
   ok(refuse('tests/outils.ts'), 'un fichier suivi : refusé');
-  ok(refuse('tests/fixtures-export-essai.json'), 'un fichier ignoré par son nom, dans un dossier non ignoré : refusé');
+  ok(refuse(factice('fixtures-export-essai.json')), 'un fichier ignoré par son nom, dans un dossier non ignoré : refusé');
   ok(!refuse('node_modules/swblacksmith-manifeste/essai.json'), 'dans un dossier ignoré (node_modules/) : accepté');
   ok(!refuse(join(tmpdir(), 'swblacksmith-manifeste', 'essai.json')), 'hors du worktree : accepté');
   // L'empreinte ne voit pas un fichier ignoré : le manifeste n'y entre jamais.
@@ -160,7 +163,7 @@ export function testExecutionProuveeEmplacement(): void {
 export async function testExecutionProuveePointEntree(): Promise<void> {
   titre('Exécution prouvée — point d\'entrée réel (tests/run.mjs)');
   const dossier = mkdtempSync(join(tmpdir(), 'swblacksmith-execution-'));
-  const interdit = 'tests/manifeste-refuse-essai.json';
+  const interdit = factice('manifeste-refuse-essai.json');
   try {
     const chemin = join(dossier, 'manifeste.json');
     const run = join(racineDepot, 'tests', 'run.mjs');

@@ -25,13 +25,11 @@ Fichier racine : [RtaPage.tsx](src/pages/RtaPage.tsx) · État :
 | **Ma prépa** | `#/rta` | tout l'écran décrit ci-dessous : sa propre prépa |
 | **Ami** | `#/rta/ami` | consulter la prépa de quelqu'un d'autre, en lecture — **prépa exportée ou export SWEX complet** |
 
-- ⚠️ **« Ma prépa » garde le hash NU `#/rta`** : c'est l'écran historique, et les
-  liens déjà partagés doivent continuer d'y mener. `#/rta/prepa` n'existe pas.
-- ⚠️ **La consultation était un PANNEAU, pas un écran.** Elle s'ouvrait par un
-  bouton de la barre de fichiers et s'affichait AU-DESSUS de sa propre prépa :
-  deux prépas dans la même page, dont celle du haut n'était pas la sienne, et un
-  écran qui doublait de longueur sans prévenir. Rien n'y menait, aucun lien ne
-  s'y partageait. Voir [feat-sauvegarde-partage.md](feat-sauvegarde-partage.md).
+- ⚠️ **« Ma prépa » a le hash NU `#/rta`** : les liens déjà partagés doivent
+  continuer d'y mener. `#/rta/prepa` n'existe pas.
+- ⚠️ **La consultation est un ÉCRAN, pas un panneau** au-dessus de sa propre
+  prépa : elle a sa route, on y mène par la navigation et son lien se partage.
+  Voir [feat-sauvegarde-partage.md](feat-sauvegarde-partage.md).
 - Le **panneau d'actions** (téléphone) n'existe que sur « Ma prépa » : ses gestes
   (sauvegarder, exporter, catégories, tout effacer) portent tous sur SA prépa, et
   aucun n'a de sens en lisant celle d'un ami.
@@ -44,16 +42,15 @@ Fichier racine : [RtaPage.tsx](src/pages/RtaPage.tsx) · État :
 1. **En-tête** (bureau) : titre « Ma prépa », le compteur (« 3 monstres en
    prépa »), **Exporter**, et le menu **« ⋯ » Plus d'actions** — Sauvegarder,
    Reprendre, Importer une prépa, Créer un monstre, puis, séparés en bas,
-   Réinitialiser et Tout effacer. Refonte graphique, lot 6, décision 13 de
-   Le mainteneur : ces actions s'alignaient en deux rangées de boutons au-dessus de
-   la prépa. **Quand elles tiennent sur la ligne, elles s'y affichent toutes
-   en boutons** (place mesurée) — le menu ne sert que faute de place. Voir
+   Réinitialiser et Tout effacer. **Quand elles tiennent sur la ligne, elles
+   s'y affichent toutes en boutons** (place mesurée) — le menu ne sert que
+   faute de place. Voir
    [feat-sauvegarde-partage.md](feat-sauvegarde-partage.md).
 2. **Barre de recherche** pour ajouter un monstre à la prépa — **permanente**
-   (décision 13 : pas derrière un bouton).
+   (pas derrière un bouton).
 3. **Téléphone** : le compteur seul dans la page ; toutes les actions dans le
    panneau « Options » (création, Sauvegarder · Reprendre · Réinitialiser ·
-   Exporter · Importer, catégories, Tout effacer) — inchangé, lot 11.
+   Exporter · Importer, catégories, Tout effacer).
 4. **« Non classé »** : zone tampon où atterrissent les monstres ajoutés.
 5. **Sections par set de runes** (Swift / Violent / Despair / Autre + ajoutables).
 6. **Ajouter une section** (choix d'un set de runes).

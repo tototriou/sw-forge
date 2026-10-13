@@ -23,7 +23,7 @@ message s'ouvre **AU CLIC** ([DesyncBadge.tsx](src/components/rta/DesyncBadge.ts
 > la valeur en rouge de la fiche.
 
 Le panneau passe par **`DetailPopover`** (placement automatique) : les cartes
-vont jusqu'au bord droit de la page, et un panneau ancré en dur **sortait de
+vont jusqu'au bord droit de la page, et un panneau ancré en dur **sortirait de
 l'écran**.
 
 Dans la fiche, la **ligne VIT** porte une **flèche rouge suivie de la vitesse
@@ -81,7 +81,7 @@ inutilisable avant tout import.
   un champ à part — une fois ajoutée, elle se clique comme les autres et se
   retire pareil. Elle est appliquée aussitôt : on ne l'a pas saisie pour rien.
 - **×** sur chaque pilule, **toujours visible** (atténué, net au survol).
-  ⚠️ Ne l'afficher qu'au survol laissait un **vide à droite du pourcentage**,
+  ⚠️ Ne l'afficher qu'au survol laisserait un **vide à droite du pourcentage**,
   qu'on lit comme un défaut d'alignement — et un bouton qui apparaît sous le
   curseur se clique par accident. Retirer le lead actif remet « Sans lead » :
   laisser un lead appliqué sans bouton pour l'annuler serait un piège.
@@ -91,8 +91,8 @@ inutilisable avant tout import.
   voisin vient prendre la place de celui qu'on visait. Un clic légèrement à côté
   enlève donc le mauvais lead, et on ne s'en aperçoit qu'après.
 - ⚠️ **`data-cible-fine` sur le bouton du pourcentage.** Sans lui, la règle
-  tactile globale le portait à 40 px — et avec lui **toute la pilule**, qui
-  doublait de hauteur au doigt. La cible reste petite mais rien n'est perdu : ce
+  tactile globale le porterait à 40 px — et avec lui **toute la pilule**, qui
+  doublerait de hauteur au doigt. La cible reste petite mais rien n'est perdu : ce
   bouton occupe toute la surface de la pilule sauf la croix. Voir le piège décrit
   dans [interface/](../../03-developpeur/interface/).
 - ⚠️ **Deux listes** (`leadsAjoutes`, `leadsRetires`) plutôt qu'une liste
@@ -144,13 +144,13 @@ vitesse_effective = (base + runes) + ceil( base × (15 + lead) / 100 )
     ⚠️ Pas plus resserrée : le champ SPD runes doit garder la place d'au moins
     trois chiffres (la valeur va jusqu'à ~180) — un champ qui ne montre pas ce
     qu'on y tape est pire qu'une carte un peu plus large.
-    ⚠️ **Le nom n'a plus sa propre ligne** : douze cartes par écran avec un nom
-    tronqué chacune faisaient une grille dense et illisible, là où le portrait
+    ⚠️ **Le nom n'a pas sa propre ligne** : douze cartes par écran avec un nom
+    tronqué chacune feraient une grille dense et illisible, là où le portrait
     seul se reconnaît d'un coup d'œil — comme le choix des monstres d'une
     catégorie (voir [feat-categories.md](feat-categories.md)). Le nom reste dans le
     `title` de la carte (combiné aux catégories), pour l'appui long et le
     lecteur d'écran.
-- Pas d'icône éclair ; « base X » retiré pour épurer.
+- Pas d'icône éclair, pas de « base X ».
 
 ## Attendus
 
@@ -163,7 +163,5 @@ vitesse_effective = (base + runes) + ceil( base × (15 + lead) / 100 )
 
 ⚠️ « Vitesses » et « Catégories » sont le **même composant** que les trois de la
 barre de catégories (`InterrupteurAffichage`, voir
-[feat-categories.md](feat-categories.md)). Ils portaient auparavant leur propre style :
-l'accent y marquait l'état *masqué* et l'œil barré demandait d'être décodé —
-deux défauts déjà corrigés à côté, mais pas ici, si bien que le même geste se
-lisait différemment d'un bloc à l'autre.
+[feat-categories.md](feat-categories.md)) : le même geste se lit pareil d'un
+bloc à l'autre.

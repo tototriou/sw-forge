@@ -4,23 +4,22 @@ Cinq actions de **Ma prépa** : **Sauvegarder · Reprendre · Réinitialiser ·
 Exporter · Importer**.
 
 ⚠️ **Deux dispositions, une seule logique** (`RtaBackupBar`, prop
-`disposition`) — refonte graphique, lot 6, décision 13 du mainteneur :
+`disposition`) :
 
 - **Bureau — `menu`** : dans l'en-tête de la page (composant `BarreActions`
   de `src/ui`). **S'il y a la place sur la ligne, toutes les actions y sont en
-  boutons** (Réinitialiser et Tout effacer à droite, derrière un filet) —
-  demandé par le mainteneur ; la place est mesurée, barre latérale comprise. Sinon :
+  boutons** (Réinitialiser et Tout effacer à droite, derrière un filet) ; la
+  place est mesurée, barre latérale comprise. Sinon :
   « **Exporter** » visible,
   les autres dans le menu **« ⋯ » Plus d'actions** (composant `Menu` de
   `src/ui`) : Sauvegarder, Reprendre, **Importer une prépa**, puis les entrées
   de la page (Créer un monstre) ; séparés en bas, en `bad` : Réinitialiser et
-  Tout effacer. « Importer » y devient « Importer une prépa » : dans un menu
-  où voisinent d'autres gestes, le mot seul ne dit plus ce qu'on importe.
-  Libellés, désactivations et infobulles sont repris mot pour mot. La ligne
-  « Point de sauvegarde · … », les messages et le rapport de lecture passent
-  sous l'en-tête, pleine largeur.
+  Tout effacer. « Importer » s'y écrit « Importer une prépa » : dans un menu
+  où voisinent d'autres gestes, le mot seul ne dirait pas ce qu'on importe.
+  La ligne « Point de sauvegarde · … », les messages et le rapport de lecture
+  sont sous l'en-tête, pleine largeur.
 - **Téléphone — `barre`** (défaut) : les cinq boutons en rangées, dans le
-  panneau « Options » — inchangé (lot 11).
+  panneau « Options ».
 
 Les dialogues, les messages et le sélecteur de fichier sont les MÊMES dans les
 deux : seule la façon de déclencher change.
@@ -52,8 +51,8 @@ l'essai ne donne rien. D'où le vocabulaire — « point de sauvegarde »,
 « Reprendre » — et l'infobulle qui rappelle que la conservation automatique
 existe par ailleurs.
 
-⚠️ **« Sauvegardé il y a … »** (refonte graphique, lot 13, décision 29, la
-maquette) : dans l'en-tête de Ma prépa, aux deux formats, l'heure du
+⚠️ **« Sauvegardé il y a … »** : dans l'en-tête de Ma prépa, aux deux
+formats, l'heure du
 **dernier changement** de la prépa — c'est-à-dire de son dernier
 enregistrement automatique. Il DIT la conservation automatique au lieu de la
 laisser deviner : c'est l'inverse d'un bouton « enregistrer », qui mentirait.
@@ -90,10 +89,10 @@ la main, ce qui n'est pas ce qu'il promet.
   (`UseRtaState.importCount`) — un booléen déjà à `true` ne redéclencherait rien
   au second import.
 - ⚠️ Le bouton **n'apparaît que si un compte a été importé** : sans point
-  d'import, il n'aurait aucun état où revenir. Le griser en permanence aurait
-  ajouté une promesse à qui n'importe jamais de compte.
+  d'import, il n'aurait aucun état où revenir. Le griser en permanence
+  ajouterait une promesse à qui n'importe jamais de compte.
 - La confirmation **dit les deux pertes** : tout le classement fait depuis
-  l'import, et le fait que le point de sauvegarde manuel pointe désormais vers un
+  l'import, et le fait que le point de sauvegarde manuel pointera vers un
   état d'avant ce retour en arrière. Elle rappelle qu'**« Exporter » est le seul
   moyen** de garder le travail en cours.
 - Le point d'import est **annoncé sous les boutons**, comme le point manuel :
@@ -139,9 +138,9 @@ Un **monstre perso** (`com2usId = null`) ne peut pas être *retrouvé* chez le
 lecteur. Mais il se **décrit** entièrement — nom, élément, vitesse de base,
 lead — et c'est tout ce qu'il faut pour l'**afficher**.
 
-Une première version les écartait purement et simplement : une prépa contenant
-une sortie récente arrivait **amputée**, et son ordre de tour était faux d'un
-monstre. Chaque entrée porte donc soit un `com2usId`, soit un objet `perso`.
+Les écarter amputerait une prépa contenant une sortie récente, et son ordre de
+tour serait faux d'un monstre. Chaque entrée porte donc soit un `com2usId`,
+soit un objet `perso`.
 
 Conséquences :
 
@@ -169,15 +168,14 @@ l'endroit où on l'ouvre. Un point d'entrée unique obligerait à demander « et
 maintenant, j'en fais quoi ? » après lecture, alors que l'utilisateur le sait
 déjà avant de cliquer.
 
-⚠️ **Les deux boutons étaient côte à côte**, dans la même rangée, à lire le même
-format : rien ne disait lequel touchait à ma prépa. Séparer les intentions par
-l'ÉCRAN, et non par deux boutons voisins, est ce qui les distingue vraiment —
+⚠️ **Deux boutons côte à côte**, dans la même rangée, à lire le même format, ne
+diraient pas lequel touche à ma prépa. Séparer les intentions par l'ÉCRAN, et
+non par deux boutons voisins, est ce qui les distingue vraiment —
 « Importer » vit avec les gestes qui modifient ma prépa, la consultation avec ce
 qui ne la modifie pas.
 
-Une version intermédiaire n'offrait que la consultation : elle rendait impossible
-de **reprendre sa propre sauvegarde**, ce à quoi l'export sert tout autant qu'au
-partage.
+La consultation seule ne suffit pas : elle rendrait impossible de **reprendre
+sa propre sauvegarde**, ce à quoi l'export sert tout autant qu'au partage.
 
 ### ⚠️ L'onglet Ami accepte DEUX fichiers
 
@@ -186,7 +184,7 @@ quel fichier il ouvre, pas comment il est fait.
 
 | Fichier | Reconnu à | Ce qu'on en tire |
 |---|---|---|
-| **Export de prépa** (bouton « Exporter ») | `format: "swblacksmith/prepa-rta"` (ou `"sw-forge/prepa-rta"`, avant le rebranding) | la prépa telle que son auteur l'a classée, au niveau qu'il a choisi |
+| **Export de prépa** (bouton « Exporter ») | `format: "swblacksmith/prepa-rta"` (ou `"sw-forge/prepa-rta"`) | la prépa telle que son auteur l'a classée, au niveau qu'il a choisi |
 | **Export SWEX complet** du compte | son `unit_list` | sa **box RTA**, pré-classée par set — niveau `complet` |
 
 ⚠️ **Tout le monde n'a pas SW Blacksmith.** Demander à un ami de l'installer et d'y
@@ -218,9 +216,9 @@ d'ouverture du fichier et affiche la prépa lue
 
 - rien n'entre dans l'état local — **aucune confirmation** n'est nécessaire,
   puisqu'il n'y a rien à perdre ;
-- ⚠️ **Un écran, plus un panneau au-dessus de sa prépa.** Elle s'affichait EN
-  TÊTE de sa propre prépa : deux prépas dans la même page, dont celle du haut
-  n'était pas la sienne, et un écran qui doublait de longueur sans prévenir ;
+- ⚠️ **Un écran, pas un panneau au-dessus de sa prépa** : en tête de sa propre
+  prépa, cela ferait deux prépas dans la même page, dont celle du haut n'est
+  pas la sienne, et un écran qui double de longueur sans prévenir ;
 - **écran vide parlant** tant qu'aucun fichier n'est ouvert : il dit d'où vient
   le fichier (« Exporter », chez l'ami) et ce qu'on y verra — pas une page
   blanche ;
@@ -229,7 +227,7 @@ d'ouverture du fichier et affiche la prépa lue
   fermer d'abord ajouterait un clic sans rien protéger ;
 - l'état vit dans la **page**, en mémoire, **jamais sur le disque**
   (`useStickyState`) : c'est la prépa de quelqu'un d'autre. Elle survit en
-  revanche à la navigation — depuis qu'elle a son onglet, aller vérifier une
+  revanche à la navigation — aller vérifier une
   vitesse sur sa prépa puis revenir ne doit pas obliger à rouvrir le fichier ;
 - les cartes sont **inertes** : ni poignée de glisser-déposer, ni croix, ni
   sélecteur de section — aucun de ces gestes n'a de sens sur la prépa d'autrui.
@@ -314,9 +312,9 @@ Trois fuites, corrigées ensemble parce qu'elles disent toutes la même chose :
 | **Section** | une section **EST un set** : ranger un monstre dans « Swift » annonce qu'il est runé Swift |
 | **Catégorie** | libre, mais souvent nommée d'après le runage (« Swift lead », « Violent ») |
 
-Une version antérieure exportait « sans les runes » en gardant vitesses et
-sections : elle ne cachait rien. Les trois partent donc **avec** les sets, et
-c'est vérifié par des tests qui savent échouer.
+Exporter « sans les runes » en gardant vitesses et sections ne cacherait rien.
+Les trois partent donc **avec** les sets, et c'est vérifié par des tests qui
+savent échouer.
 
 Vérifié en **relisant le JSON produit**, jamais par une recherche de chaîne dans
 un texte indenté — celle-ci n'aurait jamais pu échouer.
@@ -372,24 +370,23 @@ masquent, ils ne révèlent pas. « Catégories » n'apparaît que s'il y en a �
 interrupteur sans effet se clique et laisse croire à un bug.
 
 ⚠️ **Masquer les vitesses retire l'ICÔNE avec le chiffre.** Ne masquer que la
-valeur laissait une icône de vitesse orpheline suivie d'un tiret : on cherche le
-chiffre manquant en croyant à un défaut d'affichage.
+valeur laisserait une icône de vitesse orpheline suivie d'un tiret : on
+chercherait le chiffre manquant en croyant à un défaut d'affichage.
 
 ⚠️ **Masquer les vitesses ne masque pas l'ordre de tour** : le tri continue de
 les utiliser, le classement reste juste et lisible sans les chiffres.
 
 #### ⚠️ `categoriesVisible` agit DANS `TurnOrder`, pas chez l'appelant
 
-Le drapeau ne pilotait que l'apparence du bouton ; le masquage se faisait en
-amont (`categories={visible ? cats : []}`). Une fois masquées, les catégories
-n'arrivaient donc plus au composant et **son propre interrupteur ne pouvait plus
-rien réafficher**. Les catégories lui sont désormais passées entières.
+Le masquage ne se fait pas en amont (`categories={visible ? cats : []}`) : une
+fois masquées, les catégories n'arriveraient plus au composant et **son propre
+interrupteur ne pourrait rien réafficher**. Les catégories lui sont passées
+entières.
 
 ### Format (`format: "swblacksmith/prepa-rta"`, `version: 2`)
 
-⚠️ L'identifiant s'écrivait `sw-forge/prepa-rta` avant le rebranding
-(décision 66) : il reste reconnu à l'import, sans avertissement
-([formatsExport.ts](src/lib/formatsExport.ts)).
+⚠️ Un fichier à l'identifiant `sw-forge/prepa-rta` est reconnu à l'import,
+sans avertissement ([formatsExport.ts](src/lib/formatsExport.ts)).
 
 ```json
 { "format": "swblacksmith/prepa-rta", "version": 2, "exporte_le": "…",

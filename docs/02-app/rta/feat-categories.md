@@ -37,9 +37,9 @@ vitesse.
   sans personne. Le drapeau `seeded` n'est posé qu'**après un amorçage réussi**
   (prépa non vide *et* au moins un monstre à lead VIT), sinon on la perdrait sans
   l'avoir jamais montrée.
-- ⚠️ Un enregistrement à **l'ancienne forme** (simple tableau) est migré avec
-  `seeded` **à faux** : un joueur qui avait déjà créé des catégories avant
-  l'arrivée de « Lead SPD » doit lui aussi se la voir proposer.
+- ⚠️ Un enregistrement à la forme d'un simple tableau est lu avec `seeded`
+  **à faux** : un joueur qui a créé des catégories sans « Lead SPD » doit lui
+  aussi se la voir proposer.
 - Ensuite elle **vit sa vie** : renommée, vidée ou supprimée comme les autres.
   Elle n'est pas recréée.
 
@@ -48,10 +48,10 @@ vitesse.
 Trois boutons : **Vitesses**, **Modifiés** et **Catégories**.
 
 ⚠️ **Deux emplacements selon la largeur.** Sur bureau ils sont poussés à droite
-de la rangée des catégories — la largeur y suffit. Sous `lg` ils prennent leur
-propre rangée : la rangée des catégories comptait déjà quatre éléments avant eux,
-ils y passaient à la ligne dès qu'une catégorie de plus existait et se
-retrouvaient un coup à droite, un coup en dessous. Ils coupent le bruit **sans rien perdre** — les données restent,
+de la rangée des catégories — la largeur y suffit. Sous `lg` ils ont leur
+propre rangée : la rangée des catégories compte déjà quatre éléments avant
+eux, ils y passeraient à la ligne dès qu'une catégorie de plus existe et se
+retrouveraient un coup à droite, un coup en dessous. Ils coupent le bruit **sans rien perdre** — les données restent,
 seul le rendu disparaît. Les trois états sont **persistés**.
 
 - ⚠️ **Les trois sont TOUJOURS affichés**, même quand ils ne servent à rien (pas
@@ -59,7 +59,7 @@ seul le rendu disparaît. Les trois états sont **persistés**.
   bouton qui apparaît et disparaît fait sauter la rangée et donne l'impression
   d'un réglage qu'on aurait perdu.
 - Le libellé nomme **ce qu'on affiche**, pas l'état du réglage — « Couleurs
-  masquées » obligeait à relire le bouton pour savoir ce qu'il pilote.
+  masquées » obligerait à relire le bouton pour savoir ce qu'il pilote.
 - Sur **bureau**, l'icône **œil ouvert / barré** porte l'état et l'accent marque
   l'état *masqué*.
 - Sous `lg`, deux écarts que la petite taille impose :
@@ -74,10 +74,6 @@ seul le rendu disparaît. Les trois états sont **persistés**.
 - Les trois sont **un seul composant** (`InterrupteurAffichage`) à deux rendus,
   pas trois copies du même bouton.
 
-⚠️ **Le rendu de bureau n'a pas changé.** Ce n'est pas qu'il soit meilleur —
-c'est qu'il n'était pas en cause : la refonte visait le téléphone, et déplacer
-au passage les repères d'un écran qui ne souffrait de rien aurait été un coût
-sans contrepartie.
 - **Vitesses** — masque la vitesse sur les cartes de classement. Utile quand on
   range sa box par rôle et que les chiffres n'apportent rien à ce moment-là.
 - **Modifiés** — écrit en **orange le nom et la vitesse** des monstres dont les
@@ -131,7 +127,7 @@ interface RtaCategory { id: string; label: string; color: string; members: strin
 - Persistance `localStorage` sous `swblacksmith-rta-categories-v1` :
   `{ categories, seeded, visible }`, relue en **validant** (couleur `#rrggbb`,
   libellé non vide) — un enregistrement bricolé à la main ne doit pas casser la
-  page. L'ancienne forme (un simple tableau) est encore lue.
+  page. La forme d'un simple tableau est lue aussi.
 - Libellé borné à **24 caractères** (il tient dans une pastille).
 
 ## ⚠️ Maximum 4 catégories par monstre
@@ -164,22 +160,22 @@ pour qu'on distingue les couleurs sur une carte de cette taille.
 Sous la barre d'actions de la page, avant les sections.
 
 - ⚠️ **Tous les éléments de la barre font la même hauteur** (`h-7`) : pastilles,
-  bouton d'ajout, interrupteur. Des hauteurs différentes donnaient une rangée en
+  bouton d'ajout, interrupteur. Des hauteurs différentes donneraient une rangée en
   dents de scie.
 - La **création et l'édition** se font dans une **popup flottante** (`absolute`,
   fermée au clic extérieur et à Échap).
-  ⚠️ **Jamais un formulaire dans le flux** : inséré dans la rangée, il poussait
-  les pilules suivantes et **décalait toute la page** à chaque ouverture — et on
-  perdait de vue la pilule qu'on éditait.
+  ⚠️ **Jamais un formulaire dans le flux** : inséré dans la rangée, il
+  pousserait les pilules suivantes et **décalerait toute la page** à chaque
+  ouverture — et on perdrait de vue la pilule qu'on édite.
 - Une **pastille par catégorie**, **teintée de sa propre couleur** (fond dilué,
   bordure moyenne) : c'est la couleur qui porte l'information, pas un point gris
   posé à côté d'un libellé.
   - ⚠️ **Une seule pilule**, dont le style vit sur le conteneur ; les deux
     boutons (ouvrir / éditer) sont **transparents à l'intérieur**. Deux boutons
-    bordés côte à côte laissaient une couture visible — et un bouton dans un
+    bordés côte à côte laisseraient une couture visible — et un bouton dans un
     bouton est du HTML invalide.
   - Le **crayon** n'apparaît **qu'au survol** (et au focus clavier) : il ne sert
-    qu'occasionnellement et alourdissait la barre en permanence.
+    qu'occasionnellement et alourdirait la barre en permanence.
   - L'**effectif** ne s'affiche **que s'il est > 0** : un « 0 » collé au libellé
     d'une catégorie qu'on vient de créer n'est que du bruit.
 - ⚠️ **L'effectif compte les membres RÉELLEMENT présents dans la prépa.** Un
@@ -224,9 +220,9 @@ il est en bas de page, et remonter tout en haut juste pour couper les anneaux
 serait absurde.
 
 ⚠️ La mise en avant des **changements de place** (lead actif) se fait par le
-**fond orange de la carte, et rien d'autre**. Repeindre la bordure entrait en
+**fond orange de la carte, et rien d'autre**. Repeindre la bordure entrerait en
 concurrence avec l'anneau de catégories : deux informations au même endroit, on
-ne lisait plus ni l'une ni l'autre.
+ne lirait plus ni l'une ni l'autre.
 
 Une **légende** est affichée au-dessus : pastille de couleur + libellé, pour
 **les seules catégories réellement représentées** dans l'ordre de tour. Sans
@@ -247,20 +243,19 @@ catégorie » plus haut.
 
 ## La carte sur téléphone
 
-⚠️ **Au téléphone, une RANGÉE par monstre, et le nom revient** (refonte
-graphique, lot 11a, décision 24 — la maquette). La grille passe à une colonne
-(`max-lg:grid-cols-1`) : portrait, **nom**, vitesse calée à droite, sets,
-badge de désynchronisation, et dessous le choix de section, à sa largeur
-naturelle ; l'anneau des catégories et la croix de retrait restent sur chaque
-rangée. Les colonnes de 210 px passent de `sm:` à `lg:` — `sm:` sortait après
-`max-lg:` dans le CSS construit et reprenait le dessus entre 640 et 1023 px.
+⚠️ **Au téléphone, une RANGÉE par monstre, avec son nom.** La grille est à une
+colonne (`max-lg:grid-cols-1`) : portrait, **nom**, vitesse calée à droite,
+sets, badge de désynchronisation, et dessous le choix de section, à sa largeur
+naturelle ; l'anneau des catégories et la croix de retrait sont sur chaque
+rangée. Les colonnes de 210 px sont en `lg:` — `sm:` sort après `max-lg:` dans
+le CSS construit et reprendrait le dessus entre 640 et 1023 px.
 
 Ce qui suit décrit la **tuile de 150 px**, qui ne vaut plus qu'au format bureau
 avec un pointeur tactile (`compact:`, une tablette) :
 
 ⚠️ **Le nom du monstre n'y est pas affiché.** Sur deux colonnes de
 150 px, la ligne porte déjà la vitesse, le badge de désynchronisation et trois
-icônes de set : il ne restait au nom qu'une quarantaine de pixels, de quoi
+icônes de set : il ne resterait au nom qu'une quarantaine de pixels, de quoi
 afficher « Sath… » — qui ne distingue rien.
 
 Le **portrait** identifie le monstre bien mieux qu'un nom tronqué, et il est déjà
@@ -272,17 +267,17 @@ Sans cela il n'existerait plus nulle part sur téléphone.
 
 ⚠️ Dans le panneau d'affectation, un monstre sélectionné se marque par son
 **fond** teinté à la couleur de la catégorie, plus le liseré. La coche de 12 px
-posée dans son coin ne s'affiche plus **sous `lg`** : sur un portrait de 36 px
-elle en masquait un bout au doigt, là où le fond et le liseré disent déjà la
+posée dans son coin ne s'affiche pas **sous `lg`** : sur un portrait de 36 px
+elle en masquerait un bout au doigt, là où le fond et le liseré disent déjà la
 sélection — et le fond porte en outre la COULEUR de la catégorie, ce qu'une
-coche ne dit pas. Sur bureau elle reste, rien ne l'y gênant.
+coche ne dit pas. Sur bureau elle s'affiche, rien ne l'y gênant.
 
-⚠️ Le formulaire de catégorie devient un panneau **de second niveau** sous `lg`
-(`MobileSheet centre`), et reste une popup ancrée au-dessus. Une popup ancrée sur
+⚠️ Le formulaire de catégorie est un panneau **de second niveau** sous `lg`
+(`MobileSheet centre`), et une popup ancrée au-dessus. Une popup ancrée sur
 téléphone s'ouvre là où le doigt a tapé — souvent en haut de l'écran, hors de
-portée du pouce pour la valider — et flotte hors de tout cadre, d'où les
-débordements qu'il fallait rattraper à la mesure. Le formulaire est le **même JSX** dans les deux cas ; seuls le contenant et les
-tailles changent :
+portée du pouce pour la valider — et flotte hors de tout cadre, d'où des
+débordements à rattraper à la mesure. Le formulaire est le **même JSX** dans
+les deux cas ; seuls le contenant et les tailles changent :
 
 | | Bureau | Doigt |
 |---|---|---|
@@ -297,15 +292,15 @@ rangées se comparent d'un coup d'œil, là où trois rangées de quatre obliger
 à balayer.
 
 ⚠️ Il s'ouvre **depuis** le panneau « Options », donc **par-dessus** lui : voile
-opaque et `z-index` supérieur, sinon on voyait deux panneaux empilés, deux
+opaque et `z-index` supérieur, sinon on verrait deux panneaux empilés, deux
 titres et deux croix, sans savoir laquelle ferme quoi. Il est aussi **centré**
 verticalement et non collé en bas — ce n'est pas une liste d'actions qu'on
-parcourt du pouce mais un formulaire court, dont il ne restait qu'une bande sous
+parcourt du pouce mais un formulaire court, dont il ne resterait qu'une bande sous
 le clavier. Il paraît en fondu plutôt qu'en glissant : le glissement dit « je
 viens du bord », or celui-ci ne vient de nulle part, il interrompt.
 
 ⚠️ Les icônes de set sont **collées** et la ligne entière resserrée — **sous
-`sm` seulement**. À trois sets — le maximum — les écarts suffisaient à
+`sm` seulement**. À trois sets — le maximum — les écarts suffiraient à
 faire déborder la dernière icône de la carte. Elles restent lisibles au
 contact : ce sont des pastilles rondes cerclées, chacune se détache de sa
 voisine sans qu'il faille un blanc entre elles. Sur bureau la carte est deux
@@ -313,5 +308,4 @@ fois plus large : l'écart y tient sans rien coûter.
 
 ⚠️ Les icônes de set réservent `pr-3` sous `sm`. La croix de suppression est
 posée **sur** le coin haut-droit, hors du flux : rien ne la repousse, et la
-dernière icône passait dessous dès que le nom masqué eut libéré assez de place
-pour que les trois atteignent le bord.
+dernière icône passerait dessous dès que les trois atteignent le bord.

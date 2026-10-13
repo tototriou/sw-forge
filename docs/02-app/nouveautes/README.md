@@ -35,21 +35,19 @@ interface Release {
 }
 ```
 
-⚠️ **À la souris, une version = une rangée à deux colonnes** (refonte
-graphique, lot 10, la maquette) : à gauche le numéro, le statut (« Version
-actuelle », « Pas encore publiée »), la date et « GitHub ↗ » ; à droite le
-titre, les points mis en avant et les changements. Plus de carte : un filet
-sépare les versions, la pastille dit laquelle tourne. Libellés gardés
-(« Nouveau », « Correction » — la maquette écrivait « Correctif »). **Au
-doigt** (lot 11d, décision 27), le même filet entre les versions, plus de
-carte ; la ligne numéro · statut · date reste au-dessus du titre, faute de
+⚠️ **À la souris, une version = une rangée à deux colonnes** : à gauche le
+numéro, le statut (« Version actuelle », « Pas encore publiée »), la date et
+« GitHub ↗ » ; à droite le titre, les points mis en avant et les changements.
+Pas de carte : un filet sépare les versions, la pastille dit laquelle tourne.
+Libellés : « Nouveau », « Correction ». **Au doigt**, le même filet entre les
+versions ; la ligne numéro · statut · date est au-dessus du titre, faute de
 place pour deux colonnes.
 
 ### ⚠️ `version: null` — la version en préparation
 
 Une version se développe **sans savoir** si elle sortira en corrective ou en
 mineure : c'est ce qu'elle contient à la fin qui tranche. Écrire un numéro
-d'avance obligeait à le corriger en route, dans `package.json`, dans `releases.ts`
+d'avance obligerait à le corriger en route, dans `package.json`, dans `releases.ts`
 **et** dans le nom de la branche.
 
 `version: null` dit « pas encore fixé ». La page affiche alors **« En
@@ -58,7 +56,7 @@ numéro s'écrit **au moment de publier**, en même temps que `package.json` et 
 tag — un seul geste, un seul endroit où se tromper.
 
 `libelleVersion()` ([releases.ts](src/data/releases.ts)) porte le préfixe `v` :
-écrit en dur par l'appelant, il donnait « vEn préparation ». Les deux pages qui
+écrit en dur par l'appelant, il donnerait « vEn préparation ». Les deux pages qui
 affichent une version (**Nouveautés** et l'**accueil**) passent par elle.
 
 ⚠️ **Le bandeau « Quoi de neuf » de l'accueil montre la dernière version
@@ -71,9 +69,9 @@ montrer sur une version non déployée ferait croire au joueur qu'il l'utilise.
 
 ### ⚠️ Le lien « GitHub ↗ » n'est pas systématique
 
-Chaque entrée affiche un lien vers `/releases/tag/vX.Y.Z`. Il était écrit
-**inconditionnellement** : la **1.0.0**, publiée avant que le dépôt existe, n'a
-jamais eu de tag — le lien menait à un **404**.
+Chaque entrée affiche un lien vers `/releases/tag/vX.Y.Z`, sauf la **1.0.0** :
+publiée avant que le dépôt existe, elle n'a pas de tag, et le lien mènerait à
+un **404**.
 
 Le lien est masqué dans deux cas :
 
@@ -110,11 +108,6 @@ c'est le même geste, dans la même branche de release.
 
 ## Modèle de branches et processus de release
 
-> Ce processus vivait dans le [README](README.md) ; il a été **déplacé ici**.
-> Le README s'adresse à qui **découvre** le projet — le détail d'une procédure
-> interne n'y a pas sa place, et le maintenir à deux endroits garantissait d'en
-> laisser un se périmer.
-
 `main` est **toujours la version stable en ligne**. On n'y développe pas
 directement.
 
@@ -132,10 +125,10 @@ main ──●──────────────────────
 
 ### ⚠️ Une branche porte un SUJET, pas un numéro
 
-`release/1.3.1` devenait faux dès qu'on y ajoutait une fonctionnalité : il
-fallait renommer la branche **et** supprimer l'ancien nom sur le dépôt, sinon
-elle y figurait deux fois. On nommait la version avant de savoir ce qu'elle
-serait.
+`release/1.3.1` deviendrait faux dès qu'on y ajoute une fonctionnalité : il
+faudrait renommer la branche **et** supprimer l'ancien nom sur le dépôt, sinon
+elle y figurerait deux fois. On nommerait la version avant de savoir ce
+qu'elle sera.
 
 Une branche s'appelle donc **`<type>/<sujet>`**, comme un message de commit : le
 **type** dit ce que la branche va faire, avec les mots des commits (`feat`,
@@ -148,7 +141,7 @@ sur une branche hors de cette forme, sans la refuser.
 
 Si le sujet lui-même dérive au point que le nom ment (la branche « filtres »
 finit par refondre le bestiaire), renommer reste possible — mais c'est rare,
-alors qu'un numéro devenait faux au premier `feat`.
+alors qu'un numéro deviendrait faux au premier `feat`.
 
 ### ⚠️ Plusieurs sujets pour une même version : la branche d'intégration
 
@@ -156,15 +149,11 @@ Quand **plusieurs branches `<type>/<sujet>`** doivent partir ensemble — et
 que `main` porte déjà une version en préparation fusionnée par un autre
 contributeur — on ne les empile pas l'une sur l'autre : on crée une **branche
 d'intégration `release/vX.Y.Z`** depuis `origin/main`, **au moment où le
-numéro est connu** (c'est ce qui la distingue des anciennes `release/x.y.z`
-nommées avant de savoir), on y fusionne chaque `<type>/<sujet>` en merge
+numéro est connu**, on y fusionne chaque `<type>/<sujet>` en merge
 commit, on y fait l'étape 4 **une seule fois** (entrée unique dans
 `releases.ts` — deux entrées `version: null` deviennent une, pas deux
 entrées au même numéro — numéro dans `package.json`, `tsc`, lint,
-`npm test`, `build`), et c'est **elle** qui part en PR vers `main`. Vécu pour la
-v1.13.0 (2026-09-17) : deux branches `forge/<sujet>`
-fusionnées dans `release/v1.13.0`, par-dessus
-la version en préparation du speed tuning déjà sur `main`.
+`npm test`, `build`), et c'est **elle** qui part en PR vers `main`.
 
 ### Les cinq étapes
 
@@ -186,11 +175,8 @@ la version en préparation du speed tuning déjà sur `main`.
 
    ⚠️ **ENTIÈREMENT avant d’ouvrir la PR, et l’ordre n’est pas indicatif.**
    Tout commit poussé après l’ouverture fait TOMBER les approbations déjà
-   données : la revue repart de zéro, et il faut redemander à quelqu’un. Vécu
-   le 2026-09-03 sur la v1.12.0 — PR ouverte, approuvée par un autre
-   contributeur, puis le commit du numéro de version poussé par-dessus a
-   annulé cette approbation. Le merge est alors resté bloqué, pour un commit
-   d’une seule ligne que l’étape 4 demandait de faire AVANT.
+   données : la revue repart de zéro, et il faut redemander à quelqu’un —
+   pour un commit d’une seule ligne que l’étape 4 demande de faire AVANT.
 
    ⚠️ Le coût ne se voit pas sur soi : il tombe sur la personne à qui il faut
    redemander une revue déjà faite.
@@ -213,10 +199,8 @@ la version en préparation du speed tuning déjà sur `main`.
    ⚠️ **Le push direct sur `main` est REFUSÉ par le dépôt.** Une règle exige
    « at least 1 approving review by reviewers with write access » : un
    `git push origin main` échoue sur `GH013: Repository rule violations`,
-   même après un `merge --no-ff` local parfaitement valide. Cette étape
-   décrivait exactement cette manœuvre — elle a échoué en conditions réelles
-   le 2026-09-03, sur la v1.12.0. On passe donc par la PR, qui est le seul
-   chemin que la règle laisse ouvert.
+   même après un `merge --no-ff` local parfaitement valide. On passe donc par
+   la PR, qui est le seul chemin que la règle laisse ouvert.
 
    ⚠️ **L’émetteur de la PR ne peut pas l’approuver.** Quand elle est ouverte
    depuis le compte du propriétaire (ce que fait `gh pr create`), c’est un
@@ -256,12 +240,9 @@ classique enregistre ce lien : c'est ce qui rend l'état vérifiable.
 livré, sujet par sujet, et le détail des commits reste accessible sans dérouler
 l'historique de `main`. Le point de retour est le **tag**.
 
-Les branches `release/1.3.0`, `release/1.4.0` et `release/1.5.0` gardent leur
-ancien nom : les deux premières sont publiées et taguées, la troisième était
-commencée quand la convention a changé. La renommer n'aurait rien appris à
-personne — `forge/<sujet>` a valu pour les branches **créées ensuite**, puis
-`<type>/<sujet>` depuis le 2026-10-12 ; les branches `forge/…` déjà créées
-gardent leur nom.
+Les branches `release/1.3.0`, `release/1.4.0`, `release/1.5.0` et les branches
+`forge/…` gardent leur nom : la convention `<type>/<sujet>` vaut pour les
+branches créées après elle.
 
 ### Numérotation
 

@@ -2197,19 +2197,33 @@ function CounterRow({
       // `relative` : ancre du popover de précision. ⚠️ `z-20` quand il est
       // ouvert : les vignettes suivantes sont peintes APRÈS dans le flux et
       // passeraient sinon par-dessus le flottant.
-      <div className={`group relative min-w-0 rounded-lg border ${noteOuverte ? 'z-20' : ''} ${cran}`}>
+      <div className={`group relative flex min-w-0 items-center rounded-lg border ${noteOuverte ? 'z-20' : ''} ${cran}`}>
+        {aUneNote ? (
+          <ZoneCliquable
+            onClick={onToggleNote}
+            aria-expanded={noteOuverte}
+            className="flex flex-1 items-center rounded-lg px-2 py-1.5 transition hoverable:brightness-110"
+            title={noteOuverte ? 'Masquer la précision' : 'Voir la précision'}
+          >
+            {portraits}
+          </ZoneCliquable>
+        ) : (
+          <div className="flex-1 px-2 py-1.5">{portraits}</div>
+        )}
+
         {/* ⚠️ Une défense posée doit rester modifiable : sans le bouton
             « Éditer » du bloc, c'est la vignette qui porte son propre crayon.
             Discret (il ne se montre qu'au survol) pour ne pas alourdir une
             rangée qu'on parcourt du regard, mais TOUJOURS visible au tactile,
             où il n'y a pas de survol — voir la règle « un élément atteignable
             ne dépend jamais du survol » de docs/03-developpeur/interface/. */}
-        {/* ⚠️ `taille="serre"` + `cadre` + `auSurvol` : posé SUR le coin de la
-            vignette, hors du flux — agrandi par la règle tactile, il la
-            déborde et recouvre le portrait, même cas que la croix de
-            suppression d'une carte RTA. `auSurvol` reproduit exactement le
-            même trio de classes qu'avant (masqué au repos, visible au survol,
-            au focus, et D'OFFICE sans survol possible — voir BoutonIcone.tsx). */}
+        {/* ⚠️ **Dans le flux, au bout de la vignette, sa place réservée en
+            permanence.** Posé sur le coin (`absolute`), il recouvrait l'icône
+            d'élément du dernier portrait d'une vignette étroite — au doigt
+            toujours, à la souris au survol. Ici, rien ne bouge au survol :
+            `auSurvol` joue sur l'OPACITÉ (masqué au repos, visible au survol,
+            au focus, et D'OFFICE sans survol possible — voir BoutonIcone.tsx),
+            jamais sur la place, que le crayon garde même invisible. */}
         <BoutonIcone
           onClick={onToggleEdit}
           taille="serre"
@@ -2217,21 +2231,8 @@ function CounterRow({
           auSurvol
           icone={<Pencil size={10} />}
           libelle="Modifier cette défense"
-          className="absolute -right-1 -top-1 z-10"
+          className="mr-1.5 flex-none"
         />
-
-        {aUneNote ? (
-          <ZoneCliquable
-            onClick={onToggleNote}
-            aria-expanded={noteOuverte}
-            className="flex w-full items-center rounded-lg px-2 py-1.5 transition hoverable:brightness-110"
-            title={noteOuverte ? 'Masquer la précision' : 'Voir la précision'}
-          >
-            {portraits}
-          </ZoneCliquable>
-        ) : (
-          <div className="px-2 py-1.5">{portraits}</div>
-        )}
 
         {/* La précision, en POPOVER ancré sous SA vignette.
             ⚠️ Flottant et non posé dans le flux : il naît de son ancre, donc il

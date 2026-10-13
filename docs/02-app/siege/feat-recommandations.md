@@ -889,6 +889,12 @@ refermer) là où le geste réel est simplement « + ».
   alourdir une rangée qu'on parcourt du regard) mais **toujours visible au
   tactile** — voir la règle « un élément atteignable ne dépend jamais du survol »
   de [../../03-developpeur/interface/](../../03-developpeur/interface/).
+  ⚠️ **Il est DANS le flux, au bout de la vignette, et sa place est réservée
+  en permanence** (chantier `defauts-affichage`, décision 2a de
+  l'utilisateur, 2026-10-13). Posé sur le coin (`absolute`), il recouvrait
+  l'icône d'élément du dernier portrait d'une vignette étroite — au doigt
+  toujours, à la souris au survol. À la souris, masqué au repos, il garde
+  sa place : il ne joue que sur l'opacité, rien ne bouge au survol.
 - ⚠️ **L'index en édition est remis à `null` si le nombre de défenses change** :
   une défense supprimée laisserait l'édition pointer sur sa voisine, ou dans le
   vide.

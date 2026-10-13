@@ -191,7 +191,9 @@ Spec : [`docs/03-developpeur/interface/`](docs/03-developpeur/interface/).
 
 **Hors librairie mais partagés** (`src/components/`) : `Segmented`, `Switch`,
 `SearchBar`, `FilterBar`, `MonsterCard`, `MonsterGrid`, `MonsterPicker`,
-`MonsterAvatar`, `MonsterGear`, `MonsterDetailDialog`, `CreateMonster`,
+`MonsterAvatar` (⚠️ **le seul dessin** du portrait de monstre et de ses
+pastilles en coin, repères `data-portrait` / `data-pastille` compris),
+`MonsterGear`, `MonsterDetailDialog`, `CreateMonster`,
 `AccordionGrid`, `StatPanel`, `PieceDetail` (⚠️ **la coquille unique** des
 fiches de rune ET d'artéfact), `RuneIcon`, `RuneSlotIcon`, `RuneWheel`,
 `ArtifactIcon`, `ArtifactFrameIcon`, `ArtifactSlots`, `BoutonSensTri`, `ElementIcon`, `InventaireIcon`,

@@ -101,8 +101,31 @@ Normalisations notables dans le script :
 
 [MonsterAvatar.tsx](src/components/MonsterAvatar.tsx) : hexagone dégradé selon
 l'élément + image `monster.image` (repli sur les **initiales** si le monstre n'a
-pas d'image — cas des monstres perso), pastille d'élément en haut à droite, et
-un `children` pour poser d'autres badges dessus (lead, couronne…).
+pas d'image — cas des monstres perso). C'est le **seul** composant qui dessine
+un portrait de monstre ; seule la fiche de monstre (`MonsterDetailDialog`) a
+son propre cadre, sans pastille.
+
+**Pastilles**, une par coin, chacune nommée par une prop :
+
+| Coin | Pastille | Prop |
+|---|---|---|
+| haut droite | élément | `element`, `tailleElement` |
+| bas droite | exemplaires « ×N » (au-delà de 1) | `exemplaires` |
+| bas gauche | badge de lead (`LeadBadge`) | `lead`, `tailleLead` |
+| haut gauche | couronne du leader sans lead | `couronne` |
+
+Une pastille peut toucher son portrait, jamais le reste ni une autre pastille.
+
+**Deux gabarits de DOM** (`gabarit`), parce que les portraits factorisés
+avaient chacun le leur et que le DOM ne devait pas changer : `span` (défaut :
+taille `size` en style en ligne, `title` = le nom) et `div` (taille portée par
+le cadre en classes, `compact:` possible, sans `title` par défaut — cartes de
+la box, du RTA et du siège). Une paire de collab passe par `collab` (portrait
+partagé `CollabPortrait`, repli sur les initiales si l'image casse).
+
+**Repères dans le DOM**, pour le banc d'affichage : `data-portrait` sur la
+racine ; `data-pastille="element" | "exemplaires" | "lead" | "couronne"` sur
+l'élément positionné de chaque pastille, jamais sur une enveloppe.
 
 ⚠️ **Toute liste où l'on sélectionne un monstre doit afficher son portrait** :
 le **nom ne suffit pas à l'identifier**. Plusieurs entrées partagent nom *et*

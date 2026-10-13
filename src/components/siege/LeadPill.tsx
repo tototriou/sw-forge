@@ -76,6 +76,8 @@ export function LeadBadge({ ls, size = 22 }: { ls: LeaderSkill; size?: number })
   if (!icon) return null;
   return (
     <span
+      // Pastille d'un portrait : repère pour le banc (voir MonsterAvatar).
+      data-pastille="lead"
       className="absolute -bottom-1.5 -left-1.5 inline-flex items-center"
       title={leadTitle(ls)}
     >

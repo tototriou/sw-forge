@@ -110,6 +110,7 @@ import { testPreCommit } from './pre-commit.test';
 import { testCommitMsg } from './commit-msg.test';
 import { testVerifierCommits } from './verifier-commits.test';
 import { testRenvois, testRenvoisFormes } from './renvois.test';
+import { testLectureSource } from './lecture-source.test';
 import testCouleursCourbes from './courbe-couleurs.test';
 import testRechargement from './rechargement.test';
 import testCollabPaires from './collab-paires.test';
@@ -506,6 +507,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testVerifierCommits', testVerifierCommits],
   ['testRenvoisFormes', testRenvoisFormes],
   ['testRenvois', testRenvois],
+  ['testLectureSource', testLectureSource],
   ['testSetsIntangible', testSetsIntangible],
   ['testRuneTri', testRuneTri],
   ['testMonstreTri', testMonstreTri],

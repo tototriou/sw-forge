@@ -1,0 +1,1217 @@
+{
+  "_lisezmoi": [
+    "Références textuelles à src/ tolérées dans tests/ par tests/lecture-source.test.ts : une entrée par (fichier, cible), avec son nombre exact d’occurrences.",
+    "Statut stock : usage déjà présent à la révision 54f8c6d6, figé ; on le retire (ou le décompte) dans le commit qui retire l’usage, jamais on n’en ajoute. Statut exception : usage qui ne lit pas src/ (chemin factice, motif, cas de la garde) ; la justification dit pourquoi.",
+    "Plus ou moins d’occurrences que la liste, un usage absent de la liste ou une entrée dont l’usage a disparu font échouer le test.",
+    "Une cible d’un usage reconstitué avec une partie inconnue s’écrit avec * à la place de cette partie."
+  ],
+  "entrees": [
+    {
+      "fichier": "tests/artefact-file.test.ts",
+      "cible": "src/App.tsx",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/artefact-file.test.ts",
+      "cible": "src/components/outils/OptimizerSection.tsx",
+      "occurrences": 2,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/artefact-file.test.ts",
+      "cible": "src/hooks/useOptimizerState.ts",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/artifact-fiche.test.ts",
+      "cible": "src/components/outils/OptimizerSection.tsx",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/artifact-params-fiche.test.ts",
+      "cible": "src/components/outils/OptimizerSection.tsx",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/auras-ecran.test.ts",
+      "cible": "src/App.tsx",
+      "occurrences": 2,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/auras-ecran.test.ts",
+      "cible": "src/components/outils/EtatMonstre.tsx",
+      "occurrences": 3,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/auras-ecran.test.ts",
+      "cible": "src/components/outils/OptimizerSection.tsx",
+      "occurrences": 4,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/auras-ecran.test.ts",
+      "cible": "src/hooks/useOptimizerState.ts",
+      "occurrences": 2,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/auras-ecran.test.ts",
+      "cible": "src/lib/criteresOptimizer.ts",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/auras-ecran.test.ts",
+      "cible": "src/pages/OutilsPage.tsx",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/auras-modele.test.ts",
+      "cible": "src/components/outils/OptimizerSection.tsx",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc-selection.test.ts",
+      "cible": "src",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc-selection.test.ts",
+      "cible": "src/*",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc-selection.test.ts",
+      "cible": "src/App.tsx",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc-selection.test.ts",
+      "cible": "src/components/MobileTabs.tsx",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc-selection.test.ts",
+      "cible": "src/components/outils/SpeedTuneModale.tsx",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc-selection.test.ts",
+      "cible": "src/components/outils/SpeedTuningSection.tsx",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc-selection.test.ts",
+      "cible": "src/components/palette/recherchePalette.ts",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc-selection.test.ts",
+      "cible": "src/components/rta/",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc-selection.test.ts",
+      "cible": "src/components/rta/RtaCard.tsx",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc-selection.test.ts",
+      "cible": "src/components/Sidebar.tsx",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc-selection.test.ts",
+      "cible": "src/components/TopBar.tsx",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc-selection.test.ts",
+      "cible": "src/data/releases.ts",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc-selection.test.ts",
+      "cible": "src/hooks/useMonsters.ts",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc-selection.test.ts",
+      "cible": "src/index.css",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc-selection.test.ts",
+      "cible": "src/lib/crafts",
+      "occurrences": 2,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc-selection.test.ts",
+      "cible": "src/lib/crafts.ts",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc-selection.test.ts",
+      "cible": "src/lib/craftsExtra.ts",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc-selection.test.ts",
+      "cible": "src/lib/damage.ts",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc-selection.test.ts",
+      "cible": "src/lib/speedTuneLignes.ts",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc-selection.test.ts",
+      "cible": "src/main.tsx",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc-selection.test.ts",
+      "cible": "src/pages/ComingSoon.tsx",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc-selection.test.ts",
+      "cible": "src/pages/HomePage.tsx",
+      "occurrences": 2,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc-selection.test.ts",
+      "cible": "src/pages/MechanicsPage.tsx",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc-selection.test.ts",
+      "cible": "src/ui/",
+      "occurrences": 2,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc-selection.test.ts",
+      "cible": "src/ui/a/b.tsx",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc-selection.test.ts",
+      "cible": "src/ui/Button.tsx",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc-selection.test.ts",
+      "cible": "src/ui/index.ts",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc-selection.test.ts",
+      "cible": "src/uiX/a.tsx",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc/ecrans.ts",
+      "cible": "src/App",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc/ecrans.ts",
+      "cible": "src/components/account/",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc/ecrans.ts",
+      "cible": "src/components/account/Pager",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc/ecrans.ts",
+      "cible": "src/components/AccountImportControl",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc/ecrans.ts",
+      "cible": "src/components/ElementIcon",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc/ecrans.ts",
+      "cible": "src/components/FilterBar",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc/ecrans.ts",
+      "cible": "src/components/IconesSystemes",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc/ecrans.ts",
+      "cible": "src/components/MobileNavSheet",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc/ecrans.ts",
+      "cible": "src/components/MobileTabs",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc/ecrans.ts",
+      "cible": "src/components/MonsterDetailDialog",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc/ecrans.ts",
+      "cible": "src/components/MonsterGrid",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc/ecrans.ts",
+      "cible": "src/components/outils/",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc/ecrans.ts",
+      "cible": "src/components/outils/SpeedTuneModale",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc/ecrans.ts",
+      "cible": "src/components/Palette",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc/ecrans.ts",
+      "cible": "src/components/palette/",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc/ecrans.ts",
+      "cible": "src/components/rta/",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc/ecrans.ts",
+      "cible": "src/components/SearchBar",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc/ecrans.ts",
+      "cible": "src/components/SettingsMenu",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc/ecrans.ts",
+      "cible": "src/components/Sidebar",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc/ecrans.ts",
+      "cible": "src/components/siege/",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc/ecrans.ts",
+      "cible": "src/components/TopBar",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc/ecrans.ts",
+      "cible": "src/data/releases",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc/ecrans.ts",
+      "cible": "src/hooks/useBuildOptimSearch",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc/ecrans.ts",
+      "cible": "src/hooks/useOptimizer*",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc/ecrans.ts",
+      "cible": "src/hooks/useRta*",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc/ecrans.ts",
+      "cible": "src/hooks/useSiege*",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc/ecrans.ts",
+      "cible": "src/hooks/useSpeedTune",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc/ecrans.ts",
+      "cible": "src/index.css",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc/ecrans.ts",
+      "cible": "src/lib/accountStore",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc/ecrans.ts",
+      "cible": "src/lib/accountViews",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc/ecrans.ts",
+      "cible": "src/lib/bureau",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc/ecrans.ts",
+      "cible": "src/lib/crafts",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc/ecrans.ts",
+      "cible": "src/lib/monsterSort",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc/ecrans.ts",
+      "cible": "src/lib/ownedBuilds",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc/ecrans.ts",
+      "cible": "src/lib/reco*",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc/ecrans.ts",
+      "cible": "src/lib/rtaShare",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc/ecrans.ts",
+      "cible": "src/lib/runeBuildOptim",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc/ecrans.ts",
+      "cible": "src/lib/runeOptim",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc/ecrans.ts",
+      "cible": "src/lib/runeSort",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc/ecrans.ts",
+      "cible": "src/lib/siegeStatut",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc/ecrans.ts",
+      "cible": "src/lib/speedTune*",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc/ecrans.ts",
+      "cible": "src/pages/AccountPage",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc/ecrans.ts",
+      "cible": "src/pages/BestiaryPage",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc/ecrans.ts",
+      "cible": "src/pages/ComingSoon",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc/ecrans.ts",
+      "cible": "src/pages/HomePage",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc/ecrans.ts",
+      "cible": "src/pages/MechanicsPage",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc/ecrans.ts",
+      "cible": "src/pages/OutilsPage",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc/ecrans.ts",
+      "cible": "src/pages/ReleasesPage",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc/ecrans.ts",
+      "cible": "src/pages/RtaPage",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc/ecrans.ts",
+      "cible": "src/pages/SettingsPage",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc/ecrans.ts",
+      "cible": "src/pages/SiegePage",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc/ecrans.ts",
+      "cible": "src/pages/TelechargerPage",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc/ecrans.ts",
+      "cible": "src/ui/",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc/ecrans.ts",
+      "cible": "src/workers/",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/banc/selection.ts",
+      "cible": "src/",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/blade-dancers.test.ts",
+      "cible": "src/components/outils/DamageSetupCard.tsx",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/blade-dancers.test.ts",
+      "cible": "src/components/outils/OptimizerSection.tsx",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/blade-dancers.test.ts",
+      "cible": "src/lib/damage.ts",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/blade-surge-propagation.test.ts",
+      "cible": "src/components/outils/DamageSetupCard.tsx",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/blade-surge-propagation.test.ts",
+      "cible": "src/components/outils/OptimizerSection.tsx",
+      "occurrences": 2,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/buffs-de-passif.test.ts",
+      "cible": "src",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/buffs-de-passif.test.ts",
+      "cible": "src/components/outils/EtatMonstre.tsx",
+      "occurrences": 2,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/buffs-de-passif.test.ts",
+      "cible": "src/components/outils/OptimizerSection.tsx",
+      "occurrences": 2,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/calcul-partiel.test.ts",
+      "cible": "src/components/outils/DamageSetupCard.tsx",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/calcul-partiel.test.ts",
+      "cible": "src/components/outils/DamageSetupModale.tsx",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/calcul-partiel.test.ts",
+      "cible": "src/components/outils/EtatMonstre.tsx",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/calcul-partiel.test.ts",
+      "cible": "src/components/outils/OptimizerSection.tsx",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/calcul-partiel.test.ts",
+      "cible": "src/lib/damage.ts",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/composition-page.test.ts",
+      "cible": "src/components/outils/BuildCandidateCard.tsx",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/composition-page.test.ts",
+      "cible": "src/components/outils/OptimizerSection.tsx",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/compte-affichable.test.ts",
+      "cible": "src/components/outils/OptimizerSection.tsx",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/compte-confirme.test.ts",
+      "cible": "src/components/outils/OptimizerSection.tsx",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/file-k.test.ts",
+      "cible": "src/components/outils/OptimizerSection.tsx",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/file-k.test.ts",
+      "cible": "src/hooks/useArtifactOptimQueue.ts",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/file-voie.test.ts",
+      "cible": "src/hooks/useArtifactOptimQueue.ts",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/import-reco-copies.test.ts",
+      "cible": "src/components/siege/RecoBoard.tsx",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/lecture-source.test.ts",
+      "cible": "src",
+      "occurrences": 1,
+      "statut": "exception",
+      "justification": "Cas de la garde elle-même : sources d’essai et cibles attendues, jamais lus dans src/."
+    },
+    {
+      "fichier": "tests/lecture-source.test.ts",
+      "cible": "src/a.ts",
+      "occurrences": 5,
+      "statut": "exception",
+      "justification": "Cas de la garde elle-même : sources d’essai et cibles attendues, jamais lus dans src/."
+    },
+    {
+      "fichier": "tests/lecture-source.test.ts",
+      "cible": "src/b.ts",
+      "occurrences": 2,
+      "statut": "exception",
+      "justification": "Cas de la garde elle-même : sources d’essai et cibles attendues, jamais lus dans src/."
+    },
+    {
+      "fichier": "tests/lecture-source.test.ts",
+      "cible": "src/lib",
+      "occurrences": 1,
+      "statut": "exception",
+      "justification": "Cas de la garde elle-même : sources d’essai et cibles attendues, jamais lus dans src/."
+    },
+    {
+      "fichier": "tests/lecture-source.test.ts",
+      "cible": "src/lib/*",
+      "occurrences": 1,
+      "statut": "exception",
+      "justification": "Cas de la garde elle-même : sources d’essai et cibles attendues, jamais lus dans src/."
+    },
+    {
+      "fichier": "tests/lecture-source.test.ts",
+      "cible": "src/lib/*.ts",
+      "occurrences": 1,
+      "statut": "exception",
+      "justification": "Cas de la garde elle-même : sources d’essai et cibles attendues, jamais lus dans src/."
+    },
+    {
+      "fichier": "tests/lecture-source.test.ts",
+      "cible": "src/lib/a.ts",
+      "occurrences": 9,
+      "statut": "exception",
+      "justification": "Cas de la garde elle-même : sources d’essai et cibles attendues, jamais lus dans src/."
+    },
+    {
+      "fichier": "tests/lecture-source.test.ts",
+      "cible": "src/x.ts",
+      "occurrences": 18,
+      "statut": "exception",
+      "justification": "Cas de la garde elle-même : sources d’essai et cibles attendues, jamais lus dans src/."
+    },
+    {
+      "fichier": "tests/lecture-source.test.ts",
+      "cible": "src/y.ts",
+      "occurrences": 1,
+      "statut": "exception",
+      "justification": "Cas de la garde elle-même : sources d’essai et cibles attendues, jamais lus dans src/."
+    },
+    {
+      "fichier": "tests/lecture-source.test.ts",
+      "cible": "src/z",
+      "occurrences": 1,
+      "statut": "exception",
+      "justification": "Cas de la garde elle-même : sources d’essai et cibles attendues, jamais lus dans src/."
+    },
+    {
+      "fichier": "tests/liste-exemplaires.test.ts",
+      "cible": "src/components/outils/OptimizerSection.tsx",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/liste-exemplaires.test.ts",
+      "cible": "src/hooks/useOptimizerState.ts",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/navigation.test.ts",
+      "cible": "src/components/Sidebar.tsx",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/optimizer-backup.test.ts",
+      "cible": "src/App.tsx",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/optimizer-criteres-caracterisation.test.ts",
+      "cible": "src/components/outils/OptimizerSection.tsx",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/optimizer-criteres.test.ts",
+      "cible": "src/components/outils/OptimizerSection.tsx",
+      "occurrences": 2,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/optimizer-criteres.test.ts",
+      "cible": "src/hooks/useOptimizerState.ts",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/optimizer-criteres.test.ts",
+      "cible": "src/lib/criteresOptimizer.ts",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/optimizer-criteres.test.ts",
+      "cible": "src/lib/sessionOptimizer.ts",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/optimizer-criteres.test.ts",
+      "cible": "src/pages/OutilsPage.tsx",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/optimizer-damage-transitions.test.ts",
+      "cible": "src/App.tsx",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/optimizer-damage-transitions.test.ts",
+      "cible": "src/components/outils/OptimizerSection.tsx",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/optimizer-damage-transitions.test.ts",
+      "cible": "src/hooks/useOptimizerState.ts",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/optimizer-damage-transitions.test.ts",
+      "cible": "src/lib/damage.ts",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/optimizer-exclusion.test.ts",
+      "cible": "src/hooks/useSiegeState.ts",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/optimizer-import-navigation.test.ts",
+      "cible": "src/App.tsx",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/optimizer-member-storage.test.ts",
+      "cible": "src/App.tsx",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/optimizer-rattachement.test.ts",
+      "cible": "src/App.tsx",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/optimizer-recipe-import-selection.test.ts",
+      "cible": "src/components/outils/OptimizerSection.tsx",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/optimizer-transition-banc.ts",
+      "cible": "src/hooks/useOptimizerState.ts",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/proses-sort.test.ts",
+      "cible": "src/components/outils/DamageSetupCard.tsx",
+      "occurrences": 2,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/proses-sort.test.ts",
+      "cible": "src/components/outils/EffetVignette.tsx",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/proses-sort.test.ts",
+      "cible": "src/ui/Option.tsx",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/recette-cles-identifiant.test.ts",
+      "cible": "src/lib/optimizerRecipe.ts",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/relic-exclusive.test.ts",
+      "cible": "src/components/outils/OptimizerSection.tsx",
+      "occurrences": 2,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/rendu/optimizer-bandes.test.ts",
+      "cible": "src/components/outils/OptimizerLeadInactif.tsx",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/rendu/optimizer-bandes.test.ts",
+      "cible": "src/index.css",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/rendu/optimizer-navigable-banc.ts",
+      "cible": "src/index.css",
+      "occurrences": 2,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/rendu/rta-reco-export.test.ts",
+      "cible": "src/App.tsx",
+      "occurrences": 3,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/rendu/rta-reco-export.test.ts",
+      "cible": "src/components/siege/RecoBoard.tsx",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/rendu/rta-reco-export.test.ts",
+      "cible": "src/pages/OutilsPage.tsx",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/rendu/rta-reco-export.test.ts",
+      "cible": "src/pages/RtaPage.tsx",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/rendu/rta-reco-export.test.ts",
+      "cible": "src/pages/SiegePage.tsx",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/rendu/siege-export.test.ts",
+      "cible": "src/App.tsx",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/rendu/siege-export.test.ts",
+      "cible": "src/components/siege/SiegeBoard.tsx",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/rendu/siege-export.test.ts",
+      "cible": "src/pages/SiegePage.tsx",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/rendu/speed-tune-export.test.ts",
+      "cible": "src/App.tsx",
+      "occurrences": 3,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/rendu/speed-tune-export.test.ts",
+      "cible": "src/components/siege/SiegeBoard.tsx",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/rendu/speed-tune-export.test.ts",
+      "cible": "src/pages/OutilsPage.tsx",
+      "occurrences": 2,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/renvois.test.ts",
+      "cible": "src",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/renvois.test.ts",
+      "cible": "src/@absent.ts",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/renvois.test.ts",
+      "cible": "src/a.ts",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/renvois.test.ts",
+      "cible": "src/café.ts",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/renvois.test.ts",
+      "cible": "src/lib/x.ts",
+      "occurrences": 10,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/renvois.test.ts",
+      "cible": "src/lib/y.ts",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/renvois.test.ts",
+      "cible": "src/x+y.ts",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/resolution-distante.test.ts",
+      "cible": "src/components/outils/OptimizerSection.tsx",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/resolution-distante.test.ts",
+      "cible": "src/hooks/useArtifactOptimQueue.ts",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/resolution-distante.test.ts",
+      "cible": "src/workers/resolutionDistante.ts",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/resolution-partagee.test.ts",
+      "cible": "src/components/outils/OptimizerSection.tsx",
+      "occurrences": 2,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/resolution-worker.test.ts",
+      "cible": "src/workers/resolution.worker.ts",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/resolution-worker.test.ts",
+      "cible": "src/workers/resolutionBody.ts",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/rune-optim-dominance-lignes.test.ts",
+      "cible": "src/components/outils/OptimizerSection.tsx",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/selection.test.ts",
+      "cible": "src/",
+      "occurrences": 1,
+      "statut": "exception",
+      "justification": "Entrées du sélecteur de vérifications : chemins factices (dépôts d’essai) ou nommés pour classer, jamais lus comme texte."
+    },
+    {
+      "fichier": "tests/selection.test.ts",
+      "cible": "src/**/*.{ts,tsx}",
+      "occurrences": 1,
+      "statut": "exception",
+      "justification": "Entrées du sélecteur de vérifications : chemins factices (dépôts d’essai) ou nommés pour classer, jamais lus comme texte."
+    },
+    {
+      "fichier": "tests/selection.test.ts",
+      "cible": "src/components/outils/OptimizerSection.tsx",
+      "occurrences": 3,
+      "statut": "exception",
+      "justification": "Entrées du sélecteur de vérifications : chemins factices (dépôts d’essai) ou nommés pour classer, jamais lus comme texte."
+    },
+    {
+      "fichier": "tests/selection.test.ts",
+      "cible": "src/config.txt",
+      "occurrences": 3,
+      "statut": "exception",
+      "justification": "Entrées du sélecteur de vérifications : chemins factices (dépôts d’essai) ou nommés pour classer, jamais lus comme texte."
+    },
+    {
+      "fichier": "tests/selection.test.ts",
+      "cible": "src/index.css",
+      "occurrences": 1,
+      "statut": "exception",
+      "justification": "Entrées du sélecteur de vérifications : chemins factices (dépôts d’essai) ou nommés pour classer, jamais lus comme texte."
+    },
+    {
+      "fichier": "tests/selection.test.ts",
+      "cible": "src/lib.ts",
+      "occurrences": 2,
+      "statut": "exception",
+      "justification": "Entrées du sélecteur de vérifications : chemins factices (dépôts d’essai) ou nommés pour classer, jamais lus comme texte."
+    },
+    {
+      "fichier": "tests/selection.test.ts",
+      "cible": "src/lib/essai-sans-classe.ts",
+      "occurrences": 1,
+      "statut": "exception",
+      "justification": "Entrées du sélecteur de vérifications : chemins factices (dépôts d’essai) ou nommés pour classer, jamais lus comme texte."
+    },
+    {
+      "fichier": "tests/selection.test.ts",
+      "cible": "src/lib/notes-essai.md",
+      "occurrences": 2,
+      "statut": "exception",
+      "justification": "Entrées du sélecteur de vérifications : chemins factices (dépôts d’essai) ou nommés pour classer, jamais lus comme texte."
+    },
+    {
+      "fichier": "tests/selection.test.ts",
+      "cible": "src/profond.ts",
+      "occurrences": 8,
+      "statut": "exception",
+      "justification": "Entrées du sélecteur de vérifications : chemins factices (dépôts d’essai) ou nommés pour classer, jamais lus comme texte."
+    },
+    {
+      "fichier": "tests/selection.test.ts",
+      "cible": "src/profond2.ts",
+      "occurrences": 2,
+      "statut": "exception",
+      "justification": "Entrées du sélecteur de vérifications : chemins factices (dépôts d’essai) ou nommés pour classer, jamais lus comme texte."
+    },
+    {
+      "fichier": "tests/selection.test.ts",
+      "cible": "src/ui/BarreActions.tsx",
+      "occurrences": 1,
+      "statut": "exception",
+      "justification": "Entrées du sélecteur de vérifications : chemins factices (dépôts d’essai) ou nommés pour classer, jamais lus comme texte."
+    },
+    {
+      "fichier": "tests/selection.test.ts",
+      "cible": "src/ui/Bouton.tsx",
+      "occurrences": 2,
+      "statut": "exception",
+      "justification": "Entrées du sélecteur de vérifications : chemins factices (dépôts d’essai) ou nommés pour classer, jamais lus comme texte."
+    },
+    {
+      "fichier": "tests/selection.test.ts",
+      "cible": "src/ui/BoutonGroupe.tsx",
+      "occurrences": 1,
+      "statut": "exception",
+      "justification": "Entrées du sélecteur de vérifications : chemins factices (dépôts d’essai) ou nommés pour classer, jamais lus comme texte."
+    },
+    {
+      "fichier": "tests/selection.ts",
+      "cible": "src/",
+      "occurrences": 1,
+      "statut": "exception",
+      "justification": "Le sélecteur classe les fichiers modifiés par préfixe (`src/`, `src/index.css`) ; ce sont des motifs, pas une lecture."
+    },
+    {
+      "fichier": "tests/selection.ts",
+      "cible": "src/index.css",
+      "occurrences": 1,
+      "statut": "exception",
+      "justification": "Le sélecteur classe les fichiers modifiés par préfixe (`src/`, `src/index.css`) ; ce sont des motifs, pas une lecture."
+    },
+    {
+      "fichier": "tests/speed-tune.test.ts",
+      "cible": "src/hooks/useSpeedTune.ts",
+      "occurrences": 5,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/verifier-toutes.test.ts",
+      "cible": "src/components/outils/OptimizerSection.tsx",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/verifier-toutes.test.ts",
+      "cible": "src/hooks/useOptimizerState.ts",
+      "occurrences": 1,
+      "statut": "stock"
+    }
+  ]
+}

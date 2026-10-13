@@ -2414,8 +2414,13 @@ function TableauDefenses({
     const deck = reco.decks[deckIndex];
     const st = match?.decks[deckIndex]?.status ?? 'unknown';
     const leader = monstre(deck.slots[0]?.com2usId ?? null);
+    // ⚠️ `compact:gap-y-2` : au doigt, la boîte du bouton d'export fait 40 px
+    // (règle tactile) ; renvoyé à la ligne, il commençait 4 px sous les
+    // portraits quand le badge de lead du leader en descend de 6 — 2 px du
+    // bouton ne répondaient plus au toucher. 8 px d'écart suffisent ; le badge
+    // ne change pas. À la souris, le bouton reste sur la ligne : rien ne change.
     return (
-      <li key={deckIndex} className="flex flex-wrap items-center gap-x-2 gap-y-1" data-offense-contre>
+      <li key={deckIndex} className="flex flex-wrap items-center gap-x-2 gap-y-1 compact:gap-y-2" data-offense-contre>
         <span className={`h-2 w-2 flex-none rounded-full ${DOT[st]}`} aria-hidden />
         <span className="flex flex-none items-center gap-1" title={deckLabel(deck, monsterByCom2us, deckIndex)}>
           {deck.slots.map((sl, i) => (

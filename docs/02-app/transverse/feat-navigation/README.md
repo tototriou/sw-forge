@@ -37,7 +37,7 @@ Fichiers : [Sidebar.tsx](src/components/Sidebar.tsx),
 
 | Document | Contenu |
 | --- | --- |
-| [barre-laterale-et-adresses.md](barre-laterale-et-adresses.md) | Pourquoi une barre latérale, et ce que lit la barre d'adresse (routage par hash, `parseHash`). |
+| [barre-laterale-et-adresses.md](barre-laterale-et-adresses.md) | La barre latérale et son premier niveau regroupé, l'ordre des pages, et ce que lit la barre d'adresse (routage par hash, `parseHash`). |
 | [navigation-seule.md](navigation-seule.md) | La règle centrale : la page ne change qu'au choix d'une destination, jamais en ouvrant une section. |
 | [niveaux-et-repli.md](niveaux-et-repli.md) | Les trois niveaux de « Mon compte », le repli à deux états, pas d'aperçu au survol. |
 | [recherche-et-palette.md](recherche-et-palette.md) | La recherche de navigation en tête de la barre et la palette Ctrl K. |

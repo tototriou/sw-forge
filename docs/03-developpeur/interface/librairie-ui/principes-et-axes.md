@@ -2,26 +2,9 @@
 
 Partie de [Librairie UI](README.md).
 
-## Le problème que ce dossier résout
-
-Avant lui, chaque écran redessinait ses boutons. Un même bouton d'action existait
-en une quarantaine d'exemplaires, chacun avec ses classes recopiées puis
-divaguées : rembourrages différents à deux pixels près, deux rayons de coin,
-trois façons de dire « désactivé ».
-
-La conséquence n'était pas esthétique mais **économique** : demander « réduis les
-boutons sur téléphone » voulait dire refaire le même travail dans dix-sept
-fichiers, et en oublier trois.
-
-Une tentative avait déjà eu lieu, sous forme d'un fichier de **constantes de
-classes** (`buttonStyles.ts`). Elle a échoué, et il faut savoir pourquoi :
-
-> ⚠️ **Une constante de classes se contourne, un composant non.** Sept fichiers
-> importaient `BOUTON_PRIMAIRE`, quarante dessinaient des boutons à la main. Rien
-> ne s'opposait à recopier la chaîne en y ajoutant « juste un `px-2` pour ce
-> cas » — et la divergence repartait. Un composant impose sa structure : la
-> hauteur tactile, la pression au clic, l'état désactivé ne sont plus négociables
-> au point d'appel.
+Pourquoi une librairie de composants plutôt que des constantes de classes, et
+pourquoi des axes plutôt que des variantes nommées :
+[librairie-ui-par-axes.md](../../../04-decisions/adr/librairie-ui-par-axes.md).
 
 ## La règle qui gouverne tout le reste
 
@@ -32,17 +15,8 @@ classes** (`buttonStyles.ts`). Elle a échoué, et il faut savoir pourquoi :
 
 ## Des AXES, pas un catalogue de variantes
 
-C'est la décision structurante de cette librairie, et elle a été prise **contre**
-un premier jet qui nommait ses styles par intention (`principal`, `discret`,
-`destructeur`…).
-
-Ce premier jet ne tient pas : dès qu'un écran veut un bouton d'ajout **en
-pointillés**, il faut une cinquième entrée. Puis une sixième pour la même chose
-en rouge. Puis une septième pour la version sans fond. Le catalogue grossit d'une
-ligne à chaque écran neuf, et les combinaisons manquantes se règlent en
-`className` — c'est-à-dire par le contournement qu'on cherchait à empêcher.
-
-Les axes se **choisissent séparément et se combinent** :
+C'est la décision structurante de cette librairie. Les axes se **choisissent
+séparément et se combinent** :
 
 | Axe | Valeurs | Ce qu'il décide |
 |-----|---------|-----------------|

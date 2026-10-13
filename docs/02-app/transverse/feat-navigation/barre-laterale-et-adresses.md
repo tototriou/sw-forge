@@ -2,19 +2,11 @@
 
 Partie de [Navigation](README.md).
 
-## Pourquoi une barre latérale
+## La barre latérale
 
-L'ancienne navigation était une **rangée horizontale** avec deux menus
-déroulants (« Mon compte », « Ressources ») et un bouton hamburger de repli.
-
-- ⚠️ **Le problème n'était pas esthétique : la rangée ne tenait plus.** Neuf
-  destinations, dont **six enfouies** derrière les deux menus — qu'il fallait
-  ouvrir pour savoir ce qu'ils contenaient.
-- ⚠️ **Un intitulé de groupe n'est PAS un lien.** « Ressources » annonce ce qui
-  suit, il ne mène nulle part. Le menu déroulant confondait les deux.
-- La **mécanique de mesure** de l'ancienne barre a disparu avec elle : trois
-  `ref`, un `ResizeObserver` et un `useLayoutEffect` décidaient quand replier la
-  rangée en hamburger. Une barre verticale ne déborde pas.
+À l'ordinateur, la navigation est une barre latérale. Pourquoi elle a remplacé
+la rangée d'onglets et ses menus déroulants :
+[barre-laterale.md](../../../04-decisions/adr/barre-laterale.md).
 
 ### ⚠️ L'ordre d'importance ne change pas
 

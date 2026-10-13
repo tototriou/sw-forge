@@ -4,13 +4,9 @@ SW Blacksmith est **une seule application responsive** — une base de code, un
 déploiement. Mais elle vise **deux plateformes** : le téléphone et
 l'ordinateur, et **aucune des deux n'est le cas dégradé de l'autre**.
 
-⚠️ La différence avec un site responsive ordinaire tient là : on ne dessine pas
-un écran pour le bureau qu'on rétrécit ensuite. Chaque format a ses gestes, ses
-contraintes et ses habitudes, et le même écran peut s'y présenter différemment
-quand ces contraintes divergent.
-
 C'est la règle de cadre : **elle prime sur tout arbitrage d'interface**, et toute
-spec de page se lit avec elle en tête.
+spec de page se lit avec elle en tête. Pourquoi ce choix, et ce qu'il écarte :
+[deux-formats-de-premier-rang.md](../../04-decisions/adr/deux-formats-de-premier-rang.md).
 
 ## La conséquence pratique
 
@@ -148,13 +144,3 @@ qu'on ne voit pas, puisqu'on ne regarde jamais les deux largeurs en même temps.
 3. **Le contenu est-il écrit une seule fois ?**
 4. **Les deux rendus sont-ils documentés** dans la spec de la page, avec la
    raison de leur différence ?
-
-## Ce que cela prépare
-
-L'objectif est de **servir les deux plateformes également bien** — un jour peut-
-être empaquetées séparément (application mobile installable, application de
-bureau), mais la base reste commune et responsive.
-
-D'où l'exigence : chaque format doit pouvoir évoluer sans que l'autre bouge, et
-chaque écran doit être **pensé deux fois** plutôt qu'une fois puis étiré. C'est
-un travail supplémentaire assumé, pas une redondance à éliminer.

@@ -476,6 +476,11 @@ Deux pièces, reprises telles quelles :
   lieu de sauter. Constante `SPIN` dans
   [RuneSlotIcon.tsx](src/components/RuneSlotIcon.tsx) (300 ms, `ease-out`),
   partagée avec la roue de [MonsterGear.tsx](src/components/MonsterGear.tsx).
+- ⚠️ **La boîte de l'image contient le cadre pivoté.** Pivoté de 60° ou 120°,
+  le cadre est plus large que debout (7 px de chaque côté à 30 px de haut,
+  8,5 à 36) : la racine de `RuneSlotIcon` s'élargit d'autant de chaque côté,
+  et deux marges négatives égales le rendent aux voisins. Cadre, symbole et
+  texte de la tuile ne bougent pas (chantier `defauts-affichage`, lot 5).
 
 ## Onglet Courbes — `RunesCurve`
 

@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="fr" data-attendu-page="non">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover">
+<title>Texte SVG</title>
+<style>
+  body { margin: 8px; font: 12px sans-serif; }
+  svg { display: block; margin: 16px 0; background: #eee; }
+</style>
+</head>
+<body>
+<!-- Non signalé : copie de CurveChart, la légende de l'axe des ordonnées pivotée de -90° autour de son point
+     d'ancrage. Son dessin (14 px de large) tient dans le graphe ; l'avance du texte non pivoté, que Chromium rend
+     par `scrollWidth`, n'a rien à voir avec ce qui est dessiné. -->
+<svg id="pivote-svg" width="300" height="200" data-attendu="">
+  <text id="pivote-texte" x="15" y="100" text-anchor="middle" font-size="11" font-family="monospace" transform="rotate(-90 15 100)" data-attendu="">Efficience moyenne (%)</text>
+</svg>
+<!-- Non signalé : un texte horizontal qui tient dans son graphe. -->
+<svg id="tient-svg" width="300" height="40" data-attendu="">
+  <text id="tient-texte" x="10" y="20" font-size="11" font-family="monospace" data-attendu="">Nombre de runes</text>
+</svg>
+<!-- Signalé : un texte horizontal plus long que son graphe ; `textLength` fixe son dessin à 150 px, de 10 à 160,
+     pour un graphe de 100 px. -->
+<svg id="long-svg" width="100" height="40" data-attendu="">
+  <text id="long-texte" x="10" y="20" font-size="11" font-family="monospace" textLength="150" lengthAdjust="spacingAndGlyphs" data-attendu="contenu" data-attendu-depassement="60">Un libellé bien trop long</text>
+</svg>
+<!-- Signalé : la même légende pivotée, ancrée à 305 px dans un graphe de 300 : son dessin sort à droite. -->
+<svg id="bord-svg" width="300" height="200" data-attendu="">
+  <text id="bord-texte" x="305" y="100" text-anchor="middle" font-size="11" font-family="monospace" transform="rotate(-90 305 100)" data-attendu="contenu">Efficience moyenne (%)</text>
+</svg>
+</body>
+</html>

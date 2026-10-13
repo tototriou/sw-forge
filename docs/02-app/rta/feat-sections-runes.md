@@ -46,6 +46,10 @@ section ; « Tous » les rend toutes.
   son filet qui délimitent la section. Même gabarit pour les sections de la
   prépa d'un ami (`RtaFriendView`).
 - Vide → « Glisse des monstres ici ». Sinon grille de cartes responsive.
+  ⚠️ La grille garde à droite la place de la croix « Retirer » d'une carte du
+  bord, qui dépasse de 5 px (`pr-[5px] -mr-[5px]`) : le rembourrage la met
+  dans la boîte de la grille, la marge négative le rend au conteneur ;
+  colonnes et cartes ne bougent pas (chantier `defauts-affichage`, lot 5).
 - **Cible de drop** : au survol d'un drag, le cadre apparaît — **1 px à la
   couleur d'accent** (la bordure, transparente au repos, prend la teinte : rien
   ne bouge) — sur un fond `panel2` léger (compteur enter/leave pour éviter le
@@ -285,6 +289,18 @@ par nom. (Le tri ne dépend pas des leads.)
 
 La croix du coin haut-droit d'une carte demande une **confirmation**
 (`ConfirmDialog`), sur les deux formats.
+
+**Repère dans le DOM**, pour le banc d'affichage : `data-bouton-coin="retirer-rta"`
+sur le `<button>` positionné de la croix (exception « bouton en coin » de
+`tests/banc/mesure.ts` : son dépassement sur la carte est voulu).
+
+Position : `-right-1.5` (5 px hors de la carte, place gardée par la grille) ;
+`-top-1.5` sous `lg`, `lg:-top-3` au-dessus. ⚠️ Sur la carte de l'ordinateur,
+la croix monte de 6 px, centre sur le bord haut : plus bas, elle recouvrait
+la dernière icône de set. Pas sur la rangée du téléphone : 6 px seulement la
+séparent de la rangée du dessus, et la croix montée mordrait sur le coin de
+celle-ci (chantier `defauts-affichage`, lot 5 ; position au téléphone en
+attente d'une décision).
 
 ⚠️ Elle n'en demandait aucune : le monstre partait au premier contact. Or cette
 croix est posée **sur le coin de la carte**, à quelques pixels du portrait qu'on

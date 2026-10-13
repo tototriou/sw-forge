@@ -240,7 +240,15 @@ export default function RtaCard({
         fond="plein"
         auSurvol
         icone={<X size={12} />}
-        className="absolute -top-1.5 -right-1.5 shadow"
+        // Repère du banc d'affichage (tests/banc/mesure.ts, « bouton en
+        // coin ») : le dépassement de ce coin sur la carte est voulu. Posé sur
+        // le `<button>` positionné lui-même ; le retirer rend ses signalements.
+        data-bouton-coin="retirer-rta"
+        // `lg:-top-3` : sur la carte de l'ordinateur, la croix monte de 6 px
+        // (centre sur le bord haut) et ne recouvre plus la dernière icône de
+        // set. Pas sous `lg` : la rangée y est séparée de la précédente par
+        // 6 px seulement, la croix montée mordrait sur la carte du dessus.
+        className="absolute -top-1.5 -right-1.5 shadow lg:-top-3"
       />
       </div>
     </div>

@@ -69,16 +69,6 @@ partagées, dont la navigation et le pied de page, dans
   Analytics a été **retirée, du site comme de l'application de bureau** :
   rien ne quitte le navigateur, ce que dit le « 100 % local ». ⚠️ Ne pas la réintroduire sans
   décision : elle n'aurait de toute façon aucun sens dans l'app de bureau.
-- **Vérifications automatiques** — `npm test`
-  ([tests/README.md](tests/README.md)) : calculs, intégration, rendu des
-  composants (le sens, jamais la forme) et outillage ; aucune ne pilote un
-  navigateur ni ne simule une interaction. À chaque pull request vers `main`
-  ou une branche `release/*`, l'action `.github/workflows/tests.yml` lance
-  sous Windows les garde-fous de commit sur chaque commit, les types
-  (`npx tsc --noEmit`), le lint (`npm run lint`), la suite complète et le
-  build ; les tests qui lisent un export de compte réel, non suivi, y sont
-  ignorés. Lint, hooks et garde-fous :
-  [qualite-code.md](qualite-code.md).
 - **Un type partagé entre l'écran et un script (recette exportable, etc.) a
   PLUSIEURS constructeurs — un champ ajouté doit être répercuté dans TOUS.**
   ⚠️ **Écueil** : un champ optionnel ajouté à `OptimizerRecipe`

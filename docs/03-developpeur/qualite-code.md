@@ -116,6 +116,13 @@ Test : `node tests/run.mjs commitmsg`.
 
 ## Garde-fous rejoués en CI
 
+À chaque pull request vers `main` ou une branche `release/**`,
+`.github/workflows/tests.yml` tourne **sous Windows** et enchaîne, dans cet
+ordre : les garde-fous de commit sur chaque commit, les types
+(`npx tsc --noEmit`), le lint (`npm run lint`), la suite complète (`npm test`)
+et le build. Ce que couvre la suite, et les vérifications ignorées faute
+d'export de compte réel : [tests/README.md](../../tests/README.md).
+
 `--no-verify` reste possible en local, pas dans la CI : l'étape « Garde-fous
 de commit » de `.github/workflows/tests.yml`, sur chaque pull request, lance
 `node scripts/verifier-commits.mjs <base> <tête>` avant l'installation des

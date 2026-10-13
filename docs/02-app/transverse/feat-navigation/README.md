@@ -30,6 +30,7 @@ Fichiers : [Sidebar.tsx](src/components/Sidebar.tsx),
 | la largeur maximale du contenu | [largeur-du-contenu.md](largeur-du-contenu.md) |
 | le bouton « Options » et le panneau d'actions au téléphone, `src/ui/MobileSheet.tsx` | [panneau-actions-mobile.md](panneau-actions-mobile.md) |
 | la règle tactile de `src/index.css` | [densite-au-doigt.md](densite-au-doigt.md) |
+| le pied de page de `src/App.tsx` | [pied-de-page.md](pied-de-page.md) |
 
 ## Parties
 
@@ -46,3 +47,4 @@ Fichiers : [Sidebar.tsx](src/components/Sidebar.tsx),
 | [largeur-du-contenu.md](largeur-du-contenu.md) | La largeur du contenu, sans plafond à 1180 px. |
 | [panneau-actions-mobile.md](panneau-actions-mobile.md) | Le bouton « Options » et le panneau d'actions qui monte au téléphone. |
 | [densite-au-doigt.md](densite-au-doigt.md) | Les deux paliers de la règle tactile. |
+| [pied-de-page.md](pied-de-page.md) | Le pied de page : une rangée au bureau, une colonne au téléphone, mentions et liens. |

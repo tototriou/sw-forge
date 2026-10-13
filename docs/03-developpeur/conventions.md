@@ -1,8 +1,8 @@
 # Conventions communes
 
-Les règles qui valent pour toutes les pages : la règle de cadre, les conventions communes, le
-shell applicatif. La carte des pages et leur ordre sont dans
-[02-app/](../02-app/README.md) ; les fonctionnalités partagées dans
+Les règles qui valent pour toutes les pages : la règle de cadre et les conventions communes. La
+carte des pages et leur ordre sont dans [02-app/](../02-app/README.md) ; les fonctionnalités
+partagées, dont la navigation et le pied de page, dans
 [02-app/transverse/](../02-app/transverse/README.md) ; l'interface dans
 [interface/](interface/README.md).
 
@@ -286,7 +286,7 @@ shell applicatif. La carte des pages et leur ordre sont dans
   d'en-tête. Le dégradé encre → braise (`title-gradient`) a été retiré au
   rebranding (décision 57), comme la toile.
 - **Responsive** : nav desktop en pilules ; menu hamburger sur mobile (`< sm`)
-  **et dès que la barre ne tient plus sur une ligne** (voir « Shell applicatif »).
+  **et dès que la barre ne tient plus sur une ligne**.
   Le drag & drop natif ne fonctionne pas au tactile → chaque zone drag propose
   un **sélecteur de repli** (déplacer une carte / changer une position).
   - ⚠️ **Chantier connu, assumé** : sur petit écran, les barres de filtres et les
@@ -308,48 +308,3 @@ shell applicatif. La carte des pages et leur ordre sont dans
   ([documentation.md](documentation.md)). `invariants.md` est un index :
   une règle modifiée se modifie dans sa source ET dans l'index, dans le
   même commit.
-
-## Shell applicatif
-
-Le cadre commun (nav, routing par hash, footer) vit dans
-[App.tsx](src/App.tsx) :
-
-- **Pied de page — une rangée, comme la toile** (rebranding R4, le mainteneur : « le
-  pied de page commence à être vraiment gros ») : au bureau, logo à gauche,
-  mentions au centre (données locales ; © Com2uS, source SWARFARM, projet non
-  officiel), liens à droite, **en colonne** (GitHub, version, Discord ; le mainteneur :
-  « met sur une colonne le github la version et le discord ») — 79 px de haut,
-  il empilait cinq lignes. Au téléphone, une colonne centrée : logo, liens sur
-  une ligne en libellés courts (« GitHub », « Discord »), mentions. Police du
-  texte, plus la mono. Liens en encre secondaire, braise au survol ; mentions
-  en encre tertiaire (la toile) ; au bureau, la colonne de liens se cale à
-  droite mais ses lignes s'alignent à gauche, pour que les icônes restent
-  dans l'axe.
-- Routing par `window.location.hash` (`parseHash()`, dans `App.tsx`), pas de router externe.
-- Nav desktop (pilules) + nav repliée (hamburger qui se referme à la navigation),
-  avec le bouton d'import global + lien « Supprimer mes données » à droite / dans le menu.
-- **Repli de la barre du haut — mesuré, pas fixé à un breakpoint.** ⚠️ La barre
-  ne doit **jamais passer à deux lignes** : si les onglets + import + réglages ne
-  tiennent pas sur une ligne, on bascule sur le **hamburger**, à n'importe quelle
-  largeur d'écran. Un seuil en dur serait périmé au prochain onglet ajouté — or
-  on en ajoute à chaque section.
-  - La nav est en **`flex-nowrap`** : c'est son débordement qui doit déclencher
-    le repli, pas un retour à la ligne silencieux.
-  - La rangée desktop **reste montée même repliée** (hauteur nulle) : c'est elle
-    qui mesure la largeur disponible. La largeur nécessaire est **mémorisée**
-    (`neededRef`) pendant qu'on est déplié — une fois replié, la nav n'est plus
-    là pour être mesurée, et sans cette mémoire on ne saurait jamais redéployer.
-  - Mesure en **`useLayoutEffect` + `ResizeObserver`** (sur la rangée *et* sur la
-    nav, dont le contenu peut s'élargir sans que la rangée bouge : police chargée
-    après coup). Décidé avant peinture → pas d'image de barre débordante.
-- **Bestiaire**, **Mécaniques** et **Nouveautés** sont regroupés sous un menu **« Ressources »**
-  (dropdown en desktop, section dans le menu mobile).
-- **« Mon compte »** est lui aussi un **dropdown de nav** (mêmes mécaniques que
-  Ressources) : sous-liens **Monstres / Runes / Artéfacts** → routes `#/compte`,
-  `#/compte/runes`, `#/compte/artefacts`. Le bouton reste actif sur toute
-  sous-section.
-- Fusion `monstres officiels + monstres perso` (`allMonsters`) passée à RTA & Siège.
-- États RTA & siège (défense/offense) **instanciés ici** puis passés en prop, pour
-  qu'un import global les alimente tous. `importAccount(text)` orchestre les 3 ;
-  `clearAllData()` efface tout.
-- Footer : rappel « données 100 % locales » ; crédit Com2uS / source SWARFARM.

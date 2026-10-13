@@ -21,7 +21,7 @@ dans [CLAUDE.md](../../CLAUDE.md), qui importe AGENTS.md — pas ici.
 
 | Document | Contenu |
 | --- | --- |
-| [conventions.md](conventions.md) | Les règles valables pour toutes les pages : règle de cadre, conventions communes (saisie, persistance, réglages, champs numériques…), shell applicatif. |
+| [conventions.md](conventions.md) | Les règles valables pour toutes les pages : règle de cadre, conventions communes (saisie, persistance, réglages, champs numériques…). |
 | [interface/](interface/README.md) | Dessiner un écran : deux formats de premier rang, système visuel (thèmes, tokens), composants partagés de `src/ui/`. |
 | [optimizer/](optimizer/README.md) | Le moteur de l'Optimizer : recherche des runes, artéfacts, reliques, parallélisation, diagnostics, harnais et vérification. |
 | [qualite-code.md](qualite-code.md) | Le lint du code (ESLint) : règles bloquantes et avertissements, où il tourne ; forme du message de commit (hook `commit-msg`) ; niveaux d'application, refus du `pre-commit`, installation des hooks (à la main et à `npm install`) ; garde-fous rejoués sur chaque commit en CI. |

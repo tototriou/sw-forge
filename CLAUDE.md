@@ -6,8 +6,8 @@ touche — à lire **avant** tout travail.
 
 @AGENTS.md
 
-Les **conventions communes à toutes les pages** (saisie, persistance, réglages, champs numériques,
-shell applicatif…) sont importées ci-dessous pour être présentes pendant l'écriture — leur source
+Les **conventions communes à toutes les pages** (saisie, persistance, réglages, champs
+numériques…) sont importées ci-dessous pour être présentes pendant l'écriture — leur source
 lisible reste [docs/03-developpeur/conventions.md](docs/03-developpeur/conventions.md).
 
 @docs/03-developpeur/conventions.md

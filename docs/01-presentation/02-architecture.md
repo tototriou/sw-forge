@@ -68,10 +68,10 @@ Fichier central, gros et volontairement : il tient tout ce qui doit être partag
   et garde-fou : [feat-navigation/barre-laterale-et-adresses.md](../02-app/transverse/feat-navigation/barre-laterale-et-adresses.md).
 - **Nav** : barre latérale (`Sidebar`), barre supérieure (`TopBar`), onglets mobiles
   (`MobileTabs`), recherche de nav (`SidebarSearch`).
-- **Repli de la barre supérieure : mesuré, pas fixé à un breakpoint** (`useLayoutEffect` +
-  `ResizeObserver`).
 - **États instanciés ici puis passés en prop** : `useRtaState`, `useSiegeState`, `useSiegeRecos`,
   `useOptimizerState`, `useMonsters`, `useCustomMonsters`.
+- **Fusion des monstres officiels et des monstres perso** (`allMonsters`), passée aux pages qui
+  en ont besoin (RTA, Siège, Mon compte, Outils).
 - **Import de compte global** (`importAccount`) et **`clearAllData()`**.
 - **Sauvegarde de session** (`sauvegarderSession`, `sauvegarderSessionSous`, Ctrl+S) :
   [transverse/feat-sauvegarde-session.md](../02-app/transverse/feat-sauvegarde-session.md).

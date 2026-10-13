@@ -9,7 +9,10 @@ Affiche une ligne par vérification et sort en code 1 si l'une échoue. Les
 tronqué (celui de la CI) les montre quand même.
 
 `node tests/run.mjs <filtre>` ne lance que les vérifications dont le nom
-correspond (voir [index.ts](index.ts)).
+correspond (voir [index.ts](index.ts)), plusieurs filtres possibles. Le
+filtre se compare au nom mis à plat : `speed-tune`, `speedtune` et
+`SpeedTune` marchent tous. Un filtre qui ne correspond à rien échoue en
+listant les noms disponibles, jamais en ne testant rien.
 
 ## Ce qui est couvert
 

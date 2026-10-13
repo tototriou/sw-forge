@@ -83,14 +83,6 @@ partagées, dont la navigation et le pied de page, dans
   vient d'éditer ; un `tsc` propre ne le détecte jamais, puisque l'appel
   reste valide, juste incomplet. Les constructeurs connus : skill
   `optimizer-field-propagation`.
-- **Footer** — trois informations, dans cet ordre :
-  0. **Version** `vX.Y.Z` (depuis `package.json`), **cliquable** vers `#/releases`.
-  1. **Signature** : lien vers le dépôt GitHub (`github.com/tototriou/sw-forge`)
-     et **lien vers le serveur Discord** (`discord.gg/R2Fe4GJZET`) pour les
-     questions et demandes. ⚠️ Un **lien vers le serveur**, pas un pseudo : un
-     pseudo se recopie à la main et ne mène nulle part au clic.
-  2. Rappel que les données restent locales.
-  3. Crédit Com2uS / SWARFARM.
 - **Données 100 % locales** : le footer rappelle que toutes les données restent
   en local. **« Tout supprimer »** efface les clés `localStorage`
   `swblacksmith-*` (prépa RTA, équipes de siège, recommandations, catégories,

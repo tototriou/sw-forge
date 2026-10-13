@@ -585,13 +585,13 @@
     {
       "fichier": "tests/blade-dancers.test.ts",
       "cible": "src/components/outils/OptimizerSection.tsx",
-      "occurrences": 1,
+      "occurrences": 2,
       "statut": "stock"
     },
     {
       "fichier": "tests/blade-dancers.test.ts",
       "cible": "src/lib/damage.ts",
-      "occurrences": 1,
+      "occurrences": 2,
       "statut": "stock"
     },
     {
@@ -679,6 +679,36 @@
       "statut": "stock"
     },
     {
+      "fichier": "tests/critique-moyenne-supprime.test.ts",
+      "cible": "src/components/outils/OptimizerSection.tsx",
+      "occurrences": 2,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/degats-coups-saisis.test.ts",
+      "cible": "src/components/outils/DamageSetupCard.tsx",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/degats-garanties-bornes.test.ts",
+      "cible": "src/components/outils/DamageSetupCard.tsx",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/degats-tempest.test.ts",
+      "cible": "src/components/outils/DamageSetupCard.tsx",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/degats-vit-atq-cible.test.ts",
+      "cible": "src/components/outils/DamageSetupCard.tsx",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
       "fichier": "tests/file-k.test.ts",
       "cible": "src/components/outils/OptimizerSection.tsx",
       "occurrences": 1,
@@ -747,7 +777,7 @@
     {
       "fichier": "tests/lecture-source.test.ts",
       "cible": "src/lib/a.ts",
-      "occurrences": 9,
+      "occurrences": 10,
       "statut": "exception",
       "justification": "Cas de la garde elle-même : sources d’essai et cibles attendues, jamais lus dans src/."
     },
@@ -781,6 +811,12 @@
     {
       "fichier": "tests/liste-exemplaires.test.ts",
       "cible": "src/hooks/useOptimizerState.ts",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/migration-stockage.test.ts",
+      "cible": "src",
       "occurrences": 1,
       "statut": "stock"
     },
@@ -889,6 +925,12 @@
     {
       "fichier": "tests/optimizer-transition-banc.ts",
       "cible": "src/hooks/useOptimizerState.ts",
+      "occurrences": 1,
+      "statut": "stock"
+    },
+    {
+      "fichier": "tests/prose-stats-combat.test.ts",
+      "cible": "src/components/outils/DamageSetupCard.tsx",
       "occurrences": 1,
       "statut": "stock"
     },

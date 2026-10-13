@@ -30,6 +30,9 @@
 //   `git add src/x.ts` n'est pas comptée) ;
 // - une valeur dont le début est inconnu (`racine + '/src/x'` avec `racine`
 //   importée ou passée en paramètre) vaut `*/src/x` et n'est PAS comptée ;
+// - le seul `.replace(…)` suivi est le correctif de lettre de lecteur Windows
+//   (regex contenant `[A-Za-z]:`) ; tout autre `.replace`/`.slice` rend la
+//   valeur inconnue ;
 // - une constante `let`, une propriété d'objet, un résultat d'appel de
 //   fonction du dépôt ne sont pas suivis ;
 // - un usage se compte une fois à sa construction, pas à chaque emploi de la
@@ -145,6 +148,11 @@ export function releverCibles(fichier: string, texte: string): string[] {
         return v === undefined ? undefined : posix.dirname(v);
       }
       if (nom === 'fileURLToPath' && n.arguments.length === 1) return evaluer(n.arguments[0]);
+      // Correctif de lettre de lecteur Windows (`.replace(/^\/([A-Za-z]:)/, '$1')`) : le chemin reste le même.
+      if (nom === 'replace' && ts.isPropertyAccessExpression(n.expression) && n.arguments.length === 2
+        && ts.isRegularExpressionLiteral(n.arguments[0]) && n.arguments[0].text.includes('[A-Za-z]:')) {
+        return evaluer(n.expression.expression);
+      }
       if (nom === 'cwd' && n.arguments.length === 0) return '.';
     }
     return undefined;
@@ -291,6 +299,8 @@ function formes(): void {
   egal(r(`const R = join(dirname(fileURLToPath(import.meta.url)), '..'); readFileSync(join(R, 'src', 'a.ts'));`),
     ['src/a.ts'], 'racine reconstituée depuis import.meta.url, constante suivie');
   egal(r(`new URL('../src/lib/a.ts', import.meta.url);`), ['src/lib/a.ts'], 'new URL(…, import.meta.url) depuis tests/');
+  egal(r(`const racine = resolve(new URL('..', import.meta.url).pathname.replace(/^\\/([A-Za-z]:)/, '$1')); readFileSync(resolve(racine, 'src/lib/a.ts'));`),
+    ['src/lib/a.ts'], 'racine par new URL(\'..\').pathname + correctif de lecteur Windows');
   egal(r(`new URL('../../src/lib/a.ts', import.meta.url);`, 'tests/rendu/x.ts'), ['src/lib/a.ts'], 'import.meta.url vaut le fichier analysé (sous-dossier)');
   egal(r(`new URL('../src/lib/a.ts', import.meta.url);`, 'tests/rendu/x.ts'), [], 'même URL depuis un sous-dossier : tests/src/…, pas src/');
   egal(r(`readFileSync(fileURLToPath(new URL('../src/a.ts', import.meta.url)));`), ['src/a.ts'], 'fileURLToPath(new URL(…))');

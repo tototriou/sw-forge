@@ -10,7 +10,7 @@
 //   droite (`right > L`) ou à gauche (`left < 0`), sauf s'il est dans un
 //   défilement voulu ou dans un ancêtre qui le coupe ;
 // - chevauchement : réservée aux éléments qui bénéficient de l'exception
-//   « icône en coin » (plus bas), sa contrepartie.
+//   « pastille du portrait » (plus bas), sa contrepartie.
 //
 // Définitions :
 //
@@ -130,37 +130,52 @@
 //   sa géométrie : sortir de la fenêtre reste signalé. Rien ne se soustrait
 //   en `direction: rtl`. Un `translate` que l'élément porte déjà reste en
 //   place et compte (un décalage de 2 px au-delà de la marge reste signalé) ;
-// - icône en coin (l'icône d'élément de `MonsterAvatar`, `absolute -top-1
-//   -right-1`) : son contact avec SON bloc contenant (l'avatar) est permis,
-//   jamais avec le reste. Elle SEULE : décision D11 de l'utilisateur, aucune
-//   généralisation à un autre élément absolu à décalage négatif (bouton en
-//   coin, halo, superposition `-inset-px`), qui se mesure comme les autres.
-//   · Qui en bénéficie : l'icône d'élément, reconnue ici sans toucher
-//     `src/` — un `<img>` dont la source résolue (`img.src`, URL absolue) se
-//     termine par `/elements/<nom>.png` (src/components/ElementIcon.tsx). Si le chemin
-//     d'image change, la signature ne la reconnaît plus et ses signalements
-//     reviennent : la panne va du côté prudent. Elle doit être en
-//     `position: absolute`, avec un décalage `right` DÉCLARÉ négatif —
-//     valeur calculée qui n'est pas le mot-clé `auto` (`computedStyleMap`) ;
-//     sa valeur en px est celle de `getComputedStyle`. Relevé (sonde du
-//     lot 5, Chromium du banc) : un `right: auto` dont la valeur utilisée est
+// - pastille du portrait (`MonsterAvatar` : icône d'élément, badge « lead »,
+//   nombre d'exemplaires) : son contact avec SON portrait est permis, jamais
+//   avec le reste — ni un ancêtre au-delà du portrait, ni une autre pastille,
+//   ni la couronne, ni rien d'autre que ce qui est dessiné dans le cadre du
+//   portrait. Décisions D11 et D15 de l'utilisateur ; aucune généralisation à
+//   un autre élément absolu à décalage négatif (bouton en coin, halo,
+//   superposition `-inset-px`), qui se mesure comme les autres.
+//   · Qui en bénéficie : un élément qui porte le repère `data-pastille` posé
+//     par `src/` (MonsterAvatar.tsx, ElementIcon.tsx, siege/LeadPill.tsx),
+//     sur l'élément positionné lui-même, avec une valeur de la liste
+//     explicite PASTILLES_RECONNUES : `element`, `lead`, `exemplaires`. PAS
+//     `couronne` (D15 : la couronne n'est pas posée sur le portrait) : elle
+//     se mesure comme tout élément, son dépassement compte, et elle est « le
+//     reste » pour les pastilles. Rien n'est reconnu par son image ni par sa
+//     forme : une icône d'élément sans repère se mesure comme les autres (son
+//     dépassement compte), et un repère retiré de `src/` rend ses
+//     signalements — la panne va du côté prudent.
+//   · Son portrait : l'ancêtre `[data-portrait]` le plus proche. Il doit être
+//     AUSSI son bloc contenant (la chaîne des blocs contenants, plus haut) ;
+//     sinon, rien ne s'applique : une pastille enveloppée dans un cadre
+//     positionné se mesure comme les autres.
+//   · Conditions : la pastille est en `position: absolute`, avec au moins un
+//     décalage horizontal (`left` ou `right`) DÉCLARÉ négatif — valeur
+//     calculée qui n'est pas le mot-clé `auto` (`computedStyleMap`) ; sa
+//     valeur en px est celle de `getComputedStyle`. Relevé (sonde du lot 5,
+//     Chromium du banc) : un `right: auto` dont la valeur utilisée est
 //     négative (`left: 0` et une largeur trop grande) rend `-6px` par
 //     `getComputedStyle` mais `auto` par `computedStyleMap` — ce n'est pas
-//     un décalage voulu, son dépassement reste entier. Son bloc contenant
-//     doit être `body` ou un descendant, de direction `ltr`, et ne doit ni
-//     couper ni défiler sur AUCUN des deux axes (`overflow-x` et `overflow-y`
-//     calculés `visible` ; `overflow-y: clip` seul rogne le haut de l'icône —
-//     relecture Codex n° 6, tests/banc/cas/coin-rogne-y.html) : une icône
-//     rognée par son avatar est un vrai défaut, il reste signalé (décision de
+//     un décalage voulu, son dépassement reste entier. Son portrait est de
+//     direction `ltr`, et ne coupe ni ne défile sur AUCUN des deux axes
+//     (`overflow-x` et `overflow-y` calculés `visible` ; `overflow-y: clip`
+//     seul rogne le haut de l'icône — relecture Codex n° 6,
+//     tests/banc/cas/coin-rogne-y.html) : une pastille rognée par son
+//     portrait est un vrai défaut, il reste signalé (décision de
 //     l'utilisateur). Sinon, rien ne se soustrait et la règle
 //     « chevauchement » ne s'applique pas.
 //   · Côté par côté : document LTR, seul le côté droit entre dans
-//     `scrollWidth` ; un `left` négatif ne diminue rien (le dépassement à
-//     gauche n'est pas compté), et `top`/`bottom` sont hors de l'axe mesuré.
-//   · Contact : le dépassement que l'élément impose à son bloc contenant est
+//     `scrollWidth`. Seul un décalage `right` déclaré négatif se soustrait ;
+//     un `left` négatif (le badge « lead », `-left-1.5`) ne diminue rien —
+//     le dépassement à gauche n'est pas compté — mais suffit à faire de
+//     l'élément une pastille, soumise au chevauchement ; `top`/`bottom` sont
+//     hors de l'axe mesuré.
+//   · Contact : le dépassement que la pastille impose à son portrait est
 //     diminué EXACTEMENT de son décalage droit ; ce qui dépasse encore est
 //     signalé (tolérance de 1 px). Au second passage, pour la seule relecture
-//     de son bloc contenant, son décalage est ramené à 0 (`right: 0`, avec
+//     de son portrait, son décalage est ramené à 0 (`right: 0`, avec
 //     `transition: none`, et sa largeur figée à sa valeur calculée quand
 //     `left` vaut `auto`, pour qu'une largeur `auto` ne prenne pas la place
 //     rendue). `translate` ne convient pas ici : relevé (sonde du lot 5),
@@ -170,26 +185,32 @@
 //     `right` et `width` déclarés) : le navigateur ignore `right` en LTR, le
 //     ramener à 0 ne change rien, et rien ne se soustrait — ce dépassement
 //     ne vient pas du décalage.
-//   · Jamais avec le reste : aucun ancêtre AU-DELÀ du bloc contenant, `html`
+//   · Jamais avec le reste : aucun ancêtre AU-DELÀ du portrait, `html`
 //     compris, n'en profite — son dépassement se compte en entier ; la
-//     géométrie de l'élément ne change pas. Et la règle « chevauchement » :
-//     la boîte de l'élément (`getBoundingClientRect`, premier passage) ne
+//     géométrie de la pastille ne change pas. Et la règle « chevauchement » :
+//     la boîte de la pastille (`getBoundingClientRect`, premier passage) ne
 //     coupe celle d'aucun élément visible (au sens plus haut, `visibility`
-//     visible) DU MÊME PLAN qui n'est ni un de ses ancêtres ni le contenu en
-//     flux de son bloc contenant — coupe : intersection de plus de 1 px de
-//     large ET de haut. Contenu en flux (le portrait) : un descendant du bloc
-//     qu'on rejoint sans passer par un élément `absolute` ou `fixed`
-//     positionné par rapport au bloc lui-même ou au-delà — en flux, ou
-//     positionné dans un cadre qui est lui-même contenu du portrait (la
-//     seconde moitié du portrait d'un jumeau collab, `absolute inset-0` dans
-//     le cadre `relative` du portrait, `CollabPortrait.tsx`). Une pastille ou
-//     un badge positionné contre l'avatar (passé en `children` à
-//     `MonsterAvatar`) est « le reste » et se compare (relecture Codex n° 5,
-//     tests/banc/cas/coin-pastille.html). Même plan : le même ancêtre (l'élément compris) le plus
+//     visible) DU MÊME PLAN qui n'est ni un de ses ancêtres, ni un de ses
+//     descendants, ni le contenu de son portrait — coupe : intersection de
+//     plus de 1 px de large ET de haut. Contenu du portrait (D14 : ce qui est
+//     dessiné dans le cadre du portrait en fait partie) : le CADRE — premier
+//     élément enfant du portrait, en flux (ni `absolute` ni `fixed`), sans
+//     `data-pastille` : la structure fixe de MonsterAvatar, dont les deux
+//     gabarits posent le cadre hexagonal en premier et les pastilles après —
+//     et ses descendants, sauf une pastille (toute valeur de `data-pastille`,
+//     couronne comprise) et ce qu'elle contient. La seconde moitié du
+//     portrait d'un jumeau collab (`absolute inset-0` dans le cadre,
+//     `CollabPortrait.tsx`) en fait donc partie. Tout autre descendant du
+//     portrait est « le reste » et se compare : une autre pastille (deux
+//     pastilles d'un même portrait ne se touchent pas, D15), la couronne,
+//     un élément sans repère, enveloppé ou non dans un cadre positionné
+//     (relectures Codex n° 5 et 17, tests/banc/cas/coin-pastille.html,
+//     pastille-*.html). Sans cadre reconnu, le portrait n'a pas de contenu :
+//     tout se compare. Même plan : le même ancêtre (l'élément compris) le plus
 //     proche en `position: fixed` ou `sticky`, ou aucun pour les deux. Une
 //     barre ou un en-tête fixe ou collant, une modale, passent au-dessus du
-//     contenu qui défile sous eux : leurs boîtes se coupent sans que l'icône
-//     y soit pour rien (relevé du lot 5 : 81 coupes de ce genre dans l'app,
+//     contenu qui défile sous eux : leurs boîtes se coupent sans que la
+//     pastille y soit pour rien (relevé du lot 5 : 81 coupes de ce genre dans l'app,
 //     barre basse du bestiaire, en-tête, modales de « Dégâts réels »).
 //     ⚠️ Limite acceptée (relecture Codex n° 12) : un bloc `sticky` est un
 //     plan à part même quand il n'est pas collé et reste à sa place normale,
@@ -218,14 +239,14 @@
 // `mesurer` (la capture suit la mesure). Trois temps, chacun ne posant que
 // les neutralisations qui valent pour ce qu'il relit : (1) marges négatives
 // seules, la page ; (2) en plus décoratifs coupés et zones de toucher, les
-// éléments qui ne sont le bloc contenant d'aucune icône en coin ; (3) en plus
-// les icônes en coin, chaque bloc contenant d'une icône — avec les seules
-// icônes dont il est le bloc (relu à part s'il contient une icône d'un autre
-// bloc). Neutralisations : décoratif coupé, `display: none` posé en ligne
+// éléments qui ne sont le portrait d'aucune pastille à décalage droit ; (3) en
+// plus ces pastilles, chacun de leurs portraits — avec les seules pastilles
+// dont il est le portrait (relu à part s'il contient une pastille d'un autre
+// portrait). Neutralisations : décoratif coupé, `display: none` posé en ligne
 // avec `!important` ; zone de toucher, une feuille de style ajoutée le temps
 // de la lecture (`.cible-tactile::after { display: none !important }`) ;
-// marge négative, `margin-left`/`margin-right` en ligne avec `!important` ; icône en
-// coin, `right: 0` en ligne avec `!important` (voir plus haut). Le
+// marge négative, `margin-left`/`margin-right` en ligne avec `!important` ;
+// pastille, `right: 0` en ligne avec `!important` (voir plus haut). Le
 // signalement garde ses valeurs du premier passage ;
 // `depassement` porte celui qui reste, `page.relue` la largeur de page relue.
 // Remise en état : chaque neutralisation en ligne pose aussi `transition:
@@ -250,9 +271,9 @@
 // - Décoratif : le contrôle « son retrait ne déplace aucune boîte » ne voit
 //   ni le texte nu ni les pseudo-éléments ; retirer le décoratif peut faire
 //   tenir un texte voisin qui débordait.
-// - Icône en coin, reconnue par son image et non par un repère du portrait :
-//   une icône d'élément hors d'un portrait en bénéficie aussi ; une pastille
-//   enveloppée dans un cadre `relative` de l'avatar compte comme portrait.
+// - Pastille du portrait : le cadre est reconnu par sa place (premier enfant
+//   du portrait), faute de repère qui lui soit propre ; un élément posé avant
+//   lui dans le portrait deviendrait le cadre, et le vrai cadre « le reste ».
 //   Un rognage par `contain: paint` n'exclut pas l'exception.
 // - Chevauchement : sous `transform: scale`, les zones de coupe sont
 //   calculées en dimensions de mise en page et non transformées ; un bloc
@@ -328,7 +349,7 @@ export interface Mesure {
    * `decoratifs` : éléments exclus comme décoratif coupé, dont
    * `decoratifsEnPlace` laissés en place à la relecture ; `leves` :
    * signalements « contenu » levés au second passage ; `coins` : éléments
-   * qui bénéficient de l'exception « icône en coin » (voir la tête).
+   * qui bénéficient de l'exception « pastille du portrait » (voir la tête).
    */
   exclus: { ellipsis: number; invisibles: number; decoratifs: number; decoratifsEnPlace: number; leves: number; coins: number };
   deborde: boolean;
@@ -417,27 +438,49 @@ export function mesurer(options: { detail: boolean }): Mesure {
     return coupeur;
   };
 
-  // Icône en coin (tête) : le bloc contenant de l'icône d'élément au décalage
-  // droit déclaré négatif, et la largeur à figer pendant la relecture (`left`
-  // `auto`) ; `null` si l'élément n'en bénéficie pas.
-  const iconeElement = (el: Element) =>
-    el instanceof HTMLImageElement && /\/elements\/[^/?#]+\.png$/.test(el.src);
+  // Pastille du portrait (tête) : la liste explicite des repères reconnus —
+  // pas `couronne` (D15).
+  const PASTILLES_RECONNUES = new Set(['element', 'lead', 'exemplaires']);
+  // Rend le portrait de la pastille (son bloc contenant), si son décalage
+  // droit déclaré négatif se soustrait, et la largeur à figer pendant la
+  // relecture (`left` `auto`) ; `null` si l'élément n'en bénéficie pas.
+  const decalageDeclare = (carte: StylePropertyMapReadOnly, cote: 'left' | 'right', px: string) => {
+    const valeur = carte.get(cote);
+    return Boolean(valeur) && !(valeur instanceof CSSKeywordValue) && parseFloat(px) < 0;
+  };
   const coinDe = (
     el: Element,
     s: CSSStyleDeclaration,
-  ): { bloc: Element; largeurFigee: string | null } | null => {
-    if (!iconeElement(el)) return null;
+  ): { bloc: Element; soustrait: boolean; largeurFigee: string | null } | null => {
+    if (!PASTILLES_RECONNUES.has(el.getAttribute('data-pastille') ?? '')) return null;
     if (s.position !== 'absolute' || typeof el.computedStyleMap !== 'function') return null;
     const carte = el.computedStyleMap();
-    const valeur = carte.get('right');
-    if (!valeur || valeur instanceof CSSKeywordValue) return null;
-    const droite = parseFloat(s.right);
-    if (!(droite < 0)) return null;
+    const droite = decalageDeclare(carte, 'right', s.right);
+    if (!droite && !decalageDeclare(carte, 'left', s.left)) return null;
     const bloc = suivant(el);
-    if (!bloc || bloc === racine) return null;
+    if (!bloc || bloc === racine || bloc !== el.parentElement?.closest('[data-portrait]')) return null;
     const sB = style(bloc);
     if (sB.direction !== 'ltr' || sB.overflowX !== 'visible' || sB.overflowY !== 'visible') return null;
-    return { bloc, largeurFigee: carte.get('left') instanceof CSSKeywordValue ? s.width : null };
+    return { bloc, soustrait: droite, largeurFigee: carte.get('left') instanceof CSSKeywordValue ? s.width : null };
+  };
+  // Le contenu du portrait (tête) : son cadre — premier élément enfant, en
+  // flux, sans repère de pastille — et ce qu'il contient, hors pastilles.
+  const cadres = new Map<Element, Element | null>();
+  const cadreDe = (portrait: Element): Element | null => {
+    const connu = cadres.get(portrait);
+    if (connu !== undefined) return connu;
+    const c = portrait.firstElementChild;
+    const cadre = c && !c.hasAttribute('data-pastille') && mode(style(c)) === 'flux' ? c : null;
+    cadres.set(portrait, cadre);
+    return cadre;
+  };
+  const contenuDe = (e: Element, portrait: Element) => {
+    const cadre = cadreDe(portrait);
+    if (!cadre || !cadre.contains(e)) return false;
+    for (let a: Element | null = e; a && a !== portrait; a = a.parentElement) {
+      if (a.hasAttribute('data-pastille')) return false;
+    }
+    return true;
   };
 
   const decrire = (el: Element): DescriptionElement => {
@@ -467,8 +510,8 @@ export function mesurer(options: { detail: boolean }): Mesure {
   // Marge négative (tête) : l'élément, la valeur absolue de sa marge droite et
   // sa marge gauche calculée.
   const margesNegatives: { el: Element; marge: number; gauche: number }[] = [];
-  // Icône en coin (tête) : l'élément et son bloc contenant.
-  const coins: { el: Element; bloc: Element; largeurFigee: string | null }[] = [];
+  // Pastille du portrait (tête) : l'élément et son portrait.
+  const coins: { el: Element; bloc: Element; soustrait: boolean; largeurFigee: string | null }[] = [];
   // Règle « chevauchement » : les éléments visibles, leur boîte au premier
   // passage, et ceux qui ont passé les exclusions.
   const visibles: Element[] = [];
@@ -546,9 +589,9 @@ export function mesurer(options: { detail: boolean }): Mesure {
     if (sort && !abrite(suivant(el))) signalements.push(releve(el, r, 'geometrie'));
   }
 
-  // Règle « chevauchement » (tête) : contrepartie de l'icône en coin. Le plan
-  // d'un élément : lui-même ou son ancêtre le plus proche en `fixed` ou
-  // `sticky`, `null` s'il n'en a aucun.
+  // Règle « chevauchement » (tête) : contrepartie de la pastille du portrait.
+  // Le plan d'un élément : lui-même ou son ancêtre le plus proche en `fixed`
+  // ou `sticky`, `null` s'il n'en a aucun.
   const plans = new Map<Element, Element | null>();
   const planDe = (e: Element): Element | null => {
     const connu = plans.get(e);
@@ -557,21 +600,6 @@ export function mesurer(options: { detail: boolean }): Mesure {
     const plan = p === 'fixed' || p === 'sticky' ? e : e.parentElement ? planDe(e.parentElement) : null;
     plans.set(e, plan);
     return plan;
-  };
-  // Le contenu du portrait (tête) : un descendant du bloc qu'on rejoint sans
-  // passer par un élément positionné PAR RAPPORT AU BLOC (ou au-delà) — en
-  // flux, ou positionné dans un cadre lui-même contenu du portrait.
-  const enFluxDe = (e: Element, bloc: Element) => {
-    for (let a: Element | null = e; a && a !== bloc; ) {
-      if (mode(style(a)) === 'flux') {
-        a = a.parentElement;
-        continue;
-      }
-      const cadre = suivant(a);
-      if (!cadre || cadre === bloc || !bloc.contains(cadre)) return false;
-      a = cadre;
-    }
-    return true;
   };
   // La boîte visible : la boîte coupée, axe par axe, par la boîte de
   // remplissage de chaque ancêtre de sa chaîne de blocs contenants qui coupe
@@ -616,7 +644,7 @@ export function mesurer(options: { detail: boolean }): Mesure {
     const plan = planDe(el);
     const aires = new Map<Element, number>();
     for (const autre of visibles) {
-      if (autre.contains(el) || (bloc.contains(autre) && enFluxDe(autre, bloc))) continue;
+      if (autre.contains(el) || el.contains(autre) || contenuDe(autre, bloc)) continue;
       if (exclusD8.has(autre) || planDe(autre) !== plan) continue;
       const q = visibleDe(autre);
       const l = Math.min(v.droite, q.droite) - Math.max(v.gauche, q.gauche);
@@ -640,12 +668,13 @@ export function mesurer(options: { detail: boolean }): Mesure {
   // `body` compris : `querySelector` ne cherche que dans ses descendants.
   const ciblesTactiles =
     document.body.classList.contains('cible-tactile') || document.body.querySelector('.cible-tactile') !== null;
-  // Icône en coin : ses blocs contenants, et ceux qui contiennent en plus
-  // l'icône d'un autre bloc (relus à part : cette icône-là ne leur est pas
-  // soustraite).
-  const blocsCoins = new Set(coins.map((c) => c.bloc));
+  // Pastille à décalage droit : ses portraits, et ceux qui contiennent en
+  // plus la pastille d'un autre portrait (relus à part : celle-là ne leur est
+  // pas soustraite). Une pastille sans décalage droit ne soustrait rien.
+  const decales = coins.filter((c) => c.soustrait);
+  const blocsCoins = new Set(decales.map((c) => c.bloc));
   const estBlocCoin = (a: Element) => blocsCoins.has(a);
-  const blocMele = (a: Element) => coins.some((c) => c.bloc !== a && a.contains(c.el));
+  const blocMele = (a: Element) => decales.some((c) => c.bloc !== a && a.contains(c.el));
   const concerne = (a: Element) =>
     (ciblesTactiles && (a.classList.contains('cible-tactile') || a.querySelector('.cible-tactile') !== null)) ||
     decoratifsVus.some((d) => d !== a && a.contains(d) && (coupeurDecoratif(d) as Element).contains(a)) ||
@@ -686,8 +715,8 @@ export function mesurer(options: { detail: boolean }): Mesure {
       if (reste > TOLERANCE) s.depassement = reste;
       else leves.add(s);
     };
-    // Ramène le décalage droit des icônes données à 0 ; rend de quoi les remettre.
-    const decalerCoins = (liste: typeof coins) => {
+    // Ramène le décalage droit des pastilles données à 0 ; rend de quoi les remettre.
+    const decalerCoins = (liste: typeof decales) => {
       const siennes = liste.map((c) =>
         poser(c.el, c.largeurFigee !== null ? { width: c.largeurFigee, right: '0px' } : { right: '0px' }),
       );
@@ -721,12 +750,12 @@ export function mesurer(options: { detail: boolean }): Mesure {
     decoratifsEnPlace = decoratifsVus.length - retirables.length;
     try {
       // (1) La page : marges négatives seules (D9 ne vaut pas pour elle, un
-      // décoratif est coupé avant `html`, une icône en coin s'arrête à son bloc).
+      // décoratif est coupé avant `html`, une pastille s'arrête à son portrait).
       for (const { el, marge, gauche } of margesNegatives) {
         poses.push(poser(el, { 'margin-left': `${gauche - marge}px`, 'margin-right': '0px' }));
       }
       if (relirePage) pageRelue = document.documentElement.scrollWidth;
-      // (2) Les éléments qui ne sont le bloc d'aucune icône en coin.
+      // (2) Les éléments qui ne sont le portrait d'aucune pastille à décalage droit.
       for (const d of retirables) poses.push(poser(d, { display: 'none' }));
       if (ciblesTactiles) {
         const zones = document.createElement('style');
@@ -735,13 +764,13 @@ export function mesurer(options: { detail: boolean }): Mesure {
         restaurer.push(() => zones.remove());
       }
       for (const s of aRelire) if (!estBlocCoin(elementDe.get(s) as Element)) relire(s);
-      // (3) Les blocs d'icônes en coin : toutes les icônes ensemble pour un
-      // bloc qui ne contient que les siennes (décaler une icône hors d'un bloc
+      // (3) Les portraits de ces pastilles : toutes ensemble pour un portrait
+      // qui ne contient que les siennes (décaler une pastille hors d'un bloc
       // ne change pas son `scrollWidth`), les siennes seules pour les autres.
       const blocs = aRelire.filter((s) => estBlocCoin(elementDe.get(s) as Element));
       const purs = blocs.filter((s) => !blocMele(elementDe.get(s) as Element));
       if (purs.length > 0) {
-        const remettre = decalerCoins(coins);
+        const remettre = decalerCoins(decales);
         try {
           for (const s of purs) relire(s);
         } finally {
@@ -750,7 +779,7 @@ export function mesurer(options: { detail: boolean }): Mesure {
       }
       for (const s of blocs.filter((b) => !purs.includes(b))) {
         const bloc = elementDe.get(s) as Element;
-        const remettre = decalerCoins(coins.filter((c) => c.bloc === bloc));
+        const remettre = decalerCoins(decales.filter((c) => c.bloc === bloc));
         try {
           relire(s);
         } finally {

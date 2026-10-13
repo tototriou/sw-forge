@@ -69,6 +69,15 @@ rien ne change : grande recherche, filtres et tri dans le tiroir (lot 11).
     points de suspension. « (Attack) » passe désormais à la ligne. Le libellé
     reste celui du jeu, mot pour mot ; la règle vaut aussi pour les deux noms
     d'un monstre de collaboration.
+    ⚠️ **La seconde ligne se prend sur les marges, pas sur la carte**
+    (décision de l'utilisateur, lot 4, 2026-10-13) : dans le bestiaire, un
+    nom collé à sa parenthèse resserre les marges autour des étoiles et du
+    nom (sous le portrait 6 → 1 px, sous les étoiles 4 → 0, en bas 10 → 4) et
+    réserve ses deux lignes même là où il tiendrait sur une. La carte garde
+    la hauteur d'une carte à nom d'une ligne, le portrait sa taille et sa
+    place ; ses étoiles sont 5 px plus haut que celles de ses voisines. La
+    box, sans étoiles, n'est pas resserrée : sa pastille « ×N » descend sous
+    le portrait, là où la marge se reprendrait.
 - Si un filtre ne renvoie rien : message « Aucun monstre ne correspond à ces
   filtres. »
 

@@ -76,8 +76,7 @@ ou un filtre linéaire n'a pas besoin de cette discipline.
    millisecondes : un utilisateur ne met jamais de limite de temps, tout au
    plus il arrête une recherche au bout de quelques dizaines de secondes. Voir
    `tests/rune-optim-parallel-pairing.test.ts` (`maxMs=30000` committé
-   comme plancher vérifié) et la mémoire
-   `sw-forge-realistic-test-parameters.md`. Un paramètre juste « assez
+   comme plancher vérifié). Un paramètre juste « assez
    extrême pour déclencher le chemin de code » (peu de temps, un plafond
    serré…) peut être QUALITATIVEMENT différent d'un paramètre réaliste —
    vérifier À L'ÉCHELLE D'USAGE RÉELLE avant de conclure à un risque, pas
@@ -89,8 +88,8 @@ ou un filtre linéaire n'a pas besoin de cette discipline.
    pas par « ça semble plus malin ».
 4. **Benchmark aux échelles réelles avant de figer une constante.** Les
    volumes réels du projet sont connus (voir
-   [compte/calcul-runes.md](../../../docs/02-app/compte/) §6 et
-   [compte/runes.md](../../../docs/02-app/compte/) — comptes réels à
+   [docs/02-app/compte/ § 6. Perf (contrainte forte, à respecter)](../../../docs/02-app/compte/feat-calcul-runes.md)
+   et [docs/02-app/compte/feat-runes.md](../../../docs/02-app/compte/feat-runes.md) — comptes réels à
    plusieurs milliers de runes). Toute constante ajustable (plafond par slot,
    budget de nœuds, nombre de candidats collectés…) doit être calibrée sur des
    jeux synthétiques d'au moins 500 / 1000 / 2000 / 3000+ éléments, en notant

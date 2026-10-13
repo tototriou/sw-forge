@@ -52,6 +52,24 @@
 //   inatteignable ») ; compté comme ancêtre qui coupe, il abriterait tout
 //   élément en flux, et la règle ne signalerait plus rien.
 //
+// Ce qui est dessiné, et non la boîte : là où ce que Chromium rend par
+// `scrollWidth` ne décrit pas un dessin, la règle « contenu » lit le dessin.
+// Chaque cause est générale, et un vrai dépassement de même nature reste
+// signalé (tests/banc/cas/, un cas positif et un négatif par cause) :
+//
+// - texte SVG (`<text>`, `<tspan>`, `<textPath>` : `SVGTextContentElement`) :
+//   pas de boîte CSS, et Chromium y rend par `scrollWidth`/`clientWidth`
+//   l'avance du texte NON transformé (une légende pivotée de −90° de 14 px de
+//   large y lisait 88 / 57). Le dépassement lu est le bord droit de son
+//   dessin (`getBoundingClientRect`, transformées comprises) moins le bord
+//   droit intérieur de son graphe — le `<svg>` le plus extérieur —, arrondi
+//   au pixel ; signalé au-delà de la tolérance, comme tout « contenu ». Les
+//   champs `scrollWidth`/`clientWidth` du signalement restent ceux de
+//   Chromium, sans valeur ; `depassement` porte la mesure. Côté droit seul,
+//   comme partout. ⚠️ Limites nommées : un `<svg>` imbriqué n'est pas un
+//   graphe (seul le plus extérieur compte), et un texte coupé à gauche, ou en
+//   haut et en bas, n'est pas vu (tests/banc/cas/svg-texte.html).
+//
 // Exclusions, chacune LOCALE (l'élément exclu n'est signalé par aucune règle ;
 // ses ancêtres restent mesurés, et sont signalés s'il les élargit) :
 //
@@ -538,6 +556,18 @@ export function mesurer(options: { detail: boolean }): Mesure {
     };
   };
 
+  // Le dépassement que la règle « contenu » lit sur un élément. Texte SVG
+  // (tête) : le bord droit de son dessin face au bord droit de son graphe —
+  // `scrollWidth`/`clientWidth` n'y décrivent aucune boîte dessinée.
+  const depasse = (el: Element) => {
+    if (!(el instanceof SVGTextContentElement)) return el.scrollWidth - el.clientWidth;
+    let graphe = el.ownerSVGElement;
+    while (graphe?.ownerSVGElement) graphe = graphe.ownerSVGElement;
+    if (!graphe) return 0;
+    const g = graphe.getBoundingClientRect();
+    return Math.round(el.getBoundingClientRect().right - (g.left + graphe.clientLeft + graphe.clientWidth));
+  };
+
   const signalements: Signalement[] = [];
   const elementDe = new Map<Signalement, Element>();
   const decoratifsVus: Element[] = [];
@@ -593,7 +623,8 @@ export function mesurer(options: { detail: boolean }): Mesure {
     }
     elementsMesures++;
     mesures.add(el);
-    if (el.scrollWidth - el.clientWidth > TOLERANCE && !defilementVoulu(el)) {
+    const depassement = depasse(el);
+    if (depassement > TOLERANCE && !defilementVoulu(el)) {
       // Pour lire le signalement, pas pour le décider : les descendants les
       // plus hauts dont la boîte sort de celle de l'élément. Aucun : ce qui
       // dépasse est un pseudo-élément (`::after`…) ou du texte.
@@ -615,7 +646,7 @@ export function mesurer(options: { detail: boolean }): Mesure {
         while (parent && parent !== el && !sort(parent)) parent = parent.parentElement;
         if (parent === el) causes.push(decrire(d));
       }
-      const signalement: Signalement = { ...releve(el, r, 'contenu'), depassement: el.scrollWidth - el.clientWidth, causes };
+      const signalement: Signalement = { ...releve(el, r, 'contenu'), depassement, causes };
       signalements.push(signalement);
       elementDe.set(signalement, el);
     }
@@ -748,7 +779,7 @@ export function mesurer(options: { detail: boolean }): Mesure {
     };
     const relire = (s: Signalement) => {
       const el = elementDe.get(s) as Element;
-      const reste = el.scrollWidth - el.clientWidth;
+      const reste = depasse(el);
       if (reste > TOLERANCE) s.depassement = reste;
       else leves.add(s);
     };

@@ -1507,8 +1507,13 @@ function DeckBlock({
               // 19-24 px, elle laissait les portraits se chevaucher. À la
               // souris, `min-w-0` reste : c'est lui qui laisse le nom se
               // tronquer.
+              // `max-lg:pr-1 max-lg:-mr-1` : au doigt, l'enveloppe se termine
+              // sur le portrait, dont l'icône d'élément dépasse de 4 px à
+              // droite (`-right-1`, MonsterAvatar) ; la place entre dans
+              // l'enveloppe, et la marge négative la rend à l'espacement :
+              // aucun portrait ne bouge.
               return (
-                <span key={i} className="flex min-w-0 items-center gap-1.5 max-lg:flex-none">
+                <span key={i} className="flex min-w-0 items-center gap-1.5 max-lg:flex-none max-lg:pr-1 max-lg:-mr-1">
                   <MiniMonster monster={m} fallback={sl.name} size={34} lead={i === 0 ? leaderLead : null} />
                   {/* À la souris seulement : le nom et les sets visés de CE
                       monstre, collés à lui. Au doigt, la ligne
@@ -2156,8 +2161,12 @@ function CounterRow({
     // cliquable. Un bouton qui ne fait rien au clic se lit comme un défaut.
     const aUneNote = counter.note.trim() !== '';
 
+    // `pr-1 -mr-1` sans note : la rangée finit sur un portrait, dont l'icône
+    // d'élément dépasse de 4 px à droite (`-right-1`, MonsterAvatar) ; la
+    // place entre dans la rangée, la marge négative la rend au rembourrage de
+    // la vignette : rien ne bouge. Avec une note, le chevron finit la rangée.
     const portraits = (
-      <div className="flex flex-none items-center gap-1">
+      <div className={`flex flex-none items-center gap-1 ${aUneNote ? '' : 'pr-1 -mr-1'}`}>
         {counter.monsters.map((m, i) =>
           m.com2usId == null ? null : (
             <MiniMonster
@@ -2422,7 +2431,10 @@ function TableauDefenses({
     return (
       <li key={deckIndex} className="flex flex-wrap items-center gap-x-2 gap-y-1 compact:gap-y-2" data-offense-contre>
         <span className={`h-2 w-2 flex-none rounded-full ${DOT[st]}`} aria-hidden />
-        <span className="flex flex-none items-center gap-1" title={deckLabel(deck, monsterByCom2us, deckIndex)}>
+        {/* `pr-1 -mr-1` : la place de l'icône d'élément du dernier portrait,
+            qui dépasse de 4 px à droite, entre dans la rangée ; la marge
+            négative la rend à l'espacement de la ligne : rien ne bouge. */}
+        <span className="flex flex-none items-center gap-1 pr-1 -mr-1" title={deckLabel(deck, monsterByCom2us, deckIndex)}>
           {deck.slots.map((sl, i) => (
             <MiniMonster
               key={i}
@@ -2470,7 +2482,8 @@ function TableauDefenses({
             data-defense-visee
           >
             <div className="mb-2 flex min-w-0 items-center gap-2 lg:mb-0">
-              <span className="flex flex-none items-center gap-1">
+              {/* `pr-1 -mr-1` : même place que pour les portraits d'une offense. */}
+              <span className="flex flex-none items-center gap-1 pr-1 -mr-1">
                 {d.monsters.map((m, i) => (
                   <MiniMonster
                     key={i}

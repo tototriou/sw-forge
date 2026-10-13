@@ -1613,6 +1613,15 @@ Indépendamment du repli de la carte, **chaque deck a son propre chevron**.
   Toujours affichés, quel que soit l'état de repli : c'est le seul repère du
   deck qu'on garde en le dépliant, avant que sets/artéfacts/stats n'arrivent
   plus bas.
+- ⚠️ **Une rangée qui finit sur un portrait garde la place de son icône
+  d'élément**, qui dépasse de 4 px à droite (`-right-1` dans
+  [MonsterAvatar](../../../src/components/MonsterAvatar.tsx)) : `pr-1 -mr-1`
+  sur l'enveloppe de portrait de l'en-tête (au doigt seulement, `max-lg:`), la
+  rangée de portraits d'une vignette « Fort contre » sans note, et les
+  portraits d'une défense et d'une offense en vue Défense (chantier
+  `defauts-affichage`, lot 2, 2026-10-13). Le rembourrage met l'icône dans la
+  boîte de sa rangée ; la marge négative le rend à l'espacement voisin :
+  aucun élément ne bouge.
 - ⚠️ **Sur mobile, le verdict et le nombre de copies passent chacun à la
   ligne** (`basis-full sm:basis-auto` sur les deux `span` qui les portent) :
   icônes des monstres sur une ligne, verdict sur la suivante, « réalisable N

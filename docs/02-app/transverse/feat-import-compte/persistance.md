@@ -216,14 +216,13 @@ Rien n'est envoyé à un serveur. Aucune authentification.
   de conservation, mesure de score, thème, overcap, adversaire de référence. Ce
   ne sont pas les données de l'utilisateur, et le refus lui-même doit être
   mémorisé pour ne pas reposer la question.
+- ⚠️ **Toute clé de réglage est déclarée dans `CLES_DE_REGLAGE`.** Une clé qui
+  n'y figure pas est une donnée : à elle seule elle vaudrait consentement, et
+  un refus ou « Tout supprimer » l'effacerait.
 - ⚠️ **Utilisateur déjà installé** : des données déjà présentes sur le disque
   valent **consentement** (`etatDepuisStockage`). Sans cette reprise, la mise à
   jour retirerait en silence une conservation dont il dispose depuis toujours.
-- ⚠️ **Écart connu** : seuls le choix de conservation et la mesure de score
-  sont reconnus comme réglages (`CLES_DE_REGLAGE`). Thème, overcap et
-  adversaire de référence comptent comme des données : « Tout supprimer » les
-  efface, et un navigateur qui ne contient que l'un d'eux est lu comme ayant
-  déjà accepté la conservation ([dette](../../../05-pilotage/dette.md)).
+  Un réglage seul ne vaut pas consentement.
 
 ## « Tout supprimer » — `clearAllData` dans [App.tsx](src/App.tsx)
 
@@ -234,8 +233,7 @@ ouvre une confirmation dont le défaut est « Annuler », puis recharge la page.
 Ce qui part :
 
 - **toutes les clés de données de `localStorage`** : prépa RTA, équipes de
-  siège, recommandations, catégories, monstres perso, listes de l'Optimizer, et
-  les réglages qui y sont rangés (thème, overcap, adversaire de référence) ;
+  siège, recommandations, catégories, monstres perso, listes de l'Optimizer ;
 - ⚠️ **les clés des deux autres préfixes aussi** (`sw-forge…`, `sky-arena…`) : une clé
   que la migration n'a pas pu renommer reste une donnée de l'utilisateur ;
 - **le travail en mémoire**, y compris ce qui n'a jamais été écrit sur le
@@ -248,8 +246,8 @@ Ce qui part :
 
 Ce qui reste :
 
-- les deux **clés de réglage** : le choix de conservation et la mesure de
-  score ;
+- les **réglages** (`CLES_DE_REGLAGE`) : choix de conservation, mesure de
+  score, thème, overcap, adversaire de référence ;
 - les **fichiers** : sessions de l'application de bureau, exports.
 
 ## Migration des clés d'un autre préfixe — [migrationStockage.ts](src/lib/migrationStockage.ts)

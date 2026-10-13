@@ -23,7 +23,17 @@ const ANCIENNE_CLE = 'swblacksmith-keep-account-v1'; // réglage limité au comp
 // ⚠️ Ces clés-là restent écrites même quand la conservation est refusée : ce sont
 // des **réglages**, pas le travail de l'utilisateur. Refuser la conservation doit
 // justement être mémorisé, sinon on repose la question à chaque import.
-const CLES_DE_REGLAGE = new Set([STORAGE_KEY, ANCIENNE_CLE, 'swblacksmith-rune-metric-v1']);
+// ⚠️ **TOUS les réglages y figurent**, pas seulement le choix de conservation :
+// un réglage lu comme une donnée vaudrait consentement à lui seul (voir
+// `etatDepuisStockage`) et partirait avec la purge d'un refus.
+const CLES_DE_REGLAGE = new Set([
+  STORAGE_KEY,
+  ANCIENNE_CLE,
+  'swblacksmith-rune-metric-v1',
+  'swblacksmith-theme-v1',
+  'swblacksmith-overcap-display-v1',
+  'swblacksmith-adversaire-reference-v1',
+]);
 
 // ⚠️ Les anciens préfixes restent reconnus (décision 66 du rebranding) : une
 // clé que la migration n'a pas pu renommer (quota) reste une donnée de

@@ -89,9 +89,8 @@ barre latérale au bureau, dans la barre supérieure au téléphone.
 - Règle : un réglage qui s'applique à **plusieurs pages** va ici, **jamais**
   dupliqué en sélecteur sur chaque page.
 - **Persistés** dans `localStorage`, contrairement aux filtres et tris de page
-  qui sont jetables. « Tout supprimer » les efface, sauf le choix de
-  conservation et la mesure de score
-  ([persistance.md](../feat-import-compte/persistance.md)).
+  qui sont jetables. Ni un refus de conservation ni « Tout supprimer » ne les
+  effacent ([persistance.md](../feat-import-compte/persistance.md)).
 - **Structure pensée pour grossir** : un réglage = un `<Setting>` (intitulé à
   gauche, contrôle à droite), avec des contrôles génériques réutilisables
   (`<Segmented>` pour un choix unique, `<Switch>` pour un oui/non — un réglage

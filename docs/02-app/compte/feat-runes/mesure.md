@@ -18,7 +18,7 @@ Formules et écart entre les deux : [feat-calcul-runes.md §3 et §3 bis](../fea
   [../../03-developpeur/](../../../03-developpeur/)). Aucun sélecteur n'est répété dans les pages.
 - **Persisté** dans `localStorage` (`swblacksmith-rune-metric-v1`) : un réglage
   d'application survit au rechargement, contrairement aux filtres et tris qui
-  sont des préférences de vue jetables. Effacé par « Supprimer mes données ».
+  sont des préférences de vue jetables. « Tout supprimer » le garde.
 - Implémenté par un **store externe** (`useSyncExternalStore`,
   [useRuneMetric.ts](src/hooks/useRuneMetric.ts)) et **non** par `useStickyState` :
   ce dernier ne relit son cache **qu'au montage**, il ne synchroniserait pas les

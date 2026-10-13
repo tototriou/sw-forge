@@ -56,12 +56,10 @@ ouvrir. Ne pas explorer `src/` à l'aveugle.
     sans récit ; un commit donne le pourquoi en bref, sans journal.
 - **Un type partagé entre l'écran et un script a PLUSIEURS constructeurs**
   (ex. `OptimizerRecipe`/`recipeToSearchParams.ts`). Un champ ajouté ou
-  renommé doit être répercuté dans TOUS — `tsc` ne détecte JAMAIS un champ
-  oublié dans l'un d'eux (reste un accès optionnel valide). ⚠️ Depuis que
-  `tsconfig.json` couvre aussi `scripts/` et `tests/`, `tsc` attrape en
-  revanche un champ dont le **type change** ou qui devient **obligatoire**. La
-  règle ci-dessus ne vaut donc plus que pour les champs **optionnels**, où
-  l'oubli reste parfaitement typé. Avant de
+  renommé doit être répercuté dans TOUS. `tsc` (qui couvre `src/`, `scripts/`,
+  `tests/` et `bureau/`) attrape un champ dont le **type change** ou qui devient
+  **obligatoire**, jamais un champ **optionnel** oublié dans l'un d'eux :
+  l'accès reste parfaitement typé. Avant de
   considérer un champ ajouté/renommé comme terminé : `grep -rn` du nom du
   type/champ sur TOUT le dépôt (`src/` ET `scripts/` ET `tests/`), pas
   seulement le fichier qu'on vient d'éditer. Détail : [docs/03-developpeur/](docs/03-developpeur/),

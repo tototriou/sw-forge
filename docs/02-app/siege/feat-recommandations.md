@@ -1568,6 +1568,15 @@ Indépendamment du repli de la carte, **chaque deck a son propre chevron**.
   **« Fort contre »** (séparé de l'offense par un filet) et, dessous, les
   **sets visés** de chaque monstre (une pastille par monstre, première
   possibilité de runage) — ce qu'elle réservait à la souris.
+  ⚠️ **Au doigt, « Fort contre » a sa PROPRE ligne, sous les portraits**
+  (chantier `defauts-affichage`, décision 1a de l'utilisateur, 2026-10-13),
+  alignée sous le premier portrait, son filet à gauche ; les sets visés
+  suivent dessous. Sur la ligne des portraits, à 360 px, il ne restait que
+  19 à 24 px à chaque enveloppe de portrait de 34 px : les trois portraits
+  se chevauchaient et le troisième mordait sur « Fort contre ». Les
+  enveloppes ne rétrécissent plus sous leur portrait (`max-lg:flex-none`).
+  Un deck sans défense visée garde la ligne, avec son tiret. À la souris,
+  rien ne change : « Fort contre » reste dans sa colonne.
   L'ancienne disposition à la souris — une grille de cartes sur deux colonnes
   (`lg:grid-cols-2`, le deck en édition sur toute la largeur) — est remplacée
   par cette liste : une ligne par deck se lit d'un regard, sans demi-largeur

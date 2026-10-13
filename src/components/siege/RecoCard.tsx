@@ -1469,7 +1469,7 @@ function DeckBlock({
             « réalisable N fois » prenait sa propre ligne, voir plus bas) —
             un bouton d'action ne doit pas se déplacer selon ce qui s'affiche
             à côté de lui. */}
-        <div className="flex items-center gap-2 lg:contents">
+        <div className="flex items-center gap-2 max-lg:flex-wrap lg:contents">
           {/* Chevron de repli : indispensable en édition avec plusieurs decks */}
           <BoutonIcone
             onClick={onToggleFold}
@@ -1502,8 +1502,13 @@ function DeckBlock({
               // (3× Fight → une icône). Les autres possibilités restent dans le
               // détail.
               const sets = [...new Set(sl.setOptions?.[0] ?? [])];
+              // ⚠️ `max-lg:flex-none` : au doigt, l'enveloppe ne porte que le
+              // portrait de 34 px et ne rétrécit plus sous lui — réduite à
+              // 19-24 px, elle laissait les portraits se chevaucher. À la
+              // souris, `min-w-0` reste : c'est lui qui laisse le nom se
+              // tronquer.
               return (
-                <span key={i} className="flex min-w-0 items-center gap-1.5">
+                <span key={i} className="flex min-w-0 items-center gap-1.5 max-lg:flex-none">
                   <MiniMonster monster={m} fallback={sl.name} size={34} lead={i === 0 ? leaderLead : null} />
                   {/* À la souris seulement : le nom et les sets visés de CE
                       monstre, collés à lui. Au doigt, la ligne
@@ -1530,8 +1535,15 @@ function DeckBlock({
               y en a d'autres. Purement informatif, comme le bloc détaillé.
               ⚠️ **Au téléphone aussi** :
               la rangée repliée dit l'offense ET ce qu'elle bat, séparées par
-              un filet. Il était réservé à la souris. */}
-          <span className="flex min-w-0 flex-none items-center gap-1 max-lg:border-l max-lg:border-border-soft max-lg:pl-2">
+              un filet. Il était réservé à la souris.
+              ⚠️ **Au doigt, sur une SECONDE ligne, sous les portraits**
+              (`max-lg:order-last max-lg:basis-full`) : sur la même ligne, à
+              360 px, il prenait la place des portraits de l'offense, qui se
+              chevauchaient. `max-lg:ml-7` l'aligne sous le premier portrait
+              (chevron de 20 px + `gap-2`) ; `max-lg:shrink` le ramène dans la
+              ligne une fois passé à la ligne (sa base de 100 % + la marge est
+              ce qui le force à y passer). */}
+          <span className="flex min-w-0 flex-none items-center gap-1 max-lg:order-last max-lg:ml-7 max-lg:shrink max-lg:basis-full max-lg:border-l max-lg:border-border-soft max-lg:pl-2">
             {deck.counters.length > 0 ? (
               <>
                 {deck.counters[0].monsters

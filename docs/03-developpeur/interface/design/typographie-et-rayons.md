@@ -75,6 +75,23 @@ une intention, il se ressent comme un défaut d'alignement.
 Le héros de l'accueil garde son `clamp()` propre : c'est un titre d'affiche, pas
 un palier de l'échelle.
 
+### Titre de page — deux gabarits
+
+Un titre de page est en `font-display`, à l'**encre unie** (`text-ink`) :
+
+- **écran d'outil** (Ma prépa, Siège, Bestiaire, les vues de Mon compte…) : le
+  cran `xl` (`text-xl`), dans la ligne d'en-tête de l'écran ;
+- **page de lecture** (Mécaniques, Nouveautés, Télécharger) : le grand titre,
+  `clamp(28px,4vw,42px)`, suivi d'un paragraphe d'intro `text-ink-dim`.
+
+Au téléphone, la
+[barre supérieure](../../../02-app/transverse/feat-navigation/barre-superieure.md)
+dit déjà où l'on est : les titres « Ma box », « Paramètres » et « Comparaison »
+y sont masqués (`hidden lg:block`).
+
+Le dégradé encre → braise (`title-gradient`) a été retiré au rebranding
+(décision 57), comme la toile.
+
 ### Rayons
 
 | Token | Classe | Valeur | Rôle |

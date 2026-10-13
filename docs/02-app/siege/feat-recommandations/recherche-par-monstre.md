@@ -157,6 +157,8 @@ porte un `+` en tireté.
     d'« Effacer la recherche » : la sortie utile est d'**élargir**, pas
     d'abandonner — et c'est un clic.
 
+#### Le sélecteur de rôle : où l'on cherche
+
 Deux questions se posent devant une liste de recommandations, et elles n'ont pas
 la même réponse :
 
@@ -222,6 +224,8 @@ la même réponse :
   une recherche ferait croire à une perte de données.
 - Persistée via `useStickyState` (survit à la navigation, repartie à vide au
   reload), comme la vue.
+
+#### Effet du filtre sur les actions
 
 Effet du filtre sur les actions :
 - **Export global** : exporte **ce qui est affiché**. ⚠️ Le bouton s'intitule

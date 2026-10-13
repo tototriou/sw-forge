@@ -4,6 +4,8 @@ Partie de [Librairie UI](README.md).
 
 ### Composants à part entière
 
+#### `BarreActions`
+
 **`BarreActions`** — les actions d'un EN-TÊTE d'écran : **toutes en boutons
 quand elles tiennent sur la ligne, sinon les actions `toujours` + un `Menu`
 « ⋯ »** pour les `autres`. Les entrées sont les mêmes `ElementMenu` dans les
@@ -23,6 +25,8 @@ entrée à cocher (`menuitemcheckbox`) s'il tombe dans le menu.
 ⚠️ **Pas d'axe « principal »** : aucune action n'est mise en avant dans un
 en-tête d'écran. Un aplat d'accent a été essayé sur « Vérifier mes speed » et
 retiré par le mainteneur (« ça rend pas bien ») — décision 4 précisée.
+
+#### `Menu`
 
 **`Menu`** — un bouton « ⋯ » (nommé par `libelle`) qui ouvre sous lui,
 ancrée à droite, une liste d'actions (`Flottant`, `role="menu"`).
@@ -58,11 +62,15 @@ usage — le mainteneur n'a voulu aucun filtre fermé dans un menu (« sors tout
 boutons »). Un filtre fermé ne dit pas ce qu'il filtre sans qu'on l'ouvre.
 Voir [02-app/compte/feat-runes/filtres-set-et-slot.md](../../../02-app/compte/feat-runes/filtres-set-et-slot.md) § Filtrer par set.
 
+#### `Champ`
+
 **`Champ`** — saisie texte. ⚠️ `compact:text-base` n'est **pas un choix de
 taille, c'est un correctif** : sous 16 px, iOS **zoome** sur le champ à la mise
 au point, et la page ne revient pas seule de ce zoom. C'est la seule raison pour
 laquelle un champ grossit au doigt alors que tout le reste rétrécit. Écrit une
 fois ici, ce piège ne peut plus être oublié dans un formulaire neuf.
+
+#### `NumberField`
 
 **`NumberField`** — saisie numérique, deux boutons − / + encadrant la valeur
 (jamais `type="number"` : les flèches natives sont hors charte). ⚠️ Axe
@@ -77,11 +85,15 @@ signe seul — en mono 12 px au milieu de quarante colonnes — ne saute pas aux
 yeux. Il teinte le **texte et le contour**, jamais le fond : un fond plein par
 cellule ferait un damier, et ces tableaux portent déjà des surlignages.
 
+#### `Selecteur`
+
 **`Selecteur`** — liste déroulante ([ton du sélecteur](../selecteur.md)). ⚠️ `appearance-none` + notre propre chevron :
 le contrôle natif dessine sa flèche avec les couleurs du **système**, qui ne
 suivent aucun des deux thèmes — sur fond sombre, une flèche noire disparaît. La
 **liste ouverte** reste celle du système : c'est le seul morceau de l'app qu'on
 ne dessine pas, et le remplacer coûterait un menu flottant complet à claviériser.
+
+#### `Interrupteur`
 
 **`Interrupteur`** — glissière avec libellé. ⚠️ `role="switch"` et non `button` :
 un lecteur d'écran annonce « interrupteur, activé » plutôt que « bouton » — la
@@ -94,6 +106,8 @@ découvrir.
 > disputent le regard. La **glissière** vit SEULE, avec une phrase à côté : elle
 > a la place de dessiner son état, et le mouvement du curseur dit dans quel sens
 > on va.
+
+#### `Segmented`
 
 **`Segmented`** — choix UNIQUE, options côte à côte dans un même cadre, une
 seule enfoncée. À préférer à une rangée de pastilles quand les options
@@ -126,6 +140,8 @@ d'accent doux avant).
 > sait mieux que la mesure — `AncientFilter` resserre par cohérence avec une
 > rangée voisine, pas par manque de place.
 
+#### `Pastille`
+
 **`Pastille`** — pilule de filtre à deux états, posée en RANGÉE de critères :
 l'élément, la rareté naturelle, les doublons de la box (les mêmes au Bestiaire).
 On l'enclenche pour restreindre une liste, et plusieurs le sont souvent à la
@@ -154,6 +170,8 @@ fois.
 > valeur en dur dans la librairie. La bordure colorée reste visible au repos, le
 > fond teinté ne fait que confirmer l'état posé.
 
+#### `Jeton`
+
 **`Jeton`** — pilule qui NOMME un choix déjà posé, avec une croix pour le
 retirer : un set ajouté à un combo (SetComboPicker), un monstre exclu d'une
 recherche (RuneExclusionPicker). Icône optionnelle à gauche, `detail` atténué
@@ -169,6 +187,8 @@ après le libellé (« · Box »), `onRetirer` qui décide de la présence de la
 > main : sa cible tactile et son `aria-label` viennent de la librairie, comme les
 > deux boutons d'une pilule de catégorie. `serre` parce qu'elle vit DANS le
 > jeton, plus petit que la cible de 40 px.
+
+#### `Option`
 
 **`Option`** — choix riche : icône, titre, description. ⚠️ Distinct de `Bouton`
 parce qu'il **ne se lit pas pareil** : un bouton s'identifie d'un coup d'œil, une
@@ -201,6 +221,8 @@ lignes de description, une icône centrée verticalement flotte en face de rien.
   couleurs (`border-border/40 bg-panel2/40`) — une opacité sur le cadre
   estomperait aussi l'action. **Sans action, l'option reste le `<button>`
   d'avant, au caractère près.**
+
+#### `Flottant`
 
 **`Flottant`** — surface posée au-dessus de la page, ancrée à ce qui l'a ouverte :
 popup d'édition, formulaire ancré, liste de résultats d'une recherche.
@@ -240,6 +262,8 @@ popup d'édition, formulaire ancré, liste de résultats d'une recherche.
 > l'axe horizontal lui-même qui porte l'ancrage, et son animation part de
 > `origin-top-left` — du bord par lequel elle sort.
 
+#### `FlottantAuto`
+
 **`FlottantAuto`** — le même, mais qui **choisit son côté** en mesurant la place
 autour de son ancre : vers la gauche si l'ancre est près du bord droit, vers le
 haut si elle est près du bas. Puis il **borne sa position au viewport**, en
@@ -278,6 +302,8 @@ gardant la surface ancrée à ce qui l'a ouverte.
 > ⚠️ `useLayoutEffect` et non `useEffect` : la mesure doit précéder la peinture.
 > Avec `useEffect`, la surface apparaissait un instant du mauvais côté puis
 > sautait — un scintillement d'une frame, mais visible.
+
+#### `Modale`
 
 **`Modale`** — la coquille de **toute** boîte modale : voile, centrage, fermeture
 au clic extérieur et à Échap. `ConfirmDialog`, `PromptDialog` et

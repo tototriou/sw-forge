@@ -22,6 +22,8 @@ le siège répondent la MÊME chose :
 
 De haut en bas :
 
+### Repère des ticks et deux camps
+
 1. **Repère des ticks** — bandeau : la vitesse de combat mini pour agir à chaque
    tick, **dans le sens croissant (3 → 11)**.
    ⚠️ Comme les trois tableaux qui suivent, et comme le temps. Il descendait
@@ -87,6 +89,9 @@ De haut en bas :
    - ⚠️ **La vitesse de combat garde sa taille et sa place**, à droite : c'est le
      chiffre qu'on vient lire. On gagne de la hauteur en resserrant ce qui
      l'entoure, jamais en rendant illisible l'objet de l'écran.
+
+### Ordre des sorts et analyse automatique
+
 3. **Ordre des sorts** — card à part (voir « Ordre des sorts » plus bas).
    ⚠️ **Côte à côte avec l'analyse quand il y a la place**, empilées sinon —
    même idiome que les deux camps (`flex-wrap` + largeur plancher), et pour la
@@ -148,6 +153,9 @@ De haut en bas :
      Le contrôle attrape les deux dérives possibles : l'adverse ignoré (l'effet
      part deux ticks trop loin) et le décalage supprimé (l'effet tombe sur le
      tour même).
+
+### Analyse automatique : saisie à la main, mêmes monstres, plateau entier
+
    - ⚠️⚠️ **LE DÉCALAGE NE VAUT QUE POUR CE QU'UN SORT POSE.** Une case **saisie
      à la main** reste à SON tick. `simuler` réenregistre la saisie dans
      `effetAtb` — c'est la même piste que les effets de sorts —, et la réécriture
@@ -199,6 +207,9 @@ De haut en bas :
        qui départage deux barres pleines à vitesse égale (`placement`). Trier par
        camp aurait fait diverger l'analyse et l'écran sur les égalités exactes —
        le cas même que le réglage d'équipe produit à longueur de temps.
+
+### Analyse automatique : déclencheur, en-tête, verdict et référence
+
    - ⚠️ **Le SEUL déclencheur d'une nouvelle écriture, c'est le choix d'un sort**
      — un autre sort ne pose pas la même chose. Vitesses, artéfacts, sets, cases
      des grilles : ce sont des réglages, l'automatisation n'y revient jamais.
@@ -235,6 +246,9 @@ De haut en bas :
      sache, et on se comparait à un monstre qui ne l'était plus. Un **vrai**
      adversaire (saisi ou importé), lui, n'est jamais remplacé : c'est une
      composition qu'on affronte, pas un repère.
+
+### Les tableaux : barre d'action, modifications, buff de vitesse, ordre de tour
+
 5. **Barre d'action par tick** (lecture seule) — tableau : lignes triées par
    ordre de tour, colonnes = ticks. Chaque cellule = `% rempli` — la
    **trajectoire réelle** renvoyée par la simulation (`OrdreEntree.trajectoire`),

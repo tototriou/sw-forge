@@ -104,6 +104,9 @@ Comme en **vue compacte du siège**, le panneau de détail (`MonsterGear`) s'ouv
   bas). Exiger des runes rendait la carte ENTIÈRE non cliquable et cachait
   ces artéfacts pourtant réels. Bug trouvé sur un compte réel (3 monstres
   « Non classé », 2 artéfacts chacun mais 0 rune, tous les trois inertes).
+
+### Artéfacts, roue de runes et relique : toujours affichés
+
 - **Artéfacts : toujours 2 emplacements affichés** (Attribut puis Type — voir
   `ARTIFACT_KINDS` dans [types.ts](src/types.ts)), même si le monstre n'en
   porte qu'un seul ou aucun — un emplacement vide est montré grisé (icône
@@ -142,6 +145,9 @@ Comme en **vue compacte du siège**, le panneau de détail (`MonsterGear`) s'ouv
   d'artéfact vide) s'affiche à la place, non cliquable (pas de
   `ZoneCliquable`/`FlottantAuto` — rien à ouvrir). Comportement partagé par
   `MonsterGear` : s'applique aussi en Siège et dans l'Optimizer.
+
+### Mise à l'échelle du groupe artéfacts, roue et relique
+
 - **Le groupe artéfacts + roue + relique se met à l'échelle de la largeur
   REÇUE.** Son adaptation n'a longtemps eu qu'un seul ressort : `COMPACT`
   (`pointer: coarse`) réduisait artéfacts et roue à 0,72 au doigt — une
@@ -205,6 +211,9 @@ Comme en **vue compacte du siège**, le panneau de détail (`MonsterGear`) s'ouv
   simple plancher (`Math.max`) sur le calcul déjà en place : la formule
   reste continue quel que soit l'écart à la place disponible, jamais deux
   branches qui se disputent le même seuil.
+
+### Encadré de stats, composants partagés et détail d'une pièce
+
 - **L'encadré de stats entier est cliquable** (`role="button"`, pas un bouton
   séparé) et bascule entre deux affichages du même tableau :
   - **Base + bonus** (par défaut) : base en blanc, bonus en **vert**

@@ -2,6 +2,8 @@
 
 Partie de [Siège · Recommandations](README.md).
 
+## En-tête de la page et barre d'outils
+
 ⚠️ **En-tête BUREAU** (refonte graphique, lot 7b — même règle que la RTA et
 Défense / Offense) : le titre « Recommandations », le compteur, puis les
 actions par `BarreActions` — **toutes en boutons quand elles tiennent sur la
@@ -17,6 +19,8 @@ doigt, le panneau « Options » ne change pas (lot 11).
 Vue (Attaque / Défense, qui a remplacé Origine — décision 19) · filet vertical · recherche par
 monstre et ses trois cases, sur la même ligne ; « Rôle » passe dessous
 quand une recherche est posée.
+
+## En-tête d'une recommandation et actions d'un deck
 
 ⚠️ **À la souris, l'en-tête d'une recommandation tient sur UNE ligne**
 (lot 7b, la maquette) : chevron · titre · Importée · decks · auteur, un
@@ -49,6 +53,8 @@ maquette pose « Déplier tous les decks » dans ce pied, en BAS ; il reste
 en HAUT du tableau — en bas, son clic l'aurait repoussé de toute la hauteur
 des decks dépliés (un clic ne déplace jamais ce qu'on vient de cliquer).
 
+## Boutons d'icône et boutons à libellé
+
 ⚠️ **À la souris, UN seul bouton d'icône sur toute la page** (lot 7b —
 Le mainteneur : « il faudrait revoir un peu le système de bouton de cette page… comme
 tu as fait dans la maquette ») : un carré de 28 px aux coins arrondis, sans
@@ -75,6 +81,8 @@ défense — `serre`, 20 px, la puce est plus petite qu'un bouton), le **crayon
 posé sur le coin d'une vignette**, la **grille des sets** (icônes du jeu) et
 les **liens dans une phrase** (« Chercher partout », « Effacer la
 recherche »).
+
+## Couleurs et pastilles de statut
 
 ⚠️ **Couleurs : plus d'aplats teintés** (lot 7b — le mainteneur : « revois les
 couleurs et l'affichage sur les cards, là il n'y a rien qui va »). La carte

@@ -117,6 +117,8 @@ la bonne rangée d'abord et le bon bouton ensuite.
 au profit d'un saut de rangée : il passait inaperçu dès que la barre se repliait,
 ce qu'elle fait sur tout écran étroit.
 
+#### Chaque rangée est une grille
+
 ⚠️ **Chaque rangée est une GRILLE** (`data-rangee-actions`), pas une file qui se
 replie. En `flex-wrap`, chaque bouton prenait la largeur de son texte :
 « Sauvegarder » et « Ami » finissaient côte à côte à des tailles différentes, et
@@ -166,6 +168,8 @@ groupement par type lisible d'un coup d'œil.
   Sans cela, c'est le div qui remplissait la cellule et le bouton flottait
   dedans à sa taille propre.
 
+#### Intitulés, libellés, marges et recherche dans le panneau
+
 ⚠️ **Les intitulés de rangée disparaissent** dans le panneau (`.label`).
 « Élément », « Trier par », « Stat principale » coûtent 86 px sur une rangée
 desktop de 900 px et nomment ce qui suit ; sur 348 px ils prennent le quart de la
@@ -197,6 +201,8 @@ qui passent déjà à la ligne seuls : les extraire imposerait de découper
 pire que ne rien proposer** — c'est la règle qui décide de l'appartenance à
 cette liste, pas la page.
 
+#### Bascules, libellés masqués et filtres
+
 ⚠️ Un bouton-bascule (`aria-pressed`) **garde son propre fond** dans le
 panneau : la règle qui rend leur cadre aux boutons l'aurait écrasé, et les trois
 interrupteurs d'affichage de la prépa RTA s'y affichaient tous éteints quel que
@@ -217,6 +223,8 @@ dit plus ce qu'il fait.
 ⚠️ Les filtres sont **un seul JSX**, posé à deux endroits selon la largeur
 (`hidden lg:contents` ou `hidden lg:flex` dans la page, et le même fragment dans
 le panneau). Deux copies auraient divergé au premier filtre ajouté.
+
+#### Règles CSS qui adaptent les contrôles au panneau
 
 ⚠️ Des règles CSS adaptent les contrôles au panneau (`src/index.css`), plutôt
 que de les réécrire dans chaque composant :

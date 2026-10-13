@@ -85,6 +85,8 @@ la colonne. La rangée `Propriété` prend la place restante (au moins 440 px).
 Tout reste visible, rien ne passe en menu : même choix que pour les runes. Au
 doigt, les rangées restent empilées dans le panneau « Options » (lot 11).
 
+### Filtre Catégorie
+
 - **Catégorie** : `Tous` · `Attribut` · `Type`.
   - ⚠️ L'intitulé de la rangée est **« Catégorie »**, pas « Type » : une des deux
     valeurs s'appelle déjà « Type », et un en-tête homonyme au-dessus de son
@@ -122,6 +124,9 @@ doigt, les rangées restent empilées dans le panneau « Options » (lot 11).
     juste à côté. Le cadre commun dit l'exclusivité sans un mot.
   - Elle reste **sans icône** : c'est un **mode d'affichage**, pas une valeur — et
     le jeu n'a pas de symbole pour « Attribut » ou « Type » pris globalement.
+
+### Filtre Rareté
+
 - **Rareté** : chips (Légendaire → Commun), aux couleurs du jeu (`RARITY_META`).
   - ⚠️ **Liste BLANCHE, tout coché par défaut** — même règle que les filtres de
     runes ([feat-runes/filtres-set-et-slot.md](feat-runes/filtres-set-et-slot.md)) : une rareté cochée est **affichée**, n'en
@@ -131,6 +136,8 @@ doigt, les rangées restent empilées dans le panneau « Options » (lot 11).
     bannière du jeu — reproduite à raison dans la fiche d'artéfact, mais isolée
     dans une rangée de filtres elle se lisait comme un composant étranger collé
     là. Les **couleurs** restent : elles portent une information.
+
+### Filtre Stat principale
 
 - **Stat principale** : `Toutes` · `PV` · `ATQ` · `DEF`. Libellés et ordre pris
   d'`ARTIFACT_MAIN` ([effects.ts](src/lib/effects.ts)) — pas de quatrième table
@@ -150,6 +157,8 @@ doigt, les rangées restent empilées dans le panneau « Options » (lot 11).
     de la colonne. L'abréger trahirait le nom du jeu, élargir la colonne
     décalerait les cinq autres rangées — le repli tient dans la hauteur déjà
     occupée par le contrôle.
+
+### Filtre Propriété
 
 - **Propriété** : la **barre de rappel + modale** du jeu — le **même dispositif
   que les runes**, décrit en détail dans

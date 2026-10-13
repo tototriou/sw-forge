@@ -42,6 +42,8 @@ tout** dès que le rechargement l'en empêchait.
   resynchronisation sur les vitesses reconstruit la liste depuis la simulation
   et l'occurrence disparaît dans la foulée — un clic sans effet visible.
 
+#### Un tour supplémentaire : ce qui reste et ce qui s'annonce
+
 ⚠️ **La ligne RESTE quand le combo ne tient pas**, signalée en rouge (« ne joue
 pas une 2ᵉ fois ») — comme un rang qu'on réclame sans l'avoir. La faire
 disparaître toute seule effacerait la question qu'on vient de poser. Le message
@@ -72,6 +74,8 @@ sa clé.
 tick**, sans qu'aucune horloge ne tourne : celui-là garde son champ `sort2` et
 son marqueur « rejoue » sur la ligne du 1ᵉʳ tour.
 
+#### Ce que l'analyse remplit, et ce qui la relance
+
 ⚠️ **C'est l'analyse qui la remplit.** Cliquer sur « Analyser » y écrit l'ordre
 que les vitesses produisent et, pour chacun, le sort que son kit a retenu —
 exactement comme elle écrit dans les grilles. Ces choix deviennent alors des
@@ -101,6 +105,8 @@ absence : elle est préservée comme les autres.
 ÉCRIT. Sans analyse, personne ne lance rien — l'outil ne suppose pas à la place
 de qui règle. Le menu n'a donc plus d'entrée « Sort détecté » : il n'y a que des
 sorts, et « Aucun sort ».
+
+#### Ordre voulu, sort par monstre, tour rendu et verdict
 
 - **Ordre voulu** : au départ, c'est **celui des vitesses** — l'ordre que la
   simulation produit aujourd'hui, les alliés sans vitesse connue à la fin. C'est

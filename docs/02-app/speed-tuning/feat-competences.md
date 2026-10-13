@@ -174,6 +174,9 @@ L'outil les **lit et les applique** : [speedTunePassif.ts](src/lib/speedTunePass
   équipe arrivée du siège affichait une vitesse ici et une autre là-bas. C'est une **estimation**, pas
   une vérité : elle suppose ces buffs posés au moment où le passif compte, et un
   chiffre **saisi n'est jamais écrasé**.
+
+#### Le passif sur la card, et l'adversaire de référence
+
 - **Une rangée à part sur la card**, sous les réglages : bouton **« Passif »**,
   le gain unitaire, le champ de cumuls s'il y a lieu, et **ce qui est appliqué**
   (« +30 VIT ») aligné à droite.
@@ -218,6 +221,8 @@ L'outil les **lit et les applique** : [speedTunePassif.ts](src/lib/speedTunePass
   et le lead.
 - **Aucune valeur connue** → la card le dit en clair plutôt que d'appliquer 0 en
   silence : « son passif touche la vitesse, mais aucune valeur n'est connue ».
+
+#### « Attack speed » : gain propre ou buff
 
 ⚠️ **Deux choses très différentes se cachent derrière « attack speed »** dans les
 textes, et les confondre fausse tout :

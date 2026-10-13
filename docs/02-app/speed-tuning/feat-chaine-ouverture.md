@@ -70,6 +70,8 @@ tout à un monstre coupé que la correction d'un autre sauve. **L'écran liste c
 que le solveur demande, pas ce qui est coupé** : lister les coupés masquait la
 moitié de la solution, qui ne tenait pas une fois appliquée.
 
+#### Trois règles de terrain
+
 Trois règles de terrain le cadrent :
 
 - ⚠️ **LA VITESSE DU PREMIER EST INTOUCHABLE.** Celui qui ouvre le combo porte
@@ -92,6 +94,8 @@ Trois règles de terrain le cadrent :
   autres — **un tick à trois alliés, deux à quatre**, et ainsi de suite. C'est
   lui la contrainte qui décide ; les intermédiaires se casent ensuite entre le
   premier et lui.
+
+#### La recherche en deux temps
 
 La recherche se fait en deux temps, sur chacun des deux leviers :
 
@@ -131,6 +135,8 @@ La recherche se fait en deux temps, sur chacun des deux leviers :
     dépassement d'ATB change, et il ne fait que départager les barres pleines.
 - **« Hors de portée »** (`combatRequis: null`) : aucun placement ne le fait
   passer, le premier restant à sa vitesse.
+
+#### Vérification du réglage cherché
 
 **Vérification** (skill `algo-verify`) — ⚠️ **la référence de contrôle ne doit
 partager NI la stratégie NI la recherche du code testé.** La toute première
@@ -193,6 +199,8 @@ produit cartésien est hors d'atteinte ; elle balaie les affectations allié →
 (non décroissantes, aux deux bords de chaque palier). **Contrôle incomplet,
 assumé** : il peut rater une solution, jamais en inventer une — un échec est donc
 toujours un vrai défaut.
+
+#### Coût mesuré et limite du modèle
 
 **Coût mesuré** (les deux axes, à chaque frappe) : **1,9 ms** sur un tune à 3
 alliés avec boost d'ATB, **4,9 ms** à 4 alliés, **9,5 ms** à 5. Aucun budget ni

@@ -21,7 +21,7 @@ vitesse_combat = base + runes + ⌈ base × (15 + lead) / 100 ⌉
   forfait avant de réinjecter le pourcentage (voir
   [../transverse/](../transverse/)). L'écart n'est que
   d'**un point**, et un point suffit à rater un tick : sur le deck de contrôle
-  Mihyang / Adriana / Sonia, l'oublier donnait 374 et 350 au lieu de 373 et 349.
+  Mihyang / Adriana / Sonia, l'oublier donnerait 374 et 350 au lieu de 373 et 349.
   Un deck importé du siège coche la case tout seul (le slot porte ses sets).
 - La **vitesse de combat minimale pour agir au tick n** est
   `⌈ 10000 / (7n) ⌉` (`speedForTick`) : 130 au tick 11, **239 au tick 6**
@@ -41,8 +41,8 @@ raids de 4,5 % :
 L'outil ne connaît que le siège : un réglage validé ici ne vaut pas pour la
 RTA dès qu'un boost de barre ou un buff de vitesse entre en jeu (sans
 modificateur, l'ordre est le même : tout le monde est ralenti dans la même
-proportion). Demandé par le mainteneur le 2026-09-28 — **chantier à part**, pas la
-refonte graphique (il touche `src/lib/`). Ce qu'il devra trancher :
+proportion). Un mode RTA est un **chantier à part** (il touche `src/lib/`). Ce
+qu'il devra trancher :
 
 - un réglage **Siège / RTA** de l'outil, qui change la constante du moteur
   (`speedTune.ts`), le seuil par tick (`speedForTick`) et le repère des ticks
@@ -76,7 +76,7 @@ posent** pour ce monstre et ce tick — **0 annule** l'effet du sort, une case
   ⚠️ **Et la valeur du buff est un ENTIER de pourcentage** : le jeu affiche
   « +30 % », « +33 % », jamais 32,7 %. On **tronque** — 9 d'artéfact donne
   30 × 1,09 = 32,7 → **32 %**, quand 10 donne 33 % tout rond. Mesuré en jeu :
-  9 ne passait pas, 10 oui, alors que le calcul décimal disait que 9 suffisait.
+  9 ne passe pas, 10 oui, alors que le calcul décimal dit que 9 suffit.
   Arrondir au lieu de tronquer donnerait 33 % dès 9, ce que le jeu dément.
   Conséquence utile : l'artéfact avance **par paliers**, et l'outil propose le
   premier palier qui change quelque chose.
@@ -89,9 +89,7 @@ posent** pour ce monstre et ce tick — **0 annule** l'effet du sort, une case
   > makes SPD buff being 33% instead of 30% » —
   > [Ellia's Wiki](https://elliabot.neocities.org/game_mechanics/artifacts/)
 
-  ⚠️ **Cette spec a affirmé le contraire** (« additif, pas multiplicatif ») et le
-  code suivait : l'artéfact valait alors trois à quatre fois son effet réel, ce
-  qui faussait les vitesses proposées. Corrigé après un signalement de terrain
-  (un deck où 10 d'artéfact valent ~3 de vitesse, pas ~20) et **re-vérification à
-  la source**. Retenir la leçon : une valeur de mécanique se relit à la source
-  avant d'être écrite ici comme acquise.
+  ⚠️ **Multiplicatif, pas additif** : additif, l'artéfact vaudrait trois à
+  quatre fois son effet réel, ce qui fausserait les vitesses proposées (un deck
+  où 10 d'artéfact valent ~3 de vitesse, pas ~20). Une valeur de mécanique se
+  relit à la source avant d'être écrite ici comme acquise.

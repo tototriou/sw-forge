@@ -6,9 +6,9 @@ Partie de [Outils · Speed tuning](README.md).
 
 ### ⚠️ « Ordre raté » et « équipe coupée » sont deux problèmes
 
-L'analyse d'ordre annonçait toujours la même chose : « Les vitesses de tes
-monstres ne permettent pas de jouer dans l'ordre demandé. » Or `diagnostiquerSequence`
-distingue déjà les raisons, et deux d'entre elles ne disent pas la même chose :
+Un seul message — « Les vitesses de tes monstres ne permettent pas de jouer
+dans l'ordre demandé. » — ne suffit pas : `diagnostiquerSequence`
+distingue les raisons, et deux d'entre elles ne disent pas la même chose :
 
 | Raison | Ce qui se passe |
 |---|---|
@@ -16,9 +16,9 @@ distingue déjà les raisons, et deux d'entre elles ne disent pas la même chose
 | `apres-adverse` | l'ordre est **bon**, mais un adverse s'intercale — l'équipe se fait **couper** |
 
 ⚠️ Quand **tous** les ennuis sont des `apres-adverse`, les alliés jouent bel et
-bien dans l'ordre demandé. Le titre le dit désormais : « Ton équipe joue dans
-l'ordre demandé, mais elle se fait couper. » L'ancien message envoyait corriger
-un ordre qui n'avait rien à se reprocher.
+bien dans l'ordre demandé. Le titre le dit : « Ton équipe joue dans l'ordre
+demandé, mais elle se fait couper. » Le message d'ordre raté enverrait corriger
+un ordre qui n'a rien à se reprocher.
 
 Et le monstre concerné **se fait couper** plutôt qu'il n'« est trop lent » : il
 peut parfaitement tenir son rang parmi les alliés — ce qu'il rate, c'est de
@@ -62,36 +62,34 @@ répondre exactement :
 
 `combatSpeed(base, runeSpeedForTarget(base, lead, T, swift), lead, swift) === T`
 
-⚠️ **Le Swift doit voyager jusqu'à la conversion**, et il y était codé en dur à
-`false` (`runesPour`), alors que la vitesse de combat de la même ligne se calcule
-avec le Swift de la ligne. Deux descriptions du même monstre : comme la Rapidité
-apporte 25 % de la base et que `combatSpeed` la retire à plat avant de la
-remettre dans la somme des pourcentages, l'écart tombe sur un arrondi et vaut
-**0 ou 1**.
+⚠️ **Le Swift doit voyager jusqu'à la conversion** (`runesPour`) : la vitesse
+de combat de la même ligne se calcule avec le Swift de la ligne. Sans lui, ce
+seraient deux descriptions du même monstre : comme la Rapidité apporte 25 % de
+la base et que `combatSpeed` la retire à plat avant de la remettre dans la
+somme des pourcentages, l'écart tombe sur un arrondi et vaut **0 ou 1**.
 
-Mesuré sur les cas réalistes (base 85→135, leads du jeu, cibles 200→420) :
-**40 % demandaient un point de trop peu**. On appliquait « +18 SPD », on restait
-à 1 du compte, et l'outil réclamait ce dernier point — d'où l'impression d'un
-« il manque 1 de SPD » qui ne s'en va jamais.
+Mesuré sur les cas réalistes (base 85→135, leads du jeu, cibles 200→420) : sans
+le Swift, **40 % demanderaient un point de trop peu**. On appliquerait
+« +18 SPD », on resterait à 1 du compte, et l'outil réclamerait ce dernier
+point — un « il manque 1 de SPD » qui ne s'en va jamais.
 
 ⚠️ **Le GAIN DE PASSIF se retire de la cible.** La vitesse que le solveur vise
 est celle que la card affiche, gain compris (`combatDe` = vitesse de combat +
 `gainPassifDe`) ; les runes, elles, ne portent que la première part. Viser la
-cible entière revenait à demander en runes ce que le passif donne déjà — **+40
-de trop** sur un Chilling à deux buffs.
+cible entière reviendrait à demander en runes ce que le passif donne déjà —
+**+40 de trop** sur un Chilling à deux buffs.
 
 ⚠️ **« Il manque 0 » est une contradiction** : si un monstre doit aller plus
-vite, le plus petit conseil possible est **+1**. Le calcul ne peut plus rendre 0
+vite, le plus petit conseil possible est **+1**. Le calcul ne rend pas 0
 — le solveur ne réclame qu'une vitesse strictement supérieure à l'actuelle, et
-l'aller-retour est exact depuis que le Swift et le passif y entrent. Un plancher
+l'aller-retour est exact, Swift et passif compris. Un plancher
 à 1 reste posé en **filet**, pas comme correctif : il empêche qu'un arrondi futur
 affiche « +0 SPD », ce qui enverrait chercher une correction déjà faite.
 
 Quatre vérifications tiennent la règle : l'**aller-retour exact** sur les 135 252
 combinaisons, l'**absence de conseil nul** sur toute la plage, le **retrait du
 gain de passif**, et deux **contrôles de source** sur l'appelant — les invariants
-ne valent que si le Swift et le passif lui sont transmis, et c'est justement là
-qu'étaient les deux défauts.
+ne valent que si le Swift et le passif lui sont transmis.
 
 ### ⚠️ Le plus rapide se juge GAIN DE PASSIF COMPRIS
 
@@ -100,14 +98,13 @@ faut-il désigner le bon.
 
 `gainPassifDe` lit `cumulsPassif ?? 0` : tant que le **compte de buffs** n'est
 pas écrit, un monstre à passif de vitesse vaut sa vitesse **sans son gain**.
-Chilling à 404 (364 + 40 pour 2 buffs portés) se lisait donc 364, et Ciri à 375
-lui passait devant — la référence copiait le mauvais monstre.
+Chilling à 404 (364 + 40 pour 2 buffs portés) se lirait donc 364, et Ciri à 375
+lui passerait devant — la référence copierait le mauvais monstre.
 
 ⚠️ **Et le compte s'écrit par un EFFET** (`estimerCumuls`), donc au rendu
-**suivant**, alors que l'analyse part dans le même rendu. Le résultat dépendait
-de l'ordre d'arrivée des données : bonne référence quand les kits étaient déjà
-en cache, mauvaise à la **première ouverture** de la modale. Un défaut « une fois
-sur deux » qui n'avait rien d'aléatoire.
+**suivant**, alors que l'analyse part dans le même rendu. Le résultat
+dépendrait de l'ordre d'arrivée des données : bonne référence quand les kits
+sont déjà en cache, mauvaise à la **première ouverture** de la modale.
 
 `plusRapideAllie` compare donc sur les lignes **dont les cumuls sont estimés**
 — en réutilisant `estimerCumuls`, jamais un calcul recopié : c'est lui qui porte
@@ -163,10 +160,10 @@ ton monstre passe **même s'il est plus lent** — la vitesse ne départage donc
 qu'entre monstres du même camp. Mais une barre adverse plus haute l'emporte
 toujours : le camp ne passe jamais devant la barre.
 
-⚠️ **Ce critère manquait**, et le défaut ne se voyait qu'une fois sur deux : le
-départage s'arrêtait à l'ordre de placement, donc le tour partait à l'adverse dès
-qu'il se trouvait placé avant dans le tableau. Deux Elsharion à la même barre, et
-l'ordre de jeu dépendait de l'ordre des lignes à l'écran.
+⚠️ **Sans ce critère**, le départage s'arrêterait à l'ordre de placement : le
+tour partirait à l'adverse dès qu'il se trouve placé avant dans le tableau.
+Deux Elsharion à la même barre, et l'ordre de jeu dépendrait de l'ordre des
+lignes à l'écran.
 
 ⚠️ **« Ton équipe » est tenue pour l'ATTAQUANT** : c'est le cadre de l'outil, où
 l'on prépare son attaque. Modéliser une défense demanderait de rendre ce rôle

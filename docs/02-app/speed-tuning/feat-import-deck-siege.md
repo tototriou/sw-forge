@@ -37,25 +37,25 @@ trois vitesses de runes. Calcul pur dans
 
   Sa liste est **lue dans les données** (`leadsDeVitesse`), jamais écrite à la
   main : le jeu a des +10, +15, +16, +17 et des leads d'élément à +23 et +30
-  qu'aucune constante ne contenait. Les portées **Arène** et **Donjon** en sont
+  qu'aucune constante ne contiendrait. Les portées **Arène** et **Donjon** en sont
   écartées — elles ne comptent pas en siège.
 
   ⚠️ **Un seul menu, pas deux** (montant × portée) : « +23 % alliés Eau » n'est
-  pas « +23 % » plus « Eau ». Séparés, les deux sélecteurs laissaient composer
+  pas « +23 % » plus « Eau ». Séparés, les deux sélecteurs laisseraient composer
   des leads qui n'existent pas dans le jeu.
 
 - ⚠️ **Le lead se devine à partir de l'équipe.** Un monstre du camp porte un lead
   de vitesse ? Il se pose tout seul dans l'encart (le plus fort si plusieurs — un
-  seul leader agit). Aller le redire à la main était une saisie pour rien.
+  seul leader agit). Aller le redire à la main serait une saisie pour rien.
   Dès qu'on touche au menu **ou** qu'on importe un deck, ce défaut ne repasse
-  plus jamais : « Sans » est un choix comme un autre, et un réglage qu'on ne peut
+  jamais : « Sans » est un choix comme un autre, et un réglage qu'on ne peut
   pas poser vaut moins que pas de défaut du tout.
 
-  > ⚠️ **Deux détours essayés avant, tous deux faux.** Ne garder que le montant
-  > perdait les leads d'élément : le speed tune calculait plus lent que la card
-  > de siège, qui les compte — un « il manque X de VIT » portant sur une vitesse
-  > que personne n'avait sous les yeux. Les recopier ensuite sur chaque monstre
-  > (`Ligne.lead`) rendait le sélecteur du camp décoratif et obligeait à
+  > ⚠️ **Deux détours, tous deux faux.** Ne garder que le montant
+  > perdrait les leads d'élément : le speed tune calculerait plus lent que la
+  > card de siège, qui les compte — un « il manque X de VIT » portant sur une
+  > vitesse que personne n'a sous les yeux. Les recopier sur chaque monstre
+  > (`Ligne.lead`) rendrait le sélecteur du camp décoratif et obligerait à
   > trafiquer les lignes une par une. Le camp porte le lead entier ; chaque
   > monstre en reçoit ce qui lui revient, via le `siegeLeadFor` du siège.
 
@@ -67,29 +67,29 @@ trois vitesses de runes. Calcul pur dans
   son propre lead, et l'écraser recalculerait de vrais adversaires avec le tien.
 
   > ⚠️ Ce lead hérité est marqué comme **CHOISI**. Simplement écrit, le défaut
-  > « lead présent dans l'équipe » le reprenait au rendu suivant : la référence
-  > retombait au lead de son camp d'accueil — souvent aucun —, devenait plus
-  > lente que le monstre qu'elle copie, et l'outil déclarait tuné à peu près
+  > « lead présent dans l'équipe » le reprendrait au rendu suivant : la référence
+  > retomberait au lead de son camp d'accueil — souvent aucun —, deviendrait plus
+  > lente que le monstre qu'elle copie, et l'outil déclarerait tuné à peu près
   > n'importe quoi.
 
 - **L'artéfact « Effet aug. VIT » est repris** du `gear` du slot (code `206`
   dans `ARTIFACT_SUB`, sommé sur les deux artéfacts) : c'est lui qui amplifie le
   buff de vitesse, il n'a pas à être ressaisi.
 - ⚠️ **Les sorts choisis du camp sont OUBLIÉS** : ils sont rangés par monstre
-  (`camp:id`) et survivaient donc à un import — on rejouait le choix fait pour
-  l'équipe précédente, et l'outil comptait un effet que le siège écarte. Deux
+  (`camp:id`) et survivraient sinon à un import — on rejouerait le choix fait pour
+  l'équipe précédente, et l'outil compterait un effet que le siège écarte. Deux
   verdicts sur la même équipe.
 - ⚠️ **Le deck REMPLACE la composition du camp** où l'on a cliqué : un deck est
   une équipe, pas une liste de monstres à empiler — sans ça, importer une
-  deuxième défense entassait six monstres du même côté. Ce qui était dans **ce
+  deuxième défense entasserait six monstres du même côté. Ce qui est dans **ce
   camp** est donc perdu (vitesses corrigées, modificateurs) ; **l'autre camp
   garde tout**, et le deck reste dans Siège, réimportable à volonté. Le même deck
   peut être importé **des deux côtés** (`uid = camp:id`), pour se comparer à
   soi-même.
 - **Lead** : celui du **leader du deck** (slot 0, convention du siège), écrit sur
   le camp qui reçoit l'import — ⚠️ **toujours, « Sans » compris** : un deck sans
-  lead de vitesse laissait en place celui du deck précédent, et l'on calculait la
-  nouvelle équipe avec un bonus qui n'existait plus (le siège, lui, lit `lead ?? 0`,
+  lead de vitesse laisserait en place celui du deck précédent, et l'on calculerait la
+  nouvelle équipe avec un bonus qui n'existe plus (le siège, lui, lit `lead ?? 0`,
   d'où deux réponses sur la même compo). Sa **portée est conservée** :
   `General` / `Guild` valent pour tout le camp ; un lead d'**élément** ne vaut
   que pour les monstres de cet élément (`siegeLeadFor`). Un lead Arène ou Donjon,

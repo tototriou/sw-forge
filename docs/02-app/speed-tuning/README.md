@@ -48,7 +48,7 @@ Fichiers : [SpeedTuningSection.tsx](src/components/outils/SpeedTuningSection.tsx
 Un **deck réel** (Mihyang / Adriana / Sonia, lead 28 %, tous en Swift) est figé
 dans [tests/speed-tune.test.ts](tests/speed-tune.test.ts) : vitesses de combat,
 trajectoires **au millième** et ordre des tours, comparés à un outil de speed
-tune de la communauté. C'est ce cas qui a fait apparaître que le Swift manquait —
+tune de la communauté. Ce cas échoue si le Swift manque —
 et il garantit que le modèle (remise à zéro sans report, un seul monstre par
 tick, buff au tick marqué) reste conforme.
 

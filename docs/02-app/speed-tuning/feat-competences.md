@@ -20,9 +20,9 @@ d'entrée `chargerDetail`) — lecture pure dans
 [speedTuneKit.ts](src/lib/speedTuneKit.ts), **testée**
 ([tests/speed-tune.test.ts](tests/speed-tune.test.ts)).
 
-⚠️ **Deux champs de saisie (« Boost ATB », « Buff SPD ») ont existé sur la card
-et ont été RETIRÉS** : une fois la détection automatique en place, ils ne
-servaient plus à rien. Un cas que la détection ne couvre pas (effet sur un seul
+⚠️ **Pas de champs de saisie « Boost ATB » ni « Buff SPD » sur la card** : avec
+la détection automatique, ils ne serviraient à rien. Un cas que la détection
+ne couvre pas (effet sur un seul
 allié, passive, compétence qu'on ne jouera pas) se pose **dans les deux grilles
 par tick**, qui restent la porte de sortie manuelle.
 
@@ -48,7 +48,7 @@ par tick**, qui restent la porte de sortie manuelle.
 
 ⚠️ **La cible compte autant que la valeur.** *Breeze* (Kroa) remplit la barre
 d'**UN** allié — celui qui l'a la plus basse — pas de toute l'équipe : les
-confondre triplait son effet. *Wood Vine* **vide** la barre d'un adverse, ce qui
+confondre triplerait son effet. *Wood Vine* **vide** la barre d'un adverse, ce qui
 aide tout autant à passer devant lui. D'où `EffetSort`
 ([speedTune.ts](src/lib/speedTune.ts)), appliqué au tick où le lanceur joue :
 
@@ -64,10 +64,10 @@ aide tout autant à passer devant lui. D'où `EffetSort`
 
 - ⚠️⚠️ **`aoe` ET `surSoi` NE S'EXCLUENT PAS**, dans les données du jeu. `aoe +
   surSoi` veut dire « **tout le camp, lui compris** » — c'est la forme NORMALE
-  d'un boost d'équipe, pas un boost sur soi. La lecture testait `surSoi` en
-  premier : le S3 de **Jeogun** (*Blossom Painting* — « increases the Attack Power
-  of all allies for 2 turns and their Attack Bar by 10% ») tombait dans « lui
-  seul », et le reste de l'équipe ne recevait rien. La règle, dans cet ordre :
+  d'un boost d'équipe, pas un boost sur soi. Tester `surSoi` en
+  premier ferait tomber le S3 de **Jeogun** (*Blossom Painting* — « increases the Attack Power
+  of all allies for 2 turns and their Attack Bar by 10% ») dans « lui
+  seul », et le reste de l'équipe ne recevrait rien. La règle, dans cet ordre :
 
   | drapeaux | cible |
   |---|---|
@@ -77,8 +77,8 @@ aide tout autant à passer devant lui. D'où `EffetSort`
 
   ⚠️ Cette dernière ligne vaut aussi pour le **buff de vitesse** : `aoe=false,
   surSoi=false` sur un *Increase ATK SPD*, c'est un buff sur l'allié VISÉ, donc
-  `buffAllie`. Il est passé par deux erreurs successives — rangé dans `buffSoi`
-  (le lanceur héritait d'un buff qu'il **donne**), puis purement ignoré.
+  `buffAllie` — ni rangé dans `buffSoi` (le lanceur hériterait d'un buff qu'il
+  **donne**), ni ignoré.
 
   Même règle pour le buff de vitesse et pour le **comptage des buffs d'équipe**
   (`buffsEquipe`, qui nourrit l'estimation des passifs à cumuls) : un effet
@@ -160,15 +160,15 @@ L'outil les **lit et les applique** : [speedTunePassif.ts](src/lib/speedTunePass
   Le gain reste **propre** au monstre dans les deux cas — c'est sa vitesse à lui
   qui monte. Ce qui change, c'est le périmètre de ce qu'on compte, porté par
   `GainVitesse.cumulEquipe` et lu dans le texte du passif. Confondre les deux
-  sous-comptait Elsharion de tous les buffs de ses alliés.
+  sous-compterait Elsharion de tous les buffs de ses alliés.
 
   Et c'est là que la différence Volonté / Bouclier se voit vraiment : une équipe
   de 3 avec **un** set Bouclier et **deux** sets Volonté porte
   **3 + 2 = 5 buffs** — un bouclier sur chacun, plus deux immunités —, soit
-  **+25 de vitesse** pour Elsharion. Compté comme pour Chilling, on en trouvait
-  2, et il manquait 15 de vitesse.
+  **+25 de vitesse** pour Elsharion. Compté comme pour Chilling, on en trouverait
+  2, et il manquerait 15 de vitesse.
 - ⚠️ **L'outil le pose tout seul** dans la case « cumuls » d'une ligne jamais touchée — sans quoi une
-  équipe arrivée du siège affichait une vitesse ici et une autre là-bas. C'est une **estimation**, pas
+  équipe arrivée du siège afficherait une vitesse ici et une autre là-bas. C'est une **estimation**, pas
   une vérité : elle suppose ces buffs posés au moment où le passif compte, et un
   chiffre **saisi n'est jamais écrasé**.
 
@@ -184,30 +184,29 @@ L'outil les **lit et les applique** : [speedTunePassif.ts](src/lib/speedTunePass
 - ⚠️ **Un passif change QUI est le plus rapide** : c'est pour ça que « Analyser »
   repose l'adversaire de référence sur le plus rapide du moment, en recopiant son
   set, son artéfact et son passif.
-- ⚠️⚠️ **ELLE EST REPOSÉE AVANT L'ANALYSE, PAS APRÈS.** Elle ne l'était qu'à la
-  fin d'`analyser()` : l'analyse tournait donc contre la référence de la fois
-  **précédente**, et le verdict avait systématiquement **une analyse de retard**.
-  - Le cas qui l'a révélé : Chilling à **+220** des deux côtés, speed tune. On
+- ⚠️⚠️ **ELLE EST REPOSÉE AVANT L'ANALYSE, PAS APRÈS.** Posée à la fin
+  d'`analyser()`, elle laisserait l'analyse tourner contre la référence de la
+  fois **précédente**, et le verdict aurait systématiquement **une analyse de
+  retard**.
+  - Cas de contrôle : Chilling à **+220** des deux côtés, speed tune. On
     monte à **+221** et on analyse — la référence suit et coupe. On redescend à
-    +220 : l'écran replace bien nos tours **en direct**, mais la référence reste
-    à +221. « Relancer » calculait alors un adverse à +221 contre un allié à
-    +220, le plaçait au tick 4 devant nous au 5, et écrivait le buff de vitesse
-    **un tick trop loin**. Un **second** clic sur « Relancer », sans rien
-    changer, donnait la bonne réponse — la référence ayant enfin rattrapé son
-    modèle.
+    +220 : l'écran replace nos tours **en direct**, et la référence doit
+    redescendre avec eux. Restée à +221, « Relancer » calculerait un adverse à
+    +221 contre un allié à +220, le placerait au tick 4 devant nous au 5, et
+    écrirait le buff de vitesse **un tick trop loin**.
   - ⚠️ **La PLACE compte autant que la vitesse** : à vitesse égale, c'est l'ordre
     du tableau qui départage (`placement`, voir `simuler`) — et ce cas est
     précisément une égalité. La référence est donc posée **en fin de liste**,
     exactement comme le fait `analyseAuto` ; sinon les deux chemins
     trancheraient l'égalité dans deux sens.
 - ⚠️⚠️ **LA RÉFÉRENCE A SON PROPRE ESPACE DE NOMS** (`uidReference`,
-  [speedTuneLignes.ts](src/lib/speedTuneLignes.ts) → `ennemi:ref:<id>`). Elle
-  portait l'uid ordinaire de son monstre — exactement celui qu'aurait une VRAIE
+  [speedTuneLignes.ts](src/lib/speedTuneLignes.ts) → `ennemi:ref:<id>`), pas
+  l'uid ordinaire de son monstre — exactement celui qu'aurait une VRAIE
   ligne adverse pour ce même monstre. Quand le plus rapide de ton équipe se
   retrouve aussi en face (un **miroir**, cas courant en siège), poser la
-  référence **supprimait la ligne du vrai adverse** et la remplaçait par une
-  copie de ton allié : le verdict portait alors sur un plateau qui n'était pas
-  le tien, **sans un mot à l'écran**.
+  référence **supprimerait la ligne du vrai adverse** et la remplacerait par
+  une copie de ton allié : le verdict porterait alors sur un plateau qui n'est
+  pas le tien, **sans un mot à l'écran**.
   - **Un seul constructeur**, utilisé par `ligneReference` ET par l'écran qui
     passe `idReference` à l'analyse. Écrits séparément, les deux divergeraient et
     ce que l'analyse écrit n'atterrirait nulle part — un modificateur appliqué
@@ -255,9 +254,9 @@ coefficients inventés ne se vérifient nulle part. Du plus large au plus étroi
 ⚠️ **À rang ÉGAL, c'est le montant qui départage** — pas l'ordre des slots. Le
 rang dit QUI est touché, jamais COMBIEN : Racuni porte deux sorts « sur un
 allié », *Breeze* (+15 % de barre) et *Rabbit's Agility* (barre **pleine** +
-30 % de vitesse). Les deux valant 5, c'est le **premier rencontré** qui gagnait,
-donc le S1 : l'analyse retenait le plus faible des deux, et le monstre visé
-n'avait ni sa barre remplie ni son buff. Le départage additionne le remplissage
+30 % de vitesse). Les deux valant 5, retenir le **premier rencontré**
+donnerait le S1 : l'analyse retiendrait le plus faible des deux, et le monstre
+visé n'aurait ni sa barre remplie ni son buff. Le départage additionne le remplissage
 et le buff de vitesse — à remplissage égal, celui qui buffe **en plus** l'emporte
 (*Clear Blue Sky* de Tanjiro vent contre *Dancing Flash* : 50 % tous les deux,
 seul le premier buffe).
@@ -293,13 +292,12 @@ dans le même Record, et les confondre a fait mentir l'écran :
 | `AUTO` | laisser le **kit** décider | l'entrée est **retirée** |
 
 ⚠️ **Une seule fonction pour les deux sorts** (`noterChoix`,
-[speedTuneAuto.ts](src/lib/speedTuneAuto.ts)). Écrites séparément, elles avaient
-divergé : le premier sort réservait la suppression à `AUTO` (juste), le second
-supprimait sur `''` (faux). Dire « Aucun sort » au **second tour** effaçait donc
-le choix, et le kit rappliquait son sort — le +15 % de barre de Kroa revenait
-alors qu'on venait précisément de l'écarter, tick après tick. Choisir un AUTRE
-sort marchait, ce qui rendait le défaut d'autant plus retors : seul le cas « rien »
-était touché.
+[speedTuneAuto.ts](src/lib/speedTuneAuto.ts)). Écrites séparément, elles
+divergeraient : si le premier sort réservait la suppression à `AUTO` (juste)
+et que le second supprimait sur `''` (faux), dire « Aucun sort » au **second
+tour** effacerait le choix, et le kit rappliquerait son sort — le +15 % de
+barre de Kroa reviendrait alors qu'on vient précisément de l'écarter, tick
+après tick.
 
 ### Ce qu'on retire à l'adverse
 
@@ -325,7 +323,7 @@ dans la grille du modificateur de barre d'attaque : c'est une saisie, pas une
 déduction, et le moteur l'applique telle quelle.
 
 ⚠️ **Le SECOND sort** (quand le premier rend le tour) suit la même règle sur ce
-qui reste : sans lui, un monstre qui rejoue passait son tour supplémentaire à ne
+qui reste : sans lui, un monstre qui rejoue passerait son tour supplémentaire à ne
 rien faire.
 
 ### Rechargement des compétences
@@ -334,7 +332,7 @@ rien faire.
 `EffetSort`) se compte en **tours du lanceur** : un sort à 3 tours lancé à son
 premier tour ne revient qu'au quatrième — entre les deux, le monstre joue autre
 chose (son S1, dont on ne sait rien, donc rien du tout). Sans ça, la simulation
-relançait le S3 à **chaque** tour et l'équipe montait bien plus vite qu'en jeu.
+relancerait le S3 à **chaque** tour et l'équipe monterait bien plus vite qu'en jeu.
 
 - La valeur retenue est celle de la compétence **MAXÉE** (`paliersRechargement`,
   dernier palier) : même convention que le gain de barre, on joue maxé.

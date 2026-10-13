@@ -63,7 +63,7 @@ qu'en coréen.
 - **Beast Man (Passive) — gain de vitesse — AUCUNE donnée, ni fiche ni relevé (vérifié)**
   - Grotau, Minotauros
 - **Sugar Booster (Passive) — gain de vitesse — AUCUNE donnée, ni fiche ni relevé (vérifié)**
-  - Lollipop Warrior, le mainteneur
+  - Lollipop Warrior, Thomas
 - **The Bravest Cookie (Passive) — gain de vitesse — AUCUNE donnée, ni fiche ni relevé (vérifié)**
   - GingerBrave, 용감한 쿠키
 
@@ -435,7 +435,7 @@ faire, ça se pose à la main dans les grilles. Les entrées **AUCUNE donnée
 - **Red Battlefield (Passive) — remplit une barre hors de son tour, montant introuvable**
   - Demon, Lucifer
 - **Sugar Booster (Passive) — gain de vitesse — AUCUNE donnée, ni fiche ni relevé (vérifié)**
-  - Lollipop Warrior, le mainteneur
+  - Lollipop Warrior, Thomas
 - **The Bravest Cookie (Passive) — gain de vitesse — AUCUNE donnée, ni fiche ni relevé (vérifié)**
   - GingerBrave, 용감한 쿠키
 - **Thrill of War (Passive) — remplit une barre hors de son tour, montant introuvable**

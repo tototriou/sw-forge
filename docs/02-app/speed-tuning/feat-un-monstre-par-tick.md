@@ -16,7 +16,7 @@ Le cœur de l'outil, dans `simulerOrdre` (speedTune.ts), **testé**
   (`deplacerDansCamp`, [speedTuneLignes.ts](src/lib/speedTuneLignes.ts)). C'est
   le seul levier quand un réglage fait finir deux monstres à la **même vitesse**
   — cas courant, puisque le solveur ramène chacun au minimum : ils se retrouvent
-  à égalité et c'est la liste qui tranche. Le laisser subi revenait à cacher une
+  à égalité et c'est la liste qui tranche. Le laisser subi reviendrait à cacher une
   entrée du calcul.
   - L'échange se fait avec le voisin **du même camp**, tel qu'il est affiché
     (masqués compris) : ce qu'on voit bouger est ce qui bouge — on ne saute pas

@@ -19,8 +19,8 @@ et [speedTuneKit.ts](src/lib/speedTuneKit.ts) (`sortsVitesse`), **testés**.
 ⚠️ **Un combo fait jouer le même monstre deux fois avant l'adverse** — Racuni se
 vise lui-même au S2 (barre pleine → il rejoue au tick suivant) puis enchaîne son
 S1. L'ordre doit pouvoir le dire, sinon le combo n'est ni descriptible ni
-vérifiable : le moteur relançait le MÊME sort à chaque tour, donc **rien du
-tout** dès que le rechargement l'en empêchait.
+vérifiable : relancer le MÊME sort à chaque tour ne donnerait **rien du
+tout** dès que le rechargement l'en empêche.
 
 - Un **`+`** sur chaque ligne ajoute un tour à ce monstre. ⚠️ La nouvelle ligne
   naît **juste en dessous**, là où le tour se joue — un `+` en pied de liste
@@ -60,10 +60,10 @@ chiffrer — annoncer deux vitesses différentes pour un seul monstre serait pir
 que de se taire.
 
 ⚠️⚠️ **Mais les fenêtres CONNAISSENT les occurrences.** Un voisin nommé
-`allie:12#2` restait introuvable tant que les ticks se lisaient par
-`premiersTours` : la contrainte « joue avant lui » tombait **sans bruit**, la
-fenêtre annonçait une vitesse trop basse pendant que `diagnostiquerSequence`
-déclarait l'ordre cassé — **deux réponses opposées sur le même écran**. Les ticks
+`allie:12#2` resterait introuvable si les ticks se lisaient par
+`premiersTours` : la contrainte « joue avant lui » tomberait **sans bruit**, la
+fenêtre annoncerait une vitesse trop basse pendant que `diagnostiquerSequence`
+déclare l'ordre cassé — **deux réponses opposées sur le même écran**. Les ticks
 se lisent donc par `ticksParOccurrence`, et le monstre se retrouve par la base de
 sa clé.
 
@@ -83,24 +83,24 @@ sort du 1ᵉʳ tour, celui du second, **et la CIBLE**. Le reste (vitesses,
 artéfacts, cases des grilles) est un réglage de l'utilisateur, où
 l'automatisation ne revient jamais.
 
-⚠️ **La cible y manquait**, et c'est le pire défaut possible ici : désigner
-« sur : lui-même » change qui reçoit la barre, qui reçoit le buff, et donc à quel
-tick chacun joue ensuite — mais ne relançait rien. Les grilles gardaient les
-valeurs de la cible **précédente**, et on lisait un buff tombé au mauvais tick
-sur un écran par ailleurs cohérent : rien n'avait l'air cassé. Un **contrôle de
+⚠️ **La cible en fait partie** : désigner « sur : lui-même » change qui reçoit
+la barre, qui reçoit le buff, et donc à quel tick chacun joue ensuite. Sans
+elle dans la signature, rien ne serait relancé : les grilles garderaient les
+valeurs de la cible **précédente**, et on lirait un buff tombé au mauvais tick
+sur un écran par ailleurs cohérent. Un **contrôle de
 source** ([tests/speed-tune.test.ts](tests/speed-tune.test.ts)) vérifie
-désormais que la signature de relance est le miroir de l'objet passé à
+que la signature de relance est le miroir de l'objet passé à
 l'analyse — une entrée ajoutée à l'un et oubliée dans l'autre échoue.
 
 ⚠️ **Mais un sort déjà choisi n'est JAMAIS réécrit** : l'analyse ne remplit que
-les cases vides. Sans ça, changer un sort relançait l'analyse, qui reposait
-aussitôt celui du kit — le choix se réinitialisait sous les doigts et le réglage
-était impossible. Une chaîne vide (« Aucun sort ») est un **choix**, pas une
-absence : elle est préservée comme les autres.
+les cases vides. Sans ça, changer un sort relancerait l'analyse, qui reposerait
+aussitôt celui du kit — le choix se réinitialiserait sous les doigts et le
+réglage serait impossible. Une chaîne vide (« Aucun sort ») est un **choix**,
+pas une absence : elle est préservée comme les autres.
 
-⚠️ **Plus rien n'est deviné à la volée** : le sort lancé est celui qui a été
+⚠️ **Rien n'est deviné à la volée** : le sort lancé est celui qui a été
 ÉCRIT. Sans analyse, personne ne lance rien — l'outil ne suppose pas à la place
-de qui règle. Le menu n'a donc plus d'entrée « Sort détecté » : il n'y a que des
+de qui règle. Le menu n'a donc pas d'entrée « Sort détecté » : il n'y a que des
 sorts, et « Aucun sort ».
 
 #### Ordre voulu, sort par monstre, tour rendu et verdict
@@ -116,7 +116,7 @@ sorts, et « Aucun sort ».
 - **Sort par monstre**, dans un **menu à icônes** (Bouton + `FlottantAuto` +
   rangées à plat, la grammaire des listes ancrées de l'app) — ⚠️ **`FlottantAuto`
   et non `Flottant`** : le bouton se promène au bout d'une rangée, et un flottant
-  posé toujours du même côté sortait de la page par la droite ; celui-ci mesure
+  posé toujours du même côté sortirait de la page par la droite ; celui-ci mesure
   la place autour de son ancre et choisit son côté : la ligne reste
   lisible d'un coup d'œil et le détail s'ouvre à la demande. Le bouton porte
   l'icône du sort retenu ; chaque entrée dit ce que le sort fait et son taux de
@@ -139,8 +139,8 @@ sorts, et « Aucun sort ».
   après l'adverse*, *joue trop tôt*, *joue trop tard*.
   ⚠️ **La contrainte se juge PAR VOISIN** (je joue après mon prédécesseur, avant
   mon successeur), jamais sur un rang global : un rang qui retombe juste par
-  accident masquait un monstre qui doublait celui qu'il devait suivre. Le test
-  différentiel des fenêtres a attrapé cette erreur.
+  accident masquerait un monstre qui double celui qu'il doit suivre (test
+  différentiel des fenêtres).
 
 ### Fenêtres de vitesse
 
@@ -156,9 +156,9 @@ garanties). Un rang tenu n'affiche qu'une coche.
 corrigées (`fenetresRequises`, drapeau `enchainer`). Calculées indépendamment,
 **deux monstres trop lents à la suite** rendent la fenêtre du dernier **VIDE** :
 il ne doit pas passer devant son prédécesseur, un prédécesseur qu'on sait déjà
-cassé. Sur Tiana / Galleon / Zaiross, Zaiross sortait `min 286, max 151` —
-l'écran disait « est trop lent » **sans dire de combien**, précisément sur le
-monstre qu'on cherchait à régler. Or c'est la question qu'on pose ici : *quelles
+cassé. Sur Tiana / Galleon / Zaiross, Zaiross sortirait `min 286, max 151` —
+l'écran dirait « est trop lent » **sans dire de combien**, précisément sur le
+monstre qu'on cherche à régler. Or c'est la question qu'on pose ici : *quelles
 vitesses pour que TOUT passe*.
 
 ⚠️ **La chaîne se résout PAR LA FIN, et il faut ITÉRER.** Corriger le 2ᵉ puis
@@ -174,13 +174,13 @@ l'itération nécessaire, pas un raffinement.
 
 ⚠️⚠️ **ON NE CORRIGE QUE CE QUI EST ENCORE EN DÉFAUT**, un monstre à la fois, en
 rediagnostiquant après chaque correction — et **le premier en défaut dans
-l'ordre**, jamais le dernier : c'est lui qui contraint ses successeurs. Une
-version posait d'office chaque monstre signalé à son minimum, ce qui
-**surestimait** : sur Chilling 396 / Carcano 366 / Seren 354 (référence
-Chilling 396), Seren était signalé « trop lent », donc remonté — et Carcano,
-calculé contre un Seren corrigé plus rapide que le vrai, réclamait **+2** là où
-**+1** suffisait. Le défaut de Seren était une **conséquence** de la position de
-Carcano : une fois Carcano corrigé, Seren n'avait plus rien à faire.
+l'ordre**, jamais le dernier : c'est lui qui contraint ses successeurs. Poser
+d'office chaque monstre signalé à son minimum **surestimerait** : sur
+Chilling 396 / Carcano 366 / Seren 354 (référence Chilling 396), Seren est
+signalé « trop lent », donc serait remonté — et Carcano, calculé contre un
+Seren corrigé plus rapide que le vrai, réclamerait **+2** là où **+1**
+suffit. Le défaut de Seren est une **conséquence** de la position de
+Carcano : une fois Carcano corrigé, Seren n'a plus rien à faire.
 
 ⚠️⚠️ **LA BORNE ANNONCÉE EST REJOUÉE.** Les dichotomies cherchent chacune une
 condition, et les corrections enchaînées supposent les autres réglés : rien de
@@ -198,9 +198,9 @@ vitesse actuelle et on annonce le premier point qui marche.
   étant corrigés », et il n'y a pas de minimum individuel à chercher.
 - Coût mesuré : **~2,4 ms** par appel, même avec des monstres très en retard.
 - **Gardé** par une propriété balayée : *toute borne qui suffit à elle seule est
-  la plus petite*. ⚠️ Le contrôle a d'abord menti — l'artéfact était tiré au sort
-  DANS le constructeur de plateau, donc chaque appel comparait une configuration
-  différente et « trouvait » des fautes inexistantes.
+  la plus petite*. ⚠️ L'artéfact n'est pas tiré au sort DANS le constructeur
+  de plateau : chaque appel comparerait une configuration différente et
+  « trouverait » des fautes inexistantes.
 
 ⚠️ **Les bornes annoncées sont VÉRIFIÉES, pas déduites** : le test repose les
 vitesses trouvées, contrôle que l'ordre demandé est tenu, puis qu'**un seul point
@@ -223,7 +223,7 @@ tout le reste tient.
 - ⚠️ **Une fenêtre se lit « les autres inchangés »** — contrairement à
   `vitessesRequises`, qui empile ses corrections. C'est voulu : un ordre se règle
   un monstre à la fois, et corriger l'un déplace les fenêtres des voisins.
-  ⚠️ **Ça ne s'écrit PAS sous la liste.** Un paragraphe le disait, et il ne se
-  lisait pas : trois lignes de théorie sous une liste de chiffres qu'on vient
-  consulter, à relire à chaque passage sans jamais rien y changer. La règle reste
+  ⚠️ **Ça ne s'écrit PAS sous la liste** : trois lignes de théorie sous une
+  liste de chiffres qu'on vient consulter ne se liraient pas, à relire à
+  chaque passage sans jamais rien y changer. La règle reste
   vraie et vit ici ; l'écran, lui, montre les fenêtres.

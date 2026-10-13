@@ -112,7 +112,7 @@ découpage en **brackets** est ce qui décide de tout : chaque terme est additif
 |---|---|---|
 | **Crit** | `1 + Skillups + CDrune + CDarti + CDbonus − CDtaken` | `critTerm` — les Dgts CRIT d'artéfact (400-403, 410, 411, 222-224) y entrent, confirmé |
 | **DMG%** | `1 + ArtifactOnElement + ArtifactCoOp + Other` | `dmgPct` |
-| **FacteurDéf** | `1000 / (1142 + 3,572 × DEF)` | `defenseFactor` — ⚠️ le dépôt garde **1140 / 3,5**, écart assumé de longue date |
+| **FacteurDéf** | `1000 / (1142 + 3,572 × DEF)` | `defenseFactor` |
 | **Additionnel** | dégâts fixes de sort, et « + N % d'une stat » | `ajoutBrutParCoup` — ne crite pas, ignore la défense |
 | **Réductions** | `Artefact + Passif − Mirinae/Marque`, puis un bucket multiplicatif | `reductions` |
 | **Variance** | ±2,8 % | volontairement hors modèle |
@@ -142,7 +142,7 @@ Dégâts = ( Mult × Crit × FacteurDéf + Additionnel ) × Réductions × coups
   résistance adverse), mais au-delà de 100 % il ne rapporte plus aucun
   dégât en jeu — sauf le surplus que Wolf School Training reverse en Dgts
   Crit (voir [catalogue-des-passifs.md](catalogue-des-passifs.md)).
-- **FacteurDéf** — `1000 / (1140 + 3,5 × DEF_effective)`, avec
+- **FacteurDéf** — `1000 / (1142 + 3,572 × DEF_effective)`, avec
   `DEF_effective = DEF_ennemie × (0 si ignore défense) × (0,3 si réduction
   de défense)`. ⚠️ **Source unique du facteur de défense pour toute l'app** :
   `objectiveScore('ehp')` ([runeBuildOptim.ts](../../../src/lib/runeBuildOptim.ts))

@@ -72,7 +72,7 @@ export function testRenduMecaniques() {
     'Vitesse = ⌈ Base × (1 + Σ%vitesse) + Σvitesse_plate ⌉ × Slow × BuffVit',
     'ΔATB par tick = Vitesse_combat × 7 / 100',
     'Dégâts = ( Mult × Crit × DMG% × FacteurDéf × Variance + Additionnel ) × Réductions',
-    'FacteurDéf = 1000 / (1140 + 3.5 × DEF)',
+    'FacteurDéf = 1000 / (1142 + 3.572 × DEF)',
     'Mise à l’échelle sur stats : ±2.8 % → [0.972 , 1.028]',
   ]) ok(t.includes(f), `formule « ${f.slice(0, 40)}… »`);
   ok(t.endsWith('Ces effets ne sont pas modélisés dans SW Blacksmith (qui se concentre sur la vitesse, les ticks et les runes).'), 'ce qui n\'est pas modélisé');

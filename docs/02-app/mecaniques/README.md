@@ -29,13 +29,10 @@ changement de hash pour ne pas casser le routing) puis sections en panneaux :
 > Volontairement **exclus** (non présents sur swcalc/game-mechanics) : efficacité
 > des runes, sets de runes, précision/résistance, avantage élémentaire.
 
-⚠️ **Deux écarts connus entre la page et cette fiche, à corriger** :
-
-- la page affiche encore `1000 / (1140 + 3.5 × DEF)`, les valeurs arrondies
-  du wiki, alors que le point 4 ci-dessus retient `1142 + 3.572` (swcalc.cz) ;
-- le point 2 et la page disent « 7 % par tick » sans réserve : c'est vrai
-  partout **sauf en raid (4,5 %) et en RTA (1,5 %)** — voir
-  [speed-tuning/feat-formule.md](../speed-tuning/feat-formule.md) § Mode RTA.
+⚠️ **« 7 % par tick » est dit sans réserve**, au point 2 comme sur la page. La
+source citée par [speed-tuning/feat-formule.md](../speed-tuning/feat-formule.md)
+(§ Mode RTA) donne 4,5 % en raid et 1,5 % en RTA : la taille du tick en RTA
+attend un arbitrage ([questions ouvertes](../../05-pilotage/questions-ouvertes.md)).
 
 ## Règles / attendus
 

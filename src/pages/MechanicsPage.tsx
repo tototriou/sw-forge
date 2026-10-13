@@ -186,11 +186,11 @@ export default function MechanicsPage() {
 
         <Section id="defense" title="Facteur de défense">
           <p>La défense de la cible réduit les dégâts selon :</p>
-          <F>{'FacteurDéf = 1000 / (1140 + 3.5 × DEF)'}</F>
+          <F>{'FacteurDéf = 1000 / (1142 + 3.572 × DEF)'}</F>
           <F>{'DEF = Défense × (1 − Ignore%) × Dbreak      Dbreak = 0.3 si def break, sinon 1'}</F>
           <ul className="list-disc list-inside space-y-1">
             <li>L&apos;ignore défense réduit la DEF effective mais n&apos;annule pas le plancher de la formule.</li>
-            <li>À DEF = 0, le facteur vaut ~0,877 (pas 1,0) — même sans défense, il reste une légère mitigation.</li>
+            <li>À DEF = 0, le facteur vaut ~0,876 (pas 1,0) — même sans défense, il reste une légère mitigation.</li>
           </ul>
         </Section>
 

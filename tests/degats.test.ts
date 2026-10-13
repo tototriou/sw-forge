@@ -2261,7 +2261,7 @@ export default function testDegats() {
   // et PLUS FORT qu'un
   // simple `ignoreDef` : `mitigation = profile.fixed ? 1 : defenseFactor(…)`
   // saute ENTIÈREMENT le facteur de défense (aucune réduction, même pas le
-  // plancher `defenseFactor(0) ≈ 0,877` qu'`ignoreDef` laisserait subsister).
+  // plancher `defenseFactor(0) ≈ 0,876` qu'`ignoreDef` laisserait subsister).
   ok(dominicPassifs[0]!.profile.ignoreDef === false, 'le passif ne porte PAS le marqueur ignoreDef — sa neutralité à la DEF vient de `fixed`, un mécanisme différent');
   const dominicDefNulle = computeSkillDamage(dominicPassifs[0]!.profile, dominicStats, { ...dominicSetup, enemyDef: 0 }, AUCUNE_AURA_PROPRE);
   const dominicDefEnorme = computeSkillDamage(dominicPassifs[0]!.profile, dominicStats, { ...dominicSetup, enemyDef: 999999 }, AUCUNE_AURA_PROPRE);

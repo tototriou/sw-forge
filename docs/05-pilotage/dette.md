@@ -12,7 +12,6 @@ une mesure se redonne avec sa date quand on la refait.
 | **Dépendances de hooks React incomplètes** | 17 avertissements `react-hooks/exhaustive-deps` | `npm run lint` | 2026-10-13 |
 | **Affectations inutiles** | 7 avertissements `no-useless-assignment` | `npm run lint` | 2026-10-13 |
 | **Récit de chantier dans les commentaires** : un commentaire donne la raison et l'invariant, pas l'histoire | 269 mentions « lot N » dans 104 fichiers et 220 « décision N » dans 98 fichiers de `src/`, `scripts/`, `tests/` et `bureau/` ; 45 dates dans 9 fichiers de `src/` et `bureau/` (2026-10-13) | `git grep -i -E 'lot [0-9]+\|décision [0-9]+' -- src scripts tests bureau` | 2026-10-08 |
-| **La page Mécaniques s'écarte de sa fiche** | deux écarts : le facteur de défense affiché (`1140 + 3.5`, quand le calcul retient `1142 + 3.572`) et « 7 % par tick » dit sans réserve (faux en raid et en RTA) | [mecaniques/](../02-app/mecaniques/README.md), « Deux écarts connus » | 2026-10-13 |
 | **Points de la revue de `release/v2.0.0`** | à relever : ils ne sont pas dans le dépôt | — | 2026-10-08 |
 
 Au total, ESLint rend 0 erreur et 257 avertissements (2026-10-13). Deux fichiers en portent près

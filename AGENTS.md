@@ -135,9 +135,9 @@ npm run bureau:preuve          # la vérification de l'application de bureau
   peut porter (ex. `src/lib/speedTuneLignes.ts` pour l'écran du speed tuning).
 - ⚠️ **Un type partagé entre l'écran et un script a PLUSIEURS constructeurs** (ex. `OptimizerRecipe`
   et `recipeToSearchParams.ts`). `tsc` attrape un champ dont le **type change** ou qui devient
-  **obligatoire**, jamais un champ **optionnel** oublié dans l'un d'eux. Avant de considérer un champ
-  ajouté ou renommé comme terminé : `grep -rn` du nom sur `src/`, `scripts/` **et** `tests/`. Les
-  constructeurs connus : skill `optimizer-field-propagation`.
+  **obligatoire**, jamais un champ **optionnel** oublié dans l'un d'eux ; ces constructeurs se
+  trouvent dans `src/`, `scripts/` et `tests/`. Les constructeurs connus : skill
+  `optimizer-field-propagation`.
 - **Toute page ou section ajoutée, renommée ou supprimée** se répercute sur l'accueil, sur la nav de
   `App.tsx` et sur [docs/02-app/README.md](docs/02-app/README.md), dans le même commit.
 
@@ -180,22 +180,14 @@ npm run bureau:preuve          # la vérification de l'application de bureau
 
 ## Vérifier
 
-Avant de considérer un changement de code terminé, dans cet ordre :
-
-```bash
-npx tsc --noEmit                  # types — src/, scripts/ et tests/
-npx eslint <fichiers touchés>     # lint
-node tests/run.mjs <filtre>       # SEULEMENT la zone touchée
-npm run build                     # une classe Tailwind « correcte » peut n'être jamais émise
-```
-
-⚠️ **La suite complète (`npm test`) ne se lance qu'avant une fusion sur `main` ou dans une
-branche `release/*`** — et seulement là.
+Les commandes sont dans « Commandes essentielles » ; pendant le travail, lancer celles qui
+portent sur ce que le changement peut casser, sans procédure fixe. La suite complète
+(`npm test`) se lance avant une fusion sur `main` ou dans une branche `release/*`.
 Le filtre se compare au nom de la vérification, mis à plat (`speed-tune`, `speedtune`, `SpeedTune`) ;
 un filtre qui ne correspond à rien échoue en listant ce qui existe. La sélection par fichiers
 modifiés (`--depuis`, `--plage`), le manifeste et le banc d'affichage :
-[tests/README.md](tests/README.md). Quand un style ne s'applique pas,
-vérifier dans le **CSS construit**, pas dans le composant.
+[tests/README.md](tests/README.md). Une classe Tailwind correcte dans le TSX peut n'être jamais
+émise : quand un style ne s'applique pas, regarder le CSS construit.
 
 ## Hooks Git et CI
 

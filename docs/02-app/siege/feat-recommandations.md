@@ -1591,7 +1591,12 @@ Indépendamment du repli de la carte, **chaque deck a son propre chevron**.
   de ses voisins (20 px, `data-cible-fine` : exempté de la règle des 40 px)
   et garde sa raison de désactivation en infobulle ; en
   édition, « Annuler les modifications » se place sous le ✓, que la colonne
-  ne déplace pas. À la souris, rien ne change.
+  ne déplace pas. Les trois icônes sont sur **le même axe vertical** et
+  **réparties à espacements égaux** sur toute la hauteur de la rangée et des
+  sets (65 px, 2,5 px entre deux icônes ; lot 6). Les deux `BoutonIcone` à
+  libellé « à la souris » perdaient 3 px à gauche du centre (le `<span>` vide
+  du libellé masqué recevait l'espacement du bouton) : `max-lg:gap-0` les
+  recentre. À la souris, rien ne change.
   L'ancienne disposition à la souris — une grille de cartes sur deux colonnes
   (`lg:grid-cols-2`, le deck en édition sur toute la largeur) — est remplacée
   par cette liste : une ligne par deck se lit d'un regard, sans demi-largeur

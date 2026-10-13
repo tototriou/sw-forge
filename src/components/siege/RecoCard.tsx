@@ -1627,10 +1627,16 @@ function DeckBlock({
             en bas : Supprimer, Éditer, Exporter vers l'Optimizer — deuxième
             colonne de la grille de l'en-tête, sur la hauteur de la rangée et
             des sets (`row-span-2`). Supprimer garde la place qu'il avait au
-            bout de la rangée. */}
+            bout de la rangée.
+            ⚠️ **Toute cette hauteur, à espacements égaux** (lot 6) :
+            `max-lg:self-stretch max-lg:justify-between`, la colonne s'étend
+            sur la rangée et les sets (65 px) et ses icônes s'y répartissent.
+            `max-lg:gap-[2.5px]`, l'espacement que donnent trois icônes de
+            20 px sur 65 : en édition, « Annuler » s'ajoute sous le ✓ sans
+            que l'espacement change, le ✓ touché ne bouge pas. */}
         <div
           className={`flex items-center gap-0.5 max-lg:col-start-2 max-lg:row-span-2 max-lg:row-start-1 max-lg:flex-col
-            max-lg:self-start lg:col-span-full lg:row-start-3 lg:mb-1 lg:ml-8
+            max-lg:gap-[2.5px] max-lg:self-stretch max-lg:justify-between lg:col-span-full lg:row-start-3 lg:mb-1 lg:ml-8
             lg:justify-end lg:gap-1.5 lg:rounded-b-xl lg:border lg:border-border-soft lg:bg-panel lg:px-3 lg:py-2
             ${folded ? 'lg:hidden' : ''}`}
         >
@@ -1644,7 +1650,12 @@ function DeckBlock({
               droite (`justify-end`), il s'allonge vers la gauche, le ✓ qu'on
               vient de toucher ne bouge pas. Au doigt, SOUS le ✓
               (`max-lg:order-1`), pour la même raison : la colonne s'allonge
-              vers le bas. Grisé tant que rien n'a changé. */}
+              vers le bas. Grisé tant que rien n'a changé.
+              ⚠️ `max-lg:gap-0` sur les trois `BoutonIcone` de la colonne :
+              leur libellé « à la souris », masqué au doigt, laisse un `<span>`
+              vide qui reçoit l'espacement du bouton (6 px) et poussait leur
+              icône 3 px à gauche du centre, quand celle de l'export est
+              centrée. Sans lui, les trois icônes sont sur le même axe. */}
           {editing && (
             <BoutonIcone
               onClick={onAnnulerEdition}
@@ -1653,7 +1664,7 @@ function DeckBlock({
               icone={<Undo2 size={12} />}
               libelle="Annuler les modifications"
               libelleALaSouris
-              className="max-lg:order-1"
+              className="max-lg:order-1 max-lg:gap-0"
             />
           )}
           <BoutonIcone
@@ -1663,6 +1674,7 @@ function DeckBlock({
             icone={editing ? <Check size={13} className="text-star" /> : <Pencil size={12} />}
             libelle={editing ? "Terminer l'édition de ce deck" : 'Éditer ce deck'}
             libelleALaSouris
+            className="max-lg:gap-0"
           />
           {/* ⚠️ **Toujours présent**, plus seulement en édition —
               la confirmation (« Supprimer ce deck ? ») reste le garde-fou.
@@ -1677,7 +1689,7 @@ function DeckBlock({
             icone={<Trash2 size={12} />}
             libelle="Supprimer ce deck"
             libelleALaSouris
-            className="order-first lg:mr-auto"
+            className="order-first max-lg:gap-0 lg:mr-auto"
           />
           {/* ⚠️ **Au doigt seulement** (`lg:hidden`) : le même export que
               celui de la colonne Verdict, à la souris (masqué, lui, au

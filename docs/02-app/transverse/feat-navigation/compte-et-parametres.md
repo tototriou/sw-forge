@@ -99,14 +99,12 @@ barre latérale au bureau, dans la barre supérieure au téléphone.
   (`<Segmented>` pour un choix unique, `<Switch>` pour un oui/non — un réglage
   binaire se lit d'un coup d'œil sur un interrupteur, sans lire les libellés).
   Ajouter un paramètre = ajouter un `<Setting>`, rien d'autre.
-- ⚠️ `<Segmented>` a été **remonté** dans
-  [Segmented.tsx](src/ui/Segmented.tsx) à son deuxième usage (filtre de
-  catégorie des artéfacts) plutôt que recopié. Il sert partout où des choix
-  **s'excluent** : une rangée de pastilles séparées se lit comme des filtres
-  cumulables, le cadre commun dit l'exclusivité sans un mot.
-- ⚠️ `<Switch>` a été **remonté** dans [Switch.tsx](src/components/Switch.tsx)
-  à son deuxième usage (« Stats de base exclues » de l'Optimizer) plutôt que
-  recopié, même principe que `<Segmented>` ci-dessus.
+- ⚠️ `<Segmented>` ([Segmented.tsx](src/ui/Segmented.tsx)) sert partout où
+  des choix **s'excluent**, ici comme au filtre de catégorie des artéfacts :
+  une rangée de pastilles séparées se lit comme des filtres cumulables, le
+  cadre commun dit l'exclusivité sans un mot.
+- ⚠️ `<Switch>` ([Switch.tsx](src/components/Switch.tsx)) est partagé de même,
+  ici comme pour « Stats de base exclues » de l'Optimizer.
 - **Pas de légende** quand l'intitulé et les options se suffisent : le panneau
   reste une liste de lignes courtes. Le `hint` d'un `<Setting>` sert quand le
   réglage a une **conséquence non évidente** — « Garder mes données » en a une

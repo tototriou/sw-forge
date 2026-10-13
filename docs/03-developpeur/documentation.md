@@ -30,8 +30,12 @@ jamais aux notes privées : un lecteur du dépôt ne peut pas les ouvrir.
 - **Un document, un sujet.** Le titre dit lequel ; les premières lignes
   disent ce qu'on y trouve et, s'il y en a, les fichiers de code concernés.
   Aucun en-tête n'est imposé.
-- **L'état actuel, pas l'histoire** : ce qui est vrai aujourd'hui et
-  pourquoi, sans récit de chantier ni « lot N ». Une date, quand elle sert,
+- **Ce qui est décidé ou fait, jamais ce qui se faisait avant** : ce qui
+  est vrai aujourd'hui et pourquoi, au présent. Ni « l'ancienne… », ni
+  « a été retiré », ni récit de chantier, ni « lot N » — dans une fiche
+  comme dans un ADR. Une raison née d'un défaut passé s'écrit en règle,
+  pas en anecdote. Un historique qui compte a son propre document dans
+  [05-pilotage/](../05-pilotage/README.md). Une date, quand elle sert,
   s'écrit en absolu.
 - **Une mise à jour remplace le texte périmé**, elle n'ajoute pas un
   paragraphe « depuis la v… » : l'historique Git garde le texte remplacé.

@@ -4,8 +4,8 @@ Partie de [Navigation](README.md).
 
 ## La barre latérale
 
-À l'ordinateur, la navigation est une barre latérale. Pourquoi elle a remplacé
-la rangée d'onglets et ses menus déroulants :
+À l'ordinateur, la navigation est une barre latérale. Pourquoi une barre
+latérale plutôt qu'une rangée d'onglets :
 [barre-laterale.md](../../../04-decisions/adr/barre-laterale.md).
 
 ### ⚠️ L'ordre d'importance ne change pas

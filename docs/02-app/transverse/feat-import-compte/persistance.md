@@ -211,10 +211,10 @@ Prépa RTA, équipes de siège, recommandations, catégories, monstres perso **e
 compte importé sont conservés **si et seulement si** l'utilisateur l'a accepté.
 Rien n'est envoyé à un serveur. Aucune authentification.
 
-- ⚠️ **Un seul régime de mémoire.** RTA et siège étaient persistés d'office
-  pendant que le compte disparaissait au rechargement : on revenait avec ses
-  équipes mais sans ses runes, sans explication. Deux régimes dans le même
-  outil, c'est un bug de conception.
+- ⚠️ **Un seul régime de mémoire.** Si les équipes survivaient au
+  rechargement et pas le compte, on reviendrait avec ses équipes mais sans ses
+  runes, sans explication. Deux régimes dans le même outil, c'est un bug de
+  conception.
 - ⚠️ **Aucun hook de données n'appelle `localStorage.setItem` directement** :
   tout passe par `saveLocal`. C'est ce qui garantit qu'un refus vaut pour l'app
   entière, et qu'un futur état persistant n'ouvrira pas une fuite.
@@ -242,7 +242,7 @@ Ce qui part :
 - **toutes les clés de données de `localStorage`** : prépa RTA, équipes de
   siège, recommandations, catégories, monstres perso, listes de l'Optimizer, et
   les réglages qui y sont rangés (thème, overcap, adversaire de référence) ;
-- ⚠️ **les clés des anciens noms aussi** (`sw-forge…`, `sky-arena…`) : une clé
+- ⚠️ **les clés des deux autres préfixes aussi** (`sw-forge…`, `sky-arena…`) : une clé
   que la migration n'a pas pu renommer reste une donnée de l'utilisateur ;
 - **le travail en mémoire**, y compris ce qui n'a jamais été écrit sur le
   disque (`purgeDonneesConservees` de
@@ -258,14 +258,15 @@ Ce qui reste :
   score ;
 - les **fichiers** : sessions de l'application de bureau, exports.
 
-## Clés renommées au rebranding — [migrationStockage.ts](src/lib/migrationStockage.ts)
+## Migration des clés d'un autre préfixe — [migrationStockage.ts](src/lib/migrationStockage.ts)
 
-Les clés s'appelaient `sw-forge-…` (et `sky-arena-…` pour la toute première
-prépa RTA) ; elles s'appellent `swblacksmith-…`.
+Toutes les clés portent le préfixe `swblacksmith-`. Un stockage peut en
+contenir sous deux autres préfixes, `sw-forge-…` et `sky-arena-…` : elles sont
+renommées au lancement.
 
-- Au premier lancement, le module — **premier import de `main.tsx`**, avant
-  tout module qui lit le stockage — recopie chaque `sw-forge-…` /
-  `sky-arena-…` sous `swblacksmith-…`, RELIT la copie, puis efface l'ancienne.
+- Le module — **premier import de `main.tsx`**, avant tout module qui lit le
+  stockage — recopie chaque `sw-forge-…` / `sky-arena-…` sous
+  `swblacksmith-…`, RELIT la copie, puis efface l'ancienne.
 - Une nouvelle clé déjà présente fait foi.
 - **Quota plein** : l'ancienne place est libérée avant de réécrire ; en cas
   d'échec, l'ancienne valeur est remise, intacte, et reprise au lancement
@@ -273,6 +274,6 @@ prépa RTA) ; elles s'appellent `swblacksmith-…`.
 - Le script de thème d'`index.html`, qui passe avant, lit l'ancienne clé en
   repli.
 - ⚠️ Toute nouvelle clé prend le préfixe `swblacksmith-` ; un test refuse un
-  littéral de l'ancien nom hors du module de migration.
+  littéral d'un autre préfixe hors du module de migration.
 - ⚠️ Le stockage d'un navigateur est lié à l'**adresse** du site : un
   changement de domaine ne se migre pas, il passe par les exports.

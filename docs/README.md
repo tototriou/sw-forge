@@ -56,7 +56,7 @@
 
 9. **Un contenu ne vit qu'à un seul endroit** ; les autres pointent vers lui.
    `01-presentation` donne la vue d'ensemble et **renvoie** aux fiches ; `04-decisions` porte le
-   *pourquoi* et l'historique ; `03-developpeur` les pratiques courantes.
+   *pourquoi* ; `03-developpeur` les pratiques courantes.
 10. **Les registres vivants** (dette, questions ouvertes, pistes) restent dans `05-pilotage` : ils
     n'encombrent pas les parcours de lecture.
 11. **Cadrages éphémères** ([04-decisions/cadrages/](04-decisions/cadrages/README.md)) : documents
@@ -78,6 +78,9 @@
 ### Conventions de rédaction
 
 - **Français partout** : documentation, commentaires et messages de commit.
+- **Ce qui est décidé ou fait, jamais ce qui se faisait avant** : ni une fiche ni un ADR ne garde
+  d'historique. S'il compte, il a son propre document dans
+  [05-pilotage/](05-pilotage/README.md).
 - Dates **absolues** (jamais « récemment », « la semaine dernière »).
 - **[à valider]** = proposition en attente d'arbitrage ; **[à préciser]** = renvoie à une question
   de [05-pilotage/questions-ouvertes.md](05-pilotage/questions-ouvertes.md).

@@ -1,8 +1,8 @@
 # Choix de recherche pour les dégâts réels
 
-**Statut :** DÉCISION — isole les choix qui n’influent pas sur le classement des builds
-**Remplace :** les sections de décision de l'ancienne fiche des dégâts réels, aujourd'hui découpée dans docs/02-app/degats-reels/
-**Lire si :** on modifie les statistiques pertinentes ou une majoration uniforme pour la recherche
+Les choix des dégâts réels qui n'influent pas sur le classement des builds. À
+lire avant de modifier les statistiques pertinentes ou une majoration uniforme
+pour la recherche.
 
 ## ⚠️ Ces lignes n'entrent PAS dans `damageRelevantStats`
 

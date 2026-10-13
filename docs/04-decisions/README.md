@@ -4,5 +4,5 @@ Pourquoi c'est comme ça : les décisions durables (ADR) et les cadrages de chan
 
 | Dossier | Contenu |
 | --- | --- |
-| [adr/](adr/README.md) | Les décisions durables (ADR) : contexte, choix, conséquences. |
+| [adr/](adr/README.md) | Les décisions durables (ADR) : le choix, ses raisons, ce qu'il écarte, ses conséquences. |
 | [cadrages/](cadrages/README.md) | Les cadrages des chantiers en cours : diagnostic, lots, arbitrages ouverts. |

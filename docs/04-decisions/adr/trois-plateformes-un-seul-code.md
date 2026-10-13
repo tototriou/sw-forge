@@ -1,14 +1,10 @@
 # Trois plateformes, un seul code
 
-## Contexte
-
-SW Blacksmith s'utilise de trois façons : sur le **site au téléphone**, sur le
-**site à l'ordinateur**, et dans l'**application de bureau** (Windows, Linux),
-proposée à ceux qui veulent l'app en local.
-
 ## Décision
 
-Les trois plateformes sont maintenues, et **un seul code les sert toutes** :
+SW Blacksmith est maintenu sur trois plateformes — le **site au téléphone**, le
+**site à l'ordinateur** et l'**application de bureau** (Windows, Linux) — et
+**un seul code les sert toutes** :
 
 - **le site** est une application responsive, un seul build Vite ; téléphone et
   ordinateur y sont deux formats de premier rang
@@ -19,17 +15,23 @@ Les trois plateformes sont maintenues, et **un seul code les sert toutes** :
   `estBureau()` ;
 - **au téléphone, rien ne s'installe** : il est servi par le site.
 
-## Options écartées
+## Raisons
 
-- **Tauri ou une PWA pour le bureau**, écartés le 2026-10-04 au profit
-  d'Electron : tout reste en TypeScript et Node comme le reste du dépôt,
+- **Une fonctionnalité écrite deux fois diverge.** Avec un seul code, ce qui
+  est fait pour une plateforme existe sur les trois.
+- **L'application de bureau sert ceux qui veulent l'app en local**, dans sa
+  propre fenêtre, sans rien retirer au site.
+- **Electron garde tout en TypeScript et Node**, comme le reste du dépôt ;
   Chromium embarqué donne le même rendu partout, et l'outillage est mûr
   (electron-builder, mise à jour automatique).
-- **Un code par plateforme.** Une fonctionnalité écrite deux fois diverge ; la
-  base reste commune, même si les plateformes sont un jour empaquetées
-  séparément.
-- **Une application mobile installable.** Pas aujourd'hui : le site au
-  téléphone en tient lieu.
+
+## Options écartées
+
+- **Tauri ou une PWA pour le bureau** : Electron l'emporte pour les raisons
+  ci-dessus.
+- **Un code par plateforme** : la base est commune, même si les plateformes
+  sont un jour empaquetées séparément.
+- **Une application mobile installable** : le site au téléphone en tient lieu.
 
 ## Conséquences
 

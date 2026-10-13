@@ -1,7 +1,7 @@
 # Décisions durables (ADR)
 
-Une décision par fichier : le contexte, le choix, ses conséquences. Une décision remplacée le dit
-et pointe vers celle qui la remplace.
+Une décision par fichier : le choix, ses raisons, ce qu'il écarte, ses conséquences. Un ADR dit
+toujours ce qui est en vigueur : une décision qui change se réécrit.
 
 | Document | Contenu |
 | --- | --- |
@@ -16,9 +16,13 @@ et pointe vers celle qui la remplace.
 
 - **Ce qui mérite un ADR** : un choix entre plusieurs options, encore en vigueur, qu'un chantier
   pourrait vouloir rouvrir. Une règle sans option écartée reste dans sa fiche.
-- **Quatre parties** : « Contexte » (le problème constaté), « Décision », « Options écartées »
-  (chacune avec ce qui l'a fait écarter), « Conséquences » (ce que le choix impose, et les fiches
-  qui le mettent en œuvre).
+- **Quatre parties** : « Décision », « Raisons », « Options écartées » (chacune avec ce qui la
+  fait écarter), « Conséquences » (ce que le choix impose, et les fiches qui le mettent en
+  œuvre).
+- **Au présent, sans historique** : un ADR ne raconte ni ce qui se faisait avant, ni comment on
+  est arrivé au choix, et ne porte pas de date. Une raison née d'un défaut passé s'écrit en
+  règle (« une barre verticale ne déborde pas »), pas en récit. Un historique qui compte a son
+  propre document dans [05-pilotage/](../../05-pilotage/README.md).
 - **Le pourquoi ne s'écrit qu'ici** : la fiche décrit ce qui se fait et renvoie à l'ADR pour la
   raison (règle 9 de la [charte](../../README.md)).
 - **Aucune raison inventée** : une décision dont la raison n'est écrite nulle part se demande à

@@ -166,8 +166,8 @@ peut donc **créer un monstre** utilisable comme les autres, en **RTA et en Siè
     sont affichés à titre indicatif.
   - Le formulaire s'ouvre dans une **modale**, « Nouveau monstre », la même aux
     deux formats : titre à gauche, croix à droite, « Créer » en bas à droite.
-    ⚠️ Pas une popup ancrée au bouton : posée dans le flux, elle était rognée
-    dès qu'on l'ouvrait depuis le panneau « Options », qui défile.
+    ⚠️ Pas une popup ancrée au bouton : posée dans le flux, elle serait rognée
+    dans le panneau « Options », qui défile.
   - Liste « Mes monstres perso » sous le formulaire ; la suppression passe par
     un dialogue de confirmation, qui rappelle que le monstre devra être
     ressaisi en entier.

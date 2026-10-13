@@ -89,8 +89,7 @@ Au téléphone, la
 dit déjà où l'on est : les titres « Ma box », « Paramètres » et « Comparaison »
 y sont masqués (`hidden lg:block`).
 
-Le dégradé encre → braise (`title-gradient`) a été retiré au rebranding
-(décision 57), comme la toile.
+Pas de dégradé sur un titre : l'encre est unie.
 
 ### Rayons
 

@@ -120,10 +120,10 @@ vide ou se corrige pendant qu'on tape.
 - ⚠️ **Un appui PROLONGÉ sur − ou + fait défiler la valeur en continu**, et la
   cadence **accélère**. Ces champs portent des valeurs qui varient sur des
   dizaines d'unités (une vitesse de 180 à 240, un minimum de crit de 15 à 85) :
-  un pas par clic imposait soixante clics, ou de repasser par le clavier alors
-  qu'on avait déjà le doigt sur le bouton. À cadence fixe, il fallait choisir
-  entre trop lent pour traverser 60 unités et si vif qu'on dépassait toujours
-  sa cible.
+  un pas par clic imposerait soixante clics, ou de repasser par le clavier
+  alors qu'on a déjà le doigt sur le bouton. À cadence fixe, il faudrait
+  choisir entre trop lent pour traverser 60 unités et si vif qu'on dépasse
+  toujours sa cible.
   - Le défilement démarre après **400 ms** — assez pour qu'un clic ordinaire,
     même mou, n'en déclenche jamais un et ne fasse pas sauter la valeur de deux.
   - Il **s'arrête à la butée** (`min`/`max`), au relâchement **même hors du
@@ -131,16 +131,14 @@ vide ou se corrige pendant qu'on tape.
 - ⚠️ **`min`/`max` ne sont appliqués qu'à la SORTIE du champ** (`onBlur`) et
   sur les boutons ± — jamais à chaque frappe. Border chaque frappe casse la
   saisie dès qu'un `min` positif dépasse un chiffre isolé : avec `min={15}`
-  `max={100}`, taper « 5 » sautait à 15, puis « 0 » (lu comme « 150 »)
-  sautait à 100 — impossible d'écrire 50. Repéré sur les conditions minimum
-  de l'[Optimizer](../../../02-app/optimizer/README.md), premier endroit de
-  l'app à passer un `min` positif non trivial (tous les usages précédents
-  étaient à 0 ou 1, jamais heurtés par ce piège).
+  `max={100}`, taper « 5 » sauterait à 15, puis « 0 » (lu comme « 150 »)
+  sauterait à 100 — impossible d'écrire 50. Les conditions minimum de
+  l'[Optimizer](../../../02-app/optimizer/README.md) passent un tel `min`.
 - ⚠️ Un champ à **brouillon** (saisie séparée de la valeur, comme
   [Pager.tsx](src/components/account/Pager.tsx)) doit **remettre le brouillon
   en forme lui-même** à la validation : un effet de resynchronisation ne se
-  déclenche que si la valeur CHANGE, donc « 007 » sur la page 7 restait affiché
-  tel quel.
+  déclenche que si la valeur CHANGE, donc « 007 » sur la page 7 resterait
+  affiché tel quel.
 
 #### `Selecteur`
 

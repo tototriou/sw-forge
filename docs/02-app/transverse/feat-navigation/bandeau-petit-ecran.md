@@ -8,12 +8,11 @@ lit avant qu'on se soit fait une idée sur un affichage à l'étroit.
 Il tient en une phrase : « Les courbes et l'optimiseur se lisent plus
 confortablement sur un grand écran. » La navigation, les grilles et les listes
 s'adaptent au téléphone ; seuls les écrans les plus denses (comparaison de
-courbes, Optimizer) demandent encore de la largeur. Sans un mot, on croit à un
-site mal fait plutôt qu'à un site consulté dans de mauvaises conditions.
+courbes, Optimizer) demandent de la largeur. Sans un mot, on croit à un site
+mal fait plutôt qu'à un site consulté dans de mauvaises conditions.
 
-- ⚠️ **Une phrase, et seulement ce qui reste vrai** : trois lignes prenaient un
-  quart de l'écran, juste sous la barre, pour dire que toute l'app demandait un
-  grand écran — ce qui ne l'est plus.
+- ⚠️ **Une phrase, pas un paragraphe**, et seulement ce qui est vrai : juste
+  sous la barre, trois lignes prendraient un quart de l'écran.
 - ⚠️ **Media query CSS (`md:hidden`), jamais de user-agent** : le sniffing se
   trompe (tablettes, mode bureau, navigateurs exotiques) et vieillit mal. Ce
   qui compte n'est pas l'appareil mais **la largeur disponible**.

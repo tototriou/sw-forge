@@ -8,7 +8,7 @@ Voir aussi : feat-formules-et-combat.md, feat-artefacts-critique-et-element.md.
 
 Une bombe **ne peut pas être critique** et **ignore la défense adverse** :
 c'est exactement la sémantique de `SkillDamageProfile.fixed`. Le mécanisme
-existait donc déjà — il manquait seulement de quoi le déclencher.
+existe donc déjà — il suffit de le déclencher.
 
 ⚠️ **Les deux détections habituelles passent à côté**, chacune pour sa propre
 raison. La donnée dit pourtant la vérité : `public/data/skills/15713.json`,
@@ -47,10 +47,9 @@ nettement :
 (`Camouflage (Passive)` et `Plasma Bomb` portent l'effet sans formule : aucun
 profil n'est construit pour eux, ils ne passent jamais par cette règle.)
 
-⚠️ **Le balayage a élargi la liste connue** : elle était estimée à trois
+⚠️ **La liste vient du balayage du corpus, pas d'une supposition** : quatre
 compétences qui frappent (`Bombardment`, `Dancing Star`, `Star of
-Explosion`) — `Firecracker` s'y ajoute, sur une dizaine de formes de
-monstres. Cas d'école du corpus balayé plutôt que supposé.
+Explosion`, `Firecracker`), sur une dizaine de formes de monstres.
 
 
 ## ⚠️ `Cursed Apple` — quand `coups` ment

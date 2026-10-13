@@ -35,7 +35,7 @@ horsCoup(coup i) = horsCoup + coefCdParCoup × deltaCdPoints(i, pvFrac)
 Deux constantes précalculées, puis une multiplication-addition par coup.
 
 ⚠️ **Le vrai coût n'est donc pas là**, mais dans le fait de **forcer le chemin
-séquentiel** sur des sorts qui prenaient le chemin court. Deux garde-fous :
+séquentiel** sur des sorts qui prennent le chemin court. Deux garde-fous :
 
 - **`partCrit === 0` court-circuite tout** (sort `fixed`, ou mode « jamais
   critique ») : ces lignes ne peuvent alors rien changer, et le chemin court
@@ -143,9 +143,8 @@ optimise** — `DamageSetup.enemyElement`. Deux modes, tous deux légitimes :
 n'importe qui » est un cas d'usage à part entière. L'écran l'expose donc comme
 une option du contrôle à cran, jamais comme une absence de sélection.
 
-⚠️ **Une recette exportée AVANT ce champ n'en porte aucun** → `undefined` →
-« ignorer l'élément », soit exactement le comportement qu'elle avait à
-l'export. Aucune traduction spéciale n'est nécessaire.
+⚠️ **Une recette exportée sans ce champ** → `undefined` →
+« ignorer l'élément ». Aucune traduction spéciale n'est nécessaire.
 
 ⚠️ **Ne pas confondre avec le paramètre `element` de
 `computeSkillDamageDetail`**, qui est celui de l'**attaquant** (il décide des
@@ -185,7 +184,7 @@ donc été vérifiée avant d'être écrite.
 
 ⚠️ **La Marque et Mirinae ne sont donc PAS de la même famille**, malgré des
 libellés quasi identiques (« +X % de dégâts subis »). Les traiter ensemble —
-ce que faisait le terme `reductions` — majorait à tort les bombes et tout le
+dans un terme `reductions` unique — majorerait à tort les bombes et tout le
 bucket Additionnel. D'où `reductionsUniverselles` (la Marque seule, valable
 partout) distinct de `reductions` (Mirinae en plus, hors bombe et hors
 `fixed`).

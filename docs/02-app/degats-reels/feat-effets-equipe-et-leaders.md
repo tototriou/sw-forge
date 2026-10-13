@@ -43,8 +43,8 @@ monstre, aucun `RealDamageContext` supplémentaire.
   `1 − (1 − DEF_BREAK_FACTOR) × DEBORAH_AMPLIFY` = `1 − 0,7 × 1,3 = 0,91`.
   `DEBORAH_AMPLIFY = 1.3`, gaté sur `montreDefEnnemie` (même condition que
   le toggle « Def break »). ⚠️ Le texte précise « 15% if it's the boss » —
-  comme partout ailleurs dans l'outil, aucune notion de boss n'est modélisée
-  ; seul le cas non-boss (30 %) l'est.
+  comme partout ailleurs dans l'outil, aucune notion de boss n'est
+  modélisée ; seul le cas non-boss (30 %) l'est.
 - **Miriam** (passif, « Blacksmith's Technique ») : confirmé par
   l'utilisateur — « augmente l'effet du buff ATQ, du buff vitesse et du
   buff defense de 35% ». Amplifie la MAGNITUDE des trois buffs déjà actifs,
@@ -75,10 +75,10 @@ monstre, aucun `RealDamageContext` supplémentaire.
   champ « Stack actuel » de Momo, jamais un état deviné.
 
   ⚠️ **Sa place est RÉSERVÉE d'avance, il n'APPARAÎT pas.** Rendu sous
-  condition, il poussait toute la rangée de vignettes vers le bas au moment
-  même où on cliquait Velaska — un clic qui déplace ce qu'on vient de
-  cliquer, interdit par [../../03-developpeur/interface/](../../03-developpeur/interface/). Signalé
-  à l'usage. La rangée existe donc en permanence et garde sa hauteur ; seul
+  condition, il pousserait toute la rangée de vignettes vers le bas au moment
+  même où on clique Velaska — un clic qui déplace ce qu'on vient de
+  cliquer, interdit par [../../03-developpeur/interface/](../../03-developpeur/interface/).
+  La rangée existe donc en permanence et garde sa hauteur ; seul
   son contenu se révèle. `invisible` et non `hidden`, avec `aria-hidden` et
   le champ désactivé : la place est tenue sans qu'on puisse tabuler dans un
   champ qu'on ne voit pas.
@@ -221,16 +221,16 @@ silence — changer un chiffre sans prévenir serait pire qu'une valeur hors
 liste. Elle disparaît dès qu'on choisit autre chose.
 
 ⚠️ **Une GRILLE dont toutes les places sont tenues d'avance** — libellé
-(« Lead », abrégé pour la largeur), icône, menus. Trois choses y bougeaient au
+(« Lead », abrégé pour la largeur), icône, menus. Sans cela, trois choses y bougeraient au
 moindre clic, et c'est le même défaut trois fois
 ([../../03-developpeur/interface/](../../03-developpeur/interface/), « un clic ne déplace jamais ce
 qu'on vient de cliquer ») :
 
-1. le menu de la **valeur** se dépliait **à droite** du type, élargissant le
+1. le menu de la **valeur** se déplierait **à droite** du type, élargissant le
    groupe et poussant « Compétences d'invocateur » ;
 2. passé **en dessous**, il ferait grandir la carte si sa rangée n'était pas
    réservée ;
-3. l'**icône** du lead, rendue sous condition, poussait le menu de type dès
+3. l'**icône** du lead, rendue sous condition, pousserait le menu de type dès
    qu'un lead était choisi.
 
 La colonne de l'icône existe donc même vide, la seconde rangée existe même
@@ -290,5 +290,5 @@ Une recette ancienne ne porte que le champ
 `leaderSpeedPct` (un pourcentage de VIT nu, sans type). `resolvedLeaderSkill`
 (damage.ts) traduit explicitement : `leaderSkill` si présent, sinon
 `{ stat: 'Attack Speed', pct: leaderSpeedPct }` — jamais un défaut générique
-qui perdrait la valeur déjà saisie. Le champ legacy n'est plus jamais
+qui perdrait la valeur déjà saisie. Le champ legacy n'est jamais
 ÉCRIT depuis l'écran (marqué `@deprecated`), seulement lu.

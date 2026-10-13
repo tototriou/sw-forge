@@ -286,7 +286,7 @@ monstre perso) ne reçoit aucune des cinq compétences élémentaires.
 totaux), d'où un double arrondi supérieur : au plus 1 point d'écart sur la
 statistique, sans effet sur un classement de builds.
 
-**Défaut et minimum : « Contenu normal »** — le cran « Aucune » a été retiré, car ces
+**Défaut et minimum : « Contenu normal »** — pas de cran « Aucune », car ces
 compétences s'appliquent dans toute situation réelle du jeu. Une recette
 exportée avant ce retrait reste lisible : « Aucune » y est normalisée vers
 « Contenu normal » avant d'atteindre l'écran ou le CLI.
@@ -302,9 +302,8 @@ La phrase vient d'une table curée par identifiant de sort
 (`CALCUL_PARTIEL_PAR_ID`, lue par `calculPartielDuSort`, `damage.ts`) ;
 l'écran ne l'écrit jamais lui-même.
 
-- **Affichage seul** : aucun calcul ne lit la table, le total reste celui
-  d'avant. Aucune mention sur les cartes de résultats (forme écartée par
-  l'utilisateur).
+- **Affichage seul** : aucun calcul ne lit la table, le total n'en dépend
+  pas. Aucune mention sur les cartes de résultats.
 - **Quatre sources, 31 identifiants** : les six ignore DEF comptés en
   permanence alors que le jeu les conditionne (Madness Judgement ×2,
   Unlimited Power, Start of Attacking, Thunder Strike, Sword of Discharge —

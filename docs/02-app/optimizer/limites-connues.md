@@ -34,7 +34,7 @@ ici.
   plus, ce qui ne joue que si le temps ou le plafond interrompt la
   recherche. La rétention, elle, n'est pas concernée : deux demi-builds en
   concurrence pour une place ont les mêmes comptes et le même nombre de
-  jokers (`bucketKeyOf`). Avantager le joker au classement a été écarté :
+  jokers (`bucketKeyOf`). Avantager le joker au classement n'est pas retenu :
   [03-developpeur/optimizer/moteur/elagages.md § Variantes écartées ou gardées en réserve](../../03-developpeur/optimizer/moteur/elagages.md#variantes-écartées-ou-gardées-en-réserve).
 - **L'ordre d'exploration est une heuristique.** Les compartiments sont
   triés par potentiel, les paires de compartiments visitées par potentiel

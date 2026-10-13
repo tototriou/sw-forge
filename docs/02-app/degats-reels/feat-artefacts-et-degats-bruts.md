@@ -28,10 +28,9 @@ qui n'appartient pas à sa formule.
 
 ## Creusement des PV et contrôle des deux axes
 ⚠️ **Le terme est creusé de `pvCourant` DANS la boucle**, avec le coup qui le
-porte. L'ancien `ajoutUneFois`, appliqué en bloc après la boucle, avait déjà
-valu un bug de `pvRestantsPct` surestimé (un seuil de passif « si PV restants
-≤ X % », Final Strike/Benedict, pouvait manquer sa cible). Par coup, cette
-classe de bug ne peut plus se reformer.
+porte. Appliqué en bloc après la boucle, il surestimerait `pvRestantsPct` (un
+seuil de passif « si PV restants ≤ X % », Final Strike/Benedict, pourrait
+manquer sa cible). Par coup, cette classe de bug ne peut pas se former.
 
 ⚠️ **Le test couvre les DEUX axes**, et le second exige un sort ORDINAIRE : la
 compétence neutre des tests porte `(Fixed)`, donc `horsCoup` y vaut 1 — un
@@ -41,8 +40,8 @@ ne teste que la cadence.
 
 ## Le voisinage, lui, est correct
 
-L'inventaire des autres termes de dégâts plats a été passé en revue et n'a
-**rien à corriger** — `ajoutParCoup` traverse `horsCoup` à juste titre :
+Les autres termes de dégâts plats n'ont **rien à corriger** — `ajoutParCoup`
+traverse `horsCoup` à juste titre :
 
 | Terme | Passif | Monstres | Critique / mitigé | Cadence |
 |---|---|---|---|---|
@@ -51,8 +50,8 @@ L'inventaire des autres termes de dégâts plats a été passé en revue et n'a
 | `ajoutEcartDef` | `Martial Arts Specialist` | Martial Artist, Sin | **oui** ✅ | par coup ✅ |
 
 ⚠️ **Ce tableau vaut d'être conservé bien qu'il ne déclenche aucun travail** :
-c'est la trace que ces trois-là ont été **vérifiés**, et non pas seulement
-supposés corrects — exactement la distinction qui manquait à `ajoutUneFois`.
+c'est la trace que ces trois-là sont **vérifiés**, et non pas seulement
+supposés corrects.
 
 
 ## Amplification de buff par artéfact — ATQ, DEF, VIT
@@ -182,7 +181,7 @@ lui seul 3 192, soit plus que le total observé de 2 250. Impossible.
 >
 > Au passage : la ligne du relevé Julie vaut **0,7 %**, pas 7 % comme annoncé
 > d'abord. À 7 % elle donnerait 2 307 par coup, plus du triple du total
-> observé ; le calcul l'avait déduit avant confirmation.
+> observé.
 
 
 ## Les modificateurs appliqués APRÈS coup ne le touchent pas non plus
@@ -217,8 +216,7 @@ sur sa seule part de sort.
 ## `ArtifactDamageProfile` — un objet, pas une liste de nombres
 
 `artifactDamageProfile(artifacts)` réduit une paire d'artéfacts à ce qu'elle
-apporte au calcul. Il **remplace** l'ancien paramètre `ampliVitPct: number`,
-qui ne portait que la VIT.
+apporte au calcul — un seul nombre `ampliVitPct` ne porterait que la VIT.
 
 ⚠️ **Un objet plutôt qu'un scalaire de plus, délibérément.** Cette donnée
 traverse **six emplacements** — `damage.ts`, `runeBuildOptim.ts`

@@ -10,7 +10,7 @@ commits, vérifications) sont dans [AGENTS.md](../../AGENTS.md) et
 | --- | --- |
 | Framework | React 18 + TypeScript 5 strict, **sans router** (routage par `window.location.hash`) |
 | Build | Vite 5, Tailwind 3, PostCSS + autoprefixer |
-| Dépendances runtime | `lucide-react` (icônes), `framer-motion` (animations) — aucune mesure d'audience (retirée le 2026-10-05) |
+| Dépendances runtime | `lucide-react` (icônes), `framer-motion` (animations) — aucune mesure d'audience |
 | Node | **24** (LTS active), déclaré à trois endroits qui doivent rester alignés : `engines` de `package.json`, `.nvmrc` et la CI |
 | Calcul lourd | Web Workers (`src/workers/`) |
 | Stockage | `localStorage` (prépa, équipes, réglages) + **IndexedDB** (compte importé) |
@@ -20,8 +20,7 @@ commits, vérifications) sont dans [AGENTS.md](../../AGENTS.md) et
 Développer sur une version de Node et vérifier sur une autre laisse passer des écarts d'API — c'est
 déjà arrivé (`navigator` en lecture seule sous Node ≥ 22).
 
-⚠️ **Pas de librairie de composants externe.** Tout `src/ui/` est écrit à la main. Radix UI a été
-**validé mais jamais installé** — chantier en attente.
+⚠️ **Pas de librairie de composants externe.** Tout `src/ui/` est écrit à la main.
 
 ### Application de bureau
 

@@ -7,7 +7,7 @@ pour la recherche.
 ## ⚠️ Ces lignes n'entrent PAS dans `damageRelevantStats`
 
 Elles ajoutent pourtant de vrais dégâts proportionnels aux PV, à la DEF et à
-la VIT — de quoi croire qu'il faut désormais chercher ces stats-là. **C'est
+la VIT — de quoi croire qu'il faut chercher ces stats-là. **C'est
 faux, et c'est une décision, pas un oubli.**
 
 Un artéfact **amplifie** un build, il n'en déplace pas la cible : un Lushen

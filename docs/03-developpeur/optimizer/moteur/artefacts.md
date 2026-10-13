@@ -29,7 +29,7 @@ runes : la paire n'est pas figée avant la recherche.
 - « Libre » autorise toutes les paires qu'autorise une principale imposée,
   et d'autres. Les bornes d'inventaire de « Libre » contiennent donc
   celles d'une principale imposée : « Libre » ne peut pas rendre moins de
-  builds. Avec une paire figée choisie pour son score, il le pouvait.
+  builds. Avec une paire figée choisie pour son score, il le pourrait.
 - La recherche de runes reçoit donc deux entrées distinctes :
   - **la paire représentative** (`SearchParams.artifacts`) note les
     candidats pendant la recherche (`objectiveScore` lit `gear.artifacts`) ;

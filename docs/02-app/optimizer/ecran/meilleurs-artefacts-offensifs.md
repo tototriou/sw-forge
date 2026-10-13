@@ -27,7 +27,7 @@ coûteraient plus cher qu'un bloc parfois muet. Concrètement :
   est gardé tel que porté, pas optimisé ») et un **marqueur « figé » sur
   la pièce concernée**. Les deux répondent à des questions différentes —
   le bandeau dit *ce qui se passe*, le marqueur dit *laquelle* — et sans
-  le second il fallait retraduire « attribut » en « celle de gauche ».
+  le second il faudrait retraduire « attribut » en « celle de gauche ».
   La pièce figée est en outre **légèrement atténuée** (80 %), pour que
   l’œil tombe d’abord sur la moitié réellement cherchée.
   La question garde tout son sens : « à artéfact d'attribut donné, quel
@@ -130,7 +130,7 @@ entre dans le terme DMG% ; Ténacité reste sans effet sur les dégâts
 infligés. La principale n'est jamais comptée deux fois, les conditions
 min/max restent hors combat et aucun arrondi de points n'est ajouté.
 La paire représentative utilisée pour lancer la recherche compte aussi
-l'effet unique en dégâts réels, comme elle le faisait en PV effectifs.
+l'effet unique en dégâts réels, comme en PV effectifs.
 Les bornes explicites de faisabilité restent indépendantes de cette note ;
 sans elles, le repli fige toujours les principales de la représentative.
 Le script CLI note sa représentative par le même producteur

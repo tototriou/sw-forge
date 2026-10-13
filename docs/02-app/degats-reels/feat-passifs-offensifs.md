@@ -85,15 +85,12 @@ non fiable — du passif lui-même.
 ⚠️ **Même exigence étendue aux modificateurs SANS formule propre** (les
 familles du [catalogue des passifs](catalogue-des-passifs.md) — `BONUS_DEGATS_STACKABLE_
 CONNUS`, les comptes d'effets monstre-wide, Calculated Sacrifice…) —
-demande explicite de l'utilisateur : « affiche les ratios et formules des
-passifs/sorts pour lesquels je t'ai fourni l'information ». Quatre blocs
-affichaient encore juste « toujours actif » sans le pourcentage/formule
-confirmé par l'utilisateur (le nombre restait visible uniquement dans le
-texte anglais brut du jeu, en dessous) : Momo/Fermion/Ludo/Martina/
+le ratio et la formule sont affichés à côté du nom, pas seulement « toujours
+actif » (le nombre ne doit pas rester visible uniquement dans le texte
+anglais brut du jeu, en dessous) : Momo/Fermion/Ludo/Martina/
 Borgnine/Moogwang/Trevor (`+X %/palier, jusqu'à +Y %`), Backup Code
 (`+X %/effet`), Blessing of Curse (`+X % par débuff sur tes alliés (toi compris), jusqu'à +Y %`), Calculated
-Sacrifice (`sacrifie X %/tour, +Y % de la perte`) — corrigé, le ratio
-apparaît maintenant à côté du nom, comme pour tous les autres.
+Sacrifice (`sacrifie X %/tour, +Y % de la perte`).
 
 
 ## La réduction de Défense : « avant » n'est pas « après »
@@ -174,9 +171,9 @@ du jeu de chaque entrée) :
 | Slash Waves / Slash Wind | Roid | déclenchement `defBreak` (2 coups pour Slash Waves) |
 | Tempest | Teshar, Phoenix (Vent) | formule curée `3.7 × ATQ` (données vides), en zone, +30 % d'améliorations, une instance ; bouton `conditionnel`, après S1 ou S2 seulement ; aussi choisissable comme sort, jamais par défaut |
 
-⚠️ Une entrée « Ruins » sans suffixe `(Passive)` visait un **boss de donjon
-non invocable** (Living Armor 2A) : retirée, elle ne pouvait jamais
-apparaître dans la box d'un joueur.
+⚠️ Pas d'entrée « Ruins » sans suffixe `(Passive)` : elle viserait un **boss
+de donjon non invocable** (Living Armor 2A), qui ne peut jamais apparaître
+dans la box d'un joueur.
 
 
 ## Les PV de la cible se creusent COUP PAR COUP
@@ -186,7 +183,7 @@ Weakness Shot, `{ATK}*(3.1 - 1.2*{Target Current HP %})`, 4 coups) voit son
 ratio **monter à mesure que la cible descend**. `computeSkillDamageDetail`
 simule donc les coups **un par un** : chaque coup retire ses dégâts des PV
 courants, et le coup suivant est réévalué sur la cible entamée. Multiplier un
-seul coup par `hits` sous-estimait lourdement ces sorts — le 4ᵉ coup de
+seul coup par `hits` sous-estimerait lourdement ces sorts — le 4ᵉ coup de
 Weakness Shot vaut bien plus que le 1ᵉʳ.
 
 Un sort qui ne lit PAS cette variable garde le chemin court (une évaluation
@@ -251,10 +248,10 @@ propagation `coupsDuSortActif`).
 
 ⚠️ **Un bouton `bonus`/`conditionnel`, quand il en reste un, n'est JAMAIS
 déduit d'un réglage d'écran existant**, même quand un réglage équivalent
-existe déjà — c'est précisément ce qui a fait passer Roid/Silver de
-`conditionnel` (bouton) à `defBreak` (déduit), voir plus haut : leur
-condition SE modélisait entièrement, elle n'avait donc plus besoin d'un
-bouton. Pour un bouton qui reste (`bonus` aujourd'hui), la condition CURÉE
+existe déjà. Roid/Silver ne portent pas de bouton `conditionnel` mais un
+`defBreak` déduit (voir plus haut) : leur condition SE modélise entièrement,
+elle n'a pas besoin d'un bouton. Pour un bouton qui reste (`bonus`
+aujourd'hui), la condition CURÉE
 et le texte SWARFARM brut du passif (`Competence.description`, jamais
 reformulé) restent affichés en clair **sous chaque passif** — pas
 seulement dans une infobulle au survol, invisible au doigt — c'est au
@@ -276,7 +273,7 @@ privilégierait des stats qu'un score différent ignore (ou l'inverse).
 
 ⚠️⚠️ **En mode « Non critique », Dgts Crit sort du pré-filtrage — SAUF quand un
 critique est GARANTI.** Le mode annule la part critique du sort, donc retenir
-Dgts Crit gaspillait du budget de rétention sur une stat qui ne pèse sur aucun
+Dgts Crit gaspillerait du budget de rétention sur une stat qui ne pèse sur aucun
 dégât. Mais il y a **deux** exceptions, pas une :
 
 - `critSiPlusRapide` (Ciri Eau, Rigna, MOS) — un critique forcé par la vitesse ;
@@ -454,11 +451,10 @@ côté du champ (« → +20 % de dégâts »), jamais seulement dans la tête du
 joueur.
 
 ⚠️ **`label`/`aide`/`suffix` — un texte PAR ENTRÉE, jamais un texte
-générique partagé.** Signalé par l'utilisateur (incohérence trouvée sur le
-champ de Trevor : libellé « Stack actuel » et infobulle « nombre
-d'attaques alliées » — un texte écrit pour Momo, sans rapport avec Trevor
-qui compte ses PROPRES PV perdus). Chaque entrée de la table décrit
-maintenant EXACTEMENT ce qu'elle compte : « Attaques alliées » (Momo),
+générique partagé.** Un texte écrit pour Momo (libellé « Stack actuel »,
+infobulle « nombre d'attaques alliées ») serait sans rapport avec Trevor, qui
+compte ses PROPRES PV perdus. Chaque entrée de la table décrit
+EXACTEMENT ce qu'elle compte : « Attaques alliées » (Momo),
 « Alliés morts » (Fermion), « Résultat du dé » (Ludo, 1 à 6 confirmé par
 l'utilisateur — ⚠️ un dé ne tombe JAMAIS sur 0 : `offset: 1` décale la
 pente du bonus, `max(0, trigger − 1) × ratio`, pour que le résultat 1

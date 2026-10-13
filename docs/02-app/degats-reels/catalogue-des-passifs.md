@@ -130,8 +130,8 @@ celle-ci est propre à UN SORT ACTIF précis : `SkillDamageProfile.
 bonusParEffetCible?: { pct: number; source: 'buffs' | 'debuffs' |
 'buffsEtDebuffs' }`, curé dans `BONUS_PAR_EFFET_CIBLE_CONNUS` (clé =
 `Competence.nom`, même discipline que `IGNORE_DEF_SELON_VIT_CONNUS`/
-`COUPS_VARIABLES_CONNUS`). ⚠️ `source` remplace l'ancien `inclutDebuffs:
-boolean` (Backup Code, plus bas) : un booléen ne pouvait exprimer que
+`COUPS_VARIABLES_CONNUS`). ⚠️ `source` n'est pas un booléen `inclutDebuffs`
+(Backup Code, plus bas) : un booléen ne pourrait exprimer que
 « buffs seuls » / « buffs et débuffs », jamais « débuffs seuls » (Backup
 Code).
 
@@ -143,7 +143,7 @@ Code).
   pile à pleine vie, « Attacks 6 times when this attack is used with full
   HP »). Ajoutée à `COUPS_VARIABLES_CONNUS` (même mécanisme qu'Okeanos S3/
   Amber S2, voir « Coups variables » plus haut) : `Competence.coups` (6)
-  ne portait QUE le cas pleine vie, exactement le piège que cette table
+  ne porte QUE le cas pleine vie, exactement le piège que cette table
   existe pour corriger. ⚠️ **`defaut: 6`, PAS le minimum** — exception
   explicite à la règle générale (« jamais une surestimation, retombe sur le
   minimum ») : demande directe de l'utilisateur, le cas pleine vie étant le
@@ -203,9 +203,8 @@ condition non déductible) :
 - **Female Warrior/Sabrina** : « 20% more damage on enemies with
   no beneficial effects » — inverse conceptuel de Julie (bonus si la cible
   N'A PAS d'effet, pas selon son nombre). ⚠️ **20 %, pas 200 %** :
-  `quantite: 20` dans SWARFARM ; une réponse de l'utilisateur disait
-  « jusqu'à 200 % », très probablement une confusion avec Cold Brew/Iced Tea
-  juste en dessous. Les données prévalent.
+  `quantite: 20` dans SWARFARM, à ne pas confondre avec les +200 % de Cold
+  Brew/Iced Tea juste en dessous. Les données prévalent.
 - **Cold Brew/Espresso Cookie (Eau)** et **Iced Tea/Black Tea Bunny (Eau),
   Rosemary** : « +200% if you attack the frozen enemy on your
   turn » — confirmé en données (`quantite: 200`).
@@ -383,15 +382,13 @@ parties du passif.
 
 
 ## Brandia
-**Brandia (« Touch of Mercy »)** — signalée par l'utilisateur (« augmente
-ses dégâts selon le nombre d'effets néfastes sur l'ennemi »), absente de
-TOUTES les tables existantes. Cause trouvée : le catalogue original (65
-entrées) ne cherchait que les flags SWARFARM « Increase Damage »/« Increase
-Critical Damage »/« Buff Bonus Damage » — Brandia porte « Debuff Bonus
-Damage », jamais cherché. « The inflicted damage is increased by 40% for
+**Brandia (« Touch of Mercy »)** — elle augmente ses dégâts selon le nombre
+d'effets sur l'ennemi, et porte le flag SWARFARM « Debuff Bonus Damage » : la
+recherche des passifs ne se limite pas à « Increase Damage »/« Increase
+Critical Damage »/« Buff Bonus Damage ». « The inflicted damage is increased by 40% for
 each harmful effect OR beneficial effect of the enemy » (`quantite: 40`,
 confirmé) — BUFFS ET DEBUFFS comptés ensemble (comme Melissa), pas
-« débuffs seuls » malgré la description du signalement. Ajoutée à
+« débuffs seuls ». Ajoutée à
 `BONUS_PAR_EFFET_CIBLE_CONNUS` (sort actif, S3).
 
 ⚠️ **Touch of Mercy porte une SECONDE clause**, signalée séparément par

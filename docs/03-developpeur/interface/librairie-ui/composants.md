@@ -70,6 +70,25 @@ au point, et la page ne revient pas seule de ce zoom. C'est la seule raison pour
 laquelle un champ grossit au doigt alors que tout le reste rétrécit. Écrit une
 fois ici, ce piège ne peut plus être oublié dans un formulaire neuf.
 
+⚠️ **Un texte saisi est TRIMÉ à la sortie du champ**, jamais à la frappe.
+Les espaces de tête et de queue ne veulent rien dire — mais « Defs G3 » et
+« Defs G3&nbsp;&nbsp;» se lisent pareil à l'écran tout en étant deux chaînes
+différentes partout ailleurs : dans un nom de fichier exporté, dans une
+comparaison, dans un tri.
+
+- ⚠️ **À `onBlur`, jamais à `onChange`** : trimer pendant la frappe empêche
+  d'écrire une espace entre deux mots.
+- Les espaces et retours à la ligne **intérieurs sont conservés** : ils font
+  partie de la mise en forme voulue par l'auteur (voir les consignes des
+  recommandations, rendues en `whitespace-pre-line`).
+- Le trim est **rejoué à l'écriture et à la lecture** d'un fichier partagé
+  (`texteSortant` / `cleanText` dans
+  [recoShare.ts](src/lib/recoShare.ts)) : un fichier peut avoir été bricolé à
+  la main, et la saisie d'une version antérieure a pu laisser passer des
+  espaces.
+- Les champs de **recherche** ne sont pas trimés à la frappe non plus —
+  l'espace y est un caractère de saisie comme un autre.
+
 #### `NumberField`
 
 **`NumberField`** — saisie numérique, deux boutons − / + encadrant la valeur
@@ -84,6 +103,44 @@ un habillage. Une grille de modificateurs mêle des gains et des pertes, et le
 signe seul — en mono 12 px au milieu de quarante colonnes — ne saute pas aux
 yeux. Il teinte le **texte et le contour**, jamais le fond : un fond plein par
 cellule ferait un damier, et ces tableaux portent déjà des surlignages.
+
+⚠️ **`type="text"` + `inputMode="numeric"`, jamais `type="number"`**, partout
+dans l'app. Les flèches natives du navigateur sont deux triangles gris
+minuscules, hors charte, impossibles à styler et pénibles à viser (surtout au
+tactile) : le composant dessine ses propres boutons **− à gauche, + à droite**,
+et `inputMode="numeric"` fait remonter le pavé numérique sur mobile. Un champ
+`number` garde aussi le **texte tapé tel quel** : saisir « 015 » donne bien `15`
+dans l'état, mais la valeur ne changeant plus au caractère suivant, React ne
+réécrit pas le DOM et le **zéro de tête reste affiché**. En `text`, la valeur
+rendue est toujours celle de l'état, donc le zéro disparaît à la frappe.
+
+La frappe non numérique est **ignorée** : plus prévisible qu'un champ qui se
+vide ou se corrige pendant qu'on tape.
+
+- ⚠️ **Un appui PROLONGÉ sur − ou + fait défiler la valeur en continu**, et la
+  cadence **accélère**. Ces champs portent des valeurs qui varient sur des
+  dizaines d'unités (une vitesse de 180 à 240, un minimum de crit de 15 à 85) :
+  un pas par clic imposait soixante clics, ou de repasser par le clavier alors
+  qu'on avait déjà le doigt sur le bouton. À cadence fixe, il fallait choisir
+  entre trop lent pour traverser 60 unités et si vif qu'on dépassait toujours
+  sa cible.
+  - Le défilement démarre après **400 ms** — assez pour qu'un clic ordinaire,
+    même mou, n'en déclenche jamais un et ne fasse pas sauter la valeur de deux.
+  - Il **s'arrête à la butée** (`min`/`max`), au relâchement **même hors du
+    bouton** (on glisse souvent le doigt à côté), et si l'on quitte l'onglet.
+- ⚠️ **`min`/`max` ne sont appliqués qu'à la SORTIE du champ** (`onBlur`) et
+  sur les boutons ± — jamais à chaque frappe. Border chaque frappe casse la
+  saisie dès qu'un `min` positif dépasse un chiffre isolé : avec `min={15}`
+  `max={100}`, taper « 5 » sautait à 15, puis « 0 » (lu comme « 150 »)
+  sautait à 100 — impossible d'écrire 50. Repéré sur les conditions minimum
+  de l'[Optimizer](../../../02-app/optimizer/README.md), premier endroit de
+  l'app à passer un `min` positif non trivial (tous les usages précédents
+  étaient à 0 ou 1, jamais heurtés par ce piège).
+- ⚠️ Un champ à **brouillon** (saisie séparée de la valeur, comme
+  [Pager.tsx](src/components/account/Pager.tsx)) doit **remettre le brouillon
+  en forme lui-même** à la validation : un effet de resynchronisation ne se
+  déclenche que si la valeur CHANGE, donc « 007 » sur la page 7 restait affiché
+  tel quel.
 
 #### `Selecteur`
 

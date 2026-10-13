@@ -17,36 +17,12 @@ partagées, dont la navigation et le pied de page, dans
 
 ## Conventions communes (toutes les pages)
 
-- ⚠️ **Un texte saisi est TRIMÉ à la sortie du champ**, jamais à la frappe.
-  Les espaces de tête et de queue ne veulent rien dire — mais « Defs G3 » et
-  « Defs G3&nbsp;&nbsp;» se lisent pareil à l'écran tout en étant deux chaînes
-  différentes partout ailleurs : dans un nom de fichier exporté, dans une
-  comparaison, dans un tri.
-  - ⚠️ **À `onBlur`, jamais à `onChange`** : trimer pendant la frappe empêche
-    d'écrire une espace entre deux mots.
-  - Les espaces et retours à la ligne **intérieurs sont conservés** : ils font
-    partie de la mise en forme voulue par l'auteur (voir les consignes des
-    recommandations, rendues en `whitespace-pre-line`).
-  - Le trim est **rejoué à l'écriture et à la lecture** d'un fichier partagé
-    (`texteSortant` / `cleanText` dans
-    [recoShare.ts](src/lib/recoShare.ts)) : un fichier peut avoir été bricolé à
-    la main, et la saisie d'une version antérieure a pu laisser passer des
-    espaces.
-  - ⚠️ **Un champ numérique s'écrit `type="text"` + `inputMode="numeric"`,
-    jamais `type="number"`.** Outre les flèches natives inutilisables (voir
-    [NumberField.tsx](src/ui/NumberField.tsx)), un champ `number` garde
-    le **texte tapé tel quel** : saisir « 015 » donne bien `15` dans l'état, mais
-    la valeur ne changeant plus au caractère suivant, React ne réécrit pas le DOM
-    et le **zéro de tête reste affiché**. En `text`, la valeur rendue est
-    toujours celle de l'état, donc le zéro disparaît à la frappe.
-  - ⚠️ Un champ à **brouillon** (saisie séparée de la valeur, comme
-    [Pager.tsx](src/components/account/Pager.tsx)) doit **remettre le brouillon
-    en forme lui-même** à la validation : un effet de resynchronisation ne se
-    déclenche que si la valeur CHANGE, donc « 007 » sur la page 7 restait affiché
-    tel quel.
-  - Les champs de **recherche** ne sont pas trimés à la frappe non plus —
-    l'espace y est un caractère de saisie comme un autre.
-
+- **Un texte saisi est trimé à la sortie du champ** (`onBlur`), jamais à la
+  frappe ; les espaces intérieurs sont conservés. Détail :
+  [composants.md](interface/librairie-ui/composants.md), « `Champ` ».
+- **Un champ numérique est un `NumberField`**, jamais un `type="number"` ;
+  `min` et `max` ne s'appliquent qu'à la sortie du champ. Détail :
+  [composants.md](interface/librairie-ui/composants.md), « `NumberField` ».
 - **Persistance : un seul interrupteur pour toute l'app**
   ([usePersistence.ts](src/hooks/usePersistence.ts)). Rien n'est conservé sans
   l'accord de l'utilisateur : une donnée s'écrit par `saveLocal`, jamais par
@@ -82,33 +58,6 @@ partagées, dont la navigation et le pied de page, dans
   - **Dire ce qui n'est PAS touché**, pas seulement ce qui part : « tes
     recommandations ne sont pas touchées » évite d'annuler par précaution une
     action qu'on voulait faire.
-- **Champs numériques** — [NumberField.tsx](src/ui/NumberField.tsx),
-  **partout dans l'app**. ⚠️ **Jamais `type="number"`** : les flèches natives du
-  navigateur sont deux triangles gris minuscules, hors charte, impossibles à
-  styler et pénibles à viser (surtout au tactile). Le composant dessine ses
-  propres boutons **− à gauche, + à droite**, autour d'un `type="text"` +
-  `inputMode="numeric"` (qui fait remonter le pavé numérique sur mobile). La
-  frappe non numérique est **ignorée** : plus prévisible qu'un champ qui se vide
-  ou se corrige pendant qu'on tape.
-  - ⚠️ **Un appui PROLONGÉ sur − ou + fait défiler la valeur en continu**, et la
-    cadence **accélère**. Ces champs portent des valeurs qui varient sur des
-    dizaines d'unités (une vitesse de 180 à 240, un minimum de crit de 15 à 85) :
-    un pas par clic imposait soixante clics, ou de repasser par le clavier alors
-    qu'on avait déjà le doigt sur le bouton. À cadence fixe, il fallait choisir
-    entre trop lent pour traverser 60 unités et si vif qu'on dépassait toujours
-    sa cible.
-    - Le défilement démarre après **400 ms** — assez pour qu'un clic ordinaire,
-      même mou, n'en déclenche jamais un et ne fasse pas sauter la valeur de deux.
-    - Il **s'arrête à la butée** (`min`/`max`), au relâchement **même hors du
-      bouton** (on glisse souvent le doigt à côté), et si l'on quitte l'onglet.
-  - ⚠️ **`min`/`max` ne sont appliqués qu'à la SORTIE du champ** (`onBlur`) et
-    sur les boutons ± — jamais à chaque frappe. Border chaque frappe casse la
-    saisie dès qu'un `min` positif dépasse un chiffre isolé : avec `min={15}`
-    `max={100}`, taper « 5 » sautait à 15, puis « 0 » (lu comme « 150 »)
-    sautait à 100 — impossible d'écrire 50. Repéré sur les conditions minimum
-    de l'Optimizer (voir [02-app/optimizer/](../02-app/optimizer/)), premier
-    endroit de l'app à passer un `min` positif non trivial (tous les usages
-    précédents étaient à 0 ou 1, jamais heurtés par ce piège).
 - **Glisser-déposer : toujours un repli au doigt.** Le glisser natif ne
   fonctionne pas au tactile : chaque zone de glisser-déposer propose un
   **sélecteur** qui fait le même geste (changer une carte de section en RTA,

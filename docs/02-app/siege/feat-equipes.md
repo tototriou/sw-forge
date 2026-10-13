@@ -162,8 +162,8 @@ UNE fois et posé à deux endroits selon la largeur (`hidden lg:…` /
     information que l'icône du jeu ne distingue pas ;
   - suffixe « (arène) » / « (donjon) » quand la portée exclut le siège.
 - ⚠️ **TOUS les leads sont en couleur (doré, `star`) — aucun n'est grisé.**
-  Un lead arène ou donjon a été rendu terne et désaturé parce qu'il ne compte
-  pas en siège. Mais le grisé se lit comme « inactif », voire « cassé », alors
+  Un lead arène ou donjon ne compte pas en siège, mais le rendre terne et
+  désaturé ne convient pas : le grisé se lit comme « inactif », voire « cassé », alors
   que le monstre **a bel et bien ce lead** : ce qui ne s'applique pas, c'est le
   contenu de jeu, pas la donnée.
   - La nuance reste dans l'**infobulle** (« sans effet en siège ») et dans le

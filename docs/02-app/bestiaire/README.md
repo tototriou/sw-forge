@@ -34,29 +34,26 @@ n'en cocher **aucune** revient à **ne rien vouloir voir**.
   - `stars_desc` (défaut) : étoiles ↓ puis nom
   - `stars_asc` : étoiles ↑ puis nom
   - `name_asc` : nom A→Z
-- ⚠️ **Contrôles de la librairie** (refonte graphique, lot 10) : `Pastille`
+- ⚠️ **Contrôles de la librairie** : `Pastille`
   pour élément et étoiles, `Selecteur` pour le tri — les mêmes que « Ma box »
-  ([compte/](../compte/)). Ils étaient dessinés à la main :
-  le même filtre d'élément se présentait autrement d'un écran à l'autre.
+  ([compte/](../compte/)) : le même filtre d'élément se présente pareil d'un
+  écran à l'autre.
 
 ### ⚠️ À la souris — en-tête et barre de « Ma box »
 
-Refonte graphique, lot 10 (la maquette, et la barre de la box reprise du lot
-8b) : un en-tête **« Bestiaire »** et le nombre de monstres de la base, puis
-**la recherche** à largeur fixe (`Champ` de la librairie), **élément et
-étoiles** sur une ligne, et **le tri** qui ouvre la ligne du compte et de la
-pagination — il reste affiché sans résultat. Filtres visibles, jamais en
-menus. Au doigt,
-rien ne change : grande recherche, filtres et tri dans le tiroir (lot 11).
+À la souris : un en-tête **« Bestiaire »** et le nombre de monstres de la
+base, puis **la recherche** à largeur fixe (`Champ` de la librairie),
+**élément et étoiles** sur une ligne, et **le tri** qui ouvre la ligne du
+compte et de la pagination — il reste affiché sans résultat. Filtres visibles,
+jamais en menus. Au doigt : grande recherche, filtres et tri dans le tiroir.
 
 ### Affichage — [MonsterGrid.tsx](src/components/MonsterGrid.tsx) + [MonsterCard.tsx](src/components/MonsterCard.tsx)
 - Résultats **groupés par élément** (un bloc par élément dans l'ordre `ELEMENTS`).
 - Carte : cadre hexagonal coloré selon l'élément, image (fallback = initiales),
   badge élément, rangée d'étoiles, nom.
-  - ⚠️ **Partagée avec la box du compte** — même composant, même grille. Les deux
-    écrans en avaient chacun un, et ils avaient divergé (portraits de 84 px
-    contre 64, rayons et corps de texte différents). Ce qui les distingue est
-    devenu des **options** : `showStars` (masqué dans la box, tout y est 6★) et
+  - ⚠️ **Partagée avec la box du compte** — même composant, même grille : deux
+    composants divergeraient. Ce qui les distingue, ce sont des **options** :
+    `showStars` (masqué dans la box, tout y est 6★) et
     `count` (la bulle « ×N » d'exemplaires, que seule la box connaît).
   - ⚠️ **C'est le gabarit de la BOX qui fait référence**, pas celui d'ici :
     portrait **64 px**, colonnes de **104 px**, `rounded-xl`. C'est le plus dense
@@ -91,8 +88,8 @@ garde qu'une, vérifié par
 - ⚠️ **Un second éveil n'est PAS une transformation.** Ses deux formes se
   distinguent (nom, icône, stats) et restent toutes les deux — c'est
   `formesJouables` qui les arbitre, et seulement dans les sélecteurs.
-- ⚠️ **Cinq formes de boss ne sont pas proposées dans les sélecteurs** (décision
-  du 2026-10-04) : Azazel `2003503`, Kazuya Mishima `2003601`, True Devil Kazuya
+- ⚠️ **Cinq formes de boss ne sont pas proposées dans les sélecteurs** :
+  Azazel `2003503`, Kazuya Mishima `2003601`, True Devil Kazuya
   `2003705`, The Witch-king of Angmar `2004003` et Solide `2004103` (6 étoiles,
   rareté naturelle 1, prose « the boss's »). `formesJouables` les écarte par
   cette **liste d'identifiants** (`FORMES_DE_BOSS_ECARTEES`,
@@ -122,14 +119,14 @@ d'une **virgule** (« Satoru Gojo, Werner »).
   compétences d'un autre : Werner (famille 30900) porte le groupe 30300, celui
   de Gojo. [link-collabs.mjs](scripts/link-collabs.mjs) écrit le champ
   `jumeauCollab`. **163 paires**, 326 monstres liés.
-  - ⚠️ **Ne pas déduire le lien des stats et des compétences.** Une première
-    version l'a fait, faute d'avoir vu ce champ — et une signature comparée n'a
-    jamais fini de se tromper : elle échoue **en silence**, laissant un monstre
-    dépareillé au milieu de ses quatre frères, visible seulement en ouvrant la
-    bonne carte. Quatre champs de SWARFARM ont dû être écartés un par un —
-    `aoe` (faux dans **14 %** du corpus), l'ordre des effets, les effets
-    surnuméraires, le nombre de coups sur des compétences sans dégâts — et
-    l'appariement restait incomplet. Le champ, lui, est exact du premier coup.
+  - ⚠️ **Ne pas déduire le lien des stats et des compétences.** Une signature
+    comparée n'a jamais fini de se tromper : elle échoue **en silence**,
+    laissant un monstre dépareillé au milieu de ses quatre frères, visible
+    seulement en ouvrant la bonne carte. Quatre champs de SWARFARM seraient à
+    écarter un par un — `aoe` (faux dans **14 %** du corpus), l'ordre des
+    effets, les effets surnuméraires, le nombre de coups sur des compétences
+    sans dégâts — et l'appariement resterait incomplet. Le champ, lui, est
+    exact.
   - ⚠️ **Calculé à la GÉNÉRATION**, pas au rendu.
 - ⚠️ **Le groupe de compétences ne suffit pas** : il recouvre **trois**
   relations, et une seule doit fusionner deux cartes.
@@ -144,7 +141,7 @@ d'une **virgule** (« Satoru Gojo, Werner »).
     ainsi 27 faux appariements.
 - ⚠️ **Les formes ÉVEILLÉES seulement.** Les entrées non éveillées d'une collab
   portent des noms **coréens** chez SWARFARM (« 에이보르(물) » pour Eivor eau) :
-  appariées, elles produisaient des cartes titrées « Mercenary Queen,
+  appariées, elles produiraient des cartes titrées « Mercenary Queen,
   에이보르(물) ». Elles ne servent d'ailleurs à rien ici — on ne joue que des
   monstres éveillés, et la box n'en contient aucune (`class === 6` à l'import).
   - L'éveil se lit **`stars > naturalStars`** : un nat4 éveillé plafonne à 5★,
@@ -162,8 +159,8 @@ d'une **virgule** (« Satoru Gojo, Werner »).
   s'ouvre doit montrer la même chose, sans quoi on croirait s'être trompé.
   - Le portrait est **un seul composant**
     ([CollabPortrait.tsx](src/components/CollabPortrait.tsx)), partagé par la
-    carte et la fiche : un `clip-path` recopié aurait divergé au premier
-    ajustement, comme les deux cartes avant `MonsterCard`.
+    carte et la fiche : un `clip-path` recopié divergerait au premier
+    ajustement.
   - ⚠️ **Rien à SÉLECTIONNER**, contrairement à un transformable : les deux
     formes de celui-ci ont des compétences différentes, d'où un sélecteur ; une
     paire de collab est le **même monstre**, donc le reste de la fiche vaut pour
@@ -177,7 +174,7 @@ d'une **virgule** (« Satoru Gojo, Werner »).
   **tiré vers l'extérieur** (30 % / 70 %) — les portraits SW centrent le visage,
   et n'en garder que la moitié le couperait en deux.
 - ⚠️ **La recherche porte sur les DEUX noms** : la carte s'intitule « Satoru
-  Gojo, Werner », et chercher « Werner » ne devait pas rester sans résultat.
+  Gojo, Werner », et chercher « Werner » ne doit pas rester sans résultat.
 - ⚠️ **Noms identiques → un seul affiché.** Certaines collabs reprennent le nom
   SW tel quel (Vendhan, Dyeus) : « Vendhan, Vendhan » se lirait comme un bug.
 - La carte gardée est celle au **`com2usId` le plus petit** — l'entrée SW
@@ -185,13 +182,13 @@ d'une **virgule** (« Satoru Gojo, Werner »).
   **déterministe**, sinon l'affichage changerait sous le curseur.
 - ⚠️ **Dans la box du compte, le compte de l'écarté REVIENT à celui qu'on
   garde** : posséder un Werner et un Gojo, c'est posséder deux exemplaires du
-  même monstre. Sans ce report, l'un des deux disparaissait de la box et le
-  total ne tombait plus juste.
+  même monstre. Sans ce report, l'un des deux disparaîtrait de la box et le
+  total ne tomberait pas juste.
 
 ### Pagination — ⚠️ 60 cartes par page
 
 Le bestiaire porte **~3 000 monstres**, et chaque carte est un `motion.div`
-animé : tout rendre d'un coup faisait ramer le navigateur au moindre filtre,
+animé : tout rendre d'un coup ferait ramer le navigateur au moindre filtre,
 **chaque frappe reconstruisant 3 000 nœuds animés**.
 
 60 par page, comme les autres listes de l'app (runes, artéfacts, optimisation) —

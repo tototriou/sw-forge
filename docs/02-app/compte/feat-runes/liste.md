@@ -4,18 +4,17 @@ Partie de [Mon compte — Runes](README.md).
 
 ## Onglet Liste — `RunesList`
 
-⚠️ **À la SOURIS, un en-tête** (refonte graphique, lot 8a-2, la maquette) :
-« Liste » et le nombre de runes de l'INVENTAIRE ; le compte FILTRÉ reste
+⚠️ **À la SOURIS, un en-tête** :
+« Liste » et le nombre de runes de l'INVENTAIRE ; le compte FILTRÉ est
 au-dessus des tuiles. La **pagination** (`Pager`, partagé par toutes les
 pages qui paginent) a ses flèches en `BoutonIcone` de la librairie : même
-carré de 28 px à cadre, même zone tactile de 44 px (décision 16). La
-pagination numérotée de la maquette est repoussée au lot 13 (décision 20).
+carré de 28 px à cadre, même zone tactile de 44 px.
 
 ### ⚠️ La tuile EST la carte du jeu
 
 La tuile n'est pas un aperçu qui mènerait au détail : c'est **`RuneDetailBox`
 elle-même**, en rendu resserré (`compact`). Tout ce qu'on vient chercher dans
-l'inventaire y est d'emblée — un aperçu qui cachait les substats obligeait à
+l'inventaire y est d'emblée — un aperçu qui cacherait les substats obligerait à
 ouvrir les runes une par une pour comparer, ce qui est exactement ce qu'on fait
 en parcourant 2 000 runes.
 
@@ -23,7 +22,7 @@ en parcourant 2 000 runes.
   ([RuneSlotIcon.tsx](src/components/RuneSlotIcon.tsx) — cadre orienté selon le
   slot, symbole du set colorisé par rareté, halo si antique), la **stat
   principale** et l'**innée** au centre, la **bannière de rareté** et la **mesure
-  choisie** à droite. Ces deux dernières occupaient auparavant leur propre bloc :
+  choisie** à droite. Dans leur propre bloc, ces deux dernières prendraient
   deux lignes rien que pour elles.
 - **Substats** : base en blanc, **part de meule en orange**, ↻ si la ligne a été
   modifiée. ⚠️ **Alignés à gauche, valeur collée à son libellé** — et non la
@@ -47,15 +46,15 @@ en parcourant 2 000 runes.
     le `<div role="button">` qu'emploie la même carte **en popover** (siège, prépa
     RTA, optimiseur), où un `<button>` imbriqué dans le flottant cliquable serait
     du HTML invalide. À plat dans la grille, rien n'impose ce détour — et sur
-    téléphone il **coûtait le clic** : un `<div>` rempli de texte laisse le tap
+    téléphone il **coûterait le clic** : un `<div>` rempli de texte laisse le tap
     déclencher une **sélection de texte** (`user-select` par défaut) au lieu de la
     bascule. Voir [interface/](../../../03-developpeur/interface/) (`ZoneCliquable`).
 - La ligne **recherchée** prend un **liseré d'accent + un fond à 8 %**, avec les
   compensations qui l'annulent exactement — sinon elle se décale par rapport aux
   autres, et c'est ce décalage qu'on voit en premier.
 - **Bonus de set** en pied, comme dans le jeu.
-- ⚠️ **Plus de popover au clic** : il n'aurait rien montré de plus, tout étant
-  déjà sur la tuile. Le clic sert désormais à basculer détail ↔ total.
+- ⚠️ **Pas de popover au clic** : il ne montrerait rien de plus, tout étant
+  déjà sur la tuile. Le clic sert à basculer détail ↔ total.
 
 #### ⚠️ Deux grilles, une par format
 
@@ -67,11 +66,11 @@ en parcourant 2 000 runes.
 - Le **215 px** du bureau est la largeur en dessous de laquelle la bannière de
   rareté passe **sous** la stat principale — chaque tuile gagne alors une ligne,
   l'inverse du but. En mode compact, la bannière perd son espacement de lettres
-  et se resserre **justement pour descendre jusque-là** : c'est elle qui dictait
+  et se resserre **justement pour descendre jusque-là** : c'est elle qui dicte
   la largeur minimale de toute la grille.
-- ⚠️ **Sur téléphone, `auto-fill` ne pouvait pas donner deux colonnes** : à
+- ⚠️ **Sur téléphone, `auto-fill` ne peut pas donner deux colonnes** : à
   390 px d'écran il reste ~358 px utiles, soit moins que deux fois 215 px, et il
-  retombait donc toujours sur **une seule rune par rangée** — un défilement
+  retomberait toujours sur **une seule rune par rangée** — un défilement
   interminable sur 3 000 runes. D'où deux colonnes **fixes**, et non un seuil de
   plus.
 
@@ -83,10 +82,10 @@ retraits, et trois seulement — chacun rendu nécessaire par le précédent :
 
 1. **La bannière prend son abréviation** (`RARITY_META.court` — « Lég », « Hér »,
    « Rare », « Mag », « Com »). ⚠️ **Le seul libellé du jeu abrégé de toute
-   l'app** ; le mot entier reste en `title`. « LÉGENDAIRE » seul prenait la
+   l'app** ; le mot entier reste en `title`. « LÉGENDAIRE » seul prendrait la
    moitié de la largeur utile.
 2. **La mesure abrège son libellé** — « Effi » / « Score », le début du mot
-   entier et non un autre mot. « Score SW » dictait la largeur du bloc de droite
+   entier et non un autre mot. « Score SW » dicterait la largeur du bloc de droite
    (~66 px contre ~47 px pour la bannière abrégée). ⚠️ **Le libellé est gardé,
    pas supprimé** : la mesure est un réglage *global*, elle ne se lit nulle part
    ailleurs sur la page, et une valeur nue ne dirait pas ce qu'on mesure.
@@ -96,17 +95,17 @@ retraits, et trois seulement — chacun rendu nécessaire par le précédent :
 
 Et deux ajustements, qui ne sont pas des retraits :
 
-- Le **cadre de rune passe de 36 à 30 px**. ⚠️ **Pas en dessous de 30** : le
+- Le **cadre de rune fait 30 px**. ⚠️ **Pas en dessous de 30** : le
   symbole de set gravé dans le cadre cesse alors de se reconnaître, or c'est lui
   qui dit à quel set appartient la rune — l'abréviation de rareté ne le dit pas,
-  et le bonus de set n'est plus là.
+  et le bonus de set n'est pas rendu.
 - **Tout l'en-tête descend au cran `nano`** : stat principale, innée, mesure et
   bannière. C'est ce qui permet de **garder** le libellé de la mesure plutôt que
   de le supprimer. ⚠️ La stat principale y rejoint l'innée en TAILLE, mais leur
   hiérarchie tient toujours par le **poids** et la **couleur** (`font-black` +
-  `ink` contre `font-semibold` + `water`) — la taille n'était que le troisième
+  `ink` contre `font-semibold` + `water`) — la taille n'est que le troisième
   marqueur. La bannière resserre aussi son rembourrage (`px-1`) : à cette
-  échelle, `px-1.5` autour de « LÉG » se lisait comme une pastille de filtre.
+  échelle, `px-1.5` autour de « LÉG » se lirait comme une pastille de filtre.
 
 | | Bureau | Étroit |
 |---|---|---|
@@ -153,29 +152,23 @@ déroulante (règle de vocabulaire du [conventions](../../../03-developpeur/)). 
 [runeSort.ts](src/lib/runeSort.ts), testé par
 [rune-tri.test.ts](tests/rune-tri.test.ts).
 
-⚠️ **Le tri de la Liste reste une LISTE DÉROULANTE**, à la hauteur des
-filtres de la ligne à la souris (32 px) — refonte graphique, lot 8a. Des
-onglets (`Segmented`) ont été essayés à la demande du mainteneur (« le tri des
-runes ne peut pas être un segmented button comme le reste ? »), puis défaits :
-neuf entrées font ~920 px (« ça fait peut-être un peu gros »). Le tri de
-l'**Optimisation**, cinq entrées (~640 px), est en onglets à la souris ; au
-doigt, les deux restent des listes déroulantes (lot 11).
+⚠️ **Le tri de la Liste est une LISTE DÉROULANTE**, à la hauteur des filtres de
+la ligne à la souris (32 px) : en onglets (`Segmented`), ses neuf entrées
+feraient ~920 px. Le tri de l'**Optimisation**, cinq entrées (~640 px), est en
+onglets à la souris ; au doigt, les deux sont des listes déroulantes.
 
 ⚠️ **« Trier par » est AU-DESSUS de la propriété secondaire**, aux deux
-formats (le mainteneur, lot 8a : « mets le Trier par au-dessus de la propriété ») —
-trier vient avant filtrer, comme dans le panneau mobile, où le bloc de tri
-remontait déjà en tête. L'avertissement des deux tris « propriété » dit donc
-« Choisis une propriété **ci-dessous** pour trier dessus » (il disait
-« ci-dessus », faux au doigt depuis que le tri y était remonté).
+formats — trier vient avant filtrer. L'avertissement des deux tris
+« propriété » dit donc « Choisis une propriété **ci-dessous** pour trier
+dessus ».
 
 ⚠️ **Le panneau « Filtrer mes runes » (téléphone) est rangé en deux blocs
-intitulés** (refonte graphique, lot 11c, décision 26, la maquette) :
+intitulés** :
 **« Trier »** (le sélecteur et le sens ; l'intitulé « Trier par » y est masqué,
 redondant), puis **« Filtrer »** (sets, emplacement, antiques, propriété
 secondaire), puis **« Effacer les filtres »** — le même bouton qu'au bout de la
-ligne de filtres à la souris (`EffacerFiltres`, décision 20). Le tri reste en
-tête, par l'ORDRE DU DOM ; la maquette mettait « Filtrer » d'abord. La règle
-d'`index.css` qui le remontait (`order: -1`) est retirée.
+ligne de filtres à la souris (`EffacerFiltres`). Le tri est en tête par
+l'ORDRE DU DOM, sans règle CSS `order`.
 
 | Entrée | Clé de tri |
 |--------|-----------|
@@ -188,13 +181,12 @@ d'`index.css` qui le remontait (`order: -1`) est retirée.
 | **Score** *ou* *Efficience* | la mesure choisie dans le menu ⚙ (défaut) |
 | *Slot* | du 1 au 6 |
 
-⚠️ **Une seule entrée de mesure, celle du menu ⚙** (refonte graphique,
-décision 21, [retrait #21] — le mainteneur : « il y a Score et Efficience mais
-c'est la même chose ») : « Score » (le score du jeu) quand le ⚙ est sur
-Score SW, « Efficience » (notre mesure, %) quand il est sur Efficience. Les
-deux entrées côte à côte classaient aussi par la mesure qu'on ne voit pas sur
-les tuiles, pour un classement presque identique. Un tri mémorisé sur l'autre
-mesure suit le ⚙ (et un tri inconnu retombe sur la mesure active).
+⚠️ **Une seule entrée de mesure, celle du menu ⚙** : « Score » (le score du
+jeu) quand le ⚙ est sur Score SW, « Efficience » (notre mesure, %) quand il
+est sur Efficience. Deux entrées côte à côte classeraient aussi par la mesure
+qu'on ne voit pas sur les tuiles, pour un classement presque identique. Un tri
+mémorisé sur l'autre mesure suit le ⚙ (et un tri inconnu retombe sur la mesure
+active).
 
 « Efficience » et « Slot » n'existent pas dans le jeu et **ferment** la
 liste : l'efficience est notre mesure, le slot sert au repérage.
@@ -262,8 +254,8 @@ Deux pièces, reprises telles quelles :
 
 - ⚠️ **Les cases sont un RAPPEL, pas un formulaire.** Elles affichent le critère
   posé (« VIT +25 ~ +37 ») et ne servent qu'à ça. Toute la saisie vit dans la
-  modale : quatre menus déroulants occupaient toute la largeur pour n'afficher
-  que trois lettres, et un seuil unique ne savait pas dire « entre 25 et 37 ».
+  modale : quatre menus déroulants occuperaient toute la largeur pour n'afficher
+  que trois lettres, et un seuil unique ne saurait pas dire « entre 25 et 37 ».
 - **Bascule 2 ↔ 4 cases**, par les **deux icônes du jeu** : deux barres empilées
   (`Rows2`) pour 2 propriétés, une grille 2×2 (`Grid2x2`) pour 4. Elles disent la
   forme de la grille qu'on obtient, sans un mot.
@@ -283,7 +275,7 @@ Deux pièces, reprises telles quelles :
     zéro ». C'est ce qui permet de ne borner que d'un côté.
 - **Cliquer une case**, vide ou pleine, ouvre la modale. ⚠️ Pas de bouton « … »
   en plus : les cases y mènent déjà, et un second déclencheur pour le même geste
-  n'ajoutait qu'un doublon à côté de la bascule 2/4 — deux carrés voisins dont
+  n'ajouterait qu'un doublon à côté de la bascule 2/4 — deux carrés voisins dont
   un seul change la forme de la grille.
 - ⚠️ La modale travaille sur un **brouillon local**, validé par **OK** : écrire
   directement dans l'état ferait filtrer la liste derrière à chaque frappe, et

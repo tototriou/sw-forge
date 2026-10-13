@@ -62,15 +62,15 @@ les libellés ne sont pas réécrits dans chaque écran.
 
 **Une rangée par axe**, chacune avec son intitulé : `Catégorie` · `Attribut` ·
 `Type` · `Rareté` · `Stat principale` · `Propriété`. ⚠️ Tout sur une seule ligne,
-le contrôle de catégorie et les neuf pastilles passaient à la ligne au hasard de
-la largeur — on ne voyait plus où finissait un filtre et où commençait le suivant.
+le contrôle de catégorie et les neuf pastilles passeraient à la ligne au hasard
+de la largeur — on ne verrait plus où finit un filtre et où commence le suivant.
 
 Les intitulés ont une **largeur fixe** (`w-[86px]`) : les rangées de boutons
 démarrent ainsi sur une même colonne. Laissés à leur largeur naturelle,
-« TYPE » et « CATÉGORIE » décalaient leurs rangées l'une par rapport à l'autre.
+« TYPE » et « CATÉGORIE » décaleraient leurs rangées l'une par rapport à l'autre.
 
-**« Effacer les filtres »** (refonte graphique, lot 13, décision 28 — le même
-bouton que les runes) : au bout des filtres, à la souris comme dans le
+**« Effacer les filtres »** (le même bouton que les runes) : au bout des
+filtres, à la souris comme dans le
 panneau « Filtrer mes artéfacts ». Il remet la catégorie à **Tous**, retire
 l'attribut et le type choisis, recoche **toutes les raretés** et remet la stat
 principale à **Toutes**. ⚠️ Il ne touche **pas aux propriétés recherchées** :
@@ -78,12 +78,12 @@ comme pour les runes, elles servent aussi à TRIER, et les vider changerait
 l'ordre de la liste. Ni au sens du tri. **Toujours affiché, désactivé** quand
 rien n'est filtré (« Aucun filtre posé »).
 
-⚠️ **À la SOURIS** (refonte graphique, lot 8b) : les rangées se suivent **sur
+⚠️ **À la SOURIS** : les rangées se suivent **sur
 la ligne**, chacune avec son intitulé à sa largeur naturelle, collé à ses
 choix — ce qui sépare deux filtres est alors l'écart entre les groupes, plus
 la colonne. La rangée `Propriété` prend la place restante (au moins 440 px).
 Tout reste visible, rien ne passe en menu : même choix que pour les runes. Au
-doigt, les rangées restent empilées dans le panneau « Options » (lot 11).
+doigt, les rangées restent empilées dans le panneau « Options ».
 
 ### Filtre Catégorie
 
@@ -100,16 +100,16 @@ doigt, les rangées restent empilées dans le panneau « Options » (lot 11).
     montrent ce qui existe et ce qu'il faut changer pour y accéder. Même règle
     que la grille de sets d'une recommandation (voir
     [../siege/](../siege/)).
-  - ⚠️ **Choisir une valeur ne bascule PAS la catégorie.** Elle le faisait, pour
-    masquer la rangée devenue inutile — mais on se retrouvait sur « Attribut »
-    sans l'avoir demandé, et **retirer la valeur laissait ce cran posé** : un
-    filtre restait actif alors qu'on venait de tout désélectionner.
+  - ⚠️ **Choisir une valeur ne bascule PAS la catégorie.** Sinon on se
+    retrouverait sur « Attribut » sans l'avoir demandé, et **retirer la valeur
+    laisserait ce cran posé** : un filtre resterait actif alors qu'on vient de
+    tout désélectionner.
   - Les deux axes **s'excluent** (un artéfact est d'attribut *ou* de type) :
     poser une valeur d'un axe efface celle de l'autre, et une valeur hors de la
     catégorie choisie **ne filtre pas** — sur « Attribut », un archétype resté
     sélectionné viderait la liste sans qu'on voie pourquoi.
   - **Chips de valeur : icône du jeu + libellé.** On reconnaît un attribut ou un
-    archétype à son symbole ; le texte seul obligeait à lire.
+    archétype à son symbole ; le texte seul obligerait à lire.
   - ⚠️ Les chips d'**attribut** sont **exactement celles de la box** — mêmes
     classes, même [elementStyles.ts](src/components/elementStyles.ts), même taille
     d'icône. Filtrer par élément doit se présenter pareil d'un écran à l'autre,
@@ -132,10 +132,10 @@ doigt, les rangées restent empilées dans le panneau « Options » (lot 11).
     runes ([feat-runes/filtres-set-et-slot.md](feat-runes/filtres-set-et-slot.md)) : une rareté cochée est **affichée**, n'en
     cocher **aucune** revient à **ne rien vouloir voir**.
   - ⚠️ **Même typographie que les autres chips de la page** (`font-semibold`,
-    casse normale). Le gras majuscule espacé qu'elles portaient venait de la
-    bannière du jeu — reproduite à raison dans la fiche d'artéfact, mais isolée
-    dans une rangée de filtres elle se lisait comme un composant étranger collé
-    là. Les **couleurs** restent : elles portent une information.
+    casse normale). Un gras majuscule espacé, celui de la bannière du jeu —
+    reproduite à raison dans la fiche d'artéfact —, se lirait dans une rangée
+    de filtres comme un composant étranger collé là. Les **couleurs** restent :
+    elles portent une information.
 
 ### Filtre Stat principale
 
@@ -167,8 +167,7 @@ doigt, les rangées restent empilées dans le panneau « Options » (lot 11).
   bascule 2 ↔ 4 (`Rows2` / `Grid2x2`), et une modale listant toutes les
   propriétés avec **Min** et **Max**.
   - Mêmes composants ([SubSearchBar.tsx](src/components/account/SubSearchBar.tsx),
-    [SubSearchDialog.tsx](src/components/account/SubSearchDialog.tsx)) : la
-  grille de menus déroulants qui vivait ici a été **remplacée**, pas dupliquée.
+    [SubSearchDialog.tsx](src/components/account/SubSearchDialog.tsx)), sans copie.
   - ⚠️ Seule la **largeur de la modale** diffère — **520 px** contre 380 pour les
     runes : « Dgts supp. en prop. de ATQ » ne tient pas dans la largeur d'un
     « VIT ». C'est le seul paramètre qui sépare les deux usages.
@@ -183,9 +182,9 @@ doigt, les rangées restent empilées dans le panneau « Options » (lot 11).
 
 `Pager` : 60 tuiles/page (DOM borné). En-tête : nombre filtré (« N sur M »).
 
-⚠️ **À la SOURIS, un en-tête de vue** (refonte graphique, lot 8b, même
-gabarit que la Liste des runes) : « Liste » et le nombre d'artéfacts de
-l'INVENTAIRE ; le compte FILTRÉ reste au-dessus des tuiles.
+⚠️ **À la SOURIS, un en-tête de vue** (même gabarit que la Liste des runes) :
+« Liste » et le nombre d'artéfacts de l'INVENTAIRE ; le compte FILTRÉ est
+au-dessus des tuiles.
 
 ## Onglet Résumé — `ArtifactsSummary`
 
@@ -195,11 +194,10 @@ Type, Meilleur score, ≥ 90 % d'eff., Quad rolls), puis **Distribution
 d'efficience** et **Raretés**, **Par attribut et par type**, **Quad rolls ·
 sur quelle propriété**.
 
-⚠️ **À la SOURIS** (refonte graphique, lot 8b, même gabarit que le Résumé des
-runes) : un en-tête « Résumé » et le nombre d'artéfacts, puis les six
-chiffres clés en **un bandeau** (`Kpi bandeau`, cases séparées par un
-filet) au lieu de six cartes. Au doigt, les six chiffres clés forment **une
-carte** sur deux colonnes (lot 11c, décision 26 — même traitement que le
+⚠️ **À la SOURIS** (même gabarit que le Résumé des runes) : un en-tête
+« Résumé » et le nombre d'artéfacts, puis les six chiffres clés en **un
+bandeau** (`Kpi bandeau`, cases séparées par un filet). Au doigt, les six
+chiffres clés forment **une carte** sur deux colonnes (même traitement que le
 Résumé des runes, voir [feat-runes/resume.md](feat-runes/resume.md)).
 
 ## Données sous-jacentes

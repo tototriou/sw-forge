@@ -30,8 +30,8 @@ hauteur d'x haute, zéro barré, `1` à empattement.
 
 ### Le libellé en capitales : une classe, pas un motif
 
-Le motif `font-mono text-[11px] tracking-[0.1em] uppercase text-ink-dim` était
-répété **55 fois**, à sept tailles différentes. Il devient la classe `.label`.
+Le motif `font-mono text-[11px] tracking-[0.1em] uppercase text-ink-dim` est
+une classe, `.label`, et non un motif répété à chaque usage.
 
 ⚠️ **Dans la police du texte, pas en mono.** Une mono en capitales espacées
 est large et molle à 11 px, et donne une impression de flou dans les zones
@@ -100,7 +100,7 @@ Pas de dégradé sur un titre : l'encre est unie.
 angle vif.
 
 ⚠️ **`rounded-xl` et `rounded-2xl` sont REDÉFINIS** dans `tailwind.config.js`.
-C'étaient les valeurs figées de Tailwind (12 et 16 px), hors tokens : une
+Les valeurs figées de Tailwind (12 et 16 px) sont hors tokens : une
 classe qui ne suit pas le système se change partout d'un coup ou nulle part.
 `rounded-md` (6 px) et `rounded-sm` (2 px) restent ceux de Tailwind ;
 `rounded-full` n'a pas de token (un cercle ou une pilule).

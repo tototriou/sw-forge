@@ -13,8 +13,8 @@ survivent au reload. Effacées par « Supprimer mes données » (préfixe `swbla
 Tout vit dans [recoShare.ts](src/lib/recoShare.ts). **100 % local**, aucun envoi
 réseau.
 
-⚠️ **Le JSON est le SEUL format**, à l'export comme à l'import. Un code compact
-base64 (`SWF-RECO-1:`) a coexisté un temps ; il a été **retiré** — deux formats
+⚠️ **Le JSON est le SEUL format**, à l'export comme à l'import. Pas de code
+compact base64 (`SWF-RECO-1:`) : deux formats
 pour la même chose, c'est deux fois plus de surface à valider, pour un contenu
 que personne ne peut relire ni corriger.
 

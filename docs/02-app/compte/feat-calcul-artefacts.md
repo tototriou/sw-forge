@@ -42,13 +42,12 @@ c'est une borne haute théorique (le meilleur roll possible), pas une prévision
 ## ⚠️ Identité d'un artéfact — le `rid`, longtemps jeté
 
 `ArtifactDetail.id` porte le **`rid`** com2us, exactement comme
-`RuneDetail.id` porte le `rune_id`. Il existait dans l'export et l'import
-s'en servait déjà pour indexer les pièces — mais `artifactToDetail` ne le
-**conservait pas** sur le détail produit.
+`RuneDetail.id` porte le `rune_id` : `artifactToDetail` le conserve sur le
+détail produit.
 
 Sans identité stable, un artéfact n'est pas **référençable** : impossible de
-le mémoriser dans un build validé, impossible de le réserver pour une liste.
-C'est ce qui manquait aux deux fonctionnalités correspondantes de l'Optimizer
+le mémoriser dans un build validé, impossible de le réserver pour une liste —
+deux fonctionnalités de l'Optimizer
 (voir [docs/02-app/optimizer/](../optimizer/)).
 
 ⚠️ **`id: 0` désigne une pièce SYNTHÉTIQUE** — l'artéfact hypothéqué d'un
@@ -58,10 +57,10 @@ ignorer un id non strictement positif, sous peine de bloquer un emplacement
 au nom d'un artéfact que le joueur ne possède pas.
 
 ⚠️ **Le compte est stocké DÉJÀ PARSÉ** et l'export brut n'est jamais conservé
-(5 à 8 Mo) : ajouter ce champ a donc exigé d'incrémenter `ACCOUNT_SCHEMA`
-(5 → 6). Sans cette incrémentation, un compte enregistré gardait des artéfacts
-sans identifiant — et la fonctionnalité ne faisait simplement **rien**, sans
-erreur ni signal. C'est exactement le mode de défaillance que le commentaire
+(5 à 8 Mo) : un champ ajouté au détail exige d'incrémenter `ACCOUNT_SCHEMA`.
+Sans cette incrémentation, un compte enregistré garderait des artéfacts sans
+identifiant — et la fonctionnalité ne ferait simplement **rien**, sans erreur
+ni signal. C'est exactement le mode de défaillance que le commentaire
 d'`ACCOUNT_SCHEMA` annonce.
 
 ## 1. Rolls — la vraie mesure de qualité
@@ -117,7 +116,7 @@ plafond(code) = procMax(code) × 5
 les **4 améliorations**. C'est la même mécanique que le quad roll (§1).
 
 C'est la constante qui cale toute la table : avec 4, l'artéfact de référence
-donnait **184** au lieu de 147, et 24 lignes d'un compte réel dépassaient leur
+donnerait **184** au lieu de 147, et 24 lignes d'un compte réel dépasseraient leur
 plafond. Avec 5 : **147 pile**, et aucun dépassement sur 8 480 lignes.
 
 Quelques repères (`proc max` → plafond) :
@@ -230,13 +229,11 @@ contrairement aux runes.
 
 ### L'archétype du monstre a dû être ajouté aux données
 
-`Monster` ne portait **que** l'élément : l'archétype (« Type » dans le jeu)
-n'était nulle part côté monstre, alors qu'il l'est côté artéfact depuis
-toujours (`unit_style` à l'import).
+`Monster` porte l'élément **et** l'archétype (« Type » dans le jeu), comme
+l'artéfact (`unit_style` à l'import).
 
-L'API SWARFARM l'expose pourtant (`archetype`) — c'est `fetch-monsters.mjs`
-qui ne l'extrayait pas. Ajouté et régénéré : `attack` / `defense` / `hp` /
-`support`.
+L'API SWARFARM l'expose (`archetype`) et `fetch-monsters.mjs` l'extrait :
+`attack` / `defense` / `hp` / `support`.
 
 ⚠️ **`Material` (angelmons, rainbowmons) devient `null`, pas une valeur par
 défaut.** Ces monstres n'ont pas d'archétype de combat et ne portent aucun
@@ -262,9 +259,9 @@ inéquipables.
 `unit_style` (sorte Type). Relevé sur un compte réel : 17 attributs et 7 types
 sur 1 512 artéfacts.
 
-⚠️ **Sans ce décodage, un intangible retombait sur `element: 'unknown'` /
+⚠️ **Sans ce décodage, un intangible retomberait sur `element: 'unknown'` /
 `archetype: undefined`** — indistinguable d'une donnée corrompue, et jugé
-éligible à AUCUN monstre. Il aurait donc disparu de toute optimisation en
+éligible à AUCUN monstre : il disparaîtrait de toute optimisation en
 silence. Un test verrouille les deux sens : les intangibles sont reconnus, et
 aucun artéfact NON intangible ne traîne d'attribut ou d'archétype inconnu (ce
 qui signalerait une valeur com2us nouvelle).
@@ -288,7 +285,7 @@ autres icônes sont des glyphes nus, celle-ci aussi.
 
 ⚠️ **`ArtifactIcon` teste `intangible` AVANT `element`/`archetype`**, pour la
 même raison que `artifactFitsMonster` : ces champs ne veulent rien dire sur un
-intangible, les lire d'abord renvoyait `null` — donc **aucune icône**, soit 34
+intangible, les lire d'abord renverrait `null` — donc **aucune icône**, soit 34
 tuiles blanches dans un inventaire réel.
 
 > **Limite restante** : les filtres de l'inventaire ne savent pas **désigner**

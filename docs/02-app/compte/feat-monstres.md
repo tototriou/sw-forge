@@ -11,19 +11,17 @@ Affiche **tous les monstres montés 6★** du compte importé. Composant :
 - ⚠️ **La MÊME carte et la MÊME grille que le Bestiaire**
   ([MonsterCard.tsx](src/components/MonsterCard.tsx)) : même portrait, même
   gabarit, même largeur de colonne, même écart. Les deux écrans montrent les
-  mêmes monstres — deux composants donnaient deux rendus pour une même chose, et
-  ils avaient déjà divergé (portraits de 64 px contre 84, rayons et corps de
-  texte différents).
+  mêmes monstres — deux composants donneraient deux rendus pour une même chose,
+  et finiraient par diverger (taille de portrait, rayons, corps de texte).
   - ⚠️ **C'est CE gabarit qui fait référence** : portrait 64 px, colonnes de
     104 px, `rounded-xl`. Le bestiaire s'y aligne, et non l'inverse — c'est le
     plus dense des deux, et on parcourt des centaines de monstres.
-  - Ce qui les distingue devient des **options** : la bulle **« ×N »**
+  - Ce qui les distingue, ce sont des **options** : la bulle **« ×N »**
     d'exemplaires (box seule — le bestiaire ne sait pas ce qu'on possède) et la
     rangée d'**étoiles**, masquée ici puisque tout est 6★.
 - En-tête : « N monstres différents · M au total · 6★ ».
-  - ⚠️ **À la SOURIS** (refonte graphique, lot 8b, la maquette) : précédé du
-    titre « Ma box », le compte passe en pastille. Au doigt, il reste une ligne
-    sous la barre du haut (lot 11).
+  - ⚠️ **À la SOURIS** : précédé du titre « Ma box », le compte est en
+    pastille. Au doigt, il tient sur une ligne sous la barre du haut.
 
 ## Pagination & performance
 
@@ -110,15 +108,15 @@ coups, effets appliqués, et ce qu’apporte chaque amélioration.
   vient de cliquer.
 - ⚠️ **DEUX COLONNES** : ce que le monstre **est** à gauche (**lead**, puis
   stats), ce qu'il **fait** à droite (compétences). Les deux se lisent ensemble —
-  on juge un coefficient à l'aune de l'ATQ du monstre — et empilés, il fallait
+  on juge un coefficient à l'aune de l'ATQ du monstre — et empilés, il faudrait
   faire défiler pour passer de l'un à l'autre.
   - Le **lead passe en premier** : c'est ce qu'on vient vérifier le plus souvent
     (« a-t-il un lead VIT ? »), et il tient en une ligne là où les stats en
     prennent huit.
   - La colonne de gauche est **fixe (200 px)** : elle ne porte que des nombres
     courts, la place gagnée revient aux descriptions de compétences. La modale
-    passe à **820 px** pour que celles-ci gardent la largeur qu'elles avaient
-    seules — sans quoi les déplacer à droite les aurait rétrécies d'un tiers.
+    fait **820 px** pour que celles-ci gardent leur largeur — sans quoi les
+    placer à droite les rétrécirait d'un tiers.
   - Sous `sm`, retour à la **pile** : deux colonnes de 100 px ne sont lisibles ni
     l'une ni l'autre.
   - ⚠️ `min-w-0` sur la colonne de droite : sans lui, une cellule flex refuse de
@@ -127,24 +125,24 @@ coups, effets appliqués, et ce qu’apporte chaque amélioration.
 - ⚠️ Les **stats sont EN COLONNE**, une par ligne, et non en grille 2×4 : les
   valeurs s'alignent alors les unes **sous** les autres, ce qui permet de les
   comparer d'un monstre à l'autre et de repérer un ordre de grandeur d'un coup
-  d'œil. En grille, « 10 050 » et « 107 » tombaient dans des colonnes
-  différentes et l'œil devait sauter.
+  d'œil. En grille, « 10 050 » et « 107 » tomberaient dans des colonnes
+  différentes et l'œil devrait sauter.
   - Même grammaire que la table de stats du panneau d'équipement : lignes
     séparées d'un filet, libellé terne à gauche, valeur **mono `tabular-nums`**
     alignée à droite, milliers séparés (« 10 050 »).
 - Le **lead** est la **pastille des decks**, sans rien de plus
   ([LeadPill.tsx](src/components/siege/LeadPill.tsx)) : l'icône officielle du
   jeu, le montant, et c'est tout.
-  - ⚠️ **Aucun texte.** La fiche a d'abord épelé la stat et la portée
-    (« +33 % Attack Speed · Arène ») ; c'est l'icône du jeu qui **encode déjà
-    les deux**, et c'est à elle qu'un joueur reconnaît un lead VIT d'un lead
-    ATQ. Les mots n'apprenaient rien à qui lit l'icône et prenaient deux lignes
-    là où une suffit. Le détail reste dans l'**infobulle**.
+  - ⚠️ **Aucun texte.** L'icône du jeu **encode déjà** la stat et la portée,
+    et c'est à elle qu'un joueur reconnaît un lead VIT d'un lead ATQ. Des mots
+    (« +33 % Attack Speed · Arène ») n'apprendraient rien à qui lit l'icône et
+    prendraient deux lignes là où une suffit. Le détail est dans
+    l'**infobulle**.
   - ⚠️ **Le même composant qu'en siège**, pas un rendu jumeau : deux pastilles
-    de lead auraient divergé. Ce qui diffère est devenu des **options** —
+    de lead divergeraient. Ce qui diffère, ce sont des **options** —
     `size="lg"` (icône 32 px) et `pleineLargeur`.
   - **Agrandie et alignée sur la largeur des stats** qu'elle surmonte : à taille
-    de siège elle flottait, minuscule, au-dessus d'un bloc. En siège elle reste
+    de siège elle flotterait, minuscule, au-dessus d'un bloc. En siège elle reste
     petite — il y en a une par équipe, à côté des portraits.
   - Un lead **élémentaire** ajoute l'icône de son élément — celle du jeu ne dit
     pas lequel.
@@ -155,19 +153,19 @@ coups, effets appliqués, et ce qu’apporte chaque amélioration.
   ([monsterSkills.ts](src/lib/monsterSkills.ts)), vérifié par
   [rechargement.test.ts](tests/rechargement.test.ts).
   - Le champ `cooldown` de SWARFARM est celui du **niveau 1**, alors qu'on joue
-    une compétence **maxée**. Affiché brut, il était faux pour **3 258
+    une compétence **maxée**. Affiché brut, il serait faux pour **3 258
     compétences sur 3 815** — la grande majorité.
   - Les paliers se reconstituent en **comptant** les lignes `Cooltime Turn -1`
     des améliorations : leur nombre varie d'une compétence à l'autre, une
-    constante aurait été fausse quelque part.
+    constante serait fausse quelque part.
   - ⚠️ Le libellé est comparé **après `trim()`** : 12 lignes du corpus traînent
-    un `\r`, et sans lui la réduction disparaissait en silence.
+    un `\r`, et sans lui la réduction disparaîtrait en silence.
   - ⚠️ Les lignes de rechargement **restent dans la liste des améliorations** :
     elle retranscrit les skill-ups dans l'ordre du jeu, et en retirer fausserait
     le compte (« 3 améliorations » quand il en faut 5). Le sablier résume, la
     liste détaille.
   - ⚠️ L'icône est un **SABLIER**, pas un éclair : l'éclair dit la puissance,
-    pas l'attente — on lisait « 3 tours » comme une durée d'effet.
+    pas l'attente — on lirait « 3 tours » comme une durée d'effet.
 - Les formules sont **traduites** pour leurs noms de stats (`3.6*{ATK}` →
   `3.6 × ATQ`) mais **pas réécrites** : « 360 % de l'ATQ » ferait perdre la forme
   qu'on retrouve sur les sites de référence, et introduirait une source d'erreur
@@ -177,12 +175,12 @@ coups, effets appliqués, et ce qu’apporte chaque amélioration.
   mur si les quatre s'ouvrent d'un coup.
 - ⚠️ **On n'invente aucun chiffre : la description fait foi**, telle que
   SWARFARM l'écrit. La pastille d'effet ne porte donc que le **nom** de l'effet.
-  - Elle a un temps affiché un **taux** (« Increase ATB · 100 % ») pris au champ
-    `chance` — la **probabilité d'application**, qu'on lisait comme la quantité
-    de barre remplie. Deux nombres en pourcent : la confusion ne se voyait pas.
+  - Pas de **taux** (« Increase ATB · 100 % ») : le champ `chance` est la
+    **probabilité d'application**, qu'on lirait comme la quantité de barre
+    remplie. Deux nombres en pourcent : la confusion ne se verrait pas.
   - Pire, SWARFARM écrit **`chance: 0` pour un effet GARANTI** (`quantite: 25`
-    pour +25 % de barre). Affiché tel quel, un effet certain annonçait « 0 % »,
-    soit l'exact contraire de ce qu'il fait.
+    pour +25 % de barre). Affiché tel quel, un effet certain annoncerait
+    « 0 % », soit l'exact contraire de ce qu'il fait.
   - Seuls restent des champs lus **tels quels** : coefficient, nombre de coups,
     rechargement. La formule est **transcrite** (`3.6*{ATK}` → `3.6 × ATQ`),
     jamais recalculée.
@@ -262,39 +260,35 @@ n'en cocher **aucune** revient à **ne rien vouloir voir**. Les interrupteurs
 
 Les filtres se combinent avec la recherche.
 
-**« Effacer les filtres »** (refonte graphique, lot 13, décision 28 — le même
-bouton que les runes, `feat-runes/filtres-set-et-slot.md`) : au bout des filtres, à la
+**« Effacer les filtres »** (le même bouton que les runes,
+`feat-runes/filtres-set-et-slot.md`) : au bout des filtres, à la
 souris comme dans le panneau « Filtrer ma box ». Il remet **tous les
 éléments, toutes les étoiles**, et coupe **Doublons** et **2A**. Il ne touche
 ni à la recherche ni au tri. ⚠️ **Toujours affiché, désactivé** quand rien
 n'est filtré (« Aucun filtre posé ») : un bouton qui apparaît au premier
 filtre ne s'explique pas.
 
-⚠️ **À la SOURIS, trois lignes fixes** (refonte graphique, lot 8b) : la
-recherche à largeur fixe (288 px), puis élément · Nat, Doublons, 2A sur une
-ligne, puis **le tri à la suite des filtres** (le mainteneur : « mets l'ordre à la
-suite des filtres »), sur la ligne de la pagination, calée à droite. Cette
-ligne reste là sans résultat ni seconde page : le tri ne disparaît jamais
-avec les données. Une barre unique a été essayée puis défaite
-par le mainteneur : à 1 000 px, elle écrasait la recherche et renvoyait le tri seul
-à la ligne. Les filtres restent **visibles**, pas
-dans des menus : même choix que pour les runes. Au
-doigt, rien ne change (lot 11).
+⚠️ **À la SOURIS, trois lignes fixes** : la recherche à largeur fixe (288 px),
+puis élément · Nat, Doublons, 2A sur une ligne, puis **le tri à la suite des
+filtres**, sur la ligne de la pagination, calée à droite. Cette ligne reste là
+sans résultat ni seconde page : le tri ne disparaît jamais avec les données.
+Pas de barre unique : à 1 000 px, elle écraserait la recherche et renverrait
+le tri seul à la ligne. Les filtres sont **visibles**, pas dans des menus :
+même choix que pour les runes.
 
 > ⚠️ **Une chip active se reconnaît à sa couleur, sans lire son libellé.**
 >
 > - **Élément** : fond **teinté de l'élément à 25 %** (rouge pour Feu, bleu pour
 >   Eau…), texte dans sa version claire. Style partagé avec le Bestiaire —
->   [elementStyles.ts](src/components/elementStyles.ts). Les deux écrans en
->   avaient une copie chacun, et elles avaient divergé.
+>   [elementStyles.ts](src/components/elementStyles.ts).
 >   ⚠️ **Une teinte, pas un aplat plein** : sur des chips de 12 px, du texte
 >   sombre sur rouge ou violet vif devient illisible. Ce sont la bordure et le
 >   texte colorés qui portent l'information, le fond ne fait que la confirmer.
 > - **Nat, Doublons, 2A** : **un seul** style actif, l'**accent de l'app** (le
->   défaut d'une `Pastille` sans `couleurs`). Chaque bouton avait le sien —
->   bleu-violet pour Doublons, doré sombre pour 2A — et trois surbrillances
->   différentes côte à côte se lisent comme trois **natures** de filtre
->   différentes, alors qu'ils font tous la même chose. L'accent tient ici : ces
+>   défaut d'une `Pastille` sans `couleurs`). Une couleur par bouton donnerait
+>   trois surbrillances différentes côte à côte, qui se liraient comme trois
+>   **natures** de filtre différentes, alors qu'ils font tous la même chose.
+>   L'accent tient ici : ces
 >   filtres n'ont pas de couleur propre à respecter, et c'est le marqueur d'état
 >   commun au reste des contrôles enclenchables.
 

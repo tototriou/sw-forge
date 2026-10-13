@@ -44,12 +44,10 @@ Points d'entrée de l'Optimizer, avant un chantier qui le touche :
 ## Ordre des pages
 
 Ordre d'importance (nav & cartes d'accueil) : **Accueil → RTA → Siège → Mon
-compte → Outils → Arène**. Arène se positionne dans la barre entre le
-dropdown Outils et le dropdown Ressources — pas dans le groupe des onglets
-directs (Accueil/RTA/Siège), pour ne pas allonger cette rangée-là. Bestiaire,
-Mécaniques, Nouveautés et Télécharger sont regroupés sous « Ressources » (les
-moins centraux de l'outil) ; Télécharger n'existe que sur le site (application
-de bureau, décision 14).
+compte → Outils → Arène**. Bestiaire, Mécaniques, Nouveautés et Télécharger
+sont regroupés sous « Ressources » (les moins centraux de l'outil) ;
+Télécharger n'existe que sur le site. Le regroupement de la barre latérale :
+[barre-laterale-et-adresses.md](transverse/feat-navigation/barre-laterale-et-adresses.md).
 
 > ⚠️ **Règle permanente** : toute page ou section **ajoutée, renommée ou
 > supprimée** doit être répercutée sur **l'accueil** ([accueil/](accueil/README.md) —

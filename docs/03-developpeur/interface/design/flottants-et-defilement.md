@@ -182,7 +182,7 @@ atteint le haut, ce serait traiter le symptôme.
 
 ⚠️ Deux causes le déclencheraient trop tôt.
 
-**La hauteur de `body` était en `dvh`** : cette unité suit la hauteur courante du
+**Une hauteur de `body` en `dvh`** : cette unité suit la hauteur courante du
 viewport, donc elle **change** quand la barre d'adresse se replie ou se déplie.
 En remontant, la barre se déplie, `dvh` diminue et la page raccourcit sous le
 doigt — le défilement se retrouve poussé au-delà du haut.

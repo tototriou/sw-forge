@@ -4,11 +4,9 @@ Partie de [Mon compte — Runes](README.md).
 
 ## Onglet Optimisation — `RunesOptim`
 
-⚠️ **À la SOURIS, un en-tête** (refonte graphique, lot 8a-3, la maquette) :
+⚠️ **À la SOURIS, un en-tête** :
 « Optimisation », puis « Ce que tes meules et gemmes permettent d'améliorer,
-rune par rune. ». Les tuiles et leur plan, qui s'ouvre au clic, ne changent
-pas. La maquette écrit le plan DANS chaque carte, toujours visible : c'est un
-changement de comportement, à décider avec le mainteneur, pas fait ici.
+rune par rune. ». Le plan d'une rune s'ouvre au clic sur sa tuile.
 
 Calcule, pour chaque rune, son **potentiel maximal** et **ce qu'il faut faire**
 pour l'atteindre. Calcul pur & linéaire dans [runeOptim.ts](src/lib/runeOptim.ts)
@@ -32,9 +30,9 @@ distinctes**) :
     doublon** (≠ principale / innée / **autres** substats) et en respectant les
     **emplacements** (slot 1 : pas de DEF ; slot 3 : pas d'ATQ) ;
     - ⚠️ **la stat du substat lui-même est candidate** : une ATQ% à 7 peut
-      recevoir une gemme ATQ% (base 13 en légendaire). Règle du jeu relevée par
-      l'utilisateur ; le calcul l'excluait jusque-là, ce qui **sous-estimait** le
-      potentiel quand les autres stats étaient déjà présentes ou interdites.
+      recevoir une gemme ATQ% (base 13 en légendaire). C'est une règle du
+      jeu ; l'exclure **sous-estimerait** le potentiel quand les autres stats
+      sont déjà présentes ou interdites.
       Retenue seulement si la base de gemme dépasse la base actuelle ;
   - rune **déjà gemmée** → la stat gemmée est **figée** ; seul gain possible =
     **procker au max** (porter la base de la gemme au max si elle n'y est pas
@@ -78,7 +76,7 @@ classiques/antiques, héro/légend) et l'**algorithme complet** `best()` sont da
   (défaut 100 %).
   - ⚠️ **Converti au changement de mesure** (`convertirPalier` dans
     [useRuneMetric.ts](src/hooks/useRuneMetric.ts)) : « 100 » ne veut pas dire la
-    même chose en efficience et en score, et garder la valeur brute déplaçait la
+    même chose en efficience et en score, et garder la valeur brute déplacerait la
     coupe sans prévenir — souvent une liste vide, prise pour un bug.
   - ⚠️ **Pas de facteur de conversion, il n'en existe pas.** Sur un compte réel
     de 3 163 runes, le rapport score/efficience s'étale de **0,98 à 2,37** : la
@@ -95,9 +93,8 @@ classiques/antiques, héro/légend) et l'**algorithme complet** `best()` sont da
 - **Runes** — le filtre antique **commun à toutes les pages de runes**,
   [AncientFilter](src/components/account/AncientFilter.tsx) : **Toutes** (défaut) ·
   **Antiques uniquement** · **Aucune antique**.
-  - ⚠️ **Trois états PARTOUT, plus une bascule on/off.** La Liste, la Comparaison
-    et les Courbes portaient un simple bouton « Antiques » (garder / masquer) ; il
-    manquait « n'afficher QU'ELLES ». Les antiques ont leurs **propres tables de
+  - ⚠️ **Trois états PARTOUT, pas une bascule on/off** : garder / masquer ne
+    permet pas de « n'afficher QU'ELLES ». Les antiques ont leurs **propres tables de
     max**, donc un potentiel et une efficience qui **ne se comparent pas** à ceux
     d'une rune normale : pouvoir les **isoler** autant que les écarter vaut sur
     chaque page, pas seulement ici. D'où un `Segmented` à trois crans, **unique et
@@ -107,24 +104,21 @@ classiques/antiques, héro/légend) et l'**algorithme complet** `best()` sont da
     pas pour une absence de runes.
 - **Tuiles** : efficience **actuelle**, puis **Héro** et **Légend** avec leur gain
   et l'efficience cible.
-  - ⚠️ **Une couleur par ligne, celle de sa rareté** (le mainteneur, rebranding R8,
-    2026-09-30) : « Héro −7,1 → 133,0 % » tout en violet (`rarity-4`),
-    « Légend » tout en or (`star`). La cible était colorée **vert** / **rouge** selon
-    qu'elle passait au-dessus ou en dessous de l'actuelle, et la ligne se
-    lisait en deux couleurs. Le signe du gain porte le sens ; le vert / rouge
-    ne vit plus que dans le plan détaillé d'une rune (`OptimPlanBox`), un gain
-    négatif n'existant d'ailleurs que hors filtre de réserve (`noDowngrade`).
+  - ⚠️ **Une couleur par ligne, celle de sa rareté** : « Héro −7,1 → 133,0 % » tout en violet (`rarity-4`),
+    « Légend » tout en or (`star`). Une cible colorée en vert / rouge selon
+    qu'elle passe au-dessus ou en dessous de l'actuelle ferait lire la ligne en
+    deux couleurs. Le signe du gain porte le sens ; le vert / rouge ne vit que
+    dans le plan détaillé d'une rune (`OptimPlanBox`), un gain négatif
+    n'existant d'ailleurs que hors filtre de réserve (`noDowngrade`).
   - ⚠️ **La ligne « actuelle » en braise**, mot compris, la valeur en gras
-    (`text-accent`, la braise lisible ; le mainteneur, même jour, sur planche :
-    encre, braise, bleu ciel, vert) — une couleur par ligne, comme les deux
-    autres.
-    Dans la couleur de la rareté de la rune, elle se confondait avec la ligne
-    de même rareté (violette comme « Héro » sur une héroïque, orange près de
-    l'or de « Légend » sur une légendaire).
+    (`text-accent`, la braise lisible) — une couleur par ligne, comme les deux
+    autres. Dans la couleur de la rareté de la rune, elle se confondrait avec
+    la ligne de même rareté (violette comme « Héro » sur une héroïque, orange
+    près de l'or de « Légend » sur une légendaire).
   Pagination 60/page.
   - ⚠️ **DEUX grilles, une par format** (même patron que l'onglet Liste) : sous
     `lg`, **deux colonnes fixes** ; à partir de `lg`, l'`auto-fill` à 230 px. Sur
-    téléphone, l'`auto-fill` retombait toujours sur **une** colonne (une rune par
+    téléphone, l'`auto-fill` retomberait toujours sur **une** colonne (une rune par
     écran) ; les deux colonnes tiennent jusqu'à ~360 px de large.
   - ⚠️ **Rendu resserré `etroit`** sous `lg` — police (`text-nano` au lieu de
     `text-xs`/`text-micro`) et cadre de rune (**34 px** au lieu de 46) réduits, pour
@@ -155,19 +149,17 @@ différent »**, **filtre antique**, **« Faisable avec ma réserve »**, **« S
 les immémoriaux »**, **« Runes utilisées »** et **« Marqueurs »**. **Sets,
 slot, tri et l'aide restent dans la page**, à tous les formats.
 
-⚠️ **« Gemme + meule / Meule seule » est en TÊTE DE LA PAGE au téléphone**
-(refonte graphique, lot 11c, décision 26, la maquette), sur toute la largeur,
-avant les filtres : c'est ce qui change toute la liste — on le voit et on le
-bascule sans ouvrir le panneau. Il était le deuxième contrôle du panneau. Au
-bureau, il reste dans la rangée d'options (`modeControl`, écrit une fois,
-posé aux deux endroits).
+⚠️ **« Gemme + meule / Meule seule » est en TÊTE DE LA PAGE au téléphone**,
+sur toute la largeur, avant les filtres : c'est ce qui change toute la liste —
+on le voit et on le bascule sans ouvrir le panneau. Au bureau, il est dans la
+rangée d'options (`modeControl`, écrit une fois, posé aux deux endroits).
 
 - ⚠️ **Au bureau, le groupe en ligne passe à la ligne tout seul**
   (`lg:flex-wrap`). Il est **un seul élément** de la rangée de filtres : sans
   retour à la ligne interne, il ne peut pas se réduire sous la largeur cumulée
   de ses contrôles, et c'est la **page** qui déborde par la droite — la
-  rangée parente, elle, ne voit qu'un bloc et n'a rien à replier. Constaté au
-  sixième contrôle, sur un écran de bureau ordinaire.
+  rangée parente, elle, ne voit qu'un bloc et n'a rien à replier. Le cas se
+  produit dès six contrôles, sur un écran de bureau ordinaire.
 - Les contrôles sont écrits **une fois** (`optionsControls`) et posés à deux
   endroits : **en ligne au bureau** (`hidden lg:flex`, les huit, mode
   compris), **dans le panneau au doigt** (`MobileSheet`, sans le mode :
@@ -177,14 +169,14 @@ posé aux deux endroits).
   Les segmentés sont pleins (`size="lg"`) ; « Autoriser un regemme différent »,
   « Faisable avec ma réserve »,
   « Sans les immémoriaux », « Runes utilisées » et « Marqueurs » prennent donc
-  eux aussi toute la colonne (`pleineLargeur={large}`), sinon ils pendaient
+  eux aussi toute la colonne (`pleineLargeur={large}`), sinon ils pendraient
   seuls, à la largeur de leur texte, sous des contrôles pleins. En ligne au
   bureau (`large` faux) ils restent serrés.
 - Sous « Runes utilisées » et « Marqueurs », le panneau montre **en
   permanence** leurs cases (grisées filtre éteint). Au bureau, elles vivent dans
   un flottant ouvert par un chevron : voir « Filtres à cases » plus bas.
-- **Les deux filtres à cases sont côte à côte, sur deux colonnes** (demande de
-  l'utilisateur). Empilés, bouton + six cases + bouton + neuf cases faisaient
+- **Les deux filtres à cases sont côte à côte, sur deux colonnes.** Empilés,
+  bouton + six cases + bouton + neuf cases feraient
   défiler le panneau sur plus d'un écran. Mesuré à 390 px : deux boutons de
   173 px, et chaque libellé de case tient sur une ligne. La grille porte `w-full`
   (même raison que ci-dessous) et `items-start`, car les deux listes n'ont pas la
@@ -192,15 +184,14 @@ posé aux deux endroits).
   réduit pas à une demi-largeur pour rien.
   ⚠️ Le conteneur bouton + cases porte `w-full` au doigt : sans lui,
   `[data-tiroir] .flex-col` (aligné à gauche) le réduit à la largeur de son
-  contenu, et le bouton redevient plus étroit que ses voisins — constaté en
-  capture.
+  contenu, et le bouton redevient plus étroit que ses voisins.
 - ⚠️ **Le filtre antique passe en `dense` sous le panneau.** En `lg`, ses trois
-  crans se partagent la largeur à égalité et « Antiques uniquement » débordait
-  son tiers (que `whitespace-nowrap` interdisait de couper) ; `AncientFilter`
+  crans se partagent la largeur à égalité et « Antiques uniquement » déborderait
+  son tiers (que `whitespace-nowrap` interdit de couper) ; `AncientFilter`
   active donc `dense` dès `size="lg"` (texte réduit, retour à la ligne autorisé),
   voir [AncientFilter](src/components/account/AncientFilter.tsx).
-- ⚠️ Au **bureau, rien ne change** : les huit restent visibles dans la rangée
-  de filtres. Le panneau n'existe que sous `lg`.
+- ⚠️ Au **bureau**, les huit sont visibles dans la rangée de filtres. Le
+  panneau n'existe que sous `lg`.
 
 ### Filtres à cases — `FiltreACases`
 
@@ -223,10 +214,10 @@ même rendu, un seul endroit où ils pourraient diverger.
 ### « Marqueurs » — le filtre des marqueurs posés en jeu
 
 Un filtre à cases (voir ci-dessus), dans le groupe d'options : en ligne au
-bureau, dans le panneau « Options » au doigt. Il a d'abord été une rangée de
-pastilles dans la page. Avec des libellés longs et agrandis pour le doigt, elle
-prenait **quatre lignes** sur téléphone avant la première rune. L'utilisateur a
-donc demandé le même bouton que « Runes utilisées ».
+bureau, dans le panneau « Options » au doigt. En rangée de pastilles dans la
+page, avec des libellés longs et agrandis pour le doigt, il prendrait
+**quatre lignes** sur téléphone avant la première rune : c'est donc le même
+bouton que « Runes utilisées ».
 
 - **Une case par marqueur réellement posé** dans l'inventaire, plus « Sans
   marqueur », chacune avec son nombre de runes. Le libellé est **celui saisi en
@@ -330,7 +321,7 @@ couvert** par la réserve de meules et de gemmes du compte.
 
 ⚠️ **Un filtre, pas un onglet.** C'est la même liste, restreinte : potentiel
 héroïque, potentiel légendaire, les deux gains et le tri restent là. En faire une
-vue séparée obligeait à tout y réimplémenter.
+vue séparée obligerait à tout y réimplémenter.
 
 - Le **scénario suit le tri** (gain/potentiel héroïque → grade 4, sinon 5) :
   trier par gain héroïque tout en filtrant sur du légendaire n'aurait aucun sens.
@@ -338,11 +329,11 @@ vue séparée obligeait à tout y réimplémenter.
 - ⚠️ **Mais chaque chiffre de la tuile se vérifie contre la réserve de SON
   grade**, quel que soit le tri : **Héro** contre les consommables héroïques ou
   mieux, **Légend** contre les légendaires (`dispoReserve` dans
-  [crafts.ts](src/lib/crafts.ts), une par scénario). Les deux chiffres étaient
-  calculés avec la seule réserve du grade du tri : trié en héroïque, une meule
-  héroïque faisait compter au chiffre légendaire la table légendaire
-  (**surestimé** — un potentiel annoncé faisable qui ne l'était pas) ; trié
-  autrement, le chiffre héroïque refusait une meule héroïque présente
+  [crafts.ts](src/lib/crafts.ts), une par scénario). Calculés avec la seule
+  réserve du grade du tri, les deux chiffres seraient faux : trié en héroïque,
+  une meule héroïque ferait compter au chiffre légendaire la table légendaire
+  (**surestimé** — un potentiel annoncé faisable qui ne l'est pas) ; trié
+  autrement, le chiffre héroïque refuserait une meule héroïque présente
   (**sous-estimé**). Verrouillé par le test `testReserveParGrade`.
 - Les plans ne sont calculés **que si le filtre est actif** — c'est plus lourd
   qu'un potentiel, et inutile tant qu'on ne le demande pas.
@@ -356,9 +347,9 @@ vue séparée obligeait à tout y réimplémenter.
 
 ⚠️ **Le plan est RESTREINT à la réserve, il n'est pas exigé en entier.** Une stat
 dont le consommable manque n'est simplement pas poussée (`CraftDispo` dans
-[runeOptim.ts](src/lib/runeOptim.ts)). Exiger le plan complet écartait des runes
-parfaitement travaillables : une Swift dont trois substats sur quatre étaient
-meulables disparaissait faute d'une seule meule VIT. Le gain affiché est donc
+[runeOptim.ts](src/lib/runeOptim.ts)). Exiger le plan complet écarterait des
+runes parfaitement travaillables : une Swift dont trois substats sur quatre
+sont meulables disparaîtrait faute d'une seule meule VIT. Le gain affiché est donc
 **celui qu'on peut aller chercher aujourd'hui**, ni plus ni moins — et le plan du
 détail applique la même restriction, sans quoi il contredirait le chiffre.
 
@@ -366,7 +357,7 @@ détail applique la même restriction, sans quoi il contredirait le chiffre.
 travailler porte l'icône de son consommable — **marteau** pour une meule,
 **gemme** pour une gemme — en **vert s'il est en réserve**, grisé sinon. Le plan
 dit quoi faire, la réserve dit ce qui est à portée ; sans le croisement il
-fallait aller compter ses meules ailleurs pour savoir par où commencer.
+faudrait aller compter ses meules ailleurs pour savoir par où commencer.
 ⚠️ Une seule marque par ligne, la **gemme prime** : c'est elle qui conditionne le
 reste, puisqu'elle remet le meulage du slot à zéro. Le marquage s'affiche dès
 qu'une réserve est connue, filtre actif ou non.
@@ -400,7 +391,7 @@ faisable ? »*.
   réserve n'a été lue.
 - ⚠️ **Le bouton « Faisable » distingue deux causes de grisement** : réserve
   jamais lue (« réimporte ton compte ») et réserve **vidée par ce filtre-ci**.
-  Sans la nuance, il accusait l'import d'un choix fait à l'écran deux secondes
+  Sans la nuance, il accuserait l'import d'un choix fait à l'écran deux secondes
   plus tôt.
 - Le compteur ajoute « · sans immémoriaux » **quand le filtre de réserve est
   actif** — c'est là seulement que le nombre de runes change.

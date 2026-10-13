@@ -7,41 +7,32 @@ Partie de [Mon compte — Runes](README.md).
 [SetFilter.tsx](src/components/account/SetFilter.tsx), partagé par **Liste**,
 **Courbes** et **Optimisation**.
 
-⚠️ **À la SOURIS, les filtres tiennent sur UNE ligne, tous VISIBLES**
-(refonte graphique, lot 8a, décision 20 précisée) —
+⚠️ **À la SOURIS, les filtres tiennent sur UNE ligne, tous VISIBLES** —
 [FiltresRunes.tsx](../../../../src/components/account/FiltresRunes.tsx) : sets ·
-emplacements · antiques, les MÊMES contrôles qu'avant (`SetFilter`,
-`SlotFilter`, `AncientFilter`, inchangés), puis **« Effacer les filtres »**.
-Ils prenaient trois rangées.
-- ⚠️ **Aucun menu déroulant** : la maquette en posait trois (« Set ▾ »,
-  « Emplacement ▾ », « Antiques ▾ »). Essayés, puis défaits par le mainteneur, pour
-  les sets d'abord (« pas très fan d'avoir des drop-down pour un set filtre
-  dedans »), puis pour le reste (« sors tout des boutons »). Un filtre fermé
-  dans un menu ne dit pas ce qu'il filtre sans qu'on l'ouvre.
-- ⚠️ **Tous au même gabarit, celui du `Segmented`** (le mainteneur : « ce serait
-  bien que les boutons aient tous la même tête ») : à la souris, les barres
+emplacements · antiques (`SetFilter`, `SlotFilter`, `AncientFilter`), puis
+**« Effacer les filtres »**.
+- ⚠️ **Aucun menu déroulant** : un filtre fermé dans un menu ne dit pas ce
+  qu'il filtre sans qu'on l'ouvre.
+- ⚠️ **Tous au même gabarit, celui du `Segmented`** : à la souris, les barres
   de sets et d'emplacements prennent le cadre `panel2` de 32 px, des cases de
-  26 px et le marqueur du `Segmented` (sans contour ; un aplat de braise
-  depuis le rebranding, décision 19 — fond d'accent doux avant),
+  26 px et le marqueur du `Segmented` (sans contour ; un aplat de braise),
   comme le filtre des antiques voisin —
   [gabaritFiltre.ts](../../../../src/components/account/gabaritFiltre.ts).
   « Effacer les filtres » est à la même hauteur (32 px), et les antiques
   reçoivent l'intitulé « Runes », comme leurs voisins « Sets » et « Slot »
-  (c'est celui que leur donne déjà l'Optimisation). Avant, trois gabarits
-  cohabitaient : barres de 38 px au fond `panel` et cases cerclées d'accent,
-  `Segmented` de 32 px, bouton de 28 px.
+  (c'est celui que leur donne l'Optimisation).
 - **Le symbole d'un set** est doré (`runeSetIconFilter`, `effects.ts`),
   éclairci quand le set est actif — sauf **à la souris** : posé sur l'aplat
   de braise, il garde le doré du repos (éclairci sur l'orange plein, le
-  contraste agressait l'œil). Au doigt, l'actif garde un fond doux et le doré
+  contraste agresserait l'œil). Au doigt, l'actif garde un fond doux et le doré
   éclairci.
 - « Effacer les filtres » remet tous les sets, tous les emplacements et
   toutes les runes. Il est **toujours affiché**, désactivé quand rien n'est
   filtré (« Aucun filtre posé »).
 - L'Optimisation n'a que Set et Emplacement : ses antiques vivent dans ses
   options, avec « Faisable avec ma réserve ».
-- **Au doigt, rien ne change** (lot 11) : la Liste garde ses rangées dans le
-  panneau « Options » ; les Courbes et l'Optimisation, dans la page.
+- **Au doigt** : la Liste a ses rangées dans le panneau « Options » ; les
+  Courbes et l'Optimisation, dans la page.
 
 ⚠️ **Règle d'interface : un filtre de set affiche l'icône du jeu, SANS le nom.**
 Partout dans l'appli. Les icônes sont reconnues d'un coup d'œil par n'importe
@@ -65,8 +56,7 @@ nombre de sets visibles sans défilement. Le nom reste en `title` et en
 - ⚠️ **Liste BLANCHE, tout coché par défaut.** Un set coché est un set
   **affiché** ; à l'ouverture, tous les présents le sont (tout est montré), et
   n'en cocher **aucun** revient à **ne rien vouloir voir** (liste vide). C'est la
-  même logique partout dans l'app. (Avant : « aucun coché = aucun filtre » —
-  l'inverse.)
+  même logique partout dans l'app.
 - **Seuls les sets réellement présents** dans l'inventaire sont proposés : un
   filtre qui ne peut rien renvoyer n'aide personne. ⚠️ En **Comparaison**, les
   sets d'un compte d'ami importé **rejoignent la sélection** : sans ça, un set
@@ -76,8 +66,8 @@ nombre de sets visibles sans défilement. Le nom reste en `title` et en
   TÊTE de la même grille**, au même gabarit que les pastilles de set — comme la
   case « Tous » du jeu — et non un bouton texte greffé à côté de la barre.
   Icône `Layers` (lucide), pas de nom de set possible pour ce rôle.
-- ⚠️ **Au doigt (`pointer: coarse`), les symboles passent de 18 à 24 px** et leur
-  case de 28 à 36 px : 28 px se visaient mal du pouce. À la souris, inchangé.
+- ⚠️ **Au doigt (`pointer: coarse`), les symboles font 24 px** et leur case
+  36 px (18 et 28 à la souris) : 28 px se visent mal du pouce.
 
 ### Filtrer par slot — `SlotFilter`
 
@@ -87,7 +77,7 @@ une seule barre. **Même logique de liste blanche** : les six slots cochés par
 défaut, aucun coché = rien affiché.
 
 - ⚠️ **Pas de bouton « Tout / Rien ».** Six cases se cochent d'un geste ; le
-  raccourci n'y gagnait rien, là où il est utile côté SETS (vingt-cinq).
+  raccourci n'y gagnerait rien, là où il est utile côté SETS (vingt-cinq).
 - Différence assumée : les **six slots sont toujours proposés**, alors que les
   sets se limitent à ceux présents. Un slot sans rune reste une information utile
   (« je n'ai rien en 2 »), là où un set absent n'est qu'un bouton mort.

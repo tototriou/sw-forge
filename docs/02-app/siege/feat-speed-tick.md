@@ -201,8 +201,8 @@ Ce n'est pas un verdict tiède, c'est l'**absence** de verdict.
 
 ⚠️ **Cette exception ne rouvre PAS la porte au renvoi systématique.** Afficher
 « Vérifier le speed tuning » à toute équipe Swift renverrait l'utilisateur faire
-à la main un calcul que l'app sait faire — c'est le défaut corrigé plus haut, et
-il tient toujours. Ici l'app ne le sait justement PAS : il lui manque une
+à la main un calcul que l'app sait faire — c'est le défaut décrit plus haut.
+Ici l'app ne le sait justement PAS : il lui manque une
 décision qui n'est pas la sienne.
 
 ⚠️ Une équipe **sans Swift** se juge au **tick** : les sorts n'y changent rien,

@@ -53,8 +53,8 @@ lisible sur le panneau. La colorisation des icônes de set (`RARITY_FILTER`)
 descend à `saturate(4.5)` sur cette rareté pour s'y accorder — à 7,5 le bleu
 virait au néon.
 
-L'**héroïque garde son violet** : un magenta profond (#691d42) a été essayé et
-écarté, le rendu ne passait pas.
+L'**héroïque garde son violet** : un magenta profond (#691d42) ne passe pas au
+rendu.
 
 | `upgrade_curr` | niveau d'amélioration (+0..+15) |
 | `pri_eff` | `[code, valeur]` — stat principale |
@@ -135,9 +135,9 @@ PV] au début du combat ». Pas d'intitulé « Propriété unique » devant : la
 se suffit, et la tuile n'a que deux lignes. Le numéro de type reste en infobulle,
 pour retrouver la pièce en jeu.
 
-⚠️ **Bug corrigé** : elle était lue comme un `{ code, value }` de substat et
-affichée « Effet secondaire · 27000 ». Le pourcentage était perdu, et le nombre
-montré n'était pas une valeur mais un **diviseur**.
+⚠️ Lue comme un `{ code, value }` de substat, elle s'afficherait « Effet
+secondaire · 27000 » : le pourcentage serait perdu, et le nombre montré ne
+serait pas une valeur mais un **diviseur**.
 
 ### Les 16 propriétés uniques — table OFFICIELLE
 
@@ -180,8 +180,7 @@ jamais une source.
    pour le type 5 (**−**1% de dégâts reçus).
 2. **La stat de référence.** Les types 1 (ATQ) et 5 (DEF) partagent exactement la
    même échelle de tranches — 2 500 à +0, 2 000 à +3, 1 500 à +6, 1 000 à +9,
-   750 à +12, 500 à +15. **Aucune déduction par magnitude ne peut les séparer**,
-   et une version antérieure de cette spec s'y était trompée.
+   750 à +12, 500 à +15. **Aucune déduction par magnitude ne peut les séparer.**
 
 ⚠️ **Un type inconnu reste possible** — la note officielle annonce que d'autres
 propriétés pourront être ajoutées. Il s'affiche alors sans signe ni stat
@@ -191,7 +190,7 @@ propriétés pourront être ajoutées. Il s'affiche alors sans signe ni stat
 du moment : rien à recalculer côté app.
 
 ⚠️ **Le libellé de la stat principale ne porte pas le « % »** : le jeu affiche
-« PV +12% », et `PV%` + `+12%` doublait le signe.
+« PV +12% », et `PV%` + `+12%` doublerait le signe.
 
 ### Unité / monstre
 
@@ -404,10 +403,9 @@ Deux natures, à ne pas confondre :
   [optimizer/](../optimizer/)) ; (2) le joker ne complète
   RIEN dès que **deux sets ou plus** sont incomplets parmi les runes
   RÉELLEMENT portées — **même un set non demandé par l'utilisateur compte**.
-  Bug corrigé : la fonction complétait auparavant silencieusement le set le
-  plus proche de l'activation sans regarder si un autre set, même hors du
-  combo recherché, était lui aussi incomplet — un set annoncé actif (et sa
-  stat bonus affichée) alors qu'il ne l'est pas réellement en jeu. Couvert par
+  Compléter le set le plus proche de l'activation sans regarder si un autre
+  set, même hors du combo recherché, est lui aussi incomplet annoncerait actif
+  un set (et afficherait sa stat bonus) qui ne l'est pas en jeu. Couvert par
   [tests/sets-intangible.test.ts](tests/sets-intangible.test.ts).
 - Les % PV/ATQ/DEF entrent dans le `Σ%` (un seul `ceil`, voir §5.0) ; la VIT est
   ajoutée à plat, `ceil(base × 25 / 100)` — **même arrondi qu'à l'import Swift**

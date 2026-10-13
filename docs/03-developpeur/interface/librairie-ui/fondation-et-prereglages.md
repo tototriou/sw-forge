@@ -20,7 +20,7 @@ pilule de catégorie (puce + nom + éditer + supprimer), une pilule de lead
 (pourcentage + retirer), un filtre (« Sans lead »), un interrupteur d'affichage
 (« Vitesses »), un bouton d'ajout en pointillés.
 
-> ⚠️ **Un seul composant pour ces cinq-là**, alors qu'ils étaient cinq écritures
+> ⚠️ **Un seul composant pour ces cinq-là**, pas cinq écritures
 > différentes. Ce qui les distingue n'est pas leur nature — ce sont tous des
 > boutons d'une même rangée, à la même hauteur — mais la seule présence ou
 > absence de décorations. Cela se dit avec deux props facultatives, pas avec cinq

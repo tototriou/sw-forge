@@ -281,9 +281,7 @@ popup d'édition, formulaire ancré, liste de résultats d'une recherche.
 > contenu → barre du haut (20) → **flottants (30)** → onglets mobiles (40) →
 > panneau montant (50) → panneau de second niveau (60) → dialogues (70) — se
 > règle ici pour tout ce qui flotte. Un `z-40` écrit à la main « pour que ça
-> passe devant » se retrouve un jour derrière la barre d'onglets. La liste de
-> résultats de la recherche RTA était d'ailleurs à `z-20`, à égalité avec la
-> barre du haut.
+> passe devant » se retrouve un jour derrière la barre d'onglets.
 
 > ⚠️ Il ne s'occupe **pas du placement** : le recalage à l'écran reste au hook
 > `useRecalageEcran`, qui a besoin de mesurer. Mais il pose `left-0`, sans quoi

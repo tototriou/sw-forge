@@ -18,10 +18,9 @@ changement de hash pour ne pas casser le routing) puis sections en panneaux :
 3. **Équation finale des dégâts** — `(Mult × Crit × DMG% × FacteurDéf × Variance + Additionnel) × Réductions`.
    Buffs ATQ/DEF (comme VIT) tronqués vers le bas selon le bonus d'effet ; les dégâts fixes
    (`Additionnel`) ignorent crit **et** FacteurDéf.
-4. **Facteur de défense** — `1000 / (1142 + 3.572 × DEF)`, **aligné sur swcalc.cz**. Les valeurs
-   arrondies du wiki fandom (`1140 + 3.5`) ont été employées un temps, l'écart étant négligeable
-   en valeur absolue (~0,3 % à 3 000 de DEF) ; rien ne justifiait de garder un arrondi quand la
-   source de référence donne les vraies constantes. Def break ×0.3, ignore def (plancher ≈ 0,876).
+4. **Facteur de défense** — `1000 / (1142 + 3.572 × DEF)`, **aligné sur swcalc.cz** : la source
+   de référence donne les vraies constantes, là où le wiki fandom les arrondit (`1140 + 3.5`,
+   ~0,3 % d'écart à 3 000 de DEF). Def break ×0.3, ignore def (plancher ≈ 0,876).
 5. **Coups critiques** — taux vs dégâts crit ; glancing ne crit pas ; certaines lignes d'artefact
    ont une portée limitée (par compétence, cible primaire seule, etc.).
 6. **Variance** — ±2.8 % (stats), ±2.35 % (PV max), tirage triangulaire.
@@ -30,9 +29,7 @@ changement de hash pour ne pas casser le routing) puis sections en panneaux :
 > Volontairement **exclus** (non présents sur swcalc/game-mechanics) : efficacité
 > des runes, sets de runes, précision/résistance, avantage élémentaire.
 
-⚠️ **Deux écarts connus entre la page et cette spec, à corriger** (relevés au
-lot 10 de la refonte graphique, le 2026-09-28 ; le mainteneur : « on le fera plus
-tard ») :
+⚠️ **Deux écarts connus entre la page et cette fiche, à corriger** :
 
 - la page affiche encore `1000 / (1140 + 3.5 × DEF)`, les valeurs arrondies
   du wiki, alors que le point 4 ci-dessus retient `1142 + 3.572` (swcalc.cz) ;
@@ -48,17 +45,14 @@ tard ») :
   [siege/](../siege/)), efficacité & sets (voir
   [transverse/](../transverse/)).
 - Composants internes : `Section`, `F` (bloc formule mono défilable), `K` (terme
-  inline). Titres sans en-tête d'action ; la page **garde** son titre (contrairement
-  aux pages outils) car c'est une doc.
+  inline). Titres sans en-tête d'action ; la page a le grand titre des pages
+  de lecture.
 - Ancres de sommaire via `scrollIntoView` (pas de `href="#..."` qui modifierait le
   hash de routing).
-- ⚠️ **À la souris, deux colonnes** (refonte graphique, lot 10, la maquette) :
+- ⚠️ **À la souris, deux colonnes** :
   le sommaire **fixe** à gauche (220 px, `sticky`), sans cadre ni numéros,
   chaque entrée surlignée au survol ; l'article à droite, borné à 720 px, ses
-  sections séparées par un filet au lieu d'être des panneaux. L'ordre du DOM ne
-  change pas (titre, sommaire, sections) : seule la grille les place. **Au
-  doigt** (lot 11d, décision 27), une colonne : le sommaire en tête, dans sa
-  carte — **gardé**, alors que la maquette téléphone le retirait —, puis les
-  sections séparées par un filet, comme à la souris. La section en cours
-  surlignée dans le sommaire est un ajout de la maquette, reporté au lot 13
-  (décision 23).
+  sections séparées par un filet. L'ordre du DOM est le même (titre, sommaire,
+  sections) : seule la grille les place. **Au doigt**, une colonne : le
+  sommaire en tête, dans sa carte, puis les sections séparées par un filet,
+  comme à la souris.

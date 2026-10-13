@@ -44,7 +44,7 @@ panneau en dessous.
   **identité d'objet** : toute édition recrée les objets). La carte repasse alors
   à l'état non analysé et le bouton réaffiche « Analyser ».
 - Motivation : confronter *toutes* les recos à *tous* les builds à chaque rendu
-  était un coût permanent pour une information qu'on ne consulte que ponctuellement.
+  serait un coût permanent pour une information qu'on ne consulte que ponctuellement.
 
 ### Analyser depuis le panneau « Options » — LE chemin au doigt
 

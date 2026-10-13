@@ -208,7 +208,7 @@ L'en-tête est **trois zones empilées**, pas deux côte à côte :
 - avec `items-center`, les icônes se placeraient **entre** les deux lignes de
   gauche : ni alignées sur le titre, ni sur les badges.
 
-Le problème n'était pas l'alignement CSS mais la STRUCTURE : titre et badges
+Le problème n'est pas l'alignement CSS mais la STRUCTURE : titre et badges
 n'ont aucune raison de partager une hauteur commune avec les icônes, ce sont
 deux informations différentes. Les séparer en deux rangées résout tout d'un
 coup — la rangée 1 ne contient plus QUE le titre et les icônes, qui peuvent

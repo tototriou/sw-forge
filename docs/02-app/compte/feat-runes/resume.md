@@ -10,30 +10,23 @@ pagination** (rien n'est rendu par rune → un seul passage mémoïsé sur l'inv
 fluide à ~2000 runes). Fichier :
 [RunesSummary.tsx](src/components/account/RunesSummary.tsx).
 
-⚠️ **À la SOURIS, la disposition de la maquette** (refonte graphique, lot
-8a-2), sans rien retirer ni ajouter :
+⚠️ **À la SOURIS** :
 - un **en-tête** : « Résumé » et le nombre de runes ;
 - les six chiffres clés dans **un bandeau** (`Kpi bandeau`) : des cases
-  séparées par un filet, au lieu de six cartes ;
+  séparées par un filet ;
 - **trois colonnes** : Distribution · Qualité du stock · Marge de
   progression, puis Par emplacement et Stats principales (sur deux
-  colonnes), puis Par set sur toute la largeur. La maquette n'a pas Par
-  set, mais il reste ;
+  colonnes), puis Par set sur toute la largeur ;
 - **Par emplacement** en barres verticales : la hauteur suit l'efficience
   moyenne ; le nombre de runes et le maximum sont écrits sous chaque barre.
 
-L'ordre de la souris est posé par `lg:order-*`. Au doigt, une colonne dans
-l'ordre d'avant, et les cartes par slot. ⚠️ **Au doigt, les six chiffres clés
-dans UNE carte** (lot 11c, décision 26, la maquette — qui n'en montrait que
-quatre ; les six restent) : deux colonnes (trois dès `sm`), les cases séparées
-par un filet d'1 px venu de l'écart de la grille sur fond `border-soft`
-(`CARTE_CHIFFRES_DOIGT`, `SummaryBits.tsx`) — un seul trait entre deux cases,
-aucun contre le bord. Même traitement au Résumé des artéfacts. Non repris de la
-maquette, et gardés pour le lot 13 (décision 20) :
-- le tableau des stats principales slot par slot (une information
-  nouvelle) ;
-- le lien « Voir l'optimisation » ;
-- le choix de la mesure dans la page, qui reste un réglage du ⚙.
+L'ordre de la souris est posé par `lg:order-*`. Au doigt, une colonne, et les
+cartes par slot. ⚠️ **Au doigt, les six chiffres clés dans UNE carte** : deux
+colonnes (trois dès `sm`), les cases séparées par un filet d'1 px venu de
+l'écart de la grille sur fond `border-soft` (`CARTE_CHIFFRES_DOIGT`,
+`SummaryBits.tsx`) — un seul trait entre deux cases, aucun contre le bord.
+Même traitement au Résumé des artéfacts. Le choix de la mesure n'est pas dans
+la page : c'est un réglage du ⚙.
 
 Blocs, dans l'ordre :
 

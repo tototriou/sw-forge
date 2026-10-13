@@ -25,7 +25,7 @@ classe Tailwind.
 
 ⚠️ **`amber-400`, `emerald-500`, `sky-300` sont interdits.** Ce sont des valeurs
 figées : elles ne suivent pas le thème, exactement comme un hexadécimal. La
-vérification des ticks ATB était illisible en clair pour cette raison — un
+vérification des ticks ATB serait illisible en clair pour cette raison — un
 `text-amber-300` sur fond blanc.
 
 | Interdit | À utiliser | Sens |

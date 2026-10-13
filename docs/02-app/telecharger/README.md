@@ -16,13 +16,13 @@ Fichiers : [TelechargerPage.tsx](src/pages/TelechargerPage.tsx) ·
 - Titre « Télécharger », une phrase : l'app existe pour Windows et Linux,
   la même boîte à outils dans sa propre fenêtre.
 - **Ce que l'app apporte**, trois cartes : sa propre fenêtre ; la mise à
-  jour proposée — « c'est toi qui décides quand » (décision 11) ; 100 %
+  jour proposée — « c'est toi qui décides quand » ; 100 %
   local, comme le site.
 - **À l'ordinateur** : « Télécharger pour Windows » et « Télécharger pour
   Linux », boutons principaux (`Bouton href`, le **logo du système** en
   icône), puis la phrase SmartScreen avec les libellés de Windows — « Windows
   a protégé votre ordinateur », « Informations complémentaires »,
-  « Exécuter quand même » (installeur non signé, décision 2).
+  « Exécuter quand même » (installeur non signé).
 - **Au téléphone, pas de boutons** : « À installer depuis un ordinateur
   Windows ou Linux. » — rien ne s'installe sur un téléphone.
 - « Version proposée : vX.Y.Z » (la dernière **publiée** de
@@ -39,7 +39,7 @@ Fichiers : [TelechargerPage.tsx](src/pages/TelechargerPage.tsx) ·
 - Les liens répondent 404 tant que la dernière release publiée n'a pas
   d'installeur (avant la v2.0.0, ou les minutes où l'action GitHub les
   construit).
-- Non retenus (décision 14) : expliquer la séparation des données site /
+- Non retenus : expliquer la séparation des données site /
   app, l'aide Linux (rendre l'AppImage exécutable).
 - **Accueil** : un bouton « Télécharger l'application » dans le héros et la
   carte « Application de bureau » de la grille mènent ici — voir

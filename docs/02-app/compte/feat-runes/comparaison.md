@@ -6,13 +6,12 @@ Partie de [Mon compte — Runes](README.md).
 
 Se comparer entre amis en superposant plusieurs courbes.
 
-⚠️ **À la SOURIS** (refonte graphique, lot 8a-3, la maquette) :
+⚠️ **À la SOURIS** :
 - le titre « Comparaison » en tête de la rangée des sous-onglets ;
 - dans les deux sous-onglets, le graphe et sa légende côte à côte, la
   légende dans une carte « Séries », comme l'onglet Courbes.
 
-Au doigt, rien ne change (lot 11). Le tableau chiffré entre comptes et le
-« Retirer » par ligne de la maquette sont repoussés au lot 13 (décision 20).
+Au doigt, la légende est sous le graphe.
 
 ### ⚠️ DEUX sous-onglets, parce que les deux formats ne portent pas la même chose
 
@@ -46,16 +45,15 @@ sinon on la prend pour un oubli.
 
 - **Exporter** (icône **Upload ↑**) : demande un nom, produit un **JSON lisible**
   (`format: "swblacksmith/courbe-runes"`, **version 2**, voir
-  [runeCurveShare.ts](src/lib/runeCurveShare.ts) ; `sw-forge/courbe-runes`
-  avant le rebranding, toujours relu — la lecture reconnaît le contenu, pas
+  [runeCurveShare.ts](src/lib/runeCurveShare.ts) ; un fichier
+  `sw-forge/courbe-runes` est relu aussi : la lecture reconnaît le contenu, pas
   l'identifiant) — **téléchargé** en `swblacksmith-runes-<nom>.json` **et
   copié** au presse-papier.
   - ⚠️ Le fichier porte **LES DEUX séries** : `efficiences` **et** `scores`.
     Celui qui l'importe la lit donc dans **sa** mesure, sans dépendre du réglage
     de l'expéditeur.
 - **Importer une courbe** (icône **Download ↓**) : charge le fichier d'un ami.
-  **JSON uniquement** — l'ancien code compact `SWF-RUNES-1:` n'est plus ni
-  produit ni lu.
+  **JSON uniquement** : un code compact `SWF-RUNES-1:` n'est ni produit ni lu.
 
 ### Fichiers de compte
 
@@ -111,37 +109,34 @@ sous-onglet : c'est ce qui permet un bouton unique qui les vide toutes les deux.
   `couleurLibre` ([curveColors.ts](src/components/account/curveColors.ts))
   choisit d'après les couleurs **réellement posées**, vérifié par
   [courbe-couleurs.test.ts](tests/courbe-couleurs.test.ts).
-  - ⚠️ **La couleur du joueur (`OWN_COLOR`) est exclue de la palette d'import.**
-    Elle l'ouvrait : la **première** courbe importée — le cas le plus courant —
-    reprenait donc exactement le bleu de « Moi ». Les deux constantes vivent
-    désormais dans le **même fichier**, seule place d'où l'on voit qu'elles ne
+  - ⚠️ **La couleur du joueur (`OWN_COLOR`) est exclue de la palette
+    d'import** : sinon la **première** courbe importée — le cas le plus
+    courant — reprendrait exactement le bleu de « Moi ». Les deux constantes
+    vivent dans le **même fichier**, seule place d'où l'on voit qu'elles ne
     doivent pas se croiser.
   - ⚠️ **Pas un modulo sur le NOMBRE de courbes** (`[n % palette.length]`) : le
     compte ne dit rien de ce qui est libre. Retirer la 1re puis importer
-    redonnait la couleur de la 2e, toujours affichée.
-  - Les teintes sont **espacées** : deux bleus voisins se confondaient sur un
+    redonnerait la couleur de la 2e, toujours affichée.
+  - Les teintes sont **espacées** : deux bleus voisins se confondraient sur un
     tracé de 1 px. Au-delà de la palette (8 courbes), l'unicité n'est plus
     tenable et le cycle reprend — un doublon entre la 1re et la 9e vaut mieux
     qu'entre deux voisines.
 - **Légende** : **sous le graphe**, en **rangée horizontale** (les entrées côte à
   côte), réduite à la **pastille de couleur + le nom** — pas de valeurs
-  (max/médiane/nb), qui se lisent au survol du graphe et alourdissaient une zone
+  (max/médiane/nb), qui se lisent au survol du graphe et alourdiraient une zone
   servant seulement à identifier et masquer les courbes. **Cliquer le nom**
   masque/affiche ; la croix (✕) **retire** une courbe importée.
   - ⚠️ **Composant unique**, [CurveLegend.tsx](src/components/account/CurveLegend.tsx),
-    partagé avec l'onglet **Courbes** : les deux affichaient la même pastille,
-    écrite deux fois à la main — celle de Comparaison sans le soin responsive de
-    l'autre (troncature, corps qui suit l'écran). Une seule source évite qu'elles
-    redivergent.
+    partagé avec l'onglet **Courbes** : une seule source pour la même pastille
+    (troncature, corps qui suit l'écran), pour que les deux ne divergent pas.
   - ⚠️ Chaque pastille est une **`ZoneCliquable`** (surface nue), pas un
-    `Bouton` : une légende n'est pas une rangée de boutons encadrés. C'est le
-    seul contrôle de la page qui échappait encore à la librairie ; il n'y a
-    **plus aucun `<button>` custom** dans la Comparaison.
+    `Bouton` : une légende n'est pas une rangée de boutons encadrés. Il n'y a
+    **aucun `<button>` custom** dans la Comparaison.
   - ⚠️ L'exemption tactile passe par **`data-cible-fine`**, pas par un `min-h-0` :
     la règle des 40 px vit **hors `@layer`** ([index.css](src/index.css)), donc
     elle bat toute classe utilitaire quelle que soit la spécificité — un `min-h-0`
-    n'y pouvait rien, et l'ancienne légende de Comparaison, sans exemption du
-    tout, était **étirée à 40 px au doigt**. La cible fait déjà toute la largeur
+    n'y peut rien, et une légende sans exemption serait **étirée à 40 px au
+    doigt**. La cible fait déjà toute la largeur
     de son texte, on ne la rate pas à ~28 px de haut. Même exemption que les
     boutons du graphe, sans le `cible-tactile` (la largeur du texte suffit).
 - Deux courbes homonymes sont **renommées** (« Ami (2) »), **en tenant compte des

@@ -1,9 +1,8 @@
 # Dégâts réels — effets d’équipe et leaders
 
-**Statut :** ÉTAT ACTUEL — décrit les effets d’équipe et leaders appliqués au calcul
-**Lire si :** on modifie un effet d’équipe, un leader skill ou leur compatibilité de recette
-**Ne pas lire si :** on travaille sur un passif propre au monstre optimisé
-**Voir aussi :** feat-passifs-offensifs.md, [../optimizer/](../optimizer/)
+Ce document décrit les effets d’équipe et leaders appliqués au calcul.
+
+Voir aussi : feat-passifs-offensifs.md, [../optimizer/](../optimizer/).
 
 ## Effets d'ÉQUIPE (Euldong, Mirinae, Deborah, Miriam, Dr. Matteo, Velaska)
 

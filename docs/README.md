@@ -1,6 +1,6 @@
 # Documentation SW Blacksmith
 
-> Statut : **documentation vivante** — mise à jour dans le **même commit** que le code qu'elle
+> **Documentation vivante** — mise à jour dans le **même commit** que le code qu'elle
 > décrit. La vérité = le code + la documentation vivante + les ADR. Cette page est la **carte** :
 > une ligne par section ; chaque section a son propre `README.md`, avec une ligne par document
 > (ce qu'on y trouve). Parcours : cette carte → le README de section → le README du dossier → le

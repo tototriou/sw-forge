@@ -1,7 +1,6 @@
 # Recherche du monstre à optimiser
 
-**Statut :** ÉTAT ACTUEL — décrit la carte de recherche du monstre à optimiser
-**Lire si :** on modifie le choix du monstre, le bandeau bêta ou la carte « Monstre & équipement »
+Ce document décrit la carte de recherche du monstre à optimiser.
 
 0. **Bandeau bêta** — permanent, pas refermable (contrairement à
    `MobileNotice` : ce n'est pas un avertissement ponctuel mais un statut qui

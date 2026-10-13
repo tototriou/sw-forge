@@ -1,8 +1,5 @@
 # Interruption — filet de temps, pré-filtrage et arrêt manuel
 
-**Statut :** ÉTAT ACTUEL — décrit l'arrêt d'une recherche avant son terme : filet de temps, pré-filtrage, arrêt manuel et progression
-**Lire si :** on modifie le filet de temps, l'arrêt coopératif ou la barre de progression
-
 Trois façons dont une recherche s'arrête **avant** d'avoir tout exploré, en
 plus du plafond de candidats collectés :
 

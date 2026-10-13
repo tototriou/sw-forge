@@ -1,9 +1,6 @@
 # Diagnostics de la recherche de runes
 
-**Statut :** ÉTAT ACTUEL — décrit les diagnostics du moteur de recherche de runes : preuve d'impossibilité par stat (`diagnoseFeasibility`), conditions bloquantes du pré-filtrage sûr (`rankBlockingConditions`), quasi-succès à l'appariement, et ce que l'estimation du pool n'affirme pas
-**Lire si :** on modifie `diagnoseFeasibility`, `rankBlockingConditions`, `poolMinSlotSafe`, le quasi-succès de `pairBuckets` (`NearMiss`, `nearMissByCondition`, `globalNearMiss`) ou `estimateSearchSpace`, ou on se demande ce qu'un diagnostic « 0 résultat » prouve
-**Ne pas lire si :** on cherche la disposition des encadrés à l'écran (../../../02-app/optimizer/ecran/resultats.md) ou le mode d'emploi du harnais (../harnais/mode-d-emploi.md)
-**Voir aussi :** ../../../02-app/optimizer/ (ecran/resultats.md), ../harnais/mode-d-emploi.md, elagages.md, pipeline.md, ../invariants.md
+Voir aussi : ../../../02-app/optimizer/ (ecran/resultats.md), ../harnais/mode-d-emploi.md, elagages.md, pipeline.md, ../invariants.md.
 
 Calcul pur dans `src/lib/runeBuildOptim.ts`. Les trois diagnostics lisent
 les conditions par les mêmes bornes que la recherche (`deriveMinMaxContext` :

@@ -1,8 +1,6 @@
 # Optimiseur d'artéfacts — éligibilité, lignes et moteur
 
-**Statut :** ÉTAT ACTUEL — décrit l'optimiseur d'artéfacts tel que le code l'exécute : éligibilité, effet de chaque ligne pour le moteur, focus élémentaire, moteur `artifactOptim.ts`, script CLI et ses deux usages
-**Lire si :** on modifie artifactOptim.ts, l'éligibilité d'un artéfact, la prise en compte d'une ligne d'artéfact par le choix de la paire, ou scripts/artifact-search.ts
-**Voir aussi :** artefacts.md, ../../../02-app/optimizer/ (ecran/artefacts.md, ecran/meilleurs-artefacts-offensifs.md, ecran/sous-proprietes-verrouillees.md), ../invariants.md, ../../../02-app/degats-reels/ (feat-artefacts-et-degats-bruts.md, feat-artefacts-critique-et-element.md)
+Voir aussi : artefacts.md, ../../../02-app/optimizer/ (ecran/artefacts.md, ecran/meilleurs-artefacts-offensifs.md, ecran/sous-proprietes-verrouillees.md), ../invariants.md, ../../../02-app/degats-reels/ (feat-artefacts-et-degats-bruts.md, feat-artefacts-critique-et-element.md).
 
 Code : `src/lib/artifactOptim.ts` (le moteur), `src/lib/artifacts.ts`
 (éligibilité, plafonds des lignes), `src/lib/artifactFiche.ts` (paramètres

@@ -1,8 +1,5 @@
 # Speed tuning — importer un deck de siège
 
-**Statut :** ÉTAT ACTUEL — décrit l'import d'un deck de siège dans le speed tuning, et l'ouverture depuis un deck
-**Lire si :** on modifie `speedTuneDeck.ts` ou « Voir le speed tune » d'un deck de siège
-
 Partie de [Outils · Speed tuning](README.md).
 
 ## Importer un deck de siège

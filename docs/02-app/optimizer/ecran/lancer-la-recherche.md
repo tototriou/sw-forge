@@ -1,7 +1,6 @@
 # Lancer la recherche
 
-**Statut :** ÉTAT ACTUEL — décrit la barre d'actions et l'estimation qui précèdent le lancement
-**Lire si :** on modifie l'estimation du pool, le bouton de recherche ou l'import et l'export
+Ce document décrit la barre d'actions et l'estimation qui précèdent le lancement.
 
 10. **Estimation du pool retenu** — dès qu'un monstre et un set sont choisis,
     une ligne affiche le nombre **exact** de runes gardées après

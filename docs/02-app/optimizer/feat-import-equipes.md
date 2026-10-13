@@ -1,8 +1,8 @@
 # Import d’équipes dans l’Optimizer
 
-**Statut :** ÉTAT ACTUEL — modèle pur d’import et conversions du siège, de la prépa RTA, du speed tuning et des recommandations
-**Lire si :** on convertit une source en liste de travail ou on modifie le consommateur d’import
-**Voir aussi :** [feat-listes-equipes-et-sauvegarde.md](feat-listes-equipes-et-sauvegarde.md), [feat-listes-et-reservation.md](feat-listes-et-reservation.md)
+Modèle pur d’import et conversions du siège, de la prépa RTA, du speed tuning et des recommandations.
+
+Voir aussi : [feat-listes-equipes-et-sauvegarde.md](feat-listes-equipes-et-sauvegarde.md), [feat-listes-et-reservation.md](feat-listes-et-reservation.md).
 
 ## Modèle d’import
 

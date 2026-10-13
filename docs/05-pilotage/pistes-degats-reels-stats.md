@@ -1,9 +1,6 @@
 # Dégâts réels — pistes futures : stats et modificateurs
 
-**Statut :** ÉTAT ACTUEL — liste les pistes futures sur ce que vaut un coup (VIT, DEF ignorée, critique, composantes, PV, stats des passifs), chacune avec son constat, l'idée et ce qui la bloque
-**Lire si :** on envisage de compter une stat, un bonus, une part de dégâts ou un relevé en jeu de plus dans un coup déjà calculé, avant de le proposer comme nouveau
-**Ne pas lire si :** on cherche quels coups sont comptés (attaques déclenchées, hors tour, nombre de coups, séquences, poses entre les coups) : [pistes-degats-reels.md](pistes-degats-reels.md)
-**Voir aussi :** pistes-degats-reels.md, [../02-app/degats-reels/](../02-app/degats-reels/)
+Voir aussi : pistes-degats-reels.md, [../02-app/degats-reels/](../02-app/degats-reels/).
 
 Les pistes des dégâts réels se partagent en deux fichiers, selon la question
 qu'elles posent. Celui-ci tient **ce que vaut un coup** déjà compté : la VIT

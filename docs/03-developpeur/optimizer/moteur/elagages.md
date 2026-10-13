@@ -1,8 +1,6 @@
 # Algorithme (résumé fonctionnel)
 
-**Statut :** ÉTAT ACTUEL — décrit la recherche des runes : meet-in-the-middle, élagages sûrs, pré-filtrage, compartiments et bornes de la recherche
-**Lire si :** on modifie runeBuildOptim.ts : énumération, regroupement, élagages, rétention ou bornes de la recherche
-**Voir aussi :** pipeline.md, artefacts.md, ../../../02-app/optimizer/ (feat-interruption.md), ../verification.md, ../invariants.md
+Voir aussi : pipeline.md, artefacts.md, ../../../02-app/optimizer/ (feat-interruption.md), ../verification.md, ../invariants.md.
 
 Calcul pur dans `src/lib/runeBuildOptim.ts`, exécuté dans un Web Worker
 (`src/workers/runeBuildOptim.worker.ts`) pour ne jamais geler l'interface.

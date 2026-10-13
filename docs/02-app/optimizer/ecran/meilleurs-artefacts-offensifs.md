@@ -1,8 +1,5 @@
 # Meilleurs artéfacts offensifs pour ce build
 
-**Statut :** ÉTAT ACTUEL — décrit le bloc « Meilleurs artéfacts offensifs pour ce build »
-**Lire si :** on modifie la proposition d'artéfacts offensifs, ses deux crans ou son affichage
-
 2 bis. **« Meilleurs artéfacts offensifs pour ce build »** — dans la carte
    **Artéfacts**, juste sous les **sous-propriétés verrouillées** : le
    résultat suit immédiatement les réglages qui le produisent, sans qu'un

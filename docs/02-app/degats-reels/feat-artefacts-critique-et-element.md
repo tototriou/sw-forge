@@ -1,9 +1,8 @@
 # Dégâts réels — critique et élément
 
-**Statut :** ÉTAT ACTUEL — décrit les lignes d’artéfact de critique et de dégâts élémentaires
-**Lire si :** on modifie les lignes 210, 222–224, 300–304, 400–411 ou leur ordre d’application
-**Ne pas lire si :** on travaille sur les dégâts bruts additionnels ou la détection et la formule des bombes
-**Voir aussi :** feat-artefacts-et-degats-bruts.md, [../optimizer/ecran/artefacts.md](../optimizer/ecran/artefacts.md#artéfacts) (carte « Artéfacts »)
+Ce document décrit les lignes d’artéfact de critique et de dégâts élémentaires.
+
+Voir aussi : feat-artefacts-et-degats-bruts.md, [../optimizer/ecran/artefacts.md](../optimizer/ecran/artefacts.md#artéfacts) (carte « Artéfacts »).
 
 ## Dgts CRIT qui VARIENT d'un coup à l'autre (411, 222, 223)
 

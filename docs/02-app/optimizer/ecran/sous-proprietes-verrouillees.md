@@ -1,8 +1,5 @@
 # Sous-propriétés verrouillées
 
-**Statut :** ÉTAT ACTUEL — décrit les sous-propriétés verrouillées
-**Lire si :** on modifie les sous-propriétés exigées avec un minimum
-
    **Sous-propriétés verrouillées** — sous les deux listes, jusqu'à **8**
    sous-propriétés exigées avec un minimum chacune (« Précision Compétence 3
    ≥ 15 % »). Sert à obtenir un build qui maximise les dégâts *tout en*

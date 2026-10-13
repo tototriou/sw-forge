@@ -1,9 +1,8 @@
 # Dégâts réels — valeurs de jeu curées
 
-**Statut :** ÉTAT ACTUEL — valeurs de jeu fournies par l'utilisateur (joueur) pour le calcul des dégâts réels, chacune avec sa source
-**Lire si :** on modélise ou on corrige une mécanique de jeu dont la valeur ne vient pas de la donnée SWARFARM
-**Ne pas lire si :** on cherche comment le calcul applique une valeur (voir les autres fichiers de `docs/02-app/degats-reels/`)
-**Voir aussi :** [README.md](README.md), feat-formules-et-combat.md
+Valeurs de jeu fournies par l'utilisateur (joueur) pour le calcul des dégâts réels, chacune avec sa source.
+
+Voir aussi : [README.md](README.md), feat-formules-et-combat.md.
 
 ## Les valeurs de jeu — curées, avec leur source
 

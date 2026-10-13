@@ -1,9 +1,6 @@
 # Optimizer — invariants
 
-**Statut :** ÉTAT ACTUEL — index des contraintes critiques de l'Optimizer
-**Lire si :** on démarre un chantier Optimizer (moteur, artéfacts, dégâts réels, workers, harnais, écran) — se lit en entier, c'est le seul fichier pour lequel cette lecture intégrale est assumée
-**Ne pas lire si :** on cherche le pourquoi d'une règle ou son contexte — chaque entrée renvoie à sa source, qui reste seule normative
-**Voir aussi :** ../../02-app/optimizer/ (routage-par-tache.md, README.md), ../../02-app/degats-reels/
+Voir aussi : ../../02-app/optimizer/ (routage-par-tache.md, README.md), ../../02-app/degats-reels/.
 
 Une entrée = une règle qu'un chantier qui l'ignore casse, avec sa source. Ce fichier n'est pas normatif : la règle vit dans sa source et **se modifie dans les deux, dans le même commit**. Une règle locale à une section (agencement fin d'un bloc, largeur, duplication bureau/mobile) reste dans sa section et n'est pas recopiée ici. `(doute : …)` marque une entrée que la review doit trancher.
 

@@ -1,9 +1,6 @@
 # Harnais de diagnostic — cas connus et scripts voisins
 
-**Statut :** ÉTAT ACTUEL — le harnais de diagnostic lancé sur les cas réels connus (`--cas`), et les scripts de diagnostic qui restent à côté de lui : ce que chacun produit seul, ce que le harnais en couvre, et comment décider d'en garder ou d'en retirer un, avec le code qui porte chaque garantie
-**Lire si :** on lance le harnais sur plusieurs cas réels, on lit la sortie d'un script `-diag` ou `optimum-*`, ou on s'apprête à en écrire, en garder ou en supprimer un
-**Ne pas lire si :** on cherche le mode d'emploi du harnais sur un cas : mode-d-emploi.md
-**Voir aussi :** mode-d-emploi.md, extensions.md, ../verification.md
+Voir aussi : mode-d-emploi.md, extensions.md, ../verification.md.
 
 [mode-d-emploi.md](mode-d-emploi.md) décrit un run du harnais,
 [extensions.md](extensions.md) ses instruments et son

@@ -1,9 +1,6 @@
 # Optimizer — pistes de vitesse et de vérification
 
-**Statut :** ÉTAT ACTUEL — liste les pistes futures qui accéléreraient la recherche des runes sans changer ce qu'elle cherche, et celles des instruments qui la mesurent ou la vérifient, chacune avec son constat, l'idée et ce qui la bloque
-**Lire si :** on veut accélérer la recherche, ou on touche la batterie de mesure, le harnais de diagnostic, un script de diagnostic ou un test du moteur
-**Ne pas lire si :** on cherche une piste de l'algorithme, des artéfacts, des dégâts ou de l'écran : pistes-optimizer.md
-**Voir aussi :** pistes-optimizer.md, [../03-developpeur/optimizer/](../03-developpeur/optimizer/) (vérification, harnais), [../02-app/optimizer/](../02-app/optimizer/) (limites connues)
+Voir aussi : pistes-optimizer.md, [../03-developpeur/optimizer/](../03-developpeur/optimizer/) (vérification, harnais), [../02-app/optimizer/](../02-app/optimizer/) (limites connues).
 
 Même forme et même règle que [pistes-optimizer.md](pistes-optimizer.md) : une entrée donne le
 **constat** (ce que le code fait, avec sa coordonnée), l'**idée** et ce qui

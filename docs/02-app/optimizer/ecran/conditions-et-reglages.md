@@ -1,7 +1,6 @@
 # Conditions, inventaire et réglages avancés
 
-**Statut :** ÉTAT ACTUEL — décrit les conditions, l'inventaire et les réglages avancés
-**Lire si :** on modifie les minimums et maximums de stats, l'inventaire ou le panneau « Réglages avancés »
+Ce document décrit les conditions, l'inventaire et les réglages avancés.
 
 7. **Conditions** — les 8 stats (PV, ATQ, DEF, VIT, Taux Crit, Dmg Crit, RES,
    Précision). Chaque stat porte **deux champs, minimum et maximum**, tous

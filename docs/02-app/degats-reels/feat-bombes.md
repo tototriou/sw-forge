@@ -1,9 +1,8 @@
 # Dégâts réels — bombes
 
-**Statut :** ÉTAT ACTUEL — décrit la détection et le calcul des bombes
-**Lire si :** on modifie la détection, la formule ou les skillups d’une bombe
-**Ne pas lire si :** on travaille sur un sort offensif ordinaire ou un passif
-**Voir aussi :** feat-formules-et-combat.md, feat-artefacts-critique-et-element.md
+Ce document décrit la détection et le calcul des bombes.
+
+Voir aussi : feat-formules-et-combat.md, feat-artefacts-critique-et-element.md.
 
 ## Les bombes — des dégâts fixes, via une TROISIÈME détection
 

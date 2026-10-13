@@ -1,8 +1,5 @@
 # Relique
 
-**Statut :** ÉTAT ACTUEL — décrit le bloc « Relique » de la carte des artéfacts
-**Lire si :** on modifie la relique à l'écran de l'Optimizer
-
 6 ter. **Relique** — **bloc
    séparé** de la carte « Artéfacts et reliques », PAS une carte propre :
    ferme la carte, sous « Meilleurs artéfacts offensifs pour ce build »,

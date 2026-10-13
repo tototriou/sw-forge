@@ -1,9 +1,8 @@
 # Dégâts réels — séquences de coups et cible secondaire
 
-**Statut :** ÉTAT ACTUEL — décrit les sorts dont les coups n’ont pas tous la même formule ni la même portée (Blade Surge, séquences à valeur de l’API)
-**Lire si :** on modifie une séquence de coups curée, le choix de la cible calculée (`cibleDegatsParSort`) ou l’application coup par coup des lignes 224, 400–403/410 et 411
-**Ne pas lire si :** on travaille sur un sort dont tous les coups se ressemblent, ou sur les passifs offensifs
-**Voir aussi :** feat-artefacts-critique-et-element.md, feat-formules-et-combat.md
+Ce document décrit les sorts dont les coups n’ont pas tous la même formule ni la même portée (Blade Surge, séquences à valeur de l’API).
+
+Voir aussi : feat-artefacts-critique-et-element.md, feat-formules-et-combat.md.
 
 ## Une portée par sort, pas par coup
 

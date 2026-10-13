@@ -1,9 +1,6 @@
 # Optimizer — routage par tâche
 
-**Statut :** ÉTAT ACTUEL — routage par tâche vers les specs de l'Optimizer ; ne décrit rien lui-même
-**Lire si :** on démarre un chantier Optimizer et on cherche QUELLES sections lire d'abord
-**Ne pas lire si :** on sait déjà quel fichier ouvrir — y aller directement
-**Voir aussi :** ../../03-developpeur/optimizer/ (invariants, se lisent en entier), README.md
+Voir aussi : ../../03-developpeur/optimizer/ (invariants, se lisent en entier), README.md.
 
 [README.md](README.md) présente l'Optimizer et ses fichiers de code ; le
 comportement de l'écran est décrit dans les fichiers de ce dossier, celui du

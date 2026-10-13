@@ -1,9 +1,8 @@
 # Dégâts réels — passifs offensifs
 
-**Statut :** ÉTAT ACTUEL — décrit les passifs et modificateurs offensifs calculés
-**Lire si :** on modifie un passif offensif, un nombre de coups ou une condition liée aux statistiques
-**Ne pas lire si :** on cherche les entrées curées et leurs paramètres propres
-**Voir aussi :** catalogue-des-passifs.md, feat-conditions-et-audit.md
+Ce document décrit les passifs et modificateurs offensifs calculés.
+
+Voir aussi : catalogue-des-passifs.md, feat-conditions-et-audit.md.
 
 ## Passifs offensifs — dégâts supplémentaires au-delà du sort choisi
 

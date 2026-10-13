@@ -1,8 +1,5 @@
 # Speed tuning — le combo passe-t-il ? (chaîne d'ouverture)
 
-**Statut :** ÉTAT ACTUEL — décrit le diagnostic de la chaîne d'ouverture et la recherche du réglage
-**Lire si :** on modifie `diagnostiquerChaine` ou la recherche du réglage de vitesse
-
 Partie de [Outils · Speed tuning](README.md).
 
 ## Le combo passe-t-il ? (chaîne d'ouverture)

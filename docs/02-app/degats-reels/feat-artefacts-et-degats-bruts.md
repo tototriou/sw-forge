@@ -1,9 +1,8 @@
 # Dégâts réels — artéfacts et dégâts bruts
 
-**Statut :** ÉTAT ACTUEL — décrit les dégâts additionnels bruts et les amplifications d’artéfact
-**Lire si :** on modifie une ligne d’artéfact ou un bucket de dégâts additionnels
-**Ne pas lire si :** on travaille sur le critique conditionnel, les bombes ou les passifs offensifs
-**Voir aussi :** feat-artefacts-critique-et-element.md, [../optimizer/ecran/artefacts.md](../optimizer/ecran/artefacts.md#artéfacts) (carte « Artéfacts »)
+Ce document décrit les dégâts additionnels bruts et les amplifications d’artéfact.
+
+Voir aussi : feat-artefacts-critique-et-element.md, [../optimizer/ecran/artefacts.md](../optimizer/ecran/artefacts.md#artéfacts) (carte « Artéfacts »).
 
 ## Dégâts BRUTS d'un passif — ni critiques, ni mitigés, à chaque coup
 

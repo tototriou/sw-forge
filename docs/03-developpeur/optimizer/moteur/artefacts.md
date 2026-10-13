@@ -1,9 +1,6 @@
 # Le choix des artéfacts — un second problème, séparé
 
-**Statut :** ÉTAT ACTUEL — décrit la paire d'artéfacts non figée : la paire supposée qui note la recherche de runes, les bornes d'inventaire qui décident de la faisabilité, le test conjoint exact, la vraie paire de chaque build et son régime, la file qui la résout
-**Lire si :** on modifie bornesArtefacts, SearchParams.artifactBounds, la paire représentative, le filtre final d'un build, le régime de la paire ou ce qui fait recalculer les paires
-**Ne pas lire si :** on cherche l'optimiseur d'artéfacts lui-même — éligibilité, effet des lignes, double boucle, script CLI (optimiseur-artefacts.md)
-**Voir aussi :** optimiseur-artefacts.md, elagages.md, pipeline.md, reliques.md, ../../../02-app/optimizer/ (ecran/resultats.md), ../invariants.md
+Voir aussi : optimiseur-artefacts.md, elagages.md, pipeline.md, reliques.md, ../../../02-app/optimizer/ (ecran/resultats.md), ../invariants.md.
 
 Choisir la paire d'un build donné est un problème exact et sans
 heuristique : le build de runes est fixe pendant ce choix, et une double

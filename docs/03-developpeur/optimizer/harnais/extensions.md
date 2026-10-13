@@ -1,9 +1,6 @@
 # Harnais de diagnostic — extensions
 
-**Statut :** ÉTAT ACTUEL — ce que le harnais de diagnostic fait au-delà de son mode d'emploi de base (niveaux de coût d'une extension, configuration, observation de la construction, build cible, instant de découverte, dispersion par tranche, différentiel et ses profils), avec le code qui porte chaque garantie
-**Lire si :** on lit ou modifie une sortie du harnais sur la construction des demi-builds (rétention, mémoire, `--progression`), un build cible à six identifiants, un différentiel (`--differentiel`, `--profil`), ou on envisage d'étendre le harnais
-**Ne pas lire si :** on cherche le mode d'emploi de base du harnais : mode-d-emploi.md
-**Voir aussi :** mode-d-emploi.md, scripts.md, ../invariants.md, ../verification.md
+Voir aussi : mode-d-emploi.md, scripts.md, ../invariants.md, ../verification.md.
 
 Ce fichier prolonge [mode-d-emploi.md](mode-d-emploi.md), le mode d'emploi (sources,
 phases, palier 1, suivi d'une rune, complétude, temps, régime) : ce que le

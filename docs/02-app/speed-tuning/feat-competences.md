@@ -1,8 +1,5 @@
 # Speed tuning — compétences déclenchées par le tour
 
-**Statut :** ÉTAT ACTUEL — décrit les compétences que la simulation lit dans le kit et déclenche au tour
-**Lire si :** on modifie `speedTuneAuto.ts`, la lecture d'un sort, les passifs de vitesse ou le rechargement
-
 Partie de [Outils · Speed tuning](README.md).
 
 ## Compétences (déclenchées par le tour)

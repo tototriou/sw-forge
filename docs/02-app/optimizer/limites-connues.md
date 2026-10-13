@@ -1,9 +1,6 @@
 # Limites connues
 
-**Statut :** ÉTAT ACTUEL — décrit ce que le moteur, l'écran et le harnais de l'Optimizer ne garantissent pas aujourd'hui
-**Lire si :** on s'étonne d'un résultat de l'Optimizer, ou on cherche ce qu'il ne couvre pas
-**Ne pas lire si :** on cherche comment un mécanisme fonctionne — chaque limite renvoie à la spec qui le décrit
-**Voir aussi :** [03-developpeur/optimizer/moteur/elagages.md](../../03-developpeur/optimizer/moteur/elagages.md), [03-developpeur/optimizer/moteur/diagnostics.md](../../03-developpeur/optimizer/moteur/diagnostics.md), [feat-interruption.md](feat-interruption.md)
+Voir aussi : [03-developpeur/optimizer/moteur/elagages.md](../../03-developpeur/optimizer/moteur/elagages.md), [03-developpeur/optimizer/moteur/diagnostics.md](../../03-developpeur/optimizer/moteur/diagnostics.md), [feat-interruption.md](feat-interruption.md).
 
 Une limite dit ce qui n'est pas garanti, et pourquoi. Ce qui pourrait être
 construit pour la lever est une piste, pas une limite, et n'est pas décrit

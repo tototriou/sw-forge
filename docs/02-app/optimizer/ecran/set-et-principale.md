@@ -1,7 +1,6 @@
 # Set de runes recherché et statistique principale imposée
 
-**Statut :** ÉTAT ACTUEL — décrit le choix du set de runes et des statistiques principales imposées
-**Lire si :** on modifie le sélecteur de combo de sets ou les pastilles des emplacements 2, 4 et 6
+Ce document décrit le choix du set de runes et des statistiques principales imposées.
 
 4. **Set de runes recherché** — **un seul combo** (contrairement aux
    recommandations de siège, qui proposent plusieurs possibilités au choix) :

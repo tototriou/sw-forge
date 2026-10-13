@@ -1,8 +1,6 @@
 # L'application de bureau (Windows, Linux)
 
-**Statut :** ÉTAT ACTUEL — l'application Electron : construction, démarrage, fenêtre, pont avec la page, données, SW Exporter, installeur, publication, mise à jour, bloc « Application » des Réglages
-**Lire si :** on touche `bureau/`, `src/lib/bureau.ts`, `electron-builder.yml`, `.github/workflows/bureau.yml` ou un texte `selonSupport`
-**Voir aussi :** [../telecharger/](../telecharger/) (la page du site), [../transverse/feat-import-compte/bouton-import.md](../transverse/feat-import-compte/bouton-import.md) § « Le dossier SW Exporter »
+Voir aussi : [../telecharger/](../telecharger/) (la page du site), [../transverse/feat-import-compte/bouton-import.md](../transverse/feat-import-compte/bouton-import.md) § « Le dossier SW Exporter ».
 
 SW Blacksmith existe aussi en **application de bureau**, construite avec
 **Electron** : la même app que le site, dans sa propre fenêtre, installée

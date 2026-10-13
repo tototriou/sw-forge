@@ -1,8 +1,6 @@
 # La sauvegarde de session
 
-**Statut :** ÉTAT ACTUEL — « Sauvegarder la session » : où, ce que contient le fichier, son format et sa relecture
-**Lire si :** on touche la ligne « Session » des Paramètres, les actions de la palette, « Sauvegarder » ou « Sauvegarder sous… » de la barre du haut, Ctrl+S, la ligne « Dossier SW Blacksmith » des Paramètres, `src/lib/session.ts`, `src/lib/sessionOptimizer.ts`, `bureau/session.ts`, `bureau/sessionPur.ts`, ou ce qu'un écran retient d'une page à l'autre
-**Voir aussi :** [feat-import-compte/](feat-import-compte/README.md) (le compte importé), [../optimizer/ecran/equipement-actuel.md](../optimizer/ecran/equipement-actuel.md#équipement-actuel) (l'exemplaire, « Équipement actuel »)
+Voir aussi : [feat-import-compte/](feat-import-compte/README.md) (le compte importé), [../optimizer/ecran/equipement-actuel.md](../optimizer/ecran/equipement-actuel.md#équipement-actuel) (l'exemplaire, « Équipement actuel »).
 
 Une session est l'état de l'app à un instant donné, dans un fichier que
 l'utilisateur garde où il veut : de quoi reprendre plus tard là où il

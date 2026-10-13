@@ -1,8 +1,6 @@
 # Garde-fou des renvois
 
-**Statut :** ÉTAT ACTUEL — décrit le test qui refuse un renvoi mort dans un fichier suivi : formes relevées, résolution, exemptions et liste tolérée
-**Lire si :** un test `renvois` échoue ; on déplace, renomme ou supprime un fichier cité ailleurs ; on publie ou retire une note de l'Optimizer ; on modifie `tests/renvois.test.ts` ou `tests/fixtures/renvois-toleres.json`
-**Voir aussi :** `documentation.md` (écrire et déplacer un document, repointer ses liens)
+Voir aussi : `documentation.md` (écrire et déplacer un document, repointer ses liens).
 
 Un texte suivi ne renvoie qu'à ce que le dépôt contient : ni aux notes privées
 de l'Optimizer, ni à un fichier déplacé ou supprimé. Le test

@@ -1,8 +1,5 @@
 # État de mon monstre
 
-**Statut :** ÉTAT ACTUEL — décrit la carte « État de mon monstre »
-**Lire si :** on modifie les effets, auras et états saisis pour le monstre à optimiser
-
 6 bis. **État de mon monstre** — ⚠️ **une carte à part**, colonne 2 rangée 3,
    juste sous « Artéfacts et reliques ». Pas en bas de cette carte, séparée
    par un simple trait : ça laisserait croire que ces réglages servent les

@@ -1,9 +1,8 @@
 # Dégâts réels — formules et combat
 
-**Statut :** ÉTAT ACTUEL — décrit les formules, l’équation et les compétences d’invocateur
-**Lire si :** on modifie l’analyse d’une formule ou l’équation de dégâts
-**Ne pas lire si :** on travaille sur les artéfacts, bombes ou passifs offensifs
-**Voir aussi :** [README.md](README.md), [../mecaniques/](../mecaniques/)
+Ce document décrit les formules, l’équation et les compétences d’invocateur.
+
+Voir aussi : [README.md](README.md), [../mecaniques/](../mecaniques/).
 
 ## Principe directeur — ne jamais redemander ce qu'on sait déjà
 

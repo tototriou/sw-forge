@@ -1,8 +1,8 @@
 # Stockage des membres et des équipes de l’Optimizer
 
-**Statut :** ÉTAT ACTUEL — décrit le stockage des membres, des équipes et du point de sauvegarde
-**Lire si :** on modifie la persistance des listes, la validation d’une équipe ou la reprise d’un état sauvegardé
-**Voir aussi :** [feat-listes-et-reservation.md](feat-listes-et-reservation.md), [transverse/feat-sauvegarde-session.md](../transverse/feat-sauvegarde-session.md)
+Ce document décrit le stockage des membres, des équipes et du point de sauvegarde.
+
+Voir aussi : [feat-listes-et-reservation.md](feat-listes-et-reservation.md), [transverse/feat-sauvegarde-session.md](../transverse/feat-sauvegarde-session.md).
 
 ## Stockage indépendant des listes
 

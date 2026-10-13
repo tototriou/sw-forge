@@ -1,8 +1,5 @@
 # Listes de travail et réservation de runes
 
-**Statut :** ÉTAT ACTUEL — décrit les listes de travail et la réservation de runes
-**Lire si :** on modifie les listes de monstres, la validation d'un build ou la réservation de runes
-
 Un 3ᵉ mécanisme d'exclusion, distinct des deux de feat-exclusion.md : ni
 l'automatique (« Exclure les runes déjà utilisées », voir
 feat-exclusion.md § Exclusion des runes déjà portées ailleurs) ni le manuel

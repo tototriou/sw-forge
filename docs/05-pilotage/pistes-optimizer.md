@@ -1,9 +1,6 @@
 # Optimizer — pistes futures
 
-**Statut :** ÉTAT ACTUEL — liste les pistes futures de l'Optimizer, chacune avec son constat, l'idée et ce qui la bloque
-**Lire si :** on envisage une amélioration du moteur, des artéfacts, des reliques ou de l'écran de l'Optimizer, avant de la proposer comme nouvelle
-**Ne pas lire si :** on cherche ce qui est fait, ou pourquoi une variante a été écartée : la spec du mécanisme le dit (le routage par tâche de `docs/02-app/optimizer/` dit laquelle)
-**Voir aussi :** [../02-app/optimizer/](../02-app/optimizer/) (routage, limites connues), [../03-developpeur/optimizer/](../03-developpeur/optimizer/) (invariants), pistes-optimizer-vitesse.md
+Voir aussi : [../02-app/optimizer/](../02-app/optimizer/) (routage, limites connues), [../03-developpeur/optimizer/](../03-developpeur/optimizer/) (invariants), pistes-optimizer-vitesse.md.
 
 Une piste est ce qui n'est pas fait. Chaque entrée donne le **constat** (ce
 que le code fait aujourd'hui, avec sa coordonnée), l'**idée** et ce qui la

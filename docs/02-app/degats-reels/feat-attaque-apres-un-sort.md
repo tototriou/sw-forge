@@ -1,9 +1,8 @@
 # Dégâts réels — attaque déclenchée après un sort
 
-**Statut :** ÉTAT ACTUEL — décrit le mécanisme générique d’une attaque qui frappe après certains sorts — passif (Tempest) ou compétence active appelée —, son interrupteur et son choix comme sort
-**Lire si :** on ajoute une attaque déclenchée après un sort (un des 81 identifiants de même architecture), ou on modifie `slotsDeclencheurs`, `selectionnableCommeSort`, `ATTAQUES_APPELEES_PAR_DECLENCHEUR`, `passifPeutSuivre` ou le choix d’un passif dans « Compétence utilisée »
-**Ne pas lire si :** on travaille sur un passif qui suit n’importe quel sort (Feng Yan, Sia…) ou sur les coups d’un même sort
-**Voir aussi :** feat-passifs-offensifs.md, feat-artefacts-critique-et-element.md, feat-sequences-de-coups.md
+Ce document décrit le mécanisme générique d’une attaque qui frappe après certains sorts — passif (Tempest) ou compétence active appelée —, son interrupteur et son choix comme sort.
+
+Voir aussi : feat-passifs-offensifs.md, feat-artefacts-critique-et-element.md, feat-sequences-de-coups.md.
 
 ## Le mécanisme
 

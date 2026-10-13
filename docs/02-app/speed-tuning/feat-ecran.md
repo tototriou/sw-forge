@@ -1,8 +1,5 @@
 # Speed tuning — écran, état et persistance
 
-**Statut :** ÉTAT ACTUEL — décrit l'écran du speed tuning et son état
-**Lire si :** on modifie `SpeedTuningSection.tsx` ou l'état gardé entre deux onglets
-
 Partie de [Outils · Speed tuning](README.md).
 
 ## Écran

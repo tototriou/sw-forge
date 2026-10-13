@@ -1,9 +1,6 @@
 # Parallélisation de l'appariement et Worker de résolution
 
-**Statut :** ÉTAT ACTUEL — décrit l'appariement parallèle tel que le code l'exécute, au navigateur et en Node (tranches, partage du temps et du plafond de candidats, code commun aux deux plateformes), et le Worker de résolution de l'équipement d'un build
-**Lire si :** on modifie `parallelPairing.ts`, `pairSliceBody.ts`, une coquille ou un lanceur de tranche (navigateur ou Node), le seuil du régime parallèle, ou le Worker de résolution (`resolutionBody.ts`, `resolution.worker.ts`, `resolutionDistante.ts`)
-**Ne pas lire si :** on cherche l'enchaînement complet d'une recherche (pipeline.md) ou la file de résolution côté écran, ses deux voies et ses mesures (artefacts.md)
-**Voir aussi :** pipeline.md, ../../../02-app/optimizer/ (feat-interruption.md), ../harnais/mode-d-emploi.md, ../verification.md, artefacts.md, ../invariants.md
+Voir aussi : pipeline.md, ../../../02-app/optimizer/ (feat-interruption.md), ../harnais/mode-d-emploi.md, ../verification.md, artefacts.md, ../invariants.md.
 
 Deux usages des Workers suivent le même patron : un corps neutre, qui porte
 toute la logique et ne connaît aucune plateforme, et une coquille par

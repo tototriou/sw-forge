@@ -1,9 +1,8 @@
 # Dégâts réels — catalogue des passifs
 
-**Statut :** ÉTAT ACTUEL — décrit les entrées curées et mécanismes actuellement livrés du catalogue de passifs
-**Lire si :** on ajoute, revalide ou modifie une entrée curée du catalogue de passifs
-**Ne pas lire si :** on travaille sur le mécanisme générique des passifs offensifs ou sur le reliquat non implémenté
-**Voir aussi :** feat-passifs-offensifs.md, feat-conditions-et-audit.md
+Ce document décrit les entrées curées et mécanismes actuellement livrés du catalogue de passifs.
+
+Voir aussi : feat-passifs-offensifs.md, feat-conditions-et-audit.md.
 
 ## Modificateurs monstre-wide sans formule propre
 

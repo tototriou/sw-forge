@@ -1,9 +1,6 @@
 # Dimension relique du moteur
 
-**Statut :** ÉTAT ACTUEL — décrit la relique dans le moteur : ce qu'il lit d'une pièce, le contexte relique, les bornes relâchées pendant la recherche, la résolution exacte par build, le score de l'effet unique, la pertinence et la dominance non branchées, l'oracle
-**Lire si :** on modifie la relique dans runeBuildOptim.ts, relicOptim.ts, relicQueue.ts, relicExclusive.ts ou l'oracle relicOracle.ts
-**Ne pas lire si :** on cherche le bloc « Relique » de l'écran (../../../02-app/optimizer/ecran/relique.md) ou la lecture d'une relique dans l'export (../../../02-app/compte/feat-calcul-runes.md)
-**Voir aussi :** pipeline.md, elagages.md, artefacts.md, ../../../02-app/optimizer/ (ecran/relique.md), ../verification.md, ../invariants.md
+Voir aussi : pipeline.md, elagages.md, artefacts.md, ../../../02-app/optimizer/ (ecran/relique.md), ../verification.md, ../invariants.md.
 
 La principale d'une relique est un pourcentage de PV, d'ATQ ou de DEF
 (codes 100, 101, 102), sommé avec les pourcentages des runes et des sets

@@ -25,6 +25,5 @@ des deux tiers : `src/components/outils/SpeedTuningSection.tsx` (92) et `src/lib
 | Dette | Mesure | Comment la retrouver | Depuis |
 | --- | --- | --- | --- |
 | **Historique dans la documentation** : elle dit ce qui est décidé ou fait, jamais ce qui se faisait avant, sans « lot N » ni numéro de décision ([documentation.md](../03-developpeur/documentation.md)) | 107 mentions « lot N » dans 39 fichiers et 106 « décision N » dans 43 fichiers de `docs/` (2026-10-13) ; le récit de l'avant sans numéro (« l'ancienne… », « a été retiré ») n'est pas compté | `git grep -i -E 'lot [0-9]+\|décision [0-9]+' -- docs` | 2026-10-13 |
-| **En-têtes `Statut :` hérités** : plus exigés depuis le retrait de l'outillage maison, les README portent le routage | 67 fichiers de `docs/` (2026-10-13) | `git grep -l '^\*\*Statut :\*\*' -- docs` | 2026-10-13 |
 
 Le reste des travaux de documentation est dans [reste-documentation.md](reste-documentation.md).

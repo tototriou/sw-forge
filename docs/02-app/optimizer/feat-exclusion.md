@@ -1,8 +1,5 @@
 # Exclusion des runes déjà portées ailleurs
 
-**Statut :** ÉTAT ACTUEL — décrit l'exclusion des runes déjà portées ailleurs et les runes imposées
-**Lire si :** on modifie le panneau « Options » : exclusion automatique, exclusion manuelle ou runes imposées
-
 ⚠️ **Au doigt, dans le panneau « Options »** (bouton de la barre de nav),
 EN TÊTE — avant « Réglages avancés » (voir
 ecran/conditions-et-reglages.md § Réglages avancés) : fonctionnalité

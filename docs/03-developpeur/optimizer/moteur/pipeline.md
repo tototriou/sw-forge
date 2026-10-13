@@ -1,8 +1,6 @@
 # Pipeline de la recherche de runes
 
-**Statut :** ÉTAT ACTUEL — décrit le chemin d'une recherche de runes dans le code, de la recherche lancée par l'écran au résultat affiché : préparation, construction des moitiés, appariement, résolution de l'équipement, file, interruption
-**Lire si :** on modifie une étape de la recherche de runes, de la résolution de l'équipement d'un build ou leurs Workers, et on cherche le fichier et la fonction qui la portent
-**Voir aussi :** elagages.md, artefacts.md, ../../../02-app/optimizer/ (feat-interruption.md, ecran/resultats.md), ../invariants.md
+Voir aussi : elagages.md, artefacts.md, ../../../02-app/optimizer/ (feat-interruption.md, ecran/resultats.md), ../invariants.md.
 
 Ce fichier suit une recherche dans l'ordre où le code l'exécute, une section
 par étape : ce qu'elle fait, le fichier et la fonction qui la portent, et le

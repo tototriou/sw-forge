@@ -1,7 +1,6 @@
 # Artéfacts
 
-**Statut :** ÉTAT ACTUEL — décrit la carte « Artéfacts » de l'écran
-**Lire si :** on modifie l'interrupteur d'optimisation d'artéfacts ou ses réglages à l'écran
+Ce document décrit la carte « Artéfacts » de l'écran.
 
 6. **Artéfacts** — carte « Artéfacts et reliques », interrupteur
    **« Activer l'optimisation d'artéfacts et reliques »**,

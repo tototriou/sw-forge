@@ -1,9 +1,8 @@
 # Dégâts réels — conditions et audit
 
-**Statut :** ÉTAT ACTUEL — décrit les conditions livrées par l’audit des dégâts
-**Lire si :** on modifie une condition ou un correctif issu de l’audit des dégâts
-**Ne pas lire si :** on qualifie le reliquat encore non implémenté de l’audit
-**Voir aussi :** feat-passifs-offensifs.md, [../../05-pilotage/](../../05-pilotage/) (pistes des dégâts réels)
+Ce document décrit les conditions livrées par l’audit des dégâts.
+
+Voir aussi : feat-passifs-offensifs.md, [../../05-pilotage/](../../05-pilotage/) (pistes des dégâts réels).
 
 ## Audit des dégâts conditionnels — partie 1
 

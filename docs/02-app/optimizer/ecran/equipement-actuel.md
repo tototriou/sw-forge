@@ -1,7 +1,6 @@
 # Équipement actuel
 
-**Statut :** ÉTAT ACTUEL — décrit la carte « Équipement actuel »
-**Lire si :** on modifie l'affichage de l'équipement porté par le monstre choisi
+Ce document décrit la carte « Équipement actuel ».
 
 2. **Équipement actuel** — **le composant `MonsterGear`, réutilisé tel quel**
    (pas réimplémenté), le même qu'en RTA/Siège quand on clique un monstre :

@@ -1,7 +1,6 @@
 # Résultats
 
-**Statut :** ÉTAT ACTUEL — décrit la liste des résultats et leurs cartes
-**Lire si :** on modifie l'affichage, le tri ou les actions des résultats de la recherche
+Ce document décrit la liste des résultats et leurs cartes.
 
 13. **Résultats** — jusqu'à 20 combinaisons affichées, chacune : rang, les
     sets obtenus, le **panneau de stats** (`StatPanel.tsx`, le même composant

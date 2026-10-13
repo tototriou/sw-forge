@@ -1,8 +1,5 @@
 # Écran (de haut en bas)
 
-**Statut :** ÉTAT ACTUEL — décrit les contrôles, la mise en page et la conservation de la saisie de l'écran de l'Optimizer, et renvoie à une page par carte
-**Lire si :** on modifie la grille de l'écran, l'ordre ou le placement des cartes, un panneau dépliant, l'adaptation à la largeur ou la conservation de la saisie
-
 L'écran de l'Optimizer : ce document décrit la mise en page d'ensemble ; chaque carte a le sien.
 Le reste de l'outil (listes, import d'équipes, exclusion, interruption) est dans
 [../README.md](../README.md).

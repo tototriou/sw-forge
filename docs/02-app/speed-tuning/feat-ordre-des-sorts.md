@@ -1,8 +1,5 @@
 # Speed tuning — ordre des sorts (analyse poussée)
 
-**Statut :** ÉTAT ACTUEL — décrit l'analyse poussée de l'ordre des sorts
-**Lire si :** on modifie l'ordre des sorts, un monstre qui joue plusieurs fois ou les fenêtres de vitesse
-
 Partie de [Outils · Speed tuning](README.md).
 
 ## Ordre des sorts (analyse poussée)

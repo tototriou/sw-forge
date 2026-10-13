@@ -1,9 +1,6 @@
 # Dégâts réels — pistes futures
 
-**Statut :** ÉTAT ACTUEL — liste les pistes futures sur les coups que le calcul des dégâts réels compte, chacune avec son constat, l'idée et ce qui la bloque
-**Lire si :** on envisage de compter une attaque, un coup ou un réglage de la modale « Dégâts réels » de plus, ou un relevé en jeu, avant de le proposer comme nouveau
-**Ne pas lire si :** on cherche ce que vaut un coup déjà compté (VIT, DEF ignorée, critique, composantes, PV, stats des passifs) : [pistes-degats-reels-stats.md](pistes-degats-reels-stats.md) ; ou ce que le calcul fait aujourd'hui : l'index [../02-app/degats-reels/](../02-app/degats-reels/)
-**Voir aussi :** pistes-degats-reels-stats.md, [../02-app/degats-reels/](../02-app/degats-reels/), pistes-optimizer.md
+Voir aussi : pistes-degats-reels-stats.md, [../02-app/degats-reels/](../02-app/degats-reels/), pistes-optimizer.md.
 
 Les pistes des dégâts réels se partagent en deux fichiers, selon la question
 qu'elles posent. Celui-ci tient **quels coups sont comptés** : attaques

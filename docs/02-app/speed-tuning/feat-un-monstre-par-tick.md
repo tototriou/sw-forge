@@ -1,8 +1,5 @@
 # Speed tuning — un seul monstre par tick
 
-**Statut :** ÉTAT ACTUEL — décrit la règle « un seul monstre par tick » de `simulerOrdre`
-**Lire si :** on modifie `simulerOrdre`
-
 Partie de [Outils · Speed tuning](README.md).
 
 ## Règle « un seul monstre par tick »

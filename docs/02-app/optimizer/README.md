@@ -1,9 +1,6 @@
 # Outils · Optimizer (`#/outils/optimizer`)
 
-**Statut :** ÉTAT ACTUEL — page d'entrée de l'Optimizer : son objet, ses fichiers de code, et un renvoi par sujet vers le fichier qui le décrit
-**Lire si :** on cherche quel fichier de code ou quelle spec ouvrir pour l'écran, ses réglages ou l'algorithme de recherche de runes
-**Ne pas lire si :** on cherche le modèle de calcul des dégâts (../degats-reels/) seul
-**Voir aussi :** ../degats-reels/, routage-par-tache.md
+Voir aussi : ../degats-reels/, routage-par-tache.md.
 
 Cherche, parmi les runes **réellement possédées**, la (les) meilleure(s)
 combinaison(s) de 6 pour un monstre donné, sous contrainte d'un **combo de

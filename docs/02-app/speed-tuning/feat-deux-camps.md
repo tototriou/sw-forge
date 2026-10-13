@@ -1,8 +1,5 @@
 # Speed tuning — les deux camps se voient
 
-**Statut :** ÉTAT ACTUEL — décrit la confrontation des deux camps dans le speed tuning
-**Lire si :** on modifie l'analyse d'un camp contre l'autre, « Copier en face » ou les égalités de barre
-
 Partie de [Outils · Speed tuning](README.md).
 
 ## Les deux camps se voient

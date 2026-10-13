@@ -1,8 +1,8 @@
 # Qualité du code — lint, hooks et message de commit
 
-**Statut :** ÉTAT ACTUEL — décrit le lint du code (ESLint) : périmètre, ce qui bloque et ce qui avertit, où il tourne, dont le lint au commit ; la forme imposée au message de commit ; l'installation automatique des hooks et leur reprise en CI
-**Lire si :** on modifie `eslint.config.js`, les scripts `lint` ou `prepare` de `package.json`, le mode `--automatique` de `scripts/installer-hooks.mjs`, l'étape « Lint » de `.github/workflows/tests.yml`, l'étape ESLint ou le mode `--commit` de `.githooks/pre-commit`, `.githooks/commit-msg`, `scripts/verifier-commits.mjs` ou l'étape « Garde-fous de commit » ; une règle refuse un code ou un message qu'on juge correct
-**Voir aussi :** `renvois.md` (le test des renvois), `documentation.md` (écrire la documentation)
+Ce document décrit le lint du code (ESLint) : périmètre, ce qui bloque et ce qui avertit, où il tourne, dont le lint au commit ; la forme imposée au message de commit ; l'installation automatique des hooks et leur reprise en CI.
+
+Voir aussi : `renvois.md` (le test des renvois), `documentation.md` (écrire la documentation).
 
 ## Lint
 

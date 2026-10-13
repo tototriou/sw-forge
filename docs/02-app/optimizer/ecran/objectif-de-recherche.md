@@ -1,7 +1,6 @@
 # Objectif de recherche
 
-**Statut :** ÉTAT ACTUEL — décrit la carte « Objectif de recherche » et ses quatre objectifs
-**Lire si :** on modifie l'objectif de recherche, le réglage « Dégâts réels » ou le garde-fou de revalidation des listes
+Ce document décrit la carte « Objectif de recherche » et ses quatre objectifs.
 
 3. **Objectif de recherche** — en tête de la **carte du bouton
    Rechercher**, au-dessus de la rangée Rechercher / Exporter / Importer.

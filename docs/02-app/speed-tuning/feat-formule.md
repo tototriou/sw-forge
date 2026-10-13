@@ -1,8 +1,5 @@
 # Speed tuning — formule (modèle partagé)
 
-**Statut :** ÉTAT ACTUEL — décrit la formule ATB du speed tuning et pourquoi le mode RTA n'est pas modélisé
-**Lire si :** on modifie la formule de la barre d'action ou on envisage le mode RTA
-
 Partie de [Outils · Speed tuning](README.md).
 
 ## Formule (modèle partagé)

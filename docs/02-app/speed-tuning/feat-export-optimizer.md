@@ -1,9 +1,8 @@
 # Speed tuning — exporter vers l’Optimizer
 
-**Statut :** ÉTAT ACTUEL — export de « Ton équipe » depuis la page et la modale
-**Lire si :** on modifie l’export du speed tuning ou le passage de son action
-**Ne pas lire si :** on modifie les formules de vitesse ou l’analyse des tours
-**Voir aussi :** README.md, ../optimizer/feat-import-equipes.md
+Export de « Ton équipe » depuis la page et la modale.
+
+Voir aussi : README.md, ../optimizer/feat-import-equipes.md.
 
 ## Action et disponibilité
 

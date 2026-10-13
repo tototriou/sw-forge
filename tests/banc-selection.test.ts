@@ -52,9 +52,9 @@ export default function testBancSelection() {
   }
 
   // Un fichier hors de toute table : aucun écran, signalé.
-  const hors = ecransPourFichiers(['docs/README.md', 'scripts/spec-toc.mjs']);
+  const hors = ecransPourFichiers(['docs/README.md', 'scripts/fetch-monsters.mjs']);
   egal(hors.ecrans.length, 0, 'fichiers hors table : aucun écran');
-  egal(hors.horsTable, ['docs/README.md', 'scripts/spec-toc.mjs'], 'fichiers hors table (hors de src/) : signalés');
+  egal(hors.horsTable, ['docs/README.md', 'scripts/fetch-monsters.mjs'], 'fichiers hors table (hors de src/) : signalés');
   egal(hors.details.map((d) => d.regle), ['aucun', 'aucun'], 'fichiers hors table : règle « aucun »');
 
   // Mélange : l'union, dans l'ordre de la table, les fichiers hors table signalés à part.

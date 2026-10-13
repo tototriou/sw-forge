@@ -34,16 +34,16 @@ export async function testSelectionFichiersInventaire(): Promise<void> {
   egal(inv.incoherences, [], 'aucune incohérence sur le dépôt');
   ok(inv.entrees.length > 0 && inv.entrees.every((e) => e.fichierTest !== null), 'chaque entrée du registre est rattachée à son fichier de test');
   ok(inv.entrees.some((e) => e.genre === 'etalement') && inv.entrees.some((e) => e.genre === 'lambda'), 'étalements et lambdas rattachés');
-  // Les 16 racines secondaires relevées.
+  // Les 14 racines secondaires relevées.
   const racines = new Set([...inv.fichiersTest.values()].flatMap((i) => i.racines.map((r) => r.racine)));
   const attendues = [
     'tests/rendu/optimizer-memoire-banc.tsx', 'tests/rendu/optimizer-import-banc.tsx', 'tests/rendu/optimizer-dialogue-banc.tsx',
     'tests/rendu/rta-reco-export-banc.tsx', 'tests/rendu/speed-tune-export-banc.tsx', 'tests/rendu/speed-tune-export-app-banc.tsx',
     'tests/rendu/siege-export-banc.tsx', 'scripts/lib/pair-slice-worker.ts', 'scripts/lib/build-half-worker.ts',
-    'scripts/lib/pairing-quota-worker.ts', 'scripts/installer-hooks.mjs', 'scripts/spec-toc.mjs', '.githooks/pre-commit',
-    'scripts/spec-lint.mjs', '.githooks/commit-msg', 'scripts/relic-differentiel.ts',
+    'scripts/lib/pairing-quota-worker.ts', 'scripts/installer-hooks.mjs', '.githooks/pre-commit',
+    '.githooks/commit-msg', 'scripts/relic-differentiel.ts',
   ];
-  egal(attendues.filter((r) => !racines.has(r)), [], 'les 16 racines secondaires connues sont retrouvées');
+  egal(attendues.filter((r) => !racines.has(r)), [], 'les 14 racines secondaires connues sont retrouvées');
   const erreurs = [...inv.fichiersTest.values()].flatMap((i) => i.racines.filter((r) => r.erreur).map((r) => r.racine));
   egal([...new Set(erreurs)], [], 'chaque racine secondaire se construit');
   const bandes = inv.fichiersTest.get('tests/rendu/optimizer-bandes.test.ts');

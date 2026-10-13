@@ -26,7 +26,7 @@
 | [principes-et-axes.md](principes-et-axes.md) | Le problème que la librairie résout, la règle qui gouverne tout le reste, des axes plutôt qu'un catalogue de variantes, le piège de la règle tactile, les axes de comportement. |
 | [fondation-et-prereglages.md](fondation-et-prereglages.md) | `Bouton`, la fondation, et ses préréglages `BoutonGroupe` et `BoutonIcone`. |
 | [composants.md](composants.md) | `BarreActions`, `Menu`, `Champ`, `NumberField`, `Selecteur`, `Interrupteur`, `Segmented`, `Pastille`, `Jeton`, `Option`, `Flottant`, `FlottantAuto`, `Modale`. |
-| [modales-et-panneaux.md](modales-et-panneaux.md) | Une seule grammaire de modale en trois bandes, la croix et sa seule exception, puis `MobileSheet`, `Case`, `PiedDeDialogue` et `Vignette`. |
+| [modales-et-panneaux.md](modales-et-panneaux.md) | Une seule grammaire de modale en trois bandes, confirmer et saisir sans les boîtes du navigateur, la croix et sa seule exception, puis `MobileSheet`, `Case`, `PiedDeDialogue` et `Vignette`. |
 | [contours.md](contours.md) | Les contours d'interface : 1 px, et un seul. |
 | [quand-ajouter.md](quand-ajouter.md) | Quand un composant monte dans la librairie : au deuxième usage, jamais au premier, et seulement quand un axe manque. |
 

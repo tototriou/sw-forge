@@ -17,8 +17,8 @@ import { Bouton, BoutonIcone, Case, Champ, PiedDeDialogue } from '../ui';
  *
  * ⚠️ **Le défaut ne perd jamais rien** : « Annuler » est le bouton mis en
  * avant et reçoit le focus, Échap et le clic à côté annulent, et l'action
- * destructrice porte la couleur d'alerte. Voir la règle générale dans
- * ../../docs/03-developpeur/.
+ * destructrice porte la couleur d'alerte. Voir
+ * docs/03-developpeur/interface/librairie-ui/modales-et-panneaux.md.
  */
 
 // Coquille commune : fond, centrage, fermeture au clic extérieur et à Échap.

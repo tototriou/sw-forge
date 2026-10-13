@@ -45,19 +45,9 @@ partagées, dont la navigation et le pied de page, dans
   vient d'éditer ; un `tsc` propre ne le détecte jamais, puisque l'appel
   reste valide, juste incomplet. Les constructeurs connus : skill
   `optimizer-field-propagation`.
-- **Fenêtres modales** — [Dialogs.tsx](src/ui/Dialogs.tsx) :
-  `ConfirmDialog` (confirmation) et `PromptDialog` (saisie).
-  - ⚠️ **Aucun `confirm()` ni `prompt()` du navigateur.** La boîte native
-    s'affiche hors de la page, sans sa typographie ni ses couleurs, colle le nom
-    du site en titre, et rien n'y est habillable — au moment précis où il faut
-    distinguer une action destructrice d'une action anodine. Sa variante
-    `prompt` est pire encore, surtout au tactile.
-  - ⚠️ **Le défaut ne perd jamais rien** : « Annuler » est le bouton mis en
-    avant et reçoit le focus, Échap et le clic à côté annulent, et l'action
-    destructrice porte la couleur d'alerte (`destructif`).
-  - **Dire ce qui n'est PAS touché**, pas seulement ce qui part : « tes
-    recommandations ne sont pas touchées » évite d'annuler par précaution une
-    action qu'on voulait faire.
+- **Fenêtres modales** : aucun `confirm()` ni `prompt()` du navigateur, et le
+  défaut d'une confirmation ne perd jamais rien. Détail :
+  [modales-et-panneaux.md](interface/librairie-ui/modales-et-panneaux.md).
 - **Glisser-déposer : toujours un repli au doigt.** Le glisser natif ne
   fonctionne pas au tactile : chaque zone de glisser-déposer propose un
   **sélecteur** qui fait le même geste (changer une carte de section en RTA,

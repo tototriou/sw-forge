@@ -71,6 +71,23 @@ compriment pas, peuvent dépasser la boîte.
 > *peut* pas s'étirer sans devenir laid (une image, une grille à pas fixe) passe
 > `corpsCentre` et se centre au lieu de s'étirer.
 
+### Confirmer et saisir — [Dialogs.tsx](src/ui/Dialogs.tsx)
+
+`ConfirmDialog` (confirmation) et `PromptDialog` (saisie), dans toutes les
+pages.
+
+- ⚠️ **Aucun `confirm()` ni `prompt()` du navigateur.** La boîte native
+  s'affiche hors de la page, sans sa typographie ni ses couleurs, colle le nom
+  du site en titre, et rien n'y est habillable — au moment précis où il faut
+  distinguer une action destructrice d'une action anodine. Sa variante
+  `prompt` est pire encore, surtout au tactile.
+- ⚠️ **Le défaut ne perd jamais rien** : « Annuler » est le bouton mis en
+  avant et reçoit le focus, Échap et le clic à côté annulent, et l'action
+  destructrice porte la couleur d'alerte (`destructif`).
+- **Dire ce qui n'est PAS touché**, pas seulement ce qui part : « tes
+  recommandations ne sont pas touchées » évite d'annuler par précaution une
+  action qu'on voulait faire.
+
 ### La croix : une seule exception
 
 `croix` est posée partout **sauf sur les confirmations** (`ConfirmDialog`,

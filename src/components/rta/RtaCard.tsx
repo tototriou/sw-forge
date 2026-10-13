@@ -1,40 +1,13 @@
 import { useRef } from 'react';
 import { GripVertical, X } from 'lucide-react';
 import { Monster, RtaEntry, sectionLabel } from '../../types';
-import ElementIcon from '../ElementIcon';
+import MonsterAvatar from '../MonsterAvatar';
 import RuneIcon from '../RuneIcon';
 import CategoryRing from './CategoryRing';
 import DesyncBadge from './DesyncBadge';
 import { BoutonIcone, Selecteur, ZoneCliquable } from '../../ui';
 
 const SPD_ICON = `${import.meta.env.BASE_URL}stats/spd.png`;
-
-const TEXT: Record<string, string> = {
-  fire: 'text-fire',
-  water: 'text-water',
-  wind: 'text-wind',
-  light: 'text-light',
-  dark: 'text-dark',
-  unknown: 'text-unknown',
-};
-const GRADIENT: Record<string, string> = {
-  fire: 'from-fire to-panel2',
-  water: 'from-water to-panel2',
-  wind: 'from-wind to-panel2',
-  light: 'from-light to-panel2',
-  dark: 'from-dark to-panel2',
-  unknown: 'from-unknown to-panel2',
-};
-
-function initials(name: string) {
-  return name
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((w) => w[0])
-    .join('')
-    .toUpperCase();
-}
 
 interface Props {
   monster: Monster;
@@ -150,30 +123,16 @@ export default function RtaCard({
           dont une de 14 px coincée entre les icônes de set. Le portrait est la
           plus grande zone de la carte et celle qu'on vise naturellement — il
           suffit. L'état ouvert se lit au détail déplié juste dessous. */}
-      <div
-        className={`relative flex-none ${hasGear ? 'cursor-pointer' : ''}`}
+      <MonsterAvatar
+        monster={monster}
+        gabarit="div"
+        classeTaille="w-[50px] h-[50px] compact:w-[42px] compact:h-[42px]"
+        className={hasGear ? 'cursor-pointer' : ''}
         onClick={toggle}
-        title={hasGear ? 'Voir le détail des runes' : undefined}
-      >
-        <div
-          className={`hex-frame w-[50px] h-[50px] p-[2px] bg-gradient-to-br compact:w-[42px] compact:h-[42px] ${GRADIENT[monster.element]}`}
-        >
-          <div className="hex-frame w-full h-full bg-panel flex items-center justify-center overflow-hidden">
-            {monster.image ? (
-              <img src={monster.image} alt={monster.name} className="w-full h-full object-cover" />
-            ) : (
-              <span className={`font-display font-bold text-sm ${TEXT[monster.element]}`}>
-                {initials(monster.name)}
-              </span>
-            )}
-          </div>
-        </div>
-        <ElementIcon
-          element={monster.element}
-          size={16}
-          className="absolute -top-1 -right-1 drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)]"
-        />
-      </div>
+        titre={hasGear ? 'Voir le détail des runes' : undefined}
+        classeInitiales="text-sm"
+        tailleElement={16}
+      />
 
       <div className="min-w-0 flex-1">
         <div

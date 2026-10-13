@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { X } from 'lucide-react';
 import { Monster, RtaEntry } from '../../types';
-import ElementIcon from '../ElementIcon';
+import MonsterAvatar from '../MonsterAvatar';
 import CategoryRing from './CategoryRing';
 import NumberField from '../../ui/NumberField';
 import { RtaCategory } from '../../hooks/useRtaCategories';
@@ -14,23 +14,6 @@ import { Bouton, BoutonGroupe, BoutonIcone, Interrupteur } from '../../ui';
 import { ConfirmDialog } from '../../ui/Dialogs';
 
 const SPD_ICON = `${import.meta.env.BASE_URL}stats/spd.png`;
-
-const RING: Record<string, string> = {
-  fire: 'from-fire to-panel2',
-  water: 'from-water to-panel2',
-  wind: 'from-wind to-panel2',
-  light: 'from-light to-panel2',
-  dark: 'from-dark to-panel2',
-  unknown: 'from-unknown to-panel2',
-};
-const TEXT: Record<string, string> = {
-  fire: 'text-fire',
-  water: 'text-water',
-  wind: 'text-wind',
-  light: 'text-light',
-  dark: 'text-dark',
-  unknown: 'text-unknown',
-};
 
 // ⚠️ **Les boutons de lead viennent de la PRÉPA, pas d'une liste figée.**
 // Simuler un +33 % quand aucun monstre de sa box ne le porte n'apprend rien ; à
@@ -54,10 +37,6 @@ function leadsDeLaPrepa(items: TurnItem[]): number[] {
 
 // Totem de vitesse de guilde : +15% de vitesse de base pour tous, toujours actif.
 const TOTEM = 15;
-
-function initials(name: string) {
-  return name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
-}
 
 export interface TurnItem {
   monster: Monster;
@@ -459,26 +438,13 @@ export default function TurnOrder({
                         d'un coup d'œil dans une grille dense, c'est l'image —
                         comme dans le jeu, comme la grille de choix de catégorie
                         (voir CategoryBar). Le nom reste dans le `title`. */}
-                    <div className="relative flex-none">
-                      <div
-                        className={`hex-frame w-[42px] h-[42px] p-[2px] bg-gradient-to-br ${RING[m.element]}`}
-                      >
-                        <div className="hex-frame w-full h-full bg-panel flex items-center justify-center overflow-hidden">
-                          {m.image ? (
-                            <img src={m.image} alt={m.name} className="w-full h-full object-cover" />
-                          ) : (
-                            <span className={`font-display font-bold text-sm ${TEXT[m.element]}`}>
-                              {initials(m.name)}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <ElementIcon
-                        element={m.element}
-                        size={15}
-                        className="absolute -top-1 -right-1 drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)]"
-                      />
-                    </div>
+                    <MonsterAvatar
+                      monster={m}
+                      gabarit="div"
+                      classeTaille="w-[42px] h-[42px]"
+                      classeInitiales="text-sm"
+                      tailleElement={15}
+                    />
 
                     {showSpeed && (
                       <div className="flex items-center gap-1">
@@ -525,26 +491,13 @@ export default function TurnOrder({
                   <>
                     <div className="flex items-center gap-2">
                       {/* portrait */}
-                      <div className="relative flex-none">
-                        <div
-                          className={`hex-frame w-[42px] h-[42px] p-[2px] bg-gradient-to-br ${RING[m.element]}`}
-                        >
-                          <div className="hex-frame w-full h-full bg-panel flex items-center justify-center overflow-hidden">
-                            {m.image ? (
-                              <img src={m.image} alt={m.name} className="w-full h-full object-cover" />
-                            ) : (
-                              <span className={`font-display font-bold text-sm ${TEXT[m.element]}`}>
-                                {initials(m.name)}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        <ElementIcon
-                          element={m.element}
-                          size={15}
-                          className="absolute -top-1 -right-1 drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)]"
-                        />
-                      </div>
+                      <MonsterAvatar
+                        monster={m}
+                        gabarit="div"
+                        classeTaille="w-[42px] h-[42px]"
+                        classeInitiales="text-sm"
+                        tailleElement={15}
+                      />
 
                       <div className="min-w-0 flex-1">
                         <div className="text-xs font-semibold leading-tight truncate" title={m.name}>

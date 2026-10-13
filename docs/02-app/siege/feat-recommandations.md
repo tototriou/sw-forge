@@ -1577,7 +1577,9 @@ Indépendamment du repli de la carte, **chaque deck a son propre chevron**.
   (« gros bug d'affichage quand on essaye d'éditer un deck »).
 - **Lead du leader** : affiché **sur le monstre** en slot 0, comme en siège et
   avec les mêmes composants ([LeadPill.tsx](src/components/siege/LeadPill.tsx)) —
-  `LeadBadge` sur son portrait dans l'aperçu replié, `LeadPill` (icône +
+  `LeadBadge` sur son portrait dans l'aperçu replié (pastille `lead` de
+  [MonsterAvatar](src/components/MonsterAvatar.tsx), comme la couronne du
+  leader sans lead), `LeadPill` (icône +
   montant) sous son nom dans le deck déplié. **Pas** dans l'en-tête du deck :
   on doit voir de quel monstre vient le lead. Voir [feat-equipes.md](feat-equipes.md).
 - **En-tête du deck, replié OU déplié** : chevron + **les 3 monstres en

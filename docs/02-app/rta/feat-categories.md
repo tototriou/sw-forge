@@ -304,14 +304,24 @@ parcourt du pouce mais un formulaire court, dont il ne restait qu'une bande sous
 le clavier. Il paraît en fondu plutôt qu'en glissant : le glissement dit « je
 viens du bord », or celui-ci ne vient de nulle part, il interrompt.
 
-⚠️ Les icônes de set sont **collées** et la ligne entière resserrée — **sous
-`sm` seulement**. À trois sets — le maximum — les écarts suffisaient à
-faire déborder la dernière icône de la carte. Elles restent lisibles au
-contact : ce sont des pastilles rondes cerclées, chacune se détache de sa
-voisine sans qu'il faille un blanc entre elles. Sur bureau la carte est deux
-fois plus large : l'écart y tient sans rien coûter.
+⚠️ Les icônes de set sont **collées**, aux deux formats (la ligne entière
+n'est resserrée qu'au doigt). À trois sets — le maximum — les écarts
+suffisaient à faire déborder la dernière icône de la carte. Elles restent
+lisibles au contact : ce sont des pastilles rondes cerclées, chacune se
+détache de sa voisine sans qu'il faille un blanc entre elles. Sur bureau,
+l'écart de 4 px a été retiré à son tour (chantier `defauts-affichage`,
+lot 6, préférence de l'utilisateur) : il paie la marge qui suit.
 
-⚠️ Les icônes de set réservent `pr-3` sous `sm`. La croix de suppression est
-posée **sur** le coin haut-droit, hors du flux : rien ne la repousse, et la
-dernière icône passait dessous dès que le nom masqué eut libéré assez de place
-pour que les trois atteignent le bord.
+⚠️ Les icônes de set gardent une **marge droite de 10 px** (`mr-2.5`), aux
+deux formats. La croix de suppression est posée **sur** le coin haut-droit,
+hors du flux : rien ne la repousse, et elle couvre les 8 derniers pixels de
+la ligne ; la dernière icône passait dessous (au doigt dès que le nom masqué
+eut libéré assez de place pour que les trois atteignent le bord, à
+l'ordinateur au survol). La marge l'en écarte de 2 px ; c'est une marge et
+non un `padding`, pour que la boîte du groupe s'arrête aussi avant la croix.
+Au pire cas — trois sets, vitesse à trois chiffres, icône de vitesse et
+triangle de désynchronisation —, la ligne tient au téléphone (360 px : 116 px
+restent au nom) et à l'ordinateur (1400 px : 32 px au nom, 2 de moins
+qu'avant). Sur une carte de bureau plus étroite que 232 px environ, ce pire
+cas ne tenait déjà pas avant (relevé : le nom tombe à 0 px sur une carte de
+230 px, et la dernière icône y touche la croix).

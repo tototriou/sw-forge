@@ -180,19 +180,22 @@ export default function RtaCard({
             </>
           )}
           {desync && <DesyncBadge ecart={desync} size={13} />}
-          {/* ⚠️ `pr-3` sous `sm` : la croix de suppression est posée SUR le coin
-              haut-droit de la carte, hors du flux — rien ne la repousse. La
-              dernière icône de set passait dessous. Le nom masqué sur téléphone
-              avait libéré assez de place pour que les trois icônes atteignent le
-              bord, ce qu'elles ne faisaient pas quand il les repoussait. */}
-          {/* ⚠️ Icônes de set COLLÉES sous `sm` seulement. À trois sets — le
-              maximum — les deux écarts suffisaient à faire déborder la dernière
-              de la carte, qui n'y fait que 150 px. Elles restent lisibles au
-              contact : ce sont des pastilles rondes cerclées, chacune se détache
-              de sa voisine sans blanc entre elles.
-              Sur bureau la carte est deux fois plus large et l'écart tient sans
-              rien coûter — il n'y avait pas lieu de l'y retirer. */}
-          <span className="flex flex-none items-center gap-1 compact:gap-0 compact:pr-3">
+          {/* ⚠️ `mr-2.5`, aux deux formats : la croix de suppression est posée
+              SUR le coin haut-droit de la carte, hors du flux — rien ne la
+              repousse, et elle couvre les 8 derniers pixels de cette ligne. La
+              dernière icône de set passait dessous (à l'ordinateur, au
+              survol). La marge l'écarte à 2 px de la croix ; une MARGE et non
+              un `padding`, pour que la boîte du groupe s'arrête elle aussi
+              avant la croix (chantier `defauts-affichage`, lot 6 ; au doigt,
+              elle remplace un `pr-3` qui laissait 4 px). */}
+          {/* ⚠️ Icônes de set COLLÉES (`gap-0`), aux deux formats. Elles restent
+              lisibles au contact : ce sont des pastilles rondes cerclées,
+              chacune se détache de sa voisine sans blanc entre elles. À
+              l'ordinateur, leurs deux écarts de 4 px paient la marge qui les
+              éloigne de la croix : au pire cas (trois sets, vitesse à trois
+              chiffres, triangle de désynchronisation), la ligne ne perd que
+              2 px sur le nom, qui se tronque. */}
+          <span className="mr-2.5 flex flex-none items-center gap-0">
             {(entry.sets ?? []).slice(0, 3).map((s, i) => (
               <RuneIcon key={i} setKey={s} size={18} className="flex-none" />
             ))}

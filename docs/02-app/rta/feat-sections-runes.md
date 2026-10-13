@@ -294,14 +294,6 @@ La croix du coin haut-droit d'une carte demande une **confirmation**
 sur le `<button>` positionné de la croix (exception « bouton en coin » de
 `tests/banc/mesure.ts` : son dépassement sur la carte est voulu).
 
-Position : `-right-1.5` (5 px hors de la carte, place gardée par la grille) ;
-`-top-1.5` sous `lg`, `lg:-top-3` au-dessus. ⚠️ Sur la carte de l'ordinateur,
-la croix monte de 6 px, centre sur le bord haut : plus bas, elle recouvrait
-la dernière icône de set. Pas sur la rangée du téléphone : 6 px seulement la
-séparent de la rangée du dessus, et la croix montée mordrait sur le coin de
-celle-ci (chantier `defauts-affichage`, lot 5 ; position au téléphone en
-attente d'une décision).
-
 ⚠️ Elle n'en demandait aucune : le monstre partait au premier contact. Or cette
 croix est posée **sur le coin de la carte**, à quelques pixels du portrait qu'on
 touche pour ouvrir le détail des runes — au doigt, on la déclenche par accident

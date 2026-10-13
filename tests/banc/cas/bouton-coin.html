@@ -33,12 +33,12 @@
     <button id="bord-croix" class="croix" data-bouton-coin="retirer-rta" aria-label="Retirer" data-attendu=""></button>
   </div>
 </div>
-<!-- Signalé (chevauchement) : une icône de la carte va jusqu'à son coin, sous la croix (14 × 14 px). Le contenu de
-     la carte n'est pas permis, contrairement au cadre d'un portrait. -->
+<!-- Non signalé : une icône de la carte va jusqu'à son coin, sous la croix (14 × 14 px). Tout ce que porte la carte
+     peut toucher le bouton. -->
 <div class="bloc" style="padding: 8px">
   <div id="dessous-carte" class="carte" style="display: flex; justify-content: flex-end; align-items: flex-start" data-attendu="">
     <span id="dessous-icone" class="icone" data-attendu=""></span>
-    <button id="dessous-croix" class="croix" data-bouton-coin="retirer-rta" aria-label="Retirer" data-attendu="chevauchement" data-attendu-avec="dessous-icone" data-attendu-aire="196"></button>
+    <button id="dessous-croix" class="croix" data-bouton-coin="retirer-rta" aria-label="Retirer" data-attendu=""></button>
   </div>
 </div>
 <!-- Signalé (chevauchement) : la carte voisine, à 4 px, passe sous la croix (2 × 14 px). -->
@@ -56,7 +56,7 @@
     <button class="croix" aria-label="Retirer"></button>
   </div>
 </div>
-<!-- Signalé (6 px) : un repère dont la valeur n'est pas dans la liste des membres. -->
+<!-- Signalé (6 px) : un crayon dont le repère n'est pas dans la liste des membres. -->
 <div class="bloc" style="padding: 8px">
   <div id="autre-membre-carte" class="carte" data-attendu="contenu" data-attendu-depassement="6">
     <div class="rangee"><span>Nom</span></div>
@@ -76,6 +76,27 @@
     <div class="rangee"><span>Nom</span></div>
     <button class="croix" data-bouton-coin="retirer-rta" aria-label="Retirer" style="transform: translateX(3px)"></button>
   </div>
+</div>
+<!-- Copie de la vignette de défense (RecoCard) : `relative`, bordure de 1 px, le crayon « Modifier cette défense »
+     `absolute -right-1 -top-1` de 16 px (`data-bouton-coin="modifier-defense"`). -->
+<style>
+  .vignette { position: relative; width: 130px; height: 34px; box-sizing: border-box; border: 1px solid #999; border-radius: 8px; display: flex; justify-content: flex-end; align-items: flex-start; }
+  .crayon { position: absolute; top: -0.25rem; right: -0.25rem; width: 16px; height: 16px; padding: 0; border: 0; background: #36c; }
+</style>
+<!-- Non signalés : le crayon dépasse la vignette de 4 px, exactement son décalage, et couvre le portrait qu'elle porte
+     dans son coin. -->
+<div class="bloc" style="padding: 8px">
+  <div id="crayon-vignette" class="vignette" data-attendu="">
+    <span id="crayon-portrait" class="icone" data-attendu=""></span>
+    <button id="crayon" class="crayon" data-bouton-coin="modifier-defense" aria-label="Modifier cette défense" data-attendu=""></button>
+  </div>
+</div>
+<!-- Signalé (chevauchement) : la vignette suivante, collée, passe sous le crayon (3 × 13 px). -->
+<div class="bloc" style="display: flex; width: 280px; padding: 8px">
+  <div id="crayon-gauche" class="vignette" data-attendu="">
+    <button id="crayon-voisin" class="crayon" data-bouton-coin="modifier-defense" aria-label="Modifier cette défense" data-attendu="chevauchement" data-attendu-avec="crayon-droite" data-attendu-aire="39"></button>
+  </div>
+  <div id="crayon-droite" class="vignette" data-attendu=""></div>
 </div>
 </body>
 </html>

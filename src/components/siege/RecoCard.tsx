@@ -2281,6 +2281,11 @@ function CounterRow({
           auSurvol
           icone={<Pencil size={10} />}
           libelle="Modifier cette défense"
+          // Repère du banc d'affichage (tests/banc/mesure.ts, « bouton en
+          // coin ») : le dépassement de ce coin sur la vignette est voulu. Posé
+          // sur le `<button>` positionné lui-même ; le retirer rend ses
+          // signalements.
+          data-bouton-coin="modifier-defense"
           className="absolute -right-1 -top-1 z-10"
         />
 

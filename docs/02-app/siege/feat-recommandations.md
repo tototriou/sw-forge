@@ -900,6 +900,10 @@ refermer) là où le geste réel est simplement « + ».
   chevron de la précision ; une vignette **sans précision** garde, au même
   endroit, une place vide de la taille du chevron : sans elle, le crayon
   tomberait sur l'icône d'élément du dernier portrait.
+  **Repère dans le DOM**, pour le banc d'affichage :
+  `data-bouton-coin="modifier-defense"` sur le `<button>` positionné du
+  crayon (exception « bouton en coin » de `tests/banc/mesure.ts` : son
+  dépassement sur la vignette est voulu).
 - ⚠️ **L'index en édition est remis à `null` si le nombre de défenses change** :
   une défense supprimée laisserait l'édition pointer sur sa voisine, ou dans le
   vide.

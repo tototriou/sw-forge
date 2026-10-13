@@ -272,17 +272,18 @@
 //     plan, l'ordre d'empilement n'est pas lu (`z-index`, `absolute`), ni
 //     `clip-path` ni un masque ; une boîte dans un défilement est comparée à
 //     sa position défilée du moment.
-// - bouton en coin (la croix « Retirer » de la carte RTA, posée sur son coin) :
-//   son contact avec SA CARTE est permis, jamais avec le reste. Décision de
-//   l'utilisateur du 2026-10-13, calquée sur la pastille du portrait ; un
-//   seul membre.
+// - bouton en coin (la croix « Retirer » de la carte RTA, le crayon
+//   « Modifier cette défense » d'une vignette de défense, posés sur leur
+//   coin) : il a le droit de toucher SA CARTE — les éléments qu'elle porte et
+//   son bord — et d'en sortir, jamais le reste. Décisions de l'utilisateur
+//   du 2026-10-13.
 //   · Qui en bénéficie : un élément qui porte le repère `data-bouton-coin`
-//     posé par `src/` (rta/RtaCard.tsx, transmis par BoutonIcone et Bouton
-//     jusqu'au `<button>` positionné), avec une valeur de la liste explicite
-//     BOUTONS_EN_COIN : `retirer-rta`, et rien d'autre. Un autre bouton en
-//     coin (le crayon d'une vignette de défense) n'y est pas : il se mesure
-//     comme les autres. Un repère retiré de `src/`, ou un nom retiré de la
-//     liste, rend ses signalements.
+//     posé par `src/` (rta/RtaCard.tsx, siege/RecoCard.tsx, transmis par
+//     BoutonIcone et Bouton jusqu'au `<button>` positionné), avec une valeur
+//     de la liste explicite BOUTONS_EN_COIN : `retirer-rta`,
+//     `modifier-defense`, et rien d'autre. Un autre bouton en coin n'y est
+//     pas : il se mesure comme les autres. Un repère retiré de `src/`, ou un
+//     nom retiré de la liste, rend ses signalements.
 //   · Sa carte : son bloc contenant, quel qu'il soit (ni `html`, ni `body`
 //     propagé) ; aucun repère de carte n'est exigé — un bouton enveloppé dans
 //     un cadre positionné voit son exception portée par ce cadre, et la carte
@@ -292,11 +293,14 @@
 //     qui ne coupe ni ne défile sur aucun axe ; dépassement imposé à la carte
 //     diminué EXACTEMENT de son décalage droit ; aucun ancêtre au-delà de la
 //     carte n'en profite ; relecture par `right: 0`). Une différence, voulue :
-//     la carte n'a pas de « contenu » permis. Tout élément du même plan qui
-//     n'est ni un ancêtre ni un descendant du bouton se compare, y compris ce
-//     que la carte porte (icônes, texte, rangées) — la croix ne couvre rien
-//     (tests/banc/cas/bouton-coin.html). La carte elle-même, ancêtre, n'est
-//     jamais coupée.
+//     le « contenu » permis est TOUTE la carte, sans notion de cadre — tout
+//     descendant de la carte (icônes, texte, rangées, portraits et leurs
+//     pastilles) peut toucher le bouton. Se compare tout élément du même
+//     plan hors de la carte : une autre carte, une autre vignette, ce qui
+//     entoure la carte (tests/banc/cas/bouton-coin.html).
+//     ⚠️ Limite nommée : l'exception se lit côté bouton. Une pastille de
+//     portrait posée dans la carte garde sa propre règle, qui ne connaît pas
+//     le bouton : si elle le touche, la pastille est signalée.
 //
 // Second passage : chaque signalement « contenu » d'un élément concerné par
 // une exception (et la page, si elle déborde et qu'une marge négative y
@@ -512,8 +516,8 @@ export function mesurer(options: { detail: boolean }): Mesure {
   // Pastille du portrait (tête) : la liste explicite des repères reconnus —
   // pas `couronne` (D15).
   const PASTILLES_RECONNUES = new Set(['element', 'lead', 'exemplaires']);
-  // Bouton en coin (tête) : la liste explicite de ses membres, un seul.
-  const BOUTONS_EN_COIN = new Set(['retirer-rta']);
+  // Bouton en coin (tête) : la liste explicite de ses membres.
+  const BOUTONS_EN_COIN = new Set(['retirer-rta', 'modifier-defense']);
   // Rend le bloc de la pastille ou du bouton en coin (son bloc contenant :
   // le portrait, la carte), si son décalage droit déclaré négatif se
   // soustrait, et la largeur à figer pendant la relecture (`left` `auto`) ;
@@ -751,9 +755,10 @@ export function mesurer(options: { detail: boolean }): Mesure {
     const plan = planDe(el);
     const aires = new Map<Element, number>();
     for (const autre of visibles) {
-      // Le bouton en coin n'a pas de « contenu » permis : tout ce que porte
-      // la carte se compare, la carte elle-même (un ancêtre) exceptée.
-      if (autre.contains(el) || el.contains(autre) || (pastille && contenuDe(autre, bloc))) continue;
+      // Contenu permis : le cadre du portrait pour une pastille, toute la
+      // carte pour un bouton en coin ; seul ce qui est hors de la carte se
+      // compare à lui.
+      if (autre.contains(el) || el.contains(autre) || (pastille ? contenuDe(autre, bloc) : bloc.contains(autre))) continue;
       if (exclusD8.has(autre) || planDe(autre) !== plan) continue;
       const q = visibleDe(autre);
       const l = Math.min(v.droite, q.droite) - Math.max(v.gauche, q.gauche);

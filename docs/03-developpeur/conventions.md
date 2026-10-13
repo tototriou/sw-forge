@@ -100,18 +100,6 @@ partagées, dont la navigation et le pied de page, dans
   - **Dire ce qui n'est PAS touché**, pas seulement ce qui part : « tes
     recommandations ne sont pas touchées » évite d'annuler par précaution une
     action qu'on voulait faire.
-- **Avertissement petit écran** — [MobileNotice.tsx](src/components/MobileNotice.tsx),
-  au-dessus du contenu, sous la barre de nav. SW Blacksmith manipule des listes de
-  runes, des équipes de trois monstres et des ordres de tour : tout cela demande
-  de la largeur. Sans un mot, on croit à un site mal fait plutôt qu'à un site
-  consulté dans de mauvaises conditions.
-  - ⚠️ **Media query CSS (`md:hidden`), jamais de user-agent** : le sniffing se
-    trompe (tablettes, mode bureau) et vieillit mal. Ce qui compte n'est pas
-    l'appareil mais **la largeur disponible**.
-  - ⚠️ **Refermable, oubli volontairement court** : la fermeture vit en mémoire,
-    donc elle tient pour la session et le bandeau revient à la visite suivante.
-    Le persister demanderait le consentement de conservation — mettre un bandeau
-    d'information dans la même balance qu'une prépa RTA serait disproportionné.
 - **Pas de titre/intro sur les pages outils** : RTA, Siège, Arène et Bestiaire
   démarrent directement sur leur contenu (pas d'en-tête `<h1>` + paragraphe).
   L'Accueil garde son hero ; la page **Mécaniques** garde son titre (c'est une doc).

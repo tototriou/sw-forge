@@ -31,6 +31,7 @@ Fichiers : [Sidebar.tsx](src/components/Sidebar.tsx),
 | le bouton « Options » et le panneau d'actions au téléphone, `src/ui/MobileSheet.tsx` | [panneau-actions-mobile.md](panneau-actions-mobile.md) |
 | la règle tactile de `src/index.css` | [densite-au-doigt.md](densite-au-doigt.md) |
 | le pied de page de `src/App.tsx` | [pied-de-page.md](pied-de-page.md) |
+| `src/components/MobileNotice.tsx` | [bandeau-petit-ecran.md](bandeau-petit-ecran.md) |
 
 ## Parties
 
@@ -48,3 +49,4 @@ Fichiers : [Sidebar.tsx](src/components/Sidebar.tsx),
 | [panneau-actions-mobile.md](panneau-actions-mobile.md) | Le bouton « Options » et le panneau d'actions qui monte au téléphone. |
 | [densite-au-doigt.md](densite-au-doigt.md) | Les deux paliers de la règle tactile. |
 | [pied-de-page.md](pied-de-page.md) | Le pied de page : une rangée au bureau, une colonne au téléphone, mentions et liens. |
+| [bandeau-petit-ecran.md](bandeau-petit-ecran.md) | Le bandeau affiché sur petit écran : ce qu'il dit, détection par la largeur, fermeture le temps de la session. |

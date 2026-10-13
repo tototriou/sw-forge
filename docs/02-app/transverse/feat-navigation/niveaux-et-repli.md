@@ -73,7 +73,8 @@ Repliée, l'intitulé disparaît et le filet raccourcit.
   distinguent pas toutes au premier regard.
 - Le repli tient pour la **session** (`useStickyState`), sans être persisté :
   une préférence d'affichage ne justifie pas de passer par le consentement de
-  conservation — même règle que [MobileNotice](src/components/MobileNotice.tsx).
+  conservation — même règle que le
+  [bandeau petit écran](bandeau-petit-ecran.md).
 
 ## Pas d'aperçu au survol (bureau)
 

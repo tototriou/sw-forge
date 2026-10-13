@@ -42,8 +42,8 @@ au pixel ce qu'aucun document ne fixait.
 ## Ce que ce document ne couvre pas
 
 - **Le responsive.** Chantier séparé et assumé (voir
-  [conventions](../../conventions.md#conventions-communes) (« Conventions communes »)). Les tokens ci-dessus
-  sont indépendants de la largeur.
+  [deux-formats.md](../deux-formats.md)). Les tokens ci-dessus sont
+  indépendants de la largeur.
 - **Les icônes du jeu** (`public/elements/`, `public/icons/`,
   `public/leader-skills/`) : ce sont des ressources Com2uS, hors système visuel.
 - **Les couleurs de rareté de rune** (`RARITY_META` dans

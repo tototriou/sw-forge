@@ -14,7 +14,9 @@ changement de hash pour ne pas casser le routing) puis sections en panneaux :
 
 1. **Vitesse de combat** — `⌈ base × (1 + Σ%vit) + Σvit_plate ⌉ × Slow × BuffVit`, avec
    correction de troncature pour les runes Swift (perte à l'arrondi de `base × 0,25`).
-2. **Barre d'action & ordre de tour** — `ΔATB/tick = vitesse × 7/100` (7 % par tick) ; action à 100.
+2. **Barre d'action & ordre de tour** — `ΔATB/tick = vitesse × 7/100` (7 % par tick, sauf en
+   raid, 4,5 %, et en RTA, 1,5 % — source :
+   [speed-tuning/feat-formule.md](../speed-tuning/feat-formule.md), « Mode RTA ») ; action à 100.
 3. **Équation finale des dégâts** — `(Mult × Crit × DMG% × FacteurDéf × Variance + Additionnel) × Réductions`.
    Buffs ATQ/DEF (comme VIT) tronqués vers le bas selon le bonus d'effet ; les dégâts fixes
    (`Additionnel`) ignorent crit **et** FacteurDéf.
@@ -28,11 +30,6 @@ changement de hash pour ne pas casser le routing) puis sections en panneaux :
 
 > Volontairement **exclus** (non présents sur swcalc/game-mechanics) : efficacité
 > des runes, sets de runes, précision/résistance, avantage élémentaire.
-
-⚠️ **« 7 % par tick » est dit sans réserve**, au point 2 comme sur la page. La
-source citée par [speed-tuning/feat-formule.md](../speed-tuning/feat-formule.md)
-(§ Mode RTA) donne 4,5 % en raid et 1,5 % en RTA : la taille du tick en RTA
-attend un arbitrage ([questions ouvertes](../../05-pilotage/questions-ouvertes.md)).
 
 ## Règles / attendus
 

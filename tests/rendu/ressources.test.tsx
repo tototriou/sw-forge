@@ -75,6 +75,7 @@ export function testRenduMecaniques() {
     'FacteurDéf = 1000 / (1142 + 3.572 × DEF)',
     'Mise à l’échelle sur stats : ±2.8 % → [0.972 , 1.028]',
   ]) ok(t.includes(f), `formule « ${f.slice(0, 40)}… »`);
+  ok(t.includes('Les 7 % valent partout, sauf en raid (4,5 %) et en RTA (1,5 %).'), 'la taille du tick et ses deux exceptions');
   ok(t.endsWith('Ces effets ne sont pas modélisés dans SW Blacksmith (qui se concentre sur la vitesse, les ticks et les runes).'), 'ce qui n\'est pas modélisé');
 }
 

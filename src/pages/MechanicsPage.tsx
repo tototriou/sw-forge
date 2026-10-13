@@ -134,6 +134,7 @@ export default function MechanicsPage() {
           </p>
           <F>{'ΔATB par tick = Vitesse_combat × 7 / 100'}</F>
           <ul className="list-disc list-inside space-y-1">
+            <li>Les 7 % valent partout, sauf en raid (4,5 %) et en RTA (1,5 %).</li>
             <li>Un monstre agit dès que sa barre d&apos;action atteint 100.</li>
             <li>En cas d&apos;égalité de barre, le plus rapide passe ; à vitesse égale, l&apos;ordre suit la séquence de placement.</li>
             <li>

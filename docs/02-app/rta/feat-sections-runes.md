@@ -46,6 +46,10 @@ section ; « Tous » les rend toutes.
   son filet qui délimitent la section. Même gabarit pour les sections de la
   prépa d'un ami (`RtaFriendView`).
 - Vide → « Glisse des monstres ici ». Sinon grille de cartes responsive.
+  ⚠️ La grille garde à droite la place de la croix « Retirer » d'une carte du
+  bord, qui dépasse de 5 px (`pr-[5px] -mr-[5px]`) : le rembourrage la met
+  dans la boîte de la grille, la marge négative le rend au conteneur ;
+  colonnes et cartes ne bougent pas (chantier `defauts-affichage`, lot 5).
 - **Cible de drop** : au survol d'un drag, le cadre apparaît — **1 px à la
   couleur d'accent** (la bordure, transparente au repos, prend la teinte : rien
   ne bouge) — sur un fond `panel2` léger (compteur enter/leave pour éviter le

@@ -5,7 +5,7 @@
 
 ⚠️ **Au doigt, dans le panneau « Options »** (bouton de la barre de nav),
 EN TÊTE — avant « Réglages avancés » (voir
-feat-ecran-conditions-et-reglages.md § Réglages avancés) : fonctionnalité
+ecran/conditions-et-reglages.md § Réglages avancés) : fonctionnalité
 vedette, mise en avant côté bureau par sa carte à bordure accentuée.
 
 **« Exclure les runes déjà utilisées »**, interrupteur DÉSACTIVÉ par
@@ -84,7 +84,7 @@ siège », même resserré, le libellé passe sur DEUX lignes DANS le bouton
 plutôt que déborder (le cran resserré ne force pas `whitespace-nowrap`,
 contrairement aux autres). `Segmented` (`src/ui/`) mesure lui-même la place
 qu'il reçoit et bascule seul entre les deux rendus (voir
-[03-developpeur/interface/ (librairie UI)](../../03-developpeur/interface/)) — aucun réglage à
+[03-developpeur/interface/librairie-ui/README.md](../../03-developpeur/interface/librairie-ui/README.md)) — aucun réglage à
 poser depuis cet écran.
 
 ⚠️ **L'équipe complète d'un résultat de siège reste visible sans défiler**

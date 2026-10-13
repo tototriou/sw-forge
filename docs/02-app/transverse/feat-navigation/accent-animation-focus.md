@@ -14,7 +14,7 @@ l'écran**. On sait de quel monstre on parle avant d'avoir lu son nom.
 
 - ⚠️ **`--ctx` est un ALIAS, jamais une couleur.** Il pointe vers un token qui
   existe déjà — un élément, ou l'accent de l'app. Chaque teinte reste donc celle
-  dont le contraste a été **mesuré** (voir [03-developpeur/interface/](../../../03-developpeur/interface/) (design, « Contraste »)).
+  dont le contraste a été **mesuré** (voir [03-developpeur/interface/design/contraste.md](../../../03-developpeur/interface/design/contraste.md#contraste--mesuré-jamais-estimé) (design, « Contraste »)).
 - ⚠️ **Valable dans les deux thèmes du seul fait qu'il est un alias** : sa cible
   change avec le thème, lui n'a pas à le savoir.
 - L'attribut **`data-ctx`** se pose sur un conteneur ; toute sa sous-arborescence

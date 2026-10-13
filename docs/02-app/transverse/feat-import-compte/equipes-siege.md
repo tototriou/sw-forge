@@ -60,7 +60,7 @@ Dans [applyAccount.ts](src/lib/applyAccount.ts), réutilisé par `importAccount`
   Vampire, Violent**) actifs à 4 runes, tous les autres (dont **Destroy**) à 2.
   Une rune **Intangible** joue le joker — uniquement s'il y a exactement UN
   set incomplet parmi les runes du deck (règle du jeu, voir
-  [compte/ (calcul des runes) §5.2](../../compte/)). Affichés en
+  [compte/feat-calcul-runes.md § 5.2](../../compte/feat-calcul-runes.md#52-bonus-de-set--à-ne-pas-oublier)). Affichés en
   icônes dans la vue compacte du siège.
 
 Puis `importAccount` applique : `rta.importEntries` (après `clearAll`),

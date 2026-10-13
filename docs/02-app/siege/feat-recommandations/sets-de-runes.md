@@ -74,7 +74,7 @@ nom dans une liste — même règle que les filtres de runes (voir
 'fight','fight']`), et une rune **Intangible** servant de **joker** —
 ⚠️ **uniquement s'il y a EXACTEMENT un set incomplet** parmi les runes
 réellement portées (règle du jeu, voir
-[compte/ (calcul des runes) §5.2](../../compte/)) : deux sets
+[compte/feat-calcul-runes.md § 5.2](../../compte/feat-calcul-runes.md#52-bonus-de-set--à-ne-pas-oublier)) : deux sets
 incomplets ou plus, même si l'un des deux n'est pas celui recherché, et le
 joker ne complète plus rien.
 

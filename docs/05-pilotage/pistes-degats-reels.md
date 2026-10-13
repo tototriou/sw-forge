@@ -20,7 +20,7 @@ un rapport entre deux lancers qui ne diffèrent que d'une chose, avec sa
 règle de décision posée d'avance (skill `game-data-curation`, § 6 bis), et
 ne vaut que pour le sort mesuré. Un sort dont une part décidée n'est pas
 codée porte « Calcul partiel »
-([02-app/degats-reels/ § Calcul partiel — l'étiquette par identifiant](../02-app/degats-reels/)).
+([02-app/degats-reels/feat-formules-et-combat.md § Calcul partiel — l'étiquette par identifiant](../02-app/degats-reels/feat-formules-et-combat.md#calcul-partiel--létiquette-par-identifiant)).
 
 ## Attaques déclenchées et hors tour
 
@@ -49,7 +49,7 @@ codée porte « Calcul partiel »
 - **Constat** : `ATTAQUES_APPELEES_PAR_DECLENCHEUR` (`src/lib/damage.ts`)
   est vide : aucune amorce n'est curée, et aucun effet posé par un
   déclencheur n'est modélisé
-  ([02-app/degats-reels/ § Ce qu’il faudra fournir pour un autre cas](../02-app/degats-reels/)).
+  ([02-app/degats-reels/feat-attaque-apres-un-sort.md § Ce qu’il faudra fournir pour un autre cas](../02-app/degats-reels/feat-attaque-apres-un-sort.md#ce-quil-faudra-fournir-pour-un-autre-cas)).
 - **Idée** : l'interrupteur d'une attaque appelée sous un en-tête à part,
   « Attaques déclenchées ». Seal Punch (`8111`) gardé : son Rolling Punch
   se calcule sans la VIT posée, l'écart (environ 0,5 %) dit à l'écran.
@@ -107,7 +107,7 @@ codée porte « Calcul partiel »
 - **Constat** : seul Tempest est `selectionnableCommeSort`
   (`src/lib/damage.ts`), et un passif ne se choisit seul que sans
   ajustement propre à la boucle des passifs
-  ([02-app/degats-reels/ § Choisi seul — « Compétence utilisée »](../02-app/degats-reels/)).
+  ([02-app/degats-reels/feat-attaque-apres-un-sort.md § Choisi seul — « Compétence utilisée](../02-app/degats-reels/feat-attaque-apres-un-sort.md#choisi-seul---compétence-utilisée-)).
 - **Idée** : chaque événement du monstre choisissable seul (attaque à la
   mort, riposte, attaque d'état, passif qui frappe), sans les attaques
   d'alliés. Danu : un interrupteur « le passif se déclenche après ce sort »
@@ -177,7 +177,7 @@ codée porte « Calcul partiel »
   (`10613`) ou Guilty Sentence (`23507`, `23508`, `23510`) : leur phase
   que la donnée ne chiffre pas manque au total.
 - **Idée** : une séquence curée par sort
-  ([02-app/degats-reels/ § La séquence curée — une table par identifiant](../02-app/degats-reels/)).
+  ([02-app/degats-reels/feat-sequences-de-coups.md § La séquence curée — une table par identifiant](../02-app/degats-reels/feat-sequences-de-coups.md#la-séquence-curée--une-table-par-identifiant)).
   Tempest Sword : troisième coup au ratio des deux premiers (valeur
   fournie). Guilty Sentence : une question « ta cible a-t-elle la DEF la
   plus faible ? » (oui : deux coups ; non : le coup de zone seul) ; pour
@@ -202,7 +202,7 @@ codée porte « Calcul partiel »
   ils valent aux deux phases de Fatal Extinctive Bullet (`13311`, Abigail),
   Fatal Armor Bullet (`13314`, Emily), Head Press (`14113`, M. BISON) et
   Great Sword of the End (`14613`, Sagar), sans confirmation
-  ([02-app/degats-reels/ § Séquences à valeur de l’API](../02-app/degats-reels/)).
+  ([02-app/degats-reels/feat-sequences-de-coups.md § Séquences à valeur de l’API](../02-app/degats-reels/feat-sequences-de-coups.md#séquences-à-valeur-de-lapi)).
 - **Idée** : les borner à la phase 1 si le relevé le dit.
 - **Bloque** : un relevé, sort au maximum de skillups, deux coups non
   critiques sur la cible visée, phase 2 / phase 1 : Abigail ou Emily,

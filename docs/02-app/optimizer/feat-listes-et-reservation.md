@@ -141,7 +141,7 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   critères effectivement restaurés après validation, jamais celles du membre
   précédent. Si l'espèce ou l'exemplaire change et que la destination porte des
   auras externes, le rappel paraît 3 s dans « État de mon monstre » (voir
-  feat-ecran-etat-de-mon-monstre.md § Sets d'aura des autres monstres) **et sous la liste** (voir plus bas) : c'est
+  ecran/etat-de-mon-monstre.md § Sets d'aura des autres monstres) **et sous la liste** (voir plus bas) : c'est
   la seule voie qui le fasse. Une destination sans auras, un choix refusé ou
   un clic sur le même exemplaire efface le rappel précédent sans en créer.
   Restaurer par l'action seule, naviguer entre listes, importer ou remonter
@@ -187,7 +187,7 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   `<monstre>` à « `<liste>` » ». Un clic choisit le **premier exemplaire Box,
   dans l'ordre de la zone D, absent de la liste**, l'affiche (résultats
   affichés effacés, critères gardés, aucun rappel des auras externes —
-  voir feat-ecran-recherche-du-monstre.md § Recherche du monstre à optimiser) puis
+  voir ecran/recherche-du-monstre.md § Recherche du monstre à optimiser) puis
   l'ajoute ; un clic, un exemplaire. Tous les exemplaires Box déjà
   membres : « Déjà dans « `<liste>` » », désactivé. Exemplaire affiché
   venu de RTA ou du siège, déjà membre : « Déjà dans », désactivé, sans
@@ -226,7 +226,7 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
     planifié. Affiché seulement s’il y a une paire à rendre. Les paires
     déjà calculées pour le monstre recherché se refont alors avec
     l’inventaire libéré (voir
-    ../../03-developpeur/optimizer/moteur-artefacts.md § Recalcul quand la paire peut changer).
+    ../../03-developpeur/optimizer/moteur/artefacts.md § Recalcul quand la paire peut changer).
 
   ⚠️ **Pas de « libérer les runes seules », et c’est délibéré.** Un build
   validé porte TOUJOURS 6 runes : sans elles il n’y a plus de build à qui
@@ -246,7 +246,7 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
 - ⚠️ **Ajouter un monstre qu'on ne possède PAS** — pour le joueur qui a
   obtenu le monstre et veut essayer des runages d'équipe sans avoir mis à
   jour son export. Une ESPÈCE choisie via la recherche
-  bestiaire (voir feat-ecran-recherche-du-monstre.md § Recherche du monstre à optimiser) mais absente des 4 sources du compte
+  bestiaire (voir ecran/recherche-du-monstre.md § Recherche du monstre à optimiser) mais absente des 4 sources du compte
   reste ajoutable à une liste ET « validable » exactement comme un
   exemplaire réel — un sélecteur `unowned` (`ExclusionSelector`, distinct
   des 4 sources réelles) porte cette entrée, sur ses stats de base 6★
@@ -362,7 +362,7 @@ jeu, n'ont RIEN à voir l'un avec l'autre.
   réservées » dès qu'il y en a plusieurs), pas juste un bouton désactivé
   sans explication.
 - **Persisté**, comme les mémoires de critères des membres (voir
-  feat-ecran.md § Survie à un changement d'onglet) — un flux de plusieurs
+  ecran/README.md § Survie à un changement d'onglet) — un flux de plusieurs
   dizaines de minutes à travers toute une liste ne doit pas perdre le
   travail déjà fait à un simple rechargement de page. Même statut que la
   prépa RTA et les équipes de siège (voir

@@ -228,7 +228,7 @@ sensation d'un écran à l'autre.
 La **même modale** que dans « Mon compte »
 ([MonsterDetailDialog.tsx](src/components/MonsterDetailDialog.tsx)) : stats, lead,
 et le détail des compétences — coefficients, effets, améliorations. Voir
-[compte/](../compte/) (monstres, « Fiche d'un monstre »)
+[compte/feat-monstres.md](../compte/feat-monstres.md#fiche-dun-monstre--au-clic-sur-sa-carte) (monstres, « Fiche d'un monstre »)
 pour le détail du rendu et de la source des données.
 
 - ⚠️ **Le même composant**, pas une copie : deux fiches auraient divergé au

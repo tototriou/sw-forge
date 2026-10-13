@@ -22,7 +22,7 @@
 
 - **Efficience** (par défaut) — pas de biais particulier, la mesure
   choisie globalement (Efficience ou Score SW, voir
-  [compte/ (runes)](../compte/)).
+  [compte/feat-runes/README.md](../../compte/feat-runes/README.md)).
 - **PV effectifs** — considère PV et DEF ensemble. Les auras Enhance et
   Determination apportent chacune 8 % de leur base au score, à son tri et
   à sa comparaison, sans ajouter les autres bonus de début de combat —
@@ -31,7 +31,7 @@
 - **Vitesse** — VIT seule.
 - **Dégâts réels** — la **vraie formule d'un sort précis** contre un
   adversaire configuré, pas une espérance générique. Modèle de calcul
-  détaillé : [degats-reels/](../degats-reels/). Choisir cet objectif
+  détaillé : [degats-reels/](../../degats-reels/). Choisir cet objectif
   **ouvre** son réglage, dans une fenêtre par-dessus l'écran
   ([DamageSetupModale.tsx](src/components/outils/DamageSetupModale.tsx),
   qui porte la carte `DamageSetupCard`) — et rien ailleurs à l'écran ne
@@ -105,14 +105,14 @@ Ce que contient ce réglage :
   bouger ni le texte au-dessus, ni le contrôle (réglage
   `cibleDegatsParSort`) ; la ligne de résumé sous l'objectif,
   elle, dit « autres ennemis » quand ce cran est retenu
-  (voir feat-ecran-objectif-de-recherche.md § Les quatre objectifs disponibles ; détail :
-  [degats-reels/ (séquences de coups)](../degats-reels/)). Par
+  (voir objectif-de-recherche.md § Les quatre objectifs disponibles ; détail :
+  [degats-reels/feat-sequences-de-coups.md](../../degats-reels/feat-sequences-de-coups.md)). Par
   défaut, le dernier slot calculable parmi les sorts actifs (S3 avant
   S2 avant S1). Un passif curé « sélectionnable comme sort » figure
   aussi dans la liste, calculé seul et une seule fois — Tempest (S3) de
   Teshar, nom du jeu « Tempest (Passive) » —, mais n'est jamais le sort
   par défaut : Teshar reste sur S2 (détail
-  [degats-reels/ (attaque après un sort)](../degats-reels/)). Un sort
+  [degats-reels/feat-attaque-apres-un-sort.md](../../degats-reels/feat-attaque-apres-un-sort.md)). Un sort
   dont la formule sort du modèle reste **affiché, grisé, avec son
   motif** — jamais absent sans explication. ⚠️ **La description du jeu
   de chaque sort, même grisé, s'ouvre au CLIC** sur un « ? » posé
@@ -120,7 +120,7 @@ Ce que contient ce réglage :
   doigt (`HelpPopover`) —, jamais au seul survol : un `title` natif ne
   s'ouvre jamais au doigt, elle resterait invisible sur téléphone. Le
   « ? » vit dans la case mais HORS de son bouton (axe `actionTitre`
-  d'`Option`, [03-developpeur/interface/ (librairie UI)](../../03-developpeur/interface/)) : le
+  d'`Option`, [03-developpeur/interface/librairie-ui/README.md](../../../03-developpeur/interface/librairie-ui/README.md)) : le
   toucher ne choisit pas le sort, et la case ne bouge pas. Un sort
   sans description n'a pas de « ? » ; elle reste annoncée aux
   lecteurs d'écran par le bouton de la case (`aria-description`). Les conditions « buff
@@ -130,11 +130,11 @@ Ce que contient ce réglage :
   champ numérique borné apparaît sous le sort choisi (ou sous le passif
   concerné) pour choisir la valeur réellement utilisée par le calcul —
   `Competence.coups` ne porte qu'un seul nombre en donnée, pas fiable
-  pour ces sorts-là. Détail : [degats-reels/ (passifs offensifs) § Coups variables — un sort/passif qui frappe un nombre de fois qui change en jeu](../degats-reels/),
+  pour ces sorts-là. Détail : [degats-reels/feat-passifs-offensifs.md § Coups variables — un sort/passif qui frappe un nombre de fois qui change en jeu](../../degats-reels/feat-passifs-offensifs.md#coups-variables--un-sortpassif-qui-frappe-un-nombre-de-fois-qui-change-en-jeu),
   « Coups variables ». Un champ **Attaques reçues avant ce sort**
   (0 par défaut) n'apparaît que pour l'unique sort connu dont le
   coefficient dépend d'un compteur de combat (Crawler/Frankenstein —
-  « Hammer Punch »). Détail : [degats-reels/ (catalogue des passifs) § Formule selon un compteur (Crawler)](../degats-reels/),
+  « Hammer Punch »). Détail : [degats-reels/catalogue-des-passifs.md § Formule selon un compteur (Crawler)](../../degats-reels/catalogue-des-passifs.md#formule-selon-un-compteur-crawler),
   « formule bespoke selon un compteur ». ⚠️ **L'ignore DEF des six
   sorts Blade Dancers se choisit** : ils n'ignorent la DEF qu'une fois
   la jauge d'attaque de la cible à 0, que l'app ne modélise pas. Pour
@@ -146,13 +146,13 @@ Ce que contient ce réglage :
   lui, d'une ligne de haut quel que soit le cran — en changer ne
   déplace pas le sélecteur —, et la DEF de la cible reste affichée dans
   tous les crans. Détail :
-  [degats-reels/ (formules et combat)](../degats-reels/),
+  [degats-reels/ (formules et combat)](../../degats-reels/),
   « Ignore DEF à partir d'un coup choisi ».
 - **Passifs offensifs** — n'apparaît que si le monstre en a un
   (Feng Yan, Sia, Roid, Dominic, Ciri, Sonia, Momo, Chun-Li, Lizardman,
   Jin Kazama…) : des dégâts **en plus** du sort choisi ci-dessus, OU un
   modificateur sur l'ensemble de ses dégâts, via un passif reconnu
-  (liste à la main, voir [degats-reels/ (passifs offensifs) § Passifs offensifs — dégâts supplémentaires au-delà du sort choisi](../degats-reels/)). Un passif
+  (liste à la main, voir [degats-reels/feat-passifs-offensifs.md § Passifs offensifs — dégâts supplémentaires au-delà du sort choisi](../../degats-reels/feat-passifs-offensifs.md#passifs-offensifs--dégâts-supplémentaires-au-delà-du-sort-choisi)). Un passif
   **toujours actif** (le texte du jeu ne pose aucune condition)
   apparaît en jeton simple, sans bouton — y compris un modificateur
   sans formule propre (crit garanti si plus rapide, bonus continu
@@ -192,7 +192,7 @@ Ce que contient ce réglage :
   cible** (0 par défaut) n'apparaît que pour les rares sorts dont les
   dégâts augmentent par effet présent sur l'adversaire (Julie, Melissa)
   — l'app ne simule aucun effet réel sur la cible. Détail :
-  [degats-reels/ (catalogue des passifs) § Bonus selon les effets sur la CIBLE](../degats-reels/), « bonus selon les effets sur la
+  [degats-reels/catalogue-des-passifs.md § Bonus selon les effets sur la CIBLE](../../degats-reels/catalogue-des-passifs.md#bonus-selon-les-effets-sur-la-cible), « bonus selon les effets sur la
   CIBLE ». ⚠️ **VIT adversaire** : apparaît pour un sort/passif qui dépend de
   la vitesse de la cible (variable Relative SPD ou Target SPD d'une
   formule, ignore-DEF proportionnel à l'écart, un monstre qui force le
@@ -205,7 +205,7 @@ Ce que contient ce réglage :
   lue sur la paire que la recherche suppose (les pièces portées seulement
   sans optimisation d'artéfacts), et s'affiche dans « État de mon
   monstre » quand le buff VIT est actif.
-  Détail : [degats-reels/ (passifs offensifs) § VIT de l'adversaire](../degats-reels/), « VIT de l'adversaire ».
+  Détail : [degats-reels/feat-passifs-offensifs.md § VIT de l'adversaire](../../degats-reels/feat-passifs-offensifs.md#vit-de-ladversaire--relative-spd-et-lignore-def-proportionnel), « VIT de l'adversaire ».
 - **Effets actifs** — effets subis par la cible (réduction de défense
   ×0,3, marque +25 %, « ce sort pose le def break » — distingue
   « attaque une cible déjà réduite » de « réduit puis frappe », les
@@ -219,7 +219,7 @@ Ce que contient ce réglage :
   nom. ⚠️ **L'infobulle « ? » de la rangée regroupe ces MÊMES
   descriptions**, pour les seuls effets affichés pour le sort choisi :
   une seule liste (`effetsActifs`,
-  [DamageSetupCard.tsx](../../../src/components/outils/DamageSetupCard.tsx))
+  [DamageSetupCard.tsx](../../../../src/components/outils/DamageSetupCard.tsx))
   rend les vignettes et l'infobulle, jamais un texte écrit à côté, qui
   citerait des effets absents de la rangée. Au doigt, où le survol
   n'existe pas, c'est elle
@@ -231,13 +231,13 @@ Ce que contient ce réglage :
   icône de buff générique. ⚠️ Velaska porte en plus un **champ
   numérique** (% de PV perdus, 0 par défaut) qui n'apparaît que si son
   effet est activé. Détail des mécaniques :
-  [degats-reels/ (effets d'équipe et leaders) § Effets d'ÉQUIPE](../degats-reels/), « Effets d'équipe ».
+  [degats-reels/feat-effets-equipe-et-leaders.md § Effets d'ÉQUIPE](../../degats-reels/feat-effets-equipe-et-leaders.md#effets-déquipe-euldong-mirinae-deborah-miriam-dr-matteo-velaska), « Effets d'équipe ».
 
   ⚠️ **Les buffs ATQ/DEF/VIT et le leader skill n'y sont pas** : ils
   sont dans « État de mon monstre »
-  (voir feat-ecran-etat-de-mon-monstre.md § État de mon monstre).
+  (voir etat-de-mon-monstre.md § État de mon monstre).
 - ⚠️ **Compétences d'invocateur : dérivées du contenu de la liste**
-  (voir feat-ecran-etat-de-mon-monstre.md § État de mon monstre). Rappel de ce
+  (voir etat-de-mon-monstre.md § État de mon monstre). Rappel de ce
   qu'elles font : **Contenu normal** (défaut) /
   **Contenu de guilde**, toujours supposées maxées. Aucun menu manuel :
   le contenu de la liste décide. En guilde, les bonus de l’onglet Guilde
@@ -248,7 +248,7 @@ Ce que contient ce réglage :
   **Contenu normal** (`normal`) à l’import, sans changer les bonus.
   La compétence « Puis. d'att. de <élément> » suit l'élément du
   monstre, sans rien demander. Détail des valeurs :
-  [degats-reels/ (effets d'équipe et leaders) § Leader skill d'équipe](../degats-reels/).
+  [degats-reels/feat-effets-equipe-et-leaders.md § Leader skill d'équipe](../../degats-reels/feat-effets-equipe-et-leaders.md#leader-skill-déquipe).
 - **Coup critique** — Critique (défaut, le plafond d'un coup isolé) /
   Non critique (le plancher). Si le sort garantit son critique, ou si
   le réglage actif remplit sa condition de critique garanti, le cran
@@ -300,8 +300,8 @@ tranche par stat de l'objectif dans chaque compartiment, et l'ordre des
 demi-builds) et le **tri par défaut** des résultats (modifiable ensuite).
 Il ne décide pas de ce qui est admis : seuls les minimums et maximums posés
 dans « Conditions » le font, quel que soit l'objectif choisi (voir
-feat-ecran-conditions-et-reglages.md § Conditions, inventaire et réglages avancés ;
-limite : limites-connues.md § L'objectif de recherche oriente, il ne garantit pas).
+conditions-et-reglages.md § Conditions, inventaire et réglages avancés ;
+limite : ../limites-connues.md § L'objectif de recherche oriente, il ne garantit pas).
 
 ⚠️⚠️ **UN OBJECTIF RETIRÉ SURVIT DANS LES SCRIPTS.** `objectiveKeysOf`
 retombe sur `[]` pour une valeur absente de la table : un script CLI/diag

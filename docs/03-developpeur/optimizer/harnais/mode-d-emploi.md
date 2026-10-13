@@ -2,8 +2,8 @@
 
 **Statut :** ÉTAT ACTUEL — mode d'emploi du harnais de diagnostic de l'Optimizer et ce qu'il garantit, avec le code qui porte chaque garantie
 **Lire si :** on diagnostique une recherche (une rune, un demi-build, un « 0 résultat », une configuration, un temps) ou on modifie `scripts/lib/diagnosticHarness.ts` et ses voisins
-**Ne pas lire si :** on cherche seulement les règles en bref : invariants.md § Harnais
-**Voir aussi :** harnais-extensions.md, harnais-scripts.md, invariants.md, verification.md, ../../02-app/optimizer/ (routage-par-tache.md)
+**Ne pas lire si :** on cherche seulement les règles en bref : ../invariants.md § Harnais
+**Voir aussi :** extensions.md, scripts.md, ../invariants.md, ../verification.md, ../../../02-app/optimizer/ (routage-par-tache.md)
 
 Le harnais rejoue une recherche de l'Optimizer en Node et dit ce qu'elle a
 fait : configuration appliquée, survie d'une rune étage par étage, régime,
@@ -12,8 +12,8 @@ production et ne réimplémente **aucune** étape algorithmique
 (`scripts/lib/diagnosticHarness.ts:1-23`). Il remplace le script de diagnostic
 ad hoc, qui reconstruit à la main des morceaux du pipeline et en dérive sans
 que rien ne le signale. Ses contraintes sont résumées dans
-invariants.md § Harnais ; ce fichier en est la source et dit où le code porte
-chacune (`fichier:lignes`). [harnais-extensions.md](harnais-extensions.md)
+../invariants.md § Harnais ; ce fichier en est la source et dit où le code porte
+chacune (`fichier:lignes`). [extensions.md](extensions.md)
 décrit le reste : construction observée, build cible, différentiel.
 
 ## Les scripts du harnais

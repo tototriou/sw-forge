@@ -15,7 +15,7 @@ Le thème suit le navigateur **par défaut**, et se force depuis le menu ⚙
 ⚠️ **Le choix se stocke comme un réglage, pas comme une donnée.** Il s'écrit
 toujours dans `localStorage`, même persistance refusée — comme le choix de
 conservation lui-même et la mesure de score (voir
-[conventions](../../) (« Conventions communes »)). Un thème oublié à
+[conventions](../../conventions.md#conventions-communes) (« Conventions communes »)). Un thème oublié à
 chaque visite serait un bug, pas une protection.
 
 ### Pourquoi deux directions nommées et pas une palette inversée

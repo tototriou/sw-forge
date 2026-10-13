@@ -62,7 +62,7 @@
    recherche » : ces groupes-ci peuvent passer à la ligne, et une barre
    verticale se retrouverait alors à pendre dans le vide au bout d'une rangée.
    Un contour ferme le groupe où qu'il aille. Un **seul** contour, jamais deux
-   superposés ([03-developpeur/interface/ (design)](../../03-developpeur/interface/)) — ces boîtes vivent à
+   superposés ([03-developpeur/interface/design/README.md](../../../03-developpeur/interface/design/README.md)) — ces boîtes vivent à
    l'intérieur de la carte, elles ne longent pas son bord. `items-stretch` les
    met à la hauteur de la plus haute, sinon une boîte d'une rangée flotterait
    au milieu d'une boîte de deux et l'œil lirait un décalage.
@@ -82,7 +82,7 @@
    explication et le motif ont une place réservée, au bureau comme au
    téléphone. Le lead effectif écrase le lead personnel du membre, dans ses
    critères et sa mémoire, et lui reste quand il quitte l’équipe. Voir
-   feat-listes-equipes-et-sauvegarde.md § Lead effectif d’un membre.
+   ../feat-listes-equipes-et-sauvegarde.md § Lead effectif d’un membre.
 
    Hors équipe, changer le lead depuis cette carte efface aussi l’ancien
    champ de VIT (`leaderSpeedPct`) des critères personnels : choisir
@@ -101,7 +101,7 @@
    Elle saisit `DamageSetup.setsAuraExternes` : les sets Fight,
    Determination, Enhance, Accuracy et Tolerance portés par les **autres**
    monstres de l'équipe (voir
-   [effets d'équipe](../degats-reels/)). En tête,
+   [effets d'équipe](../../degats-reels/)). En tête,
    le libellé « Sets d'aura des autres monstres », son aide — les sets du
    monstre optimisé sont comptés automatiquement sur chaque build, même
    s'ils ne sont pas recherchés — et le total « X / 15 ». Dessous, le bouton
@@ -132,7 +132,7 @@
 
    **Rappel au changement de monstre** — choisir un
    autre monstre **depuis la liste de travail** (voir
-   feat-listes-et-reservation.md § Zone C — Monstres de la liste) — autre espèce, ou autre exemplaire de la même espèce —
+   ../feat-listes-et-reservation.md § Zone C — Monstres de la liste) — autre espèce, ou autre exemplaire de la même espèce —
    alors que des auras externes sont renseignées passe leur boîte au token
    d'attention : contour `warn` et fond `warn-soft` à la place de ses
    couleurs, toujours un seul contour de 1 px, et l'en-tête de la boîte
@@ -153,7 +153,7 @@
    ni dans un effet sur le monstre sélectionné, que l'import pose aussi.
    Le même message paraît aussi sous la liste de la zone C, du même état et
    pour la même durée (voir
-   feat-listes-et-reservation.md § Zone C — Monstres de la liste).
+   ../feat-listes-et-reservation.md § Zone C — Monstres de la liste).
 
 ## Ouverture guidée vers l'interrupteur des auras RES/PRE
 
@@ -162,7 +162,7 @@
    externes (nouvelle ligne, ou ligne passée à ce set), ou le choisir comme
    **set recherché** (sans toucher aux auras externes), guide vers « Compter
    les effets d'auras Tolerance et Précision dans les conditions » (point 9,
-   voir feat-ecran-conditions-et-reglages.md § Réglages avancés). Fight, Determination et Enhance n'ouvrent
+   voir conditions-et-reglages.md § Réglages avancés). Fight, Determination et Enhance n'ouvrent
    rien : leurs auras n'entrent dans aucune condition, aucun réglage ne leur
    est associé. Un nombre changé sur une ligne déjà présente, une seconde
    activation du même set ou un retrait ne guident pas non plus ; le

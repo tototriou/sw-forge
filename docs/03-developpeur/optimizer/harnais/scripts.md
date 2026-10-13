@@ -2,11 +2,11 @@
 
 **Statut :** ÉTAT ACTUEL — le harnais de diagnostic lancé sur les cas réels connus (`--cas`), et les scripts de diagnostic qui restent à côté de lui : ce que chacun produit seul, ce que le harnais en couvre, et comment décider d'en garder ou d'en retirer un, avec le code qui porte chaque garantie
 **Lire si :** on lance le harnais sur plusieurs cas réels, on lit la sortie d'un script `-diag` ou `optimum-*`, ou on s'apprête à en écrire, en garder ou en supprimer un
-**Ne pas lire si :** on cherche le mode d'emploi du harnais sur un cas : harnais.md
-**Voir aussi :** harnais.md, harnais-extensions.md, verification.md
+**Ne pas lire si :** on cherche le mode d'emploi du harnais sur un cas : mode-d-emploi.md
+**Voir aussi :** mode-d-emploi.md, extensions.md, ../verification.md
 
-[harnais.md](harnais.md) décrit un run du harnais,
-[harnais-extensions.md](harnais-extensions.md) ses instruments et son
+[mode-d-emploi.md](mode-d-emploi.md) décrit un run du harnais,
+[extensions.md](extensions.md) ses instruments et son
 différentiel. Ce fichier dit comment le faire tourner sur les cas réels
 connus, et ce qui reste aux scripts de diagnostic de `scripts/`. Le code
 porte chaque garantie (`fichier:lignes`).
@@ -56,7 +56,7 @@ recherches — et `--apercu` rend les N paliers 1 sans rien exécuter
 condition commune, puis `AVERTISSEMENT_LOT` AVANT le tableau : une
 différence entre deux lignes est une différence entre deux CAS, jamais
 l'effet d'un paramètre ; comparer deux conditions demande de les entrelacer
-(harnais-extensions.md § Le différentiel : l'oracle). L'avertissement part
+(extensions.md § Le différentiel : l'oracle). L'avertissement part
 aussi dans `--json` (`ResultatLot.avertissementLot`,
 `scripts/lib/diagnosticLot.ts:364-403`, `tests/diagnostic-harness.test.ts:977-1030`).
 Les colonnes suivent le point d'arrêt ; les temps y sont des minimums, dont
@@ -66,12 +66,12 @@ la dispersion se lit dans le bloc de chaque cas (`rendreRecapLot`,
 ## Garder ou retirer un script de diagnostic
 
 Un script ad hoc reste légitime pour une question que le harnais ne couvre
-pas (harnais.md § Ce que le harnais n'absorbe pas). Son sort se décide script
+pas (mode-d-emploi.md § Ce que le harnais n'absorbe pas). Son sort se décide script
 par script, sur son code et non sur son en-tête :
 
 1. **Le harnais sait-il construire l'entrée ?** Il ne construit qu'un pool
    `randomPool` à graine ou celui d'un compte réel par une recette
-   (harnais.md § Deux sources : une recette ou un pool synthétique) : aucune
+   (mode-d-emploi.md § Deux sources : une recette ou un pool synthétique) : aucune
    principale forcée par emplacement, aucune rune fabriquée. Sinon, chercher
    l'entrée fidèle qui pose la même question, souvent un compte réel avec
    des principales imposées : garder un script pour son pool artificiel
@@ -99,7 +99,7 @@ la recherche du nom sur tout le dépôt.
 | `scripts/optimizer-bucket-list-diag.ts` | le catalogue des compartiments d'une moitié, ce qui devance la cible compris | le rang du compartiment seul |
 | `scripts/monster-search-multicount-diag.ts` | l'ensemble des builds trouvés, pas un top | le top rendu et, avec un build cible, le cardinal ; `metric` et `adaptiveTrancheWeighting` ne se surchargent pas |
 | `scripts/rune-owner-diag.ts` | le porteur d'une rune dans la box, sans toucher au moteur | l'étage 0 dit une rune absente du pool d'entrée, pas qui la porte |
-| `scripts/optimizer-deck10-final-diag.ts`, `scripts/combos-order-mode-real-account-diag.ts` | l'instant de découverte et la courbe de rendement, aux mêmes jalons ; le second apparie en séquentiel et lit ses comptes sous `maxMs` | `decouverteBuildCible` (harnais-extensions.md § Instant de découverte et dispersion par tranche) |
+| `scripts/optimizer-deck10-final-diag.ts`, `scripts/combos-order-mode-real-account-diag.ts` | l'instant de découverte et la courbe de rendement, aux mêmes jalons ; le second apparie en séquentiel et lit ses comptes sous `maxMs` | `decouverteBuildCible` (extensions.md § Instant de découverte et dispersion par tranche) |
 | `scripts/optimum-speed-diag.ts` | la comparaison de deux VERSIONS du code, copié dans le `git worktree` d'un ancien commit | son `foundExplored`, un compte de paires que `scripts/perf-battery-compare.ts` ne rend pas, est `decouverteBuildCible` |
 | `scripts/optimum-speed-targets.ts` | une vérité terrain : par couple de compartiments, les paires dans l'ordre de leur somme de `relevanceScore`, par un tas, sans matérialiser le produit cartésien ; au-delà de `HEAP_BUDGET` paires examinées, le refus de conclure (`scripts/optimum-speed-targets.ts:97-183`) | aucun optimum ; un run complet à `bucketCap` maximal classe toutes les paires quand il reste atteignable |
 | `scripts/retention-dispersion-diag.ts` | un CV sur les demi-builds retenus, compartiments aplatis, principale comprise | le CV que le moteur utilise : `dispersionTranches` |

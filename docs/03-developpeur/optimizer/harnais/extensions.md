@@ -2,15 +2,15 @@
 
 **Statut :** ÉTAT ACTUEL — ce que le harnais de diagnostic fait au-delà de son mode d'emploi de base (niveaux de coût d'une extension, configuration, observation de la construction, build cible, instant de découverte, dispersion par tranche, différentiel et ses profils), avec le code qui porte chaque garantie
 **Lire si :** on lit ou modifie une sortie du harnais sur la construction des demi-builds (rétention, mémoire, `--progression`), un build cible à six identifiants, un différentiel (`--differentiel`, `--profil`), ou on envisage d'étendre le harnais
-**Ne pas lire si :** on cherche le mode d'emploi de base du harnais : harnais.md
-**Voir aussi :** harnais.md, harnais-scripts.md, invariants.md, verification.md
+**Ne pas lire si :** on cherche le mode d'emploi de base du harnais : mode-d-emploi.md
+**Voir aussi :** mode-d-emploi.md, scripts.md, ../invariants.md, ../verification.md
 
-Ce fichier prolonge [harnais.md](harnais.md), le mode d'emploi (sources,
+Ce fichier prolonge [mode-d-emploi.md](mode-d-emploi.md), le mode d'emploi (sources,
 phases, palier 1, suivi d'une rune, complétude, temps, régime) : ce que le
 harnais fait en plus, et où le code le porte (`fichier:lignes`). Les sorties
 décrites impriment elles-mêmes leurs avertissements ; la spec dit pourquoi.
 Le lot sur les cas connus et les scripts de diagnostic voisins sont dans
-[harnais-scripts.md](harnais-scripts.md).
+[scripts.md](scripts.md).
 
 ## Étendre le harnais : quatre niveaux de coût
 
@@ -32,7 +32,7 @@ production ne fait pas »), la somme `combosA` serait déjà du niveau C
 question falsifiable — deux hypothèses incompatibles produisent les mêmes
 observations A, seule une mesure interne les départage —, jamais par « plus
 de détail » ; c'est à ce titre que `scripts/monster-search-rank-diag.ts`
-reste à part (harnais.md § Limite : la rétention interne de buildBuckets).
+reste à part (mode-d-emploi.md § Limite : la rétention interne de buildBuckets).
 Le code étiquette ses instruments par niveau
 (`scripts/lib/diagnosticHarness.ts:466-481`, `scripts/lib/diagnosticHarness.ts:497-522`).
 Ne pas reprendre une recherche depuis un état intermédiaire réinjecté tant
@@ -69,7 +69,7 @@ rejouerait pas le même pool (`scripts/diagnostic-harness.ts:390-393`) ; un
 `--siege` au `deckId` non entier ou à la variante autre que `defense`
 (`scripts/diagnostic-harness.ts:412-430`). `--cap` reste sans défaut au CLI :
 `resoudreConfig` refuse le run sans lui
-(harnais.md § Les overrides et leurs deux pièges).
+(mode-d-emploi.md § Les overrides et leurs deux pièges).
 
 **Ce que la fidélité ne prouve pas.** La liste imprimée sous son verdict
 (`horsPerimetre` : composition du pool, paramètre absent de la table,
@@ -78,7 +78,7 @@ retire aucune ligne, aucune de ces choses n'étant un paramètre
 (`scripts/lib/diagnosticConfig.ts:321-332`).
 
 **Les paramètres effectifs non surchargeables** de la table
-(harnais.md § Le palier 1 : configuration effective et fidélité) ont leur
+(mode-d-emploi.md § Le palier 1 : configuration effective et fidélité) ont leur
 `valeurProd` égale à leur `valeur` : ils comblent un angle mort de l'aperçu
 sans faire basculer aucun verdict de fidélité (`parametresNonSurchargeables`,
 `scripts/lib/diagnosticConfig.ts:260-319`, `tests/diagnostic-harness.test.ts:94-112`).
@@ -182,7 +182,7 @@ ouvertes : distribution des pools, coût des prédicats de faisabilité,
 profondeur des branches coupées, composition en sets. Aucun instrument ne
 compte les triplets réellement énumérés : ce compteur, dans la boucle interne
 de `buildBuckets`, serait du niveau C
-(harnais.md § Limite : la rétention interne de buildBuckets).
+(mode-d-emploi.md § Limite : la rétention interne de buildBuckets).
 
 ## Le suivi d'un build cible
 
@@ -194,7 +194,7 @@ qu'une information a été perdue, chercher ensuite pourquoi.
 | Étage | Champ du résultat | Code |
 |---|---|---|
 | 0 — admissibilité à l'entrée | `admissibiliteBuildCible` | `admissibiliteBuild`, `scripts/lib/diagnosticHarness.ts:1524-1599` |
-| 1 à 3 — survie des runes, des deux demi-builds | `suivi`, `detailDemiBuilds` | le suivi d'une rune de harnais.md |
+| 1 à 3 — survie des runes, des deux demi-builds | `suivi`, `detailDemiBuilds` | le suivi d'une rune de mode-d-emploi.md |
 | 4 et 5 — paire de compartiments, rang | `appariementBuildCible` | `scripts/lib/diagnosticHarness.ts:1406-1497` |
 | verdict | `verdictBuildCible` | `scripts/lib/diagnosticHarness.ts:1665-1810` |
 
@@ -427,7 +427,7 @@ cible (`cible`) qui n'est pas au rang 1, où il masquerait la sensibilité du
 classement (`scripts/lib/diagnosticProfils.ts:116-169`) ; le générateur
 partagé, à côté des générateurs biaisés que `randomPool` ne remplace pas,
 jamais en les migrant (`scripts/lib/diagnosticProfils.ts:12-18` ;
-harnais.md § Deux sources : une recette ou un pool synthétique).
+mode-d-emploi.md § Deux sources : une recette ou un pool synthétique).
 
 Trois profils, du moins cher au plus cher (`PROFILS`,
 `scripts/lib/diagnosticProfils.ts:171-293`), chacun avec ses bras essayés
@@ -474,7 +474,7 @@ Avant l'oracle, la sortie compare les paramètres EFFECTIFS des deux paliers
 avoir été demandé (`diffParametres`, `scripts/lib/diagnosticDifferentiel.ts:445-470`,
 `scripts/lib/diagnosticDifferentiel.ts:1283-1304`) : surcharger
 `slotFilterCap` déplace `bucketCap` dérivé
-(harnais.md § Les overrides et leurs deux pièges) ; figer `--bucketCap` dans
+(mode-d-emploi.md § Les overrides et leurs deux pièges) ; figer `--bucketCap` dans
 les deux bras isole l'axe. L'annonce dit, avant de payer, le coût (2N
 recherches), un axe absent d'`axesSensibles` et l'absence de plancher à un
 passage (`annoncerDifferentiel`, `scripts/lib/diagnosticDifferentiel.ts:1207-1247`).

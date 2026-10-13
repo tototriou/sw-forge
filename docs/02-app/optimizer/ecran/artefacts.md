@@ -91,7 +91,7 @@
    masque d'un coup les deux listes ET les
    lignes verrouillées : en tête de cette colonne,
    ce clic ferait REMONTER « Conditions », soit un clic qui déplace ce qui
-   le suit ([03-developpeur/interface/ (design)](../../03-developpeur/interface/)).
+   le suit ([03-developpeur/interface/design/README.md](../../../03-developpeur/interface/design/README.md)).
 
    ⚠️ **Pas en pleine largeur** : la pleine
    largeur projette la puce de sorte, le champ de minimum et la croix à
@@ -101,7 +101,7 @@
 
    La **relique** vit dans un **bloc séparé de cette même carte**, le bloc
    qui **ferme la carte**, sous « Meilleurs artéfacts offensifs pour ce
-   build » (voir feat-ecran-relique.md § Relique).
+   build » (voir relique.md § Relique).
    L'interrupteur ci-dessus masque d'un seul geste les deux listes
    d'artéfacts ET le bloc Relique.
 

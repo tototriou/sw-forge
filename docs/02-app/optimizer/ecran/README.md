@@ -3,6 +3,47 @@
 **Statut :** ÉTAT ACTUEL — décrit les contrôles, la mise en page et la conservation de la saisie de l'écran de l'Optimizer, et renvoie à une page par carte
 **Lire si :** on modifie la grille de l'écran, l'ordre ou le placement des cartes, un panneau dépliant, l'adaptation à la largeur ou la conservation de la saisie
 
+L'écran de l'Optimizer : ce document décrit la mise en page d'ensemble ; chaque carte a le sien.
+Le reste de l'outil (listes, import d'équipes, exclusion, interruption) est dans
+[../README.md](../README.md).
+
+## Le changement touche…
+
+| Le changement touche… | Lire |
+| --- | --- |
+| la mise en page de `src/components/outils/OptimizerSection.tsx` : grille, panneaux dépliants, largeur, changement d'onglet | ce README |
+| « Monstre à optimiser », `src/components/outils/MonsterSourcePicker.tsx` | [recherche-du-monstre.md](recherche-du-monstre.md) |
+| « Meilleurs artéfacts offensifs pour ce build », `src/components/ArtifactSubLigne.tsx` | [meilleurs-artefacts-offensifs.md](meilleurs-artefacts-offensifs.md) |
+| « Équipement actuel » | [equipement-actuel.md](equipement-actuel.md) |
+| l'objectif de recherche, `src/components/outils/DamageSetupCard.tsx`, `src/components/outils/DamageSetupModale.tsx` | [objectif-de-recherche.md](objectif-de-recherche.md) |
+| le set recherché et les principales imposées, `src/components/outils/SetComboPicker.tsx` | [set-et-principale.md](set-et-principale.md) |
+| la carte « Artéfacts » | [artefacts.md](artefacts.md) |
+| la carte « Relique », `src/components/RelicSlot.tsx` | [relique.md](relique.md) |
+| « État de mon monstre », `src/components/outils/EtatMonstre.tsx`, `src/lib/aurasExternes.ts`, `src/lib/buffsDePassif.ts` | [etat-de-mon-monstre.md](etat-de-mon-monstre.md) |
+| les sous-propriétés verrouillées | [sous-proprietes-verrouillees.md](sous-proprietes-verrouillees.md) |
+| les conditions, l'inventaire et les réglages avancés | [conditions-et-reglages.md](conditions-et-reglages.md) |
+| « Lancer la recherche » | [lancer-la-recherche.md](lancer-la-recherche.md) |
+| les résultats, `src/components/outils/BuildCandidateCard.tsx` | [resultats.md](resultats.md) |
+
+## Documents
+
+| Document | Contenu |
+| --- | --- |
+| [recherche-du-monstre.md](recherche-du-monstre.md) | La carte « Recherche du monstre à optimiser ». |
+| [meilleurs-artefacts-offensifs.md](meilleurs-artefacts-offensifs.md) | La carte « Meilleurs artéfacts offensifs pour ce build ». |
+| [equipement-actuel.md](equipement-actuel.md) | La carte « Équipement actuel ». |
+| [objectif-de-recherche.md](objectif-de-recherche.md) | La carte « Objectif de recherche », dont l'objectif « Dégâts réels ». |
+| [set-et-principale.md](set-et-principale.md) | Le set de runes recherché et la statistique principale imposée. |
+| [artefacts.md](artefacts.md) | La carte « Artéfacts ». |
+| [relique.md](relique.md) | La carte « Relique ». |
+| [etat-de-mon-monstre.md](etat-de-mon-monstre.md) | La carte « État de mon monstre » : auras, buffs de passif. |
+| [sous-proprietes-verrouillees.md](sous-proprietes-verrouillees.md) | Les sous-propriétés verrouillées. |
+| [conditions-et-reglages.md](conditions-et-reglages.md) | Les conditions, l'inventaire et les réglages avancés. |
+| [lancer-la-recherche.md](lancer-la-recherche.md) | « Lancer la recherche ». |
+| [resultats.md](resultats.md) | Les résultats : cartes de build, pagination, vérification. |
+
+## Mise en page d'ensemble
+
 **Mise en page bureau — UNE SEULE grille à partir de `xl`**
 ([OptimizerSection.tsx](src/components/outils/OptimizerSection.tsx), `grid gap-5
 items-start xl:grid-cols-[1.35fr_1fr]`), où chaque carte reçoit un
@@ -24,12 +65,12 @@ passeraient à la ligne, cette dernière hors du cadre visible) ; en `fr`, elle
 suit la largeur réelle de l'écran au lieu d'un plafond deviné. La barre
 d'actions, la progression et les résultats restent **pleine largeur, hors de
 cette grille** — la grille de cartes de résultat profite directement de la
-largeur gagnée (`auto-fill`, voir feat-ecran-resultats.md § Résultats).
+largeur gagnée (`auto-fill`, voir resultats.md § Résultats).
 
 ## Contrôles et largeur
 
 ⚠️ **Tous les contrôles viennent de la librairie `src/ui/`**, comme partout
-dans l'app (« rien de custom », voir [03-developpeur/interface/ (design)](../../03-developpeur/interface/)) : les
+dans l'app (« rien de custom », voir [03-developpeur/interface/design/README.md](../../../03-developpeur/interface/design/README.md)) : les
 minimums en `NumberField`, l'objectif et le pré-filtrage en `Segmented`, les
 statistiques principales imposées en `Pastille`, les artéfacts et le tri en
 `Selecteur`, les bascules en `Interrupteur`, Rechercher/Exporter/Importer/
@@ -60,7 +101,7 @@ cartes optionnelles. Entre `lg` et `xl`, la grille n'a qu'une colonne et
 les cartes s'empilent dans l'ordre du DOM, qui place « Réglages avancés »
 avant « Exclusion de runes » : l'inverse de l'ordre d'usage. L'objectif,
 lui, vit dans la carte du bouton Rechercher, sous la grille (voir
-feat-ecran-objectif-de-recherche.md § Objectif de recherche).
+objectif-de-recherche.md § Objectif de recherche).
 
 Depuis `xl`, **une seule grille** (deux colonnes, six rangées) porte tout
 l'écran de réglages, en placement EXPLICITE (`col-start`/`row-start`/
@@ -80,17 +121,17 @@ l'écran de réglages, en placement EXPLICITE (`col-start`/`row-start`/
    juste après — séparés, ils passeraient à la ligne dans une colonne
    étroite. Un **sélecteur de source** (Box / RTA / Défenses siège /
    Offenses siège, même contrôle qu'« Exclure les runes d'un monstre »,
-   voir feat-exclusion.md § Exclusion manuelle — un monstre précis, dans n'importe quelle source) apparaît entre le libellé « Monstre à optimiser » et son champ de
+   voir ../feat-exclusion.md § Exclusion manuelle — un monstre précis, dans n'importe quelle source) apparaît entre le libellé « Monstre à optimiser » et son champ de
    recherche — mais **désambiguïse un EXEMPLAIRE, pas un premier choix
    obligatoire** : la recherche résout d'abord une ESPÈCE dans tout le
-   bestiaire (voir feat-ecran-recherche-du-monstre.md § Recherche du monstre à optimiser).
+   bestiaire (voir recherche-du-monstre.md § Recherche du monstre à optimiser).
    ⚠️ **La fiche reste TOUJOURS affichée**,
    vide (stats à zéro, artéfacts grisés, roue vide) tant qu'aucun monstre
    n'est choisi, plutôt que de n'apparaître qu'au clic — l'espace qu'elle
-   occupe est réservé d'avance (voir [03-developpeur/interface/ (design)](../../03-developpeur/interface/),
+   occupe est réservé d'avance (voir [03-developpeur/interface/design/README.md](../../../03-developpeur/interface/design/README.md),
    « un clic ne déplace jamais ce qu'on vient de cliquer »). Juste en
    dessous des puces de source : **zone C**, « Monstres de la liste »
-   (voir feat-listes-et-reservation.md § Zone C — Monstres de la liste).
+   (voir ../feat-listes-et-reservation.md § Zone C — Monstres de la liste).
 2. **Rangée 2 : Critères de recherche (colonne 1, `row-span-4` — occupe
    aussi les rangées 3, 4 et 5).** ⚠️ Ce nombre suit la colonne d'EN FACE
    (Artéfacts, État de mon monstre, Exclusion de runes, Réglages avancés),
@@ -98,7 +139,7 @@ l'écran de réglages, en placement EXPLICITE (`col-start`/`row-start`/
    retirée à droite se répercute ici **et** sur la rangée de la ligne
    d'estimation, qui reste toujours la dernière.
    « Objectif de recherche » n'est pas dans la grille : il est en tête de la
-   carte du bouton Rechercher (voir feat-ecran-objectif-de-recherche.md § Objectif de recherche).
+   carte du bouton Rechercher (voir objectif-de-recherche.md § Objectif de recherche).
    Le contenu de « Critères de
    recherche », en **DEUX colonnes internes** : à
    **gauche**, **Set de runes recherché** puis **Statistique principale
@@ -109,7 +150,7 @@ l'écran de réglages, en placement EXPLICITE (`col-start`/`row-start`/
    principale, Conditions). ⚠️ **Traits de séparation** : un **trait vertical** entre les
    deux colonnes (`lg:border-r`, posé sur la colonne de gauche uniquement —
    jamais deux traits à 1 px l'un de l'autre, voir
-   [03-developpeur/interface/ (design)](../../03-developpeur/interface/)), UNIQUEMENT à partir de `lg` ; un
+   [03-developpeur/interface/design/README.md](../../../03-developpeur/interface/design/README.md)), UNIQUEMENT à partir de `lg` ; un
    **trait horizontal** entre Set de runes recherché
    et Statistique principale imposée —
    quel que soit le format, y compris au doigt.
@@ -121,12 +162,12 @@ l'écran de réglages, en placement EXPLICITE (`col-start`/`row-start`/
    principal** (4 pièces) s'affiche sur **deux lignes de trois** en
    permanence (comme au doigt), pour laisser plus de largeur au set
    secondaire.
-3. **Rangée 2, colonne 2 : Artéfacts** (voir feat-ecran-artefacts.md § Artéfacts) — sous « Exemplaire »,
+3. **Rangée 2, colonne 2 : Artéfacts** (voir artefacts.md § Artéfacts) — sous « Exemplaire »,
    le bloc se lisant « ces artéfacts, sur CE build ». **Rangée 3, colonne 2 :
-   État de mon monstre** (voir feat-ecran-etat-de-mon-monstre.md § État de mon monstre).
+   État de mon monstre** (voir etat-de-mon-monstre.md § État de mon monstre).
 4. **Rangée 4, colonne 2 : Exclusion de runes** (carte à bordure
    accentuée, fonctionnalité vedette — regroupe aussi **« Conserver ces slots dans l'optimisation »** (les runes imposées),
-   voir feat-exclusion.md § Runes imposées — verrouiller un emplacement sur une rune précise).
+   voir ../feat-exclusion.md § Runes imposées — verrouiller un emplacement sur une rune précise).
 5. **Rangée 5, colonne 2 : Réglages avancés** — SOUS Exclusion de runes,
    pas au-dessus.
 6. **Rangée 6, pleine largeur : ligne d'estimation** — ni dans la colonne
@@ -147,7 +188,7 @@ la carte garde TOUJOURS sa hauteur repliée, aucune rangée ne peut
 bouger. Un panneau replié par défaut ne peut pas réserver sa place à
 l'avance sans perdre l'intérêt d'être replié — il sort donc du flux
 (flottant), l'autre option prévue par
-[03-developpeur/interface/ (design)](../../03-developpeur/interface/), « un clic ne déplace jamais ce
+[03-developpeur/interface/design/README.md](../../../03-developpeur/interface/design/README.md), « un clic ne déplace jamais ce
 qu'on vient de cliquer ». Ferme au clic extérieur, même patron que
 `HelpPopover.tsx`.
 
@@ -249,7 +290,7 @@ session » sérialise une photo à la demande, mais aucun chemin de `App.tsx`
 ne la réapplique actuellement. Les critères personnels d'un membre de liste
 peuvent en revanche être mémorisés par `useOptimizerLists`, sous
 l'interrupteur global de conservation (voir
-[feat-listes-equipes-et-sauvegarde.md](feat-listes-equipes-et-sauvegarde.md)
+[../feat-listes-equipes-et-sauvegarde.md](../feat-listes-equipes-et-sauvegarde.md)
 § Mémoires des membres). Le Worker de recherche lui-même
 suit ce cycle de vie : une recherche en cours **continue de tourner** en
 arrière-plan si on change d'onglet, et son résultat est toujours là au

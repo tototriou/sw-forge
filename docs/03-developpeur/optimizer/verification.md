@@ -2,8 +2,8 @@
 
 **Statut :** ÉTAT ACTUEL — décrit les contrôles qui couvrent l'algorithme de recherche : référence exhaustive, oracles, différentiels tirés et ciblés, benchmarks et validation sur un compte réel
 **Lire si :** on modifie l'algorithme de recherche et qu'il faut savoir quels contrôles le couvrent, ou en écrire un
-**Ne pas lire si :** on cherche comment l'algorithme coupe l'espace (moteur-elagages.md) ou comment diagnostiquer une recherche (harnais.md)
-**Voir aussi :** invariants.md, harnais.md, moteur-elagages.md, ../../02-app/optimizer/ (routage-par-tache.md)
+**Ne pas lire si :** on cherche comment l'algorithme coupe l'espace (moteur/elagages.md) ou comment diagnostiquer une recherche (harnais/mode-d-emploi.md)
+**Voir aussi :** invariants.md, harnais/mode-d-emploi.md, moteur/elagages.md, ../../02-app/optimizer/ (routage-par-tache.md)
 
 Tout changement de `src/lib/runeBuildOptim.ts` suit la discipline du skill
 `algo-verify` (`.claude/skills/algo-verify/SKILL.md`) : une référence de
@@ -29,11 +29,11 @@ contient le filtre (registre : `tests/index.ts`), par exemple
 | `testRuneOptimNearMiss` | `tests/rune-optim-near-miss.test.ts` | le quasi-succès retenu à l'appariement, y compris après un arrêt manuel |
 | `testRuneOptimDeadHalfPruning` | `tests/rune-optim-dead-half-pruning.test.ts` | l'élagage exact des demi-builds sans aucune pièce d'un set demandé à plus de 3 pièces |
 | `testFilterSlotTopK` | `tests/rune-optim-filterslot-topk.test.ts` | le top-K de `filterSlot` par le vrai tas (`heapPush`) contre un tri complet |
-| `testRuneOptimOnStage` | `tests/rune-optim-onstage.test.ts` | l'observateur `onStage` ne change rien au résultat de `prepareSearch` (détail : harnais.md § L'observateur onStage) |
+| `testRuneOptimOnStage` | `tests/rune-optim-onstage.test.ts` | l'observateur `onStage` ne change rien au résultat de `prepareSearch` (détail : harnais/mode-d-emploi.md § L'observateur onStage) |
 | `testRandomPool` | `tests/random-pool.test.ts` | le pool synthétique partagé (`scripts/lib/randomPool.ts`) tire toujours la même séquence |
 | `testRelicOracle`, `testRelicOracleGroupesEffetUnique`, `testRelicOracleOptimumParScore` | `tests/relic-oracle.test.ts` | l'oracle de la dimension relique (`oracleSearch`, `scripts/lib/relicOracle.ts`) |
 | `testRelicDifferentiel` | `tests/relic-differentiel.test.ts` | le différentiel de fidélité de la dimension relique : comparaison pure, puis orchestrateur contre `oracleSearch` si un export de compte est présent |
-| `testDiagnosticHarness`, `testDiagnosticProfils`, `testDiagnosticDifferentiel`, `testDiagnosticDecouverte` | `tests/diagnostic-harness.test.ts` et voisins | le harnais de diagnostic (harnais.md § Harnais de diagnostic) |
+| `testDiagnosticHarness`, `testDiagnosticProfils`, `testDiagnosticDifferentiel`, `testDiagnosticDecouverte` | `tests/diagnostic-harness.test.ts` et voisins | le harnais de diagnostic (harnais/mode-d-emploi.md § Harnais de diagnostic) |
 
 ## Référence exhaustive : le test différentiel
 

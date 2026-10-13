@@ -19,7 +19,7 @@ les replis rapides de `pairBuckets` écartent presque toutes les paires avant
 `computeStats`. Le gain le plus large viendrait donc d'explorer moins de
 paires, pas de les parcourir plus vite. Au préréglage le plus large, c'est
 la construction des compartiments qui domine
-([03-developpeur/optimizer/ § Benchmarks](../03-developpeur/optimizer/)).
+([03-developpeur/optimizer/verification.md § Benchmarks](../03-developpeur/optimizer/verification.md#benchmarks)).
 
 Les entrées ci-dessous accélèrent la recherche sans changer ce qu'elle
 cherche. Celles qui changent le pool, les garanties ou le résultat, même
@@ -28,7 +28,7 @@ pour aller plus vite, sont dans
 paires (§ Optimalité prouvée : Branch & Bound sur les paires, statuts du
 résultat), couper plus tôt, autre partition des moitiés, GPU — et touchent
 la justesse : aucune sans la référence exhaustive qu'exige le skill
-`algo-verify` ([03-developpeur/optimizer/ § Référence exhaustive : le test différentiel](../03-developpeur/optimizer/)).
+`algo-verify` ([03-developpeur/optimizer/verification.md § Référence exhaustive : le test différentiel](../03-developpeur/optimizer/verification.md#référence-exhaustive--le-test-différentiel)).
 
 ### Le temps relu à chaque paire
 
@@ -42,7 +42,7 @@ la justesse : aucune sans la référence exhaustive qu'exige le skill
   d'une paire est une estimation, et le moteur JavaScript peut le réduire
   de lui-même : le mesurer d'abord (skill `optimizer-perf-testing`). Le
   harnais déduit le motif d'arrêt de l'ordre des tests dans la boucle
-  ([03-developpeur/optimizer/ (harnais) § Complétude : jamais un « 0 candidat » nu](../03-developpeur/optimizer/)) :
+  ([03-developpeur/optimizer/harnais/README.md](../03-developpeur/optimizer/harnais/README.md)) :
   à revérifier avec le nouvel ordre.
 
 ### Rendre la main moins souvent pendant l'appariement
@@ -50,7 +50,7 @@ la justesse : aucune sans la référence exhaustive qu'exige le skill
 - **Constat** : au navigateur, `drivePairing` rend la main toutes les
   50 ms (`YIELD_THROTTLE_MS`, `src/workers/pairingDriver.ts`) par un
   `setTimeout(0)`, que les navigateurs retardent de quelques millisecondes
-  quand il s'enchaîne ([03-developpeur/optimizer/ (harnais) § Note de plateforme : Node et navigateur](../03-developpeur/optimizer/)).
+  quand il s'enchaîne ([03-developpeur/optimizer/harnais/README.md § Note de plateforme : Node et navigateur](../03-developpeur/optimizer/harnais/README.md)).
   Le commentaire de la constante justifie le principe, ne pas rendre la
   main à chaque point de passage, pas la valeur 50.
 - **Idée** : porter le délai à 200 ms : le surcoût de planification serait
@@ -73,12 +73,12 @@ la justesse : aucune sans la référence exhaustive qu'exige le skill
 
 - **Constat** : `partitionBucketsALPT` équilibre les tranches par taille
   (`combos.length`), jamais par productivité
-  ([03-developpeur/optimizer/ § Répartition et partage du plafond](../03-developpeur/optimizer/)).
+  ([03-developpeur/optimizer/moteur/parallelisation.md § Répartition et partage du plafond](../03-developpeur/optimizer/moteur/parallelisation.md#répartition-et-partage-du-plafond)).
   Sous troncature, une tranche peu productive et une tranche qui bute sur
   sa part du plafond coexistent. Aucune perte n'est constatée, ni sur un
   pool synthétique ni sur les cas connus, depuis la coupe des moitiés sans
   pièce d'un set de plus de 3 pièces
-  ([03-developpeur/optimizer/ § Faisabilité de set, groupage par compte et jokers](../03-developpeur/optimizer/)).
+  ([03-developpeur/optimizer/moteur/elagages.md § Faisabilité de set, groupage par compte et jokers](../03-developpeur/optimizer/moteur/elagages.md#faisabilité-de-set-groupage-par-compte-et-jokers)).
 - **Idée** : équilibrer par productivité attendue, ou redistribuer les
   parts du plafond en cours de route.
 - **Bloque** : aucun cas réel ne montre de perte : à rouvrir sur un tel cas.
@@ -92,7 +92,7 @@ la justesse : aucune sans la référence exhaustive qu'exige le skill
   dans l'ordre de `slotIdxs`, quel qu'il soit ; la faisabilité de set
   (`stillFeasible`) coupe une branche dès qu'elle ne peut plus atteindre le
   compte de pièces demandé
-  ([03-developpeur/optimizer/ § Faisabilité de set, groupage par compte et jokers](../03-developpeur/optimizer/)).
+  ([03-developpeur/optimizer/moteur/elagages.md § Faisabilité de set, groupage par compte et jokers](../03-developpeur/optimizer/moteur/elagages.md#faisabilité-de-set-groupage-par-compte-et-jokers)).
 - **Idée** : mettre en position extérieure l'emplacement le plus contraint,
   pour couper les branches mortes avant d'avoir parcouru les deux autres.
   Pur réordonnancement : la justesse ne change pas.
@@ -141,10 +141,10 @@ la justesse : aucune sans la référence exhaustive qu'exige le skill
 - **Constat** : le harnais rapporte, par moitié, les demi-builds retenus au
   produit brut des pools, la mémoire de fin de fil et, avec
   `--progression`, une progression par rune extérieure
-  ([03-developpeur/optimizer/ (harnais, extensions) § La construction observée](../03-developpeur/optimizer/)) ;
+  ([03-developpeur/optimizer/harnais/extensions.md § La construction observée](../03-developpeur/optimizer/harnais/extensions.md#la-construction-observée)) ;
   il ne compte pas les combinaisons réellement énumérées, et le dernier
   intervalle mêle la dernière rune extérieure et l'épilogue
-  ([02-app/optimizer/ § Harnais de diagnostic](../02-app/optimizer/)). Sur
+  ([02-app/optimizer/limites-connues.md § Harnais de diagnostic](../02-app/optimizer/limites-connues.md#harnais-de-diagnostic)). Sur
   la plupart des cas mesurés, la moitié A retenait moins de demi-builds par
   milliseconde que la moitié B, sans cause établie : énumération plus
   lente, énumération plus longue pour retenir autant (plafond `bucketCap`),
@@ -154,7 +154,7 @@ la justesse : aucune sans la référence exhaustive qu'exige le skill
   un chronomètre dans son épilogue, pour vérifier que le poids du dernier
   intervalle vient du tri des combinaisons retenues.
 - **Bloque** : le compteur est du niveau C
-  ([03-developpeur/optimizer/ (harnais, extensions) § Étendre le harnais : quatre niveaux de coût](../03-developpeur/optimizer/)) :
+  ([03-developpeur/optimizer/harnais/extensions.md § Étendre le harnais : quatre niveaux de coût](../03-developpeur/optimizer/harnais/extensions.md#étendre-le-harnais--quatre-niveaux-de-coût)) :
   il instrumente la boucle la plus chaude et change le temps qu'il mesure.
   Il ne s'ouvre que sur une question falsifiable — une moitié A à fort
   produit brut au débit pourtant équilibré énumère-t-elle tout son
@@ -172,7 +172,7 @@ la justesse : aucune sans la référence exhaustive qu'exige le skill
   tient à jour.
   - `testRuneOptimParallelPairing` tronque sur de vrais fils, mais ses fils
     sont la copie `scripts/lib/pairing-quota-worker.ts`, pas `runPairSlice`
-    ([03-developpeur/optimizer/ § Vérifier un changement](../03-developpeur/optimizer/)).
+    ([03-developpeur/optimizer/moteur/parallelisation.md § Vérifier un changement](../03-developpeur/optimizer/moteur/parallelisation.md#vérifier-un-changement)).
   - La construction parallèle a deux coquilles autour de `buildBuckets`,
     chacune avec son relais de progression : `src/workers/buildHalf.worker.ts`
     et `scripts/lib/build-half-worker.ts`.
@@ -188,7 +188,7 @@ la justesse : aucune sans la référence exhaustive qu'exige le skill
   `makeSpawnSliceNode`, et décider si son mode à plafond partagé reste une
   reproduction séparée ; un corps neutre et deux coquilles pour la
   construction, comme pour l'appariement
-  ([03-developpeur/optimizer/ § Coquilles et lanceurs](../03-developpeur/optimizer/)) ;
+  ([03-developpeur/optimizer/moteur/parallelisation.md § Coquilles et lanceurs](../03-developpeur/optimizer/moteur/parallelisation.md#coquilles-et-lanceurs)) ;
   migrer le générateur du test, sans changer son tirage ; exporter
   `retentionScore` et reprendre `CASES` ; brancher le script de rang sur
   `artifactBounds` avant de lui faire produire une mesure.
@@ -213,8 +213,8 @@ la justesse : aucune sans la référence exhaustive qu'exige le skill
 ### Harnais : défauts connus
 
 - **Constat** : décrits dans
-  [02-app/optimizer/ § Harnais de diagnostic](../02-app/optimizer/) et
-  [03-developpeur/optimizer/ § Rendu du quasi-succès — écran, harnais, CLI](../03-developpeur/optimizer/).
+  [02-app/optimizer/limites-connues.md § Harnais de diagnostic](../02-app/optimizer/limites-connues.md#harnais-de-diagnostic) et
+  [03-developpeur/optimizer/moteur/diagnostics.md § Rendu du quasi-succès — écran, harnais, CLI](../03-developpeur/optimizer/moteur/diagnostics.md#rendu-du-quasi-succès--écran-harnais-cli).
   - `--cas` ignore `--profil` sans le dire
     (`scripts/diagnostic-harness.ts`).
   - Le palier 1 annonce `combosOrderMode` « relevance (défaut) »
@@ -223,11 +223,11 @@ la justesse : aucune sans la référence exhaustive qu'exige le skill
   - Aucun profil de `scripts/lib/diagnosticProfils.ts` ne porte
     d'objectif : le différentiel ne compare aucun ordre d'énumération.
   - Trois scripts conservés ne reproduisent plus leur référence
-    ([03-developpeur/optimizer/ (harnais, scripts) § Les scripts voisins](../03-developpeur/optimizer/)).
+    ([03-developpeur/optimizer/harnais/scripts.md § Les scripts voisins](../03-developpeur/optimizer/harnais/scripts.md#les-scripts-voisins)).
   - Le harnais et le CLI rendent le score brut du quasi-succès
     (`candidateMetricTotal`), l'écran la moyenne par rune.
 - **Idée** : refuser `--cas` avec `--profil` ; corriger le libellé ; un
   profil qui porte un objectif ; recalibrer ou retirer les trois scripts
-  ([03-developpeur/optimizer/ (harnais, scripts) § Garder ou retirer un script de diagnostic](../03-developpeur/optimizer/)) ;
+  ([03-developpeur/optimizer/harnais/scripts.md § Garder ou retirer un script de diagnostic](../03-developpeur/optimizer/harnais/scripts.md#garder-ou-retirer-un-script-de-diagnostic)) ;
   le score à l'échelle de l'écran.
 - **Bloque** : des changements de code, jamais faits.

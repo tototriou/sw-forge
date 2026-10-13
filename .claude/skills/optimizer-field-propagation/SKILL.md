@@ -202,7 +202,7 @@ qui n'en touche qu'un a de bonnes chances d'en avoir oublié un autre :
       `docs/02-app/optimizer/`) — current-state détaillé, avec
       les détails d'implémentation (fichiers, fonctions). La recette
       (export, import, repli d'une recette plus ancienne) :
-      [docs/02-app/optimizer/ § Lancer la recherche](../../../docs/02-app/optimizer/).
+      [docs/02-app/optimizer/ecran/lancer-la-recherche.md § Lancer la recherche](../../../docs/02-app/optimizer/ecran/lancer-la-recherche.md#lancer-la-recherche).
       Si le champ change ce que fait le moteur, la spec de ce mécanisme
       (routage : `docs/02-app/optimizer/`). Mettre à jour la section
       correspondante dans le même commit que le code, jamais après coup.
@@ -213,7 +213,7 @@ qui n'en touche qu'un a de bonnes chances d'en avoir oublié un autre :
 - [ ] **`docs/03-developpeur/optimizer/`** — si la règle modifiée y
       figure, elle se modifie dans sa source ET dans `invariants.md`, dans le
       même commit
-      ([docs/03-developpeur/ § Statut du fichier](../../../docs/03-developpeur/)).
+      ([docs/03-developpeur/optimizer/README.md § Statut du fichier](../../../docs/03-developpeur/optimizer/README.md#statut-du-fichier)).
 
 ## Vérification
 

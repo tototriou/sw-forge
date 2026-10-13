@@ -20,7 +20,7 @@ qui est propre à l'Optimizer.
 
 « Outils » est un **dropdown de nav**, même mécanique que « Mon compte » et
 « Ressources », **inséré entre les deux** (voir
-[03-developpeur/](../../03-developpeur/) (conventions), « Shell applicatif »).
+[03-developpeur/conventions.md](../../03-developpeur/conventions.md#shell-applicatif) (conventions), « Shell applicatif »).
 
 | Sous-section | Route | Spec |
 |--------------|-------|------|

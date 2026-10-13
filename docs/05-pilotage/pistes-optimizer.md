@@ -13,7 +13,7 @@ est fait se lit dans la spec du mécanisme, que le
 [routage par tâche](../02-app/optimizer/) désigne ; une variante essayée puis écartée y tient en
 une ligne « ne pas… parce que… », pour qu'on ne la réessaie pas sans sa
 raison. Celles du moteur de recherche des runes :
-[03-developpeur/optimizer/ (moteur-elagages.md) § Variantes écartées ou gardées en réserve](../03-developpeur/optimizer/).
+[03-developpeur/optimizer/moteur/elagages.md § Variantes écartées ou gardées en réserve](../03-developpeur/optimizer/moteur/elagages.md#variantes-écartées-ou-gardées-en-réserve).
 Les pistes qui accéléreraient la recherche sans changer ce qu'elle cherche,
 et celles des tests, du harnais et des scripts de mesure :
 [pistes-optimizer-vitesse.md](pistes-optimizer-vitesse.md).
@@ -39,13 +39,13 @@ et celles des tests, du harnais et des scripts de mesure :
   le commentaire d'`adaptiveTrancheWeighting` d'après le code.
 - **Bloque** : un changement de code, et le choix entre retirer et garder.
   La variante elle-même est écartée
-  ([03-developpeur/optimizer/ (moteur-elagages.md) § Variantes écartées ou gardées en réserve](../03-developpeur/optimizer/)).
+  ([03-developpeur/optimizer/moteur/elagages.md § Variantes écartées ou gardées en réserve](../03-developpeur/optimizer/moteur/elagages.md#variantes-écartées-ou-gardées-en-réserve)).
 
 ### Dominance « avec marge » entre sets différents
 
 - **Constat** : deux runes de sets différents ne se comparent que si les
   deux sets sont interchangeables (`isSetComparable`,
-  [03-developpeur/optimizer/ (moteur-elagages.md) § Élagages sûrs](../03-developpeur/optimizer/)). Une rune d'un
+  [03-developpeur/optimizer/moteur/elagages.md § Élagages sûrs](../03-developpeur/optimizer/moteur/elagages.md#élagages-sûrs)). Une rune d'un
   set protégé n'est donc jamais éliminée par une rune d'un autre set, même
   meilleure sur chaque stat d'une marge supérieure au bonus du set. La
   prudence coûte de la vitesse (plus de runes survivent), jamais le
@@ -103,12 +103,12 @@ et celles des tests, du harnais et des scripts de mesure :
   deux des trois emplacements à principale fixe (1 et 3), dont les pools
   sont plus gros : sa construction est plus longue sur les cas mesurés, et
   comme les deux moitiés se construisent en parallèle
-  ([03-developpeur/optimizer/ (moteur-pipeline.md) § Construction des moitiés](../03-developpeur/optimizer/)), le
+  ([03-developpeur/optimizer/moteur/pipeline.md § Construction des moitiés](../03-developpeur/optimizer/moteur/pipeline.md#construction-des-moitiés)), le
   temps perçu est celui de la plus lente. Le débit de demi-builds retenus
   est aussi plus faible côté A, et sa cause n'est pas établie : le
   plafonnement par compartiment l'explique en partie, l'énumération
   elle-même n'est pas comptée
-  ([03-developpeur/optimizer/ (harnais, extensions) § La construction observée](../03-developpeur/optimizer/)).
+  ([03-developpeur/optimizer/harnais/extensions.md § La construction observée](../03-developpeur/optimizer/harnais/extensions.md#la-construction-observée)).
 - **Idée** : choisir la partition selon un modèle de coût réel, pas
   seulement le produit des tailles. Ce qui est cherché ne change pas, ce
   qui est retenu si : chaque compartiment d'une moitié (`bucketKeyOf`,
@@ -147,10 +147,10 @@ et celles des tests, du harnais et des scripts de mesure :
   Intangible dans la tranche des sets demandés par `relevance`, sans valeur
   pour le set qu'elle complète, et ne l'admet jamais dans la tranche hors
   set (`offSet`) ; l'ordre des compartiments ne la crédite pas non plus
-  ([02-app/optimizer/ (limites connues) § Recherche des runes — le meilleur trouvé, pas l'optimum prouvé](../02-app/optimizer/)).
+  ([02-app/optimizer/limites-connues.md § Recherche des runes — le meilleur trouvé, pas l'optimum prouvé](../02-app/optimizer/limites-connues.md#recherche-des-runes--le-meilleur-trouvé-pas-loptimum-prouvé)).
   Une Intangible aux stats faibles peut donc être écartée avant la
   rétention, qui n'est pas en cause (écart au classement :
-  [03-developpeur/optimizer/ (moteur-elagages.md) § Variantes écartées ou gardées en réserve](../03-developpeur/optimizer/)).
+  [03-developpeur/optimizer/moteur/elagages.md § Variantes écartées ou gardées en réserve](../03-developpeur/optimizer/moteur/elagages.md#variantes-écartées-ou-gardées-en-réserve)).
 - **Idée** : lui réserver une place au pré-filtrage, ou lui créditer ce
   qu'elle complète quand un set demandé ne se complète pas sans elle.
 - **Bloque** : aucune perte relevée sur un cas réel ; ce qu'elle complète
@@ -161,7 +161,7 @@ et celles des tests, du harnais et des scripts de mesure :
 ### Optimalité prouvée : Branch & Bound sur les paires, statuts du résultat
 
 - **Constat** : le résultat est « le meilleur trouvé parmi le pool retenu »
-  ([03-developpeur/optimizer/ (moteur-elagages.md) § Pré-filtrage heuristique et compartiments](../03-developpeur/optimizer/)) :
+  ([03-developpeur/optimizer/moteur/elagages.md § Pré-filtrage heuristique et compartiments](../03-developpeur/optimizer/moteur/elagages.md#pré-filtrage-heuristique-et-compartiments)) :
   le pré-filtrage (`slotFilterCap`) et la rétention (`bucketCap`) sont
   heuristiques, et le produit n'a aucun mode « un seul objectif, arrêt
   précoce ».
@@ -180,17 +180,17 @@ et celles des tests, du harnais et des scripts de mesure :
 - **Constat** : `MAX_COLLECTED` atteint, la recherche s'arrête, et les
   candidats gardés sont les premiers collectés dans l'ordre d'exploration
   (compartiments par potentiel, `combosOrderMode`), pas forcément les meilleurs
-  ([02-app/optimizer/ (limites connues) § Recherche des runes — le meilleur trouvé, pas l'optimum prouvé](../02-app/optimizer/)).
+  ([02-app/optimizer/limites-connues.md § Recherche des runes — le meilleur trouvé, pas l'optimum prouvé](../02-app/optimizer/limites-connues.md#recherche-des-runes--le-meilleur-trouvé-pas-loptimum-prouvé)).
   Le joueur ne lit que le haut de ce classement.
 - **Idée** : un ordre de collecte qui fasse arriver les meilleurs d'abord :
   une piste de pertinence, pas de vitesse.
 - **Bloque** : jamais explorée. Se juge sur la qualité sous saturation,
-  jamais sur les comptes ([03-developpeur/optimizer/ (moteur-artefacts.md) § Mesurer un changement des bornes](../03-developpeur/optimizer/)).
+  jamais sur les comptes ([03-developpeur/optimizer/moteur/artefacts.md § Mesurer un changement des bornes](../03-developpeur/optimizer/moteur/artefacts.md#mesurer-un-changement-des-bornes)).
 
 ### GPU comme architecture de remplacement
 
 - **Constat** : porter l'appariement actuel sur GPU est écarté
-  ([03-developpeur/optimizer/ (moteur-parallelisation.md) § Choix du régime](../03-developpeur/optimizer/)).
+  ([03-developpeur/optimizer/moteur/parallelisation.md § Choix du régime](../03-developpeur/optimizer/moteur/parallelisation.md#choix-du-régime)).
 - **Idée** : une autre architecture, un pré-filtrage léger puis le produit
   cartésien intégral sans branchement, sur GPU.
 - **Bloque** : une réécriture majeure (tableaux typés, toute la
@@ -202,7 +202,7 @@ et celles des tests, du harnais et des scripts de mesure :
 
 - **Constat** : le moteur optimise un monstre à la fois ; les listes de
   travail et la réservation de runes enchaînent des recherches
-  mono-monstre ([02-app/optimizer/ § Créer, valider et réserver dans une liste](../02-app/optimizer/)).
+  mono-monstre ([02-app/optimizer/feat-listes-et-reservation.md § Créer, valider et réserver dans une liste](../02-app/optimizer/feat-listes-et-reservation.md#créer-valider-et-réserver-dans-une-liste)).
 - **Idée** : répartir les runes de toute une box, d'une équipe RTA ou de
   siège en une seule recherche.
 - **Bloque** : hors du périmètre du moteur actuel ; horizon lointain.
@@ -215,7 +215,7 @@ et celles des tests, du harnais et des scripts de mesure :
   `K` combinaisons confirmées (`kDeLaFile`, 300 en mode `recherche`), et un
   build classé au-delà peut remonter très haut une fois résolu sans
   jamais l'être. « Vérifier toutes les combinaisons trouvées » résout
-  tout ([03-developpeur/optimizer/ (moteur-artefacts.md) § Quand ce choix a lieu](../03-developpeur/optimizer/)).
+  tout ([03-developpeur/optimizer/moteur/artefacts.md § Quand ce choix a lieu](../03-developpeur/optimizer/moteur/artefacts.md#quand-ce-choix-a-lieu)).
 - **Idée** : un critère d'arrêt prouvé par une borne optimiste du score
   avec relique, un ordre de base optimiste, ou un `K` adaptatif.
 - **Bloque** : aucun n'est choisi ; chacun demande une borne sûre de
@@ -226,7 +226,7 @@ et celles des tests, du harnais et des scripts de mesure :
 - **Constat** : hors mode `recherche`, le filtre final
   (`respecteConditionsPaireFixe`) ne revérifie que les minimums et les
   maximums de RES et de PRE avec la vraie paire
-  ([03-developpeur/optimizer/ (moteur-artefacts.md) § Filtre final sur la vraie paire](../03-developpeur/optimizer/)) :
+  ([03-developpeur/optimizer/moteur/artefacts.md § Filtre final sur la vraie paire](../03-developpeur/optimizer/moteur/artefacts.md#filtre-final-sur-la-vraie-paire)) :
   un build dont la paire retenue dépasse un maximum de PV, d'ATQ ou de DEF
   reste affiché.
 - **Idée** : passer `respecteMinEtMax` sur ce chemin.
@@ -251,7 +251,7 @@ et celles des tests, du harnais et des scripts de mesure :
 
 - **Constat** : `relicDominates` et `dimensionsRetenues` ne sont appelées
   que par les tests
-  ([03-developpeur/optimizer/ (moteur-reliques.md) § Pertinence et dominance — écrites, non appelées en production](../03-developpeur/optimizer/)) :
+  ([03-developpeur/optimizer/moteur/reliques.md § Pertinence et dominance — écrites, non appelées en production](../03-developpeur/optimizer/moteur/reliques.md#pertinence-et-dominance--écrites-non-appelées-en-production)) :
   justesse intacte, la résolution essaie toute relique éligible, mais sur
   des pièces qu'une dominance aurait écartées.
 - **Idée** : brancher `relicDominates` dans `eligibleRelics` ou juste
@@ -272,7 +272,7 @@ et celles des tests, du harnais et des scripts de mesure :
 
 - **Constat** : le code ne pose aucun arrondi sur ces points, faute de
   relevé
-  ([03-developpeur/optimizer/ (moteur-reliques.md) § L'effet unique — score de la propriété exclusive](../03-developpeur/optimizer/)).
+  ([03-developpeur/optimizer/moteur/reliques.md § L'effet unique — score de la propriété exclusive](../03-developpeur/optimizer/moteur/reliques.md#leffet-unique--score-de-la-propriété-exclusive)).
 - **Idée** : relever l'arrondi en jeu, puis le poser.
 - **Bloque** : le relevé en jeu (skill `game-data-curation`, demande d'un
   relevé) ; jamais l'arrondi de `computeStats` recopié par analogie.
@@ -298,7 +298,7 @@ Les pistes du calcul des dégâts réels sont dans [pistes-degats-reels.md](pist
 
 - **Constat** : l'écran montre une progression (part explorée, candidats
   trouvés), jamais un temps
-  ([02-app/optimizer/ § Barre de progression](../02-app/optimizer/)). L'instant de
+  ([02-app/optimizer/feat-interruption.md § Barre de progression](../02-app/optimizer/feat-interruption.md#barre-de-progression)). L'instant de
   départ existe déjà côté moteur (`PreparedSearch.startedAt`, l'instant
   global repris par chaque tranche parallèle), et `scripts/perf-battery.ts`
   calcule `foundMs` sur ce principe.
@@ -315,7 +315,7 @@ Les pistes du calcul des dégâts réels sont dans [pistes-degats-reels.md](pist
 - **Idée** : une pondération libre des stats, choisie par l'utilisateur.
 - **Bloque** : jamais construit ni mesuré ; un objectif plus large retient
   plus de runes au pré-filtrage
-  ([03-developpeur/optimizer/ (moteur-elagages.md) § Variantes écartées ou gardées en réserve](../03-developpeur/optimizer/)).
+  ([03-developpeur/optimizer/moteur/elagages.md § Variantes écartées ou gardées en réserve](../03-developpeur/optimizer/moteur/elagages.md#variantes-écartées-ou-gardées-en-réserve)).
 
 ### Détail des stats finales par source
 
@@ -336,7 +336,7 @@ Les pistes du calcul des dégâts réels sont dans [pistes-degats-reels.md](pist
 
 - **Constat** : la recette exporte les critères d'une recherche, jamais les
   builds validés d'une liste
-  ([02-app/optimizer/ § Lancer la recherche](../02-app/optimizer/)) ;
+  ([02-app/optimizer/ecran/lancer-la-recherche.md § Lancer la recherche](../02-app/optimizer/ecran/lancer-la-recherche.md#lancer-la-recherche)) ;
   un compte réimporté peut perdre des validations (`revalidateBuilds`).
 - **Idée** : un fichier réimportable des builds validés (liste, monstre,
   six identifiants de runes et paire d'artéfacts par exemplaire).
@@ -347,9 +347,9 @@ Les pistes du calcul des dégâts réels sont dans [pistes-degats-reels.md](pist
 
 - **Constat** : une équipe s'importe désormais d'un clic (siège, prépa RTA,
   recommandations, speed tuning), et chaque membre garde ses propres
-  critères ([02-app/optimizer/ § Import d'équipes](../02-app/optimizer/)).
+  critères ([02-app/optimizer/feat-import-equipes.md § Import d'équipes](../02-app/optimizer/feat-import-equipes.md#import-déquipes-dans-loptimizer)).
   Mais rien n'enchaîne au membre suivant après une validation
-  ([02-app/optimizer/ § Créer, valider et réserver dans une liste](../02-app/optimizer/)).
+  ([02-app/optimizer/feat-listes-et-reservation.md § Créer, valider et réserver dans une liste](../02-app/optimizer/feat-listes-et-reservation.md#créer-valider-et-réserver-dans-une-liste)).
 - **Idée** : enchaîner « optimiser puis passer au membre suivant » sur la
   liste active.
 - **Bloque** : jamais construit ; ordre des membres et comportement après
@@ -360,7 +360,7 @@ Les pistes du calcul des dégâts réels sont dans [pistes-degats-reels.md](pist
 - **Constat** : la recette porte le monstre par son `com2usId`, jamais
   l'exemplaire choisi (`OptimizerRecipe`, `src/lib/optimizerRecipe.ts`) :
   l'import retient le premier exemplaire de la box
-  ([02-app/optimizer/ § Lancer la recherche](../02-app/optimizer/)).
+  ([02-app/optimizer/ecran/lancer-la-recherche.md § Lancer la recherche](../02-app/optimizer/ecran/lancer-la-recherche.md#lancer-la-recherche)).
 - **Idée** : garder l'exemplaire dans la recette.
 - **Bloque** : une recette se partage entre comptes, où l'exemplaire n'a
   pas de sens : à concevoir, avec la checklist du skill
@@ -370,7 +370,7 @@ Les pistes du calcul des dégâts réels sont dans [pistes-degats-reels.md](pist
 
 - **Constat** : le cran « Dégâts supplémentaires | Dégâts réels » de la
   proposition d'artéfacts (`critereArtefacts`,
-  [02-app/optimizer/ § Deux crans : dégâts supplémentaires ou dégâts réels](../02-app/optimizer/))
+  [02-app/optimizer/ecran/meilleurs-artefacts-offensifs.md § Deux crans : dégâts supplémentaires ou dégâts réels](../02-app/optimizer/ecran/meilleurs-artefacts-offensifs.md#deux-crans--dégâts-supplémentaires-ou-dégâts-réels))
   n'entre pas dans la recette.
 - **Idée** : l'y faire entrer.
 - **Bloque** : une décision de produit : c'est un mode d'affichage, pas un
@@ -384,7 +384,7 @@ Les pistes du calcul des dégâts réels sont dans [pistes-degats-reels.md](pist
   membre de liste d'une autre espèce (`choisirExemplaire`) le laisse tel
   quel. Sur « Dégâts réels », la légende nomme alors le sort par défaut du
   nouveau monstre : le repli est visible, pas empêché
-  ([02-app/optimizer/ § Recherche du monstre à optimiser](../02-app/optimizer/)).
+  ([02-app/optimizer/ecran/recherche-du-monstre.md § Recherche du monstre à optimiser](../02-app/optimizer/ecran/recherche-du-monstre.md#recherche-du-monstre-à-optimiser)).
 - **Idée** : remettre aussi le cran au défaut dans `choisirExemplaire`.
 - **Bloque** : une décision de produit.
 
@@ -394,7 +394,7 @@ Les pistes du calcul des dégâts réels sont dans [pistes-degats-reels.md](pist
   `rankBlockingConditions` sans `relicContext`, sans objectif et sans
   `statsLignesArtefactsEquipables` : en mode relique « recherche », la
   preuve d'impossibilité porte sur la relique portée
-  ([03-developpeur/optimizer/ (moteur-diagnostics.md) § Paramètres reçus par les diagnostics de l'écran](../03-developpeur/optimizer/)).
+  ([03-developpeur/optimizer/moteur/diagnostics.md § Paramètres reçus par les diagnostics de l'écran](../03-developpeur/optimizer/moteur/diagnostics.md#paramètres-reçus-par-les-diagnostics-de-lécran)).
   Le harnais leur passe les paramètres complets.
 - **Idée** : leur passer les `SearchParams` de la recherche, comme le
   harnais.
@@ -405,7 +405,7 @@ Les pistes du calcul des dégâts réels sont dans [pistes-degats-reels.md](pist
 - **Constat** : `NearMiss.stats` est la fiche calculée avec la paire
   figée, sans relique en mode « recherche », alors que les écarts viennent
   de l'apport essayé
-  ([03-developpeur/optimizer/ (moteur-diagnostics.md) § Ce que le quasi-succès retient](../03-developpeur/optimizer/)) ;
+  ([03-developpeur/optimizer/moteur/diagnostics.md § Ce que le quasi-succès retient](../03-developpeur/optimizer/moteur/diagnostics.md#ce-que-le-quasi-succès-retient)) ;
   l'écran en tire les « PV effectifs » qu'il affiche quand c'est
   l'objectif.
 - **Idée** : une fiche qui tienne compte de l'apport essayé.
@@ -418,7 +418,7 @@ Les pistes du calcul des dégâts réels sont dans [pistes-degats-reels.md](pist
 
 - **Constat** : aucune condition de recherche ne porte sur l'ordre des
   tours. Viser une vitesse finale est écarté
-  ([03-developpeur/optimizer/ (moteur-optimiseur-artefacts.md) § Paire supposée et revérifications](../03-developpeur/optimizer/)).
+  ([03-developpeur/optimizer/moteur/optimiseur-artefacts.md § Paire supposée et revérifications](../03-developpeur/optimizer/moteur/optimiseur-artefacts.md#paire-supposée-et-revérifications)).
 - **Idée** : des couples (intervalle de vitesse de combat, intervalle
   d'effet du buff de vitesse), tirés de l'outil de speed tuning : deux
   contraintes distinctes, pas un scalaire.

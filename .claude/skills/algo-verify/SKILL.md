@@ -180,7 +180,7 @@ suit s'applique intégralement.
 incomplet.
 
 ⚠️⚠️ Le moteur n'a plus de budget de paires ni d'escalade (voir
-[docs/03-developpeur/optimizer/ § Benchmarks](../../../docs/03-developpeur/optimizer/),
+[docs/03-developpeur/optimizer/verification.md § Benchmarks](../../../docs/03-developpeur/optimizer/verification.md#benchmarks),
 qui en donne les seules bornes) : `pairBuckets(prepared, bucketsA, bucketsB)` prend TROIS arguments,
 et un appel nu explore exactement ce
 que la production explore. Ne pas chercher à « reproduire l'escalade » dans un

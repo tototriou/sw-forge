@@ -24,7 +24,7 @@ les coups. La forme d'une piste et des relevés en jeu est celle de
   pour la base 116 de Mei Hou Wang), arrondi au supérieur par cumul dans
   le Speed tune (`pointsDeGain`, `src/lib/speedTunePassif.ts` : +14). Pour
   une base de 100, les deux lectures donnent +12 et +120
-  ([02-app/degats-reels/ § Audit des dégâts conditionnels — partie 2](../02-app/degats-reels/)).
+  ([02-app/degats-reels/feat-conditions-et-audit.md § Audit des dégâts conditionnels — partie 2](../02-app/degats-reels/feat-conditions-et-audit.md#audit-des-dégâts-conditionnels--partie-2)).
 - **Idée** : une seule lecture, la même pour les deux outils.
 - **Bloque** : un relevé en jeu de la VIT affichée par Mei Hou Wang sans
   cumul puis à dix cumuls. Règle de décision posée d'avance : un écart de
@@ -198,7 +198,7 @@ les coups. La forme d'une piste et des relevés en jeu est celle de
 - **Idée** : ce qui explose pendant le sort compte, sur un nombre de bombes
   saisi ; les dégâts continus, leurs détonations, les bombes à retardement
   et la propagation restent hors total
-  ([02-app/degats-reels/ § Calcul partiel — l'étiquette par identifiant](../02-app/degats-reels/)).
+  ([02-app/degats-reels/feat-formules-et-combat.md § Calcul partiel — l'étiquette par identifiant](../02-app/degats-reels/feat-formules-et-combat.md#calcul-partiel--létiquette-par-identifiant)).
 - **Bloque** : des relevés. Explosion d'une bombe posée en frappant :
   Kobold Bomber eau (Firecracker / Time Bomb) ; Carrack et John à deux ATQ
   connues (pente). Seara : bombe de Fate of Destruction qui explose seule /

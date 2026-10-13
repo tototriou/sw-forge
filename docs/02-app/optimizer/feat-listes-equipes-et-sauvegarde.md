@@ -2,7 +2,7 @@
 
 **Statut :** ÉTAT ACTUEL — décrit le stockage des membres, des équipes et du point de sauvegarde
 **Lire si :** on modifie la persistance des listes, la validation d’une équipe ou la reprise d’un état sauvegardé
-**Voir aussi :** [feat-listes-et-reservation.md](feat-listes-et-reservation.md), [transverse/ (feat-sauvegarde-session.md)](../transverse/)
+**Voir aussi :** [feat-listes-et-reservation.md](feat-listes-et-reservation.md), [transverse/feat-sauvegarde-session.md](../transverse/feat-sauvegarde-session.md)
 
 ## Stockage indépendant des listes
 
@@ -334,7 +334,7 @@ agit sur lui. Exporter ne réécrit ni le lead personnel du membre ni sa
 mémoire. Au réimport, ce lead s’applique comme
 toute valeur de recette, sans équipe ni propriétaire des critères ; aucune
 mémoire de membre ni équipe existante n’est écrasée.
-Voir feat-ecran-lancer-la-recherche.md § Lancer la recherche.
+Voir ecran/lancer-la-recherche.md § Lancer la recherche.
 
 Le contenu est lu dans `listContents` pour la liste du membre, commun à toutes
 ses équipes. Une liste sans contenu défini n’applique aucun lead d’équipe,

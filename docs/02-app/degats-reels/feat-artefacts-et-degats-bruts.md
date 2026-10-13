@@ -3,7 +3,7 @@
 **Statut :** ÉTAT ACTUEL — décrit les dégâts additionnels bruts et les amplifications d’artéfact
 **Lire si :** on modifie une ligne d’artéfact ou un bucket de dégâts additionnels
 **Ne pas lire si :** on travaille sur le critique conditionnel, les bombes ou les passifs offensifs
-**Voir aussi :** feat-artefacts-critique-et-element.md, [../optimizer/](../optimizer/) (carte « Artéfacts »)
+**Voir aussi :** feat-artefacts-critique-et-element.md, [../optimizer/ecran/artefacts.md](../optimizer/ecran/artefacts.md#artéfacts) (carte « Artéfacts »)
 
 ## Dégâts BRUTS d'un passif — ni critiques, ni mitigés, à chaque coup
 
@@ -116,7 +116,7 @@ d'« ATQ » dans le même calcul.
   lignes de la paire supposée et, en « Libre », de tout artéfact éligible que
   le choix de la paire peut retenir (`statsLignesArtefactsEquipables`), en
   « Dégâts réels » seulement. Voir
-  [../../03-developpeur/optimizer/ § Dominance — lignes d'artéfact 218–221](../../03-developpeur/optimizer/).
+  [../../03-developpeur/optimizer/moteur/elagages.md § Dominance — lignes d'artéfact 218–221](../../03-developpeur/optimizer/moteur/elagages.md#dominance--lignes-dartéfact-218221).
 
 ## ⚠️ Le bucket Additionnel ne reçoit AUCUN bonus de type DMG%
 

@@ -77,7 +77,7 @@ SW Exporter ».
   (`wizard_id`).
 - Pas de question de conservation : le dossier est un réglage, posé une fois.
 - Détail (surveillance, réglage retenu, export illisible) :
-  [bureau/](../../bureau/) § « Le dossier SW Exporter ».
+  [bureau/README.md](../../bureau/README.md#le-dossier-sw-exporter) § « Le dossier SW Exporter ».
 
 Helpers partagés par les deux parseurs : `runeSpeed` (SPD d'une rune : mainstat +
 prefix + substats avec meule), `indexRunes` (index rune_id → rune, inventaire +

@@ -97,7 +97,7 @@ répétée ou hors bornes est refusée avec le chemin
 `damageSetup.setsAuraExternes` ou celui de son entrée. La liste survit à un
 changement d'espèce, d'exemplaire ou de liste et se vide à l'import d'un
 compte. L'écran la saisit dans la carte « État de mon
-monstre » ([docs/02-app/optimizer/ § État de mon monstre](../optimizer/)) par les
+monstre » ([docs/02-app/optimizer/ecran/etat-de-mon-monstre.md § État de mon monstre](../optimizer/ecran/etat-de-mon-monstre.md#état-de-mon-monstre)) par les
 fonctions pures de `src/lib/aurasExternes.ts`, qui bornent chaque écriture
 et portent la validation que la recette appelle (`erreurAurasExternes`) :
 ce que l'écran écrit, la recette le relit. Source des cinq valeurs et du plafond : utilisateur

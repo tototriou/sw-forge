@@ -260,7 +260,7 @@ Brise DEF du coup 1, ×1,188 pour Weakness Shot, ×1,125 pour Eivor). Le
 sélecteur propose toujours tous les rangs, y compris un coup qui ne pose rien ;
 ne proposer que les coups qui posent l'effet (Cichlid : [valeurs curées](valeurs-de-jeu-curees.md), « Crushed
 Hopes de Cichlid ») reste à coder
-([05-pilotage/ § Poses entre les coups : rang, buff posé par le sort, Eightfold](../../05-pilotage/)).
+([05-pilotage/pistes-degats-reels.md § Poses entre les coups : rang, buff posé par le sort, Eightfold](../../05-pilotage/pistes-degats-reels.md#poses-entre-les-coups--rang-buff-posé-par-le-sort-eightfold)).
 Les autres effets de ces sorts
 (Decrease ATK, Étourdissement, Irrécupérable) ne sont pas curés ; Solveig et
 Berghild (18007, 18009 : la Marque n'est que dans la prose) attendent un
@@ -347,7 +347,7 @@ l'identifiant l'emporte (`plageDeCoupsDe`, `coupsFixesCorrigesDe`, lues par
 identifiant quand un homonyme **jouable** a une autre mécanique : une entrée
 par nom s'étendrait à lui en silence. `COUPS_FIXES_CORRIGES_PAR_ID` est vide :
 Crow Hunt de Prilea (1618) attend un relevé en jeu
-([05-pilotage/ § Crow Hunt de Prilea : deux coups annoncés pour un](../../05-pilotage/)), ses homonymes
+([05-pilotage/pistes-degats-reels.md § Crow Hunt de Prilea : deux coups annoncés pour un](../../05-pilotage/pistes-degats-reels.md#crow-hunt-de-prilea--deux-coups-annoncés-pour-un)), ses homonymes
 jouables 1607 et 1609 portent `coups: 4`.
 
 | Sort · identifiant · formes | Plage | Clé | Citation |
@@ -376,7 +376,7 @@ Stormfist de Mayasura (18306…) : coups selon l'ATQ, valeur de
 l'utilisateur dans [valeurs-de-jeu-curees.md](valeurs-de-jeu-curees.md).
 Non couverts : Crow Hunt (relevé attendu, ci-dessus), Lala, Coco, Stella,
 Cleave, les coups tirés au hasard
-([05-pilotage/ § Plages de coups à relever et coups « au hasard »](../../05-pilotage/)).
+([05-pilotage/pistes-degats-reels.md § Plages de coups à relever et coups « au hasard](../../05-pilotage/pistes-degats-reels.md#plages-de-coups-à-relever-et-coups--au-hasard-)).
 Test : `testDegatsCoupsSaisis`
 (`node tests/run.mjs coupssaisis`).
 

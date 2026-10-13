@@ -23,7 +23,7 @@ sans recommandation. Ce n'est **pas** vrai pour la vue : ses deux crans
 la première recommandation, et un bouton d'action qui apparaît une fois qu'on
 en a besoin surprend — on ne l'a jamais vu apparaître d'un geste, il était
 juste absent (voir la règle générale dans
-[03-developpeur/interface/](../../../03-developpeur/interface/) (design, « Un bouton d'action ne disparaît jamais »)).
+[03-developpeur/interface/design/mouvement-et-gestes.md](../../../03-developpeur/interface/design/mouvement-et-gestes.md#%EF%B8%8F-un-bouton-daction-ne-disparaît-jamais--il-se-désactive) (design, « Un bouton d'action ne disparaît jamais »)).
 La vue est donc **posée hors du bloc**, **toujours affichée et active** —
 aux deux formats.
 

@@ -3,7 +3,7 @@
 **Statut :** ÉTAT ACTUEL — décrit ce que le moteur, l'écran et le harnais de l'Optimizer ne garantissent pas aujourd'hui
 **Lire si :** on s'étonne d'un résultat de l'Optimizer, ou on cherche ce qu'il ne couvre pas
 **Ne pas lire si :** on cherche comment un mécanisme fonctionne — chaque limite renvoie à la spec qui le décrit
-**Voir aussi :** [03-developpeur/optimizer/ (moteur-elagages, moteur-diagnostics)](../../03-developpeur/optimizer/), [feat-interruption.md](feat-interruption.md)
+**Voir aussi :** [03-developpeur/optimizer/moteur/elagages.md](../../03-developpeur/optimizer/moteur/elagages.md), [03-developpeur/optimizer/moteur/diagnostics.md](../../03-developpeur/optimizer/moteur/diagnostics.md), [feat-interruption.md](feat-interruption.md)
 
 Une limite dit ce qui n'est pas garanti, et pourquoi. Ce qui pourrait être
 construit pour la lever est une piste, pas une limite, et n'est pas décrit
@@ -18,7 +18,7 @@ ici.
   (`filterSlot`, préréglage `slotFilterCap`) et la rétention par
   compartiment (`buildBuckets`, `bucketCap` places par tranche). Une rune
   ou un demi-build écarté à ces étages n'est jamais revu. Mécanisme :
-  [03-developpeur/optimizer/ (moteur-elagages) § Pré-filtrage heuristique et compartiments](../../03-developpeur/optimizer/).
+  [03-developpeur/optimizer/moteur/elagages.md § Pré-filtrage heuristique et compartiments](../../03-developpeur/optimizer/moteur/elagages.md#pré-filtrage-heuristique-et-compartiments).
 - **Plus il y a de conditions à la fois, plus le pré-filtrage les dilue.**
   `relevance` additionne une contribution par minimum posé : une rune utile
   à une partie seulement des conditions se classe d'autant plus bas qu'elles
@@ -38,7 +38,7 @@ ici.
   recherche. La rétention, elle, n'est pas concernée : deux demi-builds en
   concurrence pour une place ont les mêmes comptes et le même nombre de
   jokers (`bucketKeyOf`). Avantager le joker au classement a été écarté :
-  [03-developpeur/optimizer/ (moteur-elagages) § Variantes écartées ou gardées en réserve](../../03-developpeur/optimizer/).
+  [03-developpeur/optimizer/moteur/elagages.md § Variantes écartées ou gardées en réserve](../../03-developpeur/optimizer/moteur/elagages.md#variantes-écartées-ou-gardées-en-réserve).
 - **L'ordre d'exploration est une heuristique.** Les compartiments sont
   triés par potentiel, les paires de compartiments visitées par potentiel
   combiné (`orderedCompartmentPairs`), les demi-builds d'un compartiment
@@ -63,7 +63,7 @@ ici.
   donne aucune priorité à ses runes ni à ses demi-builds. Choix assumé pour
   les sets d'aura : leur valeur est surtout pour l'équipe. Les élagages
   sûrs, eux, comptent ces bonus, et ne coupent donc jamais un build qui en
-  dépend : [03-developpeur/optimizer/ (moteur-elagages) § Élagages sûrs](../../03-developpeur/optimizer/).
+  dépend : [03-developpeur/optimizer/moteur/elagages.md § Élagages sûrs](../../03-developpeur/optimizer/moteur/elagages.md#élagages-sûrs).
 - **Un résultat « tout-un-set » n'est pas un défaut en soi.** `filterSlot`
   réserve une tranche aux runes hors du set demandé (`offSet`) ; une place
   au pré-filtrage n'en garantit aucune dans le résultat. Si les meilleures
@@ -89,7 +89,7 @@ ici.
   l'objectif sur tout l'inventaire en fasse partie. Un objectif à plus de
   stats retient plus : chaque tranche a ses propres `bucketCap` places, la
   mémoire et le nombre de paires grandissent avec elles. Les objectifs :
-  [feat-ecran-objectif-de-recherche.md § Les quatre objectifs disponibles](feat-ecran-objectif-de-recherche.md).
+  [ecran/objectif-de-recherche.md § Les quatre objectifs disponibles](ecran/objectif-de-recherche.md).
 
 ## Réglages exposés, estimation et progression
 
@@ -102,12 +102,12 @@ ici.
   conditions » (`compterAurasResPre`). Ne sont pas exposés :
   `MAX_COLLECTED`, `BUCKET_CAP`, `combosOrderMode` ;
   `SearchParams.bucketCap` sert à la mesure, jamais à l'écran. Détail :
-  [feat-ecran-conditions-et-reglages.md § Réglages avancés](feat-ecran-conditions-et-reglages.md).
+  [ecran/conditions-et-reglages.md § Réglages avancés](ecran/conditions-et-reglages.md).
 - **L'estimation affichée avant de lancer est un ordre de grandeur**
   (`estimateSearchSpace`) : le produit des pools par emplacement après
   pré-filtrage, sans dominance ni faisabilité, et non le nombre de paires
   que l'appariement visite :
-  [03-developpeur/optimizer/ (moteur-diagnostics) § Ce que l'estimation du pool n'affirme pas](../../03-developpeur/optimizer/).
+  [03-developpeur/optimizer/moteur/diagnostics.md § Ce que l'estimation du pool n'affirme pas](../../03-developpeur/optimizer/moteur/diagnostics.md#ce-que-lestimation-du-pool-naffirme-pas).
 - **La barre de progression est approximative par construction** :
   [feat-interruption.md § Barre de progression](feat-interruption.md).
 
@@ -123,7 +123,7 @@ ici.
   « Vérifier toutes les combinaisons trouvées » résout tout ; en ligne de
   commande, `--resoudre-tout` est la référence exacte. Rien ne le signale à
   l'écran :
-  [feat-ecran-resultats.md § Valeur d'objectif affichée sur les cartes](feat-ecran-resultats.md).
+  [ecran/resultats.md § Valeur d'objectif affichée sur les cartes](ecran/resultats.md).
 - **Les diagnostics de l'écran ne reçoivent pas tout le contexte de la
   recherche** : ni `relicContext`, ni l'objectif, ni
   `statsLignesArtefactsEquipables`. En mode relique « recherche », la
@@ -131,14 +131,14 @@ ici.
   contexte relique avec lesquelles la recherche a élagué ; la dominance de
   `rankBlockingConditions` juge sans objectif. Le harnais, lui, leur passe
   les paramètres complets :
-  [03-developpeur/optimizer/ (moteur-diagnostics) § Paramètres reçus par les diagnostics de l'écran](../../03-developpeur/optimizer/).
+  [03-developpeur/optimizer/moteur/diagnostics.md § Paramètres reçus par les diagnostics de l'écran](../../03-developpeur/optimizer/moteur/diagnostics.md#paramètres-reçus-par-les-diagnostics-de-lécran).
 - **`chercherPaires` avec `avecCoutDesVerrous` : seul
   `meilleurSansVerrous` est fiable.** Ce drapeau retire les lignes
   verrouillées des dimensions de la dominance, pas seulement de
   l'obligation ; les `paires` rendues peuvent manquer une paire conforme.
   Sans effet à l'écran, dont le seul appel ne lit que
   `meilleurSansVerrous` :
-  [03-developpeur/optimizer/ (moteur-optimiseur-artefacts) § Lignes verrouillées](../../03-developpeur/optimizer/).
+  [03-developpeur/optimizer/moteur/optimiseur-artefacts.md § Lignes verrouillées](../../03-developpeur/optimizer/moteur/optimiseur-artefacts.md#lignes-verrouillées).
 
 ## Exclusion et listes de travail
 
@@ -165,15 +165,15 @@ ici.
   la page Mécaniques : la vraie formule du sort contre l'adversaire décrit,
   pas une simulation de combat. Ce qui reste hors modèle, jamais approximé
   en silence :
-  [degats-reels/ (formules et combat) § Volontairement hors modèle](../degats-reels/) ;
+  [degats-reels/feat-formules-et-combat.md § Volontairement hors modèle](../degats-reels/feat-formules-et-combat.md#volontairement-hors-modèle) ;
   une formule hors grammaire est refusée plutôt que calculée de travers :
-  [degats-reels/ (formules et combat) § Lecture des formules — tout ou rien](../degats-reels/).
+  [degats-reels/feat-formules-et-combat.md § Lecture des formules — tout ou rien](../degats-reels/feat-formules-et-combat.md#lecture-des-formules--tout-ou-rien).
 
 ## Harnais de diagnostic
 
 Ce que les instruments du harnais ne mesurent pas, chacun décrit dans
-[03-developpeur/optimizer/ (harnais-extensions.md) § La construction observée](../../03-developpeur/optimizer/)
-et [03-developpeur/optimizer/ (harnais-extensions.md) § Le différentiel : l'oracle](../../03-developpeur/optimizer/) :
+[03-developpeur/optimizer/harnais/extensions.md § La construction observée](../../03-developpeur/optimizer/harnais/extensions.md#la-construction-observée)
+et [03-developpeur/optimizer/harnais/extensions.md § Le différentiel : l'oracle](../../03-developpeur/optimizer/harnais/extensions.md#le-différentiel--loracle) :
 
 - aucun compteur des combinaisons réellement énumérées par `buildBuckets` :
   la rétention se rapporte au produit brut des pools, un majorant ;
@@ -218,10 +218,10 @@ Ce que le harnais ne sait pas faire, ou dit de travers :
 - **la source synthétique** ne force pas de principale par emplacement,
   n'injecte pas de rune et ne porte aucun artéfact ;
   `adaptiveTrancheWeighting` ne se règle ni par elle ni par un override
-  (`scripts/lib/diagnosticTypes.ts`) : [03-developpeur/optimizer/ (harnais-extensions.md) § Configuration : une résolution, des arguments refusés, une fidélité bornée](../../03-developpeur/optimizer/) ;
+  (`scripts/lib/diagnosticTypes.ts`) : [03-developpeur/optimizer/harnais/extensions.md § Configuration : une résolution, des arguments refusés, une fidélité bornée](../../03-developpeur/optimizer/harnais/extensions.md#configuration--une-résolution-des-arguments-refusés-une-fidélité-bornée) ;
 - **trois scripts conservés ne reproduisent plus leur référence**, chacun
   le dit dans son en-tête : `scripts/bucket-cap-scaling-diag.ts`,
   `scripts/stress-tranche-weighting-attainable-diag.ts` et
   `scripts/filterslot-topk-diag.ts`, dont la copie `filterSlotOld` n'a pas
   l'élagage sûr de la production à combo de coût complet
-  ([03-developpeur/optimizer/ (harnais-scripts.md) § Les scripts voisins](../../03-developpeur/optimizer/)).
+  ([03-developpeur/optimizer/harnais/scripts.md § Les scripts voisins](../../03-developpeur/optimizer/harnais/scripts.md#les-scripts-voisins)).

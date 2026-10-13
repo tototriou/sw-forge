@@ -10,7 +10,7 @@ dizaines de minutes, répétée à chaque itération, et un même genre de pièg
 (contention, chemins gitignorés, spawn Windows) se redécouvre faute d'un
 endroit où le retrouver vite. Ce skill est une RÉFÉRENCE, pas un récit ;
 la méthode de comparaison des temps que suit le harnais est décrite dans
-[docs/03-developpeur/optimizer/ § Séries de temps et comparaison](../../../docs/03-developpeur/optimizer/).
+[docs/03-developpeur/optimizer/harnais/mode-d-emploi.md § Séries de temps et comparaison](../../../docs/03-developpeur/optimizer/harnais/mode-d-emploi.md#séries-de-temps-et-comparaison).
 
 ⚠️ **Ne remplace PAS `algo-verify`** (`.claude/skills/algo-verify/SKILL.md`)
 — celui-ci reste la discipline à suivre pour la CORRECTION d'un algorithme
@@ -96,7 +96,7 @@ confondre** — elles n'ont ni la même fidélité ni le même usage :
 
 | Fichier | Ce que c'est | Quand s'en servir |
 |---|---|---|
-| `scripts/lib/pair-slice-worker.ts` | ✅ **Le code de PRODUCTION**, coquille Node du même `runPairSlice` que le navigateur (voir [docs/03-developpeur/optimizer/ § Coquilles et lanceurs](../../../docs/03-developpeur/optimizer/)) | Dès qu'on veut mesurer ou vérifier ce que la prod fait vraiment |
+| `scripts/lib/pair-slice-worker.ts` | ✅ **Le code de PRODUCTION**, coquille Node du même `runPairSlice` que le navigateur (voir [docs/03-developpeur/optimizer/moteur/parallelisation.md § Coquilles et lanceurs](../../../docs/03-developpeur/optimizer/moteur/parallelisation.md#coquilles-et-lanceurs)) | Dès qu'on veut mesurer ou vérifier ce que la prod fait vraiment |
 | `scripts/lib/pairing-quota-worker.ts` | Une REPRODUCTION fidèle du mécanisme, plus un mode `shared` **qui n'est pas en production** (prototype du quota partagé, écarté) | Uniquement pour explorer la question du quota partagé |
 | `scripts/lib/pairing-worker.ts` | Un PROTOTYPE de mesure de débit brut — **budget figé, aucune escalade**, son en-tête le dit | Rien de fidèle : ne jamais en tirer une conclusion sur la prod |
 
@@ -275,7 +275,7 @@ séquentielle jusqu'ici (construction des 2 moitiés en Workers,
 ne change leur comportement en cours de route) — la règle ci-dessus les
 classe du côté valide, pas suspect.
 Le quota partagé écarté pour cette raison :
-[docs/03-developpeur/optimizer/ § Répartition et partage du plafond](../../../docs/03-developpeur/optimizer/).
+[docs/03-developpeur/optimizer/moteur/parallelisation.md § Répartition et partage du plafond](../../../docs/03-developpeur/optimizer/moteur/parallelisation.md#répartition-et-partage-du-plafond).
 
 ### `candidats.push(...tableauEnorme)` — limite d'arguments V8
 

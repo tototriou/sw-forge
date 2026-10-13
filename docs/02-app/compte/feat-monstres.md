@@ -193,7 +193,7 @@ coups, effets appliqués, et ce qu’apporte chaque amélioration.
 ### ⚠️ Un monstre transformable montre SES DEUX formes
 
 La grille n'affiche qu'une carte par monstre transformable (voir
-[bestiaire/](../bestiaire/) (« Un monstre transformable n'a qu'une fiche »)) —
+[bestiaire/README.md](../bestiaire/README.md#%EF%B8%8F-un-monstre-transformable-na-quune-fiche) (« Un monstre transformable n'a qu'une fiche »)) —
 mais **leurs compétences diffèrent** : Bellenus voit son S2 passer de
 **3.0 à 2.0 × ATQ** et son passif changer entièrement. Dédupliquer sans plus
 ferait donc perdre la moitié de l'information.

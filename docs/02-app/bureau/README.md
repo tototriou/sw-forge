@@ -142,11 +142,11 @@ change pas. Ce qui en dépend aujourd'hui :
 - **Le dossier SW Blacksmith** (réglage, `dossier-swblacksmith.json`) est
   retenu même sans « Garder mes données » ; **la session en cours**
   (`session.json`) seulement avec (`bureau/session.ts`,
-  [transverse/](../transverse/) (sauvegarde de session) § La session en cours (application de bureau)).
+  [transverse/feat-sauvegarde-session.md](../transverse/feat-sauvegarde-session.md#la-session-en-cours-application-de-bureau) (sauvegarde de session) § La session en cours (application de bureau)).
 - `npm run bureau:local` garde ses données à part (`%APPDATA%\swblacksmith`,
   nom npm) : il ne touche jamais celles de l'app installée.
 - **Données du jeu** : celles de l'installeur, rafraîchies à chaque version
-  ([transverse/](../transverse/) (données monstres), « Chargement côté app »).
+  ([transverse/feat-donnees-monstres.md](../transverse/feat-donnees-monstres.md#chargement-côté-app) (données monstres), « Chargement côté app »).
 
 ## Le dossier SW Exporter
 

@@ -34,7 +34,7 @@ Tout le calcul vit dans `src/lib/damage.ts` ; on choisit le document selon la r�
 | un dégât conditionnel, une portée corrigée par la prose, un nombre de coups variable saisi | [feat-conditions-et-audit.md](feat-conditions-et-audit.md) |
 | un modificateur monstre-wide d'un passif (compteur, effets sur la cible, sacrifice…) | [catalogue-des-passifs.md](catalogue-des-passifs.md) |
 | une valeur de jeu curée à la main, et sa source | [valeurs-de-jeu-curees.md](valeurs-de-jeu-curees.md) |
-| l'écran de l'objectif « Dégâts réels » (`src/components/outils/DamageSetupCard.tsx`, `src/components/outils/DamageSetupModale.tsx`) | [../optimizer/feat-ecran-objectif-de-recherche.md](../optimizer/feat-ecran-objectif-de-recherche.md) |
+| l'écran de l'objectif « Dégâts réels » (`src/components/outils/DamageSetupCard.tsx`, `src/components/outils/DamageSetupModale.tsx`) | [../optimizer/ecran/objectif-de-recherche.md](../optimizer/ecran/objectif-de-recherche.md) |
 
 ## Destinations
 

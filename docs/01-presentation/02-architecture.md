@@ -136,7 +136,7 @@ sont les deux racines ; dessous : `RunesList`, `RunesSummary`, `RunesCurve` + `C
 **Optimizer** — dans `src/components/outils/` : `OptimizerSection.tsx` (racine),
 `MonsterSourcePicker` (recherche — deux modes, bestiaire ou compte réel), `OptimizerListPicker`
 (listes de travail), `SetComboPicker`, `BuildCandidateCard` — fiche :
-[optimizer/feat-ecran.md](../02-app/optimizer/feat-ecran.md). Hooks `useOptimizerState` +
+[optimizer/ecran/](../02-app/optimizer/ecran/README.md). Hooks `useOptimizerState` +
 `useBuildOptimSearch` (saisie et recherche, jamais persistées) et `useOptimizerLists` (listes de
 travail créées par l'utilisateur + runes validées scopées par liste — seul état PERSISTÉ de
 l'écran — fiche : [optimizer/feat-listes-et-reservation.md](../02-app/optimizer/feat-listes-et-reservation.md)).

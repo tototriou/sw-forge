@@ -10,7 +10,7 @@ combinaison(s) de 6 pour un monstre donné, sous contrainte d'un **combo de
 sets**, de **statistiques principales imposées** (slots 2/4/6) et de
 **minimums/maximums de stats**, orientée par un **objectif de recherche**
 choisi d'avance. Anticipé dans
-[compte/ (calcul des runes) § 6. Perf (contrainte forte, à respecter)](../compte/)
+[compte/feat-calcul-runes.md § 6. Perf (contrainte forte, à respecter)](../compte/feat-calcul-runes.md#6-perf-contrainte-forte-à-respecter)
 (« Futur optimiseur de builds »).
 
 Fichiers : [OptimizerSection.tsx](src/components/outils/OptimizerSection.tsx) ·
@@ -44,19 +44,19 @@ partagés avec `MonsterGear.tsx` (RTA/Siège/« Équipement actuel »), voir
 
 | Le changement touche… | Lire |
 | --- | --- |
-| la mise en page de `src/components/outils/OptimizerSection.tsx` : grille, panneaux dépliants, largeur, changement d'onglet | [feat-ecran.md](feat-ecran.md) |
-| « Monstre à optimiser », `src/components/outils/MonsterSourcePicker.tsx` | [feat-ecran-recherche-du-monstre.md](feat-ecran-recherche-du-monstre.md) |
-| « Meilleurs artéfacts offensifs pour ce build », `src/components/ArtifactSubLigne.tsx` | [feat-ecran-meilleurs-artefacts-offensifs.md](feat-ecran-meilleurs-artefacts-offensifs.md) |
-| « Équipement actuel » | [feat-ecran-equipement-actuel.md](feat-ecran-equipement-actuel.md) |
-| l'objectif de recherche, `src/components/outils/DamageSetupCard.tsx`, `src/components/outils/DamageSetupModale.tsx` | [feat-ecran-objectif-de-recherche.md](feat-ecran-objectif-de-recherche.md) |
-| le set recherché et les principales imposées, `src/components/outils/SetComboPicker.tsx` | [feat-ecran-set-et-principale.md](feat-ecran-set-et-principale.md) |
-| la carte « Artéfacts » | [feat-ecran-artefacts.md](feat-ecran-artefacts.md) |
-| la carte « Relique », `src/components/RelicSlot.tsx` | [feat-ecran-relique.md](feat-ecran-relique.md) |
-| « État de mon monstre », `src/components/outils/EtatMonstre.tsx`, `src/lib/aurasExternes.ts`, `src/lib/buffsDePassif.ts` | [feat-ecran-etat-de-mon-monstre.md](feat-ecran-etat-de-mon-monstre.md) |
-| les sous-propriétés verrouillées | [feat-ecran-sous-proprietes-verrouillees.md](feat-ecran-sous-proprietes-verrouillees.md) |
-| les conditions, l'inventaire et les réglages avancés | [feat-ecran-conditions-et-reglages.md](feat-ecran-conditions-et-reglages.md) |
-| « Lancer la recherche » | [feat-ecran-lancer-la-recherche.md](feat-ecran-lancer-la-recherche.md) |
-| les résultats, `src/components/outils/BuildCandidateCard.tsx` | [feat-ecran-resultats.md](feat-ecran-resultats.md) |
+| la mise en page de `src/components/outils/OptimizerSection.tsx` : grille, panneaux dépliants, largeur, changement d'onglet | [ecran/README.md](ecran/README.md) |
+| « Monstre à optimiser », `src/components/outils/MonsterSourcePicker.tsx` | [ecran/recherche-du-monstre.md](ecran/recherche-du-monstre.md) |
+| « Meilleurs artéfacts offensifs pour ce build », `src/components/ArtifactSubLigne.tsx` | [ecran/meilleurs-artefacts-offensifs.md](ecran/meilleurs-artefacts-offensifs.md) |
+| « Équipement actuel » | [ecran/equipement-actuel.md](ecran/equipement-actuel.md) |
+| l'objectif de recherche, `src/components/outils/DamageSetupCard.tsx`, `src/components/outils/DamageSetupModale.tsx` | [ecran/objectif-de-recherche.md](ecran/objectif-de-recherche.md) |
+| le set recherché et les principales imposées, `src/components/outils/SetComboPicker.tsx` | [ecran/set-et-principale.md](ecran/set-et-principale.md) |
+| la carte « Artéfacts » | [ecran/artefacts.md](ecran/artefacts.md) |
+| la carte « Relique », `src/components/RelicSlot.tsx` | [ecran/relique.md](ecran/relique.md) |
+| « État de mon monstre », `src/components/outils/EtatMonstre.tsx`, `src/lib/aurasExternes.ts`, `src/lib/buffsDePassif.ts` | [ecran/etat-de-mon-monstre.md](ecran/etat-de-mon-monstre.md) |
+| les sous-propriétés verrouillées | [ecran/sous-proprietes-verrouillees.md](ecran/sous-proprietes-verrouillees.md) |
+| les conditions, l'inventaire et les réglages avancés | [ecran/conditions-et-reglages.md](ecran/conditions-et-reglages.md) |
+| « Lancer la recherche » | [ecran/lancer-la-recherche.md](ecran/lancer-la-recherche.md) |
+| les résultats, `src/components/outils/BuildCandidateCard.tsx` | [ecran/resultats.md](ecran/resultats.md) |
 | `src/hooks/useOptimizerLists.ts`, `src/components/outils/OptimizerListPicker.tsx`, la réservation de runes | [feat-listes-et-reservation.md](feat-listes-et-reservation.md) |
 | `src/lib/optimizerMemberStorage.ts`, `src/lib/equipesOptimizer.ts`, `src/lib/optimizerBackup.ts`, `src/components/outils/OptimizerBackupBar.tsx`, `src/components/outils/OptimizerEquipeDialog.tsx`, `src/components/outils/OptimizerCreateListDialog.tsx` | [feat-listes-equipes-et-sauvegarde.md](feat-listes-equipes-et-sauvegarde.md) |
 | `src/lib/importEquipes.ts`, `src/lib/actionImportOptimizer.ts`, `src/lib/importRecoOptimizer.ts`, `src/lib/importSpeedTuneOptimizer.ts`, `src/components/outils/OptimizerImportButton.tsx`, `src/components/outils/OptimizerImportRapport.tsx` | [feat-import-equipes.md](feat-import-equipes.md) |
@@ -71,19 +71,19 @@ Chaque sujet de l'application vit dans son fichier, dans ce dossier ; le
 moteur et sa vérification vivent côté développeur :
 
 - **Par où commencer** — [routage-par-tache.md](routage-par-tache.md) : quelles sections lire d'abord selon ce qu'on touche
-- **Écran** — [feat-ecran.md](feat-ecran.md) (contrôles, grille, panneaux dépliants, adaptation à la largeur, survie à un changement d'onglet), puis une page par carte :
-  - [Recherche du monstre à optimiser](feat-ecran-recherche-du-monstre.md)
-  - [Meilleurs artéfacts offensifs pour ce build](feat-ecran-meilleurs-artefacts-offensifs.md)
-  - [Équipement actuel](feat-ecran-equipement-actuel.md)
-  - [Objectif de recherche](feat-ecran-objectif-de-recherche.md)
-  - [Set de runes recherché et statistique principale imposée](feat-ecran-set-et-principale.md)
-  - [Artéfacts](feat-ecran-artefacts.md)
-  - [Relique](feat-ecran-relique.md)
-  - [État de mon monstre](feat-ecran-etat-de-mon-monstre.md)
-  - [Sous-propriétés verrouillées](feat-ecran-sous-proprietes-verrouillees.md)
-  - [Conditions, inventaire et réglages avancés](feat-ecran-conditions-et-reglages.md)
-  - [Lancer la recherche](feat-ecran-lancer-la-recherche.md)
-  - [Résultats](feat-ecran-resultats.md)
+- **Écran** — [ecran/README.md](ecran/README.md) (contrôles, grille, panneaux dépliants, adaptation à la largeur, survie à un changement d'onglet), puis une page par carte :
+  - [Recherche du monstre à optimiser](ecran/recherche-du-monstre.md)
+  - [Meilleurs artéfacts offensifs pour ce build](ecran/meilleurs-artefacts-offensifs.md)
+  - [Équipement actuel](ecran/equipement-actuel.md)
+  - [Objectif de recherche](ecran/objectif-de-recherche.md)
+  - [Set de runes recherché et statistique principale imposée](ecran/set-et-principale.md)
+  - [Artéfacts](ecran/artefacts.md)
+  - [Relique](ecran/relique.md)
+  - [État de mon monstre](ecran/etat-de-mon-monstre.md)
+  - [Sous-propriétés verrouillées](ecran/sous-proprietes-verrouillees.md)
+  - [Conditions, inventaire et réglages avancés](ecran/conditions-et-reglages.md)
+  - [Lancer la recherche](ecran/lancer-la-recherche.md)
+  - [Résultats](ecran/resultats.md)
 - [Listes de travail et réservation de runes](feat-listes-et-reservation.md)
 - [Stockage des membres, des équipes et du point de sauvegarde](feat-listes-equipes-et-sauvegarde.md)
 - [Import d’équipes : modèle et conversions](feat-import-equipes.md)

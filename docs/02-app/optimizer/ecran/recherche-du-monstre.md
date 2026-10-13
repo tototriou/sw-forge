@@ -19,13 +19,13 @@
    l'app). Un **sélecteur de source** (Box, par défaut / RTA / Défenses
    siège / Offenses siège, `Segmented size="lg"` — même contrôle qu'« Exclure
    les runes d'un monstre »,
-   voir feat-exclusion.md § Exclusion manuelle — un monstre précis, dans n'importe quelle source) apparaît entre le libellé et le champ
+   voir ../feat-exclusion.md § Exclusion manuelle — un monstre précis, dans n'importe quelle source) apparaît entre le libellé et le champ
    de recherche, mais ne filtre pas la recherche elle-même : il choisit
    dans QUELLE source résoudre l'**exemplaire**, une fois l'espèce trouvée.
    ⚠️ **Mode compact déclenché par la largeur RÉELLE de sa colonne, pas par
    celle de la fenêtre** — `Segmented` mesure lui-même la place qu'il reçoit
    et se resserre tout seul (voir
-   [03-developpeur/interface/ (librairie UI)](../../03-developpeur/interface/)), comportement commun
+   [03-developpeur/interface/librairie-ui/README.md](../../../03-developpeur/interface/librairie-ui/README.md)), comportement commun
    à TOUS les sélecteurs de l'app. **Une puce grisée** signale que l'espèce
    choisie n'a aucun exemplaire dans cette source (`options[i].disabled` ;
    aucune source : tout le contrôle, `allSourcesEmpty`). La recherche du
@@ -164,7 +164,7 @@ l’import d’une recette. Cette dérivation ne réécrit aucune mémoire.
 
 La conservation hors liste garde la règle de cohérence de la relique :
 « Garder la relique équipée » redevient « Libre » si l'exemplaire choisi
-n'en porte pas (voir feat-ecran-relique.md § Relique). Cette pose automatique
+n'en porte pas (voir relique.md § Relique). Cette pose automatique
 ne crée aucune mémoire.
 
 Cliquer un membre restaure ses critères personnels puis efface les résultats
@@ -176,7 +176,7 @@ ne crée aucune mémoire et ne déclenche ni rappel des auras ni ouverture guid�
 Le rappel reste réservé au geste explicite sur une ligne de la liste.
 Le bouton « Ajouter un autre
 exemplaire de … » de la zone C
-(voir feat-listes-et-reservation.md § Zone C — Monstres de la liste) change
+(voir ../feat-listes-et-reservation.md § Zone C — Monstres de la liste) change
 d'exemplaire par le **chemin de sélection hors liste** (`choisirExemplaire`,
 OptimizerSection.tsx) : résultats affichés effacés, critères gardés,
 sans rappel des auras externes, qui reste au seul clic d'un membre ; l'inclusion

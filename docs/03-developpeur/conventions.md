@@ -99,7 +99,7 @@ shell applicatif. La carte des pages et leur ordre sont dans
   ⚠️ **Une branche porte un sujet, pas un numéro** : le numéro se décide à la
   fusion, quand on voit ce que la version contient — d'ici là l'entrée du
   journal a `version: null`. Processus détaillé dans
-  [02-app/nouveautes/](../02-app/nouveautes/) (« Modèle de branches et processus de release »).
+  [02-app/nouveautes/README.md](../02-app/nouveautes/README.md#modèle-de-branches-et-processus-de-release) (« Modèle de branches et processus de release »).
   ⚠️ **Un changement de calcul se note toujours** dans le journal : c'est ce
   qu'un joueur remarque en premier.
 - **Footer** — trois informations, dans cet ordre :

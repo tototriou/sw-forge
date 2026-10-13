@@ -7,7 +7,7 @@
    Précision). Chaque stat porte **deux champs, minimum et maximum**, tous
    deux facultatifs — champ vide = pas de contrainte. **Colonne DROITE** de
    « Critères de recherche », qu'elle occupe seule : « Artéfacts et
-   reliques » est une carte à part (voir feat-ecran-artefacts.md § Place de la carte à l'écran).
+   reliques » est une carte à part (voir artefacts.md § Place de la carte à l'écran).
    - **Interrupteur « Stats de base exclues »**, activé par défaut : n'affecte
      que PV, ATQ, DEF et VIT — ces 4 stats ont une base qui grandit avec le
      niveau/l'éveil ; activé, le champ porte sur ce que l'**équipement**
@@ -58,7 +58,7 @@
      tick sur la vitesse de combat, sans buff : viser une vitesse finale ne
      garantit aucun speed tune. Les deux fonctions de conversion qui
      restent, sans appelant à l'écran, sont décrites dans
-     [03-developpeur/optimizer/ (moteur-optimiseur-artefacts)](../../03-developpeur/optimizer/).
+     [03-developpeur/optimizer/moteur/optimiseur-artefacts.md](../../../03-developpeur/optimizer/moteur/optimiseur-artefacts.md).
 
 ## Grille des conditions
 
@@ -98,7 +98,7 @@
        seule valeur.
    - Le modèle des auras accepte les auras des **autres** monstres de
      l'équipe dans `DamageSetup.setsAuraExternes`, 15 sets au plus (voir
-     [effets d'équipe](../degats-reels/)) ; une
+     [effets d'équipe](../../degats-reels/)) ; une
      recette portant l'ancien total d'équipe `setsAura` non vide est refusée.
      Les activations propres des runes de chaque build s'y ajoutent dans le
      combat et le score (dégâts, PV effectifs, exclusives de relique, choix
@@ -114,7 +114,7 @@
      le pré-filtrage et la rétention restent heuristiques et ne valorisent
      pas l'aura propre. Les auras PV/ATQ/DEF ne comptent dans aucune
      condition. Les auras externes se saisissent dans « État de mon
-     monstre » (voir feat-ecran-etat-de-mon-monstre.md § Sets d'aura des autres monstres) ;
+     monstre » (voir etat-de-mon-monstre.md § Sets d'aura des autres monstres) ;
      `compterAurasResPre` se règle dans
      « Réglages avancés » (point 9 ci-dessous).
    - **« Réinitialiser les conditions »**, en bas à droite de la grille, vide
@@ -127,19 +127,19 @@
 
 8. **« Exclure les runes déjà utilisées »** — interrupteur, **désactivé par
    défaut** : la recherche porte alors sur tout l'inventaire. Il vit dans
-   « Exclusion de runes » (voir feat-exclusion.md § Exclusion des runes déjà portées ailleurs).
+   « Exclusion de runes » (voir ../feat-exclusion.md § Exclusion des runes déjà portées ailleurs).
 
 ## Réglages avancés
 
 9. **« Réglages avancés »** (repliés par défaut). ⚠️ **Au bureau, un
-   `FlottantAuto`** (`../../03-developpeur/interface/librairie-ui/composants.md`), PAS un bloc qui grandit la
+   `FlottantAuto`** (`../../../03-developpeur/interface/librairie-ui/composants.md`), PAS un bloc qui grandit la
    carte — dépliée, la carte reste sous « Exclusion de runes » (colonne 2,
    rangée 5, sous Exclusion en rangée 4 — voir
-   feat-ecran.md § Ordre d'usage et grille) à sa hauteur repliée, le
+   README.md § Ordre d'usage et grille) à sa hauteur repliée, le
    contenu flotte par-dessus le reste de la page ; ferme au clic extérieur.
    Un panneau replié par défaut ne peut pas réserver sa place à l'avance
    sans perdre l'intérêt d'être replié — voir
-   [03-developpeur/interface/ (design)](../../03-developpeur/interface/), « un clic ne déplace jamais ce
+   [03-developpeur/interface/design/README.md](../../../03-developpeur/interface/design/README.md), « un clic ne déplace jamais ce
    qu'on vient de cliquer ». **Pré-filtrage par emplacement**, en
    **presets** plutôt qu'un curseur libre — Bas / Moyen
    (défaut) / Haut / Extrême, du plus rapide au plus large (et donc plus
@@ -169,7 +169,7 @@
    automatiquement dans l'autre sens. Sous ce réglage :
    - **« Rechercher jusqu'à épuisement complet »**, décoché par défaut :
      retire le filet de temps de 10 minutes (voir
-     feat-interruption.md § Interruption — filet de temps, pré-filtrage et arrêt manuel) — la
+     ../feat-interruption.md § Interruption — filet de temps, pré-filtrage et arrêt manuel) — la
      recherche continue tant qu'il reste des combinaisons à examiner, plutôt
      que de s'arrêter au bout d'un temps fixe. ⚠️ Peut prendre très longtemps
      sur une recherche avec peu de conditions (beaucoup de combinaisons
@@ -178,22 +178,22 @@
      plafond interne de candidats collectés (non réglable) reste actif ; une
      recherche assez large pour l'atteindre s'arrête quand même avant d'avoir
      tout exploré, et un meilleur build peut alors manquer (voir
-     limites-connues.md § Limites connues). Fait partie
+     ../limites-connues.md § Limites connues). Fait partie
      des réglages exportés/importés dans une recette (voir
-     feat-ecran-lancer-la-recherche.md § Lancer la recherche).
+     lancer-la-recherche.md § Lancer la recherche).
    - **« Diagnostic approfondi sur 0 résultat »**, décoché par défaut (plus
-     coûteux qu'un diagnostic simple, voir feat-ecran-resultats.md § Diagnostic sur 0 résultat).
+     coûteux qu'un diagnostic simple, voir resultats.md § Diagnostic sur 0 résultat).
    - **« Prioriser les stats les plus difficiles »**, décoché par défaut :
      réalloue le budget de rétention vers les stats demandées les plus
      rares/difficiles à combiner plutôt qu'un partage égal entre toutes —
      peut retrouver un build qu'une recherche normale rate, au prix d'une
      recherche plus longue. Fait partie des réglages exportés/importés dans
-     une recette (voir feat-ecran-lancer-la-recherche.md § Lancer la recherche).
+     une recette (voir lancer-la-recherche.md § Lancer la recherche).
    - **« Vérifier toutes les combinaisons trouvées »**, décoché par défaut :
      la file de résolution vérifie tous les
      builds trouvés au lieu de s'arrêter à 100 combinaisons confirmées (300
      en mode relique « recherche », voir
-     ../../03-developpeur/optimizer/moteur-artefacts.md § Quand ce choix a lieu) — le
+     ../../../03-developpeur/optimizer/moteur/artefacts.md § Quand ce choix a lieu) — le
      compte des confirmées devient complet, au prix de plusieurs minutes
      possibles ; son aide le dit. ⚠️ **Lu EN DIRECT par la file**, jamais par
      « Rechercher » : il ne change pas la recherche de runes, seulement
@@ -204,7 +204,7 @@
      reliques au tri ». Fait partie des réglages exportés/importés dans une
      recette, champ optionnel `verifierToutesLesCombinaisons` (absent, il se
      relit désactivé), et le CLI le respecte (voir
-     feat-ecran-resultats.md § Valeur d'objectif affichée sur les cartes).
+     resultats.md § Valeur d'objectif affichée sur les cartes).
    - **« Compter les effets d'auras Tolerance et Précision dans les
      conditions »**, activé par défaut : le contrôle de `compterAurasResPre` (point 7
      ci-dessus) — activé, chaque set Tolerance ou Accuracy, externe ou
@@ -222,10 +222,10 @@
      Accuracy ou Tolerance aux auras externes, ou le choisir comme set
      recherché, ouvre la surface du format et surligne cet interrupteur 3 s
      (voir
-     feat-ecran-etat-de-mon-monstre.md § Ouverture guidée vers l'interrupteur des auras RES/PRE).
+     etat-de-mon-monstre.md § Ouverture guidée vers l'interrupteur des auras RES/PRE).
 
    ⚠️ **Le seuil de niveau minimum de la relique N'EST PAS ICI** : il vit
    dans le bloc
    « Relique » de la carte « Artéfacts et reliques » (« Niveau minimum »,
-   voir feat-ecran-relique.md § Relique), avec les deux autres réglages relique, pas dans
+   voir relique.md § Relique), avec les deux autres réglages relique, pas dans
    « Réglages avancés ».

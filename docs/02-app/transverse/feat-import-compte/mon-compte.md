@@ -35,7 +35,7 @@ stockage.
   de `main`, qui reste lue dans `pri_effect`). `relicUsageById` : occupation
   par rid, comptée sur les unités (`unit.relics[0].rid`), jamais sur
   `data.relics.length` — voir
-  [03-developpeur/optimizer/ § Ce que le moteur lit d'une relique](../../../03-developpeur/optimizer/).
+  [03-developpeur/optimizer/moteur/reliques.md § Ce que le moteur lit d'une relique](../../../03-developpeur/optimizer/moteur/reliques.md#ce-que-le-moteur-lit-dune-relique).
   `relicUpgradeMismatches` : nombre de pièces où
   `pri_effect[1] ≠ upgrade_curr + 3`, un avertissement jamais une correction.
 - Utilisé par les sous-sections **Runes** et **Artéfacts** (voir
@@ -74,7 +74,7 @@ Les 8 marqueurs qu'on pose en jeu sur une rune. Relevé sur deux exports réels
 
 Les `rune_id` des runes **qui jouent**, rangés **par périmètre** : l'onglet
 Optimisation laisse choisir lesquels comptent. Règles de l'écran dans
-[compte/](../../compte/) (runes, « Runes utilisées »).
+[compte/feat-runes/optimisation.md](../../compte/feat-runes/optimisation.md#-runes-utilisées---le-filtre-qui-regarde-les-decks) (runes, « Runes utilisées »).
 
 | Périmètre | Source |
 |-----------|--------|

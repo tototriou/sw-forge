@@ -16,7 +16,7 @@
     recherche ne relance rien automatiquement : il faut recliquer. Un bouton
     **« Arrêter »** apparaît pendant le calcul — il interrompt la recherche
     et garde le **meilleur trouvé jusque-là**, plutôt que de tout perdre
-    (voir feat-interruption.md § Interruption — filet de temps, pré-filtrage et arrêt manuel).
+    (voir ../feat-interruption.md § Interruption — filet de temps, pré-filtrage et arrêt manuel).
     ⚠️ **« Exporter les paramètres de recherche » / « Importer
     les paramètres de recherche »** (« Exporter » / « Importer » quand la
     place manque), juste à côté : télécharge/relit un fichier `.json`
@@ -34,7 +34,7 @@
     Exporter ne réécrit ni le lead personnel ni la mémoire du membre. Le
     réimport applique ce lead comme une valeur de recette, sans équipe ni
     propriétaire des critères et sans écraser les mémoires ou équipes
-    existantes. Voir feat-listes-equipes-et-sauvegarde.md
+    existantes. Voir ../feat-listes-equipes-et-sauvegarde.md
     § Lead effectif d’un membre.
     L'import remplit tous les réglages et sélectionne
     automatiquement le monstre par son `com2usId` — **résolu dans TOUT le

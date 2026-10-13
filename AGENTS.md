@@ -7,6 +7,7 @@ compte dans le navigateur et n'envoie rien. La même app existe en **application
 
 > Documentation : [`docs/`](docs/) (carte : [docs/README.md](docs/README.md)). Où se trouve quoi,
 > par écran : [docs/01-presentation/02-architecture.md](docs/01-presentation/02-architecture.md). Décisions : [`docs/04-decisions/`](docs/04-decisions/README.md).
+> Dette, questions ouvertes et pistes : [`docs/05-pilotage/`](docs/05-pilotage/README.md).
 
 ## ⚠️ Avant tout travail : lire la documentation de ce qui va être touché
 

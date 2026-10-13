@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { Fragment, memo, type ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import { Monster } from '../types';
 import { libelleCollab } from '../lib/collabPairs';
@@ -12,6 +12,22 @@ import MonsterAvatar from './MonsterAvatar';
 // et passe `anime={false}` au-dessus : le filtrage redevient instantané, on
 // garde le fondu pour les petites listes. Voir docs/02-app/compte/.
 export const SEUIL_ANIMATION_GRILLE = 48;
+
+// ⚠️ **Une possibilité de coupure (`<wbr>`) avant chaque parenthèse**, sans
+// toucher au libellé : « Homunculus(Attack) » n'a aucune espace, et sous
+// `line-clamp-2` un mot plus large que la carte est coupé net, sans points de
+// suspension. Avec elle, « (Attack) » passe à la ligne. Le texte rendu
+// (`textContent`) reste le nom du jeu, mot pour mot.
+function coupableAvantParenthese(nom: string): ReactNode {
+  const morceaux = nom.split('(');
+  return morceaux.map((m, i) =>
+    i === 0 ? m : (
+      <Fragment key={i}>
+        <wbr />({m}
+      </Fragment>
+    ),
+  );
+}
 
 const BORDER: Record<string, string> = {
   fire: 'hoverable:border-fire hoverable:shadow-lg hoverable:shadow-fire-glow/40',
@@ -130,7 +146,7 @@ const MonsterCard = memo(function MonsterCard({
           moitié grisée du portrait porte déjà cette information, et ternir le
           nom par-dessus le rendait juste moins lisible. */}
       <div className="text-xs font-semibold leading-tight line-clamp-2">
-        {jumeau ? libelleCollab(monster.name, jumeau.name) : monster.name}
+        {coupableAvantParenthese(jumeau ? libelleCollab(monster.name, jumeau.name) : monster.name)}
       </div>
     </>
   );

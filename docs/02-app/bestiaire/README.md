@@ -62,6 +62,13 @@ rien ne change : grande recherche, filtres et tri dans le tiroir (lot 11).
     portrait **64 px**, colonnes de **104 px**, `rounded-xl`. C'est le plus dense
     des deux — on parcourt des centaines de monstres, chaque pixel de marge coûte
     une ligne de plus à faire défiler.
+  - ⚠️ **Le nom peut se couper avant une parenthèse** (`<wbr>`, chantier
+    `defauts-affichage`, décision 4b de l'utilisateur, 2026-10-13) : il tient
+    sur deux lignes au plus (`line-clamp-2`), et un nom sans espace comme
+    « Homunculus(Attack) », plus large que la carte, était coupé net, sans
+    points de suspension. « (Attack) » passe désormais à la ligne. Le libellé
+    reste celui du jeu, mot pour mot ; la règle vaut aussi pour les deux noms
+    d'un monstre de collaboration.
 - Si un filtre ne renvoie rien : message « Aucun monstre ne correspond à ces
   filtres. »
 

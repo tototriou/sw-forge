@@ -896,6 +896,10 @@ refermer) là où le geste réel est simplement « + ».
   alourdir une rangée qu'on parcourt du regard) mais **toujours visible au
   tactile** — voir la règle « un élément atteignable ne dépend jamais du survol »
   de [../../03-developpeur/interface/](../../03-developpeur/interface/).
+  Le crayon est posé sur le coin haut droit de la vignette, au-dessus du
+  chevron de la précision ; une vignette **sans précision** garde, au même
+  endroit, une place vide de la taille du chevron : sans elle, le crayon
+  tomberait sur l'icône d'élément du dernier portrait.
 - ⚠️ **L'index en édition est remis à `null` si le nombre de défenses change** :
   une défense supprimée laisserait l'édition pointer sur sa voisine, ou dans le
   vide.

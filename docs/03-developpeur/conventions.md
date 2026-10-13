@@ -185,6 +185,21 @@ Outillage du dépôt (pas une page de l'app) :
   build ; les tests qui lisent un export de compte réel, non suivi, y sont
   ignorés. Lint, hooks et garde-fous :
   [qualite-code.md](qualite-code.md).
+  **Sélection, manifeste, garde** (détail et limites :
+  [tests/README.md](tests/README.md)) : `node tests/run.mjs --depuis
+  origin/<base>` (ou `--plage <a>..<b>`) ne lance que les vérifications que
+  touchent les fichiers modifiés, en complément du filtre par nom ; hors
+  `src/` elle fait gagner l'essentiel du temps, et elle se replie sur la
+  suite complète, cause écrite, dès qu'un fichier n'a pas de lien connu.
+  `--manifeste <fichier>` (hors du worktree ou dans un dossier ignoré)
+  journalise ce qui a tourné ; le dépôt ne l'exige pas, un outil de fin de
+  travail peut le lire comme preuve. La vérification
+  `lecturesource` compte les références textuelles à `src/` dans `tests/` :
+  tout usage est déclaré dans `tests/fixtures/lecture-source-toleree.json`,
+  et se retire avec le commit qui retire la lecture. Mesure du rappel en
+  usage : avant une fusion, les échecs de la suite complète se comparent à
+  la sélection `--depuis` du manifeste ; un échec hors sélection est un oubli
+  à signaler.
 - **Un type partagé entre l'écran et un script (recette exportable, etc.) a
   PLUSIEURS constructeurs — un champ ajouté doit être répercuté dans TOUS.**
   ⚠️ **Écueil** : un champ optionnel ajouté à `OptimizerRecipe`

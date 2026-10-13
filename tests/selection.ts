@@ -20,6 +20,7 @@
 
 import { build, type BuildOptions, type Metafile, type Plugin } from 'esbuild';
 import { execFileSync } from 'node:child_process';
+import { createRequire } from 'node:module';
 import { existsSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join, posix, resolve as resoudreChemin } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -109,7 +110,7 @@ interface InfoFichierTest {
   ensemble: Set<string>;
   fichiers: Map<string, string[]>; // cible -> sites
   dossiers: Map<string, string[]>; // préfixe -> sites
-  motifs: { motif: string; re: RegExp; site: string }[];
+  motifs: { motif: string; re: RegExp; site: string; tailwind: boolean }[];
   depot: string[];
   opaque: string[];
 }
@@ -120,7 +121,16 @@ export interface Inventaire {
   fichiersTest: Map<string, InfoFichierTest>;
   incoherences: string[];
   sourceIndex: string;
+  // Configuration Tailwind lue (`content`), ou null si illisible ou absente.
+  tailwind: { fichier: string; motifs: string[] } | null;
   dureeMs: number;
+}
+
+// Ce que le motif Tailwind décide pour un ensemble de fichiers modifiés.
+export interface DecisionTailwind {
+  etat: 'feuille inchangée (candidats)' | 'feuille inchangée (produite)' | 'feuille changée';
+  detail: string;
+  fichiers: string[]; // fichiers modifiés sous le motif
 }
 
 export interface FichierModifie { chemin: string; statut: Statut; detail: string }
@@ -134,6 +144,9 @@ export interface Selection {
   causes: string[];
   retenues: Retenue[];
   transversalesSeulement: boolean;
+  // Décision du motif Tailwind pour ces fichiers ; null : sans objet, ou pas
+  // de décision (le motif retient alors).
+  tailwind: DecisionTailwind | null;
   // Ce que le point d'entrée exécute : des noms, et pour chaque groupe
   // d'étalements retenu, les noms d'entrées qui le bornent dans le registre.
   execution: { complet: boolean; noms: string[]; groupes: { avant: string | null; apres: string | null; etalements: string[] }[] };
@@ -842,11 +855,10 @@ export async function inventaire(racine0: string, metafichier?: Metafile): Promi
       else if (s.genre === 'tailwind') {
         if (!tailwind) valeurs = [{ kind: 'depot' }];
         else {
+          // La configuration est une cible ; chaque entrée `content` est un motif
+          // Tailwind, qui ne retient que si la feuille produite peut changer.
           noter(info.fichiers, tailwind.fichier, site);
-          for (const m of tailwind.motifs) {
-            if (/[*?{]/.test(m)) info.motifs.push({ motif: m, re: globVersRegex(m), site });
-            else noter(info.fichiers, posix.normalize(m), site);
-          }
+          for (const m of tailwind.motifs) info.motifs.push({ motif: m, re: globVersRegex(posix.normalize(m)), site, tailwind: true });
           continue;
         }
       } else if (s.genre === 'spawn') {
@@ -875,7 +887,7 @@ export async function inventaire(racine0: string, metafichier?: Metafile): Promi
     info.opaque = [...new Set(info.opaque)];
     infos.set(ft, info);
   }
-  return { racine, entrees: reg.entrees, fichiersTest: infos, incoherences: [...new Set(incoherences)], sourceIndex: reg.source.text, dureeMs: Date.now() - debut };
+  return { racine, entrees: reg.entrees, fichiersTest: infos, incoherences: [...new Set(incoherences)], sourceIndex: reg.source.text, tailwind: tailwind ?? null, dureeMs: Date.now() - debut };
 }
 
 export function classement(info: InfoFichierTest): 'depot' | 'opaque' | 'dossier' | 'statique' {
@@ -987,7 +999,9 @@ export function comparerIndex(avant: string | null, apres: string): DiffIndex {
  * Sélection
  * ----------------------------------------------------------------------- */
 
-function liensSpecifiques(ft: string, info: InfoFichierTest, f: string): string[] {
+// `feuilleInchangee` : la décision Tailwind a montré que la feuille produite ne
+// change pas ; le motif Tailwind ne retient alors rien (les autres liens restent).
+function liensSpecifiques(ft: string, info: InfoFichierTest, f: string, feuilleInchangee = false): string[] {
   const r: string[] = [];
   if (f === ft) r.push(`fichier de test modifié : ${f}`);
   else if (info.graphe.has(f)) r.push(`module de son graphe : ${f}`);
@@ -995,11 +1009,18 @@ function liensSpecifiques(ft: string, info: InfoFichierTest, f: string): string[
   const cites = info.fichiers.get(f);
   if (cites) r.push(`cible lue (${cites[0]}) : ${f}`);
   for (const [d, sites] of info.dossiers) if (f === d || f.startsWith(d + '/')) { r.push(`dossier ${d} lu (${sites.slice(0, 3).join(' | ')}) : ${f}`); break; }
-  for (const m of info.motifs) if (m.re.test(f)) { r.push(`motif ${m.motif} (${m.site}) : ${f}`); break; }
+  for (const m of info.motifs) {
+    if (!m.re.test(f) || (m.tailwind && feuilleInchangee)) continue;
+    r.push(m.tailwind ? `motif Tailwind ${m.motif} (${m.site}), feuille changée : ${f}` : `motif ${m.motif} (${m.site}) : ${f}`);
+    break;
+  }
   return r;
 }
 
-export function selectionner(inv: Inventaire, modifies: string[], indexAvant: string | null, base: string, causesInitiales: string[] = []): Selection {
+// Sans décision Tailwind (appel direct), le motif retient : lecture prudente.
+export function selectionner(inv: Inventaire, modifies: string[], indexAvant: string | null, base: string, causesInitiales: string[] = [], tailwind: DecisionTailwind | null = null): Selection {
+  const feuilleInchangee = !!tailwind && tailwind.etat !== 'feuille changée';
+  const sousMotifTailwind = (f: string) => [...inv.fichiersTest.values()].some((i) => i.motifs.some((m) => m.tailwind && m.re.test(f)));
   const debut = Date.now();
   const causes = [...causesInitiales, ...inv.incoherences.map((i) => 'incohérence de l\'inventaire : ' + i)];
   const fichiers: FichierModifie[] = [];
@@ -1017,13 +1038,17 @@ export function selectionner(inv: Inventaire, modifies: string[], indexAvant: st
     }
     let specifiques = 0;
     for (const [ft, info] of inv.fichiersTest) {
-      const liens = liensSpecifiques(ft, info, f);
+      const liens = liensSpecifiques(ft, info, f, feuilleInchangee);
       if (liens.length) { specifiques++; for (const l of liens) noter(parFichierTest, ft, l); }
       if (info.depot.length) noter(parFichierTest, ft, `depot (${info.depot[0]}) : ${f}`);
       // Une lecture opaque peut viser n'importe quel fichier, docs/ et la racine compris.
       else if (info.opaque.length) noter(parFichierTest, ft, `opaque (${info.opaque[0]}) : ${f}`);
     }
-    if (specifiques > 0) { fichiers.push({ chemin: f, statut: 'couvert', detail: `${specifiques} fichier(s) de test par un lien spécifique` }); continue; }
+    const noteTailwind = feuilleInchangee && sousMotifTailwind(f) ? ` ; motif Tailwind : ${tailwind!.etat}` : '';
+    if (specifiques > 0) { fichiers.push({ chemin: f, statut: 'couvert', detail: `${specifiques} fichier(s) de test par un lien spécifique${noteTailwind}` }); continue; }
+    // Le motif Tailwind a été examiné : la feuille ne change pas, c'était sa seule
+    // dépendance. Le fichier est classé, rien n'est retenu par lui.
+    if (noteTailwind) { fichiers.push({ chemin: f, statut: 'couvert', detail: `aucun lien hors du motif Tailwind${noteTailwind}` }); continue; }
     const se = SANS_EFFET_RE.find((s) => s.re.test(f) && !s.sauf?.includes(f));
     if (se) { fichiers.push({ chemin: f, statut: 'sans effet', detail: `${se.motif} : ${se.justification}` }); continue; }
     if (sousRacines(f)) { fichiers.push({ chemin: f, statut: 'non couvert', detail: 'aucun lien spécifique' }); causes.push(`${f} : non couvert (aucun lien spécifique ; une retenue depot ou opaque ne couvre pas)`); continue; }
@@ -1067,7 +1092,7 @@ export function selectionner(inv: Inventaire, modifies: string[], indexAvant: st
   });
   const transversalesSeulement = !complet && fichiers.length > 0 && fichiers.every((f) => f.statut === 'sans effet');
   return {
-    base, fichiers, complet, causes, retenues, transversalesSeulement,
+    base, fichiers, complet, causes, retenues, transversalesSeulement, tailwind,
     execution: complet ? { complet: true, noms: [], groupes: [] } : { complet: false, noms, groupes },
     dureeMs: Date.now() - debut,
   };
@@ -1083,6 +1108,96 @@ export function groupesEtalements(entrees: Entree[]): { indices: number[]; avant
     i = k;
   }
   return out;
+}
+
+/* --------------------------------------------------------------------------
+ * Motif Tailwind : la feuille produite peut-elle changer ?
+ * ----------------------------------------------------------------------- */
+
+// Modifier l'un d'eux peut changer la feuille quel que soit le contenu :
+// le motif Tailwind retient (package.json reste en plus de l'infrastructure).
+const CONFIGURATION_FEUILLE = (f: string) =>
+  /^tailwind\.config\.[cm]?[jt]s$/.test(f) || f === 'src/index.css' || /^postcss\.config\.[^/]+$/.test(f) || f === 'package.json' || f === 'package-lock.json';
+
+// Contenu d'un fichier à une révision : null s'il n'y existe pas ; une autre
+// erreur de Git est levée (la décision tombe alors sur « feuille changée »).
+export function lireBlob(racine: string, commit: string, chemin: string): string | null {
+  try { return git(racine, ['show', `${commit}:${chemin}`]); } catch (e) {
+    if (git(racine, ['ls-tree', '--name-only', commit, '--', chemin]).trim() === '') return null;
+    throw e;
+  }
+}
+
+// Tailwind et PostCSS du dépôt lu, résolus depuis sa racine : jamais ceux d'un
+// autre arbre.
+function outilsTailwind(racine: string) {
+  const exiger = createRequire(join(racine, 'package.json'));
+  return {
+    tailwindcss: exiger('tailwindcss') as (config: unknown) => unknown,
+    postcss: exiger('postcss') as (plugins: unknown[]) => { process: (css: string, o: { from: string }) => Promise<{ css: string }> },
+    resoudreConfig: exiger('tailwindcss/resolveConfig') as (config: unknown) => any,
+    // Le chargeur de configuration de Tailwind, celui qu'emploie `tailwind({ config })`.
+    chargerConfig: exiger('tailwindcss/loadConfig') as (chemin: string) => any,
+    extracteurParDefaut: (exiger('tailwindcss/lib/lib/defaultExtractor') as { defaultExtractor: (contexte: unknown) => (ligne: string) => string[] }).defaultExtractor,
+  };
+}
+
+// Candidats de classes d'un contenu, comme Tailwind les relève
+// (`expandTailwindAtRules` : extracteur et transformateur de l'extension, ligne
+// par ligne, `!*` écarté).
+function candidats(config: any, extracteurDefaut: (ligne: string) => string[], chemin: string, contenu: string | null): Set<string> {
+  const sortie = new Set<string>();
+  if (contenu === null) return sortie;
+  const ext = posix.extname(chemin).slice(1);
+  const extraire = config.content?.extract?.[ext] ?? config.content?.extract?.DEFAULT ?? extracteurDefaut;
+  const transformer = config.content?.transform?.[ext] ?? config.content?.transform?.DEFAULT ?? ((x: string) => x);
+  for (const ligne of String(transformer(contenu)).split('\n')) for (const c of extraire(ligne.trim())) if (c !== '!*') sortie.add(c);
+  return sortie;
+}
+
+export async function decisionTailwind(inv: Inventaire, modifies: string[], lireAvant: (chemin: string) => string | null,
+  lireApres: (chemin: string) => string | null = (c) => (existsSync(join(inv.racine, c)) ? readFileSync(join(inv.racine, c), 'utf8') : null)): Promise<DecisionTailwind | null> {
+  if (!inv.tailwind) return null;
+  const motifs = inv.tailwind.motifs.map((m) => globVersRegex(posix.normalize(m)));
+  const tous = [...new Set(modifies.map(norm))];
+  const sous = tous.filter((f) => motifs.some((re) => re.test(f))).sort();
+  const changee = (detail: string): DecisionTailwind => ({ etat: 'feuille changée', detail, fichiers: sous });
+  const configuration = tous.filter((f) => CONFIGURATION_FEUILLE(f) || f === inv.tailwind!.fichier);
+  if (configuration.length) return changee(`configuration de la feuille modifiée : ${configuration.join(', ')}`);
+  if (!sous.length) return null;
+  try {
+    const outils = outilsTailwind(inv.racine);
+    const module: any = outils.chargerConfig(join(inv.racine, inv.tailwind.fichier));
+    const brute = module.default ?? module;
+    const config = outils.resoudreConfig(brute);
+    const extracteur = outils.extracteurParDefaut({ tailwindConfig: config });
+    const avant = new Map(sous.map((f) => [f, lireAvant(f)]));
+    const apres = new Map(sous.map((f) => [f, lireApres(f)]));
+    const egaux = (a: Set<string>, b: Set<string>) => a.size === b.size && [...a].every((x) => b.has(x));
+    const differents = sous.filter((f) => !egaux(candidats(config, extracteur, f, avant.get(f)!), candidats(config, extracteur, f, apres.get(f)!)));
+    if (differents.length === 0) return { etat: 'feuille inchangée (candidats)', detail: `${sous.length} fichier(s) sous le motif, mêmes candidats de classes`, fichiers: sous };
+    // Étape 2 : la feuille, produite de chaque côté, sur le contenu brut de
+    // chaque fichier du motif. La configuration et src/index.css sont
+    // inchangées (sinon « feuille changée » plus haut) : les mêmes des deux côtés.
+    const arbre = [...listerFichiers(inv.racine)].filter((f) => motifs.some((re) => re.test(f)));
+    const cote = (lire: Map<string, string | null>) => {
+      const entrees: { raw: string; extension: string }[] = [];
+      for (const f of new Set([...arbre, ...sous])) {
+        const contenu = lire.has(f) ? lire.get(f)! : readFileSync(join(inv.racine, f), 'utf8');
+        if (contenu !== null) entrees.push({ raw: contenu, extension: posix.extname(f).slice(1) });
+      }
+      return entrees;
+    };
+    const css = readFileSync(join(inv.racine, 'src/index.css'), 'utf8');
+    const produire = async (entrees: { raw: string; extension: string }[]) =>
+      (await outils.postcss([outils.tailwindcss({ ...brute, content: entrees })]).process(css, { from: join(inv.racine, 'src/index.css') })).css;
+    const [feuilleAvant, feuilleApres] = [await produire(cote(avant)), await produire(cote(apres))];
+    const liste = differents.slice(0, 3).join(', ') + (differents.length > 3 ? '…' : '');
+    if (feuilleAvant === feuilleApres) return { etat: 'feuille inchangée (produite)', detail: `candidats changés (${liste}), feuille produite identique`, fichiers: sous };
+    return changee(`feuille produite différente (candidats changés : ${liste})`);
+  } catch (e) {
+    return changee(`production impossible : ${String((e as Error).message).split('\n')[0].slice(0, 200)}`);
+  }
 }
 
 /* --------------------------------------------------------------------------
@@ -1111,6 +1226,7 @@ export async function selectionDepuisGit(o: OptionsSelection): Promise<{ selecti
   const causes: string[] = [];
   let modifies: string[] = [];
   let indexAvant: string | null = null;
+  let commitAvant: string | null = null;
   let base = '';
   try {
     racine = norm(git(racine, ['rev-parse', '--show-toplevel']).trim());
@@ -1126,6 +1242,7 @@ export async function selectionDepuisGit(o: OptionsSelection): Promise<{ selecti
       base = `${m[1]} (${a.slice(0, 8)})..${m[2]} (${b.slice(0, 8)})`;
       modifies = lireNameStatus(git(racine, ['diff', '-z', '--name-status', '-M', a, b]));
       try { indexAvant = git(racine, ['show', `${a}:tests/index.ts`]); } catch { indexAvant = null; }
+      commitAvant = a;
     } else {
       const mb = git(racine, ['merge-base', o.depuis!, 'HEAD']).trim();
       base = `base de fusion de ${o.depuis} et HEAD (${mb.slice(0, 8)}), index, arbre de travail et non suivis`;
@@ -1135,13 +1252,15 @@ export async function selectionDepuisGit(o: OptionsSelection): Promise<{ selecti
         ...git(racine, ['ls-files', '-z', '--others', '--exclude-standard']).split('\0').filter(Boolean),
       ];
       try { indexAvant = git(racine, ['show', `${mb}:tests/index.ts`]); } catch { indexAvant = null; }
+      commitAvant = mb;
     }
   } catch (e) {
     if (e instanceof RefusSelection) throw e;
     causes.push(`la lecture de Git a échoué : ${String((e as Error).message).split('\n')[0]}`);
   }
   const inv = await inventaire(racine, o.metafichier);
-  const selection = selectionner(inv, modifies, indexAvant, base, causes);
+  const tw = commitAvant && !causes.length ? await decisionTailwind(inv, modifies, (p) => lireBlob(racine, commitAvant!, p)) : null;
+  const selection = selectionner(inv, modifies, indexAvant, base, causes, tw);
   selection.dureeMs = Date.now() - debut;
   return { selection, inventaire: inv };
 }
@@ -1155,6 +1274,7 @@ export function formater(sel: Selection, total: number): string {
   l.push(`Sélection par fichiers modifiés — base : ${sel.base}`);
   l.push(`Fichiers modifiés (${sel.fichiers.length}) :`);
   for (const f of sel.fichiers) l.push(`  [${f.statut}] ${f.chemin} — ${f.detail}`);
+  if (sel.tailwind) l.push(`Motif Tailwind : ${sel.tailwind.etat} — ${sel.tailwind.detail}`);
   if (sel.complet) {
     l.push(`SUITE COMPLÈTE (${total} entrées du registre), parce que :`);
     for (const c of sel.causes) l.push(`  - ${c}`);

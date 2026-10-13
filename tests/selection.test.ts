@@ -4,12 +4,12 @@
 
 import { build } from 'esbuild';
 import { execFileSync, spawn } from 'node:child_process';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, relative, resolve } from 'node:path';
 import { egal, ok, titre } from './outils';
 import {
-  CHARGEURS, comparerIndex, inventaire, optionsConstruction, PREREQUIS, RefusSelection, selectionDepuisGit, selectionner,
+  CHARGEURS, comparerIndex, decisionTailwind, inventaire, optionsConstruction, PREREQUIS, RefusSelection, selectionDepuisGit, selectionner,
   type Inventaire, type Selection,
 } from './selection';
 
@@ -47,8 +47,8 @@ export async function testSelectionFichiersInventaire(): Promise<void> {
   const erreurs = [...inv.fichiersTest.values()].flatMap((i) => i.racines.filter((r) => r.erreur).map((r) => r.racine));
   egal([...new Set(erreurs)], [], 'chaque racine secondaire se construit');
   const bandes = inv.fichiersTest.get('tests/rendu/optimizer-bandes.test.ts');
-  ok(!!bandes && bandes.motifs.some((m) => m.motif === 'src/**/*.{ts,tsx}') && bandes.fichiers.has('index.html'),
-    'Tailwind : motif src/**/*.{ts,tsx} et index.html attachés aux tests de rendu');
+  ok(!!bandes && ['src/**/*.{ts,tsx}', 'index.html'].every((x) => bandes.motifs.some((m) => m.tailwind && m.motif === x)) && bandes.fichiers.has('tailwind.config.js'),
+    'Tailwind : motifs src/**/*.{ts,tsx} et index.html attachés aux tests de rendu, configuration en cible');
   // La construction autonome (`--racine`, paquets externes) voit les mêmes
   // fichiers du dépôt que celle de tests/run.mjs.
   const complete = await build({ ...optionsConstruction(racineDepot, join(racineDepot, 'selection-essai.cjs')), write: false, metafile: true });
@@ -294,6 +294,79 @@ async function depotEssai(corps: (racine: string) => Promise<void>): Promise<voi
   }
 }
 const depuisHead = async (racine: string) => (await selectionDepuisGit({ racine, depuis: 'HEAD' })).selection;
+
+// Le motif Tailwind ne retient que si la feuille produite peut changer : les
+// contenus « avant » et « après » sont fournis, le dépôt n'est pas modifié.
+export async function testSelectionFichiersTailwind(): Promise<void> {
+  titre('Sélection par fichiers modifiés — motif Tailwind, feuille produite');
+  const inv = await reel();
+  const F = 'src/components/outils/OptimizerSection.tsx';
+  const texte = (p: string) => readFileSync(join(racineDepot, p), 'utf8');
+  const decider = (fichiers: string[], avant: Record<string, string | null>, apres: Record<string, string | null>) =>
+    decisionTailwind(inv, fichiers, (p) => (p in avant ? avant[p] : texte(p)), (p) => (p in apres ? apres[p] : texte(p)));
+  const base = selectionner(inv, [F], inv.sourceIndex, 'essai'); // sans décision : le motif retient
+  const parMotifSeul = base.retenues.filter((r) => r.raisons.every((x) => /^motif Tailwind/.test(x))).map((r) => r.nom ?? r.identifiant);
+  ok(parMotifSeul.length > 0, `sans décision, ${parMotifSeul.length} entrées de rendu retenues par le seul motif Tailwind`);
+
+  // Logique changée, sans classe : feuille identique ; seuls les importeurs restent.
+  let d = await decider([F], {}, { [F]: texte(F).replace('export default', 'const _essaiLogique = 1 + 2;\nexport default') });
+  let s = selectionner(inv, [F], inv.sourceIndex, 'essai', [], d);
+  ok(d?.etat === 'feuille inchangée (produite)' && parMotifSeul.every((n) => !retenu(s, n!)) && /racine secondaire/.test(raisons(s, 'testRenduOptimizerBandesEquipesClair')),
+    `logique sans classe → ${d?.etat} ; rendu non retenu sauf les importeurs`);
+  ok(/motif Tailwind : feuille inchangée \(produite\)/.test(s.fichiers[0].detail) && /feuille inchangée/.test(s.fichiers.map((f) => f.detail).join(' ')), 'la sortie dit « feuille inchangée (produite) »');
+
+  // Mêmes candidats (deux lignes permutées) : la feuille n'a pas à être produite.
+  const lignes = texte(F).split('\n');
+  const i = lignes.findIndex((l) => l.startsWith('import '));
+  [lignes[i], lignes[i + 1]] = [lignes[i + 1], lignes[i]];
+  d = await decider([F], {}, { [F]: lignes.join('\n') });
+  ok(d?.etat === 'feuille inchangée (candidats)', `lignes permutées → ${d?.etat}`);
+
+  // Classe ajoutée : feuille changée, rendu retenu par le motif.
+  d = await decider([F], {}, { [F]: texte(F) + '\nconst _essaiClasse = "bg-[#123456]";\n' });
+  s = selectionner(inv, [F], inv.sourceIndex, 'essai', [], d);
+  ok(d?.etat === 'feuille changée' && parMotifSeul.every((n) => /feuille changée/.test(raisons(s, n!))), `classe ajoutée → ${d?.etat}, rendu retenu`);
+
+  // Classe retirée mais employée ailleurs : candidats différents, feuille identique.
+  const autre = texte(F);
+  const ailleurs = texte('src/ui/Bouton.tsx') + texte('src/ui/BarreActions.tsx') + texte('src/ui/BoutonGroupe.tsx');
+  const commune = ['shrink-0', 'truncate', 'whitespace-nowrap', 'pointer-events-none', 'select-none', 'tabular-nums', 'uppercase', 'inline-flex', 'justify-center']
+    .find((c) => !autre.includes(c) && new RegExp(`["'\\s]${c}["'\\s]`).test(ailleurs));
+  const avecCommune = autre + `\nconst _essaiRetiree = "${commune ?? 'flex'} _essaiMarqueur";\n`;
+  d = await decider([F], { [F]: avecCommune }, { [F]: autre + '\nconst _essaiRetiree = "_essaiMarqueur";\n' });
+  ok(!!commune && d?.etat === 'feuille inchangée (produite)', `classe ${commune} retirée mais employée ailleurs → ${d?.etat}`);
+  // … et retirée sans autre emploi : feuille changée (aucun reste d'une production à l'autre).
+  d = await decider([F], { [F]: autre + '\nconst _essaiRetiree = "bg-[#654321]";\n' }, { [F]: autre });
+  ok(d?.etat === 'feuille changée', `classe unique retirée → ${d?.etat}`);
+
+  // Configuration changée : le lien reste.
+  d = await decider([F, 'tailwind.config.js'], {}, {});
+  ok(d?.etat === 'feuille changée' && /configuration/.test(d.detail), `tailwind.config.js modifié → ${d?.etat}`);
+  for (const c of ['src/index.css', 'postcss.config.js']) {
+    d = await decider([F, c], {}, {});
+    ok(d?.etat === 'feuille changée', `${c} modifié → ${d?.etat}`);
+  }
+
+  // Fichier ajouté sans classe.
+  const nouveau = 'src/lib/essai-sans-classe.ts';
+  d = await decider([nouveau], { [nouveau]: null }, { [nouveau]: 'export const essaiSansClasse = 1;\n' });
+  s = selectionner(inv, [nouveau], inv.sourceIndex, 'essai', [], d);
+  ok(d?.etat === 'feuille inchangée (produite)' && !s.complet && parMotifSeul.every((n) => !retenu(s, n!)), `fichier ajouté sans classe → ${d?.etat}, rendu non retenu`);
+
+  // Production impossible (dépôt d'essai sans Tailwind installé) : le lien reste.
+  await depotEssai(async (r) => {
+    ecrire(r, 'tailwind.config.js', "export default { content: ['./src/**/*.{ts,tsx}'] };\n");
+    ecrire(r, 'tests/rendu.test.ts', "export function testRendu(): void { if (process.env.JAMAIS) require('tailwindcss'); }\n");
+    ecrire(r, 'tests/index.ts', BASE['tests/index.ts']
+      .replace("import { testD } from './d.test';", "import { testD } from './d.test';\nimport { testRendu } from './rendu.test';")
+      .replace("  ['testD', testD],", "  ['testD', testD],\n  ['testRendu', testRendu],"));
+    commit(r, 'rendu');
+    ecrire(r, 'src/profond.ts', 'export function profond(): number { return 7; }\n');
+    const t = (await selectionDepuisGit({ racine: r, depuis: 'HEAD' })).selection;
+    ok(t.tailwind?.etat === 'feuille changée' && /production impossible/.test(t.tailwind.detail) && /motif Tailwind/.test(raisons(t, 'testRendu')),
+      `production impossible → ${t.tailwind?.etat}, testRendu retenue`);
+  });
+}
 
 export async function testSelectionFichiersGit(): Promise<void> {
   titre('Sélection par fichiers modifiés — dépôts d\'essai');

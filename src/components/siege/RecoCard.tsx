@@ -1482,8 +1482,12 @@ function DeckBlock({
             portraits et les sets restent à leur hauteur, et la colonne
             (3 × 20 px + 2 × 2) tient dans la rangée et les sets (40 + 6 +
             19 px) : la carte ne grandit pas. `max-lg:self-start` : en
-            édition, la colonne s'allonge (« Annuler ») sans étirer la rangée. */}
-        <div className="flex items-center gap-2 max-lg:min-h-10 max-lg:self-start lg:contents">
+            édition, la colonne s'allonge (« Annuler ») sans étirer la rangée.
+            `max-lg:pr-1 max-lg:-mr-1` : la rangée finit sur « Fort contre »,
+            dont le dernier portrait porte une icône d'élément qui dépasse de
+            4 px à droite ; la place entre dans la rangée, prise sur
+            l'espacement de la colonne d'actions : rien ne bouge. */}
+        <div className="flex items-center gap-2 max-lg:min-h-10 max-lg:self-start max-lg:pr-1 max-lg:-mr-1 lg:contents">
           {/* Chevron de repli : indispensable en édition avec plusieurs decks */}
           <BoutonIcone
             onClick={onToggleFold}
@@ -1556,8 +1560,10 @@ function DeckBlock({
               y en a d'autres. Purement informatif, comme le bloc détaillé.
               ⚠️ **Au téléphone aussi** :
               la rangée repliée dit l'offense ET ce qu'elle bat, séparées par
-              un filet. Il était réservé à la souris. */}
-          <span className="flex min-w-0 flex-none items-center gap-1 max-lg:border-l max-lg:border-border-soft max-lg:pl-2">
+              un filet. Il était réservé à la souris.
+              `max-lg:pr-1 max-lg:-mr-1` : même place pour l'icône d'élément
+              de son dernier portrait (sans « +N », c'est lui qui le finit). */}
+          <span className="flex min-w-0 flex-none items-center gap-1 max-lg:border-l max-lg:border-border-soft max-lg:pl-2 max-lg:pr-1 max-lg:-mr-1">
             {deck.counters.length > 0 ? (
               <>
                 {deck.counters[0].monsters

@@ -1617,7 +1617,9 @@ Indépendamment du repli de la carte, **chaque deck a son propre chevron**.
 - ⚠️ **Une rangée qui finit sur un portrait garde la place de son icône
   d'élément**, qui dépasse de 4 px à droite (`-right-1` dans
   [MonsterAvatar](../../../src/components/MonsterAvatar.tsx)) : `pr-1 -mr-1`
-  sur l'enveloppe de portrait de l'en-tête (au doigt seulement, `max-lg:`), la
+  sur l'enveloppe de portrait de l'en-tête (au doigt seulement, `max-lg:`) —
+  et, depuis la colonne d'actions (lot 4), sur « Fort contre » et sur la
+  rangée de l'en-tête, qu'il finit —, la
   rangée de portraits d'une vignette « Fort contre » sans note, et les
   portraits d'une défense et d'une offense en vue Défense (chantier
   `defauts-affichage`, lot 2, 2026-10-13). Le rembourrage met l'icône dans la

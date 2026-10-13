@@ -5,7 +5,9 @@
 // rien d'autre.
 
 import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { bilan, debutVerification } from './outils';
+import { Execution, RefusManifeste } from './execution';
 import { testRenduOptimizerAlerteDefilement, testRenduOptimizerAlerteCycleDeVie,
   testRenduTelephoneOptimizerAlerteCycleDeVie, testRenduTelephoneOptimizerAlerteFermetures } from './rendu/optimizer-alerte.test';
 import { testRenduOptimizerBandesEquipesClair, testRenduOptimizerBandesEquipesSombre,
@@ -297,6 +299,7 @@ import { testIndicateurSauvegarde } from './indicateur-sauvegarde.test';
 import { testRestauration } from './restauration.test';
 import testSkillAdapters from './skill-adapters.test';
 import { testSelectionFichiersInventaire, testSelectionFichiersChargeur, testSelectionFichiersCasReels, testSelectionFichiersTailwind, testSelectionFichiersGit } from './selection.test';
+import { testExecutionProuveeCas, testExecutionProuveeEmplacement, testExecutionProuveePointEntree } from './execution.test';
 
 // Chaque vérification sous son NOM, dans l'ordre d'exécution.
 //
@@ -843,6 +846,9 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testSelectionFichiersCasReels', testSelectionFichiersCasReels],
   ['testSelectionFichiersTailwind', testSelectionFichiersTailwind],
   ['testSelectionFichiersGit', testSelectionFichiersGit],
+  ['testExecutionProuveeCas', testExecutionProuveeCas],
+  ['testExecutionProuveeEmplacement', testExecutionProuveeEmplacement],
+  ['testExecutionProuveePointEntree', testExecutionProuveePointEntree],
 ];
 
 // Un filtre passé en argument : on compare sur le nom mis à plat (sans tirets ni
@@ -855,23 +861,28 @@ function retenues(filtres: string[]): [string, () => void | Promise<void>][] {
 }
 
 // Options à valeur : leur valeur n'est pas un filtre.
-const OPTIONS_A_VALEUR = new Set(['--selection']);
+const OPTIONS_A_VALEUR = new Set(['--selection', '--manifeste']);
 
-function lireArguments(args: string[]): { filtres: string[]; selection: string | null } {
+function lireArguments(args: string[]): { filtres: string[]; selection: string | null; manifeste: string | null } {
   const filtres: string[] = [];
-  let selection: string | null = null;
+  const valeurs = new Map<string, string | null>();
   for (let i = 0; i < args.length; i++) {
-    if (OPTIONS_A_VALEUR.has(args[i])) { if (args[i] === '--selection') selection = args[i + 1] ?? null; i++; continue; }
+    if (OPTIONS_A_VALEUR.has(args[i])) { valeurs.set(args[i], args[i + 1] ?? null); i++; continue; }
     if (!args[i].startsWith('-')) filtres.push(args[i]);
   }
-  return { filtres, selection };
+  return { filtres, selection: valeurs.get('--selection') ?? null, manifeste: valeurs.get('--manifeste') ?? null };
 }
 
 // Sélection par fichiers modifiés, écrite par `tests/run.mjs --depuis/--plage`
 // (tests/selection.ts). Les noms d'un étalement ne se connaissent qu'ici : un
 // groupe d'étalements se retrouve entre les entrées nommées qui le bornent.
-function nomsSelectionnes(fichier: string): Set<string> | 'tout' {
-  const { execution } = JSON.parse(readFileSync(fichier, 'utf8')) as
+function nomsSelectionnes(fichier: string): { noms: Set<string> | 'tout'; brut: unknown } {
+  const brut = JSON.parse(readFileSync(fichier, 'utf8'));
+  return { noms: nomsDeLaSelection(brut), brut };
+}
+
+function nomsDeLaSelection(brut: unknown): Set<string> | 'tout' {
+  const { execution } = brut as
     { execution: { complet: boolean; noms: string[]; groupes: { avant: string | null; apres: string | null }[] } };
   if (execution.complet) return 'tout';
   const position = new Map(VERIFICATIONS.map(([n], i) => [n, i]));
@@ -890,8 +901,24 @@ function nomsSelectionnes(fichier: string): Set<string> | 'tout' {
   return noms;
 }
 
+// Racine du dépôt : `import.meta.url` est défini à la construction (tests/selection.ts).
+const RACINE = fileURLToPath(new URL('..', import.meta.url));
+
 async function main() {
-  const { filtres, selection } = lireArguments(process.argv.slice(2));
+  const { filtres, selection, manifeste } = lireArguments(process.argv.slice(2));
+  if (process.argv.includes('--manifeste') && (manifeste === null || manifeste.startsWith('-'))) {
+    console.error('\x1b[31mRefus :\x1b[0m --manifeste attend un chemin de fichier');
+    process.exit(2);
+  }
+  // Avant tout : un emplacement de manifeste interdit est refusé, et toute sortie
+  // qui suit sans validation finale laisse le manifeste incomplet (tests/execution.ts).
+  let execution: Execution;
+  try {
+    execution = new Execution({ racine: RACINE, manifeste, registre: VERIFICATIONS.map(([n]) => n), bilan, debutVerification });
+  } catch (e) {
+    if (e instanceof RefusManifeste) { console.error(`\x1b[31mRefus :\x1b[0m ${e.message}`); process.exit(2); }
+    throw e;
+  }
   const parNom = filtres.length > 0 ? retenues(filtres) : [];
   if (filtres.length > 0 && parNom.length === 0) {
     console.error(
@@ -904,18 +931,29 @@ async function main() {
   }
   // Avec une sélection, l'union de la sélection et des filtres, dans l'ordre du
   // registre (les prérequis d'ordre en dépendent).
+  // L'attendu se fixe sur ce qui est annoncé (registre, filtres, sélection) ;
+  // la liste lancée s'en déduit. Les deux sont comparés après l'exécution.
   let liste = filtres.length > 0 ? parNom : VERIFICATIONS;
+  let attendues = liste.map(([n]) => n);
+  let detail: unknown = null;
   if (selection !== null) {
-    const choisis = nomsSelectionnes(selection);
+    const { noms: choisis, brut } = nomsSelectionnes(selection);
+    detail = brut;
     if (choisis !== 'tout') {
       for (const [n] of parNom) choisis.add(n);
+      attendues = [...choisis];
       liste = VERIFICATIONS.filter(([n]) => choisis.has(n));
-      if (liste.length === 0) {
-        console.log('Sélection vide : aucune vérification à lancer.');
-        process.exit(0);
-      }
-    } else liste = VERIFICATIONS;
+    } else {
+      liste = VERIFICATIONS;
+      attendues = liste.map(([n]) => n);
+    }
   }
+  execution.fixer(attendues, {
+    mode: selection !== null ? 'fichiers modifiés' : filtres.length > 0 ? 'filtres' : 'suite complète',
+    filtres,
+    detail,
+  });
+  if (liste.length === 0) console.log('Sélection vide : aucune vérification à lancer.');
   if (filtres.length > 0 || liste.length < VERIFICATIONS.length) {
     console.log(
       `[33mVérifications ciblées[0m (${liste.length}/${VERIFICATIONS.length}) : ` +
@@ -925,22 +963,7 @@ async function main() {
 `
     );
   }
-  for (const [nom, fn] of liste) {
-    debutVerification(nom);
-    await fn();
-  }
-
-  const { total, echecs, ignores, echecsDetail } = bilan();
-  if (echecsDetail.length > 0) {
-    console.log('\n\x1b[31mÉchecs :\x1b[0m');
-    for (const ligne of echecsDetail) console.log('  \x1b[31mKO\x1b[0m   ' + ligne);
-  }
-  const resume =
-    echecs === 0
-      ? `\n\x1b[32m${total} vérifications passées\x1b[0m` + (ignores ? `, ${ignores} ignorée(s)` : '')
-      : `\n\x1b[31m${echecs} échec(s)\x1b[0m sur ${total} vérifications`;
-  console.log(resume);
-  process.exit(echecs === 0 ? 0 : 1);
+  process.exit(await execution.lancer(liste));
 }
 
 main().catch((err) => {

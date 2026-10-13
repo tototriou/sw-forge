@@ -118,6 +118,12 @@ correspond à rien échoue en listant ce qui existe — jamais en ne testant rie
 information qu'on a déjà : ce qui compte pendant le travail, c'est la zone qu'on
 touche. Ce qui compte avant de fusionner, c'est **tout**.
 
+Pendant le travail, `node tests/run.mjs --depuis origin/<base>` (la branche
+dont on part) s'ajoute au filtre par nom, sans le remplacer : la sélection
+retient les tests touchés, dont ceux qui lisent `src/` comme du texte, et
+fait surtout gagner du temps hors de `src/`. La suite complète reste
+obligatoire avant une fusion sur `main` ou dans une branche `release/*`.
+
 ⚠️ Une classe Tailwind « correcte » dans le TSX peut n'être **jamais émise**.
 Quand un style ne s'applique pas, vérifier dans
 le **CSS construit**, pas dans le composant. Pour un algorithme de

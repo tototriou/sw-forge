@@ -98,6 +98,92 @@ signalé et un cas non signalé, que vérifie [banc/cas.mjs](banc/cas.mjs).
 - Ses fichiers passent par `tsc` et ESLint comme le reste de `tests/`, CI
   comprise : seul son lancement est manuel.
 
+## Sélection par fichiers modifiés
+
+```bash
+node tests/run.mjs --depuis origin/<base>     # <base> : la branche dont on part
+node tests/run.mjs --plage <a>..<b>           # entre deux révisions
+node tests/run.mjs --depuis origin/<base> speed-tune   # avec un filtre par nom
+```
+
+Ne lance que les vérifications que touchent les fichiers modifiés
+([selection.ts](selection.ts)) : base de fusion de la référence et `HEAD`,
+index, arbre de travail et non suivis compris. Elle **complète** le filtre
+par nom, elle ne le remplace pas ; les deux se combinent.
+
+- **Sortie raisonnée** : chaque fichier modifié est classé (`couvert`,
+  `sans effet`…), chaque entrée retenue dit pourquoi, et la ligne
+  « Entrées retenues (n/total) » donne l'ampleur.
+- **Repli sur la suite complète**, cause écrite en sortie : un fichier
+  modifié sans lien spécifique, une incohérence de l'inventaire, une lecture
+  de Git qui échoue. Jamais moins sans le dire.
+- **Fichiers sans effet** (`*.md`, `tests/banc/**`) : ne retiennent que les
+  vérifications qui lisent le dépôt entier (`depot`) ou un chemin non
+  déterminable (`opaque`). Une retenue générale ne certifie jamais la
+  couverture d'un fichier.
+- **Limites** : le gain est surtout hors de `src/` (mesuré : ~12 % de la
+  durée de la suite complète sans `src/`, ~83 % avec, parce que les bancs
+  de rendu importent l'essentiel des écrans). Sur un arbre ancien, les
+  tables écrites à la main (prérequis, chargeur) peuvent ne plus
+  correspondre au registre : repli, du côté sûr. Les tests qui lisent
+  `src/` comme du texte sont retenus par leur lecture, pas par un import
+  (voir la garde plus bas).
+
+## Manifeste d'exécution
+
+```bash
+node tests/run.mjs --manifeste <fichier> [filtres…]
+```
+
+Écrit, au fil de l'exécution, ce qui était attendu et ce qui a tourné
+([execution.ts](execution.ts)) : révision, empreinte du contenu, registre,
+sélection, et par entrée l'invocation, le retour, les contrôles faits et
+ignorés. Il est marqué incomplet et ne devient `complet` qu'après la
+validation finale. Une entrée attendue jamais invoquée, non rendue, non
+attendue, ou rendue sans aucun contrôle, fait échouer le point d'entrée,
+nommée. Une entrée qui n'a que des `ignore` est « entièrement ignorée »,
+pas un échec.
+
+- **Emplacement** : hors du worktree, ou dans un dossier ignoré par Git
+  (`node_modules/…`) ; sinon refus (code 2). Il n'entre ainsi ni dans la
+  sélection ni dans l'empreinte.
+- **Le dépôt ne l'exige pas** : il se demande ; un outil de fin de travail
+  peut le lire comme preuve que ce qui était annoncé a tourné.
+- **Limites** : sous Windows, un signal ne passe pas par les écouteurs (code
+  non nul et manifeste incomplet seulement) ; une construction qui échoue
+  laisse l'ancien manifeste ; un `ok` tardif compte sur l'entrée suivante.
+
+## Garde des références à `src/`
+
+[lecture-source.test.ts](lecture-source.test.ts) (`node tests/run.mjs
+lecturesource`) relève, dans chaque fichier de `tests/`, toute chaîne qui
+désigne un chemin sous `src/` (lecture, `join`, `new URL`…). Un test qui lit
+`src/` comme du texte n'importe pas le module : la sélection ne le voit que
+par cette lecture, donc chaque usage est déclaré dans
+[fixtures/lecture-source-toleree.json](fixtures/lecture-source-toleree.json),
+une entrée par (fichier, cible) : `stock` (figé sur `54f8c6d6`, 179
+identités) ou `exception` (justification obligatoire, 25).
+
+- **Un usage absent de la liste, un nombre d'occurrences trop petit ou trop
+  grand, une entrée qui ne correspond plus : échec.** Le décompte baisse dans
+  le commit qui retire un usage : on retire l'entrée (ou on réduit sa
+  multiplicité) avec le code.
+- **Écrire un test de comportement à la place** : importer la fonction ou le
+  composant et vérifier ce qu'il fait (rendu serveur, valeur rendue), plutôt
+  que chercher un motif dans le texte de la source ; l'import fait entrer le
+  module dans le graphe, et la sélection le retient sans déclaration.
+- **Angles morts** (listés en tête du fichier) : une racine importée ou
+  passée en paramètre échappe au détecteur ; une chaîne à espace n'est pas
+  un chemin ; la garde ne dit ni si la cible existe ni ce que le test en
+  fait.
+
+## Mesure du rappel en usage
+
+Avant une fusion, comparer les échecs de la suite complète (`npm test`) à la
+sélection `--depuis` du manifeste : un échec hors sélection est un oubli de
+la sélection, à signaler. Aucune campagne de mutations ne le prouve
+d'avance ; c'est l'usage qui le mesure.
+
 ## Choix d'outillage
 
 - **Pas de framework de test.** Les assertions sont celles de

@@ -4,60 +4,71 @@
 // Pas de framework de test : assertions de `tests/outils.ts`, une seule
 // exécution dans l'ordre de `tests/index.ts`. Ce que la suite couvre, et ce
 // qu'elle ne couvre pas : tests/README.md.
+//
+// `--depuis <ref>` / `--plage <a>..<b>` : ne lancer que les vérifications que
+// touchent les fichiers modifiés (tests/selection.ts), en plus des filtres par nom.
 
 import { build } from 'esbuild';
 import { spawn } from 'child_process';
-import { mkdtempSync, rmSync } from 'fs';
+import { mkdtempSync, rmSync, writeFileSync } from 'fs';
 import { join } from 'path';
+import { fileURLToPath } from 'url';
+import { formater, optionsConstruction, RefusSelection, selectionDepuisGit } from './selection.ts';
 
 // ⚠️ Sous `node_modules/`, PAS `os.tmpdir()` — `require('esbuild')` (voir
-// `external` plus bas) doit pouvoir se résoudre normalement à l'exécution
-// depuis l'emplacement du bundle : la résolution CommonJS de Node remonte
-// les `node_modules` ANCÊTRES du fichier qui appelle `require`, ce qui
+// `external` dans `optionsConstruction`) doit pouvoir se résoudre normalement
+// à l'exécution depuis l'emplacement du bundle : la résolution CommonJS de Node
+// remonte les `node_modules` ANCÊTRES du fichier qui appelle `require`, ce qui
 // n'inclut jamais un dossier temporaire hors du dépôt. `node_modules/`
 // est déjà gitignoré et déjà l'ancêtre direct de `node_modules/esbuild`.
 const dossier = mkdtempSync(join('node_modules', 'swblacksmith-tests-'));
 const sortie = join(dossier, 'tests.cjs');
+const racine = fileURLToPath(new URL('..', import.meta.url));
 
+// Les options de sélection sont lues ici ; le reste (filtres par nom) est
+// transmis au bundle.
+const args = process.argv.slice(2);
+const options = {};
+const transmis = [];
+for (let i = 0; i < args.length; i++) {
+  if (args[i] === '--depuis' || args[i] === '--plage') { options[args[i].slice(2)] = args[i + 1]; i++; continue; }
+  transmis.push(args[i]);
+}
+const avecSelection = options.depuis !== undefined || options.plage !== undefined;
+const fin = (code) => { rmSync(dossier, { recursive: true, force: true }); process.exit(code); };
+
+let resultat;
+const debutConstruction = Date.now();
 try {
-  await build({
-    entryPoints: ['tests/index.ts'],
-    bundle: true,
-    platform: 'node',
-    format: 'cjs',
-    outfile: sortie,
-    logLevel: 'error',
-    // `import.meta.url` sert à retrouver la racine du dépôt depuis les tests.
-    //
-    // `import.meta.env` : ce que Vite fournit à l'app. Les tests de RENDU
-    // (tests/rendu/) affichent de vrais composants, dont une vingtaine lisent
-    // `import.meta.env.BASE_URL` pour le chemin des images.
-    define: {
-      'import.meta.url': JSON.stringify(new URL('index.ts', import.meta.url).href),
-      'import.meta.env': JSON.stringify({ BASE_URL: '/', MODE: 'test', DEV: false, PROD: true }),
-      // Injecté par `vite.config.ts` (numéro de version affiché au pied de page).
-      __APP_VERSION__: JSON.stringify('test'),
-    },
-    // ⚠️ esbuild ne peut PAS être bundlé lui-même (son API a besoin d'un
-    // exécutable externe, localisé via un chemin RELATIF à son propre
-    // package sur disque — un chemin qui devient faux une fois inliné dans
-    // un autre fichier). Nécessaire depuis que rune-optim-parallel-pairing.test.ts
-    // bundle lui-même un worker (`scripts/lib/pairing-quota-worker.ts`, VRAIS
-    // `worker_threads` concurrents) — `require('esbuild')` reste un require
-    // normal, résolu à l'exécution depuis node_modules, jamais inliné.
-    external: ['esbuild'],
-  });
+  resultat = await build({ ...optionsConstruction(racine, sortie), metafile: avecSelection });
 } catch {
-  process.exit(1); // esbuild a déjà tout dit
+  fin(1); // esbuild a déjà tout dit
+}
+const dureeConstruction = Date.now() - debutConstruction;
+
+if (avecSelection) {
+  const fichierSelection = join(dossier, 'selection.json');
+  const debut = Date.now();
+  try {
+    const { selection, inventaire } = await selectionDepuisGit({ racine, depuis: options.depuis, plage: options.plage, metafichier: resultat.metafile });
+    console.log(formater(selection, inventaire.entrees.length));
+    writeFileSync(fichierSelection, JSON.stringify(selection));
+  } catch (e) {
+    if (e instanceof RefusSelection) { console.error(`\x1b[31mRefus :\x1b[0m ${e.message}`); fin(2); }
+    // Jamais moins sans le dire : une sélection impossible lance tout.
+    console.error('\x1b[31mSélection impossible, suite complète :\x1b[0m', e);
+    writeFileSync(fichierSelection, JSON.stringify({ execution: { complet: true, noms: [], groupes: [] } }));
+  }
+  console.log(`(construction ${dureeConstruction} ms, sélection ${Date.now() - debut} ms)\n`);
+  transmis.push('--selection', fichierSelection);
 }
 
 const code = await new Promise((resolve) => {
   // Les arguments sont transmis au bundle : ils servent à ne lancer QUE les
   // vérifications qui touchent la zone modifiée (voir tests/index.ts et
   // CLAUDE.md). Sans argument, tout tourne.
-  const p = spawn(process.execPath, [sortie, ...process.argv.slice(2)], { stdio: 'inherit' });
+  const p = spawn(process.execPath, [sortie, ...transmis], { stdio: 'inherit' });
   p.on('close', resolve);
 });
 
-rmSync(dossier, { recursive: true, force: true });
-process.exit(code ?? 1);
+fin(code ?? 1);

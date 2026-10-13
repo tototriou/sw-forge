@@ -10,6 +10,7 @@
 
 import { chromium } from 'playwright';
 import { existsSync } from 'fs';
+import { fileURLToPath } from 'url';
 import { FORMATS } from './ecrans.ts';
 import { medias, mesurer, stabiliser } from './mesure.ts';
 
@@ -150,7 +151,7 @@ function decrireCible(c) {
  */
 async function localiser(page, cible, attenteMs = 0) {
   const options = { name: cible.nom, exact: true, ...(cible.etendu === undefined ? {} : { expanded: cible.etendu }) };
-  const loc = page.getByRole(cible.role, options).filter({ visible: true });
+  const loc = (cible.role === 'texte' ? page.getByText(cible.nom, { exact: true }) : page.getByRole(cible.role, options)).filter({ visible: true });
   if (attenteMs) await loc.first().waitFor({ state: 'visible', timeout: attenteMs }).catch(() => {});
   const n = await loc.count();
   if (n === 1 && !cible.pres) return loc.elementHandle({ timeout: 5000 });
@@ -175,6 +176,32 @@ async function localiser(page, cible, attenteMs = 0) {
 }
 
 /**
+ * Charge un fichier de `tests/fixtures/` par le bouton d'import de l'interface
+ * (sélecteur de fichier), puis attend le compte rendu de l'app : « … importés. »
+ * Un import refusé n'affiche pas ce compte rendu mais un rapport d'erreurs : on
+ * lit alors la cause, plutôt que de mesurer l'écran resté vide.
+ */
+async function importerFichier(page, cible, fichier) {
+  if (!/^[\w.-]+$/.test(fichier)) throw new ErreurBanc(`importer : nom de fichier invalide (${fichier})`);
+  const chemin = fileURLToPath(new URL(`../fixtures/${fichier}`, import.meta.url));
+  if (!existsSync(chemin)) throw new ErreurBanc(`importer : fichier absent (tests/fixtures/${fichier})`);
+  const bouton = await localiser(page, cible, 5000);
+  const [selecteur] = await Promise.all([page.waitForEvent('filechooser', { timeout: 5000 }), bouton.click({ timeout: 5000 })]).catch(() => {
+    throw new ErreurBanc(`importer ${decrireCible(cible)} : aucun sélecteur de fichier ouvert`);
+  });
+  await selecteur.setFiles(chemin);
+  const compteRendu = page.getByText(/importés\./).filter({ visible: true });
+  const refus = page.getByText(/Import refusé/).filter({ visible: true });
+  const issue = await Promise.race([
+    compteRendu.first().waitFor({ state: 'visible', timeout: 8000 }).then(() => 'ok'),
+    refus.first().waitFor({ state: 'visible', timeout: 8000 }).then(() => 'refus'),
+  ]).catch(() => 'rien');
+  if (issue === 'ok') return;
+  const cause = issue === 'refus' ? String(await refus.first().locator('xpath=ancestor::div[contains(@class,"rounded-xl")][1]').innerText().catch(() => 'rapport illisible')).replace(/\s+/g, ' ').slice(0, 200) : 'aucun compte rendu de l’app';
+  throw new ErreurBanc(`importer ${decrireCible(cible)} : import refusé (${cause})`);
+}
+
+/**
  * Joue les étapes d'un état. Une cible doit désigner exactement un élément
  * visible : sinon l'état n'est pas atteint, avec la cause.
  */
@@ -188,6 +215,10 @@ export async function preparer(page, etapes) {
     if ('saisir' in etape) {
       const champ = await localiser(page, etape.saisir, 5000);
       await champ.fill(etape.texte, { timeout: 5000 });
+      continue;
+    }
+    if ('importer' in etape) {
+      await importerFichier(page, etape.importer, etape.fichier);
       continue;
     }
     // L'élément est pris AVANT le clic : une tentative ratée peut faire

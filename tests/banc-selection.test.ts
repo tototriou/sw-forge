@@ -81,7 +81,9 @@ export default function testBancSelection() {
   // fichier disparu : la table ne verrait plus rien changer.
   const fichiersSrc = readdirSync('src', { recursive: true })
     .map((f) => 'src/' + String(f).split(String.fromCharCode(92)).join('/'));
-  const tous = [...fichiersSrc, 'tailwind.config.js'];
+  // Les fichiers que le banc charge (tests/fixtures/) sont aussi des entrées de la table.
+  const fichiersFixtures = readdirSync('tests/fixtures').map((f) => 'tests/fixtures/' + f);
+  const tous = [...fichiersSrc, ...fichiersFixtures, 'tailwind.config.js'];
   const orphelins = [...new Set(ECRANS.flatMap((e) => e.motifs)), ...MOTIFS_TOUS].filter(
     (m) => !tous.some((f) => couvre(m, f)),
   );

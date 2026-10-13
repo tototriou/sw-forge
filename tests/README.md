@@ -63,6 +63,14 @@ en tête de [banc/mesure.ts](banc/mesure.ts) ;
 chaque règle et chaque exclusion a une page de [banc/cas/](banc/cas/), un cas
 signalé et un cas non signalé, que vérifie [banc/cas.mjs](banc/cas.mjs).
 
+Un état peut charger un fichier par le vrai chemin de l'interface (étape
+`importer` de `ecrans.ts`, bouton « Importer ») : l'écran des
+recommandations de siège se mesure ainsi rempli, avec
+[fixtures/recommandations-banc.json](fixtures/recommandations-banc.json)
+(plusieurs listes et équipes, sets, artéfacts, contres). Un fichier refusé
+par l'app laisse l'état non atteint : code 2, cause écrite, jamais une
+mesure de l'écran vide.
+
 - **Sélection par fichiers** : `--depuis` et `--plage` passent les fichiers
   modifiés (`git diff --name-only`) à [banc/selection.ts](banc/selection.ts),
   qui les rapproche des motifs de chemins de chaque écran

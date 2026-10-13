@@ -1,0 +1,204 @@
+{
+  "format": "swblacksmith/recommandations",
+  "version": 5,
+  "exporte_le": "2026-10-13T08:00:00.000Z",
+  "recommandations": [
+    {
+      "nom": "Défenses de guilde — banc d'affichage",
+      "auteur": "Banc",
+      "consignes": "Liste synthétique du banc d'affichage : aucun joueur réel. Elle sert à remplir l'écran des recommandations.",
+      "decks": [
+        {
+          "nom": "Défense lente et épaisse",
+          "consignes": "Mettre le leader en tête de file.\nGarder la VIT de Cassie sous celle de l'équipe adverse.",
+          "fort_contre": [
+            {
+              "monstres": [
+                { "com2usId": 13413, "nom": "Lushen" },
+                { "com2usId": 18313, "nom": "Chasun" },
+                { "com2usId": 14413, "nom": "Jamire" }
+              ],
+              "note": "si Lushen est en lead"
+            },
+            {
+              "monstres": [
+                { "com2usId": 19211, "nom": "Theomars" },
+                { "com2usId": 19212, "nom": "Tesarion" },
+                { "com2usId": 19215, "nom": "Veromos" }
+              ],
+              "note": "défense de départ, sans bouclier"
+            },
+            {
+              "monstres": [
+                { "com2usId": 14712, "nom": "Verdehile" },
+                { "com2usId": 14611, "nom": "Taor" },
+                null
+              ]
+            }
+          ],
+          "monstres": [
+            {
+              "com2usId": 19315,
+              "nom": "Cassie",
+              "sets": [["violent", "will"], ["violent", "nemesis"]],
+              "artefacts": {
+                "attribut": [{ "code": 300 }, { "code": 301 }],
+                "type": [{ "code": 400 }, { "code": 205 }, { "code": 213 }]
+              },
+              "stats": { "hp": 32000, "atk": 900, "def": 700, "spd": 118, "cr": 70, "cd": 150, "res": 40, "acc": 45 }
+            },
+            {
+              "com2usId": 15105,
+              "nom": "Devilmon",
+              "sets": [["swift", "blade"]],
+              "artefacts": { "attribut": [{ "code": 200 }] },
+              "stats": { "spd": 175, "acc": 85 }
+            },
+            {
+              "com2usId": 19211,
+              "nom": "Theomars",
+              "sets": [["rage", "blade"], ["fight", "fight", "fight"]],
+              "artefacts": { "type": [{ "code": 207 }, { "code": 212 }] },
+              "stats": { "hp": 28000, "spd": 130, "res": 60 }
+            }
+          ]
+        },
+        {
+          "nom": "Offense rapide de contre",
+          "consignes": "À jouer en second.",
+          "fort_contre": [
+            {
+              "monstres": [
+                { "com2usId": 19212, "nom": "Tesarion" },
+                { "com2usId": 14511, "nom": "Sigmarus" },
+                { "com2usId": 19215, "nom": "Veromos" }
+              ],
+              "note": "défense à protection, jamais en tête"
+            }
+          ],
+          "monstres": [
+            {
+              "com2usId": 14314,
+              "nom": "Rainbowmon",
+              "sets": [["swift", "will"]],
+              "artefacts": { "attribut": [{ "code": 302 }], "type": [{ "code": 204 }] },
+              "stats": { "spd": 200, "hp": 24000, "res": 25 }
+            },
+            {
+              "com2usId": 13413,
+              "nom": "Lushen",
+              "sets": [["violent", "will"], ["swift", "will"]],
+              "stats": { "spd": 190, "cr": 50 }
+            },
+            {
+              "com2usId": 14413,
+              "nom": "Jamire",
+              "sets": [["fatal", "blade"]],
+              "artefacts": { "type": [{ "code": 208 }, { "code": 225 }, { "code": 209 }, { "code": 210 }] },
+              "stats": { "atk": 1800, "cd": 130 }
+            }
+          ]
+        },
+        {
+          "nom": "Équipe de secours",
+          "fort_contre": [
+            {
+              "monstres": [
+                { "com2usId": 14611, "nom": "Taor" },
+                { "com2usId": 19211, "nom": "Theomars" },
+                { "com2usId": 19212, "nom": "Tesarion" }
+              ]
+            }
+          ],
+          "monstres": [
+            { "com2usId": 18313, "nom": "Chasun", "sets": [["energy", "guard"]], "stats": { "hp": 30000, "spd": 105 } },
+            { "com2usId": 14712, "nom": "Verdehile", "sets": [["despair", "will"]], "artefacts": { "attribut": [{ "code": 303 }] } },
+            { "com2usId": 14611, "nom": "Taor", "sets": [["revenge", "endure"]], "stats": { "def": 900 } }
+          ]
+        }
+      ]
+    },
+    {
+      "nom": "Offenses de siège — banc d'affichage",
+      "auteur": "Banc",
+      "consignes": "Seconde liste synthétique, pour voir plusieurs listes l'une sous l'autre.",
+      "decks": [
+        {
+          "nom": "Offense Vent et Eau",
+          "consignes": "Attaquer le fond de la défense en premier.",
+          "fort_contre": [
+            {
+              "monstres": [
+                { "com2usId": 19315, "nom": "Cassie" },
+                { "com2usId": 15105, "nom": "Devilmon" },
+                { "com2usId": 14314, "nom": "Rainbowmon" }
+              ],
+              "note": "si la défense a un bouclier"
+            },
+            {
+              "monstres": [
+                { "com2usId": 19215, "nom": "Veromos" },
+                null,
+                null
+              ]
+            }
+          ],
+          "monstres": [
+            {
+              "com2usId": 14511,
+              "nom": "Sigmarus",
+              "sets": [["violent", "blade"]],
+              "artefacts": { "attribut": [{ "code": 301 }, { "code": 300 }], "type": [{ "code": 206 }] },
+              "stats": { "spd": 180, "acc": 70 }
+            },
+            { "com2usId": 14413, "nom": "Jamire", "sets": [["rage", "blade"]], "stats": { "cd": 140, "cr": 80 } },
+            { "com2usId": 14611, "nom": "Taor", "sets": [["violent", "will"]], "stats": { "spd": 160 } }
+          ]
+        },
+        {
+          "nom": "Offense Ténèbres",
+          "fort_contre": [
+            {
+              "monstres": [
+                { "com2usId": 13413, "nom": "Lushen" },
+                { "com2usId": 18313, "nom": "Chasun" },
+                { "com2usId": 14712, "nom": "Verdehile" }
+              ],
+              "note": "défense lente"
+            }
+          ],
+          "monstres": [
+            { "com2usId": 19215, "nom": "Veromos", "sets": [["violent", "nemesis"]], "artefacts": { "type": [{ "code": 400 }] }, "stats": { "spd": 170 } },
+            { "com2usId": 19315, "nom": "Cassie", "sets": [["despair", "energy"]], "stats": { "spd": 185, "acc": 90 } },
+            { "com2usId": 19212, "nom": "Tesarion", "sets": [["fatal", "blade"]], "stats": { "atk": 1700 } }
+          ]
+        }
+      ]
+    },
+    {
+      "nom": "Idées à tester",
+      "auteur": "Banc",
+      "decks": [
+        {
+          "nom": "Trio de test",
+          "consignes": "Un seul deck, sans consigne de liste.",
+          "fort_contre": [
+            {
+              "monstres": [
+                { "com2usId": 14712, "nom": "Verdehile" },
+                { "com2usId": 18313, "nom": "Chasun" },
+                { "com2usId": 13413, "nom": "Lushen" }
+              ],
+              "note": "monstre dont le compte d'exemple n'a aucun exemplaire"
+            }
+          ],
+          "monstres": [
+            { "com2usId": 15105, "nom": "Devilmon", "sets": [["violent", "will"]], "stats": { "hp": 35000, "spd": 120 } },
+            { "com2usId": 14314, "nom": "Rainbowmon", "sets": [["swift", "will"]], "artefacts": { "attribut": [{ "code": 300 }] } },
+            { "com2usId": 19315, "nom": "Cassie", "sets": [["violent", "will"]], "stats": { "acc": 60 } }
+          ]
+        }
+      ]
+    }
+  ]
+}

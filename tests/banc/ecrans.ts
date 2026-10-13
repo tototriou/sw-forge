@@ -35,8 +35,11 @@ export const FORMATS: Record<Format, DefinitionFormat> = {
 
 export const ORDRE_FORMATS: Format[] = ['telephone', 'ordinateur'];
 
-/** Rôles ARIA qu'une étape peut viser. */
-export type Role = 'button' | 'dialog' | 'switch' | 'tab' | 'link' | 'heading' | 'combobox' | 'option';
+/**
+ * Rôles ARIA qu'une étape peut viser, ou `texte` : un élément dont le texte est
+ * exactement `nom` (ce que le contenu montre sans rôle : ligne d'artéfact, note).
+ */
+export type Role = 'button' | 'dialog' | 'switch' | 'tab' | 'link' | 'heading' | 'combobox' | 'option' | 'texte';
 
 /**
  * Un élément visé par son rôle et son nom accessible, comme Playwright
@@ -62,6 +65,12 @@ export type Etape =
   | { cliquer: Cible }
   /** Remplacer le texte d'un champ. */
   | { saisir: Cible; texte: string }
+  /**
+   * Charger un fichier par le bouton d'import de l'interface (sélecteur de
+   * fichier de la page). `fichier` est un nom de `tests/fixtures/`. Un import
+   * que l'app refuse rend l'état non atteint, avec la cause.
+   */
+  | { importer: Cible; fichier: string }
   /** Attendre que la cible soit visible (bornée). */
   | { attendre: Cible };
 
@@ -171,6 +180,50 @@ const OBJECTIF_DEGATS_REELS: Cible = {
   pres: { role: 'button', nom: 'Objectif de recherche' },
 };
 
+// Écran des recommandations rempli : le fichier synthétique
+// `tests/fixtures/recommandations-banc.json` (3 listes, 6 decks), chargé par le
+// bouton « Importer » de l'interface. Au téléphone, ce bouton vit dans le
+// panneau « Actions — recommandations », que l'import laisse ouvert : on le ferme.
+const RECO_FICHIER = 'recommandations-banc.json';
+const RECO_LISTES_NOMS = [
+  "Défenses de guilde — banc d'affichage",
+  "Offenses de siège — banc d'affichage",
+  'Idées à tester',
+];
+const RECO_IMPORT: Etape = { importer: { role: 'button', nom: 'Importer' }, fichier: RECO_FICHIER };
+const RECO_OPTIONS: Cible = { role: 'button', nom: 'Filtres et actions de la page' };
+const RECO_FERMER_PANNEAU: Etape = {
+  cliquer: { role: 'button', nom: 'Fermer', pres: { role: 'heading', nom: 'Actions — recommandations' } },
+};
+const RECO_IMPORT_TELEPHONE: Etape[] = [{ cliquer: RECO_OPTIONS }, RECO_IMPORT, RECO_FERMER_PANNEAU];
+// Chaque liste s'ouvre par son bouton « Consulter », repéré par son titre ; au
+// téléphone, le titre lui-même est le bouton.
+const RECO_CONSULTER: Record<Format, Etape[]> = {
+  ordinateur: RECO_LISTES_NOMS.map((nom) => ({
+    cliquer: { role: 'button', nom: 'Consulter', pres: { role: 'heading', nom } },
+  })),
+  telephone: RECO_LISTES_NOMS.map((nom) => ({ cliquer: { role: 'button', nom } })),
+};
+// Les listes à plusieurs decks ont « Déplier tous les decks » ; celle d'un seul deck, son chevron.
+const RECO_DEPLIER: Etape[] = [
+  ...RECO_LISTES_NOMS.slice(0, 2).map((nom): Etape => ({
+    cliquer: { role: 'button', nom: 'Déplier tous les decks', pres: { role: 'heading', nom } },
+  })),
+  { cliquer: { role: 'button', nom: 'Déplier ce deck', pres: { role: 'heading', nom: RECO_LISTES_NOMS[2] } } },
+];
+const RECO_IMPORTEES: Cible = { role: 'texte', nom: '3 recommandation(s) · 6 deck(s) · 18 monstre(s) importés.' };
+const RECO_LISTES: Cible[] = RECO_LISTES_NOMS.map((nom) => ({ role: 'heading', nom }));
+// Lignes d'artéfacts propres à un seul deck du fichier.
+const RECO_DETAIL: Cible[] = [
+  { role: 'texte', nom: 'Dgts de bombe +X%' },
+  { role: 'texte', nom: 'Effet aug. VIT +X%' },
+];
+// Notes de contres propres à une seule défense visée du fichier.
+const RECO_CONTRES: Cible[] = [
+  { role: 'texte', nom: '— défense de départ, sans bouclier' },
+  { role: 'texte', nom: '— défense lente' },
+];
+
 export const ECRANS: Ecran[] = [
   {
     id: 'accueil',
@@ -245,7 +298,48 @@ export const ECRANS: Ecran[] = [
   ouverture('rta-ami', 'RTA — Ami', '#/rta/ami', MOTIFS_RTA),
   ouverture('siege-defense', 'Siège — Défense', '#/siege/defense', MOTIFS_SIEGE, ['#/siege']),
   ouverture('siege-offense', 'Siège — Offense', '#/siege/offense', MOTIFS_SIEGE),
-  ouverture('siege-recommandations', 'Siège — Recommandations', '#/siege/recommandations', MOTIFS_SIEGE),
+  {
+    id: 'siege-recommandations',
+    libelle: 'Siège — Recommandations',
+    hash: '#/siege/recommandations',
+    motifs: [...MOTIFS_SIEGE, 'tests/fixtures/recommandations-banc'],
+    etats: [
+      DEFAUT,
+      {
+        id: 'reco-attaque-repliee',
+        libelle: 'recommandations importées, vue Attaque, decks repliés',
+        preparation: {
+          telephone: [...RECO_IMPORT_TELEPHONE, ...RECO_CONSULTER.telephone],
+          ordinateur: [RECO_IMPORT, ...RECO_CONSULTER.ordinateur],
+        },
+        atteint: [RECO_IMPORTEES, ...RECO_LISTES],
+      },
+      {
+        id: 'reco-attaque',
+        libelle: 'recommandations importées, vue Attaque, decks dépliés',
+        preparation: {
+          telephone: [...RECO_IMPORT_TELEPHONE, ...RECO_CONSULTER.telephone, ...RECO_DEPLIER],
+          ordinateur: [RECO_IMPORT, ...RECO_CONSULTER.ordinateur, ...RECO_DEPLIER],
+        },
+        atteint: [RECO_IMPORTEES, ...RECO_LISTES, ...RECO_DETAIL],
+      },
+      {
+        id: 'reco-defense',
+        libelle: 'recommandations importées, vue Défense',
+        preparation: {
+          telephone: [
+            { cliquer: RECO_OPTIONS },
+            RECO_IMPORT,
+            { cliquer: { role: 'button', nom: 'Défense' } },
+            RECO_FERMER_PANNEAU,
+            ...RECO_CONSULTER.telephone,
+          ],
+          ordinateur: [RECO_IMPORT, { cliquer: { role: 'button', nom: 'Défense' } }, ...RECO_CONSULTER.ordinateur],
+        },
+        atteint: [RECO_IMPORTEES, ...RECO_LISTES, ...RECO_CONTRES],
+      },
+    ],
+  },
   ouverture('compte-monstres', 'Mon compte — Monstres, Ma box', '#/compte/monstres/liste', MOTIFS_COMPTE, [
     '#/compte',
     '#/compte/monstres',

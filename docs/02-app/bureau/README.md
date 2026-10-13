@@ -81,9 +81,10 @@ Le processus principal n'accepte un message que de la page de SA fenêtre
 
 ## Un seul code
 
-⚠️ **Aucune fonctionnalité ne s'écrit deux fois.** La fenêtre affiche le
-build Vite (`dist/`) tel quel ; seul ce que le navigateur ne sait pas faire
-est propre au bureau. Une ligne propre au bureau se lit derrière
+⚠️ **Aucune fonctionnalité ne s'écrit deux fois**
+([pourquoi, et pourquoi Electron](../../04-decisions/adr/trois-plateformes-un-seul-code.md)).
+La fenêtre affiche le build Vite (`dist/`) tel quel ; seul ce que le
+navigateur ne sait pas faire est propre au bureau. Une ligne propre au bureau se lit derrière
 `estBureau()` (le préchargement a posé `swblacksmithBureau`) ; le site ne
 change pas. Ce qui en dépend aujourd'hui :
 

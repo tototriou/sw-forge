@@ -5,9 +5,11 @@ et pointe vers celle qui la remplace.
 
 | Document | Contenu |
 | --- | --- |
+| [trois-plateformes-un-seul-code.md](trois-plateformes-un-seul-code.md) | Site au téléphone, site à l'ordinateur et application de bureau sont maintenus tous les trois par un seul code ; Electron pour le bureau. |
 | [deux-formats-de-premier-rang.md](deux-formats-de-premier-rang.md) | Téléphone et ordinateur sont deux formats de premier rang : aucun n'est le cas dégradé de l'autre, une correction destinée à l'un ne touche pas l'autre. |
 | [librairie-ui-par-axes.md](librairie-ui-par-axes.md) | Tout contrôle est un composant de `src/ui/`, décrit par des axes qui se combinent plutôt que par des variantes nommées. |
 | [barre-laterale.md](barre-laterale.md) | La navigation de l'ordinateur est une barre latérale, qui a remplacé la rangée d'onglets et ses menus déroulants. |
+| [documentation-sans-outillage.md](documentation-sans-outillage.md) | La documentation se parcourt par ses README et tient sans outillage maison ; décisions, cadrages et pilotage vivent dans le dépôt. |
 | [choix-de-recherche-degats-reels.md](choix-de-recherche-degats-reels.md) | Les stats et majorations des dégâts réels qui n'entrent pas dans la recherche des builds, parce qu'elles ne changent pas leur classement. |
 
 ## Écrire un ADR

@@ -4,7 +4,8 @@ La documentation se tient seule : aucun outil ne vérifie sa forme, ses
 règles se tiennent à l'écriture et en relecture. Les règles sont dans la
 charte ([../README.md](../README.md)) ; ce document dit comment les
 appliquer. Seuls les liens sont vérifiés automatiquement, par le test des
-renvois ([renvois.md](renvois.md)).
+renvois ([renvois.md](renvois.md)). Pourquoi ce choix :
+[documentation-sans-outillage.md](../04-decisions/adr/documentation-sans-outillage.md).
 
 ## Public et privé
 

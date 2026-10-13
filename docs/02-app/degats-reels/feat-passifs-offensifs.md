@@ -492,4 +492,4 @@ le pré-filtrage de la recherche (`OBJECTIVE_RELEVANT_STATS`, voir
 ⚠️ **Source UNIQUE**, appelée par l'écran **et** par la relecture d'une
 recette en ligne de commande — deux calculs séparés divergeraient en
 silence, sans que `tsc` puisse le voir (voir
-[03-developpeur/conventions.md](../../03-developpeur/conventions.md#conventions-communes) (conventions), « Conventions communes »).
+[AGENTS.md](../../../AGENTS.md), « Conventions de code »).

@@ -131,8 +131,8 @@ npm run bureau:preuve          # la vérification de l'application de bureau
 - ⚠️ **Un type partagé entre l'écran et un script a PLUSIEURS constructeurs** (ex. `OptimizerRecipe`
   et `recipeToSearchParams.ts`). `tsc` attrape un champ dont le **type change** ou qui devient
   **obligatoire**, jamais un champ **optionnel** oublié dans l'un d'eux. Avant de considérer un champ
-  ajouté ou renommé comme terminé : `grep -rn` du nom sur `src/`, `scripts/` **et** `tests/`. Détail :
-  [conventions.md](docs/03-developpeur/conventions.md), « Conventions communes ».
+  ajouté ou renommé comme terminé : `grep -rn` du nom sur `src/`, `scripts/` **et** `tests/`. Les
+  constructeurs connus : skill `optimizer-field-propagation`.
 - **Toute page ou section ajoutée, renommée ou supprimée** se répercute sur l'accueil, sur la nav de
   `App.tsx` et sur [docs/02-app/README.md](docs/02-app/README.md), dans le même commit.
 

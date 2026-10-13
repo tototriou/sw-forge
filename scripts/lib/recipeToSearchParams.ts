@@ -444,7 +444,7 @@ export function resolvePool(
 // **les mêmes fonctions** : `resolveDamageSkill` + `damageRelevantStats`
 // (src/lib/damage.ts). Rien n'est réimplémenté ici — c'est précisément le
 // genre de recopie qui a déjà fait diverger un script de l'écran en silence
-// (voir docs/03-developpeur/, « Conventions communes »).
+// (voir AGENTS.md, « Conventions de code »).
 export function resolveObjectiveStats(recipe: OptimizerRecipe, loaded: LoadedMonster): StatKey[] | undefined {
   if (recipe.objective !== 'degats_reels') return undefined;
   const detail = loadMonsterSkills(loaded.com2usId);

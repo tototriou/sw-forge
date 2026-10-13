@@ -31,20 +31,6 @@ partagées, dont la navigation et le pied de page, dans
 - **Aucune mesure d'audience**, sur le site comme dans l'application de
   bureau : « 100 % local » veut dire que rien ne quitte le navigateur. ⚠️ Ne
   pas en réintroduire sans décision.
-- **Un type partagé entre l'écran et un script (recette exportable, etc.) a
-  PLUSIEURS constructeurs — un champ ajouté doit être répercuté dans TOUS.**
-  ⚠️ **Écueil** : un champ optionnel ajouté à `OptimizerRecipe`
-  ([optimizerRecipe.ts](src/lib/optimizerRecipe.ts)), branché dans
-  `OptimizerSection.tsx` (l'écran) mais oublié dans
-  `scripts/lib/recipeToSearchParams.ts` (utilisé par
-  `scripts/optimizer-search.ts`), fait taire le réglage pour tout script
-  qui rejoue une recette exportée, sans la moindre erreur `tsc` (le champ
-  manquant reste un type optionnel valide). **Avant de considérer un champ
-  ajouté comme terminé** : chercher tous les fichiers qui construisent ou
-  consomment ce type (`grep -rn NomDuType`), pas seulement celui qu'on
-  vient d'éditer ; un `tsc` propre ne le détecte jamais, puisque l'appel
-  reste valide, juste incomplet. Les constructeurs connus : skill
-  `optimizer-field-propagation`.
 - **Fenêtres modales** : aucun `confirm()` ni `prompt()` du navigateur, et le
   défaut d'une confirmation ne perd jamais rien. Détail :
   [modales-et-panneaux.md](interface/librairie-ui/modales-et-panneaux.md).

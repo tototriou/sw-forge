@@ -178,8 +178,8 @@ De haut en bas :
      aucune ne voyait que les **vitesses elles-mêmes** divergeaient.
      - **Un seul constructeur** pour l'entrée de l'analyse, à côté de `tuneDe` :
        écrite au fil de l'eau chez l'appelant, elle finit toujours par oublier un
-       champ que personne ne voit manquer (voir « Conventions communes » dans
-       [../../03-developpeur/](../../03-developpeur/)).
+       champ que personne ne voit manquer (voir « Conventions de code » dans
+       [AGENTS.md](../../../AGENTS.md)).
      - **Gardé** : le même monstre doit avoir la **même vitesse de combat** des
        deux côtés — lead de camp, lead d'ÉLÉMENT (qui ne vaut que pour certains),
        Swift, passif. Le contrôle vérifie en plus que le lead **change** bien la

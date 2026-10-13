@@ -31,8 +31,8 @@ export const OPTIMIZER_RECIPE_VERSION = 1;
 // (aucune erreur `tsc`, le champ manquant reste un type optionnel valide).
 // Exemple : un champ comme `exhaustiveSearch`, branché dans
 // OptimizerSection.tsx (l'écran) mais oublié dans recipeToSearchParams.ts,
-// ne signale rien — voir docs/03-developpeur/,
-// « Conventions communes », pour la règle générale, et le skill
+// ne signale rien — voir AGENTS.md, « Conventions de code »,
+// pour la règle générale, et le skill
 // `optimizer-field-propagation` pour les producteurs purs qui remplacent
 // ces constructeurs et pour la checklist de ceux qui subsistent. Les deux
 // principaux :

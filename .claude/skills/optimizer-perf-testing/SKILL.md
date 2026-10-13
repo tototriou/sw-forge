@@ -304,7 +304,7 @@ qu'une dérive **LENTE** : une perturbation transitoire tombée pendant l'essai
 chargé passe entière dans le résultat, et les deux témoins la ratent
 complètement : un faible écart entre témoins ne garantit pas un signal net.
 
-⚠️⚠️ **ET LE BIAIS SE REPRODUIT.** L'essai chargé occupe TOUJOURS la même
+⚠️ **Et le biais se reproduit** : l'essai chargé occupe toujours la même
 position dans la séquence : tout effet lié à cette position (échauffement
 thermique, état du GC, montée en fréquence) revient identique à chaque
 exécution.

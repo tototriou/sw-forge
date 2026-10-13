@@ -4,8 +4,8 @@ Partie de [Siège · Recommandations](README.md).
 
 ## Défenses visées — « Fort contre »
 
-Une recommandation dit quoi jouer ; elle ne disait pas **contre quoi**. Un deck
-porte donc une liste de **défenses adverses qu'il bat** (`RecoDeck.counters`) :
+Une recommandation dit quoi jouer, et **contre quoi** : un deck porte une
+liste de **défenses adverses qu'il bat** (`RecoDeck.counters`) :
 **3 monstres** et une **précision facultative** (« si le Chloe est en lead »).
 
 - **Facultatif et multiple** : un même deck bat souvent plusieurs compositions,
@@ -32,7 +32,7 @@ illisible.
 - **Lecture** : les défenses sont **côte à côte** (`flex-wrap`), chacune réduite
   à ses **3 portraits**.
   - ⚠️ **En rangée et non empilées** : une vignette fait 90 px de contenu, une
-    par ligne gaspillait toute la largeur. Côte à côte, on en embrasse plusieurs
+    par ligne gaspillerait toute la largeur. Côte à côte, on en embrasse plusieurs
     d'un coup — c'est le point, reconnaître la composition qu'on affronte.
   - ⚠️ **La précision est repliée**, et s'ouvre **au clic sur la vignette** : une
     note dépliée fait deux fois la hauteur d'une vignette et casserait
@@ -49,10 +49,10 @@ d'une équipe de siège dont on consulte les runes (voir
 [SiegeTeam.tsx](src/components/siege/SiegeTeam.tsx)) — et la note apparaît en
 **flottant ancré** juste dessous.
 
-- ⚠️ **Un flottant, pas un panneau dans le flux.** Posé dans le flux, il devait
-  s'aligner sous une vignette qui, en `flex-wrap`, peut être n'importe où sur
-  n'importe quelle ligne : le trait du cran et celui du panneau ne se
-  rejoignaient pas, et **le rattachement mentait**. Un flottant naît de son
+- ⚠️ **Un flottant, pas un panneau dans le flux.** Posé dans le flux, il
+  devrait s'aligner sous une vignette qui, en `flex-wrap`, peut être n'importe
+  où sur n'importe quelle ligne : le trait du cran et celui du panneau ne se
+  rejoindraient pas, et **le rattachement mentirait**. Un flottant naît de son
   ancre, il n'a rien à aligner — et il ne pousse rien : la rangée reste immobile
   pendant qu'on lit.
 - ⚠️ **`origin-top-left`** : un flottant ancré grandit **depuis son ancre**,
@@ -63,26 +63,23 @@ d'une équipe de siège dont on consulte les runes (voir
   popovers de l'app ([SettingsMenu.tsx](src/components/SettingsMenu.tsx)).
 - `min-w-full` (au moins la largeur de sa vignette, pour se lire comme sa suite)
   et **280 px au plus** : la note est une phrase courte.
-- ⚠️ **C'est le `Flottant` de la librairie** (refonte graphique, lot 8a —
-  Le mainteneur : « fais la même chose partout dans l'appli », après la bulle
-  d'aide) : même fond, même contour neutre, même ombre, même rembourrage que
-  toutes les bulles de l'app. C'était une boîte maison au contour d'ACCENT —
-  réservé à l'état enclenché, que porte déjà la vignette —, à l'ombre et aux
-  marges à elle.
+- ⚠️ **C'est le `Flottant` de la librairie** : même fond, même contour neutre,
+  même ombre, même rembourrage que toutes les bulles de l'app. Le contour
+  d'ACCENT est réservé à l'état enclenché, que porte déjà la vignette.
 - La vignette ouverte passe en **`z-20`** : les suivantes sont peintes après dans
   le flux et passeraient sinon par-dessus le flottant.
 
 #### ⚠️ La recherche n'ouvre AUCUNE précision
 
-Une défense trouvée ouvrait sa précision d'office. Sur une recherche qui remonte
-plusieurs défenses, cela dépliait des notes qu'on n'avait pas demandées — et avec
-un panneau unique sous la rangée, cela n'a plus de sens du tout. Le
-**surlignage** de la vignette suffit à dire laquelle répond ; on ouvre si on veut
-lire.
+Une défense trouvée n'ouvre pas sa précision d'office : sur une recherche qui
+remonte plusieurs défenses, cela déplierait des notes qu'on n'a pas demandées.
+Le **surlignage** de la vignette suffit à dire laquelle répond ; on ouvre si
+on veut lire.
+
 ### ⚠️ Un « + », pas un bouton « Éditer »
 
 Le bloc **n'a pas de mode édition**. Noter la défense qu'on vient d'affronter est
-un geste **de passage** : le crayon ajoutait une étape (ouvrir le mode, ajouter,
+un geste **de passage** : un crayon ajouterait une étape (ouvrir le mode, ajouter,
 refermer) là où le geste réel est simplement « + ».
 
 - **« + Défense »** ajoute une entrée **et l'ouvre en édition** — sinon on aurait
@@ -90,7 +87,7 @@ refermer) là où le geste réel est simplement « + ».
 - Le **« + » vit DANS la rangée**, à la suite des défenses existantes : c'est là
   qu'on ajoute, et il montre où la prochaine se posera. Il est **toujours
   visible**, y compris sur un deck qui n'en porte aucune — c'est lui qui rend la
-  fonctionnalité découvrable, rôle que tenait l'intitulé + crayon.
+  fonctionnalité découvrable.
 - ⚠️ **L'édition est PAR DÉFENSE, pas pour le bloc entier**, et **une seule à la
   fois** : on note une composition, pas six. Les autres restent en **vignettes de
   lecture à côté**, ce qui permet de voir ce qu'on a déjà noté pendant qu'on
@@ -106,6 +103,7 @@ refermer) là où le geste réel est simplement « + ».
 - ⚠️ **L'index en édition est remis à `null` si le nombre de défenses change** :
   une défense supprimée laisserait l'édition pointer sur sa voisine, ou dans le
   vide.
+
 #### ⚠️ Une défense sans AUCUN monstre n'est pas conservée
 
 L'entrée est bien **créée** au clic sur « + » — c'est le formulaire qu'on
@@ -120,7 +118,7 @@ Les **quatre** sorties sont couvertes :
 |--------|-----------------|
 | **Terminer** (✓) | l'entrée vide est retirée |
 | **Ouvrir une autre défense** | la précédente, restée vide, est retirée (l'index visé est décalé si elle était avant lui) |
-| **Replier le deck** | le bloc est démonté → nettoyage au démontage, sinon l'entrée vide survivait |
+| **Replier le deck** | le bloc est démonté → nettoyage au démontage, sinon l'entrée vide survivrait |
 | **Re-cliquer « + »** | aucune seconde entrée n'est créée tant que l'ouverte est vide — on réutilise celle qui est là |
 
 - ⚠️ **La note seule ne suffit pas à la retenir** : une précision sans les

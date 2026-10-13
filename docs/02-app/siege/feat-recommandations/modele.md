@@ -45,15 +45,14 @@ lesquelles il peut jouer.
     dans l'en-tête du deck lui-même (voir plus bas, « Repli deck par deck ») :
     aux deux formats, l'en-tête montre les **portraits des monstres**, jamais
     de texte.
-  - ⚠️ **`RecoDeck.name` existe encore dans le type et le stockage, pour la
-    RÉTROCOMPATIBILITÉ d'un import** : une recommandation exportée avant ce
-    changement — ou reçue d'un ami dont l'app n'est pas à jour — porte encore
-    un titre dans ce champ. Il n'est **jamais rejeté** par le validateur
-    d'import ([recoShare.ts](src/lib/recoShare.ts)), simplement **plus lu ni
-    affiché** : `deckLabel` ne le consulte plus. Un titre libre pouvait dater
-    une fois le deck modifié, redoubler ce que les portraits montrent déjà, ou
-    rester vide et donc identique au nom automatique — trois façons de ne rien
-    apporter.
+  - ⚠️ **`RecoDeck.name` existe dans le type et le stockage, pour la
+    RÉTROCOMPATIBILITÉ d'un import** : une recommandation reçue d'une app qui
+    n'est pas à jour peut porter un titre dans ce champ. Il n'est **jamais
+    rejeté** par le validateur d'import ([recoShare.ts](src/lib/recoShare.ts)),
+    simplement **ni lu ni affiché** : `deckLabel` ne le consulte pas. Un titre
+    libre peut dater une fois le deck modifié, redoubler ce que les portraits
+    montrent déjà, ou rester vide et donc identique au nom automatique — trois
+    façons de ne rien apporter.
 - Les **decks totalement vides** ne sont ni exportés ni comptés dans les statuts.
 
 ## Origine
@@ -70,33 +69,25 @@ export (d'où `RecoPayload`, qui exclut `id` **et** `origin`). Ce qui est « à 
 chez l'auteur devient « importée » chez celui qui la reçoit — y compris si je
 réimporte mon propre export.
 
-⚠️ **Plus de filtre par origine** (refonte graphique, décision 19 — le mainteneur :
-« au lieu du tri toutes / mes recos / importées, mets plutôt un tri attaque /
-défense »). Le filtre **Toutes · Mes recos · Importées**, ses effectifs, ses
-états vides (« Tu n'as créé aucune recommandation… », « Voir toutes les
-recommandations »), l'infobulle d'export « celles du filtre actif » et les
-bascules automatiques à la création et à l'import sont retirés ([retrait #19]
-du cadrage). L'origine reste une donnée de la carte : la puce « Importée » dit
-toujours ce qu'on a reçu.
+⚠️ **Pas de filtre par origine.** L'origine reste une donnée de la carte : la
+puce « Importée » dit ce qu'on a reçu.
 
 ## Vue Attaque / Défense
 
-Les mêmes recommandations, lues dans les deux sens (décision 19 — « je
-voudrais des défenses qui ont X offenses fortes contre elles, je veux que les
-deux affichages soient possibles ») :
+Les mêmes recommandations, lues dans les deux sens :
 
 | Vue | Une ligne par… | Puis | Rôle |
 |-----|----------------|------|------|
-| **Attaque** (défaut) | deck (offense) | les défenses contre lesquelles il est fort (« Fort contre ») | l'affichage d'avant ; **c'est là qu'on modifie** |
+| **Attaque** (défaut) | deck (offense) | les défenses contre lesquelles il est fort (« Fort contre ») | **c'est là qu'on modifie** |
 | **Défense** | défense visée | les offenses de la recommandation fortes contre elle | **lecture seule** |
 
-⚠️ **Le format exporté ne change pas.** La vue Défense est **calculée** à
-partir des `counters` de chaque deck ([recoDefenses.ts](../../../../src/lib/recoDefenses.ts),
-calcul pur, testé : `reco-defenses`) — rien n'est stocké en plus, un ancien
-fichier s'affiche dans les deux vues sans conversion (« attention à ne pas
-toucher au modèle de données exporté »).
+⚠️ **La vue ne touche pas au format exporté.** La vue Défense est **calculée**
+à partir des `counters` de chaque deck
+([recoDefenses.ts](../../../../src/lib/recoDefenses.ts), calcul pur, testé :
+`reco-defenses`) — rien n'est stocké en plus, un fichier de n'importe quelle
+version s'affiche dans les deux vues sans conversion.
 
-Règles de la vue Défense — trois choix du mainteneur :
+Règles de la vue Défense :
 - **Dans chaque recommandation** : la carte garde son en-tête (titre, auteur,
   analyse, export) ; à l'intérieur, une ligne par défense visée, avec les
   decks de CETTE recommandation qui la battent. Rien ne se mélange entre
@@ -130,5 +121,4 @@ Affichage :
   **désactivées** en vue Défense, où les decks ne sont pas affichés —
   infobulle « Passe en vue Attaque pour ouvrir ce deck ».
 
-La vue est **mémorisée** (`useStickyState`, clé `recos.vue` — neuve :
-l'ancienne portait une origine).
+La vue est **mémorisée** (`useStickyState`, clé `recos.vue`).

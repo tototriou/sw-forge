@@ -67,7 +67,7 @@ détail d'une rune ou d'un artéfact équipé (`RuneDetailBox`/`ArtifactDetailBo
 dans [PieceDetail.tsx](../../../../src/components/PieceDetail.tsx)), qui bascule
 pareillement entre « valeur + meule » et le total cumulé. Trois colonnes en
 permanence pour dire deux fois la même chose (le bonus ET le total qui
-l'inclut) pesaient plus que ce qu'elles ajoutaient. Le **bonus est recalculé**
+l'inclut) pèseraient plus que ce qu'elles ajoutent. Le **bonus est recalculé**
 (`total − base`), il n'est jamais stocké :
 
 ```
@@ -80,12 +80,11 @@ PV        10 050  +24 950      28 400 (−6 600)                PV    35 000    
 ⚠️ **« actuel » reste affichée dans les deux états** : c'est la seule colonne qui
 compare à mon compte, elle ne dépend pas de la question détail/total. Son
 en-tête est écrit **une seule fois**, au-dessus de la liste — répéter le mot
-sur chaque ligne (l'essai précédent, « toi 220 ») pesait plus lourd que la
-colonne qu'il remplaçait.
+sur chaque ligne (« toi 220 ») pèserait plus lourd que la colonne.
 
 #### ⚠️ Pas de table, pas de défilement horizontal — des lignes `flex-wrap`
 
-Une table à colonnes fixes, sous sa largeur minimale, défilait
+Une table à colonnes fixes, sous sa largeur minimale, défilerait
 **horizontalement DANS la carte** (`overflow-x-auto`) — et une barre de
 défilement horizontale, sur trois ou quatre chiffres, est **illisible** : on
 ne voit plus la ligne entière d'un coup d'œil, et il faut deviner qu'il y a
@@ -96,25 +95,22 @@ plutôt qu'une rangée de `<td>` : si la largeur manque, la **colonne « actuel 
 passe à la ligne suivante** au lieu de sortir du cadre.
 
 ⚠️ **« actuel » garde un en-tête, écrit UNE SEULE fois au-dessus de la
-liste** (`label`, aligné comme la colonne l'était dans la table) — un premier
-essai l'écrivait devant chaque valeur (« toi 220 » répété sur chaque ligne),
-plus lourd que la colonne qu'il remplaçait. Les autres colonnes (`Stat`,
-`base`/`bonus`/`total`), elles, n'ont plus d'en-tête du tout : leur ordre
-suffit à les nommer, et « actuel » est la seule à valoir la peine d'un mot
-au-dessus puisqu'elle n'apparaît qu'après une analyse.
+liste** (`label`) : devant chaque valeur (« toi 220 » répété sur chaque
+ligne), il serait plus lourd que la colonne. Les autres colonnes (`Stat`,
+`base`/`bonus`/`total`) n'ont pas d'en-tête : leur ordre suffit à les nommer,
+et « actuel » est la seule à valoir la peine d'un mot au-dessus puisqu'elle
+n'apparaît qu'après une analyse.
 
 - le **champ de bonus** est **`w-[calc(6ch+26px)]`, `pleineLargeur={false}`**
   — six chiffres de la police du champ, plus son rembourrage (24 px) et son
   contour (2 px) : au moins cinq chiffres visibles (PV ~35 000), plus un signe
-  pour un bonus négatif. ⚠️ L'ancien `w-14` (56 px) annonçait cinq chiffres
-  et n'en montrait que trois (lot 7b — le mainteneur : « augmenter la taille des
-  champs en mode édition pour avoir au moins 5 chiffres dedans ») : le `px-3`
-  de `Champ` l'emporte sur un `px-1` ajouté (ordre de la feuille), et son
-  `text-sm` sur `text-micro`. Une largeur en `ch` suit la police réelle,
-  quel que soit le format.
+  pour un bonus négatif. ⚠️ Une largeur fixe comme `w-14` (56 px) annonce cinq
+  chiffres et n'en montre que trois : le `px-3` de `Champ` l'emporte sur un
+  `px-1` ajouté (ordre de la feuille), et son `text-sm` sur `text-micro`. Une
+  largeur en `ch` suit la police réelle, quel que soit le format.
   ⚠️ **`pleineLargeur={false}` n'est pas optionnel** : `Champ` (la librairie)
   vaut `w-full` par défaut, pensé pour un champ posé seul dans un formulaire.
-  Sans l'annuler ici, un champ de cinq chiffres s'étirait sur presque toute
+  Sans l'annuler ici, un champ de cinq chiffres s'étirerait sur presque toute
   la largeur de la carte, posé sans colonne de table pour le contenir ;
 - les cartes de slot restent en **`min-w-0`** : une cellule de grille refuse
   sinon de descendre sous la largeur de son contenu et **déborde sur sa
@@ -124,16 +120,16 @@ au-dessus puisqu'elle n'apparaît qu'après une analyse.
   pose `flex-none` dans son socle — un `flex-1` en `className` ne le bat pas
   (vérifié dans le CSS construit : `flex-none` est plus loin dans la feuille
   de style, donc gagne). `pleineLargeur`, lui, pose `w-full` et s'applique
-  bien malgré `flex-none`. Un essai intermédiaire l'avait posé sur un seul
-  des deux boutons + `flex-wrap` : celui-ci revendiquait alors toute la
-  rangée et poussait l'autre à la ligne suivante — les deux actions
-  n'étaient plus lisibles d'un coup d'œil comme une paire. La grille à deux
+  bien malgré `flex-none`. Posé sur un seul des deux boutons avec
+  `flex-wrap`, celui-ci revendiquerait toute la rangée et pousserait l'autre à
+  la ligne suivante — les deux actions ne se liraient plus comme une paire.
+  La grille à deux
   colonnes égales fait que chaque `w-full` remplit sa propre moitié : les
   deux boutons restent côte à côte, à égalité de largeur.
 - le **panneau de choix des sets** (ouvert par « + Set ») affiche chaque set
   du jeu en **case `w-7 h-7` (28 px)** avec `RuneIcon size={16}` — pas
-  `w-8 h-8`/20 px comme au premier jet. Le jeu compte plus de vingt sets ; à
-  32 px + `gap-1`, la grille pesait lourd sur une carte de siège déjà
+  `w-8 h-8`/20 px. Le jeu compte plus de vingt sets ; à
+  32 px + `gap-1`, la grille pèserait lourd sur une carte de siège déjà
   étroite, pour un choix qu'on fait une fois par slot. Le symbole reste net
   à 16 px (même échelle que la roue de runes, qui le dessine déjà aussi
   petit).
@@ -154,29 +150,30 @@ Stat        base    bonus      total
 VIT          101  + [ 208 ]      309
 ```
 
-⚠️ **Corrigé** : la colonne « total » de la VIT ajoutait le bonus de siège
-(totem +15 % et lead du deck) pour y lire la vitesse de combat des cartes
-d'équipe. Trois conséquences, toutes mauvaises :
+⚠️ **La colonne « total » de la VIT n'ajoute PAS le bonus de siège** (totem
++15 % et lead du deck). L'y ajouter, pour y lire la vitesse de combat des
+cartes d'équipe, aurait trois conséquences, toutes mauvaises :
 
-- **le total ne valait plus base + bonus** — « 101 + 208 » s'affichait « 352 »,
-  et la ligne se lisait comme une erreur de calcul ;
-- **la colonne « actuel » recevait le même bonus**, alors que le verdict
+- **le total ne vaudrait plus base + bonus** — « 101 + 208 » s'afficherait
+  « 352 », et la ligne se lirait comme une erreur de calcul ;
+- **la colonne « actuel » recevrait le même bonus**, alors que le verdict
   (`ok`/`ko`, [recoMatch.ts](src/lib/recoMatch.ts)) se calcule sur la stat de
-  fiche : on pouvait lire **deux nombres égaux sur une ligne marquée en rouge** ;
+  fiche : on pourrait lire **deux nombres égaux sur une ligne marquée en
+  rouge** ;
 - c'est la stat de **fiche** qu'on relève dans le jeu quand on rune un monstre,
   et c'est elle que l'Optimiseur cherche à atteindre — donc celle qu'une reco
-  doit demander, a fortiori le jour où ses minimums s'importeront depuis lui.
+  doit demander.
 
 La vitesse de **combat** reste affichée là où elle décide de quelque chose : sur
 les **cartes d'équipe de siège** et dans le **speed tuning**, où se joue l'ordre
 de tour. Deux écrans, deux questions — et chacun le dit.
 
 Le champ de saisie du bonus est un **`type="text"` + `inputMode="numeric"`**, et
-non un `type="number"` : les boutons `+/-` du navigateur mangeaient la largeur
+non un `type="number"` : les boutons `+/-` du navigateur mangeraient la largeur
 d'une colonne déjà étroite. La frappe non numérique est ignorée ; vider le champ
 retire la stat.
 - **Changer le monstre d'un slot remet ses stats ET ses sets à zéro** (ils ne
-  valaient que pour le monstre visé).
+  valent que pour le monstre visé).
 
 #### Raccourci « Tick rapide / Tick lent » sur la VIT
 
@@ -186,17 +183,17 @@ siège (`SIEGE_TICKS`, voir [feat-speed-tick.md](../feat-speed-tick.md)). Un cli
 VIT la **VIT de fiche** qui amène le monstre **pile** sur le tick en combat,
 totem (+15 %) et lead de vitesse du deck compris (`ficheSpeedForTick` dans
 [speed.ts](src/lib/speed.ts) ; lead lu sur le slot 0, appliqué au monstre selon
-son élément par `siegeLeadFor`). Demandé par le mainteneur le 2026-10-04.
+son élément par `siegeLeadFor`).
 
 - ⚠️ **Pas de chiffre sur le bouton**, contrairement au siège (« Rapide
   286 ») : la VIT écrite est celle de fiche — 271 pour un monstre de base 96
-  sans lead —, et un bouton qui annonçait 286 pour écrire 269 (cas relevé)
-  se lisait comme une erreur (le mainteneur, 2026-10-04). Le tick visé et la VIT écrite sont dans
+  sans lead —, et un bouton qui annoncerait 286 pour écrire 269
+  se lirait comme une erreur. Le tick visé et la VIT écrite sont dans
   l'infobulle (« Mettre la VIT à 271 : tick 286 en combat, totem et lead
   compris »).
 
 - ⚠️ **Un raccourci de saisie, rien de plus : aucun tick n'est stocké.** Seule
-  la VIT l'est, comme avant — modèle et format d'export inchangés. Pour régler
+  la VIT l'est : ni le modèle ni le format d'export ne portent de tick. Pour régler
   l'**ordre de jeu** entre monstres au même tick, on ajoute soi-même +1, +2…
   dans le champ bonus ; rien d'autre n'est affiché (ni vitesse de combat, ni
   ordre calculé).
@@ -216,5 +213,5 @@ son élément par `siegeLeadFor`). Demandé par le mainteneur le 2026-10-04.
 - Les boutons occupent **leur propre ligne** (`basis-full`), à une place fixe :
   le total qui change de largeur au clic ne les déplace pas. Ils sont **calés à
   droite**, sous le champ et le total qu'ils remplissent — à gauche, sous la
-  base, ils ne s'alignaient sur rien. Police du texte, pas `font-mono` : ce
+  base, ils ne s'aligneraient sur rien. Police du texte, pas `font-mono` : ce
   sont des mots, pas des chiffres.

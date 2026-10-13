@@ -32,7 +32,7 @@ Les codes com2us sont rangés par **plages**, et `artifactSubKinds` s'en sert :
 | 300–399 | **attribut** seul | dégâts sur le Feu, dégâts reçus de l'Eau |
 | 400–499 | **type** seul | dmg crit Compétence 2, récupération Compétence 3 |
 
-Vérifié sur les **2 120 artéfacts** d'un compte réel : aucune plage ne débordait.
+Vérifié sur les **2 120 artéfacts** d'un compte réel : aucune plage ne déborde.
 Les propriétés impossibles ne sont **jamais proposées** dans la liste, et sont
 **écartées à l'import** — exiger « Dégâts sur le Feu » sur un artéfact de type
 donnerait un critère que rien ne pourrait jamais satisfaire.

@@ -63,12 +63,12 @@ Monstres cherchés et rôle **filtrent tous la même liste** et se
 | **(sans intitulé)** | le champ, puis les 3 cases collées à lui, puis « Vider » | dès 1 recommandation |
 | **Rôle** | `Segmented` Partout · Défense à taper · Offense à runer + le compteur de résultats | une fois un monstre posé |
 
-⚠️ **Pas de cadre.** Il enfermait un contenu qui n'a pas besoin d'être distingué
-du reste de la page — la vue, juste avant, n'en a pas non plus.
+⚠️ **Pas de cadre** : le contenu n'a pas besoin d'être distingué du reste de la
+page — la vue, juste avant, n'en a pas non plus.
 
 ⚠️ **Pas d'intitulé « Monstres ».** Les trois cases et le champ disent déjà par
 leur FORME ce qu'on y fait — une composition de 3 monstres à composer —, un mot
-devant n'ajoutait rien. « Rôle » garde le sien : contrairement aux cases, un
+devant n'ajouterait rien. « Rôle » garde le sien : contrairement aux cases, un
 `Segmented` Partout/Défense/Offense ne dit pas de lui-même sur QUOI il porte.
 
 Ce bloc **n'apparaît que s'il existe au moins une recommandation** : sans rien
@@ -81,28 +81,24 @@ commence par lui, pas par des cases encore vides — et les portraits sont son
 RÉSULTAT : ils se lisent après ce qu'on vient de taper, jamais avant.
 ⚠️ **Sous `lg`, le champ prend toute la largeur restante** ; il n'est plafonné
 (260 px) qu'à partir de `lg`. Plafonné dès `sm`, avec les cases poussées au
-bord droit (`ml-auto`), il laissait un grand vide entre les deux, et les cases
-se lisaient comme un contrôle à part (le mainteneur, sur une capture en fenêtre
-étroite : « revois cet affichage »). Champ et cases forment maintenant un seul
+bord droit (`ml-auto`), il laisserait un grand vide entre les deux, et les
+cases se liraient comme un contrôle à part. Champ et cases forment un seul
 bloc.
 
-- ⚠️ **Origine, Monstres et Rôle étaient posés à trois niveaux différents, sans
-  intitulé** : trois objets flottants dont rien ne disait qu'ils portaient sur
-  la même liste ni qu'ils se cumulaient. L'intitulé de **largeur fixe**
-  (`w-[76px]`) aligne les contrôles entre eux quelle que soit la longueur du
-  mot.
-- ⚠️ **La vue (comme le filtre d'origine avant elle) utilise le VRAI
-  [Segmented](src/ui/Segmented.tsx)**,
-  et non une copie écrite à la main. La copie avait dérivé — `bg-panel` au lieu de
-  `bg-panel2`, `rounded-xl p-1` au lieu de `rounded-lg p-0.5`, texte plus grand :
-  deux contrôles à cran voisins n'avaient ni le même cadre, ni le même rayon, ni
-  la même taille. Un composant partagé existe, on le prend.
-- Les crans de la vue ne portent pas d'effectif (le filtre d'origine en avait
-  un, dans le cran après le libellé, `suffix` de `Segmented`) : les deux vues
-  montrent les MÊMES recommandations, il n'y aurait rien à compter.
+- ⚠️ **L'intitulé de largeur fixe** (`w-[76px]`) aligne les contrôles entre
+  eux quelle que soit la longueur du mot : sans lui, ce seraient des objets
+  flottants dont rien ne dirait qu'ils portent sur la même liste ni qu'ils se
+  cumulent.
+- ⚠️ **La vue utilise le VRAI [Segmented](src/ui/Segmented.tsx)**, et non une
+  copie écrite à la main : une copie dérive — autre fond, autre rayon, autre
+  taille de texte —, et deux contrôles à cran voisins n'auraient ni le même
+  cadre, ni le même rayon, ni la même taille. Un composant partagé existe, on
+  le prend.
+- Les crans de la vue ne portent pas d'effectif : les deux vues montrent les
+  MÊMES recommandations, il n'y aurait rien à compter.
 - Le **compteur de résultats** est sur la rangée **Rôle** : c'est lui qui décide
-  combien il en reste. Il n'a ainsi plus besoin d'une hauteur de ligne en dur
-  (`leading-[30px]`) pour se caler sur un contrôle voisin.
+  combien il en reste. Il n'a ainsi pas besoin d'une hauteur de ligne en dur
+  pour se caler sur un contrôle voisin.
 - **« Vider » est sur la rangée Monstres**, avec les cases qu'il vide — et non
   avec le sélecteur de rôle, auquel il ne touche pas.
 
@@ -130,7 +126,7 @@ porte un `+` en tireté.
 - **Un champ unique à côté** (`MonsterPicker`, celui des slots de deck) remplit
   la **première case libre** : on enchaîne les trois noms sans viser une case
   entre chaque. Il est sur la **même rangée** que les cases qu'il alimente —
-  empilé dessous, rien ne disait qu'il les remplissait.
+  empilé dessous, rien ne dirait qu'il les remplit.
 - **Portrait, jamais le nom seul** : plusieurs monstres portent le même nom
   (formes 2A) — voir [MonsterAvatar](src/components/MonsterAvatar.tsx). Repli sur
   les initiales si le monstre est absent des données chargées.
@@ -171,8 +167,8 @@ la même réponse :
   l'autre rôle **n'est pas affiché**.
   - `Offense à runer` ne regarde que les **monstres des decks**, `Défense à
     taper` que les **défenses visées**, `Partout` les deux.
-  - Un mode qui se contentait de **trier** laissait à l'écran des résultats
-    qu'on n'avait pas demandés : demander « offense à runer » et voir remonter
+  - Un mode qui se contenterait de **trier** laisserait à l'écran des résultats
+    qu'on n'a pas demandés : demander « offense à runer » et voir remonter
     des défenses n'est pas un classement, c'est du bruit. « Partout » reste là
     pour qui veut les deux.
   - Aucun tri n'est donc appliqué ensuite : tout ce qui reste répond au rôle
@@ -193,19 +189,19 @@ la même réponse :
     décide) · *ouverte* · *fermée* — et non deux ensembles qui se corrigent
     l'un l'autre. Avec deux ensembles (« ouvertes » + « refermées pendant la
     recherche »), fermer une carte à la fois ouverte à la main **et** trouvée
-    par la recherche demandait **trois clics** : chaque clic n'en corrigeait
-    qu'un, l'autre rouvrait aussitôt. Un choix explicite écrase l'automatique,
+    par la recherche demanderait **trois clics** : chaque clic n'en corrigerait
+    qu'un, l'autre rouvrirait aussitôt. Un choix explicite écrase l'automatique,
     point.
-  - Ces choix **ne survivent pas à un changement de recherche** : ils valaient
+  - Ces choix **ne survivent pas à un changement de recherche** : ils valent
     pour ces résultats-là. Mais l'effacement **ne s'applique que si une
-    recherche est en cours** — sinon taper puis effacer refermait les cartes
+    recherche est en cours** — sinon taper puis effacer refermerait les cartes
     ouvertes à la main bien avant de chercher.
   - **Règle générale** : un filtre peut changer ce qui est montré, il ne rend
     jamais un contrôle inopérant — ni ne demande trois clics là où un suffit.
 - ⚠️ **Le filtre porte sur les DEUX niveaux** : quelles recommandations, et
   **quels decks à l'intérieur**. Les decks qui ne répondent pas ne sont **pas
-  affichés du tout**. Sans ça, une carte remontait dans les résultats en
-  montrant ses six decks, et il restait à chercher à l'œil lequel répondait.
+  affichés du tout**. Sans ça, une carte remonterait dans les résultats en
+  montrant ses six decks, et il resterait à chercher à l'œil lequel répond.
   - Les decks sont parcourus dans leur ordre **d'origine** et simplement omis :
     l'index réel indexe le résultat d'analyse, l'édition et le repli.
   - Le compteur d'en-tête passe à **« N sur M decks »** : afficher le total

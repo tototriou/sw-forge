@@ -15,31 +15,28 @@ recommandation**, via le bouton **« Analyser mes decks »** de son en-tête —
 libellé dit bien que la confrontation porte sur **l'ensemble des decks**, pas
 sur un seul.
 
-⚠️ **Bouton à DEUX ÉTATS** (refonte graphique, décision 17 — le mainteneur : « une
-fois analysé, je veux que si on clique ça cache l'analyse ») : un clic
-analyse, un second **masque** le résultat — le même geste que la croix
-« Masquer le résultat de l'analyse » de l'encart. Il est enclenché
-(`aria-pressed`, fond d'accent) tant qu'une analyse est affichée, avec
-« Masquer le résultat de l'analyse » en infobulle. Masquer reste possible sans
-compte chargé (rien à calculer). Il devenait avant « Réanalyser mes decks » :
-relancer se fait maintenant en deux clics — et relancer sans rien avoir changé
-redonnait le même résultat, puisqu'un résultat périmé est de toute façon
-effacé (voir plus bas).
+⚠️ **Bouton à DEUX ÉTATS** : un clic analyse, un second **masque** le
+résultat — le même geste que la croix « Masquer le résultat de l'analyse » de
+l'encart. Il est enclenché (`aria-pressed`, fond d'accent) tant qu'une analyse
+est affichée, avec « Masquer le résultat de l'analyse » en infobulle. Masquer
+reste possible sans compte chargé (rien à calculer). Il n'y a pas de
+« Réanalyser » : relancer se fait en deux clics, et relancer sans rien avoir
+changé redonnerait le même résultat, puisqu'un résultat périmé est de toute
+façon effacé (voir plus bas).
 
 ⚠️ **À la SOURIS seulement** (`compact:hidden`), étiqueté, à côté du titre — la
-place ne manque pas. Au doigt, il n'est plus sur la carte du tout : il vivait en
-icône dans le coin supérieur droit, groupée avec Exporter / Éditer / Supprimer,
-mais choisir SA carte demandait d'abord d'y faire défiler — un geste que le
-panneau « Options » fait maintenant sans quitter le haut de l'écran (voir plus
-bas). Une icône de plus dans un coin déjà chargé pour un geste qui a un meilleur
-endroit ne se justifiait plus.
+place ne manque pas. Au doigt, il n'est pas sur la carte : choisir SA carte
+demanderait d'abord d'y faire défiler — un geste que le panneau « Options »
+fait sans quitter le haut de l'écran (voir plus bas). Une icône de plus dans
+un coin déjà chargé, pour un geste qui a un meilleur endroit, ne se justifie
+pas.
 
 ⚠️ **Et seulement à partir de `lg`** (`max-lg:hidden` en plus de
-`compact:hidden`, lot 7b) : sous ce seuil la page prend sa disposition
-téléphone, panneau « Options » compris — même à la souris, dans une fenêtre
-étroite. Le bouton y apparaissait alors aux DEUX endroits, sur la carte et
-dans le panneau (le mainteneur : « il ne le faut qu'à un seul endroit »). Un geste,
-un endroit : la carte à partir de `lg`, le panneau en dessous.
+`compact:hidden`) : sous ce seuil la page prend sa disposition téléphone,
+panneau « Options » compris — même à la souris, dans une fenêtre étroite. Sans
+cette seconde condition, le bouton apparaîtrait aux DEUX endroits, sur la
+carte et dans le panneau. Un geste, un endroit : la carte à partir de `lg`, le
+panneau en dessous.
 
 - Le bouton est **désactivé sans compte importé** (rien à quoi comparer).
 - Le résultat est **mémorisé dans le board** avec la reco et les builds qui ont
@@ -103,7 +100,7 @@ dépasser pour atteindre ce sur quoi on peut agir.
 #### ⚠️ Chaque ligne mène à SON deck
 
 La ligne entière est un **bouton** : le résumé dit ce qui cloche, et le geste
-suivant est toujours d'aller voir le deck. Sans ce lien, il fallait déplier la
+suivant est toujours d'aller voir le deck. Sans ce lien, il faudrait déplier la
 carte, retrouver le deck à l'œil parmi six, puis l'ouvrir — alors que la ligne le
 désigne déjà.
 
@@ -124,9 +121,9 @@ deck n'est même pas rendu), **déplie le deck visé**, puis y **fait défiler**
 
 #### ⚠️ Les decks au niveau sont LISTÉS, pas seulement comptés
 
-Seuls les decks fautifs apparaissaient ; les bons se résumaient à un « 4/6 au
-niveau ». Or « **lesquels** puis-je poser » est exactement la question qu'on se
-pose devant une défense de guilde à remplir — il fallait rouvrir la carte et
+Les bons decks sont listés aussi, pas résumés en « 4/6 au niveau » :
+« **lesquels** puis-je poser » est exactement la question qu'on se pose devant
+une défense de guilde à remplir, et il faudrait sinon rouvrir la carte et
 parcourir les decks pour y répondre.
 
 - Un deck bon annonce **l'équipe qui le rend jouable** (« jouable · Offense 3 »),
@@ -146,16 +143,15 @@ chacune :
 | **À revoir** | rouge | `ko` | plein |
 | **Monstre manquant** | rouge | `missing` | **creux** |
 
-- ⚠️ **Le rouge est SCINDÉ en deux** — il ne l'était pas au départ. « À revoir »
-  et « monstre manquant » partagent la couleur mais **pas le geste** : l'un se
-  répare en rerunant ce qu'on possède déjà, l'autre demande d'invoquer et de
-  monter un monstre qu'on n'a pas. Ce n'est ni le même horizon, ni la même
-  décision. Fondus, il fallait parcourir toute la liste rouge pour trier à l'œil
-  ce sur quoi on pouvait agir le soir même.
+- ⚠️ **Le rouge est SCINDÉ en deux.** « À revoir » et « monstre manquant »
+  partagent la couleur mais **pas le geste** : l'un se répare en rerunant ce
+  qu'on possède déjà, l'autre demande d'invoquer et de monter un monstre qu'on
+  n'a pas. Ce n'est ni le même horizon, ni la même décision. Fondus, il
+  faudrait parcourir toute la liste rouge pour trier à l'œil ce sur quoi on
+  peut agir le soir même.
 - ⚠️ **Deux filtres, un seul rouge.** Les deux gardent la même couleur, `bad` :
   ils sont bloquants tous les deux, et c'est ce que la couleur dit. On
-  n'introduit pas une cinquième couleur qui mentirait sur la gravité. (C'était
-  `fire`, le rouge de l'élément Feu, jusqu'au rebranding, décision 43.)
+  n'introduit pas une cinquième couleur qui mentirait sur la gravité.
 - ⚠️ **Le point de « Monstre manquant » est CREUX.** Deux pastilles de la même
   couleur côte à côte ne se distinguent plus que par leur texte, qu'on ne relit
   pas une fois la barre connue. Le creux dit « il manque quelque chose ». Il est
@@ -222,20 +218,19 @@ façon qu'en un exemplaire change ce qu'on décide d'aller corriger.
 quand tout est vert : l'information a été lue, le halo n'a plus rien à dire. Il
 suffit de relancer « Analyser mes decks » pour la revoir.
 
-⚠️ **Pas de pastille en-tête redondante.** L'en-tête portait une seconde
-pastille (« 1/4 decks au niveau »), avec sa propre croix — reprenant, un cran
-plus haut, exactement ce que dit déjà l'encart de synthèse juste en dessous,
-lui-même visible carte repliée (voir plus haut). Deux endroits pour la même
-phrase, sur une carte déjà chargée, sans qu'aucun n'apprenne quoi que ce soit
-que l'autre ne dise pas.
+⚠️ **Pas de pastille en-tête redondante.** Une seconde pastille dans l'en-tête
+(« 1/4 decks au niveau ») reprendrait, un cran plus haut, exactement ce que
+dit déjà l'encart de synthèse juste en dessous, lui-même visible carte repliée
+(voir plus haut) : deux endroits pour la même phrase, sur une carte déjà
+chargée, sans qu'aucun n'apprenne quoi que ce soit que l'autre ne dise pas.
 
 ### ⚠️ Source : TOUS les builds, pas seulement la box
 
 Dans SW, un monstre a **un preset de runes par contexte**. La box ne contient que
-l'**équipement actuellement porté** : s'y limiter faisait échouer la confrontation
-d'un deck… que le joueur possède exactement tel quel en siège (symptômes observés :
-« monstre non trouvé » et « à améliorer » juste après avoir importé son propre deck
-d'offense).
+l'**équipement actuellement porté** : s'y limiter ferait échouer la
+confrontation d'un deck… que le joueur possède exactement tel quel en siège
+(« monstre non trouvé » et « à améliorer » juste après avoir importé son
+propre deck d'offense).
 
 `collectOwnedBuilds` ([ownedBuilds.ts](src/lib/ownedBuilds.ts)) rassemble donc
 **tous les builds connus**, assemblés dans [App.tsx](src/App.tsx) :
@@ -308,9 +303,9 @@ défauts qui ne se réparent pas du tout pareil :
 | `artifacts` | pas les **propriétés d'artéfact** demandées → à changer d'artéfact | « mauvaise statistique » | artéfacts |
 | `stats` | le reste est bon, les **minimums** ne sont pas atteints → à améliorer | « stats insuffisantes » | stats |
 
-Tout afficher sous « stats insuffisantes » envoyait le joueur optimiser des
-sous-stats alors que le set lui-même n'était pas le bon — et, symétriquement, un
-monstre bien runé mais trop lent se lisait comme un problème de runage.
+Tout afficher sous « stats insuffisantes » enverrait le joueur optimiser des
+sous-stats alors que le set lui-même n'est pas le bon — et, symétriquement, un
+monstre bien runé mais trop lent se lirait comme un problème de runage.
 
 ⚠️ **Une LISTE de causes, pas une cause unique.** Les trois peuvent coexister ;
 n'en annoncer qu'une masquerait le reste du travail. Le slot les joint par
@@ -334,12 +329,12 @@ monstre est indisponible : les deux sont bloquants.
   vides**, aura de la carte SEULE (voir `AURA` dans RecoCard.tsx) — le résumé en
   mots ne vit plus qu'à l'encart de synthèse, voir plus haut :
 
-⚠️ **L'aura se règle sur le MODE CLAIR, pas sur le sombre.** Les opacités
-tenaient à 5–10 % (et jusqu'à 4 % pour `DECK_AURA`) : lisibles sur fond profond,
-invisibles sur blanc — la carte y paraissait neutre alors qu'elle signalait un
-deck bloqué. Elles sont montées à **20–45 % selon la teinte et la surface**
-(l'ambre, plus pâle, en demande plus que le vert et le rouge). Une valeur qui
-« se voit » en sombre ne prouve rien : c'est le clair qui fixe le plancher.
+⚠️ **L'aura se règle sur le MODE CLAIR, pas sur le sombre.** À 5–10 %
+d'opacité, elle est lisible sur fond profond et invisible sur blanc — la carte
+y paraîtrait neutre alors qu'elle signale un deck bloqué. Les opacités sont de
+**20–45 % selon la teinte et la surface** (l'ambre, plus pâle, en demande plus
+que le vert et le rouge). Une valeur qui « se voit » en sombre ne prouve
+rien : c'est le clair qui fixe le plancher.
 
 | Statut | Couleur | Condition |
 |--------|---------|-----------|

@@ -29,12 +29,12 @@ la navigation, les refus et le rapport en modale hors du flux.
 ### Vue compacte (repliée)
 Une ligne par équipe, très basse : les **3 monstres** côte à côte.
 
-⚠️ **Côte à côte À TOUTE largeur**, y compris sur téléphone. Ils s'y empilaient
-en colonne : trois cartes de 52 px plus les écarts, soit 170 px par équipe avant
-même l'en-tête — on voyait une équipe et demie là où le siège en compte huit à
-comparer. **Une équipe EST une rangée de trois** ; l'empiler défait ce qu'on
-vient lire. Sous `sm`, le portrait descend à 30 px et le nom à 11 px pour que
-les trois tiennent sur 348 px. Chaque monstre
+⚠️ **Côte à côte À TOUTE largeur**, y compris sur téléphone. Empilés en
+colonne, ils feraient trois cartes de 52 px plus les écarts, soit 170 px par
+équipe avant même l'en-tête — on verrait une équipe et demie là où le siège en
+compte huit à comparer. **Une équipe EST une rangée de trois** ; l'empiler
+défait ce qu'on vient lire. Sous `sm`, le portrait descend à 30 px et le nom à
+11 px pour que les trois tiennent sur 348 px. Chaque monstre
 = portrait hexagonal + **icône d'élément** + (couronne si leader), puis un bloc
 texte **sur deux lignes** :
 
@@ -47,11 +47,11 @@ texte **sur deux lignes** :
 - **Ligne 2** : **vitesse de combat** à gauche, **icônes de sets** poussées à
   droite (`ml-auto`, 17 px, 3 max).
 
-⚠️ **Ne pas remettre nom + vitesse + sets sur une seule ligne.** C'est ce qui
-existait, et à 2 colonnes avec 3 sets ça débordait : la carte fait ~157 px
-utiles, la disposition en demandait ~175 → le gros chiffre de vitesse (non
-réductible) passait **sous les icônes de set**. En deux lignes, la ligne la plus
-chargée demande ~106 px pour ~113 disponibles.
+⚠️ **Nom + vitesse + sets ne tiennent pas sur une seule ligne.** À 2 colonnes
+avec 3 sets, la carte fait ~157 px utiles et cette disposition en demande
+~175 : le gros chiffre de vitesse (non réductible) passerait **sous les icônes
+de set**. En deux lignes, la ligne la plus chargée demande ~106 px pour ~113
+disponibles.
 
 Cliquer un monstre (ou le chevron) **déplie** le détail. Les slots en danger
 (voir [feat-speed-tick.md](feat-speed-tick.md)) ont un anneau rouge et la vitesse en rouge.
@@ -71,8 +71,7 @@ Idéale avec beaucoup d'équipes (import offense ~50).
 - Marqué « Leader » (slot 0) ou « Slot », avec un **`MonsterPicker`** :
   recherche par nom (max 25), exclut les monstres déjà utilisés dans l'équipe
   (`usedIds`), affiche **portrait** + nom + SPD. Sélection → remplit le slot.
-- ⚠️ **Puis le curseur passe au slot vide suivant** (refonte graphique,
-  décision 18, étendue ici le 2026-09-27 — le mainteneur : « ah oui fais ça ») :
+- ⚠️ **Puis le curseur passe au slot vide suivant** :
   son champ prend le focus, en bouclant sur ceux d'avant si on a commencé
   par le milieu ; équipe complète, le focus ne bouge pas. On compose les
   trois d'affilée au clavier. Même règle que les decks et les défenses
@@ -90,53 +89,44 @@ Idéale avec beaucoup d'équipes (import offense ~50).
 - **Sélecteur de position** (« 1 · Leader / 2 / 3 ») = repli tactile : intervertit
   avec le slot cible.
 
-### ⚠️ Le slot en édition, à la souris — resserré (refonte graphique, lot 7a)
+### ⚠️ Le slot en édition, à la souris — resserré
 
-Demandé par le mainteneur : « revois surtout la partie d'édition ». Deux lignes de
-moins par slot, **rien de retiré** :
+À la souris, le slot en édition se lit ainsi :
 
 - la **position** se règle par **deux flèches ← →**, **en haut du slot**,
-  sur la ligne du monstre, à côté de sa croix (plus de rangée séparée par un
-  filet) — demandé par le mainteneur : échanger avec le voisin est un geste direct,
-  le sélecteur demandait d'ouvrir une liste pour choisir un numéro. Posées
-  d'abord à côté du champ SPD, elles s'y mêlaient à la saisie (« compact mais
-  confus ») : sur la ligne du monstre, elles disent qu'elles déplacent CE
-  monstre. Aux bords, la flèche reste affichée, **désactivée**, avec
-  sa raison (« Déjà en première position » / « Déjà en dernière position ») ;
-  vers le slot 1, l'infobulle dit que le monstre **devient le leader** ;
+  sur la ligne du monstre, à côté de sa croix : échanger avec le voisin est un
+  geste direct, là où un sélecteur demande d'ouvrir une liste pour choisir un
+  numéro. Sur la ligne du monstre, elles disent qu'elles déplacent CE
+  monstre ; à côté du champ SPD, elles se mêleraient à la saisie. Aux bords,
+  la flèche reste affichée, **désactivée**, avec sa raison (« Déjà en première
+  position » / « Déjà en dernière position ») ; vers le slot 1, l'infobulle
+  dit que le monstre **devient le leader** ;
 - ⚠️ **L'ordre des lignes : le monstre, ce qu'on SAISIT, la CONCLUSION.**
   Ligne 2 : le champ SPD puis les ticks visés, côte à côte. Ligne 3, en bas,
-  sans filet (essayé, retiré par le mainteneur — « pas besoin de séparateur dans la
-  card ») : la vitesse de combat, sa base et l'écart au tick —
-  demandé par le mainteneur : « la spd et la conclusion en bas, car c'est la
-  conclusion ». Le slot est une grille à deux colonnes (`auto 1fr`) dont les
+  sans filet : la vitesse de combat, sa base et l'écart au tick — c'est la
+  conclusion. Le slot est une grille à deux colonnes (`auto 1fr`) dont les
   lignes sont celles de la grille des slots ; les éléments y sont PLACÉS,
   sans duplication ni changement de l'ordre du DOM — le téléphone garde le
   sien ;
 - l'**écart au tick** (« manque 12 pour 239 », « +3 au-dessus de 286 »,
   « pile au tick ») se pose **juste après la vitesse de combat** qu'il
-  qualifie. Posé d'abord au bout de la rangée des ticks, il y passait seul à
-  la ligne, calé à droite — relevé par le mainteneur sur capture (« ce n'est pas
-  aligné ») ;
+  qualifie : au bout de la rangée des ticks, il passerait seul à la ligne,
+  calé à droite ;
 - **tout est centré sur sa ligne** : les flèches et la croix sur la ligne du
-  monstre (les flèches étaient collées en haut), la vitesse et le champ SPD
-  l'un sur l'autre (ils étaient calés par le bas, le gros chiffre dépassant
-  au-dessus de « SPD : ») ;
-- la vitesse de combat passe de 26 à 22 px ; plus de hauteur minimale de
-  150 px — la grille aligne déjà les trois slots sur le plus haut ;
-- ⚠️ **les lignes des trois slots sont alignées** (« ce serait bien que les
-  éléments soient alignés dans la card ») : la grille définit trois lignes —
-  le monstre, la vitesse et le SPD, les ticks — que chaque slot reprend
-  (`grid-rows-subgrid`). Chacune prend la hauteur de la plus haute des trois :
-  la pastille de lead sous le nom du leader ne décale plus sa vitesse ni ses
-  ticks. Un slot vide pose son étiquette sur la ligne du monstre et son champ
-  de recherche sur celle de la vitesse.
+  monstre, la vitesse et le champ SPD l'un sur l'autre ;
+- la vitesse de combat fait 22 px ; pas de hauteur minimale — la grille
+  aligne déjà les trois slots sur le plus haut ;
+- ⚠️ **les lignes des trois slots sont alignées** : la grille définit trois
+  lignes — le monstre, la vitesse et le SPD, les ticks — que chaque slot
+  reprend (`grid-rows-subgrid`). Chacune prend la hauteur de la plus haute des
+  trois : la pastille de lead sous le nom du leader ne décale ni sa vitesse ni
+  ses ticks. Un slot vide pose son étiquette sur la ligne du monstre et son
+  champ de recherche sur celle de la vitesse.
 
-Au doigt, la disposition ne change pas (écart et position sur leurs propres
-lignes) : chacun est rendu UNE fois et posé à deux endroits selon la largeur
-(`hidden lg:…` / `lg:hidden`). Gardé par `testRenduSiegeEdition`
-([tests/rendu/siege.test.tsx](tests/rendu/siege.test.tsx)) : écrit pendant le
-lot, il passe à l'identique sur l'édition d'avant et sur celle d'après.
+Au doigt, l'écart et la position ont leurs propres lignes : chacun est rendu
+UNE fois et posé à deux endroits selon la largeur (`hidden lg:…` /
+`lg:hidden`). Gardé par `testRenduSiegeEdition`
+([tests/rendu/siege.test.tsx](tests/rendu/siege.test.tsx)).
 
 ## Leader & pastille de lead
 
@@ -215,21 +205,20 @@ règle que la croix d'une carte de prépa RTA (voir
 **tick visé**. Ni annulation ni corbeille, alors que ces deux valeurs sont
 justement ce qu'on vient régler sur cet écran.
 
-⚠️ La suppression d'une **équipe entière** en demandait déjà une ; celle d'un
-monstre n'en avait aucune. L'écart n'avait pas de justification : c'est la même
-perte, à une échelle plus petite.
+⚠️ Retirer un monstre demande une confirmation, comme supprimer une **équipe
+entière** : c'est la même perte, à une échelle plus petite.
 
 ## Le slot en édition, sur téléphone
 
 ⚠️ La **poignée de glissement est masquée au doigt** (`coarse:hidden`) : le
 glisser-déposer HTML5 n'y fonctionne pas, et le sélecteur « Position » en bas du
-slot fait déjà le travail. Elle prenait 15 px sur une ligne qui porte aussi le
+slot fait déjà le travail. Elle prendrait 15 px sur une ligne qui porte aussi le
 portrait, le nom, les sets et la croix. Même traitement que la poignée d'une
 carte RTA.
 
 ⚠️ Le **sélecteur de position** est exempté de la règle tactile
 (`data-cible-fine`) et ramené à **20 px** : porté à 40 dans un slot qui en fait
-110, il pesait autant que la vitesse qu'on vient régler. Il occupe toute la
+110, il pèserait autant que la vitesse qu'on vient régler. Il occupe toute la
 largeur restante de sa ligne — rien d'autre à toucher autour, donc rien à rater.
 
 ⚠️ Y parvenir demande `appearance-none` **et** une hauteur explicite : un
@@ -268,10 +257,6 @@ le gros chiffre en gras se lit comme une vitesse sans elle, c'est la seule de la
 carte.
 
 ⚠️ Le carré du slot **vide** suit exactement la taille du portrait rempli. À
-34 px fixes, une carte vide était plus haute qu'une carte pleine et la rangée de
-trois partait en dents de scie.
+34 px fixes, une carte vide serait plus haute qu'une carte pleine et la rangée de
+trois partirait en dents de scie.
 
-⚠️ Le sous-onglet **« Recommandations » devient « Recos »** sous `sm`. À sa
-longueur complète, les trois onglets ne tenaient pas sur une ligne et la rangée
-passait à la ligne — une navigation à trois entrées ne doit pas occuper deux
-lignes. C'est en outre le mot qu'on emploie.

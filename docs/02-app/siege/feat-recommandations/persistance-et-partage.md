@@ -20,9 +20,8 @@ que personne ne peut relire ni corriger.
 
 ### Fichier JSON (`format: "swblacksmith/recommandations"`, `version: 5`)
 
-⚠️ L'identifiant s'écrivait `sw-forge/recommandations` avant le rebranding
-(décision 66) : il reste reconnu à l'import, sans avertissement
-([formatsExport.ts](src/lib/formatsExport.ts)).
+⚠️ Un fichier à l'identifiant `sw-forge/recommandations` est reconnu à
+l'import, sans avertissement ([formatsExport.ts](src/lib/formatsExport.ts)).
 
 ```json
 { "format": "swblacksmith/recommandations", "version": 5, "exporte_le": "…",
@@ -72,13 +71,12 @@ riche existe.
 
 **Import** : **fichier `.json` uniquement**. ⚠️ **Pas de zone de collage** : une
 recommandation se transmet comme une pièce jointe, et un champ de texte libre
-n'apportait qu'une seconde voie à valider, à expliquer et à maintenir. Un contenu
+n'apporterait qu'une seconde voie à valider, à expliquer et à maintenir. Un contenu
 qui ne commence pas par `{` est refusé avec un message explicite, plutôt qu'une
 erreur de parseur incompréhensible.
 
-La **migration `localStorage`** reste en place : un enregistrement à l'ancienne
-forme (`reco.slots`, du temps où une reco = un deck) est relu comme une
-recommandation à un deck.
+La **migration `localStorage`** : un enregistrement à la forme `reco.slots`
+(une reco = un deck) est relu comme une recommandation à un deck.
 
 ## Validation à l'import
 
@@ -138,11 +136,11 @@ y a quelque chose à lire — et se ferme par une croix.
     export de compte : un import ne doit pas pouvoir les effacer.
   - Pour repartir de zéro, **« Tout effacer »** existe — geste explicite, séparé,
     avec confirmation.
-  - **Historique à ne pas répéter** : une confirmation posait
-    `OK = remplacer · Annuler = ajouter`. Sur un import, le réflexe est de
-    cliquer OK — des recommandations ont été **définitivement perdues**. Un
-    une confirmation sert à confirmer une intention déjà exprimée, **jamais** à choisir
-    entre deux options dont l'une détruit.
+  - ⚠️ **Jamais une confirmation `OK = remplacer · Annuler = ajouter`** : sur
+    un import, le réflexe est de cliquer OK, et des recommandations seraient
+    **définitivement perdues**. Une confirmation sert à confirmer une
+    intention déjà exprimée, **jamais** à choisir entre deux options dont
+    l'une détruit.
 - Message de succès **éphémère** (~5 s) ; le **rapport de validation** reste
   affiché jusqu'à fermeture.
 

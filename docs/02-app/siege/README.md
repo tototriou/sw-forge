@@ -14,7 +14,7 @@ Fichiers :
   réinitialiser au changement d'onglet.
 - État : [useSiegeState.ts](src/hooks/useSiegeState.ts) — **une liste d'équipes
   par côté**, `localStorage` `swblacksmith-siege-defense-v1` / `swblacksmith-siege-offense-v1`
-  (migration : l'ancienne clé unique `swblacksmith-siege-v1` → défense).
+  (une clé unique `swblacksmith-siege-v1`, si elle existe, est reprise comme défense).
 
 Les deux côtés **jouables** (défense/offense) partagent **exactement la même
 mécanique** (composition, lead auto, ticks) — voir [feat-equipes.md](feat-equipes.md) et
@@ -33,8 +33,7 @@ persistance : voir [feat-recommandations/](feat-recommandations/README.md).
 
 ## Vue d'ensemble
 
-1. **En-tête BUREAU** (refonte graphique, lot 7a — même règle que la RTA,
-   décision 13 précisée) : titre « Défense » / « Offense », compteur
+1. **En-tête BUREAU** : titre « Défense » / « Offense », compteur
    d'équipes, puis les actions via `BarreActions` : **toutes en boutons quand
    elles tiennent sur la ligne** (place mesurée), sinon **Vérifier mes speed**
    et **Ajouter une équipe** visibles, et **Créer un monstre**, **Tout
@@ -42,36 +41,29 @@ persistance : voir [feat-recommandations/](feat-recommandations/README.md).
    - « Vérifier mes speed » vient en premier : c'est pour vérifier ses équipes
      qu'on vient ici, on n'en ajoute qu'une de temps en temps. Bouton à deux
      états : fond d'accent doux quand il est allumé (`aria-pressed`).
-   - ⚠️ **Aucune action mise en avant** (pas d'aplat d'accent dans l'en-tête) :
-     essayé sur « Vérifier mes speed », retiré par le mainteneur le 2026-09-26 — « ça
-     rend pas bien ». Voir la décision 4 précisée.
+   - ⚠️ **Aucune action mise en avant** : pas d'aplat d'accent dans l'en-tête.
    - « Créer un monstre » est **en dernier des actions** : c'est le geste le plus
      rare.
    - Tous les boutons d'en-tête font **36 px** (`HAUTEUR_EN_TETE`).
 2. **Sous-onglets** : Défense / Offense — dans la barre latérale (bureau) et
-   le panneau de navigation (téléphone), plus dans la page.
+   le panneau de navigation (téléphone), pas dans la page.
 3. **Téléphone** : le compteur et l'**interrupteur « Vérifier mes speed »**
    dans la page ; les autres actions dans le panneau « Options » (Ajouter une
    équipe, Exporter, Importer, Créer un monstre, puis Tout effacer séparé).
-   ⚠️ L'interrupteur a quitté le panneau au lot 11b de la refonte (décision
-   25, la maquette) : c'est un AFFICHAGE qu'on allume et éteint en parcourant
-   ses équipes, pas une action rare — il fallait ouvrir le panneau pour le
-   basculer. Même état que le bouton du bureau, désactivé sans équipe,
-   infobulle selon l'état. Les équipes gardent leurs trois monstres côte à
-   côte (décision 25 : pas les rangées de la maquette).
+   ⚠️ L'interrupteur est dans la page, pas dans le panneau : c'est un AFFICHAGE
+   qu'on allume et éteint en parcourant ses équipes, pas une action rare. Même
+   état que le bouton du bureau, désactivé sans équipe, infobulle selon l'état.
+   Les équipes gardent leurs trois monstres côte à côte.
 4. **Recherche d'équipe** (champ sous l'en-tête) — voir ci-dessous.
 5. **Liste d'équipes** (ou état vide incitant à ajouter/importer).
 
 ### Recherche d'équipe par monstre
 
-Ajout décidé par le mainteneur le 2026-09-26 (refonte graphique, décision 14).
-
 - Un champ **« Nom du monstre… »** sous l'en-tête, aux deux formats, avec
   **une liste de suggestions sous le champ**, comme les autres recherches de
   monstre de l'app (RTA, Recommandations — `MonsterPicker`) : on tape, on
   **choisit** un monstre, et seules les équipes qui le contiennent restent
-  affichées. Demandé par le mainteneur : la première version filtrait à chaque
-  frappe, sans liste — pas comme ailleurs.
+  affichées.
 - ⚠️ **Les suggestions ne proposent que les monstres PRÉSENTS dans les équipes
   de ce côté** : un autre monstre ne trouverait aucune équipe.
 - Le monstre choisi devient un **jeton** (portrait + nom) ; sa croix retire le
@@ -87,16 +79,15 @@ Ajout décidé par le mainteneur le 2026-09-26 (refonte graphique, décision 14)
 
 ### Exporter et importer des équipes
 
-Ajout décidé par le mainteneur le 2026-09-26 (décision 14). Logique :
-[siegeShare.ts](src/lib/siegeShare.ts), testée par
+Logique : [siegeShare.ts](src/lib/siegeShare.ts), testée par
 [tests/siege-partage.test.ts](tests/siege-partage.test.ts). 100 % local.
 
 - **« Exporter »** télécharge les équipes **affichées** — toutes, ou celles
   du filtre actif : l'infobulle le dit — dans un fichier
   `swblacksmith-siege-<defense|offense>-AAAA-MM-JJ.json`, daté du jour
   **local** (`jourLocal`, pas le jour UTC).
-- Format `swblacksmith/siege-equipes` (`sw-forge/siege-equipes` avant le
-  rebranding, toujours relu — décision 66), version 1, clés en français :
+- Format `swblacksmith/siege-equipes` (un fichier `sw-forge/siege-equipes`
+  est relu aussi), version 1, clés en français :
   `{ format, version, cote, equipes: [{ monstres: [{ com2usId, nom,
   vitesseRunes, tick, sets }] × 3 }] }`. Le **slot 0 est le leader**, comme
   dans l'app.
@@ -122,22 +113,20 @@ Ajout décidé par le mainteneur le 2026-09-26 (décision 14). Logique :
 ### Disposition de la liste — autant d'équipes par ligne que la place en permet
 
 - ⚠️ **Des colonnes d'au moins 480 px, en nombre suivant la largeur RÉELLE**
-  (`repeat(auto-fill, minmax(min(100%, 480px), 1fr))`) — refonte graphique,
-  lot 7a, « revois un peu les cards pour optimiser l'espace ». 480 px, c'est
+  (`repeat(auto-fill, minmax(min(100%, 480px), 1fr))`). 480 px, c'est
   la largeur où les trois monstres d'une équipe tiennent côte à côte, nom et
   vitesse lisibles. Barre latérale comprise, cela donne 1 colonne sur un écran
-  de 1024 px, 2 sur 1280, 3 sur 1920. Le nombre était fixé à 2 à partir de
-  `xl`, même sur un grand écran qui en tenait trois.
-- **La carte est resserrée à la souris** : rembourrage 12 px (au lieu de 16),
-  en-tête à 8 px de la rangée, titre en `text-base`, pied calé dessus. Au
-  doigt (`compact:`), rien ne change.
+  de 1024 px, 2 sur 1280, 3 sur 1920.
+- **La carte est resserrée à la souris** : rembourrage 12 px (16 au doigt,
+  `compact:`), en-tête à 8 px de la rangée, titre en `text-base`, pied calé
+  dessus.
 - **Une équipe en cours d'édition reprend toute la ligne** (`col-span-full`) :
   les 3 slots détaillés (picker, SPD, ticks, position) seraient trop à
   l'étroit dans une colonne.
 - Pour ça, l'état « équipe dépliée » est **remonté dans
   [SiegeBoard.tsx](src/components/siege/SiegeBoard.tsx)** (`expandedIds`, un
   `Set`) et passé en prop ; **plusieurs équipes peuvent rester dépliées** en même
-  temps, comme avant.
+  temps.
 - `items-start` : une équipe dépliée n'étire pas la carte compacte d'à côté.
 
 ### Ajouter une équipe → scroll automatique
@@ -151,9 +140,8 @@ rendue porte une `ref`, et un flag `scrollToLast` déclenche le scroll au rendu
 suivant.
 
 **Au bureau, une carte en pointillés « Ajouter une équipe » termine la
-grille** (rebranding, décision 41 — la toile), en plus du bouton de
-l'en-tête. Le téléphone n'en a pas : il ajoute depuis « Options »
-(décision 45).
+grille**, en plus du bouton de l'en-tête. Le téléphone n'en a pas : il ajoute
+depuis « Options ».
 - ⚠️ **Elle est la place de la nouvelle équipe** : l'équipe naît exactement là
   où l'on a cliqué, la carte passe à la case suivante. Donc **aucun
   défilement** — contrairement au bouton d'en-tête, dont l'équipe naît hors de
@@ -186,7 +174,7 @@ Interrupteur de la barre d'actions (icône jauge) qui **colore le statut** des
 
 ⚠️ **« mes speed », pas « mes tick ATB ».** Le bouton couvre les DEUX questions :
 une équipe **Swift** se juge sur son **speed tune**, les autres sur leur
-**tick**. L'ancien libellé n'en nommait qu'une — et pas celle qui compte pour
+**tick**. « Mes tick ATB » n'en nommerait qu'une — et pas celle qui compte pour
 les équipes speed. L'infobulle dit les deux.
 
 - **Désactivé par défaut** : les équipes sont affichées **telles quelles**, en

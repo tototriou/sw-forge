@@ -35,12 +35,10 @@ combat = base + runes + ceil( base × (15 + lead) / 100 )
 - Boutons dans **chaque slot** : **Rapide 286**, **Lent 239** (`SIEGE_TICKS`).
   Un tick **par monstre** (`slot.tick`, 0 = aucun), pas par équipe → on peut
   viser 2 monstres en tick rapide et 1 en tick lent dans la même équipe.
-- ⚠️ **Recliquer sur le tick visé l'ENLÈVE** (retour à 0) — demandé par le mainteneur
-  le 2026-09-26 (refonte graphique, lot 7a), avec le retrait du bouton
-  **« Off »** à la souris : un bouton à deux états s'éteint là où on l'a
-  allumé. L'infobulle le dit (« Ne plus viser le tick 239 » / « Viser le tick
-  286 »). Au doigt, « Off » reste pour l'instant (lot 11), et le reclic y
-  marche aussi.
+- ⚠️ **Recliquer sur le tick visé l'ENLÈVE** (retour à 0) : un bouton à deux
+  états s'éteint là où on l'a allumé. L'infobulle le dit (« Ne plus viser le
+  tick 239 » / « Viser le tick 286 »). À la souris, il n'y a pas de bouton
+  **« Off »** ; au doigt, « Off » existe et le reclic marche aussi.
 - **Par défaut à l'import** : chaque monstre reçoit le **tick le plus proche** de sa
   vitesse de combat (`nearestTick` dans [applyAccount.ts](src/lib/applyAccount.ts)),
   **sauf** si l'équipe contient **au moins un Swift** (équipe speed → pas de tick)
@@ -53,30 +51,30 @@ combat = base + runes + ceil( base × (15 + lead) / 100 )
   écrivent la VIT de fiche qui tombe sur le tick, et ne stockent aucun tick
   ([feat-recommandations/consignes.md](feat-recommandations/consignes.md), « Raccourci « Tick rapide / Tick
   lent » sur la VIT »).
-- Migration : l'ancien tick d'équipe est repris comme tick par défaut de chaque
-  slot au chargement.
+- Migration : un tick enregistré au niveau de l'équipe est repris comme tick
+  par défaut de chaque slot au chargement.
 
 ⚠️ **La vitesse de combat affichée est celle de l'outil** (`combatAuto`) : elle
 ajoute au calcul de base (runes + lead + Swift) le **gain du passif** du monstre —
-Shumar +15 en permanence, Chilling +20 par buff porté. Le siège les ignorait, et
-montrait donc un nombre que l'outil corrigeait aussitôt : deux vitesses pour un
-même monstre selon l'écran. La carte compacte et la carte dépliée lisent
-maintenant la même valeur, calculée une seule fois.
+Shumar +15 en permanence, Chilling +20 par buff porté. Sans ce gain, le siège
+montrerait un nombre que l'outil corrige aussitôt : deux vitesses pour un même
+monstre selon l'écran. La carte compacte et la carte dépliée lisent la même
+valeur, calculée une seule fois.
 
 ## Statut d'une équipe (au tick / à corriger)
 
 ⚠️ **Le statut se dit par le CONTOUR et la PASTILLE.** Teinter toute la surface
-faisait de la couleur le sujet : huit équipes empilées donnaient huit aplats
+ferait de la couleur le sujet : huit équipes empilées donneraient huit aplats
 colorés, et le contenu — les monstres, les vitesses, ce qu'on vient vraiment
-lire — passait derrière. Le contour porte l'état ; la pastille le nomme pour qui
-ne distingue pas les teintes (**une couleur seule ne se lit pas en niveaux de
-gris**, règle de la charte).
+lire — passerait derrière. Le contour porte l'état ; la pastille le nomme pour
+qui ne distingue pas les teintes (**une couleur seule ne se lit pas en niveaux
+de gris**, règle de la charte).
 
-⚠️ **La pastille est ÉCRITE** (refonte graphique, décision 8 du mainteneur) : à
+⚠️ **La pastille est ÉCRITE** : à
 côté du titre « Équipe N », un libellé court sur le fond doux du ton, un point
 de la couleur du statut, le texte à l'encre (un texte `good`/`warn` sur son
-propre fond doux manque de contraste en clair). Libellés choisis par le mainteneur le
-2026-09-26, tirés des phrases du pied ([pastilleStatut.ts](src/components/siege/pastilleStatut.ts),
+propre fond doux manque de contraste en clair). Les libellés sont tirés des
+phrases du pied ([pastilleStatut.ts](src/components/siege/pastilleStatut.ts),
 testé par `tests/siege-pastille.test.ts`) :
 
 | Cas | Pastille |
@@ -89,17 +87,17 @@ testé par `tests/siege-pastille.test.ts`) :
 | vert validé à la main | **Tick validé** / **Speed tune validé** |
 | neutre (mode éteint, équipe vide…) | pas de pastille |
 
-⚠️ **Plus de fond coloré en thème clair.** Il existait parce qu'en clair un
-contour d'un pixel sur du blanc ne se distinguait pas d'une carte neutre ; les
-tokens `--siege-card-*` le portaient. La pastille écrite, lisible dans les deux
-thèmes, le remplace — les tokens ont été retirés d'`index.css`. La phrase
-détaillée (quel monstre, combien de VIT) reste dans le pied.
+⚠️ **Pas de fond coloré, dans aucun thème.** En clair, un contour d'un pixel
+sur du blanc se distingue mal d'une carte neutre : c'est la pastille écrite,
+lisible dans les deux thèmes, qui porte l'état. La phrase détaillée (quel
+monstre, combien de VIT) est dans le pied.
 
 ⚠️ **Le pied non plus ne prend pas la teinte.** Un bandeau ambré pleine largeur
-sous chaque équipe repeignait la page à la place du contenu, et faisait passer
-une simple correction de vitesse pour une avarie. Le **pictogramme d'alerte**
-reste, lui : c'est le porteur non coloré de l'information, celui qui distingue un
-avertissement d'une note — la charte interdit qu'une couleur seule ait à le dire.
+sous chaque équipe repeindrait la page à la place du contenu, et ferait passer
+une simple correction de vitesse pour une avarie. Le **pictogramme d'alerte**,
+lui, y est : c'est le porteur non coloré de l'information, celui qui distingue
+un avertissement d'une note — la charte interdit qu'une couleur seule ait à le
+dire.
 
 > ⚠️ **Conditionnée au mode « Vérifier mes speed »** (bouton de la barre
 > d'actions, éteint par défaut — voir [README.md](README.md)). Tant qu'il est
@@ -133,15 +131,14 @@ par équipe :
 | — | neutre | Équipe **vide** ou avec **Leo** | — |
 | Rouge | `bad` | **Équipement incomplet** (< 6 runes ou < 2 artéfacts sur un monstre importé) — prime sur tous les autres cas | une phrase par monstre, voir ci-dessous |
 
-⚠️ **Rouge d'ÉTAT (`bad`), pas celui de l'élément Feu** (rebranding, décision
-43). Le rouge d'une faute était `fire` : il se confondait avec un monstre Feu,
-et la pastille de la même carte était déjà en `bad`. Les couleurs de ce tableau
-sont celles des jetons (`amber` / `emerald` étaient des noms d'avant les jetons).
+⚠️ **Rouge d'ÉTAT (`bad`), pas celui de l'élément Feu** : `fire` se confondrait
+avec un monstre Feu, et la pastille de la même carte est en `bad`. Les couleurs
+de ce tableau sont celles des jetons.
 
-⚠️ **Le message orange n'a pas d'introduction.** Il disait « Équipe speed : … »,
-ce que le pictogramme d'alerte et le contour disaient déjà : on relisait la même
-amorce à chaque équipe pour arriver au seul morceau utile — le nom et le chiffre
-qui manque. Le message EST ce qui ne va pas.
+⚠️ **Le message orange n'a pas d'introduction.** Une amorce « Équipe speed : … »
+redirait ce que le pictogramme d'alerte et le contour disent déjà : on relirait
+la même amorce à chaque équipe pour arriver au seul morceau utile — le nom et
+le chiffre qui manque. Le message EST ce qui ne va pas.
 
 ⚠️ **Sans verdict, la card dit POURQUOI — et la bonne raison.** Deux cas se
 ressemblent et ne se disent pas pareil :
@@ -153,9 +150,9 @@ ressemblent et ne se disent pas pareil :
 - **Équipe vraiment trop courte** (un seul monstre renseigné) → « il faut au
   moins deux monstres pour calculer le speed tune ».
 
-⚠️ Les confondre disait « il faut au moins deux monstres » à une équipe qui en a
-**quatre** : le message accusait l'utilisateur d'un défaut qui n'était pas le
-sien et l'envoyait corriger ce qui était déjà bon. D'où **deux comptes** dans
+⚠️ Les confondre dirait « il faut au moins deux monstres » à une équipe qui en a
+**quatre** : le message accuserait l'utilisateur d'un défaut qui n'est pas le
+sien et l'enverrait corriger ce qui est déjà bon. D'où **deux comptes** dans
 `EntreeStatut`, `slotsRemplis` et `monstresConnus` — et non un seul.
 
 ### Équipement incomplet — avant toute question de vitesse
@@ -180,13 +177,14 @@ artefacts » / « … toutes ses runes ni tous ses artefacts ».
 
 ### ⚠️ Une équipe Swift ne se juge pas au tick : elle se SPEED TUNE
 
-Elle n'a aucun tick à viser — **et on ne lui en parle plus jamais** : ni statut
+Elle n'a aucun tick à viser — **et on ne lui en parle jamais** : ni statut
 rouge, ni anneau sur un slot, ni phrase de repli (« pas de tick à viser »).
 Quand la réponse n'est pas encore calculable, la card reste **neutre** plutôt que
-de dire quelque chose sur une question qu'on ne lui pose plus. Ce qui compte pour elle, c'est que **toute l'équipe
-joue avant que l'adversaire ne s'intercale** — la question de l'outil, pas celle
-des ticks. Afficher « Vérifier le speed tuning » et s'arrêter là renvoyait
-l'utilisateur faire à la main un calcul que l'app sait faire.
+de dire quelque chose sur une question qu'on ne lui pose pas. Ce qui compte pour
+elle, c'est que **toute l'équipe joue avant que l'adversaire ne s'intercale** —
+la question de l'outil, pas celle des ticks. Afficher « Vérifier le speed
+tuning » et s'arrêter là renverrait l'utilisateur faire à la main un calcul que
+l'app sait faire.
 
 ⚠️⚠️ **MAIS LE SIÈGE NE TRANCHE PAS QUAND LA CIBLE DÉCIDE.** Un sort retenu qui
 ne touche qu'**UN allié** (`atbAllie` / `buffAllie` — *Rabbit's Agility*,
@@ -214,7 +212,7 @@ plus — la cible s'y désigne.
 La card affiche donc le **verdict** — quand elle en a un —, et sa couleur le
 suit :
 - **verte** quand l'équipe est speed tune — ⚠️ c'est sa façon d'être « au tick » à
-  elle ; la laisser orange signalait un problème qui n'existe pas. Le vert **se
+  elle ; la laisser orange signalerait un problème qui n'existe pas. Le vert **se
   dit** (« ✓ Équipe speed : elle est speed tune »), sans quoi on ne sait pas si
   la vérification a tourné ou si l'app n'avait rien à dire ;
 - **orange** sinon, avec ce qui manque monstre par monstre (« Bella +71 VIT »).
@@ -237,14 +235,14 @@ verdict) est **testée** dans [tests/speed-tune.test.ts](tests/speed-tune.test.t
 
 ### Le PIED de card
 
-⚠️ **Un seul bloc**, pas trois empilés. La card portait successivement un encadré
-d'alerte teinté, une ligne verte et un bouton flottant à droite — trois objets
-pour une seule idée : *où en est cette équipe, et qu'est-ce que j'en fais*.
-Réunis, ils se lisent d'un coup : **l'état à gauche, les actions à droite**.
+⚠️ **Un seul bloc**, pas trois empilés : un encadré d'alerte, une ligne de
+validation et un bouton à part feraient trois objets pour une seule idée — *où
+en est cette équipe, et qu'est-ce que j'en fais*. Réunis, ils se lisent d'un
+coup : **l'état à gauche, les actions à droite**.
 
 - Le pied **ne prend PAS la teinte du statut** (voir plus haut) et se cale sur les bords
   de la card (marges négatives, coins bas arrondis) : ⚠️ c'est une **bande**, pas
-  une boîte dans une boîte — un cadre de plus à l'intérieur d'un cadre faisait
+  une boîte dans une boîte — un cadre de plus à l'intérieur d'un cadre ferait
   deux contours concentriques, ce que la charte interdit.
 - `flex-wrap` : le message peut nommer deux monstres ; sur un écran étroit il
   passe **au-dessus** des boutons plutôt que de se comprimer.
@@ -259,11 +257,11 @@ Il ouvre l'outil **en modale par-dessus le deck**
 **déjà chargée** dans « Ton équipe » — l'identifiant lui est passé en simple
 prop (`deckInitial`).
 
-> ⚠️ **Une modale, pas un changement de page.** Le bouton envoyait sur
-> `#/outils/speed-tuning` : il fallait alors déposer l'équipe dans
-> `sessionStorage`, la reprendre à l'arrivée, retenir d'où l'on venait et
-> ajouter un bouton « retour » — quatre mécanismes pour revenir à un écran
-> qu'on n'avait aucune raison de quitter. La page du siège reste là, dessous,
+> ⚠️ **Une modale, pas un changement de page.** Envoyer sur
+> `#/outils/speed-tuning` demanderait de déposer l'équipe dans
+> `sessionStorage`, de la reprendre à l'arrivée, de retenir d'où l'on vient et
+> d'ajouter un bouton « retour » — quatre mécanismes pour revenir à un écran
+> qu'on n'a aucune raison de quitter. La page du siège reste là, dessous,
 > avec son défilement et ses équipes dépliées : **fermer suffit**.
 
 ⚠️ **C'est tout l'outil, pas une version réduite** : le même composant, les
@@ -274,7 +272,7 @@ règle des ticks.
 
 ⚠️ **L'analyse part toute seule à l'ouverture** — et seulement dans ce sens-là.
 La question est déjà posée : on a cliqué « voir le speed tune » sur une équipe
-précise, et la card venait d'y répondre. Faire recliquer « Analyser » pour
+précise, et la card vient d'y répondre. Faire recliquer « Analyser » pour
 obtenir cette même réponse serait un geste pour rien.
 
 ⚠️ Elle **attend que les kits soient chargés** (lecture asynchrone) : analyser
@@ -292,19 +290,18 @@ intention.
 ⚠️ **La vitesse affichée sur un slot et celle du verdict sortent du MÊME lead.**
 `deckPourSpeedTune` calcule, pour chaque monstre, le lead qui lui revient
 (`siegeLeadFor` — le même appel que la card), et il voyage dans l'entrée
-(`EntreeAuto.lead`) jusqu'au moteur. La card affichait auparavant la vitesse
-lead d'ÉLÉMENT compris tandis que le speed tune la recalculait sans : deux
-nombres pour un même monstre, et un « il manque X de VIT » portant sur une
-vitesse que personne n'avait sous les yeux.
+(`EntreeAuto.lead`) jusqu'au moteur. Deux calculs séparés donneraient deux
+nombres pour un même monstre — la card avec le lead d'ÉLÉMENT, le speed tune
+sans — et un « il manque X de VIT » portant sur une vitesse que personne n'a
+sous les yeux.
 
 ### Le statut d'une équipe
 
 ⚠️ **La décision vit dans [siegeStatut.ts](src/lib/siegeStatut.ts)**, pas dans la
 card : `statutEquipe` rend `neutre` / `vert` / `orange` / `rouge`, et chaque cas
 est **testé** ([tests/siege-statut.test.ts](tests/siege-statut.test.ts)). En
-ternaires imbriqués dans le composant, elle n'était vérifiable qu'à l'œil, sur
-ses propres équipes, en cliquant — le jour où le mode a semblé « ne plus rien
-faire », rien ne permettait de dire quel cas répondait quoi.
+ternaires imbriqués dans le composant, elle ne serait vérifiable qu'à l'œil, sur
+ses propres équipes, en cliquant, et rien ne dirait quel cas répond quoi.
 
 Dans l'ordre : mode éteint / équipe vide / **Leo** → neutre ; recommandation
 **ignorée** → vert ; équipe **Swift** → son speed tune (vert si tune, orange
@@ -320,32 +317,26 @@ speed tune.
 `dismissTickAlert(teamId, true)` : l'équipe passe au **vert**
 (`SiegeTeam.tickAlertDismissed`), et affiche « ✓ Speed tune validé · rétablir »
 ou « ✓ Tick validé · rétablir ». **Réinitialisé automatiquement** dès qu'un slot
-change (rune, monstre, position…) : la validation portait sur l'ancienne
-composition.
+change (rune, monstre, position…) : la validation vaut pour une composition
+précise.
 
 > ⚠️ **Le libellé nomme CE QU'ON VALIDE**, pas un conseil qu'on écarte. Une
 > équipe Swift se juge sur son **speed tune**, les autres sur leur **tick** :
-> « ignorer la recommandation » obligeait à remonter au message pour savoir de
-> quoi il s'agissait, et le même mot couvrait deux questions différentes.
+> « ignorer la recommandation » obligerait à remonter au message pour savoir de
+> quoi il s'agit, et le même mot couvrirait deux questions différentes.
 >
-> ⚠️ **Ceci renverse un choix antérieur**, qui disait « ignorer » précisément
-> pour ne pas laisser croire à une approbation de l'outil. L'argument tenait
-> quand l'app ne savait que constater un écart aux ticks connus ; elle calcule
-> désormais le speed tune d'une équipe Swift et sait donc de quoi elle parle. Le
-> vert reste ce qu'il était : il ne dit pas « c'est juste », il dit « tu as
-> tranché » — l'infobulle le formule (« tu prends la responsabilité de ce speed
-> tune »).
+> ⚠️ **Le vert ne dit pas « c'est juste », il dit « tu as tranché »** —
+> l'infobulle le formule (« tu prends la responsabilité de ce speed tune »).
 
 ### ⚠️ Le message NOMME chaque monstre fautif
 
 `tickTeamMessage` ([speed.ts](src/lib/speed.ts)) — logique de tick, pas
 d'affichage, et vérifiée à ce titre dans [tests/](tests/vitesse.test.ts).
 
-« Ton équipe n'est pas au tick » décrivait le symptôme sans dire s'il faut
-**accélérer** ou **libérer de la vitesse**, ni **qui** est en cause. Pire : un
-message d'équipe ne pouvait pas décrire trois situations différentes — il disait
-« un monstre est en dessous, un autre au-dessus » et **laissait le troisième dans
-l'ombre**.
+Un message d'équipe (« Ton équipe n'est pas au tick ») décrirait le symptôme
+sans dire s'il faut **accélérer** ou **libérer de la vitesse**, ni **qui** est
+en cause. Il ne pourrait pas non plus décrire trois situations différentes : il
+laisserait toujours un monstre dans l'ombre.
 
 Une phrase par monstre fautif, énumérées naturellement :
 
@@ -381,10 +372,10 @@ Marges : `TICK_BELOW_MARGIN = 10`, `TICK_ABOVE_MARGIN = 15`.
 | `diff > 0` | « +`diff` au-dessus de `tick` » (bleu / `water`) |
 | `diff = 0` | « pile au tick `tick` ✓ » (`good` sur `good-soft`) |
 
-Rebranding, décision 43 : « manque » et « pile au tick » prennent les couleurs
-d'ÉTAT sur leur fond doux (ils empruntaient le Feu et l'or du Vent, qui ne
-faisait que 3,78:1 en Atelier). Le bleu de « au-dessus » reste : aucune couleur
-d'état ne dit « plus que nécessaire, sans faute ».
+« Manque » et « pile au tick » prennent les couleurs d'ÉTAT sur leur fond doux,
+pas celles des éléments : l'or du Vent ne fait que 3,78:1 en Atelier.
+« Au-dessus » est en bleu : aucune couleur d'état ne dit « plus que nécessaire,
+sans faute ».
 
 ## Attendus
 

@@ -51,14 +51,12 @@ nom dans une liste — même règle que les filtres de runes (voir
 - **Tous** les sets sont affichés ; ceux qui **ne tiennent plus** dans les
   6 runes sont **grisés et non cliquables** plutôt que retirés — on voit ce qui
   existe et pourquoi c'est refusé.
-- ⚠️ **Sauf l'Intangible**, retiré de la grille. C'est un **joker à une pièce**
+- ⚠️ **Sauf l'Intangible**, absent de la grille. C'est un **joker à une pièce**
   qui complète n'importe quel set : on recommande « Violent + Will », jamais
-  « Intangible », et le proposer revenait à réclamer un set de 2 pièces qui
-  n'existe pas. Signalé à l'usage sur le picker jumeau de l'Optimizer
-  ([../optimizer/](../../optimizer/), « Set de runes
-  recherché »), corrigé des deux côtés en même temps — les deux grilles
-  partaient de `RUNE_SETS` entier. Une reco **enregistrée avant** ce
-  correctif qui en contiendrait un reste affichée et retirable.
+  « Intangible », et le proposer reviendrait à réclamer un set de 2 pièces qui
+  n'existe pas. Même règle que le picker jumeau de l'Optimizer
+  ([../optimizer/](../../optimizer/), « Set de runes recherché »). Une reco
+  enregistrée qui en contiendrait un reste affichée et retirable.
 - Compteur `N/6 runes` en permanence ; à saturation le bouton devient
   « Plus de place (6 runes) » et **le panneau se referme tout seul**, sinon on
   laisserait une grille entièrement grisée à l'écran.
@@ -78,10 +76,9 @@ réellement portées (règle du jeu, voir
 incomplets ou plus, même si l'un des deux n'est pas celui recherché, et le
 joker ne complète plus rien.
 
-> Cette fonction était auparavant privée à `importAccount.ts` (sur les `set_id`
-> com2us) ; elle a été **remontée dans `effects.ts`** et l'import la réutilise
-> après conversion `set_id → clé`. **Une seule règle d'activation** pour l'import
-> de compte et pour les recommandations.
+> Cette fonction vit dans `effects.ts` ; l'import de compte la réutilise après
+> conversion `set_id → clé`. **Une seule règle d'activation** pour l'import de
+> compte et pour les recommandations.
 
 La confrontation compare en **multi-ensemble** : demander 2× Fight exige bien
 deux fois le set actif.

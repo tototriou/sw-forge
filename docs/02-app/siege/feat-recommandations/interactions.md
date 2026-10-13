@@ -16,17 +16,16 @@ illisible tout déplié. Chaque carte est donc **repliée par défaut** :
   donc quoi ouvrir **sans rien déplier**. Cliquer l'aperçu déplie aussi.
 - **Bouton « Consulter »** (chevron) dans l'en-tête → déplie et affiche les
   consignes générales puis tous les decks ; devient **« Réduire »**.
-  ⚠️ **À la SOURIS seulement.** Au doigt, ce petit bouton du coin devenait une
+  ⚠️ **À la SOURIS seulement.** Au doigt, ce petit bouton du coin serait une
   seconde cible pour le même geste que le titre — sur un écran qu'on parcourt
   au pouce, la plus petite des deux. À la souris, viser un bouton précis ne
   coûte rien, et le chevron confirme l'état d'un coup d'œil.
-  ⚠️ **À la souris, c'est un CHEVRON seul en tête de ligne** (lot 7b, la
-  maquette), le même que celui de chaque deck : pointe à droite replié, en bas
-  déplié, libellé « Consulter » / « Réduire » en infobulle et `aria-label`.
-  Le bouton étiqueté « Consulter / Réduire » au bout de la ligne ne vit plus
-  que sous `lg` (souris sur fenêtre étroite). En édition, le chevron reste en
-  place, **désactivé** (« Termine l'édition pour replier ») : le retirer
-  décalerait le champ du nom.
+  ⚠️ **À la souris, c'est un CHEVRON seul en tête de ligne**, le même que
+  celui de chaque deck : pointe à droite replié, en bas déplié, libellé
+  « Consulter » / « Réduire » en infobulle et `aria-label`. Le bouton étiqueté
+  « Consulter / Réduire » au bout de la ligne ne vit que sous `lg` (souris sur
+  fenêtre étroite). En édition, le chevron reste en place, **désactivé**
+  (« Termine l'édition pour replier ») : le retirer décalerait le champ du nom.
 - **Le TITRE bascule aussi la carte** — même geste que « Consulter », pas un
   second, et le SEUL au doigt. Masqué en édition, comme « Consulter » : le
   titre devient alors le champ de saisie du nom.
@@ -52,41 +51,34 @@ Indépendamment du repli de la carte, **chaque deck a son propre chevron**.
   **liste de ses decks**, pas leur contenu. On ouvre ensuite celui qui intéresse.
   Sans ça, une reco de 6 decks déroulait tout l'écran d'un coup.
 - ⚠️ **À la SOURIS, un TABLEAU de decks, chacun dépliable en sa carte
-  détaillée** — refonte graphique, lot 7b, décision 15 du mainteneur (« propose-moi
-  un mix des deux propositions », puis « pars là-dessus », sur la planche
-  « proposition mixte » de la maquette). Chaque deck est une LIGNE, sous une
-  rangée d'intitulés de colonnes :
+  détaillée.** Chaque deck est une LIGNE, sous une rangée d'intitulés de
+  colonnes :
   - **Offense · sets visés** : les 3 monstres (portrait + nom), le leader
     d'abord avec son badge de lead ; les **icônes des sets visés collées à
     chaque monstre** (première possibilité de runage) — on voit qui porte
-    quoi sans ouvrir. La colonne « Sets et stats » de la maquette est FUSIONNÉE
-    ici : dans une colonne à part, on ne saurait plus quel monstre porte quel
-    set ; les stats visées restent dans le détail, trop nombreuses pour une
-    ligne.
+    quoi sans ouvrir. Pas de colonne « Sets et stats » à part : on ne saurait
+    plus quel monstre porte quel set ; les stats visées sont dans le détail,
+    trop nombreuses pour une ligne.
   - **Fort contre** : les portraits de la première défense visée (+N s'il y
     en a d'autres).
   - **Verdict** : après analyse, la pastille du statut avec les libellés des
     filtres (Bon · À composer · À revoir · Monstre manquant, `VERDICTS`), la
     phrase complète en infobulle, et « réalisable N fois ». Avant analyse,
     rien.
-  - Le chevron garde sa place dans la ligne. Le crayon l'a quittée depuis :
-    il est devenu « Éditer ce deck », en pied du détail déplié (voir en tête
-    de fichier) — c'est le MÊME bouton, seule la disposition change.
-  Déplier une ligne montre, dessous, la **carte détaillée d'avant, inchangée**
-  (consignes du deck, les 3 monstres avec runage, stats et artéfacts, « Fort
-  contre » avec ses précisions, édition). **Au doigt**, les decks restent
-  des cartes empilées, repliées par défaut, qui s'ouvrent au toucher ; depuis
-  le lot 11b (décision 25, la maquette), la rangée repliée montre aussi
+  - Le chevron est dans la ligne ; le crayon n'y est pas : c'est « Éditer ce
+    deck », en pied du détail déplié (voir en tête de fichier) — le MÊME
+    bouton qu'au doigt, seule la disposition change.
+  Déplier une ligne montre, dessous, la **carte détaillée** (consignes du
+  deck, les 3 monstres avec runage, stats et artéfacts, « Fort contre » avec
+  ses précisions, édition). **Au doigt**, les decks sont des cartes empilées,
+  repliées par défaut, qui s'ouvrent au toucher ; la rangée repliée montre
   **« Fort contre »** (séparé de l'offense par un filet) et, dessous, les
   **sets visés** de chaque monstre (une pastille par monstre, première
-  possibilité de runage) — ce qu'elle réservait à la souris.
-  L'ancienne disposition à la souris — une grille de cartes sur deux colonnes
-  (`lg:grid-cols-2`, le deck en édition sur toute la largeur) — est remplacée
-  par cette liste : une ligne par deck se lit d'un regard, sans demi-largeur
-  vide. ⚠️ Le `lg:col-span-2` du deck en édition, resté de cette grille, a été
-  retiré le 2026-09-27 : dans le tableau à UNE colonne, il en créait une
-  seconde, implicite, où la rangée d'intitulés et les lignes se tassaient
-  (« gros bug d'affichage quand on essaye d'éditer un deck »).
+  possibilité de runage). Une ligne par deck se lit d'un regard, sans
+  demi-largeur vide — ce qu'une grille de cartes sur deux colonnes ne permet
+  pas. ⚠️ Le deck en édition ne porte pas de `lg:col-span-2` : dans le tableau
+  à UNE colonne, il en créerait une seconde, implicite, où la rangée
+  d'intitulés et les lignes se tasseraient.
 - **Lead du leader** : affiché **sur le monstre** en slot 0, comme en siège et
   avec les mêmes composants ([LeadPill.tsx](src/components/siege/LeadPill.tsx)) —
   `LeadBadge` sur son portrait dans l'aperçu replié, `LeadPill` (icône +
@@ -95,39 +87,38 @@ Indépendamment du repli de la carte, **chaque deck a son propre chevron**.
 - **En-tête du deck, replié OU déplié** : chevron + **les 3 monstres en
   icônes** (portrait hexagonal 34 px + badge d'élément, **sans nom, sans
   titre texte**), cliquables pour basculer le repli, + le badge de statut et
-  les icônes **Éditer**/Supprimer. ⚠️ **Aucun texte n'identifie plus le
-  deck** : les portraits, agrandis (34 px, contre 26 dans l'ancien aperçu
-  replié seul), portent seuls ce qu'un titre — libre ou calculé — redoublait.
+  les icônes **Éditer**/Supprimer. ⚠️ **Aucun texte n'identifie le deck** :
+  les portraits (34 px) portent seuls ce qu'un titre — libre ou calculé —
+  redoublerait.
   Toujours affichés, quel que soit l'état de repli : c'est le seul repère du
   deck qu'on garde en le dépliant, avant que sets/artéfacts/stats n'arrivent
   plus bas.
 - ⚠️ **Sur mobile, le verdict et le nombre de copies passent chacun à la
   ligne** (`basis-full sm:basis-auto` sur les deux `span` qui les portent) :
   icônes des monstres sur une ligne, verdict sur la suivante, « réalisable N
-  fois » sur la dernière. Un simple `flex-wrap` sur la rangée ne suffisait
+  fois » sur la dernière. Un simple `flex-wrap` sur la rangée ne suffit
   pas — un item flex qui trouve un peu de place restante après les icônes s'y
   installe et enroule son PROPRE texte au mot (« indis- » collé aux icônes,
   « ponible… » en dessous) au lieu de descendre entier à la ligne suivante :
-  le repli semblait aléatoire (net sur un deck, tronqué sur le suivant) selon
-  la largeur qu'occupaient les icônes déjà posées. `basis-full` force chaque
+  le repli semblerait aléatoire (net sur un deck, tronqué sur le suivant) selon
+  la largeur qu'occupent les icônes déjà posées. `basis-full` force chaque
   ligne à démarrer la sienne, systématiquement, tant qu'il n'y a pas la place
   de tout tenir sur une seule (`sm:basis-auto` au-delà).
 - ⚠️ **Le crayon Éditer/Supprimer reste dans SA PROPRE rangée** (chevron +
   portraits + crayon), séparée du verdict/copies en dessous, plutôt que dans
   la même rangée `flex-wrap` qu'eux. Un bouton d'action ne doit pas changer de
   position selon ce qui s'affiche à côté de lui : mêlé au verdict, le crayon
-  suivait le badge sur sa ligne et se retrouvait repoussé en bas dès que
-  « réalisable N fois » gagnait sa propre ligne (voir ci-dessus) — il devait
-  rester en haut à droite, toujours.
-- **Padding réduit au tactile** (`compact:p-1`, contre `p-2.5` à la souris ;
-  resserré une seconde fois après un premier `compact:p-1.5` jugé encore trop
-  généreux) : les cartes de deck sont dans une liste déjà dense (jusqu'à une
+  suivrait le badge sur sa ligne et se retrouverait repoussé en bas dès que
+  « réalisable N fois » gagne sa propre ligne (voir ci-dessus) — il reste en
+  haut à droite, toujours.
+- **Padding réduit au tactile** (`compact:p-1`, contre `p-2.5` à la souris) :
+  les cartes de deck sont dans une liste déjà dense (jusqu'à une
   demi-douzaine par recommandation) sur un écran étroit. Même resserrement
   sur l'espacement de la rangée verdict/copies (`compact:gap-1 compact:mt-0.5`).
 - **« Déplier / Replier tous les decks »** : lien en haut à droite de la liste,
-  affiché dès **2 decks**. À la souris, un **bouton fantôme** de la librairie
-  (lot 7b), toujours **au-dessus** du tableau — la maquette le posait en
-  dessous, où le clic l'aurait repoussé de toute la hauteur des decks dépliés.
+  affiché dès **2 decks**. À la souris, un **bouton fantôme** de la librairie,
+  toujours **au-dessus** du tableau : en dessous, le clic le repousserait de
+  toute la hauteur des decks dépliés.
 - Un deck **en édition est toujours déplié**, quel que soit son état de repli.
 - État **local à la carte** (`openDecks` = les decks ouverts), réinitialisé quand
   le **nombre de decks change** (les index se décalent à l'ajout/suppression).
@@ -152,7 +143,7 @@ est un **travail de fond**. Il n'a d'ailleurs **pas de mode édition de bloc** �
 juste un « + » qui ajoute et ouvre l'entrée créée. Voir « Défenses visées » plus
 haut.
 
-#### « Annuler les modifications » — sortir sans garder (le mainteneur, 2026-10-05)
+#### « Annuler les modifications » — sortir sans garder
 
 Chaque modification s'enregistre **tout de suite** ; le ✓ termine l'édition en
 gardant tout. Pendant une édition, un bouton **« Annuler les modifications »**
@@ -171,10 +162,10 @@ gardant tout. Pendant une édition, un bouton **« Annuler les modifications »*
 - **Grisé tant que rien n'a changé** (comparaison par valeur : retaper la même
   chose n'est pas une modification).
 - ⚠️ **Ni confirmation, ni notification.** Une confirmation serait un « OK »
-  qui détruit ; une notification « Modifications annulées · Rétablir » —
-  essayée — faisait une **annulation d'annulation** (le mainteneur, 2026-10-05 :
-  « c'est bizarre »). La sortie du mode édition dit assez ce qui s'est passé ;
-  le bouton grisé tant que rien n'a changé évite le clic pour rien.
+  qui détruit ; une notification « Modifications annulées · Rétablir » ferait
+  une **annulation d'annulation**. La sortie du mode édition dit assez ce qui
+  s'est passé ; le bouton grisé tant que rien n'a changé évite le clic pour
+  rien.
 - **Un deck tout juste ajouté** (création d'une recommandation, « Ajouter un
   deck vide », « Importer un deck d'offense ») s'ouvre en édition : annuler le
   remet **comme à l'ajout** (vide, ou tel qu'importé), il ne le retire pas.
@@ -188,11 +179,9 @@ gardant tout. Pendant une édition, un bouton **« Annuler les modifications »*
   resterait sinon ouverte sur ce deck vide, prête à recopier une partie du
   deck supprimé.
 
-⚠️ **Un monstre choisi, le curseur passe au monstre suivant** (refonte
-graphique, décision 18 — le mainteneur : « quand on édite une équipe, mets un
-autofocus sur le monstre suivant une fois qu'on en a choisi un, idem pour les
-défenses (fort contre) ») : dans les 3 slots d'un deck comme dans les 3
-monstres d'une défense visée, le champ du **slot vide suivant** prend le focus
+⚠️ **Un monstre choisi, le curseur passe au monstre suivant** : dans les 3
+slots d'un deck comme dans les 3 monstres d'une défense visée, le champ du
+**slot vide suivant** prend le focus
 — en bouclant sur ceux d'avant si on a commencé par le milieu ; trio complet,
 le focus ne bouge pas. On compose ainsi un trio au clavier, sans revenir à la
 souris. Calcul dans
@@ -211,15 +200,13 @@ L'en-tête est **trois zones empilées**, pas deux côte à côte :
 | 1 — titre + actions | titre (cliquable, bascule la carte, tronqué s'il déborde) et, sur la MÊME ligne : « Consulter » (souris seulement), Exporter ↑, Éditer ✏️, Supprimer 🗑 | `items-center`, une seule ligne |
 | 2 — métadonnées | puce « Importée », compteur de decks, auteur, « Analyser mes decks » (souris seulement) | passe à la ligne librement, sous la rangée 1 |
 
-⚠️ **Historique : deux zones côte à côte (titre+badges à gauche, icônes à
-droite), essayé et défait deux fois.**
-- `items-start` : correct tant que le titre est seul sur sa ligne, mais la
-  zone de gauche passe couramment sur DEUX lignes dès que le nom n'est pas très
-  court (badges qui débordent en dessous) — pas un cas rare, le cas courant sur
-  une carte de largeur mobile.
-- `items-center` sur ce même agencement à deux zones plaçait alors les icônes
-  **entre** les deux lignes de gauche : ni alignées sur le titre, ni sur les
-  badges — pire que l'écart qu'on corrigeait.
+⚠️ **Pas deux zones côte à côte** (titre+badges à gauche, icônes à droite) :
+- avec `items-start`, c'est correct tant que le titre est seul sur sa ligne,
+  mais la zone de gauche passe couramment sur DEUX lignes dès que le nom n'est
+  pas très court (badges qui débordent en dessous) — pas un cas rare, le cas
+  courant sur une carte de largeur mobile ;
+- avec `items-center`, les icônes se placeraient **entre** les deux lignes de
+  gauche : ni alignées sur le titre, ni sur les badges.
 
 Le problème n'était pas l'alignement CSS mais la STRUCTURE : titre et badges
 n'ont aucune raison de partager une hauteur commune avec les icônes, ce sont
@@ -228,7 +215,7 @@ coup — la rangée 1 ne contient plus QUE le titre et les icônes, qui peuvent
 alors se centrer l'un sur l'autre sans qu'un troisième élément interfère.
 
 ⚠️ Le titre porte `leading-none` (sa boîte de ligne, interligne 1,6 de
-l'échelle, dépassait sinon la hauteur des icônes) et `p-0` explicite (un
+l'échelle, dépasserait sinon la hauteur des icônes) et `p-0` explicite (un
 `<button>` a un rembourrage par défaut du navigateur, invisible à l'œil mais
 qui élargit sa boîte au-delà du texte).
 
@@ -239,11 +226,11 @@ perdre l'exemption tactile (`taille="serre"` garde `data-cible-fine`, donc les
 composant dans la feuille de style construite (Tailwind range ses valeurs par
 ordre croissant) — vérifié dans le CSS, pas supposé.
 
-Dans un `flex-wrap` unique (l'agencement d'avant tout ça), les trois icônes
-suivaient le flux et **retombaient sous le titre** dès que la ligne était
-pleine — leur position changeait d'une carte à l'autre selon la longueur du
-nom, et il fallait les chercher des yeux à chaque fois. Une barre d'outils se
-trouve à un endroit fixe, ou elle n'en est pas une.
+Dans un `flex-wrap` unique, les trois icônes suivraient le flux et
+**retomberaient sous le titre** dès que la ligne est pleine — leur position
+changerait d'une carte à l'autre selon la longueur du nom, et il faudrait les
+chercher des yeux à chaque fois. Une barre d'outils se trouve à un endroit
+fixe, ou elle n'en est pas une.
 
 **Icônes nues partout** dans les en-têtes — carrés de 24 px, **sans cadre ni
 fond**, groupés et resserrés (`gap-0.5`) à droite de la ligne :
@@ -252,13 +239,13 @@ fond**, groupés et resserrés (`gap-0.5`) à droite de la ligne :
   le titre, la puce « Importée », le compteur de decks, l'auteur, et
   « Analyser mes decks » / « Consulter » à la souris. Analyser vit au doigt
   dans le panneau « Options » (voir plus haut), pas dans ce groupe.
-- **deck** : Éditer ✏️, puis Supprimer 🗑 — **toujours visible** depuis le
-  2026-09-27 (il ne l'était qu'en édition).
+- **deck** : Éditer ✏️, puis Supprimer 🗑 — **toujours visible**, pas seulement
+  en édition.
 - Le sens passe par l'**infobulle** et l'`aria-label` (obligatoire : une icône
   seule n'est pas lisible au lecteur d'écran).
 - Faute de cadre pour marquer l'état actif, l'**édition en cours** se lit à
   l'icône qui devient un **✓ doré** (`text-star`) + `aria-pressed`. Les deux
-  crayons sont des `BoutonIcone` (lot 7b) : la couleur dorée est posée sur
+  crayons sont des `BoutonIcone` : la couleur dorée est posée sur
   l'**icône**, pas sur le bouton — deux classes de couleur rivales sur le même
   élément n'ont pas d'ordre garanti dans la feuille.
 - À la souris, ces carrés passent à **28 px aux coins arrondis** (voir en tête
@@ -281,7 +268,7 @@ fond**, groupés et resserrés (`gap-0.5`) à droite de la ligne :
 - **Raccourcis** : créer une recommandation ouvre directement son deck vide en
   édition ; ajouter/importer un deck ouvre le nouveau deck en édition.
 - La suppression d'un deck **se défait** (« Deck supprimé · Annuler ») au
-  lieu de se confirmer, depuis le lot 13 de la refonte (décision 29).
+  lieu de se confirmer.
 - **Disposition** : les recommandations sont **empilées en pleine largeur** (une
   par ligne) — elles contiennent plusieurs decks de 3 monstres, une mise en
   2 colonnes serait illisible. À l'intérieur, les decks sont empilés et chaque

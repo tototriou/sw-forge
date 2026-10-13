@@ -26,6 +26,16 @@ interface Props {
 
 const AMP = -4.5; // amplitude du décalage de l'icône le long de l'axe (slots 2/3/5/6)
 
+// Ce que le cadre pivoté (60°, la plus large des six orientations, comme 120°)
+// occupe hors de sa largeur droite, de chaque côté, arrondi au quart de pixel
+// supérieur : (l·cos 60° + h·sin 60° − l) / 2. Elle couvre aussi le symbole
+// décalé (≤ 4,5 px à hauteur 46). Pendant la rotation animée, un angle
+// intermédiaire peut dépasser encore d'un quart de pixel.
+function margePivot(width: number, height: number): number {
+  const brut = (width * 0.5 + height * Math.sin(Math.PI / 3) - width) / 2;
+  return Math.ceil(brut * 4) / 4;
+}
+
 // Rotation animée : quand la même tuile passe d'une rune à une autre (pagination,
 // filtre, tri), le cadre pivote vers l'orientation de son nouveau slot au lieu de
 // sauter. Même effet que la roue de MonsterGear quand on passe d'un monstre au suivant.
@@ -46,17 +56,24 @@ export default function RuneSlotIcon({
   const iconSize = Math.round(width * 0.62);
   const nudge = setNudge(slot, AMP);
   const k = height / 46; // mise à l'échelle du décalage selon la taille
+  const marge = margePivot(width, height);
 
+  // ⚠️ La racine s'élargit de `marge` de chaque côté, et deux marges négatives
+  // égales le rendent aux voisins : la boîte contient le cadre pivoté (60°,
+  // 120°… plus large que le cadre droit) sans que rien ne bouge autour. Le
+  // cadre et le symbole restent posés à `left: marge`, sur la largeur du cadre.
   return (
     <span
       className={`relative inline-block flex-none ${className}`}
-      style={{ width, height }}
+      style={{ width: width + 2 * marge, height, marginLeft: -marge, marginRight: -marge }}
     >
       <img
         src={RUNE_FRAME}
         draggable={false}
-        className={`absolute inset-0 w-full h-full ${SPIN}`}
+        className={`absolute top-0 h-full ${SPIN}`}
         style={{
+          left: marge,
+          width,
           transform: `rotate(${rot}deg)`,
           filter: ancient
             ? 'drop-shadow(0 0 1px rgba(255,255,255,1)) drop-shadow(0 0 2px rgba(255,255,255,0.9))'
@@ -64,8 +81,8 @@ export default function RuneSlotIcon({
         }}
       />
       <span
-        className={`absolute inset-0 flex items-center justify-center ${SPIN}`}
-        style={{ transform: `translate(${nudge.x * k}px, ${nudge.y * k}px)` }}
+        className={`absolute top-0 h-full flex items-center justify-center ${SPIN}`}
+        style={{ left: marge, width, transform: `translate(${nudge.x * k}px, ${nudge.y * k}px)` }}
       >
         <RuneIcon setKey={setKey} size={iconSize} filter={RARITY_FILTER[rarity] ?? RARITY_FILTER[1]} />
       </span>

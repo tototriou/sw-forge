@@ -1461,7 +1461,15 @@ function DeckBlock({
         lg:rounded-none lg:border-0 lg:border-t lg:border-border-soft lg:bg-transparent lg:px-3 lg:py-2
         ${LIGNE_DECK} lg:gap-y-0`}
     >
-      <div className="mb-2 lg:contents">
+      {/* ⚠️ **Au doigt, une grille de deux colonnes** : à gauche la rangée
+          (chevron, portraits, « Fort contre »), les sets visés dessous et le
+          verdict sous le tout ; à droite, sur la hauteur de la rangée et des
+          sets, la COLONNE d'actions (Supprimer, Éditer, Exporter). Sur une
+          seule ligne, à 360 px, les trois icônes prenaient la place des
+          portraits, qui se chevauchaient (chantier `defauts-affichage`,
+          lot 4). À la souris, `lg:contents` : rien ne change, ses enfants se
+          posent dans la grille de la ligne. */}
+      <div className="mb-2 max-lg:grid max-lg:grid-cols-[minmax(0,1fr)_auto] max-lg:gap-x-2 lg:contents">
         {/* ⚠️ **Rangée à part, jamais mêlée au verdict/copies en dessous** :
             le crayon doit rester en HAUT À DROITE quel que soit l'état du
             deck. Le mettre dans la même rangée flex-wrap que le verdict le
@@ -1469,7 +1477,13 @@ function DeckBlock({
             « réalisable N fois » prenait sa propre ligne, voir plus bas) —
             un bouton d'action ne doit pas se déplacer selon ce qui s'affiche
             à côté de lui. */}
-        <div className="flex items-center gap-2 lg:contents">
+        {/* `max-lg:min-h-10` : la hauteur qu'elle avait au doigt (40 px, celle
+            du bouton d'export, règle tactile, parti dans la colonne) — les
+            portraits et les sets restent à leur hauteur, et la colonne
+            (3 × 20 px + 2 × 2) tient dans la rangée et les sets (40 + 6 +
+            19 px) : la carte ne grandit pas. `max-lg:self-start` : en
+            édition, la colonne s'allonge (« Annuler ») sans étirer la rangée. */}
+        <div className="flex items-center gap-2 max-lg:min-h-10 max-lg:self-start lg:contents">
           {/* Chevron de repli : indispensable en édition avec plusieurs decks */}
           <BoutonIcone
             onClick={onToggleFold}
@@ -1493,7 +1507,9 @@ function DeckBlock({
               n'a jamais été lu ici, et n'est pas rejeté à l'import. */}
           <ZoneCliquable
             onClick={onToggleFold}
-            className="flex items-center gap-1.5 flex-1 min-w-0 lg:gap-4"
+            // `gap-2.5` au doigt : 44 px d'un portrait au suivant, la place
+            // d'une pastille de sets (42 px) sous chacun — voir plus bas.
+            className="flex items-center gap-2.5 flex-1 min-w-0 lg:gap-4"
             title={folded ? 'Déplier ce deck' : 'Replier ce deck'}
           >
             {deck.slots.map((sl, i) => {
@@ -1502,8 +1518,18 @@ function DeckBlock({
               // (3× Fight → une icône). Les autres possibilités restent dans le
               // détail.
               const sets = [...new Set(sl.setOptions?.[0] ?? [])];
+              // ⚠️ `max-lg:flex-none` : au doigt, l'enveloppe ne porte que le
+              // portrait de 34 px et ne rétrécit plus sous lui — réduite à
+              // 19-24 px, elle laissait les portraits se chevaucher. À la
+              // souris, `min-w-0` reste : c'est lui qui laisse le nom se
+              // tronquer.
+              // `max-lg:pr-1 max-lg:-mr-1` : au doigt, l'enveloppe se termine
+              // sur le portrait, dont l'icône d'élément dépasse de 4 px à
+              // droite (`-right-1`, MonsterAvatar) ; la place entre dans
+              // l'enveloppe, et la marge négative la rend à l'espacement :
+              // aucun portrait ne bouge.
               return (
-                <span key={i} className="flex min-w-0 items-center gap-1.5">
+                <span key={i} className="flex min-w-0 items-center gap-1.5 max-lg:flex-none max-lg:pr-1 max-lg:-mr-1">
                   <MiniMonster monster={m} fallback={sl.name} size={34} lead={i === 0 ? leaderLead : null} />
                   {/* À la souris seulement : le nom et les sets visés de CE
                       monstre, collés à lui. Au doigt, la ligne
@@ -1556,8 +1582,9 @@ function DeckBlock({
           {/* À la souris : le VERDICT — la pastille des filtres (Bon, À
               composer, À revoir, Monstre manquant), la phrase complète en
               infobulle, et combien de fois le deck est montable. Avant
-              l'analyse : rien. */}
-          <span className="flex flex-none items-center gap-1 lg:justify-end">
+              l'analyse : rien. `max-lg:hidden` : au doigt, il n'y porte que le
+              bouton d'export, qui passe dans la colonne d'actions (plus bas). */}
+          <span className="flex flex-none items-center gap-1 max-lg:hidden lg:justify-end">
           <span className="hidden min-w-0 flex-col items-start gap-0.5 lg:flex lg:items-end">
             {!editing && match && !empty && verdictLigne && (
               <>
@@ -1580,64 +1607,86 @@ function DeckBlock({
           </span>
           {/* Le lead n'est pas dans l'en-tête : il est posé sur le leader lui-même
               (aperçu replié ci-dessous, ou slot 0 déplié) — comme en siège. */}
+        </div>
 
-          {/* Édition PROPRE au deck (monstres, sets, stats, consignes) : icônes
-              nues et resserrées, comme dans l'en-tête de la recommandation.
-              ⚠️ **À la souris, le PIED du détail déplié** : « Éditer ce deck » écrit en toutes lettres, à droite,
-              sous un filet — placé sur la 3ᵉ rangée de la grille du deck
-              (`lg:row-start-3`), sous le détail, dont il ferme le cadre (le
-              détail n'a pas de bord bas : un seul trait entre les deux). Replié,
-              il n'y a pas de détail à éditer à l'œil : il se masque
-              (`lg:hidden`), sans quitter le DOM. Au doigt, rien ne change : les
-              icônes restent en haut à droite de la carte. */}
-          <div
-            className={`ml-auto flex items-center gap-0.5 lg:col-span-full lg:row-start-3 lg:mb-1 lg:ml-8
-              lg:justify-end lg:gap-1.5 lg:rounded-b-xl lg:border lg:border-border-soft lg:bg-panel lg:px-3 lg:py-2
-              ${folded ? 'lg:hidden' : ''}`}
-          >
-            {/* ⚠️ Même exception que l'en-tête de la recommandation : le ✓ doré
-                est la convention documentée de l'édition en cours sur toute
-                cette page (docs/02-app/siege/), pas le marqueur
-                d'état standard. Couleur posée sur l'icône, comme dans
-                l'en-tête de la recommandation. */}
-            {/* « Annuler les modifications » — en édition
-                seulement, juste AVANT le ✓ : au doigt le groupe est calé à
-                droite, à la souris le pied aussi (`justify-end`) ; il
-                s'allonge vers la gauche, le ✓ qu'on vient de toucher ne bouge
-                pas. Grisé tant que rien n'a changé. */}
-            {editing && (
-              <BoutonIcone
-                onClick={onAnnulerEdition}
-                disabled={!annulable}
-                taille="serre"
-                icone={<Undo2 size={12} />}
-                libelle="Annuler les modifications"
-                libelleALaSouris
-              />
-            )}
+        {/* Édition PROPRE au deck (monstres, sets, stats, consignes) : icônes
+            nues et resserrées, comme dans l'en-tête de la recommandation.
+            ⚠️ **À la souris, le PIED du détail déplié** : « Éditer ce deck » écrit en toutes lettres, à droite,
+            sous un filet — placé sur la 3ᵉ rangée de la grille du deck
+            (`lg:row-start-3`), sous le détail, dont il ferme le cadre (le
+            détail n'a pas de bord bas : un seul trait entre les deux). Replié,
+            il n'y a pas de détail à éditer à l'œil : il se masque
+            (`lg:hidden`), sans quitter le DOM.
+            ⚠️ **Au doigt, une COLONNE en haut à droite de la carte**, de haut
+            en bas : Supprimer, Éditer, Exporter vers l'Optimizer — deuxième
+            colonne de la grille de l'en-tête, sur la hauteur de la rangée et
+            des sets (`row-span-2`). Supprimer garde la place qu'il avait au
+            bout de la rangée. */}
+        <div
+          className={`flex items-center gap-0.5 max-lg:col-start-2 max-lg:row-span-2 max-lg:row-start-1 max-lg:flex-col
+            max-lg:self-start lg:col-span-full lg:row-start-3 lg:mb-1 lg:ml-8
+            lg:justify-end lg:gap-1.5 lg:rounded-b-xl lg:border lg:border-border-soft lg:bg-panel lg:px-3 lg:py-2
+            ${folded ? 'lg:hidden' : ''}`}
+        >
+          {/* ⚠️ Même exception que l'en-tête de la recommandation : le ✓ doré
+              est la convention documentée de l'édition en cours sur toute
+              cette page (docs/02-app/siege/), pas le marqueur
+              d'état standard. Couleur posée sur l'icône, comme dans
+              l'en-tête de la recommandation. */}
+          {/* « Annuler les modifications » — en édition
+              seulement, juste AVANT le ✓ à la souris : le pied est calé à
+              droite (`justify-end`), il s'allonge vers la gauche, le ✓ qu'on
+              vient de toucher ne bouge pas. Au doigt, SOUS le ✓
+              (`max-lg:order-1`), pour la même raison : la colonne s'allonge
+              vers le bas. Grisé tant que rien n'a changé. */}
+          {editing && (
             <BoutonIcone
-              onClick={onToggleEdit}
-              aria-pressed={editing}
+              onClick={onAnnulerEdition}
+              disabled={!annulable}
               taille="serre"
-              icone={editing ? <Check size={13} className="text-star" /> : <Pencil size={12} />}
-              libelle={editing ? "Terminer l'édition de ce deck" : 'Éditer ce deck'}
+              icone={<Undo2 size={12} />}
+              libelle="Annuler les modifications"
               libelleALaSouris
+              className="max-lg:order-1"
             />
-            {/* ⚠️ **Toujours présent**, plus seulement en édition —
-                la confirmation (« Supprimer ce deck ? ») reste le garde-fou.
-                À la souris, à l'AUTRE bout du pied (`lg:order-first
-                lg:mr-auto`) : un geste qui perd quelque chose ne se range pas
-                au contact de celui qu'on presse le plus. */}
-            <BoutonIcone
-              onClick={supprimerDeck}
-              ton="danger"
-              taille="serre"
-              icone={<Trash2 size={12} />}
-              libelle="Supprimer ce deck"
-              libelleALaSouris
-              className="lg:order-first lg:mr-auto"
-            />
-          </div>
+          )}
+          <BoutonIcone
+            onClick={onToggleEdit}
+            aria-pressed={editing}
+            taille="serre"
+            icone={editing ? <Check size={13} className="text-star" /> : <Pencil size={12} />}
+            libelle={editing ? "Terminer l'édition de ce deck" : 'Éditer ce deck'}
+            libelleALaSouris
+          />
+          {/* ⚠️ **Toujours présent**, plus seulement en édition —
+              la confirmation (« Supprimer ce deck ? ») reste le garde-fou.
+              À la souris, à l'AUTRE bout du pied (`lg:order-first
+              lg:mr-auto`) : un geste qui perd quelque chose ne se range pas
+              au contact de celui qu'on presse le plus. Au doigt, en tête de
+              la colonne (`order-first`). */}
+          <BoutonIcone
+            onClick={supprimerDeck}
+            ton="danger"
+            taille="serre"
+            icone={<Trash2 size={12} />}
+            libelle="Supprimer ce deck"
+            libelleALaSouris
+            className="order-first lg:mr-auto"
+          />
+          {/* ⚠️ **Au doigt seulement** (`lg:hidden`) : le même export que
+              celui de la colonne Verdict, à la souris (masqué, lui, au
+              doigt). `taille="serre"`, comme ses deux voisins de colonne :
+              20 px, exempté de la règle tactile des 40 px — à 40 px de haut,
+              la colonne (84 px) dépassait la rangée et les sets, et la carte
+              grandissait. */}
+          <BoutonIcone
+            onClick={onExporterOptimizer}
+            disabled={!!raisonExportOptimizer}
+            taille="serre"
+            icone={<Upload size={12} />}
+            libelle="Exporter vers l'Optimizer"
+            className="order-last lg:hidden"
+          />
         </div>
 
         {/* ⚠️ `basis-full` sur mobile, PAS un simple `flex-wrap` sur le
@@ -1653,16 +1702,24 @@ function DeckBlock({
             dans la colonne Verdict de la ligne. */}
         {/* ⚠️ **Au téléphone, les SETS visés sous la rangée** : ceux de chaque monstre, dans l'ordre
             des portraits — à la souris, ils sont collés à chaque nom. La
-            PREMIÈRE possibilité de runage, comme là-bas. */}
+            PREMIÈRE possibilité de runage, comme là-bas.
+            ⚠️ **Chaque pastille CENTRÉE sous son monstre** : une piste de
+            grille par portrait, de sa largeur (34 px, `size` de MiniMonster),
+            espacées comme eux (`gap-x-2.5`) et décalées du chevron et de son
+            espacement (`pl-7`, 20 + 8 px). Une pastille plus large que sa
+            piste (deux sets : 42 px) déborde à parts égales des deux côtés,
+            dans l'espacement ; un monstre sans set garde sa piste, vide. */}
         {deck.slots.some((sl) => (sl.setOptions?.[0] ?? []).length > 0) && (
-          <div className="mt-1.5 flex flex-wrap items-center gap-1.5 lg:hidden">
+          <div className="mt-1.5 grid auto-cols-[34px] grid-flow-col justify-start justify-items-center gap-x-2.5 pl-7 lg:hidden">
             {deck.slots.map((sl, i) => {
               const sets = [...new Set(sl.setOptions?.[0] ?? [])];
-              if (sets.length === 0) return null;
+              if (sets.length === 0) return <span key={i} />;
               return (
                 <span
                   key={i}
-                  className="inline-flex items-center gap-0.5 rounded-full border border-border-soft bg-panel2 px-1.5 py-0.5"
+                  // `w-max` : sa largeur propre, jamais celle de la piste (la
+                  // grille la ramenait à 34 px, ses icônes tassées dedans).
+                  className="inline-flex w-max items-center gap-0.5 rounded-full border border-border-soft bg-panel2 px-1.5 py-0.5"
                   title={sets.map((k) => RUNE_SETS.find((s) => s.key === k)?.label ?? k).join(' + ')}
                 >
                   {sets.map((k) => (
@@ -1674,7 +1731,7 @@ function DeckBlock({
           </div>
         )}
         {!editing && match && !empty && (
-          <div className="flex flex-wrap items-center gap-2 compact:gap-1 mt-1 compact:mt-0.5 lg:hidden">
+          <div className="flex flex-wrap items-center gap-2 compact:gap-1 mt-1 compact:mt-0.5 max-lg:col-span-2 lg:hidden">
             <span className="basis-full sm:basis-auto">
               <DeckBadge match={match} />
             </span>

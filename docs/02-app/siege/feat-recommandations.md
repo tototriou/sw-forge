@@ -1575,6 +1575,22 @@ Indépendamment du repli de la carte, **chaque deck a son propre chevron**.
   **« Fort contre »** (séparé de l'offense par un filet) et, dessous, les
   **sets visés** de chaque monstre (une pastille par monstre, première
   possibilité de runage) — ce qu'elle réservait à la souris.
+  ⚠️ **Au doigt, l'en-tête est une grille de deux colonnes** (chantier
+  `defauts-affichage`, lot 4, décision de l'utilisateur du 2026-10-13) : à
+  gauche, la rangée — chevron, les trois portraits, « Fort contre » sur la
+  même ligne — et, dessous, les sets visés, **chaque pastille centrée sous
+  son monstre** (un monstre sans set garde sa place, vide) ; à droite, sur la
+  hauteur de la rangée et des sets, une **colonne d'actions** : Supprimer,
+  Éditer, Exporter vers l'Optimizer, de haut en bas. Sur une seule ligne, à
+  360 px, ces trois icônes ne laissaient que 19 à 24 px à chaque enveloppe de
+  portrait de 34 px : les portraits se chevauchaient. Les enveloppes ne
+  rétrécissent plus (`max-lg:flex-none`), 10 px les séparent (la largeur
+  d'une pastille de deux sets, 42 px, tient sous chacun) ; la rangée garde
+  ses 40 px de haut, et la colonne (trois icônes de 20 px) tient dans la
+  rangée et les sets : la carte ne grandit pas. L'export y prend la taille
+  de ses voisins (`taille="serre"`, exemptée de la règle des 40 px) ; en
+  édition, « Annuler les modifications » se place sous le ✓, que la colonne
+  ne déplace pas. À la souris, rien ne change.
   L'ancienne disposition à la souris — une grille de cartes sur deux colonnes
   (`lg:grid-cols-2`, le deck en édition sur toute la largeur) — est remplacée
   par cette liste : une ligne par deck se lit d'un regard, sans demi-largeur
@@ -1618,13 +1634,13 @@ Indépendamment du repli de la carte, **chaque deck a son propre chevron**.
   la largeur qu'occupaient les icônes déjà posées. `basis-full` force chaque
   ligne à démarrer la sienne, systématiquement, tant qu'il n'y a pas la place
   de tout tenir sur une seule (`sm:basis-auto` au-delà).
-- ⚠️ **Le crayon Éditer/Supprimer reste dans SA PROPRE rangée** (chevron +
-  portraits + crayon), séparée du verdict/copies en dessous, plutôt que dans
-  la même rangée `flex-wrap` qu'eux. Un bouton d'action ne doit pas changer de
-  position selon ce qui s'affiche à côté de lui : mêlé au verdict, le crayon
-  suivait le badge sur sa ligne et se retrouvait repoussé en bas dès que
-  « réalisable N fois » gagnait sa propre ligne (voir ci-dessus) — il devait
-  rester en haut à droite, toujours.
+- ⚠️ **Le crayon Éditer/Supprimer reste hors de la rangée verdict/copies**
+  (au doigt, dans la colonne d'actions de l'en-tête, voir plus haut),
+  plutôt que dans la même rangée `flex-wrap` qu'eux. Un bouton d'action ne
+  doit pas changer de position selon ce qui s'affiche à côté de lui : mêlé
+  au verdict, le crayon suivait le badge sur sa ligne et se retrouvait
+  repoussé en bas dès que « réalisable N fois » gagnait sa propre ligne
+  (voir ci-dessus) — il devait rester en haut à droite, toujours.
 - **Padding réduit au tactile** (`compact:p-1`, contre `p-2.5` à la souris ;
   resserré une seconde fois après un premier `compact:p-1.5` jugé encore trop
   généreux) : les cartes de deck sont dans une liste déjà dense (jusqu'à une

@@ -45,7 +45,7 @@ const TEXT: Record<string, string> = {
   unknown: 'text-unknown',
 };
 
-export function initials(name: string) {
+function initials(name: string) {
   return name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
 }
 
@@ -74,7 +74,10 @@ export default function MonsterAvatar({
 }: {
   monster: Monster | null;
   fallback?: string; // nom de repli quand le monstre est absent des données
-  size?: number; // gabarit `span` seulement
+  // Taille du gabarit `span`. ⚠️ En `div`, elle sert encore de base aux
+  // défauts de `tailleElement` et de la police des initiales : y passer les
+  // deux explicitement.
+  size?: number;
   element?: boolean; // pastille d'élément (on la coupe si l'élément est déjà lisible ailleurs)
   className?: string; // classes ajoutées à la racine
   gabarit?: 'span' | 'div';

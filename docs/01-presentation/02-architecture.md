@@ -38,9 +38,11 @@ flowchart LR
   Applique --> RTA["prépa RTA"]
   Applique --> Siege["équipes de siège"]
   Applique --> Compte["Mon compte"]
-  RTA --> Persist["usePersistence<br/>→ localStorage"]
+  RTA --> Persist["usePersistence<br/>si « Garder mes données »"]
   Siege --> Persist
-  Compte --> IDB[("IndexedDB<br/>si « Garder mon compte »")]
+  Compte --> Persist
+  Persist --> LS[("localStorage<br/>prépa, équipes")]
+  Persist --> IDB[("IndexedDB<br/>compte")]
 ```
 
 Détail : [transverse/feat-import-compte/](../02-app/transverse/feat-import-compte/README.md).

@@ -75,7 +75,83 @@ s'en serait aperçu puisqu'on n'ouvre jamais les deux à la fois.
   popover ⚙ n'est pas groupé.
 - **Dans l'application de bureau**, un troisième bloc, « Application » (la
   version, la mise à jour) — page et popover ; absent du site
-  (`estBureau()`). Voir [conventions](../../../03-developpeur/), « Réglages ».
+  (`estBureau()`). Voir « Les réglages » ci-dessous.
 - « Importer un JSON » et « Tout supprimer » sont des `Bouton` de la
   librairie (lot 10), « Tout supprimer » au ton `danger` — ils étaient
   dessinés à la main. Vaut pour la page et le popover.
+
+## Les réglages
+
+Les réglages globaux vivent dans une seule liste
+([SettingsMenu.tsx](src/components/SettingsMenu.tsx), `SettingsList`), montrée
+par le popover ⚙ et par la page Paramètres. ⚠️ **Un réglage global reste à un
+geste**, quelle que soit la largeur : le ⚙ est toujours visible, en pied de la
+barre latérale au bureau, dans la barre supérieure au téléphone.
+
+- Règle : un réglage qui s'applique à **plusieurs pages** va ici, **jamais**
+  dupliqué en sélecteur sur chaque page.
+- **Persistés** dans `localStorage` (effacés par « Tout supprimer »),
+  contrairement aux filtres et tris de page qui sont jetables.
+- **Structure pensée pour grossir** : un réglage = un `<Setting>` (intitulé à
+  gauche, contrôle à droite), avec des contrôles génériques réutilisables
+  (`<Segmented>` pour un choix unique, `<Switch>` pour un oui/non — un réglage
+  binaire se lit d'un coup d'œil sur un interrupteur, sans lire les libellés).
+  Ajouter un paramètre = ajouter un `<Setting>`, rien d'autre.
+- ⚠️ `<Segmented>` a été **remonté** dans
+  [Segmented.tsx](src/ui/Segmented.tsx) à son deuxième usage (filtre de
+  catégorie des artéfacts) plutôt que recopié. Il sert partout où des choix
+  **s'excluent** : une rangée de pastilles séparées se lit comme des filtres
+  cumulables, le cadre commun dit l'exclusivité sans un mot.
+- ⚠️ `<Switch>` a été **remonté** dans [Switch.tsx](src/components/Switch.tsx)
+  à son deuxième usage (« Stats de base exclues » de l'Optimizer) plutôt que
+  recopié, même principe que `<Segmented>` ci-dessus.
+- **Pas de légende** quand l'intitulé et les options se suffisent : le panneau
+  reste une liste de lignes courtes. Le `hint` d'un `<Setting>` sert quand le
+  réglage a une **conséquence non évidente** — « Garder mes données » en a une
+  (les données restent sur la machine), il porte donc un `hint`.
+
+Contenu actuel, dans l'ordre :
+
+- Bloc **« Réglages »** :
+  - **Thème** → trois options (`Auto` et les deux thèmes), voir
+    [design/reglage-du-theme.md](../../../03-developpeur/interface/design/reglage-du-theme.md) ;
+  - **Score** → `Efficience` / `Score SW` (voir
+    [compte/feat-runes/mesure.md](../../compte/feat-runes/mesure.md)) ;
+  - **Overcap Taux Crit/RES/Précision** → un interrupteur (`<Switch>`),
+    **activé par défaut** (comportement historique non borné). Ces trois
+    stats sont plafonnées à 100 % dans le jeu ; désactivé, le TOTAL affiché
+    s'arrête à 100 % même si la somme brute des runes dépasse — un réglage
+    d'AFFICHAGE seulement, `computeStats` continue de renvoyer le total brut
+    (la recherche de l'Optimizer ne doit surtout pas exclure un build dont
+    le total brut dépasse 100 %, voir [optimizer/](../../optimizer/README.md)).
+    Appliqué partout où un TOTAL de build est affiché (fiche de monstre en
+    RTA/Siège/Optimizer, résultats de l'Optimizer) — **pas** aux exigences
+    des recommandations de siège, qui restent un objectif à atteindre, pas
+    un total déjà calculé ;
+  - **Adversaire de référence (speed tuning)** → un interrupteur (`<Switch>`),
+    **désactivé par défaut** — l'activer AJOUTE un monstre en face, et rien ne
+    doit apparaître dans une composition sans qu'on l'ait demandé. Activé,
+    chaque analyse du speed tuning pose en face une **copie du monstre le plus
+    rapide de l'équipe** (même lead, vitesse de runes, set et passif) : on tune
+    alors contre soi-même. Sans lui, la copie n'est posée que si personne n'est
+    en face. Voir [speed-tuning/feat-deux-camps.md](../../speed-tuning/feat-deux-camps.md).
+- Bloc **« Mes données »** :
+  - **Garder mes données** → la conservation de toute l'app entre deux
+    sessions, prépa, équipes, recommandations et compte (voir
+    [feat-import-compte/persistance.md](../feat-import-compte/persistance.md)) ;
+  - **Date de l'export chargé**, sous le réglage — c'est là qu'on se pose la
+    question de la fraîcheur des données ;
+  - **Session** → « Sauvegarder » : tout l'état de l'app dans un fichier
+    (voir [feat-sauvegarde-session.md](../feat-sauvegarde-session.md)) ;
+  - **Dossier SW Blacksmith** → « Retirer », « Choisir… » — dans
+    l'**application de bureau seulement** : le dossier dont le
+    sous-dossier `sessions` reçoit les sessions ;
+  - **Mes données** → « Tout supprimer », toujours la dernière ligne du bloc.
+- Bloc **« Application »** — dans l'**application de bureau seulement** (absent
+  du site) : la version installée et UN bouton qui suit la mise à jour
+  (« Rechercher », « Mettre à jour », « Redémarrer »… — toujours
+  affiché, désactivé quand il n'y a rien à faire). Une mise à jour remise
+  à plus tard s'y fait quand on veut. Voir [bureau/](../../bureau/README.md).
+  Puis le **dossier SW Exporter** et l'**invocateur** à suivre : « Mon
+  compte » se met à jour à chaque export
+  ([feat-import-compte/bouton-import.md](../feat-import-compte/bouton-import.md)).

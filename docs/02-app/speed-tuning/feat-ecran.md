@@ -240,7 +240,7 @@ De haut en bas :
    - ⚠️ **« Analyser » REPOSE l'adversaire de référence** sur le plus rapide du
      moment, à chaque fois — dès qu'il n'y a **pas** de vrai adversaire, ou
      **toujours** si le réglage d'application « Adversaire de référence » est
-     activé (menu ⚙, voir [../../03-developpeur/](../../03-developpeur/)). Il n'était posé qu'en l'absence de tout adversaire :
+     activé (menu ⚙, voir [les réglages](../transverse/feat-navigation/compte-et-parametres.md#les-réglages)). Il n'était posé qu'en l'absence de tout adversaire :
      une fois là, il ne bougeait plus jamais — appliquer un passif (Chilling, +20
      par buff) pouvait changer qui est le plus rapide sans que la référence le
      sache, et on se comparait à un monstre qui ne l'était plus. Un **vrai**

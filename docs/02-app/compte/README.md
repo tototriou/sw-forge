@@ -42,9 +42,10 @@ sous-section.
 ## État & persistance
 
 - **En mémoire** (`useState` dans [App.tsx](src/App.tsx)), donc ré-import à
-  chaque session — **sauf** si l'utilisateur active « Garder mon compte » dans le
-  menu ⚙ : le compte est alors relu au démarrage depuis IndexedDB. Jamais
-  `localStorage`. Voir [transverse/](../transverse/).
+  chaque session — **sauf** si l'utilisateur active « Garder mes données » dans
+  les réglages : le compte est alors relu au démarrage depuis IndexedDB. Jamais
+  `localStorage`. Voir
+  [transverse/feat-import-compte/persistance.md](../transverse/feat-import-compte/persistance.md).
 - Si rien n'est chargé (les trois vides) : écran d'invite « Aucune donnée de compte
   chargée — importe ton compte… ».
 - ⚠️ Pendant la relecture, l'écran affiche **« Chargement de ton compte… »**, pas

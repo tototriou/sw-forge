@@ -2,28 +2,37 @@
 
 Partie de [Import d'un compte SWEX](README.md).
 
-## Un seul bouton d'import invariant (barre de nav)
+## Un seul import, plusieurs points d'entrée
 
-Le bouton **« Importer mon compte »** vit dans la barre de navigation (desktop à
-droite des onglets ; mobile dans le menu). Il est **toujours identique** : chaque
-clic ouvre le sélecteur de fichier ; le fichier choisi **remplace le précédent**
-et est appliqué. Un import :
+L'import part de quatre endroits, et c'est **toujours le même traitement**
+(`importAccount` dans [App.tsx](src/App.tsx)) :
+
+- l'**accueil** : le bouton **« Importer mon compte »** et la zone de dépôt
+  (voir [accueil/](../../accueil/README.md)) ;
+- la **carte du compte** en tête de la barre latérale (« Importer un compte »,
+  [SidebarCompte.tsx](src/components/SidebarCompte.tsx)) ;
+- la **palette** : l'action « Importer mon compte » ;
+- la page **Paramètres** : le bouton **« Importer un JSON »**
+  ([AccountImportControl.tsx](src/components/AccountImportControl.tsx)).
+
+Chaque geste ouvre le sélecteur de fichier ; le fichier choisi **remplace le
+précédent** et est appliqué. Un import :
 
 1. **traite la page courante** (affichage immédiat), et
-2. **remplit les autres en arrière-plan** — RTA, défense **et** offense sont
-   alimentées en une fois.
+2. **remplit les autres en arrière-plan** — RTA, défense, offense **et** « Mon
+   compte » sont alimentés en une fois.
 
 Pour rendre ça possible, les états sont **remontés dans [App.tsx](src/App.tsx)**
 (`useRtaState`, `useSiegeState('defense')`, `useSiegeState('offense')`), et
-`importAccount(text)` applique les trois. Le fichier n'est **pas mémorisé** : pas
-besoin, un import couvre déjà toutes les pages. Rien n'est persisté sur le disque.
-
-À côté du bouton : un lien **« Supprimer mes données »** (efface prépa RTA,
-équipes de siège, monstres perso puis recharge).
+`importAccount(text)` les applique tous. Le fichier lui-même n'est **pas
+mémorisé** : ce qui en est tiré est conservé ou non selon le réglage unique
+**« Garder mes données »** ([persistance.md](persistance.md)).
 
 **Une seule confirmation**, si des données existent déjà (RTA/défense/offense) :
-**« L'import va remplacer toutes les données présentes. Es-tu sûr ? »** Un import
-**remplace** toujours la prépa RTA, les équipes de siège et la box.
+**« Remplacer les données présentes ? »** — « Cet import va remplacer ta prépa
+RTA, tes équipes de siège et ta box par le contenu du fichier. Tes
+recommandations enregistrées ne sont pas touchées. » Un import **remplace**
+toujours la prépa RTA, les équipes de siège et la box.
 
 Un import complet prend une vingtaine de millisecondes depuis le passage au parse
 unique : **pas d'écran d'attente**, il n'aurait fait que clignoter.

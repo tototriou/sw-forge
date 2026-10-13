@@ -5,8 +5,9 @@ Partie de [Import d'un compte SWEX](README.md).
 ## Persistance optionnelle du compte — [accountStore.ts](src/lib/accountStore.ts)
 
 Stockage **IndexedDB**, pour rendre le ré-import facultatif. Déclenché par le
-réglage **« Garder mon compte »** ([usePersistence.ts](src/hooks/usePersistence.ts)),
-dans le menu ⚙.
+réglage **« Garder mes données »** ([usePersistence.ts](src/hooks/usePersistence.ts)),
+dans les réglages (bloc « Mes données ») — un seul réglage pour toute l'app, le
+compte compris.
 
 ### ⚠️ Pourquoi pas `localStorage`
 
@@ -191,7 +192,7 @@ d'il y a trois semaines sans le savoir. Le compte volatil n'avait pas ce problè
   l'année courante (sinon elle alourdit une ligne qu'on lit en passant).
 - Au-delà de **14 jours**, la ligne passe en orange et invite à réexporter :
   l'ordre de grandeur où un joueur actif a refait ses runes.
-- Affiché dans le **menu ⚙**, juste sous le réglage « Garder mon compte » : c'est
+- Affiché dans le **menu ⚙**, juste sous le réglage « Garder mes données » : c'est
   là qu'on se pose la question de la fraîcheur, et ça n'encombre aucune page.
 - Vaut aussi pour un compte **simplement en mémoire** : c'est l'âge des DONNÉES
   qu'on annonce, pas celui de l'enregistrement.

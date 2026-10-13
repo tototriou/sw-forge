@@ -229,7 +229,7 @@ Comme en **vue compacte du siège**, le panneau de détail (`MonsterGear`) s'ouv
     la base qui peut l'être : le rouge n'apparaît donc qu'en mode Total,
     jamais sur la colonne bonus seule.
   - ⚠️ **La VALEUR du total affiché dépend du réglage global « Overcap Taux
-    Crit/RES/Précision »** (menu ⚙, voir [03-developpeur/](../../03-developpeur/)) :
+    Crit/RES/Précision »** (menu ⚙, voir [les réglages](../transverse/feat-navigation/compte-et-parametres.md#les-réglages)) :
     activé (par défaut), le total montré peut dépasser 100 % ; désactivé, il
     s'arrête à 100 % pile — `displayedTotal` dans
     [useOvercapDisplay.ts](src/hooks/useOvercapDisplay.ts). Un réglage

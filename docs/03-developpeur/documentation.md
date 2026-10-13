@@ -13,7 +13,8 @@ décisions (ADR), cadrages et pilotage. Restent hors du dépôt un export de
 compte, des données personnelles, des captures d'écran. Ce qui n'est plus
 vrai sort du dépôt (une archive vit dans les notes privées) ; une décision
 encore en vigueur, avec sa raison, va en ADR dans
-[04-decisions/](../04-decisions/README.md).
+[04-decisions/](../04-decisions/README.md). La documentation ne renvoie
+jamais aux notes privées : un lecteur du dépôt ne peut pas les ouvrir.
 
 ## Avant d'écrire
 
@@ -31,6 +32,11 @@ encore en vigueur, avec sa raison, va en ADR dans
 - **L'état actuel, pas l'histoire** : ce qui est vrai aujourd'hui et
   pourquoi, sans récit de chantier ni « lot N ». Une date, quand elle sert,
   s'écrit en absolu.
+- **Une mise à jour remplace le texte périmé**, elle n'ajoute pas un
+  paragraphe « depuis la v… » : l'historique Git garde le texte remplacé.
+- **[optimizer/invariants.md](optimizer/invariants.md) est un index** : une
+  règle modifiée se modifie dans sa source ET dans l'index, dans le même
+  commit.
 - **Les libellés du jeu et de l'écran**, tels quels, entre guillemets
   français quand on les cite.
 - **Le document entre dans le README de son dossier**, dans le même commit,

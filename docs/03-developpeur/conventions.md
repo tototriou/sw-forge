@@ -138,15 +138,3 @@ partagées, dont la navigation et le pied de page, dans
     un grand écran. Ne pas bricoler écran par écran en attendant — les rustines
     locales seraient à défaire.
 - **Langue** : interface 100 % française.
-- **Rétention.** Une mise à jour de spec **remplace** la section obsolète,
-  elle n'ajoute pas un paragraphe « depuis la v… ». Tout `docs/` est
-  public, et ne renvoie jamais aux notes privées du projet : l'ancien
-  texte, l'historique, les preuves et les récits quittent le public, et
-  vont dans ces notes s'il faut les garder ; l'historique Git garde de
-  toute façon le texte remplacé. Une conclusion encore en vigueur qu'un
-  chantier peut devoir rouvrir va en ADR dans `04-decisions`, avec sa
-  raison. Taille, titres, découpage et liens : la charte
-  ([../README.md](../README.md)) et ses bonnes pratiques
-  ([documentation.md](documentation.md)). `invariants.md` est un index :
-  une règle modifiée se modifie dans sa source ET dans l'index, dans le
-  même commit.

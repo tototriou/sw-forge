@@ -154,19 +154,25 @@ peut donc **créer un monstre** utilisable comme les autres, en **RTA et en Siè
   `localStorage` (`swblacksmith-custom-monsters-v1`), fusionné aux monstres officiels
   dans [App.tsx](src/App.tsx) (`allMonsters`).
 - Formulaire : [CreateMonster.tsx](src/components/CreateMonster.tsx). Son bouton
-  déclencheur suit le **gabarit commun** des boutons d'action (`px-3.5 py-2`,
-  13 px, icône 15), pour ne pas détonner à côté de ceux de RTA et du siège.
+  déclencheur, « Créer un monstre », est un `Bouton` de la librairie, au même
+  gabarit que les autres boutons d'action de RTA et du siège ; dans le panneau
+  mobile, où il n'a qu'un tiers de la largeur, son libellé court est
+  « Monstre ». Son infobulle dit à quoi il sert : « Créer un monstre qui
+  n'existe pas dans les données chargées ».
   - Champs : **nom**, **élément**, **SPD base** (obligatoires) ; **lead optionnel**.
   - Lead : n'importe quel type de stat (Vitesse/Attaque/PV/Déf/crit/Précision/
     Résistance) + montant % + portée (Toutes cibles = `General` / Même élément =
     `Element`). Seul un lead **Vitesse** alimente le tick en siège ; les autres
     sont affichés à titre indicatif.
-  - La popup se ferme au clic extérieur ou sur `Échap`.
-  - Liste « Mes monstres perso » avec suppression.
+  - Le formulaire s'ouvre dans une **modale**, « Nouveau monstre », la même aux
+    deux formats : titre à gauche, croix à droite, « Créer » en bas à droite.
+    ⚠️ Pas une popup ancrée au bouton : posée dans le flux, elle était rognée
+    dès qu'on l'ouvrait depuis le panneau « Options », qui défile.
+  - Liste « Mes monstres perso » sous le formulaire ; la suppression passe par
+    un dialogue de confirmation, qui rappelle que le monstre devra être
+    ressaisi en entier.
 - Un monstre perso a `id = "custom-…"`, `com2usId = null`, images/stats
   secondaires à `null` (seule `speed` est renseignée).
-- **Disclaimer** affiché sur RTA et Siège : « Les tout derniers monstres sortis
-  peuvent manquer dans les données — crée-les à la main. »
 
 ## Distinction d'affichage
 

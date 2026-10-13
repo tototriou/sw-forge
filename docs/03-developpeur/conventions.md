@@ -126,9 +126,6 @@ partagées, dont la navigation et le pied de page, dans
   [InventaireIcon.tsx](src/components/InventaireIcon.tsx). Le bouton de nav « Mon
   compte », lui, garde une icône de **profil** : il ouvre le compte entier, pas
   un inventaire en particulier.
-- **Monstres perso** : sur RTA et Siège, l'utilisateur peut créer un monstre
-  absent des données (nom, élément, SPD base, lead optionnel). Voir
-  [02-app/transverse/](../02-app/transverse/).
 - **Champs numériques** — [NumberField.tsx](src/ui/NumberField.tsx),
   **partout dans l'app**. ⚠️ **Jamais `type="number"`** : les flèches natives du
   navigateur sont deux triangles gris minuscules, hors charte, impossibles à

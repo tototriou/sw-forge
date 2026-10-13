@@ -67,8 +67,8 @@ node .claude/skills/run-swblacksmith/driver.mjs [compte.json] [monstre] [set]
 ```
 
 Sans argument, le driver cherche un export de compte réel à la racine
-(`tototriou-12889591.json`, `ß☆Enzo-6399149.json` — voir « Comptes réels »
-ci-dessous), sélectionne **Lushen** et le set **Fatal** dans l'Optimizer,
+(les noms de `COMPTES_CANDIDATS` dans [session.mjs](session.mjs) — voir
+« Comptes réels » ci-dessous), sélectionne **Lushen** et le set **Fatal** dans l'Optimizer,
 lance une recherche, et pilote la pagination des résultats (page
 suivante, puis saisie directe d'un numéro de page). Capture à chaque étape
 clé.
@@ -88,7 +88,7 @@ Pour un autre monstre/set (adapter la démonstration à un changement
 précis) :
 
 ```bash
-node .claude/skills/run-swblacksmith/driver.mjs tototriou-12889591.json Veromos Violent
+node .claude/skills/run-swblacksmith/driver.mjs <pseudo>-<id>.json Veromos Violent
 ```
 
 ## Import seul — puis n'importe où

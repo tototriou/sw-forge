@@ -943,7 +943,7 @@ function Application() {
     location.reload();
   }
 
-  // Activation du réglage « Garder mon compte » : on enregistre ce qui est déjà
+  // Activation du réglage « Garder mes données » : on enregistre ce qui est déjà
   // en mémoire, sinon il faudrait réimporter le même fichier pour rien.
   function persistCurrentAccount() {
     if (rawBoxRef.current.length === 0 && runes.length === 0 && artifacts.length === 0) return;

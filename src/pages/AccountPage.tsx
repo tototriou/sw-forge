@@ -494,7 +494,7 @@ export default function AccountPage({
         <p className="text-base font-semibold text-ink">Aucune donnée de compte chargée</p>
         <p className="mt-1 text-sm max-w-sm">
           Importe ton compte (bouton « Importer un JSON ») pour afficher tes monstres 6★, tes runes et
-          tes artéfacts. Active « Garder mon compte » dans le menu ⚙ pour ne pas avoir à le
+          tes artéfacts. Active « Garder mes données » dans les Paramètres pour ne pas avoir à le
           redéposer à chaque visite.
         </p>
         {loadState === 'loading' && <p className="mt-3 text-xs">Chargement des monstres…</p>}

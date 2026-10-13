@@ -259,7 +259,3 @@ branche terminée, en regardant ce qu'elle contient (`git log main..<type>/<suje
 numéro.** Le pied de page affiche la version de `package.json` et pointe vers la
 page Nouveautés : trois valeurs désalignées, et le joueur lit un journal qui ne
 correspond pas à ce qu'il utilise.
-
-⚠️ **Un changement de calcul se note toujours** dans `releases.ts`, même minime.
-C'est ce qu'un joueur remarque en premier (« ma vitesse a changé ») et ce qu'il
-ne peut deviner nulle part ailleurs.

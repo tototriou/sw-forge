@@ -33,7 +33,7 @@ Fichiers : [importAccount.ts](src/lib/importAccount.ts) (parseurs) ·
 | [box-rta.md](box-rta.md) | L'import de la box RTA : objectif métier, algorithme, constantes SW, consommation côté RTA. |
 | [equipes-siege.md](equipes-siege.md) | L'import des équipes de siège : défense (`parseSiegeDefense`), offense (`parseSiegeOffense`), modèle commun, mapping. |
 | [mon-compte.md](mon-compte.md) | L'import pour « Mon compte » : box 6★, inventaire runes et artéfacts, marqueurs de runes, runes utilisées. |
-| [persistance.md](persistance.md) | La persistance optionnelle du compte (`accountStore.ts`, IndexedDB) : pourquoi pas `localStorage`, ce qu'on stocke, concurrence, la question posée à chaque import, cycle de vie, âge du compte, repli ; ce que « Tout supprimer » efface et garde ; la migration des clés renommées au rebranding. |
+| [persistance.md](persistance.md) | L'interrupteur de conservation de toute l'app (`usePersistence.ts`) et la persistance optionnelle du compte (`accountStore.ts`, IndexedDB) : pourquoi pas `localStorage`, ce qu'on stocke, concurrence, la question posée à chaque import, cycle de vie, âge du compte, repli ; ce que « Tout supprimer » efface et garde ; la migration des clés renommées au rebranding. |
 
 ## Confidentialité
 

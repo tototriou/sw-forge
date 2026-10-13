@@ -88,7 +88,7 @@ npm run bureau:preuve          # la vérification de l'application de bureau
   `localStorage.setItem` directement, tout passe par `saveLocal` ; clés préfixées `swblacksmith-`.
   Les données (prépa, équipes, recommandations, monstres perso, compte) ne sont conservées que si
   l'utilisateur l'a accepté ; les clés de réglage font exception (détail :
-  [conventions.md](docs/03-developpeur/conventions.md), « Persistance navigateur »).
+  [persistance.md](docs/02-app/transverse/feat-import-compte/persistance.md)).
 - Le compte importé vit en **IndexedDB** (`src/lib/accountStore.ts`), relu au démarrage s'il a été
   gardé. Détail : [feat-import-compte/](docs/02-app/transverse/feat-import-compte/README.md).
 - Les fichiers exportés portent un identifiant `swblacksmith/<nom>` (`src/lib/formatsExport.ts`).

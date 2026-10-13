@@ -47,28 +47,11 @@ partagées, dont la navigation et le pied de page, dans
   - Les champs de **recherche** ne sont pas trimés à la frappe non plus —
     l'espace y est un caractère de saisie comme un autre.
 
-- **Persistance navigateur — un SEUL interrupteur pour toute l'app**
-  ([usePersistence.ts](src/hooks/usePersistence.ts)). Prépa RTA, équipes de
-  siège, recommandations, catégories, monstres perso **et** compte importé sont
-  conservés **si et seulement si** l'utilisateur l'a accepté. Rien n'est envoyé à
-  un serveur. Aucune authentification.
-  - ⚠️ **Un seul régime de mémoire.** RTA et siège étaient persistés d'office
-    pendant que le compte disparaissait au rechargement : on revenait avec ses
-    équipes mais sans ses runes, sans explication. Deux régimes dans le même
-    outil, c'est un bug de conception.
-  - ⚠️ **Aucun hook n'appelle `localStorage.setItem` directement** : tout passe
-    par `saveLocal`. C'est ce qui garantit qu'un refus vaut pour l'app entière, et
-    qu'un futur état persistant n'ouvrira pas une fuite.
-  - **Exception** : les clés de **réglage** (choix de conservation, mesure de
-    score) restent écrites. Ce ne sont pas les données de l'utilisateur, et le
-    refus lui-même doit être mémorisé pour ne pas reposer la question.
-  - ⚠️ **Utilisateur déjà installé** : des données déjà présentes sur le disque
-    valent **consentement**. Sans cette reprise, la mise à jour retirerait en
-    silence une conservation dont il dispose depuis toujours.
-  - ⚠️ **Toute nouvelle clé prend le préfixe `swblacksmith-`** ; un test refuse
-    un littéral de l'ancien nom (`sw-forge-…`, `sky-arena-…`) hors du module de
-    migration. La migration des clés et « Tout supprimer » :
-    [persistance.md](../02-app/transverse/feat-import-compte/persistance.md).
+- **Persistance : un seul interrupteur pour toute l'app**
+  ([usePersistence.ts](src/hooks/usePersistence.ts)). Rien n'est conservé sans
+  l'accord de l'utilisateur : une donnée s'écrit par `saveLocal`, jamais par
+  `localStorage.setItem`, sous une clé préfixée `swblacksmith-`. Détail :
+  [persistance.md](../02-app/transverse/feat-import-compte/persistance.md).
 - **Aucune mesure d'audience**, sur le site comme dans l'application de
   bureau : « 100 % local » veut dire que rien ne quitte le navigateur. ⚠️ Ne
   pas en réintroduire sans décision.

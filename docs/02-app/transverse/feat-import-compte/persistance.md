@@ -87,8 +87,7 @@ des clics). Deux conséquences voulues :
 
 > ⚠️ **Le réglage vaut pour TOUTE l'app**, pas seulement pour le compte : prépa
 > RTA, siège, recommandations, catégories, monstres perso. Voir
-> [usePersistence.ts](src/hooks/usePersistence.ts) et la convention dans le
-> [conventions](../../../03-developpeur/conventions.md) (« Persistance navigateur »).
+> « Un seul interrupteur pour toute l'app », plus bas.
 >
 > ⚠️ **Trois états : oui / non / jamais demandé.** Un booléen à `false` par défaut
 > confondait « a refusé » et « n'a jamais été consulté ». Résultat observé : on
@@ -205,6 +204,32 @@ comportement mémoire. Safari efface le stockage écrit par script après ~7 jou
 sans visite — c'est un cas **normal**, pas une erreur à signaler.
 `requestPersistence()` limite l'éviction et s'appelle **dans un geste
 utilisateur**, où les navigateurs accordent plus volontiers.
+
+## Un seul interrupteur pour toute l'app — [usePersistence.ts](src/hooks/usePersistence.ts)
+
+Prépa RTA, équipes de siège, recommandations, catégories, monstres perso **et**
+compte importé sont conservés **si et seulement si** l'utilisateur l'a accepté.
+Rien n'est envoyé à un serveur. Aucune authentification.
+
+- ⚠️ **Un seul régime de mémoire.** RTA et siège étaient persistés d'office
+  pendant que le compte disparaissait au rechargement : on revenait avec ses
+  équipes mais sans ses runes, sans explication. Deux régimes dans le même
+  outil, c'est un bug de conception.
+- ⚠️ **Aucun hook de données n'appelle `localStorage.setItem` directement** :
+  tout passe par `saveLocal`. C'est ce qui garantit qu'un refus vaut pour l'app
+  entière, et qu'un futur état persistant n'ouvrira pas une fuite.
+- **Exception** : les **réglages** restent écrits, par leur propre hook — choix
+  de conservation, mesure de score, thème, overcap, adversaire de référence. Ce
+  ne sont pas les données de l'utilisateur, et le refus lui-même doit être
+  mémorisé pour ne pas reposer la question.
+- ⚠️ **Utilisateur déjà installé** : des données déjà présentes sur le disque
+  valent **consentement** (`etatDepuisStockage`). Sans cette reprise, la mise à
+  jour retirerait en silence une conservation dont il dispose depuis toujours.
+- ⚠️ **Écart connu** : seuls le choix de conservation et la mesure de score
+  sont reconnus comme réglages (`CLES_DE_REGLAGE`). Thème, overcap et
+  adversaire de référence comptent comme des données : « Tout supprimer » les
+  efface, et un navigateur qui ne contient que l'un d'eux est lu comme ayant
+  déjà accepté la conservation ([dette](../../../05-pilotage/dette.md)).
 
 ## « Tout supprimer » — `clearAllData` dans [App.tsx](src/App.tsx)
 

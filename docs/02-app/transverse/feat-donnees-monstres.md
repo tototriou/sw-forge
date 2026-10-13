@@ -44,7 +44,7 @@ RTA et Siège.
 - **Fallback démo** : si l'API échoue, un jeu de démo déterministe est généré
   (labellisé `source: 'demo'`) pour que le site reste déployable et testable.
 - Rafraîchissement planifié via GitHub Actions (cron hebdo + manuel) → **PR**
-  ouverte sur `forge/donnees-swarfarm` → redéploiement Vercel à la fusion.
+  ouverte sur `chore/donnees-swarfarm` → redéploiement Vercel à la fusion.
   ⚠️ **Une PR, pas un commit sur `main`** : la branche est protégée, un job
   qui y pousserait directement échouerait en silence toutes les semaines. Le job
   n'ouvre **que** la PR — il ne fusionne rien, et son token n'en a pas le droit.

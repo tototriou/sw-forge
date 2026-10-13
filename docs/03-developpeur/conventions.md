@@ -69,10 +69,9 @@ partagées, dont la navigation et le pied de page, dans
     un littéral de l'ancien nom (`sw-forge-…`, `sky-arena-…`) hors du module de
     migration. La migration des clés et « Tout supprimer » :
     [persistance.md](../02-app/transverse/feat-import-compte/persistance.md).
-- **Aucune statistique de fréquentation.** La mesure d'audience Vercel Web
-  Analytics a été **retirée, du site comme de l'application de bureau** :
-  rien ne quitte le navigateur, ce que dit le « 100 % local ». ⚠️ Ne pas la réintroduire sans
-  décision : elle n'aurait de toute façon aucun sens dans l'app de bureau.
+- **Aucune mesure d'audience**, sur le site comme dans l'application de
+  bureau : « 100 % local » veut dire que rien ne quitte le navigateur. ⚠️ Ne
+  pas en réintroduire sans décision.
 - **Un type partagé entre l'écran et un script (recette exportable, etc.) a
   PLUSIEURS constructeurs — un champ ajouté doit être répercuté dans TOUS.**
   ⚠️ **Écueil** : un champ optionnel ajouté à `OptimizerRecipe`
@@ -127,14 +126,7 @@ partagées, dont la navigation et le pied de page, dans
     de l'Optimizer (voir [02-app/optimizer/](../02-app/optimizer/)), premier
     endroit de l'app à passer un `min` positif non trivial (tous les usages
     précédents étaient à 0 ou 1, jamais heurtés par ce piège).
-- **Responsive** : nav desktop en pilules ; menu hamburger sur mobile (`< sm`)
-  **et dès que la barre ne tient plus sur une ligne**.
-  Le drag & drop natif ne fonctionne pas au tactile → chaque zone drag propose
-  un **sélecteur de repli** (déplacer une carte / changer une position).
-  - ⚠️ **Chantier connu, assumé** : sur petit écran, les barres de filtres et les
-    tables denses (inventaires, recommandations) tiennent mal. Une passe UI/UX
-    dédiée au responsive est prévue ; d'ici là un
-    [bandeau](src/components/MobileNotice.tsx) prévient que l'app est pensée pour
-    un grand écran. Ne pas bricoler écran par écran en attendant — les rustines
-    locales seraient à défaire.
-- **Langue** : interface 100 % française.
+- **Glisser-déposer : toujours un repli au doigt.** Le glisser natif ne
+  fonctionne pas au tactile : chaque zone de glisser-déposer propose un
+  **sélecteur** qui fait le même geste (changer une carte de section en RTA,
+  changer un monstre de position au Siège).

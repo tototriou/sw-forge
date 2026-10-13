@@ -1,5 +1,4 @@
 import {
-  Crown,
   Trash2,
   Pencil,
   Upload,
@@ -54,7 +53,7 @@ import RuneIcon from '../RuneIcon';
 import MonsterPicker from '../MonsterPicker';
 import { JetonSlot, prochainFocus } from './slotVideSuivant';
 import MonsterAvatar from '../MonsterAvatar';
-import LeadPill, { LeadBadge } from './LeadPill';
+import LeadPill from './LeadPill';
 import { SIEGE_TICKS, TICK_ABOVE_MARGIN, ficheSpeedForTick, siegeLeadFor, speedLeadOf } from '../../lib/speed';
 import {
   ContenuDeck,
@@ -1769,17 +1768,14 @@ function DeckBlock({
               ) : (
                 <>
                   <div className="flex items-center gap-2">
-                    <MonsterAvatar monster={monster} fallback={slot.name} size={40}>
-                      {idx === 0 &&
-                        (leaderLead ? (
-                          <LeadBadge ls={leaderLead} size={20} />
-                        ) : (
-                          <Crown
-                            size={13}
-                            className="absolute -top-2 -left-1 text-star drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]"
-                          />
-                        ))}
-                    </MonsterAvatar>
+                    <MonsterAvatar
+                      monster={monster}
+                      fallback={slot.name}
+                      size={40}
+                      lead={idx === 0 ? leaderLead : null}
+                      tailleLead={20}
+                      couronne={idx === 0 && !leaderLead}
+                    />
                     <div className="min-w-0 flex-1">
                       <div className="text-xs font-semibold leading-tight truncate">
                         {monster?.name ?? slot.name ?? '—'}
@@ -2491,8 +2487,8 @@ function TableauDefenses({
   );
 }
 
-// Petit portrait hexagonal, sans nom — pour les aperçus compacts. Le portrait
-// lui-même vient du composant partagé ; on n'ajoute ici que le badge de lead.
+// Petit portrait hexagonal, sans nom — pour les aperçus compacts, badge de
+// lead réduit avec le portrait.
 function MiniMonster({
   monster,
   fallback,
@@ -2505,9 +2501,13 @@ function MiniMonster({
   lead?: LeaderSkill | null;
 }) {
   return (
-    <MonsterAvatar monster={monster} fallback={fallback} size={size}>
-      {lead && <LeadBadge ls={lead} size={Math.round(size * 0.62)} />}
-    </MonsterAvatar>
+    <MonsterAvatar
+      monster={monster}
+      fallback={fallback}
+      size={size}
+      lead={lead}
+      tailleLead={Math.round(size * 0.62)}
+    />
   );
 }
 

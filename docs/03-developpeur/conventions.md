@@ -100,20 +100,6 @@ partagées, dont la navigation et le pied de page, dans
   - **Dire ce qui n'est PAS touché**, pas seulement ce qui part : « tes
     recommandations ne sont pas touchées » évite d'annuler par précaution une
     action qu'on voulait faire.
-- **Pas de titre/intro sur les pages outils** : RTA, Siège, Arène et Bestiaire
-  démarrent directement sur leur contenu (pas d'en-tête `<h1>` + paragraphe).
-  L'Accueil garde son hero ; la page **Mécaniques** garde son titre (c'est une doc).
-- **Éléments & couleurs** : Feu = rouge, Eau = bleu, Vent = jaune, Lumière =
-  blanc, Ténèbres = violet. Icônes officielles servies en local depuis
-  `public/elements/`. Voir [ElementIcon.tsx](src/components/ElementIcon.tsx).
-- **Icônes d'inventaire** : les trois sous-onglets de « Mon compte » (Monstres,
-  Runes, Artéfacts) portent des **icônes au trait** dans le style de la librairie
-  (lucide) — les silhouettes du jeu (tête de monstre, hexagone de rune, médaillon
-  d'artéfact) redessinées au contour monochrome (`currentColor`), pour ne pas
-  jurer à côté des icônes de la nav. Voir
-  [InventaireIcon.tsx](src/components/InventaireIcon.tsx). Le bouton de nav « Mon
-  compte », lui, garde une icône de **profil** : il ouvre le compte entier, pas
-  un inventaire en particulier.
 - **Champs numériques** — [NumberField.tsx](src/ui/NumberField.tsx),
   **partout dans l'app**. ⚠️ **Jamais `type="number"`** : les flèches natives du
   navigateur sont deux triangles gris minuscules, hors charte, impossibles à

@@ -11,46 +11,27 @@ ouvrir. Ne pas explorer `src/` à l'aveugle.
 - **Français partout** : réponses, commits, libellés d'interface, commentaires,
   documentation (`docs/`) et skills (`.claude/skills/`) — même un diff isolé de
   quelques lignes.
-- **La spec avant le code.** Lire la documentation (`docs/`) de la zone touchée avant de coder,
-  la mettre à jour dans le **même commit**. Carte : [docs/README.md](docs/README.md) ;
-  conventions : [docs/03-developpeur/](docs/03-developpeur/)
-  — c'est là que vivent les conventions produit détaillées (interface,
-  persistance, releases…), pas ici : ce fichier-ci reste le résumé chargé
-  automatiquement à chaque session. Ouvrir une spec =
-  `node scripts/spec-toc.mjs <fichier|dossier>` (sommaire compact : en-tête,
-  puis niveau / plage de lignes / première phrase de chaque titre) puis la
-  section utile — jamais un fichier entier de plus de 300 lignes sans raison
-  écrite. Avant un chantier Optimizer : les invariants de
-  `docs/03-developpeur/optimizer/` (en entier — le seul fichier lu ainsi,
-  tenu compact pour ça) et le routage par tâche de `docs/02-app/optimizer/`.
-  **Modification NORMATIVE** d'un fichier
-  listé en exception dans `scripts/spec-lint.json`, ou extraction des
-  invariants d'une section d'état actuel nouvelle/modifiée : skill
-  `spec-hygiene` (déplacer, découper, extraire — pas pour une faute, un lien
-  ou un en-tête).
-- **Documentation : [docs/README.md](docs/README.md)** — la carte et les
-  règles. Le dépôt est public : décisions (ADR), cadrages et pilotage y
-  vivent (`docs/05-decisions/`, `docs/07-pilotage/`). Restent hors du dépôt
-  un export de compte, des données personnelles, des captures d'écran.
-- **Pendant le travail, on ne lance QUE les vérifications de la zone touchée** :
-  `node tests/run.mjs <filtre>` (ex. `node tests/run.mjs speed-tune`, plusieurs
-  filtres possibles). La **suite complète** (`npm test`) est obligatoire **avant
-  une fusion sur `main` ou dans une branche `release/*`** — et **seulement
-  là**. Détail dans « Vérifier ».
-- **Branches `forge/<sujet>`**, jamais `release/x.y.z` : le numéro se décide à la
-  fusion.
+- **La spec avant le code.** Lire la documentation (`docs/`) de la zone
+  touchée avant de coder, la mettre à jour dans le **même commit**. Carte et
+  règles : [docs/README.md](docs/README.md) ; conventions détaillées :
+  [docs/03-developpeur/](docs/03-developpeur/). Ouvrir une spec =
+  `node scripts/spec-toc.mjs <fichier|dossier>` puis la section utile —
+  jamais un fichier entier de plus de 300 lignes sans raison écrite. Avant
+  un chantier Optimizer : les invariants de `docs/03-developpeur/optimizer/`
+  (en entier, seule exception) et le routage par tâche de
+  `docs/02-app/optimizer/`. Déplacer, découper ou extraire dans `docs/` :
+  skill `spec-hygiene` (pas pour une faute, un lien ou un en-tête).
+- **Le dépôt est public** : jamais d'export de compte, de données
+  personnelles ni de capture d'écran.
 - **Toute page ou section ajoutée / renommée / supprimée** se répercute sur
   l'accueil et sur la nav de `App.tsx`, dans le même commit.
 - **Une décision prise ensemble s'applique jusqu'au bout.** Si le chantier dérive
   et qu'une étape validée reste en attente, le dire explicitement.
-- **Commits atomiques — un commit = une chose reviewable.** Jamais un
-  fourre-tout de fin de tâche qui regroupe tout ce qui a été touché depuis le
-  dernier commit sous prétexte que c'est la même « session » de travail. Un
-  changement qui touche plusieurs fichiers pour UNE SEULE raison logique (ex.
-  renommer un champ dans l'écran ET la recette ET les scripts CLI) reste UN
-  commit — l'atomicité se juge sur la cohérence du POURQUOI, pas sur le nombre
-  de fichiers. Quand plusieurs sujets indépendants ont été traités dans le même
-  tour de conversation, proposer/faire PLUSIEURS commits, pas un seul.
+- **Commits atomiques — un commit = une chose reviewable.** L'atomicité se
+  juge sur la cohérence du POURQUOI, pas sur le nombre de fichiers : une
+  seule raison sur plusieurs fichiers fait UN commit ; plusieurs sujets
+  traités dans le même tour en font PLUSIEURS, jamais un fourre-tout de fin
+  de tâche.
 - **Règles d'écriture.**
   - Tout le temps : un commentaire de code donne la raison et l'invariant,
     sans récit ; un commit donne le pourquoi en bref, sans journal.
@@ -59,11 +40,10 @@ ouvrir. Ne pas explorer `src/` à l'aveugle.
   renommé doit être répercuté dans TOUS. `tsc` (qui couvre `src/`, `scripts/`,
   `tests/` et `bureau/`) attrape un champ dont le **type change** ou qui devient
   **obligatoire**, jamais un champ **optionnel** oublié dans l'un d'eux :
-  l'accès reste parfaitement typé. Avant de
-  considérer un champ ajouté/renommé comme terminé : `grep -rn` du nom du
-  type/champ sur TOUT le dépôt (`src/` ET `scripts/` ET `tests/`), pas
-  seulement le fichier qu'on vient d'éditer. Détail : [docs/03-developpeur/](docs/03-developpeur/),
-  « Conventions communes ».
+  l'accès reste parfaitement typé. Avant de considérer un champ
+  ajouté/renommé comme terminé : `grep -rn` du nom du type/champ sur TOUT le
+  dépôt (`src/` ET `scripts/` ET `tests/`). Détail :
+  [docs/03-developpeur/](docs/03-developpeur/), « Conventions communes ».
 
 ## Interface
 
@@ -85,10 +65,6 @@ ouvrir. Ne pas explorer `src/` à l'aveugle.
   tokens ([docs/03-developpeur/interface/](docs/03-developpeur/interface/)).
 - **Passe responsive en cours** — ne pas rustiner le mobile écran par écran.
 
-Détail complet des conventions produit (persistance, réglages, champs
-numériques, etc.) : [docs/03-developpeur/](docs/03-developpeur/), section « Conventions
-communes ».
-
 ## Vérifier
 
 Vérification standard avant de considérer un changement de code terminé,
@@ -101,81 +77,53 @@ node tests/run.mjs <filtre>       # SEULEMENT la zone touchée (ex. speed-tune)
 npm run build                     # Tailwind n'émet que ce qu'il trouve dans le SOURCE
 ```
 
-⚠️ **La suite complète ne se lance qu'avant une fusion sur `main` ou dans
-une branche `release/*`** :
+⚠️ **La suite complète (`npm test`) ne se lance qu'avant une fusion sur
+`main` ou dans une branche `release/*`**, et seulement là : pendant le
+travail, seule compte la zone touchée. Le filtre se compare au nom d'une
+vérification (registre : [tests/index.ts](tests/index.ts)) ;
+`node tests/run.mjs --depuis origin/<base>` (la branche dont on part) s'y
+ajoute et retient ce que touchent les fichiers modifiés. Détail :
+[tests/README.md](tests/README.md).
 
-```
-npm test                          # toutes les vérifications, rien de moins
-```
+⚠️ Une classe Tailwind « correcte » dans le TSX peut n'être **jamais émise** :
+quand un style ne s'applique pas, vérifier dans le **CSS construit**, pas
+dans le composant.
 
-Le filtre se compare au nom de la vérification, mis à plat (`speed-tune`,
-`speedtune` et `SpeedTune` marchent tous) ; sans argument, tout tourne. Le
-registre des noms vit dans [tests/index.ts](tests/index.ts), et un filtre qui ne
-correspond à rien échoue en listant ce qui existe — jamais en ne testant rien.
-⚠️ Lancer la suite entière à chaque changement coûte des minutes pour une
-information qu'on a déjà : ce qui compte pendant le travail, c'est la zone qu'on
-touche. Ce qui compte avant de fusionner, c'est **tout**.
-
-Pendant le travail, `node tests/run.mjs --depuis origin/<base>` (la branche
-dont on part) s'ajoute au filtre par nom, sans le remplacer : la sélection
-retient les tests touchés, dont ceux qui lisent `src/` comme du texte, et
-fait surtout gagner du temps hors de `src/`. La suite complète reste
-obligatoire avant une fusion sur `main` ou dans une branche `release/*`.
-
-⚠️ Une classe Tailwind « correcte » dans le TSX peut n'être **jamais émise**.
-Quand un style ne s'applique pas, vérifier dans
-le **CSS construit**, pas dans le composant. Pour un algorithme de
-recherche/optimisation combinatoire, voir en plus la checklist dédiée du skill
-`algo-verify` ; pour toute **mécanique de jeu** modélisée — règle déduite des
-données SWARFARM, table `*_CONNUS`, ou comportement supposé par ressemblance
-avec un autre effet — celle de `game-data-curation`, qui contient aussi la
-recette pour demander un relevé en jeu exploitable.
+Checklists dédiées : skill `algo-verify` pour un algorithme de
+recherche/optimisation combinatoire ; skill `game-data-curation` pour toute
+**mécanique de jeu** modélisée (règle déduite des données SWARFARM, table
+`*_CONNUS`, comportement supposé par ressemblance avec un autre effet).
 
 ## Branches et worktrees
 
 ⚠️ **Toute nouvelle branche part de `main` ou de la branche de release
 visée** (`git fetch origin && git switch -c forge/<sujet> origin/<base>`) ;
 elle fusionne dans la release, qui fusionne dans `main`. On ne travaille
-jamais sur `main` ni sur une release : on en part.
+jamais sur `main` ni sur une release : on en part. Nom : `forge/<sujet>`,
+jamais `release/x.y.z` — le numéro se décide à la fusion.
 
-- **Un hook `pre-commit` refuse cinq choses** : une erreur ESLint dans le
-  code indexé, un commit sur `main`, un
-  chemin privé dans l'index (`.history/`, `.vscode/`), un fichier de
-  plus de 5 Mo (un export de compte), et un `docs/**.md` du périmètre de
-  `scripts/spec-lint.json` qui ne passe pas `spec-lint` (niveau 1, invariant
-  dépôt — docs/03-developpeur/ § Refus du `pre-commit`).
-- **Un hook `commit-msg` refuse** un sujet hors de la forme
-  `type(portée): description`, un corps collé au sujet et un message qui
-  commence par un BOM (docs/03-developpeur/ § Message de commit).
-- Les deux hooks sont **installés par machine**, donc actifs quelle que soit la branche —
-  mais jamais requis : un clone sans `npm install` n'en a pas et commite
-  normalement. **`npm install` les installe** (script `prepare`, jamais en
-  CI, jamais vers une version plus ancienne que celle installée) ; à la main :
-  `node scripts/installer-hooks.mjs` (`--simulation` pour voir sans écrire).
-- **`--no-verify` reste possible en local, pas en CI** : sur chaque pull
-  request, `scripts/verifier-commits.mjs` rejoue `commit-msg` et
-  `pre-commit` sur chaque commit (docs/03-developpeur/
-  § Garde-fous rejoués en CI).
+Des hooks Git (`pre-commit`, `commit-msg`), installés par `npm install`,
+refusent au commit ce qui enfreint une règle mécanique (lint, commit sur
+`main`, fichier de plus de 5 Mo, message hors de la forme
+`type(portée): description`…), et la CI les rejoue sur chaque pull request.
+Ce qu'ils refusent et comment les installer :
+[docs/03-developpeur/qualite-code.md](docs/03-developpeur/qualite-code.md).
 
 ## Consignes pour l'agent (Claude Code)
 
 ### Un ledger de suivi et le fichier qu'il référence se mettent à jour ensemble
 
-**Un ledger de suivi (`pistes.md` et équivalents) et le fichier qu'il
-référence ne se mettent jamais à jour l'un sans l'autre.** Fermer une
-entrée dans le ledger sans corriger le statut dans le fichier source (ou
-l'inverse) laisse deux sources qui se contredisent.
+Fermer une entrée d'un ledger (`pistes.md` et équivalents) sans corriger le
+statut dans le fichier qu'elle référence, ou l'inverse, laisse deux sources
+qui se contredisent.
 
 ### Jamais de code entre guillemets doubles dans une commande shell
 
-Les messages de commit de ce dépôt citent du code entre backticks, et les
-scripts de diagnostic manipulent du JSX ou des gabarits. En bash, un backtick
-ou un `${}` dans une chaîne à **guillemets doubles** est EXÉCUTÉ, pas écrit.
-
-⚠️ **La contre-mesure n'est PAS « faire attention aux backticks ».** Une règle
-qui exige de repérer le danger échoue précisément quand on ne le repère pas.
-D'où deux défauts
-**mécaniques**, à appliquer sans examiner le contenu :
+En bash, un backtick ou un `${}` dans une chaîne à **guillemets doubles** est
+EXÉCUTÉ, pas écrit — et les messages de ce dépôt citent du code entre
+backticks. La contre-mesure n'est pas « faire attention » : une règle qui
+exige de repérer le danger échoue quand on ne le repère pas. D'où deux
+défauts **mécaniques**, appliqués sans examiner le contenu :
 
 - **Un message de commit ou d'étiquette passe toujours par un heredoc**,
   jamais par `-m` :
@@ -184,34 +132,19 @@ D'où deux défauts
   … message, backticks compris …
   FIN
   ```
-  (de même `git tag -a <nom> -F -`). `<<'FIN'` entre apostrophes = aucune
-  expansion. **Une fusion** prend `git merge --no-edit` (message par
-  défaut), ou `git merge -F <fichier>` écrit par l'outil `Write` :
-  `git merge -F -` ne lit pas l'entrée standard. **En PowerShell, pas de
-  here-string** : envoyé par un tube (`@'…'@ | git commit -F -`), il
-  glisse un BOM en tête du message, et passé en argument, git le prend
-  pour un chemin. Écrire le message dans un fichier (UTF-8 sans BOM, par
-  l'outil `Write`), puis `git commit -F <fichier>`.
+  (de même `git tag -a <nom> -F -`). Une fusion prend `git merge --no-edit`,
+  ou `git merge -F <fichier>` écrit par l'outil `Write` (`git merge -F -`
+  ne lit pas l'entrée standard). En PowerShell, pas de here-string : le
+  message s'écrit dans un fichier (UTF-8 sans BOM, outil `Write`), puis
+  `git commit -F <fichier>`.
 - **Un script ne se lance jamais en ligne** (`node -e "…"`) : il s'écrit dans
-  un fichier du scratchpad et se lance par son chemin. Vaut aussi pour un
-  fichier du dépôt à modifier — passer par l'outil `Edit`, pas par un `sed`
-  ou un `node -e` qui transporte le remplacement dans une chaîne shell.
-
-Ces deux défauts sont des conventions d'agent : aucun hook d'agent ne les
-applique, parce qu'une faute ici abîme la machine ou le travail de l'agent,
-pas le dépôt. Ce qui entre dans le dépôt est gardé par les hooks Git et la
-CI : `commit-msg` refuse notamment un message qui commence par un BOM
-(docs/03-developpeur/).
+  un fichier du scratchpad et se lance par son chemin. Un fichier du dépôt
+  se modifie par l'outil `Edit`, jamais par un `sed` ou un `node -e` qui
+  transporte le remplacement dans une chaîne shell.
 
 ### Windows : `TaskStop` ne tue pas le vrai process
 
-Pour libérer un port (ex. le serveur de dev bloqué par un process
-précédent), `TaskStop` ne termine que le wrapper/shell — le vrai
-`node.exe`/Vite reste à l'écoute. Contre-mesure systématique :
-```powershell
-Get-NetTCPConnection -LocalPort <port> -State Listen | Select-Object -ExpandProperty OwningProcess
-Stop-Process -Id <pid> -Force
-```
-Vérifier ensuite que le port est bien libre (`try { Get-NetTCPConnection
--LocalPort <port> -State Listen -ErrorAction Stop } catch { 'PORT_FREE' }`)
-avant de relancer `npm run dev`.
+`TaskStop` ne termine que le shell : le `node.exe` (Vite) reste à l'écoute
+du port. Libérer un port par le PID qui l'écoute, puis vérifier qu'il est
+libre avant de relancer (commandes : skill `run-swblacksmith`, « Serveur de
+dev »).

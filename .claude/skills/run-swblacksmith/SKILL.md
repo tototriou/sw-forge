@@ -50,12 +50,15 @@ curl -s -o /dev/null -w "%{http_code}" http://localhost:5173/   # attendre 200, 
 ```
 
 Pour arrêter/libérer le port avant de relancer (Windows — `TaskStop` seul
-ne tue pas le vrai process, voir CLAUDE.md à la racine) :
+ne termine que le shell, le `node.exe` de Vite reste à l'écoute) :
 
 ```powershell
 Get-NetTCPConnection -LocalPort 5173 -State Listen | Select-Object -ExpandProperty OwningProcess
 Stop-Process -Id <pid> -Force
+try { Get-NetTCPConnection -LocalPort 5173 -State Listen -ErrorAction Stop } catch { 'PORT_FREE' }
 ```
+
+Relancer `npm run dev` seulement après `PORT_FREE`.
 
 ## Run (chemin agent)
 

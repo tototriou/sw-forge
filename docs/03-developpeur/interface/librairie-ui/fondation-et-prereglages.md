@@ -33,10 +33,10 @@ pilule de catégorie (puce + nom + éditer + supprimer), une pilule de lead
 > agissent. Bénéfice au passage : aucune couture entre le bouton principal et ses
 > actions, là où trois boutons côte à côte laissent deux traits.
 
-> ⚠️ **UN SEUL MARQUEUR d'état : le fond.** Il cumulait fond + bordure teintée +
-> ombre — trois signaux pour dire une seule chose. Le bouton se surlignait deux
-> fois et bavait sur ses voisins. L'ombre part aussi : un bouton actif ne
-> **décolle** pas de la page, l'élévation est réservée à ce qui flotte.
+> ⚠️ **UN SEUL MARQUEUR d'état : le fond.** Fond + bordure teintée + ombre
+> feraient trois signaux pour dire une seule chose : le bouton se surlignerait
+> deux fois et baverait sur ses voisins. Pas d'ombre non plus : un bouton actif
+> ne **décolle** pas de la page, l'élévation est réservée à ce qui flotte.
 
 > ⚠️ Il pose `data-cible-fine` sur son bouton principal, et **c'est son cœur** :
 > sans lui, la règle tactile ne gonflerait pas ce bouton mais le **cadre** qui
@@ -44,9 +44,9 @@ pilule de catégorie (puce + nom + éditer + supprimer), une pilule de lead
 > sauf les actions.
 
 **`BoutonIcone`** — réduit à son icône. ⚠️ `libelle` est **obligatoire et jamais
-dessiné** : il alimente `aria-label` et `title` à la fois. L'app comptait une
-dizaine de boutons muets pour un lecteur d'écran ; le rendre obligatoire dans le
-type est la seule façon de ne plus avoir à y penser.
+dessiné** : il alimente `aria-label` et `title` à la fois. Un bouton d'icône
+sans libellé est muet pour un lecteur d'écran ; le rendre obligatoire dans le
+type est la seule façon de ne pas avoir à y penser.
 
 - `taille="serre"` n'est **pas « plus petit »**, c'est une **exemption tactile** :
   un bouton posé DANS un contenant plus petit que la cible de 40 px (les deux
@@ -66,34 +66,28 @@ type est la seule façon de ne plus avoir à y penser.
   ⚠️ Il pose `data-cible-fine` **et** `cible-tactile` **ensemble**, et c'est
   tout l'intérêt d'en faire un seul axe : le premier seul laisse la cible sous
   les 44 px réglementaires, le second seul laisse la règle globale étirer le
-  bouton en **ovale de 28 × 40**. Les séparer casse soit la visée, soit la forme
-  — c'est arrivé deux fois avant que l'axe existe.
-  ⚠️ **Incident réel, corrigé** : `zoneEtendue` posait `cible-tactile` sans que
-  l'élément soit `position: relative` — utilisé par `HelpPopover` (donc
-  quasiment partout dans l'app), ça a produit une zone tactile invisible de la
-  taille de LA PAGE ENTIÈRE (le référentiel du pseudo-élément remontait jusqu'à
-  `<body>`), interceptant clics/survols ailleurs sur l'écran. Corrigé à la
-  source (`.cible-tactile { position: relative }` dans `index.css`, plus
-  seulement sur `::after`) — voir [design/regles-transverses.md](../design/regles-transverses.md), section
-  « cible-tactile », pour le détail complet de l'incident et la mesure.
-- `forme` — **transmise, alors qu'elle était seulement annoncée.** L'en-tête du
-  composant dit depuis toujours que les axes du bouton restent ouverts, `forme`
-  comprise ; elle ne l'était pas, et se déduisait de `taille`. Un bouton d'icône
-  **rond de taille normale** était donc impossible sans réécrire son rayon
-  par-dessus. Défaut inchangé : `pilule` quand `serre`, `boite` sinon.
+  bouton en **ovale de 28 × 40**. Les séparer casse soit la visée, soit la
+  forme.
+  ⚠️ `cible-tactile` suppose un élément `position: relative` : la classe le
+  pose elle-même (`index.css`) — voir
+  [design/regles-transverses.md](../design/regles-transverses.md), section
+  « cible-tactile ».
+- `forme` — **transmise** : les axes du bouton restent ouverts, `forme`
+  comprise, et un bouton d'icône **rond de taille normale** est possible sans
+  réécrire son rayon par-dessus. Défaut : `pilule` quand `serre`, `boite`
+  sinon.
 - `auSurvol` — n'apparaît qu'au survol du conteneur (qui porte `group`).
   ⚠️ **JAMAIS `hidden group-hover:flex`** : l'élément sortirait du flux, donc ne
-  serait ni focusable au clavier ni atteignable au doigt — on ne pouvait plus
+  serait ni focusable au clavier ni atteignable au doigt — on ne pourrait pas
   retirer un monstre sur téléphone. On joue sur l'**opacité**, et il est visible
   d'office là où il n'y a pas de survol.
 - `libelleALaSouris` — **à la souris, le libellé s'écrit à côté de l'icône** :
   le carré devient un bouton `sm` à libellé (28 px, 10 px de côté). Au doigt,
-  l'icône seule, inchangée. Né au lot 7b de la refonte (Recommandations) : la
-  maquette écrit « Éditer ce deck » en pied du détail, le téléphone garde le
-  crayon. ⚠️ **Un seul élément, deux dessins** — et non une icône `lg:hidden`
+  l'icône seule (« Éditer ce deck » en pied du détail d'un deck, un crayon au
+  téléphone). ⚠️ **Un seul élément, deux dessins** — et non une icône `lg:hidden`
   plus un bouton `hidden lg:inline-flex` : deux éléments pour un geste, c'est
   deux cibles au clavier et deux annonces au lecteur d'écran.
   ⚠️ **À CADRE à la souris** (`.btn-secondary` : fond `panel`, contour
   `border`, survol `panel2` ; `danger` : contour et texte `bad`, survol
   `bad-soft`) — un bouton à libellé posé parmi d'autres boutons à libellé
-  doit leur ressembler. Nu, il ne ressortait pas (le mainteneur, 2026-09-27).
+  doit leur ressembler. Nu, il ne ressortirait pas.

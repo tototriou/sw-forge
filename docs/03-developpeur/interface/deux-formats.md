@@ -55,12 +55,12 @@ taille de l'écran. `compact:` vaut `@media (pointer: coarse)` — comme
 Deux raisons, toutes deux constatées :
 
 - **L'ORIENTATION ne doit rien changer.** Avec un seuil sur `sm`, un iPhone
-  basculait d'un rendu à l'autre en le tournant : 390 px en portrait, 844 en
-  paysage. Portraits, écarts et tailles changeaient d'un quart de tour, alors que
-  c'est le même téléphone dans la même main.
+  basculerait d'un rendu à l'autre en le tournant : 390 px en portrait, 844 en
+  paysage. Portraits, écarts et tailles changeraient d'un quart de tour, alors
+  que c'est le même téléphone dans la même main.
 - **La TABLETTE a la largeur d'un bureau mais les gestes d'un mobile.** Elle a
-  donc les mêmes besoins de densité, et un seuil en pixels la classait du mauvais
-  côté.
+  donc les mêmes besoins de densité, et un seuil en pixels la classerait du
+  mauvais côté.
 
 ⚠️ Un téléphone garde donc l'affichage resserré en paysage, **et** la navigation
 de bureau si sa largeur dépasse `lg`. Ce n'est pas une incohérence : ce sont deux
@@ -94,7 +94,7 @@ className="lg:hidden"               // navigation mobile seulement
 ```
 
 ⚠️ **La valeur de base est celle du BUREAU**, `compact:` porte celle du tactile —
-et non l'inverse. Le contraire (`gap-0.5 sm:gap-1`) lisait « petit par défaut,
+et non l'inverse. Le contraire (`gap-0.5 sm:gap-1`) se lirait « petit par défaut,
 grand si l'écran est large », ce qui redevient un raisonnement sur la largeur.
 
 Aucun rendu supplémentaire, aucun état. C'est la réponse à « le même élément,

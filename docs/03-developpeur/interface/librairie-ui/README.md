@@ -38,12 +38,8 @@ données Summoners War et suivent les codes du jeu, pas la règle du contour uni
 de 1 px. Ils vivent dans `src/components/`.
 
 Ils obéissent en revanche à la **même exigence d'unicité** : un rendu se dessine
-une fois. ⚠️ La fiche d'une **rune** et celle d'un **artéfact** étaient deux
-composants indépendants, écrits à six mois d'écart, et cela se voyait dès qu'on
-les ouvrait l'une après l'autre au même endroit — rareté en colonne d'un côté, en
-bandeau au-dessus de l'autre ; « Efficience 98,4 % » ici, une jauge et un nombre
-nu là ; deux largeurs, deux hauteurs, pour la même question. Elles partagent
-désormais une coquille unique
+une fois. ⚠️ La fiche d'une **rune** et celle d'un **artéfact** partagent une
+coquille unique
 ([PieceDetail.tsx](../../../../src/components/PieceDetail.tsx)) : cadre, en-tête
 (image, stat principale, rareté, mesure), bloc de lignes, pied. Ne reste propre à
 chaque pièce que **ce qu'elle a de différent** — la meule et la gemme d'un côté,

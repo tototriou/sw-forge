@@ -95,11 +95,10 @@ placements.
 ⚠️ **Attention à ce qui CONTIENT la cible.** Un panneau collé au bas de l'écran
 ne peut grandir que vers le haut : déplier quoi que ce soit dedans remonte tout
 son contenu, alors même que ce qui s'ouvre est bien placé — en dessous de ce
-qu'on a touché. C'est ce qui se passait en choisissant les monstres d'une
-catégorie RTA depuis « Options ». Le panneau lui-même était bon ; c'est le tiroir
-qui bougeait. **`MobileSheet` fige donc sa hauteur à l'ouverture** (mesure en
-`useLayoutEffect`) : le bord supérieur ne bouge plus, et un contenu qui grandit
-se lit en faisant défiler.
+qu'on a touché — par exemple en choisissant les monstres d'une catégorie RTA
+depuis « Options » : c'est le tiroir qui bougerait. **`MobileSheet` fige donc
+sa hauteur à l'ouverture** (mesure en `useLayoutEffect`) : le bord supérieur
+ne bouge pas, et un contenu qui grandit se lit en faisant défiler.
 
 ⚠️ **Ne pas confondre avec « le contenu ne change pas ».** Le contenu *doit*
 changer, et peut s'animer (voir plus haut) ; c'est la **géométrie autour de la
@@ -146,9 +145,9 @@ n'est pas le mot « supprimer » sur le bouton, c'est le coût de l'erreur.
 | « Tout effacer » (prépa, équipes, recommandations) | Tout le côté |
 | Effacer les données du compte | Tout |
 
-**Se DÉFAIT au lieu de se confirmer** (refonte graphique, lot 13, décision
-29 du mainteneur) — le geste se fait tout de suite, puis une **notification
-« … · Annuler »** le laisse revenir en arrière quelques secondes :
+**Se DÉFAIT au lieu de se confirmer** — le geste se fait tout de suite, puis
+une **notification « … · Annuler »** le laisse revenir en arrière quelques
+secondes :
 
 | Geste | Notification |
 |-------|--------------|

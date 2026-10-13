@@ -4,24 +4,22 @@ Partie de [Système visuel](README.md).
 
 ### Notification « Annuler »
 
-`src/ui/Notification.tsx` (refonte graphique, lot 13, décision 29, la
-maquette) — un fournisseur monté une fois par `App.tsx`, et `useNotifier()`
-pour annoncer un geste qui se défait (tableau plus haut).
+`src/ui/Notification.tsx` — un fournisseur monté une fois par `App.tsx`, et
+`useNotifier()` pour annoncer un geste qui se défait (tableau plus haut).
 
-- **À la souris, en bas à droite** (rebranding, décision 23 — la planche
-  « Retours et fenêtres » ; elle était centrée) ; **au téléphone, en bas,
+- **À la souris, en bas à droite** ; **au téléphone, en bas,
   centrée, au-dessus de la barre d'onglets et du bouton « Options »**,
   jamais dessous. Fond `panel2`, un cran au-dessus des cartes qu'elle
   survole. `role="status"` : un lecteur d'écran l'annonce sans voler le focus.
 - **Le message, « Annuler », et une croix** pour la fermer. « Annuler » est
-  le « fantôme » de la toile : texte braise, sans cadre. **6 secondes**,
+  un bouton fantôme : texte braise, sans cadre. **6 secondes**,
   puis elle s'en va ; le survol et le focus la retiennent tant qu'on y est.
 - **Une seule à la fois** : la suivante remplace la précédente, dont le
   geste devient alors définitif — deux notifications empilées se liraient
   comme deux choses à décider.
 - « Annuler » **restaure l'élément à sa place** (fonctions `restaurer*` des
   hooks, qui réinsèrent à l'index d'origine) puis ferme la notification.
-- **Deux axes nés de l'application de bureau** (voir
+- **Deux axes servent l'application de bureau** (voir
   [02-app/bureau/](../../../02-app/bureau/)) :
   - **le libellé de l'action** (`libelleAction`, « Annuler » par défaut ; le
     rappel s'appelle `action`) — « Nouvelle version 2.0.1 disponible ·
@@ -38,27 +36,27 @@ pour annoncer un geste qui se défait (tableau plus haut).
 
 ### Bloquer le défilement derrière un flottant
 
-⚠️ **Par `useScrollBloque`, jamais à la main.** Chaque composant mémorisait la
-valeur d'`overflow` à son ouverture pour la restaurer à sa fermeture. Avec un
-seul flottant, cela marche ; imbriqués, non :
+⚠️ **Par `useScrollBloque`, jamais à la main.** Un composant qui mémorise la
+valeur d'`overflow` à son ouverture pour la restaurer à sa fermeture marche
+seul ; imbriqués, non :
 
 1. le panneau d'actions s'ouvre, mémorise `''`, pose `hidden` ;
 2. une confirmation s'ouvre par-dessus, mémorise `hidden`, repose `hidden` ;
 3. on confirme — le panneau se ferme d'abord et restaure `''` ;
 4. le dialogue se ferme ensuite et restaure… `hidden`.
 
-La page restait bloquée, **sans qu'aucun flottant ne soit visible pour
+La page resterait bloquée, **sans qu'aucun flottant ne soit visible pour
 l'expliquer**. Le hook tient un compteur : le blocage tombe quand le dernier
-verrou est relâché, jamais avant, jamais après — et le résultat ne dépend plus de
-l'ordre de démontage.
+verrou est relâché, jamais avant, jamais après — et le résultat ne dépend pas
+de l'ordre de démontage.
 
 ### L'échelle des plans
 
 ⚠️ Deux éléments au **même `z-index`** se départagent par leur ordre dans le
-DOM — celui monté en dernier passe devant. C'est ainsi qu'une confirmation
-ouverte depuis le panneau d'actions se retrouvait **derrière lui** : tous deux à
-`z-50`, et le panneau monté après. On cliquait « Supprimer », rien ne semblait se
-produire, et le geste paraissait dépourvu de confirmation.
+DOM — celui monté en dernier passe devant. Une confirmation ouverte depuis le
+panneau d'actions, tous deux à `z-50`, se retrouverait **derrière lui** : on
+cliquerait « Supprimer », rien ne semblerait se produire, et le geste
+paraîtrait dépourvu de confirmation.
 
 | Plan | Niveau | Qui |
 |------|--------|-----|
@@ -95,7 +93,7 @@ le ramène dans l'écran :
 
 - **`left`, jamais `transform: translateX()`.** Une transformée déplace ce qu'on
   VOIT, mais la boîte de mise en page reste où elle était : le débordement
-  subsiste et la page garde son défilement latéral — le bug qu'on prétendait
+  subsiste et la page garde son défilement latéral — le défaut qu'on veut
   corriger. `left` déplace la boîte elle-même.
 - Le flottant doit donc porter **`left-0` explicite**. Sans ancrage horizontal
   posé (`left: auto`), une valeur négative ne décale pas : elle repositionne
@@ -138,15 +136,15 @@ pourquoi ils reviennent.
 ⚠️ **`maximum-scale=1` sur la balise `viewport`** ([index.html](../../../../index.html)).
 C'est là qu'est sa place, et deux tentatives précédentes ont montré pourquoi :
 
-| Tentative | Ce qu'elle donnait |
+| Autre réglage | Ce qu'il donnerait |
 |-----------|--------------------|
 | 16 px sur tous les champs, en permanence | Une barre de recherche qui écrit plus gros que le menu déroulant posé à côté — un même écran à deux échelles |
 | 16 px en `:focus` seulement | Le champ **change de taille sous le doigt** en s'activant, texte et cadre compris : ça se lit comme un défaut, pas comme une protection |
 
-Le seuil de 16 px contaminait une décision d'interface (la taille du texte) avec
-une contrainte de plateforme. Sorti du CSS, les champs de saisie se posent à
-**13 px** — la taille des menus déroulants voisins, un champ ne devant écrire ni
-plus gros ni plus petit qu'eux.
+Un seuil de 16 px en CSS mêle une décision d'interface (la taille du texte) à
+une contrainte de plateforme. Traité hors du CSS, il laisse les champs de
+saisie à **13 px** — la taille des menus déroulants voisins, un champ ne
+devant écrire ni plus gros ni plus petit qu'eux.
 
 ⚠️ **Le zoom à deux doigts reste possible.** Depuis iOS 10, Safari ignore cette
 restriction pour un geste de l'utilisateur et ne l'applique qu'au zoom qu'il
@@ -162,37 +160,37 @@ règle ne borne que le flux normal, pas ce qui en est sorti. `body` porte donc
 et `.sticky`.
 
 ⚠️ **`100vh` inclut la barre d'adresse**, qui se replie au défilement : la page
-devenait alors plus haute que l'écran, d'où un saut de mise en page à chaque
+deviendrait alors plus haute que l'écran, d'où un saut de mise en page à chaque
 changement de sens. Toutes les hauteurs de viewport sont en **`dvh`**, avec
 `vh` en repli pour les navigateurs qui l'ignorent.
 
 ⚠️ **`viewport-fit=cover` est obligatoire** dans le `<meta viewport>`. Sans lui,
 `env(safe-area-inset-*)` vaut **zéro** : toutes les gardes posées sur l'encoche
 ou sur la barre de geste sont alors inertes, sans que rien ne le signale. La
-barre supérieure passait ainsi sous l'encoche, et l'on ne pouvait pas remonter
+barre supérieure passerait sous l'encoche, et l'on ne pourrait pas remonter
 jusqu'aux premiers éléments de la page.
 
 ⚠️ La barre supérieure **descend sous l'encoche** (`height: calc(3rem +
 env(safe-area-inset-top))` + `padding-top`), et le dégagement du contenu suit.
-Une valeur fixe laissait le haut de la page sous la barre.
+Une valeur fixe laisserait le haut de la page sous la barre.
 
 
 
 ⚠️ **Le « tirer pour recharger » est CONSERVÉ** — c'est un geste attendu sur un
-téléphone. Il a été bloqué un temps parce qu'il se déclenchait *avant* que le
-contenu n'ait atteint le haut, mais c'était traiter le symptôme.
+téléphone. Le bloquer parce qu'il se déclenche *avant* que le contenu n'ait
+atteint le haut, ce serait traiter le symptôme.
 
-⚠️ Deux causes se cumulaient pour le déclencher trop tôt.
+⚠️ Deux causes le déclencheraient trop tôt.
 
 **La hauteur de `body` était en `dvh`** : cette unité suit la hauteur courante du
 viewport, donc elle **change** quand la barre d'adresse se replie ou se déplie.
 En remontant, la barre se déplie, `dvh` diminue et la page raccourcit sous le
 doigt — le défilement se retrouve poussé au-delà du haut.
 
-**La page ne pouvait pas défiler sous la barre supérieure.** Quand son contenu
+**La page doit pouvoir défiler sous la barre supérieure.** Quand son contenu
 tient dans l'écran, il n'y a rien à faire défiler : le navigateur est « en haut »
-dès le départ, et le moindre geste vers le bas déclenche le rechargement — avant
-même qu'on ait vu le premier bloc, qui se trouve pourtant **derrière la barre**.
+dès le départ, et le moindre geste vers le bas déclencherait le rechargement —
+avant même qu'on ait vu le premier bloc, qui se trouve pourtant **derrière la barre**.
 La hauteur minimale de `body` ajoute donc celle de la barre : il reste toujours
 de quoi remonter, et « en haut » signifie bien « je vois le début du contenu ».
 

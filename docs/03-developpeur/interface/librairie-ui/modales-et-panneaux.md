@@ -29,9 +29,9 @@ tant que la boîte peut contenir l’en-tête et le pied (fenêtre de 400 px de 
 et plus, vérifiée à 400 et 600 px) ; en deçà, l’en-tête et le pied, qui ne se
 compriment pas, peuvent dépasser la boîte.
 
-> ⚠️ **Le titre est rendu PAR la coquille**, pas écrit dans le contenu. Chaque
-> dialogue posait son propre `<h2>` avec sa taille et sa marge : quatre écrans,
-> quatre en-têtes légèrement différents. Il porte aussi l'`id` de `labelledBy`,
+> ⚠️ **Le titre est rendu PAR la coquille**, pas écrit dans le contenu : si
+> chaque dialogue posait son propre `<h2>`, quatre écrans auraient quatre
+> en-têtes légèrement différents. Il porte aussi l'`id` de `labelledBy`,
 > donc un lecteur d'écran annonce le bon titre sans que l'appelant ait à faire
 > correspondre les deux à la main.
 
@@ -41,7 +41,7 @@ compriment pas, peuvent dépasser la boîte.
 
 > ⚠️ **Les actions sont toujours en bas, et le pied ne défile pas.** C'est
 > l'objet de la structure en trois bandes : sur une fiche longue, des boutons
-> écrits dans le corps se retrouvaient au bout du défilement, là où personne ne
+> écrits dans le corps se retrouveraient au bout du défilement, là où personne ne
 > les cherche.
 
 > ⚠️ **Rangée taquée à droite par défaut ; empilée quand les libellés sont des
@@ -65,9 +65,9 @@ compriment pas, peuvent dépasser la boîte.
 > lire avant de décider — je l'avais déplacée, la fenêtre y a perdu.
 
 > ⚠️ **Le corps prend TOUTE la largeur de la boîte** (`[&>*]:w-full` sur ses
-> enfants directs). C'est la règle qui manquait : dans un conteneur flex en
+> enfants directs) : dans un conteneur flex en
 > colonne, un `<form>` ou un `<div>` ne prend que la largeur de son contenu — les
-> formulaires flottaient donc à gauche avec du vide à droite. Un contenu qui ne
+> formulaires flotteraient à gauche avec du vide à droite. Un contenu qui ne
 > *peut* pas s'étirer sans devenir laid (une image, une grille à pas fixe) passe
 > `corpsCentre` et se centre au lieu de s'étirer.
 
@@ -94,12 +94,10 @@ pages.
 `KeepAccountDialog`).
 
 > ⚠️ **Confirmation DESTRUCTIVE : l'action en aplat rouge, « Annuler » à
-> contour** (`ConfirmDialog` `destructif` ; rebranding, décision 22 — la
-> planche « Retours et fenêtres »). L'action était un `danger` doux et
-> « Annuler » une braise douce. Le focus initial reste sur « Annuler » : le
-> défaut ne perd jamais rien, l'aplat dit seulement ce que l'action coûte.
-> Encre sur l'aplat : `bad-ink`. Une confirmation NON destructive ne change
-> pas (action neutre pleine, « Annuler » en braise douce).
+> contour** (`ConfirmDialog` `destructif`). Le focus initial est sur
+> « Annuler » : le défaut ne perd jamais rien, l'aplat dit seulement ce que
+> l'action coûte. Encre sur l'aplat : `bad-ink`. Une confirmation NON
+> destructive a une action neutre pleine et « Annuler » en braise douce.
 
 > ⚠️ Sur une confirmation, **« Annuler » EST la sortie**. Une croix à côté ferait
 > deux portes pour un choix qui n'en a qu'une, et l'on hésiterait sur ce qu'elle
@@ -116,34 +114,31 @@ pages.
 > l'élément qui a ouvert la modale, la **fermeture à Échap**, et le **blocage du
 > défilement** de la page.
 >
-> Deux écrans la recopiaient au lieu de l'importer — le dialogue d'export RTA et
-> la question de conservation des données. Ils perdaient donc ces quatre-là
-> **en silence** : rien ne le signalait à l'écran, et sur la seule fenêtre de
-> l'app qui demande si l'on conserve ses données, c'est la pire des fenêtres à
-> pouvoir contourner par accident.
+> Une copie de la coquille, au lieu de l'import, perdrait ces quatre-là **en
+> silence** : rien ne le signalerait à l'écran — et sur la fenêtre qui demande
+> si l'on conserve ses données, c'est la pire des fenêtres à pouvoir
+> contourner par accident.
 
 > ⚠️ **`z-[70]` : au-dessus de tout, panneaux mobiles compris.** À `z-50`, une
-> confirmation ouverte depuis le panneau d'actions se retrouvait *derrière* lui —
-> on cliquait, rien ne semblait se produire, et le geste paraissait sans
-> confirmation. Une confirmation est le dernier mot de l'interface : rien ne se
-> met devant elle.
+> confirmation ouverte depuis le panneau d'actions se retrouverait *derrière*
+> lui — on cliquerait, rien ne semblerait se produire, et le geste paraîtrait
+> sans confirmation. Une confirmation est le dernier mot de l'interface : rien
+> ne se met devant elle.
 
-> ⚠️ Le voile est un **fondu seul**, sans flou. `KeepAccountDialog` portait un
-> `backdrop-blur-sm` que les autres n'avaient pas ; écart abandonné à la
-> migration — un seul dialogue floutant le fond se lisait comme un objet d'une
-> autre nature.
+> ⚠️ Le voile est un **fondu seul**, sans flou : un seul dialogue floutant le
+> fond se lirait comme un objet d'une autre nature.
 
 **`MobileSheet`** — panneau montant du téléphone. ⚠️ **Ce n'est pas une modale** :
 il coexiste avec la page, monte du bas, et se pose **sous** les dialogues dans
 l'échelle des `z-index`. Il porte son propre voile pour cette raison. Seul un
 panneau **feuille**, qui n'ouvre rien lui-même, passe devant les dialogues
 (`devantLesDialogues`, `z-[80]`) : l'aide « ? », ouverte depuis une `Modale`,
-restait sinon invisible derrière elle.
+resterait sinon invisible derrière elle.
 
 > ⚠️ **Portalisé dans `<body>`, comme la `Modale`.** Un MobileSheet peut s'ouvrir
 > DEPUIS un autre — l'aide « ? » ou le formulaire de catégorie, ouverts depuis le
 > panneau « Options ». Rendu en place, il hériterait des règles descendantes de
-> `[data-tiroir]` du panneau parent (`align-items: flex-start` rabotait son
+> `[data-tiroir]` du panneau parent (`align-items: flex-start` raboterait son
 > en-tête : barrette décentrée, croix collée au titre au lieu d'être poussée à
 > droite), et son `position: fixed` se calerait sur le `transform` du parent
 > plutôt que sur le viewport. Le portail le détache des deux — transparent pour
@@ -170,8 +165,8 @@ se voit **que** sur un téléphone, donc jamais pendant qu'on écrit le code.
 **`Vignette`** — case sélectionnable d'une grille (les monstres d'une catégorie).
 ⚠️ **La teinte vient de l'appelant.** C'est ce qui la distingue d'un bouton à
 état : la couleur de sélection est ici une **donnée** (la couleur de la catégorie
-qu'on remplit), pas une décision d'apparence. Trois écrans la recalculaient à la
-main, avec trois opacités différentes.
+qu'on remplit), pas une décision d'apparence. Calculée à la main dans chaque
+écran, elle aurait autant d'opacités que d'écrans.
 
 - Elle porte **le liseré ET le fond**, contrairement à la règle du marqueur
   unique : celle-ci vaut pour un état d'**interface**, alors qu'ici la teinte est

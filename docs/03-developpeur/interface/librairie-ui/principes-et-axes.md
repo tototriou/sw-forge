@@ -26,42 +26,35 @@ séparément et se combinent** :
 | `forme` | `boite`, `pilule` | Le **rayon des coins** |
 | `taille` | `xs`, `sm`, `md`, `carre` | L'**encombrement** |
 
-> ⚠️ **À la souris, le gabarit des boutons de la maquette** (refonte
-> graphique, décision 16 — « le même rendu que sur la maquette au niveau des
-> boutons ») : `md` = `.btn`, **32 px** de haut, 12 px de côté, 13 px de
-> texte ; `sm` = `.btn-sm`, **28 px**, 10 px, 12 px ; rayon 8 px. Un bouton
-> d'icône est un carré de la même hauteur : `BoutonIcone` = 28 px
-> (`.btn-icon.btn-sm`), le « ⋯ » d'en-tête = 32 px (`.btn-icon`).
-> `Segmented` = `.seg` : cadre de 32 px, crans de 26. `min-h` et non `h` :
-> un libellé qui passe à la ligne agrandit le bouton au lieu de déborder.
-> `xs` et `serre` restent hors échelle — ils vivent DANS un contenant plus
-> petit qu'elle. **Le survol peint le fond** : `panel2` (l'équivalent du
-> `--hover` de la maquette, même écart au panneau dans les deux thèmes) sur
-> un bouton neutre, `bad-soft` sur un `danger` sans fond — et plus le contour
-> d'accent, ni le voile noir propre à `BoutonIcone`. Au doigt, rien ne change
-> (lot 11) : tailles en `lg:`, survol en `hoverable:`.
+> ⚠️ **À la souris, le gabarit des boutons** : `md`, **32 px** de haut, 12 px
+> de côté, 13 px de texte ; `sm`, **28 px**, 10 px, 12 px ; rayon 8 px. Un
+> bouton d'icône est un carré de la même hauteur : `BoutonIcone` = 28 px, le
+> « ⋯ » d'en-tête = 32 px. `Segmented` : cadre de 32 px, crans de 26. `min-h`
+> et non `h` : un libellé qui passe à la ligne agrandit le bouton au lieu de
+> déborder. `xs` et `serre` restent hors échelle — ils vivent DANS un
+> contenant plus petit qu'elle. **Le survol peint le fond** : `panel2` (même
+> écart au panneau dans les deux thèmes) sur un bouton neutre, `bad-soft` sur
+> un `danger` sans fond — ni contour d'accent, ni voile noir. Au doigt :
+> tailles en `lg:`, survol en `hoverable:`.
 
-> ⚠️ **Les états de la toile, sans ses hauteurs** (rebranding, R3a — décisions
-> 17 et 21). Le bouton principal (`accent` + `plein`) prend le **survol**
-> `accent-hover` et l'**appui** `accent-appui` (le filtre `brightness-110`
-> disparaît) ; **désactivé**, il devient un aplat gris (`panel2`, encre
-> `ink-dimmer`) au lieu d'une braise à 40 % d'opacité, boueuse. Tout `Bouton`
-> **descend d'1 px** à l'appui (`data-bouton`, voir design/regles-transverses.md § Pression).
-> Les hauteurs restent les nôtres (28 / 32 au bureau, 40 au doigt), pas les
-> 36 / 44 / 52 de la toile : notre densité est gardée.
-> Le **« fantôme »** de la toile est `ton="accent"` + `fond="vide"` : texte en
-> braise lisible, fond braise sombre au survol (R3c). Personne n'employait
-> cette combinaison avant ; elle porte l'action d'une notification.
+> ⚠️ **Les états du bouton principal** (`accent` + `plein`) : **survol**
+> `accent-hover`, **appui** `accent-appui` ; **désactivé**, un aplat gris
+> (`panel2`, encre `ink-dimmer`) — une braise à 40 % d'opacité serait boueuse.
+> Tout `Bouton` **descend d'1 px** à l'appui (`data-bouton`, voir design/regles-transverses.md § Pression).
+> Hauteurs : 28 / 32 au bureau, 40 au doigt.
+> Le bouton **« fantôme »** est `ton="accent"` + `fond="vide"` : texte en
+> braise lisible, fond braise sombre au survol ; il porte l'action d'une
+> notification.
 > ⚠️ `active:!bg-accent-appui` et `disabled:!bg-panel2` portent un
 > `!important`, à dessein : les variantes du plugin (`hoverable:`) sont émises
 > APRÈS `active:` et `disabled:` dans le CSS construit, et le survol
-> l'emportait à spécificité égale — pas d'appui visible à la souris, une
-> braise qui se rallumait sur un bouton désactivé.
+> l'emporterait à spécificité égale — pas d'appui visible à la souris, une
+> braise qui se rallumerait sur un bouton désactivé.
 
 > ⚠️ **`fond` décide aussi de la COULEUR DU CONTENU**, pas seulement du
 > remplissage. Un bouton sans fond prend une icône qui vire à la teinte de son
 > ton au survol — juste sur une surface neutre. Sur un fond peint de cette même
-> teinte, cela donnait une **croix rouge sur fond rouge** : l'icône disparaissait
+> teinte, cela donnerait une **croix rouge sur fond rouge** : l'icône disparaîtrait
 > exactement au moment où on la vise. D'où trois cas de texte (`nu`, `doux`,
 > `plein`) et non deux, et d'où un `fond="plein"` **opaque** pour le ton
 > `danger` : c'est le cran des actions posées SUR autre chose, où un fond
@@ -70,9 +63,7 @@ séparément et se combinent** :
 > ⚠️ **`ton="accent"` + `fond="plein"` est le BOUTON PRINCIPAL** : un aplat
 > d'accent, texte `accent-ink` (blanc en Atelier, fond sombre en Forge —
 > mesurés, `../design/tokens-couleurs.md` § Accent). **Un seul par écran** : l'action qu'on vient
-> faire. Il valait `accent-soft` comme `doux` jusqu'à la refonte graphique
-> (décision 4 du mainteneur, 2026-09-24) — l'app n'avait aucun bouton principal
-> qui ressorte. `BoutonGroupe` suit la même règle.
+> faire, et la seule qui ressorte. `BoutonGroupe` suit la même règle.
 >
 > ⚠️ Corollaire : **ne jamais peindre un fond en `className`.** Le composant ne
 > peut pas le savoir, et choisit alors la couleur de contenu du fond nu.
@@ -81,8 +72,8 @@ séparément et se combinent** :
 > existe parce qu'un `p-0` posé en `className` par-dessus une taille qui
 > rembourre **ne marche pas de façon fiable** : l'ordre des classes dans
 > l'attribut ne décide de rien, c'est leur ordre dans la feuille de style qui
-> tranche. Les boutons-icônes s'affichaient vides — colorés, cliquables, sans
-> icône — parce que le `py-1` de la taille `sm` mangeait les 20 px de hauteur.
+> tranche. Les boutons-icônes s'afficheraient vides — colorés, cliquables, sans
+> icône — parce que le `py-1` de la taille `sm` mangerait les 20 px de hauteur.
 > Une annulation après coup marche ou ne marche pas selon ce que Tailwind a émis
 > en premier ; une taille à part ne peut pas entrer en conflit.
 
@@ -100,8 +91,8 @@ variantes nommées n'auraient pas couvert. Et surtout :
 > globale porte tout `<button>` à 40 px au doigt (voir `index.css`). Sur un
 > bouton qui vit dans une pilule, une carte ou une rangée dense, ce n'est pas lui
 > qui grandit : c'est **son contenant**, qui double de hauteur sans que rien dans
-> son propre code ne l'explique. La rangée des leads SPD y prenait deux fois la
-> place nécessaire, et le fautif était un bouton intérieur de 20 px.
+> son propre code ne l'explique. La rangée des leads SPD y prendrait deux fois
+> la place nécessaire, et le fautif serait un bouton intérieur de 20 px.
 >
 > La sortie est `data-cible-fine`, et elle se justifie à chaque fois : elle ne
 > s'emploie que si **la cible reste atteignable autrement** — parce que le
@@ -128,8 +119,8 @@ selon le contexte, ou à ce qu'il est :
 - **`actif`** — bouton à **deux états**. Il prend le fond de son ton et pose
   `aria-pressed` : sans quoi un lecteur d'écran annonce « bouton » là où
   l'utilisateur voit un interrupteur.
-- **`href`** — un **lien** au dessin de bouton (application de bureau, lot 6 :
-  « Télécharger pour Windows ») : rendu en `<a href>`, mêmes classes, même
+- **`href`** — un **lien** au dessin de bouton (« Télécharger pour
+  Windows ») : rendu en `<a href>`, mêmes classes, même
   appui (`[data-bouton]` d'`index.css`). Un téléchargement, une page externe
   sont des liens — on peut en copier l'adresse, le lecteur d'écran dit
   « lien ». ⚠️ Jamais un `<button onClick={() => location.href = …}>` : il

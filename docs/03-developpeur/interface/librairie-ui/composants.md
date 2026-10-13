@@ -10,8 +10,7 @@ Partie de [Librairie UI](README.md).
 quand elles tiennent sur la ligne, sinon les actions `toujours` + un `Menu`
 « ⋯ »** pour les `autres`. Les entrées sont les mêmes `ElementMenu` dans les
 deux formes (libellé, icône, désactivation et raison, `danger` rangé en
-dernier derrière un filet) : aucune action n'existe que dans l'une. Demandé par
-Le mainteneur (RTA, lot 6) : « sur PC, afficher ces boutons si on a la place ».
+dernier derrière un filet) : aucune action n'existe que dans l'une.
 ⚠️ **La place se MESURE** : une copie invisible et `inert` de la rangée complète
 est comparée à la largeur disponible, à chaque redimensionnement. Un point de
 rupture fixe se tromperait — la place dépend aussi de la barre latérale
@@ -19,21 +18,20 @@ rupture fixe se tromperait — la place dépend aussi de la barre latérale
 rendu, c'est le **menu** (la forme qui tient partout) ; le basculement se fait
 dans un `useLayoutEffect`, avant la première peinture. Tous ses boutons ont la
 hauteur d'en-tête (`HAUTEUR_EN_TETE`).
-Un axe d'entrée en plus de `danger` (lot 7a, Siège) : **`actif`** — un
+Un axe d'entrée en plus de `danger` : **`actif`** — un
 bouton à deux états (`aria-pressed`, fond d'accent enclenché), qui devient une
 entrée à cocher (`menuitemcheckbox`) s'il tombe dans le menu.
 ⚠️ **Pas d'axe « principal »** : aucune action n'est mise en avant dans un
-en-tête d'écran. Un aplat d'accent a été essayé sur « Vérifier mes speed » et
-retiré par le mainteneur (« ça rend pas bien ») — décision 4 précisée.
+en-tête d'écran.
 
 #### `Menu`
 
 **`Menu`** — un bouton « ⋯ » (nommé par `libelle`) qui ouvre sous lui,
 ancrée à droite, une liste d'actions (`Flottant`, `role="menu"`).
 ⚠️ **Le « ⋯ » a la hauteur des boutons d'EN-TÊTE, 36 px au doigt, 32 px à
-la souris** (`HAUTEUR_EN_TETE`, exportée ; 32 = un bouton `md`, décision 16) — pas les 28 px d'un `BoutonIcone` : posé à côté
-d'un bouton d'action (« Exporter » dans la RTA), il faisait deux hauteurs
-voisines, lues comme deux familles de boutons (relevé par le mainteneur). Les
+la souris** (`HAUTEUR_EN_TETE`, exportée ; 32 = un bouton `md`) — pas les 28 px d'un `BoutonIcone` : posé à côté
+d'un bouton d'action (« Exporter » dans la RTA), il ferait deux hauteurs
+voisines, lues comme deux familles de boutons. Les
 boutons voisins s'y alignent en reprenant la constante. C'est un `Bouton`
 carré dimensionné, pas un `BoutonIcone` dont on écraserait le `h-7` : deux
 hauteurs dans la même classe, l'ordre de la feuille de style trancherait. Chaque entrée : icône, libellé, `disabled` + `title` pour dire
@@ -43,12 +41,12 @@ focus au bouton), Tab referme ; un clic dehors aussi.
 ⚠️ **Les entrées restent dans le DOM, menu fermé** (`hidden`) : un bouton ne
 quitte jamais le DOM selon l'état de l'écran, et c'est ce qui laisse les tests
 de rendu retrouver chaque action, son état et sa raison.
-⚠️ **Monté à son PREMIER usage** (la RTA, refonte graphique lot 6, décision
-13), contre la règle du deuxième (« Quand ajouter quelque chose ») : l'écrire
-dans l'écran aurait fait un contrôle MAISON — ce que la règle qui gouverne tout
-le reste interdit — et les maquettes en posent un dans plusieurs écrans.
-**Deux axes** nés de la carte du compte (application de bureau, lot 9 : le
-choix de l'invocateur « au niveau du menu principal ») : `declencheur` — le
+⚠️ **Monté à son PREMIER usage**, contre la règle du deuxième (« Quand ajouter
+quelque chose ») : l'écrire dans l'écran en ferait un contrôle MAISON — ce que
+la règle qui gouverne tout le reste interdit — et plusieurs écrans en posent
+un.
+**Deux axes** servent la carte du compte (le choix de l'invocateur) :
+`declencheur` — le
 bouton qui ouvre le menu, quand ce n'est pas le « ⋯ » ; il reçoit ce qu'il doit
 poser sur son bouton (`ref`, `aria-haspopup`, `aria-expanded`,
 `aria-controls`, `onClick`), et le menu prend alors toute la largeur ; `cote`
@@ -56,10 +54,8 @@ poser sur son bouton (`ref`, `aria-haspopup`, `aria-expanded`,
 en tête de barre latérale). Une entrée `actif` (`menuitemcheckbox`) ne se
 dessine pas cochée d'elle-même : l'appelant met la coche en icône.
 
-⚠️ **Pas de `Deroulant` (filtre fermé dans un menu)** : ajouté au lot 8a pour
-les filtres des runes (la maquette), puis retiré le même jour, sans autre
-usage — le mainteneur n'a voulu aucun filtre fermé dans un menu (« sors tout des
-boutons »). Un filtre fermé ne dit pas ce qu'il filtre sans qu'on l'ouvre.
+⚠️ **Pas de `Deroulant` (filtre fermé dans un menu)** : un filtre fermé ne dit
+pas ce qu'il filtre sans qu'on l'ouvre.
 Voir [02-app/compte/feat-runes/filtres-set-et-slot.md](../../../02-app/compte/feat-runes/filtres-set-et-slot.md) § Filtrer par set.
 
 #### `Champ`
@@ -169,18 +165,16 @@ seule enfoncée. À préférer à une rangée de pastilles quand les options
 **s'excluent** : des pastilles indépendantes se lisent comme des filtres
 cumulables, rien dans leur forme ne dit qu'en activer une désactive les
 autres — le cadre commun le dit sans un mot. L'option enfoncée est un
-**aplat de braise**, texte `accent-ink` (rebranding, décision 19 ; fond
-d'accent doux avant).
+**aplat de braise**, texte `accent-ink`.
 
 > ⚠️ **Il se resserre TOUT SEUL** (`dense` laissé à `undefined`, le défaut) :
 > le contrôle mesure la place qu'il reçoit **réellement** et bascule en texte/
-> rembourrage réduits uniquement quand il déborderait. Ce fut d'abord un
-> `dense={etroit}` piloté par un seuil de **fenêtre**
-> (`useMediaQuery(SOUS_SM)`, 639 px) — faux dès qu'un contrôle vit dans une
-> colonne qui partage son espace avec un voisin : un sélecteur à 4 options
-> longues débordait sur un écran **1080p** sans que le seuil ne se déclenche
-> jamais, la fenêtre étant large alors que sa colonne ne l'était pas. La
-> largeur de la FENÊTRE ne dit rien de la largeur d'un CONTENEUR.
+> rembourrage réduits uniquement quand il déborderait. Un `dense` piloté par
+> un seuil de **fenêtre** (`useMediaQuery(SOUS_SM)`, 639 px) serait faux dès
+> qu'un contrôle vit dans une colonne qui partage son espace avec un voisin :
+> un sélecteur à 4 options longues déborderait sur un écran **1080p** sans que
+> le seuil se déclenche, la fenêtre étant large alors que sa colonne ne l'est
+> pas. La largeur de la FENÊTRE ne dit rien de la largeur d'un CONTENEUR.
 >
 > ⚠️ **Pourquoi une copie de mesure invisible, et pas `scrollWidth` du contenu
 > réel** : une fois resserré, le contenu réel ne déborde plus — on repasserait
@@ -205,17 +199,14 @@ fois.
 > ⚠️ **Distincte d'un `Bouton actif`.** Un bouton à état signale un MODE ou une
 > option et se lit seul ; une pastille POSE UN FILTRE et se lit en rangée. La
 > forme serrée (pilule `text-xs`) et l'usage (une grille de critères) en font une
-> brique à part — c'est celle que `Bouton` annonçait en tête (« toute pression
-> qui n'est pas une pastille de filtre passe par ici ») avant qu'elle existe.
+> brique à part.
 
 > ⚠️ **Un seul marqueur d'état, deux schémas jamais mêlés dans une rangée.** Sans
 > `couleurs`, l'état actif prend le marqueur de filtre de l'app — c'est le cas de
 > filtres qui n'ont pas de couleur propre (Nat, Doublons, 2A) : un seul style les
 > rassemble, là où trois surbrillances se liraient comme trois natures de filtre.
 > Ce marqueur est la **couleur d'accent teintée** (contour d'accent, fond
-> `accent-soft` — le « braise sombre » de la toile depuis le rebranding,
-> décision 20, sans sa coche ; refonte graphique, décision 9 du mainteneur,
-> 2026-09-24 — la couleur inversée, essayée d'abord, a été écartée) et vit dans une constante
+> `accent-soft`, une braise sombre) et vit dans une constante
 > exportée, `MARQUEUR_FILTRE_ACTIF` : les filtres qui ne passent pas par
 > `Pastille` (sets, emplacements, étoiles du Bestiaire) l'importent, pour porter
 > EXACTEMENT le même.
@@ -267,15 +258,15 @@ lignes de description, une icône centrée verticalement flotte en face de rien.
   le titre et la description (`aria-labelledby`, qu'un `aria-hidden` empêche
   d'être lus une seconde fois) ; l'action, posée après lui et positionnée sans
   `z-index`, passe devant. Cliquer l'action ne choisit pas l'option ; partout
-  ailleurs la case se choisit comme avant, et elle s'enfonce à l'appui de son
+  ailleurs la case se choisit, et elle s'enfonce à l'appui de son
   seul bouton principal (`:has(> button:active)` — `:active` gagne aussi les
   ancêtres, l'action ferait sinon enfoncer la case).
   ⚠️ **L'action reste vive quand l'option est désactivée** (un sort refusé
   garde le « ? » de sa prose) : seuls l'icône, le titre et la description
   s'estompent, et le cadre prend l'opacité du `<button>` désactivé par ses
   couleurs (`border-border/40 bg-panel2/40`) — une opacité sur le cadre
-  estomperait aussi l'action. **Sans action, l'option reste le `<button>`
-  d'avant, au caractère près.**
+  estomperait aussi l'action. **Sans action, l'option est un simple
+  `<button>`.**
 
 #### `Flottant`
 
@@ -284,8 +275,7 @@ popup d'édition, formulaire ancré, liste de résultats d'une recherche.
 
 > ⚠️ **C'est la seule chose de l'app qui ait droit à une OMBRE.** L'élévation dit
 > « je suis au-dessus, et je vais repartir » — ce qui est faux d'un bouton actif
-> ou d'une carte sélectionnée, qui appartiennent à la page. Trois écrans
-> recopiaient les mêmes `shadow-glow shadow-black/60`.
+> ou d'une carte sélectionnée, qui appartiennent à la page.
 
 > ⚠️ **Le `z-index` est un ORDRE, pas un nombre libre.** L'échelle de l'app —
 > contenu → barre du haut (20) → **flottants (30)** → onglets mobiles (40) →
@@ -326,9 +316,8 @@ gardant la surface ancrée à ce qui l'a ouverte.
 
 > ⚠️ **Sans rembourrage par défaut** (`rembourrage="aucun"`), à la différence
 > de `Flottant` : il sert aussi aux LISTES, dont les entrées touchent le bord.
-> Un TEXTE posé dedans demande donc `rembourrage="md"` — la bulle d'aide
-> `HelpPopover` l'oubliait, son texte collait au cadre (lot 8a de la refonte,
-> capture du mainteneur). Un texte LONG demande aussi une hauteur bornée avec
+> Un TEXTE posé dedans demande donc `rembourrage="md"`, sans quoi il colle au
+> cadre. Un texte LONG demande aussi une hauteur bornée avec
 > défilement (`max-h-[…] overflow-y-auto`), sans quoi il sort de l'écran par
 > le bas. `HelpPopover` pose les deux, et détache son titre (13 px, filet
 > dessous) du corps (12 px).
@@ -336,16 +325,16 @@ gardant la surface ancrée à ce qui l'a ouverte.
 > ⚠️ Pour ce qui est ancré à un élément **dont la position varie** : une tuile
 > dans une grille, une carte de monstre, un badge au bout d'une ligne. Ces ancres
 > vont jusqu'aux bords de la page, et un flottant posé toujours du même côté s'y
-> trouvait coupé — exactement là où l'on venait de cliquer pour lire quelque
+> trouverait coupé — exactement là où l'on vient de cliquer pour lire quelque
 > chose.
 
 > ⚠️ **Le côté seul ne suffit pas près d'un bord.** Ancrée à un élément étroit
 > (une tuile de la grille à deux colonnes du téléphone), une surface large alignée
 > sur un côté déborde de l'AUTRE, que `html { overflow-x: hidden }` coupe : le
-> détail de rune de l'onglet Optimisation devenait invisible au doigt. `FlottantAuto`
+> détail de rune de l'onglet Optimisation deviendrait invisible au doigt. `FlottantAuto`
 > mesure donc sa boîte réelle (`maxWidth: 90vw` compris) et **borne sa position
 > horizontale à l'écran** via un `left` explicite. Sans débordement — le cas du
-> bureau — la position calculée est **identique** à l'ancien `left-0`/`right-0` :
+> bureau — la position calculée est **celle** d'un `left-0`/`right-0` :
 > le bornage n'agit que quand la surface sortirait, il ne change rien ailleurs.
 
 > ⚠️ **Distinct de `useRecalageEcran`**, qui *tire* une surface débordante vers
@@ -355,8 +344,8 @@ gardant la surface ancrée à ce qui l'a ouverte.
 > côté (le formulaire de catégorie, ancré à sa pilule).
 
 > ⚠️ `useLayoutEffect` et non `useEffect` : la mesure doit précéder la peinture.
-> Avec `useEffect`, la surface apparaissait un instant du mauvais côté puis
-> sautait — un scintillement d'une frame, mais visible.
+> Avec `useEffect`, la surface apparaîtrait un instant du mauvais côté puis
+> sauterait — un scintillement d'une frame, mais visible.
 
 #### `Modale`
 
@@ -365,19 +354,18 @@ au clic extérieur et à Échap. `ConfirmDialog`, `PromptDialog` et
 `KeepAccountDialog` en dérivent.
 
 > ⚠️ **Elle est montée dans `<body>` par un portail, jamais là où elle est
-> écrite.** C'est ce qui manquait, et le bug était instructif : sur téléphone, une
-> modale s'ouvre souvent depuis le panneau « Options », dont le contenu porte
-> `data-tiroir`. La règle `[data-tiroir] .flex-col { align-items: flex-start }`,
-> écrite pour aligner les boutons empilés du panneau, tombait donc sur la boîte de
-> la modale — son en-tête, son corps et son pied se rétrécissaient sur leur
-> contenu. La croix se collait au titre, les champs n'atteignaient plus le bord,
-> les boutons restaient à gauche.
+> écrite.** Sur téléphone, une modale s'ouvre souvent depuis le panneau
+> « Options », dont le contenu porte `data-tiroir`. Sans portail, la règle
+> `[data-tiroir] .flex-col { align-items: flex-start }`, écrite pour aligner
+> les boutons empilés du panneau, tomberait sur la boîte de la modale — son
+> en-tête, son corps et son pied se rétréciraient sur leur contenu : la croix
+> collée au titre, les champs loin du bord, les boutons à gauche.
 >
-> **Trois symptômes, une cause, et rien dans le code de la modale ne pouvait
-> l'expliquer** puisque la règle venait d'un ancêtre. `position: fixed` ne protège
-> pas de cela : il détache la **position**, pas l'héritage des sélecteurs
-> descendants. Seul un portail sort du sous-arbre.
+> **Trois symptômes, une cause, et rien dans le code de la modale ne pourrait
+> l'expliquer** puisque la règle vient d'un ancêtre. `position: fixed` ne
+> protège pas de cela : il détache la **position**, pas l'héritage des
+> sélecteurs descendants. Seul un portail sort du sous-arbre.
 >
-> Le portail règle deux autres pièges au passage : plus de contexte d'empilement
-> parent qui puisse coincer le `z-index`, et plus de découpage par un
-> `overflow: hidden` d'ancêtre.
+> Le portail règle deux autres pièges au passage : aucun contexte d'empilement
+> parent ne peut coincer le `z-index`, et aucun `overflow: hidden` d'ancêtre
+> ne découpe la modale.

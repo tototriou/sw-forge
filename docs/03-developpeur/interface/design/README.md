@@ -8,10 +8,9 @@
 > **Source de vérité** pour toute décision d'apparence. Une valeur qui n'est pas
 > ici n'a pas à être écrite en dur dans un composant.
 
-Ce document est né d'un constat : il n'existait aucune spec de design, et
-l'interface le montrait — **248 couleurs en dur** dans le TSX, **21 tailles de
-texte** de 9 px à 76 px, **aucune règle de focus**. Chaque composant réarbitrait
-au pixel ce qu'aucun document ne fixait.
+Sans système visuel écrit, chaque composant réarbitre au pixel ce qu'aucun
+document ne fixe : couleurs en dur, tailles de texte sans échelle, aucune
+règle de focus.
 
 ## Le changement touche…
 

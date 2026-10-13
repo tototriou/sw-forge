@@ -12,12 +12,11 @@ Partie de [Librairie UI](README.md).
 Et l'inverse est vrai : **tout ne monte pas**. Restent délibérément hors
 librairie —
 
-- **Rien.** Cette liste a compté jusqu'à six entrées ; elle est vide. Chacune se
-  ramenait à un manque de la librairie, pas à une singularité de l'écran :
-  l'interrupteur d'affichage voulait un accent inversé (`actif={!actif}`), la
-  pilule de lead une teinte du jeu (`classNameActif`), la palette un marqueur en
-  anneau (`Vignette aplat`), le badge de désync et la relique des tons qui
-  n'existaient pas (`alerte`, `precieux`), les surfaces de carte un composant
+- **Rien.** Chaque exception envisagée se ramène à un manque de la librairie,
+  pas à une singularité de l'écran : un interrupteur d'affichage veut un
+  accent inversé (`actif={!actif}`), la pilule de lead une teinte du jeu
+  (`classNameActif`), la palette un marqueur en anneau (`Vignette aplat`), le
+  badge de désync un ton (`alerte`), les surfaces de carte un composant
   volontairement nu (`ZoneCliquable`).
 - **Sauf ce qui n'est pas un contrôle** : un `<input type="file">` masqué, qui
   n'est jamais dessiné — c'est un déclencheur technique, pas un bouton. C'est le

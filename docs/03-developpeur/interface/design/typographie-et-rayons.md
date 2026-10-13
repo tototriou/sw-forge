@@ -10,14 +10,12 @@ Partie de [Système visuel](README.md).
 | `font-body` | **Source Sans 3** | Tout le texte, **libellés compris** | défaut |
 | `font-mono` | **JetBrains Mono** | **Chiffres uniquement** | ~96 |
 
-Source Sans 3 remplace Inter au rebranding (R1), comme dans la toile ; les
-**tailles** ne bougent pas (décision 7 : le corps de 17 px de la charte vaut
-pour elle, pas pour la densité de nos listes).
+Le texte est en Source Sans 3. Les tailles sont réglées sur la densité des
+listes de l'app (corps de 15 px).
 
 ⚠️ **Une quatrième police, hors de ce système : `font-marque` (Saira 700)**,
 le NOM de l'app et rien d'autre — dans le logo (`Logo.tsx`, `CLASSE_NOM` :
-capitales espacées) et le héros de l'accueil. Choisie par le mainteneur avec la
-nouvelle identité de logo (rebranding R2 bis, décision 24). Les titres restent
+capitales espacées) et le héros de l'accueil. Les titres restent
 en Cinzel : Saira n'est pas une police de titre, c'est la signature.
 
 ⚠️ **La mono ne sert qu'à ce qui s'aligne.** Efficiences, vitesses, ticks,
@@ -36,10 +34,9 @@ Le motif `font-mono text-[11px] tracking-[0.1em] uppercase text-ink-dim` était
 répété **55 fois**, à sept tailles différentes. Il devient la classe `.label`.
 
 ⚠️ **Dans la police du texte, pas en mono.** Une mono en capitales espacées
-est large et molle à 11 px — c'est ce qui donnait cette impression de flou dans
-les zones denses. Une linéale en demi-gras est plus nette et plus compacte à
-taille égale. `.label` lit `theme('fontFamily.body')` : Inter jusqu'au
-rebranding, Source Sans 3 depuis, sans rien réécrire.
+est large et molle à 11 px, et donne une impression de flou dans les zones
+denses. Une linéale en demi-gras est plus nette et plus compacte à taille
+égale. `.label` lit `theme('fontFamily.body')`.
 
 ### Échelle typographique — plancher à 11 px
 
@@ -54,19 +51,18 @@ rebranding, Source Sans 3 depuis, sans rien réécrire.
 | `xl` | `clamp(22px, 3vw, 30px)` | Titre de page |
 
 ⚠️ **`md` n'est pas un cran de l'échelle générale.** Il existe pour une seule
-raison : la barre latérale du **bureau** se lisait serrée à 13 et trop appuyée à
-15 — une colonne de neuf entrées qu'on parcourt du regard, pas du texte de
-lecture. Il a été **ajouté à l'échelle** plutôt que posé en `text-[14px]` sur
-place : une valeur en dur aurait été hors système, et la première d'une série,
-puisque le cran manquant le serait resté.
+raison : la barre latérale du **bureau** se lirait serrée à 13 et trop appuyée
+à 15 — une colonne de neuf entrées qu'on parcourt du regard, pas du texte de
+lecture. Il est **dans l'échelle** plutôt que posé en `text-[14px]` sur
+place : une valeur en dur serait hors système, et la première d'une série,
+puisque le cran manquerait toujours.
 
 ⚠️ **Ne pas s'en servir pour du corps de texte.** Entre `sm` et `base`, il cale
 une densité, il ne marque pas un niveau d'information : deux blocs voisins en
 `sm` et `md` se liraient comme une hésitation, pas comme une hiérarchie.
 
-⚠️ **Plancher à 11 px, sans exception.** Les `text-[9px]` et `text-[10px]`
-existants remontent à 11 px. En dessous, l'écart ne crée pas de hiérarchie : il
-crée du flou.
+⚠️ **Plancher à 11 px, sans exception** : ni `text-[9px]` ni `text-[10px]`. En
+dessous, l'écart ne crée pas de hiérarchie : il crée du flou.
 
 ⚠️ **Pas de demi-pixel.** Les paliers 10.5, 11.5, 12.5, 13.5 et 14.5 px
 disparaissent. Un écart de 0,5 px entre deux libellés voisins ne se lit pas comme
@@ -100,10 +96,8 @@ Pas de dégradé sur un titre : l'encre est unie.
 | `radius-xl` | `rounded-xl` | 14 px | Carte, panneau |
 | `radius-2xl` | `rounded-2xl` | 20 px | Fenêtre : dialogue, panneau mobile |
 
-**Les mêmes dans les deux thèmes** (refonte graphique). Forge assumait
-jusque-là l'angle vif (4 / 6 px) ; il l'abandonne pour un rendu d'application
-plus doux, commun aux deux thèmes. Les valeurs sont celles de la toile depuis
-le rebranding (R1) ; elles valaient 6 / 8 / 12 / 14.
+**Les mêmes dans les deux thèmes**, pour un rendu d'application doux, sans
+angle vif.
 
 ⚠️ **`rounded-xl` et `rounded-2xl` sont REDÉFINIS** dans `tailwind.config.js`.
 C'étaient les valeurs figées de Tailwind (12 et 16 px), hors tokens : une

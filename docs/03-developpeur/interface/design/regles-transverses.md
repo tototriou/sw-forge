@@ -40,7 +40,7 @@ luminosité est déjà portée par le thème (`--warn` vaut `217 164 65` en somb
 `138 87 12` en clair). Garder trois nuances reproduirait le problème.
 
 ⚠️ **Les aplats sémantiques sont à /10, jamais à /5.** Sur fond clair, un aplat à
-5 % ne se distingue pas du panneau — l'aura d'une équipe hors tick disparaissait.
+5 % ne se distingue pas du panneau — l'aura d'une équipe hors tick disparaîtrait.
 
 ⚠️ **Pas de halo en `rgba()` figé.** Un `shadow-[0_0_20px_rgba(245,158,11,.65)]`
 est un halo orange vif : correct sur fond sombre, criard sur fond clair. Utiliser
@@ -89,7 +89,7 @@ n'indique par où sortir, et on cherche.
   **est** la sortie. Une croix à côté ferait deux portes pour une décision qui
   n'en a qu'une, et on hésiterait sur ce qu'elle ferme — abandon, ou simple
   fermeture ?
-- ⚠️ **Nue** — ni cadre, ni fond. Encadrée, elle se lisait comme un **bouton
+- ⚠️ **Nue** — ni cadre, ni fond. Encadrée, elle se lirait comme un **bouton
   d'action de plus**, au même rang que ce qu'on est venu consulter. Le symbole
   se reconnaît seul et s'éclaircit au survol. Seule une **ombre portée** reste :
   sans fond, la croix passe devant le contenu qui défile dessous, et un trait
@@ -99,7 +99,7 @@ n'indique par où sortir, et on cherche.
   exactement au moment où on la cherche. Hauteur nulle (`h-0`) et décalages
   négatifs : elle se pose dans le padding sans pousser le contenu d'une ligne.
 - Elle vit **dans la coquille**, pas dans chaque fiche : posée au cas par cas,
-  elle aurait fini à trois endroits différents selon la modale.
+  elle finirait à trois endroits différents selon la modale.
 
 ### Les deux bandes d'une modale : un trait, et seulement s'il dit quelque chose
 
@@ -152,10 +152,10 @@ sur une rangée de filtres serrée on active le **voisin**.
   les couleurs. Une interface qui se réécrit au doigt devient une autre
   interface, et on ne retrouve plus ce qu'on connaît.
 - ⚠️ Les boutons **carrés** (icône seule) portent `aspect-square` et gagnent
-  aussi en largeur : agrandis en hauteur seulement, ils devenaient des
+  aussi en largeur : agrandis en hauteur seulement, ils deviendraient des
   rectangles avec l'icône flottant dans un vide vertical.
 - ⚠️ **Un bouton qui perd son libellé sous `sm` perd aussi son CADRE.** Il
-  devient une icône nue : ni bordure, ni fond. Le cadre était dimensionné pour un
+  devient une icône nue : ni bordure, ni fond. Le cadre est dimensionné pour un
   mot qui n'est plus là — gardé, il fait un rectangle vertical où l'icône flotte ;
   rendu carré, il déclenche les 40 px de la règle tactile et l'on obtient six
   gros carrés dans une barre qu'on cherchait à compacter.
@@ -171,13 +171,13 @@ sur une rangée de filtres serrée on active le **voisin**.
   02-app/transverse/feat-navigation/panneau-actions-mobile.md) : la règle `[data-tiroir] button.aspect-square` relâche alors la
   contrainte de forme, sinon le mot déborderait d'un carré. Le marqueur est
   `aspect-square` et non `.h-8` — un sélecteur sur le nom de classe Tailwind
-  aurait cassé au premier ajustement de taille.
+  casserait au premier ajustement de taille.
 #### Le nom du monstre est la RÉFÉRENCE
 
 ⚠️ Sur une carte de monstre, **rien ne doit peser plus lourd que son nom** sauf
 la valeur principale — et celle-ci reste dans un rapport de **1,3** avec lui, pas
-davantage. À 2,2 (26 px contre 12), la vitesse était le seul élément qu'on
-voyait ; le reste de la carte devenait un décor.
+davantage. À 2,2 (26 px contre 12), la vitesse serait le seul élément qu'on
+verrait ; le reste de la carte deviendrait un décor.
 
 ⚠️ Les **capitales espacées** pèsent plus lourd que leur taille ne le dit :
 `.label` à 11 px avec `letter-spacing: 0.08em` occupe autant qu'un mot de 13 px
@@ -193,8 +193,8 @@ dessous, on ne lit plus.
 
 ⚠️ **Ce qui compte n'est pas la taille du texte mais la HAUTEUR DU BLOC.** Le
 panneau de stats en est l'exemple : huit lignes à 12 px plus 8 px d'interligne
-font ~190 px de haut — il pesait plus lourd que les trois monstres au-dessus,
-alors qu'il ne fait que les détailler. Le texte n'était pourtant pas gros.
+font ~190 px de haut — il pèserait plus lourd que les trois monstres au-dessus,
+alors qu'il ne fait que les détailler, sans que le texte soit gros.
 
 Au doigt, un bloc de plus de cinq lignes descend donc d'un cran (`compact:`) :
 texte à 11 px, interligne de moitié, rembourrage du cadre réduit. À la souris,
@@ -207,7 +207,7 @@ doit rester en dessous de lui dans la hiérarchie, puisqu'il le détaille.
 
 ⚠️ **Certains contrôles ne peuvent pas grandir sans cesser d'être eux-mêmes.**
 Un interrupteur de 22 px porté à 40 devient un cercle dont la pastille pend en
-haut ; une pastille ronde devient un ovale. La règle les cassait au lieu de les
+haut ; une pastille ronde devient un ovale. La règle les casserait au lieu de les
 servir.
 
 Trois réponses, selon ce qui gêne :
@@ -225,35 +225,28 @@ voisinage serré rend la grande cible dangereuse, la seconde parce que le contex
 protège déjà du ratage.
 
 ⚠️ **`.cible-tactile` pose `position: relative` sur ELLE-MÊME** (`index.css`)
-— pas seulement sur son `::after`. Incident vécu : deux porteurs
-(`Pager.tsx`, et `BoutonIcone.tsx` via `zoneEtendue` — utilisé par
-`HelpPopover.tsx`, donc quasiment partout dans l'app) posaient la classe sur
-un élément resté `position: static`, en comptant sur la convention « tous
-les porteurs sont déjà `relative` » sans l'appliquer. Le `::after` (`position:
-absolute`) remontait alors jusqu'au premier ancêtre RÉELLEMENT positionné —
-souvent `<body>` — et calculait `width/height: 100%` de LUI, pas du petit
-bouton : un pseudo-élément invisible de la taille de la page entière
-(mesuré : 390×4670 px sur un cas réel), centré dessus, interceptant les
-clics/survols d'éléments sans aucun rapport ailleurs sur l'écran — un
-utilisateur l'a décrit comme « impossible de cliquer sur une rune », et
-« l'infobulle du bouton Page suivante apparaît en survolant une carte de
-rune ». Poser `relative` sur la classe elle-même ferme la catégorie entière
-plutôt qu'un seul appelant — ne plus compter sur chaque appelant pour s'en
-souvenir.
+— pas seulement sur son `::after`. Posée sur un élément resté `position:
+static`, la classe laisserait son `::after` (`position: absolute`) remonter
+jusqu'au premier ancêtre RÉELLEMENT positionné — souvent `<body>` — et
+calculer `width/height: 100%` de LUI, pas du petit bouton : un pseudo-élément
+invisible de la taille de la page entière, centré dessus, qui intercepte les
+clics et les survols d'éléments sans aucun rapport ailleurs sur l'écran (une
+rune impossible à cliquer, l'infobulle d'un bouton qui apparaît en survolant
+une carte). Poser `relative` sur la classe elle-même ferme la catégorie
+entière plutôt qu'un seul appelant : aucun porteur n'a à s'en souvenir.
 
 - Les **champs de saisie** aussi : viser un `<input>` de 28 px au doigt demande
   autant de précision qu'un bouton, et rater ouvre le clavier au mauvais
   endroit.
 
-⚠️ **Incident vécu** : les cadres de rune (`RuneWheel.tsx`) et d'artéfact
-(`ArtifactSlots.tsx`), à échelle réduite dans les cartes de résultat de
-l'Optimizer (`BuildCandidateCard.tsx`), n'avaient PAS `data-cible-fine` —
-hérités de `main` sans cet attribut lors de la fusion de `forge/refonte-ui`.
-`min-height: 40px` gagnait contre la hauteur fixée en ligne : le cadre
-s'étirait (une roue de 6 runes ne tient que 94 px, une cible de 44 px par
-rune aurait de toute façon chevauché ses voisines — même cas que la pilule
-de catégorie ci-dessus, à vérifier en premier sur tout futur cadre de jeu
-réduit sous `compact:`).
+⚠️ **Un cadre de jeu réduit porte `data-cible-fine`** : les cadres de rune
+(`RuneWheel.tsx`) et d'artéfact (`ArtifactSlots.tsx`), à échelle réduite dans
+les cartes de résultat de l'Optimizer (`BuildCandidateCard.tsx`). Sans
+l'attribut, `min-height: 40px` gagne contre la hauteur fixée en ligne et le
+cadre s'étire (une roue de 6 runes ne tient que 94 px, une cible de 44 px par
+rune chevaucherait de toute façon ses voisines — même cas que la pilule de
+catégorie ci-dessus). À vérifier en premier sur tout cadre de jeu réduit sous
+`compact:`.
 
 ### Focus — une règle globale, pas 24 exceptions
 
@@ -264,19 +257,18 @@ réduit sous `compact:`).
 }
 ```
 
-⚠️ **`outline-none` est interdit sans remplacement visible.** L'app comptait 24
-`outline-none` et zéro `focus-visible` : en tabulant, on ne savait jamais où on
-était.
+⚠️ **`outline-none` est interdit sans remplacement visible** : sans
+`focus-visible`, en tabulant, on ne sait jamais où on est.
 
-⚠️ **1 px, comme tout contour de l'app.** L'anneau en faisait 2, détachés de 2 px
-de plus : un halo de quatre pixels autour de chaque contrôle atteint au clavier,
-qui bavait sur ses voisins dans une rangée serrée. C'est le **contraste** qui
-fait un marqueur de focus, pas l'épaisseur.
+⚠️ **1 px, comme tout contour de l'app.** Un anneau de 2 px détaché de 2 px de
+plus ferait un halo de quatre pixels autour de chaque contrôle atteint au
+clavier, qui baverait sur ses voisins dans une rangée serrée. C'est le
+**contraste** qui fait un marqueur de focus, pas l'épaisseur.
 
 ⚠️ **Un contrôle qui marque déjà le focus par sa BORDURE n'a pas d'anneau du
 tout.** Un `<select>` ou un champ en `focus:border-accent` teinte sa propre
-bordure à la mise au point ; l'anneau par-dessus faisait un second trait d'accent
-collé au premier, soit 3 px autour d'un contrôle qui n'en demandait qu'un. Le
+bordure à la mise au point ; l'anneau par-dessus ferait un second trait d'accent
+collé au premier, soit 3 px autour d'un contrôle qui n'en demande qu'un. Le
 focus reste porté par la bordure, qui change de couleur au moment précis où le
 clavier arrive.
 
@@ -299,14 +291,12 @@ Tout élément cliquable porte `active:scale-[0.97]` avec
 `transition-transform duration-150`. Un bouton qui ne bouge pas au clic laisse un
 doute d'un dixième de seconde.
 
-⚠️ **Sauf les boutons de la librairie** (rebranding, décision 21 — la
-planche « Actions » de la toile) : un `Bouton` (donc aussi `BoutonIcone`)
-**descend d'1 px**, et le principal fonce (`accent-appui`). La règle vit dans
-`index.css` (`button[data-bouton]`, et `a[data-bouton]` pour un `Bouton`
-lien — axe `href`, lot 6 de l'application de bureau ; attribut posé par
-`Bouton`), plus
-spécifique que celle du rétrécissement ; les cartes, poignées et autres
-surfaces cliquables gardent `scale(0.97)`.
+⚠️ **Sauf les boutons de la librairie** : un `Bouton` (donc aussi
+`BoutonIcone`) **descend d'1 px**, et le principal fonce (`accent-appui`). La
+règle vit dans `index.css` (`button[data-bouton]`, et `a[data-bouton]` pour un
+`Bouton` lien — axe `href` ; attribut posé par `Bouton`), plus spécifique que
+celle du rétrécissement ; les cartes, poignées et autres surfaces cliquables
+gardent `scale(0.97)`.
 
 ### Un élément atteignable ne dépend jamais du survol
 
@@ -315,7 +305,7 @@ flux : il n'est ni focusable au clavier, ni atteignable au doigt. Utiliser
 `opacity-0 hoverable:group-hover:opacity-100 focus-visible:opacity-100`, et le
 laisser visible sous `(hover: none)`.
 
-C'est ce qui rendait le bouton « Retirer » d'une carte RTA **impossible à
+Sans cela, le bouton « Retirer » d'une carte RTA serait **impossible à
 actionner sur téléphone**.
 
 ### Exporter ↑, importer ↓
@@ -325,4 +315,4 @@ actionner sur téléphone**.
 dépôt, étapes de l'accueil. Le fichier qui **sort** de l'app monte, celui
 qui **entre** descend — même « Exporte ton compte » de l'accueil, où le
 fichier sort du jeu. Ne pas raisonner « on télécharge un fichier, donc
-`Download` » : c'est l'inversion qui revenait.
+`Download` » : c'est l'inversion à éviter.

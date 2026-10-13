@@ -16,22 +16,22 @@ Partie de [Librairie UI](README.md).
 >
 > La frontière est celle-ci : un composant de `src/ui/` suit la règle ; un objet
 > que le joueur reconnaît de sa partie ne la suit pas. Aucun ton de la librairie
-> ne porte le doré du jeu — j'en avais ajouté un (`precieux`), il n'a jamais
-> servi et invitait à ramener ces objets dans le système d'interface.
+> ne porte le doré du jeu : il inviterait à ramener ces objets dans le système
+> d'interface.
 
 Le piège n'est presque jamais l'épaisseur d'un trait : c'est le **cumul**. Une
 bordure *et* un anneau, une bordure *et* une ombre portée — l'épaisseur réelle
 n'est alors celle d'aucun des deux, et les traits concentriques se lisent comme
 un contour flou plutôt que comme deux informations.
 
-| Où | Avant | Épaisseur réelle |
+| Où | Cumul à éviter | Épaisseur réelle |
 |----|-------|------------------|
 | Palette de couleurs | `ring-2` + `ring-offset-2` | **4 px** autour d'une case de 24 |
 | Recommandations, équipes de siège | `border-X` + `ring-2 ring-X/50` | 3 px, en deux traits |
 | Doublon de l'Optimiseur | `border-2` + `ring-4` | **6 px** |
 | Relique, lead | `border-star` + `ring-1` | 2 px, en deux traits |
 | Section, au survol du dépôt | `borderColor` + ombre 2 px | 3 px |
-| Puce de légende | `border-2` sur un disque de 10 px | le trait mangeait la moitié |
+| Puce de légende | `border-2` sur un disque de 10 px | le trait mange la moitié |
 
 > ⚠️ **Avant d'ajouter un trait, vérifier que celui d'en dessous n'est pas déjà
 > teinté.** C'est l'erreur qui revient : on colore une bordure existante, puis on
@@ -39,14 +39,14 @@ un contour flou plutôt que comme deux informations.
 
 ⚠️ **Un `Flottant` posant déjà un cadre, ce qu'il contient n'en pose pas un
 second.** Une carte qui a SON PROPRE cadre (`PieceDetailBox`, `OptimPlanBox` —
-bord + fond + coins arrondis) ouverte dans un `Flottant`/`FlottantAuto` donnait
+bord + fond + coins arrondis) ouverte dans un `Flottant`/`FlottantAuto` donnerait
 une carte dans une carte : deux bords à un pixel l'un de l'autre, à des rayons
 de coin différents (`rounded-xl` du flottant contre `rounded-lg` de la carte),
 qui se lisent comme un contour flou plutôt que comme deux informations.
-`DesyncBadge` a posé la règle en premier ; `PieceDetailBox` la porte comme un
-axe (`encadre`, `false` dans un flottant) plutôt que par une copie retouchée. Le
-rembourrage passe alors au flottant (`rembourrage="md"`) : sans cadre, la carte
-n'a plus de bord à en tenir éloigné.
+`PieceDetailBox` porte la règle comme un axe (`encadre`, `false` dans un
+flottant) plutôt que par une copie retouchée. Le rembourrage passe alors au
+flottant (`rembourrage="md"`) : sans cadre, la carte n'a pas de bord à en
+tenir éloigné.
 
 **Deux exceptions, et elles ne sont pas des contours :**
 

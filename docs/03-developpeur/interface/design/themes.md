@@ -25,8 +25,7 @@ profondeur en sombre deviennent des gris sales sur blanc. Forge et Atelier sont
 **deux systèmes cohérents chacun**, qui partagent leur structure de tokens mais
 pas leurs valeurs.
 
-Depuis le rebranding « SW Blacksmith », les deux thèmes sont ceux
-de la toile :
+Les deux thèmes :
 
 - **Forge** — charbon brun presque noir, **braise** (`#FF7A1A`) en accent
   unique, laiton pour les étoiles, données chiffrées en mono. La braise reste à

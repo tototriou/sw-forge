@@ -112,18 +112,19 @@ const MonsterCard = memo(function MonsterCard({
   // référence — on parcourt des centaines de monstres, chaque pixel de marge
   // coûte une ligne de plus à faire défiler.
   const libelle = jumeau ? libelleCollab(monster.name, jumeau.name) : monster.name;
-  // ⚠️ **Un nom collé à sa parenthèse (« Homunculus(Attack) ») prend sa
-  // seconde ligne sur les marges, pas sur la hauteur de la carte.** La
-  // coupure avant la parenthèse (`coupableAvantParenthese`) lui donne une
-  // ligne de plus (15 px) : la carte grandissait d'autant. Ici, les 15 px
-  // viennent des marges autour des étoiles et du nom — sous le portrait
-  // 6 → 1 px, sous les étoiles 4 → 0, en bas 10 → 4 — et le nom réserve ses
-  // deux lignes (`min-h-[2lh]`), même là où il tiendrait sur une : la carte
-  // garde sa hauteur, le portrait sa taille et sa place. Bestiaire seulement
-  // (`showStars`) : la box n'a pas d'étoiles, et sa pastille « ×N » descend
-  // sous le portrait, là où la marge se reprendrait.
-  const serre = showStars && /\S\(/.test(libelle);
-  const socle = `group relative rounded-xl border border-border bg-panel px-2 pt-3 ${serre ? 'pb-1' : 'pb-2.5'} text-center
+  // ⚠️ **Toutes les cartes ont la même hauteur, et le nom y a TOUJOURS deux
+  // lignes réservées** (chantier `defauts-affichage`, lot 6). Un nom de deux
+  // lignes (« Inosuke Hashibira, White Tiger Blade Master », ou
+  // « Homunculus(Attack) » coupé avant sa parenthèse) grandissait sa carte
+  // de 15 px. La hauteur est celle d'une carte à nom d'une ligne : portrait
+  // et étoiles à la même place qu'avant ; les deux lignes viennent, dans cet
+  // ordre, de l'interligne (15 → 13 px : à 13, le jambage d'une ligne laisse
+  // 1 px à la capitale de la suivante), de la marge sous les étoiles
+  // (4 → 0) et de celle du bas (10 → 3). Dans la box, sans étoiles, l'espace
+  // sous le portrait passe de 6 à 4 px — la pastille « ×N » descend de 4 px
+  // sous lui — et le bas de 10 à 1 px. Un nom d'une ligne garde la place de
+  // la seconde : rien ne change de place d'une carte à l'autre.
+  const socle = `group relative rounded-xl border border-border bg-panel px-2 pt-3 ${showStars ? 'pb-[3px]' : 'pb-px'} text-center
     shadow-none ${onOpen ? 'cursor-pointer' : ''} ${BORDER[monster.element]}`;
 
   const contenu = (
@@ -132,7 +133,7 @@ const MonsterCard = memo(function MonsterCard({
       <MonsterAvatar
         monster={monster}
         gabarit="div"
-        classeRacine={`w-[64px] mx-auto ${serre ? 'mb-px' : 'mb-1.5'}`}
+        classeRacine={`w-[64px] mx-auto ${showStars ? 'mb-1.5' : 'mb-1'}`}
         classeTaille="w-[64px] h-[64px]"
         fond="bg-panel2"
         cadreRelatif
@@ -143,7 +144,7 @@ const MonsterCard = memo(function MonsterCard({
       />
 
       {showStars && (
-        <div className={`text-star text-micro tracking-[-1px] ${serre ? '' : 'mb-1'}`}>
+        <div className="text-star text-micro tracking-[-1px]">
           {monster.stars ? '★'.repeat(monster.stars) : '—'}
         </div>
       )}
@@ -157,7 +158,7 @@ const MonsterCard = memo(function MonsterCard({
           possédée : ils disent ce que le monstre EST, pas ce qu'on en a. La
           moitié grisée du portrait porte déjà cette information, et ternir le
           nom par-dessus le rendait juste moins lisible. */}
-      <div className={`text-xs font-semibold leading-tight line-clamp-2 ${serre ? 'min-h-[2lh]' : ''}`}>
+      <div className="h-[2lh] text-xs font-semibold leading-[13px] line-clamp-2">
         {coupableAvantParenthese(libelle)}
       </div>
     </>

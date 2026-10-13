@@ -36,14 +36,11 @@ ouvrir. Ne pas explorer `src/` à l'aveugle.
   - Tout le temps : un commentaire de code donne la raison et l'invariant,
     sans récit ; un commit donne le pourquoi en bref, sans journal.
 - **Un type partagé entre l'écran et un script a PLUSIEURS constructeurs**
-  (ex. `OptimizerRecipe`/`recipeToSearchParams.ts`). Un champ ajouté ou
-  renommé doit être répercuté dans TOUS. `tsc` (qui couvre `src/`, `scripts/`,
-  `tests/` et `bureau/`) attrape un champ dont le **type change** ou qui devient
-  **obligatoire**, jamais un champ **optionnel** oublié dans l'un d'eux :
-  l'accès reste parfaitement typé. Avant de considérer un champ
-  ajouté/renommé comme terminé : `grep -rn` du nom du type/champ sur TOUT le
-  dépôt (`src/` ET `scripts/` ET `tests/`). Détail :
-  [docs/03-developpeur/](docs/03-developpeur/), « Conventions communes ».
+  (ex. `OptimizerRecipe`/`recipeToSearchParams.ts`) : un champ ajouté ou
+  renommé se répercute dans tous. `tsc` ne voit pas un champ **optionnel**
+  oublié dans l'un d'eux ; ces constructeurs se trouvent dans `src/`,
+  `scripts/` et `tests/`. Détail : [docs/03-developpeur/](docs/03-developpeur/),
+  « Conventions communes ».
 
 ## Interface
 
@@ -65,34 +62,23 @@ ouvrir. Ne pas explorer `src/` à l'aveugle.
   tokens ([docs/03-developpeur/interface/](docs/03-developpeur/interface/)).
 - **Passe responsive en cours** — ne pas rustiner le mobile écran par écran.
 
-## Vérifier
-
-Vérification standard avant de considérer un changement de code terminé,
-dans cet ordre :
+## Commandes
 
 ```
-npx tsc --noEmit                  # types — couvre src/ ET scripts/ ET tests/
-npx eslint <fichiers touchés>     # lint ; `npm run lint` pour tout le dépôt
-node tests/run.mjs <filtre>       # SEULEMENT la zone touchée (ex. speed-tune)
-npm run build                     # Tailwind n'émet que ce qu'il trouve dans le SOURCE
+node tests/run.mjs <filtre>            # les vérifications d'une zone (registre : tests/index.ts)
+node tests/banc/run.mjs --ecrans <id>  # banc d'affichage, deux formats (il construit l'app)
+npx tsc --noEmit                       # types : src/, scripts/, tests/, bureau/
+npm run lint
+npm run build
+node scripts/spec-lint.mjs             # forme des specs de docs/
+npm test                               # suite complète
 ```
 
-⚠️ **La suite complète (`npm test`) ne se lance qu'avant une fusion sur
-`main` ou dans une branche `release/*`**, et seulement là : pendant le
-travail, seule compte la zone touchée. Le filtre se compare au nom d'une
-vérification (registre : [tests/index.ts](tests/index.ts)) ;
-`node tests/run.mjs --depuis origin/<base>` (la branche dont on part) s'y
-ajoute et retient ce que touchent les fichiers modifiés. Détail :
-[tests/README.md](tests/README.md).
+La suite complète se lance avant une fusion sur `main` ou dans une branche
+`release/*`. Détail du lanceur de tests : [tests/README.md](tests/README.md).
 
-⚠️ Une classe Tailwind « correcte » dans le TSX peut n'être **jamais émise** :
-quand un style ne s'applique pas, vérifier dans le **CSS construit**, pas
-dans le composant.
-
-Checklists dédiées : skill `algo-verify` pour un algorithme de
-recherche/optimisation combinatoire ; skill `game-data-curation` pour toute
-**mécanique de jeu** modélisée (règle déduite des données SWARFARM, table
-`*_CONNUS`, comportement supposé par ressemblance avec un autre effet).
+Une classe Tailwind correcte dans le TSX peut n'être jamais émise : quand un
+style ne s'applique pas, regarder le CSS construit.
 
 ## Branches et worktrees
 

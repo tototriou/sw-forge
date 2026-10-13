@@ -9,8 +9,9 @@
 // - géométrie : un élément visible dont le rectangle sort de la fenêtre, à
 //   droite (`right > L`) ou à gauche (`left < 0`), sauf s'il est dans un
 //   défilement voulu ou dans un ancêtre qui le coupe ;
-// - chevauchement : réservée aux éléments qui bénéficient de l'exception
-//   « pastille du portrait » (plus bas), sa contrepartie.
+// - chevauchement : réservée aux éléments qui bénéficient des exceptions
+//   « pastille du portrait » et « bouton en coin » (plus bas), leur
+//   contrepartie.
 //
 // Définitions :
 //
@@ -50,6 +51,44 @@
 //   sécurité » (src/index.css : « le masquer rend le contenu coupé
 //   inatteignable ») ; compté comme ancêtre qui coupe, il abriterait tout
 //   élément en flux, et la règle ne signalerait plus rien.
+//
+// Ce qui est dessiné, et non la boîte : là où ce que Chromium rend par
+// `scrollWidth` ne décrit pas un dessin, la règle « contenu » lit le dessin.
+// Chaque cause est générale, et un vrai dépassement de même nature reste
+// signalé (tests/banc/cas/, un cas positif et un négatif par cause) :
+//
+// - texte SVG (`<text>`, `<tspan>`, `<textPath>` : `SVGTextContentElement`) :
+//   pas de boîte CSS, et Chromium y rend par `scrollWidth`/`clientWidth`
+//   l'avance du texte NON transformé (une légende pivotée de −90° de 14 px de
+//   large y lisait 88 / 57). Le dépassement lu est le bord droit de son
+//   dessin (`getBoundingClientRect`, transformées comprises) moins le bord
+//   droit intérieur de son graphe — le `<svg>` le plus extérieur —, arrondi
+//   au pixel ; signalé au-delà de la tolérance, comme tout « contenu ». Les
+//   champs `scrollWidth`/`clientWidth` du signalement restent ceux de
+//   Chromium, sans valeur ; `depassement` porte la mesure. Côté droit seul,
+//   comme partout. ⚠️ Limites nommées : un `<svg>` imbriqué n'est pas un
+//   graphe (seul le plus extérieur compte), et un texte coupé à gauche, ou en
+//   haut et en bas, n'est pas vu (tests/banc/cas/svg-texte.html).
+// - espacement final (`letter-spacing`) : Chromium ajoute l'espacement après
+//   CHAQUE lettre, la dernière comprise ; ce dernier espacement entre dans
+//   la largeur du texte (`scrollWidth`) sans que rien y soit dessiné (un
+//   libellé `label` de 52 px lisait 54 pour 53 dessinés). Pour un élément
+//   HTML dont le SEUL contenu est un nœud texte (aucun élément enfant), qui
+//   n'est pas `inline` (son texte a ses lignes à lui), `ltr`, d'espacement
+//   calculé positif, et dont le texte finit par une lettre (pas un blanc) :
+//   au second passage, la dernière lettre passe dans un `span` à
+//   `letter-spacing: 0`, et l'élément et ses ancêtres se relisent ainsi.
+//   Retrait gardé seulement s'il est EXACT : la boîte de l'élément ne bouge
+//   pas (tolérance 0,5 px — un libellé de largeur automatique qui
+//   rétrécirait déplacerait ses voisins, que cet espacement place
+//   réellement), et son texte garde sa hauteur et son haut et perd
+//   exactement l'espacement en largeur (0,05 px ; un crénage perdu à la
+//   coupure fait échouer le contrôle). Sinon rien ne se retire. Le texte est
+//   remis à l'identique (même nœud, même valeur) avant la fin de `mesurer`.
+//   ⚠️ Limites nommées : seule la fin de la DERNIÈRE ligne est retirée (un
+//   texte sur plusieurs lignes garde l'espacement de fin des autres) ; un
+//   texte suivi d'un élément, ou dans un `inline`, se mesure comme avant
+//   (tests/banc/cas/espacement-final.html).
 //
 // Exclusions, chacune LOCALE (l'élément exclu n'est signalé par aucune règle ;
 // ses ancêtres restent mesurés, et sont signalés s'il les élargit) :
@@ -135,8 +174,9 @@
 //   avec le reste — ni un ancêtre au-delà du portrait, ni une autre pastille,
 //   ni la couronne, ni rien d'autre que ce qui est dessiné dans le cadre du
 //   portrait. Décisions D11 et D15 de l'utilisateur ; aucune généralisation à
-//   un autre élément absolu à décalage négatif (bouton en coin, halo,
-//   superposition `-inset-px`), qui se mesure comme les autres.
+//   un autre élément absolu à décalage négatif (halo, superposition
+//   `-inset-px`, bouton en coin hors de sa liste — exception suivante), qui
+//   se mesure comme les autres.
 //   · Qui en bénéficie : un élément qui porte le repère `data-pastille` posé
 //     par `src/` (MonsterAvatar.tsx, ElementIcon.tsx, siege/LeadPill.tsx),
 //     sur l'élément positionné lui-même, avec une valeur de la liste
@@ -232,20 +272,54 @@
 //     plan, l'ordre d'empilement n'est pas lu (`z-index`, `absolute`), ni
 //     `clip-path` ni un masque ; une boîte dans un défilement est comparée à
 //     sa position défilée du moment.
+// - bouton en coin (la croix « Retirer » de la carte RTA, le crayon
+//   « Modifier cette défense » d'une vignette de défense, posés sur leur
+//   coin) : il a le droit de toucher SA CARTE — les éléments qu'elle porte et
+//   son bord — et d'en sortir, jamais le reste. Décisions de l'utilisateur
+//   du 2026-10-13.
+//   · Qui en bénéficie : un élément qui porte le repère `data-bouton-coin`
+//     posé par `src/` (rta/RtaCard.tsx, siege/RecoCard.tsx, transmis par
+//     BoutonIcone et Bouton jusqu'au `<button>` positionné), avec une valeur
+//     de la liste explicite BOUTONS_EN_COIN : `retirer-rta`,
+//     `modifier-defense`, et rien d'autre. Un autre bouton en coin n'y est
+//     pas : il se mesure comme les autres. Un repère retiré de `src/`, ou un
+//     nom retiré de la liste, rend ses signalements.
+//   · Sa carte : son bloc contenant, quel qu'il soit (ni `html`, ni `body`
+//     propagé) ; aucun repère de carte n'est exigé — un bouton enveloppé dans
+//     un cadre positionné voit son exception portée par ce cadre, et la carte
+//     compte alors son dépassement en entier.
+//   · Conditions, contact, et « jamais avec le reste » : celles de la
+//     pastille (`position: absolute`, décalage déclaré négatif, carte `ltr`
+//     qui ne coupe ni ne défile sur aucun axe ; dépassement imposé à la carte
+//     diminué EXACTEMENT de son décalage droit ; aucun ancêtre au-delà de la
+//     carte n'en profite ; relecture par `right: 0`). Une différence, voulue :
+//     le « contenu » permis est TOUTE la carte, sans notion de cadre — tout
+//     descendant de la carte (icônes, texte, rangées, portraits et leurs
+//     pastilles) peut toucher le bouton. Se compare tout élément du même
+//     plan hors de la carte : une autre carte, une autre vignette, ce qui
+//     entoure la carte (tests/banc/cas/bouton-coin.html).
+//     ⚠️ Limite nommée : l'exception se lit côté bouton. Une pastille de
+//     portrait posée dans la carte garde sa propre règle, qui ne connaît pas
+//     le bouton : si elle le touche, la pastille est signalée.
 //
 // Second passage : chaque signalement « contenu » d'un élément concerné par
 // une exception (et la page, si elle déborde et qu'une marge négative y
 // porte) se relit une fois, puis tout est rendu tel quel avant la fin de
 // `mesurer` (la capture suit la mesure). Trois temps, chacun ne posant que
 // les neutralisations qui valent pour ce qu'il relit : (1) marges négatives
-// seules, la page ; (2) en plus décoratifs coupés et zones de toucher, les
+// seules, la page ; (2) en plus décoratifs coupés, zones de toucher et
+// espacements finals (aucun ne vaut pour la page : l'espacement final, s'il
+// n'est pas dessiné, élargit réellement ce qu'on peut faire défiler), les
 // éléments qui ne sont le portrait d'aucune pastille à décalage droit ; (3) en
 // plus ces pastilles, chacun de leurs portraits — avec les seules pastilles
 // dont il est le portrait (relu à part s'il contient une pastille d'un autre
-// portrait). Neutralisations : décoratif coupé, `display: none` posé en ligne
+// portrait) ; un bouton en coin y est une pastille, sa carte un portrait.
+// Neutralisations : décoratif coupé, `display: none` posé en ligne
 // avec `!important` ; zone de toucher, une feuille de style ajoutée le temps
 // de la lecture (`.cible-tactile::after { display: none !important }`) ;
 // marge négative, `margin-left`/`margin-right` en ligne avec `!important` ;
+// espacement final, un `span` ajouté et le nœud texte raccourci, défaits
+// avant les poses ;
 // pastille, `right: 0` en ligne avec `!important` (voir plus haut). Le
 // signalement garde ses valeurs du premier passage ;
 // `depassement` porte celui qui reste, `page.relue` la largeur de page relue.
@@ -349,7 +423,8 @@ export interface Mesure {
    * `decoratifs` : éléments exclus comme décoratif coupé, dont
    * `decoratifsEnPlace` laissés en place à la relecture ; `leves` :
    * signalements « contenu » levés au second passage ; `coins` : éléments
-   * qui bénéficient de l'exception « pastille du portrait » (voir la tête).
+   * qui bénéficient des exceptions « pastille du portrait » et « bouton en
+   * coin » (voir la tête).
    */
   exclus: { ellipsis: number; invisibles: number; decoratifs: number; decoratifsEnPlace: number; leves: number; coins: number };
   deborde: boolean;
@@ -441,9 +516,12 @@ export function mesurer(options: { detail: boolean }): Mesure {
   // Pastille du portrait (tête) : la liste explicite des repères reconnus —
   // pas `couronne` (D15).
   const PASTILLES_RECONNUES = new Set(['element', 'lead', 'exemplaires']);
-  // Rend le portrait de la pastille (son bloc contenant), si son décalage
-  // droit déclaré négatif se soustrait, et la largeur à figer pendant la
-  // relecture (`left` `auto`) ; `null` si l'élément n'en bénéficie pas.
+  // Bouton en coin (tête) : la liste explicite de ses membres.
+  const BOUTONS_EN_COIN = new Set(['retirer-rta', 'modifier-defense']);
+  // Rend le bloc de la pastille ou du bouton en coin (son bloc contenant :
+  // le portrait, la carte), si son décalage droit déclaré négatif se
+  // soustrait, et la largeur à figer pendant la relecture (`left` `auto`) ;
+  // `null` si l'élément n'en bénéficie pas.
   const decalageDeclare = (carte: StylePropertyMapReadOnly, cote: 'left' | 'right', px: string) => {
     const valeur = carte.get(cote);
     return Boolean(valeur) && !(valeur instanceof CSSKeywordValue) && parseFloat(px) < 0;
@@ -451,17 +529,19 @@ export function mesurer(options: { detail: boolean }): Mesure {
   const coinDe = (
     el: Element,
     s: CSSStyleDeclaration,
-  ): { bloc: Element; soustrait: boolean; largeurFigee: string | null } | null => {
-    if (!PASTILLES_RECONNUES.has(el.getAttribute('data-pastille') ?? '')) return null;
+  ): { bloc: Element; soustrait: boolean; largeurFigee: string | null; pastille: boolean } | null => {
+    const pastille = PASTILLES_RECONNUES.has(el.getAttribute('data-pastille') ?? '');
+    if (!pastille && !BOUTONS_EN_COIN.has(el.getAttribute('data-bouton-coin') ?? '')) return null;
     if (s.position !== 'absolute' || typeof el.computedStyleMap !== 'function') return null;
     const carte = el.computedStyleMap();
     const droite = decalageDeclare(carte, 'right', s.right);
     if (!droite && !decalageDeclare(carte, 'left', s.left)) return null;
     const bloc = suivant(el);
-    if (!bloc || bloc === racine || bloc !== el.parentElement?.closest('[data-portrait]')) return null;
+    if (!bloc || fenetre(bloc)) return null;
+    if (pastille && bloc !== el.parentElement?.closest('[data-portrait]')) return null;
     const sB = style(bloc);
     if (sB.direction !== 'ltr' || sB.overflowX !== 'visible' || sB.overflowY !== 'visible') return null;
-    return { bloc, soustrait: droite, largeurFigee: carte.get('left') instanceof CSSKeywordValue ? s.width : null };
+    return { bloc, soustrait: droite, largeurFigee: carte.get('left') instanceof CSSKeywordValue ? s.width : null, pastille };
   };
   // Le contenu du portrait (tête) : son cadre — premier élément enfant, en
   // flux, sans repère de pastille — et ce qu'il contient, hors pastilles.
@@ -504,14 +584,41 @@ export function mesurer(options: { detail: boolean }): Mesure {
     };
   };
 
+  // Le dépassement que la règle « contenu » lit sur un élément. Texte SVG
+  // (tête) : le bord droit de son dessin face au bord droit de son graphe —
+  // `scrollWidth`/`clientWidth` n'y décrivent aucune boîte dessinée.
+  const depasse = (el: Element) => {
+    if (!(el instanceof SVGTextContentElement)) return el.scrollWidth - el.clientWidth;
+    let graphe = el.ownerSVGElement;
+    while (graphe?.ownerSVGElement) graphe = graphe.ownerSVGElement;
+    if (!graphe) return 0;
+    const g = graphe.getBoundingClientRect();
+    return Math.round(el.getBoundingClientRect().right - (g.left + graphe.clientLeft + graphe.clientWidth));
+  };
+
+  // Espacement final (tête) : un élément dont le seul contenu est un texte, à
+  // lui seul sur ses lignes, qui finit par une lettre suivie d'un espacement
+  // positif ; `null` sinon.
+  type Espacement = { el: Element; texte: Text; ls: number };
+  const espacements: Espacement[] = [];
+  const espacementFinal = (el: Element, s: CSSStyleDeclaration): Espacement | null => {
+    const texte = el.firstChild;
+    if (!(el instanceof HTMLElement) || el.childNodes.length !== 1 || !(texte instanceof Text)) return null;
+    const ls = parseFloat(s.letterSpacing);
+    if (!(ls > 0) || s.display === 'inline' || s.direction !== 'ltr') return null;
+    const lettres = Array.from(texte.data);
+    if (lettres.length === 0 || /\s/.test(lettres[lettres.length - 1])) return null;
+    return { el, texte, ls };
+  };
+
   const signalements: Signalement[] = [];
   const elementDe = new Map<Signalement, Element>();
   const decoratifsVus: Element[] = [];
   // Marge négative (tête) : l'élément, la valeur absolue de sa marge droite et
   // sa marge gauche calculée.
   const margesNegatives: { el: Element; marge: number; gauche: number }[] = [];
-  // Pastille du portrait (tête) : l'élément et son portrait.
-  const coins: { el: Element; bloc: Element; soustrait: boolean; largeurFigee: string | null }[] = [];
+  // Pastille du portrait et bouton en coin (tête) : l'élément et son bloc.
+  const coins: { el: Element; bloc: Element; soustrait: boolean; largeurFigee: string | null; pastille: boolean }[] = [];
   // Règle « chevauchement » : les éléments visibles, leur boîte au premier
   // passage, et ceux qui ont passé les exclusions.
   const visibles: Element[] = [];
@@ -540,6 +647,8 @@ export function mesurer(options: { detail: boolean }): Mesure {
     if (margeDroite < 0 && s.direction === 'ltr') margesNegatives.push({ el, marge: -margeDroite, gauche: parseFloat(s.marginLeft) || 0 });
     const coin = coinDe(el, s);
     if (coin) coins.push({ el, ...coin });
+    const espacement = espacementFinal(el, s);
+    if (espacement) espacements.push(espacement);
     if (s.visibility === 'hidden' || s.visibility === 'collapse') {
       invisibles++;
       continue;
@@ -559,7 +668,8 @@ export function mesurer(options: { detail: boolean }): Mesure {
     }
     elementsMesures++;
     mesures.add(el);
-    if (el.scrollWidth - el.clientWidth > TOLERANCE && !defilementVoulu(el)) {
+    const depassement = depasse(el);
+    if (depassement > TOLERANCE && !defilementVoulu(el)) {
       // Pour lire le signalement, pas pour le décider : les descendants les
       // plus hauts dont la boîte sort de celle de l'élément. Aucun : ce qui
       // dépasse est un pseudo-élément (`::after`…) ou du texte.
@@ -581,7 +691,7 @@ export function mesurer(options: { detail: boolean }): Mesure {
         while (parent && parent !== el && !sort(parent)) parent = parent.parentElement;
         if (parent === el) causes.push(decrire(d));
       }
-      const signalement: Signalement = { ...releve(el, r, 'contenu'), depassement: el.scrollWidth - el.clientWidth, causes };
+      const signalement: Signalement = { ...releve(el, r, 'contenu'), depassement, causes };
       signalements.push(signalement);
       elementDe.set(signalement, el);
     }
@@ -589,7 +699,8 @@ export function mesurer(options: { detail: boolean }): Mesure {
     if (sort && !abrite(suivant(el))) signalements.push(releve(el, r, 'geometrie'));
   }
 
-  // Règle « chevauchement » (tête) : contrepartie de la pastille du portrait.
+  // Règle « chevauchement » (tête) : contrepartie de la pastille du portrait
+  // et du bouton en coin.
   // Le plan d'un élément : lui-même ou son ancêtre le plus proche en `fixed`
   // ou `sticky`, `null` s'il n'en a aucun.
   const plans = new Map<Element, Element | null>();
@@ -637,14 +748,17 @@ export function mesurer(options: { detail: boolean }): Mesure {
     return z;
   };
   const exclusD8 = new Set(decoratifsVus);
-  for (const { el, bloc } of coins) {
+  for (const { el, bloc, pastille } of coins) {
     if (!mesures.has(el)) continue;
     const r = boites.get(el) as DOMRect;
     const v = visibleDe(el);
     const plan = planDe(el);
     const aires = new Map<Element, number>();
     for (const autre of visibles) {
-      if (autre.contains(el) || el.contains(autre) || contenuDe(autre, bloc)) continue;
+      // Contenu permis : le cadre du portrait pour une pastille, toute la
+      // carte pour un bouton en coin ; seul ce qui est hors de la carte se
+      // compare à lui.
+      if (autre.contains(el) || el.contains(autre) || (pastille ? contenuDe(autre, bloc) : bloc.contains(autre))) continue;
       if (exclusD8.has(autre) || planDe(autre) !== plan) continue;
       const q = visibleDe(autre);
       const l = Math.min(v.droite, q.droite) - Math.max(v.gauche, q.gauche);
@@ -679,6 +793,7 @@ export function mesurer(options: { detail: boolean }): Mesure {
     (ciblesTactiles && (a.classList.contains('cible-tactile') || a.querySelector('.cible-tactile') !== null)) ||
     decoratifsVus.some((d) => d !== a && a.contains(d) && (coupeurDecoratif(d) as Element).contains(a)) ||
     margesNegatives.some(({ el }) => el !== a && a.contains(el)) ||
+    espacements.some(({ el }) => a.contains(el)) ||
     estBlocCoin(a);
   const aRelire = signalements.filter((s) => s.regle === 'contenu' && concerne(elementDe.get(s) as Element));
   const relirePage = scrollWidth > largeur + TOLERANCE && margesNegatives.length > 0;
@@ -711,7 +826,7 @@ export function mesurer(options: { detail: boolean }): Mesure {
     };
     const relire = (s: Signalement) => {
       const el = elementDe.get(s) as Element;
-      const reste = el.scrollWidth - el.clientWidth;
+      const reste = depasse(el);
       if (reste > TOLERANCE) s.depassement = reste;
       else leves.add(s);
     };
@@ -762,6 +877,38 @@ export function mesurer(options: { detail: boolean }): Mesure {
         zones.textContent = '.cible-tactile::after { display: none !important; }';
         (document.head ?? document.documentElement).appendChild(zones);
         restaurer.push(() => zones.remove());
+      }
+      // Espacement final (tête) : la dernière lettre passe dans un `span` sans
+      // espacement ; gardé seulement si le retrait est exact — la boîte de
+      // l'élément ne bouge pas, et son texte, sur les mêmes lignes, perd
+      // exactement l'espacement.
+      for (const { el, texte, ls } of espacements) {
+        if (!aRelire.some((s) => (elementDe.get(s) as Element).contains(el))) continue;
+        const contenu = document.createRange();
+        contenu.selectNodeContents(el);
+        const boite = el.getBoundingClientRect();
+        const avant = contenu.getBoundingClientRect();
+        const data = texte.data;
+        const lettres = Array.from(data);
+        const derniere = lettres.pop() as string;
+        const enveloppe = document.createElement('span');
+        enveloppe.style.setProperty('letter-spacing', '0px', 'important');
+        enveloppe.textContent = derniere;
+        texte.data = lettres.join('');
+        el.appendChild(enveloppe);
+        const remettre = () => {
+          enveloppe.remove();
+          texte.data = data;
+        };
+        contenu.selectNodeContents(el);
+        const apres = contenu.getBoundingClientRect();
+        const exact =
+          !bouge(boite, el.getBoundingClientRect()) &&
+          Math.abs(apres.top - avant.top) <= 0.05 &&
+          Math.abs(apres.height - avant.height) <= 0.05 &&
+          Math.abs(avant.width - apres.width - ls) <= 0.05;
+        if (exact) restaurer.push(remettre);
+        else remettre();
       }
       for (const s of aRelire) if (!estBlocCoin(elementDe.get(s) as Element)) relire(s);
       // (3) Les portraits de ces pastilles : toutes ensemble pour un portrait

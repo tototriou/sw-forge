@@ -74,7 +74,29 @@ Indépendamment du repli de la carte, **chaque deck a son propre chevron**.
   repliées par défaut, qui s'ouvrent au toucher ; la rangée repliée montre
   **« Fort contre »** (séparé de l'offense par un filet) et, dessous, les
   **sets visés** de chaque monstre (une pastille par monstre, première
-  possibilité de runage). Une ligne par deck se lit d'un regard, sans
+  possibilité de runage).
+  ⚠️ **Au doigt, l'en-tête est une grille de deux colonnes** : à
+  gauche, la rangée — chevron, les trois portraits, « Fort contre » sur la
+  même ligne — et, dessous, les sets visés, **chaque pastille centrée sous
+  son monstre** (un monstre sans set garde sa place, vide) ; à droite, sur la
+  hauteur de la rangée et des sets, une **colonne d'actions** : Supprimer,
+  Éditer, Exporter vers l'Optimizer, de haut en bas. Sur une seule ligne, à
+  360 px, ces trois icônes ne laissaient que 19 à 24 px à chaque enveloppe de
+  portrait de 34 px : les portraits se chevauchaient. Les enveloppes ne
+  rétrécissent plus (`max-lg:flex-none`), 10 px les séparent (la largeur
+  d'une pastille de deux sets, 42 px, tient sous chacun) ; la rangée garde
+  ses 40 px de haut, et la colonne (trois icônes de 20 px) tient dans la
+  rangée et les sets : la carte ne grandit pas. L'export y prend la taille
+  de ses voisins (20 px, `data-cible-fine` : exempté de la règle des 40 px)
+  et garde sa raison de désactivation en infobulle ; en
+  édition, « Annuler les modifications » se place sous le ✓, que la colonne
+  ne déplace pas. Les trois icônes sont sur **le même axe vertical** et
+  **réparties à espacements égaux** sur toute la hauteur de la rangée et des
+  sets (65 px, 2,5 px entre deux icônes). Les deux `BoutonIcone` à
+  libellé « à la souris » perdaient 3 px à gauche du centre (le `<span>` vide
+  du libellé masqué recevait l'espacement du bouton) : `max-lg:gap-0` les
+  recentre. À la souris, rien ne change.
+  Une ligne par deck se lit d'un regard, sans
   demi-largeur vide — ce qu'une grille de cartes sur deux colonnes ne permet
   pas. ⚠️ Le deck en édition ne porte pas de `lg:col-span-2` : dans le tableau
   à UNE colonne, il en créerait une seconde, implicite, où la rangée
@@ -95,6 +117,16 @@ Indépendamment du repli de la carte, **chaque deck a son propre chevron**.
   Toujours affichés, quel que soit l'état de repli : c'est le seul repère du
   deck qu'on garde en le dépliant, avant que sets/artéfacts/stats n'arrivent
   plus bas.
+- ⚠️ **Une rangée qui finit sur un portrait garde la place de son icône
+  d'élément**, qui dépasse de 4 px à droite (`-right-1` dans
+  [MonsterAvatar](../../../../src/components/MonsterAvatar.tsx)) : `pr-1 -mr-1`
+  sur l'enveloppe de portrait de l'en-tête (au doigt seulement, `max-lg:`) —
+  et, depuis la colonne d'actions, sur « Fort contre » et sur la
+  rangée de l'en-tête, qu'il finit —, la
+  rangée de portraits d'une vignette « Fort contre » sans note, et les
+  portraits d'une défense et d'une offense en vue Défense. Le rembourrage met
+  l'icône dans la boîte de sa rangée ; la marge négative le rend à
+  l'espacement voisin : aucun élément ne bouge.
 - ⚠️ **Sur mobile, le verdict et le nombre de copies passent chacun à la
   ligne** (`basis-full sm:basis-auto` sur les deux `span` qui les portent) :
   icônes des monstres sur une ligne, verdict sur la suivante, « réalisable N
@@ -106,9 +138,9 @@ Indépendamment du repli de la carte, **chaque deck a son propre chevron**.
   la largeur qu'occupent les icônes déjà posées. `basis-full` force chaque
   ligne à démarrer la sienne, systématiquement, tant qu'il n'y a pas la place
   de tout tenir sur une seule (`sm:basis-auto` au-delà).
-- ⚠️ **Le crayon Éditer/Supprimer reste dans SA PROPRE rangée** (chevron +
-  portraits + crayon), séparée du verdict/copies en dessous, plutôt que dans
-  la même rangée `flex-wrap` qu'eux. Un bouton d'action ne doit pas changer de
+- ⚠️ **Le crayon Éditer/Supprimer reste hors de la rangée verdict/copies**
+  (au doigt, dans la colonne d'actions de l'en-tête, voir plus haut),
+  plutôt que dans la même rangée `flex-wrap` qu'eux. Un bouton d'action ne doit pas changer de
   position selon ce qui s'affiche à côté de lui : mêlé au verdict, le crayon
   suivrait le badge sur sa ligne et se retrouverait repoussé en bas dès que
   « réalisable N fois » gagne sa propre ligne (voir ci-dessus) — il reste en

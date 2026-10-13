@@ -59,6 +59,25 @@ jamais en menus. Au doigt : grande recherche, filtres et tri dans le tiroir.
     portrait **64 px**, colonnes de **104 px**, `rounded-xl`. C'est le plus dense
     des deux — on parcourt des centaines de monstres, chaque pixel de marge coûte
     une ligne de plus à faire défiler.
+  - ⚠️ **Le nom peut se couper avant une parenthèse** (`<wbr>`) : il tient
+    sur deux lignes au plus (`line-clamp-2`), et un nom sans espace comme
+    « Homunculus(Attack) », plus large que la carte, était coupé net, sans
+    points de suspension. « (Attack) » passe désormais à la ligne. Le libellé
+    reste celui du jeu, mot pour mot ; la règle vaut aussi pour les deux noms
+    d'un monstre de collaboration.
+  - ⚠️ **Toutes les cartes ont la même hauteur, et deux lignes de nom.** La
+    hauteur est celle d'une carte à nom d'une ligne (bestiaire 129 px, box
+    109 px) ; portrait et étoiles gardent leur place, alignés d'une carte à
+    l'autre. Le nom a toujours deux lignes réservées (`h-[2lh]`), entre les
+    étoiles (ou, dans la box, le portrait) et le bas de la carte ; ces deux
+    lignes viennent, dans cet ordre, de l'interligne (15 → 13 px : le
+    jambage d'une ligne laisse 1 px à la capitale de la suivante), de la
+    marge sous les étoiles (4 → 0) et de la marge du bas (10 → 3). Dans la
+    box, sans étoiles : sous le portrait 6 → 4 px (la pastille « ×N »
+    descend de 4 px sous lui), en bas 10 → 1 px. Un nom de deux lignes ne
+    grandit plus sa carte (« Inosuke Hashibira, White Tiger Blade Master »
+    avait 15 px de plus que ses voisines) ; un nom d'une ligne garde la place
+    de la seconde.
 - Si un filtre ne renvoie rien : message « Aucun monstre ne correspond à ces
   filtres. »
 

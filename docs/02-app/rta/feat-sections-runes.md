@@ -46,6 +46,10 @@ section ; « Tous » les rend toutes.
   son filet qui délimitent la section. Même gabarit pour les sections de la
   prépa d'un ami (`RtaFriendView`).
 - Vide → « Glisse des monstres ici ». Sinon grille de cartes responsive.
+  ⚠️ La grille garde à droite la place de la croix « Retirer » d'une carte du
+  bord, qui dépasse de 5 px (`pr-[5px] -mr-[5px]`) : le rembourrage la met
+  dans la boîte de la grille, la marge négative le rend au conteneur ;
+  colonnes et cartes ne bougent pas.
 - **Cible de drop** : au survol d'un drag, le cadre apparaît — **1 px à la
   couleur d'accent** (la bordure, transparente au repos, prend la teinte : rien
   ne bouge) — sur un fond `panel2` léger (compteur enter/leave pour éviter le
@@ -257,6 +261,10 @@ par nom. (Le tri ne dépend pas des leads.)
 
 La croix du coin haut-droit d'une carte demande une **confirmation**
 (`ConfirmDialog`), sur les deux formats.
+
+**Repère dans le DOM**, pour le banc d'affichage : `data-bouton-coin="retirer-rta"`
+sur le `<button>` positionné de la croix (exception « bouton en coin » de
+`tests/banc/mesure.ts` : son dépassement sur la carte est voulu).
 
 ⚠️ Retirer un monstre demande une confirmation. La croix est posée **sur le
 coin de la carte**, à quelques pixels du portrait qu'on touche pour ouvrir le

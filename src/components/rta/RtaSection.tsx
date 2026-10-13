@@ -144,7 +144,11 @@ export default function RtaSection({
           // APRÈS `max-lg:` dans le CSS construit et l'aurait emporté entre 640
           // et 1023 px — deux colonnes sur un téléphone en paysage. Au-dessus
           // de `lg`, les deux reviennent au même : le bureau ne bouge pas.
-          className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,150px),1fr))] gap-2
+          // `pr-[5px] -mr-[5px]` : la croix « Retirer » d'une carte du bord
+          // droit dépasse de 5 px de la carte (`-right-1.5`, RtaCard) ; la
+          // place entre dans la grille, la marge négative la rend à son
+          // conteneur : les colonnes et les cartes ne bougent pas.
+          className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,150px),1fr))] gap-2 pr-[5px] -mr-[5px]
                      lg:grid-cols-[repeat(auto-fill,minmax(min(100%,210px),1fr))] lg:gap-2.5
                      max-lg:grid-cols-1 max-lg:gap-1.5"
           openIndex={openIndex}

@@ -113,6 +113,12 @@ Affichage :
   de son verdict, ses trois portraits (le leader porte son lead), son nom, et
   la **précision** que CE deck donne sur la défense (« — si Galleon est en
   lead »). Un deck qui vise deux fois la même défense n'y figure qu'une fois.
+  ⚠️ **Au doigt, 8 px entre les lignes repliées d'une offense**
+  (`compact:gap-y-2`) : le bouton d'export renvoyé à la ligne a une
+  boîte de 40 px (règle tactile), et le badge de lead du leader descend de
+  6 px sous son portrait ; avec 4 px, le badge prenait 2 px du bouton au
+  toucher. Le badge ne change pas ; à la souris, le bouton reste sur la
+  ligne.
 - **Les decks sans défense visée** ne disparaissent pas : ils sont listés à la
   fin, sous « Aucune défense visée ».
 - **Recherche** : une offense reste si son deck JOUE le monstre cherché, ou si

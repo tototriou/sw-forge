@@ -63,7 +63,7 @@ export default function TopBar({
   // vient. Un lien seul n'offrait aucune sortie — on y entrait sans pouvoir en
   // revenir autrement qu'en choisissant une autre destination.
   onToggleParametres: () => void;
-  // Ouvre la palette Ctrl K (lot 13, décision 29). Au TÉLÉPHONE seulement, par
+  // Ouvre la palette Ctrl K. Au TÉLÉPHONE seulement, par
   // une loupe : sans clavier, c'est son seul accès. Au bureau, le champ de la
   // barre latérale et Ctrl K suffisent.
   onRecherche?: () => void;
@@ -100,7 +100,7 @@ export default function TopBar({
       // ⚠️ La barre DESCEND sous l'encoche : sa hauteur s'ajoute à
       // `safe-area-inset-top`, et son contenu se décale d'autant. Sans cela,
       // le titre et les boutons passaient sous l'encoche d'un iPhone.
-      // Fond `bar` : celui des barres de l'application (rebranding, décision 5).
+      // Fond `bar` : celui des barres de l'application.
       // `data-barre-fenetre` : dans l'app de bureau SEULEMENT, la barre de la
       // fenêtre (on la saisit, les boutons de Windows s'y dessinent) — voir
       // index.css § Application de bureau. Sans effet sur le site.
@@ -122,8 +122,8 @@ export default function TopBar({
           {gauche}
         </div>
 
-        {/* TÉLÉPHONE — OÙ L'ON EST, à gauche, sur deux lignes (refonte
-            graphique, lot 11a, décision 24, la maquette) : la section en petit
+        {/* TÉLÉPHONE — OÙ L'ON EST, à gauche, sur deux lignes (la maquette) : la
+            section en petit
             (« Jouer · RTA », « Mon compte · Runes »), la page dessous (« Ma
             prépa », « Liste »). Il était centré, en Cinzel, avec l'icône de la
             section : il ne disait que la page, pas où elle se range.
@@ -198,7 +198,7 @@ export default function TopBar({
             className="relative z-10 hidden lg:inline-flex"
           />
         )}
-        {/* Bouton de la librairie (décision 16) : la hauteur commune des
+        {/* Bouton de la librairie : la hauteur commune des
             boutons de l'app, ton `danger` qui ne rougit qu'au survol. */}
         {onDeconnexion && (
           <Bouton
@@ -223,7 +223,7 @@ export default function TopBar({
           className="relative z-10 ml-auto h-8 w-8 lg:hidden"
         />
 
-        {/* TÉLÉPHONE — la loupe de la palette Ctrl K (lot 13, décision 29, la
+        {/* TÉLÉPHONE — la loupe de la palette Ctrl K (la
             maquette), juste avant le ⚙. Même gabarit que lui. */}
         {onRecherche && (
           <button
@@ -256,8 +256,8 @@ export default function TopBar({
                           : 'text-ink-dim hoverable:bg-panel2 hoverable:text-ink'
                       }`}
         >
-          {/* Les curseurs « Réglages » de la toile (rebranding R4, décision
-              28). L'engrenage pivotait d'un huitième de tour à l'ouverture ;
+          {/* Les curseurs « Réglages » de la toile. L'engrenage pivotait d'un huitième
+              de tour à l'ouverture ;
               des curseurs tournés ne diraient rien : l'état ouvert se lit au
               fond (`ctx-soft`) et au libellé (« Fermer les paramètres »). Pas
               de croix, qui ferait croire à la fermeture de la page entière. */}

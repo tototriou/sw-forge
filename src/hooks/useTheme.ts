@@ -12,7 +12,7 @@ export type ResolvedTheme = 'light' | 'dark';
 
 export const THEME_CHOICES: { key: ThemeChoice; label: string; hint: string }[] = [
   // Un ACCESSEUR, lu à l'affichage : dans l'app de bureau, c'est le thème du
-  // système que suit « Auto » (application de bureau, lot 8).
+  // système que suit « Auto » (application de bureau).
   {
     key: 'auto',
     label: 'Auto',

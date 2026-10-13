@@ -182,8 +182,8 @@ export default function RtaPage({
   // Destinations proposées dans le sélecteur des cartes (repli tactile du drag).
   const moveTargets = [RTA_UNASSIGNED, ...rta.state.sections];
 
-  // Retirer un monstre de la prépa SE DÉFAIT au lieu de se confirmer (lot 13,
-  // décision 29) : le retrait est immédiat, et la notification « Annuler »
+  // Retirer un monstre de la prépa SE DÉFAIT au lieu de se confirmer : le retrait est
+  // immédiat, et la notification « Annuler »
   // remet l'entrée telle quelle — section, vitesse saisie, sets, équipement.
   const notifier = useNotifier();
   function retirerMonstre(id: string) {
@@ -253,7 +253,7 @@ export default function RtaPage({
 
   const runeSections = rta.state.sections;
 
-  // Filtre par section AU TÉLÉPHONE (lot 13, décision 28, la maquette) : une
+  // Filtre par section AU TÉLÉPHONE (la maquette) : une
   // seule section affichée, ou toutes (`null`). ⚠️ Affichage seulement —
   // l'ordre de tour et la prépa ne changent pas. Non persisté. Une section
   // supprimée pendant qu'elle est choisie ramène à « Tous ».
@@ -339,20 +339,20 @@ export default function RtaPage({
 
   return (
     <div>
-      {/* ---- En-tête BUREAU (refonte graphique, lot 6, décision 13) ----------
+      {/* ---- En-tête BUREAU ----------
           Le titre, le compteur, « Exporter » et le menu « ⋯ » qui porte les
           autres actions : Sauvegarder, Reprendre, Importer une prépa, Créer un
           monstre, puis — séparés — Réinitialiser et Tout effacer. Elles
           s'alignaient en deux rangées de boutons au-dessus de la prépa.
           ⚠️ `hidden lg:flex` : le téléphone garde son compteur et son panneau
-          d'actions, inchangés (lot 11). */}
+          d'actions, inchangés. */}
       <div className="mb-4 hidden flex-wrap items-center gap-x-3 gap-y-1 lg:flex">
-        {/* Cinzel, comme tous les titres de l'app (décision 1). */}
+        {/* Cinzel, comme tous les titres de l'app. */}
         <h1 className="font-display text-xl tracking-wide text-ink">Ma prépa</h1>
         <span className="rounded-full border border-border-soft bg-panel2 px-2 py-0.5 font-mono text-micro text-ink-dim">
           {compteur}
         </span>
-        {/* « Sauvegardé il y a … » (lot 13, décision 29) : la prépa ET ses
+        {/* « Sauvegardé il y a … » : la prépa ET ses
             catégories, écrites à chaque changement. */}
         <IndicateurSauvegarde prepa={rta.state} categories={cats.categories} />
         {/* Pas d'espaceur : la barre d'actions prend elle-même la place
@@ -503,7 +503,7 @@ export default function RtaPage({
         <p className="mt-4 text-ink-dim text-sm">Chargement des monstres…</p>
       )}
 
-      {/* ⚠️ **Filtre par section, au TÉLÉPHONE** (lot 13, décision 28, la
+      {/* ⚠️ **Filtre par section, au TÉLÉPHONE** (la
           maquette) : « Tous », « Non classé », puis chaque section, avec son
           nombre de monstres. Une rangée qui DÉFILE en largeur, jamais à la
           ligne — elle ne pousse pas les sections vers le bas. */}

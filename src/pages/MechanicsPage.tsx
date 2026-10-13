@@ -19,8 +19,8 @@ function goTo(id: string) {
 }
 
 // ⚠️ Plus de carte : un filet au-dessus de chaque section, comme la maquette —
-// un article qui se lit d'un trait, pas sept panneaux empilés. À la souris
-// depuis le lot 10, au doigt depuis le lot 11d (décision 27).
+// un article qui se lit d'un trait, pas sept panneaux empilés. Aux deux
+// formats.
 function Section({ id, title, children }: { id: string; title: string; children: ReactNode }) {
   return (
     <section id={id} className="scroll-mt-24 border-t border-border-soft pt-5">
@@ -48,7 +48,7 @@ export default function MechanicsPage() {
   // ⚠️ Colonne BORNÉE, contrairement aux autres pages : c'est du texte suivi,
   // pas une grille. Une ligne de 2 000 px se lit mal — l'œil perd le début de
   // la suivante. Voir docs/03-developpeur/interface/.
-  // ⚠️ **À la SOURIS, deux colonnes** (refonte graphique, lot 10, la
+  // ⚠️ **À la SOURIS, deux colonnes** (la
   // maquette) : le sommaire FIXE à gauche, qui reste sous la main pendant la
   // lecture, et l'article à droite, borné à 720 px. L'ordre du DOM ne change
   // pas — titre, sommaire, sections — seule la grille les place.
@@ -58,7 +58,7 @@ export default function MechanicsPage() {
                  lg:grid lg:grid-cols-[220px_minmax(0,720px)] lg:justify-center lg:gap-x-12"
     >
       <header className="lg:col-start-2 lg:row-start-1">
-        {/* Encre unie, plus de dégradé (rebranding, décision 57) — comme les
+        {/* Encre unie, plus de dégradé — comme les
             titres des autres écrans ; le grand titre reste, c'est une page de
             lecture. */}
         <h1 className="font-display font-black text-[clamp(28px,4vw,42px)] text-ink mb-1.5">

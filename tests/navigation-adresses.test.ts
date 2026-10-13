@@ -57,7 +57,7 @@ export const ADRESSES: Record<string, string> = {
   '#/bestiary': 'bestiary',
   '#/mecaniques': 'mecaniques',
   '#/releases': 'releases',
-  // Application de bureau, décision 14 : sur le SITE (ici) ; dans l'app,
+  // Application de bureau : sur le SITE (ici) ; dans l'app,
   // l'adresse retombe sur l'accueil (testNavigationAdressesBureau).
   '#/telecharger': 'telecharger',
   '#/parametres': 'parametres',
@@ -73,7 +73,7 @@ export function testNavigationAdresses() {
   const pages = Object.entries(ADRESSES).filter(([h]) => !tronquees.has(h)).map(([, p]) => p);
   egal(pages.length, new Set(pages).size, 'chaque adresse complète mène à une page différente');
 
-  // Dans l'app de bureau, la page « Télécharger » n'existe pas (décision 14).
+  // Dans l'app de bureau, la page « Télécharger » n'existe pas.
   const pont = globalThis as { swblacksmithBureau?: unknown };
   pont.swblacksmithBureau = { bureau: true, plateforme: 'win32' };
   try {

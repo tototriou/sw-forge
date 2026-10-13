@@ -1,4 +1,4 @@
-// Export / import d'équipes de siège (refonte graphique, décision 14) :
+// Export / import d'équipes de siège :
 // l'aller-retour garde la composition, un fichier hors format est refusé en
 // entier, un monstre inconnu ou perso laisse son emplacement vide.
 
@@ -70,15 +70,15 @@ export default function testSiegePartage() {
   refus(JSON.stringify({ format: FORMAT_SIEGE, version: '2', equipes: [] }), 'version illisible', 'une version qui n’est pas un nombre');
   refus(JSON.stringify({ format: FORMAT_SIEGE, version: 1 }), 'aucune liste', 'pas de liste d\'équipes');
 
-  // Préfixe `swblacksmith-` depuis le rebranding (R2, décision 14) ; le
+  // Préfixe `swblacksmith-` ; le
   // FORMAT est `swblacksmith/siege-equipes`, l'ancien `sw-forge/siege-equipes`
-  // restant relu (décision 66, figé par marque.test.ts).
+  // restant relu (figé par marque.test.ts).
   egal(nomFichierSiege('defense', new Date(2026, 8, 26, 12, 0)), 'swblacksmith-siege-defense-2026-09-26.json', 'le nom du fichier dit le côté et la date');
   // Le jour LOCAL : à 0 h 30, c'est déjà le lendemain, quel que soit le fuseau
   // de la machine (le jour UTC serait la veille à l'est de Greenwich).
   egal(nomFichierSiege('offense', new Date(2026, 9, 7, 0, 30)), 'swblacksmith-siege-offense-2026-10-07.json', 'le nom du fichier porte le jour local, pas le jour UTC');
 
-  // Recherche d'équipe par monstre (même décision 14).
+  // Recherche d'équipe par monstre.
   titre('Siège — recherche d\'équipe par monstre');
   const equipe = teams[0];
   ok(equipeContient(equipe, '', parId), 'une saisie vide garde toutes les équipes');

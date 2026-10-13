@@ -1,7 +1,7 @@
-// Tests de rendu AU TÉLÉPHONE — Siège : Défense, Offense, Recommandations
-// (lot 11b de la refonte graphique). Principe dans tests/rendu/outils-rendu.tsx ; rendu téléphone par
-// `auTelephone`, qui fait apparaître les panneaux « Options ». Écrits AVANT le
-// 11b : ils doivent rester verts sans qu'une assertion change.
+// Tests de rendu AU TÉLÉPHONE — Siège : Défense, Offense, Recommandations.
+// Principe dans tests/rendu/outils-rendu.tsx ; rendu téléphone par
+// `auTelephone`, qui fait apparaître les panneaux « Options ». Un changement
+// de style doit les laisser verts sans qu'une assertion change.
 
 import SiegeBoard from '../../src/components/siege/SiegeBoard';
 import RecoBoard from '../../src/components/siege/RecoBoard';
@@ -83,7 +83,7 @@ export function testRenduTelephoneSiege() {
   ok(t.includes("Équipe 1 +33% (donjon) Exporter vers l'Optimizer Éditer Supprimer Lushen 239 Veromos 245 Chasun 256 Speed tune Voir le speed tune"), 'équipe 1 : lead, actions, monstres et vitesses, speed tune');
   ok(t.includes("Équipe 2 +24% Exporter vers l'Optimizer Éditer Supprimer Galleon 261 Belladeon 151 + vide Speed tune Voir le speed tune"), 'équipe 2 : l\'emplacement vide, à remplir');
   ok(valeurs(ferme, 'aria-label').includes('Chercher une équipe par monstre'), 'la recherche d\'équipe');
-  // Lot 11b (décision 25) : ajouté avec l'interrupteur.
+  // Ajouté avec l'interrupteur.
   ok(t.includes('2 équipes Vérifier mes speed') && valeurs(ferme, 'aria-label').includes('Vérifier mes speed'), '« Vérifier mes speed » : un interrupteur sur la page, à côté du compteur');
 
   for (const side of ['defense', 'offense'] as const) {
@@ -92,7 +92,7 @@ export function testRenduTelephoneSiege() {
     const b = boutons(ouvert);
     egal(dialogues(ouvert), 1, `${side} : panneau « Options » ouvert`);
     ok(valeurs(ouvert, 'aria-label').includes(`Actions — ${side === 'defense' ? 'défense' : 'attaque'}`), `${side} : le panneau est nommé`);
-    // ⚠️ Lot 11b (décision 25) : « Vérifier mes speed » a quitté le panneau
+    // ⚠️ « Vérifier mes speed » a quitté le panneau
     // pour un interrupteur sur la page (vérifié plus bas) ; le reste du
     // panneau, dans le même ordre.
     ok(to.includes(side === 'defense'

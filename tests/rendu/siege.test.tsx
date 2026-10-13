@@ -96,8 +96,8 @@ export function testRenduSiegeOffense() {
   verifierCamp('offense');
 }
 
-// L'ÉDITION d'une équipe (vue dépliée). ⚠️ Écrit PENDANT le lot 7a, après le
-// resserrement de l'édition — les tests d'avant ne couvraient que la vue
+// L'ÉDITION d'une équipe (vue dépliée) — les tests ci-dessus ne couvrent que
+// la vue
 // compacte. Il fixe ce que chaque slot doit garder : le choix d'un monstre,
 // le retrait, la vitesse et sa base, le champ SPD, les ticks, l'écart au tick
 // et la position.
@@ -145,7 +145,7 @@ export function testRenduSiegeEdition() {
   ok(valeurs(html, 'title').filter((v) => v === 'Changer la position (intervertir les monstres)').length >= 2, 'chaque monstre posé a son sélecteur « Position »');
   ok(t.includes('1 · Leader'), 'la position « 1 · Leader » est proposée');
 
-  // À la souris, les flèches ← → (demandées par le mainteneur, lot 7a). Aux bords,
+  // À la souris, les flèches ← → (demandées par le mainteneur). Aux bords,
   // affichées mais désactivées, et l'infobulle dit pourquoi.
   // Recliquer sur le tick visé l'enlève (demandé par le mainteneur) : l'infobulle
   // du tick actif le dit, celle des autres propose de le viser.
@@ -158,8 +158,7 @@ export function testRenduSiegeEdition() {
   ok(!!bouton(html, 'Déplacer à droite (le monstre suivant devient le leader)'), 'slot 1 : « → » annonce que le suivant devient le leader');
 }
 
-// Lot 7a de la refonte : l'en-tête bureau. Ajouté APRÈS les tests ci-dessus,
-// dont aucune assertion n'a changé.
+// L'en-tête bureau.
 export function testRenduSiegeEnTete() {
   titre('rendu · Siège — l\'en-tête bureau et son menu « ⋯ »');
   for (const [side, nom] of [['defense', 'Défense'], ['offense', 'Offense']] as const) {
@@ -167,7 +166,7 @@ export function testRenduSiegeEnTete() {
     ok(texteVisible(html).includes(`${nom} 2 équipes`), `${nom} : le titre, puis le compteur`);
     ok(!!bouton(html, "Plus d'actions"), `${nom} : bouton « Plus d'actions »`);
     const menu = html.match(/<div[^>]*role="menu"[\s\S]*?<\/div><\/div>/)?.[0] ?? '';
-    // (Décision 14 : « Exporter » et « Importer » s'ajoutent en tête du menu.)
+    // (« Exporter » et « Importer » s'ajoutent en tête du menu.)
     egal(boutons(menu).map((b) => b.texte), ['Exporter', 'Importer', 'Créer un monstre', 'Tout effacer'], `${nom} : le menu porte Exporter, Importer, Créer un monstre, puis Tout effacer`);
     const exp = boutons(menu).find((b) => b.texte === 'Exporter');
     ok(!!exp && !exp.desactive && (exp.title ?? '').includes('.json'), `${nom} : « Exporter » actif, son infobulle parle du fichier .json`);

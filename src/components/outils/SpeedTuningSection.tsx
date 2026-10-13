@@ -1,6 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { Search, Plus, Users, Swords, X, Zap, Gauge, Eye, EyeOff, Download, Upload, Check, Scissors, Play, ChevronUp, ChevronDown, Sparkles, CopyPlus } from 'lucide-react';
-// Le chronomètre de l'entrée « Speed tuning » de la nav (rebranding, décision 44).
+// Le chronomètre de l'entrée « Speed tuning » de la nav.
 import { IconeSpeedTuning } from '../IconesAtelier';
 import { ELEMENTS, Monster, SiegeTeam } from '../../types';
 import { LeadInfo, combatSpeed, leadsDeVitesse, runeSpeedForTarget, SIEGE_TICKS } from '../../lib/speed';
@@ -387,7 +387,7 @@ export default function SpeedTuningSection({
   };
 
   // L'ordre de tour, posé à DEUX endroits selon le format (un seul visible) :
-  // tout en bas au doigt, sous l'analyse à la souris (décision 22).
+  // tout en bas au doigt, sous l'analyse à la souris.
   const ordreDeTour = (className: string) => (
     <section className={`rounded-lg border border-border bg-panel ${className}`}>
       <div className="border-b border-border-soft px-4 py-2.5 text-micro font-semibold uppercase tracking-wider text-ink-dimmer">
@@ -427,8 +427,8 @@ export default function SpeedTuningSection({
   return (
     <div className="space-y-4">
       {entete && (
-        // ⚠️ **À la SOURIS, le titre au gabarit des autres pages** (refonte
-        // graphique, lot 9b, la maquette) : titre en police d'affichage, sans
+        // ⚠️ **À la SOURIS, le titre au gabarit des autres pages** (la maquette) :
+        // titre en police d'affichage, sans
         // la pastille d'icône, la règle des ticks dessous.
         <header className="flex items-start gap-3">
           <span className="flex h-8 w-8 flex-none items-center justify-center rounded bg-accent-soft text-accent lg:hidden">
@@ -489,7 +489,7 @@ export default function SpeedTuningSection({
       </section>
 
       {/* Camps — flex-wrap : côte à côte quand il y a la place, empilés sinon.
-          ⚠️ **Au TÉLÉPHONE, toujours empilés** (`max-lg:flex-col`, lot 11d) :
+          ⚠️ **Au TÉLÉPHONE, toujours empilés** (`max-lg:flex-col`) :
           dès 560 px de large, deux camps de 280 px tenaient côte à côte, et
           chacun devenait trop étroit — le lead débordait de l'en-tête et les
           trois réglages de chaque monstre s'empilaient (relevé par le mainteneur en
@@ -895,8 +895,8 @@ export default function SpeedTuningSection({
             </div>
 
           {/* ⚠️ **À la SOURIS, l'ordre de tour vient ICI**, sous l'ordre des
-              sorts et l'analyse, avant les tableaux (décision 22 du cadrage de
-              la refonte, le mainteneur) : c'est la conclusion qu'on vient lire, pas un
+              sorts et l'analyse, avant les tableaux (le mainteneur) : c'est la
+              conclusion qu'on vient lire, pas un
               pied de page sous trois tableaux de 40 colonnes. */}
           {ordreDeTour('hidden lg:block')}
 
@@ -1199,9 +1199,9 @@ function CampPanneau({
             </optgroup>
           </Selecteur>
           {/* ⚠️ **À la SOURIS, l'import du camp vit ICI**, à côté du lead
-              (décision 22, le mainteneur) : dans l'en-tête de la carte qu'il
+              (le mainteneur) : dans l'en-tête de la carte qu'il
               remplace, on voit sans lire quel camp il touche. Au doigt, il
-              reste sous la recherche (lot 11). */}
+              reste sous la recherche. */}
           {decks && onImporterDeck && (
             <span className="hidden lg:block">
               <ImportDeck decks={decks} onImporter={onImporterDeck} adv={adv} enTete />
@@ -1863,7 +1863,7 @@ function ImportDeck({
   decks: DeckDispo[];
   onImporter: (team: SiegeTeam) => void;
   adv: boolean;
-  // Posé dans l'en-tête du camp (à la souris, décision 22) : bouton compact,
+  // Posé dans l'en-tête du camp (à la souris) : bouton compact,
   // liste calée à DROITE — le bouton est au bord droit de la carte, une liste
   // calée à gauche déborderait de l'écran.
   enTete?: boolean;

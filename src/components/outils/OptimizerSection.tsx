@@ -2011,7 +2011,7 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     const jour = jourLocal();
     const DIACRITICS = new RegExp('[̀-ͯ]', 'g');
     const slug = selected.monster.name.toLowerCase().normalize('NFD').replace(DIACRITICS, '').replace(/[^a-z0-9]+/g, '-');
-    // Préfixe de la marque (rebranding, décision 14) : `swblacksmith-optimizer-…`.
+    // Préfixe de la marque : `swblacksmith-optimizer-…`.
     // Seul le NOM du fichier change ; son contenu et son format, non.
     telechargerTexte(`${PREFIXE_FICHIER}-optimizer-${slug}-${jour}.json`, JSON.stringify(recipe, null, 2));
   }
@@ -5719,8 +5719,8 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
                 // autre build validé). Absent uniquement si `sourceSelector`
                 // est `null` (aucune espèce choisie, ou possédée ailleurs
                 // sans exemplaire encore désambiguïsé — zone D).
-                // ⚠️ Exige `sourceSelector` non nul ET une liste active (Lot
-                // 3 — un build validé appartient TOUJOURS à une liste, voir
+                // ⚠️ Exige `sourceSelector` non nul ET une liste active (un build
+                // validé appartient TOUJOURS à une liste, voir
                 // ValidatedBuild). Valider ajoute aussi implicitement le
                 // monstre à la liste s'il n'y était pas déjà (voir
                 // `validateBuild`, useOptimizerLists.ts).

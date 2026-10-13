@@ -1,9 +1,8 @@
 // Couleur de SIGNATURE de chaque section et sous-section de l'app.
 //
-// ⚠️ **Refonte graphique (décision 3, précisée)** : ces teintes ont quitté la
-// barre latérale bureau (lot 4), qui est neutre. Elles restent sur l'ACCUEIL
-// (tuiles d'icône, halos — le mainteneur l'a demandé au lot 5) et sur la navigation
-// du TÉLÉPHONE (onglets, panneau, barre du haut) jusqu'à son lot (11).
+// ⚠️ La barre latérale bureau est neutre : ces teintes n'y sont pas. Elles
+// sont sur l'ACCUEIL (tuiles d'icône, halos) et sur la navigation du
+// TÉLÉPHONE (onglets, panneau, barre du haut).
 //
 // ⚠️ **Une seule source pour l'accueil ET la navigation.** L'accueil peint ses
 // cartes de cette couleur (HomePage), et la navigation (barre latérale, onglets
@@ -31,7 +30,7 @@ export const COULEUR_SECTION = {
   bestiary: '#2FA0E0',
   mecaniques: '#8890B8',
   releases: '#C79BFF',
-  // Application de bureau, lot 6 (décision 14) — site seulement.
+  // Application de bureau — site seulement.
   telecharger: '#7FD15B',
 } as const;
 
@@ -60,8 +59,8 @@ export const COULEUR_COMPTE_SUB = {
   artefacts: '#E08A3C',
 } as const;
 
-// ⚠️ **Variante THÈME CLAIR de chaque couleur ci-dessus** (refonte graphique,
-// lot 14 — le mainteneur, sur une capture de l'accueil en clair : « effectivement
+// ⚠️ **Variante THÈME CLAIR de chaque couleur ci-dessus** (le mainteneur, sur une
+// capture de l'accueil en clair : « effectivement
 // pas très lisible »). Les couleurs d'origine sont pensées pour le fond
 // sombre : en clair, l'icône sur sa tuile tombait à 1.40:1 (arène) — neuf sur
 // douze sous 3:1, le seuil d'une icône. Chaque variante est la MÊME teinte,
@@ -71,9 +70,8 @@ export const COULEUR_COMPTE_SUB = {
 // texte sur la carte : 4.23 à 4.37.
 // Indexée par la couleur d'origine : c'est elle que les composants reçoivent.
 // Le choix selon le thème se fait en CSS (`.teinte-section`, index.css).
-// ⚠️ Accueil seulement pour l'instant : la navigation du téléphone, qui peint
-// ses icônes de ces couleurs en ATTRIBUT SVG (où une variable CSS ne se
-// résout pas), relève du lot 11.
+// ⚠️ Accueil seulement : la navigation du téléphone peint ses icônes de ces
+// couleurs en ATTRIBUT SVG, où une variable CSS ne se résout pas.
 export const TEINTE_CLAIRE: Record<string, string> = {
   '#5B9DE0': '#497EB3', // home
   '#A15FE0': '#9C5CD9', // rta, prepa

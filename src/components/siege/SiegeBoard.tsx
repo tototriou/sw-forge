@@ -88,8 +88,8 @@ export default function SiegeBoard({
   // d'défense ».
   const deNoun = side === 'defense' ? 'de défense' : "d'attaque";
 
-  // Supprimer une équipe SE DÉFAIT au lieu de se confirmer (lot 13, décision
-  // 29) : immédiat, puis « Équipe retirée · Annuler » la remet à SA place,
+  // Supprimer une équipe SE DÉFAIT au lieu de se confirmer : immédiat, puis « Équipe
+  // retirée · Annuler » la remet à SA place,
   // avec ses monstres, leurs vitesses et ses réglages.
   const notifier = useNotifier();
   function retirerEquipe(teamId: string) {
@@ -141,7 +141,7 @@ export default function SiegeBoard({
     return m;
   }, [monsters]);
 
-  // ---- Recherche d'équipe par monstre (décision 14) ----------------------
+  // ---- Recherche d'équipe par monstre ----------------------
   // ⚠️ État LOCAL, jamais enregistré : revenir sur la page montre toutes ses
   // équipes — un filtre oublié ferait croire à des équipes disparues.
   const [recherche, setRecherche] = useState('');
@@ -165,7 +165,7 @@ export default function SiegeBoard({
   }, [siege.state.teams, monsterById]);
   const choisi = filtre ? monstresDesEquipes.find((m) => m.name === recherche) ?? null : null;
 
-  // ---- Export / import d'équipes (décision 14, lib/siegeShare) ------------
+  // ---- Export / import d'équipes (lib/siegeShare) ------------
   const [msg, setMsg] = useState<{ text: string; error?: boolean } | null>(null);
   useEffect(() => {
     if (!msg) return;
@@ -278,10 +278,10 @@ export default function SiegeBoard({
       />
 
       {/* ⚠️ « Vérifier mes speed » n'est PLUS ici : au téléphone, c'est un
-          interrupteur sur la page, à côté du compteur (lot 11b, décision 25) —
+          interrupteur sur la page, à côté du compteur —
           un affichage qu'on allume et éteint en parcourant ses équipes. */}
 
-      {/* Export / import d'équipes (décision 14) — mêmes gestes que dans
+      {/* Export / import d'équipes — mêmes gestes que dans
           l'en-tête bureau, mêmes fonctions. */}
       <Bouton
         onClick={() => {
@@ -318,14 +318,14 @@ export default function SiegeBoard({
           « Options » : à 40 px avec leur libellé complet, elles remplissaient
           deux rangées avant la première équipe. Le COMPTEUR reste, lui — c'est
           une information, pas une action, et elle tient sur une ligne. */}
-      {/* ---- En-tête BUREAU (refonte graphique, lot 7a) --------------------
-          Comme la RTA (décision 13, précisée) : le titre, le compteur, puis
+      {/* ---- En-tête BUREAU --------------------
+          Comme la RTA : le titre, le compteur, puis
           les actions — toutes en boutons quand elles tiennent sur la ligne,
           sinon « Ajouter une équipe » et « Vérifier mes speed » visibles et le
           reste (Créer un monstre, Tout effacer) dans le menu « ⋯ ».
-          « Ajouter une équipe » est l'action PRINCIPALE de l'écran (décision
-          4, aplat d'accent). Le téléphone garde son compteur et son panneau
-          « Options » (lot 11). */}
+          « Ajouter une équipe » est l'action PRINCIPALE de l'écran (aplat d'accent). Le
+          téléphone garde son compteur et son panneau
+          « Options ». */}
       <div className="mt-5 hidden flex-wrap items-center gap-x-3 gap-y-1 lg:flex">
         <h1 className="font-display text-xl tracking-wide text-ink">
           {side === 'defense' ? 'Défense' : 'Offense'}
@@ -374,7 +374,7 @@ export default function SiegeBoard({
             }] : []),
           ]}
           autres={[
-            // Export / import d'équipes — ajout décidé par le mainteneur (décision 14).
+            // Export / import d'équipes — ajout décidé par le mainteneur.
             {
               cle: 'exporter',
               libelle: 'Exporter',
@@ -437,7 +437,7 @@ export default function SiegeBoard({
         }}
       />
 
-      {/* ---- Recherche d'équipe par monstre (décision 14) — aux deux formats.
+      {/* ---- Recherche d'équipe par monstre — aux deux formats.
           Le message d'export / d'import s'affiche juste en dessous. */}
       {/* ⚠️ **Une liste de suggestions sous le champ, comme partout ailleurs**
           (RTA, Recommandations) — demandé par le mainteneur : on tape, on CHOISIT un
@@ -478,7 +478,7 @@ export default function SiegeBoard({
 
       {/* TÉLÉPHONE : le compteur et « Vérifier mes speed » ; les autres
           actions sont dans le panneau.
-          ⚠️ **Un INTERRUPTEUR sur la page** (lot 11b, décision 25, la
+          ⚠️ **Un INTERRUPTEUR sur la page** (la
           maquette) : il était un bouton du panneau « Options », qu'il fallait
           ouvrir pour allumer ou éteindre un AFFICHAGE qu'on consulte en
           parcourant ses équipes. Toujours affiché, désactivé sans équipe. */}
@@ -538,8 +538,7 @@ export default function SiegeBoard({
       {siege.state.teams.length === 0 ? (
         <div className="mt-8 flex flex-col items-center justify-center text-center rounded-2xl border border-dashed border-border bg-panel/40 py-16 px-6">
           <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-panel2 border border-border mb-4">
-            {/* L'icône du CÔTÉ, celle de son entrée de nav — bouclier ou épée
-                (rebranding, décision 44). */}
+            {/* L'icône du CÔTÉ, celle de son entrée de nav — bouclier ou épée. */}
             {side === 'defense' ? (
               <IconeDefense size={26} className="text-ink-dim" />
             ) : (
@@ -561,7 +560,7 @@ export default function SiegeBoard({
           <Bouton taille="sm" libelle="Effacer la recherche" onClick={() => setRecherche('')} />
         </div>
       ) : (
-        // ⚠️ **Autant de colonnes que la PLACE en permet** (lot 7a, « optimiser
+        // ⚠️ **Autant de colonnes que la PLACE en permet** (« optimiser
         // l'espace ») : des colonnes d'au moins 480 px — la largeur où les trois
         // monstres d'une équipe tiennent côte à côte, nom et vitesse lisibles.
         // Le nombre suit la largeur RÉELLE, barre latérale comprise : 1 colonne
@@ -602,10 +601,9 @@ export default function SiegeBoard({
             />
             </div>
           ))}
-          {/* ⚠️ **La carte d'ajout, en fin de grille** (rebranding, décision 41,
-              la toile) — en plus du bouton de l'en-tête, pas à sa place.
-              BUREAU seulement : le téléphone ajoute depuis « Options »
-              (décision 45).
+          {/* ⚠️ **La carte d'ajout, en fin de grille** (la toile) — en plus du bouton
+              de l'en-tête, pas à sa place.
+              BUREAU seulement : le téléphone ajoute depuis « Options ».
               - Elle est la PLACE de la nouvelle équipe : l'équipe naît
                 exactement là où l'on a cliqué, et la carte passe à la case
                 suivante. Rien d'autre ne bouge, donc AUCUN défilement — au

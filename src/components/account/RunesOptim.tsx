@@ -510,8 +510,8 @@ export default function RunesOptim({
   // doigt (comme les filtres de la Liste). `large` élargit les segmentés à toute
   // la largeur du panneau ; en ligne ils restent serrés.
   // Le MODE du potentiel — ce qui change toute la liste. ⚠️ Au TÉLÉPHONE, il
-  // n'est plus dans le panneau « Options » mais en tête de la page (lot 11c,
-  // décision 26, la maquette) : on le voit et on le bascule sans ouvrir le
+  // n'est plus dans le panneau « Options » mais en tête de la page (la maquette) : on le voit et on le
+  // bascule sans ouvrir le
   // panneau. Au bureau, il reste dans la rangée d'options.
   const modeControl = (large: boolean) => (
     <Segmented
@@ -709,9 +709,9 @@ export default function RunesOptim({
 
   return (
     <div>
-      {/* ⚠️ **En-tête à la SOURIS** (refonte graphique, lot 8a-3, la maquette) :
+      {/* ⚠️ **En-tête à la SOURIS** (la maquette) :
           le titre de la vue et ce qu'elle cherche. Au doigt, la barre du haut
-          dit déjà la vue (lot 11). */}
+          dit déjà la vue. */}
       <div className="mb-3 hidden items-baseline gap-3 lg:flex">
         <h1 className="font-display text-xl tracking-wide text-ink">Optimisation</h1>
         <span className="text-sm text-ink-dim">
@@ -729,15 +729,15 @@ export default function RunesOptim({
 
       {/* Contrôles */}
       <div className="flex items-center gap-4 flex-wrap mb-4">
-        {/* Au DOIGT : le MODE en tête, sur toute la largeur (décision 26). */}
+        {/* Au DOIGT : le MODE en tête, sur toute la largeur. */}
         <div className="w-full lg:hidden">{modeControl(true)}</div>
         {/* Au DOIGT : les rangées d'avant (`contents` : leurs enfants restent
-            des éléments de la rangée), cachées à la souris (lot 11). */}
+            des éléments de la rangée), cachées à la souris. */}
         <div className="contents lg:hidden">
           <SetFilter runes={runes} value={sets} onChange={choisirSets} />
           <SlotFilter value={slots} onChange={choisirSlots} />
         </div>
-        {/* À la SOURIS : les menus déroulants (lot 8a, décision 20). Sans
+        {/* À la SOURIS : les menus déroulants. Sans
             « Antiques » : l'Optimisation les range avec « Faisable avec ma
             réserve », dans ses options, plus loin sur la rangée. */}
         <div className="hidden lg:block">
@@ -755,7 +755,7 @@ export default function RunesOptim({
 
         <div className="flex items-center gap-2">
           <span className="label">Trier par</span>
-          {/* Au DOIGT : la liste déroulante (lot 11). */}
+          {/* Au DOIGT : la liste déroulante. */}
           <Selecteur
             value={sort}
             onChange={(e) => {
@@ -772,7 +772,7 @@ export default function RunesOptim({
             ))}
           </Selecteur>
           {/* À la SOURIS, des onglets (`Segmented`), comme le reste de la
-              page (le mainteneur, lot 8a). Mêmes entrées, même ordre. */}
+              page (le mainteneur). Mêmes entrées, même ordre. */}
           <div className="hidden lg:block">
             <Segmented
               value={sort}
@@ -852,7 +852,7 @@ export default function RunesOptim({
           antique, « Faisable avec ma réserve », « Sans les immémoriaux »,
           « Runes utilisées », « Marqueurs »). Le bouton qui l'ouvre vit dans la
           barre de nav — voir App.tsx (`pageAPanneau`). Le mode gemme/meule
-          (en tête de page au doigt, lot 11c), sets, slots, tri et aide
+          (en tête de page au doigt), sets, slots, tri et aide
           restent dans la page. */}
       <MobileSheet ouvert={menuOuvert} onFermer={onFermerMenu} titre="Options d'optimisation">
         <div className="flex flex-col gap-3">{optionsControls(true, false)}</div>

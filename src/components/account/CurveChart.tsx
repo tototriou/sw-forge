@@ -362,8 +362,8 @@ export default function CurveChart({
     setChoisi((cur) => (cur && cur.rang === hover ? null : { rang: hover }));
   }
 
-  // ⚠️ **L'infobulle de survol est du HTML, posé AU-DESSUS du SVG** (refonte
-  // graphique, lot 8a — le mainteneur : « revois un peu les infobulles pour que ça
+  // ⚠️ **L'infobulle de survol est du HTML, posé AU-DESSUS du SVG** (le mainteneur :
+  // « revois un peu les infobulles pour que ça
   // rende mieux »). Dessinée en SVG, c'était une boîte aux couleurs écrites en
   // dur (bleu nuit, texte gris-bleu) : sombre même en thème clair, sans ombre,
   // et des noms coupés à 16 caractères faute de mesurer le texte. Elle prend
@@ -461,7 +461,7 @@ export default function CurveChart({
         {/* Grille + graduations Y.
             ⚠️ Couleurs du THÈME (tokens), plus des bleus nuit en dur
             (`#242a4d`, `#7c85b8`, `#1c2140`, `#9aa2d0`) — pensés pour le
-            sombre, ils détonnaient en thème clair (lot 8a, « revois les
+            sombre, ils détonnaient en thème clair (« revois les
             infobulles pour que ça rende mieux »). Grille : `border-soft` ;
             graduations et titres d'axes : les encres atténuées. */}
         {yTicks.map((v) => (
@@ -584,7 +584,7 @@ export default function CurveChart({
             couleurs CSS. Posé nu dans un attribut SVG, le trait n'était tout
             simplement pas peint — invisible, sans erreur.
             ⚠️ `accent-lisible`, pas `accent` : c'est un TRAIT, et la braise vive
-            tombe à 2.1-2.6 sur les fonds clairs (rebranding, décision 11).
+            tombe à 2.1-2.6 sur les fonds clairs.
             Voir docs/03-developpeur/interface/. */}
         {choisi && runesChoisies.length > 0 && (
           <g pointerEvents="none">

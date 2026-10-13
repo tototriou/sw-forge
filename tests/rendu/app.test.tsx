@@ -1,9 +1,8 @@
 // Tests de rendu — la coquille de l'app (barre latérale, barre du haut, onglets
 // mobiles), affichée EN ENTIER par `App` sur chaque route. Principe dans
-// tests/rendu/outils-rendu.tsx. Écrits AVANT le lot 4 de la refonte
-// graphique : ils fixent ce que la
-// navigation permet, pas sa forme — le regroupement du menu décidé par le mainteneur
-// (décision 5) doit les laisser verts.
+// tests/rendu/outils-rendu.tsx. Ils fixent ce que la navigation permet, pas
+// sa forme (docs/04-decisions/adr/barre-laterale.md) : un changement de
+// disposition doit les laisser verts.
 
 import App from '../../src/App';
 import { egal, faussLocalStorage, ok, titre } from '../outils';
@@ -33,9 +32,8 @@ export function rendreApp(hash: string): string {
 }
 
 // La barre latérale bureau : son <aside>, le seul de la coquille. (Ses <nav>
-// n'ont pas de nom : on ne peut pas les viser.) ⚠️ Elle a d'abord été découpée
-// jusqu'à son bouton de repli, qui la fermait ; le lot 4 l'a remonté en tête,
-// à côté du logo.
+// n'ont pas de nom : on ne peut pas les viser.) Son bouton de repli est en
+// tête, à côté du logo : il ne peut pas servir à la délimiter.
 function barreLaterale(html: string): string {
   return html.match(/<aside[\s\S]*?<\/aside>/)?.[0] ?? '';
 }
@@ -46,7 +44,7 @@ function ongletsMobiles(html: string): string {
 
 // Chaque route et le titre que la barre du haut affiche (relevés sur le code
 // d'avant la refonte).
-// ⚠️ Lot 11a (décision 24) : au téléphone, la barre dit la section en petit
+// ⚠️ Au téléphone, la barre dit la section en petit
 // AU-DESSUS de la page (« Mon compte · Runes » / « Résumé »), là où elle
 // disait « Runes · Résumé » d'un seul tenant. Même information — l'inventaire
 // et la vue —, les neuf attendus de « Mon compte » suivent ce nouveau texte.
@@ -137,7 +135,7 @@ export function testRenduAppNavigation() {
   // Au deuxième niveau, un retour vers le premier.
   ok(texteVisible(barreLaterale(rendreApp('#/siege/defense'))).includes('Siège'), 'dans le Siège : la barre dit où l\'on est');
 
-  // Décision 11 (menu comme la maquette) : les sous-sections se DÉROULENT sous
+  // Les sous-sections se DÉROULENT sous
   // leur entrée — dans le Siège, ses trois sous-sections ET toutes les autres
   // sections sont à l'écran en même temps.
   const siege = barreLaterale(rendreApp('#/siege/defense'));
@@ -209,7 +207,7 @@ export function testRenduAppLiensMorts() {
 }
 
 export function testRenduAppMobile() {
-  titre('rendu · App — onglets mobiles inchangés (lot 4 = bureau seulement)');
+  titre('rendu · App — onglets mobiles (la barre latérale ne vaut qu’au bureau)');
   for (const hash of ['#/', '#/siege/defense', '#/compte/runes/liste']) {
     const html = rendreApp(hash);
     const onglets = texteVisible(ongletsMobiles(html));

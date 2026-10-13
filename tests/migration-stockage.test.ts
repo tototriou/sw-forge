@@ -1,5 +1,5 @@
 // Migration des clés de stockage `sw-forge-*` / `sky-arena-*` vers
-// `swblacksmith-*` — décision 66 du rebranding
+// `swblacksmith-*`
 // (docs/02-app/transverse/feat-import-compte/persistance.md,
 // « Migration des clés d'un autre préfixe »).
 //

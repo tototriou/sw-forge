@@ -4,7 +4,7 @@ import { useStickyState } from '../hooks/useStickyState';
 import { BoutonIcone } from '../ui';
 import Logo from './Logo';
 
-// Barre de navigation LATÉRALE (bureau) — refonte graphique, lot 4
+// Barre de navigation LATÉRALE (bureau) — docs/04-decisions/adr/barre-laterale.md
 // (maquette « Barre latérale » ; docs/02-app/transverse/).
 //
 // De haut en bas : l'identité et le repli, le compte chargé, la recherche,
@@ -21,7 +21,8 @@ import Logo from './Logo';
 // sous-sections sans charger de page ; on choisit ensuite laquelle.
 //
 // ⚠️ **Elle disparaît sous `lg`**, remplacée par la barre d'onglets du bas
-// (voir MobileTabs). Une correction destinée à un format ne touche pas l'autre.
+// (voir MobileTabs). Une correction destinée à un format ne touche pas l'autre
+// (docs/04-decisions/adr/deux-formats-de-premier-rang.md).
 
 // ⚠️ 248 / 56 px. À 224, la carte du compte (avatar, nom, date d'export et
 // nombre de monstres) tronquait sa seconde ligne ; repliée, une icône de 16
@@ -102,7 +103,7 @@ export function cleRouteBarre(
 // même ordre d'un thème à l'autre (`panel` est le plus loin du fond en
 // Atelier, `panel2` en Forge). Un voile d'encre s'en écarte toujours d'autant
 // plus qu'il est dense.
-// ⚠️ **L'entrée ACTIVE est en braise** depuis le rebranding (décision 29 — la
+// ⚠️ **L'entrée ACTIVE est en braise** (la
 // toile, « En situation ») : fond braise sombre (`accent-soft`), texte et
 // icône en braise lisible (5.58 en Forge, 4.91 en Atelier). Le survol garde
 // le voile d'encre : lui ne dit pas « on est ici ».
@@ -150,7 +151,7 @@ export default function Sidebar({
 
   // ⚠️ **Pas d'aperçu au survol.** Un panneau sortait à droite de la barre
   // quand la souris passait sur une section refermée ; le mainteneur l'a fait
-  // retirer (2026-09-24, [retrait #12] du cadrage de la refonte) : les
+  // retirer : les
   // sous-sections se déroulent désormais sous leur entrée, l'aperçu doublait
   // ce geste et surgissait dès qu'on traversait la barre.
   const basculer = (l: SidebarLien) => {
@@ -163,7 +164,7 @@ export default function Sidebar({
       style={{ width: retractee ? LARGEUR_SIDEBAR_RETRACTEE : LARGEUR_SIDEBAR }}
       // ⚠️ La LARGEUR s'anime, pas un `translateX` : la barre se replie sur
       // elle-même et rend sa place au contenu.
-      // ⚠️ Le fond des BARRES (`bar`, rebranding, décision 5), séparé par un
+      // ⚠️ Le fond des BARRES (`bar`), séparé par un
       // filet : la barre fait partie de l'application, elle ne se pose pas
       // dessus comme un panneau. C'était le fond de la page.
       className="hidden lg:flex fixed inset-y-0 left-0 z-30 flex-col gap-3 border-r border-border-soft

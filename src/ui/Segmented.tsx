@@ -26,7 +26,7 @@ import { useLayoutEffect, useRef, useState } from 'react';
 const CRAN_DENSE = 'px-1 py-1 text-nano leading-tight';
 // ⚠️ À la souris, les crans font 26 px et le cadre 32 (26 + 2 × 2 de `p-0.5`
 // + le contour), 10 px de côté et 12 px de texte : le `.seg` de la maquette,
-// qui n'a qu'une taille — celle d'un bouton `md` (décision 16, voir
+// qui n'a qu'une taille — celle d'un bouton `md` (voir
 // Bouton.tsx). Le petit en faisait 30, le grand 36.
 const CRAN_LG = 'lg:h-[26px] lg:py-0 lg:px-2.5 lg:text-xs';
 const CRAN_LARGE = `px-3 py-1.5 text-xs whitespace-nowrap ${CRAN_LG}`;
@@ -205,10 +205,8 @@ export default function Segmented<T extends string>({
                               // ne flotte pas au-dessus du contrôle qui le
                               // contient). Voir docs/03-developpeur/interface/.
                               // ⚠️ Un APLAT de braise, texte `accent-ink`
-                              // (rebranding, décision 19 — la planche
-                              // « Actions » de la toile) : il valait le fond
-                              // doux `accent-soft` depuis le lot 9 de la
-                              // refonte. Toujours un seul marqueur. Encre
+                              // (la planche « Actions » de la toile).
+                              // Toujours un seul marqueur. Encre
                               // dessus : 6.66.
                               active
                               ? 'bg-accent text-accent-ink'

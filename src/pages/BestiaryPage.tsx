@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Search } from 'lucide-react';
-// Le grimoire de l'entrée « Bestiaire » de la nav (rebranding, décision 44).
+// Le grimoire de l'entrée « Bestiaire » de la nav.
 import { IconeBestiaire } from '../components/IconesAtelier';
 import SearchBar from '../components/SearchBar';
 import MobileSheet from '../ui/MobileSheet';
@@ -154,9 +154,9 @@ export default function BestiaryPage({ monsters, menuOuvert, onFermerMenu }: Pro
 
   return (
     <div>
-      {/* ⚠️ **À la SOURIS, un en-tête** (refonte graphique, lot 10, la
+      {/* ⚠️ **À la SOURIS, un en-tête** (la
           maquette) : « Bestiaire » et le nombre de monstres de la base. Au
-          doigt, la barre du haut dit déjà la page (lot 11). */}
+          doigt, la barre du haut dit déjà la page. */}
       <div className="mb-4 hidden items-center gap-2.5 lg:flex">
         <h1 className="font-display text-xl tracking-wide text-ink">Bestiaire</h1>
         <span className="rounded-full border border-border-soft bg-panel2 px-2 py-0.5 font-mono text-micro text-ink-dim">
@@ -170,10 +170,10 @@ export default function BestiaryPage({ monsters, menuOuvert, onFermerMenu }: Pro
             FILTRES passent dans le tiroir sous `lg` : six pastilles d'élément,
             six d'étoiles et un tri, soit trois rangées avant la première carte
             sur un téléphone.
-            ⚠️ **À la SOURIS, la barre de « Ma box »** (lot 10, repris du lot
+            ⚠️ **À la SOURIS, la barre de « Ma box »** (repris du lot
             8b) : la recherche à largeur fixe (champ de la librairie), puis
             élément et étoiles sur une ligne, puis le tri avec le compte et la
-            pagination. Filtres VISIBLES, jamais en menus (décision 20). */}
+            pagination. Filtres VISIBLES, jamais en menus. */}
         <div className="lg:hidden">
           <SearchBar value={query} onChange={setQuery} />
         </div>

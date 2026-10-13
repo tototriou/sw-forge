@@ -80,7 +80,7 @@ export interface BoutonIconeProps
   // bouton `sm` à libellé (28 px). Au doigt, rien ne change — l'icône seule.
   //
   // ⚠️ Pour une action que la maquette ÉCRIT à la souris et que le téléphone
-  // garde en icône (« Éditer ce deck », lot 7b). Deux boutons — une icône
+  // garde en icône (« Éditer ce deck »). Deux boutons — une icône
   // `lg:hidden` et un bouton à libellé `hidden lg:inline-flex` — auraient fait
   // deux éléments pour un geste : deux cibles au clavier, deux annonces au
   // lecteur d'écran. Un seul élément, deux dessins.
@@ -137,7 +137,7 @@ const BoutonIcone = forwardRef<HTMLButtonElement, BoutonIconeProps>(function Bou
       {...(serre || zoneEtendue ? { 'data-cible-fine': true } : {})}
       // ⚠️ Plus de voile propre (`hoverable:bg-black/25`) : le fond de survol
       // vient désormais de `Bouton` lui-même, `panel2` comme `.btn-ghost` de la
-      // maquette (décision 16). Deux classes de survol rivales, c'est l'ordre
+      // maquette. Deux classes de survol rivales, c'est l'ordre
       // de la feuille qui aurait tranché.
       className={`${serre ? 'h-5 w-5' : 'h-7 w-7'} ${zoneEtendue ? 'cible-tactile' : ''} ${
         libelleALaSouris

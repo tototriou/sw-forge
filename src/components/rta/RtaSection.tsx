@@ -69,7 +69,7 @@ export default function RtaSection({
       // ⚠️ Rembourrage réduit sous `sm` : la page empile trois à six sections,
       // et chaque `p-3` coûte 24 px de haut multipliés par le nombre de
       // sections — soit un écran entier de vide sur un téléphone.
-      // ⚠️ Refonte graphique, lot 6 : **plus de cadre au repos** (la maquette).
+      // ⚠️ **Pas de cadre au repos** (la maquette).
       // Cinq sections encadrées empilaient cinq boîtes dans la page ; c'est
       // l'en-tête — icône, titre, nombre, filet — qui délimite désormais la
       // section. Le cadre REVIENT pendant un glisser, à la couleur du set :
@@ -135,8 +135,8 @@ export default function RtaSection({
           // 320 px et trois à partir de 480.
           // La carte s'y adapte : le sélecteur de section passe sous le nom
           // plutôt qu'à côté (voir RtaCard).
-          // ⚠️ **Au TÉLÉPHONE, une RANGÉE par monstre** (refonte graphique,
-          // lot 11a, décision 24, la maquette) : une colonne, écart resserré.
+          // ⚠️ **Au TÉLÉPHONE, une RANGÉE par monstre** (la maquette) : une colonne,
+          // écart resserré.
           // Le mainteneur l'a choisie en connaissance de l'objection ci-dessus (trente
           // monstres, trente lignes) : la rangée est plus basse que la carte
           // et elle rend le NOM, que la tuile de 150 px devait masquer.

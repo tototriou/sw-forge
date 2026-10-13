@@ -1,5 +1,5 @@
-// La mise à jour de l'application de bureau, côté page — chantier
-// application-bureau, lot 5 (décisions 11 et 12 ; src/components/BlocApplication.tsx).
+// La mise à jour de l'application de bureau, côté page
+// (src/components/BlocApplication.tsx).
 //
 // ⚠️ Ce que le bloc « Application » des Réglages promet : la mise à jour
 // remise à plus tard reste faisable ICI, le bouton ne disparaît jamais, et
@@ -44,7 +44,7 @@ export default function testBureauMiseAJour() {
   });
   egal(versTelechargement.map(([e]) => e?.phase), ['disponible', 'echec'], 'seuls « disponible » et « echec » proposent de télécharger');
 
-  // Lot 6, décision 13 : l'accueil du site télécharge le fichier par une
+  // L'accueil du site télécharge le fichier par une
   // adresse FIXE. Ses noms doivent être ceux qu'electron-builder produit.
   titre('bureau · téléchargements — l\'accueil vise les fichiers construits');
   const config = readFileSync(join(process.cwd(), 'electron-builder.yml'), 'utf8');

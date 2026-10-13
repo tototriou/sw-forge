@@ -17,7 +17,7 @@ interface Props {
   className?: string;
 }
 
-// ⚠️ **Les contrôles de la LIBRAIRIE** (refonte graphique, lot 10) — `Pastille`
+// ⚠️ **Les contrôles de la LIBRAIRIE** — `Pastille`
 // et `Selecteur`, comme les filtres de « Ma box ». Ils étaient dessinés à la
 // main ici (boutons, `<select>` natif) : le même filtre d'élément se
 // présentait autrement d'un écran à l'autre. La teinte de l'élément reste

@@ -1,5 +1,5 @@
-// Tests de rendu — les textes qui parlent du NAVIGATEUR, dans l'app de bureau
-// (chantier application-bureau, lot 8). Sur le site, rien ne change ; dans
+// Tests de rendu — les textes qui parlent du NAVIGATEUR, dans l'app de bureau.
+// Sur le site, rien ne change ; dans
 // l'app (pont du préchargement simulé), chaque texte dit « application »,
 // « machine », « système » ou « appareil ».
 

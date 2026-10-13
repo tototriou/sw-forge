@@ -96,7 +96,7 @@ export function SettingsList({
   sauvegardeIndisponible?: string | null;
   onKeepAccount?: () => void;
   accountExportedAt?: number | null;
-  // ⚠️ **La PAGE de réglages, à la SOURIS** (refonte graphique, lot 10, la
+  // ⚠️ **La PAGE de réglages, à la SOURIS** (la
   // maquette) : deux blocs intitulés, « Réglages » puis « Mes données »,
   // chacun dans sa carte. Même liste, même ordre — seul le rangement change.
   // Au doigt, les classes ne s'appliquent pas : une seule carte, portée par la
@@ -109,7 +109,7 @@ export function SettingsList({
   const theme = useTheme();
   const overcap = useOvercapDisplay();
   const adversaireRef = useAdversaireReference();
-  // ⚠️ Aux DEUX formats depuis le lot 11d (décision 27) : la page de réglages
+  // ⚠️ Aux DEUX formats : la page de réglages
   // range ses blocs de la même façon au doigt qu'à la souris.
   const carteLg = groupes ? 'rounded-xl border border-border bg-panel px-4 py-1' : '';
   const intitule = (texte: string) =>
@@ -217,8 +217,8 @@ export function SettingsList({
           elle n'a pas « Se déconnecter » dans la barre du haut. */}
       {onClearData && (
         <Setting title="Mes données">
-          {/* ⚠️ Le `Bouton` de la LIBRAIRIE, ton `danger` (refonte graphique,
-              lot 10) : il était dessiné à la main, et ne disait son danger
+          {/* ⚠️ Le `Bouton` de la LIBRAIRIE, ton `danger` : il était dessiné à la main,
+              et ne disait son danger
               qu'au survol. */}
           <Bouton
             taille="sm"
@@ -234,7 +234,7 @@ export function SettingsList({
       </div>
       </section>
 
-      {/* Application de bureau seulement (lot 5) : la version, et la mise à
+      {/* Application de bureau seulement : la version, et la mise à
           jour à portée quand elle a été remise à plus tard. Sur le site, le
           bloc n'existe pas — ce n'est pas un état des données, c'est une
           autre app. */}
@@ -299,11 +299,11 @@ export default function SettingsMenu({
         title="Réglages"
         className={`flex items-center justify-center transition ${btnClass}`}
       >
-        {/* Rebranding R4 : les curseurs de Paramètres (décision 28). */}
+        {/* Les curseurs de Paramètres. */}
         <IconeParametres size={16} />
       </button>
       {open && (
-        // ⚠️ Le `Flottant` de la librairie (refonte graphique, lot 8a : les
+        // ⚠️ Le `Flottant` de la librairie (les
         // bulles de l'app ont toutes le même gabarit) : il en était une copie
         // écrite à la main. Ancré à DROITE de son bouton, donc origine en haut
         // à droite : le menu sort de l'engrenage, pas de son propre centre.

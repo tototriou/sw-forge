@@ -61,7 +61,7 @@ const item = {
   show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: EASE_OUT } },
 };
 
-// Carte de l'accueil — le gabarit de la refonte graphique (lot 5) : fond de
+// Carte de l'accueil — fond de
 // panneau, contour discret, rayon 12 ; au survol, le fond s'appuie et le
 // contour se précise. ⚠️ Plus de soulèvement : la carte dit « cliquable » par
 // son fond, comme les entrées du menu. La COULEUR, elle, reste (voir `Tuile`
@@ -99,11 +99,9 @@ interface Props {
 // Puis « comment ça marche », les fonctionnalités et un dernier appel. Le
 // bandeau de version en fin de page donne la raison de revenir.
 //
-// ⚠️ **Refonte graphique, lot 5 — la structure est GARDÉE** (décision 10 de
-// Le mainteneur), seul le style change : cartes de la refonte, icônes dans une tuile
-// À LA TEINTE de leur section (décision 3 précisée le 2026-09-25 : Le mainteneur
-// aimait les couleurs de l'accueil — elles restent ici, le menu reste neutre),
-// bouton principal plein (décision 4).
+// ⚠️ Cartes sur fond de panneau, icônes dans une tuile À LA TEINTE de leur
+// section (les couleurs de l'accueil restent ici, le menu est neutre),
+// bouton principal plein.
 export default function HomePage({ stats, onImport }: Props) {
   // ⚠️ La dernière version PUBLIÉE, pas `RELEASES[0]` : une version en
   // préparation est en tête du journal sans être en ligne. L'annoncer ici
@@ -117,7 +115,7 @@ export default function HomePage({ stats, onImport }: Props) {
   return (
     <motion.div variants={container} initial="hidden" animate="show" className="pt-4">
       {/* ---- Héros : promesse à gauche, action à droite ------------------- */}
-      {/* ⚠️ **Au doigt, resserré** (refonte graphique, lot 11a, décision 24) :
+      {/* ⚠️ **Au doigt, resserré** :
           la structure est gardée, seules les marges verticales et la zone de
           dépôt se tassent (`max-lg:`) — le bureau ne bouge pas. */}
       <header className="grid lg:grid-cols-[1.1fr_0.9fr] gap-8 items-center pt-6 pb-10 max-lg:gap-5 max-lg:pt-2 max-lg:pb-6">
@@ -149,8 +147,7 @@ export default function HomePage({ stats, onImport }: Props) {
             <b className="text-ink">{selonSupport('dans ton navigateur', 'sur ta machine')}</b>.
           </p>
 
-          {/* L'application de bureau (application-bureau, lot 6, décisions 13
-              et 14) : sur le SITE seulement — dans l'app, on l'a déjà. */}
+          {/* L'application de bureau : sur le SITE seulement — dans l'app, on l'a déjà. */}
           {!estBureau() && <LienApplication />}
 
           {/* Vague d'éléments centrée sous le texte : alignée à gauche, elle
@@ -247,7 +244,7 @@ export default function HomePage({ stats, onImport }: Props) {
           <Feature href="#/bestiary" icon={IconeBestiaire} accent={COULEUR_SECTION.bestiary} kicker="Données" title="Bestiaire" body="Recherche et filtres par élément et étoiles naturelles, stats de base à portée de main." />
           <Feature href="#/mecaniques" icon={IconeMecaniques} accent={COULEUR_SECTION.mecaniques} kicker="Doc" title="Mécaniques" body="Vitesse de combat, barre d'action, équation des dégâts et facteur de défense." />
           <Feature href="#/releases" icon={IconeNouveautes} accent={COULEUR_SECTION.releases} kicker="Suivi" title="Nouveautés" body="Ce qui change à chaque version : ajouts, corrections et calculs revus." />
-          {/* Site seulement (application de bureau, décision 14) : comme
+          {/* Site seulement (application de bureau) : comme
               l'entrée de la navigation, dans l'ordre de la navigation. */}
           {!estBureau() && (
             <Feature href="#/telecharger" icon={IconeTelecharger} accent={COULEUR_SECTION.telecharger} kicker="Application" title="Application de bureau" body={`${NOM_APP} dans sa propre fenêtre, pour Windows et Linux, avec la mise à jour proposée à chaque version.`} />
@@ -267,7 +264,7 @@ export default function HomePage({ stats, onImport }: Props) {
             dépôt. C'était un lien `#depot` : avec le routage par hash il ne
             faisait rien de visible, et un bouton d'appel à l'action qui ne
             déclenche rien est pire que pas de bouton du tout.
-            ⚠️ Le bouton PRINCIPAL de la librairie, plein (décision 4) : c'est
+            ⚠️ Le bouton PRINCIPAL de la librairie, plein : c'est
             le seul bouton de la page. */}
         <div className="mt-4">
           <Bouton
@@ -299,7 +296,7 @@ export default function HomePage({ stats, onImport }: Props) {
       >
         {/* ⚠️ Texte à l'ENCRE, pas à l'accent : accent sur accent/15 tombe à
             4,4:1 en Forge (3,97 au survol, sur `panel2`) ; l'encre tient
-            10,3:1 au pire. Mesuré au lot 5. */}
+            10,3:1 au pire. */}
         <span className="label rounded-full bg-accent/15 px-2 py-0.5 text-ink">
           {libelleVersion(derniere.version)}
         </span>
@@ -314,8 +311,8 @@ export default function HomePage({ stats, onImport }: Props) {
 
 /* ---- Briques -------------------------------------------------------------- */
 
-// « Télécharger l'application » — application de bureau, lot 6, décisions
-// 13 et 14 : le lien du héros vers la page « Télécharger ».
+// « Télécharger l'application » — application de bureau : le lien du héros vers la page
+// « Télécharger ».
 //
 // ⚠️ **Un bouton DANS le héros**, sous la promesse : la règle « aucun bouton
 // dans le héros » (docs/02-app/accueil/) est levée pour lui seul. SECONDAIRE
@@ -418,12 +415,12 @@ function Separator() {
 }
 
 // L'icône d'une carte, dans sa tuile — la maquette : 32 px, rayon 8, contour
-// discret. ⚠️ **À la teinte de sa section** (décision 3 précisée : Le mainteneur
+// discret. ⚠️ **À la teinte de sa section** (Le mainteneur
 // aimait les couleurs de l'accueil, qui les garde ; le menu, lui, reste
 // neutre) : icône à la teinte, fond et contour de la même teinte, fondus.
 // `color-mix` et non un suffixe hexa (`${accent}44`) : ça marche aussi bien
 // avec une variable CSS qu'avec un hexa.
-// ⚠️ **Deux valeurs de la teinte, choisies en CSS selon le thème** (lot 14) :
+// ⚠️ **Deux valeurs de la teinte, choisies en CSS selon le thème** :
 // la couleur d'origine en sombre, sa variante assombrie en clair
 // (`TEINTE_CLAIRE`), où l'origine tombait à 1.4:1. L'élément porte
 // `teinte-section` et peint avec `var(--teinte)` — voir index.css.

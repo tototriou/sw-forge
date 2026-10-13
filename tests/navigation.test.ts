@@ -91,7 +91,7 @@ export default function testNavigation() {
 
   {
     const src = readFileSync('src/components/Sidebar.tsx', 'utf8');
-    // Refonte graphique, lot 4 : la section n'est plus passée à la barre, elle
+    // La section n'est pas passée à la barre : elle
     // la déduit de l'entrée active (`sectionRoute`) — la clé reste la même.
     ok(
       src.includes('const cleRoute = cleRouteBarre(sectionRoute, groupes);'),

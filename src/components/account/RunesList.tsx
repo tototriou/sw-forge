@@ -84,8 +84,8 @@ export default function RunesList({ runes, menuOuvert, onFermerMenu }: Props) {
   // Codes recherchés : les tuiles s'en servent pour surligner la ligne visée.
   const cherches = useMemo(() => new Set(actifs.map((c) => c.code)), [actifs]);
   const metric = useRuneMetric(); // choix PARTAGÉ avec les autres vues
-  // ⚠️ **UNE seule entrée de mesure dans le tri : celle du menu ⚙** (refonte
-  // graphique, décision 21 — le mainteneur : « il y a Score et Efficience mais c'est
+  // ⚠️ **UNE seule entrée de mesure dans le tri : celle du menu ⚙** (le mainteneur :
+  // « il y a Score et Efficience mais c'est
   // la même chose »). Les deux entrées côte à côte classaient aussi par la
   // mesure qu'on ne voit pas sur les tuiles, pour un classement presque
   // identique. L'entrée porte le nom de la mesure active (« Score » ou
@@ -165,8 +165,8 @@ export default function RunesList({ runes, menuOuvert, onFermerMenu }: Props) {
   };
 
   // Sets, emplacements, antiques — AU DOIGT, dans le panneau « Options ». À
-  // la souris, ils deviennent trois menus déroulants (`FiltresRunes`, lot 8a,
-  // décision 20), avec les MÊMES contrôles dedans.
+  // la souris, ils deviennent trois menus déroulants (`FiltresRunes`), avec les MÊMES
+  // contrôles dedans.
   const filtresEnsemble = (
     <>
         {/* Sets : multi-sélection, icônes seules (voir SetFilter) */}
@@ -188,14 +188,14 @@ export default function RunesList({ runes, menuOuvert, onFermerMenu }: Props) {
         {/* Tri — les entrées du JEU, dans son ordre. La MESURE (efficience /
             score) reste un réglage global, dans la barre de nav.
             ⚠️ **AU-DESSUS de la propriété secondaire**, aux deux formats
-            (le mainteneur, lot 8a : « mets le Trier par au-dessus de la
+            (le mainteneur : « mets le Trier par au-dessus de la
             propriété »). Dans le PANNEAU mobile, `data-tri-bloc` le remontait
             déjà en tête (voir index.css) — trier vient avant filtrer. */}
         <div data-tri-bloc className="flex items-center gap-2 flex-wrap">
           <span className="w-[86px] flex-none label">Trier par</span>
           {/* ⚠️ **Une liste DÉROULANTE, pas des onglets** : neuf entrées en
               `Segmented` faisaient ~920 px, essayé puis défait par le mainteneur (« ça
-              fait peut-être un peu gros », lot 8a). L'Optimisation, cinq
+              fait peut-être un peu gros »). L'Optimisation, cinq
               entrées, garde ses onglets. À la souris, la liste prend la
               hauteur des filtres de la ligne (32 px). */}
           <Selecteur
@@ -263,10 +263,10 @@ export default function RunesList({ runes, menuOuvert, onFermerMenu }: Props) {
       {/* ⚠️ CINQ rangées de filtres — sets, slots, propriété secondaire, tri —
           soit près de la moitié d'un écran de téléphone avant la première rune.
           Sous `lg` elles descendent dans le panneau « Options ». */}
-      {/* ⚠️ **En-tête à la SOURIS** (refonte graphique, lot 8a, la maquette) :
+      {/* ⚠️ **En-tête à la SOURIS** (la maquette) :
           le titre de la vue et le nombre de runes de l'INVENTAIRE ; le compte
           FILTRÉ reste au-dessus des tuiles. Au doigt, la barre du haut dit
-          déjà la vue (lot 11). */}
+          déjà la vue. */}
       <div className="mb-3 hidden items-center gap-2.5 lg:flex">
         <h1 className="font-display text-xl tracking-wide text-ink">Liste</h1>
         <span className="rounded-full border border-border-soft bg-panel2 px-2 py-0.5 font-mono text-micro text-ink-dim">
@@ -293,9 +293,9 @@ export default function RunesList({ runes, menuOuvert, onFermerMenu }: Props) {
             la largeur (voir index.css). Les mêmes blocs servent au desktop
             (ci-dessus, hors tiroir), où ils restent compacts — d'où le
             marqueur, lu uniquement sous `[data-tiroir]`.
-            ⚠️ **Deux blocs intitulés, « Trier » puis « Filtrer »** (lot 11c,
-            décision 26, la maquette), et « Effacer les filtres » au bout
-            (décision 20). Le TRI d'abord, comme avant — « trier vient avant
+            ⚠️ **Deux blocs intitulés, « Trier » puis « Filtrer »** (la maquette), et
+            « Effacer les filtres » au bout.
+            Le TRI d'abord, comme avant — « trier vient avant
             filtrer » ; la maquette mettait « Filtrer » en tête. L'ordre est
             maintenant celui du DOM : la règle d'index.css qui remontait le
             tri (`order: -1`) est retirée. */}

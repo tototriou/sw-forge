@@ -102,9 +102,9 @@ export default function RunesCompare({ runes }: Props) {
   return (
     <div>
       <div className="mb-3 flex items-center gap-2 flex-wrap lg:gap-3">
-        {/* ⚠️ **À la SOURIS, le titre de la vue en tête de la rangée** (refonte
-            graphique, lot 8a-3, la maquette : « Comparaison » puis ses deux
-            sources). Au doigt, la barre du haut dit déjà la vue (lot 11). */}
+        {/* ⚠️ **À la SOURIS, le titre de la vue en tête de la rangée** (la maquette :
+            « Comparaison » puis ses deux
+            sources). Au doigt, la barre du haut dit déjà la vue. */}
         <h1 className="hidden font-display text-xl tracking-wide text-ink lg:block">Comparaison</h1>
         <Segmented
           value={onglet}
@@ -548,10 +548,10 @@ function Graphe({
     });
 
   return (
-    // ⚠️ **À la SOURIS, le graphe et sa légende côte à côte** (refonte
-    // graphique, lot 8a-3, la maquette) : la légende passe dans une carte
+    // ⚠️ **À la SOURIS, le graphe et sa légende côte à côte** (la maquette) : la
+    // légende passe dans une carte
     // « Séries » à droite, en colonne — comme l'onglet Courbes. Au doigt, la
-    // rangée sous le graphe d'avant (lot 11).
+    // rangée sous le graphe d'avant.
     <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_240px] lg:items-start lg:gap-3">
       <CurveChart
         series={lignes.map((l) => l.series).filter((s) => !hidden.has(s.name))}

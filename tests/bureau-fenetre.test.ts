@@ -1,4 +1,4 @@
-// L'habillage de la fenêtre de bureau — chantier application-bureau, lot 1 bis
+// L'habillage de la fenêtre de bureau
 // (bureau/fenetre.ts, src/lib/bureau.ts).
 //
 // ⚠️ L'état mémorisé se relit avec méfiance : une fenêtre rouverte HORS de

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { X, ChevronDown, EyeOff } from 'lucide-react';
-// Les compagnons de l'entrée « Ami » de la nav (rebranding, décision 44).
+// Les compagnons de l'entrée « Ami » de la nav.
 import { IconeAmi } from '../IconesAtelier';
 import { RtaEntry, Monster, sectionLabel, sectionAccent, RTA_UNASSIGNED, RTA_OTHER } from '../../types';
 import { RtaVueAmi } from '../../lib/rtaShare';
@@ -86,7 +86,7 @@ function CarteAmi({
       title={libelles.length > 0 ? libelles.join(' · ') : undefined}
       className={`relative rounded-xl border bg-panel transition-colors ${
         // Bordure seule, sans anneau superposé — voir docs/03-developpeur/interface/.
-        // Même gabarit que la carte de « Ma prépa » (RtaCard, lot 6).
+        // Même gabarit que la carte de « Ma prépa » (RtaCard).
         open ? 'border-accent' : 'border-border-soft'
       }`}
     >
@@ -239,7 +239,7 @@ export default function RtaFriendView({ vue, onClose }: { vue: RtaVueAmi; onClos
     const gear = openIndex >= 0 ? items[openIndex].entry.gear : undefined;
 
     return (
-      // Même gabarit que les sections de « Ma prépa » (RtaSection, lot 6) : pas
+      // Même gabarit que les sections de « Ma prépa » (RtaSection) : pas
       // de cadre, un en-tête prolongé d'un filet.
       <section key={key} className="p-2">
         <div className="mb-2.5 flex items-center gap-2.5">

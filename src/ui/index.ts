@@ -1,4 +1,5 @@
-// Librairie UI de SW Blacksmith — le vocabulaire visuel commun à toute l'app.
+// Librairie UI de SW Blacksmith — le vocabulaire visuel commun à toute l'app
+// (docs/04-decisions/adr/librairie-ui-par-axes.md).
 //
 // ⚠️ **Un composant dessiné ici ne se redessine nulle part ailleurs.** C'est la
 // raison d'être de ce dossier : un changement demandé sur un bouton mobile doit
@@ -101,7 +102,7 @@ export type { PastilleProps } from './Pastille';
 export { default as Jeton } from './Jeton';
 export type { JetonProps } from './Jeton';
 
-// NOTIFICATION « … · Annuler » (lot 13, décision 29) : un geste qui se défait
+// NOTIFICATION « … · Annuler » : un geste qui se défait
 // au lieu de se confirmer. Un fournisseur monté par App.tsx, `useNotifier()`
 // pour annoncer. Voir docs/03-developpeur/interface/ § Notification « Annuler ».
 export { FournisseurNotification, useNotifier } from './Notification';

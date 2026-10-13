@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { EtatSwex, swex } from '../lib/bureau';
 
-// L'état du dossier SW Exporter (application de bureau, lot 9 — voir
+// L'état du dossier SW Exporter (application de bureau — voir
 // bureau/swex.ts), tenu à jour par le processus principal. Deux lecteurs :
 // le bloc « Application » des Réglages et la carte du compte de la barre
 // latérale — un seul réglage, deux accès. Sur le site : `null`, et `agir`

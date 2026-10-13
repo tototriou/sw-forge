@@ -1,8 +1,8 @@
 import type { ReactNode } from 'react';
 import type { Monster, SiegeTeam } from '../../types';
 
-// Ce que la palette Ctrl K propose pour une saisie (refonte graphique, lot 13,
-// décision 29) — voir docs/02-app/transverse/ § Palette Ctrl K. Pur : les
+// Ce que la palette Ctrl K propose pour une saisie — voir docs/02-app/transverse/ §
+// Palette Ctrl K. Pur : les
 // règles de regroupement, d'ordre et de plafond se testent sans écran.
 
 // Comparaison INSENSIBLE aux accents et à la casse : « arene » trouve « Arène »,

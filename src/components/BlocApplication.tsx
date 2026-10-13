@@ -11,8 +11,8 @@ import { useEtatSwex } from '../hooks/useEtatSwex';
 import Bouton from '../ui/Bouton';
 import Selecteur from '../ui/Selecteur';
 
-// Le bloc « Application » des Réglages — application de bureau seulement
-// (lot 5, décision 12). ⚠️ **La mise à jour reste à portée** : remise à plus
+// Le bloc « Application » des Réglages — application de bureau seulement.
+// ⚠️ **La mise à jour reste à portée** : remise à plus
 // tard (la croix de la notification), elle se fait ici quand il veut. UN
 // bouton, toujours affiché, qui suit la phase (bureau/miseAJour.ts) —
 // désactivé quand il n'y a rien à faire, jamais retiré.
@@ -83,7 +83,7 @@ export default function BlocApplication({ classeCarte, intitule }: { classeCarte
   );
 }
 
-// ── Le dossier SW Exporter (lot 9, décision 15) ─────────────────────────────
+// ── Le dossier SW Exporter ─────────────────────────────
 
 const date = (ms: number) =>
   new Date(ms).toLocaleString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });

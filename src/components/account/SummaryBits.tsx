@@ -12,11 +12,11 @@ export const pct = (n: number, total: number) => (total ? (n / total) * 100 : 0)
 export const fmt = (v: number) => v.toFixed(1);
 
 // Tuile de chiffre clé : libellé mono, grande valeur, sous-titre.
-// ⚠️ `bandeau` (refonte graphique, lot 8a, la maquette `.stats`) : à la
+// ⚠️ `bandeau` (la maquette `.stats`) : à la
 // SOURIS, le chiffre n'est plus une carte mais une CASE d'un bandeau commun —
 // sans cadre propre, séparée de la précédente par un filet (`premier` : pas de
 // filet à gauche).
-// ⚠️ Au DOIGT (lot 11c, décision 26, la maquette) : une CASE de la carte
+// ⚠️ Au DOIGT (la maquette) : une CASE de la carte
 // commune des chiffres clés — ni cadre ni arrondi propres, fond de panneau ;
 // les filets entre cases viennent de l'écart d'1 px du conteneur, posé sur un
 // fond couleur filet (voir `CARTE_CHIFFRES_DOIGT`). Un seul trait entre deux
@@ -65,7 +65,7 @@ export function Kpi({
 
 // Panneau titré.
 // `className` : la place du panneau dans une grille (ordre, largeur) — le
-// Résumé des runes le range en trois colonnes à la souris (lot 8a).
+// Résumé des runes le range en trois colonnes à la souris.
 export function Panel({
   title,
   children,

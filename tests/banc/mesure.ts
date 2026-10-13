@@ -142,8 +142,8 @@
 //     reviennent : la panne va du côté prudent. Elle doit être en
 //     `position: absolute`, avec un décalage `right` DÉCLARÉ négatif —
 //     valeur calculée qui n'est pas le mot-clé `auto` (`computedStyleMap`) ;
-//     sa valeur en px est celle de `getComputedStyle`. Relevé (sonde du
-//     lot 5, Chromium du banc) : un `right: auto` dont la valeur utilisée est
+//     sa valeur en px est celle de `getComputedStyle`. Relevé (Chromium du
+//     banc) : un `right: auto` dont la valeur utilisée est
 //     négative (`left: 0` et une largeur trop grande) rend `-6px` par
 //     `getComputedStyle` mais `auto` par `computedStyleMap` — ce n'est pas
 //     un décalage voulu, son dépassement reste entier. Son bloc contenant
@@ -163,7 +163,7 @@
 //     de son bloc contenant, son décalage est ramené à 0 (`right: 0`, avec
 //     `transition: none`, et sa largeur figée à sa valeur calculée quand
 //     `left` vaut `auto`, pour qu'une largeur `auto` ne prenne pas la place
-//     rendue). `translate` ne convient pas ici : relevé (sonde du lot 5),
+//     rendue). `translate` ne convient pas ici : relevé,
 //     quand plusieurs icônes en reçoivent un ensemble, Chromium ne recalcule
 //     pas le `scrollWidth` du bloc de celle qui porte déjà un `transform`
 //     (47 px au lieu de 43) ; `right: 0` donne 43. Valeur surcontrainte (`left`,
@@ -189,7 +189,7 @@
 //     proche en `position: fixed` ou `sticky`, ou aucun pour les deux. Une
 //     barre ou un en-tête fixe ou collant, une modale, passent au-dessus du
 //     contenu qui défile sous eux : leurs boîtes se coupent sans que l'icône
-//     y soit pour rien (relevé du lot 5 : 81 coupes de ce genre dans l'app,
+//     y soit pour rien (relevé : 81 coupes de ce genre dans l'app,
 //     barre basse du bestiaire, en-tête, modales de « Dégâts réels »).
 //     ⚠️ Limite acceptée (relecture Codex n° 12) : un bloc `sticky` est un
 //     plan à part même quand il n'est pas collé et reste à sa place normale,

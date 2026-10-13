@@ -385,8 +385,7 @@ function CompetenceBloc({ c }: { c: Competence }) {
               className={`inline-flex items-center gap-1 rounded border px-1.5 py-px text-micro ${
                 e.bonus
                   ? 'border-good/40 bg-good/10 text-good'
-                  : // Rouge d'ÉTAT (un malus), pas celui de l'élément Feu —
-                    // rebranding, décision 43.
+                  : // Rouge d'ÉTAT (un malus), pas celui de l'élément Feu.
                     'border-bad/40 bg-bad/10 text-bad'
               }`}
             >

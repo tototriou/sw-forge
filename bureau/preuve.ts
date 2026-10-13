@@ -101,7 +101,7 @@ async function releverSession(fenetre: BrowserWindow, dossier: string) {
 }
 
 
-// ── Lot 8 : les données survivent à la fermeture de l'app ───────────────
+// ── Les données survivent à la fermeture de l'app ───────────────
 // Deux lancements sur le MÊME dossier de données (`npm run bureau:preuve --
 // --conservation`). `ecrire` importe un compte de test par le vrai champ
 // fichier de l'accueil, répond « Garder mes données », puis l'app se ferme ;
@@ -157,7 +157,7 @@ export async function lancerPreuveConservation(fenetre: BrowserWindow, dossier: 
   }
 }
 
-// ── Lot 9 : le dossier SW Exporter ─────────────────────────────────────
+// ── Le dossier SW Exporter ─────────────────────────────────────
 // `npm run bureau:preuve -- --swex` : un dossier de fixtures (deux
 // invocateurs, un sous-dossier `live`), « choisi » sans boîte de dialogue (main.ts). Un
 // import MANUEL d'abord (prépa RTA et siège remplis), puis, depuis les
@@ -380,7 +380,7 @@ export async function lancerPreuve(fenetre: BrowserWindow, dossier: string, raci
     }
     await attendre(2500);
 
-    // ── Lot 3 : l'app installée ──────────────────────────────────────────
+    // ── L'app installée ──────────────────────────────────────────
     // Empaquetée, elle porte le nom de electron-builder.yml (`SW Blacksmith`,
     // dossier des données) ; lancée par `bureau:local`, celui de package.json.
     resultats.empaquetee = app.isPackaged;
@@ -395,7 +395,7 @@ export async function lancerPreuve(fenetre: BrowserWindow, dossier: string, raci
       await attendre(1000);
     }
 
-    // ── Lot 1 : la coquille ──────────────────────────────────────────────
+    // ── La coquille ──────────────────────────────────────────────
     resultats.origine = await js('location.origin');
     resultats.titre = fenetre.getTitle();
     resultats.stockage = await js(`(() => {
@@ -426,7 +426,7 @@ export async function lancerPreuve(fenetre: BrowserWindow, dossier: string, raci
         })`)
       : 'aucun worker dans le build';
 
-    // ── Lot 1 bis : l'habillage de la fenêtre ────────────────────────────
+    // ── L'habillage de la fenêtre ────────────────────────────
     resultats.dataBureau = await js(`document.documentElement.getAttribute('data-bureau')`);
     resultats.zoneDeplacement = await js(
       `getComputedStyle(document.querySelector('header[data-barre-fenetre]')).getPropertyValue('-webkit-app-region') || getComputedStyle(document.querySelector('header[data-barre-fenetre]')).getPropertyValue('app-region')`
@@ -438,7 +438,7 @@ export async function lancerPreuve(fenetre: BrowserWindow, dossier: string, raci
       `getComputedStyle(document.querySelector('header[data-barre-fenetre]')).paddingRight`
     );
     resultats.tailleFenetre = fenetre.getBounds();
-    // Lot 6 (décision 14) : l'APP ne propose pas de télécharger l'app — ni
+    // L'APP ne propose pas de télécharger l'app — ni
     // entrée « Télécharger » dans la navigation, ni lien ou carte sur
     // l'accueil.
     resultats.accueilSansTelechargement = await js(
@@ -455,7 +455,7 @@ export async function lancerPreuve(fenetre: BrowserWindow, dossier: string, raci
     }
     await js(`document.documentElement.removeAttribute('data-theme')`);
 
-    // ── Lot 2 : liens, navigations, téléchargements ──────────────────────
+    // ── Liens, navigations, téléchargements ──────────────────────
     // Chaque lien externe de l'accueil, puis de la page Nouveautés, cliqué :
     // il doit être confié au navigateur (ici, noté), et l'app rester en place.
     const cliquerLiensExternes = () =>
@@ -495,7 +495,7 @@ export async function lancerPreuve(fenetre: BrowserWindow, dossier: string, raci
     // puis `a.download`).
     await js(`(() => {
       const a = document.createElement('a');
-      a.href = URL.createObjectURL(new Blob(['{"preuve":"lot 2"}'], { type: 'application/json' }));
+      a.href = URL.createObjectURL(new Blob(['{"preuve":"telechargement"}'], { type: 'application/json' }));
       a.download = 'swblacksmith-essai.json';
       a.click();
     })()`);
@@ -503,7 +503,7 @@ export async function lancerPreuve(fenetre: BrowserWindow, dossier: string, raci
     const telecharge = join(temoins.dossierTelechargements, 'swblacksmith-essai.json');
     resultats.telechargement = existsSync(telecharge) ? readFileSync(telecharge, 'utf8') : 'absent';
 
-    // ── Lot 5 : la mise à jour automatique ───────────────────────────────
+    // ── La mise à jour automatique ───────────────────────────────
     // Une version « disponible », simulée (aucun réseau). L'utilisateur
     // décide : la question doit RESTER au-delà des 6 s, rien ne doit se
     // télécharger sans « Mettre à jour » ; puis « Mise à jour prête »,
@@ -520,7 +520,7 @@ export async function lancerPreuve(fenetre: BrowserWindow, dossier: string, raci
         b.click();
         return 'cliqué';
       })()`);
-    // Le bloc « Application » des Réglages (décision 12) : la mise à jour
+    // Le bloc « Application » des Réglages : la mise à jour
     // remise à plus tard s'y fait quand il veut.
     const bloc = () =>
       js(`(() => {

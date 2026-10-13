@@ -1,7 +1,7 @@
 import { NOM_APP } from '../marque';
 
-// Logo « SW Blacksmith » — l'identité choisie par le mainteneur (rebranding, R2 bis,
-// décisions 24-25) : une enclume surmontée d'un cristal de braise à deux
+// Logo « SW Blacksmith » — l'identité choisie par le mainteneur : une enclume surmontée
+// d'un cristal de braise à deux
 // facettes et de deux éclats. Redessiné en SVG d'après son image (elle n'existe
 // qu'en rendu), validé sur planche. Il remplace l'enclume au marteau de la toile.
 //

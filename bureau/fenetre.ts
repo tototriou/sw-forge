@@ -1,5 +1,5 @@
-// L'état mémorisé de la fenêtre — chantier application-bureau, lot 1 bis
-// (décision 7 : taille et position mémorisées, fond au thème dès
+// L'état mémorisé de la fenêtre
+// (taille et position mémorisées, fond au thème dès
 // l'ouverture).
 //
 // Ce module est PUR (aucun import d'Electron) : `tests/bureau-fenetre.test.ts`.
@@ -11,8 +11,7 @@
 
 // La barre du haut de l'app fait 3 rem (48 px, `TopBar.tsx`), filet du bas
 // COMPRIS. Les boutons de Windows dessinés par-dessus en prennent 47 : à 48,
-// ils recouvraient ce filet, qui s'interrompait sous eux (vu à la capture du
-// lot 1 bis).
+// ils recouvraient ce filet, qui s'interrompait sous eux.
 export const HAUTEUR_BARRE = 47;
 
 // `lg` de Tailwind : en dessous, l'app passe au format téléphone, qui n'a

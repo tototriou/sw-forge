@@ -4,13 +4,13 @@ import Bouton from './Bouton';
 
 // Hauteur des boutons posés dans un EN-TÊTE d'écran, « ⋯ » compris : 36 px au
 // doigt, 32 px à la souris — le `.btn` de la maquette, la hauteur de tout
-// bouton `md` (décision 16, voir Bouton.tsx). Exportée pour que les boutons
+// bouton `md` (voir Bouton.tsx). Exportée pour que les boutons
 // voisins (« Exporter » de la RTA) s'y alignent sans recopier la valeur.
 export const HAUTEUR_EN_TETE = 'h-9 lg:h-8';
 import Flottant from './Flottant';
 
 // MENU D'ACTIONS : un bouton « ⋯ » qui ouvre, sous lui, une liste d'actions.
-// Refonte graphique, lot 6 (RTA, décision 13) : les actions secondaires d'un
+// Les actions secondaires d'un
 // écran y rejoignent leurs pareilles au lieu de s'aligner en rangées de
 // boutons qui repoussaient le contenu.
 //
@@ -48,7 +48,7 @@ export interface ElementMenu {
   // entrée à cocher (`menuitemcheckbox`).
   actif?: boolean;
   // ⚠️ Pas d'axe « principal » : aucune action n'est mise en avant dans un
-  // en-tête d'écran (décision 4 précisée — essayé, retiré par le mainteneur).
+  // en-tête d'écran (essayé, retiré par le mainteneur).
 }
 
 // Ce que le déclencheur doit poser sur SON bouton (axe `declencheur`).
@@ -67,7 +67,7 @@ export interface MenuProps {
   // Largeur de la liste. Défaut : 15 rem, la maquette.
   largeur?: string;
   // ⚠️ Deux axes nés de la carte du compte de la barre latérale, qui ouvre
-  // le menu des invocateurs (application de bureau, lot 9) :
+  // le menu des invocateurs (application de bureau) :
   //  - `declencheur` : le bouton qui ouvre le menu, quand ce n'est pas le
   //    « ⋯ » — il reçoit ce qu'il doit poser sur son bouton (`ref`, ARIA,
   //    `onClick`) ; la carte occupe alors toute la largeur (`w-full`) ;

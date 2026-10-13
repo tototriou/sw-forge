@@ -35,7 +35,7 @@ const CLES_DE_REGLAGE = new Set([
   'swblacksmith-adversaire-reference-v1',
 ]);
 
-// ⚠️ Les anciens préfixes restent reconnus (décision 66 du rebranding) : une
+// ⚠️ Les anciens préfixes restent reconnus : une
 // clé que la migration n'a pas pu renommer (quota) reste une donnée de
 // l'utilisateur — « Supprimer mes données » doit l'effacer aussi.
 const PREFIXES_DE_DONNEES = [PREFIXE_STOCKAGE, 'sw-forge', 'sky-arena'];

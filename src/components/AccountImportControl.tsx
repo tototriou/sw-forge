@@ -38,7 +38,7 @@ export default function AccountImportControl({ onImport, variant }: Props) {
         className="hidden"
       />
       {/* ⚠️ Variante `desktop` (la seule montée, par la page Paramètres) : le
-          `Bouton` de la LIBRAIRIE (refonte graphique, lot 10) — il était
+          `Bouton` de la LIBRAIRIE — il était
           dessiné à la main. */}
       {isMobile ? (
         <button

@@ -462,7 +462,7 @@ export default function ArtifactsList({ artifacts, menuOuvert, onFermerMenu }: P
           </div>
         </div>
 
-        {/* « Effacer les filtres » (lot 13, décision 28) — le même bouton que
+        {/* « Effacer les filtres » — le même bouton que
             les runes. ⚠️ Il ne touche PAS aux propriétés recherchées : elles
             servent aussi à TRIER, les vider changerait l'ordre de la liste.
             Toujours affiché, DÉSACTIVÉ quand rien n'est filtré. */}
@@ -492,7 +492,7 @@ export default function ArtifactsList({ artifacts, menuOuvert, onFermerMenu }: P
 
   return (
     <div>
-      {/* ⚠️ **En-tête à la SOURIS** (refonte graphique, lot 8b, même gabarit
+      {/* ⚠️ **En-tête à la SOURIS** (même gabarit
           que la Liste des runes) : le titre de la vue et le nombre d'artéfacts
           de l'INVENTAIRE ; le compte FILTRÉ reste au-dessus des tuiles. */}
       <div className="mb-3 hidden items-center gap-2.5 lg:flex">
@@ -505,7 +505,7 @@ export default function ArtifactsList({ artifacts, menuOuvert, onFermerMenu }: P
       {/* ⚠️ Cinq rangées de filtres — catégorie, sous-filtre, stat principale,
           propriétés — qui remplissaient un écran de téléphone avant le premier
           artéfact. Sous `lg` elles descendent dans le panneau « Options ».
-          ⚠️ À la SOURIS (lot 8b, décision 20 appliquée aux artéfacts) : les
+          ⚠️ À la SOURIS, comme pour les runes : les
           rangées se suivent SUR LA LIGNE, intitulé collé à ses choix, au lieu
           d'une colonne de six — tout reste visible, rien ne passe en menu. */}
       <div className="hidden gap-3 mb-4 lg:flex lg:flex-row lg:flex-wrap lg:items-center lg:gap-x-6 lg:gap-y-3">

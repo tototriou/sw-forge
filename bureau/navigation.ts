@@ -1,5 +1,4 @@
-// Liens, navigations et téléchargements dans l'application de bureau —
-// chantier application-bureau, lot 2.
+// Liens, navigations et téléchargements dans l'application de bureau.
 //
 // Sur le site, le navigateur s'en charge : un lien `target="_blank"` ouvre un
 // onglet, un téléchargement va dans « Téléchargements ». Dans l'app il n'y a

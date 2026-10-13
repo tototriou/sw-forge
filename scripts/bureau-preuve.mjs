@@ -1,19 +1,18 @@
 // `npm run bureau:preuve [dossier] [--exe <chemin>] [--conservation]` — lance
 // l'application de bureau sur le BUILD en mode preuve (voir bureau/preuve.ts) :
 // contrôles, `resultats.json`, puis l'app se ferme d'elle-même.
-// Chantier application-bureau.
 //
 // Dossier par défaut : `preuve` dans `dist-bureau` (gitignoré). Le build
 // (`dist/`) et `dist-bureau` doivent être à jour : `npm run bureau:local` les
 // refait.
-// `--exe` : rejoue la même preuve sur une app INSTALLÉE (lot 3), par exemple
+// `--exe` : rejoue la même preuve sur une app INSTALLÉE, par exemple
 // `%LOCALAPPDATA%\Programs\SW Blacksmith\SW Blacksmith.exe`.
-// `--conservation` (lot 8) : DEUX lancements sur un dossier de données neuf —
+// `--conservation` : DEUX lancements sur un dossier de données neuf —
 // le premier importe `tests/fixtures/compte-miniature.json` et répond
 // « Garder mes données » et choisit une session en cours, le second relit et
 // la réécrit par Ctrl+S — puis compare ; code de sortie 1 si quelque chose
 // s'est perdu.
-// `--swex` (lot 9) : le dossier SW Exporter sur des fixtures — choix, export
+// `--swex` : le dossier SW Exporter sur des fixtures — choix, export
 // réécrit, rechargement, sous-dossier `live` ; prépa RTA et siège jamais
 // touchés.
 // `--session` (docs/02-app/transverse/) : conservation refusée,
@@ -120,7 +119,7 @@ if (session) {
   for (const [quoi, bon] of Object.entries(verdicts)) console.log(`${bon ? 'ok' : 'KO'}  ${quoi}`);
   if (Object.values(verdicts).some((v) => !v)) process.exit(1);
 } else if (swex) {
-  // Lot 9 : un dossier SW Exporter de fixtures — deux invocateurs à la racine
+  // Un dossier SW Exporter de fixtures — deux invocateurs à la racine
   // (`Testeur-1.json`, `Autre-2.json`, tirés de compte-miniature.json) et un
   // sous-dossier `live` à ignorer.
   const dossier = resolve(args[0] ?? 'dist-bureau/preuve-swex');

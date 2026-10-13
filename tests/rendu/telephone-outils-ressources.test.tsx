@@ -1,8 +1,7 @@
 // Tests de rendu AU TÉLÉPHONE — Speed tuning, Ressources (Bestiaire,
-// Mécaniques, Nouveautés), Paramètres, Bientôt (lot 11d de la refonte
-// graphique). Principe dans
-// tests/rendu/outils-rendu.tsx ; rendu téléphone par `auTelephone`. Écrits
-// AVANT le 11d : ils doivent rester verts sans qu'une assertion change.
+// Mécaniques, Nouveautés), Paramètres, Bientôt. Principe dans
+// tests/rendu/outils-rendu.tsx ; rendu téléphone par `auTelephone`. Un
+// changement de style doit les laisser verts sans qu'une assertion change.
 
 import { Trophy } from 'lucide-react';
 import SpeedTuningSection from '../../src/components/outils/SpeedTuningSection';

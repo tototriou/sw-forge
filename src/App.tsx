@@ -225,7 +225,7 @@ export function parseHash(hash: string = window.location.hash): {
   }
   if (h === 'mecaniques') return { route: 'mecaniques', ...base };
   if (h === 'releases') return { route: 'releases', ...base };
-  // Site seulement (application de bureau, décision 14) : dans l'app, on a
+  // Site seulement (application de bureau) : dans l'app, on a
   // déjà l'app — l'adresse retombe sur l'accueil.
   if (h === 'telecharger' && !estBureau()) return { route: 'telecharger', ...base };
   if (h === 'parametres') return { route: 'parametres', ...base };
@@ -244,7 +244,7 @@ export function parseHash(hash: string = window.location.hash): {
 // chaque point de rendu. Elle ne marque PAS l'état (l'actif reste le contour
 // d'accent, docs/03-developpeur/interface/ « un seul marqueur ») : elle est constante,
 // actif ou non.
-// ⚠️ Icônes « objets d'atelier » (rebranding R4, décisions 9 et 27) : une par
+// ⚠️ Icônes « objets d'atelier » : une par
 // section, au contrat de lucide (`size`, `color`) — voir IconesAtelier.tsx.
 type NavItem = { key: Route; label: string; icon: IconeAtelier; hash: string; couleur: string };
 
@@ -297,7 +297,7 @@ const SIEGE_SUBS: { tab: SiegeTab; label: string; icon: IconeAtelier; hash: stri
 ];
 
 // Regroupées sous « Ressources ».
-// ⚠️ « Télécharger » (application de bureau, décision 14) : sous
+// ⚠️ « Télécharger » (application de bureau) : sous
 // « Nouveautés », sur le SITE seulement — `estBureau()` se lit au chargement
 // du module, le préchargement de l'app ayant posé son objet avant la page.
 // Barre latérale, panneau mobile, palette et titre dérivent tous de cette
@@ -311,7 +311,7 @@ const RESOURCES: NavItem[] = [
     : [{ key: 'telecharger' as const, label: 'Télécharger', icon: IconeTelecharger, hash: '#/telecharger', couleur: COULEUR_SECTION.telecharger }]),
 ];
 
-// ⚠️ La notification « … · Annuler » (lot 13, décision 29) enveloppe toute
+// ⚠️ La notification « … · Annuler » enveloppe toute
 // l'app : un geste qui se défait peut venir de n'importe quel écran. Posée
 // AU-DESSUS d'`Application`, qui notifie elle aussi (« Session enregistrée »).
 export default function App() {
@@ -602,7 +602,7 @@ function Application() {
     return m;
   }, [allMonsters]);
 
-  // ---- PALETTE Ctrl K (lot 13, décision 29) --------------------------------
+  // ---- PALETTE Ctrl K --------------------------------
   // Ouverte par Ctrl/⌘ K de n'importe où, par le champ de la barre latérale, et
   // au téléphone par la loupe de la barre du haut. Ce qu'elle ouvre (fiche d'un
   // monstre, speed tuning d'une équipe) se monte ICI : on n'y change pas de
@@ -798,7 +798,7 @@ function Application() {
   }
 
   // « Mon compte » d'un export déjà parsé — box 6★, inventaire, identité —, lu
-  // une fois et partagé par l'import manuel et le dossier SW Exporter (lot 9).
+  // une fois et partagé par l'import manuel et le dossier SW Exporter.
   function preparerCompte(data: Record<string, any>) {
     const boxRes = parseAccountBox(data);
     const invRes = parseAccountInventory(data);
@@ -816,7 +816,7 @@ function Application() {
   }
 
   // Applique « Mon compte » — et RIEN d'autre : ni prépa RTA, ni siège.
-  // ⚠️ C'est tout ce que fait le dossier SW Exporter (décision 15) : il suit
+  // ⚠️ C'est tout ce que fait le dossier SW Exporter : il suit
   // les exports sans jamais toucher au travail de l'utilisateur.
   function appliquerCompte(data: Record<string, any>, compte: ReturnType<typeof preparerCompte>) {
     // La résolution doit précéder toutes les écritures du nouveau compte,
@@ -887,7 +887,7 @@ function Application() {
     }
   }
 
-  // Le dossier SW Exporter (lot 9, décision 15) : un nouvel export du compte
+  // Le dossier SW Exporter : un nouvel export du compte
   // suivi. N'applique QUE « Mon compte » ; pas de question de conservation
   // (c'est un réglage, posé une fois). `ok: false` — fichier illisible (à
   // moitié écrit ?) ou sans box : rien n'est touché, et l'export n'est pas
@@ -1165,12 +1165,13 @@ function Application() {
           ? sectionOutils
           : null;
 
-  // ---- Barre latérale BUREAU (refonte graphique, lot 4) --------------------
+  // ---- Barre latérale BUREAU (docs/04-decisions/adr/barre-laterale.md) ----
   //
   // ⚠️ **Une structure PROPRE au bureau.** Les sections ci-dessus servent aussi
   // au panneau mobile, à ses onglets et au titre de la barre du haut : le
-  // téléphone a sa propre refonte (lot 11), et une correction destinée à un
-  // format ne touche pas l'autre (CLAUDE.md). Le bureau construit donc les
+  // téléphone a sa propre structure, et une correction destinée à un format ne
+  // touche pas l'autre (docs/04-decisions/adr/deux-formats-de-premier-rang.md).
+  // Le bureau construit donc les
   // siennes, à partir des MÊMES constantes (libellés, routes) — seule la
   // présentation diffère.
   //
@@ -1352,8 +1353,7 @@ function Application() {
   // dit pas de quel écran il s'agit.
   //
   // ⚠️ Icônes NEUTRES, 16 px : la recherche vit dans la barre latérale bureau,
-  // et ses résultats doivent se lire comme les entrées du menu (décision 3 de
-  // la refonte — le menu est neutre).
+  // et ses résultats doivent se lire comme les entrées du menu (le menu est neutre).
   const ciblesRecherche: CibleNav[] = [
     ...NAV.map((i) => ({
       key: i.key,
@@ -1418,8 +1418,8 @@ function Application() {
   ];
 
   // Ce que la palette propose pour une saisie : les MÊMES pages que la recherche
-  // de la barre (dérivées du menu), puis monstres et actions (décision 29 —
-  // aucune destructrice). Règles de groupe, d'ordre et de plafond : voir
+  // de la barre (dérivées du menu), puis monstres et actions (aucune destructrice).
+  // Règles de groupe, d'ordre et de plafond : voir
   // `resultatsPalette`.
   const groupesPalette = (saisie: string) =>
     resultatsPalette({
@@ -1510,7 +1510,7 @@ function Application() {
     {/* Application de bureau : « Mise à jour prête · Redémarrer ». Inerte sur le site. */}
     <MiseAJourBureau />
     {/* Application de bureau : le dossier SW Exporter met « Mon compte » à
-        jour (lot 9). Inerte sur le site. */}
+        jour. Inerte sur le site. */}
     <SuiviSwex
       appliquer={rafraichirCompte}
       pret={!accountHydrating && allMonsters.length > 0}
@@ -1821,7 +1821,7 @@ function Application() {
           className="mt-16 grid grid-cols-1 justify-items-center gap-y-3 border-t border-border-soft pt-5
                      text-xs text-ink-dim lg:grid-cols-[auto_1fr_auto] lg:items-center lg:justify-items-stretch lg:gap-x-6"
         >
-          {/* Le logo (décision 30), en encre éteinte : une signature, pas un titre. */}
+          {/* Le logo, en encre éteinte : une signature, pas un titre. */}
           <p className="flex items-center gap-2">
             <SymboleLogo className="h-6 w-6" />
             <span className={`${CLASSE_NOM} text-xs`}>{NOM_APP}</span>
@@ -1840,7 +1840,7 @@ function Application() {
               <a href="https://swarfarm.com" target="_blank" rel="noreferrer" className="text-accent">
                 swarfarm.com
               </a>
-              {/* Décision 30 : la mention de la toile — l'app montre des images
+              {/* La mention de la toile — l'app montre des images
                   et des données du jeu, elle dit qu'elle n'est pas officielle. */}
               <span aria-hidden> · </span>
               <span>Projet non officiel, sans affiliation avec Com2uS.</span>
@@ -1952,7 +1952,7 @@ function Application() {
           />
         )}
 
-        {/* ---- Palette Ctrl K et ce qu'elle ouvre (lot 13, décision 29) --- */}
+        {/* ---- Palette Ctrl K et ce qu'elle ouvre --- */}
         {paletteOuverte && (
           <Palette groupesPour={groupesPalette} onFermer={() => setPaletteOuverte(false)} />
         )}

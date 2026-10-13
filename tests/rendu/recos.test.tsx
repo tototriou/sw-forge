@@ -1,7 +1,7 @@
 // Tests de rendu — Siège · Recommandations (`RecoBoard`, `RecoCard`). Principe
 // dans tests/rendu/outils-rendu.tsx : on vérifie que chaque fonctionnalité et
-// chaque information sont présentes, jamais l'apparence. Écrits AVANT le lot 7b
-// de la refonte graphique : ils doivent rester verts sans qu'une assertion change.
+// chaque information sont présentes, jamais l'apparence : un changement de
+// style doit les laisser verts sans qu'une assertion change.
 //
 // ⚠️ Rendu BUREAU : le panneau d'actions mobile est fermé (`menuOuvert` faux).
 
@@ -152,7 +152,7 @@ export function testRenduRecosPage() {
   ok(boutons(html).some((b) => b.texte === 'Tout effacer'), 'bouton « Tout effacer »');
 
   // Vue Attaque / Défense — remplace le filtre d'origine Toutes / Mes recos /
-  // Importées (décision 19, [retrait #19] : ses trois assertions sont
+  // Importées ([retrait #19] : ses trois assertions sont
   // remplacées par celles-ci, la fonction qu'elles couvraient n'existe plus).
   // « Attaque », l'affichage d'avant, enclenché par défaut.
   ok(boutons(html).some((b) => b.texte === 'Attaque' && b.presse === true), 'vue « Attaque », enclenchée par défaut');
@@ -178,13 +178,13 @@ export function testRenduRecosPage() {
   ok(analyser.length === 2 && analyser.every((b) => b.desactive && b.title === 'Importe ton compte pour analyser'), '« Analyser mes decks » désactivé sans compte, et pourquoi');
 }
 
-// Lot 7b : l'en-tête bureau. Ajouté APRÈS les tests d'avant (40cd2d8).
+// L'en-tête bureau. Ajouté APRÈS les tests d'avant (40cd2d8).
 export function testRenduRecosEnTete() {
   titre('rendu · Siège · Recommandations — l\'en-tête bureau et son menu « ⋯ »');
   const html = rendreRecos();
   ok(texteVisible(html).includes('Recommandations 2 recommandations'), 'le titre, puis le compteur');
   const menu = html.match(/<div[^>]*role="menu"[\s\S]*?<\/div><\/div>/)?.[0] ?? '';
-  // Organisation de la maquette (lot 7b, demandée par le mainteneur) : Importer et
+  // Organisation de la maquette (demandée par le mainteneur) : Importer et
   // Créer restent visibles, le menu ne garde que Tout exporter et Tout effacer.
   egal(boutons(menu).map((b) => b.texte), ['Tout exporter', 'Tout effacer'], 'le menu : Tout exporter, puis Tout effacer');
   const horsMenu = boutons(html.replace(menu, ''));
@@ -206,8 +206,8 @@ export function testRenduRecosDeploiement() {
   ok(t.includes('×4 ×2'), 'les sets recommandés (4 pièces + 2 pièces)');
   ok(boutons(html).some((b) => b.texte === 'VIT 103 +97' && b.title === 'Voir les valeurs totales'), 'la stat recommandée (VIT, base + bonus), bascule vers les totaux');
   ok(t.includes('Aucun set recommandé') && t.includes('Aucune stat recommandée'), 'un monstre sans consigne le dit');
-  // (Compté hors de la rangée d'intitulés des colonnes, ajoutée au lot 7b —
-  // décision 15 — qui porte elle aussi le mot « Fort contre ».)
+  // (Compté hors de la rangée d'intitulés des colonnes, qui porte
+  // elle aussi le mot « Fort contre ».)
   const sansIntitules = texteVisible(html.replace(/<div[^>]*data-intitules-decks[^>]*>[\s\S]*?<\/div>/, ''));
   egal((sansIntitules.match(/Fort contre/g) ?? []).length, 2, '« Fort contre » sur chaque deck');
   ok(!!nomme(html, 'Modifier cette défense')[0], 'la défense visée se modifie');
@@ -227,7 +227,7 @@ export function testRenduRecosEdition() {
   ok(t.includes('Déplier tous les decks'), '« Déplier tous les decks »');
 }
 
-// Décision 19 : la vue Défense — chaque défense visée, avec les offenses qui
+// La vue Défense — chaque défense visée, avec les offenses qui
 // la battent. Ajouté avec elle ; les tests d'avant restent inchangés.
 export function testRenduRecosVueDefense() {
   titre('rendu · Siège · Recommandations — la vue Défense');

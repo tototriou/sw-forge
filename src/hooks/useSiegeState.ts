@@ -62,7 +62,7 @@ export interface UseSiegeState {
   state: SiegeState;
   addTeam: () => void;
   removeTeam: (teamId: string) => void;
-  // « Annuler » une suppression (lot 13) : remet l'équipe à sa place.
+  // « Annuler » une suppression : remet l'équipe à sa place.
   restaurerEquipe: (team: SiegeTeam, index: number) => void;
   setSlotMonster: (teamId: string, idx: number, monsterId: string) => void;
   clearSlot: (teamId: string, idx: number) => void;
@@ -76,7 +76,7 @@ export interface UseSiegeState {
     teams: { slots: { monsterId: string | null; runeSpeed: number | null; sets?: string[]; tick?: number; gear?: GearSet }[] }[]
   ) => void;
   // AJOUTE des équipes à la fin, sans toucher aux existantes — l'import d'un
-  // fichier d'équipes (refonte graphique, décision 14 ; voir lib/siegeShare).
+  // fichier d'équipes (voir lib/siegeShare).
   appendTeams: (
     teams: { slots: { monsterId: string | null; runeSpeed: number | null; sets?: string[]; tick?: number }[] }[]
   ) => void;
@@ -118,7 +118,7 @@ export function useSiegeState(side: SiegeSide): UseSiegeState {
     []
   );
 
-  // « Annuler » une suppression (refonte graphique, lot 13, décision 29) :
+  // « Annuler » une suppression :
   // l'équipe revient TELLE QUELLE à sa place d'avant — pas au bout de la liste.
   // Sans effet si elle est déjà là.
   const restaurerEquipe = useCallback(

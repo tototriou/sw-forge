@@ -4,7 +4,7 @@ import { Modale } from '../ui/Dialogs';
 import MonsterAvatar from './MonsterAvatar';
 import { GroupePalette, EntreePalette } from './palette/recherchePalette';
 
-// PALETTE Ctrl K (refonte graphique, lot 13, décision 29, la maquette) — voir
+// PALETTE Ctrl K (la maquette) — voir
 // docs/02-app/transverse/ § Palette Ctrl K. Une seule recherche pour l'app :
 // pages, monstres, actions, en groupes intitulés.
 //

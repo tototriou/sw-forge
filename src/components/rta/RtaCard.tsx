@@ -71,7 +71,7 @@ export default function RtaCard({
   markDesync = true,
 }: Props) {
   const cardRef = useRef<HTMLDivElement>(null);
-  // ⚠️ Le retrait se DÉFAIT au lieu de se confirmer (lot 13, décision 29) : la
+  // ⚠️ Le retrait se DÉFAIT au lieu de se confirmer : la
   // croix retire tout de suite, et la page annonce « … retiré de ta prépa ·
   // Annuler », qui remet le monstre tel quel. Elle passait par une
   // confirmation : posée sur le coin de la carte, près du portrait, on la
@@ -119,7 +119,7 @@ export default function RtaCard({
       // `ring-1 ring-accent/50`, soit deux traits d'accent concentriques autour
       // de la même carte. Superposés, ils ne se lisent pas comme deux
       // informations mais comme un contour flou. Voir docs/03-developpeur/interface/.
-      // ⚠️ Refonte graphique, lot 6 : le gabarit des cartes de la refonte —
+      // ⚠️ Le gabarit des cartes —
       // fond de panneau, contour discret, rayon 12 —, le contour se précisant au
       // survol. L'anneau des catégories suit le même rayon.
       className={`group relative rounded-xl border bg-panel transition-colors ${
@@ -197,7 +197,7 @@ export default function RtaCard({
               ⚠️ La vitesse passe alors à GAUCHE (`flex-1` transféré) : seule sur
               sa ligne, calée à droite, elle flottait loin du portrait qu'elle
               qualifie. */}
-          {/* ⚠️ **Au TÉLÉPHONE, le nom REVIENT** (lot 11a, décision 24) : la
+          {/* ⚠️ **Au TÉLÉPHONE, le nom REVIENT** : la
               rangée prend toute la largeur, il n'a plus à céder sa place. Il
               reste masqué sur une tablette tactile au format bureau, où la
               tuile garde ses 150 px. */}

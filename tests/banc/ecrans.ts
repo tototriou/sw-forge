@@ -25,7 +25,7 @@ export interface DefinitionFormat {
   tactile: boolean;
 }
 
-// Les deux formats de premier rang (CLAUDE.md). Le téléphone est tactile :
+// Les deux formats de premier rang (docs/04-decisions/adr/deux-formats-de-premier-rang.md). Le téléphone est tactile :
 // les variantes `coarse:`, `compact:`, `no-hover:` et `hoverable:` de l'app
 // dépendent du pointeur, pas de la largeur (tailwind.config.js).
 export const FORMATS: Record<Format, DefinitionFormat> = {

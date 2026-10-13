@@ -68,8 +68,8 @@ export type FormeBouton = 'boite' | 'pilule';
 // ⚠️ Un seul endroit à modifier, toute l'app qui accuse réception. Un bouton qui
 // ne bouge pas au clic laisse un doute d'un dixième de seconde : est-ce que ça a
 // pris ? Voir docs/03-developpeur/interface/.
-// ⚠️ Le `Bouton` lui-même ne rétrécit plus : il descend d'1 px (rebranding,
-// décision 21), par la règle `button[data-bouton]` d'index.css, posée ici par
+// ⚠️ Le `Bouton` lui-même ne rétrécit plus : il descend d'1 px, par la règle
+// `button[data-bouton]` d'index.css, posée ici par
 // l'attribut. Cette constante reste celle des autres surfaces pressables.
 export const PRESSION = 'transition-transform duration-150 ease-out active:scale-[0.97]';
 
@@ -95,7 +95,7 @@ function desactive(ton: TonBouton, fond: FondBouton): string {
 }
 
 // ⚠️ **À la souris, le gabarit des boutons de la MAQUETTE, dans toute l'app**
-// (refonte graphique, décision 16 — le mainteneur : « il faut que les boutons soient
+// (le mainteneur : « il faut que les boutons soient
 // unifiés dans l'application », « le même rendu que sur la maquette ») :
 // `md` = `.btn` (32 px, 12 px de côté, 13 px de texte), `sm` = `.btn-sm`
 // (28 px, 10 px, 12 px), rayon 8 px ; un bouton d'icône est un carré de la
@@ -104,7 +104,7 @@ function desactive(ton: TonBouton, fond: FondBouton): string {
 // 19,5 px — et ne tombait juste à côté de rien. `min-h` et non `h` : un
 // libellé qui passe à la ligne agrandit le bouton au lieu de déborder. `xs`
 // et `BoutonIcone` `serre` restent hors de l'échelle : ils vivent DANS un
-// contenant plus petit qu'elle. Au doigt, rien ne change (lot 11).
+// contenant plus petit qu'elle. Au doigt, rien ne change.
 const TAILLES: Record<TailleBouton, string> = {
   // ⚠️ `xs` vit DANS un contenant déjà serré (une carte, une pilule d'en-tête),
   // jamais pour l'action principale d'un écran.
@@ -137,7 +137,7 @@ const TEXTES: Record<TonBouton, { nu: string; doux: string; plein: string }> = {
     // ne l'employait avant — il sert à l'action d'une notification.
     nu: 'text-accent',
     doux: 'text-ink hoverable:brightness-110',
-    // Bouton PRINCIPAL (refonte graphique, décision 4) : texte `accent-ink`
+    // Bouton PRINCIPAL : texte `accent-ink`
     // sur l'aplat de braise, l'encre sombre de la toile. Le survol ne passe
     // plus par un filtre de luminosité : c'est le FOND qui change (voir FONDS,
     // `accent-hover` / `accent-appui`, rebranding R3a).
@@ -154,7 +154,7 @@ const TEXTES: Record<TonBouton, { nu: string; doux: string; plein: string }> = {
   alerte: { nu: 'text-warn', doux: 'text-warn', plein: 'text-bg' },
 };
 
-// ⚠️ **Le survol peint le FOND, comme dans la maquette** (décision 16) :
+// ⚠️ **Le survol peint le FOND, comme dans la maquette** :
 // `.btn-secondary:hover` et `.btn-ghost:hover` y prennent `--hover`, dont
 // l'équivalent ici est `panel2` (même écart au panneau, dans les deux thèmes).
 // Il allumait le CONTOUR en accent — un signal réservé, depuis, à l'état
@@ -165,7 +165,7 @@ const FONDS: Record<TonBouton, Record<FondBouton, string>> = {
     doux: 'bg-panel hoverable:bg-panel2',
     plein: 'bg-panel2',
   },
-  // ⚠️ `plein` est un VRAI aplat d'accent depuis la refonte (décision 4) : le
+  // ⚠️ `plein` est un VRAI aplat d'accent depuis la refonte : le
   // bouton principal d'un écran, un seul par écran. Il valait `accent-soft`,
   // comme `doux` — l'app n'avait aucun bouton principal qui ressorte.
   // Survol et appui : les états de la toile (R3a) — plus clair puis plus
@@ -253,7 +253,7 @@ export interface BoutonProps
   // annonce « bouton » là où l'utilisateur voit un interrupteur. Laisser à
   // `undefined` pour une action ordinaire, qui n'a pas d'état à porter.
   actif?: boolean;
-  // ⚠️ **Un LIEN au dessin de bouton** (application de bureau, lot 6 :
+  // ⚠️ **Un LIEN au dessin de bouton** (application de bureau :
   // « Télécharger pour Windows ») : rendu en `<a href>`, même dessin. Un
   // téléchargement, une page externe sont des LIENS — on peut en copier
   // l'adresse, le lecteur d'écran dit « lien ». Sans `href` : un `<button>`.

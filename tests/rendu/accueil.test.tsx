@@ -1,9 +1,7 @@
 // Tests de rendu — l'accueil (`HomePage`). Principe dans
 // tests/rendu/outils-rendu.tsx : on vérifie que chaque fonctionnalité et chaque
-// information sont présentes, jamais l'apparence. Écrits AVANT le lot 5 de la
-// refonte graphique : l'accueil
-// est gardé tel quel et restylé (décision 10) — ces tests doivent rester verts
-// sans qu'une assertion change.
+// information sont présentes, jamais l'apparence : un changement de style
+// doit les laisser verts sans qu'une assertion change.
 
 import HomePage, { HomeStats } from '../../src/pages/HomePage';
 import { RELEASES, libelleVersion } from '../../src/data/releases';
@@ -76,7 +74,7 @@ export function testRenduAccueil() {
     ['#/bestiary', 'Données', 'Bestiaire', 'Recherche et filtres par élément et étoiles naturelles, stats de base à portée de main.'],
     ['#/mecaniques', 'Doc', 'Mécaniques', "Vitesse de combat, barre d'action, équation des dégâts et facteur de défense."],
     ['#/releases', 'Suivi', 'Nouveautés', 'Ce qui change à chaque version : ajouts, corrections et calculs revus.'],
-    // Application de bureau, décision 14 : site seulement (voir plus bas).
+    // Application de bureau : site seulement (voir plus bas).
     ['#/telecharger', 'Application', 'Application de bureau', 'SW Blacksmith dans sa propre fenêtre, pour Windows et Linux, avec la mise à jour proposée à chaque version.'],
     ['#/arene', 'Arène · bientôt', 'Arène classique', "Préparation des équipes d'offense et de défense."],
   ];
@@ -99,7 +97,7 @@ export function testRenduAccueil() {
   ok(!!bandeau && bandeau.texte === `${libelleVersion(derniere.version)} ${derniere.title} Voir les nouveautés`, `bandeau « ${libelleVersion(derniere.version)} · ${derniere.title} » → #/releases`);
 }
 
-// Application de bureau, lot 6 (décisions 13 et 14) : le lien du héros vers
+// Application de bureau : le lien du héros vers
 // la page « Télécharger » — sur le SITE ; dans l'app, rien.
 export function testRenduAccueilBureau() {
   titre('rendu · Accueil — le lien vers « Télécharger »');

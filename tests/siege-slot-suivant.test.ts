@@ -1,5 +1,5 @@
-// Recommandations — un monstre choisi, le curseur passe au slot vide suivant
-// (refonte graphique, décision 18). Le focus ne se voit pas dans un rendu
+// Recommandations — un monstre choisi, le curseur passe au slot vide suivant.
+// Le focus ne se voit pas dans un rendu
 // serveur : on teste le CHOIX du slot, qui est tout le calcul.
 
 import { prochainFocus, slotVideSuivant } from '../src/components/siege/slotVideSuivant';

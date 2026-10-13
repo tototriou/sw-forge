@@ -21,8 +21,7 @@ export default function RtaValidationReport({
   return (
     <div
       className={`mt-2 rounded-xl border px-3 py-2.5 ${
-        // Rouge d'ÉTAT (`bad`), pas celui de l'élément Feu — rebranding,
-        // décision 43.
+        // Rouge d'ÉTAT (`bad`), pas celui de l'élément Feu.
         bloque ? 'border-bad/50 bg-bad/5' : 'border-warn/40 bg-warn/5'
       }`}
     >

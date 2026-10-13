@@ -5,14 +5,14 @@ import { DEPOT, TELECHARGEMENTS } from '../lib/bureau';
 import { NOM_APP } from '../marque';
 import { Bouton } from '../ui';
 
-// La page « Télécharger » (`#/telecharger`) — application de bureau, lot 6,
-// décision 14. SITE seulement : dans l'app, ni entrée ni route
+// La page « Télécharger » (`#/telecharger`) — application de bureau. SITE seulement :
+// dans l'app, ni entrée ni route
 // (App.tsx).
 //
 // ⚠️ Un clic télécharge le FICHIER de la dernière version publiée
-// (`…/releases/latest/download/…`, noms sans version — décision 13), pas la
+// (`…/releases/latest/download/…`, noms sans version), pas la
 // page de la release, où il faudrait le chercher parmi les fichiers de la
-// mise à jour. Pas de signature (décision 2) : la phrase dit comment passer
+// mise à jour. Pas de signature : la phrase dit comment passer
 // l'avertissement de Windows, avec SES libellés.
 // ⚠️ **Au téléphone, sans boutons** : ni un `.exe` ni une AppImage ne s'y
 // installent (`lg:`, deux formats, deux contenus).

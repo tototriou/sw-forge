@@ -6,7 +6,7 @@ import Menu, { ElementMenu, HAUTEUR_EN_TETE } from './Menu';
 // elles tiennent sur la ligne, sinon les actions `toujours` + un menu « ⋯ »
 // pour les autres.
 //
-// ⚠️ Demandé par le mainteneur (RTA, lot 6) : « sur PC, afficher ces boutons si on a
+// ⚠️ Demandé par le mainteneur (RTA) : « sur PC, afficher ces boutons si on a
 // la place ». Le menu cachait derrière un clic des actions qu'un grand écran
 // pouvait montrer d'emblée.
 //
@@ -123,7 +123,7 @@ function BoutonAction({ e }: { e: ElementMenu }) {
       libelle={e.libelle as ReactNode}
       // À deux états : le fond d'accent quand il est enclenché, `aria-pressed`
       // — comme partout. ⚠️ Jamais d'aplat : aucune action n'est mise en avant
-      // dans un en-tête (décision 4 précisée).
+      // dans un en-tête.
       ton={e.danger ? 'danger' : e.actif ? 'accent' : 'neutre'}
       actif={e.actif || undefined}
       className={HAUTEUR_EN_TETE}

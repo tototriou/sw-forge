@@ -46,7 +46,7 @@ export function cheminDuFichier(url: string, racine: string): string | null {
   return cible;
 }
 
-// ── Navigation (lot 2, branchée par navigation.ts) ─────────────────────────
+// ── Navigation (branchée par navigation.ts) ─────────────────────────
 
 // L'adresse appartient-elle à l'app ? Le protocole maison, ou — en dev — le
 // serveur Vite (`urlDev`), même origine seulement.

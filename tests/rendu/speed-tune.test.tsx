@@ -1,7 +1,7 @@
 // Tests de rendu — Outils · Speed tuning (`SpeedTuningSection`). Principe dans
 // tests/rendu/outils-rendu.tsx : on vérifie que chaque fonctionnalité et
-// chaque information sont présentes, jamais l'apparence. Écrits AVANT le lot 9b
-// de la refonte graphique : ils doivent rester verts sans qu'une assertion change.
+// chaque information sont présentes, jamais l'apparence : un changement de
+// style doit les laisser verts sans qu'une assertion change.
 //
 // ⚠️ Rendu serveur : les kits (`public/data/skills`) se chargent dans un
 // effet, qui ne tourne pas. « Ordre des sorts » reste donc vide et l'analyse
@@ -95,7 +95,7 @@ export function testRenduSpeedTuneVide() {
   const places = valeurs(html, 'placeholder');
   ok(places.includes('Ajouter un monstre à ton équipe…') && places.includes('Ajouter un monstre adverse…'), 'une recherche d\'ajout par camp');
   const imports = b.filter((x) => x.texte === 'Importer un deck de siège');
-  // ⚠️ Lot 9b (décision 22) : un bouton par camp ET par format — en tête de
+  // ⚠️ Un bouton par camp ET par format — en tête de
   // carte à la souris, sous la recherche au doigt, un seul visible. Le compte
   // passe de 2 à 4 ; le sens (un import par camp) ne change pas.
   egal(imports.length, 4, '« Importer un deck de siège » dans chaque camp, à chaque format');

@@ -5,8 +5,8 @@ import SetFilter from './SetFilter';
 import SlotFilter from './SlotFilter';
 import AncientFilter, { AncientFilter as AncientFilterValue } from './AncientFilter';
 
-// ⚠️ **Les filtres des runes À LA SOURIS, tous VISIBLES, sur une ligne**
-// (refonte graphique, lot 8a, décision 20 précisée) : sets · emplacements ·
+// ⚠️ **Les filtres des runes À LA SOURIS, tous VISIBLES, sur une ligne** :
+// sets · emplacements ·
 // antiques, puis « Effacer les filtres ». Mêmes contrôles qu'avant —
 // `SetFilter`, `SlotFilter`, `AncientFilter`, inchangés —, rangés sur une
 // seule ligne au lieu de trois.
@@ -16,7 +16,7 @@ import AncientFilter, { AncientFilter as AncientFilterValue } from './AncientFil
 // boutons »). Un filtre fermé dans un menu ne dit pas ce qu'il filtre sans
 // qu'on l'ouvre.
 // Partagé par la Liste, les Courbes et l'Optimisation. Au doigt, chaque vue
-// garde ses filtres d'avant (lot 11).
+// garde ses filtres d'avant.
 
 const SLOTS = [1, 2, 3, 4, 5, 6];
 
@@ -70,7 +70,7 @@ export default function FiltresRunes({
 }
 
 // « Effacer les filtres » — posé au bout de la ligne de filtres (souris) ET
-// dans le panneau « Filtrer mes runes » (téléphone, lot 11c, décision 26).
+// dans le panneau « Filtrer mes runes » (téléphone).
 // Un seul composant pour les deux : même remise à zéro, même raison quand il
 // est désactivé.
 // ⚠️ Toujours affiché, DÉSACTIVÉ quand rien n'est filtré : un bouton qui

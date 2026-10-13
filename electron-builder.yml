@@ -3,7 +3,7 @@
 # `npm run bureau:paquet` : build Vite + processus principal, puis
 # l'installeur de la plateforme courante dans le dossier `paquets` (gitignoré).
 
-# ⚠️ DÉFINITIF (décision 8) : Windows et la mise à jour automatique
+# ⚠️ DÉFINITIF : Windows et la mise à jour automatique
 # reconnaissent l'app installée par cet identifiant. Le changer = une autre
 # app, installée à côté de l'ancienne.
 appId: com.swblacksmith.app
@@ -22,12 +22,12 @@ copyright: SW Blacksmith
 directories:
   output: paquets
 
-# Où la mise à jour automatique cherche les versions (lot 5) : écrit dans
+# Où la mise à jour automatique cherche les versions : écrit dans
 # `app-update.yml` des ressources de l'app installée. ÉCRIT ici, pas déduit du
 # dépôt git (ce que fait electron-builder sans lui) : une CI qui clonerait
 # autrement ne change rien. Un dépôt RENOMMÉ reste suivi — GitHub redirige.
 # La publication elle-même n'est PAS faite par electron-builder (`--publish
-# never`, décision 9) : voir .github/workflows/bureau.yml.
+# never`) : voir .github/workflows/bureau.yml.
 publish:
   provider: github
   owner: tototriou
@@ -51,7 +51,7 @@ win:
   # générique). Généré par `node scripts/generer-icone-bureau.mjs`.
   icon: bureau/icone.ico
 
-# Décision 8 (amendée) : un assistant — pour qui (moi seulement par défaut :
+# Un assistant — pour qui (moi seulement par défaut :
 # la mise à jour passe sans demande d'autorisation), dans quel dossier, puis
 # l'avancement ; la désinstallation a ses pages aussi (bienvenue, avancement,
 # fin).
@@ -59,7 +59,7 @@ nsis:
   oneClick: false
   perMachine: false
   allowToChangeInstallationDirectory: true
-  # Décision 8 : la désinstallation efface les données. Une MISE À JOUR
+  # La désinstallation efface les données. Une MISE À JOUR
   # aussi passe par l'ancien désinstalleur, mais avec `--updated`, qui
   # garde les données (app-builder-lib, templates/nsis/include/installUtil.nsh).
   deleteAppDataOnUninstall: true
@@ -69,7 +69,7 @@ nsis:
   installerLanguages: [fr_FR]
   language: "1036"
   shortcutName: SW Blacksmith
-  # ⚠️ SANS numéro de version (décision 13) : l'accueil du site télécharge
+  # ⚠️ SANS numéro de version : l'accueil du site télécharge
   # `…/releases/latest/download/SW-Blacksmith-Setup.exe`, la seule adresse
   # fixe — src/lib/bureau.ts (TELECHARGEMENTS), vérifié par
   # tests/bureau-mise-a-jour.test.ts. La mise à jour n'en souffre pas : elle

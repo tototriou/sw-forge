@@ -147,7 +147,7 @@ export interface UseRecoState {
   addDeck: (id: string) => void;
   addDeckWith: (id: string, deck: RecoDeck) => void; // deck pré-rempli (ex. depuis le siège)
   removeDeck: (id: string, deck: number) => void;
-  // « Annuler » une suppression (lot 13) : remet à sa place, tel quel.
+  // « Annuler » une suppression : remet à sa place, tel quel.
   restaurerReco: (reco: Reco, index: number) => void;
   restaurerDeck: (id: string, deck: RecoDeck, index: number) => void;
   setDeckMeta: (id: string, deck: number, patch: Partial<Pick<RecoDeck, 'name' | 'note'>>) => void;
@@ -244,7 +244,7 @@ export function useSiegeRecos(): UseRecoState {
     [update]
   );
 
-  // « Annuler » (refonte graphique, lot 13, décision 29) : ce qu'on vient de
+  // « Annuler » : ce qu'on vient de
   // supprimer revient TEL QUEL, à SA place. Sans effet s'il est déjà là.
   const restaurerReco = useCallback(
     (reco: Reco, index: number) =>

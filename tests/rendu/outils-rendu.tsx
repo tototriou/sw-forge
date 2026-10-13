@@ -77,7 +77,7 @@ export function valeurs(html: string, nom: string): string[] {
   return [...html.matchAll(new RegExp(`\\s${nom}="([^"]*)"`, 'g'))].map((m) => decoder(m[1]));
 }
 
-// ⚠️ **Rendu TÉLÉPHONE** (refonte graphique, lot 11). Les panneaux « Options »
+// ⚠️ **Rendu TÉLÉPHONE**. Les panneaux « Options »
 // (`MobileSheet`) ne s'affichent qu'au format téléphone, lu par `matchMedia`,
 // et passent par un PORTAIL — deux choses qu'un rendu serveur n'a pas : sans
 // navigateur, le panneau rend `null` et son contenu échappe aux tests. On

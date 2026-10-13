@@ -1,4 +1,4 @@
-// Recommandations — vue Défense (refonte graphique, décision 19) : les
+// Recommandations — vue Défense : les
 // défenses visées regroupées, avec les offenses qui les battent. Dérivée des
 // decks, sans rien stocker.
 

@@ -1,4 +1,4 @@
-// Lancer Electron depuis un script — chantier application-bureau.
+// Lancer Electron depuis un script.
 //
 // ⚠️ **`ELECTRON_RUN_AS_NODE` est retirée de l'environnement.** VS Code est
 // lui-même une application Electron et la pose à 1 dans son terminal intégré :
@@ -23,7 +23,7 @@ export function lancerElectron(supplement = {}) {
   return spawn(executable, ['.'], { stdio: 'inherit', env: environnement(supplement) });
 }
 
-// Lance l'app et attend sa fin. `exe` : une app INSTALLÉE (lot 3), lancée
+// Lance l'app et attend sa fin. `exe` : une app INSTALLÉE, lancée
 // telle quelle — elle aussi est un Electron, la variable la concerne aussi.
 export function lancerElectronEtAttendre(supplement = {}, delai = 120_000, exe) {
   return spawnSync(exe ?? executable, exe ? [] : ['.'], { stdio: 'inherit', env: environnement(supplement), timeout: delai });

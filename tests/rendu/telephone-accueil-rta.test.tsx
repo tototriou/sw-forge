@@ -1,8 +1,7 @@
-// Tests de rendu AU TÉLÉPHONE — Accueil et RTA (lot 11a de la refonte
-// graphique). Principe dans
+// Tests de rendu AU TÉLÉPHONE — Accueil et RTA. Principe dans
 // tests/rendu/outils-rendu.tsx ; rendu téléphone par `auTelephone`, qui
-// fait apparaître les panneaux « Options » (`MobileSheet`). Écrits AVANT le
-// 11a : ils doivent rester verts sans qu'une assertion change.
+// fait apparaître les panneaux « Options » (`MobileSheet`). Un changement de
+// style doit les laisser verts sans qu'une assertion change.
 
 import HomePage, { HomeStats } from '../../src/pages/HomePage';
 import RtaPage from '../../src/pages/RtaPage';
@@ -93,7 +92,7 @@ export function testRenduTelephoneRta() {
   ok(b.some((x) => x.ariaLabel === 'Fermer'), 'le panneau se ferme');
 }
 
-// Lot 13 (décision 28) : le filtre par section au téléphone — ajouté avec lui.
+// Le filtre par section au téléphone — ajouté avec lui.
 export function testRenduTelephoneRtaFiltre() {
   titre('rendu téléphone · RTA — filtre par section');
   const html = rendreRta('prepa', false);

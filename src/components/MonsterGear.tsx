@@ -132,7 +132,7 @@ export default function MonsterGear({
       // ⚠️ **Deux façons de calculer la place disponible, format par format —
       // demande explicite au doigt (« la fiche de stats, les artéfacts, les
       // runes ainsi que la relique tiennent alignés ensemble »), jamais
-      // touché sur bureau (voir CLAUDE.md, deux formats de premier rang).
+      // touché sur bureau (docs/04-decisions/adr/deux-formats-de-premier-rang.md).
       // - **Bureau (inchangé)** : la largeur de la RACINE entière. Un groupe
       //   trop large pour tenir à côté du panneau de stats passe à la ligne
       //   suivante (le VRAI `flex-wrap` du navigateur en décide, pas ce

@@ -275,7 +275,7 @@ function MonsterBoxSection({
           />
         </div>
 
-        {/* « Effacer les filtres » (lot 13, décision 28) — le même bouton que
+        {/* « Effacer les filtres » — le même bouton que
             les runes : au bout des filtres, à la souris comme dans le panneau.
             ⚠️ Toujours affiché, DÉSACTIVÉ quand rien n'est filtré. Ne touche
             ni à la recherche ni au tri. */}
@@ -326,9 +326,9 @@ function MonsterBoxSection({
 
   return (
     <div>
-      {/* ⚠️ **À la SOURIS, un en-tête** (refonte graphique, lot 8b, la
+      {/* ⚠️ **À la SOURIS, un en-tête** (la
           maquette) : « Ma box », puis le compte en pastille — le même texte
-          qu'au doigt, où il reste une ligne sous la barre du haut (lot 11). */}
+          qu'au doigt, où il reste une ligne sous la barre du haut. */}
       <div className="mb-4 flex items-center gap-2.5">
         <h1 className="hidden font-display text-xl tracking-wide text-ink lg:block">Ma box</h1>
         <p className="font-mono text-ink-dim text-xs lg:rounded-full lg:border lg:border-border-soft lg:bg-panel2 lg:px-2 lg:py-0.5 lg:text-micro">
@@ -341,12 +341,12 @@ function MonsterBoxSection({
           filtres (élément, étoiles, doublons/2A) passent dans le tiroir sous
           `lg`. Elles occupaient quatre lignes avant la première carte sur un
           téléphone — plus que la grille qu'elles filtrent.
-          ⚠️ **À la SOURIS, trois lignes fixes** (lot 8b) : la recherche à
+          ⚠️ **À la SOURIS, trois lignes fixes** : la recherche à
           largeur fixe, TOUS les filtres sur une ligne, puis le tri et la
           pagination. Une barre unique a été essayée et défaite (le mainteneur :
           « ça va pas ») : à 1 000 px elle écrasait la recherche et renvoyait
           le tri seul à la ligne. Les filtres restent VISIBLES, pas dans des
-          menus (décision 20, Runes : Le mainteneur n'en a pas voulu). */}
+          menus (Runes : Le mainteneur n'en a pas voulu). */}
       <div className="flex flex-col gap-3 mb-4">
         <div className="flex flex-wrap items-center gap-2 lg:flex-nowrap">
           <Champ
@@ -365,8 +365,8 @@ function MonsterBoxSection({
         <div className="hidden lg:flex lg:flex-wrap lg:items-center lg:gap-x-5 lg:gap-y-2">{filtres}</div>
       </div>
 
-      {/* ⚠️ **À la SOURIS, le TRI vient À LA SUITE DES FILTRES** (le mainteneur,
-          lot 8b : « mets l'ordre à la suite des filtres »), sur la ligne de
+      {/* ⚠️ **À la SOURIS, le TRI vient À LA SUITE DES FILTRES** (le mainteneur :
+          « mets l'ordre à la suite des filtres »), sur la ligne de
           la pagination : les deux réglages de PRÉSENTATION de la grille, juste
           au-dessus d'elle. La ligne est là même sans résultat ni seconde
           page — le tri ne disparaît jamais avec les données. */}

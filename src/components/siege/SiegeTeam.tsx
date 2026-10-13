@@ -94,8 +94,8 @@ export default function SiegeTeam({
   const [dragFrom, setDragFrom] = useState<number | null>(null);
   const [overIdx, setOverIdx] = useState<number | null>(null);
   const [detailIdx, setDetailIdx] = useState<number | null>(null); // slot dont on montre le détail
-  // Un monstre choisi → le curseur passe au slot vide suivant (décision 18,
-  // voir slotVideSuivant.ts) : on compose les trois d'affilée au clavier.
+  // Un monstre choisi → le curseur passe au slot vide suivant (voir slotVideSuivant.ts) : on
+  // compose les trois d'affilée au clavier.
   const [focus, setFocus] = useState<JetonSlot | null>(null);
   // ⚠️ Le budget de la ligne « vitesse + sets » est COMPTÉ. Sur 348 px, une
   // carte compacte fait (348 − 2×4) ÷ 3 ≈ 113 px ; moins le rembourrage et le
@@ -291,14 +291,14 @@ export default function SiegeTeam({
     setOverIdx(null);
   }
 
-  // ⚠️ **Le statut se dit par le CONTOUR et la PASTILLE ÉCRITE** (refonte
-  // graphique, décision 8). La pastille remplace le point de couleur ET le fond
+  // ⚠️ **Le statut se dit par le CONTOUR et la PASTILLE ÉCRITE**. La pastille remplace
+  // le point de couleur ET le fond
   // coloré qu'apportait le thème clair (`--siege-card-*`) : en clair, un
   // contour d'un pixel sur fond blanc ne se voyait pas, d'où ce fond — la
   // pastille, lisible dans les deux thèmes, dit désormais l'état en toutes
   // lettres. Libellés choisis par le mainteneur (voir `pastilleStatut`).
   // ⚠️ Rouge d'ÉTAT (`bad`), comme la pastille juste à côté — plus `fire`, le
-  // rouge de l'élément Feu (rebranding, décision 43).
+  // rouge de l'élément Feu.
   const sectionClass = aGearIncomplet || statut === 'rouge'
     ? 'border-bad'
     : statut === 'orange'
@@ -319,7 +319,7 @@ export default function SiegeTeam({
     // `p-4` coûte 32 px de haut multipliés par ce nombre — deux écrans de vide
     // sur un téléphone.
     // Gabarit des cartes de la refonte : fond `panel`, rayon 12.
-    // ⚠️ **Resserrée** (lot 7a, « revois un peu les cards pour optimiser
+    // ⚠️ **Resserrée** (« revois un peu les cards pour optimiser
     // l'espace ») : rembourrage 12 px au lieu de 16, en-tête à 8 px de la
     // rangée, titre en `text-base`. La souris seulement — les valeurs
     // `compact:` (au doigt) ne bougent pas.
@@ -398,13 +398,13 @@ export default function SiegeTeam({
 
       {/* ⚠️ Une équipe se supprime en un clic, juste à côté du bouton
           « Éditer » qu'on utilise sans arrêt. Ce n'est plus une confirmation
-          qui couvre l'erreur, mais « Annuler » (lot 13, décision 29) : la page
+          qui couvre l'erreur, mais « Annuler » : la page
           annonce « Équipe retirée · Annuler », qui la remet à sa place avec ses
           monstres et leurs vitesses. */}
 
       {expanded ? (
-      // ⚠️ **Les lignes des trois slots sont ALIGNÉES à la souris** (lot 7a,
-      // « ce serait bien que les éléments soient alignés dans la card ») : la
+      // ⚠️ **Les lignes des trois slots sont ALIGNÉES à la souris** (« ce serait bien
+      // que les éléments soient alignés dans la card ») : la
       // grille définit trois lignes — le monstre, la vitesse et le SPD, les
       // ticks — que chaque slot reprend (`grid-rows-subgrid`). Chaque ligne
       // prend la hauteur de la plus haute des trois : la pastille de lead sous
@@ -506,7 +506,7 @@ export default function SiegeTeam({
                     : danger
                       ? // Fond DOUX du rouge d'état : la VIT fautive, écrite
                         // en `bad` dessus, y fait 5.53 en Forge (4.31 sur
-                        // l'ancien voile à 20 %). Rebranding, décision 43.
+                        // un voile à 20 %).
                         'border-bad bg-bad-soft'
                       : 'border-border bg-panel2/60'
                 }`}
@@ -740,7 +740,7 @@ export default function SiegeTeam({
                 taille="sm"
                 fond="vide"
                 trait="aucun"
-                // Le chronomètre de l'outil qu'il ouvre (rebranding, décision 44).
+                // Le chronomètre de l'outil qu'il ouvre.
                 icone={<IconeSpeedTuning size={14} />}
                 libelle="Voir le speed tune"
                 libelleCourt="Speed tune"
@@ -842,7 +842,7 @@ function SlotContent({
     return (
       // ⚠️ `min-h` abaissée au doigt : trois slots empilés à 150 px font
       // 450 px d'édition avant même le reste de la page.
-      // ⚠️ Plus de `min-h` à la souris (lot 7a, édition resserrée) : les trois
+      // ⚠️ Plus de `min-h` à la souris (édition resserrée) : les trois
       // slots sont dans une grille, qui les aligne déjà sur le plus haut.
       // `lg:grid-rows-subgrid` : l'étiquette tombe sur la ligne du monstre, le
       // champ de recherche sur celle de la vitesse — alignés sur les voisins.
@@ -878,7 +878,7 @@ function SlotContent({
     onDragStart();
   }
 
-  // ⚠️ **Édition resserrée à la souris** (lot 7a, « revois surtout la partie
+  // ⚠️ **Édition resserrée à la souris** (« revois surtout la partie
   // d'édition ») : la position monte à côté du champ SPD, l'écart au tick au
   // bout de la rangée des ticks — deux lignes de moins par slot. Au doigt, la
   // disposition ne change pas (une correction destinée à un format ne touche
@@ -905,7 +905,7 @@ function SlotContent({
       </Selecteur>
     </>
   );
-  // ⚠️ Couleurs d'ÉTAT sur leur fond doux (rebranding, décision 43) : « manque »
+  // ⚠️ Couleurs d'ÉTAT sur leur fond doux : « manque »
   // en `bad`, « pile au tick » en `good` — ils empruntaient le Feu et l'or du
   // Vent, et ce dernier ne faisait que 3.78 en Atelier. Le bleu de « au-dessus »
   // reste : aucune couleur d'état ne dit « plus que nécessaire, sans faute ».
@@ -1009,7 +1009,7 @@ function SlotContent({
             mais confus ») : sur la ligne du monstre, elles disent qu'elles
             déplacent CE monstre. Aux bords, la flèche reste affichée,
             désactivée, et son infobulle dit pourquoi. Au doigt, le sélecteur
-            reste (lot 11). */}
+            reste. */}
         {/* Centrées sur la ligne du monstre, comme la croix — elles étaient
             collées en haut (`self-start`) et flottaient au-dessus du nom. */}
         <span className="hidden flex-none items-center gap-0.5 lg:flex">
@@ -1057,7 +1057,7 @@ function SlotContent({
         {/* Pas de filet au-dessus de la conclusion : essayé, retiré par
             Le mainteneur (« pas besoin de séparateur dans la card »). */}
         <div className="lg:col-span-2 lg:row-start-3 lg:mt-2">
-          {/* ⚠️ 16 px au doigt contre 22 à la souris (26 avant le lot 7a). Le
+          {/* ⚠️ 16 px au doigt contre 22 à la souris. Le
               nom du monstre est la RÉFÉRENCE de ce bloc : la vitesse doit rester
               au-dessus de lui sans l'écraser — un rapport de 1,3 à 1,6 suffit à
               dire « c'est la valeur principale », là où 2,2 en faisait le seul
@@ -1096,7 +1096,7 @@ function SlotContent({
         {/* ⚠️ **Recliquer sur le tick visé l'ENLÈVE** — demandé par le mainteneur,
             avec le retrait du bouton « Off » à la souris : un bouton à deux
             états s'éteint là où on l'a allumé, sans aller chercher un
-            troisième bouton. Au doigt, « Off » reste pour l'instant (lot 11),
+            troisième bouton. Au doigt, « Off » reste pour l'instant,
             et le reclic y marche aussi. */}
         <TickBtn active={tick === 0} onClick={() => onTick(0)} label="Off" className="lg:hidden" />
         {SIEGE_TICKS.map((t) => (

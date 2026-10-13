@@ -42,8 +42,8 @@ interface Props {
   onFermerMenu: () => void;
 }
 
-// ⚠️ **Deux VUES des mêmes recommandations** (refonte graphique, décision 19 —
-// Le mainteneur : « au lieu du tri Toutes / Mes recos / Importées, mets plutôt un tri
+// ⚠️ **Deux VUES des mêmes recommandations** (Le mainteneur : « au lieu du tri Toutes /
+// Mes recos / Importées, mets plutôt un tri
 // attaque / défense ; je veux que les deux affichages soient possibles ») :
 // - Attaque : chaque deck, puis les défenses contre lesquelles il est fort —
 //   l'affichage d'avant, et celui où l'on MODIFIE ;
@@ -417,7 +417,7 @@ export default function RecoBoard({
     </>
   );
 
-  // Vue Attaque / Défense (décision 19) — le VRAI Segmented, pas une copie :
+  // Vue Attaque / Défense — le VRAI Segmented, pas une copie :
   // deux contrôles à cran dans la même page doivent avoir le même cadre, le
   // même rayon et la même taille de texte. Rendu une seule fois, posé à deux
   // endroits selon la largeur (voir plus bas) — même geste que `actions` et
@@ -482,14 +482,14 @@ export default function RecoBoard({
       {/* ⚠️ Sous `lg`, les actions descendent dans le panneau « Options » :
           quatre boutons à libellé complet remplissaient deux rangées avant la
           première recommandation. */}
-      {/* ---- En-tête BUREAU (refonte graphique, lot 7b) --------------------
-          Comme la RTA et Défense / Offense (décision 13 précisée) : le titre,
+      {/* ---- En-tête BUREAU --------------------
+          Comme la RTA et Défense / Offense : le titre,
           le compteur, puis les actions — toutes en boutons quand elles
           tiennent sur la ligne, sinon Importer et « Créer une
           recommandation » visibles et le reste (Tout exporter, Tout effacer —
-          séparé) dans le menu « ⋯ », comme dans la maquette. Aucune action mise en avant (décision 4 précisée). Les
+          séparé) dans le menu « ⋯ », comme dans la maquette. Aucune action mise en avant. Les
           libellés, désactivations et infobulles sont ceux des boutons
-          d'avant. Le téléphone garde son panneau « Options » (lot 11). */}
+          d'avant. Le téléphone garde son panneau « Options ». */}
       <div className="mt-5 hidden flex-wrap items-center gap-x-3 gap-y-1 lg:flex">
         <h1 className="font-display text-xl tracking-wide text-ink">Recommandations</h1>
         <span className="rounded-full border border-border-soft bg-panel2 px-2 py-0.5 font-mono text-micro text-ink-dim">
@@ -497,11 +497,11 @@ export default function RecoBoard({
         </span>
         <BarreActions
           libelleMenu="Plus d'actions"
-          // ⚠️ **Importer ET Créer toujours visibles, dans cet ordre** (lot 7b —
-          // Le mainteneur : « l'organisation des boutons comme sur la maquette ») :
+          // ⚠️ **Importer ET Créer toujours visibles, dans cet ordre** (Le mainteneur :
+          // « l'organisation des boutons comme sur la maquette ») :
           // la maquette les pose tous deux en boutons, Tout exporter et Tout
           // effacer derrière le « ⋯ ». Ces deux-là restent en boutons quand la
-          // ligne a la place (décision 13 précisée).
+          // ligne a la place.
           toujours={[
             {
               cle: 'importer',
@@ -663,7 +663,7 @@ export default function RecoBoard({
           (Monstres/Rôle, plus bas), qui n'a rien à filtrer sur une liste
           vide. Rendue une seule fois (`vueFilter`), posée aux deux endroits
           (ici et dans le panneau « Options » au doigt). */}
-      {/* ⚠️ **À la souris, UNE barre d'outils** (lot 7b, la maquette) :
+      {/* ⚠️ **À la souris, UNE barre d'outils** (la maquette) :
           Vue · filet · recherche, sur la même ligne ; le « Rôle » passe
           dessous (`lg:basis-full`). Les deux conteneurs d'origine s'effacent
           dans celui-ci (`lg:contents`). Au doigt, rien ne change : la vue
@@ -830,7 +830,7 @@ export default function RecoBoard({
       {all.length === 0 ? (
         <div className="mt-8 flex flex-col items-center justify-center text-center rounded-2xl border border-dashed border-border bg-panel/40 py-16 px-6">
           <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-panel2 border border-border mb-4">
-            {/* L'icône de la section dans la nav (rebranding, décision 44). */}
+            {/* L'icône de la section dans la nav. */}
             <IconeRecos size={26} className="text-ink-dim" />
           </div>
           <p className="text-ink-dim text-sm max-w-md">
@@ -936,7 +936,7 @@ function ValidationReport({ report, onClose }: { report: ImportReport; onClose: 
   return (
     <div
       className={`mt-3 rounded-xl border px-3 py-2.5 ${
-        // Fonds DOUX (lot 7b, voir `AURA` dans RecoCard) : l'aplat saturé à
+        // Fonds DOUX (voir `AURA` dans RecoCard) : l'aplat saturé à
         // 20-35 % se lisait mal ; l'icône et le titre portent la couleur.
         bloque ? 'border-bad/50 bg-bad-soft' : 'border-warn/50 bg-warn-soft'
       }`}

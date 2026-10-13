@@ -1,6 +1,5 @@
-// Tests de rendu — bibliothèque `src/ui/`. Écrits AVANT le lot 3 de la refonte
-// graphique : le lot change le
-// RENDU INTERNE des composants, jamais ce qu'ils exposent. Ces tests fixent
+// Tests de rendu — bibliothèque `src/ui/`. Le RENDU INTERNE des composants
+// peut changer, jamais ce qu'ils exposent. Ces tests fixent
 // ce qui est exposé — nom accessible, infobulle, état désactivé, état actif —
 // et doivent rester verts sans que leurs assertions changent.
 
@@ -102,7 +101,7 @@ export function testRenduUiEtats() {
   ok(texteVisible(sel).includes('Score') && texteVisible(sel).includes('Efficience'), 'Selecteur : options rendues');
 }
 
-// Menu d'actions « ⋯ » — ajouté au lot 6 de la refonte (décision 13).
+// Menu d'actions « ⋯ ».
 export function testRenduUiMenu() {
   titre('rendu · src/ui — Menu');
   const html = rendre(
@@ -126,7 +125,7 @@ export function testRenduUiMenu() {
   const ordre = boutons(html).filter((b) => ['Sauvegarder', 'Reprendre', 'Tout effacer'].includes(b.texte)).map((b) => b.texte);
   egal(ordre, ['Sauvegarder', 'Reprendre', 'Tout effacer'], 'l\'entrée destructrice est rangée en dernier');
 
-  // Application de bureau, lot 9 : un déclencheur fourni (la carte du compte)
+  // Application de bureau : un déclencheur fourni (la carte du compte)
   // et l'ancrage à gauche.
   const carte = rendre(
     <Menu
@@ -148,7 +147,7 @@ export function testRenduUiMenu() {
   ok(/role="menuitemcheckbox"[^>]*aria-checked="true"/.test(carte), 'l’entrée suivie est cochée (aria-checked)');
 }
 
-// Lot 13 (décision 29) : la palette Ctrl K — ajoutée avec elle. La Modale passe
+// La palette Ctrl K — ajoutée avec elle. La Modale passe
 // par un portail : rendue par `auTelephone`, qui le pose en place.
 export function testRenduPalette() {
   titre('rendu · Palette Ctrl K');
@@ -169,7 +168,7 @@ export function testRenduPalette() {
   ok(vide.includes('Aucun résultat pour « rien » Essaie un nom de monstre, de page ou d\'action.'), 'rien ne répond : le dire, et quoi essayer');
 }
 
-// Lot 13 (décision 29) : la notification « … · Annuler » — ajoutée avec elle.
+// La notification « … · Annuler » — ajoutée avec elle.
 export function testRenduUiNotification() {
   titre('rendu · Notification « … · Annuler »');
   const rien = () => {};
@@ -179,7 +178,7 @@ export function testRenduUiNotification() {
   ok(!!bouton(avec, 'Annuler') && !!bouton(avec, 'Fermer la notification'), '« Annuler » et la croix');
   const sans = rendre(<BandeauNotification annonce={{ message: 'Compte importé' }} onFermer={rien} />);
   ok(!bouton(sans, 'Annuler') && !!bouton(sans, 'Fermer la notification'), 'sans retour possible : pas de « Annuler », la croix reste');
-  // Application de bureau, lot 5 : le libellé de l'action est un axe.
+  // Application de bureau : le libellé de l'action est un axe.
   const maj = rendre(<BandeauNotification annonce={{ message: 'Mise à jour prête', action: rien, libelleAction: 'Redémarrer' }} onFermer={rien} />);
   ok(texteVisible(maj).startsWith('Mise à jour prête Redémarrer'), 'libellé donné : « Redémarrer »');
   ok(!!bouton(maj, 'Redémarrer') && !bouton(maj, 'Annuler'), '« Redémarrer » remplace « Annuler », pas les deux');

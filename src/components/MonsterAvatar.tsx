@@ -57,7 +57,6 @@ export default function MonsterAvatar({
   size = 30,
   element = true,
   className = '',
-  children,
   gabarit = 'span',
   classeTaille = '',
   classeRacine = 'flex-none',
@@ -78,7 +77,6 @@ export default function MonsterAvatar({
   size?: number; // gabarit `span` seulement
   element?: boolean; // pastille d'élément (on la coupe si l'élément est déjà lisible ailleurs)
   className?: string; // classes ajoutées à la racine
-  children?: React.ReactNode; // badges supplémentaires posés sur le portrait
   gabarit?: 'span' | 'div';
   classeTaille?: string; // gabarit `div` : classes de taille du cadre (`w-[50px] h-[50px] compact:…`)
   classeRacine?: string; // remplace `flex-none` sur la racine (`w-[64px] mx-auto …` d'une carte)
@@ -184,7 +182,6 @@ export default function MonsterAvatar({
           className="absolute -top-2 -left-1 text-star drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]"
         />
       )}
-      {children}
     </Balise>
   );
 }

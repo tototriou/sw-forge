@@ -170,13 +170,8 @@ npm run bureau:preuve          # la vérification de l'application de bureau
 - **Commits atomiques** : un commit = une chose reviewable. L'atomicité se juge sur la cohérence du
   **pourquoi**, pas sur le nombre de fichiers ; plusieurs sujets traités ensemble font plusieurs
   commits.
-- **Une décision prise ensemble s'applique jusqu'au bout.** Si le chantier dérive et qu'une étape
-  validée reste en attente, le dire.
 - **Un registre de suivi (`pistes-*.md` et équivalents) et le fichier qu'il référence** se mettent à
   jour ensemble, jamais l'un sans l'autre.
-- **Un travail de plus d'une session** se cadre dans un fichier de
-  [docs/04-decisions/cadrages/](docs/04-decisions/cadrages/README.md), jamais dans un plan de
-  conversation.
 
 ## Vérifier
 

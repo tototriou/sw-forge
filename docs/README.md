@@ -15,7 +15,7 @@
 | [01-presentation/](01-presentation/README.md) | Vue d'ensemble pour un nouveau venu : ce que fait l'app, son architecture, sa technique — ordre de lecture numéroté |
 | [02-app/](02-app/README.md) | Une fiche par page ou outil de l'app, ses fonctionnalités `feat-*.md` ; le dossier `transverse` pour ce qui sert plusieurs pages, `bureau` pour l'application de bureau |
 | [03-developpeur/](03-developpeur/README.md) | Travailler sur le dépôt : conventions, qualité du code et hooks, tests, interface (design, librairie UI), deep-dives techniques |
-| [04-decisions/](04-decisions/README.md) | Pourquoi c'est comme ça : ADR, cadrages de chantier |
+| [04-decisions/](04-decisions/README.md) | Pourquoi c'est comme ça : les décisions structurantes (ADR) |
 | [05-pilotage/](05-pilotage/README.md) | Registres vivants : dette, questions ouvertes, pistes futures |
 
 ## Règles de la documentation
@@ -59,17 +59,10 @@
    *pourquoi* ; `03-developpeur` les pratiques courantes.
 10. **Les registres vivants** (dette, questions ouvertes, pistes) restent dans `05-pilotage` : ils
     n'encombrent pas les parcours de lecture.
-11. **Cadrages éphémères** ([04-decisions/cadrages/](04-decisions/cadrages/README.md)) : documents
-    de travail d'un chantier (diagnostic, lots, arbitrages ouverts), destinés à disparaître une
-    fois leur contenu passé dans la documentation pérenne. Deux règles en découlent : **(a)** un
-    cadrage n'est **jamais cité** par un autre document — seul le README de son dossier l'indexe,
-    car un lien vers lui mourrait à sa disparition ; **(b)** un cadrage n'est **pas une source de
-    vérité** : une décision ou une convention vit dans un ADR ou dans la documentation, jamais
-    seulement dans un cadrage.
 
 ### Taille
 
-12. **500 lignes au plus par document**, et un bloc sous un titre de 80 lignes visées, 100 au
+11. **500 lignes au plus par document**, et un bloc sous un titre de 80 lignes visées, 100 au
     plus. Au-delà, le document **devient un dossier à son nom** (`feat-<slug>.md` devient le dossier `feat-<slug>`) : son
     `README.md` garde l'introduction et liste les parties, une par fichier. On segmente autant
     qu'il faut ; ce sont les README qui guident jusqu'au bon fichier. Un découpage ne perd aucune
@@ -79,11 +72,10 @@
 
 - **Français partout** : documentation, commentaires et messages de commit.
 - **Ce qui est décidé ou fait, jamais ce qui se faisait avant** : ni une fiche ni un ADR ne garde
-  d'historique. S'il compte, il a son propre document dans
-  [05-pilotage/](05-pilotage/README.md).
+  d'historique ; l'historique Git garde le texte remplacé.
 - Dates **absolues** (jamais « récemment », « la semaine dernière »).
 - **[à valider]** = proposition en attente d'arbitrage ; **[à préciser]** = renvoie à une question
   de [05-pilotage/questions-ouvertes.md](05-pilotage/questions-ouvertes.md).
 - Liens internes **relatifs**, vérifiés en CI par `node tests/run.mjs renvois`.
-- **Hors du dépôt**, qui est public : un export de compte, des données personnelles, des captures
-  d'écran.
+- **Hors du dépôt**, qui est public : l'organisation du travail (cadrages, plans de lots, pilotage),
+  un export de compte, des données personnelles, des captures d'écran.

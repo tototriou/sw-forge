@@ -14,11 +14,12 @@
   par le test des renvois.
 - **Lire avant d'écrire.** Avant tout travail, on lit les bonnes pratiques du
   travail à faire et la documentation du code qui va être touché.
-- **On décrit ce qui est décidé ou fait**, jamais ce qui se faisait avant. Un
-  historique qui compte a son propre document dans le pilotage.
-- **Décisions, cadrages et pilotage vivent dans le dépôt**, qui est public.
-  N'en restent dehors qu'un export de compte, des données personnelles, des
-  captures d'écran.
+- **On décrit ce qui est décidé ou fait**, jamais ce qui se faisait avant :
+  l'historique Git garde le texte remplacé.
+- **Le dépôt porte ce qui est livré et ce qui permet de le comprendre** :
+  code, tests, documentation, décisions structurantes (ADR). L'organisation
+  du travail (cadrages, plans de lots, pilotage) reste hors du dépôt, comme
+  un export de compte, des données personnelles, des captures d'écran.
 
 ## Raisons
 
@@ -29,6 +30,9 @@
   contrôle de forme inutile, et un script est une chose de plus à maintenir.
 - **Une décision tenue hors du dépôt ne se retrouve pas** depuis la
   documentation.
+- **Un dépôt public dit ce qui est livré, pas comment on l'a construit** :
+  un plan de lots ou le récit d'un chantier ne sert pas à comprendre le
+  code, et il est périmé dès le chantier fini.
 
 ## Options écartées
 
@@ -40,8 +44,9 @@
   besoin, ce sont les README qui guident jusqu'au bon fichier.
 - **Un README qui dit à quelle question répond chaque document** : il dit ce
   qu'on y trouve.
-- **Des notes de chantier privées** : un lecteur du dépôt ne peut pas les
-  ouvrir.
+- **Des cadrages de chantier dans le dépôt** : ils décrivent l'organisation
+  du travail, pas ce qui est livré ; ce qui en reste vrai passe dans la
+  documentation ou dans un ADR.
 
 ## Conséquences
 

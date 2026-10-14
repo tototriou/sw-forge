@@ -145,20 +145,32 @@ alors qu'un numéro deviendrait faux au premier `feat`.
 
 ### ⚠️ Plusieurs sujets pour une même version : la branche d'intégration
 
-Quand **plusieurs branches `<type>/<sujet>`** doivent partir ensemble — et
-que `main` porte déjà une version en préparation fusionnée par un autre
-contributeur — on ne les empile pas l'une sur l'autre : on crée une **branche
-d'intégration `release/vX.Y.Z`** depuis `origin/main`, **au moment où le
-numéro est connu**, on y fusionne chaque `<type>/<sujet>` en merge
-commit, on y fait l'étape 4 **une seule fois** (entrée unique dans
-`releases.ts` — deux entrées `version: null` deviennent une, pas deux
-entrées au même numéro — numéro dans `package.json`, `tsc`, lint,
-`npm test`, `build`), et c'est **elle** qui part en PR vers `main`.
+Une version qui réunit plusieurs sujets se prépare dans une **branche
+d'intégration `release/vX.Y.Z`**, créée depuis `origin/main`. Chaque sujet a
+sa propre branche `<type>/<sujet>`, qui part de cette release et y revient ;
+on n'empile pas les branches de sujet l'une sur l'autre. Pour elles, la
+release tient le rôle que `main` tient d'ordinaire.
+
+- **On ne travaille jamais sur la release** : on en part
+  (`git switch -c <type>/<sujet> origin/release/vX.Y.Z`), et on n'y pousse
+  rien qui n'ait été vérifié.
+- **Chaque sujet y revient par une PR** (`--base release/vX.Y.Z`), en merge
+  commit : sa CI tourne sur la fusion avec la release. La règle d'approbation
+  ne porte que sur `main`.
+- On ne fusionne la release dans une branche de sujet que si on a besoin de
+  ce qu'elle contient, ou pour résoudre des conflits de fusion.
+- **L'étape 4 se fait une seule fois, sur la release** (entrée unique dans
+  `releases.ts` — deux entrées `version: null` deviennent une, pas deux
+  entrées au même numéro — numéro dans `package.json`, `tsc`, lint,
+  `npm test`, `build`), et c'est **elle** qui part en PR vers `main`
+  (étape 5).
 
 ### Les cinq étapes
 
-1. **Créer la branche** sur son sujet, depuis `main` :
-   `git fetch origin && git switch -c feat/prepa-rta origin/main`
+1. **Créer la branche** sur son sujet, depuis la release en préparation s'il y
+   en a une, sinon depuis `main` :
+   `git fetch origin && git switch -c feat/prepa-rta origin/release/vX.Y.Z`
+   (ou `origin/main`)
 2. **Développer dessus**, commits conventionnels (`feat(scope):`, `fix(scope):`,
    `docs(spec):`).
 3. **Dès le début**, ajouter l'entrée **en tête** de

@@ -154,7 +154,8 @@ npm run bureau:preuve          # la vérification de l'application de bureau
 - **Grammaire des modales** : titre en haut à gauche, croix en haut à droite, actions en bas à
   droite (empilées pleine largeur si elles ne tiennent pas sur une ligne), corps pleine largeur ou
   centré.
-- **Jamais un `confirm()` dont OK détruit** : le défaut est l'action sans perte.
+- **Aucune boîte native** (`confirm()`, `prompt()` : ESLint les refuse) : une confirmation passe
+  par `src/ui/Dialogs.tsx`, et son défaut est l'action sans perte.
 - **Aucune couleur Tailwind native, aucune valeur en dur** : tout passe par les tokens.
 - **Passe responsive en cours** : ne pas rustiner le mobile écran par écran.
 
@@ -166,7 +167,10 @@ npm run bureau:preuve          # la vérification de l'application de bureau
   `refactor/listes-optimizer`. ⚠️ **Toute nouvelle branche part de `main` ou de la branche de
   release visée** (`git fetch origin && git switch -c <type>/<sujet> origin/<base>`) ; elle
   fusionne dans la release, qui fusionne dans `main`. On ne travaille jamais sur `main` ni sur
-  une release : on en part. Le numéro de version se décide à la fusion.
+  une release : on en part. Une branche ne fusionne la release en elle que si elle a besoin de ce
+  qu'elle contient, ou pour résoudre un conflit. Le numéro de version se décide à la fusion.
+  Procédure :
+  [nouveautes/README.md § Modèle de branches](docs/02-app/nouveautes/README.md#modèle-de-branches-et-processus-de-release).
 - **Commits atomiques** : un commit = une chose reviewable. L'atomicité se juge sur la cohérence du
   **pourquoi**, pas sur le nombre de fichiers ; plusieurs sujets traités ensemble font plusieurs
   commits.

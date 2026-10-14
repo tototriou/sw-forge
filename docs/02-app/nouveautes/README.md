@@ -157,9 +157,8 @@ release tient le rôle que `main` tient d'ordinaire.
 - **Chaque sujet y revient par une PR** (`--base release/vX.Y.Z`), en merge
   commit : sa CI tourne sur la fusion avec la release. La règle d'approbation
   ne porte que sur `main`.
-- **Remettre une branche de sujet à jour n'est pas nécessaire** : on ne
-  fusionne la release en elle que si on a besoin de ce qu'elle contient, ou
-  pour résoudre des conflits de fusion.
+- On ne fusionne la release dans une branche de sujet que si on a besoin de
+  ce qu'elle contient, ou pour résoudre des conflits de fusion.
 - **L'étape 4 se fait une seule fois, sur la release** (entrée unique dans
   `releases.ts` — deux entrées `version: null` deviennent une, pas deux
   entrées au même numéro — numéro dans `package.json`, `tsc`, lint,

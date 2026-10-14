@@ -14,9 +14,8 @@ import MonsterAvatar from './MonsterAvatar';
 export const SEUIL_ANIMATION_GRILLE = 48;
 
 // ⚠️ **Une possibilité de coupure (`<wbr>`) avant chaque parenthèse**, sans
-// toucher au libellé : « Homunculus(Attack) » n'a aucune espace, et sous
-// `line-clamp-2` un mot plus large que la carte est coupé net, sans points de
-// suspension. Avec elle, « (Attack) » passe à la ligne. Le texte rendu
+// toucher au libellé : « Homunculus(Attack) » n'a aucune espace, et un mot
+// plus large que la carte serait coupé net à droite. Avec elle, « (Attack) » passe à la ligne. Le texte rendu
 // (`textContent`) reste le nom du jeu, mot pour mot.
 function coupableAvantParenthese(nom: string): ReactNode {
   const morceaux = nom.split('(');
@@ -148,8 +147,12 @@ const MonsterCard = memo(function MonsterCard({
           {monster.stars ? '★'.repeat(monster.stars) : '—'}
         </div>
       )}
-      {/* `line-clamp-2` : les noms longs (« Dark Cow Girl ») tiennent sur deux
-          lignes au plus, sinon une carte s'allonge et déchire la rangée. */}
+      {/* Deux lignes au plus (`h-[2lh]` + `overflow-hidden`) : les noms longs
+          (« Dark Cow Girl ») ne doivent pas allonger la carte et déchirer la
+          rangée. ⚠️ Coupé NET, sans points de suspension : `line-clamp`, en
+          texte centré, pose l'ellipse une demi-ellipse trop loin (Chromium
+          centre la ligne sans elle) et son dernier point était rogné. Le nom
+          entier reste dans le `title` de la carte. */}
       {/* ⚠️ Les DEUX noms, séparés d'une virgule : « Satoru Gojo, Werner ».
           C'est la question qu'on se pose devant la carte — « lequel est-ce ? » —
           et n'en montrer qu'un obligerait à savoir de tête que l'autre existe.
@@ -158,7 +161,7 @@ const MonsterCard = memo(function MonsterCard({
           possédée : ils disent ce que le monstre EST, pas ce qu'on en a. La
           moitié grisée du portrait porte déjà cette information, et ternir le
           nom par-dessus le rendait juste moins lisible. */}
-      <div className="h-[2lh] text-xs font-semibold leading-[13px] line-clamp-2">
+      <div className="h-[2lh] text-xs font-semibold leading-[13px] overflow-hidden">
         {coupableAvantParenthese(libelle)}
       </div>
     </>

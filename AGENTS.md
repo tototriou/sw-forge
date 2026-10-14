@@ -37,7 +37,7 @@ commit** que le code.
 | --- | --- |
 | Runtime | **Node ≥ 24** (`.nvmrc`), npm, ESM (`"type": "module"`) |
 | App | **React 18** + **TypeScript 5**, **sans router** : routage par `window.location.hash` (`src/App.tsx`) |
-| Build & style | **Vite 5**, **Tailwind 3** (PostCSS + autoprefixer, déclarés dans `vite.config.ts` avec le plugin de l'écran partagé `scripts/lib/postcssVolets.ts`), tokens CSS dans `src/index.css` |
+| Build & style | **Vite 5**, **Tailwind 3** (PostCSS + autoprefixer, déclarés dans `vite.config.ts` avec le plugin de l'écran partagé `scripts/lib/postcssVolets.ts` ; requêtes de conteneur `@container` par `@tailwindcss/container-queries`), tokens CSS dans `src/index.css` |
 | Dépendances runtime | `lucide-react` (icônes), `framer-motion` (animation), `react-resizable-panels` (séparateur de l'écran partagé, derrière `src/ui/DeuxVolets.tsx`) — aucune mesure d'audience |
 | Calcul lourd | **Web Workers** (`src/workers/`) : recherche de l'Optimizer, résolution de l'équipement |
 | Stockage | `localStorage` (prépa, équipes, réglages) + **IndexedDB** (compte importé), tous deux opt-in |

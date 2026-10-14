@@ -46,5 +46,5 @@ Tout le calcul vit dans `src/lib/damage.ts` ; on choisit le document selon la r�
 - [Dégâts réels — conditions et audit](feat-conditions-et-audit.md) — état actuel
 - [Dégâts réels — catalogue des passifs](catalogue-des-passifs.md) — état actuel
 - [Dégâts réels — valeurs de jeu curées](valeurs-de-jeu-curees.md) — état actuel
-- [Dégâts réels — pistes futures](../../05-pilotage/) — coups comptés, stats et modificateurs
+- [Dégâts réels — pistes futures](../../05-feuille-de-route/) — coups comptés, stats et modificateurs
 - [Choix de recherche pour les dégâts réels](../../04-decisions/adr/) — décision

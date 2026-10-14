@@ -206,7 +206,7 @@ qui n'en touche qu'un a de bonnes chances d'en avoir oublié un autre :
       Si le champ change ce que fait le moteur, la spec de ce mécanisme
       (routage : `docs/02-app/optimizer/`). Mettre à jour la section
       correspondante dans le même commit que le code, jamais après coup.
-- [ ] **`docs/05-pilotage/`** — les pistes futures seulement :
+- [ ] **`docs/05-feuille-de-route/`** — les pistes futures seulement :
       un champ qui réalise une piste l'en retire ; une variante écartée
       s'écrit en une ligne « ne pas… parce que… » dans la spec du
       mécanisme.

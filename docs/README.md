@@ -16,7 +16,7 @@
 | [02-app/](02-app/README.md) | Une fiche par page ou outil de l'app, ses fonctionnalités `feat-*.md` ; le dossier `transverse` pour ce qui sert plusieurs pages, `bureau` pour l'application de bureau |
 | [03-developpeur/](03-developpeur/README.md) | Travailler sur le dépôt : conventions, qualité du code et hooks, tests, interface (design, librairie UI), deep-dives techniques |
 | [04-decisions/](04-decisions/README.md) | Pourquoi c'est comme ça : les décisions structurantes (ADR) |
-| [05-pilotage/](05-pilotage/README.md) | Registres vivants : dette, questions ouvertes, pistes futures |
+| [05-feuille-de-route/](05-feuille-de-route/README.md) | Ce qui reste à faire d'important : pistes futures, dette, questions ouvertes |
 
 ## Règles de la documentation
 
@@ -57,8 +57,10 @@
 9. **Un contenu ne vit qu'à un seul endroit** ; les autres pointent vers lui.
    `01-presentation` donne la vue d'ensemble et **renvoie** aux fiches ; `04-decisions` porte le
    *pourquoi* ; `03-developpeur` les pratiques courantes.
-10. **Les registres vivants** (dette, questions ouvertes, pistes) restent dans `05-pilotage` : ils
-    n'encombrent pas les parcours de lecture.
+10. **La feuille de route** (`05-feuille-de-route`) tient les sujets importants qui restent à
+    faire : une piste qu'on pourrait reprendre comme un projet, une dette qui ralentit le travail,
+    une question qui attend un arbitrage. Un cas rare non traité n'y entre pas : s'il peut
+    tromper l'utilisateur, il va dans les limites connues de sa fiche ; sinon, nulle part.
 
 ### Taille
 
@@ -75,7 +77,7 @@
   d'historique ; l'historique Git garde le texte remplacé.
 - Dates **absolues** (jamais « récemment », « la semaine dernière »).
 - **[à valider]** = proposition en attente d'arbitrage ; **[à préciser]** = renvoie à une question
-  de [05-pilotage/questions-ouvertes.md](05-pilotage/questions-ouvertes.md).
+  de [05-feuille-de-route/questions-ouvertes.md](05-feuille-de-route/questions-ouvertes.md).
 - Liens internes **relatifs**, vérifiés en CI par `node tests/run.mjs renvois`.
 - **Hors du dépôt**, qui est public : l'organisation du travail (cadrages, plans de lots, pilotage),
   un export de compte, des données personnelles, des captures d'écran.

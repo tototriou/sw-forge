@@ -1,7 +1,8 @@
-# Pilotage
+# Feuille de route
 
-Registres vivants, à forte rotation : dette, questions ouvertes, pistes futures. Ils restent ici
-pour ne pas encombrer les parcours de lecture.
+Les sujets importants qui restent à faire : pistes futures, dette, questions ouvertes. Ce qui y
+entre et ce qui n'y entre pas : règle 10 de la [charte](../README.md). Une ligne quitte un
+registre quand le sujet est fait ; ce qu'il produit vit dans la documentation.
 
 | Document | Contenu |
 | --- | --- |

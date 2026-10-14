@@ -55,4 +55,4 @@
   [charte](../../README.md) pour la structure.
 - La documentation change dans le même commit que le code qu'elle décrit.
 - Les écarts connus à ces règles sont comptés dans la
-  [dette](../../05-pilotage/dette.md).
+  [dette](../../05-feuille-de-route/dette.md).

@@ -7,7 +7,7 @@ compte dans le navigateur et n'envoie rien. La même app existe en **application
 
 > Documentation : [`docs/`](docs/) (carte : [docs/README.md](docs/README.md)). Où se trouve quoi,
 > par écran : [docs/01-presentation/02-architecture.md](docs/01-presentation/02-architecture.md). Décisions : [`docs/04-decisions/`](docs/04-decisions/README.md).
-> Dette, questions ouvertes et pistes : [`docs/05-pilotage/`](docs/05-pilotage/README.md).
+> Feuille de route (pistes, dette, questions ouvertes) : [`docs/05-feuille-de-route/`](docs/05-feuille-de-route/README.md).
 
 ## ⚠️ Avant tout travail : lire la documentation de ce qui va être touché
 
@@ -62,7 +62,7 @@ bureau/          # application de bureau Electron (main, protocole, session, SW 
 public/          # icônes, portraits, données SWARFARM (public/data, régénérées par npm run fetch-data)
 scripts/         # outillage Node : données, benchmarks, harnais de diagnostic, hooks, bureau
 tests/           # vérifications (run.mjs + index.ts), fixtures, tests de rendu (tests/rendu/)
-docs/            # documentation en sections (01-presentation … 05-pilotage)
+docs/            # documentation en sections (01-presentation … 05-feuille-de-route)
 .githooks/       # sources des hooks pre-commit et commit-msg (installés par npm install)
 ```
 

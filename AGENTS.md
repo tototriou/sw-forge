@@ -153,7 +153,8 @@ npm run bureau:preuve          # la vérification de l'application de bureau
 - **Grammaire des modales** : titre en haut à gauche, croix en haut à droite, actions en bas à
   droite (empilées pleine largeur si elles ne tiennent pas sur une ligne), corps pleine largeur ou
   centré.
-- **Jamais un `confirm()` dont OK détruit** : le défaut est l'action sans perte.
+- **Aucune boîte native** (`confirm()`, `prompt()` : ESLint les refuse) : une confirmation passe
+  par `src/ui/Dialogs.tsx`, et son défaut est l'action sans perte.
 - **Aucune couleur Tailwind native, aucune valeur en dur** : tout passe par les tokens.
 - **Passe responsive en cours** : ne pas rustiner le mobile écran par écran.
 

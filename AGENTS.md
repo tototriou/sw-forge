@@ -17,7 +17,8 @@ toujours :
 1. **Les bonnes pratiques du travail à faire** :
    - produire du code → [conventions.md](docs/03-developpeur/conventions.md) (règles communes à
      toutes les pages) et [qualite-code.md](docs/03-developpeur/qualite-code.md) (lint, hooks,
-     commits) ; un écran ou un composant en plus →
+     commits) ; une fonctionnalité → [definition-de-fini.md](docs/03-developpeur/definition-de-fini.md)
+     (la documentation et les tests qui viennent avec elle) ; un écran ou un composant en plus →
      [interface/](docs/03-developpeur/interface/README.md) (deux formats, système visuel, librairie UI) ;
    - écrire ou réorganiser la documentation →
      [documentation.md](docs/03-developpeur/documentation.md).
@@ -175,6 +176,22 @@ npm run bureau:preuve          # la vérification de l'application de bureau
   vérifications lancées.
 - **Un registre de suivi (`pistes-*.md` et équivalents) et le fichier qu'il référence** se mettent à
   jour ensemble, jamais l'un sans l'autre.
+
+## Pas de fonctionnalité sans sa documentation et ses tests
+
+⚠️ **Une fonctionnalité, ou un changement de comportement, arrive avec sa documentation et ses
+tests, dans la même branche — d'office, sans qu'on ait à les demander.** Sans eux, elle n'est pas
+finie : elle ne se propose pas à la relecture et ne fusionne pas dans une release.
+
+- **Documentation** : sa fiche dans `docs/02-app/`, les fiches voisines qu'elle change, et les
+  documents d'ensemble dès qu'elle ajoute un fichier, une dépendance ou une commande
+  ([02-architecture.md](docs/01-presentation/02-architecture.md),
+  [03-technique.md](docs/01-presentation/03-technique.md), ce guide, le README).
+- **Tests** : le calcul pur, le rendu des composants, ET le branchement dans l'app dans les
+  conditions où elle s'active ; l'outillage touché, sur ses vraies entrées.
+
+La liste complète, à parcourir avant de proposer la fusion :
+[definition-de-fini.md](docs/03-developpeur/definition-de-fini.md).
 
 ## Vérifier
 

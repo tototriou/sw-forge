@@ -11,6 +11,7 @@ dans [CLAUDE.md](../../CLAUDE.md), qui importe AGENTS.md — pas ici.
 | Le changement touche… | Lire |
 | --- | --- |
 | du code, quel qu'il soit | [conventions.md](conventions.md), [qualite-code.md](qualite-code.md) |
+| une fonctionnalité ajoutée ou changée | [definition-de-fini.md](definition-de-fini.md) |
 | `src/ui/`, `src/index.css`, `tailwind.config.js`, un écran ou un composant | [interface/](interface/README.md) |
 | le moteur de l'Optimizer : `src/lib/runeBuildOptim.ts`, `src/lib/artifactOptim.ts`, les `relic…` de `src/lib/`, `src/workers/`, le harnais de `scripts/` | [optimizer/](optimizer/README.md) |
 | `eslint.config.js`, `.githooks/`, `scripts/installer-hooks.mjs`, `scripts/verifier-commits.mjs`, `.github/workflows/tests.yml` | [qualite-code.md](qualite-code.md) |
@@ -21,6 +22,7 @@ dans [CLAUDE.md](../../CLAUDE.md), qui importe AGENTS.md — pas ici.
 
 | Document | Contenu |
 | --- | --- |
+| [definition-de-fini.md](definition-de-fini.md) | Quand une fonctionnalité est finie : pas de fonctionnalité sans sa documentation (sa fiche, les fiches voisines, les documents d'ensemble) et ses tests (calcul, rendu, branchement dans l'app, outillage), dans la même branche. |
 | [conventions.md](conventions.md) | Les règles valables pour toutes les pages, une ou deux phrases chacune et un renvoi vers leur détail : règle de cadre, saisie, persistance, mesure d'audience, fenêtres modales, glisser-déposer. |
 | [interface/](interface/README.md) | Dessiner un écran : deux formats de premier rang, système visuel (thèmes, tokens), composants partagés de `src/ui/`. |
 | [optimizer/](optimizer/README.md) | Le moteur de l'Optimizer : recherche des runes, artéfacts, reliques, parallélisation, diagnostics, harnais et vérification. |

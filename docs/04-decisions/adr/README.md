@@ -14,8 +14,10 @@ toujours ce qui est en vigueur : une décision qui change se réécrit.
 
 ## Écrire un ADR
 
-- **Ce qui mérite un ADR** : un choix entre plusieurs options, encore en vigueur, qu'un chantier
-  pourrait vouloir rouvrir. Une règle sans option écartée reste dans sa fiche.
+- **Ce qui mérite un ADR** : une décision structurante, encore en vigueur, qui est à la fois
+  difficile à défaire, surprenante sans contexte (un nouveau venu demanderait « pourquoi pas
+  X ? ») et le résultat d'un vrai compromis entre plusieurs options. Une petite décision, ou une
+  règle sans option écartée, reste dans sa fiche.
 - **Quatre parties** : « Décision », « Raisons », « Options écartées » (chacune avec ce qui la
   fait écarter), « Conséquences » (ce que le choix impose, et les fiches qui le mettent en
   œuvre).

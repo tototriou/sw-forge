@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="fr" data-attendu-page="non">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover">
+<title>Voisins : en ligne</title>
+<style>
+  body { margin: 8px; font: 14px sans-serif; }
+  .bloc { margin: 16px 0; width: 200px; line-height: 20px; }
+  .dessous { height: 20px; background: #9cf; }
+  .decale { position: relative; top: 10px; vertical-align: top; }
+  .texte { background: #fc9; }
+</style>
+</head>
+<body>
+<!-- Signalé (voisins) : une image (`display: inline` calculé, élément remplacé, donc atomique) décalée de 10 px sur
+     le bloc qui la suit : 40 × 10 px. -->
+<div class="bloc">
+  <img id="ligne-image" class="decale" src="portraits/a.png" alt="" style="width: 40px; height: 20px" data-attendu="voisins" data-attendu-avec="ligne-image-dessous" data-attendu-aire="400"><div id="ligne-image-dessous" class="dessous" data-attendu=""></div>
+</div>
+<!-- Signalé (voisins) : un bouton en `display: inline` reste atomique — même décalage, 40 × 10 px. -->
+<div class="bloc">
+  <button id="ligne-bouton" class="decale" style="display: inline; width: 40px; height: 20px" data-attendu="voisins" data-attendu-avec="ligne-bouton-dessous" data-attendu-aire="400"></button><div id="ligne-bouton-dessous" class="dessous" data-attendu=""></div>
+</div>
+<!-- Exclusion (b), non signalé : un texte en ligne, même décalage — inline non atomique. -->
+<div class="bloc">
+  <span id="ligne-texte" class="decale texte" data-attendu="">texte</span><div id="ligne-texte-dessous" class="dessous" data-attendu=""></div>
+</div>
+<!-- Exclusion (b), non signalé (relevé L1) : un texte sur deux lignes a un rectangle englobant, de toute la largeur
+     des deux lignes ; le texte qui le suit sur la seconde ligne y tombe sans que rien se recouvre. -->
+<div class="bloc" style="width: 150px">
+  <span id="ligne-long" class="texte" data-attendu="">un texte qui passe à la ligne</span>
+  <span id="ligne-suite" style="background: #9cf" data-attendu="">suite</span>
+</div>
+</body>
+</html>

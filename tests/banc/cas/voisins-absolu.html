@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="fr" data-attendu-page="non">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover">
+<title>Voisins : absolu</title>
+<style>
+  body { margin: 8px; font: 14px sans-serif; }
+  .bloc { margin: 16px 0; width: 200px; }
+  .rangee { position: relative; display: flex; }
+  .case { flex: none; width: 60px; height: 20px; background: #9cf; }
+  .case + .case { background: #fc9; }
+</style>
+</head>
+<body>
+<!-- Exclusion (a), non signalé : le second frère est `absolute`, posé à 20 px sur le premier (40 × 20 px coupés) —
+     hors du flux, sa superposition est construite. -->
+<div class="bloc">
+  <div class="rangee">
+    <div id="absolu-flux" class="case" data-attendu=""></div>
+    <div id="absolu-pose" class="case" style="position: absolute; left: 20px; top: 0" data-attendu=""></div>
+  </div>
+</div>
+<!-- Signalé (voisins) : la même superposition par un `relative` décalé de −40 px — en flux, il se compare
+     (40 × 20 px). -->
+<div class="bloc">
+  <div class="rangee">
+    <div id="relatif-flux" class="case" data-attendu="voisins" data-attendu-avec="relatif-decale" data-attendu-aire="800"></div>
+    <div id="relatif-decale" class="case" style="position: relative; left: -40px" data-attendu=""></div>
+  </div>
+</div>
+</body>
+</html>

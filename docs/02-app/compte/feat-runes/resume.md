@@ -123,11 +123,8 @@ autre set incomplet**, sinon le joker ne complète rien. Deux runes d'un même
 set 2 pièces le complètent ; tout autre cas revient à 4A, ou fait échouer le
 joker. « Libre » exclut Intangible : la seconde rune Intangible passe par J.
 
-- **Vérifié** contre une référence qui énumère **tous les 6-uplets** de runes
-  et juge chacun avec `activeSets` : aucune divergence sur 80 pools aléatoires
-  (graine fixe) × 5 combinaisons × 3 rangs, avec et sans joker
-  ([builds-rapides.test.ts](tests/builds-rapides.test.ts)). Le test échoue si
-  une répartition manque, ou si 3A+J+2 libres est accepté.
+- L'inventaire des répartitions est vérifié contre une énumération de tous les
+  6-uplets de runes ([builds-rapides.test.ts](tests/builds-rapides.test.ts)).
 - **Coût** : ~4 ms pour les 9 combinaisons × 5 builds, ~6 ms × 10 builds, de
   500 à 4 000 runes (mesuré sur le pool synthétique). Un `useMemo` suffit,
   sans Worker. Aucune constante de plafond : le calcul est exact.

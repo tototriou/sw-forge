@@ -200,7 +200,7 @@ dessin** du portrait de monstre et de ses pastilles en coin, repères `data-port
 `data-pastille` compris), `MonsterGear`, `MonsterDetailDialog`, `CreateMonster`, `AccordionGrid`, `StatPanel`, `PieceDetail` (⚠️ **la
 coquille unique** des fiches de rune ET d'artéfact), `RuneIcon`, `SetsPortes` (⚠️ **la seule
 rangée** des sets portés par un monstre : taille, espacement et marge par écran, et l'option
-`troisSetsSerres`, trois sets à 10 px collés au doigt), `RuneSlotIcon`, `RuneWheel`,
+`troisSetsSerres`, trois sets à 10 px collés : `'au-doigt'` au doigt seulement, `'toujours'` quel que soit le pointeur), `RuneSlotIcon`, `RuneWheel`,
 `ArtifactIcon`, `ArtifactFrameIcon`, `ArtifactSlots`, `BoutonSensTri`, `ElementIcon`,
 `InventaireIcon`, `CollabPortrait`, `HelpPopover`.
 

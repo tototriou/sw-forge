@@ -526,7 +526,7 @@ export default function SiegeTeam({
                           et les sets descendent à 14 px. Mesuré au doigt sur
                           348 px, la ligne n'a que 55 px : deux sets y tiennent,
                           trois en demandent 71. Trois sets passent donc à
-                          10 px, collés (`troisSetsSerres`) : 55 pile. */}
+                          10 px, collés (`troisSetsSerres="au-doigt"`) : 55 pile. */}
                       <div className="mt-0.5 flex items-center gap-1 compact:gap-0.5">
                         <img
                           src={SPD_ICON}
@@ -548,7 +548,7 @@ export default function SiegeTeam({
                           taille={tailleSet}
                           espacement="gap-0.5"
                           className="ml-auto flex-none"
-                          troisSetsSerres
+                          troisSetsSerres="au-doigt"
                         />
                       </div>
                     </div>

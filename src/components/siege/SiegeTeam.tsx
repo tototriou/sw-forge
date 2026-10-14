@@ -16,7 +16,7 @@ import {
 import MonsterPicker from '../MonsterPicker';
 import { JetonSlot, prochainFocus } from './slotVideSuivant';
 import MonsterAvatar from '../MonsterAvatar';
-import RuneIcon from '../RuneIcon';
+import SetsPortes from '../SetsPortes';
 import MonsterGear from '../MonsterGear';
 import { statutEquipe, raisonSansVerdict } from '../../lib/siegeStatut';
 import { analyseAutomatique, combatAuto, EntreeAuto } from '../../lib/speedTuneAuto';
@@ -523,7 +523,10 @@ export default function SiegeTeam({
                           vitesse est celle qui apporte le moins : le gros
                           chiffre en gras se lit comme une vitesse sans elle,
                           c'est la seule de la carte. Elle tombe donc sous `sm`,
-                          et les sets descendent à 14 px. */}
+                          et les sets descendent à 14 px. Mesuré au doigt sur
+                          348 px, la ligne n'a que 55 px : deux sets y tiennent,
+                          trois en demandent 71. Trois sets passent donc à
+                          10 px, collés (`troisSetsSerres`) : 55 pile. */}
                       <div className="mt-0.5 flex items-center gap-1 compact:gap-0.5">
                         <img
                           src={SPD_ICON}
@@ -539,13 +542,14 @@ export default function SiegeTeam({
                         >
                           {combat ?? '—'}
                         </span>
-                        {sets.length > 0 && (
-                          <span className="ml-auto flex flex-none items-center gap-0.5">
-                            {sets.slice(0, 3).map((s, i) => (
-                              <RuneIcon key={i} setKey={s} size={tailleSet} className="flex-none" />
-                            ))}
-                          </span>
-                        )}
+                        <SetsPortes
+                          sets={sets}
+                          max={3}
+                          taille={tailleSet}
+                          espacement="gap-0.5"
+                          className="ml-auto flex-none"
+                          troisSetsSerres
+                        />
                       </div>
                     </div>
                   </>
@@ -935,13 +939,7 @@ function SlotContent({
             <span className="truncate text-sm font-semibold leading-tight compact:text-xs">
               {monster.name}
             </span>
-            {slot.sets && slot.sets.length > 0 && (
-              <span className="flex items-center gap-1 flex-none">
-                {slot.sets.slice(0, 3).map((s, i) => (
-                  <RuneIcon key={i} setKey={s} size={18} />
-                ))}
-              </span>
-            )}
+            <SetsPortes sets={slot.sets ?? []} max={3} taille={18} espacement="gap-1" className="flex-none" />
           </div>
           {/* Pastille complète (icône + montant) sous le nom du leader : ici il
               y a la place, donc on montre le chiffre, pas seulement le badge. */}

@@ -84,7 +84,9 @@ Indépendamment du repli de la carte, **chaque deck a son propre chevron**.
   360 px, ces trois icônes ne laissaient que 19 à 24 px à chaque enveloppe de
   portrait de 34 px : les portraits se chevauchaient. Les enveloppes ne
   rétrécissent plus (`max-lg:flex-none`), 10 px les séparent (la largeur
-  d'une pastille de deux sets, 42 px, tient sous chacun) ; la rangée garde
+  d'une pastille de deux sets, 42 px, tient sous chacun ; une pastille de
+  **trois sets** passe au doigt à 10 px, collés — 44 px au lieu de 57, qui
+  mordaient de 5,5 px sur les voisines) ; la rangée garde
   ses 40 px de haut, et la colonne (trois icônes de 20 px) tient dans la
   rangée et les sets : la carte ne grandit pas. L'export y prend la taille
   de ses voisins (20 px, `data-cible-fine` : exempté de la règle des 40 px)

@@ -2,7 +2,7 @@ import { useRef } from 'react';
 import { GripVertical, X } from 'lucide-react';
 import { Monster, RtaEntry, sectionLabel } from '../../types';
 import MonsterAvatar from '../MonsterAvatar';
-import RuneIcon from '../RuneIcon';
+import SetsPortes from '../SetsPortes';
 import CategoryRing from './CategoryRing';
 import DesyncBadge from './DesyncBadge';
 import { BoutonIcone, Selecteur, ZoneCliquable } from '../../ui';
@@ -186,8 +186,7 @@ export default function RtaCard({
               dernière icône de set passait dessous (à l'ordinateur, au
               survol). La marge l'écarte à 2 px de la croix ; une MARGE et non
               un `padding`, pour que la boîte du groupe s'arrête elle aussi
-              avant la croix (chantier `defauts-affichage`, lot 6 ; au doigt,
-              elle remplace un `pr-3` qui laissait 4 px). */}
+              avant la croix. */}
           {/* ⚠️ Icônes de set COLLÉES (`gap-0`), aux deux formats. Elles restent
               lisibles au contact : ce sont des pastilles rondes cerclées,
               chacune se détache de sa voisine sans blanc entre elles. À
@@ -195,11 +194,7 @@ export default function RtaCard({
               éloigne de la croix : au pire cas (trois sets, vitesse à trois
               chiffres, triangle de désynchronisation), la ligne ne perd que
               2 px sur le nom, qui se tronque. */}
-          <span className="mr-2.5 flex flex-none items-center gap-0">
-            {(entry.sets ?? []).slice(0, 3).map((s, i) => (
-              <RuneIcon key={i} setKey={s} size={18} className="flex-none" />
-            ))}
-          </span>
+          <SetsPortes sets={entry.sets ?? []} max={3} taille={18} espacement="gap-0" className="mr-2.5 flex-none" garderVide />
         </div>
         <Selecteur
           value={entry.section}

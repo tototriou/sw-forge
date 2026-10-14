@@ -50,6 +50,7 @@ import {
 } from '../../lib/effects';
 import { UseRecoState } from '../../hooks/useSiegeRecos';
 import RuneIcon from '../RuneIcon';
+import SetsPortes from '../SetsPortes';
 import MonsterPicker from '../MonsterPicker';
 import { JetonSlot, prochainFocus } from './slotVideSuivant';
 import MonsterAvatar from '../MonsterAvatar';
@@ -1541,16 +1542,14 @@ function DeckBlock({
                   {(m?.name || sl.name) && (
                     <span className="hidden truncate text-xs font-medium text-ink lg:inline">{m?.name ?? sl.name}</span>
                   )}
-                  {sets.length > 0 && (
-                    <span
-                      className="hidden flex-none items-center gap-0.5 lg:inline-flex"
-                      title={sets.map((k) => RUNE_SETS.find((s) => s.key === k)?.label ?? k).join(' + ')}
-                    >
-                      {sets.map((k) => (
-                        <RuneIcon key={k} setKey={k} size={14} />
-                      ))}
-                    </span>
-                  )}
+                  <SetsPortes
+                    sets={sets}
+                    taille={14}
+                    espacement="gap-0.5"
+                    affichage="hidden lg:inline-flex"
+                    className="flex-none"
+                    title={sets.map((k) => RUNE_SETS.find((s) => s.key === k)?.label ?? k).join(' + ')}
+                  />
                 </span>
               );
             })}
@@ -1722,24 +1721,28 @@ function DeckBlock({
             espacées comme eux (`gap-x-2.5`) et décalées du chevron et de son
             espacement (`pl-7`, 20 + 8 px). Une pastille plus large que sa
             piste (deux sets : 42 px) déborde à parts égales des deux côtés,
-            dans l'espacement ; un monstre sans set garde sa piste, vide. */}
+            dans l'espacement ; un monstre sans set garde sa piste, vide.
+            ⚠️ Trois sets à 13 px font 57 px et mordaient de 5,5 px sur les
+            pastilles voisines : au doigt, ils passent à 10 px, collés
+            (`troisSetsSerres`), soit 44 px, qui tiennent dans 34 + 10. */}
         {deck.slots.some((sl) => (sl.setOptions?.[0] ?? []).length > 0) && (
           <div className="mt-1.5 grid auto-cols-[34px] grid-flow-col justify-start justify-items-center gap-x-2.5 pl-7 lg:hidden">
             {deck.slots.map((sl, i) => {
               const sets = [...new Set(sl.setOptions?.[0] ?? [])];
               if (sets.length === 0) return <span key={i} />;
               return (
-                <span
+                <SetsPortes
                   key={i}
+                  sets={sets}
+                  taille={13}
+                  espacement="gap-0.5"
+                  affichage="inline-flex"
                   // `w-max` : sa largeur propre, jamais celle de la piste (la
                   // grille la ramenait à 34 px, ses icônes tassées dedans).
-                  className="inline-flex w-max items-center gap-0.5 rounded-full border border-border-soft bg-panel2 px-1.5 py-0.5"
+                  className="w-max rounded-full border border-border-soft bg-panel2 px-1.5 py-0.5"
+                  troisSetsSerres
                   title={sets.map((k) => RUNE_SETS.find((s) => s.key === k)?.label ?? k).join(' + ')}
-                >
-                  {sets.map((k) => (
-                    <RuneIcon key={k} setKey={k} size={13} />
-                  ))}
-                </span>
+                />
               );
             })}
           </div>

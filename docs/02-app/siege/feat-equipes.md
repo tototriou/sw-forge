@@ -238,7 +238,7 @@ Sous `sm` :
 | Écart entre équipes | `gap-4` | `gap-2` |
 | Portrait en vue compacte | 36 px | 30 px |
 | Nom du monstre | 12 px | 11 px |
-| Icônes de set | 17 px | 14 px |
+| Icônes de set | 17 px | 14 px ; trois sets : 10 px, collées |
 | Badge de lead | 22 px | 17 px |
 | Icône de vitesse | Affichée | Masquée |
 | Titre « Équipe N » | 17 px | 15 px |
@@ -255,6 +255,13 @@ plus un nombre à trois chiffres (~22) plus trois icônes de set (3×14) font d�
 76 : l'icône de vitesse tombe, parce qu'elle est **ce qui apporte le moins** —
 le gros chiffre en gras se lit comme une vitesse sans elle, c'est la seule de la
 carte.
+
+⚠️ **Trois sets au doigt : 10 px, collés.** Mesurée, la ligne n'a que **55 px**
+(et non ~73) : deux sets à 14 px y tiennent, trois en demandent 71, et la
+troisième icône était coupée par le bord de la vignette. À 11 px, elles en
+demandent encore 58 ; à 10 px sans espacement, 55. La règle ne vaut que pour
+trois sets : un ou deux sets gardent 14 px. Elle est portée par le composant
+commun des sets d'un monstre (`SetsPortes`, option `troisSetsSerres`).
 
 ⚠️ Le carré du slot **vide** suit exactement la taille du portrait rempli. À
 34 px fixes, une carte vide serait plus haute qu'une carte pleine et la rangée de

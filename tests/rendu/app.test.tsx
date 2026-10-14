@@ -76,9 +76,8 @@ const TITRES: [string, string][] = [
 ];
 
 // Ce que le menu bureau doit permettre d'atteindre par un lien. Hors liste :
-// `#/parametres` (le bouton ⚙ y mène) ; Meules et Gemmes, retirées du menu par
-// décision du mainteneur — [retrait #6], cadrage A.2 bis — mais dont les ROUTES
-// restent (vérifié plus bas : elles s'affichent toujours).
+// `#/parametres` (le bouton ⚙ y mène) ; Meules et Gemmes, hors du menu, mais
+// dont les ROUTES restent (vérifié plus bas : elles s'affichent toujours).
 const HORS_MENU = new Set(['#/parametres', '#/compte/runes/meules', '#/compte/runes/gemmes']);
 
 export function testRenduAppRoutes() {

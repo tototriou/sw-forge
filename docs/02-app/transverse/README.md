@@ -10,7 +10,7 @@ renvoie au lieu de les redécrire.
 | `src/lib/speed.ts`, la vitesse de combat, un lead de vitesse | [feat-calcul-vitesse.md](feat-calcul-vitesse.md) |
 | `src/hooks/useMonsters.ts`, `src/hooks/useCustomMonsters.ts`, `src/components/CreateMonster.tsx`, `src/components/MonsterAvatar.tsx`, le modèle `Monster` de `src/types.ts`, `scripts/fetch-monsters.mjs` | [feat-donnees-monstres.md](feat-donnees-monstres.md) |
 | `src/lib/importAccount.ts`, `src/lib/applyAccount.ts`, `src/lib/accountStore.ts`, `src/components/AccountImportControl.tsx`, `src/components/AccountFreshness.tsx` | [feat-import-compte/](feat-import-compte/README.md) |
-| `src/components/Sidebar.tsx`, `src/components/TopBar.tsx`, `src/components/MobileTabs.tsx`, `src/components/Palette.tsx`, `src/pages/SettingsPage.tsx`, le routage par hash de `src/App.tsx` | [feat-navigation/](feat-navigation/README.md) |
+| `src/components/Sidebar.tsx`, `src/components/TopBar.tsx`, `src/components/MobileTabs.tsx`, `src/components/Palette.tsx`, `src/pages/SettingsPage.tsx`, le routage par hash de `src/App.tsx`, l'écran partagé (`src/lib/volets.ts`, `src/components/VoletEcran.tsx`, `src/ui/DeuxVolets.tsx`, `scripts/lib/postcssVolets.ts`) | [feat-navigation/](feat-navigation/README.md) |
 | `src/hooks/useComboboxNav.ts`, une barre de recherche à suggestions | [feat-recherche-clavier.md](feat-recherche-clavier.md) |
 | `src/lib/session.ts`, `src/lib/sessionOptimizer.ts`, `src/hooks/useSessionEnCours.ts`, « Sauvegarder la session » | [feat-sauvegarde-session.md](feat-sauvegarde-session.md) |
 
@@ -21,7 +21,7 @@ renvoie au lieu de les redécrire.
 | [feat-calcul-vitesse.md](feat-calcul-vitesse.md) | Le modèle de vitesse SW (base, runes, totem, lead, ticks) et son API `speed.ts`. **Source de vérité** pour RTA et Siège. |
 | [feat-donnees-monstres.md](feat-donnees-monstres.md) | D'où viennent les monstres (SWARFARM), leur normalisation, le modèle `Monster`, les portraits et les monstres perso créés à la main. |
 | [feat-import-compte/](feat-import-compte/README.md) | L'import d'un export de compte SWEX : box RTA, équipes de siège, **et** box 6★ + inventaire runes/artéfacts (page « Mon compte ») ; la persistance optionnelle du compte. |
-| [feat-navigation/](feat-navigation/README.md) | La **barre latérale**, la barre supérieure, les **onglets mobiles**, la palette Ctrl K, la page Paramètres et l'**accent contextuel** (`--ctx`) qui prend la couleur de l'élément du monstre consulté. |
+| [feat-navigation/](feat-navigation/README.md) | La **barre latérale**, la barre supérieure, les **onglets mobiles**, la palette Ctrl K, la page Paramètres, l'**accent contextuel** (`--ctx`) qui prend la couleur de l'élément du monstre consulté, et l'**écran partagé** au bureau (deux pages côte à côte). |
 | [feat-recherche-clavier.md](feat-recherche-clavier.md) | La navigation au clavier des **barres de recherche à suggestions** (↑/↓, Entrée sur l'élément surligné, Échap). Implémentation unique dans [useComboboxNav.ts](../../../src/hooks/useComboboxNav.ts), partagée par tous les champs de recherche. |
 | [feat-sauvegarde-session.md](feat-sauvegarde-session.md) | La **sauvegarde de session** : ses accès (barre du haut, Ctrl+S, Paramètres, palette), la session en cours de l'application de bureau, le format `swblacksmith/session` (compte, travail, réglages, état des outils), ce qu'il refuse à la relecture, et où déclarer une clé nouvelle. |
 

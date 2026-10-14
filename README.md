@@ -54,6 +54,7 @@ Une question, un retour ou une demande particulière :
 - [Tailwind CSS](https://tailwindcss.com) — styles
 - [lucide-react](https://lucide.dev) — icônes d'interface
 - [framer-motion](https://www.framer.com/motion/) — animations
+- [react-resizable-panels](https://github.com/bvaughn/react-resizable-panels) — séparateur de l'écran partagé
 - [Electron](https://www.electronjs.org) — application de bureau
 - Déployé sur [Vercel](https://vercel.com) : déploiement automatique sur `main`, preview par branche.
 

@@ -115,6 +115,12 @@ return <Popover …>{formulaire}</Popover>;
 ⚠️ **Jamais pour masquer un bloc** : `lg:hidden` reste la bonne réponse à
 « cacher sur mobile », et ne coûte pas de rendu.
 
+⚠️ **Dans un volet de l'écran partagé, une requête de LARGEUR répond selon le
+volet**, comme les variantes Tailwind de la page
+([ecran-partage.md](../../02-app/transverse/feat-navigation/ecran-partage.md#les-pages-suivent-la-largeur-de-leur-volet)).
+Une largeur lue autrement (`window.innerWidth`) ne le ferait pas : passer par
+`useMediaQuery`.
+
 ### 3. Deux composants — en dernier recours
 
 Seulement quand les deux formats n'ont plus rien de commun à partager. C'est

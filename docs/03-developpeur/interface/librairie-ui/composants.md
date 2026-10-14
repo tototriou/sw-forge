@@ -367,3 +367,19 @@ au clic extérieur et à Échap. `ConfirmDialog`, `PromptDialog` et
 > Le portail règle deux autres pièges au passage : aucun contexte d'empilement
 > parent ne peut coincer le `z-index`, et aucun `overflow: hidden` d'ancêtre
 > ne découpe la modale.
+
+#### `DeuxVolets`
+
+**`DeuxVolets`** — deux zones côte à côte et le séparateur qu'on glisse entre
+elles : l'écran partagé, au bureau
+([ecran-partage.md](../../../02-app/transverse/feat-navigation/ecran-partage.md)).
+Le glisser, les bornes, le clavier (flèches sur le séparateur), le rôle
+`separator` et le double-clic qui ramène au milieu viennent de
+`react-resizable-panels` ; le composant n'y ajoute que le dessin, en tokens :
+une zone saisissable de 12 px, un trait de 1 px (`border-soft`, accent au
+survol, au glisser et au focus) et une poignée centrale.
+⚠️ **Les minimums sont en pixels** (`minGauche`, `minDroite`) : la largeur sous
+laquelle la page de chaque côté ne se lit plus, quelle que soit la fenêtre.
+⚠️ **La taille est contrôlée** (`taille`, pourcentage de la zone de gauche) :
+seul un geste de l'utilisateur la remonte (`onTaille`), jamais un recalcul de
+la librairie au montage ou à un redimensionnement de la fenêtre.

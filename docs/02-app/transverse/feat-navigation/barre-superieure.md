@@ -29,14 +29,18 @@ endroits où les deux se séparent (voir
 
 | | Zone droite |
 |---|---|
-| **Bureau** | « Sauvegarder », puis « Sauvegarder sous… » (application de bureau) ou « Se déconnecter » (site) |
+| **Bureau** | « Écran partagé », « Sauvegarder », puis « Sauvegarder sous… » (application de bureau) ou « Se déconnecter » (site) |
 | **Mobile** | « Sauvegarder » (icône), la loupe, ⚙ **Paramètres** |
 
-- « Sauvegarder » ouvre la zone (`ml-auto`) aux deux formats : c'est la
-  sauvegarde de la session, Ctrl+S
+- « Sauvegarder » ouvre la zone (`ml-auto`) au téléphone ; au bureau, c'est
+  « Écran partagé », juste avant lui ([ecran-partage.md](ecran-partage.md) :
+  enfoncé en écran partagé, désactivé avec sa raison quand la fenêtre est trop
+  étroite). « Sauvegarder » est la sauvegarde de la session, Ctrl+S
   ([feat-sauvegarde-session.md](../feat-sauvegarde-session.md) § Sauvegarder). Au
   téléphone, une icône de 32 px nommée « Sauvegarder la session (Ctrl+S) »,
   du même gabarit que la loupe et le ⚙.
+- ⚠️ **En écran partagé, le fil d'Ariane du bureau se tait** : chaque volet
+  porte le sien dans son en-tête ([ecran-partage.md](ecran-partage.md#le-volet-actif)).
 - ⚠️ **Les paramètres et la déconnexion ne sont pas du même côté.** Sur bureau,
   pas de ⚙ : le **pied de la barre latérale** porte déjà « Paramètres »
   (`SidebarParametres`). Deux chemins vers le même écran se lisent comme deux

@@ -70,6 +70,11 @@ Fichier central, gros et volontairement : il tient tout ce qui doit être partag
   et garde-fou : [feat-navigation/barre-laterale-et-adresses.md](../02-app/transverse/feat-navigation/barre-laterale-et-adresses.md).
 - **Nav** : barre latérale (`Sidebar`), barre supérieure (`TopBar`), onglets mobiles
   (`MobileTabs`), recherche de nav (`SidebarSearch`).
+- **Écran partagé** (bureau) : l'adresse décrit le volet actif, l'état des volets
+  (`useStickyState`, `src/lib/volets.ts`) tient l'autre ; `pageDe()` rend une page par
+  volet, dans un `VoletEcran` (en-tête, verrou, « Options »), les deux posés dans
+  `DeuxVolets`. Le responsive des pages suit leur volet par le plugin PostCSS
+  `scripts/lib/postcssVolets.ts` : [ecran-partage.md](../02-app/transverse/feat-navigation/ecran-partage.md).
 - **États instanciés ici puis passés en prop** : `useRtaState`, `useSiegeState`, `useSiegeRecos`,
   `useOptimizerState`, `useMonsters`, `useCustomMonsters`.
 - **Fusion des monstres officiels et des monstres perso** (`allMonsters`), passée aux pages qui
@@ -191,7 +196,8 @@ imposé + sort de chacun) dans le même moteur. Tout est testé dans `tests/spee
 | `Dialogs.tsx` | `Modale` (portalisée), `ConfirmDialog`, `PromptDialog`, `KeepAccountDialog` |
 | `PiedDeDialogue.tsx` | la rangée d'actions d'un dialogue |
 | `Flottant.tsx` / `FlottantAuto.tsx` | surface ancrée ; la variante **mesure et choisit son côté avant peinture** |
-| `MobileSheet.tsx` | panneau d'actions mobile (`data-tiroir`) |
+| `MobileSheet.tsx` | panneau d'actions mobile (`data-tiroir`) ; aussi au bureau, ouvert depuis un volet étroit de l'écran partagé |
+| `DeuxVolets.tsx` | les deux zones de l'écran partagé et le séparateur qu'on glisse entre elles (`react-resizable-panels`) |
 | `index.ts` | baril de réexport |
 
 **Hors librairie mais partagés** (`src/components/`) : `Segmented`, `Switch`, `SearchBar`,
@@ -221,7 +227,7 @@ exemptés.
 | `useStickyState` | état conservé en mémoire à travers la navigation, sans persister |
 | `useSessionEnCours`, `useEtatSession` | la session en cours de l'application de bureau (`null` sur le site), redit « Garder mes données » au bureau ; l'état complet, dossier SW Blacksmith compris |
 | `useRuneMetric`, `useOvercapDisplay`, `useTheme` | réglages globaux (menu ⚙) |
-| `useMediaQuery` | une media query lue depuis React |
+| `useMediaQuery` | une media query lue depuis React ; ⚠️ dans un volet de l'écran partagé, une requête de largeur répond selon le volet (`LargeurVolet`) |
 | `useScrollBloque` | ⚠️ **compteur de verrous** — blocage du défilement, verrou `position: fixed` sur `body` (iOS ignore `overflow: hidden` au toucher) |
 | `useClavierOuvert` | clavier virtuel déployé ? via `visualViewport` |
 | `useRecalageEcran` | ramène dans l'écran un flottant qui déborde par la droite |
@@ -252,4 +258,5 @@ Fonctions **pures**, testables sans rendu. C'est ici que va toute logique, jamai
 | Session | `session.ts` (format `swblacksmith/session` : composer, écrire, relire), `sessionOptimizer.ts` (photo de l'Optimizer), `telechargement.ts` (un texte téléchargé en fichier) |
 | Fichiers exportés | `formatsExport.ts` (identifiant `swblacksmith/<nom>` écrit, l'ancien `sw-forge/<nom>` relu — lu par `rtaShare`, `recoShare`, `siegeShare`, `runeCurveShare`) |
 | Bureau | `bureau.ts` (`estBureau()`, couleurs du thème, mise à jour, `TELECHARGEMENTS`) |
+| Écran partagé | `volets.ts` (les transitions des deux volets : navigation, verrou, volet vide ; plancher, seuil et correspondance des seuils de largeur dans un volet) — [ecran-partage.md](../02-app/transverse/feat-navigation/ecran-partage.md) |
 | Divers | `effects.ts` (codes com2us → libellés), `crafts.ts`, `gearSync.ts`, `detecteurDebordement.ts` (dev seulement), `migrationStockage.ts` (clés de stockage de l'ancien nom) |

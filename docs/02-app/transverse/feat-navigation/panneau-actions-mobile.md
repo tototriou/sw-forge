@@ -8,6 +8,11 @@ Sous `lg`, un bouton **« Options »** flotte **juste au-dessus de la barre
 d'onglets**, à droite, et ouvre `MobileSheet` — un panneau qui monte **depuis le
 bas** de l'écran.
 
+Au bureau, en écran partagé, un volet étroit met sa page au format téléphone :
+le bouton « Options » est alors dans l'**en-tête du volet**, et le même
+panneau monte du bas de la fenêtre
+([ecran-partage.md](ecran-partage.md#les-pages-suivent-la-largeur-de-leur-volet)).
+
 ⚠️ **Ni dans la barre d'onglets, ni dans la barre du haut.**
 - *Pas dedans* : la barre est à cinq colonnes, une sixième ferait passer chaque
   cible sous les 44 px que réclame un pouce. Et ce bouton ne mène pas à une

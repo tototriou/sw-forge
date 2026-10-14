@@ -1,8 +1,8 @@
-import { ReactNode, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { ReactNode, useContext, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { SOUS_LG, useMediaQuery } from '../hooks/useMediaQuery';
+import { LargeurVolet, SOUS_LG, useMediaQuery } from '../hooks/useMediaQuery';
 import { useScrollBloque } from '../hooks/useScrollBloque';
 import { BoutonIcone } from '../ui';
 import { HAUTEUR_ONGLETS } from '../lib/layout';
@@ -91,6 +91,12 @@ export default function MobileSheet({
   // panneau sur un écran étroit puis d'élargir la fenêtre.
   const sousLg = useMediaQuery(SOUS_LG);
   const visible = ouvert && sousLg;
+  // ⚠️ **Ouvert depuis un volet étroit de l'écran partagé, le panneau existe
+  // AU BUREAU** : la page y a sa mise en page de téléphone, et `sousLg` répond
+  // selon le volet (docs/02-app/transverse/feat-navigation/ecran-partage.md).
+  // Rendu dans un portail, hors du volet, `lg:hidden` suivrait la fenêtre et le
+  // masquerait : il n'est posé qu'en dehors d'un volet.
+  const masqueBureau = useContext(LargeurVolet) === null ? 'lg:hidden' : '';
 
   // Hauteur mesurée une fois à l'ouverture, puis figée (voir l'en-tête). ⚠️ En
   // `useLayoutEffect`, avant peinture : en `useEffect`, on voyait le panneau à sa
@@ -157,7 +163,7 @@ export default function MobileSheet({
       {visible && (
         <>
           <motion.div
-            className={`fixed inset-0 lg:hidden ${
+            className={`fixed inset-0 ${masqueBureau} ${
               devantLesDialogues
                 ? 'z-[80] bg-bg/70'
                 : centre
@@ -194,7 +200,7 @@ export default function MobileSheet({
             // `z-40`) : elle mène ailleurs, or on est en train d'agir ici. La
             // laisser dépasser inviterait à quitter la page au milieu d'un
             // réglage.
-            className={`fixed flex flex-col border-border bg-panel lg:hidden ${
+            className={`fixed flex flex-col border-border bg-panel ${masqueBureau} ${
               devantLesDialogues
                 ? 'inset-x-0 bottom-0 z-[80] max-h-[80dvh] rounded-t-2xl border-t'
                 : centre

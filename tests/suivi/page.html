@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Suivi des vérifications</title>
+<style>
+  :root {
+    --bg: #f6f0e4; --bar: #fffdf8; --panel: #fffdf8; --panel2: #efe6d5;
+    --border: #cdbc9e; --border-soft: #e4d9c6;
+    --ink: #1b1a19; --ink-dim: #3f3a34; --ink-dimmer: #6b6259;
+    --accent: #ff7a1a; --accent-lisible: #a64f11; --accent-soft: #ffeddd;
+    --good: #2f6b36; --good-soft: #e3f1e3; --warn: #7c630d; --warn-soft: #fbedb7;
+    --bad: #a3303a; --bad-soft: #f8e4e3;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #161514; --bar: #1b1a19; --panel: #232120; --panel2: #2e2c2a;
+      --border: #5a544d; --border-soft: #3a3734;
+      --ink: #ede3d1; --ink-dim: #cfc3ae; --ink-dimmer: #a89a86;
+      --accent: #ff7a1a; --accent-lisible: #ff7a1a; --accent-soft: #3a2415;
+      --good: #73e06b; --good-soft: #253024; --warn: #f2c230; --warn-soft: #39311b;
+      --bad: #f27a84; --bad-soft: #372324;
+      color-scheme: dark;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 15px/1.45 "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  }
+  .mono { font-family: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace; font-variant-numeric: tabular-nums; }
+  .label { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; font-weight: 600; color: var(--ink-dim); }
+  header {
+    position: sticky; top: 0; z-index: 2; display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+    padding: 12px 24px; background: var(--bar); border-bottom: 1px solid var(--border);
+  }
+  header h1 { margin: 0; font-size: 16px; font-weight: 700; letter-spacing: .02em; }
+  .statut { display: inline-flex; align-items: center; gap: 7px; padding: 3px 11px; border-radius: 999px; font-size: 13px; font-weight: 600; border: 1px solid var(--border); background: var(--panel2); }
+  .statut::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+  .statut.cours { color: var(--accent-lisible); background: var(--accent-soft); border-color: var(--accent); }
+  .statut.cours::before { animation: pouls 1.2s ease-in-out infinite; }
+  .statut.ok { color: var(--good); background: var(--good-soft); border-color: var(--good); }
+  .statut.ko { color: var(--bad); background: var(--bad-soft); border-color: var(--bad); }
+  .commande { color: var(--ink-dimmer); font-size: 12px; }
+  .duree { margin-left: auto; color: var(--ink-dim); font-size: 13px; }
+  main { max-width: 1400px; margin: 0 auto; padding: 20px 24px 60px; display: flex; flex-direction: column; gap: 18px; }
+  .carte { background: var(--panel); border: 1px solid var(--border-soft); border-radius: 10px; padding: 16px; }
+  .avancement { display: flex; flex-direction: column; gap: 10px; }
+  .avancement .ligne { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  .pourcent { font-size: 34px; font-weight: 700; line-height: 1; }
+  .barre { position: relative; height: 12px; border-radius: 999px; background: var(--panel2); overflow: hidden; }
+  .barre span { position: absolute; inset: 0 auto 0 0; background: var(--accent); border-radius: 999px; transition: width .35s ease; }
+  .barre.ok span { background: var(--good); }
+  .barre.ko span { background: var(--bad); }
+  .compteurs { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+  .compteur .valeur { font-size: 24px; font-weight: 700; margin-top: 2px; }
+  .compteur.ko .valeur { color: var(--bad); }
+  .compteur.warn .valeur { color: var(--warn); }
+  .compteur.ok .valeur { color: var(--good); }
+  .colonnes { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+  @media (max-width: 960px) { .colonnes { grid-template-columns: 1fr; } }
+  .encours h2, .carte h2 { margin: 0 0 10px; font-size: 14px; font-weight: 700; }
+  .nom { font-weight: 600; word-break: break-word; }
+  .titre-courant { color: var(--ink-dim); font-size: 13px; margin-top: 2px; }
+  pre.queue { margin: 12px 0 0; padding: 10px 12px; max-height: 210px; overflow: auto; background: var(--bg); border: 1px solid var(--border-soft); border-radius: 6px; font-size: 12px; line-height: 1.5; color: var(--ink-dim); white-space: pre-wrap; }
+  .echec { padding: 10px 12px; border: 1px solid var(--bad); background: var(--bad-soft); border-radius: 6px; }
+  .echec + .echec { margin-top: 8px; }
+  .echec .ou { font-size: 12px; color: var(--ink-dim); }
+  .echec .quoi { margin-top: 3px; white-space: pre-wrap; font-size: 13px; }
+  .vide { color: var(--ink-dimmer); font-size: 14px; }
+  .outils { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+  .outils button {
+    font: inherit; font-size: 13px; font-weight: 600; height: 30px; padding: 0 12px; border-radius: 6px; cursor: pointer;
+    border: 1px solid var(--border); background: var(--panel); color: var(--ink-dim);
+  }
+  .outils button[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--ink); }
+  .outils input {
+    font: inherit; font-size: 13px; height: 30px; padding: 0 10px; border-radius: 6px; margin-left: auto; min-width: 200px;
+    border: 1px solid var(--border); background: var(--bg); color: var(--ink);
+  }
+  .outils input:focus, .outils button:focus-visible { outline: none; border-color: var(--accent); }
+  .grille { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 6px; }
+  .tuile {
+    display: flex; align-items: center; gap: 8px; min-width: 0; padding: 6px 9px; border-radius: 6px; font-size: 12px;
+    border: 1px solid var(--border-soft); background: var(--panel2); color: var(--ink-dimmer);
+  }
+  .tuile .pastille { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--border); }
+  .tuile .id { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tuile .ms { flex: none; color: var(--ink-dimmer); }
+  .tuile.cours { border-color: var(--accent); background: var(--accent-soft); color: var(--ink); }
+  .tuile.cours .pastille { background: var(--accent); animation: pouls 1.2s ease-in-out infinite; }
+  .tuile.ok { background: var(--good-soft); color: var(--ink-dim); border-color: transparent; }
+  .tuile.ok .pastille { background: var(--good); }
+  .tuile.ignoree { background: var(--warn-soft); color: var(--ink-dim); border-color: transparent; }
+  .tuile.ignoree .pastille { background: var(--warn); }
+  .tuile.ko { background: var(--bad-soft); color: var(--ink); border-color: var(--bad); }
+  .tuile.ko .pastille { background: var(--bad); }
+  .lentes { display: flex; flex-direction: column; gap: 6px; }
+  .lente { display: flex; gap: 10px; font-size: 13px; }
+  .lente .id { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-dim); }
+  .legende { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--ink-dimmer); margin-top: 12px; }
+  .legende span::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; background: var(--c); }
+  @keyframes pouls { 50% { opacity: .35; } }
+  @media (prefers-reduced-motion: reduce) { .statut.cours::before, .tuile.cours .pastille { animation: none; } .barre span { transition: none; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Vérifications · SW Blacksmith</h1>
+  <span id="statut" class="statut">Préparation</span>
+  <span id="commande" class="commande mono"></span>
+  <span id="duree" class="duree mono">0:00</span>
+</header>
+<main>
+  <section class="carte avancement" aria-label="Avancement">
+    <div class="ligne">
+      <span id="pourcent" class="pourcent mono">0 %</span>
+      <span id="entrees" class="mono">— / — entrées</span>
+      <span id="reste" style="color: var(--ink-dimmer); font-size: 13px"></span>
+    </div>
+    <div id="barre" class="barre" role="progressbar" aria-label="Entrées exécutées" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span style="width: 0%"></span></div>
+  </section>
+
+  <section class="compteurs" aria-label="Compteurs">
+    <div class="carte compteur"><div class="label">Contrôles passés</div><div id="controles" class="valeur mono">0</div></div>
+    <div class="carte compteur ok"><div class="label">Entrées réussies</div><div id="reussies" class="valeur mono">0</div></div>
+    <div class="carte compteur ko"><div class="label">Échecs</div><div id="nbEchecs" class="valeur mono">0</div></div>
+    <div class="carte compteur warn"><div class="label">Ignorés</div><div id="ignores" class="valeur mono">0</div></div>
+  </section>
+
+  <div class="colonnes">
+    <div style="display: flex; flex-direction: column; gap: 18px; min-width: 0">
+      <section class="carte encours" aria-label="En cours">
+        <h2>En cours</h2>
+        <div id="nomCourant" class="nom mono">—</div>
+        <div id="titreCourant" class="titre-courant"></div>
+        <pre id="queue" class="queue mono" aria-label="Dernières lignes de la sortie"></pre>
+      </section>
+
+      <section class="carte" aria-label="Toutes les entrées">
+        <div class="outils">
+          <button type="button" data-filtre="toutes" aria-pressed="true">Toutes</button>
+          <button type="button" data-filtre="ko" aria-pressed="false">Échecs</button>
+          <button type="button" data-filtre="restantes" aria-pressed="false">Restantes</button>
+          <button type="button" data-filtre="faites" aria-pressed="false">Faites</button>
+          <input id="recherche" type="search" placeholder="Filtrer par nom…" aria-label="Filtrer les entrées par nom">
+        </div>
+        <div id="grille" class="grille"></div>
+        <div class="legende">
+          <span style="--c: var(--border)">Attendue</span>
+          <span style="--c: var(--accent)">En cours</span>
+          <span style="--c: var(--good)">Réussie</span>
+          <span style="--c: var(--warn)">Entièrement ignorée</span>
+          <span style="--c: var(--bad)">Échec ou exception</span>
+        </div>
+      </section>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 18px; min-width: 0">
+      <section class="carte" aria-label="Échecs">
+        <h2>Échecs</h2>
+        <div id="echecs"><p class="vide">Aucun pour l'instant.</p></div>
+      </section>
+      <section class="carte" aria-label="Les plus lentes">
+        <h2>Les plus lentes</h2>
+        <div id="lentes" class="lentes"><p class="vide">—</p></div>
+      </section>
+    </div>
+  </div>
+</main>
+<script>
+  const $ = (id) => document.getElementById(id);
+  let filtre = 'toutes';
+  let dernier = null;
+  let suivis = 0;
+
+  for (const b of document.querySelectorAll('[data-filtre]')) {
+    b.addEventListener('click', () => {
+      filtre = b.dataset.filtre;
+      for (const x of document.querySelectorAll('[data-filtre]')) x.setAttribute('aria-pressed', String(x === b));
+      if (dernier) rendre(dernier);
+    });
+  }
+  $('recherche').addEventListener('input', () => dernier && rendre(dernier));
+
+  const nomCourt = (id) => id.replace(/^test/, '');
+  const fmtDuree = (ms) => {
+    const s = Math.max(0, Math.round(ms / 1000));
+    return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+  };
+  const fmtMs = (ms) => (ms == null ? '' : ms < 1000 ? `${ms} ms` : `${(ms / 1000).toFixed(1)} s`);
+  const nombre = (n) => (n ?? 0).toLocaleString('fr-FR');
+  const echapper = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+
+  function classeEntree(e) {
+    if (e.etat === 'invoquée') return 'cours';
+    if (e.etat === 'exception' || e.echecs > 0) return 'ko';
+    if (e.etat === 'rendue') return e.controles === 0 && e.ignores > 0 ? 'ignoree' : 'ok';
+    return 'attendue';
+  }
+
+  function rendre(s) {
+    const m = s.manifeste;
+    const entrees = m?.entrees ?? [];
+    const attendues = m?.bilan?.attendues ?? 0;
+    const faites = entrees.filter((e) => e.etat === 'rendue' || e.etat === 'exception').length;
+    const enEchec = entrees.filter((e) => e.etat === 'exception' || e.echecs > 0).length;
+    const pct = attendues ? Math.floor((faites / attendues) * 100) : 0;
+    const termine = s.fin !== null;
+    const ko = enEchec > 0 || s.echecs.length > 0 || (termine && s.fin.code !== 0);
+
+    const statut = $('statut');
+    statut.className = 'statut ' + (!m ? '' : termine ? (ko ? 'ko' : 'ok') : 'cours');
+    statut.textContent = !m
+      ? (termine ? 'Interrompue avant de commencer' : 'Préparation (sélection, construction…)')
+      : termine
+        ? (ko ? `Échec — code ${s.fin.code ?? s.fin.signal}` : 'Toutes réussies')
+        : 'En cours';
+    document.title = `${termine ? (ko ? '✗' : '✓') : `${pct} %`} · Vérifications`;
+    $('commande').textContent = s.commande;
+    $('duree').textContent = fmtDuree((termine ? s.fin.a : s.maintenant) - s.debut);
+
+    $('pourcent').textContent = `${termine && !ko ? 100 : pct} %`;
+    $('entrees').textContent = `${nombre(faites)} / ${nombre(attendues)} entrées`;
+    const durees = entrees.filter((e) => e.dureeMs != null).map((e) => e.dureeMs);
+    const moyenne = durees.length ? durees.reduce((a, b) => a + b, 0) / durees.length : 0;
+    $('reste').textContent = !termine && faites > 3 && attendues > faites
+      ? `encore ~${fmtDuree(moyenne * (attendues - faites))}`
+      : '';
+    const barre = $('barre');
+    barre.className = 'barre ' + (termine ? (ko ? 'ko' : 'ok') : '');
+    barre.firstElementChild.style.width = `${termine && !ko ? 100 : pct}%`;
+    barre.setAttribute('aria-valuenow', String(pct));
+
+    $('controles').textContent = nombre(m?.bilan?.controles);
+    $('reussies').textContent = nombre(entrees.filter((e) => classeEntree(e) === 'ok').length);
+    $('nbEchecs').textContent = nombre(Math.max(m?.bilan?.echecs ?? 0, s.echecs.length));
+    $('ignores').textContent = nombre(m?.bilan?.ignores);
+
+    const courante = entrees.find((e) => e.etat === 'invoquée');
+    $('nomCourant').textContent = courante ? nomCourt(courante.id) : termine ? 'Terminé' : '—';
+    $('titreCourant').textContent = courante ? s.titre : '';
+    const queue = $('queue');
+    const enBas = queue.scrollTop + queue.clientHeight >= queue.scrollHeight - 4;
+    queue.textContent = s.queue.join('\n');
+    if (enBas) queue.scrollTop = queue.scrollHeight;
+
+    // Échecs : le texte vient de la sortie ; une exception, du manifeste.
+    const blocs = s.echecs.map((e) => `<div class="echec"><div class="ou">${echapper(e.titre || '—')}</div><div class="quoi mono">${echapper(e.texte)}</div></div>`);
+    for (const e of entrees.filter((x) => x.etat === 'exception')) {
+      blocs.push(`<div class="echec"><div class="ou">${echapper(nomCourt(e.id))} — exception</div><div class="quoi mono">${echapper(e.exception ?? '')}</div></div>`);
+    }
+    for (const c of (m?.echecs ?? [])) blocs.push(`<div class="echec"><div class="ou">Validation du lanceur</div><div class="quoi mono">${echapper(c)}</div></div>`);
+    $('echecs').innerHTML = blocs.length ? blocs.join('') : '<p class="vide">Aucun pour l\'instant.</p>';
+
+    const q = $('recherche').value.trim().toLowerCase();
+    const visibles = entrees.filter((e) => {
+      const c = classeEntree(e);
+      if (filtre === 'ko' && c !== 'ko') return false;
+      if (filtre === 'restantes' && (c !== 'attendue' && c !== 'cours')) return false;
+      if (filtre === 'faites' && (c === 'attendue' || c === 'cours')) return false;
+      return !q || e.id.toLowerCase().includes(q);
+    });
+    $('grille').innerHTML = visibles.length
+      ? visibles.map((e) => {
+          const detail = `${e.id} — ${e.etat}, ${e.controles} contrôle(s), ${e.echecs} échec(s), ${e.ignores} ignoré(s)${e.dureeMs != null ? `, ${fmtMs(e.dureeMs)}` : ''}`;
+          return `<div class="tuile ${classeEntree(e)}" title="${echapper(detail)}"><span class="pastille"></span><span class="id mono">${echapper(nomCourt(e.id))}</span><span class="ms mono">${fmtMs(e.dureeMs)}</span></div>`;
+        }).join('')
+      : '<p class="vide">Aucune entrée pour ce filtre.</p>';
+
+    const lentes = entrees.filter((e) => e.dureeMs != null).sort((a, b) => b.dureeMs - a.dureeMs).slice(0, 8);
+    $('lentes').innerHTML = lentes.length
+      ? lentes.map((e) => `<div class="lente"><span class="id mono">${echapper(nomCourt(e.id))}</span><span class="mono">${fmtMs(e.dureeMs)}</span></div>`).join('')
+      : '<p class="vide">—</p>';
+  }
+
+  async function relever() {
+    try {
+      const r = await fetch('/etat', { cache: 'no-store' });
+      dernier = await r.json();
+      rendre(dernier);
+      // Encore deux relevés après la fin : le manifeste final s'écrit en dernier.
+      if (dernier.fin) suivis++;
+    } catch {
+      $('statut').textContent = 'Serveur de suivi arrêté';
+      $('statut').className = 'statut';
+      return;
+    }
+    if (suivis < 3) setTimeout(relever, 500);
+  }
+  relever();
+</script>
+</body>
+</html>

@@ -43,6 +43,7 @@ import { verificationsImportRecoCopies } from './import-reco-copies.test';
 import testNavigation from './navigation.test';
 import testBancSelection from './banc-selection.test';
 import { testNavigationAdresses, testNavigationAdressesDefauts, testNavigationVuesCompte } from './navigation-adresses.test';
+import { testSuiviLecture, testSuiviTableau } from './suivi.test';
 import testPersistance from './persistance.test';
 import { testRenduOptimizerDialogueLeaderSkill, testRenduTelephoneOptimizerDialogueLeaderSkill,
   testRenduOptimizerDialogueLeaderEspece, testRenduTelephoneOptimizerDialogueLeaderEspece,
@@ -483,6 +484,8 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testNavigationAdresses', testNavigationAdresses],
   ['testNavigationAdressesDefauts', testNavigationAdressesDefauts],
   ['testNavigationVuesCompte', testNavigationVuesCompte],
+  ['testSuiviLecture', testSuiviLecture],
+  ['testSuiviTableau', testSuiviTableau],
   ['testReco', testReco],
   ['testDefensesVisees', testDefensesVisees],
   ['testTrimPartage', testTrimPartage],

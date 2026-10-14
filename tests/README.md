@@ -174,6 +174,40 @@ pas un échec.
   non nul et manifeste incomplet seulement) ; une construction qui échoue
   laisse l'ancien manifeste ; un `ok` tardif compte sur l'entrée suivante.
 
+## Suivi en direct
+
+```bash
+npm run test:suivi                           # toutes les vérifications
+npm run test:suivi -- speed-tune             # avec des filtres, comme run.mjs
+npm run test:suivi -- --depuis origin/<base> # la sélection par fichiers modifiés
+npm run test:suivi -- --web                  # aussi sur http://127.0.0.1:4317/ (--web <port>)
+```
+
+[suivi.mjs](suivi.mjs) lance [run.mjs](run.mjs) avec un manifeste
+d'exécution (écrit dans `os.tmpdir()`), et dessine dans le terminal un
+tableau qui se redessine sur place : barre d'avancement et temps restant
+estimé, compteurs (contrôles, échecs, ignorés), entrée en cours avec le
+dernier titre lu, une **mosaïque d'un caractère par entrée** colorée selon
+son état, et les derniers échecs dès qu'ils arrivent. À la fin, le tableau
+reste, suivi du détail complet des échecs — ou, si le lanceur s'arrête sans
+« KO » (filtre inconnu, sélection refusée), de ses dernières lignes — et du
+chemin de sa sortie complète. Le code de sortie est celui du lanceur.
+
+- **Un affichage, pas un autre lanceur** : ce qui tourne et ce qui est
+  vérifié sont ceux de `run.mjs`. Le tableau lit le manifeste, réécrit toutes
+  les 250 ms, et la sortie du lanceur pour le TEXTE des échecs, que le
+  manifeste ne porte pas ([suivi/rendu.ts](suivi/rendu.ts), vérifié par
+  `node tests/run.mjs suivi`).
+- **Hors d'un terminal** (tube, CI), rien n'est dessiné : la sortie du
+  lanceur passe telle quelle.
+- **Le tableau tient dans le terminal** : chaque ligne est coupée à sa
+  largeur, et si le terminal est trop bas, la mosaïque cède sa place —
+  plus haut que l'écran, il ne pourrait plus se redessiner sur place.
+- **`--web`** sert le même suivi dans le navigateur
+  ([suivi/page.html](suivi/page.html)) : grille filtrable des entrées, échecs
+  avec leur message, entrées les plus lentes. Le serveur reste ouvert après la
+  fin, jusqu'à Ctrl+C.
+
 ## Garde des références à `src/`
 
 [lecture-source.test.ts](lecture-source.test.ts) (`node tests/run.mjs

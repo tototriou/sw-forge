@@ -78,6 +78,7 @@ node tests/run.mjs <filtre>    # les vérifications d'une zone (ex. speed-tune) 
 node tests/run.mjs --depuis origin/<base>   # celles que touchent les fichiers modifiés depuis la base
 node tests/banc/run.mjs --ecrans <id>       # le banc d'affichage, aux deux formats (il construit l'app)
 npm test                       # TOUTES les vérifications — seulement avant une fusion sur main ou dans une release
+npm run test:suivi [-- …]      # les mêmes, suivies en direct dans le terminal (--web : aussi dans le navigateur)
 npm run fetch-data             # régénère les données SWARFARM de public/data
 npm run bureau                 # l'application de bureau en développement
 npm run bureau:preuve          # la vérification de l'application de bureau

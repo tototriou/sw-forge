@@ -18,6 +18,7 @@
     "link-collabs": "node scripts/link-collabs.mjs",
     "prepare": "node scripts/installer-hooks.mjs --automatique",
     "test": "node tests/run.mjs",
+    "test:suivi": "node tests/suivi.mjs",
     "lint": "eslint .",
     "benchmark:optim": "node scripts/benchmark-optim.mjs",
     "benchmark:bucket-retention": "node scripts/benchmark-bucket-retention.mjs",

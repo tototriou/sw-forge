@@ -166,7 +166,9 @@ npm run bureau:preuve          # la vérification de l'application de bureau
   `refactor/listes-optimizer`. ⚠️ **Toute nouvelle branche part de `main` ou de la branche de
   release visée** (`git fetch origin && git switch -c <type>/<sujet> origin/<base>`) ; elle
   fusionne dans la release, qui fusionne dans `main`. On ne travaille jamais sur `main` ni sur
-  une release : on en part. Le numéro de version se décide à la fusion.
+  une release : on en part, et une branche s'y remet à jour en fusionnant la release en elle. Le
+  numéro de version se décide à la fusion. Procédure :
+  [nouveautes/README.md § Modèle de branches](docs/02-app/nouveautes/README.md#modèle-de-branches-et-processus-de-release).
 - **Commits atomiques** : un commit = une chose reviewable. L'atomicité se juge sur la cohérence du
   **pourquoi**, pas sur le nombre de fichiers ; plusieurs sujets traités ensemble font plusieurs
   commits.

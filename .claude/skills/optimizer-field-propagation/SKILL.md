@@ -255,6 +255,14 @@ amont du moteur (« Vérifier au bon ÉTAGE du pipeline », `algo-verify`). Le
 script ne se commite pas ; sa sortie se cite avec le changement (commit,
 PR).
 
+## Les raisonnements qui mènent à l'erreur
+
+| On se dit | En réalité | Voir |
+|---|---|---|
+| « `tsc` passe : tous les constructeurs sont à jour. » | `tsc` n'attrape ni un champ optionnel oublié dans un constructeur, ni un champ lu dans le mauvais sens. | § Ce que `tsc` attrape |
+| « Ce script de diagnostic n'a pas besoin du nouveau champ. » | Sans lui, il calcule autre chose que l'écran, sans bruit : il passe par le producteur unique ou reçoit le champ. | § D'abord le producteur unique |
+| « Une recette déjà exportée n'a pas le champ : elle prendra la valeur par défaut. » | Chaque lecteur doit replier sur le même défaut sûr, et un champ renommé ou inversé se traduit explicitement, sinon une recette ancienne change de résultat. | § Compatibilité arrière |
+
 ## Voir aussi
 
 - `algo-verify` — discipline de CORRECTION algorithmique (référence

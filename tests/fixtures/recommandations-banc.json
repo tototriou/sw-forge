@@ -111,7 +111,7 @@
             }
           ],
           "monstres": [
-            { "com2usId": 18313, "nom": "Chasun", "sets": [["energy", "guard"]], "stats": { "hp": 30000, "spd": 105 } },
+            { "com2usId": 18313, "nom": "Chasun", "sets": [["energy", "guard", "endure"]], "stats": { "hp": 30000, "spd": 105 } },
             { "com2usId": 14712, "nom": "Verdehile", "sets": [["despair", "will"]], "artefacts": { "attribut": [{ "code": 303 }] } },
             { "com2usId": 14611, "nom": "Taor", "sets": [["revenge", "endure"]], "stats": { "def": 900 } }
           ]

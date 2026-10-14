@@ -87,6 +87,7 @@ export default tseslint.config(
       'src/hooks/useOvercapDisplay.ts',
       'src/hooks/useRuneMetric.ts',
       'src/hooks/useAdversaireReference.ts',
+      'src/hooks/useBuildsRapides.ts',
     ],
     rules: { 'no-restricted-properties': 'off' },
   },

@@ -29,7 +29,7 @@ la précédente).
 | Le changement touche… | Lire |
 | --- | --- |
 | `src/hooks/useRuneMetric.ts`, le choix Efficience / Score SW | [mesure.md](mesure.md) |
-| `src/components/account/RunesSummary.tsx`, `src/components/account/SummaryBits.tsx` | [resume.md](resume.md) |
+| `src/components/account/RunesSummary.tsx`, `src/components/account/SummaryBits.tsx`, `src/components/account/BuildsRapides.tsx`, `src/lib/buildsRapides.ts`, `src/hooks/useBuildsRapides.ts`, `src/components/DialogueBuildsRapides.tsx`, `src/components/SymbolesCombo.tsx` | [resume.md](resume.md) |
 | `src/components/account/RunesList.tsx`, `src/components/account/Pager.tsx`, `src/components/account/SubSearchBar.tsx`, `src/components/account/SubSearchDialog.tsx`, `src/lib/runeSort.ts` | [liste.md](liste.md) |
 | `src/components/account/RunesCurve.tsx`, `src/components/account/CurveChart.tsx`, `src/components/account/CurveLegend.tsx` | [courbes.md](courbes.md) |
 | `src/components/account/RunesCompare.tsx`, `src/lib/runeCurveShare.ts`, `src/components/account/curveColors.ts` | [comparaison.md](comparaison.md) |
@@ -42,7 +42,7 @@ la précédente).
 | Document | Contenu |
 | --- | --- |
 | [mesure.md](mesure.md) | Le choix de la mesure (Efficience ou Score SW) et l'efficience d'une rune. |
-| [resume.md](resume.md) | L'onglet Résumé (`RunesSummary`) : la vue d'ensemble chiffrée de l'inventaire. |
+| [resume.md](resume.md) | L'onglet Résumé (`RunesSummary`) : la vue d'ensemble chiffrée de l'inventaire, et les builds les plus rapides par combinaison de sets. |
 | [liste.md](liste.md) | L'onglet Liste (`RunesList`) : la tuile qui est la carte du jeu, le tri (entrées du jeu, dans son ordre), le filtre par propriété secondaire (la modale du jeu). |
 | [courbes.md](courbes.md) | L'onglet Courbes (`RunesCurve`) : courbes de qualité actuelle et potentielles, interactives au doigt et lisibles en plein écran. |
 | [comparaison.md](comparaison.md) | L'onglet Comparaison (`RunesCompare`) : courbes partagées et fichiers de compte d'amis, rien de conservé, « Tout retirer », ce qui est commun aux deux. |

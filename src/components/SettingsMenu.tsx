@@ -6,6 +6,8 @@ import { setPersistence, storageAvailable, usePersistence } from '../hooks/usePe
 import { THEME_CHOICES, setTheme, useTheme } from '../hooks/useTheme';
 import { setOvercapDisplay, useOvercapDisplay } from '../hooks/useOvercapDisplay';
 import { setAdversaireReference, useAdversaireReference } from '../hooks/useAdversaireReference';
+import { useBuildsRapides } from '../hooks/useBuildsRapides';
+import DialogueBuildsRapides, { resumeBuildsRapides } from './DialogueBuildsRapides';
 import AccountFreshness from './AccountFreshness';
 import BlocApplication from './BlocApplication';
 import { EtatSession, estBureau, selonSupport } from '../lib/bureau';
@@ -109,6 +111,8 @@ export function SettingsList({
   const theme = useTheme();
   const overcap = useOvercapDisplay();
   const adversaireRef = useAdversaireReference();
+  const buildsRapides = useBuildsRapides();
+  const [dialogueBuildsRapides, setDialogueBuildsRapides] = useState(false);
   // ⚠️ Aux DEUX formats : la page de réglages
   // range ses blocs de la même façon au doigt qu'à la souris.
   const carteLg = groupes ? 'rounded-xl border border-border bg-panel px-4 py-1' : '';
@@ -135,6 +139,19 @@ export function SettingsList({
       <Setting title="Score">
         <Segmented options={RUNE_METRICS} value={metric} onChange={setRuneMetric} />
       </Setting>
+
+      {/* Ce que montre le Résumé des runes. Une fenêtre plutôt qu'un contrôle
+          en ligne : une liste de combinaisons ne tient pas dans le popover. */}
+      <Setting title="Builds les plus rapides" hint={resumeBuildsRapides(buildsRapides)}>
+        <Bouton
+          taille="sm"
+          libelle="Choisir…"
+          title="Choisir les combinaisons de sets et le nombre de builds"
+          onClick={() => setDialogueBuildsRapides(true)}
+          className="flex-none"
+        />
+      </Setting>
+      {dialogueBuildsRapides && <DialogueBuildsRapides onClose={() => setDialogueBuildsRapides(false)} />}
 
       <Setting
         title="Overcap Taux Crit/RES/Précision"
@@ -272,9 +289,15 @@ export default function SettingsMenu({
   useEffect(() => {
     if (!open) return;
     const onDown = (e: MouseEvent) => {
+      // ⚠️ Une modale ouverte DEPUIS le popover (« Builds les plus rapides »)
+      // est portalisée dans `<body>`, donc hors de `ref` : sans cette garde, le
+      // premier clic dedans fermait le popover, qui la démontait avec lui.
+      if ((e.target as Element | null)?.closest?.('[role="dialog"]')) return;
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
     };
-    const onEsc = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
+    // Échap ferme d'abord la modale ouverte par-dessus, pas le popover dessous.
+    const onEsc = (e: KeyboardEvent) =>
+      e.key === 'Escape' && !document.querySelector('[role="dialog"]') && setOpen(false);
     document.addEventListener('mousedown', onDown);
     document.addEventListener('keydown', onEsc);
     return () => {

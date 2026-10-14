@@ -33,6 +33,7 @@ const CLES_DE_REGLAGE = new Set([
   'swblacksmith-theme-v1',
   'swblacksmith-overcap-display-v1',
   'swblacksmith-adversaire-reference-v1',
+  'swblacksmith-builds-rapides-v1',
 ]);
 
 // ⚠️ Les anciens préfixes restent reconnus : une

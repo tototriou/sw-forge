@@ -34,7 +34,7 @@ texte du code suffit à vérifier :
 | --- | --- | --- |
 | `confirm()`, `prompt()`, `window.confirm()`, `window.prompt()` | `no-restricted-globals`, `no-restricted-syntax` | les dialogues de `src/ui/Dialogs.tsx` |
 | un attribut `type="number"` | `no-restricted-syntax` | `NumberField` de `src/ui/` |
-| `localStorage.setItem` | `no-restricted-properties` | `saveLocal` ([persistance.md](../02-app/transverse/feat-import-compte/persistance.md)) ; permis dans `usePersistence.ts` et les hooks des clés de réglage (`useTheme`, `useOvercapDisplay`, `useRuneMetric`, `useAdversaireReference`) |
+| `localStorage.setItem` | `no-restricted-properties` | `saveLocal` ([persistance.md](../02-app/transverse/feat-import-compte/persistance.md)) ; permis dans `usePersistence.ts` et les hooks des clés de réglage (`useTheme`, `useOvercapDisplay`, `useRuneMetric`, `useAdversaireReference`, `useBuildsRapides`) |
 
 Choix assumés :
 

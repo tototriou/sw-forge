@@ -66,18 +66,29 @@ export function Kpi({
 // Panneau titré.
 // `className` : la place du panneau dans une grille (ordre, largeur) — le
 // Résumé des runes le range en trois colonnes à la souris.
+// `action` : un lien ou un bouton au bout de la ligne du titre (« Choisir… »
+// des builds les plus rapides).
 export function Panel({
   title,
   children,
   className = '',
+  action,
 }: {
   title: string;
   children: React.ReactNode;
   className?: string;
+  action?: React.ReactNode;
 }) {
   return (
     <section className={`rounded-xl border border-border bg-panel p-4 ${className}`}>
-      <h3 className="mb-3 label">{title}</h3>
+      {action ? (
+        <div className="mb-3 flex items-baseline justify-between gap-3">
+          <h3 className="label">{title}</h3>
+          {action}
+        </div>
+      ) : (
+        <h3 className="mb-3 label">{title}</h3>
+      )}
       {children}
     </section>
   );

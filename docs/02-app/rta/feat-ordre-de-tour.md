@@ -140,6 +140,10 @@ vitesse_effective = (base + runes) + ceil( base × (15 + lead) / 100 )
     **nom**, puis icône vitesse + vitesse effective (blanc) et les icônes de sets
     de runes (4 pièces en premier). Champ SPD runes éditable en bas
     (placeholder « + runes »).
+    ⚠️ **Marge droite de 2 px, pas 8** : trois sets et une vitesse à trois
+    chiffres font 106 px, la colonne nom/vitesse n'en avait que 100 et la
+    rangée débordait dans la marge vide de la carte. La colonne reçoit ces
+    6 px ; à l'écran, rien ne bouge.
   - **Doigt** — carte **verticale et resserrée** (~104 px), portrait **centré**.
     ⚠️ Pas plus resserrée : le champ SPD runes doit garder la place d'au moins
     trois chiffres (la valeur va jusqu'à ~180) — un champ qui ne montre pas ce

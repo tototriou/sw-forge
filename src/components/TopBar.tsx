@@ -1,5 +1,5 @@
 import { Fragment, ReactNode } from 'react';
-import { ChevronRight, FilePlus, LogOut, Save, Search } from 'lucide-react';
+import { ChevronRight, Columns2, FilePlus, LogOut, Save, Search } from 'lucide-react';
 import { IconeParametres } from './IconesAtelier';
 import { Bouton, BoutonIcone } from '../ui';
 
@@ -40,6 +40,7 @@ export default function TopBar({
   onSauvegarderSous,
   sessionEnCours = null,
   sauvegardeIndisponible = null,
+  ecranPartage,
   // Bord GAUCHE de la barre : celui de la barre latérale, qu'elle ne recouvre
   // pas. ⚠️ Piloté par l'appelant, qui seul sait si elle est repliée.
   decalage,
@@ -77,6 +78,11 @@ export default function TopBar({
   // Pourquoi la sauvegarde est désactivée (le compte se relit encore), ou
   // `null`. Les boutons restent affichés, désactivés avec cette raison.
   sauvegardeIndisponible?: string | null;
+  // Écran partagé, au BUREAU (docs/02-app/transverse/feat-navigation/ecran-partage.md) :
+  // le bouton qui ouvre une seconde page à côté, puis referme un volet.
+  // ⚠️ Toujours affiché au bureau, DÉSACTIVÉ avec sa raison quand la fenêtre
+  // n'a pas la place : masqué, on ne saurait jamais que le mode existe.
+  ecranPartage?: { actif: boolean; disponible: boolean; onBasculer: () => void };
   decalage: number;
 }) {
   const titreSauvegarder =
@@ -176,6 +182,25 @@ export default function TopBar({
             MOBILE — « Sauvegarder », la loupe et le ⚙, en icônes : il n'y a pas
             de barre latérale et aucun onglet ne mène aux paramètres. La
             déconnexion et l'import y descendent, faute de place. */}
+        {ecranPartage && (
+          <Bouton
+            onClick={ecranPartage.onBasculer}
+            disabled={!ecranPartage.actif && !ecranPartage.disponible}
+            actif={ecranPartage.actif}
+            title={
+              ecranPartage.actif
+                ? 'Revenir à une seule page'
+                : ecranPartage.disponible
+                  ? 'Ouvrir une seconde page à côté'
+                  : 'Fenêtre trop étroite pour deux pages : agrandis-la ou replie la barre latérale'
+            }
+            fond="vide"
+            trait="aucun"
+            icone={<Columns2 size={16} className="flex-none" />}
+            libelle="Écran partagé"
+            className="relative z-10 ml-auto hidden lg:inline-flex"
+          />
+        )}
         <Bouton
           onClick={onSauvegarder}
           disabled={!!sauvegardeIndisponible}
@@ -184,7 +209,7 @@ export default function TopBar({
           trait="aucun"
           icone={<Save size={16} className="flex-none" />}
           libelle="Sauvegarder"
-          className="relative z-10 ml-auto hidden lg:inline-flex"
+          className={`relative z-10 hidden lg:inline-flex ${ecranPartage ? '' : 'ml-auto'}`}
         />
         {onSauvegarderSous && (
           <Bouton

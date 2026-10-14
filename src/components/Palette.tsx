@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { Search } from 'lucide-react';
 import { Modale } from '../ui/Dialogs';
 import MonsterAvatar from './MonsterAvatar';
@@ -13,22 +13,41 @@ import { GroupePalette, EntreePalette } from './palette/recherchePalette';
 // et actions quand le champ est vide — les flèches doivent y marcher aussi.
 // ↑ ↓ parcourent TOUTE la liste, groupes compris ; Entrée ouvre ; Échap ferme.
 
-export default function Palette({
+// Le champ et sa liste de résultats, sans le cadre qui les porte. ⚠️ Deux
+// usages : la palette Ctrl K (dans une modale) et le sélecteur d'un volet vide
+// de l'écran partagé (docs/02-app/transverse/feat-navigation/ecran-partage.md),
+// qui se lisent et se pilotent au clavier de la même façon.
+export function RecherchePalette({
   groupesPour,
-  onFermer,
+  onChoisir,
+  invite,
+  aide,
+  onEchap,
   saisieInitiale = '',
+  idBase,
 }: {
   // Les résultats d'une saisie — calculés par l'appelant (`resultatsPalette`),
   // qui seul connaît pages, monstres, équipes et actions.
   groupesPour: (saisie: string) => GroupePalette[];
-  onFermer: () => void;
-  // Pour les tests : ouvrir sur une saisie déjà tapée.
+  onChoisir: (e: EntreePalette) => void;
+  // Préfixe des identifiants de la liste et de ses options. Absent : un
+  // identifiant unique — deux recherches peuvent être à l'écran ensemble.
+  idBase?: string;
+  // Le texte du champ vide, qui est aussi son nom pour un lecteur d'écran.
+  invite: string;
+  // Sous « Aucun résultat » : ce qu'on peut chercher.
+  aide: string;
+  // Échap : ferme ce qui porte la recherche. Absent, Échap reste à l'appelant
+  // (la modale de la palette le gère déjà).
+  onEchap?: () => void;
   saisieInitiale?: string;
 }) {
   const [saisie, setSaisie] = useState(saisieInitiale);
   const [actif, setActif] = useState(0);
   const champ = useRef<HTMLInputElement>(null);
   const liste = useRef<HTMLDivElement>(null);
+  const idUnique = useId();
+  const id = idBase ?? idUnique;
 
   const groupes = useMemo(() => groupesPour(saisie), [groupesPour, saisie]);
   const plat = useMemo(() => groupes.flatMap((g) => g.entrees), [groupes]);
@@ -41,11 +60,6 @@ export default function Palette({
     liste.current?.querySelector<HTMLElement>('[data-actif="true"]')?.scrollIntoView({ block: 'nearest' });
   }, [actif]);
 
-  function ouvrir(e: EntreePalette) {
-    onFermer();
-    e.faire();
-  }
-
   function onKeyDown(ev: React.KeyboardEvent<HTMLInputElement>) {
     if (ev.key === 'ArrowDown' && plat.length) {
       ev.preventDefault();
@@ -55,21 +69,16 @@ export default function Palette({
       setActif((i) => (i - 1 + plat.length) % plat.length);
     } else if (ev.key === 'Enter' && plat[actif]) {
       ev.preventDefault();
-      ouvrir(plat[actif]);
+      onChoisir(plat[actif]);
+    } else if (ev.key === 'Escape' && onEchap) {
+      ev.preventDefault();
+      onEchap();
     }
   }
 
   let rang = -1;
   return (
-    <Modale
-      onClose={onFermer}
-      labelledBy="palette-titre"
-      titre={<span id="palette-titre">Rechercher</span>}
-      croix
-      largeur="max-w-[640px]"
-      padding="p-4"
-      bandes="compactes"
-    >
+    <>
       <div className="flex items-center gap-2 rounded-lg border border-border bg-panel2 px-3 py-2 focus-within:border-accent">
         <Search size={16} className="flex-none text-ink-dimmer" aria-hidden />
         <input
@@ -77,12 +86,12 @@ export default function Palette({
           value={saisie}
           onChange={(e) => setSaisie(e.target.value)}
           onKeyDown={onKeyDown}
-          placeholder="Rechercher une page, un monstre, une action…"
-          aria-label="Rechercher une page, un monstre, une action"
+          placeholder={invite}
+          aria-label={invite.replace(/…$/, '')}
           role="combobox"
           aria-expanded
-          aria-controls="palette-liste"
-          aria-activedescendant={plat[actif] ? `palette-opt-${actif}` : undefined}
+          aria-controls={`${id}-liste`}
+          aria-activedescendant={plat[actif] ? `${id}-opt-${actif}` : undefined}
           autoComplete="off"
           className="min-w-0 flex-1 bg-transparent text-sm text-ink outline-none placeholder:text-ink-dimmer"
         />
@@ -93,7 +102,7 @@ export default function Palette({
 
       <div
         ref={liste}
-        id="palette-liste"
+        id={`${id}-liste`}
         role="listbox"
         aria-label="Résultats"
         className="mt-3 flex max-h-[min(60vh,440px)] flex-col gap-3 overflow-y-auto"
@@ -101,7 +110,7 @@ export default function Palette({
         {plat.length === 0 ? (
           <div className="flex flex-col items-center gap-1 py-6 text-center">
             <span className="text-sm text-ink">Aucun résultat pour « {saisie.trim()} »</span>
-            <span className="text-xs text-ink-dim">Essaie un nom de monstre, de page ou d'action.</span>
+            <span className="text-xs text-ink-dim">{aide}</span>
           </div>
         ) : (
           groupes.map((g) => (
@@ -113,13 +122,13 @@ export default function Palette({
                 return (
                   <button
                     key={e.cle}
-                    id={`palette-opt-${i}`}
+                    id={`${id}-opt-${i}`}
                     type="button"
                     role="option"
                     aria-selected={i === actif}
                     data-actif={i === actif}
                     onMouseEnter={() => setActif(i)}
-                    onClick={() => ouvrir(e)}
+                    onClick={() => onChoisir(e)}
                     // Le gabarit d'une entrée du menu (voir SidebarSearch) :
                     // 32 px, icône 16, voile d'encre pour la sélection.
                     className={`flex h-9 w-full flex-none items-center gap-2.5 rounded-lg px-2.5 text-left text-sm
@@ -137,6 +146,41 @@ export default function Palette({
           ))
         )}
       </div>
+    </>
+  );
+}
+
+export default function Palette({
+  groupesPour,
+  onFermer,
+  saisieInitiale = '',
+}: {
+  groupesPour: (saisie: string) => GroupePalette[];
+  onFermer: () => void;
+  // Pour les tests : ouvrir sur une saisie déjà tapée.
+  saisieInitiale?: string;
+}) {
+  return (
+    <Modale
+      onClose={onFermer}
+      labelledBy="palette-titre"
+      titre={<span id="palette-titre">Rechercher</span>}
+      croix
+      largeur="max-w-[640px]"
+      padding="p-4"
+      bandes="compactes"
+    >
+      <RecherchePalette
+        groupesPour={groupesPour}
+        onChoisir={(e) => {
+          onFermer();
+          e.faire();
+        }}
+        invite="Rechercher une page, un monstre, une action…"
+        aide="Essaie un nom de monstre, de page ou d'action."
+        saisieInitiale={saisieInitiale}
+        idBase="palette"
+      />
     </Modale>
   );
 }

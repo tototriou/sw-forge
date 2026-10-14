@@ -22,6 +22,7 @@ import { PREFIXE_FICHIER } from '../marque';
 import { OPTIMIZER_MEMBERS_STORAGE_KEY } from './optimizerMemberStorage';
 import { OPTIMIZER_BACKUP_STORAGE_KEY } from './optimizerBackup';
 import { lireCompetencesInvocateur } from './competencesInvocateur';
+import { CLE_ECRAN_PARTAGE } from './volets';
 
 export const FORMAT_SESSION = formatExport('session');
 export const VERSION_SESSION = 2;
@@ -76,7 +77,7 @@ export function valeurStockageValide(cle: (typeof CLES_SESSION)[number], valeur:
 
 // L'état des outils en mémoire (`useStickyState`) : tout, sauf les
 // préférences d'interface propres à l'appareil.
-export const STICKY_HORS_SESSION = ['sidebar.retractee', 'mobileNotice.ferme'] as const;
+export const STICKY_HORS_SESSION = ['sidebar.retractee', 'mobileNotice.ferme', CLE_ECRAN_PARTAGE] as const;
 
 export interface Session {
   format: string;

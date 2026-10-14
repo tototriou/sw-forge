@@ -43,6 +43,8 @@ import { verificationsImportRecoCopies } from './import-reco-copies.test';
 import testNavigation from './navigation.test';
 import testBancSelection from './banc-selection.test';
 import { testNavigationAdresses, testNavigationAdressesDefauts, testNavigationVuesCompte } from './navigation-adresses.test';
+import { testVoletsLargeurs, testVoletsNavigation, testVoletsOuverture, testVoletsResponsive,
+  testVoletsVerrou } from './volets.test';
 import testPersistance from './persistance.test';
 import { testRenduOptimizerDialogueLeaderSkill, testRenduTelephoneOptimizerDialogueLeaderSkill,
   testRenduOptimizerDialogueLeaderEspece, testRenduTelephoneOptimizerDialogueLeaderEspece,
@@ -266,6 +268,8 @@ import { testRenduSiegeDefense, testRenduSiegeOffense, testRenduSiegeEnTete, tes
 import { testRenduUiBouton, testRenduUiEtats, testRenduUiMenu, testRenduUiNotification, testRenduPalette } from './rendu/ui.test';
 import { testPalette } from './palette.test';
 import { testRenduAppRoutes, testRenduAppNavigation, testRenduAppMobile, testRenduAppFil, testRenduAppLiensMorts } from './rendu/app.test';
+import { testRenduEcranPartageBarre, testRenduEcranPartageBouton, testRenduEcranPartageSelecteur,
+  testRenduEcranPartageSeparateur, testRenduEcranPartageVolet } from './rendu/ecran-partage.test';
 import { testRenduAccueil, testRenduAccueilBureau, testRenduAccueilEspace } from './rendu/accueil.test';
 import { testRenduTelecharger } from './rendu/telecharger.test';
 import { testRenduBureauTextes } from './rendu/bureau-textes.test';
@@ -460,6 +464,11 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRenduAppNavigation', testRenduAppNavigation],
   ['testRenduAppMobile', testRenduAppMobile],
   ['testRenduAppFil', testRenduAppFil],
+  ['testRenduEcranPartageVolet', testRenduEcranPartageVolet],
+  ['testRenduEcranPartageBarre', testRenduEcranPartageBarre],
+  ['testRenduEcranPartageSeparateur', testRenduEcranPartageSeparateur],
+  ['testRenduEcranPartageBouton', testRenduEcranPartageBouton],
+  ['testRenduEcranPartageSelecteur', testRenduEcranPartageSelecteur],
   ['testRenduAppLiensMorts', testRenduAppLiensMorts],
   ['testRenduAccueil', testRenduAccueil],
   ['testRenduAccueilEspace', testRenduAccueilEspace],
@@ -483,6 +492,11 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testNavigationAdresses', testNavigationAdresses],
   ['testNavigationAdressesDefauts', testNavigationAdressesDefauts],
   ['testNavigationVuesCompte', testNavigationVuesCompte],
+  ['testVoletsOuverture', testVoletsOuverture],
+  ['testVoletsNavigation', testVoletsNavigation],
+  ['testVoletsVerrou', testVoletsVerrou],
+  ['testVoletsLargeurs', testVoletsLargeurs],
+  ['testVoletsResponsive', testVoletsResponsive],
   ['testReco', testReco],
   ['testDefensesVisees', testDefensesVisees],
   ['testTrimPartage', testTrimPartage],

@@ -466,5 +466,8 @@ export function testAurasEcranGuidage() {
   ok(/onOuvrirMenu: \(\) => void;/.test(ecran), 'prop : OptimizerSection reçoit onOuvrirMenu');
   const outils = lireSansCommentaires('src/pages/OutilsPage.tsx');
   ok(/onOuvrirMenu: \(\) => void;/.test(outils) && outils.includes('onOuvrirMenu={onOuvrirMenu}'), 'prop : OutilsPage la relaie');
-  ok(app.includes('onOuvrirMenu={() => setMenuPageOuvert(true)}'), 'prop : App.tsx ouvre le panneau par l’état qui le pilote (`menuPageOuvert`)');
+  // En pleine page, le panneau de la page est celui de `menuPageOuvert` ; en
+  // écran partagé, celui de son volet (`pageDe(n, menu)`).
+  ok(app.includes('onOuvrirMenu={menu.ouvrir}') && app.includes('ouvrir: () => setMenuPageOuvert(true)'),
+    'prop : App.tsx ouvre le panneau par l’état qui le pilote (`menuPageOuvert` en pleine page)');
 }

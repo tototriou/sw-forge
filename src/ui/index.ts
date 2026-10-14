@@ -131,3 +131,8 @@ export { Modale, ConfirmDialog, PromptDialog, KeepAccountDialog } from './Dialog
 // Panneau montant du TÉLÉPHONE. ⚠️ Ce n'est pas une modale : il coexiste avec la
 // page, monte du bas et se pose SOUS les dialogues dans l'échelle des `z-index`.
 export { default as MobileSheet } from './MobileSheet';
+
+// Écran partagé, au BUREAU : deux zones et le séparateur qu'on glisse entre
+// elles (react-resizable-panels), bornées chacune par une largeur minimale.
+export { default as DeuxVolets } from './DeuxVolets';
+export type { DeuxVoletsProps } from './DeuxVolets';

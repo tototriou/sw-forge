@@ -23,7 +23,7 @@ import {
   IconeSiege,
   IconeSpeedTuning,
 } from './components/IconesAtelier';
-import Palette from './components/Palette';
+import Palette, { RecherchePalette } from './components/Palette';
 import { resultatsPalette } from './components/palette/recherchePalette';
 import SpeedTuneModale from './components/outils/SpeedTuneModale';
 import MonsterDetailDialog from './components/MonsterDetailDialog';
@@ -49,6 +49,7 @@ import Sidebar, {
   LARGEUR_SIDEBAR,
   LARGEUR_SIDEBAR_RETRACTEE,
   SidebarGroupe,
+  SidebarLien,
   SidebarSection,
   useSidebarRetractee,
 } from './components/Sidebar';
@@ -73,7 +74,28 @@ import {
 } from './hooks/usePersistence';
 import { ConfirmDialog, KeepAccountDialog, Modale } from './ui/Dialogs';
 import { FournisseurNotification, useNotifier } from './ui/Notification';
-import { Bouton } from './ui';
+import { Bouton, DeuxVolets } from './ui';
+import VoletEcran from './components/VoletEcran';
+import { useMediaQuery } from './hooks/useMediaQuery';
+import {
+  activer as activerVolet,
+  basculerPartage,
+  basculerVerrou,
+  CLE_ECRAN_PARTAGE,
+  Cote,
+  coteVide,
+  EtatVolets,
+  ETAT_VOLETS_INITIAL,
+  fermer as fermerVolet,
+  inverser as inverserVolets,
+  largeurMinVolet,
+  naviguer as naviguerVolets,
+  oppose,
+  ouvrirACote,
+  PageVolet,
+  seuilPartage,
+  Transition,
+} from './lib/volets';
 import { useSessionEnCours } from './hooks/useSessionEnCours';
 import MiseAJourBureau from './components/MiseAJourBureau';
 import SuiviSwex from './components/SuiviSwex';
@@ -115,7 +137,7 @@ import {
   runesUtiliseesVides,
 } from './lib/importAccount';
 import { mapRtaItems, mapSiegeTeams, mapBoxMonsters, BoxItem } from './lib/applyAccount';
-import { photographierMemoire, reinitialiserSticky } from './hooks/useStickyState';
+import { photographierMemoire, reinitialiserSticky, useStickyState } from './hooks/useStickyState';
 import { PREFIXE_SPEED_TUNE } from './hooks/useSpeedTune';
 import { VUES_INVENTAIRE, hashVue, vueParDefaut, vueValide } from './lib/accountViews';
 import { NOM_APP } from './marque';
@@ -136,6 +158,28 @@ const DISCORD_INVITE = 'https://discord.gg/R2Fe4GJZET';
 // action à y loger. Leur ouvrir un panneau vide serait pire que ne rien
 // proposer — c'est la règle qui décide de l'appartenance à cette liste.
 const PAGES_AVEC_MENU = new Set<Route>(['rta', 'siege', 'bestiary', 'compte', 'outils']);
+
+// La page d'une adresse porte-t-elle un panneau d'actions au format téléphone ?
+// Au téléphone, pour la page affichée ; en écran partagé, pour celle de chaque
+// volet étroit.
+function aPanneau(n: ReturnType<typeof parseHash>): boolean {
+  return (
+    PAGES_AVEC_MENU.has(n.route) &&
+    // ⚠️ Le panneau de RTA porte les actions de SA prépa (sauvegarder, exporter,
+    // catégories, tout effacer) : aucune n'a de sens en consultant celle d'un
+    // ami, où l'on ne modifie rien.
+    (n.route !== 'rta' || n.rtaSub === 'prepa') &&
+    (n.route !== 'compte' ||
+      n.accountSub === 'monstres' ||
+      n.accountView === 'liste' ||
+      n.accountView === 'optimisation') &&
+    // ⚠️ Un seul outil aujourd'hui (Optimizer), mais la vérification
+    // reste écrite : un futur outil sans réglages avancés n'hériterait pas
+    // du bouton par accident (même raison que la garde ci-dessus sur
+    // « Mon compte »).
+    (n.route !== 'outils' || n.toolSub === 'optimizer')
+  );
+}
 
 type Route =
   | 'home'
@@ -235,6 +279,12 @@ export function parseHash(hash: string = window.location.hash): {
     return { route: 'siege', ...base, siegeTab };
   }
   return { route: 'home', ...base };
+}
+
+// Deux adresses mènent-elles au même écran ? (`#/siege` et `#/siege/defense`.)
+// L'écran partagé s'en sert pour ne jamais ouvrir une page deux fois.
+export function memePage(a: string, b: string): boolean {
+  return JSON.stringify(parseHash(a)) === JSON.stringify(parseHash(b));
 }
 
 // ⚠️ `couleur` : la teinte de SIGNATURE de la section (data/couleursSection),
@@ -482,6 +532,19 @@ function Application() {
   // mémorise en entrant dans les paramètres, pas `window.location.hash`, qui
   // porte déjà la destination au moment où l'événement arrive.
   const hashCourant = useRef<string>(window.location.hash || '#/');
+
+  // Écran partagé, au bureau (src/lib/volets.ts). ⚠️ L'adresse reste celle du
+  // volet ACTIF : `route` et ses sous-routes décrivent donc toujours la page de
+  // ce volet, et toute la navigation existante va à lui sans le savoir. L'état
+  // ne tient que l'AUTRE volet, le côté actif, le verrou et la largeur.
+  const [volets, setVolets] = useStickyState<EtatVolets>(CLE_ECRAN_PARTAGE, ETAT_VOLETS_INITIAL);
+  // Le corps de chaque volet, qui défile seul : remis en haut quand sa page change.
+  const corpsVolets = useRef<Record<Cote, HTMLDivElement | null>>({ gauche: null, droite: null });
+  // Lus par l'écouteur de navigation, abonné une fois par route : sans ces
+  // références il lirait l'état du rendu où il s'est abonné.
+  const voletsRef = useRef(volets);
+  const filCourant = useRef<string[]>([]);
+  const voletsAffiches = useRef(false);
   const [importMsg, setImportMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [askKeep, setAskKeep] = useState(false);
   // Fichier déposé, en attente de confirmation de remplacement.
@@ -521,31 +584,22 @@ function Application() {
   // milliers de tuiles à montrer — chaque rangée de filtre leur prend un écran de
   // résultats. **Avoir des filtres ne suffit donc pas : il faut aussi que la page
   // ait de quoi remplir la place qu'ils libèrent.**
-  const pageAPanneau =
-    PAGES_AVEC_MENU.has(route) &&
-    // ⚠️ Le panneau de RTA porte les actions de SA prépa (sauvegarder, exporter,
-    // catégories, tout effacer) : aucune n'a de sens en consultant celle d'un
-    // ami, où l'on ne modifie rien.
-    (route !== 'rta' || rtaSub === 'prepa') &&
-    (route !== 'compte' ||
-      accountSub === 'monstres' ||
-      accountView === 'liste' ||
-      accountView === 'optimisation') &&
-    // ⚠️ Un seul outil aujourd'hui (Optimizer), mais la vérification
-    // reste écrite : un futur outil sans réglages avancés n'hériterait pas
-    // du bouton par accident (même raison que la garde ci-dessus sur
-    // « Mon compte »).
-    (route !== 'outils' || toolSub === 'optimizer');
+  const pageAPanneau = aPanneau({ route, rtaSub, siegeTab, accountSub, accountView, toolSub });
+
+  // Écran partagé : le panneau d'actions d'un volet ÉTROIT, qui a pris la mise
+  // en page de téléphone de sa page (voir VoletEcran). Un par volet : celui du
+  // volet ouvert, ou `null`.
+  const [menuVolet, setMenuVolet] = useState<Cote | null>(null);
 
   // Le panneau se referme à chaque changement d'écran : ses actions portent sur
   // celui qu'on vient de quitter. ⚠️ `accountSub`/`accountView`/`siegeTab`/
   // `toolSub` en font partie — ce sont des écrans à part entière, avec chacun
   // ses filtres, et rester ouvert sur ceux du précédent afficherait des
   // contrôles sans rapport.
-  useEffect(
-    () => setMenuPageOuvert(false),
-    [route, accountSub, accountView, siegeTab, toolSub]
-  );
+  useEffect(() => {
+    setMenuPageOuvert(false);
+    setMenuVolet(null);
+  }, [route, accountSub, accountView, siegeTab, toolSub]);
 
   // ⚠️ Le panneau de NAVIGATION se referme aux mêmes changements. Il se ferme
   // déjà au clic sur une destination (voir MobileNavSheet), mais pas quand la
@@ -1032,6 +1086,41 @@ function Application() {
     window.location.hash = route === 'parametres' ? avantParametres.current : '#/parametres';
   }
 
+  // Écran partagé : remet en haut le corps d'un volet, après le rendu de sa
+  // nouvelle page — même raison que le retour en haut de la fenêtre plus bas.
+  function remettreEnHaut(cote: Cote) {
+    requestAnimationFrame(() => corpsVolets.current[cote]?.scrollTo({ top: 0, behavior: 'instant' }));
+  }
+
+  // Applique un geste de l'écran partagé. L'adresse change SANS `hashchange`
+  // (`pushState` / `replaceState`) : le geste a déjà décidé quel volet montre
+  // quoi, l'écouteur de navigation ne doit pas en décider une seconde fois.
+  // ⚠️ Activer un volet REMPLACE l'entrée d'historique (on n'a pas navigué) ;
+  // ouvrir une page à côté en AJOUTE une, comme toute navigation.
+  function appliquerVolets(t: Transition, historique: 'ajouter' | 'remplacer') {
+    // Les références suivent tout de suite : un clic arrive juste après l'appui
+    // qui a activé le volet, et le lien cliqué doit voir ce volet actif.
+    if (t.adresse !== undefined && volets.autre && t.adresse === volets.autre.adresse) {
+      filCourant.current = volets.autre.fil;
+    }
+    voletsRef.current = t.etat;
+    setVolets(t.etat);
+    if (t.adresse === undefined || t.adresse === hashCourant.current) return;
+    if (historique === 'ajouter') window.history.pushState(null, '', t.adresse);
+    else window.history.replaceState(null, '', t.adresse);
+    hashCourant.current = t.adresse;
+    setNav(parseHash(t.adresse));
+    if (historique === 'ajouter') remettreEnHaut(t.etat.actif);
+  }
+
+  // La page du volet actif, telle que l'écran partagé la mémorise quand elle
+  // cède la place : son adresse et son fil d'Ariane.
+  const pageActive = (): PageVolet => ({ adresse: hashCourant.current, fil: filCourant.current });
+
+  const activerCote = (cote: Cote) => appliquerVolets(activerVolet(volets, pageActive(), cote), 'remplacer');
+  const ouvrirPageACote = (adresse: string) =>
+    appliquerVolets(ouvrirACote(volets, pageActive(), adresse, memePage), 'ajouter');
+
   useEffect(() => {
     const onHash = () => {
       // ⚠️ Mémorisé AVANT la mise à jour : `window.location.hash` porte déjà la
@@ -1042,8 +1131,21 @@ function Application() {
       if (cible === 'parametres' && route !== 'parametres') {
         avantParametres.current = hashCourant.current;
       }
+      const quittee: PageVolet = { adresse: hashCourant.current, fil: filCourant.current };
       hashCourant.current = window.location.hash || '#/';
+      // Écran partagé : la page va au volet actif — ou à l'autre, si le volet
+      // actif est verrouillé ou si elle y est déjà ouverte (src/lib/volets.ts).
+      const avant = voletsRef.current;
+      const apres = naviguerVolets(avant, quittee, hashCourant.current, memePage);
+      if (apres !== avant) {
+        voletsRef.current = apres;
+        setVolets(apres);
+      }
       setNav(parseHash());
+      if (voletsAffiches.current) {
+        remettreEnHaut(apres.actif);
+        return;
+      }
       // ⚠️ **Retour en HAUT à chaque changement d'écran.** Le routage par hash
       // ne fait défiler nulle part : on arrivait sur une nouvelle page à la
       // position qu'on occupait sur la précédente — au milieu du bestiaire
@@ -1058,7 +1160,7 @@ function Application() {
     };
     window.addEventListener('hashchange', onHash);
     return () => window.removeEventListener('hashchange', onHash);
-  }, [route]);
+  }, [route, setVolets]);
 
   // Message d'import éphémère : il disparaît tout seul (un peu plus long pour une erreur).
   useEffect(() => {
@@ -1327,6 +1429,57 @@ function Application() {
     }
     return [titreSection];
   })();
+  // ---- Écran partagé (bureau) — docs/02-app/transverse/feat-navigation/ecran-partage.md ----
+  //
+  // ⚠️ **Au bureau seulement** (`seuilPartage`), dès que deux volets à leur
+  // plancher tiennent à côté de la barre latérale. Trop étroite, on ne montre
+  // que le volet actif SANS oublier l'autre : il revient quand la fenêtre
+  // s'élargit (redimensionner n'est pas fermer).
+  const largeurBarre = sidebarRetractee ? LARGEUR_SIDEBAR_RETRACTEE : LARGEUR_SIDEBAR;
+  const partagePossible = useMediaQuery(`(min-width: ${seuilPartage(largeurBarre)}px)`);
+  const navAutre = volets.partage && volets.autre ? parseHash(volets.autre.adresse) : null;
+  const voletsVisibles = volets.partage && partagePossible;
+
+  useEffect(() => {
+    voletsRef.current = volets;
+    filCourant.current = filBureau;
+    voletsAffiches.current = voletsVisibles;
+  });
+
+  // Ouvrir l'écran partagé n'ajoute rien à l'historique : le volet vide n'a
+  // pas d'adresse, la page affichée reste la même.
+  const basculerEcranPartage = () => appliquerVolets(basculerPartage(volets, pageActive()), 'remplacer');
+  const fermerCote = (cote: Cote) => appliquerVolets(fermerVolet(volets, pageActive(), cote), 'remplacer');
+  const inverserCotes = () => appliquerVolets({ etat: inverserVolets(volets) }, 'remplacer');
+  const verrouillerCote = (cote: Cote) => appliquerVolets({ etat: basculerVerrou(volets, cote) }, 'remplacer');
+
+  // La barre latérale sait quel volet affiche une page, et propose de l'ouvrir
+  // à côté — sauf la page du volet actif, déjà sous les yeux.
+  const mentionVolet = (adresse: string): string | undefined => {
+    if (!voletsVisibles) return undefined;
+    if (volets.autre && memePage(adresse, volets.autre.adresse)) {
+      const cote = oppose(volets.actif);
+      return `${cote === 'droite' ? 'à droite' : 'à gauche'}${volets.verrou === cote ? ' · verrouillé' : ''}`;
+    }
+    if (memePage(adresse, hashCourant.current) && volets.verrou === volets.actif) return 'verrouillé';
+    return undefined;
+  };
+  const decorerLien = (l: SidebarLien): SidebarLien => {
+    const ouvre = l.ouvre && {
+      ...l.ouvre,
+      groupes: l.ouvre.groupes.map((g) => ({ ...g, liens: g.liens.map(decorerLien) })),
+    };
+    if (!l.hash) {
+      // Une entrée qui déroule : la mention d'une de ses sous-sections, pour
+      // la voir section refermée.
+      return { ...l, ouvre, volet: ouvre?.groupes.flatMap((g) => g.liens).find((s) => s.volet)?.volet };
+    }
+    const hash = l.hash;
+    const aCote = !memePage(hash, hashCourant.current) && partagePossible ? () => ouvrirPageACote(hash) : undefined;
+    return { ...l, ouvre, volet: mentionVolet(hash), aCote };
+  };
+  const groupesBarre = groupesBureau.map((g) => ({ ...g, liens: g.liens.map(decorerLien) }));
+
   // Toutes les icônes de section ont la même API depuis le rebranding (R4,
   // `IconesAtelier`) : `size` et `color`.
   const iconeSection = compteSub ? (
@@ -1421,18 +1574,20 @@ function Application() {
   // de la barre (dérivées du menu), puis monstres et actions (aucune destructrice).
   // Règles de groupe, d'ordre et de plafond : voir
   // `resultatsPalette`.
+  const pagesPalette = ciblesRecherche.map((c) => ({
+    cle: c.key,
+    libelle: c.label,
+    contexte: c.contexte,
+    icone: c.icon,
+    hash: c.hash,
+    faire: () => {
+      window.location.hash = c.hash;
+    },
+  }));
   const groupesPalette = (saisie: string) =>
     resultatsPalette({
       saisie,
-      pages: ciblesRecherche.map((c) => ({
-        cle: c.key,
-        libelle: c.label,
-        contexte: c.contexte,
-        icone: c.icon,
-        faire: () => {
-          window.location.hash = c.hash;
-        },
-      })),
+      pages: pagesPalette,
       actions: [
         { cle: 'a-import', libelle: 'Importer mon compte', icone: <Download size={16} />, faire: () => fichierCompte.current?.click() },
         { cle: 'a-session-sauver', libelle: 'Sauvegarder la session', contexte: 'Tout l’état de l’app dans un fichier', icone: <Save size={16} />, faire: sauvegarderSession },
@@ -1505,6 +1660,211 @@ function Application() {
     [sectionRta, sectionSiege, sectionCompte, sectionOutils].find((s) => s.titre === navMobileOuverte) ??
     null;
 
+  // La page d'une adresse. ⚠️ Appelée UNE fois en pleine page, une fois PAR
+  // VOLET en écran partagé : les deux volets montent les mêmes pages, avec le
+  // même état remonté ici — deux pages différentes, jamais deux copies d'une
+  // même page (src/lib/volets.ts).
+  // `menu` : le panneau d'actions de la page au format téléphone — celui de la
+  // barre d'onglets en pleine page, celui de son volet en écran partagé.
+  const menuPleinePage = {
+    ouvert: menuPageOuvert,
+    ouvrir: () => setMenuPageOuvert(true),
+    fermer: () => setMenuPageOuvert(false),
+  };
+  const pageDe = (n: ReturnType<typeof parseHash>, menu = menuPleinePage) =>
+    n.route === 'rta' ? (
+      <RtaPage
+        onImporterEquipe={importerEquipe}
+        sourcesOptimizer={optimizerData}
+        compteCharge={box.length > 0 || runes.length > 0}
+        sub={n.rtaSub}
+        rta={rta}
+        monsters={allMonsters}
+        loadState={data.loadState}
+        onCreateMonster={custom.addCustomMonster}
+        customMonsters={custom.customMonsters}
+        onDeleteMonster={custom.removeCustomMonster}
+        menuOuvert={menu.ouvert}
+        onFermerMenu={menu.fermer}
+      />
+    ) : n.route === 'bestiary' ? (
+      <BestiaryPage
+        monsters={data.monsters}
+        loadState={data.loadState}
+        menuOuvert={menu.ouvert}
+        onFermerMenu={menu.fermer}
+      />
+    ) : n.route === 'siege' ? (
+      <SiegePage
+        tab={n.siegeTab}
+        onImporterEquipe={importerEquipe}
+        sourcesOptimizer={optimizerData}
+        compteCharge={box.length > 0 || runes.length > 0}
+        siege={n.siegeTab === 'offense' ? siegeOff : siegeDef}
+        offense={siegeOff}
+        siegeDefenseTeams={siegeDef.state.teams}
+        siegeOffenseTeams={siegeOff.state.teams}
+        recos={recos}
+        builds={ownedBuilds}
+        teams={ownedTeams}
+        copies6={copies6}
+        monsters={allMonsters}
+        loadState={data.loadState}
+        onCreateMonster={custom.addCustomMonster}
+        customMonsters={custom.customMonsters}
+        onDeleteMonster={custom.removeCustomMonster}
+        menuOuvert={menu.ouvert}
+        onFermerMenu={menu.fermer}
+      />
+    ) : n.route === 'arene' ? (
+      <ComingSoon
+        title="Arène"
+        icon={IconeArene}
+        description="Préparation des équipes d'arène classique (offense et défense)."
+      />
+    ) : n.route === 'compte' ? (
+      <AccountPage
+        sub={n.accountSub}
+        // ⚠️ `vueValide` : passer des Runes (sur « Courbes ») aux Artéfacts,
+        // qui n'ont pas de courbes, laissait sinon un écran blanc.
+        vue={vueValide(n.accountSub, n.accountView)}
+        box={box}
+        runes={runes}
+        artifacts={artifacts}
+        crafts={crafts}
+        usedRuneIds={usedRuneIds}
+        runeMarkerLabels={runeMarkerLabels}
+        loadState={data.loadState}
+        hydrating={accountHydrating}
+        // ⚠️ Le bestiaire COMPLET, pas seulement la box : la fiche d'un
+        // monstre transformable doit pouvoir montrer sa seconde forme, que
+        // la box ne contient pas forcément (voir `autreForme`).
+        allMonsters={allMonsters}
+        menuOuvert={menu.ouvert}
+        onFermerMenu={menu.fermer}
+      />
+    ) : n.route === 'outils' ? (
+      <OutilsPage
+        recommandations={recos.state.recos}
+        sub={n.toolSub}
+        box={box}
+        runes={runes}
+        artifacts={artifacts}
+        relics={relics}
+        relicUsageById={relicUsageById}
+        loadState={data.loadState}
+        hydrating={accountHydrating}
+        optimizer={optimizer}
+        onImporterEquipe={importerEquipeFlottant}
+        onExporterEquipe={importerEquipe}
+        allMonsters={allMonsters}
+        rtaEntries={rta.state.entries}
+        siegeDefenseTeams={siegeDef.state.teams}
+        siegeOffenseTeams={siegeOff.state.teams}
+        lists={optimizerLists}
+        accountName={accountName}
+        menuOuvert={menu.ouvert}
+        onFermerMenu={menu.fermer}
+        // L'Optimizer ouvre lui-même ce panneau pour l'ouverture guidée
+        // au doigt — seule page qui le demande.
+        onOuvrirMenu={menu.ouvrir}
+        onMonstreHorsVue={setMonstreOptions}
+      />
+    ) : n.route === 'releases' ? (
+      <ReleasesPage />
+    ) : n.route === 'telecharger' ? (
+      <TelechargerPage />
+    ) : n.route === 'mecaniques' ? (
+      <MechanicsPage />
+    ) : n.route === 'parametres' ? (
+      <SettingsPage
+        onClearData={() => setPurgeGlobale(true)}
+        onSauvegarderSession={sauvegarderSession}
+        sauvegardeIndisponible={sauvegardeIndisponible}
+        onKeepAccount={persistCurrentAccount}
+        onImport={importAccount}
+        accountExportedAt={accountExportedAt}
+        accountName={accountName}
+      />
+    ) : (
+      <HomePage
+        stats={{
+          rta: Object.keys(rta.state.entries).length,
+          // Une équipe « vide » (créée puis abandonnée) ne compte pas :
+          // afficher 12 équipes dont 9 sans monstre serait mensonger.
+          defense: siegeDef.state.teams.filter((t) => t.slots.some((s) => s.monsterId)).length,
+          offense: siegeOff.state.teams.filter((t) => t.slots.some((s) => s.monsterId)).length,
+          recos: recos.state.recos.length,
+        }}
+        onImport={importAccount}
+      />
+    );
+
+  // Écran partagé : la navigation et le fil de chaque côté. Le volet actif est
+  // celui de l'adresse ; l'autre, celui que l'état a mémorisé.
+  // ⚠️ Un volet VIDE (celui qu'ouvre « Écran partagé ») n'a ni navigation ni
+  // fil : il montre le sélecteur de page.
+  const vide = coteVide(volets);
+  const navDuCote = (cote: Cote) =>
+    cote === volets.actif ? { route, rtaSub, siegeTab, accountSub, accountView, toolSub } : navAutre;  // Le sélecteur d'un volet vide : les pages de la palette Ctrl K, sans celle
+  // déjà affichée à côté. Choisir une page navigue, et la navigation remplit
+  // le volet vide (src/lib/volets.ts).
+  const groupesPagesVolet = (saisie: string) =>
+    resultatsPalette({
+      saisie,
+      pages: pagesPalette.filter((p) => !memePage(p.hash, hashCourant.current)),
+      actions: [],
+      monstres: [],
+      equipes: [],
+      monsterById: monstreParId,
+      ouvrirFiche: setFicheMonstre,
+      ouvrirSpeedTune: () => {},
+    });
+  const volet = (cote: Cote) => {
+    const nav = navDuCote(cote);
+    return (
+      <VoletEcran
+        fil={cote === vide ? ['Nouveau volet'] : cote === volets.actif || !volets.autre ? filBureau : volets.autre.fil}
+        // Un volet vide est LE volet marqué : c'est là qu'ira la navigation.
+        actif={vide ? cote === vide : cote === volets.actif}
+        verrouille={volets.verrou === cote}
+        verrouIndisponible={volets.verrou !== null && volets.verrou !== cote}
+        vide={cote === vide}
+        onActiver={() => activerCote(cote)}
+        onVerrouiller={() => verrouillerCote(cote)}
+        onInverser={inverserCotes}
+        onFermer={() => fermerCote(cote)}
+        onOptions={nav && aPanneau(nav) ? () => setMenuVolet((m) => (m === cote ? null : cote)) : undefined}
+        optionsOuvertes={menuVolet === cote}
+        corpsRef={(el) => {
+          corpsVolets.current[cote] = el;
+        }}
+      >
+        {nav ? (
+          pageDe(nav, {
+            ouvert: menuVolet === cote,
+            ouvrir: () => setMenuVolet(cote),
+            fermer: () => setMenuVolet(null),
+          })
+        ) : (
+          // Au centre du volet, comme la palette Ctrl K au centre de l'écran.
+          <div className="flex justify-center pt-[10vh]">
+            <div className="w-full max-w-[560px] rounded-xl border border-border bg-panel p-4">
+              <h2 className="mb-3 text-md font-semibold text-ink">Ouvrir une page dans ce volet</h2>
+              <RecherchePalette
+                groupesPour={groupesPagesVolet}
+                onChoisir={(e) => e.faire()}
+                invite="Rechercher une page…"
+                aide="Essaie le nom d'une page : RTA, Siège, Runes…"
+                onEchap={() => fermerCote(cote)}
+              />
+            </div>
+          </div>
+        )}
+      </VoletEcran>
+    );
+  };
+
   return (
     <>
     {/* Application de bureau : « Mise à jour prête · Redémarrer ». Inerte sur le site. */}
@@ -1537,7 +1897,7 @@ function Application() {
           `position: sticky` aurait suffi visuellement, mais la barre doit
           rester en place quand le contenu défile sur 3 000 monstres. */}
       <Sidebar
-        groupes={groupesBureau}
+        groupes={groupesBarre}
         compte={
           <SidebarCompte
             nom={accountName}
@@ -1589,7 +1949,10 @@ function Application() {
       <TopBar
         titre={titreSection}
         icone={iconeSection}
-        fil={filBureau}
+        // ⚠️ En écran partagé, chaque volet porte SON fil : celui de la barre
+        // se tait, deux fils pour une même page se liraient comme deux pages.
+        fil={voletsVisibles ? [] : filBureau}
+        ecranPartage={{ actif: voletsVisibles, disponible: partagePossible, onBasculer: basculerEcranPartage }}
         onRecherche={() => setPaletteOuverte(true)}
         onSauvegarder={sauvegarderSession}
         sauvegardeIndisponible={sauvegardeIndisponible}
@@ -1649,9 +2012,19 @@ function Application() {
           viewport mobile réel).
           `116px` = 108 px + 8 px de respiration, `+ env(safe-area-inset-bottom)`
           pour rester aligné avec le même terme dans `MobileTabs.tsx`. */}
+      {/* ⚠️ **Écran partagé : la zone tient dans la FENÊTRE** (`h-dvh`), et
+          chaque volet défile seul. Une page qui défilerait dans la fenêtre
+          entraînerait l'autre avec elle ; on lit deux pages à des hauteurs
+          différentes. Sous la barre du haut (48 px), 12 px de marge. */}
       <div
-        className="px-4 pb-[calc(116px_+_env(safe-area-inset-bottom))] sm:px-6 lg:pb-16"
-        style={{ paddingTop: 'calc(68px + env(safe-area-inset-top))' }}
+        // Coupe le défilement de la fenêtre (index.css, « Écran partagé »).
+        data-ecran-partage={voletsVisibles || undefined}
+        className={
+          voletsVisibles
+            ? 'flex h-dvh flex-col px-3 pb-3'
+            : 'px-4 pb-[calc(116px_+_env(safe-area-inset-bottom))] sm:px-6 lg:pb-16'
+        }
+        style={{ paddingTop: `calc(${voletsVisibles ? 60 : 68}px + env(safe-area-inset-top))` }}
       >
 
         {/* Avertissement petit écran : au-dessus du contenu, avant qu'on se soit
@@ -1679,132 +2052,19 @@ function Application() {
           )}
         </div>
 
-        {route === 'rta' ? (
-          <RtaPage
-            onImporterEquipe={importerEquipe}
-            sourcesOptimizer={optimizerData}
-            compteCharge={box.length > 0 || runes.length > 0}
-            sub={rtaSub}
-            rta={rta}
-            monsters={allMonsters}
-            loadState={data.loadState}
-            onCreateMonster={custom.addCustomMonster}
-            customMonsters={custom.customMonsters}
-            onDeleteMonster={custom.removeCustomMonster}
-            menuOuvert={menuPageOuvert}
-            onFermerMenu={() => setMenuPageOuvert(false)}
-          />
-        ) : route === 'bestiary' ? (
-          <BestiaryPage
-            monsters={data.monsters}
-            loadState={data.loadState}
-            menuOuvert={menuPageOuvert}
-            onFermerMenu={() => setMenuPageOuvert(false)}
-          />
-        ) : route === 'siege' ? (
-          <SiegePage
-            tab={siegeTab}
-            onImporterEquipe={importerEquipe}
-            sourcesOptimizer={optimizerData}
-            compteCharge={box.length > 0 || runes.length > 0}
-            siege={siegeTab === 'offense' ? siegeOff : siegeDef}
-            offense={siegeOff}
-            siegeDefenseTeams={siegeDef.state.teams}
-            siegeOffenseTeams={siegeOff.state.teams}
-            recos={recos}
-            builds={ownedBuilds}
-            teams={ownedTeams}
-            copies6={copies6}
-            monsters={allMonsters}
-            loadState={data.loadState}
-            onCreateMonster={custom.addCustomMonster}
-            customMonsters={custom.customMonsters}
-            onDeleteMonster={custom.removeCustomMonster}
-            menuOuvert={menuPageOuvert}
-            onFermerMenu={() => setMenuPageOuvert(false)}
-          />
-        ) : route === 'arene' ? (
-          <ComingSoon
-            title="Arène"
-            icon={IconeArene}
-            description="Préparation des équipes d'arène classique (offense et défense)."
-          />
-        ) : route === 'compte' ? (
-          <AccountPage
-            sub={accountSub}
-            // ⚠️ `vueValide` : passer des Runes (sur « Courbes ») aux Artéfacts,
-            // qui n'ont pas de courbes, laissait sinon un écran blanc.
-            vue={vueValide(accountSub, accountView)}
-            box={box}
-            runes={runes}
-            artifacts={artifacts}
-            crafts={crafts}
-            usedRuneIds={usedRuneIds}
-            runeMarkerLabels={runeMarkerLabels}
-            loadState={data.loadState}
-            hydrating={accountHydrating}
-            // ⚠️ Le bestiaire COMPLET, pas seulement la box : la fiche d'un
-            // monstre transformable doit pouvoir montrer sa seconde forme, que
-            // la box ne contient pas forcément (voir `autreForme`).
-            allMonsters={allMonsters}
-            menuOuvert={menuPageOuvert}
-            onFermerMenu={() => setMenuPageOuvert(false)}
-          />
-        ) : route === 'outils' ? (
-          <OutilsPage
-            recommandations={recos.state.recos}
-            sub={toolSub}
-            box={box}
-            runes={runes}
-            artifacts={artifacts}
-            relics={relics}
-            relicUsageById={relicUsageById}
-            loadState={data.loadState}
-            hydrating={accountHydrating}
-            optimizer={optimizer}
-            onImporterEquipe={importerEquipeFlottant}
-            onExporterEquipe={importerEquipe}
-            allMonsters={allMonsters}
-            rtaEntries={rta.state.entries}
-            siegeDefenseTeams={siegeDef.state.teams}
-            siegeOffenseTeams={siegeOff.state.teams}
-            lists={optimizerLists}
-            accountName={accountName}
-            menuOuvert={menuPageOuvert}
-            onFermerMenu={() => setMenuPageOuvert(false)}
-            // L'Optimizer ouvre lui-même ce panneau pour l'ouverture guidée
-            // au doigt — seule page qui le demande.
-            onOuvrirMenu={() => setMenuPageOuvert(true)}
-            onMonstreHorsVue={setMonstreOptions}
-          />
-        ) : route === 'releases' ? (
-          <ReleasesPage />
-        ) : route === 'telecharger' ? (
-          <TelechargerPage />
-        ) : route === 'mecaniques' ? (
-          <MechanicsPage />
-        ) : route === 'parametres' ? (
-          <SettingsPage
-            onClearData={() => setPurgeGlobale(true)}
-            onSauvegarderSession={sauvegarderSession}
-            sauvegardeIndisponible={sauvegardeIndisponible}
-            onKeepAccount={persistCurrentAccount}
-            onImport={importAccount}
-            accountExportedAt={accountExportedAt}
-            accountName={accountName}
+        {voletsVisibles ? (
+          <DeuxVolets
+            className="min-h-0 flex-1"
+            gauche={volet('gauche')}
+            droite={volet('droite')}
+            minGauche={largeurMinVolet()}
+            minDroite={largeurMinVolet()}
+            taille={volets.taille}
+            onTaille={(taille) => setVolets((v) => ({ ...v, taille }))}
+            libelleSeparateur="Redimensionner les deux pages (double-clic : moitié-moitié)"
           />
         ) : (
-          <HomePage
-            stats={{
-              rta: Object.keys(rta.state.entries).length,
-              // Une équipe « vide » (créée puis abandonnée) ne compte pas :
-              // afficher 12 équipes dont 9 sans monstre serait mensonger.
-              defense: siegeDef.state.teams.filter((t) => t.slots.some((s) => s.monsterId)).length,
-              offense: siegeOff.state.teams.filter((t) => t.slots.some((s) => s.monsterId)).length,
-              recos: recos.state.recos.length,
-            }}
-            onImport={importAccount}
-          />
+          pageDe({ route, rtaSub, siegeTab, accountSub, accountView, toolSub })
         )}
 
         {/* ⚠️ **Le pied de page de la toile : UNE rangée** (rebranding R4 —
@@ -1817,6 +2077,10 @@ function Application() {
             (`order-last`). Police du TEXTE, plus étroite que la mono. Aucune
             phrase ni aucun lien retiré : les libellés longs restent au bureau,
             et l'infobulle garde partout la phrase entière. */}
+        {/* ⚠️ Pas de pied de page en écran partagé : la zone tient dans la
+            fenêtre, il n'aurait sa place que dans l'un des deux volets. Une
+            seule page le retrouve. */}
+        {!voletsVisibles && (
         <footer
           className="mt-16 grid grid-cols-1 justify-items-center gap-y-3 border-t border-border-soft pt-5
                      text-xs text-ink-dim lg:grid-cols-[auto_1fr_auto] lg:items-center lg:justify-items-stretch lg:gap-x-6"
@@ -1888,6 +2152,7 @@ function Application() {
             </a>
           </p>
         </footer>
+        )}
 
         {importEnAttente !== null && (
           <ConfirmDialog

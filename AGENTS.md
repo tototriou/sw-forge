@@ -35,8 +35,8 @@ commit** que le code.
 | --- | --- |
 | Runtime | **Node ≥ 24** (`.nvmrc`), npm, ESM (`"type": "module"`) |
 | App | **React 18** + **TypeScript 5**, **sans router** : routage par `window.location.hash` (`src/App.tsx`) |
-| Build & style | **Vite 5**, **Tailwind 3** (PostCSS + autoprefixer), tokens CSS dans `src/index.css` |
-| Dépendances runtime | `lucide-react` (icônes), `framer-motion` (animation) — aucune mesure d'audience |
+| Build & style | **Vite 5**, **Tailwind 3** (PostCSS + autoprefixer, déclarés dans `vite.config.ts` avec le plugin de l'écran partagé `scripts/lib/postcssVolets.ts`), tokens CSS dans `src/index.css` |
+| Dépendances runtime | `lucide-react` (icônes), `framer-motion` (animation), `react-resizable-panels` (séparateur de l'écran partagé, derrière `src/ui/DeuxVolets.tsx`) — aucune mesure d'audience |
 | Calcul lourd | **Web Workers** (`src/workers/`) : recherche de l'Optimizer, résolution de l'équipement |
 | Stockage | `localStorage` (prépa, équipes, réglages) + **IndexedDB** (compte importé), tous deux opt-in |
 | Bureau | **Electron** + `electron-builder` + `electron-updater` (`bureau/`, hors de `src/`) |
@@ -102,7 +102,7 @@ npm run bureau:preuve          # la vérification de l'application de bureau
 
 | Le changement touche… | Lire |
 | --- | --- |
-| `src/App.tsx`, `src/components/Sidebar.tsx`, `src/components/TopBar.tsx`, `src/components/MobileTabs.tsx`, `src/components/Palette.tsx`, `src/pages/SettingsPage.tsx` | [transverse/feat-navigation/](docs/02-app/transverse/feat-navigation/README.md) |
+| `src/App.tsx`, `src/components/Sidebar.tsx`, `src/components/TopBar.tsx`, `src/components/MobileTabs.tsx`, `src/components/Palette.tsx`, `src/pages/SettingsPage.tsx`, l'écran partagé (`src/lib/volets.ts`, `src/components/VoletEcran.tsx`) | [transverse/feat-navigation/](docs/02-app/transverse/feat-navigation/README.md) |
 | `src/pages/HomePage.tsx`, `src/data/releases.ts` | [accueil/](docs/02-app/accueil/README.md), [nouveautes/](docs/02-app/nouveautes/README.md) |
 | `src/pages/RtaPage.tsx`, `src/components/rta/`, `src/lib/rtaShare.ts` | [rta/](docs/02-app/rta/README.md) |
 | `src/pages/SiegePage.tsx`, `src/components/siege/`, les `reco…` et `siege…` de `src/lib/` | [siege/](docs/02-app/siege/README.md) |

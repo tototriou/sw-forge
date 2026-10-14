@@ -1,4 +1,12 @@
-import { useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
+import { requeteDansVolet } from '../lib/volets';
+
+// La largeur du CONTENU du volet de l'écran partagé qui contient le composant,
+// arrondie au dernier seuil franchi (`palierContenu`) ; `null` hors volet.
+// ⚠️ Dans un volet, une requête de LARGEUR répond selon le volet, comme le CSS
+// (scripts/lib/postcssVolets.ts) : sinon une page lirait en JavaScript la
+// largeur de toute la fenêtre pendant que son CSS lit celle de son volet.
+export const LargeurVolet = createContext<number | null>(null);
 
 // Une media query, lue depuis React.
 //
@@ -15,6 +23,7 @@ import { useEffect, useState } from 'react';
 // un effet : sinon le premier rendu utilise toujours la valeur de bureau, et un
 // téléphone voit la roue de runes s'afficher en grand avant de rétrécir.
 export function useMediaQuery(query: string): boolean {
+  const volet = useContext(LargeurVolet);
   const [correspond, setCorrespond] = useState(() =>
     // `window` est absent au rendu serveur — l'app est statique, mais la garde
     // évite un plantage si elle est un jour pré-rendue.
@@ -31,7 +40,7 @@ export function useMediaQuery(query: string): boolean {
     return () => mq.removeEventListener('change', onChange);
   }, [query]);
 
-  return correspond;
+  return (volet !== null ? requeteDansVolet(query, volet) : null) ?? correspond;
 }
 
 // Les seuils de Tailwind, nommés une fois.

@@ -98,6 +98,7 @@ function sources(): SourcesSession {
       // Hors session : préférences d'interface de l'appareil.
       'sidebar.retractee': true,
       'mobileNotice.ferme': true,
+      'ecranPartage.volets': { partage: true },
     },
     optimizer: photo(),
   };
@@ -128,6 +129,7 @@ export default function testSession(avecCompteReel = true) {
   const map = s.outils.memoire['recos.parId'];
   ok(map instanceof Map && JSON.stringify([...map]) === JSON.stringify([['r1', { ouvert: true }]]), 'outils : une Map revient en Map');
   ok(!('sidebar.retractee' in s.outils.memoire) && !('mobileNotice.ferme' in s.outils.memoire), 'hors session : les préférences d’interface');
+  ok(!('ecranPartage.volets' in s.outils.memoire), 'hors session : la disposition de l’écran partagé');
   const { showAdvanced: _i, futurChamp: _f, ...attendue } = photo();
   egal(s.outils.optimizer, attendue, 'outils : la photo de l’Optimizer, champs de la session seulement');
 

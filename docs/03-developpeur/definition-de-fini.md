@@ -40,7 +40,10 @@ Chaque niveau que la fonctionnalité touche a sa vérification, inscrite au regi
 - **Le calcul** : la logique pure, dans `src/lib/`, testée par ses cas — dont ses cas limites et
   ce qui doit être refusé.
 - **Le rendu** : chaque composant nouveau ou changé, par `react-dom/server` — ce qu'il affiche,
-  ses libellés, ses états désactivés et leur raison.
+  ses libellés, ses états désactivés et leur raison. Un changement purement visuel (classes,
+  marges, disposition) peut se vérifier par le banc d'affichage sur les pages concernées
+  ([tests/README.md](../../tests/README.md)), sans nouveau test de rendu ; si l'élément changé a
+  déjà son test, ce test se met à jour et se lance.
 - **Le branchement dans l'app** : la fonctionnalité rendue dans `App`, dans les conditions où elle
   s'active (route, largeur de fenêtre, données) — un composant juste mais jamais branché, ou
   branché à la mauvaise condition, ne se voit qu'ici.

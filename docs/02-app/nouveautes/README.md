@@ -145,9 +145,11 @@ alors qu'un numéro deviendrait faux au premier `feat`.
 
 ### ⚠️ Plusieurs sujets pour une même version : la branche d'intégration
 
-Quand **plusieurs branches `<type>/<sujet>`** partent ensemble, on ne les
-empile pas l'une sur l'autre : une **branche d'intégration `release/vX.Y.Z`**,
-créée depuis `origin/main`, joue pour elles le rôle de `main`.
+Une version qui réunit plusieurs sujets se prépare dans une **branche
+d'intégration `release/vX.Y.Z`**, créée depuis `origin/main`. Chaque sujet a
+sa propre branche `<type>/<sujet>`, qui part de cette release et y revient ;
+on n'empile pas les branches de sujet l'une sur l'autre. Pour elles, la
+release tient le rôle que `main` tient d'ordinaire.
 
 - **On ne travaille jamais sur la release** : on en part
   (`git switch -c <type>/<sujet> origin/release/vX.Y.Z`), et on n'y pousse
@@ -155,8 +157,9 @@ créée depuis `origin/main`, joue pour elles le rôle de `main`.
 - **Chaque sujet y revient par une PR** (`--base release/vX.Y.Z`), en merge
   commit : sa CI tourne sur la fusion avec la release. La règle d'approbation
   ne porte que sur `main`.
-- **Une branche de sujet se met à jour** quand la release a avancé, en
-  fusionnant la release en elle (bouton « Update branch » de la PR).
+- **Remettre une branche de sujet à jour n'est pas nécessaire** : on ne
+  fusionne la release en elle (bouton « Update branch » de la PR) que si on a
+  besoin de ce qu'elle contient, ou pour résoudre des conflits de fusion.
 - **L'étape 4 se fait une seule fois, sur la release** (entrée unique dans
   `releases.ts` — deux entrées `version: null` deviennent une, pas deux
   entrées au même numéro — numéro dans `package.json`, `tsc`, lint,

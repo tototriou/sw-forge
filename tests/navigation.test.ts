@@ -102,13 +102,11 @@ export default function testNavigation() {
       'l’ancienne clé, limitée à la section, a disparu'
     );
 
-    // Le panneau de survol, qui avait ici son propre contrôle (il devait
-    // reposer la barre au clic), a été retiré par le mainteneur le 2026-09-24
-    // ([retrait #12] du cadrage de la refonte graphique). On vérifie qu'il ne
-    // revient pas par morceaux.
+    // La barre n'a pas de panneau de survol : on vérifie qu'il ne revient pas
+    // par morceaux.
     ok(
       !src.includes('— sous-sections`}') && !src.includes('onMouseEnter'),
-      'plus d’aperçu au survol à côté de la barre ([retrait #12])'
+      'plus d’aperçu au survol à côté de la barre'
     );
   }
 }

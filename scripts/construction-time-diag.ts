@@ -8,7 +8,7 @@
 // Sert à vérifier si la restriction de l'itération sur r2 (buildBuckets,
 // « sous-ensemble de secours » quand r0+r1 n'ont ni pièce ni joker d'un set
 // >3 pièces) apporte un gain mesurable AU-DELÀ du seul cas Camilla déjà
-// testé — voir docs/05-pilotage/,
+// testé — voir docs/05-feuille-de-route/,
 // « Ce que coûte la construction des demi-builds ».
 //
 // ⚠️ **POURQUOI CE SCRIPT SURVIT AU HARNAIS** : `diagnostic-harness.ts --cas=tous

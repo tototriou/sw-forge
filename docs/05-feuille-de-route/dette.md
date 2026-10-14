@@ -29,5 +29,3 @@ Aucune dette mesurée (2026-10-13) : plus aucun « lot N » ni numéro de décis
 (`git grep -E '\blots? [0-9]+|[Dd]écisions? [0-9]+' -- docs`), plus aucun en-tête hérité. Le récit
 de l'avant sans numéro (« l'ancienne… », « a été retiré ») ne se compte pas : il se relève à la
 relecture ([documentation.md](../03-developpeur/documentation.md)).
-
-Le reste des travaux de documentation est dans [reste-documentation.md](reste-documentation.md).

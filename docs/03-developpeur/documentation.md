@@ -9,13 +9,15 @@ renvois ([renvois.md](renvois.md)). Pourquoi ce choix :
 
 ## Public et privé
 
-Le dépôt est public, et tout ce qu'il suit l'est : documentation,
-décisions (ADR), cadrages et pilotage. Restent hors du dépôt un export de
-compte, des données personnelles, des captures d'écran. Ce qui n'est plus
-vrai sort du dépôt (une archive vit dans les notes privées) ; une décision
-encore en vigueur, avec sa raison, va en ADR dans
+Le dépôt est public, et tout ce qu'il suit l'est : code, tests,
+documentation, décisions (ADR). Il contient ce qui est livré et ce qui
+permet de le comprendre ; l'organisation du travail (cadrages, plans de
+lots, pilotage d'agents ou de charge) n'y a pas sa place, pas plus qu'un
+export de compte, des données personnelles ou des captures d'écran. Ce qui
+n'est plus vrai sort du dépôt ; une décision structurante encore en
+vigueur, avec sa raison, va en ADR dans
 [04-decisions/](../04-decisions/README.md). La documentation ne renvoie
-jamais aux notes privées : un lecteur du dépôt ne peut pas les ouvrir.
+jamais à un document hors du dépôt : un lecteur ne peut pas l'ouvrir.
 
 ## Avant d'écrire
 
@@ -34,9 +36,7 @@ jamais aux notes privées : un lecteur du dépôt ne peut pas les ouvrir.
   est vrai aujourd'hui et pourquoi, au présent. Ni « l'ancienne… », ni
   « a été retiré », ni récit de chantier, ni « lot N » — dans une fiche
   comme dans un ADR. Une raison née d'un défaut passé s'écrit en règle,
-  pas en anecdote. Un historique qui compte a son propre document dans
-  [05-pilotage/](../05-pilotage/README.md). Une date, quand elle sert,
-  s'écrit en absolu.
+  pas en anecdote. Une date, quand elle sert, s'écrit en absolu.
 - **Une mise à jour remplace le texte périmé**, elle n'ajoute pas un
   paragraphe « depuis la v… » : l'historique Git garde le texte remplacé.
 - **[optimizer/invariants.md](optimizer/invariants.md) est un index** : une
@@ -81,11 +81,10 @@ jamais aux notes privées : un lecteur du dépôt ne peut pas les ouvrir.
 - **Depuis le code**, un commentaire cite le chemin depuis la racine
   (`docs/03-developpeur/…`) : le test des renvois le lit alors et le
   vérifie.
-- **Jamais vers un cadrage** (règle 11) : il disparaîtra.
 
 ## Découper ou regrouper
 
-- **Au-delà de 500 lignes** (règle 12), un document devient un dossier à
+- **Au-delà de 500 lignes** (règle 11), un document devient un dossier à
   son nom (`feat-x.md` devient le dossier `feat-x`) : un `README.md` qui
   garde l'introduction et liste les parties, puis une partie par sujet,
   coupée aux titres existants.

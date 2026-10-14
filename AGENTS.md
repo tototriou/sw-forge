@@ -7,7 +7,7 @@ compte dans le navigateur et n'envoie rien. La même app existe en **application
 
 > Documentation : [`docs/`](docs/) (carte : [docs/README.md](docs/README.md)). Où se trouve quoi,
 > par écran : [docs/01-presentation/02-architecture.md](docs/01-presentation/02-architecture.md). Décisions : [`docs/04-decisions/`](docs/04-decisions/README.md).
-> Dette, questions ouvertes et pistes : [`docs/05-pilotage/`](docs/05-pilotage/README.md).
+> Feuille de route (pistes, dette, questions ouvertes) : [`docs/05-feuille-de-route/`](docs/05-feuille-de-route/README.md).
 
 ## ⚠️ Avant tout travail : lire la documentation de ce qui va être touché
 
@@ -62,7 +62,7 @@ bureau/          # application de bureau Electron (main, protocole, session, SW 
 public/          # icônes, portraits, données SWARFARM (public/data, régénérées par npm run fetch-data)
 scripts/         # outillage Node : données, benchmarks, harnais de diagnostic, hooks, bureau
 tests/           # vérifications (run.mjs + index.ts), fixtures, tests de rendu (tests/rendu/)
-docs/            # documentation en sections (01-presentation … 05-pilotage)
+docs/            # documentation en sections (01-presentation … 05-feuille-de-route)
 .githooks/       # sources des hooks pre-commit et commit-msg (installés par npm install)
 ```
 
@@ -129,8 +129,7 @@ npm run bureau:preuve          # la vérification de l'application de bureau
 
 - **Français partout** : interface, commentaires, documentation, messages de commit. Les **libellés
   affichés sont ceux du jeu**, jamais reformulés.
-- **Un commentaire donne la raison et l'invariant**, sans récit ; un commit donne le pourquoi en
-  bref, sans journal.
+- **Un commentaire donne la raison et l'invariant**, sans récit.
 - **Calcul pur dans `src/lib/`**, testé ; un composant ne calcule pas ce qu'une fonction de `src/lib/`
   peut porter (ex. `src/lib/speedTuneLignes.ts` pour l'écran du speed tuning).
 - ⚠️ **Un type partagé entre l'écran et un script a PLUSIEURS constructeurs** (ex. `OptimizerRecipe`
@@ -170,13 +169,11 @@ npm run bureau:preuve          # la vérification de l'application de bureau
 - **Commits atomiques** : un commit = une chose reviewable. L'atomicité se juge sur la cohérence du
   **pourquoi**, pas sur le nombre de fichiers ; plusieurs sujets traités ensemble font plusieurs
   commits.
-- **Une décision prise ensemble s'applique jusqu'au bout.** Si le chantier dérive et qu'une étape
-  validée reste en attente, le dire.
+- **Message de commit** : le sujet dit ce que fait le commit ; le corps, facultatif, donne en bref
+  la raison quand le diff ne la montre pas. Jamais de journal : ni lot, ni étapes, ni liste des
+  vérifications lancées.
 - **Un registre de suivi (`pistes-*.md` et équivalents) et le fichier qu'il référence** se mettent à
   jour ensemble, jamais l'un sans l'autre.
-- **Un travail de plus d'une session** se cadre dans un fichier de
-  [docs/04-decisions/cadrages/](docs/04-decisions/cadrages/README.md), jamais dans un plan de
-  conversation.
 
 ## Vérifier
 

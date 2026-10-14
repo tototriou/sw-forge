@@ -48,7 +48,7 @@ remonté correctement par un utilisateur. C'est ce qui justifie de les figer ici
 [banc/](banc/) — **hors de `npm test` et de la CI**, lancé à la main :
 
 ```bash
-node tests/banc/run.mjs --tous --compte tests/fixtures/compte-miniature.json
+node tests/banc/run.mjs --tous                  # tous les écrans, compte du banc
 node tests/banc/run.mjs --ecrans optimizer      # un seul écran
 node tests/banc/run.mjs --depuis origin/main    # les écrans que touchent les fichiers modifiés
 node tests/banc/run.mjs --plage <a>..<b>        # idem, entre deux révisions
@@ -105,7 +105,12 @@ mesure de l'écran vide.
   médias du pointeur, résultats, ce qui n'a pas été exercé, empreinte du
   compte).
 - **Compte** : `--compte <fichier>` seulement, jamais une variable
-  d'environnement ; sans lui, le compte d'exemple. Un fichier hors de
+  d'environnement ; sans lui, le compte du banc,
+  [fixtures/compte-banc.json](fixtures/compte-banc.json) : la miniature
+  (`compte-miniature.json`, que lisent les autres tests), plus les cas
+  d'affichage relevés sur un export réel et que la miniature ne produit pas
+  (sa clé `_lisezmoi` les nomme). Un débordement vu sur un export réel se
+  reproduit en l'y ajoutant, sans donnée réelle. Un fichier hors de
   `tests/fixtures/` est traité comme un **compte réel** : sortie obligatoirement
   hors de tout dépôt Git, et aucun message de la page sur la sortie standard
   (seulement leur nombre).

@@ -280,10 +280,30 @@
 //     contenants qui coupe ou défile sur cet axe (`overflow` calculé autre que
 //     `visible`, ou `contain: paint`) — une boîte entièrement coupée ne touche
 //     rien, l'aire retenue est celle de la partie visible (relecture Codex
-//     n° 7, tests/banc/cas/coin-coupe.html). ⚠️ Limites nommées : dans un même
-//     plan, l'ordre d'empilement n'est pas lu (`z-index`, `absolute`), ni
-//     `clip-path` ni un masque ; une boîte dans un défilement est comparée à
-//     sa position défilée du moment.
+//     n° 7, tests/banc/cas/coin-coupe.html).
+//     · Anneau masqué (l'anneau de catégories des cartes RTA,
+//       rta/CategoryRing.tsx) : un calque posé sur toute la carte, dont le
+//       masque ne garde que la bande entre son bord et sa boîte de contenu.
+//       Sa boîte couvre la carte, il ne dessine que sa bande : l'élément
+//       coupé est comparé à ce qu'il DESSINE. Reconnu par son style calculé,
+//       sans repère : exactement deux calques de masque, rognés l'un à la
+//       boîte de contenu, l'autre à la boîte de bordure, composés en
+//       `exclude`, de taille `auto`, deux `linear-gradient` aux couleurs
+//       toutes opaques et aucune image. Le dessin : dans le contour extérieur
+//       (boîte de bordure et ses rayons, réduits ensemble quand leur somme
+//       dépasse un côté, comme en CSS) et hors du contour intérieur (boîte de
+//       contenu, chaque rayon diminué du retrait — bord et rembourrage — de
+//       son côté). La coupe se lit tous les demi-pixels (centres des cases)
+//       dans l'intersection des deux boîtes visibles ; elle compte si
+//       l'étendue des points dessinés dépasse la tolérance sur les deux axes,
+//       et son aire est celle de ces points (0,25 px² chacun) — décision de
+//       l'utilisateur du 2026-10-14 ; tests/banc/cas/anneau.html (bande
+//       droite, coin intérieur arrondi, coin extérieur hors de l'arrondi).
+//       Tout autre masque se compare par sa boîte.
+//     ⚠️ Limites nommées : dans un même plan, l'ordre d'empilement n'est pas
+//     lu (`z-index`, `absolute`), ni `clip-path` ni un masque autre que
+//     l'anneau ; une boîte dans un défilement est comparée à sa position
+//     défilée du moment.
 // - bouton en coin (la croix « Retirer » de la carte RTA, le crayon
 //   « Modifier cette défense » d'une vignette de défense, posés sur leur
 //   coin) : il a le droit de toucher SA CARTE — les éléments qu'elle porte et
@@ -846,6 +866,116 @@ export function mesurer(options: { detail: boolean }): Mesure {
     zones.set(e, z);
     return z;
   };
+  // Anneau masqué (CategoryRing.tsx) : un calque dont le masque ne garde que
+  // la bande entre son bord et sa boîte de contenu — deux calques de dégradé
+  // opaques, l'un rogné à la boîte de contenu, l'autre à la boîte de bordure,
+  // composés en exclusion. Rend ses deux contours arrondis (bordure et
+  // contenu), `null` pour tout autre élément.
+  type Arrondi = { g: number; h: number; d: number; b: number; r: [number, number][] };
+  const anneaux = new Map<Element, { ext: Arrondi; int: Arrondi } | null>();
+  const anneauDe = (e: Element): { ext: Arrondi; int: Arrondi } | null => {
+    if (anneaux.has(e)) return anneaux.get(e) ?? null;
+    const s = style(e);
+    const clips = s.maskClip.split(',').map((x) => x.trim());
+    const images = s.maskImage;
+    const couleurs = images.match(/rgba?\([^)]*\)/g) ?? [];
+    const anneau =
+      clips.length === 2 &&
+      clips.includes('content-box') &&
+      clips.includes('border-box') &&
+      s.maskComposite.split(',')[0].trim() === 'exclude' &&
+      s.maskSize.split(',').every((x) => x.trim() === 'auto') &&
+      (images.match(/gradient\(/g) ?? []).length === 2 &&
+      (images.match(/(^|, )linear-gradient\(/g) ?? []).length === 2 &&
+      !/url\(/.test(images) &&
+      couleurs.length > 0 &&
+      couleurs.every((c) => {
+        const v = c.slice(c.indexOf('(') + 1, -1).split(/[\s,/]+/).filter(Boolean);
+        return v.length === 3 || Number(v[3]) === 1;
+      });
+    let forme: { ext: Arrondi; int: Arrondi } | null = null;
+    if (anneau) {
+      const q = boites.get(e) ?? e.getBoundingClientRect();
+      const px = (v: string) => parseFloat(v) || 0;
+      const rayons = [s.borderTopLeftRadius, s.borderTopRightRadius, s.borderBottomRightRadius, s.borderBottomLeftRadius].map(
+        (v): [number, number] => {
+          const [x, y] = v.split(' ').map(px);
+          return [x, y ?? x];
+        },
+      );
+      // Rayons réduits ensemble quand leur somme dépasse un côté (CSS).
+      const l = q.width;
+      const hh = q.height;
+      const f = Math.min(
+        1,
+        l / (rayons[0][0] + rayons[1][0] || 1),
+        l / (rayons[3][0] + rayons[2][0] || 1),
+        hh / (rayons[0][1] + rayons[3][1] || 1),
+        hh / (rayons[1][1] + rayons[2][1] || 1),
+      );
+      const r = rayons.map(([x, y]): [number, number] => [x * f, y * f]);
+      const g = px(s.borderLeftWidth) + px(s.paddingLeft);
+      const h = px(s.borderTopWidth) + px(s.paddingTop);
+      const d = px(s.borderRightWidth) + px(s.paddingRight);
+      const b = px(s.borderBottomWidth) + px(s.paddingBottom);
+      forme = {
+        ext: { g: q.left, h: q.top, d: q.right, b: q.bottom, r },
+        // Contour intérieur : chaque rayon diminué du retrait de son côté.
+        int: {
+          g: q.left + g,
+          h: q.top + h,
+          d: q.right - d,
+          b: q.bottom - b,
+          r: [
+            [Math.max(0, r[0][0] - g), Math.max(0, r[0][1] - h)],
+            [Math.max(0, r[1][0] - d), Math.max(0, r[1][1] - h)],
+            [Math.max(0, r[2][0] - d), Math.max(0, r[2][1] - b)],
+            [Math.max(0, r[3][0] - g), Math.max(0, r[3][1] - b)],
+          ],
+        },
+      };
+    }
+    anneaux.set(e, forme);
+    return forme;
+  };
+  // Le point (x, y) est-il dans le rectangle arrondi ?
+  const dansArrondi = (x: number, y: number, a: Arrondi): boolean => {
+    if (x < a.g || x > a.d || y < a.h || y > a.b) return false;
+    const coins: [number, number, [number, number]][] = [
+      [a.g + a.r[0][0], a.h + a.r[0][1], a.r[0]],
+      [a.d - a.r[1][0], a.h + a.r[1][1], a.r[1]],
+      [a.d - a.r[2][0], a.b - a.r[2][1], a.r[2]],
+      [a.g + a.r[3][0], a.b - a.r[3][1], a.r[3]],
+    ];
+    for (const [i, [cx, cy, [rx, ry]]] of coins.entries()) {
+      if (rx <= 0 || ry <= 0) continue;
+      const dansCoin = (i === 0 || i === 3 ? x < cx : x > cx) && (i < 2 ? y < cy : y > cy);
+      if (dansCoin && ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2 > 1) return false;
+    }
+    return true;
+  };
+  // Coupe d'une zone avec ce qu'un anneau DESSINE : la zone est lue tous les
+  // demi-pixels (centres des cases) ; un point est dessiné s'il est dans le
+  // contour extérieur et hors du contour intérieur. Rend l'aire dessinée
+  // coupée, ou 0 si son étendue ne dépasse pas la tolérance sur les deux axes.
+  const coupeAnneau = (z: Zone, forme: { ext: Arrondi; int: Arrondi }): number => {
+    let n = 0;
+    let gx = Infinity;
+    let dx = -Infinity;
+    let hy = Infinity;
+    let by = -Infinity;
+    for (let y = z.haut + 0.25; y < z.bas; y += 0.5) {
+      for (let x = z.gauche + 0.25; x < z.droite; x += 0.5) {
+        if (!dansArrondi(x, y, forme.ext) || dansArrondi(x, y, forme.int)) continue;
+        n++;
+        gx = Math.min(gx, x);
+        dx = Math.max(dx, x);
+        hy = Math.min(hy, y);
+        by = Math.max(by, y);
+      }
+    }
+    return n > 0 && dx - gx + 0.5 > TOLERANCE && by - hy + 0.5 > TOLERANCE ? n * 0.25 : 0;
+  };
   const exclusD8 = new Set(decoratifsVus);
   for (const { el, bloc, pastille } of coins) {
     if (!mesures.has(el)) continue;
@@ -862,7 +992,17 @@ export function mesurer(options: { detail: boolean }): Mesure {
       const q = visibleDe(autre);
       const l = Math.min(v.droite, q.droite) - Math.max(v.gauche, q.gauche);
       const h = Math.min(v.bas, q.bas) - Math.max(v.haut, q.haut);
-      if (l > TOLERANCE && h > TOLERANCE) aires.set(autre, l * h);
+      if (!(l > TOLERANCE && h > TOLERANCE)) continue;
+      // Un anneau masqué ne se coupe que par ce qu'il dessine, pas par sa boîte.
+      const forme = anneauDe(autre);
+      if (!forme) {
+        aires.set(autre, l * h);
+        continue;
+      }
+      const g = Math.max(v.gauche, q.gauche);
+      const t = Math.max(v.haut, q.haut);
+      const aire = coupeAnneau({ gauche: g, haut: t, droite: g + l, bas: t + h }, forme);
+      if (aire > 0) aires.set(autre, aire);
     }
     const coupes = Array.from(aires.keys());
     for (const autre of coupes) {

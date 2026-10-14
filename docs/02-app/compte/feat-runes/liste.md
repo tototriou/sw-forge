@@ -89,6 +89,10 @@ retraits, et trois seulement — chacun rendu nécessaire par le précédent :
    (~66 px contre ~47 px pour la bannière abrégée). ⚠️ **Le libellé est gardé,
    pas supprimé** : la mesure est un réglage *global*, elle ne se lit nulle part
    ailleurs sur la page, et une valeur nue ne dirait pas ce qu'on mesure.
+   ⚠️ **Et la valeur passe sous son libellé**, calée à droite : sur une ligne,
+   « Effi 132.7% » (une efficience au-delà de 100 %) laissait 36 px à la stat
+   principale, où « +2448 » ne tenait plus. Empilé, le bloc de droite n'est pas
+   plus large que sa valeur.
 3. **Le bonus de set n'est pas rendu.** C'est la ligne la plus longue de la carte
    (« Chance de tour supplémentaire 22% »), et la seule qui se **déduit
    d'ailleurs** : le symbole de set est déjà porté par l'icône.
@@ -112,15 +116,15 @@ Et deux ajustements, qui ne sont pas des retraits :
 | Cadre de rune | 36 px | **30 px** |
 | Stat principale | `sm` (13 px) | **`nano`** (10 px) |
 | Innée | `micro` (11 px) | **`nano`** (10 px) |
-| Mesure | `micro`, « Score SW » | **`nano`**, « Score » |
+| Mesure | `micro`, « Score SW » | **`nano`**, « Score », valeur dessous |
 | Bannière | `micro`, « LÉGENDAIRE » | **`nano` `px-1`**, « LÉG » |
 | Bonus de set | en pied | — |
 
-##### ⚠️ Les libellés longs restent sur deux lignes — c'est assumé
+##### ⚠️ Les libellés les plus longs restent sur deux lignes — c'est assumé
 
-À ~175 px de tuile il reste **~59 px** à gauche de la colonne rareté/mesure
-(159 de contenu − 30 de cadre − 16 d'écarts − 54 pour « Score 293 », le plus
-long des deux éléments empilés à droite). Or « Taux Crit +58% » occupe ~84 px
+À ~175 px de tuile il reste **~75 px** à gauche de la colonne rareté/mesure
+(159 de contenu − 30 de cadre − 16 d'écarts − ~36 pour « 132.7% », le plus
+large des éléments empilés à droite). Or « Taux Crit +58% » occupe ~84 px
 même à 10 px : une ligne unique demanderait ~7 px, illisible.
 
 Ce qui la donnerait, c'est de faire **descendre rareté et mesure sous le

@@ -165,13 +165,12 @@ export function PieceDetailBox({
             hiérarchie tient toujours par le POIDS et la COULEUR (`font-black` +
             `ink` contre `font-semibold` + `water`) — ce sont deux marqueurs, la
             taille n'était que le troisième.
-            ⚠️ **Les libellés longs passent quand même sur deux lignes.** À
-            ~175 px de tuile il reste ~59 px à gauche de la colonne
-            rareté/mesure, et « Taux Crit +58% » en occupe ~84 même à 10 px : une
-            ligne unique demanderait ~7 px, illisible. Ce qui la donnerait, c'est
-            de faire descendre rareté et mesure sous le texte (121 px alors
-            disponibles) — écarté volontairement, l'en-tête resterait sur deux
-            lignes pour un gain qui ne porte que sur trois libellés. */}
+            ⚠️ **Les libellés les plus longs passent encore sur deux lignes.**
+            En étroit, la mesure est empilée (libellé puis valeur, plus bas) :
+            il reste ~75 px à gauche de la colonne rareté/mesure, et « Taux Crit
+            +58% » en occupe ~84 à 10 px. Ce qui la ferait tenir, c'est de faire
+            descendre rareté et mesure sous le texte — écarté volontairement,
+            chaque tuile y gagnerait une ligne. */}
         <div className="min-w-0 flex-1">
           <div
             className={`font-black leading-tight text-ink ${
@@ -229,14 +228,18 @@ export function PieceDetailBox({
               ⚠️ La VALEUR descend d'un cran (`nano`) : c'est ce qui permet de
               garder le libellé. Elle reste en `star` et en gras, donc lisible
               comme la valeur qu'on vient chercher. */}
+          {/* ⚠️ En ÉTROIT, la valeur passe SOUS son libellé : sur une ligne,
+              « Effi 132.7% » faisait ~66 px et laissait 36 px à la stat
+              principale, où « +2448 » ne tenait plus. Empilé, le bloc de
+              droite n'est pas plus large que « 132.7% ». */}
           <span
             className={`mt-0.5 font-mono tabular-nums text-ink-dim ${
-              etroit ? 'text-nano' : 'text-micro'
+              etroit ? 'text-nano text-right' : 'text-micro'
             }`}
             title={mesure.hint}
           >
             {etroit && mesure.libelleCourt ? mesure.libelleCourt : mesure.libelle}{' '}
-            <b className="text-star">{mesure.valeur}</b>
+            <b className={`text-star ${etroit ? 'block' : ''}`}>{mesure.valeur}</b>
           </span>
         </div>
       </div>

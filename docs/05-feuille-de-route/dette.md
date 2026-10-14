@@ -23,6 +23,20 @@ Les commentaires ne portent plus aucun « lot N » ni numéro de décision (2026
 une décision qui a son ADR y est citée par son chemin. Le récit sans numéro (« le mainteneur a
 demandé… », « depuis le rebranding ») ne se compte pas : il se relève à la relecture.
 
+## Vocabulaire
+
+Le [glossaire](../01-presentation/04-glossaire.md) fixe les mots ; le dépôt et l'app ne le suivent
+pas encore. Les remettre d'équerre est un chantier à part : les libellés affichés changent
+l'écran, ils passent par le banc. Mesures hors du glossaire, dans `src/` et `docs/` (2026-10-14) :
+
+| Écart au glossaire | Mesure | Comment la retrouver | Depuis |
+| --- | --- | --- | --- |
+| **« Taux Crit », « Dmg Crit »** au lieu de « Tx critiq. », « Dgts critiq. » (libellés du jeu), dont l'affichage (`src/lib/effects.ts`) | 113 occurrences, 35 fichiers | `git grep -E 'Taux Crit\|Dmg Crit' -- src docs` | 2026-10-14 |
+| **« DCC », « Dgts CRIT »** pour la même stat | 72 occurrences, 28 fichiers | `git grep -E 'DCC\|Dgts CRIT' -- src docs` | 2026-10-14 |
+| **« SWEX »** au lieu de « SW Exporter » | 67 occurrences, 30 fichiers | `git grep SWEX -- src docs` | 2026-10-14 |
+| **« totem »** au lieu de « compétences d'invocateur » | 62 occurrences, 25 fichiers | `git grep -i totem -- src docs` | 2026-10-14 |
+| **« moitié »** pour un demi-build, **« préréglage »** pour un deck, **« deck »** pour une équipe | à relever à la relecture | — | 2026-10-14 |
+
 ## Documentation
 
 Aucune dette mesurée (2026-10-13) : plus aucun « lot N » ni numéro de décision dans `docs/`

@@ -27,6 +27,15 @@ En avertissement, avec la raison :
 | `@typescript-eslint/no-explicit-any` | se remplace au fil des modifications ; coupée dans `tests/` |
 | `react-hooks/exhaustive-deps` | chaque cas se juge ; une exclusion voulue porte `eslint-disable-next-line` et sa raison |
 
+En erreur sous `src/`, les conventions d'[AGENTS.md](../../AGENTS.md) que le
+texte du code suffit à vérifier :
+
+| Refusé | Règle | À la place |
+| --- | --- | --- |
+| `confirm()`, `prompt()`, `window.confirm()`, `window.prompt()` | `no-restricted-globals`, `no-restricted-syntax` | les dialogues de `src/ui/Dialogs.tsx` |
+| un attribut `type="number"` | `no-restricted-syntax` | `NumberField` de `src/ui/` |
+| `localStorage.setItem` | `no-restricted-properties` | `saveLocal` ([persistance.md](../02-app/transverse/feat-import-compte/persistance.md)) ; permis dans `usePersistence.ts` et les hooks des clés de réglage (`useTheme`, `useOvercapDisplay`, `useRuneMetric`, `useAdversaireReference`) |
+
 Choix assumés :
 
 - `no-unused-expressions` accepte le ternaire et le court-circuit :
@@ -118,9 +127,10 @@ Test : `node tests/run.mjs commitmsg`.
 
 À chaque pull request vers `main` ou une branche `release/**`,
 `.github/workflows/tests.yml` tourne **sous Windows** et enchaîne, dans cet
-ordre : les garde-fous de commit sur chaque commit, les types
-(`npx tsc --noEmit`), le lint (`npm run lint`), la suite complète (`npm test`)
-et le build. Ce que couvre la suite, et les vérifications ignorées faute
+ordre : les garde-fous de commit sur chaque commit, l'installation des
+dépendances et du Chromium de Playwright (`npx playwright install chromium`,
+pour les tests de rendu qui pilotent l'app), les types (`npx tsc --noEmit`),
+le lint (`npm run lint`), la suite complète (`npm test`) et le build. Ce que couvre la suite, et les vérifications ignorées faute
 d'export de compte réel : [tests/README.md](../../tests/README.md).
 
 `--no-verify` reste possible en local, pas dans la CI : l'étape « Garde-fous

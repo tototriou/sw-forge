@@ -48,7 +48,7 @@ remonté correctement par un utilisateur. C'est ce qui justifie de les figer ici
 [banc/](banc/) — **hors de `npm test` et de la CI**, lancé à la main :
 
 ```bash
-node tests/banc/run.mjs --tous --compte tests/fixtures/compte-miniature.json
+node tests/banc/run.mjs --tous                  # tous les écrans, compte du banc
 node tests/banc/run.mjs --ecrans optimizer      # un seul écran
 node tests/banc/run.mjs --depuis origin/main    # les écrans que touchent les fichiers modifiés
 node tests/banc/run.mjs --plage <a>..<b>        # idem, entre deux révisions
@@ -59,12 +59,17 @@ Il construit l'app (`vite build` dans un dossier temporaire), la sert
 (`vite preview`), l'ouvre dans Chromium sans fenêtre (Playwright) au
 téléphone (360 × 800, tactile) et à l'ordinateur (1400 × 1000), amène chaque
 écran dans chacun de ses états ([banc/ecrans.ts](banc/ecrans.ts)) et vérifie
-un **invariant** : rien ne déborde à l'horizontale, et une pastille posée en
-coin d'un portrait de monstre ne recouvre rien d'autre que son portrait. La
-règle, ses définitions, ses exclusions et ses limites connues sont écrites
-en tête de [banc/mesure.ts](banc/mesure.ts) ;
+un **invariant** : rien ne déborde à l'horizontale, une pastille posée en
+coin d'un portrait de monstre ne recouvre rien d'autre que son portrait, et
+deux éléments frères en flux ne se recouvrent pas (règle « voisins » : plus
+de 1 px en largeur et en hauteur, sauf un absolu, un texte en ligne,
+l'intérieur d'un `<svg>`, une marge négative, un `transform` ou une couche qui
+ne dessine rien). La règle, ses définitions, ses exclusions et ses limites
+connues sont écrites en tête de [banc/mesure.ts](banc/mesure.ts) ;
 chaque règle et chaque exclusion a une page de [banc/cas/](banc/cas/), un cas
-signalé et un cas non signalé, que vérifie [banc/cas.mjs](banc/cas.mjs).
+signalé et un cas non signalé, que vérifie [banc/cas.mjs](banc/cas.mjs) (une
+paire se déclare sur le premier des deux éléments : `data-attendu-avec`, en
+tête de `cas.mjs`).
 
 Un état peut charger un fichier par le vrai chemin de l'interface (étape
 `importer` de `ecrans.ts`, bouton « Importer ») : l'écran des
@@ -100,7 +105,12 @@ mesure de l'écran vide.
   médias du pointeur, résultats, ce qui n'a pas été exercé, empreinte du
   compte).
 - **Compte** : `--compte <fichier>` seulement, jamais une variable
-  d'environnement ; sans lui, le compte d'exemple. Un fichier hors de
+  d'environnement ; sans lui, le compte du banc,
+  [fixtures/compte-banc.json](fixtures/compte-banc.json) : la miniature
+  (`compte-miniature.json`, que lisent les autres tests), plus les cas
+  d'affichage relevés sur un export réel et que la miniature ne produit pas
+  (sa clé `_lisezmoi` les nomme). Un débordement vu sur un export réel se
+  reproduit en l'y ajoutant, sans donnée réelle. Un fichier hors de
   `tests/fixtures/` est traité comme un **compte réel** : sortie obligatoirement
   hors de tout dépôt Git, et aucun message de la page sur la sortie standard
   (seulement leur nombre).
@@ -163,6 +173,40 @@ pas un échec.
 - **Limites** : sous Windows, un signal ne passe pas par les écouteurs (code
   non nul et manifeste incomplet seulement) ; une construction qui échoue
   laisse l'ancien manifeste ; un `ok` tardif compte sur l'entrée suivante.
+
+## Suivi en direct
+
+```bash
+npm run test:suivi                           # toutes les vérifications
+npm run test:suivi -- speed-tune             # avec des filtres, comme run.mjs
+npm run test:suivi -- --depuis origin/<base> # la sélection par fichiers modifiés
+npm run test:suivi -- --web                  # aussi sur http://127.0.0.1:4317/ (--web <port>)
+```
+
+[suivi.mjs](suivi.mjs) lance [run.mjs](run.mjs) avec un manifeste
+d'exécution (écrit dans `os.tmpdir()`), et dessine dans le terminal un
+tableau qui se redessine sur place : barre d'avancement et temps restant
+estimé, compteurs (contrôles, échecs, ignorés), entrée en cours avec le
+dernier titre lu, une **mosaïque d'un caractère par entrée** colorée selon
+son état, et les derniers échecs dès qu'ils arrivent. À la fin, le tableau
+reste, suivi du détail complet des échecs — ou, si le lanceur s'arrête sans
+« KO » (filtre inconnu, sélection refusée), de ses dernières lignes — et du
+chemin de sa sortie complète. Le code de sortie est celui du lanceur.
+
+- **Un affichage, pas un autre lanceur** : ce qui tourne et ce qui est
+  vérifié sont ceux de `run.mjs`. Le tableau lit le manifeste, réécrit toutes
+  les 250 ms, et la sortie du lanceur pour le TEXTE des échecs, que le
+  manifeste ne porte pas ([suivi/rendu.ts](suivi/rendu.ts), vérifié par
+  `node tests/run.mjs suivi`).
+- **Hors d'un terminal** (tube, CI), rien n'est dessiné : la sortie du
+  lanceur passe telle quelle.
+- **Le tableau tient dans le terminal** : chaque ligne est coupée à sa
+  largeur, et si le terminal est trop bas, la mosaïque cède sa place —
+  plus haut que l'écran, il ne pourrait plus se redessiner sur place.
+- **`--web`** sert le même suivi dans le navigateur
+  ([suivi/page.html](suivi/page.html)) : grille filtrable des entrées, échecs
+  avec leur message, entrées les plus lentes. Le serveur reste ouvert après la
+  fin, jusqu'à Ctrl+C.
 
 ## Garde des références à `src/`
 

@@ -373,6 +373,16 @@ le programme lit ensuite. Une boucle dont le résultat ne sert à rien peut êtr
 supprimée entièrement par le JIT — on mesurerait de nouveau l'absence de
 charge.
 
+## Les raisonnements qui mènent à l'erreur
+
+| On se dit | En réalité | Voir |
+|---|---|---|
+| « Un script ad hoc ira plus vite que le harnais. » | Le harnais observe le vrai pipeline ; un script ad hoc dérive précisément là. | § Le premier réflexe : le harnais |
+| « Le serveur de dev tourne à côté, ça ne gêne pas la mesure. » | Toute contention fausse un temps : rien d'autre ne tourne pendant une mesure de temps. | § Contention CPU/mémoire |
+| « Un temps pris en fin de longue campagne vaut celui d'une passe fraîche. » | Sous charge soutenue, la machine ralentit (×1,8 sur une recherche lourde, en processus frais) : la passe de fidélité se fait avant la campagne de temps, témoin et candidat s'entrelacent, et le temps natif d'un cas garde une marge d'au moins 2× sous `maxMs`. | § Protocole en BLOCS |
+| « L'écart se reproduit d'un essai à l'autre : c'est un signal. » | Un biais de protocole se reproduit aussi : c'est le protocole qu'on vérifie d'abord. | § Protocole en BLOCS |
+| « La charge de test a tourné, le chiffre est bon. » | Une charge peut s'effondrer sans rien dire : on la compare à une fourchette attendue avant de lire le temps. | § Une charge de test peut s'EFFONDRER sans rien dire |
+
 ## Voir aussi
 
 - `algo-verify` — discipline de CORRECTION algorithmique (référence
@@ -383,5 +393,5 @@ charge.
   chemin de production.
 - `docs/02-app/optimizer/` — routage par tâche vers les specs de
   l'Optimizer (vérification, harnais, parallélisation), et
-  `docs/05-pilotage/` (les pistes futures, à lire avant toute
+  `docs/05-feuille-de-route/` (les pistes futures, à lire avant toute
   idée « nouvelle »).

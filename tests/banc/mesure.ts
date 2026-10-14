@@ -1,7 +1,7 @@
-// Règle de mesure du banc d'affichage — « rien ne déborde », axe horizontal
-// seul, tolérance de 1 px partout.
+// Règle de mesure du banc d'affichage — « rien ne déborde » (axe horizontal
+// seul) et « rien ne se recouvre » (deux axes), tolérance de 1 px partout.
 //
-// Un écran DÉBORDE si l'une de ces quatre conditions est vraie :
+// Un écran DÉBORDE si l'une de ces cinq conditions est vraie :
 //
 // - page : `documentElement.scrollWidth > L` ;
 // - contenu : un élément visible dont `scrollWidth` dépasse `clientWidth`,
@@ -11,7 +11,19 @@
 //   défilement voulu ou dans un ancêtre qui le coupe ;
 // - chevauchement : réservée aux éléments qui bénéficient des exceptions
 //   « pastille du portrait » et « bouton en coin » (plus bas), leur
-//   contrepartie.
+//   contrepartie ;
+// - voisins : deux éléments frères, en flux, dont les boîtes se recouvrent
+//   (« Règle « voisins » », plus bas) — tout élément de la page y est soumis.
+//
+// « chevauchement » et « voisins » lisent la même coupe (boîtes visibles, même
+// plan, plus de 1 px en largeur ET en hauteur) mais pas les mêmes paires.
+// « chevauchement » compare UN élément qui a reçu le droit de sortir de son
+// bloc (pastille, bouton en coin, tous deux absolus) à tout élément visible du
+// même plan hors de son contenu permis — cousins et absolus compris, ses
+// ancêtres et descendants exceptés. « voisins » compare chaque paire de FRÈRES
+// mesurés, quels qu'ils soient, sauf les exclusions (a) à (f) — un absolu
+// n'y entre jamais : une pastille ou un bouton en coin ne relève que de
+// « chevauchement ».
 //
 // Définitions :
 //
@@ -268,10 +280,30 @@
 //     contenants qui coupe ou défile sur cet axe (`overflow` calculé autre que
 //     `visible`, ou `contain: paint`) — une boîte entièrement coupée ne touche
 //     rien, l'aire retenue est celle de la partie visible (relecture Codex
-//     n° 7, tests/banc/cas/coin-coupe.html). ⚠️ Limites nommées : dans un même
-//     plan, l'ordre d'empilement n'est pas lu (`z-index`, `absolute`), ni
-//     `clip-path` ni un masque ; une boîte dans un défilement est comparée à
-//     sa position défilée du moment.
+//     n° 7, tests/banc/cas/coin-coupe.html).
+//     · Anneau masqué (l'anneau de catégories des cartes RTA,
+//       rta/CategoryRing.tsx) : un calque posé sur toute la carte, dont le
+//       masque ne garde que la bande entre son bord et sa boîte de contenu.
+//       Sa boîte couvre la carte, il ne dessine que sa bande : l'élément
+//       coupé est comparé à ce qu'il DESSINE. Reconnu par son style calculé,
+//       sans repère : exactement deux calques de masque, rognés l'un à la
+//       boîte de contenu, l'autre à la boîte de bordure, composés en
+//       `exclude`, de taille `auto`, deux `linear-gradient` aux couleurs
+//       toutes opaques et aucune image. Le dessin : dans le contour extérieur
+//       (boîte de bordure et ses rayons, réduits ensemble quand leur somme
+//       dépasse un côté, comme en CSS) et hors du contour intérieur (boîte de
+//       contenu, chaque rayon diminué du retrait — bord et rembourrage — de
+//       son côté). La coupe se lit tous les demi-pixels (centres des cases)
+//       dans l'intersection des deux boîtes visibles ; elle compte si
+//       l'étendue des points dessinés dépasse la tolérance sur les deux axes,
+//       et son aire est celle de ces points (0,25 px² chacun) — décision de
+//       l'utilisateur du 2026-10-14 ; tests/banc/cas/anneau.html (bande
+//       droite, coin intérieur arrondi, coin extérieur hors de l'arrondi).
+//       Tout autre masque se compare par sa boîte.
+//     ⚠️ Limites nommées : dans un même plan, l'ordre d'empilement n'est pas
+//     lu (`z-index`, `absolute`), ni `clip-path` ni un masque autre que
+//     l'anneau ; une boîte dans un défilement est comparée à sa position
+//     défilée du moment.
 // - bouton en coin (la croix « Retirer » de la carte RTA, le crayon
 //   « Modifier cette défense » d'une vignette de défense, posés sur leur
 //   coin) : il a le droit de toucher SA CARTE — les éléments qu'elle porte et
@@ -301,6 +333,90 @@
 //     ⚠️ Limite nommée : l'exception se lit côté bouton. Une pastille de
 //     portrait posée dans la carte garde sa propre règle, qui ne connaît pas
 //     le bouton : si elle le touche, la pastille est signalée.
+//
+// Règle « voisins » (décision e2 de l'utilisateur, 2026-10-14) : deux
+// éléments frères (même parent), tous deux mesurés, même plan, dont les boîtes
+// visibles se recouvrent de plus de 1 px en largeur ET en hauteur : un
+// signalement par paire. Toujours active. Relevé qui l'a fait naître : la
+// pastille de trois sets visés des recommandations de siège (57 px, centrée
+// dans une piste de 34 d'une grille `auto-cols-[34px] gap-x-2.5`) mordait de
+// 5,5 px sur sa voisine sans qu'aucune règle le voie
+// (tests/banc/cas/voisins.html).
+// · Définitions : mesuré — visible et hors des exclusions locales plus haut
+//   (ni `visibility: hidden`, ni décoratif coupé, ni ellipsis) ; même plan,
+//   boîte visible et coupe — ceux de la règle « chevauchement » (pastille du
+//   portrait, plus haut). Signalé sur le premier des deux dans l'ordre du
+//   document, avec l'autre (`avec`) et l'aire coupée (`aire`, px²) ; se
+//   toucher (coupe de 1 px au plus) n'est pas se recouvrir.
+// · Exclusions : la paire est ignorée si l'un des deux…
+//   (a) est `absolute` ou `fixed` (`position` calculée) : hors du flux, sa
+//       superposition est construite — icône posée dans un champ, calque,
+//       pastille et bouton en coin (ceux-là relèvent de « chevauchement ») ;
+//       relevé L1 : 784 paires, toutes voulues. Un `relative` reste en flux
+//       et se compare, décalage compris (voisins-absolu.html) ;
+//   (b) est `inline` non atomique (`display` calculé `inline`, hors élément
+//       remplacé) : un texte en ligne n'a qu'un rectangle, qui englobe ses
+//       lignes et ce qui les suit (relevé L1 : jusqu'à 2 432 px² sans rien de
+//       superposé). Image, `video`, `canvas`, `iframe`, `object`, `embed`,
+//       bouton, `<svg>` et champ (`input`, `select`, `textarea`) restent
+//       comparés, même en `display: inline` (voisins-en-ligne.html) ;
+//   (c) est intérieur à un `<svg>` (un ancêtre `<svg>`) : les formes d'un
+//       dessin se superposent par construction (relevé L1 : 961 paires) ; le
+//       `<svg>` lui-même reste comparé (voisins-svg.html) ;
+//   (d) porte une marge négative (`getComputedStyle`), sur n'importe quel
+//       côté : la superposition est déclarée (portraits empilés en `-ml-1`).
+//       Seuls les deux frères comptent : la marge négative de leur parent
+//       n'exclut rien (voisins-marge.html) ;
+//   (e) porte un `transform` calculé autre que `none` : il est déplacé après
+//       la mise en page (carrousel, icône centrée par `translate-x-…`), sa
+//       boîte n'est plus celle du flux. La propriété `transform` seule : les
+//       propriétés `translate`, `rotate` et `scale` écrites seules ne
+//       l'excluent pas, ni le `transform` du parent (voisins-transform.html) ;
+//   (f) ne dessine rien : une couche qui réserve une place ne recouvre aucun
+//       pixel (EtatMonstre.tsx : en-tête et message de rappel dans la même
+//       case de grille, le message `invisible` ; relevé L1 : 8 paires).
+//       Un élément dessine, s'il est en `visibility: visible`, par un fond
+//       (couleur d'alpha non nul, ou `background-image` autre que `none`), un
+//       bord (un côté de style ni `none` ni `hidden`, d'épaisseur et de
+//       couleur non nulles, ou une `border-image`), une ombre (une couche de
+//       `box-shadow` de couleur d'alpha non nul et d'une longueur non nulle :
+//       le `0 0 #0000` que Tailwind pose par défaut ne dessine rien), un
+//       contour (`outline` de style autre que `none`, d'épaisseur et de
+//       couleur non nulles), une puce de liste, un nœud texte enfant qui
+//       n'est pas fait que de blancs, ou un pseudo-élément `::before` ou
+//       `::after` généré qui dessine (mêmes propriétés, ou un `content` autre
+//       qu'une chaîne vide — la zone de toucher `cible-tactile` ne dessine
+//       rien) ; un élément remplacé (liste de b, bouton excepté : ses
+//       propriétés suffisent), un `<svg>` et tout élément qui lui est
+//       intérieur dessinent leur contenu (du côté prudent : la règle ne lit
+//       ni `fill` ni `stroke`). Sinon, il
+//       dessine si l'un de ses enfants dessine, récursivement : un enfant en
+//       `display: none` ne dessine rien, ni son sous-arbre ; un enfant en
+//       `visibility: hidden` ne dessine pas lui-même, mais un descendant
+//       rendu `visible` dessine ; un `display: contents` n'a pas de boîte,
+//       seuls ses textes, ses pseudo-éléments et ses enfants comptent
+//       (voisins-dessin.html).
+// · Limites connues (décision e2) — des cas où la règle se TAIT à tort :
+//   - cousins : deux éléments de parents différents ne sont pas comparés
+//     (l'enfant qui sort de son parent sur l'enfant d'un frère ; les enfants
+//     d'un `display: contents` face aux frères de celui-ci) ;
+//   - sortie à gauche ou en hauteur sans frère touché : un élément qui sort de
+//     son parent à gauche, en haut ou en bas sans couper un frère n'est vu ni
+//     ici ni par « géométrie » (qui ne lit que la sortie de la fenêtre) ;
+//   - plans `sticky` : un frère `sticky` est un plan à lui, jamais comparé à
+//     ses frères (même limite que « chevauchement ») ;
+//   - recouvrement porté par un élément exclu par a, d ou e : la paire est
+//     ignorée entière, même quand le recouvrement dépasse ce que l'absolu, la
+//     marge ou le `transform` voulait (un `-ml-1` qui recouvre 30 px) ;
+//   - texte `inline` comparé par son rectangle : le banc ne lit que des
+//     rectangles ; un texte en ligne n'en a qu'un, englobant — d'où (b) —, et
+//     ce qu'un texte dessine hors de la boîte de son bloc (un mot qui
+//     déborde sur le frère) n'entre dans aucune paire.
+//   Et, dans les deux sens, comme « chevauchement » : l'ordre d'empilement
+//   n'est pas lu, ni `opacity`, `clip-path` ou un masque (un frère à
+//   `opacity: 0` est comparé comme s'il dessinait) ; les boîtes sont celles
+//   du premier passage, une boîte dans un défilement à sa position défilée
+//   du moment.
 //
 // Second passage : chaque signalement « contenu » d'un élément concerné par
 // une exception (et la page, si elle déborde et qu'une marge négative y
@@ -362,7 +478,7 @@
 // envoie le texte. Elle ne référence donc rien hors d'elle-même — pas une
 // constante du module, pas un import.
 
-export type Regle = 'contenu' | 'geometrie' | 'chevauchement';
+export type Regle = 'contenu' | 'geometrie' | 'chevauchement' | 'voisins';
 
 export interface DescriptionElement {
   /**
@@ -399,9 +515,12 @@ export interface Signalement {
    * pseudo-élément ou de texte. Aide à la lecture, sans effet sur le verdict.
    */
   causes?: DescriptionElement[];
-  /** Règle « chevauchement » : l'élément dont la boîte est coupée (voir la tête). */
+  /**
+   * Règles « chevauchement » et « voisins » : l'élément dont la boîte est
+   * coupée — pour « voisins », le second frère de la paire (voir la tête).
+   */
   avec?: DescriptionElement;
-  /** Règle « chevauchement » : l'aire de l'intersection des deux boîtes, en px². */
+  /** Règles « chevauchement » et « voisins » : l'aire de l'intersection des deux boîtes visibles, en px². */
   aire?: number;
 }
 
@@ -747,6 +866,116 @@ export function mesurer(options: { detail: boolean }): Mesure {
     zones.set(e, z);
     return z;
   };
+  // Anneau masqué (CategoryRing.tsx) : un calque dont le masque ne garde que
+  // la bande entre son bord et sa boîte de contenu — deux calques de dégradé
+  // opaques, l'un rogné à la boîte de contenu, l'autre à la boîte de bordure,
+  // composés en exclusion. Rend ses deux contours arrondis (bordure et
+  // contenu), `null` pour tout autre élément.
+  type Arrondi = { g: number; h: number; d: number; b: number; r: [number, number][] };
+  const anneaux = new Map<Element, { ext: Arrondi; int: Arrondi } | null>();
+  const anneauDe = (e: Element): { ext: Arrondi; int: Arrondi } | null => {
+    if (anneaux.has(e)) return anneaux.get(e) ?? null;
+    const s = style(e);
+    const clips = s.maskClip.split(',').map((x) => x.trim());
+    const images = s.maskImage;
+    const couleurs = images.match(/rgba?\([^)]*\)/g) ?? [];
+    const anneau =
+      clips.length === 2 &&
+      clips.includes('content-box') &&
+      clips.includes('border-box') &&
+      s.maskComposite.split(',')[0].trim() === 'exclude' &&
+      s.maskSize.split(',').every((x) => x.trim() === 'auto') &&
+      (images.match(/gradient\(/g) ?? []).length === 2 &&
+      (images.match(/(^|, )linear-gradient\(/g) ?? []).length === 2 &&
+      !/url\(/.test(images) &&
+      couleurs.length > 0 &&
+      couleurs.every((c) => {
+        const v = c.slice(c.indexOf('(') + 1, -1).split(/[\s,/]+/).filter(Boolean);
+        return v.length === 3 || Number(v[3]) === 1;
+      });
+    let forme: { ext: Arrondi; int: Arrondi } | null = null;
+    if (anneau) {
+      const q = boites.get(e) ?? e.getBoundingClientRect();
+      const px = (v: string) => parseFloat(v) || 0;
+      const rayons = [s.borderTopLeftRadius, s.borderTopRightRadius, s.borderBottomRightRadius, s.borderBottomLeftRadius].map(
+        (v): [number, number] => {
+          const [x, y] = v.split(' ').map(px);
+          return [x, y ?? x];
+        },
+      );
+      // Rayons réduits ensemble quand leur somme dépasse un côté (CSS).
+      const l = q.width;
+      const hh = q.height;
+      const f = Math.min(
+        1,
+        l / (rayons[0][0] + rayons[1][0] || 1),
+        l / (rayons[3][0] + rayons[2][0] || 1),
+        hh / (rayons[0][1] + rayons[3][1] || 1),
+        hh / (rayons[1][1] + rayons[2][1] || 1),
+      );
+      const r = rayons.map(([x, y]): [number, number] => [x * f, y * f]);
+      const g = px(s.borderLeftWidth) + px(s.paddingLeft);
+      const h = px(s.borderTopWidth) + px(s.paddingTop);
+      const d = px(s.borderRightWidth) + px(s.paddingRight);
+      const b = px(s.borderBottomWidth) + px(s.paddingBottom);
+      forme = {
+        ext: { g: q.left, h: q.top, d: q.right, b: q.bottom, r },
+        // Contour intérieur : chaque rayon diminué du retrait de son côté.
+        int: {
+          g: q.left + g,
+          h: q.top + h,
+          d: q.right - d,
+          b: q.bottom - b,
+          r: [
+            [Math.max(0, r[0][0] - g), Math.max(0, r[0][1] - h)],
+            [Math.max(0, r[1][0] - d), Math.max(0, r[1][1] - h)],
+            [Math.max(0, r[2][0] - d), Math.max(0, r[2][1] - b)],
+            [Math.max(0, r[3][0] - g), Math.max(0, r[3][1] - b)],
+          ],
+        },
+      };
+    }
+    anneaux.set(e, forme);
+    return forme;
+  };
+  // Le point (x, y) est-il dans le rectangle arrondi ?
+  const dansArrondi = (x: number, y: number, a: Arrondi): boolean => {
+    if (x < a.g || x > a.d || y < a.h || y > a.b) return false;
+    const coins: [number, number, [number, number]][] = [
+      [a.g + a.r[0][0], a.h + a.r[0][1], a.r[0]],
+      [a.d - a.r[1][0], a.h + a.r[1][1], a.r[1]],
+      [a.d - a.r[2][0], a.b - a.r[2][1], a.r[2]],
+      [a.g + a.r[3][0], a.b - a.r[3][1], a.r[3]],
+    ];
+    for (const [i, [cx, cy, [rx, ry]]] of coins.entries()) {
+      if (rx <= 0 || ry <= 0) continue;
+      const dansCoin = (i === 0 || i === 3 ? x < cx : x > cx) && (i < 2 ? y < cy : y > cy);
+      if (dansCoin && ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2 > 1) return false;
+    }
+    return true;
+  };
+  // Coupe d'une zone avec ce qu'un anneau DESSINE : la zone est lue tous les
+  // demi-pixels (centres des cases) ; un point est dessiné s'il est dans le
+  // contour extérieur et hors du contour intérieur. Rend l'aire dessinée
+  // coupée, ou 0 si son étendue ne dépasse pas la tolérance sur les deux axes.
+  const coupeAnneau = (z: Zone, forme: { ext: Arrondi; int: Arrondi }): number => {
+    let n = 0;
+    let gx = Infinity;
+    let dx = -Infinity;
+    let hy = Infinity;
+    let by = -Infinity;
+    for (let y = z.haut + 0.25; y < z.bas; y += 0.5) {
+      for (let x = z.gauche + 0.25; x < z.droite; x += 0.5) {
+        if (!dansArrondi(x, y, forme.ext) || dansArrondi(x, y, forme.int)) continue;
+        n++;
+        gx = Math.min(gx, x);
+        dx = Math.max(dx, x);
+        hy = Math.min(hy, y);
+        by = Math.max(by, y);
+      }
+    }
+    return n > 0 && dx - gx + 0.5 > TOLERANCE && by - hy + 0.5 > TOLERANCE ? n * 0.25 : 0;
+  };
   const exclusD8 = new Set(decoratifsVus);
   for (const { el, bloc, pastille } of coins) {
     if (!mesures.has(el)) continue;
@@ -763,7 +992,17 @@ export function mesurer(options: { detail: boolean }): Mesure {
       const q = visibleDe(autre);
       const l = Math.min(v.droite, q.droite) - Math.max(v.gauche, q.gauche);
       const h = Math.min(v.bas, q.bas) - Math.max(v.haut, q.haut);
-      if (l > TOLERANCE && h > TOLERANCE) aires.set(autre, l * h);
+      if (!(l > TOLERANCE && h > TOLERANCE)) continue;
+      // Un anneau masqué ne se coupe que par ce qu'il dessine, pas par sa boîte.
+      const forme = anneauDe(autre);
+      if (!forme) {
+        aires.set(autre, l * h);
+        continue;
+      }
+      const g = Math.max(v.gauche, q.gauche);
+      const t = Math.max(v.haut, q.haut);
+      const aire = coupeAnneau({ gauche: g, haut: t, droite: g + l, bas: t + h }, forme);
+      if (aire > 0) aires.set(autre, aire);
     }
     const coupes = Array.from(aires.keys());
     for (const autre of coupes) {
@@ -773,6 +1012,129 @@ export function mesurer(options: { detail: boolean }): Mesure {
         avec: decrire(autre),
         aire: Math.round((aires.get(autre) as number) * 10) / 10,
       });
+    }
+  }
+
+  // Règle « voisins » (tête) : chaque paire de frères mesurés, du même plan,
+  // dont les boîtes visibles se coupent ; exclusions (a) à (f).
+  // L'alpha d'une couleur calculée : `rgba(…, a)`, `… / a)` ; opaque sinon,
+  // et opaque si la valeur ne se lit pas (du côté prudent : elle dessine).
+  const alpha = (c: string) => {
+    if (c === 'transparent') return 0;
+    const corps = /\(([^()]*)\)\s*$/.exec(c)?.[1];
+    if (corps === undefined) return 1;
+    const barre = corps.split('/');
+    let a = 1;
+    if (barre.length === 2) a = parseFloat(barre[1]) / (barre[1].includes('%') ? 100 : 1);
+    else if (/^(rgba|hsla)\(/.test(c) && corps.split(',').length === 4) a = parseFloat(corps.split(',')[3]);
+    return Number.isNaN(a) ? 1 : a;
+  };
+  // `box-shadow` : une couche dessine si sa couleur se voit et qu'une de ses
+  // longueurs n'est pas nulle (`0 0 #0000`, défaut de Tailwind, ne dessine rien).
+  const ombre = (v: string) => {
+    if (v === 'none') return false;
+    const couches: string[] = [];
+    let debut = 0;
+    let parens = 0;
+    for (let i = 0; i < v.length; i++) {
+      if (v[i] === '(') parens++;
+      else if (v[i] === ')') parens--;
+      else if (v[i] === ',' && parens === 0) {
+        couches.push(v.slice(debut, i));
+        debut = i + 1;
+      }
+    }
+    couches.push(v.slice(debut));
+    return couches.some((c) => {
+      const couleur = /[a-z-]+\([^()]*\)|transparent/.exec(c)?.[0];
+      const longueurs = (couleur ? c.replace(couleur, '') : c).match(/-?[\d.]+/g) ?? [];
+      return (couleur === undefined || alpha(couleur) > 0) && longueurs.some((n) => parseFloat(n) !== 0);
+    });
+  };
+  const COTES = ['top', 'right', 'bottom', 'left'];
+  // Le dessin de la boîte elle-même (fond, bord, ombre, contour) : tête, (f).
+  const boiteDessine = (s: CSSStyleDeclaration) =>
+    alpha(s.backgroundColor) > 0 ||
+    s.backgroundImage !== 'none' ||
+    s.borderImageSource !== 'none' ||
+    COTES.some((c) => {
+      const trait = s.getPropertyValue(`border-${c}-style`);
+      return (
+        trait !== 'none' &&
+        trait !== 'hidden' &&
+        parseFloat(s.getPropertyValue(`border-${c}-width`)) > 0 &&
+        alpha(s.getPropertyValue(`border-${c}-color`)) > 0
+      );
+    }) ||
+    ombre(s.boxShadow) ||
+    (s.outlineStyle !== 'none' && parseFloat(s.outlineWidth) > 0 && alpha(s.outlineColor) > 0);
+  const REMPLACES = new Set(['IMG', 'VIDEO', 'CANVAS', 'IFRAME', 'OBJECT', 'EMBED', 'INPUT', 'SELECT', 'TEXTAREA']);
+  const pseudoDessine = (e: Element, quel: '::before' | '::after') => {
+    const p = getComputedStyle(e, quel);
+    if (p.content === 'none' || p.content === 'normal' || p.display === 'none' || p.visibility !== 'visible') return false;
+    return !/^"\s*"$/.test(p.content) || boiteDessine(p);
+  };
+  const dessins = new Map<Element, boolean>();
+  const dessine = (e: Element): boolean => {
+    const connu = dessins.get(e);
+    if (connu !== undefined) return connu;
+    const s = style(e);
+    let r = false;
+    if (s.display !== 'none') {
+      if (s.visibility === 'visible') {
+        r =
+          REMPLACES.has(e.tagName) ||
+          e instanceof SVGElement ||
+          (s.display !== 'contents' && boiteDessine(s)) ||
+          (s.display === 'list-item' && (s.listStyleType !== 'none' || s.listStyleImage !== 'none')) ||
+          Array.from(e.childNodes).some((n) => n instanceof Text && /\S/.test(n.data)) ||
+          pseudoDessine(e, '::before') ||
+          pseudoDessine(e, '::after');
+      }
+      if (!r && !(e instanceof SVGElement)) r = Array.from(e.children).some(dessine);
+    }
+    dessins.set(e, r);
+    return r;
+  };
+  // (b) : `button` est atomique, même en `display: inline`.
+  const enLigne = (e: Element, s: CSSStyleDeclaration) =>
+    s.display === 'inline' && !REMPLACES.has(e.tagName) && e.tagName !== 'BUTTON' && !(e instanceof SVGSVGElement);
+  const voisinExclu = (e: Element) => {
+    const s = style(e);
+    return (
+      s.position === 'absolute' ||
+      s.position === 'fixed' ||
+      enLigne(e, s) ||
+      e.parentElement?.closest('svg') != null ||
+      COTES.some((c) => parseFloat(s.getPropertyValue(`margin-${c}`)) < 0) ||
+      s.transform !== 'none'
+    );
+  };
+  const freres = new Map<Element, Element[]>();
+  for (const e of visibles) {
+    if (!mesures.has(e) || !e.parentElement) continue;
+    const l = freres.get(e.parentElement);
+    if (l) l.push(e);
+    else freres.set(e.parentElement, [e]);
+  }
+  for (const groupe of freres.values()) {
+    for (let i = 0; i < groupe.length; i++) {
+      for (let j = i + 1; j < groupe.length; j++) {
+        const a = groupe[i];
+        const b = groupe[j];
+        if (planDe(a) !== planDe(b)) continue;
+        const va = visibleDe(a);
+        const vb = visibleDe(b);
+        const l = Math.min(va.droite, vb.droite) - Math.max(va.gauche, vb.gauche);
+        const h = Math.min(va.bas, vb.bas) - Math.max(va.haut, vb.haut);
+        if (!(l > TOLERANCE && h > TOLERANCE)) continue;
+        if (voisinExclu(a) || voisinExclu(b) || !dessine(a) || !dessine(b)) continue;
+        signalements.push({
+          ...releve(a, boites.get(a) as DOMRect, 'voisins'),
+          avec: decrire(b),
+          aire: Math.round(l * h * 10) / 10,
+        });
+      }
     }
   }
 
@@ -940,10 +1302,10 @@ export function mesurer(options: { detail: boolean }): Mesure {
   }
   const retenus = signalements.filter((s) => !leves.has(s));
   // Ordre de lecture, sans effet sur le verdict : la géométrie d'abord (ce
-  // qui sort de l'écran se voit), puis le chevauchement, puis le contenu ; le
+  // qui sort de l'écran se voit), puis le chevauchement, les voisins, le contenu ; le
   // plus profond d'abord — c'est le plus souvent la cause, ses ancêtres n'en
   // sont que la conséquence.
-  const rang: Record<Regle, number> = { geometrie: 0, chevauchement: 1, contenu: 2 };
+  const rang: Record<Regle, number> = { geometrie: 0, chevauchement: 1, voisins: 2, contenu: 3 };
   retenus.sort((a, b) => rang[a.regle] - rang[b.regle] || b.element.profondeur - a.element.profondeur);
 
   const pageDeborde = (pageRelue ?? scrollWidth) > largeur + TOLERANCE;

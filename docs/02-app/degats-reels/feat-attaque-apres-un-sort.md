@@ -157,7 +157,7 @@ Puis, pour l’une comme pour l’autre :
    enchaînée. Elle est posée (ou non) **avant** que la S1 se déclenche : un
    interrupteur « Marque posée » la règle, sans relevé ([valeurs curées](valeurs-de-jeu-curees.md), « Marque
    de la S2, puis S1 enchaîné ») ; il reste à coder
-   ([05-pilotage/pistes-degats-reels.md § Compétence active appelée par un sort](../../05-pilotage/pistes-degats-reels.md#compétence-active-appelée-par-un-sort)).
+   ([05-feuille-de-route/pistes-degats-reels.md § Compétence active appelée par un sort](../../05-feuille-de-route/pistes-degats-reels.md#compétence-active-appelée-par-un-sort)).
 
 ### Les 17 amorces examinées
 

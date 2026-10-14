@@ -94,7 +94,7 @@ ces sorts, contrairement à Blade Surge. Sur la phase 1 seule, Abigail et
 Emily vaudraient `3,5 × 1,25 + 4,5 = 8,875` × ATQ au lieu de `10`, M. BISON
 et Sagar `4,0 × 1,15 + 5,2 = 9,8` au lieu de `10,58`. Un relevé du rapport
 phase 2 / phase 1 sur la cible visée tranche
-([05-pilotage/pistes-degats-reels.md § Skillups des séquences à valeur de l'API](../../05-pilotage/pistes-degats-reels.md#skillups-des-séquences-à-valeur-de-lapi)).
+([05-feuille-de-route/pistes-degats-reels.md § Skillups des séquences à valeur de l'API](../../05-feuille-de-route/pistes-degats-reels.md#skillups-des-séquences-à-valeur-de-lapi)).
 
 ## La cible calculée — `cibleDegatsParSort`
 

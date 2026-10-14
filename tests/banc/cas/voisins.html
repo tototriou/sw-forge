@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="fr" data-attendu-page="non">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover">
+<title>Voisins qui se recouvrent</title>
+<style>
+  body { margin: 8px; font: 14px sans-serif; }
+  .bloc { margin: 16px 0; width: 300px; }
+  /* La rangée des sets visés de RecoCard.tsx : `grid auto-cols-[34px] grid-flow-col justify-start
+     justify-items-center gap-x-2.5 pl-7`, et SetsPortes en `inline-flex w-max rounded-full border px-1.5 py-0.5`. */
+  .rangee-sets { display: grid; grid-auto-columns: 34px; grid-auto-flow: column; justify-content: start; justify-items: center; column-gap: 10px; padding-left: 28px; }
+  .pastille { display: inline-flex; align-items: center; gap: 2px; width: max-content; border: 1px solid #888; border-radius: 9999px; background: #eee; padding: 2px 6px; }
+  .icone { flex: none; width: 13px; height: 13px; border-radius: 50%; background: #c33; }
+  .rangee { display: flex; }
+  .pistes { display: grid; grid-template-columns: 34px 34px; column-gap: 0; }
+  .case { height: 20px; background: #9cf; }
+  .case + .case { background: #fc9; }
+</style>
+</head>
+<body>
+<!-- Signalé (voisins) : la pastille de trois sets (57 px : 3 × 13 + 2 × 2 + 2 × 6 + 2) centrée dans sa piste de 34 px
+     déborde de 11,5 px de chaque côté ; la pastille de deux sets (42 px) déborde de 4 ; 10 px de gouttière : 5,5 px
+     de morsure sur 19 px de haut. Les deux pastilles de deux sets, elles, ne se touchent pas (2 px d'écart). -->
+<div class="bloc">
+  <div id="rangee-sets" class="rangee-sets" data-attendu="">
+    <span id="sets-trois" class="pastille" data-attendu="voisins" data-attendu-avec="sets-deux" data-attendu-aire="104.5"><span class="icone"></span><span class="icone"></span><span class="icone"></span></span>
+    <span id="sets-deux" class="pastille" data-attendu=""><span class="icone"></span><span class="icone"></span></span>
+    <span id="sets-deux-bis" class="pastille" data-attendu=""><span class="icone"></span><span class="icone"></span></span>
+  </div>
+</div>
+<!-- Non signalés : deux frères collés (0 px de coupe), puis deux frères qui se coupent d'1 px exactement (35 px dans
+     une piste de 34) — se toucher n'est pas se recouvrir (tolérance de 1 px). -->
+<div class="bloc">
+  <div class="rangee">
+    <div id="colle-gauche" class="case" style="width: 50px" data-attendu=""></div>
+    <div id="colle-droite" class="case" style="width: 50px" data-attendu=""></div>
+  </div>
+</div>
+<div class="bloc">
+  <div class="pistes">
+    <div id="un-px-gauche" class="case" style="width: 35px" data-attendu=""></div>
+    <div id="un-px-droite" class="case" style="width: 34px" data-attendu=""></div>
+  </div>
+</div>
+<!-- Signalé (voisins) : 2 px de coupe (36 px dans une piste de 34), au-delà de la tolérance : 2 × 20 px. -->
+<div class="bloc">
+  <div class="pistes">
+    <div id="deux-px-gauche" class="case" style="width: 36px" data-attendu="voisins" data-attendu-avec="deux-px-droite" data-attendu-aire="40"></div>
+    <div id="deux-px-droite" class="case" style="width: 34px" data-attendu=""></div>
+  </div>
+</div>
+</body>
+</html>

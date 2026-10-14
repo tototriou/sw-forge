@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="fr" data-attendu-page="non">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover">
+<title>Voisins : marge négative</title>
+<style>
+  body { margin: 8px; font: 14px sans-serif; }
+  .bloc { margin: 16px 0; width: 200px; }
+  .rangee { display: flex; }
+  .portrait { flex: none; width: 40px; height: 40px; background: #9cf; }
+  .portrait + .portrait { background: #fc9; }
+  .pile > div { height: 20px; background: #9cf; }
+  .pile > div + div { background: #fc9; }
+  .pistes { display: grid; grid-template-columns: 30px 30px; column-gap: 0; }
+  .pistes > div { width: 40px; height: 20px; background: #9cf; }
+  .pistes > div + div { background: #fc9; }
+</style>
+</head>
+<body>
+<!-- Exclusion (d), non signalé : portraits empilés, le second en `margin-left: -8px` (8 × 40 px coupés). -->
+<div class="bloc">
+  <div class="rangee">
+    <div id="pile-gauche" class="portrait" data-attendu=""></div>
+    <div id="pile-droite" class="portrait" style="margin-left: -8px" data-attendu=""></div>
+  </div>
+</div>
+<!-- Exclusion (d), non signalé : n'importe quel côté — le second bloc remonte de 10 px sur le premier
+     (`margin-top: -10px`). -->
+<div class="bloc">
+  <div class="pile">
+    <div id="haut-dessus" data-attendu=""></div>
+    <div id="haut-dessous" style="margin-top: -10px" data-attendu=""></div>
+  </div>
+</div>
+<!-- Signalé (voisins) : la marge négative est sur le PARENT, pas sur les frères, qui se coupent par leurs pistes
+     trop étroites (40 px dans 30) : 10 × 20 px. -->
+<div class="bloc">
+  <div class="pistes" style="margin-left: -4px">
+    <div id="parent-gauche" data-attendu="voisins" data-attendu-avec="parent-droite" data-attendu-aire="200"></div>
+    <div id="parent-droite" data-attendu=""></div>
+  </div>
+</div>
+</body>
+</html>

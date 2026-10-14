@@ -60,11 +60,17 @@ jamais en menus. Au doigt : grande recherche, filtres et tri dans le tiroir.
     des deux — on parcourt des centaines de monstres, chaque pixel de marge coûte
     une ligne de plus à faire défiler.
   - ⚠️ **Le nom peut se couper avant une parenthèse** (`<wbr>`) : il tient
-    sur deux lignes au plus (`line-clamp-2`), et un nom sans espace comme
-    « Homunculus(Attack) », plus large que la carte, était coupé net, sans
-    points de suspension. « (Attack) » passe désormais à la ligne. Le libellé
-    reste celui du jeu, mot pour mot ; la règle vaut aussi pour les deux noms
-    d'un monstre de collaboration.
+    sur deux lignes au plus, et un nom sans espace comme
+    « Homunculus(Attack) », plus large que la carte, était coupé net à droite.
+    « (Attack) » passe désormais à la ligne. Le libellé reste celui du jeu, mot
+    pour mot ; la règle vaut aussi pour les deux noms d'un monstre de
+    collaboration.
+  - ⚠️ **Au-delà de deux lignes, le nom est coupé net, sans points de
+    suspension** (`h-[2lh]` + `overflow-hidden`, pas `line-clamp`). En texte
+    centré, `line-clamp` pose l'ellipse une demi-ellipse trop loin — Chromium
+    centre la ligne sans elle — et son dernier point était rogné (« White
+    Tiger Blade Master, Inosuke Hashibira »). Le nom entier reste dans le
+    `title` de la carte.
   - ⚠️ **Toutes les cartes ont la même hauteur, et deux lignes de nom.** La
     hauteur est celle d'une carte à nom d'une ligne (bestiaire 129 px, box
     109 px) ; portrait et étoiles gardent leur place, alignés d'une carte à

@@ -45,6 +45,7 @@ import testBancSelection from './banc-selection.test';
 import { testNavigationAdresses, testNavigationAdressesDefauts, testNavigationVuesCompte } from './navigation-adresses.test';
 import { testVoletsLargeurs, testVoletsNavigation, testVoletsOuverture, testVoletsResponsive,
   testVoletsVerrou } from './volets.test';
+import { testSuiviLecture, testSuiviTableau } from './suivi.test';
 import testPersistance from './persistance.test';
 import { testRenduOptimizerDialogueLeaderSkill, testRenduTelephoneOptimizerDialogueLeaderSkill,
   testRenduOptimizerDialogueLeaderEspece, testRenduTelephoneOptimizerDialogueLeaderEspece,
@@ -497,6 +498,8 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testVoletsVerrou', testVoletsVerrou],
   ['testVoletsLargeurs', testVoletsLargeurs],
   ['testVoletsResponsive', testVoletsResponsive],
+  ['testSuiviLecture', testSuiviLecture],
+  ['testSuiviTableau', testSuiviTableau],
   ['testReco', testReco],
   ['testDefensesVisees', testDefensesVisees],
   ['testTrimPartage', testTrimPartage],

@@ -416,10 +416,16 @@ export default function TurnOrder({
                 // section ne visant QUE le doigt.** Au clavier/à la souris, la
                 // carte garde son rendu d'avant, à l'identique — voir
                 // docs/03-developpeur/interface/.
+                //
+                // ⚠️ Souris : marge droite de 2 px (`pr-0.5`), pas 8. Avec trois
+                // sets et une vitesse à trois chiffres, la rangée vitesse + sets
+                // fait 106 px : elle débordait de sa colonne de 6 px dans la
+                // marge vide de la carte. La colonne a maintenant la place de ce
+                // qui y était déjà dessiné — rien ne bouge à l'écran.
                 className={`relative flex-none rounded-xl border border-border transition-colors ${
                   surMobile
                     ? 'w-[104px] p-1.5 flex flex-col items-center gap-1'
-                    : 'w-[168px] p-2 flex flex-col gap-1.5'
+                    : 'w-[168px] p-2 pr-0.5 flex flex-col gap-1.5'
                 } ${moved ? 'bg-warn/20' : 'bg-panel2'}`}
               >
                 <CategoryRing colors={catsOf(String(m.id)).map((c) => c.color)} radius="rounded-xl" />

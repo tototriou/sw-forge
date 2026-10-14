@@ -54,6 +54,11 @@ jobs:
       - name: Dépendances
         run: npm ci
 
+      # Des tests de rendu pilotent l'app dans Chromium : `npm ci` installe
+      # Playwright, pas son navigateur.
+      - name: Navigateur des tests
+        run: npx playwright install chromium
+
       - name: Types
         run: npx tsc --noEmit
 

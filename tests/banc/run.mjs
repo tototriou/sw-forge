@@ -2,7 +2,7 @@
 // fenêtre aux deux formats, amène chaque écran dans chacun de ses états
 // (ecrans.ts), mesure ce qui déborde (règle : tête de mesure.ts) et capture.
 //
-//   node tests/banc/run.mjs --tous --compte tests/fixtures/compte-miniature.json
+//   node tests/banc/run.mjs --tous
 //   node tests/banc/run.mjs --ecrans optimizer
 //
 // Codes de sortie : 0 rien ne déborde ; 1 un débordement ; 2 le banc n'a pas
@@ -38,7 +38,8 @@ import {
 
 const ICI = dirname(fileURLToPath(import.meta.url));
 const DEPOT_BANC = resolve(ICI, '../..');
-const COMPTE_EXEMPLE = join(DEPOT_BANC, 'tests', 'fixtures', 'compte-miniature.json');
+// La miniature, plus les cas d'affichage relevés sur un export réel.
+const COMPTE_EXEMPLE = join(DEPOT_BANC, 'tests', 'fixtures', 'compte-banc.json');
 // Bornes de temps : une étape qui ne rend pas la main arrête le banc en
 // code 2, jamais en attente sans fin.
 const DELAI_CONSTRUCTION_MS = 180000;
@@ -59,7 +60,7 @@ Sélection (une seule, obligatoire) :
 Options :
   --racine <dossier>   l'arbre à construire et mesurer (défaut : le dépôt qui contient
                        ce lanceur, quel que soit le dossier courant)
-  --compte <fichier>   l'export importé (défaut : tests/fixtures/compte-miniature.json) ;
+  --compte <fichier>   l'export importé (défaut : tests/fixtures/compte-banc.json) ;
                        hors de tests/fixtures/, il est traité comme un compte réel :
                        sortie obligatoirement hors de tout dépôt Git, aucun message
                        de la page sur la sortie standard
@@ -523,9 +524,10 @@ async function principal(etat) {
             console.log(`${nom.padEnd(64)} DÉBORDE : ${parPage}${mesure.signalements.length} signalement(s)${suffixe}`);
             for (const s of mesure.signalements.slice(0, 6)) {
               console.log(
-                `    ${{ contenu: 'contenu  ', geometrie: 'géométrie', chevauchement: 'chevauchement' }[s.regle] ?? s.regle} ${s.element.chemin}` +
+                `    ${{ contenu: 'contenu  ', geometrie: 'géométrie', chevauchement: 'chevauchement', voisins: 'voisins  ' }[s.regle] ?? s.regle} ${s.element.chemin}` +
                   `\n              [${s.gauche} → ${s.droite}] scroll ${s.scrollWidth} / client ${s.clientWidth}` +
                   (s.element.classes ? ` · ${s.element.classes}` : '') +
+                  (s.avec ? `\n              avec ${s.avec.chemin}${s.avec.classes ? ` · ${s.avec.classes}` : ''} ; ${s.aire} px²` : '') +
                   (s.causes
                     ? `\n              cause : ${s.causes.length ? s.causes.map((c) => `<${c.balise}> ${c.classes.slice(0, 90)}`).join(' | ') : 'pseudo-élément ou texte'}`
                     : ''),

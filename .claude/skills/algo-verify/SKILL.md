@@ -332,6 +332,19 @@ jokers) et vérifier que la somme ne dépasse jamais 3 — jamais réutiliser
 par analogie une borne déjà établie pour un AUTRE cas sans repasser par
 ce calcul concret à chaque fois.
 
+## Les raisonnements qui mènent à l'erreur
+
+Chacun a l'air raisonnable au moment où on le tient. S'il revient, la
+réponse est à droite.
+
+| On se dit | En réalité | Voir |
+|---|---|---|
+| « Mon script appelle les mêmes fonctions que le Worker : son résultat vaut celui de l'écran. » | Un script maison omet souvent une étape du chemin de production (une boucle englobante, un défaut d'option) ; il se compare ligne à ligne au Worker avant qu'on croie son résultat. | § Fidélité des scripts diagnostics |
+| « Un paramètre extrême exerce le chemin de code plus vite. » | Il peut changer la NATURE du résultat, pas seulement son degré : on vérifie à l'échelle d'usage réelle avant de conclure à un risque. | § Méthode |
+| « Simuler les workers l'un après l'autre suffit pour tester leur coordination. » | Une simulation séquentielle a une latence de coordination nulle : elle ne peut pas voir le défaut qu'on cherche. Vrais Workers, toujours. | `optimizer-perf-testing`, § Simulation séquentielle d'une COORDINATION EN DIRECT |
+| « La condition établie pour ce set vaut pour celui-là, avec un joker de plus. » | Toute condition sur pièces et jokers se recompte contre les trois emplacements d'une moitié. | § Arithmétique joker/pièces |
+| « Aucun build n'est perdu », « cet élagage est sûr ». | Une partie de la recherche est heuristique : une propriété « toujours » se vérifie sur le moteur tel qu'il est avant de s'écrire ou de se tester. | § Méthode |
+
 ## Checklist avant de considérer un tel algorithme comme terminé
 
 - [ ] Une référence naïve/exhaustive existe, même si elle n'est utilisée que

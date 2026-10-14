@@ -755,21 +755,30 @@ export default function CurveChart({
   // index.css documente. Le second lui rend ses 44 px de zone touchable par un
   // pseudo-élément qui déborde : la cible reste réglementaire, le dessin reste
   // petit. Retirer l'un des deux casse soit la forme, soit la visée.
+  //
+  // ⚠️ **Posé par un ENVELOPPANT `absolute`, jamais sur le bouton lui-même.**
+  // Au doigt, `.cible-tactile` pose `position: relative` (index.css), hors de
+  // toute couche Tailwind, donc après les utilitaires : un `absolute` écrit sur
+  // le bouton perdait, le bouton retombait en flux sous le graphe, en bas à
+  // gauche, à cheval sur le bord de la carte. Le bouton d'aide est calé de la
+  // même façon (`RunesCurve.tsx`).
   const bouton = (
-    <BoutonIcone
-      onClick={() => setPleinEcran((v) => !v)}
-      libelle={pleinEcran ? 'Quitter le plein écran' : 'Afficher le graphe en plein écran'}
-      icone={pleinEcran ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
-      cadre
-      forme="pilule"
-      zoneEtendue
-      // ⚠️ **Même écart au bord que le bouton d'aide** (`right-2`), qui est
-      // posé par l'onglet Courbes sur une boîte de même largeur : ce sont les
-      // deux commandes du même dessin, sur la même verticale. À `right-3` ils
-      // étaient décalés de 4 px l'un de l'autre — assez pour se voir, pas assez
-      // pour passer pour une intention.
-      className={`absolute bottom-2 right-2 z-10 ${pleinEcran ? '' : 'lg:hidden'}`}
-    />
+    // ⚠️ **Même écart au bord que le bouton d'aide** (`right-2`), qui est posé
+    // par l'onglet Courbes sur une boîte de même largeur : ce sont les deux
+    // commandes du même dessin, sur la même verticale. À `right-3` ils étaient
+    // décalés de 4 px l'un de l'autre — assez pour se voir, pas assez pour
+    // passer pour une intention. `flex` : l'enveloppant épouse le bouton, sans
+    // la hauteur de ligne qu'un bloc ajouterait sous un bouton `inline-flex`.
+    <div className={`absolute bottom-2 right-2 z-10 flex ${pleinEcran ? '' : 'lg:hidden'}`}>
+      <BoutonIcone
+        onClick={() => setPleinEcran((v) => !v)}
+        libelle={pleinEcran ? 'Quitter le plein écran' : 'Afficher le graphe en plein écran'}
+        icone={pleinEcran ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+        cadre
+        forme="pilule"
+        zoneEtendue
+      />
+    </div>
   );
 
   if (!pleinEcran) {

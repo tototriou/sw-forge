@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="fr" data-attendu-page="non">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover">
+<title>Voisins : intérieur d'un svg</title>
+<style>
+  body { margin: 8px; font: 14px sans-serif; }
+  .bloc { margin: 16px 0; width: 200px; }
+  /* Comme dans l'app (préflight de Tailwind) : un `<svg>` en ligne a un `clientWidth` nul, et sa coupe
+     (`overflow: hidden`, feuille du navigateur) réduirait à rien la boîte visible de ses formes. */
+  svg { display: block; }
+  .cellule { display: grid; grid-template-columns: 80px; }
+  .cellule > svg { grid-area: 1 / 1; }
+</style>
+</head>
+<body>
+<!-- Exclusion (c), non signalé : deux formes d'un même dessin qui se superposent (30 × 40 px). Elles sont posées en
+     `display: block` pour que seule (c) les exclue : en `inline`, leur valeur calculée ordinaire (et celle de l'app),
+     (b) les exclurait aussi (relevé L1 : 961 paires de masque « bc »). -->
+<div class="bloc">
+  <svg id="dessin" width="100" height="40" data-attendu="">
+    <rect id="forme-a" x="0" y="0" width="60" height="40" fill="#9cf" style="display: block" data-attendu=""></rect>
+    <rect id="forme-b" x="30" y="0" width="60" height="40" fill="#fc9" style="display: block" data-attendu=""></rect>
+  </svg>
+</div>
+<!-- Signalé (voisins) : deux `<svg>` frères dans la même case de grille — le `<svg>` lui-même se compare
+     (40 × 30 px). -->
+<div class="bloc">
+  <div class="cellule">
+    <svg id="svg-gauche" width="60" height="30" style="justify-self: start" data-attendu="voisins" data-attendu-avec="svg-droite" data-attendu-aire="1200"><rect width="60" height="30" fill="#9cf"></rect></svg>
+    <svg id="svg-droite" width="60" height="30" style="justify-self: end" data-attendu=""><rect width="60" height="30" fill="#fc9"></rect></svg>
+  </div>
+</div>
+</body>
+</html>

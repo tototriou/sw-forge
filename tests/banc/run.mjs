@@ -523,9 +523,10 @@ async function principal(etat) {
             console.log(`${nom.padEnd(64)} DÉBORDE : ${parPage}${mesure.signalements.length} signalement(s)${suffixe}`);
             for (const s of mesure.signalements.slice(0, 6)) {
               console.log(
-                `    ${{ contenu: 'contenu  ', geometrie: 'géométrie', chevauchement: 'chevauchement' }[s.regle] ?? s.regle} ${s.element.chemin}` +
+                `    ${{ contenu: 'contenu  ', geometrie: 'géométrie', chevauchement: 'chevauchement', voisins: 'voisins  ' }[s.regle] ?? s.regle} ${s.element.chemin}` +
                   `\n              [${s.gauche} → ${s.droite}] scroll ${s.scrollWidth} / client ${s.clientWidth}` +
                   (s.element.classes ? ` · ${s.element.classes}` : '') +
+                  (s.avec ? `\n              avec ${s.avec.chemin}${s.avec.classes ? ` · ${s.avec.classes}` : ''} ; ${s.aire} px²` : '') +
                   (s.causes
                     ? `\n              cause : ${s.causes.length ? s.causes.map((c) => `<${c.balise}> ${c.classes.slice(0, 90)}`).join(' | ') : 'pseudo-élément ou texte'}`
                     : ''),

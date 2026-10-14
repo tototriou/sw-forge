@@ -118,9 +118,10 @@ Test : `node tests/run.mjs commitmsg`.
 
 À chaque pull request vers `main` ou une branche `release/**`,
 `.github/workflows/tests.yml` tourne **sous Windows** et enchaîne, dans cet
-ordre : les garde-fous de commit sur chaque commit, les types
-(`npx tsc --noEmit`), le lint (`npm run lint`), la suite complète (`npm test`)
-et le build. Ce que couvre la suite, et les vérifications ignorées faute
+ordre : les garde-fous de commit sur chaque commit, l'installation des
+dépendances et du Chromium de Playwright (`npx playwright install chromium`,
+pour les tests de rendu qui pilotent l'app), les types (`npx tsc --noEmit`),
+le lint (`npm run lint`), la suite complète (`npm test`) et le build. Ce que couvre la suite, et les vérifications ignorées faute
 d'export de compte réel : [tests/README.md](../../tests/README.md).
 
 `--no-verify` reste possible en local, pas dans la CI : l'étape « Garde-fous

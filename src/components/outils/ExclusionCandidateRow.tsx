@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
 import MonsterAvatar from '../MonsterAvatar';
-import RuneIcon from '../RuneIcon';
+import SetsPortes from '../SetsPortes';
 import { activeSets } from '../../lib/effects';
 import { ExclusionCandidate } from '../../lib/optimizerExclusion';
 
@@ -36,13 +36,7 @@ export default function ExclusionCandidateRow({ candidate: c, suffixe }: Props) 
       <div className="min-w-0 flex-1 flex flex-col justify-center gap-0.5">
         <div className="flex items-center gap-2.5">
           <span className="text-[13px] font-medium truncate flex-1">{c.monster.name}</span>
-          {sets.length > 0 && (
-            <span className="flex flex-none items-center gap-1">
-              {sets.map((s, i) => (
-                <RuneIcon key={i} setKey={s} size={14} className="flex-none" />
-              ))}
-            </span>
-          )}
+          <SetsPortes sets={sets} taille={14} espacement="gap-1" className="flex-none" />
           <span className="font-mono text-[11px] text-ink-dim flex-none">
             {c.gear.runes.length} rune{c.gear.runes.length > 1 ? 's' : ''}
           </span>

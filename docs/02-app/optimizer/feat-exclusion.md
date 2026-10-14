@@ -110,7 +110,9 @@ comptage des sets présents parmi les runes portées : `activeSets`
 sont actifs » (un set 4 pièces à 3 runes n'est pas actif, une rune
 Intangible peut compléter le set incomplet le plus proche — un recomptage
 à côté diverge de l'affichage, voir `swiftActive`, importAccount.ts). Même fonction que celle qui alimente les icônes de set
-affichées sur les cartes de « Mon compte » → RTA.
+affichées sur les cartes de « Mon compte » → RTA. La rangée vient du
+composant commun des sets d'un monstre (`SetsPortes`, 14 px, 4 px
+d'écart), sans la règle des trois sets serrés.
 
 Fait partie des réglages exportés/importés dans une recette : ce qui est
 exporté, ce sont des **identifiants** (quel monstre, quelle source), jamais

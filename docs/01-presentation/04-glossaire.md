@@ -76,8 +76,9 @@ fiche qui fait foi : les règles détaillées et les valeurs chiffrées restent 
 - **Bombe, ignore DEF, passif** : notions de la formule des dégâts réels.
   → [feat-bombes.md](../02-app/degats-reels/feat-bombes.md),
   [catalogue-des-passifs.md](../02-app/degats-reels/catalogue-des-passifs.md)
-- **Abréviations des stats** : celles qu'affiche l'app (`src/lib/effects.ts`) : PV, ATQ, DEF,
-  VIT, Taux Crit, Dmg Crit, RES, Précision. À éviter : « TC », « DCC », « Dgts CRIT ».
+- **Abréviations des stats** : celles du jeu : PV, ATQ, DEF, VIT, Tx critiq., Dgts critiq., RES,
+  Précision. Code : `StatKey` (`cr`, `cd`…), libellés dans `src/lib/effects.ts`. À éviter :
+  « TC », « DCC », « Taux Crit », « Dmg Crit ».
 
 ### Contenus, équipes, monstres
 
@@ -139,7 +140,7 @@ fiche qui fait foi : les règles détaillées et les valeurs chiffrées restent 
   → [feat-competences.md](../02-app/speed-tuning/feat-competences.md)
 - **Recommandation, confrontation** : un deck décrit par un auteur, que les autres confrontent à
   leur compte. Code : `Reco`. → [feat-recommandations/](../02-app/siege/feat-recommandations/README.md)
-- **Overcap** : un Taux Crit au-delà de 100 %, que l'app affiche ou non selon un réglage.
+- **Overcap** : un Tx critiq. au-delà de 100 %, que l'app affiche ou non selon un réglage.
 - **Sauvegarde** : quatre choses distinctes. La **session** (Accueil, barre du haut) garde tout le
   travail dans un fichier ([feat-sauvegarde-session.md](../02-app/transverse/feat-sauvegarde-session.md)) ;
   le **point de sauvegarde** de l'Optimizer garde ses listes et ses équipes

@@ -15,6 +15,8 @@ interface Props {
   max?: number;
   /** Règle des trois sets au doigt (voir plus bas). */
   troisSetsSerres?: boolean;
+  /** Sans set, rendre l'enveloppe vide quand même : sa marge compte dans la carte. */
+  garderVide?: boolean;
   title?: string;
 }
 
@@ -34,11 +36,12 @@ export default function SetsPortes({
   className = '',
   max,
   troisSetsSerres = false,
+  garderVide = false,
   title,
 }: Props) {
   const auDoigt = useMediaQuery(COMPACT);
   const affiches = max === undefined ? sets : sets.slice(0, max);
-  if (affiches.length === 0) return null;
+  if (affiches.length === 0 && !garderVide) return null;
   const serre = troisSetsSerres && auDoigt && affiches.length === 3;
   return (
     <span className={`${affichage} items-center ${serre ? 'gap-0' : espacement} ${className}`} title={title}>

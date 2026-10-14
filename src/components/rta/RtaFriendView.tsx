@@ -6,6 +6,7 @@ import { RtaEntry, Monster, sectionLabel, sectionAccent, RTA_UNASSIGNED, RTA_OTH
 import { RtaVueAmi } from '../../lib/rtaShare';
 import MonsterAvatar from '../MonsterAvatar';
 import RuneIcon from '../RuneIcon';
+import SetsPortes from '../SetsPortes';
 import MonsterGear from '../MonsterGear';
 import AccordionGrid from '../AccordionGrid';
 import CategoryRing from './CategoryRing';
@@ -107,11 +108,7 @@ function CarteAmi({
               />
             )}
           </ZoneCliquable>
-          <div className="mt-1 flex items-center gap-1">
-            {(entry.sets ?? []).slice(0, 3).map((s, i) => (
-              <RuneIcon key={i} setKey={s} size={16} className="flex-none" />
-            ))}
-          </div>
+          <SetsPortes sets={entry.sets ?? []} max={3} taille={16} espacement="gap-1" className="mt-1" garderVide />
         </div>
       </div>
     </div>

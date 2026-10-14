@@ -306,6 +306,12 @@ lisibles au contact : ce sont des pastilles rondes cerclées, chacune se
 détache de sa voisine sans qu'il faille un blanc entre elles. Sur bureau,
 aucun écart ne sépare les icônes : il paierait la marge qui suit.
 
+La rangée vient du composant commun des sets d'un monstre (`SetsPortes`),
+comme celles de la vue Ami et de l'ordre de tour ; chacune y fixe sa taille
+(18 px ici, 16 dans la vue Ami, 14 et 16 dans l'ordre de tour au doigt et à
+la souris). La règle des trois sets serrés au doigt n'y est **pas**
+activée : à trois sets, ces rangées tiennent à leur taille.
+
 ⚠️ Les icônes de set gardent une **marge droite de 10 px** (`mr-2.5`), aux
 deux formats. La croix de suppression est posée **sur** le coin haut-droit,
 hors du flux : rien ne la repousse, et elle couvre les 8 derniers pixels de

@@ -5,7 +5,7 @@ import MonsterAvatar from '../MonsterAvatar';
 import CategoryRing from './CategoryRing';
 import NumberField from '../../ui/NumberField';
 import { RtaCategory } from '../../hooks/useRtaCategories';
-import RuneIcon from '../RuneIcon';
+import SetsPortes from '../SetsPortes';
 import { SPEED_LEADS, speedLeadOf } from '../../lib/speed';
 import { useStickyState } from '../../hooks/useStickyState';
 import { InterrupteurAffichage } from './CategoryBar';
@@ -455,13 +455,7 @@ export default function TurnOrder({
                       </div>
                     )}
 
-                    {(it.entry.sets ?? []).length > 0 && (
-                      <div className="flex items-center justify-center gap-0.5">
-                        {(it.entry.sets ?? []).slice(0, 3).map((s, si) => (
-                          <RuneIcon key={si} setKey={s} size={14} className="flex-none" />
-                        ))}
-                      </div>
-                    )}
+                    <SetsPortes sets={it.entry.sets ?? []} max={3} taille={14} espacement="gap-0.5" className="justify-center" />
 
                     {/* Saisie de la vitesse des runes — seulement sur SA prépa.
                         ⚠️ **`boxWidth="w-full"`, pas `width`.** Les deux
@@ -512,9 +506,8 @@ export default function TurnOrder({
                               </span>
                             </>
                           )}
-                          {(it.entry.sets ?? []).slice(0, 3).map((s, si) => (
-                            <RuneIcon key={si} setKey={s} size={16} className="flex-none" />
-                          ))}
+                          {/* Même écart que les voisins de la ligne (`gap-1`). */}
+                          <SetsPortes sets={it.entry.sets ?? []} max={3} taille={16} espacement="gap-1" className="flex-none" />
                         </div>
                       </div>
                     </div>

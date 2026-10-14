@@ -10,9 +10,11 @@
 // conclure au débordement. Un élément sans `data-attendu` n'est pas vérifié.
 // `data-attendu-depassement="<px>"` exige en plus que son signalement
 // « contenu » retienne exactement ce dépassement (`depassement`, mesure.ts).
-// `data-attendu-avec="<id>,…"` exige que ses signalements « chevauchement »
-// nomment exactement ces éléments coupés (`avec`), ni plus ni moins ;
-// `data-attendu-aire="<px²>,…"`, dans le même ordre, l'aire coupée de chacun.
+// `data-attendu-avec="<id>,…"` exige que ses signalements « chevauchement » et
+// « voisins » (ceux qui portent `avec`) nomment exactement ces éléments coupés,
+// ni plus ni moins ; `data-attendu-aire="<px²>,…"`, dans le même ordre, l'aire
+// coupée de chacun. Une paire « voisins » se déclare sur le premier frère dans
+// l'ordre du document (celui qui la porte), l'autre dans `data-attendu-avec`.
 //
 // Sur chaque page, sans attribut : la mesure rend la page telle quelle —
 // l'attribut `style` de chaque élément identique, présence comprise, et
@@ -99,7 +101,7 @@ try {
         const ids = avec.split(',').map((s) => s.trim()).filter(Boolean);
         const aires = aire === null ? null : aire.split(',').map((s) => Number(s.trim()));
         const attendus = ids.map((i, k) => `${i}${aires ? ` ${aires[k]}` : ''}`).sort();
-        const coupes = siens.filter((s) => s.regle === 'chevauchement');
+        const coupes = siens.filter((s) => s.regle === 'chevauchement' || s.regle === 'voisins');
         const vus = coupes.map((s) => `${s.avec?.id ?? '?'}${aires ? ` ${s.aire}` : ''}`).sort();
         conforme &&= vus.join(',') === attendus.join(',');
         px += ` ; coupe attendue [${attendus.join(', ')}], vue [${coupes.map((s) => `${s.avec?.id ?? '?'} ${s.aire} px²`).join(', ')}]`;

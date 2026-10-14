@@ -20,10 +20,9 @@ interface Props {
   title?: string;
 }
 
-// Au doigt, trois sets passent à 10 px, collés : la place d'une ligne
-// étroite (vignette de siège, pastille des sets visés) est comptée pour deux
-// sets, et le troisième la faisait déborder. 10 px et non 11 : à 11, la
-// vignette de siège demande encore 58 px pour 55.
+// Au doigt, trois sets passent à 10 px, collés : la place de la ligne de la
+// vignette de siège est comptée pour deux sets, et le troisième la faisait
+// déborder. 10 px et non 11 : à 11, la vignette demande encore 58 px pour 55.
 const TAILLE_TROIS_SETS = 10;
 
 // Les sets portés par un monstre, en rangée d'icônes. Chaque écran règle

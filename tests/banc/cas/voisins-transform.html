@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="fr" data-attendu-page="non">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover">
+<title>Voisins : transform</title>
+<style>
+  body { margin: 8px; font: 14px sans-serif; }
+  .bloc { margin: 16px 0; width: 200px; }
+  .rangee { display: flex; }
+  .case { flex: none; width: 60px; height: 20px; background: #9cf; }
+  .case + .case { background: #fc9; }
+  /* 100 px : déplacée de 4 px, la grille reste dans son bloc (rien pour la règle « contenu »). */
+  .pistes { display: grid; grid-template-columns: 30px 30px; column-gap: 0; width: 100px; }
+  .pistes > div { width: 40px; height: 20px; background: #9cf; }
+  .pistes > div + div { background: #fc9; }
+</style>
+</head>
+<body>
+<!-- Exclusion (e), non signalé : le second frère est déplacé par `transform: translateX(-30px)` (30 × 20 px). -->
+<div class="bloc">
+  <div class="rangee">
+    <div id="transforme-fixe" class="case" data-attendu=""></div>
+    <div id="transforme-deplace" class="case" style="transform: translateX(-30px)" data-attendu=""></div>
+  </div>
+</div>
+<!-- Signalé (voisins) : la même superposition par la propriété `translate` seule — la règle ne lit que `transform`
+     (30 × 20 px). -->
+<div class="bloc">
+  <div class="rangee">
+    <div id="translate-fixe" class="case" data-attendu="voisins" data-attendu-avec="translate-deplace" data-attendu-aire="600"></div>
+    <div id="translate-deplace" class="case" style="translate: -30px 0" data-attendu=""></div>
+  </div>
+</div>
+<!-- Signalé (voisins) : le `transform` est sur le PARENT ; les frères se coupent par leurs pistes trop étroites
+     (40 px dans 30) : 10 × 20 px. -->
+<div class="bloc">
+  <div class="pistes" style="transform: translateX(4px)">
+    <div id="parent-gauche" data-attendu="voisins" data-attendu-avec="parent-droite" data-attendu-aire="200"></div>
+    <div id="parent-droite" data-attendu=""></div>
+  </div>
+</div>
+</body>
+</html>

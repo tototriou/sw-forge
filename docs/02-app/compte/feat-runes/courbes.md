@@ -70,6 +70,11 @@ téléphone de 390 px il est donc réduit à **42 %**, et ses graduations écrit
   de zone touchable par un pseudo-élément qui déborde : la cible reste
   réglementaire, le dessin reste petit. Retirer l'un des deux casse soit la
   forme, soit la visée.
+- ⚠️ **Chaque bouton est calé par un enveloppant `absolute`, jamais par une
+  classe posée sur lui.** Au doigt, `cible-tactile` pose `position: relative`
+  hors de toute couche Tailwind, donc après les utilitaires : un `absolute`
+  écrit sur le bouton perd, et le bouton plein écran retombait en flux sous le
+  graphe, en bas à gauche, à cheval sur le bord de la carte.
 - ⚠️ **On TOURNE le graphe, on ne force pas l'appareil.** Verrouiller
   l'orientation (`screen.orientation.lock`) exige le plein écran natif, que
   Safari iOS n'accorde qu'à la vidéo : le geste marcherait sur un téléphone

@@ -129,8 +129,7 @@ npm run bureau:preuve          # la vérification de l'application de bureau
 
 - **Français partout** : interface, commentaires, documentation, messages de commit. Les **libellés
   affichés sont ceux du jeu**, jamais reformulés.
-- **Un commentaire donne la raison et l'invariant**, sans récit ; un commit donne le pourquoi en
-  bref, sans journal.
+- **Un commentaire donne la raison et l'invariant**, sans récit.
 - **Calcul pur dans `src/lib/`**, testé ; un composant ne calcule pas ce qu'une fonction de `src/lib/`
   peut porter (ex. `src/lib/speedTuneLignes.ts` pour l'écran du speed tuning).
 - ⚠️ **Un type partagé entre l'écran et un script a PLUSIEURS constructeurs** (ex. `OptimizerRecipe`
@@ -170,6 +169,9 @@ npm run bureau:preuve          # la vérification de l'application de bureau
 - **Commits atomiques** : un commit = une chose reviewable. L'atomicité se juge sur la cohérence du
   **pourquoi**, pas sur le nombre de fichiers ; plusieurs sujets traités ensemble font plusieurs
   commits.
+- **Message de commit** : le sujet dit ce que fait le commit ; le corps, facultatif, donne en bref
+  la raison quand le diff ne la montre pas. Jamais de journal : ni lot, ni étapes, ni liste des
+  vérifications lancées.
 - **Un registre de suivi (`pistes-*.md` et équivalents) et le fichier qu'il référence** se mettent à
   jour ensemble, jamais l'un sans l'autre.
 

@@ -59,12 +59,17 @@ Il construit l'app (`vite build` dans un dossier temporaire), la sert
 (`vite preview`), l'ouvre dans Chromium sans fenêtre (Playwright) au
 téléphone (360 × 800, tactile) et à l'ordinateur (1400 × 1000), amène chaque
 écran dans chacun de ses états ([banc/ecrans.ts](banc/ecrans.ts)) et vérifie
-un **invariant** : rien ne déborde à l'horizontale, et une pastille posée en
-coin d'un portrait de monstre ne recouvre rien d'autre que son portrait. La
-règle, ses définitions, ses exclusions et ses limites connues sont écrites
-en tête de [banc/mesure.ts](banc/mesure.ts) ;
+un **invariant** : rien ne déborde à l'horizontale, une pastille posée en
+coin d'un portrait de monstre ne recouvre rien d'autre que son portrait, et
+deux éléments frères en flux ne se recouvrent pas (règle « voisins » : plus
+de 1 px en largeur et en hauteur, sauf un absolu, un texte en ligne,
+l'intérieur d'un `<svg>`, une marge négative, un `transform` ou une couche qui
+ne dessine rien). La règle, ses définitions, ses exclusions et ses limites
+connues sont écrites en tête de [banc/mesure.ts](banc/mesure.ts) ;
 chaque règle et chaque exclusion a une page de [banc/cas/](banc/cas/), un cas
-signalé et un cas non signalé, que vérifie [banc/cas.mjs](banc/cas.mjs).
+signalé et un cas non signalé, que vérifie [banc/cas.mjs](banc/cas.mjs) (une
+paire se déclare sur le premier des deux éléments : `data-attendu-avec`, en
+tête de `cas.mjs`).
 
 Un état peut charger un fichier par le vrai chemin de l'interface (étape
 `importer` de `ecrans.ts`, bouton « Importer ») : l'écran des

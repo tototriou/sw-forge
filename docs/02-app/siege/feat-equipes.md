@@ -261,8 +261,7 @@ carte.
 troisième icône était coupée par le bord de la vignette. À 11 px, elles en
 demandent encore 58 ; à 10 px sans espacement, 55. La règle ne vaut que pour
 trois sets : un ou deux sets gardent 14 px. Elle est portée par le composant
-commun des sets d'un monstre (`SetsPortes`, option `troisSetsSerres="au-doigt"` ; la
-pastille des sets visés des recommandations serre `"toujours"`).
+commun des sets d'un monstre (`SetsPortes`, option `troisSetsSerres`).
 
 ⚠️ Le carré du slot **vide** suit exactement la taille du portrait rempli. À
 34 px fixes, une carte vide serait plus haute qu'une carte pleine et la rangée de

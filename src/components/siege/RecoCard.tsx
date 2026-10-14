@@ -1722,10 +1722,11 @@ function DeckBlock({
             espacement (`pl-7`, 20 + 8 px). Une pastille plus large que sa
             piste (deux sets : 42 px) déborde à parts égales des deux côtés,
             dans l'espacement ; un monstre sans set garde sa piste, vide.
-            ⚠️ Trois sets à 13 px font 57 px et mordaient de 5,5 px sur les
-            pastilles voisines : ils passent à 10 px, collés, quel que soit
-            le pointeur (`troisSetsSerres="toujours"` : la pastille n'existe que
-            sous `lg`, et une fenêtre étroite à la souris a la même place), soit 44 px, qui tiennent dans 34 + 10. */}
+            ⚠️ Trois sets, avec le rembourrage des autres, font 57 px et
+            mordaient de 5,5 px sur les pastilles voisines : la pastille de
+            trois sets perd son rembourrage et ses espacements (icônes
+            collées, toujours 13 px, l'arrondi au ras des icônes), soit 41 px,
+            qui tiennent dans 34 + 10, au doigt comme à la souris sous `lg`. */}
         {deck.slots.some((sl) => (sl.setOptions?.[0] ?? []).length > 0) && (
           <div className="mt-1.5 grid auto-cols-[34px] grid-flow-col justify-start justify-items-center gap-x-2.5 pl-7 lg:hidden">
             {deck.slots.map((sl, i) => {
@@ -1736,12 +1737,13 @@ function DeckBlock({
                   key={i}
                   sets={sets}
                   taille={13}
-                  espacement="gap-0.5"
+                  espacement={sets.length === 3 ? 'gap-0' : 'gap-0.5'}
                   affichage="inline-flex"
                   // `w-max` : sa largeur propre, jamais celle de la piste (la
                   // grille la ramenait à 34 px, ses icônes tassées dedans).
-                  className="w-max rounded-full border border-border-soft bg-panel2 px-1.5 py-0.5"
-                  troisSetsSerres="toujours"
+                  className={`w-max rounded-full border border-border-soft bg-panel2 py-0.5 ${
+                    sets.length === 3 ? 'px-0' : 'px-1.5'
+                  }`}
                   title={sets.map((k) => RUNE_SETS.find((s) => s.key === k)?.label ?? k).join(' + ')}
                 />
               );

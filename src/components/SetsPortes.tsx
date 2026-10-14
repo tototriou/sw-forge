@@ -13,20 +13,16 @@ interface Props {
   className?: string;
   /** Nombre d'icônes affichées au plus ; toutes si absent. */
   max?: number;
-  /** Règle des trois sets serrés (voir plus bas) : `'au-doigt'` l'applique au doigt seulement,
-   *  `'toujours'` quel que soit le pointeur ; absent, jamais. */
-  troisSetsSerres?: 'au-doigt' | 'toujours';
+  /** Règle des trois sets au doigt (voir plus bas). */
+  troisSetsSerres?: boolean;
   /** Sans set, rendre l'enveloppe vide quand même : sa marge compte dans la carte. */
   garderVide?: boolean;
   title?: string;
 }
 
-// Trois sets passent à 10 px, collés : la place d'une ligne étroite (vignette
-// de siège, pastille des sets visés) est comptée pour deux sets, et le
-// troisième la faisait déborder. La vignette de siège ne serre qu'au doigt
-// (`'au-doigt'`) ; la pastille des sets visés, qui n'existe que sous `lg`,
-// serre toujours (`'toujours'`), y compris à la souris sur une fenêtre étroite.
-// 10 px et non 11 : à 11, la vignette de siège demande encore 58 px pour 55.
+// Au doigt, trois sets passent à 10 px, collés : la place de la ligne de la
+// vignette de siège est comptée pour deux sets, et le troisième la faisait
+// déborder. 10 px et non 11 : à 11, la vignette demande encore 58 px pour 55.
 const TAILLE_TROIS_SETS = 10;
 
 // Les sets portés par un monstre, en rangée d'icônes. Chaque écran règle
@@ -38,15 +34,14 @@ export default function SetsPortes({
   affichage = 'flex',
   className = '',
   max,
-  troisSetsSerres,
+  troisSetsSerres = false,
   garderVide = false,
   title,
 }: Props) {
   const auDoigt = useMediaQuery(COMPACT);
   const affiches = max === undefined ? sets : sets.slice(0, max);
   if (affiches.length === 0 && !garderVide) return null;
-  const regleActive = troisSetsSerres === 'toujours' || (troisSetsSerres === 'au-doigt' && auDoigt);
-  const serre = regleActive && affiches.length === 3;
+  const serre = troisSetsSerres && auDoigt && affiches.length === 3;
   return (
     <span className={`${affichage} items-center ${serre ? 'gap-0' : espacement} ${className}`} title={title}>
       {affiches.map((s, i) => (

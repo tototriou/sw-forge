@@ -1,6 +1,6 @@
 ---
 name: run-swblacksmith
-description: Compile, démarre et pilote SW Blacksmith via un Chromium headless Playwright. Réservé au remote-access, lorsque l'utilisateur n'a pas le serveur de développement sous les yeux, et seulement sur demande explicite — jamais comme vérification UI par défaut. Demander l'autorisation avant de lancer le driver.
+description: "Lancer et piloter SW Blacksmith dans un Chromium headless (Playwright). À utiliser seulement à distance, quand l'utilisateur n'a pas le serveur de dev sous les yeux, et sur sa demande explicite ; demander l'autorisation avant de lancer le driver."
 ---
 
 # Adaptateur Codex

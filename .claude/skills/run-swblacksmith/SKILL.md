@@ -1,6 +1,6 @@
 ---
 name: run-swblacksmith
-description: Compile, démarre et pilote SW Blacksmith (app web React/Vite) via un Chromium headless Playwright. RÉSERVÉ au remote-access (utilisateur sans le serveur de dev sous les yeux) ET seulement sur demande explicite — jamais le réflexe par défaut pour vérifier un changement d'UI. Demander l'autorisation avant de lancer le driver si l'agent pense en avoir besoin.
+description: "Lancer et piloter SW Blacksmith dans un Chromium headless (Playwright). À utiliser seulement à distance, quand l'utilisateur n'a pas le serveur de dev sous les yeux, et sur sa demande explicite ; demander l'autorisation avant de lancer le driver."
 ---
 
 SW Blacksmith est une app web Vite/React à un seul binaire (pas de backend séparé).

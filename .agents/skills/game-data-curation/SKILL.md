@@ -1,6 +1,6 @@
 ---
 name: game-data-curation
-description: Discipline à suivre pour toute mécanique de jeu modélisée dans SW Blacksmith — tables `*_CONNUS` de damage.ts, règles déduites des données SWARFARM et tout comportement supposé par ressemblance avec un autre. Les champs de données mentent, la prose n'est pas un discriminant, une liste fournie de mémoire n'est jamais le corpus et une mécanique voisine ne se déduit jamais par analogie. Contient aussi la recette pour demander un relevé en jeu exploitable.
+description: "Modéliser une mécanique de jeu dans SW Blacksmith. À utiliser dès qu'on touche une table *_CONNUS de damage.ts, qu'on tire une règle des données SWARFARM ou de la prose d'un sort, qu'on suppose un comportement par ressemblance avec un autre, ou qu'on demande un relevé en jeu."
 ---
 
 # Adaptateur Codex

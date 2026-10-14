@@ -1,6 +1,6 @@
 ---
 name: optimizer-perf-testing
-description: Boîte à outils et pièges déjà rencontrés pour TESTER/MESURER un changement sur le moteur de recherche de runes (runeBuildOptim.ts, perf-battery.ts, perf-battery-compare.ts) — quel outil pour quelle question, et comment éviter de retomber dans des pièges déjà résolus (contention CPU/mémoire, git worktree, spawn sur Windows). Distinct d'algo-verify, qui couvre la CORRECTION de l'algorithme, pas la méthodologie de mesure.
+description: "Tester ou mesurer le moteur de recherche de runes. À utiliser avant d'écrire ou de lancer une mesure de temps, un benchmark ou un script de mesure sur runeBuildOptim.ts (perf-battery, benchmark, harnais). Pour la correction de l'algorithme, voir algo-verify."
 ---
 
 # Tester le moteur de recherche de runes (SW Blacksmith)

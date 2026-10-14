@@ -1,6 +1,6 @@
 ---
 name: algo-verify
-description: Discipline à suivre pour tout algorithme de recherche combinatoire ou d'optimisation sous contraintes ajouté ou modifié dans SW Blacksmith (ex. runeBuildOptim.ts) — jamais un seul choix d'algorithme « qui a l'air de marcher » sans référence de contrôle, test différentiel et benchmark chiffré avant de figer des constantes.
+description: "Vérifier un algorithme de recherche ou d'optimisation de SW Blacksmith. À utiliser dès qu'on ajoute ou modifie runeBuildOptim.ts, artifactOptim.ts, relicOptim.ts, relicQueue.ts ou src/workers/, et à chaque script ad hoc qui les appelle."
 ---
 
 # Adaptateur Codex

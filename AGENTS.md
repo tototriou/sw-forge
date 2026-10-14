@@ -8,6 +8,7 @@ compte dans le navigateur et n'envoie rien. La même app existe en **application
 > Documentation : [`docs/`](docs/) (carte : [docs/README.md](docs/README.md)). Où se trouve quoi,
 > par écran : [docs/01-presentation/02-architecture.md](docs/01-presentation/02-architecture.md). Décisions : [`docs/04-decisions/`](docs/04-decisions/README.md).
 > Feuille de route (pistes, dette, questions ouvertes) : [`docs/05-feuille-de-route/`](docs/05-feuille-de-route/README.md).
+> Les mots du jeu, de l'app et du moteur : [glossaire](docs/01-presentation/04-glossaire.md).
 
 ## ⚠️ Avant tout travail : lire la documentation de ce qui va être touché
 

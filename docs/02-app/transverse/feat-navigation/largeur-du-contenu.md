@@ -16,7 +16,6 @@ runes et l'optimiseur y gagnent une à deux colonnes.
 | Nouveautés | 900 px | Liste de textes courts lus de haut en bas |
 | Télécharger | 760 px | Trois cartes et deux boutons : étalés, les boutons s'isoleraient loin de leur explication |
 | Paramètres | 620 px | Lignes « intitulé / contrôle » |
-| Optimiseur | 768 px | Suite de réglages lus de haut en bas — étalée, chaque ligne « libellé … champ » deviendrait un aller-retour du regard |
 | Roue de runes | ×0,72 sous `sm` | ⚠️ C'est un DESSIN calculé en pixels (cadres, icônes de set, décalages) : il ne se réduit pas seul comme une image. À 208 px il occuperait plus de la moitié des 348 px utiles. En dessous de 0,72 les icônes de set passent sous 14 px et le set ne se reconnaît plus |
 | Emplacements d'artéfacts | ×0,72 sous `sm` | **La même échelle que la roue**, et ce n'est pas un hasard : les deux se lisent côte à côte, les réduire inégalement les désaccorderait. 58 px → 42 |
 

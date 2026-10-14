@@ -29,15 +29,17 @@ fiche qui fait foi : les règles détaillées et les valeurs chiffrées restent 
   → [feat-calcul-runes.md](../02-app/compte/feat-calcul-runes.md)
 - **Gemme** : consommable qui remplace une sous-stat par une autre. Anglais : enchanted gem.
   Code : `enchant`, `'gem'`.
-- **Immémoriale, antique (meule, gemme)** : une meule ou une gemme immémoriale vaut pour tous les
-  sets ; antique désigne le grade des consommables antiques. Code : `craft_type`.
+- **Immémoriale (meule, gemme)** : une meule ou une gemme qui s'applique à une rune de n'importe
+  quel set. Code : `craft_type` 3 et 4.
+- **Antique** : une catégorie de runes et de consommables. Une rune antique peut avoir des rolls
+  initiaux plus élevés qu'une rune ordinaire ; l'export la marque par une classe supérieure
+  à 10. Une meule ou une gemme antique ne s'applique qu'à une rune antique, avec des valeurs de
+  roll possibles plus élevées (`craft_type` 5 et 6). Anglais : ancient.
 - **Grade** : rareté d'une rune, d'une relique ou d'un consommable, sur une échelle discrète
   (Commun, Magique, Rare, Héroïque, Légendaire). Code : `extra`, `rarity`. À éviter : « grade »
   pour les étoiles.
 - **Étoiles** : la classe d'une rune, de 1 à 6 ★, qui fixe les valeurs de ses stats.
   Code : `class` (`rank` dans le modèle).
-- **Rune antique** : rune aux valeurs plus hautes que les maxima ordinaires ; l'export la marque
-  par une classe supérieure à 10. Anglais : ancient.
 - **Niveau** : amélioration de +0 à +15. Code : `level`, `upgrade_curr`.
 - **Roll** : chaque amélioration qui augmente une sous-stat (rune) ou une sous-propriété
   (artéfact). Code : `rolls`.

@@ -7,7 +7,9 @@
 // ne se ferme pas ; un seul verrou à la fois ; dans un volet, une page se met
 // en page comme sur une fenêtre plus large de la barre et des marges.
 
-import postcss from 'postcss';
+import postcss, { type AcceptedPlugin, type AtRule } from 'postcss';
+import { createRequire } from 'node:module';
+import { join, resolve } from 'node:path';
 import {
   activer, basculerPartage, basculerVerrou, coteVide, EtatVolets, ETAT_VOLETS_INITIAL, fermer, inverser,
   largeurMinVolet, LARGEUR_MIN_CONTENU, naviguer, ouvrirACote, PageVolet, pageDuCote, palierContenu,
@@ -153,4 +155,51 @@ export function testVoletsResponsive() {
   ok(sortie.includes('@container volet (min-width: 728px){.lg\\:flex{display:flex}}'), 'dans un volet : la même règle, liée au volet');
   ok(sortie.includes('@media (pointer: coarse){.b{color:blue}}') && sortie.includes('.a{color:red}'),
     'le reste de la feuille est intact');
+}
+
+const racine = resolve(new URL('..', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1'));
+
+// Toutes les formes de classes responsives que l'app emploie : les seuils,
+// leur négation (`max-lg:`), les variantes maison de pointeur et de survol
+// (tailwind.config.js), une variante imbriquée, un pseudo-élément.
+const CLASSES_ESSAI = [
+  'flex', 'sm:grid', 'md:flex', 'lg:flex', 'xl:grid-cols-3', '2xl:grid-cols-4', 'max-lg:hidden',
+  'hoverable:bg-panel2', 'compact:gap-1', 'group-hoverable:opacity-100', 'lg:hoverable:bg-panel2',
+  'placeholder:text-ink-dimmer', 'lg:placeholder:text-ink',
+];
+
+export async function testVoletsFeuilleTailwind() {
+  titre('Volets — le plugin sur la feuille de Tailwind, configuration du dépôt');
+  // La configuration et le Tailwind du dépôt, ceux qu'emploie vite.config.ts.
+  const exiger = createRequire(join(racine, 'package.json'));
+  const tailwindcss = exiger('tailwindcss') as (config: unknown) => AcceptedPlugin;
+  const chargerConfig = exiger('tailwindcss/loadConfig') as (chemin: string) => Record<string, unknown>;
+  const config = chargerConfig(join(racine, 'tailwind.config.js'));
+  const contenu = [{ raw: `<div class="${CLASSES_ESSAI.join(' ')}"></div>`, extension: 'html' }];
+  const css = (await postcss([tailwindcss({ ...config, content: contenu }), postcssVolets()])
+    .process('@tailwind utilities;', { from: undefined })).css;
+
+  const premiers = postcss.parse(css).nodes.filter((n): n is AtRule => n.type === 'atrule');
+  const deLargeur = premiers.filter((n) => n.name === 'media' && conditionConteneur(n.params) !== null);
+  const autres = premiers.filter((n) => n.name === 'media' && conditionConteneur(n.params) === null);
+  const conteneurs = premiers.filter((n) => n.name === 'container');
+  const selecteurs = (n: AtRule) => {
+    const s: string[] = [];
+    n.walkRules((r) => { s.push(...r.selectors); });
+    return s;
+  };
+
+  ok(deLargeur.length >= 6, `les six formes de seuil sont émises (${deLargeur.length} blocs @media de largeur)`);
+  egal(conteneurs.length, deLargeur.length, 'chaque @media de largeur a sa copie @container volet');
+  ok(deLargeur.every((m) => selecteurs(m).every((s) => s.includes(':where(:not([data-volet] *))'))),
+    'hors volet : chaque règle d\'un @media de largeur exclut ce qui est dans un volet');
+  ok(autres.length > 0 && autres.every((m) => selecteurs(m).every((s) => !s.includes('data-volet'))),
+    'survol et pointeur (`hoverable:`, `compact:`) : intacts, ils restent ceux de la fenêtre');
+  const params = conteneurs.map((c) => c.params);
+  for (const attendu of ['volet (min-width: 592px)', 'volet (min-width: 728px)', 'volet (min-width: 984px)', 'volet not (min-width: 728px)']) {
+    ok(params.includes(attendu), `@container ${attendu}`);
+  }
+  ok(conteneurs.some((c) => { let imbrique = false; c.walkAtRules('media', () => { imbrique = true; }); return imbrique; }),
+    'une variante imbriquée (`lg:hoverable:`) voyage avec sa règle dans le @container');
+  ok(css.includes(':where(:not([data-volet] *))::placeholder'), 'un pseudo-élément garde l\'exclusion avant lui');
 }

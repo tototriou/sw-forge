@@ -43,7 +43,7 @@ import { verificationsImportRecoCopies } from './import-reco-copies.test';
 import testNavigation from './navigation.test';
 import testBancSelection from './banc-selection.test';
 import { testNavigationAdresses, testNavigationAdressesDefauts, testNavigationVuesCompte } from './navigation-adresses.test';
-import { testVoletsLargeurs, testVoletsNavigation, testVoletsOuverture, testVoletsResponsive,
+import { testVoletsFeuilleTailwind, testVoletsLargeurs, testVoletsNavigation, testVoletsOuverture, testVoletsResponsive,
   testVoletsVerrou } from './volets.test';
 import { testSuiviLecture, testSuiviTableau } from './suivi.test';
 import testPersistance from './persistance.test';
@@ -269,7 +269,8 @@ import { testRenduSiegeDefense, testRenduSiegeOffense, testRenduSiegeEnTete, tes
 import { testRenduUiBouton, testRenduUiEtats, testRenduUiMenu, testRenduUiNotification, testRenduPalette } from './rendu/ui.test';
 import { testPalette } from './palette.test';
 import { testRenduAppRoutes, testRenduAppNavigation, testRenduAppMobile, testRenduAppFil, testRenduAppLiensMorts } from './rendu/app.test';
-import { testRenduEcranPartageBarre, testRenduEcranPartageBouton, testRenduEcranPartageSelecteur,
+import { testEcranPartageMediaQueryVolet, testEcranPartageMemePage, testRenduEcranPartageApp,
+  testRenduEcranPartageBarre, testRenduEcranPartageBouton, testRenduEcranPartageSelecteur,
   testRenduEcranPartageSeparateur, testRenduEcranPartageVolet } from './rendu/ecran-partage.test';
 import { testRenduAccueil, testRenduAccueilBureau, testRenduAccueilEspace } from './rendu/accueil.test';
 import { testRenduTelecharger } from './rendu/telecharger.test';
@@ -470,6 +471,9 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRenduEcranPartageSeparateur', testRenduEcranPartageSeparateur],
   ['testRenduEcranPartageBouton', testRenduEcranPartageBouton],
   ['testRenduEcranPartageSelecteur', testRenduEcranPartageSelecteur],
+  ['testRenduEcranPartageApp', testRenduEcranPartageApp],
+  ['testEcranPartageMemePage', testEcranPartageMemePage],
+  ['testEcranPartageMediaQueryVolet', testEcranPartageMediaQueryVolet],
   ['testRenduAppLiensMorts', testRenduAppLiensMorts],
   ['testRenduAccueil', testRenduAccueil],
   ['testRenduAccueilEspace', testRenduAccueilEspace],
@@ -498,6 +502,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testVoletsVerrou', testVoletsVerrou],
   ['testVoletsLargeurs', testVoletsLargeurs],
   ['testVoletsResponsive', testVoletsResponsive],
+  ['testVoletsFeuilleTailwind', testVoletsFeuilleTailwind],
   ['testSuiviLecture', testSuiviLecture],
   ['testSuiviTableau', testSuiviTableau],
   ['testReco', testReco],

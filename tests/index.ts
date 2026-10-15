@@ -111,6 +111,7 @@ import testRtaPartage from './rta-partage.test';
 import { testInstallerHooks, testInstallationAutomatique } from './installer-hooks.test';
 import { testPreCommit } from './pre-commit.test';
 import { testCommitMsg } from './commit-msg.test';
+import { testRappelDependances } from './rappel-dependances.test';
 import { testVerifierCommits } from './verifier-commits.test';
 import { testRenvois, testRenvoisFormes } from './renvois.test';
 import { testLectureSource } from './lecture-source.test';
@@ -519,6 +520,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testInstallationAutomatique', testInstallationAutomatique],
   ['testPreCommit', testPreCommit],
   ['testCommitMsg', testCommitMsg],
+  ['testRappelDependances', testRappelDependances],
   ['testVerifierCommits', testVerifierCommits],
   ['testRenvoisFormes', testRenvoisFormes],
   ['testRenvois', testRenvois],

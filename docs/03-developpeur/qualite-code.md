@@ -1,6 +1,6 @@
 # Qualité du code — lint, hooks et message de commit
 
-Ce document décrit le lint du code (ESLint) : périmètre, ce qui bloque et ce qui avertit, où il tourne, dont le lint au commit ; la forme imposée au message de commit ; l'installation automatique des hooks et leur reprise en CI.
+Ce document décrit le lint du code (ESLint) : périmètre, ce qui bloque et ce qui avertit, où il tourne, dont le lint au commit ; la forme imposée au message de commit ; le rappel des dépendances après un changement de branche ou une fusion ; l'installation automatique des hooks et leur reprise en CI.
 
 Voir aussi : `renvois.md` (le test des renvois), `documentation.md` (écrire la documentation).
 
@@ -122,6 +122,18 @@ que ce que l'historique respecte déjà, et des sujets légitimes dépassent
 100 caractères. La langue du message n'est pas vérifiée.
 
 Test : `node tests/run.mjs commitmsg`.
+
+## Rappel des dépendances
+
+Les hooks `post-checkout` et `post-merge` (`.githooks/`, même installation)
+comparent `package-lock.json` avant et après un changement de branche, une
+fusion ou un `git pull`. S'il a changé, ils affichent « package-lock.json a
+changé : lancer `npm ci` » : les `node_modules` du worktree ne correspondent
+plus, et le build ou les tests échoueraient plus tard sur une dépendance
+absente. Ils n'installent rien et ne font jamais échouer Git ; un checkout
+de fichiers et le premier checkout d'un clone ne disent rien.
+
+Test : `node tests/run.mjs rappeldependances`.
 
 ## Garde-fous rejoués en CI
 

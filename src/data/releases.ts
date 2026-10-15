@@ -60,6 +60,34 @@ export const CHANGE_META: Record<ChangeKind, { label: string; color: string }> =
 // Si une ligne dépasse ~15 mots, c'est qu'elle raconte l'implémentation.
 export const RELEASES: Release[] = [
   {
+    version: '2.1.0',
+    date: '2026-10-15',
+    title: 'Deux pages côte à côte, et l’Optimizer travaille avec tes équipes',
+    highlights: [
+      'Écran partagé : deux pages côte à côte sur ordinateur',
+      'L’Optimizer reprend tes équipes du Siège, de la RTA et du speed tuning',
+      'Les builds les plus rapides de ton compte, par combinaison de sets',
+    ],
+    changes: [
+      { kind: 'feat', scope: 'Navigation', text: 'Écran partagé : deux pages côte à côte sur ordinateur, sur le site comme dans l’application.' },
+      { kind: 'feat', scope: 'Optimizer', text: 'Importe des équipes (prépa RTA, recos, Siège…) depuis l’Optimizer, ou exporte-les vers lui depuis les autres écrans.' },
+      { kind: 'feat', scope: 'Optimizer', text: 'Crée des équipes depuis tes listes, avec un lead partagé.' },
+      { kind: 'feat', scope: 'Optimizer', text: 'Passe d’un monstre à l’autre : à ton retour, tes paramètres de recherche sont gardés.' },
+      { kind: 'feat', scope: 'Optimizer', text: 'Sauvegarde et reprends tes listes, au téléphone comme à l’ordinateur.' },
+      { kind: 'feat', scope: 'Siège', text: 'Tes runes peuvent accompagner un export d’équipes.' },
+      { kind: 'feat', scope: 'Runes', text: '« Builds les plus rapides » : tes meilleurs builds de VIT, par combinaison de sets.' },
+      { kind: 'feat', scope: 'Dégâts réels', text: 'L’adversaire par défaut passe à 40 000 PV et 1 500 DEF, plus réaliste.' },
+      { kind: 'fix', scope: 'Dégâts réels', text: 'Shihwa : la Marque posée par Phantom Light peut être posée entre chaque coup.' },
+      { kind: 'fix', scope: 'Mécaniques', text: 'Le facteur de défense affiché est celui que l’app calcule.' },
+      { kind: 'fix', scope: 'Mécaniques', text: 'Les 7 % par tick ne s’appliquent ni en raid ni en RTA.' },
+      { kind: 'fix', scope: 'Dégâts réels', text: 'Le lead de VIT à 17 % rejoint les paliers proposés.' },
+      { kind: 'fix', scope: 'Paramètres', text: 'Le thème, l’overcap et l’adversaire de référence se gardent comme tes autres réglages.' },
+      { kind: 'fix', scope: 'Bestiaire', text: 'Toutes les cartes de monstre ont la même hauteur.' },
+      { kind: 'fix', scope: 'Interface', text: 'Les boutons d’une fenêtre restent visibles, même sur un petit écran.' },
+      { kind: 'fix', scope: 'Interface', text: 'Au téléphone, Siège, RTA, Mon compte et Dégâts réels s’affichent mieux.' },
+    ],
+  },
+  {
     version: '2.0.0',
     date: '2026-10-05',
     title: 'SW Forge devient SW Blacksmith, et s’installe sur ton ordinateur',

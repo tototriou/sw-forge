@@ -49,6 +49,8 @@ export const CLES_SESSION = [
   'swblacksmith-rune-metric-v1',
   'swblacksmith-overcap-display-v1',
   'swblacksmith-adversaire-reference-v1',
+  // Du JSON, relu et validé par son hook (`lireReglageBuildsRapides`).
+  'swblacksmith-builds-rapides-v1',
 ] as const;
 
 // La forme de chaque valeur, telle que son hook l'ÉCRIT. ⚠️ Pas toutes du

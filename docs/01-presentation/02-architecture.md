@@ -135,10 +135,11 @@ vert / orange / rouge d'une équipe en mode « Vérifier mes tick ATB » — pur
 dans la carte).
 
 **Mon compte** — dans `src/components/account/`, `RunesSection.tsx` et `ArtifactsSection.tsx`
-sont les deux racines ; dessous : `RunesList`, `RunesSummary`, `RunesCurve` + `CurveChart` +
-`curveColors`, `RunesCompare`, `RunesOptim`, `SetFilter`, `SlotFilter`, `SubSearchBar` +
-`SubSearchDialog`, `Pager`, `SummaryBits`, `ArtifactsList`, `ArtifactsSummary`. Lib `accountStore`
-(IndexedDB), `accountViews`, `runeSort`, `runeOptim`, `monsterSort`, `crafts`.
+sont les deux racines ; dessous : `RunesList`, `RunesSummary` + `BuildsRapides`, `RunesCurve` +
+`CurveChart` + `curveColors`, `RunesCompare`, `RunesOptim`, `SetFilter`, `SlotFilter`,
+`SubSearchBar` + `SubSearchDialog`, `Pager`, `SummaryBits`, `ArtifactsList`, `ArtifactsSummary`.
+Lib `accountStore` (IndexedDB), `accountViews`, `runeSort`, `runeOptim`, `buildsRapides`,
+`monsterSort`, `crafts`.
 
 **Optimizer** — dans `src/components/outils/` : `OptimizerSection.tsx` (racine),
 `MonsterSourcePicker` (recherche — deux modes, bestiaire ou compte réel), `OptimizerListPicker`
@@ -235,6 +236,7 @@ exemptés.
 | `useSpeedTune` | ⚠️ **tout** l'état, les actions et les dérivées du speed tuning — la page ne fait que rendre |
 | `useDonneesKit` | charge kits, sorts et passifs d'une poignée de monstres (outil **et** siège, un seul chemin) |
 | `useAdversaireReference` | réglage global : toujours poser l'adversaire de référence en face |
+| `useBuildsRapides` | réglage global : les combinaisons et le nombre de builds du bloc « Builds les plus rapides » (Résumé des runes) |
 | `useEtatSwex` | l'état du dossier SW Exporter au bureau, lu par les Réglages et par `SidebarCompte` |
 
 ## Calcul — `src/lib/`

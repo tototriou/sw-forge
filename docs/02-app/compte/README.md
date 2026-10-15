@@ -13,7 +13,7 @@ prop depuis [App.tsx](src/App.tsx) : `box` (6★), `runes`, `artifacts`.
 | --- | --- |
 | `src/pages/AccountPage.tsx`, la navigation entre les sous-sections | ce README |
 | `src/components/MonsterCard.tsx`, `src/components/MonsterDetailDialog.tsx`, `src/lib/monsterSkills.ts`, `src/lib/monsterSort.ts` | [feat-monstres.md](feat-monstres.md) |
-| `src/components/account/` côté runes (`RunesSection`, `RunesList`, `RunesCurve`, `RunesCompare`, `RunesOptim`, filtres) | [feat-runes/](feat-runes/README.md) |
+| `src/components/account/` côté runes (`RunesSection`, `RunesSummary`, `BuildsRapides`, `RunesList`, `RunesCurve`, `RunesCompare`, `RunesOptim`, filtres), `src/lib/buildsRapides.ts` | [feat-runes/](feat-runes/README.md) |
 | `src/components/account/ArtifactsSection.tsx`, `src/components/account/ArtifactsList.tsx`, `src/components/account/ArtifactsSummary.tsx` | [feat-artefacts.md](feat-artefacts.md) |
 | `src/lib/runeOptim.ts`, `src/lib/stats.ts`, `src/lib/effects.ts`, une formule d'efficience ou le décodage SWEX | [feat-calcul-runes.md](feat-calcul-runes.md) |
 | `src/lib/artifacts.ts`, le score ou l'efficience d'un artéfact | [feat-calcul-artefacts.md](feat-calcul-artefacts.md) |

@@ -1,0 +1,24 @@
+#!/usr/bin/env node
+// Rappel des dépendances après une fusion (`git merge`, `git pull`) —
+// contrat : docs/03-developpeur/qualite-code.md, « Rappel des dépendances ».
+//
+// Si la fusion a changé `package-lock.json` (de ORIG_HEAD à HEAD), les
+// `node_modules` du worktree ne correspondent plus : le dire, avec la
+// commande. N'installe rien et ne fait jamais échouer Git (code 0).
+
+import { execFileSync } from 'node:child_process';
+
+const JAUNE = '\x1b[33m';
+const FIN = '\x1b[0m';
+
+let change = false;
+try {
+  execFileSync('git', ['diff', '--quiet', 'ORIG_HEAD', 'HEAD', '--', 'package-lock.json'], { stdio: 'ignore' });
+} catch (e) {
+  // 1 : le fichier diffère ; tout autre code (ORIG_HEAD absent…) : rien à dire.
+  change = e.status === 1;
+}
+if (change) {
+  console.log(`${JAUNE}⚠️ package-lock.json a changé : lancer \`npm ci\` pour remettre les dépendances de ce worktree à jour.${FIN}`);
+}
+process.exit(0);

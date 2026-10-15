@@ -276,7 +276,8 @@ et celles des tests, du harnais et des scripts de mesure :
 
 ### Artéfact reçu par lien RTA sans identifiant
 
-- **Constat** : `cleanGear` (`src/lib/rtaShare.ts`) construit les
+- **Constat** : `cleanGear` (`src/lib/equipementPartage.ts`, qui lit
+  aussi l'équipement d'un fichier d'équipes de siège) construit les
   artéfacts d'un lien sans `id`, alors qu'`ArtifactDetail.id` l'exige ; le
   `as GearSet` posé sur l'objet entier le masque. Un artéfact venu d'un
   lien n'est donc pas référençable. La relique d'un lien sans `id`, elle,

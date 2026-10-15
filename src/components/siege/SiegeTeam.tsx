@@ -180,7 +180,7 @@ export default function SiegeTeam({
   const deck = useMemo(
     () => deckPourSpeedTune(team, monsterById),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [JSON.stringify(team.slots.map((sl) => [sl.monsterId, sl.runeSpeed, sl.sets, !!sl.gear]))]
+    [JSON.stringify(team.slots.map((sl) => [sl.monsterId, sl.runeSpeed, sl.sets, !!sl.gear, !!sl.gearPartage]))]
   );
   const equipeAuto = useMemo<EntreeAuto[]>(
     () =>
@@ -458,7 +458,8 @@ export default function SiegeTeam({
           {slotInfos.map(({ monster, combat }, idx) => {
             const danger = statut === 'rouge' ? slotDangers[idx] : null;
             const sets = team.slots[idx].sets ?? [];
-            const slotGear = team.slots[idx].gear;
+            // Le sien, ou celui reçu d'un fichier d'équipes (`gearPartage`).
+            const slotGear = team.slots[idx].gear ?? team.slots[idx].gearPartage;
             const canDetail = !!slotGear && slotGear.runes.length > 0;
             const active = detailIdx === idx;
             return (
@@ -576,10 +577,15 @@ export default function SiegeTeam({
         </div>
       )}
 
-      {/* Panneau de détail du monstre sélectionné (vue compacte) */}
-      {!expanded && detailIdx !== null && team.slots[detailIdx]?.gear && (
+      {/* Panneau de détail du monstre sélectionné (vue compacte).
+          ⚠️ L'équipement REÇU d'un fichier le dit : sans la mention, on le
+          prendrait pour ses propres runes. */}
+      {!expanded && detailIdx !== null && (team.slots[detailIdx]?.gear ?? team.slots[detailIdx]?.gearPartage) && (
         <div className="mt-2 rounded-xl border border-border bg-panel/40 p-3">
-          <MonsterGear gear={team.slots[detailIdx].gear!} />
+          {!team.slots[detailIdx].gear && (
+            <p className="mb-2 text-micro text-ink-dim">Équipement de l'auteur du fichier.</p>
+          )}
+          <MonsterGear gear={(team.slots[detailIdx].gear ?? team.slots[detailIdx].gearPartage)!} />
         </div>
       )}
 

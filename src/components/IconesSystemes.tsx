@@ -1,4 +1,4 @@
-// Logos des systèmes d'exploitation — application de bureau, lot 6 : un
+// Logos des systèmes d'exploitation — application de bureau : un
 // téléchargement pour Windows ou Linux se reconnaît au logo du système.
 //
 // Le même contrat d'appel que lucide (`size`, `className`), en `currentColor` :

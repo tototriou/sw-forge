@@ -3,7 +3,7 @@ import { EtatMiseAJour, redemarrerPourMettreAJour, suivreMiseAJour, telechargerM
 import { Annonce, useNotifier } from '../ui/Notification';
 
 // La mise à jour automatique, dite par la notification — application de
-// bureau, lot 5 (bureau/miseAJour.ts). ⚠️ **L'utilisateur décide** : rien ne
+// bureau (bureau/miseAJour.ts). ⚠️ **L'utilisateur décide** : rien ne
 // se télécharge sans « Mettre à jour », et la question RESTE jusqu'à sa
 // réponse (la croix la ferme ; le bloc « Application » des Réglages la
 // garde à portée, src/components/BlocApplication.tsx). Sur le site : inerte.

@@ -199,7 +199,7 @@ export interface Simulation {
 const rangCamp = (c: Camp): number => (c === 'allie' ? 0 : 1);
 
 // Cela donne l'enchaînement des tours sur toute la durée. Voir
-// spec/outils/speed-tuning.md.
+// docs/02-app/speed-tuning/.
 //
 // À chaque tick : chaque monstre gagne `atbParTick(combat × (1 + buffActif))`,
 // puis reçoit sa modification de barre (`atbMod`), sans jamais descendre sous 0.

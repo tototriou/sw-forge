@@ -1,6 +1,6 @@
 // Le score de la paire d'artéfacts REPRÉSENTATIVE pour l'objectif « PV
 // effectifs » (`ehp`) n'est PAS une somme des deux principales — voir
-// spec/outils/optimizer/moteur/artefacts.md.
+// docs/03-developpeur/optimizer/.
 //
 // ⚠️ Deux niveaux, volontairement séparés :
 // - `testArtifactEvaluation` isole le helper partagé (`evaluerPourRegime`) —
@@ -24,8 +24,8 @@ import { buildRealDamageContext } from '../scripts/lib/realDamageCli';
 import { LoadedMonster } from '../scripts/lib/loadMonster';
 import { egal, ok, titre } from './outils';
 
-// Camilla (water/hp) — le monstre du cas mesuré, spec/outils/optimizer/
-// moteur/artefacts.md. Réel : nécessaire pour que `loadMonstersList().find`
+// Camilla (water/hp) — le monstre du cas mesuré, docs/03-developpeur/
+// optimizer/. Réel : nécessaire pour que `loadMonstersList().find`
 // (dans `paireReelle`) le retrouve, et pour que l'éligibilité élément/
 // archétype filtre pour de vrai.
 const CAMILLA_COM2USID = 13811;

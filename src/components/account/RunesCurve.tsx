@@ -139,9 +139,9 @@ export default function RunesCurve({ runes }: Props) {
 
   return (
     <div>
-      {/* ⚠️ **En-tête à la SOURIS** (refonte graphique, lot 8a-3, la maquette) :
+      {/* ⚠️ **En-tête à la SOURIS** (la maquette) :
           le titre de la vue et ce qu'elle trace. Au doigt, la barre du haut
-          dit déjà la vue (lot 11). */}
+          dit déjà la vue. */}
       <div className="mb-3 hidden items-baseline gap-3 lg:flex">
         <h1 className="font-display text-xl tracking-wide text-ink">Courbes</h1>
         <span className="text-sm text-ink-dim">
@@ -156,7 +156,7 @@ export default function RunesCurve({ runes }: Props) {
           flottant annonce un contenu qu'on ne devine pas. La Liste, elle, a
           3 000 tuiles à montrer — chaque rangée de filtre lui prend un écran de
           résultats, ce qui n'est pas le cas ici. */}
-      {/* Au DOIGT : les rangées d'avant (`lg:hidden`, lot 11). */}
+      {/* Au DOIGT : les rangées d'avant (`lg:hidden`). */}
       <div className="flex flex-col gap-3 mb-4 lg:hidden">
         {/* Sets : icônes seules (voir SetFilter) */}
         <SetFilter runes={runes} value={sets} onChange={setSets} />
@@ -166,7 +166,7 @@ export default function RunesCurve({ runes }: Props) {
           <AncientFilter value={ancient} onChange={setAncient} />
         </div>
       </div>
-      {/* À la SOURIS : trois menus déroulants (lot 8a, décision 20), avec les
+      {/* À la SOURIS : trois menus déroulants, avec les
           mêmes contrôles dedans. */}
       <div className="mb-4 hidden lg:block">
         <FiltresRunes
@@ -239,10 +239,10 @@ export default function RunesCurve({ runes }: Props) {
           980 px et le bouton d'aide se posait à côté du dessin, pendant que le
           bouton de plein écran restait dans son coin. Les deux commandes doivent
           tomber sur la MÊME verticale. */}
-      {/* ⚠️ **À la SOURIS, le graphe et sa légende côte à côte** (lot 8a-3, la
+      {/* ⚠️ **À la SOURIS, le graphe et sa légende côte à côte** (la
           maquette) : la légende passe dans une carte « Séries » à droite, en
           colonne, au lieu d'une rangée sous le graphe. Au doigt, la rangée
-          d'avant (lot 11). */}
+          d'avant. */}
       <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_220px] lg:items-start lg:gap-3">
       <div className="relative mx-auto w-full max-w-[980px]">
         {/* Aide « ? » posée sur le coin du graphe — bulle à la souris, panneau

@@ -1,8 +1,7 @@
-// Mise à jour automatique de l'application de bureau — chantier
-// application-bureau, lot 5 (décision 10 : le passage réel N → N+1 se
-// constate à la première version publiée après la v2.0.0).
+// Mise à jour automatique de l'application de bureau (le passage réel
+// N → N+1 se constate à la première version publiée après la v2.0.0).
 //
-// ⚠️ **L'utilisateur décide** (décision 11) : rien ne se télécharge sans son
+// ⚠️ **L'utilisateur décide** : rien ne se télécharge sans son
 // accord. Au lancement, `electron-updater`
 // cherche seulement une version plus récente dans les releases GitHub
 // (`publish` de electron-builder.yml → `app-update.yml` des ressources de
@@ -16,7 +15,7 @@
 //                  elle s'installe à la fermeture de l'app
 //   echec          le téléchargement qu'il a demandé n'a pas abouti
 //
-// ⚠️ **Une mise à jour remise à plus tard reste faisable** (décision 12) :
+// ⚠️ **Une mise à jour remise à plus tard reste faisable** :
 // le bloc « Application » des Réglages
 // (src/components/BlocApplication.tsx) montre la même phase et la même
 // action, et peut RELANCER une recherche — trois phases de plus, les
@@ -137,7 +136,7 @@ export function brancherMiseAJour(fenetre: BrowserWindow, preuve?: PreuveMiseAJo
       preuve.redemarrages += 1;
       return;
     }
-    // Installation silencieuse (`--updated` : les données restent, lot 3),
+    // Installation silencieuse (`--updated` : les données restent),
     // puis l'app se relance.
     autoUpdater.quitAndInstall(true, true);
   });

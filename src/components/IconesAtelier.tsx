@@ -1,7 +1,6 @@
 import { CSSProperties } from 'react';
 
-// Icônes de NAVIGATION « objets d'atelier » (rebranding R4, décisions 9, 27 et
-// 28 ; spec/shared/navigation.md).
+// Icônes de NAVIGATION « objets d'atelier » (docs/02-app/transverse/).
 //
 // Grille de 24, trait de 2, bouts et angles ronds, `currentColor` : le même
 // contrat que lucide, pour que chacune remplace son icône lucide sans que
@@ -10,7 +9,7 @@ import { CSSProperties } from 'react';
 // lucide — la toile le dit : « des symboles standards pour les actions ».
 //
 // Origine des tracés : ceux de la toile (planche « Icônes »), tels quels ; sept
-// dessinées pour l'app, choisies par le mainteneur sur planche (décision 27) — la
+// dessinées pour l'app, choisies par le mainteneur sur planche — la
 // coupe (Arène), les tenailles (Outils), le compas (Optimizer), les deux
 // compagnons (Ami), le chronomètre (Speed tuning), l'œuf (Monstres), et le
 // médaillon (Artéfacts) repris d'`InventaireIcon`.
@@ -68,20 +67,20 @@ export const IconeMecaniques = fabrique(
     'M12 2.5V5.5M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1'
 );
 export const IconeNouveautes = fabrique('M11 3l1.8 5.2L18 10l-5.2 1.8L11 17l-1.8-5.2L4 10l5.2-1.8zM19 15v6M16 18h6');
-// Application de bureau, lot 6 (décision 14) : la page « Télécharger » — la
+// Application de bureau : la page « Télécharger » — la
 // flèche qui descend dans le bac. Dessinée pour l'app, pas choisie sur
 // planche comme les autres : remplaçable par un objet d'atelier.
 export const IconeTelecharger = fabrique('M12 3v11M7.5 9.5 12 14l4.5-4.5M4 15v3a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3v-3');
 // Notions de la toile (« Défense », « Attaque »).
 export const IconeDefense = fabrique('M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6zM12 8v8M9 11h6');
 export const IconeOffense = fabrique('M14.5 17.5 3 6V3h3l11.5 11.5M13 19l6-6M16 16l4 4M19 21l2-2');
-// Action « Réglages » de la toile : Paramètres (décision 28 — l'engrenage est à
+// Action « Réglages » de la toile : Paramètres (l'engrenage est à
 // Mécaniques).
 export const IconeParametres = fabrique(
   'M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0' + cercle(16, 6, 2) + cercle(10, 12, 2) + cercle(18, 18, 2)
 );
 
-// Dessinées pour l'app (décision 27).
+// Dessinées pour l'app.
 export const IconeArene = fabrique(
   'M7 3h10v5a5 5 0 0 1-10 0zM7 5H4v1.5A3.5 3.5 0 0 0 7.5 10M17 5h3v1.5A3.5 3.5 0 0 1 16.5 10M12 13v3M8 21h8M9 16h6l1 5H8z'
 );

@@ -2,7 +2,7 @@
 // lot R2.
 //
 // ⚠️ Les identifiants de format des exports sont des ADRESSES, pas des textes.
-// Ils sont passés de `sw-forge/…` à `swblacksmith/…` (décision 66), et
+// Ils sont passés de `sw-forge/…` à `swblacksmith/…`, et
 // l'ancien identifiant DOIT rester relu : un fichier exporté avant le
 // changement porte `sw-forge/prepa-rta`. Les autres tests comparent le format à
 // la CONSTANTE, ils ne verraient rien si elle changeait encore : ce test-ci
@@ -58,7 +58,7 @@ export default function testMarque() {
 
   titre('marque · le nom est écrit une fois');
   egal(NOM_APP, 'SW Blacksmith', 'le nom de l\'app');
-  egal(PREFIXE_FICHIER, 'swblacksmith', 'le préfixe des fichiers téléchargés (décision 14)');
+  egal(PREFIXE_FICHIER, 'swblacksmith', 'le préfixe des fichiers téléchargés');
   // Hors commentaires HTML : celui qui explique `%NOM_APP%` le cite lui-même.
   const index = readFileSync(resolve(RACINE, 'index.html'), 'utf8').replace(/<!--[\s\S]*?-->/g, '');
   ok(!index.includes('SW Forge') && !index.includes(NOM_APP), 'index.html n\'écrit le nom nulle part en dur');

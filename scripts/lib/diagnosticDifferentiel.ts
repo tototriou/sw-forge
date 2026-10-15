@@ -1,4 +1,4 @@
-// Le DIFFÉRENTIEL ENTRELACÉ (spec/outils/optimizer/harnais-extensions.md,
+// Le DIFFÉRENTIEL ENTRELACÉ (docs/03-developpeur/optimizer/,
 // « Le différentiel : l'oracle »).
 //
 // **Niveau A-PASSIF, au sens strict**, exactement comme `diagnosticLot.ts` :

@@ -76,7 +76,7 @@ const base: DamageSetup = {
   enemyHp: 1_000_000,
   enemyHpPct: 100,
   critMode: 'normal',
-  summonerSkills: 'combat',
+  summonerSkills: 'normal',
 };
 const enCritique = (setup: DamageSetup): DamageSetup => ({ ...setup, critMode: 'crit' });
 

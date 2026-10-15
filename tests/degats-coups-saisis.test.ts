@@ -143,7 +143,7 @@ const ENTREES: EntreeCoups[] = [
 
 export function testDegatsCoupsSaisis() {
   const st = stats({ atk: 1000, def: 800, hp: 20000, spd: 200, cr: 25, cd: 100 });
-  const base: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, enemyDef: 0, enemyHp: 1_000_000, enemyHpPct: 100, critMode: 'normal', summonerSkills: 'combat' };
+  const base: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, enemyDef: 0, enemyHp: 1_000_000, enemyHpPct: 100, critMode: 'normal', summonerSkills: 'normal' };
   const calcul = (p: SkillDamageProfile, n?: number) =>
     computeSkillDamage(p, st, n == null ? base : { ...base, coupsPersonnalises: { [p.skillCom2usId]: n } }, AUCUNE_AURA_PROPRE);
 
@@ -248,7 +248,7 @@ const BRUTAL_FISTS: [number, number][] = [[18301, 28511], [18302, 28512], [18303
 
 function testDegatsCoupsSousCondition() {
   const st = stats({ atk: 1000, def: 800, hp: 20000, spd: 200, cr: 25, cd: 100 });
-  const base: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, enemyDef: 0, enemyHp: 1_000_000, enemyHpPct: 100, critMode: 'normal', summonerSkills: 'combat' };
+  const base: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, enemyDef: 0, enemyHp: 1_000_000, enemyHpPct: 100, critMode: 'normal', summonerSkills: 'normal' };
   const calcul = (p: SkillDamageProfile, s: DamageSetup, stat = st) => computeSkillDamage(p, stat, s, AUCUNE_AURA_PROPRE);
   const unCoup = (p: SkillDamageProfile, s: DamageSetup, stat = st) => calcul({ ...p, hits: 1, hitsRange: undefined }, s, stat);
 

@@ -1,7 +1,7 @@
-// Tests de rendu AU TÉLÉPHONE — Mon compte : Monstres, Runes, Artéfacts
-// (lot 11c de la refonte graphique). Principe dans tests/rendu/outils-rendu.tsx ; rendu téléphone par
-// `auTelephone`, qui fait apparaître les panneaux « Options ». Écrits AVANT le
-// 11c : ils doivent rester verts sans qu'une assertion change.
+// Tests de rendu AU TÉLÉPHONE — Mon compte : Monstres, Runes, Artéfacts.
+// Principe dans tests/rendu/outils-rendu.tsx ; rendu téléphone par
+// `auTelephone`, qui fait apparaître les panneaux « Options ». Un changement
+// de style doit les laisser verts sans qu'une assertion change.
 
 import AccountPage from '../../src/pages/AccountPage';
 import RunesSection from '../../src/components/account/RunesSection';
@@ -63,7 +63,7 @@ export function testRenduTelephoneArtefacts() {
   const t = texteVisible(liste);
   egal(dialogues(liste), 1, 'Liste : un panneau « Options »');
   ok(t.includes('Filtrer mes artéfacts Catégorie Tous Attribut Type') && t.includes('Rareté Légendaire Héroïque Rare Magique Commun Stat principale Toutes PV ATQ DEF'), 'Liste : ses filtres, catégorie à stat principale');
-  // ⚠️ Lot 13 (décision 28) : « Effacer les filtres » s'insère entre la
+  // ⚠️ « Effacer les filtres » s'insère entre la
   // propriété et le compte.
   ok(t.includes('Propriété 1 — 2 — Effacer les filtres 8 artéfacts (5 attribut · 3 type)'), 'Liste : la propriété, « Effacer les filtres », puis le compte');
   ok(boutons(liste).some((x) => x.ariaLabel === 'Trier du plus petit au plus grand'), 'Liste : le sens du tri');
@@ -79,7 +79,7 @@ export function testRenduTelephoneRunes() {
   const tl = texteVisible(liste);
   egal(dialogues(liste), 1, 'Liste : un panneau « Options »');
   ok(valeurs(liste, 'aria-label').includes('Filtrer mes runes'), 'Liste : le panneau « Filtrer mes runes »');
-  // ⚠️ Lot 11c (décision 26) : le panneau est rangé en « Trier » puis
+  // ⚠️ Le panneau est rangé en « Trier » puis
   // « Filtrer », dans l'ordre du DOM (il était remonté par CSS) ; « Effacer
   // les filtres » y entre. Mêmes contrôles.
   ok(tl.includes('Filtrer mes runes Trier Trier par Grade'), 'Liste : le bloc « Trier » en tête du panneau');
@@ -93,7 +93,7 @@ export function testRenduTelephoneRunes() {
   const optim = rendreRunes('optimisation', true);
   const to = texteVisible(optim);
   egal(dialogues(optim), 1, 'Optimisation : un panneau');
-  // ⚠️ Lot 11c (décision 26) : « Gemme + meule / Meule seule » a quitté le
+  // ⚠️ « Gemme + meule / Meule seule » a quitté le
   // panneau pour la tête de la page (vérifié juste après).
   // La v1.14.0 ajoute « Autoriser un regemme
   // différent » juste après le palier ; « Marqueurs » ne s'affiche que si le

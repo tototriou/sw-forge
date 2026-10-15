@@ -200,7 +200,7 @@ export default function MonsterDetailDialog({
             <LeadPill ls={forme.leaderSkill} size="lg" pleineLargeur />
           )}
           {/* Stats du monstre 6★ nu — les mêmes que celles qui servent aux calculs
-              de l'app (voir spec/shared/donnees-monstres.md).
+              de l'app (voir docs/02-app/transverse/).
               ⚠️ **UNE colonne, une stat par ligne**, et non une grille 2×4 : les
               valeurs s'alignent alors les unes SOUS les autres, ce qui permet de les
               comparer d'un monstre à l'autre et de repérer un ordre de grandeur d'un
@@ -385,8 +385,7 @@ function CompetenceBloc({ c }: { c: Competence }) {
               className={`inline-flex items-center gap-1 rounded border px-1.5 py-px text-micro ${
                 e.bonus
                   ? 'border-good/40 bg-good/10 text-good'
-                  : // Rouge d'ÉTAT (un malus), pas celui de l'élément Feu —
-                    // rebranding, décision 43.
+                  : // Rouge d'ÉTAT (un malus), pas celui de l'élément Feu.
                     'border-bad/40 bg-bad/10 text-bad'
               }`}
             >

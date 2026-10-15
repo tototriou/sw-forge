@@ -40,7 +40,7 @@ const RUNES: VueInventaire[] = [
 
 // ⚠️ Pas d'« Optimisation » côté artéfacts, et il n'y en aura pas : il n'existe
 // ni meule ni gemme pour eux. Une ligne tombée est définitive, le seul levier
-// est de monter la pièce au +15. Voir spec/compte/calcul-artefacts.md.
+// est de monter la pièce au +15. Voir docs/02-app/compte/.
 const ARTEFACTS: VueInventaire[] = [
   { key: 'resume', label: 'Résumé', icon: Gauge },
   { key: 'liste', label: 'Liste', icon: List },

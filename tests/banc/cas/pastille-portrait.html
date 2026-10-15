@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="fr" data-attendu-page="non">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover">
+<title>Pastilles et portrait</title>
+<style>
+  body { margin: 8px; font: 10px sans-serif; }
+  .bloc { margin: 16px 0; width: 200px; padding: 8px; }
+  /* Copie de MonsterAvatar : la racine `relative` (`data-portrait`), le cadre en premier enfant, puis les
+     pastilles positionnées, chacune avec son repère `data-pastille`. Les images n'existent pas ici : seules leurs
+     boîtes comptent. */
+  .portrait { position: relative; display: inline-flex; width: 50px; height: 50px; flex: none; }
+  .petit { width: 24px; height: 24px; }
+  .cadre { display: block; width: 100%; height: 100%; background: #9cf; }
+  .element { position: absolute; top: -0.25rem; right: -0.25rem; width: 16px; height: 16px; background: #f90; }
+  .exemplaires { position: absolute; bottom: -0.25rem; right: -0.25rem; display: flex; height: 20px; min-width: 20px; box-sizing: border-box; background: #fc0; }
+  .lead { position: absolute; bottom: -0.375rem; left: -0.375rem; display: inline-flex; align-items: center; }
+  .lead > img { flex: none; width: 22px; height: 22px; background: #c6f; }
+  .lead > .lead-element { width: 12px; height: 12px; margin-left: -0.25rem; background: #f90; }
+</style>
+</head>
+<body>
+<!-- (a) Non signalés : les trois pastilles reconnues sur l'image de leur portrait ; l'icône d'élément et les
+     exemplaires le dépassent de 4 px à droite, exactement leur décalage ; le badge « lead » dépasse à gauche (non
+     compté) et ne se compare pas à ses propres images (ses descendants). Aucune pastille n'en touche une autre. -->
+<div class="bloc">
+  <span id="a-portrait" class="portrait" data-portrait data-attendu="">
+    <span id="a-cadre" class="cadre" data-attendu=""></span>
+    <img id="a-element" data-pastille="element" class="element" src="elements/fire.png" alt="" data-attendu="">
+    <span id="a-exemplaires" data-pastille="exemplaires" class="exemplaires" data-attendu="">×2</span>
+    <span id="a-lead" data-pastille="lead" class="lead" data-attendu="">
+      <img id="a-lead-icone" src="leader/atk.png" alt="" data-attendu="">
+      <img id="a-lead-element" class="lead-element" src="elements/water.png" alt="" data-attendu="">
+    </span>
+  </span>
+</div>
+<!-- (a) Signalé : l'icône d'un portrait posée sur l'image du portrait VOISIN, collé à sa droite — ce n'est pas son
+     portrait (4 × 12 px). -->
+<div class="bloc" style="display: flex">
+  <span id="voisins-gauche" class="portrait" data-portrait data-attendu="">
+    <span class="cadre"></span>
+    <img id="voisins-element" data-pastille="element" class="element" src="elements/fire.png" alt="" data-attendu="chevauchement" data-attendu-avec="voisins-cadre-droite" data-attendu-aire="48">
+  </span>
+  <span id="voisins-droite" class="portrait" data-portrait data-attendu="">
+    <span id="voisins-cadre-droite" class="cadre" data-attendu=""></span>
+  </span>
+</div>
+<!-- (b) Signalé (D15) : sur un portrait de 24 px, l'icône d'élément et les exemplaires se coupent (16 × 4 px) ;
+     deux pastilles d'un même portrait ne se touchent pas. Chacune est signalée avec l'autre. Le portrait de 50 px
+     plus haut, où elles ne se touchent pas, est le cas non signalé. -->
+<div class="bloc">
+  <span id="b-portrait" class="portrait petit" data-portrait data-attendu="">
+    <span class="cadre"></span>
+    <img id="b-element" data-pastille="element" class="element" src="elements/fire.png" alt="" data-attendu="chevauchement" data-attendu-avec="b-exemplaires" data-attendu-aire="64">
+    <span id="b-exemplaires" data-pastille="exemplaires" class="exemplaires" data-attendu="chevauchement" data-attendu-avec="b-element" data-attendu-aire="64">×2</span>
+  </span>
+</div>
+</body>
+</html>

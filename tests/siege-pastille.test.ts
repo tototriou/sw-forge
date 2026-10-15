@@ -1,4 +1,4 @@
-// Pastille de statut d'une équipe de siège (refonte graphique, décision 8) :
+// Pastille de statut d'une équipe de siège :
 // chaque état a SON libellé, tiré des phrases de l'app.
 
 import { pastilleStatut, EntreePastille } from '../src/components/siege/pastilleStatut';

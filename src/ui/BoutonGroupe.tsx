@@ -24,7 +24,7 @@ import { FondBouton, FormeBouton, PRESSION, TonBouton } from './Bouton';
 // ombre — trois signaux pour dire une seule chose : le bouton se surlignait deux
 // fois et bavait sur ses voisins. L'ombre part aussi : un bouton actif ne DÉCOLLE
 // pas de la page, l'élévation est réservée à ce qui flotte. Voir
-// spec/shared/design.md.
+// docs/03-developpeur/interface/.
 
 export interface BoutonGroupeProps {
   libelle: ReactNode;
@@ -169,7 +169,7 @@ const BoutonGroupe = forwardRef<HTMLDivElement, BoutonGroupeProps>(function Bout
         // pas lui qui grandirait mais le CADRE qui l'enveloppe, doublant de
         // hauteur sans que rien dans son propre code ne l'explique. Rien n'est
         // perdu : ce bouton occupe toute la surface du groupe sauf les actions,
-        // donc la cible reste large. Voir spec/shared/librairie-ui.md.
+        // donc la cible reste large. Voir docs/03-developpeur/interface/.
         data-cible-fine
         className={`flex h-full min-w-0 items-center gap-1.5 font-semibold ${TEXTES[taille]} ${PRESSION}`}
         {...aria}

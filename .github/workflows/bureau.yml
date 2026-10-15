@@ -2,7 +2,7 @@ name: Application de bureau (installeurs)
 
 # Construit l'installeur Windows et l'AppImage Linux de la version taguée, puis
 # les attache à la release GitHub du tag, avec les `latest*.yml` que lit la
-# mise à jour automatique (spec/shared/application-bureau.md).
+# mise à jour automatique (docs/02-app/bureau/).
 #
 # ⚠️ **Les fichiers s'attachent par `gh`, pas par electron-builder**
 # (`--publish always`). Celui-ci vise la release `v` + la version de

@@ -26,7 +26,7 @@ import { useLayoutEffect, useRef, useState } from 'react';
 const CRAN_DENSE = 'px-1 py-1 text-nano leading-tight';
 // ⚠️ À la souris, les crans font 26 px et le cadre 32 (26 + 2 × 2 de `p-0.5`
 // + le contour), 10 px de côté et 12 px de texte : le `.seg` de la maquette,
-// qui n'a qu'une taille — celle d'un bouton `md` (décision 16, voir
+// qui n'a qu'une taille — celle d'un bouton `md` (voir
 // Bouton.tsx). Le petit en faisait 30, le grand 36.
 const CRAN_LG = 'lg:h-[26px] lg:py-0 lg:px-2.5 lg:text-xs';
 const CRAN_LARGE = `px-3 py-1.5 text-xs whitespace-nowrap ${CRAN_LG}`;
@@ -112,7 +112,13 @@ export default function Segmented<T extends string>({
     // — une fois resserré il ne déborde plus, donc on repasserait au cran
     // normal, donc il déborderait de nouveau. La copie, elle, garde toujours
     // la même largeur naturelle, indépendante de l'état courant.
-    const verifier = () => setSerre(mesure.scrollWidth > racine.clientWidth);
+    // En `lg`, les crans se partagent la largeur à égalité : c'est le plus
+    // large qui doit tenir dans sa part, pas seulement la somme des crans.
+    const verifier = () => {
+      const crans = [...mesure.children].map(c => (c as HTMLElement).offsetWidth);
+      const besoin = size === 'lg' && crans.length ? Math.max(...crans) * crans.length : mesure.scrollWidth;
+      setSerre(besoin > racine.clientWidth);
+    };
     verifier();
     const ro = new ResizeObserver(verifier);
     // Les DEUX : la racine (la place disponible change) ET la copie (les
@@ -120,7 +126,7 @@ export default function Segmented<T extends string>({
     ro.observe(racine);
     ro.observe(mesure);
     return () => ro.disconnect();
-  }, [auto]);
+  }, [auto, size]);
 
   const compact = dense ?? serre;
 
@@ -140,27 +146,29 @@ export default function Segmented<T extends string>({
           parent au lieu de la RAPPORTER, ce qui, dans un conteneur `absolute`
           sans largeur propre, crée une dépendance circulaire dont le résultat
           n'est pas garanti par la spec CSS. `invisible` et non `hidden` : un
-          élément non affiché n'a aucune dimension à mesurer. */}
+          élément non affiché n'a aucune dimension à mesurer.
+          ⚠️ Enveloppée dans un cadre `overflow-hidden` aux dimensions de la
+          racine : plus large que sa place (c'est le cas qu'elle détecte), une
+          copie `absolute` agrandit quand même la zone défilable de l'ancêtre
+          qui défile — une modale au téléphone glissait alors de côté. */}
       {auto && (
-        <div
-          ref={mesureRef}
-          aria-hidden
-          className="pointer-events-none invisible absolute left-0 top-0 flex w-max flex-none items-center gap-0"
-        >
-          {options.map((o, i) => (
-            <div key={o.key} className="flex flex-none items-stretch">
-              {size === 'lg' && i > 0 && <span className="w-px self-stretch" />}
-              <span
-                className={`flex flex-none items-center justify-center gap-1.5 font-semibold ${
-                  large ? CRAN_LARGE : CRAN_PETIT
-                }`}
-              >
-                {o.icon}
-                {o.label}
-                {o.suffix}
-              </span>
-            </div>
-          ))}
+        <div aria-hidden className="pointer-events-none invisible absolute inset-0 overflow-hidden">
+          <div ref={mesureRef} className="absolute left-0 top-0 flex w-max flex-none items-center gap-0">
+            {options.map((o, i) => (
+              <div key={o.key} className="flex flex-none items-stretch">
+                {size === 'lg' && i > 0 && <span className="w-px self-stretch" />}
+                <span
+                  className={`flex flex-none items-center justify-center gap-1.5 font-semibold ${
+                    large ? CRAN_LARGE : CRAN_PETIT
+                  }`}
+                >
+                  {o.icon}
+                  {o.label}
+                  {o.suffix}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
@@ -195,12 +203,10 @@ export default function Segmented<T extends string>({
                               // propre cadre : deux signaux pour un seul état, et
                               // une élévation qui ne veut rien dire ici (le cran
                               // ne flotte pas au-dessus du contrôle qui le
-                              // contient). Voir spec/shared/design.md.
+                              // contient). Voir docs/03-developpeur/interface/.
                               // ⚠️ Un APLAT de braise, texte `accent-ink`
-                              // (rebranding, décision 19 — la planche
-                              // « Actions » de la toile) : il valait le fond
-                              // doux `accent-soft` depuis le lot 9 de la
-                              // refonte. Toujours un seul marqueur. Encre
+                              // (la planche « Actions » de la toile).
+                              // Toujours un seul marqueur. Encre
                               // dessus : 6.66.
                               active
                               ? 'bg-accent text-accent-ink'

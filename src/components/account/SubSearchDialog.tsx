@@ -209,7 +209,7 @@ export default function SubSearchDialog({
 
 // Une borne. ⚠️ `type="text"` + `inputMode="numeric"` comme partout ailleurs :
 // un `type="number"` garde le texte tapé et laisse traîner les zéros de tête
-// (voir spec/README.md).
+// (voir docs/03-developpeur/).
 //
 // ⚠️ Vide = `undefined` et NON 0 : « pas de plafond » n'est pas « au plus
 // zéro ». C'est ce qui permet de ne borner que d'un côté.

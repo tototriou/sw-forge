@@ -3,15 +3,15 @@ import { Check, X } from 'lucide-react';
 import Bouton from './Bouton';
 import BoutonIcone from './BoutonIcone';
 
-// Notification « … · Annuler » (refonte graphique, lot 13, décision 29, la
-// maquette) — voir spec/shared/design.md § Notification « Annuler ».
+// Notification « … · Annuler » (la
+// maquette) — voir docs/03-developpeur/interface/ § Notification « Annuler ».
 //
 // ⚠️ **Elle REMPLACE une confirmation**, pour quatre suppressions (monstre de
 // la prépa RTA, équipe, deck, recommandation) : le geste se fait tout de suite,
 // et « Annuler » le défait quelques secondes. L'`action` doit alors remettre
 // l'élément À SA PLACE, tel quel (les fonctions `restaurer*` des hooks).
 //
-// Deux axes nés de l'application de bureau (lot 5) : le libellé de l'action
+// Deux axes nés de l'application de bureau : le libellé de l'action
 // (« Nouvelle version disponible · Mettre à jour » ; « Annuler » par défaut)
 // et la durée — `persistante`, elle reste jusqu'à l'action ou la croix (une
 // QUESTION ne s'efface pas toute seule ; 6 s par défaut).
@@ -96,7 +96,7 @@ export function BandeauNotification({
       // ⚠️ Au TÉLÉPHONE, en bas, centrée, AU-DESSUS de la barre d'onglets et du
       // bouton « Options » (même dégagement que le contenu, voir App.tsx :
       // 116 px + l'encoche), jamais dessous.
-      // ⚠️ À la SOURIS, en bas à DROITE (rebranding, décision 23 — la planche
+      // ⚠️ À la SOURIS, en bas à DROITE (la planche
       // « Retours et fenêtres ») : `lg:` seulement, le téléphone ne bouge pas.
       // Fond `panel2`, un cran au-dessus des cartes qu'elle survole, comme la
       // toile.

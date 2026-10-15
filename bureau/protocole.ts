@@ -1,5 +1,5 @@
 // Le protocole maison de l'application de bureau
-// (spec/shared/application-bureau.md).
+// (docs/02-app/bureau/).
 //
 // ⚠️ **Pourquoi pas `file://`.** L'app lit `import.meta.env.BASE_URL` (`/`) à
 // 19 endroits et charge ses données par `fetch` (`/data/monsters.json`) : sous
@@ -46,7 +46,7 @@ export function cheminDuFichier(url: string, racine: string): string | null {
   return cible;
 }
 
-// ── Navigation (lot 2, branchée par navigation.ts) ─────────────────────────
+// ── Navigation (branchée par navigation.ts) ─────────────────────────
 
 // L'adresse appartient-elle à l'app ? Le protocole maison, ou — en dev — le
 // serveur Vite (`urlDev`), même origine seulement.

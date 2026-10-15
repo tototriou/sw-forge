@@ -1,5 +1,6 @@
-// Migration des clés `localStorage` vers le nom SW Blacksmith — décision 66 du
-// rebranding (spec/README.md, « Clés renommées au rebranding »).
+// Migration des clés `localStorage` vers le nom SW Blacksmith
+// (docs/02-app/transverse/feat-import-compte/persistance.md,
+// « Migration des clés d'un autre préfixe »).
 //
 // Les clés s'appelaient `sw-forge-…` (et `sky-arena-…` pour la toute première
 // prépa RTA) ; elles s'appellent maintenant `swblacksmith-…`. Au premier

@@ -1,5 +1,5 @@
 // Oracle de contrôle de la dimension relique (voir
-// spec/outils/optimizer/moteur/reliques.md,
+// docs/03-developpeur/optimizer/,
 // « Oracle de la dimension relique »).
 //
 // Il ne remplace aucune étape du moteur : chaque valeur distincte de

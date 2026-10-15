@@ -63,7 +63,7 @@ export interface StoredAccount {
   usedRuneIds: RunesUtilisees;
   // Occupation par rid de relique (nombre d'unités dont `relics[0].rid` vaut
   // ce rid) — calculée à l'import, jamais déduite de `relics.length` (une
-  // relique n'est pas exclusive, spec/outils/optimizer/moteur/reliques.md
+  // relique n'est pas exclusive, docs/03-developpeur/optimizer/
   // § Ce que le moteur lit d'une relique). Même raison de
   // stockage que `usedRuneIds` : l'export brut n'est jamais conservé.
   relicUsageById: Record<number, number>;
@@ -100,7 +100,7 @@ export interface StoredAccount {
 // retombait sur les artéfacts réellement portés, sans le moindre signal.
 export const ACCOUNT_SCHEMA = 7;
 
-// Renommée au rebranding (décision 66) : la base s'appelait `sw-forge`. Elle
+// Renommée au rebranding : la base s'appelait `sw-forge`. Elle
 // est reprise une fois, à la première ouverture — voir `reprendreAncienneBase`.
 const DB_NAME = 'swblacksmith';
 const ANCIENNE_BASE = 'sw-forge';
@@ -161,7 +161,7 @@ function openDb(): Promise<IDBDatabase | null> {
 }
 
 /* --------------------------------------------------------------------------
- * Reprise de l'ancienne base `sw-forge` (rebranding, décision 66)
+ * Reprise de l'ancienne base `sw-forge`
  * ----------------------------------------------------------------------- */
 
 // Ouvre l'ancienne base SI elle existe. ⚠️ `indexedDB.open` CRÉE une base

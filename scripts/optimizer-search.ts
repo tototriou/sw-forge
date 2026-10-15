@@ -28,6 +28,7 @@ import { loadMonstersList } from './lib/monstersData';
 import {
   CIBLE_DEGATS_LABELS,
   DEFAULT_DAMAGE_SETUP,
+  SUMMONER_SKILLS_LABELS,
   bonusDegatsConditionnelActif,
   bonusPassifActif,
   cibleDegatsRetenue,
@@ -235,7 +236,7 @@ if (recipe.objective === 'degats_reels') {
         `${bonusConditionnel && bonusDegatsConditionnelActif(bonusConditionnel, s) ? ` — ${bonusConditionnel.nom.replace(/\s*\(Passive\)\s*$/i, '')} (+${bonusConditionnel.pct}%)` : ''} — ` +
         // ⚠️ `?? DEFAULT` : une recette exportée AVANT ce champ n'en a pas.
         // L'élément vient du monstre CHARGÉ, jamais de la recette.
-        `comp. invocateur ${s.summonerSkills ?? DEFAULT_DAMAGE_SETUP.summonerSkills} (${monsterElement ?? 'élément inconnu'}) — ` +
+        `comp. invocateur ${SUMMONER_SKILLS_LABELS.find(v => v.key === s.summonerSkills)?.label ?? SUMMONER_SKILLS_LABELS[0].label} (${monsterElement ?? 'élément inconnu'}) — ` +
         `stats privilégiées [${damageRelevantStats(
           profile,
           passifs,
@@ -533,8 +534,8 @@ for (const c of classes.slice(0, LIGNES_IMPRIMEES)) {
 }
 if (classes.length > LIGNES_IMPRIMEES) console.log(`  … et ${classes.length - LIGNES_IMPRIMEES} de plus.`);
 
-// ⚠️ Sous-produit GRATUIT de `pairBuckets` (voir spec/outils/optimizer/
-// moteur/diagnostics.md, « Quasi-succès à l'appariement ») — jamais recalculé, seulement mis en forme.
+// ⚠️ Sous-produit GRATUIT de `pairBuckets` (voir docs/03-developpeur/optimizer/
+// (diagnostics), « Quasi-succès à l'appariement ») — jamais recalculé, seulement mis en forme.
 // Rendu SEULEMENT quand rien n'a été trouvé : sinon rien à chercher.
 if (result.candidates.length === 0) {
   const runeById = new Map(params.pool.map((r) => [r.id, r]));

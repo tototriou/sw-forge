@@ -54,10 +54,10 @@ export default function SidebarCompte({
         .join(' · ')
     : 'Importer un export SWEX';
 
-  // ⚠️ **App de bureau, dossier SW Exporter choisi (lot 9)** : la carte ouvre
+  // ⚠️ **App de bureau, dossier SW Exporter choisi** : la carte ouvre
   // un MENU — les invocateurs du dossier (celui suivi, coché), puis l'import
-  // d'un fichier. Choisir un invocateur ne change que « Mon compte »
-  // (décision 15). Sans dossier, et sur le site : la carte importe, comme
+  // d'un fichier. Choisir un invocateur ne change que « Mon compte ».
+  // Sans dossier, et sur le site : la carte importe, comme
   // avant.
   const { etat, agir } = useEtatSwex();
   const invocateurs = etat?.dossier && !etat.introuvable ? presentationSwex(etat).options : [];
@@ -174,9 +174,9 @@ export function SidebarParametres({
         retractee ? 'justify-center px-0' : 'gap-2.5 px-2.5'
       } ${actifs ? 'bg-accent-soft text-accent' : 'text-ink-dim hoverable:bg-ink/5 hoverable:text-ink'}`}
     >
-      {/* Rebranding R4 : les curseurs « Réglages » de la toile (décision 28 —
-          l'engrenage est à Mécaniques), et l'état ouvert en braise comme toute
-          entrée active de la barre (décision 29). L'engrenage pivotait d'un
+      {/* Les curseurs « Réglages » de la toile (l'engrenage est à
+          Mécaniques), et l'état ouvert en braise comme toute
+          entrée active de la barre. L'engrenage pivotait d'un
           huitième de tour à l'ouverture : des curseurs tournés ne diraient
           rien, et l'état se lit déjà au fond et au libellé. */}
       <IconeParametres size={16} />

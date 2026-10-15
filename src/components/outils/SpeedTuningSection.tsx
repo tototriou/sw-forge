@@ -1,6 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
-import { Search, Plus, Users, Swords, X, Zap, Gauge, Eye, EyeOff, Download, Check, Scissors, Play, ChevronUp, ChevronDown, Sparkles, CopyPlus } from 'lucide-react';
-// Le chronomètre de l'entrée « Speed tuning » de la nav (rebranding, décision 44).
+import { Search, Plus, Users, Swords, X, Zap, Gauge, Eye, EyeOff, Download, Upload, Check, Scissors, Play, ChevronUp, ChevronDown, Sparkles, CopyPlus } from 'lucide-react';
+// Le chronomètre de l'entrée « Speed tuning » de la nav.
 import { IconeSpeedTuning } from '../IconesAtelier';
 import { ELEMENTS, Monster, SiegeTeam } from '../../types';
 import { LeadInfo, combatSpeed, leadsDeVitesse, runeSpeedForTarget, SIEGE_TICKS } from '../../lib/speed';
@@ -58,6 +58,9 @@ import { formesJouables } from '../../lib/monsterForms';
 import LeadPill from '../siege/LeadPill';
 import { useComboboxNav } from '../../hooks/useComboboxNav';
 import { useSpeedTune, DeckDispo, ChampMod, DeckInitial } from '../../hooks/useSpeedTune';
+import type { ActionImportOptimizer } from '../../lib/actionImportOptimizer';
+import type { ExclusionSourceData } from '../../lib/optimizerExclusion';
+import { importerSpeedTuneOptimizer } from '../../lib/importSpeedTuneOptimizer';
 
 import { useAdversaireReference } from '../../hooks/useAdversaireReference';
 import { useStickyState } from '../../hooks/useStickyState';
@@ -83,7 +86,7 @@ const SPD_ICON = `${import.meta.env.BASE_URL}stats/spd.png`;
 // Valeur du buff de vitesse du jeu (+30 %), posée d'un clic.
 const BUFF_SPD = 30;
 
-// Outils › Speed tuning — voir spec/outils/speed-tuning.md.
+// Outils › Speed tuning — voir docs/02-app/speed-tuning/.
 //
 // À chaque tick, la barre d'action monte de `vitesse × 7 %` ; un seul monstre
 // agit par tick (règle du jeu). L'écran répond à « est-ce que je joue AVANT tel
@@ -94,6 +97,9 @@ const BUFF_SPD = 30;
 // lib/speedTune.ts (pur, testé) ; ce composant assemble saisie et affichage.
 
 interface Props {
+  onImporterEquipe?: ActionImportOptimizer;
+  sourcesOptimizer?: ExclusionSourceData;
+  compteCharge?: boolean;
   allMonsters: Monster[];
   // Équipes de siège du compte : elles s'importent dans « Ton équipe » (voir
   // DECKS plus bas). Vides tant qu'aucun compte n'est chargé — le reste de
@@ -215,6 +221,9 @@ function TeteTicks({ premiere }: { premiere: string }) {
 }
 
 export default function SpeedTuningSection({
+  onImporterEquipe,
+  sourcesOptimizer,
+  compteCharge = false,
   allMonsters,
   siegeDefenseTeams,
   siegeOffenseTeams,
@@ -327,6 +336,14 @@ export default function SpeedTuningSection({
     tune,
   } = useSpeedTune({ allMonsters, siegeDefenseTeams, siegeOffenseTeams, deckInitial });
 
+  const raisonExportOptimizer = useMemo(() => {
+    if (!compteCharge) return 'Charge un compte pour exporter vers l’Optimizer.';
+    if (!onImporterEquipe || !sourcesOptimizer) return 'Export vers l’Optimizer indisponible.';
+    return importerSpeedTuneOptimizer(lignes, leadAllie, sourcesOptimizer, deckInitial ?? undefined).membres.length
+      ? undefined : 'Aucun monstre importable dans ton équipe : choisis un monstre et sa vitesse de runes.';
+  }, [compteCharge, onImporterEquipe, sourcesOptimizer, lignes, leadAllie, deckInitial]);
+  const exporterOptimizer = () => onImporterEquipe?.(data => importerSpeedTuneOptimizer(lignes, leadAllie, data, deckInitial ?? undefined));
+
   function besoin(l: Ligne, combatCible: number | null, arteCible: number | null, arteActuel: number) {
     const runes = combatCible == null ? null : runesPour(l, combatCible);
     const arte = arteCible == null ? null : arteCible - arteActuel;
@@ -370,7 +387,7 @@ export default function SpeedTuningSection({
   };
 
   // L'ordre de tour, posé à DEUX endroits selon le format (un seul visible) :
-  // tout en bas au doigt, sous l'analyse à la souris (décision 22).
+  // tout en bas au doigt, sous l'analyse à la souris.
   const ordreDeTour = (className: string) => (
     <section className={`rounded-lg border border-border bg-panel ${className}`}>
       <div className="border-b border-border-soft px-4 py-2.5 text-micro font-semibold uppercase tracking-wider text-ink-dimmer">
@@ -410,8 +427,8 @@ export default function SpeedTuningSection({
   return (
     <div className="space-y-4">
       {entete && (
-        // ⚠️ **À la SOURIS, le titre au gabarit des autres pages** (refonte
-        // graphique, lot 9b, la maquette) : titre en police d'affichage, sans
+        // ⚠️ **À la SOURIS, le titre au gabarit des autres pages** (la maquette) :
+        // titre en police d'affichage, sans
         // la pastille d'icône, la règle des ticks dessous.
         <header className="flex items-start gap-3">
           <span className="flex h-8 w-8 flex-none items-center justify-center rounded bg-accent-soft text-accent lg:hidden">
@@ -472,7 +489,7 @@ export default function SpeedTuningSection({
       </section>
 
       {/* Camps — flex-wrap : côte à côte quand il y a la place, empilés sinon.
-          ⚠️ **Au TÉLÉPHONE, toujours empilés** (`max-lg:flex-col`, lot 11d) :
+          ⚠️ **Au TÉLÉPHONE, toujours empilés** (`max-lg:flex-col`) :
           dès 560 px de large, deux camps de 280 px tenaient côte à côte, et
           chacun devenait trop étroit — le lead débordait de l'en-tête et les
           trois réglages de chaque monstre s'empilaient (relevé par le mainteneur en
@@ -503,6 +520,8 @@ export default function SpeedTuningSection({
           onArtefact={setArtefact}
           decks={decks}
           onImporterDeck={(team) => importerDeck('allie', team)}
+          onExporterOptimizer={exporterOptimizer}
+          raisonExportOptimizer={raisonExportOptimizer}
         />
         <CampPanneau
           camp="ennemi"
@@ -876,8 +895,8 @@ export default function SpeedTuningSection({
             </div>
 
           {/* ⚠️ **À la SOURIS, l'ordre de tour vient ICI**, sous l'ordre des
-              sorts et l'analyse, avant les tableaux (décision 22 du cadrage de
-              la refonte, le mainteneur) : c'est la conclusion qu'on vient lire, pas un
+              sorts et l'analyse, avant les tableaux (le mainteneur) : c'est la
+              conclusion qu'on vient lire, pas un
               pied de page sous trois tableaux de 40 colonnes. */}
           {ordreDeTour('hidden lg:block')}
 
@@ -1054,6 +1073,8 @@ interface CampProps {
   // propre compo d'un côté, la défense qu'on affronte de l'autre.
   decks?: DeckDispo[];
   onImporterDeck?: (team: SiegeTeam) => void;
+  onExporterOptimizer?: () => void;
+  raisonExportOptimizer?: string;
 }
 
 function CampPanneau({
@@ -1081,6 +1102,8 @@ function CampPanneau({
   onArtefact,
   decks,
   onImporterDeck,
+  onExporterOptimizer,
+  raisonExportOptimizer,
 }: CampProps) {
   const adv = camp === 'ennemi';
   const dejaAjoutes = useMemo(() => new Set(lignes.map((l) => String(l.monster.id))), [lignes]);
@@ -1176,9 +1199,9 @@ function CampPanneau({
             </optgroup>
           </Selecteur>
           {/* ⚠️ **À la SOURIS, l'import du camp vit ICI**, à côté du lead
-              (décision 22, le mainteneur) : dans l'en-tête de la carte qu'il
+              (le mainteneur) : dans l'en-tête de la carte qu'il
               remplace, on voit sans lire quel camp il touche. Au doigt, il
-              reste sous la recherche (lot 11). */}
+              reste sous la recherche. */}
           {decks && onImporterDeck && (
             <span className="hidden lg:block">
               <ImportDeck decks={decks} onImporter={onImporterDeck} adv={adv} enTete />
@@ -1468,6 +1491,11 @@ function CampPanneau({
           <div className="lg:hidden">
             <ImportDeck decks={decks} onImporter={onImporterDeck} adv={adv} />
           </div>
+        )}
+        {onExporterOptimizer && (
+          <Bouton pleineLargeur icone={<Upload size={14} />} libelle="Exporter vers l'Optimizer"
+            disabled={!!raisonExportOptimizer} title={raisonExportOptimizer ?? 'Exporter ton équipe et ses critères, puis ouvrir l’Optimizer.'}
+            onClick={onExporterOptimizer} />
         )}
       </div>
     </section>
@@ -1825,7 +1853,7 @@ const LIBELLE_SOURCE: Record<DeckDispo['source'], string> = {
 // Reprendre une équipe de siège telle quelle plutôt que de retaper trois
 // monstres et trois vitesses de runes. Le bouton reste TOUJOURS affiché, même
 // sans compte chargé : désactivé, il dit que la possibilité existe (voir
-// spec/shared/design.md).
+// docs/03-developpeur/interface/).
 function ImportDeck({
   decks,
   onImporter,
@@ -1835,7 +1863,7 @@ function ImportDeck({
   decks: DeckDispo[];
   onImporter: (team: SiegeTeam) => void;
   adv: boolean;
-  // Posé dans l'en-tête du camp (à la souris, décision 22) : bouton compact,
+  // Posé dans l'en-tête du camp (à la souris) : bouton compact,
   // liste calée à DROITE — le bouton est au bord droit de la carte, une liste
   // calée à gauche déborderait de l'écran.
   enTete?: boolean;
@@ -1929,7 +1957,7 @@ function ImportDeck({
 const MAX_RESULTS = 25;
 
 // Combobox d'ajout — même grammaire que RtaSearch/MonsterGearPicker
-// (Champ + Flottant + useComboboxNav), voir spec/shared/recherche-clavier.md.
+// (Champ + Flottant + useComboboxNav), voir docs/02-app/transverse/.
 function RechercheMonstre({
   monsters,
   dejaAjoutes,

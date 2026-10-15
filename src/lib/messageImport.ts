@@ -3,8 +3,8 @@
 // (le dépôt ne teste pas les composants React).
 //
 // Un message qui porte un AVERTISSEMENT de conversion (l'ancien mode critique
-// « Moyenne » passé en « Critique », spec/outils/optimizer/ecran/
-// lancer-la-recherche.md § Lancer la recherche) prend le token d'avertissement (`warn`,
+// « Moyenne » passé en « Critique », docs/02-app/optimizer/
+// § Lancer la recherche) prend le token d'avertissement (`warn`,
 // comme les autres avertissements de l'écran, jamais `good`) et ne s'efface
 // plus tout seul : il reste jusqu'au prochain import de recette, réussi ou
 // non, qui le remplace. Le message ordinaire (succès sans avertissement)
@@ -23,7 +23,7 @@ export function delaiEffacementImport(message: MessageImport): number | null {
   return 5000;
 }
 
-// Classes de couleur, tokens de spec/shared/design.md seulement.
+// Classes de couleur, tokens de docs/03-developpeur/interface/ seulement.
 export function classeMessageImport(message: MessageImport): string {
   if (message.error) return 'text-bad';
   if (message.avertissement) return 'text-warn';

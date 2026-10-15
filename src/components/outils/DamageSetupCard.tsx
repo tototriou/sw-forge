@@ -69,8 +69,8 @@ import Selecteur from '../../ui/Selecteur';
 import { ELEMENTS, type ElementKey } from '../../types';
 import HelpPopover from '../HelpPopover';
 
-// Réglage de l'objectif « Dégâts réels » — voir spec/outils/degats-reels.md
-// pour le modèle de calcul, spec/outils/optimizer/ecran/objectif-de-recherche.md pour sa place à l'écran.
+// Réglage de l'objectif « Dégâts réels » — voir docs/02-app/degats-reels/
+// pour le modèle de calcul, docs/02-app/optimizer/ pour sa place à l'écran.
 //
 // ⚠️ **Deux principes portent toute la mise en page de ce panneau :**
 //
@@ -85,7 +85,7 @@ import HelpPopover from '../HelpPopover';
 //    il fait croire à une action.
 //
 // ⚠️ Aucun contrôle dessiné ici : tout vient de `src/ui/` (« rien de
-// custom », voir spec/shared/design.md). Les icônes (sort, effets) sont des
+// custom », voir docs/03-developpeur/interface/). Les icônes (sort, effets) sont des
 // DONNÉES affichées dedans, pas des contrôles maison — même rendu que la
 // fiche de monstre (MonsterDetailDialog.tsx). Les effets se choisissent via
 // `Vignette` (la case sélectionnable de la librairie, déjà utilisée pour la
@@ -368,7 +368,7 @@ function champCoupsVariables(profile: SkillDamageProfile, setup: DamageSetup, ma
 // rien de ce qui le précède ne lit le cran** (`resumeSort` ne lit pas la
 // cible) : choisir Blade Surge le fait apparaître EN DESSOUS de la case
 // cliquée, et basculer ne change la hauteur de rien au-dessus de lui — il ne
-// bouge jamais sous le pointeur (spec/shared/design.md, « Un clic ne déplace
+// bouge jamais sous le pointeur (docs/03-developpeur/interface/, « Un clic ne déplace
 // JAMAIS ce qu'on vient de cliquer »).
 function champCibleDegats(profile: SkillDamageProfile, setup: DamageSetup, maj: (patch: Partial<DamageSetup>) => void) {
   if (!cibleSecondairePriseEnCharge(profile.skillCom2usId)) return null;
@@ -408,6 +408,9 @@ export default function DamageSetupCard({
   critInterdit,
 }: Props) {
   const maj = (patch: Partial<DamageSetup>) => setSetup((prev) => ({ ...prev, ...patch }));
+  // Au doigt, les champs de l'adversaire s'empilent : une largeur commune de
+  // libellé (celle du plus long, « PV restants ») les aligne.
+  const libelleAdversaire = `text-xs text-ink-dim${etroit ? ' w-[4.5rem] flex-none' : ''}`;
   const majBuffsPropres = (skillCom2usId: number, total: number) => {
     const autres = autresBuffsPropresDepuisTotal(total, setup);
     maj({ buffsPropresCount: { ...(setup.buffsPropresCount ?? {}), [skillCom2usId]: autres } });
@@ -630,15 +633,6 @@ export default function DamageSetupCard({
       <div>
         <div className="mb-2 flex items-center gap-1.5">
           <p className="label">Compétence utilisée</p>
-          <HelpPopover title="Compétence utilisée">
-            Le coefficient, le nombre de coups, la portée, l&apos;ignore défense et le bonus des
-            améliorations sont <b className="text-ink">lus dans les données du sort</b> — jamais à saisir.
-            Une compétence est toujours supposée <b className="text-ink">maxée</b>, comme partout ailleurs
-            dans l&apos;app. Pour un sort qui frappe sa cible puis tous les ennemis (Blade Surge), tu
-            choisis seulement la cible calculée : <b className="text-ink">Dégâts sur la cible visée</b> (tous
-            ses coups) ou <b className="text-ink">Dégâts sur les autres ennemis</b> (le coup de zone seul, sur
-            un autre ennemi) — les champs de l&apos;adversaire décrivent alors cet autre ennemi.
-          </HelpPopover>
         </div>
         <div className="flex flex-col gap-1.5">
           {skills.map((s) => {
@@ -807,7 +801,7 @@ export default function DamageSetupCard({
 
       {/* ⚠️ **Presque toujours indépendant du sort choisi ci-dessus** — un
           passif s'applique quel que soit S1/S2/S3 en cours d'optimisation,
-          voir spec/outils/degats-reels.md, sauf s'il ne peut pas suivre ce
+          voir docs/02-app/degats-reels/, sauf s'il ne peut pas suivre ce
           sort (`passifsSuivants` : lui-même choisi comme sort, ou slots
           déclencheurs curés qui l'excluent — Tempest). Absent (la grande
           majorité des monstres) : rien ne s'affiche, pas même un « aucun
@@ -826,14 +820,8 @@ export default function DamageSetupCard({
           <div className="mb-2 flex items-center gap-1.5">
             <p className="label">Passifs offensifs</p>
             <HelpPopover title="Passifs offensifs">
-              Certains monstres infligent des dégâts supplémentaires par un passif (Feng Yan, Sia, Roid…),
-              en plus du sort choisi ci-dessus. <b className="text-ink">Toujours actif</b> : le texte du jeu ne
-              pose aucune condition de combat, compté d&apos;office.{' '}
-              <b className="text-ink">Selon le def break</b> : la condition porte sur la réduction de défense —
-              entièrement déduite des deux réglages d&apos;effets, rien à cocher ici.{' '}
-              <b className="text-ink">Bouton</b> : une condition à juger toi-même (attribut de la cible, tes
-              PV…) — désactivé par défaut, jamais deviné. Un bouton de <b className="text-ink">bonus</b> ne
-              conditionne que le SURPLUS : l&apos;attaque de base du passif, elle, est comptée dans tous les cas.
+              Un <b className="text-ink">bouton</b> est une condition à juger toi-même (attribut de la cible,
+              tes PV…) : désactivé par défaut.
             </HelpPopover>
           </div>
           <div className="space-y-2">
@@ -1238,10 +1226,6 @@ export default function DamageSetupCard({
         <div>
           <div className="mb-2 flex items-center gap-1.5">
             <p className="label">Contexte du combat</p>
-            <HelpPopover title="Contexte du combat">
-              Ces valeurs décrivent l&apos;instant où le coup part. Les PV absolus
-              sont recalculés depuis les PV max de chaque build candidat.
-            </HelpPopover>
           </div>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
             {(utilise('Current HP %') || utilise('Current HP') || utilise('Missing HP') || demandePvPropres) && (
@@ -1311,11 +1295,6 @@ export default function DamageSetupCard({
         <div>
           <div className="mb-2 flex items-center gap-1.5">
             <p className="label">Stats acquises en combat</p>
-            <HelpPopover title="Stats acquises en combat">
-              Ces cumuls et états modifient les stats du build avant d&apos;évaluer le sort et les lignes
-              de dégâts additionnels des artéfacts. Ils restent à zéro ou désactivés tant que tu ne les
-              renseignes pas.
-            </HelpPopover>
           </div>
           <div className="space-y-2">
             {combatStats.map((profile, index) => {
@@ -1425,7 +1404,7 @@ export default function DamageSetupCard({
               {seuilsPassifEivor.spd} VIT (<b className="text-ink">+{requis.spd}</b>)
             </p>
             <p className="mt-1 text-micro text-ink-dim">
-              Valeurs +stat avec {setup.summonerSkills === 'guilde' ? 'Combat + Guilde' : 'Combat'}.
+              Valeurs +stat avec {setup.summonerSkills === 'guilde' ? 'Contenu de guilde' : 'Contenu normal'}.
             </p>
           </div>
         );
@@ -1435,17 +1414,17 @@ export default function DamageSetupCard({
         <div className="mb-2 flex items-center gap-1.5">
           <p className="label">Adversaire</p>
           <HelpPopover title="Adversaire">
-            Les <b className="text-ink">PV</b> servent à lire le résultat (part des PV de la cible
-            emportée), jamais à classer les builds. La <b className="text-ink">DEF</b>, elle, change
-            réellement les dégâts — sauf pour un sort qui l&apos;ignore, auquel cas le champ
-            n&apos;apparaît pas.
+            Ce sont les PV et la DEF totaux de l&apos;adversaire, y compris stats de base, runes,
+            lead…
           </HelpPopover>
         </div>
         {/* `flex-wrap` : les deux champs passent l'un sous l'autre au doigt
-            plutôt que de comprimer les boutons − / + sous la taille de cible. */}
+            plutôt que de comprimer les boutons − / + sous la taille de cible.
+            Empilés, leurs libellés prennent une largeur commune
+            (`libelleAdversaire`) pour que les champs s'alignent. */}
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <label className="flex items-center gap-2">
-            <span className="text-xs text-ink-dim">PV</span>
+            <span className={libelleAdversaire}>PV</span>
             <NumberField
               value={setup.enemyHp}
               onChange={(v) => maj({ enemyHp: v ?? 0 })}
@@ -1457,7 +1436,7 @@ export default function DamageSetupCard({
           </label>
           {montreDefEnnemie && (
             <label className="flex items-center gap-2">
-              <span className="text-xs text-ink-dim">DEF</span>
+              <span className={libelleAdversaire}>DEF</span>
               <NumberField
                 value={setup.enemyDef}
                 onChange={(v) => maj({ enemyDef: v ?? 0 })}
@@ -1470,7 +1449,7 @@ export default function DamageSetupCard({
           )}
           {demandeAtkCible && (
             <label className="flex items-center gap-2">
-              <span className="text-xs text-ink-dim">ATQ adverse</span>
+              <span className={libelleAdversaire}>ATQ adverse</span>
               <NumberField
                 value={setup.enemyAtk ?? DEFAULT_DAMAGE_SETUP.enemyAtk!}
                 onChange={(v) => maj({ enemyAtk: v ?? 0 })}
@@ -1487,7 +1466,7 @@ export default function DamageSetupCard({
               puisque les coups du sort creusent la cible avant qu'il frappe. */}
           {(utilise('Target Current HP %') || passifsSuivants.some((p) => p.bonusPvCible) || demandePvCible) && (
             <label className="flex items-center gap-2">
-              <span className="text-xs text-ink-dim">PV restants</span>
+              <span className={libelleAdversaire}>PV restants</span>
               <NumberField
                 value={setup.enemyHpPct}
                 onChange={(v) => maj({ enemyHpPct: v ?? 0 })}
@@ -1523,14 +1502,17 @@ export default function DamageSetupCard({
               C'est la différence avec `montreDefEnnemie` ou « PV restants » :
               ceux-là sont pilotés par ce que le SORT consomme, connu d'avance
               et immuable. */}
-          <label className="flex items-center gap-2">
+          {/* Au format étroit, six crans ne tiennent pas à côté du libellé :
+              libellé au-dessus, crans en pleine largeur, qui se resserrent. */}
+          <label className={etroit ? 'flex w-full flex-col gap-1' : 'flex items-center gap-2'}>
             <span className="text-xs text-ink-dim">Élément visé</span>
             {/* ⚠️ « Ignorer » est une OPTION, pas l'absence de choix : le
                 cadre montre toujours quel cran est posé. Optimiser « contre
                 n'importe qui » est un cas d'usage à part entière, pas un
                 repli dégradé — même parti pris que le « Toutes » du filtre
-                de stat principale (spec/compte/artefacts.md). */}
+                de stat principale (docs/02-app/compte/). */}
             <Segmented<ElementKey | 'aucun'>
+              size={etroit ? 'lg' : undefined}
               value={setup.enemyElement ?? 'aucun'}
               onChange={(v) => maj({ enemyElement: v === 'aucun' ? null : v })}
               options={[
@@ -1917,7 +1899,7 @@ export default function DamageSetupCard({
             Réduction de DEF et Marque décrivent la CIBLE, les six effets
             d'alliés sont des multiplicateurs de dégâts (voir 7798557 et
             e26118c). La coupe se vérifie donc, elle ne s'interprète pas. */}
-        <div className="flex flex-wrap gap-1.5">
+        <div className={`flex flex-wrap ${etroit ? 'gap-1' : 'gap-1.5'}`}>
           {effetsActifs.map((e) => (
             <EffetVignette
               key={e.cle}
@@ -1938,7 +1920,7 @@ export default function DamageSetupCard({
         {/* ⚠️ **La place est RÉSERVÉE D'AVANCE, le champ n'apparaît pas.**
             Rendu sous condition, il poussait toute la rangée de vignettes vers
             le bas au moment même où on cliquait Velaska — un clic qui déplace
-            ce qu'on vient de cliquer, interdit par spec/shared/design.md.
+            ce qu'on vient de cliquer, interdit par docs/03-developpeur/interface/.
             Signalé à l'usage.
             La rangée existe donc en permanence et garde sa hauteur ; seul son
             CONTENU apparaît. `invisible` plutôt que `hidden` : l'élément
@@ -1969,7 +1951,7 @@ export default function DamageSetupCard({
 
       {/* ⚠️ « Compétences d'invocateur » est partie ENTIÈRE dans « État de mon
           monstre » (EtatMonstre.tsx) : elle majore les statistiques de base du
-          monstre, elle ne décrit pas le combat. Elle valait `'combat'` par
+          monstre, elle ne décrit pas le combat. Elle valait `'normal'` par
           défaut — donc le calcul des dégâts d'artéfact la supposait déjà, sans
           que rien ne le dise à qui n'ouvrait jamais cette carte. */}
 
@@ -1977,10 +1959,6 @@ export default function DamageSetupCard({
         <div>
           <div className="mb-2 flex items-center gap-1.5">
             <p className="label">Coup critique</p>
-            <HelpPopover title="Coup critique">
-              <b className="text-ink">Critique</b> et <b className="text-ink">Non critique</b>{' '}
-              donnent le plafond et le plancher d&apos;un coup isolé.
-            </HelpPopover>
           </div>
           <Segmented<CritMode>
             options={CRIT_MODE_LABELS.map((option) => ({

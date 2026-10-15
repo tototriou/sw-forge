@@ -1,4 +1,4 @@
-// Le dossier SW Exporter — chantier application-bureau, lot 9, décision 15
+// Le dossier SW Exporter
 // (bureau/swexPur.ts, src/components/BlocApplication.tsx).
 //
 // ⚠️ Ce module décide quel fichier de l'utilisateur est lu et quand : un nom

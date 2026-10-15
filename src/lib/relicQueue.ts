@@ -347,8 +347,8 @@ export function entreeResolutionDuBuild(e: {
       // régime effectif), pas sur une somme de statistiques principales —
       // voir `evaluerPourRegime` (`artifactEvaluation.ts`). Sur Efficience et
       // Vitesse (régime `'aucun'`), il n'y a RIEN à maximiser : le seul
-      // travail qui compte est la faisabilité (spec/outils/optimizer/moteur/
-      // artefacts.md § Régime de la paire).
+      // travail qui compte est la faisabilité (docs/03-developpeur/optimizer/
+      // § Régime de la paire).
       const evaluer =
         e.regime === 'degats_reels'
           ? evaluerPourRegime(e.regime, statsAvec, propres, e.degats!, exclusive, e.caches?.profils)

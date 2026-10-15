@@ -1,11 +1,11 @@
 import { ReactNode, useRef, useState } from 'react';
-import { ChevronDown, ChevronRight, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { ChevronDown, ChevronRight, Columns2, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { useStickyState } from '../hooks/useStickyState';
 import { BoutonIcone } from '../ui';
 import Logo from './Logo';
 
-// Barre de navigation LATÉRALE (bureau) — refonte graphique, lot 4
-// (maquette « Barre latérale » ; spec/shared/navigation.md).
+// Barre de navigation LATÉRALE (bureau) — docs/04-decisions/adr/barre-laterale.md
+// (maquette « Barre latérale » ; docs/02-app/transverse/).
 //
 // De haut en bas : l'identité et le repli, le compte chargé, la recherche,
 // les groupes (Jouer, Mon compte, Outils, Ressources), Paramètres en pied.
@@ -21,7 +21,8 @@ import Logo from './Logo';
 // sous-sections sans charger de page ; on choisit ensuite laquelle.
 //
 // ⚠️ **Elle disparaît sous `lg`**, remplacée par la barre d'onglets du bas
-// (voir MobileTabs). Une correction destinée à un format ne touche pas l'autre.
+// (voir MobileTabs). Une correction destinée à un format ne touche pas l'autre
+// (docs/04-decisions/adr/deux-formats-de-premier-rang.md).
 
 // ⚠️ 248 / 56 px. À 224, la carte du compte (avatar, nom, date d'export et
 // nombre de monstres) tronquait sa seconde ligne ; repliée, une icône de 16
@@ -44,6 +45,35 @@ export interface SidebarLien {
   // pas de la navigation.
   badge?: string;
   actif: boolean;
+  // Écran partagé (docs/02-app/transverse/feat-navigation/ecran-partage.md) :
+  // « Ouvrir à côté », proposé au survol d'une entrée qui mène quelque part,
+  // seulement quand la fenêtre a la place de deux pages…
+  aCote?: () => void;
+  // … et le volet qui affiche déjà cette page (« à droite », « verrouillé ») :
+  // la barre ne marque d'un fond que la page du volet ACTIF.
+  volet?: string;
+}
+
+// Le bouton « Ouvrir à côté » d'une entrée, posé à sa droite. ⚠️ Visible au
+// SURVOL de l'entrée ou au focus clavier seulement : douze boutons permanents
+// doubleraient le poids de la barre pour un geste occasionnel.
+function OuvrirACote({ lien }: { lien: SidebarLien }) {
+  if (!lien.aCote) return null;
+  return (
+    <BoutonIcone
+      icone={<Columns2 size={14} />}
+      libelle={`Ouvrir « ${lien.label} » à côté`}
+      onClick={lien.aCote}
+      className="absolute right-0.5 top-1/2 -translate-y-1/2 opacity-0 transition-opacity
+                 group-hoverable:opacity-100 focus-visible:opacity-100"
+    />
+  );
+}
+
+// Mention du volet qui affiche la page, à droite du libellé.
+function MentionVolet({ lien }: { lien: SidebarLien }) {
+  if (!lien.volet) return null;
+  return <span className="flex-none text-micro text-ink-dimmer">{lien.volet}</span>;
 }
 
 export interface SidebarGroupe {
@@ -102,7 +132,7 @@ export function cleRouteBarre(
 // même ordre d'un thème à l'autre (`panel` est le plus loin du fond en
 // Atelier, `panel2` en Forge). Un voile d'encre s'en écarte toujours d'autant
 // plus qu'il est dense.
-// ⚠️ **L'entrée ACTIVE est en braise** depuis le rebranding (décision 29 — la
+// ⚠️ **L'entrée ACTIVE est en braise** (la
 // toile, « En situation ») : fond braise sombre (`accent-soft`), texte et
 // icône en braise lisible (5.58 en Forge, 4.91 en Atelier). Le survol garde
 // le voile d'encre : lui ne dit pas « on est ici ».
@@ -150,7 +180,7 @@ export default function Sidebar({
 
   // ⚠️ **Pas d'aperçu au survol.** Un panneau sortait à droite de la barre
   // quand la souris passait sur une section refermée ; le mainteneur l'a fait
-  // retirer (2026-09-24, [retrait #12] du cadrage de la refonte) : les
+  // retirer : les
   // sous-sections se déroulent désormais sous leur entrée, l'aperçu doublait
   // ce geste et surgissait dès qu'on traversait la barre.
   const basculer = (l: SidebarLien) => {
@@ -163,7 +193,7 @@ export default function Sidebar({
       style={{ width: retractee ? LARGEUR_SIDEBAR_RETRACTEE : LARGEUR_SIDEBAR }}
       // ⚠️ La LARGEUR s'anime, pas un `translateX` : la barre se replie sur
       // elle-même et rend sa place au contenu.
-      // ⚠️ Le fond des BARRES (`bar`, rebranding, décision 5), séparé par un
+      // ⚠️ Le fond des BARRES (`bar`), séparé par un
       // filet : la barre fait partie de l'application, elle ne se pose pas
       // dessus comme un panneau. C'était le fond de la page.
       className="hidden lg:flex fixed inset-y-0 left-0 z-30 flex-col gap-3 border-r border-border-soft
@@ -297,20 +327,23 @@ function SousSections({ section, retractee }: { section: SidebarSection; retract
         <div key={g.titre ?? i} className="flex flex-col gap-px">
           {g.titre && <span className="label block px-2.5 pb-0.5 pt-1.5">{g.titre}</span>}
           {g.liens.map((s) => (
-            <a
-              key={s.key}
-              href={s.hash}
-              aria-current={s.actif ? 'page' : undefined}
-              className={`flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm transition-colors ${
-                s.actif ? FOND_ACTIF : `text-ink-dim ${FOND_SURVOL}`
-              }`}
-            >
-              {/* ⚠️ L'icône de la sous-section, comme avant la refonte —
-                  demandé par le mainteneur : la maquette n'en montrait pas, mais
-                  chaque vue a la sienne et elle se repère plus vite qu'un mot. */}
-              <span className="flex flex-none items-center">{s.icon}</span>
-              <span className="min-w-0 truncate">{s.label}</span>
-            </a>
+            <div key={s.key} className="group relative">
+              <a
+                href={s.hash}
+                aria-current={s.actif ? 'page' : undefined}
+                className={`flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm transition-colors ${
+                  s.actif ? FOND_ACTIF : `text-ink-dim ${FOND_SURVOL}`
+                }`}
+              >
+                {/* ⚠️ L'icône de la sous-section, comme avant la refonte —
+                    demandé par le mainteneur : la maquette n'en montrait pas, mais
+                    chaque vue a la sienne et elle se repère plus vite qu'un mot. */}
+                <span className="flex flex-none items-center">{s.icon}</span>
+                <span className="min-w-0 flex-1 truncate">{s.label}</span>
+                <MentionVolet lien={s} />
+              </a>
+              <OuvrirACote lien={s} />
+            </div>
           ))}
         </div>
       ))}
@@ -338,7 +371,7 @@ function LienBarre({
   // sous-section choisie qui le porte, juste en dessous. Refermée, elle le
   // reprend — on sait toujours où l'on est.
   const marquee = lien.actif && !deroulee;
-  return (
+  const entree = (
     <Balise
       {...(lien.ouvre
         ? { type: 'button' as const, onClick: onBasculer, 'aria-expanded': deroulee }
@@ -357,6 +390,8 @@ function LienBarre({
       {!retractee && (
         <>
           <span className="min-w-0 flex-1 truncate">{lien.label}</span>
+          {/* Dépliée, c'est la sous-section qui porte la mention. */}
+          {!deroulee && <MentionVolet lien={lien} />}
           {lien.badge && (
             <span className="flex-none rounded-full border border-border-soft bg-panel2 px-1.5 text-micro font-semibold text-ink-dim">
               {lien.badge}
@@ -371,5 +406,13 @@ function LienBarre({
         </>
       )}
     </Balise>
+  );
+  // Repliée, ni mention ni « Ouvrir à côté » : pas de place à côté de l'icône.
+  if (retractee || !lien.aCote) return entree;
+  return (
+    <div className="group relative">
+      {entree}
+      <OuvrirACote lien={lien} />
+    </div>
   );
 }

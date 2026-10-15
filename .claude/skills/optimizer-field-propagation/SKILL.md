@@ -1,6 +1,6 @@
 ---
 name: optimizer-field-propagation
-description: "Checklist pour tout ajout, renommage ou changement de type, de défaut ou de sens d'un champ TRAVERSANT de l'Optimizer (OptimizerState, OptimizerRecipe, SearchParams, RealDamageContext, entrée de résolution…) — d'abord un producteur pur unique, appelé par l'écran, la recette, les scripts et les Workers ; là où plusieurs constructeurs subsistent, chacun se vérifie, parce qu'un champ optionnel oublié dans l'un d'eux passe tsc et fait diverger un script de l'écran sans bruit."
+description: "Propager un champ traversant de l'Optimizer. À utiliser pour tout ajout, renommage ou changement de type, de défaut ou de sens d'un champ d'OptimizerState, OptimizerRecipe, SearchParams, RealDamageContext ou d'une entrée de résolution."
 ---
 
 # Propagation d'un champ Optimizer (SW Blacksmith)
@@ -194,44 +194,45 @@ champ (`undefined`).
 **Plusieurs fichiers**, pas un seul, décrivent le même écran — un changement
 qui n'en touche qu'un a de bonnes chances d'en avoir oublié un autre :
 
-- [ ] **`spec/outils/optimizer.md`** — page d'entrée : objet de l'outil,
+- [ ] **`docs/02-app/optimizer/`** — page d'entrée : objet de l'outil,
       fichiers de code, renvoi par sujet ; à revoir si le champ change ce
       qu'elle résume.
 - [ ] **La page de la carte qui porte le contrôle**, une par carte dans le
       dossier `ecran` de l'Optimizer (liste dans
-      `spec/outils/optimizer/ecran/README.md`) — current-state détaillé, avec
+      `docs/02-app/optimizer/`) — current-state détaillé, avec
       les détails d'implémentation (fichiers, fonctions). La recette
       (export, import, repli d'une recette plus ancienne) :
-      [spec/outils/optimizer/ecran/lancer-la-recherche.md § Lancer la recherche](../../../spec/outils/optimizer/ecran/lancer-la-recherche.md).
+      [docs/02-app/optimizer/ecran/lancer-la-recherche.md § Lancer la recherche](../../../docs/02-app/optimizer/ecran/lancer-la-recherche.md#lancer-la-recherche).
       Si le champ change ce que fait le moteur, la spec de ce mécanisme
-      (routage : `spec/outils/optimizer/README.md`). Mettre à jour la section
+      (routage : `docs/02-app/optimizer/`). Mettre à jour la section
       correspondante dans le même commit que le code, jamais après coup.
-- [ ] **`spec/outils/optimizer/pistes.md`** — les pistes futures seulement :
+- [ ] **`docs/05-feuille-de-route/`** — les pistes futures seulement :
       un champ qui réalise une piste l'en retire ; une variante écartée
       s'écrit en une ligne « ne pas… parce que… » dans la spec du
       mécanisme.
-- [ ] **`spec/outils/optimizer/invariants.md`** — si la règle modifiée y
+- [ ] **`docs/03-developpeur/optimizer/`** — si la règle modifiée y
       figure, elle se modifie dans sa source ET dans `invariants.md`, dans le
       même commit
-      ([spec/outillage/spec.md § Statut du fichier](../../../spec/outillage/spec.md)).
+      ([docs/03-developpeur/optimizer/README.md § Statut du fichier](../../../docs/03-developpeur/optimizer/README.md#statut-du-fichier)).
 
 ## Vérification
 
-Après avoir coché les deux checklists ci-dessus, dans l'ordre de `CLAUDE.md`
-(« Vérifier ») :
+Après avoir coché les deux checklists ci-dessus :
 
 1. `npx tsc --noEmit` — vide. Il prouve la FORME partout, `scripts/` et
    `tests/` compris ; rien sur un champ optionnel oublié ni sur un sens mal
    lu.
-2. `node tests/run.mjs <filtre…>` — seulement la zone touchée : la
+2. `npx eslint <fichiers touchés>` — aucune erreur.
+3. `node tests/run.mjs <filtre…>` — seulement la zone touchée : la
    vérification du champ, et celles des producteurs et constructeurs
    traversés, par exemple `recette`, `optimizerrecipe`,
    `artefactsficheparams`, `resolution`, `cliclassement`, `verifiertoutes`,
    `relicdifferentiel`. Un filtre qui ne correspond à rien échoue en
    listant les noms (registre : `tests/index.ts`).
-3. `npm run build`.
+4. `npm run build`.
 
-La suite complète (`npm test`) ne tourne qu'avant une fusion sur `main`.
+La suite complète (`npm test`) ne tourne qu'avant une fusion sur `main` ou
+dans une branche `release/*`.
 
 **Un contrôle exprimable en vérification nommée va dans `tests/`**, appelé
 depuis `tests/index.ts`, et on le voit échouer une fois sur le code cassé
@@ -253,6 +254,14 @@ chaque valeur du champ, sans recherche complète puisque le changement est en
 amont du moteur (« Vérifier au bon ÉTAGE du pipeline », `algo-verify`). Le
 script ne se commite pas ; sa sortie se cite avec le changement (commit,
 PR).
+
+## Les raisonnements qui mènent à l'erreur
+
+| On se dit | En réalité | Voir |
+|---|---|---|
+| « `tsc` passe : tous les constructeurs sont à jour. » | `tsc` n'attrape ni un champ optionnel oublié dans un constructeur, ni un champ lu dans le mauvais sens. | § Ce que `tsc` attrape |
+| « Ce script de diagnostic n'a pas besoin du nouveau champ. » | Sans lui, il calcule autre chose que l'écran, sans bruit : il passe par le producteur unique ou reçoit le champ. | § D'abord le producteur unique |
+| « Une recette déjà exportée n'a pas le champ : elle prendra la valeur par défaut. » | Chaque lecteur doit replier sur le même défaut sûr, et un champ renommé ou inversé se traduit explicitement, sinon une recette ancienne change de résultat. | § Compatibilité arrière |
 
 ## Voir aussi
 

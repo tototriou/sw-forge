@@ -1,5 +1,5 @@
 // Le différentiel de l'option A ENTIÈRE contre l'oracle — les mécanismes
-// (voir spec/outils/optimizer/moteur/reliques.md,
+// (voir docs/03-developpeur/optimizer/,
 // « Oracle de la dimension relique »).
 //
 // Extrait TEL QUEL de `tests/relic-queue.test.ts`, qui le réimporte : ses assertions de corpus n'ont

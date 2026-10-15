@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="fr" data-attendu-page="non">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover">
+<title>Icône en coin et boîtes coupées</title>
+<style>
+  body { margin: 8px; font: 14px sans-serif; }
+  .avatar { position: relative; display: inline-flex; width: 40px; height: 40px; flex: none; }
+  .image { display: block; width: 40px; height: 40px; background: #9cf; }
+  .icone { position: absolute; top: -0.25rem; right: -0.25rem; width: 16px; height: 16px; background: #f90; }
+</style>
+</head>
+<body>
+<!-- Relecture n° 7 (Codex) : un panneau `overflow: hidden` de 100 px porte un enfant absolu situé entre 120 et
+     140 px, entièrement coupé ; sa boîte invisible passe sous l'icône de l'avatar voisin : pas de chevauchement. -->
+<div style="display: flex; padding: 16px 8px">
+  <div id="panneau" style="position: relative; width: 100px; height: 40px; overflow: hidden; flex: none; background: #eee" data-attendu="contenu">
+    <div id="cache" style="position: absolute; left: 120px; top: 0; width: 20px; height: 20px; background: #c33" data-attendu=""></div>
+  </div>
+  <span id="coupe-avatar" class="avatar" data-portrait data-attendu="">
+    <span class="image"></span>
+    <img data-pastille="element" id="coupe-icone" class="icone" src="elements/wind.png" alt="" data-attendu="">
+  </span>
+</div>
+<!-- Signalé : le même enfant, à moitié visible (entre 90 et 110 px) — sa partie visible passe sous l'icône ; l'aire
+     retenue est celle de la partie visible (10 × 12), pas celle de la boîte (14 × 12). Le panneau, coupé aussi, n'est
+     pas repris : son descendant l'est. -->
+<div style="display: flex; padding: 16px 8px">
+  <div id="panneau-moitie" style="position: relative; width: 100px; height: 40px; overflow: hidden; flex: none; background: #eee" data-attendu="contenu">
+    <div id="moitie" style="position: absolute; left: 90px; top: 0; width: 20px; height: 20px; background: #c33" data-attendu=""></div>
+  </div>
+  <span id="moitie-avatar" class="avatar" data-portrait style="margin-left: -40px" data-attendu="">
+    <span class="image"></span>
+    <img data-pastille="element" id="moitie-icone" class="icone" src="elements/fire.png" alt="" data-attendu="chevauchement" data-attendu-avec="moitie" data-attendu-aire="120">
+  </span>
+</div>
+<!-- Relecture n° 7 (Codex) : le halo décoratif coupé d'une carte (D8) n'entre pas dans `chevauchement`, même là où
+     il se voit sous l'icône d'un avatar de la carte. -->
+<div id="carte-halo" style="position: relative; width: 200px; height: 80px; margin: 16px 8px; overflow: hidden; background: #eee" data-attendu="">
+  <div id="halo" aria-hidden="true" style="pointer-events: none; position: absolute; right: -40px; top: -40px; width: 112px; height: 112px; border-radius: 50%; background: #9cf" data-attendu=""></div>
+  <span id="halo-avatar" class="avatar" data-portrait style="position: absolute; top: 8px; right: 8px" data-attendu="">
+    <span class="image"></span>
+    <img data-pastille="element" id="halo-icone" class="icone" src="elements/light.png" alt="" data-attendu="">
+  </span>
+</div>
+</body>
+</html>

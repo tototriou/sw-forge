@@ -1,5 +1,5 @@
 // Tests de rendu — la page « Télécharger » (`#/telecharger`), application de
-// bureau, lot 6, décision 14. Principe dans tests/rendu/outils-rendu.tsx :
+// bureau. Principe dans tests/rendu/outils-rendu.tsx :
 // ce que la page dit et permet, jamais l'apparence.
 
 import TelechargerPage from '../../src/pages/TelechargerPage';
@@ -23,7 +23,7 @@ export function testRenduTelecharger() {
   ok(t.includes('SW Blacksmith existe en application de bureau pour Windows et Linux : la même boîte à outils, dans sa propre fenêtre.'), 'la phrase d\'introduction');
   for (const s of ['Sa propre fenêtre', 'La mise à jour proposée', '100 % local'])
     ok(t.includes(s), `ce que l'app apporte : « ${s} »`);
-  ok(t.includes("C'est toi qui décides quand."), 'la mise à jour : c\'est lui qui décide (décision 11)');
+  ok(t.includes("C'est toi qui décides quand."), 'la mise à jour : c\'est lui qui décide');
 
   // Les deux téléchargements : le FICHIER, chacun avec le logo de son système.
   for (const [libelle, href, logo] of [

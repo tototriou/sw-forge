@@ -19,7 +19,7 @@ import { useMediaQuery, SOUS_LG } from '../hooks/useMediaQuery';
 // tactile, état actif sont ses axes), la bulle un `FlottantAuto` (bord, ombre et
 // `z-index` lui appartiennent — jamais un `<div absolute z-…>` maison). C'est ce
 // que la version manuscrite réécrivait un contrôle à la fois, chaque fois un peu
-// différemment. Voir spec/shared/librairie-ui.md.
+// différemment. Voir docs/03-developpeur/interface/.
 export default function HelpPopover({
   title,
   children,
@@ -65,8 +65,8 @@ export default function HelpPopover({
       />
 
       {/* À la SOURIS : bulle ancrée au bouton, qui choisit son côté. */}
-      {/* ⚠️ **Rembourrée, bornée en hauteur, titre détaché** (refonte
-          graphique, lot 8a — le mainteneur, capture de « Comment est-ce calculé ? » :
+      {/* ⚠️ **Rembourrée, bornée en hauteur, titre détaché** (le mainteneur, capture de
+          « Comment est-ce calculé ? » :
           « ça ne rend pas bien, l'infobulle ») :
           - `rembourrage="md"` : `FlottantAuto` n'en pose aucun par défaut (il
             sert aussi aux LISTES, dont les entrées touchent le bord), et le
@@ -91,7 +91,8 @@ export default function HelpPopover({
       </FlottantAuto>
 
       {/* AU DOIGT : panneau montant, pleine largeur, défilant, au-dessus des onglets. */}
-      <MobileSheet ouvert={open && auDoigt} onFermer={() => setOpen(false)} titre={title}>
+      {/* Feuille : l'aide n'ouvre rien, elle passe devant une Modale ouverte. */}
+      <MobileSheet ouvert={open && auDoigt} onFermer={() => setOpen(false)} titre={title} devantLesDialogues>
         <div className="text-xs leading-relaxed text-ink-dim">{children}</div>
       </MobileSheet>
     </div>

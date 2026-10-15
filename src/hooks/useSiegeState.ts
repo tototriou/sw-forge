@@ -42,6 +42,7 @@ function load(side: SiegeSide): SiegeState {
           tick: s && typeof s.tick === 'number' ? s.tick : legacyTick,
           sets: s && Array.isArray(s.sets) ? s.sets.filter((x): x is string => typeof x === 'string') : [],
           gear: s && (s as { gear?: unknown }).gear && typeof (s as { gear?: unknown }).gear === 'object' ? ((s as { gear?: GearSet }).gear) : undefined,
+          ...(s && s.gearPartage && typeof s.gearPartage === 'object' ? { gearPartage: s.gearPartage } : {}),
         };
       });
       return {
@@ -62,7 +63,7 @@ export interface UseSiegeState {
   state: SiegeState;
   addTeam: () => void;
   removeTeam: (teamId: string) => void;
-  // « Annuler » une suppression (lot 13) : remet l'équipe à sa place.
+  // « Annuler » une suppression : remet l'équipe à sa place.
   restaurerEquipe: (team: SiegeTeam, index: number) => void;
   setSlotMonster: (teamId: string, idx: number, monsterId: string) => void;
   clearSlot: (teamId: string, idx: number) => void;
@@ -76,9 +77,11 @@ export interface UseSiegeState {
     teams: { slots: { monsterId: string | null; runeSpeed: number | null; sets?: string[]; tick?: number; gear?: GearSet }[] }[]
   ) => void;
   // AJOUTE des équipes à la fin, sans toucher aux existantes — l'import d'un
-  // fichier d'équipes (refonte graphique, décision 14 ; voir lib/siegeShare).
+  // fichier d'équipes (voir lib/siegeShare).
   appendTeams: (
-    teams: { slots: { monsterId: string | null; runeSpeed: number | null; sets?: string[]; tick?: number }[] }[]
+    teams: {
+      slots: { monsterId: string | null; runeSpeed: number | null; sets?: string[]; tick?: number; gearPartage?: GearSet }[];
+    }[]
   ) => void;
   clearAll: () => void;
 }
@@ -118,7 +121,7 @@ export function useSiegeState(side: SiegeSide): UseSiegeState {
     []
   );
 
-  // « Annuler » une suppression (refonte graphique, lot 13, décision 29) :
+  // « Annuler » une suppression :
   // l'équipe revient TELLE QUELLE à sa place d'avant — pas au bout de la liste.
   // Sans effet si elle est déjà là.
   const restaurerEquipe = useCallback(
@@ -127,9 +130,14 @@ export function useSiegeState(side: SiegeSide): UseSiegeState {
     []
   );
 
+  // ⚠️ L'équipement REÇU part avec le monstre qu'il décrivait : laissé là, les
+  // runes de l'auteur s'afficheraient sous un autre monstre.
   const setSlotMonster = useCallback(
     (teamId: string, idx: number, monsterId: string) =>
-      updateSlot(teamId, idx, (sl) => ({ ...sl, monsterId })),
+      updateSlot(teamId, idx, (sl) => {
+        const { gearPartage: _recu, ...reste } = sl;
+        return { ...reste, monsterId };
+      }),
     [updateSlot]
   );
 
@@ -224,8 +232,14 @@ export function useSiegeState(side: SiegeSide): UseSiegeState {
   // veut repartir de zéro. Les équipes ajoutées sont NOUVELLES : identité
   // neuve (aucune liste de travail ne les désigne encore), alerte de tick
   // active. Les existantes gardent tout, validation de tick comprise.
+  // L'équipement reçu (`gearPartage`) suit le slot ; il n'entre jamais dans
+  // `gear` (voir SiegeSlot).
   const appendTeams = useCallback(
-    (teams: { slots: { monsterId: string | null; runeSpeed: number | null; sets?: string[]; tick?: number }[] }[]) => {
+    (
+      teams: {
+        slots: { monsterId: string | null; runeSpeed: number | null; sets?: string[]; tick?: number; gearPartage?: GearSet }[];
+      }[]
+    ) => {
       setState((s) => ({
         ...s,
         teams: [
@@ -239,6 +253,7 @@ export function useSiegeState(side: SiegeSide): UseSiegeState {
                 runeSpeed: sl && typeof sl.runeSpeed === 'number' ? sl.runeSpeed : null,
                 tick: sl && typeof sl.tick === 'number' ? sl.tick : 0,
                 sets: sl && Array.isArray(sl.sets) ? sl.sets : [],
+                ...(sl && sl.gearPartage && typeof sl.gearPartage === 'object' ? { gearPartage: sl.gearPartage } : {}),
               };
             }),
             lead: 0,

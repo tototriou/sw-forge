@@ -1,5 +1,5 @@
 // Barre latérale : la clé de destination qui REPOSE son niveau (voir
-// spec/shared/navigation.md, « L'état de la barre : trois valeurs »).
+// docs/02-app/transverse/, « L'état de la barre : trois valeurs »).
 //
 // ⚠️ Défaut corrigé : la clé ne valait que le titre de SECTION. Choisir une
 // sous-section par le panneau de survol, dans la section où l'on se trouvait
@@ -91,7 +91,7 @@ export default function testNavigation() {
 
   {
     const src = readFileSync('src/components/Sidebar.tsx', 'utf8');
-    // Refonte graphique, lot 4 : la section n'est plus passée à la barre, elle
+    // La section n'est pas passée à la barre : elle
     // la déduit de l'entrée active (`sectionRoute`) — la clé reste la même.
     ok(
       src.includes('const cleRoute = cleRouteBarre(sectionRoute, groupes);'),
@@ -102,13 +102,11 @@ export default function testNavigation() {
       'l’ancienne clé, limitée à la section, a disparu'
     );
 
-    // Le panneau de survol, qui avait ici son propre contrôle (il devait
-    // reposer la barre au clic), a été retiré par le mainteneur le 2026-09-24
-    // ([retrait #12] du cadrage de la refonte graphique). On vérifie qu'il ne
-    // revient pas par morceaux.
+    // La barre n'a pas de panneau de survol : on vérifie qu'il ne revient pas
+    // par morceaux.
     ok(
       !src.includes('— sous-sections`}') && !src.includes('onMouseEnter'),
-      'plus d’aperçu au survol à côté de la barre ([retrait #12])'
+      'plus d’aperçu au survol à côté de la barre'
     );
   }
 }

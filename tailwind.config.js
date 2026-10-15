@@ -8,7 +8,7 @@ export default {
       fontFamily: {
         display: ['Cinzel', 'serif'],
         // Source Sans 3 remplace Inter (rebranding « SW Blacksmith », R1). Les
-        // TAILLES ne bougent pas (décision 7) : voir `fontSize` plus bas.
+        // TAILLES ne bougent pas : voir `fontSize` plus bas.
         body: ['"Source Sans 3"', 'system-ui', 'sans-serif'],
         // Le NOM de l'app seulement, dans le logo (rebranding R2 bis, choix de
         // Le mainteneur : Saira 700). Les titres restent en Cinzel (`display`).
@@ -25,13 +25,15 @@ export default {
       // dans l'app. Écrites `var(--panel)` en hexadécimal, Tailwind ne pouvait
       // pas composer l'opacité et n'émettait AUCUNE règle : voile de modale
       // absent, détail de rune transparent.
-      // Source de vérité : spec/shared/design.md
+      // Source de vérité : docs/03-developpeur/interface/
       colors: {
         bg: 'rgb(var(--bg) / <alpha-value>)',
-        // Barres de l'application (latérale, du haut) — rebranding, décision 5.
+        // Barres de l'application (latérale, du haut).
         bar: 'rgb(var(--bar) / <alpha-value>)',
         panel: 'rgb(var(--panel) / <alpha-value>)',
         panel2: 'rgb(var(--panel2) / <alpha-value>)',
+        'equipe-a': 'rgb(var(--equipe-a) / <alpha-value>)',
+        'equipe-b': 'rgb(var(--equipe-b) / <alpha-value>)',
         border: 'rgb(var(--border) / <alpha-value>)',
         'border-soft': 'rgb(var(--border-soft) / <alpha-value>)',
         ink: 'rgb(var(--ink) / <alpha-value>)',
@@ -64,11 +66,11 @@ export default {
         'bad-soft': 'rgb(var(--bad-soft) / <alpha-value>)',
         // Encre posée SUR un aplat de `bad` (bouton danger plein) : blanc en
         // Atelier, sombre en Forge, où le rouge est clair — le pendant
-        // d'`accent-ink` (rebranding, décision 13).
+        // d'`accent-ink`.
         'bad-ink': 'rgb(var(--bad-ink) / <alpha-value>)',
 
         // Éléments — vocabulaire Summoners War. Deux valeurs par élément
-        // (voir design.md) : le Vent et la Lumière sont illisibles sur clair.
+        // (voir docs/03-developpeur/interface/design/tokens-couleurs.md) : le Vent et la Lumière sont illisibles sur clair.
         fire: 'rgb(var(--el-fire) / <alpha-value>)',
         water: 'rgb(var(--el-water) / <alpha-value>)',
         wind: 'rgb(var(--el-wind) / <alpha-value>)',
@@ -95,8 +97,8 @@ export default {
         star: 'rgb(var(--star) / <alpha-value>)',
       },
 
-      // ⚠️ **Deux braises, un seul nom de classe** (rebranding, décisions 4 et
-      // 11). En Atelier, la braise vive tombe à 2.11-2.57 comme texte ou comme
+      // ⚠️ **Deux braises, un seul nom de classe**. En Atelier, la braise vive
+      // tombe à 2.11-2.57 comme texte ou comme
       // contour : ces utilitaires-là lisent `--accent-lisible` (4.52 au pire),
       // les aplats gardent la vive via `colors` ci-dessus. En Forge, les deux
       // valent la même chose.
@@ -144,7 +146,7 @@ export default {
         // ⚠️ **`md` est un palier de NAVIGATION, pas un cran de plus dans
         // l'échelle générale.** L'échelle en compte volontairement peu : deux
         // valeurs trop voisines ne créent pas de hiérarchie, elles créent du
-        // flou (voir spec/shared/design.md). Il existe parce que la barre
+        // flou (voir docs/03-developpeur/interface/). Il existe parce que la barre
         // latérale du BUREAU se lisait serrée à 13 et trop appuyée à 15 — une
         // colonne de neuf entrées qu'on parcourt du regard, pas du texte de
         // lecture. Un `text-[14px]` posé sur place aurait été une valeur en dur,
@@ -163,10 +165,9 @@ export default {
       borderRadius: {
         DEFAULT: 'var(--radius)',
         lg: 'var(--radius-lg)',
-        // ⚠️ `xl` et `2xl` REDÉFINIS : c'étaient les valeurs figées de Tailwind
-        // (12 et 16 px), hors tokens. Refonte graphique, décision 2, puis
-        // rebranding R1 : cartes 14 px, fenêtres 20 px — voir index.css et
-        // design.md § Rayons.
+        // ⚠️ `xl` et `2xl` REDÉFINIS, hors des valeurs figées de Tailwind (12 et
+        // 16 px) : cartes 14 px, fenêtres 20 px — voir index.css et
+        // docs/03-developpeur/interface/design/typographie-et-rayons.md § Rayons.
         xl: 'var(--radius-xl)',
         '2xl': 'var(--radius-2xl)',
         // ⚠️ Rayon INTÉRIEUR d'un panneau `rounded-lg` à contour 1 px : un
@@ -192,7 +193,7 @@ export default {
     plugin(function ({ addVariant }) {
       // ⚠️ `hoverable:` remplace `hover:` sur tout ce qui est cliquable.
       // Un `hover:` nu reste allumé après un tap au tactile : on croit avoir
-      // sélectionné quelque chose. Voir spec/shared/design.md.
+      // sélectionné quelque chose. Voir docs/03-developpeur/interface/.
       addVariant('hoverable', '@media (hover: hover) and (pointer: fine) { &:hover }');
       addVariant('group-hoverable', '@media (hover: hover) and (pointer: fine) { :merge(.group):hover & }');
       // Complément : ce qui doit rester visible quand il n'y a pas de survol.

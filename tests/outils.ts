@@ -1,6 +1,6 @@
 // Boîte à outils des tests : assertions, faux stockage navigateur, et accès aux
-// fichiers d'exemple. Volontairement minuscule — voir tests/README.md pour le
-// pourquoi de l'absence de framework.
+// fichiers d'exemple. Volontairement minuscule : pas de framework de test
+// (tests/README.md, « Choix d'outillage »).
 
 import { existsSync, readFileSync } from 'fs';
 import { resolve } from 'path';

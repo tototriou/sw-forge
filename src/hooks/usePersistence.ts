@@ -23,9 +23,20 @@ const ANCIENNE_CLE = 'swblacksmith-keep-account-v1'; // réglage limité au comp
 // ⚠️ Ces clés-là restent écrites même quand la conservation est refusée : ce sont
 // des **réglages**, pas le travail de l'utilisateur. Refuser la conservation doit
 // justement être mémorisé, sinon on repose la question à chaque import.
-const CLES_DE_REGLAGE = new Set([STORAGE_KEY, ANCIENNE_CLE, 'swblacksmith-rune-metric-v1']);
+// ⚠️ **TOUS les réglages y figurent**, pas seulement le choix de conservation :
+// un réglage lu comme une donnée vaudrait consentement à lui seul (voir
+// `etatDepuisStockage`) et partirait avec la purge d'un refus.
+const CLES_DE_REGLAGE = new Set([
+  STORAGE_KEY,
+  ANCIENNE_CLE,
+  'swblacksmith-rune-metric-v1',
+  'swblacksmith-theme-v1',
+  'swblacksmith-overcap-display-v1',
+  'swblacksmith-adversaire-reference-v1',
+  'swblacksmith-builds-rapides-v1',
+]);
 
-// ⚠️ Les anciens préfixes restent reconnus (décision 66 du rebranding) : une
+// ⚠️ Les anciens préfixes restent reconnus : une
 // clé que la migration n'a pas pu renommer (quota) reste une donnée de
 // l'utilisateur — « Supprimer mes données » doit l'effacer aussi.
 const PREFIXES_DE_DONNEES = [PREFIXE_STOCKAGE, 'sw-forge', 'sky-arena'];
@@ -135,7 +146,10 @@ export function lireTravail(key: string): string | null {
 }
 
 // Efface tout ce qui a été conservé, réglages exclus (voir `CLES_DE_REGLAGE`).
-export async function purgeDonneesConservees() {
+export async function purgeDonneesConservees(oublierTravail = true) {
+  // Refuser le disque garde le travail de la session ; « Tout supprimer »
+  // oublie aussi le miroir, y compris les valeurs jamais écrites sur disque.
+  if (oublierTravail) for (const k of miroir.keys()) if (estUneCleDeDonnees(k)) miroir.delete(k);
   for (const k of clesDeDonnees()) {
     try {
       localStorage.removeItem(k);
@@ -173,7 +187,7 @@ export function setPersistence(actif: boolean, onEnable?: () => void) {
   } else {
     // ⚠️ Refuser **efface**, ça n'arrête pas seulement d'écrire. Un réglage
     // décoché qui laisserait les données sur le disque serait un mensonge.
-    void purgeDonneesConservees();
+    void purgeDonneesConservees(false);
   }
 }
 

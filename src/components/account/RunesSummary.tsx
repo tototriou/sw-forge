@@ -4,6 +4,7 @@ import { RARITY_META, RUNE_EFFECT, runeEfficiency } from '../../lib/effects';
 import { runePotential } from '../../lib/runeOptim';
 import RuneIcon from '../RuneIcon';
 import { Kpi, Panel, BarRow, pct, fmt, CARTE_CHIFFRES_DOIGT } from './SummaryBits';
+import BuildsRapides from './BuildsRapides';
 
 interface Props {
   runes: RuneDetail[];
@@ -161,9 +162,9 @@ export default function RunesSummary({ runes }: Props) {
 
   return (
     <div className="flex flex-col gap-4">
-      {/* ⚠️ **En-tête à la SOURIS** (refonte graphique, lot 8a, la maquette) :
+      {/* ⚠️ **En-tête à la SOURIS** (la maquette) :
           le titre de la vue et le nombre de runes, comme les en-têtes de la
-          RTA et du Siège. Au doigt, la barre du haut dit déjà la vue (lot 11). */}
+          RTA et du Siège. Au doigt, la barre du haut dit déjà la vue. */}
       <div className="hidden items-center gap-2.5 lg:flex">
         <h1 className="font-display text-xl tracking-wide text-ink">Résumé</h1>
         <span className="rounded-full border border-border-soft bg-panel2 px-2 py-0.5 font-mono text-micro text-ink-dim">
@@ -174,7 +175,7 @@ export default function RunesSummary({ runes }: Props) {
       {/* ---- Chiffres clés ---------------------------------------------- */}
       {/* ⚠️ À la SOURIS, UN bandeau (`Kpi bandeau`, la maquette `.stats`) :
           six cases séparées par un filet, au lieu de six cartes. Au DOIGT,
-          une carte sur deux colonnes (lot 11c, décision 26). */}
+          une carte sur deux colonnes. */}
       <div
         className={`grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2
                    lg:flex lg:gap-0 lg:overflow-hidden lg:rounded-xl lg:border lg:border-border-soft lg:bg-panel
@@ -182,7 +183,7 @@ export default function RunesSummary({ runes }: Props) {
       >
         {/* Les tons reprennent la palette du résumé (`--pal-*`), qui suit le
             thème : mêmes teintes qu'avant en sombre, variante assombrie en
-            clair. Voir spec/shared/design.md § Dataviz. */}
+            clair. Voir docs/03-developpeur/interface/ § Dataviz. */}
         <Kpi label="Runes" value={s.total.toLocaleString('fr-FR')} sub={`${s.maxed} au +15`} bandeau premier />
         <Kpi
           label={s.topN < TOP_N ? 'Eff. moyenne' : `Eff. moyenne · top ${TOP_N}`}
@@ -227,7 +228,7 @@ export default function RunesSummary({ runes }: Props) {
           principales (sur deux colonnes), puis Par set (toute la largeur, il
           n'est pas dans la maquette mais reste). L'ORDRE de la souris est posé
           par `lg:order-*` ; au doigt, une colonne, dans l'ordre du code — celui
-          d'avant (lot 11). */}
+          d'avant. */}
       <div className="flex flex-col gap-4 lg:grid lg:grid-cols-3">
         {/* ---- Distribution d'efficience -------------------------------- */}
         <Panel title="Distribution d'efficience" className="lg:order-1">
@@ -290,7 +291,7 @@ export default function RunesSummary({ runes }: Props) {
 
       {/* ---- Par slot ---------------------------------------------------- */}
       <Panel title="Par emplacement" className="lg:order-4">
-        {/* Au DOIGT : une carte par slot (lot 11). */}
+        {/* Au DOIGT : une carte par slot. */}
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 lg:hidden">
           {s.slots.map(({ slot, agg }) => (
             <div key={slot} className="rounded-lg border border-border bg-panel2 px-3 py-2">
@@ -407,6 +408,10 @@ export default function RunesSummary({ runes }: Props) {
           ))}
         </div>
       </Panel>
+
+      {/* ---- Builds les plus rapides -------------------------------------- */}
+      {/* Toute la largeur, après Par set, aux deux formats. */}
+      <BuildsRapides runes={runes} className="lg:order-7 lg:col-span-3" />
       </div>
     </div>
   );

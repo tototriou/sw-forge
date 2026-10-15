@@ -3,7 +3,7 @@
 // Vite), puis exécute le résultat avec Node. Même patron que
 // scripts/benchmark-optim.mjs. La logique vit dans le .ts, jamais ici.
 //
-//   node scripts/passifs-vitesse.mjs   → spec/outils/passifs-vitesse.md
+//   node scripts/passifs-vitesse.mjs   → docs/02-app/speed-tuning/feat-passifs-vitesse.md
 //
 // À relancer après chaque mise à jour de `public/data/skills`.
 

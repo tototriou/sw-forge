@@ -6,7 +6,7 @@
 // tel quel.
 //
 // ⚠️ **Ce module doit rester NEUTRE** : jamais d'import de `worker_threads`,
-// de `self`/`postMessage`, du DOM ni de React (spec/outils/optimizer/moteur/parallelisation.md
+// de `self`/`postMessage`, du DOM ni de React (docs/03-developpeur/optimizer/
 // § Code commun aux deux plateformes) — Vite tenterait sinon de résoudre du
 // code Node dans le bundle navigateur, et Node ne pourrait plus l'exécuter.
 //

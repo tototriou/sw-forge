@@ -4,7 +4,7 @@
 // chercher lui-même ce que fait le monstre.
 //
 // Calcul PUR : la fonction prend le détail déjà chargé, elle ne va rien chercher.
-// Voir spec/outils/speed-tuning.md, « Compétences ».
+// Voir docs/02-app/speed-tuning/, « Compétences ».
 
 import { Competence, DetailMonstre, paliersRechargement } from './monsterSkills';
 import { EffetSort } from './speedTune';

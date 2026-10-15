@@ -8,7 +8,7 @@
 // jamais de `Worker` DOM, jamais de `self`. Vite tenterait sinon de résoudre
 // du code Node dans le bundle navigateur. C'est la raison d'être de
 // `SpawnSlice` : l'appelant fournit sa plateforme, ce module n'en connaît
-// aucune. Voir spec/outils/optimizer/moteur/parallelisation.md § Code commun aux deux plateformes.
+// aucune. Voir docs/03-developpeur/optimizer/ § Code commun aux deux plateformes.
 
 import {
   SearchParams,
@@ -27,7 +27,7 @@ import { PROGRESS_THROTTLE_MS } from './pairingDriver';
 // gros cas connus, N=8 fait PIRE que N=4 (overhead croissant sans gain de
 // calcul supplémentaire) — un réglage automatique basé sur les cœurs
 // disponibles aurait été FAUX dans les deux sens (trop de workers sur un
-// petit cas, pas forcément mieux sur un gros). Voir spec/outils/optimizer/moteur/parallelisation.md
+// petit cas, pas forcément mieux sur un gros). Voir docs/03-developpeur/optimizer/
 // § Choix du régime.
 // ⚠️ Vit ICI, et non plus dans la coquille navigateur, précisément pour que
 // les deux plateformes en utilisent la MÊME valeur : un Node qui choisirait

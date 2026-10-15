@@ -74,13 +74,13 @@ export interface BoutonIconeProps
   // ne serait ni focusable au clavier ni atteignable au doigt — on ne pouvait
   // plus retirer un monstre sur téléphone. On joue sur l'OPACITÉ (l'élément
   // reste dans le DOM), et il est rendu visible d'office là où il n'y a pas de
-  // survol (`no-hover:`) ainsi qu'au focus clavier. Voir spec/shared/design.md.
+  // survol (`no-hover:`) ainsi qu'au focus clavier. Voir docs/03-developpeur/interface/.
   auSurvol?: boolean;
   // À la SOURIS, le libellé s'écrit à côté de l'icône : le carré devient un
   // bouton `sm` à libellé (28 px). Au doigt, rien ne change — l'icône seule.
   //
   // ⚠️ Pour une action que la maquette ÉCRIT à la souris et que le téléphone
-  // garde en icône (« Éditer ce deck », lot 7b). Deux boutons — une icône
+  // garde en icône (« Éditer ce deck »). Deux boutons — une icône
   // `lg:hidden` et un bouton à libellé `hidden lg:inline-flex` — auraient fait
   // deux éléments pour un geste : deux cibles au clavier, deux annonces au
   // lecteur d'écran. Un seul élément, deux dessins.
@@ -137,7 +137,7 @@ const BoutonIcone = forwardRef<HTMLButtonElement, BoutonIconeProps>(function Bou
       {...(serre || zoneEtendue ? { 'data-cible-fine': true } : {})}
       // ⚠️ Plus de voile propre (`hoverable:bg-black/25`) : le fond de survol
       // vient désormais de `Bouton` lui-même, `panel2` comme `.btn-ghost` de la
-      // maquette (décision 16). Deux classes de survol rivales, c'est l'ordre
+      // maquette. Deux classes de survol rivales, c'est l'ordre
       // de la feuille qui aurait tranché.
       className={`${serre ? 'h-5 w-5' : 'h-7 w-7'} ${zoneEtendue ? 'cible-tactile' : ''} ${
         libelleALaSouris

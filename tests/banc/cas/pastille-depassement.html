@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="fr" data-attendu-page="non">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover">
+<title>Pastille au-delà du portrait</title>
+<style>
+  body { margin: 8px; font: 10px sans-serif; }
+  .bloc { margin: 16px 0; width: 200px; padding: 8px; }
+  /* Copie de MonsterAvatar (voir pastille-portrait.html). */
+  .portrait { position: relative; display: inline-flex; width: 50px; height: 50px; flex: none; }
+  .cadre { display: block; width: 100%; height: 100%; background: #9cf; }
+  .exemplaires { position: absolute; bottom: -0.25rem; right: -0.25rem; display: flex; height: 20px; min-width: 20px; box-sizing: border-box; background: #fc0; }
+</style>
+</head>
+<body>
+<!-- (g) Non signalé : les exemplaires dépassent le portrait de 4 px, exactement leur décalage, et le portrait a de
+     la place. -->
+<div id="g-place" class="bloc" data-attendu="">
+  <span id="g-place-portrait" class="portrait" data-portrait data-attendu="">
+    <span class="cadre"></span>
+    <span id="g-place-exemplaires" data-pastille="exemplaires" class="exemplaires" data-attendu="">×3</span>
+  </span>
+</div>
+<!-- (g) Signalé (4 px) : le portrait collé au bord droit de son parent ; le parent est au-delà du portrait, rien
+     ne lui est soustrait. -->
+<div id="g-bord" class="bloc" style="display: flex; justify-content: flex-end; padding-right: 0" data-attendu="contenu" data-attendu-depassement="4">
+  <span id="g-bord-portrait" class="portrait" data-portrait data-attendu="">
+    <span class="cadre"></span>
+    <span id="g-bord-exemplaires" data-pastille="exemplaires" class="exemplaires" data-attendu="">×3</span>
+  </span>
+</div>
+<!-- (g) Signalé (3 px) : les exemplaires dépassent leur décalage de 3 px (`transform`) ; le portrait en retient 3. -->
+<div class="bloc">
+  <span id="g-decale-portrait" class="portrait" data-portrait data-attendu="contenu" data-attendu-depassement="3">
+    <span class="cadre"></span>
+    <span id="g-decale-exemplaires" data-pastille="exemplaires" class="exemplaires" style="transform: translateX(3px)" data-attendu="">×3</span>
+  </span>
+</div>
+</body>
+</html>

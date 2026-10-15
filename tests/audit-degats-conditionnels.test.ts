@@ -74,7 +74,7 @@ const setupAudit: DamageSetup = {
   enemyHp: 1_000_000,
   enemyHpPct: 100,
   critMode: 'normal',
-  summonerSkills: 'combat',
+  summonerSkills: 'normal',
 };
 
 export default function testAuditDegatsConditionnels() {
@@ -295,6 +295,18 @@ export default function testAuditDegatsConditionnels() {
   }, AUCUNE_AURA_PROPRE, 'wind');
   ok(willBase < willPose(2) && willPose(2) < willPose(1), "Will-o'-the-Wisp — une Marque réussie amplifie seulement les coups suivants");
 
+  // Shihwa S3 : cinq coups, chacun peut poser la Marque.
+  const phantomLight = profilDe(11212, 2212);
+  ok(phantomLight.effetsEntreCoups?.some((e) => e.effetCombat === 'brand') ?? false, 'Phantom Light — la Marque se pose entre les coups');
+  const phantomBase = computeSkillDamage(phantomLight, buildAudit, setupAudit, AUCUNE_AURA_PROPRE, 'fire');
+  const phantomPose = (hit: number) => computeSkillDamage(phantomLight, buildAudit, {
+    ...setupAudit,
+    scenariosEffetsEntreCoups: {
+      [phantomLight.skillCom2usId]: { actif: true, apresCoup: { brand: hit } },
+    },
+  }, AUCUNE_AURA_PROPRE, 'fire');
+  ok(phantomBase < phantomPose(4) && phantomPose(4) < phantomPose(1), 'Phantom Light — une Marque réussie amplifie seulement les coups suivants');
+
   const fengYan = fiche(21213);
   const fengS1 = profilDe(21213, 12003);
   const passifsFeng = monsterOffensivePassives(fengYan);
@@ -463,6 +475,7 @@ export default function testAuditDegatsConditionnels() {
     'Harpoon Impalement', // Eivor 17507/17509
     'Mach Crush',
     'Panda Supremacy',
+    'Phantom Light', // Shihwa S3 2212
     'Rain of Stones',
     'Reelseiden・Flurry', // Übel 25206/25210
     'Sequential Attack',
@@ -1098,7 +1111,7 @@ export default function testAuditDegatsConditionnels() {
   egal(geraltCinq.atk, geraltTrois.atk,
     'Geralt : son passif reste plafonné à trois buffs même si le total propre atteint cinq');
 
-  // Gold Headband (`7912`) — curation de l'utilisateur (`spec/outils/degats-reels/valeurs-de-jeu-curees.md`) :
+  // Gold Headband (`7912`) — curation de l'utilisateur (`docs/02-app/degats-reels/`) :
   // chaque cumul ajoute 20 % de l'ATQ de BASE et 12 % de
   // la VIT de BASE, au plus 10 ; la VIT SANS arrondi, comme l'ATQ :
   // 13,92 par cumul pour une base 116. Les attendus sont
@@ -1157,7 +1170,7 @@ export default function testAuditDegatsConditionnels() {
   // Rankyaku (`14313`, Chun-Li vent) et Accelerando (`14813`,
   // Cordelia) : « Your Attack Power increases in proportion to the Attack
   // Speed », formule `5*{SPD}` de la donnée. La VIT lue est la VIT FINALE
-  // (`spec/outils/degats-reels/valeurs-de-jeu-curees.md`, confirmation de l'utilisateur) :
+  // (`docs/02-app/degats-reels/`, confirmation de l'utilisateur) :
   // base + runes + set + lead + effet d'augmentation de vitesse,
   // amplifié par les artéfacts. Profils extraits des données réelles, deux
   // vitesses connues (avec et sans Swift), lead et buff actifs ; attendus

@@ -22,6 +22,7 @@ import { ArtifactMainChoice, RelicMainChoice, RelicUniqueChoice, SlotFilterPrese
 import { LigneVerrouillee } from './artifactOptim';
 import { RuneMetric } from '../hooks/useRuneMetric';
 import { RELIC_UNIQUE, setsCost } from './effects';
+import { lireCompetencesInvocateur, normaliserCompetencesInvocateur } from './competencesInvocateur';
 
 export const OPTIMIZER_RECIPE_VERSION = 1;
 
@@ -30,8 +31,8 @@ export const OPTIMIZER_RECIPE_VERSION = 1;
 // (aucune erreur `tsc`, le champ manquant reste un type optionnel valide).
 // Exemple : un champ comme `exhaustiveSearch`, branché dans
 // OptimizerSection.tsx (l'écran) mais oublié dans recipeToSearchParams.ts,
-// ne signale rien — voir spec/README.md,
-// « Conventions communes », pour la règle générale, et le skill
+// ne signale rien — voir AGENTS.md, « Conventions de code »,
+// pour la règle générale, et le skill
 // `optimizer-field-propagation` pour les producteurs purs qui remplacent
 // ces constructeurs et pour la checklist de ceux qui subsistent. Les deux
 // principaux :
@@ -131,7 +132,7 @@ export interface OptimizerRecipe {
   wizardName?: string | null;
   requirement: BuildRequirement;
   objective: Objective;
-  // Réglage de l'objectif « Dégâts réels » — voir spec/outils/degats-reels.md.
+  // Réglage de l'objectif « Dégâts réels » — voir docs/02-app/degats-reels/.
   // ⚠️ Ne porte que le com2usId du SORT et les valeurs d'adversaire saisies,
   // jamais le profil de dégâts calculé : celui-ci se redéduit de la fiche du
   // monstre chez qui importe la recette, exactement comme `monsterCom2usId`
@@ -195,7 +196,7 @@ export interface OptimizerRecipe {
 }
 
 export function buildOptimizerRecipe(input: Omit<OptimizerRecipe, 'version'>): OptimizerRecipe {
-  return { version: OPTIMIZER_RECIPE_VERSION, ...input };
+  return { version: OPTIMIZER_RECIPE_VERSION, ...input, damageSetup: normaliserCompetencesInvocateur(input.damageSetup) };
 }
 
 export interface RecipeValidationResult {
@@ -361,8 +362,8 @@ function validerDamageSetup(value: unknown): string | null {
   }
   // ⚠️ « aucune » n'existe plus dans l'écran ni dans `SummonerSkills`, mais
   // reste accepté ICI uniquement pour migrer une recette déjà exportée. Le
-  // parseur le transforme en « combat » avant de rendre la recette.
-  if (setup.summonerSkills !== undefined && !['aucune', 'combat', 'guilde'].includes(String(setup.summonerSkills))) {
+  // lecteur traduit aussi l'ancien mode « combat » vers « normal ».
+  if (lireCompetencesInvocateur(setup.summonerSkills) === null) {
     return erreur('damageSetup.summonerSkills', "contient un mode de compétences d'invocateur inconnu");
   }
   if (setup.enemyElement !== undefined && setup.enemyElement !== null && !['fire', 'water', 'wind', 'light', 'dark'].includes(String(setup.enemyElement))) {
@@ -566,7 +567,7 @@ export function parseOptimizerRecipe(text: string): RecipeValidationResult {
   }
   // Compatibilité arrière : l'ancien cran « aucune » décrivait une situation
   // impossible en jeu. Une recette qui le porte repart donc sur le défaut
-  // réel « combat » ; cette normalisation centrale protège autant l'écran que
+  // réel « normal » ; cette normalisation centrale protège autant l'écran que
   // le CLI, tous deux consommateurs du résultat de ce parseur.
   // L'ancien `setsAura`, accepté seulement absent ou vide (voir
   // `validerDamageSetup`), est retiré : aucune clé hors de `DamageSetup` ne
@@ -585,7 +586,7 @@ export function parseOptimizerRecipe(text: string): RecipeValidationResult {
     }
     normalisee = {
       ...d,
-      damageSetup: ['combat', 'guilde'].includes(String(setup.summonerSkills)) ? setup : { ...setup, summonerSkills: 'combat' },
+      damageSetup: normaliserCompetencesInvocateur(setup as unknown as DamageSetup),
     };
   }
   // ⚠️ Le seuil est un FILTRE D'ENTRÉE, jamais un critère : une valeur

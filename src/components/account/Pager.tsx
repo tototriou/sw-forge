@@ -45,8 +45,8 @@ export default function Pager({
   // étirerait en rectangles de 28 × 40 — elle n'élargit que ce qui porte
   // `aspect-square`. Le pseudo-élément leur rend 44 px de zone touchable sans
   // toucher au dessin ; l'écart de 6 px entre elles suffit à les distinguer.
-  // ⚠️ Les flèches sont des `BoutonIcone` de la librairie (refonte graphique,
-  // lot 8a — décision 16, boutons unifiés), plus des `<button>` redessinés :
+  // ⚠️ Les flèches sont des `BoutonIcone` de la librairie (boutons unifiés), plus des
+  // `<button>` redessinés :
   // même carré de 28 px à cadre, même zone tactile de 44 px (`zoneEtendue` pose
   // `cible-tactile` ET `data-cible-fine`, comme avant), le survol de tous les
   // boutons de l'app. Vaut pour toutes les pages qui paginent.

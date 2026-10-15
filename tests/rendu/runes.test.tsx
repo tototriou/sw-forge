@@ -1,7 +1,7 @@
 // Tests de rendu — Mon compte · Runes (`RunesSection` et ses vues). Principe
 // dans tests/rendu/outils-rendu.tsx : on vérifie que chaque fonctionnalité et
-// chaque information sont présentes, jamais l'apparence. Écrits AVANT le lot 8a
-// de la refonte graphique : ils doivent rester verts sans qu'une assertion change.
+// chaque information sont présentes, jamais l'apparence : un changement de
+// style doit les laisser verts sans qu'une assertion change.
 //
 // ⚠️ Rendu BUREAU : le panneau d'actions mobile est fermé (`menuOuvert` faux).
 // ⚠️ La mesure (Efficience / Score SW) est un réglage GLOBAL du menu ⚙, hors
@@ -108,10 +108,8 @@ export function testRenduRunesListe() {
   ok(b.some((x) => x.ariaLabel === 'Passer à quatre propriétés' && x.presse === false), '« Passer à quatre propriétés »');
 
   // Tri : les entrées du jeu, dans son ordre, et le sens.
-  // Décision 21, [retrait #21] : une seule entrée de mesure, celle du menu ⚙
-  // (ici l'efficience, par défaut). L'assertion d'avant listait « Score » ET
-  // « Efficience » ; la fonction qu'elle couvrait (trier par la mesure qu'on ne
-  // voit pas) est retirée à la demande du mainteneur.
+  // Une seule entrée de mesure, celle du menu ⚙ (ici l'efficience, par
+  // défaut) : on ne trie pas par la mesure qu'on ne voit pas.
   ok(t.includes('Trier par Grade Propriété secondaire Sous-propriété avant meule Nv. d’amélioration Obtenu Total des sous-prop. Efficience Slot'), 'tri : les entrées du jeu, une seule mesure — celle du ⚙');
   ok(b.some((x) => x.ariaLabel === 'Trier du plus petit au plus grand'), 'sens du tri');
 
@@ -192,7 +190,7 @@ export function testRenduRunesAVenir() {
   }
 }
 
-// Lot 8a-1 (décision 20 précisée) : à la souris, les filtres tous VISIBLES sur
+// À la souris, les filtres tous VISIBLES sur
 // une ligne, plus « Effacer les filtres ». Pas de menu déroulant (essayé, puis
 // défait par le mainteneur). Ajouté avec eux ; les tests d'avant restent inchangés.
 export function testRenduRunesFiltresLigne() {
@@ -205,7 +203,7 @@ export function testRenduRunesFiltresLigne() {
   }
 }
 
-// Lot 8a-1 : à la souris, le tri de l'Optimisation en ONGLETS (`Segmented`),
+// À la souris, le tri de l'Optimisation en ONGLETS (`Segmented`),
 // comme le reste de la page. Celui de la Liste reste une liste déroulante
 // (neuf entrées en onglets : « un peu gros », le mainteneur). Ajouté avec eux ; les
 // tests d'avant restent inchangés.
@@ -219,7 +217,7 @@ export function testRenduRunesTriOnglets() {
     ok(optim.some((x) => x.texte === e && x.presse === false), `optimisation : onglet « ${e} »`);
 }
 
-// Lot 8a-2 : le Résumé à la souris — en-tête, bandeau de chiffres, barres
+// Le Résumé à la souris — en-tête, bandeau de chiffres, barres
 // par emplacement. Ajouté avec eux ; les tests d'avant restent inchangés.
 export function testRenduRunesResumeSouris() {
   titre('rendu · Mon compte · Runes — Résumé à la souris');
@@ -232,7 +230,7 @@ export function testRenduRunesResumeSouris() {
   ok(texteBarres.includes('89.9 % Slot 1 1 · max 89.9 %') && texteBarres.includes('94.7 % Slot 4 2 · max 109.5 %'), 'chaque barre dit la moyenne, le slot, le nombre et le maximum');
 }
 
-// Lot 8a-2 : la Liste à la souris — l'en-tête. Ajouté avec lui ; les tests
+// La Liste à la souris — l'en-tête. Ajouté avec lui ; les tests
 // d'avant restent inchangés.
 export function testRenduRunesListeSouris() {
   titre('rendu · Mon compte · Runes — Liste à la souris');
@@ -240,7 +238,7 @@ export function testRenduRunesListeSouris() {
   ok(/<h1[^>]*>Liste<\/h1>/.test(html) && texteVisible(html).includes('Liste 9 runes'), 'l\'en-tête : « Liste », puis le nombre de runes de l\'inventaire');
 }
 
-// Lot 8a-3 : Courbes, Comparaison, Optimisation à la souris — en-têtes et
+// Courbes, Comparaison, Optimisation à la souris — en-têtes et
 // légende « Séries ». Ajouté avec eux ; les tests d'avant restent inchangés.
 export function testRenduRunesVuesSouris() {
   titre('rendu · Mon compte · Runes — Courbes, Comparaison, Optimisation à la souris');

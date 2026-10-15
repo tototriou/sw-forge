@@ -1,5 +1,5 @@
 // Processus principal de l'application de bureau (Electron)
-// (spec/shared/application-bureau.md).
+// (docs/02-app/bureau/).
 //
 // Un seul code : la fenêtre affiche le build Vite (`dist/`), servi par le
 // protocole `app://swblacksmith/` (voir protocole.ts). Rien de l'app n'est
@@ -93,7 +93,7 @@ function creerFenetre(preuve: TemoinsPreuve | undefined): BrowserWindow {
     { x: principal.x, y: principal.y, largeur: principal.width, hauteur: principal.height },
     ...ecrans,
   ]);
-  // Fond au thème DÈS l'ouverture (décision 7) : les couleurs du dernier
+  // Fond au thème DÈS l'ouverture : les couleurs du dernier
   // thème vu, sinon celles du thème du système (le défaut de l'app, « Auto »).
   let couleurs: CouleursFenetre =
     etat.couleurs ?? (nativeTheme.shouldUseDarkColors ? __COULEURS_THEMES__.sombre : __COULEURS_THEMES__.clair);
@@ -109,7 +109,7 @@ function creerFenetre(preuve: TemoinsPreuve | undefined): BrowserWindow {
     icon: join(RACINE, 'favicon.png'),
     show: false,
     backgroundColor: couleurs.fond,
-    // ⚠️ **Barre de titre intégrée** (décision 7) : plus de barre de Windows.
+    // ⚠️ **Barre de titre intégrée** : plus de barre de Windows.
     // La barre du haut de l'app est la zone de déplacement (index.css,
     // `html[data-bureau]`), et les boutons réduire / agrandir / fermer sont
     // dessinés par-dessus, à droite, aux couleurs du thème.
@@ -147,12 +147,12 @@ function creerFenetre(preuve: TemoinsPreuve | undefined): BrowserWindow {
   });
 
   // Liens externes vers le navigateur du système, navigations hors de l'app
-  // bloquées, téléchargements par « Enregistrer sous » (lot 2).
+  // bloquées, téléchargements par « Enregistrer sous ».
   brancherNavigation(fenetre, { urlDev: URL_DEV, preuve });
-  // Mise à jour automatique (lot 5) : app installée seulement ; en mode
+  // Mise à jour automatique : app installée seulement ; en mode
   // preuve, simulée.
   brancherMiseAJour(fenetre, preuve?.miseAJour);
-  // Le dossier SW Exporter (lot 9) : « Mon compte » suit les exports.
+  // Le dossier SW Exporter : « Mon compte » suit les exports.
   brancherSwex(fenetre, preuve?.swex);
   // La session en cours : « Sauvegarder » la réécrit, « Sauvegarder sous… »
   // la remplace.
@@ -164,7 +164,7 @@ function creerFenetre(preuve: TemoinsPreuve | undefined): BrowserWindow {
 
 void app.whenReady().then(() => {
   if (!PREMIERE_INSTANCE) return;
-  // Pas de menu (décision 7) : celui d'Electron (File, Edit, View…) est en
+  // Pas de menu : celui d'Electron (File, Edit, View…) est en
   // anglais et n'apporte rien ici.
   Menu.setApplicationMenu(null);
   protocol.handle(SCHEMA, (requete) => {
@@ -179,7 +179,7 @@ void app.whenReady().then(() => {
         liensOuverts: [],
         dossierTelechargements: join(DOSSIER_PREUVE, 'telechargements'),
         miseAJour: { recherches: 0, telechargements: 0, redemarrages: 0 },
-        // Lot 9 : le dossier « choisi » sans boîte de dialogue (fixtures de
+        // Le dossier « choisi » sans boîte de dialogue (fixtures de
         // `npm run bureau:preuve -- --swex`).
         swex: process.env.SWBLACKSMITH_PREUVE_SWEX ? { dossier: process.env.SWBLACKSMITH_PREUVE_SWEX } : undefined,
         // Le dossier SW Blacksmith et les fichiers de session « choisis » sans
@@ -189,7 +189,7 @@ void app.whenReady().then(() => {
     : undefined;
   const fenetre = creerFenetre(preuve);
   fenetrePrincipale = fenetre;
-  // Lot 8 : la preuve de conservation (deux lancements, `ecrire` puis
+  // La preuve de conservation (deux lancements, `ecrire` puis
   // `relire`, sur le même dossier) à la place de la preuve ordinaire.
   const conservation = process.env.SWBLACKSMITH_PREUVE_CONSERVATION;
   if (DOSSIER_PREUVE && (conservation === 'ecrire' || conservation === 'relire')) {
@@ -200,7 +200,7 @@ void app.whenReady().then(() => {
     const compte = readFileSync(process.env.SWBLACKSMITH_PREUVE_COMPTE ?? '', 'utf8');
     void lancerPreuveSession(fenetre, DOSSIER_PREUVE, compte, preuve.dossierTelechargements);
   } else if (DOSSIER_PREUVE && process.env.SWBLACKSMITH_PREUVE_SWEX) {
-    // Lot 9 : la preuve du dossier SW Exporter.
+    // La preuve du dossier SW Exporter.
     const compte = readFileSync(process.env.SWBLACKSMITH_PREUVE_COMPTE ?? '', 'utf8');
     void lancerPreuveSwex(fenetre, DOSSIER_PREUVE, process.env.SWBLACKSMITH_PREUVE_SWEX, compte);
   } else if (DOSSIER_PREUVE && preuve) void lancerPreuve(fenetre, DOSSIER_PREUVE, RACINE, preuve);

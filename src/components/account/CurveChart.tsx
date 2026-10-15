@@ -362,8 +362,8 @@ export default function CurveChart({
     setChoisi((cur) => (cur && cur.rang === hover ? null : { rang: hover }));
   }
 
-  // ⚠️ **L'infobulle de survol est du HTML, posé AU-DESSUS du SVG** (refonte
-  // graphique, lot 8a — le mainteneur : « revois un peu les infobulles pour que ça
+  // ⚠️ **L'infobulle de survol est du HTML, posé AU-DESSUS du SVG** (le mainteneur :
+  // « revois un peu les infobulles pour que ça
   // rende mieux »). Dessinée en SVG, c'était une boîte aux couleurs écrites en
   // dur (bleu nuit, texte gris-bleu) : sombre même en thème clair, sans ombre,
   // et des noms coupés à 16 caractères faute de mesurer le texte. Elle prend
@@ -461,7 +461,7 @@ export default function CurveChart({
         {/* Grille + graduations Y.
             ⚠️ Couleurs du THÈME (tokens), plus des bleus nuit en dur
             (`#242a4d`, `#7c85b8`, `#1c2140`, `#9aa2d0`) — pensés pour le
-            sombre, ils détonnaient en thème clair (lot 8a, « revois les
+            sombre, ils détonnaient en thème clair (« revois les
             infobulles pour que ça rende mieux »). Grille : `border-soft` ;
             graduations et titres d'axes : les encres atténuées. */}
         {yTicks.map((v) => (
@@ -584,8 +584,8 @@ export default function CurveChart({
             couleurs CSS. Posé nu dans un attribut SVG, le trait n'était tout
             simplement pas peint — invisible, sans erreur.
             ⚠️ `accent-lisible`, pas `accent` : c'est un TRAIT, et la braise vive
-            tombe à 2.1-2.6 sur les fonds clairs (rebranding, décision 11).
-            Voir spec/shared/design.md. */}
+            tombe à 2.1-2.6 sur les fonds clairs.
+            Voir docs/03-developpeur/interface/. */}
         {choisi && runesChoisies.length > 0 && (
           <g pointerEvents="none">
             <line
@@ -755,21 +755,30 @@ export default function CurveChart({
   // index.css documente. Le second lui rend ses 44 px de zone touchable par un
   // pseudo-élément qui déborde : la cible reste réglementaire, le dessin reste
   // petit. Retirer l'un des deux casse soit la forme, soit la visée.
+  //
+  // ⚠️ **Posé par un ENVELOPPANT `absolute`, jamais sur le bouton lui-même.**
+  // Au doigt, `.cible-tactile` pose `position: relative` (index.css), hors de
+  // toute couche Tailwind, donc après les utilitaires : un `absolute` écrit sur
+  // le bouton perdait, le bouton retombait en flux sous le graphe, en bas à
+  // gauche, à cheval sur le bord de la carte. Le bouton d'aide est calé de la
+  // même façon (`RunesCurve.tsx`).
   const bouton = (
-    <BoutonIcone
-      onClick={() => setPleinEcran((v) => !v)}
-      libelle={pleinEcran ? 'Quitter le plein écran' : 'Afficher le graphe en plein écran'}
-      icone={pleinEcran ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
-      cadre
-      forme="pilule"
-      zoneEtendue
-      // ⚠️ **Même écart au bord que le bouton d'aide** (`right-2`), qui est
-      // posé par l'onglet Courbes sur une boîte de même largeur : ce sont les
-      // deux commandes du même dessin, sur la même verticale. À `right-3` ils
-      // étaient décalés de 4 px l'un de l'autre — assez pour se voir, pas assez
-      // pour passer pour une intention.
-      className={`absolute bottom-2 right-2 z-10 ${pleinEcran ? '' : 'lg:hidden'}`}
-    />
+    // ⚠️ **Même écart au bord que le bouton d'aide** (`right-2`), qui est posé
+    // par l'onglet Courbes sur une boîte de même largeur : ce sont les deux
+    // commandes du même dessin, sur la même verticale. À `right-3` ils étaient
+    // décalés de 4 px l'un de l'autre — assez pour se voir, pas assez pour
+    // passer pour une intention. `flex` : l'enveloppant épouse le bouton, sans
+    // la hauteur de ligne qu'un bloc ajouterait sous un bouton `inline-flex`.
+    <div className={`absolute bottom-2 right-2 z-10 flex ${pleinEcran ? '' : 'lg:hidden'}`}>
+      <BoutonIcone
+        onClick={() => setPleinEcran((v) => !v)}
+        libelle={pleinEcran ? 'Quitter le plein écran' : 'Afficher le graphe en plein écran'}
+        icone={pleinEcran ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+        cadre
+        forme="pilule"
+        zoneEtendue
+      />
+    </div>
   );
 
   if (!pleinEcran) {

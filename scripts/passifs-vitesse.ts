@@ -2,7 +2,7 @@
 // lecture que l'outil (src/lib/speedTunePassif.ts) : les deux ne peuvent donc
 // pas diverger. C'est tout l'intérêt de faire passer le script par la lib.
 //
-//   node scripts/passifs-vitesse.mjs   → spec/outils/passifs-vitesse.md
+//   node scripts/passifs-vitesse.mjs   → docs/02-app/speed-tuning/feat-passifs-vitesse.md
 
 import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -11,7 +11,7 @@ import { DetailMonstre } from '../src/lib/monsterSkills';
 
 const DOSSIER = fileURLToPath(new URL('../public/data/skills/', import.meta.url));
 const MONSTRES = fileURLToPath(new URL('../public/data/monsters.json', import.meta.url));
-const SORTIE = fileURLToPath(new URL('../spec/outils/passifs-vitesse.md', import.meta.url));
+const SORTIE = fileURLToPath(new URL('../docs/02-app/speed-tuning/feat-passifs-vitesse.md', import.meta.url));
 
 const monstres = new Map<number, { name: string }>(
   JSON.parse(readFileSync(MONSTRES, 'utf8'))
@@ -102,8 +102,8 @@ let md = `# Outils · Passifs qui pèsent sur un speed tune (inventaire)
 
 **Statut :** ÉTAT ACTUEL — inventaire généré des passifs qui pèsent sur un speed tune
 **Lire si :** on cherche si un monstre a un passif de vitesse et sa catégorie
-**Ne pas lire si :** on veut modifier l'outil (voir speedTunePassif.ts et speed-tuning.md, jamais ce fichier généré)
-**Voir aussi :** speed-tuning.md
+**Ne pas lire si :** on veut modifier l'outil (voir speedTunePassif.ts et README.md, jamais ce fichier généré)
+**Voir aussi :** README.md
 
 ⚠️ **Fichier GÉNÉRÉ** par \`node scripts/passifs-vitesse.mjs\` — ne pas l'éditer à
 la main, le regénérer après chaque mise à jour de \`public/data/skills\`.
@@ -116,8 +116,8 @@ sont regroupés par passive — les cinq éléments d'une même famille la parta
 qu'en coréen.
 `;
 
-// Bloc terminal ≤ 80 lignes visées (limite dure 100, spec/outillage/spec.md,
-// « Contrat de `spec-lint` ») : une catégorie dont les entrées dépasseraient ce budget à plat se
+// Bloc sous un titre ≤ 80 lignes visées (100 au plus, docs/README.md,
+// règle 12) : une catégorie dont les entrées dépasseraient ce budget à plat se
 // scinde en sous-titres H3 par tranche alphabétique — chaque entrée occupe 2
 // lignes (« - **cle** » + la liste de noms).
 const LIGNES_PAR_ENTREE = 2;
@@ -162,7 +162,7 @@ md += ecrireEntrees(entreesInconnues);
 
 md += `\n---\n\nTotal : **${total}** entrées, dont **${compteInconnu}** au montant introuvable.\n`;
 writeFileSync(SORTIE, md, 'utf8');
-console.log(`spec/outils/passifs-vitesse.md écrit — ${total} entrées, ${compteInconnu} sans montant.`);
+console.log(`docs/02-app/speed-tuning/feat-passifs-vitesse.md écrit — ${total} entrées, ${compteInconnu} sans montant.`);
 for (const cat of ORDRE) {
   const g = parCategorie.get(cat);
   if (g) console.log(`  ${LIBELLE[cat]} : ${[...g.values()].reduce((n, m) => n + m.length, 0)}`);

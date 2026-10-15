@@ -1,9 +1,8 @@
-import { memo, useState } from 'react';
+import { Fragment, memo, type ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import { Monster } from '../types';
-import ElementIcon from './ElementIcon';
 import { libelleCollab } from '../lib/collabPairs';
-import CollabPortrait from './CollabPortrait';
+import MonsterAvatar from './MonsterAvatar';
 
 // ⚠️ **Au-delà de ce nombre de cartes, l'animation de disposition est COUPÉE.**
 // Chaque carte animée est un `motion.div layout` : à chaque filtre, framer-motion
@@ -11,8 +10,23 @@ import CollabPortrait from './CollabPortrait';
 // Délicieux sur vingt cartes, saccadé sur des centaines — la box d'un compte
 // entier n'est pas paginée. Le parent compare la taille de sa grille à ce seuil
 // et passe `anime={false}` au-dessus : le filtrage redevient instantané, on
-// garde le fondu pour les petites listes. Voir spec/compte/monstres.md.
+// garde le fondu pour les petites listes. Voir docs/02-app/compte/.
 export const SEUIL_ANIMATION_GRILLE = 48;
+
+// ⚠️ **Une possibilité de coupure (`<wbr>`) avant chaque parenthèse**, sans
+// toucher au libellé : « Homunculus(Attack) » n'a aucune espace, et un mot
+// plus large que la carte serait coupé net à droite. Avec elle, « (Attack) » passe à la ligne. Le texte rendu
+// (`textContent`) reste le nom du jeu, mot pour mot.
+function coupableAvantParenthese(nom: string): ReactNode {
+  const morceaux = nom.split('(');
+  return morceaux.map((m, i) =>
+    i === 0 ? m : (
+      <Fragment key={i}>
+        <wbr />({m}
+      </Fragment>
+    ),
+  );
+}
 
 const BORDER: Record<string, string> = {
   fire: 'hoverable:border-fire hoverable:shadow-lg hoverable:shadow-fire-glow/40',
@@ -22,34 +36,6 @@ const BORDER: Record<string, string> = {
   dark: 'hoverable:border-dark hoverable:shadow-lg hoverable:shadow-dark-glow/40',
   unknown: 'hoverable:border-unknown hoverable:shadow-lg hoverable:shadow-unknown-glow/40',
 };
-
-const TEXT: Record<string, string> = {
-  fire: 'text-fire',
-  water: 'text-water',
-  wind: 'text-wind',
-  light: 'text-light',
-  dark: 'text-dark',
-  unknown: 'text-unknown',
-};
-
-const GRADIENT: Record<string, string> = {
-  fire: 'from-fire to-panel2',
-  water: 'from-water to-panel2',
-  wind: 'from-wind to-panel2',
-  light: 'from-light to-panel2',
-  dark: 'from-dark to-panel2',
-  unknown: 'from-unknown to-panel2',
-};
-
-function initials(name: string) {
-  return name
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((w) => w[0])
-    .join('')
-    .toUpperCase();
-}
 
 // Carte de monstre — **la même dans le Bestiaire et dans la box du compte**.
 //
@@ -99,9 +85,6 @@ const MonsterCard = memo(function MonsterCard({
   // tout, le survol passe en CSS.
   anime?: boolean;
 }) {
-  const [imgFailed, setImgFailed] = useState(false);
-  const showImage = monster.image && !imgFailed;
-
   // Poignées communes aux deux rendus. ⚠️ `role="button"` porté par l'élément
   // lui-même plutôt qu'un `<button>` autour : envelopper casserait l'animation
   // de disposition (`layout`), qui mesure CET élément. Le clavier est rétabli à
@@ -127,58 +110,49 @@ const MonsterCard = memo(function MonsterCard({
   // padding resserré. C'est la carte la plus dense des deux, et la bonne
   // référence — on parcourt des centaines de monstres, chaque pixel de marge
   // coûte une ligne de plus à faire défiler.
-  const socle = `group relative rounded-xl border border-border bg-panel px-2 pt-3 pb-2.5 text-center
+  const libelle = jumeau ? libelleCollab(monster.name, jumeau.name) : monster.name;
+  // ⚠️ **Toutes les cartes ont la même hauteur, et le nom y a TOUJOURS deux
+  // lignes réservées** (chantier `defauts-affichage`, lot 6). Un nom de deux
+  // lignes (« Inosuke Hashibira, White Tiger Blade Master », ou
+  // « Homunculus(Attack) » coupé avant sa parenthèse) grandissait sa carte
+  // de 15 px. La hauteur est celle d'une carte à nom d'une ligne : portrait
+  // et étoiles à la même place qu'avant ; les deux lignes viennent, dans cet
+  // ordre, de l'interligne (15 → 13 px : à 13, le jambage d'une ligne laisse
+  // 1 px à la capitale de la suivante), de la marge sous les étoiles
+  // (4 → 0) et de celle du bas (10 → 3). Dans la box, sans étoiles, l'espace
+  // sous le portrait passe de 6 à 4 px — la pastille « ×N » descend de 4 px
+  // sous lui — et le bas de 10 à 1 px. Un nom d'une ligne garde la place de
+  // la seconde : rien ne change de place d'une carte à l'autre.
+  const socle = `group relative rounded-xl border border-border bg-panel px-2 pt-3 ${showStars ? 'pb-[3px]' : 'pb-px'} text-center
     shadow-none ${onOpen ? 'cursor-pointer' : ''} ${BORDER[monster.element]}`;
 
   const contenu = (
     <>
-      <div className="relative w-[64px] mx-auto mb-1.5">
-        <div
-          className={`hex-frame w-[64px] h-[64px] p-[2px] bg-gradient-to-br ${GRADIENT[monster.element]}`}
-        >
-          <div className="hex-frame relative w-full h-full bg-panel2 flex items-center justify-center overflow-hidden">
-            {showImage ? (
-              <CollabPortrait
-                monster={monster}
-                jumeau={jumeau}
-                possede={possede}
-                jumeauPossede={jumeauPossede}
-                onError={() => setImgFailed(true)}
-              />
-            ) : (
-              <span className={`font-display font-bold text-lg ${TEXT[monster.element]}`}>
-                {initials(monster.name)}
-              </span>
-            )}
-          </div>
-        </div>
-        <ElementIcon
-          element={monster.element}
-          size={18}
-          className="absolute -top-1 -right-1 drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)]"
-        />
-        {/* Exemplaires possédés — la box seule le sait. En BAS à droite, à
-            l'opposé de l'icône d'élément : les deux se chevaucheraient sur un
-            portrait de cette taille. */}
-        {count != null && count > 1 && (
-          <span
-            className="absolute -bottom-1 -right-1 flex h-5 min-w-[20px] items-center justify-center
-                       rounded-full border border-accent bg-accent-soft px-1 font-mono text-micro
-                       font-bold text-ink shadow-[0_1px_3px_rgba(0,0,0,0.6)]"
-            title={`${count} exemplaires`}
-          >
-            ×{count}
-          </span>
-        )}
-      </div>
+      {/* Exemplaires possédés : la box seule le sait. */}
+      <MonsterAvatar
+        monster={monster}
+        gabarit="div"
+        classeRacine={`w-[64px] mx-auto ${showStars ? 'mb-1.5' : 'mb-1'}`}
+        classeTaille="w-[64px] h-[64px]"
+        fond="bg-panel2"
+        cadreRelatif
+        classeInitiales="text-lg"
+        tailleElement={18}
+        collab={{ jumeau, possede, jumeauPossede }}
+        exemplaires={count}
+      />
 
       {showStars && (
-        <div className="text-star text-micro tracking-[-1px] mb-1">
+        <div className="text-star text-micro tracking-[-1px]">
           {monster.stars ? '★'.repeat(monster.stars) : '—'}
         </div>
       )}
-      {/* `line-clamp-2` : les noms longs (« Dark Cow Girl ») tiennent sur deux
-          lignes au plus, sinon une carte s'allonge et déchire la rangée. */}
+      {/* Deux lignes au plus (`h-[2lh]` + `overflow-hidden`) : les noms longs
+          (« Dark Cow Girl ») ne doivent pas allonger la carte et déchirer la
+          rangée. ⚠️ Coupé NET, sans points de suspension : `line-clamp`, en
+          texte centré, pose l'ellipse une demi-ellipse trop loin (Chromium
+          centre la ligne sans elle) et son dernier point était rogné. Le nom
+          entier reste dans le `title` de la carte. */}
       {/* ⚠️ Les DEUX noms, séparés d'une virgule : « Satoru Gojo, Werner ».
           C'est la question qu'on se pose devant la carte — « lequel est-ce ? » —
           et n'en montrer qu'un obligerait à savoir de tête que l'autre existe.
@@ -187,8 +161,8 @@ const MonsterCard = memo(function MonsterCard({
           possédée : ils disent ce que le monstre EST, pas ce qu'on en a. La
           moitié grisée du portrait porte déjà cette information, et ternir le
           nom par-dessus le rendait juste moins lisible. */}
-      <div className="text-xs font-semibold leading-tight line-clamp-2">
-        {jumeau ? libelleCollab(monster.name, jumeau.name) : monster.name}
+      <div className="h-[2lh] text-xs font-semibold leading-[13px] overflow-hidden">
+        {coupableAvantParenthese(libelle)}
       </div>
     </>
   );

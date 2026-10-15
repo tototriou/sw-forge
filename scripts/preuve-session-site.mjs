@@ -1,5 +1,5 @@
 // `node scripts/preuve-session-site.mjs [dossier]` — la sauvegarde de session
-// sur le SITE (spec/shared/sauvegarde-session.md), dans Chromium (Playwright),
+// sur le SITE (docs/02-app/transverse/), dans Chromium (Playwright),
 // sur le build (`dist/`, `npm run build` d'abord). Le pendant de
 // `npm run bureau:preuve -- --session` pour l'application de bureau.
 //

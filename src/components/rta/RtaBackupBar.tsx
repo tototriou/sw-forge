@@ -73,8 +73,8 @@ interface Props {
     speed: number,
     lead?: CustomLead | null
   ) => Monster;
-  // ⚠️ **Deux dispositions, une seule logique** (refonte graphique, lot 6,
-  // décision 13). `barre` (défaut) : les cinq boutons en rangées — c'est celle
+  // ⚠️ **Deux dispositions, une seule logique**. `barre` (défaut) : les cinq boutons en
+  // rangées — c'est celle
   // du panneau d'actions MOBILE, inchangée. `menu` : l'en-tête BUREAU —
   // « Exporter » visible, le reste dans un menu « ⋯ ». Les dialogues, les
   // messages et le fichier sont les MÊMES : seule la façon de déclencher change.
@@ -346,7 +346,7 @@ export default function RtaBackupBar({
                 libelle: 'Importer une prépa',
                 icone: <Download size={14} />,
                 onClick: ouvrirFichier,
-                // Dans l'app de bureau, la prépa vient d'un autre APPAREIL (lot 8).
+                // Dans l'app de bureau, la prépa vient d'un autre APPAREIL.
                 title: selonSupport(
                   "Reprendre une prépa exportée : une archive, ou celle d'un autre navigateur. Elle remplacera la tienne.",
                   "Reprendre une prépa exportée : une archive, ou celle d'un autre appareil. Elle remplacera la tienne."

@@ -24,8 +24,8 @@ import { COURBE, GLISSEMENT, SidebarGroupe, SidebarSection } from './Sidebar';
 // un groupe unique ajoute un geste sans rien donner à décider — la même règle
 // qui laisse « Outils » en simple lien dans la barre d'onglets.
 //
-// ⚠️ **Une LISTE, une rangée par entrée** (refonte graphique, lot 11a,
-// décision 24, la maquette). Le panneau a été une liste à filets, puis une
+// ⚠️ **Une LISTE, une rangée par entrée** (la maquette). Le panneau a été une liste à
+// filets, puis une
 // grille de cases encadrées parce qu'on ne voyait pas où commençait la cible
 // entre deux traits. Le mainteneur a choisi la liste de la maquette ; ce qui répond
 // à ce défaut d'alors : chaque rangée prend TOUTE la largeur sur 52 px (la
@@ -134,7 +134,7 @@ export default function MobileNavSheet({
                 /* ── Second temps : les vues du groupe choisi ─────────────── */
                 <nav className={LISTE} aria-label={`Vues de ${groupeCourant.titre}`}>
                   {/* ⚠️ Le RETOUR est la PREMIÈRE rangée de la liste, en haut
-                      du panneau (décision 24) — même gabarit que les autres :
+                      du panneau — même gabarit que les autres :
                       **toutes les cibles ont la même taille.** Ce qui le
                       distingue est son encre atténuée et son chevron vers la
                       gauche, pas son encombrement.
@@ -270,7 +270,7 @@ function Case({
       // regarder. Une hauteur FIXE et non un minimum — c'est ce que
       // `data-hauteur-fixe` ci-dessus déclare, et c'est ce qui garantit que
       // toutes les rangées ont la même taille, quelle que soit leur balise.
-      // ⚠️ **Une rangée de liste, pas une case encadrée** (décision 24) : un
+      // ⚠️ **Une rangée de liste, pas une case encadrée** : un
       // filet SOUS chaque rangée, sauf la dernière — un seul trait entre deux
       // entrées, jamais deux. La cible est la rangée ENTIÈRE ; le fond qui
       // s'allume au toucher (`active:`) et au survol le montre.

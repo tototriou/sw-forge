@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Plus, Trash2, Gauge, Wand2, Upload, Download } from 'lucide-react';
 import { IconeDefense, IconeOffense } from '../IconesAtelier';
 import { Monster, ElementKey, SiegeTeam as SiegeTeamData } from '../../types';
@@ -14,12 +14,19 @@ import { BarreActions, Bouton, Interrupteur, Jeton, useNotifier } from '../../ui
 import MonsterPicker from '../MonsterPicker';
 import MonsterAvatar from '../MonsterAvatar';
 import { equipeContient } from './rechercheEquipe';
-import { exporterEquipes, lireEquipes, nomFichierSiege } from '../../lib/siegeShare';
+import { compterAvecRunes, exporterEquipes, lireEquipes, nomFichierSiege } from '../../lib/siegeShare';
+import ChoixExportSiege from './ChoixExportSiege';
 import { telechargerTexte } from '../../lib/telechargement';
 import { NOM_APP } from '../../marque';
 import { CustomLead } from '../../hooks/useCustomMonsters';
+import type { ActionImportOptimizer } from '../../lib/actionImportOptimizer';
+import type { ExclusionSourceData } from '../../lib/optimizerExclusion';
+import { importerDefensesSiegeOptimizer, importerOffenseSiegeOptimizer } from '../../lib/importEquipes';
 
 interface Props {
+  onImporterEquipe: ActionImportOptimizer;
+  sourcesOptimizer: ExclusionSourceData;
+  compteCharge: boolean;
   side: SiegeSide;
   siege: UseSiegeState;
   monsters: Monster[];
@@ -42,6 +49,9 @@ interface Props {
 // un seul import alimente RTA + défense + offense. Ce board ne gère que la
 // composition/édition des équipes de son côté.
 export default function SiegeBoard({
+  onImporterEquipe,
+  sourcesOptimizer,
+  compteCharge,
   side,
   siege,
   monsters,
@@ -54,6 +64,18 @@ export default function SiegeBoard({
   menuOuvert,
   onFermerMenu,
 }: Props) {
+  const produireEquipe = useCallback((teamId: string, data: ExclusionSourceData) => side === 'defense'
+    ? importerDefensesSiegeOptimizer({ ...data, siegeDefenseTeams: data.siegeDefenseTeams.filter(t => t.id === teamId) })
+    : importerOffenseSiegeOptimizer(teamId, data), [side]);
+  const disponibiliteExport = useMemo(() => {
+    const raisonCompte = 'Charge un compte pour exporter vers l’Optimizer.';
+    const equipes = new Map(siege.state.teams.map(t => [t.id, !compteCharge ? raisonCompte
+      : produireEquipe(t.id, sourcesOptimizer).membres.length ? undefined : 'Aucun monstre importable dans cette équipe.']));
+    const defenses = !compteCharge ? raisonCompte : importerDefensesSiegeOptimizer(sourcesOptimizer).membres.length
+      ? undefined : 'Aucun monstre importable dans les défenses de siège.';
+    return { equipes, defenses };
+  }, [compteCharge, produireEquipe, siege.state.teams, sourcesOptimizer]);
+  const exporterDefensesOptimizer = () => onImporterEquipe(importerDefensesSiegeOptimizer);
   // ⚠️ **Éteint par défaut** : les équipes s'affichent telles quelles, et c'est
   // un geste délibéré qui demande la vérification. Tout ce que l'app calcule
   // ensuite est automatique — statut, message, ordre d'une équipe Swift : le
@@ -67,8 +89,8 @@ export default function SiegeBoard({
   // d'défense ».
   const deNoun = side === 'defense' ? 'de défense' : "d'attaque";
 
-  // Supprimer une équipe SE DÉFAIT au lieu de se confirmer (lot 13, décision
-  // 29) : immédiat, puis « Équipe retirée · Annuler » la remet à SA place,
+  // Supprimer une équipe SE DÉFAIT au lieu de se confirmer : immédiat, puis « Équipe
+  // retirée · Annuler » la remet à SA place,
   // avec ses monstres, leurs vitesses et ses réglages.
   const notifier = useNotifier();
   function retirerEquipe(teamId: string) {
@@ -120,7 +142,7 @@ export default function SiegeBoard({
     return m;
   }, [monsters]);
 
-  // ---- Recherche d'équipe par monstre (décision 14) ----------------------
+  // ---- Recherche d'équipe par monstre ----------------------
   // ⚠️ État LOCAL, jamais enregistré : revenir sur la page montre toutes ses
   // équipes — un filtre oublié ferait croire à des équipes disparues.
   const [recherche, setRecherche] = useState('');
@@ -144,7 +166,7 @@ export default function SiegeBoard({
   }, [siege.state.teams, monsterById]);
   const choisi = filtre ? monstresDesEquipes.find((m) => m.name === recherche) ?? null : null;
 
-  // ---- Export / import d'équipes (décision 14, lib/siegeShare) ------------
+  // ---- Export / import d'équipes (lib/siegeShare) ------------
   const [msg, setMsg] = useState<{ text: string; error?: boolean } | null>(null);
   useEffect(() => {
     if (!msg) return;
@@ -153,15 +175,19 @@ export default function SiegeBoard({
   }, [msg]);
   const fichierEquipes = useRef<HTMLInputElement>(null);
 
-  function exporter() {
+  // « Exporter » POSE la question des runes (`ChoixExportSiege`), comme la
+  // prépa RTA ; le téléchargement suit la réponse.
+  const [choixExport, setChoixExport] = useState(false);
+
+  function exporter(avecRunes: boolean) {
     const aExporter = affichees.map((a) => a.team);
     if (aExporter.length === 0) return;
-    const { texte, equipes, perso } = exporterEquipes(aExporter, side, monsterById);
+    const { texte, equipes, perso } = exporterEquipes(aExporter, side, monsterById, avecRunes);
     const nom = nomFichierSiege(side);
     telechargerTexte(nom, texte);
     setMsg({
       text:
-        `${equipes} équipe(s) exportée(s) · ${nom}` +
+        `${equipes} équipe(s) exportée(s) ${avecRunes ? 'avec les runes' : 'sans les runes'} · ${nom}` +
         (perso > 0 ? ` · ${perso} monstre(s) perso non exporté(s) : emplacement vide.` : ''),
     });
   }
@@ -176,7 +202,9 @@ export default function SiegeBoard({
     setScrollToLast(true);
     setMsg({
       text:
-        `${lu.equipes.length} équipe(s) ajoutée(s) à la suite des tiennes.` +
+        `${lu.equipes.length} équipe(s) ajoutée(s) à la suite des tiennes` +
+        (lu.avecRunes > 0 ? `, avec les runes de ${lu.avecRunes} monstre(s).` : '.') +
+        (lu.avertissements.length > 0 ? ` ${lu.avertissements.join(' ')}` : '') +
         (lu.cote !== side ? ` Le fichier venait ${lu.cote === 'defense' ? 'de la défense' : "de l'offense"}.` : '') +
         (lu.inconnus.length > 0
           ? ` ${lu.inconnus.length} monstre(s) absent(s) des données chargées (${lu.inconnus.slice(0, 3).join(', ')}${lu.inconnus.length > 3 ? '…' : ''}) : emplacement vide.`
@@ -257,14 +285,14 @@ export default function SiegeBoard({
       />
 
       {/* ⚠️ « Vérifier mes speed » n'est PLUS ici : au téléphone, c'est un
-          interrupteur sur la page, à côté du compteur (lot 11b, décision 25) —
+          interrupteur sur la page, à côté du compteur —
           un affichage qu'on allume et éteint en parcourant ses équipes. */}
 
-      {/* Export / import d'équipes (décision 14) — mêmes gestes que dans
+      {/* Export / import d'équipes — mêmes gestes que dans
           l'en-tête bureau, mêmes fonctions. */}
       <Bouton
         onClick={() => {
-          exporter();
+          setChoixExport(true);
           onFermerMenu();
         }}
         disabled={affichees.length === 0}
@@ -297,14 +325,14 @@ export default function SiegeBoard({
           « Options » : à 40 px avec leur libellé complet, elles remplissaient
           deux rangées avant la première équipe. Le COMPTEUR reste, lui — c'est
           une information, pas une action, et elle tient sur une ligne. */}
-      {/* ---- En-tête BUREAU (refonte graphique, lot 7a) --------------------
-          Comme la RTA (décision 13, précisée) : le titre, le compteur, puis
+      {/* ---- En-tête BUREAU --------------------
+          Comme la RTA : le titre, le compteur, puis
           les actions — toutes en boutons quand elles tiennent sur la ligne,
           sinon « Ajouter une équipe » et « Vérifier mes speed » visibles et le
           reste (Créer un monstre, Tout effacer) dans le menu « ⋯ ».
-          « Ajouter une équipe » est l'action PRINCIPALE de l'écran (décision
-          4, aplat d'accent). Le téléphone garde son compteur et son panneau
-          « Options » (lot 11). */}
+          « Ajouter une équipe » est l'action PRINCIPALE de l'écran (aplat d'accent). Le
+          téléphone garde son compteur et son panneau
+          « Options ». */}
       <div className="mt-5 hidden flex-wrap items-center gap-x-3 gap-y-1 lg:flex">
         <h1 className="font-display text-xl tracking-wide text-ink">
           {side === 'defense' ? 'Défense' : 'Offense'}
@@ -345,9 +373,15 @@ export default function SiegeBoard({
                 setScrollToLast(true);
               },
             },
+            ...(side === 'defense' ? [{
+              cle: 'optimizer', libelle: "Exporter vers l'Optimizer", icone: <Upload size={15} />,
+              disabled: !!disponibiliteExport.defenses,
+              title: disponibiliteExport.defenses ?? 'Créer une liste avec toutes les défenses de siège.',
+              onClick: exporterDefensesOptimizer,
+            }] : []),
           ]}
           autres={[
-            // Export / import d'équipes — ajout décidé par le mainteneur (décision 14).
+            // Export / import d'équipes — ajout décidé par le mainteneur.
             {
               cle: 'exporter',
               libelle: 'Exporter',
@@ -359,7 +393,7 @@ export default function SiegeBoard({
                   : filtre
                     ? 'Exporter les équipes affichées (celles de la recherche) en fichier .json'
                     : `Télécharger tes équipes ${deNoun} en fichier .json, pour les partager ou les garder de côté`,
-              onClick: exporter,
+              onClick: () => setChoixExport(true),
             },
             {
               cle: 'importer',
@@ -410,7 +444,18 @@ export default function SiegeBoard({
         }}
       />
 
-      {/* ---- Recherche d'équipe par monstre (décision 14) — aux deux formats.
+      {choixExport && (
+        <ChoixExportSiege
+          avecRunes={compterAvecRunes(affichees.map((a) => a.team), monsterById)}
+          onAnnuler={() => setChoixExport(false)}
+          onChoisir={(avecRunes) => {
+            setChoixExport(false);
+            exporter(avecRunes);
+          }}
+        />
+      )}
+
+      {/* ---- Recherche d'équipe par monstre — aux deux formats.
           Le message d'export / d'import s'affiche juste en dessous. */}
       {/* ⚠️ **Une liste de suggestions sous le champ, comme partout ailleurs**
           (RTA, Recommandations) — demandé par le mainteneur : on tape, on CHOISIT un
@@ -451,7 +496,7 @@ export default function SiegeBoard({
 
       {/* TÉLÉPHONE : le compteur et « Vérifier mes speed » ; les autres
           actions sont dans le panneau.
-          ⚠️ **Un INTERRUPTEUR sur la page** (lot 11b, décision 25, la
+          ⚠️ **Un INTERRUPTEUR sur la page** (la
           maquette) : il était un bouton du panneau « Options », qu'il fallait
           ouvrir pour allumer ou éteindre un AFFICHAGE qu'on consulte en
           parcourant ses équipes. Toujours affiché, désactivé sans équipe. */}
@@ -480,6 +525,11 @@ export default function SiegeBoard({
 
       <MobileSheet ouvert={menuOuvert} onFermer={onFermerMenu} titre={`Actions — ${noun}`}>
         <div data-rangee-actions>{actions}</div>
+        {side === 'defense' && <Bouton className="mt-3" pleineLargeur
+          libelle="Exporter vers l'Optimizer" icone={<Upload size={15} />}
+          disabled={!!disponibiliteExport.defenses}
+          title={disponibiliteExport.defenses ?? 'Créer une liste avec toutes les défenses de siège.'}
+          onClick={exporterDefensesOptimizer} />}
         <div data-zone-destructive className="mt-4 border-t border-border pt-3">
           {effacer(true)}
         </div>
@@ -506,8 +556,7 @@ export default function SiegeBoard({
       {siege.state.teams.length === 0 ? (
         <div className="mt-8 flex flex-col items-center justify-center text-center rounded-2xl border border-dashed border-border bg-panel/40 py-16 px-6">
           <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-panel2 border border-border mb-4">
-            {/* L'icône du CÔTÉ, celle de son entrée de nav — bouclier ou épée
-                (rebranding, décision 44). */}
+            {/* L'icône du CÔTÉ, celle de son entrée de nav — bouclier ou épée. */}
             {side === 'defense' ? (
               <IconeDefense size={26} className="text-ink-dim" />
             ) : (
@@ -529,7 +578,7 @@ export default function SiegeBoard({
           <Bouton taille="sm" libelle="Effacer la recherche" onClick={() => setRecherche('')} />
         </div>
       ) : (
-        // ⚠️ **Autant de colonnes que la PLACE en permet** (lot 7a, « optimiser
+        // ⚠️ **Autant de colonnes que la PLACE en permet** (« optimiser
         // l'espace ») : des colonnes d'au moins 480 px — la largeur où les trois
         // monstres d'une équipe tiennent côte à côte, nom et vitesse lisibles.
         // Le nombre suit la largeur RÉELLE, barre latérale comprise : 1 colonne
@@ -551,6 +600,8 @@ export default function SiegeBoard({
             >
             <SiegeTeam
               team={team}
+              onExporterOptimizer={() => onImporterEquipe(data => produireEquipe(team.id, data))}
+              raisonExportOptimizer={disponibiliteExport.equipes.get(team.id)}
               index={rang}
               monsters={monsters}
               monsterById={monsterById}
@@ -568,10 +619,9 @@ export default function SiegeBoard({
             />
             </div>
           ))}
-          {/* ⚠️ **La carte d'ajout, en fin de grille** (rebranding, décision 41,
-              la toile) — en plus du bouton de l'en-tête, pas à sa place.
-              BUREAU seulement : le téléphone ajoute depuis « Options »
-              (décision 45).
+          {/* ⚠️ **La carte d'ajout, en fin de grille** (la toile) — en plus du bouton
+              de l'en-tête, pas à sa place.
+              BUREAU seulement : le téléphone ajoute depuis « Options ».
               - Elle est la PLACE de la nouvelle équipe : l'équipe naît
                 exactement là où l'on a cliqué, et la carte passe à la case
                 suivante. Rien d'autre ne bouge, donc AUCUN défilement — au
@@ -606,6 +656,9 @@ export default function SiegeBoard({
           on le demande : il charge les kits des monstres à l'ouverture. */}
       {speedTune && (
         <SpeedTuneModale
+          onImporterEquipe={onImporterEquipe}
+          sourcesOptimizer={sourcesOptimizer}
+          compteCharge={compteCharge}
           deck={{ source: side, teamId: speedTune }}
           allMonsters={monsters}
           siegeDefenseTeams={siegeDefenseTeams}

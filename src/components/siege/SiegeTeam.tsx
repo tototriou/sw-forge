@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
-import { Crown, X, GripVertical, Trash2, AlertTriangle, Pencil, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Crown, X, GripVertical, Trash2, AlertTriangle, Pencil, ChevronLeft, ChevronRight, Upload } from 'lucide-react';
 import { IconeSpeedTuning } from '../IconesAtelier';
 
 const SPD_ICON = `${import.meta.env.BASE_URL}stats/spd.png`; // icône vitesse du jeu (SWARFARM)
@@ -15,42 +15,23 @@ import {
 } from '../../lib/speed';
 import MonsterPicker from '../MonsterPicker';
 import { JetonSlot, prochainFocus } from './slotVideSuivant';
-import ElementIcon from '../ElementIcon';
-import RuneIcon from '../RuneIcon';
+import MonsterAvatar from '../MonsterAvatar';
+import SetsPortes from '../SetsPortes';
 import MonsterGear from '../MonsterGear';
 import { statutEquipe, raisonSansVerdict } from '../../lib/siegeStatut';
 import { analyseAutomatique, combatAuto, EntreeAuto } from '../../lib/speedTuneAuto';
 import { deckPourSpeedTune } from '../../lib/speedTuneDeck';
 import { useDonneesKit } from '../../hooks/useDonneesKit';
 import NumberField from '../../ui/NumberField';
-import LeadPill, { LeadBadge } from './LeadPill';
+import LeadPill from './LeadPill';
 import { ConfirmDialog } from '../../ui/Dialogs';
 import { pastilleStatut } from './pastilleStatut';
 import { Bouton, BoutonIcone, Selecteur, ZoneCliquable } from '../../ui';
 import { useMediaQuery, COMPACT } from '../../hooks/useMediaQuery';
 
-const GRADIENT: Record<string, string> = {
-  fire: 'from-fire to-panel2',
-  water: 'from-water to-panel2',
-  wind: 'from-wind to-panel2',
-  light: 'from-light to-panel2',
-  dark: 'from-dark to-panel2',
-  unknown: 'from-unknown to-panel2',
-};
-const TEXT: Record<string, string> = {
-  fire: 'text-fire',
-  water: 'text-water',
-  wind: 'text-wind',
-  light: 'text-light',
-  dark: 'text-dark',
-  unknown: 'text-unknown',
-};
-
-function initials(name: string) {
-  return name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
-}
-
 interface Props {
+  onExporterOptimizer: () => void;
+  raisonExportOptimizer?: string;
   team: SiegeTeamType;
   index: number;
   monsters: Monster[];
@@ -71,6 +52,8 @@ interface Props {
 }
 
 export default function SiegeTeam({
+  onExporterOptimizer,
+  raisonExportOptimizer,
   team,
   index,
   monsters,
@@ -90,8 +73,8 @@ export default function SiegeTeam({
   const [dragFrom, setDragFrom] = useState<number | null>(null);
   const [overIdx, setOverIdx] = useState<number | null>(null);
   const [detailIdx, setDetailIdx] = useState<number | null>(null); // slot dont on montre le détail
-  // Un monstre choisi → le curseur passe au slot vide suivant (décision 18,
-  // voir slotVideSuivant.ts) : on compose les trois d'affilée au clavier.
+  // Un monstre choisi → le curseur passe au slot vide suivant (voir slotVideSuivant.ts) : on
+  // compose les trois d'affilée au clavier.
   const [focus, setFocus] = useState<JetonSlot | null>(null);
   // ⚠️ Le budget de la ligne « vitesse + sets » est COMPTÉ. Sur 348 px, une
   // carte compacte fait (348 − 2×4) ÷ 3 ≈ 113 px ; moins le rembourrage et le
@@ -197,7 +180,7 @@ export default function SiegeTeam({
   const deck = useMemo(
     () => deckPourSpeedTune(team, monsterById),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [JSON.stringify(team.slots.map((sl) => [sl.monsterId, sl.runeSpeed, sl.sets, !!sl.gear]))]
+    [JSON.stringify(team.slots.map((sl) => [sl.monsterId, sl.runeSpeed, sl.sets, !!sl.gear, !!sl.gearPartage]))]
   );
   const equipeAuto = useMemo<EntreeAuto[]>(
     () =>
@@ -287,14 +270,14 @@ export default function SiegeTeam({
     setOverIdx(null);
   }
 
-  // ⚠️ **Le statut se dit par le CONTOUR et la PASTILLE ÉCRITE** (refonte
-  // graphique, décision 8). La pastille remplace le point de couleur ET le fond
+  // ⚠️ **Le statut se dit par le CONTOUR et la PASTILLE ÉCRITE**. La pastille remplace
+  // le point de couleur ET le fond
   // coloré qu'apportait le thème clair (`--siege-card-*`) : en clair, un
   // contour d'un pixel sur fond blanc ne se voyait pas, d'où ce fond — la
   // pastille, lisible dans les deux thèmes, dit désormais l'état en toutes
   // lettres. Libellés choisis par le mainteneur (voir `pastilleStatut`).
   // ⚠️ Rouge d'ÉTAT (`bad`), comme la pastille juste à côté — plus `fire`, le
-  // rouge de l'élément Feu (rebranding, décision 43).
+  // rouge de l'élément Feu.
   const sectionClass = aGearIncomplet || statut === 'rouge'
     ? 'border-bad'
     : statut === 'orange'
@@ -315,7 +298,7 @@ export default function SiegeTeam({
     // `p-4` coûte 32 px de haut multipliés par ce nombre — deux écrans de vide
     // sur un téléphone.
     // Gabarit des cartes de la refonte : fond `panel`, rayon 12.
-    // ⚠️ **Resserrée** (lot 7a, « revois un peu les cards pour optimiser
+    // ⚠️ **Resserrée** (« revois un peu les cards pour optimiser
     // l'espace ») : rembourrage 12 px au lieu de 16, en-tête à 8 px de la
     // rangée, titre en `text-base`. La souris seulement — les valeurs
     // `compact:` (au doigt) ne bougent pas.
@@ -351,6 +334,10 @@ export default function SiegeTeam({
             de quel monstre vient le lead — les deux répondent à deux questions
             différentes, ce n'est pas un doublon. */}
         {leaderMonster?.leaderSkill && <LeadPill ls={leaderMonster.leaderSkill} />}
+        <Bouton onClick={onExporterOptimizer} disabled={!!raisonExportOptimizer}
+          title={raisonExportOptimizer ?? 'Créer une liste avec cette équipe de siège.'}
+          aria-label="Exporter vers l'Optimizer" libelle="Exporter vers l'Optimizer"
+          icone={<Upload size={13} />} taille="sm" nuAuDoigt libelleAuDoigt={false} />
 
         {/* ⚠️ **Icône nue au doigt** (`nuAuDoigt`) — ni cadre, ni bordure, ni
             fond. L'en-tête d'équipe porte déjà le titre, la pastille d'état et
@@ -390,13 +377,13 @@ export default function SiegeTeam({
 
       {/* ⚠️ Une équipe se supprime en un clic, juste à côté du bouton
           « Éditer » qu'on utilise sans arrêt. Ce n'est plus une confirmation
-          qui couvre l'erreur, mais « Annuler » (lot 13, décision 29) : la page
+          qui couvre l'erreur, mais « Annuler » : la page
           annonce « Équipe retirée · Annuler », qui la remet à sa place avec ses
           monstres et leurs vitesses. */}
 
       {expanded ? (
-      // ⚠️ **Les lignes des trois slots sont ALIGNÉES à la souris** (lot 7a,
-      // « ce serait bien que les éléments soient alignés dans la card ») : la
+      // ⚠️ **Les lignes des trois slots sont ALIGNÉES à la souris** (« ce serait bien
+      // que les éléments soient alignés dans la card ») : la
       // grille définit trois lignes — le monstre, la vitesse et le SPD, les
       // ticks — que chaque slot reprend (`grid-rows-subgrid`). Chaque ligne
       // prend la hauteur de la plus haute des trois : la pastille de lead sous
@@ -471,7 +458,8 @@ export default function SiegeTeam({
           {slotInfos.map(({ monster, combat }, idx) => {
             const danger = statut === 'rouge' ? slotDangers[idx] : null;
             const sets = team.slots[idx].sets ?? [];
-            const slotGear = team.slots[idx].gear;
+            // Le sien, ou celui reçu d'un fichier d'équipes (`gearPartage`).
+            const slotGear = team.slots[idx].gear ?? team.slots[idx].gearPartage;
             const canDetail = !!slotGear && slotGear.runes.length > 0;
             const active = detailIdx === idx;
             return (
@@ -493,48 +481,33 @@ export default function SiegeTeam({
                 className={`flex-1 min-w-0 flex items-center gap-2 rounded-lg border
                   px-2 py-1.5 compact:gap-1 compact:px-1 compact:py-1 transition hoverable:border-accent ${
                   active
-                    ? // Bordure seule, sans anneau superposé — voir design.md.
+                    ? // Bordure seule, sans anneau superposé — voir docs/03-developpeur/interface/design/tokens-couleurs.md.
                       'border-accent bg-panel2'
                     : danger
                       ? // Fond DOUX du rouge d'état : la VIT fautive, écrite
                         // en `bad` dessus, y fait 5.53 en Forge (4.31 sur
-                        // l'ancien voile à 20 %). Rebranding, décision 43.
+                        // un voile à 20 %).
                         'border-bad bg-bad-soft'
                       : 'border-border bg-panel2/60'
                 }`}
               >
                 {monster ? (
                   <>
-                    <div className="relative flex-none">
-                      <div
-                        className={`hex-frame w-[36px] h-[36px] compact:w-[30px] compact:h-[30px] p-[2px]
-                          bg-gradient-to-br ${GRADIENT[monster.element]}`}
-                      >
-                        <div className="hex-frame w-full h-full bg-panel flex items-center justify-center overflow-hidden">
-                          {monster.image ? (
-                            <img src={monster.image} alt={monster.name} className="w-full h-full object-cover" />
-                          ) : (
-                            <span className={`font-display font-bold text-micro ${TEXT[monster.element]}`}>
-                              {initials(monster.name)}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <ElementIcon
-                        element={monster.element}
-                        size={13}
-                        className="absolute -top-1 -right-1 drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)]"
-                      />
-                      {/* Lead sur le portrait du leader : la carte compacte n'a
-                          pas la place d'une pastille (voir spec), et le badge
-                          dit à la fois « c'est lui le leader » et quel lead. */}
-                      {/* ⚠️ Réduit avec le portrait : à 22 px sur un portrait
-                          de 30, il en couvrait les deux tiers et l'on ne
-                          reconnaissait plus le monstre. */}
-                      {idx === 0 && monster.leaderSkill && (
-                        <LeadBadge ls={monster.leaderSkill} size={petitEcran ? 17 : 22} />
-                      )}
-                    </div>
+                    {/* Lead sur le portrait du leader : la carte compacte n'a
+                        pas la place d'une pastille (voir spec), et le badge
+                        dit à la fois « c'est lui le leader » et quel lead. */}
+                    {/* ⚠️ Réduit avec le portrait : à 22 px sur un portrait
+                        de 30, il en couvrait les deux tiers et l'on ne
+                        reconnaissait plus le monstre. */}
+                    <MonsterAvatar
+                      monster={monster}
+                      gabarit="div"
+                      classeTaille="w-[36px] h-[36px] compact:w-[30px] compact:h-[30px]"
+                      classeInitiales="text-micro"
+                      tailleElement={13}
+                      lead={idx === 0 ? monster.leaderSkill : null}
+                      tailleLead={petitEcran ? 17 : 22}
+                    />
                     {/* Le nom occupe SA ligne : nom, vitesse et sets se
                         disputaient la même, et le gros chiffre (non réductible)
                         finissait sous les icônes de set. Ligne 2 = vitesse à
@@ -551,7 +524,10 @@ export default function SiegeTeam({
                           vitesse est celle qui apporte le moins : le gros
                           chiffre en gras se lit comme une vitesse sans elle,
                           c'est la seule de la carte. Elle tombe donc sous `sm`,
-                          et les sets descendent à 14 px. */}
+                          et les sets descendent à 14 px. Mesuré au doigt sur
+                          348 px, la ligne n'a que 55 px : deux sets y tiennent,
+                          trois en demandent 71. Trois sets passent donc à
+                          10 px, collés (`troisSetsSerres`) : 55 pile. */}
                       <div className="mt-0.5 flex items-center gap-1 compact:gap-0.5">
                         <img
                           src={SPD_ICON}
@@ -567,13 +543,14 @@ export default function SiegeTeam({
                         >
                           {combat ?? '—'}
                         </span>
-                        {sets.length > 0 && (
-                          <span className="ml-auto flex flex-none items-center gap-0.5">
-                            {sets.slice(0, 3).map((s, i) => (
-                              <RuneIcon key={i} setKey={s} size={tailleSet} className="flex-none" />
-                            ))}
-                          </span>
-                        )}
+                        <SetsPortes
+                          sets={sets}
+                          max={3}
+                          taille={tailleSet}
+                          espacement="gap-0.5"
+                          className="ml-auto flex-none"
+                          troisSetsSerres
+                        />
                       </div>
                     </div>
                   </>
@@ -600,10 +577,15 @@ export default function SiegeTeam({
         </div>
       )}
 
-      {/* Panneau de détail du monstre sélectionné (vue compacte) */}
-      {!expanded && detailIdx !== null && team.slots[detailIdx]?.gear && (
+      {/* Panneau de détail du monstre sélectionné (vue compacte).
+          ⚠️ L'équipement REÇU d'un fichier le dit : sans la mention, on le
+          prendrait pour ses propres runes. */}
+      {!expanded && detailIdx !== null && (team.slots[detailIdx]?.gear ?? team.slots[detailIdx]?.gearPartage) && (
         <div className="mt-2 rounded-xl border border-border bg-panel/40 p-3">
-          <MonsterGear gear={team.slots[detailIdx].gear!} />
+          {!team.slots[detailIdx].gear && (
+            <p className="mb-2 text-micro text-ink-dim">Équipement de l'auteur du fichier.</p>
+          )}
+          <MonsterGear gear={(team.slots[detailIdx].gear ?? team.slots[detailIdx].gearPartage)!} />
         </div>
       )}
 
@@ -732,7 +714,7 @@ export default function SiegeTeam({
                 taille="sm"
                 fond="vide"
                 trait="aucun"
-                // Le chronomètre de l'outil qu'il ouvre (rebranding, décision 44).
+                // Le chronomètre de l'outil qu'il ouvre.
                 icone={<IconeSpeedTuning size={14} />}
                 libelle="Voir le speed tune"
                 libelleCourt="Speed tune"
@@ -747,7 +729,7 @@ export default function SiegeTeam({
 }
 
 // Préréglage de `Bouton` : le marqueur d'état unique de l'app (contour
-// d'accent + fond léger, voir spec/shared/design.md) vient du composant via
+// d'accent + fond léger, voir docs/03-developpeur/interface/) vient du composant via
 // `actif`. Ne reste ici que ce qui est propre à ces pastilles-là : le mono, et
 // le resserrement à trois crans au doigt (cinq pastilles côte à côte dans un
 // slot qui en fait 110).
@@ -834,7 +816,7 @@ function SlotContent({
     return (
       // ⚠️ `min-h` abaissée au doigt : trois slots empilés à 150 px font
       // 450 px d'édition avant même le reste de la page.
-      // ⚠️ Plus de `min-h` à la souris (lot 7a, édition resserrée) : les trois
+      // ⚠️ Plus de `min-h` à la souris (édition resserrée) : les trois
       // slots sont dans une grille, qui les aligne déjà sur le plus haut.
       // `lg:grid-rows-subgrid` : l'étiquette tombe sur la ligne du monstre, le
       // champ de recherche sur celle de la vitesse — alignés sur les voisins.
@@ -870,7 +852,7 @@ function SlotContent({
     onDragStart();
   }
 
-  // ⚠️ **Édition resserrée à la souris** (lot 7a, « revois surtout la partie
+  // ⚠️ **Édition resserrée à la souris** (« revois surtout la partie
   // d'édition ») : la position monte à côté du champ SPD, l'écart au tick au
   // bout de la rangée des ticks — deux lignes de moins par slot. Au doigt, la
   // disposition ne change pas (une correction destinée à un format ne touche
@@ -897,7 +879,7 @@ function SlotContent({
       </Selecteur>
     </>
   );
-  // ⚠️ Couleurs d'ÉTAT sur leur fond doux (rebranding, décision 43) : « manque »
+  // ⚠️ Couleurs d'ÉTAT sur leur fond doux : « manque »
   // en `bad`, « pile au tick » en `good` — ils empruntaient le Feu et l'or du
   // Vent, et ce dernier ne faisait que 3.78 en Atelier. Le bleu de « au-dessus »
   // reste : aucune couleur d'état ne dit « plus que nécessaire, sans faute ».
@@ -950,35 +932,20 @@ function SlotContent({
           <GripVertical size={15} />
         </ZoneCliquable>
         {isLeader && !monster.leaderSkill && <Crown size={13} className="text-star flex-none" />}
-        <div className="relative flex-none">
-          <div
-            className={`hex-frame w-[38px] h-[38px] p-[2px] bg-gradient-to-br
-              compact:w-[32px] compact:h-[32px] ${GRADIENT[monster.element]}`}
-          >
-            <div className="hex-frame w-full h-full bg-panel flex items-center justify-center overflow-hidden">
-              {monster.image ? (
-                <img src={monster.image} alt={monster.name} className="w-full h-full object-cover" />
-              ) : (
-                <span className={`font-display font-bold text-xs ${TEXT[monster.element]}`}>
-                  {initials(monster.name)}
-                </span>
-              )}
-            </div>
-          </div>
-          {isLeader && monster.leaderSkill && <LeadBadge ls={monster.leaderSkill} />}
-        </div>
+        <MonsterAvatar
+          monster={monster}
+          gabarit="div"
+          classeTaille="w-[38px] h-[38px] compact:w-[32px] compact:h-[32px]"
+          classeInitiales="text-xs"
+          element={false}
+          lead={isLeader ? monster.leaderSkill : null}
+        />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
             <span className="truncate text-sm font-semibold leading-tight compact:text-xs">
               {monster.name}
             </span>
-            {slot.sets && slot.sets.length > 0 && (
-              <span className="flex items-center gap-1 flex-none">
-                {slot.sets.slice(0, 3).map((s, i) => (
-                  <RuneIcon key={i} setKey={s} size={18} />
-                ))}
-              </span>
-            )}
+            <SetsPortes sets={slot.sets ?? []} max={3} taille={18} espacement="gap-1" className="flex-none" />
           </div>
           {/* Pastille complète (icône + montant) sous le nom du leader : ici il
               y a la place, donc on montre le chiffre, pas seulement le badge. */}
@@ -1001,7 +968,7 @@ function SlotContent({
             mais confus ») : sur la ligne du monstre, elles disent qu'elles
             déplacent CE monstre. Aux bords, la flèche reste affichée,
             désactivée, et son infobulle dit pourquoi. Au doigt, le sélecteur
-            reste (lot 11). */}
+            reste. */}
         {/* Centrées sur la ligne du monstre, comme la croix — elles étaient
             collées en haut (`self-start`) et flottaient au-dessus du nom. */}
         <span className="hidden flex-none items-center gap-0.5 lg:flex">
@@ -1049,7 +1016,7 @@ function SlotContent({
         {/* Pas de filet au-dessus de la conclusion : essayé, retiré par
             Le mainteneur (« pas besoin de séparateur dans la card »). */}
         <div className="lg:col-span-2 lg:row-start-3 lg:mt-2">
-          {/* ⚠️ 16 px au doigt contre 22 à la souris (26 avant le lot 7a). Le
+          {/* ⚠️ 16 px au doigt contre 22 à la souris. Le
               nom du monstre est la RÉFÉRENCE de ce bloc : la vitesse doit rester
               au-dessus de lui sans l'écraser — un rapport de 1,3 à 1,6 suffit à
               dire « c'est la valeur principale », là où 2,2 en faisait le seul
@@ -1088,7 +1055,7 @@ function SlotContent({
         {/* ⚠️ **Recliquer sur le tick visé l'ENLÈVE** — demandé par le mainteneur,
             avec le retrait du bouton « Off » à la souris : un bouton à deux
             états s'éteint là où on l'a allumé, sans aller chercher un
-            troisième bouton. Au doigt, « Off » reste pour l'instant (lot 11),
+            troisième bouton. Au doigt, « Off » reste pour l'instant,
             et le reclic y marche aussi. */}
         <TickBtn active={tick === 0} onClick={() => onTick(0)} label="Off" className="lg:hidden" />
         {SIEGE_TICKS.map((t) => (

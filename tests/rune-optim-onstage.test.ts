@@ -5,7 +5,7 @@
 //
 // ⚠️ Pourquoi ce fichier existe (discipline `algo-verify`) : `onStage` est
 // une modification du code de PRODUCTION, faite pour un outil de diagnostic
-// (spec/outils/optimizer/harnais.md). La seule garantie qui
+// (docs/03-developpeur/optimizer/). La seule garantie qui
 // compte pour la production est la NON-RÉGRESSION — d'où la première
 // vérification ci-dessous, qui compare le `PreparedSearch` produit avec et
 // sans observateur sur les MÊMES paramètres.

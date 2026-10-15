@@ -2,7 +2,7 @@
 //
 // Six sorts n'ignorent la DEF que lorsque la jauge d'attaque de la cible est à
 // 0. L'ATB adverse n'est pas modélisée : le premier coup qui ignore suit la
-// règle curée (`spec/outils/degats-reels/valeurs-de-jeu-curees.md`) — le coup 1
+// règle curée (`docs/02-app/degats-reels/`) — le coup 1
 // n'ignore jamais, une fois qu'un coup ignore tous les suivants ignorent, le
 // 7ᵉ coup de la variante B ignore toujours ; par défaut, seul ce coup
 // inconditionnel ignore (aucun en variante A).
@@ -405,7 +405,7 @@ export function testBladeDancersRecette() {
   const ecran = readFileSync(resolve(racine, 'src/components/outils/OptimizerSection.tsx'), 'utf8').replace(/\r\n/g, '\n');
   // La ligne lit aussi les `avertissements` du parseur.
   ok(ecran.includes('const { recipe, error, avertissements } = parseOptimizerRecipe(text);'), 'écran : la recette passe par le même `parseOptimizerRecipe`');
-  ok(ecran.includes('setDamageSetup(recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP);'), 'écran : l’import de recette restaure damageSetup entier, rang compris');
+  ok(ecran.includes('poserCriteresAutomatiques({ damageSetup: recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP,'), 'écran : l’import de recette restaure damageSetup entier, rang compris');
   ok(/profile: resolvedSkill,\n\s*setup: damageSetup,\n/.test(ecran), 'écran : le contexte de calcul reçoit damageSetup entier, comme le CLI');
   ok(/buildOptimizerRecipe\(\{[\s\S]*?\n\s*damageSetup,\n/.test(ecran), 'écran : l’export emporte damageSetup entier');
   // Le cache de la file suit le rang : une autre valeur, d'autres scores.

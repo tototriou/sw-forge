@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-// Les compagnons de l'entrée « Ami » de la nav (rebranding, décision 44).
+// Les compagnons de l'entrée « Ami » de la nav.
 import { IconeAmi } from '../IconesAtelier';
 import { Monster } from '../../types';
 import { ImportReport, RtaVueAmi, validateRtaImport, versVueAmi } from '../../lib/rtaShare';

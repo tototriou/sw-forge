@@ -5,7 +5,7 @@ import { runeEfficiency, runeScore } from '../lib/effects';
 // Mesure de la qualité d'une rune, au choix de l'utilisateur :
 //  - `eff`   : efficience (convention communautaire, principale incluse, /2,8) ;
 //  - `score` : score SW, celui affiché dans le jeu (secondaires uniquement).
-// Voir spec/compte/calcul-runes.md §3 et §3 bis.
+// Voir docs/02-app/compte/ §3 et §3 bis.
 export type RuneMetric = 'eff' | 'score';
 
 export const RUNE_METRICS: { key: RuneMetric; label: string; hint: string }[] = [

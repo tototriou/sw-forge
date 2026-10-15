@@ -1,11 +1,12 @@
 import { useMemo, useState } from 'react';
 import { X, ChevronDown, EyeOff } from 'lucide-react';
-// Les compagnons de l'entrée « Ami » de la nav (rebranding, décision 44).
+// Les compagnons de l'entrée « Ami » de la nav.
 import { IconeAmi } from '../IconesAtelier';
 import { RtaEntry, Monster, sectionLabel, sectionAccent, RTA_UNASSIGNED, RTA_OTHER } from '../../types';
 import { RtaVueAmi } from '../../lib/rtaShare';
-import ElementIcon from '../ElementIcon';
+import MonsterAvatar from '../MonsterAvatar';
 import RuneIcon from '../RuneIcon';
+import SetsPortes from '../SetsPortes';
 import MonsterGear from '../MonsterGear';
 import AccordionGrid from '../AccordionGrid';
 import CategoryRing from './CategoryRing';
@@ -28,33 +29,6 @@ import { Bouton, ZoneCliquable } from '../../ui';
  */
 
 const SPD_ICON = `${import.meta.env.BASE_URL}stats/spd.png`;
-
-const TEXT: Record<string, string> = {
-  fire: 'text-fire',
-  water: 'text-water',
-  wind: 'text-wind',
-  light: 'text-light',
-  dark: 'text-dark',
-  unknown: 'text-unknown',
-};
-const GRADIENT: Record<string, string> = {
-  fire: 'from-fire to-panel2',
-  water: 'from-water to-panel2',
-  wind: 'from-wind to-panel2',
-  light: 'from-light to-panel2',
-  dark: 'from-dark to-panel2',
-  unknown: 'from-unknown to-panel2',
-};
-
-function initials(name: string) {
-  return name
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((w) => w[0])
-    .join('')
-    .toUpperCase();
-}
 
 // Carte en LECTURE : ni poignée de drag, ni croix, ni sélecteur de section —
 // aucun de ces gestes n'a de sens sur la prépa de quelqu'un d'autre.
@@ -85,33 +59,22 @@ function CarteAmi({
     <div
       title={libelles.length > 0 ? libelles.join(' · ') : undefined}
       className={`relative rounded-xl border bg-panel transition-colors ${
-        // Bordure seule, sans anneau superposé — voir spec/shared/design.md.
-        // Même gabarit que la carte de « Ma prépa » (RtaCard, lot 6).
+        // Bordure seule, sans anneau superposé — voir docs/03-developpeur/interface/.
+        // Même gabarit que la carte de « Ma prépa » (RtaCard).
         open ? 'border-accent' : 'border-border-soft'
       }`}
     >
       <CategoryRing colors={couleurs} radius="rounded-xl" />
       <div className="flex items-center gap-2 p-1.5">
-        <div className={`relative flex-none ${hasGear ? 'cursor-pointer' : ''}`} onClick={onToggle}>
-          <div
-            className={`hex-frame w-[50px] h-[50px] p-[2px] bg-gradient-to-br ${GRADIENT[monster.element]}`}
-          >
-            <div className="hex-frame w-full h-full bg-panel flex items-center justify-center overflow-hidden">
-              {monster.image ? (
-                <img src={monster.image} alt={monster.name} className="w-full h-full object-cover" />
-              ) : (
-                <span className={`font-display font-bold text-sm ${TEXT[monster.element]}`}>
-                  {initials(monster.name)}
-                </span>
-              )}
-            </div>
-          </div>
-          <ElementIcon
-            element={monster.element}
-            size={16}
-            className="absolute -top-1 -right-1 drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)]"
-          />
-        </div>
+        <MonsterAvatar
+          monster={monster}
+          gabarit="div"
+          classeTaille="w-[50px] h-[50px]"
+          className={hasGear ? 'cursor-pointer' : ''}
+          onClick={onToggle}
+          classeInitiales="text-sm"
+          tailleElement={16}
+        />
 
         <div className="min-w-0 flex-1">
           {/* ⚠️ Une ZONE, pas un bouton : c'est la ligne entière de la carte qui
@@ -145,11 +108,7 @@ function CarteAmi({
               />
             )}
           </ZoneCliquable>
-          <div className="mt-1 flex items-center gap-1">
-            {(entry.sets ?? []).slice(0, 3).map((s, i) => (
-              <RuneIcon key={i} setKey={s} size={16} className="flex-none" />
-            ))}
-          </div>
+          <SetsPortes sets={entry.sets ?? []} max={3} taille={16} espacement="gap-1" className="mt-1" garderVide />
         </div>
       </div>
     </div>
@@ -239,7 +198,7 @@ export default function RtaFriendView({ vue, onClose }: { vue: RtaVueAmi; onClos
     const gear = openIndex >= 0 ? items[openIndex].entry.gear : undefined;
 
     return (
-      // Même gabarit que les sections de « Ma prépa » (RtaSection, lot 6) : pas
+      // Même gabarit que les sections de « Ma prépa » (RtaSection) : pas
       // de cadre, un en-tête prolongé d'un filet.
       <section key={key} className="p-2">
         <div className="mb-2.5 flex items-center gap-2.5">
@@ -422,26 +381,14 @@ function OrdreTransmis({ items }: { items: { monster: Monster; rang?: number }[]
             </span>
 
             <div className="flex flex-col items-center gap-1.5">
-              <div className="relative">
-                <div
-                  className={`hex-frame w-[46px] h-[46px] p-[2px] bg-gradient-to-br ${GRADIENT[m.element]}`}
-                >
-                  <div className="hex-frame w-full h-full bg-panel flex items-center justify-center overflow-hidden">
-                    {m.image ? (
-                      <img src={m.image} alt={m.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <span className={`font-display font-bold text-sm ${TEXT[m.element]}`}>
-                        {initials(m.name)}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <ElementIcon
-                  element={m.element}
-                  size={15}
-                  className="absolute -top-1 -right-1 drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)]"
-                />
-              </div>
+              <MonsterAvatar
+                monster={m}
+                gabarit="div"
+                classeRacine=""
+                classeTaille="w-[46px] h-[46px]"
+                classeInitiales="text-sm"
+                tailleElement={15}
+              />
               <span
                 className="w-full text-center text-micro font-semibold leading-tight truncate"
                 title={m.name}

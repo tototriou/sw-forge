@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Plus, Trash2, Swords, Wand2 } from 'lucide-react';
+import { Plus, Trash2, Swords, Wand2, Upload } from 'lucide-react';
 import {
   Monster,
   ElementKey,
@@ -35,8 +35,14 @@ import RuneIcon from '../components/RuneIcon';
 import IndicateurSauvegarde from '../components/rta/IndicateurSauvegarde';
 import { useNotifier } from '../ui/Notification';
 import type { RtaSub } from '../App';
+import type { ActionImportOptimizer } from '../lib/actionImportOptimizer';
+import type { ExclusionSourceData } from '../lib/optimizerExclusion';
+import { importerPrepaRtaOptimizer } from '../lib/importEquipes';
 
 interface Props {
+  onImporterEquipe: ActionImportOptimizer;
+  sourcesOptimizer: ExclusionSourceData;
+  compteCharge: boolean;
   // Sous-onglet courant, déduit du hash (voir App.tsx). « Ma prépa » est la
   // sienne ; « Ami » consulte celle de quelqu'un d'autre, en lecture.
   sub: RtaSub;
@@ -58,6 +64,9 @@ function totalSpeed(it: TurnItem): number | null {
 }
 
 export default function RtaPage({
+  onImporterEquipe,
+  sourcesOptimizer,
+  compteCharge,
   sub,
   rta,
   monsters,
@@ -68,6 +77,10 @@ export default function RtaPage({
   menuOuvert,
   onFermerMenu,
 }: Props) {
+  const exportDisponible = useMemo(() => importerPrepaRtaOptimizer(sourcesOptimizer).membres.length > 0, [sourcesOptimizer]);
+  const raisonExport = !compteCharge ? 'Importe un compte pour exporter vers l’Optimizer.'
+    : !exportDisponible ? 'Aucun monstre importable dans la prépa RTA.' : undefined;
+  const exporterOptimizer = () => onImporterEquipe(importerPrepaRtaOptimizer);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [newSection, setNewSection] = useState('');
   // Un seul détail de runes ouvert à la fois, toutes sections confondues.
@@ -112,7 +125,7 @@ export default function RtaPage({
   const addedIds = useMemo(() => new Set(Object.keys(rta.state.entries)), [rta.state.entries]);
 
   // Catégories libres (« Striper », « Lead SPD »…) : lecture transversale de la
-  // box, en plus du classement par set. Voir ../../spec/rta/categories.md.
+  // box, en plus du classement par set. Voir ../../docs/02-app/rta/.
   const cats = useRtaCategories();
   // Point de restauration manuel (« Sauvegarder » / « Reprendre »), distinct de
   // la conservation automatique. Voir hooks/useRtaBackup.ts.
@@ -169,8 +182,8 @@ export default function RtaPage({
   // Destinations proposées dans le sélecteur des cartes (repli tactile du drag).
   const moveTargets = [RTA_UNASSIGNED, ...rta.state.sections];
 
-  // Retirer un monstre de la prépa SE DÉFAIT au lieu de se confirmer (lot 13,
-  // décision 29) : le retrait est immédiat, et la notification « Annuler »
+  // Retirer un monstre de la prépa SE DÉFAIT au lieu de se confirmer : le retrait est
+  // immédiat, et la notification « Annuler »
   // remet l'entrée telle quelle — section, vitesse saisie, sets, équipement.
   const notifier = useNotifier();
   function retirerMonstre(id: string) {
@@ -240,7 +253,7 @@ export default function RtaPage({
 
   const runeSections = rta.state.sections;
 
-  // Filtre par section AU TÉLÉPHONE (lot 13, décision 28, la maquette) : une
+  // Filtre par section AU TÉLÉPHONE (la maquette) : une
   // seule section affichée, ou toutes (`null`). ⚠️ Affichage seulement —
   // l'ordre de tour et la prépa ne changent pas. Non persisté. Une section
   // supprimée pendant qu'elle est choisie ramène à « Tous ».
@@ -326,20 +339,20 @@ export default function RtaPage({
 
   return (
     <div>
-      {/* ---- En-tête BUREAU (refonte graphique, lot 6, décision 13) ----------
+      {/* ---- En-tête BUREAU ----------
           Le titre, le compteur, « Exporter » et le menu « ⋯ » qui porte les
           autres actions : Sauvegarder, Reprendre, Importer une prépa, Créer un
           monstre, puis — séparés — Réinitialiser et Tout effacer. Elles
           s'alignaient en deux rangées de boutons au-dessus de la prépa.
           ⚠️ `hidden lg:flex` : le téléphone garde son compteur et son panneau
-          d'actions, inchangés (lot 11). */}
+          d'actions, inchangés. */}
       <div className="mb-4 hidden flex-wrap items-center gap-x-3 gap-y-1 lg:flex">
-        {/* Cinzel, comme tous les titres de l'app (décision 1). */}
+        {/* Cinzel, comme tous les titres de l'app. */}
         <h1 className="font-display text-xl tracking-wide text-ink">Ma prépa</h1>
         <span className="rounded-full border border-border-soft bg-panel2 px-2 py-0.5 font-mono text-micro text-ink-dim">
           {compteur}
         </span>
-        {/* « Sauvegardé il y a … » (lot 13, décision 29) : la prépa ET ses
+        {/* « Sauvegardé il y a … » : la prépa ET ses
             catégories, écrites à chaque changement. */}
         <IndicateurSauvegarde prepa={rta.state} categories={cats.categories} />
         {/* Pas d'espaceur : la barre d'actions prend elle-même la place
@@ -353,6 +366,8 @@ export default function RtaPage({
           onCreateMonster={onCreateMonster}
           disposition="menu"
           entreesEnPlus={[
+            { cle: 'optimizer', libelle: "Exporter vers l'Optimizer", icone: <Upload size={14} />,
+              disabled: !!raisonExport, title: raisonExport, onClick: exporterOptimizer },
             {
               cle: 'creer',
               libelle: 'Créer un monstre',
@@ -453,6 +468,9 @@ export default function RtaPage({
               qu'aucune ne paraisse plus importante. */}
           {creation}
 
+          <Bouton libelle="Exporter vers l'Optimizer" icone={<Upload size={14} />}
+            disabled={!!raisonExport} title={raisonExport} onClick={exporterOptimizer} />
+
           <div data-grille-actions className="flex flex-col gap-1.5">
             <RtaBackupBar
               rta={rta}
@@ -485,7 +503,7 @@ export default function RtaPage({
         <p className="mt-4 text-ink-dim text-sm">Chargement des monstres…</p>
       )}
 
-      {/* ⚠️ **Filtre par section, au TÉLÉPHONE** (lot 13, décision 28, la
+      {/* ⚠️ **Filtre par section, au TÉLÉPHONE** (la
           maquette) : « Tous », « Non classé », puis chaque section, avec son
           nombre de monstres. Une rangée qui DÉFILE en largeur, jamais à la
           ligne — elle ne pousse pas les sections vers le bas. */}

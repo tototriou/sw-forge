@@ -1,6 +1,6 @@
 // Le dossier SW Exporter — ce qui se décide sans toucher au disque (pur, testé
-// par tests/bureau-swex.test.ts). Chantier application-bureau, lot 9,
-// décision 15. Le disque et la surveillance : bureau/swex.ts.
+// par tests/bureau-swex.test.ts). Le disque et la
+// surveillance : bureau/swex.ts.
 
 // Un export de compte, tel que SW Exporter le nomme à la RACINE de son
 // dossier : `<invocateur>-<identifiant>.json` (`tototriou-12889591.json`). Le
@@ -51,7 +51,7 @@ export function lireReglage(brut: unknown): ReglageSwex {
 // Faut-il donner le fichier à la page ? `nouveau` : un export plus récent que
 // le dernier appliqué (la page l'annonce). Sinon, au chargement d'une page
 // SANS compte (conservation refusée), on le redonne en silence : le compte
-// « se relit du dossier au lancement » (décision 15).
+// « se relit du dossier au lancement ».
 export function aDonner(
   modifie: number,
   dernierLu: number | null,

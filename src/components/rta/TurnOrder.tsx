@@ -1,11 +1,11 @@
 import { useMemo, useState } from 'react';
 import { X } from 'lucide-react';
 import { Monster, RtaEntry } from '../../types';
-import ElementIcon from '../ElementIcon';
+import MonsterAvatar from '../MonsterAvatar';
 import CategoryRing from './CategoryRing';
 import NumberField from '../../ui/NumberField';
 import { RtaCategory } from '../../hooks/useRtaCategories';
-import RuneIcon from '../RuneIcon';
+import SetsPortes from '../SetsPortes';
 import { SPEED_LEADS, speedLeadOf } from '../../lib/speed';
 import { useStickyState } from '../../hooks/useStickyState';
 import { InterrupteurAffichage } from './CategoryBar';
@@ -15,23 +15,6 @@ import { ConfirmDialog } from '../../ui/Dialogs';
 
 const SPD_ICON = `${import.meta.env.BASE_URL}stats/spd.png`;
 
-const RING: Record<string, string> = {
-  fire: 'from-fire to-panel2',
-  water: 'from-water to-panel2',
-  wind: 'from-wind to-panel2',
-  light: 'from-light to-panel2',
-  dark: 'from-dark to-panel2',
-  unknown: 'from-unknown to-panel2',
-};
-const TEXT: Record<string, string> = {
-  fire: 'text-fire',
-  water: 'text-water',
-  wind: 'text-wind',
-  light: 'text-light',
-  dark: 'text-dark',
-  unknown: 'text-unknown',
-};
-
 // ⚠️ **Les boutons de lead viennent de la PRÉPA, pas d'une liste figée.**
 // Simuler un +33 % quand aucun monstre de sa box ne le porte n'apprend rien ; à
 // l'inverse, une liste en dur oublie les leads des sorties récentes. On propose
@@ -40,7 +23,7 @@ const TEXT: Record<string, string> = {
 // ⚠️ Seuls comptent les leads qui s'appliquent **en RTA sans condition** : un
 // lead d'élément ne profite qu'aux alliés du bon élément, or la simulation
 // applique la valeur à TOUT le monde — le proposer induirait en erreur. Même
-// règle que pour la catégorie « Lead SPD » (voir ../../spec/rta/categories.md).
+// règle que pour la catégorie « Lead SPD » (voir docs/02-app/rta/).
 const AIRES_RTA = new Set(['General', 'Arena']);
 
 function leadsDeLaPrepa(items: TurnItem[]): number[] {
@@ -54,10 +37,6 @@ function leadsDeLaPrepa(items: TurnItem[]): number[] {
 
 // Totem de vitesse de guilde : +15% de vitesse de base pour tous, toujours actif.
 const TOTEM = 15;
-
-function initials(name: string) {
-  return name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
-}
 
 export interface TurnItem {
   monster: Monster;
@@ -73,7 +52,7 @@ interface Props {
   onRuneSpeed?: (id: string, value: number | null) => void;
   // Catégories de la prépa : l'ordre de tour doit porter les MÊMES couleurs que
   // les cartes, sinon on perd le repère au moment où il sert le plus (voir
-  // ../../spec/rta/categories.md).
+  // docs/02-app/rta/).
   categories?: RtaCategory[];
   // Interrupteur des couleurs, RÉPÉTÉ ici : l'ordre de tour est en bas de page,
   // et remonter tout en haut juste pour couper les anneaux est absurde.
@@ -176,7 +155,7 @@ export default function TurnOrder({
   // Ce qu'on protège ici est plus discret : la rangée se RÉORDONNE au retrait, et
   // le bouton voisin vient prendre la place de celui qu'on a visé. Un clic
   // légèrement à côté enlève donc le mauvais lead, et on ne s'en aperçoit
-  // qu'après. Voir spec/README.md — toute suppression se confirme.
+  // qu'après. Voir docs/03-developpeur/ — toute suppression se confirme.
   const [leadASupprimer, setLeadASupprimer] = useState<number | null>(null);
 
   const leads = useMemo(() => {
@@ -436,11 +415,17 @@ export default function TurnOrder({
                 // ⚠️ **Deux gabarits selon le POINTEUR, la refonte de cette
                 // section ne visant QUE le doigt.** Au clavier/à la souris, la
                 // carte garde son rendu d'avant, à l'identique — voir
-                // spec/shared/deux-applications.md.
+                // docs/03-developpeur/interface/.
+                //
+                // ⚠️ Souris : marge droite de 2 px (`pr-0.5`), pas 8. Avec trois
+                // sets et une vitesse à trois chiffres, la rangée vitesse + sets
+                // fait 106 px : elle débordait de sa colonne de 6 px dans la
+                // marge vide de la carte. La colonne a maintenant la place de ce
+                // qui y était déjà dessiné — rien ne bouge à l'écran.
                 className={`relative flex-none rounded-xl border border-border transition-colors ${
                   surMobile
                     ? 'w-[104px] p-1.5 flex flex-col items-center gap-1'
-                    : 'w-[168px] p-2 flex flex-col gap-1.5'
+                    : 'w-[168px] p-2 pr-0.5 flex flex-col gap-1.5'
                 } ${moved ? 'bg-warn/20' : 'bg-panel2'}`}
               >
                 <CategoryRing colors={catsOf(String(m.id)).map((c) => c.color)} radius="rounded-xl" />
@@ -459,26 +444,13 @@ export default function TurnOrder({
                         d'un coup d'œil dans une grille dense, c'est l'image —
                         comme dans le jeu, comme la grille de choix de catégorie
                         (voir CategoryBar). Le nom reste dans le `title`. */}
-                    <div className="relative flex-none">
-                      <div
-                        className={`hex-frame w-[42px] h-[42px] p-[2px] bg-gradient-to-br ${RING[m.element]}`}
-                      >
-                        <div className="hex-frame w-full h-full bg-panel flex items-center justify-center overflow-hidden">
-                          {m.image ? (
-                            <img src={m.image} alt={m.name} className="w-full h-full object-cover" />
-                          ) : (
-                            <span className={`font-display font-bold text-sm ${TEXT[m.element]}`}>
-                              {initials(m.name)}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <ElementIcon
-                        element={m.element}
-                        size={15}
-                        className="absolute -top-1 -right-1 drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)]"
-                      />
-                    </div>
+                    <MonsterAvatar
+                      monster={m}
+                      gabarit="div"
+                      classeTaille="w-[42px] h-[42px]"
+                      classeInitiales="text-sm"
+                      tailleElement={15}
+                    />
 
                     {showSpeed && (
                       <div className="flex items-center gap-1">
@@ -489,13 +461,7 @@ export default function TurnOrder({
                       </div>
                     )}
 
-                    {(it.entry.sets ?? []).length > 0 && (
-                      <div className="flex items-center justify-center gap-0.5">
-                        {(it.entry.sets ?? []).slice(0, 3).map((s, si) => (
-                          <RuneIcon key={si} setKey={s} size={14} className="flex-none" />
-                        ))}
-                      </div>
-                    )}
+                    <SetsPortes sets={it.entry.sets ?? []} max={3} taille={14} espacement="gap-0.5" className="justify-center" />
 
                     {/* Saisie de la vitesse des runes — seulement sur SA prépa.
                         ⚠️ **`boxWidth="w-full"`, pas `width`.** Les deux
@@ -525,26 +491,13 @@ export default function TurnOrder({
                   <>
                     <div className="flex items-center gap-2">
                       {/* portrait */}
-                      <div className="relative flex-none">
-                        <div
-                          className={`hex-frame w-[42px] h-[42px] p-[2px] bg-gradient-to-br ${RING[m.element]}`}
-                        >
-                          <div className="hex-frame w-full h-full bg-panel flex items-center justify-center overflow-hidden">
-                            {m.image ? (
-                              <img src={m.image} alt={m.name} className="w-full h-full object-cover" />
-                            ) : (
-                              <span className={`font-display font-bold text-sm ${TEXT[m.element]}`}>
-                                {initials(m.name)}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        <ElementIcon
-                          element={m.element}
-                          size={15}
-                          className="absolute -top-1 -right-1 drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)]"
-                        />
-                      </div>
+                      <MonsterAvatar
+                        monster={m}
+                        gabarit="div"
+                        classeTaille="w-[42px] h-[42px]"
+                        classeInitiales="text-sm"
+                        tailleElement={15}
+                      />
 
                       <div className="min-w-0 flex-1">
                         <div className="text-xs font-semibold leading-tight truncate" title={m.name}>
@@ -559,9 +512,8 @@ export default function TurnOrder({
                               </span>
                             </>
                           )}
-                          {(it.entry.sets ?? []).slice(0, 3).map((s, si) => (
-                            <RuneIcon key={si} setKey={s} size={16} className="flex-none" />
-                          ))}
+                          {/* Même écart que les voisins de la ligne (`gap-1`). */}
+                          <SetsPortes sets={it.entry.sets ?? []} max={3} taille={16} espacement="gap-1" className="flex-none" />
                         </div>
                       </div>
                     </div>

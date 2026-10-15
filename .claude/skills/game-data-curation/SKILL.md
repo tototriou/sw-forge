@@ -1,6 +1,6 @@
 ---
 name: game-data-curation
-description: Discipline à suivre pour toute MÉCANIQUE DE JEU modélisée dans SW Blacksmith — tables `*_CONNUS` de damage.ts, règles déduites des données SWARFARM, et tout comportement supposé par ressemblance avec un autre. Les champs de données mentent, la prose n'est pas un discriminant, une liste fournie de mémoire n'est jamais le corpus, et une mécanique voisine ne se déduit jamais par analogie. Contient aussi la recette pour DEMANDER un relevé en jeu exploitable.
+description: "Modéliser une mécanique de jeu dans SW Blacksmith. À utiliser dès qu'on touche une table *_CONNUS de damage.ts, qu'on tire une règle des données SWARFARM ou de la prose d'un sort, qu'on suppose un comportement par ressemblance avec un autre, ou qu'on demande un relevé en jeu."
 ---
 
 # Modéliser une mécanique de jeu (SW Blacksmith)
@@ -184,9 +184,19 @@ doit dire à quoi il sert. Le cas idéal existe parfois : Kobold Bomber porte
 `Firecracker` (frappe) **et** `Time Bomb` (pose) — un seul monstre, deux
 résultats opposés, le discriminant est verrouillé par construction.
 
+## Les raisonnements qui mènent à l'erreur
+
+| On se dit | En réalité | Voir |
+|---|---|---|
+| « Le sort a un ratio et des coups dans les données : c'est une attaque. » | Un soin ou un bouclier proportionnel en a aussi : la prose doit parler d'attaque ou de dégâts. Mais une vieille prose laconique peut taire un vrai coup : sans mot d'attaque ni description contraire, la question va à l'utilisateur, le sort n'est pas masqué d'office. | § 2, § 4 |
+| « Ce monstre ressemble à celui qu'on a déjà traité : même mécanique. » | Une mécanique voisine ne se déduit pas. Seule exception : deux monstres reliés par `jumeauCollab` (même `skillGroupId`, version Summoners War et version collab) ont la même mécanique, et une réponse donnée pour l'un vaut pour l'autre. | § 6 ter |
+| « Ce build ne remplit pas ses sets : une de ses runes est d'un autre set. » | Une rune Intangible est un joker : elle complète n'importe quel set. | — |
+| « La liste que j'ai en tête couvre les cas. » | Une liste fournie de mémoire n'est jamais le corpus : on la tire des données. | § 1 |
+| « L'utilisateur l'a confirmé : c'est acquis. » | Une confirmation n'est pas une preuve ; un relevé en jeu l'est, et seul un test protège l'entrée curée. | § 7, § 8 |
+
 ## Voir aussi
 
-- `spec/outils/degats-reels.md` — le modèle de dégâts et ses corrections,
+- `docs/02-app/degats-reels/` — le modèle de dégâts et ses corrections,
   avec les relevés en jeu qui les fondent.
 - `algo-verify` — discipline de correction ALGORITHMIQUE (recherche
   combinatoire) ; ce skill-ci porte sur la fidélité aux DONNÉES, pas sur

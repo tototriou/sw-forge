@@ -9,7 +9,7 @@
 //
 // bucketCap et slotFilterCap restent FIXES aux valeurs de production
 // (5000 et 80, le preset « Moyen » — voir
-// spec/outils/optimizer/moteur/elagages.md,
+// docs/03-developpeur/optimizer/,
 // « Pré-filtrage heuristique et compartiments ») — seul le budget de collecte
 // (`maxCollected`) varie, avec un temps de mur mesuré à chaque palier pour
 // vérifier qu'on reste bien dans l'ordre de grandeur annoncé.

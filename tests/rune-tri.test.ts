@@ -1,4 +1,4 @@
-// Tris de l'inventaire de runes — ceux du JEU (voir spec/compte/runes.md).
+// Tris de l'inventaire de runes — ceux du JEU (voir docs/02-app/compte/).
 //
 // Deux règles se trompent facilement et ne se voient pas à l'œil sur 2 000
 // runes : « avant meule » doit DÉDUIRE la meule (deux runes à 20 % ne se valent

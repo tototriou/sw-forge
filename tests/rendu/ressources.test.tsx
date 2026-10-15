@@ -1,8 +1,8 @@
 // Tests de rendu — Ressources (Bestiaire, Mécaniques, Nouveautés), Paramètres
 // et « Bientôt disponible ». Principe dans tests/rendu/outils-rendu.tsx : on
 // vérifie que chaque fonctionnalité et chaque information sont présentes,
-// jamais l'apparence. Écrits AVANT le lot 10 de la refonte graphique : ils
-// doivent rester verts sans qu'une assertion change.
+// jamais l'apparence : un changement de style doit les laisser verts sans
+// qu'une assertion change.
 //
 // ⚠️ Aucun chiffre qui bouge avec les données : le nombre de monstres suit
 // `monsters.json`, les versions suivent `data/releases.ts`. Les attendus en
@@ -40,7 +40,7 @@ export function testRenduBestiaire() {
   const t = texteVisible(html);
   const b = boutons(html);
   ok(valeurs(html, 'placeholder').includes('Rechercher un monstre par nom…'), 'la recherche par nom');
-  // ⚠️ Lot 10 : « contient » au lieu de « commence par » — l'en-tête
+  // ⚠️ « contient » au lieu de « commence par » — l'en-tête
   // « Bestiaire » précède désormais les filtres ; leur suite, tri compris, ne
   // change pas.
   ok(t.includes('Élément Feu Eau Vent Lumière Ténèbres Autre Étoiles 1★ 2★ 3★ 4★ 5★ 6★ Tri interne'), 'les filtres : élément, étoiles, tri');
@@ -72,9 +72,10 @@ export function testRenduMecaniques() {
     'Vitesse = ⌈ Base × (1 + Σ%vitesse) + Σvitesse_plate ⌉ × Slow × BuffVit',
     'ΔATB par tick = Vitesse_combat × 7 / 100',
     'Dégâts = ( Mult × Crit × DMG% × FacteurDéf × Variance + Additionnel ) × Réductions',
-    'FacteurDéf = 1000 / (1140 + 3.5 × DEF)',
+    'FacteurDéf = 1000 / (1142 + 3.572 × DEF)',
     'Mise à l’échelle sur stats : ±2.8 % → [0.972 , 1.028]',
   ]) ok(t.includes(f), `formule « ${f.slice(0, 40)}… »`);
+  ok(t.includes('Les 7 % valent partout, sauf en raid (4,5 %) et en RTA (1,5 %).'), 'la taille du tick et ses deux exceptions');
   ok(t.endsWith('Ces effets ne sont pas modélisés dans SW Blacksmith (qui se concentre sur la vitesse, les ticks et les runes).'), 'ce qui n\'est pas modélisé');
 }
 
@@ -100,7 +101,7 @@ export function testRenduParametres() {
   const avec = rendreParametres('Tototriou');
   const t = texteVisible(vide);
   const b = boutons(vide);
-  // ⚠️ Lot 10 : « contient » au lieu de « commence par » — le titre
+  // ⚠️ « contient » au lieu de « commence par » — le titre
   // « Paramètres » précède désormais l'introduction ; la suite ne change pas.
   ok(t.includes('Ces réglages valent pour toute l\'application et restent sur cet appareil. Compte Aucun compte chargé Importer un JSON'), 'sans compte : « Aucun compte chargé », et l\'import');
   ok(texteVisible(avec).includes('Compte chargé Tototriou Importer un JSON'), 'avec un compte : son nom');

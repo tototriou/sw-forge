@@ -1,5 +1,4 @@
 import {
-  Crown,
   Trash2,
   Pencil,
   Upload,
@@ -51,10 +50,11 @@ import {
 } from '../../lib/effects';
 import { UseRecoState } from '../../hooks/useSiegeRecos';
 import RuneIcon from '../RuneIcon';
+import SetsPortes from '../SetsPortes';
 import MonsterPicker from '../MonsterPicker';
 import { JetonSlot, prochainFocus } from './slotVideSuivant';
 import MonsterAvatar from '../MonsterAvatar';
-import LeadPill, { LeadBadge } from './LeadPill';
+import LeadPill from './LeadPill';
 import { SIEGE_TICKS, TICK_ABOVE_MARGIN, ficheSpeedForTick, siegeLeadFor, speedLeadOf } from '../../lib/speed';
 import {
   ContenuDeck,
@@ -83,7 +83,7 @@ import {
 //
 // La vitesse de COMBAT reste affichée là où elle décide de quelque chose : sur
 // les cartes d'équipe de siège et dans le speed tuning, où l'ordre de tour se
-// joue. Voir ../../spec/siege/recommandations.md.
+// joue. Voir docs/02-app/siege/.
 
 
 // Nom d'un deck : les noms de ses monstres séparés par un tiret
@@ -114,6 +114,8 @@ export interface OffenseChoice {
 }
 
 interface Props {
+  raisonsExportOptimizer: (string | undefined)[];
+  onExporterDeckOptimizer: (deck: RecoDeck) => void;
   reco: Reco;
   index: number;
   monsters: Monster[];
@@ -152,6 +154,8 @@ const AURA: Record<string, string> = {
 };
 
 export default function RecoCard({
+  raisonsExportOptimizer,
+  onExporterDeckOptimizer,
   reco,
   index,
   monsters,
@@ -493,7 +497,7 @@ export default function RecoCard({
             />
             {/* ⚠️ Pas `actif` (le marqueur d'état standard) : le ✓ DORÉ
                 (`text-star`) est la convention DOCUMENTÉE de l'édition en
-                cours sur cette page entière (voir spec/siege/recommandations.md
+                cours sur cette page entière (voir docs/02-app/siege/
                 §« icônes d'action »), reprise plus bas sur chaque deck et
                 chaque défense — la changer ici la briserait partout ailleurs.
                 La couleur est posée sur l'ICÔNE, pas sur le bouton : le bouton
@@ -710,6 +714,8 @@ export default function RecoCard({
       {/* Vue Défense : les défenses visées, et les offenses qui les battent. */}
       {expanded && enVueDefense && (
         <TableauDefenses
+          raisonsExportOptimizer={raisonsExportOptimizer}
+          onExporterDeckOptimizer={onExporterDeckOptimizer}
           reco={reco}
           vue={defenses}
           match={match}
@@ -794,6 +800,8 @@ export default function RecoCard({
                   }}
                 >
                   <DeckBlock
+                    raisonExportOptimizer={raisonsExportOptimizer[di]}
+                    onExporterOptimizer={() => onExporterDeckOptimizer(deck)}
                     reco={reco}
                     deck={deck}
                     deckIndex={di}
@@ -1164,7 +1172,7 @@ function AnalysisSummary({
           fois), d'où des boutons indépendants et non un `Segmented`, qui dirait
           que les choix s'excluent (voir ui/Segmented.tsx).
           ⚠️ La BORDURE marque l'actif, jamais un aplat plein : c'est la règle
-          des pastilles de filtre (voir spec/shared/design.md).
+          des pastilles de filtre (voir docs/03-developpeur/interface/).
           Un verdict sans aucun deck est affiché GRISÉ et non retiré : on voit
           qu'il n'y en a aucun, au lieu de chercher un bouton disparu.
           ⚠️ **Colorées AU REPOS, comme les pastilles des decks en dessous**
@@ -1369,6 +1377,8 @@ const BOUTON_LG = 'lg:h-7';
 // ressortaient pas. Ils gardent le fond d'un bouton et le bord POINTILLÉ d'un ajout.
 
 function DeckBlock({
+  raisonExportOptimizer,
+  onExporterOptimizer,
   reco,
   deck,
   deckIndex,
@@ -1385,6 +1395,8 @@ function DeckBlock({
   recos,
   onSupprime,
 }: {
+  raisonExportOptimizer?: string;
+  onExporterOptimizer: () => void;
   reco: Reco;
   deck: RecoDeck;
   deckIndex: number;
@@ -1450,7 +1462,15 @@ function DeckBlock({
         lg:rounded-none lg:border-0 lg:border-t lg:border-border-soft lg:bg-transparent lg:px-3 lg:py-2
         ${LIGNE_DECK} lg:gap-y-0`}
     >
-      <div className="mb-2 lg:contents">
+      {/* ⚠️ **Au doigt, une grille de deux colonnes** : à gauche la rangée
+          (chevron, portraits, « Fort contre »), les sets visés dessous et le
+          verdict sous le tout ; à droite, sur la hauteur de la rangée et des
+          sets, la COLONNE d'actions (Supprimer, Éditer, Exporter). Sur une
+          seule ligne, à 360 px, les trois icônes prenaient la place des
+          portraits, qui se chevauchaient (chantier `defauts-affichage`,
+          lot 4). À la souris, `lg:contents` : rien ne change, ses enfants se
+          posent dans la grille de la ligne. */}
+      <div className="mb-2 max-lg:grid max-lg:grid-cols-[minmax(0,1fr)_auto] max-lg:gap-x-2 lg:contents">
         {/* ⚠️ **Rangée à part, jamais mêlée au verdict/copies en dessous** :
             le crayon doit rester en HAUT À DROITE quel que soit l'état du
             deck. Le mettre dans la même rangée flex-wrap que le verdict le
@@ -1458,7 +1478,17 @@ function DeckBlock({
             « réalisable N fois » prenait sa propre ligne, voir plus bas) —
             un bouton d'action ne doit pas se déplacer selon ce qui s'affiche
             à côté de lui. */}
-        <div className="flex items-center gap-2 lg:contents">
+        {/* `max-lg:min-h-10` : la hauteur qu'elle avait au doigt (40 px, celle
+            du bouton d'export, règle tactile, parti dans la colonne) — les
+            portraits et les sets restent à leur hauteur, et la colonne
+            (3 × 20 px + 2 × 2) tient dans la rangée et les sets (40 + 6 +
+            19 px) : la carte ne grandit pas. `max-lg:self-start` : en
+            édition, la colonne s'allonge (« Annuler ») sans étirer la rangée.
+            `max-lg:pr-1 max-lg:-mr-1` : la rangée finit sur « Fort contre »,
+            dont le dernier portrait porte une icône d'élément qui dépasse de
+            4 px à droite ; la place entre dans la rangée, prise sur
+            l'espacement de la colonne d'actions : rien ne bouge. */}
+        <div className="flex items-center gap-2 max-lg:min-h-10 max-lg:self-start max-lg:pr-1 max-lg:-mr-1 lg:contents">
           {/* Chevron de repli : indispensable en édition avec plusieurs decks */}
           <BoutonIcone
             onClick={onToggleFold}
@@ -1482,7 +1512,9 @@ function DeckBlock({
               n'a jamais été lu ici, et n'est pas rejeté à l'import. */}
           <ZoneCliquable
             onClick={onToggleFold}
-            className="flex items-center gap-1.5 flex-1 min-w-0 lg:gap-4"
+            // `gap-2.5` au doigt : 44 px d'un portrait au suivant, la place
+            // d'une pastille de sets (42 px) sous chacun — voir plus bas.
+            className="flex items-center gap-2.5 flex-1 min-w-0 lg:gap-4"
             title={folded ? 'Déplier ce deck' : 'Replier ce deck'}
           >
             {deck.slots.map((sl, i) => {
@@ -1491,8 +1523,18 @@ function DeckBlock({
               // (3× Fight → une icône). Les autres possibilités restent dans le
               // détail.
               const sets = [...new Set(sl.setOptions?.[0] ?? [])];
+              // ⚠️ `max-lg:flex-none` : au doigt, l'enveloppe ne porte que le
+              // portrait de 34 px et ne rétrécit plus sous lui — réduite à
+              // 19-24 px, elle laissait les portraits se chevaucher. À la
+              // souris, `min-w-0` reste : c'est lui qui laisse le nom se
+              // tronquer.
+              // `max-lg:pr-1 max-lg:-mr-1` : au doigt, l'enveloppe se termine
+              // sur le portrait, dont l'icône d'élément dépasse de 4 px à
+              // droite (`-right-1`, MonsterAvatar) ; la place entre dans
+              // l'enveloppe, et la marge négative la rend à l'espacement :
+              // aucun portrait ne bouge.
               return (
-                <span key={i} className="flex min-w-0 items-center gap-1.5">
+                <span key={i} className="flex min-w-0 items-center gap-1.5 max-lg:flex-none max-lg:pr-1 max-lg:-mr-1">
                   <MiniMonster monster={m} fallback={sl.name} size={34} lead={i === 0 ? leaderLead : null} />
                   {/* À la souris seulement : le nom et les sets visés de CE
                       monstre, collés à lui. Au doigt, la ligne
@@ -1500,16 +1542,14 @@ function DeckBlock({
                   {(m?.name || sl.name) && (
                     <span className="hidden truncate text-xs font-medium text-ink lg:inline">{m?.name ?? sl.name}</span>
                   )}
-                  {sets.length > 0 && (
-                    <span
-                      className="hidden flex-none items-center gap-0.5 lg:inline-flex"
-                      title={sets.map((k) => RUNE_SETS.find((s) => s.key === k)?.label ?? k).join(' + ')}
-                    >
-                      {sets.map((k) => (
-                        <RuneIcon key={k} setKey={k} size={14} />
-                      ))}
-                    </span>
-                  )}
+                  <SetsPortes
+                    sets={sets}
+                    taille={14}
+                    espacement="gap-0.5"
+                    affichage="hidden lg:inline-flex"
+                    className="flex-none"
+                    title={sets.map((k) => RUNE_SETS.find((s) => s.key === k)?.label ?? k).join(' + ')}
+                  />
                 </span>
               );
             })}
@@ -1519,8 +1559,10 @@ function DeckBlock({
               y en a d'autres. Purement informatif, comme le bloc détaillé.
               ⚠️ **Au téléphone aussi** :
               la rangée repliée dit l'offense ET ce qu'elle bat, séparées par
-              un filet. Il était réservé à la souris. */}
-          <span className="flex min-w-0 flex-none items-center gap-1 max-lg:border-l max-lg:border-border-soft max-lg:pl-2">
+              un filet. Il était réservé à la souris.
+              `max-lg:pr-1 max-lg:-mr-1` : même place pour l'icône d'élément
+              de son dernier portrait (sans « +N », c'est lui qui le finit). */}
+          <span className="flex min-w-0 flex-none items-center gap-1 max-lg:border-l max-lg:border-border-soft max-lg:pl-2 max-lg:pr-1 max-lg:-mr-1">
             {deck.counters.length > 0 ? (
               <>
                 {deck.counters[0].monsters
@@ -1545,7 +1587,9 @@ function DeckBlock({
           {/* À la souris : le VERDICT — la pastille des filtres (Bon, À
               composer, À revoir, Monstre manquant), la phrase complète en
               infobulle, et combien de fois le deck est montable. Avant
-              l'analyse : rien. */}
+              l'analyse : rien. `max-lg:hidden` : au doigt, il n'y porte que le
+              bouton d'export, qui passe dans la colonne d'actions (plus bas). */}
+          <span className="flex flex-none items-center gap-1 max-lg:hidden lg:justify-end">
           <span className="hidden min-w-0 flex-col items-start gap-0.5 lg:flex lg:items-end">
             {!editing && match && !empty && verdictLigne && (
               <>
@@ -1562,66 +1606,100 @@ function DeckBlock({
               </>
             )}
           </span>
+          <Bouton aria-label="Exporter vers l'Optimizer" icone={<Upload size={14} />} taille="carre" trait="aucun" fond="vide"
+            disabled={!!raisonExportOptimizer} title={raisonExportOptimizer ?? "Exporter vers l'Optimizer"}
+            onClick={onExporterOptimizer} className={`h-7 w-7 ${ICONE_LG}`} />
+          </span>
           {/* Le lead n'est pas dans l'en-tête : il est posé sur le leader lui-même
               (aperçu replié ci-dessous, ou slot 0 déplié) — comme en siège. */}
+        </div>
 
-          {/* Édition PROPRE au deck (monstres, sets, stats, consignes) : icônes
-              nues et resserrées, comme dans l'en-tête de la recommandation.
-              ⚠️ **À la souris, le PIED du détail déplié** : « Éditer ce deck » écrit en toutes lettres, à droite,
-              sous un filet — placé sur la 3ᵉ rangée de la grille du deck
-              (`lg:row-start-3`), sous le détail, dont il ferme le cadre (le
-              détail n'a pas de bord bas : un seul trait entre les deux). Replié,
-              il n'y a pas de détail à éditer à l'œil : il se masque
-              (`lg:hidden`), sans quitter le DOM. Au doigt, rien ne change : les
-              icônes restent en haut à droite de la carte. */}
-          <div
-            className={`ml-auto flex items-center gap-0.5 lg:col-span-full lg:row-start-3 lg:mb-1 lg:ml-8
-              lg:justify-end lg:gap-1.5 lg:rounded-b-xl lg:border lg:border-border-soft lg:bg-panel lg:px-3 lg:py-2
-              ${folded ? 'lg:hidden' : ''}`}
-          >
-            {/* ⚠️ Même exception que l'en-tête de la recommandation : le ✓ doré
-                est la convention documentée de l'édition en cours sur toute
-                cette page (spec/siege/recommandations.md), pas le marqueur
-                d'état standard. Couleur posée sur l'icône, comme dans
-                l'en-tête de la recommandation. */}
-            {/* « Annuler les modifications » — en édition
-                seulement, juste AVANT le ✓ : au doigt le groupe est calé à
-                droite, à la souris le pied aussi (`justify-end`) ; il
-                s'allonge vers la gauche, le ✓ qu'on vient de toucher ne bouge
-                pas. Grisé tant que rien n'a changé. */}
-            {editing && (
-              <BoutonIcone
-                onClick={onAnnulerEdition}
-                disabled={!annulable}
-                taille="serre"
-                icone={<Undo2 size={12} />}
-                libelle="Annuler les modifications"
-                libelleALaSouris
-              />
-            )}
+        {/* Édition PROPRE au deck (monstres, sets, stats, consignes) : icônes
+            nues et resserrées, comme dans l'en-tête de la recommandation.
+            ⚠️ **À la souris, le PIED du détail déplié** : « Éditer ce deck » écrit en toutes lettres, à droite,
+            sous un filet — placé sur la 3ᵉ rangée de la grille du deck
+            (`lg:row-start-3`), sous le détail, dont il ferme le cadre (le
+            détail n'a pas de bord bas : un seul trait entre les deux). Replié,
+            il n'y a pas de détail à éditer à l'œil : il se masque
+            (`lg:hidden`), sans quitter le DOM.
+            ⚠️ **Au doigt, une COLONNE en haut à droite de la carte**, de haut
+            en bas : Supprimer, Éditer, Exporter vers l'Optimizer — deuxième
+            colonne de la grille de l'en-tête, sur la hauteur de la rangée et
+            des sets (`row-span-2`). Supprimer garde la place qu'il avait au
+            bout de la rangée.
+            ⚠️ **Toute cette hauteur, à espacements égaux** (lot 6) :
+            `max-lg:self-stretch max-lg:justify-between`, la colonne s'étend
+            sur la rangée et les sets (65 px) et ses icônes s'y répartissent.
+            `max-lg:gap-[2.5px]`, l'espacement que donnent trois icônes de
+            20 px sur 65 : en édition, « Annuler » s'ajoute sous le ✓ sans
+            que l'espacement change, le ✓ touché ne bouge pas. */}
+        <div
+          className={`flex items-center gap-0.5 max-lg:col-start-2 max-lg:row-span-2 max-lg:row-start-1 max-lg:flex-col
+            max-lg:gap-[2.5px] max-lg:self-stretch max-lg:justify-between lg:col-span-full lg:row-start-3 lg:mb-1 lg:ml-8
+            lg:justify-end lg:gap-1.5 lg:rounded-b-xl lg:border lg:border-border-soft lg:bg-panel lg:px-3 lg:py-2
+            ${folded ? 'lg:hidden' : ''}`}
+        >
+          {/* ⚠️ Même exception que l'en-tête de la recommandation : le ✓ doré
+              est la convention documentée de l'édition en cours sur toute
+              cette page (docs/02-app/siege/), pas le marqueur
+              d'état standard. Couleur posée sur l'icône, comme dans
+              l'en-tête de la recommandation. */}
+          {/* « Annuler les modifications » — en édition
+              seulement, juste AVANT le ✓ à la souris : le pied est calé à
+              droite (`justify-end`), il s'allonge vers la gauche, le ✓ qu'on
+              vient de toucher ne bouge pas. Au doigt, SOUS le ✓
+              (`max-lg:order-1`), pour la même raison : la colonne s'allonge
+              vers le bas. Grisé tant que rien n'a changé.
+              ⚠️ `max-lg:gap-0` sur les trois `BoutonIcone` de la colonne :
+              leur libellé « à la souris », masqué au doigt, laisse un `<span>`
+              vide qui reçoit l'espacement du bouton (6 px) et poussait leur
+              icône 3 px à gauche du centre, quand celle de l'export est
+              centrée. Sans lui, les trois icônes sont sur le même axe. */}
+          {editing && (
             <BoutonIcone
-              onClick={onToggleEdit}
-              aria-pressed={editing}
+              onClick={onAnnulerEdition}
+              disabled={!annulable}
               taille="serre"
-              icone={editing ? <Check size={13} className="text-star" /> : <Pencil size={12} />}
-              libelle={editing ? "Terminer l'édition de ce deck" : 'Éditer ce deck'}
+              icone={<Undo2 size={12} />}
+              libelle="Annuler les modifications"
               libelleALaSouris
+              className="max-lg:order-1 max-lg:gap-0"
             />
-            {/* ⚠️ **Toujours présent**, plus seulement en édition —
-                la confirmation (« Supprimer ce deck ? ») reste le garde-fou.
-                À la souris, à l'AUTRE bout du pied (`lg:order-first
-                lg:mr-auto`) : un geste qui perd quelque chose ne se range pas
-                au contact de celui qu'on presse le plus. */}
-            <BoutonIcone
-              onClick={supprimerDeck}
-              ton="danger"
-              taille="serre"
-              icone={<Trash2 size={12} />}
-              libelle="Supprimer ce deck"
-              libelleALaSouris
-              className="lg:order-first lg:mr-auto"
-            />
-          </div>
+          )}
+          <BoutonIcone
+            onClick={onToggleEdit}
+            aria-pressed={editing}
+            taille="serre"
+            icone={editing ? <Check size={13} className="text-star" /> : <Pencil size={12} />}
+            libelle={editing ? "Terminer l'édition de ce deck" : 'Éditer ce deck'}
+            libelleALaSouris
+            className="max-lg:gap-0"
+          />
+          {/* ⚠️ **Toujours présent**, plus seulement en édition —
+              la confirmation (« Supprimer ce deck ? ») reste le garde-fou.
+              À la souris, à l'AUTRE bout du pied (`lg:order-first
+              lg:mr-auto`) : un geste qui perd quelque chose ne se range pas
+              au contact de celui qu'on presse le plus. Au doigt, en tête de
+              la colonne (`order-first`). */}
+          <BoutonIcone
+            onClick={supprimerDeck}
+            ton="danger"
+            taille="serre"
+            icone={<Trash2 size={12} />}
+            libelle="Supprimer ce deck"
+            libelleALaSouris
+            className="order-first max-lg:gap-0 lg:mr-auto"
+          />
+          {/* ⚠️ **Au doigt seulement** (`lg:hidden`) : le même export que
+              celui de la colonne Verdict, à la souris (masqué, lui, au
+              doigt), avec sa raison de désactivation en `title`. 20 px et
+              `data-cible-fine`, comme ses deux voisins de colonne
+              (`taille="serre"`) : exempté de la règle tactile des 40 px — à
+              40 px de haut, la colonne (84 px) dépassait la rangée et les
+              sets, et la carte grandissait. */}
+          <Bouton aria-label="Exporter vers l'Optimizer" icone={<Upload size={12} />} taille="carre" trait="aucun" fond="vide"
+            disabled={!!raisonExportOptimizer} title={raisonExportOptimizer ?? "Exporter vers l'Optimizer"}
+            onClick={onExporterOptimizer} data-cible-fine className="order-last h-5 w-5 lg:hidden" />
         </div>
 
         {/* ⚠️ `basis-full` sur mobile, PAS un simple `flex-wrap` sur le
@@ -1637,28 +1715,43 @@ function DeckBlock({
             dans la colonne Verdict de la ligne. */}
         {/* ⚠️ **Au téléphone, les SETS visés sous la rangée** : ceux de chaque monstre, dans l'ordre
             des portraits — à la souris, ils sont collés à chaque nom. La
-            PREMIÈRE possibilité de runage, comme là-bas. */}
+            PREMIÈRE possibilité de runage, comme là-bas.
+            ⚠️ **Chaque pastille CENTRÉE sous son monstre** : une piste de
+            grille par portrait, de sa largeur (34 px, `size` de MiniMonster),
+            espacées comme eux (`gap-x-2.5`) et décalées du chevron et de son
+            espacement (`pl-7`, 20 + 8 px). Une pastille plus large que sa
+            piste (deux sets : 42 px) déborde à parts égales des deux côtés,
+            dans l'espacement ; un monstre sans set garde sa piste, vide.
+            ⚠️ Trois sets, avec le rembourrage des autres, font 57 px et
+            mordaient de 5,5 px sur les pastilles voisines : la pastille de
+            trois sets perd son rembourrage et ses espacements (icônes
+            collées, toujours 13 px, l'arrondi au ras des icônes), soit 41 px,
+            qui tiennent dans 34 + 10, au doigt comme à la souris sous `lg`. */}
         {deck.slots.some((sl) => (sl.setOptions?.[0] ?? []).length > 0) && (
-          <div className="mt-1.5 flex flex-wrap items-center gap-1.5 lg:hidden">
+          <div className="mt-1.5 grid auto-cols-[34px] grid-flow-col justify-start justify-items-center gap-x-2.5 pl-7 lg:hidden">
             {deck.slots.map((sl, i) => {
               const sets = [...new Set(sl.setOptions?.[0] ?? [])];
-              if (sets.length === 0) return null;
+              if (sets.length === 0) return <span key={i} />;
               return (
-                <span
+                <SetsPortes
                   key={i}
-                  className="inline-flex items-center gap-0.5 rounded-full border border-border-soft bg-panel2 px-1.5 py-0.5"
+                  sets={sets}
+                  taille={13}
+                  espacement={sets.length === 3 ? 'gap-0' : 'gap-0.5'}
+                  affichage="inline-flex"
+                  // `w-max` : sa largeur propre, jamais celle de la piste (la
+                  // grille la ramenait à 34 px, ses icônes tassées dedans).
+                  className={`w-max rounded-full border border-border-soft bg-panel2 py-0.5 ${
+                    sets.length === 3 ? 'px-0' : 'px-1.5'
+                  }`}
                   title={sets.map((k) => RUNE_SETS.find((s) => s.key === k)?.label ?? k).join(' + ')}
-                >
-                  {sets.map((k) => (
-                    <RuneIcon key={k} setKey={k} size={13} />
-                  ))}
-                </span>
+                />
               );
             })}
           </div>
         )}
         {!editing && match && !empty && (
-          <div className="flex flex-wrap items-center gap-2 compact:gap-1 mt-1 compact:mt-0.5 lg:hidden">
+          <div className="flex flex-wrap items-center gap-2 compact:gap-1 mt-1 compact:mt-0.5 max-lg:col-span-2 lg:hidden">
             <span className="basis-full sm:basis-auto">
               <DeckBadge match={match} />
             </span>
@@ -1718,7 +1811,7 @@ function DeckBlock({
                 // (rouge/vert), et la remplacer effacerait cette information au
                 // moment où on parcourt la page. Deux langages distincts, deux
                 // supports distincts. Même écho de filtre que les propriétés
-                // recherchées d'un artéfact — voir spec/shared/design.md.
+                // recherchées d'un artéfact — voir docs/03-developpeur/interface/.
                 hit?.slots.includes(idx) ? 'bg-accent/[0.10]' : ''
               }`}
             >
@@ -1752,17 +1845,14 @@ function DeckBlock({
               ) : (
                 <>
                   <div className="flex items-center gap-2">
-                    <MonsterAvatar monster={monster} fallback={slot.name} size={40}>
-                      {idx === 0 &&
-                        (leaderLead ? (
-                          <LeadBadge ls={leaderLead} size={20} />
-                        ) : (
-                          <Crown
-                            size={13}
-                            className="absolute -top-2 -left-1 text-star drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]"
-                          />
-                        ))}
-                    </MonsterAvatar>
+                    <MonsterAvatar
+                      monster={monster}
+                      fallback={slot.name}
+                      size={40}
+                      lead={idx === 0 ? leaderLead : null}
+                      tailleLead={20}
+                      couronne={idx === 0 && !leaderLead}
+                    />
                     <div className="min-w-0 flex-1">
                       <div className="text-xs font-semibold leading-tight truncate">
                         {monster?.name ?? slot.name ?? '—'}
@@ -2131,6 +2221,9 @@ function CounterRow({
     // cliquable. Un bouton qui ne fait rien au clic se lit comme un défaut.
     const aUneNote = counter.note.trim() !== '';
 
+    // La rangée finit toujours par le chevron ou, sans note, par une place
+    // vide de même taille : le crayon posé en coin tombe dessus, jamais sur
+    // l'icône d'élément du dernier portrait, qui reste dans la rangée.
     const portraits = (
       <div className="flex flex-none items-center gap-1">
         {counter.monsters.map((m, i) =>
@@ -2146,13 +2239,15 @@ function CounterRow({
         {/* ⚠️ Le repère de note est TOUJOURS là quand il y en a une, ouverte ou
             non : sans lui, rien ne distingue une vignette qui cache une
             précision d'une vignette qui n'en a pas — on cliquerait au hasard. */}
-        {aUneNote && (
+        {aUneNote ? (
           <ChevronDown
             size={12}
             className={`ml-0.5 flex-none text-ink-dim transition-transform ${
               noteOuverte ? 'rotate-180' : ''
             }`}
           />
+        ) : (
+          <span aria-hidden className="ml-0.5 h-3 w-3 flex-none" />
         )}
       </div>
     );
@@ -2178,7 +2273,7 @@ function CounterRow({
             Discret (il ne se montre qu'au survol) pour ne pas alourdir une
             rangée qu'on parcourt du regard, mais TOUJOURS visible au tactile,
             où il n'y a pas de survol — voir la règle « un élément atteignable
-            ne dépend jamais du survol » de spec/shared/design.md. */}
+            ne dépend jamais du survol » de docs/03-developpeur/interface/. */}
         {/* ⚠️ `taille="serre"` + `cadre` + `auSurvol` : posé SUR le coin de la
             vignette, hors du flux — agrandi par la règle tactile, il la
             déborde et recouvre le portrait, même cas que la croix de
@@ -2192,6 +2287,11 @@ function CounterRow({
           auSurvol
           icone={<Pencil size={10} />}
           libelle="Modifier cette défense"
+          // Repère du banc d'affichage (tests/banc/mesure.ts, « bouton en
+          // coin ») : le dépassement de ce coin sur la vignette est voulu. Posé
+          // sur le `<button>` positionné lui-même ; le retirer rend ses
+          // signalements.
+          data-bouton-coin="modifier-defense"
           className="absolute -right-1 -top-1 z-10"
         />
 
@@ -2213,7 +2313,7 @@ function CounterRow({
             n'a rien à aligner — et il ne pousse pas la rangée, qui reste
             immobile pendant qu'on lit.
             ⚠️ `origin-top-left` : un flottant ancré grandit DEPUIS son ancre,
-            jamais depuis son centre (voir spec/shared/design.md).
+            jamais depuis son centre (voir docs/03-developpeur/interface/).
             `min-w-full` : au moins aussi large que la vignette, pour se lire
             comme sa suite ; `w-max` + plafond au-delà, la note étant courte. */}
         {/* ⚠️ **Le `Flottant` de la librairie**, comme partout dans l'app :
@@ -2298,7 +2398,7 @@ function CounterRow({
         </div>
         {/* Terminer, puis supprimer — l'ordre du geste courant d'abord.
             ⚠️ Le ✓ doré est la convention de l'édition en cours dans toute la
-            page (voir spec/siege/recommandations.md) — posé sur l'icône d'un
+            page (voir docs/02-app/siege/) — posé sur l'icône d'un
             `BoutonIcone`, comme les crayons de la recommandation et du deck,
             et de la même taille que la corbeille voisine. */}
         <div className="mt-1 flex flex-none items-center gap-1.5">
@@ -2365,11 +2465,15 @@ function defenseLabel(monsters: RecoCounter['monsters'], byCom2us: Map<number, M
 // d'intitulés que le tableau des decks, pour qu'une vue se lise comme l'autre.
 // Au doigt, chaque défense s'empile au-dessus de ses offenses.
 function TableauDefenses({
+  raisonsExportOptimizer,
+  onExporterDeckOptimizer,
   reco,
   vue,
   match,
   monsterByCom2us,
 }: {
+  raisonsExportOptimizer: (string | undefined)[];
+  onExporterDeckOptimizer: (deck: RecoDeck) => void;
   reco: Reco;
   vue: VueDefenses;
   match: RecoMatch | null;
@@ -2384,10 +2488,18 @@ function TableauDefenses({
     const deck = reco.decks[deckIndex];
     const st = match?.decks[deckIndex]?.status ?? 'unknown';
     const leader = monstre(deck.slots[0]?.com2usId ?? null);
+    // ⚠️ `compact:gap-y-2` : au doigt, la boîte du bouton d'export fait 40 px
+    // (règle tactile) ; renvoyé à la ligne, il commençait 4 px sous les
+    // portraits quand le badge de lead du leader en descend de 6 — 2 px du
+    // bouton ne répondaient plus au toucher. 8 px d'écart suffisent ; le badge
+    // ne change pas. À la souris, le bouton reste sur la ligne : rien ne change.
     return (
-      <li key={deckIndex} className="flex flex-wrap items-center gap-x-2 gap-y-1" data-offense-contre>
+      <li key={deckIndex} className="flex flex-wrap items-center gap-x-2 gap-y-1 compact:gap-y-2" data-offense-contre>
         <span className={`h-2 w-2 flex-none rounded-full ${DOT[st]}`} aria-hidden />
-        <span className="flex flex-none items-center gap-1" title={deckLabel(deck, monsterByCom2us, deckIndex)}>
+        {/* `pr-1 -mr-1` : la place de l'icône d'élément du dernier portrait,
+            qui dépasse de 4 px à droite, entre dans la rangée ; la marge
+            négative la rend à l'espacement de la ligne : rien ne bouge. */}
+        <span className="flex flex-none items-center gap-1 pr-1 -mr-1" title={deckLabel(deck, monsterByCom2us, deckIndex)}>
           {deck.slots.map((sl, i) => (
             <MiniMonster
               key={i}
@@ -2399,6 +2511,9 @@ function TableauDefenses({
           ))}
         </span>
         <span className="text-xs text-ink">{deckLabel(deck, monsterByCom2us, deckIndex)}</span>
+        <Bouton aria-label="Exporter vers l'Optimizer" icone={<Upload size={14} />} taille="carre" trait="aucun" fond="vide"
+          disabled={!!raisonsExportOptimizer[deckIndex]} title={raisonsExportOptimizer[deckIndex] ?? "Exporter vers l'Optimizer"}
+          onClick={() => onExporterDeckOptimizer(deck)} className={`h-7 w-7 ${ICONE_LG}`} />
         {note && <span className="text-micro text-ink-dim">— {note}</span>}
       </li>
     );
@@ -2432,7 +2547,8 @@ function TableauDefenses({
             data-defense-visee
           >
             <div className="mb-2 flex min-w-0 items-center gap-2 lg:mb-0">
-              <span className="flex flex-none items-center gap-1">
+              {/* `pr-1 -mr-1` : même place que pour les portraits d'une offense. */}
+              <span className="flex flex-none items-center gap-1 pr-1 -mr-1">
                 {d.monsters.map((m, i) => (
                   <MiniMonster
                     key={i}
@@ -2467,8 +2583,8 @@ function TableauDefenses({
   );
 }
 
-// Petit portrait hexagonal, sans nom — pour les aperçus compacts. Le portrait
-// lui-même vient du composant partagé ; on n'ajoute ici que le badge de lead.
+// Petit portrait hexagonal, sans nom — pour les aperçus compacts, badge de
+// lead réduit avec le portrait.
 function MiniMonster({
   monster,
   fallback,
@@ -2481,9 +2597,13 @@ function MiniMonster({
   lead?: LeaderSkill | null;
 }) {
   return (
-    <MonsterAvatar monster={monster} fallback={fallback} size={size}>
-      {lead && <LeadBadge ls={lead} size={Math.round(size * 0.62)} />}
-    </MonsterAvatar>
+    <MonsterAvatar
+      monster={monster}
+      fallback={fallback}
+      size={size}
+      lead={lead}
+      tailleLead={Math.round(size * 0.62)}
+    />
   );
 }
 
@@ -2536,7 +2656,7 @@ export function StatEditor({
   //
   // ⚠️ **Désactivé quand TOUTES les possibilités de runage portent Swift** :
   // une équipe Swift ne se cale pas au tick, elle se speed tune
-  // (spec/siege/speed-tick.md). Une seule option sans Swift suffit : le calcul
+  // (docs/02-app/siege/). Une seule option sans Swift suffit : le calcul
   // se fait alors sans lui.
   const baseVit = baseFor('spd', monster);
   const options = slot.setOptions.filter((o) => o.length > 0);

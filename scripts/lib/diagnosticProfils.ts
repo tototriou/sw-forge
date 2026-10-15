@@ -1,4 +1,4 @@
-// Les PROFILS DE POOL SYNTHÉTIQUE NOMMÉS (spec/outils/optimizer/harnais.md,
+// Les PROFILS DE POOL SYNTHÉTIQUE NOMMÉS (docs/03-developpeur/optimizer/,
 // « Deux sources : une recette ou un pool synthétique »).
 //
 // ⚠️ **Un profil n'est PAS « la version rapide d'un cas réel ».** C'est la

@@ -2,12 +2,12 @@
 // `artifactOptim.ts`) pour quel régime — UNE seule définition, consommée par
 // les trois sites qui en construisaient une chacun (OptimizerSection.tsx ×2,
 // scripts/lib/recipeToSearchParams.ts ×1). Voir
-// spec/outils/optimizer/moteur/artefacts.md § Régime de la paire.
+// docs/03-developpeur/optimizer/ § Régime de la paire.
 //
 // ⚠️ Volontairement SÉPARÉ de `artifactOptim.ts`, qui reste sans logique de
 // dégâts (sa seule dépendance vers `damage.ts` est le code
 // `CODE_AMPLI_VIT`) et se teste sans contexte de combat
-// (spec/outils/optimizer/moteur/optimiseur-artefacts.md § La double boucle).
+// (docs/03-developpeur/optimizer/ § La double boucle).
 // `computeTotalDamage`/`pvEffectifs`/`statsParPaire` casseraient cette
 // frontière.
 
@@ -27,7 +27,7 @@ export type RegimeArtefacts = 'aucun' | 'hp' | 'atk' | 'def' | 'ehp' | 'degats_r
  * ⚠️ Branche EXHAUSTIVE sur les valeurs réelles de `StatKey | Objective`, pas
  * un `else` qui absorberait un cas imprévu : `'aucun'` est le régime propre à
  * efficience/vitesse/TC/DCC/RES/PRE — celles où AUCUN artéfact n'entre dans
- * le score (voir spec/outils/optimizer/moteur/artefacts.md § Régime de la
+ * le score (voir docs/03-developpeur/optimizer/ § Régime de la
  * paire), pas un repli pour un oubli.
  */
 export function regimeArtefacts(critere: StatKey | Objective): RegimeArtefacts {
@@ -60,7 +60,7 @@ export function regimeEquipementDe(regime: RegimeArtefacts, contexteDegatsDispon
 export type DegatsContext = Omit<RealDamageContext, 'artefacts'>;
 
 /**
- * Le CANAL EXCLUSIVE (spec/outils/optimizer/moteur/reliques.md § L'effet unique — score de la propriété
+ * Le CANAL EXCLUSIVE (docs/03-developpeur/optimizer/ § L'effet unique — score de la propriété
  * exclusive) : la relique
  * qu'`evaluate` est en train d'essayer pour ce build, et le contexte dont son
  * assiette `Y` a besoin (leader skill, compétences d'invocateur).
@@ -264,7 +264,7 @@ export function evaluerPourRegime(
   }
   if (regime === 'aucun') {
     // Aucun artéfact n'entre dans ce score (voir
-    // spec/outils/optimizer/moteur/artefacts.md § Régime de la paire) — la somme
+    // docs/03-developpeur/optimizer/ § Régime de la paire) — la somme
     // des principales sert seulement à ne pas rendre une paire arbitraire,
     // jamais à maximiser quoi que ce soit.
     return (arts) => arts.reduce((n, a) => n + a.main.value, 0);

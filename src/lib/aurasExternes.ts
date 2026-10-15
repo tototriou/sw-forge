@@ -15,7 +15,7 @@
 // retirer un set recherché ne crée, ne relève et ne supprime aucune aura
 // externe.
 //
-// Source des valeurs : spec/outils/degats-reels/valeurs-de-jeu-curees.md
+// Source des valeurs : docs/02-app/degats-reels/
 // § Les valeurs de jeu — curées, avec leur source — cinq autres monstres à
 // trois sets, donc 15.
 //
@@ -187,7 +187,7 @@ export interface MonstreOptimise {
   espece: string | null;
   /** L'exemplaire (`exclusionSelectorKey` du sélecteur actif), `null` sans exemplaire. */
   exemplaire: string | null;
-  /** Les auras externes en vigueur — conservées au changement de monstre. */
+  /** Les auras externes de cette sélection ; après le geste, celles restaurées pour la destination. */
   aurasExternes: readonly AuraExterne[] | undefined;
 }
 
@@ -195,7 +195,7 @@ export interface MonstreOptimise {
  * Faut-il rappeler les auras externes ? Vrai SEULEMENT quand on change de
  * monstre depuis la LISTE DE TRAVAIL — autre espèce, ou autre exemplaire de
  * la même espèce — et que des auras
- * externes restent renseignées (celles d'après, conservées) : l'identité du
+ * externes sont renseignées dans les critères de destination : l'identité du
  * monstre optimisé change ce qui est « externe », mais l'app ne réécrit
  * jamais les nombres à la place de l'utilisateur.
  *

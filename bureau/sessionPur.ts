@@ -1,6 +1,6 @@
 // La session en cours — ce qui se décide sans Electron (testé par
 // tests/bureau-session.test.ts). Les boîtes de dialogue et les messages :
-// bureau/session.ts. Spec : spec/shared/sauvegarde-session.md.
+// bureau/session.ts. Spec : docs/02-app/transverse/.
 
 import { open, rename, rm } from 'node:fs/promises';
 import { basename, dirname, isAbsolute, join } from 'node:path';

@@ -1,7 +1,7 @@
 {
   "name": "swblacksmith",
   "private": true,
-  "version": "2.0.0",
+  "version": "2.1.0",
   "type": "module",
   "main": "dist-bureau/main.cjs",
   "description": "SW Blacksmith — boîte à outils Summoners War : siège, RTA, runes et analyse de compte. 100 % local, aucune donnée envoyée.",
@@ -16,7 +16,10 @@
     "fetch-data": "node scripts/fetch-monsters.mjs && node scripts/fetch-skills.mjs && node scripts/link-collabs.mjs",
     "fetch-skills": "node scripts/fetch-skills.mjs",
     "link-collabs": "node scripts/link-collabs.mjs",
+    "prepare": "node scripts/installer-hooks.mjs --automatique",
     "test": "node tests/run.mjs",
+    "test:suivi": "node tests/suivi.mjs",
+    "lint": "eslint .",
     "benchmark:optim": "node scripts/benchmark-optim.mjs",
     "benchmark:bucket-retention": "node scripts/benchmark-bucket-retention.mjs",
     "benchmark:search-budget": "node scripts/benchmark-search-budget.mjs",
@@ -30,9 +33,11 @@
     "framer-motion": "^11.3.19",
     "lucide-react": "^0.407.0",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "react-resizable-panels": "^4.14.5"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/node": "^26.4.0",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
@@ -41,11 +46,15 @@
     "electron": "44.5.1",
     "electron-builder": "26.15.3",
     "electron-updater": "6.8.9",
+    "eslint": "^10.12.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
     "fake-indexeddb": "^6.2.5",
+    "globals": "^17.13.0",
     "playwright": "^1.62.1",
     "postcss": "^8.4.39",
     "tailwindcss": "^3.4.6",
     "typescript": "^5.5.3",
+    "typescript-eslint": "^8.71.1",
     "vite": "^5.3.4"
   }
 }

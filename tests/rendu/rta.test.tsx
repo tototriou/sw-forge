@@ -1,7 +1,7 @@
 // Tests de rendu — RTA, « Ma prépa » et « Ami » (`RtaPage`). Principe dans
 // tests/rendu/outils-rendu.tsx : on vérifie que chaque fonctionnalité et chaque
-// information sont présentes, jamais l'apparence. Écrits AVANT le lot 6 de la
-// refonte graphique : ils doivent rester verts sans qu'une assertion change.
+// information sont présentes, jamais l'apparence : un changement de style
+// doit les laisser verts sans qu'une assertion change.
 //
 // ⚠️ Rendu BUREAU : le panneau d'actions mobile est fermé (`menuOuvert`
 // faux). Le téléphone a son propre lot (11).
@@ -39,6 +39,9 @@ function Page({ sub }: { sub: RtaSub }) {
   const rta = useRtaState();
   return (
     <RtaPage
+      onImporterEquipe={() => { throw new Error('Action non attendue dans le rendu serveur.'); }}
+      compteCharge={false}
+      sourcesOptimizer={{ box: [], rtaEntries: rta.state.entries, siegeDefenseTeams: [], siegeOffenseTeams: [], monsterById: new Map(MONSTRES.map(m => [String(m.id), m])) }}
       sub={sub}
       rta={rta}
       monsters={MONSTRES}
@@ -115,7 +118,7 @@ export function testRenduRtaPrepa() {
   ok(!!bouton(html, 'Surligner les changements'), 'bouton « Surligner les changements »');
 }
 
-// Décision 13 (lot 6) : sur bureau, « Exporter » dans l'en-tête, le reste dans
+// Sur bureau, « Exporter » dans l'en-tête, le reste dans
 // le menu « ⋯ ». Ajouté APRÈS le commit des tests d'avant : les assertions
 // ci-dessus, elles, n'ont pas changé.
 export function testRenduRtaMenu() {
@@ -130,7 +133,7 @@ export function testRenduRtaMenu() {
   ok(!!bouton(html, "Plus d'actions"), 'bouton « Plus d\'actions »');
   const menu = html.match(/<div[^>]*role="menu"[\s\S]*?<\/div><\/div>/)?.[0] ?? '';
   const entrees = boutons(menu).map((b) => b.texte);
-  egal(entrees, ['Sauvegarder', 'Reprendre', 'Importer une prépa', 'Créer un monstre', 'Réinitialiser', 'Tout effacer'], 'le menu, dans l\'ordre : construction, puis les deux gestes destructeurs');
+  egal(entrees, ['Sauvegarder', 'Reprendre', 'Importer une prépa', "Exporter vers l'Optimizer", 'Créer un monstre', 'Réinitialiser', 'Tout effacer'], 'le menu, dans l\'ordre : construction, puis les deux gestes destructeurs');
   ok(!entrees.includes('Exporter') && !!bouton(html, 'Exporter'), '« Exporter » reste visible, hors du menu');
 }
 
@@ -164,7 +167,7 @@ export function testRenduRtaSauvegarde() {
   ok(t.includes('Point de sauvegarde ·'), 'ligne « Point de sauvegarde · … »');
 }
 
-// Lot 13 (décision 29) : « Sauvegardé il y a … » — ajouté avec lui. Avant tout
+// « Sauvegardé il y a … » — ajouté avec lui. Avant tout
 // changement dans la session, il dit la conservation sans inventer d'heure.
 export function testRenduRtaIndicateur() {
   titre('rendu · RTA · Ma prépa — « Enregistré sur cet appareil »');

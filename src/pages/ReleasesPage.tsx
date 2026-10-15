@@ -21,7 +21,7 @@ export default function ReleasesPage() {
   // devenait une ligne isolée au milieu du vide.
   return (
     <div className="mx-auto max-w-[900px]">
-      {/* Encre unie, plus de dégradé (rebranding, décision 57). */}
+      {/* Encre unie, plus de dégradé. */}
       <h1 className="font-display font-black text-[clamp(28px,4vw,42px)] text-ink mb-2">
         Nouveautés
       </h1>
@@ -40,12 +40,12 @@ export default function ReleasesPage() {
       </p>
 
       {/* ⚠️ **À la SOURIS, une version = une rangée à deux colonnes**
-          (refonte graphique, lot 10, la maquette) : à gauche le numéro, son
+          (la maquette) : à gauche le numéro, son
           statut, sa date et son lien GitHub ; à droite le titre et les
           changements. Plus de carte : un filet sépare les versions, et la
           pastille (« Version actuelle », « Pas encore publiée ») dit laquelle
           tourne. L'ordre du DOM ne change pas.
-          ⚠️ **Au doigt aussi, plus de carte** (lot 11d, décision 27, la
+          ⚠️ **Au doigt aussi, plus de carte** (la
           maquette) : le même filet entre les versions ; la ligne numéro ·
           statut · date reste AU-DESSUS du titre, faute de place pour deux
           colonnes. */}

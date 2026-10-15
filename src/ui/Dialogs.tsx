@@ -17,8 +17,8 @@ import { Bouton, BoutonIcone, Case, Champ, PiedDeDialogue } from '../ui';
  *
  * ⚠️ **Le défaut ne perd jamais rien** : « Annuler » est le bouton mis en
  * avant et reçoit le focus, Échap et le clic à côté annulent, et l'action
- * destructrice porte la couleur d'alerte. Voir la règle générale dans
- * ../../spec/README.md.
+ * destructrice porte la couleur d'alerte. Voir
+ * docs/03-developpeur/interface/librairie-ui/modales-et-panneaux.md.
  */
 
 // Coquille commune : fond, centrage, fermeture au clic extérieur et à Échap.
@@ -33,6 +33,7 @@ export function Modale({
   sousTitre,
   icone,
   actions,
+  corpsFixeBas,
   actionsEmpilees = false,
   bandes = 'normales',
   noteFinale,
@@ -60,6 +61,9 @@ export function Modale({
   // retrouvaient au bout du défilement, là où personne ne les cherche.
   // L'ordre d'écriture est celui de PiedDeDialogue — secondaire d'abord.
   actions?: ReactNode;
+  // Champs fixes entre le corps défilant et les actions. L'appelant choisit
+  // les formats qui en ont besoin ; sans cet emplacement, rien ne change.
+  corpsFixeBas?: ReactNode;
   // Les boutons du pied s'EMPILENT au doigt, pleine largeur. ⚠️ Pour des
   // libellés qui sont des PHRASES et non des verbes — voir PiedDeDialogue.
   actionsEmpilees?: boolean;
@@ -145,6 +149,10 @@ export function Modale({
   const bandeHaut = serre ? 'px-4 pt-2' : padding;
   const bandeBas = serre ? 'px-4 pb-2' : padding;
   const corps = useRef<HTMLDivElement>(null);
+  const enTete = useRef<HTMLDivElement>(null);
+  const pied = useRef<HTMLDivElement>(null);
+  const avecCorpsFixe = corpsFixeBas != null;
+  const [hauteurFixeMax, setHauteurFixeMax] = useState<number>();
   const [cacheHaut, setCacheHaut] = useState(false);
   const [cacheBas, setCacheBas] = useState(false);
   const [cible] = useState(() => (typeof document === 'undefined' ? null : document.body));
@@ -152,6 +160,23 @@ export function Modale({
   // La modale est toujours ouverte quand elle est montée : le verrou vaut donc
   // toute sa durée de vie.
   useScrollBloque(true);
+
+  // Le pied reste accessible en faible hauteur. La zone de champs prend au
+  // plus la moitié de l'espace disponible, pour laisser aussi défiler la liste.
+  useEffect(() => {
+    const el = boite.current;
+    if (!avecCorpsFixe || !el) return;
+    const mesurer = () => {
+      const limite = parseFloat(getComputedStyle(el).maxHeight);
+      const bordures = el.offsetHeight - el.clientHeight;
+      setHauteurFixeMax(Math.max(0, (limite - bordures - (enTete.current?.offsetHeight ?? 0) - (pied.current?.offsetHeight ?? 0)) / 2));
+    };
+    mesurer();
+    const obs = new ResizeObserver(mesurer);
+    for (const bande of [el, enTete.current, pied.current]) if (bande) obs.observe(bande);
+    window.addEventListener('resize', mesurer);
+    return () => { obs.disconnect(); window.removeEventListener('resize', mesurer); };
+  }, [avecCorpsFixe]);
 
   // ⚠️ Trois manques corrigés ICI, dans la coquille : les quatre dialogues en
   // héritent d'un coup.
@@ -319,6 +344,7 @@ export function Modale({
             ⚠️ `flex-none` : l'en-tête ne défile pas et ne se comprime pas. */}
         {(titre || croix) && (
           <div
+            ref={enTete}
             className={`flex flex-none items-start gap-3 ${
               // `compactes` remplace le rembourrage de la bande (voir la prop) —
               // il ne s'y ajoute pas.
@@ -331,7 +357,7 @@ export function Modale({
             } ${
               // Le trait n'apparaît que si du contenu passe dessous — et jamais
               // sur une bande en `h-0`, qui n'a pas de bord à souligner.
-              cacheHaut && titre ? 'border-b border-border' : ''
+              corpsFixeBas != null && titre ? `border-b ${cacheHaut ? 'border-border' : 'border-transparent'}` : cacheHaut && titre ? 'border-b border-border' : ''
             }`}
           >
             {icone}
@@ -396,8 +422,8 @@ export function Modale({
             // ⚠️ Le corps reprend son propre rembourrage haut dès qu'un TRAIT le
             // sépare de l'en-tête : sans lui, le contenu viendrait toucher le
             // trait, et une bordure collée à une card en fait deux superposées.
-            titre ? (cacheHaut ? (serre ? 'pt-2' : 'pt-3') : 'pt-0') : ''
-          } ${actions ? (cacheBas ? (serre ? 'pb-2' : 'pb-3') : 'pb-2') : ''} ${
+            titre ? (corpsFixeBas != null || cacheHaut ? (serre ? 'pt-2' : 'pt-3') : 'pt-0') : ''
+          } ${corpsFixeBas != null ? (serre ? 'pb-2' : 'pb-3') : actions ? (cacheBas ? (serre ? 'pb-2' : 'pb-3') : 'pb-2') : ''} ${
             // ⚠️ **`items-stretch` explicite, et non un variant arbitraire.**
             // J'avais écrit `[&>*]:w-full` : Tailwind ne l'a JAMAIS émis, parce
             // qu'il lit le source comme du texte et n'y reconnaît pas `>` et `*`
@@ -413,6 +439,12 @@ export function Modale({
         </div>
         )}
 
+        {corpsFixeBas != null && (
+          <div style={{ maxHeight: hauteurFixeMax }} className={`min-h-0 flex-none overflow-y-auto ${padding} pt-3 pb-2 border-t ${cacheBas ? 'border-border' : 'border-transparent'}`}>
+            {corpsFixeBas}
+          </div>
+        )}
+
         {/* ── PIED : les actions, toujours en bas ──────────────────────────
             ⚠️ `flex-none` : il reste visible quand le corps défile. C'est tout
             l'objet de la structure en trois bandes — sur une fiche longue, les
@@ -424,9 +456,10 @@ export function Modale({
             sinon les boutons touchent le message. */}
         {actions && (
           <div
+            ref={pied}
             className={`flex-none ${bandeBas} ${
-              children != null ? (cacheBas ? (serre ? 'pt-2' : 'pt-3') : 'pt-0') : 'pt-3'
-            } ${cacheBas ? 'border-t border-border' : ''}`}
+              corpsFixeBas != null ? 'pt-0' : children != null ? (cacheBas ? (serre ? 'pt-2' : 'pt-3') : 'pt-0') : 'pt-3'
+            } ${corpsFixeBas == null && cacheBas ? 'border-t border-border' : ''}`}
           >
             <PiedDeDialogue className="mt-0" empile={actionsEmpilees}>
               {actions}
@@ -483,14 +516,14 @@ export function ConfirmDialog({
       // ⚠️ L'ordre d'écriture donne l'action d'abord, « Annuler » ensuite —
       // donc « Annuler » à DROITE sur écran large et EN BAS sous le pouce sur
       // téléphone. C'est voulu : le défaut ne perd jamais rien (voir
-      // spec/README.md), et c'est lui qui reçoit le focus initial.
+      // docs/03-developpeur/), et c'est lui qui reçoit le focus initial.
       actions={
         <>
           {/* ⚠️ `plein` pour le ton neutre : c'est `bg-panel2`, la surface d'un
               bouton posé DANS un dialogue — lui-même déjà en `bg-panel`. Un fond
               `doux` s'y confondrait avec la boîte qui le porte.
               ⚠️ **Destructif : l'action en APLAT rouge, « Annuler » à
-              contour** (rebranding, décision 22 — la planche « Retours et
+              contour** (la planche « Retours et
               fenêtres » de la toile). Le focus reste sur « Annuler » : l'aplat
               dit ce que l'action coûte, il ne l'invite pas. Encre sur l'aplat :
               `bad-ink`, 6.53 / 6.91. */}
@@ -631,7 +664,7 @@ export function KeepAccountDialog({
   // qui pose une question de CONSERVATION DES DONNÉES, c'est-à-dire celle qu'il
   // faut le moins pouvoir contourner par accident.
   // ⚠️ Son voile portait en plus un `backdrop-blur-sm` que les autres n'ont pas.
-  // Écart abandonné : la spec ne prévoit qu'un fondu (voir design.md), et un
+  // Écart abandonné : la spec ne prévoit qu'un fondu (voir docs/03-developpeur/interface/design/mouvement-et-gestes.md), et un
   // seul dialogue floutant le fond se lisait comme un objet d'une autre nature.
   return (
     // ⚠️ **PAS de croix**, comme les confirmations : cette fenêtre pose une

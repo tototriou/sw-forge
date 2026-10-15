@@ -3,7 +3,7 @@
 //
 // ⚠️ **Aucune logique ici non plus.** Les deux coquilles appellent le MÊME
 // `runPairSlice` (`src/workers/pairSliceBody.ts`) : c'est tout l'objet du
-// chantier, voir spec/outils/optimizer/moteur/parallelisation.md. Ce
+// chantier, voir docs/03-developpeur/optimizer/. Ce
 // fichier ne fait que traduire le protocole de messages du navigateur
 // (`self.onmessage` / `postMessage`) vers celui de Node (`workerData` /
 // `parentPort`).

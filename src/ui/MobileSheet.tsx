@@ -1,8 +1,8 @@
-import { ReactNode, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { ReactNode, useContext, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { SOUS_LG, useMediaQuery } from '../hooks/useMediaQuery';
+import { LargeurVolet, SOUS_LG, useMediaQuery } from '../hooks/useMediaQuery';
 import { useScrollBloque } from '../hooks/useScrollBloque';
 import { BoutonIcone } from '../ui';
 import { HAUTEUR_ONGLETS } from '../lib/layout';
@@ -32,7 +32,7 @@ import { HAUTEUR_ONGLETS } from '../lib/layout';
 // et ne peut grandir que vers le HAUT : tant que sa hauteur suit le contenu,
 // déplier quoi que ce soit dedans (une catégorie RTA, une 4ᵉ propriété) fait
 // remonter d'un coup ce qu'on vient de toucher — la règle générale l'interdit
-// (spec/shared/design.md). On mesure donc à l'ouverture (bornée par le plafond),
+// (docs/03-developpeur/interface/). On mesure donc à l'ouverture (bornée par le plafond),
 // on fige, et un contenu qui grandit ensuite se lit en défilant.
 
 export default function MobileSheet({
@@ -41,6 +41,7 @@ export default function MobileSheet({
   titre,
   centre = false,
   surLesOnglets = false,
+  devantLesDialogues = false,
   mesureCle,
   children,
 }: {
@@ -76,6 +77,11 @@ export default function MobileSheet({
   // parcourt du pouce, mais un formulaire court qu'on remplit. Collé en bas
   // sous le clavier, il n'en restait qu'une bande.
   centre?: boolean;
+  // ⚠️ **Au-dessus des dialogues** (`z-[80]` contre `z-[70]` pour la
+  // `Modale`) : pour un panneau FEUILLE, qui n'ouvre rien lui-même, comme
+  // l'aide « ? ». Ouverte depuis une Modale, elle passait dessous et restait
+  // invisible.
+  devantLesDialogues?: boolean;
   children: ReactNode;
 }) {
   // ⚠️ **Le panneau n'existe qu'en dessous de `lg`.** `lg:hidden` le masquait
@@ -85,6 +91,12 @@ export default function MobileSheet({
   // panneau sur un écran étroit puis d'élargir la fenêtre.
   const sousLg = useMediaQuery(SOUS_LG);
   const visible = ouvert && sousLg;
+  // ⚠️ **Ouvert depuis un volet étroit de l'écran partagé, le panneau existe
+  // AU BUREAU** : la page y a sa mise en page de téléphone, et `sousLg` répond
+  // selon le volet (docs/02-app/transverse/feat-navigation/ecran-partage.md).
+  // Rendu dans un portail, hors du volet, `lg:hidden` suivrait la fenêtre et le
+  // masquerait : il n'est posé qu'en dehors d'un volet.
+  const masqueBureau = useContext(LargeurVolet) === null ? 'lg:hidden' : '';
 
   // Hauteur mesurée une fois à l'ouverture, puis figée (voir l'en-tête). ⚠️ En
   // `useLayoutEffect`, avant peinture : en `useEffect`, on voyait le panneau à sa
@@ -151,8 +163,10 @@ export default function MobileSheet({
       {visible && (
         <>
           <motion.div
-            className={`fixed inset-0 lg:hidden ${
-              centre
+            className={`fixed inset-0 ${masqueBureau} ${
+              devantLesDialogues
+                ? 'z-[80] bg-bg/70'
+                : centre
                 ? 'z-[60] bg-bg/95'
                 : surLesOnglets
                   ? 'z-30 bg-bg/70'
@@ -186,8 +200,10 @@ export default function MobileSheet({
             // `z-40`) : elle mène ailleurs, or on est en train d'agir ici. La
             // laisser dépasser inviterait à quitter la page au milieu d'un
             // réglage.
-            className={`fixed flex flex-col border-border bg-panel lg:hidden ${
-              centre
+            className={`fixed flex flex-col border-border bg-panel ${masqueBureau} ${
+              devantLesDialogues
+                ? 'inset-x-0 bottom-0 z-[80] max-h-[80dvh] rounded-t-2xl border-t'
+                : centre
                 ? 'inset-x-3 top-1/2 z-[60] max-h-[80dvh] -translate-y-1/2 rounded-2xl border shadow-glow shadow-black/60'
                 : surLesOnglets
                   ? // ⚠️ `bottom` en `style` (voir plus bas), pas `bottom-0` :

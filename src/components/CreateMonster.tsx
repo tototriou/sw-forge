@@ -25,7 +25,7 @@ interface Props {
   onCreate: (name: string, element: ElementKey, speed: number, lead: CustomLead | null) => void;
   customMonsters: Monster[];
   onDelete: (id: string) => void;
-  // ⚠️ **Mode PILOTÉ** (refonte graphique, lot 6) : sur bureau, la RTA ouvre
+  // ⚠️ **Mode PILOTÉ** : sur bureau, la RTA ouvre
   // ce formulaire depuis une entrée de son menu « ⋯ » — le composant ne rend
   // alors PAS son propre bouton (`sansBouton`), et l'ouverture vient de
   // l'appelant (`ouvert` / `onOuvert`). Sans ces props, il garde son bouton et

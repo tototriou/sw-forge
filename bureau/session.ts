@@ -2,7 +2,7 @@
 // « Sauvegarder » (Ctrl+S) réécrit sans rien demander, que « Sauvegarder
 // sous… » remplace. Les sessions s'enregistrent dans le sous-dossier
 // `sessions` du dossier SW Blacksmith, un réglage choisi dans les Paramètres
-// (ou à la première sauvegarde). Spec : spec/shared/sauvegarde-session.md.
+// (ou à la première sauvegarde). Spec : docs/02-app/transverse/.
 // Ce qui se décide sans Electron : bureau/sessionPur.ts.
 //
 // ⚠️ **Le dossier SW Blacksmith est un RÉGLAGE** (`dossier-swblacksmith.json`,

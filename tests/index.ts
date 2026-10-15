@@ -4,11 +4,70 @@
 // global et le laisse en place. On le passe en dernier pour qu'il ne perturbe
 // rien d'autre.
 
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { bilan, debutVerification } from './outils';
+import { Execution, RefusManifeste } from './execution';
+import { testRenduOptimizerAlerteDefilement, testRenduOptimizerAlerteCycleDeVie,
+  testRenduTelephoneOptimizerAlerteCycleDeVie, testRenduTelephoneOptimizerAlerteFermetures } from './rendu/optimizer-alerte.test';
+import { testRenduOptimizerBandesEquipesClair, testRenduOptimizerBandesEquipesSombre,
+  testRenduTelephoneOptimizerBandesEquipesClair, testRenduTelephoneOptimizerBandesEquipesSombre,
+  testOptimizerEquipesJetons } from './rendu/optimizer-bandes.test';
 import testImport from './import.test';
+import { verificationsImportEquipes } from './import-equipes.test';
+import { testOptimizerImportNavigation } from './optimizer-import-navigation.test';
+import { testRenduRtaExportOptimizer, testRenduTelephoneRtaExportOptimizer, testRenduRecoExportOptimizer,
+  testRenduTelephoneRecoExportOptimizer, testRenduOptimizerImportRecommandation, testRenduTelephoneOptimizerImportRecommandation,
+  testOptimizerImportRtaRecoBranchement } from './rendu/rta-reco-export.test';
+import { testRenduSiegeExportOptimizer, testRenduTelephoneSiegeExportOptimizer, testOptimizerImportSiegeBranchement } from './rendu/siege-export.test';
+import { testRenduSpeedTuneExportOptimizer, testRenduTelephoneSpeedTuneExportOptimizer, testOptimizerImportSpeedTuneBranchement, testRenduSpeedTuneExportAppOptimizer, testRenduTelephoneSpeedTuneExportAppOptimizer } from './rendu/speed-tune-export.test';
+import { testOptimizerImportActionDemontee, testOptimizerImportEcrituresGroupees, testOptimizerImportReverificationEnAttente, testOptimizerImportCollision, testRenduOptimizerImportDefenses, testRenduTelephoneOptimizerImportDefenses,
+  testRenduOptimizerImportOffense, testRenduTelephoneOptimizerImportOffense, testRenduOptimizerImportRta,
+  testRenduTelephoneOptimizerImportRta, testRenduOptimizerImportIndisponible, testRenduTelephoneOptimizerImportIndisponible, testRenduOptimizerImportRapportPartage, testRenduOptimizerImportDisponibiliteMemoisee } from './rendu/optimizer-import.test';
+import { testRenduOptimizerLeadEquipePersonnel, testRenduTelephoneOptimizerLeadEquipePersonnel,
+  testRenduOptimizerDialogueEquipe, testRenduTelephoneOptimizerDialogueEquipe,
+  testRenduOptimizerCreationContenu, testRenduTelephoneOptimizerCreationContenu,
+  testRenduOptimizerRefusIdentitePerime, testRenduTelephoneOptimizerRefusIdentitePerime,
+  testRenduOptimizerRecetteLeadEquipe, testRenduTelephoneOptimizerRecetteLeadEquipe,
+  testRenduOptimizerLeadAncienHorsEquipe, testRenduTelephoneOptimizerLeadAncienHorsEquipe,
+  testRenduOptimizerContenuSansDeplacement, testRenduTelephoneOptimizerContenuSansDeplacement,
+  testRenduOptimizerLigneListe, testRenduTelephoneOptimizerLigneListe,
+  testRenduOptimizerCombatEffectifAffiche, testRenduTelephoneOptimizerCombatEffectifAffiche } from './rendu/optimizer-equipes.test';
+import { verificationsImportSpeedTune } from './import-speed-tune.test';
+import { testRenduOptimizerPointGestes, testRenduTelephoneOptimizerPointGestes, testRenduOptimizerPointReimport,
+  testRenduTelephoneOptimizerPointReimport, testRenduOptimizerPointCompteVide, testRenduTelephoneOptimizerPointCompteVide,
+  testRenduOptimizerPointSansMemoireChangementListe, testRenduTelephoneOptimizerPointSansMemoireChangementListe,
+  testRenduOptimizerPointSansMemoireListeSupprimee, testRenduTelephoneOptimizerPointSansMemoireListeSupprimee } from './rendu/optimizer-backup.test';
+import { verificationsImportReco } from './import-reco.test';
+import { verificationsImportRecoCopies } from './import-reco-copies.test';
 import testNavigation from './navigation.test';
+import testBancSelection from './banc-selection.test';
 import { testNavigationAdresses, testNavigationAdressesDefauts, testNavigationVuesCompte } from './navigation-adresses.test';
+import { testVoletsFeuilleTailwind, testVoletsLargeurs, testVoletsNavigation, testVoletsOuverture, testVoletsResponsive,
+  testVoletsVerrou } from './volets.test';
+import { testSuiviLecture, testSuiviTableau } from './suivi.test';
 import testPersistance from './persistance.test';
+import { testRenduOptimizerDialogueLeaderSkill, testRenduTelephoneOptimizerDialogueLeaderSkill,
+  testRenduOptimizerDialogueLeaderEspece, testRenduTelephoneOptimizerDialogueLeaderEspece,
+  testRenduOptimizerDialogueMembresDisponibles, testRenduTelephoneOptimizerDialogueMembresDisponibles,
+  testRenduOptimizerDialogueDefilement, testRenduTelephoneOptimizerDialogueDefilement,
+  testRenduOptimizerDialogueHauteur400, testRenduOptimizerDialogueHauteur600,
+  testRenduOptimizerDialogueReferencesLeader, testRenduTelephoneOptimizerDialogueReferencesLeader,
+  testRenduOptimizerDialogueChangementFormat } from './rendu/optimizer-dialogue.test';
+import {
+  testMemoireOptimizerJson, testMemoireOptimizerCopie, testMemoireOptimizerLecteurListes,
+  testMemoireOptimizerListesIllisibles, testMemoireOptimizerMalformed, testEquipeOptimizerValidation,
+  testMemoireOptimizerConservationSession, testSessionOptimizerVersionDeux, testMemoireOptimizerEffacement,
+  testMemoireOptimizerReimport, testMemoireOptimizerEspeceSelecteur, testMemoireOptimizerBranchement,
+  testEquipeOptimizerMembreRetire, testMemoireOptimizerSuppressionExplicite,
+  testMemoireOptimizerReimportBrutPreserve,
+  testEquipeOptimizerTextesStricts,
+} from './optimizer-member-storage.test';
+import { testMemoireOptimizerRejetsConserves, testMemoireOptimizerTextesCriteresStricts } from './optimizer-member-rejections.test';
+import { testOptimizerRattachementReferenceConservee } from './optimizer-rattachement-attribution.test';
+import { testOptimizerRattachementIdentites, verificationsOptimizerRattachementOrdres, testOptimizerRattachementDepartageEtPrises,
+  testOptimizerRattachementCopiesSansExemplaire, testOptimizerRattachementPermutationEtProprietaire,
+  testOptimizerRattachementRuneVendue, testOptimizerRattachementDefensesComplet, testOptimizerRattachementBranchement } from './optimizer-rattachement.test';
 import testMeules, { testGemmeMemeStat, testRegemmeDifferent, testReserveParGrade, testPalier, testRegistre, testSansDowngrade } from './meules.test';
 import testArtefacts from './artefacts.test';
 import testArtefactOptim, {
@@ -49,12 +108,13 @@ import testReco, {
   testFormesJouables,
 } from './reco.test';
 import testRtaPartage from './rta-partage.test';
-import { testInstallerHooks, testHooksCodexGardeFous } from './installer-hooks.test';
+import { testInstallerHooks, testInstallationAutomatique } from './installer-hooks.test';
 import { testPreCommit } from './pre-commit.test';
+import { testCommitMsg } from './commit-msg.test';
+import { testRappelDependances } from './rappel-dependances.test';
+import { testVerifierCommits } from './verifier-commits.test';
 import { testRenvois, testRenvoisFormes } from './renvois.test';
-import { testEcriturePublique, testEcriturePubliqueFormes } from './ecriture-publique.test';
-import testHookRefuseSedI from './hook-refuse-sed-i.test';
-import testHookRefuseCommitM from './hook-refuse-commit-m.test';
+import { testLectureSource } from './lecture-source.test';
 import testCouleursCourbes from './courbe-couleurs.test';
 import testRechargement from './rechargement.test';
 import testCollabPaires from './collab-paires.test';
@@ -103,6 +163,8 @@ import {
 } from './degats-attaque-appelee.test';
 import testRuneOptim from './rune-optim.test';
 import testRuneOptimDifferential from './rune-optim-differential.test';
+import testBuildsRapides from './builds-rapides.test';
+import { testRenduBuildsRapides } from './rendu/builds-rapides.test';
 import testRuneOptimOnStage from './rune-optim-onstage.test';
 import testRandomPool from './random-pool.test';
 import testDiagnosticHarness, { testDiagnosticHarnessClassementDegatsReels } from './diagnostic-harness.test';
@@ -117,9 +179,38 @@ import testRuneOptimDeadHalfPruning from './rune-optim-dead-half-pruning.test';
 import testFilterSlotTopK from './rune-optim-filterslot-topk.test';
 import testOptimizerExclusion from './optimizer-exclusion.test';
 import { testListeExemplaires } from './liste-exemplaires.test';
+import { testOptimizerCreationNomParDefaut } from './optimizer-list-names.test';
+import { testOptimizerCompetencesContenu } from './optimizer-summoner-content.test';
+import { testRenduOptimizerRechercheCreation, testRenduTelephoneOptimizerRechercheCreation } from './rendu/optimizer-equipes.test';
+import { testRenduOptimizerCreationObligatoire, testRenduTelephoneOptimizerCreationObligatoire,
+  testRenduOptimizerContenuInvocateur, testRenduTelephoneOptimizerContenuInvocateur,
+  testRenduOptimizerEtatAurasEnLigne, testRenduTelephoneOptimizerEtatAurasEnLigne,
+  testRenduOptimizerEnteteEquipeCompact, testRenduTelephoneOptimizerEnteteEquipeCompact,
+  testRenduOptimizerDialogueElementVide, testRenduTelephoneOptimizerDialogueElementVide,
+  testRenduOptimizerActionsZoneC, testRenduTelephoneOptimizerActionsZoneC } from './rendu/optimizer-retouches.test';
+import { testOptimizerContenuInvocateurCompatibilite } from './optimizer-invocateur-compatibilite.test';
+import { testRenduOptimizerEquipeImpossibleZeroLibre, testRenduTelephoneOptimizerEquipeImpossibleZeroLibre,
+  testRenduOptimizerEquipeImpossibleUnLibre, testRenduTelephoneOptimizerEquipeImpossibleUnLibre,
+  testRenduOptimizerEquipeImpossibleDeuxDontUnLie, testRenduTelephoneOptimizerEquipeImpossibleDeuxDontUnLie } from './rendu/optimizer-equipe-impossible.test';
+import { testRenduOptimizerRechercheBoxResolu, testRenduTelephoneOptimizerRechercheBoxResolu,
+  testRenduOptimizerRechercheDejaMembre, testRenduTelephoneOptimizerRechercheDejaMembre,
+  testRenduOptimizerRechercheExemplaireSuivant, testRenduTelephoneOptimizerRechercheExemplaireSuivant } from './rendu/optimizer-recherche.test';
+import { testRenduOptimizerRechercheSourceRta, testRenduTelephoneOptimizerRechercheSourceRta,
+  testRenduOptimizerRechercheSourceSiege, testRenduTelephoneOptimizerRechercheSourceSiege,
+  testRenduOptimizerRechercheDesambiguise, testRenduTelephoneOptimizerRechercheDesambiguise,
+  testRenduOptimizerRechercheCreationSansSource, testRenduTelephoneOptimizerRechercheCreationSansSource,
+  testRenduOptimizerRechercheNonPossede, testRenduTelephoneOptimizerRechercheNonPossede,
+  testRenduOptimizerRechercheSansListeBox, testRenduTelephoneOptimizerRechercheSansListeBox } from './rendu/optimizer-recherche.test';
+import { testRenduOptimizerEditionListe, testRenduTelephoneOptimizerEditionListe } from './rendu/optimizer-equipes.test';
+import { testRenduOptimizerCompetencesListe, testRenduTelephoneOptimizerCompetencesListe } from './rendu/optimizer-equipes.test';
 import { testOptimizerExemplaireMontage } from './optimizer-exemplaire-montage.test';
 import testOptimizerRecipeImportSelection from './optimizer-recipe-import-selection.test';
 import testOptimizerDamageTransitions from './optimizer-damage-transitions.test';
+import testOptimizerCriteresCaracterisation from './optimizer-criteres-caracterisation.test';
+import { testLeaderSkillPaliersCorpus } from './leader-skill-paliers.test';
+import { testOptimizerContenuListeCreationEtModification, testOptimizerEquipesHookModificationAvecOrpheline, testOptimizerContenuListeJsonEtAncienStockage, testOptimizerContenuListeSansContenu, verificationsOptimizerContenuListeElements, testOptimizerContenuListeRejetsConserves, testOptimizerContenuListeSuppressionEtSession, testOptimizerContenuListeImportPreserveEtCollisions } from './optimizer-list-content.test';
+import { testOptimizerEquipesAjoutEquipeOrphelineNeBloquePasEquipeSaine, verificationsOptimizerEquipesActivite, verificationsOptimizerEquipesCardinalites, testOptimizerEquipesElementsEtLeadPersonnel, testOptimizerEquipesSynchronisationLeadPersonnel, testOptimizerEquipesLeadsNonCalculablesEtHorsListe, testOptimizerEquipesOperationsEtExclusivite, testOptimizerEquipesRetraitEquipeDeDeux, testOptimizerEquipesCreationAvecOrphelines } from './optimizer-equipes.test';
+import { testOptimizerCriteresPhotos, testOptimizerCriteresBase, testOptimizerCriteresGarde, testOptimizerCritereArtefactsNavigation } from './optimizer-criteres.test';
 import { testAurasRecette, testAurasCombatEtExclusive, testAurasArrondiCommunLeadInvocateur, testAurasChoixEffectifReliqueEhp, testAurasPassifEtAdditionnel, testAurasEhpEtConditions, testAurasReliqueFinaleEtDiagnostics, testAurasPariteEcranCliEtCache, testAurasRechercheDifferentielle, testAurasPropresResolution, testAurasPropresCombatEtScore, testAurasPvEffectifsCeilUnique, testAurasPropresNoteDesCouples, testAurasConditionsPropresFonctions, testAurasConditionsPropresResolution, testAurasConditionsPropresPairBuckets, testAurasCarteEgaleTri, testAurasPariteRegimes } from './auras-modele.test';
 import { testAurasEcranBornes, testAurasEcranEcriture, testAurasEcranValidationPartagee, testAurasEcranEcho, testAurasEcranInterrupteur, testAurasEcranRappel, testAurasEcranGuidage } from './auras-ecran.test';
 import {
@@ -166,6 +257,9 @@ import testBureauMiseAJour from './bureau-mise-a-jour.test';
 import testBureauSwex from './bureau-swex.test';
 import testBureauSession from './bureau-session.test';
 import testSession from './session.test';
+import { testOptimizerPointAllerRetourComplet, testOptimizerPointMemoireMemeGeste, testOptimizerPointLectureDefensive, testOptimizerPointSessionRelue,
+  testOptimizerPointRepriseRattachement, testOptimizerPointRepriseCompteVide, testOptimizerPointSuppressionConservation,
+  testOptimizerPointSessionIllisibleConserve } from './optimizer-backup.test';
 import testVitesse from './vitesse.test';
 import testSiegeStatut from './siege-statut.test';
 import testSiegePastille from './siege-pastille.test';
@@ -174,13 +268,13 @@ import testRecoDefenses from './reco-defenses.test';
 import testSiegePartage from './siege-partage.test';
 import testMarque from './marque.test';
 import testSpeedTune, { testSpeedTuneDeck, testSpeedTuneChaine, testSpeedTuneKit, testSpeedTuneSequence, testSpeedTuneReference, testSpeedTunePassif, testSpeedTuneAuto, testSpeedTuneModele } from './speed-tune.test';
-import testSpecMarkdown from './spec-markdown.test';
-import testSpecToc from './spec-toc.test';
-import testSpecLint, { testSpecLintEnTetes, testSpecLintEnTetesReel, testSpecLintReel } from './spec-lint.test';
 import { testRenduSiegeDefense, testRenduSiegeOffense, testRenduSiegeEnTete, testRenduSiegeEdition } from './rendu/siege.test';
 import { testRenduUiBouton, testRenduUiEtats, testRenduUiMenu, testRenduUiNotification, testRenduPalette } from './rendu/ui.test';
 import { testPalette } from './palette.test';
 import { testRenduAppRoutes, testRenduAppNavigation, testRenduAppMobile, testRenduAppFil, testRenduAppLiensMorts } from './rendu/app.test';
+import { testEcranPartageMediaQueryVolet, testEcranPartageMemePage, testRenduEcranPartageApp,
+  testRenduEcranPartageBarre, testRenduEcranPartageBouton, testRenduEcranPartageSelecteur,
+  testRenduEcranPartageSeparateur, testRenduEcranPartageVolet } from './rendu/ecran-partage.test';
 import { testRenduAccueil, testRenduAccueilBureau, testRenduAccueilEspace } from './rendu/accueil.test';
 import { testRenduTelecharger } from './rendu/telecharger.test';
 import { testRenduBureauTextes } from './rendu/bureau-textes.test';
@@ -192,6 +286,16 @@ import { testRenduRunesResume, testRenduRunesListe, testRenduRunesCourbes, testR
 import { testRenduCompteMonstres, testRenduCompteArtefactsResume, testRenduCompteArtefactsListe, testRenduCompteSouris, testRenduCompteEffacerFiltres } from './rendu/compte.test';
 import { testRenduSpeedTuneVide, testRenduSpeedTuneCamps, testRenduSpeedTuneAnalyse } from './rendu/speed-tune.test';
 import { testRenduOptimizerVide, testRenduOptimizerMonstre, testRenduOptimizerReglages, testRenduTelephoneOptimizer } from './rendu/optimizer.test';
+import { testRenduMemoireOptimizerSelection, testRenduMemoireOptimizerIdentiteEnregistree, testRenduMemoireOptimizerSansMemoire, testRenduMemoireOptimizerListes,
+  testRenduMemoireOptimizerRetrait, testRenduMemoireOptimizerInclusion, testRenduMemoireOptimizerHorsListe,
+  testRenduMemoireOptimizerIdentite, testRenduMemoireOptimizerRecette, testRenduMemoireOptimizerNavigation, testRenduTelephoneMemoireOptimizer,
+  testRenduMemoireOptimizerSaisies, testRenduMemoireOptimizerAutomatismes, testRenduMemoireOptimizerRappelAurasDestination,
+  testRenduTelephoneMemoireOptimizerRappelAurasDestination, testRenduMemoireOptimizerZoneC, testRenduTelephoneMemoireOptimizerZoneC,
+  testRenduMemoireOptimizerListeInactive, testRenduMemoireOptimizerRecetteSansSelection, testRenduMemoireOptimizerGlobauxAvantRestauration,
+  testRenduMemoireOptimizerSourceRta, testRenduMemoireOptimizerSourceSiege, testRenduMemoireOptimizerClicAjouter,
+  testRenduMemoireOptimizerClicValiderFiche, testRenduMemoireOptimizerClicValiderInclut,
+  testRenduTelephoneMemoireOptimizerClicAjouter, testRenduTelephoneMemoireOptimizerClicValiderFiche,
+  testRenduRattachementOptimizer, testRenduTelephoneRattachementOptimizer, testRenduRattachementOptimizerDemonte } from './rendu/optimizer-memoire.test';
 import { testRenduBestiaire, testRenduMecaniques, testRenduNouveautes, testRenduParametres, testRenduBientot } from './rendu/ressources.test';
 import { testRenduTelephoneAccueil, testRenduTelephoneRta, testRenduTelephoneRtaAmi, testRenduTelephoneRtaFiltre } from './rendu/telephone-accueil-rta.test';
 import { testRenduTelephoneSiege, testRenduTelephoneRecos } from './rendu/telephone-siege.test';
@@ -201,6 +305,8 @@ import { testRenduRtaPrepa, testRenduRtaMenu, testRenduRtaVide, testRenduRtaSauv
 import { testIndicateurSauvegarde } from './indicateur-sauvegarde.test';
 import { testRestauration } from './restauration.test';
 import testSkillAdapters from './skill-adapters.test';
+import { testSelectionFichiersInventaire, testSelectionFichiersChargeur, testSelectionFichiersCasReels, testSelectionFichiersTailwind, testSelectionFichiersGit } from './selection.test';
+import { testExecutionProuveeCas, testExecutionProuveeEmplacement, testExecutionProuveePointEntree } from './execution.test';
 
 // Chaque vérification sous son NOM, dans l'ordre d'exécution.
 //
@@ -209,9 +315,84 @@ import testSkillAdapters from './skill-adapters.test';
 // Ce registre permet de ne lancer QUE ce qu'on touche :
 //     node tests/run.mjs speed-tune       (tout ce dont le nom contient « speedtune »)
 //     node tests/run.mjs rune-optim vitesse
+//     node tests/run.mjs --depuis main     (ce que touchent les fichiers modifiés : tests/selection.ts)
 // Sans argument, tout tourne — c'est ce que fait `npm test`, et ce qu'il FAUT
 // faire avant une fusion sur `main` (voir CLAUDE.md).
 const VERIFICATIONS: [string, () => void | Promise<void>][] = [
+  ['testRenduOptimizerCreationObligatoire', testRenduOptimizerCreationObligatoire],
+  ['testRenduOptimizerEquipeImpossibleZeroLibre', testRenduOptimizerEquipeImpossibleZeroLibre],
+  ['testRenduTelephoneOptimizerEquipeImpossibleZeroLibre', testRenduTelephoneOptimizerEquipeImpossibleZeroLibre],
+  ['testRenduOptimizerEquipeImpossibleUnLibre', testRenduOptimizerEquipeImpossibleUnLibre],
+  ['testRenduTelephoneOptimizerEquipeImpossibleUnLibre', testRenduTelephoneOptimizerEquipeImpossibleUnLibre],
+  ['testRenduOptimizerEquipeImpossibleDeuxDontUnLie', testRenduOptimizerEquipeImpossibleDeuxDontUnLie],
+  ['testRenduTelephoneOptimizerEquipeImpossibleDeuxDontUnLie', testRenduTelephoneOptimizerEquipeImpossibleDeuxDontUnLie],
+  ['testRenduOptimizerActionsZoneC', testRenduOptimizerActionsZoneC],
+  ['testRenduTelephoneOptimizerActionsZoneC', testRenduTelephoneOptimizerActionsZoneC],
+  ['testRenduOptimizerDialogueElementVide', testRenduOptimizerDialogueElementVide],
+  ['testRenduTelephoneOptimizerDialogueElementVide', testRenduTelephoneOptimizerDialogueElementVide],
+  ['testRenduOptimizerEnteteEquipeCompact', testRenduOptimizerEnteteEquipeCompact],
+  ['testRenduTelephoneOptimizerEnteteEquipeCompact', testRenduTelephoneOptimizerEnteteEquipeCompact],
+  ['testRenduOptimizerEtatAurasEnLigne', testRenduOptimizerEtatAurasEnLigne],
+  ['testRenduTelephoneOptimizerEtatAurasEnLigne', testRenduTelephoneOptimizerEtatAurasEnLigne],
+  ['testOptimizerContenuInvocateurCompatibilite', testOptimizerContenuInvocateurCompatibilite],
+  ['testRenduOptimizerContenuInvocateur', testRenduOptimizerContenuInvocateur],
+  ['testRenduTelephoneOptimizerContenuInvocateur', testRenduTelephoneOptimizerContenuInvocateur],
+  ['testRenduTelephoneOptimizerCreationObligatoire', testRenduTelephoneOptimizerCreationObligatoire],
+  ['testRenduOptimizerRechercheSourceRta', testRenduOptimizerRechercheSourceRta],
+  ['testRenduTelephoneOptimizerRechercheSourceRta', testRenduTelephoneOptimizerRechercheSourceRta],
+  ['testRenduOptimizerRechercheSourceSiege', testRenduOptimizerRechercheSourceSiege],
+  ['testRenduTelephoneOptimizerRechercheSourceSiege', testRenduTelephoneOptimizerRechercheSourceSiege],
+  ['testRenduOptimizerRechercheDesambiguise', testRenduOptimizerRechercheDesambiguise],
+  ['testRenduTelephoneOptimizerRechercheDesambiguise', testRenduTelephoneOptimizerRechercheDesambiguise],
+  ['testRenduOptimizerRechercheCreationSansSource', testRenduOptimizerRechercheCreationSansSource],
+  ['testRenduTelephoneOptimizerRechercheCreationSansSource', testRenduTelephoneOptimizerRechercheCreationSansSource],
+  ['testRenduOptimizerRechercheNonPossede', testRenduOptimizerRechercheNonPossede],
+  ['testRenduTelephoneOptimizerRechercheNonPossede', testRenduTelephoneOptimizerRechercheNonPossede],
+  ['testRenduOptimizerRechercheSansListeBox', testRenduOptimizerRechercheSansListeBox],
+  ['testRenduTelephoneOptimizerRechercheSansListeBox', testRenduTelephoneOptimizerRechercheSansListeBox],
+  ['testRenduOptimizerRechercheBoxResolu', testRenduOptimizerRechercheBoxResolu],
+  ['testRenduTelephoneOptimizerRechercheBoxResolu', testRenduTelephoneOptimizerRechercheBoxResolu],
+  ['testRenduOptimizerRechercheDejaMembre', testRenduOptimizerRechercheDejaMembre],
+  ['testRenduTelephoneOptimizerRechercheDejaMembre', testRenduTelephoneOptimizerRechercheDejaMembre],
+  ['testRenduOptimizerRechercheExemplaireSuivant', testRenduOptimizerRechercheExemplaireSuivant],
+  ['testRenduTelephoneOptimizerRechercheExemplaireSuivant', testRenduTelephoneOptimizerRechercheExemplaireSuivant],
+  ['testOptimizerCompetencesContenu', testOptimizerCompetencesContenu],
+  ['testRenduOptimizerRechercheCreation', testRenduOptimizerRechercheCreation],
+  ['testRenduTelephoneOptimizerRechercheCreation', testRenduTelephoneOptimizerRechercheCreation],
+  ['testRenduOptimizerEditionListe', testRenduOptimizerEditionListe],
+  ['testRenduTelephoneOptimizerEditionListe', testRenduTelephoneOptimizerEditionListe],
+  ['testRenduOptimizerCompetencesListe', testRenduOptimizerCompetencesListe],
+  ['testRenduTelephoneOptimizerCompetencesListe', testRenduTelephoneOptimizerCompetencesListe],
+  ['testRenduMemoireOptimizerSelection', testRenduMemoireOptimizerSelection],
+  ['testRenduMemoireOptimizerIdentiteEnregistree', testRenduMemoireOptimizerIdentiteEnregistree],
+  ['testRenduRattachementOptimizer', testRenduRattachementOptimizer],
+  ['testRenduTelephoneRattachementOptimizer', testRenduTelephoneRattachementOptimizer],
+  ['testRenduRattachementOptimizerDemonte', testRenduRattachementOptimizerDemonte],
+  ['testRenduMemoireOptimizerSansMemoire', testRenduMemoireOptimizerSansMemoire],
+  ['testRenduMemoireOptimizerListes', testRenduMemoireOptimizerListes],
+  ['testRenduMemoireOptimizerRetrait', testRenduMemoireOptimizerRetrait],
+  ['testRenduMemoireOptimizerInclusion', testRenduMemoireOptimizerInclusion],
+  ['testRenduMemoireOptimizerHorsListe', testRenduMemoireOptimizerHorsListe],
+  ['testRenduMemoireOptimizerIdentite', testRenduMemoireOptimizerIdentite],
+  ['testRenduMemoireOptimizerRecette', testRenduMemoireOptimizerRecette],
+  ['testRenduMemoireOptimizerNavigation', testRenduMemoireOptimizerNavigation],
+  ['testRenduTelephoneMemoireOptimizer', testRenduTelephoneMemoireOptimizer],
+  ['testRenduMemoireOptimizerSaisies', testRenduMemoireOptimizerSaisies],
+  ['testRenduMemoireOptimizerAutomatismes', testRenduMemoireOptimizerAutomatismes],
+  ['testRenduMemoireOptimizerRappelAurasDestination', testRenduMemoireOptimizerRappelAurasDestination],
+  ['testRenduTelephoneMemoireOptimizerRappelAurasDestination', testRenduTelephoneMemoireOptimizerRappelAurasDestination],
+  ['testRenduMemoireOptimizerZoneC', testRenduMemoireOptimizerZoneC],
+  ['testRenduTelephoneMemoireOptimizerZoneC', testRenduTelephoneMemoireOptimizerZoneC],
+  ['testRenduMemoireOptimizerListeInactive', testRenduMemoireOptimizerListeInactive],
+  ['testRenduMemoireOptimizerRecetteSansSelection', testRenduMemoireOptimizerRecetteSansSelection],
+  ['testRenduMemoireOptimizerGlobauxAvantRestauration', testRenduMemoireOptimizerGlobauxAvantRestauration],
+  ['testRenduMemoireOptimizerSourceRta', testRenduMemoireOptimizerSourceRta],
+  ['testRenduMemoireOptimizerSourceSiege', testRenduMemoireOptimizerSourceSiege],
+  ['testRenduMemoireOptimizerClicAjouter', testRenduMemoireOptimizerClicAjouter],
+  ['testRenduMemoireOptimizerClicValiderFiche', testRenduMemoireOptimizerClicValiderFiche],
+  ['testRenduMemoireOptimizerClicValiderInclut', testRenduMemoireOptimizerClicValiderInclut],
+  ['testRenduTelephoneMemoireOptimizerClicAjouter', testRenduTelephoneMemoireOptimizerClicAjouter],
+  ['testRenduTelephoneMemoireOptimizerClicValiderFiche', testRenduTelephoneMemoireOptimizerClicValiderFiche],
   ['testVitesse', testVitesse],
   ['testSpeedTune', testSpeedTune],
   ['testSpeedTuneDeck', testSpeedTuneDeck],
@@ -228,12 +409,6 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRecoDefenses', testRecoDefenses],
   ['testSiegePartage', testSiegePartage],
   ['testMarque', testMarque],
-  ['testSpecMarkdown', testSpecMarkdown],
-  ['testSpecToc', testSpecToc],
-  ['testSpecLintEnTetes', testSpecLintEnTetes],
-  ['testSpecLintEnTetesReel', testSpecLintEnTetesReel],
-  ['testSpecLint', testSpecLint],
-  ['testSpecLintReel', testSpecLintReel],
   ['testRenduSiegeDefense', testRenduSiegeDefense],
   ['testRenduSiegeOffense', testRenduSiegeOffense],
   ['testRenduSiegeEnTete', testRenduSiegeEnTete],
@@ -294,6 +469,14 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRenduAppNavigation', testRenduAppNavigation],
   ['testRenduAppMobile', testRenduAppMobile],
   ['testRenduAppFil', testRenduAppFil],
+  ['testRenduEcranPartageVolet', testRenduEcranPartageVolet],
+  ['testRenduEcranPartageBarre', testRenduEcranPartageBarre],
+  ['testRenduEcranPartageSeparateur', testRenduEcranPartageSeparateur],
+  ['testRenduEcranPartageBouton', testRenduEcranPartageBouton],
+  ['testRenduEcranPartageSelecteur', testRenduEcranPartageSelecteur],
+  ['testRenduEcranPartageApp', testRenduEcranPartageApp],
+  ['testEcranPartageMemePage', testEcranPartageMemePage],
+  ['testEcranPartageMediaQueryVolet', testEcranPartageMediaQueryVolet],
   ['testRenduAppLiensMorts', testRenduAppLiensMorts],
   ['testRenduAccueil', testRenduAccueil],
   ['testRenduAccueilEspace', testRenduAccueilEspace],
@@ -312,10 +495,19 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRenduRtaAmi', testRenduRtaAmi],
   ['testSkillAdapters', testSkillAdapters],
   ['testImport', testImport],
+  ['testBancSelection', testBancSelection],
   ['testNavigation', testNavigation],
   ['testNavigationAdresses', testNavigationAdresses],
   ['testNavigationAdressesDefauts', testNavigationAdressesDefauts],
   ['testNavigationVuesCompte', testNavigationVuesCompte],
+  ['testVoletsOuverture', testVoletsOuverture],
+  ['testVoletsNavigation', testVoletsNavigation],
+  ['testVoletsVerrou', testVoletsVerrou],
+  ['testVoletsLargeurs', testVoletsLargeurs],
+  ['testVoletsResponsive', testVoletsResponsive],
+  ['testVoletsFeuilleTailwind', testVoletsFeuilleTailwind],
+  ['testSuiviLecture', testSuiviLecture],
+  ['testSuiviTableau', testSuiviTableau],
   ['testReco', testReco],
   ['testDefensesVisees', testDefensesVisees],
   ['testTrimPartage', testTrimPartage],
@@ -324,15 +516,15 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testDecksMontables', testDecksMontables],
   ['testFormesJouables', testFormesJouables],
   ['testRtaPartage', testRtaPartage],
-  ['testHookRefuseSedI', testHookRefuseSedI],
-  ['testHookRefuseCommitM', testHookRefuseCommitM],
   ['testInstallerHooks', testInstallerHooks],
-  ['testHooksCodexGardeFous', testHooksCodexGardeFous],
+  ['testInstallationAutomatique', testInstallationAutomatique],
   ['testPreCommit', testPreCommit],
+  ['testCommitMsg', testCommitMsg],
+  ['testRappelDependances', testRappelDependances],
+  ['testVerifierCommits', testVerifierCommits],
   ['testRenvoisFormes', testRenvoisFormes],
   ['testRenvois', testRenvois],
-  ['testEcriturePubliqueFormes', testEcriturePubliqueFormes],
-  ['testEcriturePublique', testEcriturePublique],
+  ['testLectureSource', testLectureSource],
   ['testSetsIntangible', testSetsIntangible],
   ['testRuneTri', testRuneTri],
   ['testMonstreTri', testMonstreTri],
@@ -388,6 +580,8 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testDegatsTempestEcran', testDegatsTempestEcran],
   ['testRuneOptim', testRuneOptim],
   ['testRuneOptimDifferential', testRuneOptimDifferential],
+  ['testBuildsRapides', testBuildsRapides],
+  ['testRenduBuildsRapides', testRenduBuildsRapides],
   ['testRuneOptimOnStage', testRuneOptimOnStage],
   ['testRandomPool', testRandomPool],
   ['testDiagnosticHarness', async () => { await testDiagnosticHarness(); }],
@@ -406,6 +600,27 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testOptimizerExemplaireMontage', testOptimizerExemplaireMontage],
   ['testOptimizerRecipeImportSelection', testOptimizerRecipeImportSelection],
   ['testOptimizerDamageTransitions', testOptimizerDamageTransitions],
+  ['testOptimizerCriteresCaracterisation', testOptimizerCriteresCaracterisation],
+  ['testLeaderSkillPaliersCorpus', testLeaderSkillPaliersCorpus],
+  ['testOptimizerContenuListeSansContenu', testOptimizerContenuListeSansContenu],
+  ...verificationsOptimizerContenuListeElements,
+  ['testOptimizerContenuListeImportPreserveEtCollisions', testOptimizerContenuListeImportPreserveEtCollisions],
+  ...verificationsOptimizerEquipesActivite,
+  ...verificationsImportEquipes,
+  ...verificationsImportSpeedTune,
+  ...verificationsImportReco,
+  ...verificationsImportRecoCopies,
+  ...verificationsOptimizerEquipesCardinalites,
+  ['testOptimizerEquipesElementsEtLeadPersonnel', testOptimizerEquipesElementsEtLeadPersonnel],
+  ['testOptimizerEquipesSynchronisationLeadPersonnel', testOptimizerEquipesSynchronisationLeadPersonnel],
+  ['testOptimizerEquipesLeadsNonCalculablesEtHorsListe', testOptimizerEquipesLeadsNonCalculablesEtHorsListe],
+  ['testOptimizerEquipesOperationsEtExclusivite', testOptimizerEquipesOperationsEtExclusivite],
+  ['testOptimizerEquipesRetraitEquipeDeDeux', testOptimizerEquipesRetraitEquipeDeDeux],
+  ['testOptimizerEquipesCreationAvecOrphelines', testOptimizerEquipesCreationAvecOrphelines],
+  ['testOptimizerCriteresPhotos', testOptimizerCriteresPhotos],
+  ['testOptimizerCriteresBase', testOptimizerCriteresBase],
+  ['testOptimizerCriteresGarde', testOptimizerCriteresGarde],
+  ['testOptimizerCritereArtefactsNavigation', testOptimizerCritereArtefactsNavigation],
   ['testAurasRecette', testAurasRecette],
   ['testAurasCombatEtExclusive', testAurasCombatEtExclusive],
   ['testAurasArrondiCommunLeadInvocateur', testAurasArrondiCommunLeadInvocateur],
@@ -522,6 +737,139 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testSession', testSession],
   ['testStockage', async () => { await testStockage(); }],
   ['testPersistance', async () => { await testPersistance(); }],
+  ['testOptimizerImportActionDemontee', testOptimizerImportActionDemontee],
+  ['testOptimizerImportNavigation', testOptimizerImportNavigation],
+  ['testOptimizerImportRtaRecoBranchement', testOptimizerImportRtaRecoBranchement],
+  ['testRenduRtaExportOptimizer', testRenduRtaExportOptimizer],
+  ['testRenduTelephoneRtaExportOptimizer', testRenduTelephoneRtaExportOptimizer],
+  ['testRenduRecoExportOptimizer', testRenduRecoExportOptimizer],
+  ['testRenduTelephoneRecoExportOptimizer', testRenduTelephoneRecoExportOptimizer],
+  ['testRenduOptimizerImportRecommandation', testRenduOptimizerImportRecommandation],
+  ['testRenduTelephoneOptimizerImportRecommandation', testRenduTelephoneOptimizerImportRecommandation],
+  ['testOptimizerImportSiegeBranchement', testOptimizerImportSiegeBranchement],
+  ['testRenduSiegeExportOptimizer', testRenduSiegeExportOptimizer],
+  ['testRenduTelephoneSiegeExportOptimizer', testRenduTelephoneSiegeExportOptimizer],
+  ['testOptimizerImportSpeedTuneBranchement', testOptimizerImportSpeedTuneBranchement],
+  ['testRenduSpeedTuneExportOptimizer', testRenduSpeedTuneExportOptimizer],
+  ['testRenduTelephoneSpeedTuneExportOptimizer', testRenduTelephoneSpeedTuneExportOptimizer],
+  ['testRenduSpeedTuneExportAppOptimizer', testRenduSpeedTuneExportAppOptimizer],
+  ['testRenduTelephoneSpeedTuneExportAppOptimizer', testRenduTelephoneSpeedTuneExportAppOptimizer],
+  ['testOptimizerImportEcrituresGroupees', testOptimizerImportEcrituresGroupees],
+  ['testOptimizerImportReverificationEnAttente', testOptimizerImportReverificationEnAttente],
+  ['testOptimizerImportCollision', testOptimizerImportCollision],
+  ['testRenduOptimizerImportDefenses', testRenduOptimizerImportDefenses],
+  ['testRenduTelephoneOptimizerImportDefenses', testRenduTelephoneOptimizerImportDefenses],
+  ['testRenduOptimizerImportOffense', testRenduOptimizerImportOffense],
+  ['testRenduTelephoneOptimizerImportOffense', testRenduTelephoneOptimizerImportOffense],
+  ['testRenduOptimizerImportRta', testRenduOptimizerImportRta],
+  ['testRenduTelephoneOptimizerImportRta', testRenduTelephoneOptimizerImportRta],
+  ['testRenduOptimizerImportIndisponible', testRenduOptimizerImportIndisponible],
+  ['testRenduTelephoneOptimizerImportIndisponible', testRenduTelephoneOptimizerImportIndisponible],
+  ['testRenduOptimizerImportRapportPartage', testRenduOptimizerImportRapportPartage],
+  ['testRenduOptimizerImportDisponibiliteMemoisee', testRenduOptimizerImportDisponibiliteMemoisee],
+  // ⚠️ APRÈS `testPersistance` : ces tests changent l'état du module
+  // `usePersistence` (choix de conservation), partagé par tout le bundle, et
+  // `testPersistance` exige un navigateur vierge.
+  ['testOptimizerCreationNomParDefaut', testOptimizerCreationNomParDefaut],
+  ['testOptimizerPointAllerRetourComplet', testOptimizerPointAllerRetourComplet],
+  ['testOptimizerPointMemoireMemeGeste', testOptimizerPointMemoireMemeGeste],
+  ['testOptimizerPointLectureDefensive', testOptimizerPointLectureDefensive],
+  ['testOptimizerPointSessionRelue', testOptimizerPointSessionRelue],
+  ['testOptimizerPointSessionIllisibleConserve', testOptimizerPointSessionIllisibleConserve],
+  ['testOptimizerPointRepriseRattachement', testOptimizerPointRepriseRattachement],
+  ['testOptimizerPointRepriseCompteVide', testOptimizerPointRepriseCompteVide],
+  ['testOptimizerPointSuppressionConservation', testOptimizerPointSuppressionConservation],
+  ['testMemoireOptimizerJson', testMemoireOptimizerJson],
+  ['testOptimizerRattachementIdentites', testOptimizerRattachementIdentites],
+  ['testOptimizerRattachementReferenceConservee', testOptimizerRattachementReferenceConservee],
+  ...verificationsOptimizerRattachementOrdres,
+  ['testOptimizerRattachementDepartageEtPrises', testOptimizerRattachementDepartageEtPrises],
+  ['testOptimizerRattachementCopiesSansExemplaire', testOptimizerRattachementCopiesSansExemplaire],
+  ['testOptimizerRattachementPermutationEtProprietaire', testOptimizerRattachementPermutationEtProprietaire],
+  ['testOptimizerRattachementRuneVendue', testOptimizerRattachementRuneVendue],
+  ['testOptimizerRattachementDefensesComplet', testOptimizerRattachementDefensesComplet],
+  ['testOptimizerRattachementBranchement', testOptimizerRattachementBranchement],
+  ['testMemoireOptimizerCopie', testMemoireOptimizerCopie],
+  ['testMemoireOptimizerLecteurListes', testMemoireOptimizerLecteurListes],
+  ['testMemoireOptimizerListesIllisibles', testMemoireOptimizerListesIllisibles],
+  ['testMemoireOptimizerMalformed', testMemoireOptimizerMalformed],
+  ['testEquipeOptimizerValidation', testEquipeOptimizerValidation],
+  ['testMemoireOptimizerConservationSession', testMemoireOptimizerConservationSession],
+  ['testSessionOptimizerVersionDeux', testSessionOptimizerVersionDeux],
+  ['testMemoireOptimizerEffacement', testMemoireOptimizerEffacement],
+  ['testMemoireOptimizerReimport', testMemoireOptimizerReimport],
+  ['testMemoireOptimizerEspeceSelecteur', testMemoireOptimizerEspeceSelecteur],
+  ['testMemoireOptimizerBranchement', testMemoireOptimizerBranchement],
+  ['testEquipeOptimizerMembreRetire', testEquipeOptimizerMembreRetire],
+  ['testMemoireOptimizerSuppressionExplicite', testMemoireOptimizerSuppressionExplicite],
+  ['testMemoireOptimizerReimportBrutPreserve', testMemoireOptimizerReimportBrutPreserve],
+  ['testEquipeOptimizerTextesStricts', testEquipeOptimizerTextesStricts],
+  ['testMemoireOptimizerRejetsConserves', testMemoireOptimizerRejetsConserves],
+  ['testMemoireOptimizerTextesCriteresStricts', testMemoireOptimizerTextesCriteresStricts],
+  ['testOptimizerContenuListeJsonEtAncienStockage', testOptimizerContenuListeJsonEtAncienStockage],
+  ['testOptimizerContenuListeRejetsConserves', testOptimizerContenuListeRejetsConserves],
+  ['testOptimizerContenuListeSuppressionEtSession', testOptimizerContenuListeSuppressionEtSession],
+  ['testOptimizerContenuListeCreationEtModification', testOptimizerContenuListeCreationEtModification],
+  ['testRenduOptimizerLeadEquipePersonnel', testRenduOptimizerLeadEquipePersonnel],
+  ['testRenduTelephoneOptimizerLeadEquipePersonnel', testRenduTelephoneOptimizerLeadEquipePersonnel],
+  ['testRenduOptimizerDialogueEquipe', testRenduOptimizerDialogueEquipe],
+  ['testRenduTelephoneOptimizerDialogueEquipe', testRenduTelephoneOptimizerDialogueEquipe],
+  ['testRenduOptimizerDialogueLeaderSkill', testRenduOptimizerDialogueLeaderSkill],
+  ['testRenduTelephoneOptimizerDialogueLeaderSkill', testRenduTelephoneOptimizerDialogueLeaderSkill],
+  ['testRenduOptimizerDialogueLeaderEspece', testRenduOptimizerDialogueLeaderEspece],
+  ['testRenduTelephoneOptimizerDialogueLeaderEspece', testRenduTelephoneOptimizerDialogueLeaderEspece],
+  ['testRenduOptimizerDialogueMembresDisponibles', testRenduOptimizerDialogueMembresDisponibles],
+  ['testRenduTelephoneOptimizerDialogueMembresDisponibles', testRenduTelephoneOptimizerDialogueMembresDisponibles],
+  ['testRenduOptimizerDialogueDefilement', testRenduOptimizerDialogueDefilement],
+  ['testRenduTelephoneOptimizerDialogueDefilement', testRenduTelephoneOptimizerDialogueDefilement],
+  ['testRenduOptimizerDialogueHauteur400', testRenduOptimizerDialogueHauteur400],
+  ['testRenduOptimizerDialogueHauteur600', testRenduOptimizerDialogueHauteur600],
+  ['testRenduOptimizerDialogueReferencesLeader', testRenduOptimizerDialogueReferencesLeader],
+  ['testRenduTelephoneOptimizerDialogueReferencesLeader', testRenduTelephoneOptimizerDialogueReferencesLeader],
+  ['testRenduOptimizerDialogueChangementFormat', testRenduOptimizerDialogueChangementFormat],
+  ['testRenduOptimizerCreationContenu', testRenduOptimizerCreationContenu],
+  ['testRenduTelephoneOptimizerCreationContenu', testRenduTelephoneOptimizerCreationContenu],
+  ['testRenduOptimizerRefusIdentitePerime', testRenduOptimizerRefusIdentitePerime],
+  ['testRenduTelephoneOptimizerRefusIdentitePerime', testRenduTelephoneOptimizerRefusIdentitePerime],
+  ['testRenduOptimizerRecetteLeadEquipe', testRenduOptimizerRecetteLeadEquipe],
+  ['testRenduTelephoneOptimizerRecetteLeadEquipe', testRenduTelephoneOptimizerRecetteLeadEquipe],
+  ['testRenduOptimizerLeadAncienHorsEquipe', testRenduOptimizerLeadAncienHorsEquipe],
+  ['testRenduTelephoneOptimizerLeadAncienHorsEquipe', testRenduTelephoneOptimizerLeadAncienHorsEquipe],
+  ['testRenduOptimizerContenuSansDeplacement', testRenduOptimizerContenuSansDeplacement],
+  ['testRenduTelephoneOptimizerContenuSansDeplacement', testRenduTelephoneOptimizerContenuSansDeplacement],
+  ['testRenduOptimizerLigneListe', testRenduOptimizerLigneListe],
+  ['testRenduTelephoneOptimizerLigneListe', testRenduTelephoneOptimizerLigneListe],
+  ['testRenduOptimizerCombatEffectifAffiche', testRenduOptimizerCombatEffectifAffiche],
+  ['testRenduTelephoneOptimizerCombatEffectifAffiche', testRenduTelephoneOptimizerCombatEffectifAffiche],
+  ['testOptimizerEquipesJetons', testOptimizerEquipesJetons],
+  ['testRenduOptimizerBandesEquipesClair', testRenduOptimizerBandesEquipesClair],
+  ['testRenduOptimizerBandesEquipesSombre', testRenduOptimizerBandesEquipesSombre],
+  ['testRenduTelephoneOptimizerBandesEquipesClair', testRenduTelephoneOptimizerBandesEquipesClair],
+  ['testRenduTelephoneOptimizerBandesEquipesSombre', testRenduTelephoneOptimizerBandesEquipesSombre],
+  ['testRenduOptimizerAlerteDefilement', testRenduOptimizerAlerteDefilement],
+  ['testRenduOptimizerAlerteCycleDeVie', testRenduOptimizerAlerteCycleDeVie],
+  ['testRenduTelephoneOptimizerAlerteCycleDeVie', testRenduTelephoneOptimizerAlerteCycleDeVie],
+  ['testRenduTelephoneOptimizerAlerteFermetures', testRenduTelephoneOptimizerAlerteFermetures],
+  ['testRenduOptimizerPointGestes', testRenduOptimizerPointGestes],
+  ['testRenduTelephoneOptimizerPointGestes', testRenduTelephoneOptimizerPointGestes],
+  ['testRenduOptimizerPointReimport', testRenduOptimizerPointReimport],
+  ['testRenduTelephoneOptimizerPointReimport', testRenduTelephoneOptimizerPointReimport],
+  ['testRenduOptimizerPointCompteVide', testRenduOptimizerPointCompteVide],
+  ['testRenduTelephoneOptimizerPointCompteVide', testRenduTelephoneOptimizerPointCompteVide],
+  ['testRenduOptimizerPointSansMemoireChangementListe', testRenduOptimizerPointSansMemoireChangementListe],
+  ['testRenduTelephoneOptimizerPointSansMemoireChangementListe', testRenduTelephoneOptimizerPointSansMemoireChangementListe],
+  ['testRenduOptimizerPointSansMemoireListeSupprimee', testRenduOptimizerPointSansMemoireListeSupprimee],
+  ['testRenduTelephoneOptimizerPointSansMemoireListeSupprimee', testRenduTelephoneOptimizerPointSansMemoireListeSupprimee],
+  ['testOptimizerEquipesHookModificationAvecOrpheline', testOptimizerEquipesHookModificationAvecOrpheline],
+  ['testOptimizerEquipesAjoutEquipeOrphelineNeBloquePasEquipeSaine', testOptimizerEquipesAjoutEquipeOrphelineNeBloquePasEquipeSaine],
+  ['testSelectionFichiersInventaire', testSelectionFichiersInventaire],
+  ['testSelectionFichiersChargeur', testSelectionFichiersChargeur],
+  ['testSelectionFichiersCasReels', testSelectionFichiersCasReels],
+  ['testSelectionFichiersTailwind', testSelectionFichiersTailwind],
+  ['testSelectionFichiersGit', testSelectionFichiersGit],
+  ['testExecutionProuveeCas', testExecutionProuveeCas],
+  ['testExecutionProuveeEmplacement', testExecutionProuveeEmplacement],
+  ['testExecutionProuveePointEntree', testExecutionProuveePointEntree],
 ];
 
 // Un filtre passé en argument : on compare sur le nom mis à plat (sans tirets ni
@@ -533,10 +881,67 @@ function retenues(filtres: string[]): [string, () => void | Promise<void>][] {
   return VERIFICATIONS.filter(([nom]) => cibles.some((c) => plat(nom).includes(c)));
 }
 
+// Options à valeur : leur valeur n'est pas un filtre.
+const OPTIONS_A_VALEUR = new Set(['--selection', '--manifeste']);
+
+function lireArguments(args: string[]): { filtres: string[]; selection: string | null; manifeste: string | null } {
+  const filtres: string[] = [];
+  const valeurs = new Map<string, string | null>();
+  for (let i = 0; i < args.length; i++) {
+    if (OPTIONS_A_VALEUR.has(args[i])) { valeurs.set(args[i], args[i + 1] ?? null); i++; continue; }
+    if (!args[i].startsWith('-')) filtres.push(args[i]);
+  }
+  return { filtres, selection: valeurs.get('--selection') ?? null, manifeste: valeurs.get('--manifeste') ?? null };
+}
+
+// Sélection par fichiers modifiés, écrite par `tests/run.mjs --depuis/--plage`
+// (tests/selection.ts). Les noms d'un étalement ne se connaissent qu'ici : un
+// groupe d'étalements se retrouve entre les entrées nommées qui le bornent.
+function nomsSelectionnes(fichier: string): { noms: Set<string> | 'tout'; brut: unknown } {
+  const brut = JSON.parse(readFileSync(fichier, 'utf8'));
+  return { noms: nomsDeLaSelection(brut), brut };
+}
+
+function nomsDeLaSelection(brut: unknown): Set<string> | 'tout' {
+  const { execution } = brut as
+    { execution: { complet: boolean; noms: string[]; groupes: { avant: string | null; apres: string | null }[] } };
+  if (execution.complet) return 'tout';
+  const position = new Map(VERIFICATIONS.map(([n], i) => [n, i]));
+  if (position.size !== VERIFICATIONS.length) throw new Error('sélection : noms en double dans le registre');
+  const noms = new Set<string>();
+  for (const n of execution.noms) {
+    if (!position.has(n)) throw new Error(`sélection incohérente avec le registre : ${n} inconnu`);
+    noms.add(n);
+  }
+  for (const g of execution.groupes) {
+    const debut = g.avant === null ? -1 : position.get(g.avant);
+    const fin = g.apres === null ? VERIFICATIONS.length : position.get(g.apres);
+    if (debut === undefined || fin === undefined) throw new Error(`sélection incohérente avec le registre : bornes ${g.avant} / ${g.apres}`);
+    for (let i = debut + 1; i < fin; i++) noms.add(VERIFICATIONS[i][0]);
+  }
+  return noms;
+}
+
+// Racine du dépôt : `import.meta.url` est défini à la construction (tests/selection.ts).
+const RACINE = fileURLToPath(new URL('..', import.meta.url));
+
 async function main() {
-  const filtres = process.argv.slice(2).filter((a) => !a.startsWith('-'));
-  const liste = retenues(filtres);
-  if (liste.length === 0) {
+  const { filtres, selection, manifeste } = lireArguments(process.argv.slice(2));
+  if (process.argv.includes('--manifeste') && (manifeste === null || manifeste.startsWith('-'))) {
+    console.error('\x1b[31mRefus :\x1b[0m --manifeste attend un chemin de fichier');
+    process.exit(2);
+  }
+  // Avant tout : un emplacement de manifeste interdit est refusé, et toute sortie
+  // qui suit sans validation finale laisse le manifeste incomplet (tests/execution.ts).
+  let execution: Execution;
+  try {
+    execution = new Execution({ racine: RACINE, manifeste, registre: VERIFICATIONS.map(([n]) => n), bilan, debutVerification });
+  } catch (e) {
+    if (e instanceof RefusManifeste) { console.error(`\x1b[31mRefus :\x1b[0m ${e.message}`); process.exit(2); }
+    throw e;
+  }
+  const parNom = filtres.length > 0 ? retenues(filtres) : [];
+  if (filtres.length > 0 && parNom.length === 0) {
     console.error(
       `
 [31mAucune vérification ne correspond à[0m ${filtres.join(' ')}
@@ -545,7 +950,32 @@ async function main() {
     );
     process.exit(1);
   }
-  if (filtres.length > 0) {
+  // Avec une sélection, l'union de la sélection et des filtres, dans l'ordre du
+  // registre (les prérequis d'ordre en dépendent).
+  // L'attendu se fixe sur ce qui est annoncé (registre, filtres, sélection) ;
+  // la liste lancée s'en déduit. Les deux sont comparés après l'exécution.
+  let liste = filtres.length > 0 ? parNom : VERIFICATIONS;
+  let attendues = liste.map(([n]) => n);
+  let detail: unknown = null;
+  if (selection !== null) {
+    const { noms: choisis, brut } = nomsSelectionnes(selection);
+    detail = brut;
+    if (choisis !== 'tout') {
+      for (const [n] of parNom) choisis.add(n);
+      attendues = [...choisis];
+      liste = VERIFICATIONS.filter(([n]) => choisis.has(n));
+    } else {
+      liste = VERIFICATIONS;
+      attendues = liste.map(([n]) => n);
+    }
+  }
+  execution.fixer(attendues, {
+    mode: selection !== null ? 'fichiers modifiés' : filtres.length > 0 ? 'filtres' : 'suite complète',
+    filtres,
+    detail,
+  });
+  if (liste.length === 0) console.log('Sélection vide : aucune vérification à lancer.');
+  if (filtres.length > 0 || liste.length < VERIFICATIONS.length) {
     console.log(
       `[33mVérifications ciblées[0m (${liste.length}/${VERIFICATIONS.length}) : ` +
         liste.map(([n]) => n).join(', ') +
@@ -554,22 +984,7 @@ async function main() {
 `
     );
   }
-  for (const [nom, fn] of liste) {
-    debutVerification(nom);
-    await fn();
-  }
-
-  const { total, echecs, ignores, echecsDetail } = bilan();
-  if (echecsDetail.length > 0) {
-    console.log('\n\x1b[31mÉchecs :\x1b[0m');
-    for (const ligne of echecsDetail) console.log('  \x1b[31mKO\x1b[0m   ' + ligne);
-  }
-  const resume =
-    echecs === 0
-      ? `\n\x1b[32m${total} vérifications passées\x1b[0m` + (ignores ? `, ${ignores} ignorée(s)` : '')
-      : `\n\x1b[31m${echecs} échec(s)\x1b[0m sur ${total} vérifications`;
-  console.log(resume);
-  process.exit(echecs === 0 ? 0 : 1);
+  process.exit(await execution.lancer(liste));
 }
 
 main().catch((err) => {

@@ -1,6 +1,6 @@
 // `node scripts/generer-icone-bureau.mjs` — produit `bureau/icone.ico`, l'icône
 // Windows de l'application de bureau, depuis `public/favicon.png` (512 × 512).
-// Chantier application-bureau, lot 3. À relancer si le favicon change.
+// À relancer si le favicon change.
 //
 // ⚠️ Pourquoi pas la conversion d'electron-builder : elle écrit TOUTES les
 // tailles en PNG, que Windows ne sait pas lire en petite taille (bureau, menu

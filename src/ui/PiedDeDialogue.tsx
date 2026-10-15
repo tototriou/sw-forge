@@ -20,7 +20,7 @@ import { ReactNode } from 'react';
 //
 // ⚠️ **L'ordre d'insistance dépend de ce que l'action fait, pas de son rang
 // syntaxique** : quand elle DÉTRUIT, c'est « Annuler » qui est mis en avant.
-// Voir spec/README.md — le défaut ne perd jamais rien. Ce composant place ; il
+// Voir docs/03-developpeur/ — le défaut ne perd jamais rien. Ce composant place ; il
 // ne décide pas lequel des deux mérite l'accent.
 
 export default function PiedDeDialogue({

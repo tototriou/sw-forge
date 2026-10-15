@@ -165,9 +165,9 @@ export default function ArtifactsSummary({ artifacts }: Props) {
 
   return (
     <div className="flex flex-col gap-4">
-      {/* ⚠️ **En-tête à la SOURIS** (refonte graphique, lot 8b, la maquette ;
+      {/* ⚠️ **En-tête à la SOURIS** (la maquette ;
           même gabarit que le Résumé des runes) : « Résumé » et le nombre
-          d'artéfacts. Au doigt, la barre du haut dit déjà la vue (lot 11). */}
+          d'artéfacts. Au doigt, la barre du haut dit déjà la vue. */}
       <div className="hidden items-center gap-2.5 lg:flex">
         <h1 className="font-display text-xl tracking-wide text-ink">Résumé</h1>
         <span className="rounded-full border border-border-soft bg-panel2 px-2 py-0.5 font-mono text-micro text-ink-dim">
@@ -178,7 +178,7 @@ export default function ArtifactsSummary({ artifacts }: Props) {
       {/* ---- Chiffres clés — le compte entier, puis chaque sorte ---------- */}
       {/* ⚠️ À la SOURIS, UN bandeau (`Kpi bandeau`, la maquette `.stats`),
           comme le Résumé des runes : six cases séparées par un filet. Au
-          DOIGT, une carte sur deux colonnes (lot 11c, décision 26). */}
+          DOIGT, une carte sur deux colonnes. */}
       <div
         className={`grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2
                    lg:flex lg:gap-0 lg:overflow-hidden lg:rounded-xl lg:border lg:border-border-soft lg:bg-panel

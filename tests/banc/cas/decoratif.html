@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="fr" data-attendu-page="non">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover">
+<title>Décoratif coupé</title>
+<style>
+  body { margin: 8px; font: 14px sans-serif; }
+  .bloc { margin: 8px 0; }
+  .overflow-y-auto { overflow-y: auto; }
+  .overflow-hidden { overflow: hidden; }
+  /* La carte de l'accueil : `relative overflow-hidden`, halo absolu qui dépasse de 40 px en haut à droite. */
+  .carte { position: relative; width: 150px; height: 60px; background: #eee; }
+  .halo { position: absolute; right: -40px; top: -40px; width: 112px; height: 112px; border-radius: 50%; background: #9cf; }
+</style>
+</head>
+<body>
+<!-- Non signalé : halo aria-hidden, non cliquable, coupé par la carte ; la carte ne l'est pas à son titre. -->
+<div id="carte-halo" class="bloc carte overflow-hidden" data-attendu="">
+  <div id="halo" class="halo" aria-hidden="true" style="pointer-events: none" data-attendu=""></div>
+</div>
+<!-- Non signalé : `pointer-events: none` CALCULÉ, hérité d'un parent. -->
+<div id="carte-herite" class="bloc carte overflow-hidden" data-attendu="">
+  <div style="pointer-events: none">
+    <div id="halo-herite" class="halo" aria-hidden="true" data-attendu=""></div>
+  </div>
+</div>
+<!-- Non signalé : coupé par `overflow: clip`. -->
+<div id="carte-clip" class="bloc carte" style="overflow: clip" data-attendu="">
+  <div class="halo" aria-hidden="true" style="pointer-events: none"></div>
+</div>
+<!-- Signalé : le même halo, cliquable. -->
+<div id="carte-cliquable" class="bloc carte overflow-hidden" data-attendu="contenu">
+  <div id="halo-cliquable" class="halo" aria-hidden="true" data-attendu=""></div>
+</div>
+<!-- Signalé : sans aria-hidden. -->
+<div id="carte-sans-aria" class="bloc carte overflow-hidden" data-attendu="contenu">
+  <div class="halo" style="pointer-events: none"></div>
+</div>
+<!-- Signalé : aria-hidden="false". -->
+<div id="carte-aria-faux" class="bloc carte overflow-hidden" data-attendu="contenu">
+  <div class="halo" aria-hidden="false" style="pointer-events: none"></div>
+</div>
+<!-- Signalé : la boîte défile (`overflow-y-auto` : `overflow-x` calculé `auto`), elle ne coupe pas — et ce n'est pas un défilement voulu. -->
+<div id="carte-defile" class="bloc carte overflow-y-auto" data-attendu="contenu">
+  <div class="halo" aria-hidden="true" style="pointer-events: none"></div>
+</div>
+<!-- Signalé : la carte déborde AUSSI pour une autre raison (un enfant de 30 px de trop) ; le halo, lui, ne l'est pas. -->
+<div id="carte-double" class="bloc carte overflow-hidden" data-attendu="contenu">
+  <div id="halo-double" class="halo" aria-hidden="true" style="pointer-events: none" data-attendu=""></div>
+  <div id="enfant-trop-large" data-attendu="" style="width: 180px; height: 20px; background: #ccc"></div>
+</div>
+</body>
+</html>

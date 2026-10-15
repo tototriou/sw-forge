@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="fr" data-attendu-page="oui">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover">
+<title>Règle géométrie</title>
+<style>
+  body { margin: 8px; font: 14px sans-serif; }
+  .bloc { margin: 8px 0; }
+  .overflow-x-auto { overflow-x: auto; }
+  .sm\:overflow-x-auto { overflow-x: auto; }
+  .overflow-y-auto { overflow-y: auto; }
+  .overflow-hidden { overflow: hidden; }
+</style>
+</head>
+<body>
+<!-- Signalé : sort à droite (300 + 100 > 360). -->
+<div id="sort-droite" class="bloc" data-attendu="geometrie" style="position: relative; left: 300px; width: 100px; height: 20px; background: #ccc"></div>
+<!-- Signalé : sort à gauche (le document ne défile pas vers la gauche : seule cette règle le voit). -->
+<div id="sort-gauche" class="bloc" data-attendu="geometrie" style="margin-left: -50px; width: 100px; height: 20px; background: #ccc"></div>
+<!-- Signalé : élément fixe qui sort à droite, même sous un ancêtre overflow-hidden qui ne le coupe pas (il n'est pas son bloc contenant). -->
+<div id="ancetre-non-contenant" class="bloc overflow-hidden" data-attendu="" style="width: 200px; height: 20px">
+  <div id="fixe-droite" data-attendu="geometrie" style="position: fixed; top: 200px; right: -40px; width: 100px; height: 20px; background: #ccc"></div>
+</div>
+<!-- Signalé : élément absolu dont le bloc contenant est au-dessus de l'ancêtre overflow-hidden statique. -->
+<div class="bloc" style="position: relative; height: 20px">
+  <div id="ancetre-statique" class="overflow-hidden" data-attendu="" style="width: 200px; height: 20px">
+    <div id="absolu-hors-coupe" data-attendu="geometrie" style="position: absolute; top: 0; left: 320px; width: 100px; height: 20px; background: #ccc"></div>
+  </div>
+</div>
+<!-- Non signalé : sort de la fenêtre mais coupé par son ancêtre overflow-hidden (l'ancêtre, lui, est signalé « contenu »). -->
+<div id="coupe" class="bloc overflow-hidden" data-attendu="contenu" style="width: 300px">
+  <div id="coupe-enfant" data-attendu="" style="margin-left: 250px; width: 200px; height: 20px; background: #ccc"></div>
+</div>
+</body>
+</html>

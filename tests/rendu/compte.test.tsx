@@ -1,7 +1,7 @@
 // Tests de rendu — Mon compte · Monstres et Artéfacts (`AccountPage`). Principe
 // dans tests/rendu/outils-rendu.tsx : on vérifie que chaque fonctionnalité et
-// chaque information sont présentes, jamais l'apparence. Écrits AVANT le lot 8b
-// de la refonte graphique : ils doivent rester verts sans qu'une assertion change.
+// chaque information sont présentes, jamais l'apparence : un changement de
+// style doit les laisser verts sans qu'une assertion change.
 //
 // ⚠️ Rendu BUREAU : le panneau d'actions mobile est fermé (`menuOuvert` faux).
 
@@ -128,7 +128,7 @@ export function testRenduCompteArtefactsListe() {
   ok(t.includes('DEF +60 Rare 3.6%'), 'le moins bon en fin de liste');
 }
 
-// Lot 13 (décision 28) : « Effacer les filtres » dans la box et la liste
+// « Effacer les filtres » dans la box et la liste
 // d'artéfacts — présent, et désactivé avec sa raison quand rien n'est filtré.
 export function testRenduCompteEffacerFiltres() {
   titre('rendu · Mon compte — « Effacer les filtres » (box, artéfacts)');
@@ -139,7 +139,7 @@ export function testRenduCompteEffacerFiltres() {
   }
 }
 
-// Lot 8b : les en-têtes à la souris. Ajoutés avec eux ; les tests d'avant
+// Les en-têtes à la souris. Ajoutés avec eux ; les tests d'avant
 // restent inchangés.
 export function testRenduCompteSouris() {
   titre('rendu · Mon compte · Monstres et Artéfacts — en-têtes à la souris');

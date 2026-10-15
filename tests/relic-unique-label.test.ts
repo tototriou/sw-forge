@@ -1,5 +1,5 @@
 // Libellé dérivé de propriété unique de relique (voir
-// `spec/outils/optimizer/moteur/reliques.md`) — « <effet> en fonction <stat> », affiché dans le sélecteur
+// `docs/03-developpeur/optimizer/`) — « <effet> en fonction <stat> », affiché dans le sélecteur
 // « Relique — propriété unique » (OptimizerSection.tsx) et, via
 // `RelicDetailBox`/`formatRelicUnique`, sur la carte candidat.
 //
@@ -12,7 +12,7 @@
 // inconnu ».
 //
 // `formatRelicUsage` : compteur `n / 150` réintroduit dans
-// `RelicDetailBox` — voir spec/outils/optimizer/moteur/reliques.md.
+// `RelicDetailBox` — voir docs/03-developpeur/optimizer/.
 
 import { RELIC_MAX_INSTANCES, RELIC_UNIQUE, formatRelicUsage, relicUniqueEffectLabel } from '../src/lib/effects';
 import { egal, ok, titre } from './outils';

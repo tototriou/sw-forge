@@ -510,8 +510,8 @@ export default function RunesOptim({
   // doigt (comme les filtres de la Liste). `large` élargit les segmentés à toute
   // la largeur du panneau ; en ligne ils restent serrés.
   // Le MODE du potentiel — ce qui change toute la liste. ⚠️ Au TÉLÉPHONE, il
-  // n'est plus dans le panneau « Options » mais en tête de la page (lot 11c,
-  // décision 26, la maquette) : on le voit et on le bascule sans ouvrir le
+  // n'est plus dans le panneau « Options » mais en tête de la page (la maquette) : on le voit et on le
+  // bascule sans ouvrir le
   // panneau. Au bureau, il reste dans la rangée d'options.
   const modeControl = (large: boolean) => (
     <Segmented
@@ -709,9 +709,9 @@ export default function RunesOptim({
 
   return (
     <div>
-      {/* ⚠️ **En-tête à la SOURIS** (refonte graphique, lot 8a-3, la maquette) :
+      {/* ⚠️ **En-tête à la SOURIS** (la maquette) :
           le titre de la vue et ce qu'elle cherche. Au doigt, la barre du haut
-          dit déjà la vue (lot 11). */}
+          dit déjà la vue. */}
       <div className="mb-3 hidden items-baseline gap-3 lg:flex">
         <h1 className="font-display text-xl tracking-wide text-ink">Optimisation</h1>
         <span className="text-sm text-ink-dim">
@@ -729,15 +729,15 @@ export default function RunesOptim({
 
       {/* Contrôles */}
       <div className="flex items-center gap-4 flex-wrap mb-4">
-        {/* Au DOIGT : le MODE en tête, sur toute la largeur (décision 26). */}
+        {/* Au DOIGT : le MODE en tête, sur toute la largeur. */}
         <div className="w-full lg:hidden">{modeControl(true)}</div>
         {/* Au DOIGT : les rangées d'avant (`contents` : leurs enfants restent
-            des éléments de la rangée), cachées à la souris (lot 11). */}
+            des éléments de la rangée), cachées à la souris. */}
         <div className="contents lg:hidden">
           <SetFilter runes={runes} value={sets} onChange={choisirSets} />
           <SlotFilter value={slots} onChange={choisirSlots} />
         </div>
-        {/* À la SOURIS : les menus déroulants (lot 8a, décision 20). Sans
+        {/* À la SOURIS : les menus déroulants. Sans
             « Antiques » : l'Optimisation les range avec « Faisable avec ma
             réserve », dans ses options, plus loin sur la rangée. */}
         <div className="hidden lg:block">
@@ -755,7 +755,7 @@ export default function RunesOptim({
 
         <div className="flex items-center gap-2">
           <span className="label">Trier par</span>
-          {/* Au DOIGT : la liste déroulante (lot 11). */}
+          {/* Au DOIGT : la liste déroulante. */}
           <Selecteur
             value={sort}
             onChange={(e) => {
@@ -772,7 +772,7 @@ export default function RunesOptim({
             ))}
           </Selecteur>
           {/* À la SOURIS, des onglets (`Segmented`), comme le reste de la
-              page (le mainteneur, lot 8a). Mêmes entrées, même ordre. */}
+              page (le mainteneur). Mêmes entrées, même ordre. */}
           <div className="hidden lg:block">
             <Segmented
               value={sort}
@@ -811,119 +811,38 @@ export default function RunesOptim({
         <div className="ml-auto">
           <HelpPopover title="Comment est-ce calculé ?" width={360}>
               <p>
-                Pour chaque rune on calcule son <b className="text-ink">efficience actuelle</b> puis son{' '}
-                <b className="text-ink">potentiel maximal</b>, en héroïque et en légendaire (tables distinctes
-                pour les runes antiques), selon le mode :
-              </p>
-              <ul className="mt-2 space-y-1.5">
-                <li>
-                  <b className="text-ink">Gemme + meule</b> — meilleure gemme possible <i>puis</i> toutes les
-                  meules poussées au max.
-                </li>
-                <li>
-                  <b className="text-ink">Meule seule</b> — on garde les stats actuelles et on ne pousse que
-                  les meules, pour repérer les runes à grinder en priorité.
-                </li>
-              </ul>
-              <p className="mt-2">
-                <span className="text-ink font-semibold">Choix de la gemme</span> : si la rune n'est pas
-                gemmée, on prend la stat grindable la plus rentable (PV%/ATQ%/DEF%/VIT, sinon un flat), sans
-                doublon et en respectant les emplacements (slot 1 sans DEF, slot 3 sans ATQ) — la stat de la
-                ligne elle-même compte (une ATQ% faible peut être regemmée en ATQ%). Si elle est déjà gemmée, on
-                garde la stat que tu as choisie : on ne fait que la « procker » au max — sauf avec{' '}
-                <b className="text-ink">Autoriser un regemme différent</b>, qui propose aussi de la remplacer
-                par une autre stat absente de la rune (seule la ligne déjà gemmée peut l'être).
+                <b className="text-ink">Gemme + meule</b> : meilleure gemme possible, puis toutes les meules
+                au max. <b className="text-ink">Meule seule</b> : les stats actuelles, meules au max. Une rune
+                déjà gemmée garde sa stat gemmée, sauf avec{' '}
+                <b className="text-ink">Autoriser un regemme différent</b>.
               </p>
               <p className="mt-2">
-                <span className="text-ink font-semibold">Gain</span> = potentiel − efficience actuelle : ce
-                que la rune gagnerait. Sur chaque carte, sa ligne garde la couleur de la rareté visée ;
-                dans le détail d'une rune, il est en <span className="text-good">vert</span> s'il est
-                positif, en <span className="text-bad">rouge</span> s'il est négatif (ex. une rune déjà
-                grindée légendaire « perd » en héroïque — ce cas disparaît sous « Faisable avec ma
-                réserve »).
+                <span className="text-ink font-semibold">Gain</span> = potentiel − efficience actuelle.
               </p>
               <p className="mt-2">
-                <b className="text-ink">Tri</b> : efficience actuelle, potentiel ou gain. Clique une rune pour
-                voir le plan <b className="text-ink">avant / après</b>.
+                <span className="text-ink font-semibold">Palier</span> : filtre sur la{' '}
+                <b className="text-ink">valeur actuelle</b> de la rune, pas sur son potentiel ni son gain.
               </p>
-
-              <p className="mt-2">
-                <span className="text-ink font-semibold">Palier</span> : n'affiche que les runes dont la{' '}
-                <b className="text-ink">valeur actuelle</b> atteint ce seuil — pas le potentiel, ni le gain.
-                Une rune médiocre a souvent le plus gros gain relatif, sans devenir bonne pour autant.
-              </p>
-              <p className="mt-1.5">
-                Il est exprimé <b className="text-ink">dans la mesure affichée</b> (100 en efficience n'est pas
-                100 en score SW). En changeant de mesure dans ⚙, il est{' '}
-                <b className="text-ink">reconverti pour garder exactement la même sélection</b> : le nombre de
-                runes affichées ne bouge pas, seul le nombre écrit change. Il n'existe pas de facteur entre les
-                deux mesures — le rapport varie du simple au double selon la rune — donc la conversion se fait
-                par rang, pas par multiplication.
-              </p>
-
               <p className="mt-2">
                 <span className="text-ink font-semibold">
                   <Hammer size={12} className="inline mb-0.5" /> et{' '}
                   <Gem size={12} className="inline mb-0.5" /> dans le plan
                 </span>{' '}
-                : chaque ligne à travailler porte l'icône de ce qu'elle réclame — un marteau pour une{' '}
-                <b className="text-ink">meule</b>, une gemme pour une <b className="text-ink">gemme</b>.
+                : <b className="text-good">vert</b>, tu l'as en réserve ;{' '}
+                <b className="text-ink">grisé</b>, il est à farmer. Les{' '}
+                <b className="text-ink">immémoriaux</b> vont sur tous les sets.
               </p>
-              <ul className="mt-1.5 space-y-1">
-                <li>
-                  <Hammer size={12} className="inline mb-0.5 text-good" />{' '}
-                  <b className="text-good">vert</b> — tu l'as en réserve, du bon set et au bon grade :
-                  c'est posable maintenant.
-                </li>
-                <li>
-                  <Hammer size={12} className="inline mb-0.5 text-ink-dim opacity-40" />{' '}
-                  <b className="text-ink">grisé</b> — il te manque, cette ligne est à farmer.
-                </li>
-              </ul>
-              <p className="mt-1.5">
-                Les <b className="text-ink">immémoriaux</b> comptent pour tous les sets ; les consommables{' '}
-                <b className="text-ink">antiques</b> ne servent qu'aux runes antiques, et inversement.
-              </p>
-
               <p className="mt-2">
-                <span className="text-ink font-semibold">Faisable avec ma réserve</span> : ne garde que les
-                runes que tu peux améliorer <b className="text-ink">tout de suite</b>. Le calcul change alors —
-                il ne pousse que les stats dont tu as le consommable, et ne redescend jamais une meule déjà
-                posée. Le gain affiché est donc <b className="text-ink">celui que tu peux réellement aller
-                chercher aujourd'hui</b>, pas le potentiel théorique.
+                <span className="text-ink font-semibold">Faisable avec ma réserve</span> : seulement les runes
+                améliorables <b className="text-ink">tout de suite</b>, avec le gain réellement atteignable
+                aujourd'hui. <span className="text-ink font-semibold">Sans les immémoriaux</span> : la même
+                chose, sans toucher à tes gemmes et meules immémoriales.
               </p>
-
               <p className="mt-2">
-                <span className="text-ink font-semibold">Sans les immémoriaux</span> : retire de ta réserve
-                les gemmes et meules <b className="text-ink">immémoriales</b> — celles qui vont sur{' '}
-                <b className="text-ink">n'importe quel set</b>. Ce sont les plus rares : ce bouton répond à
-                « qu'est-ce qui reste faisable <b className="text-ink">sans y toucher</b> ? ». Il change le
-                filtre de réserve <i>et</i> les icônes vertes du plan, puisque les deux lisent la même
-                réserve.
-              </p>
-
-              <p className="mt-2">
-                <span className="text-ink font-semibold">Runes utilisées</span> : ne garde que les runes qui{' '}
-                <b className="text-ink">jouent</b> — posées sur un monstre présent dans un{' '}
-                <b className="text-ink">deck</b> (arène, donjons, ToA, siège… <b className="text-ink">tous
-                les contenus enregistrés</b>) ou dans un <b className="text-ink">preset RTA</b>. Les presets
-                comptent même si la rune dort dans ton inventaire : c'est bien elle qui se pose au combat.
-                Le reste de ton stock n'est pas affiché — améliorer une rune que personne ne porte ne change
-                aucun combat.
-              </p>
-              <p className="mt-1.5">
-                Tu choisis les <b className="text-ink">périmètres</b> qui comptent (flèche à côté du bouton,
-                ou cases sous le bouton dans le panneau « Options ») : RTA, siège en attaque et en défense,
-                arène en attaque et en défense, autres decks (donjons, ToA…). Tous sont cochés par défaut ;
-                une rune est gardée dès qu'un périmètre coché l'utilise.
-              </p>
-
-              <p className="mt-2">
-                <span className="text-ink font-semibold">Marqueurs</span> : ne garde que les runes des
-                marqueurs que tu poses en jeu, avec les noms que tu leur as donnés (un marqueur jamais nommé
-                s'affiche par son numéro). Même principe que « Runes utilisées » : le bouton allume le filtre,
-                les cases choisissent les marqueurs gardés — tous cochés par défaut. Décoche « Tous » puis
-                coche un seul marqueur pour ne garder que lui.
+                <span className="text-ink font-semibold">Runes utilisées</span> : seulement les runes posées
+                sur un monstre d'un deck enregistré ou d'un preset RTA, selon les périmètres cochés.{' '}
+                <span className="text-ink font-semibold">Marqueurs</span> : seulement les runes des marqueurs
+                cochés.
               </p>
           </HelpPopover>
         </div>
@@ -933,7 +852,7 @@ export default function RunesOptim({
           antique, « Faisable avec ma réserve », « Sans les immémoriaux »,
           « Runes utilisées », « Marqueurs »). Le bouton qui l'ouvre vit dans la
           barre de nav — voir App.tsx (`pageAPanneau`). Le mode gemme/meule
-          (en tête de page au doigt, lot 11c), sets, slots, tri et aide
+          (en tête de page au doigt), sets, slots, tri et aide
           restent dans la page. */}
       <MobileSheet ouvert={menuOuvert} onFermer={onFermerMenu} titre="Options d'optimisation">
         <div className="flex flex-col gap-3">{optionsControls(true, false)}</div>
@@ -1123,7 +1042,7 @@ export const OptimTile = memo(function OptimTile({
 
 // Le violet qui signale « ce qui change » dans un plan d'optimisation. Même
 // teinte que l'héroïque, donc même token : il suit le thème et reste lisible
-// sur fond clair. Voir spec/shared/design.md.
+// sur fond clair. Voir docs/03-developpeur/interface/.
 const VIOLET = 'rgb(var(--rarity-4))';
 
 // Ligne de substat façon carte de jeu : base + grind + ↻. Chaque partie peut

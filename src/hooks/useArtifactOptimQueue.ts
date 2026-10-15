@@ -168,7 +168,7 @@ export function useArtifactOptimQueue(opts: {
    * ⚠️ Le résultat entre TOUJOURS dans le cache, conforme ou non : c'est le
    * classement (`affichees`) qui écarte un build qu'aucun couple réel ne
    * rend équipable (`ResultatArtefacts.conforme`,
-   * spec/outils/optimizer/moteur/artefacts.md § Filtre final sur la vraie paire).
+   * docs/03-developpeur/optimizer/ § Filtre final sur la vraie paire).
    */
   resoudre: ((c: BuildCandidate) => ResultatArtefacts) | null;
   // Change dès qu'un réglage modifie le score d'une paire ou le pool de

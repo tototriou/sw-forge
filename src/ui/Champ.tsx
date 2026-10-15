@@ -9,7 +9,7 @@ import { forwardRef, ReactNode } from 'react';
 // `<textarea>` est concerné. La règle vit désormais dans index.css, sur les
 // ÉLÉMENTS et sous `pointer: coarse`.
 //
-// ⚠️ Bordure seule au focus, **sans halo** : voir spec/shared/design.md.
+// ⚠️ Bordure seule au focus, **sans halo** : voir docs/03-developpeur/interface/.
 
 export interface ChampProps extends React.InputHTMLAttributes<HTMLInputElement> {
   // Posée à gauche, dans le rembourrage. Le champ décale son texte pour elle.

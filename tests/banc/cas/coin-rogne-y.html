@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="fr" data-attendu-page="non">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover">
+<title>Icône en coin rognée verticalement</title>
+<style>
+  body { margin: 8px; font: 14px sans-serif; }
+  .bloc { margin: 16px 0; width: 200px; padding: 8px; }
+  .avatar { position: relative; display: inline-flex; width: 40px; height: 40px; flex: none; }
+  .image { display: block; width: 40px; height: 40px; background: #9cf; }
+  .icone { position: absolute; top: -0.25rem; right: -0.25rem; width: 16px; height: 16px; background: #f90; }
+</style>
+</head>
+<body>
+<!-- Relecture n° 6 (Codex) : l'avatar rogne l'icône sur l'axe vertical seul (`overflow-y: clip`) ; une icône
+     rognée reste signalée : rien ne se soustrait (4 px). -->
+<div class="bloc">
+  <span id="rogne-y-avatar" class="avatar" data-portrait style="overflow-x: visible; overflow-y: clip" data-attendu="contenu" data-attendu-depassement="4">
+    <span class="image"></span>
+    <img data-pastille="element" id="rogne-y-icone" class="icone" src="elements/water.png" alt="" data-attendu="">
+  </span>
+</div>
+</body>
+</html>

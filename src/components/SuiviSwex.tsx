@@ -2,8 +2,8 @@ import { useEffect, useRef } from 'react';
 import { swex } from '../lib/bureau';
 import { useNotifier } from '../ui/Notification';
 
-// Le dossier SW Exporter, côté page — application de bureau, lot 9,
-// décision 15 (bureau/swex.ts). Rien à l'écran : il reçoit les exports du
+// Le dossier SW Exporter, côté page — application de bureau (bureau/swex.ts). Rien à
+// l'écran : il reçoit les exports du
 // compte suivi, en applique « Mon compte » (`appliquer`, App.tsx
 // `rafraichirCompte`) et l'annonce. Sur le site : inerte.
 //

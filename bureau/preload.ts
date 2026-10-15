@@ -1,4 +1,4 @@
-// Préchargement de l'application de bureau — chantier application-bureau.
+// Préchargement de l'application de bureau.
 //
 // ⚠️ **La page n'a JAMAIS accès à Node** (`contextIsolation`, `sandbox`,
 // `nodeIntegration: false`) : elle ne reçoit que cet objet figé, exposé par
@@ -13,10 +13,10 @@ contextBridge.exposeInMainWorld(
     // `estBureau()` s'appuie sur la présence de cet objet.
     bureau: true,
     plateforme: process.platform,
-    // Les couleurs du thème, pour habiller la fenêtre (lot 1 bis). Le
+    // Les couleurs du thème, pour habiller la fenêtre. Le
     // processus principal les vérifie avant de s'en servir.
     couleurs: (c: { fond: string; barre: string; symboles: string }) => ipcRenderer.send('bureau:couleurs', c),
-    // La mise à jour automatique (lot 5, voir bureau/miseAJour.ts) : l'état
+    // La mise à jour automatique (voir bureau/miseAJour.ts) : l'état
     // courant, ses changements (rend de quoi se désabonner), « Rechercher »,
     // « Mettre à jour » et « Redémarrer ».
     miseAJour: Object.freeze({
@@ -32,7 +32,7 @@ contextBridge.exposeInMainWorld(
       telecharger: () => ipcRenderer.send('bureau:telecharger'),
       redemarrer: () => ipcRenderer.send('bureau:redemarrer'),
     }),
-    // Le dossier SW Exporter (lot 9, voir bureau/swex.ts) : le réglage et ses
+    // Le dossier SW Exporter (voir bureau/swex.ts) : le réglage et ses
     // changements, les choix (dossier par la boîte du système, invocateur
     // parmi les exports trouvés), les exports donnés à la page, et ses
     // réponses — prête, export appliqué.

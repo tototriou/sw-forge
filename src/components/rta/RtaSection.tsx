@@ -69,7 +69,7 @@ export default function RtaSection({
       // ⚠️ Rembourrage réduit sous `sm` : la page empile trois à six sections,
       // et chaque `p-3` coûte 24 px de haut multipliés par le nombre de
       // sections — soit un écran entier de vide sur un téléphone.
-      // ⚠️ Refonte graphique, lot 6 : **plus de cadre au repos** (la maquette).
+      // ⚠️ **Pas de cadre au repos** (la maquette).
       // Cinq sections encadrées empilaient cinq boîtes dans la page ; c'est
       // l'en-tête — icône, titre, nombre, filet — qui délimite désormais la
       // section. Le cadre REVIENT pendant un glisser, à la couleur du set :
@@ -77,7 +77,7 @@ export default function RtaSection({
       // ⚠️ **1 px, et un seul** : la bordure (transparente au repos, pour que
       // son apparition ne décale rien) prend la teinte — plus d'ombre ajoutée
       // par-dessus, qui en faisait un trait de 2 px. Voir la règle du
-      // marqueur unique dans spec/shared/design.md.
+      // marqueur unique dans docs/03-developpeur/interface/.
       className={`rounded-xl border p-2 transition-colors compact:p-1.5 ${
         over ? 'bg-panel2/60' : 'border-transparent'
       }`}
@@ -135,8 +135,8 @@ export default function RtaSection({
           // 320 px et trois à partir de 480.
           // La carte s'y adapte : le sélecteur de section passe sous le nom
           // plutôt qu'à côté (voir RtaCard).
-          // ⚠️ **Au TÉLÉPHONE, une RANGÉE par monstre** (refonte graphique,
-          // lot 11a, décision 24, la maquette) : une colonne, écart resserré.
+          // ⚠️ **Au TÉLÉPHONE, une RANGÉE par monstre** (la maquette) : une colonne,
+          // écart resserré.
           // Le mainteneur l'a choisie en connaissance de l'objection ci-dessus (trente
           // monstres, trente lignes) : la rangée est plus basse que la carte
           // et elle rend le NOM, que la tuile de 150 px devait masquer.
@@ -144,7 +144,11 @@ export default function RtaSection({
           // APRÈS `max-lg:` dans le CSS construit et l'aurait emporté entre 640
           // et 1023 px — deux colonnes sur un téléphone en paysage. Au-dessus
           // de `lg`, les deux reviennent au même : le bureau ne bouge pas.
-          className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,150px),1fr))] gap-2
+          // `pr-[5px] -mr-[5px]` : la croix « Retirer » d'une carte du bord
+          // droit dépasse de 5 px de la carte (`-right-1.5`, RtaCard) ; la
+          // place entre dans la grille, la marge négative la rend à son
+          // conteneur : les colonnes et les cartes ne bougent pas.
+          className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,150px),1fr))] gap-2 pr-[5px] -mr-[5px]
                      lg:grid-cols-[repeat(auto-fill,minmax(min(100%,210px),1fr))] lg:gap-2.5
                      max-lg:grid-cols-1 max-lg:gap-1.5"
           openIndex={openIndex}

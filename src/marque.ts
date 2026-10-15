@@ -7,7 +7,7 @@
 // stockage (`swblacksmith-*`, voir lib/migrationStockage.ts), la base IndexedDB
 // et les identifiants de format des exports (lib/formatsExport.ts). Ce sont
 // des ADRESSES, pas des textes : un changement de nom affiché ne doit pas les
-// déplacer. Quand elles changent (décision 66), c'est avec une migration, et
+// déplacer. Quand elles changent, c'est avec une migration, et
 // l'ancienne adresse reste relue.
 export const NOM_APP = 'SW Blacksmith';
 

@@ -41,7 +41,7 @@ export interface UseRtaState {
   state: RtaState;
   addMonster: (id: string) => void;
   removeMonster: (id: string) => void;
-  // « Annuler » un retrait : remet l'entrée telle quelle (lot 13).
+  // « Annuler » un retrait : remet l'entrée telle quelle.
   restaurerMonstre: (entry: RtaEntry) => void;
   moveMonster: (id: string, section: string) => void;
   setRuneSpeed: (id: string, value: number | null) => void;
@@ -98,7 +98,7 @@ export function useRtaState(): UseRtaState {
     });
   }, []);
 
-  // « Annuler » un retrait (refonte graphique, lot 13, décision 29) : remet
+  // « Annuler » un retrait : remet
   // l'entrée TELLE QUELLE — section, vitesse saisie, sets, équipement. Sa place
   // dans la section suit le tri par vitesse, donc elle retrouve la sienne.
   // Sans effet si le monstre est revenu entre-temps (ajouté à nouveau).

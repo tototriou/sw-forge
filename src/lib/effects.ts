@@ -56,7 +56,7 @@ export const ARTIFACT_MAIN: Record<number, { label: string; stat: StatKey }> = {
 // reformulation, même plus claire à nos yeux, l'empêche de faire le
 // rapprochement (« Drain de vie » et non « Vol de vie », « Dgts supp. en prop.
 // de » et non « Dégâts add. par »). Même règle que Attribut/Type pour les
-// sortes d'artéfact — voir spec/compte/artefacts.md.
+// sortes d'artéfact — voir docs/02-app/compte/.
 export const ARTIFACT_SUB: Record<number, (v: number) => string> = {
   200: (v) => `ATQ + selon PV perdus, jusqu'à +${v}%`,
   201: (v) => `DEF + selon PV perdus, jusqu'à +${v}%`,
@@ -140,7 +140,7 @@ export const RELIC_MAIN_OPTIONS: { code: 100 | 101 | 102; label: string }[] = [
 //     résumé), où elle doit suivre le thème. En clair, `#7cf0a6` sur blanc est
 //     illisible.
 // D'où `color` (bannière, fixe) et `ink` (texte, variable de thème). Les valeurs
-// claires vivent dans index.css. Voir spec/shared/design.md.
+// claires vivent dans index.css. Voir docs/03-developpeur/interface/.
 // ⚠️ `court` : l'abréviation de la bannière, réservée aux tuiles TROP ÉTROITES
 // pour le mot entier — la liste de runes à deux colonnes sur téléphone, où
 // « LÉGENDAIRE » à lui seul mangeait la moitié de la largeur utile. Partout
@@ -247,7 +247,7 @@ export const SET_BONUS: Record<string, { pieces: number; label: string }> = {
   determination: { pieces: 2, label: 'DEF alliés +8%' },
   enhance: { pieces: 2, label: 'PV alliés +8%' },
   // ⚠️ +8 points, comme le calcul (`pointsAuraResPre`, damage.ts) : valeur
-  // curée (spec/outils/degats-reels/valeurs-de-jeu-curees.md § Les valeurs de
+  // curée (docs/02-app/degats-reels/ § Les valeurs de
   // jeu — curées, avec leur source). Le libellé reste celui du calcul.
   accuracy: { pieces: 2, label: 'Précision alliés +8%' },
   tolerance: { pieces: 2, label: 'Résistance alliés +8%' },
@@ -603,7 +603,7 @@ export function formatRelicMain(e: EffectLine): string {
 }
 
 // Limite de poses simultanées d'une relique sur le compte
-// (spec/outils/optimizer/moteur/reliques.md § Ce que le moteur lit d'une relique —
+// (docs/03-developpeur/optimizer/ § Ce que le moteur lit d'une relique —
 // AFFICHÉE, jamais opposée). Valeur de
 // jeu susceptible de rebouger : une seule
 // constante nommée, à son seul point d'usage (`RelicDetailBox`).
@@ -640,7 +640,7 @@ export function formatRelicUsage(count: number): string {
  * ⚠️ **Le SENS et la NATURE de l'effet appartiennent au type**, jamais au
  * fichier : celui-ci écrit `1` pour « +1 % de dégâts infligés » (type 1) comme
  * pour « −1 % de dégâts reçus » (type 5). Sans cette table, aucun affichage
- * juste n'était possible — voir spec/compte/calcul-runes.md.
+ * juste n'était possible — voir docs/02-app/compte/.
  *
  * ⚠️ **La tranche baisse par paliers de 3 niveaux** : 2 500 à +0, 2 000 à +3,
  * 1 500 à +6, 1 000 à +9, 750 à +12, 500 à +15 (échelle ATQ/DEF ; les échelles

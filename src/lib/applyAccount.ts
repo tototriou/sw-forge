@@ -77,7 +77,7 @@ export function mapRtaItems(
 // consulte — et personne n'aurait su laquelle croire.
 //
 // ⚠️ **Rien n'est conservé.** L'appelant garde la vue en mémoire, jamais sur le
-// disque : c'est le compte de quelqu'un d'autre (voir spec/rta/sauvegarde-partage.md).
+// disque : c'est le compte de quelqu'un d'autre (voir docs/02-app/rta/).
 export function mapRtaVueAmi(
   units: ImportedUnit[],
   byCom2us: Map<number, Monster>,

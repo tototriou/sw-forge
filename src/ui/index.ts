@@ -1,4 +1,5 @@
-// Librairie UI de SW Blacksmith — le vocabulaire visuel commun à toute l'app.
+// Librairie UI de SW Blacksmith — le vocabulaire visuel commun à toute l'app
+// (docs/04-decisions/adr/librairie-ui-par-axes.md).
 //
 // ⚠️ **Un composant dessiné ici ne se redessine nulle part ailleurs.** C'est la
 // raison d'être de ce dossier : un changement demandé sur un bouton mobile doit
@@ -16,7 +17,7 @@
 // ⚠️ **Ces composants ne connaissent AUCUNE couleur en dur.** Ils ne parlent
 // qu'en tokens (`bg-panel`, `text-ink-dim`, `border-accent`), donc les deux
 // thèmes et les deux formats suivent sans qu'ils aient à les distinguer. Voir
-// spec/shared/design.md, qui reste la source de vérité de ces valeurs.
+// docs/03-developpeur/interface/, qui reste la source de vérité de ces valeurs.
 
 // ⚠️ **Des AXES, pas un catalogue.** `ton` (couleur), `fond` (remplissage),
 // `trait` (contour), `forme`, `taille` se choisissent SÉPARÉMENT : un bouton
@@ -101,9 +102,9 @@ export type { PastilleProps } from './Pastille';
 export { default as Jeton } from './Jeton';
 export type { JetonProps } from './Jeton';
 
-// NOTIFICATION « … · Annuler » (lot 13, décision 29) : un geste qui se défait
+// NOTIFICATION « … · Annuler » : un geste qui se défait
 // au lieu de se confirmer. Un fournisseur monté par App.tsx, `useNotifier()`
-// pour annoncer. Voir spec/shared/design.md § Notification « Annuler ».
+// pour annoncer. Voir docs/03-developpeur/interface/ § Notification « Annuler ».
 export { FournisseurNotification, useNotifier } from './Notification';
 export type { Annonce } from './Notification';
 
@@ -130,3 +131,8 @@ export { Modale, ConfirmDialog, PromptDialog, KeepAccountDialog } from './Dialog
 // Panneau montant du TÉLÉPHONE. ⚠️ Ce n'est pas une modale : il coexiste avec la
 // page, monte du bas et se pose SOUS les dialogues dans l'échelle des `z-index`.
 export { default as MobileSheet } from './MobileSheet';
+
+// Écran partagé, au BUREAU : deux zones et le séparateur qu'on glisse entre
+// elles (react-resizable-panels), bornées chacune par une largeur minimale.
+export { default as DeuxVolets } from './DeuxVolets';
+export type { DeuxVoletsProps } from './DeuxVolets';

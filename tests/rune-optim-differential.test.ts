@@ -121,7 +121,7 @@ export default function testRuneOptimDifferential() {
     // ⚠️ L'optimum EXACT n'est comparable que si le moteur n'a pas été
     // tronqué (`truncated`) : au-delà de son plafond de collecte, il renvoie
     // « le meilleur trouvé », pas une garantie d'optimalité globale — c'est
-    // documenté (`spec/outils/optimizer/limites-connues.md`), pas un bug. Le comparer quand
+    // documenté (`docs/02-app/optimizer/`), pas un bug. Le comparer quand
     // même ferait échouer le test sur un comportement voulu.
     if (res.candidates.length > 0 && ref.count > 0 && !res.truncated) {
       const bestFound = Math.max(...res.candidates.map((c) => c.effTotal));
@@ -160,7 +160,7 @@ export default function testRuneOptimDifferential() {
     // ⚠️ `totalPairCount` (affiché à l'écran comme « espace de recherche à
     // épuiser ») doit valoir EXACTEMENT le nombre de paires visitées par une
     // recherche exhaustive (`!truncated`) sur ce même scénario — pas
-    // seulement « au moins autant ». Voir `spec/outils/optimizer/moteur/elagages.md`, « Élagage sûr — faisabilité ».
+    // seulement « au moins autant ». Voir `docs/03-developpeur/optimizer/`, « Élagage sûr — faisabilité ».
     // Balayé sur les 15
     // scénarios aléatoires (sets et minStats variés, contrairement au pool
     // synthétique à un seul compartiment de tests/rune-optim.test.ts) plutôt
@@ -283,7 +283,7 @@ export default function testRuneOptimDifferential() {
   }
 
   // ⚠️ Scénario DÉDIÉ (pas aléatoire) — vérifie le cas limite
-  // documenté dans `spec/outils/optimizer/moteur/elagages.md`, « Élagage sûr — faisabilité » :
+  // documenté dans `docs/03-developpeur/optimizer/`, « Élagage sûr — faisabilité » :
   // `guaranteedSetBonus` ne compte
   // QUE les sets de `requirement.sets` — un set qui s'activerait par ACCIDENT
   // via les emplacements « libres » (non requis par le combo demandé) était
@@ -352,7 +352,7 @@ export default function testRuneOptimDifferential() {
   }
 
   // ⚠️ Scénario DÉDIÉ — vérifie « l'activation supplémentaire d'un
-  // set DÉJÀ demandé » (voir `spec/outils/optimizer/moteur/elagages.md`, « Élagage sûr — faisabilité » ; cas réel Ciri :
+  // set DÉJÀ demandé » (voir `docs/03-developpeur/optimizer/`, « Élagage sûr — faisabilité » ; cas réel Ciri :
   // Energy demandé UNE fois — 1 activation garantie, +15 % PV — mais le
   // build réel en active DEUX, `energy+shield+energy`, +30 % PV réels).
   // `guaranteedSetBonus` ne compte que l'activation MINIMALE demandée ;

@@ -1,5 +1,6 @@
-// Ce que la PAGE sait de l'application de bureau
-// (spec/shared/application-bureau.md).
+// Ce que la PAGE sait de l'application de bureau (docs/02-app/bureau/ ; un
+// seul code pour le site et l'application :
+// docs/04-decisions/adr/trois-plateformes-un-seul-code.md).
 //
 // ⚠️ **Sur le site, tout ceci est inerte** : `estBureau()` y vaut `false`, et
 // rien n'est posé ni écouté. Le site ne change pas.

@@ -1,5 +1,5 @@
 // Quota partagé de l'appariement parallèle (voir
-// spec/outils/optimizer/moteur/parallelisation.md) — mesure si la répartition ÉGALE du plafond
+// docs/03-developpeur/optimizer/) — mesure si la répartition ÉGALE du plafond
 // de candidats entre workers de pairing parallèle (`perWorkerMaxCollected =
 // maxCollected / workerCount`, runeBuildOptim.worker.ts:220) perd des
 // candidats au total sous un déséquilibre RÉEL de productivité entre

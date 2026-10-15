@@ -8,7 +8,7 @@
 // ⚠️ C'est ICI que se pose la pression au clic (`active:scale-[0.97]`). Un seul
 // endroit à modifier, toute l'app qui accuse réception. Un bouton qui ne bouge
 // pas au clic laisse un doute d'un dixième de seconde : est-ce que ça a pris ?
-// Voir spec/shared/design.md.
+// Voir docs/03-developpeur/interface/.
 
 // Retour tactile commun à tout élément pressable.
 export const PRESSION = 'transition-transform duration-150 ease-out active:scale-[0.97]';
@@ -29,7 +29,7 @@ export const BOUTON_SECONDAIRE =
   `transition hoverable:text-ink hoverable:border-accent ${PRESSION}`;
 
 // ⚠️ Action DESTRUCTRICE : elle porte la couleur d'alerte, et n'est jamais le
-// bouton mis en avant. Voir la règle dans spec/README.md — le défaut ne perd
+// bouton mis en avant. Voir la règle dans docs/03-developpeur/ — le défaut ne perd
 // jamais rien.
 export const BOUTON_DESTRUCTIF =
   `rounded-lg border border-bad/50 bg-bad/10 px-3.5 py-2 text-sm font-semibold text-bad ` +
@@ -45,7 +45,7 @@ export const BOUTON_DESTRUCTIF =
 // seule chose — la pastille se surlignait deux fois et bavait sur ses voisines.
 // La bordure reste `border` (elle est déjà là au repos, la teinter ne fait que
 // doubler le fond) et l'ombre part : une pastille active ne DÉCOLLE pas de la
-// page, l'élévation est réservée à ce qui flotte. Voir spec/shared/design.md.
+// page, l'élévation est réservée à ce qui flotte. Voir docs/03-developpeur/interface/.
 export const PASTILLE = (active: boolean) =>
   `rounded-full border px-3 py-1 text-xs font-semibold select-none transition ${PRESSION} ` +
   (active

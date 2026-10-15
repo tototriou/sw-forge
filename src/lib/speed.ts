@@ -126,7 +126,7 @@ export function pctSpeedBonus(base: number, lead: number, swift = false): number
 
 // Le Swift déjà compté À PLAT dans la « SPD runes ».
 //
-// Convention de l'app (voir ../../spec/shared/calcul-vitesse.md) : le champ
+// Convention de l'app (voir ../../docs/02-app/transverse/) : le champ
 // « SPD : » — saisi ou reconstitué à l'import — contient déjà le bonus Swift.
 // Or le Swift doit entrer dans la SOMME des pourcentages, pas s'ajouter à côté.
 // On le retire donc avant de le réinjecter, sinon il compterait deux fois.
@@ -161,7 +161,7 @@ export function runeSpeedForTarget(
 // qui amène un monstre pile sur un tick de siège, totem et lead compris.
 //
 // ⚠️ **Une recommandation stocke la VIT de fiche, jamais la vitesse de combat**
-// (voir ../../spec/siege/recommandations.md). Le raccourci « Rapide 286 / Lent
+// (voir ../../docs/02-app/siege/). Le raccourci « Rapide 286 / Lent
 // 239 » de sa saisie passe donc par ici : sans Swift, la fiche + le bonus %
 // (totem + lead) donne le tick visé.
 export function ficheSpeedForTick(base: number | null, lead: number, tick: number): number | null {

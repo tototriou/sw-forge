@@ -1,5 +1,4 @@
-; Ajouts au désinstalleur Windows (NSIS) — chantier application-bureau,
-; lot 3, décision 8 : la désinstallation ne laisse rien.
+; Ajouts au désinstalleur Windows (NSIS) : la désinstallation ne laisse rien.
 ;
 ; L'installeur se recopie à chaque installation dans
 ; `%LOCALAPPDATA%\swblacksmith-updater\installer.exe` (113 Mo) : la mise à

@@ -1,5 +1,5 @@
 // `npm run bureau` — l'application de bureau sur le serveur de dev Vite, avec
-// rechargement à chaud. Chantier application-bureau, lot 1.
+// rechargement à chaud.
 //
 // Démarre Vite par son API (pas de dépendance de plus pour lancer deux
 // processus), compile `bureau/`, puis lance Electron en lui donnant l'adresse

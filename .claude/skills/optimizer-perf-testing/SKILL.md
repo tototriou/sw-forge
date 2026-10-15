@@ -1,6 +1,6 @@
 ---
 name: optimizer-perf-testing
-description: Boîte à outils et pièges déjà rencontrés pour TESTER/MESURER un changement sur le moteur de recherche de runes (runeBuildOptim.ts, perf-battery.ts, perf-battery-compare.ts) — quel outil pour quelle question, et comment éviter de retomber dans des pièges déjà résolus (contention CPU/mémoire, git worktree, spawn sur Windows). Distinct d'algo-verify, qui couvre la CORRECTION de l'algorithme, pas la méthodologie de mesure.
+description: "Tester ou mesurer le moteur de recherche de runes. À utiliser avant d'écrire ou de lancer une mesure de temps, un benchmark ou un script de mesure sur runeBuildOptim.ts (perf-battery, benchmark, harnais). Pour la correction de l'algorithme, voir algo-verify."
 ---
 
 # Tester le moteur de recherche de runes (SW Blacksmith)
@@ -10,7 +10,7 @@ dizaines de minutes, répétée à chaque itération, et un même genre de pièg
 (contention, chemins gitignorés, spawn Windows) se redécouvre faute d'un
 endroit où le retrouver vite. Ce skill est une RÉFÉRENCE, pas un récit ;
 la méthode de comparaison des temps que suit le harnais est décrite dans
-[spec/outils/optimizer/harnais.md § Séries de temps et comparaison](../../../spec/outils/optimizer/harnais.md).
+[docs/03-developpeur/optimizer/harnais/mode-d-emploi.md § Séries de temps et comparaison](../../../docs/03-developpeur/optimizer/harnais/mode-d-emploi.md#séries-de-temps-et-comparaison).
 
 ⚠️ **Ne remplace PAS `algo-verify`** (`.claude/skills/algo-verify/SKILL.md`)
 — celui-ci reste la discipline à suivre pour la CORRECTION d'un algorithme
@@ -96,7 +96,7 @@ confondre** — elles n'ont ni la même fidélité ni le même usage :
 
 | Fichier | Ce que c'est | Quand s'en servir |
 |---|---|---|
-| `scripts/lib/pair-slice-worker.ts` | ✅ **Le code de PRODUCTION**, coquille Node du même `runPairSlice` que le navigateur (voir [spec/outils/optimizer/moteur/parallelisation.md § Coquilles et lanceurs](../../../spec/outils/optimizer/moteur/parallelisation.md)) | Dès qu'on veut mesurer ou vérifier ce que la prod fait vraiment |
+| `scripts/lib/pair-slice-worker.ts` | ✅ **Le code de PRODUCTION**, coquille Node du même `runPairSlice` que le navigateur (voir [docs/03-developpeur/optimizer/moteur/parallelisation.md § Coquilles et lanceurs](../../../docs/03-developpeur/optimizer/moteur/parallelisation.md#coquilles-et-lanceurs)) | Dès qu'on veut mesurer ou vérifier ce que la prod fait vraiment |
 | `scripts/lib/pairing-quota-worker.ts` | Une REPRODUCTION fidèle du mécanisme, plus un mode `shared` **qui n'est pas en production** (prototype du quota partagé, écarté) | Uniquement pour explorer la question du quota partagé |
 | `scripts/lib/pairing-worker.ts` | Un PROTOTYPE de mesure de débit brut — **budget figé, aucune escalade**, son en-tête le dit | Rien de fidèle : ne jamais en tirer une conclusion sur la prod |
 
@@ -275,7 +275,7 @@ séquentielle jusqu'ici (construction des 2 moitiés en Workers,
 ne change leur comportement en cours de route) — la règle ci-dessus les
 classe du côté valide, pas suspect.
 Le quota partagé écarté pour cette raison :
-[spec/outils/optimizer/moteur/parallelisation.md § Répartition et partage du plafond](../../../spec/outils/optimizer/moteur/parallelisation.md).
+[docs/03-developpeur/optimizer/moteur/parallelisation.md § Répartition et partage du plafond](../../../docs/03-developpeur/optimizer/moteur/parallelisation.md#répartition-et-partage-du-plafond).
 
 ### `candidats.push(...tableauEnorme)` — limite d'arguments V8
 
@@ -304,7 +304,7 @@ qu'une dérive **LENTE** : une perturbation transitoire tombée pendant l'essai
 chargé passe entière dans le résultat, et les deux témoins la ratent
 complètement : un faible écart entre témoins ne garantit pas un signal net.
 
-⚠️⚠️ **ET LE BIAIS SE REPRODUIT.** L'essai chargé occupe TOUJOURS la même
+⚠️ **Et le biais se reproduit** : l'essai chargé occupe toujours la même
 position dans la séquence : tout effet lié à cette position (échauffement
 thermique, état du GC, montée en fréquence) revient identique à chaque
 exécution.
@@ -373,6 +373,16 @@ le programme lit ensuite. Une boucle dont le résultat ne sert à rien peut êtr
 supprimée entièrement par le JIT — on mesurerait de nouveau l'absence de
 charge.
 
+## Les raisonnements qui mènent à l'erreur
+
+| On se dit | En réalité | Voir |
+|---|---|---|
+| « Un script ad hoc ira plus vite que le harnais. » | Le harnais observe le vrai pipeline ; un script ad hoc dérive précisément là. | § Le premier réflexe : le harnais |
+| « Le serveur de dev tourne à côté, ça ne gêne pas la mesure. » | Toute contention fausse un temps : rien d'autre ne tourne pendant une mesure de temps. | § Contention CPU/mémoire |
+| « Un temps pris en fin de longue campagne vaut celui d'une passe fraîche. » | Sous charge soutenue, la machine ralentit (×1,8 sur une recherche lourde, en processus frais) : la passe de fidélité se fait avant la campagne de temps, témoin et candidat s'entrelacent, et le temps natif d'un cas garde une marge d'au moins 2× sous `maxMs`. | § Protocole en BLOCS |
+| « L'écart se reproduit d'un essai à l'autre : c'est un signal. » | Un biais de protocole se reproduit aussi : c'est le protocole qu'on vérifie d'abord. | § Protocole en BLOCS |
+| « La charge de test a tourné, le chiffre est bon. » | Une charge peut s'effondrer sans rien dire : on la compare à une fourchette attendue avant de lire le temps. | § Une charge de test peut s'EFFONDRER sans rien dire |
+
 ## Voir aussi
 
 - `algo-verify` — discipline de CORRECTION algorithmique (référence
@@ -381,7 +391,7 @@ charge.
   détail, et sa section « Fidélité des scripts diagnostics » couvre le
   risque qu'un script qui appelle les internes du moteur diverge du vrai
   chemin de production.
-- `spec/outils/optimizer/README.md` — routage par tâche vers les specs de
+- `docs/02-app/optimizer/` — routage par tâche vers les specs de
   l'Optimizer (vérification, harnais, parallélisation), et
-  `spec/outils/optimizer/pistes.md` (les pistes futures, à lire avant toute
+  `docs/05-feuille-de-route/` (les pistes futures, à lire avant toute
   idée « nouvelle »).

@@ -1,5 +1,4 @@
-// Compile le code de l'application de bureau (`bureau/`) vers `dist-bureau`
-// — chantier application-bureau, lots 1 et 1 bis.
+// Compile le code de l'application de bureau (`bureau/`) vers `dist-bureau`.
 //
 // Electron charge du CommonJS : `main.cjs` et `preload.cjs`, chacun en UN
 // fichier (esbuild, installé avec Vite et déjà utilisé par `tests/run.mjs`),

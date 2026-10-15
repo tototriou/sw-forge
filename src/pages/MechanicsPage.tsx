@@ -19,8 +19,8 @@ function goTo(id: string) {
 }
 
 // ⚠️ Plus de carte : un filet au-dessus de chaque section, comme la maquette —
-// un article qui se lit d'un trait, pas sept panneaux empilés. À la souris
-// depuis le lot 10, au doigt depuis le lot 11d (décision 27).
+// un article qui se lit d'un trait, pas sept panneaux empilés. Aux deux
+// formats.
 function Section({ id, title, children }: { id: string; title: string; children: ReactNode }) {
   return (
     <section id={id} className="scroll-mt-24 border-t border-border-soft pt-5">
@@ -47,8 +47,8 @@ function K({ children }: { children: ReactNode }) {
 export default function MechanicsPage() {
   // ⚠️ Colonne BORNÉE, contrairement aux autres pages : c'est du texte suivi,
   // pas une grille. Une ligne de 2 000 px se lit mal — l'œil perd le début de
-  // la suivante. Voir spec/shared/design.md.
-  // ⚠️ **À la SOURIS, deux colonnes** (refonte graphique, lot 10, la
+  // la suivante. Voir docs/03-developpeur/interface/.
+  // ⚠️ **À la SOURIS, deux colonnes** (la
   // maquette) : le sommaire FIXE à gauche, qui reste sous la main pendant la
   // lecture, et l'article à droite, borné à 720 px. L'ordre du DOM ne change
   // pas — titre, sommaire, sections — seule la grille les place.
@@ -58,7 +58,7 @@ export default function MechanicsPage() {
                  lg:grid lg:grid-cols-[220px_minmax(0,720px)] lg:justify-center lg:gap-x-12"
     >
       <header className="lg:col-start-2 lg:row-start-1">
-        {/* Encre unie, plus de dégradé (rebranding, décision 57) — comme les
+        {/* Encre unie, plus de dégradé — comme les
             titres des autres écrans ; le grand titre reste, c'est une page de
             lecture. */}
         <h1 className="font-display font-black text-[clamp(28px,4vw,42px)] text-ink mb-1.5">
@@ -134,6 +134,7 @@ export default function MechanicsPage() {
           </p>
           <F>{'ΔATB par tick = Vitesse_combat × 7 / 100'}</F>
           <ul className="list-disc list-inside space-y-1">
+            <li>Les 7 % valent partout, sauf en raid (4,5 %) et en RTA (1,5 %).</li>
             <li>Un monstre agit dès que sa barre d&apos;action atteint 100.</li>
             <li>En cas d&apos;égalité de barre, le plus rapide passe ; à vitesse égale, l&apos;ordre suit la séquence de placement.</li>
             <li>
@@ -186,11 +187,11 @@ export default function MechanicsPage() {
 
         <Section id="defense" title="Facteur de défense">
           <p>La défense de la cible réduit les dégâts selon :</p>
-          <F>{'FacteurDéf = 1000 / (1140 + 3.5 × DEF)'}</F>
+          <F>{'FacteurDéf = 1000 / (1142 + 3.572 × DEF)'}</F>
           <F>{'DEF = Défense × (1 − Ignore%) × Dbreak      Dbreak = 0.3 si def break, sinon 1'}</F>
           <ul className="list-disc list-inside space-y-1">
             <li>L&apos;ignore défense réduit la DEF effective mais n&apos;annule pas le plancher de la formule.</li>
-            <li>À DEF = 0, le facteur vaut ~0,877 (pas 1,0) — même sans défense, il reste une légère mitigation.</li>
+            <li>À DEF = 0, le facteur vaut ~0,876 (pas 1,0) — même sans défense, il reste une légère mitigation.</li>
           </ul>
         </Section>
 

@@ -1,8 +1,7 @@
-// Tests de rendu AU TÉLÉPHONE — Accueil et RTA (lot 11a de la refonte
-// graphique). Principe dans
+// Tests de rendu AU TÉLÉPHONE — Accueil et RTA. Principe dans
 // tests/rendu/outils-rendu.tsx ; rendu téléphone par `auTelephone`, qui
-// fait apparaître les panneaux « Options » (`MobileSheet`). Écrits AVANT le
-// 11a : ils doivent rester verts sans qu'une assertion change.
+// fait apparaître les panneaux « Options » (`MobileSheet`). Un changement de
+// style doit les laisser verts sans qu'une assertion change.
 
 import HomePage, { HomeStats } from '../../src/pages/HomePage';
 import RtaPage from '../../src/pages/RtaPage';
@@ -31,6 +30,9 @@ function Page({ sub, menuOuvert }: { sub: RtaSub; menuOuvert: boolean }) {
   const rta = useRtaState();
   return (
     <RtaPage
+      onImporterEquipe={() => { throw new Error('Action non attendue dans le rendu serveur.'); }}
+      compteCharge={false}
+      sourcesOptimizer={{ box: [], rtaEntries: rta.state.entries, siegeDefenseTeams: [], siegeOffenseTeams: [], monsterById: new Map(MONSTRES.map(m => [String(m.id), m])) }}
       sub={sub}
       rta={rta}
       monsters={MONSTRES}
@@ -81,7 +83,7 @@ export function testRenduTelephoneRta() {
   const b = boutons(ouvert);
   egal((ouvert.match(/role="dialog"/g) ?? []).length, 1, 'panneau « Options » ouvert : un dialogue');
   ok(valeurs(ouvert, 'aria-label').includes('Ma prépa RTA'), 'le panneau est nommé');
-  ok(to.includes('Ma prépa RTA Monstre Créer un monstre Sauvegarder Reprendre Exporter Importer Catégories Catégorie Vitesses Modifiés Catégories Tout effacer'), 'le panneau : ses actions, dans l\'ordre');
+  ok(to.includes("Ma prépa RTA Monstre Créer un monstre Exporter vers l'Optimizer Sauvegarder Reprendre Exporter Importer Catégories Catégorie Vitesses Modifiés Catégories Tout effacer"), 'le panneau : ses actions, dans l\'ordre');
   ok(b.some((x) => x.ariaLabel === 'Reprendre' && x.desactive && x.title === 'Aucun point de sauvegarde : clique d\'abord sur « Sauvegarder »'), '« Reprendre » désactivé, et pourquoi');
   ok(b.some((x) => x.ariaLabel === 'Exporter' && x.title === 'Télécharger ta prépa en fichier .json, pour la partager ou la garder de côté'), '« Exporter », et ce qu\'il fait');
   ok(b.some((x) => x.ariaLabel === 'Importer' && x.title === 'Reprendre une prépa exportée : une archive, ou celle d\'un autre navigateur. Elle remplacera la tienne.'), '« Importer », et ce qu\'il remplace');
@@ -90,7 +92,7 @@ export function testRenduTelephoneRta() {
   ok(b.some((x) => x.ariaLabel === 'Fermer'), 'le panneau se ferme');
 }
 
-// Lot 13 (décision 28) : le filtre par section au téléphone — ajouté avec lui.
+// Le filtre par section au téléphone — ajouté avec lui.
 export function testRenduTelephoneRtaFiltre() {
   titre('rendu téléphone · RTA — filtre par section');
   const html = rendreRta('prepa', false);

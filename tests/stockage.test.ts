@@ -161,7 +161,7 @@ export default async function testStockage() {
 
   await clearAccount();
 
-  /* --- Reprise de l'ancienne base `sw-forge` (décision 66) --------------- */
+  /* --- Reprise de l'ancienne base `sw-forge` --------------- */
 
   // ⚠️ La base s'appelait `sw-forge` avant le rebranding. Un utilisateur qui
   // avait conservé son compte doit le retrouver après la mise à jour, sans

@@ -1,5 +1,5 @@
 // Navigation simple — chaque adresse mène à la bonne page. Garde-fou demandé
-// par le mainteneur le 2026-10-01 ; règles dans spec/shared/navigation.md § Adresses.
+// par le mainteneur le 2026-10-01 ; règles dans docs/02-app/transverse/ § Adresses.
 //
 // ⚠️ `ADRESSES` est LA table des adresses de l'app. Le test de rendu
 // `testRenduAppLiensMorts` (tests/rendu/app.test.tsx) y confronte chaque lien
@@ -57,7 +57,7 @@ export const ADRESSES: Record<string, string> = {
   '#/bestiary': 'bestiary',
   '#/mecaniques': 'mecaniques',
   '#/releases': 'releases',
-  // Application de bureau, décision 14 : sur le SITE (ici) ; dans l'app,
+  // Application de bureau : sur le SITE (ici) ; dans l'app,
   // l'adresse retombe sur l'accueil (testNavigationAdressesBureau).
   '#/telecharger': 'telecharger',
   '#/parametres': 'parametres',
@@ -73,7 +73,7 @@ export function testNavigationAdresses() {
   const pages = Object.entries(ADRESSES).filter(([h]) => !tronquees.has(h)).map(([, p]) => p);
   egal(pages.length, new Set(pages).size, 'chaque adresse complète mène à une page différente');
 
-  // Dans l'app de bureau, la page « Télécharger » n'existe pas (décision 14).
+  // Dans l'app de bureau, la page « Télécharger » n'existe pas.
   const pont = globalThis as { swblacksmithBureau?: unknown };
   pont.swblacksmithBureau = { bureau: true, plateforme: 'win32' };
   try {

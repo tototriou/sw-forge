@@ -1,6 +1,6 @@
 ---
 name: algo-verify
-description: Discipline à suivre pour tout algorithme de recherche combinatoire ou d'optimisation sous contraintes ajouté ou modifié dans SW Blacksmith (ex. runeBuildOptim.ts) — jamais un seul choix d'algorithme "qui a l'air de marcher" sans référence de contrôle, test différentiel et benchmark chiffré avant de figer des constantes.
+description: "Vérifier un algorithme de recherche ou d'optimisation de SW Blacksmith. À utiliser dès qu'on ajoute ou modifie runeBuildOptim.ts, artifactOptim.ts, relicOptim.ts, relicQueue.ts ou src/workers/, et à chaque script ad hoc qui les appelle."
 ---
 
 # Vérification des algorithmes combinatoires (SW Blacksmith)
@@ -76,8 +76,7 @@ ou un filtre linéaire n'a pas besoin de cette discipline.
    millisecondes : un utilisateur ne met jamais de limite de temps, tout au
    plus il arrête une recherche au bout de quelques dizaines de secondes. Voir
    `tests/rune-optim-parallel-pairing.test.ts` (`maxMs=30000` committé
-   comme plancher vérifié) et la mémoire
-   `sw-forge-realistic-test-parameters.md`. Un paramètre juste « assez
+   comme plancher vérifié). Un paramètre juste « assez
    extrême pour déclencher le chemin de code » (peu de temps, un plafond
    serré…) peut être QUALITATIVEMENT différent d'un paramètre réaliste —
    vérifier À L'ÉCHELLE D'USAGE RÉELLE avant de conclure à un risque, pas
@@ -89,8 +88,8 @@ ou un filtre linéaire n'a pas besoin de cette discipline.
    pas par « ça semble plus malin ».
 4. **Benchmark aux échelles réelles avant de figer une constante.** Les
    volumes réels du projet sont connus (voir
-   [compte/calcul-runes.md](../../../spec/compte/calcul-runes.md) §6 et
-   [compte/runes.md](../../../spec/compte/runes.md) — comptes réels à
+   [compte/feat-calcul-runes.md](../../../docs/02-app/compte/feat-calcul-runes.md) §6 et
+   [compte/feat-runes/](../../../docs/02-app/compte/feat-runes/README.md) — comptes réels à
    plusieurs milliers de runes). Toute constante ajustable (plafond par slot,
    budget de nœuds, nombre de candidats collectés…) doit être calibrée sur des
    jeux synthétiques d'au moins 500 / 1000 / 2000 / 3000+ éléments, en notant
@@ -99,8 +98,8 @@ ou un filtre linéaire n'a pas besoin de cette discipline.
 5. **Documenter, pas seulement coder.** Le résultat (constante retenue,
    pourquoi cette technique plutôt qu'une autre, limites connues — ex.
    « heuristique, pas une garantie d'optimalité globale ») va dans le fichier
-   `spec/` concerné, avec un ⚠️ si c'est un piège à ne pas retomber dedans —
-   même convention que le reste de `spec/`.
+   `docs/` concerné, avec un ⚠️ si c'est un piège à ne pas retomber dedans —
+   même convention que le reste de `docs/`.
 6. **Vérifier au bon ÉTAGE du pipeline, pas systématiquement de bout en
    bout.** Un pipeline en plusieurs phases (ex. `prepareSearch` →
    `buildBuckets` → `pairBuckets` dans `runeBuildOptim.ts`) n'a pas besoin
@@ -179,17 +178,15 @@ suit s'applique intégralement.
 `tsc` ni les types ne le détectent** : l'appel est parfaitement valide, juste
 incomplet.
 
-⚠️⚠️ Le moteur n'a plus de budget de paires ni d'escalade (voir
-[spec/outils/optimizer/verification.md § Benchmarks](../../../spec/outils/optimizer/verification.md),
-qui en donne les seules bornes) : `pairBuckets(prepared, bucketsA, bucketsB)` prend TROIS arguments,
-et un appel nu explore exactement ce
-que la production explore. Ne pas chercher à « reproduire l'escalade » dans un
-script neuf — un script qui la reproduirait aujourd'hui serait lui-même
-infidèle.
+⚠️ Le moteur n'a ni budget de paires ni escalade (seules bornes :
+[docs/03-developpeur/optimizer/verification.md § Benchmarks](../../../docs/03-developpeur/optimizer/verification.md#benchmarks)) :
+`pairBuckets(prepared, bucketsA, bucketsB)` prend trois arguments, et un
+appel nu explore exactement ce que la production explore. Un script qui
+ajoute une escalade ou un budget de paires est infidèle.
 
 **La règle** : *un script infidèle qui ne
 trouve rien ressemble EXACTEMENT à un vrai bug*. Les deux façons de le
-devenir, aujourd'hui :
+devenir :
 
 - **Réimposer une limite que la production n'a plus.** Un plafond de paires
   posé « pour que ça finisse » (dans la boucle de pilotage, ou via un `maxMs`
@@ -197,7 +194,7 @@ devenir, aujourd'hui :
   script en a besoin comme instrument (voir `optimum-rank-diag.ts`, qui coupe
   sur `step.value.explored`), il doit le dire dans sa sortie, jamais le
   laisser passer pour une recherche complète.
-- **Le budget-TEMPS, qui est désormais la SEULE borne pouvant tronquer.**
+- **Le budget-TEMPS, seule borne pouvant tronquer.**
   `searchBuilds` retombe sur `DEFAULT_MAX_MS` = **15 s** quand l'appelant ne
   précise rien, alors que l'écran donne 10 min (`HARD_TIMEOUT_MS`) — ou
   `Infinity` en mode exhaustif. Un script qui omet `maxMs` mesure donc une
@@ -205,7 +202,7 @@ devenir, aujourd'hui :
   signature d'échec d'un vrai bug (« rien trouvé »). **C'est le
   premier paramètre à vérifier** dans tout script de mesure.
 
-⚠️ Corollaire à ne pas manquer : `totalPairCount` est maintenant la borne
+⚠️ Corollaire à ne pas manquer : `totalPairCount` est la borne
 EXACTE de l'espace (`explored` ne peut pas la dépasser, prédicats identiques).
 Un script qui trouve `explored < totalPairCount` sur une recherche annoncée
 exhaustive a donc été tronqué — par le temps ou par lui-même. C'est un
@@ -283,9 +280,8 @@ chaque tranche le plafond entier, ou un chrono frais, mesurerait autre chose
 que la production) — pas seulement « même noms de fonctions dans le même
 ordre ». En particulier vérifier :
 - Tout paramètre optionnel avec une valeur par défaut différente du
-  comportement réel. ⚠️ Le cas d'école (`pairBuckets(..., nodeBudget)`, 4ᵉ
-  argument au défaut FIGÉ) n'existe plus dans le moteur — mais `maxMs` en
-  est un autre, bien vivant : `searchBuilds` retombe sur 15 s là où l'écran donne 10 min.
+  comportement réel — ex. `maxMs` : `searchBuilds` retombe sur 15 s là où
+  l'écran donne 10 min.
 - Toute boucle englobante autour d'un générateur (`while (!step.done)`) dans
   le vrai chemin — un simple `drain()` qui ignore les valeurs intermédiaires
   (`step.value` à chaque itération) est un signal qu'un comportement basé sur
@@ -293,12 +289,10 @@ ordre ». En particulier vérifier :
   mesure) a pu être perdu. Inversement, une boucle pas à pas qui ne fait RIEN
   de `step.value` n'a aucune raison d'exister : `drain()` suffit.
 - Les VALEURS de chaque paramètre transmis (caps, objectif, metric, pool,
-  exclusions…), pas seulement leur présence — un défaut d'écran qui change
-  (ex. l'exclusion automatique de runes : « Exclure les runes déjà
-  utilisées », décochée par défaut, voir
-  `excludeUsedRunes`/`autoExcludedRuneIds`, a remplacé « Utiliser tout
-  l'inventaire » cochée par défaut) invalide
-  silencieusement un script écrit avant ce changement.
+  exclusions…), pas seulement leur présence, comparées aux défauts ACTUELS
+  de l'écran (ex. « Exclure les runes déjà utilisées », décochée par défaut,
+  `excludeUsedRunes`/`autoExcludedRuneIds`) : un défaut d'écran qui change
+  invalide silencieusement un script écrit avant.
 Si le script reproduit un cas signalé par l'utilisateur, ne jamais conclure
 « bug confirmé dans le moteur » avant que cette fidélité soit vérifiée — un
 script infidèle qui ne trouve rien ressemble EXACTEMENT à un vrai bug.
@@ -338,6 +332,19 @@ jokers) et vérifier que la somme ne dépasse jamais 3 — jamais réutiliser
 par analogie une borne déjà établie pour un AUTRE cas sans repasser par
 ce calcul concret à chaque fois.
 
+## Les raisonnements qui mènent à l'erreur
+
+Chacun a l'air raisonnable au moment où on le tient. S'il revient, la
+réponse est à droite.
+
+| On se dit | En réalité | Voir |
+|---|---|---|
+| « Mon script appelle les mêmes fonctions que le Worker : son résultat vaut celui de l'écran. » | Un script maison omet souvent une étape du chemin de production (une boucle englobante, un défaut d'option) ; il se compare ligne à ligne au Worker avant qu'on croie son résultat. | § Fidélité des scripts diagnostics |
+| « Un paramètre extrême exerce le chemin de code plus vite. » | Il peut changer la NATURE du résultat, pas seulement son degré : on vérifie à l'échelle d'usage réelle avant de conclure à un risque. | § Méthode |
+| « Simuler les workers l'un après l'autre suffit pour tester leur coordination. » | Une simulation séquentielle a une latence de coordination nulle : elle ne peut pas voir le défaut qu'on cherche. Vrais Workers, toujours. | `optimizer-perf-testing`, § Simulation séquentielle d'une COORDINATION EN DIRECT |
+| « La condition établie pour ce set vaut pour celui-là, avec un joker de plus. » | Toute condition sur pièces et jokers se recompte contre les trois emplacements d'une moitié. | § Arithmétique joker/pièces |
+| « Aucun build n'est perdu », « cet élagage est sûr ». | Une partie de la recherche est heuristique : une propriété « toujours » se vérifie sur le moteur tel qu'il est avant de s'écrire ou de se tester. | § Méthode |
+
 ## Checklist avant de considérer un tel algorithme comme terminé
 
 - [ ] Une référence naïve/exhaustive existe, même si elle n'est utilisée que
@@ -355,9 +362,11 @@ ce calcul concret à chaque fois.
 - [ ] Chaque constante ajustable a été testée à une échelle proche des
       volumes réels du projet, pas seulement sur un petit jeu de test.
 - [ ] Les limites connues (heuristique, non-exhaustivité au-delà d'un budget…)
-      sont écrites dans le fichier `spec/` correspondant.
+      sont écrites dans le fichier `docs/` correspondant.
 - [ ] Aucun script de diagnostic n'a été écrit pour une question à laquelle
       `scripts/diagnostic-harness.ts` répond déjà — et si un script était
       quand même nécessaire, sa fidélité au chemin de prod a été diffée
       explicitement.
-- [ ] `npx tsc --noEmit`, `npm test` et `npm run build` passent.
+- [ ] `npx tsc --noEmit`, `npm run lint`, `node tests/run.mjs <filtre>` (la
+      zone touchée) et `npm run build` passent ; `npm test` seulement avant une
+      fusion sur `main` ou dans une branche `release/*` (`CLAUDE.md`).

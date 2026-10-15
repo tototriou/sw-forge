@@ -2,7 +2,7 @@
 
 Implémentations retirées du code de production mais gardées pour pouvoir
 être réappliquées sans tout retaper — voir
-[spec/outils/optimizer/moteur/elagages.md](../../spec/outils/optimizer/moteur/elagages.md),
+[docs/03-developpeur/optimizer/](../../docs/03-developpeur/optimizer/),
 « Variantes écartées ou gardées en réserve ».
 
 ## `piste-a-tranche-weighting.patch`

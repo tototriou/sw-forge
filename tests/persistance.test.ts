@@ -53,6 +53,21 @@ export default async function testPersistance() {
   await new Promise((r) => setTimeout(r, 20));
   egal(mem.get('swblacksmith-rta-v1'), undefined, 'refus après coup → la prépa RTA est effacée');
   egal(mem.get('swblacksmith-rune-metric-v1'), 'score', 'le réglage de score survit à la purge');
+  // Les autres réglages s'écrivent par leur propre hook : la purge d'un refus
+  // ne doit pas les emporter non plus.
+  for (const [cle, valeur] of [
+    ['swblacksmith-theme-v1', 'dark'],
+    ['swblacksmith-overcap-display-v1', '0'],
+    ['swblacksmith-adversaire-reference-v1', '1'],
+    ['swblacksmith-builds-rapides-v1', '{"combos":[],"nombre":3}'],
+  ]) {
+    mem.set(cle, valeur);
+  }
+  await P.purgeDonneesConservees(false);
+  egal(mem.get('swblacksmith-theme-v1'), 'dark', 'le thème survit à la purge');
+  egal(mem.get('swblacksmith-overcap-display-v1'), '0', 'l’overcap survit à la purge');
+  egal(mem.get('swblacksmith-adversaire-reference-v1'), '1', 'l’adversaire de référence survit à la purge');
+  egal(mem.get('swblacksmith-builds-rapides-v1'), '{"combos":[],"nombre":3}', 'les builds les plus rapides survivent à la purge');
   egal(mem.get('swblacksmith-persist-v1'), '0', 'le choix survit à la purge');
 
   /* --- « Ne plus me montrer » : la SESSION, et rien de plus ------------- */
@@ -80,6 +95,15 @@ export default async function testPersistance() {
       false,
     ],
     ['un réglage seul ne vaut pas consentement', { 'swblacksmith-rune-metric-v1': 'score' }, false],
+    ['le thème seul ne vaut pas consentement', { 'swblacksmith-theme-v1': 'dark' }, false],
+    ['l’overcap seul ne vaut pas consentement', { 'swblacksmith-overcap-display-v1': '0' }, false],
+    ['l’adversaire de référence seul ne vaut pas consentement', { 'swblacksmith-adversaire-reference-v1': '1' }, false],
+    ['les builds les plus rapides seuls ne valent pas consentement', { 'swblacksmith-builds-rapides-v1': '{}' }, false],
+    [
+      'des réglages et une donnée → consentement repris',
+      { 'swblacksmith-theme-v1': 'dark', 'swblacksmith-rta-v1': '{}' },
+      true,
+    ],
   ];
   for (const [libelle, stockage, attendu] of cas) {
     egal(P.etatDepuisStockage(stockage).actif, attendu, libelle);

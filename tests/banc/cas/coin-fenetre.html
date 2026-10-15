@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="fr" data-attendu-page="oui">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover">
+<title>Icône en coin au bord de la fenêtre</title>
+<style>
+  body { margin: 0; font: 14px sans-serif; }
+  .avatar { position: relative; display: inline-flex; width: 40px; height: 40px; flex: none; }
+  .image { display: block; width: 40px; height: 40px; background: #9cf; }
+  .icone { position: absolute; top: -0.25rem; right: -0.25rem; width: 16px; height: 16px; background: #f90; }
+</style>
+</head>
+<body id="corps" data-attendu="contenu" data-attendu-depassement="4">
+<!-- L'exception s'arrête au bloc contenant : la rangée, `body` et la page retiennent les 4 px du décalage, et l'icône
+     qui sort de la fenêtre reste signalée par la géométrie. L'avatar, lui, n'est pas signalé. -->
+<div id="rangee" style="display: flex; justify-content: flex-end; padding-top: 8px" data-attendu="contenu" data-attendu-depassement="4">
+  <span id="avatar" class="avatar" data-portrait data-attendu="">
+    <span class="image"></span>
+    <img data-pastille="element" id="icone" class="icone" src="elements/fire.png" alt="" data-attendu="geometrie">
+  </span>
+</div>
+</body>
+</html>

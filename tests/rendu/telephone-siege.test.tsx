@@ -1,7 +1,7 @@
-// Tests de rendu AU TÉLÉPHONE — Siège : Défense, Offense, Recommandations
-// (lot 11b de la refonte graphique). Principe dans tests/rendu/outils-rendu.tsx ; rendu téléphone par
-// `auTelephone`, qui fait apparaître les panneaux « Options ». Écrits AVANT le
-// 11b : ils doivent rester verts sans qu'une assertion change.
+// Tests de rendu AU TÉLÉPHONE — Siège : Défense, Offense, Recommandations.
+// Principe dans tests/rendu/outils-rendu.tsx ; rendu téléphone par
+// `auTelephone`, qui fait apparaître les panneaux « Options ». Un changement
+// de style doit les laisser verts sans qu'une assertion change.
 
 import SiegeBoard from '../../src/components/siege/SiegeBoard';
 import RecoBoard from '../../src/components/siege/RecoBoard';
@@ -20,6 +20,9 @@ function Banc({ side, menuOuvert }: { side: SiegeSide; menuOuvert: boolean }) {
   const siege = useSiegeState(side);
   return (
     <SiegeBoard
+      compteCharge={false}
+      sourcesOptimizer={{ box: [], rtaEntries: {}, siegeDefenseTeams: [], siegeOffenseTeams: [], monsterById: new Map() }}
+      onImporterEquipe={() => { throw new Error('Export désactivé sans compte.'); }}
       side={side}
       siege={siege}
       monsters={MONSTRES}
@@ -59,7 +62,9 @@ function Recos({ menuOuvert }: { menuOuvert: boolean }) {
   const recos = useSiegeRecos();
   const offense = useSiegeState('offense');
   return (
-    <RecoBoard recos={recos} monsters={MONSTRES} builds={[]} teams={[]} copies6={new Map()} offense={offense} menuOuvert={menuOuvert} onFermerMenu={() => {}} />
+    <RecoBoard recos={recos} monsters={MONSTRES} builds={[]} teams={[]} copies6={new Map()} offense={offense} menuOuvert={menuOuvert} onFermerMenu={() => {}}
+      onImporterEquipe={() => { throw new Error('Action non attendue dans le rendu serveur.'); }} compteCharge={false}
+      sourcesOptimizer={{ box: [], rtaEntries: {}, siegeDefenseTeams: [], siegeOffenseTeams: [], monsterById: new Map(MONSTRES.map(m => [String(m.id), m])) }} />
   );
 }
 const rendreRecos = (menuOuvert: boolean) =>
@@ -75,10 +80,10 @@ export function testRenduTelephoneSiege() {
   const ferme = rendreCamp('defense', false);
   const t = texteVisible(ferme);
   egal(dialogues(ferme), 0, 'panneau « Options » fermé : aucun dialogue');
-  ok(t.includes('Équipe 1 +33% (donjon) Éditer Supprimer Lushen 239 Veromos 245 Chasun 256 Speed tune Voir le speed tune'), 'équipe 1 : lead, actions, monstres et vitesses, speed tune');
-  ok(t.includes('Équipe 2 +24% Éditer Supprimer Galleon 261 Belladeon 151 + vide Speed tune Voir le speed tune'), 'équipe 2 : l\'emplacement vide, à remplir');
+  ok(t.includes("Équipe 1 +33% (donjon) Exporter vers l'Optimizer Éditer Supprimer Lushen 239 Veromos 245 Chasun 256 Speed tune Voir le speed tune"), 'équipe 1 : lead, actions, monstres et vitesses, speed tune');
+  ok(t.includes("Équipe 2 +24% Exporter vers l'Optimizer Éditer Supprimer Galleon 261 Belladeon 151 + vide Speed tune Voir le speed tune"), 'équipe 2 : l\'emplacement vide, à remplir');
   ok(valeurs(ferme, 'aria-label').includes('Chercher une équipe par monstre'), 'la recherche d\'équipe');
-  // Lot 11b (décision 25) : ajouté avec l'interrupteur.
+  // Ajouté avec l'interrupteur.
   ok(t.includes('2 équipes Vérifier mes speed') && valeurs(ferme, 'aria-label').includes('Vérifier mes speed'), '« Vérifier mes speed » : un interrupteur sur la page, à côté du compteur');
 
   for (const side of ['defense', 'offense'] as const) {
@@ -87,10 +92,12 @@ export function testRenduTelephoneSiege() {
     const b = boutons(ouvert);
     egal(dialogues(ouvert), 1, `${side} : panneau « Options » ouvert`);
     ok(valeurs(ouvert, 'aria-label').includes(`Actions — ${side === 'defense' ? 'défense' : 'attaque'}`), `${side} : le panneau est nommé`);
-    // ⚠️ Lot 11b (décision 25) : « Vérifier mes speed » a quitté le panneau
+    // ⚠️ « Vérifier mes speed » a quitté le panneau
     // pour un interrupteur sur la page (vérifié plus bas) ; le reste du
     // panneau, dans le même ordre.
-    ok(to.includes('Équipe Ajouter une équipe Exporter Importer Monstre Créer un monstre Tout effacer'), `${side} : ses actions, groupées, dans l'ordre`);
+    ok(to.includes(side === 'defense'
+      ? "Équipe Ajouter une équipe Exporter Importer Monstre Créer un monstre Exporter vers l'Optimizer Tout effacer"
+      : 'Équipe Ajouter une équipe Exporter Importer Monstre Créer un monstre Tout effacer'), `${side} : ses actions, groupées, dans l'ordre`);
     ok(b.some((x) => x.texte === 'Exporter' && x.title === 'Exporter les équipes affichées en fichier .json'), `${side} : « Exporter », et ce qu'il exporte`);
     ok(b.some((x) => x.texte === 'Importer' && x.title === 'Ajouter les équipes d\'un fichier .json exporté par SW Blacksmith — les tiennes ne sont pas touchées'), `${side} : « Importer », et ce qu'il ne touche pas`);
   }

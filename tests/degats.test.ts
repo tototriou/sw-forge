@@ -277,7 +277,7 @@ export default function testDegats() {
       { id: 0, kind: 'element', element: 'water', level: 1, rarity: 5, main: { code: 100, value: 300 }, subs: [{ code: 210, value: 24 }] },
     ]);
     const st = stats({ atk: 4150 });
-    const setupB: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, summonerSkills: 'combat', critMode: 'normal', enemyDef: 0 };
+    const setupB: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, summonerSkills: 'normal', critMode: 'normal', enemyDef: 0 };
     const seara = bombeDe(15713, 'Fate of Destruction');
     const nu = computeSkillDamage(seara, st, setupB, AUCUNE_AURA_PROPRE);
     egal(
@@ -296,7 +296,7 @@ export default function testDegats() {
 
   {
     // Ni la DEF adverse ni le critique ne doivent bouger le résultat.
-    const setupBombe: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, summonerSkills: 'combat', critMode: 'normal', enemyDef: 0 };
+    const setupBombe: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, summonerSkills: 'normal', critMode: 'normal', enemyDef: 0 };
     const st = stats({ atk: 4150 });
     const nu = computeSkillDamage(fateOfDestruction, st, setupBombe, AUCUNE_AURA_PROPRE);
     egal(computeSkillDamage(fateOfDestruction, st, { ...setupBombe, enemyDef: 3000 }, AUCUNE_AURA_PROPRE), nu, 'la DEF adverse ne change RIEN aux dégâts de bombe');
@@ -315,11 +315,11 @@ export default function testDegats() {
   //   × 1000/1142            ≈ 4227,67   (plancher d’ignore défense)
   //   × 3 coups              ≈ 12683,0
   const build = stats({ atk: 2000, cd: 200, cr: 50 });
-  // ⚠️ `summonerSkills: 'combat'` EXPLICITE — ce test épingle l'équation
-  // avec le minimum réel « Combat », qui ajoute 25 points de Dgts Crit.
-  const critique: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, critMode: 'crit', summonerSkills: 'combat' };
+  // ⚠️ `summonerSkills: 'normal'` EXPLICITE — ce test épingle l'équation
+  // avec le minimum réel « Contenu normal », qui ajoute 25 points de Dgts Crit.
+  const critique: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, critMode: 'crit', summonerSkills: 'normal' };
   const attendu = 0.68 * 2000 * (1 + 0.3 + 2.25) * (1000 / 1142) * 3;
-  ok(s3 !== null && Math.abs(computeSkillDamage(s3, build, critique, AUCUNE_AURA_PROPRE) - attendu) < 0.01, 'le total suit l’équation de spec/mecaniques.md');
+  ok(s3 !== null && Math.abs(computeSkillDamage(s3, build, critique, AUCUNE_AURA_PROPRE) - attendu) < 0.01, 'le total suit l’équation de docs/02-app/mecaniques/');
 
   const normal = computeSkillDamage(s3!, build, { ...DEFAULT_DAMAGE_SETUP, critMode: 'normal' }, AUCUNE_AURA_PROPRE);
   const crit = computeSkillDamage(s3!, build, critique, AUCUNE_AURA_PROPRE);
@@ -380,9 +380,9 @@ export default function testDegats() {
   // ⚠️ Les compétences d'invocateur portent sur la stat de BASE (comme le
   // totem de vitesse), pas sur le total runé — un build à grosse ATQ runée
   // n'en tire pas plus qu'un build nu de même base.
-  egal(SUMMONER_SKILLS_LABELS.map((option) => option.key), ['combat', 'guilde'], 'seuls les deux états réels sont proposés, sans « Aucune »');
+  egal(SUMMONER_SKILLS_LABELS.map((option) => option.key), ['normal', 'guilde'], 'seuls les deux états réels sont proposés, sans « Aucune »');
   egal(
-    summonerSkillBonus('combat', 'fire'),
+    summonerSkillBonus('normal', 'fire'),
     { pct: { atk: 41, def: 20, hp: 20, spd: 15 }, cdPoints: 25 },
     'Combat : +20 % ATQ + 21 % élémentaire, et 25 points de Dgts Crit'
   );
@@ -391,8 +391,8 @@ export default function testDegats() {
     { pct: { atk: 61, def: 40, hp: 40, spd: 15 }, cdPoints: 50 },
     'Guilde s’AJOUTE à Combat, jamais à la place'
   );
-  egal(summonerSkillBonus('combat', null).pct.atk, 20, 'sans élément connu, la compétence élémentaire ne s’applique pas');
-  egal(summonerSkillBonus('combat', 'unknown').pct.atk, 20, '« unknown » n’est pas un élément du jeu : aucune compétence élémentaire');
+  egal(summonerSkillBonus('normal', null).pct.atk, 20, 'sans élément connu, la compétence élémentaire ne s’applique pas');
+  egal(summonerSkillBonus('normal', 'unknown').pct.atk, 20, '« unknown » n’est pas un élément du jeu : aucune compétence élémentaire');
   // La VIT ne fait pas partie de l'onglet Guilde : elle ne doit PAS doubler.
   egal(summonerSkillBonus('guilde', 'fire').pct.spd, 15, 'la VIT ne vient que de Combat, jamais doublée par Guilde');
 
@@ -404,8 +404,8 @@ export default function testDegats() {
   // Le ratio attendu ci-dessous ne dépend que de l'ATQ : la part critique est
   // la même des deux côtés (l'élément ne touche pas aux Dgts Crit). Converti
   // du mode « Moyenne », supprimé, vers « Critique », le défaut.
-  const combatSansElement = computeSkillDamage(s3!, buildInvoc, { ...DEFAULT_DAMAGE_SETUP, critMode: 'crit', summonerSkills: 'combat' }, AUCUNE_AURA_PROPRE, null);
-  const avecCombat = computeSkillDamage(s3!, buildInvoc, { ...DEFAULT_DAMAGE_SETUP, critMode: 'crit', summonerSkills: 'combat' }, AUCUNE_AURA_PROPRE, 'wind');
+  const combatSansElement = computeSkillDamage(s3!, buildInvoc, { ...DEFAULT_DAMAGE_SETUP, critMode: 'crit', summonerSkills: 'normal' }, AUCUNE_AURA_PROPRE, null);
+  const avecCombat = computeSkillDamage(s3!, buildInvoc, { ...DEFAULT_DAMAGE_SETUP, critMode: 'crit', summonerSkills: 'normal' }, AUCUNE_AURA_PROPRE, 'wind');
   ok(avecCombat > combatSansElement, 'la compétence de Combat élémentaire augmente les dégâts du bon élément');
   // Le socle Combat sans élément apporte déjà 20 % de la base ; le bon
   // élément ajoute 21 points, toujours sur la BASE, jamais sur le total runé.
@@ -432,7 +432,7 @@ export default function testDegats() {
   const brSetup: DamageSetup = {
     ...DEFAULT_DAMAGE_SETUP,
     skillCom2usId: spearOfProtector.skillCom2usId,
-    summonerSkills: 'combat',
+    summonerSkills: 'normal',
     critMode: 'normal',
   };
   // Comparés en RATIO (pas en valeur absolue) : le facteur de défense et la
@@ -473,7 +473,7 @@ export default function testDegats() {
   const rignaSetup: DamageSetup = {
     ...DEFAULT_DAMAGE_SETUP,
     skillCom2usId: concentratedStab.skillCom2usId,
-    summonerSkills: 'combat',
+    summonerSkills: 'normal',
     critMode: 'normal',
     enemyDef: 1000,
   };
@@ -652,7 +652,7 @@ export default function testDegats() {
     const st = stats({ atk: 2000, cd: 100 });
     const cible: DamageSetup = {
       ...DEFAULT_DAMAGE_SETUP,
-      summonerSkills: 'combat',
+      summonerSkills: 'normal',
       critMode: 'crit',
       enemyDef: 0,
       enemyHp: 100_000_000,
@@ -722,7 +722,7 @@ export default function testDegats() {
     // Les traiter ensemble majorait à tort les bombes et tout le bucket
     // Additionnel.
     const st = stats({ atk: 4150, hp: 30000 });
-    const base: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, summonerSkills: 'combat', critMode: 'normal', enemyDef: 0 };
+    const base: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, summonerSkills: 'normal', critMode: 'normal', enemyDef: 0 };
     const artFeu = artifactDamageProfile([{ ...artefactVit, subs: [{ code: 300, value: 12 }] }]);
 
     // ── Sur une BOMBE ────────────────────────────────────────────────────
@@ -884,7 +884,7 @@ export default function testDegats() {
     // Effet sur le calcul : additif avec la Marque, pas un multiplicateur à part.
     const profilFixe2 = profil('1*{ATK} (Fixed)')!;
     const st = stats({ atk: 2000 });
-    const base: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, summonerSkills: 'combat', critMode: 'normal' };
+    const base: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, summonerSkills: 'normal', critMode: 'normal' };
     const nu = computeSkillDamageDetail(profilFixe2, st, base, AUCUNE_AURA_PROPRE, null, undefined, ARTIFACT_DAMAGE_NEUTRE).total;
     egal(Math.round(nu), 2000, 'référence sans artéfact ni marque');
     egal(
@@ -926,7 +926,7 @@ export default function testDegats() {
     // `horsCoup = 1`) plutôt que de déplacer sa déclaration.
     const profilFixe = profil('1*{ATK} (Fixed)')!;
     const st = stats({ atk: 2000 });
-    const sansBuff: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, summonerSkills: 'combat', critMode: 'normal', atkBuff: false };
+    const sansBuff: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, summonerSkills: 'normal', critMode: 'normal', atkBuff: false };
     const avecBuff: DamageSetup = { ...sansBuff, atkBuff: true };
     const profilAtk = { ...ARTIFACT_DAMAGE_NEUTRE, ampliAtkPct: 20 };
     egal(
@@ -956,7 +956,7 @@ export default function testDegats() {
     const st = stats({ hp: 40000, atk: 2000, def: 1000, spd: 200 });
     const base: DamageSetup = {
       ...DEFAULT_DAMAGE_SETUP,
-      summonerSkills: 'combat',
+      summonerSkills: 'normal',
       critMode: 'crit',
       enemyDef: 3000,
     };
@@ -998,7 +998,7 @@ export default function testDegats() {
 
   // VIT — remplace l'ancien test qui pinçait à tort le total runé.
   const vitStatsBase = statsAvecBase('spd', 120, 200, { atk: 2000, cd: 200, cr: 100 });
-  const vitSetupSansLead: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, summonerSkills: 'combat' };
+  const vitSetupSansLead: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, summonerSkills: 'normal' };
   const vitSansLead = maVitCombat(vitStatsBase, vitSetupSansLead, null);
   const vitAvecCombat = 200 + Math.ceil((120 * 15) / 100);
   egal(vitSansLead, vitAvecCombat, 'sans lead : la VIT inclut toujours les 15 % de Combat appliqués à la base');
@@ -1014,7 +1014,7 @@ export default function testDegats() {
   // ATQ — Lushen S3 ne dépend que de l'ATQ (`variables === ['ATK']`), le
   // ratio isole exactement la contribution du lead.
   const atkStatsBase = statsAvecBase('atk', 1000, 2000, { cd: 200, cr: 100 });
-  const setupLeadSansCrit: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, critMode: 'normal', summonerSkills: 'combat' };
+  const setupLeadSansCrit: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, critMode: 'normal', summonerSkills: 'normal' };
   const atkSansLead = computeSkillDamage(s3!, atkStatsBase, setupLeadSansCrit, AUCUNE_AURA_PROPRE);
   const atkAvecLead44 = computeSkillDamage(s3!, atkStatsBase, { ...setupLeadSansCrit, leaderSkill: { stat: 'Attack Power', pct: 44 } }, AUCUNE_AURA_PROPRE);
   const atkEffectifSansLead = 2000 + Math.ceil((1000 * 20) / 100); // Combat : 2200
@@ -1079,7 +1079,7 @@ export default function testDegats() {
   // Training, `critRateSelonVit`). 50 + 20 (VIT 240 / 12) = 70 % sans lead :
   // aucun surplus ; 70 + 38 = 108 % avec : 8 points reversés. Un lead compté
   // en pourcentage de la base ne franchirait pas 100 %.
-  const crSetup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, critMode: 'crit', summonerSkills: 'combat' };
+  const crSetup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, critMode: 'crit', summonerSkills: 'normal' };
   const crStats = stats({ atk: 2000, cd: 200, cr: 50, spd: 240 });
   const leadCrConfig = { critRateSelonVit: { ptsParVit: 12 } };
   const crSansLead = computeSkillDamageDetail(s3!, crStats, crSetup, AUCUNE_AURA_PROPRE, null, undefined, ARTIFACT_DAMAGE_NEUTRE, leadCrConfig).total;
@@ -1092,7 +1092,7 @@ export default function testDegats() {
     'un lead Taux Crit ajoute 38 POINTS à la stat (70 % → 108 %, 8 points de surplus reversés), jamais un pourcentage de la base'
   );
 
-  const cdSetup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, critMode: 'crit', summonerSkills: 'combat' };
+  const cdSetup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, critMode: 'crit', summonerSkills: 'normal' };
   const cdStats = stats({ atk: 2000, cd: 100, cr: 100 });
   const cdSansLead = computeSkillDamage(s3!, cdStats, cdSetup, AUCUNE_AURA_PROPRE);
   const cdAvecLead25 = computeSkillDamage(s3!, cdStats, { ...cdSetup, leaderSkill: { stat: 'Critical DMG', pct: 25 } }, AUCUNE_AURA_PROPRE);
@@ -1103,13 +1103,13 @@ export default function testDegats() {
     'un lead Dégâts Crit ajoute 25 POINTS à la stat, même famille qu’Euldong'
   );
 
-  // Valeurs de lead RÉELLES du jeu, liste EXHAUSTIVE fournie par
-  // l'utilisateur — jamais une formule générique, elles ne suivent aucune
+  // Liste des paliers complétée et couverte contre le corpus local des
+  // monstres — jamais une formule générique, ils ne suivent aucune
   // progression régulière et diffèrent d'une statistique à l'autre.
   egal(LEADER_SKILL_VALEURS.HP, [15, 17, 18, 21, 22, 25, 28, 30, 33, 38, 40, 44, 45, 50], 'valeurs PV');
   egal(LEADER_SKILL_VALEURS['Attack Power'], [15, 18, 20, 21, 22, 25, 28, 30, 33, 35, 38, 40, 44, 45, 50], 'valeurs ATQ');
   egal(LEADER_SKILL_VALEURS.Defense, [20, 21, 22, 25, 28, 30, 33, 38, 40, 44, 50], 'valeurs DEF');
-  egal(LEADER_SKILL_VALEURS['Attack Speed'], [10, 15, 16, 19, 20, 21, 23, 24, 28, 30, 33], 'valeurs VIT');
+  egal(LEADER_SKILL_VALEURS['Attack Speed'], [10, 15, 16, 17, 19, 20, 21, 23, 24, 28, 30, 33], 'valeurs VIT');
   egal(LEADER_SKILL_VALEURS['Critical Rate'], [10, 15, 16, 17, 19, 21, 23, 24, 28, 30, 33, 38], 'valeurs Taux Crit');
   egal(LEADER_SKILL_VALEURS['Critical DMG'], [25], 'Dégâts Crit — une seule valeur, un seul monstre la porte');
 
@@ -1187,7 +1187,7 @@ export default function testDegats() {
   const soniaSetup: DamageSetup = {
     ...DEFAULT_DAMAGE_SETUP,
     skillCom2usId: soniaBase!.skillCom2usId,
-    summonerSkills: 'combat',
+    summonerSkills: 'normal',
     critMode: 'normal',
   };
   const soniaConfig = monsterBonusDegatsSelonVit(sonia)!;
@@ -1223,7 +1223,7 @@ export default function testDegats() {
   ok(modifRigna[0]?.detail.includes('critique garanti'), 'le détail affiché de Rigna mentionne le critique, pas un bonus de dégâts');
 
   // Zenitsu Agatsuma (Ténèbres)/Qilin Slasher (Ténèbres) — « Hidden Sense of
-  // Justice »/« Lethal Intent » (`spec/outils/degats-reels/catalogue-des-passifs.md`, « Statistiques ») : QUATRIÈME
+  // Justice »/« Lethal Intent » (`docs/02-app/degats-reels/`, « Statistiques ») : QUATRIÈME
   // mécanique liée à une stat (le Taux Crit cette fois, pas la VIT), même
   // famille que Sonia (multiplicatif sur le TOTAL, toujours actif). `quantite: 0`/
   // `null` en données — confirmé par l'utilisateur : « 1% de Taux critique =
@@ -1241,7 +1241,7 @@ export default function testDegats() {
   const zenitsuSetup: DamageSetup = {
     ...DEFAULT_DAMAGE_SETUP,
     skillCom2usId: zenitsuTenBase!.skillCom2usId,
-    summonerSkills: 'combat',
+    summonerSkills: 'normal',
     critMode: 'normal',
   };
   const zenitsuSans = computeSkillDamage(zenitsuTenBase!, zenitsuStats, zenitsuSetup, AUCUNE_AURA_PROPRE);
@@ -1271,7 +1271,7 @@ export default function testDegats() {
   const gideonSetup: DamageSetup = {
     ...DEFAULT_DAMAGE_SETUP,
     skillCom2usId: gideonBase!.skillCom2usId,
-    summonerSkills: 'combat',
+    summonerSkills: 'normal',
     critMode: 'normal',
   };
   const gideonSans = computeSkillDamage(gideonBase!, gideonStats, gideonSetup, AUCUNE_AURA_PROPRE);
@@ -1318,7 +1318,7 @@ export default function testDegats() {
   const britaSetup: DamageSetup = {
     ...DEFAULT_DAMAGE_SETUP,
     skillCom2usId: britaBase!.skillCom2usId,
-    summonerSkills: 'combat',
+    summonerSkills: 'normal',
     critMode: 'normal',
   };
   const britaConfig = monsterBonusSiAtqSeuil(brita)!;
@@ -1402,7 +1402,7 @@ export default function testDegats() {
   egal(monsterBonusDegatsSelonVit(leah), { ecartMax: 150, pctMax: 200 }, 'Leah (Lumière) : mêmes paliers');
   ok(!monsterBonusDegatsSelonVit(fiche(24413)), 'Chun-Li (Vent) porte un passif différent (Rankyaku), pas ce mécanisme');
   const chunliStats = stats({ atk: 2000, cd: 200, cr: 100, spd: 200 });
-  const chunliSetup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, skillCom2usId: chunliBase!.skillCom2usId, summonerSkills: 'combat', critMode: 'normal' };
+  const chunliSetup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, skillCom2usId: chunliBase!.skillCom2usId, summonerSkills: 'normal', critMode: 'normal' };
   const chunliConfig = monsterBonusDegatsSelonVit(chunli)!;
   const chunliSansEcart = computeSkillDamage(chunliBase!, chunliStats, { ...chunliSetup, enemySpd: 200 }, AUCUNE_AURA_PROPRE);
   const chunliAvec150 = computeTotalDamage(chunliBase!, [], chunliStats, { ...chunliSetup, enemySpd: 50 }, AUCUNE_AURA_PROPRE, null, ARTIFACT_DAMAGE_NEUTRE, false, chunliConfig);
@@ -1433,7 +1433,7 @@ export default function testDegats() {
   // ⚠️ Converti du mode « Moyenne », supprimé : en
   // « Critique », la part critique vaut 1 et le Taux Crit ne se lit plus que
   // par le surplus reversé — les 20 pts sous 100 % ne changent plus rien.
-  const critVitSetup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, critMode: 'crit', summonerSkills: 'combat' };
+  const critVitSetup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, critMode: 'crit', summonerSkills: 'normal' };
   const skillupS3 = s3!.skillupDamagePct / 100;
   const detailAvecVit = computeSkillDamageDetail(s3!, critVitStatsSansOverflow, critVitSetup, AUCUNE_AURA_PROPRE, null, undefined, ARTIFACT_DAMAGE_NEUTRE, critVitConfig);
   const detailSansVit = computeSkillDamageDetail(s3!, critVitStatsSansOverflow, critVitSetup, AUCUNE_AURA_PROPRE, null, undefined, ARTIFACT_DAMAGE_NEUTRE, {});
@@ -1532,7 +1532,7 @@ export default function testDegats() {
   const jkBase = defaultDamageSkill(monsterDamageSkills(jinKazama));
   ok(jkBase !== null, 'Jin Kazama : un sort de dégâts par défaut est trouvé');
   const jkStats = stats({ atk: 2000, cd: 200, cr: 100 });
-  const jkSetup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, skillCom2usId: jkBase!.skillCom2usId, summonerSkills: 'combat' };
+  const jkSetup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, skillCom2usId: jkBase!.skillCom2usId, summonerSkills: 'normal' };
   const jkConfig = monsterBonusDegatsConditionnel(jinKazama)!;
   egal(bonusDegatsConditionnelActif(jkConfig, jkSetup), false, 'désactivé par défaut, jamais deviné actif');
   const jkSansToggle = computeTotalDamage(jkBase!, [], jkStats, jkSetup, AUCUNE_AURA_PROPRE, null, ARTIFACT_DAMAGE_NEUTRE, false, null, null, {}, jkConfig);
@@ -1579,7 +1579,7 @@ export default function testDegats() {
   const momoSetupSansStack: DamageSetup = {
     ...DEFAULT_DAMAGE_SETUP,
     skillCom2usId: momoBase!.skillCom2usId,
-    summonerSkills: 'combat',
+    summonerSkills: 'normal',
     critMode: 'normal',
   };
   egal(resolvedStackTrigger(stackMomo, momoSetupSansStack), 0, 'sans réglage utilisateur, le déclencheur retombe sur 0 — jamais deviné actif');
@@ -1656,7 +1656,7 @@ export default function testDegats() {
   // sélectionnables dans « Effets actifs » comme un buff ATQ, portrait du
   // monstre en icône.
   const equipeStats = stats({ atk: 2000, cd: 100, cr: 100 });
-  const equipeSetup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, skillCom2usId: s3!.skillCom2usId, summonerSkills: 'combat' };
+  const equipeSetup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, skillCom2usId: s3!.skillCom2usId, summonerSkills: 'normal' };
 
   // Euldong — +100 POINTS de Dgts Crit (pas un facteur ×2), confirmé par
   // l'utilisateur. En mode Critique garanti, critTerm = 1 + skillup% + cd —
@@ -1685,11 +1685,11 @@ export default function testDegats() {
   // contre 70 % (`DEF_BREAK_FACTOR` seul) sans elle. `s1p` (déjà défini plus
   // haut, n'ignore PAS la défense) — comparé via `defenseFactor`, seule la
   // mitigation change entre les deux calculs.
-  const deborahBase: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, skillCom2usId: s1p.skillCom2usId, summonerSkills: 'combat', defBreak: true };
+  const deborahBase: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, skillCom2usId: s1p.skillCom2usId, summonerSkills: 'normal', defBreak: true };
   const deborahOff = computeTotalDamage(s1p, [], equipeStats, deborahBase, AUCUNE_AURA_PROPRE, null);
   const deborahOn = computeTotalDamage(s1p, [], equipeStats, { ...deborahBase, deborahActif: true }, AUCUNE_AURA_PROPRE, null);
-  const mitigationSansDeborah = defenseFactor(1000 * DEF_BREAK_FACTOR);
-  const mitigationAvecDeborah = defenseFactor(1000 * (1 - (1 - DEF_BREAK_FACTOR) * DEBORAH_AMPLIFY));
+  const mitigationSansDeborah = defenseFactor(DEFAULT_DAMAGE_SETUP.enemyDef * DEF_BREAK_FACTOR);
+  const mitigationAvecDeborah = defenseFactor(DEFAULT_DAMAGE_SETUP.enemyDef * (1 - (1 - DEF_BREAK_FACTOR) * DEBORAH_AMPLIFY));
   ok(
     Math.abs(deborahOn / deborahOff - mitigationAvecDeborah / mitigationSansDeborah) < 1e-9,
     'Deborah amplifie la réduction de DEF de 30 % (70 % → 91 % de DEF en moins), jamais une réduction à elle seule'
@@ -1698,7 +1698,7 @@ export default function testDegats() {
     s1p,
     [],
     equipeStats,
-    { ...DEFAULT_DAMAGE_SETUP, skillCom2usId: s1p.skillCom2usId, summonerSkills: 'combat', defBreak: false, deborahActif: true },
+    { ...DEFAULT_DAMAGE_SETUP, skillCom2usId: s1p.skillCom2usId, summonerSkills: 'normal', defBreak: false, deborahActif: true },
     AUCUNE_AURA_PROPRE,
     null
   );
@@ -1706,7 +1706,7 @@ export default function testDegats() {
     s1p,
     [],
     equipeStats,
-    { ...DEFAULT_DAMAGE_SETUP, skillCom2usId: s1p.skillCom2usId, summonerSkills: 'combat', defBreak: false },
+    { ...DEFAULT_DAMAGE_SETUP, skillCom2usId: s1p.skillCom2usId, summonerSkills: 'normal', defBreak: false },
     AUCUNE_AURA_PROPRE,
     null
   );
@@ -1789,7 +1789,7 @@ export default function testDegats() {
   egal(thousandShotsProfile.hitsRange, { min: 4, max: 6, defaut: 6 }, 'Julie : coups variables, 4 à 6 (6 à pleine vie)');
   egal(thousandShotsProfile.hits, 6, 'le défaut (6, pleine vie) est retenu — exception explicite au « jamais une surestimation » général');
   const julieStats = stats({ atk: 2000, cd: 200, cr: 100 });
-  const julieSetup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, skillCom2usId: thousandShotsProfile.skillCom2usId, summonerSkills: 'combat', critMode: 'normal' };
+  const julieSetup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, skillCom2usId: thousandShotsProfile.skillCom2usId, summonerSkills: 'normal', critMode: 'normal' };
   egal(resolvedEffetsCibleCount(thousandShotsProfile, julieSetup), 0, 'sans réglage utilisateur, 0 effet — jamais deviné');
   const julieSans = computeSkillDamage(thousandShotsProfile, julieStats, julieSetup, AUCUNE_AURA_PROPRE);
   const julieAvec3 = computeSkillDamage(thousandShotsProfile, julieStats, { ...julieSetup, effetsCibleCount: { [thousandShotsProfile.skillCom2usId]: 3 } }, AUCUNE_AURA_PROPRE);
@@ -1806,7 +1806,7 @@ export default function testDegats() {
   const massacreDanceProfile = massacreDance as SkillDamageProfile;
   egal(massacreDanceProfile.bonusParEffetCible, { pct: 10, source: 'buffsEtDebuffs' }, 'Melissa : +10 % par effet, BUFFS ET DEBUFFS confondus');
   const melissaStats = stats({ atk: 2000, cd: 200, cr: 100 });
-  const melissaSetup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, skillCom2usId: massacreDanceProfile.skillCom2usId, summonerSkills: 'combat', critMode: 'normal' };
+  const melissaSetup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, skillCom2usId: massacreDanceProfile.skillCom2usId, summonerSkills: 'normal', critMode: 'normal' };
   const melissaSans = computeSkillDamage(massacreDanceProfile, melissaStats, melissaSetup, AUCUNE_AURA_PROPRE);
   const melissaAvec5 = computeSkillDamage(massacreDanceProfile, melissaStats, { ...melissaSetup, effetsCibleCount: { [massacreDanceProfile.skillCom2usId]: 5 } }, AUCUNE_AURA_PROPRE);
   ok(Math.abs(melissaAvec5 / melissaSans - 1.5) < 1e-9, '5 effets (buffs+debuffs confondus) : exactement +50 % (10 % × 5)');
@@ -1815,8 +1815,8 @@ export default function testDegats() {
   // `effetsCibleCount` porte une valeur pour une autre clé.
   ok(!s3!.bonusParEffetCible, 'Lushen S3 ne porte pas ce mécanisme');
   egal(
-    computeSkillDamage(s3!, julieStats, { ...DEFAULT_DAMAGE_SETUP, summonerSkills: 'combat', effetsCibleCount: { 999: 10 } }, AUCUNE_AURA_PROPRE),
-    computeSkillDamage(s3!, julieStats, { ...DEFAULT_DAMAGE_SETUP, summonerSkills: 'combat' }, AUCUNE_AURA_PROPRE),
+    computeSkillDamage(s3!, julieStats, { ...DEFAULT_DAMAGE_SETUP, summonerSkills: 'normal', effetsCibleCount: { 999: 10 } }, AUCUNE_AURA_PROPRE),
+    computeSkillDamage(s3!, julieStats, { ...DEFAULT_DAMAGE_SETUP, summonerSkills: 'normal' }, AUCUNE_AURA_PROPRE),
     'un effetsCibleCount saisi pour un AUTRE sort n’a aucun effet ici'
   );
 
@@ -1829,7 +1829,7 @@ export default function testDegats() {
   const suppressiveFireProfile = suppressiveFire as SkillDamageProfile;
   egal(suppressiveFireProfile.bonusParEffetCible, { pct: 100, source: 'buffs' }, 'Covenant : +100 % par effet BÉNÉFIQUE, confirmé par l’utilisateur');
   const covenantStats = stats({ atk: 2000, cd: 200, cr: 100 });
-  const covenantSetup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, skillCom2usId: suppressiveFireProfile.skillCom2usId, summonerSkills: 'combat', critMode: 'normal' };
+  const covenantSetup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, skillCom2usId: suppressiveFireProfile.skillCom2usId, summonerSkills: 'normal', critMode: 'normal' };
   const covenantSans = computeSkillDamage(suppressiveFireProfile, covenantStats, covenantSetup, AUCUNE_AURA_PROPRE);
   const covenantAvec2 = computeSkillDamage(suppressiveFireProfile, covenantStats, {
     ...covenantSetup,
@@ -1853,7 +1853,7 @@ export default function testDegats() {
   const touchOfMercyProfile = touchOfMercy as SkillDamageProfile;
   egal(touchOfMercyProfile.bonusParEffetCible, { pct: 40, source: 'buffsEtDebuffs' }, 'Brandia : +40 % par effet, BUFFS ET DEBUFFS confondus, confirmé en données');
   const brandiaStats = stats({ atk: 2000, cd: 200, cr: 100 });
-  const brandiaSetup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, skillCom2usId: touchOfMercyProfile.skillCom2usId, summonerSkills: 'combat', critMode: 'normal' };
+  const brandiaSetup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, skillCom2usId: touchOfMercyProfile.skillCom2usId, summonerSkills: 'normal', critMode: 'normal' };
   const brandiaSans = computeSkillDamage(touchOfMercyProfile, brandiaStats, brandiaSetup, AUCUNE_AURA_PROPRE);
   const brandiaAvec3 = computeSkillDamage(touchOfMercyProfile, brandiaStats, {
     ...brandiaSetup,
@@ -1886,7 +1886,7 @@ export default function testDegats() {
     'Zaiross : seuil ATQ adverse ≤ 50 %, +50 % et critique garanti'
   );
   const zairossStats = stats({ atk: 2000, cd: 200, cr: 100 });
-  const zairossSetup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, skillCom2usId: fieryBreathProfile.skillCom2usId, summonerSkills: 'combat', critMode: 'normal' };
+  const zairossSetup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, skillCom2usId: fieryBreathProfile.skillCom2usId, summonerSkills: 'normal', critMode: 'normal' };
   const zairossHorsSeuil = computeSkillDamage(fieryBreathProfile, zairossStats, { ...zairossSetup, enemyAtk: 1001 }, AUCUNE_AURA_PROPRE);
   const zairossAuSeuil = computeSkillDamage(fieryBreathProfile, zairossStats, { ...zairossSetup, enemyAtk: 1000 }, AUCUNE_AURA_PROPRE);
   ok(zairossAuSeuil > zairossHorsSeuil, 'Zaiross : le seuil inclusif active le bonus et le critique');
@@ -1929,7 +1929,7 @@ export default function testDegats() {
   );
   egal(hammerPunchCrawlerProfile.bonusCoefficientParCompteur?.variable, 'DEF', 'le terme additif porte sur la DEF, même variable que la formule de base');
   const crawlerStats = stats({ atk: 2000, def: 1000, cd: 200, cr: 100 });
-  const crawlerSetup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, skillCom2usId: hammerPunchCrawlerProfile.skillCom2usId, summonerSkills: 'combat', critMode: 'normal' };
+  const crawlerSetup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, skillCom2usId: hammerPunchCrawlerProfile.skillCom2usId, summonerSkills: 'normal', critMode: 'normal' };
   egal(resolvedCompteurPersonnalise(hammerPunchCrawlerProfile, crawlerSetup), 0, 'sans réglage utilisateur, 0 attaque reçue — jamais deviné');
   const crawlerSansCompteur = computeSkillDamage(hammerPunchCrawlerProfile, crawlerStats, crawlerSetup, AUCUNE_AURA_PROPRE);
   const crawlerAvec10 = computeSkillDamage(hammerPunchCrawlerProfile, crawlerStats, {
@@ -2041,7 +2041,7 @@ export default function testDegats() {
 
   // ⚠️ La liste `PASSIFS_OFFENSIFS_CONNUS` (damage.ts) est une CURATION à la
   // main — jamais déduite automatiquement d'une condition en jeu (voir
-  // spec/outils/degats-reels.md, cas Roid). Ces tests épinglent le
+  // docs/02-app/degats-reels/, cas Roid). Ces tests épinglent le
   // COMPORTEMENT (toujours actif d'office / bouton désactivé par défaut /
   // bonus qui ne majore QUE la contribution du passif), pas la liste
   // elle-même — l'ajout d'un monstre à la liste n'a pas à faire échouer ceci.
@@ -2066,7 +2066,7 @@ export default function testDegats() {
     35,
     'les 4 améliorations « Damage +X% » de Winds and Clouds sont sommées (5+5+10+15), pas ignorées'
   );
-  const fySetup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, skillCom2usId: fyBase!.skillCom2usId, summonerSkills: 'combat' };
+  const fySetup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, skillCom2usId: fyBase!.skillCom2usId, summonerSkills: 'normal' };
   const fyStats = stats({ atk: 2000, cd: 200, cr: 100, hp: 20000, def: 900 });
 
   const fyContributionReelle =
@@ -2113,7 +2113,7 @@ export default function testDegats() {
     2,
     'sans réglage utilisateur, le nombre de coups retombe sur le MINIMUM de la plage — jamais une surestimation par défaut'
   );
-  const siaSetup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, skillCom2usId: siaBase!.skillCom2usId, summonerSkills: 'combat' };
+  const siaSetup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, skillCom2usId: siaBase!.skillCom2usId, summonerSkills: 'normal' };
   const siaStats = stats({ atk: 2000, cd: 200, cr: 100 });
   egal(
     resolvedHits(siaPassifs[0]!.profile, siaSetup),
@@ -2165,7 +2165,7 @@ export default function testDegats() {
   const roidBaseSetup: DamageSetup = {
     ...DEFAULT_DAMAGE_SETUP,
     skillCom2usId: roidBase!.skillCom2usId,
-    summonerSkills: 'combat',
+    summonerSkills: 'normal',
   };
 
   // Scénario 1 — réduction de DEF DÉJÀ présente : Slash Waves se déclenche,
@@ -2234,7 +2234,7 @@ export default function testDegats() {
   const dominicSetup: DamageSetup = {
     ...DEFAULT_DAMAGE_SETUP,
     skillCom2usId: dominicBase!.skillCom2usId,
-    summonerSkills: 'combat',
+    summonerSkills: 'normal',
   };
   const dominicSort = computeSkillDamage(dominicBase!, dominicStats, dominicSetup, AUCUNE_AURA_PROPRE, null);
   const dominicPassifMajore = computeSkillDamage(dominicPassifs[0]!.profile, dominicStats, dominicSetup, AUCUNE_AURA_PROPRE, null);
@@ -2261,7 +2261,7 @@ export default function testDegats() {
   // et PLUS FORT qu'un
   // simple `ignoreDef` : `mitigation = profile.fixed ? 1 : defenseFactor(…)`
   // saute ENTIÈREMENT le facteur de défense (aucune réduction, même pas le
-  // plancher `defenseFactor(0) ≈ 0,877` qu'`ignoreDef` laisserait subsister).
+  // plancher `defenseFactor(0) ≈ 0,876` qu'`ignoreDef` laisserait subsister).
   ok(dominicPassifs[0]!.profile.ignoreDef === false, 'le passif ne porte PAS le marqueur ignoreDef — sa neutralité à la DEF vient de `fixed`, un mécanisme différent');
   const dominicDefNulle = computeSkillDamage(dominicPassifs[0]!.profile, dominicStats, { ...dominicSetup, enemyDef: 0 }, AUCUNE_AURA_PROPRE);
   const dominicDefEnorme = computeSkillDamage(dominicPassifs[0]!.profile, dominicStats, { ...dominicSetup, enemyDef: 999999 }, AUCUNE_AURA_PROPRE);
@@ -2281,7 +2281,7 @@ export default function testDegats() {
   const ezioSansBonus: DamageSetup = {
     ...DEFAULT_DAMAGE_SETUP,
     skillCom2usId: ezioBase!.skillCom2usId,
-    summonerSkills: 'combat',
+    summonerSkills: 'normal',
     critMode: 'normal',
   };
   const contributionSansBonus =
@@ -2333,7 +2333,7 @@ export default function testDegats() {
   const wSetup: DamageSetup = {
     ...DEFAULT_DAMAGE_SETUP,
     skillCom2usId: weakness.skillCom2usId,
-    summonerSkills: 'combat',
+    summonerSkills: 'normal',
     enemyHp: 30000,
     enemyHpPct: 100,
   };
@@ -2455,7 +2455,7 @@ export default function testDegats() {
   // FIGEAIT l'inverse : un `PASSIFS_OFFENSIFS_CONNUS` `conditionnel` dont la
   // formule `2.0*{DEF}` (le Bouclier) s'ajoutait aux dégâts, le +50 % étant
   // réputé porter sur les dégâts absorbés. Renversé : le Bouclier se crée
-  // « when you are attacked », ce n'est pas une attaque (`spec/outils/degats-reels/valeurs-de-jeu-curees.md`,
+  // « when you are attacked », ce n'est pas une attaque (`docs/02-app/degats-reels/`,
   // « Une attaque se lit dans la prose ») ; le +50 % « damage dealt » de la
   // donnée (`Increase Damage`, `quantite: 50`, note « When you have a
   // Shield. ») majore les dégâts du monstre sous le bouton « bouclier
@@ -2518,7 +2518,7 @@ export default function testDegats() {
   const giouSetupOff: DamageSetup = {
     ...DEFAULT_DAMAGE_SETUP,
     skillCom2usId: giouBase!.skillCom2usId,
-    summonerSkills: 'combat',
+    summonerSkills: 'normal',
     critMode: 'normal',
     enemyHp: 40000,
     enemyDef: 1000,
@@ -2590,7 +2590,7 @@ export default function testDegats() {
   const borgnineSetup: DamageSetup = {
     ...DEFAULT_DAMAGE_SETUP,
     skillCom2usId: borgnineBase!.skillCom2usId,
-    summonerSkills: 'combat',
+    summonerSkills: 'normal',
     critMode: 'normal',
     stackPersonnalise: { [stackBorgnine.skillCom2usId]: 40 },
   };
@@ -2653,7 +2653,7 @@ export default function testDegats() {
   };
   const neutre = skillDamageProfile(competenceNeutre) as SkillDamageProfile;
   ok(neutre != null && 'noeud' in neutre, 'profil neutre : calculable');
-  const setupNeutre: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, summonerSkills: 'combat', critMode: 'normal' };
+  const setupNeutre: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, summonerSkills: 'normal', critMode: 'normal' };
 
   // Spear of Tenacity (Pholus) — `pct/100 × {Target MAX HP}` ajouté au
   // multiplicateur, toujours actif, soumis au critique/à la défense comme
@@ -2694,7 +2694,7 @@ export default function testDegats() {
   // foi d'une confirmation qui était une ERREUR. Levée par un relevé EN JEU :
   // Shahat ~50 000 PV, S2 sur une cible à ~3 000 DEF → ~4 500 par coup,
   // contre 770 à 1 760 que donnait l'ancien calcul. Voir
-  // spec/outils/degats-reels/artefacts-et-degats-bruts.md,
+  // docs/02-app/degats-reels/,
   // « Dégâts BRUTS d'un passif — ni critiques, ni mitigés, à chaque coup ».
   egal(monsterBonusFixeMaxHpPropre(fiche(27513)), { pct: 7 }, 'Bayek (Vent) : Sickle Blade, +7 % de ses PV max');
   egal(monsterBonusFixeMaxHpPropre(fiche(28013)), { pct: 7 }, 'Shahat : Sand Blade, même mécanisme, nom différent');
@@ -2772,7 +2772,7 @@ export default function testDegats() {
   egal(backupCode, { ...backupCode!, pct: 20, source: 'debuffs' }, '570RM : Backup Code, +20 % par débuff sur la cible');
   ok(!monsterBonusParEffetCible(fiche(LUSHEN)), 'Lushen ne porte pas ce mécanisme');
   {
-    const setup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, summonerSkills: 'combat', critMode: 'normal' };
+    const setup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, summonerSkills: 'normal', critMode: 'normal' };
     const st = stats({ atk: 2000 });
     const sans = computeSkillDamageDetail(s3!, st, setup, AUCUNE_AURA_PROPRE, null, undefined, ARTIFACT_DAMAGE_NEUTRE, {});
     const avec2 = computeSkillDamageDetail(
@@ -2798,7 +2798,7 @@ export default function testDegats() {
   ok(!monsterBonusParEffetPropre(fiche(LUSHEN)), 'Lushen ne porte pas ce mécanisme');
   egal(resolvedEffetsPropresCount(blessingOfCurse!.skillCom2usId, DEFAULT_DAMAGE_SETUP), 0, 'sans réglage utilisateur, 0 débuff — jamais deviné');
   {
-    const setup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, summonerSkills: 'combat', critMode: 'normal' };
+    const setup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, summonerSkills: 'normal', critMode: 'normal' };
     const st = stats({ atk: 2000 });
     const sans = computeSkillDamageDetail(s3!, st, setup, AUCUNE_AURA_PROPRE, null, undefined, ARTIFACT_DAMAGE_NEUTRE, {});
     const avec3 = computeSkillDamageDetail(
@@ -2847,7 +2847,7 @@ export default function testDegats() {
   ok(mechanicalFist != null && estPrisEnCharge(mechanicalFist), 'Cynthia : Mechanical Fist (S1) calculable');
   ok(!(mechanicalFist as SkillDamageProfile).bonusConditionnelPropre, 'Mechanical Fist (S1) NE porte PAS ce bonus — restreint à Rending Claw seul');
   const cynthiaStats = stats({ atk: 2000, cd: 200, cr: 100 });
-  const cynthiaSetup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, skillCom2usId: rendingClawProfile.skillCom2usId, summonerSkills: 'combat', critMode: 'normal' };
+  const cynthiaSetup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, skillCom2usId: rendingClawProfile.skillCom2usId, summonerSkills: 'normal', critMode: 'normal' };
   ok(!bonusConditionnelPropreActif(rendingClawProfile, cynthiaSetup), 'désactivé par défaut, jamais deviné actif');
   const cynthiaSans = computeSkillDamage(rendingClawProfile, cynthiaStats, cynthiaSetup, AUCUNE_AURA_PROPRE);
   const cynthiaAvec = computeSkillDamage(rendingClawProfile, cynthiaStats, {
@@ -2959,13 +2959,13 @@ export default function testDegats() {
   recetteLegacySansInvocateur.damageSetup.summonerSkills = 'aucune';
   egal(
     parseOptimizerRecipe(JSON.stringify(recetteLegacySansInvocateur)).recipe?.damageSetup.summonerSkills,
-    'combat',
+    'normal',
     'ancienne recette « Aucune » : normalisée vers Combat à l’import'
   );
   delete recetteLegacySansInvocateur.damageSetup.summonerSkills;
   egal(
     parseOptimizerRecipe(JSON.stringify(recetteLegacySansInvocateur)).recipe?.damageSetup.summonerSkills,
-    'combat',
+    'normal',
     'ancienne recette sans réglage d’invocateur : Combat reste la valeur par défaut'
   );
 
@@ -3012,7 +3012,7 @@ export default function testDegats() {
     const build = stats({ hp: 40000, atk: 2000, def: 1000, spd: 200, cr: 15, cd: 50 });
     const profil = { ...ARTIFACT_DAMAGE_NEUTRE, brutPctPv: 1.5, brutPctAtk: 20, brutPctDef: 20, brutPctVit: 200 };
 
-    const nu = { ...DEFAULT_DAMAGE_SETUP, summonerSkills: 'combat' as const };
+    const nu = { ...DEFAULT_DAMAGE_SETUP, summonerSkills: 'normal' as const };
     const attendu = 0.015 * 40000 + 0.2 * 2000 + 0.2 * 1000 + 2 * 200;
     egal(
       Math.round(degatsBrutsArtefactsParCoup(build, nu, AUCUNE_AURA_PROPRE, null, profil)),

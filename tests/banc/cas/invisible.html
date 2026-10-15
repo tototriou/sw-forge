@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="fr" data-attendu-page="oui">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover">
+<title>Exclusion visibility hidden</title>
+<style>
+  body { margin: 8px; font: 14px sans-serif; }
+  .bloc { margin: 8px 0; }
+  .overflow-x-auto { overflow-x: auto; }
+  .sm\:overflow-x-auto { overflow-x: auto; }
+  .overflow-y-auto { overflow-y: auto; }
+  .overflow-hidden { overflow: hidden; }
+</style>
+</head>
+<body>
+<!-- Non signalé : copie invisible confinée (même cellule de grille que le libellé visible : elle réserve la place, sans rien élargir au-delà). -->
+<span id="reserve" data-attendu="" style="display: inline-grid">
+  <span id="copie-confinee" data-attendu="" style="grid-area: 1 / 1; visibility: hidden">Le libellé le plus long</span>
+  <span id="libelle" data-attendu="" style="grid-area: 1 / 1">Court</span>
+</span>
+<!-- Signalé : copie invisible de 500 px qui élargit son ancêtre visible au-delà de la fenêtre — l'ancêtre est signalé, pas la copie. -->
+<div id="ancetre-elargi" class="bloc" data-attendu="geometrie" style="width: fit-content; background: #eee">
+  <span id="copie-elargit" data-attendu="" style="display: inline-block; width: 500px; height: 20px; visibility: hidden"></span>
+</div>
+</body>
+</html>

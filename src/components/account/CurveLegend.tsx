@@ -39,7 +39,7 @@ export default function CurveLegend({
   masquees: Set<string>;
   onBascule: (name: string) => void;
   // La disposition à la souris : en COLONNE dans le panneau « Séries » à côté
-  // du graphe (refonte graphique, lot 8a-3, la maquette). Au doigt, la rangée
+  // du graphe (la maquette). Au doigt, la rangée
   // sous le graphe d'avant.
   className?: string;
 }) {

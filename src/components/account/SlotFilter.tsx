@@ -51,7 +51,7 @@ export default function SlotFilter({
               className={`w-7 h-7 rounded-md border text-xs font-mono font-semibold transition select-none ${CASE_FILTRE_LG}
                 ${
                   active
-                    ? // ⚠️ Marqueur d'état UNIQUE des filtres (voir spec/shared/design.md),
+                    ? // ⚠️ Marqueur d'état UNIQUE des filtres (voir docs/03-developpeur/interface/),
                       // importé de `Pastille` : le même que les filtres de Ma box et
                       // des sets — deux marqueurs différents côte à côte se liraient
                       // comme deux natures de filtre. À la souris, celui du

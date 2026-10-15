@@ -1,0 +1,29 @@
+#!/usr/bin/env node
+// Rappel des dépendances après un changement de branche — contrat :
+// docs/03-developpeur/qualite-code.md, « Rappel des dépendances ».
+//
+// Si `package-lock.json` diffère entre l'ancienne et la nouvelle tête, les
+// `node_modules` du worktree ne correspondent plus : le dire, avec la
+// commande. N'installe rien et ne fait jamais échouer Git (code 0).
+
+import { execFileSync } from 'node:child_process';
+
+const JAUNE = '\x1b[33m';
+const FIN = '\x1b[0m';
+const NUL = /^0+$/;
+
+const [avant, apres, branche] = process.argv.slice(2);
+
+// Le troisième argument vaut 0 pour un checkout de fichiers : rien à dire.
+if (branche === '1' && avant && apres && !NUL.test(avant) && avant !== apres) {
+  let change = false;
+  try {
+    execFileSync('git', ['diff', '--quiet', avant, apres, '--', 'package-lock.json'], { stdio: 'ignore' });
+  } catch (e) {
+    change = e.status === 1;
+  }
+  if (change) {
+    console.log(`${JAUNE}⚠️ package-lock.json a changé : lancer \`npm ci\` pour remettre les dépendances de ce worktree à jour.${FIN}`);
+  }
+}
+process.exit(0);

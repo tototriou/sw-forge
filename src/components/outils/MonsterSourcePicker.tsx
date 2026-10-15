@@ -10,7 +10,7 @@ import MonsterAvatar from '../MonsterAvatar';
 import ExclusionCandidateRow from './ExclusionCandidateRow';
 
 // ⚠️ **Deux modes, UN SEUL composant** (voir
-// spec/outils/optimizer/ecran/recherche-du-monstre.md,
+// docs/02-app/optimizer/,
 // « Recherche du monstre à optimiser ») — plutôt que de
 // dupliquer un second picker pour la recherche bestiaire.
 interface AccountModeProps {

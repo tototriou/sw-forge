@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
-import { ArtifactDamageProfile, DamageSetup, LEADER_SKILL_STATS, LEADER_SKILL_VALEURS, LeaderSkillStat, SUMMONER_SKILLS_LABELS, SummonerSkills, type SetAura } from '../../lib/damage';
+import { ArtifactDamageProfile, DamageSetup, LEADER_SKILL_STATS, LEADER_SKILL_VALEURS, LeaderSkillStat, type SetAura } from '../../lib/damage';
 import { leadIconUrl, STAT_LABEL } from '../siege/LeadPill';
-import { Bouton, BoutonIcone, Jeton, NumberField, Segmented, Selecteur } from '../../ui';
+import { Bouton, BoutonIcone, Jeton, NumberField, Selecteur } from '../../ui';
 import type { RappelBuffDePassif } from '../../lib/buffsDePassif';
 import HelpPopover from '../HelpPopover';
 import EffetVignette from './EffetVignette';
@@ -32,10 +32,10 @@ import {
  * dégâts supplémentaires bruts des artéfacts (codes 218-221), affichés quel
  * que soit l'objectif. Un joueur optimisant l'efficience subissait donc des
  * buffs qu'il ne pouvait ni voir ni régler. Aucun champ n'est créé ici : ce
- * sont les mêmes `DamageSetup.atkBuff`/`defBuff`/`spdBuff`/`leaderSkill`/
- * `summonerSkills`, montrés ailleurs.
+ * sont les mêmes `DamageSetup.atkBuff`/`defBuff`/`spdBuff`/`leaderSkill`
+ * montrés ici. Les compétences d'invocateur sont dérivées du contenu de la liste.
  *
- * Un sixième contexte s'y ajoute : les sets
+ * Un contexte d'équipe s'y ajoute : les sets
  * d'aura des AUTRES monstres de l'équipe (`DamageSetup.setsAuraExternes`),
  * jusque-là saisissables seulement dans une recette — voir
  * `AurasExternesSaisie` plus bas.
@@ -68,9 +68,13 @@ export default function EtatMonstre({
   rappelAuras,
   onGuiderResPre,
   rappelsBuffs,
+  equipe = false,
+  motifLead,
 }: {
   setup: DamageSetup;
   maj: (patch: Partial<DamageSetup>) => void;
+  equipe?: boolean;
+  motifLead?: string | null;
   etroit: boolean;
   artefacts: ArtifactDamageProfile;
   // Passifs du monstre choisi qui posent un buff standard (`rappelsBuffsDePassif`, buffsDePassif.ts) : un rappel, jamais un
@@ -101,30 +105,31 @@ export default function EtatMonstre({
         </HelpPopover>
       </div>
 
-      {/* ⚠️ **Les trois groupes sur UNE rangée** (demande explicite) : buffs,
-          leader skill et invocateur décrivent la même chose — l'état du
-          monstre — et les empiler sur trois lignes donnait à la carte une
+      {/* ⚠️ **Les deux groupes sur UNE rangée** : buffs et
+          leader skill décrivent la même chose — l'état du
+          monstre — et les empiler sur deux lignes donnait à la carte une
           hauteur sans rapport avec le peu qu'elle contient.
           ⚠️ `flex-wrap` et non une rangée rigide : au doigt, ou dans une
           colonne étroite, ils repassent à la ligne d'eux-mêmes plutôt que de
           comprimer les contrôles sous leur taille de cible. `gap-x-4` sépare
           les groupes plus franchement que `gap-y-2` ne sépare les lignes, pour
-          qu'on lise trois groupes et non une file de contrôles. */}
-      {/* ⚠️ **Trois BOÎTES, pas des barres verticales.** Une barre (`border-r`
-          sur les deux premiers groupes) aurait été plus légère — c'est le
+          qu'on lise deux groupes et non une file de contrôles. */}
+      {/* ⚠️ **Deux BOÎTES, pas des barres verticales.** Une barre (`border-r`
+          sur le premier groupe) aurait été plus légère — c'est le
           patron des deux colonnes de « Critères de recherche ». Mais ces
           groupes-ci sont en `flex-wrap` : dès qu'un passe à la ligne, sa barre
           se retrouve à pendre dans le vide au bout d'une rangée. Un contour
           ferme le groupe où qu'il aille.
-          ⚠️ Un SEUL contour, jamais deux superposés (spec/shared/design.md) :
+          ⚠️ Un SEUL contour, jamais deux superposés (docs/03-developpeur/interface/) :
           ces boîtes sont à l'intérieur de la carte, elles ne longent pas son
           bord. Même patron que les groupes du panneau « Options » mobile.
-          ⚠️ `items-stretch` : les trois boîtes prennent la hauteur de la plus
+          ⚠️ `items-stretch` : les deux boîtes prennent la hauteur de la plus
           haute. Sans lui, une boîte d'une rangée flottait au milieu d'une
           boîte de deux, et l'œil lisait un décalage plutôt qu'un groupe. */}
-      <div className="flex flex-wrap items-stretch gap-2">
+      {/* Au téléphone, buffs et lead se centrent dans la carte ; au bureau, calés à gauche. */}
+      <div className="flex flex-wrap items-stretch justify-center gap-2 lg:justify-start">
       {/* Mêmes vignettes qu'avant, même composant : l'ICÔNE est le contrôle. */}
-      <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-border-soft bg-panel2 px-2 py-1.5">
+      <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-border-soft bg-panel2 px-2 py-1.5 lg:w-20 lg:flex-col 2xl:w-auto 2xl:flex-row">
         <EffetVignette
           icone={ATK_BUFF_ICON}
           libelle="Buff ATQ"
@@ -151,47 +156,17 @@ export default function EtatMonstre({
         />
       </div>
 
-      {/* La boîte est posée ICI et non dans le composant : les trois contours
+      {/* La boîte est posée ICI et non dans le composant : les deux contours
           se lisent alors d'un coup dans ce fichier, et se corrigent ensemble. */}
       <div className="flex items-center rounded-lg border border-border-soft bg-panel2 px-2 py-1.5">
         <LeaderSkillPicker setup={setup} maj={maj} />
       </div>
 
-      {/* ⚠️ **Libellé AU-DESSUS des crans, pas à leur gauche** (demande
-          explicite) : côte à côte, « Invocateur » et ses deux crans
-          formaient le groupe le plus large des trois et poussaient la rangée
-          à se replier plus tôt. Empilé, le groupe ne fait plus que la largeur
-          du segmenté.
-          ⚠️ **Sans changer la hauteur de la carte** : le groupe passe à deux
-          rangées, mais le voisin « Lead » en fait déjà deux et `items-stretch`
-          aligne les trois boîtes sur la plus haute. Celle-ci reste donc celle
-          du lead — l'invocateur se contente de remplir la place qui existait
-          déjà. */}
-      <div className="flex flex-col gap-1 rounded-lg border border-border-soft bg-panel2 px-2 py-1.5">
-        {/* `justify-center` : le libellé se centre sur le segmenté en dessous,
-            qui est plus large que lui (demande explicite). */}
-        <div className="flex items-center justify-center gap-1.5">
-        <span className="text-xs text-ink-dim">Invocateur</span>
-        <HelpPopover title="Compétences d'invocateur">
-          Remplacent les anciens <b className="text-ink">totems</b> (onglet Combat) et{' '}
-          <b className="text-ink">drapeaux</b> de Guerre de Guilde (onglet Guilde), toujours supposées{' '}
-          <b className="text-ink">maxées</b>. <b className="text-ink">Combat</b> s&apos;applique partout ;{' '}
-          <b className="text-ink">Combat + Guilde</b> n&apos;a de sens qu&apos;en contenu de guilde, où les
-          compétences de Combat comptent aussi — d&apos;où un choix unique plutôt que deux cases. La
-          compétence <b className="text-ink">« Puis. d&apos;att. de {'<'}élément{'>'} »</b> est appliquée selon
-          l&apos;élément du monstre, sans rien demander.
-        </HelpPopover>
-        </div>
-        {/* `size="sm"` et non `lg` : dans une carte étroite,
-            la taille d'origine (héritée d'une carte pleine largeur) débordait. */}
-        <Segmented<SummonerSkills>
-          options={SUMMONER_SKILLS_LABELS}
-          value={setup.summonerSkills}
-          onChange={(v) => maj({ summonerSkills: v })}
-          size="sm"
-        />
+      <AurasExternesSaisie setup={setup} maj={maj} rappel={rappelAuras} onGuiderResPre={onGuiderResPre} />
       </div>
-      </div>
+      {equipe && <p className="h-20 overflow-y-auto text-xs text-ink-dim">Lead effectif de l’équipe : le modifier change le lead de toute l’équipe. Chaque membre le garde en quittant l’équipe.
+        {motifLead && <span className="block text-warn">{motifLead}</span>}
+      </p>}
       {/* ⚠️ **Rappel des buffs posés par un passif** :
           même grammaire que les lignes d'amplification juste dessous (texte
           `xs` atténué sous la rangée des buffs) ; le passif est nommé comme
@@ -234,14 +209,7 @@ export default function EtatMonstre({
         </div>
       ) : null}
 
-      {/* ⚠️ **Sous la rangée des trois groupes, pas à côté** : la saisie des
-          auras grandit d'une ligne par set, et la rangée « une seule ligne »
-          (demande explicite) n'a pas à la porter. Même boîte que les trois
-          groupes — un seul contour, à l'intérieur de la carte.
-          ⚠️ **En dernier dans la carte** : ajouter une ligne ne pousse que
-          vers le BAS, rien de ce qui précède — ni le bouton d'ajout, fixe en
-          tête de sa boîte (spec/shared/design.md, réponse n° 3). */}
-      <AurasExternesSaisie setup={setup} maj={maj} rappel={rappelAuras} onGuiderResPre={onGuiderResPre} />
+
     </div>
   );
 }
@@ -257,7 +225,7 @@ export default function EtatMonstre({
  * ⚠️ **Le bouton d'ajout est FIXE, en tête** (demande explicite) : les lignes
  * s'ajoutent SOUS lui, il ne bouge jamais sous le clic. Désactivé à somme 15
  * ou quand les cinq sets ont leur ligne, avec la raison en `title` — jamais
- * retiré du rendu (spec/shared/design.md, « un bouton d'action ne disparaît
+ * retiré du rendu (docs/03-developpeur/interface/, « un bouton d'action ne disparaît
  * jamais »).
  *
  * ⚠️ **Un champ vidé revient à 1 à la sortie du champ** (demande explicite) :
@@ -277,7 +245,7 @@ export default function EtatMonstre({
  * `panel2` — toujours un seul contour de 1 px. Son message occupe la MÊME
  * case de grille que l'en-tête (libellé, aide, total), invisible le reste du
  * temps : la case a donc déjà la hauteur du plus haut des deux, et rien ne
- * bouge quand il paraît (spec/shared/design.md, réponse n° 1). Pendant les
+ * bouge quand il paraît (docs/03-developpeur/interface/, réponse n° 1). Pendant les
  * 3 s, l'en-tête s'efface derrière lui.
  *
  * ⚠️ **L'ouverture guidée (7b) part d'`ecrire`, et de lui seul** : c'est le
@@ -314,7 +282,7 @@ function AurasExternesSaisie({
 
   return (
     <div
-      className={`flex flex-col gap-1.5 rounded-lg border px-2 py-1.5 transition-colors duration-200 ${
+      className={`min-w-0 flex-1 basis-full lg:basis-0 flex flex-col gap-1.5 rounded-lg border px-2 py-1.5 transition-colors duration-200 ${
         rappel ? 'border-warn bg-warn-soft' : 'border-border-soft bg-panel2'
       }`}
     >
@@ -345,7 +313,7 @@ function AurasExternesSaisie({
           réserve sa place (voir l'en-tête de ce composant). `aria-live` sur
           un conteneur toujours visible : le message qui y devient visible est
           annoncé. `apparition` : un message qui se pose en place
-          (spec/shared/design.md, Mouvement). */}
+          (docs/03-developpeur/interface/, Mouvement). */}
       <div className="col-start-1 row-start-1 self-center" aria-live="polite">
         <p
           className={`text-xs font-semibold text-warn ${
@@ -449,7 +417,7 @@ function LeaderSkillPicker({ setup, maj }: { setup: DamageSetup; maj: (patch: Pa
     /* ⚠️ **Une GRILLE de trois colonnes — libellé, icône, menus — dont TOUTES
         les places sont tenues d'avance.**
         Trois choses bougeaient ici au moindre clic, et c'est le même défaut
-        trois fois (spec/shared/design.md, « un clic ne déplace jamais ce qu'on
+        trois fois (docs/03-developpeur/interface/, « un clic ne déplace jamais ce qu'on
         vient de cliquer ») :
         1. le menu de la valeur se dépliait À DROITE du type, élargissant le
            groupe et poussant « Invocateur » ;
@@ -461,8 +429,10 @@ function LeaderSkillPicker({ setup, maj }: { setup: DamageSetup; maj: (patch: Pa
         rangée existe même sans lead, et la valeur se pose en `col-start-3`,
         donc exactement sous le type. L'alignement se DÉDUIT des colonnes — il
         n'est pas reproduit à coups de marges qui dériveraient au prochain
-        changement de libellé. */
-    <div className="grid w-fit grid-cols-[auto_auto_auto] items-center gap-x-2 gap-y-1">
+        changement de libellé.
+        Au téléphone, la valeur prend une quatrième colonne de la même rangée :
+        elle tient moins de hauteur, et sa place reste réservée de même. */
+    <div className="grid w-fit grid-cols-[auto_auto_auto_auto] items-center gap-x-2 gap-y-1 lg:grid-cols-[auto_auto_auto]">
       {/* « Lead » et non « Leader skill » : le libellé long mangeait la
           largeur d'une carte en colonne étroite, pour un mot que tout joueur
           abrège de toute façon. */}
@@ -502,7 +472,7 @@ function LeaderSkillPicker({ setup, maj }: { setup: DamageSetup; maj: (patch: Pa
           non un rendu conditionnel — l'élément tient sa place sans se voir,
           avec `aria-hidden` et `disabled`, sinon on tabulerait dans un menu
           invisible. */}
-      <div className={`col-start-3 ${lead ? '' : 'invisible'}`} aria-hidden={!lead}>
+      <div className={`col-start-4 row-start-1 lg:col-start-3 lg:row-start-2 ${lead ? '' : 'invisible'}`} aria-hidden={!lead}>
       {lead ? (
         /* ⚠️ **Un seul menu, plus de saisie libre.** Il y avait avant un menu
             de « paliers courants » ET un champ numérique, parce que la table
@@ -514,7 +484,7 @@ function LeaderSkillPicker({ setup, maj }: { setup: DamageSetup; maj: (patch: Pa
             palier, et un `<select>` natif se dimensionne sur le texte de
             l'option SÉLECTIONNÉE — il s'élargissait donc d'un coup et poussait
             le champ voisin. Un clic qui déplace ce qu'on vient de cliquer,
-            interdit par spec/shared/design.md. */
+            interdit par docs/03-developpeur/interface/. */
         <Selecteur
           value={String(lead.pct)}
           onChange={(e) => maj({ leaderSkill: { stat: lead.stat, pct: Number(e.target.value) } })}

@@ -1,7 +1,7 @@
 // PARITÉ — le harnais de diagnostic contre les 6 scripts qu'il remplace.
 //
 // C'est le niveau 1 de la validation à trois niveaux
-// (spec/outils/optimizer/harnais.md, « Validation du harnais ») : « mêmes nombres que les
+// (docs/03-developpeur/optimizer/, « Validation du harnais ») : « mêmes nombres que les
 // 6 scripts sur leurs cas, ÉCARTS ATTENDUS DOCUMENTÉS là où l'ancien script
 // était faux ».
 //
@@ -18,7 +18,7 @@
 //     Ses bornes sont donc plus PESSIMISTES : elle élimine des runes qui
 //     peuvent en réalité entrer dans un build valide. C'est l'écart entre
 //     une borne sur la paire figée et une borne sur ce que l'inventaire peut
-//     donner (spec/outils/optimizer/moteur/artefacts.md, « Bornes d'apport
+//     donner (docs/03-developpeur/optimizer/, « Bornes d'apport
 //     pendant la recherche »).
 //
 // ⚠️ **La reconstruction ci-dessous est une COPIE LITTÉRALE de l'ancien

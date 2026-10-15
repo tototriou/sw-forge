@@ -6,6 +6,8 @@ import { setPersistence, storageAvailable, usePersistence } from '../hooks/usePe
 import { THEME_CHOICES, setTheme, useTheme } from '../hooks/useTheme';
 import { setOvercapDisplay, useOvercapDisplay } from '../hooks/useOvercapDisplay';
 import { setAdversaireReference, useAdversaireReference } from '../hooks/useAdversaireReference';
+import { useBuildsRapides } from '../hooks/useBuildsRapides';
+import DialogueBuildsRapides, { resumeBuildsRapides } from './DialogueBuildsRapides';
 import AccountFreshness from './AccountFreshness';
 import BlocApplication from './BlocApplication';
 import { EtatSession, estBureau, selonSupport } from '../lib/bureau';
@@ -37,7 +39,7 @@ function Setting({ title, hint, repere, children }: { title: string; hint?: stri
   );
 }
 
-// ── Le dossier SW Blacksmith (spec/shared/sauvegarde-session.md) ────────────
+// ── Le dossier SW Blacksmith (docs/02-app/transverse/) ────────────
 
 // Pure : la ligne sous « Dossier SW Blacksmith » (`null` : rien reçu).
 export function presentationDossierSwblacksmith(etat: EtatSession | null): string {
@@ -74,7 +76,7 @@ function ReglageDossierSwblacksmith() {
  * ----------------------------------------------------------------------- */
 
 // Réglages GLOBAUX de l'application : on les pose une fois, ils valent partout.
-// Règle (voir spec/README.md) : un réglage qui concerne plusieurs pages vient
+// Règle (voir docs/03-developpeur/) : un réglage qui concerne plusieurs pages vient
 // ICI, jamais dupliqué en sélecteur sur chaque page.
 //
 // ⚠️ **Exportée** : la PAGE de réglages (`#/parametres`) affiche exactement la
@@ -96,7 +98,7 @@ export function SettingsList({
   sauvegardeIndisponible?: string | null;
   onKeepAccount?: () => void;
   accountExportedAt?: number | null;
-  // ⚠️ **La PAGE de réglages, à la SOURIS** (refonte graphique, lot 10, la
+  // ⚠️ **La PAGE de réglages, à la SOURIS** (la
   // maquette) : deux blocs intitulés, « Réglages » puis « Mes données »,
   // chacun dans sa carte. Même liste, même ordre — seul le rangement change.
   // Au doigt, les classes ne s'appliquent pas : une seule carte, portée par la
@@ -109,7 +111,9 @@ export function SettingsList({
   const theme = useTheme();
   const overcap = useOvercapDisplay();
   const adversaireRef = useAdversaireReference();
-  // ⚠️ Aux DEUX formats depuis le lot 11d (décision 27) : la page de réglages
+  const buildsRapides = useBuildsRapides();
+  const [dialogueBuildsRapides, setDialogueBuildsRapides] = useState(false);
+  // ⚠️ Aux DEUX formats : la page de réglages
   // range ses blocs de la même façon au doigt qu'à la souris.
   const carteLg = groupes ? 'rounded-xl border border-border bg-panel px-4 py-1' : '';
   const intitule = (texte: string) =>
@@ -127,7 +131,7 @@ export function SettingsList({
           donc en premier. ⚠️ TROIS options, pas un interrupteur — « Auto » doit
           rester un choix explicite, sinon quelqu'un dont le système bascule le
           soir perd ce comportement sans l'avoir demandé.
-          Voir spec/shared/design.md. */}
+          Voir docs/03-developpeur/interface/. */}
       <Setting title="Thème">
         <Segmented options={THEME_CHOICES} value={theme} onChange={setTheme} />
       </Setting>
@@ -135,6 +139,19 @@ export function SettingsList({
       <Setting title="Score">
         <Segmented options={RUNE_METRICS} value={metric} onChange={setRuneMetric} />
       </Setting>
+
+      {/* Ce que montre le Résumé des runes. Une fenêtre plutôt qu'un contrôle
+          en ligne : une liste de combinaisons ne tient pas dans le popover. */}
+      <Setting title="Builds les plus rapides" hint={resumeBuildsRapides(buildsRapides)}>
+        <Bouton
+          taille="sm"
+          libelle="Choisir…"
+          title="Choisir les combinaisons de sets et le nombre de builds"
+          onClick={() => setDialogueBuildsRapides(true)}
+          className="flex-none"
+        />
+      </Setting>
+      {dialogueBuildsRapides && <DialogueBuildsRapides onClose={() => setDialogueBuildsRapides(false)} />}
 
       <Setting
         title="Overcap Taux Crit/RES/Précision"
@@ -187,7 +204,7 @@ export function SettingsList({
           aucune page. */}
       <AccountFreshness exportedAt={accountExportedAt ?? null} className="pb-2.5" />
 
-      {/* La sauvegarde de session (spec/shared/sauvegarde-session.md) :
+      {/* La sauvegarde de session (docs/02-app/transverse/) :
           avant la suppression, qui reste la dernière ligne du bloc. */}
       {onSauvegarderSession && (
         <Setting
@@ -217,8 +234,8 @@ export function SettingsList({
           elle n'a pas « Se déconnecter » dans la barre du haut. */}
       {onClearData && (
         <Setting title="Mes données">
-          {/* ⚠️ Le `Bouton` de la LIBRAIRIE, ton `danger` (refonte graphique,
-              lot 10) : il était dessiné à la main, et ne disait son danger
+          {/* ⚠️ Le `Bouton` de la LIBRAIRIE, ton `danger` : il était dessiné à la main,
+              et ne disait son danger
               qu'au survol. */}
           <Bouton
             taille="sm"
@@ -234,7 +251,7 @@ export function SettingsList({
       </div>
       </section>
 
-      {/* Application de bureau seulement (lot 5) : la version, et la mise à
+      {/* Application de bureau seulement : la version, et la mise à
           jour à portée quand elle a été remise à plus tard. Sur le site, le
           bloc n'existe pas — ce n'est pas un état des données, c'est une
           autre app. */}
@@ -272,9 +289,15 @@ export default function SettingsMenu({
   useEffect(() => {
     if (!open) return;
     const onDown = (e: MouseEvent) => {
+      // ⚠️ Une modale ouverte DEPUIS le popover (« Builds les plus rapides »)
+      // est portalisée dans `<body>`, donc hors de `ref` : sans cette garde, le
+      // premier clic dedans fermait le popover, qui la démontait avec lui.
+      if ((e.target as Element | null)?.closest?.('[role="dialog"]')) return;
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
     };
-    const onEsc = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
+    // Échap ferme d'abord la modale ouverte par-dessus, pas le popover dessous.
+    const onEsc = (e: KeyboardEvent) =>
+      e.key === 'Escape' && !document.querySelector('[role="dialog"]') && setOpen(false);
     document.addEventListener('mousedown', onDown);
     document.addEventListener('keydown', onEsc);
     return () => {
@@ -299,11 +322,11 @@ export default function SettingsMenu({
         title="Réglages"
         className={`flex items-center justify-center transition ${btnClass}`}
       >
-        {/* Rebranding R4 : les curseurs de Paramètres (décision 28). */}
+        {/* Les curseurs de Paramètres. */}
         <IconeParametres size={16} />
       </button>
       {open && (
-        // ⚠️ Le `Flottant` de la librairie (refonte graphique, lot 8a : les
+        // ⚠️ Le `Flottant` de la librairie (les
         // bulles de l'app ont toutes le même gabarit) : il en était une copie
         // écrite à la main. Ancré à DROITE de son bouton, donc origine en haut
         // à droite : le menu sort de l'engrenage, pas de son propre centre.

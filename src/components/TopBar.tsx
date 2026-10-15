@@ -1,5 +1,5 @@
 import { Fragment, ReactNode } from 'react';
-import { ChevronRight, FilePlus, LogOut, Save, Search } from 'lucide-react';
+import { ChevronRight, Columns2, FilePlus, LogOut, Save, Search } from 'lucide-react';
 import { IconeParametres } from './IconesAtelier';
 import { Bouton, BoutonIcone } from '../ui';
 
@@ -40,6 +40,7 @@ export default function TopBar({
   onSauvegarderSous,
   sessionEnCours = null,
   sauvegardeIndisponible = null,
+  ecranPartage,
   // Bord GAUCHE de la barre : celui de la barre latérale, qu'elle ne recouvre
   // pas. ⚠️ Piloté par l'appelant, qui seul sait si elle est repliée.
   decalage,
@@ -63,7 +64,7 @@ export default function TopBar({
   // vient. Un lien seul n'offrait aucune sortie — on y entrait sans pouvoir en
   // revenir autrement qu'en choisissant une autre destination.
   onToggleParametres: () => void;
-  // Ouvre la palette Ctrl K (lot 13, décision 29). Au TÉLÉPHONE seulement, par
+  // Ouvre la palette Ctrl K. Au TÉLÉPHONE seulement, par
   // une loupe : sans clavier, c'est son seul accès. Au bureau, le champ de la
   // barre latérale et Ctrl K suffisent.
   onRecherche?: () => void;
@@ -77,6 +78,11 @@ export default function TopBar({
   // Pourquoi la sauvegarde est désactivée (le compte se relit encore), ou
   // `null`. Les boutons restent affichés, désactivés avec cette raison.
   sauvegardeIndisponible?: string | null;
+  // Écran partagé, au BUREAU (docs/02-app/transverse/feat-navigation/ecran-partage.md) :
+  // le bouton qui ouvre une seconde page à côté, puis referme un volet.
+  // ⚠️ Toujours affiché au bureau, DÉSACTIVÉ avec sa raison quand la fenêtre
+  // n'a pas la place : masqué, on ne saurait jamais que le mode existe.
+  ecranPartage?: { actif: boolean; disponible: boolean; onBasculer: () => void };
   decalage: number;
 }) {
   const titreSauvegarder =
@@ -100,7 +106,7 @@ export default function TopBar({
       // ⚠️ La barre DESCEND sous l'encoche : sa hauteur s'ajoute à
       // `safe-area-inset-top`, et son contenu se décale d'autant. Sans cela,
       // le titre et les boutons passaient sous l'encoche d'un iPhone.
-      // Fond `bar` : celui des barres de l'application (rebranding, décision 5).
+      // Fond `bar` : celui des barres de l'application.
       // `data-barre-fenetre` : dans l'app de bureau SEULEMENT, la barre de la
       // fenêtre (on la saisit, les boutons de Windows s'y dessinent) — voir
       // index.css § Application de bureau. Sans effet sur le site.
@@ -122,8 +128,8 @@ export default function TopBar({
           {gauche}
         </div>
 
-        {/* TÉLÉPHONE — OÙ L'ON EST, à gauche, sur deux lignes (refonte
-            graphique, lot 11a, décision 24, la maquette) : la section en petit
+        {/* TÉLÉPHONE — OÙ L'ON EST, à gauche, sur deux lignes (la maquette) : la
+            section en petit
             (« Jouer · RTA », « Mon compte · Runes »), la page dessous (« Ma
             prépa », « Liste »). Il était centré, en Cinzel, avec l'icône de la
             section : il ne disait que la page, pas où elle se range.
@@ -176,6 +182,25 @@ export default function TopBar({
             MOBILE — « Sauvegarder », la loupe et le ⚙, en icônes : il n'y a pas
             de barre latérale et aucun onglet ne mène aux paramètres. La
             déconnexion et l'import y descendent, faute de place. */}
+        {ecranPartage && (
+          <Bouton
+            onClick={ecranPartage.onBasculer}
+            disabled={!ecranPartage.actif && !ecranPartage.disponible}
+            actif={ecranPartage.actif}
+            title={
+              ecranPartage.actif
+                ? 'Revenir à une seule page'
+                : ecranPartage.disponible
+                  ? 'Ouvrir une seconde page à côté'
+                  : 'Fenêtre trop étroite pour deux pages : agrandis-la ou replie la barre latérale'
+            }
+            fond="vide"
+            trait="aucun"
+            icone={<Columns2 size={16} className="flex-none" />}
+            libelle="Écran partagé"
+            className="relative z-10 ml-auto hidden lg:inline-flex"
+          />
+        )}
         <Bouton
           onClick={onSauvegarder}
           disabled={!!sauvegardeIndisponible}
@@ -184,7 +209,7 @@ export default function TopBar({
           trait="aucun"
           icone={<Save size={16} className="flex-none" />}
           libelle="Sauvegarder"
-          className="relative z-10 ml-auto hidden lg:inline-flex"
+          className={`relative z-10 hidden lg:inline-flex ${ecranPartage ? '' : 'ml-auto'}`}
         />
         {onSauvegarderSous && (
           <Bouton
@@ -198,7 +223,7 @@ export default function TopBar({
             className="relative z-10 hidden lg:inline-flex"
           />
         )}
-        {/* Bouton de la librairie (décision 16) : la hauteur commune des
+        {/* Bouton de la librairie : la hauteur commune des
             boutons de l'app, ton `danger` qui ne rougit qu'au survol. */}
         {onDeconnexion && (
           <Bouton
@@ -223,7 +248,7 @@ export default function TopBar({
           className="relative z-10 ml-auto h-8 w-8 lg:hidden"
         />
 
-        {/* TÉLÉPHONE — la loupe de la palette Ctrl K (lot 13, décision 29, la
+        {/* TÉLÉPHONE — la loupe de la palette Ctrl K (la
             maquette), juste avant le ⚙. Même gabarit que lui. */}
         {onRecherche && (
           <button
@@ -256,8 +281,8 @@ export default function TopBar({
                           : 'text-ink-dim hoverable:bg-panel2 hoverable:text-ink'
                       }`}
         >
-          {/* Les curseurs « Réglages » de la toile (rebranding R4, décision
-              28). L'engrenage pivotait d'un huitième de tour à l'ouverture ;
+          {/* Les curseurs « Réglages » de la toile. L'engrenage pivotait d'un huitième
+              de tour à l'ouverture ;
               des curseurs tournés ne diraient rien : l'état ouvert se lit au
               fond (`ctx-soft`) et au libellé (« Fermer les paramètres »). Pas
               de croix, qui ferait croire à la fermeture de la page entière. */}

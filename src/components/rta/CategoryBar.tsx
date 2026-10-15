@@ -35,7 +35,7 @@ interface Props {
 
 // Catégories libres de la prépa RTA : créer, éditer, et affecter des monstres.
 // Cliquer une catégorie ouvre en dessous la liste des monstres de la page ; on
-// les sélectionne au clic. Voir ../../spec/rta/categories.md.
+// les sélectionne au clic. Voir docs/02-app/rta/.
 export default function CategoryBar({ cats, monsters }: Props) {
   const [openId, setOpenId] = useState<string | null>(null); // catégorie dépliée
   const [editId, setEditId] = useState<string | null>(null); // catégorie en édition
@@ -225,7 +225,7 @@ export default function CategoryBar({ cats, monsters }: Props) {
           ⚠️ Il s'ouvre EN DESSOUS de la rangée, dans les deux formats : les
           pilules sont AVANT le point d'insertion, donc celle qu'on vient de
           toucher ne bouge pas. C'est la bonne place — voir la règle dans
-          spec/shared/design.md. Le saut ressenti au doigt ne venait pas d'ici
+          docs/03-developpeur/interface/. Le saut ressenti au doigt ne venait pas d'ici
           mais du tiroir « Options » qui le contient, et qui grandissait vers le
           haut ; il est corrigé dans MobileSheet. */}
       {open && (

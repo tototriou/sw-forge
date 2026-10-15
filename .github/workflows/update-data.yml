@@ -58,15 +58,15 @@ jobs:
       - name: Relier les monstres de collaboration
         run: node scripts/link-collabs.mjs
 
-      # ⚠️ **Une seule branche, réutilisée** (`forge/donnees-swarfarm`, la
-      # convention du dépôt : un SUJET, jamais un numéro ni une date). Une
+      # ⚠️ **Une seule branche, réutilisée** (`chore/donnees-swarfarm`, la
+      # convention du dépôt : `<type>/<sujet>`, jamais un numéro ni une date). Une
       # branche neuve par semaine accumulerait des PR quasi identiques que
       # personne ne fermerait ; ici la PR ouverte se met à jour toute seule
       # jusqu'à ce qu'on la fusionne.
       - name: Ouvrir une PR si changement
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          BRANCHE: forge/donnees-swarfarm
+          BRANCHE: chore/donnees-swarfarm
         run: |
           set -euo pipefail
           if [ -z "$(git status --porcelain public/data/)" ]; then

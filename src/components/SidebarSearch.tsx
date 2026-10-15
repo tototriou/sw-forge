@@ -3,12 +3,11 @@ import { Search } from 'lucide-react';
 
 // Recherche dans la NAVIGATION, en tête de la barre latérale.
 //
-// ⚠️ **Depuis le lot 13 (décision 29), ce champ OUVRE LA PALETTE** Ctrl K
-// (`Palette.tsx`), qui cherche pages, monstres et actions en groupes
-// intitulés. Il n'existe qu'UNE recherche : le contrat du lot interdisait d'en
-// poser une seconde à côté de celle-ci. Le champ garde son aspect (« Aller
+// ⚠️ **Ce champ OUVRE LA PALETTE** Ctrl K (`Palette.tsx`), qui cherche pages,
+// monstres et actions en groupes intitulés. Il n'existe qu'UNE recherche :
+// pas de seconde à côté de celle-ci. Le champ garde son aspect (« Aller
 // à… », le raccourci Ctrl K) et son nom accessible ; ses résultats et le
-// raccourci vivent désormais dans la palette et dans `App.tsx`.
+// raccourci vivent dans la palette et dans `App.tsx`.
 //
 // ⚠️ Elle cherchait QUE des destinations — « pas les monstres : un champ
 // répondant aux deux obligerait à trier du regard deux natures de résultats ».
@@ -63,7 +62,7 @@ export default function SidebarSearch({
         <Search size={16} className="flex-none text-ink-dimmer" />
         <span className="min-w-0 flex-1 truncate text-sm text-ink-dimmer">Aller à…</span>
         {/* Le raccourci, affiché comme dans la maquette de la refonte
-            graphique (lot 4). */}
+            graphique. */}
         <kbd
           aria-hidden
           className="flex-none rounded-md border border-border bg-panel2 px-1.5 font-mono text-micro

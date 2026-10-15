@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="fr" data-attendu-page="non">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover">
+<title>Anneau masqué et pastille</title>
+<style>
+  body { margin: 8px; font: 14px sans-serif; }
+  .carte { position: relative; margin: 24px 0; width: 200px; height: 60px; background: #eee; border-radius: 12px; }
+  /* L'anneau de CategoryRing.tsx : un calque posé sur toute la carte, dont le
+     masque ne garde que la bande entre le bord et la boîte de contenu. */
+  .anneau {
+    position: absolute; inset: 0; border-radius: 12px; padding: 2px; pointer-events: none;
+    background: #4ad8d8;
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor; mask-composite: exclude;
+  }
+  .portrait { position: absolute; width: 40px; height: 40px; }
+  .cadre { display: block; width: 40px; height: 40px; background: #9cf; }
+  .icone { position: absolute; top: -4px; right: -4px; width: 10px; height: 10px; background: #f90; }
+</style>
+</head>
+<body>
+<!-- Non signalée : la pastille est à l'intérieur de l'anneau, sans toucher sa bande. La boîte de l'anneau couvre
+     toute la carte, mais l'anneau ne dessine que sa bande de 2 px (relevé : carte « Lead SPD » de la prépa RTA). -->
+<div class="carte">
+  <span id="dedans-anneau" class="anneau" aria-hidden="true" data-attendu=""></span>
+  <div class="portrait" data-portrait style="left: 10px; top: 10px">
+    <span class="cadre"></span>
+    <span id="dedans-icone" class="icone" data-pastille="element" data-attendu=""></span>
+  </div>
+</div>
+<!-- Signalée : la pastille mord sur la bande du haut, 10 px de large sur les 2 px de la bande. -->
+<div class="carte">
+  <span id="bord-anneau" class="anneau" aria-hidden="true" data-attendu=""></span>
+  <div class="portrait" data-portrait style="left: 60px; top: 0">
+    <span class="cadre"></span>
+    <span id="bord-icone" class="icone" data-pastille="element" data-attendu="chevauchement" data-attendu-avec="bord-anneau" data-attendu-aire="20"></span>
+  </div>
+</div>
+<!-- Signalée : dans le coin, la bande s'arrondit vers l'intérieur (rayon intérieur 10 px) ; la pastille, dans la
+     boîte de contenu mais hors de son arrondi, touche ce qui est dessiné. Soustraire un rectangle la manquerait. -->
+<div class="carte">
+  <span id="coin-anneau" class="anneau" aria-hidden="true" data-attendu=""></span>
+  <div class="portrait" data-portrait style="left: 6.5px; top: 6.5px">
+    <span class="cadre"></span>
+    <span id="coin-icone" class="icone" data-pastille="element" style="left: -4px; right: auto; width: 4px; height: 4px" data-attendu="chevauchement" data-attendu-avec="coin-anneau"></span>
+  </div>
+</div>
+<!-- Non signalée : dans le coin, hors de l'arrondi EXTÉRIEUR. La boîte de l'anneau la contient, l'anneau n'y
+     dessine rien. -->
+<div class="carte">
+  <span id="hors-anneau" class="anneau" aria-hidden="true" data-attendu=""></span>
+  <div class="portrait" data-portrait style="left: 4px; top: 4px">
+    <span class="cadre"></span>
+    <span id="hors-icone" class="icone" data-pastille="element" style="left: -4px; right: auto; width: 3px; height: 3px" data-attendu=""></span>
+  </div>
+</div>
+</body>
+</html>

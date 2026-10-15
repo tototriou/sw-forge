@@ -1,7 +1,7 @@
 // Balaie plusieurs valeurs de slotFilterCap (ou une seule, en argument) pour
 // mesurer à partir de quel pré-filtrage par emplacement le moteur retrouve le
 // runage RÉEL d'un monstre d'un vrai compte. A servi à calibrer BUCKET_CAP —
-// voir spec/outils/optimizer/verification.md,
+// voir docs/03-developpeur/optimizer/,
 // « Validation grandeur nature ». Générique :
 // monstre/deck viennent des arguments, mainStats dérivé du runage réel.
 //

@@ -12,7 +12,7 @@ import { StatKey, CAPPED_STATS } from '../lib/effects';
 // renvoyer le total BRUT (nécessaire à la recherche de l'Optimizer, qui ne
 // doit surtout pas exclure un build dont le total brut dépasse 100 % — c'est
 // un résultat légitime, voir
-// spec/outils/optimizer/ecran/conditions-et-reglages.md § Grille des
+// docs/02-app/optimizer/ § Grille des
 // conditions). Seule la VALEUR
 // MONTRÉE est bornée, jamais la donnée elle-même.
 //

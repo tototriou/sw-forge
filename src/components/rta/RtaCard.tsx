@@ -1,40 +1,13 @@
 import { useRef } from 'react';
 import { GripVertical, X } from 'lucide-react';
 import { Monster, RtaEntry, sectionLabel } from '../../types';
-import ElementIcon from '../ElementIcon';
-import RuneIcon from '../RuneIcon';
+import MonsterAvatar from '../MonsterAvatar';
+import SetsPortes from '../SetsPortes';
 import CategoryRing from './CategoryRing';
 import DesyncBadge from './DesyncBadge';
 import { BoutonIcone, Selecteur, ZoneCliquable } from '../../ui';
 
 const SPD_ICON = `${import.meta.env.BASE_URL}stats/spd.png`;
-
-const TEXT: Record<string, string> = {
-  fire: 'text-fire',
-  water: 'text-water',
-  wind: 'text-wind',
-  light: 'text-light',
-  dark: 'text-dark',
-  unknown: 'text-unknown',
-};
-const GRADIENT: Record<string, string> = {
-  fire: 'from-fire to-panel2',
-  water: 'from-water to-panel2',
-  wind: 'from-wind to-panel2',
-  light: 'from-light to-panel2',
-  dark: 'from-dark to-panel2',
-  unknown: 'from-unknown to-panel2',
-};
-
-function initials(name: string) {
-  return name
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((w) => w[0])
-    .join('')
-    .toUpperCase();
-}
 
 interface Props {
   monster: Monster;
@@ -71,7 +44,7 @@ export default function RtaCard({
   markDesync = true,
 }: Props) {
   const cardRef = useRef<HTMLDivElement>(null);
-  // ⚠️ Le retrait se DÉFAIT au lieu de se confirmer (lot 13, décision 29) : la
+  // ⚠️ Le retrait se DÉFAIT au lieu de se confirmer : la
   // croix retire tout de suite, et la page annonce « … retiré de ta prépa ·
   // Annuler », qui remet le monstre tel quel. Elle passait par une
   // confirmation : posée sur le coin de la carte, près du portrait, on la
@@ -118,8 +91,8 @@ export default function RtaCard({
       // ⚠️ La bordure SEULE quand le détail est ouvert : elle était doublée d'un
       // `ring-1 ring-accent/50`, soit deux traits d'accent concentriques autour
       // de la même carte. Superposés, ils ne se lisent pas comme deux
-      // informations mais comme un contour flou. Voir spec/shared/design.md.
-      // ⚠️ Refonte graphique, lot 6 : le gabarit des cartes de la refonte —
+      // informations mais comme un contour flou. Voir docs/03-developpeur/interface/.
+      // ⚠️ Le gabarit des cartes —
       // fond de panneau, contour discret, rayon 12 —, le contour se précisant au
       // survol. L'anneau des catégories suit le même rayon.
       className={`group relative rounded-xl border bg-panel transition-colors ${
@@ -150,30 +123,16 @@ export default function RtaCard({
           dont une de 14 px coincée entre les icônes de set. Le portrait est la
           plus grande zone de la carte et celle qu'on vise naturellement — il
           suffit. L'état ouvert se lit au détail déplié juste dessous. */}
-      <div
-        className={`relative flex-none ${hasGear ? 'cursor-pointer' : ''}`}
+      <MonsterAvatar
+        monster={monster}
+        gabarit="div"
+        classeTaille="w-[50px] h-[50px] compact:w-[42px] compact:h-[42px]"
+        className={hasGear ? 'cursor-pointer' : ''}
         onClick={toggle}
-        title={hasGear ? 'Voir le détail des runes' : undefined}
-      >
-        <div
-          className={`hex-frame w-[50px] h-[50px] p-[2px] bg-gradient-to-br compact:w-[42px] compact:h-[42px] ${GRADIENT[monster.element]}`}
-        >
-          <div className="hex-frame w-full h-full bg-panel flex items-center justify-center overflow-hidden">
-            {monster.image ? (
-              <img src={monster.image} alt={monster.name} className="w-full h-full object-cover" />
-            ) : (
-              <span className={`font-display font-bold text-sm ${TEXT[monster.element]}`}>
-                {initials(monster.name)}
-              </span>
-            )}
-          </div>
-        </div>
-        <ElementIcon
-          element={monster.element}
-          size={16}
-          className="absolute -top-1 -right-1 drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)]"
-        />
-      </div>
+        titre={hasGear ? 'Voir le détail des runes' : undefined}
+        classeInitiales="text-sm"
+        tailleElement={16}
+      />
 
       <div className="min-w-0 flex-1">
         <div
@@ -197,7 +156,7 @@ export default function RtaCard({
               ⚠️ La vitesse passe alors à GAUCHE (`flex-1` transféré) : seule sur
               sa ligne, calée à droite, elle flottait loin du portrait qu'elle
               qualifie. */}
-          {/* ⚠️ **Au TÉLÉPHONE, le nom REVIENT** (lot 11a, décision 24) : la
+          {/* ⚠️ **Au TÉLÉPHONE, le nom REVIENT** : la
               rangée prend toute la largeur, il n'a plus à céder sa place. Il
               reste masqué sur une tablette tactile au format bureau, où la
               tuile garde ses 150 px. */}
@@ -221,23 +180,21 @@ export default function RtaCard({
             </>
           )}
           {desync && <DesyncBadge ecart={desync} size={13} />}
-          {/* ⚠️ `pr-3` sous `sm` : la croix de suppression est posée SUR le coin
-              haut-droit de la carte, hors du flux — rien ne la repousse. La
-              dernière icône de set passait dessous. Le nom masqué sur téléphone
-              avait libéré assez de place pour que les trois icônes atteignent le
-              bord, ce qu'elles ne faisaient pas quand il les repoussait. */}
-          {/* ⚠️ Icônes de set COLLÉES sous `sm` seulement. À trois sets — le
-              maximum — les deux écarts suffisaient à faire déborder la dernière
-              de la carte, qui n'y fait que 150 px. Elles restent lisibles au
-              contact : ce sont des pastilles rondes cerclées, chacune se détache
-              de sa voisine sans blanc entre elles.
-              Sur bureau la carte est deux fois plus large et l'écart tient sans
-              rien coûter — il n'y avait pas lieu de l'y retirer. */}
-          <span className="flex flex-none items-center gap-1 compact:gap-0 compact:pr-3">
-            {(entry.sets ?? []).slice(0, 3).map((s, i) => (
-              <RuneIcon key={i} setKey={s} size={18} className="flex-none" />
-            ))}
-          </span>
+          {/* ⚠️ `mr-2.5`, aux deux formats : la croix de suppression est posée
+              SUR le coin haut-droit de la carte, hors du flux — rien ne la
+              repousse, et elle couvre les 8 derniers pixels de cette ligne. La
+              dernière icône de set passait dessous (à l'ordinateur, au
+              survol). La marge l'écarte à 2 px de la croix ; une MARGE et non
+              un `padding`, pour que la boîte du groupe s'arrête elle aussi
+              avant la croix. */}
+          {/* ⚠️ Icônes de set COLLÉES (`gap-0`), aux deux formats. Elles restent
+              lisibles au contact : ce sont des pastilles rondes cerclées,
+              chacune se détache de sa voisine sans blanc entre elles. À
+              l'ordinateur, leurs deux écarts de 4 px paient la marge qui les
+              éloigne de la croix : au pire cas (trois sets, vitesse à trois
+              chiffres, triangle de désynchronisation), la ligne ne perd que
+              2 px sur le nom, qui se tronque. */}
+          <SetsPortes sets={entry.sets ?? []} max={3} taille={18} espacement="gap-0" className="mr-2.5 flex-none" garderVide />
         </div>
         <Selecteur
           value={entry.section}
@@ -263,7 +220,7 @@ export default function RtaCard({
           il n'était ni focusable au clavier, ni atteignable au doigt — on ne
           pouvait pas retirer un monstre sur téléphone. On joue sur l'opacité
           (l'élément reste dans le DOM) et on le laisse visible là où il n'y a
-          pas de survol. Voir spec/shared/design.md. */}
+          pas de survol. Voir docs/03-developpeur/interface/. */}
       {/* ⚠️ `taille="serre"` : la règle tactile globale (40 px, voir index.css)
           ne s'applique pas ici. Cette croix est POSÉE SUR le coin de la carte,
           pas dans un flux : agrandie, elle la déborde et recouvre le portrait.
@@ -281,6 +238,10 @@ export default function RtaCard({
         fond="plein"
         auSurvol
         icone={<X size={12} />}
+        // Repère du banc d'affichage (tests/banc/mesure.ts, « bouton en
+        // coin ») : le dépassement de ce coin sur la carte est voulu. Posé sur
+        // le `<button>` positionné lui-même ; le retirer rend ses signalements.
+        data-bouton-coin="retirer-rta"
         className="absolute -top-1.5 -right-1.5 shadow"
       />
       </div>

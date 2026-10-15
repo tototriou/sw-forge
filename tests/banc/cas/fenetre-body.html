@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="fr" data-attendu-page="oui">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover">
+<title>Fenêtre : overflow de body</title>
+<style>
+  body { margin: 8px; font: 14px sans-serif; overflow-x: hidden; }
+</style>
+</head>
+<body>
+<!-- Signalé : `html` reste `visible`, le navigateur prend l'`overflow` de
+     `body` pour la fenêtre — `body` n'est pas un ancêtre qui coupe. -->
+<div id="sous-body" data-attendu="geometrie" style="width: 500px; height: 20px; background: #ccc"></div>
+</body>
+</html>

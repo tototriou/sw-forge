@@ -333,6 +333,10 @@ export interface SiegeSlot {
   tick: number; // vitesse de combat cible pour CE monstre (0 = aucun tick)
   sets?: string[]; // sets de runes actifs (clés RUNE_SETS), renseignés à l'import
   gear?: GearSet; // détail runes/artéfacts/relique (deck de siège), renseigné à l'import
+  // ⚠️ L'équipement de l'AUTEUR d'un fichier d'équipes importé (siegeShare.ts) :
+  // AFFICHAGE seulement. Jamais dans `gear`, que les builds possédés, les
+  // exclusions de l'Optimizer et l'alerte d'équipement lisent comme le nôtre.
+  gearPartage?: GearSet;
 }
 
 export interface SiegeTeam {

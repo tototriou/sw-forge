@@ -14,7 +14,8 @@ import { BarreActions, Bouton, Interrupteur, Jeton, useNotifier } from '../../ui
 import MonsterPicker from '../MonsterPicker';
 import MonsterAvatar from '../MonsterAvatar';
 import { equipeContient } from './rechercheEquipe';
-import { exporterEquipes, lireEquipes, nomFichierSiege } from '../../lib/siegeShare';
+import { compterAvecRunes, exporterEquipes, lireEquipes, nomFichierSiege } from '../../lib/siegeShare';
+import ChoixExportSiege from './ChoixExportSiege';
 import { telechargerTexte } from '../../lib/telechargement';
 import { NOM_APP } from '../../marque';
 import { CustomLead } from '../../hooks/useCustomMonsters';
@@ -174,15 +175,19 @@ export default function SiegeBoard({
   }, [msg]);
   const fichierEquipes = useRef<HTMLInputElement>(null);
 
-  function exporter() {
+  // « Exporter » POSE la question des runes (`ChoixExportSiege`), comme la
+  // prépa RTA ; le téléchargement suit la réponse.
+  const [choixExport, setChoixExport] = useState(false);
+
+  function exporter(avecRunes: boolean) {
     const aExporter = affichees.map((a) => a.team);
     if (aExporter.length === 0) return;
-    const { texte, equipes, perso } = exporterEquipes(aExporter, side, monsterById);
+    const { texte, equipes, perso } = exporterEquipes(aExporter, side, monsterById, avecRunes);
     const nom = nomFichierSiege(side);
     telechargerTexte(nom, texte);
     setMsg({
       text:
-        `${equipes} équipe(s) exportée(s) · ${nom}` +
+        `${equipes} équipe(s) exportée(s) ${avecRunes ? 'avec les runes' : 'sans les runes'} · ${nom}` +
         (perso > 0 ? ` · ${perso} monstre(s) perso non exporté(s) : emplacement vide.` : ''),
     });
   }
@@ -197,7 +202,9 @@ export default function SiegeBoard({
     setScrollToLast(true);
     setMsg({
       text:
-        `${lu.equipes.length} équipe(s) ajoutée(s) à la suite des tiennes.` +
+        `${lu.equipes.length} équipe(s) ajoutée(s) à la suite des tiennes` +
+        (lu.avecRunes > 0 ? `, avec les runes de ${lu.avecRunes} monstre(s).` : '.') +
+        (lu.avertissements.length > 0 ? ` ${lu.avertissements.join(' ')}` : '') +
         (lu.cote !== side ? ` Le fichier venait ${lu.cote === 'defense' ? 'de la défense' : "de l'offense"}.` : '') +
         (lu.inconnus.length > 0
           ? ` ${lu.inconnus.length} monstre(s) absent(s) des données chargées (${lu.inconnus.slice(0, 3).join(', ')}${lu.inconnus.length > 3 ? '…' : ''}) : emplacement vide.`
@@ -285,7 +292,7 @@ export default function SiegeBoard({
           l'en-tête bureau, mêmes fonctions. */}
       <Bouton
         onClick={() => {
-          exporter();
+          setChoixExport(true);
           onFermerMenu();
         }}
         disabled={affichees.length === 0}
@@ -386,7 +393,7 @@ export default function SiegeBoard({
                   : filtre
                     ? 'Exporter les équipes affichées (celles de la recherche) en fichier .json'
                     : `Télécharger tes équipes ${deNoun} en fichier .json, pour les partager ou les garder de côté`,
-              onClick: exporter,
+              onClick: () => setChoixExport(true),
             },
             {
               cle: 'importer',
@@ -436,6 +443,17 @@ export default function SiegeBoard({
           if (f) f.text().then(importer);
         }}
       />
+
+      {choixExport && (
+        <ChoixExportSiege
+          avecRunes={compterAvecRunes(affichees.map((a) => a.team), monsterById)}
+          onAnnuler={() => setChoixExport(false)}
+          onChoisir={(avecRunes) => {
+            setChoixExport(false);
+            exporter(avecRunes);
+          }}
+        />
+      )}
 
       {/* ---- Recherche d'équipe par monstre — aux deux formats.
           Le message d'export / d'import s'affiche juste en dessous. */}

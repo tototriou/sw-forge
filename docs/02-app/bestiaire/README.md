@@ -30,6 +30,24 @@ n'en cocher **aucune** revient à **ne rien vouloir voir**.
   (étoiles à l'invocation, pas l'éveil).
   - ⚠️ Un monstre **sans grade naturel** (`stars === null`) échappe à ce filtre :
     aucune case ne peut le désigner, le masquer le rendrait introuvable.
+- **Formes** : deux pastilles indépendantes, **cochées par défaut**
+  (`filtrerFormesBestiaire`, [monsterForms.ts](src/lib/monsterForms.ts)).
+  - **Jouables uniquement** : les formes qu'un joueur peut posséder
+    (`obtainable` de SWARFARM, `estObtenable`). Relâchée, elle montre les
+    formes de boss, les anciens doublons (Ifrit `17111` à `17115`) et les
+    placeholders à nom coréen.
+  - **Formes éveillées** : premier et second éveil (`estEveille`, `stars >
+    naturalStars`). Relâchée, elle montre les formes non éveillées, angelmons
+    et rainbowmons compris.
+  - ⚠️ **Plus larges que les sélecteurs** (`formesJouables`) : la forme
+    éveillée qu'une 2A remplace reste affichée — elle se joue, on la possède
+    avant le second éveil. Les sélecteurs ne la proposent pas, le Bestiaire
+    la montre.
+  - ⚠️ Appliqués **après** les déduplications de transformation et de
+    collaboration : la forme transformée n'est pas obtenable, et la carte
+    gardée doit rester la même que les filtres soient cochés ou non.
+  - Le compteur dit donc, filtres par défaut, « N sur M » : M reste le total
+    de la base.
 - **Tri interne** (au sein de chaque groupe d'élément) :
   - `stars_desc` (défaut) : étoiles ↓ puis nom
   - `stars_asc` : étoiles ↑ puis nom

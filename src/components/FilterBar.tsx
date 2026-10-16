@@ -3,12 +3,15 @@ import ElementIcon from './ElementIcon';
 import Pastille from '../ui/Pastille';
 import Selecteur from '../ui/Selecteur';
 import { ELEMENT_FILTER_STYLES } from './elementStyles';
+import type { FiltresFormes } from '../lib/monsterForms';
 
 interface Props {
   activeElements: Set<ElementKey>;
   toggleElement: (k: ElementKey) => void;
   activeStars: Set<number>;
   toggleStar: (n: number) => void;
+  filtresFormes: FiltresFormes;
+  basculerFiltreForme: (k: keyof FiltresFormes) => void;
   sortMode: string;
   setSortMode: (v: string) => void;
   // Le tri dans la barre (défaut) ou ailleurs : à la SOURIS, la page le pose
@@ -27,6 +30,8 @@ export default function FilterBar({
   toggleElement,
   activeStars,
   toggleStar,
+  filtresFormes,
+  basculerFiltreForme,
   sortMode,
   setSortMode,
   avecTri = true,
@@ -59,6 +64,23 @@ export default function FilterBar({
             libelle={`${s}★`}
           />
         ))}
+      </div>
+
+      {/* Deux filtres indépendants, cochés par défaut : une forme de boss ou
+          un monstre non éveillé noie ce qu'on vient chercher. Les relâcher
+          montre toute la base (`filtrerFormesBestiaire`). */}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="label mr-1.5">Formes</span>
+        <Pastille
+          actif={filtresFormes.jouablesSeulement}
+          onClick={() => basculerFiltreForme('jouablesSeulement')}
+          libelle="Jouables uniquement"
+        />
+        <Pastille
+          actif={filtresFormes.eveilleesSeulement}
+          onClick={() => basculerFiltreForme('eveilleesSeulement')}
+          libelle="Formes éveillées"
+        />
       </div>
 
       {avecTri && <TriInterne sortMode={sortMode} setSortMode={setSortMode} />}

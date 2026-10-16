@@ -5,8 +5,9 @@
 // renvoyait donc trois, dont deux qu'on ne joue jamais.
 //
 // ⚠️ **`formesJouables` : les sélecteurs seulement, jamais le Bestiaire.**
-// Celui-ci est une base qu'on consulte : y masquer les formes non éveillées
-// empêcherait de lire leurs stats ou de comparer une forme à l'autre. Ici on
+// Celui-ci est une base qu'on consulte : la forme éveillée qu'une 2A remplace
+// s'y lit toujours, et ses deux filtres de formes se relâchent pour montrer
+// les non éveillées et les non obtenables (`filtrerFormesBestiaire`). Ici on
 // choisit un monstre à jouer, ce n'est pas la même question.
 //
 // ⚠️ `sansDoublonDeTransformation` fait EXCEPTION et s'applique **partout,
@@ -42,6 +43,25 @@ export function estEveille(m: Monster): boolean {
 // pas tout faire disparaître.
 export function estObtenable(m: Monster): boolean {
   return m.obtainable !== false;
+}
+
+// Les deux filtres de formes du Bestiaire, cochés par défaut.
+//
+// ⚠️ **Plus larges que `formesJouables`** : la forme éveillée qu'une 2A
+// remplace reste affichée — elle se joue, on la possède avant le second éveil.
+// « Jouables » veut dire obtenables (`estObtenable`), « éveillées » veut dire
+// premier ou second éveil (`estEveille`) : chacun relâché seul montre ce que
+// l'autre garde caché.
+export interface FiltresFormes {
+  jouablesSeulement: boolean;
+  eveilleesSeulement: boolean;
+}
+
+export function filtrerFormesBestiaire(monsters: Monster[], f: FiltresFormes): Monster[] {
+  if (!f.jouablesSeulement && !f.eveilleesSeulement) return monsters;
+  return monsters.filter(
+    (m) => (!f.jouablesSeulement || estObtenable(m)) && (!f.eveilleesSeulement || estEveille(m))
+  );
 }
 
 // Formes proposables : les obtenables éveillées, et **la 2A seule** quand elle

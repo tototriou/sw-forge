@@ -43,10 +43,12 @@ le profil du sort (`SkillDamageProfile.sortCooperatif`) ; le troisième cas
 est marqué sur le profil du S1 appelé (`appeleParSortCooperatif`), par le
 chemin des attaques appelées.
 
-⚠️ **« À formule » désigne la formule de la donnée SWARFARM**, pas celle
-que retient le calcul : un sort sans formule dans sa fiche n'est pas
-conjoint par la règle, même quand le calcul lui en donne une par curation
-(voir plus bas, « Restent non conjoints »).
+⚠️ **« À formule » désigne la formule que retient le calcul** : celle des
+formules curées par identifiant (`FORMULES_CUREES_PAR_ID`), sinon celle de
+la fiche (décision de l'utilisateur). Un sort à effet `Ally Attack` sans
+formule dans sa fiche, mais doté d'un ratio curé, est donc conjoint :
+Purification, Cooperation! et Rite of Ashes (plus bas, « Conjoints par
+leur formule curée »).
 
 - **Un sort coopératif l'est toujours**, quel que soit le chemin : choisi,
   ou appelé après un autre sort.
@@ -179,6 +181,17 @@ L'interrupteur « Attaque conjointe » ne leur est donc pas proposé.
 Un identifiant, jamais un nom : Cutting Magic de Lisa et de Neostone Agent
 feu (`10907`, même nom, même ratio) n'est pas inclus.
 
+### Conjoints par leur formule curée (2)
+
+| Identifiant | Sort | Monstre | Formule retenue |
+| --- | --- | --- | --- |
+| `21415` | Purification, Cooperation! (S3) | Nezuko Kamado ténèbres | `4.5*{ATK}`, l'attaque du monstre seule |
+| `22015` | Rite of Ashes (S3) | Vermilion Bird Dancer ténèbres | `4.5*{ATK}`, l'attaque du monstre seule |
+
+Leur fiche porte l'effet `Ally Attack` sans formule ; le ratio vient des
+formules curées, et la règle le lit (décision de l'utilisateur). Contexte
+`propre` : 224 selon la portée, 411 sur le premier coup.
+
 ### Table d'exclusion (2)
 
 `10915` Best Partner (Passive), Sylvia (« A randomly selected ally also
@@ -193,12 +206,6 @@ table les garde si une donnée régénérée leur prêtait une formule.
   Attack Command (`10912`, Lisa) et Concentrated Attack (`3163`, Moria 2e
   éveil) appellent le S1, et c'est ce S1 qui est conjoint (troisième cas,
   [Le S1 appelé par un sort coopératif](#le-s1-appelé-par-un-sort-coopératif)).
-- **Purification, Cooperation!** (`21415`, Nezuko Kamado ténèbres) et
-  **Rite of Ashes** (`22015`, Vermilion Bird Dancer) : effet `Ally Attack`
-  sans formule de donnée. Le calcul les connaît par une formule curée
-  (`4.5*{ATK}`, l'attaque du monstre seule), mais leur prose ne dit ni
-  qu'ils appellent le S1, ni combien de fois : ils restent non conjoints,
-  total inchangé.
 - **Violent Friends sans l'effet** (`3415`, Harpu et Seren avant le 2e
   éveil ; `3480`, Seren 1★) : la prose ne dit pas que les coups sont ceux
   du monstre.
@@ -213,17 +220,19 @@ inscrit à `tests/index.ts` (`node tests/run.mjs attaquesconjointes`). Les
 libellés qui figent une décision de l'utilisateur le disent.
 
 - `testAttaquesConjointesRegle` — sur le corpus entier : la règle prend
-  exactement les 44 sorts des deux premières tables ; chaque entrée de la
-  table d'inclusion est nécessaire (la donnée ne porte pas l'effet), chaque
+  exactement les 46 sorts des trois premières tables ; chaque entrée de la
+  table d'inclusion est nécessaire (la donnée ne porte pas l'effet), les
+  deux sorts à formule curée n'ont pas de formule de donnée, chaque
   exclusion tient même face à une donnée qui prêterait une formule au passif ;
   les cas non conjoints ci-dessus ; le marqueur du profil vaut la règle.
 - `testAttaquesConjointesPorte` — les trois contextes et `null` (S1 qui suit
   le sort, S2 interrupteur allumé, passif), ce que chacun retire du profil
   des artéfacts, 209 + 225 sommés et 208 jamais, la classe du réglage.
 - `testAttaquesConjointesCalcul` — sur des fiches réelles : sort A
-  (`12706`) et A+ (`12713`) majorés de 209 + 225, 208 sans effet ; un sort
-  non conjoint (`3415`, le S1 `10905`, `21415`) au total inchangé au bit
-  près ; ni bombe ni bucket Additionnel ; 224, 411 et 400 dans les trois
+  (`12706`) et A+ (`12713`) majorés de 209 + 225, 208 sans effet ;
+  Nezuko (`21415`) et Vermilion (`22015`) majorés, 224 et 411 en contexte
+  `propre` ; un sort non conjoint (`3415`, le S1 `10905`) au total inchangé
+  au bit près ; ni bombe ni bucket Additionnel ; 224, 411 et 400 dans les trois
   contextes ; l'interrupteur sans effet sur un S2 et sur un S1 coopératif ;
   Tempest sans 209/225 après un S1 appelé par un allié.
 - `testAttaquesConjointesTotalALaMain` — un total écrit à la main :

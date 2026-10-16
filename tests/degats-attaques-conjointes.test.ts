@@ -101,13 +101,23 @@ const AUTRES_SORTS_A_EFFET = [
 const INCLUSION = [10910, 12608, 12615, 12712, 12713];
 // Table d'exclusion : effet `Ally Attack` qui ne désigne pas une attaque du monstre.
 const EXCLUSION = [10915, 12711];
+// Effet `Ally Attack` sans formule de donnée, ratio curé (`FORMULES_CUREES_PAR_ID`) :
+// la règle lit la formule retenue (décision de l'utilisateur, 2026-10-16).
+const PAR_FORMULE_CUREE = [21415, 22015];
 
 export function testAttaquesConjointesRegle() {
   titre('Attaques conjointes — la règle et ses tables, sur le corpus');
   const corpus = competencesDistinctes();
-  const attendus = [...S1_CHAKRAM_ET_BOOMERANG, ...AUTRES_SORTS_A_EFFET, ...INCLUSION].sort((a, b) => a - b);
+  const attendus = [...S1_CHAKRAM_ET_BOOMERANG, ...AUTRES_SORTS_A_EFFET, ...INCLUSION, ...PAR_FORMULE_CUREE].sort((a, b) => a - b);
   const trouves = [...corpus.values()].filter((c) => estSortCooperatif(c)).map((c) => c.com2usId!).sort((a, b) => a - b);
-  egal(trouves, attendus, 'fige une décision de l’utilisateur (2026-10-16) : 39 sorts à effet Ally Attack et formule, plus les 5 de la table d’inclusion, et eux seuls');
+  egal(trouves, attendus, 'fige une décision de l’utilisateur (2026-10-16) : 39 sorts à effet Ally Attack et formule de donnée, 2 à formule curée, plus les 5 de la table d’inclusion, et eux seuls');
+  for (const id of PAR_FORMULE_CUREE) {
+    const c = corpus.get(id)!;
+    ok(
+      (c.formule ?? '').trim() === '' && c.effets.some((e) => e.nom === 'Ally Attack') && estSortCooperatif(c),
+      `fige une décision de l’utilisateur (2026-10-16) : ${id} (${c.nom}), effet Ally Attack sans formule de donnée, conjoint par sa formule curée`
+    );
+  }
 
   for (const id of S1_CHAKRAM_ET_BOOMERANG) {
     const c = corpus.get(id)!;
@@ -132,8 +142,6 @@ export function testAttaquesConjointesRegle() {
     [3480, 'Violent Friends (Seren 1★), sans effet : classement non tranché, non conjoint'],
     [20020152, 'Mind Break (Lyrith), S1 ordinaire : l’interrupteur reste son seul chemin'],
     [10907, 'Cutting Magic de Lisa : même nom que 10910, autre identifiant, non inclus'],
-    [21415, 'Purification, Cooperation! : effet sans formule de donnée, non conjoint, total inchangé'],
-    [22015, 'Rite of Ashes : effet sans formule de donnée, non conjoint, total inchangé'],
     [10912, 'Attack Command (Lisa) : sans formule, hors de la règle'],
     [17515, 'Assailing Horn (Eivor ténèbres) : exclu, le monstre ne frappe pas'],
     [18015, 'Flag of Ambush (Sigrid) : exclu, le monstre ne frappe pas'],
@@ -152,7 +160,7 @@ export function testAttaquesConjointesRegle() {
     if ((p.sortCooperatif === true) !== estSortCooperatif(c)) ecarts++;
   }
   egal(ecarts, 0, 'corpus : `sortCooperatif` du profil vaut exactement la règle, pour chaque sort calculable');
-  egal(marques, attendus.length, 'corpus : les 44 sorts conjoints sont tous calculables, et marqués');
+  egal(marques, attendus.length, `corpus : les ${attendus.length} sorts conjoints sont tous calculables, et marqués`);
 }
 
 export function testAttaquesConjointesPorte() {
@@ -204,6 +212,9 @@ export function testAttaquesConjointesCalcul() {
   const base: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, summonerSkills: 'normal', critMode: 'crit', enemyElement: null };
   const conjointes = artefacts([{ code: 209, value: 10 }, { code: 225, value: 8 }]);
   const contre = artefacts([{ code: 208, value: 15 }]);
+  const ligne = (code: number, value = 20) => artefacts([{ code, value }]);
+  const gagne = (detail: DetailMonstre, p: SkillDamageProfile, setup: DamageSetup, code: number) =>
+    totalDe(detail, p, setup, ligne(code)) > totalDe(detail, p, setup, ARTIFACT_DAMAGE_NEUTRE);
 
   // Sort A : Triple Strike (Sabrina), Ally Attack.
   const sabrina = fiche(22011);
@@ -231,13 +242,19 @@ export function testAttaquesConjointesCalcul() {
   egal(totalDe(seren, violent, base, toutes), totalDe(seren, violent, base, ARTIFACT_DAMAGE_NEUTRE), 'sort non conjoint (3415) : total inchangé au bit près avec 208, 209 et 225');
   const preemptive = sortDe(sylvia, 10905);
   egal(totalDe(sylvia, preemptive, base, toutes), totalDe(sylvia, preemptive, base, ARTIFACT_DAMAGE_NEUTRE), 'S1 ordinaire (10905), interrupteur absent : total inchangé au bit près');
-  const nezuko = fiche(31915);
-  const purification = sortDe(nezuko, 21415);
-  egal(
-    totalDe(nezuko, purification, base, toutes),
-    totalDe(nezuko, purification, base, ARTIFACT_DAMAGE_NEUTRE),
-    'Purification, Cooperation! (21415, formule curée) : non conjoint tant que son classement n’est pas tranché, total inchangé'
-  );
+  // Formule curée : Purification, Cooperation! (Nezuko) et Rite of Ashes
+  // (Vermilion), conjoints par la formule retenue.
+  for (const [forme, id] of [[31915, 21415], [32615, 22015]] as const) {
+    const detail = fiche(forme);
+    const p = sortDe(detail, id);
+    ok(
+      proche(totalDe(detail, p, base, conjointes) / totalDe(detail, p, base, ARTIFACT_DAMAGE_NEUTRE), 1.18),
+      `fige une décision de l’utilisateur (2026-10-16) : ${p.nom} (${id}, formule curée 4,5 × ATQ) est conjoint, majoré de 18 % par 209 + 225`
+    );
+    egal(totalDe(detail, p, base, contre), totalDe(detail, p, base, ARTIFACT_DAMAGE_NEUTRE), `${p.nom} (${id}) : 208 ne change rien`);
+    ok(gagne(detail, p, base, 224) === !p.aoe, `${p.nom} (${id}) : contexte propre, 224 suit la portée (${p.aoe ? 'zone' : 'mono-cible'})`);
+    ok(gagne(detail, p, base, 411), `${p.nom} (${id}) : contexte propre, 411 sur le premier coup`);
+  }
 
   // Bombe : jamais dans le terme DMG%.
   const bombe: Competence = {
@@ -268,10 +285,6 @@ export function testAttaquesConjointesCalcul() {
   ok(partBrute > 0 && proche(partBruteConjointe, partBrute), `décision de l’utilisateur : le bucket Additionnel ne reçoit pas 209/225 (${partBrute.toFixed(3)} des deux côtés)`);
 
   // ── Les trois contextes et leurs lignes ──
-  const ligne = (code: number, value = 20) => artefacts([{ code, value }]);
-  const gagne = (detail: DetailMonstre, p: SkillDamageProfile, setup: DamageSetup, code: number) =>
-    totalDe(detail, p, setup, ligne(code)) > totalDe(detail, p, setup, ARTIFACT_DAMAGE_NEUTRE);
-
   // propre : Triple Strike, S2 mono-cible.
   ok(gagne(sabrina, tripleStrike, base, 224), 'propre (12706, mono-cible) : 224 suit la portée');
   ok(gagne(sabrina, tripleStrike, base, 411), 'propre : 411 sur le premier coup');

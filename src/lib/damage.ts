@@ -2985,6 +2985,14 @@ const FORMULES_CUREES_PAR_ID: Record<number, string> = {
   22015: '4.5*{ATK}',
 };
 
+// La formule que retient le calcul : celle de `FORMULES_CUREES_PAR_ID` pour
+// l'identifiant, sinon celle de la fiche. Une seule expression pour le sort
+// actif (`skillDamageProfile`), le passif (`monsterOffensivePassives`) et la
+// règle des attaques conjointes (`estSortCooperatif`).
+function formuleRetenue(c: Competence): string {
+  return (FORMULES_CUREES_PAR_ID[c.com2usId ?? -1] ?? c.formule ?? '').trim();
+}
+
 // Portée corrigée par identifiant, quand la prose du sort contredit le champ
 // `aoe` de la donnée (la prose l'emporte). Lue par
 // `skillDamageProfile` seulement ; la valeur remplace `Competence.aoe` dans le
@@ -3611,12 +3619,11 @@ export function resumeSequenceDeCoups(sequence: readonly Pick<GroupeDeCoups, 'co
 // leur prose place l'attaque commune pendant le tour de l'AUTRE famille : la
 // règle les prend tels quels (décision de l'utilisateur).
 //
-// ⚠️ « À formule » = la formule de la DONNÉE (`Competence.formule`), pas celle
-// que retient le calcul. Purification, Cooperation! (21415) et Rite of Ashes
-// (22015) portent `Ally Attack` sans formule de donnée : leur ratio vient de
-// `FORMULES_CUREES_PAR_ID` (l'attaque du monstre seule), et leur prose ne dit
-// pas si le monstre y frappe avec son S1. Ils restent non conjoints, leur
-// total inchangé, tant que ce point n'est pas tranché.
+// « À formule » = la formule que RETIENT le calcul (`formuleRetenue` : celle de
+// `FORMULES_CUREES_PAR_ID`, sinon celle de la fiche), décision de
+// l'utilisateur (2026-10-16). Purification, Cooperation! (21415) et Rite of
+// Ashes (22015) portent `Ally Attack` sans formule de donnée : leur ratio
+// curé (4,5 × ATQ, l'attaque du monstre seule) les rend conjoints.
 
 // INCLUSION — sorts coopératifs à formule dont la donnée ne porte pas
 // `Ally Attack`, rangés parmi les attaques conjointes par l'utilisateur
@@ -3644,7 +3651,7 @@ export function estSortCooperatif(c: Competence): boolean {
   if (c.com2usId == null || ALLY_ATTACK_SANS_ATTAQUE_DU_MONSTRE_PAR_ID.has(c.com2usId)) return false;
   if (c.passif) return false;
   if (SORTS_COOPERATIFS_SANS_EFFET_PAR_ID.has(c.com2usId)) return true;
-  return (c.formule ?? '').trim() !== '' && c.effets.some((e) => e.nom === 'Ally Attack');
+  return formuleRetenue(c) !== '' && c.effets.some((e) => e.nom === 'Ally Attack');
 }
 
 // Le contexte d'une attaque conjointe — chacun avec ses lignes d'artéfact
@@ -3718,7 +3725,7 @@ export function skillDamageProfile(c: Competence): SkillDamageProfile | SkillDam
   // Garde « formule vide » sur la formule RETENUE (même forme que
   // `monsterOffensivePassives`) : une fiche à `formule: ""` reste sans profil,
   // sauf si `FORMULES_CUREES_PAR_ID` lui en donne une.
-  const brut = (FORMULES_CUREES_PAR_ID[c.com2usId] ?? c.formule ?? '').trim();
+  const brut = formuleRetenue(c);
   if (!brut) return null;
   const entete = { skillCom2usId: c.com2usId, slot: c.slot ?? 0, nom: c.nom, description: c.description };
   const fixed = RE_FIXED.test(brut) || estBombeSansCoupDirect(c);
@@ -4259,7 +4266,7 @@ export function monsterOffensivePassives(detail: DetailMonstre | null): PassifOf
     // ⚠️ La garde porte sur la formule RETENUE, jamais sur `c.formule` seule :
     // Tempest (3213) porte `formule: ""` et n'existe que par la table curée.
     // Garder `!c.formule` ici l'écarterait en silence.
-    const brut = (FORMULES_CUREES_PAR_ID[c.com2usId] ?? c.formule ?? '').trim();
+    const brut = formuleRetenue(c);
     if (!brut) continue;
     const fixed = RE_FIXED.test(brut);
     const analyse = analyser(brut.replace(RE_FIXED, '').trim());

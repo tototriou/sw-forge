@@ -31,13 +31,10 @@ codée porte « Calcul partiel »
   interrupteur allumé (le défaut), se calculent pendant le tour du
   monstre (contexte `propre` : 224 selon la portée, 411), à titre
   provisoire ; or la prose des S1 (`12601`-`12605`, `12701`-`12705`) place
-  l'attaque commune pendant le tour de l'autre famille. Restent hors de la
-  règle, faute de réponse : Violent Friends sans l'effet `Ally Attack`
-  (`3415`, `3480`) ; Mind Break de Lyrith (`20020152`), S1 ordinaire.
+  l'attaque commune pendant le tour de l'autre famille.
 - **Idée** : si les S1 des deux familles frappent hors de leur tour, la
   ligne commentée de `contexteAttaqueConjointe` rend `appelee-par-allie`
-  pour eux (224 à 0), avec son test ; chaque autre réponse change une ligne
-  des tables de `damage.ts`.
+  pour eux (224 à 0), avec son test.
 - **Bloque** : la réponse de l'utilisateur.
 
 ### Contre-attaque : ligne d'artéfact 208

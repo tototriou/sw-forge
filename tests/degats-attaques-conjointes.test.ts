@@ -161,9 +161,8 @@ export function testAttaquesConjointesRegle() {
   }
   // Ce que la règle ne prend pas, par la donnée : cas non tranchés ou écartés.
   for (const [id, raison] of [
-    [3415, 'Violent Friends (Seren 1re éveil), sans effet : classement non tranché, non conjoint'],
-    [3480, 'Violent Friends (Seren 1★), sans effet : classement non tranché, non conjoint'],
-    [20020152, 'Mind Break (Lyrith), S1 ordinaire : l’interrupteur reste son seul chemin'],
+    [3415, 'fige une décision de l’utilisateur (2026-10-16) : Violent Friends (Harpu, Seren avant le 2e éveil), sans effet, n’est pas conjoint'],
+    [3480, 'fige une décision de l’utilisateur (2026-10-16) : Violent Friends (Seren 1★), sans effet, n’est pas conjoint'],
     [10907, 'Cutting Magic de Lisa : même nom que 10910, autre identifiant, non inclus'],
     [10912, 'Attack Command (Lisa) : sans formule, hors de la règle'],
     [17515, 'Assailing Horn (Eivor ténèbres) : exclu, le monstre ne frappe pas'],

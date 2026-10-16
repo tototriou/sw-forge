@@ -265,11 +265,8 @@ table les garde si une donnée régénérée leur prêtait une formule.
   éveil) appellent le S1, et c'est ce S1 qui est conjoint (troisième cas,
   [Le S1 appelé par un sort coopératif](#le-s1-appelé-par-un-sort-coopératif)).
 - **Violent Friends sans l'effet** (`3415`, Harpu et Seren avant le 2e
-  éveil ; `3480`, Seren 1★) : la prose ne dit pas que les coups sont ceux
-  du monstre.
-- **Mind Break** (`20020152`, Lyrith) : les « incarnations » qui frappent
-  avec elle sont ses invocations, pas des alliés. S1 ordinaire,
-  l'interrupteur reste son seul chemin.
+  éveil ; `3480`, Seren 1★) : pas une attaque conjointe (décision de
+  l'utilisateur) ; seul celui de Seren 2e éveil (`3465`) l'est.
 
 ## Vérification
 

@@ -350,7 +350,7 @@ function validerDamageSetup(value: unknown): string | null {
     return erreur('damageSetup.aliveEnemies', 'doit être un entier compris entre 1 et 4');
   }
   for (const champ of [
-    'atkBuff', 'defBuff', 'spdBuff', 'defBreak', 'defBreakParLeSort', 'brand', 'effetsCibleCountAutres', 'buffsPropresCountAutres', 'atkDebuff', 'defDebuff', 'spdDebuff', 'euldongActif', 'mirinaeActif',
+    'atkBuff', 'defBuff', 'spdBuff', 'defBreak', 'defBreakParLeSort', 'attaqueConjointe', 'pendantTourAllie', 'brand', 'effetsCibleCountAutres', 'buffsPropresCountAutres', 'atkDebuff', 'defDebuff', 'spdDebuff', 'euldongActif', 'mirinaeActif',
     'deborahActif', 'miriamActif', 'transmissionActif', 'velaskaActif', 'enemyHpNotDestroyed',
   ]) {
     if (setup[champ] !== undefined && typeof setup[champ] !== 'boolean') return erreur(`damageSetup.${champ}`, 'doit être un booléen');

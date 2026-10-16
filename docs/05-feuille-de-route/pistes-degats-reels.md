@@ -21,31 +21,32 @@ codée porte « Calcul partiel »
 
 ## Attaques déclenchées et hors tour
 
-### Attaques conjointes : lignes d'artéfact 209 et 225
+### Contre-attaque : ligne d'artéfact 208
 
-- **Constat** : les lignes 209 (« Dgts d'attaque conjointe ») et 225
-  (« Dgts de contre-attaque/attaque conjointe ») existent
-  (`src/lib/artifacts.ts`), mais le calcul des dégâts n'en lit aucune ;
-  224 (« D.CRIT+ comp cib uniq pdt tour ») est lue selon la portée du
-  sort, sans notion de tour (`damage.ts`).
-- **Idée** : un choix « attaque conjointe » dans « Effets actifs », pour
-  un S1 ou un sort à effet `Ally Attack`, qui ajoute 209 et la part
-  conjointe de 225 au terme `DMG%` des lignes élémentaires, sans 208 ;
-  un S1 qui participe pendant le tour d'un autre perd 224 (et 411 à
-  examiner), un S1 ordinaire la garde. Assailing Horn (`17515`, Eivor) et
-  Flag of Ambush (`18015`, Sigrid) portent `Ally Attack` sans formule : une
-  coopération sans dégâts propres est exclue.
-- **Bloque** : un chantier à cadrer. L'effet `Ally Attack` ne couvre
-  pas tous les sorts concernés (inclusion par identifiant) ; plusieurs
-  n'ont pas de formule principale ; à trancher : additionner ou non les
-  dégâts des alliés, et le sort d'un S1 `Ally Attack` appelé hors de son
-  tour.
+- **Constat** : aucune contre-attaque n'est modélisée ; 208 (« Dgts de
+  contre-attaque ») vaut 0, et 225 ne compte que pour sa part d'attaque
+  conjointe.
+- **Idée** : un interrupteur de contre-attaque, sur le modèle de
+  « Attaque conjointe ».
+- **Bloque** : un chantier à cadrer (quels sorts, quelles lignes 224 et
+  411 hors du tour).
+
+### Passif « on your turn » après un S1 appelé par un allié
+
+- **Constat** : l'interrupteur « Attaque conjointe » n'agit sur aucun
+  autre réglage : Tempest (Teshar, Phoenix vent), qui frappe « after you
+  attack the enemy on your turn », reste au choix de l'utilisateur quand
+  le S1 est appelé hors de son tour.
+- **Idée** : masquer ou éteindre l'interrupteur de Tempest quand
+  « Attaque conjointe » est allumé.
+- **Bloque** : une décision produit.
 
 ### Compétence active appelée par un sort
 
 - **Constat** : `ATTAQUES_APPELEES_PAR_DECLENCHEUR` (`src/lib/damage.ts`)
-  est vide : aucune amorce n'est curée, et aucun effet posé par un
-  déclencheur n'est modélisé
+  ne porte que les deux sorts coopératifs sans dégâts propres qui appellent
+  le S1 ; aucune attaque appelée après un sort qui frappe n'est curée, et
+  aucun effet posé par un déclencheur n'est modélisé
   ([02-app/degats-reels/feat-attaque-apres-un-sort.md § Ce qu’il faudra fournir pour un autre cas](../02-app/degats-reels/feat-attaque-apres-un-sort.md#ce-quil-faudra-fournir-pour-un-autre-cas)).
 - **Idée** : l'interrupteur d'une attaque appelée sous un en-tête à part,
   « Attaques déclenchées ». Seal Punch (`8111`) gardé : son Rolling Punch

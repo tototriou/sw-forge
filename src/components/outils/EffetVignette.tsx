@@ -14,6 +14,7 @@ export default function EffetVignette({
   actif,
   onClick,
   etroit,
+  deuxLignes = false,
 }: {
   icone: string;
   libelle: string;
@@ -21,6 +22,9 @@ export default function EffetVignette({
   actif: boolean;
   onClick: () => void;
   etroit: boolean;
+  // Libellé rendu sur deux lignes (le mot le plus long tient en une) au lieu
+  // d'être tronqué. Les autres vignettes, au libellé court, restent à une.
+  deuxLignes?: boolean;
 }) {
   return (
     <Vignette
@@ -35,7 +39,11 @@ export default function EffetVignette({
       // libellé ENTIER au survol, natif, sans changer la mise en page.
       title={description ?? libelle}
       contenu={<img src={icone} alt="" className={`h-7 w-7 transition ${actif ? '' : 'grayscale'}`} loading="lazy" />}
-      libelle={libelle}
+      // ⚠️ `Vignette` pose `truncate` (une ligne, `white-space: nowrap`) sur
+      // son libellé : l'enfant rétablit le retour à la ligne, la boîte parente
+      // s'allonge d'une ligne (sa hauteur est automatique) sans rien ajouter à
+      // `src/ui/`.
+      libelle={deuxLignes ? <span className="block whitespace-normal">{libelle}</span> : libelle}
       // ⚠️ Coche masquée au DOIGT (même raison que CategoryBar) : à cette
       // taille de vignette, un médaillon de plus dans le coin serait une
       // cible de trop à côté de la cible déjà fine du bouton lui-même — le

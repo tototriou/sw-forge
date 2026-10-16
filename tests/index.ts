@@ -160,7 +160,21 @@ import {
   testAttaqueAppeleeApprovisionnement,
   testAttaqueAppeleeCouverture,
   testAttaqueAppeleeEspaceDeCles,
+  testAttaqueAppeleeParSortCooperatif,
 } from './degats-attaque-appelee.test';
+import {
+  testAttaquesConjointesRegle,
+  testAttaquesConjointesPorte,
+  testAttaquesConjointesCalcul,
+  testAttaquesConjointesSortLanceParLeMonstre,
+  testAttaquesConjointesTotalALaMain,
+  testAttaquesConjointesChoixArtefacts,
+} from './degats-attaques-conjointes.test';
+import {
+  testAttaquesConjointesRecetteChamp,
+  testAttaquesConjointesRecetteTransitions,
+  testAttaquesConjointesRecetteCli,
+} from './attaques-conjointes-recette.test';
 import testRuneOptim from './rune-optim.test';
 import testRuneOptimDifferential from './rune-optim-differential.test';
 import testBuildsRapides from './builds-rapides.test';
@@ -280,6 +294,7 @@ import { testRenduTelecharger } from './rendu/telecharger.test';
 import { testRenduBureauTextes } from './rendu/bureau-textes.test';
 import { testRenduBarreSession } from './rendu/barre-session.test';
 import { testRenduIcones } from './rendu/icones.test';
+import { testRenduAttaqueConjointeEcran } from './rendu/attaque-conjointe-ecran.test';
 import { testRenduRecosPage, testRenduRecosEnTete, testRenduRecosDeploiement, testRenduRecosEdition, testRenduRecosVueDefense, testRenduRecosTicks, testRenduRecosAnnulerEdition } from './rendu/recos.test';
 import testAnnulerEdition from './annuler-edition.test';
 import { testRenduRunesResume, testRenduRunesListe, testRenduRunesCourbes, testRenduRunesComparaison, testRenduRunesOptimisation, testRenduRunesAVenir, testRenduRunesFiltresLigne, testRenduRunesTriOnglets, testRenduRunesResumeSouris, testRenduRunesListeSouris, testRenduRunesVuesSouris } from './rendu/runes.test';
@@ -487,6 +502,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRenduBureauTextes', testRenduBureauTextes],
   ['testRenduBarreSession', testRenduBarreSession],
   ['testRenduIcones', testRenduIcones],
+  ['testRenduAttaqueConjointeEcran', testRenduAttaqueConjointeEcran],
   ['testRenduRtaPrepa', testRenduRtaPrepa],
   ['testRenduRtaMenu', testRenduRtaMenu],
   ['testRenduRtaVide', testRenduRtaVide],
@@ -573,6 +589,16 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testAttaqueAppeleeApprovisionnement', testAttaqueAppeleeApprovisionnement],
   ['testAttaqueAppeleeCouverture', testAttaqueAppeleeCouverture],
   ['testAttaqueAppeleeEspaceDeCles', testAttaqueAppeleeEspaceDeCles],
+  ['testAttaqueAppeleeParSortCooperatif', testAttaqueAppeleeParSortCooperatif],
+  ['testAttaquesConjointesRegle', testAttaquesConjointesRegle],
+  ['testAttaquesConjointesPorte', testAttaquesConjointesPorte],
+  ['testAttaquesConjointesCalcul', testAttaquesConjointesCalcul],
+  ['testAttaquesConjointesSortLanceParLeMonstre', testAttaquesConjointesSortLanceParLeMonstre],
+  ['testAttaquesConjointesTotalALaMain', testAttaquesConjointesTotalALaMain],
+  ['testAttaquesConjointesChoixArtefacts', testAttaquesConjointesChoixArtefacts],
+  ['testAttaquesConjointesRecetteChamp', testAttaquesConjointesRecetteChamp],
+  ['testAttaquesConjointesRecetteTransitions', testAttaquesConjointesRecetteTransitions],
+  ['testAttaquesConjointesRecetteCli', testAttaquesConjointesRecetteCli],
   ['testRecetteClesIdentifiant', testRecetteClesIdentifiant],
   ['testFormesEquivalentes', testFormesEquivalentes],
   ['testDegatsTempestFormule', testDegatsTempestFormule],

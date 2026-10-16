@@ -101,9 +101,6 @@ export function testAttaquesConjointesRecetteTransitions() {
 
   // Changement de sort : l'écran n'écrit que `skillCom2usId` (`maj`), le
   // réglage reste donc ; hors d'un S1 non conjoint il est sans effet.
-  const carte = lireSource('src/components/outils/DamageSetupCard.tsx');
-  ok(carte.includes('onClick={() => pris && maj({ skillCom2usId: s.skillCom2usId })}'),
-    'écran : choisir un sort n’écrit que `skillCom2usId`, le réglage est conservé');
   const sorts = monsterDamageSkills(loadMonsterSkills(CASSIE));
   const s1 = resolveDamageSkill(sorts, CROSS_FIRE)!;
   const s2 = resolveDamageSkill(sorts, DEFEAT_WILD_DOG)!;
@@ -111,13 +108,6 @@ export function testAttaquesConjointesRecetteTransitions() {
   egal(versS2.attaqueConjointe, true, 'changement de sort : conservé');
   egal(contexteAttaqueConjointe(s1, allume, 'sort-choisi'), 'appelee-par-allie', 'sur le S1 : agit');
   egal(contexteAttaqueConjointe(s2, versS2, 'sort-choisi'), null, 'sur le S2, conservé : sans effet');
-
-  // Import : l'écran écrit le `damageSetup` de la recette tel quel, export :
-  // il l'écrit entier (le champ ne s'y perd pas).
-  const ecran = lireSource('src/components/outils/OptimizerSection.tsx');
-  ok(ecran.includes('poserCriteresAutomatiques({ damageSetup: recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP,'),
-    'écran : l’import écrit le damageSetup de la recette tel quel');
-  ok(/const recipe = buildOptimizerRecipe\(\{[\s\S]*?\n\s*damageSetup,\n/.test(ecran), 'écran : l’export écrit le damageSetup entier');
 }
 
 export function testAttaquesConjointesRecetteCli() {

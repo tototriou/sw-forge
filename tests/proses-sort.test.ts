@@ -100,9 +100,15 @@ export function testEffetsActifsInfobulle() {
   const construction = entre(carte, 'const effetsActifs: EffetActif[] = [];', '\n  return (');
   ok(construction.length > 0, 'précondition : la liste est construite avant le rendu');
   egal([...construction.matchAll(/cle: '([a-zA-Z]+)'/g)].map((m) => m[1]),
-    ['defBreak', 'defBreakParLeSort', 'brand', 'euldong', 'mirinae', 'deborah', 'miriam', 'transmission', 'velaska'],
-    'liste : les neuf effets, dans l’ordre d’affichage d’avant');
-  egal([...construction.matchAll(/description: '[^']+'/g)].length, 9, 'liste : une description écrite par effet, une seule fois');
+    ['defBreak', 'defBreakParLeSort', 'brand', 'euldong', 'mirinae', 'deborah', 'miriam', 'transmission', 'velaska', 'attaqueConjointe'],
+    'liste : les dix effets, dans l’ordre d’affichage (« Attaque conjointe » en dernier, sans déplacer les autres)');
+  egal([...construction.matchAll(/description:\s*'[^']+'/g)].length, 10, 'liste : une description écrite par effet, une seule fois');
+  // « Attaque conjointe » : la condition est la porte de damage.ts, et le
+  // clic bascule le réglage (le geste ne se simule pas au rendu serveur).
+  ok(/if \(contexteAttaqueConjointe\(resolved, \{ attaqueConjointe: true \}, 'sort-choisi'\) === 'appelee-par-allie'\) \{\s*effetsActifs\.push\(\{\s*cle: 'attaqueConjointe',/.test(construction),
+    'Attaque conjointe : seulement si la porte dit que l’interrupteur agit (S1 non conjoint par lui-même)');
+  ok(construction.includes('basculer: () => maj({ attaqueConjointe: !(setup.attaqueConjointe ?? false) })'),
+    'Attaque conjointe : le clic bascule `attaqueConjointe` par `maj`');
 
   // « Seulement les effets présents » : les conditions d'affichage d'avant.
   ok(/if \(montreDefEnnemie\) \{\s*effetsActifs\.push\(\{\s*cle: 'defBreak',/.test(construction), 'Def break : seulement si la DEF ennemie compte pour ce sort');

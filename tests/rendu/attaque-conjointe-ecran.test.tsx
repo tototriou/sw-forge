@@ -9,15 +9,12 @@
 // et pour un S2. Le geste n'est pas simulable au rendu serveur : le clic est
 // contrôlé sur la source, comme pour Tempest.
 
-import { readFileSync } from 'fs';
-import { resolve } from 'path';
 import DamageSetupCard from '../../src/components/outils/DamageSetupCard';
 import { DEFAULT_DAMAGE_SETUP, monsterDamageSkills, resolveDamageSkill, type DamageSetup } from '../../src/lib/damage';
 import { loadMonsterSkills } from '../../scripts/lib/skillsData';
 import { egal, ok, titre } from '../outils';
 import { rendre, texteVisible } from './outils-rendu';
 
-const racine = resolve(new URL('..', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1'));
 
 const CASSIE = 19315;
 const CROSS_FIRE = 10125; // S1 ordinaire
@@ -76,12 +73,6 @@ export function testRenduAttaqueConjointeEcran() {
   verifier(false);
   titre('rendu · attaque conjointe — la vignette des effets actifs (téléphone)');
   verifier(true);
-
-  titre('rendu · attaque conjointe — le clic écrit attaqueConjointe (source)');
-  const source = readFileSync(resolve(racine, 'src/components/outils/DamageSetupCard.tsx'), 'utf8').replace(/\r\n/g, '\n');
-  ok(source.includes('basculer: () => maj({ attaqueConjointe: !(setup.attaqueConjointe ?? false) })'), 'le clic bascule `attaqueConjointe` par `maj`');
-  ok(
-    source.includes("contexteAttaqueConjointe(resolved, { attaqueConjointe: true }, 'sort-choisi') === 'appelee-par-allie'"),
-    'la condition est lue par la porte, pas par une copie de la règle'
-  );
+  // Le clic et la condition, lus sur la source : `testEffetsActifsInfobulle`
+  // (tests/proses-sort.test.ts), qui lit déjà cette carte.
 }

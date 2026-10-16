@@ -166,6 +166,7 @@ import {
   testAttaquesConjointesRegle,
   testAttaquesConjointesPorte,
   testAttaquesConjointesCalcul,
+  testAttaquesConjointesSortLanceParLeMonstre,
   testAttaquesConjointesTotalALaMain,
   testAttaquesConjointesChoixArtefacts,
 } from './degats-attaques-conjointes.test';
@@ -592,6 +593,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testAttaquesConjointesRegle', testAttaquesConjointesRegle],
   ['testAttaquesConjointesPorte', testAttaquesConjointesPorte],
   ['testAttaquesConjointesCalcul', testAttaquesConjointesCalcul],
+  ['testAttaquesConjointesSortLanceParLeMonstre', testAttaquesConjointesSortLanceParLeMonstre],
   ['testAttaquesConjointesTotalALaMain', testAttaquesConjointesTotalALaMain],
   ['testAttaquesConjointesChoixArtefacts', testAttaquesConjointesChoixArtefacts],
   ['testAttaquesConjointesRecetteChamp', testAttaquesConjointesRecetteChamp],

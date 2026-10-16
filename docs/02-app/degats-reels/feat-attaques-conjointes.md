@@ -204,6 +204,11 @@ Les 39 actives à formule, moins les 18 des deux familles (plus bas).
 | Aragorn | Band of Blades (S2) | `23806`, `23808`, `23810` |
 | Night Fang | Bond of the Pack (S2) | `24306`, `24308`, `24310` |
 
+Lancés par le monstre lui-même, ils ont lieu pendant son tour : 224 compte
+selon leur portée (décision de l'utilisateur). Team Up de Raoq, Violent
+Friends de Seren 2e éveil et Concentrated Attack de Moria, mono-cibles, la
+reçoivent.
+
 ### Attaques des familles Chakram Dancer et Boomerang Warrior (22)
 
 Relevées sur les 21 fiches des deux familles (`skillGroupId` 21900 et
@@ -297,6 +302,10 @@ libellés qui figent une décision de l'utilisateur le disent.
   contextes ; l'interrupteur sans effet sur un S2, le S1 d'une famille
   allumé ou au défaut au même total ;
   Tempest sans 209/225 après un S1 appelé par un allié.
+- `testAttaquesConjointesSortLanceParLeMonstre` — Team Up de Raoq (`2007`,
+  `2057`), Violent Friends de Seren 2e éveil (`3465`) et Concentrated Attack
+  de Moria (`3113`) : contexte `propre`, 224 et 411 comptent, 209 + 225
+  majorent, aucun interrupteur proposé.
 - `testAttaquesConjointesTotalALaMain` — un total écrit à la main :
   `2000 × (1 + 0,12 + 0,10 + 0,08) × 1000/1142 × 1,25`, ligne Feu, 209 et
   225 additionnés dans DMG%, Marque multipliée, 208 exclue.

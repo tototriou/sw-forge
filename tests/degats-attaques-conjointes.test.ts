@@ -414,6 +414,32 @@ export function testAttaquesConjointesCalcul() {
   );
 }
 
+// Un sort coopératif lancé par le monstre lui-même a lieu pendant son tour :
+// 224 compte selon sa portée. Les trois sorts nommés par l'utilisateur, tous
+// mono-cibles dans leur fiche.
+export function testAttaquesConjointesSortLanceParLeMonstre() {
+  titre('Attaques conjointes — un sort coopératif lancé par le monstre reçoit 224 selon sa portée');
+  const base: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, summonerSkills: 'normal', critMode: 'crit', enemyElement: null };
+  const ligne = (code: number) => artefacts([{ code, value: 20 }]);
+  const conjointes = artefacts([{ code: 209, value: 10 }, { code: 225, value: 8 }]);
+  for (const [forme, id, qui] of [
+    [11012, 2007, 'Team Up de Raoq'],
+    [11032, 2057, 'Team Up de Raoq 2e éveil'],
+    [12135, 3465, 'Violent Friends de Seren 2e éveil'],
+    [12013, 3113, 'Concentrated Attack de Moria (1er éveil)'],
+  ] as const) {
+    const detail = fiche(forme);
+    const p = sortDe(detail, id);
+    const neutre = totalDe(detail, p, base, ARTIFACT_DAMAGE_NEUTRE);
+    ok(p.sortCooperatif === true && !p.aoe, `${qui} (${id}) : sort coopératif, mono-cible dans sa fiche`);
+    egal(contexteAttaqueConjointe(p, base, 'sort-choisi'), 'propre', `${qui} (${id}) : contexte propre, pendant le tour du monstre`);
+    ok(totalDe(detail, p, base, ligne(224)) > neutre, `fige une décision de l’utilisateur (2026-10-16) : ${qui} (${id}) reçoit 224 (mono-cible, pendant son tour)`);
+    ok(totalDe(detail, p, base, ligne(411)) > neutre, `${qui} (${id}) : 411 sur le premier coup`);
+    ok(proche(totalDe(detail, p, base, conjointes) / neutre, 1.18), `${qui} (${id}) : 209 + 225 majorent le total de 18 %`);
+    egal(interrupteurAttaqueConjointe(p, base), null, `${qui} (${id}) : toujours conjoint, aucun interrupteur proposé`);
+  }
+}
+
 export function testAttaquesConjointesTotalALaMain() {
   titre('Attaques conjointes — total écrit à la main : 209, 225 et une ligne élémentaire sous Marque');
   // Sort coopératif synthétique : 1,0 × ATQ, un coup, mono-cible, sans amélioration.

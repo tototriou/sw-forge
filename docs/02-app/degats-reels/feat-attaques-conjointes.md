@@ -57,12 +57,18 @@ son monstre, et l'effet `Ally Attack` manque sur quatre de leurs attaques.
 Un sort nouveau de ces familles n'y entre que par curation.
 
 - Allumé (ou absent) : contexte `propre`, l'attaque a lieu pendant le tour
-  du monstre (224 selon la portée, 411). ⚠️ **Provisoire, à confirmer par
-  l'utilisateur** pour les S1, dont la prose place l'attaque commune
-  pendant le tour de l'autre famille : l'autre lecture (`appelee-par-allie`,
-  sans 224) ne changerait qu'une ligne de la porte.
+  du monstre (224 selon la portée, 411).
+- **S1 des deux familles** (`12601` à `12605`, `12701` à `12705`) : leur
+  prose place l'attaque commune pendant le tour du monstre de l'autre
+  famille (« during Boomerang Warrior's turn »). Une seconde vignette,
+  « Pendant le tour d'un allié » (`DamageSetup.pendantTourAllie`, éteinte
+  par défaut), le dit : allumée avec l'interrupteur, le S1 passe en contexte
+  `appelee-par-allie`, hors du tour du monstre (209 et 225 comptent, **224
+  non**, 411 oui) ; éteinte, il reste `propre` (décision de l'utilisateur).
+  Leurs S2 et S3 n'ont pas de seconde vignette : pendant le tour du monstre.
 - Éteint (`false`) : non conjoint, un sort ordinaire (209 et 225 à 0, 224
-  selon la portée).
+  selon la portée) ; la seconde vignette, même restée allumée, est alors
+  sans effet.
 
 ⚠️ **« À formule » désigne la formule que retient le calcul** : celle des
 formules curées par identifiant (`FORMULES_CUREES_PAR_ID`), sinon celle de
@@ -98,8 +104,9 @@ dégât.
 | 400-403, 410 | « [Comp.N] Aug. Dgts CRIT » | slot du sort | slot 1 | slot 1 (celui du S1), jamais celui du déclencheur |
 
 Une attaque des deux familles, allumée, suit la colonne « Sort coopératif
-du monstre » (contexte `propre`, provisoire pour les S1, voir plus haut) ;
-éteinte, elle n'est pas une attaque conjointe.
+du monstre » (contexte `propre`) ; un S1 des deux familles « pendant le tour
+d'un allié » suit la colonne « S1 appelé par un allié » ; éteinte, elle
+n'est pas une attaque conjointe.
 
 - **209 et 225 entrent dans le terme `DMG%`**, additionnés aux dégâts
   infligés par élément (300-304) : même terme, mêmes exclusions — ni sur
@@ -125,7 +132,7 @@ Deux sens, selon le sort choisi :
 | Sort choisi | Allumé, il dit que… | Champ absent |
 | --- | --- | --- |
 | S1 qui n'est pas conjoint par lui-même | le S1 est **appelé par un allié, hors du tour du monstre** : 209 et 225 comptent, 224 non, 411 oui | éteint |
-| attaque des familles Chakram Dancer et Boomerang Warrior | **un monstre de l'autre famille est au combat** : contexte `propre` (provisoire pour les S1) | **allumé** |
+| attaque des familles Chakram Dancer et Boomerang Warrior | **un monstre de l'autre famille est au combat** : contexte `propre` (S1 : `appelee-par-allie` avec la seconde vignette, plus bas) | **allumé** |
 
 - **Proposé seulement quand il agit** : un bouton sans effet possible
   n'est jamais montré. La fonction pure
@@ -153,6 +160,34 @@ Deux sens, selon le sort choisi :
   effet sur un sort qui ne le propose pas (comme `defBreakParLeSort`).
 - ⚠️ Il n'agit sur aucun autre interrupteur : un passif « after you attack
   … on your turn » (Tempest) reste au choix de l'utilisateur.
+
+### La seconde vignette « Pendant le tour d'un allié »
+
+Sur les S1 des deux familles seulement (décision de l'utilisateur) :
+
+- **Proposée seulement quand elle agit**, par la fonction pure
+  `vignettePendantTourAllie(profil, réglage)`, dérivée de la porte comme
+  l'interrupteur (proposée quand, le reste du réglage tenu, l'allumer et
+  l'éteindre donnent deux contextes différents) : `null`, ou son état
+  (`allume`) et son défaut (`allumeParDefaut`, éteint). Elle l'est donc sur
+  un S1 des deux familles dont « Attaque conjointe » est allumée, défaut
+  compris ; jamais sur leurs S2/S3, ni sur un S1 ordinaire, ni quand
+  l'interrupteur des familles est éteint.
+- **Écran** : juste après « Attaque conjointe », dans « Effets actifs »,
+  avec sa propre icône, celle de Crescent Moon Slash, le S1 de Shaina
+  (fiche `21912`, compétence `12602` ; choix de l'utilisateur), et son
+  libellé sur deux lignes au lieu d'être tronqué. Le clic écrit
+  `pendantTourAllie: !allume`. Sa description, en mots du jeu, sans numéro
+  d'artéfact : l'attaque conjointe a lieu pendant le tour de l'allié, les
+  dégâts critiques sur cible unique pendant ton tour ne comptent pas.
+- **CLI** : la ligne du sort dit « attaque conjointe (un monstre de l'autre
+  famille au combat, pendant le tour d'un allié) » (`mentionAttaqueConjointe`,
+  qui lit `vignettePendantTourAllie`).
+- **Recette** : `DamageSetup.pendantTourAllie`, booléen ; absent = éteinte.
+  Réglage propre au sort, comme `attaqueConjointe` : retiré quand le
+  **monstre** change, conservé quand seul le sort change (sans effet hors
+  d'un S1 des familles), conservé aussi quand l'interrupteur des familles
+  s'éteint (sans effet, il reprend quand on le rallume).
 
 ## Le S1 appelé par un sort coopératif
 
@@ -285,12 +320,18 @@ libellés qui figent une décision de l'utilisateur le disent.
   ne porte pas l'effet), les deux sorts à formule curée n'ont pas de
   formule de donnée, chaque exclusion tient même face à une donnée qui
   prêterait une formule au passif ; les cas non conjoints ci-dessus ; les
-  deux marqueurs du profil valent leur règle, jamais ensemble.
+  deux marqueurs du profil valent leur règle, jamais ensemble ; les sorts de
+  slot 1 des deux familles sont les 10 S1 écrits à la main, la seconde
+  vignette n'est proposée que sur eux, et `pendantTourAllie` ne change le
+  contexte d'aucun autre sort (ni d'eux, interrupteur éteint).
 - `testAttaquesConjointesPorte` — les trois contextes et `null` (S1 qui suit
   le sort, S2 interrupteur allumé, passif) ; les deux familles allumées par
-  défaut, éteintes par `false`, en contexte `propre` allumées (provisoire) ;
-  `interrupteurAttaqueConjointe` (proposé, état, défaut, motif) et la
-  mention du CLI ; ce que chaque contexte retire du profil des artéfacts,
+  défaut, éteintes par `false`, en contexte `propre` allumées ; un S1 des
+  familles dans ses trois états (pendant le tour d'un allié :
+  `appelee-par-allie` ; seconde vignette éteinte : `propre` ; interrupteur
+  éteint : non conjoint), la seconde vignette sans effet sur leurs S2/S3 et
+  sur un S1 ordinaire ; `interrupteurAttaqueConjointe` (proposé, état, défaut,
+  motif), `vignettePendantTourAllie` et la mention du CLI ; ce que chaque contexte retire du profil des artéfacts,
   209 + 225 sommés et 208 jamais, la classe du réglage.
 - `testAttaquesConjointesCalcul` — sur des fiches réelles : une attaque des
   familles, champ absent, avec (`12706`) et sans (`12713`) l'effet, majorée
@@ -300,7 +341,10 @@ libellés qui figent une décision de l'utilisateur le disent.
   `propre` ; un sort non conjoint (`3415`, le S1 `10905`) au total inchangé
   au bit près ; ni bombe ni bucket Additionnel ; 224, 411 et 400 dans les trois
   contextes ; l'interrupteur sans effet sur un S2, le S1 d'une famille
-  allumé ou au défaut au même total ;
+  allumé ou au défaut au même total ; Returning Boomerang (`12701`) pendant
+  le tour d'un allié : 209 + 225 et 411 comptent, 224 non, et le total est
+  celui sans 224 ; la seconde vignette sans effet au bit près sur ce S1
+  éteint, sur Triple Strike (`12706`) et sur un S1 ordinaire (`10905`) ;
   Tempest sans 209/225 après un S1 appelé par un allié.
 - `testAttaquesConjointesSortLanceParLeMonstre` — Team Up de Raoq (`2007`,
   `2057`) et Violent Friends de Seren 2e éveil (`3465`) : contexte `propre`,
@@ -316,7 +360,10 @@ libellés qui figent une décision de l'utilisateur le disent.
   inventaires tirés au hasard (graine fixe), dont un sur quatre verrouille
   209 : sort conjoint, S1 appelé par un allié, sort non conjoint (Sylvia),
   S1 appelé par un sort coopératif (Attack Command, Lisa), attaque d'une
-  famille au défaut et éteinte (Triple Strike, Sabrina). Sur les
+  famille au défaut et éteinte (Triple Strike, Sabrina), S1 d'une famille
+  pendant ton tour, pendant le tour d'un allié et éteint (Returning
+  Boomerang, Sabrina ; la sonde y écarte 224 hors du tour du monstre
+  seulement). Sur les
   conjoints, 209/225 changent la paire choisie dans une partie des
   inventaires ; sur le non conjoint, retirer 208/209/225 ne change ni la
   paire ni le score. La sonde de pertinence compte 209 et 225 sur une
@@ -337,11 +384,17 @@ L'interrupteur hors du calcul :
 recette, transitions de monstre et de sort, ligne du CLI ; pour une
 attaque des familles (Triple Strike, Sabrina), l'aller-retour avec et sans
 le champ (sans : allumé par la porte, aucune clé ajoutée) et le contexte du
-CLI ;
+CLI ; pour le S1 d'une famille (Returning Boomerang), `pendantTourAllie` :
+aller-retour, absent = éteinte, valeur non booléenne refusée, éteinte au
+changement de monstre, contexte et ligne du CLI ;
 [tests/rendu/attaque-conjointe-ecran.test.tsx](../../../tests/rendu/attaque-conjointe-ecran.test.tsx)
 (`node tests/run.mjs attaque-conjointe-ecran`) — la vignette dans
 « Effets actifs », présente (éteinte) sur un S1 ordinaire, présente et
 allumée par défaut sur une attaque des familles, absente d'un S2 ordinaire
 et d'un sort coopératif hors familles, sans numéro d'artéfact dans sa
-description, avec l'icône de Team Up ; le ratio 4,5 × ATQ de Nezuko et de
+description, avec l'icône de Team Up ; la seconde vignette « Pendant le
+tour d'un allié » juste après elle sur Returning Boomerang (éteinte par
+défaut, allumée par le champ), avec l'icône de Crescent Moon Slash, sans
+numéro dans sa description, absente quand l'interrupteur est éteint, sur
+Triple Strike et sur un S1 ordinaire ; le ratio 4,5 × ATQ de Nezuko et de
 Vermilion Bird Dancer dans la ligne du sort ; aux deux formats.

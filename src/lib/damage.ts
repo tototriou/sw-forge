@@ -77,6 +77,12 @@ export const BRAND_ICON = 'https://swarfarm.com/static/herders/images/buffs/debu
 // compétence de « Team Up » de Raoq éveillé (fiche 11012, compétence 2007),
 // un sort coopératif (choix de l'utilisateur, 2026-10-16).
 export const ATTAQUE_CONJOINTE_ICON = 'https://swarfarm.com/static/herders/images/skills/skill_icon_0001_6_3.png';
+// Seconde vignette « Pendant le tour d'un allié » (S1 des familles Chakram
+// Dancer et Boomerang Warrior) : l'icône de compétence de « Crescent Moon
+// Slash », le S1 de Shaina (fiche 21912, compétence 12602), dont la prose
+// place l'attaque commune « during Boomerang Warrior's turn » (choix de
+// l'utilisateur, 2026-10-16).
+export const PENDANT_TOUR_ALLIE_ICON = 'https://swarfarm.com/static/herders/images/skills/skill_icon_0016_4_3.png';
 
 // ── Effets d'ÉQUIPE (portés par un AUTRE monstre que celui optimisé) ────
 // Contrairement à `PASSIFS_OFFENSIFS_CONNUS`/aux modificateurs monstre-wide
@@ -3714,6 +3720,10 @@ export type CheminDeLAttaque = 'sort-choisi' | 'suite-du-sort';
  *   des familles Chakram Dancer et Boomerang Warrior
  *   (`sortDesFamillesCooperatives`), interrupteur allumé ou ABSENT
  *   (`setup.attaqueConjointe !== false`) ; éteint, il n'est pas conjoint.
+ *   Pour leurs S1 seulement, la seconde vignette « Pendant le tour d'un
+ *   allié » allumée (`setup.pendantTourAllie === true`) les range dans
+ *   `appelee-par-allie` (décision de l'utilisateur, 2026-10-16) ; sans effet
+ *   quand l'interrupteur des familles est éteint, ni sur leurs S2/S3.
  * - `appelee-par-sort` : S1 appelé par un sort coopératif sans dégâts propres
  *   (`appeleParSortCooperatif`, posé par `sortsCooperatifsQuiAppellentDeLaFiche`),
  *   pendant le tour du monstre. 224 suit la portée du S1 ; 411 s'applique, le
@@ -3729,7 +3739,7 @@ export type CheminDeLAttaque = 'sort-choisi' | 'suite-du-sort';
  */
 export function contexteAttaqueConjointe(
   profile: ProfilPourLaPorte,
-  setup: Pick<DamageSetup, 'attaqueConjointe'>,
+  setup: ReglagePourLaPorte,
   chemin: CheminDeLAttaque
 ): ContexteAttaqueConjointe | null {
   if (profile.passif) return null;
@@ -3737,11 +3747,12 @@ export function contexteAttaqueConjointe(
   if (profile.sortCooperatif) return 'propre';
   if (profile.sortDesFamillesCooperatives) {
     if (setup.attaqueConjointe === false) return null;
-    // ⚠️ Provisoire, à confirmer par l'utilisateur : allumée, l'attaque a lieu
-    // pendant le tour du monstre (224 selon la portée, 411). Si la réponse
-    // place les S1 pendant le tour de l'autre famille, cette seule ligne
-    // devient `profile.slot === 1 ? 'appelee-par-allie' : 'propre'`.
-    return 'propre';
+    // Allumée, l'attaque a lieu pendant le tour du monstre (224 selon la
+    // portée, 411), sauf un S1 que l'utilisateur place pendant le tour d'un
+    // allié : hors du tour du monstre, sans 224 (décision de l'utilisateur,
+    // 2026-10-16). Les S1 des deux familles sont les seuls sorts de slot 1 de
+    // leur table (`12601`-`12605`, `12701`-`12705`, vérifié sur le corpus).
+    return profile.slot === 1 && setup.pendantTourAllie === true ? 'appelee-par-allie' : 'propre';
   }
   if (chemin === 'sort-choisi' && profile.slot === 1 && setup.attaqueConjointe === true) return 'appelee-par-allie';
   return null;
@@ -3751,6 +3762,9 @@ type ProfilPourLaPorte = Pick<
   SkillDamageProfile,
   'passif' | 'slot' | 'sortCooperatif' | 'sortDesFamillesCooperatives' | 'appeleParSortCooperatif'
 >;
+
+// Les seuls champs du réglage que lit la porte.
+type ReglagePourLaPorte = Pick<DamageSetup, 'attaqueConjointe' | 'pendantTourAllie'>;
 
 /**
  * L'interrupteur « Attaque conjointe » du sort choisi : `null` s'il n'est pas
@@ -3765,6 +3779,10 @@ type ProfilPourLaPorte = Pick<
  *   (S1 ordinaire appelé hors du tour du monstre ; éteint par défaut) ;
  * - `allume` : son état pour ce réglage, défaut compris ;
  * - `allumeParDefaut` : son état quand le champ est absent.
+ *
+ * Le reste du réglage est tenu tel quel (la seconde vignette, plus bas) : sur
+ * un S1 des familles placé pendant le tour d'un allié, l'interrupteur allumé
+ * rend `appelee-par-allie`, pas `propre`, et reste allumé.
  */
 export interface InterrupteurAttaqueConjointe {
   cas: 'familles-cooperatives' | 'appele-par-un-allie';
@@ -3774,28 +3792,54 @@ export interface InterrupteurAttaqueConjointe {
 
 export function interrupteurAttaqueConjointe(
   profile: ProfilPourLaPorte,
-  setup: Pick<DamageSetup, 'attaqueConjointe'>
+  setup: ReglagePourLaPorte
 ): InterrupteurAttaqueConjointe | null {
-  const siAllume = contexteAttaqueConjointe(profile, { attaqueConjointe: true }, 'sort-choisi');
-  if (siAllume === contexteAttaqueConjointe(profile, { attaqueConjointe: false }, 'sort-choisi')) return null;
+  const siAllume = contexteAttaqueConjointe(profile, { ...setup, attaqueConjointe: true }, 'sort-choisi');
+  if (siAllume === contexteAttaqueConjointe(profile, { ...setup, attaqueConjointe: false }, 'sort-choisi')) return null;
   return {
     cas: profile.sortDesFamillesCooperatives ? 'familles-cooperatives' : 'appele-par-un-allie',
     allume: contexteAttaqueConjointe(profile, setup, 'sort-choisi') === siAllume,
-    allumeParDefaut: contexteAttaqueConjointe(profile, {}, 'sort-choisi') === siAllume,
+    allumeParDefaut: contexteAttaqueConjointe(profile, { ...setup, attaqueConjointe: undefined }, 'sort-choisi') === siAllume,
+  };
+}
+
+/**
+ * La seconde vignette « Pendant le tour d'un allié » du sort choisi : `null`
+ * si elle n'est pas proposée, sinon son état et son défaut. Dérivée de la
+ * porte comme `interrupteurAttaqueConjointe`, jamais une copie de la règle :
+ * proposée quand, le reste du réglage tenu, l'allumer et l'éteindre donnent
+ * deux contextes différents. C'est le cas d'un S1 des familles Chakram Dancer
+ * et Boomerang Warrior dont l'interrupteur « Attaque conjointe » est allumé
+ * (défaut compris), et de lui seul : interrupteur éteint, ou S2/S3, ou S1
+ * ordinaire, le champ est sans effet. Lue par l'écran et par la ligne du CLI.
+ */
+export interface VignettePendantTourAllie {
+  allume: boolean;
+  allumeParDefaut: boolean;
+}
+
+export function vignettePendantTourAllie(profile: ProfilPourLaPorte, setup: ReglagePourLaPorte): VignettePendantTourAllie | null {
+  const siAllume = contexteAttaqueConjointe(profile, { ...setup, pendantTourAllie: true }, 'sort-choisi');
+  if (siAllume === contexteAttaqueConjointe(profile, { ...setup, pendantTourAllie: false }, 'sort-choisi')) return null;
+  return {
+    allume: contexteAttaqueConjointe(profile, setup, 'sort-choisi') === siAllume,
+    allumeParDefaut: contexteAttaqueConjointe(profile, { ...setup, pendantTourAllie: undefined }, 'sort-choisi') === siAllume,
   };
 }
 
 /**
  * Ce que la ligne du sort du CLI dit de l'attaque conjointe, sans le tiret :
  * `null` quand le sort choisi n'a pas d'interrupteur ou qu'il est éteint. Lit
- * la seule `interrupteurAttaqueConjointe`.
+ * la seule `interrupteurAttaqueConjointe`, et `vignettePendantTourAllie` pour
+ * un S1 des familles placé pendant le tour d'un allié.
  */
-export function mentionAttaqueConjointe(profile: ProfilPourLaPorte, setup: Pick<DamageSetup, 'attaqueConjointe'>): string | null {
+export function mentionAttaqueConjointe(profile: ProfilPourLaPorte, setup: ReglagePourLaPorte): string | null {
   const interrupteur = interrupteurAttaqueConjointe(profile, setup);
   if (!interrupteur?.allume) return null;
-  return interrupteur.cas === 'familles-cooperatives'
-    ? 'attaque conjointe (un monstre de l’autre famille au combat)'
-    : 'attaque conjointe (appelée par un allié)';
+  if (interrupteur.cas === 'appele-par-un-allie') return 'attaque conjointe (appelée par un allié)';
+  return vignettePendantTourAllie(profile, setup)?.allume
+    ? 'attaque conjointe (un monstre de l’autre famille au combat, pendant le tour d’un allié)'
+    : 'attaque conjointe (un monstre de l’autre famille au combat)';
 }
 
 /**
@@ -4814,6 +4858,14 @@ export interface DamageSetup {
   //   l'utilisateur, 2026-10-16) ; seul `false` l'éteint.
   // Sans effet sur tout autre sort.
   attaqueConjointe?: boolean;
+  // Seconde vignette « Pendant le tour d'un allié », lue par la seule
+  // `contexteAttaqueConjointe` (état pour l'écran : `vignettePendantTourAllie`).
+  // Sur un S1 des familles Chakram Dancer et Boomerang Warrior, interrupteur
+  // « Attaque conjointe » allumé : l'attaque commune a lieu pendant le tour de
+  // l'allié, hors du tour du monstre (224 non, 411 oui ; décision de
+  // l'utilisateur, 2026-10-16). Absent = ÉTEINT. Sans effet sur tout autre
+  // sort, ni quand l'interrupteur des familles est éteint.
+  pendantTourAllie?: boolean;
   brand: boolean;
   // Effets d'ÉQUIPE (un autre monstre que celui optimisé) — voir les
   // constantes `EULDONG_CD_POINTS`/`MIRINAE_BONUS_PCT`/`DEBORAH_AMPLIFY`/

@@ -7,7 +7,9 @@
 // La vignette se lit par `interrupteurAttaqueConjointe` : présente, éteinte
 // par défaut, pour un S1 non conjoint par lui-même ; présente et allumée par
 // défaut sur une attaque des familles coopératives ; absente pour un sort à
-// effet `Ally Attack` et pour un S2 ordinaire. Le geste n'est pas simulable au
+// effet `Ally Attack` et pour un S2 ordinaire. La seconde vignette « Pendant le
+// tour d'un allié » se lit par `vignettePendantTourAllie` : sur un S1 des
+// familles seulement, interrupteur allumé. Le geste n'est pas simulable au
 // rendu serveur : le clic est contrôlé sur la source, comme pour Tempest.
 
 import DamageSetupCard from '../../src/components/outils/DamageSetupCard';
@@ -27,6 +29,7 @@ const TEAM_UP = 2006;
 // Purification, Cooperation! et Rite of Ashes, conjoints par leur formule curée.
 const SABRINA = 22011;
 const TRIPLE_STRIKE = 12706;
+const RETURNING_BOOMERANG = 12701; // son S1
 const NEZUKO = 31915;
 const PURIFICATION = 21415;
 const VERMILION = 32615;
@@ -66,6 +69,14 @@ function carte(monstre: number, skillCom2usId: number, etroit: boolean, setup: P
 const vignette = (html: string, etat: 'actif' | 'inactif') => html.includes(`aria-label="Attaque conjointe — ${etat}"`);
 // Le survol de la vignette : la même source que l'infobulle « ? » (`effetsActifs`).
 const survol = (html: string) => html.match(/aria-label="Attaque conjointe — (?:actif|inactif)"[^>]*? title="([^"]*)"/)?.[1] ?? '';
+// La seconde vignette des S1 des familles, « Pendant le tour d'un allié ».
+const seconde = (html: string, etat: 'actif' | 'inactif') => html.includes(`aria-label="Pendant le tour d’un allié — ${etat}"`);
+// Le bouton d'une vignette, de son nom accessible à sa fermeture : son icône est dedans.
+const bouton = (html: string, libelle: string) => {
+  const i = html.indexOf(`aria-label="${libelle} — `);
+  return i < 0 ? '' : html.slice(i, html.indexOf('</button>', i));
+};
+const survolSeconde = (html: string) => html.match(/aria-label="Pendant le tour d’un allié — (?:actif|inactif)"[^>]*? title="([^"]*)"/)?.[1] ?? '';
 
 function verifier(etroit: boolean) {
   const format = etroit ? 'téléphone' : 'ordinateur';
@@ -90,6 +101,37 @@ function verifier(etroit: boolean) {
   for (const [nom, html] of [['S1 ordinaire', s1], ['famille', famille]] as const) {
     ok(survol(html) !== '' && !/209|224|225/.test(survol(html)), `${format} : ${nom} — aucun numéro d’artéfact dans la description`);
     ok(html.includes('skill_icon_0001_6_3.png'), `${format} : ${nom} — l’icône de Team Up de Raoq éveillé`);
+  }
+
+  // Seconde vignette « Pendant le tour d'un allié » des S1 des familles
+  // (décision de l'utilisateur, 2026-10-16) : par `vignettePendantTourAllie`.
+  const s1Famille = carte(SABRINA, RETURNING_BOOMERANG, etroit);
+  ok(vignette(s1Famille, 'actif') && seconde(s1Famille, 'inactif'),
+    `${format} : Returning Boomerang (S1 de famille), interrupteur au défaut — « Pendant le tour d’un allié » est là, éteinte par défaut`);
+  ok(texteVisible(s1Famille).includes('Pendant le tour d’un allié'), `${format} : … et son libellé est lisible`);
+  const posPremiere = s1Famille.indexOf('aria-label="Attaque conjointe — ');
+  const posSeconde = s1Famille.indexOf('aria-label="Pendant le tour d’un allié — ');
+  ok(posPremiere >= 0 && posSeconde > posPremiere && s1Famille.slice(posPremiere, posSeconde).split('aria-label="').length - 1 === 1,
+    `${format} : … juste après « Attaque conjointe », sans vignette entre les deux`);
+  egal(s1Famille.split('Pendant le tour d’un allié — ').length - 1, 1, `${format} : … une seule fois`);
+  ok(bouton(s1Famille, 'Pendant le tour d’un allié').includes('skill_icon_0016_4_3.png') && !bouton(s1Famille, 'Pendant le tour d’un allié').includes('skill_icon_0001_6_3.png'),
+    `${format} : … avec sa propre icône, celle de Crescent Moon Slash (S1 de Shaina, choix de l’utilisateur 2026-10-16)`);
+  ok(bouton(s1Famille, 'Attaque conjointe').includes('skill_icon_0001_6_3.png') && !bouton(s1Famille, 'Attaque conjointe').includes('skill_icon_0016_4_3.png'),
+    `${format} : … « Attaque conjointe » garde l’icône de Team Up de Raoq éveillé`);
+  const description = survolSeconde(s1Famille);
+  ok(description.includes('pendant le tour de l’allié') && description.includes('dégâts critiques sur cible unique pendant ton tour ne comptent pas'),
+    `${format} : … sa description dit ce qu’elle suppose, en mots du jeu`);
+  ok(description !== '' && !/\d/.test(description), `${format} : … aucun numéro (d’artéfact ou autre) dans sa description`);
+  ok(seconde(carte(SABRINA, RETURNING_BOOMERANG, etroit, { pendantTourAllie: true }), 'actif'), `${format} : … allumée quand pendantTourAllie vaut true`);
+  ok(vignette(carte(SABRINA, RETURNING_BOOMERANG, etroit, { pendantTourAllie: true }), 'actif'), `${format} : … « Attaque conjointe » reste allumée à côté`);
+  for (const [nom, html] of [
+    ['S1 de famille, interrupteur éteint', carte(SABRINA, RETURNING_BOOMERANG, etroit, { attaqueConjointe: false })],
+    ['S1 de famille, interrupteur éteint, champ resté allumé', carte(SABRINA, RETURNING_BOOMERANG, etroit, { attaqueConjointe: false, pendantTourAllie: true })],
+    ['S2 de famille (Triple Strike)', carte(SABRINA, TRIPLE_STRIKE, etroit)],
+    ['S2 de famille, champ resté allumé', carte(SABRINA, TRIPLE_STRIKE, etroit, { pendantTourAllie: true })],
+    ['S1 ordinaire allumé, champ resté allumé', carte(CASSIE, CROSS_FIRE, etroit, { attaqueConjointe: true, pendantTourAllie: true })],
+  ] as const) {
+    ok(!html.includes('Pendant le tour d’un allié'), `${format} : ${nom} — « Pendant le tour d’un allié » absente`);
   }
 
   // D17 : le ratio curé s'affiche dans la ligne du sort.

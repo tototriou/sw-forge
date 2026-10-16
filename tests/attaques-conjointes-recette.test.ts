@@ -25,6 +25,7 @@ import {
   mentionAttaqueConjointe,
   monsterDamageSkills,
   resolveDamageSkill,
+  vignettePendantTourAllie,
 } from '../src/lib/damage';
 import { DAMAGE_SETUP_CLASSIFICATION, damageSetupApresChangementMonstre } from '../src/lib/damageSetupTransition';
 import { buildOptimizerRecipe, parseOptimizerRecipe, type OptimizerRecipe } from '../src/lib/optimizerRecipe';
@@ -45,6 +46,8 @@ const DEFEAT_WILD_DOG = 10130;
 // famille coopérative — interrupteur allumé quand le champ manque.
 const SABRINA = 22011;
 const TRIPLE_STRIKE = 12706;
+// Son S1, Returning Boomerang : seconde vignette « Pendant le tour d'un allié ».
+const RETURNING_BOOMERANG = 12701;
 
 function recette(setup: DamageSetup, monsterName = 'Cassie', monsterCom2usId = CASSIE): OptimizerRecipe {
   return buildOptimizerRecipe({
@@ -108,6 +111,29 @@ export function testAttaquesConjointesRecetteChamp() {
   egal(relueFamilleEteinte && contexteAttaqueConjointe(triple, relueFamilleEteinte.damageSetup, 'sort-choisi'), null, 'famille éteinte, relue : non conjoint');
   const relueFamilleAllumee = lire(recette({ ...familleSans, attaqueConjointe: true }, 'Sabrina', SABRINA)).recipe;
   egal(relueFamilleAllumee?.damageSetup.attaqueConjointe, true, 'famille allumée explicitement : `true` relu tel quel');
+
+  // Seconde vignette « Pendant le tour d'un allié » (S1 des familles) :
+  // booléen validé, absent = éteint, aller-retour identique.
+  const returning = resolveDamageSkill(monsterDamageSkills(loadMonsterSkills(SABRINA)), RETURNING_BOOMERANG)!;
+  const tourAllie: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, skillCom2usId: RETURNING_BOOMERANG, pendantTourAllie: true };
+  const relueTourAllie = lire(recette(tourAllie, 'Sabrina', SABRINA)).recipe;
+  egal(relueTourAllie?.damageSetup, tourAllie, 'pendant le tour d’un allié : relu identique');
+  egal(relueTourAllie && lire(relueTourAllie).recipe, relueTourAllie, 'pendant le tour d’un allié : un second import ne change rien');
+  egal(relueTourAllie && contexteAttaqueConjointe(returning, relueTourAllie.damageSetup, 'sort-choisi'), 'appelee-par-allie',
+    'fige une décision de l’utilisateur (2026-10-16) : S1 de famille, recette relue pendant le tour d’un allié : appelé par un allié');
+  egal(lire(recette({ ...tourAllie, pendantTourAllie: false }, 'Sabrina', SABRINA)).recipe?.damageSetup.pendantTourAllie, false, '`false` relu tel quel');
+  const relueTourAllieSans = lire(recette({ ...DEFAULT_DAMAGE_SETUP, skillCom2usId: RETURNING_BOOMERANG }, 'Sabrina', SABRINA)).recipe;
+  ok(relueTourAllieSans !== null && !('pendantTourAllie' in relueTourAllieSans.damageSetup), 'absent : recette acceptée, aucune clé ajoutée');
+  egal(relueTourAllieSans && vignettePendantTourAllie(returning, relueTourAllieSans.damageSetup), { allume: false, allumeParDefaut: false },
+    'absent : seconde vignette éteinte');
+  egal(relueTourAllieSans && contexteAttaqueConjointe(returning, relueTourAllieSans.damageSetup, 'sort-choisi'), 'propre', 'absent : pendant le tour du monstre');
+  ok(!('pendantTourAllie' in DEFAULT_DAMAGE_SETUP), 'défaut du réglage : aucune clé, donc éteinte');
+  for (const [valeur, motif] of [
+    ['oui', 'texte'], ['true', 'texte « true »'], [1, 'nombre'], [0, 'zéro'], [null, 'null'], [[], 'liste'], [{}, 'objet'],
+  ] as [unknown, string][]) {
+    ok(refuse(lire({ ...recette(tourAllie, 'Sabrina', SABRINA), damageSetup: { ...tourAllie, pendantTourAllie: valeur } }), 'damageSetup.pendantTourAllie'),
+      `pendant le tour d’un allié, refusé avec son chemin : ${motif}`);
+  }
 }
 
 export function testAttaquesConjointesRecetteTransitions() {
@@ -138,6 +164,20 @@ export function testAttaquesConjointesRecetteTransitions() {
   const versSabrina: DamageSetup = { ...depuisEteint, skillCom2usId: TRIPLE_STRIKE };
   egal(versSabrina.attaqueConjointe, undefined, 'changement de monstre depuis un réglage éteint : champ absent');
   egal(interrupteurAttaqueConjointe(triple, versSabrina)?.allume, true, 'fige une décision de l’utilisateur (2026-10-16) : arrivé sur une famille, l’interrupteur est allumé (défaut)');
+
+  // Seconde vignette : réglage propre au sort, éteinte au changement de
+  // monstre, conservée au changement de sort (sans effet hors d'un S1 des familles).
+  egal(DAMAGE_SETUP_CLASSIFICATION.pendantTourAllie, 'sort', 'pendant le tour d’un allié : classé « sort »');
+  const returning = resolveDamageSkill(monsterDamageSkills(loadMonsterSkills(SABRINA)), RETURNING_BOOMERANG)!;
+  const tourAllie: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, skillCom2usId: RETURNING_BOOMERANG, enemyDef: 1234, pendantTourAllie: true };
+  const apresMonstre = damageSetupApresChangementMonstre(tourAllie);
+  egal(apresMonstre.pendantTourAllie, undefined, 'pendant le tour d’un allié, changement de monstre : éteinte');
+  egal(apresMonstre.enemyDef, 1234, '… le contexte de la cible conservé');
+  const retourSurS1: DamageSetup = { ...apresMonstre, skillCom2usId: RETURNING_BOOMERANG };
+  egal(vignettePendantTourAllie(returning, retourSurS1)?.allume, false, '… de retour sur un S1 des familles, la seconde vignette est éteinte');
+  const versTriple: DamageSetup = { ...tourAllie, skillCom2usId: TRIPLE_STRIKE };
+  egal(versTriple.pendantTourAllie, true, 'pendant le tour d’un allié, changement de sort : conservé');
+  egal(contexteAttaqueConjointe(triple, versTriple, 'sort-choisi'), 'propre', '… sur le S2 de la famille : sans effet');
 }
 
 export function testAttaquesConjointesRecetteCli() {
@@ -171,6 +211,16 @@ export function testAttaquesConjointesRecetteCli() {
   egal(familleEteinte && contexteAttaqueConjointe(triple, familleEteinte.setup, 'sort-choisi'), null, 'CLI, famille éteinte : non conjoint');
   egal(familleEteinte && mentionAttaqueConjointe(triple, familleEteinte.setup), null, 'CLI, famille éteinte : la ligne du sort n’en dit rien');
 
+  // S1 d'une famille pendant le tour d'un allié, au CLI : le contexte du sort
+  // le range hors du tour du monstre, et la ligne du sort le dit.
+  const s1TourAllie = famille({ ...DEFAULT_DAMAGE_SETUP, skillCom2usId: RETURNING_BOOMERANG, pendantTourAllie: true });
+  ok(s1TourAllie != null, 'précondition : un contexte de dégâts réels pour le S1 de Sabrina');
+  egal(s1TourAllie && s1TourAllie.profile.skillCom2usId, RETURNING_BOOMERANG, 'CLI, S1 de famille : le contexte calcule Returning Boomerang');
+  egal(s1TourAllie && contexteAttaqueConjointe(s1TourAllie.profile, s1TourAllie.setup, 'sort-choisi'), 'appelee-par-allie',
+    'fige une décision de l’utilisateur (2026-10-16) : CLI, S1 de famille, recette pendant le tour d’un allié : appelé par un allié');
+  egal(s1TourAllie && mentionAttaqueConjointe(s1TourAllie.profile, s1TourAllie.setup), 'attaque conjointe (un monstre de l’autre famille au combat, pendant le tour d’un allié)',
+    'CLI, S1 de famille pendant le tour d’un allié : la ligne du sort le dit');
+
   // Le vrai `chargerRecette`, sur l'export miniature dont l'unité 101 devient
   // Cassie : même parseur que l'écran, le champ arrive aux paramètres.
   const espece = monstersJson().find((m: { com2usId: number }) => m.com2usId === CASSIE);
@@ -200,6 +250,7 @@ export function testAttaquesConjointesRecetteCli() {
   ok(cli.includes('const mentionConjointe = mentionAttaqueConjointe(profile, s);') && cli.includes('${mentionConjointe ? ` — ${mentionConjointe}` : \'\'}'),
     'ligne du CLI : « attaque conjointe » affiché par la porte (`mentionAttaqueConjointe`, testée dans degats-attaques-conjointes), défaut des familles compris');
   ok(!/attaqueConjointe/.test(cli), 'ligne du CLI : le champ n’est jamais lu directement, seulement par la porte');
+  ok(!/pendantTourAllie/.test(cli), 'ligne du CLI : la seconde vignette non plus, seulement par la porte');
 }
 
 // Le code seul : un commentaire qui CITE le champ ne fait ni échouer ni passer

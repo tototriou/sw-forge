@@ -39,6 +39,7 @@ import {
   monsterDamageSkills,
   monsterOffensivePassives,
   skillDamageProfile,
+  vignettePendantTourAllie,
 } from '../src/lib/damage';
 import { DAMAGE_SETUP_CLASSIFICATION, damageSetupApresChangementMonstre } from '../src/lib/damageSetupTransition';
 import { analyserPertinence, chercherPaires, plafondLigne, type ArtifactSearchParams, type LigneVerrouillee } from '../src/lib/artifactOptim';
@@ -109,6 +110,9 @@ const SORTS_A_EFFET = [
 const INCLUSION = [10910];
 // Table d'exclusion : effet `Ally Attack` qui ne désigne pas une attaque du monstre.
 const EXCLUSION = [10915, 12711];
+// Les S1 des deux familles, seuls à proposer la seconde vignette « Pendant le
+// tour d'un allié » (décision de l'utilisateur, 2026-10-16). Écrits à la main.
+const S1_DES_FAMILLES = [12601, 12602, 12603, 12604, 12605, 12701, 12702, 12703, 12704, 12705];
 // Effet `Ally Attack` sans formule de donnée, ratio curé (`FORMULES_CUREES_PAR_ID`) :
 // la règle lit la formule retenue (décision de l'utilisateur, 2026-10-16).
 const PAR_FORMULE_CUREE = [21415, 22015];
@@ -188,6 +192,29 @@ export function testAttaquesConjointesRegle() {
   egal(ecarts, 0, 'corpus : `sortCooperatif` et `sortDesFamillesCooperatives` du profil valent exactement leur règle, jamais les deux');
   egal(marques, attendus.length, `corpus : les ${attendus.length} sorts conjoints sont tous calculables, et marqués`);
   egal(marquesFamilles, FAMILLES_COOPERATIVES.length, 'corpus : les 22 attaques des familles sont toutes calculables, et marquées');
+
+  // La seconde vignette « Pendant le tour d'un allié » : proposée sur les S1
+  // des deux familles et eux seuls ; partout ailleurs, le champ ne change
+  // aucun contexte, quel que soit l'interrupteur et le chemin.
+  const proposee: number[] = [];
+  const s1Familles: number[] = [];
+  let changes = 0;
+  for (const c of corpus.values()) {
+    const p = skillDamageProfile(c);
+    if (!p || !estPrisEnCharge(p)) continue;
+    if (p.sortDesFamillesCooperatives && p.slot === 1) s1Familles.push(p.skillCom2usId);
+    if (vignettePendantTourAllie(p, {}) !== null) proposee.push(p.skillCom2usId);
+    for (const attaqueConjointe of [undefined, true, false]) {
+      if (S1_DES_FAMILLES.includes(p.skillCom2usId) && attaqueConjointe !== false) continue;
+      for (const chemin of ['sort-choisi', 'suite-du-sort'] as const) {
+        if (contexteAttaqueConjointe(p, { attaqueConjointe, pendantTourAllie: true }, chemin) !== contexteAttaqueConjointe(p, { attaqueConjointe }, chemin)) changes++;
+      }
+    }
+  }
+  egal(s1Familles.sort((a, b) => a - b), S1_DES_FAMILLES, 'familles : leurs sorts de slot 1 sont les 10 S1 écrits à la main (12601-12605, 12701-12705) — le discriminant de la porte');
+  egal(proposee.sort((a, b) => a - b), S1_DES_FAMILLES,
+    'fige une décision de l’utilisateur (2026-10-16) : sur le corpus, la vignette « Pendant le tour d’un allié » n’est proposée que sur les 10 S1 des deux familles');
+  egal(changes, 0, 'corpus : hors des S1 des familles à interrupteur allumé, `pendantTourAllie` ne change aucun contexte (S2/S3 des familles, S1 ordinaire, sorts coopératifs, interrupteur éteint)');
 }
 
 export function testAttaquesConjointesPorte() {
@@ -214,8 +241,44 @@ export function testAttaquesConjointesPorte() {
     egal(contexteAttaqueConjointe(famille(slot), eteint, 'sort-choisi'), 'propre', `fige une décision de l’utilisateur (2026-10-16) : famille, S${slot}, champ absent : allumé par défaut, conjoint`);
     egal(contexteAttaqueConjointe(famille(slot), eteintExplicite, 'sort-choisi'), null, `fige une décision de l’utilisateur (2026-10-16) : famille, S${slot}, éteint par \`false\` : non conjoint`);
   }
-  egal(contexteAttaqueConjointe(famille(2), allume, 'sort-choisi'), 'propre', 'provisoire, à confirmer par l’utilisateur : famille, allumé, contexte propre (pendant le tour du monstre)');
-  egal(contexteAttaqueConjointe(famille(1), allume, 'sort-choisi'), 'propre', 'provisoire, à confirmer par l’utilisateur : famille, S1 allumé, contexte propre et non « appelé par un allié »');
+  egal(contexteAttaqueConjointe(famille(2), allume, 'sort-choisi'), 'propre', 'fige une décision de l’utilisateur (2026-10-16) : famille, S2 allumé, contexte propre (pendant le tour du monstre)');
+  egal(contexteAttaqueConjointe(famille(1), allume, 'sort-choisi'), 'propre', 'fige une décision de l’utilisateur (2026-10-16) : famille, S1 allumé, seconde vignette absente : contexte propre (pendant le tour du monstre)');
+
+  // Seconde vignette « Pendant le tour d'un allié » des S1 des familles
+  // (décision de l'utilisateur, 2026-10-16) : les trois états d'un S1.
+  egal(contexteAttaqueConjointe(famille(1), { pendantTourAllie: true }, 'sort-choisi'), 'appelee-par-allie',
+    'fige une décision de l’utilisateur (2026-10-16) : famille, S1, interrupteur au défaut (allumé) et pendant le tour d’un allié : appelé par un allié, hors du tour du monstre');
+  egal(contexteAttaqueConjointe(famille(1), { attaqueConjointe: true, pendantTourAllie: true }, 'sort-choisi'), 'appelee-par-allie', 'famille, S1 allumé et pendant le tour d’un allié : appelé par un allié');
+  egal(contexteAttaqueConjointe(famille(1), { pendantTourAllie: false }, 'sort-choisi'), 'propre', 'famille, S1, seconde vignette éteinte par `false` : propre');
+  egal(contexteAttaqueConjointe(famille(1), { attaqueConjointe: false, pendantTourAllie: true }, 'sort-choisi'), null,
+    'fige une décision de l’utilisateur (2026-10-16) : famille, S1, interrupteur éteint : non conjoint, la seconde vignette est sans effet');
+  for (const slot of [2, 3]) {
+    egal(contexteAttaqueConjointe(famille(slot), { pendantTourAllie: true }, 'sort-choisi'), 'propre',
+      `fige une décision de l’utilisateur (2026-10-16) : famille, S${slot}, pendant le tour d’un allié : sans effet, pendant le tour du monstre`);
+  }
+  egal(contexteAttaqueConjointe(s1, { pendantTourAllie: true }, 'sort-choisi'), null, 'S1 ordinaire, interrupteur absent, pendant le tour d’un allié : sans effet, non conjoint');
+  egal(contexteAttaqueConjointe(s1, { attaqueConjointe: true, pendantTourAllie: true }, 'sort-choisi'), 'appelee-par-allie', 'S1 ordinaire allumé, pendant le tour d’un allié : sans effet, appelé par un allié comme sans le champ');
+  egal(contexteAttaqueConjointe({ ...s1, sortCooperatif: true }, { pendantTourAllie: true }, 'sort-choisi'), 'propre', 'S1 coopératif, pendant le tour d’un allié : sans effet, propre');
+
+  // La seconde vignette pour l'écran : proposée, état, défaut — dérivés de la porte.
+  egal(vignettePendantTourAllie(famille(1), eteint), { allume: false, allumeParDefaut: false },
+    'fige une décision de l’utilisateur (2026-10-16) : famille, S1, interrupteur au défaut : seconde vignette proposée, éteinte par défaut');
+  egal(vignettePendantTourAllie(famille(1), { pendantTourAllie: true }), { allume: true, allumeParDefaut: false }, 'famille, S1, pendant le tour d’un allié : proposée, allumée');
+  egal(vignettePendantTourAllie(famille(1), { attaqueConjointe: true, pendantTourAllie: false }), { allume: false, allumeParDefaut: false }, 'famille, S1 allumé, seconde vignette éteinte : proposée, éteinte');
+  egal(vignettePendantTourAllie(famille(1), eteintExplicite), null, 'fige une décision de l’utilisateur (2026-10-16) : famille, S1, interrupteur éteint : seconde vignette non proposée');
+  egal(vignettePendantTourAllie(famille(1), { attaqueConjointe: false, pendantTourAllie: true }), null, 'famille, S1, interrupteur éteint, champ resté allumé : non proposée');
+  egal(vignettePendantTourAllie(famille(2), eteint), null, 'famille, S2 : non proposée');
+  egal(vignettePendantTourAllie(famille(3), { pendantTourAllie: true }), null, 'famille, S3, champ resté allumé : non proposée');
+  egal(vignettePendantTourAllie(s1, eteint), null, 'S1 ordinaire : non proposée');
+  egal(vignettePendantTourAllie(s1, allume), null, 'S1 ordinaire allumé : non proposée');
+  egal(vignettePendantTourAllie({ ...s1, sortCooperatif: true }, eteint), null, 'S1 coopératif : non proposée');
+  egal(vignettePendantTourAllie({ ...famille(1), passif: true }, eteint), null, 'passif : non proposée');
+  // L'interrupteur des familles reste allumé quand la seconde vignette l'est.
+  egal(interrupteurAttaqueConjointe(famille(1), { pendantTourAllie: true }), { cas: 'familles-cooperatives', allume: true, allumeParDefaut: true },
+    'famille, S1 pendant le tour d’un allié : « Attaque conjointe » proposée, allumée, allumée par défaut');
+  egal(interrupteurAttaqueConjointe(famille(1), { attaqueConjointe: false, pendantTourAllie: true }), { cas: 'familles-cooperatives', allume: false, allumeParDefaut: true },
+    'famille, S1 éteint, champ resté allumé : « Attaque conjointe » éteinte');
+  egal(interrupteurAttaqueConjointe(s1, { attaqueConjointe: true, pendantTourAllie: true }), { cas: 'appele-par-un-allie', allume: true, allumeParDefaut: false }, 'S1 ordinaire allumé, champ présent : inchangé');
   egal(contexteAttaqueConjointe(famille(2), eteint, 'suite-du-sort'), 'propre', 'famille, champ absent, sort qui suit le sort choisi : conjoint aussi (le combat, pas le sort, en décide)');
   egal(contexteAttaqueConjointe({ ...famille(3), passif: true }, eteint, 'sort-choisi'), null, 'famille : un passif n’est jamais une attaque conjointe');
 
@@ -238,6 +301,12 @@ export function testAttaquesConjointesPorte() {
   egal(mentionAttaqueConjointe(s1, allume), 'attaque conjointe (appelée par un allié)', 'CLI, S1 ordinaire allumé : appelé par un allié');
   egal(mentionAttaqueConjointe(s1, eteint), null, 'CLI, S1 ordinaire, champ absent : rien');
   egal(mentionAttaqueConjointe({ ...s2, sortCooperatif: true }, eteint), null, 'CLI, sort coopératif : rien (pas d’interrupteur)');
+  egal(mentionAttaqueConjointe(famille(1), { pendantTourAllie: true }), 'attaque conjointe (un monstre de l’autre famille au combat, pendant le tour d’un allié)',
+    'CLI, famille, S1 pendant le tour d’un allié : la ligne le dit');
+  egal(mentionAttaqueConjointe(famille(1), eteint), 'attaque conjointe (un monstre de l’autre famille au combat)', 'CLI, famille, S1 au défaut : pendant le tour du monstre, rien de plus');
+  egal(mentionAttaqueConjointe(famille(2), { pendantTourAllie: true }), 'attaque conjointe (un monstre de l’autre famille au combat)', 'CLI, famille, S2, champ resté allumé : rien de plus');
+  egal(mentionAttaqueConjointe(famille(1), { attaqueConjointe: false, pendantTourAllie: true }), null, 'CLI, famille, S1 éteint, champ resté allumé : rien');
+  egal(mentionAttaqueConjointe(s1, { attaqueConjointe: true, pendantTourAllie: true }), 'attaque conjointe (appelée par un allié)', 'CLI, S1 ordinaire allumé, champ présent : inchangé');
 
   const a = artefacts([{ code: 209, value: 10 }, { code: 224, value: 20 }]);
   ok(artefactsSelonContexteConjoint(ARTIFACT_DAMAGE_NEUTRE, null) === ARTIFACT_DAMAGE_NEUTRE, 'profil sans ces lignes : rendu tel quel, aucune allocation');
@@ -258,6 +327,12 @@ export function testAttaquesConjointesPorte() {
     damageSetupApresChangementMonstre({ ...DEFAULT_DAMAGE_SETUP, attaqueConjointe: true }).attaqueConjointe,
     undefined,
     'défaut réversible, provisoire : changer de monstre éteint l’interrupteur'
+  );
+  egal(DAMAGE_SETUP_CLASSIFICATION.pendantTourAllie, 'sort', '`pendantTourAllie` est un réglage propre au sort, comme `attaqueConjointe`');
+  egal(
+    damageSetupApresChangementMonstre({ ...DEFAULT_DAMAGE_SETUP, pendantTourAllie: true }).pendantTourAllie,
+    undefined,
+    'changer de monstre éteint la seconde vignette'
   );
 }
 
@@ -359,9 +434,8 @@ export function testAttaquesConjointesCalcul() {
   ok(partBrute > 0 && proche(partBruteConjointe, partBrute), `décision de l’utilisateur : le bucket Additionnel ne reçoit pas 209/225 (${partBrute.toFixed(3)} des deux côtés)`);
 
   // ── Les trois contextes et leurs lignes ──
-  // propre : Triple Strike, S2 mono-cible d'une famille, champ absent (le
-  // contexte de la famille allumée est provisoire, à confirmer).
-  ok(gagne(sabrina, tripleStrike, base, 224), 'provisoire, à confirmer par l’utilisateur : propre (12706, famille allumée, mono-cible) : 224 suit la portée');
+  // propre : Triple Strike, S2 mono-cible d'une famille, champ absent.
+  ok(gagne(sabrina, tripleStrike, base, 224), 'fige une décision de l’utilisateur (2026-10-16) : propre (12706, famille allumée, mono-cible) : 224 suit la portée');
   ok(gagne(sabrina, tripleStrike, base, 411), 'propre : 411 sur le premier coup');
   ok(gagne(sabrina, tripleStrike, base, 401), 'propre : la ligne de son slot (401 pour un S2)');
   ok(!gagne(sabrina, tripleStrike, base, 400), 'propre : pas la ligne d’un autre slot (400)');
@@ -395,12 +469,35 @@ export function testAttaquesConjointesCalcul() {
   egal(totalDe(teshar, nova, allume, mixte), totalDe(teshar, nova, base, mixte), 'interrupteur allumé sur un S2 (3208) : total identique, sans effet');
   const s1Coop = sortDe(sabrina, 12701);
   egal(totalDe(sabrina, s1Coop, allume, mixte), totalDe(sabrina, s1Coop, base, mixte), 'fige une décision de l’utilisateur (2026-10-16) : S1 de famille (12701), allumé ou champ absent : même total, allumé par défaut');
-  ok(gagne(sabrina, s1Coop, allume, 224), 'provisoire, à confirmer par l’utilisateur : S1 de famille (12701) allumé, contexte propre : 224 compte (mono-cible)');
-  ok(gagne(sabrina, s1Coop, allume, 411), 'provisoire, à confirmer par l’utilisateur : S1 de famille (12701) allumé : 411 compte');
+  ok(gagne(sabrina, s1Coop, allume, 224), 'fige une décision de l’utilisateur (2026-10-16) : S1 de famille (12701) allumé, seconde vignette absente, contexte propre : 224 compte (mono-cible)');
+  ok(gagne(sabrina, s1Coop, allume, 411), 'fige une décision de l’utilisateur (2026-10-16) : S1 de famille (12701) allumé : 411 compte');
   ok(
     proche(totalDe(sabrina, s1Coop, allume, conjointes) / totalDe(sabrina, s1Coop, allume, ARTIFACT_DAMAGE_NEUTRE), 1.18),
     'S1 de famille (12701) allumé : 209 + 225 comptent'
   );
+
+  // Seconde vignette « Pendant le tour d'un allié » (décision de
+  // l'utilisateur, 2026-10-16) : le S1 d'une famille hors du tour du monstre.
+  const tourAllie: DamageSetup = { ...base, pendantTourAllie: true };
+  ok(
+    proche(totalDe(sabrina, s1Coop, tourAllie, conjointes) / totalDe(sabrina, s1Coop, tourAllie, ARTIFACT_DAMAGE_NEUTRE), 1.18),
+    'fige une décision de l’utilisateur (2026-10-16) : S1 de famille (12701) pendant le tour d’un allié : 209 + 225 comptent'
+  );
+  ok(!gagne(sabrina, s1Coop, tourAllie, 224), 'fige une décision de l’utilisateur (2026-10-16) : S1 de famille (12701) pendant le tour d’un allié : 224 ne compte pas (hors du tour du monstre)');
+  ok(gagne(sabrina, s1Coop, tourAllie, 411), 'fige une décision de l’utilisateur (2026-10-16) : S1 de famille (12701) pendant le tour d’un allié : 411 compte');
+  ok(gagne(sabrina, s1Coop, tourAllie, 400), 'S1 de famille (12701) pendant le tour d’un allié : la ligne de son slot (400)');
+  egal(totalDe(sabrina, s1Coop, tourAllie, ARTIFACT_DAMAGE_NEUTRE), totalDe(sabrina, s1Coop, base, ARTIFACT_DAMAGE_NEUTRE),
+    'S1 de famille (12701) : sans ces lignes, pendant ton tour ou celui d’un allié donnent le même total');
+  egal(totalDe(sabrina, s1Coop, tourAllie, mixte), totalDe(sabrina, s1Coop, base, conjointes),
+    'S1 de famille (12701) pendant le tour d’un allié : le total avec 209/225/224 est celui de 209/225 seules pendant ton tour (224 retirée, rien d’autre)');
+  const eteintTourAllie: DamageSetup = { ...base, attaqueConjointe: false, pendantTourAllie: true };
+  egal(totalDe(sabrina, s1Coop, eteintTourAllie, mixte), totalDe(sabrina, s1Coop, { ...base, attaqueConjointe: false }, mixte),
+    'fige une décision de l’utilisateur (2026-10-16) : S1 de famille (12701) éteint : la seconde vignette, restée allumée, est sans effet au bit près');
+  ok(gagne(sabrina, s1Coop, eteintTourAllie, 224), 'S1 de famille (12701) éteint, champ resté allumé : 224 selon la portée, comme un sort ordinaire');
+  egal(totalDe(sabrina, tripleStrike, tourAllie, mixte), totalDe(sabrina, tripleStrike, base, mixte),
+    'fige une décision de l’utilisateur (2026-10-16) : S2 de famille (12706), pendant le tour d’un allié : sans effet au bit près');
+  egal(totalDe(sylvia, preemptive, tourAllie, mixte), totalDe(sylvia, preemptive, base, mixte), 'S1 ordinaire (10905), pendant le tour d’un allié, interrupteur absent : sans effet au bit près');
+  egal(totalDe(sylvia, preemptive, { ...allume, pendantTourAllie: true }, mixte), totalDe(sylvia, preemptive, allume, mixte), 'S1 ordinaire (10905) allumé, pendant le tour d’un allié : sans effet au bit près');
 
   // Une contribution qui suit le sort n'est pas l'attaque conjointe.
   const arcane = sortDe(teshar, 3203);
@@ -565,6 +662,11 @@ export function testAttaquesConjointesChoixArtefacts() {
     { nom: 'S1 appelé par un sort coopératif (Lisa, 10912)', ...LISA, setup: { ...base, skillCom2usId: 10912 }, conjoint: true },
     { nom: 'famille, champ absent (Sabrina, 12706)', ...SABRINA, setup: { ...base, skillCom2usId: 12706 }, conjoint: true },
     { nom: 'famille éteinte (Sabrina, 12706)', ...SABRINA, setup: { ...base, skillCom2usId: 12706, attaqueConjointe: false }, conjoint: false },
+    // S1 d'une famille (Returning Boomerang) dans les trois états de la
+    // seconde vignette « Pendant le tour d'un allié ».
+    { nom: 'S1 de famille pendant ton tour (Sabrina, 12701)', ...SABRINA, setup: { ...base, skillCom2usId: 12701 }, conjoint: true },
+    { nom: 'S1 de famille pendant le tour d’un allié (Sabrina, 12701)', ...SABRINA, setup: { ...base, skillCom2usId: 12701, pendantTourAllie: true }, conjoint: true },
+    { nom: 'S1 de famille éteint (Sabrina, 12701)', ...SABRINA, setup: { ...base, skillCom2usId: 12701, attaqueConjointe: false, pendantTourAllie: true }, conjoint: false },
   ];
 
   for (const c of cas) {
@@ -621,6 +723,12 @@ export function testAttaquesConjointesChoixArtefacts() {
     ok(!pertinence.croissants.has(208) && !pertinence.ambigus.has(208), `${c.nom} : 208 reste sans effet pour la sonde`);
     if (c.setup.skillCom2usId === 12706) {
       ok(pertinence.croissants.has(224), `${c.nom} : 224 comptée (mono-cible), allumé comme éteint`);
+    }
+    if (c.setup.skillCom2usId === 12701) {
+      const horsDuTour = c.setup.attaqueConjointe !== false && c.setup.pendantTourAllie === true;
+      egal(pertinence.croissants.has(224), !horsDuTour,
+        `${c.nom} : 224 ${horsDuTour ? 'écartée (hors du tour du monstre)' : 'comptée (mono-cible)'} par la sonde`);
+      ok(pertinence.croissants.has(411) && pertinence.croissants.has(400), `${c.nom} : 411 et 400 comptées par la sonde`);
     }
     if (c.setup.skillCom2usId === 10905) {
       egal(pertinence.croissants.has(224), !c.setup.attaqueConjointe, `${c.nom} : 224 ${c.setup.attaqueConjointe ? 'écartée (hors du tour du monstre)' : 'comptée (mono-cible)'} par la sonde`);

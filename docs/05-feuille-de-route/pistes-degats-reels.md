@@ -21,22 +21,6 @@ codée porte « Calcul partiel »
 
 ## Attaques déclenchées et hors tour
 
-### Attaques conjointes : cas restant à trancher
-
-- **Constat** : les attaques conjointes sont modélisées (lignes 209 et
-  225 dans `DMG%`, interrupteur « Attaque conjointe », S1 appelé par
-  Attack Command et Concentrated Attack :
-  [02-app/degats-reels/feat-attaques-conjointes.md](../02-app/degats-reels/feat-attaques-conjointes.md)).
-  Les attaques des familles Chakram Dancer et Boomerang Warrior,
-  interrupteur allumé (le défaut), se calculent pendant le tour du
-  monstre (contexte `propre` : 224 selon la portée, 411), à titre
-  provisoire ; or la prose des S1 (`12601`-`12605`, `12701`-`12705`) place
-  l'attaque commune pendant le tour de l'autre famille.
-- **Idée** : si les S1 des deux familles frappent hors de leur tour, la
-  ligne commentée de `contexteAttaqueConjointe` rend `appelee-par-allie`
-  pour eux (224 à 0), avec son test.
-- **Bloque** : la réponse de l'utilisateur.
-
 ### Contre-attaque : ligne d'artéfact 208
 
 - **Constat** : aucune contre-attaque n'est modélisée ; 208 (« Dgts de

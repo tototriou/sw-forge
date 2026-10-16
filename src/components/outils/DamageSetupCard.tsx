@@ -1,6 +1,7 @@
 import { Dispatch, ReactNode, SetStateAction } from 'react';
 import {
   ATTAQUE_CONJOINTE_ICON,
+  PENDANT_TOUR_ALLIE_ICON,
   BRAND_ICON,
   champsDuCombat,
   BonusDegatsConditionnelProfile,
@@ -38,6 +39,7 @@ import {
   calculPartielDuSort,
   conditionCritiqueGarantiParReglage,
   interrupteurAttaqueConjointe,
+  vignettePendantTourAllie,
   coupsAffichesDuSort,
   coupsEnPlusAncienneRecetteActif,
   coupsEnPlusDeCondition,
@@ -649,6 +651,25 @@ export default function DamageSetupCard({
           : 'Ce sort est appelé par un allié, hors du tour du monstre : les dégâts d’attaque conjointe comptent, pas les dégâts critiques sur cible unique pendant ton tour.',
       actif: interrupteurConjointe.allume,
       basculer: () => maj({ attaqueConjointe: !interrupteurConjointe.allume }),
+      deuxLignes: true,
+    });
+  }
+  // Seconde vignette des S1 des familles Chakram Dancer et Boomerang Warrior,
+  // juste après « Attaque conjointe » : la condition et l'état viennent de
+  // `vignettePendantTourAllie` (damage.ts), qui ne la propose que quand
+  // l'interrupteur des familles est allumé. Son icône est propre (S1 de
+  // Shaina), pas celle de Team Up. Dernière de la rangée : ni elle ni
+  // sa voisine ne déplacent une vignette en apparaissant.
+  const pendantTourAllie = vignettePendantTourAllie(resolved, setup);
+  if (pendantTourAllie) {
+    effetsActifs.push({
+      cle: 'pendantTourAllie',
+      icone: PENDANT_TOUR_ALLIE_ICON,
+      libelle: 'Pendant le tour d’un allié',
+      description:
+        'L’attaque conjointe a lieu pendant le tour de l’allié, hors du tour du monstre : les dégâts critiques sur cible unique pendant ton tour ne comptent pas. Éteinte, elle a lieu pendant ton tour.',
+      actif: pendantTourAllie.allume,
+      basculer: () => maj({ pendantTourAllie: !pendantTourAllie.allume }),
       deuxLignes: true,
     });
   }

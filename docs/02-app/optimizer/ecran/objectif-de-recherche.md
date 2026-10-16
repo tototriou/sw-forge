@@ -249,6 +249,19 @@ Ce que contient ce réglage :
   n'a pas d'icône dans les données : la vignette emprunte celle de « Team Up »
   de Raoq éveillé. Détail :
   [degats-reels/feat-attaques-conjointes.md § L'interrupteur](../../degats-reels/feat-attaques-conjointes.md#linterrupteur--attaque-conjointe-).
+  ⚠️ **« Pendant le tour d'un allié »**, juste après « Attaque conjointe »,
+  sur les **S1 des familles Chakram Dancer et Boomerang Warrior** seulement, et
+  seulement quand « Attaque conjointe » est allumée : elle n'apparaît que quand
+  `vignettePendantTourAllie` de `damage.ts` la propose. Éteinte par défaut ;
+  allumée, le S1 frappe pendant le tour de l'allié, hors du tour du monstre.
+  Le clic écrit `pendantTourAllie: !allume`. Sa description, en mots du jeu
+  et sans numéro d'artéfact : l'attaque conjointe a lieu pendant le tour de
+  l'allié, les dégâts critiques sur cible unique pendant ton tour ne comptent
+  pas. Libellé sur deux lignes, comme sa voisine ; sa propre icône, celle de
+  Crescent Moon Slash, le S1 de Shaina (choix de l'utilisateur). Dernière de
+  la rangée : elle apparaît et disparaît sans déplacer la vignette qu'on vient
+  de cliquer. Détail :
+  [degats-reels/feat-attaques-conjointes.md § La seconde vignette](../../degats-reels/feat-attaques-conjointes.md#la-seconde-vignette--pendant-le-tour-dun-allié-).
 
   ⚠️ **Les buffs ATQ/DEF/VIT et le leader skill n'y sont pas** : ils
   sont dans « État de mon monstre »

@@ -100,11 +100,11 @@ export function testEffetsActifsInfobulle() {
   const construction = entre(carte, 'const effetsActifs: EffetActif[] = [];', '\n  return (');
   ok(construction.length > 0, 'précondition : la liste est construite avant le rendu');
   egal([...construction.matchAll(/cle: '([a-zA-Z]+)'/g)].map((m) => m[1]),
-    ['defBreak', 'defBreakParLeSort', 'brand', 'euldong', 'mirinae', 'deborah', 'miriam', 'transmission', 'velaska', 'attaqueConjointe'],
-    'liste : les dix effets, dans l’ordre d’affichage (« Attaque conjointe » en dernier, sans déplacer les autres)');
-  // Neuf descriptions simples ; celle d'« Attaque conjointe » est un ternaire
+    ['defBreak', 'defBreakParLeSort', 'brand', 'euldong', 'mirinae', 'deborah', 'miriam', 'transmission', 'velaska', 'attaqueConjointe', 'pendantTourAllie'],
+    'liste : les onze effets, dans l’ordre d’affichage (« Attaque conjointe » puis « Pendant le tour d’un allié » en dernier, sans déplacer les autres)');
+  // Dix descriptions simples ; celle d'« Attaque conjointe » est un ternaire
   // (deux cas), comptée à part.
-  egal([...construction.matchAll(/description:\s*'[^']+'/g)].length, 9, 'liste : une description écrite par effet, une seule fois');
+  egal([...construction.matchAll(/description:\s*'[^']+'/g)].length, 10, 'liste : une description écrite par effet, une seule fois');
   egal([...construction.matchAll(/description:\s*interrupteurConjointe\.cas === 'familles-cooperatives'\s*\?\s*'[^']+'\s*:\s*'[^']+'/g)].length, 1,
     'liste : « Attaque conjointe » a deux descriptions, une par cas de l’interrupteur');
   egal(construction.match(/\b(209|224|225)\b/g) ?? [], [], 'liste : aucune description ne cite de numéro d’artéfact');
@@ -116,6 +116,15 @@ export function testEffetsActifsInfobulle() {
   ok(construction.includes('basculer: () => maj({ attaqueConjointe: !interrupteurConjointe.allume })'),
     'Attaque conjointe : le clic écrit `attaqueConjointe: !allume` par `maj`');
   ok(/deuxLignes: true/.test(construction), 'Attaque conjointe : son libellé passe sur deux lignes');
+  // « Pendant le tour d'un allié » : la condition et l'état sont ceux de
+  // `vignettePendantTourAllie`, le clic bascule la seconde vignette.
+  ok(/const pendantTourAllie = vignettePendantTourAllie\(resolved, setup\);\s*if \(pendantTourAllie\) \{\s*effetsActifs\.push\(\{\s*cle: 'pendantTourAllie',/.test(construction),
+    'Pendant le tour d’un allié : seulement si `vignettePendantTourAllie` la propose (S1 des familles, interrupteur allumé)');
+  ok(construction.includes('actif: pendantTourAllie.allume,'), 'Pendant le tour d’un allié : l’état est celui que rend la fonction');
+  ok(construction.includes('basculer: () => maj({ pendantTourAllie: !pendantTourAllie.allume })'),
+    'Pendant le tour d’un allié : le clic écrit `pendantTourAllie: !allume` par `maj`');
+  egal((construction.match(/deuxLignes: true/g) ?? []).length, 2, 'Pendant le tour d’un allié : son libellé passe aussi sur deux lignes');
+  ok(!/setup\.pendantTourAllie/.test(construction), 'Pendant le tour d’un allié : le champ n’est jamais lu directement, seulement par la porte');
 
   // « Seulement les effets présents » : les conditions d'affichage d'avant.
   ok(/if \(montreDefEnnemie\) \{\s*effetsActifs\.push\(\{\s*cle: 'defBreak',/.test(construction), 'Def break : seulement si la DEF ennemie compte pour ce sort');

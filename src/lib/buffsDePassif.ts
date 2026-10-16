@@ -92,7 +92,7 @@ export const BUFFS_POSES_PAR_PASSIF_CONNUS: Readonly<Record<number, BuffPoseParP
   // Carbine 22713 — « increases the Attack Power for 1 turn whenever the enemy's attack lands as a Glancing Hit »
   // (prose seule : la fiche n'a que `Increase ATB`).
   13213: { buffs: ['atk'], mode: 'tous', condition: "whenever the enemy's attack lands as a Glancing Hit" },
-  // (Azazel, Kazuya Mishima et True Devil Kazuya, formes de boss, n'y sont plus : `formesJouables` les écarte.)
+  // (Azazel, Kazuya Mishima et True Devil Kazuya, formes de boss non obtenables, n'y sont plus : `formesJouables` les écarte.)
 };
 
 /** Les libellés des vignettes d'« État de mon monstre » ; le Taux Crit n'en a pas. */

@@ -113,13 +113,12 @@ garde qu'une, vérifié par
 - ⚠️ **Un second éveil n'est PAS une transformation.** Ses deux formes se
   distinguent (nom, icône, stats) et restent toutes les deux — c'est
   `formesJouables` qui les arbitre, et seulement dans les sélecteurs.
-- ⚠️ **Cinq formes de boss ne sont pas proposées dans les sélecteurs** :
-  Azazel `2003503`, Kazuya Mishima `2003601`, True Devil Kazuya
-  `2003705`, The Witch-king of Angmar `2004003` et Solide `2004103` (6 étoiles,
-  rareté naturelle 1, prose « the boss's »). `formesJouables` les écarte par
-  cette **liste d'identifiants** (`FORMES_DE_BOSS_ECARTEES`,
-  `src/lib/monsterForms.ts`), pas par une règle déduite des champs. Le Bestiaire,
-  lui, les garde : on peut lire leurs stats.
+- ⚠️ **Les formes non obtenables ne sont pas proposées dans les sélecteurs** :
+  formes de boss (Azazel `2003503`, Mouth of Sauron `2003805`…), anciens
+  doublons (les Ifrit éveillés `17111` à `17115`, qui doublaient Veromos et ses
+  frères), placeholders à nom coréen. `formesJouables` les écarte d'après le
+  champ `obtainable` de SWARFARM (`estObtenable`, `src/lib/monsterForms.ts`),
+  sans liste d'identifiants à tenir à la main.
 - La règle s'applique **au Bestiaire comme à la box du compte** : posséder le
   monstre, c'est posséder ses deux formes. Sur ~3 000 entrées, **58** sont ainsi
   écartées.

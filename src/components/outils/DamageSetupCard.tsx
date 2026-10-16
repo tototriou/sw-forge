@@ -1,5 +1,6 @@
 import { Dispatch, ReactNode, SetStateAction } from 'react';
 import {
+  ATTAQUE_CONJOINTE_ICON,
   BRAND_ICON,
   champsDuCombat,
   BonusDegatsConditionnelProfile,
@@ -332,10 +333,6 @@ interface EffetActif {
   actif: boolean;
   basculer: () => void;
 }
-
-// L'effet `Ally Attack` n'a pas d'icône dans les données (`icone: null`) ; à
-// défaut, l'icône de compétence de Group Hunt, un sort coopératif.
-const ATTAQUE_CONJOINTE_ICON = 'https://swarfarm.com/static/herders/images/skills/skill_icon_0000_6_6.png';
 
 // Champ « nombre de coups » d'un sort/passif à coups VARIABLES en jeu (Sia,
 // Okeanos S3…) — absent si `profile.hitsRange` ne l'autorise pas. Partagé

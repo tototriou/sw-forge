@@ -168,6 +168,11 @@ import {
   testAttaquesConjointesTotalALaMain,
   testAttaquesConjointesChoixArtefacts,
 } from './degats-attaques-conjointes.test';
+import {
+  testAttaquesConjointesRecetteChamp,
+  testAttaquesConjointesRecetteTransitions,
+  testAttaquesConjointesRecetteCli,
+} from './attaques-conjointes-recette.test';
 import testRuneOptim from './rune-optim.test';
 import testRuneOptimDifferential from './rune-optim-differential.test';
 import testBuildsRapides from './builds-rapides.test';
@@ -585,6 +590,9 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testAttaquesConjointesCalcul', testAttaquesConjointesCalcul],
   ['testAttaquesConjointesTotalALaMain', testAttaquesConjointesTotalALaMain],
   ['testAttaquesConjointesChoixArtefacts', testAttaquesConjointesChoixArtefacts],
+  ['testAttaquesConjointesRecetteChamp', testAttaquesConjointesRecetteChamp],
+  ['testAttaquesConjointesRecetteTransitions', testAttaquesConjointesRecetteTransitions],
+  ['testAttaquesConjointesRecetteCli', testAttaquesConjointesRecetteCli],
   ['testRecetteClesIdentifiant', testRecetteClesIdentifiant],
   ['testFormesEquivalentes', testFormesEquivalentes],
   ['testDegatsTempestFormule', testDegatsTempestFormule],

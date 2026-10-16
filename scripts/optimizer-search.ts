@@ -33,6 +33,7 @@ import {
   bonusPassifActif,
   cibleDegatsRetenue,
   cibleSecondairePriseEnCharge,
+  contexteAttaqueConjointe,
   damageRelevantStats,
   monsterBonusDegatsConditionnel,
   monsterBonusDegatsSelonCr,
@@ -230,6 +231,9 @@ if (recipe.objective === 'degats_reels') {
         `${s.atkBuff ? ' — buff ATQ' : ''}${s.defBuff ? ' — buff DEF' : ''}${s.spdBuff ? ' — buff VIT' : ''}` +
         `${profile.bonusParEffetPropre?.source === 'buffs' ? ` — buffs propres ${resolvedBuffsPropresCount(profile.skillCom2usId, s)}/10` : ''}` +
         `${s.defBreak ? ' — def break avant' : ''}${s.defBreakParLeSort ? ' — def break posé par le sort' : ''}` +
+        // Lu par la seule porte `contexteAttaqueConjointe` : affiché seulement
+        // quand l'interrupteur agit (S1 choisi, non conjoint par lui-même).
+        `${contexteAttaqueConjointe(profile, s, 'sort-choisi') === 'appelee-par-allie' ? ' — attaque conjointe (appelée par un allié)' : ''}` +
         `${s.brand ? ' — marque' : ''}` +
         `${s.euldongActif ? ' — Euldong' : ''}${s.mirinaeActif ? ' — Mirinae' : ''}${s.deborahActif ? ' — Deborah' : ''}${s.miriamActif ? ' — Miriam' : ''}${s.transmissionActif ? ' — Dr. Matteo' : ''}${s.velaskaActif ? ` — Velaska (${s.velaskaPvPerduPct ?? 0}% PV perdus)` : ''}` +
         `${lead ? ` — lead ${lead.stat} +${lead.pct}%` : ''}` +

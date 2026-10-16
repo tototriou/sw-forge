@@ -160,6 +160,7 @@ import {
   testAttaqueAppeleeApprovisionnement,
   testAttaqueAppeleeCouverture,
   testAttaqueAppeleeEspaceDeCles,
+  testAttaqueAppeleeParSortCooperatif,
 } from './degats-attaque-appelee.test';
 import {
   testAttaquesConjointesRegle,
@@ -580,6 +581,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testAttaqueAppeleeApprovisionnement', testAttaqueAppeleeApprovisionnement],
   ['testAttaqueAppeleeCouverture', testAttaqueAppeleeCouverture],
   ['testAttaqueAppeleeEspaceDeCles', testAttaqueAppeleeEspaceDeCles],
+  ['testAttaqueAppeleeParSortCooperatif', testAttaqueAppeleeParSortCooperatif],
   ['testAttaquesConjointesRegle', testAttaquesConjointesRegle],
   ['testAttaquesConjointesPorte', testAttaquesConjointesPorte],
   ['testAttaquesConjointesCalcul', testAttaquesConjointesCalcul],

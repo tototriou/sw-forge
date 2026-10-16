@@ -113,8 +113,29 @@ choisissable dans « Compétence utilisée », et son total est celui du S1
 appelé, compté comme attaque conjointe **pendant le tour du monstre** :
 224 suit la portée du S1, 411 s'applique (le déclencheur ne frappe pas),
 et le S1 reçoit la ligne de SON slot. Le mécanisme est celui des attaques
-appelées ([feat-attaque-apres-un-sort.md](feat-attaque-apres-un-sort.md)),
+appelées ([feat-attaque-apres-un-sort.md § Sort coopératif sans dégâts propres](feat-attaque-apres-un-sort.md#sort-coopératif-sans-dégâts-propres)),
 sans interrupteur : l'appel est certain.
+
+- **Le profil** porte l'identité du déclencheur (identifiant gardé par la
+  recette, « S3 », nom, prose) et le calcul du S1 de la même fiche, trouvé
+  par le slot ; il est marqué `appeleParSortCooperatif`, que la porte
+  range dans le contexte `appelee-par-sort`, et `competenceQuiFrappe`, que
+  lisent les lignes 400-403 et 410.
+- **Un appel du S1**, jamais le nombre de coups que la donnée du
+  déclencheur porte : il compte les alliés, dont les dégâts ne comptent
+  pas.
+- **Le sort par défaut ne change pas** : le déclencheur n'est jamais le
+  défaut, qui reste le S2.
+- ⚠️ Les lignes 400 et 411 sont déduites de l'interrupteur et des réponses de
+  l'utilisateur sur les attaques appelées, à relire par l'utilisateur
+  ([valeurs curées](valeurs-de-jeu-curees.md)). Avec l'autre lecture (la
+  ligne du slot du déclencheur), Attack Command recevrait 402 et 410 au
+  lieu de 400.
+
+| Déclencheur | Monstres (fiches) | S1 appelé | Ce que dit la prose |
+| --- | --- | --- | --- |
+| `10912` Attack Command | Lisa (`20112`), Neostone Agent feu (`20102`) | `10902` Preemptive Strike, `1.9*{ATK}`, 2 coups | « attacks the enemy target with 2 other allies » : le S1 n'est pas nommé, son appel (une fois) est la décision de l'utilisateur |
+| `3163` Concentrated Attack | Moria 2e éveil (`12033`) ; copie « boss » (`48003`) | `3153` Cross Attack (`3168` sur la copie), `4.5*{ATK}`, 1 coup | « Attacks the enemy with an ally at the same time with [Cross Attack]. You and the ally's attack will always land as a Critical Hit » : le S1 appelé critique **toujours**, quel que soit le réglage |
 
 ## Les sorts par identifiant
 
@@ -170,7 +191,8 @@ table les garde si une donnée régénérée leur prêtait une formule.
 - **Sans formule** : Assailing Horn (`17515`, Eivor ténèbres) et Flag of
   Ambush (`18015`, Sigrid), où le monstre ne frappe pas, sont exclus ;
   Attack Command (`10912`, Lisa) et Concentrated Attack (`3163`, Moria 2e
-  éveil) appellent le S1, et c'est ce S1 qui est conjoint (troisième cas).
+  éveil) appellent le S1, et c'est ce S1 qui est conjoint (troisième cas,
+  [Le S1 appelé par un sort coopératif](#le-s1-appelé-par-un-sort-coopératif)).
 - **Purification, Cooperation!** (`21415`, Nezuko Kamado ténèbres) et
   **Rite of Ashes** (`22015`, Vermilion Bird Dancer) : effet `Ally Attack`
   sans formule de donnée. Le calcul les connaît par une formule curée
@@ -211,8 +233,18 @@ libellés qui figent une décision de l'utilisateur le disent.
   (`chercherPaires`, paramètres de `parametresArtefactsFiche`, note de
   `evaluerPourRegime`) contre l'énumération exhaustive des paires, sur 40
   inventaires tirés au hasard (graine fixe), dont un sur quatre verrouille
-  209 : sort conjoint, S1 appelé par un allié, sort non conjoint. Sur les
-  deux premiers, 209/225 changent la paire choisie dans une partie des
-  inventaires ; sur le dernier, retirer 208/209/225 ne change ni la paire ni
-  le score. La sonde de pertinence compte 209 et 225 sur une attaque
-  conjointe seulement, jamais 208.
+  209 : sort conjoint, S1 appelé par un allié, sort non conjoint (Sylvia),
+  S1 appelé par un sort coopératif (Attack Command, Lisa). Sur les
+  conjoints, 209/225 changent la paire choisie dans une partie des
+  inventaires ; sur le non conjoint, retirer 208/209/225 ne change ni la
+  paire ni le score. La sonde de pertinence compte 209 et 225 sur une
+  attaque conjointe seulement, jamais 208 ; sur Attack Command, elle compte
+  224 et 400, jamais 402 ni 410.
+
+Le S1 appelé par un sort coopératif a ses propres vérifications, avec les
+attaques appelées : `testAttaqueAppeleeParSortCooperatif`
+([tests/degats-attaque-appelee.test.ts](../../../tests/degats-attaque-appelee.test.ts),
+`node tests/run.mjs attaqueappelee`) — les quatre fiches du corpus,
+totaux de Lisa et de Moria écrits à la main (224, 400, 402, 410, 411,
+critique garanti), sort par défaut inchangé, gardes, aller-retour de
+recette.

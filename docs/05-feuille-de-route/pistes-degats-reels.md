@@ -23,23 +23,21 @@ codée porte « Calcul partiel »
 
 ### Attaques conjointes : lignes d'artéfact 209 et 225
 
-- **Constat** : les lignes 209 (« Dgts d'attaque conjointe ») et 225
-  (« Dgts de contre-attaque/attaque conjointe ») existent
-  (`src/lib/artifacts.ts`), mais le calcul des dégâts n'en lit aucune ;
-  224 (« D.CRIT+ comp cib uniq pdt tour ») est lue selon la portée du
-  sort, sans notion de tour (`damage.ts`).
-- **Idée** : un choix « attaque conjointe » dans « Effets actifs », pour
-  un S1 ou un sort à effet `Ally Attack`, qui ajoute 209 et la part
-  conjointe de 225 au terme `DMG%` des lignes élémentaires, sans 208 ;
-  un S1 qui participe pendant le tour d'un autre perd 224 (et 411 à
-  examiner), un S1 ordinaire la garde. Assailing Horn (`17515`, Eivor) et
-  Flag of Ambush (`18015`, Sigrid) portent `Ally Attack` sans formule : une
-  coopération sans dégâts propres est exclue.
-- **Bloque** : un chantier à cadrer. L'effet `Ally Attack` ne couvre
-  pas tous les sorts concernés (inclusion par identifiant) ; plusieurs
-  n'ont pas de formule principale ; à trancher : additionner ou non les
-  dégâts des alliés, et le sort d'un S1 `Ally Attack` appelé hors de son
-  tour.
+- **Constat** : le calcul compte 209 (« Dgts d'attaque conjointe ») et
+  225 (« Dgts de contre-attaque/attaque conjointe ») dans le terme `DMG%`
+  sur une attaque conjointe, et le choix des artéfacts les suit
+  ([02-app/degats-reels/feat-attaques-conjointes.md](../02-app/degats-reels/feat-attaques-conjointes.md)).
+  Le réglage `DamageSetup.attaqueConjointe` (S1 appelé par un allié) existe
+  au calcul, mais ni l'écran, ni la recette, ni le CLI ne le posent ; aucun
+  S1 appelé par un sort coopératif n'est curé.
+- **Idée** : l'interrupteur « Attaque conjointe » dans « Effets actifs »,
+  pour un S1 qui n'est pas conjoint par lui-même ; les S1 appelés par
+  Attack Command (`10912`, Lisa) et Concentrated Attack (`3163`, Moria 2e
+  éveil) dans `ATTAQUES_APPELEES_PAR_DECLENCHEUR`.
+- **Bloque** : à trancher, Purification, Cooperation! (`21415`) et Rite
+  of Ashes (`22015`), dont la prose ne dit pas s'ils appellent le S1 ;
+  Violent Friends sans l'effet (`3415`, `3480`) ; un S1 appelé par un allié
+  suivi d'un passif « on your turn » (Tempest).
 
 ### Compétence active appelée par un sort
 

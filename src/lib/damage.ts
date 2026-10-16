@@ -489,6 +489,13 @@ const CODE_CD_PV_CIBLE_BAS = 223;
 // « Dgts de bombe » — ne vaut que pour un sort de bombe.
 const CODE_DEGATS_BOMBE = 210;
 
+// « Dgts d'attaque conjointe » (209) et « Dgts de contre-attaque/attaque
+// conjointe » (225) — des dégâts infligés en plus, dans le terme DMG%, sur
+// une attaque conjointe seulement (`contexteAttaqueConjointe`).
+// ⚠️ 208 (« Dgts de contre-attaque ») n'y entre JAMAIS : aucune contre-attaque
+// n'est modélisée, et 225 ne compte que pour sa part d'attaque conjointe.
+const CODES_DEGATS_ATTAQUE_CONJOINTE: ReadonlySet<number> = new Set([209, 225]);
+
 // Ce qu'une paire d'artéfacts apporte au calcul de dégâts.
 //
 // ⚠️ **Un OBJET plutôt qu'un nombre**, là où le code ne portait que
@@ -524,6 +531,11 @@ export interface ArtifactDamageProfile {
   cdPointsPvCibleBas: number;
   // Majoration des dégâts de bombe (code 210).
   degatsBombePct: number;
+  // Dégâts infligés en plus sur une ATTAQUE CONJOINTE (codes 209 et 225,
+  // sommés ; jamais 208). Le profil reste une fonction pure des artéfacts :
+  // c'est l'appelant du calcul qui le remet à 0 quand l'attaque calculée
+  // n'est pas conjointe (`artefactsSelonContexteConjoint`).
+  degatsAttaqueConjointePct: number;
 }
 
 // Aucun artéfact pris en compte — comportement strictement inchangé.
@@ -542,6 +554,7 @@ export const ARTIFACT_DAMAGE_NEUTRE: ArtifactDamageProfile = {
   cdPointsPvCibleHauts: 0,
   cdPointsPvCibleBas: 0,
   degatsBombePct: 0,
+  degatsAttaqueConjointePct: 0,
 };
 
 // Majoration à appliquer contre CETTE cible — 0 si l'utilisateur a choisi
@@ -585,6 +598,7 @@ export function artifactDamageProfile(artifacts: ArtifactDetail[]): ArtifactDama
       else if (s.code === CODE_CD_PV_CIBLE_HAUTS) p.cdPointsPvCibleHauts += s.value;
       else if (s.code === CODE_CD_PV_CIBLE_BAS) p.cdPointsPvCibleBas += s.value;
       else if (s.code === CODE_DEGATS_BOMBE) p.degatsBombePct += s.value;
+      else if (CODES_DEGATS_ATTAQUE_CONJOINTE.has(s.code)) p.degatsAttaqueConjointePct += s.value;
       else {
         const el = CODE_DEGATS_ELEMENT[s.code];
         if (el) p.degatsElementPct[el] = (p.degatsElementPct[el] ?? 0) + s.value;
@@ -2331,6 +2345,17 @@ export interface SkillDamageProfile {
   // absent : une S1 n'est pas un passif.
   // Donnée pure : traverse le Worker de résolution avec le profil.
   passif?: boolean;
+  // Vrai = sort COOPÉRATIF du monstre, toujours une attaque conjointe — posé
+  // par `skillDamageProfile` selon `estSortCooperatif` (effet `Ally Attack`
+  // et tables par identifiant). Absent = sort ordinaire. Donnée pure, lue par
+  // la seule `contexteAttaqueConjointe`.
+  sortCooperatif?: true;
+  // Vrai = ce profil est celui d'un S1 APPELÉ par un sort coopératif sans
+  // dégâts propres (le déclencheur ne frappe pas) : attaque conjointe pendant
+  // le tour du monstre. Posé par le chemin des attaques appelées, jamais par
+  // `skillDamageProfile`. Donnée pure, lue par la seule
+  // `contexteAttaqueConjointe`.
+  appeleParSortCooperatif?: true;
   nom: string;
   description: string | null;
   icone: string | null;
@@ -3553,6 +3578,114 @@ export function resumeSequenceDeCoups(sequence: readonly Pick<GroupeDeCoups, 'co
   return sequence.map((g) => `${g.coups} coup${g.coups > 1 ? 's' : ''} · ${g.zone ? 'Zone' : 'Cible unique'}`).join(', puis ');
 }
 
+// ── Attaques conjointes ──────────────────────────────────────────────────
+//
+// Règle générale : une compétence ACTIVE dont la DONNÉE porte une formule et
+// l'effet SWARFARM `Ally Attack` est un sort coopératif du monstre, toujours
+// une attaque conjointe (décision de l'utilisateur, 2026-10-16). Les deux
+// tables ci-dessous en sont les EXCEPTIONS curées, jamais une liste blanche :
+// un sort coopératif nouveau à effet `Ally Attack` est reconnu sans curation.
+// Spec : docs/02-app/degats-reels/feat-attaques-conjointes.md.
+//
+// ⚠️ « Toujours » vaut aussi pour les dix S1 de Chakram Dancer et de
+// Boomerang Warrior (12601-12605, 12701-12705), qui portent l'effet alors que
+// leur prose place l'attaque commune pendant le tour de l'AUTRE famille : la
+// règle les prend tels quels (décision de l'utilisateur).
+//
+// ⚠️ « À formule » = la formule de la DONNÉE (`Competence.formule`), pas celle
+// que retient le calcul. Purification, Cooperation! (21415) et Rite of Ashes
+// (22015) portent `Ally Attack` sans formule de donnée : leur ratio vient de
+// `FORMULES_CUREES_PAR_ID` (l'attaque du monstre seule), et leur prose ne dit
+// pas si le monstre y frappe avec son S1. Ils restent non conjoints, leur
+// total inchangé, tant que ce point n'est pas tranché.
+
+// INCLUSION — sorts coopératifs à formule dont la donnée ne porte pas
+// `Ally Attack`, rangés parmi les attaques conjointes par l'utilisateur
+// (2026-10-16). Un identifiant, jamais un nom : Cutting Magic de Lisa et
+// Neostone Agent feu (10907, même nom, même ratio) n'en est pas.
+const SORTS_COOPERATIFS_SANS_EFFET_PAR_ID: ReadonlySet<number> = new Set([
+  10910, // Cutting Magic — Sylvia, Neostone Agent ténèbres
+  12608, // Double Strike — Melissa, Chakram Dancer vent
+  12615, // Moonlight Blow — Belita, Chakram Dancer ténèbres
+  12712, // Flame Drive — Maruna, Boomerang Warrior feu
+  12713, // Vacuum Boomerang — Zenobia, Boomerang Warrior vent
+]);
+
+// EXCLUSION — compétences dont l'effet `Ally Attack` ne désigne pas une
+// attaque du monstre lui-même. Toutes deux sont des passifs sans formule, que
+// la règle écarte déjà : la table les garde si une donnée régénérée leur
+// prêtait une formule.
+const ALLY_ATTACK_SANS_ATTAQUE_DU_MONSTRE_PAR_ID: ReadonlySet<number> = new Set([
+  10915, // Best Partner (Passive) — Sylvia : « A randomly selected ally also attacks »
+  12711, // Female Warrior (Passive) — Sabrina : l'effet partagé avec Chakram Dancer
+]);
+
+/** Le sort est-il un sort coopératif du monstre ? Règle et exceptions ci-dessus. */
+export function estSortCooperatif(c: Competence): boolean {
+  if (c.com2usId == null || ALLY_ATTACK_SANS_ATTAQUE_DU_MONSTRE_PAR_ID.has(c.com2usId)) return false;
+  if (c.passif) return false;
+  if (SORTS_COOPERATIFS_SANS_EFFET_PAR_ID.has(c.com2usId)) return true;
+  return (c.formule ?? '').trim() !== '' && c.effets.some((e) => e.nom === 'Ally Attack');
+}
+
+// Le contexte d'une attaque conjointe — chacun avec ses lignes d'artéfact
+// (spec, « Ce que change une attaque conjointe »).
+export type ContexteAttaqueConjointe = 'propre' | 'appelee-par-allie' | 'appelee-par-sort';
+
+// D'où vient l'attaque calculée : le sort choisi lui-même, ou une contribution
+// qui le SUIT dans le même calcul (passif offensif, attaque appelée de
+// `ATTAQUES_APPELEES_PAR_DECLENCHEUR`).
+export type CheminDeLAttaque = 'sort-choisi' | 'suite-du-sort';
+
+/**
+ * LA porte des attaques conjointes : l'attaque calculée est-elle conjointe, et
+ * dans quel contexte ? `null` = non. Seule expression de la règle : le calcul
+ * la lit, l'écran, le CLI et le Worker la liront, jamais une seconde copie.
+ *
+ * - `propre` : sort coopératif du monstre (`sortCooperatif`), quel que soit le
+ *   chemin. 224 suit la portée, 411 le premier coup du tour.
+ * - `appelee-par-sort` : S1 appelé par un sort coopératif sans dégâts propres
+ *   (`appeleParSortCooperatif`, posé par le chemin des attaques appelées),
+ *   pendant le tour du monstre. 224 suit la portée du S1 ; 411 s'applique, le
+ *   déclencheur ne frappant pas ; le S1 reçoit la ligne de SON slot.
+ * - `appelee-par-allie` : le S1 CHOISI, non coopératif, interrupteur
+ *   « Attaque conjointe » allumé (`setup.attaqueConjointe === true`) : appelé
+ *   par un allié, hors du tour du monstre. 224 ne s'applique pas, 411 si.
+ *   Sans effet sur tout autre sort, ni sur un S1 qui suit le sort choisi.
+ *
+ * Un passif n'est jamais une attaque conjointe. 209 et 225 comptent dans les
+ * trois contextes, 208 dans aucun.
+ */
+export function contexteAttaqueConjointe(
+  profile: Pick<SkillDamageProfile, 'passif' | 'slot' | 'sortCooperatif' | 'appeleParSortCooperatif'>,
+  setup: Pick<DamageSetup, 'attaqueConjointe'>,
+  chemin: CheminDeLAttaque
+): ContexteAttaqueConjointe | null {
+  if (profile.passif) return null;
+  if (profile.appeleParSortCooperatif) return 'appelee-par-sort';
+  if (profile.sortCooperatif) return 'propre';
+  if (chemin === 'sort-choisi' && profile.slot === 1 && setup.attaqueConjointe === true) return 'appelee-par-allie';
+  return null;
+}
+
+/**
+ * Les artéfacts tels qu'ils comptent pour l'attaque calculée, selon son
+ * contexte (`contexteAttaqueConjointe`) : 209 et 225 remis à 0 hors d'une
+ * attaque conjointe ; 224 remis à 0 pour un S1 appelé par un allié, hors du
+ * tour du monstre. Rend l'objet reçu quand rien ne change : aucune allocation
+ * dans la boucle de l'optimiseur pour une paire sans ces lignes.
+ */
+export function artefactsSelonContexteConjoint(
+  artefacts: ArtifactDamageProfile,
+  contexte: ContexteAttaqueConjointe | null
+): ArtifactDamageProfile {
+  if (contexte === null) {
+    return artefacts.degatsAttaqueConjointePct === 0 ? artefacts : { ...artefacts, degatsAttaqueConjointePct: 0 };
+  }
+  if (contexte === 'appelee-par-allie' && artefacts.cdPointsMonoCible !== 0) return { ...artefacts, cdPointsMonoCible: 0 };
+  return artefacts;
+}
+
 /**
  * Profil de dégâts d'une compétence, ou `null` si elle n'inflige pas de
  * dégâts calculables. Ne lève jamais.
@@ -3651,6 +3784,7 @@ export function skillDamageProfile(c: Competence): SkillDamageProfile | SkillDam
   }
   return {
     ...entete,
+    ...(estSortCooperatif(c) ? { sortCooperatif: true as const } : {}),
     icone: c.icone,
     formule: brut,
     hits,
@@ -4419,6 +4553,11 @@ export interface DamageSetup {
   // variante `defBreak`). N'a de sens que si `profile.appliqueDefBreak` :
   // l'écran ne l'affiche que dans ce cas. Optionnel (compatibilité arrière).
   defBreakParLeSort?: boolean;
+  // Interrupteur « Attaque conjointe » : le S1 choisi, non coopératif, est
+  // appelé par un allié, hors du tour du monstre (209 et 225 comptent, 224
+  // non). Lu par la seule `contexteAttaqueConjointe`, sans effet sur tout
+  // autre sort. Absent = éteint, ce qui préserve les recettes antérieures.
+  attaqueConjointe?: boolean;
   brand: boolean;
   // Effets d'ÉQUIPE (un autre monstre que celui optimisé) — voir les
   // constantes `EULDONG_CD_POINTS`/`MIRINAE_BONUS_PCT`/`DEBORAH_AMPLIFY`/
@@ -5371,6 +5510,9 @@ export function computeSkillDamageDetail(
   // Ce que les artéfacts apportent (voir `artifactDamageProfile`) — fixe pour
   // toute une recherche, calculé UNE fois par l'appelant. Le neutre laisse le
   // comportement strictement inchangé.
+  // ⚠️ Pris tel quel pour CETTE attaque, comme 411 : son contexte conjoint
+  // (209/225, 224) est appliqué AVANT par `artefactsSelonContexteConjoint` —
+  // `computeTotalDamage` le fait ; un appel direct passe un profil déjà résolu.
   artefacts: ArtifactDamageProfile = ARTIFACT_DAMAGE_NEUTRE,
   // Modificateurs monstre-wide qui touchent directement le Taux Crit/Dgts
   // Crit — DÉDUITS de la fiche (`monsterCritRateSelonVit`/
@@ -5786,9 +5928,14 @@ export function computeSkillDamageDetail(
   // jamais sur une bombe, jamais sur le bucket Additionnel — ce n'est pas un
   // choix pris ici, c'est ce que le bracket fait déjà. Le gain se calcule dans
   // `relicExclusive.ts` ; `0` = comportement strictement inchangé.
+  // ⚠️ 209 et 225 (`degatsAttaqueConjointePct`) s'additionnent ici aux lignes
+  // élémentaires, et en suivent donc les exclusions — ni bombe, ni bucket
+  // Additionnel (décision de l'utilisateur). Le profil reçu est déjà celui de
+  // CETTE attaque : 0 hors d'une attaque conjointe
+  // (`artefactsSelonContexteConjoint`, appliqué par `computeTotalDamage`).
   const dmgPct = profile.bombe || (profile.fixed && profile.bonusElementaireSurFixe === false)
     ? 1
-    : 1 + (bonusElement + reliqueDmgPct) / 100;
+    : 1 + (bonusElement + artefacts.degatsAttaqueConjointePct + reliqueDmgPct) / 100;
   // « Dgts de bombe » (210) — sa propre majoration, réservée aux bombes. Elle
   // ne peut pas vivre dans DMG%, dont les bombes sont justement exclues.
   const facteurBombe = profile.bombe ? 1 + artefacts.degatsBombePct / 100 : 1;
@@ -6294,8 +6441,13 @@ export function computeTotalDamage(
   // (valeurs-de-jeu-curees.md : « jamais sur Tempest, même sélectionné seul »).
   // Hors de la boucle des passifs : un objet par appel au
   // plus, et seulement dans ce cas.
-  const artefactsSort: ArtifactDamageProfile =
-    profile.passif && artefacts.cdPointsPremiereAttaque > 0 ? { ...artefacts, cdPointsPremiereAttaque: 0 } : artefacts;
+  // Puis le contexte d'attaque conjointe du sort choisi, par la porte
+  // (`contexteAttaqueConjointe`) : 209/225 hors d'une attaque conjointe, 224
+  // pour un S1 appelé par un allié.
+  const artefactsSort: ArtifactDamageProfile = artefactsSelonContexteConjoint(
+    profile.passif && artefacts.cdPointsPremiereAttaque > 0 ? { ...artefacts, cdPointsPremiereAttaque: 0 } : artefacts,
+    contexteAttaqueConjointe(profile, setup, 'sort-choisi')
+  );
   // ⚠️ Les PV de la cible sont ENCHAÎNÉS du sort actif vers les passifs :
   // ceux-ci frappent après lui, sur une cible déjà entamée. C'est ce qui
   // permet à un bonus « si les PV sont tombés sous X % » (Final Strike) de
@@ -6332,6 +6484,10 @@ export function computeTotalDamage(
   // GC pure. Le reste du profil est partagé tel quel.
   const artefactsPassif: ArtifactDamageProfile =
     artefacts.cdPointsPremiereAttaque > 0 ? { ...artefacts, cdPointsPremiereAttaque: 0 } : artefacts;
+  // Une contribution qui suit le sort a son propre contexte conjoint (porte,
+  // chemin `'suite-du-sort'`) — `null` pour tout passif : construit une fois,
+  // le cas courant ne coûte aucune allocation par passif.
+  const artefactsSuiteNonConjointe = artefactsSelonContexteConjoint(artefactsPassif, null);
   // État de la cible après le dernier coup du sort, poses du scénario
   // comprises, pour les contributions qui SUIVENT le sort.
   // Calculé UNE fois par appel, et seulement sous scénario actif :
@@ -6352,6 +6508,9 @@ export function computeTotalDamage(
     const setupsPassifParCoup = p.coupsDuSortActif
       ? setupsAvantChaqueCoup(profile, setup, monsterWide, [p.profile])
       : null;
+    const contextePassif = contexteAttaqueConjointe(p.profile, setup, 'suite-du-sort');
+    const artefactsDuPassif =
+      contextePassif === null ? artefactsSuiteNonConjointe : artefactsSelonContexteConjoint(artefactsPassif, contextePassif);
     let detail: ReturnType<typeof computeSkillDamageDetail>;
     if (setupsPassifParCoup) {
       // Feng Yan : chaque instance de Winds and Clouds accompagne le coup
@@ -6369,7 +6528,7 @@ export function computeTotalDamage(
           propres,
           element,
           pvPassif,
-          artefactsPassif,
+          artefactsDuPassif,
           monsterWide,
           reliqueDmgPct
         );
@@ -6395,7 +6554,7 @@ export function computeTotalDamage(
       // sinon le réglage, avec la réduction que le sort pose lui-même.
       const etatCible = setupApresSort ?? setup;
       const setupPassif = avecModeCritique({ ...etatCible, defBreak: defBreakApres(etatCible) });
-      detail = computeSkillDamageDetail(profilPassif, stats, setupPassif, propres, element, pvCiblePct, artefactsPassif, monsterWide, reliqueDmgPct);
+      detail = computeSkillDamageDetail(profilPassif, stats, setupPassif, propres, element, pvCiblePct, artefactsDuPassif, monsterWide, reliqueDmgPct);
     }
     pvCiblePct = detail.pvRestantsPct;
     let contribution = detail.total;

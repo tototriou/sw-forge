@@ -36,6 +36,7 @@ import {
   estPrisEnCharge,
   calculPartielDuSort,
   conditionCritiqueGarantiParReglage,
+  contexteAttaqueConjointe,
   coupsAffichesDuSort,
   coupsEnPlusAncienneRecetteActif,
   coupsEnPlusDeCondition,
@@ -332,6 +333,10 @@ interface EffetActif {
   basculer: () => void;
 }
 
+// L'effet `Ally Attack` n'a pas d'icône dans les données (`icone: null`) ; à
+// défaut, l'icône de compétence de Group Hunt, un sort coopératif.
+const ATTAQUE_CONJOINTE_ICON = 'https://swarfarm.com/static/herders/images/skills/skill_icon_0000_6_6.png';
+
 // Champ « nombre de coups » d'un sort/passif à coups VARIABLES en jeu (Sia,
 // Okeanos S3…) — absent si `profile.hitsRange` ne l'autorise pas. Partagé
 // entre le sort actif et un passif : même mécanisme, même champ.
@@ -627,6 +632,21 @@ export default function DamageSetupCard({
     actif: setup.velaskaActif ?? false,
     basculer: () => maj({ velaskaActif: !setup.velaskaActif }),
   });
+  // ⚠️ La condition est LA porte de damage.ts, jamais une copie de la règle :
+  // la vignette n'apparaît que si l'allumer changerait le contexte du sort
+  // choisi (S1 non conjoint par lui-même). Ajoutée en dernier : elle ne déplace
+  // aucune autre vignette.
+  if (contexteAttaqueConjointe(resolved, { attaqueConjointe: true }, 'sort-choisi') === 'appelee-par-allie') {
+    effetsActifs.push({
+      cle: 'attaqueConjointe',
+      icone: ATTAQUE_CONJOINTE_ICON,
+      libelle: 'Attaque conjointe',
+      description:
+        'Ce sort est appelé par un allié, hors du tour du monstre : les dégâts d’attaque conjointe (209 et 225) comptent, pas le dégât critique mono-cible (224).',
+      actif: setup.attaqueConjointe ?? false,
+      basculer: () => maj({ attaqueConjointe: !(setup.attaqueConjointe ?? false) }),
+    });
+  }
 
   return (
     <div className="space-y-3 rounded-lg border border-border bg-panel2 p-3">

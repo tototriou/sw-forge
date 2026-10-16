@@ -248,3 +248,12 @@ attaques appelées : `testAttaqueAppeleeParSortCooperatif`
 totaux de Lisa et de Moria écrits à la main (224, 400, 402, 410, 411,
 critique garanti), sort par défaut inchangé, gardes, aller-retour de
 recette.
+
+L'interrupteur hors du calcul :
+[tests/attaques-conjointes-recette.test.ts](../../../tests/attaques-conjointes-recette.test.ts)
+(`node tests/run.mjs attaquesconjointesrecette`) — validation de la
+recette, transitions de monstre et de sort, ligne du CLI ;
+[tests/rendu/attaque-conjointe-ecran.test.tsx](../../../tests/rendu/attaque-conjointe-ecran.test.tsx)
+(`node tests/run.mjs attaque-conjointe-ecran`) — la vignette dans
+« Effets actifs », présente pour un S1 ordinaire seulement, aux deux
+formats.

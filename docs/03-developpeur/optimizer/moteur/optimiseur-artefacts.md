@@ -83,13 +83,19 @@ tout autre code vaut 0 aux dégâts.
 | 224 | `cdPointsMonoCible` | points de Dgts CRIT sur un sort, ou un groupe de coups, mono-cible | même section |
 | 210 | `degatsBombePct` | majoration propre aux bombes | [02-app/degats-reels/feat-artefacts-critique-et-element.md § Dégâts de bombe (210)](../../../02-app/degats-reels/feat-artefacts-critique-et-element.md#dégâts-de-bombe-210) |
 | 300–304 | `degatsElementPct` | dégâts infligés à un élément, selon l'élément visé | [optimiseur-artefacts.md § Focus élémentaire](optimiseur-artefacts.md) |
+| 209, 225 | `degatsAttaqueConjointePct` | dégâts infligés en plus, dans le terme DMG%, sur une attaque conjointe seulement (`contexteAttaqueConjointe`) ; 0 sur tout autre sort | [02-app/degats-reels/feat-attaques-conjointes.md § Ce que change une attaque conjointe](../../../02-app/degats-reels/feat-attaques-conjointes.md#ce-que-change-une-attaque-conjointe) |
 
-- **Hors modèle : 208, 209, 225** (contre-attaque, attaque conjointe,
-  contre-attaque ou attaque conjointe). L'application ne modélise aucune
-  attaque conjointe ni contre-attaque : ces lignes valent 0 aux dégâts. Ne
-  pas les présenter comme « à venir », ni leur inventer un déclencheur saisi
-  à la main, entrée de plus pour une mécanique que le reste de l'outil
-  ignore.
+- **Hors modèle : 208** (contre-attaque). L'application ne modélise aucune
+  contre-attaque : la ligne vaut 0 aux dégâts, et 225 ne compte que pour sa
+  part d'attaque conjointe. Ne pas la présenter comme « à venir », ni lui
+  inventer un déclencheur saisi à la main, entrée de plus pour une mécanique
+  que le reste de l'outil ignore.
+- **209 et 225 n'entrent dans le choix qu'à travers le calcul** : sur une
+  attaque conjointe, la sonde de pertinence les trouve croissantes et la
+  dominance les compare ; sur un sort non conjoint, elles ne bougent pas le
+  score et ne pèsent sur rien. Le test différentiel
+  `testAttaquesConjointesChoixArtefacts` (`tests/degats-attaques-conjointes.test.ts`)
+  compare le choix à l'énumération exhaustive des paires dans les deux cas.
 - **Ignorées : 203, 207, 211, 212, 213.** Sans fourchette de proc connue
   (absentes de `PROC`, artifacts.ts), elles n'ont ni plafond
   (`plafondLigne` rend 0, une ligne verrouillée ne peut donc pas les exiger)

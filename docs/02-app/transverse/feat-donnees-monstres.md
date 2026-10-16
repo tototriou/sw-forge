@@ -16,6 +16,7 @@ interface Monster {
   stars: number | null;        // grade obtenable (base_stars) — utilisé par le Bestiaire
   naturalStars: number | null; // rareté naturelle réelle (nat 1..5), SWARFARM natural_stars
   secondAwaken: boolean;       // monstre à second éveil (awaken_level ≥ 2)
+  obtainable?: boolean;        // forme qu'un joueur peut posséder (SWARFARM obtainable)
   image: string | null;
   stats: MonsterStats;      // hp, attack, defense, speed, critRate, critDamage, resistance, accuracy
   leaderSkill: LeaderSkill | null;
@@ -95,6 +96,12 @@ Normalisations notables dans le script :
   (vraie rareté naturelle, distincte : ex. Racuni base_stars 4 mais nat 3, Tractor
   2A base_stars 6 mais nat 3) ; `secondAwaken` = `awaken_level ≥ 2`. Ces deux
   derniers alimentent les filtres **Nat** et **2A** de la box « Mon compte ».
+- `obtainable` = `obtainable` de SWARFARM : `false` pour ce qu'aucun joueur ne
+  possède — formes de boss, anciens doublons (les Ifrit éveillés `17111` à
+  `17115`, doublons de `19211` à `19215`), formes transformées, placeholders à
+  nom coréen. C'est lui qui dit qu'une forme est **jouable**
+  ([monsterForms.ts](src/lib/monsterForms.ts)) ; absent (monstre perso, données
+  antérieures au champ), la forme compte comme obtenable.
 
 ## Portrait d'un monstre — `MonsterAvatar`
 

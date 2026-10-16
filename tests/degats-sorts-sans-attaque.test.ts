@@ -40,7 +40,6 @@ function fiche(forme: number): DetailMonstre {
 // table : c'est ce qui fait échouer le test quand une ligne disparaît.
 const ATTENDUS: [number, number, string][] = [
   [1412, 10412, "Ancestors' Blessing (Tantra)"],
-  [2813, 11903, 'Force Field (Sylphid vent, forme non jouable)'],
   [2818, 11913, 'Force Field (Acasis)'],
   [7414, 16214, 'Trade (Conrad)'],
   [10406, 19611, 'Air Shield (Tetra)'],

@@ -51,6 +51,11 @@ Ce document décrit la barre d'actions et l'estimation qui précèdent le lancem
     (chemin du champ, ancienne et nouvelle valeur), que l'écran ajoute au
     message d'import et que le CLI imprime (`chargerRecette`) ; toute autre
     valeur inconnue reste refusée, et l'export n'écrit jamais « moyenne ».
+    L'interrupteur « Attaque conjointe » voyage dans `damageSetup.attaqueConjointe` :
+    un booléen (toute autre valeur est refusée avec son chemin), absent d'une
+    recette antérieure = éteint. Le CLI (`optimizer-search.ts`) l'ajoute à la
+    ligne « Dégâts réels » (« attaque conjointe (appelée par un allié) ») quand il
+    agit, c'est-à-dire pour un S1 choisi qui n'est pas conjoint par lui-même.
     Le message d'import qui porte un tel avertissement prend le token
     d'avertissement (`warn`, jamais `good`) et **ne s'efface pas tout
     seul** : il reste jusqu'au prochain import de recette, réussi ou

@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-// Installateur public des garde-fous : hooks Git `pre-commit` et `commit-msg`.
+// Installateur public des garde-fous : hooks Git `pre-commit` et `commit-msg`,
+// et le rappel des dépendances (`post-checkout`, `post-merge`).
 // Contrat : docs/03-developpeur/qualite-code.md, « Niveaux d'application et
 // garde-fous », « Installation des garde-fous ».
 //
@@ -23,6 +24,8 @@ const PROPRIETAIRE = 'public';
 const CHEMINS = [
   '.githooks/pre-commit',
   '.githooks/commit-msg',
+  '.githooks/post-checkout',
+  '.githooks/post-merge',
 ];
 // Anciens chemins de cet installateur : leur copie installée et leur entrée
 // du manifeste sont retirées à l'installation, sans quoi elles resteraient

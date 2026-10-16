@@ -34,6 +34,7 @@ import {
   cibleDegatsRetenue,
   cibleSecondairePriseEnCharge,
   damageRelevantStats,
+  mentionAttaqueConjointe,
   monsterBonusDegatsConditionnel,
   monsterBonusDegatsSelonCr,
   monsterBonusDegatsSelonDef,
@@ -217,6 +218,7 @@ if (recipe.objective === 'degats_reels') {
     // Même règle que le résumé de l'écran (`coupsAffichesDuSort`) : sans build
     // ici, un coup en plus déduit de l'ATQ du build s'annonce en plage.
     const coupsAffiches = coupsAffichesDuSort(profile, s);
+    const mentionConjointe = mentionAttaqueConjointe(profile, s);
     console.log(
       `Dégâts réels : sort « ${profile.nom} » (S${profile.slot}, ${sequence ? resumeSequenceDeCoups(sequence) : `${coupsAffiches.dependDuBuild ? `${coupsAffiches.hits} à ${coupsAffiches.max}` : coupsAffiches.hits} coup(s)`}` +
         `${profile.hitsRange ? ` [variable ${profile.hitsRange.min}-${profile.hitsRange.max}${coupsAffiches.dependDuBuild ? ', selon l\'ATQ du build' : ''}]` : ''}` +
@@ -230,6 +232,10 @@ if (recipe.objective === 'degats_reels') {
         `${s.atkBuff ? ' — buff ATQ' : ''}${s.defBuff ? ' — buff DEF' : ''}${s.spdBuff ? ' — buff VIT' : ''}` +
         `${profile.bonusParEffetPropre?.source === 'buffs' ? ` — buffs propres ${resolvedBuffsPropresCount(profile.skillCom2usId, s)}/10` : ''}` +
         `${s.defBreak ? ' — def break avant' : ''}${s.defBreakParLeSort ? ' — def break posé par le sort' : ''}` +
+        // Par la porte (`mentionAttaqueConjointe`) : affiché quand le sort a
+        // l'interrupteur et qu'il est allumé, défaut compris (allumé pour les
+        // familles Chakram Dancer et Boomerang Warrior quand le champ manque).
+        `${mentionConjointe ? ` — ${mentionConjointe}` : ''}` +
         `${s.brand ? ' — marque' : ''}` +
         `${s.euldongActif ? ' — Euldong' : ''}${s.mirinaeActif ? ' — Mirinae' : ''}${s.deborahActif ? ' — Deborah' : ''}${s.miriamActif ? ' — Miriam' : ''}${s.transmissionActif ? ' — Dr. Matteo' : ''}${s.velaskaActif ? ` — Velaska (${s.velaskaPvPerduPct ?? 0}% PV perdus)` : ''}` +
         `${lead ? ` — lead ${lead.stat} +${lead.pct}%` : ''}` +

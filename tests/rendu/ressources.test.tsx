@@ -15,7 +15,7 @@ import ReleasesPage from '../../src/pages/ReleasesPage';
 import SettingsPage from '../../src/pages/SettingsPage';
 import ComingSoon from '../../src/pages/ComingSoon';
 import { RELEASES, libelleVersion } from '../../src/data/releases';
-import { sansDoublonDeCollab, sansDoublonDeTransformation } from '../../src/lib/monsterForms';
+import { filtrerFormesBestiaire, sansDoublonDeCollab, sansDoublonDeTransformation } from '../../src/lib/monsterForms';
 import type { Monster } from '../../src/types';
 import { egal, faussLocalStorage, monstersJson, ok, titre } from '../outils';
 import { boutons, rendre, texteVisible, valeurs } from './outils-rendu';
@@ -43,14 +43,20 @@ export function testRenduBestiaire() {
   // ⚠️ « contient » au lieu de « commence par » — l'en-tête
   // « Bestiaire » précède désormais les filtres ; leur suite, tri compris, ne
   // change pas.
-  ok(t.includes('Élément Feu Eau Vent Lumière Ténèbres Autre Étoiles 1★ 2★ 3★ 4★ 5★ 6★ Tri interne'), 'les filtres : élément, étoiles, tri');
-  for (const f of ['Feu', 'Eau', 'Vent', 'Lumière', 'Ténèbres', 'Autre', '1★', '2★', '3★', '4★', '5★', '6★'])
+  ok(t.includes('Élément Feu Eau Vent Lumière Ténèbres Autre Étoiles 1★ 2★ 3★ 4★ 5★ 6★ Formes Jouables uniquement Formes éveillées Tri interne'), 'les filtres : élément, étoiles, formes, tri');
+  for (const f of ['Feu', 'Eau', 'Vent', 'Lumière', 'Ténèbres', 'Autre', '1★', '2★', '3★', '4★', '5★', '6★', 'Jouables uniquement', 'Formes éveillées'])
     ok(b.some((x) => x.texte === f), `filtre « ${f} »`);
+  for (const f of ['Jouables uniquement', 'Formes éveillées'])
+    ok(b.some((x) => x.texte === f && x.presse === true), `« ${f} » coché par défaut`);
   ok(t.includes('Tri interne Étoiles ↓ puis nom Étoiles ↑ puis nom Nom (A→Z)'), 'les trois tris');
-  // Le total de référence, dédupliqué comme l'écran le fait.
-  const total = sansDoublonDeCollab(sansDoublonDeTransformation(MONSTRES)).length;
-  const pages = Math.ceil(total / 60);
-  ok(t.includes(`${total} monstres / ${pages}`), 'le compte, puis la pagination');
+  // Le total de référence, dédupliqué comme l'écran le fait ; le compte
+  // affiché, après les deux filtres de formes cochés par défaut.
+  const base = sansDoublonDeCollab(sansDoublonDeTransformation(MONSTRES));
+  const total = base.length;
+  const affiches = filtrerFormesBestiaire(base, { jouablesSeulement: true, eveilleesSeulement: true }).length;
+  ok(affiches < total, 'témoin : les filtres de formes écartent des monstres');
+  const pages = Math.ceil(affiches / 60);
+  ok(t.includes(`${affiches} monstres sur ${total} / ${pages}`), 'le compte filtré sur le total, puis la pagination');
   egal(b.filter((x) => x.ariaLabel === 'Page suivante').length, 2, 'pagination en haut et en bas');
   ok(b.some((x) => x.ariaLabel === 'Page précédente' && x.desactive), 'pas de page précédente sur la première');
   ok(valeurs(html, 'aria-label').includes('Aller à la page'), 'saisie directe du numéro de page');

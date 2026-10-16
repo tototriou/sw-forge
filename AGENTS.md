@@ -214,6 +214,8 @@ modifiés (`--depuis`, `--plage`), le manifeste et le banc d'affichage :
   privé dans l'index (`.history/`, `.vscode/`), un fichier de plus de 5 Mo (un export de compte).
 - **`commit-msg` refuse** un sujet hors de la forme `type(portée): description`, un corps collé au
   sujet et un message qui commence par un BOM.
+- **`post-checkout` et `post-merge` rappellent `npm ci`** quand `package-lock.json` change ; ils ne
+  bloquent rien.
 - Installés **par machine** par `npm install` (jamais en CI, jamais vers une version plus ancienne),
   jamais requis ; à la main : `node scripts/installer-hooks.mjs` (`--simulation` pour voir).
 - `--no-verify` reste possible en local, **pas en CI** : chaque commit d'une pull request repasse par

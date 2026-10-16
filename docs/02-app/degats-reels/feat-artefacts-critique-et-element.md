@@ -75,6 +75,12 @@ pour le premier coup de la séquence, jamais pour le coup de zone, et le cran
 « autres ennemis » ne rouvre pas ce compteur — voir
 [séquences de coups](feat-sequences-de-coups.md).
 
+Une attaque conjointe garde 411 sur son premier coup, dans ses trois
+contextes : sort coopératif du monstre, S1 appelé par un allié (interrupteur
+« Attaque conjointe », même hors du tour du monstre), S1 appelé par un sort
+coopératif qui ne frappe pas lui-même — voir
+[attaques conjointes](feat-attaques-conjointes.md#ce-que-change-une-attaque-conjointe).
+
 
 ## Dgts CRIT conditionnels au SORT (400-403, 410, 224)
 
@@ -97,6 +103,14 @@ deux formes sont gérées, un inventaire ancien pouvant porter les secondes.
 
 Tout est **déduit du profil du sort** (`slot`, `aoe`), rien n'est saisi —
 `artifactCritDamagePoints()` est la seule porte d'entrée.
+
+⚠️ **Exception : un S1 appelé par un allié ne reçoit pas 224.** L'interrupteur
+« Attaque conjointe » dit que le S1 frappe hors du tour du monstre, alors
+que 224 ne vaut que « pdt tour » : le calcul retire la ligne du profil des
+artéfacts avant d'évaluer ce S1 (`artefactsSelonContexteConjoint`). Le S1
+appelé par un sort coopératif, lui, frappe pendant le tour du monstre et
+garde 224 selon sa portée — voir
+[attaques conjointes](feat-attaques-conjointes.md#ce-que-change-une-attaque-conjointe).
 
 ⚠️ **`aoe` du profil n'est pas toujours `aoe` de la donnée.** Quand la prose du
 sort contredit la donnée, `PORTEE_CORRIGEE_PAR_ID` la remplace : Hollow Purple,
@@ -157,6 +171,13 @@ Ces lignes vivent dans le terme **DMG%**, la Marque dans **Réductions**. Les
 deux brackets sont additifs *en interne* et **multiplicatifs entre eux** :
 `× 1,12 × 1,25`, et non `× (1 + 0,12 + 0,25)`.
 
+Les lignes d'attaque conjointe 209 et 225 vivent dans le même terme, sur une
+attaque conjointe seulement (décision de l'utilisateur,
+[attaques conjointes](feat-attaques-conjointes.md#ce-que-change-une-attaque-conjointe)) :
+additionnées aux lignes élémentaires, elles en suivent les exclusions de la
+section suivante. Feu 12 %, 209 à 10 % et 225 à 8 %, sous Marque :
+`× (1 + 0,12 + 0,10 + 0,08) × 1,25`.
+
 > ⚠️ **Ne pas les compter dans `reductions`** par symétrie avec Mirinae, qui
 > « stacks additively with **-DMG%** artifacts » (utilisateur) : les artéfacts
 > −DMG% (codes 305-309, dégâts *subis*) sont bien dans Réductions, mais la
@@ -175,6 +196,11 @@ deux brackets sont additifs *en interne* et **multiplicatifs entre eux** :
 | Mirinae | ❌ | ❌ |
 | Dr. Matteo (Transmission) | ❌ | ❌ |
 | **Marque** | ✅ | ✅ |
+
+Les lignes d'attaque conjointe (209, 225) suivent les mêmes exclusions,
+ni bombe ni bucket Additionnel, parce qu'elles vivent dans le même terme :
+c'est une **décision de l'utilisateur** (2026-10-16), pas un relevé de ce
+tableau ([valeurs curées](valeurs-de-jeu-curees.md)).
 
 ⚠️ **Dr. Matteo a été MESURÉ, pas déduit de Mirinae.** Sa formulation en jeu
 est quasi identique, et il aurait été tentant de reconduire l'analogie — mais

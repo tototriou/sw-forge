@@ -121,6 +121,11 @@ function normalizeMonster(raw, idx) {
     stars: typeof stars === 'number' ? stars : null,
     naturalStars: typeof natural === 'number' ? natural : null,
     secondAwaken: Number(raw.awaken_level) >= 2, // 2ᵉ éveil (double éveil)
+    // ⚠️ `false` pour ce qu'aucun joueur ne possède : formes de boss, anciens
+    // doublons (Ifrit `17111`-`17115`), formes transformées, placeholders à nom
+    // coréen. C'est la donnée qui dit « jouable » (lib/monsterForms.ts) —
+    // aucune liste d'identifiants à tenir à la main.
+    obtainable: raw.obtainable !== false,
     image: buildImageUrl(raw),
     stats: normalizeStats(raw),
     leaderSkill: normalizeLeaderSkill(raw),
@@ -189,6 +194,7 @@ function buildDemoData() {
           stars: star,
           naturalStars: star,
           secondAwaken: false,
+          obtainable: true,
           image: null,
           leaderSkill: demoLeads[id % demoLeads.length],
           stats: {

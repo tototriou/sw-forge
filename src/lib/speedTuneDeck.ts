@@ -14,10 +14,12 @@ import { LeadInfo, isSiegeLeadActive, siegeLeadFor, speedLeadOf } from './speed'
 const SUB_EFFET_VIT = 206;
 
 // Somme sur les artéfacts du monstre : deux artéfacts peuvent chacun porter la
-// propriété, et leurs effets s'ajoutent.
+// propriété, et leurs effets s'ajoutent. L'équipement reçu d'un fichier
+// d'équipes (`gearPartage`) compte aussi : c'est celui qui donne sa vitesse à
+// l'équipe telle qu'on l'a reçue.
 function arteBuffDeSlot(slot: SiegeSlot): number | null {
   let total = 0;
-  for (const art of slot.gear?.artifacts ?? []) {
+  for (const art of (slot.gear ?? slot.gearPartage)?.artifacts ?? []) {
     for (const sub of art.subs) {
       if (sub.code === SUB_EFFET_VIT) total += sub.value;
     }

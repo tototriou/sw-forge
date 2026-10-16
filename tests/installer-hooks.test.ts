@@ -14,7 +14,7 @@ import { fileURLToPath } from 'url';
 import { egal, ignore, ok, titre } from './outils';
 
 const RACINE = join(dirname(fileURLToPath(import.meta.url)), '..');
-const PUBLICS = ['.githooks/pre-commit', '.githooks/commit-msg'];
+const PUBLICS = ['.githooks/pre-commit', '.githooks/commit-msg', '.githooks/post-checkout', '.githooks/post-merge'];
 
 type Entree = { proprietaire: string; source: string; commit: string; date: string };
 type Manifeste = { version?: number; commitSource: string; fichiers: Record<string, string>; entrees?: Record<string, Entree> };

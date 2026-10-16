@@ -67,7 +67,8 @@ s'en serait aperçu puisqu'on n'ouvre jamais les deux à la fois.
   ses réglages portent trois lignes d'explication, illisibles dans 260 px.
 - ⚠️ **À la souris** : le titre
   « Paramètres », la carte du compte, puis **deux blocs intitulés** —
-  « Réglages » (thème, score, overcap, adversaire de référence) et « Mes
+  « Réglages » (thème, score, builds les plus rapides, overcap, adversaire de
+  référence) et « Mes
   données » (garder mes données, âge des données, tout supprimer) — chacun
   dans sa carte. Même liste, même ordre (`SettingsList groupes`). **Au doigt
   aussi** : les mêmes blocs intitulés. Le popover ⚙ n'est pas groupé.
@@ -114,6 +115,22 @@ Contenu actuel, dans l'ordre :
     [design/reglage-du-theme.md](../../../03-developpeur/interface/design/reglage-du-theme.md) ;
   - **Score** → `Efficience` / `Score SW` (voir
     [compte/feat-runes/mesure.md](../../compte/feat-runes/mesure.md)) ;
+  - **Builds les plus rapides** → un bouton « Choisir… », et en `hint` le
+    résumé du réglage (« 9 combinaisons · 5 builds par combinaison, au Résumé
+    des runes. »). Il ouvre une **fenêtre** (`DialogueBuildsRapides`) : une
+    liste de combinaisons ne tient pas dans le popover. La même fenêtre s'ouvre
+    depuis le bloc du Résumé (« Choisir les combinaisons »). On y règle le nombre de
+    builds par combinaison (1 à 10), on ajoute une combinaison (un set
+    4 pièces, puis un set 2 pièces ou « Broken » ; une combinaison déjà là est
+    désactivée), on en retire par la croix de son jeton, et « Rétablir le
+    défaut » remet la liste de départ. Chaque geste s'applique tout de suite :
+    la croix est la seule sortie. L'ajout est AU-DESSUS de la liste : un jeton
+    ajouté ne pousse pas les boutons qu'on vient de cliquer. Voir
+    [compte/feat-runes/resume.md](../../compte/feat-runes/resume.md).
+    ⚠️ **La fenêtre s'ouvre aussi depuis le popover ⚙**, et elle est
+    portalisée hors de lui : le popover ignore donc un clic dans une
+    `[role="dialog"]`, et Échap ferme la fenêtre sans fermer le popover. Sans
+    cela, le premier clic dans la fenêtre fermait le popover, qui la démontait ;
   - **Overcap Taux Crit/RES/Précision** → un interrupteur (`<Switch>`),
     **activé par défaut** (comportement historique non borné). Ces trois
     stats sont plafonnées à 100 % dans le jeu ; désactivé, le TOTAL affiché

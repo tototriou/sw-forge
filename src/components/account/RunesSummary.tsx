@@ -4,6 +4,7 @@ import { RARITY_META, RUNE_EFFECT, runeEfficiency } from '../../lib/effects';
 import { runePotential } from '../../lib/runeOptim';
 import RuneIcon from '../RuneIcon';
 import { Kpi, Panel, BarRow, pct, fmt, CARTE_CHIFFRES_DOIGT } from './SummaryBits';
+import BuildsRapides from './BuildsRapides';
 
 interface Props {
   runes: RuneDetail[];
@@ -407,6 +408,10 @@ export default function RunesSummary({ runes }: Props) {
           ))}
         </div>
       </Panel>
+
+      {/* ---- Builds les plus rapides -------------------------------------- */}
+      {/* Toute la largeur, après Par set, aux deux formats. */}
+      <BuildsRapides runes={runes} className="lg:order-7 lg:col-span-3" />
       </div>
     </div>
   );

@@ -10,7 +10,7 @@
 // changer la fiche d'un rendu à l'autre.
 
 import { Monster } from '../src/types';
-import { autreForme, sansDoublonDeTransformation } from '../src/lib/monsterForms';
+import { autreForme, filtrerFormesBestiaire, sansDoublonDeTransformation } from '../src/lib/monsterForms';
 import { egal, titre } from './outils';
 
 function mon(p: Partial<Monster> & { name: string; com2usId: number }): Monster {
@@ -125,5 +125,41 @@ export default function testMonstreFormes() {
     autreForme(bellenusA, [bellenusA]),
     null,
     'cible absente de la liste → null, la fiche n’affiche alors qu’une forme'
+  );
+
+  /* --- les deux filtres de formes du Bestiaire --------------------------- */
+
+  titre('Monstres · filtres de formes du Bestiaire');
+  const brute = mon({ name: 'Copper', com2usId: 16503, stars: 3, naturalStars: 3 });
+  const eveillee = mon({ name: 'Copper', com2usId: 16513, stars: 4, naturalStars: 3 });
+  const copper2A = mon({ name: 'Copper', com2usId: 16533, stars: 6, naturalStars: 3, secondAwaken: true });
+  const boss = mon({ name: 'Azazel', com2usId: 2003503, stars: 6, naturalStars: 1, obtainable: false });
+  const bossBrut = mon({ name: 'Sath', com2usId: 47902, stars: 1, naturalStars: 1, obtainable: false });
+  const formes = [brute, eveillee, copper2A, boss, bossBrut];
+
+  egal(
+    noms(filtrerFormesBestiaire(formes, { jouablesSeulement: true, eveilleesSeulement: true })),
+    [16513, 16533],
+    'par défaut : premier et second éveil, la forme éveillée qu’une 2A remplace comprise'
+  );
+  egal(
+    noms(filtrerFormesBestiaire(formes, { jouablesSeulement: true, eveilleesSeulement: false })),
+    [16503, 16513, 16533],
+    '« Formes éveillées » relâché : la forme non éveillée revient'
+  );
+  egal(
+    noms(filtrerFormesBestiaire(formes, { jouablesSeulement: false, eveilleesSeulement: true })),
+    [16513, 16533, 2003503],
+    '« Jouables uniquement » relâché : la forme de boss revient'
+  );
+  egal(
+    noms(filtrerFormesBestiaire(formes, { jouablesSeulement: false, eveilleesSeulement: false })),
+    noms(formes),
+    'les deux relâchés : toute la base'
+  );
+  egal(
+    noms(filtrerFormesBestiaire([mon({ name: 'Ancien', com2usId: 1, stars: 6, naturalStars: 5 })], { jouablesSeulement: true, eveilleesSeulement: true })),
+    [1],
+    'champ obtainable absent : la forme reste'
   );
 }

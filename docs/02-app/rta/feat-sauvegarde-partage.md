@@ -446,6 +446,10 @@ que montrer un chiffre surprenant.
 Un équipement **entièrement vide n'est pas retenu** : il ouvrirait un chevron
 « voir le détail » qui n'affiche rien.
 
+Cette lecture vit dans [equipementPartage.ts](src/lib/equipementPartage.ts),
+partagée avec l'import des équipes de siège : les deux partages valident
+l'équipement d'un tiers de la même façon.
+
 ### Corrections signalées à la lecture
 
 | Cas | Traitement |

@@ -111,6 +111,7 @@ import testRtaPartage from './rta-partage.test';
 import { testInstallerHooks, testInstallationAutomatique } from './installer-hooks.test';
 import { testPreCommit } from './pre-commit.test';
 import { testCommitMsg } from './commit-msg.test';
+import { testRappelDependances } from './rappel-dependances.test';
 import { testVerifierCommits } from './verifier-commits.test';
 import { testRenvois, testRenvoisFormes } from './renvois.test';
 import { testLectureSource } from './lecture-source.test';
@@ -159,9 +160,25 @@ import {
   testAttaqueAppeleeApprovisionnement,
   testAttaqueAppeleeCouverture,
   testAttaqueAppeleeEspaceDeCles,
+  testAttaqueAppeleeParSortCooperatif,
 } from './degats-attaque-appelee.test';
+import {
+  testAttaquesConjointesRegle,
+  testAttaquesConjointesPorte,
+  testAttaquesConjointesCalcul,
+  testAttaquesConjointesSortLanceParLeMonstre,
+  testAttaquesConjointesTotalALaMain,
+  testAttaquesConjointesChoixArtefacts,
+} from './degats-attaques-conjointes.test';
+import {
+  testAttaquesConjointesRecetteChamp,
+  testAttaquesConjointesRecetteTransitions,
+  testAttaquesConjointesRecetteCli,
+} from './attaques-conjointes-recette.test';
 import testRuneOptim from './rune-optim.test';
 import testRuneOptimDifferential from './rune-optim-differential.test';
+import testBuildsRapides from './builds-rapides.test';
+import { testRenduBuildsRapides } from './rendu/builds-rapides.test';
 import testRuneOptimOnStage from './rune-optim-onstage.test';
 import testRandomPool from './random-pool.test';
 import testDiagnosticHarness, { testDiagnosticHarnessClassementDegatsReels } from './diagnostic-harness.test';
@@ -246,6 +263,7 @@ import testSetsIntangible from './sets-intangible.test';
 import testRuneTri from './rune-tri.test';
 import testMonstreTri from './monstre-tri.test';
 import testMonstreFormes from './monstre-formes.test';
+import testCurationFormesJouables from './curation-formes-jouables.test';
 import testStockage from './stockage.test';
 import testMigrationStockage from './migration-stockage.test';
 import testBureauProtocole from './bureau-protocole.test';
@@ -277,6 +295,7 @@ import { testRenduTelecharger } from './rendu/telecharger.test';
 import { testRenduBureauTextes } from './rendu/bureau-textes.test';
 import { testRenduBarreSession } from './rendu/barre-session.test';
 import { testRenduIcones } from './rendu/icones.test';
+import { testRenduAttaqueConjointeEcran } from './rendu/attaque-conjointe-ecran.test';
 import { testRenduRecosPage, testRenduRecosEnTete, testRenduRecosDeploiement, testRenduRecosEdition, testRenduRecosVueDefense, testRenduRecosTicks, testRenduRecosAnnulerEdition } from './rendu/recos.test';
 import testAnnulerEdition from './annuler-edition.test';
 import { testRenduRunesResume, testRenduRunesListe, testRenduRunesCourbes, testRenduRunesComparaison, testRenduRunesOptimisation, testRenduRunesAVenir, testRenduRunesFiltresLigne, testRenduRunesTriOnglets, testRenduRunesResumeSouris, testRenduRunesListeSouris, testRenduRunesVuesSouris } from './rendu/runes.test';
@@ -294,6 +313,7 @@ import { testRenduMemoireOptimizerSelection, testRenduMemoireOptimizerIdentiteEn
   testRenduTelephoneMemoireOptimizerClicAjouter, testRenduTelephoneMemoireOptimizerClicValiderFiche,
   testRenduRattachementOptimizer, testRenduTelephoneRattachementOptimizer, testRenduRattachementOptimizerDemonte } from './rendu/optimizer-memoire.test';
 import { testRenduBestiaire, testRenduMecaniques, testRenduNouveautes, testRenduParametres, testRenduBientot } from './rendu/ressources.test';
+import { testAlignementVersion } from './alignement-version.test';
 import { testRenduTelephoneAccueil, testRenduTelephoneRta, testRenduTelephoneRtaAmi, testRenduTelephoneRtaFiltre } from './rendu/telephone-accueil-rta.test';
 import { testRenduTelephoneSiege, testRenduTelephoneRecos } from './rendu/telephone-siege.test';
 import { testRenduTelephoneMonstres, testRenduTelephoneArtefacts, testRenduTelephoneRunes } from './rendu/telephone-compte.test';
@@ -444,6 +464,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRenduBestiaire', testRenduBestiaire],
   ['testRenduMecaniques', testRenduMecaniques],
   ['testRenduNouveautes', testRenduNouveautes],
+  ['testAlignementVersion', testAlignementVersion],
   ['testRenduParametres', testRenduParametres],
   ['testRenduBientot', testRenduBientot],
   ['testRenduTelephoneAccueil', testRenduTelephoneAccueil],
@@ -482,6 +503,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRenduBureauTextes', testRenduBureauTextes],
   ['testRenduBarreSession', testRenduBarreSession],
   ['testRenduIcones', testRenduIcones],
+  ['testRenduAttaqueConjointeEcran', testRenduAttaqueConjointeEcran],
   ['testRenduRtaPrepa', testRenduRtaPrepa],
   ['testRenduRtaMenu', testRenduRtaMenu],
   ['testRenduRtaVide', testRenduRtaVide],
@@ -517,6 +539,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testInstallationAutomatique', testInstallationAutomatique],
   ['testPreCommit', testPreCommit],
   ['testCommitMsg', testCommitMsg],
+  ['testRappelDependances', testRappelDependances],
   ['testVerifierCommits', testVerifierCommits],
   ['testRenvoisFormes', testRenvoisFormes],
   ['testRenvois', testRenvois],
@@ -525,6 +548,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRuneTri', testRuneTri],
   ['testMonstreTri', testMonstreTri],
   ['testMonstreFormes', testMonstreFormes],
+  ['testCurationFormesJouables', testCurationFormesJouables],
   ['testCouleursCourbes', testCouleursCourbes],
   ['testRechargement', testRechargement],
   ['testCollabPaires', testCollabPaires],
@@ -567,6 +591,16 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testAttaqueAppeleeApprovisionnement', testAttaqueAppeleeApprovisionnement],
   ['testAttaqueAppeleeCouverture', testAttaqueAppeleeCouverture],
   ['testAttaqueAppeleeEspaceDeCles', testAttaqueAppeleeEspaceDeCles],
+  ['testAttaqueAppeleeParSortCooperatif', testAttaqueAppeleeParSortCooperatif],
+  ['testAttaquesConjointesRegle', testAttaquesConjointesRegle],
+  ['testAttaquesConjointesPorte', testAttaquesConjointesPorte],
+  ['testAttaquesConjointesCalcul', testAttaquesConjointesCalcul],
+  ['testAttaquesConjointesSortLanceParLeMonstre', testAttaquesConjointesSortLanceParLeMonstre],
+  ['testAttaquesConjointesTotalALaMain', testAttaquesConjointesTotalALaMain],
+  ['testAttaquesConjointesChoixArtefacts', testAttaquesConjointesChoixArtefacts],
+  ['testAttaquesConjointesRecetteChamp', testAttaquesConjointesRecetteChamp],
+  ['testAttaquesConjointesRecetteTransitions', testAttaquesConjointesRecetteTransitions],
+  ['testAttaquesConjointesRecetteCli', testAttaquesConjointesRecetteCli],
   ['testRecetteClesIdentifiant', testRecetteClesIdentifiant],
   ['testFormesEquivalentes', testFormesEquivalentes],
   ['testDegatsTempestFormule', testDegatsTempestFormule],
@@ -576,6 +610,8 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testDegatsTempestEcran', testDegatsTempestEcran],
   ['testRuneOptim', testRuneOptim],
   ['testRuneOptimDifferential', testRuneOptimDifferential],
+  ['testBuildsRapides', testBuildsRapides],
+  ['testRenduBuildsRapides', testRenduBuildsRapides],
   ['testRuneOptimOnStage', testRuneOptimOnStage],
   ['testRandomPool', testRandomPool],
   ['testDiagnosticHarness', async () => { await testDiagnosticHarness(); }],

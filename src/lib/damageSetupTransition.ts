@@ -11,7 +11,7 @@ export const DAMAGE_SETUP_CLASSIFICATION = {
   enemySpd: 'contexte', enemyElement: 'contexte',
   leaderSkill: 'contexte', leaderSpeedPct: 'legacy-contexte', setsAuraExternes: 'contexte',
   atkBuff: 'contexte', defBuff: 'contexte', spdBuff: 'contexte',
-  defBreak: 'contexte', defBreakParLeSort: 'sort', brand: 'contexte',
+  defBreak: 'contexte', defBreakParLeSort: 'sort', attaqueConjointe: 'sort', pendantTourAllie: 'sort', brand: 'contexte',
   euldongActif: 'contexte', mirinaeActif: 'contexte', deborahActif: 'contexte',
   miriamActif: 'contexte', transmissionActif: 'contexte', velaskaActif: 'contexte',
   velaskaPvPerduPct: 'contexte', critMode: 'contexte', summonerSkills: 'contexte',

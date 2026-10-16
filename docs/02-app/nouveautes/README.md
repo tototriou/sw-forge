@@ -104,7 +104,11 @@ Le **pied de page** montre `v{__APP_VERSION__}`, injecté au build depuis
 page. Une seule source de version, celle qu'incrémente la release.
 
 ⚠️ `package.json` et l'entrée en tête de `RELEASES` doivent **rester alignés** :
-c'est le même geste, dans la même branche de release.
+c'est le même geste, dans la même branche de release. La vérification
+`alignement-version` ([alignement-version.test.ts](tests/alignement-version.test.ts))
+le contrôle : la dernière version publiée du journal porte le numéro de
+`package.json` (et de `package-lock.json`), une version en préparation n'existe
+qu'en tête et une seule fois, aucun numéro n'apparaît deux fois.
 
 ## Modèle de branches et processus de release
 

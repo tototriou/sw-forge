@@ -26,7 +26,7 @@ persistance : voir [feat-recommandations/](feat-recommandations/README.md).
 
 | Le changement touche… | Lire |
 | --- | --- |
-| `src/pages/SiegePage.tsx`, `src/components/siege/SiegeBoard.tsx`, `src/hooks/useSiegeState.ts`, `src/lib/siegeShare.ts` | ce README |
+| `src/pages/SiegePage.tsx`, `src/components/siege/SiegeBoard.tsx`, `src/components/siege/ChoixExportSiege.tsx`, `src/hooks/useSiegeState.ts`, `src/lib/siegeShare.ts`, `src/lib/equipementPartage.ts` | ce README |
 | `src/components/siege/SiegeTeam.tsx`, `src/components/siege/LeadPill.tsx`, `src/components/siege/slotVideSuivant.ts`, `src/components/MonsterPicker.tsx` | [feat-equipes.md](feat-equipes.md) |
 | la vitesse d'une équipe, les ticks, `src/components/siege/pastilleStatut.ts`, `src/lib/siegeStatut.ts`, `src/components/outils/SpeedTuneModale.tsx` | [feat-speed-tick.md](feat-speed-tick.md), [../transverse/feat-calcul-vitesse.md](../transverse/feat-calcul-vitesse.md) |
 | `src/components/siege/RecoBoard.tsx`, `src/components/siege/RecoCard.tsx`, `src/hooks/useSiegeRecos.ts`, les `reco…` de `src/lib/`, `src/lib/ownedBuilds.ts` | [feat-recommandations/](feat-recommandations/README.md) |
@@ -86,23 +86,49 @@ Logique : [siegeShare.ts](src/lib/siegeShare.ts), testée par
   du filtre actif : l'infobulle le dit — dans un fichier
   `swblacksmith-siege-<defense|offense>-AAAA-MM-JJ.json`, daté du jour
   **local** (`jourLocal`, pas le jour UTC).
+- ⚠️ **« Exporter » demande d'abord si l'on joint les runes**
+  ([ChoixExportSiege.tsx](src/components/siege/ChoixExportSiege.tsx)), comme
+  l'export de la prépa RTA : « Avec les runes et les artéfacts » (le nombre
+  de monstres concernés ; désactivé si aucun ne porte de runes connues) ou
+  « Composition et vitesses ». Partager ses runes, c'est montrer ce qu'on
+  possède : la question se pose à voix haute, au moment d'exporter. La
+  croix ferme sans rien télécharger.
 - Format `swblacksmith/siege-equipes` (un fichier `sw-forge/siege-equipes`
   est relu aussi), version 1, clés en français :
   `{ format, version, cote, equipes: [{ monstres: [{ com2usId, nom,
-  vitesseRunes, tick, sets }] × 3 }] }`. Le **slot 0 est le leader**, comme
-  dans l'app.
+  vitesseRunes, tick, sets, equipement? }] × 3 }] }`. Le **slot 0 est le
+  leader**, comme dans l'app.
   - ⚠️ **Le `com2usId`, jamais l'id local** : c'est le seul identifiant qui
     vaille d'un joueur à l'autre (même règle que les recommandations et la
     prépa RTA). Le nom accompagne, pour qu'un fichier se lise.
-  - ⚠️ **Pas le détail des runes** (`gear`) : on partage une composition et
-    ses vitesses, pas son inventaire. Un monstre **perso** (sans `com2usId`)
-    ne part pas : son emplacement part vide, et le message d'export le dit.
+  - `equipement` : runes, artéfacts, relique et stats de base du monstre,
+    **seulement si l'auteur a choisi de les joindre** — même clé que la
+    prépa RTA. Un champ en plus, que la version 1 ignore : le format ne
+    change pas de version. Une équipe reçue avec ses runes se réexporte avec
+    elles.
+  - Un monstre **perso** (sans `com2usId`) ne part pas : son emplacement
+    part vide, et le message d'export le dit.
 - **« Importer »** lit un tel fichier et **AJOUTE** ses équipes à la fin des
   siennes — rien n'est remplacé ni effacé (« Tout effacer » existe pour qui
   veut repartir de zéro). Un monstre absent des données chargées laisse son
   emplacement vide, et le rapport le dit. Un fichier de l'autre côté (une
   défense importée dans l'offense) est accepté : c'est une composition, elle
   se joue des deux côtés — le message le signale.
+- **Les runes reçues se consultent** : un clic sur le monstre d'une équipe
+  importée ouvre son détail (roue, artéfacts, relique), précédé de
+  « Équipement de l'auteur du fichier ». Elles comptent aussi pour le speed
+  tune (l'artéfact « Effet aug. VIT »).
+  - ⚠️ **Elles vont dans `gearPartage`, JAMAIS dans `gear`.** `gear` est
+    l'équipement du JOUEUR : les builds possédés des recommandations
+    ([ownedBuilds.ts](src/lib/ownedBuilds.ts)), les exclusions de
+    l'Optimizer et l'alerte d'équipement incomplet le lisent comme tel. Les
+    runes d'un ami y feraient croire qu'on possède ses monstres et ses
+    builds.
+  - Changer le monstre d'un emplacement efface l'équipement reçu : il
+    décrivait le monstre de l'auteur.
+  - Un équipement illisible est ignoré, pas le fichier ; une relique sans
+    identifiant est ignorée, et le message le dit. La lecture est celle de la
+    prépa RTA ([equipementPartage.ts](src/lib/equipementPartage.ts)).
 - Validation : un fichier qui n'est pas au format est **refusé** avec la
   raison, rien n'est touché. Une version absente ou qui n'est pas un nombre
   est un fichier abîmé (« version illisible »), distinct d'une version plus
@@ -209,7 +235,11 @@ d'attaque sauvegardées).
 ## Modèle d'état
 
 ```ts
-interface SiegeSlot { monsterId: string | null; runeSpeed: number | null; tick: number; sets?: string[] }
+interface SiegeSlot {
+  monsterId: string | null; runeSpeed: number | null; tick: number; sets?: string[];
+  gear?: GearSet;        // mon équipement, venu de l'import du compte
+  gearPartage?: GearSet; // celui de l'auteur d'un fichier d'équipes — affichage seulement
+}
 interface SiegeTeam { id: string; slots: SiegeSlot[]; lead: number; tickAlertDismissed: boolean }
 interface SiegeState { teams: SiegeTeam[] }
 ```

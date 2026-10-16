@@ -49,8 +49,8 @@ const BLADE_SURGE_LAPIS = 10616;
 // secondaire, la portée seule ne suffit pas.
 const MAGIC_SHOT_LAPIS = 10606;
 const RETRIEVE_MAGIC_LAPIS = 10611;
-// Les huit identifiants de `SEQUENCES_DE_COUPS_PAR_ID_CONNUS` (`docs/02-app/degats-reels/`).
-const FAMILLE = [10601, 10602, 10603, 10604, 10605, 10616, 10618, 10620];
+// Les cinq identifiants Blade Surge de `SEQUENCES_DE_COUPS_PAR_ID_CONNUS` (`docs/02-app/degats-reels/`).
+const FAMILLE = [10602, 10604, 10616, 10618, 10620];
 
 const SECONDAIRE: DamageSetup = {
   ...DEFAULT_DAMAGE_SETUP,
@@ -98,13 +98,13 @@ export function testBladeSurgeRecette() {
   egal(relueSans && cibleDegatsRetenue(bs, relueSans.damageSetup), 'visee', 'champ absent : cible visée');
   egal(avecCible({}).recipe?.damageSetup.cibleDegatsParSort, {}, 'objet vide accepté : aucun choix');
 
-  // Présent et valide : les deux crans, sur chacun des huit identifiants.
+  // Présent et valide : les deux crans, sur chacun des cinq identifiants.
   const refusesALaFamille = FAMILLE.flatMap((id) =>
     (['visee', 'secondaire'] as const)
       .filter((cible) => !egalProfond(avecCible({ [id]: cible }).recipe?.damageSetup.cibleDegatsParSort, { [id]: cible }))
       .map((cible) => `${id} ${cible}`)
   );
-  egal(refusesALaFamille, [], 'les deux crans acceptés et relus tels quels sur les huit identifiants');
+  egal(refusesALaFamille, [], 'les deux crans acceptés et relus tels quels sur les cinq identifiants');
 
   // Mal typé ou hors de l'union : refusé, avec le chemin exact.
   const champ = 'damageSetup.cibleDegatsParSort';

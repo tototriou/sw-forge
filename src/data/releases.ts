@@ -70,6 +70,8 @@ export const RELEASES: Release[] = [
       { kind: 'feat', scope: 'Dégâts réels', text: 'Les sorts coop de Nezuko et Vermilion Bird Dancer (ténèbres) comptent comme attaques conjointes.' },
       { kind: 'feat', scope: 'Dégâts réels', text: 'Attack Command (Lisa) et Concentrated Attack (Moria) se calculent comme le S1 qu’ils appellent.' },
       { kind: 'feat', scope: 'Optimizer', text: 'Le choix des artéfacts tient compte des dégâts d’attaque conjointe.' },
+      { kind: 'feat', scope: 'Bestiaire', text: '« Jouables uniquement » et « Formes éveillées » : deux filtres, cochés par défaut.' },
+      { kind: 'fix', scope: 'Monstres', text: 'Veromos et les autres Ifrit n’apparaissent plus en double dans les recherches, ni les formes de boss.' },
     ],
   },
   {

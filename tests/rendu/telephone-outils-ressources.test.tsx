@@ -38,7 +38,7 @@ export function testRenduTelephoneOutilsRessources() {
   const tb = texteVisible(best);
   egal(dialogues(best), 1, 'Bestiaire : un panneau « Options »');
   ok(valeurs(best, 'aria-label').includes('Filtrer le bestiaire'), 'Bestiaire : le panneau « Filtrer le bestiaire »');
-  ok(tb.includes('Filtrer le bestiaire Élément Feu Eau Vent Lumière Ténèbres Autre Étoiles 1★ 2★ 3★ 4★ 5★ 6★ Tri interne Étoiles ↓ puis nom'), 'Bestiaire : ses filtres et le tri');
+  ok(tb.includes('Filtrer le bestiaire Élément Feu Eau Vent Lumière Ténèbres Autre Étoiles 1★ 2★ 3★ 4★ 5★ 6★ Formes Jouables uniquement Formes éveillées Tri interne Étoiles ↓ puis nom'), 'Bestiaire : ses filtres et le tri');
   ok(valeurs(best, 'placeholder').includes('Rechercher un monstre par nom…'), 'Bestiaire : la recherche sur la page');
   ok(tb.includes('Feu 60 monstres'), 'Bestiaire : la grille par élément');
 

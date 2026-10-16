@@ -267,8 +267,9 @@ codée porte « Calcul partiel »
 - **Constat** : trois S3 annoncent des dégâts qui croissent au fil des
   coups : Start of Apocalypse (`13112`, Baleygr, « the damage increases as
   you attack »), Shooting Star (`1311`, `1361`, Kacey, « increases as the
-  same target gets hit again ») et Doomsday (`6215`, `6265`, `6280`,
-  Thrain, « increases with time »). Aucun n'a d'entrée dans
+  same target gets hit again ») et Doomsday (`6215`, `6265`,
+  Thrain, « increases with time » ; `6280`, porté par une forme non
+  obtenable, hors curation). Aucun n'a d'entrée dans
   `src/lib/damage.ts` : chaque coup vaut le ratio de la donnée, sans
   croissance. Start of Apocalypse frappe autant de fois que Baleygr a de
   Connaissances (1 à 5) ; la donnée dit 5 coups.

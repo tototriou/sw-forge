@@ -2601,12 +2601,12 @@ const BONUS_PAR_EFFET_CIBLE_CONNUS: Record<string, BonusParEffetProfile> = {
 // Ces entrées restent donc attachées à l'identifiant Com2us exact du sort.
 const BONUS_PAR_EFFET_CIBLE_PAR_ID_CONNUS: Record<number, BonusParEffetProfile> = {
   2060: { pct: 20, source: 'debuffs' }, // Kro 2A — Team Up
-  2075: { pct: 20, source: 'debuffs' }, // collaboration équivalente, texte identique
   10013: { pct: 30, source: 'debuffs', exactementUnPct: 50 }, // Akhamamir 2A — Mach Crush
   2561: { pct: 15, source: 'debuffs' }, // Kahn 2A — Pursuit
-  2576: { pct: 15, source: 'debuffs' }, // collaboration équivalente, texte identique
   1556: { pct: 30, source: 'debuffs' }, // Tarq 2A — Ambush
-  1571: { pct: 30, source: 'debuffs' }, // collaboration équivalente, texte identique
+  // (2075, 2576 et 1571, même prose, ne sont portés que par des formes de boss
+  // non obtenables — Inugami 2A `47405`, Griffon 2A `47701`, Tarq `610101` :
+  // hors curation.)
 };
 
 const BONUS_PAR_EFFET_PROPRE_CONNUS: Record<string, { pct: number; source: 'buffs' | 'debuffs' }> = {
@@ -2741,7 +2741,8 @@ const BONUS_CONDITIONNEL_AUDIT_CONNUS: Record<string, { pct: number; condition: 
 const BONUS_CONDITIONNEL_AUDIT_PAR_ID_CONNUS: Record<number, { pct: number; condition: string }> = {
   2910: { pct: 50, condition: 'la cible est sous un effet d’incapacité' }, // Grogen uniquement
   7752: { pct: 50, condition: 'la cible est immunisée à l’étourdissement' }, // Iron
-  7767: { pct: 50, condition: 'la cible est immunisée à l’étourdissement' }, // collaboration équivalente
+  // (7767, même prose, n'est porté que par une forme de boss non obtenable,
+  // `48102` : hors curation.)
 };
 
 const CRIT_RATE_PROPRE_CONNUS: Record<string, number> = {
@@ -2822,7 +2823,8 @@ const EFFETS_ENTRE_COUPS_CONNUS: Record<string, EffetEntreCoupsProfile[]> = {
 
 const EFFETS_ENTRE_COUPS_PAR_ID_CONNUS: Record<number, EffetEntreCoupsProfile[]> = {
   6158: [{ id: 'brand', label: 'Marque', cumulable: false, effetCombat: 'brand' }], // Naomi 2A
-  6173: [{ id: 'brand', label: 'Marque', cumulable: false, effetCombat: 'brand' }], // collaboration équivalente
+  // (6173, même prose, n'est porté que par le Martial Cat 2A générique `47603`,
+  // non obtenable : hors curation.)
   10013: [{ id: 'unrecoverable', label: 'Irrécupérable', cumulable: false }], // Akhamamir 2A
   // Divergent Fist / Shockwave Fist (S2 de Yuji et Rick) : « The first hit
   // decreases its Defense for 2 turns » (effet `Decrease DEF`, note « 1st
@@ -3163,7 +3165,6 @@ export const SORTS_SANS_ATTAQUE_PAR_ID: ReadonlySet<number> = new Set([
   2113, // Regenerate (Lukan) : « Removes the harmful effects on itself and recovers HP accordingly to the number of effects removed. » (soin ; confirmé par l'utilisateur)
   2611, // Revive (Mikene) : « Revives a dead ally with 40% HP and grants immunity for 1 turn. Grants Soul Protection for 3 turns if this skill is used on an alive ally. … » (résurrection ; confirmé par l'utilisateur)
   2615, // Dark Return (Tilasha) : « Revives a dead ally with little HP and grants a turn instantly. If it's used on a living ally, decreases the current HP by 70%, grants Life Drain for 1 turn, and grants a turn instantly. » (résurrection ; confirmé par l'utilisateur)
-  2813, // Force Field (Sylphid vent) : « Casts a shield that absorbs a certain amount of damage on all allies for 3 turns. »
   2818, // Force Field (Acasis) : « Creates a shield that's proportionate to 30% of your HP on all allies … »
   4210, // Unleashed Fury (Zeratu) : « Gains increased Attack Power and Immunity against harmful effects for 3 turns. Instantly recovers a turn when used. » (buffs et tour ; confirmé par l'utilisateur)
   6713, // Soul Revival (Michelle) : « Revives a dead ally and balances the target's HP ratio to half of your HP ratio and recovers the target's HP by 15% each turn for 2 turns. » (résurrection ; confirmé par l'utilisateur)
@@ -3270,6 +3271,41 @@ const CALCUL_PARTIEL_PAR_ID: Readonly<Record<number, string>> = {
 // Identifiants de la table (tests et preuve).
 export function idsCalculPartiel(): number[] {
   return Object.keys(CALCUL_PARTIEL_PAR_ID).map(Number);
+}
+
+// Les clés de TOUTES les tables curées par identifiant, table par table —
+// pour le test qui exige que chacune soit portée par une forme obtenable et
+// éveillée (`tests/curation-formes-jouables.test.ts`). ⚠️ Une table par
+// identifiant ajoutée ici se déclare aussi dans cette liste, sinon elle échappe
+// à la garde. Seule exception : `CALCUL_PARTIEL_PAR_ID`, qui n'est lue que pour
+// l'affichage et que le test relit par `idsCalculPartiel`.
+export function clesDesTablesParId(): Record<string, number[]> {
+  const cles = (t: object) => Object.keys(t).map(Number);
+  return {
+    BONUS_STAT_FIXE_PAR_ID_CONNUS: cles(BONUS_STAT_FIXE_PAR_ID_CONNUS),
+    BONUS_CONDITIONNEL_PROPRE_PAR_ID_CONNUS: cles(BONUS_CONDITIONNEL_PROPRE_PAR_ID_CONNUS),
+    BONUS_MONSTRE_PAR_EFFET_CIBLE_PAR_ID_CONNUS: cles(BONUS_MONSTRE_PAR_EFFET_CIBLE_PAR_ID_CONNUS),
+    STATS_COMBAT_PAR_ID_CONNUS: cles(STATS_COMBAT_PAR_ID_CONNUS),
+    CONDITIONS_MONSTRE_PAR_ID_CONNUS: cles(CONDITIONS_MONSTRE_PAR_ID_CONNUS),
+    BONUS_PAR_EFFET_CIBLE_PAR_ID_CONNUS: cles(BONUS_PAR_EFFET_CIBLE_PAR_ID_CONNUS),
+    CONDITIONS_COMBAT_PAR_ID_CONNUS: cles(CONDITIONS_COMBAT_PAR_ID_CONNUS),
+    BONUS_CONDITIONNEL_AUDIT_PAR_ID_CONNUS: cles(BONUS_CONDITIONNEL_AUDIT_PAR_ID_CONNUS),
+    CRIT_DAMAGE_PROPRE_PAR_ID_CONNUS: cles(CRIT_DAMAGE_PROPRE_PAR_ID_CONNUS),
+    EFFETS_ENTRE_COUPS_PAR_ID_CONNUS: cles(EFFETS_ENTRE_COUPS_PAR_ID_CONNUS),
+    FORMULES_CUREES_PAR_ID: cles(FORMULES_CUREES_PAR_ID),
+    PORTEE_CORRIGEE_PAR_ID: cles(PORTEE_CORRIGEE_PAR_ID),
+    COMPOSANTES_FIXES_ADDITIONNELLES_PAR_ID: cles(COMPOSANTES_FIXES_ADDITIONNELLES_PAR_ID),
+    BONUS_STACK_PROPRE_PAR_ID_CONNUS: cles(BONUS_STACK_PROPRE_PAR_ID_CONNUS),
+    SORTS_SANS_ATTAQUE_PAR_ID: [...SORTS_SANS_ATTAQUE_PAR_ID],
+    COUPS_VARIABLES_PAR_ID_CONNUS: cles(COUPS_VARIABLES_PAR_ID_CONNUS),
+    IGNORE_DEF_CONDITIONNEL_PAR_ID: [...IGNORE_DEF_CONDITIONNEL_PAR_ID],
+    IGNORE_DEF_A_PARTIR_DU_COUP_PAR_ID: cles(IGNORE_DEF_A_PARTIR_DU_COUP_PAR_ID),
+    COUPS_FIXES_CORRIGES_PAR_ID: cles(COUPS_FIXES_CORRIGES_PAR_ID),
+    SEQUENCES_DE_COUPS_PAR_ID_CONNUS: cles(SEQUENCES_DE_COUPS_PAR_ID_CONNUS),
+    SORTS_COOPERATIFS_SANS_EFFET_PAR_ID: [...SORTS_COOPERATIFS_SANS_EFFET_PAR_ID],
+    SORTS_DES_FAMILLES_COOPERATIVES_PAR_ID: [...SORTS_DES_FAMILLES_COOPERATIVES_PAR_ID],
+    ALLY_ATTACK_SANS_ATTAQUE_DU_MONSTRE_PAR_ID: [...ALLY_ATTACK_SANS_ATTAQUE_DU_MONSTRE_PAR_ID],
+  };
 }
 
 // Ce que le total d'un sort ne compte pas, ou `null` : seul un sort PRIS EN
@@ -3506,9 +3542,11 @@ function coupsFixesCorrigesDe(c: { com2usId: number | null; nom: string }): numb
 // Valeurs fournies par l'utilisateur (valeurs-de-jeu-curees.md) :
 // coups 1 et 2 à `0.5 × ATQ` mono-cible (donnée + confirmation), coup 3 à
 // `3.0 × ATQ` en zone, cible visée comprise ; même séquence et mêmes skillups,
-// troisième coup inclus, pour les huit identifiants retenus (onze
-// formes du corpus, dont les Magic Knights non éveillés, que l'écran ne
-// propose pas). Les lignes d'artéfact suivent la portée de CHAQUE groupe (voir
+// troisième coup inclus, pour les cinq identifiants des formes jouables
+// (Astar, Iris, Lapis, Lupinus, Lanett) ; `10602` et `10604` couvrent aussi le
+// Magic Knight non éveillé qui les partage. `10601`, `10603` et `10605`, portés
+// par les seuls non éveillés et l'Imperfect Magic Knight non obtenable, sont
+// hors curation. Les lignes d'artéfact suivent la portée de CHAQUE groupe (voir
 // `computeSkillDamageDetail`) : 224 sur les coups 1 et 2, 400 sur les trois,
 // 411 sur le premier coup du tour seulement (confirmation du 2026-10-02).
 //
@@ -3531,11 +3569,8 @@ const SEQUENCE_BLADE_SURGE: SequenceCuree = {
   ],
 };
 const SEQUENCES_DE_COUPS_PAR_ID_CONNUS: Record<number, SequenceCuree> = {
-  10601: SEQUENCE_BLADE_SURGE, // Magic Knight eau (19801, non éveillé)
   10602: SEQUENCE_BLADE_SURGE, // Astar (19812), Magic Knight feu (19802)
-  10603: SEQUENCE_BLADE_SURGE, // Imperfect Magic Knight vent (19823), Magic Knight vent (19803)
   10604: SEQUENCE_BLADE_SURGE, // Iris (19814), Magic Knight lumière (19804)
-  10605: SEQUENCE_BLADE_SURGE, // Magic Knight ténèbres (19805, non éveillé)
   10616: SEQUENCE_BLADE_SURGE, // Lapis (19811)
   10618: SEQUENCE_BLADE_SURGE, // Lupinus (19813)
   10620: SEQUENCE_BLADE_SURGE, // Lanett (19815)

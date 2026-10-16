@@ -263,6 +263,7 @@ import testSetsIntangible from './sets-intangible.test';
 import testRuneTri from './rune-tri.test';
 import testMonstreTri from './monstre-tri.test';
 import testMonstreFormes from './monstre-formes.test';
+import testCurationFormesJouables from './curation-formes-jouables.test';
 import testStockage from './stockage.test';
 import testMigrationStockage from './migration-stockage.test';
 import testBureauProtocole from './bureau-protocole.test';
@@ -547,6 +548,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRuneTri', testRuneTri],
   ['testMonstreTri', testMonstreTri],
   ['testMonstreFormes', testMonstreFormes],
+  ['testCurationFormesJouables', testCurationFormesJouables],
   ['testCouleursCourbes', testCouleursCourbes],
   ['testRechargement', testRechargement],
   ['testCollabPaires', testCollabPaires],

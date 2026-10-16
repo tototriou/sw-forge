@@ -92,7 +92,9 @@ les coups. La forme d'une piste et des relevés en jeu est celle de
   après tout coup critique du tour, n'est pas curé ; la frappe de Moria 2A
   pendant son S3 non plus. Deadly Swing ne garantit le critique sous 30 %
   de PV de la cible que sur `6258` (`CONDITIONS_COMBAT_PAR_ID_CONNUS`),
-  pas sur `6207`, `6208`, `6209`, `6257`, `6272`, `6273`, de même prose.
+  pas sur `6207`, `6208`, `6209` (Sath, Hiva et Prom éveillés) ni `6257`
+  (Sath 2A), de même prose. `6272` et `6273`, portés par des formes non
+  obtenables, sont hors curation.
 - **Idée** : Energy Punch suit le mode critique, un par coup du sort en
   « Critique », aucun en « Non critique »
   ([02-app/degats-reels/](../02-app/degats-reels/)) ; un sort ne

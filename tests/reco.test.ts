@@ -16,7 +16,7 @@ import { OwnedBuild } from '../src/lib/ownedBuilds';
 import { artifactSubKinds, artifactSubLabel, artifactSubsFor, isArtifactSub } from '../src/lib/effects';
 import { cleanArtifacts, decodeRecosJson, encodeRecosJson } from '../src/lib/recoShare';
 import { chercheMonstre } from '../src/lib/recoSearch';
-import { estEveille, formesJouables } from '../src/lib/monsterForms';
+import { estEveille, estObtenable, formesJouables } from '../src/lib/monsterForms';
 import {
   MAX_ARTIFACT_SUBS,
   Monster,
@@ -637,6 +637,18 @@ export function testFormesJouables() {
     1,
     'un monstre perso (sans étoiles) reste proposable'
   );
+
+  // Une forme non obtenable (boss, ancien doublon) n'est pas proposée, même
+  // éveillée ; un champ absent ne fait rien disparaître.
+  egal(
+    formesJouables([
+      mon({ name: 'Veromos', element: 'dark', stars: 6, naturalStars: 5, obtainable: false }),
+      mon({ name: 'Veromos', element: 'dark', stars: 6, naturalStars: 5, obtainable: true }),
+    ]).map((m) => m.obtainable),
+    [true],
+    'une forme non obtenable n’est pas proposée'
+  );
+  ok(estObtenable(mon({ name: 'X' })), 'champ obtainable absent → obtenable');
 
   ok(!estEveille(mon({ name: 'X', stars: 3, naturalStars: 3 })), 'stars = nat → non éveillé');
   ok(estEveille(mon({ name: 'X', stars: 4, naturalStars: 3 })), 'stars > nat → éveillé');

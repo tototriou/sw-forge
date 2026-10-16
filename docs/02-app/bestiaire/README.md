@@ -30,6 +30,24 @@ n'en cocher **aucune** revient à **ne rien vouloir voir**.
   (étoiles à l'invocation, pas l'éveil).
   - ⚠️ Un monstre **sans grade naturel** (`stars === null`) échappe à ce filtre :
     aucune case ne peut le désigner, le masquer le rendrait introuvable.
+- **Formes** : deux pastilles indépendantes, **cochées par défaut**
+  (`filtrerFormesBestiaire`, [monsterForms.ts](src/lib/monsterForms.ts)).
+  - **Jouables uniquement** : les formes qu'un joueur peut posséder
+    (`obtainable` de SWARFARM, `estObtenable`). Relâchée, elle montre les
+    formes de boss, les anciens doublons (Ifrit `17111` à `17115`) et les
+    placeholders à nom coréen.
+  - **Formes éveillées** : premier et second éveil (`estEveille`, `stars >
+    naturalStars`). Relâchée, elle montre les formes non éveillées, angelmons
+    et rainbowmons compris.
+  - ⚠️ **Plus larges que les sélecteurs** (`formesJouables`) : la forme
+    éveillée qu'une 2A remplace reste affichée — elle se joue, on la possède
+    avant le second éveil. Les sélecteurs ne la proposent pas, le Bestiaire
+    la montre.
+  - ⚠️ Appliqués **après** les déduplications de transformation et de
+    collaboration : la forme transformée n'est pas obtenable, et la carte
+    gardée doit rester la même que les filtres soient cochés ou non.
+  - Le compteur dit donc, filtres par défaut, « N sur M » : M reste le total
+    de la base.
 - **Tri interne** (au sein de chaque groupe d'élément) :
   - `stars_desc` (défaut) : étoiles ↓ puis nom
   - `stars_asc` : étoiles ↑ puis nom
@@ -113,13 +131,12 @@ garde qu'une, vérifié par
 - ⚠️ **Un second éveil n'est PAS une transformation.** Ses deux formes se
   distinguent (nom, icône, stats) et restent toutes les deux — c'est
   `formesJouables` qui les arbitre, et seulement dans les sélecteurs.
-- ⚠️ **Cinq formes de boss ne sont pas proposées dans les sélecteurs** :
-  Azazel `2003503`, Kazuya Mishima `2003601`, True Devil Kazuya
-  `2003705`, The Witch-king of Angmar `2004003` et Solide `2004103` (6 étoiles,
-  rareté naturelle 1, prose « the boss's »). `formesJouables` les écarte par
-  cette **liste d'identifiants** (`FORMES_DE_BOSS_ECARTEES`,
-  `src/lib/monsterForms.ts`), pas par une règle déduite des champs. Le Bestiaire,
-  lui, les garde : on peut lire leurs stats.
+- ⚠️ **Les formes non obtenables ne sont pas proposées dans les sélecteurs** :
+  formes de boss (Azazel `2003503`, Mouth of Sauron `2003805`…), anciens
+  doublons (les Ifrit éveillés `17111` à `17115`, qui doublaient Veromos et ses
+  frères), placeholders à nom coréen. `formesJouables` les écarte d'après le
+  champ `obtainable` de SWARFARM (`estObtenable`, `src/lib/monsterForms.ts`),
+  sans liste d'identifiants à tenir à la main.
 - La règle s'applique **au Bestiaire comme à la box du compte** : posséder le
   monstre, c'est posséder ses deux formes. Sur ~3 000 entrées, **58** sont ainsi
   écartées.

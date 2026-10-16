@@ -48,14 +48,15 @@ groupes. Pour Blade Surge, l’empreinte (`0.5*{ATK}`, `coups: 2`,
 
 **Couverture, en deux unités :**
 
-- **8 identifiants** : `10601`, `10602`, `10603`, `10604`, `10605`, `10616`,
-  `10618`, `10620` ;
-- **11 formes du corpus** : Magic Knight eau `19801`, feu `19802`, vent
-  `19803`, lumière `19804`, ténèbres `19805` ; Lapis `19811`, Astar `19812`,
-  Lupinus `19813`, Iris `19814`, Lanett `19815` ; Imperfect Magic Knight vent
-  `19823`. Les Magic Knights non éveillés ne sont pas sélectionnables dans
-  l’Optimizer : `10601` et `10605`, portés par eux seuls, ne sont couverts que
-  par la table et le test.
+- **5 identifiants** : `10602`, `10604`, `10616`, `10618`, `10620` ;
+- **7 formes du corpus** : Lapis `19811`, Astar `19812`, Lupinus `19813`,
+  Iris `19814`, Lanett `19815`, et les Magic Knights non éveillés feu `19802`
+  et lumière `19804`, qui partagent l’identifiant d’Astar et d’Iris.
+- **Hors curation** : `10601`, `10603` et `10605`, portés par les seuls
+  Magic Knights non éveillés eau, vent et ténèbres et par l’Imperfect Magic
+  Knight vent `19823`, non obtenable — une forme non jouable ne se curate pas
+  ([valeurs-de-jeu-curees.md](valeurs-de-jeu-curees.md)). Le test les tient
+  hors de la famille.
 
 Cinq candidats écartés (`11015`, `18314`, `23507`, `23508`, `23510`)
 restent hors table, comme les sorts voisins de même catégorie, d’une autre
@@ -206,16 +207,16 @@ refus quand la fiche ne porte plus l’empreinte (dont le premier groupe de
 Head Press et de Sagar, qu’une garde sur le premier groupe aurait exigé).
 
 `tests/degats-blade-surge.test.ts` (`node tests/run.mjs bladesurge`) :
-balayage du corpus (les 8 identifiants et 11 formes de Blade Surge, les
+balayage du corpus (les 5 identifiants et 7 formes de Blade Surge, les
 quatre séquences à valeur de l’API, aucun autre porteur),
 refus d’une curation périmée, montant des deux crans écrit à la main sur les
-onze formes, apport exact de 224, 400 et 411 dans chaque cran, PV propres à
+sept formes, apport exact de 224, 400 et 411 dans chaque cran, PV propres à
 chaque cran pour 222/223 comparés au chemin ordinaire d’un sort d’un seul
 groupe, part additionnelle par coup, classement et clonage du réglage.
 
 `tests/blade-surge-propagation.test.ts` (même filtre) :
 `testBladeSurgeRecette` — valeur absente, les deux crans acceptés sur les
-huit identifiants, refus avec chemin (champ mal typé, clé invalide, valeur
+cinq identifiants, refus avec chemin (champ mal typé, clé invalide, valeur
 hors de l’union, sort sans coup de zone curé), aller-retour export/import,
 resets au changement d’espèce et à l’import de compte ;
 `testBladeSurgeEcran` — libellés des crans, garde de capacité en tête du

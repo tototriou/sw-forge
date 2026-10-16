@@ -13,7 +13,9 @@ import Pager from '../components/account/Pager';
 import { ELEMENTS, STAR_OPTIONS, ElementKey, Monster } from '../types';
 import { LoadState } from '../hooks/useMonsters';
 import {
+  FiltresFormes,
   autreForme,
+  filtrerFormesBestiaire,
   jumeauDeCollab,
   sansDoublonDeCollab,
   sansDoublonDeTransformation,
@@ -45,6 +47,12 @@ export default function BestiaryPage({ monsters, menuOuvert, onFermerMenu }: Pro
     () => new Set(ELEMENTS.map((el) => el.key))
   );
   const [activeStars, setActiveStars] = useState<Set<number>>(() => new Set(STAR_OPTIONS));
+  // Cochés par défaut : formes de boss, anciens doublons et non éveillées ne
+  // s'affichent qu'à la demande.
+  const [filtresFormes, setFiltresFormes] = useState<FiltresFormes>({
+    jouablesSeulement: true,
+    eveilleesSeulement: true,
+  });
   const [sortMode, setSortMode] = useState('stars_desc');
   // Fiche ouverte — état local, non persisté : rouvrir la page sur une fiche
   // consultée la veille serait déroutant.
@@ -69,6 +77,10 @@ export default function BestiaryPage({ monsters, menuOuvert, onFermerMenu }: Pro
     });
   }
 
+  function basculerFiltreForme(k: keyof FiltresFormes) {
+    setFiltresFormes((prev) => ({ ...prev, [k]: !prev[k] }));
+  }
+
   // Monstres retenus, triés, **avant découpage en pages**.
   //
   // ⚠️ L'ordre est celui de l'AFFICHAGE : élément par élément, chacun trié selon
@@ -83,7 +95,13 @@ export default function BestiaryPage({ monsters, menuOuvert, onFermerMenu }: Pro
     // ouvrir l'une pour l'autre.
     // ⚠️ Puis les paires de COLLABORATION (Satoru Gojo = Werner), qui partagent
     // une carte : deux entrées laisseraient croire à deux monstres distincts.
-    const filtered = sansDoublonDeCollab(sansDoublonDeTransformation(monsters)).filter((m) => {
+    // ⚠️ Les filtres de formes passent APRÈS ces déduplications : la forme
+    // transformée n'est pas obtenable, et la carte gardée doit rester la même
+    // que les filtres soient cochés ou non.
+    const filtered = filtrerFormesBestiaire(
+      sansDoublonDeCollab(sansDoublonDeTransformation(monsters)),
+      filtresFormes
+    ).filter((m) => {
       // La recherche porte sur les DEUX noms : la carte s'intitule « Satoru
       // Gojo, Werner », chercher « Werner » doit la trouver.
       if (q) {
@@ -113,7 +131,7 @@ export default function BestiaryPage({ monsters, menuOuvert, onFermerMenu }: Pro
     }
     // Aplati dans l'ordre des éléments : la suite qu'on paginera.
     return ELEMENTS.flatMap((el) => byElement.get(el.key) ?? []);
-  }, [monsters, query, activeElements, activeStars, sortMode]);
+  }, [monsters, query, activeElements, activeStars, filtresFormes, sortMode]);
 
   const totalShown = retenus.length;
   // Total de RÉFÉRENCE : après déduplication des formes transformables. Sans
@@ -150,7 +168,7 @@ export default function BestiaryPage({ monsters, menuOuvert, onFermerMenu }: Pro
   // ⚠️ Retour à la première page dès que le RÉSULTAT change : rester en page 12
   // après avoir tapé une recherche qui n'en rend que deux laisserait un écran
   // vide, qu'on lirait comme « aucun résultat ».
-  useEffect(() => setPage(0), [query, activeElements, activeStars, sortMode]);
+  useEffect(() => setPage(0), [query, activeElements, activeStars, filtresFormes, sortMode]);
 
   return (
     <div>
@@ -190,6 +208,8 @@ export default function BestiaryPage({ monsters, menuOuvert, onFermerMenu }: Pro
             toggleElement={toggleElement}
             activeStars={activeStars}
             toggleStar={toggleStar}
+            filtresFormes={filtresFormes}
+            basculerFiltreForme={basculerFiltreForme}
             sortMode={sortMode}
             setSortMode={setSortMode}
             avecTri={false}
@@ -204,6 +224,8 @@ export default function BestiaryPage({ monsters, menuOuvert, onFermerMenu }: Pro
           toggleElement={toggleElement}
           activeStars={activeStars}
           toggleStar={toggleStar}
+          filtresFormes={filtresFormes}
+          basculerFiltreForme={basculerFiltreForme}
           sortMode={sortMode}
           setSortMode={setSortMode}
         />

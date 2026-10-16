@@ -27,6 +27,7 @@ Tout le calcul vit dans `src/lib/damage.ts` ; on choisit le document selon la r�
 | la portée d'un sort, une séquence de coups curée, la cible secondaire (`cibleDegatsParSort`) | [feat-sequences-de-coups.md](feat-sequences-de-coups.md) |
 | un passif offensif, la réduction de DEF, les PV creusés coup par coup, la VIT de l'adversaire, `maVitCombat` | [feat-passifs-offensifs.md](feat-passifs-offensifs.md) |
 | une attaque déclenchée après un sort | [feat-attaque-apres-un-sort.md](feat-attaque-apres-un-sort.md) |
+| une attaque conjointe (lignes 209 et 225, effet `Ally Attack`, interrupteur « Attaque conjointe », S1 appelé par un sort coopératif) | [feat-attaques-conjointes.md](feat-attaques-conjointes.md) |
 | un effet d'équipe, un set d'aura, un leader skill, `src/lib/aurasExternes.ts` | [feat-effets-equipe-et-leaders.md](feat-effets-equipe-et-leaders.md) |
 | un dégât conditionnel, une portée corrigée par la prose, un nombre de coups variable saisi | [feat-conditions-et-audit.md](feat-conditions-et-audit.md) |
 | un modificateur monstre-wide d'un passif (compteur, effets sur la cible, sacrifice…) | [catalogue-des-passifs.md](catalogue-des-passifs.md) |
@@ -42,6 +43,7 @@ Tout le calcul vit dans `src/lib/damage.ts` ; on choisit le document selon la r�
 - [Dégâts réels — séquences de coups et cible secondaire](feat-sequences-de-coups.md) — état actuel
 - [Dégâts réels — passifs offensifs](feat-passifs-offensifs.md) — état actuel
 - [Dégâts réels — attaque déclenchée après un sort](feat-attaque-apres-un-sort.md) — état actuel
+- [Dégâts réels — attaques conjointes](feat-attaques-conjointes.md) — état actuel
 - [Dégâts réels — effets d’équipe et leaders](feat-effets-equipe-et-leaders.md) — état actuel
 - [Dégâts réels — conditions et audit](feat-conditions-et-audit.md) — état actuel
 - [Dégâts réels — catalogue des passifs](catalogue-des-passifs.md) — état actuel

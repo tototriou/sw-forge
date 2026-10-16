@@ -231,16 +231,23 @@ Ce que contient ce réglage :
   numérique** (% de PV perdus, 0 par défaut) qui n'apparaît que si son
   effet est activé. Détail des mécaniques :
   [degats-reels/feat-effets-equipe-et-leaders.md § Effets d'ÉQUIPE](../../degats-reels/feat-effets-equipe-et-leaders.md#effets-déquipe-euldong-mirinae-deborah-miriam-dr-matteo-velaska), « Effets d'équipe ».
-  ⚠️ **« Attaque conjointe »**, éteinte par défaut, dernière de la rangée
-  (elle ne déplace aucune autre vignette). Elle n'apparaît que pour un **S1
-  qui n'est pas conjoint par lui-même** : la condition est lue par la porte
-  `contexteAttaqueConjointe` de `damage.ts`, jamais par une copie de la règle,
-  donc ni pour un S2 ou un S3, ni pour un sort à effet `Ally Attack`. Sa
-  description (vignette et infobulle « ? ») dit ce qu'elle suppose : le S1
-  est appelé par un allié, hors du tour du monstre ; les dégâts d'attaque
-  conjointe (209 et 225) comptent, pas le dégât critique mono-cible (224).
-  L'effet `Ally Attack` n'a pas d'icône dans les données : la vignette
-  emprunte celle de Group Hunt. Détail :
+  ⚠️ **« Attaque conjointe »**, dernière de la rangée (elle ne déplace
+  aucune autre vignette). Elle n'apparaît que quand
+  `interrupteurAttaqueConjointe` de `damage.ts` la propose, jamais par une
+  copie de la règle : sur **toutes les attaques des familles Chakram Dancer et
+  Boomerang Warrior**, où elle est **allumée par défaut** (un monstre de
+  l'autre famille est au combat : l'attaque est conjointe), et sur un **S1
+  qui n'est pas conjoint par lui-même**, où elle est éteinte par défaut (le
+  S1 est appelé par un allié, hors du tour du monstre). Ni pour un S2 ou un S3
+  ordinaire, ni pour un sort à effet `Ally Attack`. Son état est celui que
+  rend la fonction, défaut compris ; le clic écrit `attaqueConjointe:
+  !allume`. Sa description (vignette et infobulle « ? ») dit ce qu'elle
+  suppose **en mots du jeu, sans numéro d'artéfact** : dégâts d'attaque
+  conjointe, dégâts critiques sur cible unique pendant ton tour. Son libellé
+  passe sur **deux lignes** au lieu d'être tronqué ; la rangée aligne ses
+  vignettes en haut, les autres gardent leur hauteur. L'effet `Ally Attack`
+  n'a pas d'icône dans les données : la vignette emprunte celle de « Team Up »
+  de Raoq éveillé. Détail :
   [degats-reels/feat-attaques-conjointes.md § L'interrupteur](../../degats-reels/feat-attaques-conjointes.md#linterrupteur--attaque-conjointe-).
 
   ⚠️ **Les buffs ATQ/DEF/VIT et le leader skill n'y sont pas** : ils

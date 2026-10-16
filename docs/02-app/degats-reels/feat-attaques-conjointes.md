@@ -134,9 +134,12 @@ Deux sens, selon le sort choisi :
   différents) : `null`, ou son motif (`cas` : `familles-cooperatives`,
   `appele-par-un-allie`), son état (`allume`, défaut compris) et son
   défaut (`allumeParDefaut`). Le CLI la lit, jamais le champ directement.
-- **Écran** : la vignette, dans « Effets actifs », n'est montrée pour
-  l'instant que pour un S1 qui n'est pas conjoint par lui-même ; sur les
-  deux familles, l'interrupteur se règle par la recette
+- **Écran** : la vignette, dans « Effets actifs », est montrée quand
+  `interrupteurAttaqueConjointe` propose l'interrupteur : sur toutes les
+  attaques des deux familles (allumée par défaut) et sur un S1 qui n'est
+  pas conjoint par lui-même (éteinte par défaut). Le clic écrit
+  `attaqueConjointe: !allume`. Ses descriptions parlent en mots du jeu,
+  sans numéro d'artéfact
   ([../optimizer/ecran/objectif-de-recherche.md](../optimizer/ecran/objectif-de-recherche.md)).
 - **CLI** : la ligne du sort dit « attaque conjointe (appelée par un
   allié) » ou « attaque conjointe (un monstre de l'autre famille au
@@ -336,5 +339,8 @@ le champ (sans : allumé par la porte, aucune clé ajoutée) et le contexte du
 CLI ;
 [tests/rendu/attaque-conjointe-ecran.test.tsx](../../../tests/rendu/attaque-conjointe-ecran.test.tsx)
 (`node tests/run.mjs attaque-conjointe-ecran`) — la vignette dans
-« Effets actifs », présente pour un S1 ordinaire seulement, aux deux
-formats.
+« Effets actifs », présente (éteinte) sur un S1 ordinaire, présente et
+allumée par défaut sur une attaque des familles, absente d'un S2 ordinaire
+et d'un sort coopératif hors familles, sans numéro d'artéfact dans sa
+description, avec l'icône de Team Up ; le ratio 4,5 × ATQ de Nezuko et de
+Vermilion Bird Dancer dans la ligne du sort ; aux deux formats.

@@ -94,7 +94,7 @@ export function testEffetsActifsInfobulle() {
     'infobulle : aucun effet nommé ni décrit à la main');
 
   egal((carte.match(/<EffetVignette\b/g) ?? []).length, 1, 'carte : un seul <EffetVignette>, celui que rend la liste');
-  ok(/\{effetsActifs\.map\(\(e\) => \(\s*<EffetVignette\s+key=\{e\.cle\}\s+icone=\{e\.icone\}\s+libelle=\{e\.libelle\}\s+description=\{e\.description\}\s+onClick=\{e\.basculer\}\s+actif=\{e\.actif\}\s+etroit=\{etroit\}\s*\/>\s*\)\)\}/.test(carte),
+  ok(/\{effetsActifs\.map\(\(e\) => \(\s*<EffetVignette\s+key=\{e\.cle\}\s+icone=\{e\.icone\}\s+libelle=\{e\.libelle\}\s+description=\{e\.description\}\s+onClick=\{e\.basculer\}\s+actif=\{e\.actif\}\s+etroit=\{etroit\}\s+deuxLignes=\{e\.deuxLignes\}\s*\/>\s*\)\)\}/.test(carte),
     'vignettes : rendues par `effetsActifs.map`, avec la même description (survol)');
 
   const construction = entre(carte, 'const effetsActifs: EffetActif[] = [];', '\n  return (');
@@ -102,13 +102,20 @@ export function testEffetsActifsInfobulle() {
   egal([...construction.matchAll(/cle: '([a-zA-Z]+)'/g)].map((m) => m[1]),
     ['defBreak', 'defBreakParLeSort', 'brand', 'euldong', 'mirinae', 'deborah', 'miriam', 'transmission', 'velaska', 'attaqueConjointe'],
     'liste : les dix effets, dans l’ordre d’affichage (« Attaque conjointe » en dernier, sans déplacer les autres)');
-  egal([...construction.matchAll(/description:\s*'[^']+'/g)].length, 10, 'liste : une description écrite par effet, une seule fois');
+  // Neuf descriptions simples ; celle d'« Attaque conjointe » est un ternaire
+  // (deux cas), comptée à part.
+  egal([...construction.matchAll(/description:\s*'[^']+'/g)].length, 9, 'liste : une description écrite par effet, une seule fois');
+  egal([...construction.matchAll(/description:\s*interrupteurConjointe\.cas === 'familles-cooperatives'\s*\?\s*'[^']+'\s*:\s*'[^']+'/g)].length, 1,
+    'liste : « Attaque conjointe » a deux descriptions, une par cas de l’interrupteur');
+  egal(construction.match(/\b(209|224|225)\b/g) ?? [], [], 'liste : aucune description ne cite de numéro d’artéfact');
   // « Attaque conjointe » : la condition est la porte de damage.ts, et le
   // clic bascule le réglage (le geste ne se simule pas au rendu serveur).
-  ok(/if \(contexteAttaqueConjointe\(resolved, \{ attaqueConjointe: true \}, 'sort-choisi'\) === 'appelee-par-allie'\) \{\s*effetsActifs\.push\(\{\s*cle: 'attaqueConjointe',/.test(construction),
-    'Attaque conjointe : seulement si la porte dit que l’interrupteur agit (S1 non conjoint par lui-même)');
-  ok(construction.includes('basculer: () => maj({ attaqueConjointe: !(setup.attaqueConjointe ?? false) })'),
-    'Attaque conjointe : le clic bascule `attaqueConjointe` par `maj`');
+  ok(/const interrupteurConjointe = interrupteurAttaqueConjointe\(resolved, setup\);\s*if \(interrupteurConjointe\) \{\s*effetsActifs\.push\(\{\s*cle: 'attaqueConjointe',/.test(construction),
+    'Attaque conjointe : seulement si `interrupteurAttaqueConjointe` propose l’interrupteur (famille coopérative ou S1 non conjoint)');
+  ok(construction.includes('actif: interrupteurConjointe.allume,'), 'Attaque conjointe : l’état (défaut compris) est celui que rend la fonction');
+  ok(construction.includes('basculer: () => maj({ attaqueConjointe: !interrupteurConjointe.allume })'),
+    'Attaque conjointe : le clic écrit `attaqueConjointe: !allume` par `maj`');
+  ok(/deuxLignes: true/.test(construction), 'Attaque conjointe : son libellé passe sur deux lignes');
 
   // « Seulement les effets présents » : les conditions d'affichage d'avant.
   ok(/if \(montreDefEnnemie\) \{\s*effetsActifs\.push\(\{\s*cle: 'defBreak',/.test(construction), 'Def break : seulement si la DEF ennemie compte pour ce sort');
@@ -121,4 +128,7 @@ export function testEffetsActifsInfobulle() {
 
   const vignette = sansCommentaires(lire('src/components/outils/EffetVignette.tsx'));
   ok(/title=\{description \?\? libelle\}/.test(vignette), 'EffetVignette : le survol de chaque vignette reste, en complément');
+  ok(/deuxLignes \? <span className="block whitespace-normal">\{libelle\}<\/span> : libelle/.test(vignette),
+    'EffetVignette : un libellé sur deux lignes rétablit le retour à la ligne, les autres restent tronqués à une');
+  ok(/deuxLignes=\{e\.deuxLignes\}/.test(carte), 'vignettes : `deuxLignes` passé depuis la liste');
 }

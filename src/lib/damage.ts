@@ -74,8 +74,9 @@ export const BRAND_BONUS_PCT = 25;
 export const BRAND_ICON = 'https://swarfarm.com/static/herders/images/buffs/debuff_brand.png';
 // Attaque conjointe (interrupteur « Attaque conjointe ») : l'effet SWARFARM
 // `Ally Attack` n'a pas d'icône (`icone: null`) ; à défaut, l'icône de
-// compétence de Group Hunt, un sort coopératif.
-export const ATTAQUE_CONJOINTE_ICON = 'https://swarfarm.com/static/herders/images/skills/skill_icon_0000_6_6.png';
+// compétence de « Team Up » de Raoq éveillé (fiche 11012, compétence 2007),
+// un sort coopératif (choix de l'utilisateur, 2026-10-16).
+export const ATTAQUE_CONJOINTE_ICON = 'https://swarfarm.com/static/herders/images/skills/skill_icon_0001_6_3.png';
 
 // ── Effets d'ÉQUIPE (portés par un AUTRE monstre que celui optimisé) ────
 // Contrairement à `PASSIFS_OFFENSIFS_CONNUS`/aux modificateurs monstre-wide

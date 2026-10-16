@@ -4,10 +4,11 @@
 // Spec : docs/02-app/optimizer/ecran/objectif-de-recherche.md, « Effets
 // actifs » ; docs/02-app/degats-reels/feat-attaques-conjointes.md.
 //
-// La vignette se lit par la porte `contexteAttaqueConjointe` : présente pour
-// un S1 non conjoint par lui-même, absente pour un sort à effet `Ally Attack`
-// et pour un S2. Le geste n'est pas simulable au rendu serveur : le clic est
-// contrôlé sur la source, comme pour Tempest.
+// La vignette se lit par `interrupteurAttaqueConjointe` : présente, éteinte
+// par défaut, pour un S1 non conjoint par lui-même ; présente et allumée par
+// défaut sur une attaque des familles coopératives ; absente pour un sort à
+// effet `Ally Attack` et pour un S2 ordinaire. Le geste n'est pas simulable au
+// rendu serveur : le clic est contrôlé sur la source, comme pour Tempest.
 
 import DamageSetupCard from '../../src/components/outils/DamageSetupCard';
 import { DEFAULT_DAMAGE_SETUP, monsterDamageSkills, resolveDamageSkill, type DamageSetup } from '../../src/lib/damage';
@@ -21,6 +22,15 @@ const CROSS_FIRE = 10125; // S1 ordinaire
 const DEFEAT_WILD_DOG = 10130; // S2 ordinaire
 const MONSTRE_TEAM_UP = 11001; // porte le S2 Team Up 2006 (effet Ally Attack)
 const TEAM_UP = 2006;
+// Sabrina (Boomerang Warrior eau), Triple Strike : une attaque d'une famille
+// coopérative. Nezuko (31915) et Vermilion Bird Dancer (32615), ténèbres :
+// Purification, Cooperation! et Rite of Ashes, conjoints par leur formule curée.
+const SABRINA = 22011;
+const TRIPLE_STRIKE = 12706;
+const NEZUKO = 31915;
+const PURIFICATION = 21415;
+const VERMILION = 32615;
+const RITE_OF_ASHES = 22015;
 
 function carte(monstre: number, skillCom2usId: number, etroit: boolean, setup: Partial<DamageSetup> = {}): string {
   const sorts = monsterDamageSkills(loadMonsterSkills(monstre));
@@ -54,18 +64,37 @@ function carte(monstre: number, skillCom2usId: number, etroit: boolean, setup: P
 }
 
 const vignette = (html: string, etat: 'actif' | 'inactif') => html.includes(`aria-label="Attaque conjointe — ${etat}"`);
+// Le survol de la vignette : la même source que l'infobulle « ? » (`effetsActifs`).
+const survol = (html: string) => html.match(/aria-label="Attaque conjointe — (?:actif|inactif)"[^>]*? title="([^"]*)"/)?.[1] ?? '';
 
 function verifier(etroit: boolean) {
   const format = etroit ? 'téléphone' : 'ordinateur';
   const s1 = carte(CASSIE, CROSS_FIRE, etroit);
-  ok(vignette(s1, 'inactif'), `${format} : S1 ordinaire — la vignette « Attaque conjointe » est là, éteinte`);
+  ok(vignette(s1, 'inactif'), `${format} : S1 ordinaire — la vignette « Attaque conjointe » est là, éteinte par défaut`);
   ok(texteVisible(s1).includes('Attaque conjointe'), `${format} : … et son libellé est lisible`);
-  ok(s1.includes('(209 et 225)') && s1.includes('hors du tour du monstre'), `${format} : sa description dit ce qu’elle suppose (infobulle « ? » et survol)`);
+  ok(survol(s1).includes('appelé par un allié') && survol(s1).includes('hors du tour du monstre'), `${format} : sa description dit ce qu’elle suppose`);
   egal(s1.split('Attaque conjointe — ').length - 1, 1, `${format} : une seule vignette`);
   ok(vignette(carte(CASSIE, CROSS_FIRE, etroit, { attaqueConjointe: true }), 'actif'), `${format} : allumée quand attaqueConjointe vaut true`);
   ok(!carte(CASSIE, DEFEAT_WILD_DOG, etroit).includes('Attaque conjointe'), `${format} : S2 ordinaire — absente`);
   ok(!carte(MONSTRE_TEAM_UP, TEAM_UP, etroit).includes('Attaque conjointe'), `${format} : sort Ally Attack (Team Up) — absente`);
   ok(!carte(MONSTRE_TEAM_UP, TEAM_UP, etroit, { attaqueConjointe: true }).includes('Attaque conjointe'), `${format} : sort Ally Attack, réglage resté allumé — absente`);
+
+  // Familles coopératives : proposée sur l'attaque, allumée par défaut.
+  const famille = carte(SABRINA, TRIPLE_STRIKE, etroit);
+  ok(vignette(famille, 'actif'), `${format} : Triple Strike (Boomerang Warrior) — la vignette est là, allumée par défaut`);
+  ok(survol(famille).includes('Un monstre de l’autre famille est au combat'), `${format} : … sa description dit pourquoi l’attaque est conjointe`);
+  ok(vignette(carte(SABRINA, TRIPLE_STRIKE, etroit, { attaqueConjointe: false }), 'inactif'), `${format} : … éteinte quand attaqueConjointe vaut false`);
+  ok(vignette(carte(SABRINA, TRIPLE_STRIKE, etroit, { attaqueConjointe: true }), 'actif'), `${format} : … allumée quand attaqueConjointe vaut true`);
+
+  // D21 : aucun numéro d'artéfact dans les descriptions ; D20 : l'icône de Team Up.
+  for (const [nom, html] of [['S1 ordinaire', s1], ['famille', famille]] as const) {
+    ok(survol(html) !== '' && !/209|224|225/.test(survol(html)), `${format} : ${nom} — aucun numéro d’artéfact dans la description`);
+    ok(html.includes('skill_icon_0001_6_3.png'), `${format} : ${nom} — l’icône de Team Up de Raoq éveillé`);
+  }
+
+  // D17 : le ratio curé s'affiche dans la ligne du sort.
+  ok(texteVisible(carte(NEZUKO, PURIFICATION, etroit)).includes('4.5 × ATQ'), `${format} : Nezuko, Purification, Cooperation! — le ratio 4.5 × ATQ est dans la ligne du sort`);
+  ok(texteVisible(carte(VERMILION, RITE_OF_ASHES, etroit)).includes('4.5 × ATQ'), `${format} : Vermilion Bird Dancer, Rite of Ashes — le ratio 4.5 × ATQ est dans la ligne du sort`);
 }
 
 export function testRenduAttaqueConjointeEcran() {

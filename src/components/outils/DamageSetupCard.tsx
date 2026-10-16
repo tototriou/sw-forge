@@ -37,7 +37,7 @@ import {
   estPrisEnCharge,
   calculPartielDuSort,
   conditionCritiqueGarantiParReglage,
-  contexteAttaqueConjointe,
+  interrupteurAttaqueConjointe,
   coupsAffichesDuSort,
   coupsEnPlusAncienneRecetteActif,
   coupsEnPlusDeCondition,
@@ -332,6 +332,8 @@ interface EffetActif {
   description: string;
   actif: boolean;
   basculer: () => void;
+  // Libellé sur deux lignes au lieu d'être tronqué (« Attaque conjointe »).
+  deuxLignes?: boolean;
 }
 
 // Champ « nombre de coups » d'un sort/passif à coups VARIABLES en jeu (Sia,
@@ -629,19 +631,25 @@ export default function DamageSetupCard({
     actif: setup.velaskaActif ?? false,
     basculer: () => maj({ velaskaActif: !setup.velaskaActif }),
   });
-  // ⚠️ La condition est LA porte de damage.ts, jamais une copie de la règle :
-  // la vignette n'apparaît que si l'allumer changerait le contexte du sort
-  // choisi (S1 non conjoint par lui-même). Ajoutée en dernier : elle ne déplace
-  // aucune autre vignette.
-  if (contexteAttaqueConjointe(resolved, { attaqueConjointe: true }, 'sort-choisi') === 'appelee-par-allie') {
+  // ⚠️ La condition, l'état et le cas viennent de `interrupteurAttaqueConjointe`
+  // (damage.ts), jamais d'une copie de la règle : la vignette n'apparaît que si
+  // l'allumer changerait le sort choisi, et son état par défaut (allumée sur
+  // une attaque des familles, éteinte sur un S1 ordinaire) est celui que le
+  // calcul retient. Ajoutée en dernier : elle ne déplace aucune autre vignette.
+  // Les descriptions disent la règle en mots du jeu, sans numéro d'artéfact.
+  const interrupteurConjointe = interrupteurAttaqueConjointe(resolved, setup);
+  if (interrupteurConjointe) {
     effetsActifs.push({
       cle: 'attaqueConjointe',
       icone: ATTAQUE_CONJOINTE_ICON,
       libelle: 'Attaque conjointe',
       description:
-        'Ce sort est appelé par un allié, hors du tour du monstre : les dégâts d’attaque conjointe (209 et 225) comptent, pas le dégât critique mono-cible (224).',
-      actif: setup.attaqueConjointe ?? false,
-      basculer: () => maj({ attaqueConjointe: !(setup.attaqueConjointe ?? false) }),
+        interrupteurConjointe.cas === 'familles-cooperatives'
+          ? 'Un monstre de l’autre famille est au combat : cette attaque est conjointe, les dégâts d’attaque conjointe comptent. Éteinte, l’attaque est ordinaire.'
+          : 'Ce sort est appelé par un allié, hors du tour du monstre : les dégâts d’attaque conjointe comptent, pas les dégâts critiques sur cible unique pendant ton tour.',
+      actif: interrupteurConjointe.allume,
+      basculer: () => maj({ attaqueConjointe: !interrupteurConjointe.allume }),
+      deuxLignes: true,
     });
   }
 
@@ -1916,7 +1924,9 @@ export default function DamageSetupCard({
             Réduction de DEF et Marque décrivent la CIBLE, les six effets
             d'alliés sont des multiplicateurs de dégâts (voir 7798557 et
             e26118c). La coupe se vérifie donc, elle ne s'interprète pas. */}
-        <div className={`flex flex-wrap ${etroit ? 'gap-1' : 'gap-1.5'}`}>
+        {/* `items-start` : la vignette au libellé sur deux lignes est plus
+            haute que les autres, qui gardent la leur au lieu de s'étirer. */}
+        <div className={`flex flex-wrap items-start ${etroit ? 'gap-1' : 'gap-1.5'}`}>
           {effetsActifs.map((e) => (
             <EffetVignette
               key={e.cle}
@@ -1926,6 +1936,7 @@ export default function DamageSetupCard({
               onClick={e.basculer}
               actif={e.actif}
               etroit={etroit}
+              deuxLignes={e.deuxLignes}
             />
           ))}
         </div>

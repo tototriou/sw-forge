@@ -1,6 +1,6 @@
 # Dégâts réels — attaque déclenchée après un sort
 
-Ce document décrit le mécanisme générique d’une attaque qui frappe après certains sorts — passif (Tempest) ou compétence active appelée —, son interrupteur et son choix comme sort.
+Ce document décrit le mécanisme générique d’une attaque qui frappe après certains sorts — passif (Tempest) ou compétence active appelée —, son interrupteur et son choix comme sort, puis le sort coopératif sans dégâts propres qui appelle le S1, tenu dans la même table.
 
 Voir aussi : feat-passifs-offensifs.md, feat-artefacts-critique-et-element.md, feat-sequences-de-coups.md.
 
@@ -24,8 +24,10 @@ que des passifs et les reconnaît par leur nom : une table frère,
 `ATTAQUES_APPELEES_PAR_DECLENCHEUR`, la décrit par son sort déclencheur, et
 `monsterOffensivePassives` la rend au même format, en fin de liste — même
 porte (`passifCompte`), même calcul (voir
-« Ce qu’il faudra fournir »). Cette table est **vide** : aucun cas n’est
-encore curé.
+« Ce qu’il faudra fournir »). Aucune attaque conditionnelle n’y est encore
+curée. La table n’est pas vide pour autant : elle porte un second genre
+d’entrée, le sort coopératif sans dégâts propres qui appelle le S1 (voir
+« Sort coopératif sans dégâts propres »), que ce chemin ne lit pas.
 
 | Paramètre | Champ curé | Tempest | Source |
 | --- | --- | --- | --- |
@@ -101,6 +103,41 @@ passif porte `appliqueDefBreak: false` : exact pour Tempest (`Reduce
 Cooltime`, `Stun`), à relire sur les effets d’un futur cas qui poserait une
 réduction de Défense.
 
+## Sort coopératif sans dégâts propres
+
+Un sort coopératif sans ratio dans sa donnée dont la prose dit qu’il fait
+frapper le S1 du monstre est une entrée de
+`ATTAQUES_APPELEES_PAR_DECLENCHEUR` d’un autre genre : elle porte
+`sortCooperatifSansDegats`, le **discriminant**. Absent, l’entrée est une
+attaque conditionnelle (le chemin des passifs, l’interrupteur,
+`passifCompte`, inchangés) ; présent, elle est lue par
+`sortsCooperatifsQuiAppellentDeLaFiche` seule, jamais par le chemin des
+passifs. Les règles de l’attaque conjointe sont dans
+[feat-attaques-conjointes.md](feat-attaques-conjointes.md#le-s1-appelé-par-un-sort-coopératif).
+
+| Règle | Sort coopératif qui appelle le S1 | Source |
+| --- | --- | --- |
+| Liste des sorts | le déclencheur y entre, à son slot (S3), avec son nom, sa prose et son icône : c’est lui qui est choisi | décision de l’utilisateur |
+| Calcul | le profil du S1 de la même fiche (`skillDamageProfile`, trouvé par le slot), une fois : ni le `coups` de la donnée du déclencheur, qui compte les alliés, ni un ratio transféré | [valeurs curées](valeurs-de-jeu-curees.md), « Sort coopératif sans ratio » |
+| Interrupteur | aucun : l’appel est certain, le S1 est toujours une attaque conjointe | décision de l’utilisateur |
+| Sort par défaut | jamais : `defaultDamageSkill` l’écarte, le défaut reste le S2 | défaut d’avant conservé, faute de décision de l’utilisateur pour le changer |
+| 400-403, 410 | la ligne du slot du S1 (400), lue par `competenceQuiFrappe`, jamais celle du déclencheur (402, 410) | [valeurs curées](valeurs-de-jeu-curees.md), à relire par l’utilisateur |
+| Critique | celui du réglage, sauf si la prose du déclencheur le garantit (`critiqueGaranti` de l’entrée, Concentrated Attack) | prose du déclencheur |
+| Recette | `skillCom2usId` = l’identifiant du déclencheur (`10912`), résolu par `resolveDamageSkill`, à l’écran comme au CLI | décision produit |
+
+Gardes, chacune écarte l’entrée, jamais un nombre inventé : déclencheur
+passif ou doté d’un profil propre (une donnée qui lui donnerait une formule
+le ferait compter deux fois) ; slot du déclencheur ou slot appelé vide,
+occupé par un passif ou par plusieurs compétences ; S1 non calculable.
+L’étiquette « Calcul partiel » du S1, s’il en a une, suit le déclencheur
+(`calculPartielDuSort` lit la compétence qui frappe).
+
+⚠️ **Un passif qui suivrait ce sort voit le slot du déclencheur**
+(`passifPeutSuivre`, slot 3), pas celui du S1. Aucune des quatre fiches
+concernées (Lisa, Neostone Agent feu, Moria 2e éveil, sa copie « boss »
+`48003`) n’a de passif offensif ni d’attaque appelée : le cas se curera
+s’il apparaît, il ne se déduit pas.
+
 ## Ce qu’il faudra fournir pour un autre cas
 
 **81 identifiants** ont la même architecture sans qu’aucun calcul ne les
@@ -114,6 +151,7 @@ voisin (skill `game-data-curation`), il faut d’abord savoir de quelle
 | --- | --- | --- | --- | --- |
 | **Passif** (Tempest) | `PASSIFS_OFFENSIFS_CONNUS` | le NOM exact du passif (`Competence.nom`) : l’identifiant d’un passif change d’une fiche à l’autre | sa formule (fiche, ou `FORMULES_CUREES_PAR_ID`), marqueur `passif` vrai | `slotsDeclencheurs`, curé |
 | **Compétence active appelée** (Hadoken de Shoryuken, Rolling Punch de Drunken Kick) | `ATTAQUES_APPELEES_PAR_DECLENCHEUR` | l’identifiant du **sort déclencheur**, avec le **slot appelé** — jamais un nom : « Hadoken » est porté par 12 formes, dont 6 sans Shoryuken, « Energy Punch » par 20 | celui de la compétence active de ce slot dans la MÊME fiche (`skillDamageProfile`, comme dans « Compétence utilisée »), marqueur `passif` absent | le seul slot du déclencheur, retenu s’il est seul à ce slot dans la fiche |
+| **S1 appelé par un sort coopératif sans dégâts propres** (Attack Command, Concentrated Attack) | `ATTAQUES_APPELEES_PAR_DECLENCHEUR`, avec `sortCooperatifSansDegats` | l’identifiant du sort déclencheur, avec le slot appelé | celui du S1 de la même fiche, sous l’identité du déclencheur (voir « Sort coopératif sans dégâts propres ») | aucun : le déclencheur est le sort choisi |
 
 Pour une compétence appelée, la ligne de table suffit : le sort par défaut,
 la neutralisation de 411 (toute la boucle des passifs) et l’exclusion par
@@ -194,10 +232,15 @@ le CLI (`testDegatsTempestRecette`) ; interrupteur à l’écran, lu sur la
 source (`testDegatsTempestEcran`).
 
 `tests/degats-attaque-appelee.test.ts` (`node tests/run.mjs attaqueappelee`),
-entrées injectées puis retirées, table de production vide vérifiée :
+entrées injectées puis retirées, table de production vérifiée (deux entrées
+coopératives, aucune attaque conditionnelle) :
 approvisionnement par une ligne, profil identique à celui de « Compétence
 utilisée », sort par défaut et liste des sorts inchangés, 411, jamais par
 nom, gardes du chemin frère (`testAttaqueAppeleeApprovisionnement`) ; les 17
 amorces et la raison de chaque classement (`testAttaqueAppeleeCouverture`) ;
 clé de l’interrupteur libre, au score complet et sur tout le corpus
-(`testAttaqueAppeleeEspaceDeCles`).
+(`testAttaqueAppeleeEspaceDeCles`) ; le sort coopératif qui appelle le S1
+(`testAttaqueAppeleeParSortCooperatif`) : les quatre fiches du corpus et
+elles seules, profil du S1 sous l’identité du déclencheur, sort par défaut
+inchangé, totaux de Lisa et de Moria écrits à la main (224, 400, 402, 410,
+411, critique garanti), gardes, aller-retour de recette relu par le CLI.

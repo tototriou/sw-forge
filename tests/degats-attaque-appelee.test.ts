@@ -1,14 +1,19 @@
 // L'attaque appelée ACTIVE : une compétence
 // active de la fiche enchaînée après UN sort déclencheur (la S2 de RYU appelle
-// sa S1). Trois vérifications :
+// sa S1). Quatre vérifications :
 // 1. l'approvisionnement par `ATTAQUES_APPELEES_PAR_DECLENCHEUR` (clé = sort
 //    déclencheur, slot appelé ; jamais un nom) ;
 // 2. la couverture des 17 amorces, une par une ;
-// 3. l'espace de clés de l'interrupteur (`passifsOffensifs`).
+// 3. l'espace de clés de l'interrupteur (`passifsOffensifs`) ;
+// 4. le S1 appelé par un sort coopératif sans dégâts propres (Attack Command
+//    de Lisa, Concentrated Attack de Moria) : déclencheur choisissable, total
+//    du S1 appelé, attaque conjointe sans interrupteur.
 //
-// ⚠️ AUCUNE entrée de production : la table est vide (« n'en
-// code aucune »). Chaque test injecte SES entrées et les retire dans un
-// `finally` ; la restauration est vérifiée.
+// ⚠️ La table de production ne porte AUCUNE attaque conditionnelle : ses
+// deux entrées sont les sorts coopératifs du point 4
+// (`sortCooperatifSansDegats`), que le chemin des passifs ne lit pas. Les
+// tests 1 à 3 injectent LEURS entrées et les retirent dans un `finally` ; la
+// restauration est vérifiée.
 //
 // Valeurs de jeu : formules, coups et améliorations des fiches SWARFARM
 // (`public/data/skills`), recopiées ici à la main ; inclusion par interrupteur,
@@ -35,11 +40,14 @@ import {
   type PassifOffensifProfile,
   type SkillDamageProfile,
   artifactDamageProfile,
+  calculPartielDuSort,
   computeSkillDamageDetail,
   computeTotalDamage,
+  contexteAttaqueConjointe,
   defaultDamageSkill,
   defenseFactor,
   estPrisEnCharge,
+  idsCalculPartiel,
   monsterBonusDegatsConditionnel,
   monsterBonusParEffetCible,
   monsterCombatStatProfiles,
@@ -47,9 +55,10 @@ import {
   monsterDamageSkills,
   monsterOffensivePassives,
   passifPeutSuivre,
+  resolveDamageSkill,
   skillDamageProfile,
 } from '../src/lib/damage';
-import type { OptimizerRecipe } from '../src/lib/optimizerRecipe';
+import { buildOptimizerRecipe, parseOptimizerRecipe, type OptimizerRecipe } from '../src/lib/optimizerRecipe';
 import { buildRealDamageContext } from '../scripts/lib/realDamageCli';
 import { resolveObjectiveStats } from '../scripts/lib/recipeToSearchParams';
 import type { LoadedMonster } from '../scripts/lib/loadMonster';
@@ -157,7 +166,11 @@ const HADOKEN_FEU = 13902;
 export function testAttaqueAppeleeApprovisionnement() {
   titre('Attaque appelée active — une ligne clée par le sort déclencheur, lue par le chemin des passifs');
 
-  egal(Object.keys(TABLE), [], 'production : aucune entrée (la table n’en code aucune)');
+  egal(
+    Object.entries(TABLE).map(([k, v]) => [Number(k), v.slotAppele, v.sortCooperatifSansDegats !== undefined]),
+    [[3163, 1, true], [10912, 1, true]],
+    'production : la table n’est plus vide — deux entrées, les sorts coopératifs sans dégâts propres qui appellent le S1 (Concentrated Attack, Attack Command), aucune attaque conditionnelle'
+  );
   const ryu = fiche(RYU_FEU);
   const passifsAvant = monsterOffensivePassives(ryu);
   const sortsAvant = monsterDamageSkills(ryu);
@@ -504,8 +517,9 @@ export function testAttaqueAppeleeEspaceDeCles() {
 
   // Garde des entrées FUTURES : toute attaque appelée que la production rend,
   // sur tout le corpus, doit avoir une clé libre. Vide aujourd'hui (aucune
-  // entrée) ; exercée ici sur les onze amorces acceptées pour qu'elle ne soit
-  // jamais vide de sens.
+  // entrée conditionnelle : les deux entrées coopératives ne passent pas par
+  // le chemin des passifs) ; exercée ici sur les onze amorces acceptées pour
+  // qu'elle ne soit jamais vide de sens.
   titre('Attaque appelée active — garde du corpus : toute attaque appelée de production a une clé libre');
   const gardeDuCorpus = (): { formes: number; collisions: string[] } => {
     let formes = 0;
@@ -517,7 +531,7 @@ export function testAttaqueAppeleeEspaceDeCles() {
     }
     return { formes, collisions };
   };
-  egal(gardeDuCorpus(), { formes: 0, collisions: [] }, 'production : aucune forme ne reçoit d’attaque appelée (table vide), donc aucune collision');
+  egal(gardeDuCorpus(), { formes: 0, collisions: [] }, 'production : aucune forme ne reçoit d’attaque appelée conditionnelle (les entrées coopératives n’en rendent aucune), donc aucune collision');
   const entreesAcceptees = Object.fromEntries(
     Object.entries(VERDICTS).filter(([, v]) => v.verdict === 'acceptée').map(([k]) => [Number(k), entree(1, 'test : amorce acceptée')])
   );
@@ -526,4 +540,168 @@ export function testAttaqueAppeleeEspaceDeCles() {
     ok(g.formes >= 10, `les onze amorces acceptées injectées : ${g.formes} formes reçoivent une attaque appelée (la garde s’exerce)`);
     egal(g.collisions, [], 'aucune de leurs clés n’est partagée avec un réglage');
   });
+}
+
+// ── 4. Le S1 appelé par un sort coopératif sans dégâts propres ───────────────
+
+// Fiches et compétences (public/data/skills). Attack Command (10912) et
+// Concentrated Attack (3163) : `formule: ""`, effet `Ally Attack`. S1 de Lisa
+// et Neostone Agent feu, Preemptive Strike (10902) : `1.9*{ATK}`, 2 coups,
+// cible unique, « Damage + » 5 + 10 = +15 %. S1 de Moria, Cross Attack (3153 ;
+// 3168 sur la copie « boss » 48003) : `4.5*{ATK}`, 1 coup, cible unique,
+// +15 %.
+const LISA = 20112;
+const NEOSTONE_FEU = 20102;
+const MORIA = 12033;
+const MORIA_BOSS = 48003;
+const ATTACK_COMMAND = 10912;
+const CONCENTRATED_ATTACK = 3163;
+
+// Les champs qui portent l'identité du déclencheur, et ceux que seul ce chemin
+// pose : le reste du profil est celui du S1, champ pour champ.
+function sansIdentite(p: SkillDamageProfile): Partial<SkillDamageProfile> {
+  const { skillCom2usId: _id, slot: _slot, nom: _nom, description: _desc, icone: _icone, appeleParSortCooperatif: _a, competenceQuiFrappe: _c, critiqueGaranti: _cg, ...reste } = p;
+  return reste;
+}
+
+export function testAttaqueAppeleeParSortCooperatif() {
+  titre('S1 appelé par un sort coopératif — le déclencheur dans « Compétence utilisée », le calcul du S1');
+  // Facteur de défense à DEF 1000, écrit à la main : 1000 / (1142 + 3,572 × 1000).
+  const df = 1000 / (1142 + 3.572 * 1000);
+
+  // Le corpus : exactement les quatre fiches qui portent les deux déclencheurs.
+  const porteurs: string[] = [];
+  for (const d of toutesLesFiches()) {
+    for (const s of monsterDamageSkills(d)) if (estPrisEnCharge(s) && s.appeleParSortCooperatif) porteurs.push(`${d.com2usId}:${s.skillCom2usId}:${s.competenceQuiFrappe?.skillCom2usId}`);
+  }
+  egal(porteurs.sort(), ['12033:3163:3153', '20102:10912:10902', '20112:10912:10902', '48003:3163:3168'],
+    'corpus : Lisa et Neostone Agent feu (Attack Command → 10902), Moria 2e éveil (Concentrated Attack → 3153) et sa copie « boss » 48003 (→ 3168, trouvé par le slot), rien d’autre');
+
+  for (const [forme, monstre, declencheur, s1, s2] of [
+    [LISA, 'Lisa', ATTACK_COMMAND, 10902, 10907],
+    [NEOSTONE_FEU, 'Neostone Agent feu', ATTACK_COMMAND, 10902, 10907],
+    [MORIA, 'Moria', CONCENTRATED_ATTACK, 3153, 3158],
+    [MORIA_BOSS, 'Moria « boss »', CONCENTRATED_ATTACK, 3168, 3158],
+  ] as const) {
+    const d = fiche(forme);
+    const brut = d.competences.find((c) => c.com2usId === declencheur)!;
+    egal([brut.slot, (brut.formule ?? '').trim(), skillDamageProfile(brut)], [3, '', null], `${monstre} : le déclencheur ${declencheur} (S3) n’a ni formule ni profil propre`);
+    const sorts = monsterDamageSkills(d);
+    egal(sorts.map((s) => [s.skillCom2usId, s.slot]), [[s1, 1], [s2, 2], [declencheur, 3]], `${monstre} : le déclencheur entre dans la liste des sorts, au slot 3, après S1 et S2`);
+    const t = sortDe(d, declencheur);
+    const p1 = sortDe(d, s1);
+    egal([t.nom, t.description, t.icone], [brut.nom, brut.description, brut.icone], `${monstre} : nom, prose et icône du déclencheur (« Compétence utilisée » montre le sort choisi)`);
+    egal(sansIdentite(t), sansIdentite(p1), `${monstre} : formule, coups, portée, améliorations et effets = ceux du S1 ${s1}, champ pour champ`);
+    egal(t.competenceQuiFrappe, { skillCom2usId: s1, slot: 1, nom: p1.nom }, `${monstre} : la compétence qui frappe est le S1 ${s1} (slot 1)`);
+    egal([t.appeleParSortCooperatif, t.passif, t.sortCooperatif], [true, undefined, undefined], `${monstre} : marqué « appelé par un sort coopératif », ni passif ni sort coopératif à ratio propre`);
+    egal(contexteAttaqueConjointe(t, BASE, 'sort-choisi'), 'appelee-par-sort', `${monstre} : la porte le range dans le contexte « appelé par un sort »`);
+    egal(defaultDamageSkill(sorts)?.skillCom2usId, s2, `${monstre} : sort par défaut inchangé, le S2 ${s2}`);
+    egal(defaultDamageSkill(sorts.filter((s) => s.skillCom2usId !== declencheur))?.skillCom2usId, s2, `${monstre} : … le même que sans le déclencheur dans la liste`);
+    egal(resolveDamageSkill(sorts, declencheur), t, `${monstre} : skillCom2usId ${declencheur} se résout en ce profil, pas en repli sur le défaut`);
+    egal(monsterOffensivePassives(d), [], `${monstre} : aucun passif offensif ni attaque conditionnelle (aucun interrupteur ; la limite « passif après ce sort » n’a pas de cas)`);
+  }
+
+  // ── Lisa : totaux écrits à la main ──
+  const lisa = fiche(LISA);
+  const command = sortDe(lisa, ATTACK_COMMAND);
+  const preemptive = sortDe(lisa, 10902);
+  const total = (p: SkillDamageProfile, setup: DamageSetup, art: ArtifactDamageProfile = ARTIFACT_DAMAGE_NEUTRE, d = lisa) =>
+    computeTotalDamage(p, monsterOffensivePassives(d), ST, { ...setup, skillCom2usId: p.skillCom2usId }, AUCUNE_AURA_PROPRE, null, art);
+  const neutre = ATQ * 1.9 * 1.15 * df * 2;
+  ok(proche(total(command, BASE), neutre),
+    `Lisa, Attack Command, non critique, sans artéfact : 2 000 × 1,9 × 1,15 × FacteurDéf × 2 coups = ${neutre.toFixed(4)} — un appel du S1, le « coups: 3 » du déclencheur non lu`);
+  egal(total(command, BASE), total(preemptive, BASE), 'Lisa, sans artéfact : Attack Command vaut le S1 choisi seul, au bit près');
+  // Critique, artéfacts : 209 10 + 225 8 (DMG% 1,18) ; Dgts Crit 100 + 25
+  // (compétences d'invocateur) + 20 (224, mono-cible) + 15 (400, slot du S1)
+  // = 160 par coup, + 30 (411) au premier coup ; 402 et 410 (slot 3, celui du
+  // déclencheur) ignorées.
+  const mix = artefacts([
+    { code: 209, value: 10 }, { code: 225, value: 8 }, { code: 224, value: 20 }, { code: 400, value: 15 },
+    { code: 402, value: 9 }, { code: 410, value: 7 }, { code: 411, value: 30 },
+  ]);
+  const crit: DamageSetup = { ...BASE, critMode: 'crit' };
+  const attenduLisa = ATQ * 1.9 * 1.18 * df * ((1 + 0.15 + 1.9) + (1 + 0.15 + 1.6));
+  ok(proche(total(command, crit, mix), attenduLisa),
+    `Lisa, critique, 209/225/224/400/402/410/411 : 2 000 × 1,9 × 1,18 × FacteurDéf × ((1 + 0,15 + 1,90) + (1 + 0,15 + 1,60)) = ${attenduLisa.toFixed(4)} (reçu ${total(command, crit, mix).toFixed(4)})`);
+  const gagne = (p: SkillDamageProfile, code: number, setup = crit) => total(p, setup, artefacts([{ code, value: 20 }])) > total(p, setup);
+  ok(proche(total(command, crit, artefacts([{ code: 209, value: 10 }, { code: 225, value: 8 }])) / total(command, crit), 1.18),
+    'décision de l’utilisateur (2026-10-16) : Attack Command compte comme attaque conjointe, sans interrupteur — 209 + 225 majorent de 18 %');
+  ok(gagne(command, 224), 'décision de l’utilisateur (2026-10-16) : 224 suit la portée du S1 (mono-cible), pendant le tour du monstre');
+  ok(gagne(command, 411), 'déduit, à relire par l’utilisateur : 411 compte, le déclencheur ne frappe pas');
+  ok(gagne(command, 400), 'déduit, à relire par l’utilisateur : la ligne du slot du S1 (400) compte');
+  ok(!gagne(command, 402) && !gagne(command, 410) && !gagne(command, 401), 'déduit, à relire par l’utilisateur : jamais celle du slot du déclencheur (402, 410), ni 401');
+  egal(total(command, { ...crit, attaqueConjointe: true }, mix), total(command, crit, mix), 'Lisa : l’interrupteur « Attaque conjointe » est sans effet sur Attack Command (224 gardée)');
+  ok(proche(total(preemptive, crit, mix), ATQ * 1.9 * df * ((1 + 0.15 + 1.9) + (1 + 0.15 + 1.6))),
+    '… alors que le S1 choisi seul, interrupteur éteint, n’est pas conjoint : 209/225 n’y comptent pas (même total sans le × 1,18)');
+
+  // ── Moria : critique garanti ──
+  const moria = fiche(MORIA);
+  const concentrated = sortDe(moria, CONCENTRATED_ATTACK);
+  const cross = sortDe(moria, 3153);
+  ok((moria.competences.find((c) => c.com2usId === CONCENTRATED_ATTACK)!.description ?? '').includes('You and the ally\'s attack will always land as a Critical Hit'),
+    'Moria : la prose de Concentrated Attack dit le critique garanti');
+  egal([concentrated.critiqueGaranti, cross.critiqueGaranti], [true, false], 'Moria : critique garanti sur Concentrated Attack (prose du déclencheur), pas sur Cross Attack choisi seul');
+  const tot = (p: SkillDamageProfile, setup: DamageSetup, art: ArtifactDamageProfile = ARTIFACT_DAMAGE_NEUTRE) => total(p, setup, art, moria);
+  const moriaNeutre = ATQ * 4.5 * (1 + 0.15 + 1.25) * df;
+  ok(proche(tot(concentrated, BASE), moriaNeutre),
+    `Moria, Concentrated Attack, réglage « Non critique » : critique quand même — 2 000 × 4,5 × (1 + 0,15 + 1,25) × FacteurDéf = ${moriaNeutre.toFixed(4)}`);
+  egal(tot(concentrated, BASE), tot(concentrated, crit), 'Moria : même total en « Critique » et en « Non critique »');
+  ok(proche(tot(cross, BASE), ATQ * 4.5 * 1.15 * df), 'Moria : Cross Attack choisi seul, « Non critique » : 2 000 × 4,5 × 1,15 × FacteurDéf, sans critique');
+  const attenduMoria = ATQ * 4.5 * 1.18 * (1 + 0.15 + 1.9) * df;
+  ok(proche(tot(concentrated, BASE, mix), attenduMoria),
+    `Moria, « Non critique », 209/225/224/400/402/410/411 : 2 000 × 4,5 × 1,18 × (1 + 0,15 + 1,90) × FacteurDéf = ${attenduMoria.toFixed(4)}`);
+  const boss = fiche(MORIA_BOSS);
+  ok(proche(total(sortDe(boss, CONCENTRATED_ATTACK), BASE, ARTIFACT_DAMAGE_NEUTRE, boss), moriaNeutre), 'Moria « boss » (48003) : même total, par son S1 3168');
+
+  // ── Gardes : une donnée qui ne tient plus écarte l’entrée ──
+  titre('S1 appelé par un sort coopératif — les gardes (fiches dérivées de Lisa)');
+  const variante = (modifier: (cs: Competence[]) => Competence[]): DetailMonstre => ({ ...lisa, competences: modifier(lisa.competences.map((c) => ({ ...c }))) });
+  const sansAppel = (d: DetailMonstre) => monsterDamageSkills(d).filter((s) => estPrisEnCharge(s) && s.appeleParSortCooperatif);
+  const avecFormule = variante((cs) => cs.map((c) => (c.com2usId === ATTACK_COMMAND ? { ...c, formule: '1.0*{ATK}' } : c)));
+  egal(sansAppel(avecFormule), [], 'déclencheur doté d’une formule (donnée régénérée) : plus d’appel du S1…');
+  egal(monsterDamageSkills(avecFormule).filter((s) => s.skillCom2usId === ATTACK_COMMAND).length, 1, '… et le sort n’apparaît qu’une fois, par son propre profil');
+  egal(sansAppel(variante((cs) => cs.map((c) => (c.com2usId === ATTACK_COMMAND ? { ...c, passif: true } : c)))), [], 'déclencheur passif : écarté');
+  egal(sansAppel(variante((cs) => [...cs, { ...cs.find((c) => c.com2usId === ATTACK_COMMAND)!, com2usId: 999_912 }])), [], 'deux compétences au slot du déclencheur : écarté');
+  egal(sansAppel(variante((cs) => [...cs, { ...cs.find((c) => c.com2usId === 10902)!, com2usId: 999_902 }])), [], 'deux compétences au slot appelé : écarté');
+  egal(sansAppel(variante((cs) => cs.map((c) => (c.com2usId === 10902 ? { ...c, passif: true } : c)))), [], 'slot appelé occupé par un passif : écarté');
+  egal(sansAppel(variante((cs) => cs.map((c) => (c.com2usId === 10902 ? { ...c, formule: '1.5*1.5**(1*TARGET_{DEF})+1' } : c)))), [], 'S1 non calculable : écarté, jamais un nombre inventé');
+  egal(sansAppel(variante((cs) => cs.filter((c) => c.com2usId !== 10902))), [], 'slot appelé vide : écarté');
+  egal(calculPartielDuSort(command), null, 'Attack Command : aucune étiquette « Calcul partiel » (son S1 n’en porte pas)');
+  const partiel = idsCalculPartiel()[0];
+  ok(partiel !== undefined && calculPartielDuSort({ ...command, competenceQuiFrappe: { skillCom2usId: partiel, slot: 1, nom: 'test' } }) !== null,
+    'l’étiquette « Calcul partiel » suit la compétence qui frappe, jamais l’identifiant du déclencheur');
+
+  // ── Recette : le déclencheur choisi fait l’aller-retour ──
+  titre('S1 appelé par un sort coopératif — recette portant le déclencheur, relue par le CLI');
+  const damageSetup: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, skillCom2usId: ATTACK_COMMAND };
+  const recette = buildOptimizerRecipe({
+    monsterCom2usId: LISA,
+    monsterName: 'Lisa (test)',
+    requirement: { sets: [], minStats: {} },
+    objective: 'degats_reels',
+    damageSetup,
+    metric: 'eff',
+    slotFilterPreset: 'bas',
+    adaptiveTrancheWeighting: false,
+    exhaustiveSearch: false,
+    excludeUsedRunes: false,
+    excludeUsedScope: 'box',
+    excludedSelectors: [],
+    ignoreArtifacts: false,
+    artifactMainByKind: {},
+  });
+  const lue = parseOptimizerRecipe(JSON.stringify(recette));
+  ok(lue.recipe != null, `recette relue sans erreur${lue.error ? ` — ${lue.error}` : ''}`);
+  if (!lue.recipe) return;
+  egal(lue.recipe.damageSetup.skillCom2usId, ATTACK_COMMAND, 'aller-retour : skillCom2usId 10912 conservé tel quel');
+  egal(lue.recipe.damageSetup, damageSetup, 'aller-retour : réglage de combat intact');
+  const ctx = buildRealDamageContext(lue.recipe, LISA, []);
+  ok(ctx != null, 'CLI : contexte « Dégâts réels » construit pour Lisa');
+  if (!ctx) return;
+  egal([ctx.profile.skillCom2usId, ctx.profile.appeleParSortCooperatif, ctx.profile.competenceQuiFrappe?.skillCom2usId], [ATTACK_COMMAND, true, 10902],
+    'CLI : le sort résolu est Attack Command, calculé par le S1 10902, pas le repli sur le S2');
+  egal(computeTotalDamage(ctx.profile, ctx.passifs, ST, ctx.setup, AUCUNE_AURA_PROPRE, ctx.element, ctx.artefacts), computeTotalDamage(command, [], ST, ctx.setup, AUCUNE_AURA_PROPRE, ctx.element, ctx.artefacts),
+    'CLI : le score de la recette est celui d’Attack Command dans « Compétence utilisée »');
+  const recetteS1 = { ...lue.recipe, damageSetup: { ...damageSetup, skillCom2usId: 10902 } };
+  egal(resolveObjectiveStats(lue.recipe, monstreChargé(LISA)), resolveObjectiveStats(recetteS1, monstreChargé(LISA)), 'CLI : stats à privilégier = celles du S1 appelé');
 }

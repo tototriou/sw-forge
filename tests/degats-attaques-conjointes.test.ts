@@ -412,26 +412,29 @@ const sansLignesConjointes = (inv: ArtifactDetail[]) =>
 export function testAttaquesConjointesChoixArtefacts() {
   titre('Attaques conjointes — choix des artéfacts : moteur contre énumération exhaustive des paires');
   // Sylvia (Neostone Agent ténèbres) : S2 10910 conjoint (table d'inclusion),
-  // S1 10905 ordinaire, interrupteur éteint ou allumé.
-  const FORME = 20115;
-  const porteur = { element: 'dark' as ElementKey, archetype: 'attack' as ArtifactArchetype };
+  // S1 10905 ordinaire, interrupteur éteint ou allumé. Lisa (feu) : Attack
+  // Command (10912), S1 10902 appelé par un sort coopératif.
+  const SYLVIA = { forme: 20115, porteur: { element: 'dark' as ElementKey, archetype: 'attack' as ArtifactArchetype } };
+  const LISA = { forme: 20112, porteur: { element: 'fire' as ElementKey, archetype: 'attack' as ArtifactArchetype } };
   const gear: GearSet = { base: { hp: 10000, atk: 900, def: 600, spd: 110, cr: 15, cd: 50, res: 15, acc: 0 }, runes: [], artifacts: [] };
   const statsAvec = statsParPaire(gear);
-  const contexte = (setup: DamageSetup): DegatsContext => {
-    const ctx = buildRealDamageContext({ objective: 'degats_reels', damageSetup: setup } as unknown as OptimizerRecipe, FORME, []);
-    if (!ctx) throw new Error('aucun contexte « Dégâts réels » pour Sylvia');
+  const contexte = (forme: number, setup: DamageSetup): DegatsContext => {
+    const ctx = buildRealDamageContext({ objective: 'degats_reels', damageSetup: setup } as unknown as OptimizerRecipe, forme, []);
+    if (!ctx) throw new Error(`aucun contexte « Dégâts réels » pour ${forme}`);
     const { artefacts: _ignore, ...reste } = ctx;
     return reste;
   };
   const base: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, summonerSkills: 'normal', critMode: 'crit', enemyElement: 'fire' };
   const cas = [
-    { nom: 'sort conjoint (10910)', setup: { ...base, skillCom2usId: 10910 }, conjoint: true },
-    { nom: 'S1 appelé par un allié (10905, interrupteur)', setup: { ...base, skillCom2usId: 10905, attaqueConjointe: true }, conjoint: true },
-    { nom: 'sort non conjoint (10905)', setup: { ...base, skillCom2usId: 10905 }, conjoint: false },
+    { nom: 'sort conjoint (10910)', ...SYLVIA, setup: { ...base, skillCom2usId: 10910 }, conjoint: true },
+    { nom: 'S1 appelé par un allié (10905, interrupteur)', ...SYLVIA, setup: { ...base, skillCom2usId: 10905, attaqueConjointe: true }, conjoint: true },
+    { nom: 'sort non conjoint (10905)', ...SYLVIA, setup: { ...base, skillCom2usId: 10905 }, conjoint: false },
+    { nom: 'S1 appelé par un sort coopératif (Lisa, 10912)', ...LISA, setup: { ...base, skillCom2usId: 10912 }, conjoint: true },
   ];
 
   for (const c of cas) {
-    const degats = contexte(c.setup);
+    const { porteur } = c;
+    const degats = contexte(c.forme, c.setup);
     egal(degats.profile.skillCom2usId, c.setup.skillCom2usId, `${c.nom} : le contexte calcule bien le sort voulu`);
     const evaluer = evaluerPourRegime('degats_reels', statsAvec, AUCUNE_AURA_PROPRE, degats);
     let divergences = 0;
@@ -483,6 +486,13 @@ export function testAttaquesConjointesChoixArtefacts() {
     ok(!pertinence.croissants.has(208) && !pertinence.ambigus.has(208), `${c.nom} : 208 reste sans effet pour la sonde`);
     if (c.setup.skillCom2usId === 10905) {
       egal(pertinence.croissants.has(224), !c.setup.attaqueConjointe, `${c.nom} : 224 ${c.setup.attaqueConjointe ? 'écartée (hors du tour du monstre)' : 'comptée (mono-cible)'} par la sonde`);
+    }
+    if (c.setup.skillCom2usId === 10912) {
+      egal(
+        [224, 400, 402, 410].map((code) => pertinence.croissants.has(code)),
+        [true, true, false, false],
+        `${c.nom}, déduit, à relire par l’utilisateur : la sonde compte 224 (portée du S1) et 400 (slot du S1), jamais 402 ni 410 (slot du déclencheur)`
+      );
     }
   }
   egal(plafondLigne(209), 2 * (ARTIFACT_SUB_MAX[209] ?? 0), 'plafond de verrou : 209 se porte sur les deux pièces, plafond doublé');

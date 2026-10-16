@@ -568,8 +568,12 @@ export function artifactElementBonusPct(p: ArtifactDamageProfile, enemyElement: 
 // 224. Tout est déduit du profil du sort, rien n'est saisi. Pour un sort à
 // séquence curée, `computeSkillDamageDetail` passe ici le profil de CHAQUE
 // groupe de coups, dont `aoe` est la portée du groupe : 224 suit le coup.
+// La ligne par compétence suit le slot de la compétence qui FRAPPE
+// (`competenceQuiFrappe`, S1 appelé par un sort coopératif : 400, jamais 402
+// ni 410 du déclencheur).
 export function artifactCritDamagePoints(p: ArtifactDamageProfile, profile: SkillDamageProfile): number {
-  return (p.cdPointsParSlot[profile.slot] ?? 0) + (profile.aoe ? 0 : p.cdPointsMonoCible);
+  const slot = profile.competenceQuiFrappe?.slot ?? profile.slot;
+  return (p.cdPointsParSlot[slot] ?? 0) + (profile.aoe ? 0 : p.cdPointsMonoCible);
 }
 
 export function artifactDamageProfile(artifacts: ArtifactDetail[]): ArtifactDamageProfile {
@@ -2352,10 +2356,20 @@ export interface SkillDamageProfile {
   sortCooperatif?: true;
   // Vrai = ce profil est celui d'un S1 APPELÉ par un sort coopératif sans
   // dégâts propres (le déclencheur ne frappe pas) : attaque conjointe pendant
-  // le tour du monstre. Posé par le chemin des attaques appelées, jamais par
-  // `skillDamageProfile`. Donnée pure, lue par la seule
-  // `contexteAttaqueConjointe`.
+  // le tour du monstre. Posé par `sortsCooperatifsQuiAppellentDeLaFiche`
+  // (entrées `sortCooperatifSansDegats` de `ATTAQUES_APPELEES_PAR_DECLENCHEUR`),
+  // jamais par `skillDamageProfile`. Donnée pure, lue par la seule
+  // `contexteAttaqueConjointe` (et par `defaultDamageSkill`, qui l'écarte).
   appeleParSortCooperatif?: true;
+  // Présent = la compétence qui FRAPPE n'est pas celle que le profil nomme :
+  // le profil porte l'identité du déclencheur (identifiant, slot, nom, prose,
+  // icône : ce que « Compétence utilisée » montre et que la recette garde),
+  // et le calcul celui de la compétence appelée (formule, coups, portée,
+  // améliorations). Seules les lignes d'artéfact « [Comp.N] Aug. Dgts CRIT »
+  // (400-403, 410) lisent ce slot plutôt que `slot` : la compétence appelée
+  // reçoit la ligne de SON slot, jamais celle du déclencheur. Posé avec
+  // `appeleParSortCooperatif`. Donnée pure.
+  competenceQuiFrappe?: { skillCom2usId: number; slot: number; nom: string };
   nom: string;
   description: string | null;
   icone: string | null;
@@ -3234,10 +3248,11 @@ export function idsCalculPartiel(): number[] {
 
 // Ce que le total d'un sort ne compte pas, ou `null` : seul un sort PRIS EN
 // CHARGE porte l'étiquette — un sort refusé n'a pas de total, il garde son
-// motif.
+// motif. L'étiquette suit la compétence qui FRAPPE (`competenceQuiFrappe`,
+// S1 appelé par un sort coopératif) : c'est son total que le sort affiche.
 export function calculPartielDuSort(p: SkillDamageProfile | SkillDamageUnsupported): string | null {
   if (!estPrisEnCharge(p)) return null;
-  return CALCUL_PARTIEL_PAR_ID[p.skillCom2usId] ?? null;
+  return CALCUL_PARTIEL_PAR_ID[p.competenceQuiFrappe?.skillCom2usId ?? p.skillCom2usId] ?? null;
 }
 
 // Sorts/passifs dont le nombre de coups VARIE en jeu (« 2 à 3 fois », « 3 à
@@ -3645,9 +3660,10 @@ export type CheminDeLAttaque = 'sort-choisi' | 'suite-du-sort';
  * - `propre` : sort coopératif du monstre (`sortCooperatif`), quel que soit le
  *   chemin. 224 suit la portée, 411 le premier coup du tour.
  * - `appelee-par-sort` : S1 appelé par un sort coopératif sans dégâts propres
- *   (`appeleParSortCooperatif`, posé par le chemin des attaques appelées),
+ *   (`appeleParSortCooperatif`, posé par `sortsCooperatifsQuiAppellentDeLaFiche`),
  *   pendant le tour du monstre. 224 suit la portée du S1 ; 411 s'applique, le
- *   déclencheur ne frappant pas ; le S1 reçoit la ligne de SON slot.
+ *   déclencheur ne frappant pas ; le S1 reçoit la ligne de SON slot
+ *   (`competenceQuiFrappe`, lu par `artifactCritDamagePoints`).
  * - `appelee-par-allie` : le S1 CHOISI, non coopératif, interrupteur
  *   « Attaque conjointe » allumé (`setup.attaqueConjointe === true`) : appelé
  *   par un allié, hors du tour du monstre. 224 ne s'applique pas, 411 si.
@@ -4122,22 +4138,68 @@ export interface AttaqueAppeleeConnue {
   slotAppele: number;
   // D'où viennent le déclencheur et le slot appelé (prose du sort, valeur fournie par l'utilisateur).
   source: string;
+  // ⚠️ **Le discriminant des deux genres d'entrée.**
+  // - Absent : attaque CONDITIONNELLE après un sort qui frappe (Hadoken après
+  //   Shoryuken) — chemin des passifs (`attaquesAppeleesDeLaFiche`),
+  //   interrupteur éteint par défaut, `passifCompte`.
+  // - Présent : le déclencheur est un sort COOPÉRATIF SANS DÉGÂTS PROPRES (ni
+  //   formule dans sa donnée, ni profil calculable) dont la prose dit qu'il
+  //   fait frapper la compétence du slot appelé. L'appel est certain : aucun
+  //   interrupteur. Le déclencheur devient choisissable dans « Compétence
+  //   utilisée » (`sortsCooperatifsQuiAppellentDeLaFiche`), et son total est
+  //   celui de la compétence appelée, UNE fois, comptée comme attaque
+  //   conjointe pendant le tour du monstre (`appeleParSortCooperatif`) —
+  //   décision de l'utilisateur, valeurs-de-jeu-curees.md, « Sort coopératif
+  //   sans ratio ». Jamais lue par le chemin des passifs.
+  sortCooperatifSansDegats?: {
+    // Tous les coups de la compétence appelée critiquent, quel que soit le
+    // réglage critique : écrit dans la prose du DÉCLENCHEUR, que le profil de
+    // la compétence appelée, seule, ne porte pas.
+    critiqueGaranti?: true;
+  };
 }
 
 // Clé = `com2usId` du SORT DÉCLENCHEUR, jamais un nom : « Hadoken » est porté
 // par 12 formes du corpus, dont 6 sans Shoryuken pour le déclencher, et
-// « Energy Punch » par 20. Lue par
-// `attaquesAppeleesDeLaFiche`, qui rend le même `PassifOffensifProfile` que le
-// chemin des passifs : le calcul ne change pas (`passifCompte`,
-// `computeTotalDamage`, `damageRelevantStats`).
+// « Energy Punch » par 20. Une entrée sans `sortCooperatifSansDegats` est lue
+// par `attaquesAppeleesDeLaFiche`, qui rend le même `PassifOffensifProfile`
+// que le chemin des passifs : le calcul ne change pas (`passifCompte`,
+// `computeTotalDamage`, `damageRelevantStats`). Une entrée qui le porte est
+// lue par `sortsCooperatifsQuiAppellentDeLaFiche` seule.
 //
-// ⚠️ **Vide en production** : aucune entrée n'est codée. Les 17
+// ⚠️ **Aucune attaque conditionnelle n'est codée en production.** Les 17
 // amorces examinées (onze
 // acceptables par une entrée chacune, six classées avec leur raison :
 // `tests/degats-attaque-appelee.test.ts`, qui injecte ses entrées et les
-// retire). Ce qu'il faut fournir pour en ajouter une :
-// docs/02-app/degats-reels/.
-export const ATTAQUES_APPELEES_PAR_DECLENCHEUR: Readonly<Record<number, AttaqueAppeleeConnue>> = {};
+// retire) restent hors de la table. Ce qu'il faut fournir pour en ajouter
+// une : docs/02-app/degats-reels/.
+//
+// Les entrées de production sont les deux sorts coopératifs sans ratio dont
+// la prose appelle le S1 (inventaire du corpus des effets `Ally Attack`) ; un
+// appel du S1 chacun, seuls les dégâts du monstre comptent, jamais ceux des
+// alliés (valeurs-de-jeu-curees.md).
+export const ATTAQUES_APPELEES_PAR_DECLENCHEUR: Readonly<Record<number, AttaqueAppeleeConnue>> = {
+  // Attack Command — Lisa et Neostone Agent feu (S1 Preemptive Strike, 10902) :
+  // « Removes all harmful effects on all allies, and attacks the enemy target
+  // with 2 other allies. » La prose ne nomme pas le S1 : l'appel du S1, une
+  // fois, est la décision de l'utilisateur. Le `coups: 3` de la donnée compte
+  // Lisa et ses deux alliés, il n'est pas lu.
+  10912: {
+    slotAppele: 1,
+    source: 'prose d’Attack Command ; appel du S1, une fois : décision de l’utilisateur (2026-10-16)',
+    sortCooperatifSansDegats: {},
+  },
+  // Concentrated Attack — Moria 2e éveil (S1 Cross Attack, 3153), et sa copie
+  // « boss » 48003 (S1 3168, trouvé par le slot) : « Attacks the enemy with an
+  // ally at the same time with [Cross Attack]. You and the ally's attack will
+  // always land as a Critical Hit » (effet `Guaranteed Critical Hit` dans la
+  // donnée). Un appel : « You and the ally's attack ».
+  3163: {
+    slotAppele: 1,
+    source: 'prose de Concentrated Attack, qui nomme [Cross Attack] (S1) et son critique garanti ; sort coopératif sans ratio : décision de l’utilisateur (2026-10-16)',
+    sortCooperatifSansDegats: { critiqueGaranti: true },
+  },
+};
 
 // Profil de dégâts d'un passif offensif CONNU (voir la liste ci-dessus),
 // prêt à passer par `computeSkillDamage` comme n'importe quel sort actif.
@@ -4298,7 +4360,9 @@ function attaquesAppeleesDeLaFiche(detail: DetailMonstre): PassifOffensifProfile
   for (const declencheur of detail.competences) {
     if (declencheur.passif || declencheur.com2usId == null || declencheur.slot == null) continue;
     const connue = ATTAQUES_APPELEES_PAR_DECLENCHEUR[declencheur.com2usId];
-    if (!connue) continue;
+    // Un sort coopératif sans dégâts propres n'est pas une attaque
+    // conditionnelle : `sortsCooperatifsQuiAppellentDeLaFiche`.
+    if (!connue || connue.sortCooperatifSansDegats) continue;
     const memeSlot = detail.competences.filter((k) => k.slot === declencheur.slot);
     const auSlotAppele = detail.competences.filter((k) => k.slot === connue.slotAppele);
     if (memeSlot.length !== 1 || auSlotAppele.length !== 1) continue;
@@ -4329,6 +4393,66 @@ function attaquesAppeleesDeLaFiche(detail: DetailMonstre): PassifOffensifProfile
 }
 
 /**
+ * Les sorts coopératifs SANS DÉGÂTS PROPRES de cette fiche qui appellent une
+ * compétence active (`ATTAQUES_APPELEES_PAR_DECLENCHEUR`, entrées
+ * `sortCooperatifSansDegats`), chacun rendu comme un sort de « Compétence
+ * utilisée » :
+ *
+ * - **identité du déclencheur** : identifiant (la recette le garde), slot (le
+ *   « S3 » affiché, l'ordre de la liste), nom, prose et icône ;
+ * - **calcul de la compétence appelée** : son profil `skillDamageProfile`
+ *   (formule, coups, portée, améliorations, effets), UNE fois — jamais le
+ *   `coups` de la donnée du déclencheur, qui compte les alliés ;
+ * - `appeleParSortCooperatif` : attaque conjointe pendant le tour du monstre
+ *   (porte `contexteAttaqueConjointe`) — 224 par la portée de la compétence
+ *   appelée, 411 (le déclencheur ne frappe pas), sans interrupteur ;
+ * - `competenceQuiFrappe` : la ligne de SON slot (400 pour un S1), jamais
+ *   celle du déclencheur ;
+ * - `critiqueGaranti` si l'entrée le porte (prose du déclencheur).
+ *
+ * Gardes, chacune écarte l'entrée en silence, jamais un nombre inventé :
+ * déclencheur passif ou doté d'un profil propre (une donnée régénérée qui lui
+ * donnerait une formule le ferait calculer deux fois) ; slot du déclencheur ou
+ * slot appelé vide, occupé par un passif ou par plusieurs compétences ;
+ * compétence appelée non calculable. L'étiquette « Calcul partiel » de la
+ * compétence appelée, s'il y en a une, suit le profil (`calculPartielDuSort`
+ * lit `competenceQuiFrappe`).
+ *
+ * ⚠️ Limite nommée : un passif offensif ou une attaque appelée qui suivrait ce
+ * sort voit le slot du DÉCLENCHEUR (`passifPeutSuivre`). Aucune fiche portant
+ * ces entrées n'a de passif ni d'attaque appelée (test) ; un futur cas se
+ * cure, il ne se déduit pas.
+ */
+function sortsCooperatifsQuiAppellentDeLaFiche(detail: DetailMonstre): SkillDamageProfile[] {
+  const out: SkillDamageProfile[] = [];
+  for (const declencheur of detail.competences) {
+    if (declencheur.passif || declencheur.com2usId == null || declencheur.slot == null) continue;
+    const connue = ATTAQUES_APPELEES_PAR_DECLENCHEUR[declencheur.com2usId];
+    if (!connue?.sortCooperatifSansDegats) continue;
+    if (skillDamageProfile(declencheur) !== null) continue;
+    const memeSlot = detail.competences.filter((k) => k.slot === declencheur.slot);
+    const auSlotAppele = detail.competences.filter((k) => k.slot === connue.slotAppele);
+    if (memeSlot.length !== 1 || auSlotAppele.length !== 1) continue;
+    const appelee = auSlotAppele[0];
+    if (appelee.passif || appelee === declencheur) continue;
+    const profil = skillDamageProfile(appelee);
+    if (!profil || !estPrisEnCharge(profil)) continue;
+    out.push({
+      ...profil,
+      skillCom2usId: declencheur.com2usId,
+      slot: declencheur.slot,
+      nom: declencheur.nom,
+      description: declencheur.description,
+      icone: declencheur.icone,
+      appeleParSortCooperatif: true,
+      competenceQuiFrappe: { skillCom2usId: profil.skillCom2usId, slot: profil.slot, nom: profil.nom },
+      ...(connue.sortCooperatifSansDegats.critiqueGaranti ? { critiqueGaranti: true } : {}),
+    });
+  }
+  return out;
+}
+
+/**
  * Les sorts offensifs d'un monstre, dans l'ordre des slots — pris en charge
  * ou non. Liste vide si la fiche du monstre est absente (monstre perso,
  * données non générées) : l'objectif « Dégâts réels » est alors indisponible,
@@ -4341,6 +4465,11 @@ function attaquesAppeleesDeLaFiche(detail: DetailMonstre): PassifOffensifProfile
  * ajoute après S1 ou S2, à l'état de la cible près (PV et réduction de
  * Défense saisis, au lieu de ceux que le sort laisse) — sans 411 dans les
  * deux cas (voir `computeTotalDamage`).
+ *
+ * ⚠️ **Plus les sorts coopératifs sans dégâts propres qui appellent le S1**
+ * (Attack Command de Lisa, Concentrated Attack de Moria), au slot du
+ * déclencheur : `sortsCooperatifsQuiAppellentDeLaFiche`. Sans eux, ces sorts
+ * n'ont aucun profil (pas de formule) et restent hors de la liste.
  */
 export function monsterDamageSkills(detail: DetailMonstre | null): (SkillDamageProfile | SkillDamageUnsupported)[] {
   if (!detail) return [];
@@ -4349,6 +4478,7 @@ export function monsterDamageSkills(detail: DetailMonstre | null): (SkillDamageP
     const p = skillDamageProfile(c);
     if (p) out.push(p);
   }
+  out.push(...sortsCooperatifsQuiAppellentDeLaFiche(detail));
   for (const p of monsterOffensivePassives(detail)) {
     if (p.selectionnableCommeSort) out.push(p.profile);
   }
@@ -4365,9 +4495,14 @@ export function monsterDamageSkills(detail: DetailMonstre | null): (SkillDamageP
  * reste sur S2.
  * Sans sort actif calculable, `null` : un passif ne devient pas
  * le défaut faute de mieux.
+ *
+ * ⚠️ **Ni un sort coopératif qui appelle le S1** (`appeleParSortCooperatif`,
+ * Attack Command de Lisa au slot 3) : le défaut reste celui d'avant son
+ * entrée dans la liste (S2 pour Lisa et Moria). Le changer est une décision
+ * de l'utilisateur, jamais un effet de bord de l'ordre des slots.
  */
 export function defaultDamageSkill(skills: (SkillDamageProfile | SkillDamageUnsupported)[]): SkillDamageProfile | null {
-  const ok = skills.filter((s): s is SkillDamageProfile => estPrisEnCharge(s) && !s.passif);
+  const ok = skills.filter((s): s is SkillDamageProfile => estPrisEnCharge(s) && !s.passif && !s.appeleParSortCooperatif);
   return ok.length > 0 ? ok[ok.length - 1] : null;
 }
 

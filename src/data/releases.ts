@@ -60,6 +60,17 @@ export const CHANGE_META: Record<ChangeKind, { label: string; color: string }> =
 // Si une ligne dépasse ~15 mots, c'est qu'elle raconte l'implémentation.
 export const RELEASES: Release[] = [
   {
+    version: null,
+    date: '2026-10-16',
+    title: 'Les attaques conjointes comptent dans les dégâts réels',
+    changes: [
+      { kind: 'feat', scope: 'Dégâts réels', text: 'Les artéfacts « Dgts d’attaque conjointe » comptent sur les sorts coopératifs (Team Up, Group Hunt…).' },
+      { kind: 'feat', scope: 'Dégâts réels', text: 'Nouvel effet actif « Attaque conjointe » : ton S1 appelé par un allié.' },
+      { kind: 'feat', scope: 'Dégâts réels', text: 'Attack Command (Lisa) et Concentrated Attack (Moria) se calculent comme le S1 qu’ils appellent.' },
+      { kind: 'feat', scope: 'Optimizer', text: 'Le choix des artéfacts tient compte des dégâts d’attaque conjointe.' },
+    ],
+  },
+  {
     version: '2.1.0',
     date: '2026-10-15',
     title: 'Deux pages côte à côte, et l’Optimizer travaille avec tes équipes',

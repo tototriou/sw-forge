@@ -21,29 +21,49 @@ codée porte « Calcul partiel »
 
 ## Attaques déclenchées et hors tour
 
-### Attaques conjointes : lignes d'artéfact 209 et 225
+### Attaques conjointes : cas restant à trancher
 
-- **Constat** : le calcul compte 209 (« Dgts d'attaque conjointe ») et
-  225 (« Dgts de contre-attaque/attaque conjointe ») dans le terme `DMG%`
-  sur une attaque conjointe, et le choix des artéfacts les suit
-  ([02-app/degats-reels/feat-attaques-conjointes.md](../02-app/degats-reels/feat-attaques-conjointes.md)).
-  Le réglage `DamageSetup.attaqueConjointe` (S1 appelé par un allié) existe
-  au calcul, mais ni l'écran, ni la recette, ni le CLI ne le posent ; aucun
-  S1 appelé par un sort coopératif n'est curé.
-- **Idée** : l'interrupteur « Attaque conjointe » dans « Effets actifs »,
-  pour un S1 qui n'est pas conjoint par lui-même ; les S1 appelés par
-  Attack Command (`10912`, Lisa) et Concentrated Attack (`3163`, Moria 2e
-  éveil) dans `ATTAQUES_APPELEES_PAR_DECLENCHEUR`.
-- **Bloque** : à trancher, Purification, Cooperation! (`21415`) et Rite
-  of Ashes (`22015`), dont la prose ne dit pas s'ils appellent le S1 ;
-  Violent Friends sans l'effet (`3415`, `3480`) ; un S1 appelé par un allié
-  suivi d'un passif « on your turn » (Tempest).
+- **Constat** : les attaques conjointes sont modélisées (lignes 209 et
+  225 dans `DMG%`, interrupteur « Attaque conjointe », S1 appelé par
+  Attack Command et Concentrated Attack :
+  [02-app/degats-reels/feat-attaques-conjointes.md](../02-app/degats-reels/feat-attaques-conjointes.md)).
+  Restent hors de la règle, faute de réponse : Purification, Cooperation!
+  (`21415`) et Rite of Ashes (`22015`), calculés à 4,5 × ATQ mais non
+  conjoints (la règle lit la formule de la fiche, vide) ; Violent Friends
+  sans l'effet `Ally Attack` (`3415`, `3480`) ; les dix S1 de Chakram
+  Dancer et Boomerang Warrior (`12601`-`12605`, `12701`-`12705`), toujours
+  conjoints alors que leur prose place la coopération pendant le tour de
+  l'autre famille ; Mind Break de Lyrith (`20020152`), S1 ordinaire.
+- **Idée** : chaque réponse change une ligne des tables d'inclusion ou
+  d'exclusion de `damage.ts`, avec son test.
+- **Bloque** : la réponse de l'utilisateur, sort par sort.
+
+### Contre-attaque : ligne d'artéfact 208
+
+- **Constat** : aucune contre-attaque n'est modélisée ; 208 (« Dgts de
+  contre-attaque ») vaut 0, et 225 ne compte que pour sa part d'attaque
+  conjointe.
+- **Idée** : un interrupteur de contre-attaque, sur le modèle de
+  « Attaque conjointe ».
+- **Bloque** : un chantier à cadrer (quels sorts, quelles lignes 224 et
+  411 hors du tour).
+
+### Passif « on your turn » après un S1 appelé par un allié
+
+- **Constat** : l'interrupteur « Attaque conjointe » n'agit sur aucun
+  autre réglage : Tempest (Teshar, Phoenix vent), qui frappe « after you
+  attack the enemy on your turn », reste au choix de l'utilisateur quand
+  le S1 est appelé hors de son tour.
+- **Idée** : masquer ou éteindre l'interrupteur de Tempest quand
+  « Attaque conjointe » est allumé.
+- **Bloque** : une décision produit.
 
 ### Compétence active appelée par un sort
 
 - **Constat** : `ATTAQUES_APPELEES_PAR_DECLENCHEUR` (`src/lib/damage.ts`)
-  est vide : aucune amorce n'est curée, et aucun effet posé par un
-  déclencheur n'est modélisé
+  ne porte que les deux sorts coopératifs sans dégâts propres qui appellent
+  le S1 ; aucune attaque appelée après un sort qui frappe n'est curée, et
+  aucun effet posé par un déclencheur n'est modélisé
   ([02-app/degats-reels/feat-attaque-apres-un-sort.md § Ce qu’il faudra fournir pour un autre cas](../02-app/degats-reels/feat-attaque-apres-un-sort.md#ce-quil-faudra-fournir-pour-un-autre-cas)).
 - **Idée** : l'interrupteur d'une attaque appelée sous un en-tête à part,
   « Attaques déclenchées ». Seal Punch (`8111`) gardé : son Rolling Punch

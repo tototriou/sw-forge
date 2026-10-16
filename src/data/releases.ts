@@ -66,6 +66,8 @@ export const RELEASES: Release[] = [
     changes: [
       { kind: 'feat', scope: 'Dégâts réels', text: 'Les artéfacts « Dgts d’attaque conjointe » comptent sur les sorts coopératifs (Team Up, Group Hunt…).' },
       { kind: 'feat', scope: 'Dégâts réels', text: 'Nouvel effet actif « Attaque conjointe » : ton S1 appelé par un allié.' },
+      { kind: 'feat', scope: 'Dégâts réels', text: 'Chakram Dancer et Boomerang Warrior : attaques conjointes par défaut, à éteindre sans l’autre famille.' },
+      { kind: 'feat', scope: 'Dégâts réels', text: 'Les sorts coop de Nezuko et Vermilion Bird Dancer (ténèbres) comptent comme attaques conjointes.' },
       { kind: 'feat', scope: 'Dégâts réels', text: 'Attack Command (Lisa) et Concentrated Attack (Moria) se calculent comme le S1 qu’ils appellent.' },
       { kind: 'feat', scope: 'Optimizer', text: 'Le choix des artéfacts tient compte des dégâts d’attaque conjointe.' },
     ],

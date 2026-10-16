@@ -24,11 +24,12 @@ réglage, chemin)`, lue par le calcul, l'écran, le CLI et le Worker. Elle
 rend `null` (pas une attaque conjointe) ou l'un des trois contextes
 ci-dessous (`propre`, `appelee-par-allie`, `appelee-par-sort`), à partir du
 profil du sort qui frappe, de l'interrupteur et du chemin qui l'appelle (le
-sort choisi, ou une contribution qui le suit). Trois cas :
+sort choisi, ou une contribution qui le suit). Quatre cas :
 
 | Cas | Règle | Interrupteur |
 | --- | --- | --- |
-| Sort coopératif du monstre | compétence active à formule portant l'effet SWARFARM `Ally Attack`, plus une table d'inclusion par identifiant (sorts coopératifs sans cet effet) et une table d'exclusion | aucun : toujours conjoint |
+| Sort coopératif du monstre | compétence active à formule portant l'effet SWARFARM `Ally Attack`, plus une table d'inclusion par identifiant (sorts coopératifs sans cet effet) et une table d'exclusion ; hors des deux familles ci-dessous | aucun : toujours conjoint |
+| Attaque des familles Chakram Dancer et Boomerang Warrior | une table par identifiant : tous leurs sorts actifs à formule ; conjoints si un monstre de l'autre famille est au combat | « Attaque conjointe », **allumé par défaut** |
 | S1 appelé par un allié | un S1 qui n'est pas conjoint par lui-même, interrupteur « Attaque conjointe » allumé | « Attaque conjointe », éteint par défaut |
 | S1 appelé par un sort coopératif sans dégâts propres | le déclencheur figure dans `ATTAQUES_APPELEES_PAR_DECLENCHEUR` | aucun |
 
@@ -43,6 +44,26 @@ le profil du sort (`SkillDamageProfile.sortCooperatif`) ; le troisième cas
 est marqué sur le profil du S1 appelé (`appeleParSortCooperatif`), par le
 chemin des attaques appelées.
 
+⚠️ **Les familles Chakram Dancer et Boomerang Warrior sortent de cette
+règle** (décision de l'utilisateur) : leur prose fait dépendre l'attaque
+commune de la présence d'un monstre de l'autre famille, que le réglage ne
+connaît pas (on ne regarde pas l'équipe). Toutes leurs attaques, avec ou
+sans l'effet `Ally Attack`, proposent donc l'interrupteur « Attaque
+conjointe », **allumé quand le champ est absent** ; l'utilisateur l'éteint
+s'il joue le monstre sans l'autre famille. La table est fermée, par
+identifiant (`estSortDesFamillesCooperatives`, marqueur de profil
+`sortDesFamillesCooperatives`) : la compétence ne porte pas la famille de
+son monstre, et l'effet `Ally Attack` manque sur quatre de leurs attaques.
+Un sort nouveau de ces familles n'y entre que par curation.
+
+- Allumé (ou absent) : contexte `propre`, l'attaque a lieu pendant le tour
+  du monstre (224 selon la portée, 411). ⚠️ **Provisoire, à confirmer par
+  l'utilisateur** pour les S1, dont la prose place l'attaque commune
+  pendant le tour de l'autre famille : l'autre lecture (`appelee-par-allie`,
+  sans 224) ne changerait qu'une ligne de la porte.
+- Éteint (`false`) : non conjoint, un sort ordinaire (209 et 225 à 0, 224
+  selon la portée).
+
 ⚠️ **« À formule » désigne la formule que retient le calcul** : celle des
 formules curées par identifiant (`FORMULES_CUREES_PAR_ID`), sinon celle de
 la fiche (décision de l'utilisateur). Un sort à effet `Ally Attack` sans
@@ -51,7 +72,8 @@ Purification, Cooperation! et Rite of Ashes (plus bas, « Conjoints par
 leur formule curée »).
 
 - **Un sort coopératif l'est toujours**, quel que soit le chemin : choisi,
-  ou appelé après un autre sort.
+  ou appelé après un autre sort ; une attaque des deux familles, allumée,
+  aussi.
 - **Le S1 appelé par un allié** ne vaut que pour le S1 **choisi** : un S1
   qui suit le sort choisi (attaque appelée) ne l'est pas, interrupteur
   allumé ou non.
@@ -75,6 +97,10 @@ dégât.
 | 411 | « Dgts CRIT 1re attaque » | premier coup | premier coup | premier coup du S1 : le déclencheur ne frappe pas |
 | 400-403, 410 | « [Comp.N] Aug. Dgts CRIT » | slot du sort | slot 1 | slot 1 (celui du S1), jamais celui du déclencheur |
 
+Une attaque des deux familles, allumée, suit la colonne « Sort coopératif
+du monstre » (contexte `propre`, provisoire pour les S1, voir plus haut) ;
+éteinte, elle n'est pas une attaque conjointe.
+
 - **209 et 225 entrent dans le terme `DMG%`**, additionnés aux dégâts
   infligés par élément (300-304) : même terme, mêmes exclusions — ni sur
   une bombe, ni sur le bucket Additionnel
@@ -94,16 +120,34 @@ dégât.
 
 ## L'interrupteur « Attaque conjointe »
 
-- Dans « Effets actifs », éteint par défaut, montré **seulement** pour un
-  S1 qui n'est pas conjoint par lui-même : un bouton sans effet possible
-  n'est jamais montré. Écran :
-  [../optimizer/ecran/objectif-de-recherche.md](../optimizer/ecran/objectif-de-recherche.md).
-- Allumé, il dit que le S1 est **appelé par un allié, hors du tour du
-  monstre** : 209 et 225 comptent, 224 non, 411 oui.
-- Recette : `DamageSetup.attaqueConjointe`, absent = éteint. Réglage propre
-  au sort (`damageSetupTransition.ts`) : il s'éteint quand le **monstre**
-  change ; quand seul le sort change, il est conservé, sans effet hors d'un
-  S1 qui n'est pas conjoint par lui-même (comme `defBreakParLeSort`).
+Deux sens, selon le sort choisi :
+
+| Sort choisi | Allumé, il dit que… | Champ absent |
+| --- | --- | --- |
+| S1 qui n'est pas conjoint par lui-même | le S1 est **appelé par un allié, hors du tour du monstre** : 209 et 225 comptent, 224 non, 411 oui | éteint |
+| attaque des familles Chakram Dancer et Boomerang Warrior | **un monstre de l'autre famille est au combat** : contexte `propre` (provisoire pour les S1) | **allumé** |
+
+- **Proposé seulement quand il agit** : un bouton sans effet possible
+  n'est jamais montré. La fonction pure
+  `interrupteurAttaqueConjointe(profil, réglage)` le dit, dérivée de la
+  porte (proposé quand l'allumer et l'éteindre donnent deux contextes
+  différents) : `null`, ou son motif (`cas` : `familles-cooperatives`,
+  `appele-par-un-allie`), son état (`allume`, défaut compris) et son
+  défaut (`allumeParDefaut`). Le CLI la lit, jamais le champ directement.
+- **Écran** : la vignette, dans « Effets actifs », n'est montrée pour
+  l'instant que pour un S1 qui n'est pas conjoint par lui-même ; sur les
+  deux familles, l'interrupteur se règle par la recette
+  ([../optimizer/ecran/objectif-de-recherche.md](../optimizer/ecran/objectif-de-recherche.md)).
+- **CLI** : la ligne du sort dit « attaque conjointe (appelée par un
+  allié) » ou « attaque conjointe (un monstre de l'autre famille au
+  combat) » quand l'interrupteur est proposé et allumé, défaut compris
+  (`mentionAttaqueConjointe`).
+- Recette : `DamageSetup.attaqueConjointe` ; absent = éteint, sauf sur les
+  deux familles (allumé) ; seul `false` éteint une attaque des familles.
+  Réglage propre au sort (`damageSetupTransition.ts`) : quand le
+  **monstre** change, le champ est retiré (éteint sur un S1, allumé sur
+  les deux familles) ; quand seul le sort change, il est conservé, sans
+  effet sur un sort qui ne le propose pas (comme `defBreakParLeSort`).
 - ⚠️ Il n'agit sur aucun autre interrupteur : un passif « after you attack
   … on your turn » (Tempest) reste au choix de l'utilisateur.
 
@@ -146,7 +190,9 @@ l'effet `Ally Attack` — 39 actives à formule, 6 actives sans formule, 2
 passifs. Un identifiant de compétence est partagé par toutes les fiches qui
 le portent (forme de base et forme éveillée, version collab).
 
-### Conjoints par l'effet `Ally Attack` (39)
+### Conjoints par l'effet `Ally Attack` (21)
+
+Les 39 actives à formule, moins les 18 des deux familles (plus bas).
 
 | Famille | Sort | Identifiants |
 | --- | --- | --- |
@@ -155,28 +201,35 @@ le portent (forme de base et forme éveillée, version collab).
 | Moria (avant le 2e éveil) | Concentrated Attack (S3) | `3113` |
 | Seren (2e éveil) | Violent Friends (S3) | `3465` |
 | Battle Mammoth, Granite | Enter Battlefield (S3) | `9812` |
-| Chakram Dancer et formes éveillées | Crescent Moon Slash (S1) | `12601` à `12605` |
-| Chakram Dancer et formes éveillées | Chakram Crush (S2), Deadly Dance, Massacre Dance (S3) | `12607`, `12609`, `12611`, `12613` |
-| Boomerang Warrior et formes éveillées | Returning Boomerang (S1) | `12701` à `12705` |
-| Boomerang Warrior et formes éveillées | Triple Strike, Boomerang Crush (S2), Lightning Flash (S3) | `12706`, `12707`, `12710`, `12714` |
 | Aragorn | Band of Blades (S2) | `23806`, `23808`, `23810` |
 | Night Fang | Bond of the Pack (S2) | `24306`, `24308`, `24310` |
 
-⚠️ **Les dix S1 de Chakram Dancer et de Boomerang Warrior sont toujours
-conjoints**, alors que leur prose place l'attaque commune pendant le tour
-de l'autre famille : un sort coopératif lancé par le monstre compte
-toujours (décision de l'utilisateur, [valeurs curées](valeurs-de-jeu-curees.md)).
-L'interrupteur « Attaque conjointe » ne leur est donc pas proposé.
+### Attaques des familles Chakram Dancer et Boomerang Warrior (22)
 
-### Table d'inclusion — conjoints sans l'effet dans la donnée (5)
+Relevées sur les 21 fiches des deux familles (`skillGroupId` 21900 et
+22000 : formes de base, éveillées, et Imperfect Chakram Dancer) : leurs
+sorts actifs à formule. Les quatre Spirit Focus (S2, sans formule, sans
+attaque) et les quatre passifs n'en sont pas. Aucune fiche hors des deux
+familles ne porte ces identifiants. Interrupteur allumé par défaut (plus
+haut).
+
+| Famille | Sort | Identifiants | Effet `Ally Attack` |
+| --- | --- | --- | --- |
+| Chakram Dancer | Crescent Moon Slash (S1) | `12601` à `12605` | oui |
+| Chakram Dancer | Chakram Crush (S2) | `12607`, `12609` | oui |
+| Chakram Dancer | Double Strike (S2) | `12608` | non |
+| Chakram Dancer | Deadly Dance, Massacre Dance (S3) | `12611`, `12613` | oui |
+| Chakram Dancer | Moonlight Blow (S3) | `12615` | non |
+| Boomerang Warrior | Returning Boomerang (S1) | `12701` à `12705` | oui |
+| Boomerang Warrior | Triple Strike, Boomerang Crush (S2) | `12706`, `12707`, `12710` | oui |
+| Boomerang Warrior | Flame Drive, Vacuum Boomerang (S3) | `12712`, `12713` | non |
+| Boomerang Warrior | Lightning Flash (S3) | `12714` | oui |
+
+### Table d'inclusion — conjoints sans l'effet dans la donnée (1)
 
 | Identifiant | Sort | Monstre |
 | --- | --- | --- |
 | `10910` | Cutting Magic (S2) | Sylvia, Neostone Agent ténèbres |
-| `12608` | Double Strike (S2) | Melissa, Chakram Dancer vent |
-| `12615` | Moonlight Blow (S3) | Belita, Chakram Dancer ténèbres |
-| `12712` | Flame Drive (S3) | Maruna, Boomerang Warrior feu |
-| `12713` | Vacuum Boomerang (S3) | Zenobia, Boomerang Warrior vent |
 
 Un identifiant, jamais un nom : Cutting Magic de Lisa et de Neostone Agent
 feu (`10907`, même nom, même ratio) n'est pas inclus.
@@ -220,20 +273,29 @@ inscrit à `tests/index.ts` (`node tests/run.mjs attaquesconjointes`). Les
 libellés qui figent une décision de l'utilisateur le disent.
 
 - `testAttaquesConjointesRegle` — sur le corpus entier : la règle prend
-  exactement les 46 sorts des trois premières tables ; chaque entrée de la
-  table d'inclusion est nécessaire (la donnée ne porte pas l'effet), les
-  deux sorts à formule curée n'ont pas de formule de donnée, chaque
-  exclusion tient même face à une donnée qui prêterait une formule au passif ;
-  les cas non conjoints ci-dessus ; le marqueur du profil vaut la règle.
+  exactement les 24 sorts coopératifs (effet `Ally Attack`, formule curée,
+  inclusion) ; la table des deux familles est celle des sorts actifs à
+  formule de leurs 21 fiches, et aucun de ses 22 sorts n'est toujours
+  conjoint ; chaque entrée de la table d'inclusion est nécessaire (la donnée
+  ne porte pas l'effet), les deux sorts à formule curée n'ont pas de
+  formule de donnée, chaque exclusion tient même face à une donnée qui
+  prêterait une formule au passif ; les cas non conjoints ci-dessus ; les
+  deux marqueurs du profil valent leur règle, jamais ensemble.
 - `testAttaquesConjointesPorte` — les trois contextes et `null` (S1 qui suit
-  le sort, S2 interrupteur allumé, passif), ce que chacun retire du profil
-  des artéfacts, 209 + 225 sommés et 208 jamais, la classe du réglage.
-- `testAttaquesConjointesCalcul` — sur des fiches réelles : sort A
-  (`12706`) et A+ (`12713`) majorés de 209 + 225, 208 sans effet ;
-  Nezuko (`21415`) et Vermilion (`22015`) majorés, 224 et 411 en contexte
+  le sort, S2 interrupteur allumé, passif) ; les deux familles allumées par
+  défaut, éteintes par `false`, en contexte `propre` allumées (provisoire) ;
+  `interrupteurAttaqueConjointe` (proposé, état, défaut, motif) et la
+  mention du CLI ; ce que chaque contexte retire du profil des artéfacts,
+  209 + 225 sommés et 208 jamais, la classe du réglage.
+- `testAttaquesConjointesCalcul` — sur des fiches réelles : une attaque des
+  familles, champ absent, avec (`12706`) et sans (`12713`) l'effet, majorée
+  de 209 + 225, 208 sans effet ; éteinte (`12706`, `12713`, `12701`), au
+  total d'un sort ordinaire au bit près, 224 selon la portée, 411 ; Nezuko
+  (`21415`) et Vermilion (`22015`) majorés, 224 et 411 en contexte
   `propre` ; un sort non conjoint (`3415`, le S1 `10905`) au total inchangé
   au bit près ; ni bombe ni bucket Additionnel ; 224, 411 et 400 dans les trois
-  contextes ; l'interrupteur sans effet sur un S2 et sur un S1 coopératif ;
+  contextes ; l'interrupteur sans effet sur un S2, le S1 d'une famille
+  allumé ou au défaut au même total ;
   Tempest sans 209/225 après un S1 appelé par un allié.
 - `testAttaquesConjointesTotalALaMain` — un total écrit à la main :
   `2000 × (1 + 0,12 + 0,10 + 0,08) × 1000/1142 × 1,25`, ligne Feu, 209 et
@@ -243,7 +305,8 @@ libellés qui figent une décision de l'utilisateur le disent.
   `evaluerPourRegime`) contre l'énumération exhaustive des paires, sur 40
   inventaires tirés au hasard (graine fixe), dont un sur quatre verrouille
   209 : sort conjoint, S1 appelé par un allié, sort non conjoint (Sylvia),
-  S1 appelé par un sort coopératif (Attack Command, Lisa). Sur les
+  S1 appelé par un sort coopératif (Attack Command, Lisa), attaque d'une
+  famille au défaut et éteinte (Triple Strike, Sabrina). Sur les
   conjoints, 209/225 changent la paire choisie dans une partie des
   inventaires ; sur le non conjoint, retirer 208/209/225 ne change ni la
   paire ni le score. La sonde de pertinence compte 209 et 225 sur une
@@ -261,7 +324,10 @@ recette.
 L'interrupteur hors du calcul :
 [tests/attaques-conjointes-recette.test.ts](../../../tests/attaques-conjointes-recette.test.ts)
 (`node tests/run.mjs attaquesconjointesrecette`) — validation de la
-recette, transitions de monstre et de sort, ligne du CLI ;
+recette, transitions de monstre et de sort, ligne du CLI ; pour une
+attaque des familles (Triple Strike, Sabrina), l'aller-retour avec et sans
+le champ (sans : allumé par la porte, aucune clé ajoutée) et le contexte du
+CLI ;
 [tests/rendu/attaque-conjointe-ecran.test.tsx](../../../tests/rendu/attaque-conjointe-ecran.test.tsx)
 (`node tests/run.mjs attaque-conjointe-ecran`) — la vignette dans
 « Effets actifs », présente pour un S1 ordinaire seulement, aux deux

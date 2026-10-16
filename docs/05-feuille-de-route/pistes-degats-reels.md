@@ -27,16 +27,18 @@ codée porte « Calcul partiel »
   225 dans `DMG%`, interrupteur « Attaque conjointe », S1 appelé par
   Attack Command et Concentrated Attack :
   [02-app/degats-reels/feat-attaques-conjointes.md](../02-app/degats-reels/feat-attaques-conjointes.md)).
-  Restent hors de la règle, faute de réponse : Purification, Cooperation!
-  (`21415`) et Rite of Ashes (`22015`), calculés à 4,5 × ATQ mais non
-  conjoints (la règle lit la formule de la fiche, vide) ; Violent Friends
-  sans l'effet `Ally Attack` (`3415`, `3480`) ; les dix S1 de Chakram
-  Dancer et Boomerang Warrior (`12601`-`12605`, `12701`-`12705`), toujours
-  conjoints alors que leur prose place la coopération pendant le tour de
-  l'autre famille ; Mind Break de Lyrith (`20020152`), S1 ordinaire.
-- **Idée** : chaque réponse change une ligne des tables d'inclusion ou
-  d'exclusion de `damage.ts`, avec son test.
-- **Bloque** : la réponse de l'utilisateur, sort par sort.
+  Les attaques des familles Chakram Dancer et Boomerang Warrior,
+  interrupteur allumé (le défaut), se calculent pendant le tour du
+  monstre (contexte `propre` : 224 selon la portée, 411), à titre
+  provisoire ; or la prose des S1 (`12601`-`12605`, `12701`-`12705`) place
+  l'attaque commune pendant le tour de l'autre famille. Restent hors de la
+  règle, faute de réponse : Violent Friends sans l'effet `Ally Attack`
+  (`3415`, `3480`) ; Mind Break de Lyrith (`20020152`), S1 ordinaire.
+- **Idée** : si les S1 des deux familles frappent hors de leur tour, la
+  ligne commentée de `contexteAttaqueConjointe` rend `appelee-par-allie`
+  pour eux (224 à 0), avec son test ; chaque autre réponse change une ligne
+  des tables de `damage.ts`.
+- **Bloque** : la réponse de l'utilisateur.
 
 ### Contre-attaque : ligne d'artéfact 208
 

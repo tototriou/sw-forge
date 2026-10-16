@@ -14,7 +14,7 @@
 
 import { readFileSync, readdirSync } from 'fs';
 import { resolve } from 'path';
-import { ok, egal, titre } from './outils';
+import { ok, egal, titre, monstersJson } from './outils';
 import { StatRow, statsParPaire } from '../src/lib/stats';
 import { StatKey } from '../src/lib/effects';
 import { Competence, DetailMonstre } from '../src/lib/monsterSkills';
@@ -33,6 +33,9 @@ import {
   contexteAttaqueConjointe,
   estPrisEnCharge,
   estSortCooperatif,
+  estSortDesFamillesCooperatives,
+  interrupteurAttaqueConjointe,
+  mentionAttaqueConjointe,
   monsterDamageSkills,
   monsterOffensivePassives,
   skillDamageProfile,
@@ -88,17 +91,22 @@ const proche = (a: number, b: number) => Math.abs(a - b) <= 1e-9 * Math.max(1, M
 
 // ── Les sorts par identifiant ────────────────────────────────────────────
 
-// Les dix S1 de Chakram Dancer et Boomerang Warrior : effet `Ally Attack`,
-// conjoints par la règle. Réunis ici pour qu'un renversement de la décision
-// ne change qu'une ligne.
-const S1_CHAKRAM_ET_BOOMERANG = [12601, 12602, 12603, 12604, 12605, 12701, 12702, 12703, 12704, 12705];
-// Les autres sorts coopératifs à effet `Ally Attack` et formule de donnée.
-const AUTRES_SORTS_A_EFFET = [
+// Les attaques des familles Chakram Dancer et Boomerang Warrior : conjointes
+// si un monstre de l'autre famille est au combat (interrupteur, allumé par
+// défaut), hors de la règle `Ally Attack` et de la table d'inclusion. Écrites
+// à la main d'après le relevé des 21 fiches des deux familles (22 sorts actifs
+// à formule) ; le test les retrouve aussi sur le corpus.
+const FAMILLES_COOPERATIVES = [
+  12601, 12602, 12603, 12604, 12605, 12607, 12608, 12609, 12611, 12613, 12615,
+  12701, 12702, 12703, 12704, 12705, 12706, 12707, 12710, 12712, 12713, 12714,
+];
+// Les sorts coopératifs à effet `Ally Attack` et formule de donnée, hors des deux familles.
+const SORTS_A_EFFET = [
   1511, 1561, 1576, 2006, 2007, 2010, 2056, 2057, 2060, 2071, 2072, 2075, 3113, 3465, 9812,
-  12607, 12609, 12611, 12613, 12706, 12707, 12710, 12714, 23806, 23808, 23810, 24306, 24308, 24310,
+  23806, 23808, 23810, 24306, 24308, 24310,
 ];
 // Table d'inclusion : sorts coopératifs dont la donnée ne porte pas l'effet.
-const INCLUSION = [10910, 12608, 12615, 12712, 12713];
+const INCLUSION = [10910];
 // Table d'exclusion : effet `Ally Attack` qui ne désigne pas une attaque du monstre.
 const EXCLUSION = [10915, 12711];
 // Effet `Ally Attack` sans formule de donnée, ratio curé (`FORMULES_CUREES_PAR_ID`) :
@@ -108,9 +116,9 @@ const PAR_FORMULE_CUREE = [21415, 22015];
 export function testAttaquesConjointesRegle() {
   titre('Attaques conjointes — la règle et ses tables, sur le corpus');
   const corpus = competencesDistinctes();
-  const attendus = [...S1_CHAKRAM_ET_BOOMERANG, ...AUTRES_SORTS_A_EFFET, ...INCLUSION, ...PAR_FORMULE_CUREE].sort((a, b) => a - b);
+  const attendus = [...SORTS_A_EFFET, ...INCLUSION, ...PAR_FORMULE_CUREE].sort((a, b) => a - b);
   const trouves = [...corpus.values()].filter((c) => estSortCooperatif(c)).map((c) => c.com2usId!).sort((a, b) => a - b);
-  egal(trouves, attendus, 'fige une décision de l’utilisateur (2026-10-16) : 39 sorts à effet Ally Attack et formule de donnée, 2 à formule curée, plus les 5 de la table d’inclusion, et eux seuls');
+  egal(trouves, attendus, 'fige une décision de l’utilisateur (2026-10-16) : 21 sorts à effet Ally Attack et formule de donnée hors des deux familles, 2 à formule curée, plus celui de la table d’inclusion, et eux seuls');
   for (const id of PAR_FORMULE_CUREE) {
     const c = corpus.get(id)!;
     ok(
@@ -119,9 +127,24 @@ export function testAttaquesConjointesRegle() {
     );
   }
 
-  for (const id of S1_CHAKRAM_ET_BOOMERANG) {
+  // Familles coopératives : la table, relevée sur les fiches des deux familles.
+  const fichesDesFamilles = monstersJson().filter((m: { skillGroupId: number }) => m.skillGroupId === 21900 || m.skillGroupId === 22000);
+  egal(fichesDesFamilles.length, 21, 'familles Chakram Dancer (21900) et Boomerang Warrior (22000) : 21 fiches dans monsters.json');
+  const sortsDesFiches = new Set<number>();
+  for (const m of fichesDesFamilles as { com2usId: number }[]) {
+    for (const c of fiche(m.com2usId).competences) if (!c.passif && (c.formule ?? '').trim() !== '') sortsDesFiches.add(c.com2usId!);
+  }
+  egal([...sortsDesFiches].sort((a, b) => a - b), FAMILLES_COOPERATIVES, 'familles : les sorts actifs à formule de leurs fiches sont les 22 de la table');
+  const famillesTrouvees = [...corpus.values()].filter((c) => estSortDesFamillesCooperatives(c)).map((c) => c.com2usId!).sort((a, b) => a - b);
+  egal(famillesTrouvees, FAMILLES_COOPERATIVES, 'fige une décision de l’utilisateur (2026-10-16) : sur le corpus, les attaques des deux familles sont les 22 de la table, et elles seules');
+  for (const id of FAMILLES_COOPERATIVES) {
     const c = corpus.get(id)!;
-    ok(c.slot === 1 && estSortCooperatif(c), `fige une décision de l’utilisateur (2026-10-16) : le S1 ${id} (${c.nom}) est conjoint par la règle, toujours`);
+    ok(!estSortCooperatif(c), `fige une décision de l’utilisateur (2026-10-16) : ${id} (${c.nom}, S${c.slot}) n’est pas toujours conjoint, l’interrupteur en décide`);
+  }
+  ok(FAMILLES_COOPERATIVES.filter((id) => !corpus.get(id)!.effets.some((e) => e.nom === 'Ally Attack')).length === 4,
+    'familles : 4 des 22 ne portent pas l’effet Ally Attack (12608, 12615, 12712, 12713) — la table ne se déduit pas de l’effet');
+  for (const id of [12606, 12612, 12614, 12711, 12715]) {
+    ok(!estSortDesFamillesCooperatives(corpus.get(id)!), `familles : ${id} (${corpus.get(id)!.nom}), sans formule ou passif, n’est pas une attaque`);
   }
   for (const id of INCLUSION) {
     const c = corpus.get(id)!;
@@ -153,14 +176,19 @@ export function testAttaquesConjointesRegle() {
   // Le marqueur du profil suit la règle, et elle seule.
   let ecarts = 0;
   let marques = 0;
+  let marquesFamilles = 0;
   for (const c of corpus.values()) {
     const p = skillDamageProfile(c);
     if (!p || !estPrisEnCharge(p)) continue;
     if (p.sortCooperatif) marques++;
+    if (p.sortDesFamillesCooperatives) marquesFamilles++;
     if ((p.sortCooperatif === true) !== estSortCooperatif(c)) ecarts++;
+    if ((p.sortDesFamillesCooperatives === true) !== estSortDesFamillesCooperatives(c)) ecarts++;
+    if (p.sortCooperatif && p.sortDesFamillesCooperatives) ecarts++;
   }
-  egal(ecarts, 0, 'corpus : `sortCooperatif` du profil vaut exactement la règle, pour chaque sort calculable');
+  egal(ecarts, 0, 'corpus : `sortCooperatif` et `sortDesFamillesCooperatives` du profil valent exactement leur règle, jamais les deux');
   egal(marques, attendus.length, `corpus : les ${attendus.length} sorts conjoints sont tous calculables, et marqués`);
+  egal(marquesFamilles, FAMILLES_COOPERATIVES.length, 'corpus : les 22 attaques des familles sont toutes calculables, et marquées');
 }
 
 export function testAttaquesConjointesPorte() {
@@ -179,6 +207,38 @@ export function testAttaquesConjointesPorte() {
   egal(contexteAttaqueConjointe(s1, allume, 'suite-du-sort'), null, 'interrupteur allumé, S1 qui SUIT le sort choisi : sans effet');
   egal(contexteAttaqueConjointe({ ...s1, appeleParSortCooperatif: true }, eteint, 'sort-choisi'), 'appelee-par-sort', 'S1 appelé par un sort coopératif : appelé par le sort');
   egal(contexteAttaqueConjointe({ slot: 3, passif: true }, allume, 'sort-choisi'), null, 'un passif n’est jamais une attaque conjointe');
+
+  // Familles coopératives : l'interrupteur, lu allumé quand le champ manque.
+  const famille = (slot: number) => ({ slot, sortDesFamillesCooperatives: true as const });
+  const eteintExplicite = { attaqueConjointe: false };
+  for (const slot of [1, 2, 3]) {
+    egal(contexteAttaqueConjointe(famille(slot), eteint, 'sort-choisi'), 'propre', `fige une décision de l’utilisateur (2026-10-16) : famille, S${slot}, champ absent : allumé par défaut, conjoint`);
+    egal(contexteAttaqueConjointe(famille(slot), eteintExplicite, 'sort-choisi'), null, `fige une décision de l’utilisateur (2026-10-16) : famille, S${slot}, éteint par \`false\` : non conjoint`);
+  }
+  egal(contexteAttaqueConjointe(famille(2), allume, 'sort-choisi'), 'propre', 'provisoire, à confirmer par l’utilisateur : famille, allumé, contexte propre (pendant le tour du monstre)');
+  egal(contexteAttaqueConjointe(famille(1), allume, 'sort-choisi'), 'propre', 'provisoire, à confirmer par l’utilisateur : famille, S1 allumé, contexte propre et non « appelé par un allié »');
+  egal(contexteAttaqueConjointe(famille(2), eteint, 'suite-du-sort'), 'propre', 'famille, champ absent, sort qui suit le sort choisi : conjoint aussi (le combat, pas le sort, en décide)');
+  egal(contexteAttaqueConjointe({ ...famille(3), passif: true }, eteint, 'sort-choisi'), null, 'famille : un passif n’est jamais une attaque conjointe');
+
+  // L'interrupteur pour l'écran : proposé, état, défaut — dérivés de la porte.
+  egal(interrupteurAttaqueConjointe(famille(2), eteint), { cas: 'familles-cooperatives', allume: true, allumeParDefaut: true },
+    'fige une décision de l’utilisateur (2026-10-16) : famille, champ absent : interrupteur proposé, allumé, allumé par défaut');
+  egal(interrupteurAttaqueConjointe(famille(1), eteintExplicite), { cas: 'familles-cooperatives', allume: false, allumeParDefaut: true },
+    'famille, S1 éteint par `false` : interrupteur proposé, éteint, allumé par défaut');
+  egal(interrupteurAttaqueConjointe(famille(3), allume), { cas: 'familles-cooperatives', allume: true, allumeParDefaut: true }, 'famille, S3 allumé : proposé, allumé');
+  egal(interrupteurAttaqueConjointe(s1, eteint), { cas: 'appele-par-un-allie', allume: false, allumeParDefaut: false }, 'S1 ordinaire, champ absent : proposé, éteint, éteint par défaut');
+  egal(interrupteurAttaqueConjointe(s1, allume), { cas: 'appele-par-un-allie', allume: true, allumeParDefaut: false }, 'S1 ordinaire allumé : proposé, allumé');
+  egal(interrupteurAttaqueConjointe(s2, allume), null, 'S2 ordinaire : non proposé');
+  egal(interrupteurAttaqueConjointe({ ...s1, sortCooperatif: true }, eteint), null, 'S1 coopératif (toujours conjoint) : non proposé');
+  egal(interrupteurAttaqueConjointe({ ...s1, appeleParSortCooperatif: true }, eteint), null, 'S1 appelé par un sort coopératif : non proposé');
+  egal(interrupteurAttaqueConjointe({ slot: 3, passif: true }, eteint), null, 'passif : non proposé');
+
+  // La mention de la ligne du CLI : par l'interrupteur, défaut compris.
+  egal(mentionAttaqueConjointe(famille(2), eteint), 'attaque conjointe (un monstre de l’autre famille au combat)', 'CLI, famille, champ absent : la ligne dit l’attaque conjointe (défaut allumé)');
+  egal(mentionAttaqueConjointe(famille(2), eteintExplicite), null, 'CLI, famille éteinte : rien');
+  egal(mentionAttaqueConjointe(s1, allume), 'attaque conjointe (appelée par un allié)', 'CLI, S1 ordinaire allumé : appelé par un allié');
+  egal(mentionAttaqueConjointe(s1, eteint), null, 'CLI, S1 ordinaire, champ absent : rien');
+  egal(mentionAttaqueConjointe({ ...s2, sortCooperatif: true }, eteint), null, 'CLI, sort coopératif : rien (pas d’interrupteur)');
 
   const a = artefacts([{ code: 209, value: 10 }, { code: 224, value: 20 }]);
   ok(artefactsSelonContexteConjoint(ARTIFACT_DAMAGE_NEUTRE, null) === ARTIFACT_DAMAGE_NEUTRE, 'profil sans ces lignes : rendu tel quel, aucune allocation');
@@ -216,20 +276,35 @@ export function testAttaquesConjointesCalcul() {
   const gagne = (detail: DetailMonstre, p: SkillDamageProfile, setup: DamageSetup, code: number) =>
     totalDe(detail, p, setup, ligne(code)) > totalDe(detail, p, setup, ARTIFACT_DAMAGE_NEUTRE);
 
-  // Sort A : Triple Strike (Sabrina), Ally Attack.
+  // Famille coopérative, champ absent (allumé par défaut) : Triple Strike
+  // (Sabrina), effet Ally Attack.
   const sabrina = fiche(22011);
   const tripleStrike = sortDe(sabrina, 12706);
   const refA = totalDe(sabrina, tripleStrike, base, ARTIFACT_DAMAGE_NEUTRE);
-  ok(proche(totalDe(sabrina, tripleStrike, base, conjointes) / refA, 1.18), 'sort A (12706) : 209 + 225 (10 + 8) majorent le total de 18 %');
-  egal(totalDe(sabrina, tripleStrike, base, contre), refA, 'sort A : 208 (contre-attaque) ne change rien');
+  ok(proche(totalDe(sabrina, tripleStrike, base, conjointes) / refA, 1.18), 'fige une décision de l’utilisateur (2026-10-16) : famille (12706), champ absent : 209 + 225 (10 + 8) majorent le total de 18 %');
+  egal(totalDe(sabrina, tripleStrike, base, contre), refA, 'famille (12706) : 208 (contre-attaque) ne change rien');
 
-  // Sort A+ : Vacuum Boomerang (Zenobia), par la table d'inclusion.
+  // Famille coopérative sans l'effet dans la donnée : Vacuum Boomerang (Zenobia).
   const zenobia = fiche(22013);
   const vacuum = sortDe(zenobia, 12713);
   ok(
     proche(totalDe(zenobia, vacuum, base, conjointes) / totalDe(zenobia, vacuum, base, ARTIFACT_DAMAGE_NEUTRE), 1.18),
-    'fige une décision de l’utilisateur (2026-10-16) : sort A+ (12713) majoré de 18 % par 209 + 225'
+    'fige une décision de l’utilisateur (2026-10-16) : famille (12713, sans l’effet Ally Attack), champ absent : majoré de 18 % par 209 + 225'
   );
+
+  // Famille coopérative éteinte : un sort ordinaire, au bit près.
+  const eteintFamille: DamageSetup = { ...base, attaqueConjointe: false };
+  const toutesConjointes = artefacts([{ code: 209, value: 20 }, { code: 225, value: 20 }, { code: 208, value: 20 }]);
+  for (const [detail, p] of [[sabrina, tripleStrike], [zenobia, vacuum], [sabrina, sortDe(sabrina, 12701)]] as const) {
+    egal(
+      totalDe(detail, p, eteintFamille, toutesConjointes),
+      totalDe(detail, p, eteintFamille, ARTIFACT_DAMAGE_NEUTRE),
+      `fige une décision de l’utilisateur (2026-10-16) : famille (${p.skillCom2usId}) éteinte par \`false\` : non conjoint, 208/209/225 sans effet au bit près`
+    );
+    egal(totalDe(detail, p, eteintFamille, ARTIFACT_DAMAGE_NEUTRE), totalDe(detail, p, base, ARTIFACT_DAMAGE_NEUTRE), `famille (${p.skillCom2usId}) : sans ces lignes, allumé ou éteint donnent le même total`);
+    ok(gagne(detail, p, eteintFamille, 224) === !p.aoe, `famille (${p.skillCom2usId}) éteinte : 224 selon la portée, comme un sort ordinaire`);
+    ok(gagne(detail, p, eteintFamille, 411), `famille (${p.skillCom2usId}) éteinte : 411, comme un sort ordinaire`);
+  }
 
   // Sort A− : le passif 10915 n'a pas de profil — rien à calculer.
   const sylvia = fiche(20115);
@@ -285,8 +360,9 @@ export function testAttaquesConjointesCalcul() {
   ok(partBrute > 0 && proche(partBruteConjointe, partBrute), `décision de l’utilisateur : le bucket Additionnel ne reçoit pas 209/225 (${partBrute.toFixed(3)} des deux côtés)`);
 
   // ── Les trois contextes et leurs lignes ──
-  // propre : Triple Strike, S2 mono-cible.
-  ok(gagne(sabrina, tripleStrike, base, 224), 'propre (12706, mono-cible) : 224 suit la portée');
+  // propre : Triple Strike, S2 mono-cible d'une famille, champ absent (le
+  // contexte de la famille allumée est provisoire, à confirmer).
+  ok(gagne(sabrina, tripleStrike, base, 224), 'provisoire, à confirmer par l’utilisateur : propre (12706, famille allumée, mono-cible) : 224 suit la portée');
   ok(gagne(sabrina, tripleStrike, base, 411), 'propre : 411 sur le premier coup');
   ok(gagne(sabrina, tripleStrike, base, 401), 'propre : la ligne de son slot (401 pour un S2)');
   ok(!gagne(sabrina, tripleStrike, base, 400), 'propre : pas la ligne d’un autre slot (400)');
@@ -319,7 +395,13 @@ export function testAttaquesConjointesCalcul() {
   const mixte = artefacts([{ code: 209, value: 10 }, { code: 225, value: 8 }, { code: 224, value: 20 }]);
   egal(totalDe(teshar, nova, allume, mixte), totalDe(teshar, nova, base, mixte), 'interrupteur allumé sur un S2 (3208) : total identique, sans effet');
   const s1Coop = sortDe(sabrina, 12701);
-  egal(totalDe(sabrina, s1Coop, allume, mixte), totalDe(sabrina, s1Coop, base, mixte), 'interrupteur allumé sur un S1 coopératif (12701) : total identique, 224 gardée');
+  egal(totalDe(sabrina, s1Coop, allume, mixte), totalDe(sabrina, s1Coop, base, mixte), 'fige une décision de l’utilisateur (2026-10-16) : S1 de famille (12701), allumé ou champ absent : même total, allumé par défaut');
+  ok(gagne(sabrina, s1Coop, allume, 224), 'provisoire, à confirmer par l’utilisateur : S1 de famille (12701) allumé, contexte propre : 224 compte (mono-cible)');
+  ok(gagne(sabrina, s1Coop, allume, 411), 'provisoire, à confirmer par l’utilisateur : S1 de famille (12701) allumé : 411 compte');
+  ok(
+    proche(totalDe(sabrina, s1Coop, allume, conjointes) / totalDe(sabrina, s1Coop, allume, ARTIFACT_DAMAGE_NEUTRE), 1.18),
+    'S1 de famille (12701) allumé : 209 + 225 comptent'
+  );
 
   // Une contribution qui suit le sort n'est pas l'attaque conjointe.
   const arcane = sortDe(teshar, 3203);
@@ -429,6 +511,9 @@ export function testAttaquesConjointesChoixArtefacts() {
   // Command (10912), S1 10902 appelé par un sort coopératif.
   const SYLVIA = { forme: 20115, porteur: { element: 'dark' as ElementKey, archetype: 'attack' as ArtifactArchetype } };
   const LISA = { forme: 20112, porteur: { element: 'fire' as ElementKey, archetype: 'attack' as ArtifactArchetype } };
+  // Sabrina (Boomerang Warrior eau) : Triple Strike (12706), attaque d'une
+  // famille coopérative, champ absent (allumé par défaut) ou éteint.
+  const SABRINA = { forme: 22011, porteur: { element: 'water' as ElementKey, archetype: 'attack' as ArtifactArchetype } };
   const gear: GearSet = { base: { hp: 10000, atk: 900, def: 600, spd: 110, cr: 15, cd: 50, res: 15, acc: 0 }, runes: [], artifacts: [] };
   const statsAvec = statsParPaire(gear);
   const contexte = (forme: number, setup: DamageSetup): DegatsContext => {
@@ -443,6 +528,8 @@ export function testAttaquesConjointesChoixArtefacts() {
     { nom: 'S1 appelé par un allié (10905, interrupteur)', ...SYLVIA, setup: { ...base, skillCom2usId: 10905, attaqueConjointe: true }, conjoint: true },
     { nom: 'sort non conjoint (10905)', ...SYLVIA, setup: { ...base, skillCom2usId: 10905 }, conjoint: false },
     { nom: 'S1 appelé par un sort coopératif (Lisa, 10912)', ...LISA, setup: { ...base, skillCom2usId: 10912 }, conjoint: true },
+    { nom: 'famille, champ absent (Sabrina, 12706)', ...SABRINA, setup: { ...base, skillCom2usId: 12706 }, conjoint: true },
+    { nom: 'famille éteinte (Sabrina, 12706)', ...SABRINA, setup: { ...base, skillCom2usId: 12706, attaqueConjointe: false }, conjoint: false },
   ];
 
   for (const c of cas) {
@@ -497,6 +584,9 @@ export function testAttaquesConjointesChoixArtefacts() {
       `${c.nom} : la sonde de pertinence ${c.conjoint ? 'compte' : 'écarte'} 209 et 225`
     );
     ok(!pertinence.croissants.has(208) && !pertinence.ambigus.has(208), `${c.nom} : 208 reste sans effet pour la sonde`);
+    if (c.setup.skillCom2usId === 12706) {
+      ok(pertinence.croissants.has(224), `${c.nom} : 224 comptée (mono-cible), allumé comme éteint`);
+    }
     if (c.setup.skillCom2usId === 10905) {
       egal(pertinence.croissants.has(224), !c.setup.attaqueConjointe, `${c.nom} : 224 ${c.setup.attaqueConjointe ? 'écartée (hors du tour du monstre)' : 'comptée (mono-cible)'} par la sonde`);
     }

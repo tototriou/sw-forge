@@ -21,6 +21,8 @@ import {
   DEFAULT_DAMAGE_SETUP,
   type DamageSetup,
   contexteAttaqueConjointe,
+  interrupteurAttaqueConjointe,
+  mentionAttaqueConjointe,
   monsterDamageSkills,
   resolveDamageSkill,
 } from '../src/lib/damage';
@@ -39,9 +41,14 @@ const CASSIE = 19315;
 const CROSS_FIRE = 10125;
 const DEFEAT_WILD_DOG = 10130;
 
-function recette(setup: DamageSetup, monsterName = 'Cassie'): OptimizerRecipe {
+// Sabrina (Boomerang Warrior eau) : Triple Strike (12706), attaque d'une
+// famille coopérative — interrupteur allumé quand le champ manque.
+const SABRINA = 22011;
+const TRIPLE_STRIKE = 12706;
+
+function recette(setup: DamageSetup, monsterName = 'Cassie', monsterCom2usId = CASSIE): OptimizerRecipe {
   return buildOptimizerRecipe({
-    monsterCom2usId: CASSIE, monsterName,
+    monsterCom2usId, monsterName,
     requirement: { sets: [], minStats: {} }, objective: 'degats_reels',
     damageSetup: setup, metric: 'eff', slotFilterPreset: 'bas',
     adaptiveTrancheWeighting: false, exhaustiveSearch: false,
@@ -85,6 +92,22 @@ export function testAttaquesConjointesRecetteChamp() {
   }
   const raison = lire({ ...recette(allume), damageSetup: { ...allume, attaqueConjointe: 'oui' } }).error ?? '';
   ok(raison.includes('doit être un booléen'), `la raison est dite : « ${raison} »`);
+
+  // Famille coopérative : sans le champ, la recette relue est allumée (par la
+  // porte, sans clé ajoutée) ; `false` relu tel quel l'éteint.
+  const triple = resolveDamageSkill(monsterDamageSkills(loadMonsterSkills(SABRINA)), TRIPLE_STRIKE)!;
+  const familleSans: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, skillCom2usId: TRIPLE_STRIKE };
+  const relueFamilleSans = lire(recette(familleSans, 'Sabrina', SABRINA)).recipe;
+  ok(relueFamilleSans !== null && !('attaqueConjointe' in relueFamilleSans.damageSetup), 'famille, sans le champ : recette acceptée, aucune clé ajoutée');
+  egal(relueFamilleSans && interrupteurAttaqueConjointe(triple, relueFamilleSans.damageSetup), { cas: 'familles-cooperatives', allume: true, allumeParDefaut: true },
+    'fige une décision de l’utilisateur (2026-10-16) : famille, recette sans le champ, relue : interrupteur allumé par défaut');
+  egal(relueFamilleSans && contexteAttaqueConjointe(triple, relueFamilleSans.damageSetup, 'sort-choisi'), 'propre', 'famille, recette sans le champ, relue : conjoint');
+  const relueFamilleEteinte = lire(recette({ ...familleSans, attaqueConjointe: false }, 'Sabrina', SABRINA)).recipe;
+  egal(relueFamilleEteinte?.damageSetup.attaqueConjointe, false, 'famille éteinte : `false` relu tel quel');
+  egal(relueFamilleEteinte && interrupteurAttaqueConjointe(triple, relueFamilleEteinte.damageSetup)?.allume, false, 'famille éteinte, relue : interrupteur éteint');
+  egal(relueFamilleEteinte && contexteAttaqueConjointe(triple, relueFamilleEteinte.damageSetup, 'sort-choisi'), null, 'famille éteinte, relue : non conjoint');
+  const relueFamilleAllumee = lire(recette({ ...familleSans, attaqueConjointe: true }, 'Sabrina', SABRINA)).recipe;
+  egal(relueFamilleAllumee?.damageSetup.attaqueConjointe, true, 'famille allumée explicitement : `true` relu tel quel');
 }
 
 export function testAttaquesConjointesRecetteTransitions() {
@@ -108,6 +131,13 @@ export function testAttaquesConjointesRecetteTransitions() {
   egal(versS2.attaqueConjointe, true, 'changement de sort : conservé');
   egal(contexteAttaqueConjointe(s1, allume, 'sort-choisi'), 'appelee-par-allie', 'sur le S1 : agit');
   egal(contexteAttaqueConjointe(s2, versS2, 'sort-choisi'), null, 'sur le S2, conservé : sans effet');
+
+  // Vers une famille coopérative : le champ remis à absent la rallume.
+  const triple = resolveDamageSkill(monsterDamageSkills(loadMonsterSkills(SABRINA)), TRIPLE_STRIKE)!;
+  const depuisEteint = damageSetupApresChangementMonstre({ ...DEFAULT_DAMAGE_SETUP, skillCom2usId: CROSS_FIRE, attaqueConjointe: false });
+  const versSabrina: DamageSetup = { ...depuisEteint, skillCom2usId: TRIPLE_STRIKE };
+  egal(versSabrina.attaqueConjointe, undefined, 'changement de monstre depuis un réglage éteint : champ absent');
+  egal(interrupteurAttaqueConjointe(triple, versSabrina)?.allume, true, 'fige une décision de l’utilisateur (2026-10-16) : arrivé sur une famille, l’interrupteur est allumé (défaut)');
 }
 
 export function testAttaquesConjointesRecetteCli() {
@@ -125,6 +155,21 @@ export function testAttaquesConjointesRecetteCli() {
   egal(eteint && contexteAttaqueConjointe(s1, eteint.setup, 'sort-choisi'), null, 'CLI, recette sans le champ : non conjoint');
   ok(sansCommentaires(lireSource('scripts/lib/realDamageCli.ts')).includes('setup: normaliserCompetencesInvocateur(recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP),'),
     'CLI : le contexte de dégâts transmet le damageSetup de la recette entier');
+
+  // Famille coopérative au CLI : recette sans le champ = allumée, la ligne du
+  // sort le dit ; `false` = éteinte, rien.
+  const triple = resolveDamageSkill(monsterDamageSkills(loadMonsterSkills(SABRINA)), TRIPLE_STRIKE)!;
+  const famille = (setup: DamageSetup) => buildRealDamageContext(recette(setup, 'Sabrina', SABRINA), SABRINA, []);
+  const familleSans = famille({ ...DEFAULT_DAMAGE_SETUP, skillCom2usId: TRIPLE_STRIKE });
+  const familleEteinte = famille({ ...DEFAULT_DAMAGE_SETUP, skillCom2usId: TRIPLE_STRIKE, attaqueConjointe: false });
+  ok(familleSans != null && familleEteinte != null, 'précondition : un contexte de dégâts réels pour Sabrina');
+  egal(familleSans && familleSans.profile.skillCom2usId, TRIPLE_STRIKE, 'CLI, famille : le contexte calcule Triple Strike');
+  egal(familleSans && contexteAttaqueConjointe(familleSans.profile, familleSans.setup, 'sort-choisi'), 'propre',
+    'fige une décision de l’utilisateur (2026-10-16) : CLI, famille, recette sans le champ : conjoint (allumé par défaut)');
+  egal(familleSans && mentionAttaqueConjointe(familleSans.profile, familleSans.setup), 'attaque conjointe (un monstre de l’autre famille au combat)',
+    'CLI, famille, recette sans le champ : la ligne du sort dit l’attaque conjointe');
+  egal(familleEteinte && contexteAttaqueConjointe(triple, familleEteinte.setup, 'sort-choisi'), null, 'CLI, famille éteinte : non conjoint');
+  egal(familleEteinte && mentionAttaqueConjointe(triple, familleEteinte.setup), null, 'CLI, famille éteinte : la ligne du sort n’en dit rien');
 
   // Le vrai `chargerRecette`, sur l'export miniature dont l'unité 101 devient
   // Cassie : même parseur que l'écran, le champ arrive aux paramètres.
@@ -152,8 +197,8 @@ export function testAttaquesConjointesRecetteCli() {
   // La ligne du sort : affichée quand le réglage agit, par la porte, jamais
   // par une seconde expression de la règle.
   const cli = sansCommentaires(lireSource('scripts/optimizer-search.ts'));
-  ok(cli.includes("contexteAttaqueConjointe(profile, s, 'sort-choisi') === 'appelee-par-allie' ? ' — attaque conjointe (appelée par un allié)' : ''"),
-    'ligne du CLI : « attaque conjointe » affiché par la porte, pour le S1 choisi non conjoint');
+  ok(cli.includes('const mentionConjointe = mentionAttaqueConjointe(profile, s);') && cli.includes('${mentionConjointe ? ` — ${mentionConjointe}` : \'\'}'),
+    'ligne du CLI : « attaque conjointe » affiché par la porte (`mentionAttaqueConjointe`, testée dans degats-attaques-conjointes), défaut des familles compris');
   ok(!/attaqueConjointe/.test(cli), 'ligne du CLI : le champ n’est jamais lu directement, seulement par la porte');
 }
 

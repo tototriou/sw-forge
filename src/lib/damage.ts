@@ -2358,6 +2358,13 @@ export interface SkillDamageProfile {
   // et tables par identifiant). Absent = sort ordinaire. Donnée pure, lue par
   // la seule `contexteAttaqueConjointe`.
   sortCooperatif?: true;
+  // Vrai = attaque des familles Chakram Dancer et Boomerang Warrior, conjointe
+  // si un monstre de l'autre famille est au combat : interrupteur « Attaque
+  // conjointe », allumé par défaut. Posé par `skillDamageProfile` selon
+  // `estSortDesFamillesCooperatives`, jamais avec `sortCooperatif`. Donnée
+  // pure, lue par la seule `contexteAttaqueConjointe` (et, pour le motif de
+  // l'interrupteur, par `interrupteurAttaqueConjointe`).
+  sortDesFamillesCooperatives?: true;
   // Vrai = ce profil est celui d'un S1 APPELÉ par un sort coopératif sans
   // dégâts propres (le déclencheur ne frappe pas) : attaque conjointe pendant
   // le tour du monstre. Posé par `sortsCooperatifsQuiAppellentDeLaFiche`
@@ -3607,17 +3614,17 @@ export function resumeSequenceDeCoups(sequence: readonly Pick<GroupeDeCoups, 'co
 
 // ── Attaques conjointes ──────────────────────────────────────────────────
 //
-// Règle générale : une compétence ACTIVE dont la DONNÉE porte une formule et
-// l'effet SWARFARM `Ally Attack` est un sort coopératif du monstre, toujours
-// une attaque conjointe (décision de l'utilisateur, 2026-10-16). Les deux
-// tables ci-dessous en sont les EXCEPTIONS curées, jamais une liste blanche :
-// un sort coopératif nouveau à effet `Ally Attack` est reconnu sans curation.
+// Règle générale : une compétence ACTIVE à formule portant l'effet SWARFARM
+// `Ally Attack` est un sort coopératif du monstre, toujours une attaque
+// conjointe (décision de l'utilisateur, 2026-10-16). Les deux tables
+// ci-dessous en sont les EXCEPTIONS curées, jamais une liste blanche : un sort
+// coopératif nouveau à effet `Ally Attack` est reconnu sans curation.
 // Spec : docs/02-app/degats-reels/feat-attaques-conjointes.md.
 //
-// ⚠️ « Toujours » vaut aussi pour les dix S1 de Chakram Dancer et de
-// Boomerang Warrior (12601-12605, 12701-12705), qui portent l'effet alors que
-// leur prose place l'attaque commune pendant le tour de l'AUTRE famille : la
-// règle les prend tels quels (décision de l'utilisateur).
+// ⚠️ Les familles Chakram Dancer et Boomerang Warrior SORTENT de cette règle
+// (`SORTS_DES_FAMILLES_COOPERATIVES_PAR_ID`, plus bas) : leurs attaques ne
+// sont conjointes que si un monstre de l'autre famille est au combat, ce que
+// dit l'interrupteur « Attaque conjointe », allumé par défaut.
 //
 // « À formule » = la formule que RETIENT le calcul (`formuleRetenue` : celle de
 // `FORMULES_CUREES_PAR_ID`, sinon celle de la fiche), décision de
@@ -3631,11 +3638,40 @@ export function resumeSequenceDeCoups(sequence: readonly Pick<GroupeDeCoups, 'co
 // Neostone Agent feu (10907, même nom, même ratio) n'en est pas.
 const SORTS_COOPERATIFS_SANS_EFFET_PAR_ID: ReadonlySet<number> = new Set([
   10910, // Cutting Magic — Sylvia, Neostone Agent ténèbres
-  12608, // Double Strike — Melissa, Chakram Dancer vent
-  12615, // Moonlight Blow — Belita, Chakram Dancer ténèbres
-  12712, // Flame Drive — Maruna, Boomerang Warrior feu
-  12713, // Vacuum Boomerang — Zenobia, Boomerang Warrior vent
 ]);
+
+// FAMILLES COOPÉRATIVES — Chakram Dancer (skillGroupId 21900) et Boomerang
+// Warrior (22000) : TOUS leurs sorts offensifs sont des attaques conjointes
+// seulement si un monstre de l'autre famille est au combat (décision de
+// l'utilisateur, 2026-10-16). Le réglage ne voit pas l'équipe : c'est
+// l'interrupteur « Attaque conjointe », proposé sur chacun de ces sorts et
+// allumé quand le champ est absent (`setup.attaqueConjointe !== false`).
+// Relevé sur les 21 fiches des deux familles : les 22 compétences actives à
+// formule (les quatre Spirit Focus, sans formule, ne frappent pas ; les quatre
+// passifs ne sont pas des sorts). Liste fermée, par identifiant, faute de
+// discriminant dans la compétence (la famille est celle du monstre) : l'effet
+// `Ally Attack` en prendrait 18 et manquerait les 4 qui ne le portent pas. Un
+// sort nouveau de ces familles n'y entre que par curation. Aucune fiche hors
+// des deux familles ne porte ces identifiants.
+const SORTS_DES_FAMILLES_COOPERATIVES_PAR_ID: ReadonlySet<number> = new Set([
+  12601, 12602, 12603, 12604, 12605, // Crescent Moon Slash (S1) — Chakram Dancer
+  12607, 12609, // Chakram Crush (S2) — Chakram Dancer feu, lumière
+  12608, // Double Strike (S2) — Chakram Dancer vent (sans `Ally Attack`)
+  12611, // Deadly Dance (S3) — Chakram Dancer eau
+  12613, // Massacre Dance (S3) — Chakram Dancer vent
+  12615, // Moonlight Blow (S3) — Chakram Dancer ténèbres (sans `Ally Attack`)
+  12701, 12702, 12703, 12704, 12705, // Returning Boomerang (S1) — Boomerang Warrior
+  12706, 12710, // Triple Strike (S2) — Boomerang Warrior eau, ténèbres
+  12707, // Boomerang Crush (S2) — Boomerang Warrior feu
+  12712, // Flame Drive (S3) — Boomerang Warrior feu (sans `Ally Attack`)
+  12713, // Vacuum Boomerang (S3) — Boomerang Warrior vent (sans `Ally Attack`)
+  12714, // Lightning Flash (S3) — Boomerang Warrior lumière
+]);
+
+/** Le sort est-il une attaque des familles Chakram Dancer et Boomerang Warrior ? */
+export function estSortDesFamillesCooperatives(c: Competence): boolean {
+  return c.com2usId != null && !c.passif && SORTS_DES_FAMILLES_COOPERATIVES_PAR_ID.has(c.com2usId);
+}
 
 // EXCLUSION — compétences dont l'effet `Ally Attack` ne désigne pas une
 // attaque du monstre lui-même. Toutes deux sont des passifs sans formule, que
@@ -3646,10 +3682,14 @@ const ALLY_ATTACK_SANS_ATTAQUE_DU_MONSTRE_PAR_ID: ReadonlySet<number> = new Set(
   12711, // Female Warrior (Passive) — Sabrina : l'effet partagé avec Chakram Dancer
 ]);
 
-/** Le sort est-il un sort coopératif du monstre ? Règle et exceptions ci-dessus. */
+/**
+ * Le sort est-il un sort coopératif du monstre, toujours conjoint ? Règle et
+ * exceptions ci-dessus ; jamais un sort des familles coopératives, dont le
+ * caractère conjoint dépend de l'interrupteur.
+ */
 export function estSortCooperatif(c: Competence): boolean {
   if (c.com2usId == null || ALLY_ATTACK_SANS_ATTAQUE_DU_MONSTRE_PAR_ID.has(c.com2usId)) return false;
-  if (c.passif) return false;
+  if (c.passif || estSortDesFamillesCooperatives(c)) return false;
   if (SORTS_COOPERATIFS_SANS_EFFET_PAR_ID.has(c.com2usId)) return true;
   return formuleRetenue(c) !== '' && c.effets.some((e) => e.nom === 'Ally Attack');
 }
@@ -3666,10 +3706,13 @@ export type CheminDeLAttaque = 'sort-choisi' | 'suite-du-sort';
 /**
  * LA porte des attaques conjointes : l'attaque calculée est-elle conjointe, et
  * dans quel contexte ? `null` = non. Seule expression de la règle : le calcul
- * la lit, l'écran, le CLI et le Worker la liront, jamais une seconde copie.
+ * la lit, l'écran, le CLI et le Worker aussi, jamais une seconde copie.
  *
  * - `propre` : sort coopératif du monstre (`sortCooperatif`), quel que soit le
- *   chemin. 224 suit la portée, 411 le premier coup du tour.
+ *   chemin. 224 suit la portée, 411 le premier coup du tour. Aussi : un sort
+ *   des familles Chakram Dancer et Boomerang Warrior
+ *   (`sortDesFamillesCooperatives`), interrupteur allumé ou ABSENT
+ *   (`setup.attaqueConjointe !== false`) ; éteint, il n'est pas conjoint.
  * - `appelee-par-sort` : S1 appelé par un sort coopératif sans dégâts propres
  *   (`appeleParSortCooperatif`, posé par `sortsCooperatifsQuiAppellentDeLaFiche`),
  *   pendant le tour du monstre. 224 suit la portée du S1 ; 411 s'applique, le
@@ -3684,15 +3727,74 @@ export type CheminDeLAttaque = 'sort-choisi' | 'suite-du-sort';
  * trois contextes, 208 dans aucun.
  */
 export function contexteAttaqueConjointe(
-  profile: Pick<SkillDamageProfile, 'passif' | 'slot' | 'sortCooperatif' | 'appeleParSortCooperatif'>,
+  profile: ProfilPourLaPorte,
   setup: Pick<DamageSetup, 'attaqueConjointe'>,
   chemin: CheminDeLAttaque
 ): ContexteAttaqueConjointe | null {
   if (profile.passif) return null;
   if (profile.appeleParSortCooperatif) return 'appelee-par-sort';
   if (profile.sortCooperatif) return 'propre';
+  if (profile.sortDesFamillesCooperatives) {
+    if (setup.attaqueConjointe === false) return null;
+    // ⚠️ Provisoire, à confirmer par l'utilisateur : allumée, l'attaque a lieu
+    // pendant le tour du monstre (224 selon la portée, 411). Si la réponse
+    // place les S1 pendant le tour de l'autre famille, cette seule ligne
+    // devient `profile.slot === 1 ? 'appelee-par-allie' : 'propre'`.
+    return 'propre';
+  }
   if (chemin === 'sort-choisi' && profile.slot === 1 && setup.attaqueConjointe === true) return 'appelee-par-allie';
   return null;
+}
+
+type ProfilPourLaPorte = Pick<
+  SkillDamageProfile,
+  'passif' | 'slot' | 'sortCooperatif' | 'sortDesFamillesCooperatives' | 'appeleParSortCooperatif'
+>;
+
+/**
+ * L'interrupteur « Attaque conjointe » du sort choisi : `null` s'il n'est pas
+ * proposé (l'allumer ou l'éteindre ne change rien), sinon son état et son
+ * défaut. Dérivé de la porte, jamais une copie de la règle : proposé quand la
+ * porte rend deux contextes différents selon l'interrupteur ; allumé par
+ * défaut quand la porte, champ absent, rend le contexte de l'interrupteur
+ * allumé. Lu par l'écran et par la ligne du CLI.
+ *
+ * - `cas` : pourquoi il est proposé — `familles-cooperatives` (un monstre de
+ *   l'autre famille est au combat ; allumé par défaut) ou `appele-par-un-allie`
+ *   (S1 ordinaire appelé hors du tour du monstre ; éteint par défaut) ;
+ * - `allume` : son état pour ce réglage, défaut compris ;
+ * - `allumeParDefaut` : son état quand le champ est absent.
+ */
+export interface InterrupteurAttaqueConjointe {
+  cas: 'familles-cooperatives' | 'appele-par-un-allie';
+  allume: boolean;
+  allumeParDefaut: boolean;
+}
+
+export function interrupteurAttaqueConjointe(
+  profile: ProfilPourLaPorte,
+  setup: Pick<DamageSetup, 'attaqueConjointe'>
+): InterrupteurAttaqueConjointe | null {
+  const siAllume = contexteAttaqueConjointe(profile, { attaqueConjointe: true }, 'sort-choisi');
+  if (siAllume === contexteAttaqueConjointe(profile, { attaqueConjointe: false }, 'sort-choisi')) return null;
+  return {
+    cas: profile.sortDesFamillesCooperatives ? 'familles-cooperatives' : 'appele-par-un-allie',
+    allume: contexteAttaqueConjointe(profile, setup, 'sort-choisi') === siAllume,
+    allumeParDefaut: contexteAttaqueConjointe(profile, {}, 'sort-choisi') === siAllume,
+  };
+}
+
+/**
+ * Ce que la ligne du sort du CLI dit de l'attaque conjointe, sans le tiret :
+ * `null` quand le sort choisi n'a pas d'interrupteur ou qu'il est éteint. Lit
+ * la seule `interrupteurAttaqueConjointe`.
+ */
+export function mentionAttaqueConjointe(profile: ProfilPourLaPorte, setup: Pick<DamageSetup, 'attaqueConjointe'>): string | null {
+  const interrupteur = interrupteurAttaqueConjointe(profile, setup);
+  if (!interrupteur?.allume) return null;
+  return interrupteur.cas === 'familles-cooperatives'
+    ? 'attaque conjointe (un monstre de l’autre famille au combat)'
+    : 'attaque conjointe (appelée par un allié)';
 }
 
 /**
@@ -3812,6 +3914,7 @@ export function skillDamageProfile(c: Competence): SkillDamageProfile | SkillDam
   return {
     ...entete,
     ...(estSortCooperatif(c) ? { sortCooperatif: true as const } : {}),
+    ...(estSortDesFamillesCooperatives(c) ? { sortDesFamillesCooperatives: true as const } : {}),
     icone: c.icone,
     formule: brut,
     hits,
@@ -4699,10 +4802,16 @@ export interface DamageSetup {
   // variante `defBreak`). N'a de sens que si `profile.appliqueDefBreak` :
   // l'écran ne l'affiche que dans ce cas. Optionnel (compatibilité arrière).
   defBreakParLeSort?: boolean;
-  // Interrupteur « Attaque conjointe » : le S1 choisi, non coopératif, est
-  // appelé par un allié, hors du tour du monstre (209 et 225 comptent, 224
-  // non). Lu par la seule `contexteAttaqueConjointe`, sans effet sur tout
-  // autre sort. Absent = éteint, ce qui préserve les recettes antérieures.
+  // Interrupteur « Attaque conjointe », lu par la seule
+  // `contexteAttaqueConjointe` (état et défaut pour l'écran :
+  // `interrupteurAttaqueConjointe`). Deux sens selon le sort choisi :
+  // - S1 ordinaire : appelé par un allié, hors du tour du monstre (209 et 225
+  //   comptent, 224 non). Absent = ÉTEINT, ce qui préserve les recettes
+  //   antérieures ;
+  // - attaque des familles Chakram Dancer et Boomerang Warrior : un monstre
+  //   de l'autre famille est au combat. Absent = ALLUMÉ (décision de
+  //   l'utilisateur, 2026-10-16) ; seul `false` l'éteint.
+  // Sans effet sur tout autre sort.
   attaqueConjointe?: boolean;
   brand: boolean;
   // Effets d'ÉQUIPE (un autre monstre que celui optimisé) — voir les

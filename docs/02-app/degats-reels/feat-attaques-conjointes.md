@@ -303,9 +303,10 @@ libellés qui figent une décision de l'utilisateur le disent.
   allumé ou au défaut au même total ;
   Tempest sans 209/225 après un S1 appelé par un allié.
 - `testAttaquesConjointesSortLanceParLeMonstre` — Team Up de Raoq (`2007`,
-  `2057`), Violent Friends de Seren 2e éveil (`3465`) et Concentrated Attack
-  de Moria (`3113`) : contexte `propre`, 224 et 411 comptent, 209 + 225
-  majorent, aucun interrupteur proposé.
+  `2057`) et Violent Friends de Seren 2e éveil (`3465`) : contexte `propre`,
+  224 et 411 comptent, 209 + 225 majorent, aucun interrupteur proposé ;
+  Concentrated Attack de Moria 2e éveil (`3163`) : contexte du S1 appelé,
+  pendant le tour du monstre, 224 compte.
 - `testAttaquesConjointesTotalALaMain` — un total écrit à la main :
   `2000 × (1 + 0,12 + 0,10 + 0,08) × 1000/1142 × 1,25`, ligne Feu, 209 et
   225 additionnés dans DMG%, Marque multipliée, 208 exclue.

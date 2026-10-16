@@ -414,18 +414,28 @@ export function testAttaquesConjointesCalcul() {
 }
 
 // Un sort coopératif lancé par le monstre lui-même a lieu pendant son tour :
-// 224 compte selon sa portée. Les trois sorts nommés par l'utilisateur, tous
-// mono-cibles dans leur fiche.
+// 224 compte selon sa portée. Les sorts nommés par l'utilisateur, tous
+// mono-cibles dans leur fiche ; Moria au 2e éveil (choix de l'utilisateur),
+// dont le S3 appelle le S1 : son contexte est celui du S1 appelé.
 export function testAttaquesConjointesSortLanceParLeMonstre() {
   titre('Attaques conjointes — un sort coopératif lancé par le monstre reçoit 224 selon sa portée');
   const base: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, summonerSkills: 'normal', critMode: 'crit', enemyElement: null };
   const ligne = (code: number) => artefacts([{ code, value: 20 }]);
   const conjointes = artefacts([{ code: 209, value: 10 }, { code: 225, value: 8 }]);
+
+  const moria = fiche(12033);
+  const concentrated = sortDe(moria, 3163);
+  const neutreMoria = totalDe(moria, concentrated, base, ARTIFACT_DAMAGE_NEUTRE);
+  ok(concentrated.appeleParSortCooperatif === true && !concentrated.aoe, 'Concentrated Attack de Moria 2e éveil (3163) : S1 appelé par le sort coopératif, mono-cible');
+  egal(contexteAttaqueConjointe(concentrated, base, 'sort-choisi'), 'appelee-par-sort', 'Concentrated Attack de Moria 2e éveil (3163) : pendant le tour du monstre');
+  ok(totalDe(moria, concentrated, base, ligne(224)) > neutreMoria, 'fige une décision de l’utilisateur (2026-10-16) : Concentrated Attack de Moria 2e éveil (3163) reçoit 224 (mono-cible, pendant son tour)');
+  ok(proche(totalDe(moria, concentrated, base, conjointes) / neutreMoria, 1.18), 'Concentrated Attack de Moria 2e éveil (3163) : 209 + 225 majorent le total de 18 %');
+  egal(interrupteurAttaqueConjointe(concentrated, base), null, 'Concentrated Attack de Moria 2e éveil (3163) : aucun interrupteur proposé');
+
   for (const [forme, id, qui] of [
     [11012, 2007, 'Team Up de Raoq'],
     [11032, 2057, 'Team Up de Raoq 2e éveil'],
     [12135, 3465, 'Violent Friends de Seren 2e éveil'],
-    [12013, 3113, 'Concentrated Attack de Moria (1er éveil)'],
   ] as const) {
     const detail = fiche(forme);
     const p = sortDe(detail, id);

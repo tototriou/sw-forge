@@ -39,6 +39,18 @@ export interface Competence {
   ameliorations: string[]; // ce qu'apporte chaque niveau, dans l'ordre
   icone: string | null;
   effets: EffetCompetence[];
+  // Les compétences que SWARFARM relie à celle-ci par `other_skill` sans les
+  // lister sur le monstre (seconde phase, coup en plus, riposte, forme archer
+  // des anges jumeaux…). Absent quand il n'y en a pas. Ce qu'elles valent pour
+  // le calcul ne se déduit pas du lien : `src/lib/damage.ts`.
+  auxiliaires?: CompetenceAuxiliaire[];
+}
+
+// `versCeSort` : l'auxiliaire désigne la compétence ; `depuisCeSort` : la
+// compétence désigne l'auxiliaire ; `mutuel` : les deux.
+export interface CompetenceAuxiliaire {
+  sens: 'versCeSort' | 'depuisCeSort' | 'mutuel';
+  competence: Competence;
 }
 
 export interface DetailMonstre {

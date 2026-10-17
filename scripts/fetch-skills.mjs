@@ -79,9 +79,38 @@ function normalizeSkill(raw) {
   };
 }
 
+// Les « compétences auxiliaires » d'un sort : celles que SWARFARM relie à lui
+// par `other_skill`, sans les lister sur aucun monstre. Elles portent le ratio
+// d'une seconde phase, d'un coup en plus, d'une riposte, de l'autre forme d'un
+// monstre à deux formes — que la fiche du sort principal tait (`formule: ""`
+// ou un seul ratio pour deux phases).
+//
+// ⚠️ **Le sens du lien est gardé tel quel** : `versCeSort` quand l'auxiliaire
+// désigne le sort (le cas courant : le coup en plus de Hammer Punch),
+// `depuisCeSort` quand c'est le sort qui la désigne, `mutuel` quand chacun
+// désigne l'autre (les « Horn of… » des anges jumeaux et les tirs de leur
+// forme archer). Ce que vaut l'auxiliaire pour le calcul ne se déduit pas du
+// lien : `src/lib/damage.ts`.
+//
+// ⚠️ Une compétence déjà listée sur le monstre n'est pas son propre
+// auxiliaire : elle est dans `competences`, pas ici.
+function auxiliairesDe(id, autreDe, rattachees, parId, listees) {
+  const appelee = autreDe.get(id);
+  const out = [];
+  for (const aux of rattachees.get(id) ?? []) {
+    if (!listees.has(aux.id)) out.push({ sens: aux.id === appelee ? 'mutuel' : 'versCeSort', competence: aux });
+  }
+  if (appelee != null && !listees.has(appelee) && parId.has(appelee) && !out.some((a) => a.competence.id === appelee)) {
+    out.push({ sens: 'depuisCeSort', competence: parId.get(appelee) });
+  }
+  return out;
+}
+
 async function fetchAllSkills() {
   let url = SKILLS_API;
   const parId = new Map();
+  // `other_skill` de chaque compétence, pour relier les auxiliaires.
+  const autreDe = new Map();
   let pages = 0;
   while (url && pages < MAX_PAGES) {
     process.stdout.write(`\rCompétences — page ${pages + 1}…`);
@@ -90,13 +119,16 @@ async function fetchAllSkills() {
     });
     if (!res.ok) throw new Error(`HTTP ${res.status} sur ${url}`);
     const json = await res.json();
-    for (const s of json.results ?? []) parId.set(s.id, normalizeSkill(s));
+    for (const s of json.results ?? []) {
+      parId.set(s.id, normalizeSkill(s));
+      if (typeof s.other_skill === 'number') autreDe.set(s.id, s.other_skill);
+    }
     url = json.next ?? null;
     pages++;
   }
   process.stdout.write('\n');
   if (parId.size === 0) throw new Error("Réponse vide de l'API des compétences");
-  return parId;
+  return { parId, autreDe };
 }
 
 // Les monstres portent la LISTE DES IDS de leurs compétences. Il faut donc
@@ -140,8 +172,17 @@ async function main() {
   const liste = Array.isArray(connus) ? connus : (connus.monsters ?? []);
   const idsConnus = new Set(liste.map((m) => m.com2usId).filter((x) => x != null));
 
-  const skills = await fetchAllSkills();
+  const { parId: skills, autreDe } = await fetchAllSkills();
   const monstres = await fetchMonsterSkillIds();
+  // Sens `versCeSort` : les compétences qui désignent chaque sort.
+  const rattachees = new Map();
+  for (const [id, cible] of autreDe) {
+    const aux = skills.get(id);
+    if (!aux) continue;
+    const l = rattachees.get(cible) ?? [];
+    l.push(aux);
+    rattachees.set(cible, l);
+  }
 
   // ⚠️ Répertoire VIDÉ avant écriture : un monstre retiré de SWARFARM laisserait
   // sinon son fichier derrière lui, et l'app servirait indéfiniment des données
@@ -153,7 +194,15 @@ async function main() {
   let sansSkill = 0;
   for (const [com2usId, info] of monstres) {
     if (!idsConnus.has(com2usId)) continue;
-    const detail = info.skills.map((id) => skills.get(id)).filter(Boolean);
+    const listees = new Set(info.skills);
+    const detail = info.skills
+      .map((id) => skills.get(id))
+      .filter(Boolean)
+      .map((c) => {
+        const auxiliaires = auxiliairesDe(c.id, autreDe, rattachees, skills, listees);
+        // Champ absent plutôt que vide : la plupart des sorts n'en ont pas.
+        return auxiliaires.length > 0 ? { ...c, auxiliaires } : c;
+      });
     if (detail.length === 0) {
       sansSkill++;
       continue; // rien à montrer : pas de fichier plutôt qu'un fichier vide

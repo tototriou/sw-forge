@@ -17,10 +17,17 @@
 // arbre de travail, sous le répertoire git commun). Sans quoi son contenu
 // dépendrait de la branche checkoutée. `node scripts/installer-hooks.mjs`
 // fait la copie.
+//
+// Refus, dans l'ordre : 1. commit sur `main` ; 2. chemin privé ; 3. fichier
+// de plus de 5 Mo ; 4. erreur ESLint du code indexé ; 5. référence à `src/`
+// non déclarée dans un test indexé. Les étapes 4 et 5 appliquent la règle de
+// la BRANCHE (`eslint.config.js`, `scripts/lib/lectureSource.ts` et sa liste,
+// pris dans le worktree et l'index) : c'est elle que le code doit respecter.
 
 import { execFileSync } from 'child_process';
 import { existsSync } from 'fs';
 import { join } from 'path';
+import { pathToFileURL } from 'url';
 
 const ROUGE = '\x1b[31m';
 const JAUNE = '\x1b[33m';
@@ -191,6 +198,169 @@ if (!COMMIT && codeIndex.length > 0) {
       });
     }
   }
+}
+
+/* ------------------------------ 5. références à `src/` dans les tests indexés */
+//
+// La règle de la vérification `lecturesource`, la même (scripts/lib/
+// lectureSource.ts), sur les seuls fichiers de `tests/` indexés, lus dans
+// l'INDEX — pas l'arbre de travail : un `git add -p` partiel se juge sur ce
+// qui part dans le commit. La liste comparée est la version indexée de
+// `tests/fixtures/lecture-source-toleree.json`. Contrat :
+// docs/03-developpeur/qualite-code.md, « Références à `src/` au commit ».
+//
+// Fichiers jugés : ceux de `tests/` ajoutés, modifiés, renommés ou supprimés
+// (un renommage vaut suppression + ajout), et, si la liste est indexée, ceux
+// dont elle change les entrées. Pour chacun, le relevé de l'index doit égaler
+// ses entrées : un fichier supprimé n'en garde aucune.
+//
+// Jamais bloquant pour l'environnement : module ou `typescript` introuvable →
+// avertissement, étape sautée. Fusion en cours (`MERGE_HEAD`) : sautée, son
+// contenu vient de commits déjà passés par ici, et `npm test` juge l'état
+// final. Sous `--commit` (CI) : non rejouée, comme ESLint — la CI lance ce
+// rejeu avant `npm ci`, sans `typescript`, et vérifie l'état final par
+// `npm test`.
+
+const LISTE_LECTURE = 'tests/fixtures/lecture-source-toleree.json';
+
+function fusionEnCours() {
+  try {
+    git('rev-parse', '-q', '--verify', 'MERGE_HEAD');
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Contenu d'un objet (`:<chemin>` index, `HEAD:<chemin>`), ou `null` s'il n'existe pas. */
+function lireObjet(objet) {
+  try {
+    return execFileSync('git', ['cat-file', 'blob', objet], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+      maxBuffer: 64 * 1024 * 1024,
+    });
+  } catch {
+    return null;
+  }
+}
+
+if (!COMMIT) {
+  // `--no-renames` : un renommage arrive en `D` + `A`, ce qui suffit. Sans
+  // chemin de `tests/` indexé, cet appel est tout le coût de l'étape.
+  let changes = [];
+  try {
+    const t = git('diff', '--cached', '--name-status', '-z', '--no-renames', '--', 'tests').split('\0').filter(Boolean);
+    for (let i = 0; i + 1 < t.length; i += 2) changes.push({ statut: t[i], chemin: t[i + 1] });
+  } catch {
+    changes = [];
+  }
+  changes = changes.filter((c) => c.chemin.startsWith('tests/'));
+
+  if (changes.length > 0 && !fusionEnCours()) {
+    const racineDepot = git('rev-parse', '--show-toplevel');
+    const module = join(racineDepot, 'scripts', 'lib', 'lectureSource.ts');
+    const listeIndex = lireObjet(`:${LISTE_LECTURE}`);
+    if (!existsSync(module)) {
+      // Sans liste non plus : branche antérieure à la garde, rien à appliquer.
+      if (listeIndex !== null) {
+        avertissements.push('module scripts/lib/lectureSource.ts introuvable : références à `src/` dans les tests non vérifiées.');
+      }
+    } else if (!existsSync(join(racineDepot, 'node_modules', 'typescript', 'package.json'))) {
+      avertissements.push('TypeScript absent (`npm install`) : références à `src/` dans les tests non vérifiées.');
+    } else {
+      let regle = null;
+      try {
+        regle = await import(pathToFileURL(module).href);
+      } catch (e) {
+        avertissements.push(`module scripts/lib/lectureSource.ts non chargé (${String(e?.message ?? e).split('\n')[0]}) : ` +
+          'références à `src/` dans les tests non vérifiées.');
+      }
+      if (regle) {
+        const details = verifierLectures(regle, changes, listeIndex);
+        if (details) refus.push({ titre: 'référence à `src/` non déclarée dans un test', details });
+      }
+    }
+  }
+}
+
+/** Diagnostic du refus, ou `null` si l'index respecte la liste indexée. */
+function verifierLectures(regle, changes, listeIndex) {
+  const voir = [
+    '',
+    'La liste comparée est celle de l’INDEX : la réindexer avec le test.',
+    'Détail : tests/README.md, « Garde des références à `src/` » ; tout tests/ :',
+    '  node tests/run.mjs lecturesource',
+  ];
+  if (listeIndex === null) {
+    return [`${LISTE_LECTURE} absente de l’index : la garde n’a rien à quoi comparer.`, ...voir];
+  }
+  const lireEntrees = (texte) => {
+    const e = JSON.parse(texte).entrees;
+    if (!Array.isArray(e)) throw new Error('clé `entrees` absente');
+    if (e.some((x) => !x || typeof x !== 'object')) throw new Error('une entrée n’est pas un objet');
+    return e;
+  };
+  let entrees;
+  try {
+    entrees = lireEntrees(listeIndex);
+  } catch (e) {
+    return [`${LISTE_LECTURE} indexée illisible : ${e.message}`, ...voir];
+  }
+
+  const juges = new Set(changes.map((c) => c.chemin).filter((c) => c !== LISTE_LECTURE));
+  if (changes.some((c) => c.chemin === LISTE_LECTURE)) {
+    // Liste indexée : tout fichier dont elle change les entrées est jugé aussi.
+    let avant = [];
+    try {
+      const t = lireObjet(`HEAD:${LISTE_LECTURE}`);
+      avant = t === null ? [] : lireEntrees(t);
+    } catch {
+      avant = [];
+    }
+    const parFichier = (liste) => {
+      const m = new Map();
+      for (const e of liste) m.set(e.fichier, [...(m.get(e.fichier) ?? []), JSON.stringify(e)]);
+      for (const [f, v] of m) m.set(f, v.sort().join('\n'));
+      return m;
+    };
+    const a = parFichier(avant);
+    const b = parFichier(entrees);
+    for (const f of new Set([...a.keys(), ...b.keys()])) if (a.get(f) !== b.get(f)) juges.add(f);
+  }
+
+  const supprimes = new Set(changes.filter((c) => c.statut === 'D').map((c) => c.chemin));
+  const cibles = new Map();
+  for (const f of juges) {
+    if (supprimes.has(f) || !regle.EXTENSIONS.test(f)) continue;
+    const texte = lireObjet(`:${f}`);
+    if (texte === null) continue;
+    const c = regle.releverCibles(f, texte);
+    if (c.length > 0) cibles.set(f, c);
+  }
+  const { nonListes, perimees, invalides } = regle.comparer(
+    regle.regrouper(cibles),
+    entrees.filter((e) => juges.has(e.fichier)),
+  );
+  if (nonListes.length + perimees.length + invalides.length === 0) return null;
+
+  const bloc = (titre, lignes) => (lignes.length === 0 ? [] : [titre, ...lignes.map((l) => `  ${l}`), '']);
+  return [
+    'Un test qui lit `src/` comme du texte n’importe pas le module : la sélection',
+    'par fichiers modifiés ne le voit que si l’usage est déclaré dans la liste.',
+    '',
+    ...bloc('Non déclarée — fichier → cible (trouvé dans l’index, attendu par la liste) :', nonListes),
+    ...bloc('Entrée qui ne correspond plus — fichier → cible (attendu, trouvé) :', perimees),
+    ...bloc('Liste mal formée :', invalides),
+    'Quoi faire :',
+    '- mieux : retirer la lecture, et vérifier le comportement en important le',
+    '  module (rendu serveur, valeur rendue) ;',
+    `- sinon : une entrée { fichier, cible, occurrences } dans ${LISTE_LECTURE},`,
+    '  statut `exception`, avec sa justification (jamais un `stock` de plus) ;',
+    '- une lecture retirée, ou un fichier supprimé : retirer son entrée (ou',
+    '  baisser `occurrences`) dans le même commit.',
+    ...voir,
+  ];
 }
 
 /* ------------------------------------------------------------- verdict */

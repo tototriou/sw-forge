@@ -121,16 +121,22 @@ cible déjà entamée ignore sa DEF plus vite (utilisateur, 2026-10-17).
 ## Les attaques en plus, avant ou après un sort
 
 Une attaque que la prose annonce sous condition, chiffrée par l'auxiliaire
-du sort, s'ajoute après ce seul sort sur un interrupteur éteint par défaut
-(`ATTAQUES_AUXILIAIRES_PAR_DECLENCHEUR`, même chemin que les
-[attaques déclenchées](feat-attaque-apres-un-sort.md)). Son profil est celui
-de l'auxiliaire, ses améliorations comprises ; elle porte un libellé, faute
-de nom de jeu.
+du sort, s'ajoute aux sorts qu'elle accompagne sur un interrupteur éteint
+par défaut (`ATTAQUES_AUXILIAIRES_PAR_DECLENCHEUR`, même chemin que les
+[attaques déclenchées](feat-attaque-apres-un-sort.md)) : par défaut après
+le seul sort déclencheur, sinon avant ou après les slots que l'entrée
+nomme. Son profil est celui de l'auxiliaire, ses améliorations comprises ;
+elle porte un libellé, faute de nom de jeu. Une attaque qui **précède** le
+sort (`avantLeSort`) lit l'état de la cible d'avant lui, sans la réduction
+de Défense qu'il pose, et son interrupteur dit « se déclenche avant ce
+sort ».
 
-| Déclencheur · monstres | Attaque (auxiliaire) | Interrupteur : « se déclenche si… » | Source |
-| --- | --- | --- | --- |
-| Exploding Hands (S3) · Jackie `20215` | `7.4*{ATK}` (11016), +20 % | l'étourdissement de ce sort réussit | prose ; une répétition sans nouvel étourdissement : utilisateur, 2026-09-23 |
-| Shadow of Right Arm (S2) · Minato `25911`, Ren `25912`, Ritsu `25915` | `4.5*{ATK}` (15716, 15717, 15720), +25 % | tu es en état de Menace et l'ennemi t'attaque d'un sort mono-cible | utilisateur, 2026-10-17 |
+| Déclencheur · monstres | Attaque (auxiliaire) | Accompagne | Interrupteur | Source |
+| --- | --- | --- | --- | --- |
+| Exploding Hands (S3) · Jackie `20215` | `7.4*{ATK}` (11016), +20 % | après le S3 | l'étourdissement de ce sort réussit | prose ; une répétition sans nouvel étourdissement : utilisateur, 2026-09-23 |
+| Shadow of Right Arm (S2) · Minato `25911`, Ritsu `25915` | `4.5*{ATK}` (15716, 15720), +25 % | **avant** le S1 ou le S2 | tu es en état de Menace et l'ennemi t'attaque d'un sort mono-cible | utilisateur, 2026-10-17 |
+| Shadow of Right Arm (S2) · Ren `25912` | `4.5*{ATK}` (15717), +25 % | **avant** le S1, le S2 ou le S3 | idem | utilisateur, 2026-10-17 |
+| Guilty Sentence (S2) · Theonia `34215` | `3.3*{ATK}` (23517), +25 % | après le S2 | ta cible est l'ennemi à la plus faible DEF | prose et API ; Agrenia et Driana (`23507`, `23508`) n'ont pas d'auxiliaire |
 
 ⚠️ **Non établi, nommé** : les améliorations de l'auxiliaire s'appliquent à
 l'attaque en plus ; un relevé de la répétition d'Exploding Hands sur son

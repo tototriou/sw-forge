@@ -74,7 +74,7 @@ export const RELEASES: Release[] = [
       { kind: 'feat', scope: 'Dégâts réels', text: 'Scarlett et Kuna : la phase de zone de leur S3 compte.' },
       { kind: 'feat', scope: 'Dégâts réels', text: 'Legolas et Elder Horn : leur S3 se calcule.' },
       { kind: 'feat', scope: 'Dégâts réels', text: 'Ripostes de Hollyberry Cookie et Manon, retour de Psamathe : choisissables comme sort.' },
-      { kind: 'feat', scope: 'Dégâts réels', text: 'Jackie, Minato, Ren et Ritsu : leur attaque en plus s’ajoute sur interrupteur.' },
+      { kind: 'feat', scope: 'Dégâts réels', text: 'Jackie, Minato, Ren, Ritsu et Theonia : leur attaque en plus s’ajoute sur interrupteur.' },
       { kind: 'fix', scope: 'Dégâts réels', text: 'Unlimited Power (Liam) : un coup en zone, et un choix « 3 ennemis ou moins » à part.' },
       { kind: 'feat', scope: 'Bestiaire', text: '« Jouables uniquement » et « Formes éveillées » : deux filtres, cochés par défaut.' },
       { kind: 'fix', scope: 'Monstres', text: 'Veromos et les autres Ifrit n’apparaissent plus en double dans les recherches, ni les formes de boss.' },

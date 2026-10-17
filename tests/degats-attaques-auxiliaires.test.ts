@@ -51,12 +51,14 @@ function sortDe(detail: DetailMonstre, id: number): SkillDamageProfile {
   return p;
 }
 
-// [monstre, forme, déclencheur, slot, auxiliaire, ratio, skillups %, libellé]
-const DECLENCHEES: [string, number, number, number, number, number, number, string][] = [
-  ['Jackie', 20215, 11015, 3, 11016, 7.4, 20, 'Exploding Hands — attaque en plus'],
-  ['Minato', 25911, 15706, 2, 15716, 4.5, 25, 'Shadow of Right Arm — attaque en Menace'],
-  ['Ren', 25912, 15707, 2, 15717, 4.5, 25, 'Shadow of Right Arm — attaque en Menace'],
-  ['Ritsu', 25915, 15710, 2, 15720, 4.5, 25, 'Shadow of Right Arm — attaque en Menace'],
+// [monstre, forme, déclencheur, slots accompagnés, avant le sort, auxiliaire, ratio, skillups %, libellé]
+// Minato, Ren, Ritsu : avant le S1 ou le S2, et le S3 pour Ren (utilisateur, 2026-10-17).
+const DECLENCHEES: [string, number, number, number[], boolean, number, number, number, string][] = [
+  ['Jackie', 20215, 11015, [3], false, 11016, 7.4, 20, 'Exploding Hands — attaque en plus'],
+  ['Minato', 25911, 15706, [1, 2], true, 15716, 4.5, 25, 'Shadow of Right Arm — attaque en Menace'],
+  ['Ren', 25912, 15707, [1, 2, 3], true, 15717, 4.5, 25, 'Shadow of Right Arm — attaque en Menace'],
+  ['Ritsu', 25915, 15710, [1, 2], true, 15720, 4.5, 25, 'Shadow of Right Arm — attaque en Menace'],
+  ['Theonia', 34215, 23510, [2], false, 23517, 3.3, 25, 'Guilty Sentence — attaque sur la DEF la plus faible'],
 ];
 
 // [monstre, forme, passif, formule, zone, skillups %]
@@ -71,29 +73,46 @@ export default function testDegatsAttaquesAuxiliaires() {
   const base: DamageSetup = { ...DEFAULT_DAMAGE_SETUP, enemyDef: 1000, enemyHp: 100_000_000, enemyHpPct: 100, critMode: 'normal' };
   const df = defenseFactor(1000);
 
-  for (const [monstre, forme, declencheur, slot, aux, ratio, skillup, libelle] of DECLENCHEES) {
-    titre(`Attaque auxiliaire — ${monstre} (${forme}) : ${libelle}, après le S${slot} seul, sur interrupteur`);
+  for (const [monstre, forme, declencheur, slots, avant, aux, ratio, skillup, libelle] of DECLENCHEES) {
+    const moment = `${avant ? 'avant' : 'après'} S${slots.join(', S')}`;
+    titre(`Attaque auxiliaire — ${monstre} (${forme}) : ${libelle} (déclencheur ${declencheur}), ${moment}, sur interrupteur`);
     const detail = fiche(forme);
     const passifs = monsterOffensivePassives(detail);
     const p = passifs.find((x) => x.skillCom2usId === aux);
     ok(p !== undefined, `${forme} : l’attaque de l’auxiliaire ${aux} est proposée`);
     if (!p) continue;
     egal(
-      { nom: p.nom, slots: p.slotsDeclencheurs, type: p.categorie.type, formule: p.profile.formule, hits: p.profile.hits, skillup: p.profile.skillupDamagePct },
-      { nom: libelle, slots: [slot], type: 'conditionnel', formule: `${ratio}*{ATK}`, hits: 1, skillup },
-      `${forme} : ${ratio} × ATQ, un coup, +${skillup} %, après le S${slot}, interrupteur`,
+      { nom: p.nom, slots: p.slotsDeclencheurs, avant: p.avantLeSort ?? false, type: p.categorie.type, formule: p.profile.formule, hits: p.profile.hits, skillup: p.profile.skillupDamagePct },
+      { nom: libelle, slots, avant, type: 'conditionnel', formule: `${ratio}*{ATK}`, hits: 1, skillup },
+      `${forme} : ${ratio} × ATQ, un coup, +${skillup} %, ${moment}, interrupteur`,
     );
-    const sort = sortDe(detail, declencheur);
-    const seul = computeSkillDamageDetail(sort, st, base, AUCUNE_AURA_PROPRE, null).total;
-    const eteint = computeTotalDamage(sort, passifs, st, { ...base, skillCom2usId: declencheur }, AUCUNE_AURA_PROPRE, null);
-    const allume = computeTotalDamage(sort, passifs, st, { ...base, skillCom2usId: declencheur, passifsOffensifs: { [aux]: true } }, AUCUNE_AURA_PROPRE, null);
-    ok(proche(eteint, seul), `${forme} : interrupteur éteint (défaut) = le sort seul`);
     const attendu = ATQ * ratio * (1 + skillup / 100) * df;
-    ok(proche(allume - seul, attendu), `${forme} : allumé, + ${ratio} × ATQ × ${1 + skillup / 100} × FacteurDéf = ${attendu.toFixed(2)}`);
-    for (const autre of monsterDamageSkills(detail)) {
-      if (!estPrisEnCharge(autre) || autre.skillCom2usId === declencheur) continue;
-      ok(!passifPeutSuivre(p, autre), `${forme} : ne suit pas ${autre.nom} (S${autre.slot})`);
+    for (const sort of monsterDamageSkills(detail)) {
+      if (!estPrisEnCharge(sort) || sort.passif) continue;
+      const seul = computeSkillDamageDetail(sort, st, base, AUCUNE_AURA_PROPRE, null).total;
+      const eteint = computeTotalDamage(sort, passifs, st, { ...base, skillCom2usId: sort.skillCom2usId }, AUCUNE_AURA_PROPRE, null);
+      const allume = computeTotalDamage(sort, passifs, st, { ...base, skillCom2usId: sort.skillCom2usId, passifsOffensifs: { [aux]: true } }, AUCUNE_AURA_PROPRE, null);
+      if (slots.includes(sort.slot)) {
+        ok(proche(eteint, seul), `${forme}, ${sort.nom} (S${sort.slot}) : interrupteur éteint (défaut) = le sort seul`);
+        ok(proche(allume - seul, attendu), `${forme}, ${sort.nom} (S${sort.slot}) : allumé, + ${ratio} × ATQ × ${1 + skillup / 100} × FacteurDéf = ${attendu.toFixed(2)}`);
+      } else {
+        ok(!passifPeutSuivre(p, sort), `${forme} : n’accompagne pas ${sort.nom} (S${sort.slot})`);
+      }
     }
+  }
+
+  titre('Attaque auxiliaire — avant le sort, elle ne profite pas de la réduction de Défense qu’il pose');
+  {
+    // Shadow of Right Arm (Minato, S2) pose « Decrease DEF » : une attaque qui le
+    // SUIT la subirait, celle en Menace le PRÉCÈDE.
+    const detail = fiche(25911);
+    const passifs = monsterOffensivePassives(detail);
+    const s2 = sortDe(detail, 15706);
+    ok(s2.appliqueDefBreak, 'précondition : le S2 de Minato pose une réduction de Défense');
+    const reglage = { ...base, skillCom2usId: 15706, defBreakParLeSort: true, passifsOffensifs: { 15716: true } };
+    const seul = computeSkillDamageDetail(s2, st, { ...base, defBreakParLeSort: true }, AUCUNE_AURA_PROPRE, null).total;
+    const total = computeTotalDamage(s2, passifs, st, reglage, AUCUNE_AURA_PROPRE, null);
+    ok(proche(total - seul, ATQ * 4.5 * 1.25 * df), 'attaque en Menace : DEF pleine (1 000), la réduction posée par le S2 n’est pas encore là');
   }
 
   titre('Mode auxiliaire — Unlimited Power (Liam, 25711) : 4 ennemis ou plus dans la fiche, 3 ou moins à part');

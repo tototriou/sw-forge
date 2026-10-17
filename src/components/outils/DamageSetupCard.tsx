@@ -1228,7 +1228,7 @@ export default function DamageSetupCard({
               // passif gardent le leur.
               const apresSort = cat.type === 'conditionnel' && p.slotsDeclencheurs != null;
               const libelle = apresSort
-                ? `${nom} (S${p.profile.slot}) se déclenche après ce sort`
+                ? `${nom} (S${p.profile.slot}) se déclenche ${p.avantLeSort ? 'avant' : 'après'} ce sort`
                 : cat.type === 'bonus'
                   ? `${nom} (+${cat.pct} %)`
                   : nom;

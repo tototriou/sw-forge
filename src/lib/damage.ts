@@ -4503,6 +4503,10 @@ export interface PassifOffensifProfile {
   // Donnée pure (traverse le Worker de résolution avec `RealDamageContext`) :
   // absent = déclenché après n'importe quel sort. Voir `passifCompte`.
   slotsDeclencheurs?: readonly number[];
+  // Donnée pure : vrai = l'attaque frappe AVANT le sort choisi (l'attaque en
+  // Menace de Shadow of Right Arm) : elle lit l'état de la cible d'avant le
+  // sort, sans la réduction de Défense qu'il pose, et l'écran dit « avant ».
+  avantLeSort?: true;
   // Donnée pure : vrai = `profile` est AUSSI proposé comme sort par
   // `monsterDamageSkills` (voir `PassifOffensifConnu`).
   selectionnableCommeSort?: boolean;
@@ -4686,6 +4690,11 @@ interface AttaqueAuxiliaireConnue {
   libelle: string;
   condition: string;
   source: string;
+  // Slots des sorts que l'attaque accompagne ; absent = le seul slot du
+  // déclencheur.
+  slots?: readonly number[];
+  // L'attaque frappe AVANT le sort choisi (voir `PassifOffensifProfile.avantLeSort`).
+  avantLeSort?: true;
 }
 export const ATTAQUES_AUXILIAIRES_PAR_DECLENCHEUR: Readonly<Record<number, AttaqueAuxiliaireConnue>> = {
   // Exploding Hands — Jackie (20215) : « Attacks once more if the target is
@@ -4698,21 +4707,37 @@ export const ATTAQUES_AUXILIAIRES_PAR_DECLENCHEUR: Readonly<Record<number, Attaq
   // Shadow of Right Arm — Minato (25911), Ren (25912), Ritsu (25915) : « you go
   // under the Threat state while the enemy attacks with a single-target skill
   // 1 time ». Auxiliaires 15716, 15717, 15720 `4.5*{ATK}` : l'attaque lancée
-  // consécutivement en état de Menace, activable (utilisateur, 2026-10-17).
+  // consécutivement en état de Menace, activable ; elle frappe AVANT le sort
+  // choisi, S1 ou S2, et aussi S3 pour Ren (utilisateur, 2026-10-17).
   15706: {
     libelle: 'Shadow of Right Arm — attaque en Menace',
     condition: 'tu es en état de Menace et l’ennemi t’attaque d’un sort mono-cible',
     source: 'auxiliaire 15716 ; utilisateur, 2026-10-17',
+    slots: [1, 2],
+    avantLeSort: true,
   },
   15707: {
     libelle: 'Shadow of Right Arm — attaque en Menace',
     condition: 'tu es en état de Menace et l’ennemi t’attaque d’un sort mono-cible',
     source: 'auxiliaire 15717 ; utilisateur, 2026-10-17',
+    slots: [1, 2, 3],
+    avantLeSort: true,
   },
   15710: {
     libelle: 'Shadow of Right Arm — attaque en Menace',
     condition: 'tu es en état de Menace et l’ennemi t’attaque d’un sort mono-cible',
     source: 'auxiliaire 15720 ; utilisateur, 2026-10-17',
+    slots: [1, 2],
+    avantLeSort: true,
+  },
+  // Guilty Sentence — Theonia (34215) : « Attacks all enemies … In addition,
+  // attacks the enemy with the lowest Defense ». Auxiliaire 23517
+  // `3.3*{ATK}`. Agrenia et Driana (23507, 23508), même prose, n'ont pas
+  // d'auxiliaire : hors table, la valeur ne se déduit pas de Theonia.
+  23510: {
+    libelle: 'Guilty Sentence — attaque sur la DEF la plus faible',
+    condition: 'ta cible est l’ennemi à la plus faible DEF',
+    source: 'prose et auxiliaire 23517 (valeur de l’API par défaut)',
   },
 };
 
@@ -4721,7 +4746,8 @@ export const ATTAQUES_AUXILIAIRES_PAR_DECLENCHEUR: Readonly<Record<number, Attaq
  * (`ATTAQUES_AUXILIAIRES_PAR_DECLENCHEUR`), au format du chemin des passifs :
  * le profil de l'unique auxiliaire `versCeSort` à formule du déclencheur
  * (`skillDamageProfile`, ses propres améliorations), nommé par `libelle` et
- * décrit par la prose du déclencheur ; après ce seul sort.
+ * décrit par la prose du déclencheur ; après ce seul sort, ou avant les sorts
+ * de `slots` quand l'entrée le dit.
  *
  * Gardes, chacune écarte l'entrée en silence : déclencheur passif ou sans
  * slot, slot partagé par une autre compétence, auxiliaire absente, ambiguë ou
@@ -4745,7 +4771,8 @@ function attaquesAuxiliairesDeLaFiche(detail: DetailMonstre): PassifOffensifProf
       description: declencheur.description,
       critique: 'suit',
       coupsDuSortActif: false,
-      slotsDeclencheurs: [declencheur.slot],
+      slotsDeclencheurs: connue.slots ?? [declencheur.slot],
+      ...(connue.avantLeSort ? { avantLeSort: true as const } : {}),
       categorie: { type: 'conditionnel', condition: connue.condition },
       profile: nomme,
     });
@@ -6772,6 +6799,9 @@ export function computeSkillDamageDetail(
   // Chemin COURT — le ratio ne dépend pas des PV de la cible : une seule
   // évaluation, exactement comme avant l'ajout de la simulation.
   const formuleLitPvCible = profile.variables.includes('Target Current HP %');
+  // L'ignore DEF selon les PV perdus change d'un coup à l'autre : il force le
+  // chemin séquentiel, et chaque coup y refait sa mitigation.
+  const ignoreDefParCoup = !!profile.ignoreDefSelonPvCiblePerdus && !profile.ignoreDef && !profile.fixed;
 
   if (!formuleLitPvCible && !artefactsVarientParCoup && !ignoreDefParCoup) {
     const mult = evaluer(profile.noeud, valeurs) + ajoutParCoup;
@@ -6799,9 +6829,6 @@ export function computeSkillDamageDetail(
   // ⚠️ Si la FORMULE ne lit pas les PV de la cible, son multiplicateur est
   // constant : on l'évalue UNE fois plutôt qu'à chaque tour de boucle. Sans
   // ça, un sort poussé ici par les seules lignes d'artéfact paierait
-  // L'ignore DEF selon les PV perdus change d'un coup à l'autre : il force le
-  // chemin séquentiel, et chaque coup y refait sa mitigation.
-  const ignoreDefParCoup = !!profile.ignoreDefSelonPvCiblePerdus && !profile.ignoreDef && !profile.fixed;
   // `coups` évaluations d'arbre pour rien.
   const multFixe = formuleLitPvCible ? 0 : evaluer(profile.noeud, valeurs);
   for (let i = 0; i < coups; i++) {
@@ -7173,9 +7200,10 @@ export function computeTotalDamage(
         : p.profile;
       // Une contribution qui SUIT le sort lit l'état de la cible après son
       // dernier coup : sous scénario, les poses entre les coups comprises ;
-      // sinon le réglage, avec la réduction que le sort pose lui-même.
-      const etatCible = setupApresSort ?? setup;
-      const setupPassif = avecModeCritique({ ...etatCible, defBreak: defBreakApres(etatCible) });
+      // sinon le réglage, avec la réduction que le sort pose lui-même. Une
+      // attaque qui le PRÉCÈDE (`avantLeSort`) lit le réglage tel quel.
+      const etatCible = p.avantLeSort ? setup : setupApresSort ?? setup;
+      const setupPassif = avecModeCritique({ ...etatCible, defBreak: p.avantLeSort ? setup.defBreak : defBreakApres(etatCible) });
       detail = computeSkillDamageDetail(profilPassif, stats, setupPassif, propres, element, pvCiblePct, artefactsDuPassif, monsterWide, reliqueDmgPct);
     }
     pvCiblePct = detail.pvRestantsPct;

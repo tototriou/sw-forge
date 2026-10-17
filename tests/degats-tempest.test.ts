@@ -597,7 +597,8 @@ export function testDegatsTempestEcran() {
     carte.includes("const apresSort = cat.type === 'conditionnel' && p.slotsDeclencheurs != null;"),
     'passif qui frappe après certains sorts = conditionnel à slots déclencheurs curés'
   );
-  ok(/apresSort\s*\?\s*`\$\{nom\} \(S\$\{p\.profile\.slot\}\) se déclenche après ce sort`/.test(carte), 'son interrupteur s’intitule « <nom> (S<slot>) se déclenche après ce sort »');
+  ok(/apresSort\s*\?\s*`\$\{nom\} \(S\$\{p\.profile\.slot\}\) se déclenche \$\{p\.avantLeSort \? 'avant' : 'après'\} ce sort`/.test(carte),
+    'son interrupteur s’intitule « <nom> (S<slot>) se déclenche après ce sort » (« avant » pour une attaque qui précède le sort)');
   ok(
     carte.includes('{!apresSort && <p className="mt-1 text-xs leading-snug text-ink-dim">{texteCondition}</p>}'),
     'la phrase « Se déclenche si … » laisse la place à ce libellé'

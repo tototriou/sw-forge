@@ -60,11 +60,13 @@ codée porte « Calcul partiel »
 
 ### Répétition du sort retenu
 
-- **Constat** : Burning Whip (`6912`), Exploding Hands (`11015`) et
-  Forbidden Power (`4215`) n'ont aucune entrée dans `src/lib/damage.ts`,
-  alors que leurs valeurs sont fournies ([02-app/degats-reels/](../02-app/degats-reels/),
+- **Constat** : Burning Whip (`6912`) et Forbidden Power (`4215`) n'ont
+  aucune entrée dans `src/lib/damage.ts`, alors que leurs valeurs sont
+  fournies ([02-app/degats-reels/](../02-app/degats-reels/),
   « Déclenchements de Hwa et Jackie », « Zeratu — Forbidden Power ») ; la
-  répétition d'Elise sous 50 % de PV non plus.
+  répétition d'Elise sous 50 % de PV non plus. Exploding Hands (`11015`) se
+  répète par sa compétence auxiliaire, améliorations comprises, sans
+  confirmation ([02-app/degats-reels/feat-competences-auxiliaires.md](../02-app/degats-reels/feat-competences-auxiliaires.md)).
 - **Idée** : répéter le profil du sort retenu, sans récursion, sous
   interrupteur, avec des clés de réglage distinctes de celles du sort. Les
   conditions sur la cible (Hwa, Blood Talon, Heaven's Might, Hunting Hawk)
@@ -102,8 +104,12 @@ codée porte « Calcul partiel »
 
 ### Événements du monstre choisis seuls
 
-- **Constat** : seul Tempest est `selectionnableCommeSort`
-  (`src/lib/damage.ts`), et un passif ne se choisit seul que sans
+- **Constat** : Tempest et trois passifs hors tour chiffrés par leur
+  compétence auxiliaire (Rageful Return de Psamathe, les ripostes de
+  Hollyberry Cookie et de Manon) sont `selectionnableCommeSort`
+  (`src/lib/damage.ts`), sans facteur de riposte ; l'attaque d'état de
+  Legolas et d'Elder Horn est leur S3, une fois. Un passif ne se choisit
+  seul que sans
   ajustement propre à la boucle des passifs
   ([02-app/degats-reels/feat-attaque-apres-un-sort.md § Choisi seul — « Compétence utilisée](../02-app/degats-reels/feat-attaque-apres-un-sort.md#choisi-seul---compétence-utilisée-)).
 - **Idée** : chaque événement du monstre choisissable seul (attaque à la

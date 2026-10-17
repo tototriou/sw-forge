@@ -93,3 +93,42 @@ choisi seul, sans le Horn lancé avant dans le même tour.
 
 Un sort de la fiche qui a déjà un profil n'est jamais remplacé, et un lien
 qui n'est pas `mutuel` ne donne aucun sort. Test : `testDegatsAutreForme`.
+
+## Les attaques en plus, après un sort
+
+Une attaque que la prose annonce sous condition, chiffrée par l'auxiliaire
+du sort, s'ajoute après ce seul sort sur un interrupteur éteint par défaut
+(`ATTAQUES_AUXILIAIRES_PAR_DECLENCHEUR`, même chemin que les
+[attaques déclenchées](feat-attaque-apres-un-sort.md)). Son profil est celui
+de l'auxiliaire, ses améliorations comprises ; elle porte un libellé, faute
+de nom de jeu.
+
+| Déclencheur · monstres | Attaque (auxiliaire) | Interrupteur : « se déclenche si… » | Source |
+| --- | --- | --- | --- |
+| Exploding Hands (S3) · Jackie `20215` | `7.4*{ATK}` (11016), +20 % | l'étourdissement de ce sort réussit | prose ; une répétition sans nouvel étourdissement : utilisateur, 2026-09-23 |
+| Shadow of Right Arm (S2) · Minato `25911`, Ren `25912`, Ritsu `25915` | `4.5*{ATK}` (15716, 15717, 15720), +25 % | tu es en état de Menace et l'ennemi t'attaque d'un sort mono-cible | utilisateur, 2026-10-17 |
+
+⚠️ **Non établi, nommé** : les améliorations de l'auxiliaire s'appliquent à
+l'attaque en plus ; un relevé de la répétition d'Exploding Hands sur son
+premier coup tranche (1,00 → oui).
+
+## Les passifs qui frappent hors du tour, choisis seuls
+
+Trois passifs n'ont de formule que par leur auxiliaire et frappent hors du
+tour du monstre. Ils ne s'ajoutent à aucun sort ; ils se choisissent seuls
+dans « Compétence utilisée », comme Tempest (`PASSIFS_OFFENSIFS_CONNUS`,
+`slotsDeclencheurs: []`, `selectionnableCommeSort`).
+
+| Passif · monstre | Formule (auxiliaire) | Portée |
+| --- | --- | --- |
+| Rageful Return · Psamathe `21111` | `6.0*{ATK}` (11916), +30 % | zone (prose « all enemies » ; l'auxiliaire dit mono-cible) |
+| Parrying · Hollyberry Cookie `26411` | `3.5*{DEF}` (16216), +25 % | mono-cible |
+| Fat Macaron · Manon `26911` | `3.5*{DEF}` (16716), +25 % | mono-cible |
+
+⚠️ **Non établi, nommé** : aucun facteur de riposte n'est appliqué aux
+ripostes de Hollyberry Cookie et de Manon ; le relevé de la piste
+« Événements du monstre choisis seuls »
+([05-feuille-de-route/pistes-degats-reels.md](../../05-feuille-de-route/pistes-degats-reels.md#événements-du-monstre-choisis-seuls))
+tranche (environ 1 → aucun facteur, environ 0,75 → facteur de `Counter`).
+
+Test : `testDegatsAttaquesAuxiliaires`.

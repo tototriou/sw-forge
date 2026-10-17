@@ -45,7 +45,7 @@ export default function testCurationFormesJouables() {
   // ajoutée à damage.ts se déclare dans `clesDesTablesParId`, sinon elle
   // échappe à cette garde.
   const tables = { ...clesDesTablesParId(), CALCUL_PARTIEL_PAR_ID: idsCalculPartiel() };
-  egal(Object.keys(tables).length, 24, 'témoin : les 24 tables par identifiant de damage.ts');
+  egal(Object.keys(tables).length, 25, 'témoin : les 25 tables par identifiant de damage.ts');
 
   const toutes: [string, number[]][] = [
     ...Object.entries(tables),

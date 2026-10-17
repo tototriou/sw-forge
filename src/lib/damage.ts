@@ -3310,6 +3310,7 @@ export function clesDesTablesParId(): Record<string, number[]> {
     SORTS_COOPERATIFS_SANS_EFFET_PAR_ID: [...SORTS_COOPERATIFS_SANS_EFFET_PAR_ID],
     SORTS_DES_FAMILLES_COOPERATIVES_PAR_ID: [...SORTS_DES_FAMILLES_COOPERATIVES_PAR_ID],
     ALLY_ATTACK_SANS_ATTAQUE_DU_MONSTRE_PAR_ID: [...ALLY_ATTACK_SANS_ATTAQUE_DU_MONSTRE_PAR_ID],
+    ATTAQUES_AUXILIAIRES_PAR_DECLENCHEUR: cles(ATTAQUES_AUXILIAIRES_PAR_DECLENCHEUR),
   };
 }
 
@@ -4349,6 +4350,38 @@ const PASSIFS_OFFENSIFS_CONNUS: PassifOffensifConnu[] = [
     selectionnableCommeSort: true,
     categorie: { type: 'conditionnel', condition: 'sa recharge est terminée au moment où ton S1 ou ton S2 frappe (recharge non simulée)' },
   }, // Teshar, Phoenix (Vent)
+  // Passifs qui frappent HORS du tour du monstre, chiffrés par leur
+  // compétence auxiliaire (`formuleAuxiliaire`) : ils ne suivent aucun sort
+  // (`slotsDeclencheurs: []`, jamais d'interrupteur après un sort) et ne se
+  // calculent que choisis seuls dans « Compétence utilisée », comme Tempest.
+  // Une contribution, une fois. Noms portés par leurs seules formes (balayage
+  // du corpus, 2026-10-17).
+  // « If an ally excluding yourself takes damage from an enemy during the
+  // enemy's turn, you have a 15% chance to offset that damage, attack the enemy
+  // instantly to deal damage proportionate to your Defense » — auxiliaire
+  // `3.5*{DEF}` (16216, 16716).
+  {
+    nom: 'Parrying (Passive)',
+    slotsDeclencheurs: [],
+    selectionnableCommeSort: true,
+    categorie: { type: 'conditionnel', condition: 'un allié est frappé pendant le tour ennemi et la riposte part (15 %, probabilité du jeu non tirée)' },
+  }, // Hollyberry Cookie (eau)
+  {
+    nom: 'Fat Macaron (Passive)',
+    slotsDeclencheurs: [],
+    selectionnableCommeSort: true,
+    categorie: { type: 'conditionnel', condition: 'un allié est frappé pendant le tour ennemi et la riposte part (15 %, probabilité du jeu non tirée)' },
+  }, // Manon (eau)
+  // « The activation of [Rageful Return] deals significant damage to all
+  // enemies » — à sa résurrection ; auxiliaire `6.0*{ATK}` (11916). Zone : la
+  // prose dit « all enemies », comme la fiche (`aoe: true`) ; l'auxiliaire dit
+  // `aoe: false`, la prose l'emporte.
+  {
+    nom: 'Rageful Return (Passive)',
+    slotsDeclencheurs: [],
+    selectionnableCommeSort: true,
+    categorie: { type: 'conditionnel', condition: 'tu meurs et reviens au combat (une fois par combat)' },
+  }, // Psamathe (eau)
 ];
 
 // Attaque appelée ACTIVE : un sort qui enchaîne une AUTRE
@@ -4553,6 +4586,7 @@ export function monsterOffensivePassives(detail: DetailMonstre | null): PassifOf
     });
   }
   out.push(...attaquesAppeleesDeLaFiche(detail));
+  out.push(...attaquesAuxiliairesDeLaFiche(detail));
   return out;
 }
 
@@ -4615,6 +4649,87 @@ function attaquesAppeleesDeLaFiche(detail: DetailMonstre): PassifOffensifProfile
     },
     profile: profil,
   }));
+}
+
+// Attaque supplémentaire CONDITIONNELLE chiffrée par la compétence auxiliaire
+// du sort déclencheur : le coup en plus que la prose annonce sous condition,
+// dont la fiche ne porte pas le ratio. Même chemin que les attaques appelées
+// (`attaquesAppeleesDeLaFiche`) : un interrupteur éteint par défaut, après ce
+// seul sort, la probabilité du jeu jamais tirée (valeurs-de-jeu-curees.md,
+// « Attaques supplémentaires conditionnelles »).
+//
+// Clé = `com2usId` du SORT DÉCLENCHEUR. `libelle` nomme l'attaque à l'écran :
+// l'auxiliaire n'a souvent pas de nom de jeu (« skill_11016 »). `condition`
+// est la phrase de l'interrupteur.
+interface AttaqueAuxiliaireConnue {
+  libelle: string;
+  condition: string;
+  source: string;
+}
+export const ATTAQUES_AUXILIAIRES_PAR_DECLENCHEUR: Readonly<Record<number, AttaqueAuxiliaireConnue>> = {
+  // Exploding Hands — Jackie (20215) : « Attacks once more if the target is
+  // stunned by your attack ». Auxiliaire 11016 `7.4*{ATK}`.
+  11015: {
+    libelle: 'Exploding Hands — attaque en plus',
+    condition: 'l’étourdissement de ce sort réussit (probabilité du jeu non tirée)',
+    source: 'prose et auxiliaire 11016 ; une répétition à 7,4 × ATQ, sans nouvel étourdissement : utilisateur, 2026-09-23',
+  },
+  // Shadow of Right Arm — Minato (25911), Ren (25912), Ritsu (25915) : « you go
+  // under the Threat state while the enemy attacks with a single-target skill
+  // 1 time ». Auxiliaires 15716, 15717, 15720 `4.5*{ATK}` : l'attaque lancée
+  // consécutivement en état de Menace, activable (utilisateur, 2026-10-17).
+  15706: {
+    libelle: 'Shadow of Right Arm — attaque en Menace',
+    condition: 'tu es en état de Menace et l’ennemi t’attaque d’un sort mono-cible',
+    source: 'auxiliaire 15716 ; utilisateur, 2026-10-17',
+  },
+  15707: {
+    libelle: 'Shadow of Right Arm — attaque en Menace',
+    condition: 'tu es en état de Menace et l’ennemi t’attaque d’un sort mono-cible',
+    source: 'auxiliaire 15717 ; utilisateur, 2026-10-17',
+  },
+  15710: {
+    libelle: 'Shadow of Right Arm — attaque en Menace',
+    condition: 'tu es en état de Menace et l’ennemi t’attaque d’un sort mono-cible',
+    source: 'auxiliaire 15720 ; utilisateur, 2026-10-17',
+  },
+};
+
+/**
+ * Les attaques auxiliaires conditionnelles de cette fiche
+ * (`ATTAQUES_AUXILIAIRES_PAR_DECLENCHEUR`), au format du chemin des passifs :
+ * le profil de l'unique auxiliaire `versCeSort` à formule du déclencheur
+ * (`skillDamageProfile`, ses propres améliorations), nommé par `libelle` et
+ * décrit par la prose du déclencheur ; après ce seul sort.
+ *
+ * Gardes, chacune écarte l'entrée en silence : déclencheur passif ou sans
+ * slot, slot partagé par une autre compétence, auxiliaire absente, ambiguë ou
+ * sans profil calculable.
+ */
+function attaquesAuxiliairesDeLaFiche(detail: DetailMonstre): PassifOffensifProfile[] {
+  const out: PassifOffensifProfile[] = [];
+  for (const declencheur of detail.competences) {
+    if (declencheur.passif || declencheur.com2usId == null || declencheur.slot == null) continue;
+    const connue = ATTAQUES_AUXILIAIRES_PAR_DECLENCHEUR[declencheur.com2usId];
+    if (!connue) continue;
+    if (detail.competences.filter((k) => k.slot === declencheur.slot).length !== 1) continue;
+    const aFormule = (declencheur.auxiliaires ?? []).filter((a) => a.sens === 'versCeSort' && (a.competence.formule ?? '').trim());
+    if (aFormule.length !== 1 || aFormule[0].competence.passif) continue;
+    const profil = skillDamageProfile(aFormule[0].competence);
+    if (!profil || !estPrisEnCharge(profil)) continue;
+    const nomme = { ...profil, nom: connue.libelle, description: declencheur.description, icone: declencheur.icone };
+    out.push({
+      skillCom2usId: profil.skillCom2usId,
+      nom: connue.libelle,
+      description: declencheur.description,
+      critique: 'suit',
+      coupsDuSortActif: false,
+      slotsDeclencheurs: [declencheur.slot],
+      categorie: { type: 'conditionnel', condition: connue.condition },
+      profile: nomme,
+    });
+  }
+  return out;
 }
 
 /**

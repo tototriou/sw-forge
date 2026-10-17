@@ -377,7 +377,13 @@ export function testDegatsTempestCommeSort() {
     }
     if (defaultDamageSkill(sorts)?.passif) passifParDefaut.push(f);
   }
-  egal(selectionnables.sort(), ['14503:3213', '14513:3213'], 'corpus : seul Tempest (3213) est un passif sélectionnable, sur Phoenix vent et Teshar');
+  // Tempest, plus les passifs hors tour chiffrés par leur compétence
+  // auxiliaire (Rageful Return de Psamathe, Parrying de Hollyberry Cookie, Fat
+  // Macaron de Manon ; 2026-10-17), forme non éveillée comprise.
+  const ATTENDUS_SELECTIONNABLES = [
+    '14503:3213', '14513:3213', '21101:11911', '21111:11911', '26401:16211', '26411:16211', '26901:16711', '26911:16711',
+  ];
+  egal(selectionnables.sort(), ATTENDUS_SELECTIONNABLES, 'corpus : Tempest (3213) et les trois passifs hors tour à auxiliaire sont les seuls passifs sélectionnables');
   ok(
     ecartsListe.length === 0,
     ecartsListe.length === 0
@@ -386,8 +392,8 @@ export function testDegatsTempestCommeSort() {
   );
   passifsProposes.sort();
   ok(
-    JSON.stringify(passifsProposes) === JSON.stringify(['14503:3213', '14513:3213']),
-    `corpus : passifs réellement proposés comme sorts = Tempest sur Phoenix vent et Teshar, rien d’autre — reçu ${passifsProposes.length} : ${passifsProposes.slice(0, 6).join(', ')}${passifsProposes.length > 6 ? ', …' : ''}`
+    JSON.stringify(passifsProposes) === JSON.stringify(ATTENDUS_SELECTIONNABLES),
+    `corpus : passifs réellement proposés comme sorts = les sélectionnables attendus, rien d’autre — reçu ${passifsProposes.length} : ${passifsProposes.slice(0, 6).join(', ')}${passifsProposes.length > 6 ? ', …' : ''}`
   );
   egal(ajustementsInterdits, [], 'corpus : aucun passif sélectionnable ne porte d’ajustement propre à la boucle des passifs');
   egal(passifParDefaut, [], 'corpus : aucun monstre n’a un passif pour sort par défaut');

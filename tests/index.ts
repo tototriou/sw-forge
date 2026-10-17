@@ -266,6 +266,7 @@ import testMonstreFormes from './monstre-formes.test';
 import testCurationFormesJouables from './curation-formes-jouables.test';
 import testDonneesAuxiliaires from './donnees-auxiliaires.test';
 import testDegatsAutreForme from './degats-autre-forme.test';
+import testDegatsAttaquesAuxiliaires from './degats-attaques-auxiliaires.test';
 import testStockage from './stockage.test';
 import testMigrationStockage from './migration-stockage.test';
 import testBureauProtocole from './bureau-protocole.test';
@@ -564,6 +565,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testDegatsSequencesApi', testDegatsSequencesApi],
   ['testDegatsSequencesAuxiliaire', testDegatsSequencesAuxiliaire],
   ['testDegatsAutreForme', testDegatsAutreForme],
+  ['testDegatsAttaquesAuxiliaires', testDegatsAttaquesAuxiliaires],
   ['testDegatsFormulesApi', testDegatsFormulesApi],
   ['testDegatsPorteesParLaProse', testDegatsPorteesParLaProse],
   ['testDegatsSortsSansAttaque', testDegatsSortsSansAttaque],

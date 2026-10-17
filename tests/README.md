@@ -227,10 +227,14 @@ identités) ou `exception` (justification obligatoire, 25).
   composant et vérifier ce qu'il fait (rendu serveur, valeur rendue), plutôt
   que chercher un motif dans le texte de la source ; l'import fait entrer le
   module dans le graphe, et la sélection le retient sans déclaration.
-- **Angles morts** (listés en tête du fichier) : une racine importée ou
-  passée en paramètre échappe au détecteur ; une chaîne à espace n'est pas
-  un chemin ; la garde ne dit ni si la cible existe ni ce que le test en
-  fait.
+- **Une seule règle** : le relevé et la comparaison à la liste vivent dans
+  [scripts/lib/lectureSource.ts](../scripts/lib/lectureSource.ts) ; la
+  vérification y ajoute le corpus (tout `tests/`, suivi ou non suivi non
+  ignoré).
+- **Angles morts** (listés en tête de `lectureSource.ts`) : une racine
+  importée ou passée en paramètre échappe au détecteur ; une chaîne à espace
+  n'est pas un chemin ; la garde ne dit ni si la cible existe ni ce que le
+  test en fait.
 
 ## Mesure du rappel en usage
 

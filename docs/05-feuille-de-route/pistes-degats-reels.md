@@ -60,11 +60,13 @@ codée porte « Calcul partiel »
 
 ### Répétition du sort retenu
 
-- **Constat** : Burning Whip (`6912`), Exploding Hands (`11015`) et
-  Forbidden Power (`4215`) n'ont aucune entrée dans `src/lib/damage.ts`,
-  alors que leurs valeurs sont fournies ([02-app/degats-reels/](../02-app/degats-reels/),
+- **Constat** : Burning Whip (`6912`) et Forbidden Power (`4215`) n'ont
+  aucune entrée dans `src/lib/damage.ts`, alors que leurs valeurs sont
+  fournies ([02-app/degats-reels/](../02-app/degats-reels/),
   « Déclenchements de Hwa et Jackie », « Zeratu — Forbidden Power ») ; la
-  répétition d'Elise sous 50 % de PV non plus.
+  répétition d'Elise sous 50 % de PV non plus. Exploding Hands (`11015`) se
+  répète par sa compétence auxiliaire, améliorations comprises, sans
+  confirmation ([02-app/degats-reels/feat-competences-auxiliaires.md](../02-app/degats-reels/feat-competences-auxiliaires.md)).
 - **Idée** : répéter le profil du sort retenu, sans récursion, sous
   interrupteur, avec des clés de réglage distinctes de celles du sort. Les
   conditions sur la cible (Hwa, Blood Talon, Heaven's Might, Hunting Hawk)
@@ -75,6 +77,18 @@ codée porte « Calcul partiel »
   sur une cible sans effet néfaste, répétition sur coup 1 : environ 1,15 →
   le dégât continu posé compte. Exploding Hands de Jackie, répétition sur
   coup 1 : 1,00 → les améliorations portent sur la répétition.
+
+### Attaque sur un autre ennemi après une élimination
+
+- **Constat** : Shadow Assault (`10713`, Tanya vent) attaque, si la cible
+  meurt, l'ennemi au plus bas en PV, à +30 % de dégâts et sans effleurement ;
+  sa compétence auxiliaire (`10716`) en donne le ratio, `7.7*{ATK}`, mais
+  aucun calcul ne la lit : le coup frappe un autre ennemi que la cible
+  configurée.
+- **Idée** : le coup en plus sur la cible secondaire (« Dégâts sur les
+  autres ennemis »), sous un interrupteur « la cible meurt ».
+- **Bloque** : une décision produit (sur quelle cible le compter) et un
+  relevé du +30 % (sur le ratio ou en multiplicateur à part).
 
 ### Chaînes ordonnées
 
@@ -102,8 +116,12 @@ codée porte « Calcul partiel »
 
 ### Événements du monstre choisis seuls
 
-- **Constat** : seul Tempest est `selectionnableCommeSort`
-  (`src/lib/damage.ts`), et un passif ne se choisit seul que sans
+- **Constat** : Tempest et trois passifs hors tour chiffrés par leur
+  compétence auxiliaire (Rageful Return de Psamathe, les ripostes de
+  Hollyberry Cookie et de Manon) sont `selectionnableCommeSort`
+  (`src/lib/damage.ts`), sans facteur de riposte ; l'attaque d'état de
+  Legolas et d'Elder Horn est leur S3, une fois. Un passif ne se choisit
+  seul que sans
   ajustement propre à la boucle des passifs
   ([02-app/degats-reels/feat-attaque-apres-un-sort.md § Choisi seul — « Compétence utilisée](../02-app/degats-reels/feat-attaque-apres-un-sort.md#choisi-seul---compétence-utilisée-)).
 - **Idée** : chaque événement du monstre choisissable seul (attaque à la
@@ -171,16 +189,14 @@ codée porte « Calcul partiel »
   (`23115`, Duke), ni Oathbreakers (`23815`, Aragorn) et Spirits of Wolf
   Warriors (`24315`, Night Fang), ni Triple Combo (`13913`, RYU vent) et
   Triple Crush (`14413`, Kashmir), chaque paire de jumeaux de même prose,
-  ni Explosive Bullet, Undefeated Warrior (`9515`), Tempest Sword
-  (`10613`) ou Guilty Sentence (`23507`, `23508`, `23510`) : leur phase
-  que la donnée ne chiffre pas manque au total.
+  ni Explosive Bullet ou Tempest Sword (`10613`) : leur phase que la donnée
+  ne chiffre pas manque au total. (Le coup en plus de Guilty Sentence
+  s'ajoute sur interrupteur :
+  [02-app/degats-reels/feat-competences-auxiliaires.md](../02-app/degats-reels/feat-competences-auxiliaires.md).)
 - **Idée** : une séquence curée par sort
   ([02-app/degats-reels/feat-sequences-de-coups.md § La séquence curée — une table par identifiant](../02-app/degats-reels/feat-sequences-de-coups.md#la-séquence-curée--une-table-par-identifiant)).
   Tempest Sword : troisième coup au ratio des deux premiers (valeur
-  fournie). Guilty Sentence : une question « ta cible a-t-elle la DEF la
-  plus faible ? » (oui : deux coups ; non : le coup de zone seul) ; pour
-  Theonia, second coup à 3,3, valeur d'une sous-compétence de l'API que la
-  prose ne contredit pas. Un effet posé entre deux groupes se règle par le
+  fournie). Un effet posé entre deux groupes se règle par le
   choix « après quel coup ».
 - **Bloque** : des relevés, chacun sur la cible visée ; une mesure vaut
   pour une paire de jumeaux. Shoulder Smash ou Triple Break Combo, coup 3
@@ -188,18 +204,16 @@ codée porte « Calcul partiel »
   Oathbreakers ou Spirits of Wolf Warriors, chaque coup de zone / coup 1.
   Triple Combo ou Triple Crush, coup 3 / coup 2 avec la Brise DEF du
   coup 1 posée : 1,00 à 2 % → aucun coefficient final. Explosive Bullet,
-  chaque phase / S1 Cross Fire. Undefeated Warrior : les nombres sur la
-  cible visée (deux → la suite la touche aussi). Guilty Sentence
-  d'Agrenia et de Driana, coup 2 / coup 1 sur l'ennemi de plus faible DEF
-  non touché par la Brise DEF : 3,3 ou 3,2.
+  chaque phase / S1 Cross Fire.
 
 ### Skillups des séquences à valeur de l'API
 
 - **Constat** : chaque groupe de `sequenceDeCoups` reçoit le profil entier
   du sort (`computeSkillDamageDetail`, `src/lib/damage.ts`), skillups compris :
   ils valent aux deux phases de Fatal Extinctive Bullet (`13311`, Abigail),
-  Fatal Armor Bullet (`13314`, Emily), Head Press (`14113`, M. BISON) et
-  Great Sword of the End (`14613`, Sagar), sans confirmation
+  Fatal Mortar Bullet (`13312`, Scarlett), Fatal Armor Bullet (`13314`,
+  Emily), Head Press (`14113`, M. BISON), Great Sword of the End (`14613`,
+  Sagar) et Undefeated Warrior (`9515`, Kuna), sans confirmation
   ([02-app/degats-reels/feat-sequences-de-coups.md § Séquences à valeur de l’API](../02-app/degats-reels/feat-sequences-de-coups.md#séquences-à-valeur-de-lapi)).
 - **Idée** : les borner à la phase 1 si le relevé le dit.
 - **Bloque** : un relevé, sort au maximum de skillups, deux coups non

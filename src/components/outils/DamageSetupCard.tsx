@@ -1228,7 +1228,7 @@ export default function DamageSetupCard({
               // passif gardent le leur.
               const apresSort = cat.type === 'conditionnel' && p.slotsDeclencheurs != null;
               const libelle = apresSort
-                ? `${nom} (S${p.profile.slot}) se déclenche après ce sort`
+                ? `${nom} (S${p.profile.slot}) se déclenche ${p.avantLeSort ? 'avant' : 'après'} ce sort`
                 : cat.type === 'bonus'
                   ? `${nom} (+${cat.pct} %)`
                   : nom;
@@ -1509,8 +1509,11 @@ export default function DamageSetupCard({
           {/* Pour les sorts dont la formule lit les PV COURANTS de la cible
               (« dégâts proportionnels aux PV perdus ») — mais AUSSI quand un
               passif porte un seuil de PV (Final Strike : +20 % sous 30 %),
-              puisque les coups du sort creusent la cible avant qu'il frappe. */}
-          {(utilise('Target Current HP %') || passifsSuivants.some((p) => p.bonusPvCible) || demandePvCible) && (
+              puisque les coups du sort creusent la cible avant qu'il frappe,
+              et quand l'ignore DEF du sort dépend des PV perdus (Unlimited
+              Power à 3 ennemis ou moins). */}
+          {(utilise('Target Current HP %') || passifsSuivants.some((p) => p.bonusPvCible) || demandePvCible ||
+            !!resolved.ignoreDefSelonPvCiblePerdus) && (
             <label className="flex items-center gap-2">
               <span className={libelleAdversaire}>PV restants</span>
               <NumberField

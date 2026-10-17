@@ -31,7 +31,7 @@ d’entrée, le sort coopératif sans dégâts propres qui appelle le S1 (voir
 
 | Paramètre | Champ curé | Tempest | Source |
 | --- | --- | --- | --- |
-| Profil : ratio, portée, coups, améliorations | formule de la fiche, ou `FORMULES_CUREES_PAR_ID` si elle manque | `3.7 × ATQ`, zone, une instance, +30 % | utilisateur et audit ([valeurs curées](valeurs-de-jeu-curees.md)) |
+| Profil : ratio, portée, coups, améliorations | formule de la fiche ; si elle manque, celle de sa [compétence auxiliaire](feat-competences-auxiliaires.md) ou de `FORMULES_CUREES_PAR_ID` | `3.7 × ATQ` (auxiliaire), zone, une instance, +30 % | API, confirmée par l'utilisateur ([valeurs curées](valeurs-de-jeu-curees.md)) |
 | Sorts déclencheurs | `slotsDeclencheurs` | S1, S2 | utilisateur ([valeurs curées](valeurs-de-jeu-curees.md)) |
 | Inclusion | catégorie `conditionnel` : interrupteur désactivé par défaut | recharge non simulée | décision produit ([valeurs curées](valeurs-de-jeu-curees.md)) |
 | Choix seul | `selectionnableCommeSort` | oui | décision produit |
@@ -57,7 +57,8 @@ lignes d’artéfact viennent des réponses de l’utilisateur.
   calcul : « **Tempest (S3) se déclenche après ce sort** », désactivé par
   défaut. Le libellé est
   construit, `<nom> (S<slot>) se déclenche après ce sort`, pour tout passif
-  `conditionnel` à slots déclencheurs. Il remplace la phrase « Se déclenche
+  `conditionnel` à slots déclencheurs — « avant ce sort » pour une attaque
+  qui le précède (`avantLeSort`, l'attaque en Menace de Shadow of Right Arm). Il remplace la phrase « Se déclenche
   si … » des autres interrupteurs. Il n’a **pas de survol** (`title`) :
   un survol n’existe pas au doigt ; les autres interrupteurs de passif
   gardent le leur. La condition du jeu reste lisible dans la prose du
@@ -145,12 +146,13 @@ couvre encore : 58 de la famille `tempest`, les S2 des Kung Fu Girls `8216`,
 `8217` et `8219`, et les vingt compétences des Samouraïs `8021` à `8040`.
 Pour en ajouter un, sans rien déduire d’un cas
 voisin (skill `game-data-curation`), il faut d’abord savoir de quelle
-**nature** est l’attaque — deux tables, deux clés :
+**nature** est l’attaque — trois tables, trois clés :
 
 | Nature | Table | Clé | Profil | Déclencheurs |
 | --- | --- | --- | --- | --- |
 | **Passif** (Tempest) | `PASSIFS_OFFENSIFS_CONNUS` | le NOM exact du passif (`Competence.nom`) : l’identifiant d’un passif change d’une fiche à l’autre | sa formule (fiche, ou `FORMULES_CUREES_PAR_ID`), marqueur `passif` vrai | `slotsDeclencheurs`, curé |
 | **Compétence active appelée** (Hadoken de Shoryuken, Rolling Punch de Drunken Kick) | `ATTAQUES_APPELEES_PAR_DECLENCHEUR` | l’identifiant du **sort déclencheur**, avec le **slot appelé** — jamais un nom : « Hadoken » est porté par 12 formes, dont 6 sans Shoryuken, « Energy Punch » par 20 | celui de la compétence active de ce slot dans la MÊME fiche (`skillDamageProfile`, comme dans « Compétence utilisée »), marqueur `passif` absent | le seul slot du déclencheur, retenu s’il est seul à ce slot dans la fiche |
+| **Attaque chiffrée par la compétence auxiliaire du déclencheur** (Exploding Hands, Shadow of Right Arm) | `ATTAQUES_AUXILIAIRES_PAR_DECLENCHEUR` | l’identifiant du sort déclencheur, avec le libellé de l’attaque et la phrase de l’interrupteur | celui de l’unique auxiliaire `versCeSort` à formule du déclencheur ([compétences auxiliaires](feat-competences-auxiliaires.md)) | le seul slot du déclencheur, retenu s’il est seul à ce slot dans la fiche |
 | **S1 appelé par un sort coopératif sans dégâts propres** (Attack Command, Concentrated Attack) | `ATTAQUES_APPELEES_PAR_DECLENCHEUR`, avec `sortCooperatifSansDegats` | l’identifiant du sort déclencheur, avec le slot appelé | celui du S1 de la même fiche, sous l’identité du déclencheur (voir « Sort coopératif sans dégâts propres ») | aucun : le déclencheur est le sort choisi |
 
 Pour une compétence appelée, la ligne de table suffit : le sort par défaut,
@@ -170,8 +172,9 @@ corpus par `testAttaqueAppeleeEspaceDeCles`.
 
 Puis, pour l’une comme pour l’autre :
 
-1. **Le profil** : formule (fiche, ou `FORMULES_CUREES_PAR_ID` avec sa
-   source), portée, nombre de coups, améliorations. Quand l’attaque est une
+1. **Le profil** : formule (fiche, compétence auxiliaire, ou
+   `FORMULES_CUREES_PAR_ID` avec sa source), portée, nombre de coups,
+   améliorations. Quand l’attaque est une
    **compétence appelée** (Rolling Punch des Maîtres ivres, Hadoken de
    Shoryuken…), son profil vient de SA fiche, jamais de celle du déclencheur :
    ni ratio ni améliorations transférés (réponse de l’utilisateur).

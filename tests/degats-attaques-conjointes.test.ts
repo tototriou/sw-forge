@@ -113,21 +113,22 @@ const EXCLUSION = [10915, 12711];
 // Les S1 des deux familles, seuls à proposer la seconde vignette « Pendant le
 // tour d'un allié » (décision de l'utilisateur, 2026-10-16). Écrits à la main.
 const S1_DES_FAMILLES = [12601, 12602, 12603, 12604, 12605, 12701, 12702, 12703, 12704, 12705];
-// Effet `Ally Attack` sans formule de donnée, ratio curé (`FORMULES_CUREES_PAR_ID`) :
-// la règle lit la formule retenue (décision de l'utilisateur, 2026-10-16).
-const PAR_FORMULE_CUREE = [21415, 22015];
+// Effet `Ally Attack` sans formule dans la fiche, ratio de la compétence
+// auxiliaire : la règle lit la formule retenue (décision de l'utilisateur,
+// 2026-10-16).
+const PAR_FORMULE_AUXILIAIRE = [21415, 22015];
 
 export function testAttaquesConjointesRegle() {
   titre('Attaques conjointes — la règle et ses tables, sur le corpus');
   const corpus = competencesDistinctes();
-  const attendus = [...SORTS_A_EFFET, ...INCLUSION, ...PAR_FORMULE_CUREE].sort((a, b) => a - b);
+  const attendus = [...SORTS_A_EFFET, ...INCLUSION, ...PAR_FORMULE_AUXILIAIRE].sort((a, b) => a - b);
   const trouves = [...corpus.values()].filter((c) => estSortCooperatif(c)).map((c) => c.com2usId!).sort((a, b) => a - b);
-  egal(trouves, attendus, 'fige une décision de l’utilisateur (2026-10-16) : 21 sorts à effet Ally Attack et formule de donnée hors des deux familles, 2 à formule curée, plus celui de la table d’inclusion, et eux seuls');
-  for (const id of PAR_FORMULE_CUREE) {
+  egal(trouves, attendus, 'fige une décision de l’utilisateur (2026-10-16) : 21 sorts à effet Ally Attack et formule de donnée hors des deux familles, 2 à formule d’auxiliaire, plus celui de la table d’inclusion, et eux seuls');
+  for (const id of PAR_FORMULE_AUXILIAIRE) {
     const c = corpus.get(id)!;
     ok(
       (c.formule ?? '').trim() === '' && c.effets.some((e) => e.nom === 'Ally Attack') && estSortCooperatif(c),
-      `fige une décision de l’utilisateur (2026-10-16) : ${id} (${c.nom}), effet Ally Attack sans formule de donnée, conjoint par sa formule curée`
+      `fige une décision de l’utilisateur (2026-10-16) : ${id} (${c.nom}), effet Ally Attack sans formule de donnée, conjoint par la formule de son auxiliaire`
     );
   }
 
@@ -391,14 +392,14 @@ export function testAttaquesConjointesCalcul() {
   egal(totalDe(seren, violent, base, toutes), totalDe(seren, violent, base, ARTIFACT_DAMAGE_NEUTRE), 'sort non conjoint (3415) : total inchangé au bit près avec 208, 209 et 225');
   const preemptive = sortDe(sylvia, 10905);
   egal(totalDe(sylvia, preemptive, base, toutes), totalDe(sylvia, preemptive, base, ARTIFACT_DAMAGE_NEUTRE), 'S1 ordinaire (10905), interrupteur absent : total inchangé au bit près');
-  // Formule curée : Purification, Cooperation! (Nezuko) et Rite of Ashes
-  // (Vermilion), conjoints par la formule retenue.
+  // Formule de l'auxiliaire : Purification, Cooperation! (Nezuko) et Rite of
+  // Ashes (Vermilion), conjoints par la formule retenue.
   for (const [forme, id] of [[31915, 21415], [32615, 22015]] as const) {
     const detail = fiche(forme);
     const p = sortDe(detail, id);
     ok(
       proche(totalDe(detail, p, base, conjointes) / totalDe(detail, p, base, ARTIFACT_DAMAGE_NEUTRE), 1.18),
-      `fige une décision de l’utilisateur (2026-10-16) : ${p.nom} (${id}, formule curée 4,5 × ATQ) est conjoint, majoré de 18 % par 209 + 225`
+      `fige une décision de l’utilisateur (2026-10-16) : ${p.nom} (${id}, formule d’auxiliaire 4,5 × ATQ) est conjoint, majoré de 18 % par 209 + 225`
     );
     egal(totalDe(detail, p, base, contre), totalDe(detail, p, base, ARTIFACT_DAMAGE_NEUTRE), `${p.nom} (${id}) : 208 ne change rien`);
     ok(gagne(detail, p, base, 224) === !p.aoe, `${p.nom} (${id}) : contexte propre, 224 suit la portée (${p.aoe ? 'zone' : 'mono-cible'})`);

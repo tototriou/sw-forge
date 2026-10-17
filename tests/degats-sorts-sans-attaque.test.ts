@@ -146,11 +146,11 @@ export default function testDegatsSortsSansAttaque() {
 
   // Aucun passif dans la table aujourd'hui : la garde se vérifie sur Teshar,
   // dont Tempest (3213) est un passif offensif curé, rebaptisé d'un
-  // identifiant de la table. ⚠️ Sa fiche porte `formule: ""` (Tempest
-  // n'existe que par `FORMULES_CUREES_PAR_ID[3213]`) : rebaptisé, il perdrait
-  // sa formule et sortirait de lui-même, sans la garde. D'où sa formule
-  // recopiée (`3.7*{ATK}`, `docs/02-app/degats-reels/`) et le témoin juste dessous, qui prouve
-  // que le maquillage SANS identifiant de la table reste offensif.
+  // identifiant de la table. Sa fiche porte `formule: ""` (sa formule vient
+  // de son auxiliaire) : la formule est recopiée (`3.7*{ATK}`,
+  // `docs/02-app/degats-reels/`) pour que le maquillage ne dépende de rien
+  // d'autre, et le témoin juste dessous prouve que le maquillage SANS
+  // identifiant de la table reste offensif.
   const teshar = fiche(14513);
   ok(monsterOffensivePassives(teshar).some((p) => p.skillCom2usId === 3213), 'Teshar : Tempest est un passif offensif (témoin)');
   const maquiller = (id: number): DetailMonstre => ({

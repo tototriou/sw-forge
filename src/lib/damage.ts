@@ -2971,42 +2971,46 @@ const FORMULES_CUREES_PAR_ID: Record<number, string> = {
   7808: '5.5*{ATK}',
   7810: '5.5*{ATK}',
   21010: '{MAX HP}*{Sacrifice Reserve %}/{Alive Enemies} (Fixed)',
-  // Tempest (Passive) — Teshar vent `14513` et Phoenix vent `14503`, seules
-  // formes du corpus à porter ce nom et cet identifiant (balayage des 8 434
-  // compétences). SWARFARM donne `formule: ""`. Le ratio
-  // `3.7 × ATQ` est fourni par l'utilisateur (joueur, 2026-09-23) ET concorde
-  // avec l'audit des dégâts conditionnels (`other_skill=1181`) :
-  // deux sources (valeurs-de-jeu-curees.md, « Tempest (Teshar) »). Les trois améliorations
-  // « Damage +10% » (+30 %) s'y appliquent, lues dans `ameliorations` comme
-  // pour tout passif (même source, confirmation explicite).
-  3213: '3.7*{ATK}',
-  // S3 dont la fiche porte `formule: ""` : la formule est celle de la
-  // « compétence auxiliaire » (`other_skill`) de l'API SWARFARM, lue par
-  // l'audit des dégâts conditionnels. Règle : la valeur de l'API par défaut,
-  // sauf si la prose la contredit. Les améliorations « Damage » de la fiche s'y
-  // appliquent comme pour tout sort.
-  // Cursed Tombstone — Ramon (31414 ; 31404 non éveillé). Auxiliaire 4592.
-  // « This attack will deal more damage according to your MAX HP » concorde
-  // avec le terme de PV. La portée de la donnée (`aoe: true`, fiche et
-  // auxiliaire) est en revanche contredite par la prose (« Attacks the enemy »)
-  // : la prose l'emporte, mono-cible (`PORTEE_CORRIGEE_PAR_ID`).
-  21114: '2.7*{ATK} + 0.29*{MAX HP}',
-  // Purification, Cooperation! — Nezuko Kamado (31915 ; 31905 et 32015 non
-  // proposées par `formesJouables`) ; Rite of Ashes — Vermilion Bird Dancer
-  // (32615 ; 32605 non éveillé). Auxiliaires 4626 et 4710. « attacks the enemy target together
-  // with the target allies » : seule l'attaque du monstre est comptée ; celles
-  // des deux alliés (effet « Ally Attack ») sont des dégâts d'autres monstres,
-  // hors calcul. `coups: 0` de la fiche : un coup, comme tout sort qui frappe.
-  21415: '4.5*{ATK}',
-  22015: '4.5*{ATK}',
 };
 
+// La formule d'une fiche à `formule: ""` que porte sa compétence auxiliaire :
+// celle de l'unique auxiliaire `versCeSort` à formule, sinon rien.
+//
+// ⚠️ **Règle générale, pas une liste** : SWARFARM range le ratio de certains
+// sorts dans une compétence auxiliaire (`other_skill`) et laisse la fiche
+// vide. La valeur de l'API vaut par défaut, sauf si la prose la contredit
+// (valeurs-de-jeu-curees.md). Sont concernés, parmi les formes jouables :
+// - Tempest (Passive) — Teshar et Phoenix vent, 3213 → 3218 `3.7*{ATK}`, ratio
+//   confirmé aussi par l'utilisateur (2026-09-23) ; les trois « Damage +10% »
+//   de la fiche s'y appliquent ;
+// - Cursed Tombstone — Ramon, 21114 → 21116 `2.7*{ATK} + 0.29*{MAX HP}` ; la
+//   portée de la donnée est contredite par la prose (`PORTEE_CORRIGEE_PAR_ID`) ;
+// - Purification, Cooperation! — Nezuko, et Rite of Ashes — Vermilion Bird
+//   Dancer, 21415 → 21416 et 22015 → 22016 `4.5*{ATK}` : l'attaque du monstre
+//   seule, celles des alliés sont des dégâts d'autres monstres ; `coups: 0` de
+//   la fiche vaut un coup, comme tout sort qui frappe ;
+// - Whispers of Mirkwood — Legolas, et Echo of the Shadow Forest — Elder Horn,
+//   23915 → 23916 et 24415 → 24416 `4.2*{ATK}` : l'attaque de l'état, une fois ;
+// - les passifs Rageful Return (Psamathe), Parrying (Hollyberry Cookie) et Fat
+//   Macaron (Manon), qui n'en profitent que s'ils sont curés offensifs
+//   (`PASSIFS_OFFENSIFS_CONNUS`).
+// Un lien `mutuel` (les « Horn of… » des anges jumeaux et les tirs de leur
+// forme archer) désigne un AUTRE sort, jamais la formule de celui-ci. Deux
+// auxiliaires à formule : aucune n'est choisie.
+function formuleAuxiliaire(c: Competence): string {
+  const aFormule = (c.auxiliaires ?? []).filter((a) => a.sens === 'versCeSort' && (a.competence.formule ?? '').trim());
+  return aFormule.length === 1 ? (aFormule[0].competence.formule ?? '').trim() : '';
+}
+
 // La formule que retient le calcul : celle de `FORMULES_CUREES_PAR_ID` pour
-// l'identifiant, sinon celle de la fiche. Une seule expression pour le sort
-// actif (`skillDamageProfile`), le passif (`monsterOffensivePassives`) et la
-// règle des attaques conjointes (`estSortCooperatif`).
+// l'identifiant, sinon celle de la fiche, sinon celle de sa compétence
+// auxiliaire (`formuleAuxiliaire`). Une seule expression pour le sort actif
+// (`skillDamageProfile`), le passif (`monsterOffensivePassives`) et la règle
+// des attaques conjointes (`estSortCooperatif`).
 function formuleRetenue(c: Competence): string {
-  return (FORMULES_CUREES_PAR_ID[c.com2usId ?? -1] ?? c.formule ?? '').trim();
+  const curee = FORMULES_CUREES_PAR_ID[c.com2usId ?? -1];
+  if (curee) return curee.trim();
+  return (c.formule ?? '').trim() || formuleAuxiliaire(c);
 }
 
 // Portée corrigée par identifiant, quand la prose du sort contredit le champ
@@ -3669,10 +3673,11 @@ export function resumeSequenceDeCoups(sequence: readonly Pick<GroupeDeCoups, 'co
 // dit l'interrupteur « Attaque conjointe », allumé par défaut.
 //
 // « À formule » = la formule que RETIENT le calcul (`formuleRetenue` : celle de
-// `FORMULES_CUREES_PAR_ID`, sinon celle de la fiche), décision de
-// l'utilisateur (2026-10-16). Purification, Cooperation! (21415) et Rite of
-// Ashes (22015) portent `Ally Attack` sans formule de donnée : leur ratio
-// curé (4,5 × ATQ, l'attaque du monstre seule) les rend conjoints.
+// `FORMULES_CUREES_PAR_ID`, sinon celle de la fiche, sinon celle de sa
+// compétence auxiliaire), décision de l'utilisateur (2026-10-16).
+// Purification, Cooperation! (21415) et Rite of Ashes (22015) portent `Ally
+// Attack` sans formule dans leur fiche : le ratio de leur auxiliaire (4,5 ×
+// ATQ, l'attaque du monstre seule) les rend conjoints.
 
 // INCLUSION — sorts coopératifs à formule dont la donnée ne porte pas
 // `Ally Attack`, rangés parmi les attaques conjointes par l'utilisateur
@@ -3906,7 +3911,8 @@ export function skillDamageProfile(c: Competence): SkillDamageProfile | SkillDam
   if (SORTS_SANS_ATTAQUE_PAR_ID.has(c.com2usId)) return null;
   // Garde « formule vide » sur la formule RETENUE (même forme que
   // `monsterOffensivePassives`) : une fiche à `formule: ""` reste sans profil,
-  // sauf si `FORMULES_CUREES_PAR_ID` lui en donne une.
+  // sauf si `FORMULES_CUREES_PAR_ID` ou sa compétence auxiliaire lui en
+  // donne une.
   const brut = formuleRetenue(c);
   if (!brut) return null;
   const entete = { skillCom2usId: c.com2usId, slot: c.slot ?? 0, nom: c.nom, description: c.description };
@@ -4066,12 +4072,12 @@ export function estPrisEnCharge(p: SkillDamageProfile | SkillDamageUnsupported):
 // que les sorts actifs à chaque appel de `monsterOffensivePassives` — si
 // SWARFARM corrige un coefficient demain, la valeur suit sans toucher cette
 // liste. Seule la CATÉGORISATION (qui ne peut PAS être déduite du champ
-// `formule`) est curée. **Exception unique, et pas dans cette liste** : quand
-// les données ne portent AUCUNE formule (ou une fausse), elle vient de
-// `FORMULES_CUREES_PAR_ID`, par identifiant et avec sa source, la MÊME table
-// et la même priorité que pour un sort actif — Tempest (`3213`,
-// `formule: ""`). Sans entrée dans cette table, un passif sans formule reste
-// ignoré.
+// `formule`) est curée. **Exception, et pas dans cette liste** : quand la
+// fiche ne porte AUCUNE formule (ou une fausse), elle vient de sa compétence
+// auxiliaire, ou de `FORMULES_CUREES_PAR_ID` par identifiant et avec sa
+// source — la même lecture que pour un sort actif (`formuleRetenue`) : Tempest
+// (`3213`, `formule: ""`) prend celle de son auxiliaire. Sans l'une ni
+// l'autre, un passif sans formule reste ignoré.
 //
 // ⚠️ **Trois catégories, jamais une case « actif » à deviner** :
 // - `toujours` : le texte ne pose AUCUNE condition de combat (« whenever you
@@ -4291,7 +4297,7 @@ const PASSIFS_OFFENSIFS_CONNUS: PassifOffensifConnu[] = [
   { nom: 'Comeuppance (Passive)', critique: 'jamais', categorie: { type: 'conditionnel', condition: 'tu attaques la cible « Suppressed » (texte du jeu, condition non davantage précisée)' } }, // Onmyouji, Giou
   // « Attacks all enemies with a violent storm once more … after you attack
   // the enemy on your turn » — `formule: ""` dans SWARFARM : son `3.7 × ATQ`
-  // vient de `FORMULES_CUREES_PAR_ID` (3213, source citée là-bas). Le nom
+  // vient de sa compétence auxiliaire (`formuleAuxiliaire`, 3218). Le nom
   // n'est porté que par 3213, sur Teshar vent `14513` et Phoenix vent `14503`
   // (balayage du corpus). `conditionnel` : l'Optimizer ne
   // simule ni sa recharge ni sa remise à zéro sur une élimination, un
@@ -4426,8 +4432,7 @@ export interface PassifOffensifProfile {
 
 /**
  * Les passifs offensifs de CE monstre reconnus dans `PASSIFS_OFFENSIFS_CONNUS`
- * et dont la formule — celle de `FORMULES_CUREES_PAR_ID` pour son identifiant
- * si elle existe, sinon celle de sa propre fiche, comme `skillDamageProfile` —
+ * et dont la formule — `formuleRetenue`, comme `skillDamageProfile` —
  * reste analysable (une formule qui a changé de forme depuis la
  * catégorisation ci-dessus est silencieusement ignorée, jamais un plantage
  * ni un nombre inventé). Liste vide si la fiche est absente.
@@ -4447,7 +4452,7 @@ export function monsterOffensivePassives(detail: DetailMonstre | null): PassifOf
     const connu = PASSIFS_OFFENSIFS_CONNUS.find((p) => p.nom === c.nom);
     if (!connu) continue;
     // ⚠️ La garde porte sur la formule RETENUE, jamais sur `c.formule` seule :
-    // Tempest (3213) porte `formule: ""` et n'existe que par la table curée.
+    // Tempest (3213) porte `formule: ""` et n'existe que par son auxiliaire.
     // Garder `!c.formule` ici l'écarterait en silence.
     const brut = formuleRetenue(c);
     if (!brut) continue;

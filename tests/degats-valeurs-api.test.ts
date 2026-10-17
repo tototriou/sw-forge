@@ -173,6 +173,9 @@ const FORMULES: {
   { id: 21114, nom: 'Cursed Tombstone', formes: [31404, 31414], monstre: 'Ramon', formule: '2.7*{ATK} + 0.29*{MAX HP}', terme: 2.7 * ATQ + 0.29 * PV, skillup: 15, auxiliaire: 4592 },
   { id: 21415, nom: 'Purification, Cooperation!', formes: [31905, 31915, 32015], monstre: 'Nezuko Kamado', formule: '4.5*{ATK}', terme: 4.5 * ATQ, skillup: 20, auxiliaire: 4626 },
   { id: 22015, nom: 'Rite of Ashes', formes: [32605, 32615], monstre: 'Vermilion Bird Dancer', formule: '4.5*{ATK}', terme: 4.5 * ATQ, skillup: 20, auxiliaire: 4710 },
+  // L'attaque de l'état, une fois (2026-10-17) ; la fiche n'a qu'un « Cooltime Turn -1 ».
+  { id: 23915, nom: 'Whispers of Mirkwood', formes: [34705, 34715], monstre: 'Legolas', formule: '4.2*{ATK}', terme: 4.2 * ATQ, skillup: 0, auxiliaire: 5082 },
+  { id: 24415, nom: 'Echo of the Shadow Forest', formes: [35305, 35315], monstre: 'Elder Horn', formule: '4.2*{ATK}', terme: 4.2 * ATQ, skillup: 0, auxiliaire: 5272 },
 ];
 
 export function testDegatsFormulesApi() {
@@ -214,9 +217,21 @@ export function testDegatsFormulesApi() {
 
   titre('Formule vide — la garde « formule vide » porte sur la formule retenue');
   {
-    // Même fiche, autre identifiant : aucune formule curée, la garde tient.
+    // Même fiche, autre identifiant et sans auxiliaire : rien ne donne de formule, la garde tient.
     const ramon = fiche(31414).competences.find((c) => c.com2usId === 21114)!;
-    egal(skillDamageProfile({ ...ramon, com2usId: 999_114 }), null, 'formule vide sans formule curée : aucun profil');
+    egal(skillDamageProfile({ ...ramon, com2usId: 999_114, auxiliaires: undefined }), null,
+      'formule vide, ni formule curée ni auxiliaire : aucun profil');
+    // Sans formule curée, l'auxiliaire suffit : la formule vient de la donnée.
+    egal(sortDe(31414, 21114).formule, '2.7*{ATK} + 0.29*{MAX HP}', 'Cursed Tombstone : formule de l’auxiliaire 21116');
+    // Deux auxiliaires à formule : aucune n'est choisie.
+    const aux = ramon.auxiliaires![0];
+    egal(skillDamageProfile({ ...ramon, com2usId: 999_114, auxiliaires: [aux, aux] }), null,
+      'deux auxiliaires à formule : aucune n’est retenue, aucun profil');
+    // Un lien qui ne désigne pas ce sort (`depuisCeSort`, `mutuel`) ne donne pas sa formule.
+    for (const sens of ['depuisCeSort', 'mutuel'] as const) {
+      egal(skillDamageProfile({ ...ramon, com2usId: 999_114, auxiliaires: [{ ...aux, sens }] }), null,
+        `auxiliaire ${sens} : sa formule n’est pas celle du sort`);
+    }
     // Hors périmètre : les sorts « Horn » des Anges jumeaux restent sans profil.
     for (const id of [18801, 18811]) {
       const horn = fiche(29111).competences.find((c) => c.com2usId === id)!;

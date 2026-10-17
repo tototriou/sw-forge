@@ -2,8 +2,8 @@
 //
 // ⚠️ Ce qui serait GRAVE ET INVISIBLE ici : un passif dont SWARFARM ne porte
 // AUCUNE formule (`formule: ""`) écarté en silence par la garde historique
-// `!c.formule` de `monsterOffensivePassives`, alors que sa formule curée
-// existe dans `FORMULES_CUREES_PAR_ID`. Le joueur cocherait Tempest et ne
+// `!c.formule` de `monsterOffensivePassives`, alors que sa compétence
+// auxiliaire (3218) en porte une. Le joueur cocherait Tempest et ne
 // verrait rien changer, sans aucun message. Et Tempest choisi
 // comme sort compté DEUX fois (lui-même, puis le passif resté allumé), ou
 // devenu le sort par défaut de Teshar à la place de son S2.
@@ -104,9 +104,9 @@ function tempestDe(detail: DetailMonstre): PassifOffensifProfile | undefined {
   return monsterOffensivePassives(detail).find((p) => p.skillCom2usId === TEMPEST);
 }
 
-/** Point 1 — la formule curée d'un passif passe par la table curée. */
+/** Point 1 — la formule de l'auxiliaire d'un passif sans formule est lue. */
 export function testDegatsTempestFormule() {
-  titre('Tempest — la formule curée d’un passif sans formule SWARFARM est lue');
+  titre('Tempest — la formule de l’auxiliaire d’un passif sans formule SWARFARM est lue');
 
   for (const forme of [TESHAR, PHOENIX_VENT]) {
     const detail = fiche(forme);
@@ -116,10 +116,10 @@ export function testDegatsTempestFormule() {
       `${forme} : la donnée brute est bien un passif de slot 3, en zone, SANS formule (« » dans SWARFARM)`
     );
     const tempest = tempestDe(detail);
-    ok(tempest != null, `${forme} : Tempest est reconnu comme passif offensif malgré « formule: "" » (formule de la table curée)`);
+    ok(tempest != null, `${forme} : Tempest est reconnu comme passif offensif malgré « formule: "" » (formule de son auxiliaire)`);
     if (!tempest) continue;
     egal(tempest.profile.formule, '3.7*{ATK}', `${forme} : formule retenue = 3.7 × ATQ (utilisateur + audit other_skill=1181)`);
-    egal(tempest.profile.variables, ['ATK'], `${forme} : la formule curée est analysée comme une formule de données (ATQ seule)`);
+    egal(tempest.profile.variables, ['ATK'], `${forme} : la formule de l’auxiliaire est analysée comme une formule de données (ATQ seule)`);
     egal(tempest.profile.skillupDamagePct, 30, `${forme} : les trois « Damage +10% » s’appliquent (+30 %)`);
     egal(tempest.profile.aoe, true, `${forme} : en zone (donnée « aoe » du passif)`);
     egal(tempest.profile.slot, 3, `${forme} : slot 3 (celui des lignes d’artéfact 402/410)`);

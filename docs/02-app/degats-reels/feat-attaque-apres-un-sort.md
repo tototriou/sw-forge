@@ -31,7 +31,7 @@ d’entrée, le sort coopératif sans dégâts propres qui appelle le S1 (voir
 
 | Paramètre | Champ curé | Tempest | Source |
 | --- | --- | --- | --- |
-| Profil : ratio, portée, coups, améliorations | formule de la fiche, ou `FORMULES_CUREES_PAR_ID` si elle manque | `3.7 × ATQ`, zone, une instance, +30 % | utilisateur et audit ([valeurs curées](valeurs-de-jeu-curees.md)) |
+| Profil : ratio, portée, coups, améliorations | formule de la fiche ; si elle manque, celle de sa [compétence auxiliaire](feat-competences-auxiliaires.md) ou de `FORMULES_CUREES_PAR_ID` | `3.7 × ATQ` (auxiliaire), zone, une instance, +30 % | API, confirmée par l'utilisateur ([valeurs curées](valeurs-de-jeu-curees.md)) |
 | Sorts déclencheurs | `slotsDeclencheurs` | S1, S2 | utilisateur ([valeurs curées](valeurs-de-jeu-curees.md)) |
 | Inclusion | catégorie `conditionnel` : interrupteur désactivé par défaut | recharge non simulée | décision produit ([valeurs curées](valeurs-de-jeu-curees.md)) |
 | Choix seul | `selectionnableCommeSort` | oui | décision produit |
@@ -170,8 +170,9 @@ corpus par `testAttaqueAppeleeEspaceDeCles`.
 
 Puis, pour l’une comme pour l’autre :
 
-1. **Le profil** : formule (fiche, ou `FORMULES_CUREES_PAR_ID` avec sa
-   source), portée, nombre de coups, améliorations. Quand l’attaque est une
+1. **Le profil** : formule (fiche, compétence auxiliaire, ou
+   `FORMULES_CUREES_PAR_ID` avec sa source), portée, nombre de coups,
+   améliorations. Quand l’attaque est une
    **compétence appelée** (Rolling Punch des Maîtres ivres, Hadoken de
    Shoryuken…), son profil vient de SA fiche, jamais de celle du déclencheur :
    ni ratio ni améliorations transférés (réponse de l’utilisateur).

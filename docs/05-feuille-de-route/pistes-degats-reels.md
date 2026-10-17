@@ -78,6 +78,18 @@ codée porte « Calcul partiel »
   le dégât continu posé compte. Exploding Hands de Jackie, répétition sur
   coup 1 : 1,00 → les améliorations portent sur la répétition.
 
+### Attaque sur un autre ennemi après une élimination
+
+- **Constat** : Shadow Assault (`10713`, Tanya vent) attaque, si la cible
+  meurt, l'ennemi au plus bas en PV, à +30 % de dégâts et sans effleurement ;
+  sa compétence auxiliaire (`10716`) en donne le ratio, `7.7*{ATK}`, mais
+  aucun calcul ne la lit : le coup frappe un autre ennemi que la cible
+  configurée.
+- **Idée** : le coup en plus sur la cible secondaire (« Dégâts sur les
+  autres ennemis »), sous un interrupteur « la cible meurt ».
+- **Bloque** : une décision produit (sur quelle cible le compter) et un
+  relevé du +30 % (sur le ratio ou en multiplicateur à part).
+
 ### Chaînes ordonnées
 
 - **Constat** : aucune chaîne de sorts n'est calculée. Kung Fu Girls :

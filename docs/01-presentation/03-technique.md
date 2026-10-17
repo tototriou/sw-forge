@@ -112,6 +112,10 @@ Source de vérité du rendu : [03-developpeur/interface/](../03-developpeur/inte
 - `scripts/fetch-monsters.mjs`, `scripts/fetch-skills.mjs`, `scripts/link-collabs.mjs` —
   régénèrent les données depuis SWARFARM ; `.github/workflows/update-data.yml` les rafraîchit
   chaque semaine.
+- `scripts/inventaire-competences.mjs` — inventaire des compétences du corpus, lu comme l'app le
+  lit (formule et portée retenues par `src/lib/damage.ts`, statut de calcul), avec la prose
+  complète et des signaux de doute ; filtres et sortie `--json` : `--aide`. Module :
+  `scripts/lib/inventaireCompetences.ts`.
 - `scripts/benchmark-*.mjs` — mesures de l'Optimizer.
 - `scripts/lib/relicOracle.ts` — oracle de contrôle de la dimension relique : N recherches du
   moteur réel, une par principale éligible distincte, et point d'entrée CLI pour les mesures.

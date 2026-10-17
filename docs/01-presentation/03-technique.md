@@ -43,9 +43,11 @@ Empaqueté par `electron-builder.yml`, publié au tag `v*` par `.github/workflow
 `dist-bureau` (non suivi). Côté page : `src/lib/bureau.ts` (`estBureau()`, couleurs du thème,
 mise à jour), `src/components/MiseAJourBureau.tsx` (la mise à jour dite par la notification),
 `src/components/BlocApplication.tsx` (bloc « Application » des Réglages : version, mise à jour à
-portée, dossier SW Exporter), `src/components/SuiviSwex.tsx` (applique « Mon compte » à chaque
-export), `src/hooks/useEtatSwex.ts` (l'état du dossier, lu par les Réglages et par
-`SidebarCompte`, dont la carte devient le menu des invocateurs), `src/hooks/useSessionEnCours.ts`
+portée, dossier SW Exporter), `src/components/SuiviSwex.tsx` (applique l'export : tout après le
+choix d'un invocateur, « Mon compte » ensuite), `src/hooks/useEtatSwex.ts` (l'état du dossier, lu
+par les Réglages et par `SidebarCompte`, dont la carte devient le menu des invocateurs ; ses choix
+passent par la garde `GardeChangementCompte`), `src/components/ChangementCompteDialog.tsx`
+(« Sauvegarder ta session ? » avant un changement de compte), `src/hooks/useSessionEnCours.ts`
 (la session en cours, « Garder mes données » redit au bureau ; `useEtatSession` pour la ligne
 « Dossier SW Blacksmith » de `SettingsList`, bloc « Mes données »). Comportement :
 [bureau/](../02-app/bureau/README.md).

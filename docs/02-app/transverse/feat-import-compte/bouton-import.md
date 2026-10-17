@@ -68,22 +68,56 @@ erreur) : « Import : N monstres 6★ · N monstres RTA · N défenses · N atta
 Dans l'**application de bureau**, le bloc « Application » des Réglages laisse choisir le **dossier SW
 Exporter** et l'**invocateur** à suivre (ses exports `<nom>-<id>.json` à la
 racine) — l'invocateur aussi depuis la **carte du compte** de la barre
-latérale, qui devient alors un menu. Chaque nouvel export de cet invocateur — au lancement s'il est plus
-récent que le dernier lu, puis à chaque écriture tant que l'app est ouverte —
-met à jour **« Mon compte » seulement** (box 6★, inventaire, reliques, runes
-utilisées, marqueurs), annoncé par « Compte de <invocateur> mis à jour depuis
-SW Exporter ».
+latérale, qui devient alors un menu.
 
-- ⚠️ **Jamais la prépa RTA ni le siège.** L'import complet les REMPLACE
-  (classement RTA, leads et ticks remis à zéro) : le faire à chaque
-  connexion au jeu effacerait le travail de l'utilisateur. Ils restent à
-  importer à la main, comme ci-dessus.
-- **Un seul chemin** : `appliquerCompte` (App.tsx) est la moitié « Mon
-  compte » de l'import manuel, appelée par les deux — même extraction, même
-  enregistrement (selon « Garder mes données »), même remise à zéro de
-  l'exclusion de runes et du speed tuning quand l'invocateur CHANGE
-  (`wizard_id`).
+- **Choisir un invocateur change de compte** : son export s'importe **en
+  entier**, comme l'import manuel — prépa RTA, défenses, attaques de siège
+  et « Mon compte » —, annoncé par « Compte de <invocateur> chargé depuis
+  SW Exporter », avec le récapitulatif de l'import. Choisir un **dossier**
+  qui ne contient qu'un export le désigne d'office : même import complet.
+  Rechoisir l'invocateur déjà suivi ne fait rien.
+- **Puis chaque nouvel export de cet invocateur** — au lancement s'il est
+  plus récent que le dernier lu, puis à chaque écriture tant que l'app est
+  ouverte — met à jour **« Mon compte » seulement** (box 6★, inventaire,
+  reliques, runes utilisées, marqueurs), annoncé par « Compte de
+  <invocateur> mis à jour depuis SW Exporter ».
+- ⚠️ **Après le choix, jamais la prépa RTA ni le siège.** L'import complet
+  les REMPLACE (classement RTA, leads et ticks remis à zéro) : le faire à
+  chaque connexion au jeu effacerait le travail de l'utilisateur. Le
+  processus principal ([bureau/swex.ts](bureau/swex.ts)) marque `complet`
+  le seul export qui suit un choix, jusqu'à ce que la page l'ait appliqué.
+- ⚠️ **Avant de changer de compte, la sauvegarde est proposée.** Choisir un
+  autre invocateur (carte du compte ou Réglages) ou un dossier, quand le
+  travail a changé depuis la dernière sauvegarde de session, ouvre
+  « Sauvegarder ta session ? » (`ChangementCompteDialog`) : « Le compte de
+  SW Exporter va remplacer ta prépa RTA, tes équipes de siège et ta box. Les
+  changements faits depuis ta dernière sauvegarde seront perdus si tu ne
+  sauvegardes pas. » Trois actions, empilées : « Changer sans sauvegarder »
+  (ton `danger`), « Annuler » (rien ne change, Échap aussi) et « Sauvegarder
+  et changer » (mise en avant, le focus) — une sauvegarde annulée ou en
+  échec ne change pas de compte. Désactivé avec la raison en infobulle
+  tant que le compte conservé se relit. Le « Remplacer les données
+  présentes ? » de l'import manuel n'est pas reposé.
+- **« Le travail a changé »** (`travailNonSauvegarde`, `src/lib/session.ts`) :
+  l'empreinte de la session (`empreinteTravail` — stockage et outils, sans
+  la date, la version ni le compte, que l'export redonne) diffère de celle
+  de la dernière sauvegarde. Sans sauvegarde depuis le lancement : dès
+  qu'il y a une prépa RTA ou des équipes de siège, ce que le changement
+  remplacerait. Demander pour rien coûte un clic ; ne pas demander peut
+  coûter la prépa.
+- **Un seul chemin** : `appliquerTout` (App.tsx) est l'import complet,
+  appelé par l'import manuel et par le choix d'un invocateur ;
+  `appliquerCompte` en est la moitié « Mon compte », appelée seule par les
+  exports suivants — même extraction, même enregistrement (selon « Garder
+  mes données »), même remise à zéro de l'exclusion de runes et du speed
+  tuning quand l'invocateur CHANGE (`wizard_id`).
 - Pas de question de conservation : le dossier est un réglage, posé une fois.
+- Vérifier : `node tests/run.mjs bureauswex session renduchangementcompte`
+  (l'annonce, le marquage `complet` du processus principal par contrôle de
+  source, l'empreinte, la modale) et `npm run bureau:preuve -- --swex` (le
+  branchement et le parcours entier dans l'app : la garde au choix du
+  dossier et de l'invocateur, « Annuler », « Changer sans sauvegarder »,
+  « Sauvegarder et changer », exports suivants).
 - Détail (surveillance, réglage retenu, export illisible) :
   [bureau/README.md](../../bureau/README.md#le-dossier-sw-exporter) § « Le dossier SW Exporter ».
 

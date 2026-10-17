@@ -56,10 +56,11 @@ export default function SidebarCompte({
 
   // ⚠️ **App de bureau, dossier SW Exporter choisi** : la carte ouvre
   // un MENU — les invocateurs du dossier (celui suivi, coché), puis l'import
-  // d'un fichier. Choisir un invocateur ne change que « Mon compte ».
+  // d'un fichier. Choisir un autre invocateur change de compte : tout
+  // s'importe, après la proposition de sauvegarder (`useEtatSwex`).
   // Sans dossier, et sur le site : la carte importe, comme
   // avant.
-  const { etat, agir } = useEtatSwex();
+  const { etat, choisirInvocateur } = useEtatSwex();
   const invocateurs = etat?.dossier && !etat.introuvable ? presentationSwex(etat).options : [];
 
   const classeCarte = `flex w-full items-center rounded-xl border border-border-soft bg-panel text-left
@@ -116,7 +117,7 @@ export default function SidebarCompte({
               // La coche dit lequel est suivi ; une place vide aux autres
               // garde les noms alignés.
               icone: o.valeur === etat?.fichier ? <Check size={14} /> : <span className="w-[14px]" />,
-              onClick: () => void agir((s) => s.choisirInvocateur(o.valeur)),
+              onClick: () => choisirInvocateur(o.valeur),
             })),
             {
               cle: 'importer',

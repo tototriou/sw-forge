@@ -4,8 +4,13 @@
 // SW Exporter écrit ses exports et l'invocateur à suivre. Ce module retient ce
 // réglage (`swex.json`, dossier des données de l'app — un RÉGLAGE, retenu même
 // sans « Garder mes données »), surveille le dossier et donne le texte de
-// l'export à la page, qui n'en applique que « Mon compte » (src/App.tsx,
-// `rafraichirCompte`) : prépa RTA et siège ne bougent jamais d'ici.
+// l'export à la page (src/App.tsx, `rafraichirCompte`).
+//
+// ⚠️ **Import complet après un CHOIX seulement.** L'export qui suit le choix
+// d'un invocateur (ou d'un dossier qui en désigne un d'office) part
+// `complet` : la page remplace alors prépa RTA, siège et « Mon compte ». Les
+// exports suivants du même invocateur — chaque connexion au jeu — ne mettent
+// à jour que « Mon compte » : la prépa ne s'efface pas à chaque partie.
 //
 // ⚠️ **La page confirme ce qu'elle a appliqué** (`bureau:swex-lu`) : un export
 // à moitié écrit, illisible, n'avance pas « dernier export lu », et sera
@@ -59,6 +64,9 @@ export function brancherSwex(fenetre: BrowserWindow, preuve?: PreuveSwex) {
   let minuterie: ReturnType<typeof setTimeout> | null = null;
   let relance: ReturnType<typeof setTimeout> | null = null;
   let pagePrete = false;
+  // Le prochain export donné suit un choix : complet, jusqu'à ce que la page
+  // l'ait appliqué (`bureau:swex-lu`) — un export illisible le garde complet.
+  let complet = false;
 
   const deLaPage = (e: Electron.IpcMainEvent | Electron.IpcMainInvokeEvent) => e.sender === fenetre.webContents;
   const envoyer = (canal: string, valeur: unknown) => {
@@ -96,7 +104,7 @@ export function brancherSwex(fenetre: BrowserWindow, preuve?: PreuveSwex) {
       const { donner: oui, nouveau } = aDonner(modifie, reglage.dernierLu, pageSansCompte);
       if (!oui) return;
       const texte = await promises.readFile(chemin, 'utf8');
-      envoyer('bureau:swex-export', { texte, modifie, nouveau, fichier });
+      envoyer('bureau:swex-export', { texte, modifie, nouveau, fichier, complet });
     } catch {
       /* fichier absent ou verrouillé : rien, le prochain changement redonnera */
     }
@@ -178,6 +186,7 @@ export function brancherSwex(fenetre: BrowserWindow, preuve?: PreuveSwex) {
     // Un seul invocateur dans le dossier : c'est lui.
     const seul = etat().exports;
     if (seul.length === 1) reglage.fichier = seul[0].fichier;
+    complet = reglage.fichier !== null;
     ecrire();
     surveiller();
     void donner(false);
@@ -189,6 +198,7 @@ export function brancherSwex(fenetre: BrowserWindow, preuve?: PreuveSwex) {
     // Seulement un export de CE dossier : jamais un chemin venu de la page.
     if (typeof fichier !== 'string' || !etat().exports.some((x) => x.fichier === fichier)) return etat();
     reglage = { ...reglage, fichier, dernierLu: null };
+    complet = true;
     ecrire();
     void donner(false);
     return repondre();
@@ -197,6 +207,7 @@ export function brancherSwex(fenetre: BrowserWindow, preuve?: PreuveSwex) {
   ipcMain.handle('bureau:swex-oublier', (e) => {
     if (!deLaPage(e)) return null;
     reglage = { dossier: null, fichier: null, dernierLu: null };
+    complet = false;
     ecrire();
     surveiller();
     return repondre();
@@ -214,6 +225,7 @@ export function brancherSwex(fenetre: BrowserWindow, preuve?: PreuveSwex) {
   ipcMain.on('bureau:swex-lu', (e, modifie: unknown) => {
     if (!deLaPage(e) || typeof modifie !== 'number' || !Number.isFinite(modifie)) return;
     reglage = { ...reglage, dernierLu: modifie };
+    complet = false;
     ecrire();
     envoyer('bureau:swex-etat', etat());
   });

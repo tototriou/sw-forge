@@ -1,5 +1,10 @@
-import { useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 import { EtatSwex, swex } from '../lib/bureau';
+
+// Ce qui précède un changement de compte (App.tsx) : proposer de sauvegarder
+// la session si le travail a changé, puis `changer`. Sans fournisseur, le
+// changement se fait tout de suite.
+export const GardeChangementCompte = createContext<((changer: () => void) => void) | null>(null);
 
 // L'état du dossier SW Exporter (application de bureau — voir
 // bureau/swex.ts), tenu à jour par le processus principal. Deux lecteurs :
@@ -34,5 +39,21 @@ export function useEtatSwex() {
     const e = await faire(s);
     if (e) setEtat(e);
   };
-  return { etat, agir };
+
+  // ⚠️ **Choisir un invocateur, ou un dossier qui en désigne un d'office,
+  // CHANGE DE COMPTE** : l'export qui suit remplace prépa RTA, siège et
+  // « Mon compte ». Ces choix passent donc par la garde, qui propose d'abord
+  // de sauvegarder. Choisir celui déjà suivi ne fait rien.
+  const garde = useContext(GardeChangementCompte);
+  const avecGarde = (faire: Parameters<typeof agir>[0]) => {
+    const changer = () => void agir(faire);
+    if (garde) garde(changer);
+    else changer();
+  };
+  const choisirInvocateur = (fichier: string) => {
+    if (fichier === etat?.fichier) return;
+    avecGarde((s) => s.choisirInvocateur(fichier));
+  };
+  const choisirDossier = () => avecGarde((s) => s.choisirDossier());
+  return { etat, agir, choisirInvocateur, choisirDossier };
 }

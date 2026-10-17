@@ -294,6 +294,7 @@ import { testRenduAccueil, testRenduAccueilBureau, testRenduAccueilEspace } from
 import { testRenduTelecharger } from './rendu/telecharger.test';
 import { testRenduBureauTextes } from './rendu/bureau-textes.test';
 import { testRenduBarreSession } from './rendu/barre-session.test';
+import { testRenduChangementCompte } from './rendu/changement-compte.test';
 import { testRenduIcones } from './rendu/icones.test';
 import { testRenduAttaqueConjointeEcran } from './rendu/attaque-conjointe-ecran.test';
 import { testRenduRecosPage, testRenduRecosEnTete, testRenduRecosDeploiement, testRenduRecosEdition, testRenduRecosVueDefense, testRenduRecosTicks, testRenduRecosAnnulerEdition } from './rendu/recos.test';
@@ -502,6 +503,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRenduTelecharger', testRenduTelecharger],
   ['testRenduBureauTextes', testRenduBureauTextes],
   ['testRenduBarreSession', testRenduBarreSession],
+  ['testRenduChangementCompte', testRenduChangementCompte],
   ['testRenduIcones', testRenduIcones],
   ['testRenduAttaqueConjointeEcran', testRenduAttaqueConjointeEcran],
   ['testRenduRtaPrepa', testRenduRtaPrepa],

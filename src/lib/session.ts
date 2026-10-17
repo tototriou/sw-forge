@@ -191,6 +191,22 @@ export function composerSession(s: SourcesSession): Session {
 // Compact : le compte pèse quelques Mo, l'indentation les doublerait.
 export const ecrireSession = (session: Session): string => JSON.stringify({ ...session, version: VERSION_SESSION });
 
+// ── Changements non enregistrés ─────────────────────────────────────────
+// Avant un changement de compte (application de bureau), l'app propose de
+// sauvegarder si le travail a changé depuis la dernière sauvegarde.
+
+// L'empreinte du TRAVAIL d'une session : tout, sauf sa date, la version de
+// l'app et le compte — un instantané du jeu, que l'export redonne.
+export const empreinteTravail = (s: Session): string => JSON.stringify({ stockage: s.stockage, outils: s.outils });
+
+// `derniere` : l'empreinte de la dernière sauvegarde, `null` sans sauvegarde
+// depuis le lancement. Alors tout travail que le changement de compte
+// remplacerait (`aDuTravail`) compte comme non enregistré : demander pour
+// rien coûte un clic, ne pas demander peut coûter la prépa.
+export function travailNonSauvegarde(empreinte: string, derniere: string | null, aDuTravail: boolean): boolean {
+  return derniere === null ? aDuTravail : empreinte !== derniere;
+}
+
 // `swblacksmith-session-2026-10-06-15h42.json`, à l'heure locale.
 export function nomFichierSession(d: Date): string {
   const n = (x: number) => String(x).padStart(2, '0');

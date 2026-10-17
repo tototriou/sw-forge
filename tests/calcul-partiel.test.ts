@@ -40,7 +40,6 @@ function fiches(): DetailMonstre[] {
 const ATTENDUS: [number, string, 'ignore-def' | 'pas-encore-codee' | 'non-calculee' | 'non-modelisee'][] = [
   [13406, 'Madness Judgement', 'ignore-def'],
   [13410, 'Madness Judgement', 'ignore-def'],
-  [15511, 'Unlimited Power', 'ignore-def'],
   [13611, 'Start of Attacking', 'ignore-def'],
   [7713, 'Thunder Strike', 'ignore-def'],
   [6013, 'Sword of Discharge', 'ignore-def'],
@@ -74,6 +73,7 @@ const ATTENDUS: [number, string, 'ignore-def' | 'pas-encore-codee' | 'non-calcul
 
 // Lignes « calculé » écartées : total complet par décision.
 const ECARTES: [number, string][] = [
+  [15511, 'Unlimited Power — ignore DEF propre au mode « 3 ennemis ou moins », proposé à part'],
   [13407, "Devil's Bargain — part non calculée, la prose se trompe"],
   [13408, "Devil's Bargain — part non calculée"],
   [13409, "Devil's Bargain — part non calculée"],
@@ -100,12 +100,12 @@ function porteurs(id: number) {
 }
 
 export function testCalculPartielTable() {
-  titre('Calcul partiel — la table par identifiant : six ignore DEF comptés, parts décidées pas encore codées, parts non calculées, parts non modélisées');
+  titre('Calcul partiel — la table par identifiant : cinq ignore DEF comptés, parts décidées pas encore codées, parts non calculées, parts non modélisées');
 
   const ids = idsCalculPartiel();
-  egal(ids.length, 32, '32 entrées : 6 (ignore DEF compté) + 15 (part décidée, pas encore codée) + 7 (part non calculée) + 4 (part non modélisée)');
+  egal(ids.length, 31, '31 entrées : 5 (ignore DEF compté) + 15 (part décidée, pas encore codée) + 7 (part non calculée) + 4 (part non modélisée)');
   egal([...ids].sort((a, b) => a - b), ATTENDUS.map(([id]) => id).sort((a, b) => a - b), 'exactement les identifiants attendus');
-  egal(ATTENDUS.filter(([, , s]) => s === 'ignore-def').length, 6, 'six ignore DEF permanents');
+  egal(ATTENDUS.filter(([, , s]) => s === 'ignore-def').length, 5, 'cinq ignore DEF permanents');
   egal(ATTENDUS.filter(([, , s]) => s === 'non-modelisee').length, 4, 'quatre parts non modélisées (Leona ×2, Theonia, Scarlett)');
   for (const [id, raison] of ECARTES) ok(!ids.includes(id), `${id} écarté de la table : ${raison}`);
 

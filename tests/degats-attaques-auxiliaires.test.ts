@@ -21,6 +21,7 @@ import {
   type SkillDamageProfile,
   computeSkillDamageDetail,
   computeTotalDamage,
+  defaultDamageSkill,
   defenseFactor,
   estPrisEnCharge,
   monsterDamageSkills,
@@ -93,6 +94,33 @@ export default function testDegatsAttaquesAuxiliaires() {
       if (!estPrisEnCharge(autre) || autre.skillCom2usId === declencheur) continue;
       ok(!passifPeutSuivre(p, autre), `${forme} : ne suit pas ${autre.nom} (S${autre.slot})`);
     }
+  }
+
+  titre('Mode auxiliaire — Unlimited Power (Liam, 25711) : 4 ennemis ou plus dans la fiche, 3 ou moins à part');
+  {
+    // Valeurs de l'utilisateur (2026-10-17) : 6 coups à 1,5 × ATQ, ignore DEF
+    // linéaire de 0 % à pleine vie à 100 % à 70 % de PV perdus.
+    const detail = fiche(25711);
+    const sorts = monsterDamageSkills(detail).filter(estPrisEnCharge);
+    const fiche4 = sorts.find((s) => s.skillCom2usId === 15511)!;
+    const mode3 = sorts.find((s) => s.skillCom2usId === 15516);
+    egal({ hits: fiche4.hits, aoe: fiche4.aoe, ignoreDef: fiche4.ignoreDef }, { hits: 1, aoe: true, ignoreDef: false },
+      '4 ennemis ou plus : un coup sur tous les ennemis, sans ignore DEF');
+    ok(mode3 !== undefined, '3 ennemis ou moins : proposé comme un sort de plus');
+    if (mode3) {
+      egal(
+        { nom: mode3.nom, slot: mode3.slot, formule: mode3.formule, hits: mode3.hits, aoe: mode3.aoe, ignoreDef: mode3.ignoreDef, regle: mode3.ignoreDefSelonPvCiblePerdus },
+        { nom: 'Unlimited Power — 3 ennemis ou moins', slot: 3, formule: '1.5*{ATK}', hits: 6, aoe: false, ignoreDef: false, regle: { pvPerdusPourTout: 70 } },
+        '3 ennemis ou moins : 6 coups à 1,5 × ATQ sur une cible, ignore DEF selon les PV perdus',
+      );
+      const k = 1 + mode3.skillupDamagePct / 100;
+      const pour = (pv: number) => computeSkillDamageDetail(mode3, st, { ...base, enemyHpPct: pv }, AUCUNE_AURA_PROPRE, null).total;
+      ok(proche(pour(100), 6 * 1.5 * ATQ * k * df), 'PV pleins : aucune DEF ignorée');
+      ok(proche(pour(65), 6 * 1.5 * ATQ * k * defenseFactor(1000 * 0.5)), '35 % de PV perdus : la moitié de la DEF ignorée');
+      ok(proche(pour(30), 6 * 1.5 * ATQ * k * defenseFactor(0)), '70 % de PV perdus : toute la DEF ignorée');
+      ok(proche(pour(10), pour(30)), 'au-delà de 70 % perdus : toujours toute la DEF');
+    }
+    egal(defaultDamageSkill(sorts)?.skillCom2usId, 15511, 'le sort par défaut reste celui de la fiche');
   }
 
   for (const [monstre, forme, passif, formule, zone, skillup] of HORS_TOUR) {

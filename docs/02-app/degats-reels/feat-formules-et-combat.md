@@ -304,9 +304,9 @@ l'écran ne l'écrit jamais lui-même.
 
 - **Affichage seul** : aucun calcul ne lit la table, le total n'en dépend
   pas. Aucune mention sur les cartes de résultats.
-- **Quatre sources, 32 identifiants** : les six ignore DEF comptés en
+- **Quatre sources, 31 identifiants** : les cinq ignore DEF comptés en
   permanence alors que le jeu les conditionne (Madness Judgement ×2,
-  Unlimited Power, Start of Attacking, Thunder Strike, Sword of Discharge —
+  Start of Attacking, Thunder Strike, Sword of Discharge —
   total gardé avec la mention tant que leur condition n'est pas modélisée) ; les sorts
   dont une perte de PV, un bonus selon les PV détruits ou retirés, ou la
   détonation de bombes déjà posées est décidée « comptée » mais pas encore

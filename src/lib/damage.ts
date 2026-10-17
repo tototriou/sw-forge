@@ -2436,6 +2436,15 @@ export interface SkillDamageProfile {
   // même discipline que les autres tables de ce fichier — confirmé par
   // l'utilisateur sur Rigna (126 points, donnée communautaire SWGT).
   ignoreDefSelonVit?: { ecartMax: number };
+  // Ignore une fraction de la DEF proportionnelle aux PV que la cible a
+  // perdus : 0 % à pleine vie, 100 % quand elle a perdu `pvPerdusPourTout` %
+  // de ses PV ou plus. Lue sur les PV de la cible au lancement du sort (« PV
+  // de la cible » saisis), la même pour tous ses coups. Seul porteur : le
+  // mode « 3 ennemis ou moins » d'Unlimited Power (`MODES_PAR_AUXILIAIRE`).
+  ignoreDefSelonPvCiblePerdus?: { pvPerdusPourTout: number };
+  // Vrai = second mode d'un sort, chiffré par sa compétence auxiliaire
+  // (`sortsEnModeAuxiliaire`) : jamais le sort par défaut.
+  modeAuxiliaire?: true;
   // Ignore la DEF COUP PAR COUP, à partir d'un rang que l'utilisateur choisit
   // — les six sorts des Blade Dancers, curés par identifiant
   // (`IGNORE_DEF_A_PARTIR_DU_COUP_PAR_ID`). Distinct d'`ignoreDef` (tout ou
@@ -3212,7 +3221,7 @@ export const SORTS_SANS_ATTAQUE_PAR_ID: ReadonlySet<number> = new Set([
 // celui d'avant ; la table dit seulement ce qu'il ne contient pas.
 //
 // Quatre sources, et rien d'autre :
-//   1. les six ignore DEF permanents :
+//   1. les cinq ignore DEF permanents :
 //      l'effet `Ignore DEF` est compté sur tout le sort alors que le jeu le
 //      conditionne — trop favorable, gardé avec la mention ;
 //   2. les lignes à profil « calculé » encore incomplètes au code actuel :
@@ -3223,7 +3232,7 @@ export const SORTS_SANS_ATTAQUE_PAR_ID: ReadonlySet<number> = new Set([
 //      Jasmine, Daniel, Espresso Cookie feu et ténèbres ; Hibiscus et
 //      Espresso Cookie lumière par la règle des jumeaux collab) :
 //      « n'est pas calculée », sans « encore » ;
-//   4. deux parts connues du jeu, non modélisées, à marquer :
+//   4. les parts connues du jeu, non modélisées, à marquer :
 //      l'équilibrage ATQ/DEF
 //      d'Internal Force sur les deux sorts de dégâts de Leona, et le bonus
 //      de VIT de Summary Justice (Theonia) : « pas encore compté ».
@@ -3238,7 +3247,6 @@ const CALCUL_PARTIEL_PAR_ID: Readonly<Record<number, string>> = {
   // ── Ignore DEF compté en permanence ──
   13406: 'L’ignore DEF est compté en entier, en permanence ; la part du jeu, qui grandit quand tes PV baissent, n’est pas encore modélisée.', // Madness Judgement (Belial)
   13410: 'L’ignore DEF est compté en entier, en permanence ; la part du jeu, qui grandit quand tes PV baissent, n’est pas encore modélisée.', // Madness Judgement (Beelzebub)
-  15511: 'L’ignore DEF est compté en entier, en permanence ; la condition du jeu (3 ennemis ou moins, jusqu’à 100 % selon les PV de la cible) n’est pas encore modélisée.', // Unlimited Power (Liam)
   13611: 'L’ignore DEF est compté en entier, en permanence ; la condition du jeu (35 % par effet bénéfique retiré par la bête) n’est pas encore modélisée.', // Start of Attacking (Barbara)
   7713: 'L’ignore DEF est compté en permanence ; la condition du jeu (DEF de la cible sous 50 % de la tienne) n’est pas encore modélisée.', // Thunder Strike (Copper éveillé, sans second éveil)
   6013: 'L’ignore DEF est compté en permanence ; la condition du jeu (sort lancé sous Invincibilité) n’est pas encore modélisée.', // Sword of Discharge (Katarina)
@@ -3311,6 +3319,8 @@ export function clesDesTablesParId(): Record<string, number[]> {
     SORTS_DES_FAMILLES_COOPERATIVES_PAR_ID: [...SORTS_DES_FAMILLES_COOPERATIVES_PAR_ID],
     ALLY_ATTACK_SANS_ATTAQUE_DU_MONSTRE_PAR_ID: [...ALLY_ATTACK_SANS_ATTAQUE_DU_MONSTRE_PAR_ID],
     ATTAQUES_AUXILIAIRES_PAR_DECLENCHEUR: cles(ATTAQUES_AUXILIAIRES_PAR_DECLENCHEUR),
+    MODES_PAR_AUXILIAIRE: cles(MODES_PAR_AUXILIAIRE),
+    COUPS_DU_MODE_DE_LA_FICHE_PAR_ID: cles(COUPS_DU_MODE_DE_LA_FICHE_PAR_ID),
   };
 }
 
@@ -3436,7 +3446,17 @@ const IGNORE_DEF_COMPLET_CONNUS = new Set(['Hero Strike', 'Strike of Fighter']);
 const IGNORE_DEF_CONDITIONNEL_PAR_ID = new Set([
   7001, 7002, 7003, 7004, 7005, 3311, 8215, 6815,
   7808, 7810, 7763, 15907, 15908, 15910, 19215, 19615, 5315,
+  // Unlimited Power (Liam) : l'ignore DEF n'appartient qu'au mode « 3 ennemis
+  // ou moins », proposé à part (`MODES_PAR_AUXILIAIRE`) ; le sort de la fiche
+  // (4 ennemis ou plus) n'en a pas.
+  15511,
 ]);
+
+// Coups du sort tel que la fiche le décrit quand son `coups` appartient à un
+// autre mode : Unlimited Power (Liam) frappe tous les ennemis une fois avec 4
+// ennemis ou plus ; ses 6 coups sont ceux du mode « 3 ennemis ou moins »
+// (`MODES_PAR_AUXILIAIRE`).
+const COUPS_DU_MODE_DE_LA_FICHE_PAR_ID: Record<number, number> = { 15511: 1 };
 
 // ── Ignore DEF à partir d'un coup choisi — les Blade Dancers ──
 //
@@ -3522,7 +3542,8 @@ const COUPS_FIXES_CORRIGES: Record<string, number> = {
 const COUPS_FIXES_CORRIGES_PAR_ID: Record<number, number> = {};
 
 function coupsFixesCorrigesDe(c: { com2usId: number | null; nom: string }): number | undefined {
-  return (c.com2usId == null ? undefined : COUPS_FIXES_CORRIGES_PAR_ID[c.com2usId]) ?? COUPS_FIXES_CORRIGES[c.nom];
+  return (c.com2usId == null ? undefined : COUPS_FIXES_CORRIGES_PAR_ID[c.com2usId] ?? COUPS_DU_MODE_DE_LA_FICHE_PAR_ID[c.com2usId]) ??
+    COUPS_FIXES_CORRIGES[c.nom];
 }
 
 // Sorts dont les coups n'ont PAS tous la même formule ni la même portée.
@@ -4792,6 +4813,61 @@ function sortsCooperatifsQuiAppellentDeLaFiche(detail: DetailMonstre): SkillDama
   return out;
 }
 
+// Le second MODE d'un sort, chiffré par sa compétence auxiliaire : le sort
+// change de forme selon une situation que l'utilisateur choisit, et la fiche
+// ne décrit que l'un des deux. Le mode est proposé comme un sort de plus dans
+// « Compétence utilisée », sous le libellé `libelle` ; son profil est celui de
+// l'auxiliaire (formule, améliorations), avec les coups, la portée et l'ignore
+// DEF du mode, qu'elle ne porte pas.
+//
+// Unlimited Power — Liam (25711) : « Attacks all enemies … if there are 4 or
+// more enemies … Attacks the selected target 6 times if there are 3 or fewer
+// enemies and deals damage that ignores Defense up to 100% the lower the
+// target's current HP. » Avec 3 ennemis ou moins : 6 coups à 1,5 × ATQ
+// (auxiliaire 15516), ignore DEF linéaire de 0 % (PV pleins) à 100 % (70 % de
+// PV perdus) — utilisateur, 2026-10-17 (valeurs-de-jeu-curees.md).
+interface ModeAuxiliaire {
+  libelle: string;
+  coups: number;
+  zone: boolean;
+  ignoreDefSelonPvCiblePerdus?: { pvPerdusPourTout: number };
+}
+const MODES_PAR_AUXILIAIRE: Readonly<Record<number, ModeAuxiliaire>> = {
+  15511: { libelle: 'Unlimited Power — 3 ennemis ou moins', coups: 6, zone: false, ignoreDefSelonPvCiblePerdus: { pvPerdusPourTout: 70 } },
+};
+
+/**
+ * Les modes à auxiliaire de cette fiche (`MODES_PAR_AUXILIAIRE`), chacun rendu
+ * comme un sort de « Compétence utilisée » sous l'identifiant de l'auxiliaire
+ * (la recette le garde), au slot du sort, avec sa prose et son icône. Gardes,
+ * chacune écarte le mode en silence : sort passif, auxiliaire absente, ambiguë
+ * ou sans profil calculable.
+ */
+function sortsEnModeAuxiliaire(detail: DetailMonstre): SkillDamageProfile[] {
+  const out: SkillDamageProfile[] = [];
+  for (const c of detail.competences) {
+    const mode = c.com2usId == null ? undefined : MODES_PAR_AUXILIAIRE[c.com2usId];
+    if (!mode || c.passif) continue;
+    const aFormule = (c.auxiliaires ?? []).filter((a) => a.sens === 'versCeSort' && (a.competence.formule ?? '').trim());
+    if (aFormule.length !== 1 || aFormule[0].competence.passif) continue;
+    const profil = skillDamageProfile(aFormule[0].competence);
+    if (!profil || !estPrisEnCharge(profil)) continue;
+    out.push({
+      ...profil,
+      slot: c.slot ?? profil.slot,
+      nom: mode.libelle,
+      description: c.description,
+      icone: c.icone,
+      hits: mode.coups,
+      aoe: mode.zone,
+      ignoreDef: false,
+      ...(mode.ignoreDefSelonPvCiblePerdus ? { ignoreDefSelonPvCiblePerdus: mode.ignoreDefSelonPvCiblePerdus } : {}),
+      modeAuxiliaire: true,
+    });
+  }
+  return out;
+}
+
 /**
  * Les sorts de l'AUTRE FORME d'un monstre à deux formes, que la fiche ne liste
  * pas : la compétence auxiliaire liée en `mutuel` à un sort sans dégâts.
@@ -4851,6 +4927,7 @@ export function monsterDamageSkills(detail: DetailMonstre | null): (SkillDamageP
     if (p) out.push(p);
   }
   out.push(...sortsDeLAutreForme(detail));
+  out.push(...sortsEnModeAuxiliaire(detail));
   out.push(...sortsCooperatifsQuiAppellentDeLaFiche(detail));
   for (const p of monsterOffensivePassives(detail)) {
     if (p.selectionnableCommeSort) out.push(p.profile);
@@ -4873,9 +4950,13 @@ export function monsterDamageSkills(detail: DetailMonstre | null): (SkillDamageP
  * Attack Command de Lisa au slot 3) : le défaut reste celui d'avant son
  * entrée dans la liste (S2 pour Lisa et Moria). Le changer est une décision
  * de l'utilisateur, jamais un effet de bord de l'ordre des slots.
+ *
+ * ⚠️ **Ni le second mode d'un sort** (`modeAuxiliaire`, Unlimited Power à 3
+ * ennemis ou moins) : le défaut reste le sort tel que la fiche le décrit.
  */
 export function defaultDamageSkill(skills: (SkillDamageProfile | SkillDamageUnsupported)[]): SkillDamageProfile | null {
-  const ok = skills.filter((s): s is SkillDamageProfile => estPrisEnCharge(s) && !s.passif && !s.appeleParSortCooperatif);
+  const ok = skills.filter((s): s is SkillDamageProfile =>
+    estPrisEnCharge(s) && !s.passif && !s.appeleParSortCooperatif && !s.modeAuxiliaire);
   return ok.length > 0 ? ok[ok.length - 1] : null;
 }
 
@@ -6372,7 +6453,10 @@ export function computeSkillDamageDetail(
       conditionIgnoreDefPct([p.condition], setup, p.skillCom2usId, element, pctDepart, combat)
     )
   ) / 100;
-  const fractionIgnoree = Math.max(fractionIgnoreeSelonVit, fractionIgnoreeConditionnelle);
+  const fractionIgnoreeSelonPvPerdus = profile.ignoreDefSelonPvCiblePerdus
+    ? Math.min(1, Math.max(0, (100 - pctDepart) / profile.ignoreDefSelonPvCiblePerdus.pvPerdusPourTout))
+    : 0;
+  const fractionIgnoree = Math.max(fractionIgnoreeSelonVit, fractionIgnoreeConditionnelle, fractionIgnoreeSelonPvPerdus);
   // Deborah (« Blacksmith's Discernment ») amplifie la RÉDUCTION d'une
   // réduction de DEF déjà active — jamais une réduction à elle seule (sans
   // `defBreak`, rien à amplifier). `1 − (1 − DEF_BREAK_FACTOR) × 1,30`,

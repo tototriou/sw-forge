@@ -94,6 +94,31 @@ choisi seul, sans le Horn lancé avant dans le même tour.
 Un sort de la fiche qui a déjà un profil n'est jamais remplacé, et un lien
 qui n'est pas `mutuel` ne donne aucun sort. Test : `testDegatsAutreForme`.
 
+## Le second mode d'un sort — Unlimited Power
+
+Unlimited Power (Liam `25711`, `15511`) change de forme selon le nombre
+d'ennemis, et sa fiche mêle les deux : la formule du mode « 4 ennemis ou
+plus », les 6 coups et l'ignore DEF du mode « 3 ennemis ou moins ».
+
+| Choix dans « Compétence utilisée » | Formule | Coups, portée | Ignore DEF |
+| --- | --- | --- | --- |
+| « Unlimited Power » (la fiche, sort par défaut) | `{ATK}*(2.5*{Target Current HP %} + 3.5)` | 1, zone | aucun |
+| « Unlimited Power — 3 ennemis ou moins » (`15516`) | `1.5*{ATK}` (auxiliaire) | 6, mono-cible | linéaire selon les PV perdus par la cible : 0 % à pleine vie, 100 % à 70 % de PV perdus et au-delà |
+
+Le second mode est proposé comme un sort de plus (`MODES_PAR_AUXILIAIRE`,
+`sortsEnModeAuxiliaire`), sous l'identifiant de l'auxiliaire, que la
+recette garde ; il n'est jamais le sort par défaut (`modeAuxiliaire`). Les
+coups de la fiche sont ramenés à un (`COUPS_DU_MODE_DE_LA_FICHE_PAR_ID`) et
+son ignore DEF retiré (`IGNORE_DEF_CONDITIONNEL_PAR_ID`). Valeurs de
+l'utilisateur ([valeurs curées](valeurs-de-jeu-curees.md), « Unlimited
+Power »).
+
+⚠️ **Approximation, nommée** : la fraction de DEF ignorée
+(`ignoreDefSelonPvCiblePerdus`) se lit sur les PV de la cible au lancement
+du sort (« PV de la cible » saisis) et vaut pour les six coups ; le jeu la
+recalcule sans doute coup par coup, à mesure que la cible perd ses PV —
+le calcul est donc un peu pessimiste sur les derniers coups.
+
 ## Les attaques en plus, après un sort
 
 Une attaque que la prose annonce sous condition, chiffrée par l'auxiliaire

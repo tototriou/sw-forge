@@ -70,3 +70,26 @@ Emily, M. BISON, Sagar, Kuna). La séquence est curée
 l'auxiliaire au lieu de le recopier. Table et règles :
 [feat-sequences-de-coups.md](feat-sequences-de-coups.md#séquences-à-valeur-de-lapi).
 Tests : `testDegatsSequencesApi`, `testDegatsSequencesAuxiliaire`.
+
+## Les sorts de l'autre forme — anges jumeaux
+
+La fiche des cinq paires d'anges jumeaux (Ramael et Judiah, Karuel et Lanoah,
+Sadiel et Zeryah, Miruel et Graciah, Jaduel et Aepiah) ne liste que les
+« Horn of… » de leur forme de soutien, qui n'infligent aucun dégât. Chaque
+Horn est lié en `mutuel` au tir de la forme archer du même slot ; ce tir est
+proposé dans « Compétence utilisée » à la place du Horn
+(`sortsDeLAutreForme`), avec son propre profil : identifiant, slot, ratio,
+coups, portée, améliorations. Décision de l'utilisateur
+([valeurs curées](valeurs-de-jeu-curees.md), « Anges jumeaux ») : le tir est
+choisi seul, sans le Horn lancé avant dans le même tour.
+
+| Monstre | S1 | S2 | S3 (sort par défaut) |
+| --- | --- | --- | --- |
+| Ramael et Judiah `29111` | Aim Shot `3.8*{ATK}` | Scatter Shot `2.8*{ATK}`, zone | Focus Shot `2.1*{ATK}` ×3 |
+| Karuel et Lanoah `29112` | Aim Shot `3.8*{ATK}` | Multiple Shot `1.6*{ATK}` ×3 | Continuous Shot `1.7*{ATK}` ×5 |
+| Sadiel et Zeryah `29113` | Aim Shot `3.8*{ATK}` | Scatter Shot `2.8*{ATK}`, zone | Charge Shot `4.2*{ATK}`, zone |
+| Miruel et Graciah `29114` | Aim Shot `3.8*{ATK}` | Multiple Shot `1.6*{ATK}` ×3 | Barrage Shot `1.4*{ATK}` ×3, zone |
+| Jaduel et Aepiah `29115` | Aim Shot `3.8*{ATK}` | Scatter Shot `2.8*{ATK}`, zone | Air Shot `2.3*{ATK}` ×2, zone |
+
+Un sort de la fiche qui a déjà un profil n'est jamais remplacé, et un lien
+qui n'est pas `mutuel` ne donne aucun sort. Test : `testDegatsAutreForme`.

@@ -4678,6 +4678,35 @@ function sortsCooperatifsQuiAppellentDeLaFiche(detail: DetailMonstre): SkillDama
 }
 
 /**
+ * Les sorts de l'AUTRE FORME d'un monstre à deux formes, que la fiche ne liste
+ * pas : la compétence auxiliaire liée en `mutuel` à un sort sans dégâts.
+ *
+ * Les anges jumeaux (Ramael et Judiah, Karuel et Lanoah…) n'ont dans leur fiche
+ * que les « Horn of… » de leur forme de soutien, sans dégât ; chacun est lié en
+ * `mutuel` au tir de la forme archer du même slot (Aim Shot, Focus Shot…).
+ * Décision de l'utilisateur (valeurs-de-jeu-curees.md, « Anges jumeaux ») :
+ * le sort de l'archer est choisi seul, sans tenir compte du Horn lancé avant.
+ * Son profil est celui de sa propre compétence (`skillDamageProfile`) :
+ * identifiant, slot, formule, coups, portée, améliorations.
+ *
+ * Gardes, chacune écarte le sort en silence : le sort de la fiche a déjà un
+ * profil (un sort qui frappe n'est pas remplacé), ou il est passif ; la
+ * compétence liée est passive ou sans profil.
+ */
+function sortsDeLAutreForme(detail: DetailMonstre): (SkillDamageProfile | SkillDamageUnsupported)[] {
+  const out: (SkillDamageProfile | SkillDamageUnsupported)[] = [];
+  for (const c of detail.competences) {
+    if (c.passif || skillDamageProfile(c) !== null) continue;
+    for (const aux of c.auxiliaires ?? []) {
+      if (aux.sens !== 'mutuel' || aux.competence.passif) continue;
+      const p = skillDamageProfile(aux.competence);
+      if (p) out.push(p);
+    }
+  }
+  return out;
+}
+
+/**
  * Les sorts offensifs d'un monstre, dans l'ordre des slots — pris en charge
  * ou non. Liste vide si la fiche du monstre est absente (monstre perso,
  * données non générées) : l'objectif « Dégâts réels » est alors indisponible,
@@ -4691,6 +4720,9 @@ function sortsCooperatifsQuiAppellentDeLaFiche(detail: DetailMonstre): SkillDama
  * Défense saisis, au lieu de ceux que le sort laisse) — sans 411 dans les
  * deux cas (voir `computeTotalDamage`).
  *
+ * ⚠️ **Plus les sorts de l'autre forme** des monstres à deux formes (les tirs
+ * de la forme archer des anges jumeaux) : `sortsDeLAutreForme`.
+ *
  * ⚠️ **Plus les sorts coopératifs sans dégâts propres qui appellent le S1**
  * (Attack Command de Lisa, Concentrated Attack de Moria), au slot du
  * déclencheur : `sortsCooperatifsQuiAppellentDeLaFiche`. Sans eux, ces sorts
@@ -4703,6 +4735,7 @@ export function monsterDamageSkills(detail: DetailMonstre | null): (SkillDamageP
     const p = skillDamageProfile(c);
     if (p) out.push(p);
   }
+  out.push(...sortsDeLAutreForme(detail));
   out.push(...sortsCooperatifsQuiAppellentDeLaFiche(detail));
   for (const p of monsterOffensivePassives(detail)) {
     if (p.selectionnableCommeSort) out.push(p.profile);

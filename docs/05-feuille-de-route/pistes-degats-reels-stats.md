@@ -267,8 +267,9 @@ les coups. La forme d'une piste et des relevés en jeu est celle de
 - **Idée** : la forme choisissable dans la modale, puisqu'elle change les
   sorts disponibles, et jamais comme une entrée de plus de l'Optimizer :
   Lord of Hell (runes et ATQ de Liliana, puis +50 %), Bellenus, Taranys,
-  Pater, Beast Riders, Indra. Anges jumeaux : le sort de la forme archer
-  choisi seul, sans le Horn lancé avant ([02-app/degats-reels/](../02-app/degats-reels/)).
+  Pater, Beast Riders, Indra. Les anges jumeaux n'en dépendent pas : les
+  tirs de leur forme archer sont déjà proposés seuls
+  ([02-app/degats-reels/feat-competences-auxiliaires.md](../02-app/degats-reels/feat-competences-auxiliaires.md)).
 - **Bloque** : un changement de code ; l'assiette des passifs de forme
   (piste « Assiette des « +X % » de passif »).
 

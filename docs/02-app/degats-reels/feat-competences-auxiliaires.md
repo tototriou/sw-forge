@@ -136,7 +136,8 @@ sort ».
 | Exploding Hands (S3) · Jackie `20215` | `7.4*{ATK}` (11016), +20 % | après le S3 | l'étourdissement de ce sort réussit | prose ; une répétition sans nouvel étourdissement : utilisateur, 2026-09-23 |
 | Shadow of Right Arm (S2) · Minato `25911`, Ritsu `25915` | `4.5*{ATK}` (15716, 15720), +25 % | **avant** le S1 ou le S2 | tu es en état de Menace et l'ennemi t'attaque d'un sort mono-cible | utilisateur, 2026-10-17 |
 | Shadow of Right Arm (S2) · Ren `25912` | `4.5*{ATK}` (15717), +25 % | **avant** le S1, le S2 ou le S3 | idem | utilisateur, 2026-10-17 |
-| Guilty Sentence (S2) · Theonia `34215` | `3.3*{ATK}` (23517), +25 % | après le S2 | ta cible est l'ennemi à la plus faible DEF | prose et API ; Agrenia et Driana (`23507`, `23508`) n'ont pas d'auxiliaire |
+| Guilty Sentence (S2) · Theonia `34215` | `3.3*{ATK}` (23517), +25 % | après le S2 | ta cible est l'ennemi à la plus faible DEF | prose et API |
+| Guilty Sentence (S2) · Agrenia `34212`, Driana `34213` | `3.3*{ATK}`, l'auxiliaire 23517 de Theonia **empruntée** (`auxiliaireEmpruntee`), +25 % | après le S2 | idem | l'API ne leur en donne pas : utilisateur, 2026-10-17 |
 
 ⚠️ **Non établi, nommé** : les améliorations de l'auxiliaire s'appliquent à
 l'attaque en plus ; un relevé de la répétition d'Exploding Hands sur son

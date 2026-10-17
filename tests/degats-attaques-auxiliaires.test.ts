@@ -59,6 +59,9 @@ const DECLENCHEES: [string, number, number, number[], boolean, number, number, n
   ['Ren', 25912, 15707, [1, 2, 3], true, 15717, 4.5, 25, 'Shadow of Right Arm — attaque en Menace'],
   ['Ritsu', 25915, 15710, [1, 2], true, 15720, 4.5, 25, 'Shadow of Right Arm — attaque en Menace'],
   ['Theonia', 34215, 23510, [2], false, 23517, 3.3, 25, 'Guilty Sentence — attaque sur la DEF la plus faible'],
+  // Sans auxiliaire dans l'API : celle de Theonia, empruntée (utilisateur, 2026-10-17).
+  ['Agrenia', 34212, 23507, [2], false, 23517, 3.3, 25, 'Guilty Sentence — attaque sur la DEF la plus faible'],
+  ['Driana', 34213, 23508, [2], false, 23517, 3.3, 25, 'Guilty Sentence — attaque sur la DEF la plus faible'],
 ];
 
 // [monstre, forme, passif, formule, zone, skillups %]

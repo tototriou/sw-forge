@@ -61,7 +61,7 @@ groupes. Pour Blade Surge, l’empreinte (`0.5*{ATK}`, `coups: 2`,
 Cinq candidats écartés (`11015`, `18314`, `23507`, `23508`, `23510`)
 restent hors table, comme les sorts voisins de même catégorie, d’une autre
 mécanique : le coup en plus d'Exploding Hands (`11015`) et de Guilty
-Sentence de Theonia (`23510`) s'ajoute sur interrupteur
+Sentence (`23507`, `23508`, `23510`) s'ajoute sur interrupteur
 ([compétences auxiliaires](feat-competences-auxiliaires.md)).
 
 ### Séquences à valeur de l’API

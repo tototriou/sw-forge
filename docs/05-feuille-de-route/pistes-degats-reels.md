@@ -189,18 +189,14 @@ codée porte « Calcul partiel »
   (`23115`, Duke), ni Oathbreakers (`23815`, Aragorn) et Spirits of Wolf
   Warriors (`24315`, Night Fang), ni Triple Combo (`13913`, RYU vent) et
   Triple Crush (`14413`, Kashmir), chaque paire de jumeaux de même prose,
-  ni Explosive Bullet, Tempest Sword (`10613`) ou le Guilty Sentence
-  d'Agrenia et de Driana (`23507`, `23508`, sans compétence auxiliaire ;
-  celui de Theonia, `23510`, a son coup en plus par la sienne) : leur phase
-  que la donnée ne chiffre pas manque au total.
+  ni Explosive Bullet ou Tempest Sword (`10613`) : leur phase que la donnée
+  ne chiffre pas manque au total. (Le coup en plus de Guilty Sentence
+  s'ajoute sur interrupteur :
+  [02-app/degats-reels/feat-competences-auxiliaires.md](../02-app/degats-reels/feat-competences-auxiliaires.md).)
 - **Idée** : une séquence curée par sort
   ([02-app/degats-reels/feat-sequences-de-coups.md § La séquence curée — une table par identifiant](../02-app/degats-reels/feat-sequences-de-coups.md#la-séquence-curée--une-table-par-identifiant)).
   Tempest Sword : troisième coup au ratio des deux premiers (valeur
-  fournie). Guilty Sentence : une question « ta cible a-t-elle la DEF la
-  plus faible ? » (oui : deux coups ; non : le coup de zone seul), comme
-  l'interrupteur de Theonia
-  ([02-app/degats-reels/feat-competences-auxiliaires.md](../02-app/degats-reels/feat-competences-auxiliaires.md)).
-  Un effet posé entre deux groupes se règle par le
+  fournie). Un effet posé entre deux groupes se règle par le
   choix « après quel coup ».
 - **Bloque** : des relevés, chacun sur la cible visée ; une mesure vaut
   pour une paire de jumeaux. Shoulder Smash ou Triple Break Combo, coup 3
@@ -208,9 +204,7 @@ codée porte « Calcul partiel »
   Oathbreakers ou Spirits of Wolf Warriors, chaque coup de zone / coup 1.
   Triple Combo ou Triple Crush, coup 3 / coup 2 avec la Brise DEF du
   coup 1 posée : 1,00 à 2 % → aucun coefficient final. Explosive Bullet,
-  chaque phase / S1 Cross Fire. Guilty Sentence
-  d'Agrenia et de Driana, coup 2 / coup 1 sur l'ennemi de plus faible DEF
-  non touché par la Brise DEF : 3,3 ou 3,2.
+  chaque phase / S1 Cross Fire.
 
 ### Skillups des séquences à valeur de l'API
 

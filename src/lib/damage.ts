@@ -4695,6 +4695,11 @@ interface AttaqueAuxiliaireConnue {
   slots?: readonly number[];
   // L'attaque frappe AVANT le sort choisi (voir `PassifOffensifProfile.avantLeSort`).
   avantLeSort?: true;
+  // Pour un déclencheur SANS auxiliaire dans l'API : celle d'un homonyme,
+  // empruntée sur décision de l'utilisateur, jamais par ressemblance. Le
+  // profil prend son identifiant et sa formule, un coup, sur une cible, et
+  // les améliorations du déclencheur.
+  auxiliaireEmpruntee?: { com2usId: number; formule: string };
 }
 export const ATTAQUES_AUXILIAIRES_PAR_DECLENCHEUR: Readonly<Record<number, AttaqueAuxiliaireConnue>> = {
   // Exploding Hands — Jackie (20215) : « Attacks once more if the target is
@@ -4732,12 +4737,25 @@ export const ATTAQUES_AUXILIAIRES_PAR_DECLENCHEUR: Readonly<Record<number, Attaq
   },
   // Guilty Sentence — Theonia (34215) : « Attacks all enemies … In addition,
   // attacks the enemy with the lowest Defense ». Auxiliaire 23517
-  // `3.3*{ATK}`. Agrenia et Driana (23507, 23508), même prose, n'ont pas
-  // d'auxiliaire : hors table, la valeur ne se déduit pas de Theonia.
+  // `3.3*{ATK}`. Agrenia (34212) et Driana (34213), même prose et mêmes
+  // améliorations, n'ont pas d'auxiliaire dans l'API : celle de Theonia vaut
+  // pour elles (utilisateur, 2026-10-17).
   23510: {
     libelle: 'Guilty Sentence — attaque sur la DEF la plus faible',
     condition: 'ta cible est l’ennemi à la plus faible DEF',
     source: 'prose et auxiliaire 23517 (valeur de l’API par défaut)',
+  },
+  23507: {
+    libelle: 'Guilty Sentence — attaque sur la DEF la plus faible',
+    condition: 'ta cible est l’ennemi à la plus faible DEF',
+    source: 'auxiliaire 23517 de Theonia : utilisateur, 2026-10-17',
+    auxiliaireEmpruntee: { com2usId: 23517, formule: '3.3*{ATK}' },
+  },
+  23508: {
+    libelle: 'Guilty Sentence — attaque sur la DEF la plus faible',
+    condition: 'ta cible est l’ennemi à la plus faible DEF',
+    source: 'auxiliaire 23517 de Theonia : utilisateur, 2026-10-17',
+    auxiliaireEmpruntee: { com2usId: 23517, formule: '3.3*{ATK}' },
   },
 };
 
@@ -4761,8 +4779,15 @@ function attaquesAuxiliairesDeLaFiche(detail: DetailMonstre): PassifOffensifProf
     if (!connue) continue;
     if (detail.competences.filter((k) => k.slot === declencheur.slot).length !== 1) continue;
     const aFormule = (declencheur.auxiliaires ?? []).filter((a) => a.sens === 'versCeSort' && (a.competence.formule ?? '').trim());
-    if (aFormule.length !== 1 || aFormule[0].competence.passif) continue;
-    const profil = skillDamageProfile(aFormule[0].competence);
+    const emprunt = connue.auxiliaireEmpruntee;
+    const attaque: Competence | undefined =
+      aFormule.length === 1
+        ? aFormule[0].competence
+        : aFormule.length === 0 && emprunt
+          ? { ...declencheur, com2usId: emprunt.com2usId, formule: emprunt.formule, coups: 1, aoe: false, effets: [], auxiliaires: undefined }
+          : undefined;
+    if (!attaque || attaque.passif) continue;
+    const profil = skillDamageProfile(attaque);
     if (!profil || !estPrisEnCharge(profil)) continue;
     const nomme = { ...profil, nom: connue.libelle, description: declencheur.description, icone: declencheur.icone };
     out.push({

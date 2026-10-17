@@ -72,10 +72,11 @@ Un sort nouveau de ces familles n'y entre que par curation.
 
 ⚠️ **« À formule » désigne la formule que retient le calcul** : celle des
 formules curées par identifiant (`FORMULES_CUREES_PAR_ID`), sinon celle de
-la fiche (décision de l'utilisateur). Un sort à effet `Ally Attack` sans
-formule dans sa fiche, mais doté d'un ratio curé, est donc conjoint :
-Purification, Cooperation! et Rite of Ashes (plus bas, « Conjoints par
-leur formule curée »).
+la fiche, sinon celle de sa [compétence auxiliaire](feat-competences-auxiliaires.md)
+(décision de l'utilisateur). Un sort à effet `Ally Attack` sans formule dans
+sa fiche, mais doté d'un ratio par son auxiliaire, est donc conjoint :
+Purification, Cooperation! et Rite of Ashes (plus bas, « Conjoints par la
+formule de leur auxiliaire »).
 
 - **Un sort coopératif l'est toujours**, quel que soit le chemin : choisi,
   ou appelé après un autre sort ; une attaque des deux familles, allumée,
@@ -277,15 +278,15 @@ haut).
 Un identifiant, jamais un nom : Cutting Magic de Lisa et de Neostone Agent
 feu (`10907`, même nom, même ratio) n'est pas inclus.
 
-### Conjoints par leur formule curée (2)
+### Conjoints par la formule de leur auxiliaire (2)
 
 | Identifiant | Sort | Monstre | Formule retenue |
 | --- | --- | --- | --- |
 | `21415` | Purification, Cooperation! (S3) | Nezuko Kamado ténèbres | `4.5*{ATK}`, l'attaque du monstre seule |
 | `22015` | Rite of Ashes (S3) | Vermilion Bird Dancer ténèbres | `4.5*{ATK}`, l'attaque du monstre seule |
 
-Leur fiche porte l'effet `Ally Attack` sans formule ; le ratio vient des
-formules curées, et la règle le lit (décision de l'utilisateur). Contexte
+Leur fiche porte l'effet `Ally Attack` sans formule ; le ratio vient de leur
+compétence auxiliaire, et la règle le lit (décision de l'utilisateur). Contexte
 `propre` : 224 selon la portée, 411 sur le premier coup.
 
 ### Table d'exclusion (2)
@@ -313,12 +314,12 @@ inscrit à `tests/index.ts` (`node tests/run.mjs attaquesconjointes`). Les
 libellés qui figent une décision de l'utilisateur le disent.
 
 - `testAttaquesConjointesRegle` — sur le corpus entier : la règle prend
-  exactement les 24 sorts coopératifs (effet `Ally Attack`, formule curée,
-  inclusion) ; la table des deux familles est celle des sorts actifs à
+  exactement les 24 sorts coopératifs (effet `Ally Attack`, formule de
+  l'auxiliaire, inclusion) ; la table des deux familles est celle des sorts actifs à
   formule de leurs 21 fiches, et aucun de ses 22 sorts n'est toujours
   conjoint ; chaque entrée de la table d'inclusion est nécessaire (la donnée
-  ne porte pas l'effet), les deux sorts à formule curée n'ont pas de
-  formule de donnée, chaque exclusion tient même face à une donnée qui
+  ne porte pas l'effet), les deux sorts à formule d'auxiliaire n'ont pas de
+  formule dans leur fiche, chaque exclusion tient même face à une donnée qui
   prêterait une formule au passif ; les cas non conjoints ci-dessus ; les
   deux marqueurs du profil valent leur règle, jamais ensemble ; les sorts de
   slot 1 des deux familles sont les 10 S1 écrits à la main, la seconde

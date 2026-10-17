@@ -2438,8 +2438,8 @@ export interface SkillDamageProfile {
   ignoreDefSelonVit?: { ecartMax: number };
   // Ignore une fraction de la DEF proportionnelle aux PV que la cible a
   // perdus : 0 % à pleine vie, 100 % quand elle a perdu `pvPerdusPourTout` %
-  // de ses PV ou plus. Lue sur les PV de la cible au lancement du sort (« PV
-  // de la cible » saisis), la même pour tous ses coups. Seul porteur : le
+  // de ses PV ou plus. Recalculée à chaque coup sur les PV que les coups
+  // précédents laissent, depuis les « PV restants » saisis. Seul porteur : le
   // mode « 3 ennemis ou moins » d'Unlimited Power (`MODES_PAR_AUXILIAIRE`).
   ignoreDefSelonPvCiblePerdus?: { pvPerdusPourTout: number };
   // Vrai = second mode d'un sort, chiffré par sa compétence auxiliaire
@@ -6453,10 +6453,14 @@ export function computeSkillDamageDetail(
       conditionIgnoreDefPct([p.condition], setup, p.skillCom2usId, element, pctDepart, combat)
     )
   ) / 100;
-  const fractionIgnoreeSelonPvPerdus = profile.ignoreDefSelonPvCiblePerdus
-    ? Math.min(1, Math.max(0, (100 - pctDepart) / profile.ignoreDefSelonPvCiblePerdus.pvPerdusPourTout))
-    : 0;
-  const fractionIgnoree = Math.max(fractionIgnoreeSelonVit, fractionIgnoreeConditionnelle, fractionIgnoreeSelonPvPerdus);
+  // Selon les PV perdus par la cible (Unlimited Power à 3 ennemis ou moins) :
+  // recalculée à CHAQUE coup sur les PV que les coups précédents ont laissés
+  // (chemin séquentiel, plus bas) ; ici, la valeur du premier coup.
+  const fractionSelonPvPerdus = (pvPct: number) =>
+    profile.ignoreDefSelonPvCiblePerdus
+      ? Math.min(1, Math.max(0, (100 - pvPct) / profile.ignoreDefSelonPvCiblePerdus.pvPerdusPourTout))
+      : 0;
+  const fractionIgnoree = Math.max(fractionIgnoreeSelonVit, fractionIgnoreeConditionnelle, fractionSelonPvPerdus(pctDepart));
   // Deborah (« Blacksmith's Discernment ») amplifie la RÉDUCTION d'une
   // réduction de DEF déjà active — jamais une réduction à elle seule (sans
   // `defBreak`, rien à amplifier). `1 − (1 − DEF_BREAK_FACTOR) × 1,30`,
@@ -6769,7 +6773,7 @@ export function computeSkillDamageDetail(
   // évaluation, exactement comme avant l'ajout de la simulation.
   const formuleLitPvCible = profile.variables.includes('Target Current HP %');
 
-  if (!formuleLitPvCible && !artefactsVarientParCoup) {
+  if (!formuleLitPvCible && !artefactsVarientParCoup && !ignoreDefParCoup) {
     const mult = evaluer(profile.noeud, valeurs) + ajoutParCoup;
     if (mult <= 0 && degatsBrutParCoup <= 0) return { total: 0, additionnel: 0, fixeProtege: 0, pvRestantsPct: pctDepart };
     // ⚠️ Le terme brut est DANS le `×coups`, plus ajouté à côté : les deux
@@ -6795,14 +6799,26 @@ export function computeSkillDamageDetail(
   // ⚠️ Si la FORMULE ne lit pas les PV de la cible, son multiplicateur est
   // constant : on l'évalue UNE fois plutôt qu'à chaque tour de boucle. Sans
   // ça, un sort poussé ici par les seules lignes d'artéfact paierait
+  // L'ignore DEF selon les PV perdus change d'un coup à l'autre : il force le
+  // chemin séquentiel, et chaque coup y refait sa mitigation.
+  const ignoreDefParCoup = !!profile.ignoreDefSelonPvCiblePerdus && !profile.ignoreDef && !profile.fixed;
   // `coups` évaluations d'arbre pour rien.
   const multFixe = formuleLitPvCible ? 0 : evaluer(profile.noeud, valeurs);
   for (let i = 0; i < coups; i++) {
     const pvFrac = pvMax > 0 ? pvCourant / pvMax : pctDepart / 100;
     if (formuleLitPvCible) valeurs['Target Current HP %'] = pvFrac;
     const mult = (formuleLitPvCible ? evaluer(profile.noeud, valeurs) : multFixe) + ajoutParCoup;
-    // La seule part variable de `horsCoup` — voir `coefCdParCoup`.
-    const horsCoupIci = horsCoup + coefCdParCoup * deltaCdPoints(i === 0, pvFrac);
+    // Les deux parts variables de `horsCoup` : les Dgts Crit du coup (voir
+    // `coefCdParCoup`) et, pour un ignore DEF selon les PV perdus, la
+    // mitigation du coup — `horsCoup` et `coefCdParCoup` lui sont tous deux
+    // proportionnels, le rapport suffit.
+    const facteurMitigationIci = ignoreDefParCoup
+      ? defenseFactor(
+          Math.max(0, setup.enemyDef) * facteurDefBreak *
+            (1 - Math.max(fractionIgnoreeSelonVit, fractionIgnoreeConditionnelle, fractionSelonPvPerdus(pvFrac * 100)))
+        ) / mitigation
+      : 1;
+    const horsCoupIci = (horsCoup + coefCdParCoup * deltaCdPoints(i === 0, pvFrac)) * facteurMitigationIci;
     // ⚠️ `Math.max(0, mult)` et non un `continue` sur `mult <= 0` : un
     // multiplicateur nul n'annule PAS le terme brut, qui ne dépend pas de la
     // formule du sort. Le coup n'est sauté que s'il ne porte réellement rien.

@@ -114,11 +114,31 @@ export default function testDegatsAttaquesAuxiliaires() {
         '3 ennemis ou moins : 6 coups à 1,5 × ATQ sur une cible, ignore DEF selon les PV perdus',
       );
       const k = 1 + mode3.skillupDamagePct / 100;
-      const pour = (pv: number) => computeSkillDamageDetail(mode3, st, { ...base, enemyHpPct: pv }, AUCUNE_AURA_PROPRE, null).total;
-      ok(proche(pour(100), 6 * 1.5 * ATQ * k * df), 'PV pleins : aucune DEF ignorée');
-      ok(proche(pour(65), 6 * 1.5 * ATQ * k * defenseFactor(1000 * 0.5)), '35 % de PV perdus : la moitié de la DEF ignorée');
-      ok(proche(pour(30), 6 * 1.5 * ATQ * k * defenseFactor(0)), '70 % de PV perdus : toute la DEF ignorée');
-      ok(proche(pour(10), pour(30)), 'au-delà de 70 % perdus : toujours toute la DEF');
+      // Référence écrite à la main : chaque coup lit les PV que les précédents
+      // ont laissés, et en déduit sa part de DEF ignorée.
+      const reference = (pvMax: number, pvPct: number) => {
+        let pv = (pvPct / 100) * pvMax;
+        let total = 0;
+        for (let i = 0; i < 6; i++) {
+          const ignoree = Math.min(1, Math.max(0, (100 - (pv / pvMax) * 100) / 70));
+          const coup = 1.5 * ATQ * k * defenseFactor(1000 * (1 - ignoree));
+          total += coup;
+          pv = Math.max(0, pv - coup);
+        }
+        return total;
+      };
+      const pour = (pvMax: number, pv: number) =>
+        computeSkillDamageDetail(mode3, st, { ...base, enemyHp: pvMax, enemyHpPct: pv }, AUCUNE_AURA_PROPRE, null).total;
+      ok(proche(pour(100_000_000, 100), reference(100_000_000, 100)), 'PV pleins, cible immense : presque aucune DEF ignorée');
+      ok(Math.abs(pour(100_000_000, 100) / (6 * 1.5 * ATQ * k * df) - 1) < 1e-3, 'PV pleins, cible immense : à 0,1 % près, la DEF entière');
+      ok(proche(pour(100_000_000, 65), reference(100_000_000, 65)), '35 % de PV perdus : environ la moitié de la DEF ignorée');
+      ok(proche(pour(100_000_000, 30), 6 * 1.5 * ATQ * k * defenseFactor(0)), '70 % de PV perdus : toute la DEF ignorée, à chaque coup');
+      ok(proche(pour(100_000_000, 10), pour(100_000_000, 30)), 'au-delà de 70 % perdus : toujours toute la DEF');
+      // Cible de 40 000 PV : les coups creusent assez pour que l'ignore DEF grandisse d'un coup à l'autre.
+      ok(proche(pour(40_000, 100), reference(40_000, 100)), '40 000 PV : l’ignore DEF est recalculé à chaque coup');
+      ok(pour(40_000, 100) > 6 * 1.5 * ATQ * k * df,
+        '40 000 PV : plus de dégâts que six coups à DEF pleine');
+      ok(pour(40_000, 50) > pour(40_000, 100), 'moins de PV restants au départ : plus de dégâts');
     }
     egal(defaultDamageSkill(sorts)?.skillCom2usId, 15511, 'le sort par défaut reste celui de la fiche');
   }

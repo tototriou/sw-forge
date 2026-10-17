@@ -113,13 +113,12 @@ son ignore DEF retiré (`IGNORE_DEF_CONDITIONNEL_PAR_ID`). Valeurs de
 l'utilisateur ([valeurs curées](valeurs-de-jeu-curees.md), « Unlimited
 Power »).
 
-⚠️ **Approximation, nommée** : la fraction de DEF ignorée
-(`ignoreDefSelonPvCiblePerdus`) se lit sur les PV de la cible au lancement
-du sort (« PV de la cible » saisis) et vaut pour les six coups ; le jeu la
-recalcule sans doute coup par coup, à mesure que la cible perd ses PV —
-le calcul est donc un peu pessimiste sur les derniers coups.
+La fraction de DEF ignorée (`ignoreDefSelonPvCiblePerdus`) se recalcule à
+**chaque coup**, sur les PV que les coups précédents ont laissés à la cible,
+depuis les « PV restants » saisis : le champ s'affiche pour ce mode, et une
+cible déjà entamée ignore sa DEF plus vite (utilisateur, 2026-10-17).
 
-## Les attaques en plus, après un sort
+## Les attaques en plus, avant ou après un sort
 
 Une attaque que la prose annonce sous condition, chiffrée par l'auxiliaire
 du sort, s'ajoute après ce seul sort sur un interrupteur éteint par défaut

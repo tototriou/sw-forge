@@ -264,6 +264,7 @@ import testRuneTri from './rune-tri.test';
 import testMonstreTri from './monstre-tri.test';
 import testMonstreFormes from './monstre-formes.test';
 import testCurationFormesJouables from './curation-formes-jouables.test';
+import testInventaireCompetences from './inventaire-competences.test';
 import testDonneesAuxiliaires from './donnees-auxiliaires.test';
 import testDegatsAutreForme from './degats-autre-forme.test';
 import testDegatsAttaquesAuxiliaires from './degats-attaques-auxiliaires.test';
@@ -552,6 +553,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testMonstreTri', testMonstreTri],
   ['testMonstreFormes', testMonstreFormes],
   ['testCurationFormesJouables', testCurationFormesJouables],
+  ['testInventaireCompetences', testInventaireCompetences],
   ['testDonneesAuxiliaires', testDonneesAuxiliaires],
   ['testCouleursCourbes', testCouleursCourbes],
   ['testRechargement', testRechargement],

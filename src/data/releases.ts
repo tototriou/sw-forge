@@ -72,6 +72,8 @@ export const RELEASES: Release[] = [
       { kind: 'feat', scope: 'Optimizer', text: 'Le choix des artéfacts tient compte des dégâts d’attaque conjointe.' },
       { kind: 'feat', scope: 'Bestiaire', text: '« Jouables uniquement » et « Formes éveillées » : deux filtres, cochés par défaut.' },
       { kind: 'fix', scope: 'Monstres', text: 'Veromos et les autres Ifrit n’apparaissent plus en double dans les recherches, ni les formes de boss.' },
+      { kind: 'fix', scope: 'Application', text: 'Changer de compte SW Exporter importe tout : prépa RTA, siège et box.' },
+      { kind: 'feat', scope: 'Application', text: 'Avant de changer de compte, l’app propose de sauvegarder ta session.' },
     ],
   },
   {

@@ -86,6 +86,9 @@ const SEQUENCES: {
 }[] = [
   { id: 13311, nom: 'Fatal Extinctive Bullet', formes: [22911], monstre: 'Abigail', donnee: { formule: '3.5*{ATK}', coups: 1, aoe: false }, phase1: 3.5, phase2: 4.5, auxiliaire: 2476, skillup: 25 },
   { id: 13314, nom: 'Fatal Armor Bullet', formes: [22914], monstre: 'Emily', donnee: { formule: '3.5*{ATK}', coups: 1, aoe: false }, phase1: 3.5, phase2: 4.5, auxiliaire: 2478, skillup: 25 },
+  { id: 13312, nom: 'Fatal Mortar Bullet', formes: [22912], monstre: 'Scarlett', donnee: { formule: '3.5*{ATK}', coups: 1, aoe: false }, phase1: 3.5, phase2: 4.5, auxiliaire: 2477, skillup: 25 },
+  // Utilisateur, 2026-10-17 : le premier coup sur une cible à 3,8, le second en zone à 3,0.
+  { id: 9515, nom: 'Undefeated Warrior', formes: [18715], monstre: 'Kuna', donnee: { formule: '3.8*{ATK}', coups: 1, aoe: true }, phase1: 3.8, phase2: 3.0, auxiliaire: 2446, skillup: 20 },
   { id: 14113, nom: 'Head Press', formes: [24203, 24213], monstre: 'M. BISON', donnee: { formule: '4.0*{ATK}', coups: 2, aoe: false }, phase1: 4.0, phase2: 5.2, auxiliaire: 2762, skillup: 15 },
   { id: 14613, nom: 'Great Sword of the End', formes: [24703, 24713], monstre: 'Sagar', donnee: { formule: '4.0*{ATK}', coups: 2, aoe: true }, phase1: 4.0, phase2: 5.2, auxiliaire: 2830, skillup: 15 },
 ];
@@ -162,6 +165,20 @@ export function testDegatsSequencesApi() {
       ok(!!p && !estPrisEnCharge(p) && p.raison.includes('ne correspond plus'), `${libelle} : refusé, la fiche ne porte plus l’empreinte`);
     }
   }
+}
+
+// La phase de zone lit le ratio de la compétence auxiliaire, jamais une copie.
+export function testDegatsSequencesAuxiliaire() {
+  titre('Phase de zone — le ratio vient de la compétence auxiliaire de la fiche');
+  const abigail = fiche(22911).competences.find((c) => c.com2usId === 13311)!;
+  const aux = abigail.auxiliaires![0];
+  const avec = (formule: string) => skillDamageProfile({ ...abigail, auxiliaires: [{ ...aux, competence: { ...aux.competence, formule } }] });
+  const p = avec('6.0*{ATK}');
+  ok(!!p && estPrisEnCharge(p) && p.sequenceDeCoups?.[1].formule === '6.0*{ATK}',
+    'auxiliaire changé à 6.0*{ATK} : la phase de zone suit la donnée');
+  const sans = skillDamageProfile({ ...abigail, auxiliaires: undefined });
+  ok(!!sans && !estPrisEnCharge(sans) && sans.raison.includes('compétence auxiliaire'),
+    'sans auxiliaire : refusé, la raison nomme la compétence auxiliaire manquante');
 }
 
 // HT-1 : S3 à `formule: ""` dont la formule vient de l'auxiliaire de l'API ;

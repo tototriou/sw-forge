@@ -64,32 +64,38 @@ mécanique.
 
 ### Séquences à valeur de l’API
 
-Quatre sorts frappent d’abord l’ennemi, puis tous les ennemis ; la phase de
-zone n’est chiffrée que par la « compétence auxiliaire » (`other_skill`) de
-l’API SWARFARM, absente de l’import du corpus. Règle ([valeurs curées](valeurs-de-jeu-curees.md), « Valeurs
-connues par l'API seule ») : la valeur de l’API par défaut, sauf si la prose la contredit — aucune des
-quatre proses ne la contredit. Phases et portées viennent de la prose
-(« Attacks the enemy … Afterwards, … all enemies »).
+Six sorts frappent d’abord l’ennemi, puis tous les ennemis ; la phase de
+zone n’est chiffrée que par la [compétence auxiliaire](feat-competences-auxiliaires.md)
+du sort. Le groupe 2 de la table ne recopie pas ce ratio : il le lit dans
+l’auxiliaire (`formule: AUXILIAIRE`), et le sort est refusé, avec sa raison,
+si l’auxiliaire manque. Règle ([valeurs curées](valeurs-de-jeu-curees.md), « Valeurs
+connues par l'API seule ») : la valeur de l’API par défaut, sauf si la prose la contredit — aucune
+de ces proses ne la contredit. Phases et portées viennent de la prose
+(« Attacks the enemy … Afterwards, … all enemies »), sauf pour Kuna, dont
+l’utilisateur a donné l’ordre (2026-10-17).
 
-| Identifiant · sort · formes | Empreinte (`formule`, `coups`, `aoe`) | Groupe 1 | Groupe 2 | Source du groupe 2 |
-| --- | --- | --- | --- | --- |
-| `13311` Fatal Extinctive Bullet · Abigail `22911` | `3.5*{ATK}`, 1, non | `3.5*{ATK}` ×1, mono-cible | `4.5*{ATK}` ×1, zone | auxiliaire 2476 |
-| `13314` Fatal Armor Bullet · Emily `22914` | `3.5*{ATK}`, 1, non | `3.5*{ATK}` ×1, mono-cible | `4.5*{ATK}` ×1, zone | auxiliaire 2478 |
-| `14113` Head Press · M. BISON `24213` (`24203` non éveillé) | `4.0*{ATK}`, 2, non | `4.0*{ATK}` ×1, mono-cible | `5.2*{ATK}` ×1, zone | auxiliaire 2762 |
-| `14613` Great Sword of the End · Sagar `24713` (`24703` non éveillé) | `4.0*{ATK}`, 2, oui | `4.0*{ATK}` ×1, mono-cible | `5.2*{ATK}` ×1, zone | auxiliaire 2830 |
+| Identifiant · sort · formes | Empreinte (`formule`, `coups`, `aoe`) | Groupe 1 | Groupe 2 (auxiliaire) |
+| --- | --- | --- | --- |
+| `13311` Fatal Extinctive Bullet · Abigail `22911` | `3.5*{ATK}`, 1, non | `3.5*{ATK}` ×1, mono-cible | `4.5*{ATK}` ×1, zone (13316) |
+| `13312` Fatal Mortar Bullet · Scarlett `22912` | `3.5*{ATK}`, 1, non | `3.5*{ATK}` ×1, mono-cible | `4.5*{ATK}` ×1, zone (13317) ; le +25 % par effet sur la cible n’est pas compté (« Calcul partiel ») |
+| `13314` Fatal Armor Bullet · Emily `22914` | `3.5*{ATK}`, 1, non | `3.5*{ATK}` ×1, mono-cible | `4.5*{ATK}` ×1, zone (13319) |
+| `14113` Head Press · M. BISON `24213` (`24203` non éveillé) | `4.0*{ATK}`, 2, non | `4.0*{ATK}` ×1, mono-cible | `5.2*{ATK}` ×1, zone (14116) |
+| `14613` Great Sword of the End · Sagar `24713` (`24703` non éveillé) | `4.0*{ATK}`, 2, oui | `4.0*{ATK}` ×1, mono-cible | `5.2*{ATK}` ×1, zone (14616) |
+| `9515` Undefeated Warrior · Kuna `18715` | `3.8*{ATK}`, 1, oui | `3.8*{ATK}` ×1, mono-cible | `3.0*{ATK}` ×1, zone (9516) |
 
-L’empreinte de Head Press et de Sagar ne coïncide pas avec leur premier
-groupe : `coups: 2` y compte les deux phases, et `aoe: true` de Sagar est la
-portée de la phase de zone. Ces deux sorts n’existent comme séquences que
-grâce à la garde par empreinte.
+L’empreinte de Head Press, de Sagar et de Kuna ne coïncide pas avec leur
+premier groupe : `coups: 2` y compte les deux phases, et `aoe: true` de Sagar
+et de Kuna est la portée de la phase de zone. Ces trois sorts n’existent
+comme séquences que grâce à la garde par empreinte.
 
 Les lignes d’artéfact et la cible secondaire suivent les règles par groupe
 ci-dessous, appliquées par le calcul générique : 224 sur la phase 1, 411 sur
 le premier coup du tour, le cran « Dégâts sur les autres ennemis » calcule
 la seule phase de zone.
 
-⚠️ **Non établi, nommé** : les skillups de la fiche (+25 % pour Abigail et
-Emily, +15 % pour M. BISON et Sagar) s’appliquent aux deux phases, parce que
+⚠️ **Non établi, nommé** : les skillups de la fiche (+25 % pour Abigail,
+Scarlett et Emily, +15 % pour M. BISON et Sagar, +20 % pour Kuna)
+s’appliquent aux deux phases, parce que
 le calcul recopie le profil sur chaque groupe ; rien ne l’a confirmé pour
 ces sorts, contrairement à Blade Surge. Sur la phase 1 seule, Abigail et
 Emily vaudraient `3,5 × 1,25 + 4,5 = 8,875` × ATQ au lieu de `10`, M. BISON

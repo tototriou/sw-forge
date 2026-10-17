@@ -304,7 +304,7 @@ l'écran ne l'écrit jamais lui-même.
 
 - **Affichage seul** : aucun calcul ne lit la table, le total n'en dépend
   pas. Aucune mention sur les cartes de résultats.
-- **Quatre sources, 31 identifiants** : les six ignore DEF comptés en
+- **Quatre sources, 32 identifiants** : les six ignore DEF comptés en
   permanence alors que le jeu les conditionne (Madness Judgement ×2,
   Unlimited Power, Start of Attacking, Thunder Strike, Sword of Discharge —
   total gardé avec la mention tant que leur condition n'est pas modélisée) ; les sorts
@@ -313,12 +313,13 @@ l'écran ne l'écrit jamais lui-même.
   codée (« pas encore comptée ») ; les parts que l'utilisateur a décidé de
   ne **pas** calculer, dites à l'écran (Daniel, Jasmine, Lavender, Espresso
   Cookie, et Hibiscus par la règle des jumeaux collab : « n'est pas
-  calculée ») ; enfin deux parts connues du jeu, non modélisées, que
-  l'utilisateur a demandé de marquer :
+  calculée ») ; enfin les parts connues du jeu, non modélisées :
   l'équilibrage ATQ/DEF d'Internal Force de début de combat sur les deux
-  sorts de dégâts de Leona (Justice Strike, Fury of Punishment) et le bonus
+  sorts de dégâts de Leona (Justice Strike, Fury of Punishment), le bonus
   de dégâts selon la VIT contre les ennemis plus lents de Summary Justice
-  (Theonia) — « pas encore compté ».
+  (Theonia), marqués à la demande de l'utilisateur, et le bonus de 25 % par
+  effet sur la cible de la phase de zone de Fatal Mortar Bullet (Scarlett)
+  — « pas encore compté ».
 - **Écartés parce que le total est complet par décision** : Devil's Bargain
   (la prose se trompe), les détonations de dégâts continus et les bombes à
   retardement (hors total).

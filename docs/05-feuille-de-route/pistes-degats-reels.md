@@ -171,8 +171,8 @@ codée porte « Calcul partiel »
   (`23115`, Duke), ni Oathbreakers (`23815`, Aragorn) et Spirits of Wolf
   Warriors (`24315`, Night Fang), ni Triple Combo (`13913`, RYU vent) et
   Triple Crush (`14413`, Kashmir), chaque paire de jumeaux de même prose,
-  ni Explosive Bullet, Undefeated Warrior (`9515`), Tempest Sword
-  (`10613`) ou Guilty Sentence (`23507`, `23508`, `23510`) : leur phase
+  ni Explosive Bullet, Tempest Sword (`10613`) ou Guilty Sentence
+  (`23507`, `23508`, `23510`) : leur phase
   que la donnée ne chiffre pas manque au total.
 - **Idée** : une séquence curée par sort
   ([02-app/degats-reels/feat-sequences-de-coups.md § La séquence curée — une table par identifiant](../02-app/degats-reels/feat-sequences-de-coups.md#la-séquence-curée--une-table-par-identifiant)).
@@ -188,8 +188,7 @@ codée porte « Calcul partiel »
   Oathbreakers ou Spirits of Wolf Warriors, chaque coup de zone / coup 1.
   Triple Combo ou Triple Crush, coup 3 / coup 2 avec la Brise DEF du
   coup 1 posée : 1,00 à 2 % → aucun coefficient final. Explosive Bullet,
-  chaque phase / S1 Cross Fire. Undefeated Warrior : les nombres sur la
-  cible visée (deux → la suite la touche aussi). Guilty Sentence
+  chaque phase / S1 Cross Fire. Guilty Sentence
   d'Agrenia et de Driana, coup 2 / coup 1 sur l'ennemi de plus faible DEF
   non touché par la Brise DEF : 3,3 ou 3,2.
 
@@ -198,8 +197,9 @@ codée porte « Calcul partiel »
 - **Constat** : chaque groupe de `sequenceDeCoups` reçoit le profil entier
   du sort (`computeSkillDamageDetail`, `src/lib/damage.ts`), skillups compris :
   ils valent aux deux phases de Fatal Extinctive Bullet (`13311`, Abigail),
-  Fatal Armor Bullet (`13314`, Emily), Head Press (`14113`, M. BISON) et
-  Great Sword of the End (`14613`, Sagar), sans confirmation
+  Fatal Mortar Bullet (`13312`, Scarlett), Fatal Armor Bullet (`13314`,
+  Emily), Head Press (`14113`, M. BISON), Great Sword of the End (`14613`,
+  Sagar) et Undefeated Warrior (`9515`, Kuna), sans confirmation
   ([02-app/degats-reels/feat-sequences-de-coups.md § Séquences à valeur de l’API](../02-app/degats-reels/feat-sequences-de-coups.md#séquences-à-valeur-de-lapi)).
 - **Idée** : les borner à la phase 1 si le relevé le dit.
 - **Bloque** : un relevé, sort au maximum de skillups, deux coups non

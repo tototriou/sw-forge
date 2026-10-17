@@ -60,3 +60,13 @@ des formules que l'API n'a pas, ou a fausses.
   de leur monstre.
 
 Test : `testDegatsFormulesApi` (`node tests/run.mjs formulesapi`).
+
+## La seconde phase d'un sort
+
+Six sorts frappent une cible, puis tous les ennemis : leur fiche ne chiffre
+que la phase 1, l'auxiliaire chiffre la phase de zone (Abigail, Scarlett,
+Emily, M. BISON, Sagar, Kuna). La séquence est curée
+(`SEQUENCES_DE_COUPS_PAR_ID_CONNUS`) ; son groupe de zone lit le ratio dans
+l'auxiliaire au lieu de le recopier. Table et règles :
+[feat-sequences-de-coups.md](feat-sequences-de-coups.md#séquences-à-valeur-de-lapi).
+Tests : `testDegatsSequencesApi`, `testDegatsSequencesAuxiliaire`.

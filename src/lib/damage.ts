@@ -3246,6 +3246,7 @@ const CALCUL_PARTIEL_PAR_ID: Readonly<Record<number, string>> = {
   11912: 'La perte de 40 % des PV de la cible (15 % pour un boss) avant le coup n’est pas encore comptée.', // Hellfire (Daphnis)
   6015: 'La perte de 15 % des PV de tous les ennemis avant le coup n’est pas encore comptée.', // Ragnarok (Trinity)
   15114: 'Le bonus de dégâts selon les PV détruits de la cible (15 à 60 %) n’est pas encore compté.', // Time of Destruction (Dorothy)
+  13312: 'Le bonus de 25 % par effet bénéfique ou nocif sur la cible, sur la phase de zone, n’est pas encore compté.', // Fatal Mortar Bullet (Scarlett)
   20413: 'La perte de PV des ennemis dont un effet bénéfique est retiré n’est pas encore comptée.', // Dragon Bombardment (Ereshion)
   13401: 'La part proportionnelle aux PV retirés à l’ennemi le plus en forme (10 % de ses PV actuels) n’est pas encore comptée.', // Sword of Destruction (Belial)
   13402: 'La part proportionnelle aux PV retirés à l’ennemi le plus en forme (10 % de ses PV actuels) n’est pas encore comptée.', // Sword of Destruction (Bael)
@@ -3563,8 +3564,12 @@ function coupsFixesCorrigesDe(c: { com2usId: number | null; nom: string }): numb
 type SequenceCuree = {
   // La donnée de la fiche sur laquelle la séquence a été curée, telle quelle.
   empreinte: { formule: string; coups: number | null; aoe: boolean };
-  groupes: readonly { formule: string; coups: number; zone: boolean }[];
+  // `formule: AUXILIAIRE` : le ratio du groupe est celui de la compétence
+  // auxiliaire du sort (`formuleAuxiliaire`), jamais recopié ici. Absent de la
+  // donnée, le sort est refusé avec sa raison.
+  groupes: readonly { formule: string | typeof AUXILIAIRE; coups: number; zone: boolean }[];
 };
+const AUXILIAIRE = Symbol('formule de la compétence auxiliaire');
 const SEQUENCE_BLADE_SURGE: SequenceCuree = {
   empreinte: { formule: '0.5*{ATK}', coups: 2, aoe: false },
   groupes: [
@@ -3579,15 +3584,13 @@ const SEQUENCES_DE_COUPS_PAR_ID_CONNUS: Record<number, SequenceCuree> = {
   10618: SEQUENCE_BLADE_SURGE, // Lupinus (19813)
   10620: SEQUENCE_BLADE_SURGE, // Lanett (19815)
 
-  // Séquences dont la phase de zone n'est chiffrée que par l'API SWARFARM :
-  // la « compétence auxiliaire » (`other_skill`) du sort, lue par l'audit des
-  // dégâts conditionnels (annexes, « Compétences auxiliaires
-  // fournies par l'API ») et absente de l'import du corpus. Règle : la
-  // valeur de l'API par défaut, sauf si la
-  // prose du sort la contredit — aucune des quatre proses ne la contredit.
-  // Les phases et leur portée viennent de la prose (« Attacks
-  // the enemy … Afterwards, … all enemies ») ; « all enemies » compte la cible
-  // visée parmi les ennemis touchés.
+  // Séquences dont la phase de zone n'est chiffrée que par la compétence
+  // auxiliaire du sort (`formuleAuxiliaire`) : la fiche ne porte que la
+  // phase 1. Règle : la valeur de l'API par défaut, sauf si la prose du sort
+  // la contredit — aucune de ces proses ne la contredit. Les phases et leur
+  // portée viennent de la prose (« Attacks the enemy … Afterwards, … all
+  // enemies ») ; « all enemies » compte la cible visée parmi les ennemis
+  // touchés.
   // ⚠️ Non établi, nommé : les skillups de la fiche s'appliquent ici aux deux
   // phases, parce que le calcul recopie le profil sur chaque groupe ; rien ne
   // l'a confirmé pour ces sorts (contrairement à Blade Surge). Sur la phase 1
@@ -3596,43 +3599,64 @@ const SEQUENCES_DE_COUPS_PAR_ID_CONNUS: Record<number, SequenceCuree> = {
   // `4,0 × 1,15 + 5,2` au lieu de `(4,0 + 5,2) × 1,15` (9,8 contre 10,58,
   // −7 %) ; relevés R1/R2 du contrôle
   // 13b-sequences-zone.
-  // Fatal Extinctive Bullet — Abigail (22911). Donnée : la phase 1 seule.
-  // Auxiliaire 2476 `4.5*{ATK}`.
+  // Fatal Extinctive Bullet — Abigail (22911). Donnée : la phase 1 seule ;
+  // auxiliaire 13316 `4.5*{ATK}`.
   13311: {
     empreinte: { formule: '3.5*{ATK}', coups: 1, aoe: false },
     groupes: [
       { formule: '3.5*{ATK}', coups: 1, zone: false },
-      { formule: '4.5*{ATK}', coups: 1, zone: true },
+      { formule: AUXILIAIRE, coups: 1, zone: true },
     ],
   },
-  // Fatal Armor Bullet — Emily (22914). Donnée : la phase 1 seule.
-  // Auxiliaire 2478 `4.5*{ATK}`.
+  // Fatal Mortar Bullet — Scarlett (22912). Même forme que ses sœurs ;
+  // auxiliaire 13317 `4.5*{ATK}`. Le +25 % par effet sur la cible de la phase
+  // de zone n'est pas compté (`CALCUL_PARTIEL_PAR_ID`).
+  13312: {
+    empreinte: { formule: '3.5*{ATK}', coups: 1, aoe: false },
+    groupes: [
+      { formule: '3.5*{ATK}', coups: 1, zone: false },
+      { formule: AUXILIAIRE, coups: 1, zone: true },
+    ],
+  },
+  // Fatal Armor Bullet — Emily (22914). Donnée : la phase 1 seule ;
+  // auxiliaire 13319 `4.5*{ATK}`.
   13314: {
     empreinte: { formule: '3.5*{ATK}', coups: 1, aoe: false },
     groupes: [
       { formule: '3.5*{ATK}', coups: 1, zone: false },
-      { formule: '4.5*{ATK}', coups: 1, zone: true },
+      { formule: AUXILIAIRE, coups: 1, zone: true },
     ],
   },
   // Head Press — M. BISON (24213 ; 24203 non éveillé). Donnée : `coups: 2`
   // compte les deux phases, `aoe: false` est la portée de la phase 1 ; la
   // prose décrit une attaque sur l'ennemi, puis une sur tous les ennemis.
-  // Auxiliaire 2762 `5.2*{ATK}`.
+  // Auxiliaire 14116 `5.2*{ATK}`.
   14113: {
     empreinte: { formule: '4.0*{ATK}', coups: 2, aoe: false },
     groupes: [
       { formule: '4.0*{ATK}', coups: 1, zone: false },
-      { formule: '5.2*{ATK}', coups: 1, zone: true },
+      { formule: AUXILIAIRE, coups: 1, zone: true },
     ],
   },
   // Great Sword of the End — Sagar (24713 ; 24703 non éveillé). Donnée :
   // `coups: 2` compte les deux phases, `aoe: true` est la portée de la phase
-  // de zone ; même prose que Head Press. Auxiliaire 2830 `5.2*{ATK}`.
+  // de zone ; même prose que Head Press. Auxiliaire 14616 `5.2*{ATK}`.
   14613: {
     empreinte: { formule: '4.0*{ATK}', coups: 2, aoe: true },
     groupes: [
       { formule: '4.0*{ATK}', coups: 1, zone: false },
-      { formule: '5.2*{ATK}', coups: 1, zone: true },
+      { formule: AUXILIAIRE, coups: 1, zone: true },
+    ],
+  },
+  // Undefeated Warrior — Kuna (18715). Donnée : `3.8*{ATK}`, un coup, `aoe:
+  // true` ; auxiliaire 9516 `3.0*{ATK}`. Le premier coup frappe une cible à
+  // 3,8 × ATQ, le second tous les ennemis à 3,0 × ATQ (utilisateur,
+  // 2026-10-17, valeurs-de-jeu-curees.md).
+  9515: {
+    empreinte: { formule: '3.8*{ATK}', coups: 1, aoe: true },
+    groupes: [
+      { formule: '3.8*{ATK}', coups: 1, zone: false },
+      { formule: AUXILIAIRE, coups: 1, zone: true },
     ],
   },
 };
@@ -3951,9 +3975,11 @@ export function skillDamageProfile(c: Competence): SkillDamageProfile | SkillDam
     }
     sequenceDeCoups = [];
     for (const groupe of groupes) {
-      const analyseGroupe = analyser(groupe.formule);
+      const formule = groupe.formule === AUXILIAIRE ? formuleAuxiliaire(c) : groupe.formule;
+      if (!formule) return { ...entete, raison: 'La compétence auxiliaire qui chiffre une phase de ce sort manque à ses données.' };
+      const analyseGroupe = analyser(formule);
       if (!analyseGroupe) return { ...entete, raison: 'La séquence de coups curée pour ce sort n’est pas prise en charge.' };
-      sequenceDeCoups.push({ ...groupe, ...analyseGroupe });
+      sequenceDeCoups.push({ ...groupe, formule, ...analyseGroupe });
     }
   }
 

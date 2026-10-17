@@ -69,6 +69,7 @@ const ATTENDUS: [number, string, 'ignore-def' | 'pas-encore-codee' | 'non-calcul
   [12520, 'Justice Strike', 'non-modelisee'],
   [12510, 'Fury of Punishment', 'non-modelisee'],
   [23515, 'Summary Justice', 'non-modelisee'],
+  [13312, 'Fatal Mortar Bullet', 'non-modelisee'],
 ];
 
 // Lignes « calculé » écartées : total complet par décision.
@@ -102,10 +103,10 @@ export function testCalculPartielTable() {
   titre('Calcul partiel — la table par identifiant : six ignore DEF comptés, parts décidées pas encore codées, parts non calculées, parts non modélisées');
 
   const ids = idsCalculPartiel();
-  egal(ids.length, 31, '31 entrées : 6 (ignore DEF compté) + 15 (part décidée, pas encore codée) + 7 (part non calculée) + 3 (part non modélisée)');
+  egal(ids.length, 32, '32 entrées : 6 (ignore DEF compté) + 15 (part décidée, pas encore codée) + 7 (part non calculée) + 4 (part non modélisée)');
   egal([...ids].sort((a, b) => a - b), ATTENDUS.map(([id]) => id).sort((a, b) => a - b), 'exactement les identifiants attendus');
   egal(ATTENDUS.filter(([, , s]) => s === 'ignore-def').length, 6, 'six ignore DEF permanents');
-  egal(ATTENDUS.filter(([, , s]) => s === 'non-modelisee').length, 3, 'trois parts non modélisées (Leona ×2, Theonia)');
+  egal(ATTENDUS.filter(([, , s]) => s === 'non-modelisee').length, 4, 'quatre parts non modélisées (Leona ×2, Theonia, Scarlett)');
   for (const [id, raison] of ECARTES) ok(!ids.includes(id), `${id} écarté de la table : ${raison}`);
 
   const catalogue = monstersJson();

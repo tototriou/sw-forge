@@ -85,6 +85,7 @@ par invention.
 | Crushed Hopes de Cichlid | Seul le **2e coup** pose la réduction de DEF : posée au coup 2 (le 3e en profite), déjà active avant le coup 1, ou aucune | utilisateur, 2026-10-03 |
 | Summary Justice de Theonia (S3) | +100 % quand l'ATQ ennemie saisie est **strictement** inférieure à l'ATQ du build (« For enemies with Attack Power lower than yours », valeur de la donnée), comme Kassandra et Eleni vent à +30 % | utilisateur, 2026-10-03 |
 | Valeurs connues par l'API seule | L'API SWARFARM **par défaut**, sauf si la prose du sort la contredit (alors relevé ou confirmation) | utilisateur, 2026-10-03 |
+| Undefeated Warrior (Kuna) | Premier coup sur **une cible** à `3.8 × ATQ` (fiche), second coup **en zone** à `3.0 × ATQ` (compétence auxiliaire) | utilisateur, 2026-10-17 |
 | Chain Fire | Salves de **deux** flèches : le compteur avance par pas de 2, une unité = une flèche | utilisateur, 2026-10-03 |
 | Frodo — buff « all allies » du passif | Le porteur **reçoit aussi** le buff d'ATQ (le champ `surSoi: false` de la fiche est faux) ; de même Silver Tail, son jumeau collab | utilisateur, 2026-10-03 |
 | Versions Summoners War et collab | Deux monstres reliés par `jumeauCollab` (même `skillGroupId`) ont **la même mécanique** : une valeur ou une règle fournie pour l'un vaut pour l'autre (déjà dit pour Taebaek et Hwoarang ténèbres) | utilisateur, 2026-10-03 |

@@ -929,6 +929,20 @@
       "statut": "stock"
     },
     {
+      "fichier": "tests/pre-commit.test.ts",
+      "cible": "src/a.ts",
+      "occurrences": 1,
+      "statut": "exception",
+      "justification": "Cas de la garde au commit : cible écrite dans un dépôt jetable, jamais lue dans src/."
+    },
+    {
+      "fichier": "tests/pre-commit.test.ts",
+      "cible": "src/b.ts",
+      "occurrences": 1,
+      "statut": "exception",
+      "justification": "Cas de la garde au commit : cible écrite dans un dépôt jetable, jamais lue dans src/."
+    },
+    {
       "fichier": "tests/prose-stats-combat.test.ts",
       "cible": "src/components/outils/DamageSetupCard.tsx",
       "occurrences": 1,

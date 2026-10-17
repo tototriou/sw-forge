@@ -1,6 +1,6 @@
 # Qualité du code — lint, hooks et message de commit
 
-Ce document décrit le lint du code (ESLint) : périmètre, ce qui bloque et ce qui avertit, où il tourne, dont le lint au commit ; la forme imposée au message de commit ; le rappel des dépendances après un changement de branche ou une fusion ; l'installation automatique des hooks et leur reprise en CI.
+Ce document décrit le lint du code (ESLint) : périmètre, ce qui bloque et ce qui avertit, où il tourne, dont le lint au commit ; la garde des références à `src/` dans les tests au commit ; la forme imposée au message de commit ; le rappel des dépendances après un changement de branche ou une fusion ; l'installation automatique des hooks et leur reprise en CI.
 
 Voir aussi : `renvois.md` (le test des renvois), `documentation.md` (écrire la documentation).
 
@@ -75,6 +75,55 @@ de 100, sous la limite de longueur d'une ligne de commande Windows.
 - **Limite assumée** : ESLint lit l'**arbre de travail**, pas la version
   indexée ; un fichier corrigé sur le disque mais pas réindexé passe, un
   fichier propre dans l'index mais fautif sur le disque est refusé.
+
+Test : `node tests/run.mjs precommit`.
+
+## Références à `src/` au commit
+
+Après ESLint, le `pre-commit` applique aux tests indexés la règle de la
+vérification `lecturesource` ([tests/README.md](../../tests/README.md),
+« Garde des références à `src/` ») : toute chaîne d'un fichier de `tests/`
+qui désigne un chemin sous `src/` est déclarée dans
+`tests/fixtures/lecture-source-toleree.json`, avec son nombre exact
+d'occurrences. La règle est **la même**, pas une copie :
+`scripts/lib/lectureSource.ts`, que la vérification appelle sur tout
+`tests/` et le hook sur les seuls fichiers indexés.
+
+- **Ce qui est jugé** : les fichiers de `tests/` ajoutés, modifiés, renommés
+  ou supprimés (un renommage vaut suppression puis ajout), et, quand la liste
+  est indexée, ceux dont elle change les entrées. Pour chacun, les
+  références relevées doivent égaler ses entrées : une lecture nouvelle non
+  déclarée, une lecture retirée sans retirer (ou décompter) son entrée, un
+  fichier supprimé qui garde les siennes, une entrée mal formée
+  (`exception` sans justification, doublon) refusent le commit.
+- **L'index, pas l'arbre de travail** : le fichier et la liste se lisent
+  dans leur version indexée (`git cat-file blob :<chemin>`). Un
+  `git add -p` partiel se juge sur ce qui part dans le commit, et une entrée
+  écrite dans la liste mais pas indexée ne compte pas.
+- **Le refus** nomme chaque fichier et sa cible, avec le nombre trouvé dans
+  l'index et celui qu'attend la liste, et dit quoi faire : retirer la
+  lecture au profit d'un test qui importe le module, ou déclarer l'usage en
+  `exception` justifiée ; une lecture retirée emporte son entrée dans le
+  même commit.
+- **Coût** : sur un commit sans chemin de `tests/` indexé, un seul appel à
+  Git (`git diff --cached -- tests`, ~50 ms mesurés sous Windows) ; sinon, le
+  chargement de TypeScript et l'analyse des seuls fichiers jugés (mesuré :
+  0,6 à 0,8 s pour un fichier de test et la liste indexés, ESLint à part).
+- **Abstention, jamais un refus** : module `scripts/lib/lectureSource.ts`
+  absent alors que la liste existe, TypeScript absent de `node_modules`
+  (clone sans `npm install`), module qui ne se charge pas (Node sans
+  effacement des types, antérieur à 22.6) : avertissement, étape sautée. Ni
+  module ni liste : branche antérieure à la garde, rien à appliquer.
+  Fusion en cours (`MERGE_HEAD`) : étape sautée, le contenu fusionné vient
+  de commits déjà jugés, et `npm test` juge l'état final.
+- **Le hook prend la règle de la branche** : le module vient du worktree,
+  comme `eslint.config.js` pour ESLint ; il est chargé par `node` sans
+  compilation, d'où une syntaxe TypeScript effaçable dans ce fichier (ni
+  `enum`, ni `namespace`).
+- **Angles morts** : ceux de la règle (en tête de
+  `scripts/lib/lectureSource.ts`) ; un fichier de `tests/` non indexé, même
+  présent sur le disque, n'est pas lu — la vérification `lecturesource`, qui
+  lit aussi les non suivis, le rattrape.
 
 Test : `node tests/run.mjs precommit`.
 
@@ -154,9 +203,11 @@ dépendances. Pour **chaque commit** de `<base>..<tête>` :
 - hors fusion, son contenu passe par `.githooks/pre-commit --commit <sha>` :
   les refus de chemin privé et de fichier de plus de 5 Mo, sur les
   fichiers ajoutés, copiés, modifiés ou renommés par ce
-  commit, lus dans le commit au lieu de l'index. Le contrôle de branche et
-  ESLint n'y tournent pas : la CI vérifie l'état final par `npm test` et
-  `npm run lint`.
+  commit, lus dans le commit au lieu de l'index. Le contrôle de branche,
+  ESLint et les références à `src/` des tests n'y tournent pas : la CI
+  vérifie l'état final par `npm test` (dont `lecturesource`, même règle) et
+  `npm run lint`, et ce rejeu passe avant `npm ci`, sans ESLint ni
+  TypeScript.
 
 Chaque commit compte, pas seulement l'état final : l'historique d'un dépôt
 public l'est aussi, et un fichier ajouté puis retiré dans la même pull
@@ -190,6 +241,8 @@ sont vérifiés, par le test des renvois.
 Sur les chemins ajoutés, copiés, modifiés ou renommés de l'index : un
 commit sur `main` (ou `master`) ; un chemin sous `.history/` ou `.vscode/` ;
 un fichier de plus de 5 Mo ; une erreur ESLint du code indexé (« Lint au
+commit ») ; une référence à `src/` non déclarée dans un test indexé, ou une
+entrée de la liste qui ne correspond plus (« Références à `src/` au
 commit »). Une branche hors de la forme `<type>/<sujet>` (mêmes types que le
 message de commit) : un avertissement, pas un refus.
 Test : `node tests/run.mjs precommit`.

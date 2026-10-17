@@ -1,7 +1,13 @@
 // La règle des RÉFÉRENCES TEXTUELLES à `src/` dans `tests/` : relevé et
 // comparaison à la liste. Une seule source, appelée par la vérification
-// (tests/lecture-source.test.ts, sur tout `tests/`). Contrat :
-// tests/README.md, « Garde des références à `src/` ».
+// (tests/lecture-source.test.ts, sur tout `tests/`) et par le hook
+// `pre-commit` (sur les seuls fichiers indexés). Contrat : tests/README.md,
+// « Garde des références à `src/` ».
+//
+// ⚠️ Le hook charge ce fichier par `node`, SANS compilation (effacement des
+// types de Node ≥ 22.6) : n'y écrire que de la syntaxe effaçable — ni `enum`,
+// ni `namespace`, ni propriété de paramètre — et n'importer un type que par
+// `import type`.
 //
 // Comment : l'API du compilateur TypeScript relève, dans un fichier, les
 // chaînes littérales, les gabarits et les assemblages de littéraux (`join`,

@@ -3017,9 +3017,25 @@ function formuleAuxiliaire(c: Competence): string {
 // (`skillDamageProfile`), le passif (`monsterOffensivePassives`) et la règle
 // des attaques conjointes (`estSortCooperatif`).
 function formuleRetenue(c: Competence): string {
+  return formuleRetenueAvecOrigine(c).formule;
+}
+
+/** D'où vient la formule retenue : table curée, fiche, ou compétence auxiliaire. */
+export type OrigineFormuleRetenue = 'curee' | 'fiche' | 'auxiliaire';
+
+/**
+ * La formule que retient le calcul (`formuleRetenue`) et sa provenance ;
+ * `origine: null` quand aucune ne l'est (`formule: ''`). Exportée pour les
+ * scripts qui balaient le corpus : ils lisent la formule de l'application,
+ * jamais `Competence.formule` seule.
+ */
+export function formuleRetenueAvecOrigine(c: Competence): { formule: string; origine: OrigineFormuleRetenue | null } {
   const curee = FORMULES_CUREES_PAR_ID[c.com2usId ?? -1];
-  if (curee) return curee.trim();
-  return (c.formule ?? '').trim() || formuleAuxiliaire(c);
+  if (curee) return { formule: curee.trim(), origine: 'curee' };
+  const fiche = (c.formule ?? '').trim();
+  if (fiche) return { formule: fiche, origine: 'fiche' };
+  const auxiliaire = formuleAuxiliaire(c);
+  return auxiliaire ? { formule: auxiliaire, origine: 'auxiliaire' } : { formule: '', origine: null };
 }
 
 // Portée corrigée par identifiant, quand la prose du sort contredit le champ
@@ -3050,6 +3066,14 @@ const PORTEE_CORRIGEE_PAR_ID: Record<number, boolean> = {
   // blows up the Continuous Damage granted on each target … »
   1362: true,
 };
+
+/**
+ * La portée que retient le profil d'un sort : `PORTEE_CORRIGEE_PAR_ID`, sinon
+ * `Competence.aoe`. Exportée pour les scripts qui balaient le corpus.
+ */
+export function porteeRetenue(c: Competence): boolean {
+  return PORTEE_CORRIGEE_PAR_ID[c.com2usId ?? -1] ?? c.aoe;
+}
 
 const COMPOSANTES_FIXES_ADDITIONNELLES_PAR_ID: Record<number, string> = {
   21006: '{MAX HP}*{Sacrifice Reserve %}/{Alive Enemies}',
@@ -4053,7 +4077,7 @@ export function skillDamageProfile(c: Competence): SkillDamageProfile | SkillDam
     formule: brut,
     hits,
     hitsRange: coupsVariables,
-    aoe: PORTEE_CORRIGEE_PAR_ID[c.com2usId] ?? c.aoe,
+    aoe: porteeRetenue(c),
     // ⚠️ `ignoreDefSelonVit` prévaut : SWARFARM tague Concentrated Stab d'un
     // effet « Ignore DEF » PLEIN (`quantite: 100`), la nuance « selon l'écart
     // de VIT » vivant uniquement dans son champ `note` en texte libre, jamais

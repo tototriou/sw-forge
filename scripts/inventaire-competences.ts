@@ -3,7 +3,7 @@
 // `node scripts/inventaire-competences.mjs [options]` ; `--aide` pour le détail.
 
 import { fileURLToPath } from 'node:url';
-import { inventaireDesCompetences, inventaireEnMarkdown, SIGNAUX, type CodeSignal, type OptionsInventaire } from './lib/inventaireCompetences';
+import { inventaireDesCompetences, inventaireEnMarkdown, LIMITES, SIGNAUX, type CodeSignal, type OptionsInventaire } from './lib/inventaireCompetences';
 
 const AIDE = `Inventaire des compétences de public/data/skills, avec la formule RETENUE par l'app.
 
@@ -24,6 +24,9 @@ Sortie :
 
 Signaux de doute (des compétences à lire à la main, jamais un verdict) :
 ${Object.entries(SIGNAUX).map(([c, d]) => `  ${c.padEnd(26)}${d}`).join('\n')}
+
+Limites (à relire avant de conclure d'un signal ou de son absence) :
+${LIMITES.map((l) => `  - ${l}`).join('\n')}
 `;
 
 function lire(argv: string[]): { options: OptionsInventaire; json: boolean } | string {

@@ -40,7 +40,9 @@ jamais `Competence.formule` seule — un balayage de la fiche a classé « sans
 ratio » Purification, Cooperation! (21415) et Rite of Ashes (22015), que l'app
 calcule par leur auxiliaire. Il sort la prose complète et des **signaux de
 doute** ; un signal, ou une prose qui contredit la donnée, se **lit à la
-main** avant de classer (§ 4).
+main** avant de classer (§ 4). Ses **limites** (`--aide`) disent ce qu'il ne
+voit pas : l'absence de signal ne prouve rien (passifs hors de
+`formule-sans-calcul`, trois mots-clés seulement, rien comparé au jeu).
 
 ## 2. Les champs de données mentent, et pas de façon systématique
 

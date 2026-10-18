@@ -46,13 +46,26 @@ export const SIGNAUX: Record<CodeSignal, string> = {
   'formule-fiche-vide': 'fiche à formule vide, formule retenue présente (table curée ou compétence auxiliaire)',
   'formule-fiche-remplacee': 'fiche à formule, remplacée par une formule curée différente',
   'auxiliaire-non-retenue': 'aucune formule retenue alors qu’une auxiliaire `versCeSort` porte une formule',
-  'formule-sans-calcul': 'formule retenue présente, mais l’app ne calcule pas la compétence (masquée, refusée, passif non offensif)',
+  'formule-sans-calcul': 'sort ACTIF à formule retenue que l’app ne calcule pas (refusé, ou sans profil : soin, sans attaque, masqué) — les passifs n’y sont jamais',
   'ally-attack-sans-formule': 'effet `Ally Attack` sans formule retenue',
   'portee-corrigee': 'portée retenue différente de la portée de la fiche',
   'coups-zero-avec-formule': '`coups` à 0 ou absent, avec une formule retenue',
   'mot-cle-sans-effet': 'la prose du sort porte un mot-clé sans l’effet qui lui correspond',
   'fiches-divergentes': 'le même identifiant porte des données différentes selon la fiche de monstre',
 };
+
+/**
+ * Ce que l'inventaire NE fait PAS, pour `--aide` et la documentation : à
+ * relire avant de tirer une conclusion d'un signal ou de son absence.
+ */
+export const LIMITES: string[] = [
+  'Il trouve, il ne classe pas : un signal dit quelle compétence lire à la main, jamais qu’elle est fausse ou manquante ; l’absence de signal ne prouve rien.',
+  '`formule-sans-calcul` ne regarde que les sorts actifs : un passif hors des passifs offensifs (`PASSIFS_OFFENSIFS_CONNUS`) n’est jamais signalé, même s’il porte une formule ; un passif offensif oublié de cette table passe donc inaperçu.',
+  '`formule-sans-calcul` mêle des sorts volontairement non calculés (soins, boucliers, sorts sans attaque, masqués) et des sorts à dégâts pas encore pris en charge : seule la raison affichée et la prose les départagent.',
+  '`mot-cle-sans-effet` ne cherche que trois mots (« together », « ignore … DEF », « bomb ») dans la description du sort : une mécanique décrite autrement, ou portée par la description d’un effet, lui échappe.',
+  'Les signaux comparent la fiche SWARFARM à ce que l’app retient ; rien n’est comparé au jeu : une formule fausse des deux côtés passe sans signal.',
+  '`fiches-divergentes` ignore le champ `id` de chaque compétence : un écart qui ne porterait que sur lui reste invisible.',
+];
 
 export interface Signal {
   code: CodeSignal;
@@ -155,11 +168,11 @@ function signauxDe(c: Competence, e: Omit<EntreeInventaire, 'signaux'>, divergen
       });
     }
   }
-  if (e.formuleRetenue && e.calcul.statut !== 'profil' && e.calcul.statut !== 'passif-offensif') {
+  // Sorts ACTIFS seulement : un passif hors des passifs offensifs n'est pas
+  // calculé par choix (voir LIMITES), le signaler noierait les vrais cas.
+  if (!c.passif && e.formuleRetenue && (e.calcul.statut === 'refus' || e.calcul.statut === 'sans-profil')) {
     const detail =
-      e.calcul.statut === 'refus' ? `refusée : ${e.calcul.raison}`
-        : e.calcul.statut === 'sans-profil' ? 'sort sans profil (soin, sans attaque ou masqué)'
-          : 'passif hors des passifs offensifs';
+      e.calcul.statut === 'refus' ? `refusée : ${e.calcul.raison}` : 'sort sans profil (soin, sans attaque ou masqué)';
     s.push({ code: 'formule-sans-calcul', raison: `formule retenue \`${e.formuleRetenue}\`, ${detail}` });
   }
   if (nomsEffets.has('Ally Attack') && !e.formuleRetenue) {

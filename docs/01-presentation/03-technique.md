@@ -115,7 +115,10 @@ Source de vérité du rendu : [03-developpeur/interface/](../03-developpeur/inte
 - `scripts/inventaire-competences.mjs` — inventaire des compétences du corpus, lu comme l'app le
   lit (formule et portée retenues par `src/lib/damage.ts`, statut de calcul), avec la prose
   complète et des signaux de doute ; filtres et sortie `--json` : `--aide`. Module :
-  `scripts/lib/inventaireCompetences.ts`.
+  `scripts/lib/inventaireCompetences.ts`. ⚠️ Il trouve, il ne classe pas : ses limites
+  (`LIMITES`, affichées par `--aide`) disent ce qu'un signal ne prouve pas et ce qu'il ne voit
+  pas — `formule-sans-calcul` ne regarde que les sorts actifs, `mot-cle-sans-effet` trois mots
+  seulement, rien n'est comparé au jeu.
 - `scripts/benchmark-*.mjs` — mesures de l'Optimizer.
 - `scripts/lib/relicOracle.ts` — oracle de contrôle de la dimension relique : N recherches du
   moteur réel, une par principale éligible distincte, et point d'entrée CLI pour les mesures.

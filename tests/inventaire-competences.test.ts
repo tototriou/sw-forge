@@ -74,4 +74,14 @@ export default function testInventaireCompetences() {
 
   const filtres = inventaireDesCompetences({ racine, slot: 3, prose: 'together', monstre: 'nezuko' }).map((e) => e.com2usId);
   egal(filtres, [21415], 'filtres combinés (slot, prose, monstre)');
+
+  // `formule-sans-calcul` : sorts ACTIFS seulement (limite déclarée) — un
+  // passif non offensif à formule n'est jamais signalé.
+  const sansCalcul = inventaireDesCompetences({ racine, signal: 'formule-sans-calcul' });
+  ok(sansCalcul.length > 0, `formule-sans-calcul : des sorts actifs signalés (${sansCalcul.length})`);
+  egal(sansCalcul.filter((e) => e.passif).map((e) => e.com2usId), [], 'formule-sans-calcul : aucun passif');
+  ok(sansCalcul.every((e) => e.calcul.statut === 'refus' || e.calcul.statut === 'sans-profil'), 'formule-sans-calcul : chaque sort signalé est refusé ou sans profil');
+  const passifsAFormule = inventaireDesCompetences({ racine }).filter((e) => e.passif && e.formuleRetenue && e.calcul.statut === 'passif-non-offensif');
+  ok(passifsAFormule.length > 0 && passifsAFormule.every((e) => !e.signaux.some((s) => s.code === 'formule-sans-calcul')),
+    `limite : ${passifsAFormule.length} passifs non offensifs à formule, aucun signalé`);
 }

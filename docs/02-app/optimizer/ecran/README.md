@@ -154,8 +154,9 @@ Chacun vaut sur une plage `[a, b[` :
   largeur, « Exemplaire » puis les résultats.
 - **A3, dès 1 180 px.** Les essentiels à gauche ; le contrôle à onglets en
   haut, à leur droite ; sous lui, la colonne de droite : « Exemplaire », le
-  bloc « Objectif et Rechercher » (sous « Exemplaire », ou à côté dès
-  1 536 px), les résultats. Une colonne repliable
+  bloc « Objectif et Rechercher » (à côté d'« Exemplaire » quand la
+  colonne de droite fait au moins 972 px, dessous sinon), les résultats.
+  Une colonne repliable
   ouverte s'insère entre les essentiels et la colonne de droite là où elle
   tient avec « Exemplaire », et se superpose aux résultats sinon.
 
@@ -289,9 +290,8 @@ options ».
 - **Par défaut**, « Artéfacts et relique » est ouverte en A1, en A2 et dès
   1 516 px ; fermée en A3 sous 1 516 (aucun panneau superposé ouvert
   d'office). « Aura, exclusion, avancés » est fermée.
-- ⚠️ **« Rechercher » referme « Artéfacts et relique »**, pendant la
-  recherche et après. Rouverte, elle reprend sa place ; les cartes de
-  résultat passent à une colonne quand deux ne tiennent plus.
+- ⚠️ **Seul son onglet ferme une colonne repliable** : lancer une recherche
+  ne replie rien, et rien ne bouge au clic sur « Rechercher ».
 
 ### Défilement
 
@@ -318,12 +318,18 @@ exacte, avec un carré plein, et reste inactif 300 ms.
 Deux formes, selon la place :
 
 - **étroite**, 340 × ≈ 356 px, objectifs en 2 × 2 : en A2, à droite des
-  essentiels, au-dessus du pli ; en A3 dès 1 536 px, à côté
-  d'« Exemplaire » ;
+  essentiels, au-dessus du pli ; en A3, à côté d'« Exemplaire », quand la
+  colonne de droite fait au moins 972 px (616 + 16 + 340), soit un
+  conteneur d'au moins 1 536 px sans colonne repliable insérée, 1 872 avec
+  « Artéfacts et relique » insérée ;
 - **large**, ≈ 260 px de haut, à la largeur de sa colonne : objectifs sur
   une ligne, « Rechercher » · « Exporter » · « Importer » sur une rangée,
-  estimation sur une ligne, places réservées gardées : en A1, et en A3 sous
-  1 536 px, sous « Exemplaire ».
+  estimation sur une ligne, places réservées gardées : partout ailleurs (A1,
+  et A3 quand la colonne de droite fait moins de 972 px), sous
+  « Exemplaire ».
+
+⚠️ Le bloc ne change de forme qu'au clic d'un onglet, qui ouvre ou ferme
+une colonne insérée, jamais au lancement d'une recherche.
 
 En A1, le bloc suit les essentiels ; tant que sa place est sous le pli, il
 reste collé au bas de la fenêtre, pour que « Rechercher » soit toujours

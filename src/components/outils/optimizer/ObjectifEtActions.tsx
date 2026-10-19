@@ -23,6 +23,39 @@ export interface ObjectifEtActionsProps {
   stop: () => void;
 }
 
+// Le titre de l'objectif et son aide, partagés avec le bloc « Objectif et
+// Rechercher » du bureau (bureau/ObjectifEtRechercherBureau.tsx).
+export function TitreObjectifRecherche() {
+  return (
+    <div className="mb-1.5 flex items-center gap-1.5">
+      <p className="label">Objectif de recherche</p>
+      <HelpPopover title="Objectif de recherche">
+        Ce que la recherche maximise. <b className="text-ink">Dégâts réels</b> : les dégâts d&apos;un sort
+        précis contre l&apos;adversaire décrit.
+      </HelpPopover>
+    </div>
+  );
+}
+
+// Le résumé de « Dégâts réels », porte de réouverture de la description du
+// combat. `cache` : rendu mais invisible et hors de portée (ni clic, ni
+// clavier, ni lecteur d'écran), pour que sa place reste réservée quand
+// l'objectif n'est pas « Dégâts réels » (bloc du bureau seulement).
+export function ResumeCombat({ resumeCombat, setSetupOuvert, cache = false }: { resumeCombat: string; setSetupOuvert: Dispatch<SetStateAction<boolean>>; cache?: boolean }) {
+  return (
+    <ZoneCliquable
+      onClick={() => setSetupOuvert(true)}
+      className={`mt-2.5 flex w-full items-center gap-1.5 rounded-lg border border-border-soft bg-panel2 px-2 py-1.5 text-left${cache ? ' invisible' : ''}`}
+      aria-label="Modifier la description du combat"
+      {...(cache ? { 'aria-hidden': true, tabIndex: -1 } : {})}
+    >
+      <Swords size={13} className="flex-none text-ink-dim" />
+      <span className="text-micro leading-tight text-ink-dim">{resumeCombat}</span>
+      <Pencil size={12} className="ml-auto flex-none text-ink-dim" />
+    </ZoneCliquable>
+  );
+}
+
 export default function ObjectifEtActions({ objective, setObjective, setSetupOuvert, resumeCombat, handleSearch, selected, status, comboSets, exportRecipe, importFileRef, importRecipe, setStoppedManually, stop }: ObjectifEtActionsProps) {
   return (
     <div className="rounded-xl border border-border bg-panel p-3 shadow-lg">
@@ -37,13 +70,7 @@ export default function ObjectifEtActions({ objective, setObjective, setSetupOuv
           dans celle des actions — même traitement que « Set de runes
           recherché » ou « Conditions ». */}
       <div className="mb-3">
-        <div className="mb-1.5 flex items-center gap-1.5">
-          <p className="label">Objectif de recherche</p>
-          <HelpPopover title="Objectif de recherche">
-            Ce que la recherche maximise. <b className="text-ink">Dégâts réels</b> : les dégâts d&apos;un sort
-            précis contre l&apos;adversaire décrit.
-          </HelpPopover>
-        </div>
+        <TitreObjectifRecherche />
         {/* ⚠️ Choisir « Dégâts réels » OUVRE la description du combat, il ne
             fait pas que la révéler. La carte apparaissait auparavant sous
             l'objectif, et rien n'obligeait à la regarder : on pouvait classer
@@ -62,17 +89,7 @@ export default function ObjectifEtActions({ objective, setObjective, setSetupOuv
         {/* Le résumé remplace la carte dans le flux ET sert de porte de
             réouverture : sans lui, une fenêtre fermée rendrait les
             hypothèses inatteignables autant qu'invisibles. */}
-        {objective === 'degats_reels' && (
-          <ZoneCliquable
-            onClick={() => setSetupOuvert(true)}
-            className="mt-2.5 flex w-full items-center gap-1.5 rounded-lg border border-border-soft bg-panel2 px-2 py-1.5 text-left"
-            aria-label="Modifier la description du combat"
-          >
-            <Swords size={13} className="flex-none text-ink-dim" />
-            <span className="text-micro leading-tight text-ink-dim">{resumeCombat}</span>
-            <Pencil size={12} className="ml-auto flex-none text-ink-dim" />
-          </ZoneCliquable>
-        )}
+        {objective === 'degats_reels' && <ResumeCombat resumeCombat={resumeCombat} setSetupOuvert={setSetupOuvert} />}
       </div>
 
       {/* ⚠️ Rangée d'actions inchangée — mêmes classes qu'avant que

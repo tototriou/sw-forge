@@ -27,11 +27,15 @@ export interface MeilleursArtefactsProps {
   canValidateDisplayed: boolean;
   handleValidateArtefacts: () => void;
   artefactsProposesDejaReserves: boolean;
+  // Bureau seulement (optimizer/bureau/MeilleursArtefactsBureau.tsx) : le bloc
+  // devient une CARTE à part, sous la relique, au lieu d'un encart de la carte
+  // « Artéfacts et reliques ». Le téléphone ne le passe pas.
+  carte?: boolean;
 }
 
-export default function MeilleursArtefacts({ modeArtefactsSeuls, etroit, setArtefactsOuverts, artefactsOuverts, critereArtefacts, setCritereArtefacts, setSetupOuvert, sortesFigees, resolvedSkill, sourceSelector, lists, ownValidatedBuild, canValidateDisplayed, handleValidateArtefacts, artefactsProposesDejaReserves }: MeilleursArtefactsProps) {
+export default function MeilleursArtefacts({ modeArtefactsSeuls, etroit, setArtefactsOuverts, artefactsOuverts, critereArtefacts, setCritereArtefacts, setSetupOuvert, sortesFigees, resolvedSkill, sourceSelector, lists, ownValidatedBuild, canValidateDisplayed, handleValidateArtefacts, artefactsProposesDejaReserves, carte = false }: MeilleursArtefactsProps) {
   return (
-    <div className="mt-2.5 rounded-lg border border-border-soft bg-panel2/60 px-2 py-1.5">
+    <div className={carte ? 'rounded-xl border border-border bg-panel p-3' : 'mt-2.5 rounded-lg border border-border-soft bg-panel2/60 px-2 py-1.5'}>
       {(() => {
         const enTete = (<>
         {/* ⚠️ **« offensifs » reste dans le titre** : le segmenté

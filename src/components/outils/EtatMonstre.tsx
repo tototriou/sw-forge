@@ -275,7 +275,10 @@ export function RappelsEtatMonstre({ setup, artefacts, rappelsBuffs }: {
  * importée (qui écrit `damageSetup` directement) — le guidage n'est donc
  * jamais rejoué à l'import ni au changement de monstre.
  */
-function AurasExternesSaisie({
+// Exporté pour la carte « Sets d'aura des autres monstres » du bureau
+// (optimizer/bureau/SetsAuraBureau.tsx), en tête de la colonne « Aura,
+// exclusion, avancés » ; rendu inchangé ici.
+export function AurasExternesSaisie({
   setup,
   maj,
   rappel,

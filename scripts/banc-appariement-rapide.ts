@@ -57,7 +57,7 @@ import { apparierRapide, runesAPlat, verifierContrat } from '../src/lib/appariem
 import { ValidationTypee } from '../src/lib/validationRapide';
 import { bilanVide, comparerPaire } from './lib/controleValidationRapide';
 import { drain } from './lib/drain';
-import { apparierRapideEnParallele } from '../src/lib/appariementRapideParallele';
+import { ResultatParallele, apparierRapideEnParallele } from '../src/lib/appariementRapideParallele';
 import { apparier } from '../src/lib/rechercheRunes';
 import { nombreDeTravailleurs } from '../src/workers/parallelPairing';
 import { OptimizerRecipe } from '../src/lib/optimizerRecipe';
@@ -129,7 +129,8 @@ interface Etat {
   traitees: number;
   nearMissByCondition: SearchResult['nearMissByCondition'];
   globalNearMiss: SearchResult['globalNearMiss'];
-  motif: 'aucun' | 'maxCollected' | 'maxMs' | 'arret' | 'manuel';
+  /** Celui du coordinateur ; `erreur` n'arrive jamais ici : une panne rejette (`ErreurAppariementParallele`). */
+  motif: ResultatParallele['motif'];
   ms: number;
   extra?: Record<string, unknown>;
 }

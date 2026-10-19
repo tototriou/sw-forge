@@ -257,8 +257,8 @@ différence d'une recherche coupée par le temps ou arrêtée. La progression
 compte les paires traitées et les candidats des morceaux déjà fusionnés,
 comme le résultat. Un arrêt cesse de distribuer, arrête chaque Worker à sa
 ligne suivante et rend tout ce qui a été trouvé ;
-une erreur d'un Worker est rattrapée : tous les Workers terminés, résultat
-vide tronqué. Détail : [parallelisation.md § Répartition et partage du plafond](parallelisation.md),
+une erreur d'un Worker est rattrapée : tous les Workers terminés, erreur
+journalisée, et ce qui a été fusionné avant elle rendu, tronqué. Détail : [parallelisation.md § Répartition et partage du plafond](parallelisation.md),
 [parallelisation.md § Fusion des résultats](parallelisation.md) et
 [parallelisation.md § Arrêt, erreur et nettoyage](parallelisation.md).
 

@@ -270,7 +270,8 @@ rend une poignée (`PoigneeTravailleur`) : `envoyer` un morceau,
   exact.
 - Motif (`ResultatParallele.motif`) : `maxCollected` (le plafond, global),
   `maxMs` (un morceau coupé par le temps, ou plus rien de distribué une fois
-  le filet dépassé), `manuel` (l'arrêt manuel) ; `arret` est l'arrêt
+  le filet dépassé), `manuel` (l'arrêt manuel), `erreur` (un Worker a
+  échoué, § Arrêt, erreur et nettoyage) ; `arret` est l'arrêt
   déterministe à un nombre de paires donné, réservé aux tests et au banc. Le
   motif ne voyage pas dans le `SearchResult` : l'ordre étant séquentiel et
   le plafond global, il se déduit du plafond comme en séquentiel
@@ -303,10 +304,24 @@ rend une poignée (`PoigneeTravailleur`) : `envoyer` un morceau,
   été trouvé.
 - Arrêt pendant la construction des moitiés :
   [pipeline.md § Interruption](pipeline.md).
-- Erreur d'un Worker : la promesse du coordinateur est rejetée, et il
-  termine TOUS les Workers avant de la rendre (`finally`) : aucun ne
-  survit, quelle que soit l'issue. Le Worker principal attrape le rejet et
-  poste un résultat vide, tronqué.
+- Erreur d'un Worker : le coordinateur cesse de fusionner (un résultat
+  arrivé ensuite est ignoré), termine TOUS les Workers (`finally`) : aucun
+  ne survit, quelle que soit l'issue. Puis il rejette par
+  `ErreurAppariementParallele`, qui porte l'erreur du Worker et l'état
+  fusionné jusque-là : les morceaux contigus reçus, comme à l'arrêt, motif
+  `erreur`, tronqué. Un rejet plutôt qu'un résultat : un appelant qui ne le
+  traite pas (harnais, banc, tests) échoue au lieu de prendre une panne pour
+  une recherche coupée. Le Worker principal attrape le rejet, le journalise
+  (`console.error`) et poste cet état (`resultatApresErreur`) : l'écran
+  garde les candidats déjà montrés, au lieu d'annoncer zéro combinaison
+  après les avoir affichés. Une erreur levée avant tout Worker (hors
+  contrat, plan incohérent) n'a rien à rendre : résultat vide, tronqué.
+- Au navigateur, le lanceur annule l'événement `error` d'un Worker enfant
+  (`preventDefault`, `erreurDeWorkerEnfant`) avant de le remettre au
+  coordinateur : non annulé, le
+  standard HTML le signale à nouveau dans la portée qui a créé le Worker,
+  ici le Worker de recherche, d'où il remonterait au `onerror` du hook
+  (statut `error`), en concurrence avec le résultat posté.
 - ⚠️ Ne pas retirer ce `try/catch` du Worker principal : un rejet non
   intercepté dans un `self.onmessage` asynchrone n'atteint pas le `onerror`
   du parent. Aucun message n'arriverait, et l'écran resterait « en cours ».
@@ -432,7 +447,9 @@ contexte, annulations, demandes ; détail dans
     identique au séquentiel, plafond global, progression qui ne recule
     jamais et dont l'aperçu est un préfixe du résultat, arrêt manuel (avant
     et pendant la distribution), filet de temps déjà dépassé, panne d'un
-    Worker (rejet, tous terminés), refus hors contrat, et le corps d'un
+    Worker (rejet porteur de l'état fusionné, rien de fusionné après, tous
+    terminés ; `resultatApresErreur` et `erreurDeWorkerEnfant`, que le
+    Worker principal appelle), refus hors contrat, et le corps d'un
     Worker qui court sur l'instant global, dont la tranche court d'un
     morceau au suivant (horloge simulée) ;
   - `testAppariementParalleleWorkers` : le même coordinateur sur de VRAIS

@@ -28,7 +28,10 @@ import {
   ordreDesCompartiments, paireDeCompartimentsOuverte, parcourirMorceau, traiterMorceau,
 } from '../src/lib/appariementRapide';
 import { MessageVersTravailleur, resultatVide, servirAppariement } from '../src/lib/travailleurAppariement';
-import { LancerTravailleur, OptionsParallele, apparierRapideEnParallele, enResultatDeRecherche, planifierMorceaux } from '../src/lib/appariementRapideParallele';
+import {
+  ErreurAppariementParallele, LancerTravailleur, OptionsParallele, apparierRapideEnParallele, enResultatDeRecherche, erreurDeWorkerEnfant, planifierMorceaux,
+  resultatApresErreur,
+} from '../src/lib/appariementRapideParallele';
 import {
   PARALLEL_PAIRING_THRESHOLD, TRAVAILLEURS_MAX, TRAVAILLEURS_PAR_DEFAUT, nombreDeTravailleurs, regimeAppariement,
 } from '../src/workers/parallelPairing';
@@ -306,8 +309,44 @@ async function testCoordination(liste: Espace[]): Promise<void> {
   } catch (x) {
     erreur = x;
   }
-  ok(erreur instanceof Error && /panne/.test(erreur.message), 'panne d’un Worker : la promesse est rejetée avec son erreur');
+  ok(erreur instanceof ErreurAppariementParallele && erreur.erreur instanceof Error && /panne/.test(erreur.erreur.message) && /panne/.test(erreur.message),
+    'panne d’un Worker : la promesse est rejetée (ErreurAppariementParallele), avec l’erreur du Worker');
   ok(jPanne.lances > 1 && jPanne.termines === jPanne.lances, `panne d’un Worker : les ${jPanne.lances} Workers sont terminés`);
+  // Panne tardive : ce qui a été fusionné avant l'erreur est rendu, tronqué, et rien ne s'y ajoute ensuite.
+  let nonVides = 0;
+  for (const ex of liste.slice(0, 3)) {
+    const jTard = { lances: 0, termines: 0 };
+    const recus: RecusParMorceau = new Map();
+    let derniere: { traitees: number; n: number } | null = null;
+    let tard: unknown = null;
+    try {
+      await apparierRapideEnParallele(options(ex, espionner(lanceurSimule(rng, jTard, { apres: 12 }), recus), {
+        surProgression: (traitees, candidats) => {
+          derniere = { traitees, n: candidats.length };
+        },
+      }));
+    } catch (x) {
+      tard = x;
+    }
+    if (!(tard instanceof ErreurAppariementParallele)) {
+      ok(false, `${ex.nom} : panne tardive → ErreurAppariementParallele`);
+      continue;
+    }
+    const r = tard.resultat;
+    const fige = JSON.stringify([r.candidates.length, r.explored]);
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    ok(r.motif === 'erreur' && r.truncated && r.explored < ex.total && estPrefixe(r.candidates, ex.reference.candidates),
+      `${ex.nom} : panne tardive → l’état fusionné avant l’erreur (${r.candidates.length} candidats, ${r.explored} / ${ex.total} paires), un préfixe du séquentiel, tronqué, motif erreur`);
+    egal(derniere ?? { traitees: 0, n: 0 }, { traitees: r.explored, n: r.candidates.length }, `${ex.nom} : panne tardive → l’état rendu est celui de la dernière progression`);
+    if (r.candidates.length > 0) nonVides++;
+    egal(JSON.stringify([r.candidates.length, r.explored]), fige, `${ex.nom} : panne tardive → rien ne s’ajoute après l’erreur (messages en vol ignorés)`);
+    egal(jTard.termines, jTard.lances, `${ex.nom} : panne tardive → les ${jTard.lances} Workers terminés`);
+    const poste = resultatApresErreur(tard);
+    egal(etat(poste), etat(enResultatDeRecherche(r)), `${ex.nom} : ce que poste le Worker principal = l’état fusionné, réduit au SearchResult`);
+  }
+  ok(nonVides > 0, `panne tardive : ${nonVides} espace(s) sur 3 rendent des candidats trouvés avant l’erreur`);
+  egal(etat(resultatApresErreur(new Error('hors contrat'))), etat({ candidates: [], explored: 0, truncated: true, nearMissByCondition: [], globalNearMiss: null }),
+    'erreur levée avant tout Worker : le Worker principal poste un résultat vide, tronqué');
   // Hors contrat numérique (traceur) : jamais de repli silencieux ici.
   let refus: unknown = null;
   try {
@@ -498,6 +537,19 @@ async function testCadenceTemps(liste: Espace[]): Promise<void> {
   egal(rendus[1], resultatVide(m1, rendus[0].validationTypee), 'le morceau qui attendait est rendu vide, sans calcul');
 }
 
+/**
+ * Le gestionnaire `onerror` que le lanceur du navigateur pose sur un Worker
+ * enfant : l'événement est annulé, pour ne pas remonter au hook, puis remis
+ * au coordinateur. (La coquille elle-même ne s'exécute qu'au navigateur.)
+ */
+function testErreurDeWorkerEnfant(): void {
+  titre('Appariement parallèle · erreur d’un Worker enfant au navigateur : annulée, puis remise au coordinateur');
+  const journal: string[] = [];
+  const evenement = { message: 'boum', preventDefault: () => journal.push('preventDefault') };
+  erreurDeWorkerEnfant((e) => journal.push(`rappel ${(e as { message: string }).message}`))(evenement);
+  egal(journal, ['preventDefault', 'rappel boum'], 'preventDefault, puis l’événement remis au coordinateur');
+}
+
 /** `n` morceaux d'UNE ligne ouverte chacun, les premières de l'ordre de `pairBuckets` (identifiants à partir de 1). */
 function morceauxDUneLigne(e: Espace, n: number): Morceau[] {
   const out: Morceau[] = [];
@@ -624,4 +676,5 @@ export async function testAppariementParallele(): Promise<void> {
   await testCoupeReelle(liste);
   await testCadenceTemps(liste);
   await testTrancheEntreMorceaux(liste);
+  testErreurDeWorkerEnfant();
 }

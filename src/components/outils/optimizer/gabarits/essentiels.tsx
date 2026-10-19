@@ -210,7 +210,9 @@ export const GABARITS_ESSENTIELS: Gabarit[] = [
     telephone: 'EtatMonstre (partagé) exporte son titre, son choix du lead et ses rappels, rendu inchangé ; le téléphone garde EtatMonstre entier.',
     changements: [
       'Réduit aux buffs et au lead ; « Sets d\'aura des autres monstres » passe en tête de la colonne « Aura, exclusion, avancés ».',
-      'Les trois vignettes de buff en colonne, à toute largeur de fenêtre.',
+      'Les trois vignettes de buff en colonne, à toute largeur de fenêtre, centrée dans la carte.',
+      'L\'aide du titre ne nomme plus les sets d\'aura et n\'a plus le paragraphe « Ce qui décrit le combat… ».',
+      'Aux deux formats : plus de phrase « Lead effectif de l\'équipe : … » ni de motif « Le contenu de combat de la liste n\'est pas défini… » ; seul le motif d\'un lead inactif garde sa place réservée.',
     ],
     etats: [
       { id: 'defaut', nom: 'Ni buff ni lead', rendu: (ctx) => <EtatGabarit ctx={ctx} patch={{ atkBuff: false, defBuff: false, spdBuff: false, leaderSkill: undefined }} /> },

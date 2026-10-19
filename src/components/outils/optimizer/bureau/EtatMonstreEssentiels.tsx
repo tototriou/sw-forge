@@ -26,7 +26,9 @@ export interface EtatMonstreEssentielsProps {
 // lead, rappels des passifs et amplifications.
 //
 // ⚠️ **Les vignettes en colonne**, sans bascule selon la fenêtre : trois
-// vignettes de 64 px ne tiennent pas en rangée dans 170 px.
+// vignettes de 64 px ne tiennent pas en rangée dans 170 px. La colonne est
+// centrée dans la carte (`self-center`). L'aide du titre est celle du bureau :
+// sans les sets d'aura ni le paragraphe sur le combat.
 export default function EtatMonstreEssentiels({ setup, maj, equipe = false, motifLead, etroit, artefacts, rappelsBuffs }: EtatMonstreEssentielsProps) {
   return (
     <section
@@ -34,8 +36,8 @@ export default function EtatMonstreEssentiels({ setup, maj, equipe = false, moti
       style={{ width: LARGEUR_COLONNE_ETROITE }}
       className="flex flex-col gap-2 rounded-xl border border-border bg-panel p-3"
     >
-      <TitreEtatMonstre />
-      <div className="flex w-20 flex-col items-center gap-1.5 rounded-lg border border-border-soft bg-panel2 px-2 py-1.5">
+      <TitreEtatMonstre bureau />
+      <div className="flex w-20 flex-col items-center gap-1.5 self-center rounded-lg border border-border-soft bg-panel2 px-2 py-1.5">
         <EffetVignette icone={ATK_BUFF_ICON} libelle="Buff ATQ" description="Augmente l’ATQ du monstre de 50 %."
           onClick={() => maj({ atkBuff: !setup.atkBuff })} actif={setup.atkBuff} etroit={etroit} />
         <EffetVignette icone={DEF_BUFF_ICON} libelle="Buff DEF" description="Augmente la DEF du monstre de 70 %."

@@ -46,5 +46,20 @@ export async function testRenduOptimizerGabaritsGestes() {
     ok(/border-accent/.test((await tauxCrit.getAttribute('class')) ?? ''), 'principales : la valeur choisie porte le marqueur d’accent');
     ok(await surface.isVisible(), 'principales : la liste reste ouverte après un choix');
     ok((await page.getByRole('button', { name: 'Slot 4 : Taux Crit' }).count()) === 1, 'principales : le champ fermé résume le choix');
+
+    // État de mon monstre : l'aide du bureau, colonne des buffs centrée.
+    await page.evaluate(monter('etat'));
+    await page.getByRole('button', { name: 'État de mon monstre' }).click();
+    await page.waitForTimeout(100);
+    const aide = await page.evaluate(() => document.body.innerText);
+    ok(aide.includes('compétences d’invocateur') || aide.includes('compétences d\'invocateur'), 'état : l’aide du titre s’ouvre');
+    ok(!aide.includes('sets d\'aura') && !aide.includes('sets d’aura'), 'état : l’aide du bureau ne nomme pas les sets d’aura');
+    ok(!aide.includes('décrit le combat'), 'état : l’aide du bureau n’a pas le paragraphe sur le combat');
+    const centre = await page.evaluate(() => {
+      const carte = document.querySelector('section[aria-label="État de mon monstre"]')!.getBoundingClientRect();
+      const buffs = document.querySelector('[aria-label^="Buff ATQ"]')!.closest('.w-20')!.getBoundingClientRect();
+      return Math.abs((buffs.left + buffs.right) / 2 - (carte.left + carte.right) / 2);
+    });
+    ok(centre < 1, `état : la colonne des buffs est centrée dans la carte (écart ${centre.toFixed(1)} px)`);
   } finally { await browser.close(); }
 }

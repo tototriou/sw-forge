@@ -179,20 +179,28 @@ export default function EtatMonstre({
 
 // Le titre de la carte et son aide. Exporté pour la forme de bureau des
 // essentiels (`optimizer/bureau/EtatMonstreEssentiels.tsx`) : une seule prose.
-export function TitreEtatMonstre() {
+// ⚠️ `bureau` : l'aide de la forme des essentiels ne nomme pas les sets d'aura
+// (ils sont dans la colonne « Aura, exclusion, avancés ») et n'a pas le
+// paragraphe sur le combat (décision de l'utilisateur) ; le téléphone et la
+// page d'aujourd'hui ne la passent pas.
+export function TitreEtatMonstre({ bureau = false }: { bureau?: boolean }) {
   return (
     <div className="flex items-center gap-1.5">
       <p className="label">État de mon monstre</p>
       <HelpPopover title="État de mon monstre">
         Ce qui rend ton monstre plus fort, <b className="text-ink">quel que soit l&apos;adversaire</b> : buffs
-        reçus, leader skill de l&apos;équipe, compétences d&apos;invocateur, sets d&apos;aura des autres
-        monstres. Ces réglages changent ses statistiques, donc les{' '}
+        reçus, leader skill de l&apos;équipe, compétences d&apos;invocateur{bureau ? '' : <>, sets d&apos;aura des autres
+        monstres</>}. Ces réglages changent ses statistiques, donc les{' '}
         <b className="text-ink">dégâts supplémentaires</b> que lui apportent des artéfacts proportionnels
         aux PV, à l&apos;ATQ, à la DEF ou à la VIT.
-        <br />
-        <br />
-        Ce qui décrit <b className="text-ink">le combat</b> — le sort, la cible, le coup critique — vit dans
-        la fenêtre « Dégâts réels », qui s&apos;ouvre depuis l&apos;objectif de recherche.
+        {!bureau && (
+          <>
+            <br />
+            <br />
+            Ce qui décrit <b className="text-ink">le combat</b> — le sort, la cible, le coup critique — vit dans
+            la fenêtre « Dégâts réels », qui s&apos;ouvre depuis l&apos;objectif de recherche.
+          </>
+        )}
       </HelpPopover>
     </div>
   );

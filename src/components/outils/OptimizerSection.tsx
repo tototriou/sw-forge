@@ -137,10 +137,8 @@ import {
   Interrupteur,
   Selecteur,
 } from '../../ui';
-import SetComboPicker from './SetComboPicker';
 import BuildCandidateCard, { PlaceEnVerification, useHauteurDesCartes } from './BuildCandidateCard';
 import DamageSetupModale from './DamageSetupModale';
-import EtatMonstre from './EtatMonstre';
 import BoutonValiderBuild from './optimizer/BoutonValiderBuild';
 import BandeauBuildValide from './optimizer/BandeauBuildValide';
 import type { EtatValidation } from './optimizer/types';
@@ -3039,26 +3037,23 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
 
   const listesTelephone = <SelecteurListes lists={lists} memberCounts={memberCountsByList} />;
 
-  const setComboPicker = (
-    <SetComboPicker
-      sets={comboSets}
-      onChange={(next) => {
-        setComboSets(next);
-        if (next.length > 0) setSetPickerInvalid(false);
-        // Ouverture guidée : Accuracy ou Tolerance
-        // CHOISI comme set recherché guide vers l'interrupteur des auras
-        // RES/PRE, sans toucher aux auras externes. Au geste seulement :
-        // l'import d'une recette pose `comboSets` sans passer par ici.
-        if (guideVersResPre({ setsRecherches: comboSets }, { setsRecherches: next })) guiderVersResPre();
-      }}
-    />
-  );
+  // Le geste du set recherché.
+  function choisirSetsRecherches(next: string[]) {
+    setComboSets(next);
+    if (next.length > 0) setSetPickerInvalid(false);
+    // Ouverture guidée : Accuracy ou Tolerance
+    // CHOISI comme set recherché guide vers l'interrupteur des auras
+    // RES/PRE, sans toucher aux auras externes. Au geste seulement :
+    // l'import d'une recette pose `comboSets` sans passer par ici.
+    if (guideVersResPre({ setsRecherches: comboSets }, { setsRecherches: next })) guiderVersResPre();
+  }
 
   const setDeRunes = (
     <SetDeRunes
       setPickerSectionRef={setPickerSectionRef}
       setPickerInvalid={setPickerInvalid}
-      setComboPicker={setComboPicker}
+      comboSets={comboSets}
+      onChangeSets={choisirSetsRecherches}
     />
   );
 
@@ -3079,20 +3074,6 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
       maxStats={maxStats}
       setMinStats={setMinStats}
       setMaxStats={setMaxStats}
-    />
-  );
-
-  const etatMonstre = (
-    <EtatMonstre
-      setup={damageSetup}
-      maj={majDamageSetup}
-      equipe={combatMembre.equipe !== null}
-      motifLead={combatMembre.motif}
-      etroit={etroit}
-      artefacts={artefactsDegats}
-      rappelAuras={rappelAuras !== null}
-      onGuiderResPre={guiderVersResPre}
-      rappelsBuffs={rappelsBuffs}
     />
   );
 
@@ -3362,7 +3343,15 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
           cartes empilées, d'où le `row-span-4` de « Critères de recherche » et
           le décalage d'une rangée de tout ce qui suit. */}
       <CarteEtatMonstre
-        etatMonstre={etatMonstre}
+        setup={damageSetup}
+        maj={majDamageSetup}
+        equipe={combatMembre.equipe !== null}
+        motifLead={combatMembre.motif}
+        etroit={etroit}
+        artefacts={artefactsDegats}
+        rappelAuras={rappelAuras !== null}
+        onGuiderResPre={guiderVersResPre}
+        rappelsBuffs={rappelsBuffs}
       />
 
       {/* ⚠️ « Objectif de recherche » N'EST PAS ICI — il est dans la carte

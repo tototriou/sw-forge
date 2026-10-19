@@ -1,12 +1,14 @@
-import { type RefObject, type ReactNode } from 'react';
+import { type RefObject } from 'react';
+import SetComboPicker from '../SetComboPicker';
 
 export interface SetDeRunesProps {
   setPickerSectionRef: RefObject<HTMLDivElement>;
   setPickerInvalid: boolean;
-  setComboPicker: ReactNode;
+  comboSets: string[];
+  onChangeSets: (next: string[]) => void;
 }
 
-export default function SetDeRunes({ setPickerSectionRef, setPickerInvalid, setComboPicker }: SetDeRunesProps) {
+export default function SetDeRunes({ setPickerSectionRef, setPickerInvalid, comboSets, onChangeSets }: SetDeRunesProps) {
   return (
     <div
       ref={setPickerSectionRef}
@@ -17,7 +19,7 @@ export default function SetDeRunes({ setPickerSectionRef, setPickerInvalid, setC
       }`}
     >
       <p className="label mb-1.5">Set de runes recherché</p>
-      {setComboPicker}
+      <SetComboPicker sets={comboSets} onChange={onChangeSets} />
       {setPickerInvalid && (
         <p className="mt-1.5 text-micro font-semibold text-bad">
           Sélectionne au moins un set avant de lancer la recherche.

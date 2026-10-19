@@ -234,7 +234,7 @@ function resoudreReliqueFixeRapide(
   if (coutDesVerrous(params)) {
     // Toutes les notes (`meilleurSansVerrous`) : le parcours de la production.
     if (compteurs) compteurs.noteesEntieres++;
-const r = pairesParScore(params, e.caches?.preFiltre);
+    const r = pairesParScore(params, e.caches?.preFiltre);
     for (const p of r.paires) {
       const arts = artefactsDe(p);
       if (respecte(p.element, p.archetype, arts)) {

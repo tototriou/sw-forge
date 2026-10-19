@@ -867,7 +867,7 @@ function rendreDecouverte(
         ? `l’appariement séquentiel n’émet un point de passage que toutes les ${CHECKPOINT_EVERY} paires, donc la cible ` +
           'était déjà là quelque part dans les 500 précédentes. ✅ Reproductible : deux runs identiques rendent le même instant.'
         : '⚠️⚠️ le régime PARALLÈLE relève sa progression à chaque MORCEAU reçu, et `explored` y est la SOMME des ' +
-          'morceaux reçus à cet instant, dans l’ordre où les fils les rendent. L’ordre des candidats est celui du ' +
+          'morceaux déjà fusionnés, préfixe du plan qui avance par bonds selon l’ordre où les fils les rendent. L’ordre des candidats est celui du ' +
           'séquentiel, mais l’instant où l’un d’eux apparaît dépend de l’arrivée des morceaux : ' +
           'DEUX RUNS IDENTIQUES PEUVENT RENDRE DEUX INSTANTS DIFFÉRENTS. Ne comparer deux configurations sur cette ' +
           'grandeur qu’en régime séquentiel, ou en répétant et en mesurant d’abord la dispersion.'),
@@ -1110,11 +1110,11 @@ async function apparierEnParallele(
   cheminBundle: string,
   observateur: ObservateurDecouverte | null
 ): Promise<SearchResult> {
-  // ⚠️ La progression arrive à chaque morceau REÇU : `explored` y est la
-  // somme des morceaux reçus, dans l'ordre où les fils les rendent, et les
-  // candidats ceux déjà FUSIONNÉS, dans l'ordre séquentiel. L'ordre de
-  // collecte est donc reproductible, mais pas l'instant de découverte, qui
-  // dépend de l'arrivée des morceaux.
+  // ⚠️ La progression arrive à chaque morceau REÇU : `explored` et les
+  // candidats y sont ceux des morceaux déjà FUSIONNÉS, dans l'ordre
+  // séquentiel, un préfixe du plan qui avance par bonds selon l'ordre où les
+  // fils rendent les morceaux. L'ordre de collecte est donc reproductible,
+  // mais pas l'instant de découverte, qui dépend de l'arrivée des morceaux.
   let vus = 0;
   const resultat = await apparierRapideEnParallele({
     params: { ...params, traceur: undefined },

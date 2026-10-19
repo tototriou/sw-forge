@@ -265,7 +265,8 @@ deux sont indépendants (`DecouverteBuildCible`, `scripts/lib/diagnosticTypes.ts
 valeur (`rendreDecouverte`, `scripts/lib/diagnosticHarness.ts:827-866`) :
 c'est un MAJORANT, à `CHECKPOINT_EVERY` paires près en séquentiel
 (`granularitePaires`) ; en parallèle, relevé à chaque morceau reçu sur la
-somme des morceaux reçus, deux runs identiques peuvent rendre deux instants
+somme des morceaux fusionnés (un préfixe du plan, qui avance par bonds
+selon l'arrivée des morceaux), deux runs identiques peuvent rendre deux instants
 (`reproductible: false`, `tests/diagnostic-decouverte.test.ts:80-101`), d'où
 une comparaison de configurations en séquentiel ou après mesure de la
 dispersion ; une absence (`absente`) ne conclut rien sur un run tronqué, et

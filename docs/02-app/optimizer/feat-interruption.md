@@ -34,8 +34,9 @@ gardées sont les premières dans l'ordre où une recherche sur un seul fil les
 aurait trouvées, et le message ne s'affiche que si ce plafond est atteint ou
 le filet de temps écoulé. L'écran n'en lit que le booléen `truncated`. Le
 nombre de Workers suit la machine (la moitié de ses fils logiques, au plus
-8) ; « Arrêter » cesse de leur confier du travail et rend tout ce qu'ils ont
-trouvé, après la fin des morceaux en cours.
+8) ; « Arrêter » cesse de leur confier du travail, interrompt celui en
+cours (chaque Worker le lit entre deux tranches de 100 ms) et rend tout ce
+qu'ils ont trouvé.
 
 ## Barre de progression
 

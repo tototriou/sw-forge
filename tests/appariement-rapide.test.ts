@@ -343,6 +343,7 @@ function lancerSimule(rng: () => number): LancerTravailleur {
         rappel = r;
       },
       surErreur: () => {},
+      arreter: () => {},
       terminer: () => {},
     };
   };

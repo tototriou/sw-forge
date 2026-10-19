@@ -106,8 +106,11 @@ Ce que le plafond global change :
 
 ## Le corps d'un Worker
 
-`initialiserTravailleur(init)` puis `traiterMorceau(contexte, morceau)`
-(`src/lib/appariementRapide.ts`) : aucun contact avec la plateforme.
+`servirAppariement` (`src/lib/travailleurAppariement.ts`) reçoit les
+messages d'un Worker et rend un résultat par morceau ; il appelle
+`initialiserTravailleur(init)` puis parcourt chaque morceau par
+`parcourirMorceau(contexte, morceau)` (`src/lib/appariementRapide.ts`).
+Aucun contact avec la plateforme.
 
 1. `initialiserTravailleur` refait la préparation, `prepareSearch(params)` :
    une `PreparedSearch` porte des fonctions (`totalOf`), que le clonage ne
@@ -121,16 +124,30 @@ Ce que le plafond global change :
    poser, par l'instant de départ global, AVANT tout usage du filet de
    temps. Sans ce remplacement, le filet `maxMs` repartirait de la fin de la
    construction des moitiés au lieu du lancement de la recherche.
-3. `traiterMorceau` apparie les lignes du morceau par le noyau
-   ([pipeline.md § Appariement séquentiel](pipeline.md)), d'un bloc, et rend
-   ses candidats avec leur position globale, les améliorations successives
-   de son quasi-succès, ses paires traitées et visitées, et s'il a été coupé
-   par le temps (`tronqueTemps`). Le temps se teste à chaque ligne et à
-   chaque paire visitée.
+3. `parcourirMorceau` apparie les lignes du morceau par le noyau
+   ([pipeline.md § Appariement séquentiel](pipeline.md)), et rend ses
+   candidats avec leur position globale, les améliorations successives de
+   son quasi-succès, ses paires traitées et visitées (et, pour chaque
+   candidat, les visitées jusqu'à lui), et son issue (`IssueMorceau`) :
+   `complet`, `temps`, `plafond`, `limite` (l'arrêt déterministe des tests
+   et du banc) ou `arret`. Le temps se teste à chaque ligne, à chaque paire
+   visitée et à chaque point de passage (`CHECKPOINT_EVERY` paires
+   TRAITÉES) qu'une ligne franchit, sautée ou non : une suite de lignes
+   entièrement sautées ne le contourne pas. Coupé par le temps à un point de
+   passage franchi pendant un saut, le morceau compte ses paires traitées
+   jusqu'à ce point.
+4. `parcourirMorceau` est un générateur qui rend la main après chaque
+   ligne. `servirAppariement` le pilote par TRANCHES de `TRANCHE_MS`
+   (100 ms) : entre deux tranches, il rend la main à la boucle d'événements
+   du Worker (un minuteur nul), qui lit les messages arrivés entre-temps.
+   Un `{ type: 'arret' }` reçu arrête le morceau en cours à la ligne
+   suivante, rendu avec ce qu'il a trouvé (issue `arret`), et chaque
+   morceau qui attendait est rendu aussitôt, vide (`resultatVide`). Un
+   morceau d'un bloc, sans arrêt manuel (`traiterMorceau`), sert aux tests.
 
 Un morceau n'a aucune borne propre au parallèle : il s'arrête sur le filet
-de temps global, sur le plafond de candidats ou à sa fin. Aucun plafond de
-paires.
+de temps global, sur le plafond de candidats, sur l'arrêt manuel ou à sa
+fin. Aucun plafond de paires.
 
 ## Coquilles et lanceurs
 
@@ -138,7 +155,7 @@ Seul le lancement d'un Worker dépend de la plateforme.
 `apparierRapideEnParallele` reçoit un lanceur (`LancerTravailleur`) qui
 démarre un Worker avec son initialisation et ses tampons à transférer, et
 rend une poignée (`PoigneeTravailleur`) : `envoyer` un morceau,
-`surMessage`, `surErreur`, `terminer`.
+`surMessage`, `surErreur`, `arreter`, `terminer`.
 
 | | Navigateur | Node |
 | --- | --- | --- |
@@ -146,17 +163,22 @@ rend une poignée (`PoigneeTravailleur`) : `envoyer` un morceau,
 | Lanceur | `lancerTravailleurNavigateur` (`runeBuildOptim.worker.ts`) | `lancerTravailleurNode` (`scripts/lib/appariementRapideNode.ts`) |
 | Initialisation | `new Worker(new URL('./appariementRapide.worker.ts', import.meta.url), { type: 'module' })`, puis un message `{ type: 'init', init }`, tampons transférés | `new Worker(chemin du paquet, { workerData: init, transferList })` : l'initialisation arrive à la construction |
 | Morceaux | un message par morceau, un résultat par morceau | idem |
-| Fin | `terminate()` | message `{ type: 'fin' }` : le fil ferme son port et sort de lui-même |
+| Arrêt manuel | message `{ type: 'arret' }` | idem |
+| Fin | `terminate()` | message `{ type: 'fin' }` : le serveur s'arrête, puis le fil ferme son port et sort de lui-même |
 | Erreur | `onerror`, `onmessageerror` | événement `error`, sortie de code non nul |
 
-- Les deux coquilles ne portent aucune logique : elles appellent le même
-  `initialiserTravailleur` puis `traiterMorceau` et branchent la messagerie.
-  Les types du protocole (`InitTravailleur`, `Morceau`, `ResultatMorceau`)
-  vivent dans `appariementRapide.ts` ; les deux coquilles les importent de
-  là, jamais l'une de l'autre.
-- Un morceau se traite d'un bloc : un Worker ne lit aucun message pendant
-  qu'il en traite un. L'arrêt manuel ne lui est donc pas envoyé ; c'est le
-  coordinateur qui cesse de distribuer (§ Arrêt, erreur et nettoyage).
+- Les deux coquilles ne portent aucune logique : elles passent chaque
+  message reçu au même `servirAppariement` et postent ce qu'il rend ; une
+  exception du serveur est relancée hors de sa promesse, pour atteindre
+  `onerror` (navigateur) ou l'événement `error` (Node). Les types du
+  protocole (`InitTravailleur`, `Morceau`, `ResultatMorceau`) vivent dans
+  `appariementRapide.ts`, `MessageVersTravailleur` dans
+  `travailleurAppariement.ts` ; les deux coquilles les importent de là,
+  jamais l'une de l'autre.
+- Un Worker ne lit aucun message pendant qu'il calcule : c'est pourquoi il
+  travaille par tranches (§ Le corps d'un Worker). Sans elles, l'arrêt
+  manuel attendrait la fin de chaque morceau en cours, et des morceaux en
+  attente derrière lui.
 - Côté Node, un `worker_threads` exécute du JavaScript :
   `assurerBundleAppariementRapide` assemble la coquille par esbuild en un
   `.cjs`, une fois par processus, dans un dossier temporaire, et tous les
@@ -167,8 +189,8 @@ rend une poignée (`PoigneeTravailleur`) : `envoyer` un morceau,
 
 ## Code commun aux deux plateformes
 
-- `parallelPairing.ts`, `appariementRapideParallele.ts` et
-  `appariementRapide.ts` n'importent jamais `worker_threads`, ni `self`, ni
+- `parallelPairing.ts`, `appariementRapideParallele.ts`,
+  `travailleurAppariement.ts` et `appariementRapide.ts` n'importent jamais `worker_threads`, ni `self`, ni
   `postMessage`, ni le `Worker` du DOM : Vite tenterait de résoudre du code
   Node dans le paquet du navigateur (construction en échec, ou polyfill
   embarqué). La plateforme arrive donc par injection (le lanceur, les
@@ -203,8 +225,9 @@ rend une poignée (`PoigneeTravailleur`) : `envoyer` un morceau,
    morceaux, lance `min(travailleurs, morceaux)` Workers, puis distribue ;
 3. à chaque morceau reçu, fusionne ce qui suit le préfixe déjà fusionné
    (§ Fusion des résultats) et rappelle `surProgression(traitees,
-   candidats)` : les paires traitées de tous les morceaux reçus, et la liste
-   des candidats FUSIONNÉS, dans l'ordre séquentiel. Le Worker principal en
+   candidats)` : les paires traitées et la liste des candidats des morceaux
+   FUSIONNÉS, dans l'ordre séquentiel — les comptes du résultat, dont la
+   dernière progression est l'état final. Le Worker principal en
    espace les messages (au plus un par `PROGRESS_THROTTLE_MS`), n'en
    transmet que les candidats nouveaux, et y ajoute `totalPairs` et le
    pourcentage (`estimatePct`) :
@@ -218,8 +241,12 @@ rend une poignée (`PoigneeTravailleur`) : `envoyer` un morceau,
 
 - Dans l'ORDRE DES MORCEAUX, donc dans l'ordre séquentiel : chaque morceau
   rendu attend que ses prédécesseurs le soient, puis ses candidats se
-  concatènent, coupés au `maxCollected`-ième (les paires traitées valent
-  alors la position de ce candidat).
+  concatènent, coupés au `maxCollected`-ième.
+- Les paires traitées et visitées décrivent le même périmètre : la somme
+  de celles des morceaux fusionnés, celles du morceau du `maxCollected`-ième
+  candidat comptées jusqu'à lui (sa position, les visitées jusqu'à lui) ;
+  `sautees` en est la différence, jamais négative. Sous le plafond comme à
+  l'arrêt déterministe, les trois valent celles du noyau séquentiel.
 - Quasi-succès : chaque morceau rend les AMÉLIORATIONS successives de son
   propre état, avec leur position ; la fusion les rejoue dans l'ordre avec
   la règle de production (remplacé seulement si strictement meilleur, la
@@ -234,10 +261,14 @@ rend une poignée (`PoigneeTravailleur`) : `envoyer` un morceau,
   le plafond global, il se déduit du plafond comme en séquentiel
   ([../harnais/mode-d-emploi.md § Complétude : jamais un « 0 candidat » nu](../harnais/mode-d-emploi.md)).
   L'écran ne lit que `truncated`.
-- Coupé par le temps ou par l'arrêt manuel, le résultat garde aussi les
-  morceaux rendus après un trou, dans l'ordre : une troncature par le temps
-  peut rendre davantage que le séquentiel, jamais moins de ce qui a été
-  parcouru.
+- Le filet de temps et l'arrêt manuel n'arrêtent que la DISTRIBUTION :
+  chaque morceau déjà parti revient (coupé ou non) et se fusionne, dans
+  l'ordre, jusqu'au plafond global. Un morceau coupé par le temps
+  n'empêche donc pas de fusionner ceux qui le suivent : le résultat garde
+  tout ce qui a été trouvé, ses paires traitées sont un compte et non une
+  position, et une troncature par le temps peut rendre davantage que le
+  séquentiel, jamais moins de ce qui a été parcouru. Seuls le plafond et
+  l'arrêt déterministe arrêtent la fusion.
 - Aucune trace de diagnostic : le noyau ne remplit pas le traceur, et un
   traceur fait sortir l'appariement du contrat numérique (séquentiel, par
   `pairBuckets`).
@@ -246,10 +277,11 @@ rend une poignée (`PoigneeTravailleur`) : `envoyer` un morceau,
 
 - Arrêt manuel : le Worker principal reçoit `{ stop: true }` et appelle
   l'arrêt inscrit (`arreterAppariement`). Le coordinateur ne distribue plus
-  rien, attend les morceaux en vol — chacun se traite d'un bloc : l'arrêt
-  attend au plus le morceau le plus long en cours, délai non mesuré au
-  navigateur —, fusionne
-  tout ce qui a été trouvé et rend un résultat tronqué. Arrêté avant toute
+  rien et envoie `arreter` à chaque Worker : celui-ci arrête son morceau en
+  cours à la ligne qui suit sa tranche (au plus `TRANCHE_MS`, plus une
+  ligne), le rend avec ce qu'il a trouvé et rend vides ceux qui
+  attendaient. Le coordinateur attend ces réponses, fusionne tout ce qui a
+  été trouvé et rend un résultat tronqué. Arrêté avant toute
   distribution, il ne lance aucun Worker et rend un résultat vide, tronqué.
   Rien n'est terminé avant d'avoir répondu : « Arrêter » rend tout ce qui a
   été trouvé.

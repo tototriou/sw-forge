@@ -123,7 +123,8 @@ let stopBuildReject: (() => void) | null = null;
 // L'arrêt COOPÉRATIF de l'appariement parallèle en cours, reçu du
 // coordinateur (`surControle`) — contrairement à `activeHalfWorkers`, un arrêt
 // manuel ici ne termine rien : le coordinateur cesse de distribuer des
-// morceaux, attend ceux en vol et rend tout ce qui a été trouvé, comme un
+// morceaux, demande à chaque Worker d'arrêter le sien à sa ligne suivante,
+// attend leurs réponses et rend tout ce qui a été trouvé, comme un
 // arrêt en phase séquentielle (« garde le meilleur trouvé jusque-là »).
 let arreterAppariement: (() => void) | null = null;
 
@@ -145,6 +146,10 @@ const lancerTravailleurNavigateur: LancerTravailleur = (init, transfert): Poigne
     surErreur: (rappel) => {
       worker.onerror = (e) => rappel(e);
       worker.onmessageerror = (e) => rappel(e);
+    },
+    arreter: () => {
+      const arret: MessageVersAppariement = { type: 'arret' };
+      worker.postMessage(arret);
     },
     terminer: () => worker.terminate(),
   };

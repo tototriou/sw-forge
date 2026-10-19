@@ -18,9 +18,15 @@ import { availableParallelism } from 'node:os';
 import { BaseStats } from '../src/types';
 import { executerHarnais } from '../scripts/lib/diagnosticHarness';
 import { configDuProfil, trouverProfil } from '../scripts/lib/diagnosticProfils';
-import { Bucket, BuildCandidate, BuildRequirement, PreparedSearch, SearchParams, SearchResult, pairBuckets, prepareSearch, totalPairCount } from '../src/lib/runeBuildOptim';
+import {
+  Bucket, BuildCandidate, BuildRequirement, CHECKPOINT_EVERY, PreparedSearch, SearchParams, SearchResult, pairBuckets, prepareSearch, totalPairCount,
+} from '../src/lib/runeBuildOptim';
 import { apparier, construireMoitie } from '../src/lib/rechercheRunes';
-import { InitTravailleur, Morceau, ResultatMorceau, encoderCompartiments, initialiserTravailleur, traiterMorceau } from '../src/lib/appariementRapide';
+import {
+  InitTravailleur, Morceau, ResultatMorceau, apparierRapide, comboAOuvert, encoderCompartiments, initialiserTravailleur, ordreDesCompartiments,
+  paireDeCompartimentsOuverte, traiterMorceau,
+} from '../src/lib/appariementRapide';
+import { MessageVersTravailleur, resultatVide, servirAppariement } from '../src/lib/travailleurAppariement';
 import { LancerTravailleur, OptionsParallele, apparierRapideEnParallele, enResultatDeRecherche, planifierMorceaux } from '../src/lib/appariementRapideParallele';
 import {
   PARALLEL_PAIRING_THRESHOLD, TRAVAILLEURS_MAX, TRAVAILLEURS_PAR_DEFAUT, nombreDeTravailleurs, regimeAppariement,
@@ -70,20 +76,47 @@ const etat = (r: Pick<SearchResult, 'candidates' | 'explored' | 'truncated' | 'n
 const cle = (c: BuildCandidate) => c.runeIds.join(',');
 const estPrefixe = (court: readonly BuildCandidate[], long: readonly BuildCandidate[]) =>
   court.length <= long.length && court.every((c, i) => cle(c) === cle(long[i]));
+const compteursDe = (r: { traitees: number; visitees: number; sautees: number }) => ({ traitees: r.traitees, visitees: r.visitees, sautees: r.sautees });
 
-/** Workers simulés dans le processus, qui rendent leurs morceaux dans le désordre ; chaque poignée note sa fin. */
+/** Les paires visitées par le noyau séquentiel avant le point de passage `N` (multiple de `CHECKPOINT_EVERY`). */
+function visitesAuPoint(e: Espace, N: number): number {
+  let n = 0;
+  const gen = apparierRapide(e.prepared, e.bucketsA, e.bucketsB, { observateur: { visite: () => { n++; } } });
+  for (let step = gen.next(); !step.done; step = gen.next()) if (step.value.explored >= N) return n;
+  return n;
+}
+
+/**
+ * Workers simulés dans le processus, par le serveur de production
+ * (`servirAppariement`) : messages livrés dans l'ordre, chacun après un délai
+ * tiré, résultats rendus dans le désordre ; chaque poignée note sa fin.
+ */
 function lanceurSimule(rng: () => number, journal: { lances: number; termines: number }, panne?: { apres: number }): LancerTravailleur {
   let envois = 0;
   return (init: InitTravailleur) => {
     journal.lances++;
-    const ctx = initialiserTravailleur(structuredClone(init));
     let rappel: (r: ResultatMorceau) => void = () => {};
     let surErreur: (e: unknown) => void = () => {};
+    const delai = () => new Promise<void>((resolve) => setTimeout(resolve, Math.floor(rng() * 4)));
+    const serveur = servirAppariement((r) => {
+      const copie = structuredClone(r);
+      void delai().then(() => rappel(copie));
+    });
+    let file = Promise.resolve();
+    const livrer = (message: MessageVersTravailleur) => {
+      const copie = structuredClone(message);
+      file = file.then(delai).then(() => {
+        serveur.recevoir(copie).catch((e) => surErreur(e));
+      });
+    };
+    livrer({ type: 'init', init });
     return {
       envoyer: (m: Morceau) => {
-        const copie = structuredClone(m);
-        const enPanne = panne != null && ++envois > panne.apres;
-        setTimeout(() => (enPanne ? surErreur(new Error('Worker en panne')) : rappel(structuredClone(traiterMorceau(ctx, copie)))), Math.floor(rng() * 4));
+        if (panne != null && ++envois > panne.apres) {
+          setTimeout(() => surErreur(new Error('Worker en panne')), 1);
+          return;
+        }
+        livrer(m);
       },
       surMessage: (r) => {
         rappel = r;
@@ -91,9 +124,39 @@ function lanceurSimule(rng: () => number, journal: { lances: number; termines: n
       surErreur: (r) => {
         surErreur = r;
       },
+      arreter: () => livrer({ type: 'arret' }),
       terminer: () => {
         journal.termines++;
       },
+    };
+  };
+}
+
+/**
+ * Un Worker (un seul, deux morceaux en vol : tout le plan d'un espace coupé
+ * en deux) qui rend le VRAI résultat de chaque morceau, retouché par
+ * `retoucher`, les deux ensemble et dans l'ordre demandé.
+ */
+function lanceurScenarise(ordre: 'direct' | 'inverse', retoucher: (r: ResultatMorceau) => ResultatMorceau): LancerTravailleur {
+  return (init: InitTravailleur) => {
+    const ctx = initialiserTravailleur(structuredClone(init));
+    let rappel: (r: ResultatMorceau) => void = () => {};
+    const recus: Morceau[] = [];
+    return {
+      envoyer: (m: Morceau) => {
+        recus.push(structuredClone(m));
+        if (recus.length < 2) return;
+        const lot = ordre === 'direct' ? recus.splice(0) : recus.splice(0).reverse();
+        setTimeout(() => {
+          for (const morceau of lot) rappel(retoucher(traiterMorceau(ctx, morceau)));
+        }, 1);
+      },
+      surMessage: (r) => {
+        rappel = r;
+      },
+      surErreur: () => {},
+      arreter: () => {},
+      terminer: () => {},
     };
   };
 }
@@ -142,6 +205,8 @@ async function testCoordination(liste: Espace[]): Promise<void> {
       `${e.nom} : paires traitées et candidats ne reculent jamais, et finissent à totalPairCount`);
     ok(progression.every((p) => p.prefixe) && estPrefixe(precedente, r.candidates), `${e.nom} : l'aperçu est toujours un préfixe du résultat`);
     egal(journal.termines, journal.lances, `${e.nom} : chaque Worker lancé est terminé (${journal.lances})`);
+    const seq = drain(apparierRapide(e.prepared, e.bucketsA, e.bucketsB));
+    egal(compteursDe(r), compteursDe(seq), `${e.nom} : traitées, visitées, sautées = celles du noyau séquentiel`);
 
     // Plafond GLOBAL, dans l'ordre séquentiel.
     const petit = 3;
@@ -151,18 +216,33 @@ async function testCoordination(liste: Espace[]): Promise<void> {
     }));
     egal(etat(enResultatDeRecherche(rPetit)), etat(refPetit), `${e.nom} : maxCollected = ${petit}, les ${petit} premiers de l'ordre séquentiel (aucune part par Worker)`);
     egal(rPetit.motif, 'maxCollected', `${e.nom} : motif maxCollected`);
+    egal(compteursDe(rPetit), compteursDe(drain(apparierRapide({ ...e.prepared, maxCollected: petit }, e.bucketsA, e.bucketsB))),
+      `${e.nom} : maxCollected = ${petit}, visitées et sautées coupées au même candidat que les traitées (= noyau séquentiel)`);
+
+    // Arrêt déterministe : le préfixe des paires avant le point de passage N.
+    const N = CHECKPOINT_EVERY * Math.floor(e.total / 2 / CHECKPOINT_EVERY);
+    if (N > 0) {
+      const rN = await apparierRapideEnParallele(options(e, lanceurSimule(rng, { lances: 0, termines: 0 }), { arretTraitees: N }));
+      egal(compteursDe(rN), { traitees: N, visitees: visitesAuPoint(e, N), sautees: N - visitesAuPoint(e, N) },
+        `${e.nom} : arrêt déterministe à ${N}, visitées = celles du séquentiel avant ce point, sautées ≥ 0`);
+    }
 
     // Arrêt manuel coopératif, après le premier morceau reçu.
     const jArret = { lances: 0, termines: 0 };
     let arreter: (() => void) | null = null;
+    let derniere = -1;
     const rArret = await apparierRapideEnParallele(options(e, lanceurSimule(rng, jArret), {
       surControle: (c) => {
         arreter = c.arreter;
       },
-      surProgression: () => arreter?.(),
+      surProgression: (traitees) => {
+        derniere = traitees;
+        arreter?.();
+      },
     }));
     ok(rArret.truncated && rArret.motif === 'manuel' && rArret.explored < e.total, `${e.nom} : arrêt manuel → tronqué, motif manuel, ${rArret.explored} / ${e.total} paires`);
     ok(estPrefixe(rArret.candidates, e.reference.candidates), `${e.nom} : arrêt manuel → ce qui a été trouvé, un préfixe du séquentiel (${rArret.candidates.length} candidats)`);
+    ok(derniere === rArret.explored && rArret.sautees >= 0, `${e.nom} : arrêt manuel → la dernière progression compte ce que compte le résultat (${derniere}), sautées ≥ 0`);
     egal(jArret.termines, jArret.lances, `${e.nom} : arrêt manuel → chaque Worker terminé`);
   }
 
@@ -200,7 +280,119 @@ async function testCoordination(liste: Espace[]): Promise<void> {
   // Le corps d'un Worker court sur l'instant GLOBAL reçu, jamais sur sa propre préparation.
   const ctx = initialiserTravailleur({ params: { ...e.params, maxMs: 10 }, startedAt: Date.now() - 1000, compartiments: encoderCompartiments(e.prepared, e.bucketsA, e.bucketsB) });
   const plan = planifierMorceaux(e.prepared, e.bucketsA, e.bucketsB, e.total);
-  ok(traiterMorceau(ctx, plan[0]).tronqueTemps, 'corps d’un Worker : le filet de temps court depuis l’instant global (startedAt reçu), construction comprise');
+  egal(traiterMorceau(ctx, plan[0]).issue, 'temps', 'corps d’un Worker : le filet de temps court depuis l’instant global (startedAt reçu), construction comprise');
+}
+
+/**
+ * Le filet de temps expire pendant un morceau : les morceaux qui le suivent,
+ * déjà partis, se fusionnent encore (l'arrêt garde tout ce qui a été trouvé),
+ * dans quelque ordre qu'ils reviennent, et la progression compte ce que compte
+ * le résultat. De même sous l'arrêt manuel.
+ */
+async function testTroncatureFusion(liste: Espace[]): Promise<void> {
+  titre('Appariement parallèle · un morceau tronqué n’empêche pas la fusion des suivants');
+  let trouve = false;
+  for (const e of liste) {
+    const cible = Math.ceil(e.total / 2);
+    const plan = planifierMorceaux(e.prepared, e.bucketsA, e.bucketsB, cible);
+    if (plan.length !== 2) continue;
+    const ctx = initialiserTravailleur({ params: e.params, startedAt: Date.now(), compartiments: encoderCompartiments(e.prepared, e.bucketsA, e.bucketsB) });
+    const vrais = plan.map((m) => traiterMorceau(ctx, m));
+    if (vrais.some((v) => v.candidats.length === 0)) continue;
+    trouve = true;
+    const attendus = [...vrais[0].candidats, ...vrais[1].candidats].map(cle);
+    for (const ordre of ['direct', 'inverse'] as const) {
+      for (const sorte of ['temps', 'manuel'] as const) {
+        let arreter: (() => void) | null = null;
+        let derniere: { traitees: number; n: number } | null = null;
+        const r = await apparierRapideEnParallele(options(e, lanceurScenarise(ordre, (v) => {
+          if (v.id !== 0) return v;
+          if (sorte === 'manuel') arreter?.();
+          return { ...v, issue: sorte === 'temps' ? 'temps' : 'arret' };
+        }), {
+          travailleurs: 1, cibleMorceau: cible,
+          surControle: (c) => {
+            arreter = c.arreter;
+          },
+          surProgression: (traitees, candidats) => {
+            derniere = { traitees, n: candidats.length };
+          },
+        }));
+        egal(r.candidates.map(cle), attendus,
+          `${e.nom}, ${sorte === 'temps' ? 'filet de temps' : 'arrêt manuel'} au premier morceau, rendus en ordre ${ordre} : les candidats des deux morceaux (${vrais[0].candidats.length} + ${vrais[1].candidats.length})`);
+        ok(r.truncated && r.motif === (sorte === 'temps' ? 'maxMs' : 'manuel') && r.explored === vrais[0].traitees + vrais[1].traitees,
+          `${e.nom}, ${sorte}, ${ordre} : tronqué (motif ${r.motif}), ${r.explored} paires = celles des deux morceaux`);
+        egal(derniere, { traitees: r.explored, n: r.candidates.length }, `${e.nom}, ${sorte}, ${ordre} : la dernière progression compte ce que compte le résultat`);
+      }
+    }
+    break;
+  }
+  ok(trouve, 'un espace dont le plan en deux morceaux porte des candidats dans chacun');
+}
+
+/**
+ * Le temps se teste aux points de passage franchis par une ligne ENTIÈREMENT
+ * sautée : horloge simulée qui expire pendant le saut. Puis l'arrêt manuel
+ * reçu par le serveur d'un Worker entre deux tranches : le morceau en cours
+ * rend ce qu'il a trouvé, celui qui attend rend aussitôt un résultat vide.
+ */
+async function testCadenceTemps(liste: Espace[]): Promise<void> {
+  titre('Appariement parallèle · cadence du temps et de l’arrêt dans un Worker');
+  let ligne: { e: Espace; iA: number; a: number; iB: number; nB: number } | null = null;
+  for (const e of liste) {
+    const visitees = new Set<string>();
+    drain(apparierRapide(e.prepared, e.bucketsA, e.bucketsB, { observateur: { visite: (iA, a, iB) => visitees.add(`${iA},${a},${iB}`) } }));
+    for (const [iA, iB] of ordreDesCompartiments(e.bucketsA, e.bucketsB)) {
+      const bB = e.bucketsB[iB];
+      if (ligne || bB.combos.length < 2 || !paireDeCompartimentsOuverte(e.prepared, e.bucketsA[iA], bB)) continue;
+      const a = e.bucketsA[iA].combos.findIndex((comboA, k) => comboAOuvert(e.prepared, comboA, bB) && !visitees.has(`${iA},${k},${iB}`));
+      if (a >= 0) ligne = { e, iA, a, iB, nB: bB.combos.length };
+    }
+    if (ligne) break;
+  }
+  ok(ligne != null, 'une ligne ouverte entièrement sautée (aucune paire visitée)');
+  if (!ligne) return;
+  const { e, iA, a, iB, nB } = ligne;
+  // La ligne seule, placée juste avant un point de passage : le saut le franchit.
+  const morceau = (): Morceau => ({
+    type: 'morceau', id: 0, offset: CHECKPOINT_EVERY - 1, taille: nB, segments: Int32Array.of(iA, iB, a, a + 1), drapeaux: Uint8Array.of(1),
+  });
+  const T = Date.now();
+  const ctx = initialiserTravailleur({ params: { ...e.params, maxMs: 1000 }, startedAt: T, compartiments: encoderCompartiments(e.prepared, e.bucketsA, e.bucketsB) });
+  const vraiNow = Date.now;
+  let appels = 0;
+  // Horloge simulée : seul le test d'entrée de ligne voit le temps dans le budget.
+  let expire = 1;
+  let r: ResultatMorceau;
+  try {
+    Date.now = () => (appels++ < expire ? T : T + 5000);
+    r = traiterMorceau(ctx, morceau());
+    egal({ issue: r.issue, traitees: r.traitees, visitees: r.visitees }, { issue: 'temps', traitees: 1, visitees: 0 },
+      `ligne de ${nB} paires sautées, le filet expire pendant le saut : tronqué au point de passage ${CHECKPOINT_EVERY} (1 paire traitée, pas ${nB})`);
+    appels = 0;
+    expire = Infinity;
+    r = traiterMorceau(ctx, morceau());
+    ok(r.issue === 'complet' && r.traitees === nB && appels >= 2,
+      `sans expiration : ligne achevée, et le point de passage franchi pendant le saut a testé le temps (${appels} lectures de l’horloge)`);
+  } finally {
+    Date.now = vraiNow;
+  }
+
+  // Le serveur d'un Worker : chaque ligne dépasse la tranche, il rend la main après chacune.
+  let t = 0;
+  const rendus: ResultatMorceau[] = [];
+  const serveur = servirAppariement((v) => rendus.push(v), { maintenant: () => (t += 1000), ceder: () => Promise.resolve() });
+  await serveur.recevoir({ type: 'init', init: { params: e.params, startedAt: Date.now(), compartiments: encoderCompartiments(e.prepared, e.bucketsA, e.bucketsB) } });
+  const [m0] = planifierMorceaux(e.prepared, e.bucketsA, e.bucketsB, e.total);
+  const m1: Morceau = { ...m0, id: 1 };
+  const p0 = serveur.recevoir(m0);
+  const p1 = serveur.recevoir(m1);
+  await serveur.recevoir({ type: 'arret' });
+  await Promise.all([p0, p1]);
+  ok(rendus.length === 2 && rendus[0].id === 0 && rendus[0].issue === 'arret' && rendus[0].traitees > 0 && rendus[0].traitees < m0.taille,
+    `arrêt reçu entre deux tranches : le morceau en cours s’arrête à la ligne suivante (${rendus[0]?.traitees} / ${m0.taille} paires)`);
+  ok(estPrefixe(rendus[0].candidats, e.reference.candidates), 'ce qu’il a trouvé est un préfixe du séquentiel');
+  egal(rendus[1], resultatVide(m1), 'le morceau qui attendait est rendu vide, sans calcul');
 }
 
 /** Les mêmes décisions sur de VRAIS `worker_threads`, par le lanceur Node du harnais. */
@@ -250,5 +442,8 @@ export async function testAppariementParalleleBranchement(): Promise<void> {
 
 export async function testAppariementParallele(): Promise<void> {
   testRegles();
-  await testCoordination(espaces());
+  const liste = espaces();
+  await testCoordination(liste);
+  await testTroncatureFusion(liste);
+  await testCadenceTemps(liste);
 }

@@ -14,7 +14,7 @@ selon ce qu'on touche. Avant un chantier Optimizer : [invariants.md](invariants.
 | l'énumération, les élagages, le pré-filtrage, les bornes de `src/lib/runeBuildOptim.ts` | [moteur/elagages.md](moteur/elagages.md) |
 | `src/lib/rechercheRunes.ts`, `src/lib/constructionRapide.ts` | [moteur/pipeline.md](moteur/pipeline.md) |
 | `src/lib/appariementRapide.ts`, le test rapide de l'appariement | [moteur/noyau-appariement.md](moteur/noyau-appariement.md) |
-| `src/workers/parallelPairing.ts`, `src/lib/appariementRapideParallele.ts`, `src/workers/appariementRapide.worker.ts`, `src/workers/resolutionBody.ts`, `src/workers/resolutionDistante.ts` | [moteur/parallelisation.md](moteur/parallelisation.md) |
+| `src/workers/parallelPairing.ts`, `src/lib/appariementRapideParallele.ts`, `src/lib/travailleurAppariement.ts`, `src/workers/appariementRapide.worker.ts`, `src/workers/resolutionBody.ts`, `src/workers/resolutionDistante.ts` | [moteur/parallelisation.md](moteur/parallelisation.md) |
 | `diagnoseFeasibility`, `rankBlockingConditions`, le « 0 résultat » | [moteur/diagnostics.md](moteur/diagnostics.md) |
 | `src/lib/artifactQueue.ts`, `src/lib/artifactFiche.ts`, `src/lib/artifactEvaluation.ts`, la paire d'artéfacts d'un build | [moteur/artefacts.md](moteur/artefacts.md) |
 | `src/lib/artifactOptim.ts`, l'éligibilité ou l'effet d'une ligne d'artéfact | [moteur/optimiseur-artefacts.md](moteur/optimiseur-artefacts.md) |

@@ -18,7 +18,7 @@
 // le chemin actuel (`pairBuckets`) est pris tel quel.
 //
 // Les bornes écrites, leurs préconditions et l'ordre de visite :
-// docs/03-developpeur/optimizer/moteur/elagages.md § Sauts exacts du noyau d'appariement.
+// docs/03-developpeur/optimizer/moteur/noyau-appariement.md.
 //
 // ⚠️ **Rien de ce qui suit `quickOk` n'est réécrit** : le bloc de validation
 // (`Collecteur.valider`) est une copie conforme de `pairBuckets`
@@ -811,7 +811,19 @@ export interface Morceau {
   taille: number;
   segments: Int32Array;
   drapeaux: Uint8Array;
+  /**
+   * Arrêt déterministe (tests et banc) : la position globale `N` du point de
+   * passage où s'arrêter — les paires avant `N` sont jugées, `N` ne l'est pas.
+   */
+  limite?: number;
 }
+
+/**
+ * Pourquoi un morceau a rendu la main : achevé, filet de temps (`maxMs`
+ * depuis le `startedAt` global), plafond de candidats atteint DANS le
+ * morceau, arrêt déterministe à `Morceau.limite`, arrêt manuel.
+ */
+export type IssueMorceau = 'complet' | 'temps' | 'plafond' | 'limite' | 'arret';
 
 export interface ResultatMorceau {
   type: 'resultat';
@@ -821,9 +833,10 @@ export interface ResultatMorceau {
   visitees: number;
   candidats: BuildCandidate[];
   positions: number[];
+  /** Pour chaque candidat, les paires visitées du morceau jusqu'à lui compris : la fusion coupe les comptes au même endroit que les candidats. */
+  visitesAuCandidat: number[];
   ameliorations: Amelioration[];
-  /** Arrêté par `maxMs` (depuis `startedAt` global). */
-  tronqueTemps: boolean;
+  issue: IssueMorceau;
   compteurs: CompteursNoyau;
 }
 
@@ -854,21 +867,56 @@ export function initialiserTravailleur(init: InitTravailleur): ContexteTravaille
   return { prepared, ct, c, runeParId, L: new Float64Array(c.m), H: new Float64Array(c.m), sortie: new Int32Array(maxB) };
 }
 
+/** Un morceau d'un bloc, sans arrêt manuel possible : le générateur drainé. */
 export function traiterMorceau(ctx: ContexteTravailleur, morceau: Morceau): ResultatMorceau {
+  const gen = parcourirMorceau(ctx, morceau);
+  let step = gen.next(false);
+  while (!step.done) step = gen.next(false);
+  return step.value;
+}
+
+/**
+ * Le corps d'un morceau, sous forme de GÉNÉRATEUR : il rend la main après
+ * chaque ligne, et la valeur renvoyée par `next(true)` demande l'arrêt
+ * manuel (le morceau rend alors ce qu'il a trouvé, ligne achevée). Ce qui
+ * pilote un Worker (`servirAppariement`) s'en sert pour lire ses messages
+ * entre deux tranches de travail, sans rien changer à ce qui est jugé.
+ *
+ * Le filet de temps se teste à chaque paire visitée ET à chaque point de
+ * passage (`CHECKPOINT_EVERY` paires TRAITÉES, sautées comprises), comme
+ * dans `apparierRapide` : un saut de lignes entières ne le contourne pas.
+ * Les points de passage franchis par un saut le sont au même instant ; un
+ * seul test les couvre, et la troncature tombe sur le premier d'entre eux.
+ */
+export function* parcourirMorceau(ctx: ContexteTravailleur, morceau: Morceau): Generator<void, ResultatMorceau, boolean | undefined> {
   const { prepared, ct, c, runeParId, L, H, sortie } = ctx;
   const { maxCollected, maxMs, startedAt } = prepared;
   const overBudget = () => Date.now() - startedAt > maxMs;
   const compteurs = compteursVides();
   const collecteur = new Collecteur(prepared, true, true);
+  const visitesAuCandidat: number[] = [];
   const rune = (id: number) => {
     const r = runeParId.get(id);
     if (!r) throw new Error(`rune ${id} absente du pool préparé du Worker`);
     return r;
   };
+  const limite = morceau.limite ?? Infinity;
   let pos = morceau.offset;
   let visitees = 0;
-  let tronqueTemps = false;
-  let arret = false;
+  let issue: IssueMorceau = 'complet';
+  let prochainPoint = (Math.floor(morceau.offset / CHECKPOINT_EVERY) + 1) * CHECKPOINT_EVERY;
+  // Les points de passage jusqu'à la position `jusqua` : un test du temps
+  // pour tous ceux que l'on franchit. Vrai si le filet a expiré (`pos` posé
+  // sur le premier d'entre eux).
+  const passage = (jusqua: number): boolean => {
+    if (prochainPoint > jusqua) return false;
+    if (overBudget()) {
+      pos = prochainPoint;
+      return true;
+    }
+    prochainPoint = (Math.floor(jusqua / CHECKPOINT_EVERY) + 1) * CHECKPOINT_EVERY;
+    return false;
+  };
   let d = 0;
   const seg = morceau.segments;
   boucle: for (let s = 0; s + 3 < seg.length; s += 4) {
@@ -879,7 +927,7 @@ export function traiterMorceau(ctx: ContexteTravailleur, morceau: Morceau): Resu
     for (let a = seg[s + 2]; a < seg[s + 3]; a++) {
       if (!morceau.drapeaux[d++]) continue;
       if (overBudget()) {
-        tronqueTemps = true;
+        issue = 'temps';
         break boucle;
       }
       const debutLigne = pos;
@@ -889,10 +937,19 @@ export function traiterMorceau(ctx: ContexteTravailleur, morceau: Morceau): Resu
       for (let k = 0; k < nSurv; k++) {
         const j = sortie[k];
         const g = debutLigne + j + 1;
+        if (g >= limite) {
+          pos = limite;
+          issue = 'limite';
+          break boucle;
+        }
+        if (passage(g)) {
+          issue = 'temps';
+          break boucle;
+        }
         pos = g;
         visitees++;
         if (overBudget()) {
-          tronqueTemps = true;
+          issue = 'temps';
           break boucle;
         }
         const gb = offB + j;
@@ -908,18 +965,35 @@ export function traiterMorceau(ctx: ContexteTravailleur, morceau: Morceau): Resu
         ];
         // Au-delà de `maxCollected` candidats dans CE morceau, la fusion
         // globale a forcément déjà coupé : inutile d'aller plus loin.
-        if (collecteur.valider(runes, g) && collecteur.candidates.length >= maxCollected) {
-          arret = true;
-          break boucle;
+        if (collecteur.valider(runes, g)) {
+          visitesAuCandidat.push(visitees);
+          if (collecteur.candidates.length >= maxCollected) {
+            issue = 'plafond';
+            break boucle;
+          }
         }
       }
-      pos = debutLigne + nB;
+      const fin = debutLigne + nB;
+      if (fin >= limite) {
+        pos = limite;
+        issue = 'limite';
+        break boucle;
+      }
+      if (passage(fin)) {
+        issue = 'temps';
+        break boucle;
+      }
+      pos = fin;
+      if (yield) {
+        issue = 'arret';
+        break boucle;
+      }
     }
   }
   return {
     type: 'resultat', id: morceau.id,
-    traitees: (tronqueTemps || arret ? pos : morceau.offset + morceau.taille) - morceau.offset,
-    visitees, candidats: collecteur.candidates, positions: collecteur.positions,
-    ameliorations: collecteur.ameliorations ?? [], tronqueTemps, compteurs,
+    traitees: (issue === 'complet' ? morceau.offset + morceau.taille : pos) - morceau.offset,
+    visitees, candidats: collecteur.candidates, positions: collecteur.positions, visitesAuCandidat,
+    ameliorations: collecteur.ameliorations ?? [], issue, compteurs,
   };
 }

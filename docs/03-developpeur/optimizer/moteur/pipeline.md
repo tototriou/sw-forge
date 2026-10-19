@@ -242,13 +242,15 @@ les paramètres, l'instant de départ global et sa copie des compartiments sur
 tableaux typés, transférée ; il y refait la préparation (`prepareSearch` :
 une `PreparedSearch` porte des fonctions et ne traverse pas `postMessage`),
 remplace son `startedAt` par l'instant global, puis apparie chaque morceau
-reçu par le noyau (`traiterMorceau`).
+reçu par le noyau (`parcourirMorceau`, piloté par tranches par
+`servirAppariement`).
 
 Les résultats se fusionnent dans l'ORDRE des morceaux : le parallèle rend le
 résultat du séquentiel, plafond de candidats global compris, à la seule
-différence d'une recherche coupée par le temps. La progression additionne
-les paires traitées des morceaux reçus et ne transmet que les candidats déjà
-fusionnés. Un arrêt cesse de distribuer et rend tout ce qui a été trouvé ;
+différence d'une recherche coupée par le temps ou arrêtée. La progression
+compte les paires traitées et les candidats des morceaux déjà fusionnés,
+comme le résultat. Un arrêt cesse de distribuer, arrête chaque Worker à sa
+ligne suivante et rend tout ce qui a été trouvé ;
 une erreur d'un Worker est rattrapée : tous les Workers terminés, résultat
 vide tronqué. Détail : [parallelisation.md § Répartition et partage du plafond](parallelisation.md),
 [parallelisation.md § Fusion des résultats](parallelisation.md) et
@@ -463,8 +465,10 @@ agit selon la phase :
   accumulés, avec `truncated: true`. Le message d'arrêt n'est lu que quand le
   pilote rend la main (`YIELD_THROTTLE_MS`) ;
 - appariement parallèle : le Worker appelle l'arrêt que le coordinateur lui
-  a donné (`arreterAppariement`) ; plus aucun morceau ne part, ceux en vol
-  finissent, et tout ce qui a été trouvé est fusionné et rendu, tronqué.
+  a donné (`arreterAppariement`) ; plus aucun morceau ne part, chaque
+  Worker reçoit l'arrêt entre deux tranches de `TRANCHE_MS` (100 ms) et rend
+  son morceau en cours tel quel, et tout ce qui a été trouvé est fusionné et
+  rendu, tronqué.
 
 Dans tous les cas, le Worker poste un résultat ordinaire (`type: 'result'`)
 et le hook passe en `done`. Le message affiché sous un résultat tronqué

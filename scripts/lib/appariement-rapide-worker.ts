@@ -1,17 +1,30 @@
 // Coquille `worker_threads` d'un Worker de l'appariement parallèle de
 // production — pendant Node de src/workers/appariementRapide.worker.ts —,
-// aucune logique ici : `initialiserTravailleur` et `traiterMorceau`
-// (src/lib/appariementRapide.ts) font tout. L'initialisation arrive par
-// `workerData` (tableaux typés transférés une fois, seule divergence de
-// protocole avec le navigateur), les morceaux par message, à la demande.
+// aucune logique ici : `servirAppariement` (src/lib/travailleurAppariement.ts)
+// fait tout. L'initialisation arrive par `workerData` (tableaux typés
+// transférés une fois, seule divergence de protocole avec le navigateur), les
+// morceaux et l'arrêt par message.
 
 import { parentPort, workerData } from 'worker_threads';
-import { InitTravailleur, Morceau, initialiserTravailleur, traiterMorceau } from '../../src/lib/appariementRapide';
+import { InitTravailleur } from '../../src/lib/appariementRapide';
+import { MessageVersTravailleur, servirAppariement } from '../../src/lib/travailleurAppariement';
 
-const ctx = initialiserTravailleur(workerData as InitTravailleur);
-parentPort!.on('message', (msg: Morceau | { type: 'fin' }) => {
-  if (msg && msg.type === 'morceau') parentPort!.postMessage(traiterMorceau(ctx, msg));
+const serveur = servirAppariement((resultat) => parentPort!.postMessage(resultat));
+const relever = (erreur: unknown) => {
+  // Hors de la promesse : une exception non rattrapée termine le fil et
+  // devient l'événement `error` du coordinateur.
+  setTimeout(() => {
+    throw erreur;
+  }, 0);
+};
+serveur.recevoir({ type: 'init', init: workerData as InitTravailleur }).catch(relever);
+parentPort!.on('message', (msg: MessageVersTravailleur | { type: 'fin' }) => {
   // Fin coopérative : le fil se termine de lui-même, port fermé. Un
   // `terminate()` pendant le transfert initial a fait planter Node (segfault).
-  else if (msg && msg.type === 'fin') parentPort!.close();
+  // Le morceau éventuellement en cours s'arrête à sa prochaine ligne.
+  if (msg && msg.type === 'fin') {
+    void serveur.recevoir({ type: 'arret' });
+    parentPort!.close();
+  }
+  else if (msg) serveur.recevoir(msg).catch(relever);
 });

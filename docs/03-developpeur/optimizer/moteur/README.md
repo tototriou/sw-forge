@@ -12,7 +12,7 @@ le couvrent sont dans [../verification.md](../verification.md).
 | l'énumération, les élagages, le pré-filtrage, les bornes de `src/lib/runeBuildOptim.ts` | [elagages.md](elagages.md) |
 | `src/lib/rechercheRunes.ts`, `src/lib/constructionRapide.ts` | [pipeline.md](pipeline.md) |
 | `src/lib/appariementRapide.ts`, le test rapide de l'appariement | [noyau-appariement.md](noyau-appariement.md) |
-| `src/workers/parallelPairing.ts`, `src/lib/appariementRapideParallele.ts`, `src/workers/appariementRapide.worker.ts`, `src/workers/resolutionBody.ts`, `src/workers/resolutionDistante.ts` | [parallelisation.md](parallelisation.md) |
+| `src/workers/parallelPairing.ts`, `src/lib/appariementRapideParallele.ts`, `src/lib/travailleurAppariement.ts`, `src/workers/appariementRapide.worker.ts`, `src/workers/resolutionBody.ts`, `src/workers/resolutionDistante.ts` | [parallelisation.md](parallelisation.md) |
 | `diagnoseFeasibility`, `rankBlockingConditions`, le « 0 résultat » | [diagnostics.md](diagnostics.md) |
 | `src/lib/artifactQueue.ts`, `src/lib/artifactFiche.ts`, `src/lib/artifactEvaluation.ts`, la paire d'artéfacts d'un build | [artefacts.md](artefacts.md) |
 | `src/lib/artifactOptim.ts`, l'éligibilité ou l'effet d'une ligne d'artéfact | [optimiseur-artefacts.md](optimiseur-artefacts.md) |

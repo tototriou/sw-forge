@@ -42,6 +42,7 @@ export function lancerTravailleurNode(chemin: string): LancerTravailleur {
           if (code !== 0) rappel(new Error(`Worker d’appariement sorti avec le code ${code}`));
         });
       },
+      arreter: () => worker.postMessage({ type: 'arret' }),
       // Fin coopérative (voir la coquille) ; le fil sort seul une fois son port fermé.
       terminer: () => {
         worker.postMessage({ type: 'fin' });

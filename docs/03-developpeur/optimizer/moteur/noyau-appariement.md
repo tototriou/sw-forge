@@ -6,7 +6,7 @@ Ce que fait le noyau de l'appariement de production, `apparierRapide`
 (`src/lib/appariementRapide.ts`), et pourquoi il rend exactement le résultat
 de `pairBuckets` (`src/lib/runeBuildOptim.ts`), la référence. Il sert
 l'appariement séquentiel (`apparier`, `src/lib/rechercheRunes.ts`) et chaque
-Worker de l'appariement parallèle (`traiterMorceau`). Sa place dans une
+Worker de l'appariement parallèle (`parcourirMorceau`). Sa place dans une
 recherche : [pipeline.md § Appariement séquentiel](pipeline.md).
 
 ## Ce qui change, ce qui ne change pas
@@ -94,7 +94,10 @@ Tous fondés sur la même équivalence (`survivantsLigne`) :
 - **Filet de temps** : testé à chaque paire visitée et à chaque point de
   passage. Une paire sautée ne le teste pas une à une : sur une recherche
   coupée par le temps, l'arrêt peut tomber jusqu'à `CHECKPOINT_EVERY − 1`
-  paires plus loin qu'avec `pairBuckets`, qui le teste à chaque paire.
+  paires plus loin qu'avec `pairBuckets`, qui le teste à chaque paire. Il
+  en va de même dans un Worker (`parcourirMorceau`) : une ligne entièrement
+  sautée qui franchit un point de passage teste le temps, et un morceau
+  coupé ainsi compte ses paires traitées jusqu'à ce point.
 
 ## Vérification
 

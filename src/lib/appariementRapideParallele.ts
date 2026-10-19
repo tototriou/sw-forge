@@ -45,6 +45,8 @@ export interface PoigneeTravailleur {
   envoyer(message: Morceau, transfert: ArrayBuffer[]): void;
   surMessage(rappel: (message: ResultatMorceau) => void): void;
   surErreur(rappel: (erreur: unknown) => void): void;
+  /** L'arrêt manuel : le morceau en cours rend ce qu'il a trouvé, les suivants rien (`servirAppariement`). */
+  arreter(): void;
   terminer(): void;
 }
 
@@ -129,17 +131,19 @@ export interface OptionsParallele {
   cibleMorceau?: number;
   /**
    * Rappelé UNE fois, avant tout travail, avec l'arrêt manuel coopératif :
-   * plus aucun morceau n'est distribué, ceux en vol finissent et se
-   * fusionnent, et le résultat est tronqué (motif `manuel`). Le module ne
-   * connaît pas le registre d'arrêt de l'appelant : il le lui donne.
+   * plus aucun morceau n'est distribué, chaque Worker arrête le sien à sa
+   * prochaine ligne (dans les `TRANCHE_MS` de `servirAppariement`) et répond
+   * sans calculer à ceux qui attendent ; tout ce qui revient se fusionne, et
+   * le résultat est tronqué (motif `manuel`). Le module ne connaît pas le
+   * registre d'arrêt de l'appelant : il le lui donne.
    */
   surControle?: (controle: { arreter: () => void }) => void;
   /**
-   * À chaque morceau reçu : les paires traitées de tous les morceaux reçus
-   * (fusionnés ou non : la progression) et la liste des candidats FUSIONNÉS,
-   * dans l'ordre séquentiel (la même liste, qui ne fait que grandir — un
-   * aperçu en est toujours un préfixe du résultat). À l'appelant d'espacer
-   * ses messages et de ne transmettre que les nouveaux.
+   * À chaque morceau reçu : les paires traitées et la liste des candidats des
+   * morceaux FUSIONNÉS, dans l'ordre séquentiel — les mêmes comptes que le
+   * résultat, dont la dernière progression est l'état final. La liste ne fait
+   * que grandir : un aperçu en est toujours un préfixe du résultat. À
+   * l'appelant d'espacer ses messages et de ne transmettre que les nouveaux.
    */
   surProgression?: (traitees: number, candidats: readonly BuildCandidate[]) => void;
 }
@@ -172,41 +176,51 @@ export async function apparierRapideEnParallele(o: OptionsParallele): Promise<Re
   const totalPlan = plan.reduce((s, m) => s + m.taille, 0);
   if (totalPlan !== o.totalPaires) throw new Error(`plan de ${totalPlan} paires ≠ totalPairCount ${o.totalPaires}`);
   const arret = o.arretTraitees != null && o.arretTraitees < totalPlan ? o.arretTraitees : undefined;
-  // Seuls les morceaux qui contiennent une paire de position < arret servent.
-  const aDistribuer = arret == null ? plan : plan.filter((m) => m.offset + 1 < arret);
+  // Seuls les morceaux qui contiennent une paire de position < arret servent,
+  // et chacun s'arrête de lui-même au point de passage `arret`.
+  const aDistribuer = arret == null ? plan : plan.filter((m) => m.offset + 1 < arret).map((m) => ({ ...m, limite: arret }));
 
   const resultats: (ResultatMorceau | undefined)[] = new Array(aDistribuer.length);
   const parTravailleur: number[] = new Array(o.travailleurs).fill(0);
 
-  // État fusionné, dans l'ordre des morceaux.
+  // État fusionné, dans l'ordre des morceaux. `traitees` et `visitees`
+  // décrivent le MÊME périmètre : les paires des morceaux fusionnés, coupées
+  // au candidat qui atteint le plafond (`sautees` = leur différence, jamais
+  // négative). Un compte, pas une position : un morceau tronqué par le temps
+  // ou par l'arrêt manuel n'a pas traité toutes ses paires, et les suivants
+  // se fusionnent quand même.
   const candidates: BuildCandidate[] = [];
   const nearMissByCondition = new Map<string, EntreeQuasiSucces>();
   let globalNearMiss: NearMiss | null = null;
   let globalDistance = Infinity;
   const compteurs: CompteursNoyau = compteursVides();
   let traitees = 0;
-  // Somme des paires traitées des morceaux fusionnés : la position atteinte
-  // tant que la fusion suit le préfixe contigu, un compte (≤ totalPairs) après un trou.
-  let sommeTraitees = 0;
   let visitees = 0;
-  let motif: ResultatParallele['motif'] = 'aucun';
   let prochainAFusionner = 0;
-  let fini = false;
+  // Ce qui termine la FUSION (plafond global, arrêt déterministe), et ce qui
+  // termine seulement la DISTRIBUTION (filet de temps, arrêt manuel) : sous
+  // ces deux-là, tout morceau déjà parti se reçoit et se fusionne encore,
+  // jusqu'au plafond — l'arrêt garde tout ce qui a été trouvé.
+  let plafond = false;
+  let limiteAtteinte = false;
+  let tempsEcoule = false;
+  let morceauxComplets = 0;
+  const fusionTerminee = () => plafond || limiteAtteinte;
 
   const fusionner = (r: ResultatMorceau, m: Morceau): void => {
-    // Coupe : position limite incluse (plafond) ou exclue (arrêt).
-    let limite = Infinity;
+    if (fusionTerminee()) return;
+    // Coupe au plafond : le candidat qui l'atteint, sa position incluse.
+    let coupe = -1;
     for (let cpt = 0; cpt < r.candidats.length; cpt++) {
-      if (arret != null && r.positions[cpt] >= arret) break;
       candidates.push(r.candidats[cpt]);
       if (candidates.length >= maxCollected) {
-        limite = r.positions[cpt];
+        coupe = cpt;
         break;
       }
     }
-    const borne = (pos: number) => (limite !== Infinity ? pos <= limite : arret != null ? pos < arret : true);
+    const limitePos = coupe >= 0 ? r.positions[coupe] : Infinity;
     for (const e of r.ameliorations) {
-      if (!borne(e.pos)) break;
+      if (e.pos > limitePos) break;
       if (e.type === 'condition') {
         const existing = nearMissByCondition.get(e.cle);
         if (!existing || e.entree.miss.shortfalls[0].shortfall < existing.miss.shortfalls[0].shortfall) nearMissByCondition.set(e.cle, e.entree);
@@ -216,23 +230,23 @@ export async function apparierRapideEnParallele(o: OptionsParallele): Promise<Re
       }
     }
     for (const k of Object.keys(compteurs) as (keyof CompteursNoyau)[]) compteurs[k] += r.compteurs[k];
+    if (coupe >= 0) {
+      traitees += limitePos - m.offset;
+      visitees += r.visitesAuCandidat[coupe];
+      plafond = true;
+      return;
+    }
+    traitees += r.traitees;
     visitees += r.visitees;
-    if (limite !== Infinity) {
-      traitees = limite;
-      motif = 'maxCollected';
-      fini = true;
-    } else if (arret != null && !r.tronqueTemps && m.offset + r.traitees >= arret - 1) {
-      // Au point de passage `arret`, les paires < arret sont jugées, pas `arret` lui-même.
-      traitees = arret;
-      motif = 'arret';
-      fini = true;
-    } else {
-      sommeTraitees += r.traitees;
-      traitees = sommeTraitees;
-      if (r.tronqueTemps) {
-        motif = 'maxMs';
-        fini = true;
-      }
+    if (r.issue === 'complet') morceauxComplets++;
+    if (r.issue === 'limite') {
+      limiteAtteinte = true;
+    } else if (arret != null && r.issue === 'complet' && m.offset + r.traitees === arret - 1) {
+      // Le point de passage `arret` tombe sur la première paire du morceau
+      // suivant, jamais distribué : elle compte comme dans `pairBuckets`
+      // (`explored` avance avant le jugement), sans être jugée.
+      traitees += 1;
+      limiteAtteinte = true;
     }
   };
 
@@ -243,9 +257,6 @@ export async function apparierRapideEnParallele(o: OptionsParallele): Promise<Re
   const nbTravailleurs = Math.max(1, Math.min(o.travailleurs, aDistribuer.length));
   const poignees: PoigneeTravailleur[] = [];
   let prochainADistribuer = 0;
-  // Paires traitées de TOUS les morceaux reçus : la progression (un compte,
-  // jamais une position, dès qu'un morceau arrive avant son prédécesseur).
-  let traiteesRecues = 0;
 
   await new Promise<void>((resolve, reject) => {
     let enVol = 0;
@@ -255,13 +266,16 @@ export async function apparierRapideEnParallele(o: OptionsParallele): Promise<Re
       termine = true;
       resolve();
     };
-    // Arrêt manuel : plus rien ne part ; on attend seulement les morceaux en
-    // vol (un morceau se traite d'un bloc dans son Worker).
+    // Arrêt manuel : plus rien ne part, et chaque Worker arrête son morceau
+    // en cours à sa prochaine ligne (il rend ce qu'il a trouvé) et répond sans
+    // calculer aux morceaux en attente (`servirAppariement`).
     surArret = () => {
+      for (const p of poignees) p.arreter();
       if (enVol === 0) finir();
     };
+    const distributionTerminee = () => fusionTerminee() || tempsEcoule || arrete || overBudget();
     const distribuer = (w: number) => {
-      if (fini || arrete || overBudget()) return;
+      if (distributionTerminee()) return;
       if (prochainADistribuer >= aDistribuer.length) return;
       const m = aDistribuer[prochainADistribuer++];
       enVol++;
@@ -280,18 +294,17 @@ export async function apparierRapideEnParallele(o: OptionsParallele): Promise<Re
         enVol--;
         parTravailleur[w]++;
         resultats[r.id] = r;
-        traiteesRecues += r.traitees;
-        // Les tailles sont connues du plan : la fusion avance sur le préfixe contigu.
-        while (!fini && prochainAFusionner < aDistribuer.length && resultats[prochainAFusionner]) {
-          const rr = resultats[prochainAFusionner]!;
-          fusionner(rr, aDistribuer[prochainAFusionner]);
-          resultats[prochainAFusionner] = undefined;
+        if (r.issue === 'temps') tempsEcoule = true;
+        // La fusion avance sur le préfixe contigu des morceaux reçus. Les
+        // morceaux partent dans l'ordre et l'attente ne se termine qu'une fois
+        // tous ceux partis reçus : à la fin, tout ce qui est parti est fusionné.
+        while (!fusionTerminee() && prochainAFusionner < aDistribuer.length && resultats[prochainAFusionner]) {
+          fusionner(resultats[prochainAFusionner]!, aDistribuer[prochainAFusionner]);
           prochainAFusionner++;
         }
-        o.surProgression?.(traiteesRecues, candidates);
-        if (!fini && !r.tronqueTemps) distribuer(w);
-        else if (r.tronqueTemps) fini = true;
-        if ((fini || arrete || prochainADistribuer >= aDistribuer.length || overBudget()) && enVol === 0) finir();
+        o.surProgression?.(traitees, candidates);
+        distribuer(w);
+        if ((distributionTerminee() || prochainADistribuer >= aDistribuer.length) && enVol === 0) finir();
       });
     }
     for (let k = 0; k < EN_VOL_PAR_TRAVAILLEUR; k++) for (let w = 0; w < nbTravailleurs; w++) distribuer(w);
@@ -303,19 +316,15 @@ export async function apparierRapideEnParallele(o: OptionsParallele): Promise<Re
     for (const p of poignees) p.terminer();
   });
 
-  // Arrêt par le temps ou arrêt manuel : les morceaux rendus après un trou se
-  // fusionnent quand même, dans l'ordre (une troncature par le temps ne fait
-  // pas partie du différentiel ; elle peut rendre davantage, et l'arrêt garde
-  // tout ce qui a été trouvé).
-  if (motif === 'aucun' && prochainAFusionner < aDistribuer.length) {
-    // `fusionner` change `motif` : au plafond, plus rien ne se fusionne.
-    for (let i = prochainAFusionner; i < aDistribuer.length && (motif as ResultatParallele['motif']) !== 'maxCollected'; i++) {
-      const r = resultats[i];
-      if (!r) continue;
-      fusionner(r, aDistribuer[i]);
-    }
-    if (motif === 'aucun') motif = arrete ? 'manuel' : 'maxMs';
-  }
+  const motif: ResultatParallele['motif'] = plafond
+    ? 'maxCollected'
+    : limiteAtteinte
+      ? 'arret'
+      : morceauxComplets === aDistribuer.length
+        ? 'aucun'
+        : tempsEcoule || !arrete
+          ? 'maxMs'
+          : 'manuel';
 
   const truncated = motif !== 'aucun';
   return {

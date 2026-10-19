@@ -1,5 +1,6 @@
-// Coquille Node (`worker_threads`) d'UNE tranche du prototype de construction
-// des moitiés (src/lib/constructionRapide.ts, non branché en production),
+// Coquille Node (`worker_threads`) d'UNE tranche de la construction des
+// moitiés découpée (`construireTranche`, src/lib/constructionRapide.ts : le
+// découpage n'est pas branché en production, le noyau séquentiel l'est),
 // à l'usage du seul banc scripts/banc-construction-moities.ts. Aucune logique
 // propre : `construireTranche` sur `workerData`, puis le résultat en retour,
 // tableaux typés TRANSFÉRÉS (aucune mémoire partagée).

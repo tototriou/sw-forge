@@ -27,8 +27,8 @@
 // Les deux voies du chemin direct rendaient la main entre deux builds, mais ne
 // rendaient pas un build moins long : le choix est
 // le Worker. Ce qu'il coûte — un fil de plus pendant la recherche, qui tourne
-// déjà dans des Workers (coordinateur, deux constructions, jusqu'à quatre fils
-// d'appariement), et l'envoi du contexte (tout l'inventaire d'artéfacts) à
+// déjà dans des Workers (coordinateur, deux constructions, jusqu'à huit fils
+// d'appariement, `nombreDeTravailleurs`), et l'envoi du contexte (tout l'inventaire d'artéfacts) à
 // chaque nouvelle identité des entrées, soit une fois par recherche, ou de la
 // signature — est MESURÉ au navigateur (recherche +4 à
 // +7 %, résultat complet −27 %) ; que ce soit le fil de plus qui ralentit la

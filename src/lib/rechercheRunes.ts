@@ -54,9 +54,12 @@ const TRIPLETS_MAX_NOYAU = 0x7fffffff;
 
 /**
  * Pourquoi une moitié se construit par `buildBuckets` plutôt que par le noyau
- * sur tableaux typés, ou `null` quand le noyau la prend. Deux cas : un
+ * sur tableaux typés, ou `null` quand le noyau la prend. Quatre cas : un
  * traceur de diagnostic (le noyau ne le remplit pas), une moitié de plus de
- * 2³¹ triplets (≈ 1 290 runes par emplacement).
+ * 2³¹ triplets (≈ 1 290 runes par emplacement), un `bucketCap` (override de
+ * mesure) dont les tas sortiraient des entiers 32 bits, ou une capacité
+ * redistribuée par « Prioriser les stats les plus difficiles » qui en
+ * sortirait.
  */
 export function motifRepliConstruction(
   ctx: BuildBucketsContext,

@@ -71,7 +71,7 @@ async function candidats(params: SearchParams, fichier: string | undefined, dire
   while (!s.done) s = gen.next();
   const r = s.value;
   dire(
-    `Candidats de la recherche (prototype d'appariement séquentiel, plafond ${MAX_COLLECTED.toLocaleString('fr-FR')}) : ` +
+    `Candidats de la recherche (noyau d'appariement séquentiel, plafond ${MAX_COLLECTED.toLocaleString('fr-FR')}) : ` +
       `${r.candidates.length.toLocaleString('fr-FR')}, traitees ${r.traitees.toLocaleString('fr-FR')}, tronquée ${r.truncated}, chemin ${r.chemin}`
   );
   const ids = r.candidates.map((c) => c.runeIds);

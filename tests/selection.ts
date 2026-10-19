@@ -180,10 +180,10 @@ export function optionsConstruction(racine: string, sortie: string): BuildOption
     // ⚠️ esbuild ne peut PAS être bundlé lui-même (son API a besoin d'un
     // exécutable externe, localisé via un chemin RELATIF à son propre
     // package sur disque — un chemin qui devient faux une fois inliné dans
-    // un autre fichier). Nécessaire depuis que rune-optim-parallel-pairing.test.ts
-    // bundle lui-même un worker (`scripts/lib/pairing-quota-worker.ts`, VRAIS
-    // `worker_threads` concurrents) — `require('esbuild')` reste un require
-    // normal, résolu à l'exécution depuis node_modules, jamais inliné.
+    // un autre fichier). Nécessaire dès qu'un test bundle lui-même un worker
+    // (`scripts/lib/appariement-rapide-worker.ts`, VRAIS `worker_threads`
+    // concurrents) — `require('esbuild')` reste un require normal, résolu à
+    // l'exécution depuis node_modules, jamais inliné.
     external: ['esbuild'],
   };
 }

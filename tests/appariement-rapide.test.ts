@@ -1,5 +1,5 @@
-// Oracle EXHAUSTIF du prototype de noyau d'appariement
-// (src/lib/appariementRapide.ts, chantier perf-moteur, lot 2).
+// Oracle EXHAUSTIF du noyau d'appariement sur tableaux typés
+// (src/lib/appariementRapide.ts, le chemin de production par `apparier`).
 //
 // Trois vérifications, dans l'ordre où une erreur se produirait :
 //
@@ -12,7 +12,7 @@
 //    synthétiques du harnais), une énumération de référence de TOUTES les
 //    paires (prédicats de production, `quickOk` recopié sur les Records)
 //    — chaque paire qui passe `quickOk` doit avoir été VISITÉE par le
-//    prototype (aucune paire sautée à tort), sur ses trois chemins ; et
+//    noyau (aucune paire sautée à tort), sur ses trois chemins ; et
 //    `visitees + sautees = traitees = totalPairCount`.
 // 3. **Différentiel** contre `pairBuckets` sur les MÊMES compartiments :
 //    candidats (ids, stats, effTotal) dans l'ordre, `explored`, quasi-succès,
@@ -165,7 +165,7 @@ function quickOkRecords(prepared: PreparedSearch, comboA: Bucket['combos'][numbe
 }
 
 // Toutes les paires de l'espace — boucles imbriquées simples, indépendantes
-// de l'ordre du prototype ; prédicats de production.
+// de l'ordre du noyau ; prédicats de production.
 function enumerer(prepared: PreparedSearch, bucketsA: Bucket[], bucketsB: Bucket[]): { total: number; passantes: Set<string> } {
   const { distinctKeys, requirement, minEntries, maxEntries, guaranteed, guaranteedMin, relPctMax, relPctMin, artFlatMax, artFlatMin, totalOf } = prepared;
   let total = 0;

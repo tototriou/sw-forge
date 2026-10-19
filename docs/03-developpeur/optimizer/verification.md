@@ -21,8 +21,9 @@ contient le filtre (registre : `tests/index.ts`), par exemple
 | `testDominanceReliqueCasMinimal`, `testDominanceReliqueCouverture`, `testDominanceReliqueRecherche`, `testDominanceReliqueTemoins`, `testDominanceReliqueWorkers`, `testDominanceReliqueDifferentiel`, `testDominanceReliqueDifferentielCible` | `tests/rune-optim-dominance-relique.test.ts` | un oracle noté : la dominance face à l'effet unique de la relique et aux lignes d'artéfact 218–221, paire tirée, différentiel ciblé |
 | `testDominanceLignesQuatrePorteurs`, `testDominanceLignesJoker`, `testDominanceLignesLibre`, `testDominanceLignesProducteurs`, `testDominanceLignesWorkers` | `tests/rune-optim-dominance-lignes.test.ts` | les cas fixes des lignes 218–221 : porteurs, joker, « Libre », producteurs, Workers |
 | `testRuneOptimScaleMonotonicity` | `tests/rune-optim-scale-monotonicity.test.ts` | à l'échelle d'un compte réel, élargir le pré-filtrage ne perd pas les demi-builds déjà retenus |
-| `testRuneOptimParallelPairing` | `tests/rune-optim-parallel-pairing.test.ts` | l'appariement découpé en tranches contre l'appariement séquentiel |
-| `testRuneOptimParallelTruncated` | `tests/rune-optim-parallel-truncated.test.ts` | la fusion des résultats des tranches (`combineParallelPairingResults`) : signal `truncated` et quasi-succès |
+| `testAppariementRapide` | `tests/appariement-rapide.test.ts` | le noyau d'appariement sur tableaux typés : seuils aux frontières, oracle paire par paire (aucune paire sautée ne passe `quickOk`), différentiel contre `pairBuckets` |
+| `testAppariementParallele`, `testAppariementParalleleWorkers`, `testAppariementParalleleBranchement` | `tests/appariement-parallele.test.ts` | le nombre de Workers et le régime ; le coordinateur parallèle contre le séquentiel (Workers simulés, puis vrais `worker_threads`) : plafond global, progression, arrêt manuel, filet de temps, panne ; le branchement du chemin de production |
+| `testConstructionRapide` | `tests/construction-rapide.test.ts` | la construction des moitiés sur tableaux typés (`construireMoitieRapide`, et son découpage en tranches) contre `buildBuckets` : égalité profonde des compartiments, préréglages Bas à Extrême, avec et sans « Prioriser les stats les plus difficiles », chaque `combosOrderMode`, évictions forcées ; et `construireMoitie` sur son repli |
 | `testRuneOptimNearMiss` | `tests/rune-optim-near-miss.test.ts` | le quasi-succès retenu à l'appariement, y compris après un arrêt manuel |
 | `testRuneOptimDeadHalfPruning` | `tests/rune-optim-dead-half-pruning.test.ts` | l'élagage exact des demi-builds sans aucune pièce d'un set demandé à plus de 3 pièces |
 | `testFilterSlotTopK` | `tests/rune-optim-filterslot-topk.test.ts` | le top-K de `filterSlot` par le vrai tas (`heapPush`) contre un tri complet |
@@ -153,27 +154,25 @@ renouvellement en queue de classement est normal : exiger la survie de
 tous les demi-builds, ou ne suivre que les meilleurs en efficience, ne
 discrimine pas (`:17-29`).
 
-`testRuneOptimParallelPairing` a deux régimes
-(`tests/rune-optim-parallel-pairing.test.ts:1-42`) :
+L'appariement parallèle rend le résultat du séquentiel, plafond de
+candidats compris : sa vérification est donc une égalité, jamais un seuil.
 
-- sans plafond de temps ni de collecte, découper `bucketsA` en 1, 2, 3 ou
-  4 tranches et apparier chacune indépendamment rend les mêmes paires
-  explorées et exactement le même ensemble de candidats que le séquentiel ;
-  une simulation séquentielle y suffit, le résultat ne dépendant ni du
-  temps ni de la concurrence (`:141-185`) ;
-- tronqué par un `maxMs` réaliste (30 s, `:240`), sur de vrais
-  `worker_threads` concurrents qui partagent le même temps et divisent le
-  plafond de candidats comme `driveParallelPairing`
-  (`src/workers/parallelPairing.ts:121`) : chaque tranche reste sous son
-  plafond, et une tranche non tronquée retrouve exactement ce qu'une
-  référence sans plafond trouve sur la même tranche ; au moins un scénario
-  doit tronquer, sinon le régime n'a pas été exercé, et au moins une
-  tranche doit être tronquée — par son plafond ou par le temps : le test
-  lit `truncated`, qui ne distingue pas les deux
-  (`tests/rune-optim-parallel-pairing.test.ts:186-351`). Une
-  simulation séquentielle y serait trop généreuse : un chrono neuf par
-  tranche et le plafond global non divisé masquent une perte par famine
-  de quota (`:18-42`).
+- `testAppariementParallele` (`tests/appariement-parallele.test.ts`) fait
+  rendre leurs morceaux dans le désordre à des Workers simulés dans le
+  processus : la fusion ne dépend que de l'ordre des morceaux, que la
+  simulation exerce, et le résultat doit être identique au séquentiel, non
+  tronqué comme sous petit plafond. Il vérifie aussi la progression,
+  l'arrêt manuel, le filet de temps déjà dépassé, la panne d'un Worker et le
+  refus hors contrat ; rien de ce qu'il vérifie ne lit l'horloge en cours de
+  route.
+- `testAppariementParalleleWorkers` rejoue l'égalité sur de vrais
+  `worker_threads` concurrents, par le lanceur Node de production.
+- Sous une troncature par le TEMPS, le parallèle peut rendre davantage que
+  le séquentiel (il a parcouru plus dans le même délai) : aucune égalité n'y
+  est attendue, et aucun test ne l'exige.
+- Aux volumes réels, hors `npm test`, `scripts/banc-appariement-rapide.ts`
+  compare le chemin de production, séquentiel et parallèle, à
+  `pairBuckets`, sur les cas de `CASES` et sur une recette et un export.
 
 ## Vérification — oracle noté, paire tirée et différentiel ciblé
 
@@ -259,9 +258,17 @@ script sur la machine du moment, en suivant le skill
   paralléliser ses mesures de temps : la contention entre processus
   fausserait ce qu'elles mesurent. `--monotonicity`, qui ne compare aucun
   temps, tourne sur des `worker_threads` (`scripts/lib/monotonicity-worker.ts`).
-- `scripts/pairing-parallel-diag.ts` : la calibration, aux volumes réels, du
-  seuil de déclenchement et du nombre de workers de l'appariement parallèle
-  (`tests/rune-optim-parallel-pairing.test.ts:49-51`).
+  Il construit les moitiés et apparie par le chemin de production
+  (`construireMoitie`, `apparier`), en séquentiel même au-delà du seuil.
+- `scripts/banc-appariement-rapide.ts` et
+  `scripts/banc-construction-moities.ts` : le chemin de production de
+  l'appariement et de la construction contre `pairBuckets` et
+  `buildBuckets`, sur les cas connus et sur une recette et un export, avec
+  le différentiel et des temps indicatifs par phase.
+- `scripts/pairing-parallel-diag.ts` : le seuil de déclenchement et le
+  nombre de workers, mesurés aux volumes réels pour l'appariement par
+  `pairBuckets` réparti en tranches statiques — la référence, pas la
+  production.
 
 Il n'existe pas de budget de paires : la recherche n'est bornée que par le
 plafond de candidats collectés (`MAX_COLLECTED`, surchargeable par

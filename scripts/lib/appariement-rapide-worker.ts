@@ -1,8 +1,9 @@
-// Coquille `worker_threads` du PROTOTYPE de noyau d'appariement (chantier
-// perf-moteur, lot 2) — aucune logique ici : `initialiserTravailleur` et
-// `traiterMorceau` (src/lib/appariementRapide.ts) font tout. La requête
-// arrive par `workerData` (tableaux typés transférés une fois), les morceaux
-// par message, à la demande.
+// Coquille `worker_threads` d'un Worker de l'appariement parallèle de
+// production — pendant Node de src/workers/appariementRapide.worker.ts —,
+// aucune logique ici : `initialiserTravailleur` et `traiterMorceau`
+// (src/lib/appariementRapide.ts) font tout. L'initialisation arrive par
+// `workerData` (tableaux typés transférés une fois, seule divergence de
+// protocole avec le navigateur), les morceaux par message, à la demande.
 
 import { parentPort, workerData } from 'worker_threads';
 import { InitTravailleur, Morceau, initialiserTravailleur, traiterMorceau } from '../../src/lib/appariementRapide';

@@ -248,7 +248,7 @@ export const PROFILS: ProfilSynthetique[] = [
   {
     nom: 'quota-parallele',
     resume:
-      'Le versant « franchement AU-DESSUS » du seuil des 100 M : régime PARALLÈLE sur tous les bras, troncature par QUOTA, et un rang qui bouge.',
+      'Le versant « franchement AU-DESSUS » du seuil des 100 M : régime PARALLÈLE sur tous les bras, troncature par le PLAFOND de candidats, et un `explored` qui bouge.',
     source: {
       type: 'synthetique',
       seed: 7,
@@ -259,8 +259,10 @@ export const PROFILS: ProfilSynthetique[] = [
     },
     // ⚠️ Le quota est l'instrument du profil, pas un réglage de confort : il
     // remplace une troncature par le TEMPS (bruitée, mesures E/G/H/N) par
-    // une troncature déterministe. VÉRIFIÉ : 5 runs successifs rendent le
-    // même `explored` (60 806), le même top-1 et le même top-20.
+    // une troncature déterministe : le plafond est global et l'ordre de
+    // collecte séquentiel dans les deux régimes. VÉRIFIÉ : 5 runs successifs
+    // rendent le même `explored` (57 312) et le même top-1, et le séquentiel
+    // forcé rend les mêmes 2 000 candidats dans le même ordre.
     overrides: { maxCollected: 2000 },
     cible: [9, 104, 173, 308, 390, 444],
     attendu: {
@@ -268,25 +270,23 @@ export const PROFILS: ProfilSynthetique[] = [
       motif: 'maxCollected',
       regime: 'parallele',
       totalPairs: 939420310,
-      rang: 179,
+      rang: 45,
       population: 2000,
       tempsMsIndicatif: 1540,
     },
     axesVerifies: [
-      'nominal (bucketCap 6000 dérivé) : quota, 939 420 310 paires (×9,4 le seuil), cible #179 / 2 000',
-      'bucketCap 3000 + slotFilterCap 40 (le PIRE cas) : quota, 347 904 750 paires (×3,5 le seuil) — reste PARALLÈLE, cible #178 / 2 000',
-      'bucketCap 12000 : quota, 2 240 624 849 paires (×22 le seuil), cible #179 / 2 000',
-      'reproductibilité : 5 runs successifs, `explored` = 60 806 les 5 fois, top-1 et top-20 identiques',
+      'nominal (bucketCap 6000 dérivé) : plafond, 939 420 310 paires (×9,4 le seuil), 57 312 traitées, cible #45 / 2 000',
+      'bucketCap 3000 + slotFilterCap 40 (le PIRE cas) : plafond, 347 904 750 paires (×3,5 le seuil) — reste PARALLÈLE, 36 352 traitées, cible #45 / 2 000',
+      'bucketCap 12000 : plafond, 2 240 624 849 paires (×22 le seuil), 58 992 traitées, cible #45 / 2 000',
+      'reproductibilité : 5 runs successifs, `explored` = 57 312 les 5 fois, top-1 identique ; séquentiel forcé = parallèle, candidat par candidat',
     ],
     // ⚠️ Les deux axes ont d'abord été mesurés CONJOINTEMENT (bucketCap 3000
-    // + slotFilterCap 40, cible #178) : ça ne permettait d'attribuer la
-    // divergence à aucun des deux pris seul. En isolant
-    // `bucketCap` — 6000 → 3000, sur 3 passages ENTRELACÉS : `explored` tombe
-    // de 60 806 à 39 846 (−34,47 %) avec un plancher MESURÉ à 0,00 % des deux
-    // côtés. ⚠️ Et c'est le SEUL élément lisible : le quota fixant la
-    // population à 2 000 et le rang à #179 des deux côtés, ces valeurs sont
-    // égales sur des PRÉFIXES différents — donc `NON_COMPARABLE`, jamais
-    // « identique ».
+    // + slotFilterCap 40) : ça ne permettait d'attribuer la divergence à
+    // aucun des deux pris seul. En isolant `bucketCap` — 6000 → 3000 :
+    // `explored` tombe de 57 312 à 36 352. ⚠️ Et c'est le SEUL élément
+    // lisible : le plafond fixant la population à 2 000 et le rang à #45 des
+    // deux côtés, ces valeurs sont égales sur des PRÉFIXES différents — donc
+    // `NON_COMPARABLE`, jamais « identique ».
     axesSensibles: ['bucketCap'],
     limites:
       '⚠️ La marge de régime tient parce que ce profil a SIX compartiments par moitié, pas parce que son pool est gros. `totalPairs` croît comme le CARRÉ de `bucketCap` (≈ (k × bucketCap)²) : à deux compartiments, un pool même trois fois plus gros SATURE et retombe sous les 100 M dès que `bucketCap` est divisé par deux — mesuré (assortiment `varies`, 150 runes/emplacement : 104 M au pire cas, soit +4 % seulement). ⚠️ Corollaire général : AUCUN profil ne peut être robuste à une variation arbitraire de `bucketCap`, puisque `bucketCap = 1` ramène toujours sous le seuil. Un profil porte une marge MESURÉE sur un axe NOMMÉ, jamais une garantie universelle.',

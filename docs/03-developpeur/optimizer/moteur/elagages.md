@@ -284,7 +284,10 @@ porte la ligne 218, même si les PV ne sont pas une stat du sort.
   (`buildFilteredBySlot`). Elle saute la dominance et la faisabilité : c'est
   un ordre de grandeur, pas le pool exact de la recherche, ni le nombre de
   paires que l'appariement visite.
-- **Compartiments construits EN FLUX, bornés en mémoire** (`buildBuckets`) :
+- **Compartiments construits EN FLUX, bornés en mémoire** (`buildBuckets`, la
+  référence, et le noyau sur tableaux typés qui en rend exactement les
+  compartiments en production, `construireMoitieRapide` :
+  [pipeline.md § Construction des moitiés](pipeline.md)) :
   chaque combinaison d'une moitié est évaluée puis, selon son mérite,
   retenue ou **immédiatement jetée** — jamais de tableau intermédiaire de
   `cap³` combinaisons, qui épuiserait la mémoire sur un vrai compte. La
@@ -378,9 +381,11 @@ porte la ligne 218, même si les PV ne sont pas une stat du sort.
 - **Trois arrêts seulement** : le temps (`maxMs`, défaut `DEFAULT_MAX_MS` ;
   l'écran passe le sien), le plafond de candidats, l'épuisement de
   l'espace. Ne pas réintroduire de plafond de paires : `totalPairCount`
-  compte exactement les paires que `pairBuckets` visite (mêmes prédicats,
-  dans un ordre qui diffère sans changer le compte ; égalité vérifiée par
-  `tests/rune-optim-differential.test.ts`),
+  compte exactement les paires que l'appariement TRAITE — celles que
+  `pairBuckets` juge une à une, celles que le noyau visite ou saute (mêmes
+  prédicats, dans un ordre qui diffère sans changer le compte ; égalité
+  vérifiée par `tests/rune-optim-differential.test.ts` et
+  `tests/appariement-rapide.test.ts`),
   si bien qu'un tel plafond ne protégerait de rien et changerait une future
   divergence de comptage en troncature silencieuse.
 - **La recherche de runes optimise uniquement les 6 runes.** Les artéfacts
@@ -399,9 +404,9 @@ porte la ligne 218, même si les PV ne sont pas une stat du sort.
   (`src/lib/stats.ts`), la même fonction que partout ailleurs dans l'app.
 - **Écrit comme un générateur** (`searchBuildsSteps`,
   `src/lib/rechercheRunes.ts` : `prepareSearch`,
-  puis `buildBuckets` pour chaque moitié, puis `pairBuckets`), pas une seule
+  puis `construireMoitie` pour chaque moitié, puis `apparier`), pas une seule
   boucle qui tourne jusqu'au bout : l'appariement rend un point de passage
-  toutes les `CHECKPOINT_EVERY` (500) paires explorées, la construction à
+  toutes les `CHECKPOINT_EVERY` (500) paires traitées, la construction à
   chaque rune du premier emplacement de la moitié. `searchBuilds`, appelé
   par les tests et les scripts, ne fait que le drainer d'un bloc. Le Worker,
   lui, pilote ces étapes pas à pas et poste sa progression par paliers de
@@ -413,9 +418,15 @@ porte la ligne 218, même si les PV ne sont pas une stat du sort.
   plusieurs Workers dès que l'espace compte au moins
   `PARALLEL_PAIRING_THRESHOLD` paires (`totalPairCount`), en recherche
   normale comme en mode « Rechercher jusqu'à épuisement complet ». Mêmes
-  garanties : `tests/rune-optim-parallel-pairing.test.ts` compare le
-  découpage au chemin séquentiel. Détail :
+  résultats, dans le même ordre : `tests/appariement-parallele.test.ts`
+  compare le parallèle au séquentiel, sur des Workers simulés et sur de
+  vrais `worker_threads`. Détail :
   [pipeline.md § Appariement parallèle](pipeline.md).
+- **Le test rapide sans paire jugée une à une** : en production, la boucle
+  des combinaisons B passe par un noyau sur tableaux typés qui saute,
+  sans les juger, les paires qui échoueraient sûrement à `quickOk`, et
+  rend exactement le résultat de `pairBuckets` :
+  [noyau-appariement.md](noyau-appariement.md).
 
 ### Variantes écartées ou gardées en réserve
 

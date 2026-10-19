@@ -14,13 +14,13 @@ casser : [../invariants.md § Workers](../invariants.md).
 
 | Fichier | Rôle | Plateforme |
 | --- | --- | --- |
-| `src/workers/parallelPairing.ts` | orchestration : répartition, partage du plafond, progression, fusion ; les deux constantes du régime | neutre |
-| `src/workers/pairSliceBody.ts` | corps d'une tranche (`runPairSlice`) et types de son protocole | neutre |
-| `src/lib/runeBuildOptim.ts` | `totalPairCount`, `partitionBucketsALPT`, `combineParallelPairingResults` | neutre |
-| `src/workers/runeBuildOptim.worker.ts` | choix du régime, lanceur `pairSliceInWorker`, arrêt et erreur | navigateur |
-| `src/workers/pairSlice.worker.ts` | coquille d'une tranche | navigateur |
-| `scripts/lib/spawnSliceNode.ts` | lanceur `makeSpawnSliceNode`, paquet `ensurePairSliceBundle` | Node |
-| `scripts/lib/pair-slice-worker.ts` | coquille d'une tranche | Node (`worker_threads`) |
+| `src/workers/parallelPairing.ts` | le seuil du régime, la règle du nombre de Workers (`nombreDeTravailleurs`), le choix du régime (`regimeAppariement`) | neutre |
+| `src/lib/appariementRapideParallele.ts` | coordinateur : plan des morceaux, distribution à la demande, fusion dans l'ordre, progression, arrêt (`apparierRapideEnParallele`) | neutre |
+| `src/lib/appariementRapide.ts` | corps d'un Worker (`initialiserTravailleur`, `traiterMorceau`), le noyau, les types du protocole | neutre |
+| `src/workers/runeBuildOptim.worker.ts` | choix du régime, lanceur `lancerTravailleurNavigateur`, arrêt et erreur | navigateur |
+| `src/workers/appariementRapide.worker.ts` | coquille d'un Worker d'appariement | navigateur |
+| `scripts/lib/appariementRapideNode.ts` | lanceur `lancerTravailleurNode`, paquet `assurerBundleAppariementRapide` | Node |
+| `scripts/lib/appariement-rapide-worker.ts` | coquille d'un Worker d'appariement | Node (`worker_threads`) |
 | `src/workers/resolutionBody.ts` | corps de résolution (`CorpsResolution`), entrées et protocole | neutre |
 | `src/workers/resolution.worker.ts` | coquille de résolution | navigateur |
 | `src/workers/resolutionDistante.ts` | côté écran : quoi envoyer, annuler, écrire (`ResolutionDistante`) | neutre |
@@ -29,244 +29,239 @@ casser : [../invariants.md § Workers](../invariants.md).
 
 Les moitiés construites, le Worker principal compare l'espace exact à
 parcourir, `totalPairCount(prepared, bucketsA, bucketsB)`, au seuil
-`PARALLEL_PAIRING_THRESHOLD` (100 000 000 paires) : en dessous, appariement
-séquentiel dans ce Worker ; à partir du seuil, appariement parallèle sur au
-plus `PARALLEL_PAIRING_WORKERS` (4) tranches. Le seuil est le seul critère :
-ni le mode exhaustif, ni le filet de temps, ni le plafond de candidats
-n'entrent dans le choix. La construction des moitiés, elle, se fait toujours
-dans deux Workers, quelle que soit la taille du cas
+`PARALLEL_PAIRING_THRESHOLD` (100 000 000 paires), et vérifie le contrat
+numérique du noyau (`verifierContrat`) : `regimeAppariement` rend le
+parallèle à partir du seuil, contrat tenu ; sinon le séquentiel, dans ce
+Worker. Hors contrat (une valeur non entière, un dépassement, un traceur de
+diagnostic), l'appariement séquentiel retombe sur `pairBuckets` en rendant
+la main ; le coordinateur parallèle, lui, n'a aucun repli et refuse un
+appariement hors contrat. Ni le mode exhaustif, ni le filet de temps, ni le
+plafond de candidats n'entrent dans le choix. La construction des moitiés,
+elle, se fait toujours dans deux Workers, quelle que soit la taille du cas
 ([pipeline.md § Construction des moitiés](pipeline.md)).
 
-- Le nombre de tranches est fixe, jamais dérivé du nombre de cœurs
-  (`navigator.hardwareConcurrency`) : ne pas le rendre automatique,
-  davantage de fils a fait moins bien sur la plupart des gros cas mesurés.
+Le nombre de Workers est DÉRIVÉ de la machine, par une seule règle pour les
+deux plateformes : `nombreDeTravailleurs(concurrence)` = la moitié des fils
+logiques, au moins 1, au plus `TRAVAILLEURS_MAX` (8) ; concurrence inconnue,
+`TRAVAILLEURS_PAR_DEFAUT` (4). Le navigateur la lit dans
+`navigator.hardwareConcurrency`, Node dans `os.availableParallelism()`.
+
+- La moitié des fils logiques vaut le nombre de cœurs physiques sur une
+  machine à deux fils par cœur. Mesuré sur 8 cœurs et 16 fils : 8 Workers
+  font mieux que 16 sur tous les cas, du plus léger (une demi-seconde) au
+  plus lourd (20 milliards de paires). Une machine sans deux fils par cœur
+  (processeurs ARM, Apple) reçoit donc moins de Workers que de cœurs : non
+  mesuré.
+- Au plus 8 : au-delà rien n'est mesuré, et chaque Worker reçoit sa copie
+  des compartiments et refait la préparation ; la mémoire croît avec leur
+  nombre.
 - Sur un petit espace, démarrer et alimenter les fils coûte plus que le
-  calcul gagné. Le seuil est placé entre une zone où le parallèle perd et
-  une zone où il gagne, sans mesure fine entre les deux ; il a été calibré
-  en recherche exhaustive, jamais recalibré pour une recherche que le filet
-  de temps ou le plafond de candidats arrêtent avant la fin.
-- Ne pas porter l'appariement sur GPU : sa chaîne de filtres à sortie
-  anticipée fait diverger les fils, il faudrait des tableaux typés à
-  disposition fixe qui n'existent pas, et WebGPU n'aurait aucun repli dans
-  une application sans serveur ; le CPU suffit aux plus gros cas mesurés.
+  calcul gagné. Le seuil a été placé, pour l'appariement par `pairBuckets`,
+  entre une zone où le parallèle perdait et une zone où il gagnait, sans
+  mesure fine entre les deux ; il n'est pas remesuré pour le noyau.
+- L'appariement ne tourne pas sur GPU : sa chaîne de filtres à sortie
+  anticipée fait diverger les fils, et WebGPU n'est pas disponible partout ;
+  le CPU suffit aux plus gros cas mesurés.
 
 ## Répartition et partage du plafond
 
-`driveParallelPairing` découpe la moitié A, jamais la moitié B :
+`apparierRapideEnParallele` (`src/lib/appariementRapideParallele.ts`)
+découpe le travail en LIGNES, jamais en compartiments : une ligne est une
+combinaison A ouverte face à un compartiment B ouvert, avec les prédicats de
+`pairBuckets` (`satisfiesSets`, jokers, `bucketPairFeasibleMin`,
+`comboAFeasible`) et dans son ordre de parcours.
 
-- `workerCount = Math.min(PARALLEL_PAIRING_WORKERS, bucketsA.length)` :
-  jamais une tranche vide.
-- `partitionBucketsALPT(bucketsA, workerCount)` répartit les compartiments
-  par charge (`combos.length`) : du plus gros au plus petit, chacun à la
-  tranche la moins chargée. Chaque tranche est ensuite remise dans l'ordre
-  d'origine de `bucketsA`, par potentiel décroissant : chaque fil parcourt
-  ses meilleurs compartiments d'abord. La fonction vit dans
-  `runeBuildOptim.ts` pour être testable en Node.
-  - Ne pas la remplacer par une assignation gloutonne en ordre de
-    potentiel : à performance égale sur les cas mesurés, elle n'a aucune
-    borne prouvée du pire déséquilibre, que LPT a.
-  - Ne pas distribuer les compartiments par une file dynamique, un
-    aller-retour de messages par compartiment ou par lot : à l'échelle
-    réelle (quelques dizaines de compartiments), le coût des messages
-    dépasse le gain, et un lot traité d'un bloc par un seul fil peut
-    fortement retarder le premier candidat.
-- Chaque tranche reçoit une `PairSliceRequest` : les paramètres de la
-  recherche tels quels, sauf `maxCollected`, remplacé par
-  `perWorkerMaxCollected = Math.max(1, Math.ceil(prepared.maxCollected / workerCount))` ;
-  sa tranche de A (`bucketASlice`) ; la moitié B entière (`bucketsB`) ;
-  l'instant de départ global (`startedAt`). Rien n'est partagé en mémoire :
-  chaque fil reçoit sa copie par le clonage de `postMessage`.
-- Les tranches de A sont disjointes : un candidat n'appartient qu'à la
-  tranche qui contient sa combinaison A, la fusion n'a rien à dédoublonner,
-  et la somme des espaces des tranches vaut `totalPairs` — la progression
-  additionnée reste comparable au total.
+- `planifierMorceaux` groupe les lignes, dans cet ordre, en MORCEAUX
+  contigus d'au moins `cible = max(TAILLE_MIN_MORCEAU, totalPairs /
+  (travailleurs × MORCEAUX_PAR_TRAVAILLEUR))` paires (2 000 000 et 64) :
+  plus fins que les compartiments : une répartition par compartiments entre
+  quatre fils peut laisser à l'un d'eux jusqu'à 63 % des paires (mesuré sur
+  une recette réelle). Chaque morceau connaît sa position de départ
+  globale (`offset`). La somme des tailles vaut `totalPairs`, que
+  l'appelant a calculé pour choisir le régime ; un plan qui s'en écarte
+  lève une erreur.
+- Chaque Worker reçoit UNE fois, à son lancement (`InitTravailleur`), les
+  paramètres de la recherche tels quels, l'instant de départ global et sa
+  propre copie des compartiments sur tableaux typés (`encoderCompartiments`),
+  dont les tampons sont TRANSFÉRÉS : rien n'est partagé en mémoire.
+- Les morceaux partent ensuite à la demande, `EN_VOL_PAR_TRAVAILLEUR` (2)
+  en vol par Worker : le suivant attend déjà quand l'un se termine, et un
+  Worker rapide en prend davantage. Un morceau voyage avec ses segments de
+  lignes et le verdict de `comboAFeasible` de chacune.
+- Le plafond de candidats est GLOBAL : aucune part par Worker. Un morceau
+  s'arrête de lui-même dès qu'il a `maxCollected` candidats (la fusion
+  aurait de toute façon coupé avant), et la fusion coupe au
+  `maxCollected`-ième dans l'ordre séquentiel.
 
-Ce que le partage du plafond change :
+Ce que le plafond global change :
 
-- Sans troncature, le parallèle trouve exactement les mêmes candidats que le
-  séquentiel. Sous troncature, le découpage change légitimement quels
-  candidats sont gardés : chaque tranche s'arrête sur sa part, pas sur le
-  plafond global.
-- Une tranche qui remplit sa part s'arrête et laisse le reste de sa tranche
-  non visité : la recherche est alors tronquée, motif `quotaTranche`
-  ([parallelisation.md § Fusion des résultats](parallelisation.md)). Ce que
-  l'écran en dit :
-  [02-app/optimizer/feat-interruption.md § Interruption — filet de temps, pré-filtrage et arrêt manuel](../../../02-app/optimizer/feat-interruption.md#interruption--filet-de-temps-pré-filtrage-et-arrêt-manuel).
-- Ne pas remplacer la part fixe par un quota partagé que les fils se
-  signaleraient par messages : sans mémoire partagée, le signal d'arrêt
-  arrive en retard, et sous vraie concurrence le total dépasse le plafond.
-  Ce mode (`shared`, dans `scripts/lib/pairing-quota-worker.ts`) n'est pas
-  en production.
+- Le parallèle rend EXACTEMENT le résultat du séquentiel, tronqué ou non :
+  mêmes candidats dans le même ordre, mêmes paires traitées, même
+  quasi-succès, quel que soit le nombre de Workers. Seul le filet de temps
+  fait différer les deux, le parallèle ayant parcouru davantage dans le même
+  délai.
+- Ne pas donner à chaque Worker une part fixe du plafond : un Worker arrêté
+  sur sa part laisserait le reste de son travail non visité, et les
+  candidats gardés dépendraient du découpage.
 
-## Le corps d'une tranche
+## Le corps d'un Worker
 
-`runPairSlice(request, isStopped, onProgress)` (`src/workers/pairSliceBody.ts`)
-exécute une tranche et rend son résultat (`PairSliceResultMessage`) ;
-`isStopped` et `onProgress` sont ses deux seuls contacts avec la plateforme.
+`initialiserTravailleur(init)` puis `traiterMorceau(contexte, morceau)`
+(`src/lib/appariementRapide.ts`) : aucun contact avec la plateforme.
 
-1. Il refait la préparation, `prepareSearch(params)` : une `PreparedSearch`
-   porte des fonctions (`totalOf`), que le clonage de `postMessage` ne
-   transporte pas. Sur les mêmes paramètres, la préparation de la tranche
-   retrouve le pool du Worker principal ; seul `maxCollected` diffère. Si
-   `prepareSearch` rend `null`, la tranche rend un résultat vide, non
-   tronqué. Ne pas transmettre aux tranches le pool que le Worker principal
-   a préparé pour leur épargner ce travail : son coût est faible depuis que
-   la dominance précalcule la contribution des runes
-   (`runeContributionAllKeys`), et ce champ de plus devrait suivre tous les
-   constructeurs de la requête (skill `optimizer-field-propagation`).
+1. `initialiserTravailleur` refait la préparation, `prepareSearch(params)` :
+   une `PreparedSearch` porte des fonctions (`totalOf`), que le clonage ne
+   transporte pas. Sur les mêmes paramètres, la préparation du Worker
+   retrouve le pool du Worker principal ; elle lève si elle rend `null`, ou
+   si les stats contraintes diffèrent de celles des compartiments reçus. Ne
+   pas transmettre aux Workers le pool que le Worker principal a préparé
+   pour leur épargner ce travail : ce champ de plus devrait suivre tous les
+   constructeurs du message (skill `optimizer-field-propagation`).
 2. Il remplace `prepared.startedAt`, que sa propre préparation vient de
    poser, par l'instant de départ global, AVANT tout usage du filet de
-   temps : le test du temps de `pairBuckets` lit `prepared.startedAt`. Sans
-   ce remplacement, le filet `maxMs` repartirait de la fin de la
+   temps. Sans ce remplacement, le filet `maxMs` repartirait de la fin de la
    construction des moitiés au lieu du lancement de la recherche.
-3. Il pilote `pairBuckets(prepared, bucketASlice, bucketsB)` par
-   `drivePairing`, le pilote du séquentiel : progression au plus une fois
-   par `PROGRESS_THROTTLE_MS`, main rendue au plus une fois par
-   `YIELD_THROTTLE_MS`, et à l'arrêt un résultat tronqué fait de ce que la
-   tranche a déjà trouvé ([pipeline.md § Appariement séquentiel](pipeline.md)).
+3. `traiterMorceau` apparie les lignes du morceau par le noyau
+   ([pipeline.md § Appariement séquentiel](pipeline.md)), d'un bloc, et rend
+   ses candidats avec leur position globale, les améliorations successives
+   de son quasi-succès, ses paires traitées et visitées, et s'il a été coupé
+   par le temps (`tronqueTemps`). Le temps se teste à chaque ligne et à
+   chaque paire visitée.
 
-Une tranche n'a aucune borne propre au parallèle : elle s'arrête sur le
-filet de temps global, sur sa part du plafond de candidats, à la fin de sa
-tranche ou sur l'arrêt manuel. Aucun plafond de paires.
+Un morceau n'a aucune borne propre au parallèle : il s'arrête sur le filet
+de temps global, sur le plafond de candidats ou à sa fin. Aucun plafond de
+paires.
 
 ## Coquilles et lanceurs
 
-Seul le lancement d'une tranche dépend de la plateforme.
-`driveParallelPairing` reçoit un lanceur (`SpawnSlice`) qui démarre une
-tranche et rend une poignée (`SliceHandle`) : `done`, la promesse du
-résultat ; `stop`, l'arrêt coopératif ; `terminate`, l'arrêt brutal.
+Seul le lancement d'un Worker dépend de la plateforme.
+`apparierRapideEnParallele` reçoit un lanceur (`LancerTravailleur`) qui
+démarre un Worker avec son initialisation et ses tampons à transférer, et
+rend une poignée (`PoigneeTravailleur`) : `envoyer` un morceau,
+`surMessage`, `surErreur`, `terminer`.
 
 | | Navigateur | Node |
 | --- | --- | --- |
-| Coquille | `src/workers/pairSlice.worker.ts` | `scripts/lib/pair-slice-worker.ts` |
-| Lanceur | `pairSliceInWorker` (`runeBuildOptim.worker.ts`) | `makeSpawnSliceNode` (`scripts/lib/spawnSliceNode.ts`) |
-| Requête | `new Worker(new URL('./pairSlice.worker.ts', import.meta.url), { type: 'module' })`, puis la requête par message | `new Worker(chemin du paquet, { workerData: request })` : la requête arrive à la construction |
-| Arrêt | message `{ stop: true }` | message `{ stop: true }` |
-| Erreur | `onerror` rejette `done` | l'événement `error` rejette `done` |
+| Coquille | `src/workers/appariementRapide.worker.ts` | `scripts/lib/appariement-rapide-worker.ts` |
+| Lanceur | `lancerTravailleurNavigateur` (`runeBuildOptim.worker.ts`) | `lancerTravailleurNode` (`scripts/lib/appariementRapideNode.ts`) |
+| Initialisation | `new Worker(new URL('./appariementRapide.worker.ts', import.meta.url), { type: 'module' })`, puis un message `{ type: 'init', init }`, tampons transférés | `new Worker(chemin du paquet, { workerData: init, transferList })` : l'initialisation arrive à la construction |
+| Morceaux | un message par morceau, un résultat par morceau | idem |
+| Fin | `terminate()` | message `{ type: 'fin' }` : le fil ferme son port et sort de lui-même |
+| Erreur | `onerror`, `onmessageerror` | événement `error`, sortie de code non nul |
 
 - Les deux coquilles ne portent aucune logique : elles appellent le même
-  `runPairSlice` et branchent sa messagerie (`self.onmessage` et
-  `postMessage` d'un côté, `workerData` et `parentPort` de l'autre). Les
-  types du protocole (`PairSliceRequest`, `PairSliceResponse`…) vivent dans
-  `pairSliceBody.ts` ; les deux coquilles les importent de là, jamais l'une
-  de l'autre.
-- Le message d'arrêt n'est lu que quand `drivePairing` rend la main, au
-  plus tous les `YIELD_THROTTLE_MS` : sans cette respiration, une tranche ne
-  le verrait qu'à la fin.
+  `initialiserTravailleur` puis `traiterMorceau` et branchent la messagerie.
+  Les types du protocole (`InitTravailleur`, `Morceau`, `ResultatMorceau`)
+  vivent dans `appariementRapide.ts` ; les deux coquilles les importent de
+  là, jamais l'une de l'autre.
+- Un morceau se traite d'un bloc : un Worker ne lit aucun message pendant
+  qu'il en traite un. L'arrêt manuel ne lui est donc pas envoyé ; c'est le
+  coordinateur qui cesse de distribuer (§ Arrêt, erreur et nettoyage).
 - Côté Node, un `worker_threads` exécute du JavaScript :
-  `ensurePairSliceBundle` assemble la coquille par esbuild en un `.cjs`, une
-  fois par processus, dans un dossier temporaire, et toutes les tranches le
-  réutilisent ; le temps d'assemblage n'entre jamais dans une mesure
-  d'appariement.
-- ⚠️ Les deux lanceurs reconstruisent le `SearchResult` champ par champ
-  (`candidates`, `explored`, `truncated`, `nearMissByCondition`,
-  `globalNearMiss`, et `traceur` s'il est présent), jamais par recopie du
-  message : un champ ajouté au résultat d'une tranche se reporte dans les
-  deux, sinon il se perd en silence.
+  `assurerBundleAppariementRapide` assemble la coquille par esbuild en un
+  `.cjs`, une fois par processus, dans un dossier temporaire, et tous les
+  Workers le réutilisent ; le temps d'assemblage n'entre jamais dans une
+  mesure d'appariement. La fin passe par un message plutôt que par
+  `terminate()` : terminer un fil pendant le transfert initial a fait
+  planter Node.
 
 ## Code commun aux deux plateformes
 
-- `parallelPairing.ts` et `pairSliceBody.ts` n'importent jamais
-  `worker_threads`, ni `self`, ni `postMessage`, ni le `Worker` du DOM :
-  Vite tenterait de résoudre du code Node dans le paquet du navigateur
-  (construction en échec, ou polyfill embarqué). La plateforme arrive donc
-  par injection (le lanceur, `isStopped`, `onProgress`) : ne pas la
-  remplacer par un test `if (isNode)`, qui ferait référencer les deux
-  plateformes au module neutre.
-- `PARALLEL_PAIRING_WORKERS` et `PARALLEL_PAIRING_THRESHOLD` vivent dans
-  `parallelPairing.ts`, importable depuis Node : un outil Node lit ces
-  valeurs, il ne les recode jamais, sinon il cesse de reproduire le régime
-  que la production choisirait.
+- `parallelPairing.ts`, `appariementRapideParallele.ts` et
+  `appariementRapide.ts` n'importent jamais `worker_threads`, ni `self`, ni
+  `postMessage`, ni le `Worker` du DOM : Vite tenterait de résoudre du code
+  Node dans le paquet du navigateur (construction en échec, ou polyfill
+  embarqué). La plateforme arrive donc par injection (le lanceur, les
+  rappels `surControle` et `surProgression`) : ne pas la remplacer par un
+  test `if (isNode)`, qui ferait référencer les deux plateformes au module
+  neutre.
+- `PARALLEL_PAIRING_THRESHOLD` et `nombreDeTravailleurs` vivent dans
+  `parallelPairing.ts`, importable depuis Node : un outil Node les lit et
+  leur passe sa propre concurrence (`os.availableParallelism()`), il ne les
+  recode jamais, sinon il cesse de reproduire le régime que la production
+  choisirait.
 - Un outil Node qui veut reproduire la production apparie par ce code
-  commun, `driveParallelPairing` avec `makeSpawnSliceNode`, comme le harnais
+  commun, `apparierRapideEnParallele` avec `lancerTravailleurNode`, comme le
+  harnais
   ([../harnais/mode-d-emploi.md § Régime d'appariement : le seuil de la production](../harnais/mode-d-emploi.md)).
-  Apparier en séquentiel là où la production parallélise, ou par une copie
-  de la tranche, mesure un comportement qui n'existe pas. Les autres fils
-  Node du dépôt ne sont pas le code de production :
-  `scripts/lib/pairing-quota-worker.ts` est une copie (modes `fixed` et
-  `shared`), `scripts/lib/pairing-worker.ts` un prototype de débit.
-- L'injection coûte un appel par tranche, au plus quatre par recherche,
-  jamais un appel par paire : la boucle de `drivePairing` reste dans le
-  corps de la tranche.
+  Apparier par une copie du corps mesure un comportement qui n'existe pas.
+  `scripts/lib/pairing-worker.ts`, un autre fil Node du dépôt, apparie par
+  `pairBuckets`, la référence : un prototype de débit, pas la production.
+- L'injection coûte un message par morceau, quelques centaines par
+  recherche, jamais un appel par paire : la boucle du noyau reste dans le
+  corps du Worker.
 
 ## Orchestration et progression
 
-`driveParallelPairing(spawnSlice, params, prepared, bucketsA, bucketsB, totalPairs, postProgress, startedAt, onHandles)`
-(`src/workers/parallelPairing.ts`, `onHandles` facultatif) :
+`apparierRapideEnParallele(options)` (`src/lib/appariementRapideParallele.ts`) :
 
-1. lance une tranche par appel du lanceur, puis passe les poignées à
-   `onHandles`, pour que l'appelant les inscrive dans son registre d'arrêt
-   (`activePairingWorkers` dans `runeBuildOptim.worker.ts`) : le module
-   neutre ne connaît pas ce registre ;
-2. agrège la progression : la dernière valeur `explored` de chaque tranche,
-   et les candidats nouveaux de toutes ; il appelle
-   `postProgress(explored, found, newCandidates)` au plus une fois par
-   `PROGRESS_THROTTLE_MS`, avec la somme des `explored`, le nombre de
-   candidats reçus et ceux pas encore transmis. Le Worker principal y
-   ajoute `totalPairs` et le pourcentage (`estimatePct`) :
-   [02-app/optimizer/feat-interruption.md § Barre de progression](../../../02-app/optimizer/feat-interruption.md#barre-de-progression) ;
-3. attend toutes les tranches (`Promise.all` sur `done`), les termine
-   toutes, rappelle `onHandles` avec un tableau vide, puis fusionne par
-   `combineParallelPairingResults(results, perWorkerMaxCollected, prepared.maxCollected, totalPairs)`.
-
-`totalPairs` est l'espace que l'appelant a calculé pour choisir le régime :
-transmis à la fusion, jamais recalculé. Les candidats de la progression ne
-servent qu'à l'aperçu ; le résultat qui compte est celui de la fusion.
+1. rappelle `surControle` avec l'arrêt manuel, avant tout travail, pour que
+   l'appelant l'inscrive dans son registre d'arrêt (`arreterAppariement`
+   dans `runeBuildOptim.worker.ts`) : le module neutre ne connaît pas ce
+   registre ;
+2. vérifie le contrat numérique, encode les compartiments, planifie les
+   morceaux, lance `min(travailleurs, morceaux)` Workers, puis distribue ;
+3. à chaque morceau reçu, fusionne ce qui suit le préfixe déjà fusionné
+   (§ Fusion des résultats) et rappelle `surProgression(traitees,
+   candidats)` : les paires traitées de tous les morceaux reçus, et la liste
+   des candidats FUSIONNÉS, dans l'ordre séquentiel. Le Worker principal en
+   espace les messages (au plus un par `PROGRESS_THROTTLE_MS`), n'en
+   transmet que les candidats nouveaux, et y ajoute `totalPairs` et le
+   pourcentage (`estimatePct`) :
+   [02-app/optimizer/feat-interruption.md § Barre de progression](../../../02-app/optimizer/feat-interruption.md#barre-de-progression).
+   L'aperçu est ainsi toujours un préfixe du résultat final ;
+4. termine tous les Workers, puis rend le résultat (`ResultatParallele`,
+   que `enResultatDeRecherche` réduit au `SearchResult` : `explored` = paires
+   traitées, aucun compteur propre au noyau).
 
 ## Fusion des résultats
 
-`combineParallelPairingResults` (`src/lib/runeBuildOptim.ts`) :
-
-- `candidates` : la concaténation des tranches, dans l'ordre des tranches ;
-  `explored` : la somme.
-- `truncated` n'est pas un « ou » des tranches : il vaut vrai dès qu'il y a
-  un motif (`motifTroncature`), choisi dans cet ordre :
-  1. `maxCollected` : le total atteint le plafond global ;
-  2. `maxMs` : une tranche est tronquée avec moins de candidats que sa
-     part, donc par le temps ;
-  3. `quotaTranche` : une tranche est tronquée sur sa part et il reste des
-     paires non visitées (`explored < totalPairs`) ; une part remplie sur
-     la toute dernière paire ne laisse rien et ne tronque pas.
-- La distinction entre le temps et la part est exacte, pas une
-  heuristique : `pairBuckets` teste le temps avant d'ajouter un candidat, et
-  la part juste après. Une tranche coupée par le temps a donc strictement
-  moins de candidats que sa part, une tranche coupée par sa part en a
-  exactement sa part.
-- Un arrêt manuel n'a pas de motif propre : une tranche arrêtée a moins de
-  candidats que sa part, et la fusion la lit comme le temps (`maxMs`) ;
-  l'appariement séquentiel arrêté ne pose aucun motif. L'écran ne lit que
-  `truncated`.
-- Quasi-succès : par condition (`key` et `kind`), l'entrée dont le premier
-  écart (`shortfalls[0]`) est le plus petit ; globalement, celui dont le
-  plus grand écart relatif est le plus petit. Les écarts viennent des
-  tranches : comparés, jamais recalculés.
-- Trace de diagnostic : celle de la tranche qui a atteint la paire suivie
-  (`appariement.paireAtteinte`), sinon la première ; son `budget` est
-  remplacé par celui du résultat fusionné, sur une copie.
+- Dans l'ORDRE DES MORCEAUX, donc dans l'ordre séquentiel : chaque morceau
+  rendu attend que ses prédécesseurs le soient, puis ses candidats se
+  concatènent, coupés au `maxCollected`-ième (les paires traitées valent
+  alors la position de ce candidat).
+- Quasi-succès : chaque morceau rend les AMÉLIORATIONS successives de son
+  propre état, avec leur position ; la fusion les rejoue dans l'ordre avec
+  la règle de production (remplacé seulement si strictement meilleur, la
+  première vue à égalité). Une tentative qui n'améliore pas son morceau ne
+  peut pas améliorer l'état global : le rejeu redonne l'état séquentiel
+  exact.
+- Motif (`ResultatParallele.motif`) : `maxCollected` (le plafond, global),
+  `maxMs` (un morceau coupé par le temps, ou plus rien de distribué une fois
+  le filet dépassé), `manuel` (l'arrêt manuel) ; `arret` est l'arrêt
+  déterministe à un nombre de paires donné, réservé aux tests et au banc. Le
+  motif ne voyage pas dans le `SearchResult` : l'ordre étant séquentiel et
+  le plafond global, il se déduit du plafond comme en séquentiel
+  ([../harnais/mode-d-emploi.md § Complétude : jamais un « 0 candidat » nu](../harnais/mode-d-emploi.md)).
+  L'écran ne lit que `truncated`.
+- Coupé par le temps ou par l'arrêt manuel, le résultat garde aussi les
+  morceaux rendus après un trou, dans l'ordre : une troncature par le temps
+  peut rendre davantage que le séquentiel, jamais moins de ce qui a été
+  parcouru.
+- Aucune trace de diagnostic : le noyau ne remplit pas le traceur, et un
+  traceur fait sortir l'appariement du contrat numérique (séquentiel, par
+  `pairBuckets`).
 
 ## Arrêt, erreur et nettoyage
 
-- Arrêt manuel : le Worker principal reçoit `{ stop: true }` ; pendant
-  l'appariement parallèle, il appelle `stop()` sur chaque poignée inscrite
-  (`activePairingWorkers`). Chaque tranche rend ce qu'elle a trouvé,
-  `Promise.all` se résout plus tôt avec un résultat tronqué, et les fils ne
-  sont terminés qu'ensuite. `stop` et `terminate` ne sont pas
-  interchangeables : terminer une tranche avant sa réponse perd ses
-  candidats, et « Arrêter » rendrait moins que ce qui a été trouvé.
+- Arrêt manuel : le Worker principal reçoit `{ stop: true }` et appelle
+  l'arrêt inscrit (`arreterAppariement`). Le coordinateur ne distribue plus
+  rien, attend les morceaux en vol — chacun se traite d'un bloc : l'arrêt
+  attend au plus le morceau le plus long en cours, délai non mesuré au
+  navigateur —, fusionne
+  tout ce qui a été trouvé et rend un résultat tronqué. Arrêté avant toute
+  distribution, il ne lance aucun Worker et rend un résultat vide, tronqué.
+  Rien n'est terminé avant d'avoir répondu : « Arrêter » rend tout ce qui a
+  été trouvé.
 - Arrêt pendant la construction des moitiés :
   [pipeline.md § Interruption](pipeline.md).
-- Erreur d'une tranche : sa promesse `done` est rejetée, `Promise.all`
-  aussi, et `driveParallelPairing` sort sans terminer les autres tranches.
-  Le Worker principal l'attrape : il termine les poignées encore inscrites
-  et poste un résultat vide, tronqué. Il est le seul appelant à passer
-  `onHandles` : le harnais, le différentiel d'extraction et
-  `tests/auras-modele.test.ts` n'en passent pas et ne terminent rien sur erreur. Un
-  appelant qui veut le même filet reçoit les poignées par `onHandles` et
-  les termine lui-même.
+- Erreur d'un Worker : la promesse du coordinateur est rejetée, et il
+  termine TOUS les Workers avant de la rendre (`finally`) : aucun ne
+  survit, quelle que soit l'issue. Le Worker principal attrape le rejet et
+  poste un résultat vide, tronqué.
 - ⚠️ Ne pas retirer ce `try/catch` du Worker principal : un rejet non
   intercepté dans un `self.onmessage` asynchrone n'atteint pas le `onerror`
-  du parent. Aucun message n'arriverait, l'écran resterait « en cours », et
-  les tranches encore vivantes ne seraient jamais terminées.
+  du parent. Aucun message n'arriverait, et l'écran resterait « en cours ».
 
 ## Worker de résolution
 
@@ -383,41 +378,49 @@ contexte, annulations, demandes ; détail dans
 ## Vérifier un changement
 
 - Le code commun s'exerce en Node tel quel :
+  - `testAppariementParallele` (`tests/appariement-parallele.test.ts`) : la
+    règle du nombre de Workers et du régime, puis le coordinateur avec des
+    Workers simulés qui rendent leurs morceaux dans le désordre — résultat
+    identique au séquentiel, plafond global, progression qui ne recule
+    jamais et dont l'aperçu est un préfixe du résultat, arrêt manuel (avant
+    et pendant la distribution), filet de temps déjà dépassé, panne d'un
+    Worker (rejet, tous terminés), refus hors contrat, et le corps d'un
+    Worker qui court sur l'instant global ;
+  - `testAppariementParalleleWorkers` : le même coordinateur sur de VRAIS
+    `worker_threads` (`lancerTravailleurNode`) — identique au séquentiel,
+    non tronqué et sous petit plafond ; arrêt manuel ;
+  - `testAppariementRapide` (`tests/appariement-rapide.test.ts`) : l'oracle
+    du noyau et le différentiel contre `pairBuckets`, morceaux simulés
+    compris ;
   - `testAurasPariteRegimes` (`tests/auras-modele.test.ts`) force
-    l'appariement parallèle, `driveParallelPairing` sur de vrais
-    `worker_threads`, sur un petit pool sous le seuil (la production y
-    choisirait le séquentiel), et compare ses builds à ceux du séquentiel
-    et du CLI ; il vérifie aussi qu'une tranche, qui refait la préparation
-    sur ses paramètres, retrouve le même pool après dominance ;
-  - `testRelicSearch` (`tests/relic-search.test.ts`) vérifie que le lanceur
-    Node rend la même trace de diagnostic que `runPairSlice` appelé
-    directement ;
-  - `testRuneOptimParallelTruncated` vérifie la fusion (motif, quasi-succès)
-    sans fil ;
-  - hors `npm test`, `scripts/parallel-pairing-extraction-diff.ts` compare,
-    sans filet de temps ni plafond, `driveParallelPairing` sur de vrais fils
-    à l'appariement séquentiel de référence, sur les cas de `CASES`
-    (`scripts/lib/perfShared.ts`, qui lisent des exports de compte locaux) :
-    mêmes candidats, sans doublon.
-- ⚠️ `testRuneOptimParallelPairing` (`tests/rune-optim-parallel-pairing.test.ts`)
-  n'exécute pas `runPairSlice` : ses fils sont la copie
-  `scripts/lib/pairing-quota-worker.ts`, en mode `fixed`, qui reproduit la
-  division du plafond. Un changement de `runPairSlice` ou de
-  `driveParallelPairing` ne s'y voit pas. Ses deux régimes :
-  [../verification.md § Échelle réelle et appariement parallèle](../verification.md).
-- L'égalité exacte avec le séquentiel ne se démontre que sans troncature.
-  Ne jamais simuler séquentiellement, dans un seul processus, ce qui dépend
-  de l'horloge ou de la concurrence : le test du temps lit l'horloge, chaque
-  tranche aurait un chrono neuf, et une perte par part trop petite
-  passerait inaperçue.
+    l'appariement parallèle sur de vrais `worker_threads`, sur un petit pool
+    sous le seuil (la production y choisirait le séquentiel), et compare ses
+    builds, dans l'ordre, à ceux du séquentiel et du CLI ; il vérifie aussi
+    qu'un Worker, qui refait la préparation sur les paramètres clonés,
+    retrouve le même pool après dominance ;
+  - `testAppariementParalleleBranchement` : le harnais, qui orchestre les
+    fonctions de production, choisit le parallèle au-delà du seuil, au
+    nombre de Workers de la règle pour la machine, et rend exactement les
+    candidats et les paires traitées du séquentiel forcé (profil
+    `quota-parallele`, coupé par le plafond global) ;
+  - hors `npm test`, `scripts/banc-appariement-rapide.ts` compare, sans
+    filet de temps, le chemin de production (séquentiel et parallèle, au
+    nombre de Workers de la machine) à `pairBuckets` sur les cas de `CASES`
+    (`scripts/lib/perfShared.ts`) et sur une recette et un export : non
+    tronqué, sous petit plafond, arrêté à un nombre de paires donné.
+- Ne jamais simuler séquentiellement, dans un seul processus, ce qui dépend
+  de l'horloge ou de la concurrence : le test du temps lit l'horloge. Les
+  Workers simulés ne vérifient que des décisions de coordination (ordre de
+  fusion, plafond, arrêt), le filet de temps n'y est testé que déjà dépassé.
 - La coquille navigateur ne s'exerce qu'au navigateur, à la main, sur une
   recherche au-dessus du seuil : la progression avance (barre, compte de
   candidats) ; « Arrêter » pendant l'appariement rend les candidats déjà
   trouvés, pas zéro, sans blocage ; une recherche menée jusqu'au bout rend
-  des résultats ; aucun Worker de tranche ne survit à la recherche, chemin
+  des résultats ; aucun Worker d'appariement ne survit à la recherche, chemin
   d'erreur compris. Le Worker principal, lui, reste en vie après une
   recherche finie : il n'est terminé que par la recherche suivante ou au
-  démontage (`src/hooks/useBuildOptimSearch.ts`). Pour comparer au navigateur sans outillage : exporter la recette,
+  démontage (`src/hooks/useBuildOptimSearch.ts`), et ses Workers enfants
+  avec lui. Pour comparer au navigateur sans outillage : exporter la recette,
   la rejouer sur la version d'avant le changement, comparer les premiers
   résultats.
 - Worker de résolution : `testResolutionWorker`

@@ -186,16 +186,16 @@ et [03-developpeur/optimizer/harnais/extensions.md § Le différentiel : l'oracl
   quasi-succès d'un différentiel ne se comparent pas quand le nombre de
   paires explorées diffère au-delà de leur dispersion
   (`scripts/lib/diagnosticDifferentiel.ts`) ; un plafond de candidats
-  (`maxCollected`) que la recherche n'atteint pas ne tronque pas une
-  recherche séquentielle, mais en appariement parallèle une tranche tronque
-  dès qu'elle atteint sa part (motif `quotaTranche`) ;
-- le motif d'une recherche arrêtée à la main ne se distingue pas : en
-  appariement parallèle elle porte `maxMs`, en séquentiel aucun motif
-  (`runeBuildOptim.ts`, `motifTroncature`). L'écran n'en dépend pas, il
-  sait lui-même qu'on a cliqué « Arrêter » ;
+  (`maxCollected`) que la recherche n'atteint pas ne la tronque pas, dans
+  l'un ou l'autre régime ;
+- le motif d'une troncature se déduit du plafond (atteint : `maxCollected`,
+  sinon `maxMs`) : une recherche arrêtée à la main s'y lirait `maxMs`.
+  L'écran n'en dépend pas, il sait lui-même qu'on a cliqué « Arrêter » ;
 - en appariement parallèle, l'instant de découverte d'un build cible est
-  relevé à intervalle de temps, non reproductible : comparer deux
-  configurations sur cette grandeur demande le régime séquentiel.
+  relevé à chaque morceau reçu, non reproductible : comparer deux
+  configurations sur cette grandeur demande le régime séquentiel. Un traceur
+  (`--suivre`) n'est rempli qu'en séquentiel : en régime parallèle, le
+  harnais apparie sans lui.
 
 Ce que le harnais ne sait pas faire, ou dit de travers :
 

@@ -34,8 +34,7 @@
 // elles biaisent le tirage pour provoquer une situation précise, donc leur
 // séquence diffère et les migrer changerait leurs pools —
 // `rune-optim-filterslot-topk.test.ts` et `filterslot-topk-diag.ts` (mode
-// `sparse`), `parallel-pairing-quota-diag.ts` (sets rapides vs lents, pour
-// déséquilibrer les tranches), et
+// `sparse`), et
 // `stress-tranche-weighting-attainable-diag.ts` (principales FORCÉES par
 // emplacement). Leur biais est le sujet même de ce qu'elles mesurent.
 //

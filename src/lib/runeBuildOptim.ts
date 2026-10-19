@@ -352,9 +352,6 @@ export interface TraceCandidat {
     validationFinale?: boolean;
     collecte: boolean;
   };
-  // `quotaTranche` n'apparaît que sur la trace d'un résultat FUSIONNÉ du
-  // régime parallèle (`combineParallelPairingResults`) ; `pairBuckets` ne
-  // connaît que son propre plafond et ne produit que les deux autres.
   budget: { tronque: boolean; motif: MotifTroncature | null };
   compteurs: {
     poolParSlot: number[];
@@ -495,12 +492,10 @@ export interface NearMiss {
 }
 
 // Pourquoi une recherche s'est arrêtée avant d'avoir parcouru tout l'espace :
-// le temps (`maxMs` — en régime parallèle, l'arrêt manuel d'une tranche s'y
-// range aussi, comme l'a toujours fait la déduction par comptage), le plafond
-// GLOBAL de candidats (`maxCollected`), ou, en régime parallèle seulement, une
-// tranche arrêtée sur SA part du plafond alors qu'il restait des paires
-// (`quotaTranche`).
-export type MotifTroncature = 'maxMs' | 'maxCollected' | 'quotaTranche';
+// le temps (`maxMs`) ou le plafond de candidats (`maxCollected`), global dans
+// les deux régimes. Il se DÉDUIT du résultat (plafond atteint ou non : le
+// temps est testé avant la collecte, le plafond après), jamais transmis.
+export type MotifTroncature = 'maxMs' | 'maxCollected';
 
 export interface SearchResult {
   // ⚠️ **L'ORDRE N'EST PAS CELUI DE L'OBJECTIF.** Les candidats sortent dans
@@ -516,16 +511,6 @@ export interface SearchResult {
   candidates: BuildCandidate[];
   explored: number;
   truncated: boolean;
-  // Le motif de `truncated`, posé par `combineParallelPairingResults` SEUL :
-  // présent ssi le résultat fusionné du régime parallèle est tronqué. Le
-  // séquentiel (`pairBuckets`, CLI) ne le porte pas — son motif se déduit
-  // exactement du plafond global, voir `evaluerCompletude` (harnais). Optionnel
-  // à dessein : les reconstructions explicites d'un résultat de TRANCHE
-  // (`spawnSliceNode.ts`, `pairSliceInWorker`, `drivePairing`) et les résultats
-  // vides n'ont rien à transmettre ; le résultat fusionné, lui, voyage par
-  // décomposition (`{ type: 'result', ...finalResult }`, puis `...res` dans
-  // `useBuildOptimSearch`).
-  motifTroncature?: MotifTroncature;
   /**
    * Pour chaque condition posée où AU MOINS une paire explorée a satisfait
    * TOUTES LES AUTRES conditions : la MEILLEURE (le plus petit manque sur
@@ -1835,8 +1820,8 @@ const DOMINANCE_MAX_POOL = 2000;
 // comparée (16 appels/paire : 8 clés × 2 runes). Même motif que
 // `filterSlot`/`precomputeSlot` ailleurs dans ce fichier : ce
 // coût est payé À CHAQUE fois que `prepareSearch` tourne, y compris une
-// fois PAR WORKER en pairing parallèle (jusqu'à 4×, voir
-// `pairSlice.worker.ts`).
+// fois PAR WORKER en appariement parallèle (`initialiserTravailleur`,
+// src/lib/appariementRapide.ts).
 export function pruneDominated(list: RuneDetail[], maxKeys: Set<StatKey>, contexte: ContexteDominance): RuneDetail[] {
   if (list.length > DOMINANCE_MAX_POOL) return list;
   const contribById = new Map<number, Record<StatKey, { pct: number; flat: number }>>();
@@ -3107,43 +3092,6 @@ export function comboAFeasible(
 // compartiments compatible) — jamais la boucle B, donc toujours bien moins
 // cher que la recherche elle-même (143 099 comboA vérifiés sur ce cas,
 // contre 86,8M paires que la vraie recherche visite).
-// ⚠️ Parallélisation de l'appariement (voir runeBuildOptim.worker.ts,
-// `runParallelPairing`, et docs/03-developpeur/optimizer/
-// § Répartition et partage du plafond) —
-// réparti GLOUTONNEMENT par charge réelle (LPT — Longest Processing Time
-// first : les plus gros compartiments d'abord, toujours au worker le moins
-// chargé), PAS par rang. Mesuré (`scripts/pairing-parallel-diag.ts`) :
-// n'importe quel découpage statique de `bucketsA` donne un résultat
-// identique au séquentiel UNIQUEMENT quand rien n'est tronqué (recherche
-// exhaustive, budget infini par tranche) — c'est la SEULE garantie que cette
-// fonction suppose déjà vraie côté appelant, elle ne la vérifie pas
-// elle-même. Exportée (plutôt que privée au Worker) pour être testable
-// directement en Node, sans dépendre de l'API Worker du navigateur — voir
-// tests/rune-optim-parallel-pairing.test.ts.
-// ⚠️ OPTION E (voir docs/03-developpeur/optimizer/
-// § Répartition et partage du plafond — comparaison
-// à 3 branches) : l'équilibrage par charge (LPT) reste IDENTIQUE à la
-// version de base, mais chaque tranche est retriée EN PLUS dans l'ordre
-// d'origine de `bucketsA` (déjà par potentiel décroissant, voir
-// `buildBuckets`) avant d'être retournée. Coût quasi nul (un tri sur au
-// plus quelques compartiments par tranche), ne change RIEN à la répartition
-// de charge déjà mesurée — corrige uniquement l'ORDRE DE PARCOURS de chaque
-// worker (redevient « meilleur d'abord » au lieu de « plus gros d'abord »).
-export function partitionBucketsALPT(bucketsA: Bucket[], workerCount: number): Bucket[][] {
-  const withWorkload = bucketsA.map((b, originalIndex) => ({ b, workload: b.combos.length, originalIndex }));
-  withWorkload.sort((a, b) => b.workload - a.workload);
-  const sliceEntries: { b: Bucket; originalIndex: number }[][] = Array.from({ length: workerCount }, () => []);
-  const sliceWorkload = new Array(workerCount).fill(0);
-  for (const { b, workload, originalIndex } of withWorkload) {
-    let target = 0;
-    for (let i = 1; i < workerCount; i++) if (sliceWorkload[i] < sliceWorkload[target]) target = i;
-    sliceEntries[target].push({ b, originalIndex });
-    sliceWorkload[target] += workload;
-  }
-  for (const entries of sliceEntries) entries.sort((a, b) => a.originalIndex - b.originalIndex);
-  return sliceEntries.map((entries) => entries.map((e) => e.b));
-}
-
 // ⚠️ **C'est LA borne du moteur** — la seule, depuis la suppression du budget
 // de nœuds. Elle vaut EXACTEMENT le nombre de paires que
 // `pairBuckets` incrémente sur les mêmes compartiments : mêmes prédicats,
@@ -3926,13 +3874,13 @@ export type PrepareStage = 'mainstat' | 'dominance' | 'feasibility' | 'filterslo
  *
  * ⚠️ **Omis = comportement strictement inchangé** : quatre tests de branche
  * par appel de `prepareSearch`, rien d'autre. Y compris dans
- * `pairSlice.worker.ts`, qui rappelle `prepareSearch` une fois par worker.
+ * chaque Worker d'appariement parallèle, qui rappelle `prepareSearch` une fois.
  */
 export type PrepareStageObserver = (stage: PrepareStage, bySlot: RuneDetail[][]) => void;
 
 // ⚠️ `onStage` est un SECOND ARGUMENT, délibérément PAS un champ de
 // `SearchParams` : ce type traverse `postMessage`/`workerData` pour atteindre
-// les Workers (voir pairSliceBody.ts), et une fonction n'est pas
+// les Workers (`InitTravailleur`, appariementRapide.ts), et une fonction n'est pas
 // sérialisable — l'y placer casserait le chemin parallèle au lieu d'échouer
 // à la compilation.
 //
@@ -4426,109 +4374,6 @@ export function* pairBuckets(
     traceur.compteurs.compartimentsB = bucketsB.length;
   }
   return { candidates, explored, truncated, nearMissByCondition: nearMissSnapshot(), globalNearMiss, ...(traceur ? { traceur } : {}) };
-}
-
-// Fusionne les résultats des N workers de l'appariement PARALLÈLE
-// (`runParallelPairing`, runeBuildOptim.worker.ts) en un `SearchResult`
-// unique — factorisé ici pour rester testable SANS `worker_threads` (pure
-// agrégation sur des `SearchResult[]` déjà calculés, voir `algo-verify`
-// point 6 : vérifier au bon étage, pas besoin de rejouer une vraie
-// parallélisation pour tester CETTE décision).
-//
-// ⚠️ `truncated` par worker (`pairBuckets`, ci-dessus) se déclenche pour
-// DEUX raisons distinctes, à distinguer : (a) ce
-// worker a rempli SON PROPRE `perWorkerMaxCollected` (une tranche riche,
-// pas forcément le signe que la recherche GLOBALE est incomplète) ou (b)
-// il a épuisé son budget-TEMPS (`overBudget()`) AVANT même
-// d'atteindre son quota (une vraie troncature — de l'exploration
-// planifiée n'a jamais eu lieu). Un simple `results.some(r => r.truncated)`
-// (l'ancien comportement) confondait les deux : un worker sur une tranche
-// exceptionnellement riche pouvait à lui seul faire annoncer « recherche
-// tronquée » alors que le total agrégé restait très en-deçà du plafond
-// GLOBAL demandé et que les autres workers avaient fini leur exploration
-// au complet. Trouvé par une revue de code externe.
-//
-// Distinction FIABLE (pas une heuristique) : `pairBuckets` vérifie
-// toujours le budget-temps AVANT de pousser un candidat, et ne
-// tronque par quota qu'APRÈS un push — au moment où `truncated` sort
-// `true`, `candidates.length` vaut EXACTEMENT `perWorkerMaxCollected` si
-// la cause est (a), et STRICTEMENT MOINS si la cause est (b) (sinon la
-// troncature par quota aurait déjà eu lieu à une itération précédente).
-//
-// ⚠️⚠️ **Mais (a) N'EST PAS « complet » pour autant** (le seul motif ne suffit pas
-// à conclure) : une tranche qui atteint
-// son quota S'ARRÊTE (`break outer`), le reste de SA tranche n'est jamais
-// visité. Cas réel (ATQ 3000 / DC 220, b4) : 30 M de paires jamais visitées,
-// recherche annoncée complète. Règle actuelle : (a) rend la recherche
-// tronquée, motif `quotaTranche`, dès qu'il reste des paires non visitées
-// (`explored < totalPairs`) — un quota atteint sur la toute dernière paire
-// ne laisse rien. `totalPairs` est l'espace EXACT (`totalPairCount`) que
-// l'appelant a déjà calculé pour choisir le régime : transmis, jamais
-// recalculé ici (aucun coût ajouté). Seul l'indicateur change : on
-// n'explore rien de plus, et le partage des quotas est inchangé.
-// ⚠️ Chaque worker calcule son near-miss sur SA SEULE tranche de `bucketsA`
-// (voir `PairSliceRequest`) — fusionner, c'est garder le MEILLEUR entre
-// tranches, exactement comme `pairBuckets` garde le meilleur entre paires
-// au sein d'une seule tranche. Même métrique des deux côtés (voir
-// `pairBuckets`, `considerNearMiss`) : jamais recalculée ici, seulement
-// comparée.
-function betterNearMiss(a: NearMiss, b: NearMiss, distanceOf: (m: NearMiss) => number): NearMiss {
-  return distanceOf(b) < distanceOf(a) ? b : a;
-}
-
-export function combineParallelPairingResults(
-  results: SearchResult[],
-  perWorkerMaxCollected: number,
-  globalMaxCollected: number,
-  totalPairs: number
-): SearchResult {
-  const candidates = results.flatMap((r) => r.candidates);
-  const explored = results.reduce((s, r) => s + r.explored, 0);
-  const realBudgetExhausted = results.some((r) => r.truncated && r.candidates.length < perWorkerMaxCollected);
-  const sliceQuotaWithPairsLeft = explored < totalPairs && results.some((r) => r.truncated && r.candidates.length >= perWorkerMaxCollected);
-  // Ordre du motif quand plusieurs causes coexistent : le plafond global (ce
-  // que le séquentiel aurait aussi atteint), puis le temps, puis le quota de
-  // tranche (le seul propre au parallèle).
-  const motifTroncature: MotifTroncature | undefined =
-    candidates.length >= globalMaxCollected ? 'maxCollected'
-    : realBudgetExhausted ? 'maxMs'
-    : sliceQuotaWithPairsLeft ? 'quotaTranche'
-    : undefined;
-  const truncated = motifTroncature != null;
-
-  const nearMissByCondition = new Map<string, { key: StatKey; kind: 'min' | 'max'; miss: NearMiss }>();
-  for (const r of results) {
-    for (const entry of r.nearMissByCondition) {
-      const mapKey = `${entry.key}-${entry.kind}`;
-      const existing = nearMissByCondition.get(mapKey);
-      if (!existing || entry.miss.shortfalls[0].shortfall < existing.miss.shortfalls[0].shortfall) {
-        nearMissByCondition.set(mapKey, entry);
-      }
-    }
-  }
-
-  let globalNearMiss: NearMiss | null = null;
-  const globalDistance = (m: NearMiss) => Math.max(...m.shortfalls.map((s) => s.shortfall / s.requested));
-  for (const r of results) {
-    if (!r.globalNearMiss) continue;
-    globalNearMiss = globalNearMiss ? betterNearMiss(globalNearMiss, r.globalNearMiss, globalDistance) : r.globalNearMiss;
-  }
-
-  // Diagnostic : la trace du traceur est celle du worker dont la tranche
-  // contient sa moitié A (les tranches de bucketsA sont disjointes — un seul
-  // worker peut avoir visité sa paire) ; sinon la première, avec ses
-  // compteurs partiels. Son `budget` est remplacé par celui du résultat
-  // FUSIONNÉ : celui de la tranche ne dit que si ELLE a été coupée,
-  // ce qui contredisait `truncated` dès qu'une autre tranche l'était. Copie,
-  // jamais mutation de la trace reçue.
-  const traces = results.map((r) => r.traceur).filter((t): t is TraceCandidat => t != null);
-  const traceTranche = traces.find((t) => t.appariement.paireAtteinte) ?? traces[0];
-  const traceur = traceTranche ? { ...traceTranche, budget: { tronque: truncated, motif: motifTroncature ?? null } } : undefined;
-
-  return {
-    candidates, explored, truncated, ...(motifTroncature ? { motifTroncature } : {}),
-    nearMissByCondition: Array.from(nearMissByCondition.values()), globalNearMiss, ...(traceur ? { traceur } : {}),
-  };
 }
 
 /* --------------------------------------------------------------------------

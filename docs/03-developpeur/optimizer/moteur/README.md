@@ -10,7 +10,9 @@ le couvrent sont dans [../verification.md](../verification.md).
 | --- | --- |
 | `src/workers/runeBuildOptim.worker.ts`, `src/workers/prepareForSearch.ts`, `src/hooks/useBuildOptimSearch.ts`, l'enchaînement d'une recherche | [pipeline.md](pipeline.md) |
 | l'énumération, les élagages, le pré-filtrage, les bornes de `src/lib/runeBuildOptim.ts` | [elagages.md](elagages.md) |
-| `src/workers/parallelPairing.ts`, `src/workers/pairSliceBody.ts`, `src/workers/pairSlice.worker.ts`, `src/workers/resolutionBody.ts`, `src/workers/resolutionDistante.ts` | [parallelisation.md](parallelisation.md) |
+| `src/lib/rechercheRunes.ts`, `src/lib/constructionRapide.ts` | [pipeline.md](pipeline.md) |
+| `src/lib/appariementRapide.ts`, le test rapide de l'appariement | [noyau-appariement.md](noyau-appariement.md) |
+| `src/workers/parallelPairing.ts`, `src/lib/appariementRapideParallele.ts`, `src/workers/appariementRapide.worker.ts`, `src/workers/resolutionBody.ts`, `src/workers/resolutionDistante.ts` | [parallelisation.md](parallelisation.md) |
 | `diagnoseFeasibility`, `rankBlockingConditions`, le « 0 résultat » | [diagnostics.md](diagnostics.md) |
 | `src/lib/artifactQueue.ts`, `src/lib/artifactFiche.ts`, `src/lib/artifactEvaluation.ts`, la paire d'artéfacts d'un build | [artefacts.md](artefacts.md) |
 | `src/lib/artifactOptim.ts`, l'éligibilité ou l'effet d'une ligne d'artéfact | [optimiseur-artefacts.md](optimiseur-artefacts.md) |
@@ -22,7 +24,8 @@ le couvrent sont dans [../verification.md](../verification.md).
 | --- | --- |
 | [pipeline.md](pipeline.md) | Le chemin d'une recherche de runes dans le code, de l'écran au résultat : préparation, moitiés, appariement, résolution de l'équipement, file, interruption. |
 | [elagages.md](elagages.md) | La recherche des runes dans `runeBuildOptim.ts` : meet-in-the-middle, élagages sûrs, pré-filtrage, compartiments et bornes. |
-| [parallelisation.md](parallelisation.md) | L'appariement parallèle en tranches, au navigateur et en Node, et le Worker de résolution de l'équipement d'un build. |
+| [noyau-appariement.md](noyau-appariement.md) | Le noyau de l'appariement sur tableaux typés : réduction d'une stat à un entier, contrat numérique, sauts exacts, ordre et comptes. |
+| [parallelisation.md](parallelisation.md) | L'appariement parallèle par morceaux à la demande, au navigateur et en Node, le nombre de Workers dérivé de la machine, et le Worker de résolution de l'équipement d'un build. |
 | [diagnostics.md](diagnostics.md) | Les diagnostics du moteur : preuve d'impossibilité par stat, conditions bloquantes du pré-filtrage, quasi-succès à l'appariement. |
 | [artefacts.md](artefacts.md) | La paire d'artéfacts non figée : paire supposée qui note la recherche, bornes de faisabilité, test conjoint exact, vraie paire de chaque build. |
 | [optimiseur-artefacts.md](optimiseur-artefacts.md) | L'optimiseur d'artéfacts `artifactOptim.ts` : éligibilité, effet de chaque ligne, focus élémentaire, script CLI. |

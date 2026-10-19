@@ -240,7 +240,7 @@ export function oracleSearch(
 ): OracleResult {
   // Même classe de refus que le moteur, jamais un « 0 résultat » ordinaire :
   // l'oracle se raccorde au refus nommé de `prepareSearch`/
-  // `searchBuilds`/`runSearchToCompletion`/`runPairSlice` sur le même
+  // `searchBuilds`/`runSearchToCompletion`/`initialiserTravailleur` sur le même
   // contexte.
   if (relicContext.mode === 'recherche' && relicContext.vide) {
     throw new RechercheRefusee(relicContext.vide);

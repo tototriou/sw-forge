@@ -298,13 +298,14 @@ Les pistes du calcul des dégâts réels sont dans [pistes-degats-reels.md](pist
   trouvés), jamais un temps
   ([02-app/optimizer/feat-interruption.md § Barre de progression](../02-app/optimizer/feat-interruption.md#barre-de-progression)). L'instant de
   départ existe déjà côté moteur (`PreparedSearch.startedAt`, l'instant
-  global repris par chaque tranche parallèle), et `scripts/perf-battery.ts`
+  global repris par chaque Worker d'appariement parallèle), et `scripts/perf-battery.ts`
   calcule `foundMs` sur ce principe.
 - **Idée** : quatre chiffres — un compteur de secondes pendant la
   recherche, l'instant du premier build trouvé, la durée de l'exploration
   complète quand elle va au bout, le temps écoulé à l'arrêt manuel.
-- **Bloque** : en appariement parallèle, « premier build trouvé » est le
-  minimum sur les tranches, pas un événement d'un seul fil : à traiter.
+- **Bloque** : en appariement parallèle, « premier build trouvé » arrive avec
+  le premier morceau fusionné, pas au moment où un fil l'a trouvé : à
+  traiter.
 
 ### Objectifs personnalisés
 

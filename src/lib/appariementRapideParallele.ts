@@ -1,7 +1,11 @@
-// ⚠️ PROTOTYPE (chantier perf-moteur, lot 2) — répartition À LA DEMANDE du
-// noyau `appariementRapide.ts` entre plusieurs Workers. Neutre comme
-// `parallelPairing.ts` : le lancement d'un Worker est INJECTÉ
-// (`LancerTravailleur`), ce module n'importe ni `worker_threads` ni `self`.
+// L'appariement PARALLÈLE de production : répartition À LA DEMANDE du noyau
+// `appariementRapide.ts` entre plusieurs Workers (navigateur :
+// `src/workers/appariementRapide.worker.ts` ; Node :
+// `scripts/lib/appariement-rapide-worker.ts`), à partir du seuil et avec le
+// nombre de Workers de `src/workers/parallelPairing.ts`. Neutre : le
+// lancement d'un Worker est INJECTÉ (`LancerTravailleur`), ce module
+// n'importe ni `worker_threads` ni `self`.
+// Voir docs/03-developpeur/optimizer/moteur/parallelisation.md.
 //
 // Le coordinateur énumère les LIGNES (un comboA ouvert face à un compartiment
 // B ouvert) dans l'ordre exact de `pairBuckets`, avec les prédicats de
@@ -11,14 +15,14 @@
 //
 // ⚠️ **La fusion se fait dans l'ORDRE DES MORCEAUX**, donc dans l'ordre
 // séquentiel : le résultat est celui de `pairBuckets` séquentiel, quel que
-// soit le nombre de Workers — plafond de candidats GLOBAL compris (aucun
-// quota par tranche, contrairement à `driveParallelPairing`). Le quasi-succès
+// soit le nombre de Workers — plafond de candidats GLOBAL compris (aucune
+// part du plafond par Worker). Le quasi-succès
 // se rejoue à partir des améliorations de chaque morceau, avec la règle de
 // production (remplacé seulement si strictement meilleur) : une tentative qui
 // n'améliore pas son propre morceau ne peut pas améliorer l'état global, donc
 // le rejeu redonne l'état séquentiel exact.
 
-import { Bucket, BuildCandidate, NearMiss, PreparedSearch, SearchParams, pairBuckets } from './runeBuildOptim';
+import { Bucket, BuildCandidate, NearMiss, PreparedSearch, SearchParams, SearchResult } from './runeBuildOptim';
 import {
   CompteursNoyau,
   EntreeQuasiSucces,
@@ -53,7 +57,8 @@ export const TAILLE_MIN_MORCEAU = 2_000_000;
 export const EN_VOL_PAR_TRAVAILLEUR = 2;
 
 export interface ResultatParallele extends ResultatAppariementRapide {
-  motif: 'aucun' | 'maxCollected' | 'maxMs' | 'arret';
+  /** `arret` : l'arrêt déterministe des tests et du banc ; `manuel` : « Arrêter ». */
+  motif: 'aucun' | 'maxCollected' | 'maxMs' | 'arret' | 'manuel';
   morceaux: number;
   morceauxTraites: number;
   /** Morceaux traités par Worker : l'équilibrage tel qu'il s'est fait. */
@@ -113,7 +118,7 @@ export interface OptionsParallele {
   prepared: PreparedSearch;
   bucketsA: Bucket[];
   bucketsB: Bucket[];
-  /** `totalPairCount` déjà calculé par l'appelant (comme `driveParallelPairing`). */
+  /** `totalPairCount` déjà calculé par l'appelant, celui qui a choisi le régime. */
   totalPaires: number;
   travailleurs: number;
   lancer: LancerTravailleur;
@@ -122,23 +127,41 @@ export interface OptionsParallele {
   arretTraitees?: number;
   /** Taille visée d'un morceau, en paires (défaut : `totalPaires / (travailleurs × 64)`, au moins 2 M). */
   cibleMorceau?: number;
+  /**
+   * Rappelé UNE fois, avant tout travail, avec l'arrêt manuel coopératif :
+   * plus aucun morceau n'est distribué, ceux en vol finissent et se
+   * fusionnent, et le résultat est tronqué (motif `manuel`). Le module ne
+   * connaît pas le registre d'arrêt de l'appelant : il le lui donne.
+   */
+  surControle?: (controle: { arreter: () => void }) => void;
+  /**
+   * À chaque morceau reçu : les paires traitées de tous les morceaux reçus
+   * (fusionnés ou non : la progression) et la liste des candidats FUSIONNÉS,
+   * dans l'ordre séquentiel (la même liste, qui ne fait que grandir — un
+   * aperçu en est toujours un préfixe du résultat). À l'appelant d'espacer
+   * ses messages et de ne transmettre que les nouveaux.
+   */
+  surProgression?: (traitees: number, candidats: readonly BuildCandidate[]) => void;
 }
 
+/**
+ * ⚠️ Suppose le contrat numérique tenu (`verifierContrat` nul) : hors
+ * contrat, l'appelant apparie en séquentiel (`apparier`, qui retombe sur
+ * `pairBuckets` en rendant la main), jamais ici, où un repli synchrone
+ * bloquerait l'arrêt et la progression.
+ */
 export async function apparierRapideEnParallele(o: OptionsParallele): Promise<ResultatParallele> {
   const { prepared, bucketsA, bucketsB } = o;
+  let arrete = false;
+  let surArret: (() => void) | null = null;
+  o.surControle?.({
+    arreter: () => {
+      arrete = true;
+      surArret?.();
+    },
+  });
   const motifContrat = verifierContrat(prepared, bucketsA, bucketsB);
-  if (motifContrat) {
-    // Chemin actuel, séquentiel : le prototype ne parallélise que son noyau.
-    const gen = pairBuckets(prepared, bucketsA, bucketsB);
-    let step = gen.next();
-    while (!step.done) step = gen.next();
-    const r = step.value;
-    return {
-      ...r, traitees: r.explored, visitees: r.explored, sautees: 0, chemin: 'actuel', motifChemin: motifContrat, compteurs: compteursVides(),
-      motif: r.truncated ? (r.candidates.length >= prepared.maxCollected ? 'maxCollected' : 'maxMs') : 'aucun',
-      morceaux: 0, morceauxTraites: 0, parTravailleur: [], plusGrosMorceau: 0, msPlanification: 0,
-    };
-  }
+  if (motifContrat) throw new Error(`appariement parallèle hors contrat numérique (${motifContrat}) : l'appelant apparie en séquentiel`);
   const { maxCollected, maxMs } = prepared;
   const overBudget = () => Date.now() - o.startedAt > maxMs;
   const t0 = Date.now();
@@ -220,6 +243,9 @@ export async function apparierRapideEnParallele(o: OptionsParallele): Promise<Re
   const nbTravailleurs = Math.max(1, Math.min(o.travailleurs, aDistribuer.length));
   const poignees: PoigneeTravailleur[] = [];
   let prochainADistribuer = 0;
+  // Paires traitées de TOUS les morceaux reçus : la progression (un compte,
+  // jamais une position, dès qu'un morceau arrive avant son prédécesseur).
+  let traiteesRecues = 0;
 
   await new Promise<void>((resolve, reject) => {
     let enVol = 0;
@@ -229,14 +255,19 @@ export async function apparierRapideEnParallele(o: OptionsParallele): Promise<Re
       termine = true;
       resolve();
     };
+    // Arrêt manuel : plus rien ne part ; on attend seulement les morceaux en
+    // vol (un morceau se traite d'un bloc dans son Worker).
+    surArret = () => {
+      if (enVol === 0) finir();
+    };
     const distribuer = (w: number) => {
-      if (fini || overBudget()) return;
+      if (fini || arrete || overBudget()) return;
       if (prochainADistribuer >= aDistribuer.length) return;
       const m = aDistribuer[prochainADistribuer++];
       enVol++;
       poignees[w].envoyer(m, [m.segments.buffer as ArrayBuffer, m.drapeaux.buffer as ArrayBuffer]);
     };
-    if (aDistribuer.length === 0) {
+    if (aDistribuer.length === 0 || arrete) {
       finir();
       return;
     }
@@ -249,6 +280,7 @@ export async function apparierRapideEnParallele(o: OptionsParallele): Promise<Re
         enVol--;
         parTravailleur[w]++;
         resultats[r.id] = r;
+        traiteesRecues += r.traitees;
         // Les tailles sont connues du plan : la fusion avance sur le préfixe contigu.
         while (!fini && prochainAFusionner < aDistribuer.length && resultats[prochainAFusionner]) {
           const rr = resultats[prochainAFusionner]!;
@@ -256,26 +288,33 @@ export async function apparierRapideEnParallele(o: OptionsParallele): Promise<Re
           resultats[prochainAFusionner] = undefined;
           prochainAFusionner++;
         }
+        o.surProgression?.(traiteesRecues, candidates);
         if (!fini && !r.tronqueTemps) distribuer(w);
         else if (r.tronqueTemps) fini = true;
-        if ((fini || prochainADistribuer >= aDistribuer.length || overBudget()) && enVol === 0) finir();
+        if ((fini || arrete || prochainADistribuer >= aDistribuer.length || overBudget()) && enVol === 0) finir();
       });
     }
     for (let k = 0; k < EN_VOL_PAR_TRAVAILLEUR; k++) for (let w = 0; w < nbTravailleurs; w++) distribuer(w);
+    // Rien de parti (filet de temps déjà dépassé) : aucun message ne viendra
+    // terminer l'attente.
+    if (enVol === 0) finir();
   }).finally(() => {
+    surArret = null;
     for (const p of poignees) p.terminer();
   });
 
-  // Arrêt par le temps : les morceaux rendus après un trou se fusionnent
-  // quand même, dans l'ordre (une troncature par le temps ne fait pas partie
-  // du différentiel ; elle peut rendre davantage).
+  // Arrêt par le temps ou arrêt manuel : les morceaux rendus après un trou se
+  // fusionnent quand même, dans l'ordre (une troncature par le temps ne fait
+  // pas partie du différentiel ; elle peut rendre davantage, et l'arrêt garde
+  // tout ce qui a été trouvé).
   if (motif === 'aucun' && prochainAFusionner < aDistribuer.length) {
-    for (let i = prochainAFusionner; i < aDistribuer.length; i++) {
+    // `fusionner` change `motif` : au plafond, plus rien ne se fusionne.
+    for (let i = prochainAFusionner; i < aDistribuer.length && (motif as ResultatParallele['motif']) !== 'maxCollected'; i++) {
       const r = resultats[i];
       if (!r) continue;
       fusionner(r, aDistribuer[i]);
     }
-    motif = 'maxMs';
+    if (motif === 'aucun') motif = arrete ? 'manuel' : 'maxMs';
   }
 
   const truncated = motif !== 'aucun';
@@ -286,4 +325,14 @@ export async function apparierRapideEnParallele(o: OptionsParallele): Promise<Re
     motif, morceaux: plan.length, morceauxTraites: parTravailleur.reduce((s, v) => s + v, 0), parTravailleur,
     plusGrosMorceau: plan.reduce((s, m) => Math.max(s, m.taille), 0), msPlanification,
   };
+}
+
+/**
+ * Le `SearchResult` que rend la recherche : `explored` = paires traitées, et
+ * rien des compteurs propres au noyau. Le motif ne voyage pas : l'ordre étant
+ * séquentiel et le plafond global, il se déduit du plafond comme en
+ * séquentiel (`evaluerCompletude`, harnais).
+ */
+export function enResultatDeRecherche(r: ResultatParallele): SearchResult {
+  return { candidates: r.candidates, explored: r.explored, truncated: r.truncated, nearMissByCondition: r.nearMissByCondition, globalNearMiss: r.globalNearMiss };
 }

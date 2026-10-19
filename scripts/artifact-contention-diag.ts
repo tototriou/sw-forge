@@ -67,7 +67,9 @@ function runWorker(scriptPath: string, data: PairingWorkerData): Promise<Pairing
   });
 }
 
-// Même nombre qu'en production (`PARALLEL_PAIRING_WORKERS`), délibérément fixe.
+// Nombre fixe de fils de l'ancien appariement par `pairBuckets` que ce
+// diagnostic reproduit (prototype `pairing-worker.ts`) ; la production dérive
+// le sien de la machine (`nombreDeTravailleurs`, src/workers/parallelPairing.ts).
 const WORKERS = 4;
 const SLOT_FILTER_CAP = 40; // préréglage « Bas », comme le diagnostic parent
 // ⚠️ 5 répétitions par condition : un effet de quelques pour cent ne se

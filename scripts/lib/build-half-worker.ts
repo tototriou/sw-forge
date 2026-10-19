@@ -11,7 +11,10 @@
 // TypeScript transpilé à la volée.
 
 import { parentPort, workerData } from 'worker_threads';
-import { buildBuckets, Bucket } from '../../src/lib/runeBuildOptim';
+import { Bucket } from '../../src/lib/runeBuildOptim';
+// La construction de production (noyau sur tableaux typés, `buildBuckets` en
+// repli), la même que `src/workers/buildHalf.worker.ts`.
+import { construireMoitie } from '../../src/lib/rechercheRunes';
 import { StatKey } from '../../src/lib/effects';
 import { RuneDetail, BaseStats } from '../../src/types';
 import { drain } from './drain';
@@ -145,12 +148,11 @@ const data = workerData as BuildHalfWorkerData;
  * importé par 28 fichiers, et A₂ ne concerne que ce worker-ci.
  */
 function construire(): { buckets: Bucket[]; ms: number; progression?: ProgressionMoitie } {
-  const gen = buildBuckets(
+  const gen = construireMoitie(
     data.half,
     data.slotIdxs,
     data,
     data.otherHalfMaxSets,
-    undefined,
     data.adaptiveTrancheWeighting,
     data.combosOrderMode
   );

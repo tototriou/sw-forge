@@ -10,14 +10,82 @@
 // Voir docs/03-developpeur/optimizer/moteur/pipeline.md.
 
 import {
+  Bucket,
+  BuildBucketsContext,
+  BuildingProgress,
+  PairingProgress,
+  PreparedSearch,
   SearchParams,
   SearchProgress,
   SearchResult,
   TraceCandidat,
   buildBuckets,
-  pairBuckets,
   prepareSearch,
 } from './runeBuildOptim';
+import { OrdreCombos, construireMoitieRapide } from './constructionRapide';
+import { apparierRapide } from './appariementRapide';
+
+/**
+ * L'appariement séquentiel par le chemin de production : le noyau sur
+ * tableaux typés (`apparierRapide`), qui saute sans les juger un à un les
+ * comboB dont la paire échouerait au test rapide (`quickOk`) et visite les
+ * autres dans l'ordre de `pairBuckets` ; `pairBuckets` lui-même hors contrat
+ * numérique ou avec un traceur (`verifierContrat`). Même résultat que
+ * `pairBuckets` (`tests/appariement-rapide.test.ts`), mêmes points de passage
+ * (toutes les `CHECKPOINT_EVERY` paires TRAITÉES, sautées comprises,
+ * `explored` = paires traitées). Le résultat est un `SearchResult` strict :
+ * les compteurs propres au noyau (`visitees`, `chemin`…) ne voyagent pas.
+ */
+export function* apparier(prepared: PreparedSearch, bucketsA: Bucket[], bucketsB: Bucket[]): Generator<PairingProgress, SearchResult, void> {
+  const r = yield* apparierRapide(prepared, bucketsA, bucketsB);
+  return {
+    candidates: r.candidates,
+    explored: r.explored,
+    truncated: r.truncated,
+    nearMissByCondition: r.nearMissByCondition,
+    globalNearMiss: r.globalNearMiss,
+    ...(r.traceur ? { traceur: r.traceur } : {}),
+  };
+}
+
+/** Au-delà, le code entier d'un triplet ne tient plus dans 32 bits : `constructionRapide` refuse. */
+const TRIPLETS_MAX_NOYAU = 0x7fffffff;
+
+/**
+ * Pourquoi une moitié se construit par `buildBuckets` plutôt que par le noyau
+ * sur tableaux typés, ou `null` quand le noyau la prend. Deux cas : un
+ * traceur de diagnostic (le noyau ne le remplit pas), une moitié de plus de
+ * 2³¹ triplets (≈ 1 290 runes par emplacement).
+ */
+export function motifRepliConstruction(ctx: BuildBucketsContext, slotIdxs: readonly [number, number, number]): string | null {
+  if (ctx.traceur) return 'traceur de diagnostic demandé';
+  const triplets = slotIdxs.reduce((p, i) => p * ctx.filtered[i].length, 1);
+  if (triplets > TRIPLETS_MAX_NOYAU) return `${triplets} triplets dépassent le code entier 32 bits du noyau`;
+  return null;
+}
+
+/**
+ * La construction d'une moitié par le chemin de production : le noyau sur
+ * tableaux typés (`construireMoitieRapide`), qui rend EXACTEMENT les
+ * compartiments de `buildBuckets` (mêmes combinaisons dans le même ordre,
+ * mêmes bornes, même potentiel ; `tests/construction-rapide.test.ts`), avec
+ * le même point de passage par rune du premier emplacement ; `buildBuckets`
+ * dans les cas de `motifRepliConstruction`. Mêmes arguments que
+ * `buildBuckets`, sans `skylineKeys`, qu'aucun appel de production ne passe.
+ */
+export function* construireMoitie(
+  half: 'A' | 'B',
+  slotIdxs: readonly [number, number, number],
+  ctx: BuildBucketsContext,
+  otherHalfMaxSets: number[],
+  adaptiveTrancheWeighting = false,
+  combosOrderMode: OrdreCombos = 'objective'
+): Generator<BuildingProgress, Bucket[], void> {
+  if (motifRepliConstruction(ctx, slotIdxs) != null) {
+    return yield* buildBuckets(half, slotIdxs, ctx, otherHalfMaxSets, undefined, adaptiveTrancheWeighting, combosOrderMode);
+  }
+  return yield* construireMoitieRapide(half, slotIdxs, ctx, otherHalfMaxSets, adaptiveTrancheWeighting, combosOrderMode);
+}
 
 /**
  * Cœur du moteur, sous forme de GÉNÉRATEUR : un point de passage à chaque
@@ -35,15 +103,13 @@ export function* searchBuildsSteps(params: SearchParams): Generator<SearchProgre
   if (!prepared) {
     return { candidates: [], explored: 0, truncated: false, nearMissByCondition: [], globalNearMiss: null, ...(traceurRejet ? { traceur: traceurRejet } : {}) };
   }
-  const bucketsA = yield* buildBuckets(
-    'A', [0, 1, 2], prepared, prepared.maxSetsForA,
-    undefined, params.adaptiveTrancheWeighting, params.combosOrderMode
+  const bucketsA = yield* construireMoitie(
+    'A', [0, 1, 2], prepared, prepared.maxSetsForA, params.adaptiveTrancheWeighting, params.combosOrderMode
   );
-  const bucketsB = yield* buildBuckets(
-    'B', [3, 4, 5], prepared, prepared.maxSetsForB,
-    undefined, params.adaptiveTrancheWeighting, params.combosOrderMode
+  const bucketsB = yield* construireMoitie(
+    'B', [3, 4, 5], prepared, prepared.maxSetsForB, params.adaptiveTrancheWeighting, params.combosOrderMode
   );
-  return yield* pairBuckets(prepared, bucketsA, bucketsB);
+  return yield* apparier(prepared, bucketsA, bucketsB);
 }
 
 /** Le générateur drainé jusqu'au bout, en un appel synchrone. */

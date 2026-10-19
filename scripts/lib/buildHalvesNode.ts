@@ -18,11 +18,11 @@
 // Lushen d11, Ciri défense). Négligeable seulement en moyenne.
 //
 // ⚠️ **Le travail lui-même n'est PAS dupliqué** : `build-half-worker.ts` est
-// le même fichier que celui de `perf-battery.ts`, qui appelle le vrai
-// `buildBuckets`. Ce qui vit ici est uniquement le bundling et le spawn —
-// exactement le découpage retenu pour l'appariement (`spawnSliceNode.ts` vs
-// `pairSliceInWorker`), où la LOGIQUE est partagée et seule la coquille de
-// plateforme diffère.
+// le même fichier que celui de `perf-battery.ts`, qui appelle la vraie
+// construction de production (`construireMoitie`). Ce qui vit ici est
+// uniquement le bundling et le spawn — exactement le découpage retenu pour
+// l'appariement (`appariementRapideNode.ts` vs `lancerTravailleurNavigateur`),
+// où la LOGIQUE est partagée et seule la coquille de plateforme diffère.
 //
 // ⚠️ `perf-battery.ts` garde sa propre coquille, délibérément : son cache de
 // bundle est indexé par PID parce que chaque cas y tourne dans son propre

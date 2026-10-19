@@ -1,7 +1,9 @@
-// ⚠️ PROTOTYPE (chantier perf-moteur, lot 2) — noyau de l'appariement sur
-// tableaux typés, À CÔTÉ de `pairBuckets` (runeBuildOptim.ts), jamais à sa
-// place : aucun écran, aucun Worker de production ne l'appelle. Il ne
-// remplace que la boucle la plus intérieure (`for comboB of bB.combos`) :
+// Noyau de l'appariement sur tableaux typés : le chemin de production
+// (`apparier` dans src/lib/rechercheRunes.ts en séquentiel,
+// `appariementRapideParallele.ts` en parallèle). `pairBuckets`
+// (runeBuildOptim.ts) reste la RÉFÉRENCE et le repli hors contrat numérique.
+// Voir docs/03-developpeur/optimizer/moteur/pipeline.md § Appariement séquentiel.
+// Il ne remplace que la boucle la plus intérieure (`for comboB of bB.combos`) :
 // ordre des paires de compartiments, prédicats de compartiment et de comboA,
 // et tout ce qui suit `quickOk` restent ceux de la production.
 //
@@ -15,7 +17,8 @@
 // d'intégrité vérifiées avant toute paire (`verifierContrat`) ; sans elles,
 // le chemin actuel (`pairBuckets`) est pris tel quel.
 //
-// Conception complète, avec les bornes écrites : notes du lot 2 du chantier.
+// Les bornes écrites, leurs préconditions et l'ordre de visite :
+// docs/03-developpeur/optimizer/moteur/elagages.md § Sauts exacts du noyau d'appariement.
 //
 // ⚠️ **Rien de ce qui suit `quickOk` n'est réécrit** : le bloc de validation
 // (`Collecteur.valider`) est une copie conforme de `pairBuckets`
@@ -273,7 +276,7 @@ export function constantesNoyau(prepared: PreparedSearch): ConstantesNoyau {
  * s'il tient, sinon le motif du repli sur le chemin actuel.
  */
 export function verifierContrat(prepared: PreparedSearch, bucketsA: Bucket[], bucketsB: Bucket[]): string | null {
-  if (prepared.traceur) return 'traceur de diagnostic demandé (non porté par le prototype)';
+  if (prepared.traceur) return 'traceur de diagnostic demandé (le noyau ne le remplit pas)';
   const c = constantesNoyau(prepared);
   const { guaranteed, guaranteedMin, artFlatMax, artFlatMin, relPctMax, relPctMin } = prepared;
   for (let kk = 0; kk < c.m; kk++) {
@@ -658,7 +661,7 @@ export class Collecteur {
 }
 
 /* --------------------------------------------------------------------------
- * Le prototype séquentiel
+ * L'appariement séquentiel
  * ----------------------------------------------------------------------- */
 
 export interface ResultatAppariementRapide extends SearchResult {
@@ -837,7 +840,9 @@ export interface ContexteTravailleur {
 export function initialiserTravailleur(init: InitTravailleur): ContexteTravailleur {
   const prepared = prepareSearch(init.params);
   if (!prepared) throw new Error('prepareSearch a rendu null dans un Worker alors que le coordinateur a des compartiments');
-  // Même correction que `runPairSlice` : le budget court depuis l'instant global.
+  // ⚠️ AVANT tout usage du filet de temps : le budget court depuis l'instant
+  // GLOBAL du lancement (construction des moitiés comprise), jamais depuis
+  // la préparation propre à ce Worker.
   prepared.startedAt = init.startedAt;
   const ct = init.compartiments;
   const c = constantesNoyau(prepared);

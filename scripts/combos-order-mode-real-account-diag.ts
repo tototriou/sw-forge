@@ -15,8 +15,8 @@
 // algo-verify, méthode point 2 : un budget artificiellement court ferait
 // diverger la mesure sans être représentatif d'un usage réel. `maxMs` par
 // défaut (60 s) reste dans l'ordre de grandeur d'une attente utilisateur
-// réelle (voir la même leçon dans rune-optim-parallel-pairing.test.ts,
-// maxMs=30s retenu comme plancher vérifié). ⚠️ Ce script devait aussi
+// réelle (30 s au moins, le plancher vérifié pour un test de parallélisation
+// sous troncature par le temps). ⚠️ Ce script devait aussi
 // reproduire l'escalade du budget de PAIRES, sans quoi il se serait arrêté
 // bien avant les ~700M paires des plus gros de ces 7 cas réels
 // (scripts/perf-baseline.json) : ce budget n'existe plus, le

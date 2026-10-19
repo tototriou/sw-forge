@@ -1,5 +1,6 @@
-// Différentiel du PROTOTYPE de construction des moitiés (src/lib/constructionRapide.ts,
-// chantier perf-moteur, lot 2 bis) contre `buildBuckets` de production, sur des
+// Différentiel de la construction des moitiés sur tableaux typés
+// (src/lib/constructionRapide.ts, le chemin de production par `construireMoitie`)
+// contre `buildBuckets`, la référence, sur des
 // pools synthétiques : égalité PROFONDE des compartiments (`premiereDivergence`),
 // pour la version séquentielle et pour le découpage en tranches + fusion.
 //
@@ -20,7 +21,8 @@
 // eu lieu (sinon le test ne vérifierait rien du tas).
 
 import { BaseStats } from '../src/types';
-import { Bucket, BuildRequirement, Objective, SearchParams, SLOT_FILTER_PRESETS, buildBuckets, prepareSearch } from '../src/lib/runeBuildOptim';
+import { Bucket, BuildRequirement, BuildingProgress, Objective, SearchParams, SLOT_FILTER_PRESETS, buildBuckets, prepareSearch } from '../src/lib/runeBuildOptim';
+import { construireMoitie, motifRepliConstruction } from '../src/lib/rechercheRunes';
 import { StatKey } from '../src/lib/effects';
 import {
   OrdreCombos,
@@ -31,7 +33,7 @@ import {
   premiereDivergence,
   repartirIdx0,
 } from '../src/lib/constructionRapide';
-import { ok, titre } from './outils';
+import { egal, ok, titre } from './outils';
 import { SETS_JOKER, mulberry32, randomPool } from '../scripts/lib/randomPool';
 import { drain } from '../scripts/lib/drain';
 
@@ -126,9 +128,52 @@ function temoinsNegatifs() {
   ok(premiereDivergence(ref, rune) !== null, 'témoin : une rune égale en valeur mais autre objet est une divergence');
 }
 
+/**
+ * Le chemin de production (`construireMoitie`) : le noyau, mêmes compartiments
+ * et mêmes points de passage que `buildBuckets` ; `buildBuckets` lui-même dès
+ * qu'un traceur est demandé (la trace de la moitié est remplie) ; le motif de
+ * repli au-delà de 2³¹ triplets.
+ */
+function testCheminDeProduction() {
+  const s = SCENARIOS[0];
+  const pool = randomPool(mulberry32(s.seed), 30, SETS_JOKER);
+  const prepared = prepareSearch(parametres(s, pool, 80, undefined, false, 'objective'))!;
+  for (const { half, slots } of MOITIES) {
+    const autre = half === 'A' ? prepared.maxSetsForA : prepared.maxSetsForB;
+    ok(motifRepliConstruction(prepared, slots) === null, `moitié ${half} : le noyau prend la construction (aucun motif de repli)`);
+    const pas = (gen: Generator<BuildingProgress, Bucket[], void>) => {
+      const vus: number[] = [];
+      let step = gen.next();
+      while (!step.done) {
+        vus.push(step.value.scanned);
+        step = gen.next();
+      }
+      return { vus, buckets: step.value };
+    };
+    const ref = pas(buildBuckets(half, slots, prepared, autre, undefined, false, 'objective'));
+    const prod = pas(construireMoitie(half, slots, prepared, autre, false, 'objective'));
+    ok(premiereDivergence(ref.buckets, prod.buckets) === null, `moitié ${half} : construireMoitie = buildBuckets (égalité profonde)`);
+    egal(prod.vus, ref.vus, `moitié ${half} : mêmes points de passage (une rune du premier emplacement chacun)`);
+  }
+  // Traceur : le repli, qui remplit la trace de la moitié.
+  const ids = [0, 1, 2, 3, 4, 5].map((i) => prepared.filtered[i][0].id);
+  const traceAvec = prepareSearch({ ...parametres(s, pool, 80, undefined, false, 'objective'), traceur: { runeIds: ids } })!;
+  ok(motifRepliConstruction(traceAvec, [0, 1, 2]) !== null, 'traceur demandé : motif de repli nommé');
+  const avecTrace = drain(construireMoitie('A', [0, 1, 2], traceAvec, traceAvec.maxSetsForA, false, 'objective'));
+  ok(traceAvec.traceur?.moities.A != null, 'traceur demandé : buildBuckets a rempli la trace de la moitié A');
+  ok(premiereDivergence(drain(buildBuckets('A', [0, 1, 2], prepared, prepared.maxSetsForA, undefined, false, 'objective')), avecTrace) === null,
+    'traceur demandé : mêmes compartiments que sans traceur');
+  // Au-delà de 2³¹ triplets : seul le nombre de runes par emplacement compte.
+  const enorme = { ...prepared, filtered: [new Array(1300), new Array(1300), new Array(1300), [], [], []] } as unknown as typeof prepared;
+  ok(/32 bits/.test(motifRepliConstruction(enorme, [0, 1, 2]) ?? ''), '1 300³ triplets : repli sur buildBuckets, motif nommé');
+  ok(motifRepliConstruction({ ...enorme, filtered: [new Array(1290), new Array(1290), new Array(1290)] } as unknown as typeof prepared, [0, 1, 2]) === null,
+    '1 290³ triplets (< 2³¹) : le noyau garde la construction');
+}
+
 export default function testConstructionRapide() {
-  titre('Optimizer · prototype de construction des moitiés (constructionRapide) contre buildBuckets');
+  titre('Optimizer · construction des moitiés sur tableaux typés (constructionRapide) contre buildBuckets');
   temoinsNegatifs();
+  testCheminDeProduction();
 
   for (const s of SCENARIOS) {
     const pool = randomPool(mulberry32(s.seed), s.parEmplacement, SETS_JOKER);

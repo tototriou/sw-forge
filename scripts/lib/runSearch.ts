@@ -1,8 +1,8 @@
 // Exécute une recherche JUSQU'AU BOUT, avec la MÊME fidélité que l'app réelle
 // (runeBuildOptim.worker.ts) et scripts/perf-battery.ts : prepareSearch →
-// buildBuckets ×2 → pairBuckets.
+// construireMoitie ×2 → apparier (src/lib/rechercheRunes.ts).
 //
-// ⚠️ Cette factorisation existe parce qu'un script qui pilote `pairBuckets`
+// ⚠️ Cette factorisation existe parce qu'un script qui pilote l'appariement
 // sans reproduire le chemin de production peut n'explorer qu'une fraction
 // dérisoire de l'espace réel (voir le skill `algo-verify`, section
 // « Fidélité des scripts diagnostics »). Le moteur n'a plus de budget de
@@ -10,17 +10,13 @@
 // c'est ici, et pas dans chaque script, que vit la séquence fidèle au chemin
 // de prod.
 //
-// ⚠️ Écart de fidélité CONNU depuis l'extension de la parallélisation de
-// l'appariement au mode normal (voir docs/05-feuille-de-route/, pistes de l'Optimizer, point 9) : ce script reste
-// TOUJOURS séquentiel (Node n'a pas de Web Worker) — la vraie app peut
-// paralléliser l'appariement (4 workers) dès que `totalPairs ≥ 100M`, quel
-// que soit le mode. Sur une recherche NORMALE (tronquée) assez grande, le
-// séquentiel ici peut donc trouver MOINS de candidats que ce que l'écran a
-// réellement affiché pour la MÊME recette (le parallèle bénéficie d'un
-// débit ×N dans la même fenêtre de temps) — jamais l'inverse (le
-// parallèle ne perd rien, vérifié par différentiel). Sans conséquence en
-// mode exhaustif (`exhaustiveSearch`) : les deux chemins convergent vers le
-// même ensemble complet, juste à des vitesses différentes.
+// ⚠️ Écart de fidélité CONNU : ce script reste TOUJOURS séquentiel, là où
+// l'écran apparie en parallèle dès que `totalPairs ≥ PARALLEL_PAIRING_THRESHOLD`.
+// Le parallèle rend l'ordre séquentiel (même plafond global, mêmes
+// candidats, même quasi-succès) : seule une recherche coupée par le TEMPS
+// peut différer, le parallèle ayant parcouru davantage dans le même délai.
+// Sans conséquence en mode exhaustif (`exhaustiveSearch`) ni sous le seul
+// plafond de candidats.
 //
 // Usage : `runSearchToCompletion(params)` — synchrone jusqu'au bout, pas de
 // pilotage pas à pas (pas besoin de rendre la main à une UI dans un script).
@@ -29,9 +25,8 @@ import {
   SearchParams,
   SearchResult,
   prepareSearch,
-  buildBuckets,
-  pairBuckets,
 } from '../../src/lib/runeBuildOptim';
+import { apparier, construireMoitie } from '../../src/lib/rechercheRunes';
 import { drain } from './drain';
 
 export interface TimedSearchResult extends SearchResult {
@@ -53,18 +48,14 @@ export function runSearchToCompletion(params: SearchParams): TimedSearchResult {
   }
 
   const bucketsA = drain(
-    buildBuckets('A', [0, 1, 2], prepared, prepared.maxSetsForA,
-      undefined, params.adaptiveTrancheWeighting, params.combosOrderMode
-    )
+    construireMoitie('A', [0, 1, 2], prepared, prepared.maxSetsForA, params.adaptiveTrancheWeighting, params.combosOrderMode)
   );
   const bucketsB = drain(
-    buildBuckets('B', [3, 4, 5], prepared, prepared.maxSetsForB,
-      undefined, params.adaptiveTrancheWeighting, params.combosOrderMode
-    )
+    construireMoitie('B', [3, 4, 5], prepared, prepared.maxSetsForB, params.adaptiveTrancheWeighting, params.combosOrderMode)
   );
   const tBuild = performance.now();
 
-  const result = drain(pairBuckets(prepared, bucketsA, bucketsB));
+  const result = drain(apparier(prepared, bucketsA, bucketsB));
   const tEnd = performance.now();
 
   return {

@@ -51,7 +51,7 @@ Ce document décrit la carte « Équipement actuel ».
    (stats à zéro, emplacements grisés, roue sans rune) tant qu'aucun
    monstre n'est choisi,
    plutôt que de n'apparaître qu'au clic. C'est un `GearSet` NUL construit
-   en local (`EMPTY_GEAR`, [OptimizerSection.tsx](src/components/outils/OptimizerSection.tsx)),
+   en local (`EMPTY_GEAR`, [optimizer/constantes.ts](src/components/outils/optimizer/constantes.ts)),
    pas une variante de `MonsterGear` : le composant partagé n'a besoin
    d'aucune adaptation, `computeStats` sur une base à zéro renvoie déjà des
    lignes à zéro, et `ArtifactSlots`/`RuneWheel` gèrent nativement un

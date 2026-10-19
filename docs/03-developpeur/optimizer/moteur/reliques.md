@@ -291,6 +291,23 @@ différentiel relique pour classer une perte
   à côté du régime effectif (`objective`), de `damageSetup` et de la relique
   portée. Un tri qui ne change pas de régime effectif ne vide rien.
 
+### Résolution rapide — prototype non branché
+
+`src/lib/resolutionRapide.ts` (`resoudreEquipementDuBuildRapide`) résout
+l'équipement d'un build À CÔTÉ de `resoudreEquipementDuBuild`, jamais à sa
+place : aucun écran, aucun Worker ne l'appelle. Même entrée
+(`entreeResolutionDuBuild`) ; la faisabilité d'un couple ne dépendant des
+artéfacts que par leurs principales, il écarte sans note une relique qu'aucune
+forme de paire ne rend faisable, et ne note que les paires faisables. Pour
+un build conforme, il rend le résultat de la production champ pour champ ;
+une note NaN vue le fait repasser par la production, signalé ; un build
+sans couple faisable rend « aucune paire » sans le diagnostic d'un build
+rejeté (avec l'option `diagnostic`, celui de la production). Son en-tête
+dit ses préconditions. Vérification : `testResolutionRapide` et
+`testResolutionRapideNaN` (`tests/resolution-rapide.test.ts`) ; sur une
+recette réelle, `scripts/banc-resolution-rapide.ts` compare les deux
+résolutions build par build.
+
 ## Régimes : ce qui note la relique
 
 - **Un seul régime pour la paire et la relique** : `regimeEquipement =

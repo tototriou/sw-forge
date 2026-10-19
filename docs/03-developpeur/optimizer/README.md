@@ -18,7 +18,7 @@ selon ce qu'on touche. Avant un chantier Optimizer : [invariants.md](invariants.
 | `diagnoseFeasibility`, `rankBlockingConditions`, le « 0 résultat » | [moteur/diagnostics.md](moteur/diagnostics.md) |
 | `src/lib/artifactQueue.ts`, `src/lib/artifactFiche.ts`, `src/lib/artifactEvaluation.ts`, la paire d'artéfacts d'un build | [moteur/artefacts.md](moteur/artefacts.md) |
 | `src/lib/artifactOptim.ts`, l'éligibilité ou l'effet d'une ligne d'artéfact | [moteur/optimiseur-artefacts.md](moteur/optimiseur-artefacts.md) |
-| `src/lib/relicOptim.ts`, `src/lib/relicQueue.ts`, `src/lib/relicExclusive.ts` | [moteur/reliques.md](moteur/reliques.md) |
+| `src/lib/relicOptim.ts`, `src/lib/relicQueue.ts`, `src/lib/relicExclusive.ts`, `src/lib/resolutionRapide.ts` (prototype non branché) | [moteur/reliques.md](moteur/reliques.md) |
 | un contrôle de l'algorithme : oracle, différentiel, benchmark | [verification.md](verification.md) |
 | `scripts/lib/diagnosticHarness.ts`, `scripts/diagnostic-harness.ts` | [harnais/mode-d-emploi.md](harnais/mode-d-emploi.md), [harnais/extensions.md](harnais/extensions.md) |
 | un script de diagnostic de `scripts/`, le harnais sur les cas réels (`--cas`) | [harnais/scripts.md](harnais/scripts.md) |

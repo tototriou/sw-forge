@@ -25,7 +25,6 @@ import {
   CheckCircle2,
   Unlock,
   Trash2,
-  Eye,
   Swords,
   Pencil,
 } from 'lucide-react';
@@ -200,6 +199,9 @@ import SetComboPicker from './SetComboPicker';
 import BuildCandidateCard, { PlaceEnVerification, useHauteurDesCartes } from './BuildCandidateCard';
 import DamageSetupModale from './DamageSetupModale';
 import EtatMonstre from './EtatMonstre';
+import BoutonValiderBuild from './optimizer/BoutonValiderBuild';
+import BandeauBuildValide from './optimizer/BandeauBuildValide';
+import type { EtatValidation } from './optimizer/types';
 import { PREFIXE_FICHIER } from '../../marque';
 
 interface Props {
@@ -346,22 +348,6 @@ export function exemplaireAuMontage(
 // build déjà validé pour ce monstre — un simple `===` sur les
 // tableaux ne suffirait pas, `runeIds` n'est jamais garanti dans le même
 // ordre d'un calcul à l'autre.
-/**
- * L'état de validation d'un build affiché, vis-à-vis de celui qui est réservé.
- *
- * ⚠️ **Trois états, pas deux.** Comparer les seules runes rendait invalidable
- * un build aux MÊMES runes mais aux artéfacts DIFFÉRENTS : l'utilisateur
- * voyait des stats qui ne sont pas celles réservées, et le bouton disait
- * « Validé » sans rien offrir. Le cas est courant, puisque la paire
- * suit le critère de tri (voir docs/03-developpeur/optimizer/,
- * « Régime de la paire ») :
- * changer de tri change la paire, donc les stats, à runes identiques.
- *
- * Un artéfact entre dans les statistiques du monstre — deux paires
- * différentes, ce sont deux builds différents.
- */
-type EtatValidation = 'non' | 'oui' | 'artefacts';
-
 /**
  * Même ensemble d'ids ? Sert aux runes ET aux artéfacts — c'est la même
  * question, et un build validé mémorise les deux (`ValidatedBuild.runeIds`,
@@ -3080,32 +3066,13 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
   // rebasculer vers l'équipement RÉEL sans quitter la liste ni changer
   // d'exemplaire. Factorisé, réutilisé aux deux endroits où la fiche
   // s'affiche (bureau/mobile).
-  const validatedBadge = ownValidatedBuild ? (
-    <div className="mb-2 flex items-center gap-1.5 rounded-lg bg-accent-soft px-2 py-1 text-[11px] font-semibold text-accent">
-      <CheckCircle2 size={13} className="flex-none" />
-      <span className="grid min-w-0 flex-1">
-        <span className={`col-start-1 row-start-1 ${showRealGear ? 'invisible' : ''}`} aria-hidden={showRealGear}>
-          Build validé affiché — pas l'équipement réellement porté
-        </span>
-        <span className={`col-start-1 row-start-1 ${showRealGear ? '' : 'invisible'}`} aria-hidden={!showRealGear}>
-          Équipement réellement porté affiché
-        </span>
-        {runesAbsentesValidees.length > 0 && <span role="status" className="text-warn">
-          Build conservé : {runesAbsentesValidees.length} rune(s) absente(s) du compte. Seules les runes présentes sont affichées et réservées.
-        </span>}
-        {artefactsAbsentsValides.length > 0 && <span role="status" className="text-warn">
-          Build conservé : {artefactsAbsentsValides.length} artéfact(s) absent(s) du compte. Seuls les artéfacts présents sont affichés et réservés.
-        </span>}
-      </span>
-      <BoutonIcone
-        cadre
-        libelle={showRealGear ? 'Revoir le build validé' : "Voir le runage réellement porté"}
-        icone={showRealGear ? <CheckCircle2 size={13} /> : <Eye size={13} />}
-        onClick={() => setShowRealGear((v) => !v)}
-        className="h-6 w-6 flex-none"
-      />
-    </div>
-  ) : null;
+  const validatedBadge = <BandeauBuildValide
+    ownValidatedBuild={ownValidatedBuild}
+    showRealGear={showRealGear}
+    runesAbsentesValidees={runesAbsentesValidees}
+    artefactsAbsentsValides={artefactsAbsentsValides}
+    setShowRealGear={setShowRealGear}
+  />;
 
   // Même bouton que sur une carte de résultat (`BuildCandidateCard`), sous
   // la fiche cette fois — demande explicite : valider un runage déjà
@@ -3380,40 +3347,13 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
   );
 
   const validateBuildButton = (
-    <>
-      <Bouton
-        onClick={handleValidateDisplayed}
-        disabled={!canValidateDisplayed || matchesValidatedBuild}
-        // ⚠️ Même code couleur que les cartes de résultat (BuildCandidateCard) :
-        // `alerte` sur « Valider les artéfacts », parce qu'il signale un état
-        // des DONNÉES — ce qui est affiché n'est pas ce qui est réservé.
-        ton={etatFiche === 'oui' ? 'accent' : etatFiche === 'artefacts' ? 'alerte' : 'neutre'}
-        fond={etatFiche === 'non' ? 'plein' : 'doux'}
-        taille="sm"
-        pleineLargeur
-        icone={matchesValidatedBuild ? <CheckCircle2 size={14} /> : undefined}
-        // ⚠️ Trois libellés, pas deux : mêmes runes + autre paire, il reste
-        // quelque chose à valider — les artéfacts. Voir `EtatValidation`.
-        libelle={etatFiche === 'oui' ? 'Validé' : etatFiche === 'artefacts' ? 'Valider les artéfacts' : 'Valider ce build'}
-        className="mt-2.5"
-      />
-      {/* Message listant les runes déjà utilisées — demande explicite,
-          « il faut afficher quelles runes sont déjà utilisées dans la
-          liste ». Absent si déjà validé (le bandeau `validatedBadge`
-          suffit alors, ce build EST la réservation). */}
-      {displayedRuneConflicts.length > 0 && !matchesValidatedBuild && (
-        <p className="mt-1.5 text-[11px] text-warn">
-          {displayedRuneConflicts.length > 1 ? 'Runes déjà réservées' : 'Rune déjà réservée'} dans cette liste :{' '}
-          {displayedRuneConflicts.map((c, i) => (
-            <span key={i}>
-              {i > 0 && ', '}
-              {c.slot != null ? `emplacement ${c.slot}` : 'une rune'} ({c.monsterName})
-            </span>
-          ))}
-          .
-        </p>
-      )}
-    </>
+    <BoutonValiderBuild
+      handleValidateDisplayed={handleValidateDisplayed}
+      canValidateDisplayed={canValidateDisplayed}
+      matchesValidatedBuild={matchesValidatedBuild}
+      etatFiche={etatFiche}
+      displayedRuneConflicts={displayedRuneConflicts}
+    />
   );
 
   const rapportZoneC = [...lists.rapportStockage, ...optimizer.rapportCriteres];

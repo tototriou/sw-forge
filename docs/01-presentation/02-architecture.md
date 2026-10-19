@@ -221,6 +221,7 @@ imposé + sort de chacun) dans le même moteur. Tout est testé dans `tests/spee
 | `ZoneCliquable.tsx` | une **surface** rendue cliquable (ligne dépliante, poignée) |
 | `Champ.tsx` / `NumberField.tsx` | saisie texte / numérique (⚠️ jamais `type="number"`) |
 | `Selecteur.tsx` | liste déroulante |
+| `SelecteurMultiple.tsx` | liste à **choix multiples** : fermée, le résumé des choix ; ouverte, une `Case` par option dans un flottant |
 | `Case.tsx` / `Interrupteur.tsx` | à cocher / à glissière |
 | `Option.tsx` | choix riche : icône + titre + explication ; action optionnelle juste à droite du titre (`actionTitre`, hors du bouton principal : le « ? » d'une prose de sort) |
 | `Dialogs.tsx` | `Modale` (portalisée), `ConfirmDialog`, `PromptDialog`, `KeepAccountDialog` |

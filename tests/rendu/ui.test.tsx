@@ -12,6 +12,7 @@ import Segmented from '../../src/ui/Segmented';
 import Option from '../../src/ui/Option';
 import Jeton from '../../src/ui/Jeton';
 import Selecteur from '../../src/ui/Selecteur';
+import SelecteurMultiple from '../../src/ui/SelecteurMultiple';
 import Menu from '../../src/ui/Menu';
 import { BandeauNotification } from '../../src/ui/Notification';
 import Palette from '../../src/components/Palette';
@@ -169,6 +170,38 @@ export function testRenduPalette() {
 }
 
 // La notification « … · Annuler » — ajoutée avec elle.
+export function testRenduUiSelecteurMultiple() {
+  titre('rendu · src/ui — SelecteurMultiple');
+  const options = [
+    { valeur: 2, libelle: 'PV%' },
+    { valeur: 4, libelle: 'ATQ%' },
+    { valeur: 8, libelle: 'VIT', disabled: true, title: 'Indisponible ici' },
+  ];
+  const vide = rendre(<SelecteurMultiple libelle="Slot 2" options={options} valeurs={[]} onChange={rien} vide="Libre" />);
+  const dVide = bouton(vide, 'Slot 2 : Libre');
+  ok(!!dVide && dVide.texte === 'Libre', 'fermée sans choix : le déclencheur dit « Libre », nommé par le réglage');
+  ok(/aria-expanded="false"/.test(vide) && /aria-haspopup="true"/.test(vide), 'le déclencheur annonce une surface, fermée');
+  ok(/role="group"[^>]*aria-label="Slot 2"|aria-label="Slot 2"[^>]*role="group"/.test(vide), 'la surface porte le nom du réglage');
+  egal((vide.match(/type="checkbox"/g) ?? []).length, 3, 'fermée, chaque option reste dans le DOM (masquée, pas retirée)');
+  ok(!/checked=""/.test(vide), 'sans choix, aucune case cochée');
+
+  // Deux choix : résumés dans l'ordre des options, et cochés.
+  const deux = rendre(<SelecteurMultiple libelle="Slot 2" options={options} valeurs={[4, 2]} onChange={rien} vide="Libre" />);
+  const dDeux = bouton(deux, 'Slot 2 : PV%, ATQ%');
+  ok(!!dDeux && dDeux.texte === 'PV%, ATQ%', 'fermée : les choix résumés dans l\'ordre des options');
+  egal((deux.match(/checked=""/g) ?? []).length, 2, 'les deux options choisies sont cochées');
+  ok(/disabled=""[^>]*title="Indisponible ici"|title="Indisponible ici"[^>]*disabled=""/.test(deux), 'une option désactivée le reste, avec sa raison');
+
+  // Axes de structure : un résumé et une surface fournis par l'appelant.
+  const libre = rendre(
+    <SelecteurMultiple libelle="Set de runes recherché" vide="Aucun"
+      resume={{ visuel: <span>icônes</span>, texte: 'Violent, Will' }} surface={<p>grille d&apos;ajout</p>} />
+  );
+  ok(!!bouton(libre, 'Set de runes recherché : Violent, Will'), 'résumé fourni : son texte nomme le déclencheur');
+  ok(texteVisible(libre).includes('grille d\'ajout') && !/type="checkbox"/.test(libre), 'surface fournie : elle remplace les cases');
+  ok(!!boutons(rendre(<SelecteurMultiple libelle="Slot 4" options={options} vide="Libre" disabled />))[0]?.desactive, 'désactivée : disabled posé sur le déclencheur');
+}
+
 export function testRenduUiNotification() {
   titre('rendu · Notification « … · Annuler »');
   const rien = () => {};

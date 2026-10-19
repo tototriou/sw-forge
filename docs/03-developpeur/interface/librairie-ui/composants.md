@@ -144,6 +144,43 @@ suivent aucun des deux thèmes — sur fond sombre, une flèche noire disparaît
 **liste ouverte** reste celle du système : c'est le seul morceau de l'app qu'on
 ne dessine pas, et le remplacer coûterait un menu flottant complet à claviériser.
 
+#### `SelecteurMultiple`
+
+**`SelecteurMultiple`** — liste à CHOIX MULTIPLES : fermée, elle a le dessin
+d'un `Selecteur` (cadre, fond, chevron) et résume ce qui est choisi (« PV%,
+ATQ% »), ou son texte `vide` (« Libre ») ; ouverte, une `Case` par option,
+dans un `Flottant`. Un choix ou plusieurs, et un choix se retire en
+décochant.
+
+> ⚠️ **L'axe que `Selecteur` ne couvre pas.** Un `<select multiple>` natif
+> est une boîte à défilement toujours ouverte, qui ne se ferme pas sur un
+> résumé et demande Ctrl pour cocher deux options. Une rangée de `Pastille`
+> dit bien un choix multiple, mais prend une ligne par réglage. Fermée, la
+> liste tient la hauteur d'un `Selecteur` et montre ses choix : elle ne cache
+> pas ce qu'elle filtre (voir `Menu`, « Pas de `Deroulant` »).
+
+- ⚠️ **Les cases sont des `Case`** : le clavier natif (Tab, Espace), le nom
+  accessible et la coche viennent de la librairie, rien n'est redessiné.
+- ⚠️ **La surface reste dans le DOM, fermée** (`hidden`), comme les entrées
+  du `Menu` : les tests de rendu lisent chaque option et son état.
+- **Elle sort du flux** : ouverte, elle flotte sous son déclencheur, rien ne
+  bouge dessous. Échap la referme et rend le focus au déclencheur ; un clic
+  dehors, ou un focus qui sort, la referme aussi.
+- Le nom accessible du déclencheur est `libelle : résumé` (« Slot 2 :
+  Libre »), son infobulle le résumé complet, tronqué à l'écran.
+- `onChange` reçoit les valeurs cochées dans l'ordre des options.
+
+Deux axes de STRUCTURE, nés de son second usage, le set de runes recherché :
+son choix est un **multiensemble** (deux fois le même set), qu'une case par
+option ne sait pas dire.
+
+- `resume` — ce que montre la liste fermée à la place des libellés choisis
+  (les icônes des sets), avec le texte qui nomme le déclencheur.
+- `surface` — ce que porte la surface ouverte à la place des cases (la
+  grille d'ajout des sets, inchangée). La surface prend alors un
+  rembourrage : son contenu n'est pas une liste dont les entrées touchent le
+  bord.
+
 #### `Interrupteur`
 
 **`Interrupteur`** — glissière avec libellé. ⚠️ `role="switch"` et non `button` :

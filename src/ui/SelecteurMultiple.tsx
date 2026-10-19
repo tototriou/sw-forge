@@ -1,0 +1,165 @@
+import { ReactNode, useEffect, useId, useRef, useState } from 'react';
+import Case from './Case';
+import Flottant from './Flottant';
+
+// Liste À CHOIX MULTIPLES : fermée, elle dit ce qui est choisi ; ouverte, une
+// case par option, dans un flottant.
+//
+// ⚠️ **L'axe que `Selecteur` ne couvre pas.** Un `<select multiple>` natif est
+// une boîte à défilement toujours ouverte, qui ne se ferme pas sur un résumé et
+// demande Ctrl pour cocher deux options ; une rangée de `Pastille` dit bien un
+// choix multiple, mais prend une ligne par réglage. Fermée, cette liste tient
+// la hauteur d'un `Selecteur` et montre ses choix : elle ne cache pas ce
+// qu'elle filtre (voir `Menu`, « Pas de `Deroulant` »).
+//
+// ⚠️ **Les cases sont des `Case`**, la case à cocher de la librairie : le
+// clavier natif (Tab, Espace) et le nom accessible viennent avec elle, et la
+// coche ne se redessine pas ici.
+//
+// ⚠️ **La surface reste dans le DOM, fermée** (`hidden`), comme les entrées du
+// `Menu` : un choix ne quitte jamais le DOM selon l'état de l'écran, et c'est ce
+// qui laisse les tests de rendu lire chaque option et son état.
+//
+// ⚠️ **Elle sort du flux** : ouverte, elle flotte sous son déclencheur, rien ne
+// bouge dessous (un clic ne déplace jamais ce qu'on vient de cliquer). Échap la
+// referme et rend le focus au déclencheur ; un clic dehors ou un focus qui sort
+// la referme aussi.
+//
+// Deux axes de structure, nés du second usage (le set de runes recherché, dont
+// le choix est un MULTIENSEMBLE — deux fois le même set — qu'une case par option
+// ne sait pas dire) :
+//  - `resume` : ce que montre la liste fermée, à la place des libellés choisis
+//    (les icônes des sets), avec son texte pour le nom accessible ;
+//  - `surface` : ce que porte la surface ouverte, à la place des cases (la
+//    grille d'ajout des sets, inchangée).
+
+export interface OptionChoixMultiple<V extends string | number> {
+  valeur: V;
+  libelle: string;
+  // Désactivée, jamais retirée : son `title` dit pourquoi.
+  disabled?: boolean;
+  title?: string;
+}
+
+export interface SelecteurMultipleProps<V extends string | number> {
+  // Nom du réglage : nom accessible du déclencheur et de la surface.
+  libelle: string;
+  options?: OptionChoixMultiple<V>[];
+  valeurs?: V[];
+  // Reçoit les valeurs cochées, dans l'ordre des options.
+  onChange?: (valeurs: V[]) => void;
+  // Texte de la liste fermée quand rien n'est choisi (« Libre »).
+  vide: string;
+  resume?: { visuel: ReactNode; texte: string };
+  surface?: ReactNode;
+  taille?: 'md' | 'sm';
+  // Largeur de la surface ouverte ; défaut : celle du déclencheur.
+  largeurSurface?: string;
+  disabled?: boolean;
+  title?: string;
+}
+
+const TAILLES = {
+  md: 'rounded-lg px-3 py-2 text-sm',
+  sm: 'rounded-md px-2 py-1 text-xs',
+} as const;
+
+export default function SelecteurMultiple<V extends string | number>({
+  libelle,
+  options = [],
+  valeurs = [],
+  onChange,
+  vide,
+  resume,
+  surface,
+  taille = 'md',
+  largeurSurface,
+  disabled = false,
+  title,
+}: SelecteurMultipleProps<V>) {
+  const [ouvert, setOuvert] = useState(false);
+  const racine = useRef<HTMLDivElement>(null);
+  const declencheur = useRef<HTMLButtonElement>(null);
+  const id = useId();
+
+  useEffect(() => {
+    if (!ouvert) return;
+    const dehors = (e: PointerEvent) => {
+      if (!racine.current?.contains(e.target as Node)) setOuvert(false);
+    };
+    document.addEventListener('pointerdown', dehors);
+    return () => document.removeEventListener('pointerdown', dehors);
+  }, [ouvert]);
+
+  const choisies = options.filter((o) => valeurs.includes(o.valeur));
+  const texte = resume ? resume.texte : choisies.length > 0 ? choisies.map((o) => o.libelle).join(', ') : vide;
+
+  function basculer(valeur: V) {
+    const suivantes = valeurs.includes(valeur) ? valeurs.filter((v) => v !== valeur) : [...valeurs, valeur];
+    onChange?.(options.map((o) => o.valeur).filter((v) => suivantes.includes(v)));
+  }
+
+  return (
+    <div
+      ref={racine}
+      className="relative min-w-0"
+      onKeyDown={(e) => {
+        if (e.key === 'Escape' && ouvert) {
+          e.preventDefault();
+          setOuvert(false);
+          declencheur.current?.focus();
+        }
+      }}
+      onBlur={(e) => {
+        if (ouvert && !racine.current?.contains(e.relatedTarget as Node | null)) setOuvert(false);
+      }}
+    >
+      <button
+        ref={declencheur}
+        type="button"
+        disabled={disabled}
+        title={title ?? texte}
+        aria-label={`${libelle} : ${texte}`}
+        aria-haspopup="true"
+        aria-expanded={ouvert}
+        aria-controls={id}
+        onClick={() => setOuvert((o) => !o)}
+        // ⚠️ Le dessin du `Selecteur` fermé — cadre, fond, chevron peint en fond
+        // (`--chevron-select`), rembourrage droit réservé — pour qu'une liste
+        // simple et une liste multiple, côte à côte, se lisent comme une même
+        // famille de contrôles.
+        className={`flex w-full min-w-0 items-center border ${ouvert ? 'border-accent' : 'border-border'} bg-panel2
+          bg-[image:var(--chevron-select)] bg-[length:12px] bg-[right_0.4rem_center] bg-no-repeat pr-6 text-left
+          outline-none transition focus-visible:border-accent disabled:cursor-not-allowed disabled:opacity-50 ${TAILLES[taille]}`}
+      >
+        {resume ? (
+          <span className="flex min-w-0 items-center gap-1 overflow-hidden">{resume.visuel}</span>
+        ) : (
+          <span className={`min-w-0 truncate ${choisies.length > 0 ? 'text-ink' : 'text-ink-dim'}`}>{texte}</span>
+        )}
+      </button>
+      <Flottant
+        rembourrage={surface ? 'sm' : 'aucun'}
+        largeur={largeurSurface}
+        role="group"
+        aria-label={libelle}
+        className={ouvert ? '' : 'hidden'}
+      >
+        <div id={id} className={surface ? '' : 'flex flex-col gap-px p-1'}>
+          {surface ??
+            options.map((o) => (
+              <Case
+                key={String(o.valeur)}
+                libelle={o.libelle}
+                checked={valeurs.includes(o.valeur)}
+                disabled={o.disabled}
+                title={o.title}
+                onChange={() => basculer(o.valeur)}
+                className="h-8 rounded-md px-2 hoverable:bg-panel2"
+              />
+            ))}
+        </div>
+      </Flottant>
+    </div>
+  );
+}

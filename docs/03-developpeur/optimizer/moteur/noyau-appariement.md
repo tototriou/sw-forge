@@ -17,7 +17,7 @@ Le noyau ne remplace que la boucle la plus intérieure de `pairBuckets`,
 celle des combinaisons B. L'ordre des paires de compartiments
 (`ordreDesCompartiments`, le même tas que `orderedCompartmentPairs`), les
 prédicats de compartiment et de combinaison A (`satisfiesSets`, jokers,
-``bucketPairFeasibleMin`, `comboAFeasible`, les fonctions mêmes) sont ceux
+`bucketPairFeasibleMin`, `comboAFeasible`, les fonctions mêmes) sont ceux
 de `pairBuckets`. Il saute, sans les juger une à une, des paires qui
 échoueraient SÛREMENT à `quickOk`, et rien d'autre : aucune heuristique de
 plus.

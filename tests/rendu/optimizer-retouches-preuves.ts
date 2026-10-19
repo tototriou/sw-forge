@@ -91,7 +91,7 @@ async function preuvesEtatAurasBureau(b: BancRetouches): Promise<[boolean, strin
   await b.geste(() => ajout.click());
   const apres = ajout.getBoundingClientRect();
   return [
-    [!etat.textContent?.includes('Sets d\'aura des autres monstres') && carte.closest('[data-colonne="complements"]')!.firstElementChild === carte,
+    [!etat.textContent?.includes('Sets d\'aura des autres monstres') && carte.closest('[data-colonne="complements"]')!.firstElementChild!.firstElementChild === carte,
       'bureau : buffs et lead dans les essentiels, les sets d’aura en tête de la colonne « Aura, exclusion, avancés »'],
     [avantOnglet.x === apresOnglet.x && avantOnglet.y === apresOnglet.y, 'ouvrir la colonne garde l’onglet immobile'],
     [avant.x === apres.x && avant.y === apres.y, 'ajouter une aura garde le bouton immobile'],

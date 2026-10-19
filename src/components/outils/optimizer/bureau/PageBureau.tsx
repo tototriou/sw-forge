@@ -135,14 +135,46 @@ export interface PageBureauProps {
 // seuil d'insertion. Les classes sont écrites en entier pour Tailwind.
 const COLONNE_A3: Record<ColonneRepliable, string> = {
   artefacts:
-    '@[1180px]:sticky @[1180px]:top-[var(--colle-colonnes)] @[1180px]:max-h-[var(--hauteur-colonnes)] @[1180px]:overflow-y-auto'
+    '@[1180px]:sticky @[1180px]:top-[var(--colle-colonnes)] @[1180px]:max-h-[var(--hauteur-colonnes)] @[1180px]:data-[defile]:overflow-y-auto'
     + ' @[1180px]:w-[336px] @[1180px]:-mr-[336px] @[1180px]:z-20 @[1180px]:bg-bg @[1180px]:shadow-glow @[1180px]:shadow-black/60'
     + ' @[1516px]:mr-0 @[1516px]:z-auto @[1516px]:shadow-none',
   complements:
-    '@[1180px]:sticky @[1180px]:top-[var(--colle-colonnes)] @[1180px]:max-h-[var(--hauteur-colonnes)] @[1180px]:overflow-y-auto'
+    '@[1180px]:sticky @[1180px]:top-[var(--colle-colonnes)] @[1180px]:max-h-[var(--hauteur-colonnes)] @[1180px]:data-[defile]:overflow-y-auto'
     + ' @[1180px]:w-[356px] @[1180px]:-mr-[356px] @[1180px]:z-20 @[1180px]:bg-bg @[1180px]:shadow-glow @[1180px]:shadow-black/60'
     + ' @[1536px]:mr-0 @[1536px]:z-auto @[1536px]:shadow-none',
 };
+
+// Une colonne qui reste fixe en A3 (essentiels, colonne repliable) : son
+// contenu dans une boîte intérieure, mesurée. ⚠️ **Elle ne défile seule
+// (`overflow-y: auto`) que quand son contenu dépasse la hauteur visible**
+// (`data-defile`) : une boîte qui défile rogne les flottants posés en
+// `absolute` dedans (aides, menus), qu'il vaut mieux laisser déborder tant
+// que rien n'oblige à défiler. Hors A3, aucune hauteur maximale : jamais.
+function ColonneFixe({ className, contenu, children, ...donnees }: {
+  className: string; contenu: string; children: ReactNode; 'data-zone'?: string; 'data-colonne'?: string;
+}) {
+  const boite = useRef<HTMLDivElement>(null);
+  const interieur = useRef<HTMLDivElement>(null);
+  const [depasse, setDepasse] = useState(false);
+  useLayoutEffect(() => {
+    const b = boite.current, i = interieur.current;
+    if (!b || !i || typeof ResizeObserver === 'undefined') return;
+    const lire = () => {
+      const max = parseFloat(getComputedStyle(b).maxHeight);
+      setDepasse(Number.isFinite(max) && i.offsetHeight > max + 0.5);
+    };
+    lire();
+    const obs = new ResizeObserver(lire);
+    obs.observe(b);
+    obs.observe(i);
+    return () => obs.disconnect();
+  }, []);
+  return (
+    <div ref={boite} {...donnees} data-defile={depasse ? '' : undefined} className={className}>
+      <div ref={interieur} className={contenu}>{children}</div>
+    </div>
+  );
+}
 
 export default function PageBureau(props: PageBureauProps) {
   const racine = useRef<HTMLDivElement>(null);
@@ -177,14 +209,15 @@ export default function PageBureau(props: PageBureauProps) {
         }
       >
         {/* Les essentiels : liste de travail en tête, à sa place stable. */}
-        <div
+        <ColonneFixe
           data-zone="essentiels"
           className={
-            'flex w-[548px] flex-col gap-4'
+            'w-[548px]'
             + ' @[904px]:col-[1] @[904px]:row-[1/span_2]'
             + ' @[1180px]:sticky @[1180px]:top-[var(--colle-haut)] @[1180px]:z-10 @[1180px]:max-h-[var(--hauteur-essentiels)]'
-            + ' @[1180px]:w-[564px] @[1180px]:overflow-y-auto'
+            + ' @[1180px]:w-[564px] @[1180px]:data-[defile]:overflow-y-auto'
           }
+          contenu="flex w-[548px] flex-col gap-4"
         >
           {props.liste}
           {props.set}
@@ -195,7 +228,7 @@ export default function PageBureau(props: PageBureauProps) {
               {props.etat}
             </div>
           </div>
-        </div>
+        </ColonneFixe>
 
         {/* Le contrôle à onglets : sa propre rangée, jamais déplacée par ce
             qu'il ouvre. En A3, fixe, sur un fond qui masque ce qui défile
@@ -222,20 +255,21 @@ export default function PageBureau(props: PageBureauProps) {
             }
           >
             {affichees.artefacts && (
-              <div data-colonne="artefacts" className={`flex items-start gap-4 @[904px]:flex-col ${COLONNE_A3.artefacts}`}>
+              <ColonneFixe data-colonne="artefacts" className={COLONNE_A3.artefacts} contenu="flex items-start gap-4 @[904px]:flex-col">
                 {props.artefacts}
                 {props.meilleurs}
-              </div>
+              </ColonneFixe>
             )}
             {affichees.complements && (
-              <div
+              <ColonneFixe
                 data-colonne="complements"
-                className={`grid grid-cols-[340px_340px] items-start gap-4 @[904px]:flex @[904px]:flex-col ${COLONNE_A3.complements}`}
+                className={COLONNE_A3.complements}
+                contenu="grid grid-cols-[340px_340px] items-start gap-4 @[904px]:flex @[904px]:flex-col"
               >
                 {props.auras}
                 <div className="row-span-2">{props.exclusion}</div>
                 <div className="col-start-1 row-start-2">{props.avances}</div>
-              </div>
+              </ColonneFixe>
             )}
           </div>
         )}

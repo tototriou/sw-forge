@@ -1,7 +1,9 @@
 // Banc du PROTOTYPE de résolution de l'équipement (src/lib/resolutionRapide.ts,
-// chantier perf-moteur, lot 2 quater) : la résolution du CLI
+// chantier perf-moteur, lots 2 quater et 2 quater bis) : la résolution du CLI
 // (`resoudreEquipementCli`, celle de la file de l'écran) et le prototype, sur
-// les MÊMES builds d'une recette réelle, comparés build par build.
+// les MÊMES builds d'une recette réelle, comparés build par build — en
+// entier avec `--diagnostic`, hors le diagnostic d'un build rejeté sans lui
+// (D14 : le prototype rend alors le résultat « aucune paire »).
 //
 // Usage :
 //   npx tsx scripts/banc-resolution-rapide.ts --compte=<export.json> --recette=<recette.json>
@@ -9,6 +11,10 @@
 //   --candidats=<fichier.json>  les identifiants de runes des candidats : relus s'ils
 //                               existent, sinon calculés puis écrits (runs longs)
 //   --echantillon=<n>           un build sur ⌈N / n⌉ dans l'ordre de collecte (défaut : tous)
+//   --diagnostic                le prototype avec son option `diagnostic` (CLI, harnais)
+//   --compter-notes             une passe de plus du prototype, `evaluer` compté
+//                               (sondes de pertinence et paires), sans effet sur le résultat
+//   --compter-production        de même pour la production (`resoudreEquipementDuBuild`), lente
 //   --sortie=<dossier>          écrit le rapport texte et le JSON
 //   --suffixe=<texte>           ajouté au nom des fichiers de sortie
 //
@@ -33,11 +39,12 @@ import { join } from 'path';
 import { isDeepStrictEqual } from 'util';
 import { MAX_COLLECTED, SearchParams, prepareSearch } from '../src/lib/runeBuildOptim';
 import { apparierRapide } from '../src/lib/appariementRapide';
-import { entreeResolutionDuBuild, nouveauxCachesResolution } from '../src/lib/relicQueue';
+import { EntreeResolution, entreeResolutionDuBuild, nouveauxCachesResolution, resoudreEquipementDuBuild } from '../src/lib/relicQueue';
 import { CachesResolutionRapide, compteursVides, resoudreEquipementDuBuildRapide } from '../src/lib/resolutionRapide';
 import { regimeArtefacts, regimeEquipementDe } from '../src/lib/artifactEvaluation';
 import { DEFAULT_DAMAGE_SETUP } from '../src/lib/damage';
 import { ResultatArtefacts } from '../src/lib/artifactQueue';
+import { computeStats } from '../src/lib/stats';
 import { chargerRecette } from './lib/chargerRecette';
 import { artefactsDuCli, resoudreEquipementCli } from './lib/recipeToSearchParams';
 import { construireMoitiesEnParallele, ensureBuildHalfBundle } from './lib/buildHalvesNode';
@@ -69,6 +76,39 @@ async function candidats(params: SearchParams, fichier: string | undefined, dire
   const ids = r.candidates.map((c) => c.runeIds);
   if (fichier) writeFileSync(fichier, JSON.stringify(ids));
   return ids;
+}
+
+// Ce que le prototype rend SANS diagnostic (D14), lu sur la référence : un
+// build conforme à l'identique ; un build rejeté, le résultat de la
+// production quand aucune paire n'existe (stats du build sans artéfact ;
+// relique portée hors mode `recherche`, aucune en `recherche`).
+function sansDiagnostic(ref: ResultatArtefacts, e: EntreeResolution): ResultatArtefacts {
+  if (ref.conforme) return ref;
+  return e.relicContext?.mode === 'recherche'
+    ? { paire: null, artefacts: [], stats: computeStats({ ...e.gear, relic: undefined }), meilleurSansVerrous: null, conforme: false, relique: undefined }
+    : { paire: null, artefacts: [], stats: computeStats({ ...e.gear, artifacts: [], relic: e.gear.relic }), meilleurSansVerrous: null, conforme: false };
+}
+
+// L'entrée avec un `evaluer` qui compte ses appels — sondes de pertinence
+// (pièces d'identifiant 0, `analyserPertinence`) et paires — et rend la même
+// note : sans effet sur le résultat (les champs de `params` gardent leur
+// identité, que lisent les memos).
+interface Notes { sondes: number; paires: number }
+function compteeNotes(e: EntreeResolution, n: Notes): EntreeResolution {
+  return {
+    ...e,
+    faireParams: (r) => {
+      const p = e.faireParams(r);
+      return {
+        ...p,
+        evaluer: (arts) => {
+          if (arts.some((a) => a.id === 0)) n.sondes++;
+          else n.paires++;
+          return p.evaluer(arts);
+        },
+      };
+    },
+  };
 }
 
 const empreinte = (lignes: string[]) => {
@@ -116,41 +156,85 @@ async function main(): Promise<number> {
   const a = artefactsDuCli(recipe, loaded)!;
   const regime = regimeEquipementDe(regimeArtefacts(recipe.objective), a.degats != null);
   const exclusive = { setup: recipe.damageSetup ?? DEFAULT_DAMAGE_SETUP, element: a.element };
+  const diagnostic = args.includes('--diagnostic');
+  const entreeDe = (i: number, caches: ReturnType<typeof nouveauxCachesResolution>) => entreeResolutionDuBuild({
+    fiche: loaded.gear, runes: runesDe(i), artifactParams: a.params, regime, degats: a.degats, exclusive,
+    requirement: params.requirement, relicContext: params.relicContext, caches,
+  });
+  dire(`Prototype : ${diagnostic ? 'AVEC diagnostic (option du CLI et du harnais) — comparé en entier' : 'SANS diagnostic (chemin de l’app, D14) — comparé hors le diagnostic d’un build rejeté'}`);
   const caches = nouveauxCachesResolution();
   const rapide = new CachesResolutionRapide();
   const compteurs = compteursVides();
+  const replis: string[] = [];
+  const warn = console.warn;
+  console.warn = (...m: unknown[]) => {
+    replis.push(m.map(String).join(' '));
+  };
   debut = performance.now();
   const proto = new Map<number, ResultatArtefacts>();
-  for (const i of [...indices].reverse()) {
-    proto.set(i, resoudreEquipementDuBuildRapide(entreeResolutionDuBuild({
-      fiche: loaded.gear, runes: runesDe(i), artifactParams: a.params, regime, degats: a.degats, exclusive,
-      requirement: params.requirement, relicContext: params.relicContext, caches,
-    }), rapide, compteurs));
+  const entrees = new Map<number, EntreeResolution>();
+  try {
+    for (const i of [...indices].reverse()) {
+      const e = entreeDe(i, caches);
+      entrees.set(i, e);
+      proto.set(i, resoudreEquipementDuBuildRapide(e, rapide, compteurs, { diagnostic }));
+    }
+  } finally {
+    console.warn = warn;
   }
   const msProto = performance.now() - debut;
 
   let egaux = 0;
+  let egauxEntiers = 0;
   let conformes = 0;
   const ecarts: string[] = [];
   const jsonRef: string[] = [];
   for (const i of indices) {
     const r = ref.get(i)!;
     const p = proto.get(i)!;
+    const attendu = diagnostic ? r : sansDiagnostic(r, entrees.get(i)!);
     jsonRef.push(JSON.stringify(r));
     if (r.conforme) conformes++;
-    if (isDeepStrictEqual(r, p)) egaux++;
-    else if (ecarts.length < 5) ecarts.push(`build #${i} (${ids[i]!.join(',')}) : ${JSON.stringify(p).slice(0, 200)} ≠ ${JSON.stringify(r).slice(0, 200)}`);
+    if (isDeepStrictEqual(r, p)) egauxEntiers++;
+    if (isDeepStrictEqual(attendu, p)) egaux++;
+    else if (ecarts.length < 5) ecarts.push(`build #${i} (${ids[i]!.join(',')}) : ${JSON.stringify(p).slice(0, 200)} ≠ ${JSON.stringify(attendu).slice(0, 200)}`);
   }
   const egal = egaux === indices.length;
   dire(`Référence (resoudreEquipementCli) : ${indices.length} builds, ${conformes} conformes, ${indices.length - conformes} rejetés · empreinte ${empreinte(jsonRef)} · ${(msRef / indices.length).toFixed(2)} ms/build [indicatif]`);
-  dire(`Prototype (à rebours) : ${egal ? 'ÉGAL' : 'DIFFÈRE'} build par build (${egaux}/${indices.length}) · ${(msProto / indices.length).toFixed(2)} ms/build [indicatif]`);
+  dire(`Prototype (à rebours) : ${egal ? 'ÉGAL' : 'DIFFÈRE'} build par build ${diagnostic ? '' : 'hors diagnostic '}(${egaux}/${indices.length} ; ` +
+    `égaux en entier, diagnostic compris : ${egauxEntiers}) · ${(msProto / indices.length).toFixed(2)} ms/build [indicatif]`);
   for (const e of ecarts) dire(`  ⚠️ ${e}`);
+  dire(`Avertissements (note NaN, repli sur la production) : ${replis.length}`);
+  for (const w of replis.slice(0, 3)) dire(`  ${w}`);
   dire(`Compteurs du prototype : ${JSON.stringify(compteurs)}`);
   if (compteurs.reliques > 0) {
     dire(`  reliques écartées sans note : ${((100 * compteurs.reliquesSansFormeFaisable) / compteurs.reliques).toFixed(1)} % ; ` +
-      `reliques notées par build : ${(compteurs.reliquesNotees / compteurs.builds).toFixed(2)} (diagnostics compris : ${(compteurs.diagnostics / compteurs.builds).toFixed(2)})`);
+      `reliques à forme faisable par build : ${(compteurs.reliquesNotees / compteurs.builds).toFixed(2)} ; ` +
+      `paires faisables notées par build : ${(compteurs.notesFaisables / compteurs.builds).toFixed(1)} ; diagnostics de la production : ${compteurs.diagnostics}`);
   }
-  dire(`Verdict : ${egal ? 'résolution IDENTIQUE build par build' : '⚠️ DIFFÉRENTIEL EN ÉCHEC'}`);
+
+  // Les notes (appels d'`evaluer`) par build : comptes, pas des temps.
+  const notes: Record<string, Notes & { parBuild: number }> = {};
+  const compter = (nom: string, resoudre: (e: EntreeResolution) => ResultatArtefacts) => {
+    const n: Notes = { sondes: 0, paires: 0 };
+    const c = nouveauxCachesResolution();
+    const w = console.warn;
+    console.warn = () => {};
+    try {
+      for (const i of indices) resoudre(compteeNotes(entreeDe(i, c), n));
+    } finally {
+      console.warn = w;
+    }
+    notes[nom] = { ...n, parBuild: (n.sondes + n.paires) / indices.length };
+    dire(`Notes par build, ${nom} : ${((n.sondes + n.paires) / indices.length).toFixed(1)} (sondes ${(n.sondes / indices.length).toFixed(1)}, paires ${(n.paires / indices.length).toFixed(1)}) [compte]`);
+  };
+  if (args.includes('--compter-notes')) {
+    const r2 = new CachesResolutionRapide();
+    compter(`prototype ${diagnostic ? 'avec' : 'sans'} diagnostic`, (e) => resoudreEquipementDuBuildRapide(e, r2, undefined, { diagnostic }));
+  }
+  if (args.includes('--compter-production')) compter('production', (e) => resoudreEquipementDuBuild(e));
+
+  dire(`Verdict : ${egal ? `résolution IDENTIQUE build par build${diagnostic ? '' : ' hors diagnostic'}` : '⚠️ DIFFÉRENTIEL EN ÉCHEC'}`);
 
   const sortie = valeur('sortie');
   if (sortie) {
@@ -158,7 +242,8 @@ async function main(): Promise<number> {
     const nom = `banc-resolution-${recipe.monsterName.toLowerCase()}${valeur('suffixe') ? `-${valeur('suffixe')}` : ''}`;
     const json = {
       recette: recipe.monsterName, date: new Date().toISOString(), candidats: ids.length, echantillon: indices.length, pas,
-      egal, egaux, conformes, rejetes: indices.length - conformes, empreinteReference: empreinte(jsonRef), compteurs,
+      diagnostic, egal, egaux, egauxEntiers, conformes, rejetes: indices.length - conformes, empreinteReference: empreinte(jsonRef), compteurs,
+      avertissementsNaN: replis.length, notes,
       msParBuildReference: msRef / indices.length, msParBuildPrototype: msProto / indices.length, ecarts,
     };
     writeFileSync(join(sortie, `${nom}.json`), JSON.stringify(json, null, 2));

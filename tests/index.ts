@@ -259,7 +259,7 @@ import testRelicOptim from './relic-optim.test';
 import testRelicOracle, { testRelicOracleGroupesEffetUnique, testRelicOracleOptimumParScore } from './relic-oracle.test';
 import testRelicSearch from './relic-search.test';
 import testRelicQueue from './relic-queue.test';
-import testResolutionRapide from './resolution-rapide.test';
+import testResolutionRapide, { testResolutionRapideNaN } from './resolution-rapide.test';
 import testPerfRelicOptions from './perf-relic-options.test';
 import testRelicDifferentiel from './relic-differentiel.test';
 import testRelicUniqueLabel from './relic-unique-label.test';
@@ -719,6 +719,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testRelicSearch', testRelicSearch],
   ['testRelicQueue', testRelicQueue],
   ['testResolutionRapide', testResolutionRapide],
+  ['testResolutionRapideNaN', testResolutionRapideNaN],
   ['testPerfRelicOptions', testPerfRelicOptions],
   ['testRelicDifferentiel', testRelicDifferentiel],
   ['testRelicUniqueLabel', testRelicUniqueLabel],

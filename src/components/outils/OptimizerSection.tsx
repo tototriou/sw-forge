@@ -17,8 +17,6 @@ import {
   Download,
   ChevronLeft,
   ChevronRight,
-  ChevronDown,
-  Wrench,
   Plus,
   CheckCircle2,
   Unlock,
@@ -47,14 +45,11 @@ import { BoxItem } from '../../lib/applyAccount';
 import { regimeArtefacts, regimeEquipementDe, type RegimeArtefacts } from '../../lib/artifactEvaluation';
 import { evaluateursArtefactsFiche, parametresArtefactsFiche, piecesFigeesDe, sortesFigeesDe, statsLignesArtefactsEquipables } from '../../lib/artifactFiche';
 import {
-  RUNE_EFFECT,
   RELIC_MAIN,
   StatKey,
-  runeSetIconFilter,
   runeEfficiency,
   runeScore,
 } from '../../lib/effects';
-import RuneIcon from '../RuneIcon';
 import {
   BuildRequirement,
   estimateSearchSpace,
@@ -117,7 +112,6 @@ import {
   artifactDamageProfile,
 } from '../../lib/damage';
 import {
-  AUTO_EXCLUSION_SCOPES,
   AutoExclusionScope,
   ExclusionCandidate,
   ExclusionSelector,
@@ -168,16 +162,12 @@ import {
   BoutonIcone,
   Champ,
   ConfirmDialog,
-  FlottantAuto,
   Interrupteur,
-  MobileSheet,
-  Pastille,
   Selecteur,
   ZoneCliquable,
 } from '../../ui';
 import OptimizerListPicker from './OptimizerListPicker';
 import ExclusionCandidateRow from './ExclusionCandidateRow';
-import RuneExclusionPicker from './RuneExclusionPicker';
 import SetComboPicker from './SetComboPicker';
 import BuildCandidateCard, { PlaceEnVerification, useHauteurDesCartes } from './BuildCandidateCard';
 import DamageSetupModale from './DamageSetupModale';
@@ -186,6 +176,7 @@ import BoutonValiderBuild from './optimizer/BoutonValiderBuild';
 import BandeauBuildValide from './optimizer/BandeauBuildValide';
 import type { EtatValidation } from './optimizer/types';
 import { CONFIGURABLE_SLOTS } from './optimizer/constantes';
+import { formatBig } from '../../lib/formatBig';
 import MonstreEquipementTelephone from './optimizer/MonstreEquipementTelephone';
 import ExemplaireEtFiche from './optimizer/ExemplaireEtFiche';
 import MonstreEtListe from './optimizer/MonstreEtListe';
@@ -196,6 +187,17 @@ import SetDeRunes from './optimizer/SetDeRunes';
 import CriteresRecherche from './optimizer/CriteresRecherche';
 import MeilleursArtefacts from './optimizer/MeilleursArtefacts';
 import ArtefactsEtReliques from './optimizer/ArtefactsEtReliques';
+import CarteEtatMonstre from './optimizer/CarteEtatMonstre';
+import RunesDejaUtilisees from './optimizer/RunesDejaUtilisees';
+import ExclusionMonstrePrecis from './optimizer/ExclusionMonstrePrecis';
+import RunesImposees from './optimizer/RunesImposees';
+import ExclusionRunesContenu from './optimizer/ExclusionRunesContenu';
+import TitreExclusionRunes from './optimizer/TitreExclusionRunes';
+import TitreReglagesAvances from './optimizer/TitreReglagesAvances';
+import OptionsRechercheTelephone from './optimizer/OptionsRechercheTelephone';
+import EstimationPool from './optimizer/EstimationPool';
+import CarteExclusionRunes from './optimizer/CarteExclusionRunes';
+import CarteReglagesAvances from './optimizer/CarteReglagesAvances';
 import { PREFIXE_FICHIER } from '../../marque';
 
 interface Props {
@@ -365,12 +367,6 @@ function memesIds(a: number[], b: number[]): boolean {
   const sa = [...a].sort((x, y) => x - y);
   const sb = [...b].sort((x, y) => x - y);
   return sa.every((v, i) => v === sb[i]);
-}
-
-function formatBig(n: number): string {
-  if (!Number.isFinite(n)) return '—';
-  if (n < 1_000_000_000) return Math.round(n).toLocaleString('fr-FR');
-  return n.toExponential(1);
 }
 
 // Outil « Optimizer » : cherche, parmi les runes du compte, la (les)
@@ -3061,6 +3057,93 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     />
   );
 
+  // Assemblage des cartes de réglage (composants d'`optimizer/`). Les
+  // sélecteurs de listes restent écrits ici, branchés tels quels sur `lists` :
+  // naviguer entre les listes ou les gérer ne remet jamais la recherche à zéro.
+  const listesBureau = (
+    <OptimizerListPicker
+      action={<OptimizerImportButton enLigne sources={sourcesImport} onImporter={importerDepuisEcran} rapport={rapportImport} />}
+      lists={lists.lists}
+      activeListId={lists.activeListId}
+      memberCounts={memberCountsByList}
+      listContents={lists.listContents}
+      onSelect={lists.setActiveListId}
+      onCreate={lists.createList}
+      onEdit={lists.editList}
+      onDelete={lists.deleteList}
+    />
+  );
+
+  const listesTelephone = (
+    <OptimizerListPicker
+      lists={lists.lists}
+      activeListId={lists.activeListId}
+      memberCounts={memberCountsByList}
+      listContents={lists.listContents}
+      onSelect={lists.setActiveListId}
+      onCreate={lists.createList}
+      onEdit={lists.editList}
+      onDelete={lists.deleteList}
+    />
+  );
+
+  const setComboPicker = (
+    <SetComboPicker
+      sets={comboSets}
+      onChange={(next) => {
+        setComboSets(next);
+        if (next.length > 0) setSetPickerInvalid(false);
+        // Ouverture guidée : Accuracy ou Tolerance
+        // CHOISI comme set recherché guide vers l'interrupteur des auras
+        // RES/PRE, sans toucher aux auras externes. Au geste seulement :
+        // l'import d'une recette pose `comboSets` sans passer par ici.
+        if (guideVersResPre({ setsRecherches: comboSets }, { setsRecherches: next })) guiderVersResPre();
+      }}
+    />
+  );
+
+  const setDeRunes = (
+    <SetDeRunes
+      setPickerSectionRef={setPickerSectionRef}
+      setPickerInvalid={setPickerInvalid}
+      setComboPicker={setComboPicker}
+    />
+  );
+
+  const statPrincipaleImposee = (
+    <StatPrincipaleImposee
+      mainStatsBySlot={mainStatsBySlot}
+      toggleMainStat={toggleMainStat}
+    />
+  );
+
+  const conditions = (
+    <Conditions
+      excludeBase={excludeBase}
+      setExcludeBase={setExcludeBase}
+      baseOf={baseOf}
+      artifactFloorOf={artifactFloorOf}
+      minStats={minStats}
+      maxStats={maxStats}
+      setMinStats={setMinStats}
+      setMaxStats={setMaxStats}
+    />
+  );
+
+  const etatMonstre = (
+    <EtatMonstre
+      setup={damageSetup}
+      maj={majDamageSetup}
+      equipe={combatMembre.equipe !== null}
+      motifLead={combatMembre.motif}
+      etroit={etroit}
+      artefacts={artefactsDegats}
+      rappelAuras={rappelAuras !== null}
+      onGuiderResPre={guiderVersResPre}
+      rappelsBuffs={rappelsBuffs}
+    />
+  );
+
   const rapportZoneC = [...lists.rapportStockage, ...optimizer.rapportCriteres];
   const zoneCContent = (
     <div className="rounded-lg border border-border-soft bg-panel2/60 p-2.5">
@@ -3277,139 +3360,6 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
     </div>
   );
 
-  // Assemblage des cartes de réglage (composants d'`optimizer/`). Les
-  // sélecteurs de listes restent écrits ici, branchés tels quels sur `lists` :
-  // naviguer entre les listes ou les gérer ne remet jamais la recherche à zéro.
-  const listesBureau = (
-    <OptimizerListPicker
-      action={<OptimizerImportButton enLigne sources={sourcesImport} onImporter={importerDepuisEcran} rapport={rapportImport} />}
-      lists={lists.lists}
-      activeListId={lists.activeListId}
-      memberCounts={memberCountsByList}
-      listContents={lists.listContents}
-      onSelect={lists.setActiveListId}
-      onCreate={lists.createList}
-      onEdit={lists.editList}
-      onDelete={lists.deleteList}
-    />
-  );
-
-  const listesTelephone = (
-    <OptimizerListPicker
-      lists={lists.lists}
-      activeListId={lists.activeListId}
-      memberCounts={memberCountsByList}
-      listContents={lists.listContents}
-      onSelect={lists.setActiveListId}
-      onCreate={lists.createList}
-      onEdit={lists.editList}
-      onDelete={lists.deleteList}
-    />
-  );
-
-  const monstreEtListe = (
-    <MonstreEtListe
-      allMonsters={allMonsters}
-      pickSpecies={pickSpecies}
-      selected={selected}
-      listesBureau={listesBureau}
-      zoneCContent={zoneCContent}
-    />
-  );
-
-  const exemplaireEtFiche = (
-    <ExemplaireEtFiche
-      zoneDRef={zoneDRef}
-      sourceOptions={sourceOptions}
-      matchesValidatedBuild={matchesValidatedBuild}
-      unowned={unowned}
-      gearSource={gearSource}
-      pickSource={pickSource}
-      allSourcesEmpty={allSourcesEmpty}
-      zoneDOpen={zoneDOpen}
-      zoneDList={zoneDList}
-      validatedBadge={validatedBadge}
-      selected={selected}
-      selectionFiche={selectionFiche}
-      setSelectionFiche={setSelectionFiche}
-      relicUsageById={relicUsageById}
-      validateBuildButton={validateBuildButton}
-    />
-  );
-
-  const monstreEquipementTelephone = (
-    <MonstreEquipementTelephone
-      allMonsters={allMonsters}
-      pickSpecies={pickSpecies}
-      ligneMonstreTelephoneRef={ligneMonstreTelephoneRef}
-      selected={selected}
-      sourcesImport={sourcesImport}
-      importerDepuisEcran={importerDepuisEcran}
-      rapportImport={rapportImport}
-      setZoneCOpen={setZoneCOpen}
-      zoneCOpen={zoneCOpen}
-      eclatImport={eclatImport}
-      listesTelephone={listesTelephone}
-      sourceOptions={sourceOptions}
-      matchesValidatedBuild={matchesValidatedBuild}
-      unowned={unowned}
-      gearSource={gearSource}
-      pickSource={pickSource}
-      allSourcesEmpty={allSourcesEmpty}
-      zoneDOpen={zoneDOpen}
-      zoneDList={zoneDList}
-      zoneCContent={zoneCContent}
-      validatedBadge={validatedBadge}
-      selectionFiche={selectionFiche}
-      setSelectionFiche={setSelectionFiche}
-      relicUsageById={relicUsageById}
-      validateBuildButton={validateBuildButton}
-    />
-  );
-
-  const setComboPicker = (
-    <SetComboPicker
-      sets={comboSets}
-      onChange={(next) => {
-        setComboSets(next);
-        if (next.length > 0) setSetPickerInvalid(false);
-        // Ouverture guidée : Accuracy ou Tolerance
-        // CHOISI comme set recherché guide vers l'interrupteur des auras
-        // RES/PRE, sans toucher aux auras externes. Au geste seulement :
-        // l'import d'une recette pose `comboSets` sans passer par ici.
-        if (guideVersResPre({ setsRecherches: comboSets }, { setsRecherches: next })) guiderVersResPre();
-      }}
-    />
-  );
-
-  const setDeRunes = (
-    <SetDeRunes
-      setPickerSectionRef={setPickerSectionRef}
-      setPickerInvalid={setPickerInvalid}
-      setComboPicker={setComboPicker}
-    />
-  );
-
-  const statPrincipaleImposee = (
-    <StatPrincipaleImposee
-      mainStatsBySlot={mainStatsBySlot}
-      toggleMainStat={toggleMainStat}
-    />
-  );
-
-  const conditions = (
-    <Conditions
-      excludeBase={excludeBase}
-      setExcludeBase={setExcludeBase}
-      baseOf={baseOf}
-      artifactFloorOf={artifactFloorOf}
-      minStats={minStats}
-      maxStats={maxStats}
-      setMinStats={setMinStats}
-      setMaxStats={setMaxStats}
-    />
-  );
-
   return (
     // ⚠️ **Pleine largeur**, comme RTA/Siège/Mon compte — l'ancienne colonne
     // bornée à 768 px était le seul écran de l'app à s'en imposer une, et
@@ -3493,9 +3443,63 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
           « Réglages avancés » occupent la colonne 2, rangées 4 et 5 (voir
           plus bas). */}
       <MonstreEquipement
-        monstreEtListe={monstreEtListe}
-        exemplaireEtFiche={exemplaireEtFiche}
-        monstreEquipementTelephone={monstreEquipementTelephone}
+        monstreEtListe={
+          <MonstreEtListe
+            allMonsters={allMonsters}
+            pickSpecies={pickSpecies}
+            selected={selected}
+            listesBureau={listesBureau}
+            zoneCContent={zoneCContent}
+          />
+        }
+        exemplaireEtFiche={
+          <ExemplaireEtFiche
+            zoneDRef={zoneDRef}
+            sourceOptions={sourceOptions}
+            matchesValidatedBuild={matchesValidatedBuild}
+            unowned={unowned}
+            gearSource={gearSource}
+            pickSource={pickSource}
+            allSourcesEmpty={allSourcesEmpty}
+            zoneDOpen={zoneDOpen}
+            zoneDList={zoneDList}
+            validatedBadge={validatedBadge}
+            selected={selected}
+            selectionFiche={selectionFiche}
+            setSelectionFiche={setSelectionFiche}
+            relicUsageById={relicUsageById}
+            validateBuildButton={validateBuildButton}
+          />
+        }
+        monstreEquipementTelephone={
+          <MonstreEquipementTelephone
+            allMonsters={allMonsters}
+            pickSpecies={pickSpecies}
+            ligneMonstreTelephoneRef={ligneMonstreTelephoneRef}
+            selected={selected}
+            sourcesImport={sourcesImport}
+            importerDepuisEcran={importerDepuisEcran}
+            rapportImport={rapportImport}
+            setZoneCOpen={setZoneCOpen}
+            zoneCOpen={zoneCOpen}
+            eclatImport={eclatImport}
+            listesTelephone={listesTelephone}
+            sourceOptions={sourceOptions}
+            matchesValidatedBuild={matchesValidatedBuild}
+            unowned={unowned}
+            gearSource={gearSource}
+            pickSource={pickSource}
+            allSourcesEmpty={allSourcesEmpty}
+            zoneDOpen={zoneDOpen}
+            zoneDList={zoneDList}
+            zoneCContent={zoneCContent}
+            validatedBadge={validatedBadge}
+            selectionFiche={selectionFiche}
+            setSelectionFiche={setSelectionFiche}
+            relicUsageById={relicUsageById}
+            validateBuildButton={validateBuildButton}
+          />
+        }
       />
 
       {/* Étape 3. ⚠️ **`w-fit` RETIRÉ** (demande explicite) : sans lui, la
@@ -3566,19 +3570,9 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
           ⚠️ `xl:col-start-2 xl:row-start-3` — la colonne 2 passe donc à QUATRE
           cartes empilées, d'où le `row-span-4` de « Critères de recherche » et
           le décalage d'une rangée de tout ce qui suit. */}
-      <div className="rounded-xl border border-border bg-panel p-3 xl:col-start-2 xl:row-start-3">
-        <EtatMonstre
-          setup={damageSetup}
-          maj={majDamageSetup}
-          equipe={combatMembre.equipe !== null}
-          motifLead={combatMembre.motif}
-          etroit={etroit}
-          artefacts={artefactsDegats}
-          rappelAuras={rappelAuras !== null}
-          onGuiderResPre={guiderVersResPre}
-          rappelsBuffs={rappelsBuffs}
-        />
-      </div>
+      <CarteEtatMonstre
+        etatMonstre={etatMonstre}
+      />
 
       {/* ⚠️ « Objectif de recherche » N'EST PAS ICI — il est dans la carte
           du bouton Rechercher, plus bas : *quoi* chercher et *chercher* vont
@@ -3798,44 +3792,16 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
         );
 
         const reglagesAvancesTitre = (
-          <>
-            {/* Clé à molette, distincte des curseurs de « Critères de
-                recherche » (forme différente, pas seulement une couleur) —
-                même traitement accent que les autres en-têtes de carte. */}
-            <div className="flex h-6 w-6 flex-none items-center justify-center rounded-md border border-accent/40 bg-accent-soft">
-              <Wrench size={13} className="text-accent" />
-            </div>
-            Réglages avancés
-          </>
+          <TitreReglagesAvances />
         );
 
         const dejaUtiliseesBlock = (
-          <div>
-            <div className="flex flex-wrap items-center gap-1.5 mb-2">
-              {/* Roue de runes (le fond derrière les runes des résultats de
-                  build, RuneWheel.tsx), barrée du symbole « interdit » —
-                  même traitement que l'icône « Exclusion de runes » : ce
-                  réglage retire des runes DÉJÀ PORTÉES de la recherche. */}
-              <IconeInterdite>
-                <img src={WHEEL_IMG} alt="" className="h-4 w-4 object-contain" />
-              </IconeInterdite>
-              <span className="text-[12.5px] font-semibold text-ink-dim">Exclure les runes déjà utilisées</span>
-              <HelpPopover title="Exclure les runes déjà utilisées">
-                Par défaut, la recherche considère TOUT l'inventaire, runes déjà portées ailleurs comprises. Active ce
-                réglage pour retirer de la recherche les runes déjà portées par d'AUTRES monstres dans le périmètre
-                choisi ci-dessous (un seul à la fois) — un build réellement montable sans déruner quelqu'un. Le monstre
-                recherché lui-même n'est jamais exclu de ses propres runes.
-              </HelpPopover>
-              <Interrupteur actif={excludeUsedRunes} onChange={setExcludeUsedRunes} aria-label="Exclure les runes déjà utilisées" />
-            </div>
-            <Segmented
-              options={AUTO_EXCLUSION_SCOPES}
-              value={excludeUsedScope}
-              onChange={setExcludeUsedScope}
-              disabled={!excludeUsedRunes}
-              size="lg"
-            />
-          </div>
+          <RunesDejaUtilisees
+            excludeUsedRunes={excludeUsedRunes}
+            setExcludeUsedRunes={setExcludeUsedRunes}
+            excludeUsedScope={excludeUsedScope}
+            setExcludeUsedScope={setExcludeUsedScope}
+          />
         );
 
         // Exclusion MANUELLE — se superpose à « Exclure les runes déjà
@@ -3848,29 +3814,13 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
         // doigt (voir Segmented.tsx). Le bloc est donc identique dans les
         // deux rendus.
         const monstrePrecisBlock = (
-          <div>
-            <div className="mb-2.5 flex items-center gap-1.5">
-              {/* Même icône que « Monstre & équipement » (GameIcon
-                  "monster"), barrée du symbole « interdit » — même
-                  traitement que l'icône « Exclusion de runes » plus bas :
-                  cette action RETIRE le monstre choisi du pool de runes. */}
-              <IconeInterdite>
-                {/* ⚠️ L'artwork du monstre n'est pas parfaitement centré dans
-                    son canevas — invisible seul, ça se voit à côté du cercle
-                    « interdit », lui parfaitement centré par positionnement
-                    absolu. Léger recalage manuel, propre à cet usage précis. */}
-                <GameIcon name="monster" size={13} className="-translate-x-[1.5px]" />
-              </IconeInterdite>
-              <span className="text-[12.5px] font-semibold text-ink-dim">Exclure les runes d'un monstre</span>
-            </div>
-            <RuneExclusionPicker
-              data={exclusionData}
-              excludeOwnUnitKey={selectedUnitKey}
-              excludeOwnCom2usId={selected?.monster.com2usId ?? null}
-              selected={excludedSelectors}
-              onChange={setExcludedSelectors}
-            />
-          </div>
+          <ExclusionMonstrePrecis
+            exclusionData={exclusionData}
+            selectedUnitKey={selectedUnitKey}
+            selected={selected}
+            excludedSelectors={excludedSelectors}
+            setExcludedSelectors={setExcludedSelectors}
+          />
         );
 
         // ⚠️ **Runes imposées** — déplacé depuis « Critères de recherche »
@@ -3889,59 +3839,11 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
         // avec l'exclusion : même thème (agir sur le POOL de runes à partir
         // de l'exemplaire recherché), même carte.
         const runesImposeesBlock = (
-          <div>
-            <div className="mb-2.5 flex items-center gap-1.5">
-              <p className="label" data-intitule-conserve>Conserver ces slots dans l'optimisation</p>
-              <HelpPopover title="Conserver ces slots dans l'optimisation">
-                Verrouille un emplacement sur la rune que le monstre porte déjà : la recherche gardera
-                <b className="text-ink"> exactement cette rune</b> et n'optimisera que les autres. Utile pour
-                conserver une rune que tu ne veux pas déruner. Les emplacements laissés libres sont optimisés
-                normalement.
-              </HelpPopover>
-            </div>
-            {!selected || selected.gear.runes.length === 0 ? (
-              <p className="text-micro text-ink-dim">Aucune rune équipée sur cet exemplaire — rien à conserver.</p>
-            ) : (
-              <div className="flex flex-wrap gap-1.5">
-                {[1, 2, 3, 4, 5, 6].map((slot) => {
-                  const portee = selected.gear.runes.find((r) => r.slot === slot);
-                  const verrouille = lockedRunes[slot] != null;
-                  if (!portee) {
-                    return (
-                      <span
-                        key={slot}
-                        className="rounded-full border border-border bg-panel2 px-2.5 py-1 text-micro text-ink-dimmer opacity-50"
-                        title={`Aucune rune en emplacement ${slot}`}
-                      >
-                        Slot {slot} —
-                      </span>
-                    );
-                  }
-                  return (
-                    <Pastille
-                      key={slot}
-                      actif={verrouille}
-                      onClick={() =>
-                        setLockedRunes((prev) => {
-                          const next = { ...prev };
-                          if (next[slot] != null) delete next[slot];
-                          else next[slot] = portee.id;
-                          return next;
-                        })
-                      }
-                      icone={<RuneIcon setKey={portee.set} size={13} filter={runeSetIconFilter(verrouille)} />}
-                      libelle={`Slot ${slot} · ${RUNE_EFFECT[portee.main.code]?.label ?? portee.main.code}`}
-                      title={
-                        verrouille
-                          ? `Libérer l'emplacement ${slot}`
-                          : `Imposer cette rune en emplacement ${slot} (le pool de ce slot tombe à 1)`
-                      }
-                    />
-                  );
-                })}
-              </div>
-            )}
-          </div>
+          <RunesImposees
+            selected={selected}
+            lockedRunes={lockedRunes}
+            setLockedRunes={setLockedRunes}
+          />
         );
 
         // ⚠️ `dansPanneau` : dans le panneau, « Exclure les runes d'un
@@ -3954,50 +3856,23 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
         // imposées », un mécanisme DISTINCT (verrou, pas exclusion), suit en
         // dernier après un séparateur, pleine largeur dans les deux cas.
         const exclusionRunesInner = (dansPanneau: boolean) => (
-          <>
-            <p className="mb-3 pl-8 text-[11px] text-ink-dim">Deux réglages indépendants, qui se superposent.</p>
-
-            {dansPanneau ? (
-              // ⚠️ `space-y-4` (blocs) et non `flex flex-col` : sous
-              // `[data-tiroir]`, `align-items: flex-start` raboterait ces deux
-              // blocs — et donc leurs contrôles pleine largeur — à leur contenu.
-              <div className="space-y-4">
-                {monstrePrecisBlock}
-                {dejaUtiliseesBlock}
-              </div>
-            ) : (
-              // Côte à côte à partir de `sm` — cette carte vit maintenant
-              // dans la colonne LARGE (`1fr`) de la grille de réglages, aux
-              // côtés de « Monstre & équipement » (voir le commentaire
-              // d'ouverture de la grille), largement assez pour ce layout
-              // interne. ⚠️ Un `xl:grid-cols-1` a existé ici le temps d'une
-              // révision antérieure de la mise en page, où cette carte se
-              // retrouvait confinée à une colonne étroite (340-400px) —
-              // retiré avec cette colonne, voir historique. Colonne de
-              // gauche plus étroite (toggle + 3 options) que celle de droite
-              // (recherche + liste), pas un 50/50 aveugle.
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-[minmax(200px,260px)_1fr] sm:gap-5">
-                <div className="sm:border-r sm:border-border-soft sm:pr-5">{dejaUtiliseesBlock}</div>
-                {monstrePrecisBlock}
-              </div>
-            )}
-
-            <div className="mt-4 border-t border-border-soft pt-4">{runesImposeesBlock}</div>
-          </>
+          <ExclusionRunesContenu
+            dansPanneau={dansPanneau}
+            monstrePrecisBlock={monstrePrecisBlock}
+            dejaUtiliseesBlock={dejaUtiliseesBlock}
+            runesImposeesBlock={runesImposeesBlock}
+          />
         );
 
         const exclusionRunesTitre = (
-          <>
-            {/* Icône « Runes » de Mon compte (même GameIcon que le menu),
-                barrée du vrai symbole « interdit » (cercle barré, comme le
-                curseur non-cliquable) plutôt qu'un simple trait — l'exclusion
-                RETIRE des runes de la recherche. */}
-            <IconeInterdite taille={22}>
-              <GameIcon name="rune" size={13} />
-            </IconeInterdite>
-            <p className="text-[13.5px] font-bold text-ink">Exclusion de runes</p>
-          </>
+          <TitreExclusionRunes />
         );
+
+        // Un contenu, deux surfaces : la carte du bureau et le panneau au doigt.
+        const reglagesAvancesBureau = reglagesAvancesInner(false);
+        const exclusionRunesBureau = exclusionRunesInner(false);
+        const exclusionRunesPanneau = exclusionRunesInner(true);
+        const reglagesAvancesPanneau = reglagesAvancesInner(true);
 
         return (
           <>
@@ -4009,36 +3884,13 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
                 elle-même ne change JAMAIS de hauteur au dépliement — son
                 contenu déplié flotte par-dessus, il ne s'ajoute plus au DOM
                 en flux normal. */}
-            <div
-              ref={avancesRef}
-              className="hidden lg:block relative rounded-xl border border-border bg-panel p-3 xl:col-start-2 xl:row-start-5"
-            >
-              <ZoneCliquable
-                onClick={() => setShowAdvanced((v) => !v)}
-                aria-expanded={showAdvanced}
-                className="flex w-full items-center gap-1.5 text-sm font-bold text-ink"
-              >
-                {reglagesAvancesTitre}
-                <ChevronDown
-                  size={14}
-                  className={`ml-auto text-ink-dim transition-transform ${showAdvanced ? 'rotate-180' : ''}`}
-                />
-              </ZoneCliquable>
-              {/* ⚠️ `largeurAncre` : le panneau prend EXACTEMENT la largeur de
-                  la carte qui l'ancre, et la suit quand l'écran change de
-                  taille. Les 340 px d'origine en faisaient à peu près la
-                  moitié — une largeur en dur ne peut pas suivre une carte dont
-                  la largeur dépend de la fenêtre.
-                  ⚠️ `hauteur` reste une ESTIMATION, et volontairement
-                  généreuse : elle ne sert qu'à choisir le côté AVANT que le
-                  contenu existe. La surestimer biaise le placement vers le
-                  haut, sans conséquence ; la sous-estimer ouvre du mauvais
-                  côté. `max-h-[70vh] overflow-y-auto` reste le garde-fou sur
-                  une fenêtre basse. */}
-              <FlottantAuto ouvert={showAdvanced} ancre={avancesRef} largeurAncre hauteur={420} rembourrage="md">
-                <div className="max-h-[70vh] overflow-y-auto">{reglagesAvancesInner(false)}</div>
-              </FlottantAuto>
-            </div>
+            <CarteReglagesAvances
+              avancesRef={avancesRef}
+              setShowAdvanced={setShowAdvanced}
+              showAdvanced={showAdvanced}
+              reglagesAvancesTitre={reglagesAvancesTitre}
+              reglagesAvancesBureau={reglagesAvancesBureau}
+            />
 
             {/* Bureau : « Exclusion de runes », colonne 2, rangée 3 — SOUS
                 « Objectif de recherche » (même colonne, rangée 2, voir son
@@ -4057,30 +3909,13 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
                 extérieur) plutôt que réécrit : deux mécanismes de dépliement
                 voisins auraient divergé, et celui-là avait déjà été corrigé
                 une fois pour cette même raison. */}
-            <div
-              ref={exclusionRef}
-              className="hidden lg:block relative rounded-xl border border-accent/50 bg-panel p-3 xl:col-start-2 xl:row-start-4"
-            >
-              <ZoneCliquable
-                onClick={() => setShowExclusion((v) => !v)}
-                aria-expanded={showExclusion}
-                className="flex w-full items-center gap-2 text-sm font-bold text-ink"
-              >
-                {exclusionRunesTitre}
-                <ChevronDown
-                  size={14}
-                  className={`ml-auto text-ink-dim transition-transform ${showExclusion ? 'rotate-180' : ''}`}
-                />
-              </ZoneCliquable>
-              {/* `largeurAncre` comme « Réglages avancés » — voir son
-                  commentaire juste au-dessus.
-                  ⚠️ `hauteur` plus généreuse (560) : ce contenu porte deux
-                  réglages d'exclusion, le picker de monstre et la liste des
-                  runes imposées. Estimation seulement. */}
-              <FlottantAuto ouvert={showExclusion} ancre={exclusionRef} largeurAncre hauteur={560} rembourrage="md">
-                <div className="max-h-[70vh] overflow-y-auto">{exclusionRunesInner(false)}</div>
-              </FlottantAuto>
-            </div>
+            <CarteExclusionRunes
+              exclusionRef={exclusionRef}
+              setShowExclusion={setShowExclusion}
+              showExclusion={showExclusion}
+              exclusionRunesTitre={exclusionRunesTitre}
+              exclusionRunesBureau={exclusionRunesBureau}
+            />
 
             {/* ⚠️ Placée en rangée 6 (`xl:col-span-2`, pleine largeur) : ni
                 dans la colonne Critères (rangées 2-5) ni dans la colonne
@@ -4090,10 +3925,9 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
                 dépliement de Réglages avancés, désormais un flottant hors
                 flux plutôt qu'un bloc qui poussait tout ce qui suivait. */}
             {estimate && (
-              <p className="font-mono text-micro text-ink-dim xl:col-span-2 xl:row-start-6">
-                {formatBig(estimate.perSlot.reduce((a, b) => a + b, 0))} runes gardées après pré-filtrage
-                (pool par emplacement : {estimate.perSlot.join(' + ')})
-              </p>
+              <EstimationPool
+                estimate={estimate}
+              />
             )}
 
             {/* Doigt : panneau « Options de recherche », ordre Exclusion de
@@ -4102,27 +3936,14 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
                 dans son propre cadre (`bg-panel2`) : deux unités visuelles
                 distinctes, pas juste un trait de séparation entre deux blocs
                 de texte. */}
-            <MobileSheet ouvert={menuOuvert} onFermer={onFermerMenu} titre="Options de recherche">
-              {/* ⚠️ `space-y-3` et NON `flex flex-col` : le corps du panneau
-                  porte `data-tiroir`, et index.css y pose
-                  `[data-tiroir] .flex-col { align-items: flex-start }` — écrit
-                  pour les rangées d'actions, mais qui rabote ici les deux cartes
-                  à la largeur de leur contenu au lieu de les étirer. En blocs
-                  (`space-y`), les cartes reprennent d'elles-mêmes toute la
-                  largeur du panneau. Même piège que MobileNavSheet. */}
-              <div className="space-y-3">
-                <div className="rounded-lg border border-border-soft bg-panel2 p-3">
-                  <div className="mb-0.5 flex items-center gap-2">{exclusionRunesTitre}</div>
-                  {exclusionRunesInner(true)}
-                </div>
-                <div className="rounded-lg border border-border-soft bg-panel2 p-3">
-                  <div className="mb-3 flex items-center gap-1.5 text-[13px] font-bold text-ink">
-                    {reglagesAvancesTitre}
-                  </div>
-                  {reglagesAvancesInner(true)}
-                </div>
-              </div>
-            </MobileSheet>
+            <OptionsRechercheTelephone
+              menuOuvert={menuOuvert}
+              onFermerMenu={onFermerMenu}
+              exclusionRunesTitre={exclusionRunesTitre}
+              exclusionRunesPanneau={exclusionRunesPanneau}
+              reglagesAvancesTitre={reglagesAvancesTitre}
+              reglagesAvancesPanneau={reglagesAvancesPanneau}
+            />
           </>
         );
       })()}

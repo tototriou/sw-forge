@@ -35,7 +35,7 @@ arrêtée ainsi alors qu'il lui restait des combinaisons à examiner rend la
 recherche **tronquée**, même si le total reste sous le plafond : l'écran
 affiche alors « Recherche interrompue après examen de N combinaisons —
 resserre tes critères pour un résultat exhaustif. »
-(`OptimizerSection.tsx`), plutôt que de présenter le résultat comme
+(`src/components/outils/optimizer/AvisRechercheTronquee.tsx`), plutôt que de présenter le résultat comme
 complet. La troncature ne change que le message : la recherche n'examine
 rien de plus. Une tranche qui remplit
 son quart sur sa toute dernière combinaison ne laisse rien de côté et ne

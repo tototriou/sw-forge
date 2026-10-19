@@ -9,20 +9,12 @@ import OptimizerImportButton, { type SourceImportOptimizer } from './OptimizerIm
 import { importerRecoOptimizer } from '../../lib/importRecoOptimizer';
 import { importerDefensesSiegeOptimizer, importerOffenseSiegeOptimizer, importerPrepaRtaOptimizer, type RapportImportOptimizer } from '../../lib/importEquipes';
 import {
-  Search,
-  Square,
   FlaskConical,
   Target,
-  Upload,
-  Download,
-  ChevronLeft,
-  ChevronRight,
   Plus,
   CheckCircle2,
   Unlock,
   Trash2,
-  Swords,
-  Pencil,
 } from 'lucide-react';
 import { ArtifactDetail, ArtifactKind, ARTIFACT_KINDS, ELEMENTS, RECO_STATS, RelicDetail, RuneDetail, Monster, RtaEntry, SiegeTeam, Reco } from '../../types';
 import { computeStats } from '../../lib/stats';
@@ -57,8 +49,6 @@ import {
   StatFeasibility,
   rankBlockingConditions,
   BlockingConditionsDiagnosis,
-  NearMiss,
-  StatShortfall,
   statTotal,
   objectiveScore,
   avecAurasConditions,
@@ -67,7 +57,6 @@ import {
   optionsDeClassement,
   scoreDeReference,
   candidateMetricTotal,
-  pvEffectifs,
   aurasPropresParRunes,
   OBJECTIVE_LABELS,
   RealDamageContext,
@@ -147,7 +136,7 @@ import {
   relicMainChoiceApresChangementExemplaire,
 } from '../../hooks/useOptimizerState';
 import { UseOptimizerLists } from '../../hooks/useOptimizerLists';
-import { useRuneMetric, formatRuneMetric } from '../../hooks/useRuneMetric';
+import { useRuneMetric } from '../../hooks/useRuneMetric';
 import { useMediaQuery, SOUS_LG, SOUS_SM } from '../../hooks/useMediaQuery';
 import GameIcon from '../GameIcon';
 import IconeInterdite from '../IconeInterdite';
@@ -160,8 +149,6 @@ import OptimizerLeadInactif, { MotifHorsFlux } from './OptimizerLeadInactif';
 import {
   Bouton,
   BoutonIcone,
-  Champ,
-  ConfirmDialog,
   Interrupteur,
   Selecteur,
   ZoneCliquable,
@@ -198,6 +185,14 @@ import OptionsRechercheTelephone from './optimizer/OptionsRechercheTelephone';
 import EstimationPool from './optimizer/EstimationPool';
 import CarteExclusionRunes from './optimizer/CarteExclusionRunes';
 import CarteReglagesAvances from './optimizer/CarteReglagesAvances';
+import ObjectifEtActions from './optimizer/ObjectifEtActions';
+import ProgressionRecherche from './optimizer/ProgressionRecherche';
+import DiagnosticFaisabilite from './optimizer/DiagnosticFaisabilite';
+import PaginationResultats from './optimizer/PaginationResultats';
+import DiagnosticApprofondi from './optimizer/DiagnosticApprofondi';
+import QuasiSucces from './optimizer/QuasiSucces';
+import AvisRechercheTronquee from './optimizer/AvisRechercheTronquee';
+import ConfirmationsLiberation from './optimizer/ConfirmationsLiberation';
 import { PREFIXE_FICHIER } from '../../marque';
 
 interface Props {
@@ -3984,134 +3979,21 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
         />
       )}
 
-      <div className="rounded-xl border border-border bg-panel p-3 shadow-lg">
-        {/* ⚠️ **L'objectif vit avec le bouton qui lance la recherche**, plus
-            dans une cellule de la grille de réglages. Il y était « une carte
-            À PART » parce qu'il portait AUSSI la description du combat, qui
-            réclamait de la place ; celle-ci partie en fenêtre, il ne reste
-            qu'un segmenté à quatre crans — et *quoi* chercher se lit mieux
-            juste au-dessus de *chercher* que parmi les critères.
-            ⚠️ Titre en `label`, sans le carré d'icône accentué qu'il portait
-            comme en-tête de carte : ce n'en est plus une, c'est une section
-            dans celle des actions — même traitement que « Set de runes
-            recherché » ou « Conditions ». */}
-        <div className="mb-3">
-          <div className="mb-1.5 flex items-center gap-1.5">
-            <p className="label">Objectif de recherche</p>
-            <HelpPopover title="Objectif de recherche">
-              Ce que la recherche maximise. <b className="text-ink">Dégâts réels</b> : les dégâts d&apos;un sort
-              précis contre l&apos;adversaire décrit.
-            </HelpPopover>
-          </div>
-          {/* ⚠️ Choisir « Dégâts réels » OUVRE la description du combat, il ne
-              fait pas que la révéler. La carte apparaissait auparavant sous
-              l'objectif, et rien n'obligeait à la regarder : on pouvait classer
-              des milliers de builds sur un sort, une cible et un mode de
-              critique jamais choisis. Le geste devient explicite — cet objectif
-              ne se choisit plus sans voir ses hypothèses. */}
-          <Segmented
-            options={OBJECTIVE_LABELS}
-            value={objective}
-            onChange={(o) => {
-              setObjective(o);
-              if (o === 'degats_reels') setSetupOuvert(true);
-            }}
-            size="lg"
-          />
-          {/* Le résumé remplace la carte dans le flux ET sert de porte de
-              réouverture : sans lui, une fenêtre fermée rendrait les
-              hypothèses inatteignables autant qu'invisibles. */}
-          {objective === 'degats_reels' && (
-            <ZoneCliquable
-              onClick={() => setSetupOuvert(true)}
-              className="mt-2.5 flex w-full items-center gap-1.5 rounded-lg border border-border-soft bg-panel2 px-2 py-1.5 text-left"
-              aria-label="Modifier la description du combat"
-            >
-              <Swords size={13} className="flex-none text-ink-dim" />
-              <span className="text-micro leading-tight text-ink-dim">{resumeCombat}</span>
-              <Pencil size={12} className="ml-auto flex-none text-ink-dim" />
-            </ZoneCliquable>
-          )}
-        </div>
-
-        {/* ⚠️ Rangée d'actions inchangée — mêmes classes qu'avant que
-            l'objectif ne la rejoigne : elle était la carte entière, elle en
-            devient la seconde moitié. Une rangée à part, et non un `flex-wrap`
-            commun avec l'objectif : le segmenté et les boutons se seraient
-            réarrangés l'un autour de l'autre au gré de la largeur. */}
-        <div className="flex flex-wrap items-center gap-3">
-        {/* ⚠️ `comboSets.length === 0` reste HORS de `disabled` — un bouton
-            HTML natif `disabled` ne déclenche JAMAIS `onClick` (règle du
-            DOM, pas un oubli), ce qui aurait rendu le défilement vers « Set
-            de runes recherché » plus haut inatteignable : plus aucun clic
-            ne pouvait jamais arriver jusqu'à `handleSearch`. Grisé
-            visuellement à la place (mêmes classes que `disabled:*`,
-            appliquées manuellement) tout en restant cliquable, pour que le
-            clic sur un set manquant décale toujours vers la section fautive
-            plutôt que de ne rien faire silencieusement. */}
-        <Bouton
-          ton="accent"
-          onClick={handleSearch}
-          disabled={!selected || status === 'running'}
-          title={selected && status !== 'running' && comboSets.length === 0 ? 'Choisis d\'abord un set de runes recherché' : undefined}
-          icone={<Search size={15} />}
-          libelle={status === 'running' ? 'Recherche…' : 'Rechercher'}
-          className={comboSets.length === 0 ? 'opacity-40 cursor-not-allowed' : ''}
-        />
-
-        {/* Exporte les réglages de CETTE recherche (set, minimums, objectif…),
-            jamais le pool de runes ni le compte — pour reproduire fidèlement
-            un cas signalé, partager une recherche entre joueurs (chacun
-            l'applique à son propre inventaire), ou la réutiliser depuis un
-            script. Voir src/lib/optimizerRecipe.ts. */}
-        <Bouton
-          onClick={exportRecipe}
-          disabled={!selected || comboSets.length === 0}
-          title="Télécharger les réglages de cette recherche en fichier .json (set, minimums, objectif…) — pour la partager ou la reproduire, jamais tes runes ni ton compte."
-          icone={<Upload size={14} />}
-          libelle="Exporter les paramètres de recherche"
-          libelleCourt="Exporter"
-        />
-
-        {/* Reprend une recette importée (fichier reçu d'un autre joueur, ou
-            gardée de côté) — remplit les réglages et sélectionne le monstre
-            si son com2usId existe dans CETTE box. Aucune confirmation :
-            remplacer les réglages en cours n'est pas plus destructeur que
-            les modifier à la main un par un. */}
-        <Bouton
-          onClick={() => importFileRef.current?.click()}
-          title="Reprendre les réglages d'un fichier .json exporté depuis l'Optimizer (le tien ou celui d'un autre joueur)."
-          icone={<Download size={14} />}
-          libelle="Importer les paramètres de recherche"
-          libelleCourt="Importer"
-        />
-        <input
-          ref={importFileRef}
-          type="file"
-          accept=".json,application/json"
-          className="hidden"
-          onChange={(e) => {
-            const f = e.target.files?.[0];
-            e.target.value = ''; // permet de réimporter le même fichier
-            if (f) importRecipe(f);
-          }}
-        />
-
-        {status === 'running' && (
-          <Bouton
-            ton="danger"
-            fond="vide"
-            onClick={() => {
-              setStoppedManually(true);
-              stop();
-            }}
-            title="Arrêter la recherche et garder ce qui a déjà été trouvé"
-            icone={<Square size={13} />}
-            libelle="Arrêter"
-          />
-        )}
-        </div>
-      </div>
+      <ObjectifEtActions
+        objective={objective}
+        setObjective={setObjective}
+        setSetupOuvert={setSetupOuvert}
+        resumeCombat={resumeCombat}
+        handleSearch={handleSearch}
+        selected={selected}
+        status={status}
+        comboSets={comboSets}
+        exportRecipe={exportRecipe}
+        importFileRef={importFileRef}
+        importRecipe={importRecipe}
+        setStoppedManually={setStoppedManually}
+        stop={stop}
+      />
 
       {importMsg && (
         <p className={`text-[12.5px] ${classeMessageImport(importMsg)}`} role="status">
@@ -4119,99 +4001,43 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
         </p>
       )}
 
-      {/* ⚠️ Deux phases distinctes affichées différemment, pas une seule
-          barre continue : `building` (construction des compartiments, avant
-          même de savoir combien de paires il y aura à explorer) et `pairing`
-          (l'ancienne barre, inchangée) ne partagent pas la même notion de
-          progression — les mélanger sous un seul repère aurait été plus
-          trompeur qu'utile (la barre aurait pu reculer en changeant de
-          phase). Avant ce correctif, `progress` restait `null` pendant toute
-          la phase `building` (jusqu'à ~1 minute sur un compte réel à
-          beaucoup de conditions) : la barre affichait 0 % sans bouger et le
-          texte « 0 combinaisons examinées », sans dire qu'un TRAVAIL était
-          en cours — voir docs/02-app/optimizer/,
-          « Barre de progression ». */}
-      {/* ⚠️ Deux barres empilées, une par moitié, pas une seule — depuis leur
-          construction EN PARALLÈLE (deux Workers, voir
-          runeBuildOptim.worker.ts), A et B avancent en même temps ; une seule
-          barre ne pourrait montrer que la dernière moitié à avoir posté un
-          message, faisant croire à tort que l'autre est à l'arrêt. */}
-      {status === 'running' && progress?.phase === 'building' && (
-        <div className="space-y-2">
-          {(['A', 'B'] as const).map((half) => {
-            const h = progress.halves[half];
-            return (
-              <div key={half}>
-                <div className="h-2 w-full overflow-hidden rounded-full border border-border bg-panel2">
-                  <div
-                    className="h-full bg-accent/60 transition-[width] duration-150 ease-out"
-                    style={{ width: `${Math.round((h?.pct ?? 0) * 100)}%` }}
-                  />
-                </div>
-                <p className="mt-1 font-mono text-micro text-ink-dim">
-                  Préparation — moitié {half} :{' '}
-                  {h ? `${h.scanned.toLocaleString('fr-FR')} / ${h.total.toLocaleString('fr-FR')} runes` : 'en attente…'}
-                </p>
-              </div>
-            );
-          })}
-        </div>
-      )}
-      {status === 'running' && (progress === null || progress.phase === 'pairing') && (
-        <div>
-          <div className="h-2 w-full overflow-hidden rounded-full border border-border bg-panel2">
-            <div
-              className="h-full bg-accent transition-[width] duration-150 ease-out"
-              style={{ width: `${Math.round((progress?.pct ?? 0) * 100)}%` }}
-            />
+      <ProgressionRecherche
+        status={status}
+        progress={progress}
+        refusal={refusal}
+        appariement={status === 'running' && (progress === null || progress.phase === 'pairing') && (
+          <div>
+            <div className="h-2 w-full overflow-hidden rounded-full border border-border bg-panel2">
+              <div
+                className="h-full bg-accent transition-[width] duration-150 ease-out"
+                style={{ width: `${Math.round((progress?.pct ?? 0) * 100)}%` }}
+              />
+            </div>
+            {/* ⚠️ Le dénominateur ici est `totalPairs` (voir `totalPairCount`),
+                la taille EXACTE de l'espace à épuiser — un plafond de nœuds a
+                longtemps coexisté avec lui, écarté d'ici parce qu'il
+                grandissait en cours de route et aurait fait RECULER la barre.
+                C'est ce choix de l'interface qui a fini par emporter sa
+                suppression du moteur. */}
+            <p className="mt-1 font-mono text-micro text-ink-dim">
+              {progress === null
+                ? 'Préparation…'
+                : `${progress.explored.toLocaleString('fr-FR')} / ${progress.totalPairs.toLocaleString('fr-FR')} combinaisons examinées · ${compteAffiche.compte.toLocaleString('fr-FR')} trouvée(s)`}
+            </p>
+            {progress !== null && (
+              <p className="mt-0.5 font-mono text-[11px] font-bold text-star">
+                Attendez la fin de la recherche pour être sûr de trouver votre build optimal.
+              </p>
+            )}
+            {progress !== null && (
+              <p className="mt-0.5 font-mono text-[11px] text-ink-dimmer">
+                Le budget de recherche s'élargit automatiquement tant qu'il reste du temps et que le plafond de
+                résultats (100 000) n'est pas atteint — pas seulement tant que rien n'est trouvé.
+              </p>
+            )}
           </div>
-          {/* ⚠️ Le dénominateur ici est `totalPairs` (voir `totalPairCount`),
-              la taille EXACTE de l'espace à épuiser — un plafond de nœuds a
-              longtemps coexisté avec lui, écarté d'ici parce qu'il
-              grandissait en cours de route et aurait fait RECULER la barre.
-              C'est ce choix de l'interface qui a fini par emporter sa
-              suppression du moteur. */}
-          <p className="mt-1 font-mono text-micro text-ink-dim">
-            {progress === null
-              ? 'Préparation…'
-              : `${progress.explored.toLocaleString('fr-FR')} / ${progress.totalPairs.toLocaleString('fr-FR')} combinaisons examinées · ${compteAffiche.compte.toLocaleString('fr-FR')} trouvée(s)`}
-          </p>
-          {progress !== null && (
-            <p className="mt-0.5 font-mono text-[11px] font-bold text-star">
-              Attendez la fin de la recherche pour être sûr de trouver votre build optimal.
-            </p>
-          )}
-          {progress !== null && (
-            <p className="mt-0.5 font-mono text-[11px] text-ink-dimmer">
-              Le budget de recherche s'élargit automatiquement tant qu'il reste du temps et que le plafond de
-              résultats (100 000) n'est pas atteint — pas seulement tant que rien n'est trouvé.
-            </p>
-          )}
-        </div>
-      )}
-
-      {status === 'error' && (
-        <p className="text-xs text-bad">La recherche a échoué. Réessaie avec des critères moins stricts.</p>
-      )}
-
-      {/* ⚠️ Refus NOMMÉ : `search.status ===
-          'refused'` et `search.refusal.vide` sont la SEULE source de ce
-          texte — un par raison, jamais un pool recalculé pour deviner
-          pourquoi. `'refused'` se traite ici comme `'error'` l'est
-          juste au-dessus, à la place du lancement. */}
-      {status === 'refused' && refusal && (
-        <p className="text-xs text-bad">
-          {refusal.vide === 'seuil'
-            ? 'Aucune relique éligible : abaisse le niveau minimum.'
-            : refusal.vide === 'principale'
-              ? 'Aucune relique de cette principale dans ton inventaire.'
-              : refusal.vide === 'type'
-                ? 'Aucune relique de cette propriété unique dans ton inventaire.'
-                : refusal.vide === 'inventaire'
-                  ? "Aucune relique dans le compte importé : réimporte le compte, ou coupe l'optimisation d'artéfacts et reliques."
-                  : 'Ce monstre ne porte pas de relique.'}
-        </p>
-      )}
+        )}
+      />
 
       {/* ⚠️ S'affiche AUSSI pendant la phase d'appariement, dès qu'au moins
           un candidat est trouvé (`sortedCandidates` vient alors de l'aperçu
@@ -4359,38 +4185,9 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
               leur combinaison ou de la recherche elle-même, pas d'une seule
               stat identifiable). */}
           {result?.candidates.length === 0 && feasibilityDiagnosis.length > 0 && (
-            <div className="mb-3 rounded-lg border border-border bg-panel p-3">
-              {impossibleFeasibility.length > 0 ? (
-                <>
-                  <p className="mb-1.5 text-xs font-semibold text-bad">
-                    {impossibleFeasibility.length === 1
-                      ? 'Une condition est'
-                      : `${impossibleFeasibility.length} conditions sont`}{' '}
-                    mathématiquement hors de portée, quel que soit le runage choisi :
-                  </p>
-                  <ul className="space-y-1">
-                    {impossibleFeasibility.map((f) => {
-                      const st = RECO_STATS.find((s) => s.key === f.key)!;
-                      return (
-                        <li key={`${f.key}-${f.kind}`} className="text-xs text-ink-dim">
-                          <span className="font-semibold text-ink">{st.label}</span>{' '}
-                          {f.kind === 'min'
-                            ? `minimum demandé ${f.requested}${st.suffix} — maximum atteignable ${f.bound}${st.suffix} avec ce pool, ce set et ces statistiques principales.`
-                            : `maximum demandé ${f.requested}${st.suffix} — ${f.bound}${st.suffix} déjà garanti sans la moindre rune (base, artéfacts, bonus de set).`}
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </>
-              ) : (
-                <p className="text-xs text-ink-dim">
-                  Aucune condition n'est, à elle seule, mathématiquement hors de portée — le blocage
-                  vient probablement de leur <b className="text-ink">combinaison</b> (rare qu'un seul
-                  build satisfasse tout à la fois), ou du pré-filtrage de la recherche elle-même. Essaie
-                  de desserrer une condition, ou un pré-filtrage plus large (Réglages avancés).
-                </p>
-              )}
-            </div>
+            <DiagnosticFaisabilite
+              impossibleFeasibility={impossibleFeasibility}
+            />
           )}
 
           {/* ⚠️ Palier 2 — voir `rankBlockingConditions` dans
@@ -4398,48 +4195,9 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
               palier 1 ci-dessus), désactivé par défaut (coûte plus cher).
               Deux affichages selon l'état de la bascule : le classement s'il
               est activé, une invitation discrète sinon. */}
-          {result?.candidates.length === 0 &&
-            (blockingDiagnosis && blockingDiagnosis.impacts.length > 0 ? (
-              <div className="mb-3 rounded-lg border border-border bg-panel p-3">
-                <p className="mb-1.5 text-xs font-semibold text-ink">
-                  Diagnostic approfondi — pool le plus restreint : {blockingDiagnosis.baselineMinSlot} candidat(s)
-                  actuellement.
-                </p>
-                <ul className="space-y-1">
-                  {blockingDiagnosis.impacts.map((imp) => {
-                    const st = RECO_STATS.find((s) => s.key === imp.key)!;
-                    return (
-                      <li key={`${imp.key}-${imp.kind}`} className="text-xs text-ink-dim">
-                        {imp.delta == null ? (
-                          <>
-                            <span className="font-semibold text-ink">{st.label}</span> ({imp.kind === 'min' ? '≥' : '≤'}{' '}
-                            {imp.requested}
-                            {st.suffix}) : aucun gain, même desserrée entièrement.
-                          </>
-                        ) : (
-                          <>
-                            <span className="font-semibold text-ink">{st.label}</span>{' '}
-                            {imp.kind === 'min' ? `−${imp.delta}` : `+${imp.delta}`}
-                            {st.suffix} suffit ({imp.kind === 'min' ? '≥' : '≤'} {imp.threshold}
-                            {st.suffix}) : {imp.poolMinSlotAtThreshold} candidat(s).
-                          </>
-                        )}
-                      </li>
-                    );
-                  })}
-                </ul>
-                <p className="mt-1.5 text-micro text-ink-dim">
-                  Un indice, pas une preuve — basé sur le pré-filtrage sûr, pas sur une recherche complète.
-                </p>
-              </div>
-            ) : (
-              !diagnoseBlockingEnabled && (
-                <p className="mb-3 text-[11px] text-ink-dim">
-                  Astuce : active le diagnostic approfondi (Réglages avancés) pour identifier quelle
-                  condition libère le plus de candidats.
-                </p>
-              )
-            ))}
+          {result?.candidates.length === 0 && (
+            <DiagnosticApprofondi blockingDiagnosis={blockingDiagnosis} diagnoseBlockingEnabled={diagnoseBlockingEnabled} />
+          )}
 
           {/* ⚠️ Quasi-succès à l'appariement — sous-produit GRATUIT de la
               vraie recherche (`pairBuckets`, jamais recalculé), affiché
@@ -4448,80 +4206,19 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
               « Quasi-succès à l'appariement ». Ne voit que ce que la recherche a
               RÉELLEMENT exploré avant troncature — une paire encore plus
               proche, jamais atteinte, resterait invisible. */}
-          {result?.candidates.length === 0 && (result.globalNearMiss || result.nearMissByCondition.length > 0) && (() => {
-            // ⚠️ Même vocabulaire que le palier 2 ci-dessus (« −15 suffit ») :
-            // un seul réflexe de lecture
-            // pour tout l'écran diagnostic, plutôt que deux formulations
-            // (« manque »/« suffit ») pour la même idée de desserrage.
-            // ⚠️ Le score affiché doit être celui que l'utilisateur reconnaît
-            // des cartes de résultat (`BuildCandidateCard.tsx`) : la moyenne
-            // PAR RUNE (pas la somme brute), formatée par `formatRuneMetric`
-            // (« 140.2% », jamais un nombre nu) ; « PV effectifs » en plus
-            // quand c'est l'objectif choisi — sinon un nombre sans légende
-            // reconnaissable ressemble à une erreur, pas à un score (« 1309.0 »
-            // affiché pour une recherche PV effectifs n'aurait aucun rapport
-            // avec ce qui est cherché).
-            const nearMissScoreText = (miss: NearMiss): string => {
-              const moyenne = candidateMetricTotal(miss, runeById, metric) / 6;
-              const base = `${metric === 'eff' ? 'Efficience moyenne' : 'Score moyen'} ${formatRuneMetric(moyenne, metric)}`;
-              if (objective !== 'ehp') return base;
-              return `${base}, PV effectifs ${Math.round(pvEffectifs(miss.stats, aurasPropresDe(miss), damageSetup)).toLocaleString('fr-FR')}`;
-            };
-            const suffiraitText = (s: StatShortfall) => {
-              const st = RECO_STATS.find((r) => r.key === s.key)!;
-              const nouveauSeuil = s.kind === 'min' ? s.requested - s.shortfall : s.requested + s.shortfall;
-              return (
-                <span key={`${s.key}-${s.kind}`}>
-                  <span className="font-semibold text-ink">{st.label}</span> {s.kind === 'min' ? '−' : '+'}
-                  {s.shortfall}
-                  {st.suffix} suffirait ({s.kind === 'min' ? '≥' : '≤'} {nouveauSeuil}
-                  {st.suffix})
-                </span>
-              );
-            };
-            return (
-              <div className="mb-3 rounded-lg border border-border bg-panel p-3">
-                <p className="mb-1.5 text-xs font-semibold text-ink">Quoi ajuster pour trouver des builds</p>
-                {result.globalNearMiss && (
-                  <p className="mb-1.5 text-xs text-ink-dim">
-                    Build le plus proche, toutes conditions confondues :{' '}
-                    {result.globalNearMiss.shortfalls.map((s, i) => (
-                      <span key={`${s.key}-${s.kind}`}>
-                        {i > 0 ? ', ' : ''}
-                        {suffiraitText(s)}
-                      </span>
-                    ))}{' '}
-                    — {nearMissScoreText(result.globalNearMiss)}.
-                  </p>
-                )}
-                {result.nearMissByCondition.length > 0 && (
-                  <>
-                    <p className="mb-1 text-xs text-ink-dim">
-                      Par condition (satisfait tout le reste, ne manque que celle-ci) :
-                    </p>
-                    <ul className="space-y-1">
-                      {result.nearMissByCondition.map(({ key, kind, miss }: { key: StatKey; kind: 'min' | 'max'; miss: NearMiss }) => (
-                        <li key={`${key}-${kind}`} className="text-xs text-ink-dim">
-                          {suffiraitText(miss.shortfalls[0])} — {nearMissScoreText(miss)}.
-                        </li>
-                      ))}
-                    </ul>
-                  </>
-                )}
-                <p className="mt-1.5 text-micro text-ink-dim">
-                  Ne voit que ce que la recherche a réellement exploré avant troncature — une paire encore
-                  plus proche, jamais atteinte, resterait invisible.
-                </p>
-              </div>
-            );
-          })()}
+          {result?.candidates.length === 0 && (result.globalNearMiss || result.nearMissByCondition.length > 0) && (
+            <QuasiSucces
+              result={result}
+              runeById={runeById}
+              metric={metric}
+              objective={objective}
+              aurasPropresDe={aurasPropresDe}
+              damageSetup={damageSetup}
+            />
+          )}
 
           {result?.truncated && (
-            <p className="mb-2 text-micro text-warn">
-              {stoppedManually
-                ? `Recherche arrêtée après examen de ${result.explored.toLocaleString('fr-FR')} combinaisons — voici le meilleur trouvé jusque-là.`
-                : `Recherche interrompue après examen de ${result.explored.toLocaleString('fr-FR')} combinaisons — resserre tes critères pour un résultat exhaustif.`}
-            </p>
+            <AvisRechercheTronquee result={result} stoppedManually={stoppedManually} />
           )}
 
           {/* ⚠️ minmax calibré à 360px pour que DEUX cartes tiennent par
@@ -4703,113 +4400,28 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
               "numeric"`, jamais de flèches natives de navigateur — voir
               NumberField.tsx). */}
           {totalResultsPages > 1 && (
-            <div className="mt-4 flex items-center justify-center gap-3">
-              <BoutonIcone
-                cadre
-                libelle="Page précédente"
-                icone={<ChevronLeft size={16} />}
-                onClick={() => setResultsPage((p) => Math.max(1, p - 1))}
-                disabled={resultsPage <= 1}
-                className="h-8 w-8"
-              />
-
-              <div className="flex items-center gap-1.5 font-mono text-[12.5px] text-ink-dim">
-                <span>Page</span>
-                <Champ
-                  inputMode="numeric"
-                  value={pageDraft ?? String(resultsPage)}
-                  aria-label="Aller à la page"
-                  pleineLargeur={false}
-                  onChange={(e) => {
-                    const brut = e.target.value.trim();
-                    // ⚠️ La chaîne VIDE est un état de brouillon valide (tout
-                    // sélectionner puis taper) — contrairement à l'ancienne
-                    // version, ne JAMAIS `return` sans mettre à jour l'état
-                    // ici, sinon le champ contrôlé revient aussitôt à
-                    // l'ancienne valeur et le chiffre ne peut plus disparaître.
-                    if (brut !== '' && !/^\d+$/.test(brut)) return; // frappe invalide ignorée
-                    setPageDraft(brut);
-                  }}
-                  onBlur={() => {
-                    if (pageDraft !== null && pageDraft !== '') {
-                      setResultsPage(Math.min(Math.max(Number(pageDraft), 1), totalResultsPages));
-                    }
-                    setPageDraft(null);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
-                  }}
-                  className="w-11 px-1 py-1 text-center"
-                />
-                <span>/ {totalResultsPages}</span>
-              </div>
-
-              <BoutonIcone
-                cadre
-                libelle="Page suivante"
-                icone={<ChevronRight size={16} />}
-                onClick={() => setResultsPage((p) => Math.min(totalResultsPages, p + 1))}
-                disabled={resultsPage >= totalResultsPages}
-                className="h-8 w-8"
-              />
-            </div>
+            <PaginationResultats
+              setResultsPage={setResultsPage}
+              resultsPage={resultsPage}
+              pageDraft={pageDraft}
+              setPageDraft={setPageDraft}
+              totalResultsPages={totalResultsPages}
+            />
           )}
         </div>
       )}
 
-      {/* Confirmations de libération — demande explicite de l'utilisateur.
-          `Modale` est portalisée : sa position dans l'arbre n'a pas
-          d'importance pour son rendu. */}
-      {releaseConfirm && (
-        <ConfirmDialog
-          titre="Libérer ce build validé ?"
-          message="Ces 6 runes ET la paire d’artéfacts redeviendront disponibles pour les autres monstres de cette liste."
-          libelleAction="Libérer"
-          onConfirm={() => {
-            lists.releaseBuild(releaseConfirm.listId, releaseConfirm.selector);
-            setReleaseConfirm(null);
-          }}
-          onCancel={() => setReleaseConfirm(null)}
-        />
-      )}
-      {releaseArtifactsConfirm && (
-        <ConfirmDialog
-          titre="Libérer les artéfacts validés ?"
-          message="Cette paire redeviendra disponible pour les autres monstres de cette liste. Les 6 runes du build restent réservées."
-          libelleAction="Libérer"
-          onConfirm={() => {
-            lists.releaseArtifacts(releaseArtifactsConfirm.listId, releaseArtifactsConfirm.selector);
-            setReleaseArtifactsConfirm(null);
-          }}
-          onCancel={() => setReleaseArtifactsConfirm(null)}
-        />
-      )}
-      {releaseAllConfirm && (
-        <ConfirmDialog
-          titre="Libérer toutes les runes validées de cette liste ?"
-          message="Tous les builds validés de cette liste seront libérés d'un coup — leurs runes redeviennent disponibles."
-          libelleAction="Tout libérer"
-          destructif
-          onConfirm={() => {
-            lists.releaseAllInList(releaseAllConfirm);
-            setReleaseAllConfirm(null);
-          }}
-          onCancel={() => setReleaseAllConfirm(null)}
-        />
-      )}
-      {removeMemberConfirm && (
-        <ConfirmDialog
-          titre="Retirer ce monstre de la liste ?"
-          message="Ses runes validées seront aussi libérées — elles redeviennent disponibles pour les recherches des autres monstres de cette liste."
-          libelleAction="Retirer"
-          destructif
-          onConfirm={() => {
-            lists.removeMember(removeMemberConfirm.listId, removeMemberConfirm.selector);
-            setRemoveMemberConfirm(null);
-          }}
-          onCancel={() => setRemoveMemberConfirm(null)}
-        />
-      )}
+      <ConfirmationsLiberation
+        lists={lists}
+        releaseConfirm={releaseConfirm}
+        setReleaseConfirm={setReleaseConfirm}
+        releaseArtifactsConfirm={releaseArtifactsConfirm}
+        setReleaseArtifactsConfirm={setReleaseArtifactsConfirm}
+        releaseAllConfirm={releaseAllConfirm}
+        setReleaseAllConfirm={setReleaseAllConfirm}
+        removeMemberConfirm={removeMemberConfirm}
+        setRemoveMemberConfirm={setRemoveMemberConfirm}
+      />
       {addListPromptOpen && (
         <OptimizerCreateListDialog
           listes={lists.lists}

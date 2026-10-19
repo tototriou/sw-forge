@@ -30,3 +30,27 @@ export const EMPTY_GEAR: GearSet = {
   runes: [],
   artifacts: [],
 };
+
+// Les deux crans de « Meilleurs artéfacts offensifs pour ce build ».
+//
+// ⚠️ Défini ici et non dans `runeBuildOptim.ts` avec `OBJECTIVE_LABELS` : ce
+// n'est PAS un objectif de recherche de runes — il ne change rien aux builds
+// trouvés, seulement la paire d'artéfacts proposée par-dessus l'un d'eux.
+export const CRITERE_ARTEFACTS_LABELS: { key: 'brut' | 'reel'; label: string }[] = [
+  { key: 'brut', label: 'Dégâts supplémentaires' },
+  { key: 'reel', label: 'Dégâts réels' },
+];
+
+// ⚠️ **Largeur fixe et commune** aux quatre listes de la carte « Artéfacts
+// et reliques » (Attribut, Type, Principale, Propriété unique) — un
+// `<select>` natif sans largeur explicite prend celle de sa plus longue
+// option (« Soins et boucliers accordés en fonction des PV » pour la
+// relique). `truncate` tronque la valeur FERMÉE par « … » ; la liste
+// ouverte garde le texte complet (comportement natif du `<select>`).
+export const LARGEUR_SELECTEUR_LISTE = 'w-44 truncate';
+// ⚠️ Même principe pour les LIBELLÉS des deux rangées (Attribut / Type et
+// Principale / Propriété unique / Niveau minimum) : une largeur commune,
+// dimensionnée sur le plus long (« Propriété unique »), sans quoi les
+// boutons de la seconde rangée ne tombent pas sous ceux de la première —
+// « Type » et « Propriété unique » doivent être alignés (demande explicite).
+export const LARGEUR_LIBELLE_LISTE = 'w-28';

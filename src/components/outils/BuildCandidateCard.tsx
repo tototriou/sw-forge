@@ -77,7 +77,7 @@ interface Props {
   onValidate?: () => void;
   /**
    * Ce candidat est-il DÉJÀ le build validé pour ce monstre ? Comparaison
-   * faite par le parent (voir `EtatValidation`, OptimizerSection.tsx).
+   * faite par le parent (voir `EtatValidation`, optimizer/types.ts).
    *
    * - `'non'` — rien de réservé pour ces runes : « Valider ce build ».
    * - `'oui'` — mêmes runes ET même paire : bouton désactivé, « Validé ».

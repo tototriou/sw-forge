@@ -8,7 +8,7 @@ Le reste de l'outil (listes, import d'équipes, exclusion, interruption) est dan
 
 | Le changement touche… | Lire |
 | --- | --- |
-| la mise en page de `src/components/outils/OptimizerSection.tsx` : grille, panneaux dépliants, largeur, changement d'onglet | ce README |
+| la mise en page de `src/components/outils/OptimizerSection.tsx` : grille, panneaux dépliants, largeur, changement d'onglet ; les cartes de réglage de `src/components/outils/optimizer/` | ce README |
 | « Monstre à optimiser », `src/components/outils/MonsterSourcePicker.tsx` | [recherche-du-monstre.md](recherche-du-monstre.md) |
 | « Meilleurs artéfacts offensifs pour ce build », `src/components/ArtifactSubLigne.tsx` | [meilleurs-artefacts-offensifs.md](meilleurs-artefacts-offensifs.md) |
 | « Équipement actuel » | [equipement-actuel.md](equipement-actuel.md) |

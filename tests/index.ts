@@ -85,6 +85,7 @@ import { testResolutionDistante } from './resolution-distante.test';
 import { testCliClassementParMode } from './cli-classement.test';
 import { testKDeLaFile } from './file-k.test';
 import { testCompteAffichable } from './compte-affichable.test';
+import { testOptimizerFormatBig } from './format-big.test';
 import { testVoieDeLaFile } from './file-voie.test';
 import { testCompositionDePage } from './composition-page.test';
 import { testFileConfirmees } from './file-confirmees.test';
@@ -723,6 +724,7 @@ const VERIFICATIONS: [string, () => void | Promise<void>][] = [
   ['testCliClassementParMode', testCliClassementParMode],
   ['testKDeLaFile', testKDeLaFile],
   ['testCompteAffichable', testCompteAffichable],
+  ['testOptimizerFormatBig', testOptimizerFormatBig],
   ['testVoieDeLaFile', testVoieDeLaFile],
   ['testCompositionDePage', testCompositionDePage],
   ['testFileConfirmees', testFileConfirmees],

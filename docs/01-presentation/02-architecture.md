@@ -153,6 +153,22 @@ Moteur `src/lib/runeBuildOptim.ts`, exécuté dans `src/workers/runeBuildOptim.w
 ⚠️ Disposition mobile dédiée pour « Monstre & équipement » seul — le reste de l'écran n'est pas
 encore audité en mobile.
 
+Les cartes de la grille des réglages vivent dans `src/components/outils/optimizer/`, une par
+fichier, sans état propre : `OptimizerSection` garde l'état et la logique et les leur passe par
+props. « Monstre & équipement » (`MonstreEquipement`, avec `MonstreEtListe` et
+`ExemplaireEtFiche` au bureau, `MonstreEquipementTelephone` au doigt, `BandeauBuildValide`,
+`BoutonValiderBuild`), « Critères de recherche » (`CriteresRecherche` : `SetDeRunes`,
+`StatPrincipaleImposee`, `Conditions`), « Artéfacts et reliques » (`ArtefactsEtReliques`,
+`MeilleursArtefacts`, `Relique`), `CarteEtatMonstre`, « Exclusion de runes »
+(`CarteExclusionRunes`, `ExclusionRunesContenu`, `RunesDejaUtilisees`, `ExclusionMonstrePrecis`,
+`RunesImposees`, `TitreExclusionRunes`), « Réglages avancés » (`CarteReglagesAvances`,
+`TitreReglagesAvances`), `EstimationPool`, et au doigt le panneau « Options de recherche »
+(`OptionsRechercheTelephone`). Restent écrits dans `OptimizerSection` et passés aux cartes : les
+zones C et D (monstres de la liste, choix de l'exemplaire), les sélecteurs de listes, le
+sélecteur de sets, l'appel d'`EtatMonstre` et le contenu des Réglages avancés. Constantes
+partagées : `src/components/outils/optimizer/constantes.ts` ; types :
+`src/components/outils/optimizer/types.ts`.
+
 Autour de la liste, dans le même dossier : `OptimizerBackupBar` (point de sauvegarde des listes :
 sauvegarder, reprendre), `OptimizerCreateListDialog` (création d'une liste et choix de son contenu
 Guilde / Donjon / Arène), `OptimizerEquipeDialog` (édition des membres et du leader d'une équipe
@@ -261,4 +277,4 @@ Fonctions **pures**, testables sans rendu. C'est ici que va toute logique, jamai
 | Fichiers exportés | `formatsExport.ts` (identifiant `swblacksmith/<nom>` écrit, l'ancien `sw-forge/<nom>` relu — lu par `rtaShare`, `recoShare`, `siegeShare`, `runeCurveShare`) |
 | Bureau | `bureau.ts` (`estBureau()`, couleurs du thème, mise à jour, `TELECHARGEMENTS`) |
 | Écran partagé | `volets.ts` (les transitions des deux volets : navigation, verrou, volet vide ; plancher, seuil et correspondance des seuils de largeur dans un volet) — [ecran-partage.md](../02-app/transverse/feat-navigation/ecran-partage.md) |
-| Divers | `effects.ts` (codes com2us → libellés), `crafts.ts`, `gearSync.ts`, `detecteurDebordement.ts` (dev seulement), `migrationStockage.ts` (clés de stockage de l'ancien nom) |
+| Divers | `effects.ts` (codes com2us → libellés), `crafts.ts`, `gearSync.ts`, `detecteurDebordement.ts` (dev seulement), `migrationStockage.ts` (clés de stockage de l'ancien nom), `formatBig.ts` (un grand nombre de l'Optimizer, lisible) |

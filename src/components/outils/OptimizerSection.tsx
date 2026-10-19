@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useLayoutEffect, useMemo, useRef, useState, useEffect } from 'react';
+import { useCallback, useLayoutEffect, useMemo, useRef, useState, useEffect } from 'react';
 import type { EquipeOptimizer } from '../../lib/optimizerMemberStorage';
 import { leadEffectifMembreOptimizer } from '../../lib/equipesOptimizer';
 import LeadPill, { STAT_LABEL } from '../siege/LeadPill';
@@ -11,27 +11,21 @@ import { importerDefensesSiegeOptimizer, importerOffenseSiegeOptimizer, importer
 import {
   Search,
   Square,
-  RotateCcw,
   FlaskConical,
   Target,
   Upload,
   Download,
   ChevronLeft,
   ChevronRight,
-  ChevronDown,
-  SlidersHorizontal,
-  Wrench,
   Plus,
   CheckCircle2,
   Unlock,
   Trash2,
-  Eye,
   Swords,
   Pencil,
 } from 'lucide-react';
-import { ArtifactDetail, ArtifactKind, ARTIFACT_KINDS, ELEMENTS, GearSet, RECO_STATS, RelicDetail, RuneDetail, Monster, RtaEntry, SiegeTeam, Reco } from '../../types';
+import { ArtifactDetail, ArtifactKind, ARTIFACT_KINDS, ELEMENTS, RECO_STATS, RelicDetail, RuneDetail, Monster, RtaEntry, SiegeTeam, Reco } from '../../types';
 import { computeStats } from '../../lib/stats';
-import ArtifactLinesEditor from './ArtifactLinesEditor';
 import { cibleDeLaFile, classementResolu, cleBuild, compositionDePage, compteAffichable, compteConfirme, signatureArtefacts as calculerSignatureArtefacts } from '../../lib/artifactQueue';
 import { entreeResolutionDuBuild, nouveauxCachesResolution, resoudreEquipementDuBuild, runesDuBuild, etatReliqueDuBuild, type EtatRelique } from '../../lib/relicQueue';
 import { resoudreContexteRelique } from '../../lib/relicOptim';
@@ -51,22 +45,13 @@ import { BoxItem } from '../../lib/applyAccount';
 import { regimeArtefacts, regimeEquipementDe, type RegimeArtefacts } from '../../lib/artifactEvaluation';
 import { evaluateursArtefactsFiche, parametresArtefactsFiche, piecesFigeesDe, sortesFigeesDe, statsLignesArtefactsEquipables } from '../../lib/artifactFiche';
 import {
-  CAPPED_STATS,
-  RUNE_EFFECT,
   RELIC_MAIN,
-  RELIC_MAIN_OPTIONS,
-  RELIC_UNIQUE,
   StatKey,
-  formatArtifactMain,
-  relicUniqueEffectLabel,
-  runeSetIconFilter,
   runeEfficiency,
   runeScore,
 } from '../../lib/effects';
-import RuneIcon from '../RuneIcon';
 import {
   BuildRequirement,
-  SLOT_MAIN_OPTIONS,
   estimateSearchSpace,
   diagnoseFeasibility,
   StatFeasibility,
@@ -87,7 +72,6 @@ import {
   OBJECTIVE_LABELS,
   RealDamageContext,
   SLOT_FILTER_PRESETS,
-  ARTIFACT_MAIN_OPTIONS,
   type BuildCandidate,
 } from '../../lib/runeBuildOptim';
 import { DetailMonstre, chargerDetail } from '../../lib/monsterSkills';
@@ -128,7 +112,6 @@ import {
   artifactDamageProfile,
 } from '../../lib/damage';
 import {
-  AUTO_EXCLUSION_SCOPES,
   AutoExclusionScope,
   ExclusionCandidate,
   ExclusionSelector,
@@ -154,10 +137,8 @@ import { classeMessageImport, delaiEffacementImport, type MessageImport } from '
 import { DUREE_ATTENTION_MS, doitRappeler, echoAurasExternes, guideVersResPre } from '../../lib/aurasExternes';
 import { jourLocal, telechargerTexte } from '../../lib/telechargement';
 import {
-  ArtifactMainChoice,
   OptimizerState,
   OptimizerSortKey,
-  RelicMainChoice,
   RelicUniqueChoice,
   DEFAULT_RELIC_MIN_UPGRADE,
   defaultRelicMainChoice,
@@ -171,9 +152,7 @@ import { useMediaQuery, SOUS_LG, SOUS_SM } from '../../hooks/useMediaQuery';
 import GameIcon from '../GameIcon';
 import IconeInterdite from '../IconeInterdite';
 import MonsterAvatar from '../MonsterAvatar';
-import MonsterGear, { type Selected as SelectionGear } from '../MonsterGear';
-import ArtifactFrameIcon from '../ArtifactFrameIcon';
-import ArtifactSubLigne from '../ArtifactSubLigne';
+import { type Selected as SelectionGear } from '../MonsterGear';
 import { WHEEL_IMG } from '../RuneWheel';
 import Segmented from '../../ui/Segmented';
 import HelpPopover from '../HelpPopover';
@@ -183,23 +162,42 @@ import {
   BoutonIcone,
   Champ,
   ConfirmDialog,
-  Flottant,
-  FlottantAuto,
   Interrupteur,
-  MobileSheet,
-  NumberField,
-  Pastille,
   Selecteur,
   ZoneCliquable,
 } from '../../ui';
-import MonsterSourcePicker from './MonsterSourcePicker';
 import OptimizerListPicker from './OptimizerListPicker';
 import ExclusionCandidateRow from './ExclusionCandidateRow';
-import RuneExclusionPicker from './RuneExclusionPicker';
 import SetComboPicker from './SetComboPicker';
 import BuildCandidateCard, { PlaceEnVerification, useHauteurDesCartes } from './BuildCandidateCard';
 import DamageSetupModale from './DamageSetupModale';
 import EtatMonstre from './EtatMonstre';
+import BoutonValiderBuild from './optimizer/BoutonValiderBuild';
+import BandeauBuildValide from './optimizer/BandeauBuildValide';
+import type { EtatValidation } from './optimizer/types';
+import { CONFIGURABLE_SLOTS } from './optimizer/constantes';
+import { formatBig } from '../../lib/formatBig';
+import MonstreEquipementTelephone from './optimizer/MonstreEquipementTelephone';
+import ExemplaireEtFiche from './optimizer/ExemplaireEtFiche';
+import MonstreEtListe from './optimizer/MonstreEtListe';
+import MonstreEquipement from './optimizer/MonstreEquipement';
+import Conditions from './optimizer/Conditions';
+import StatPrincipaleImposee from './optimizer/StatPrincipaleImposee';
+import SetDeRunes from './optimizer/SetDeRunes';
+import CriteresRecherche from './optimizer/CriteresRecherche';
+import MeilleursArtefacts from './optimizer/MeilleursArtefacts';
+import ArtefactsEtReliques from './optimizer/ArtefactsEtReliques';
+import CarteEtatMonstre from './optimizer/CarteEtatMonstre';
+import RunesDejaUtilisees from './optimizer/RunesDejaUtilisees';
+import ExclusionMonstrePrecis from './optimizer/ExclusionMonstrePrecis';
+import RunesImposees from './optimizer/RunesImposees';
+import ExclusionRunesContenu from './optimizer/ExclusionRunesContenu';
+import TitreExclusionRunes from './optimizer/TitreExclusionRunes';
+import TitreReglagesAvances from './optimizer/TitreReglagesAvances';
+import OptionsRechercheTelephone from './optimizer/OptionsRechercheTelephone';
+import EstimationPool from './optimizer/EstimationPool';
+import CarteExclusionRunes from './optimizer/CarteExclusionRunes';
+import CarteReglagesAvances from './optimizer/CarteReglagesAvances';
 import { PREFIXE_FICHIER } from '../../marque';
 
 interface Props {
@@ -253,21 +251,6 @@ interface Props {
   onMonstreHorsVue?: (monstre: Monster | null) => void;
 }
 
-// ⚠️ Le plafond de CAPPED_STATS (voir lib/effects.ts) ne s'applique QU'À la
-// saisie d'une condition (minimum ou maximum) : la RECHERCHE, elle, ne doit
-// surtout pas exclure un build dont la somme brute dépasse 100 % — c'est un
-// résultat légitime, seule la demande d'un seuil > 100 % n'a pas de sens.
-const CAPPED_100 = CAPPED_STATS;
-
-// « Stats de base exclues » n'affecte QUE ces 4 stats (PV/ATQ/DEF/VIT) : elles
-// ont une base qui grandit avec le niveau/l'éveil et que les runes viennent
-// gonfler en % ou en plat. Taux Crit/Dgts Crit/RES/Précision partent d'une
-// petite valeur d'éveil fixe et restent TOUJOURS en TOTAL, quel que soit ce
-// réglage — demandé explicitement : elles « évoluent suivant la valeur
-// d'éveil des monstres », pas selon un mode bonus/total.
-const BASE_TOGGLE_STATS = new Set<StatKey>(['hp', 'atk', 'def', 'spd']);
-
-const CONFIGURABLE_SLOTS: (2 | 4 | 6)[] = [2, 4, 6];
 
 // Candidats de COMPTE pour une espèce précise, un tableau par source (Box/
 // RTA/Défenses siège/Offenses siège) — fonction MODULE (pas un Hook) : appelée
@@ -347,22 +330,6 @@ export function exemplaireAuMontage(
 // tableaux ne suffirait pas, `runeIds` n'est jamais garanti dans le même
 // ordre d'un calcul à l'autre.
 /**
- * L'état de validation d'un build affiché, vis-à-vis de celui qui est réservé.
- *
- * ⚠️ **Trois états, pas deux.** Comparer les seules runes rendait invalidable
- * un build aux MÊMES runes mais aux artéfacts DIFFÉRENTS : l'utilisateur
- * voyait des stats qui ne sont pas celles réservées, et le bouton disait
- * « Validé » sans rien offrir. Le cas est courant, puisque la paire
- * suit le critère de tri (voir docs/03-developpeur/optimizer/,
- * « Régime de la paire ») :
- * changer de tri change la paire, donc les stats, à runes identiques.
- *
- * Un artéfact entre dans les statistiques du monstre — deux paires
- * différentes, ce sont deux builds différents.
- */
-type EtatValidation = 'non' | 'oui' | 'artefacts';
-
-/**
  * Même ensemble d'ids ? Sert aux runes ET aux artéfacts — c'est la même
  * question, et un build validé mémorise les deux (`ValidatedBuild.runeIds`,
  * `ValidatedBuild.artifactIds`).
@@ -402,53 +369,9 @@ function memesIds(a: number[], b: number[]): boolean {
   return sa.every((v, i) => v === sb[i]);
 }
 
-// Équipement NUL, affiché tant qu'aucun monstre n'est choisi — demande
-// explicite de l'utilisateur : la fiche (stats, artéfacts, roue, relique)
-// reste TOUJOURS visible, vide plutôt qu'absente, pour que choisir un
-// monstre ne fasse jamais apparaître un bloc entier là où il n'y avait rien
-// (voir docs/03-developpeur/interface/, « un clic ne déplace jamais ce qu'on vient de
-// cliquer »). `MonsterGear` n'a besoin d'aucune adaptation : `computeStats`
-// sur une base à zéro renvoie des lignes à zéro, `ArtifactSlots`/`RuneWheel`
-// gèrent déjà nativement un tableau vide (voir leurs propres commentaires).
-const EMPTY_GEAR: GearSet = {
-  base: { hp: 0, atk: 0, def: 0, spd: 0, cr: 0, cd: 0, res: 0, acc: 0 },
-  runes: [],
-  artifacts: [],
-};
-
-function formatBig(n: number): string {
-  if (!Number.isFinite(n)) return '—';
-  if (n < 1_000_000_000) return Math.round(n).toLocaleString('fr-FR');
-  return n.toExponential(1);
-}
-
 // Outil « Optimizer » : cherche, parmi les runes du compte, la (les)
 // meilleure(s) combinaison(s) de 6 pour un monstre, un combo de sets et des
 // minimums de stats donnés. Voir docs/02-app/optimizer/.
-// Les deux crans de « Meilleurs artéfacts offensifs pour ce build ».
-//
-// ⚠️ Défini ici et non dans `runeBuildOptim.ts` avec `OBJECTIVE_LABELS` : ce
-// n'est PAS un objectif de recherche de runes — il ne change rien aux builds
-// trouvés, seulement la paire d'artéfacts proposée par-dessus l'un d'eux.
-const CRITERE_ARTEFACTS_LABELS: { key: 'brut' | 'reel'; label: string }[] = [
-  { key: 'brut', label: 'Dégâts supplémentaires' },
-  { key: 'reel', label: 'Dégâts réels' },
-];
-
-// ⚠️ **Largeur fixe et commune** aux quatre listes de la carte « Artéfacts
-// et reliques » (Attribut, Type, Principale, Propriété unique) — un
-// `<select>` natif sans largeur explicite prend celle de sa plus longue
-// option (« Soins et boucliers accordés en fonction des PV » pour la
-// relique). `truncate` tronque la valeur FERMÉE par « … » ; la liste
-// ouverte garde le texte complet (comportement natif du `<select>`).
-const LARGEUR_SELECTEUR_LISTE = 'w-44 truncate';
-// ⚠️ Même principe pour les LIBELLÉS des deux rangées (Attribut / Type et
-// Principale / Propriété unique / Niveau minimum) : une largeur commune,
-// dimensionnée sur le plus long (« Propriété unique »), sans quoi les
-// boutons de la seconde rangée ne tombent pas sous ceux de la première —
-// « Type » et « Propriété unique » doivent être alignés (demande explicite).
-const LARGEUR_LIBELLE_LISTE = 'w-28';
-
 const AUCUNE_RECOMMANDATION: Reco[] = [];
 
 export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATION, box, runes, artifacts, relics, relicUsageById, optimizer, onImporterEquipe, allMonsters, rtaEntries, siegeDefenseTeams, siegeOffenseTeams, lists, accountName, menuOuvert, onFermerMenu, onOuvrirMenu, onMonstreHorsVue }: Props) {
@@ -3080,32 +3003,13 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
   // rebasculer vers l'équipement RÉEL sans quitter la liste ni changer
   // d'exemplaire. Factorisé, réutilisé aux deux endroits où la fiche
   // s'affiche (bureau/mobile).
-  const validatedBadge = ownValidatedBuild ? (
-    <div className="mb-2 flex items-center gap-1.5 rounded-lg bg-accent-soft px-2 py-1 text-[11px] font-semibold text-accent">
-      <CheckCircle2 size={13} className="flex-none" />
-      <span className="grid min-w-0 flex-1">
-        <span className={`col-start-1 row-start-1 ${showRealGear ? 'invisible' : ''}`} aria-hidden={showRealGear}>
-          Build validé affiché — pas l'équipement réellement porté
-        </span>
-        <span className={`col-start-1 row-start-1 ${showRealGear ? '' : 'invisible'}`} aria-hidden={!showRealGear}>
-          Équipement réellement porté affiché
-        </span>
-        {runesAbsentesValidees.length > 0 && <span role="status" className="text-warn">
-          Build conservé : {runesAbsentesValidees.length} rune(s) absente(s) du compte. Seules les runes présentes sont affichées et réservées.
-        </span>}
-        {artefactsAbsentsValides.length > 0 && <span role="status" className="text-warn">
-          Build conservé : {artefactsAbsentsValides.length} artéfact(s) absent(s) du compte. Seuls les artéfacts présents sont affichés et réservés.
-        </span>}
-      </span>
-      <BoutonIcone
-        cadre
-        libelle={showRealGear ? 'Revoir le build validé' : "Voir le runage réellement porté"}
-        icone={showRealGear ? <CheckCircle2 size={13} /> : <Eye size={13} />}
-        onClick={() => setShowRealGear((v) => !v)}
-        className="h-6 w-6 flex-none"
-      />
-    </div>
-  ) : null;
+  const validatedBadge = <BandeauBuildValide
+    ownValidatedBuild={ownValidatedBuild}
+    showRealGear={showRealGear}
+    runesAbsentesValidees={runesAbsentesValidees}
+    artefactsAbsentsValides={artefactsAbsentsValides}
+    setShowRealGear={setShowRealGear}
+  />;
 
   // Même bouton que sur une carte de résultat (`BuildCandidateCard`), sous
   // la fiche cette fois — demande explicite : valider un runage déjà
@@ -3124,296 +3028,120 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
    * exact qu'on vient de corriger pour les builds validés.
    */
   const blocArtefactsSeuls = modeArtefactsSeuls && (
-    <div className="mt-2.5 rounded-lg border border-border-soft bg-panel2/60 px-2 py-1.5">
-      {(() => {
-        const enTete = (<>
-        {/* ⚠️ **« offensifs » reste dans le titre** : le segmenté
-            ci-dessous dit précisément ce que le bloc maximise, mais le mot
-            dit autre chose : ce bloc ne
-            cherche pas la meilleure paire dans l'absolu, il cherche la plus
-            offensive — et ses deux crans (dégâts bruts, dégâts du sort) sont
-            offensifs l'un comme l'autre. Sans lui, « meilleurs » se lirait
-            comme un verdict général, alors qu'un tank peut parfaitement
-            vouloir tout autre chose. */}
-        <span className="label">Meilleurs artéfacts offensifs pour ce build</span>
-        {/* ⚠️ **L'ABSOLU d'abord, l'écart ensuite** (demande explicite). Le
-            delta seul laissait sans réponse « combien cette paire me
-            rapporte-t-elle ? » : un gros gain sur une base nulle et un petit
-            gain sur une grosse base affichaient le même nombre.
-            ⚠️ L'absolu s'affiche TOUJOURS, même quand on porte déjà la
-            meilleure paire — c'est justement là qu'il est seul à dire quelque
-            chose, l'écart valant zéro. L'écart, lui, ne s'affiche que si la meilleure
-            paire n'est pas déjà portée et que l'écart n'est pas nul à
-            l'arrondi, en plus comme en moins (voir plus bas). */}
-        {/* ⚠️ Aucun chiffre quand il n'y a rien à proposer : un « 0 / coup »
-            se lirait comme un résultat, alors que rien n'a été cherché. */}
-        {modeArtefactsSeuls.explication == null && (
-          <span className="flex items-baseline gap-1.5 font-mono text-micro">
-            <span className="text-ink">
-              {Math.round(modeArtefactsSeuls.degatsParCoup).toLocaleString('fr-FR')}
-              {modeArtefactsSeuls.surLeReel ? ' dégâts' : ' / coup'}
-            </span>
-            {/* ⚠️ **L’écart s’affiche AUSSI quand il est négatif.** Il ne
-                l’était que s’il était positif : on cachait donc exactement
-                l’information défavorable, en laissant un absolu qui avait
-                l’air d’un gain.
-
-                ⚠️ Un écart négatif n’est PAS une anomalie : la paire
-                portée sort des candidates dès qu’une contrainte l’exclut —
-                une principale imposée, une ligne verrouillée, ou une pièce
-                déjà réservée par un autre monstre de la liste. Le nombre dit
-                alors ce que cette contrainte coûte, ce qui est précisément
-                ce qu’on veut savoir.
-
-                ⚠️ Test sur l’ARRONDI, pas sur la valeur brute : un écart
-                de 0,4 aurait affiché « +0 ». */}
-            {!modeArtefactsSeuls.dejaPorte && Math.round(modeArtefactsSeuls.gainBrutParCoup) !== 0 && (
-              <span className={modeArtefactsSeuls.gainBrutParCoup > 0 ? 'text-good' : 'text-bad'}>
-                {modeArtefactsSeuls.gainBrutParCoup > 0 ? '+' : '−'}
-                {Math.abs(Math.round(modeArtefactsSeuls.gainBrutParCoup)).toLocaleString('fr-FR')}
-              </span>
-            )}
-          </span>
-        )}
-        </>);
-        // Au téléphone, le bloc se replie derrière son titre (replié par
-        // défaut), comme « Gérer mes listes » ; le chiffre reste lisible.
-        return etroit ? (
-          <ZoneCliquable
-            onClick={() => setArtefactsOuverts((v) => !v)}
-            aria-expanded={artefactsOuverts}
-            className="flex w-full items-center gap-2 text-left"
-          >
-            <span className="flex min-w-0 flex-1 items-baseline justify-between gap-2">{enTete}</span>
-            <ChevronDown size={13} className={`flex-none text-ink-dim transition-transform ${artefactsOuverts ? 'rotate-180' : ''}`} />
-          </ZoneCliquable>
-        ) : (
-          <div className="flex items-baseline justify-between gap-2">{enTete}</div>
-        );
-      })()}
-      {(!etroit || artefactsOuverts) && <>
-      {/* ⚠️ Choisir « Dégâts réels » OUVRE la fenêtre du combat, comme le cran
-          homonyme de l'objectif de recherche : sans ce geste, le classement
-          reposerait sur un sort, une cible et un critique jamais choisis —
-          exactement ce qui avait fait RETIRER cette optimisation. */}
-      <Segmented<'brut' | 'reel'>
-        options={CRITERE_ARTEFACTS_LABELS}
-        value={critereArtefacts}
-        onChange={(v) => {
-          setCritereArtefacts(v);
-          if (v === 'reel') setSetupOuvert(true);
-        }}
-        size="sm"
-        // ⚠️ `w-fit` : le `flex-none` que `Segmented` pose en taille `sm` ne
-        // vaut que s'il est ENFANT d'un conteneur flex. Ici le parent est en
-        // flux de bloc, donc sa propre boîte flex prenait toute la largeur —
-        // deux crans étirés sur 700 px. Même piège que la grille Conditions,
-        // qui porte déjà ce `w-fit` pour la même raison.
-        className="mt-1 w-fit"
-      />
-      {modeArtefactsSeuls.reelIndisponible && (
-        <p className="mt-1 text-micro text-warn">
-          Aucun sort de ce monstre n’est calculable : classement sur les dégâts supplémentaires.
-        </p>
-      )}
-      {/* ⚠️ **Un seul emplacement figé : la proposition reste valable, mais
-          CONTRAINTE.** Sans cette ligne, « le meilleur » se lirait comme « le
-          meilleur de ton inventaire », alors qu'une moitié était imposée. La
-          question reste bonne — « à artéfact d'attribut donné, quel type ? » —
-          il faut juste dire qu'on y répond. */}
-      {modeArtefactsSeuls.explication == null && sortesFigees.length === 1 && (
-        // ⚠️ **Un BANDEAU, pas une phrase de bas de bloc.** La mention
-        // vivait en `text-ink-dimmer` sous le titre, loin du regard : on
-        // lisait la paire en croyant à deux propositions. Elle passe donc
-        // AU-DESSUS des pièces, dans une boîte qui se détache du bloc.
-        //
-        // ⚠️ **Neutre appuyé, pas `alerte`** : un
-        // réglage que l’utilisateur a lui-même posé n’est pas un
-        // avertissement. L’ambre reste réservé à ce qui réclame une action
-        // (« Valider les artéfacts ») — deux ambres de sens différents dans
-        // la même carte auraient dévalué les deux. Le contraste vient donc
-        // du contour (`border` plein là où le bloc porte `border-soft`) et
-        // de l’encre pleine, pas de la couleur.
-        //
-        // ⚠️ UN seul contour : ce bandeau est un FRÈRE des pièces, jamais
-        // une boîte posée sur une autre boîte déjà bordée.
-        <p className="mt-1.5 rounded border border-border bg-panel px-2 py-1 text-micro leading-tight text-ink">
-          <b className="font-semibold">
-            Emplacement {sortesFigees[0] === 'element' ? 'attribut' : 'type'} figé
-          </b>{' — '}
-          il est gardé tel que porté, pas optimisé. Seul l’emplacement{' '}
-          {sortesFigees[0] === 'element' ? 'type' : 'attribut'} est cherché ici.
-        </p>
-      )}
-      {/* ⚠️ **La raison passe DEVANT tout le reste.** Elle dit ce que
-          l'utilisateur a lui-même posé (un emplacement figé) ou ce que
-          l'inventaire ne peut pas donner — dans les deux cas, afficher une
-          proposition ou un « déjà porté » serait trompeur. */}
-      {modeArtefactsSeuls.explication != null ? (
-        <p className="mt-0.5 text-micro leading-tight text-ink-dim">{modeArtefactsSeuls.explication}</p>
-      ) : modeArtefactsSeuls.dejaPorte ? (
-        // ⚠️ Le dire plutôt que d'afficher « +0 » : « tu portes déjà les
-        // meilleurs » est une réponse, un zéro ressemble à une panne.
-        <p className="mt-0.5 text-micro text-ink-dim">
-          Tu portes déjà la meilleure paire disponible pour ce critère.
-        </p>
-      ) : modeArtefactsSeuls.paire.length === 0 ? (
-        <p className="mt-0.5 text-micro text-ink-dim">Aucun artéfact équipable ne correspond aux critères.</p>
-      ) : (
-        // ⚠️ **Le rendu du JEU, pas une ligne aplatie.** Les quatre
-        // sous-propriétés étaient jointes par des « · » sur une seule ligne qui
-        // repassait à la ligne n'importe où, avec un formatage maison
-        // (`artifactSubLabel(...).replace('X', …)`) — un second rendu de la
-        // même donnée, que rien ne rapprochait de l'inventaire ni du jeu.
-        // `ArtifactSubLigne` est PARTAGÉ avec la tuile d'inventaire :
-        // une ligne par propriété, la pastille de procs, la valeur en gras, le
-        // marqueur des propriétés modifiées.
-        // ⚠️ **Côte à côte, pas empilés** : une PAIRE se lit d'un coup d'œil,
-        // et l'empilement doublait la hauteur du bloc dans une carte déjà
-        // longue. `sm:` et non une largeur de conteneur : sous ce seuil la
-        // carte est pleine largeur mais étroite (téléphone), où deux colonnes
-        // couperaient les libellés longs — ils repassent alors l'un sous
-        // l'autre. `items-start` : l'artéfact qui a la principale la plus
-        // courte ne s'étire pas à la hauteur de l'autre.
-        <div className="mt-1.5 grid grid-cols-1 items-start gap-x-4 gap-y-2 sm:grid-cols-2">
-          {modeArtefactsSeuls.paire.map((a) => (
-            /* ⚠️ **Atténuation LÉGÈRE sur la pièce figée** — elle
-                n’est pas une proposition, elle est un fait. Le bandeau et le
-                marqueur le disent déjà ; ceci ne fait qu’établir la
-                hiérarchie, pour que l’œil tombe d’abord sur la moitié
-                réellement cherchée.
-
-                ⚠️ **80 %, et surtout PAS moins.** Le vocabulaire
-                « désactivé » de ce dépôt vit à 30-40 % (`Bouton`,
-                `NumberField`) : descendre là ferait lire « indisponible »
-                une pièce qui est justement celle qu’on portera. Rester
-                nettement au-dessus garde le sens « secondaire ». */
-            <div key={`${a.kind}-${a.id}`} className={`flex items-start gap-2 ${sortesFigees.includes(a.kind) ? 'opacity-80' : ''}`}>
-              <ArtifactFrameIcon artifact={a} size={24} />
-              <div className="min-w-0 flex-1">
-                {/* La principale en tête, comme sur une pièce en jeu : sans
-                    elle, on lisait quatre sous-propriétés sans savoir ce que
-                    l'artéfact apporte d'abord. */}
-                {/* ⚠️ **Le marqueur désigne LAQUELLE.** Le bandeau dit ce
-                    qui se passe, ce jeton dit sur quelle pièce — sans lui,
-                    il fallait retraduire « attribut » en « celle de
-                    gauche ». Même gabarit que la pastille de sorte de
-                    ArtifactLinesEditor : rien de nouveau dans la librairie. */}
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <p className="text-micro font-semibold leading-tight text-ink">{formatArtifactMain(a.main)}</p>
-                  {sortesFigees.includes(a.kind) && (
-                    <span className="shrink-0 rounded-full border border-border bg-panel px-1.5 py-px text-nano font-semibold text-ink-dim">
-                      figé
-                    </span>
-                  )}
-                </div>
-                <div className="mt-1 space-y-[3px]">
-                  {a.subs.map((s, i) => (
-                    <ArtifactSubLigne key={i} sub={s} />
-                  ))}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-      {/* ⚠️ **Dire ce que le chiffre EST.** Le « +X % grâce aux artéfacts » des
-          cartes de résultat a été retiré précisément parce que personne ne
-          pouvait le nommer. Celui-ci se nomme : des dégâts BRUTS, par coup,
-          qui ne critent pas et ignorent la défense — donc calculables sans
-          choisir de sort ni décrire d'adversaire. */}
-      {/* ⚠️ Affichée dès qu'un chiffre l'est — donc AUSSI quand on porte déjà
-          la meilleure paire, puisque l'absolu s'affiche dans ce cas-là. Un
-          nombre sans sa légende serait exactement le défaut du « +X % grâce
-          aux artéfacts » qu'on a retiré. */}
-      {modeArtefactsSeuls.paire.length > 0 && (
-        <p className="mt-1 text-nano text-ink-dimmer">
-          {modeArtefactsSeuls.surLeReel
-            ? `Dégâts totaux de ${resolvedSkill ? `« ${resolvedSkill.nom} »` : 'ce sort'} contre l’adversaire décrit — ouvre « Dégâts réels » pour changer le sort, la cible ou le traitement du critique.`
-            : 'Dégâts supplémentaires bruts, à chaque coup — ils ne peuvent pas être critiques et ignorent la défense adverse, donc ce gain ne dépend ni du sort utilisé ni de la cible.'}
-        </p>
-      )}
-      {modeArtefactsSeuls.coutVerrousPct != null && (
-        // ⚠️ « sur ce build » n'est PAS une précaution de langage : la recherche
-        // de runes a elle aussi tourné sous le modèle contraint, donc sans les
-        // verrous d'AUTRES builds auraient pu émerger. Un libellé sans cette
-        // précision laisserait croire à un contrefactuel global qu'on ne
-        // calcule pas.
-        <p className="mt-1 text-micro text-warn">
-          Vos lignes verrouillées coûtent −{modeArtefactsSeuls.coutVerrousPct.toFixed(1)} % sur ce build.
-        </p>
-      )}
-      {/* ⚠️ **La proposition devient actionnable.** Le bloc calculait la
-          meilleure paire sans qu’on puisse la prendre : il fallait la
-          retrouver à la main dans l’inventaire. Le bouton n’apparaît qu’avec
-          une liste active — une réservation appartient toujours à une liste
-          — et jamais sur une pièce figée ou une absence de proposition. */}
-      {modeArtefactsSeuls.explication == null &&
-        modeArtefactsSeuls.paire.length > 0 &&
-        sourceSelector &&
-        lists.activeListId &&
-        (ownValidatedBuild || canValidateDisplayed) && (
-          <Bouton
-            onClick={handleValidateArtefacts}
-            disabled={artefactsProposesDejaReserves}
-            // ⚠️ Même code couleur que « Valider les artéfacts » des cartes
-            // de résultat : `alerte` signale un état des DONNÉES — ce qui est
-            // montré n’est pas ce qui est réservé. Une fois réservée, la
-            // paire repasse en `accent`, comme tout ce qui est validé.
-            ton={artefactsProposesDejaReserves ? 'accent' : 'alerte'}
-            fond="doux"
-            taille="sm"
-            pleineLargeur
-            icone={artefactsProposesDejaReserves ? <CheckCircle2 size={14} /> : undefined}
-            libelle={
-              artefactsProposesDejaReserves
-                ? 'Artéfacts validés'
-                : ownValidatedBuild
-                  ? 'Valider ces artéfacts'
-                  : 'Valider ce build avec ces artéfacts'
-            }
-            className="mt-2"
-          />
-        )}
-      </>}
-    </div>
+    <MeilleursArtefacts
+      modeArtefactsSeuls={modeArtefactsSeuls}
+      etroit={etroit}
+      setArtefactsOuverts={setArtefactsOuverts}
+      artefactsOuverts={artefactsOuverts}
+      critereArtefacts={critereArtefacts}
+      setCritereArtefacts={setCritereArtefacts}
+      setSetupOuvert={setSetupOuvert}
+      sortesFigees={sortesFigees}
+      resolvedSkill={resolvedSkill}
+      sourceSelector={sourceSelector}
+      lists={lists}
+      ownValidatedBuild={ownValidatedBuild}
+      canValidateDisplayed={canValidateDisplayed}
+      handleValidateArtefacts={handleValidateArtefacts}
+      artefactsProposesDejaReserves={artefactsProposesDejaReserves}
+    />
   );
 
   const validateBuildButton = (
-    <>
-      <Bouton
-        onClick={handleValidateDisplayed}
-        disabled={!canValidateDisplayed || matchesValidatedBuild}
-        // ⚠️ Même code couleur que les cartes de résultat (BuildCandidateCard) :
-        // `alerte` sur « Valider les artéfacts », parce qu'il signale un état
-        // des DONNÉES — ce qui est affiché n'est pas ce qui est réservé.
-        ton={etatFiche === 'oui' ? 'accent' : etatFiche === 'artefacts' ? 'alerte' : 'neutre'}
-        fond={etatFiche === 'non' ? 'plein' : 'doux'}
-        taille="sm"
-        pleineLargeur
-        icone={matchesValidatedBuild ? <CheckCircle2 size={14} /> : undefined}
-        // ⚠️ Trois libellés, pas deux : mêmes runes + autre paire, il reste
-        // quelque chose à valider — les artéfacts. Voir `EtatValidation`.
-        libelle={etatFiche === 'oui' ? 'Validé' : etatFiche === 'artefacts' ? 'Valider les artéfacts' : 'Valider ce build'}
-        className="mt-2.5"
-      />
-      {/* Message listant les runes déjà utilisées — demande explicite,
-          « il faut afficher quelles runes sont déjà utilisées dans la
-          liste ». Absent si déjà validé (le bandeau `validatedBadge`
-          suffit alors, ce build EST la réservation). */}
-      {displayedRuneConflicts.length > 0 && !matchesValidatedBuild && (
-        <p className="mt-1.5 text-[11px] text-warn">
-          {displayedRuneConflicts.length > 1 ? 'Runes déjà réservées' : 'Rune déjà réservée'} dans cette liste :{' '}
-          {displayedRuneConflicts.map((c, i) => (
-            <span key={i}>
-              {i > 0 && ', '}
-              {c.slot != null ? `emplacement ${c.slot}` : 'une rune'} ({c.monsterName})
-            </span>
-          ))}
-          .
-        </p>
-      )}
-    </>
+    <BoutonValiderBuild
+      handleValidateDisplayed={handleValidateDisplayed}
+      canValidateDisplayed={canValidateDisplayed}
+      matchesValidatedBuild={matchesValidatedBuild}
+      etatFiche={etatFiche}
+      displayedRuneConflicts={displayedRuneConflicts}
+    />
+  );
+
+  // Assemblage des cartes de réglage (composants d'`optimizer/`). Les
+  // sélecteurs de listes restent écrits ici, branchés tels quels sur `lists` :
+  // naviguer entre les listes ou les gérer ne remet jamais la recherche à zéro.
+  const listesBureau = (
+    <OptimizerListPicker
+      action={<OptimizerImportButton enLigne sources={sourcesImport} onImporter={importerDepuisEcran} rapport={rapportImport} />}
+      lists={lists.lists}
+      activeListId={lists.activeListId}
+      memberCounts={memberCountsByList}
+      listContents={lists.listContents}
+      onSelect={lists.setActiveListId}
+      onCreate={lists.createList}
+      onEdit={lists.editList}
+      onDelete={lists.deleteList}
+    />
+  );
+
+  const listesTelephone = (
+    <OptimizerListPicker
+      lists={lists.lists}
+      activeListId={lists.activeListId}
+      memberCounts={memberCountsByList}
+      listContents={lists.listContents}
+      onSelect={lists.setActiveListId}
+      onCreate={lists.createList}
+      onEdit={lists.editList}
+      onDelete={lists.deleteList}
+    />
+  );
+
+  const setComboPicker = (
+    <SetComboPicker
+      sets={comboSets}
+      onChange={(next) => {
+        setComboSets(next);
+        if (next.length > 0) setSetPickerInvalid(false);
+        // Ouverture guidée : Accuracy ou Tolerance
+        // CHOISI comme set recherché guide vers l'interrupteur des auras
+        // RES/PRE, sans toucher aux auras externes. Au geste seulement :
+        // l'import d'une recette pose `comboSets` sans passer par ici.
+        if (guideVersResPre({ setsRecherches: comboSets }, { setsRecherches: next })) guiderVersResPre();
+      }}
+    />
+  );
+
+  const setDeRunes = (
+    <SetDeRunes
+      setPickerSectionRef={setPickerSectionRef}
+      setPickerInvalid={setPickerInvalid}
+      setComboPicker={setComboPicker}
+    />
+  );
+
+  const statPrincipaleImposee = (
+    <StatPrincipaleImposee
+      mainStatsBySlot={mainStatsBySlot}
+      toggleMainStat={toggleMainStat}
+    />
+  );
+
+  const conditions = (
+    <Conditions
+      excludeBase={excludeBase}
+      setExcludeBase={setExcludeBase}
+      baseOf={baseOf}
+      artifactFloorOf={artifactFloorOf}
+      minStats={minStats}
+      maxStats={maxStats}
+      setMinStats={setMinStats}
+      setMaxStats={setMaxStats}
+    />
+  );
+
+  const etatMonstre = (
+    <EtatMonstre
+      setup={damageSetup}
+      maj={majDamageSetup}
+      equipe={combatMembre.equipe !== null}
+      motifLead={combatMembre.motif}
+      etroit={etroit}
+      artefacts={artefactsDegats}
+      rappelAuras={rappelAuras !== null}
+      onGuiderResPre={guiderVersResPre}
+      rappelsBuffs={rappelsBuffs}
+    />
   );
 
   const rapportZoneC = [...lists.rapportStockage, ...optimizer.rapportCriteres];
@@ -3714,199 +3442,65 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
           une seule ligne sans repasser à la ligne. « Exclusion de runes » et
           « Réglages avancés » occupent la colonne 2, rangées 4 et 5 (voir
           plus bas). */}
-      <div className="rounded-xl border border-border bg-panel p-3 xl:col-span-2 xl:row-start-1">
-        <div className="mb-3 flex items-center gap-2">
-          <div className="flex h-6 w-6 flex-none items-center justify-center rounded-md border border-border-soft bg-panel2">
-            <GameIcon name="monster" size={15} />
-          </div>
-          <p className="text-[13.5px] font-bold text-ink">Monstre &amp; équipement</p>
-        </div>
-        {/* ⚠️ Bureau et mobile ont des dispositions RÉELLEMENT DIFFÉRENTES
-            ici, une par bloc `hidden`/`lg:hidden`, pas l'une déclinée de
-            l'autre (voir docs/02-app/optimizer/) : recherche +
-            puces CÔTE À CÔTE avec zones C/D en encarts fixes sur bureau,
-            contre 3 blocs empilés avec un dépliement propre chacun au
-            doigt. La fiche (zone E) a deux `<MonsterGear>`, un par format (ici,
-            et dans le bloc 3 du téléphone), branchés sur le MÊME état
-            (`selectionFiche`) — son contenu ne change pas entre les deux
-            formats. */}
-        {/* ⚠️ Carte en PLEINE LARGEUR — nécessaire pour que la fiche
-            stats/artéfacts/roue/relique, déplacée ici SOUS les puces
-            (colonne de droite), tienne sur une seule ligne sans repasser à
-            la ligne (gabarit réel : ~200px stats + ~60px artéfacts + ~210px
-            roue + ~60px relique).
-            ⚠️ **`lg:grid-cols-[1.35fr_1fr]`, PAS `lg:grid-cols-2`** (demande
-            explicite) : la séparation entre « Monstre à optimiser » et
-            « Exemplaire » s'aligne ainsi avec celle des deux colonnes
-            PRINCIPALES de la grille (`xl:grid-cols-[1.35fr_1fr]`, voir le
-            commentaire d'ouverture de la grille) — un seul ratio de
-            colonnes pour tout l'écran, pas deux proportions différentes
-            qui se contrediraient visuellement l'une sous l'autre. */}
-        <div className="hidden lg:grid lg:grid-cols-[1.35fr_1fr] lg:items-start lg:gap-6">
-          {/* Zone A (recherche — résout une ESPÈCE dans tout le bestiaire,
-              possédée ou non) + liste active
-              + zone C (monstres de cette liste), à GAUCHE. */}
-          <div>
-            <p className="label mb-1.5">Monstre à optimiser</p>
-            {/* ⚠️ Mode BESTIAIRE (voir MonsterSourcePicker.tsx) : résout une
-                ESPÈCE (nom, icône, stats de base,
-                sorts) dans TOUT le bestiaire — la recherche ne se fait pas
-                PAR SOURCE (les 4 puces ne cherchent pas). Choisir
-                un résultat pose l'espèce et tente une résolution Box
-                silencieuse (`pickSpecies`, jamais en cas d'ambiguïté — voir
-                sa définition). */}
-            <MonsterSourcePicker mode="bestiary" candidates={allMonsters} onPick={pickSpecies} />
-            {/* La sélection garde sa place même vide : l'import ne déplace pas les contrôles de liste. */}
-            <div className="mt-3 h-8 flex items-center gap-2">
-              {selected && <>
-                <MonsterAvatar monster={selected.monster} size={32} />
-                <span className="min-w-0 line-clamp-1 font-semibold text-[14px]" title={selected.monster.name}>{selected.monster.name}</span>
-              </>}
-            </div>
-            {/* ⚠️ Aucune liste FIXE (Box/RTA/Défense siège ne sont pas des
-                cas spéciaux, voir
-                docs/02-app/optimizer/,
-                « Créer, valider et réserver dans une liste ») —
-                tout est créé/renommé/supprimé par l'utilisateur. Flotte par-
-                dessus zone C, ne la pousse jamais (voir OptimizerListPicker.tsx). */}
-            <div className="mt-3">
-              <OptimizerListPicker
-                action={<OptimizerImportButton enLigne sources={sourcesImport} onImporter={importerDepuisEcran} rapport={rapportImport} />}
-                lists={lists.lists}
-                activeListId={lists.activeListId}
-                memberCounts={memberCountsByList}
-                listContents={lists.listContents}
-                onSelect={lists.setActiveListId}
-                onCreate={lists.createList}
-                onEdit={lists.editList}
-                onDelete={lists.deleteList}
-              />
-            </div>
-            <div className="mt-3">{zoneCContent}</div>
-          </div>
-
-          {/* Zone B (les 4 puces — choisissent l'EXEMPLAIRE de l'espèce
-              déjà choisie à gauche dans un « contenu » précis) + zone D
-              (désambiguïsation
-              d'exemplaire, en `Flottant` sous les puces — ex. 2 équipes de
-              siège) + fiche, à DROITE. */}
-          <div className="flex flex-col gap-3">
-            <div ref={zoneDRef} className="relative">
-              <p className="label mb-1.5">Exemplaire</p>
-              {/* ⚠️ Puce individuellement grisée si l'espèce n'est PAS
-                  possédée dans CETTE source précise, tout le contrôle grisé
-                  si elle ne l'est dans AUCUNE des 4 — voir l'axe `disabled` par option, ajouté à
-                  Segmented.tsx pour ce cas précis. ⚠️ **`value={null}`
-                  quand le build VALIDÉ est ACTUELLEMENT affiché**
-                  (`matchesValidatedBuild`, PAS `ownValidatedBuild` seul —
-                  la bascule « voir le runage réellement porté »,
-                  `showRealGear`, peut en montrer l'équipement réel, qui
-                  LUI reste la source réelle d'une puce) **ou quand
-                  `sourceSelector` est `unowned`** (monstre non possédé,
-                  demande explicite) : dans les deux cas, aucune puce ne
-                  doit s'allumer — voir l'axe `value: T | null` ajouté à
-                  Segmented.tsx pour ce cas précis. */}
-              <Segmented
-                options={sourceOptions}
-                value={matchesValidatedBuild || unowned ? null : gearSource}
-                onChange={pickSource}
-                disabled={allSourcesEmpty}
-                size="lg"
-              />
-              {zoneDOpen && (
-                <Flottant aria-label="Choisir l'exemplaire" rembourrage="aucun" className="max-h-[300px] overflow-y-auto">
-                  {zoneDList}
-                </Flottant>
-              )}
-            </div>
-            <div className="rounded-xl border border-border-soft bg-panel2/60 p-3">
-              {validatedBadge}
-              <MonsterGear
-                gear={selected?.gear ?? EMPTY_GEAR}
-                selection={selectionFiche}
-                onSelectionChange={setSelectionFiche}
-                relicUsageById={relicUsageById}
-              />
-              {validateBuildButton}
-            </div>
-          </div>
-        </div>
-
-        {/* Mobile : 3 blocs empilés, chacun son propre
-            dépliement — pas les zones fixes ci-dessus. */}
-        <div className="lg:hidden space-y-3">
-          {/* Bloc 1 — recherche TOUJOURS visible, liste active
-              rattachée EN DESSOUS en dépliement (`zoneCOpen`, repliée par
-              défaut). */}
-          <div>
-            <p className="label mb-1.5">Monstre à optimiser</p>
-            <MonsterSourcePicker mode="bestiary" candidates={allMonsters} onPick={pickSpecies} />
-            <div ref={ligneMonstreTelephoneRef} className="mt-3 h-8 flex items-center gap-2">
-              {selected && <>
-                <MonsterAvatar monster={selected.monster} size={32} />
-                <span className="min-w-0 line-clamp-1 font-semibold text-[14px]" title={selected.monster.name}>{selected.monster.name}</span>
-              </>}
-            </div>
-            <div className="mt-3">
-              <OptimizerImportButton sources={sourcesImport} onImporter={importerDepuisEcran} rapport={rapportImport} />
-            </div>
-            <ZoneCliquable
-              onClick={() => setZoneCOpen((v) => !v)}
-              aria-expanded={zoneCOpen}
-              className={`-mx-1 mt-3 flex w-[calc(100%+0.5rem)] items-center gap-1.5 rounded-md px-1 text-[12.5px] font-semibold transition-colors duration-300 motion-reduce:transition-none ${eclatImport ? 'bg-accent-soft text-ink' : 'text-ink-dim'}`}
-            >
-              Gérer mes listes
-              <ChevronDown size={13} className={`ml-auto transition-transform ${zoneCOpen ? 'rotate-180' : ''}`} />
-            </ZoneCliquable>
-            {zoneCOpen && (
-              <div className={`-mx-1 mt-2 space-y-3 rounded-lg px-1 py-1 transition-colors duration-300 motion-reduce:transition-none ${eclatImport ? 'bg-accent-soft' : ''}`}>
-                <OptimizerListPicker
-                  lists={lists.lists}
-                  activeListId={lists.activeListId}
-                  memberCounts={memberCountsByList}
-                  listContents={lists.listContents}
-                  onSelect={lists.setActiveListId}
-                  onCreate={lists.createList}
-                  onEdit={lists.editList}
-                  onDelete={lists.deleteList}
-                />
-              </div>
-            )}
-          </div>
-
-          {/* Bloc 2 — puces TOUJOURS visibles, zone D rattachée EN DESSOUS
-              en dépliement (`zoneDOpen`, EN LIGNE plutôt qu'en `Flottant` —
-              un panneau flottant se prête mal à un écran étroit). */}
-          <div>
-            <p className="label mb-1.5">Exemplaire</p>
-            <Segmented
-              options={sourceOptions}
-              value={matchesValidatedBuild || unowned ? null : gearSource}
-              onChange={pickSource}
-              disabled={allSourcesEmpty}
-              size="lg"
-            />
-            {zoneDOpen && <div className="mt-2 rounded-lg border border-border-soft overflow-hidden">{zoneDList}</div>}
-            {/* Les ajouts ne déplacent pas la puce qui les déclenche. */}
-            {zoneCOpen && <div className="mt-3">{zoneCContent}</div>}
-          </div>
-
-          {/* Bloc 3 — fiche stats/artéfacts/runes/relique (même composant
-              `MonsterGear` que RTA/Siège), bandeau « build validé » +
-              bouton « Valider ce build » en plus, voir leur commentaire
-              plus haut (`validatedBadge`/`validateBuildButton`). */}
-          <div className="rounded-xl border border-border-soft bg-panel2/60 p-3">
-            {validatedBadge}
-            <MonsterGear
-              gear={selected?.gear ?? EMPTY_GEAR}
-              selection={selectionFiche}
-              onSelectionChange={setSelectionFiche}
-              relicUsageById={relicUsageById}
-            />
-              {validateBuildButton}
-          </div>
-        </div>
-      </div>
+      <MonstreEquipement
+        monstreEtListe={
+          <MonstreEtListe
+            allMonsters={allMonsters}
+            pickSpecies={pickSpecies}
+            selected={selected}
+            listesBureau={listesBureau}
+            zoneCContent={zoneCContent}
+          />
+        }
+        exemplaireEtFiche={
+          <ExemplaireEtFiche
+            zoneDRef={zoneDRef}
+            sourceOptions={sourceOptions}
+            matchesValidatedBuild={matchesValidatedBuild}
+            unowned={unowned}
+            gearSource={gearSource}
+            pickSource={pickSource}
+            allSourcesEmpty={allSourcesEmpty}
+            zoneDOpen={zoneDOpen}
+            zoneDList={zoneDList}
+            validatedBadge={validatedBadge}
+            selected={selected}
+            selectionFiche={selectionFiche}
+            setSelectionFiche={setSelectionFiche}
+            relicUsageById={relicUsageById}
+            validateBuildButton={validateBuildButton}
+          />
+        }
+        monstreEquipementTelephone={
+          <MonstreEquipementTelephone
+            allMonsters={allMonsters}
+            pickSpecies={pickSpecies}
+            ligneMonstreTelephoneRef={ligneMonstreTelephoneRef}
+            selected={selected}
+            sourcesImport={sourcesImport}
+            importerDepuisEcran={importerDepuisEcran}
+            rapportImport={rapportImport}
+            setZoneCOpen={setZoneCOpen}
+            zoneCOpen={zoneCOpen}
+            eclatImport={eclatImport}
+            listesTelephone={listesTelephone}
+            sourceOptions={sourceOptions}
+            matchesValidatedBuild={matchesValidatedBuild}
+            unowned={unowned}
+            gearSource={gearSource}
+            pickSource={pickSource}
+            allSourcesEmpty={allSourcesEmpty}
+            zoneDOpen={zoneDOpen}
+            zoneDList={zoneDList}
+            zoneCContent={zoneCContent}
+            validatedBadge={validatedBadge}
+            selectionFiche={selectionFiche}
+            setSelectionFiche={setSelectionFiche}
+            relicUsageById={relicUsageById}
+            validateBuildButton={validateBuildButton}
+          />
+        }
+      />
 
       {/* Étape 3. ⚠️ **`w-fit` RETIRÉ** (demande explicite) : sans lui, la
           carte profite de toute la largeur de la colonne 1 plutôt que de se
@@ -3919,271 +3513,11 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
           FACE, il ne décrit pas le contenu de celle-ci : toute carte ajoutée
           ou retirée à droite se répercute ici, et sur la rangée de la ligne
           d'estimation (pleine largeur, toujours en dernier). */}
-      <div className="rounded-xl border border-border bg-panel p-3 xl:col-start-1 xl:row-start-2 xl:row-span-4">
-        <div className="mb-3 flex items-center gap-2">
-          {/* Curseurs de réglage, colorés (accent) — plus parlant qu'une
-              cible générique pour « plusieurs critères ajustables », et
-              distinct du `Target` déjà utilisé plus bas pour un réglage
-              précis (« Prioriser les stats les plus difficiles »). */}
-          <div className="flex h-6 w-6 flex-none items-center justify-center rounded-md border border-accent/40 bg-accent-soft">
-            <SlidersHorizontal size={13} className="text-accent" />
-          </div>
-          <p className="text-[13.5px] font-bold text-ink">Critères de recherche</p>
-        </div>
-        {/* ⚠️ **Deux colonnes** (demande explicite) : Set de runes recherché
-            + Statistique principale imposée à GAUCHE (les deux contraintes
-            qui portent sur les runes elles-mêmes), Artéfacts + Conditions à
-            DROITE — vérifié sur un écran réel (capture d'écran) qu'il reste
-            assez de place pour « Objectif de recherche » à côté, malgré la
-            carte élargie par cette deuxième colonne. `items-start` : la
-            colonne la plus courte ne s'étire pas à la hauteur de l'autre.
-            Sous `lg`, retour à l'empilement (ordre du DOM inchangé : Set,
-            Statistique principale, Artéfacts, Conditions). */}
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:gap-6">
-        {/* ⚠️ **Trait vertical entre les deux colonnes** (demande explicite,
-            capture d'écran à l'appui) — `lg:border-r` posé sur la colonne de
-            GAUCHE uniquement (pas de `border-l` en plus sur la droite : deux
-            traits à 1 px l'un de l'autre se liraient comme un contour flou,
-            voir docs/03-developpeur/interface/). `lg:pr-6` : le trait respire du même
-            écart que `lg:gap-6` sur le conteneur, sans quoi il collerait au
-            texte de gauche. UNIQUEMENT à partir de `lg` — sous ce seuil, les
-            deux « colonnes » s'empilent (`flex-col`), un trait vertical n'y
-            aurait aucun sens. */}
-        <div className="lg:border-r lg:border-border-soft lg:pr-6">
-      {/* ⚠️ `max-w-md` — SEUL rempart (la carte elle-même n'a pas de
-          `w-fit`, voir le commentaire d'ouverture de cette carte) : sans lui, ce
-          bloc se laisserait pousser jusqu'à la largeur disponible de la
-          piste de grille, beaucoup plus large que ce set n'en a besoin. */}
-      <div
-        ref={setPickerSectionRef}
-        className={`max-w-md ${
-          setPickerInvalid
-            ? 'rounded-lg border border-bad bg-bad/15 p-2 -m-2 transition'
-            : 'transition'
-        }`}
-      >
-        <p className="label mb-1.5">Set de runes recherché</p>
-        <SetComboPicker
-          sets={comboSets}
-          onChange={(next) => {
-            setComboSets(next);
-            if (next.length > 0) setSetPickerInvalid(false);
-            // Ouverture guidée : Accuracy ou Tolerance
-            // CHOISI comme set recherché guide vers l'interrupteur des auras
-            // RES/PRE, sans toucher aux auras externes. Au geste seulement :
-            // l'import d'une recette pose `comboSets` sans passer par ici.
-            if (guideVersResPre({ setsRecherches: comboSets }, { setsRecherches: next })) guiderVersResPre();
-          }}
-        />
-        {setPickerInvalid && (
-          <p className="mt-1.5 text-micro font-semibold text-bad">
-            Sélectionne au moins un set avant de lancer la recherche.
-          </p>
-        )}
-      </div>
-
-      {/* ⚠️ Trait horizontal entre Set de runes recherché et Statistique
-          principale imposée (demande explicite) — `mt-4 border-t pt-4`
-          remplace le `space-y-4` qu'avait le conteneur parent (sinon la
-          marge automatique ET la bordure s'additionneraient, doublant
-          l'écart visuel). */}
-      <div className="mt-4 border-t border-border-soft pt-4">
-        <div className="mb-2.5 flex items-center gap-1.5">
-          <p className="label">Statistique principale imposée (slots pairs)</p>
-        </div>
-        <div className="flex flex-col gap-1.5">
-          {CONFIGURABLE_SLOTS.map((slot) => (
-            <div key={slot} className="flex items-center gap-2 flex-wrap">
-              <span className="text-micro text-ink-dim w-14">Slot {slot}</span>
-              {SLOT_MAIN_OPTIONS[slot].map((code) => {
-                const active = (mainStatsBySlot[slot] ?? []).includes(code);
-                return (
-                  <Pastille
-                    key={code}
-                    actif={active}
-                    onClick={() => toggleMainStat(slot, code)}
-                    libelle={RUNE_EFFECT[code]?.label ?? code}
-                  />
-                );
-              })}
-            </div>
-          ))}
-        </div>
-      </div>
-        </div>
-
-        <div>
-      {/* ⚠️ Le bloc « Artéfacts » vivait ICI, en tête de cette colonne, au-
-          dessus de Conditions. Déplacé dans sa PROPRE carte (colonne 2,
-          rangée 2 — voir plus bas) : son interrupteur « Ignorer les
-          statistiques » masquait sélecteurs et lignes verrouillées d'un coup,
-          ce qui faisait REMONTER Conditions sous le doigt. Cette colonne ne
-          porte donc plus que Conditions, et le trait qui les séparait a
-          disparu avec lui — un trait en TÊTE de colonne, sans rien au-dessus,
-          ne sépare plus rien. */}
-      <div>
-        <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
-          <p className="label">Conditions</p>
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs font-semibold text-ink-dim">Stats de base exclues</span>
-            <HelpPopover title="Stats de base exclues">
-              <b className="text-ink">PV/ATQ/DEF/VIT</b> : activé, la valeur est ce que l'équipement (runes ET
-              artéfacts comptés) doit apporter <b className="text-ink">au-dessus de la base</b> du monstre. Désactivé,
-              elle porte sur le total. <b className="text-ink">Taux Crit/Dgts Crit/RES/Précision</b> restent toujours
-              en total, quel que soit ce réglage — ils partent de la valeur d'éveil du monstre.
-            </HelpPopover>
-            <Interrupteur
-              actif={excludeBase}
-              onChange={setExcludeBase}
-              aria-label="Stats de base exclues des conditions PV/ATQ/DEF/VIT"
-            />
-          </div>
-        </div>
-        {/* ⚠️ `boxWidth` fixe sur CHAQUE NumberField ci-dessous (voir
-            NumberField.tsx) : sans ça, un champ avec suffixe « % » serait
-            TOUJOURS plus large qu'un champ sans suffixe à largeur de texte
-            égale (le suffixe prend de la place en plus), et les colonnes
-            Min/Max ne s'aligneraient pas d'une stat à l'autre. */}
-        {/* ⚠️ `gap-x` réduit sous `sm` : trois colonnes plus deux écarts de
-            16 px ne laissaient plus de place aux champs sur 348 px utiles. */}
-        {/* ⚠️ `w-fit` : sans lui, un conteneur `grid` en bloc prend TOUTE la
-            largeur de son parent, et les colonnes `auto` (Min/Max) SE
-            PARTAGENT l'espace libre restant (comportement CSS Grid par
-            défaut dès qu'aucune piste n'est en `fr`) — sur une carte large,
-            Min et Max se retrouvaient étirés à des dizaines de pixels l'un
-            de l'autre. `w-fit` borne la grille à son contenu réel : les
-            colonnes redeviennent SERRÉES, quelle que soit la largeur de la
-            carte qui l'entoure. Demande explicite : « resserré ». */}
-        <div className="grid w-fit grid-cols-[minmax(76px,auto)_auto_auto] items-center gap-x-2 gap-y-1.5 sm:grid-cols-[minmax(90px,auto)_auto_auto] sm:gap-x-4">
-          {/* ⚠️ En-têtes Min/Max AU DOIGT seulement. Sur téléphone, le libellé
-              « Min »/« Max » collé à chaque champ faisait déborder la rangée
-              (label + 2 champs + 2 mots > largeur utile) ; on les masque et on
-              pose ces deux en-têtes une seule fois. Au bureau (`sm:`), chaque
-              champ garde son libellé à côté et ces en-têtes disparaissent —
-              rendu inchangé. */}
-          <span className="sm:hidden" aria-hidden />
-          <span className="label sm:hidden text-center">Min</span>
-          <span className="label sm:hidden text-center">Max</span>
-          {RECO_STATS.map((st) => {
-            const affectedByToggle = BASE_TOGGLE_STATS.has(st.key);
-            const base = baseOf(st.key);
-            const capped = CAPPED_100.has(st.key);
-            const bonusMode = affectedByToggle && excludeBase;
-            const ceiling = capped ? (bonusMode ? 100 - base : 100) : undefined;
-            // ⚠️ Plancher affiché/autorisé, PAS la même chose que `base` (qui
-            // sert à la conversion affichage↔stockage, voir `baseOf`) : avec
-            // zéro rune, un monstre a déjà AU MOINS ce bonus/total en jeu
-            // (base nue + artéfacts éventuellement comptés) — voir
-            // `artifactFloorOf`. En mode bonus, seul l'artéfact compte (la
-            // base nue est déjà soustraite par la conversion elle-même) ; en
-            // mode total, base ET artéfact s'additionnent.
-            const floor = artifactFloorOf(st.key, base, bonusMode);
-
-            const minTotal = minStats[st.key] ?? null;
-            const minDisplayed = minTotal == null ? null : bonusMode ? minTotal - base : minTotal;
-            const maxTotalVal = maxStats[st.key] ?? null;
-            const maxDisplayed = maxTotalVal == null ? null : bonusMode ? maxTotalVal - base : maxTotalVal;
-
-            return (
-              <Fragment key={st.key}>
-                <span className="text-xs text-ink">{st.label}</span>
-                <div className="flex items-center gap-1.5">
-                  <NumberField
-                    value={minDisplayed}
-                    onChange={(v) =>
-                      setMinStats((prev) => {
-                        const next = { ...prev };
-                        if (v == null) delete next[st.key];
-                        else next[st.key] = bonusMode ? v + base : v;
-                        return next;
-                      })
-                    }
-                    allowEmpty
-                    // ⚠️ Le total (ou le bonus, artéfacts comptés) ne descend
-                    // jamais sous ce plancher — même sans la moindre rune, il
-                    // est déjà garanti (base nue en mode total, artéfacts en
-                    // mode bonus).
-                    min={floor}
-                    max={ceiling}
-                    placeholder={String(floor)}
-                    suffix={st.suffix || undefined}
-                    boxWidth="w-24"
-                    ariaLabel={`${st.label} minimum`}
-                    title="Minimum"
-                  />
-                  <span className="hidden sm:inline text-ink-dim text-micro">Min</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <NumberField
-                    value={maxDisplayed}
-                    onChange={(v) =>
-                      setMaxStats((prev) => {
-                        const next = { ...prev };
-                        if (v == null) delete next[st.key];
-                        else next[st.key] = bonusMode ? v + base : v;
-                        return next;
-                      })
-                    }
-                    allowEmpty
-                    min={floor}
-                    max={ceiling}
-                    placeholder={capped ? String(ceiling) : '—'}
-                    suffix={st.suffix || undefined}
-                    boxWidth="w-24"
-                    // ⚠️ **Un maximum sous le minimum retombe au défaut**
-                    // (demande explicite) : la condition serait insatisfaisable
-                    // par construction, et la recherche renverrait « 0 build »
-                    // sans que rien ne dise pourquoi.
-                    //
-                    // ⚠️ À la SORTIE du champ, jamais à la frappe : on ne
-                    // saurait pas distinguer un « 5 » définitif d'un « 50 » en
-                    // cours d'écriture — c'est le même piège que celui que
-                    // `NumberField` documente déjà pour le bornage par `min`.
-                    //
-                    // ⚠️ On EFFACE plutôt que de remonter à la valeur du
-                    // minimum : le champ retrouve alors son placeholder, donc
-                    // son défaut (le plafond pour une stat bornée à 100,
-                    // « aucun maximum » sinon). Le corriger silencieusement en
-                    // « max = min » poserait une contrainte que l'utilisateur
-                    // n'a pas demandée, et qui ne laisse passer qu'une valeur.
-                    onBlur={() => {
-                      const mn = minStats[st.key];
-                      const mx = maxStats[st.key];
-                      if (mn == null || mx == null || mx >= mn) return;
-                      setMaxStats((prev) => {
-                        const next = { ...prev };
-                        delete next[st.key];
-                        return next;
-                      });
-                    }}
-                    ariaLabel={`${st.label} maximum`}
-                    title="Maximum"
-                  />
-                  <span className="hidden sm:inline text-ink-dim text-micro">Max</span>
-                </div>
-              </Fragment>
-            );
-          })}
-        </div>
-        <div className="flex justify-end mt-1.5">
-          <Bouton
-            fond="vide"
-            trait="aucun"
-            taille="sm"
-            onClick={() => {
-              setMinStats({});
-              setMaxStats({});
-            }}
-            icone={<RotateCcw size={13} />}
-            libelle="Réinitialiser les conditions"
-            className="text-ink-dim hoverable:text-bad"
-          />
-        </div>
-      </div>
-
-        </div>
-        </div>
-      </div>
+      <CriteresRecherche
+        setDeRunes={setDeRunes}
+        statPrincipaleImposee={statPrincipaleImposee}
+        conditions={conditions}
+      />
 
       {/* Carte À PART, PAS un bloc dans « Critères de recherche » : une
           carte dédiée Artéfacts.
@@ -4204,248 +3538,23 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
           ⚠️ Le placement de grille est en `xl:` UNIQUEMENT : au doigt, l'ordre
           est celui du DOM, d'où cette carte déclarée juste après « Critères de
           recherche ». Les deux formats sont servis par le même JSX. */}
-      <div className="rounded-xl border border-border bg-panel p-3 xl:col-start-2 xl:row-start-2">
-        <div className="mb-3 flex flex-wrap items-center gap-2">
-          {/* Même gabarit d'en-tête que les autres cartes (icône encadrée 6×6
-              + titre 13,5 px) : `GameIcon name="artifact"` existait déjà et
-              n'était pas utilisé ici — pas une icône de plus à inventer. */}
-          <div className="flex h-6 w-6 flex-none items-center justify-center rounded-md border border-border-soft bg-panel2">
-            <GameIcon name="artifact" size={15} />
-          </div>
-          {/* ⚠️ Titre étendu à la relique (voir le bloc « Relique »
-              ci-dessous) : le titre suit l'interrupteur, qui porte déjà les
-              deux mots — à confirmer par l'utilisateur au premier rendu. */}
-          <p className="text-[13.5px] font-bold text-ink">Artéfacts et reliques</p>
-          <HelpPopover title="Artéfacts et reliques">
-            <b className="text-ink">« Libre »</b> cherche parmi tous tes artéfacts équipables ; une{' '}
-            <b className="text-ink">principale</b> restreint la recherche à ceux qui la portent.{' '}
-            <b className="text-ink">« Garder l&apos;artéfact équipé »</b> conserve la pièce entière portée sur le
-            build affiché ci-dessus, sans rien chercher.
-            <br />
-            <br />
-            La paire retenue suit le <b className="text-ink">tri</b> affiché — trier par PV effectifs ne choisit
-            pas les mêmes artéfacts que trier par dégâts.
-          </HelpPopover>
-          {/* `ml-auto` plutôt qu'un `justify-between` sur la rangée : le titre
-              et son aide restent collés, l'interrupteur part à droite — même
-              lecture qu'avant, dans le gabarit d'en-tête de carte. */}
-          <div className="ml-auto flex items-center gap-1.5">
-            <span className="text-xs font-semibold text-ink-dim">Activer l&apos;optimisation d&apos;artéfacts et reliques</span>
-            <HelpPopover title="Activer l&apos;optimisation d&apos;artéfacts et reliques">
-              Activé (défaut), chaque build reçoit la meilleure paire d&apos;artéfacts ET la meilleure relique
-              parmi les tiennes, selon les réglages ci-dessous.
-              <br />
-              <br />
-              Désactivé, le monstre <b className="text-ink">garde les artéfacts et la relique qu&apos;il porte</b>,
-              statistiques comprises — on cesse simplement d&apos;en chercher d&apos;autres. Utile pour composer un
-              runage autour des pièces déjà en place.
-            </HelpPopover>
-            <Interrupteur
-              actif={optimiserArtefacts}
-              onChange={setOptimiserArtefacts}
-              aria-label="Activer l'optimisation d'artéfacts et reliques"
-            />
-          </div>
-        </div>
-        {/* Rangée Attribut/Type — la relique a rejoint le bas de la carte
-            (le bloc Relique
-            FERME la carte, plus de variante `xl:border-l`, voir plus bas). */}
-        {optimiserArtefacts && (
-          <div className="flex flex-wrap gap-3">
-            {ARTIFACT_KINDS.map(({ key, label }) => (
-              <div key={key} className="flex items-center gap-1.5">
-                <span className={`text-xs text-ink ${LARGEUR_LIBELLE_LISTE}`}>{label}</span>
-                {/* ⚠️ **`'libre'`, parce que c'est ce que le MOTEUR fait**
-                    d'une clé absente (`candidatsParSorte`, artifactOptim.ts).
-                    Ce sélecteur affichait « Garder l'artéfact équipé » tant
-                    qu'aucun choix n'avait été fait, pendant que la recherche
-                    cherchait librement : l'écran annonçait le contraire de ce
-                    qui se passait, et tout ce qui se fiait à cet affichage
-                    (les emplacements « figés », donc l'éditeur de verrous)
-                    raisonnait sur un état faux. Le défaut se lit désormais au
-                    même endroit pour tout le monde. */}
-                <Selecteur
-                  value={String(artifactMainByKind[key] ?? 'libre')}
-                  onChange={(e) => {
-                    const raw = e.target.value;
-                    const next: ArtifactMainChoice =
-                      raw === 'equipped' || raw === 'libre' ? raw : (Number(raw) as 100 | 101 | 102);
-                    setArtifactMainByKind((prev) => ({ ...prev, [key]: next }));
-                  }}
-                  taille="sm"
-                  surface="panel2"
-                  pleineLargeur={false}
-                  className={LARGEUR_SELECTEUR_LISTE}
-                >
-                  {/* ⚠️ « Garder l'artéfact équipé », et non « Comme équipé » :
-                      ce choix conserve la PIÈCE entière — le pool tombe à un
-                      seul candidat, l'exemplaire porté avec ses quatre
-                      sous-propriétés (voir `candidatsParSorte`,
-                      artifactOptim.ts). L'ancien libellé, posé au milieu de
-                      trois statistiques principales, se lisait « la
-                      principale, comme équipé ». Signalé à l'usage. */}
-                  <option value="equipped">Garder l&apos;artéfact équipé</option>
-                  {/* ⚠️ « Libre » n’a de sens qu’avec une recherche d’artéfacts : il n’a
-                      été ajouté qu’une fois celle-ci construite, pour ne pas laisser
-                      une option morte dans le sélecteur. */}
-                  <option value="libre">Libre</option>
-                  {ARTIFACT_MAIN_OPTIONS.map((o) => (
-                    <option key={o.code} value={o.code}>
-                      {o.label}
-                    </option>
-                  ))}
-                  {/* ⚠️ Pas de « Aucun ». Retiré : vider UN emplacement pendant
-                      que l'autre cherche ne correspond à rien en jeu, et « ne
-                      pas compter les artéfacts » se dit d'un seul geste avec
-                      l'interrupteur ci-dessus, pour les deux à la fois.
-                      L'emplacement peut toujours RESTER vide si la recherche
-                      n'a rien de mieux à y mettre — c'est l'imposer par sorte
-                      qui n'avait pas de sens. */}
-                </Selecteur>
-              </div>
-            ))}
-          </div>
-        )}
-        {/* Sous les sélecteurs, et jamais au-dessus : les lignes
-            verrouillées se lisent comme un raffinement du choix de pièce, pas
-            comme une condition indépendante. Masqué avec le reste quand les
-            artéfacts sont ignorés — un verrou n'aurait alors aucun effet, et
-            une saisie sans effet est pire qu'une saisie absente. */}
-        {optimiserArtefacts && (
-          <div className="mt-3">
-            <ArtifactLinesEditor
-              lignes={lignesVerrouillees}
-              onChange={setLignesVerrouillees}
-              diagnostic={diagnosticVerrous}
-              figees={sortesFigees}
-            />
-          </div>
-        )}
-        {/* ⚠️ **Le résultat rejoint ses commandes.** « Meilleurs artéfacts pour
-            ce build » vivait sous la fiche d'équipement, avec une raison qui
-            TIENT TOUJOURS : la fiche montre l'équipement RÉEL, on n'y
-            substitue pas une proposition. Elle est satisfaite autrement — la
-            fiche dit ce qu'on PORTE, cette carte voisine ce qu'on DEVRAIT
-            porter, et elles restent côte à côte sous « Exemplaire ». Laisser
-            les réglages ici et le résultat là-bas aurait séparé la cause de
-            son effet.
-            ⚠️ Rendu UNE seule fois désormais : il était interpolé deux fois
-            (branche bureau et branche téléphone de « Monstre & équipement »),
-            alors qu'un grep de son libellé n'en montrait qu'une — cette carte
-            n'a pas de jumelle masquée. */}
-        {blocArtefactsSeuls}
-        {/* ⚠️ **Relique — ferme la carte, PAS une carte propre** (les variantes à droite de la rangée Attribut/Type, ou
-            en carte à part, sont écartées). Trait horizontal sous « Meilleurs artéfacts », un seul
-            contour, puis le sous-titre et sa rangée — même JSX pour les deux
-            formats, ordinateur et téléphone : la rangée se replie seule via
-            `flex-wrap` comme la rangée Attribut/Type juste au-dessus. Même
-            interrupteur que les listes d'artéfacts : masqué
-            avec elles plutôt que grisé à part — pas de carte séparée à
-            expliquer, donc pas de texte « Coupée avec… ». */}
-        {optimiserArtefacts && (
-          <div className="mt-3 border-t border-border-soft pt-3">
-            <div className="flex items-center gap-1">
-              <span className="label">Relique</span>
-              <HelpPopover title="Relique">
-                Les soins et boucliers (Régénération) ne sont mesurés par aucun objectif, donc jamais notés.
-                <br />
-                <br />
-                <b className="text-ink">« Garder la relique équipée »</b> conserve la pièce entière portée sur
-                le build affiché ci-dessus, sans rien chercher.
-              </HelpPopover>
-            </div>
-            <div className="mt-1.5 flex flex-wrap gap-3">
-              <div className="flex items-center gap-1.5">
-                <span className={`text-xs text-ink ${LARGEUR_LIBELLE_LISTE}`}>Principale</span>
-                <Selecteur
-                  value={String(relicMainChoice)}
-                  onChange={(e) => {
-                    const raw = e.target.value;
-                    const next: RelicMainChoice =
-                      raw === 'equipped' || raw === 'libre' ? raw : (Number(raw) as 100 | 101 | 102);
-                    setRelicMainChoice(next);
-                  }}
-                  taille="sm"
-                  surface="panel2"
-                  pleineLargeur={false}
-                  className={LARGEUR_SELECTEUR_LISTE}
-                >
-                  <option value="equipped">Garder la relique équipée</option>
-                  <option value="libre">Libre</option>
-                  {RELIC_MAIN_OPTIONS.map((o) => (
-                    <option key={o.code} value={o.code}>
-                      {o.label}
-                    </option>
-                  ))}
-                </Selecteur>
-              </div>
-              {/* Groupés : « Niveau minimum » reste à côté de « Propriété unique » quand la carte le permet. */}
-              <div className="flex flex-wrap items-center gap-x-2 gap-y-3">
-              <div className="flex items-center gap-1.5">
-                <span className={`text-xs text-ink ${LARGEUR_LIBELLE_LISTE}`}>Propriété unique</span>
-                {/* ⚠️ **Sans effet avec « Garder la relique équipée »** (la
-                    pièce est fixée) — désactivé plutôt que retiré ; la raison
-                    reste dans l'infobulle, sans texte à côté qui prendrait
-                    la place de « Niveau minimum ». */}
-                <Selecteur
-                  value={String(relicUniqueChoice)}
-                  onChange={(e) => {
-                    const raw = e.target.value;
-                    setRelicUniqueChoice(raw === 'libre' ? 'libre' : Number(raw));
-                  }}
-                  taille="sm"
-                  surface="panel2"
-                  pleineLargeur={false}
-                  className={LARGEUR_SELECTEUR_LISTE}
-                  disabled={relicMainChoice === 'equipped'}
-                  title={relicMainChoice === 'equipped' ? 'Sans effet : la relique équipée est fixée' : undefined}
-                >
-                  <option value="libre">Libre</option>
-                  {/* ⚠️ Libellé DÉRIVÉ de `RELIC_UNIQUE` (`relicUniqueEffectLabel`,
-                      effects.ts) — « <effet> en fonction <stat> » avec les mots du
-                      jeu des deux moitiés, jamais une table séparée
-                      (game-data-curation). Même libellé que sur la carte candidat
-                      (RelicSlot → `RelicDetailBox` → `formatRelicUnique`, qui
-                      reste la phrase COMPLÈTE, trop longue pour un sélecteur). */}
-                  {Object.keys(RELIC_UNIQUE)
-                    .map(Number)
-                    .map((type) => (
-                      <option key={type} value={type}>
-                        {relicUniqueEffectLabel(type)}
-                      </option>
-                    ))}
-                </Selecteur>
-              </div>
-              <div className="flex items-center gap-1.5">
-                {/* Au bureau, libellé court et champ à deux chiffres : la rangée
-                    tient à côté de « Propriété unique ». */}
-                <span className={`text-xs text-ink ${LARGEUR_LIBELLE_LISTE} lg:w-auto`} title="Niveau minimum">
-                  <span className="lg:hidden">Niveau minimum</span><span className="hidden lg:inline">Niveau min.</span>
-                </span>
-                {/* ⚠️ Filtre d'ENTRÉE sur le pool de reliques cherché, jamais
-                    un critère de classement (la dominance départage les
-                    reliques qui passent le seuil). Sans effet tant que
-                    « Principale » ne vaut pas « Libre » ou une principale
-                    forcée — pas désactivé pour autant : la combinaison
-                    reste rare, et un champ qui apparaît/disparaît selon un
-                    AUTRE champ de la même carte serait plus déroutant que
-                    sans effet à l'occasion (contrairement à « Propriété
-                    unique », désactivée seulement par « Garder la relique
-                    équipée », qui la rend vraiment inerte). */}
-                <NumberField
-                  value={relicMinUpgrade}
-                  onChange={(v) => setRelicMinUpgrade(v ?? DEFAULT_RELIC_MIN_UPGRADE)}
-                  min={0}
-                  max={15}
-                  width="w-8"
-                  title="Niveau minimum de la relique — filtre d'entrée sur le pool cherché, jamais un critère de classement"
-                />
-              </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
+      <ArtefactsEtReliques
+        optimiserArtefacts={optimiserArtefacts}
+        setOptimiserArtefacts={setOptimiserArtefacts}
+        artifactMainByKind={artifactMainByKind}
+        setArtifactMainByKind={setArtifactMainByKind}
+        lignesVerrouillees={lignesVerrouillees}
+        setLignesVerrouillees={setLignesVerrouillees}
+        diagnosticVerrous={diagnosticVerrous}
+        sortesFigees={sortesFigees}
+        blocArtefactsSeuls={blocArtefactsSeuls}
+        relicMainChoice={relicMainChoice}
+        setRelicMainChoice={setRelicMainChoice}
+        relicUniqueChoice={relicUniqueChoice}
+        setRelicUniqueChoice={setRelicUniqueChoice}
+        relicMinUpgrade={relicMinUpgrade}
+        setRelicMinUpgrade={setRelicMinUpgrade}
+      />
 
       {/* ⚠️ **Carte à part, sous « Artéfacts et reliques »** — ces cinq
           réglages ne sont PAS des réglages d'artéfact ni de relique. Ils
@@ -4461,19 +3570,9 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
           ⚠️ `xl:col-start-2 xl:row-start-3` — la colonne 2 passe donc à QUATRE
           cartes empilées, d'où le `row-span-4` de « Critères de recherche » et
           le décalage d'une rangée de tout ce qui suit. */}
-      <div className="rounded-xl border border-border bg-panel p-3 xl:col-start-2 xl:row-start-3">
-        <EtatMonstre
-          setup={damageSetup}
-          maj={majDamageSetup}
-          equipe={combatMembre.equipe !== null}
-          motifLead={combatMembre.motif}
-          etroit={etroit}
-          artefacts={artefactsDegats}
-          rappelAuras={rappelAuras !== null}
-          onGuiderResPre={guiderVersResPre}
-          rappelsBuffs={rappelsBuffs}
-        />
-      </div>
+      <CarteEtatMonstre
+        etatMonstre={etatMonstre}
+      />
 
       {/* ⚠️ « Objectif de recherche » N'EST PAS ICI — il est dans la carte
           du bouton Rechercher, plus bas : *quoi* chercher et *chercher* vont
@@ -4693,44 +3792,16 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
         );
 
         const reglagesAvancesTitre = (
-          <>
-            {/* Clé à molette, distincte des curseurs de « Critères de
-                recherche » (forme différente, pas seulement une couleur) —
-                même traitement accent que les autres en-têtes de carte. */}
-            <div className="flex h-6 w-6 flex-none items-center justify-center rounded-md border border-accent/40 bg-accent-soft">
-              <Wrench size={13} className="text-accent" />
-            </div>
-            Réglages avancés
-          </>
+          <TitreReglagesAvances />
         );
 
         const dejaUtiliseesBlock = (
-          <div>
-            <div className="flex flex-wrap items-center gap-1.5 mb-2">
-              {/* Roue de runes (le fond derrière les runes des résultats de
-                  build, RuneWheel.tsx), barrée du symbole « interdit » —
-                  même traitement que l'icône « Exclusion de runes » : ce
-                  réglage retire des runes DÉJÀ PORTÉES de la recherche. */}
-              <IconeInterdite>
-                <img src={WHEEL_IMG} alt="" className="h-4 w-4 object-contain" />
-              </IconeInterdite>
-              <span className="text-[12.5px] font-semibold text-ink-dim">Exclure les runes déjà utilisées</span>
-              <HelpPopover title="Exclure les runes déjà utilisées">
-                Par défaut, la recherche considère TOUT l'inventaire, runes déjà portées ailleurs comprises. Active ce
-                réglage pour retirer de la recherche les runes déjà portées par d'AUTRES monstres dans le périmètre
-                choisi ci-dessous (un seul à la fois) — un build réellement montable sans déruner quelqu'un. Le monstre
-                recherché lui-même n'est jamais exclu de ses propres runes.
-              </HelpPopover>
-              <Interrupteur actif={excludeUsedRunes} onChange={setExcludeUsedRunes} aria-label="Exclure les runes déjà utilisées" />
-            </div>
-            <Segmented
-              options={AUTO_EXCLUSION_SCOPES}
-              value={excludeUsedScope}
-              onChange={setExcludeUsedScope}
-              disabled={!excludeUsedRunes}
-              size="lg"
-            />
-          </div>
+          <RunesDejaUtilisees
+            excludeUsedRunes={excludeUsedRunes}
+            setExcludeUsedRunes={setExcludeUsedRunes}
+            excludeUsedScope={excludeUsedScope}
+            setExcludeUsedScope={setExcludeUsedScope}
+          />
         );
 
         // Exclusion MANUELLE — se superpose à « Exclure les runes déjà
@@ -4743,29 +3814,13 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
         // doigt (voir Segmented.tsx). Le bloc est donc identique dans les
         // deux rendus.
         const monstrePrecisBlock = (
-          <div>
-            <div className="mb-2.5 flex items-center gap-1.5">
-              {/* Même icône que « Monstre & équipement » (GameIcon
-                  "monster"), barrée du symbole « interdit » — même
-                  traitement que l'icône « Exclusion de runes » plus bas :
-                  cette action RETIRE le monstre choisi du pool de runes. */}
-              <IconeInterdite>
-                {/* ⚠️ L'artwork du monstre n'est pas parfaitement centré dans
-                    son canevas — invisible seul, ça se voit à côté du cercle
-                    « interdit », lui parfaitement centré par positionnement
-                    absolu. Léger recalage manuel, propre à cet usage précis. */}
-                <GameIcon name="monster" size={13} className="-translate-x-[1.5px]" />
-              </IconeInterdite>
-              <span className="text-[12.5px] font-semibold text-ink-dim">Exclure les runes d'un monstre</span>
-            </div>
-            <RuneExclusionPicker
-              data={exclusionData}
-              excludeOwnUnitKey={selectedUnitKey}
-              excludeOwnCom2usId={selected?.monster.com2usId ?? null}
-              selected={excludedSelectors}
-              onChange={setExcludedSelectors}
-            />
-          </div>
+          <ExclusionMonstrePrecis
+            exclusionData={exclusionData}
+            selectedUnitKey={selectedUnitKey}
+            selected={selected}
+            excludedSelectors={excludedSelectors}
+            setExcludedSelectors={setExcludedSelectors}
+          />
         );
 
         // ⚠️ **Runes imposées** — déplacé depuis « Critères de recherche »
@@ -4784,59 +3839,11 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
         // avec l'exclusion : même thème (agir sur le POOL de runes à partir
         // de l'exemplaire recherché), même carte.
         const runesImposeesBlock = (
-          <div>
-            <div className="mb-2.5 flex items-center gap-1.5">
-              <p className="label" data-intitule-conserve>Conserver ces slots dans l'optimisation</p>
-              <HelpPopover title="Conserver ces slots dans l'optimisation">
-                Verrouille un emplacement sur la rune que le monstre porte déjà : la recherche gardera
-                <b className="text-ink"> exactement cette rune</b> et n'optimisera que les autres. Utile pour
-                conserver une rune que tu ne veux pas déruner. Les emplacements laissés libres sont optimisés
-                normalement.
-              </HelpPopover>
-            </div>
-            {!selected || selected.gear.runes.length === 0 ? (
-              <p className="text-micro text-ink-dim">Aucune rune équipée sur cet exemplaire — rien à conserver.</p>
-            ) : (
-              <div className="flex flex-wrap gap-1.5">
-                {[1, 2, 3, 4, 5, 6].map((slot) => {
-                  const portee = selected.gear.runes.find((r) => r.slot === slot);
-                  const verrouille = lockedRunes[slot] != null;
-                  if (!portee) {
-                    return (
-                      <span
-                        key={slot}
-                        className="rounded-full border border-border bg-panel2 px-2.5 py-1 text-micro text-ink-dimmer opacity-50"
-                        title={`Aucune rune en emplacement ${slot}`}
-                      >
-                        Slot {slot} —
-                      </span>
-                    );
-                  }
-                  return (
-                    <Pastille
-                      key={slot}
-                      actif={verrouille}
-                      onClick={() =>
-                        setLockedRunes((prev) => {
-                          const next = { ...prev };
-                          if (next[slot] != null) delete next[slot];
-                          else next[slot] = portee.id;
-                          return next;
-                        })
-                      }
-                      icone={<RuneIcon setKey={portee.set} size={13} filter={runeSetIconFilter(verrouille)} />}
-                      libelle={`Slot ${slot} · ${RUNE_EFFECT[portee.main.code]?.label ?? portee.main.code}`}
-                      title={
-                        verrouille
-                          ? `Libérer l'emplacement ${slot}`
-                          : `Imposer cette rune en emplacement ${slot} (le pool de ce slot tombe à 1)`
-                      }
-                    />
-                  );
-                })}
-              </div>
-            )}
-          </div>
+          <RunesImposees
+            selected={selected}
+            lockedRunes={lockedRunes}
+            setLockedRunes={setLockedRunes}
+          />
         );
 
         // ⚠️ `dansPanneau` : dans le panneau, « Exclure les runes d'un
@@ -4849,50 +3856,23 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
         // imposées », un mécanisme DISTINCT (verrou, pas exclusion), suit en
         // dernier après un séparateur, pleine largeur dans les deux cas.
         const exclusionRunesInner = (dansPanneau: boolean) => (
-          <>
-            <p className="mb-3 pl-8 text-[11px] text-ink-dim">Deux réglages indépendants, qui se superposent.</p>
-
-            {dansPanneau ? (
-              // ⚠️ `space-y-4` (blocs) et non `flex flex-col` : sous
-              // `[data-tiroir]`, `align-items: flex-start` raboterait ces deux
-              // blocs — et donc leurs contrôles pleine largeur — à leur contenu.
-              <div className="space-y-4">
-                {monstrePrecisBlock}
-                {dejaUtiliseesBlock}
-              </div>
-            ) : (
-              // Côte à côte à partir de `sm` — cette carte vit maintenant
-              // dans la colonne LARGE (`1fr`) de la grille de réglages, aux
-              // côtés de « Monstre & équipement » (voir le commentaire
-              // d'ouverture de la grille), largement assez pour ce layout
-              // interne. ⚠️ Un `xl:grid-cols-1` a existé ici le temps d'une
-              // révision antérieure de la mise en page, où cette carte se
-              // retrouvait confinée à une colonne étroite (340-400px) —
-              // retiré avec cette colonne, voir historique. Colonne de
-              // gauche plus étroite (toggle + 3 options) que celle de droite
-              // (recherche + liste), pas un 50/50 aveugle.
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-[minmax(200px,260px)_1fr] sm:gap-5">
-                <div className="sm:border-r sm:border-border-soft sm:pr-5">{dejaUtiliseesBlock}</div>
-                {monstrePrecisBlock}
-              </div>
-            )}
-
-            <div className="mt-4 border-t border-border-soft pt-4">{runesImposeesBlock}</div>
-          </>
+          <ExclusionRunesContenu
+            dansPanneau={dansPanneau}
+            monstrePrecisBlock={monstrePrecisBlock}
+            dejaUtiliseesBlock={dejaUtiliseesBlock}
+            runesImposeesBlock={runesImposeesBlock}
+          />
         );
 
         const exclusionRunesTitre = (
-          <>
-            {/* Icône « Runes » de Mon compte (même GameIcon que le menu),
-                barrée du vrai symbole « interdit » (cercle barré, comme le
-                curseur non-cliquable) plutôt qu'un simple trait — l'exclusion
-                RETIRE des runes de la recherche. */}
-            <IconeInterdite taille={22}>
-              <GameIcon name="rune" size={13} />
-            </IconeInterdite>
-            <p className="text-[13.5px] font-bold text-ink">Exclusion de runes</p>
-          </>
+          <TitreExclusionRunes />
         );
+
+        // Un contenu, deux surfaces : la carte du bureau et le panneau au doigt.
+        const reglagesAvancesBureau = reglagesAvancesInner(false);
+        const exclusionRunesBureau = exclusionRunesInner(false);
+        const exclusionRunesPanneau = exclusionRunesInner(true);
+        const reglagesAvancesPanneau = reglagesAvancesInner(true);
 
         return (
           <>
@@ -4904,36 +3884,13 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
                 elle-même ne change JAMAIS de hauteur au dépliement — son
                 contenu déplié flotte par-dessus, il ne s'ajoute plus au DOM
                 en flux normal. */}
-            <div
-              ref={avancesRef}
-              className="hidden lg:block relative rounded-xl border border-border bg-panel p-3 xl:col-start-2 xl:row-start-5"
-            >
-              <ZoneCliquable
-                onClick={() => setShowAdvanced((v) => !v)}
-                aria-expanded={showAdvanced}
-                className="flex w-full items-center gap-1.5 text-sm font-bold text-ink"
-              >
-                {reglagesAvancesTitre}
-                <ChevronDown
-                  size={14}
-                  className={`ml-auto text-ink-dim transition-transform ${showAdvanced ? 'rotate-180' : ''}`}
-                />
-              </ZoneCliquable>
-              {/* ⚠️ `largeurAncre` : le panneau prend EXACTEMENT la largeur de
-                  la carte qui l'ancre, et la suit quand l'écran change de
-                  taille. Les 340 px d'origine en faisaient à peu près la
-                  moitié — une largeur en dur ne peut pas suivre une carte dont
-                  la largeur dépend de la fenêtre.
-                  ⚠️ `hauteur` reste une ESTIMATION, et volontairement
-                  généreuse : elle ne sert qu'à choisir le côté AVANT que le
-                  contenu existe. La surestimer biaise le placement vers le
-                  haut, sans conséquence ; la sous-estimer ouvre du mauvais
-                  côté. `max-h-[70vh] overflow-y-auto` reste le garde-fou sur
-                  une fenêtre basse. */}
-              <FlottantAuto ouvert={showAdvanced} ancre={avancesRef} largeurAncre hauteur={420} rembourrage="md">
-                <div className="max-h-[70vh] overflow-y-auto">{reglagesAvancesInner(false)}</div>
-              </FlottantAuto>
-            </div>
+            <CarteReglagesAvances
+              avancesRef={avancesRef}
+              setShowAdvanced={setShowAdvanced}
+              showAdvanced={showAdvanced}
+              reglagesAvancesTitre={reglagesAvancesTitre}
+              reglagesAvancesBureau={reglagesAvancesBureau}
+            />
 
             {/* Bureau : « Exclusion de runes », colonne 2, rangée 3 — SOUS
                 « Objectif de recherche » (même colonne, rangée 2, voir son
@@ -4952,30 +3909,13 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
                 extérieur) plutôt que réécrit : deux mécanismes de dépliement
                 voisins auraient divergé, et celui-là avait déjà été corrigé
                 une fois pour cette même raison. */}
-            <div
-              ref={exclusionRef}
-              className="hidden lg:block relative rounded-xl border border-accent/50 bg-panel p-3 xl:col-start-2 xl:row-start-4"
-            >
-              <ZoneCliquable
-                onClick={() => setShowExclusion((v) => !v)}
-                aria-expanded={showExclusion}
-                className="flex w-full items-center gap-2 text-sm font-bold text-ink"
-              >
-                {exclusionRunesTitre}
-                <ChevronDown
-                  size={14}
-                  className={`ml-auto text-ink-dim transition-transform ${showExclusion ? 'rotate-180' : ''}`}
-                />
-              </ZoneCliquable>
-              {/* `largeurAncre` comme « Réglages avancés » — voir son
-                  commentaire juste au-dessus.
-                  ⚠️ `hauteur` plus généreuse (560) : ce contenu porte deux
-                  réglages d'exclusion, le picker de monstre et la liste des
-                  runes imposées. Estimation seulement. */}
-              <FlottantAuto ouvert={showExclusion} ancre={exclusionRef} largeurAncre hauteur={560} rembourrage="md">
-                <div className="max-h-[70vh] overflow-y-auto">{exclusionRunesInner(false)}</div>
-              </FlottantAuto>
-            </div>
+            <CarteExclusionRunes
+              exclusionRef={exclusionRef}
+              setShowExclusion={setShowExclusion}
+              showExclusion={showExclusion}
+              exclusionRunesTitre={exclusionRunesTitre}
+              exclusionRunesBureau={exclusionRunesBureau}
+            />
 
             {/* ⚠️ Placée en rangée 6 (`xl:col-span-2`, pleine largeur) : ni
                 dans la colonne Critères (rangées 2-5) ni dans la colonne
@@ -4985,10 +3925,9 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
                 dépliement de Réglages avancés, désormais un flottant hors
                 flux plutôt qu'un bloc qui poussait tout ce qui suivait. */}
             {estimate && (
-              <p className="font-mono text-micro text-ink-dim xl:col-span-2 xl:row-start-6">
-                {formatBig(estimate.perSlot.reduce((a, b) => a + b, 0))} runes gardées après pré-filtrage
-                (pool par emplacement : {estimate.perSlot.join(' + ')})
-              </p>
+              <EstimationPool
+                estimate={estimate}
+              />
             )}
 
             {/* Doigt : panneau « Options de recherche », ordre Exclusion de
@@ -4997,27 +3936,14 @@ export default function OptimizerSection({ recommandations = AUCUNE_RECOMMANDATI
                 dans son propre cadre (`bg-panel2`) : deux unités visuelles
                 distinctes, pas juste un trait de séparation entre deux blocs
                 de texte. */}
-            <MobileSheet ouvert={menuOuvert} onFermer={onFermerMenu} titre="Options de recherche">
-              {/* ⚠️ `space-y-3` et NON `flex flex-col` : le corps du panneau
-                  porte `data-tiroir`, et index.css y pose
-                  `[data-tiroir] .flex-col { align-items: flex-start }` — écrit
-                  pour les rangées d'actions, mais qui rabote ici les deux cartes
-                  à la largeur de leur contenu au lieu de les étirer. En blocs
-                  (`space-y`), les cartes reprennent d'elles-mêmes toute la
-                  largeur du panneau. Même piège que MobileNavSheet. */}
-              <div className="space-y-3">
-                <div className="rounded-lg border border-border-soft bg-panel2 p-3">
-                  <div className="mb-0.5 flex items-center gap-2">{exclusionRunesTitre}</div>
-                  {exclusionRunesInner(true)}
-                </div>
-                <div className="rounded-lg border border-border-soft bg-panel2 p-3">
-                  <div className="mb-3 flex items-center gap-1.5 text-[13px] font-bold text-ink">
-                    {reglagesAvancesTitre}
-                  </div>
-                  {reglagesAvancesInner(true)}
-                </div>
-              </div>
-            </MobileSheet>
+            <OptionsRechercheTelephone
+              menuOuvert={menuOuvert}
+              onFermerMenu={onFermerMenu}
+              exclusionRunesTitre={exclusionRunesTitre}
+              exclusionRunesPanneau={exclusionRunesPanneau}
+              reglagesAvancesTitre={reglagesAvancesTitre}
+              reglagesAvancesPanneau={reglagesAvancesPanneau}
+            />
           </>
         );
       })()}

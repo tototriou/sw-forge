@@ -7,7 +7,9 @@ Ce que fait le noyau de l'appariement de production, `apparierRapide`
 de `pairBuckets` (`src/lib/runeBuildOptim.ts`), la référence. Il sert
 l'appariement séquentiel (`apparier`, `src/lib/rechercheRunes.ts`) et chaque
 Worker de l'appariement parallèle (`parcourirMorceau`). Sa place dans une
-recherche : [pipeline.md § Appariement séquentiel](pipeline.md).
+recherche : [pipeline.md § Appariement séquentiel](pipeline.md). Pourquoi
+des seuils exacts sur tableaux typés, et ce qu'ils écartent :
+[ADR](../../../04-decisions/adr/appariement-par-seuils-exacts.md).
 
 ## Ce qui change, ce qui ne change pas
 

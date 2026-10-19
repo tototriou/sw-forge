@@ -9,7 +9,9 @@ répartit l'appariement d'une grosse recherche sur plusieurs fils ; le Worker
 de résolution sort du fil de l'écran la résolution de l'équipement des
 builds trouvés. Leur place dans une recherche :
 [pipeline.md § Appariement parallèle](pipeline.md) et
-[pipeline.md § Worker de résolution](pipeline.md). Les contraintes à ne pas
+[pipeline.md § Worker de résolution](pipeline.md). Pourquoi un nombre de
+Workers qui suit la machine et l'ordre séquentiel rendu en parallèle :
+[ADR](../../../04-decisions/adr/appariement-par-seuils-exacts.md). Les contraintes à ne pas
 casser : [../invariants.md § Workers](../invariants.md).
 
 | Fichier | Rôle | Plateforme |

@@ -23,7 +23,7 @@ avant terme rend. Les contraintes à ne pas casser sont dans
 | Construction des moitiés | `src/workers/runeBuildOptim.worker.ts`, `src/workers/buildHalf.worker.ts`, `src/lib/rechercheRunes.ts`, `src/lib/constructionRapide.ts` | `buildHalfInWorker`, `construireMoitie`, `construireMoitieRapide` | [elagages.md](elagages.md) |
 | Choix du régime | `src/workers/runeBuildOptim.worker.ts`, `src/workers/parallelPairing.ts`, `src/lib/runeBuildOptim.ts` | `totalPairCount`, `verifierContrat`, `regimeAppariement`, `nombreDeTravailleurs` | [parallelisation.md](parallelisation.md) |
 | Appariement séquentiel | `src/workers/pairingDriver.ts`, `src/lib/rechercheRunes.ts`, `src/lib/appariementRapide.ts` | `drivePairing`, `apparier`, `apparierRapide` | [elagages.md](elagages.md), [02-app/optimizer/feat-interruption.md](../../../02-app/optimizer/feat-interruption.md) |
-| Appariement parallèle | `src/lib/appariementRapideParallele.ts`, `src/workers/appariementRapide.worker.ts`, `src/lib/appariementRapide.ts` | `apparierRapideEnParallele`, `traiterMorceau` | [parallelisation.md](parallelisation.md) |
+| Appariement parallèle | `src/lib/appariementRapideParallele.ts`, `src/workers/appariementRapide.worker.ts`, `src/lib/travailleurAppariement.ts`, `src/lib/appariementRapide.ts` | `apparierRapideEnParallele`, `servirAppariement`, `parcourirMorceau` | [parallelisation.md](parallelisation.md) |
 | Fin de l'appariement | `src/workers/runeBuildOptim.worker.ts`, `src/hooks/useBuildOptimSearch.ts` | `useBuildOptimSearch` | — |
 | Résolution de l'équipement d'un build | `src/lib/relicQueue.ts` | `entreeResolutionDuBuild`, `resoudreEquipementDuBuild` | [artefacts.md](artefacts.md), [reliques.md](reliques.md) |
 | Worker de résolution | `src/workers/resolution.worker.ts`, `src/workers/resolutionBody.ts`, `src/workers/resolutionDistante.ts` | `CorpsResolution`, `ResolutionDistante` | [parallelisation.md](parallelisation.md) |
@@ -200,7 +200,7 @@ Barre et pourcentage : [02-app/optimizer/feat-interruption.md § Barre de progre
 `apparierRapide` (`src/lib/appariementRapide.ts`), qui rend exactement le
 résultat de `pairBuckets` (`src/lib/runeBuildOptim.ts`), la référence ; hors
 contrat numérique, ou avec un traceur de diagnostic, `pairBuckets` lui-même
-(détail du noyau : [elagages.md § Sauts exacts du noyau d'appariement](elagages.md)).
+(détail du noyau : [noyau-appariement.md § Trois sauts](noyau-appariement.md#trois-sauts)).
 L'un et l'autre parcourent toutes les paires de compartiments, par potentiel
 combiné décroissant (`orderedCompartmentPairs`). Pour chaque paire de
 compartiments : sets satisfaisables d'après les comptes agrégés

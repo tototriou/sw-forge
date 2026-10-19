@@ -18,7 +18,8 @@ casser : [../invariants.md § Workers](../invariants.md).
 | --- | --- | --- |
 | `src/workers/parallelPairing.ts` | le seuil du régime, la règle du nombre de Workers (`nombreDeTravailleurs`), le choix du régime (`regimeAppariement`) | neutre |
 | `src/lib/appariementRapideParallele.ts` | coordinateur : plan des morceaux, distribution à la demande, fusion dans l'ordre, progression, arrêt (`apparierRapideEnParallele`) | neutre |
-| `src/lib/appariementRapide.ts` | corps d'un Worker (`initialiserTravailleur`, `traiterMorceau`), le noyau, les types du protocole | neutre |
+| `src/lib/travailleurAppariement.ts` | ce que fait un Worker d'appariement : `servirAppariement` (messages, tranches de `TRANCHE_MS`, arrêt), `MessageVersTravailleur` | neutre |
+| `src/lib/appariementRapide.ts` | corps d'un morceau (`initialiserTravailleur`, `parcourirMorceau` ; `traiterMorceau`, le même d'un bloc, pour les tests), le noyau, les types du protocole | neutre |
 | `src/workers/runeBuildOptim.worker.ts` | choix du régime, lanceur `lancerTravailleurNavigateur`, arrêt et erreur | navigateur |
 | `src/workers/appariementRapide.worker.ts` | coquille d'un Worker d'appariement | navigateur |
 | `scripts/lib/appariementRapideNode.ts` | lanceur `lancerTravailleurNode`, paquet `assurerBundleAppariementRapide` | Node |

@@ -890,7 +890,7 @@ export function testAurasCarteEgaleTri() {
  * Le MÊME build par les constructeurs de l'écran et du CLI, le
  * Worker séquentiel (préparation sur le message cloné, comme `postMessage`)
  * et l'appariement PARALLÈLE de production : `apparierRapideEnParallele` + vrais
- * `worker_threads` exécutant `traiterMorceau` (`scripts/lib/appariement-rapide-worker.ts`).
+ * `worker_threads` exécutant `servirAppariement` → `parcourirMorceau` (`scripts/lib/appariement-rapide-worker.ts`).
  * ⚠️ FIDÉLITÉ : DIVERGE DE LA PROD — sur ce petit pool, `totalPairCount` est
  * sous le seuil de 100 M : la production choisirait le séquentiel, le
  * parallèle est FORCÉ ici. Le cas réel au-dessus du seuil est la recette

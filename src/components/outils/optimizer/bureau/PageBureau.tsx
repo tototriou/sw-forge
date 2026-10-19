@@ -44,6 +44,11 @@ import {
 const HAUT_PAGE = 68;
 // Ce qui reste libre sous une colonne fixe, au bas de la partie visible.
 const MARGE_BAS = 16;
+// L'espace entre le bord de la partie visible (barre du haut, haut du volet)
+// et le haut collé (68 − 48 en pleine page, le rembourrage de 20 du volet) :
+// en A3, la rangée des onglets le couvre de son fond (`-mt-5 pt-5`), pour que
+// rien de ce qui défile n'y paraisse au-dessus d'elle.
+const DESSUS = 20;
 
 interface Colle {
   largeur: number | null;
@@ -76,9 +81,10 @@ function useColle(racine: RefObject<HTMLDivElement>, onglets: RefObject<HTMLDivE
       setColle((avant) => {
         const style = {
           '--colle-haut': `${haut}px`,
-          '--colle-colonnes': `${haut + rangeeOnglets}px`,
+          '--colle-onglets': `${haut - DESSUS}px`,
+          '--colle-colonnes': `${haut - DESSUS + rangeeOnglets}px`,
           '--hauteur-essentiels': `${Math.max(0, visible - haut - MARGE_BAS)}px`,
-          '--hauteur-colonnes': `${Math.max(0, visible - haut - rangeeOnglets - MARGE_BAS)}px`,
+          '--hauteur-colonnes': `${Math.max(0, visible - haut + DESSUS - rangeeOnglets - MARGE_BAS)}px`,
         } as CSSProperties;
         const meme = avant.largeur === largeur && JSON.stringify(avant.style) === JSON.stringify(style);
         return meme ? avant : { largeur, style };
@@ -238,7 +244,7 @@ export default function PageBureau(props: PageBureauProps) {
           data-zone="onglets"
           className={
             '@[904px]:col-[2] @[904px]:row-[1]'
-            + ' @[1180px]:col-[2/-1] @[1180px]:sticky @[1180px]:top-[var(--colle-haut)] @[1180px]:z-30 @[1180px]:bg-bg @[1180px]:pb-4'
+            + ' @[1180px]:col-[2/-1] @[1180px]:sticky @[1180px]:top-[var(--colle-onglets)] @[1180px]:z-30 @[1180px]:-mt-5 @[1180px]:bg-bg @[1180px]:pb-4 @[1180px]:pt-5'
           }
         >
           <OngletsColonnes affichees={affichees} onBasculer={(c) => props.onColonnes(basculerColonne(etat, c, deux))} />
